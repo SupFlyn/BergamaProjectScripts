@@ -1519,11 +1519,11 @@ def sheet_page(fitz, path, pno):
 
 
 def crop_words(fitz, page, clip, drop):
-    """The sheet's words inside clip as units {lines, x0, y0, x1, y1 (pt), size, bold, colour, align, angle}: one unit
-    per text block (a label and its keyword lines stay together), wording and caveat rules applied."""
-    units = []
+    """The sheet's words inside clip as units {lines, bb (pt), size, bold, col, align, angle, org}: lines stacked one
+    under the other (a label and its keyword lines) form one unit, words side by side stay apart; a word drawn twice
+    (halo under fill) is kept once, in its darker colour; wording, caveat and [n] rules applied."""
+    rows = []
     for b in page.get_text("dict", clip=clip)["blocks"]:
-        rows = []
         for ln in b.get("lines", []):
             t = "".join(sp["text"] for sp in ln["spans"]).strip()
             if not t:
@@ -1533,34 +1533,53 @@ def crop_words(fitz, page, clip, drop):
                 continue
             for a, b_ in WORDING:
                 t = re.sub(a, b_, t)
-            t = CAVEAT.sub("", t).strip()
+            t = CAVEAT.sub("", re.sub(r"\s*\[(?:\d{1,3}|[A-Z]{1,2})(?:[,\-–]\s*(?:\d{1,3}|[A-Z]{1,2}))*\]", "", t)).strip()
             if not t or any(re.search(d, t) for d in drop) or re.search(r"\(?\bidea:", t, re.I):
-                continue
-            if any(r["t"] == t and abs(r["bb"].x0 - ln["bbox"][0]) < 2 and abs(r["bb"].y0 - ln["bbox"][1]) < 2
-                   for r in rows):                   # the same word drawn twice (outline under fill)
                 continue
             sp = max(ln["spans"], key=lambda q: q["size"])
             dx, dy = ln.get("dir", (1.0, 0.0))
-            rows.append(dict(t=t, bb=bb, size=sp["size"], bold=bool(sp["flags"] & 16) or "bold" in sp["font"].lower(),
-                             col="%06X" % sp["color"], angle=-math.degrees(math.atan2(dy, dx)), org=ln["spans"][0]["origin"]))
-        flat = [r for r in rows if abs(r["angle"]) < 2]
-        for r in rows:
-            if abs(r["angle"]) >= 2:
-                units.append(dict(lines=[r["t"]], bb=r["bb"], size=r["size"], bold=r["bold"], col=r["col"],
-                                  align="L", angle=r["angle"], org=r["org"]))
-        if flat:
-            bb = fitz.Rect(flat[0]["bb"])
-            for r in flat[1:]:
-                bb |= r["bb"]
-            cx = [(r["bb"].x0 + r["bb"].x1) / 2 for r in flat]
-            al = "L"
-            if len(flat) > 1 and max(cx) - min(cx) < 1.0 and max(r["bb"].x0 for r in flat) - min(r["bb"].x0 for r in flat) > 1.0:
+            col = sp["color"]
+            r = dict(t=t, bb=bb, size=sp["size"], bold=bool(sp["flags"] & 16) or "bold" in sp["font"].lower(),
+                     col="%06X" % col, lum=((col >> 16) & 255) * 0.3 + ((col >> 8) & 255) * 0.59 + (col & 255) * 0.11,
+                     angle=-math.degrees(math.atan2(dy, dx)), org=ln["spans"][0]["origin"])
+            twin = next((q for q in rows if q["t"] == t and abs(q["bb"].x0 - bb.x0) < 2.5 and
+                         abs(q["bb"].y0 - bb.y0) < 2.5), None)
+            if twin:                                     # halo copy: keep the darker one
+                if r["lum"] < twin["lum"]:
+                    twin.update(col=r["col"], lum=r["lum"])
+                continue
+            rows.append(r)
+    units = []
+    for r in sorted(rows, key=lambda q: (q["bb"].y0, q["bb"].x0)):
+        if abs(r["angle"]) >= 2:
+            units.append(dict(lines=[r["t"]], bbs=[r["bb"]], bb=fitz.Rect(r["bb"]), size=r["size"], bold=r["bold"],
+                              col=r["col"], angle=r["angle"], org=r["org"]))
+            continue
+        host = None
+        for u in units:
+            if abs(u["angle"]) >= 2 or abs(u["size"] - r["size"]) > 0.25 * max(u["size"], r["size"]) + 0.6:
+                continue
+            last = u["bbs"][-1]
+            gap = r["bb"].y0 - last.y1
+            ov = min(last.x1, r["bb"].x1) - max(last.x0, r["bb"].x0)
+            if -0.3 * r["size"] <= gap <= 0.7 * r["size"] and ov >= 0.3 * min(last.width, r["bb"].width):
+                host = u
+                break
+        if host:
+            host["lines"].append(r["t"]); host["bbs"].append(r["bb"]); host["bb"] |= r["bb"]
+        else:
+            units.append(dict(lines=[r["t"]], bbs=[r["bb"]], bb=fitz.Rect(r["bb"]), size=r["size"], bold=r["bold"],
+                              col=r["col"], angle=0.0, org=r["org"]))
+    for u in units:
+        bbs, al = u["bbs"], "L"
+        if len(bbs) > 1:
+            cx = [(b.x0 + b.x1) / 2 for b in bbs]
+            sx0 = max(b.x0 for b in bbs) - min(b.x0 for b in bbs)
+            if max(cx) - min(cx) < 1.0 and sx0 > 1.0:
                 al = "C"
-            elif len(flat) > 1 and max(r["bb"].x1 for r in flat) - min(r["bb"].x1 for r in flat) < 1.0 and \
-                    max(r["bb"].x0 for r in flat) - min(r["bb"].x0 for r in flat) > 1.0:
+            elif max(b.x1 for b in bbs) - min(b.x1 for b in bbs) < 1.0 and sx0 > 1.0:
                 al = "R"
-            units.append(dict(lines=[r["t"] for r in flat], bb=bb, size=max(r["size"] for r in flat),
-                              bold=flat[0]["bold"], col=flat[0]["col"], align=al, angle=0.0, org=flat[0]["org"]))
+        u["align"] = al
     return units
 
 
@@ -1595,9 +1614,16 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
         sig = ("\n".join(u["lines"]), round(u["bb"].x0 / 3), round(u["bb"].y0 / 3))
         if sig not in seen:                          # twin blocks (a halo copy of the same words)
             seen.append(sig); units.append(u)
-    units.sort(key=lambda u: (-u["size"], not u["bold"]))
+    units.sort(key=lambda u: (not (len(u["lines"]) == 1 and len(u["lines"][0]) <= 3), -u["size"], not u["bold"]))
     placed, dropped = [], []
     fx0, fy0, fx1, fy1 = x, y, x + cw * f, y + ch * f
+
+    def hits(b, o):
+        """b collides with placed box o; a symbol's number (o[4]) only counts when b covers 40 % of it."""
+        ix, iy = min(b[2], o[2]) - max(b[0], o[0]), min(b[3], o[3]) - max(b[1], o[1])
+        if ix <= 0 or iy <= 0:
+            return False
+        return not o[4] or ix * iy > 0.4 * (o[2] - o[0]) * (o[3] - o[1])
     for u in units:
         size = min(max(T["label"], u["size"] * f), 14.0)
         lead = size * PT * 1.15
@@ -1609,9 +1635,9 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
             box = (min(p[0] for p in pts) - 0.5, min(p[1] for p in pts) - size * PT, max(p[0] for p in pts) + 0.5,
                    max(p[1] for p in pts) + 0.5)
             if box[0] < fx0 or box[2] > fx1 or box[1] < fy0 or box[3] > fy1 or \
-                    any(box[0] < o[2] and o[0] < box[2] and box[1] < o[3] and o[1] < box[3] for o in placed):
+                    any(hits(box, o) for o in placed):
                 dropped.append(u["lines"][0]); continue
-            placed.append(box)
+            placed.append(box + (False,))
             typo.line(pg, src.sub(u["lines"][0]), ox, oy, size, u["col"], u["bold"], "L", angle=u["angle"])
             continue
         lines = [src.sub(t) for t in u["lines"]]
@@ -1622,21 +1648,22 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
         ax = {"L": bx0, "C": (bx0 + bx1) / 2, "R": bx1}[u["align"]]
         cy = (by0 + by1) / 2
         ok = None
-        for dx, dy in ((0, 0), (0, -hgt - 0.6), (0, hgt + 0.6), (wd * 0.6, 0), (-wd * 0.6, 0), (0, -2 * hgt - 1.2),
-                       (0, 2 * hgt + 1.2)):
+        sym = len(lines) == 1 and len(lines[0]) <= 3        # a number or letter on a symbol: stays on it
+        for dx, dy in ((0, 0),) if sym else ((0, 0), (0, -hgt * 0.5), (0, hgt * 0.5), (0, -hgt - 0.6), (0, hgt + 0.6),
+                                              (wd * 0.6, 0), (-wd * 0.6, 0), (0, -2 * hgt - 1.2), (0, 2 * hgt + 1.2)):
             left = ax + dx - {"L": 0.0, "C": wd / 2, "R": wd}[u["align"]]
             top = cy + dy - hgt / 2
             box = (left - 0.3, top - 0.3, left + wd + 0.3, top + hgt + 0.3)
             if box[0] < fx0 or box[2] > fx1 or box[1] < fy0 or box[3] > fy1:
                 continue
-            if any(box[0] < o[2] and o[0] < box[2] and box[1] < o[3] and o[1] < box[3] for o in placed):
+            if not sym and any(hits(box, o) for o in placed):
                 continue
             ok = (left, top, box)
             break
         if not ok:
             dropped.append(" / ".join(lines)); continue
         left, top, box = ok
-        placed.append(box)
+        placed.append(box + (sym,))
         xa = left + {"L": 0.0, "C": wd / 2, "R": wd}[u["align"]]
         for k_, t in enumerate(lines):
             typo.line(pg, t, xa, top + size * PT * 0.75 + k_ * lead, size, u["col"], u["bold"], u["align"])
