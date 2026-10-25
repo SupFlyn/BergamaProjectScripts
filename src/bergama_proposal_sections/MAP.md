@@ -2,10 +2,10 @@
 
 | function / data | file | line |
 |---|---|---|
-| cite | code.py | 104 |
-| text_w | code.py | 131 |
+| cite | code.py | 110 |
+| text_w | code.py | 137 |
 | wrap | ../common/wrap.py | - |
-| Page | code.py | 138 |
+| Page | code.py | 144 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -19,30 +19,19 @@
 | rect | ../common/rect.py | - |
 | node | ../common/node.py | - |
 | para | ../common/para.py | - |
-| flow_arrow | code.py | 193 |
-| pict | code.py | 199 |
-| chips | code.py | 270 |
-| frame | code.py | 283 |
+| flow_arrow | code.py | 199 |
+| pict | code.py | 205 |
+| chips | code.py | 276 |
+| frame | code.py | 289 |
 | sketch_engine | ../common/sketch_engine.py | - |
-| draw_concept | code.py | 307 |
+| draw_concept | code.py | 313 |
 | load_palette | ../common/load_palette.py | - |
 | SKETCH_SRC | data/SKETCH_SRC.py | - |
 | booklet_assets | ../common/booklet_assets.py | - |
-| _bk_tf | parts/90_booklet.py | 22 |
-| _bk_lab | parts/90_booklet.py | 35 |
-| _bk_lines | parts/90_booklet.py | 40 |
-| _bk_walk | parts/90_booklet.py | 46 |
-| _bk_node | parts/90_booklet.py | 51 |
-| _bk_up | parts/90_booklet.py | 59 |
-| _bk_k4 | parts/90_booklet.py | 117 |
-| _bk_curve | parts/90_booklet.py | 173 |
-| _bk_k5 | parts/90_booklet.py | 179 |
-| _bk_down | parts/90_booklet.py | 245 |
-| _bk_minlw | parts/90_booklet.py | 298 |
-| bk_draw | parts/90_booklet.py | 309 |
-| booklet_export | parts/90_booklet.py | 331 |
-| build_sheet | code.py | 358 |
-| main | code.py | 408 |
-| chain_fire | code.py | 434 |
-| done_text | code.py | 455 |
-| write_log | code.py | 460 |
+| _bk_hex | parts/90_booklet.py | 16 |
+| booklet_export | parts/90_booklet.py | 20 |
+| build_sheet | code.py | 365 |
+| main | code.py | 416 |
+| chain_fire | code.py | 442 |
+| done_text | code.py | 463 |
+| write_log | code.py | 468 |
