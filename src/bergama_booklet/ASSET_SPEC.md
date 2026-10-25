@@ -49,3 +49,8 @@ project folder `booklet/` (same values).
 ## Content rules for every block
 No fact twice in the booklet (the assembler logs any repeated sentence of 25+ characters with both page numbers).
 No personal or internal attributions. Keywords over sentences. Visible strings over ~60 characters only in text blocks.
+
+## Where the code goes (25 Oct 19:40, after the repo delivery)
+write_pdf/Page stay inside each script (5-6 variants). The booklet output goes in once: `src/common/booklet_assets.py`,
+one `#@include ../common/booklet_assets.py` line per script, called from that script's own write step. Edit in `src/`,
+then tools/build.py, check.py, chain.sh + compare.sh (repo README); never hand-edit dist/ or scripts/.
