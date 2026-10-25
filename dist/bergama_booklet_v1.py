@@ -16,7 +16,7 @@ Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
 A missing asset leaves a labelled placeholder frame naming the script, so the booklet always builds.
 All text is written by this script with one embedded TrueType font (Arial on Windows), whole lines, never outlined.
 """
-import os, re, time, json
+import os, re, time, json, math
 
 # ---- SETTINGS ----
 VERSION = "v1"
@@ -1201,10 +1201,14 @@ def roww(r):
     return ROW_Y0 + (r - 1) * (ROW_H + GUT)
 
 
-def slot_rect(c1, c2, r1, r2):
-    """x, y, w, h in mm of a block spanning columns c1-c2 and rows r1-r2."""
-    x, y = colx(c1), roww(r1)
-    return x, y, (c2 - c1 + 1) * COL + (c2 - c1) * GUT, (r2 - r1 + 1) * ROW_H + (r2 - r1) * GUT
+def slot_rect(c1, c2, r1, r2, unit="row"):
+    """x, y, w, h in mm of a block spanning columns c1-c2 and rows r1-r2; unit "half" = half rows 1-8
+    (26 mm + 4 mm gutter: two half rows make one row)."""
+    x, w = colx(c1), (c2 - c1 + 1) * COL + (c2 - c1) * GUT
+    if unit == "half":
+        hh = (ROW_H - GUT) / 2.0
+        return x, ROW_Y0 + (r1 - 1) * (hh + GUT), w, (r2 - r1 + 1) * hh + (r2 - r1) * GUT
+    return x, roww(r1), w, (r2 - r1 + 1) * ROW_H + (r2 - r1) * GUT
 
 
 def hexrgb(h):
@@ -1237,16 +1241,32 @@ class Typo(object):
     def __init__(self, fitz):
         self.fam, self.freg, self.fbold = font_files()
         self.F = {False: fitz.Font(fontfile=self.freg), True: fitz.Font(fontfile=self.fbold)}
-        self.issues, self.seen = [], {}
+        self.issues, self.seen, self.notes = [], {}, []
 
     def width(self, s, size, bold=False):
         return self.F[bold].text_length(s, fontsize=size) * PT
+
+    def split_long(self, word, w, size, bold=False):
+        """A word wider than w (a URL) cut into pieces that fit, after / . - _ ? & = where possible."""
+        out, cur = [], ""
+        for ch in word:
+            if cur and self.width(cur + ch, size, bold) > w:
+                m = max(cur.rfind(c) for c in "/.-_?&=")
+                if m > len(cur) // 2:
+                    out.append(cur[:m + 1]); cur = cur[m + 1:]
+                else:
+                    out.append(cur); cur = ""
+            cur += ch
+        return out + [cur]
 
     def wrap(self, s, w, size, bold=False):
         out = []
         for para in str(s).split("\n"):
             line = ""
+            words = []
             for word in para.split(" "):
+                words += self.split_long(word, w, size, bold) if self.width(word, size, bold) > w else [word]
+            for word in words:
                 t = (line + " " + word).strip()
                 if line and self.width(t, size, bold) > w:
                     out.append(line); line = word
@@ -1255,16 +1275,23 @@ class Typo(object):
             out.append(line)
         return out
 
-    def line(self, page, s, x, y, size, col=INK, bold=False, align="L"):
-        """One line of live text; (x, y) = left (or centre/right) end of the baseline, mm."""
+    def line(self, page, s, x, y, size, col=INK, bold=False, align="L", angle=0.0, small_ok=False):
+        """One line of live text; (x, y) = left (or centre/right) end of the baseline, mm; angle in degrees
+        (counter-clockwise, about the baseline start). small_ok: only the sources page may go below 7 pt."""
         if not s:
             return
-        if size < MIN_CAPTION:
+        if size < MIN_CAPTION and not small_ok:
             self.issues.append("TYPE BELOW 7 pt (%.1f): %s" % (size, s[:40]))
         if align != "L":
             wd = self.width(s, size, bold)
             x -= wd / 2 if align == "C" else wd
-        page.insert_text((x * K, y * K), s, fontname="FB" if bold else "FR", fontsize=size, color=hexrgb(col))
+        if abs(angle) > 0.5:
+            import fitz as _fz
+            pt = _fz.Point(x * K, y * K)
+            page.insert_text(pt, s, fontname="FB" if bold else "FR", fontsize=size, color=hexrgb(col),
+                             morph=(pt, _fz.Matrix(-angle)))
+        else:
+            page.insert_text((x * K, y * K), s, fontname="FB" if bold else "FR", fontsize=size, color=hexrgb(col))
 
     def block(self, page, pno, s, x, y, w, size, lead, col=INK, bold=False, max_y=None, where=""):
         """Wrapped text from baseline y; stops at max_y and reports what did not fit. Returns the next baseline."""
@@ -1461,6 +1488,168 @@ def put_drawing(fitz, pg, typo, pno, rect, blk, adir, src, sid):
     typo.line(pg, cap, x, y + h - 1.0, T["caption"], INK2)
 
 
+# ---- crops of the scripts' own sheets (Aras 25 Oct 21:47: the booklet shows the sheets' drawings, re-laid) ----
+STD_SCALES = (200, 250, 500, 1000, 1250, 2000, 2500, 5000, 10000, 20000, 25000, 50000)
+CAVEAT = re.compile(r"\s*(?::|·|-|,)?\s*\(?(?:not designed|route not designed|not verified|unverified|schematic"
+                    r"(?:, not to scale)?|not to scale|provisional)\)?\s*$", re.I)
+WORDING = [(r"\bRIVERSIDE\b", "STREAMSIDE"), (r"\bRiverside\b", "Streamside"), (r"\briverside\b", "streamside"),
+           (r"\bRIVERBED\b", "STREAM BED"), (r"\briverbed\b", "stream bed"), (r"\bRIVER\b", "STREAM"),
+           (r"\bRiver\b", "Stream"), (r"\briver\b", "stream")]
+_SHEETS = {}
+
+
+def sheet_page(fitz, path, pno):
+    """(page without its text, page with it) of a sheet PDF, cached: the drawing is shown from the copy whose words
+    were removed (vector and images kept), the words are read from the original."""
+    key = (path, pno)
+    if key not in _SHEETS:
+        org = fitz.open(path)
+        bare = fitz.open()
+        bare.insert_pdf(org, from_page=pno, to_page=pno)
+        bp = bare[0]
+        for b in bp.get_text("dict")["blocks"]:
+            for ln in b.get("lines", []):
+                for sp in ln["spans"]:
+                    if sp["text"].strip():
+                        bp.add_redact_annot(fitz.Rect(sp["bbox"]))
+        bp.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE, graphics=fitz.PDF_REDACT_LINE_ART_NONE,
+                            text=fitz.PDF_REDACT_TEXT_REMOVE)
+        _SHEETS[key] = (bare, org[pno])
+    return _SHEETS[key]
+
+
+def crop_words(fitz, page, clip, drop):
+    """The sheet's words inside clip as units {lines, x0, y0, x1, y1 (pt), size, bold, colour, align, angle}: one unit
+    per text block (a label and its keyword lines stay together), wording and caveat rules applied."""
+    units = []
+    for b in page.get_text("dict", clip=clip)["blocks"]:
+        rows = []
+        for ln in b.get("lines", []):
+            t = "".join(sp["text"] for sp in ln["spans"]).strip()
+            if not t:
+                continue
+            bb = fitz.Rect(ln["bbox"])
+            if not clip.contains(fitz.Point((bb.x0 + bb.x1) / 2, (bb.y0 + bb.y1) / 2)):
+                continue
+            for a, b_ in WORDING:
+                t = re.sub(a, b_, t)
+            t = CAVEAT.sub("", t).strip()
+            if not t or any(re.search(d, t) for d in drop) or re.search(r"\(?\bidea:", t, re.I):
+                continue
+            if any(r["t"] == t and abs(r["bb"].x0 - ln["bbox"][0]) < 2 and abs(r["bb"].y0 - ln["bbox"][1]) < 2
+                   for r in rows):                   # the same word drawn twice (outline under fill)
+                continue
+            sp = max(ln["spans"], key=lambda q: q["size"])
+            dx, dy = ln.get("dir", (1.0, 0.0))
+            rows.append(dict(t=t, bb=bb, size=sp["size"], bold=bool(sp["flags"] & 16) or "bold" in sp["font"].lower(),
+                             col="%06X" % sp["color"], angle=-math.degrees(math.atan2(dy, dx)), org=ln["spans"][0]["origin"]))
+        flat = [r for r in rows if abs(r["angle"]) < 2]
+        for r in rows:
+            if abs(r["angle"]) >= 2:
+                units.append(dict(lines=[r["t"]], bb=r["bb"], size=r["size"], bold=r["bold"], col=r["col"],
+                                  align="L", angle=r["angle"], org=r["org"]))
+        if flat:
+            bb = fitz.Rect(flat[0]["bb"])
+            for r in flat[1:]:
+                bb |= r["bb"]
+            cx = [(r["bb"].x0 + r["bb"].x1) / 2 for r in flat]
+            al = "L"
+            if len(flat) > 1 and max(cx) - min(cx) < 1.0 and max(r["bb"].x0 for r in flat) - min(r["bb"].x0 for r in flat) > 1.0:
+                al = "C"
+            elif len(flat) > 1 and max(r["bb"].x1 for r in flat) - min(r["bb"].x1 for r in flat) < 1.0 and \
+                    max(r["bb"].x0 for r in flat) - min(r["bb"].x0 for r in flat) > 1.0:
+                al = "R"
+            units.append(dict(lines=[r["t"] for r in flat], bb=bb, size=max(r["size"] for r in flat),
+                              bold=flat[0]["bold"], col=flat[0]["col"], align=al, angle=0.0, org=flat[0]["org"]))
+    return units
+
+
+def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
+    """A panel of a script's sheet, scaled into the frame (top-left), its words set again as live labels >= 7.5 pt:
+    a label that would collide is moved (above, below, beside), else left out and logged."""
+    x, y, w, h = rect
+    cap_h = 5.0
+    dh = h - cap_h
+    path = os.path.join(sdir, blk.get("pdf", ""))
+    if not os.path.isfile(path):
+        placeholder(pg, typo, (x, y, w, dh), "missing sheet " + blk.get("pdf", "?"))
+        return
+    bare, org = sheet_page(fitz, path, int(blk.get("page", 0)))
+    r = blk["rect_mm"]
+    clip = fitz.Rect(r[0] * K, r[1] * K, r[2] * K, r[3] * K) & org.rect
+    cw, ch = clip.width / K, clip.height / K
+    f = min(w / cw, dh / ch)
+    den, sden = None, blk.get("scale_den")
+    if sden:
+        raw = sden / f
+        std = min([v for v in STD_SCALES if v >= raw * 0.999] or [raw])
+        if std / raw <= 1.25:
+            f, den = sden / std, std
+        else:
+            den = int(round(raw, -1))
+    tgt = fitz.Rect(x * K, y * K, (x + cw * f) * K, (y + ch * f) * K)
+    pg.show_pdf_page(tgt, bare, 0, clip=clip)
+    T_ = lambda px, py: (x + (px - clip.x0) / K * f, y + (py - clip.y0) / K * f)
+    units, seen = [], []
+    for u in crop_words(fitz, org, clip, blk.get("drop") or []):
+        sig = ("\n".join(u["lines"]), round(u["bb"].x0 / 3), round(u["bb"].y0 / 3))
+        if sig not in seen:                          # twin blocks (a halo copy of the same words)
+            seen.append(sig); units.append(u)
+    units.sort(key=lambda u: (-u["size"], not u["bold"]))
+    placed, dropped = [], []
+    fx0, fy0, fx1, fy1 = x, y, x + cw * f, y + ch * f
+    for u in units:
+        size = min(max(T["label"], u["size"] * f), 14.0)
+        lead = size * PT * 1.15
+        if abs(u["angle"]) >= 2:                                 # rotated word (a street name): its own line
+            ox, oy = T_(*u["org"])
+            wd = typo.width(u["lines"][0], size, u["bold"])
+            a = math.radians(u["angle"])
+            pts = [(ox, oy), (ox + wd * math.cos(a), oy - wd * math.sin(a))]
+            box = (min(p[0] for p in pts) - 0.5, min(p[1] for p in pts) - size * PT, max(p[0] for p in pts) + 0.5,
+                   max(p[1] for p in pts) + 0.5)
+            if box[0] < fx0 or box[2] > fx1 or box[1] < fy0 or box[3] > fy1 or \
+                    any(box[0] < o[2] and o[0] < box[2] and box[1] < o[3] and o[1] < box[3] for o in placed):
+                dropped.append(u["lines"][0]); continue
+            placed.append(box)
+            typo.line(pg, src.sub(u["lines"][0]), ox, oy, size, u["col"], u["bold"], "L", angle=u["angle"])
+            continue
+        lines = [src.sub(t) for t in u["lines"]]
+        wd = max(typo.width(t, size, u["bold"]) for t in lines)
+        hgt = size * PT * 0.95 + lead * (len(lines) - 1)
+        bx0, by0 = T_(u["bb"].x0, u["bb"].y0)
+        bx1, by1 = T_(u["bb"].x1, u["bb"].y1)
+        ax = {"L": bx0, "C": (bx0 + bx1) / 2, "R": bx1}[u["align"]]
+        cy = (by0 + by1) / 2
+        ok = None
+        for dx, dy in ((0, 0), (0, -hgt - 0.6), (0, hgt + 0.6), (wd * 0.6, 0), (-wd * 0.6, 0), (0, -2 * hgt - 1.2),
+                       (0, 2 * hgt + 1.2)):
+            left = ax + dx - {"L": 0.0, "C": wd / 2, "R": wd}[u["align"]]
+            top = cy + dy - hgt / 2
+            box = (left - 0.3, top - 0.3, left + wd + 0.3, top + hgt + 0.3)
+            if box[0] < fx0 or box[2] > fx1 or box[1] < fy0 or box[3] > fy1:
+                continue
+            if any(box[0] < o[2] and o[0] < box[2] and box[1] < o[3] and o[1] < box[3] for o in placed):
+                continue
+            ok = (left, top, box)
+            break
+        if not ok:
+            dropped.append(" / ".join(lines)); continue
+        left, top, box = ok
+        placed.append(box)
+        xa = left + {"L": 0.0, "C": wd / 2, "R": wd}[u["align"]]
+        for k_, t in enumerate(lines):
+            typo.line(pg, t, xa, top + size * PT * 0.75 + k_ * lead, size, u["col"], u["bold"], u["align"])
+    if dropped:
+        typo.issues.append("CROP WORDS LEFT OUT p.%s %s (no room at %.1f pt): %s" %
+                           (pno, sid, T["label"], "; ".join(d[:24] for d in dropped[:8]) +
+                            (" ... +%d" % (len(dropped) - 8) if len(dropped) > 8 else "")))
+    cap = src.sub(blk.get("caption", ""))
+    if den:
+        cap = (cap + "   " if cap else "") + "1:{:,}".format(int(den))
+    typo.line(pg, cap, x, y + h - 1.0, T["caption"], INK2)
+
+
 def put_text(pg, typo, pno, rect, blk, src, sid):
     x, y, w, h = rect
     w = min(w, MEASURE)
@@ -1526,7 +1715,7 @@ def put_image(fitz, pg, typo, rect, blk, src):
     p = next((c for c in cand if os.path.isfile(c)), None)
     cap_h = 5.0 if blk.get("caption") else 0.0
     if not p:
-        placeholder(pg, typo, (x, y, w, h - cap_h), "image frame: drop %s.jpg into Downloads/Bergama/booklet_images" % name)
+        placeholder(pg, typo, (x, y, w, h - cap_h), "%s.jpg missing" % name)
     else:
         pg.insert_image(fitz.Rect(x * K, y * K, (x + w) * K, (y + h - cap_h) * K), filename=p, keep_proportion=True)
     typo.line(pg, src.sub(blk.get("caption", "")), x, y + h - 1.0, T["caption"], INK2)
@@ -1560,22 +1749,48 @@ def cover(pg, typo, pages):
 
 
 def sources_page(pg, typo, src, pno):
+    """All sources on ONE page (Aras 25 Oct 21:54): three columns, every entry wrapped to its column (long URLs cut),
+    the type size lowered step by step until everything fits; only this page may go below 7 pt."""
     typo.line(pg, "SOURCES", colx(1), 16, T["kicker"], ACCENT, True)
     typo.line(pg, "Sources", colx(1), 32, T["title"], INK, True)
     pg.draw_line((colx(1) * K, 34 * K), ((PW - ML) * K, 34 * K), color=hexrgb(RULE), width=0.25)
     cols = [(1, 4), (5, 8), (9, 12)]
-    ci, y = 0, 42.0
+    y0, y1 = 42.0, FOOT_RULE - 3.0
+    txts = []
     for i, key in enumerate(src.order, 1):
         d = src.defs[key]
-        x, _, w, _ = slot_rect(cols[ci][0], cols[ci][1], 1, 1)
-        txt = "[%d] %s" % (i, d.get("text", key)) + ("  " + d["url"] if d.get("url") else "")
-        need = len(typo.wrap(txt, w, T["caption"])) * LEAD["caption"] + 1.5
-        if y + need > 272:
-            ci += 1; y = 42.0
-            if ci >= len(cols):
-                typo.issues.append("SOURCES PAGE FULL: %d sources not listed" % (len(src.order) - i + 1)); break
-            x, _, w, _ = slot_rect(cols[ci][0], cols[ci][1], 1, 1)
-        y = typo.block(pg, pno, txt, x, y, w, T["caption"], LEAD["caption"], INK) + 1.5
+        txts.append("[%d] %s" % (i, d.get("text", key)) + (" " + d["url"] if d.get("url") else ""))
+    w = slot_rect(1, 4, 1, 1)[2]
+
+    def layout(size):
+        lead, gap = size * PT * 1.18, size * PT * 0.6
+        out, ci, y = [], 0, y0 + size * PT
+        for t in txts:
+            lines = typo.wrap(t, w - 1.5, size)
+            need = len(lines) * lead
+            if y + need - lead > y1:
+                ci, y = ci + 1, y0 + size * PT
+                if ci >= len(cols):
+                    return None
+            out.append((ci, y, lines))
+            y += need + gap
+        return out, lead
+    size, res = T["caption"], None
+    while size >= 3.0:
+        res = layout(size)
+        if res:
+            break
+        size = round(size - 0.25, 2)
+    if not res:
+        typo.issues.append("SOURCES DO NOT FIT ON ONE PAGE even at 3 pt")
+        return
+    rows, lead = res
+    for ci, y, lines in rows:
+        x = colx(cols[ci][0])
+        for k_, ln in enumerate(lines):
+            typo.line(pg, ln, x + (1.5 if k_ else 0.0), y + k_ * lead, size, INK, small_ok=True)
+    if size < MIN_CAPTION:
+        typo.notes.append("sources page set at %.2f pt to fit one page (%d sources)" % (size, len(txts)))
     footer(pg, typo, pno, {"part": None}, [])
 
 
@@ -1618,7 +1833,10 @@ def place(fitz, pg, typo, src, pno, rect, blk, sid, assets, legend, missing):
             for k in ("caption", "scale_den"):
                 if blk.get(k):
                     ab[k] = blk[k]
-            put_drawing(fitz, pg, typo, pno, rect, ab, a["_dir"], src, sid)
+            if ab.get("type") == "crop":                 # the sheet's own drawing (pdf path from the script's folder)
+                put_crop(fitz, pg, typo, pno, rect, ab, os.path.dirname(a["_dir"]), src, sid)
+            else:
+                put_drawing(fitz, pg, typo, pno, rect, ab, a["_dir"], src, sid)
             if not blk.get("legend"):
                 legend += [it for it in ab.get("legend") or [] if it not in legend]
     elif kind == "tiles":
@@ -1677,6 +1895,7 @@ def main():
                   assets, legend, missing)
         footer(pg, typo, pno, sp, legend)
     sources_page(frame_page(fitz, doc, typo), typo, src, len(numbered) + 2)
+    text_check(fitz, doc, typo)
     doc.subset_fonts()
     out = os.path.join(OUT_DIR, PDF_NAME)
     doc.save(out, garbage=3, deflate=True)
@@ -1689,9 +1908,44 @@ def main():
         rows.append("MISSING assets of %s: placeholders left" % SCRIPT_OF.get(m, m))
     if LIVE_MISSING:
         rows.append("LIVE VALUES NOT FOUND (shown as ?): " + ", ".join(sorted(set(LIVE_MISSING))[:10]))
+    rows += typo.notes
     rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
     rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
     return "\n".join(rows)
+
+
+def text_check(fitz, doc, typo):
+    """Every text line of the finished booklet, read back from the PDF: none may leave the page's margins or
+    overlap another line (the check that missed the sources page before, 25 Oct 21:53)."""
+    for i, pg in enumerate(doc):
+        boxes = []
+        for b in pg.get_text("dict")["blocks"]:
+            for ln in b.get("lines", []):
+                t = "".join(sp["text"] for sp in ln["spans"]).strip()
+                if t:
+                    r = fitz.Rect(ln["bbox"])
+                    sz = max(sp["size"] for sp in ln["spans"])
+                    r = fitz.Rect(r.x0, r.y1 - sz * 0.95, r.x1, r.y1 - sz * 0.2) if r.height > sz * 0.5 else r
+                    boxes.append((r, t))
+        lim = fitz.Rect(ML * K * 0.5, MT * K * 0.5, (PW - ML * 0.5) * K, (PH - MB * 0.5) * K)
+        for r, t in boxes:
+            if not lim.contains(r):
+                typo.issues.append("TEXT OFF THE PAGE p.%d: %s" % (i + 1, t[:40]))
+        n = 0
+        for a in range(len(boxes)):
+            ra = boxes[a][0]
+            for b_ in range(a + 1, len(boxes)):
+                rb = boxes[b_][0]
+                ov = ra & rb
+                if ov.is_empty or ov.width < 0.5 or ov.height < 0.5:
+                    continue
+                if ov.width * ov.height > 0.15 * min(ra.width * ra.height, rb.width * rb.height):
+                    n += 1
+                    if n <= 3:
+                        typo.issues.append("TEXT OVERLAPS TEXT p.%d: \"%s\" / \"%s\"" % (i + 1, boxes[a][1][:25],
+                                                                                    boxes[b_][1][:25]))
+        if n > 3:
+            typo.issues.append("TEXT OVERLAPS TEXT p.%d: %d more" % (i + 1, n - 3))
 
 
 def chain_fire(v, key):
