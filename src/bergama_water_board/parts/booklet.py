@@ -539,7 +539,7 @@ def bk_season(pg, res, key):
     d = E["SECTIONS"][0]                                     # the south-west bank, the bed and the strip
     keep = (E["SCALE"], E["K"], dict(E["SEA"]))
     lay = {"poly": 6, "line": 5, "circle": 7}
-    x0, y0, x1, y1 = 40.0, 2.0, W - 2.0, H - 2.0             # the cut's box (mm, y down); names at the left
+    x0, y0, x1, y1 = 2.0, 2.0, W - 2.0, H - 2.0             # the cut's box (mm, y down); no words: the page names it
     kk = 1.0                                                 # first pass at 1 mm per m, then as large as it fits
     try:
         E["SEA"].clear()
@@ -560,9 +560,6 @@ def bk_season(pg, res, key):
     dx = x0 - s_ * bb[0] + ((x1 - x0) - s_ * (bb[2] - bb[0])) / 2.0
     dy = (H - y1) - s_ * bb[1] + ((y1 - y0) - s_ * (bb[3] - bb[1])) / 2.0
     pg.items += xform(items, s_, dx, dy)
-    pg.rc(0.0, 0.0, 34.0, 1.6, fill=BAND_BLUE[i])
-    pg.lab(u"{} · {}".format(sea["name"], sea["months"].replace(u" ", u"")), 0.0, 8.5, size=BK_KEY, bold=True)
-    pg.lab(u"S4 cut", 0.0, 13.5, colour=BK_INK2)
     res.setdefault("seasons", {})[key] = {"water_m_above_bed": [round(w[0] - E["THALWEG"][1], 2) for w in sea["water"]],
                                           "strip_held": sea["strip_held"]}
 
