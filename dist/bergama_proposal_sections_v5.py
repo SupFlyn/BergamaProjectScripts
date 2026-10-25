@@ -4,6 +4,12 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v5 (Aras 25 Oct 21:47-21:51, booklet/CROP_SPEC.md): the booklet shows this sheet's own four sections:
+  booklet/blocks.json lists one crop per section (the drawing box each panel frame leaves under its title and chips,
+  kept in SHEET_BOXES); the separate booklet redraw (parts/90_booklet.py drawers, c4_s1..c5_s2.pdf) is gone. Sheet
+  words: the Selinos is a stream (never river), no caveat notes ("schematic", "not to scale", ": not designed",
+  "route not designed", "volume: not in the idea", "bridge not modelled"), no personal name inside the K5 drawing.
+  Layout and look unchanged.
 NEW IN v4 (A3 booklet, SCRIPT_STANDARD §8; booklet/STAGE2_BRIEF.md): after the sheet, booklet_export() writes
   output/bergama_proposal_sections/booklet/: c4_s1, c4_s2, c5_s1, c5_s2 .pdf (the four sections re-laid natively for
   the booklet's 392 x 111 mm frames, same hand-sketch engine, no text inside) + blocks.json (every word a label from the
@@ -47,7 +53,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v4"
+VERSION = "v5"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -89,7 +95,7 @@ CR = u"CONCEPT_RECORD v2.4"
 # v3: sources as [n] on the drawings, the numbered key in the footer (water board v1.6 cite() / SRC_KEY). Fixed
 # order, so the numbers stay the same on every press.
 SRC_KEY = [
-    ("levels", RR + u" v1.1 table: levels calculated on the surveyed river-height cuts (Manning, main survey TIN)"),
+    ("levels", RR + u" v1.1 table: levels calculated on the surveyed stream-height cuts (Manning, main survey TIN)"),
     ("rain", u"water_data/README: MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
     ("concept", CR + u" (Q1: east channel wall kept, default)"),
     ("tiers", u"Aras's concept text: tiers, level 1 / 2 / 3"),
@@ -1282,7 +1288,7 @@ def _concept_aras_sketch():
     # winter: rain on the old town's roofs and street (context house generic, not surveyed)
     rain(o, 6, 33, 67.5, 73.5, 16)
     sketch_house(o, 15, 27, 65.3, wall=5.0, pipe=True)
-    road(o, 0, 30, 64, "ROAD " + CITE("survey") + "\nschematic", ly=61.5, mask=SOIL)
+    road(o, 0, 30, 64, "ROAD " + CITE("survey"), ly=61.5, mask=SOIL)          # v5: no caveat word
     # Q500's reach first (solid wash), so the basins' water and reeds stay on top of it
     for pc in [under_level(gs, 102, w, 31.5)]:
         if pc:
@@ -1309,10 +1315,10 @@ def _concept_aras_sketch():
     text(o, "Q500 +73.66 m · 3.30 m · inside the banks " + CITE("levels") + "\nlowest terrace floods only if set below it",
          126, 35.6, 5.0, HERITAGE, "flood")
     hand_arrow(o, (8, 72), (44, 56), SITE_WATER_D, bend=0.12)
-    keyed(o, "winter", "street + roof runoff · Nov-Feb 59.1 % of rain " + CITE("rain") + "\nreed basins clean it with river water",
+    keyed(o, "winter", "street + roof runoff · Nov-Feb 59.1 % of rain " + CITE("rain") + "\nreed basins clean it with stream water",
           6, 77.4, 5.8)
     hand_arrow(o, (126, 31), (150, 20), SITE_WATER_D, bend=-0.15)
-    keyed(o, "summer", "regulated release · continuous strip\nJun-Sep 7.4 % of rain " + CITE("rain") + "\nriver below runs clean",
+    keyed(o, "summer", "regulated release · continuous strip\nJun-Sep 7.4 % of rain " + CITE("rain") + "\nstream below runs clean",
           109, 47, 5.8)
     for a, b in (((64, 49), (66, 44)), ((98, 37), (100, 32)), ((130, 26), (141, 18))):
         hand_arrow(o, a, b, ACCENT, width=0.4, head=1.5, bend=-0.2)
@@ -1360,7 +1366,7 @@ def _concept_begum_sketch():
             marker(o, pc, "tiers", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
         text(o, lab, x0 + 1, y - 3.0, 5.8, mask=SOIL)
     reeds(o, 102, 148, 14, 4.5)
-    road(o, 0, 16, 62, "ROAD " + CITE("survey") + "\nK4 deck: traffic\nschematic", ly=54.5, mask=SOIL)
+    road(o, 0, 16, 62, "ROAD " + CITE("survey") + "\nK4 deck: traffic", ly=54.5, mask=SOIL)
     sketch_tree(o, 24, 62, 9)                               # only on D: F floods in big floods, W every winter
     sketch_person(o, 31, 62, kind=1); sketch_person(o, 35, 62, kind=2, flip=True); sketch_person(o, 195, 62)  # on dry D / east
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)                      # the cut: the gesture
@@ -1370,7 +1376,7 @@ def _concept_begum_sketch():
     hand_arrow(o, (138, 34.5), (138, 50.5), SITE_WATER_D, width=0.45, head=1.8)  # the river climbs in big floods
     level_mark(o, 146, 52, W_EXT, "flood lines")
     text(o, "Q500 over today's bank top\nK4 cut " + CITE("levels") + "\ndry top raised above it", 156, 51, 5.6, W_EXT, "water")
-    text(o, "the river may climb the steps,\nthe street stays above Q500", 6, 31, 8.0, SKINK, "idea")
+    text(o, "the stream may climb the steps,\nthe street stays above Q500", 6, 31, 8.0, SKINK, "idea")
     text(o, "tiers " + CITE("tiers") + ": level 1 floods yearly · 2 only in 10-year storms\n"
          "level 3 street: dry, only if set above Q500", 2, 5.5, 5.2, INK2)
     for n_, x_, y_ in ((6, 125, 18), (7, 110, 22), (8, 73, 44), (9, 6, 67)):
@@ -1393,7 +1399,7 @@ def _concept_k5_sketch():
         arc = [(c + 8.0 * math.cos(math.pi * i / 20.0), 20.0 + 8.0 * math.sin(math.pi * i / 20.0)) for i in range(21)]
         sketch(o, arc, "K5 bridge (existing)", STONE_HATCH, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_TREE)
     sketch(o, [(98, 36), (156, 36)], "K5 bridge (existing)", STONE_HATCH, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_TREE)
-    text(o, "K5 Üçkemer bridge behind\nexisting · kept · schematic", 100, 50, 5.4, INK2)
+    text(o, "K5 Üçkemer bridge behind\nexisting · kept", 100, 50, 5.4, INK2)
     g = [(0, 8), (0, 40), (92, 40)] + bank((92, 40), (104, 14))[1:] + [(150, 14), (160, 40), (w, 40), (w, 8)]
     gs = sketch_ground(o, notch(g, [(56, 68, 40, 3.5), (122, 136, 14, 2.5)]))   # basin by the bridge; summer strip
     fl = under_level(gs, 92, 158, 35)
@@ -1405,7 +1411,7 @@ def _concept_k5_sketch():
     for pc in band(gs, 18, 92, 1.5):
         marker(o, pc, "tiers", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
     reeds(o, 104, 118, 14, 4.0)
-    road(o, 0, 16, 40, "STREET (survey)\nschematic", ly=37.5, mask=SOIL)
+    road(o, 0, 16, 40, "STREET (survey)", ly=37.5, mask=SOIL)
     cafe = [(72, 40), (86, 40), (86, 45.5), (72, 45.5)]
     wash(o, cafe, "garden", HOUSE_WALL, 0.45)
     sketch(o, cafe, "garden", INK2, LW_FINE, closed=True)
@@ -1416,19 +1422,19 @@ def _concept_k5_sketch():
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)
     sketch(o, [(95, 35), (158, 35)], "flood lines", W_EXT, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_LINE)
     level_mark(o, 154, 35, W_EXT, "flood lines")
-    text(o, "Q500 +58.75 m · 2.79 m over the bed " + CITE("levels") + "\ninside the banks · K5 cut\nbridge not modelled:\nhigher just upstream", 160, 54, 5.4, W_EXT, "water")
+    text(o, "Q500 +58.75 m · 2.79 m over the bed " + CITE("levels") + "\ninside the banks · K5 cut", 160, 54, 5.4, W_EXT, "water")
     keyed(o, "winter", "bed under water", 162, 31, 5.6, W_EXT, "water", mask=SOIL)
     keyed(o, "summer", "continuous strip · regulated\ntoday: dry, pools", 162, 17, 5.6, W_EXT, "water", mask=SOIL)
     text(o, "olives", 22, 53, 5.2, INK2); text(o, "stone pine", 44, 58, 5.2, INK2)
     text(o, "basin", 57, 45, 5.2, INK2); text(o, "cafe", 75, 50, 5.2, INK2)
-    text(o, "DEMETER'S GARDEN (idea: Begüm) " + CITE("garden") + "\nSW bank · dry top · all year · DG 1-2", 20, 37, 5.6, mask=SOIL)
+    text(o, "DEMETER'S GARDEN " + CITE("garden") + "\nSW bank · dry top · all year · DG 1-2", 20, 37, 5.6, mask=SOIL)
     text(o, "olive, lavender: no waterlogged soil " + CITE("plants") + "\ngarden on the dry top", 4, 27, 5.2, ACCENT, mask=SOIL)
     hand_arrow(o, (128, 17), (66, 38.6), SITE_WATER_D, bend=0.15)
-    text(o, "clean strip water for the garden\nintake · lift: not designed\nvolume: not in the idea", 56, 31, 5.2, SITE_WATER_D, mask=SOIL)
+    text(o, "clean strip water for the garden\nintake and lift", 56, 31, 5.2, SITE_WATER_D, mask=SOIL)
     # v3: Begüm's crop list as two season rows (sun = summer, cloud = winter); every crop kept
     keyed(o, "summer", "farm-to-table cafe beds: beans · tomatoes · peppers\nfigs · grapes", 4, 79, 5.6)
     keyed(o, "winter", "Aegean herbs · greens · cabbages · citrus · quince " + CITE("garden"), 4, 73.6, 5.6)
-    text(o, "clean river waters a\nproductive heritage garden", 100, 68, 8.0, SKINK, "idea")
+    text(o, "clean stream waters a\nproductive heritage garden", 100, 68, 8.0, SKINK, "idea")
     for n_, x_, y_ in ((6, 129, 18), (7, 110, 22), (9, 8, 45)):
         NODE(o, x_, y_, n_)
 
@@ -1468,16 +1474,16 @@ def _concept_nil_sketch():
     text(o, "Q500 +48.00 m · 2.33 m over the bed " + CITE("levels") + "\ninside the banks · NİL cut\nflat end: 1.54 m\nbanks about 114 m apart\nfloods spread wide, shallow", 150, 60, 5.4, W_EXT, "water")
     keyed(o, "winter", "bed under water", 176, 28.5, 5.6, W_EXT, "water", mask=SOIL)
     keyed(o, "summer", "regulated strip\ntoday: trickle\nor dry bed " + CITE("gauges"), 176, 23.5, 5.6, W_EXT, "water", mask=SOIL)
-    text(o, "floodable riverside planting · WP 1-2 " + CITE("zones") + "\nflood- + drought-tolerant · clean-river fed\nno farmland inside the site", 48, 27, 5.4, mask=SOIL)
+    text(o, "floodable streamside planting · WP 1-2 " + CITE("zones") + "\nflood- + drought-tolerant · clean-stream fed\nno farmland inside the site", 48, 27, 5.4, mask=SOIL)
     text(o, "floodable boardwalk: an open deck " + CITE("zones"), 48, 45, 5.4)
-    text(o, "slope (schematic)", 2, 59, 5.2, INK2, mask=SOIL)
+    text(o, "slope", 2, 59, 5.2, INK2, mask=SOIL)
     keyed(o, "failsafe", "FAIL-SAFE\nfloodable planting · open deck\nhigh water passes over", 1, 50, 5.6, ACCENT, mask=SOIL)
     hand_arrow(o, (141, 16), (100, 31.5), SITE_WATER_D, bend=0.15)
-    text(o, "clean river + strip\nfeed the planting", 112, 45, 5.6, SITE_WATER_D)
+    text(o, "clean stream + strip\nfeed the planting", 112, 45, 5.6, SITE_WATER_D)
     hand_arrow(o, (184, 35), (196, 44), ACCENT, width=0.4, head=1.5, bend=-0.2)
-    text(o, "surplus clean water · existing farmland outside\nroute not designed", 150, 72, 5.6, ACCENT)
+    text(o, "surplus clean water · existing farmland outside", 150, 72, 5.6, ACCENT)
     text(o, "arrives clean from the upstream reeds · no treatment here", 62, 76, 5.6)
-    text(o, "clean river back to a\nwalkable planted edge", 4, 76, 8.0, SKINK, "idea")
+    text(o, "clean stream back to a\nwalkable planted edge", 4, 76, 8.0, SKINK, "idea")
     for n_, x_, y_ in ((6, 143, 17.5), (7, 84, 34), (10, 158, 18), (11, 190, 38)):
         NODE(o, x_, y_, n_)
 
@@ -1535,6 +1541,16 @@ class BkBlocks(object):
         self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
                                  "scale_den": scale_den, "legend": legend or []}
 
+    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
+        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
+        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
+        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
+        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
+        drop = regexes of sheet texts not to carry."""
+        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
+                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
+
     def tiles(self, bid, tiles):
         self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
 
@@ -1548,368 +1564,61 @@ class BkBlocks(object):
             _j.dump(self.d, f, ensure_ascii=False, indent=1)
         return p
 
-# ================================================================ A3 booklet assets (v4, SCRIPT_STANDARD §8)
-# The four sections re-laid for the booklet's wide frames (pages C4, C5: 392 x 111 mm drawing area each), drawn natively
-# at that size with the same hand-sketch engine (SKETCH_SRC) as the sheet: no text in the PDFs, every word a label
-# from the plan's list (booklet/content/plan_merged.json). Option A only. Q500 is a named level line, no heights
-# (part B owns them), each at the sheet's level. Element numbers only where the plan asks (upstream).
-BK_W, BK_H = 392.0, 116.0                      # plan frame (booklet_slots.json); drawing area = h - 5 mm caption
-BK_LAB, BK_KEY = 7.5, 9.5                      # label sizes, pt (labels; key labels)
-BK_LEGEND = [{"kind": "fill", "colour": "7FA7B8", "label": "winter water"},
-             {"kind": "fill", "colour": "A9C3CC", "label": "summer strip"},
-             {"kind": "fill", "colour": "4F9BD9", "label": "reach of the design flood (Q500)"},
-             {"kind": "fill", "colour": "89986A", "label": "reeds and planting"},
-             {"kind": "line", "colour": "BC6F45", "label": "walkable edge"}]
-BK_GARDEN = {"kind": "fill", "colour": "C6C08D", "label": "Demeter's Garden"}
+# ================================================================ A3 booklet = crops of this sheet (v5, booklet/CROP_SPEC.md)
+# Aras 25 Oct 21:47: the booklet shows the sheet's own four sections. Each crop is the drawing box its panel frame
+# leaves under the title and keyword chips (SHEET_BOXES, set by build_sheet): the sketch and its in-drawing words.
 BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter)",
                u"https://www.rhs.org.uk/Advice/profile?pid=127"),
               ("ecocrop_olive", u"FAO Ecocrop, Olea europaea (will not tolerate waterlogged soils)",
                u"https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=1553")]
-BK_INK, BK_INK2, BK_ROAD, BK_IDEA = "4A3F35", "847E75", "3A3A3A", "1E1E1E"
-BK_WATER, BK_WATER_D, BK_ACC, BK_HER = "5C7A86", "5E8494", "BC6F45", "8B2D2D"
+BK_CROPS = [("ps_upstream", "up", u"1 · Upstream entry: collect, clean and hold"),
+            ("ps_k4", "k4", u"2 · K4 bridge: amphibious heritage threshold"),
+            ("ps_k5", "k5", u"3 · K5 bridge: Demeter's Garden"),
+            ("ps_downstream", "down", u"4 · Downstream reach: give back")]
+BK_DROP = [u"^\\[\\d+\\]$",                           # the sheet's source numbers: the booklet has its own source list
+           u" · form [AB]$"]                        # the sketch's own title line (the booklet sets the caption)
 
 
-def _bk_tf(x0, kx, y0, ky, yb):
-    """Sketch units -> frame mm (y up): the sheet's profile stretched for the wide frame (schematic, not to scale)."""
-    def TX(x):
-        return x0 + kx * x
-
-    def TY(y):
-        return y0 + ky * (y - yb)
-
-    def T(x, y):
-        return (TX(x), TY(y))
-    return TX, TY, T
-
-
-def _bk_lab(L, s, x, y, pt=BK_LAB, col=BK_INK, bold=False, anchor="L"):
-    """One label (page item, size in pt, y up from the bottom; bk_take_text turns it into a blocks.json label)."""
-    L.append(("text", s, x, y, pt, col, bold, anchor))
-
-
-def _bk_lines(L, rows, x, y, pt=BK_LAB, col=BK_INK, bold=False, lead=None, anchor="L"):
-    lead = lead or pt * PT * 1.28
-    for i, s in enumerate(rows):
-        _bk_lab(L, s, x, y - i * lead, pt, col, bold, anchor)
-
-
-def _bk_walk(S, o, pts, dy=0.75):
-    """The walkable edge (legend): a terracotta hand line just above a surface people walk on."""
-    S.sketch(o, [(x, y + dy) for x, y in pts], "walkable edge", S.ACCENT, S.PEN_MED, over=0.0, retrace=False, z=S.Z_LINE)
-
-
-def _bk_node(L, x, y, n, r=2.6):
-    """Element number: the sheet's roundel (graphics) + its number as a label."""
-    tmp = Page(0, 0)
-    node(tmp, x, y, n, "A", r)
-    _bk_lab(L, str(n), x, y - BK_LAB * PT * CAP / 2, BK_LAB, "FFFFFF", True, "C")
-    return [it for it in tmp.items if it[0] != "text"]
-
-
-def _bk_up(S, L):
-    """1 · upstream entry: road and roofs -> reed-basin cascade -> regulated release into the summer strip."""
-    o = (0.0, 0.0)
-    TX, TY, T = _bk_tf(6.0, 1.9, 4.0, 1.25, 8.0)
-    g = [T(0, 8), T(0, 64), T(34, 64), T(34, 52), T(68, 52), T(68, 40), T(102, 40), T(102, 28), T(130, 28)] + \
-        S.bank(T(130, 28), T(140, 12))[1:] + [T(170, 12), T(170, 28), T(200, 28), T(200, 8)]
-    basins = ((40, 52), (74, 40), (108, 28))
-    gs = S.sketch_ground(o, S.notch(g, [(TX(x0), TX(x0 + 22), TY(y), 6.25) for x0, y in basins] +
-                                    [(TX(150), TX(160), TY(12), 2.75)]))
-    q = TY(31.5)                                      # Q500 at the sheet's level (v3): over the lowest terrace
-    fl = S.under_level(gs, TX(102), TX(200), q)
-    if fl:
-        S.wash(o, fl, "flood", S.FLOOD_WASH, S.FLOOD_ALPHA)
-    S.rain(o, 18, 62, 89, 97, 22)
-    S.fill(o, rect(6, TY(64), 63, TY(64) + 1.6), "road", S.ROAD)
-    S.sketch_house(o, 34, 50, TY(64) + 1.6, wall=8.0, pipe=True)
-    for x0, y in basins:
-        S.water_level(o, gs, TX(x0 + 11), TY(y) - 0.5, S.W_WIN)
-        S.reeds(o, TX(x0 + 1), TX(x0 + 21), TY(y) - 6.25, 4.5)
-    for pc in S.band(gs, TX(34), TX(130), 2.0):
-        S.marker(o, pc, "terraces", S.SUN, angle=60.0, spacing=0.9, thick=0.75, alpha=0.5, base=0.0)
-    S.sketch_tree(o, 132.5, TY(52), 10.0)
-    S.sketch_tree(o, TX(99), TY(40), 8.5)
-    S.water_level(o, gs, TX(155), TY(19), S.W_WIN, bed_hatch=True)
-    S.water_level(o, gs, TX(155), TY(12), S.W_EXT, line=False)
-    S.sun(o, 362, 72, 3.2)
-    S.sketch_person(o, 26, TY(64) + 1.6, 6.0, kind=1)
-    S.sketch_person(o, TX(70.8), TY(40), 6.0)
-    S.sketch(o, gs, "ground lines", S.SKINK, S.PEN_BOLD, z=S.Z_LINE)
-    for a, b, y in ((34, 40, 52), (62, 68, 52), (68, 74, 40), (96, 102, 40), (102, 108, 28)):
-        _bk_walk(S, o, [T(a, y), T(b, y)])
-    _bk_walk(S, o, [T(170, 28), T(200, 28)])
-    S.sketch(o, [T(102, 31.5), T(200, 31.5)], "flood lines", S.HERITAGE, S.PEN_FINE, over=0.0, retrace=False,
-             dashed=True, z=S.Z_LINE)
-    S.level_mark(o, TX(123.8), q, S.HERITAGE, "flood lines")
-    S.hand_arrow(o, (60, 92), (100, TY(52) + 3.0), S.SITE_WATER_D, width=0.8, head=3.0, bend=0.12)
-    S.hand_arrow(o, (248, TY(28) + 1.0), (292, TY(12) + 2.5), S.SITE_WATER_D, width=0.8, head=3.0, bend=0.1)
-    for a, b in (((64, 49), (66, 44)), ((98, 37), (100, 32)), ((130, 26), (141, 18))):
-        S.hand_arrow(o, T(*a), T(*b), S.ACCENT, width=0.6, head=2.0, bend=-0.2)
-    # words
-    _bk_lab(L, u"ROAD", 8, TY(64) - 3.5, BK_KEY, BK_ROAD, True)
-    S.cloud_rain(o, 74.5, 105.0, 1.1)
-    _bk_lines(L, [u"street + roof runoff", u"reed basins clean it"], 78, 104.0)
-    _bk_lines(L, [u"hold in winter", u"give back in summer"], 118, 26.0, BK_KEY, BK_IDEA)
-    S.failsafe_mark(o, 11.0, 51.1, 1.8)
-    _bk_lab(L, u"FAIL-SAFE", 15, 50.0, BK_KEY, BK_ACC, True)
-    _bk_lines(L, [u"full basin spills to the next", u"last basin into the channel", u"floods bypass the reeds",
-                  u"gravity · no pumps"], 15, 46.0, col=BK_ACC)
-    S.sun(o, 334.5, 22.9, 0.9)
-    _bk_lines(L, [u"continuous strip", u"regulated release", u"today: dry bed"], 338, 22.0, col=BK_WATER)
-    _bk_lab(L, u"Q500 floods the lowest terrace", 333, q + 2.4, col=BK_HER)
-    extra = []
-    for n_, x_, y_ in ((2, TX(51), TY(56) + 3.0), (3, 126.0, TY(56) + 3.0), (4, TX(85), TY(44) + 3.0),
-                       (5, TX(143) + 1.0, 20.5), (6, TX(155) + 2.5, 20.5)):
-        extra += _bk_node(L, x_, y_, n_)
-    return extra
-
-
-def _bk_k4(S, L):
-    """2 · K4: tiers 1 / 2 / 3 from the bed to the street, the Roman bridge behind, the east wall kept."""
-    o = (0.0, 0.0)
-    TX, TY, T = _bk_tf(6.0, 1.9, 4.0, 1.6, 8.0)
-    cx, cy = 120.0, 11.9
-    r = math.hypot(98 - cx, 14 - cy)
-    t0, t1 = math.atan2(14 - cy, 142 - cx), math.atan2(14 - cy, 98 - cx)
-    arc = [T(cx + r * math.cos(t0 + (t1 - t0) * i / 30.0), cy + r * math.sin(t0 + (t1 - t0) * i / 30.0)) for i in range(31)]
-    S.sketch(o, arc, "K4 bridge (existing)", S.STONE_HATCH, S.PEN_FINE, over=0.0, retrace=False, dashed=True, z=S.Z_TREE)
-    g = [T(0, 8), T(0, 62), T(40, 62), T(40, 50), T(62, 50), T(62, 40), T(84, 40), T(84, 30), T(90, 30)] + \
-        S.bank(T(90, 30), T(100, 14))[1:] + [T(150, 14), T(150, 62), T(200, 62), T(200, 8)]
-    gs = S.sketch_ground(o, S.notch(g, [(TX(118), TX(132), TY(14), 4.0)]))
-    wall = [T(150, 14), T(154, 14), T(154, 62), T(150, 62)]
-    S.marker(o, wall, "wall", S.STONE, angle=45.0, spacing=0.8, thick=0.7, alpha=0.55, base=0.35)
-    q = TY(52)
-    fl = S.under_level(gs, TX(40), TX(150), q)
-    if fl:
-        S.wash(o, fl, "flood", S.FLOOD_WASH, S.FLOOD_ALPHA)
-    S.water_level(o, gs, TX(125), TY(33), S.W_WIN, bed_hatch=True)
-    S.water_level(o, gs, TX(125), TY(14), S.W_EXT, line=False)
-    for x0, x1 in ((0, 40), (40, 84), (84, 100)):
-        for pc in S.band(gs, TX(x0), TX(x1), 2.0):
-            S.marker(o, pc, "tiers", S.SUN, angle=60.0, spacing=0.9, thick=0.75, alpha=0.5, base=0.0)
-    S.reeds(o, TX(102), TX(148), TY(14), 5.5)
-    S.fill(o, rect(TX(0), TY(62), TX(16), TY(62) + 1.6), "road", S.ROAD)
-    S.sketch_tree(o, TX(24), TY(62), 12.0)
-    S.sketch_person(o, TX(31), TY(62), 6.0, kind=1)
-    S.sketch_person(o, TX(35), TY(62), 6.0, kind=2, flip=True)
-    S.sketch_person(o, TX(195), TY(62), 6.0)
-    S.sketch(o, gs, "ground lines", S.SKINK, S.PEN_BOLD, z=S.Z_LINE)
-    S.sketch(o, wall, "wall lines", S.SKINK, S.PEN_BOLD, closed=True, z=S.Z_LINE)
-    for pts in ((T(16, 62), T(40, 62)), (T(40, 50), T(62, 50)), (T(62, 40), T(84, 40)), (T(154, 62), T(200, 62))):
-        _bk_walk(S, o, list(pts))
-    S.sketch(o, [(TX(40), q), (TX(150), q)], "flood lines", S.W_EXT, S.PEN_FINE, over=0.0, retrace=False, dashed=True,
-             z=S.Z_LINE)
-    S.tick_dim(o, TX(43), q, TY(62), S.SKINK)
-    S.hand_arrow(o, T(138, 34.5), T(138, 50.5), S.SITE_WATER_D, width=0.7, head=2.6)
-    S.level_mark(o, TX(146), q, S.W_EXT, "flood lines")
-    # words
-    _bk_lab(L, u"ROAD", 8, TY(62) - 5.5, BK_KEY, BK_ROAD, True)
-    _bk_lab(L, u"K4 deck: traffic", 8, TY(62) - 9.1)
-    _bk_lines(L, [u"dry top · in use all year", u"level 3 street: dry"], 42, TY(62) - 5.5)
-    _bk_lines(L, [u"flood terraces", u"closed only in big floods", u"level 2 only in 10-year storms"], 83.5,
-              TY(50) - 5.3)
-    _bk_lab(L, u"level 1 floods each year", 172, TY(30) - 5.0, anchor="R")
-    _bk_lab(L, u"the street stays above Q500", 200, q + 2.2, BK_KEY, BK_IDEA)
-    _bk_lab(L, u"the stream may climb the steps", 200, q - 9.0, BK_KEY, BK_IDEA)
-    _bk_lab(L, u"K4 Roman bridge, kept as it is", 205, TY(34) + 3.7, col=BK_INK2)
-    _bk_lab(L, u"existing east wall kept", 302, TY(62) + 3.7)
-    S.cloud_rain(o, 304.5, TY(33) + 0.0, 1.1)
-    _bk_lab(L, u"every winter: bed under water", 308, TY(33) - 1.0, col=BK_WATER)
-    S.sun(o, 304.5, TY(14) + 2.9, 0.9)
-    _bk_lab(L, u"today: dry, pools", 308, TY(14) + 2.0, col=BK_WATER)
-    return []
-
-
-def _bk_curve(a, b, bend, n=24):
-    m = ((a[0] + b[0]) / 2.0 - (b[1] - a[1]) * bend, (a[1] + b[1]) / 2.0 + (b[0] - a[0]) * bend)
-    return [(a[0] * (1 - t) ** 2 + 2 * m[0] * t * (1 - t) + b[0] * t * t,
-             a[1] * (1 - t) ** 2 + 2 * m[1] * t * (1 - t) + b[1] * t * t) for t in [i / float(n) for i in range(n + 1)]]
-
-
-def _bk_k5(S, L):
-    """3 · K5: Demeter's Garden on the south-west dry top, clean strip water lifted to it (intake dashed: not
-    designed), the Üç Kemer bridge behind, kept."""
-    o = (0.0, 0.0)
-    TX, TY, T = _bk_tf(6.0, 1.9, 6.0, 1.6, 8.0)
-    for c in (108.3, 125.0, 141.7):
-        arc = [T(c + 8.0 * math.cos(math.pi * i / 20.0), 20.0 + 8.0 * math.sin(math.pi * i / 20.0)) for i in range(21)]
-        S.sketch(o, arc, "K5 bridge (existing)", S.STONE_HATCH, S.PEN_FINE, over=0.0, retrace=False, dashed=True,
-                 z=S.Z_TREE)
-    S.sketch(o, [T(98, 36), T(156, 36)], "K5 bridge (existing)", S.STONE_HATCH, S.PEN_FINE, over=0.0, retrace=False,
-             dashed=True, z=S.Z_TREE)
-    g = [T(0, 8), T(0, 40), T(92, 40)] + S.bank(T(92, 40), T(104, 14))[1:] + [T(150, 14), T(160, 40), T(200, 40), T(200, 8)]
-    gs = S.sketch_ground(o, S.notch(g, [(TX(56), TX(68), TY(40), 5.6), (TX(122), TX(136), TY(14), 4.0)]))
-    q = TY(35)
-    fl = S.under_level(gs, TX(92), TX(158), q)
-    if fl:
-        S.wash(o, fl, "flood", S.FLOOD_WASH, S.FLOOD_ALPHA)
-    S.water_level(o, gs, TX(129), TY(22), S.W_WIN, bed_hatch=True)
-    S.water_level(o, gs, TX(129), TY(14), S.W_EXT, line=False)
-    S.water_level(o, gs, TX(62), TY(40) - 0.5, S.W_WIN)
-    for pc in S.band(gs, TX(18), TX(92), 2.0):
-        S.marker(o, pc, "garden", S.hx("C6C08D"), angle=60.0, spacing=0.9, thick=0.75, alpha=0.5, base=0.0)
-    S.reeds(o, TX(104), TX(118), TY(14), 5.0)
-    S.fill(o, rect(TX(0), TY(40), TX(16), TY(40) + 1.6), "road", S.ROAD)
-    y0 = TY(40)
-    cafe = rect(TX(72), y0, TX(86), y0 + 8.8)
-    S.wash(o, cafe, "garden", S.HOUSE_WALL, 0.45)
-    S.sketch(o, cafe, "garden", S.INK2, S.LW_EDGE, closed=True)
-    S.sketch(o, [(TX(72) - 1.9, y0 + 8.8), (TX(86) + 1.9, y0 + 8.8), (TX(86) - 1.9, y0 + 12.0), (TX(72) + 1.9, y0 + 12.0)],
-             "garden", S.INK2, S.LW_EDGE, closed=True)
-    S.sketch_tree(o, TX(26), y0, 13.0)
-    S.sketch_tree(o, TX(38), y0, 12.0)
-    S.sketch_tree(o, TX(49), y0, 18.0)
-    S.sketch_person(o, TX(89), y0, 6.0, kind=1)
-    S.sketch_person(o, TX(31), y0, 6.0, kind=2, flip=True)
-    S.sketch_person(o, TX(195), y0, 6.0)
-    S.sketch(o, gs, "ground lines", S.SKINK, S.PEN_BOLD, z=S.Z_LINE)
-    _bk_walk(S, o, [T(86, 40), T(92, 40)])
-    _bk_walk(S, o, [T(160, 40), T(200, 40)])
-    S.sketch(o, [T(95, 35), T(158, 35)], "flood lines", S.W_EXT, S.PEN_FINE, over=0.0, retrace=False, dashed=True, z=S.Z_LINE)
-    S.level_mark(o, TX(154), q, S.W_EXT, "flood lines")
-    cv = _bk_curve((TX(129), TY(14) - 1.5), (TX(62) + 6.0, y0 + 1.2), 0.08)
-    S.sketch(o, cv[:-2], "intake", S.SITE_WATER_D, S.PEN_MED, over=0.0, retrace=False, dashed=True, z=S.Z_LINE)
-    S.hand_arrow(o, cv[-3], cv[-1], S.SITE_WATER_D, width=0.5, head=2.6)
-    # words
-    _bk_lab(L, u"STREET", 8, y0 - 4.4, BK_KEY, BK_ROAD, True)
-    _bk_lab(L, u"DEMETER'S GARDEN", 44, y0 - 5.6, BK_KEY, BK_INK, True)
-    _bk_lines(L, [u"dry top · all year", u"no waterlogged soil {src:rhs_lavender} {src:ecocrop_olive}"], 44, y0 - 9.6)
-    _bk_lines(L, [u"clean strip water", u"intake and lift: not designed"], 140, 31.5, col=BK_WATER_D)
-    c2 = 47.0 + max(text_w(u"beans · tomatoes · peppers", BK_LAB * PT), text_w(u"herbs · greens · cabbages", BK_LAB * PT)) + 5.0
-    S.sun(o, 43.5, 102.9, 0.9)
-    _bk_lab(L, u"beans · tomatoes · peppers", 47, 102.0)
-    _bk_lab(L, u"figs · grapes · quince", c2, 102.0)
-    S.cloud_rain(o, 43.5, 97.8, 1.1)
-    _bk_lab(L, u"herbs · greens · cabbages", 47, 96.8)
-    _bk_lab(L, u"citrus", c2, 96.8)
-    _bk_lab(L, u"olives", (TX(26) + TX(38)) / 2.0, y0 + 15.0, col=BK_INK2, anchor="C")
-    _bk_lab(L, u"stone pine", TX(49), y0 + 19.4, col=BK_INK2, anchor="C")
-    _bk_lab(L, u"cafe", (TX(72) + TX(86)) / 2.0, y0 + 14.0, col=BK_INK2, anchor="C")
-    _bk_lab(L, u"basin", TX(62), y0 + 2.4, col=BK_INK2, anchor="C")
-    _bk_lab(L, u"K5 Üç Kemer bridge, kept", 205, TY(36) + 4.8, col=BK_INK2)
-    S.sun(o, 316.5, 20.9, 0.9)
-    _bk_lab(L, u"continuous strip", 320, 20.0, col=BK_WATER)
-    return []
-
-
-def _bk_down(S, L):
-    """4 · downstream: wide shallow banks, floodable streamside planting and boardwalk, surplus to farmland outside."""
-    o = (0.0, 0.0)
-    TX, TY, T = _bk_tf(6.0, 1.9, 4.0, 1.25, 8.0)
-    g = [T(0, 8), T(0, 62), T(30, 62), T(46, 30), T(110, 30)] + S.bank(T(110, 30), T(120, 14))[1:] + \
-        [T(165, 14), T(175, 32), T(200, 32), T(200, 8)]
-    gs = S.sketch_ground(o, S.notch(g, [(TX(136), TX(150), TY(14), 2.75)]))
-    q = TY(27)
-    fl = S.under_level(gs, TX(110), TX(178), q)
-    if fl:
-        S.wash(o, fl, "flood", S.FLOOD_WASH, S.FLOOD_ALPHA)
-    S.water_level(o, gs, TX(143), TY(21), S.W_WIN, bed_hatch=True)
-    S.water_level(o, gs, TX(143), TY(14), S.W_EXT, line=False)
-    for pc in S.band(gs, TX(46), TX(110), 2.0):
-        S.marker(o, pc, "planting", S.REED, angle=60.0, spacing=0.9, thick=0.75, alpha=0.5, base=0.0)
-    S.reeds(o, TX(121), TX(134), TY(14), 4.5)
-    for x_, h_ in ((78, 7.5), (92, 7.0), (103, 6.3)):
-        S.sketch_tree(o, TX(x_), TY(30), h_)
-    deck = [T(44.5, 33.2), T(72, 33.2), T(72, 34.2), T(44.5, 34.2)]
-    S.fill(o, deck, "boardwalk", S.SEC_PAVE)
-    for x_ in (50, 58, 66):
-        S.sketch(o, [T(x_, 33.2), T(x_, 30)], "boardwalk", S.INK2, S.LW_EDGE, over=0.0, retrace=False)
-    S.sketch_person(o, TX(60), TY(34.2), 6.0, kind=1)
-    S.sketch_person(o, TX(14), TY(62), 6.0)
-    S.sketch(o, gs, "ground lines", S.SKINK, S.PEN_BOLD, z=S.Z_LINE)
-    _bk_walk(S, o, [T(0, 62), T(30, 62)])
-    _bk_walk(S, o, [T(175, 32), T(200, 32)])
-    S.sketch(o, [T(112, 27), T(176, 27)], "flood lines", S.W_EXT, S.PEN_FINE, over=0.0, retrace=False, dashed=True, z=S.Z_LINE)
-    S.level_mark(o, TX(170), q, S.W_EXT, "flood lines")
-    S.hand_arrow(o, (TX(141), TY(16)), (TX(100), TY(31.5)), S.SITE_WATER_D, width=0.8, head=3.0, bend=0.15)
-    S.hand_arrow(o, (352, 37.5), (372, 49.5), S.ACCENT, width=0.6, head=2.2, bend=-0.2)
-    # words
-    _bk_lines(L, [u"clean stream back", u"walkable planted edge"], 12, 102.0, BK_KEY, BK_IDEA)
-    _bk_lines(L, [u"arrives clean from upstream", u"no treatment here"], 124, 102.0)
-    S.failsafe_mark(o, 11.0, 61.1, 1.8)
-    _bk_lab(L, u"FAIL-SAFE", 15, 60.0, BK_KEY, BK_ACC, True)
-    _bk_lab(L, u"high water passes over", 15, 56.0, col=BK_ACC)
-    _bk_lines(L, [u"floodable streamside planting", u"flood- and drought-tolerant", u"no farmland inside the site"],
-              98, 26.2)
-    _bk_lab(L, u"floodable boardwalk: open deck", 92, 46.5)
-    _bk_lab(L, u"floods spread wide, shallow", 240, q + 2.5, col=BK_WATER)
-    _bk_lines(L, [u"surplus to farmland outside", u"route: not designed"], 386, 58.2, col=BK_ACC, anchor="R")
-    S.sun(o, 344.0, 21.9, 0.9)
-    _bk_lab(L, u"regulated strip", 347.5, 21.0, col=BK_WATER)
-    return []
-
-
-BK_FRAMES = [("c4_s1", _bk_up, u"1 · Upstream entry: collect, clean and hold · schematic", False),
-             ("c4_s2", _bk_k4, u"2 · K4 bridge: amphibious heritage threshold · schematic", False),
-             ("c5_s1", _bk_k5, u"3 · K5 bridge: Demeter's Garden · schematic", True),
-             ("c5_s2", _bk_down, u"4 · Downstream reach: give back · schematic", False)]
-
-
-def _bk_minlw(it):
-    """Line widths >= 0.1 mm in print (the sketch's hair lines are finer)."""
-    if it[0] == "line" and it[3] < 0.1:
-        return it[:3] + (0.1,) + it[4:]
-    if it[0] == "poly" and it[3] and it[4] < 0.1:
-        return it[:4] + (0.1,) + it[5:]
-    if it[0] == "circle" and it[5] and it[6] < 0.1:
-        return it[:6] + (0.1,)
-    return it
-
-
-def bk_draw(fn, W, H):
-    """One frame: (graphics items, labels) drawn for W x H mm (the layout is set for BK_W x BK_H - caption; another
-    slot size gets the same drawing scaled uniformly and centred, labels at their set size)."""
-    E = sketch_engine()
-    E["FORM"] = "A"
-    del E["ZP"][:]
-    E["ORDER"][0] = 0
-    S = _types.SimpleNamespace(**E)
-    L = []
-    extra = fn(S, L)
-    items = [it for _, _, it in sorted(E["ZP"], key=lambda e: (e[0], e[1]))] + extra
-    del E["ZP"][:]
-    H0 = BK_H - BK_CAPTION_MM
-    f = min(W / BK_W, H / H0)
-    if abs(f - 1.0) > 1e-6:
-        dx, dy = (W - BK_W * f) / 2.0, (H - H0 * f) / 2.0
-        items = xform(items, f, dx, dy)
-        L = [("text", s, x * f + dx, y * f + dy, pt, c, b, a) for _, s, x, y, pt, c, b, a in L]
-    keep, labels = bk_take_text(items + L, H)
-    return [_bk_minlw(it) for it in keep], labels
+def _bk_hex(c):
+    return "%02X%02X%02X" % tuple(int(v) for v in c)
 
 
 def booklet_export(log):
-    """Booklet assets (ASSET_SPEC.md): output/bergama_proposal_sections/booklet/c4_s1 ... c5_s2.pdf + blocks.json."""
+    """booklet/blocks.json: one crop per section of the sheet (rect in mm from the sheet's top-left, y down)."""
     bk = BkBlocks(OUT_DIR, GH_LABEL, VERSION)
     for k, t, u in BK_SOURCES:
         bk.source(k, t, u)
-    for bid, fn, cap, garden in BK_FRAMES:
-        W, H = bk_frame(OUT_FOLDER + "/" + bid, BK_W, BK_H)
-        if abs(W - BK_W) > 0.5 or abs(H - (BK_H - BK_CAPTION_MM)) > 0.5:
-            log.append(u"booklet %s: frame is %.0f x %.0f mm, the layout is for %.0f x %.0f: scaled, re-lay it" %
-                       (bid, W, H, BK_W, BK_H - BK_CAPTION_MM))
-        keep, labels = bk_draw(fn, W, H)
-        pg = Page(W, H)
-        pg.items = keep
-        name = bid + ".pdf"
-        write_pdf(pg, bk.path(name), u"Bergama proposal sections {} booklet {}".format(VERSION, bid))
-        bk.drawing(bid, name, labels, caption=cap, scale_den=None, legend=BK_LEGEND + ([BK_GARDEN] if garden else []))
+    E = sketch_engine()                               # the sheet's own colours for the legend samples
+    wash = E["mix"]((255, 255, 255), E["FLOOD_WASH"], E["FLOOD_ALPHA"])   # the Q500 wash as it shows on white
+    legend = [dict(kind="fill", colour=_bk_hex(E["W_WIN"]), label=u"winter water"),
+              dict(kind="fill", colour=_bk_hex(E["W_EXT"]), label=u"summer strip"),
+              dict(kind="fill", colour=_bk_hex(wash), label=u"reach of the design flood (Q500)"),
+              dict(kind="fill", colour=_bk_hex(E["REED"]), label=u"reeds and planting")]
+    for bid, key, cap in BK_CROPS:
+        if key not in SHEET_BOXES:
+            log.append(u"booklet %s: section %s not on the sheet" % (bid, key))
+            continue
+        x0, y0, x1, y1 = SHEET_BOXES[key]
+        extra = [dict(kind="fill", colour=_bk_hex(E["SEC_PAVE"]), label=u"floodable boardwalk")] if key == "down" else []
+        bk.crop(bid, OUT_NAME.format("A"), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap, scale_den=None,
+                legend=legend + extra, drop=BK_DROP)
     return bk.save()
 
 
 # ================================================================ the sheet (v1)
 PROPOSALS = [("up", u"1 · UPSTREAM ENTRY · COLLECT, CLEAN AND HOLD",        # v3: subtitles as keyword chips
-              [("reed", u"CLEAN · river + held runoff"), ("cascade", u"STORE · winter water"),
+              [("reed", u"CLEAN · stream + held runoff"), ("cascade", u"STORE · winter water"),
                ("strip", u"SUMMER STRIP")]),
              ("k4", u"2 · K4 BRIDGE · AMPHIBIOUS HERITAGE THRESHOLD",
-              [("steps", u"TIERS W / F / D"), ("climb", u"river may climb the steps"),
+              [("steps", u"TIERS W / F / D"), ("climb", u"stream may climb the steps"),
                ("level", u"street level above Q500"), ("bridge", u"Roman bridge stays as it is")]),
              ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN (idea: Begüm)",
               [("olive", u"PRODUCTIVE HERITAGE GARDEN"), ("sun", u"dry top · south-west bank"),
-               ("drop", u"watered by the clean river")]),
+               ("drop", u"watered by the clean stream")]),
              ("down", u"4 · DOWNSTREAM REACH · GIVE BACK",
-              [("reed", u"FLOODABLE PLANTING · clean-river fed"), ("deck", u"floodable boardwalk"),
+              [("reed", u"FLOODABLE PLANTING · clean-stream fed"), ("deck", u"floodable boardwalk"),
                ("notreat", u"no treatment here")])]
+SHEET_BOXES = {}                                      # v5: key -> drawing box (x0, y0, x1, y1), mm, y up; set by build_sheet
 SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
              "down": "concept_nil_sketch"}
 
@@ -1934,15 +1643,15 @@ def build_sheet(opt, log):
     x += 8.0
     pg.text(u"upstream", x, yb, fs, dk, bold=True)
     x += text_w(u"upstream", fs, True) + 2.5
-    flow_arrow(pg, x - 1.0, x + 11 * 4.6 + 4.0, yc, dk, 0.35, 1.4)   # under the roundels: one way, with the river
+    flow_arrow(pg, x - 1.0, x + 11 * 4.6 + 4.0, yc, dk, 0.35, 1.4)   # under the roundels: one way, with the stream
     for n_ in range(1, 12):
         node(pg, x + 1.6, yc, n_, opt, 1.6)
         x += 4.6
     x += 5.5
-    for wd in (u"downstream · one way, with the river", u"1-11 as on the water board"):
+    for wd in (u"downstream · one way, with the stream", u"1-11 as on the water board"):
         pg.text(wd, x, yb, fs, dk, bold=True)
         x += text_w(wd, fs, True) + 8.0
-    tag = u"schematic · relative levels · not to scale"
+    tag = u"relative levels"                          # v5: no caveat words
     pg.poly([rect(x, yc - 2.2, x + text_w(tag, 2.4) + 3.0, yc + 2.2)], fill=COL["lane"], stroke=COL["structure"],
             lw=0.25)
     pg.text(tag, x + 1.5, yc - 2.4 * CAP / 2, 2.4, COL["ink"])
@@ -1956,6 +1665,7 @@ def build_sheet(opt, log):
         cx = X0 + (i % 2) * (cw + G)
         cy = y1 - G - (i // 2 + 1) * ch - (i // 2) * G
         b = frame(pg, (cx, cy, cx + cw, cy + ch), ttl, sub)
+        SHEET_BOXES[key] = b                          # v5: the section's drawing box = its booklet crop
         place(pg, draw_concept(key, opt), b, 3.0, "C", log, "section " + key)
     t = (u"Sources by number: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)) +
          u"  ·  sketch style: water board v1.3")       # v3: the numbered source key (the [n] on the sketches)

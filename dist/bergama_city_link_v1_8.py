@@ -1,9 +1,9 @@
-# bergama_city_link_v1_7.py · Thread 4 of the 22 Oct batch: connection to the city (the riverside spine and what it adds)
+# bergama_city_link_v1_8.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
 # ONE all-vector A3 PDF there (two pages) plus city_link_results.json:
-#   1 WHY SHOPS MEET THE RIVER ONLY WHERE IT IS HIDDEN   spine study today: two charts, seven reasons, who comes
-#   2 THE RIVERSIDE SPINE                                 the spine as a strip along the stream (not a plan: the plan is
+#   1 WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN  spine study today: two charts, seven reasons, who comes
+#   2 THE STREAMSIDE SPINE                                the spine as a strip along the stream (not a plan: the plan is
 #                                                         the site board's plan 07), heritage anchors, seven functions,
 #                                                         the flood rule and who each function serves
 # city_link_results.json = the spine and the function sites in survey coordinates. The site board (selinus_board v34,
@@ -13,7 +13,14 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math
 
-VERSION = "v1.7"
+VERSION = "v1.8"
+# v1.8 (Aras 25 Oct 21:47-21:51, booklet/CROP_SPEC.md): the booklet shows this sheet's own drawings: booklet/blocks.json
+# lists one crop per panel of the two pages (rects from the layout numbers P1_* / P2_* below); the separate booklet
+# redraw (c2_hero.pdf, booklet_spine) is gone. Sheet words: the Selinos is a stream (titles, labels, keywords), no
+# caveat notes ("not designed here ...", "not to scale", "no mahalle populations yet" taken off; open points go to the
+# log). Figures (booklet/research/FIGURE_CONFLICTS.md): the spine length is the masterplan's drawn pieces read live
+# (was a typed "about 660 m"); the typed bed depth "1.1-6.7 m" is gone (no results file carries the board's live value).
+# Layout and look unchanged.
 # v1.7 (A3 booklet, SCRIPT_STANDARD §8, booklet/content/STAGE2_BRIEF.md): also writes booklet/c2_hero.pdf (the streamside spine
 # strip drawn at its booklet frame size, no text) + booklet/blocks.json (its words as labels); city_link_results.json gets
 # "shops" (the page 1 shop figures, computed by shop_figures()). The two sheet pages are unchanged.
@@ -42,6 +49,7 @@ OUT_JSON = "city_link_results.json"
 WB_FILES = [os.path.join(BERGAMA, "output", "Bergama_water_balance_analysis", "water_balance_results.json"),
             os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis", "water_balance_results.json")]
 MV_FILE = os.path.join(BERGAMA, "output", "selinus_board", "city_link_movement.json")     # written by selinus_board v34
+MP_FILE = os.path.join(BERGAMA, "output", "bergama_masterplan", "masterplan_results.json")  # v1.8: the drawn spine's length
 WB_DEFAULT = dict(cropland_ha=34.9, orchard_ha=1.34, cropland_crops="cotton,tomato")      # results_default.json, 24 Oct 08:21
 
 # ------------------------------------------------------------------ the spine and the function sites (survey m)
@@ -97,29 +105,28 @@ SRC_SHOPS = ("Shops: OSM shop=* and cafe/restaurant/fast food/bar/pub/ice cream 
 SRC_CH = "Chainage from the frame's NW end; bridges h02 card (s62); covered reach K3 to the end of the survey gap (h02 E01)"
 SRC_HIST = "History: h01, h02 (sources s13 s28 s32 s36 s40 s42 s43 s59 s110)"
 SRC_WHO = "Who comes: library/research/city_link_2026-10-24/city_link_research_v1.md §0; no data = no source anywhere"
-SRC_STRIP = ("Strip diagram, not to scale across the river; chainage along the stream to scale (bridges s62; other places "
-             "from h01 §5 survey coordinates, calculated, ±30 m)")
+SRC_STRIP = ("Chainage along the stream, to scale (bridges s62; other places from h01 §5 survey coordinates, calculated, "
+             "±30 m)")
 SRC_TABAK = ("h02 calls Tabaklar Hamamı 'opposite Ulu Cami on the right bank' (s32), but both survey points lie on the "
              "north-east bank [U]")
 SRC_PLAN07 = ("The plan of the spine is on the site board's plan 07 (movement before and after), read from "
               "city_link_results.json")
-SRC_T5 = "Exact edge, decks and stall sizes: Thread 5 masterplan"
-# who: L locals, T tourists, S students; grows: W water, E river edge, A agriculture, H heritage
+# who: L locals, T tourists, S students; grows: W water, E stream edge, A agriculture, H heritage
 FUNCS = [
     dict(n=1, name="Bank bazaar", where="Tabaklar Hamamı", ch=522, bank="NE", xy=[29890.4, 32243.6], who="LT", grows="HE",
          icon="stall", kw=("Ottoman bazaar on this bank: Pabuççular Arastası", "stalls bring it back"), src="h02 s32"),
     dict(n=2, name="Parchment and leather workshops", where="Tannery quarter at K3", ch=737, bank="both", xy=[30062.0, 32106.0], who="TSL", grows="H",
          icon="hide", kw=("tanning named the stream · last master died 2026", "teach and sell the craft"), src="h02 s44 s45"),
     dict(n=3, name="Junction square", where="Kınık Caddesi over the covered stream", ch=781, bank="over", xy=[30058.0, 32047.0], who="LTS", grows="WEH",
-         icon="slot", kw=("the one place the main road meets the river", "a slot: view down to the water strip"), src=None),
+         icon="slot", kw=("the one place the main road meets the stream", "a slot: view down to the water strip"), src=None),
     dict(n=4, name="Red Hall water terrace", where="Red Hall, Roman tunnels' outlet", ch=962, bank="NE", xy=[30238.7, 31931.2], who="TL", grows="HW",
-         icon="arch", kw=("Red Hall reopens: target 2026", "its visitors step out onto the river"), src="h02 s41"),
+         icon="arch", kw=("Red Hall reopens: target 2026", "its visitors step out onto the stream"), src="h02 s41"),
     dict(n=5, name="Producers' market", where="Üç Kemer bridge, Wednesdays", ch=1126, bank="spine", xy=[30294.0, 31792.0], who="LT", grows="A",
          icon="olive", kw=("food from fields on our stored water · olive oil", "Wednesdays · town producers' market: Saturdays"), src="h02 s25"),
     dict(n=6, name="Study terraces", where="Spine bank between K4 and K3", ch=620, bank="spine", xy=[29941.0, 32200.0], who="SL", grows="EW",
          icon="bench", kw=("shaded seats by the water strip", "for students · out of the street noise"), src=None),
     dict(n=7, name="Clean-water classroom", where="Reed basins, upstream entry", ch=200, bank="bed", xy=None, stage="entry", who="SL", grows="W",
-         icon="reed", kw=("the cleaning basins as a lesson", "how the river works"), src=None),
+         icon="reed", kw=("the cleaning basins as a lesson", "how the stream works"), src=None),
 ]
 EVENTS = dict(n=8, name="Summer bed events", where="Dry bed beside the 4 m water strip", who="LT", grows="WE",
               icon="calendar", kw=("open-air events · Jul-Sep", "bed 3 cm or less · cleared by October"), src=SRC_WET)
@@ -141,13 +148,15 @@ REASONS = [  # v1.6 tiles: (pictogram, keyword heading, big figure, keyword line
     ("road", "MAIN ROAD MEETS THE STREAM", "1 crossing", ("Bankalar - Kınık Caddesi", "only where the stream runs covered"), "OSM, calculated"),
     ("front", "BUILDINGS WITHIN 30 M", "30 buildings", ("on 1.7 km of open stream", "almost no frontage for a shop"), "OSM, calculated"),
     ("bank", "BANK DISCONNECTED", "68 %", ("12 % enclosed by building backs", "2 % accessible"), "PR1 board p.2 (v18 bank analysis)"),
-    ("deep", "BED BELOW THE BANKS", "1.1-6.7 m", ("walls", "no way down"), "Bed depth: survey, 22 cuts (library INDEX row 24)"),
+    # v1.8 (booklet/research/FIGURE_CONFLICTS.md §1): the typed "1.1-6.7 m" (an old 9-10 Oct board run) is gone; the
+    # site board computes the depth live but writes it to no results file yet, so the tile shows no figure
+    ("deep", "BED BELOW THE BANKS", "", ("walls", "no way down"), "Bed depth: read from the survey terrain (site board channel profile)"),
     # v1.6 fix (VISUAL_AUDIT accuracy 1): was "0.4-1.4 m / Q500 rises over the banks; Q100 tops every bank too" (withdrawn);
     # now README v1.1 line 49: "on the surveyed sections Q100 2.0-3.0 m and Q500 2.3-3.3 m, flat end 1.4 / 1.5 m,
     # overtopping only at K4 and S4"
     ("flood", "Q100 OVER THE BED", "2.0-3.0 m", ("Q500 2.3-3.3 m · flat end 1.4 / 1.5 m", "over the banks only at K4 and S4"), SRC_FLOOD),
     ("sewage", "SEPTIC SEWAGE IN THE STREAM", "until 2024", ("odour", "flies"), "İZSU sewer, s59; E13"),
-    ("arch", "RED HALL BUILT OVER THE RIVER", "AD 117-138", ("Ottoman bazaar still met it", "at Tabaklar Hamamı"), "h02 s13 s28; s32"),
+    ("arch", "RED HALL BUILT OVER THE STREAM", "AD 117-138", ("Ottoman bazaar still met it", "at Tabaklar Hamamı"), "h02 s13 s28; s32"),
 ]
 WHO = [  # v1.6 bars: (pictogram, keyword heading, big figure, low, high, keyword lines, source); None = no data.
     # Research: library/research/city_link_2026-10-24/city_link_research_v1.md
@@ -277,12 +286,21 @@ def live():
             votes[v["id"]] = dict(NE=v["NE"], SW=v["SW"])
             vote_src = "site board buildings (" + mv_src + ")"
     sides = dict((pc["id"], bank_of(votes[pc["id"]])[0] if pc.get("side") == "auto" else "over") for pc in SPINE)
-    return dict(lands=lands, wb_src=wb_src, mv=mv, mv_src=mv_src, votes=votes, vote_src=vote_src, sides=sides)
+    # v1.8 (FIGURE_CONFLICTS.md §2): the spine length = the masterplan's drawn pieces (edge + deck + over), read live;
+    # none printed when the masterplan has not run (was a typed "about 660 m", the K4-K5 chainage)
+    mp, t3 = _load([MP_FILE])
+    try:
+        spine_m = sum(float(v) for v in mp["options"]["A"]["spine_m"].values())
+    except Exception:
+        spine_m = None
+    mp_src = ("masterplan results of " + t3) if spine_m else ""
+    return dict(lands=lands, wb_src=wb_src, mv=mv, mv_src=mv_src, votes=votes, vote_src=vote_src, sides=sides,
+                spine_m=spine_m, mp_src=mp_src)
 
 def fmt(v): return "{:,.0f}".format(v)
 
 GROUP = dict(L=("Locals", "CC9A52"), T=("Tourists", "8B3A3F"), S=("Students", "5C7A86"))
-GROWS = dict(W="water", E="river edge", A="agriculture", H="heritage")
+GROWS = dict(W="water", E="stream edge", A="agriculture", H="heritage")
 GROW_C = dict(W=C["water_deep"], E=C["water"], A=C["green_mid"], H=C["accent"])   # v1.6 letter chips
 SPINE_C = "BC6F45"
 
@@ -477,14 +495,25 @@ def shop_figures():
                 covered_reach_m=100 * len(bins), open_0_30m_buildings=nb, open_0_30m_shops=ns,
                 open_0_30m_per_100_buildings=int(round(100.0 * ns / nb)))
 
-# ------------------------------------------------------------------ page 1: why shops meet the river only where it is hidden
+# ------------------------------------------------------------------ v1.8: layout numbers (the sheet and its booklet crops)
+P1_A = (22.0, 168.0, 180.0, 78.0)        # page 1 chart A, shops along the stream: x, y (axis), w, h
+P1_B = (232.0, 168.0, 170.0, 78.0)       # page 1 chart B, shops by distance: x, y (axis), w, h
+P1_TILES = (14.0, 82.0, 392.0, 41.0)     # page 1 seven reasons: x, y (bottom), w, tile height
+P1_WHO = (14.0, 40.5, 392.0, 68.0)       # page 1 who comes: x, bar y, w, icon top
+P1_WALK = (150.0, 29.2, 3.8, 150.0)      # page 1 walking potential: bar start x, first row y, row step, longest bar
+P2_STRIP = (22.0, 384.0, 182.0, 192.0, 120.0, 252.0)   # page 2 strip: x, w, stream band y0, y1, SW / NE bank label y
+P2_FLOOD = (14.0, 100.0, 11.0)           # page 2 flood rule: x, first row y, row step
+P2_STOPS = (172.0, 101.0, 9.6)           # page 2 eight stops: x, first row y, row step
+P2_BANK = (14.0, 45.4)                   # page 2 which bank: x, title y
+
+# ------------------------------------------------------------------ page 1: why shops meet the stream only where it is hidden
 def page_why(L):
     pg = Page(420, 297)
     SRC_KEY[:] = []                               # v1.6: each page has its own numbered key
-    header(pg, "1", "WHY SHOPS MEET THE RIVER ONLY WHERE IT IS HIDDEN",
-           "spine study, today · shops follow the through road + fronts")   # v1.6 keywords (the open river has neither: tiles)
+    header(pg, "1", "WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN",
+           "spine study, today · shops follow the through road + fronts")   # v1.6 keywords (the open stream has neither: tiles)
     # chart A: shops within 60 m of the stream, every 100 m of stream
-    x0, y0, w, h = 22, 168, 180, 78
+    x0, y0, w, h = P1_A
     pg.text("SHOPS WITHIN 60 M OF THE STREAM, EVERY 100 M OF STREAM " + cite(SRC_SHOPS) + " " + cite(SRC_CH), 14, 256, 9,
             C["ink"], True)
     c0, c1 = 300, 1700
@@ -516,7 +545,7 @@ def page_why(L):
     pg.line([(qx - 1.5, qy + 1.5), (cx1, qy + 1.5)], SPINE_C, 0.35)
     disc(pg, cx1, qy + 1.5, 0.7, SPINE_C)
     # chart B: shops per 100 buildings by distance
-    bx, by, bw, bh_ = 232, 168, 170, 78
+    bx, by, bw, bh_ = P1_B
     pg.text("SHOPS PER 100 BUILDINGS, BY DISTANCE FROM THE STREAM " + cite(SRC_SHOPS), 222, 256, 9, C["ink"], True)
     vmax = 65.0
     gw = bw / len(BANDS)
@@ -541,41 +570,43 @@ def page_why(L):
     pg.text("shops like the water · but only %d buildings face it" % sf["open_0_30m_buildings"], bx + 30, by - 18.5, 7.5,
             C["ink"])
     # seven reasons: v1.6 pictogram tiles (icon, keyword heading, one big figure, keywords, [n]); were sentences
-    pg.text("SEVEN REASONS THE RIVER EDGE HAS NO SPINE " + cite(SRC_HIST), 14, 128, 9, C["ink"], True)
-    tw_ = 392 / 7.0
+    rx, ry, rw, rh = P1_TILES                     # v1.8: tile row from the layout numbers (same places)
+    pg.text("SEVEN REASONS THE STREAM EDGE HAS NO SPINE " + cite(SRC_HIST), rx, ry + rh + 5, 9, C["ink"], True)
+    tw_ = rw / 7.0
     for i, (ic, head, big, kws, src) in enumerate(REASONS):
-        x = 14 + i * tw_
-        pg.rect(x, 82, tw_ - 3, 41, fill=C["paper"])
-        icon(pg, ic, x + 2.5, 120.5, 9)
-        fit(pg, big, x + 13.5, 113, 13, tw_ - 18.5, C["accent"], True)
-        fit(pg, head, x + 2.5, 105.5, 6.5, tw_ - 8, C["ink"], True)
+        x = rx + i * tw_
+        pg.rect(x, ry, tw_ - 3, rh, fill=C["paper"])
+        icon(pg, ic, x + 2.5, ry + rh - 2.5, 9)
+        fit(pg, big, x + 13.5, ry + rh - 10, 13, tw_ - 18.5, C["accent"], True)
+        fit(pg, head, x + 2.5, ry + rh - 17.5, 6.5, tw_ - 8, C["ink"], True)
         for j, k in enumerate(kws):
-            fit(pg, k, x + 2.5, 100.5 - j * 3.6, 6.3, tw_ - 8, C["ink"])
-        pg.text(cite(src), x + 2.5, 85, 6, C["ink2"], True)
+            fit(pg, k, x + 2.5, ry + rh - 22.5 - j * 3.6, 6.3, tw_ - 8, C["ink"])
+        pg.text(cite(src), x + 2.5, ry + 3, 6, C["ink2"], True)
     # who comes: v1.6 people pictograms with a bar each (log scale); no pedestrian count = an empty bar marked no data
-    pg.text("WHO THE PROJECT BRINGS TO THE RIVER " + cite(SRC_WHO), 14, 72, 9, C["ink"], True)
-    pg.text("bars: log scale, 1 to 1,000,000", 406, 72, 6, C["ink2"], False, "R")
-    ww = 392 / 6.0
+    wx, wy, wt, wtop = P1_WHO                     # v1.8: from the layout numbers (same places)
+    pg.text("WHO THE PROJECT BRINGS TO THE STREAM " + cite(SRC_WHO), wx, wtop + 4, 9, C["ink"], True)
+    pg.text("bars: log scale, 1 to 1,000,000", wx + wt, wtop + 4, 6, C["ink2"], False, "R")
+    ww = wt / 6.0
     bw_ = ww - 9.0
     lg = lambda v: bw_ * math.log10(max(v, 1)) / 6.0
     for i, (ic, head, big, lo, hi, kws, src) in enumerate(WHO):
-        x = 14 + i * ww
-        icon(pg, ic, x, 68, 9)
-        pg.text(big or "no data", x + 11, 61, 14, C["ink"] if big else C["accent"], True)
-        fit(pg, head, x, 54.5, 6.3, ww - 6, C["ink"], True)
+        x = wx + i * ww
+        icon(pg, ic, x, wtop, 9)
+        pg.text(big or "no data", x + 11, wtop - 7, 14, C["ink"] if big else C["accent"], True)
+        fit(pg, head, x, wtop - 13.5, 6.3, ww - 6, C["ink"], True)
         for j, k in enumerate(kws):
-            fit(pg, k, x, 51 - j * 3.3, 6.2, ww - 6, C["ink"])
+            fit(pg, k, x, wtop - 17 - j * 3.3, 6.2, ww - 6, C["ink"])
         if big:
-            pg.rect(x, 40.5, lg(lo), 2.4, fill=SPINE_C)
+            pg.rect(x, wy, lg(lo), 2.4, fill=SPINE_C)
             if hi > lo:                                   # a range: the upper part lighter
-                pg.rect(x + lg(lo), 40.5, lg(hi) - lg(lo), 2.4, fill=C["structure"])
+                pg.rect(x + lg(lo), wy, lg(hi) - lg(lo), 2.4, fill=C["structure"])
             ex = x + lg(hi)
         else:
-            pg.poly([(x, 40.5), (x + bw_, 40.5), (x + bw_, 42.9), (x, 42.9)], stroke=C["accent"], lw=0.3, closed=True,
+            pg.poly([(x, wy), (x + bw_, wy), (x + bw_, wy + 2.4), (x, wy + 2.4)], stroke=C["accent"], lw=0.3, closed=True,
                     dash=(1.0, 0.8))
-            pg.text("no data", x + bw_ / 2, 41.0, 5.5, C["accent"], True, "C")
+            pg.text("no data", x + bw_ / 2, wy + 0.5, 5.5, C["accent"], True, "C")
             ex = x + bw_
-        pg.text(cite(src), ex + 1.2, 40.9, 5.5, C["accent"] if not big else C["ink2"], True)
+        pg.text(cite(src), ex + 1.2, wy + 0.4, 5.5, C["accent"] if not big else C["ink2"], True)
     # walking potential: v1.6 before/after bars (was a sentence); values live from the site board
     mv = L["mv"]
     pg.text("WALKING POTENTIAL", 14, 30, 7.5, C["ink"], True)
@@ -585,39 +616,39 @@ def page_why(L):
         rows = [("the spine", mv["spine_walk_index"], SPINE_C),
                 ("streets within 40 m of the stream · today", mv.get("edge_walk_today", 0), C["structure"]),
                 ("streets within 40 m of the stream · with the spine", mv.get("edge_walk_with", 0), C["water_deep"])]
-        bx0 = 150.0
-        sc = 150.0 / max([100.0] + [float(r[1] or 0) for r in rows])
+        bx0, wy0, wst, wlen = P1_WALK
+        sc = wlen / max([100.0] + [float(r[1] or 0) for r in rows])
         for j, (lab, v, col) in enumerate(rows):
-            yy = 29.2 - j * 3.8
+            yy = wy0 - j * wst
             pg.text(lab, bx0 - 2, yy + 0.3, 6, C["ink"], j == 0, "R")
             pg.rect(bx0, yy, max(float(v or 0) * sc, 0.3), 2.4, fill=col)
             pg.text("%.0f" % (v or 0), bx0 + float(v or 0) * sc + 1.2, yy + 0.3, 6.5, C["ink"], True)
-        pg.line([(bx0 + 100 * sc, 20.6), (bx0 + 100 * sc, 32.4)], C["ink2"], 0.3, dash=(0.8, 0.8))
-        pg.text("100", bx0 + 100 * sc, 33.0, 5.5, C["ink2"], False, "C")
+        pg.line([(bx0 + 100 * sc, wy0 - 2 * wst - 1.0), (bx0 + 100 * sc, wy0 + 3.2)], C["ink2"], 0.3, dash=(0.8, 0.8))
+        pg.text("100", bx0 + 100 * sc, wy0 + 3.8, 5.5, C["ink2"], False, "C")
     else:
         pg.text("no data yet · run the site board once " + cite(L["mv_src"]), 14, 26.4, 6.5, C["accent"], True)
     footer(pg)
     return pg
 
-# ------------------------------------------------------------------ page 2: the riverside spine as a strip along the stream
+# ------------------------------------------------------------------ page 2: the streamside spine as a strip along the stream
 def page_spine(L):
     pg = Page(420, 297)
     SRC_KEY[:] = []                               # v1.6: each page has its own numbered key
-    header(pg, "2", "THE RIVERSIDE SPINE",
-           "main road crossing to Ulu Cami and Üç Kemer · about 660 m")   # v1.6 keywords; bank and stop ties: drawn below
+    about = (" · about %d m" % int(round(L["spine_m"] / 10.0) * 10)) if L.get("spine_m") else ""   # v1.8: live, masterplan
+    header(pg, "2", "THE STREAMSIDE SPINE",
+           "main road crossing to Ulu Cami and Üç Kemer" + about)   # v1.6 keywords; bank and stop ties: drawn below
     c0, c1 = 150, 1800
-    x0, w = 22, 384
+    x0, w, ry0, ry1, sw_y, ne_y = P2_STRIP    # v1.8: from the layout numbers (same places)
     X = lambda c: x0 + (c - c0) / float(c1 - c0) * w
-    ry0, ry1 = 182, 192                       # the river band
     ne0, sw1 = ry1, ry0                       # north-east bank above, south-west bank below
     pg.rect(x0, ry0, w, ry1 - ry0, fill=C["water"])
     cx0, cx1 = X(CH["cov0"]), X(CH["cov1"])
     pg.rect(cx0, ry0, cx1 - cx0, ry1 - ry0, fill=C["structure"])
     pg.text("covered", (cx0 + cx1) / 2, ry0 + 3.5, 6.5, C["white"], True, "C")
     pg.text("THE SELINOS, FLOWING  >", x0 + 2, ry0 + 3.5, 6.5, C["white"], True)
-    pg.text("NORTH-EAST BANK", x0, 252, 7, C["ink2"], True)
-    pg.text("SOUTH-WEST BANK", x0, 120, 7, C["ink2"], True)
-    pg.text("strip diagram · across: not to scale · along: to scale " + cite(SRC_STRIP), x0 + w, 252, 6, C["ink2"], False, "R")
+    pg.text("NORTH-EAST BANK", x0, ne_y, 7, C["ink2"], True)
+    pg.text("SOUTH-WEST BANK", x0, sw_y, 7, C["ink2"], True)
+    pg.text("along the stream: to scale " + cite(SRC_STRIP), x0 + w, ne_y, 6, C["ink2"], False, "R")   # v1.8: no caveat
     # bridges
     for k in ("K4", "K3", "K5", "K6"):
         pg.rect(X(CH[k]) - 1.0, ry0 - 2, 2.0, ry1 - ry0 + 4, fill=C["ink"])
@@ -637,7 +668,7 @@ def page_spine(L):
     pg.line([(X(CH["K4"]), ya), (X(CH["K3"]), ya)], SPINE_C, 3.2)
     pg.line([(X(CH["K3"]), ya), (X(CH["cov0"]) + 4, ym), (X(CH["cov1"]) - 4, ym), (X(CH["cov1"]), yc)], SPINE_C, 3.2)
     pg.line([(X(CH["cov1"]), yc), (X(CH["K5"]), yc)], SPINE_C, 3.2)
-    pg.text("RIVERSIDE SPINE · ABOUT 660 M " + cite(SRC_PLAN07), X(CH["K4"]) + 2, ya + (4.5 if ya > ry1 else -7.5), 8, SPINE_C, True)
+    pg.text("STREAMSIDE SPINE" + about.upper() + " " + cite(SRC_PLAN07) + (" " + cite(L["mp_src"]) if about else ""), X(CH["K4"]) + 2, ya + (4.5 if ya > ry1 else -7.5), 8, SPINE_C, True)
     # heritage anchors
     for i, (c, bank, lab, src) in enumerate(HERITAGE):
         up = bank == "NE"
@@ -673,27 +704,29 @@ def page_spine(L):
                 fill=GROUP[k][1], closed=True)
         pg.text(GROUP[k][0], lx + i * 30 + 3, 132, 7, C["ink"], True)
     # flood rule: three levels; v1.6 the rules as pictograms with keywords, wet lines as keywords
-    pg.text("WHAT STANDS WHERE: THE FLOOD RULE " + cite(SRC_RULES), 14, 110, 9, C["ink"], True)
+    fx, fy0, fst = P2_FLOOD                       # v1.8: from the layout numbers (same places)
+    pg.text("WHAT STANDS WHERE: THE FLOOD RULE " + cite(SRC_RULES), fx, fy0 + 10, 9, C["ink"], True)
     for i, (lev, wet, rules, wsrc) in enumerate(FLOOD):
-        y = 100 - i * 11
-        pg.rect(14, y - 3, 3, 8, fill=(C["water"], C["water_light"], C["paper"])[i])
-        pg.text(lev, 20, y + 1.5, 8, C["ink"], True)
+        y = fy0 - i * fst
+        pg.rect(fx, y - 3, 3, 8, fill=(C["water"], C["water_light"], C["paper"])[i])
+        pg.text(lev, fx + 6, y + 1.5, 8, C["ink"], True)
         for j, k in enumerate(wet):
-            fit(pg, k + (" " + cite(wsrc) if j == len(wet) - 1 else ""), 20, y - 1.8 - j * 2.8, 5.8, 52, C["ink2"])
+            fit(pg, k + (" " + cite(wsrc) if j == len(wet) - 1 else ""), fx + 6, y - 1.8 - j * 2.8, 5.8, 52, C["ink2"])
         for j, (ic, k) in enumerate(rules):
-            icon(pg, ic, 74, y + 4.6 - j * 4.6, 4.2)
-            fit(pg, k, 80, y + 1.6 - j * 4.6, 6.8, 85, C["ink"])
+            icon(pg, ic, fx + 60, y + 4.6 - j * 4.6, 4.2)
+            fit(pg, k, fx + 66, y + 1.6 - j * 4.6, 6.8, 85, C["ink"])
     # functions table: v1.6 per stop a pictogram + 2 keyword lines + [n] (was one sentence)
-    pg.text("EIGHT STOPS · WHO THEY SERVE AND WHAT THEY GROW FROM", 172, 110, 9, C["ink"], True)
+    sx, sy0, sst = P2_STOPS                       # v1.8: from the layout numbers (same places)
+    pg.text("EIGHT STOPS · WHO THEY SERVE AND WHAT THEY GROW FROM", sx, sy0 + 9, 9, C["ink"], True)
     gx = 290
     for g_ in "WEAH":                            # v1.6: drawn legend of the letter chips
-        pg.rect(gx, 109.6, 3.0, 2.6, fill=GROW_C[g_])
-        pg.text(g_, gx + 1.5, 110.2, 5, C["white"], True, "C")
-        pg.text(GROWS[g_], gx + 4.2, 110.1, 6.5, C["ink"])
+        pg.rect(gx, sy0 + 8.6, 3.0, 2.6, fill=GROW_C[g_])
+        pg.text(g_, gx + 1.5, sy0 + 9.2, 5, C["white"], True, "C")
+        pg.text(GROWS[g_], gx + 4.2, sy0 + 9.1, 6.5, C["ink"])
         gx += 6.5 + text_w(GROWS[g_], 6.5)
     rows = FUNCS + [EVENTS]
     for i, f in enumerate(rows):
-        y = 101 - i * 9.6
+        y = sy0 - i * sst
         roundel(pg, 175, y + 0.8, f["n"], r=2.6)
         pg.text(f["name"], 180, y + 1.5, 7.5, C["ink"], True)
         fit(pg, f["where"], 180, y - 2.2, 5.8, 62, C["ink2"])
@@ -720,14 +753,14 @@ def page_spine(L):
     pg.text("PRODUCERS' MARKET · FED BY THE STORED WATER " + cite(L["wb_src"]), 23, 63.4, 7, C["ink"], True)
     pg.text("%.1f ha fields (%s) · %.2f ha orchards" % (float(ln.get("cropland_ha", 0)), ln.get("cropland_crops", ""),
                                                         float(ln.get("orchard_ha", 0))), 23, 59.4, 8, SPINE_C, True)
-    pg.text("not designed here: edge · decks · stall sizes " + cite(SRC_T5), 14, 54.2, 6.5, C["ink2"], True)
+    # v1.8: the caveat "not designed here: edge · decks · stall sizes" is off the sheet (open point: in the log)
     pg.text("bed/bank structures: DSİ + Conservation Council approval " + cite("s14"), 14, 50.8, 6.5, C["ink2"])
     # which bank: v1.6 paired bars NE / SW per piece (people = home floors, modern = buildings of 3+ floors, within 250 m)
-    yy = 45.4
-    pg.text("WHICH BANK · THE DATA (within 250 m of the stream)", 14, yy, 8, C["ink"], True)
-    pg.text("home floors", 20, yy - 3.8, 5.5, C["ink2"], True)
-    pg.text("buildings of 3+ floors", 84, yy - 3.8, 5.5, C["ink2"], True)
-    pg.text("bank", 122, yy - 3.8, 5.5, C["ink2"], True)
+    bkx, yy = P2_BANK                             # v1.8: from the layout numbers (same places)
+    pg.text("WHICH BANK · THE DATA (within 250 m of the stream)", bkx, yy, 8, C["ink"], True)
+    pg.text("home floors", bkx + 6, yy - 3.8, 5.5, C["ink2"], True)
+    pg.text("buildings of 3+ floors", bkx + 70, yy - 3.8, 5.5, C["ink2"], True)
+    pg.text("bank", bkx + 108, yy - 3.8, 5.5, C["ink2"], True)
     fmax = max([1.0] + [float(L["votes"][pc["id"]][b]["people_floors"]) for pc in SPINE for b in ("NE", "SW")])
     mmax = max([1.0] + [float(L["votes"][pc["id"]][b]["modern_3plus"]) for pc in SPINE for b in ("NE", "SW")])
     yy -= 8.6
@@ -735,38 +768,37 @@ def page_spine(L):
         v = L["votes"][pc["id"]]
         bank, why = bank_of(v)
         auto = pc.get("side") == "auto"
-        pg.text(pc["id"], 14, yy - 1.4, 8, SPINE_C if auto else C["ink"], True)
+        pg.text(pc["id"], bkx, yy - 1.4, 8, SPINE_C if auto else C["ink"], True)
         for j, b in enumerate(("NE", "SW")):
             by_ = yy + 0.4 - j * 2.4
             col = SPINE_C if (auto and b == bank) else C["structure"]
             fw = 46.0 * float(v[b]["people_floors"]) / fmax
             mw = 24.0 * float(v[b]["modern_3plus"]) / mmax
-            pg.rect(20, by_, max(fw, 0.3), 1.9, fill=col)
-            pg.text("%s %s" % (b, fmt(v[b]["people_floors"])), 21 + fw, by_ + 0.3, 5, C["ink"])
-            pg.rect(84, by_, max(mw, 0.3), 1.9, fill=col)
-            pg.text("%s %d" % (b, v[b]["modern_3plus"]), 85 + mw, by_ + 0.3, 5, C["ink"])
+            pg.rect(bkx + 6, by_, max(fw, 0.3), 1.9, fill=col)
+            pg.text("%s %s" % (b, fmt(v[b]["people_floors"])), bkx + 7 + fw, by_ + 0.3, 5, C["ink"])
+            pg.rect(bkx + 70, by_, max(mw, 0.3), 1.9, fill=col)
+            pg.text("%s %d" % (b, v[b]["modern_3plus"]), bkx + 71 + mw, by_ + 0.3, 5, C["ink"])
         if auto:
-            pg.text("-> " + {"NE": "north-east", "SW": "south-west"}[bank] + " bank", 122, yy + 0.6, 6.3, SPINE_C, True)
-            fit(pg, why, 122, yy - 2.0, 5, 43, C["ink2"])
+            pg.text("-> " + {"NE": "north-east", "SW": "south-west"}[bank] + " bank", bkx + 108, yy + 0.6, 6.3, SPINE_C, True)
+            fit(pg, why, bkx + 108, yy - 2.0, 5, 43, C["ink2"])
         else:
-            pg.text("-> over the covered stream", 122, yy + 0.6, 6.3, C["ink"], True)
-            pg.text("reaches both", 122, yy - 2.0, 5, C["ink2"])
+            pg.text("-> over the covered stream", bkx + 108, yy + 0.6, 6.3, C["ink"], True)
+            pg.text("reaches both", bkx + 108, yy - 2.0, 5, C["ink2"])
         yy -= 5.6
-    pg.text("floors: proxy for residents (no mahalle populations yet) " + cite(L["vote_src"]), 14, yy + 0.6, 5.5,
-            C["ink2"])
+    pg.text("floors: proxy for residents " + cite(L["vote_src"]), bkx, yy + 0.6, 5.5, C["ink2"])   # v1.8: no caveat
     footer(pg)
     return pg
 
 # ------------------------------------------------------------------ build and run
 def results(L=None):
     return dict(spine_banks=(L or {}).get("sides"), bank_votes=(L or {}).get("votes"), bank_vote_source=(L or {}).get("vote_src"),
-                script="bergama_city_link_v1_7.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+                script="bergama_city_link_v1_8.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 spine=SPINE, functions=[dict((k, f.get(k)) for k in ("n", "name", "where", "xy", "stage", "who", "grows", "ch", "bank"))
                                         for f in FUNCS + [EVENTS]],
                 chainage=CH, main_spine=MAIN_SPINE, shops=shop_figures(),
                 note="survey coordinates (m); spine offsets are schematic for the movement network")
 
-# ------------------------------------------------------------------ v1.7: A3 booklet asset (booklet/ASSET_SPEC.md)
+# ------------------------------------------------------------------ v1.8: A3 booklet = crops of this sheet (booklet/CROP_SPEC.md)
 # ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
 # Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
 # The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
@@ -819,6 +851,16 @@ class BkBlocks(object):
         self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
                                  "scale_den": scale_den, "legend": legend or []}
 
+    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
+        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
+        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
+        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
+        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
+        drop = regexes of sheet texts not to carry."""
+        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
+                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
+
     def tiles(self, bid, tiles):
         self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
 
@@ -832,187 +874,59 @@ class BkBlocks(object):
             _j.dump(self.d, f, ensure_ascii=False, indent=1)
         return p
 
-BK_HERO = "c2_hero"                                  # booklet page C2, hero frame: the spine as a strip
-BK_SPINE = "E0B67D"                                  # the spine in sand on every booklet drawing, as on the masterplan
-BK_GREY = "847E75"                                   # heritage anchors: small grey markers
-MP_FILE = os.path.join(BERGAMA, "output", "bergama_masterplan", "masterplan_results.json")   # spine pieces, decks
-# the only words of the drawing (plan C2 hero); heritage anchors not named there stay off the strip
-BK_NAMES = {"Ulu Cami 1398": "Ulu Cami", "Tabaklar Hamamı": "Tabaklar Hamamı", "Tannery quarter": "Tannery quarter",
-            "İstiklal Meydanı": "İstiklal Meydanı", "Red Hall (Kızıl Avlu)": "Red Hall (Kızıl Avlu)"}
-BK_VOTE = "{val:Bergama_city_link_analysis/city_link_results.json:bank_votes.%s.%s.people_floors|0}"
-BK_MP = "{val:bergama_masterplan/masterplan_results.json:options.A.spine_m.%s|0}"
+BK_DROP = [r"^\[\d+(,\d+)*\]$"]                      # the sheet's source numbers: the booklet has its own source list
 
 
-def _bk_val(s):
-    """a label's {val:folder/file.json:a.b|n} marks as the assembler will print them (for its width only)"""
-    import re
-
-    def one(m):
-        path, _, rest = m.group(1).partition(":")
-        keys, _, d = rest.partition("|")
-        v, _ = _load([os.path.join(BERGAMA, "output", path)])
-        for k in keys.split("."):
-            v = v.get(k) if isinstance(v, dict) else None
-        return "{:,.{}f}".format(v, int(d or 0)) if isinstance(v, (int, float)) else "000"
-    return re.sub(r"\{val:([^}]+)\}", one, s)
-
-
-def _bk_parts(mp):
-    """{piece id: [(kind, f0, f1)]}: the masterplan's edge / deck / over parts of each spine piece as fractions of
-    its length, in drawing order"""
-    out = {}
-    try:
-        parts = mp["options"]["A"]["spine"]
-    except Exception:
-        return out
-    for pid in ("A", "B", "C"):
-        segs = [(p.get("kind"), sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(p["P"], p["P"][1:])))
-                for p in parts if p.get("id") == pid]
-        tot = sum(l for _, l in segs)
-        acc, rows = 0.0, []
-        for k, l in segs:
-            rows.append((k, acc / tot if tot else 0.0, (acc + l) / tot if tot else 1.0))
-            acc += l
-        if tot > 0:
-            out[pid] = rows
-    return out
-
-
-def booklet_spine(L, W, H):
-    """C2 hero: the streamside spine as a strip at W x H mm (no text). Stream left to right, north-east bank above;
-    along the stream to scale (chainage CH), across not. Returns (page, labels, note)."""
-    pg = Page(W, H)
-    items, boxes = [], []
-    k_pt = 25.4 / 72.0
-
-    def put(s, x, y, size=7.5, col=C["ink"], bold=False, align="C", dy=0.0):
-        """a label (y up, baseline); moved by dy until its box is clear of the others and inside the frame"""
-        wd = text_w(_bk_val(s), size, bold) + 0.6
-        for i in range(8):
-            yy = y + i * dy
-            x0 = x - (wd / 2 if align == "C" else wd if align == "R" else 0)
-            b = (x0, yy - 0.21 * size * k_pt, x0 + wd, yy + 0.72 * size * k_pt)
-            clear = not any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in boxes)
-            if (clear and b[0] >= 0.5 and b[2] <= W - 0.5 and b[1] >= 0.5 and b[3] <= H - 0.5) or not dy:
-                break
-        boxes.append(b)
-        items.append(("text", s, x, yy, size, col, bold, align))
-        return yy
-
-    c0, c1, xa, xb = 150.0, 1800.0, 14.0, W - 14.0
-    X = lambda c: xa + (c - c0) / (c1 - c0) * (xb - xa)
-    ym = H / 2.0 - 5.0
-    rt, rb = ym + 9.0, ym - 9.0                          # the stream band
-    yb = {"NE": rt + 6.5, "SW": rb - 6.5}                # the spine's line on each bank
-    sd = L["sides"]
-    yA, yC = yb.get(sd.get("A"), yb["NE"]), yb.get(sd.get("C"), yb["SW"])
-    # banks, stream, covered reach, bridges
-    pg.rect(4, rt, W - 8, 12.5, fill=C["paper"])
-    pg.rect(4, rb - 12.5, W - 8, 12.5, fill=C["paper"])
-    pg.rect(4, rb, W - 8, rt - rb, fill=C["water"])
-    pg.rect(X(CH["cov0"]), rb - 1.0, X(CH["cov1"]) - X(CH["cov0"]), rt - rb + 2.0, fill=C["faint"])
-    for y in (rt, rb):
-        pg.line([(4, y), (W - 4, y)], C["structure"], 0.3)
-    for kb in ("K4", "K3", "K5", "K6"):
-        pg.rect(X(CH[kb]) - 0.7, rb - 2.2, 1.4, rt - rb + 4.4, fill=C["ink"])
-    # walking route continues at both ends (dashed, arrowheads outward)
-    pg.line([(8.5, yA), (X(CH["K4"]) - 1.5, yA)], C["ink2"], 0.35, dash=(1.4, 1.2))
-    pg.poly([(4, yA), (8.5, yA + 1.6), (8.5, yA - 1.6)], fill=C["ink2"], closed=True)
-    pg.line([(X(CH["K5"]) + 1.5, yC), (W - 8.5, yC)], C["ink2"], 0.35, dash=(1.4, 1.2))
-    pg.poly([(W - 4, yC), (W - 8.5, yC + 1.6), (W - 8.5, yC - 1.6)], fill=C["ink2"], closed=True)
-    # heritage anchors: grey markers, dashed leader to their bank, names in tiers
-    tiers = {"NE": [rt + 18.5, rt + 27.0], "SW": [rb - 21.5, rb - 30.0]}
-    named = []
-    for c, bank, lab, _ in HERITAGE:
-        if lab not in BK_NAMES:
-            continue
-        x, nm = X(c), BK_NAMES[lab]
-        wd = text_w(nm, 7.5) + 3.0
-        for ty in tiers[bank]:
-            if not any(abs(ty - t2) < 1 and abs(x - x2) < (wd + w2) / 2 for t2, x2, w2 in named):
-                break
-        named.append((ty, x, wd))
-        up = bank == "NE"
-        my = ty - 3.4 if up else ty + 4.6
-        pg.line([(x, rt if up else rb), (x, my - 1.6 if up else my + 1.6)], BK_GREY, 0.2, dash=(0.7, 0.7))
-        pg.poly([(x - 1.4, my), (x, my + 1.8), (x + 1.4, my), (x, my - 1.8)], fill=BK_GREY, closed=True)
-        put(nm, x, ty)
-    # the spine: A (K4-K3) and C (end of the covered reach-K5) on their banks, B over the covered reach; decks dashed
-    mp, _ = _load([MP_FILE])
-    parts = _bk_parts(mp)
-    lw = 2.4
-
-    def run(pid, ca, cb, y):
-        for kind, f0, f1 in parts.get(pid) or [("edge", 0.0, 1.0)]:
-            xs, xe = X(ca + f0 * (cb - ca)), X(ca + f1 * (cb - ca))
-            if kind == "deck":                           # dashes as small blocks (round caps would close the gaps)
-                x = xs + 0.3
-                while x < xe - 0.3:
-                    pg.rect(x, y - lw / 2, min(1.5, xe - 0.3 - x), lw, fill=BK_SPINE)
-                    x += 2.4
-            else:
-                pg.line([(xs, y), (xe, y)], BK_SPINE, lw)
-    run("A", CH["K4"], CH["K3"], yA)
-    pg.line([(X(CH["K3"]), yA), (X(CH["cov0"]) + 3.0, ym), (X(CH["cov1"]) - 3.0, ym), (X(CH["cov1"]), yC)], BK_SPINE, lw)
-    run("C", CH["cov1"], CH["K5"], yC)
-    # stops 1-8: numbered accent dots on their bank, on the spine over the covered reach, in the bed
-    for f in FUNCS + [dict(EVENTS, ch=1040, bank="bed")]:
-        bank = f["bank"]
-        if bank == "spine":
-            bank = sd.get("A" if f["ch"] < CH["K3"] else "C", "NE")
-        y = yb.get("NE" if bank == "both" else bank, ym)
-        disc(pg, X(f["ch"]), y, 2.7, C["accent"])
-        put(str(f["n"]), X(f["ch"]), y - 1.05, 8.0, C["white"], True)
-    # words: stream, banks, covered reach, Üç Kemer, the bank callouts (brackets), spine lengths (drawn samples)
-    put("THE SELINOS, FLOWING >", X(1200), ym - 1.1, 8.0, C["ink"], True, "L")
-    put("covered reach", (X(CH["cov0"]) + X(CH["cov1"])) / 2.0, rt - 3.0)
-    put("NORTH-EAST BANK", 6, rt + 15.5, 8.5, C["ink2"], True, "L")
-    put("SOUTH-WEST BANK", 6, rb - 18.5, 8.5, C["ink2"], True, "L")
-    up5 = sd.get("C") == "NE"
-    put("Üç Kemer (K5)", X(CH["K5"]), yC + 5.0 if up5 else yC - 7.2, dy=3.6 if up5 else -3.6)
-    for pid, ca, cb in (("A", CH["K4"], CH["K3"]), ("C", CH["cov1"], CH["K5"])):
-        bank = sd.get(pid)
-        if bank not in ("NE", "SW"):
-            continue
-        other = "SW" if bank == "NE" else "NE"
-        up = bank == "NE"
-        by_ = rt + 35.0 if up else rb - 39.0
-        x0, x1 = X(ca), X(cb)
-        tk = -1.8 if up else 1.8
-        pg.line([(x0, by_ + tk), (x0, by_), (x1, by_), (x1, by_ + tk)], C["ink2"], 0.3)
-        put("%s: %s %s vs %s %s floors" % (pid, bank, BK_VOTE % (pid, bank), other, BK_VOTE % (pid, other)),
-            (x0 + x1) / 2.0, by_ + 2.4 if up else by_ - 4.6, dy=3.6 if up else -3.6)
-    kx, ky = W - 72.0, H - 10.0
-    for i, (kind, lab) in enumerate((("edge", "on the bank " + BK_MP % "edge" + " m"),
-                                     ("deck", "on decks " + BK_MP % "deck" + " m"),
-                                     ("over", "over the covered reach " + BK_MP % "over" + " m"))):
-        y = ky - i * 6.0
-        if kind == "over":
-            pg.rect(kx - 1.0, y - 3.0, 12.0, 6.0, fill=C["faint"])
-        if kind == "deck":
-            for j in range(4):
-                pg.rect(kx + 0.3 + j * 2.4, y - lw / 2, 1.5, lw, fill=BK_SPINE)
-        else:
-            pg.line([(kx, y), (kx + 10.0, y)], BK_SPINE, lw)
-        put(lab, kx + 13.0, y - 1.0, align="L")
-    keep, labels = bk_take_text(items, H)
-    return pg, labels, ("" if parts else "decks not drawn: masterplan results not found")
-
-
-def booklet_export(L, out_dir):
-    """v1.7: this script's booklet frame (C2 hero) as a text-free PDF at its frame size + blocks.json"""
+def booklet_export(out_dir):
+    """v1.8 (Aras 25 Oct 21:47): one crop per panel of the two sheet pages in booklet/blocks.json; the assembler cuts
+    each rect out of the sheet PDF. Rects come from the layout numbers P1_* / P2_* (mm, y up here; written y down):
+    the drawing and its in-drawing labels, never the panel title, legend row, notes or the page header and footer."""
     bk = BkBlocks(out_dir, "CityLink", VERSION)
-    W, H = bk_frame(os.path.basename(out_dir) + "/" + BK_HERO, 260.0, 176.0)
-    pg, labels, note = booklet_spine(L, W, H)
-    write_pdf([pg], bk.path(BK_HERO + ".pdf"))
-    bk.drawing(BK_HERO, BK_HERO + ".pdf", labels, caption="The streamside spine · along to scale, across not",
-               scale_den=None, legend=[dict(kind="line", colour=BK_SPINE, label="streamside spine"),
-                                       dict(kind="dot", colour=C["accent"], label="stop"),
-                                       dict(kind="dot", colour=BK_GREY, label="heritage anchor"),
-                                       dict(kind="fill", colour=C["water"], label="the Selinos"),
-                                       dict(kind="fill", colour=C["faint"], label="covered reach")])
+    H = 297.0
+
+    def crop(bid, page, x0, y0, x1, y1, caption, legend=None):
+        bk.crop(bid, OUT_PDF, (x0, H - y1, x1, H - y0), caption=caption, scale_den=None, legend=legend, page=page,
+                drop=BK_DROP)
+    chip = lambda g_: dict(kind="fill", colour=GROW_C[g_], label=GROWS[g_])
+    dots = [dict(kind="dot", colour=GROUP[k][1], label=GROUP[k][0]) for k in "LTS"]
+    # page 1: the two shop charts, the seven reasons, who comes, walking potential
+    x0, y0, w, h = P1_A                              # axis labels 11 mm under the axis; the "stream covered" band on top
+    crop("cl_shops_along", 0, x0 - 6.0, y0 - 13.0, x0 + w + 4.5, y0 + h, "Shops within 60 m, every 100 m of stream",
+         [dict(kind="fill", colour=SPINE_C, label="shops"), dict(kind="fill", colour=C["faint"], label="stream covered")])
+    x0, y0, w, h = P1_B                              # the per-100 callout 20 mm under the axis; legend row (top 3.6 mm) out
+    crop("cl_shops_distance", 0, x0 - 2.0, y0 - 22.0, x0 + w + 2.0, y0 + h - 3.6, "Shops per 100 buildings, by distance",
+         [dict(kind="fill", colour=C["water_deep"], label="by the open stream"),
+          dict(kind="fill", colour=C["structure"], label="by the covered pieces")])
+    x0, y0, w, h = P1_TILES
+    crop("cl_reasons", 0, x0, y0 - 1.0, x0 + w, y0 + h + 1.0, "Seven reasons the stream edge has no spine")
+    x0, y0, w, top = P1_WHO
+    crop("cl_who", 0, x0, y0 - 1.0, x0 + w, top + 1.0, "Who the project brings to the stream · log scale",
+         [dict(kind="fill", colour=SPINE_C, label="count"), dict(kind="fill", colour=C["structure"], label="upper end of a range")])
+    bx0, wy0, wst, wlen = P1_WALK                    # row labels end 2 mm left of the bars; the "100" mark on top
+    lw_ = max(text_w(s, 6, b) for s, b in (("the spine", True), ("streets within 40 m of the stream · today", False),
+                                           ("streets within 40 m of the stream · with the spine", False)))
+    crop("cl_walk", 0, bx0 - 3.0 - lw_, wy0 - 2 * wst - 1.6, bx0 + wlen + 12.0, wy0 + 6.0,
+         "Walking potential · index 100 = busiest street today")
+    # page 2: the strip, the flood rule, the eight stops, which bank
+    x0, w, ry0, ry1, sw_y, ne_y = P2_STRIP
+    crop("cl_spine", 1, x0 - 1.0, sw_y - 2.5, x0 + w + 1.0, ne_y + 3.0, "The streamside spine along the Selinos",
+         [dict(kind="line", colour=SPINE_C, label="streamside spine"), dict(kind="fill", colour=C["accent"], label="main spine"),
+          dict(kind="dot", colour=C["ink"], label="stop"), dict(kind="dot", colour=C["accent"], label="heritage anchor"),
+          dict(kind="fill", colour=C["water"], label="the Selinos"), dict(kind="fill", colour=C["structure"], label="covered reach")])
+    fx, fy0, fst = P2_FLOOD                          # level bars, wet keywords, rule pictograms (85 mm of keywords)
+    crop("cl_flood", 1, fx - 1.0, fy0 - (len(FLOOD) - 1) * fst - 6.0, fx + 66.0 + 85.0 + 1.0, fy0 + 5.5,
+         "What stands where: the flood rule",
+         [dict(kind="fill", colour=C["water"], label="bed"), dict(kind="fill", colour=C["water_light"], label="terrace +1 m"),
+          dict(kind="fill", colour=C["paper"], label="bank top")])
+    sx, sy0, sst = P2_STOPS                          # roundel to the keyword column (to the page margin)
+    crop("cl_stops", 1, sx - 1.0, sy0 - len(FUNCS) * sst - 3.4, P2_STRIP[0] + P2_STRIP[1], sy0 + 5.0,
+         "Eight stops: who they serve, what they grow from", [chip(g_) for g_ in "WEAH"] + dots)
+    bkx, ty = P2_BANK                                # column heads 3.8 mm under the title; the source line under the rows out
+    crop("cl_bank", 1, bkx - 0.5, ty - 8.6 - (len(SPINE) - 1) * 5.6 - 2.9, bkx + 152.0, ty - 1.4,
+         "Which bank: home floors and 3+ floor buildings within 250 m",
+         [dict(kind="fill", colour=SPINE_C, label="bank the spine takes"), dict(kind="fill", colour=C["structure"], label="other bank")])
     bk.save()
-    return note
+    return ""
 
 def build(dir_):
     L = live()
@@ -1040,12 +954,12 @@ def main():
         L = build(OUT_DIR)
     except PermissionError:
         return "The PDF is open in another program. Close it and press again: " + os.path.join(OUT_DIR, OUT_PDF)
-    bk = ""
+    bk = "\nopen points (not on the sheet): market edge, decks and stall sizes (masterplan)"
     try:                                           # v1.7: a booklet error never stops the sheets; it goes into the log
-        n_ = booklet_export(L, OUT_DIR)
-        bk = ("\nbooklet: " + n_) if n_ else ""
+        n_ = booklet_export(OUT_DIR)
+        bk += ("\nbooklet: " + n_) if n_ else ""
     except Exception as ex_:
-        bk = "\nbooklet: ERROR %s: %s" % (type(ex_).__name__, ex_)
+        bk += "\nbooklet: ERROR %s: %s" % (type(ex_).__name__, ex_)
     t = time.strftime("%H:%M:%S")
     return "%s  %s\n%s  %s\nfigures: %s; %s\ncity link %s, %.1f s%s%s" % (OUT_PDF, t, OUT_JSON, t, L["wb_src"], L["mv_src"], VERSION, time.time() - t0, L.get("bank_note", ""), bk)
 
