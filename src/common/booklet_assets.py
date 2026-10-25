@@ -50,6 +50,16 @@ class BkBlocks(object):
         self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
                                  "scale_den": scale_den, "legend": legend or []}
 
+    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
+        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
+        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
+        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
+        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
+        drop = regexes of sheet texts not to carry."""
+        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
+                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
+
     def tiles(self, bid, tiles):
         self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
 
