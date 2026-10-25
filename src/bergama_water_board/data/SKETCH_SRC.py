@@ -654,7 +654,7 @@ def _concept_aras_sketch():
     # winter: rain on the old town's roofs and street (context house generic, not surveyed)
     rain(o, 6, 33, 67.5, 73.5, 16)
     sketch_house(o, 15, 27, 65.3, wall=5.0, pipe=True)
-    road(o, 0, 30, 64, "ROAD " + CITE("survey") + "\nschematic", ly=61.5, mask=SOIL)
+    road(o, 0, 30, 64, "ROAD " + CITE("survey"), ly=61.5, mask=SOIL)
     # Q500's reach first (solid wash), so the basins' water and reeds stay on top of it
     for pc in [under_level(gs, 102, w, 31.5)]:
         if pc:
@@ -681,10 +681,10 @@ def _concept_aras_sketch():
     text(o, "Q500 +73.66 m · 3.30 m · inside the banks " + CITE("levels") + "\nlowest terrace floods only if set below it",
          126, 35.6, 5.0, HERITAGE, "flood")
     hand_arrow(o, (8, 72), (44, 56), SITE_WATER_D, bend=0.12)
-    keyed(o, "winter", "street + roof runoff · Nov-Feb 59.1 % of rain " + CITE("rain") + "\nreed basins clean it with river water",
+    keyed(o, "winter", "street + roof runoff · Nov-Feb 59.1 % of rain " + CITE("rain") + "\nreed basins clean it with stream water",
           6, 77.4, 5.8)
     hand_arrow(o, (126, 31), (150, 20), SITE_WATER_D, bend=-0.15)
-    keyed(o, "summer", "regulated release · continuous strip\nJun-Sep 7.4 % of rain " + CITE("rain") + "\nriver below runs clean",
+    keyed(o, "summer", "regulated release · continuous strip\nJun-Sep 7.4 % of rain " + CITE("rain") + "\nstream below runs clean",
           109, 47, 5.8)
     for a, b in (((64, 49), (66, 44)), ((98, 37), (100, 32)), ((130, 26), (141, 18))):
         hand_arrow(o, a, b, ACCENT, width=0.4, head=1.5, bend=-0.2)
@@ -732,7 +732,7 @@ def _concept_begum_sketch():
             marker(o, pc, "tiers", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
         text(o, lab, x0 + 1, y - 3.0, 5.8, mask=SOIL)
     reeds(o, 102, 148, 14, 4.5)
-    road(o, 0, 16, 62, "ROAD " + CITE("survey") + "\nK4 deck: traffic\nschematic", ly=54.5, mask=SOIL)
+    road(o, 0, 16, 62, "ROAD " + CITE("survey") + "\nK4 deck: traffic", ly=54.5, mask=SOIL)
     sketch_tree(o, 24, 62, 9)                               # only on D: F floods in big floods, W every winter
     sketch_person(o, 31, 62, kind=1); sketch_person(o, 35, 62, kind=2, flip=True); sketch_person(o, 195, 62)  # on dry D / east
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)                      # the cut: the gesture
@@ -742,7 +742,7 @@ def _concept_begum_sketch():
     hand_arrow(o, (138, 34.5), (138, 50.5), SITE_WATER_D, width=0.45, head=1.8)  # the river climbs in big floods
     level_mark(o, 146, 52, W_EXT, "flood lines")
     text(o, "Q500 over today's bank top\nK4 cut " + CITE("levels") + "\ndry top raised above it", 156, 51, 5.6, W_EXT, "water")
-    text(o, "the river may climb the steps,\nthe street stays above Q500", 6, 31, 8.0, SKINK, "idea")
+    text(o, "the stream may climb the steps,\nthe street stays above Q500", 6, 31, 8.0, SKINK, "idea")
     text(o, "tiers " + CITE("tiers") + ": level 1 floods yearly · 2 only in 10-year storms\n"
          "level 3 street: dry, only if set above Q500", 2, 5.5, 5.2, INK2)
     for n_, x_, y_ in ((6, 125, 18), (7, 110, 22), (8, 73, 44), (9, 6, 67)):

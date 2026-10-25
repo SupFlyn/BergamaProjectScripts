@@ -1,16 +1,21 @@
-# bergama_agriculture_alternatives_v1_3.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v1_4.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
 #   1 WHAT EACH CUBIC METRE GROWS   chart: hectares the stored water irrigates, per crop, normal and 1-in-5 dry year
 #   2 THE FARMS WE FEED             plan 1:10,000: the around2 extent, its fields, orchards and their water need
-#   3 ONE PLANT LADDER              schematic section: riverbed to farm, water depth, what grows today, what we plant
+#   3 ONE PLANT LADDER              section diagram: streambed to farm, water depth, what grows today, what we plant
 # Storage, water to the farms and the farm areas are read on every run from the water balance script's output
 # (bergama_water_balance), so they follow its cost cut-off; the fallback is the shared key-figures file (flagged).
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v1.3"
+VERSION = "v1.4"
+# v1.4 (Aras 25 Oct 21:47-22:02, booklet stage 3): the booklet shows crops of this sheet (booklet/CROP_SPEC.md):
+# blocks.json lists one crop per panel of the three pages and results.json keeps v1.3's keys; the v1.3 booklet redraws
+# are gone. Caveat notes taken off the sheet (labels kept); "stream", never "river". Page 3's ladder drawn in the site
+# board's section language (src/common/section_style.py): cut ground with sloped banks, the strip hatched, whole plants,
+# one size across and up.
 # v1.3 (25 Oct, booklet stage 2, SCRIPT_STANDARD §8): also writes output/<folder>/booklet/: c7_hero.pdf (plant ladder +
 # the water board's planting bands A-F), c8_b.pdf (hectares per crop bars), blocks.json (every word a label) and
 # results.json (hectares per crop). The A3 sheet is unchanged.
@@ -44,7 +49,7 @@ LIVE_FILES = [os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "out
               os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis", "water_balance_results.json")]   # old place, read fallback
 # fallback: the cloud copy research/water_balance/water_balance_results_default.json (default lands, 24 Oct 08:23)
 DEFAULT = json.loads('{"cutoff":{"orchard olive + cropland cotton":{"central":{"storage_m3":375000,"covered_pct_1in5_dry":99.2,"delivered_m3_per_year":336093}},"orchard olive + cropland tomato":{"central":{"storage_m3":350000,"covered_pct_1in5_dry":99.7,"delivered_m3_per_year":310094}}},"farm_demand_m3":{"orchard olive + cropland cotton":{"mean":339980,"median":348773,"wet5":315782,"dry5":356580,"dry10":382453,"min":278845,"max":393001,"dry5_year":2006},"orchard olive + cropland tomato":{"mean":311982,"median":319136,"wet5":288317,"dry5":334143,"dry10":343054,"min":251458,"max":362453,"dry5_year":2021}},"net_irrigation_mm":{"olive":{"mean":614.3,"median":619.5,"wet5":519.6,"dry5":720.1,"dry10":725.2,"min":415.2,"max":822.7},"cotton":{"mean":853.2,"median":875.6,"wet5":789.5,"dry5":891.8,"dry10":962.6,"min":703.1,"max":981.9},"maize":{"mean":722.7,"median":740.8,"wet5":675.4,"dry5":761.8,"dry10":816.2,"min":605.7,"max":835.7},"tomato":{"mean":781.0,"median":801.3,"wet5":719.7,"dry5":837.0,"dry10":860.8,"min":632.5,"max":903.1}},"lands":{"cropland_ha":34.9,"orchard_ha":1.34,"cropland_crops":"cotton,tomato"}}')
-DEFAULT_NOTE = "FLAG: water balance results file not found in Downloads; default-lands copy of 24 Oct used"
+DEFAULT_NOTE = "water balance default-lands copy, 24 Oct"   # v1.4: the log says when it is used
 
 def live():
     """storage, share covered and need per mix (cost cut-off, central case), farm areas, crops and net need per crop"""
@@ -343,7 +348,7 @@ CONTEXT = [
     ("olive", "OLIVES CAN TAKE LESS · MEMECIK, DRIP", "-72 % water",
      ["İzmir station 2008-10 · 175 vs 622 mm a season", "24.9 vs 27.8 kg a tree: no significant loss",
       "highest oil content"], KAYA),
-    ("drip", "TODAY'S IRRIGATION ON THE FARMS", "NOT KNOWN", ["some Bergama growers moved to drip"], ITB),
+    ("drip", "TODAY'S IRRIGATION ON THE FARMS", None, ["some Bergama growers moved to drip"], ITB),
 ]
 REPLACES = [("cube", "THE WATER BOARD LINE IT REPLACES", "10,000 m³ = 1.22 ha olive",
              ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
@@ -361,7 +366,7 @@ def page_cubic(L, src):
     fed = L["cropland_ha"] + L["orchard_ha"]
     SRC1 = "storage, need and share: " + src + "; water to farms = 1-in-5 dry-year need x share covered (calculated)"
     MIX = ("Bergama mix = cotton, maize and tomato weighted by their 2025 district areas; no map shows what the 34.9 ha grow, "
-           "so the mix stands in (FLAG); water balance crops: %s" % (", ".join(L["crops"]) or "not set"))
+           "so the mix stands in; water balance crops: %s" % (", ".join(L["crops"]) or "not set"))
     # key line
     pg.text("%s-%s m³" % (fmt(rnd(s_lo)), fmt(rnd(s_hi))) if rnd(s_lo) != rnd(s_hi) else "%s m³" % fmt(rnd(s_lo)), 26, 250, 26, C["water_deep"], True)
     pg.text("storage · cost cut-off " + cite(SRC1), 26, 242, 9, C["ink"])
@@ -405,6 +410,11 @@ def page_cubic(L, src):
         if d: g_n, g_d = g_n * (1 - d[1]), g_d * (1 - d[0])
         mk = cite(NET_REF) + (cite(KAYA) if d else "") + (cite(MIX) if crop == "mix" else "")
         pg.text("%s-%s m³ per ha a season %s" % (fmt(rnd(min(g_n, g_d), 10)), fmt(rnd(max(g_n, g_d), 10)), mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
+    ag_crop("ag1_bars", 0, 13.0, y0 - len(rows) * 19.5 + 0.5, 277.0, y0 + 11.0,
+            legend=[{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
+                    {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
+                    {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
+    ag_crop("ag1_headline", 0, 24.0, 239.0, 262.0, 261.0)
     # key to the two bars
     ky = y0 - len(rows) * 19.5 - 4
     pg.rect(x0, ky, 6, 3, fill=C["green_light"]); pg.text("normal year (mean of 34)", x0 + 8, ky + 0.5, 7, C["ink"])
@@ -431,17 +441,20 @@ def page_cubic(L, src):
     pg.text("as much land, same storage", bkx + 3, 49.5, 7.5, C["ink"])
     pg.text("lever: crop + irrigation method, more than storage", 20, 39, 8, C["ink"], True)
     pg.text("same water: more farmland · same farms: less storage", 20, 35, 8, C["ink"])
+    ag_crop("ag1_reading", 0, 18.0, 33.0, 262.0, 81.0)
     # context column
     cx, cy = 280, 250
     pg.text("WHY CROP CHOICE IS THE LEVER", cx, cy, 11, C["ink"], True)
-    tiles(pg, cx, cy - 6, 126, CONTEXT)
+    yb_ = tiles(pg, cx, cy - 6, 126, CONTEXT)
+    ag_crop("ag1_context", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, cy - 5.0)
     pg.text("WHAT IT REPLACES", cx, 60, 9, C["accent"], True)
-    tiles(pg, cx, 57, 126, REPLACES)
-    footer(pg, CREDIT + " · news items flagged as news")
+    yb_ = tiles(pg, cx, 57, 126, REPLACES)
+    ag_crop("ag1_replaces", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, 58.0)
+    footer(pg, CREDIT)
     return pg
 
 # ------------------------------------------------------------------ page 2: the farms we feed (plan 1:10,000)
-CLS = [("farmland", "Fields (cropland)", C["field"]), ("orchard", "Orchards (inferred)", C["orchard"]),
+CLS = [("farmland", "Fields (cropland)", C["field"]), ("orchard", "Orchards", C["orchard"]),
        ("trees", "Tree cover", C["tree"]), ("shrub", "Shrubland", C["shrub"]), ("grass", "Grassland", C["grass"])]
 
 def page_farms(L, src):
@@ -482,6 +495,9 @@ def page_farms(L, src):
     pg.rect(330, 104, 25, 1.4, fill=C["ink"]); pg.rect(355, 104, 25, 1.4, fill=None, stroke=C["ink"], lw=0.3)
     for t, xx in ((0, 330), (250, 355), (500, 380)): pg.text("%d" % t, xx, 100.5, 6.5, C["ink"], align="C")
     pg.text("m · 1:10,000 at A3", 383, 100.5, 6.5, C["ink"])
+    ag_crop("ag2_plan", 1, min(T(p)[0] for p in A) - 2.0, 99.0, 407.0, max(max(T(p)[1] for p in A) + 2.0, 238.0), 10000,
+            legend=[{"kind": "fill", "colour": col, "label": lab} for key, lab, col in CLS] +
+                   [{"kind": "line", "colour": C["water_deep"], "label": "Selinos"}])
     pg.text("land cover %s · orchards %s · extent %s" % (cite(WC), cite(ORCH), cite(EXT)), 406, 96.5, 6, C["ink2"], align="R")
     pg.text("Selinos %s · site frame %s" % (cite("Selinos centreline OSM"), cite("site frame from the course survey")), 406, 93.5, 6, C["ink2"], align="R")
     # numbers per class
@@ -495,10 +511,10 @@ def page_farms(L, src):
     pg.text("WHAT THE FARMS ARE, AND WHAT THEY NEED", bx, by, 11, C["ink"], True)
     cols = [("Fields (cropland)", C["field"], fed_c, "%s-%s m³ a season" % (fmt(rnd(fed_c * c_lo)), fmt(rnd(fed_c * c_hi))),
              "as " + " / ".join(cc) + " · Bergama's main irrigated crops " + cite(TUIK)),
-            ("Orchards (inferred)", C["orchard"], fed_o, "%s-%s m³ a season" % (fmt(rnd(fed_o * o_lo, 100)), fmt(rnd(fed_o * o_hi, 100))),
+            ("Orchards", C["orchard"], fed_o, "%s-%s m³ a season" % (fmt(rnd(fed_o * o_lo, 100)), fmt(rnd(fed_o * o_hi, 100))),
              "as olive · within 35 m of surveyed olive / fruit trees " + cite(ORCH)),
             ("Tree cover", C["tree"], sum(GEO["area_ha"]["trees"]), "not irrigated", "groves and woods: not counted as farms"),
-            ("Grassland", C["grass"], sum(GEO["area_ha"]["grass"]), "not irrigated", "largest class · dry pasture or fallow (satellite can't tell)")]
+            ("Grassland", C["grass"], sum(GEO["area_ha"]["grass"]), "not irrigated", "largest class · dry pasture or fallow")]
     for i, (lab, col, ha, need, note) in enumerate(cols):
         x = bx + i * 98
         pg.rect(x, by - 12, 5, 5, fill=col)
@@ -508,17 +524,18 @@ def page_farms(L, src):
         pg.para(note, x + 7, by - 32, 88, 7, C["ink2"])
     pg.rect(bx + 3 * 98 + 7, by - 39.4, 3, 3, fill=C["paper"], stroke=C["ink2"], lw=0.2)       # v1.2: drawn legend sample
     pg.text("blank = built-up or bare", bx + 3 * 98 + 12, by - 39, 7, C["ink2"])
+    ag_crop("ag2_classes", 1, bx - 1.0, by - 41.0, 407.0, by - 8.0)
     pg.rect(14, 22, 392, 26, fill=C["paper"])
     pg.text("THE READING", 20, 41, 10, C["accent"], True)
     pg.text("small and close", 20, 35.5, 8, C["ink"], True)           # v1.2: the reading as figure tiles and tags
     f_in, f_out = GEO["area_ha"]["farmland"][1], GEO["area_ha"]["farmland"][0]
-    tiles(pg, 52, 46, 350, [
+    yr_ = tiles(pg, 52, 46, 350, [
         ("inside", "FIELDS INSIDE THE SITE", "%s ha" % fmt1(f_in), ["existing fields, not proposed farmland"], WC),
-        ("outside", "FIELDS OUTSIDE THE SITE", "%s ha" % fmt1(f_out), ["much of the fields: a few 100 m from the Selinus"], WC),
+        ("outside", "FIELDS OUTSIDE THE SITE", "%s ha" % fmt1(f_out), ["much of the fields: a few 100 m from the Selinos"], WC),
         ("extent", "THE EXTENT THEY LIE IN", "%s ha" % fmt(L.get("extent_ha", 455.0)),
-         ["%s ha fields · %s ha orchards" % (fmt1(fed_c), fmt1(fed_o))], SRC2),
-        ("route", "WATER ROUTE TO THE FARMS", "not designed", ["crops: not known (satellite class only)"], None)],
-        cols=4, s=0.8, fill=C["white"])
+         ["%s ha fields · %s ha orchards" % (fmt1(fed_c), fmt1(fed_o))], SRC2)],
+        cols=3, s=0.8, fill=C["white"])
+    ag_crop("ag2_reading", 1, 50.0, yr_ - 1.0, 404.0, 47.0)
     footer(pg, CREDIT)
     return pg
 
@@ -558,35 +575,235 @@ STEPS = [
     dict(name="BANK TOP", sub="flooded in Q100 / Q500 at K4, S4", band="30-60",
          water=["Q100 / Q500 over the bank top:", "only at K4 (right bank) and S4 (left)", "otherwise dry"],
          plant=[("Lavandula stoechas", "scent; survived 17 days of flooding"),
-                ("Salvia rosmarinus", "scent (not verified)")],
+                ("Salvia rosmarinus", "scent")],
          job="SCENT"),
-    dict(name="FARMS", sub="outside the river", band="60-100",
+    dict(name="FARMS", sub="outside the stream", band="60-100",
          water=["irrigated from storage, Jun-Sep", "reuse class B: below 200 coliforms / 100 ml {reuse}"],
          plant=[("Olive", "Kc 0.65-0.70 (FAO-56)"), ("Cotton, maize, tomato", "Bergama's main irrigated crops: 18,500 ha in 2025 (TÜİK)")],
          job="HARVEST"),
 ]
 
+# ---- section language of the main site board (selinus_board draw_section_strip), shared by the water board and the
+# agriculture alternatives (Aras 25 Oct 21:52: their sections drawn "such as we draw in the site sections"): the cut
+# ground a shade darker than the page with a fine ink line, water hatched in blue from the bed to its surface, the
+# channel above it in a pale wash, whole trees and plants at their stated size. One scale for x and y (Aras 22:02:
+# "not stretch anything ever"). Pure geometry: each helper returns shapes, the script's sec_put() draws them.
+#   ("poly", ring, fill, stroke, lw)    ("line", pts, colour, lw)          page mm, y up
+
+
+def _sec_mix(a, b, t):
+    """hex a -> hex b by t (the board's mix(), on hex strings)."""
+    pa = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    pb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(pa[i] + (pb[i] - pa[i]) * t)) for i in range(3))
+
+
+# palette roles of the board's sections (selinus_board parts 01 and 14: slide khaki, paper, ink, the Selinus' blue)
+SEC = dict(paper="F1EDDF", ink="4A3F35", ink2="7A6E60", khaki="BCB794", water="7FA4B3", hatch="3E7DAE",
+           tree="7E8A57", pine="5F6B43", olive="8E9A6C", trunk="7A6E60", reed="8E9466", reed_head="B49A6C",
+           lav="9F86C0", grass="8F9A68")
+SEC["soil"] = _sec_mix(SEC["khaki"], SEC["paper"], 0.42)          # SEC_SOIL: the cut ground
+SEC["channel"] = _sec_mix(SEC["water"], SEC["paper"], 0.5)        # SEC_CHANNEL: the water body
+SEC["wash"] = _sec_mix(SEC["water"], SEC["paper"], 0.72)          # the channel above the water
+SEC["crown"] = _sec_mix(SEC["tree"], SEC["paper"], 0.15)          # SEC_CROWN
+SEC["crown_lt"] = _sec_mix(SEC["tree"], SEC["paper"], 0.45)
+SEC["shrub"] = _sec_mix(SEC["olive"], SEC["paper"], 0.25)
+SEC["beyond"] = _sec_mix(SEC["tree"], SEC["paper"], 0.62)         # things beyond the cut: paler
+
+
+def sec_hatch(ring, spacing, ang_deg=45.0):
+    """The hatch lines of a closed ring (page mm) at ang_deg, spacing apart: [(p, q), ...] (even-odd scan)."""
+    import math as _m
+    a = _m.radians(ang_deg)
+    ca, sa = _m.cos(a), _m.sin(a)
+    R = [(ca * x + sa * y, -sa * x + ca * y) for x, y in ring]       # hatch direction along u
+    vs = [p[1] for p in R]
+    out = []
+    k = _m.ceil(min(vs) / spacing)
+    while k * spacing < max(vs):
+        v = k * spacing
+        us = []
+        for i in range(len(R)):
+            (u0, v0), (u1, v1) = R[i], R[(i + 1) % len(R)]
+            if (v0 <= v < v1) or (v1 <= v < v0):
+                us.append(u0 + (u1 - u0) * (v - v0) / (v1 - v0))
+        us.sort()
+        for j in range(0, len(us) - 1, 2):
+            p = (ca * us[j] - sa * v, sa * us[j] + ca * v)
+            q = (ca * us[j + 1] - sa * v, sa * us[j + 1] + ca * v)
+            out.append((p, q))
+        k += 1
+    return out
+
+
+def sec_ellipse(cx, cy, rx, ry, n=28):
+    import math as _m
+    return [(cx + rx * _m.cos(2 * _m.pi * i / n), cy + ry * _m.sin(2 * _m.pi * i / n)) for i in range(n)]
+
+
+def sec_water(ring, spacing=0.6, lw=0.1):
+    """A water body (ring, page mm): channel blue, 45-degree blue hatch, the water line on top (as draw_stream)."""
+    sh = [("poly", ring, SEC["channel"], None, 0.1)]
+    sh += [("line", [p, q], SEC["hatch"], lw) for p, q in sec_hatch(ring, spacing)]
+    top = max(p[1] for p in ring)
+    xs = [p[0] for p in ring if abs(p[1] - top) < 1e-6]
+    if len(xs) >= 2:
+        sh.append(("line", [(min(xs), top), (max(xs), top)], SEC["hatch"], 0.3))
+    return sh
+
+
+def sec_tree(x, gy, h, r, k, tone="crown", lo=None):
+    """A whole tree in section at its stated size: h tall, crown r wide each side (m), k page mm per m, ground at
+    (x, gy). Trunk to the crown base (35 % of the top, at least 1.5 m: the board's crown_lo), crown as overlapping
+    lobes in two tones, a few branches."""
+    import math as _m
+    lo = max(1.5, 0.35 * h) if lo is None else lo
+    lo = min(lo, h * 0.6)
+    tw = max(0.12, 0.05 * r * k)
+    cy = gy + (lo + (h - lo) / 2.0) * k
+    rx, ry = r * k, max(0.5 * r, (h - lo) / 2.0) * k            # a crown never flatter than half its radius (board)
+    sh = [("poly", [(x - tw, gy), (x + tw, gy), (x + tw * 0.6, gy + lo * k + ry * 0.4),
+                    (x - tw * 0.6, gy + lo * k + ry * 0.4)], SEC["trunk"], None, 0.1)]
+    col = SEC.get(tone, SEC["crown"])
+    lobes = [(0.0, 0.0, 1.0, 1.0), (-0.42, -0.18, 0.62, 0.7), (0.44, -0.12, 0.6, 0.72), (-0.2, 0.36, 0.6, 0.6),
+             (0.26, 0.3, 0.58, 0.62)]
+    for i, (dx, dy, fx, fy) in enumerate(lobes):
+        sh.append(("poly", sec_ellipse(x + dx * rx, cy + dy * ry, fx * rx, fy * ry, 24),
+                   col if i == 0 else (SEC["crown_lt"] if i % 2 else col), SEC["ink2"] if i == 0 else None, 0.08))
+    for s_, ang in ((-1, 50.0), (1, 40.0), (-1, 70.0)):
+        a = _m.radians(ang)
+        b0 = (x, gy + lo * k)
+        sh.append(("line", [b0, (x + s_ * _m.cos(a) * rx * 0.55, gy + lo * k + _m.sin(a) * ry * 0.9)], SEC["trunk"],
+                   max(0.08, tw * 0.6)))
+    return sh
+
+
+def sec_shrub(x, gy, h, w, k, col=None):
+    """A shrub h tall, w wide (m): a dome on the ground with a lighter top lobe."""
+    rx, ry = w / 2.0 * k, h / 2.0 * k
+    return [("poly", sec_ellipse(x, gy + ry, rx, ry, 24), col or SEC["shrub"], SEC["ink2"], 0.06),
+            ("poly", sec_ellipse(x - rx * 0.25, gy + ry * 1.2, rx * 0.45, ry * 0.4, 16), SEC["crown_lt"], None, 0.1)]
+
+
+def sec_reeds(x0, x1, gy, h, k, step=0.35):
+    """Reeds h tall (m) from x0 to x1 (page mm); gy(x) = ground y. Stems with seed heads."""
+    sh, i = [], 0
+    x = x0
+    while x <= x1:
+        hh = h * (0.78 + 0.22 * ((i * 7) % 5) / 4.0) * k
+        g = gy(x)
+        lean = 0.12 * hh * (1 if i % 2 else -1) * 0.3
+        sh.append(("line", [(x, g), (x + lean, g + hh)], SEC["reed"], 0.12))
+        if i % 3 == 0:
+            sh.append(("poly", sec_ellipse(x + lean, g + hh, 0.18 * k * 0.6 + 0.12, 0.45 * k * 0.6 + 0.25, 10),
+                       SEC["reed_head"], None, 0.1))
+        x += step * k
+        i += 1
+    return sh
+
+
+def sec_tufts(x0, x1, gy, h, k, step=0.25, col=None):
+    """Grass and meadow tufts h tall (m) from x0 to x1 (page mm)."""
+    sh, i = [], 0
+    x = x0
+    while x <= x1:
+        g = gy(x)
+        hh = h * k * (0.7 + 0.3 * ((i * 3) % 4) / 3.0)
+        for d in (-0.35, 0.0, 0.35):
+            sh.append(("line", [(x, g), (x + d * hh * 0.6, g + hh * (1.0 - abs(d) * 0.4))], col or SEC["grass"], 0.1))
+        x += step * k
+        i += 1
+    return sh
+
+
+def sec_lavender(x0, x1, gy, k, h=0.5):
+    """Lavender mounds about h tall (m) with flower spikes."""
+    sh = []
+    w = 0.8 * k
+    x = x0 + w / 2.0
+    while x <= x1 - w / 2.0 + 1e-6:
+        g = gy(x)
+        sh += sec_shrub(x, g, h, 0.8, k, col=_sec_mix(SEC["olive"], SEC["paper"], 0.1))
+        for d in (-0.25, 0.0, 0.25):
+            sh.append(("line", [(x + d * w, g + h * k * 0.8), (x + d * w * 1.3, g + h * k * 1.3)], SEC["lav"], 0.25))
+        x += w
+    return sh
+
+LAD_RISE = 11.0                      # v1.4: rise of one step of the ladder, mm (a diagram: one size for x and y)
+LAD_SIZE = 5.0                       # mm per metre for the plants on it, the same across and up
+
+
+def sec_put(pg, shapes):
+    """Draws section_style shapes on this script's Page."""
+    for sh in shapes:
+        if sh[0] == "poly":
+            pg.poly(sh[1], sh[2], sh[3], sh[4], True)
+        else:
+            pg.line(sh[1], sh[2], sh[3])
+
+
 def page_ladder(L, src):
     pg = Page(420, 297)
-    header(pg, "3", "ONE PLANT LADDER, RIVERBED TO FIELD",
+    header(pg, "3", "ONE PLANT LADDER, STREAMBED TO FIELD",
            "Every plant on one gradient: water, today's cover, job")
     n = len(STEPS); x0, x1 = 14, 406; w = (x1 - x0) / n
-    base, rise = 168, 13.0                         # schematic steps: not to scale
-    gy = [base + i * rise for i in range(n)]
-    # Q500, Q100 and strip lines (schematic)
-    pg.rect(x0, base - 6, w * 0.5, 6 + 3.5, fill=C["water"])
-    q100, q500 = base + 3.25 * rise, base + 3.6 * rise    # drawn over the bank top: the K4 / S4 case (README v1.1, line 49)
-    pg.line([(x0, q500), (x0 + w * 4.0, q500)], C["water_deep"], 0.4, (2.0, 1.2))
+    base, bot, slope = 158.0, 112.0, 8.0          # bed surface, bottom of the cut ground, width of each bank slope
+    gy = [base + i * LAD_RISE for i in range(n)]
+    # v1.4 (Aras 25 Oct 21:52, the site board's section language): the ground as a cut: soil, a fine ground line,
+    # sloped banks between the steps, the low-flow channel in the bed with its water hatched
+    ch0, ch1, chd = x0 + w * 0.22, x0 + w * 0.62, 3.0
+    prof = [(x0, base), (ch0, base), (ch0 + 2.0, base - chd), (ch1 - 2.0, base - chd), (ch1, base)]
+    for i in range(1, n):
+        xa = x0 + i * w
+        prof += [(xa - slope / 2.0, gy[i - 1]), (xa + slope / 2.0, gy[i])]
+    prof.append((x1, gy[-1]))
+
+    def ground_y(x):
+        for (xa, ya), (xb, yb) in zip(prof[:-1], prof[1:]):
+            if xa <= x <= xb and xb > xa:
+                return ya + (yb - ya) * (x - xa) / (xb - xa)
+        return prof[-1][1] if x > prof[-1][0] else prof[0][1]
+    pg.poly(prof + [(x1, bot), (x0, bot)], fill=SEC["soil"], closed=True)
+    # winter highs over the bed and the lower bank (step 2 "flooded each winter"), the strip in the channel
+    zw = gy[1] + 2.5
+    xe = x0 + 2 * w - slope / 2.0 + slope * (zw - gy[1]) / (gy[2] - gy[1])   # where the terrace slope meets it
+    wr = [(x0, zw)] + [p for p in prof if p[0] < xe and p[1] < zw] + [(xe, zw)]
+    pg.poly(wr, fill=SEC["wash"], closed=True)
+    sec_put(pg, sec_water([(ch0 + 0.6, base - chd + 1.2), (ch0 + 2.0, base - chd), (ch1 - 2.0, base - chd),
+                           (ch1 - 0.6, base - chd + 1.2)], 0.7, 0.08))
+    pg.line(prof, C["ink"], 0.3)
+    pg.line([(x0, zw), (xe, zw)], SEC["hatch"], 0.25, (1.2, 0.8))
+    pg.text("winter highs", x0 + 2, zw + 1.2, 7, C["water_deep"], True)
+    pg.text("strip 0.30 m", ch0 + 1.0, base - chd - 4.5, 7, C["water_deep"], True)
+    # Q500, Q100 over the bank top (the K4 / S4 case, README v1.1, line 49)
+    q100, q500 = gy[3] + 2.0, gy[3] + 4.8
+    pg.line([(x0, q500), (x0 + w * 4.0 - slope, q500)], C["water_deep"], 0.4, (2.0, 1.2))
     pg.text("Q500, 263 m³/s: 2.3-3.3 m " + cite(DEPTH), x0 + 2, q500 + 1.5, 7, C["water_deep"], True)
-    pg.text("over the banks only at K4 and S4 " + cite(DEPTH), x0 + w * 4.0 - 2, q500 + 1.5, 6.5, C["water_deep"], align="R")
-    pg.line([(x0, q100), (x0 + w * 4.0, q100)], C["water"], 0.4, (2.0, 1.2))
+    pg.line([(x0, q100), (x0 + w * 4.0 - slope, q100)], C["water_deep"], 0.3, (1.0, 1.0))
     pg.text("Q100, 205 m³/s: 2.0-3.0 m", x0 + 2, q100 - 3.5, 7, C["water_deep"])
-    pg.text("strip 0.30 m", x0 + 2, base - 4.5, 7, C["white"], True)
+    # whole plants by step: reeds and mint in the bed, rushes and shrubs on the lower bank, trees on the terrace,
+    # lavender on the bank top, olives and crop rows on the farms (graphic sizes, one scale)
+    k = LAD_SIZE
+    sec_put(pg, sec_reeds(x0 + 3.0, ch0 - 1.0, ground_y, 2.0, k, 0.5))
+    sec_put(pg, sec_reeds(ch1 + 1.0, x0 + w - slope / 2.0 - 1.0, ground_y, 2.0, k, 0.5))
+    xa = x0 + w + slope / 2.0
+    sec_put(pg, sec_tufts(xa + 1.0, xa + w * 0.4, ground_y, 0.5, k, 0.4))
+    for f in (0.55, 0.8):
+        sec_put(pg, sec_shrub(xa + w * f, ground_y(xa + w * f), 1.9, 1.6, k))
+    xa = x0 + 2 * w + slope / 2.0
+    for f, h in ((0.3, 7.0), (0.72, 6.0)):
+        sec_put(pg, sec_tree(xa + w * f, ground_y(xa + w * f), h, 2.6, k))
+    xa = x0 + 3 * w + slope / 2.0
+    sec_put(pg, sec_lavender(xa + 2.0, xa + w - slope - 2.0, ground_y, k))
+    xa = x0 + 4 * w + slope / 2.0
+    for f in (0.2, 0.5):
+        sec_put(pg, sec_tree(xa + w * f, ground_y(xa + w * f), 4.0, 2.0, k, tone="olive"))
+    sec_put(pg, sec_tufts(xa + w * 0.68, x1 - 2.0, ground_y, 1.0, k, 0.6, C["field"]))
     for i, st in enumerate(STEPS):
         xa = x0 + i * w
-        pg.rect(xa, 112, w, gy[i] - 112, fill=C["structure"] if i < n - 1 else C["field"])
-        pg.text(st["name"], xa + 3, gy[i] - 6, 11, C["white"], True)
-        pg.text(st["sub"], xa + 3, gy[i] - 10.5, 7.5, C["white"])
+        top = gy[i] - (chd if i == 0 else 0.0)
+        pg.text(st["name"], xa + 3 + (slope / 2.0 if i else 0.0), top - 6.5, 11, C["ink"], True)
+        pg.text(st["sub"], xa + 3 + (slope / 2.0 if i else 0.0), top - 11.0, 7.5, C["ink2"])
         # job tag on the ground
         pg.rect(xa + 3, 116, text_w(st["job"], 8, True) + 4, 5.5, fill=C["accent"])
         pg.text(st["job"], xa + 5, 117.6, 8, C["white"], True)
@@ -613,7 +830,6 @@ def page_ladder(L, src):
             yy -= 6
         else:
             yy = pg.para("summer: dry gravel or a trickle", xa + 3, yy, w - 6, 7, C["ink"])
-            yy = pg.para("no plant data in the channel", xa + 3, yy, w - 6, 7, C["ink2"]) - 2
         if st["name"] == "BED":
             yy = pg.para("REMOVE: Arundo donax (giant reed)", xa + 3, yy - 1, w - 6, 7, C["accent"], True)
             yy = pg.para("raises flood risk, blocks bridges", xa + 3, yy, w - 6, 7, C["accent"])
@@ -624,7 +840,9 @@ def page_ladder(L, src):
             pg.text(sp, xa + 3, yy, 8, C["ink"], True); yy -= 3.6
             yy = pg.para(why, xa + 3, yy, w - 6, 6.5, C["ink2"]) - 1.2
     pg.text("steps = planting bands " + cite(BANDS) + " · depths above the bed", x0, 109, 6.5, C["ink2"])
-    pg.text("not to scale · Nil's flat end: Q100 1.4 m, Q500 1.5 m " + cite(DEPTH), x1, 109, 6.5, C["ink2"], align="R")
+    pg.text("Nil's flat end: Q100 1.4 m, Q500 1.5 m " + cite(DEPTH), x1, 109, 6.5, C["ink2"], align="R")
+    ag_crop("ag3_ladder", 2, x0 - 1.0, 107.0, x1 + 1.0, 263.0, drop=[r"^steps = planting bands", r"^Nil's flat end"])
+    ag_crop("ag3_plants", 2, x0 - 1.0, 26.0, x1 + 1.0, 106.0)
     pg.rect(14, 18, 392, 6, fill=C["paper"])
     icon(pg, "nose", 15.5, 23.6, 5.2)                 # v1.2: odour as a tag and keywords
     ox = 22.0
@@ -633,13 +851,14 @@ def page_ladder(L, src):
         if ox > 22.0:
             pg.circle(ox - 3.0, 21.2, 0.7, fill=C["accent"])
         pg.text(t, ox, 20, 7.5, C["ink"], b); ox += text_w(t, 7.5, b) + 6.0
+    ag_crop("ag3_odour", 2, 13.0, 17.0, 407.0, 25.0)
     footer(pg, CREDIT)
     return pg
 
-# ------------------------------------------------------------------ v1.3: A3 booklet assets (SCRIPT_STANDARD §8)
-# Two frames of the booklet plan, each one text-free vector PDF drawn at its frame's size; every word is a label in
-# blocks.json (live text set by the assembler). C7 hero: the plant ladder (page 3) merged with the water board's planting
-# bands A-F (its W3b). C8 b: the crop bars of page 1. Words: only the plan's labels; hectares also go to results.json.
+# ------------------------------------------------------------------ v1.4: A3 booklet = crops of this sheet (booklet/CROP_SPEC.md)
+# Aras 25 Oct 21:47: the booklet shows the sheet's own drawings. Each page function records its panels' rects
+# (from the same numbers it lays them out with) in AG_CROPS; booklet_export writes them to blocks.json, with
+# booklet/results.json (hectares per crop, same keys as v1.3). The v1.3 booklet redraws are gone.
 # ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
 # Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
 # The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
@@ -692,6 +911,16 @@ class BkBlocks(object):
         self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
                                  "scale_den": scale_den, "legend": legend or []}
 
+    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
+        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
+        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
+        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
+        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
+        drop = regexes of sheet texts not to carry."""
+        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
+                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
+
     def tiles(self, bid, tiles):
         self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
 
@@ -704,234 +933,22 @@ class BkBlocks(object):
         with open(p, "w", encoding="utf-8") as f:
             _j.dump(self.d, f, ensure_ascii=False, indent=1)
         return p
-import re as _re
-BK_FOLDER = "Bergama_agriculture_alternatives"
-BK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F")       # booklet text colours (design-language: ink2 darkened)
-# the water board's W3b bands (code, plan label, colour) and the steps they lie on; copied as the plan lists them
-BK_BANDS = [("A", "A strip and bed · permanent", "91ADB4"), ("B", "B marsh · 150-365 d", "9DB7A8"),
-            ("C", "C willow · 50-150 d", "A9B57F"), ("D", "D wet meadow · 10-150 d", "C9D1A4"),
-            ("E", "E dry meadow · 0.5-50 d", "D9CC8E"), ("F", "F terraces · extreme only", "D8D5CC")]
-# one column per ladder step: step, its bands, plan labels (key, common names, species with their source, warnings)
-# species sit on the step that holds their W3b band (Vitex, Nerium: band C); oak and elm figures are the C7 tiles
-BK_STEPS = [
-    dict(step="BED", bands="AB", w=50, wet=4, jobs=("clean",), key="BED · CLEAN",
-         names=["reed · cattail · water mint"],
-         species=["Typha angustifolia {src:song_2021}", "Phragmites australis {src:song_2021}",
-                  "Iris pseudacorus {src:feis_iris}", "Mentha aquatica {src:avelar_2012}"],
-         warn=["Arundo donax: remove {src:bruno_2019}"]),
-    dict(step="LOWER BANK", bands="CD", w=52, wet=3, jobs=("clean", "hold"), key="LOWER BANK · CLEAN + HOLD",
-         names=["Juncus · loosestrife", "Tamarix · white willow · Vitex"],
-         species=["Salix alba {src:jrc_salix_alba}", "Tamarix smyrnensis {src:jrc_tamarix}",
-                  "Vitex agnus-castus {src:salinas_cueto_2009}", "Nerium oleander {src:salinas_cueto_2009}",
-                  "!oleander: toxic {src:pim366}",
-                  "Lythrum salicaria {src:feis_lythrum}", "Carex pendula, Juncus effusus {src:usda_tn38}"], warn=[]),
-    dict(step="TERRACE", bands="E", w=52, wet=2, jobs=("shade", "hold"), key="TERRACE · SHADE + HOLD",
-         names=["white poplar · ash"],
-         species=["Fraxinus angustifolia {src:jrc_fraxinus}",
-                  "Populus alba {src:jrc_populus_alba}", "Platanus orientalis {src:eunis_g1381}",
-                  "Quercus robur {src:schindler_2022}", "Ulmus laevis {src:schindler_2022}"],
-         warn=[]),
-    dict(step="BANK TOP", bands="F", w=38, wet=1, jobs=("scent",), key="BANK TOP · SCENT",
-         names=["lavender · rosemary"], species=["Lavandula stoechas {src:rhs_waterlogging}"], warn=[]),
-    dict(step="FARMS", bands="", w=42, wet=0, jobs=("drip", "olive"), key="FARMS · HARVEST",
-         names=["olive, cotton, maize, tomato"], species=[], warn=["route to farms: not designed"]),
-]
-BK_DAYS_WET = [(0.10, 144), (0.30, 6), (0.50, 1), (1.00, 0)]   # water board W3b, flat downstream end (m above the bed, d a year)
+AG_CROPS = []                        # (id, page index, (x0, y0, x1, y1) mm from the page's top-left, y down, den, legend, drop)
+AG_CAPTIONS = {"ag1_headline": "Storage and water to the farms", "ag1_bars": "Hectares one storage irrigates, by crop",
+               "ag1_reading": "Same storage: how much more land", "ag1_context": "Why crop choice is the lever",
+               "ag1_replaces": "What it replaces", "ag2_plan": "The farms we feed",
+               "ag2_classes": "What the farms are, and what they need", "ag2_reading": "Small and close",
+               "ag3_ladder": "One plant ladder, streambed to field", "ag3_plants": "Today's cover and what we plant",
+               "ag3_odour": "Odour"}
 
 
-def bk_w(s, size, bold=False):
-    """label width as the assembler sets it: {src:} -> [nn], {val:} -> a 4-digit figure"""
-    return text_w(_re.sub(r"\{val:[^}]+\}", "0000", _re.sub(r"\{src:[^}]+\}", "[00]", s)), size, bold)
+def ag_crop(cid, page, x0, y0, x1, y1, den=None, legend=None, drop=None):
+    """a panel of page `page` (0-2), given as the page's own y-up mm (x0, y0)-(x1, y1)"""
+    AG_CROPS.append((cid, page, (round(x0, 2), round(297.0 - y1, 2), round(x1, 2), round(297.0 - y0, 2)), den,
+                     legend or [], drop or []))
 
 
-class BkDraw(object):
-    """A booklet drawing: a Page (y up, mm) with no text, and its labels (x, y from the top-left, y = baseline)."""
-    def __init__(self, W, H):
-        self.W, self.H, self.pg, self.labels = W, H, Page(W, H), []
-
-    def y(self, yt):                       # top-down mm -> the Page's y-up mm
-        return self.H - yt
-
-    def rect(self, x, yt, w, h, **kw):     # (x, yt) = top-left corner
-        self.pg.rect(x, self.H - yt - h, w, h, **kw)
-
-    def lab(self, s, x, yt, size=7.5, col=None, bold=False, anchor="L"):
-        self.labels.append({"x": round(x, 2), "y": round(yt, 2), "text": s, "size": max(float(size), BK_MIN_PT),
-                            "bold": bool(bold), "anchor": anchor, "colour": col or BK["ink"]})
-
-    def check(self):
-        """label boxes as the assembler measures them: overlaps and labels leaving the frame (for the log)"""
-        out, boxes, k = [], [], 25.4 / 72.0
-        for lb in self.labels:
-            wd = bk_w(lb["text"], lb["size"], lb["bold"])
-            x0 = lb["x"] - (wd / 2 if lb["anchor"] == "C" else wd if lb["anchor"] == "R" else 0)
-            b = (x0, lb["y"] - lb["size"] * k * 0.72, x0 + wd, lb["y"] + lb["size"] * k * 0.21)
-            if any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in boxes):
-                out.append("overlap: " + lb["text"][:30])
-            if b[0] < 0 or b[2] > self.W or b[1] < 0 or b[3] > self.H:
-                out.append("outside: " + lb["text"][:30])
-            boxes.append(b)
-        return out
-
-
-def bk_drop(d, cx, yt, r, fill):
-    """a water drop, tip up, its round end centred at (cx, yt); fill None = empty outline"""
-    yc = d.y(yt)
-    P = [(cx - r * 0.85, yc + r * 0.45), (cx, yc + r * 2.2), (cx + r * 0.85, yc + r * 0.45)]
-    P += [(cx + r * math.cos(-math.pi * j / 12), yc + r * math.sin(-math.pi * j / 12)) for j in range(13)]
-    d.pg.poly(P, fill=fill, stroke=None if fill else C["structure"], lw=0.2, closed=True)
-
-
-def bk_warn(d, x, yt, s=2.6):
-    """a small accent warning mark (triangle with a bar and a dot), its bottom-left at (x, yt)"""
-    y0 = d.y(yt)
-    d.pg.poly([(x, y0), (x + s, y0), (x + s / 2, y0 + s * 0.9)], fill=C["accent"], closed=True)
-    d.pg.line([(x + s / 2, y0 + s * 0.62), (x + s / 2, y0 + s * 0.3)], C["white"], 0.22)
-    d.pg.circle(x + s / 2, y0 + s * 0.14, 0.12, fill=C["white"])
-
-
-def bk_ladder(W, H):
-    """C7 hero: one stepped profile, bed to farms (page 3) with the planting bands A-F (water board W3b), per step the
-    wetness drops, the job pictograms, key, species and warnings, and today's cover bar. Schematic, not to scale."""
-    d = BkDraw(W, H)
-    sy = H / 171.0
-    m = 26.0 * W / 260.0                                   # left margin: days-wet scale
-    f = (W - m) / float(sum(s["w"] for s in BK_STEPS))
-    surf = dict(A=120, B=114, C=106, D=100, E=91, F=82, farm=77)   # schematic ground heights, mm from the top
-    g_bot, rib = 140 * sy, 4.0
-    col = dict((b[0], b[2]) for b in BK_BANDS)
-    x = m
-    segs, cols = [], []
-    for st in BK_STEPS:
-        w = st["w"] * f
-        cols.append((x, w, st))
-        bands = st["bands"] or "farm"
-        bw = w / len(st["bands"] or "x")
-        for j, b in enumerate([bands] if bands == "farm" else list(bands)):
-            segs.append((b, x + j * bw, x + (j + 1) * bw, surf[b] * sy))
-        x += w
-    # ground, planting band layer along the surface, water in the bed
-    for b, xa, xb, s in segs:
-        d.rect(xa, s, xb - xa, g_bot - s, fill=C["ground"])
-        d.rect(xa, s, xb - xa, rib, fill=col.get(b, C["field"]))
-    a = segs[0]
-    d.rect(a[1], a[3] - 5.0, a[2] - a[1], 5.0, fill=C["water"])
-    prof = []
-    for b, xa, xb, s in segs:
-        prof += [(xa, d.y(s)), (xb, d.y(s))]
-    d.pg.line(prof, C["ink"], 0.35)
-    # what we plant, drawn on the profile (kind of planting only)
-    for b, xa, xb, s in segs:
-        w = xb - xa
-        if b == "B":                                     # reeds
-            for j in range(9):
-                xx = xa + 2 + (w - 4) * j / 8.0; t = 9.0 + 3.0 * (j % 2)
-                d.pg.line([(xx, d.y(s)), (xx + 0.4, d.y(s - t))], C["green_deep"], 0.3)
-                d.rect(xx - 0.2, s - t, 1.1, 2.4, fill=C["green_mid"])
-        elif b == "C":                                   # willow and tamarix
-            for fx in (0.3, 0.72):
-                d.pg.line([(xa + fx * w, d.y(s)), (xa + fx * w, d.y(s - 4.0))], C["green_deep"], 0.4)
-                d.pg.circle(xa + fx * w, d.y(s - 6.5), 3.4, fill=C["green_mid"])
-        elif b == "D":                                   # wet meadow, rushes
-            for j in range(16):
-                xx = xa + 1.5 + (w - 3) * j / 15.0
-                d.pg.line([(xx, d.y(s)), (xx + 0.5 * math.sin(j), d.y(s - 2.2 - 1.2 * (j % 3)))], C["green_mid"], 0.25)
-        elif b == "E":                                   # shade trees
-            for fx, r in ((0.2, 4.6), (0.5, 5.6), (0.8, 4.6)):
-                d.rect(xa + fx * w - 0.5, s - 6.0, 1.0, 6.0, fill=C["ink2"])
-                d.pg.circle(xa + fx * w, d.y(s - 6.0 - r * 0.8), r, fill=C["green_deep"])
-        elif b == "F":                                   # lavender, rosemary
-            for j in range(5):
-                xx = xa + 3.5 + (w - 7) * j / 4.0
-                d.pg.poly([(xx - 2.2 + 4.4 * k_ / 12.0, d.y(s) + 2.2 * math.sin(math.pi * k_ / 12.0)) for k_ in range(13)],
-                          fill=C["green_light"], closed=True)
-                for dx in (-0.9, 0.0, 0.9):
-                    d.pg.line([(xx + dx * 0.4, d.y(s) + 1.8), (xx + dx, d.y(s) + 3.4)], C["green_deep"], 0.18)
-        elif b == "farm":                                # olives and crop rows
-            for fx in (0.25, 0.62):
-                d.rect(xa + fx * w - 0.45, s - 4.0, 0.9, 4.0, fill=C["ink2"])
-                d.pg.circle(xa + fx * w, d.y(s - 6.2), 3.2, fill=C["green_mid"])
-            for j in range(4):
-                xx = xa + w * 0.8 + j * 1.6
-                d.pg.line([(xx, d.y(s)), (xx, d.y(s - 2.6))], C["green_light"], 0.35)
-    # per step: wetness drops + job pictograms, key, names, species, warnings; today's cover bar under the step
-    lead = 3.4
-    for x, w, st in cols:
-        tx = x + 1.5
-        if st["wet"]:
-            for j in range(4):
-                bk_drop(d, tx + 1.2 + j * 3.2, 9.0, 1.1, C["water_deep"] if j < st["wet"] else None)
-            jx = tx + 14.0
-        else:
-            jx = tx
-        for kind in st["jobs"]:
-            icon(d.pg, kind, jx, d.y(2.0), 8.0)
-            jx += 9.5
-        d.lab(st["key"], tx, 17.0, 8.5, BK["ink"], True)
-        yy = 21.5
-        for s in st["names"]:
-            d.lab(s, tx, yy, 7.5, BK["ink"]); yy += lead
-        yy += 1.0
-        for s in st["species"] + ["!" + w_ for w_ in st["warn"]]:
-            if s.startswith("!"):
-                bk_warn(d, tx, yy)
-                d.lab(s[1:], tx + 3.4, yy, 7.5, BK["accent"], True)
-            else:
-                d.lab(s, tx, yy, 7.5, BK["ink2"])
-            yy += lead
-        band = {"LOWER BANK": "0-15", "TERRACE": "15-30", "BANK TOP": "30-60", "FARMS": "60-100"}.get(st["step"])
-        if band:                                         # satellite cover in the matching corridor band, both sides
-            l_, r_ = GEO["corridor"]["left " + band], GEO["corridor"]["right " + band]
-            bx, by, bw = tx, 129.5 * sy, w - 3.0
-            d.rect(bx - 0.6, by - 0.6, bw + 1.2, 4.7, fill=C["white"])
-            d.rect(bx, by, bw, 3.5, stroke=C["structure"], lw=0.15)
-            for cls, cc in (("trees", "89986A"), ("grass", C["grass"]), ("farmland", C["field"])):
-                v = (l_[cls] + r_[cls]) / 2.0
-                d.rect(bx, by, bw * v / 100.0, 3.5, fill=cc)
-                bx += bw * v / 100.0
-    d.lab("today", cols[0][0] + cols[0][1] - 1.5, 129.5 * sy + 2.9, 7.5, BK["ink"], False, "R")
-    # bands A-F: a sample of each layer colour under its segment, label beside it, two staggered rows
-    for i, (b, txt, cc) in enumerate(BK_BANDS):
-        seg = [s_ for s_ in segs if s_[0] == b][0]
-        yb = (147.0 if i % 2 == 0 else 152.5) * sy
-        d.rect(seg[1] + 1.5, yb - 2.6, 3.0, 3.0, fill=cc)
-        d.lab(txt, seg[1] + 5.2, yb, 7.5, BK["ink"])
-    d.lab("bands {src:salinas_cueto_2009} {src:usda_tn38}", m + 1.5, 162.0 * sy, 7.5, BK["ink2"])
-    d.lab("band heights provisional", W - 1.5, 162.0 * sy, 7.5, BK["ink2"], False, "R")
-    # left margin: days wet a year at the flat downstream end, as bars at their height above the bed
-    z0, z1, ax = 120.0 * sy, 72.0 * sy, 3.0
-    d.pg.line([(ax, d.y(z0)), (ax, d.y(z1))], C["ink2"], 0.2)
-    for hgt, days in BK_DAYS_WET:
-        yt = z0 - (z0 - z1) * hgt
-        d.pg.line([(ax - 1.2, d.y(yt)), (ax, d.y(yt))], C["ink2"], 0.2)
-        if days:
-            d.rect(ax, yt - 1.1, max(0.3, (m - 6.0) * days / 144.0), 2.2, fill=C["water_deep"])
-    d.lab("days wet a year, flat end", 0.0, z1 - 5.0, 7.5, BK["ink"], True)
-    return d
-
-
-def bk_crop_icon(d, kind, x, yt, sz):
-    """crop pictograms for the bars: the page-1 icons, plus maize, tomato and olive under deficit drip. Graphics only."""
-    if kind in ("olive", "cotton"):
-        icon(d.pg, kind, x, d.y(yt), sz); return
-    u = sz / 10.0
-    P = lambda a, b: (x + a * u, d.y(yt) - sz + b * u)
-    if kind == "olive_drip":
-        icon(d.pg, "olive", x + 1.5 * u, d.y(yt), sz * 0.85)
-        d.pg.line([P(0.4, 0.6), P(9.6, 0.6)], C["ink2"], 0.3)
-        bk_drop(d, x + 1.6 * u, d.H - (d.y(yt) - sz + 1.8 * u), 0.55 * u, C["water_deep"])
-    elif kind == "maize":
-        d.pg.line([P(5.0, 0.4), P(5.0, 9.6)], C["green_deep"], 0.4)
-        for s_, b in ((-1, 3.0), (1, 4.6), (-1, 6.4)):
-            d.pg.poly([P(5.0, b), P(5.0 + s_ * 3.6, b + 2.4), P(5.0 + s_ * 1.0, b + 1.0)], fill=C["green_mid"], closed=True)
-        d.pg.poly([P(5.4, 5.0), P(7.4, 5.6), P(8.0, 8.6), P(6.4, 9.2), P(5.4, 7.0)], fill=C["field"], closed=True)
-    elif kind == "tomato":
-        d.pg.line([P(5.0, 6.6), P(5.0, 9.4)], C["green_deep"], 0.35)
-        d.pg.circle(x + 5.0 * u, d.y(yt) - sz + 4.0 * u, 3.4 * u, fill=C["accent_deep"])
-        d.pg.poly([P(3.0, 7.4), P(5.0, 6.6), P(7.0, 7.4), P(5.0, 7.0)], fill=C["green_mid"], closed=True)
-
-
-def bk_ha(L):
+def ha_results(L):
     """hectares the storage irrigates per crop (page 1's bars): normal year and 1-in-5 dry year, lo-hi over the storage
     span (and the deficit saving range for olive), plus the dry-year ratio olive deficit / cotton."""
     p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
@@ -954,108 +971,21 @@ def bk_ha(L):
     return R
 
 
-def bk_cubic(W, H, L, R):
-    """C8 b: horizontal bars, hectares one storage irrigates per crop, normal (light) and 1-in-5 dry year (dark), open
-    bar = range; dashed accent line at the farms we feed; bracket olive deficit vs cotton (dry year) with the ratio."""
-    d = BkDraw(W, H)
-    HA = R["ha_per_crop"]
-    net = lambda c: "{val:Bergama_water_balance_analysis/water_balance_results.json:net_irrigation_mm.%s.mean|0}" % c
-    rows = [r for r in (("olive_deficit", "olive_drip", ["olive · deficit drip"]),
-                        ("olive_full", "olive", ["olive · full", "olive need %s mm net" % net("olive")]),
-                        ("maize", "maize", ["maize · %s mm net" % net("maize")]),
-                        ("tomato", "tomato", ["tomato · %s mm net" % net("tomato")]),
-                        ("cotton", "cotton", ["cotton · %s mm net" % net("cotton")])) if r[0] in HA]
-    vt = lambda v: "%s-%s ha" % (fmt(v["lo"]), fmt(v["hi"])) if fmt(v["lo"]) != fmt(v["hi"]) else "%s ha" % fmt(v["lo"])
-    vmax = max(HA[k][y]["hi"] for k, _, _ in rows for y in ("normal", "dry5"))
-    x0 = 15.0
-    gw = W - 1.5 - x0 - 2.0 - max(bk_w(vt(HA[k][y]), 8, True) for k, _, _ in rows for y in ("normal", "dry5")
-                                    if HA[k][y]["hi"] >= vmax * 0.999)
-    X = lambda v: x0 + gw * v / vmax
-    # key and subtitle
-    d.lab("same storage as page B3", x0, 6.0, 7.5, BK["ink2"])
-    xr = W - 1.5
-    for txt, cc in (("1-in-5 dry year", C["green_deep"]), ("normal year", C["green_light"])):
-        xr -= bk_w(txt, 7.5)
-        d.lab(txt, xr, 6.0, 7.5, BK["ink"])
-        d.rect(xr - 5.5, 3.6, 4.0, 2.6, fill=cc)
-        xr -= 9.5
-    top0, rp = 18.0, (H - 18.0 - 4.0) / max(1, len(rows))
-    bars = {}
-    for i, (k, ic, labs) in enumerate(rows):
-        t = top0 + i * rp
-        bk_crop_icon(d, ic, 1.0, t + 6.5, 11.0)
-        lx = x0
-        for j, s in enumerate(labs):
-            d.lab(s, lx, t + 4.0, 8.5 if j == 0 else 7.5, BK["ink"], j == 0)
-            lx += bk_w(s, 8.5 if j == 0 else 7.5, j == 0) + 4.0
-        for j, (yk, cc) in enumerate((("normal", C["green_light"]), ("dry5", C["green_deep"]))):
-            v = HA[k][yk]
-            by = t + 6.5 + j * 7.5
-            d.rect(x0, by, X(v["lo"]) - x0, 6.0, fill=cc)
-            if X(v["hi"]) - X(v["lo"]) > 0.3:
-                d.rect(X(v["lo"]), by, X(v["hi"]) - X(v["lo"]), 6.0, stroke=cc, lw=0.35)
-            d.lab(vt(v), X(v["hi"]) + 2.0, by + 4.4, 8.0, BK["ink"], True)
-            bars[(k, yk)] = (by, X(v["hi"]) + 2.0 + bk_w(vt(v), 8.0, True))
-    # bracket olive deficit (dry) vs cotton (dry), the ratio between them
-    rt = R.get("ratio_olive_deficit_vs_cotton_dry5")
-    if rt and ("olive_deficit", "dry5") in bars and ("cotton", "dry5") in bars:
-        rtxt = ("%.1f-%.1f x" % (rt["lo"], rt["hi"])) if "%.1f" % rt["lo"] != "%.1f" % rt["hi"] else "%.1f x" % rt["lo"]
-        y_a = bars[("olive_deficit", "dry5")][0] + 6.0
-        y_b = bars[("cotton", "dry5")][0] + 3.0
-        xb = max(e for (k, yk), (by, e) in bars.items() if k != "olive_deficit") + 4.0
-        xb = min(xb, W - 1.5 - max(text_w(rtxt, 24, True), bk_w("as much land, same storage", 7.5)) - 3.5)
-        d.pg.line([(xb - 2.0, d.y(y_a)), (xb, d.y(y_a)), (xb, d.y(y_b)), (xb - 2.0, d.y(y_b))], C["accent"], 0.5)
-        ym = (y_a + y_b) / 2.0
-        d.lab(rtxt, xb + 3.0, ym + 3.0, 24, BK["accent"], True)
-        d.lab("as much land, same storage", xb + 3.0, ym + 7.5, 7.5, BK["ink"])
-    # farms we feed: dashed accent line, broken where it would cross a label
-    xf = X(R["farms_fed_ha"])
-    d.lab("farms we feed", xf + 1.2, 13.0, 7.5, BK["accent"], True)
-    y_end = top0 + len(rows) * rp - 2.0
-    cuts = []
-    for lb in d.labels:
-        wd = bk_w(lb["text"], lb["size"], lb["bold"])
-        lx0 = lb["x"] - (wd if lb["anchor"] == "R" else 0)
-        if lx0 - 0.8 < xf < lx0 + wd + 0.8 and lb["y"] > 13.5:
-            cuts.append((lb["y"] - lb["size"] * 0.3528 * 0.8, lb["y"] + 1.0))
-    yy = 10.0
-    for c0, c1 in sorted(cuts) + [(y_end, y_end)]:
-        if c0 > yy:
-            d.pg.line([(xf, d.y(yy)), (xf, d.y(c0))], C["accent"], 0.5, (1.5, 1.0))
-        yy = max(yy, c1)
-    return d
-
-
 def booklet_export(L):
-    """the booklet frames of this script (booklet_slots.json keys Bergama_agriculture_alternatives/...), blocks.json
-    and booklet/results.json (hectares per crop). Returns a log line."""
+    """blocks.json: one crop per panel of the A3 sheet; results.json: hectares per crop. Returns a log line."""
     bk = BkBlocks(OUT_DIR, "AgriCulture", VERSION)
-    notes = []
-    W, H = bk_frame(BK_FOLDER + "/c7_hero", 260.0, 176.0)
-    d = bk_ladder(W, H)
-    write_pdf([d.pg], bk.path("c7_hero.pdf"))
-    bk.drawing("c7_hero", "c7_hero.pdf", d.labels, "Plants by days under water, streambed to field · schematic "
-               "{src:rws_ecotopes_2023}", None,
-               [{"kind": "fill", "colour": C["water"], "label": "water"}, {"kind": "fill", "colour": "89986A", "label": "trees today"},
-                {"kind": "fill", "colour": C["grass"], "label": "grass today"}, {"kind": "fill", "colour": C["field"], "label": "fields today"}])
-    notes += ["c7_hero " + n for n in d.check()]
-    R = bk_ha(L)
-    W, H = bk_frame(BK_FOLDER + "/c8_b", 194.0, 176.0)
-    d = bk_cubic(W, H, L, R)
-    write_pdf([d.pg], bk.path("c8_b.pdf"))
-    bk.drawing("c8_b", "c8_b.pdf", d.labels, "Hectares one storage irrigates, by crop", None,
-               [{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
-                {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
-                {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
-    notes += ["c8_b " + n for n in d.check()]
+    for cid, page, r, den, legend, drop in AG_CROPS:
+        bk.crop(cid, OUT_PDF, r, caption=AG_CAPTIONS.get(cid, ""), scale_den=den, legend=legend, page=page, drop=drop)
     bk.save()
+    R = ha_results(L)
     R.update(script="AgriCulture", version=VERSION)
     with open(bk.path("results.json"), "w", encoding="utf-8") as f:
         json.dump(R, f, ensure_ascii=False, indent=1)
-    return "booklet: c7_hero, c8_b, results.json" + ("".join("\nbooklet " + n for n in notes) if notes else "")
+    return "booklet: %d crops, results.json" % len(AG_CROPS)
 
 # ------------------------------------------------------------------ build and run
 def build(path):
+    del AG_CROPS[:]
     L, src = live()
     NET.clear(); NET.update(L["net"])
     write_pdf([page_cubic(L, src), page_farms(L, src), page_ladder(L, src)], path)
@@ -1073,7 +1003,8 @@ def main():
         bk = booklet_export(live()[0])
     except Exception as ex:
         bk = "booklet ERROR (sheet saved): %s: %s" % (type(ex).__name__, ex)
-    return "%s  %s\nfigures: %s\nagriculture alternatives %s, %.1f s\n%s" % (OUT_PDF, time.strftime("%H:%M:%S"), src, VERSION, time.time() - t0, bk)
+    flag = "\nFLAG: water balance results file not found in Downloads; its default-lands copy was used" if src == DEFAULT_NOTE else ""
+    return "%s  %s\nfigures: %s%s\nagriculture alternatives %s, %.1f s\n%s" % (OUT_PDF, time.strftime("%H:%M:%S"), src, flag, VERSION, time.time() - t0, bk)
 
 def chain_fire(v, key):
     """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
