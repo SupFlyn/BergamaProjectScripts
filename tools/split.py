@@ -1,9 +1,10 @@
 """Split delivered scripts into small source parts (code + data + common), so edits touch only small files.
 usage: python3 tools/split.py <script.py> [<script.py> ...]     (run from the repo root)
 Writes src/<name>/code.py, src/<name>/data/*.py, src/common/*.py, src/<name>/target.txt.
-Round trip is checked: tools/build.py must give back the input byte for byte, or nothing is written."""
+Round trip is checked: tools/build.py must give back the input byte for byte (else it stops with ROUND TRIP FAILED)."""
 import ast, os, re, sys, hashlib, collections, shutil
 DATA_MIN = 2000      # a top-level assignment this many characters or longer goes to data/
+PART_MAX, PART_LINES = 3000, 1200   # code longer than PART_MAX lines is cut into parts of about PART_LINES
 ROOT = os.getcwd()
 
 def name_of(path):
@@ -56,20 +57,35 @@ def main(paths):
             else:
                 code.append(L[i]); i += 1
         # round trip in memory before writing anything
-        back = []
-        for ln in code:
-            m = re.match(r"#@include (\S+)\n$", ln)
-            back.append(files[os.path.normpath(os.path.join(d, m.group(1)))] if m else ln)
-        if "".join(back) != s:
-            sys.exit("round trip failed for " + p)
-        if os.path.isdir(os.path.join(d, "data")):
-            shutil.rmtree(os.path.join(d, "data"))
+        # a long code.py is cut into parts/NN_<first def>.py at top-level boundaries (comments above a def go with it)
+        if len(code) > PART_MAX:
+            starts = [n.lineno - 1 - len(getattr(n, "decorator_list", [])) for n in ast.parse("".join(code)).body]
+            cuts = []
+            for s_ in starts:
+                while s_ > 0 and code[s_ - 1].startswith("#") and not code[s_ - 1].startswith("#@include"):
+                    s_ -= 1
+                if s_ - (cuts[-1] if cuts else 0) >= PART_LINES:
+                    cuts.append(s_)
+            top = []; edges = [0] + cuts + [len(code)]
+            for k in range(len(edges) - 1):
+                chunk = code[edges[k]:edges[k + 1]]
+                first = next((re.match(r"(?:def|class) (\w+)", ln).group(1) for ln in chunk if re.match(r"(?:def|class) \w+", ln)), "top")
+                fp = os.path.join(d, "parts", "%02d_%s.py" % (k + 1, first))
+                files[fp] = "".join(re.sub(r"^#@include (data/|\.\./common/)", r"#@include ../\1", ln) for ln in chunk)
+                top.append("#@include parts/%02d_%s.py\n" % (k + 1, first))
+            code = top
+        for sub in ("data", "parts"):
+            if os.path.isdir(os.path.join(d, sub)):
+                shutil.rmtree(os.path.join(d, sub))
         for fp, txt in files.items():
             os.makedirs(os.path.dirname(fp), exist_ok=True)
             open(fp, "w", encoding="utf-8", newline="").write(txt)
         os.makedirs(d, exist_ok=True)
         open(os.path.join(d, "code.py"), "w", encoding="utf-8", newline="").write("".join(code))
         open(os.path.join(d, "target.txt"), "w").write(os.path.basename(p) + "\n")
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import build
+        if build.expand(os.path.join(d, "code.py")) != s:
+            sys.exit("ROUND TRIP FAILED for %s: do not use src/%s" % (p, name))
         print("%-38s %6d lines -> code.py %5d lines, %d data parts, %d common" % (
             os.path.basename(p), len(L), len(code), sum(1 for f in files if "/data/" in f), sum(1 for f in files if "/common/" in f)))
 

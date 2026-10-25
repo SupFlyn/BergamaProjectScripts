@@ -6,5 +6,5 @@ T=$(dirname $(realpath $0)); D=$(realpath $1); H=$(realpath -m $2); DATA=${BERGA
 rm -rf $H; mkdir -p $H/Downloads/Bergama/Data; cp $DATA/* $H/Downloads/Bergama/Data/
 for s in zone_base masterplan water_balance board city_link agriculture_alternatives water_board proposal_sections; do
   f=$(ls $D/bergama_${s}_v*.py $D/selinus_${s}_v*.py 2>/dev/null | head -1)
-  ( cd $H && timeout 1500 python3 -I $T/run_gh.py $f $H > $H/$s.stdout 2>&1 ); echo "$s rc=$? $(grep '#LOG#' $H/$s.stdout | cut -c1-200)"
+  ( cd $H && timeout 5400 python3 -I $T/run_gh.py $f $H > $H/$s.stdout 2>&1 ); echo "$s rc=$? $(grep '#LOG#' $H/$s.stdout | cut -c1-200)"
 done

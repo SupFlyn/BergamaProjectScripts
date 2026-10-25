@@ -1,9 +1,9 @@
-# bergama_water_balance map (made by tools/build.py; edit the part named here)
+# bergama_water_balance map (made by tools/build.py; edit the file named here)
 
 | function / data | file | line |
 |---|---|---|
 | write_log | code.py | 28 |
-| INPUT_DATA | data/INPUT_DATA.py | (code.py 89) |
+| INPUT_DATA | data/INPUT_DATA.py | - |
 | _num | code.py | 92 |
 | rhino_lands | code.py | 98 |
 | masterplan_lands | code.py | 128 |
@@ -17,8 +17,8 @@
 | crf | code.py | 230 |
 | compute | code.py | 232 |
 | read_results | code.py | 349 |
-| rgb | ../common/rgb.py | (code.py 363) |
-| text_w | ../common/text_w.py | (code.py 372) |
+| rgb | ../common/rgb.py | - |
+| text_w | ../common/text_w.py | - |
 | Page | code.py | 374 |
 | write_pdf | code.py | 408 |
 | fmt | code.py | 429 |
@@ -37,5 +37,5 @@
 | panel_claims | code.py | 666 |
 | build | code.py | 697 |
 | main | code.py | 725 |
-| chain_fire | ../common/chain_fire.py | (code.py 741) |
-| done_text | ../common/done_text.py | (code.py 744) |
+| chain_fire | ../common/chain_fire.py | - |
+| done_text | ../common/done_text.py | - |

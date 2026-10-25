@@ -1,0 +1,17 @@
+#@include parts/01__gh_inputs.py
+#@include parts/02_region_contains.py
+#@include parts/03_street_w.py
+#@include parts/04_river_faces.py
+#@include parts/05_build_terrain.py
+#@include parts/06_draw_legend_items.py
+#@include parts/07_kgm_split.py
+#@include parts/08_by_month.py
+#@include parts/09_noise_par.py
+#@include parts/10_sheet_shade.py
+#@include parts/11_vis_ring.py
+#@include parts/12_typo_kind.py
+#@include parts/13_tsec_key_plan.py
+#@include parts/14_tsec_wind_arrows.py
+#@include parts/15_ndvi_col.py
+#@include parts/16_write_city_link_movement.py
+#@include parts/17_board_fits.py
