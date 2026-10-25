@@ -136,6 +136,9 @@ class Curve(GeometryBase):
     def IsCircle(self, *a): return False
     def ToNurbsCurve(self): return self
     def ToPolyline(self, *a): return PolylineCurve(self._P)
+    Degree = 1                     # a polyline's NURBS form; ArcCurve says 2
+    @property
+    def Points(self): return [types.SimpleNamespace(Location=p) for p in self._P]
 
     def PointAt(self, t):
         n = len(self._P) - 1
@@ -259,6 +262,7 @@ class ArcCurve(Curve):
         n = max(8, int(abs(arc.a1 - arc.a0) / math.radians(2)))
         Curve.__init__(self, [arc.pt(arc.a0 + (arc.a1 - arc.a0) * k / n) for k in range(n + 1)])
         if circle: self._P[-1] = self._P[0]
+    Degree = 2
     def IsCircle(self, *a): return self._circle
     def IsArc(self, *a): return True
     def TryGetPolyline(self, *a): return False, None
