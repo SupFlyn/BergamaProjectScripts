@@ -1552,8 +1552,7 @@ class BkBlocks(object):
 # The four sections re-laid for the booklet's wide frames (pages C4, C5: 392 x 111 mm drawing area each), drawn natively
 # at that size with the same hand-sketch engine (SKETCH_SRC) as the sheet: no text in the PDFs, every word a label
 # from the plan's list (booklet/content/plan_merged.json). Option A only. Q500 is a named level line, no heights
-# (part B owns them); in the upstream entry the line now sits under the lowest terrace and the bank tops, as its
-# label says (the surveyed cut keeps Q500 inside the banks). Element numbers only where the plan asks (upstream).
+# (part B owns them), each at the sheet's level. Element numbers only where the plan asks (upstream).
 BK_W, BK_H = 392.0, 116.0                      # plan frame (booklet_slots.json); drawing area = h - 5 mm caption
 BK_LAB, BK_KEY = 7.5, 9.5                      # label sizes, pt (labels; key labels)
 BK_LEGEND = [{"kind": "fill", "colour": "7FA7B8", "label": "winter water"},
@@ -1616,10 +1615,10 @@ def _bk_up(S, L):
     basins = ((40, 52), (74, 40), (108, 28))
     gs = S.sketch_ground(o, S.notch(g, [(TX(x0), TX(x0 + 22), TY(y), 6.25) for x0, y in basins] +
                                     [(TX(150), TX(160), TY(12), 2.75)]))
-    q = TY(25)                                        # Q500: under the lowest terrace and the bank tops (inside the banks)
-    wb = S.water_body(gs, TX(155), q)
-    if wb:
-        S.wash(o, wb, "flood", S.FLOOD_WASH, S.FLOOD_ALPHA)
+    q = TY(31.5)                                      # Q500 at the sheet's level (v3): over the lowest terrace
+    fl = S.under_level(gs, TX(102), TX(200), q)
+    if fl:
+        S.wash(o, fl, "flood", S.FLOOD_WASH, S.FLOOD_ALPHA)
     S.rain(o, 18, 62, 89, 97, 22)
     S.fill(o, rect(6, TY(64), 63, TY(64) + 1.6), "road", S.ROAD)
     S.sketch_house(o, 34, 50, TY(64) + 1.6, wall=8.0, pipe=True)
@@ -1639,10 +1638,9 @@ def _bk_up(S, L):
     for a, b, y in ((34, 40, 52), (62, 68, 52), (68, 74, 40), (96, 102, 40), (102, 108, 28)):
         _bk_walk(S, o, [T(a, y), T(b, y)])
     _bk_walk(S, o, [T(170, 28), T(200, 28)])
-    if wb:
-        S.sketch(o, [(wb[0][0] - 2.0, q), (331.0, q)], "flood lines", S.HERITAGE, S.PEN_FINE, over=0.0, retrace=False,
-                 dashed=True, z=S.Z_LINE)
-    S.level_mark(o, 322.0, q, S.HERITAGE, "flood lines")
+    S.sketch(o, [T(102, 31.5), T(200, 31.5)], "flood lines", S.HERITAGE, S.PEN_FINE, over=0.0, retrace=False,
+             dashed=True, z=S.Z_LINE)
+    S.level_mark(o, TX(123.8), q, S.HERITAGE, "flood lines")
     S.hand_arrow(o, (60, 92), (100, TY(52) + 3.0), S.SITE_WATER_D, width=0.8, head=3.0, bend=0.12)
     S.hand_arrow(o, (248, TY(28) + 1.0), (292, TY(12) + 2.5), S.SITE_WATER_D, width=0.8, head=3.0, bend=0.1)
     for a, b in (((64, 49), (66, 44)), ((98, 37), (100, 32)), ((130, 26), (141, 18))):
@@ -1658,7 +1656,7 @@ def _bk_up(S, L):
                   u"gravity · no pumps"], 15, 46.0, col=BK_ACC)
     S.sun(o, 334.5, 22.9, 0.9)
     _bk_lines(L, [u"continuous strip", u"regulated release", u"today: dry bed"], 338, 22.0, col=BK_WATER)
-    _bk_lab(L, u"Q500 stays inside the banks", 333, q + 5.9, col=BK_HER)
+    _bk_lab(L, u"Q500 floods the lowest terrace", 333, q + 2.4, col=BK_HER)
     extra = []
     for n_, x_, y_ in ((2, TX(51), TY(56) + 3.0), (3, 126.0, TY(56) + 3.0), (4, TX(85), TY(44) + 3.0),
                        (5, TX(143) + 1.0, 20.5), (6, TX(155) + 2.5, 20.5)):
