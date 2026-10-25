@@ -1,7 +1,8 @@
 #!/bin/bash
-# compare.sh <runA> <runB>: same output and log files? (run folder name, mock ids and object addresses normalised)
+# compare.sh <runA> <runB>: same output and log files? (tools/norm.py: run folder, mock ids, addresses; PDFs inflated)
 # Lists each differing file; for text files the first differing lines are shown.
-norm() { sed -e "s|$2|RUN|g" -e "s/id='[0-9]*'/id=X/g" -e "s/0x[0-9a-f]\{6,\}/0xX/g" "$1"; }
+T=$(dirname $(realpath $0))
+norm() { python3 $T/norm.py "$1" "$2"; }
 for d in $1 $2; do A=$(realpath $d); (cd $A/Downloads/Bergama && find output logs -type f | sort | while read f; do echo "$(norm "$f" $A | md5sum | cut -c1-12) $f"; done) > $A.hashes; done
 A=$(realpath $1); B=$(realpath $2)
 if diff -q $A.hashes $B.hashes >/dev/null; then echo "IDENTICAL ($(wc -l < $A.hashes) files)"; exit 0; fi
