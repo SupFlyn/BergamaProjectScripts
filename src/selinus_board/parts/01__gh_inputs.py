@@ -17,6 +17,12 @@ NEW IN v40 (2026-10-25, Aras 21:38-21:52, booklet/CROP_SPEC.md: the booklet show
     of every sheet this board writes (Selinus_drawings, Selinus_sections, the axonometric, T1-T8: one per map), the
     panel's rectangle in mm on its sheet PDF, from the layout's own numbers, with caption, scale and legend.
     booklet/results.json keeps every key it had.
+  * The stream's tree cover (drawing 06): each bank's distance bands named beside their rows, the stream between the
+    banks with its covered reaches drawn on it and the bridges across it, a distance axis every 500 m, a drawn key.
+  * Sections: the words at the water (stream width and depth, bed level, bank edges) in one band right under the cut
+    ground, on short leaders; no caveat words on the drawing (they go to the log).
+  * New drawing "Section along the spine": the masterplan's streamside spine as one long developed section, cut by
+    the same section engine, at one scale for lengths and heights, the stops 1-8 marked above it.
 
 NEW IN v39 (2026-10-25, SCRIPT_STANDARD 8, booklet/ASSET_SPEC.md: the A3 booklet):
   * After the board's PDFs: output/selinus_board/booklet/ holds one text-free vector PDF per booklet frame of pages

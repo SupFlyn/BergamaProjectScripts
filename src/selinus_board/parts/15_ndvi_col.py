@@ -60,65 +60,140 @@ def draw_sat_strips(B, rows, P, Lm, ytop, x, U, L):
     return y
 
 
+# v40 (Aras 25 Oct: "texts and graphics are on top each other ... make the diagram clearer"): the tree-cover chart
+# reads at a glance: each bank's four distance bands named beside their rows (0-15 m next to the stream), the stream
+# between the banks with its covered reaches drawn on it and the bridges as ticks across it only, a distance axis
+# every 500 m, a key of drawn samples. Values as in the pack (no smoothing). Words at RIP_TH page units: the booklet
+# crops this panel at 392 mm wide, where they print at 7.5 pt or more.
+RIP_TH = 0.6
+RIP_RAMP = [(0.0, C("F6F5EF")), (1.0, C("E3E6CF")), (5.0, C("C9D1A4")), (10.0, C("A9B57F")), (20.0, C("8C9969")),
+            (40.0, C("6B774A"))]
+RIP_COVERED = mix(BLUE_D, INK, 0.35)                   # the stream where it runs under the town
+PANEL_RECTS = {}        # v40: a panel's drawing with its in-drawing words (no title, key or notes): (x0, y0, x1, y1)
+
+
+def rip_colour(v):
+    c_ = RIP_RAMP[0][1]
+    for t, cc in RIP_RAMP:
+        if v >= t:
+            c_ = cc
+    return c_
+
+
+def rip_legend():
+    """The tree-cover chart's key as drawn samples: [(kind, colour, name)]."""
+    out = []
+    for k, (t, c_) in enumerate(RIP_RAMP):
+        out.append(("box", c_, "tree cover {:g}-{:g} %".format(t, RIP_RAMP[k + 1][0]) if k + 1 < len(RIP_RAMP)
+                    else "tree cover {:g} % +".format(t)))
+    return out + [("box", CAT["water"][1], "the Selinos stream"), ("box", RIP_COVERED, "covered reach"),
+                  ("line", INK, "bridge")]
+
+
 def draw_riparian(S, B, x, y, w, U):
     """S1 companion (plant analysis panel 3): canopy cover in four bands either side of the Selinos every 25 m of
-    chainage, the NDVI along the stream, covered reaches, bridges and section crossings."""
+    chainage; the stream between the banks with its covered reaches and bridges; the section lines by name."""
     L = "LU_BOARD::Riparian"
     cor = seam_pack().get("corridor", {})
     if not cor:
         return y
     B.text("THE STREAM'S TREE COVER · BANK BY BANK, EVERY 25 M", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
-    n = cor["n_bins"]
-    bm = cor["bin_m"]
-    names = ["left 60-100", "left 30-60", "left 15-30", "left 0-15", "right 0-15", "right 15-30", "right 30-60",
-             "right 60-100"]
-    rh = 0.75 * U
-    lab_w = 7.5 * U
-    cw = (w - lab_w) / float(n)
-    y0 = y - 1.8 * U
-    ramp = [(0.0, C("F6F5EF")), (1.0, C("E3E6CF")), (5.0, C("C9D1A4")), (10.0, C("A9B57F")), (20.0, C("8C9969")),
-            (40.0, C("6B774A")), (60.0, C("495338"))]
+    n, bm = cor["n_bins"], float(cor["bin_m"])
+    th = RIP_TH * U
+    rh, hb, gs = 0.95 * U, 1.3 * U, 0.14 * U             # a distance band, the stream, the gap between them
+    bands = ["0-15", "15-30", "30-60", "60-100"]
+    col_b = tw("RIGHT", th) + 0.5 * U                     # bank names
+    lab_w = col_b + tw("60-100 m", th) + 0.5 * U          # + band names
+    x0 = x + lab_w
+    x1 = x + w - tw("mean", th) - 0.7 * U                 # the reach's mean per band at the right
+    cw = (x1 - x0) / float(n)
 
-    def colr(v):
-        c_ = ramp[0][1]
-        for t, cc in ramp:
-            if v >= t:
-                c_ = cc
-        return c_
-    for j, nm in enumerate(names):
-        yy = y0 - j * rh - (0.5 * U if j >= 4 else 0.0)
-        B.text(nm + " m", x + lab_w - 0.4 * U, yy - 0.75 * rh, 0.32 * U, INK2, L, align="R")
-        vals = cor["cover"].get(nm, {}).get("pct") or cor["cover"].get(nm, {}).get("cover") or []
-        cells = cor["cover"].get(nm, {}).get("cells", [])
+    def X(ch):
+        return x0 + ch / bm * cw
+    # ---- distance axis, every 500 m along the stream (downstream to the right)
+    ya = y - 2.1 * U
+    gtop = ya - 0.5 * U
+    B.text("downstream", x0 - 0.5 * U, ya, th, INK2, L, align="R")
+    for m in range(0, int(n * bm) + 1, 500):
+        B.line([(X(m), gtop + 0.05 * U), (X(m), gtop + 0.3 * U)], INK2, L, 6, 0.08)
+        B.text("{:,}".format(m) + (" m" if m == 0 else ""), X(m), ya, th, INK2, L, align="L" if m == 0 else "C")
+    B.text("mean", x1 + 0.5 * U, ya, th, INK2, L)
+
+    def row_top(j):                                       # rows 0-3: left bank, far to near; 4-7: right bank, near to far
+        return gtop - j * rh - (hb + 2.0 * gs if j >= 4 else 0.0)
+    rows = [("left", b_) for b_ in reversed(bands)] + [("right", b_) for b_ in bands]
+    for j, (side, b_) in enumerate(rows):
+        yy = row_top(j)
+        d_ = cor["cover"].get(side + " " + b_, {})
+        vals = d_.get("pct") or d_.get("cover") or []
+        cells = d_.get("cells", [])
         for i in range(n):
             v = vals[i] if i < len(vals) else None
             if v is None or (i < len(cells) and cells[i] < 20):
                 continue
-            B.fill([rect(x + lab_w + i * cw, yy - rh, x + lab_w + (i + 1) * cw, yy)], colr(v), L, 3)
-        if j == 3:
-            yw = yy - rh - 0.25 * U
-            B.fill([rect(x + lab_w, yw - 0.12 * U, x + w, yw + 0.12 * U)], CAT["water"][1], L, 3)
-            B.text("the Selinos (flowing right)", x + lab_w - 0.4 * U, yw - 0.15 * U, 0.3 * U, BLUE_D, L, align="R")
-    yb = y0 - 8 * rh - 0.5 * U
+            B.fill([rect(X(i * bm), yy - rh + 0.05 * U, X((i + 1) * bm), yy - 0.05 * U)], rip_colour(v), L, 3)
+        ym = yy - 0.5 * rh - 0.5 * th
+        B.text(b_ + " m", x0 - 0.5 * U, ym, th, INK, L, align="R")
+        if d_.get("total_pct") is not None:
+            B.text("{:.1f}%".format(d_["total_pct"]), x1 + 0.5 * U, ym, th, INK, L)
+    for side, j0 in (("LEFT", 0), ("RIGHT", 4)):          # the bank's name beside its four rows
+        yc = row_top(j0) - 2.0 * rh
+        B.text(side, x, yc + 0.15 * U, th, INK, L, font=FONT_TITLE, bold=True)
+        B.text("BANK", x, yc - 0.15 * U - th, th, INK, L, font=FONT_TITLE, bold=True)
+        B.line(rect(x0, row_top(j0 + 3) - rh, x1, row_top(j0)) + [(x0, row_top(j0 + 3) - rh)], FAINT, L, 4, 0.05)
+    # ---- the stream between the banks: covered reaches darker and hatched, bridges as ticks across it
+    st, sb = row_top(3) - rh - gs, row_top(3) - rh - gs - hb
+    B.fill([rect(x0, sb, x1, st)], CAT["water"][1], L, 3)
+    B.text("STREAM", x0 - 0.5 * U, 0.5 * (st + sb) - 0.5 * th, th, BLUE_D, L, font=FONT_TITLE, bold=True, align="R")
+    am = 0.5 * (st + sb)                                  # the flow, at the upstream end
+    B.line([(X(10.0), am), (X(62.0), am)], BLUE_D, L, 5, 0.25)
+    B.fill([[(X(88.0), am), (X(60.0), am + 0.32 * U), (X(60.0), am - 0.32 * U)]], BLUE_D, L, 5)
     for a, b in cor.get("covered_reaches", []):
-        B.fill([rect(x + lab_w + a / bm * cw, yb - 0.5 * U, x + lab_w + b / bm * cw, yb - 0.2 * U)], BLUE_D, L, 4)
+        cov = rect(X(a), sb, X(b), st)
+        B.fill([cov], RIP_COVERED, L, 4)
+        B.hatch([cov], CAT["water"][1], L, 5, 0.3 * U, w=0.05)
     ch = cor.get("bridges_ch", [])
     for i in range(0, len(ch) - 1, 2):
-        xm = x + lab_w + 0.5 * (ch[i] + ch[i + 1]) / bm * cw
-        B.line([(xm, y0 + 0.2 * U), (xm, yb)], INK, L, 6, 0.1)
-    for nm, c_ in cor.get("sections_ch", []):
-        xm = x + lab_w + c_ / bm * cw
-        B.text(nm, xm, yb - 1.0 * U, 0.34 * U, INK, L, align="C", font=FONT_TITLE, bold=True)
-    for m in range(0, int(n * bm) + 1, 500):
-        B.text("{:,} m".format(m), x + lab_w + m / bm * cw, y0 + 0.25 * U, 0.3 * U, INK2, L, align="C")
-    leg = [("box", colr(v), "{:g}%+".format(v)) for v, _c in ramp[1:]] + [
-        ("box", BLUE_D, "covered (culvert)"), ("line", INK, "bridge")]
-    ly = draw_legend_items(B, leg, x, yb - 2.0 * U, w, U, L, h=0.36)
-    return B.para("% of 1 m cells under crowns · bands from the OSM centreline · 25 m bins " + bcite(   # v38: keywords
+        xa, xb = X(ch[i]), X(ch[i + 1])
+        if xb - xa < 0.2 * U:
+            xa, xb = 0.5 * (xa + xb) - 0.1 * U, 0.5 * (xa + xb) + 0.1 * U
+        B.fill([rect(xa, sb - 0.08 * U, xb, st + 0.08 * U)], INK, L, 6)
+    # ---- the section lines, by name under the chart
+    gb = row_top(7) - rh
+    yl = gb - 0.75 * U - th
+    secs = cor.get("sections_ch", [])
+    if secs:
+        B.text("sections", x0 - 0.5 * U, yl, th, INK2, L, align="R")
+    for nm, c_ in secs:
+        B.line([(X(c_), gb - 0.1 * U), (X(c_), gb - 0.55 * U)], INK, L, 6, 0.12)
+        B.text(nm, X(c_), yl, th, INK, L, align="C", font=FONT_TITLE, bold=True)
+    PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ya + th + 0.25 * U)
+    # ---- key: the colour steps, the stream, a covered reach, a bridge
+    yk = yl - 1.6 * U
+    B.text("TREE COVER · % OF THE GROUND UNDER CROWNS", x, yk, 0.42 * U, INK, L, font=FONT_TITLE, bold=True)
+    yb = yk - 1.4 * U
+    bw = 2.2 * U
+    for k, (t, c_) in enumerate(RIP_RAMP):
+        B.fill([rect(x + k * bw, yb, x + (k + 1) * bw, yb + 0.7 * U)], c_, L, 20)
+        B.text("{:g}".format(t), x + k * bw, yb - 0.25 * U - 0.42 * U, 0.42 * U, INK2, L, align="C")
+    B.line(rect(x, yb, x + len(RIP_RAMP) * bw, yb + 0.7 * U) + [(x, yb)], INK2, L, 21, 0.05)
+    B.text("%", x + len(RIP_RAMP) * bw, yb - 0.25 * U - 0.42 * U, 0.42 * U, INK2, L, align="C")
+    kx = x + len(RIP_RAMP) * bw + 2.5 * U
+    for kind, col, lab in [it for it in rip_legend() if not it[2].startswith("tree cover")]:
+        sw = 2.0 * U
+        B.fill([rect(kx, yb, kx + sw, yb + 0.7 * U)], CAT["water"][1] if kind == "line" else col, L, 20)
+        if col is RIP_COVERED:
+            B.hatch([rect(kx, yb, kx + sw, yb + 0.7 * U)], CAT["water"][1], L, 21, 0.3 * U, w=0.05)
+        if kind == "line":
+            B.fill([rect(kx + 0.5 * sw - 0.1 * U, yb - 0.08 * U, kx + 0.5 * sw + 0.1 * U, yb + 0.78 * U)], col, L, 22)
+        B.text(lab, kx + sw + 0.4 * U, yb + 0.15 * U, 0.42 * U, INK, L)
+        kx += sw + 0.4 * U + tw(lab, 0.42 * U) + 1.6 * U
+    return B.para("cover = share of 1 m cells under crowns · rows by distance from the stream's centre line, left and "
+                  "right looking downstream · 25 m bins · mean = the whole reach " + bcite(
         "Stream tree cover: share of the 1 m cells under crown discs (canopy map, modelled), in bands measured from the "
         "OSM centreline (so 0-15 m holds the channel); bins of 25 m of chainage from the upstream frame edge; a bin "
-        "under 20 cells is left blank. Bridges as vertical lines, section lines by name."),
-                  x, ly - 0.2 * U, w, 0.32 * U, INK2, L)
+        "under 20 cells is left blank. Covered reaches drawn on the stream, bridges as ticks across it, section lines by name."),
+                  x, yb - 1.8 * U, w, 0.32 * U, INK2, L)
 
 
 # v33: the green table of bergama_fabric_green v10
