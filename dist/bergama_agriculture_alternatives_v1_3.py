@@ -1,4 +1,4 @@
-# bergama_agriculture_alternatives_v1_2.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v1_3.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -10,7 +10,10 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v1.2"
+VERSION = "v1.3"
+# v1.3 (25 Oct, booklet stage 2, SCRIPT_STANDARD §8): also writes output/<folder>/booklet/: c7_hero.pdf (plant ladder +
+# the water board's planting bands A-F), c8_b.pdf (hectares per crop bars), blocks.json (every word a label) and
+# results.json (hectares per crop). The A3 sheet is unchanged.
 # v1.2 (Aras 25 Oct 17:00, SCRIPT_STANDARD §5b visual first): sentences become pictogram tiles, callouts and tags; method
 # and source sentences become [n] marks with one numbered source key in each page's footer; layout and colours kept.
 # Flood figures corrected to the surveyed sections (research/rain_river_levels/README.md, v1.1 correction and line 49).
@@ -633,6 +636,422 @@ def page_ladder(L, src):
     footer(pg, CREDIT)
     return pg
 
+# ------------------------------------------------------------------ v1.3: A3 booklet assets (SCRIPT_STANDARD §8)
+# Two frames of the booklet plan, each one text-free vector PDF drawn at its frame's size; every word is a label in
+# blocks.json (live text set by the assembler). C7 hero: the plant ladder (page 3) merged with the water board's planting
+# bands A-F (its W3b). C8 b: the crop bars of page 1. Words: only the plan's labels; hectares also go to results.json.
+# ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
+# Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
+# The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
+BK_MIN_PT = 7.5                              # labels and captions on the booklet (brief: 7-8 pt, minimum 7)
+BK_CAPTION_MM = 5.0                          # caption line under every drawing frame
+
+
+def bk_frame(key, w_default, h_default):
+    """(w, h) mm a drawing for asset key "<folder>/<block>" is drawn at: the assembler's booklet_slots.json if it has
+    run once, else the defaults given (the plan's frame size). h excludes the caption line."""
+    try:
+        import json as _j
+        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
+                               "booklet_slots.json"), encoding="utf-8") as f:
+            s = _j.load(f)[key]
+        return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
+    except Exception:
+        return float(w_default), float(h_default) - BK_CAPTION_MM
+
+
+def bk_take_text(items, H):
+    """Page items (poly/line/circle/text tuples, y up from the bottom, mm) -> (items without text, labels).
+    Labels: x, y in mm from the top-left (y to the baseline), size raised to BK_MIN_PT, colour hex."""
+    keep, labels = [], []
+    for it in items:
+        if it[0] != "text":
+            keep.append(it)
+            continue
+        _, s, x, y, size, color, bold, align = it[:8]
+        labels.append({"x": round(x, 2), "y": round(H - y, 2), "text": s, "size": max(float(size), BK_MIN_PT),
+                       "bold": bool(bold), "anchor": align or "L", "colour": color if isinstance(color, str) else "4A3F35"})
+    return keep, labels
+
+
+class BkBlocks(object):
+    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    def __init__(self, out_dir, script, version):
+        self.dir = os.path.join(out_dir, "booklet")
+        os.makedirs(self.dir, exist_ok=True)
+        self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
+
+    def path(self, name):
+        return os.path.join(self.dir, name)
+
+    def source(self, key, text, url):
+        """A public source: used in any text as {src:key}; numbered once for the whole booklet."""
+        self.d["sources"][key] = {"text": text, "url": url}
+
+    def drawing(self, bid, pdf_name, labels, caption="", scale_den=None, legend=None):
+        self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or []}
+
+    def tiles(self, bid, tiles):
+        self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
+
+    def text(self, bid, heading="", body="", bullets=None):
+        self.d["blocks"][bid] = {"type": "text", "heading": heading, "body": body, "bullets": bullets or []}
+
+    def save(self):
+        import json as _j
+        p = os.path.join(self.dir, "blocks.json")
+        with open(p, "w", encoding="utf-8") as f:
+            _j.dump(self.d, f, ensure_ascii=False, indent=1)
+        return p
+import re as _re
+BK_FOLDER = "Bergama_agriculture_alternatives"
+BK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F")       # booklet text colours (design-language: ink2 darkened)
+# the water board's W3b bands (code, plan label, colour) and the steps they lie on; copied as the plan lists them
+BK_BANDS = [("A", "A strip and bed · permanent", "91ADB4"), ("B", "B marsh · 150-365 d", "9DB7A8"),
+            ("C", "C willow · 50-150 d", "A9B57F"), ("D", "D wet meadow · 10-150 d", "C9D1A4"),
+            ("E", "E dry meadow · 0.5-50 d", "D9CC8E"), ("F", "F terraces · extreme only", "D8D5CC")]
+# one column per ladder step: step, its bands, plan labels (key, common names, species with their source, warnings)
+BK_STEPS = [
+    dict(step="BED", bands="AB", w=50, wet=4, jobs=("clean",), key="BED · CLEAN",
+         names=["reed · cattail · water mint"],
+         species=["Typha angustifolia {src:song_2021}", "Phragmites australis {src:song_2021}",
+                  "Iris pseudacorus {src:feis_iris}", "Mentha aquatica {src:avelar_2012}"],
+         warn=["Arundo donax: remove {src:bruno_2019}"]),
+    dict(step="LOWER BANK", bands="CD", w=52, wet=3, jobs=("clean", "hold"), key="LOWER BANK · CLEAN + HOLD",
+         names=["Juncus · loosestrife", "Tamarix · white willow"],
+         species=["Salix alba {src:jrc_salix_alba}", "Tamarix smyrnensis {src:jrc_tamarix}",
+                  "Lythrum salicaria {src:feis_lythrum}", "Carex pendula, Juncus effusus {src:usda_tn38}"], warn=[]),
+    dict(step="TERRACE", bands="E", w=52, wet=2, jobs=("shade", "hold"), key="TERRACE · SHADE + HOLD",
+         names=["Vitex · white poplar · ash"],
+         species=["Vitex agnus-castus {src:salinas_cueto_2009}", "Nerium oleander {src:salinas_cueto_2009}",
+                  "!oleander: toxic {src:pim366}", "Fraxinus angustifolia {src:jrc_fraxinus}",
+                  "Populus alba {src:jrc_populus_alba}", "Platanus orientalis {src:eunis_g1381}",
+                  "Quercus robur: 96 d a year {src:schindler_2022}", "Ulmus laevis: up to 119 d {src:schindler_2022}"],
+         warn=[]),
+    dict(step="BANK TOP", bands="F", w=38, wet=1, jobs=("scent",), key="BANK TOP · SCENT",
+         names=["lavender · rosemary"], species=["Lavandula stoechas {src:rhs_waterlogging}"], warn=[]),
+    dict(step="FARMS", bands="", w=42, wet=0, jobs=("drip", "olive"), key="FARMS · HARVEST",
+         names=["olive, cotton, maize, tomato"], species=[], warn=["route to farms: not designed"]),
+]
+BK_DAYS_WET = [(0.10, 144), (0.30, 6), (0.50, 1), (1.00, 0)]   # water board W3b, flat downstream end (m above the bed, d a year)
+
+
+def bk_w(s, size, bold=False):
+    """label width as the assembler sets it: {src:} -> [nn], {val:} -> a 4-digit figure"""
+    return text_w(_re.sub(r"\{val:[^}]+\}", "0000", _re.sub(r"\{src:[^}]+\}", "[00]", s)), size, bold)
+
+
+class BkDraw(object):
+    """A booklet drawing: a Page (y up, mm) with no text, and its labels (x, y from the top-left, y = baseline)."""
+    def __init__(self, W, H):
+        self.W, self.H, self.pg, self.labels = W, H, Page(W, H), []
+
+    def y(self, yt):                       # top-down mm -> the Page's y-up mm
+        return self.H - yt
+
+    def rect(self, x, yt, w, h, **kw):     # (x, yt) = top-left corner
+        self.pg.rect(x, self.H - yt - h, w, h, **kw)
+
+    def lab(self, s, x, yt, size=7.5, col=None, bold=False, anchor="L"):
+        self.labels.append({"x": round(x, 2), "y": round(yt, 2), "text": s, "size": max(float(size), BK_MIN_PT),
+                            "bold": bool(bold), "anchor": anchor, "colour": col or BK["ink"]})
+
+    def check(self):
+        """label boxes as the assembler measures them: overlaps and labels leaving the frame (for the log)"""
+        out, boxes, k = [], [], 25.4 / 72.0
+        for lb in self.labels:
+            wd = bk_w(lb["text"], lb["size"], lb["bold"])
+            x0 = lb["x"] - (wd / 2 if lb["anchor"] == "C" else wd if lb["anchor"] == "R" else 0)
+            b = (x0, lb["y"] - lb["size"] * k * 0.72, x0 + wd, lb["y"] + lb["size"] * k * 0.21)
+            if any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in boxes):
+                out.append("overlap: " + lb["text"][:30])
+            if b[0] < 0 or b[2] > self.W or b[1] < 0 or b[3] > self.H:
+                out.append("outside: " + lb["text"][:30])
+            boxes.append(b)
+        return out
+
+
+def bk_drop(d, cx, yt, r, fill):
+    """a water drop, tip up, its round end centred at (cx, yt); fill None = empty outline"""
+    yc = d.y(yt)
+    P = [(cx - r * 0.85, yc + r * 0.45), (cx, yc + r * 2.2), (cx + r * 0.85, yc + r * 0.45)]
+    P += [(cx + r * math.cos(-math.pi * j / 12), yc + r * math.sin(-math.pi * j / 12)) for j in range(13)]
+    d.pg.poly(P, fill=fill, stroke=None if fill else C["structure"], lw=0.2, closed=True)
+
+
+def bk_warn(d, x, yt, s=2.6):
+    """a small accent warning mark (triangle with a bar and a dot), its bottom-left at (x, yt)"""
+    y0 = d.y(yt)
+    d.pg.poly([(x, y0), (x + s, y0), (x + s / 2, y0 + s * 0.9)], fill=C["accent"], closed=True)
+    d.pg.line([(x + s / 2, y0 + s * 0.62), (x + s / 2, y0 + s * 0.3)], C["white"], 0.22)
+    d.pg.circle(x + s / 2, y0 + s * 0.14, 0.12, fill=C["white"])
+
+
+def bk_ladder(W, H):
+    """C7 hero: one stepped profile, bed to farms (page 3) with the planting bands A-F (water board W3b), per step the
+    wetness drops, the job pictograms, key, species and warnings, and today's cover bar. Schematic, not to scale."""
+    d = BkDraw(W, H)
+    sy = H / 171.0
+    m = 26.0 * W / 260.0                                   # left margin: days-wet scale
+    f = (W - m) / float(sum(s["w"] for s in BK_STEPS))
+    surf = dict(A=120, B=114, C=106, D=100, E=91, F=82, farm=77)   # schematic ground heights, mm from the top
+    g_bot, rib = 140 * sy, 4.0
+    col = dict((b[0], b[2]) for b in BK_BANDS)
+    x = m
+    segs, cols = [], []
+    for st in BK_STEPS:
+        w = st["w"] * f
+        cols.append((x, w, st))
+        bands = st["bands"] or "farm"
+        bw = w / len(st["bands"] or "x")
+        for j, b in enumerate([bands] if bands == "farm" else list(bands)):
+            segs.append((b, x + j * bw, x + (j + 1) * bw, surf[b] * sy))
+        x += w
+    # ground, planting band layer along the surface, water in the bed
+    for b, xa, xb, s in segs:
+        d.rect(xa, s, xb - xa, g_bot - s, fill=C["ground"])
+        d.rect(xa, s, xb - xa, rib, fill=col.get(b, C["field"]))
+    a = segs[0]
+    d.rect(a[1], a[3] - 5.0, a[2] - a[1], 5.0, fill=C["water"])
+    prof = []
+    for b, xa, xb, s in segs:
+        prof += [(xa, d.y(s)), (xb, d.y(s))]
+    d.pg.line(prof, C["ink"], 0.35)
+    # what we plant, drawn on the profile (kind of planting only)
+    for b, xa, xb, s in segs:
+        w = xb - xa
+        if b == "B":                                     # reeds
+            for j in range(9):
+                xx = xa + 2 + (w - 4) * j / 8.0; t = 9.0 + 3.0 * (j % 2)
+                d.pg.line([(xx, d.y(s)), (xx + 0.4, d.y(s - t))], C["green_deep"], 0.3)
+                d.rect(xx - 0.2, s - t, 1.1, 2.4, fill=C["green_mid"])
+        elif b == "C":                                   # willow and tamarix
+            for fx in (0.3, 0.72):
+                d.pg.line([(xa + fx * w, d.y(s)), (xa + fx * w, d.y(s - 4.0))], C["green_deep"], 0.4)
+                d.pg.circle(xa + fx * w, d.y(s - 6.5), 3.4, fill=C["green_mid"])
+        elif b == "D":                                   # wet meadow, rushes
+            for j in range(16):
+                xx = xa + 1.5 + (w - 3) * j / 15.0
+                d.pg.line([(xx, d.y(s)), (xx + 0.5 * math.sin(j), d.y(s - 2.2 - 1.2 * (j % 3)))], C["green_mid"], 0.25)
+        elif b == "E":                                   # shade trees
+            for fx, r in ((0.2, 4.6), (0.5, 5.6), (0.8, 4.6)):
+                d.rect(xa + fx * w - 0.5, s - 6.0, 1.0, 6.0, fill=C["ink2"])
+                d.pg.circle(xa + fx * w, d.y(s - 6.0 - r * 0.8), r, fill=C["green_deep"])
+        elif b == "F":                                   # lavender, rosemary
+            for j in range(5):
+                xx = xa + 3.5 + (w - 7) * j / 4.0
+                d.pg.poly([(xx - 2.2 + 4.4 * k_ / 12.0, d.y(s) + 2.2 * math.sin(math.pi * k_ / 12.0)) for k_ in range(13)],
+                          fill=C["green_light"], closed=True)
+                for dx in (-0.9, 0.0, 0.9):
+                    d.pg.line([(xx + dx * 0.4, d.y(s) + 1.8), (xx + dx, d.y(s) + 3.4)], C["green_deep"], 0.18)
+        elif b == "farm":                                # olives and crop rows
+            for fx in (0.25, 0.62):
+                d.rect(xa + fx * w - 0.45, s - 4.0, 0.9, 4.0, fill=C["ink2"])
+                d.pg.circle(xa + fx * w, d.y(s - 6.2), 3.2, fill=C["green_mid"])
+            for j in range(4):
+                xx = xa + w * 0.8 + j * 1.6
+                d.pg.line([(xx, d.y(s)), (xx, d.y(s - 2.6))], C["green_light"], 0.35)
+    # per step: wetness drops + job pictograms, key, names, species, warnings; today's cover bar under the step
+    lead = 3.4
+    for x, w, st in cols:
+        tx = x + 1.5
+        if st["wet"]:
+            for j in range(4):
+                bk_drop(d, tx + 1.2 + j * 3.2, 9.0, 1.1, C["water_deep"] if j < st["wet"] else None)
+            jx = tx + 14.0
+        else:
+            jx = tx
+        for kind in st["jobs"]:
+            icon(d.pg, kind, jx, d.y(2.0), 8.0)
+            jx += 9.5
+        d.lab(st["key"], tx, 17.0, 8.5, BK["ink"], True)
+        yy = 21.5
+        for s in st["names"]:
+            d.lab(s, tx, yy, 7.5, BK["ink"]); yy += lead
+        yy += 1.0
+        for s in st["species"] + ["!" + w_ for w_ in st["warn"]]:
+            if s.startswith("!"):
+                bk_warn(d, tx, yy)
+                d.lab(s[1:], tx + 3.4, yy, 7.5, BK["accent"], True)
+            else:
+                d.lab(s, tx, yy, 7.5, BK["ink2"])
+            yy += lead
+        band = {"LOWER BANK": "0-15", "TERRACE": "15-30", "BANK TOP": "30-60", "FARMS": "60-100"}.get(st["step"])
+        if band:                                         # satellite cover in the matching corridor band, both sides
+            l_, r_ = GEO["corridor"]["left " + band], GEO["corridor"]["right " + band]
+            bx, by, bw = tx, 129.5 * sy, w - 3.0
+            d.rect(bx - 0.6, by - 0.6, bw + 1.2, 4.7, fill=C["white"])
+            d.rect(bx, by, bw, 3.5, stroke=C["structure"], lw=0.15)
+            for cls, cc in (("trees", "89986A"), ("grass", C["grass"]), ("farmland", C["field"])):
+                v = (l_[cls] + r_[cls]) / 2.0
+                d.rect(bx, by, bw * v / 100.0, 3.5, fill=cc)
+                bx += bw * v / 100.0
+    d.lab("today", cols[0][0] + cols[0][1] - 1.5, 129.5 * sy + 2.9, 7.5, BK["ink"], False, "R")
+    # bands A-F: a sample of each layer colour under its segment, label beside it, two staggered rows
+    for i, (b, txt, cc) in enumerate(BK_BANDS):
+        seg = [s_ for s_ in segs if s_[0] == b][0]
+        yb = (147.0 if i % 2 == 0 else 152.5) * sy
+        d.rect(seg[1] + 1.5, yb - 2.6, 3.0, 3.0, fill=cc)
+        d.lab(txt, seg[1] + 5.2, yb, 7.5, BK["ink"])
+    d.lab("bands {src:salinas_cueto_2009} {src:usda_tn38}", m + 1.5, 162.0 * sy, 7.5, BK["ink2"])
+    d.lab("band heights provisional", W - 1.5, 162.0 * sy, 7.5, BK["ink2"], False, "R")
+    # left margin: days wet a year at the flat downstream end, as bars at their height above the bed
+    z0, z1, ax = 120.0 * sy, 72.0 * sy, 3.0
+    d.pg.line([(ax, d.y(z0)), (ax, d.y(z1))], C["ink2"], 0.2)
+    for hgt, days in BK_DAYS_WET:
+        yt = z0 - (z0 - z1) * hgt
+        d.pg.line([(ax - 1.2, d.y(yt)), (ax, d.y(yt))], C["ink2"], 0.2)
+        if days:
+            d.rect(ax, yt - 1.1, max(0.3, (m - 6.0) * days / 144.0), 2.2, fill=C["water_deep"])
+    d.lab("days wet a year, flat end", 0.0, z1 - 5.0, 7.5, BK["ink"], True)
+    return d
+
+
+def bk_crop_icon(d, kind, x, yt, sz):
+    """crop pictograms for the bars: the page-1 icons, plus maize, tomato and olive under deficit drip. Graphics only."""
+    if kind in ("olive", "cotton"):
+        icon(d.pg, kind, x, d.y(yt), sz); return
+    u = sz / 10.0
+    P = lambda a, b: (x + a * u, d.y(yt) - sz + b * u)
+    if kind == "olive_drip":
+        icon(d.pg, "olive", x + 1.5 * u, d.y(yt), sz * 0.85)
+        d.pg.line([P(0.4, 0.6), P(9.6, 0.6)], C["ink2"], 0.3)
+        bk_drop(d, x + 1.6 * u, d.H - (d.y(yt) - sz + 1.8 * u), 0.55 * u, C["water_deep"])
+    elif kind == "maize":
+        d.pg.line([P(5.0, 0.4), P(5.0, 9.6)], C["green_deep"], 0.4)
+        for s_, b in ((-1, 3.0), (1, 4.6), (-1, 6.4)):
+            d.pg.poly([P(5.0, b), P(5.0 + s_ * 3.6, b + 2.4), P(5.0 + s_ * 1.0, b + 1.0)], fill=C["green_mid"], closed=True)
+        d.pg.poly([P(5.4, 5.0), P(7.4, 5.6), P(8.0, 8.6), P(6.4, 9.2), P(5.4, 7.0)], fill=C["field"], closed=True)
+    elif kind == "tomato":
+        d.pg.line([P(5.0, 6.6), P(5.0, 9.4)], C["green_deep"], 0.35)
+        d.pg.circle(x + 5.0 * u, d.y(yt) - sz + 4.0 * u, 3.4 * u, fill=C["accent_deep"])
+        d.pg.poly([P(3.0, 7.4), P(5.0, 6.6), P(7.0, 7.4), P(5.0, 7.0)], fill=C["green_mid"], closed=True)
+
+
+def bk_ha(L):
+    """hectares the storage irrigates per crop (page 1's bars): normal year and 1-in-5 dry year, lo-hi over the storage
+    span (and the deficit saving range for olive), plus the dry-year ratio olive deficit / cotton."""
+    p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
+    w_lo, w_hi = n_lo * p_lo / 100.0, n_hi * p_hi / 100.0
+    rows = [("olive_deficit", "olive", DEFICIT), ("olive_full", "olive", None)] + \
+           [(c, c, None) for c in ("maize", "tomato", "cotton") if c in NET]
+    out = {}
+    for key, crop, dfc in rows:
+        if crop not in NET: continue
+        out[key] = {}
+        for yr, yk in (("normal", "normal"), ("dry", "dry5")):
+            g = gross_m3_ha(crop, yr)
+            lo, hi = (w_lo / (g * (1 - dfc[0])), w_hi / (g * (1 - dfc[1]))) if dfc else (w_lo / g, w_hi / g)
+            out[key][yk] = {"lo": round(lo, 1), "hi": round(hi, 1), "m3_per_ha": round(g, 0)}
+    R = {"ha_per_crop": out, "to_farms_dry5_m3": [round(w_lo), round(w_hi)],
+         "farms_fed_ha": round(L["cropland_ha"] + L["orchard_ha"], 2)}
+    if "olive_deficit" in out and "cotton" in out:
+        a, b = out["olive_deficit"]["dry5"], out["cotton"]["dry5"]
+        R["ratio_olive_deficit_vs_cotton_dry5"] = {"lo": round(a["lo"] / b["lo"], 2), "hi": round(a["hi"] / b["hi"], 2)}
+    return R
+
+
+def bk_cubic(W, H, L, R):
+    """C8 b: horizontal bars, hectares one storage irrigates per crop, normal (light) and 1-in-5 dry year (dark), open
+    bar = range; dashed accent line at the farms we feed; bracket olive deficit vs cotton (dry year) with the ratio."""
+    d = BkDraw(W, H)
+    HA = R["ha_per_crop"]
+    net = lambda c: "{val:Bergama_water_balance_analysis/water_balance_results.json:net_irrigation_mm.%s.mean|0}" % c
+    rows = [r for r in (("olive_deficit", "olive_drip", ["olive · deficit drip"]),
+                        ("olive_full", "olive", ["olive · full", "olive need %s mm net" % net("olive")]),
+                        ("maize", "maize", ["maize · %s mm net" % net("maize")]),
+                        ("tomato", "tomato", ["tomato · %s mm net" % net("tomato")]),
+                        ("cotton", "cotton", ["cotton · %s mm net" % net("cotton")])) if r[0] in HA]
+    vt = lambda v: "%s-%s ha" % (fmt(v["lo"]), fmt(v["hi"])) if fmt(v["lo"]) != fmt(v["hi"]) else "%s ha" % fmt(v["lo"])
+    vmax = max(HA[k][y]["hi"] for k, _, _ in rows for y in ("normal", "dry5"))
+    x0 = 15.0
+    gw = W - 1.5 - x0 - 2.0 - max(bk_w(vt(HA[k][y]), 8, True) for k, _, _ in rows for y in ("normal", "dry5")
+                                    if HA[k][y]["hi"] >= vmax * 0.999)
+    X = lambda v: x0 + gw * v / vmax
+    # key and subtitle
+    d.lab("same storage as page B3", x0, 6.0, 7.5, BK["ink2"])
+    xr = W - 1.5
+    for txt, cc in (("1-in-5 dry year", C["green_deep"]), ("normal year", C["green_light"])):
+        xr -= bk_w(txt, 7.5)
+        d.lab(txt, xr, 6.0, 7.5, BK["ink"])
+        d.rect(xr - 5.5, 3.6, 4.0, 2.6, fill=cc)
+        xr -= 9.5
+    top0, rp = 18.0, (H - 18.0 - 4.0) / max(1, len(rows))
+    bars = {}
+    for i, (k, ic, labs) in enumerate(rows):
+        t = top0 + i * rp
+        bk_crop_icon(d, ic, 1.0, t + 6.5, 11.0)
+        lx = x0
+        for j, s in enumerate(labs):
+            d.lab(s, lx, t + 4.0, 8.5 if j == 0 else 7.5, BK["ink"], j == 0)
+            lx += bk_w(s, 8.5 if j == 0 else 7.5, j == 0) + 4.0
+        for j, (yk, cc) in enumerate((("normal", C["green_light"]), ("dry5", C["green_deep"]))):
+            v = HA[k][yk]
+            by = t + 6.5 + j * 7.5
+            d.rect(x0, by, X(v["lo"]) - x0, 6.0, fill=cc)
+            if X(v["hi"]) - X(v["lo"]) > 0.3:
+                d.rect(X(v["lo"]), by, X(v["hi"]) - X(v["lo"]), 6.0, stroke=cc, lw=0.35)
+            d.lab(vt(v), X(v["hi"]) + 2.0, by + 4.4, 8.0, BK["ink"], True)
+            bars[(k, yk)] = (by, X(v["hi"]) + 2.0 + bk_w(vt(v), 8.0, True))
+    # bracket olive deficit (dry) vs cotton (dry), the ratio between them
+    rt = R.get("ratio_olive_deficit_vs_cotton_dry5")
+    if rt and ("olive_deficit", "dry5") in bars and ("cotton", "dry5") in bars:
+        rtxt = ("%.1f-%.1f x" % (rt["lo"], rt["hi"])) if "%.1f" % rt["lo"] != "%.1f" % rt["hi"] else "%.1f x" % rt["lo"]
+        y_a = bars[("olive_deficit", "dry5")][0] + 6.0
+        y_b = bars[("cotton", "dry5")][0] + 3.0
+        xb = max(e for (k, yk), (by, e) in bars.items() if k != "olive_deficit") + 4.0
+        xb = min(xb, W - 1.5 - max(text_w(rtxt, 24, True), bk_w("as much land, same storage", 7.5)) - 3.5)
+        d.pg.line([(xb - 2.0, d.y(y_a)), (xb, d.y(y_a)), (xb, d.y(y_b)), (xb - 2.0, d.y(y_b))], C["accent"], 0.5)
+        ym = (y_a + y_b) / 2.0
+        d.lab(rtxt, xb + 3.0, ym + 3.0, 24, BK["accent"], True)
+        d.lab("as much land, same storage", xb + 3.0, ym + 7.5, 7.5, BK["ink"])
+    # farms we feed: dashed accent line, broken where it would cross a label
+    xf = X(R["farms_fed_ha"])
+    d.lab("farms we feed", xf + 1.2, 13.0, 7.5, BK["accent"], True)
+    y_end = top0 + len(rows) * rp - 2.0
+    cuts = []
+    for lb in d.labels:
+        wd = bk_w(lb["text"], lb["size"], lb["bold"])
+        lx0 = lb["x"] - (wd if lb["anchor"] == "R" else 0)
+        if lx0 - 0.8 < xf < lx0 + wd + 0.8 and lb["y"] > 13.5:
+            cuts.append((lb["y"] - lb["size"] * 0.3528 * 0.8, lb["y"] + 1.0))
+    yy = 10.0
+    for c0, c1 in sorted(cuts) + [(y_end, y_end)]:
+        if c0 > yy:
+            d.pg.line([(xf, d.y(yy)), (xf, d.y(c0))], C["accent"], 0.5, (1.5, 1.0))
+        yy = max(yy, c1)
+    return d
+
+
+def booklet_export(L):
+    """the booklet frames of this script (booklet_slots.json keys Bergama_agriculture_alternatives/...), blocks.json
+    and booklet/results.json (hectares per crop). Returns a log line."""
+    bk = BkBlocks(OUT_DIR, "AgriCulture", VERSION)
+    notes = []
+    W, H = bk_frame(BK_FOLDER + "/c7_hero", 260.0, 176.0)
+    d = bk_ladder(W, H)
+    write_pdf([d.pg], bk.path("c7_hero.pdf"))
+    bk.drawing("c7_hero", "c7_hero.pdf", d.labels, "Plants by days under water, streambed to field · schematic "
+               "{src:rws_ecotopes_2023}", None,
+               [{"kind": "fill", "colour": C["water"], "label": "water"}, {"kind": "fill", "colour": "89986A", "label": "trees today"},
+                {"kind": "fill", "colour": C["grass"], "label": "grass today"}, {"kind": "fill", "colour": C["field"], "label": "fields today"}])
+    notes += ["c7_hero " + n for n in d.check()]
+    R = bk_ha(L)
+    W, H = bk_frame(BK_FOLDER + "/c8_b", 194.0, 176.0)
+    d = bk_cubic(W, H, L, R)
+    write_pdf([d.pg], bk.path("c8_b.pdf"))
+    bk.drawing("c8_b", "c8_b.pdf", d.labels, "Hectares one storage irrigates, by crop", None,
+               [{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
+                {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
+                {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
+    notes += ["c8_b " + n for n in d.check()]
+    bk.save()
+    R.update(script="AgriCulture", version=VERSION)
+    with open(bk.path("results.json"), "w", encoding="utf-8") as f:
+        json.dump(R, f, ensure_ascii=False, indent=1)
+    return "booklet: c7_hero, c8_b, results.json" + ("".join("\nbooklet " + n for n in notes) if notes else "")
+
 # ------------------------------------------------------------------ build and run
 def build(path):
     L, src = live()
@@ -648,7 +1067,11 @@ def main():
         src = build(path)
     except PermissionError:
         return "The PDF is open in another program. Close it and press again: " + path
-    return "%s  %s\nfigures: %s\nagriculture alternatives %s, %.1f s" % (OUT_PDF, time.strftime("%H:%M:%S"), src, VERSION, time.time() - t0)
+    try:                                           # v1.3: the A3 booklet frames; an error here never breaks the sheet
+        bk = booklet_export(live()[0])
+    except Exception as ex:
+        bk = "booklet ERROR (sheet saved): %s: %s" % (type(ex).__name__, ex)
+    return "%s  %s\nfigures: %s\nagriculture alternatives %s, %.1f s\n%s" % (OUT_PDF, time.strftime("%H:%M:%S"), src, VERSION, time.time() - t0, bk)
 
 def chain_fire(v, key):
     """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
