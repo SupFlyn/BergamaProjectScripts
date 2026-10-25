@@ -43,6 +43,7 @@ PT = 25.4 / 72.0                             # mm per point
 K = 72.0 / 25.4                              # points per mm
 
 # ---- TYPE (pt; size follows design importance) ----
+LABEL_MIN = 7.0                                  # Aras 18:37: labels at A3 never under 7 pt
 T = dict(title=40, part=24, figure=24, sub=14, statement=13, body=9.5, caption=7.5, label=7.5, kicker=8, pageno=14)
 LEAD = dict(title=16.0, part=10.0, statement=6.0, sub=6.0, body=4.0, caption=3.2, label=3.2)   # mm
 MIN_BODY, MIN_CAPTION = 9.0, 7.0
@@ -458,6 +459,11 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
     cap_h = 5.0
     dh = h - cap_h
     path = os.path.join(sdir, blk.get("pdf", ""))
+    if not os.path.isfile(path):                    # sheets in a subfolder (the board's selinus_board_pdf)
+        for root, _, names in os.walk(sdir):
+            if os.path.basename(path) in names:
+                path = os.path.join(root, os.path.basename(path))
+                break
     if not os.path.isfile(path):
         placeholder(pg, typo, (x, y, w, dh), "missing sheet " + blk.get("pdf", "?"))
         return
@@ -545,25 +551,33 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
             typo.line(pg, src.sub(u["lines"][0]), ox, oy, size, u["col"], u["bold"], "L", angle=u["angle"])
             continue
         lines = [src.sub(t) for t in u["lines"]]
-        wd = max(typo.width(t, size, u["bold"]) for t in lines)
-        hgt = size * PT * 0.95 + lead * (len(lines) - 1)
         bx0, by0 = T_(u["bb"].x0, u["bb"].y0)
         bx1, by1 = T_(u["bb"].x1, u["bb"].y1)
         ax = {"L": bx0, "C": (bx0 + bx1) / 2, "R": bx1}[u["align"]]
         cy = (by0 + by1) / 2
         ok = None
         sym = len(lines) == 1 and len(lines[0]) <= 3        # a number or letter on a symbol: stays on it
-        for dx, dy in ((0, 0),) if sym else ((0, 0), (0, -hgt * 0.5), (0, hgt * 0.5), (0, -hgt - 0.6), (0, hgt + 0.6),
-                                              (wd * 0.6, 0), (-wd * 0.6, 0), (0, -2 * hgt - 1.2), (0, 2 * hgt + 1.2)):
-            left = ax + dx - {"L": 0.0, "C": wd / 2, "R": wd}[u["align"]]
-            top = cy + dy - hgt / 2
-            box = (left - 0.3, top - 0.3, left + wd + 0.3, top + hgt + 0.3)
-            if box[0] < fx0 or box[2] > fx1 or box[1] < fy0 or box[3] > fy1:
-                continue
-            if not sym and any(hits(box, o) for o in placed):
-                continue
-            ok = (left, top, box)
-            break
+        for size in ((size, LABEL_MIN) if size > LABEL_MIN else (size,)):   # no room: once more at the 7 pt minimum
+            lead = size * PT * 1.15
+            wd = max(typo.width(t, size, u["bold"]) for t in lines)
+            hgt = size * PT * 0.95 + lead * (len(lines) - 1)
+            for dx, dy in ((0, 0),) if sym else ((0, 0), (0, -hgt * 0.5), (0, hgt * 0.5), (0, -hgt - 0.6),
+                                                  (0, hgt + 0.6), (wd * 0.6, 0), (-wd * 0.6, 0), (0, -2 * hgt - 1.2),
+                                                  (0, 2 * hgt + 1.2)):
+                left = ax + dx - {"L": 0.0, "C": wd / 2, "R": wd}[u["align"]]
+                top = cy + dy - hgt / 2
+                if sym:                                  # a symbol's number at the frame edge: pulled inside
+                    left = min(max(left, fx0 + 0.3), fx1 - wd - 0.3)
+                    top = min(max(top, fy0 + 0.3), fy1 - hgt - 0.3)
+                box = (left - 0.3, top - 0.3, left + wd + 0.3, top + hgt + 0.3)
+                if box[0] < fx0 - 0.01 or box[2] > fx1 + 0.01 or box[1] < fy0 - 0.01 or box[3] > fy1 + 0.01:
+                    continue
+                if not sym and any(hits(box, o) for o in placed):
+                    continue
+                ok = (left, top, box)
+                break
+            if ok:
+                break
         if not ok:
             dropped.append(" / ".join(lines)); continue
         left, top, box = ok

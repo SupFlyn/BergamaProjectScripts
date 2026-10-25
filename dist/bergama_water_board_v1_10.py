@@ -1508,6 +1508,7 @@ def draw_cut(pg, x0, y_top, cut, wmax, fs, opt, kx):
 
 SECT_K = 4.0                         # v1.10: every cut at 1:250 across and up (4 mm per m), one shared scale ...
 SECT_DENS = (250.0, 300.0, 400.0, 500.0)   # ... or the first of these at which the six fit the panel at 100 %
+CUTS_DEN = [None]                    # the scale the six cuts end at on the sheet (read by results.json)
 S4_DENS = (250.0, 300.0, 400.0)      # the S4 season rows: the first scale at which all four fit their cells
 
 
@@ -2856,6 +2857,7 @@ def build_board(opt, storage, parts, pal_line, log):
     if s < 0.999:
         log.append(u"NOTE: the stream-height cuts are printed at {:.0f} % of 1:{:,.0f}".format(100 * s, den))
     crop_add("wb_cuts", bb, den / s, drop=[r"method \[\d+\]"])
+    CUTS_DEN[0] = den / s
     # row 2: concept sections | planting bands on the S4 ground
     xs = X0 + 700.0
     b = frame(pg, (X0, Y["r2"][0], xs, Y["r2"][1]), u"THE IDEA IN SECTION",
@@ -3116,7 +3118,7 @@ def bk_results():
                 info["over_%s_bank_q500_m" % side] = round(dep[4] - g[tp], 2)
                 info["%s_bank_top_m" % side] = round(g[tp], 2)
         res["cuts"][key] = info
-    res["cuts_scale"] = u"1:{:,.0f} across and up".format(1000.0 / SECT_K)
+    res["cuts_scale"] = u"1:{:,.0f} across and up".format(CUTS_DEN[0] or 1000.0 / SECT_K)
     mix = u"orchard olive + cropland cotton"
     try:
         v_seal = float(WB["today_strip_storage"][mix]["storage_m3"])
