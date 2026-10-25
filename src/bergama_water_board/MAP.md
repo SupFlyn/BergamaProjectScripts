@@ -96,8 +96,8 @@
 | bk_chain | parts/booklet.py | 452 |
 | bk_cleaning | parts/booklet.py | 480 |
 | bk_season | parts/booklet.py | 533 |
-| bk_farms | parts/booklet.py | 570 |
-| booklet_export | parts/booklet.py | 636 |
+| bk_farms | parts/booklet.py | 571 |
+| booklet_export | parts/booklet.py | 637 |
 | out_folder | code.py | 2048 |
 | search_dirs | ../common/search_dirs.py | - |
 | build_all | code.py | 2059 |

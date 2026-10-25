@@ -2533,8 +2533,8 @@ class BkBlocks(object):
 # booklet/blocks.json (the assembler sets them as live text). Figures come from this script's own tables and cuts.
 # Booklet drawings are option A only. Words: the plan's labels; the site's watercourse is the Selinos "stream".
 BK_SLOTS = {"b1_hero": (260.0, 176.0), "b1_side": (128.0, 176.0), "b2_hero": (260.0, 176.0), "b4_side": (128.0, 176.0),
-            "b5_strip": (392.0, 56.0), "b5_hero": (260.0, 176.0), "c6_g1": (95.0, 116.0), "c6_g2": (95.0, 116.0),
-            "c6_g3": (95.0, 116.0), "c6_g4": (95.0, 116.0), "c8_a": (194.0, 176.0)}
+            "b5_strip": (392.0, 56.0), "b5_hero": (260.0, 176.0), "c6_s1": (293.0, 56.0), "c6_s2": (293.0, 56.0),
+            "c6_s3": (293.0, 56.0), "c6_s4": (293.0, 56.0), "c8_a": (194.0, 176.0)}
 BK_PT, BK_KEY = 7.5, 9.5             # label sizes, pt (key labels up to 9.5)
 BK_INK, BK_INK2, BK_ACC = "4A3F35", "6B645B", "8B3A3F"
 _DET_PROF = []                       # the S4 ground profile draw_detail used (survey re-cut or embedded)
@@ -3056,7 +3056,7 @@ def bk_cleaning(pg, res):
 
 
 # ---------------------------------------------------------------- C6: the S4 cut in each season
-BK_SEASONS = [("c6_g1", "winter"), ("c6_g2", "spring"), ("c6_g3", "summer"), ("c6_g4", "autumn")]
+BK_SEASONS = [("c6_s1", "winter"), ("c6_s2", "spring"), ("c6_s3", "summer"), ("c6_s4", "autumn")]
 BK_DROP_LAYERS = ("title", "levels", "callouts", "dimensions", "band", "survey", "text")
 
 
@@ -3068,30 +3068,31 @@ def bk_season(pg, res, key):
     prof = _DET_PROF[0] if _DET_PROF else (E["PROFILE_S0"], E["PROFILE_DS"], E["PROFILE_Z"])
     d = E["SECTIONS"][0]                                     # the south-west bank, the bed and the strip
     keep = (E["SCALE"], E["K"], dict(E["SEA"]))
+    lay = {"poly": 6, "line": 5, "circle": 7}
+    x0, y0, x1, y1 = 40.0, 2.0, W - 2.0, H - 2.0             # the cut's box (mm, y down); names at the left
+    kk = 1.0                                                 # first pass at 1 mm per m, then as large as it fits
     try:
-        E["K"] = (W - 6.0) / abs(d["s_to"] - d["s_from"])
-        E["SCALE"] = 1000.0 / E["K"]
         E["SEA"].clear()
         E["SEA"].update(E["SEASON_LOOK"][key])
-        tmp = E["Page"]("bk", key)
-        S = E["Sec"](d, prof)
-        E["draw_section"](tmp, S, 0.0, 0.0, [], sea)
+        for _ in range(2):
+            E["K"] = kk
+            E["SCALE"] = 1000.0 / kk
+            tmp = E["Page"]("bk", key)
+            E["draw_section"](tmp, E["Sec"](d, prof), 0.0, 0.0, [], sea)
+            items = from_engine([it for it in tmp.items if it[0] in lay and it[lay[it[0]]] not in BK_DROP_LAYERS])
+            bb = items_bbox(items)
+            kk *= min((x1 - x0) / (bb[2] - bb[0]), (y1 - y0) / (bb[3] - bb[1])) * 0.995
     finally:
         E["SCALE"], E["K"] = keep[0], keep[1]
         E["SEA"].clear()
         E["SEA"].update(keep[2])
-    lay = {"poly": 6, "line": 5, "circle": 7}
-    items = [it for it in tmp.items if it[0] in lay and it[lay[it[0]]] not in BK_DROP_LAYERS]
-    items = from_engine(items)
-    bb = items_bbox(items)
-    top, bot = 20.0, H - 3.0
-    s_ = min(1.0, (W - 6.0) / (bb[2] - bb[0]), (bot - top) / (bb[3] - bb[1]))
-    dx = 3.0 - s_ * bb[0] + ((W - 6.0) - s_ * (bb[2] - bb[0])) / 2.0
-    dy = (H - bot) - s_ * bb[1] + ((bot - top) - s_ * (bb[3] - bb[1])) * 0.35
+    s_ = min(1.0, (x1 - x0) / (bb[2] - bb[0]), (y1 - y0) / (bb[3] - bb[1]))
+    dx = x0 - s_ * bb[0] + ((x1 - x0) - s_ * (bb[2] - bb[0])) / 2.0
+    dy = (H - y1) - s_ * bb[1] + ((y1 - y0) - s_ * (bb[3] - bb[1])) / 2.0
     pg.items += xform(items, s_, dx, dy)
-    pg.rc(0.0, 0.0, W, 1.6, fill=BAND_BLUE[i])
-    pg.lab(u"{} · {}".format(sea["name"], sea["months"].replace(u" ", u"")), 2.0, 8.5, size=BK_KEY, bold=True)
-    pg.lab(u"S4 cut", 2.0, 13.5, colour=BK_INK2)
+    pg.rc(0.0, 0.0, 34.0, 1.6, fill=BAND_BLUE[i])
+    pg.lab(u"{} · {}".format(sea["name"], sea["months"].replace(u" ", u"")), 0.0, 8.5, size=BK_KEY, bold=True)
+    pg.lab(u"S4 cut", 0.0, 13.5, colour=BK_INK2)
     res.setdefault("seasons", {})[key] = {"water_m_above_bed": [round(w[0] - E["THALWEG"][1], 2) for w in sea["water"]],
                                           "strip_held": sea["strip_held"]}
 
