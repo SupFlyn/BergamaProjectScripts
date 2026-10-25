@@ -2,7 +2,7 @@
 # ================================================================ v20: the A3 booklet assets (SCRIPT_STANDARD §8)
 # Four drawings for the booklet (booklet/ASSET_SPEC.md), drawn natively at their frame's size, option A only, with
 # no text in the PDFs: every word is a label in booklet/blocks.json (set as live text by the assembler).
-#   c1_s1 / c1_s2  the whole site (site_alan) in two halves split at the Red Hall (BK_OVERLAP_M overlap), turned so
+#   c1_s1 / c1_s2  the whole site (site_alan) in two equal halves (BK_OVERLAP_M overlap), centred, turned so
 #                  the stream runs left to right, at 1:5,000 if it fits the frame, else the largest standard scale
 #   c3_a / c3_b    north-up 1:1,000 windows (frame size in m): the upstream entry's cleaning and holding chain, and
 #                  K5 with Demeter's Garden (1:1,250 when the window cannot hold the garden and the bridge)
@@ -14,7 +14,7 @@ BK_FRAMES = {"c1_s1": (392.0, 116.0), "c1_s2": (392.0, 116.0), "c3_a": (194.0, 1
 BK_STD_SCALES = (1000.0, 1250.0, 2000.0, 2500.0, 5000.0, 10000.0, 20000.0)
 BK_C1_SCALE = 5000.0                 # wanted scale of the whole-site halves
 BK_WIN_SCALE = 1000.0                # the 1:1,000 windows
-BK_OVERLAP_M = 50.0                  # the two halves share this much at the Red Hall
+BK_OVERLAP_M = 50.0                  # the two halves share this much at the middle of the site
 BK_LBL, BK_KEY = 7.5, 8.5            # pt: labels, key labels (zone names)
 BK_GAP = 0.4                         # mm kept between label boxes
 BK_INK, BK_INK2 = "4A3F35", "6B645B"  # booklet ink and caption ink (design-language.md)
@@ -362,9 +362,9 @@ def booklet_export(folder, BK):
     V0 = View(BK["areas"], 0.0, 1.0, frame=BK["site"])      # the sheet's whole-site view, 1 m = 1 unit
     site_W, site_H = V0.W, V0.H
     places = BK["places"]
-    u_rh = V0.T(places[u"RED HALL"])[0] if u"RED HALL" in places else site_W / 2.0
-    halves = {"c1_s1": (0.0, min(site_W, u_rh + BK_OVERLAP_M / 2.0)),
-              "c1_s2": (max(0.0, u_rh - BK_OVERLAP_M / 2.0), site_W)}
+    u_mid = site_W / 2.0                                 # the split: two strips of equal length
+    halves = {"c1_s1": (0.0, min(site_W, u_mid + BK_OVERLAP_M / 2.0)),
+              "c1_s2": (max(0.0, u_mid - BK_OVERLAP_M / 2.0), site_W)}
     Wc, Hc = bk_frame("bergama_masterplan/c1_s1", *BK_FRAMES["c1_s1"])
     scale1 = bk_scale(max(b - a for a, b in halves.values()), site_H, Wc, Hc, BK_C1_SCALE)
     res = {"script": "bergama_masterplan_v20.py", "version": VERSION, "option": "A", "frames": {}}
@@ -384,7 +384,7 @@ def booklet_export(folder, BK):
         k = 1000.0 / scale1
         u0, u1 = halves[bid]
         dw, dh = (u1 - u0) * k, site_H * k
-        x0 = W - dw if bid == "c1_s1" else 0.0                # s1 ends at the right edge, s2 starts at the left
+        x0 = (W - dw) / 2.0                                   # each strip centred in its frame
         y0 = (H - dh) / 2.0
 
         def F(p, u0=u0, x0=x0, y0=y0, k=k):
@@ -401,13 +401,11 @@ def booklet_export(folder, BK):
         ins = lambda x, y: x0 <= x <= x0 + dw and y0 <= y <= y0 + dh
         bk_stops(fr, BK, None, 1.9, ins)
         ang = math.atan2(V0.uv((0.0, 1.0))[1] - V0.uv((0.0, 0.0))[1], V0.uv((0.0, 1.0))[0] - V0.uv((0.0, 0.0))[0])
-        if bid == "c1_s1":
-            bk_north(fr, x0 - 8.0, y0 + dh - 9.0, ang)
-            bk_scale_bar(fr, x0 - 6.0 - 250.0 * k, y0 + 6.0, scale1, (0.0, 50.0, 100.0, 250.0))
-        else:
-            bk_north(fr, x0 + dw + (W - x0 - dw) / 2.0, y0 + dh - 9.0, ang)
-            bk_scale_bar(fr, W - 9.0 - 100.0 * k, y0 + 6.0, scale1, (0.0, 50.0, 100.0))
-        bk_c1_words(fr, BK, bid, wins, (x0, H - y0 - dh, x0 + dw, H - y0))
+        bk_north(fr, 12.0, y0 + 20.0, ang)                   # same corner on both strips: bottom left
+        bk_scale_bar(fr, 5.0, y0 + 6.0, scale1, (0.0, 50.0, 100.0, 200.0))
+        xm = x0 + (u_mid - u0) * k                           # where the other strip takes over (page mm)
+        own = (lambda x: x < xm) if bid == "c1_s1" else (lambda x: x >= xm)
+        bk_c1_words(fr, BK, bid, wins, (x0, H - y0 - dh, x0 + dw, H - y0), own)
         name = bid + ".pdf"
         write_pdf(fr.pg, bk.path(name), u"Bergama masterplan booklet " + bid)
         bk.drawing(bid, name, fr.labels, caption=u"Whole site, " + (u"upstream" if bid == "c1_s1" else u"downstream")
@@ -552,65 +550,64 @@ def bk_clip_ring(R, cb):
     return P
 
 
-def bk_c1_words(fr, BK, bid, wins, cb):
-    """The words of a whole-site half (plan C1): places, bridges, the commons, the spine, a walk length, the
-    window of page C3, 'continues'. Each sits next to its place, with a leader where it cannot. cb = the drawn
+def bk_c1_words(fr, BK, bid, wins, cb, own):
+    """The words of a whole-site half (plan C1): places, bridges, the commons, the gardens, the spine, the walk
+    lengths, the windows of page C3, 'continues'. Each word goes on the half whose side of the split holds its
+    place (own(x): page x on this half's side), next to it, with a leader where it cannot sit on it. cb = the drawn
     rectangle (top-left mm)."""
     places, ref = BK["places"], BK["CL"]["W"]["ref"]
 
     def at(p):
         x, y = fr.tl(p)
-        return (x, y) if cb[0] <= x <= cb[2] and cb[1] <= y <= cb[3] else None
+        return (x, y) if cb[0] <= x <= cb[2] and cb[1] <= y <= cb[3] and own(x) else None
 
-    def one(text, p, bold=True, colour=BK_INK, shown=None, inside=None, fill=None):
+    def one(text, p, bold=True, colour=BK_INK, shown=None):
         a = at(p) if p is not None else None
-        if a is None:
-            fr.missing.append(text + u" (not in this half)")
-            return None
-        return fr.place([(text, BK_LBL, bold, shown)], a, colour, inside=inside, min_d=1.5, fill_colour=fill)
-    pin = [p for p in ref if at(p)]
-    if bid == "c1_s1":
-        one(u"UPSTREAM ENTRY", pin[0] if pin else None)
-        for nm in (u"K4", u"K3"):
-            one(nm, places.get(nm))
-    else:
-        one(u"DOWNSTREAM END", pin[-1] if pin else None)
-        one(u"K5 ÜÇ KEMER", places.get(u"K5"))
-        one(u"K6", places.get(u"K6"))
-    one(u"RED HALL", places.get(u"RED HALL"))
-    if bid == "c1_s1" and BK["covered"]:
+        if a is not None:
+            fr.place([(text, BK_LBL, bold, shown)], a, colour, min_d=1.5)
+
+    def area(text, loops, colour, fill=None):
+        """A name on its piece: the half holding the centre of its largest ring writes it."""
+        if not loops:
+            return
+        c = inner_pt(max(loops, key=lambda r_: abs(area2(r_))))
+        if at(c) is None:
+            return
+        R_ = bk_best(fr, loops, cb)
+        if R_:
+            fr.place([(text, BK_LBL, True, None)], inner_pt(R_), colour, inside=R_, min_d=1.5, fill_colour=fill)
+    pin = [p for p in ref if bk_in(fr, p, cb)]
+    one(u"UPSTREAM ENTRY", pin[0] if pin else None)
+    one(u"DOWNSTREAM END", pin[-1] if pin else None)
+    for nm, lab in ((u"K4", u"K4"), (u"K3", u"K3"), (u"RED HALL", u"RED HALL"), (u"K5", u"K5 ÜÇ KEMER"),
+                    (u"K6", u"K6")):
+        one(lab, places.get(nm))
+    if BK["covered"]:
         s0, s1 = BK["covered"][0]
         q, _ = at_len(ref, arclen(ref), (s0 + s1) / 2.0)
         one(u"COVERED REACH", q)
-    key = "calisma_alan[0]" if bid == "c1_s1" else "calisma_alan[1]"
-    for pc in BK["pzs"].get(key, []):
-        if pc["kind"] == "hub":
-            R_ = bk_best(fr, pc["loops"], cb)
-            if R_:
-                fr.place([(bk_word(pc["name"]), BK_LBL, True, None)], inner_pt(R_), BK_INK, inside=R_, min_d=1.5,
-                         fill_colour=piece_tone(pc)[0])
-            break
-    if bid == "c1_s2":
-        for code, nm in (("DG", u"DEMETER'S GARDEN"), ("WP", u"STREAMSIDE PLANTING")):
-            zs = [z for z in BK["D"].zones if z["code"] == code]
-            R_ = bk_best(fr, [L_ for z in zs for L_ in bk_zone_loops(BK, z)], cb)
-            if R_:
-                fr.place([(nm, BK_LBL, True, None)], inner_pt(R_), zone_tones(zs[0])[2], inside=R_, min_d=1.5)
-    else:
-        edge = [s_ for s_ in BK["CL"]["spine"] if s_["kind"] == "edge" and any(at(p) for p in s_["F"])]
-        if edge:
-            s_ = max(edge, key=lambda e: arclen(e["F"])[-1])
-            q, _ = at_len(s_["F"], arclen(s_["F"]), arclen(s_["F"])[-1] / 2.0)
-            one(u"STREAMSIDE SPINE", q, colour=MP["centre"][2])
-    bank = "NE" if bid == "c1_s1" else "SW"
-    runs = [x for x in BK["CL"]["W"]["runs"] if x["bank"] == bank and x["cls"] == "bank"
-            and sum(1 for p in x["F"] if at(p)) > len(x["F"]) / 2]
-    if runs:
-        x = max(runs, key=lambda r_: r_["m"])
-        q, _ = at_len(x["F"], arclen(x["F"]), arclen(x["F"])[-1] / 2.0)
-        m_ = BK["CL"]["W"]["stats"].get(bank + " bank", 0.0)
-        one(bank + u" bank walk " + BK_WALK_VAL.format(bank) + u" m", q, bold=False,
-            shown=u"{} bank walk {:,.0f} m".format(bank, m_), colour=COL["walk"])
+    for key in ("calisma_alan[0]", "calisma_alan[1]"):
+        for pc in BK["pzs"].get(key, []):
+            if pc["kind"] == "hub":
+                area(bk_word(pc["name"]), pc["loops"], BK_INK, piece_tone(pc)[0])
+                break
+    for code, nm in (("DG", u"DEMETER'S GARDEN"), ("WP", u"STREAMSIDE PLANTING")):
+        zs = [z for z in BK["D"].zones if z["code"] == code]
+        if zs:
+            area(nm, [L_ for z in zs for L_ in bk_zone_loops(BK, z)], zone_tones(zs[0])[2])
+    edge = [s_ for s_ in BK["CL"]["spine"] if s_["kind"] == "edge"]
+    if edge:
+        s_ = max(edge, key=lambda e: arclen(e["F"])[-1])
+        q, _ = at_len(s_["F"], arclen(s_["F"]), arclen(s_["F"])[-1] / 2.0)
+        one(u"STREAMSIDE SPINE", q, colour=MP["centre"][2])
+    for bank in ("NE", "SW"):
+        runs = [x for x in BK["CL"]["W"]["runs"] if x["bank"] == bank and x["cls"] == "bank"]
+        if runs:
+            x = max(runs, key=lambda r_: r_["m"])
+            q, _ = at_len(x["F"], arclen(x["F"]), arclen(x["F"])[-1] / 2.0)
+            m_ = BK["CL"]["W"]["stats"].get(bank + " bank", 0.0)
+            one(bank + u" bank walk " + BK_WALK_VAL.format(bank) + u" m", q, bold=False,
+                shown=u"{} bank walk {:,.0f} m".format(bank, m_), colour=COL["walk"])
     for wid, w_ in sorted(wins.items()):
         if w_.get("on", (None,))[0] != bid:
             continue
@@ -621,6 +618,11 @@ def bk_c1_words(fr, BK, bid, wins, cb):
     yc = (cb[1] + cb[3]) / 2.0
     fr.place([(u"continues", BK_LBL, False, None)], (cb[2] if bid == "c1_s1" else cb[0], yc), BK_INK2, min_d=1.0,
              leader=False)
+
+
+def bk_in(fr, p, cb):
+    x, y = fr.tl(p)
+    return cb[0] <= x <= cb[2] and cb[1] <= y <= cb[3]
 
 
 def bk_c3_words(fr, BK, bid, RB):

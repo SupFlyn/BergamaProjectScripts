@@ -64,7 +64,7 @@ DATA RULES
 
 NEW IN v20 (Aras 25 Oct 18:37, A3 booklet; SCRIPT_STANDARD §8): the sheet and masterplan_results.json are unchanged.
   The press also writes the booklet's drawings into output/bergama_masterplan/booklet/: c1_s1 and c1_s2 (the whole
-  site in two halves split at the Red Hall, turned so the stream runs left to right, 1:5,000), c3_a and c3_b (north-up
+  site in two equal halves with 50 m overlap, centred, turned so the stream runs left to right, 1:5,000), c3_a and c3_b (north-up
   1:1,000 windows on the upstream entry and on K5 with Demeter's Garden), each a text-free vector PDF drawn at its
   booklet frame's size, plus blocks.json (every word as a label) and results.json (scales, windows, places). Option
   A only; the streamside spine in E0B67D; the area with no programme yet is plain ground. A booklet error is logged
