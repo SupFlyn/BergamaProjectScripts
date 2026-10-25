@@ -953,7 +953,7 @@ FRAME_FROM_LAYER = [False]                            # v36: the frame came from
 TITLE = str(inp("title", "THE SELINUS SEAM"))
 SUBTITLE = str(inp("subtitle", "Land use and the grain of Bergama along the Selinus: what stands, what opens, "
                                "and where the water meets the town"))
-CREDIT = str(inp("credit", "Group 6 · Nil Cetin · Aras Ozkaymakci · Begum Arslan"))
+CREDIT = str(inp("credit", u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"))   # 25 Oct: spelt as on the other sheets
 CH_DEPTH = to_float(inp("channel_depth", None), None, "channel_depth")   # None = from the surveyed bed levels
 if CH_DEPTH is not None and not (0.0 < CH_DEPTH < 30.0):
     LOG.append("WARNING: channel_depth {} m is outside 0-30 m and was ignored.".format(CH_DEPTH))

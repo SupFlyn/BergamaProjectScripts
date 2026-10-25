@@ -4,6 +4,7 @@
 #   $BERGAMA_SURVEY pickle of Bergama_Altlik.3dm       (default /home/claude/survey.pkl)
 #   $STEPS          which scripts, in this order        (default: all 8)
 #   $SEED_CACHE     an earlier run folder: its cached/ is copied in first (the site board takes ~40 min cold)
+export PYTHONHASHSEED=0   # same set/dict order in every run
 export BERGAMA_SURVEY=${BERGAMA_SURVEY:-/home/claude/survey.pkl}
 T=$(dirname $(realpath $0)); D=$(realpath $1); H=$(realpath -m $2); DATA=${BERGAMA_DATA:-/home/claude/kit/Data}
 STEPS=${STEPS:-"zone_base masterplan water_balance board city_link agriculture_alternatives water_board proposal_sections"}

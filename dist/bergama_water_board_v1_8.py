@@ -2339,7 +2339,8 @@ def load_palette(dirs, log):
                     COL["river"], COL["river_mid"], COL["river_dark"] = riv["light"], riv["mid"], riv["dark"]
                 for k in ("aras_alan", "begum_alan", "nil_alan"):
                     COL[k] = m.STUDY_AREA.get(k, {}).get("line", COL[k])
-                return u"palette {} (version {})".format(p, getattr(m, "VERSION", "?"))
+                log.append(u"Palette read from " + p)
+                return u"palette {} (version {})".format(os.path.basename(p), getattr(m, "VERSION", "?"))   # 25 Oct: no local path on the sheet
             except Exception as ex:
                 log.append(u"WARNING: palette file {} not read ({}); embedded v1.4 colours used".format(p, ex))
     return u"embedded palette v1.4 colours"
