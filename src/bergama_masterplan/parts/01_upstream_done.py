@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v19 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v20 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -36,7 +36,7 @@ HOW TO USE
      the press also bakes the six sheets into Rhino under layer MP11, beside everything else in the file and beside
      each other, never on top of each other or of the survey (a press replaces the last bake).
   INPUTS (any name case; text, number or panel)
-    run          Button (v19; any input name works; a plain Button)
+    run          Button (v20; any input name works; a plain Button)
     rhino_bake   Boolean Toggle: bake the sheets into Rhino as well (default False)
     opacity      opacity of the lower-opacity pieces, 0-1 or 1-100 % (default OPACITY = 0.5, Aras's example value)
     scale        print scale 1:scale of all three alternatives (default 1000 since v16: studio brief of 26 Oct)
@@ -62,6 +62,13 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
+NEW IN v20 (Aras 25 Oct 18:37, A3 booklet; SCRIPT_STANDARD §8): the sheet and masterplan_results.json are unchanged.
+  The press also writes the booklet's drawings into output/bergama_masterplan/booklet/: c1_s1 and c1_s2 (the whole
+  site in two halves split at the Red Hall, turned so the stream runs left to right, 1:5,000), c3_a and c3_b (north-up
+  1:1,000 windows on the upstream entry and on K5 with Demeter's Garden), each a text-free vector PDF drawn at its
+  booklet frame's size, plus blocks.json (every word as a label) and results.json (scales, windows, places). Option
+  A only; the streamside spine in E0B67D; the area with no programme yet is plain ground. A booklet error is logged
+  and never stops the sheet.
 NEW IN v19 (Aras 25 Oct 16:41-16:42: "get rid of alternative 3. And do the changes to alternative one"; "that script
   gonna be producing just a single alternative"; "with the curvy selection ... it should be A"). ONE sheet per press:
   the masterplan, option A (Aras 16:43: option A project-wide, B dropped; the option input is ignored). Alternatives 2 and 3 are gone (draw_masterplan and the
@@ -182,8 +189,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v19 (2026-10-25)"
-SHORT = "v19"
+VERSION = "bergama_masterplan v20 (2026-10-25)"
+SHORT = "v20"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -191,10 +198,11 @@ RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: i
 BOARD_SCALE = 1000.0                  # v16: studio brief 26 Oct, "1/1000 scale master plan" (was 2000, v2.3's board scale)
 _SCALE = [BOARD_SCALE]               # v16: the scale of this press, for the scale bar in sheet_head
 _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the legend swatches
+_BK = {}                             # v20: what the booklet drawings reuse from the sheet (option A)
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v19_{}.pdf"     # v19: one sheet per option
+OUT_NAME = "Bergama_masterplan_v20_{}.pdf"     # v19: one sheet per option
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 

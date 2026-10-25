@@ -707,7 +707,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v19.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v20.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -947,6 +947,9 @@ def build_all(doc, warn):
             except Exception as ex:
                 pzs[key] = []
                 warn.append(u"option {}: the puzzle of {} failed ({}: {})".format(opt, place, type(ex).__name__, ex))
+        if opt == "A" and CL is not None:                # v20: what the booklet drawings reuse
+            _BK.clear()
+            _BK.update(areas=areas, site=site, survey=survey, D=D, CL=CL, pzs=pzs, alpha=alpha)
         for alt in (1,):                                 # v19: the one sheet
             name = OUT_NAME.format(opt, alt)
             t0 = time.time()
@@ -954,7 +957,7 @@ def build_all(doc, warn):
             try:
                 pg = make_board(opt, alt, [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale,
                                                      alpha, areas[spec[0]], CL) for spec in AREAS])
-                path = save(pg, folder, name, u"Bergama masterplan v19 option {} (opacity {:.2f}, "
+                path = save(pg, folder, name, u"Bergama masterplan v20 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
@@ -971,6 +974,14 @@ def build_all(doc, warn):
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))
+    if _BK:                                              # v20: the A3 booklet drawings; never breaks the sheet
+        try:
+            _BK["spec"] = city_link()[0]
+            booklet_export(folder, _BK)
+        except Exception as ex:
+            import traceback
+            lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
+            warn.append(traceback.format_exc()[-480:])
     return folder, files, lines, pages, scale
 
 
