@@ -41,6 +41,9 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v1.9 (25 Oct, A3 booklet, SCRIPT_STANDARD §8): after the board, one press also writes the booklet's drawings to
+  output/bergama_water_board/booklet/ (one text-free vector PDF per frame, drawn at the frame's size, its words in
+  blocks.json, the figures in results.json). The board is unchanged.
 NEW IN v1.7 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): the board is made for option A only; one press writes
   option A's boards (no B). Nothing else changed.
 NEW IN v1.6 (Aras 25 Oct 13:12: "v1.3 was fine about how it looks however it is too much text too little visual we want
@@ -91,8 +94,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v1.8 (2026-10-25)"
-SHORT = "v1.8"
+VERSION = "bergama_water_board v1.9 (2026-10-25)"
+SHORT = "v1.9"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -101,7 +104,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
 CUBE_SCALES = (1000.0, 1250.0, 1500.0, 2000.0, 2500.0)   # ... v1.6: or the first of these at which they fit
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v1_8_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v1_9_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -1079,6 +1082,7 @@ def draw_detail(log):
         log.append(u"S4 ground from the open file not read ({}); the embedded survey profile is used".format(ex))
     if prof is None:
         prof = (E["PROFILE_S0"], E["PROFILE_DS"], E["PROFILE_Z"])
+    _DET_PROF[:] = [prof]                   # v1.9: the booklet's S4 cuts use the same ground
     E["SEA"].clear()
     E["SEA"].update(E["SEASON_LOOK"]["summer"])
     sea = dict(E["SEASONS"][2])             # summer: full leaf, the strip running, people at the water's edge
@@ -2034,6 +2038,12 @@ def build_board(opt, storage, parts, pal_line, log):
     return pg
 
 
+#@include ../common/booklet_assets.py
+
+
+#@include parts/booklet.py
+
+
 # ---------------------------------------------------------------- run
 def out_folder(doc):
     # v1 24 Oct: all files under Downloads/Bergama/ (Aras rule); was next to the .3dm / .gh, else Documents
@@ -2095,6 +2105,11 @@ def main():
     except Exception as ex_:
         import traceback
         err = u"ERROR: {}: {}\n{}".format(type(ex_).__name__, ex_, traceback.format_exc())
+    if folder and not err:                          # v1.9: the A3 booklet's drawings; never breaks the sheets
+        try:
+            booklet_export(folder, log)
+        except Exception as ex_:
+            log.append(u"booklet not written: {}: {}".format(type(ex_).__name__, ex_))
     secs = time.time() - t0
     head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
     text = u"\n".join(head + log)
