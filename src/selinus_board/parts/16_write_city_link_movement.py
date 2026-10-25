@@ -464,7 +464,12 @@ def build_sheet(S, B, X, Y, U, rects):
     else:
         items.append(("12 Section placeholder", 94.8 * U,
                       lambda x, y: draw_section_placeholder(S, B, x, y, 94.8 * U, 14.0 * U, U, 1)))
-    items.append(("{:02d} Sources".format(12 + max(1, len(S.sections))), 94.8 * U,
+    n_ = 12 + max(1, len(S.sections))
+    if spine_section(S) is not None:                     # v40: the long section along the streamside spine
+        items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
+                      lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))
+        n_ += 1
+    items.append(("{:02d} Sources".format(n_), 94.8 * U,
                   lambda x, y: draw_footer(S, B, x, y, 94.8 * U, U, h=0.3)))
     B.begin("DRAWINGS · sheet title", "LU_DRAWINGS")
     B.text("SEPARATE DRAWINGS · grouped · framed with a cutting margin", X, Y + 2.2 * U, 0.9 * U, INK,

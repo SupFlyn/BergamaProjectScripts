@@ -1,8 +1,16 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v39)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v40)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v40 (2026-10-25, Aras's booklet review):
+  * The stream's tree cover (drawing 06): each bank's distance bands named beside their rows, the stream between the
+    banks with its covered reaches drawn on it and the bridges across it, a distance axis every 500 m, a drawn key.
+  * Sections: the words at the water (stream width and depth, bed level, bank edges) in one band right under the cut
+    ground, on short leaders; no caveat words on the drawing (they go to the log).
+  * New drawing "Section along the spine": the masterplan's streamside spine as one long developed section, cut by
+    the same section engine, at one scale for lengths and heights, the stops 1-8 marked above it.
 
 NEW IN v39 (2026-10-25, SCRIPT_STANDARD 8, booklet/ASSET_SPEC.md: the A3 booklet):
   * After the board's PDFs: output/selinus_board/booklet/ holds one text-free vector PDF per booklet frame of pages
@@ -688,7 +696,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v39 (2026-10-25)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v40 (2026-10-25)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -6132,179 +6140,186 @@ def build_sections(S):
         n_kept += 1
         name = "S{}".format(n_kept)
         S.sec_lines.append((x0, y0, x1, y1, name))
-        ux, uy = (x1 - x0) / L, (y1 - y0) / L
-        xs = [k * step for k in range(int(L / step) + 1)]
-        smp = []
-        for s in xs:
-            px, py = x0 + ux * s, y0 + uy * s
-            kind, ref = classify_point(S, px, py)
-            smp.append([s, kind, ref, S.z_at(px, py)])
-        # water intervals: the bed where the survey levels it; elsewhere the depth interpolated along the stream
-        # from the surveyed depths (bed_depth). v16.5: the water surface from water_level (approximate unless measured).
-        k = 0
-        wat = []
-        wsrcs = []
-        while k < len(smp):
-            if smp[k][1] != "water":
-                k += 1
-                continue
-            k0 = k
-            while k < len(smp) and smp[k][1] == "water":
-                k += 1
-            za = smp[max(0, k0 - 2)][3]
-            zb = smp[min(len(smp) - 1, k)][3]
-            bank = min(za, zb)
-            bed = min(r[3] for r in smp[k0:k])
-            src = "surveyed"
-            if bank - bed < 1.0:
-                sm = (smp[k0][0] + smp[k - 1][0]) / 2.0
-                dd_ = bed_depth(S, x0 + ux * sm, y0 + uy * sm)
-                if dd_ is None:
-                    src = "terrain"
-                else:
-                    bed, src = bank - dd_, ("input" if CH_DEPTH is not None else "interpolated")
-            for r in smp[k0:k]:
-                r.append(bed)
-            sm_ = (smp[k0][0] + smp[k - 1][0]) / 2.0
-            lvl, wsrc = water_level(S, x0 + ux * sm_, y0 + uy * sm_, bed, bank)
-            wat.append((smp[k0][0], smp[k - 1][0] + step, bed, lvl, bank, src))
-            wsrcs.append(wsrc)
-        for r in smp:
-            if len(r) == 4:
-                r.append(r[3])
-        base = min(r[4] for r in smp) - 2.0
-        ground = [(r[0], r[4] - base) for r in smp]
-        runs, cur = [], None
-        for r in smp:
-            key = (r[1], id(r[2]) if r[2] is not None else 0)
-            if cur is None or cur["key"] != key:
-                if cur:
-                    runs.append(cur)
-                cur = dict(key=key, kind=r[1], ref=r[2], s=[r])
-            else:
-                cur["s"].append(r)
-        if cur:
-            runs.append(cur)
-        bl, strip, comp, trees = [], [], {}, []
-        zmax = max(g[1] for g in ground)
-        for r in runs:
-            s0 = r["s"][0][0]
-            s1 = min(L, r["s"][-1][0] + step)
-            if r["kind"] == "bld":
-                u = r["ref"]
-                zb = min(q[3] for q in r["s"]) - base
-                ms_ = minaret_s(u, x0, y0, ux, uy, s0, s1) if u.get("fabric") == "sacred" else None
-                bl.append((s0, s1, zb, zb + u["h"], u["cat"], u["annex"], u.get("fabric", "regular"),
-                           unit_flags(u) + (ms_, label_name(u)), u["floors"], u["floors_src"]))  # + minaret, name
-                zmax = max(zmax, zb + u["h"] + typo_rise(u.get("fabric", "regular"), u["cat"], s1 - s0, u["h"],
-                                                         ms_ is not None) + 1.0)
-                cat = u["cat"]
-            elif r["kind"] == "water":
-                cat = "water"
-            elif r["kind"] == "green":
-                cat = "green"
-            elif r["kind"] in ("road", "parking"):
-                cat = "transport"
-            elif r["kind"] == "vacant":
-                cat = "vacant"
-            elif r["kind"] == "agri":
-                cat = "agri"
-            else:
-                cat = "void"
-            strip.append((s0, s1, cat))
-            comp[cat] = comp.get(cat, 0.0) + (s1 - s0)
+        S.sections.append(section_of_line(S, x0, y0, x1, y1, name, step))
 
-        def g_at(s):
-            return ground[max(0, min(len(ground) - 1, int(round(s / step))))][1]
-        # ---- tree crowns as measured on the canopy height map: cut by the line, and those seen beyond it
-        nx, ny = -uy, ux
-        btrees = []
-        for (tx, ty, tr, th) in crowns_near(S, (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)):
-            d = (tx - x0) * nx + (ty - y0) * ny
-            s = (tx - x0) * ux + (ty - y0) * uy
-            if not (-tr < s < L + tr):
-                continue
-            lo, hi = crown_lo(th), th
-            if abs(d) < tr:
-                hw = math.sqrt(tr * tr - d * d)
-                trees.append((s, S.z_at(tx, ty) - base, hw, lo, hi))
-                zmax = max(zmax, S.z_at(tx, ty) - base + hi)
-            elif tr <= d < 60.0:
-                btrees.append((s, S.z_at(tx, ty) - base, tr, lo, hi, d))
-        btrees.sort(key=lambda t: -t[5])
-        # ---- surveyed walls crossing the line: their place only (the survey gives no wall heights)
-        walls, chwalls = [], []
-        sbb = (min(x0, x1) - 5, min(y0, y1) - 5, max(x0, x1) + 5, max(y0, y1) + 5)
-        for P in S.g_wall.query(sbb):
-            for k in range(len(P) - 1):
-                res = seg_x((x0, y0), (x1 - x0, y1 - y0), P[k], (P[k + 1][0] - P[k][0], P[k + 1][1] - P[k][1]))
-                if res:
-                    s = res[0] * L
-                    walls.append((s, g_at(s)))
-        labels, levels = [], []
-        for (s0, s1, bed, lvl, bank, src) in wat:
-            for s in (s0, s1):
-                px, py = x0 + ux * s, y0 + uy * s
-                best, bd = None, 12.0
-                for e in S.g_edge.query((px - 12, py - 12, px + 12, py + 12)):
-                    d = math.hypot(e[0] - px, e[1] - py)
-                    if d < bd:
-                        bd, best = d, e
-                if best:
-                    labels.append((s, best[2], best[3], bank - base))
-                    if best[3] == 1:
-                        chwalls.append((s, bed - base, bank - base))     # the channel wall, bed to bank
-            levels.append(((s0 + s1) / 2.0, bed - base, bed, "bed"))
-            levels.append((s0, bank - base, bank, "bank"))
-        levels.append((0.0, ground[0][1], ground[0][1] + base, "end"))
-        levels.append((L, ground[-1][1], ground[-1][1] + base, "end"))
-        # ---- what lies beyond the cut, looking to the left of S -> S'
-        zcut = zmax
-        band = (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)
-        beyond = []
-        for u in S.g_bld.query(band):
-            d = (u["cx"] - x0) * nx + (u["cy"] - y0) * ny
-            if not 1.5 < d < 75.0:
-                continue
-            sv = [(px - x0) * ux + (py - y0) * uy for P in u["parts"] for (px, py) in P]
-            a, b = max(0.0, min(sv)), min(L, max(sv))
-            if b - a < 1.5:
-                continue
-            zb = S.z_at(u["cx"], u["cy"]) - base
-            beyond.append((a, b, zb, min(zb + u["h"], zcut + 5.0), u["cat"], d, u["floors"], u["annex"],
-                           u.get("fabric", "regular"), unit_flags(u), u["floors_src"]))
-        beyond.sort(key=lambda t: -t[5])
-        for b_ in beyond:
-            zmax = max(zmax, min(b_[3] + 1.6, zcut + 6.0))
-        for t in btrees:
-            zmax = max(zmax, min(t[1] + t[4], zcut + 6.0))
-        bridges = []
-        for P in S.bridges:
-            if len(P) < 2:
-                continue
-            mx, my = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
-            d = (mx - x0) * nx + (my - y0) * ny
-            if not 2.0 < d < 120.0:
-                continue
-            sv = [(px - x0) * ux + (py - y0) * uy for (px, py) in P]
-            a, b = max(0.0, min(sv)), min(L, max(sv))
-            if b - a > 2.0:
-                bridges.append((a, b, S.z_at(mx, my) - base, d))
-        # v16.7: named parks and places the line crosses (OpenStreetMap areas with their own name), called out by name
-        places = []
-        lbb = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
-        for z in S.zones:
-            nm_ = proper_name((z.get("tags") or {}).get("name") or "")
-            if not nm_ or not bb_hit(z["bb"], lbb):
-                continue
-            ins = [s for s in xs if region_contains(x0 + ux * s, y0 + uy * s, z["Ps"], z.get("Hs") or [])]
-            if len(ins) >= 4:
-                places.append((ins[0], ins[-1] + step, nm_))
-        S.sections.append(dict(name=name, line=(x0, y0, x1, y1, name), L=L, ground=ground, bld=bl, trees=trees, walls=walls,
-                               chwalls=chwalls, water=[(a, b, bed - base, lvl - base) for (a, b, bed, lvl, bank, src) in wat],
-                               bed_src=[src for (a, b, bed, lvl, bank, src) in wat], water_src=wsrcs,
-                               labels=labels, levels=levels, strip=strip, comp=comp, zmax=zmax, base=base,
-                               beyond=beyond, btrees=btrees, bridges=bridges, places=places))
+
+def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
+    """v40: one straight section x0,y0 -> x1,y1 (was the body of build_sections): ground, water, buildings, trees,
+    walls, levels, what lies beyond; the dict draw_section_strip draws."""
+    L = math.hypot(x1 - x0, y1 - y0)
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    xs = [k * step for k in range(int(L / step) + 1)]
+    smp = []
+    for s in xs:
+        px, py = x0 + ux * s, y0 + uy * s
+        kind, ref = classify_point(S, px, py)
+        smp.append([s, kind, ref, S.z_at(px, py)])
+    # water intervals: the bed where the survey levels it; elsewhere the depth interpolated along the stream
+    # from the surveyed depths (bed_depth). v16.5: the water surface from water_level (approximate unless measured).
+    k = 0
+    wat = []
+    wsrcs = []
+    while k < len(smp):
+        if smp[k][1] != "water":
+            k += 1
+            continue
+        k0 = k
+        while k < len(smp) and smp[k][1] == "water":
+            k += 1
+        za = smp[max(0, k0 - 2)][3]
+        zb = smp[min(len(smp) - 1, k)][3]
+        bank = min(za, zb)
+        bed = min(r[3] for r in smp[k0:k])
+        src = "surveyed"
+        if bank - bed < 1.0:
+            sm = (smp[k0][0] + smp[k - 1][0]) / 2.0
+            dd_ = bed_depth(S, x0 + ux * sm, y0 + uy * sm)
+            if dd_ is None:
+                src = "terrain"
+            else:
+                bed, src = bank - dd_, ("input" if CH_DEPTH is not None else "interpolated")
+        for r in smp[k0:k]:
+            r.append(bed)
+        sm_ = (smp[k0][0] + smp[k - 1][0]) / 2.0
+        lvl, wsrc = water_level(S, x0 + ux * sm_, y0 + uy * sm_, bed, bank)
+        wat.append((smp[k0][0], smp[k - 1][0] + step, bed, lvl, bank, src))
+        wsrcs.append(wsrc)
+    for r in smp:
+        if len(r) == 4:
+            r.append(r[3])
+    base = min(r[4] for r in smp) - 2.0
+    ground = [(r[0], r[4] - base) for r in smp]
+    runs, cur = [], None
+    for r in smp:
+        key = (r[1], id(r[2]) if r[2] is not None else 0)
+        if cur is None or cur["key"] != key:
+            if cur:
+                runs.append(cur)
+            cur = dict(key=key, kind=r[1], ref=r[2], s=[r])
+        else:
+            cur["s"].append(r)
+    if cur:
+        runs.append(cur)
+    bl, strip, comp, trees = [], [], {}, []
+    zmax = max(g[1] for g in ground)
+    for r in runs:
+        s0 = r["s"][0][0]
+        s1 = min(L, r["s"][-1][0] + step)
+        if r["kind"] == "bld":
+            u = r["ref"]
+            zb = min(q[3] for q in r["s"]) - base
+            ms_ = minaret_s(u, x0, y0, ux, uy, s0, s1) if u.get("fabric") == "sacred" else None
+            bl.append((s0, s1, zb, zb + u["h"], u["cat"], u["annex"], u.get("fabric", "regular"),
+                       unit_flags(u) + (ms_, label_name(u)), u["floors"], u["floors_src"]))  # + minaret, name
+            zmax = max(zmax, zb + u["h"] + typo_rise(u.get("fabric", "regular"), u["cat"], s1 - s0, u["h"],
+                                                     ms_ is not None) + 1.0)
+            cat = u["cat"]
+        elif r["kind"] == "water":
+            cat = "water"
+        elif r["kind"] == "green":
+            cat = "green"
+        elif r["kind"] in ("road", "parking"):
+            cat = "transport"
+        elif r["kind"] == "vacant":
+            cat = "vacant"
+        elif r["kind"] == "agri":
+            cat = "agri"
+        else:
+            cat = "void"
+        strip.append((s0, s1, cat))
+        comp[cat] = comp.get(cat, 0.0) + (s1 - s0)
+
+    def g_at(s):
+        return ground[max(0, min(len(ground) - 1, int(round(s / step))))][1]
+    # ---- tree crowns as measured on the canopy height map: cut by the line, and those seen beyond it
+    nx, ny = -uy, ux
+    btrees = []
+    for (tx, ty, tr, th) in crowns_near(S, (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)):
+        d = (tx - x0) * nx + (ty - y0) * ny
+        s = (tx - x0) * ux + (ty - y0) * uy
+        if not (-tr < s < L + tr):
+            continue
+        lo, hi = crown_lo(th), th
+        if abs(d) < tr:
+            hw = math.sqrt(tr * tr - d * d)
+            trees.append((s, S.z_at(tx, ty) - base, hw, lo, hi))
+            zmax = max(zmax, S.z_at(tx, ty) - base + hi)
+        elif tr <= d < 60.0:
+            btrees.append((s, S.z_at(tx, ty) - base, tr, lo, hi, d))
+    btrees.sort(key=lambda t: -t[5])
+    # ---- surveyed walls crossing the line: their place only (the survey gives no wall heights)
+    walls, chwalls = [], []
+    sbb = (min(x0, x1) - 5, min(y0, y1) - 5, max(x0, x1) + 5, max(y0, y1) + 5)
+    for P in S.g_wall.query(sbb):
+        for k in range(len(P) - 1):
+            res = seg_x((x0, y0), (x1 - x0, y1 - y0), P[k], (P[k + 1][0] - P[k][0], P[k + 1][1] - P[k][1]))
+            if res:
+                s = res[0] * L
+                walls.append((s, g_at(s)))
+    labels, levels = [], []
+    for (s0, s1, bed, lvl, bank, src) in wat:
+        for s in (s0, s1):
+            px, py = x0 + ux * s, y0 + uy * s
+            best, bd = None, 12.0
+            for e in S.g_edge.query((px - 12, py - 12, px + 12, py + 12)):
+                d = math.hypot(e[0] - px, e[1] - py)
+                if d < bd:
+                    bd, best = d, e
+            if best:
+                labels.append((s, best[2], best[3], bank - base))
+                if best[3] == 1:
+                    chwalls.append((s, bed - base, bank - base))     # the channel wall, bed to bank
+        levels.append(((s0 + s1) / 2.0, bed - base, bed, "bed"))
+        levels.append((s0, bank - base, bank, "bank"))
+    levels.append((0.0, ground[0][1], ground[0][1] + base, "end"))
+    levels.append((L, ground[-1][1], ground[-1][1] + base, "end"))
+    # ---- what lies beyond the cut, looking to the left of S -> S'
+    zcut = zmax
+    band = (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)
+    beyond = []
+    for u in S.g_bld.query(band):
+        d = (u["cx"] - x0) * nx + (u["cy"] - y0) * ny
+        if not 1.5 < d < 75.0:
+            continue
+        sv = [(px - x0) * ux + (py - y0) * uy for P in u["parts"] for (px, py) in P]
+        a, b = max(0.0, min(sv)), min(L, max(sv))
+        if b - a < 1.5:
+            continue
+        zb = S.z_at(u["cx"], u["cy"]) - base
+        beyond.append((a, b, zb, min(zb + u["h"], zcut + 5.0), u["cat"], d, u["floors"], u["annex"],
+                       u.get("fabric", "regular"), unit_flags(u), u["floors_src"]))
+    beyond.sort(key=lambda t: -t[5])
+    for b_ in beyond:
+        zmax = max(zmax, min(b_[3] + 1.6, zcut + 6.0))
+    for t in btrees:
+        zmax = max(zmax, min(t[1] + t[4], zcut + 6.0))
+    bridges = []
+    for P in S.bridges:
+        if len(P) < 2:
+            continue
+        mx, my = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
+        d = (mx - x0) * nx + (my - y0) * ny
+        if not 2.0 < d < 120.0:
+            continue
+        sv = [(px - x0) * ux + (py - y0) * uy for (px, py) in P]
+        a, b = max(0.0, min(sv)), min(L, max(sv))
+        if b - a > 2.0:
+            bridges.append((a, b, S.z_at(mx, my) - base, d))
+    # v16.7: named parks and places the line crosses (OpenStreetMap areas with their own name), called out by name
+    places = []
+    lbb = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
+    for z in S.zones:
+        nm_ = proper_name((z.get("tags") or {}).get("name") or "")
+        if not nm_ or not bb_hit(z["bb"], lbb):
+            continue
+        ins = [s for s in xs if region_contains(x0 + ux * s, y0 + uy * s, z["Ps"], z.get("Hs") or [])]
+        if len(ins) >= 4:
+            places.append((ins[0], ins[-1] + step, nm_))
+    return dict(name=name, line=(x0, y0, x1, y1, name), L=L, ground=ground, bld=bl, trees=trees, walls=walls,
+                chwalls=chwalls, water=[(a, b, bed - base, lvl - base) for (a, b, bed, lvl, bank, src) in wat],
+                bed_src=[src for (a, b, bed, lvl, bank, src) in wat], water_src=wsrcs,
+                labels=labels, levels=levels, strip=strip, comp=comp, zmax=zmax, base=base,
+                beyond=beyond, btrees=btrees, bridges=bridges, places=places)
 
 
 def crown_lo(h):
@@ -17000,11 +17015,9 @@ def section_caption(sd_):
     beds = [l for l in sd_["levels"] if l[3] == "bed"]
     banks = [l for l in sd_["levels"] if l[3] == "bank"]
     if beds and banks:
-        cap += " · bed {:.1f} m below banks{}".format(banks[0][2] - beds[0][2], {
-            "interpolated": " (interpolated " + bcite("Section bed levels: interpolated along the stream from the "
-                                                      "surveyed depths.") + ")",
-            "input": " (channel_depth input)", "terrain": " (no bed level surveyed here)"}.get(
-            (sd_.get("bed_src") or ["surveyed"])[0], ""))
+        cap += " · bed {:.1f} m below banks{}".format(banks[0][2] - beds[0][2], {   # v40: no caveat words
+            "interpolated": " " + bcite("Section bed levels: interpolated along the stream from the "
+                                        "surveyed depths.")}.get((sd_.get("bed_src") or ["surveyed"])[0], ""))
         types = sorted(set(short(EDGE[t][0]).lower() for s, t, wl, gz in sd_["labels"]))
         walled = [wl for s, t, wl, gz in sd_["labels"]]
         if types:
@@ -17244,7 +17257,7 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
             B.text(ln, tx, cy, 0.3 * U, INK2, L)
             cy -= 0.3 * U * 1.8
         lb = draw_locator(S, B, x + w - locw, y + 0.55 * U, locw, U, L, [sd_["line"]])
-        top = min(cy + 0.3 * U, lb) - 0.5 * U
+        top = min(cy + 0.3 * U, lb - 1.2 * U) - 0.5 * U        # v40: the end name S' clear of the locator
     else:
         B.fit("SECTION {0} — {0}'  ·  CONTINUED, {1:.0f}-{2:.0f} m".format(nm, off, off + Lm), x + 1.2 * U, y, 0.42 * U,
               w - 2.0 * U, INK2, L, font=FONT_TITLE, bold=True)
@@ -17264,6 +17277,163 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
             path, zlo_a, zhi_a = png
             base = sd_["base"]
             B.image(path, X0, Y0 + (zlo_a - base) * ss, X0 + Lm * ss, Y0 + (zhi_a - base) * ss, L, 5)
+    tags_ = sec_cut(B, L, sd_, P, Lm, ss, U, dry)
+    road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
+    # ---- annotation: channel width (its figure goes to the callouts), end levels, end marks, callouts below
+    for a, b, bed, lvl in sd_["water"]:
+        zt = max(g_at(max(0.0, a - 1.0)), g_at(min(Lm, b + 1.0))) + 2.4
+        q0, q1 = P(a, zt), P(b, zt)
+        B.line([q0, q1], INK2, L, 35, 0.05)
+        for q in (q0, q1):
+            B.line([(q[0] - 0.14 * U, q[1] - 0.14 * U), (q[0] + 0.14 * U, q[1] + 0.14 * U)], INK2, L, 35, 0.06)
+    for s, zl, za, kind in sd_["levels"]:
+        if kind != "end":
+            continue
+        bx, by = P(s, zl)
+        B.fill([[(bx, by), (bx - 0.22 * U, by + 0.38 * U), (bx + 0.22 * U, by + 0.38 * U)]], INK, L, 36)
+        out = -1.0 if s < Lm * 0.5 else 1.0              # outside the strip, clear of the buildings at the ends
+        B.text("+{:.2f}".format(za), bx + out * 0.4 * U, by + 0.08 * U, 0.26 * U, INK, L,
+               align="L" if out > 0 else "R")
+    g0, g1 = sd_["ground"][0], sd_["ground"][-1]
+    for px_, pz_, lab, out, real in ((g0[0], g0[1], nm, -1.0, pk == 1), (g1[0], g1[1], nm + "'", 1.0, pk == pn)):
+        bx, by = P(px_, pz_)
+        if real:
+            B.text(lab, bx + out * 0.4 * U, by + 0.62 * U, 0.42 * U, INK, L, font=FONT_TITLE, bold=True,
+                   align="L" if out > 0 else "R")
+        else:                                            # where the parts meet
+            B.line([(bx, by - 0.9 * U), (bx, by + 1.2 * U)], INK2, L, 36, 0.05)
+            B.text("continues below" if out > 0 else "continued from above", bx - out * 0.3 * U, by + 0.95 * U,
+                   0.22 * U, INK2, L, align="R" if out > 0 else "L")
+    # the tallest cut roof: its level, as on an architectural section
+    if sd_["bld"]:
+        a, b, z0, z1, cat, annex, ftype, fl, floors, fsrc = max(sd_["bld"], key=lambda t: t[3])
+        lev_ = "+{:.2f}".format(z1 + sd_["base"])
+        lw_ = tw(lev_, 0.22 * U)
+        for side in ((1.0, -1.0) if (b - a) * ss > 0.6 * U else ()):
+            bx, by = P(b if side > 0 else a, z1)         # v16.3: at the eaves beside the wall, clear of the type's tag
+            bx += side * 0.4 * U
+            t0, t1 = (bx - 0.16 * U, bx + 0.25 * U + lw_) if side > 0 else (bx - 0.25 * U - lw_, bx + 0.16 * U)
+            if any(t0 < x1_ and x0_ < t1 and -0.35 * U < y_ - by < 0.35 * U for x0_, x1_, y_ in tags_):
+                continue                                 # v40: never over a building's tag; else the other wall
+            B.line([(bx - side * 0.4 * U, by), (bx + side * 0.16 * U, by)], INK, L, 36, 0.04)
+            B.fill([[(bx, by), (bx - 0.16 * U, by + 0.28 * U), (bx + 0.16 * U, by + 0.28 * U)]], INK, L, 36)
+            B.text(lev_, bx + side * 0.25 * U, by + 0.06 * U, 0.22 * U, INK, L, align="L" if side > 0 else "R")
+            break
+    # v40 (Aras 25 Oct): the words at the water in one clean band right under the cut ground, each on a short leader
+    # to its bank or bed point; no word on the drawing's ink, none over another; caveats go to the log, not the page
+    calls = sec_water_calls(sd_, g_at, nm, dry) + [(s, g_at(s), t) for s, t in sec_edge_calls(sd_)]
+    calls += [((a + b) / 2.0, g_at((a + b) / 2.0), nm_) for a, b, nm_ in sd_.get("places", [])]   # v16.7: by name
+    calls += [(s_, z_, sec_road_text(t_)) for s_, z_, t_ in road_calls]   # v25: every street crossed, its width
+    low = sec_callouts(B, L, P, calls, P(0, -3.0)[1] - 0.45 * U, U, xlo=x, xhi=x + w)
+    # the use ribbon and the satellite rows under the callouts
+    rib = low - 0.5 * U
+    for a, b, cat in sd_["strip"]:
+        B.fill([rect(P(a, 0)[0], rib - 0.16 * U, P(b, 0)[0], rib)], CAT[cat][1], L, 20)
+    rib_low = rib - 0.16 * U
+    if "_sat" not in sd_:
+        sd_["_sat"] = section_sat(sd_)
+    if sd_["_sat"]:                                      # v33: land cover and greenness from satellite, metre by metre
+        rib_low = draw_sat_strips(B, sd_["_sat"], P, Lm, rib_low, x, U, L)
+    sb = nice_floor(Lm / 4.0)
+    xb = X0 + Lm * ss - sb * ss - 0.9 * U
+    yb = rib_low - 1.05 * U
+    draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
+    ratio = 1000.0 / max(1e-9, ss * MMU)
+    B.text("1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U, INK2, L)
+    return yb - 0.35 * U
+
+
+SEC_CALL_H = 0.6        # v40: the callouts' text height (page units): >= 7.5 pt when the booklet crops a section
+
+
+def sec_water_calls(sd_, g_at, nm, dry=False):
+    """v40: the stream's callouts in a section: its width and depth at the water, its bed level and depth below the
+    lower bank at the bed; [(s, z, text)] (text <= 30 characters). Where a figure is interpolated or approximate the
+    log says so (not the page)."""
+    out, notes = [], []
+    srcs = sd_.get("bed_src") or ["surveyed"] * len(sd_["water"])
+    wsrc_ = sd_.get("water_src") or [WATER_SRC] * len(sd_["water"])
+    banks = [l for l in sd_["levels"] if l[3] == "bank"]
+    for k, ((a, b, bed, lvl), src, ws_) in enumerate(zip(sd_["water"], srcs, wsrc_)):
+        dep = lvl - bed
+        txt = "stream {:.0f} m wide".format(b - a)
+        if dep > 0.005:
+            txt += " · {:.1f} m deep".format(dep)
+        elif ws_ != "approx":
+            txt += " · no water"
+        out.append((a + (b - a) / 3.0, lvl if dep > 0.005 else bed, txt))
+        btxt = "bed +{:.2f}".format(bed + sd_["base"])
+        if k < len(banks):
+            btxt += " · {:.1f} m below bank".format(banks[k][2] - (bed + sd_["base"]))
+        out.append((a + 2.0 * (b - a) / 3.0, bed, btxt))
+        if not dry and (src != "surveyed" or ws_ in ("approx", "input")):
+            notes.append("Section {}: {}{}.".format(nm, {"interpolated": "bed level interpolated along the stream from the "
+                                                                      "surveyed depths", "input": "bed from the "
+                                                                      "channel_depth input", "terrain": "no bed level "
+                                                                      "surveyed here (terrain)"}.get(src, "bed surveyed"),
+                                                   {"approx": "; water depth approximate, not measured",
+                                                    "input": "; water depth from the water_depth input"}.get(ws_, "")))
+    for t_ in notes:
+        if t_ not in LOG:
+            LOG.append(t_)
+    return out
+
+
+def sec_road_text(t):
+    """v40: a street's callout without the caveat words: its name and the length the cut runs on it."""
+    return t.replace(" · OSM line, no surveyed surface", "").replace(" m on the cut", " m")
+
+
+def sec_edge_calls(sd_):
+    """v40: the bank edges where the section meets the water: [(s, text)], e.g. "loose edge · embanked"."""
+    return [(s, short(EDGE[typ][0]).lower() + {1: " · walled", 2: " · embanked"}.get(wl, ""))
+            for s, typ, wl, gzz in sd_["labels"]]
+
+
+def sec_callouts(B, L, P, calls, ytop, U, lh=None, xlo=None, xhi=None):
+    """v40: callouts [(s, z, text)] in rows under a section from ytop down: each word on the first row where it
+    clears the others (kept between xlo and xhi, still over its leader), a leader from its point on the drawing to
+    its top, broken where it passes a word of a row above. Returns the lowest baseline."""
+    lh = (lh or SEC_CALL_H) * U
+    step = lh + 0.4 * U
+    calls = sorted(calls, key=lambda c: (c[0], c[2]))
+    base_y = ytop - lh
+    low = base_y
+    placed = []                                          # (left, right, tier) of every callout
+    for s, zf, txt in calls:
+        fx = P(s, zf)[0]
+        half = 0.5 * tw(txt, lh)
+        cx = fx
+        if xlo is not None:
+            cx = max(cx, min(fx + half - 0.3 * U, xlo + half))
+        if xhi is not None:
+            cx = min(cx, max(fx - half + 0.3 * U, xhi - half))
+        tier = 0                                         # the first row where the text is clear of the others
+        while any(t2 == tier and cx - half < r2 + 0.6 * U and l2 - 0.6 * U < cx + half for l2, r2, t2 in placed):
+            tier += 1
+        placed.append((cx - half, cx + half, tier))
+    for (s, zf, txt), (l1, r1, tier) in zip(calls, placed):
+        fx, fy = P(s, zf)
+        ly = base_y - tier * step
+        cuts = sorted((base_y - t2 * step - 0.12 * U, base_y - t2 * step + lh + 0.12 * U)
+                      for l2, r2, t2 in placed if t2 < tier and l2 - 0.15 * U < fx < r2 + 0.15 * U)
+        ytop_ = fy
+        for c0, c1 in reversed(cuts):
+            if c1 < ytop_:
+                B.line([(fx, ytop_), (fx, c1)], INK2, L, 35, 0.035)
+            ytop_ = min(ytop_, c0)
+        if ly + lh + 0.12 * U < ytop_:
+            B.line([(fx, ytop_), (fx, ly + lh + 0.12 * U)], INK2, L, 35, 0.035)
+        B.fill([circle_pts(fx, fy, 0.09 * U, 8)], INK2, L, 35)
+        B.text(txt, 0.5 * (l1 + r1), ly, lh, INK, L, align="C")
+        low = min(low, ly)
+    return low
+
+
+def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
+    """v40 (was inside draw_section_strip): what the section cuts, drawn through P (s, z) -> page: the ground in a
+    light poche with its surface materials and a fine ground line, the stream, the channel walls, the surveyed walls,
+    the cut buildings by type with a line at every storey; without the picture behind, the measured crowns."""
     # ---- the ground: light poche, a surface of materials, a fine ground line
     prof = [P(a, b) for a, b in sd_["ground"]]
     B.fill([prof + [P(Lm, -3.0), P(0.0, -3.0)]], SEC_SOIL, L, 20)
@@ -17325,96 +17495,7 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
     if dry or not HAVE_NP:                               # no picture: the measured crowns as before
         for s_, zg_, hw_, lo_, hi_ in sd_["trees"]:
             draw_crown(B, L, P, s_, zg_, hw_, lo_, hi_, SEC_CROWN, 30)
-    road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
-    # ---- annotation: channel width, end levels, end marks, callouts below
-    for a, b, bed, lvl in sd_["water"]:
-        zt = max(g_at(max(0.0, a - 1.0)), g_at(min(Lm, b + 1.0))) + 2.4
-        q0, q1 = P(a, zt), P(b, zt)
-        B.line([q0, q1], INK2, L, 35, 0.05)
-        for q in (q0, q1):
-            B.line([(q[0] - 0.14 * U, q[1] - 0.14 * U), (q[0] + 0.14 * U, q[1] + 0.14 * U)], INK2, L, 35, 0.06)
-        B.text("{:.0f} m".format(b - a), (q0[0] + q1[0]) / 2.0, q0[1] + 0.15 * U, 0.26 * U, INK2, L, align="C")
-    for s, zl, za, kind in sd_["levels"]:
-        if kind != "end":
-            continue
-        bx, by = P(s, zl)
-        B.fill([[(bx, by), (bx - 0.22 * U, by + 0.38 * U), (bx + 0.22 * U, by + 0.38 * U)]], INK, L, 36)
-        out = -1.0 if s < Lm * 0.5 else 1.0              # outside the strip, clear of the buildings at the ends
-        B.text("+{:.2f}".format(za), bx + out * 0.4 * U, by + 0.08 * U, 0.26 * U, INK, L,
-               align="L" if out > 0 else "R")
-    g0, g1 = sd_["ground"][0], sd_["ground"][-1]
-    for px_, pz_, lab, out, real in ((g0[0], g0[1], nm, -1.0, pk == 1), (g1[0], g1[1], nm + "'", 1.0, pk == pn)):
-        bx, by = P(px_, pz_)
-        if real:
-            B.text(lab, bx + out * 0.4 * U, by + 0.62 * U, 0.42 * U, INK, L, font=FONT_TITLE, bold=True,
-                   align="L" if out > 0 else "R")
-        else:                                            # where the parts meet
-            B.line([(bx, by - 0.9 * U), (bx, by + 1.2 * U)], INK2, L, 36, 0.05)
-            B.text("continues below" if out > 0 else "continued from above", bx - out * 0.3 * U, by + 0.95 * U,
-                   0.22 * U, INK2, L, align="R" if out > 0 else "L")
-    # the tallest cut roof: its level, as on an architectural section
-    if sd_["bld"]:
-        a, b, z0, z1, cat, annex, ftype, fl, floors, fsrc = max(sd_["bld"], key=lambda t: t[3])
-        if (b - a) * ss > 0.6 * U:
-            bx, by = P(b, z1)                            # v16.3: at the eaves beside the wall, clear of the type's tag
-            bx += 0.4 * U
-            B.line([(bx - 0.4 * U, by), (bx + 0.16 * U, by)], INK, L, 36, 0.04)
-            B.fill([[(bx, by), (bx - 0.16 * U, by + 0.28 * U), (bx + 0.16 * U, by + 0.28 * U)]], INK, L, 36)
-            B.text("+{:.2f}".format(z1 + sd_["base"]), bx + 0.25 * U, by + 0.06 * U, 0.22 * U, INK, L)
-    rib = P(0, -3.0)[1] - 0.15 * U
-    for a, b, cat in sd_["strip"]:
-        B.fill([rect(P(a, 0)[0], rib - 0.16 * U, P(b, 0)[0], rib)], CAT[cat][1], L, 20)
-    rib_low = rib - 0.16 * U
-    if "_sat" not in sd_:
-        sd_["_sat"] = section_sat(sd_)
-    if sd_["_sat"]:                                      # v33: land cover and greenness from satellite, metre by metre
-        rib_low = draw_sat_strips(B, sd_["_sat"], P, Lm, rib_low, x, U, L)
-    srcs = sd_.get("bed_src") or ["surveyed"] * len(sd_["water"])
-    wsrc_ = sd_.get("water_src") or [WATER_SRC] * len(sd_["water"])
-    calls = [((a, b, bed, lvl), src, ws_) for (a, b, bed, lvl), src, ws_ in zip(sd_["water"], srcs, wsrc_)]
-    calls = [((a + b) / 2.0, bed, "STREAM BED +{:.2f}{} · {}".format(bed + sd_["base"], BED_TAG.get(src, ""),
-                                                                     water_tag(lvl - bed, ws_)))
-             for (a, b, bed, lvl), src, ws_ in calls]
-    calls += [(s, g_at(s), short(EDGE[typ][0]).upper() + {1: " · WALLED", 2: " · EMBANKED"}.get(wl, ""))
-              for s, typ, wl, gzz in sd_["labels"]]
-    calls += [((a + b) / 2.0, g_at((a + b) / 2.0), nm_) for a, b, nm_ in sd_.get("places", [])]   # v16.7: by name
-    calls += road_calls                                  # v25: every street crossed, with its width
-    calls.sort()
-    lh = 0.26 * U
-    base_y = rib_low - 0.6 * U
-    low = base_y
-    placed = []                                          # (left, right, tier) of every callout
-    for s, zf, txt in calls:
-        fx = P(s, zf)[0]
-        half = 0.5 * tw(txt, lh)
-        tier = 0                                         # the first row where the text is clear of the others
-        while any(t2 == tier and fx - half < r2 + 0.4 * U and l2 - 0.4 * U < fx + half for l2, r2, t2 in placed):
-            tier += 1
-        placed.append((fx - half, fx + half, tier))
-    for (s, zf, txt), (l1, r1, tier) in zip(calls, placed):
-        fx, fy = P(s, zf)
-        ly = base_y - tier * 0.5 * U
-        cuts = sorted((base_y - t2 * 0.5 * U - 0.08 * U, base_y - t2 * 0.5 * U + lh + 0.1 * U)
-                      for l2, r2, t2 in placed if t2 < tier and l2 - 0.1 * U < fx < r2 + 0.1 * U)
-        ytop = fy
-        for c0, c1 in reversed(cuts):
-            if c1 < ytop:
-                B.line([(fx, ytop), (fx, c1)], INK2, L, 35, 0.035)
-            ytop = min(ytop, c0)
-        if ly + lh + 0.1 * U < ytop:
-            B.line([(fx, ytop), (fx, ly + lh + 0.1 * U)], INK2, L, 35, 0.035)
-        B.text(txt, fx, ly, lh, INK, L, align="C")
-        low = min(low, ly)
-    sb = nice_floor(Lm / 4.0)
-    xb = X0 + Lm * ss - sb * ss - 0.9 * U
-    # the scale bar steps down when a callout of the lowest row stands over it (its figures would touch the text)
-    clash = any(base_y - t1 * 0.5 * U <= low + 0.3 * U and l1 < X0 + Lm * ss + 1.6 * U and r1 > xb - 0.6 * U
-                for l1, r1, t1 in placed)
-    yb = low - (1.5 if clash else 1.05) * U
-    draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
-    ratio = 1000.0 / max(1e-9, ss * MMU)
-    B.text("1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U, INK2, L)
-    return yb - 0.35 * U
+    return tags_
 
 
 def nice_ratio(r):
@@ -18069,65 +18150,140 @@ def draw_sat_strips(B, rows, P, Lm, ytop, x, U, L):
     return y
 
 
+# v40 (Aras 25 Oct: "texts and graphics are on top each other ... make the diagram clearer"): the tree-cover chart
+# reads at a glance: each bank's four distance bands named beside their rows (0-15 m next to the stream), the stream
+# between the banks with its covered reaches drawn on it and the bridges as ticks across it only, a distance axis
+# every 500 m, a key of drawn samples. Values as in the pack (no smoothing). Words at RIP_TH page units: the booklet
+# crops this panel at 392 mm wide, where they print at 7.5 pt or more.
+RIP_TH = 0.6
+RIP_RAMP = [(0.0, C("F6F5EF")), (1.0, C("E3E6CF")), (5.0, C("C9D1A4")), (10.0, C("A9B57F")), (20.0, C("8C9969")),
+            (40.0, C("6B774A"))]
+RIP_COVERED = mix(BLUE_D, INK, 0.35)                   # the stream where it runs under the town
+PANEL_RECTS = {}        # v40: a panel's drawing with its in-drawing words (no title, key or notes): (x0, y0, x1, y1)
+
+
+def rip_colour(v):
+    c_ = RIP_RAMP[0][1]
+    for t, cc in RIP_RAMP:
+        if v >= t:
+            c_ = cc
+    return c_
+
+
+def rip_legend():
+    """The tree-cover chart's key as drawn samples: [(kind, colour, name)]."""
+    out = []
+    for k, (t, c_) in enumerate(RIP_RAMP):
+        out.append(("box", c_, "tree cover {:g}-{:g} %".format(t, RIP_RAMP[k + 1][0]) if k + 1 < len(RIP_RAMP)
+                    else "tree cover {:g} % +".format(t)))
+    return out + [("box", CAT["water"][1], "the Selinos stream"), ("box", RIP_COVERED, "covered reach"),
+                  ("line", INK, "bridge")]
+
+
 def draw_riparian(S, B, x, y, w, U):
     """S1 companion (plant analysis panel 3): canopy cover in four bands either side of the Selinos every 25 m of
-    chainage, the NDVI along the stream, covered reaches, bridges and section crossings."""
+    chainage; the stream between the banks with its covered reaches and bridges; the section lines by name."""
     L = "LU_BOARD::Riparian"
     cor = seam_pack().get("corridor", {})
     if not cor:
         return y
     B.text("THE STREAM'S TREE COVER · BANK BY BANK, EVERY 25 M", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
-    n = cor["n_bins"]
-    bm = cor["bin_m"]
-    names = ["left 60-100", "left 30-60", "left 15-30", "left 0-15", "right 0-15", "right 15-30", "right 30-60",
-             "right 60-100"]
-    rh = 0.75 * U
-    lab_w = 7.5 * U
-    cw = (w - lab_w) / float(n)
-    y0 = y - 1.8 * U
-    ramp = [(0.0, C("F6F5EF")), (1.0, C("E3E6CF")), (5.0, C("C9D1A4")), (10.0, C("A9B57F")), (20.0, C("8C9969")),
-            (40.0, C("6B774A")), (60.0, C("495338"))]
+    n, bm = cor["n_bins"], float(cor["bin_m"])
+    th = RIP_TH * U
+    rh, hb, gs = 0.95 * U, 1.3 * U, 0.14 * U             # a distance band, the stream, the gap between them
+    bands = ["0-15", "15-30", "30-60", "60-100"]
+    col_b = tw("RIGHT", th) + 0.5 * U                     # bank names
+    lab_w = col_b + tw("60-100 m", th) + 0.5 * U          # + band names
+    x0 = x + lab_w
+    x1 = x + w - tw("mean", th) - 0.7 * U                 # the reach's mean per band at the right
+    cw = (x1 - x0) / float(n)
 
-    def colr(v):
-        c_ = ramp[0][1]
-        for t, cc in ramp:
-            if v >= t:
-                c_ = cc
-        return c_
-    for j, nm in enumerate(names):
-        yy = y0 - j * rh - (0.5 * U if j >= 4 else 0.0)
-        B.text(nm + " m", x + lab_w - 0.4 * U, yy - 0.75 * rh, 0.32 * U, INK2, L, align="R")
-        vals = cor["cover"].get(nm, {}).get("pct") or cor["cover"].get(nm, {}).get("cover") or []
-        cells = cor["cover"].get(nm, {}).get("cells", [])
+    def X(ch):
+        return x0 + ch / bm * cw
+    # ---- distance axis, every 500 m along the stream (downstream to the right)
+    ya = y - 2.1 * U
+    gtop = ya - 0.5 * U
+    B.text("downstream", x0 - 0.5 * U, ya, th, INK2, L, align="R")
+    for m in range(0, int(n * bm) + 1, 500):
+        B.line([(X(m), gtop + 0.05 * U), (X(m), gtop + 0.3 * U)], INK2, L, 6, 0.08)
+        B.text("{:,}".format(m) + (" m" if m == 0 else ""), X(m), ya, th, INK2, L, align="L" if m == 0 else "C")
+    B.text("mean", x1 + 0.5 * U, ya, th, INK2, L)
+
+    def row_top(j):                                       # rows 0-3: left bank, far to near; 4-7: right bank, near to far
+        return gtop - j * rh - (hb + 2.0 * gs if j >= 4 else 0.0)
+    rows = [("left", b_) for b_ in reversed(bands)] + [("right", b_) for b_ in bands]
+    for j, (side, b_) in enumerate(rows):
+        yy = row_top(j)
+        d_ = cor["cover"].get(side + " " + b_, {})
+        vals = d_.get("pct") or d_.get("cover") or []
+        cells = d_.get("cells", [])
         for i in range(n):
             v = vals[i] if i < len(vals) else None
             if v is None or (i < len(cells) and cells[i] < 20):
                 continue
-            B.fill([rect(x + lab_w + i * cw, yy - rh, x + lab_w + (i + 1) * cw, yy)], colr(v), L, 3)
-        if j == 3:
-            yw = yy - rh - 0.25 * U
-            B.fill([rect(x + lab_w, yw - 0.12 * U, x + w, yw + 0.12 * U)], CAT["water"][1], L, 3)
-            B.text("the Selinos (flowing right)", x + lab_w - 0.4 * U, yw - 0.15 * U, 0.3 * U, BLUE_D, L, align="R")
-    yb = y0 - 8 * rh - 0.5 * U
+            B.fill([rect(X(i * bm), yy - rh + 0.05 * U, X((i + 1) * bm), yy - 0.05 * U)], rip_colour(v), L, 3)
+        ym = yy - 0.5 * rh - 0.5 * th
+        B.text(b_ + " m", x0 - 0.5 * U, ym, th, INK, L, align="R")
+        if d_.get("total_pct") is not None:
+            B.text("{:.1f}%".format(d_["total_pct"]), x1 + 0.5 * U, ym, th, INK, L)
+    for side, j0 in (("LEFT", 0), ("RIGHT", 4)):          # the bank's name beside its four rows
+        yc = row_top(j0) - 2.0 * rh
+        B.text(side, x, yc + 0.15 * U, th, INK, L, font=FONT_TITLE, bold=True)
+        B.text("BANK", x, yc - 0.15 * U - th, th, INK, L, font=FONT_TITLE, bold=True)
+        B.line(rect(x0, row_top(j0 + 3) - rh, x1, row_top(j0)) + [(x0, row_top(j0 + 3) - rh)], FAINT, L, 4, 0.05)
+    # ---- the stream between the banks: covered reaches darker and hatched, bridges as ticks across it
+    st, sb = row_top(3) - rh - gs, row_top(3) - rh - gs - hb
+    B.fill([rect(x0, sb, x1, st)], CAT["water"][1], L, 3)
+    B.text("STREAM", x0 - 0.5 * U, 0.5 * (st + sb) - 0.5 * th, th, BLUE_D, L, font=FONT_TITLE, bold=True, align="R")
+    am = 0.5 * (st + sb)                                  # the flow, at the upstream end
+    B.line([(X(10.0), am), (X(62.0), am)], BLUE_D, L, 5, 0.25)
+    B.fill([[(X(88.0), am), (X(60.0), am + 0.32 * U), (X(60.0), am - 0.32 * U)]], BLUE_D, L, 5)
     for a, b in cor.get("covered_reaches", []):
-        B.fill([rect(x + lab_w + a / bm * cw, yb - 0.5 * U, x + lab_w + b / bm * cw, yb - 0.2 * U)], BLUE_D, L, 4)
+        cov = rect(X(a), sb, X(b), st)
+        B.fill([cov], RIP_COVERED, L, 4)
+        B.hatch([cov], CAT["water"][1], L, 5, 0.3 * U, w=0.05)
     ch = cor.get("bridges_ch", [])
     for i in range(0, len(ch) - 1, 2):
-        xm = x + lab_w + 0.5 * (ch[i] + ch[i + 1]) / bm * cw
-        B.line([(xm, y0 + 0.2 * U), (xm, yb)], INK, L, 6, 0.1)
-    for nm, c_ in cor.get("sections_ch", []):
-        xm = x + lab_w + c_ / bm * cw
-        B.text(nm, xm, yb - 1.0 * U, 0.34 * U, INK, L, align="C", font=FONT_TITLE, bold=True)
-    for m in range(0, int(n * bm) + 1, 500):
-        B.text("{:,} m".format(m), x + lab_w + m / bm * cw, y0 + 0.25 * U, 0.3 * U, INK2, L, align="C")
-    leg = [("box", colr(v), "{:g}%+".format(v)) for v, _c in ramp[1:]] + [
-        ("box", BLUE_D, "covered (culvert)"), ("line", INK, "bridge")]
-    ly = draw_legend_items(B, leg, x, yb - 2.0 * U, w, U, L, h=0.36)
-    return B.para("% of 1 m cells under crowns · bands from the OSM centreline · 25 m bins " + bcite(   # v38: keywords
+        xa, xb = X(ch[i]), X(ch[i + 1])
+        if xb - xa < 0.2 * U:
+            xa, xb = 0.5 * (xa + xb) - 0.1 * U, 0.5 * (xa + xb) + 0.1 * U
+        B.fill([rect(xa, sb - 0.08 * U, xb, st + 0.08 * U)], INK, L, 6)
+    # ---- the section lines, by name under the chart
+    gb = row_top(7) - rh
+    yl = gb - 0.75 * U - th
+    secs = cor.get("sections_ch", [])
+    if secs:
+        B.text("sections", x0 - 0.5 * U, yl, th, INK2, L, align="R")
+    for nm, c_ in secs:
+        B.line([(X(c_), gb - 0.1 * U), (X(c_), gb - 0.55 * U)], INK, L, 6, 0.12)
+        B.text(nm, X(c_), yl, th, INK, L, align="C", font=FONT_TITLE, bold=True)
+    PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ya + th + 0.25 * U)
+    # ---- key: the colour steps, the stream, a covered reach, a bridge
+    yk = yl - 1.6 * U
+    B.text("TREE COVER · % OF THE GROUND UNDER CROWNS", x, yk, 0.42 * U, INK, L, font=FONT_TITLE, bold=True)
+    yb = yk - 1.4 * U
+    bw = 2.2 * U
+    for k, (t, c_) in enumerate(RIP_RAMP):
+        B.fill([rect(x + k * bw, yb, x + (k + 1) * bw, yb + 0.7 * U)], c_, L, 20)
+        B.text("{:g}".format(t), x + k * bw, yb - 0.25 * U - 0.42 * U, 0.42 * U, INK2, L, align="C")
+    B.line(rect(x, yb, x + len(RIP_RAMP) * bw, yb + 0.7 * U) + [(x, yb)], INK2, L, 21, 0.05)
+    B.text("%", x + len(RIP_RAMP) * bw, yb - 0.25 * U - 0.42 * U, 0.42 * U, INK2, L, align="C")
+    kx = x + len(RIP_RAMP) * bw + 2.5 * U
+    for kind, col, lab in [it for it in rip_legend() if not it[2].startswith("tree cover")]:
+        sw = 2.0 * U
+        B.fill([rect(kx, yb, kx + sw, yb + 0.7 * U)], CAT["water"][1] if kind == "line" else col, L, 20)
+        if col is RIP_COVERED:
+            B.hatch([rect(kx, yb, kx + sw, yb + 0.7 * U)], CAT["water"][1], L, 21, 0.3 * U, w=0.05)
+        if kind == "line":
+            B.fill([rect(kx + 0.5 * sw - 0.1 * U, yb - 0.08 * U, kx + 0.5 * sw + 0.1 * U, yb + 0.78 * U)], col, L, 22)
+        B.text(lab, kx + sw + 0.4 * U, yb + 0.15 * U, 0.42 * U, INK, L)
+        kx += sw + 0.4 * U + tw(lab, 0.42 * U) + 1.6 * U
+    return B.para("cover = share of 1 m cells under crowns · rows by distance from the stream's centre line, left and "
+                  "right looking downstream · 25 m bins · mean = the whole reach " + bcite(
         "Stream tree cover: share of the 1 m cells under crown discs (canopy map, modelled), in bands measured from the "
         "OSM centreline (so 0-15 m holds the channel); bins of 25 m of chainage from the upstream frame edge; a bin "
-        "under 20 cells is left blank. Bridges as vertical lines, section lines by name."),
-                  x, ly - 0.2 * U, w, 0.32 * U, INK2, L)
+        "under 20 cells is left blank. Covered reaches drawn on the stream, bridges as ticks across it, section lines by name."),
+                  x, yb - 1.8 * U, w, 0.32 * U, INK2, L)
 
 
 # v33: the green table of bergama_fabric_green v10
@@ -19212,6 +19368,392 @@ def movement(S):
     return S.mv
 
 
+# ============================================================ v40 LONG SECTION ALONG THE STREAMSIDE SPINE
+# Aras 25 Oct: "please revise the section such as we draw in the site sections with the mainboard script". The spine
+# of the masterplan (option A, on the real bank edge; masterplan_results.json, written before this script runs) as one
+# developed section: each straight piece of the spine cut by the board's own section engine (section_of_line), the
+# pieces laid end to end at ONE scale for length and height (never stretched), the picture beyond each piece, the
+# stops above it by number and short name. Without the masterplan file: the city link spine the board already uses
+# (city_link_spine); without either, no panel (logged).
+MP_RESULTS_FILE = os.path.join(BERGAMA_DIR, "output", "bergama_masterplan", "masterplan_results.json")
+SPINE_TOL = 2.0          # m: the spine's line simplified to straight pieces within this distance (Douglas-Peucker)
+SPINE_ROW_M = 360.0      # m: the developed section is laid out in rows of at most about this length
+SPINE_STOP_NEAR = 60.0   # m: a stop farther than this from the spine is marked at the spine's end, with its distance
+
+
+def _dp(P, tol):
+    """Douglas-Peucker simplification of a polyline."""
+    if len(P) < 3:
+        return list(P)
+    (ax, ay), (bx, by) = P[0], P[-1]
+    L = math.hypot(bx - ax, by - ay)
+    best, bi = -1.0, 0
+    for i in range(1, len(P) - 1):
+        px, py = P[i]
+        d = abs((bx - ax) * (ay - py) - (ax - px) * (by - ay)) / L if L > 1e-9 else math.hypot(px - ax, py - ay)
+        if d > best:
+            best, bi = d, i
+    if best <= tol:
+        return [P[0], P[-1]]
+    return _dp(P[:bi + 1], tol)[:-1] + _dp(P[bi:], tol)
+
+
+def spine_short(name):
+    """A stop's short name (<= 24 characters): the name, or its last two words when longer."""
+    name = (name or "").strip()
+    if len(name) <= 24:
+        return name
+    w_ = name.split()[-2:]
+    return (" ".join(w_))[:1].upper() + (" ".join(w_))[1:]
+
+
+def spine_source(S):
+    """(polyline, stops [(n, name, (x, y))], source words) of the streamside spine, or None."""
+    try:
+        with open(MP_RESULTS_FILE, "r", encoding="utf-8") as fh:
+            A = json.load(fh)["options"]["A"]
+        P = []
+        for pc in A.get("spine", []):
+            for p in pc.get("P", []):
+                q = (float(p[0]), float(p[1]))
+                if not P or math.hypot(q[0] - P[-1][0], q[1] - P[-1][1]) > 0.05:
+                    P.append(q)
+        stops = [(int(s_["n"]), s_.get("name", ""), (float(s_["xy"][0]), float(s_["xy"][1])))
+                 for s_ in A.get("stops", []) if s_.get("xy")]
+        if len(P) >= 2:
+            return P, stops, "masterplan results of " + time.strftime(
+                "%d %b %H:%M", time.localtime(os.path.getmtime(MP_RESULTS_FILE)))
+    except Exception:
+        pass
+    try:
+        props, attr, src = city_link_spine(S)
+        P = []
+        for kind, Q, _o in props:
+            for q in Q:
+                if not P or math.hypot(q[0] - P[-1][0], q[1] - P[-1][1]) > 0.05:
+                    P.append((float(q[0]), float(q[1])))
+        spec = CITY_LINK_DEFAULT
+        try:
+            with open(CITY_LINK_FILE, "r", encoding="utf-8") as fh:
+                spec = json.load(fh)
+        except Exception:
+            pass
+        stops = [(int(f["n"]), f.get("name", ""), (float(f["xy"][0]), float(f["xy"][1])))
+                 for f in spec.get("functions", []) if f.get("xy")]
+        if len(P) >= 2:
+            return P, stops, src
+    except Exception:
+        pass
+    return None
+
+
+def spine_section(S):
+    """The developed section along the spine (memoised on S): a section dict as draw_section_strip's, s along the
+    spine, plus segs [(x0, y0, x1, y1, s0, L, own section)], stops [(n, short name, s, off_m)], covered [(a, b, bed)]
+    and ends (start, end words); None without a spine."""
+    if hasattr(S, "_spine_sec"):
+        return S._spine_sec
+    S._spine_sec = None
+    src = spine_source(S)
+    if src is None:
+        LOG.append("Long section along the spine: no masterplan results and no city link spine, so not drawn.")
+        return None
+    P, stops, words = src
+    P = _dp(P, SPINE_TOL)
+    # the side looked at: the stream beyond the cut over most of the length (every section looks to its left)
+    streams = [Q for Q in (getattr(S, "selinus", None) or []) if len(Q) >= 2]
+    main = max(streams, key=pl_length) if streams else None
+    lt = rt = 0.0
+    if main:
+        for (ax, ay), (bx, by) in zip(P[:-1], P[1:]):
+            mx, my = 0.5 * (ax + bx), 0.5 * (ay + by)
+            q, t = pl_point_at(main, pl_chainage(main, mx, my))
+            side = (bx - ax) * (q[1] - ay) - (by - ay) * (q[0] - ax)
+            if math.hypot(q[0] - mx, q[1] - my) > 3.0:
+                if side > 0:
+                    lt += math.hypot(bx - ax, by - ay)
+                else:
+                    rt += math.hypot(bx - ax, by - ay)
+    rev = rt > lt
+    if rev:
+        P = P[::-1]
+    ends = ("downstream", "upstream") if rev else ("upstream", "downstream")
+    segs, c = [], 0.0
+    for (ax, ay), (bx, by) in zip(P[:-1], P[1:]):
+        L = math.hypot(bx - ax, by - ay)
+        if L < 0.5:
+            continue
+        segs.append([ax, ay, bx, by, c, L, section_of_line(S, ax, ay, bx, by, "SP")])
+        c += L
+    if not segs:
+        return None
+    Ltot = c
+    base = min(sg[6]["base"] for sg in segs)
+    D = dict(name="SP", line=(segs[0][0], segs[0][1], segs[-1][2], segs[-1][3], "SP"), L=Ltot, base=base,
+             bld=[], trees=[], walls=[], chwalls=[], water=[], bed_src=[], water_src=[], labels=[], levels=[],
+             strip=[], comp={}, zmax=0.0, places=[], bridges=[], beyond=[], btrees=[])
+    gr = []
+    for k, (ax, ay, bx, by, s0, L, d) in enumerate(segs):
+        dz = d["base"] - base
+        last = k == len(segs) - 1
+        gr += [(s + s0, z + dz) for s, z in d["ground"] if s < L - 1e-6 or last]
+        D["bld"] += [(a + s0, b + s0, z0 + dz, z1 + dz) + tuple(r[4:]) for r in d["bld"] for a, b, z0, z1 in [r[:4]]]
+        D["trees"] += [(s + s0, zg + dz, hw, lo, hi) for s, zg, hw, lo, hi in d["trees"] if 0.0 <= s < L]
+        D["walls"] += [(s + s0, zg + dz) for s, zg in d["walls"]]
+        D["chwalls"] += [(s + s0, zb + dz, zt + dz) for s, zb, zt in d["chwalls"]]
+        D["water"] += [(a + s0, b + s0, bed + dz, lvl + dz) for a, b, bed, lvl in d["water"]]
+        D["bed_src"] += d["bed_src"]
+        D["water_src"] += d["water_src"]
+        D["labels"] += [(s + s0, typ, wl, gz + dz) for s, typ, wl, gz in d["labels"]]
+        D["levels"] += [(s + s0, zl + dz, za, kd) for s, zl, za, kd in d["levels"] if kd != "end"]
+        D["strip"] += [(a + s0, b + s0, cat) for a, b, cat in d["strip"]]
+        for k_, v_ in d["comp"].items():
+            D["comp"][k_] = D["comp"].get(k_, 0.0) + v_
+        D["zmax"] = max(D["zmax"], d["zmax"] + dz)
+        for a, b, nm_ in d["places"]:
+            if D["places"] and D["places"][-1][2] == nm_ and a + s0 - D["places"][-1][1] < 2.0:
+                D["places"][-1] = (D["places"][-1][0], b + s0, nm_)
+            else:
+                D["places"].append((a + s0, b + s0, nm_))
+    # the ground on an even 0.5 m step (draw_section_strip reads it by index)
+    n = int(Ltot / 0.5) + 1
+    gs_ = [g[0] for g in gr]
+    ground = []
+    for i in range(n):
+        s = min(Ltot, i * 0.5)
+        j = max(0, min(len(gr) - 2, _bisect_right(gs_, s) - 1))
+        (sa_, za), (sb_, zb) = gr[j], gr[j + 1]
+        ground.append((s, za if sb_ <= sa_ else za + (zb - za) * max(0.0, min(1.0, (s - sa_) / (sb_ - sa_)))))
+    D["ground"] = ground
+    D["levels"] += [(0.0, ground[0][1], ground[0][1] + base, "end"), (Ltot, ground[-1][1], ground[-1][1] + base, "end")]
+    D["water"] = [w_ for w_ in D["water"] if w_[1] - w_[0] >= 1.0]
+    # the stream under the street where the spine runs over a covered reach: its bed (interpolated along the stream)
+    cov, run = [], None
+    for i in range(0, n, 2):
+        s = i * 0.5
+        sg = next(g for g in segs if g[4] <= s <= g[4] + g[5] + 1e-6)
+        t = (s - sg[4]) / sg[5]
+        x_, y_ = sg[0] + (sg[2] - sg[0]) * t, sg[1] + (sg[3] - sg[1]) * t
+        on = any(pl_dist(x_, y_, Q, False) < 8.0 for Q in (getattr(S, "covered", None) or []) if len(Q) >= 2)
+        if on and run is None:
+            run = [s, s, x_, y_]
+        elif on:
+            run[1] = s
+        if (not on or i + 2 >= n) and run is not None:
+            if run[1] - run[0] >= 10.0:
+                sm = 0.5 * (run[0] + run[1])
+                dd_ = bed_depth(S, run[2], run[3])
+                cov.append((run[0], run[1], None if dd_ is None else ground[int(round(sm / 0.5))][1] - dd_))
+            run = None
+    D["covered"] = cov
+    # the stops: where each one stands along the spine, or how far beyond its ends
+    st = []
+    pts = [(sg[0], sg[1], sg[2], sg[3], sg[4], sg[5]) for sg in segs]
+    for nn, nm_, (x_, y_) in stops:
+        best = None
+        for ax, ay, bx, by, s0, L in pts:
+            t = max(0.0, min(1.0, ((x_ - ax) * (bx - ax) + (y_ - ay) * (by - ay)) / (L * L)))
+            d = math.hypot(ax + (bx - ax) * t - x_, ay + (by - ay) * t - y_)
+            if best is None or d < best[0]:
+                best = (d, s0 + t * L)
+        st.append((nn, spine_short(nm_), best[1], best[0]))
+    D["stops"] = sorted(st, key=lambda r: r[0])
+    D["segs"] = segs
+    D["ends"] = ends
+    D["src"] = words
+    S._spine_sec = D
+    LOG.append("Long section along the spine: {:.0f} m from the {} in {} straight pieces (within {:.0f} m), looking "
+               "{} the stream; stops {}.".format(Ltot, words, len(segs), SPINE_TOL,
+                                                "across" if max(lt, rt) >= 0.5 * (lt + rt) else "along",
+                                                ", ".join("{} at {:.0f} m{}".format(r[0], r[2], "" if r[3] <= SPINE_STOP_NEAR
+                                                          else " ({:.0f} m off)".format(r[3])) for r in D["stops"])))
+    return D
+
+
+def sec_slice(D, r0, r1):
+    """The part r0..r1 (m) of a developed section, s from 0."""
+    def cl(a, b):
+        return max(a, r0) - r0, min(b, r1) - r0
+    R = dict(D)
+    R["L"] = r1 - r0
+    R["ground"] = [(s - r0, z) for s, z in D["ground"] if r0 - 1e-6 <= s <= r1 + 1e-6]
+    R["bld"] = [cl(r[0], r[1]) + tuple(r[2:]) for r in D["bld"] if r[1] > r0 and r[0] < r1]
+    R["strip"] = [cl(a, b) + (c_,) for a, b, c_ in D["strip"] if b > r0 and a < r1]
+    keep = [k for k, w_ in enumerate(D["water"]) if w_[1] > r0 and w_[0] < r1]
+    R["water"] = [cl(D["water"][k][0], D["water"][k][1]) + tuple(D["water"][k][2:]) for k in keep]
+    R["bed_src"] = [D["bed_src"][k] for k in keep if k < len(D["bed_src"])]
+    R["water_src"] = [D["water_src"][k] for k in keep if k < len(D["water_src"])]
+    R["places"] = [cl(a, b) + (nm_,) for a, b, nm_ in D["places"] if b > r0 and a < r1]
+    R["covered"] = [cl(a, b) + (z,) for a, b, z in D.get("covered", []) if b > r0 and a < r1]
+    for k_ in ("trees", "walls", "chwalls", "labels", "levels"):
+        R[k_] = [(r[0] - r0,) + tuple(r[1:]) for r in D[k_] if r0 <= r[0] <= r1]
+    return R
+
+
+def spine_rows(D):
+    """The rows of the developed section: [(r0, r1)], split where two straight pieces meet."""
+    n = max(1, int(math.ceil(D["L"] / SPINE_ROW_M - 0.08)))
+    cuts = [0.0]
+    joints = [sg[4] for sg in D["segs"][1:]]
+    for k in range(1, n):
+        want = D["L"] * k / float(n)
+        cuts.append(min(joints, key=lambda j: abs(j - want)) if joints else want)
+    cuts.append(D["L"])
+    cuts = sorted(set(cuts))
+    return [(a, b) for a, b in zip(cuts[:-1], cuts[1:]) if b - a > 1.0]
+
+
+def _merge(spans, gap):
+    """Spans [(a, b, ...)] sorted, those under gap apart joined (the first one's extra fields kept)."""
+    out = []
+    for sp in sorted(spans):
+        if out and sp[0] - out[-1][1] < gap:
+            out[-1] = (out[-1][0], max(out[-1][1], sp[1])) + tuple(out[-1][2:])
+        else:
+            out.append(tuple(sp))
+    return out
+
+
+def spine_calls(R, g_at):
+    """The words under a part of the developed section: the stream where the cut runs in it (stretches under 10 m
+    apart as one, at least 8 m long) with its bed level, the covered stream under the street, named places.
+    [(s, z, text)]. The bank edges are left out: along the stream the cut meets them at every step."""
+    out = []
+    for a, b, bed, lvl in _merge(R["water"], 10.0):
+        if b - a >= 8.0:
+            out.append((0.5 * (a + b), bed, "stream · bed +{:.2f}".format(bed + R["base"])))
+    for a, b, z in _merge(R.get("covered", []), 15.0):
+        out.append((0.5 * (a + b), z if z is not None else g_at(0.5 * (a + b)), "stream covered below"))
+    out += [((a + b) / 2.0, g_at((a + b) / 2.0), nm_) for a, b, nm_ in R.get("places", [])]
+    return out
+
+
+def draw_spine_section(S, B, x, y, w, U, tag="drawing"):
+    """The long section along the streamside spine: rows of the developed section at one scale (length = height),
+    the stops above by number and short name, the words at the water under each row, a locator and a scale bar."""
+    L = "LU_BOARD::Sections"
+    D = spine_section(S)
+    if D is None:
+        return y
+    rows = spine_rows(D)
+    ss = (w - 2.0 * SEC_END * U) / max(b - a for a, b in rows)   # page units per metre, along AND up
+    th = SEC_CALL_H * U
+    locw = min(12.0 * U, 0.2 * w)
+    B.fit("LONG SECTION ALONG THE STREAMSIDE SPINE  ·  THE STOPS 1-{}".format(max([r[0] for r in D["stops"]] or [0])),
+          x, y, 0.6 * U, w - locw - 2.0 * U, INK, L, font=FONT_TITLE, bold=True)
+    g = D["ground"]
+    B.text("{:.0f} m along the spine · ground +{:.2f} to +{:.2f} · developed, true heights".format(
+        D["L"], min(z for s, z in g) + D["base"], max(z for s, z in g) + D["base"]), x, y - 0.95 * U, 0.3 * U, INK2, L)
+    F = S.F                                               # the locator: the spine on the site, north up
+    V, mw, mh = view_fit(F, x + w - locw, y + 0.55 * U, locw, locw * F.h / F.w)
+    B.fill([V.P(F.P)], PAPER, L, 2)
+    for wt in S.water:
+        B.fill(V.Ps([wt["P"]] + wt.get("H", [])), BLUE_L, L, 8)
+    mini_buildings(S, B, V, L, lambda u: FAINT)
+    B.line([V.p(sg[0], sg[1]) for sg in D["segs"]] + [V.p(D["segs"][-1][2], D["segs"][-1][3])], INK, L, 15, 0.28)
+    B.line(V.P(F.P + [F.P[0]]), INK2, L, 16, 0.06)
+    draw_north_small(B, V, mw, mh, U, L, size=0.38)
+    top = min(y - 1.6 * U, y + 0.55 * U - mh - 0.5 * U)
+    low = top
+    for ri, (r0, r1) in enumerate(rows):
+        R = sec_slice(D, r0, r1)
+        Lm = r1 - r0
+        X0 = x + SEC_END * U
+        # the stops of this row above it, each on the first line where it clears the others
+        here = [r for r in D["stops"] if (r0 <= r[2] < r1 or (ri == len(rows) - 1 and r[2] >= r1 - 1e-6))]
+        lab = []
+        for nn, nm_, s, off in here:
+            fx = X0 + (s - r0) * ss
+            txt = nm_ if off <= SPINE_STOP_NEAR else "{} ({:.0f} m)".format(nm_, off)
+            x_l, x_r = fx - 0.45 * U, fx + 0.75 * U + tw(txt, th)
+            tier = 0
+            while any(t2 == tier and x_l < r2 + 0.6 * U and l2 - 0.6 * U < x_r for l2, r2, t2 in lab):
+                tier += 1
+            lab.append((x_l, x_r, tier))
+        nt = max([t2 for _l, _r, t2 in lab] or [-1]) + 1
+        row_top = low - (nt * (th + 0.55 * U) + 0.6 * U if nt else 0.3 * U)
+        Y0 = row_top - D["zmax"] * ss
+
+        def P(s, z, X0=X0, Y0=Y0):
+            return (X0 + s * ss, Y0 + z * ss)
+
+        def g_at(s, R=R):
+            return R["ground"][max(0, min(len(R["ground"]) - 1, int(round(s / 0.5))))][1]
+        # the pictures beyond the cut, piece by piece, all at the same height range
+        if HAVE_NP:
+            for k, (ax, ay, bx, by, s0, Ls, d) in enumerate(D["segs"]):
+                if s0 + Ls <= r0 + 1e-6 or s0 >= r1 - 1e-6:
+                    continue
+                sd_k = dict(name="SP%02d" % (k + 1), line=(ax, ay, bx, by, "SP%02d" % (k + 1)), L=Ls, s_off=0.0, part=(1, 1),
+                            base=D["base"], zmax=D["zmax"],
+                            ground=[(s, z + d["base"] - D["base"]) for s, z in d["ground"]])
+                png = sec_art_png(S, sd_k, ss, tag)
+                if png:
+                    path, zlo_a, zhi_a = png
+                    B.image(path, X0 + (s0 - r0) * ss, Y0 + (zlo_a - D["base"]) * ss, X0 + (s0 + Ls - r0) * ss,
+                            Y0 + (zhi_a - D["base"]) * ss, L, 5)
+        sec_cut(B, L, R, P, Lm, ss, U, dry=not HAVE_NP)
+        for a, b, z in R.get("covered", []):              # the covered stream: its bed under the street, dashed
+            if z is not None:
+                for dd in dashes([P(a, z), P(b, z)], 0.5 * U, 0.3 * U):
+                    B.line(dd, SEC_CHANNEL_HATCH, L, 30, 0.3)
+        calls = []
+        for ax, ay, bx, by, s0, Ls, d in D["segs"]:       # the streets crossed, piece by piece
+            if s0 + Ls <= r0 + 1e-6 or s0 >= r1 - 1e-6:
+                continue
+            o_ = s0 - r0
+
+            def Pk(s, z, o_=o_):
+                return P(s + o_, z)
+
+            def gk(s, o_=o_):
+                return g_at(s + o_)
+            calls += [(s + o_, z, t.split(" · ")[0]) for s, z, t in draw_sec_roads(S, B, L, Pk, gk, (ax, ay, bx, by),
+                                                                                   Ls, U)
+                      if 0.0 <= s + o_ <= Lm and not t.startswith("STREET")]
+        # the stops: a numbered mark over the ground, its name beside it
+        for (nn, nm_, s, off), (x_l, x_r, tier) in zip(here, lab):
+            fx = X0 + (s - r0) * ss
+            sl = min(Lm, max(0.0, s - r0))
+            gy = P(sl, g_at(sl))[1]
+            ly = row_top + 0.6 * U + (nt - 1 - tier) * (th + 0.55 * U)
+            cy = ly + 0.5 * th
+            for dd in dashes([(fx, gy + 0.15 * U), (fx, cy - 0.5 * U)], 0.3 * U, 0.2 * U):
+                B.line(dd, INK2, L, 37, 0.06)
+            mk = circle_pts(fx, cy, 0.5 * U, 24)
+            B.fill([mk], INK, L, 40)
+            B.text(str(nn), fx, cy, 0.42 * U, PAPER, L, order=41, font=FONT_TITLE, bold=True, align="MC")
+            txt = nm_ if off <= SPINE_STOP_NEAR else "{} ({:.0f} m)".format(nm_, off)
+            B.text(txt, fx + 0.75 * U, ly, th, INK, L, font=FONT_TITLE, bold=True)
+        # the row's ends: level and, at the spine's ends, which way the stream runs
+        for s, zl, za, kind in R["levels"]:
+            if kind != "end":
+                continue
+            bx, by = P(s, zl)
+            B.fill([[(bx, by), (bx - 0.22 * U, by + 0.38 * U), (bx + 0.22 * U, by + 0.38 * U)]], INK, L, 36)
+            out = -1.0 if s < Lm * 0.5 else 1.0
+            B.text("+{:.2f}".format(za), bx + out * 0.4 * U, by + 0.08 * U, 0.26 * U, INK, L,
+                   align="L" if out > 0 else "R")
+        for s, word, real in ((0.0, D["ends"][0], ri == 0), (Lm, D["ends"][1], ri == len(rows) - 1)):
+            if real:                                      # the spine's ends: which way the stream runs
+                calls.append((s, g_at(s), word.upper() + " END"))
+            else:                                         # where the rows meet
+                bx, by = P(s, g_at(s))
+                B.line([(bx, by - 0.9 * U), (bx, by + 1.2 * U)], INK2, L, 36, 0.05)
+        calls += spine_calls(R, g_at)
+        low = sec_callouts(B, L, P, calls, P(0, -3.0)[1] - 0.45 * U, U, xlo=x, xhi=x + w)
+        rib = low - 0.5 * U
+        for a, b, cat in R["strip"]:
+            B.fill([rect(P(a, 0)[0], rib - 0.16 * U, P(b, 0)[0], rib)], CAT[cat][1], L, 20)
+        low = rib - 0.16 * U - 0.8 * U
+    sb = nice_floor(max(b - a for a, b in rows) / 4.0)
+    xb = x + w - SEC_END * U - sb * ss - 0.9 * U
+    yb = low - 0.6 * U
+    PANEL_RECTS["spine_section"] = (x, yb - 0.25 * U, x + w, top + 0.2 * U)
+    draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
+    B.text("1:{:,.0f} at {:.0f} mm · lengths and heights at one scale".format(
+        nice_ratio(1000.0 / max(1e-9, ss * MMU)), SHEET_MM), x + SEC_END * U, yb + 0.1 * U, 0.24 * U, INK2, L)
+    return yb - 0.35 * U
 def write_city_link_movement(S, R):
     """v34: length-weighted walking potential (index, 100 = busiest street piece today) on the spine pieces with the
     spine, and on the existing streets within 40 m of the main Selinus line today and with the spine."""
@@ -21401,7 +21943,12 @@ def build_sheet(S, B, X, Y, U, rects):
     else:
         items.append(("12 Section placeholder", 94.8 * U,
                       lambda x, y: draw_section_placeholder(S, B, x, y, 94.8 * U, 14.0 * U, U, 1)))
-    items.append(("{:02d} Sources".format(12 + max(1, len(S.sections))), 94.8 * U,
+    n_ = 12 + max(1, len(S.sections))
+    if spine_section(S) is not None:                     # v40: the long section along the streamside spine
+        items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
+                      lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))
+        n_ += 1
+    items.append(("{:02d} Sources".format(n_), 94.8 * U,
                   lambda x, y: draw_footer(S, B, x, y, 94.8 * U, U, h=0.3)))
     B.begin("DRAWINGS · sheet title", "LU_DRAWINGS")
     B.text("SEPARATE DRAWINGS · grouped · framed with a cutting margin", X, Y + 2.2 * U, 0.9 * U, INK,
@@ -22187,6 +22734,16 @@ class BkBlocks(object):
     def drawing(self, bid, pdf_name, labels, caption="", scale_den=None, legend=None):
         self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
                                  "scale_den": scale_den, "legend": legend or []}
+
+    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
+        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
+        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
+        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
+        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
+        drop = regexes of sheet texts not to carry."""
+        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
+                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
 
     def tiles(self, bid, tiles):
         self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}

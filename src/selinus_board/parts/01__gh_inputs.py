@@ -1,8 +1,16 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v39)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v40)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v40 (2026-10-25, Aras's booklet review):
+  * The stream's tree cover (drawing 06): each bank's distance bands named beside their rows, the stream between the
+    banks with its covered reaches drawn on it and the bridges across it, a distance axis every 500 m, a drawn key.
+  * Sections: the words at the water (stream width and depth, bed level, bank edges) in one band right under the cut
+    ground, on short leaders; no caveat words on the drawing (they go to the log).
+  * New drawing "Section along the spine": the masterplan's streamside spine as one long developed section, cut by
+    the same section engine, at one scale for lengths and heights, the stops 1-8 marked above it.
 
 NEW IN v39 (2026-10-25, SCRIPT_STANDARD 8, booklet/ASSET_SPEC.md: the A3 booklet):
   * After the board's PDFs: output/selinus_board/booklet/ holds one text-free vector PDF per booklet frame of pages
@@ -669,7 +677,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v39 (2026-10-25)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v40 (2026-10-25)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
