@@ -1,5 +1,5 @@
 """Top-level functions/classes the script can never reach from its top-level code (references followed transitively).
-usage: python3 tools/deadcode.py <script.py>   Names that appear inside string literals are counted as used (getattr/globals())."""
+usage: python3 tools/deadcode.py <script.py>   Names that appear anywhere inside a string (getattr, globals(), embedded engines such as DIAG_SRC) count as used."""
 import ast, sys, re
 src = open(sys.argv[1], encoding="utf-8").read(); t = ast.parse(src)
 defs = {n.name: n for n in t.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
@@ -8,7 +8,7 @@ def names(node):
     for x in ast.walk(node):
         if isinstance(x, ast.Name): out.add(x.id)
         elif isinstance(x, ast.Attribute): out.add(x.attr)
-        elif isinstance(x, ast.Constant) and isinstance(x.value, str) and len(x.value) < 200:
+        elif isinstance(x, ast.Constant) and isinstance(x.value, str):
             out.update(re.findall(r"[A-Za-z_]\w*", x.value))
     return out
 seen = set(); todo = set()

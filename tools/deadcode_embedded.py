@@ -10,7 +10,7 @@ def names(node, strings=True):
     for x in ast.walk(node):
         if isinstance(x, ast.Name): out.add(x.id)
         elif isinstance(x, ast.Attribute): out.add(x.attr)
-        elif strings and isinstance(x, ast.Constant) and isinstance(x.value, str) and len(x.value) < 200:
+        elif strings and isinstance(x, ast.Constant) and isinstance(x.value, str):
             out.update(re.findall(r"[A-Za-z_]\w*", x.value))
     return out
 roots = set()
