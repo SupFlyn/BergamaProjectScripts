@@ -27,6 +27,17 @@ TEMPLATES = {
     "tiles":    {"strip": (1, 12, 1, 1), "hero": (1, 8, 2, 4), "side": (9, 12, 2, 4)},
     "sections_t": dict([("s%d" % i, (1, 9, i, i)) for i in range(1, 5)] + [("t%d" % i, (10, 12, i, i)) for i in range(1, 5)]),
     "full":     {"hero": (1, 12, 1, 4)},
+    # half rows (1-8: 26 mm each + 4 mm gutters; two half rows = one row): frames sized to the sheets' panels
+    "c1":       {"a": (1, 5, 1, 4), "b": (6, 12, 1, 4)},
+    "edge":     {"s1": (1, 12, 1, 1, "half"), "s2": (1, 12, 2, 4, "half"), "s3": (1, 12, 5, 6, "half"),
+                 "s4": (1, 12, 7, 8, "half")},
+    "tiles_full": {"strip": (1, 12, 1, 1, "half"), "hero": (1, 12, 2, 8, "half")},
+    "two_tall": {"a": (1, 6, 1, 7, "half"), "b": (7, 12, 1, 7, "half"), "strip": (1, 12, 8, 8, "half")},
+    "rows_53":  {"top": (1, 12, 1, 5, "half"), "bottom": (1, 12, 6, 8, "half")},
+    "rows_35":  {"top": (1, 12, 1, 3, "half"), "bottom": (1, 12, 4, 8, "half")},
+    "rows_332": {"r1": (1, 12, 1, 3, "half"), "r2": (1, 12, 4, 6, "half"), "r3": (1, 12, 7, 8, "half")},
+    "grid6h":   {"a": (1, 6, 1, 3, "half"), "b": (7, 12, 1, 3, "half"), "c": (1, 6, 4, 6, "half"),
+                 "d": (7, 12, 4, 6, "half"), "e": (1, 6, 7, 8, "half"), "f": (7, 12, 7, 8, "half")},
 }
 
 SCRIPT_OF = {   # output folder -> script, named on placeholders and in the log

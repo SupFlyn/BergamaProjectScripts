@@ -50,6 +50,7 @@ WB_FILES = [os.path.join(BERGAMA, "output", "Bergama_water_balance_analysis", "w
             os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis", "water_balance_results.json")]
 MV_FILE = os.path.join(BERGAMA, "output", "selinus_board", "city_link_movement.json")     # written by selinus_board v34
 MP_FILE = os.path.join(BERGAMA, "output", "bergama_masterplan", "masterplan_results.json")  # v1.8: the drawn spine's length
+BD_FILE = os.path.join(BERGAMA, "output", "selinus_board", "booklet", "results.json")    # v1.8: bed depth (board v40)
 WB_DEFAULT = dict(cropland_ha=34.9, orchard_ha=1.34, cropland_crops="cotton,tomato")      # results_default.json, 24 Oct 08:21
 
 # ------------------------------------------------------------------ the spine and the function sites (survey m)
@@ -149,7 +150,7 @@ REASONS = [  # v1.6 tiles: (pictogram, keyword heading, big figure, keyword line
     ("front", "BUILDINGS WITHIN 30 M", "30 buildings", ("on 1.7 km of open stream", "almost no frontage for a shop"), "OSM, calculated"),
     ("bank", "BANK DISCONNECTED", "68 %", ("12 % enclosed by building backs", "2 % accessible"), "PR1 board p.2 (v18 bank analysis)"),
     # v1.8 (booklet/research/FIGURE_CONFLICTS.md §1): the typed "1.1-6.7 m" (an old 9-10 Oct board run) is gone; the
-    # site board computes the depth live but writes it to no results file yet, so the tile shows no figure
+    # site board v40 writes it live (bed_below_banks_min_m/max_m): read in bed_depth(); no figure when it has not run
     ("deep", "BED BELOW THE BANKS", "", ("walls", "no way down"), "Bed depth: read from the survey terrain (site board channel profile)"),
     # v1.6 fix (VISUAL_AUDIT accuracy 1): was "0.4-1.4 m / Q500 rises over the banks; Q100 tops every bank too" (withdrawn);
     # now README v1.1 line 49: "on the surveyed sections Q100 2.0-3.0 m and Q500 2.3-3.3 m, flat end 1.4 / 1.5 m,
@@ -271,6 +272,16 @@ def _load(paths):
         except Exception:
             pass
     return None, None
+
+def bed_depth():
+    """"1.0-2.3 m": the bed below the banks over the survey cuts, from the site board's results (v40); "" if absent."""
+    d, _ = _load([BD_FILE])
+    try:
+        a, b = float(d["bed_below_banks_min_m"]), float(d["bed_below_banks_max_m"])
+        return "%.1f-%.1f m" % (a, b) if b > a else "%.1f m" % a
+    except Exception:
+        return ""
+
 
 def live():
     """farm lands from the water balance results; walking potential on the spine from the site board"""
@@ -574,6 +585,8 @@ def page_why(L):
     pg.text("SEVEN REASONS THE STREAM EDGE HAS NO SPINE " + cite(SRC_HIST), rx, ry + rh + 5, 9, C["ink"], True)
     tw_ = rw / 7.0
     for i, (ic, head, big, kws, src) in enumerate(REASONS):
+        if ic == "deep" and not big:
+            big = bed_depth()
         x = rx + i * tw_
         pg.rect(x, ry, tw_ - 3, rh, fill=C["paper"])
         icon(pg, ic, x + 2.5, ry + rh - 2.5, 9)
