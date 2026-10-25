@@ -3,10 +3,10 @@
 # One place for page-level text = no repetition. Asset keys are "<script output folder>/<block id>": the block comes from
 # that script's output/<folder>/booklet/blocks.json. {src:key} marks become [n] (one numbering for the booklet).
 BOOK = dict(
-    hook=u"PULSE",                        # the one-word name (Aras 25 Oct 20:02; card pick pending, default)
+    hook=u"HYDRAGORA",                    # coined one-word name (Aras 25 Oct 20:24; card pick pending, default)
     title=u"From stream corridor to hydrological commons",
     subtitle=u"Selinos stream edge, Bergama",
-    project=u"PULSE · SELİNOS STREAM · BERGAMA",
+    project=u"HYDRAGORA · SELİNOS STREAM · BERGAMA",
     group_line=u"ARCH 4410 Architectural Design Studio V · Group 6",
     course=u"Yaşar University · ARCH 4410 Architectural Design Studio V · 2026-2027 Fall",
     names=[u"Aras Özkaymakcı", u"Begüm Arslan", u"Nil Çetin"],
