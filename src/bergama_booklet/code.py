@@ -351,7 +351,8 @@ def put_drawing(fitz, pg, typo, pno, rect, blk, adir, src, sid):
 
 
 # ---- crops of the scripts' own sheets (Aras 25 Oct 21:47: the booklet shows the sheets' drawings, re-laid) ----
-STD_SCALES = (200, 250, 500, 1000, 1250, 2000, 2500, 5000, 10000, 20000, 25000, 50000)
+STD_SCALES = (100, 200, 250, 300, 400, 500, 750, 1000, 1250, 1500, 2000, 2500, 5000, 7500, 10000, 20000, 25000,
+              50000)
 CAVEAT = re.compile(r"\s*(?::|·|-|,)?\s*\(?(?:not designed|route not designed|not verified|unverified|schematic"
                     r"(?:, not to scale)?|not to scale|provisional)\)?\s*$", re.I)
 WORDING = [(r"\bRIVERSIDE\b", "STREAMSIDE"), (r"\bRiverside\b", "Streamside"), (r"\briverside\b", "streamside"),
@@ -395,6 +396,9 @@ def crop_words(fitz, page, clip, drop):
                 continue
             for a, b_ in WORDING:
                 t = re.sub(a, b_, t)
+            t = re.sub(r"\s*\((?:idea:\s*)?(?:Aras|Begüm|Begum|Nil)\b[^)]*\)", "", t)
+            if re.fullmatch(r"(?:ARAS|BEGÜM|BEGUM|NİL|NIL|Aras|Begüm|Nil)('s)?", t.strip()):
+                continue                                 # personal names: not in the booklet (SCRIPT_STANDARD §8)
             t = CAVEAT.sub("", re.sub(r"\s*\[(?:\d{1,3}|[A-Z]{1,2})(?:[,\-–]\s*(?:\d{1,3}|[A-Z]{1,2}))*\]", "", t)).strip()
             if not t or any(re.search(d, t) for d in drop) or re.search(r"\(?\bidea:", t, re.I):
                 continue
@@ -446,8 +450,10 @@ def crop_words(fitz, page, clip, drop):
 
 
 def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
-    """A panel of a script's sheet, scaled into the frame (top-left), its words set again as live labels >= 7.5 pt:
-    a label that would collide is moved (above, below, beside), else left out and logged."""
+    """A panel of a script's sheet, scaled evenly (never stretched) into the frame from its top-left, its words set
+    again as live labels >= 7.5 pt: a label that would collide is moved (above, below, beside), else left out and
+    logged. A panel much wider than its frame is divided into equal pieces stacked one under the other ("split" in
+    the plan forces the number of pieces), read left to right then top to bottom."""
     x, y, w, h = rect
     cap_h = 5.0
     dh = h - cap_h
@@ -459,7 +465,12 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
     r = blk["rect_mm"]
     clip = fitz.Rect(r[0] * K, r[1] * K, r[2] * K, r[3] * K) & org.rect
     cw, ch = clip.width / K, clip.height / K
-    f = min(w / cw, dh / ch)
+    gap = 3.0
+    fit = lambda n: min(w / (cw / n), (dh - (n - 1) * gap) / (n * ch))
+    n = int(blk.get("split") or 0)
+    if not n:
+        n = max(range(1, 5), key=lambda m: fit(m) / (1.25 if m > 1 else 1.0))
+    f = fit(n)
     den, sden = None, blk.get("scale_den")
     if sden:
         raw = sden / f
@@ -468,9 +479,39 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
             f, den = sden / std, std
         else:
             den = int(round(raw, -1))
-    tgt = fitz.Rect(x * K, y * K, (x + cw * f) * K, (y + ch * f) * K)
-    pg.show_pdf_page(tgt, bare, 0, clip=clip)
-    T_ = lambda px, py: (x + (px - clip.x0) / K * f, y + (py - clip.y0) / K * f)
+    cuts = [clip.x0]
+    if n > 1:                                            # cut where the drawing is emptiest near each equal share
+        pix = org.get_pixmap(clip=clip, dpi=24, colorspace=fitz.csGRAY)   # with its words: never cut through text
+        sm, cols = pix.samples, pix.width
+        ink = [sum(1 for r_ in range(pix.height) if sm[r_ * pix.stride + c] < 200) for c in range(cols)]
+        boxes_ = []                                      # panel boxes (frames over 30 % of the height): never cut
+        for d_ in org.get_drawings():
+            rr = d_.get("rect")
+            if rr and rr.height > 0.3 * clip.height and rr.width < 0.9 * clip.width and rr.intersects(clip):
+                boxes_.append((rr.x0, rr.x1))
+        for c in range(cols):
+            px_ = clip.x0 + clip.width * (c + 0.5) / cols
+            if any(a_ < px_ < b_ for a_, b_ in boxes_):
+                ink[c] += 10 * pix.height
+        for i in range(1, n):
+            c0 = int(cols * i / n)
+            win = range(max(1, c0 - cols // (4 * n)), min(cols - 1, c0 + cols // (4 * n)) + 1)
+            c = min(win, key=lambda q: (ink[q], abs(q - c0)))
+            cuts.append(clip.x0 + clip.width * c / float(cols))
+        pw_max = max(b - a for a, b in zip(cuts, cuts[1:] + [clip.x1])) / K
+        f = min(f, w / pw_max)
+        if den and sden:
+            den = int(round(sden / f, -1))
+    cuts.append(clip.x1)
+    pieces = []
+    for i in range(n):
+        pc = fitz.Rect(cuts[i], clip.y0, cuts[i + 1], clip.y1)
+        oy = y + i * (ch * f + gap)
+        pg.show_pdf_page(fitz.Rect(x * K, oy * K, (x + pc.width / K * f) * K, (oy + ch * f) * K), bare, 0, clip=pc)
+        pieces.append((pc, x, oy, x + pc.width / K * f, oy + ch * f))
+
+    def piece_of(px):
+        return next((p_ for p_ in pieces if px < p_[0].x1), pieces[-1])
     units, seen = [], []
     for u in crop_words(fitz, org, clip, blk.get("drop") or []):
         sig = ("\n".join(u["lines"]), round(u["bb"].x0 / 3), round(u["bb"].y0 / 3))
@@ -478,7 +519,6 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
             seen.append(sig); units.append(u)
     units.sort(key=lambda u: (not (len(u["lines"]) == 1 and len(u["lines"][0]) <= 3), -u["size"], not u["bold"]))
     placed, dropped = [], []
-    fx0, fy0, fx1, fy1 = x, y, x + cw * f, y + ch * f
 
     def hits(b, o):
         """b collides with placed box o; a symbol's number (o[4]) only counts when b covers 40 % of it."""
@@ -487,6 +527,8 @@ def put_crop(fitz, pg, typo, pno, rect, blk, sdir, src, sid):
             return False
         return not o[4] or ix * iy > 0.4 * (o[2] - o[0]) * (o[3] - o[1])
     for u in units:
+        pc, fx0, fy0, fx1, fy1 = piece_of((u["bb"].x0 + u["bb"].x1) / 2)
+        T_ = lambda px, py, pc=pc, fx0=fx0, fy0=fy0: (fx0 + (px - pc.x0) / K * f, fy0 + (py - pc.y0) / K * f)
         size = min(max(T["label"], u["size"] * f), 14.0)
         lead = size * PT * 1.15
         if abs(u["angle"]) >= 2:                                 # rotated word (a street name): its own line
@@ -719,9 +761,11 @@ def place(fitz, pg, typo, src, pno, rect, blk, sid, assets, legend, missing):
             typo.line(pg, src.sub(blk.get("caption", "")), rect[0], rect[1] + rect[3] - 1.0, T["caption"], INK2)
         else:
             ab = dict(ab)
-            for k in ("caption", "scale_den"):
+            for k in ("caption", "split"):
                 if blk.get(k):
                     ab[k] = blk[k]
+            if blk.get("scale_den") and ab.get("type") != "crop":
+                ab["scale_den"] = blk["scale_den"]
             if ab.get("type") == "crop":                 # the sheet's own drawing (pdf path from the script's folder)
                 put_crop(fitz, pg, typo, pno, rect, ab, os.path.dirname(a["_dir"]), src, sid)
             else:
