@@ -301,11 +301,22 @@ def put_drawing(fitz, pg, typo, pno, rect, blk, adir, src, sid):
                            (pno, sid, sw, sh, f, w, dh))
     tgt = fitz.Rect(x * K, y * K, (x + sw * f) * K, (y + sh * f) * K)
     pg.show_pdf_page(tgt, s, blk.get("page", 0))
+    boxes = []
     for lb in blk.get("labels") or []:               # labels as live text, positions in mm from the drawing's top-left
         size = max(T["label"], float(lb.get("size", T["label"])))
         lx, ly = x + lb["x"] * f, y + lb["y"] * f
-        typo.line(pg, src.sub(lb.get("text", "")), lx, ly, size, lb.get("colour", INK), bool(lb.get("bold")),
-                  lb.get("anchor", "L"))
+        txt, bold, an = src.sub(lb.get("text", "")), bool(lb.get("bold")), lb.get("anchor", "L")
+        wd = typo.width(txt, size, bold)
+        bx = lx - (wd / 2 if an == "C" else wd if an == "R" else 0)
+        box = (bx, ly - size * PT * 0.72, bx + wd, ly + size * PT * 0.21)
+        if any(box[0] < o[2] and o[0] < box[2] and box[1] < o[3] and o[1] < box[3] for o in boxes):
+            typo.issues.append("LABELS OVERLAP p.%s %s: %s" % (pno, sid, txt[:30]))
+        if box[0] < x - 0.5 or box[2] > x + w + 0.5 or box[1] < y - 0.5 or box[3] > y + dh + 0.5:
+            typo.issues.append("LABEL OUTSIDE FRAME p.%s %s: %s" % (pno, sid, txt[:30]))
+        boxes.append(box)
+        typo.line(pg, txt, lx, ly, size, lb.get("colour", INK), bold, an)
+    if len(sp.get_text("text").strip()):
+        typo.issues.append("TEXT INSIDE DRAWING PDF p.%s %s: words must be labels in blocks.json" % (pno, sid))
     cap = src.sub(blk.get("caption", ""))
     if blk.get("scale_den"):
         cap = (cap + "   " if cap else "") + "1:{:,}".format(int(round(blk["scale_den"] / f, -1)))
