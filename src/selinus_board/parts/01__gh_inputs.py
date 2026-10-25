@@ -1,8 +1,15 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v38)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v39)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v39 (2026-10-25, SCRIPT_STANDARD 8, booklet/ASSET_SPEC.md: the A3 booklet):
+  * After the board's PDFs: output/selinus_board/booklet/ holds one text-free vector PDF per booklet frame of pages
+    A1-A7 (drawn at the frame's size from booklet_slots.json, words as labels in blocks.json), results.json (the
+    figures the booklet's A pages print: land use, readings, sky view, movement, bank shares, T1-T8) and
+    booklet_log.txt. The site photos are copied to Downloads/Bergama/booklet_images/photo_1..8.jpg. The board's own
+    PDFs, maps and log are unchanged; a booklet error is a warning in the log and never stops the board.
 
 NEW IN v38 (2026-10-25, Aras 17:00 "visual first", SCRIPT_STANDARD 5b; audit batch_2026-10-25_visual_first section 6):
   * Sheets show pictures and keywords, not sentences. Readings are pictogram tiles (icon, keyword, ONE big figure,
@@ -662,7 +669,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v38 (2026-10-25)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v39 (2026-10-25)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

@@ -21,7 +21,7 @@ MAX_CALLOUTS = 12
 CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
 COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 TREES_GREEN_EVERYWHERE = False                                 # True: green trees on every page, not only D4 and D8
-SCRIPT = "selinus_board_v38.py (axonometric engine from bergama_diagrams v1.8)"
+SCRIPT = "selinus_board_v39.py (axonometric engine from bergama_diagrams v1.8)"
 VERSION = "v1.8 in board v33"
 
 # Bridges over the Selinus, survey coordinates, from the concept record's table (CONCEPT_RECORD.md section 2.1)

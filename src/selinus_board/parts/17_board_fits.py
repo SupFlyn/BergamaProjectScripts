@@ -745,8 +745,8 @@ def save_last(info_, out_, secs_):
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mem_set("lu_last_out", out_, disk=False)
     mem_set("lu_last", dict(info=info_, when=stamp, secs=round(secs_, 1)))
-    st_ = "v38 · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
-        "v38 · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
+    st_ = "v39 · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
+        "v39 · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
     mem_set("lu_status", st_)
     gh_status(st_)
     try:
@@ -860,7 +860,7 @@ if HAVE_RHINO:
         gh_message("warning", info)
     elif not pressed:
         info = "Idle. Nothing is read or computed until you press the button."
-        gh_status(mem_get("lu_status") or "v38 · idle")              # v27: version and last total time stay shown
+        gh_status(mem_get("lu_status") or "v39 · idle")              # v27: version and last total time stay shown
         if changing:
             info += "\nSetting the component up: " + ", ".join(changing) + "."
         if last:
@@ -988,6 +988,10 @@ if HAVE_RHINO:
                         LOG.append("WARNING: PDF not written for: " + "; ".join(_bad[:6]))
                 except Exception as ex_:
                     LOG.append("WARNING: PDF export failed ({}); the bake is done.".format(ex_))
+            try:                                              # v39: the A3 booklet's assets (SCRIPT_STANDARD 8)
+                booklet_export(SITE, BOARD, RECTS)
+            except Exception:
+                LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())
             T = SITE.T
             names = [nm for nm, r in RECTS]
             drawings = [_crv(rect(r[0], r[1], r[2], r[3]), True) for nm, r in RECTS]
