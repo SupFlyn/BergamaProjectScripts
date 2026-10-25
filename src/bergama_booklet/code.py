@@ -398,9 +398,10 @@ def put_image(fitz, pg, typo, rect, blk, src):
 def cover(pg, typo, pages):
     x = colx(1)
     typo.line(pg, BOOK["course"].upper(), x, 16, T["kicker"], ACCENT, True)
-    y = 64
-    for ln in typo.wrap(BOOK["title"], slot_rect(1, 7, 1, 1)[2], 48, True):
-        typo.line(pg, ln, x, y, 48, INK, True); y += 18
+    typo.line(pg, BOOK["hook"], x, 64, 48, ACCENT, True)
+    y = 82
+    for ln in typo.wrap(BOOK["title"], slot_rect(1, 7, 1, 1)[2], T["part"], True):
+        typo.line(pg, ln, x, y, T["part"], INK, True); y += 10
     typo.line(pg, BOOK["subtitle"], x, y + 2, T["sub"], INK)
     yb = 232
     for ln in BOOK["names"]:
