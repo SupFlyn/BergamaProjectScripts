@@ -827,6 +827,7 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None):
               0.17 * U, (bw + gap) * ss * 0.95, INK2, L, align="C")
         s0 += bw + gap
     B.line([P(0.0, 0.0), P(s0 - 0.5 * gap, 0.0)], INK, L, 28, 0.12)
+    crop_panel("building_types", x, gy - 0.95 * U, x + w, y - 1.1 * U, u"Building types in the sections")   # v40
     return gy - 1.0 * U
 
 
@@ -884,6 +885,8 @@ def draw_key_question(S, B, x, y, w, U, cols=1):
     cw = (w - gap * (cols - 1)) / cols
     y -= 0.6 * U
     cells = key_cells(S)
+    crop_panel("key_question", x, y - ((len(cells) + cols - 1) // cols) * 2.3 * U + 0.9 * U, x + w, y + 0.7 * U,
+               u"Where is the stream ...? · % of bank length")     # v40: the booklet crop of the bars
     for i, (name, val, col, phrase) in enumerate(cells):
         cx = x + (i % cols) * (cw + gap)
         cy = y - (i // cols) * 2.3 * U
@@ -959,8 +962,18 @@ PW, PH, PM, TB = 100.0, 56.25, 2.6, 6.6
 # conflict markers C1-C6 of pr1_drawings and the site photos as numbered viewpoints (plant analysis panel 5).
 CONTEXT_M = 150.0          # m of quiet context around the site frame (Aras, batch 22 Oct, Q1)
 THRESH_W = 0.45            # mm: the stream thresholds, thinner than on the old thresholds map (Aras 22 Oct)
-HOME_TONE = {"traditional": (INK, 0.42), "block": (INK, 0.22), "regular": (None, 0.0), "selfbuilt": (PAPER, 0.45),
-             "large": (PAPER, 0.7), "construction": (PAPER, 0.7)}    # homes: the residential colour, darker = denser
+# v40 (Aras 25 Oct 21:38-21:40: "the urban fabric layer back, informal vs planned buildings", as the v28 fabric map):
+# plan 01's buildings by fabric type (fabric_types: the rules of bergama_fabric_green v10 / selinus_board v28), in the
+# fabric map's lightness order (old town darkest, small irregular houses light) on palette v1.4 roles (board variant)
+FABRIC_PLAN = {"monument": C("AF7474"),       # D2 historic
+               "sacred": C("8B3A3F"),         # D2 sacred (accent)
+               "traditional": C("4A3F35"),    # ink
+               "block": C("7A6E60"),          # ink2
+               "regular": C("BCB794"),        # structure
+               "selfbuilt": C("DCD5C2"),      # faint
+               "large": C("FAF8F1"),          # road (lightest void)
+               "construction": C("E6E0C8")}   # ground
+FABRIC_EDGE = mix(INK, PAPER, 0.25)           # hairline round the light types, as on the fabric map
 LEAF_COL = {0: C("8FA05A"), 1: C("8A9478"), 2: C("445A3C")}             # plant analysis LEAF
 LEAF_NAME = {0: "deciduous", 1: "evergreen broadleaf (mostly olive)", 2: "needle-leaved"}
 # Bridges over the Selinus, survey coordinates: concept record table (CONCEPT_RECORD.md 2.1), as diagrams v1.8
@@ -1135,18 +1148,25 @@ def photo_files(folder):
     return out
 
 
-def home_col(u):
-    """Buildings on the plan: homes in the residential colour by fabric (darker = denser grain), monuments and sacred
-    buildings in the fabric's heritage colours, every other use in its land-use colour."""
-    fab = u.get("fabric", "regular")
-    if fab in ("monument", "sacred"):
-        col = FABRIC[fab][2]
-    elif u["cat"] == "residential":
-        tgt, t = HOME_TONE.get(fab, (None, 0.0))
-        col = mix(CAT["residential"][1], tgt, t) if tgt is not None else CAT["residential"][1]
-    else:
-        col = CAT[u["cat"]][1]
-    return mix(col, PAPER, 0.35) if u["annex"] else col
+def fabric_col(u):
+    """v40: a building on plan 01 by its fabric type (the fabric map's rule: sheds and annexes paler)."""
+    col = FABRIC_PLAN[u.get("fabric", "regular")]
+    return mix(col, PAPER, 0.45) if u["annex"] else col
+
+
+def stream_normal(S, x, y):
+    """v40: the unit normal to the Selinos at the stream point nearest (x, y) (survey axes), or None beyond 60 m."""
+    best = None
+    for P in getattr(S, "selinus", None) or []:
+        for a, b in zip(P[:-1], P[1:]):
+            d = seg_dist(x, y, a[0], a[1], b[0], b[1])
+            if best is None or d < best[0]:
+                best = (d, a, b)
+    if best is None or best[0] > 60.0:
+        return None
+    dx, dy = best[2][0] - best[1][0], best[2][1] - best[1][1]
+    n = math.hypot(dx, dy) or 1.0
+    return (-dy / n, dx / n)
 
 
 def draw_what_is_there(S, B, x, y, w, U):
@@ -1171,7 +1191,11 @@ def draw_what_is_there(S, B, x, y, w, U):
         for a, b in ctx.get(key, []):
             B.line([V.p(*a), V.p(*b)], col, L, 2, wd)
     # the site: land use, land cover, ground, streets, trees, buildings (homes by fabric), walls, bridges
-    draw_landuse_map(S, B, V, bcol=home_col)
+    draw_landuse_map(S, B, V, bcol=fabric_col)            # v40: buildings by urban fabric type
+    for u in S.bld:                                       # light types get a hairline so they read on paper
+        if not u["annex"] and u.get("fabric") in ("selfbuilt", "large", "construction"):
+            for P in u["parts"]:
+                B.line(V.P(P + [P[0]]), FABRIC_EDGE, L, 15, 0.03)
     # canopy-map crowns (modelled), under the surveyed tree symbols
     crowns = [c for c in site_crowns(S, F) if F.inside(c[0], c[1])]
     for leaf in (0, 1, 2):
@@ -1200,31 +1224,51 @@ def draw_what_is_there(S, B, x, y, w, U):
     B.line(V.P(F.P + [F.P[0]]), INK, L, 26, 0.25)
     if RF is not None:                                    # v36: the analysis range (site_alan) on the whole-file map
         B.line(V.P(RF.P + [RF.P[0]]), INK, L, 26, 0.12)
-    # bridges, conflicts, photos
-    rr = 0.42 * U
-    for k, nm, bx, by in BRIDGES_K:
-        if F.inside(bx, by):
-            px, py = V.p(bx, by)
-            roundel(B, px, py + 1.3 * rr, rr, k, (255, 255, 255), INK, L)
+    # bridges, conflicts, photos (v40, Aras 25 Oct 21:41: drawn marks with plain short labels, no boxes, no sentences)
     cs = list(CONFLICTS_C)
     c5 = c5_point(S)
     if c5:
         cs.append(("C5", c5[0], c5[1], C5_TEXT))
-    for k, cx, cy, t in cs:
-        if F.inside(cx, cy):
-            px, py = V.p(cx, cy)
-            roundel(B, px - 1.3 * rr, py - 1.3 * rr, rr, k, MARK_C, MARK_C, L)
     photos = []
     try:
         photos = photo_files(os.path.join(pdf_folder(), "_site_photos"))
     except Exception:
         LOG.append("WARNING: the site photos could not be written:\n" + traceback.format_exc())
-    for i, (p, it) in enumerate(photos):
+    th, kd = 0.36 * U, kind_of(FONT_TITLE)
+    marks, taken = [], []
+    for k, nm, bx, by in BRIDGES_K:                       # a tick across the stream
+        if F.inside(bx, by):
+            px, py = V.p(bx, by)
+            n = stream_normal(S, bx, by) or (0.0, 1.0)
+            a_ = V.p(bx + n[0], by + n[1])
+            ln = math.hypot(a_[0] - px, a_[1] - py) or 1.0
+            e = ((a_[0] - px) / ln * 0.55 * U, (a_[1] - py) / ln * 0.55 * U)
+            B.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], INK, L, 62, 0.3)
+            marks.append((k, px, py, INK, 0.65 * U))
+    for k, cx, cy, t in cs:                               # a dot in the accent
+        if F.inside(cx, cy):
+            px, py = V.p(cx, cy)
+            B.fill([circle_pts(px, py, 0.17 * U, 12)], MARK_C, L, 63)
+            marks.append((k, px, py, MARK_C, 0.35 * U))
+    for i, (p, it) in enumerate(photos):                  # a small ink dot
         px, py = V.p(it["x"], it["y"])
-        q = 0.36 * U
-        B.fill([rect(px - q, py - q, px + q, py + q)], INK, L, 64)
-        B.text(str(i + 1), px, py, 0.5 * q * 2.0 * 0.62, (255, 255, 255), L, order=65, font=FONT_TITLE, bold=True,
-               align="MC")
+        B.fill([circle_pts(px, py, 0.13 * U, 12)], INK, L, 64)
+        marks.append((str(i + 1), px, py, INK, 0.3 * U))
+    for t, px, py, col, d in marks:
+        taken.append((px - d * 0.5, py - d * 0.5, px + d * 0.5, py + d * 0.5))
+    for t, px, py, col, d in marks:                       # each label beside its mark, where it collides with none
+        w_ = tw(t, th, kd)
+        opts = [(d, 0.2 * d), (d, -th - 0.2 * d), (-d - w_, 0.2 * d), (-d - w_, -th - 0.2 * d),
+                (-0.5 * w_, d), (-0.5 * w_, -th - d), (1.8 * d, -0.5 * th), (-1.8 * d - w_, -0.5 * th)]
+        for ox, oy in opts:
+            bx_ = (px + ox - 0.08 * U, py + oy - 0.08 * U, px + ox + w_ + 0.08 * U, py + oy + th + 0.08 * U)
+            if not any(bx_[0] < q[2] and q[0] < bx_[2] and bx_[1] < q[3] and q[1] < bx_[3] for q in taken):
+                break
+        else:
+            ox, oy = opts[0]
+            bx_ = (px + ox, py + oy, px + ox + w_, py + oy + th)
+        taken.append(bx_)
+        B.text(t, px + ox, py + oy, th, col, L, order=65, font=FONT_TITLE, bold=True)
     draw_north_small(B, V, mw, mh, U, L, size=0.7)
     mb = y - 1.2 * U - mh
     draw_scalebar(B, V.X0, mb - 1.4 * U, s, nice_floor(F2.w / 8.0), U, L, h=0.32)
@@ -1251,29 +1295,32 @@ def draw_what_is_there(S, B, x, y, w, U):
         r_ph = bcite(u"Photos: site visit 2026-10-01 (group photos, GPS within {:.0f} m); the square marks where each "
                      u"was taken. Descriptions: the photo index, a visual reading.".format(
                          max(it.get("gps_err_m", 0.0) for p, it in photos)))
+        crop_panel("photos", V.X0, yy - ph - 0.1 * U, V.X0 + mw, yy, u"Site photos · 1 Oct 2026")     # v40
         B.text(u"PHOTOS · site visit 2026-10-01 · GPS within {:.0f} m {}".format(
             max(it.get("gps_err_m", 0.0) for p, it in photos), r_ph), V.X0, low - 0.4 * U, 0.3 * U, INK2, L)
         yy = low - 0.4 * U - 0.54 * U
     # legend (v38: drawn samples with short names; explanations as [n] in the Sources key)
-    r_home = bcite("Homes are coloured by their grain.")
+    r_home = bcite("Urban fabric: each building's type from its survey layer, names and heritage tags, surveyed floors, "
+                   "footprint size and regularity, shared walls and the grain of the 40 m around it; shares of the "
+                   "built footprint.")
     r_crown = bcite("Crowns: modelled heights and leaf types (Meta/WRI 1 m canopy height map, Tolan et al. 2024; CLC+ "
                     "2021 and Sentinel-2).")
     r_edge = bcite("Stream edges: what meets the water along each bank.")
-    leg = [("hdr", None, "BUILDINGS · HOMES BY GRAIN " + r_home)]
-    for fab in ("traditional", "block", "regular", "selfbuilt"):
-        u_ = {"fabric": fab, "cat": "residential", "annex": False}
-        leg.append(("box", home_col(u_), "Homes · " + FABRIC_SHORT[fab].lower()))
-    for c_ in ("mixed", "commercial", "institutional", "industrial", "transport"):
-        leg.append(("box", CAT[c_][1], short(CAT[c_][0])))
-    leg += [("box", FABRIC["monument"][2], "Monuments, historic"), ("box", FABRIC["sacred"][2], "Mosques & sacred"),
-            ("dense", dc, "Densest grain · floor-area ratio {:.2f}+ {}".format(
+    leg = [("hdr", None, "BUILDINGS · URBAN FABRIC " + r_home)]
+    ftot = sum(S.fabric_area.values()) or 1.0
+    for fab in FABRIC_ORDER:                              # v40: the fabric map's types; under 0.5 % left out
+        v_ = 100.0 * S.fabric_area.get(fab, 0.0) / ftot
+        if round(v_) >= 1 or (fab in ("monument", "sacred") and S.fabric_area.get(fab, 0.0) > 0):
+            leg.append(("box", FABRIC_PLAN[fab], u"{} · {}".format(FABRIC_SHORT[fab], "{:.0f}%".format(v_)
+                                                                    if round(v_) >= 1 else "< 1%")))
+    leg += [("dense", dc, "Densest grain · floor-area ratio {:.2f}+ {}".format(
                 S.int_breaks[2], bcite("Densest grain: floor-area ratio on 10 m cells, areas of 2,000 m2+."))
              if getattr(S, "int_breaks", None) else "Densest grain")]
     leg += [("hdr", None, "GROUND AND GREEN")]
     for k_, lab in (("wood", "Woods"), ("park", "Parks"), ("grass", "Grass & lawns")):
         leg.append(("box", GREEN_SUB[k_], lab))
     leg += [("box", CAT["agri"][1], "Fields & orchards (survey, OSM)"), ("box", CAT["vacant"][1], "Vacant ground"),
-            ("box", CAT["water"][1], "The stream")]
+            ("box", mix(CAT["transport"][1], PAPER, 0.3), "Parking & yards"), ("box", CAT["water"][1], "The stream")]
     for k_, lab, col in LC_CLASSES:
         if getattr(S, "lc", {}).get(k_):
             leg.append(("box", col, lab))
@@ -1286,13 +1333,15 @@ def draw_what_is_there(S, B, x, y, w, U):
         if S.edge_len.get(k_, 0) > 0:
             leg.append(("thin", EDGE[k_][1], short(EDGE[k_][0])))
     leg += [("hdr", None, "MARKS")]
-    leg += [("kmark", None, "K1-K6 bridges (concept record)")]
-    leg += [("cmark", MARK_C, "{} {}".format(k, t)) for k, cx, cy, t in sorted(cs) if F.inside(cx, cy)]
+    leg += [("ktick", INK, "Bridges K1-K6")]
+    leg += [("cdot", MARK_C, "{} {}".format(k, t)) for k, cx, cy, t in sorted(cs) if F.inside(cx, cy)]
     if photos:
-        leg.append(("pmark", INK, "Photo viewpoint (photos under the map)"))
+        leg.append(("pdot", INK, "Photo viewpoints 1-{}".format(len(photos))))
     if RF is not None:
         leg.append(("thin", INK, "Analysis range (site_alan) " + r_map))
     ly = draw_legend_items(B, leg, x, yy - 1.0 * U, mw, U, L, h=0.4)
+    crop_panel("plan01", V.X0, mb - 1.6 * U, V.X0 + mw, y - 1.2 * U, u"Plan 01 · what is there today",   # v40
+               crop_scale(s), crop_legend(leg))
     tot = sum(S.fabric_area.values()) or 1.0
     # v38: the caption's two figures as tiles (were sentences); its notes are the key entries cited above
     return vis_tiles(B, x, ly - 0.3 * U, min(mw, 44.0 * U), [

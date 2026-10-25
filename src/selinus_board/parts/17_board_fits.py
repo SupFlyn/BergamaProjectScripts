@@ -78,6 +78,7 @@ def write_board_pdf(path, title, members):
         len(objs) + 1, cat, info, x_)).encode()
     with open(path, "wb") as fh:
         fh.write(bytes(out))
+    return [(mg + px, mg + py) for px, py in pos], bh + 2 * mg + 3.0 * th     # v40: drawings' corners, page height (mm)
 
 
 def pdf_folder():
@@ -125,22 +126,29 @@ def export_pdfs(B, rects):
         for i_, (nm, r) in enumerate(rects):
             if bb[2] >= r[0] and bb[0] <= r[2] and bb[3] >= r[1] and bb[1] <= r[3]:
                 per[i_].append((o_, n_, it))
-    boards, order = {}, []
+    boards, order, names = {}, [], {}
     for i_, (nm, r) in enumerate(rects):
         key = board_of(nm)
         if key not in boards:
             boards[key] = []
+            names[key] = []
             order.append(key)
         boards[key].append((sorted(per[i_], key=lambda t_: (t_[0], t_[1])), r))
+        names[key].append(nm)
     done, bad = 0, []
+    del SHEET_POS[:]
     for key in order:
         stem, title = key
         try:
             parts = board_chunks([([t_[2] for t_ in its], r) for its, r in boards[key]])
+            n_ = 0
             for j_, part in enumerate(parts):                 # more than one only if a board would pass 400 x 400 cm
                 sfx = "" if len(parts) == 1 else "_%d" % (j_ + 1)
-                write_board_pdf(os.path.join(d_, stem + sfx + ".pdf"), title + ("" if len(parts) == 1 else
-                                                                                 " · %d of %d" % (j_ + 1, len(parts))), part)
+                pos_, ph_ = write_board_pdf(os.path.join(d_, stem + sfx + ".pdf"), title + (
+                    "" if len(parts) == 1 else " · %d of %d" % (j_ + 1, len(parts))), part)
+                for (px_, py_), (its_, r_) in zip(pos_, part):    # v40: where each drawing sits, for the booklet crops
+                    SHEET_POS.append((names[key][n_], stem + sfx + ".pdf", r_, px_, py_, ph_))
+                    n_ += 1
                 done += 1
         except Exception as ex:
             bad.append("%s (%s)" % (stem, ex))
@@ -361,6 +369,11 @@ def place_board(B, rects, OX, OY, sc):
         else:
             items.append(("text", it[1], P(*it[2]), it[3] * sc) + it[4:])
     B.items = items
+    for p_ in CROP_PANELS:                                # v40: the booklet crops move (and scale) with the layout
+        b_ = p_["bb"]
+        p_["bb"] = (OX + sc * b_[0], OY + sc * b_[1], OX + sc * b_[2], OY + sc * b_[3])
+        if p_["scale_den"] and sc:
+            p_["scale_den"] = int(round(p_["scale_den"] / sc))
     return [(n, (OX + sc * r[0], OY + sc * r[1], OX + sc * r[2], OY + sc * r[3])) for n, r in rects]
 
 
@@ -745,8 +758,8 @@ def save_last(info_, out_, secs_):
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mem_set("lu_last_out", out_, disk=False)
     mem_set("lu_last", dict(info=info_, when=stamp, secs=round(secs_, 1)))
-    st_ = "v39 · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
-        "v39 · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
+    st_ = "v40 · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
+        "v40 · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
     mem_set("lu_status", st_)
     gh_status(st_)
     try:
@@ -860,7 +873,7 @@ if HAVE_RHINO:
         gh_message("warning", info)
     elif not pressed:
         info = "Idle. Nothing is read or computed until you press the button."
-        gh_status(mem_get("lu_status") or "v39 · idle")              # v27: version and last total time stay shown
+        gh_status(mem_get("lu_status") or "v40 · idle")              # v27: version and last total time stay shown
         if changing:
             info += "\nSetting the component up: " + ", ".join(changing) + "."
         if last:
@@ -988,7 +1001,7 @@ if HAVE_RHINO:
                         LOG.append("WARNING: PDF not written for: " + "; ".join(_bad[:6]))
                 except Exception as ex_:
                     LOG.append("WARNING: PDF export failed ({}); the bake is done.".format(ex_))
-            try:                                              # v39: the A3 booklet's assets (SCRIPT_STANDARD 8)
+            try:                                              # v40: the booklet crops of the sheets (CROP_SPEC)
                 booklet_export(SITE, BOARD, RECTS)
             except Exception:
                 LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())

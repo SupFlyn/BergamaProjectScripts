@@ -1188,12 +1188,12 @@ def draw_symbol(B, kind, col, x, y, U, L, sw=1.1, sh=0.62):
         B.line(seg, col, L, 21, THRESH_W)
     elif kind == "dense":
         B.line(seg, col, L, 21, 0.22)
-    elif kind == "kmark":
-        roundel(B, x + 0.5 * sw * U, ym, 0.3 * U, "K", (255, 255, 255), INK, L, order=21)
-    elif kind == "cmark":
-        roundel(B, x + 0.5 * sw * U, ym, 0.3 * U, "C", MARK_C, MARK_C, L, order=21)
-    elif kind == "pmark":
-        B.fill([rect(x + 0.5 * sw * U - 0.26 * U, ym - 0.26 * U, x + 0.5 * sw * U + 0.26 * U, ym + 0.26 * U)], INK, L, 21)
+    elif kind == "ktick":                             # v40: plan 01's bridge tick, conflict and photo dots
+        B.line([(x + 0.5 * sw * U, y0 - 0.1 * U), (x + 0.5 * sw * U, y1 + 0.1 * U)], col, L, 21, 0.3)
+    elif kind == "cdot":
+        B.fill([circle_pts(x + 0.5 * sw * U, ym, 0.17 * U, 12)], col, L, 21)
+    elif kind == "pdot":
+        B.fill([circle_pts(x + 0.5 * sw * U, ym, 0.13 * U, 12)], col, L, 21)
     elif kind == "street":
         B.line(seg, col, L, 21, 0.42)
         B.line(seg, ROAD_FILL if ROAD_SOLID else (255, 255, 255), L, 22, 0.3)     # v16.7: the solid street colour
