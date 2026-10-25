@@ -324,9 +324,12 @@ PLAN = [{'id': 'A1',
                                   'unit': 'Spearman',
                                   'note': 'shops vs walking index'},
                                  {'keyword': 'shops on the covered reach',
-                                  'figure': '31 of 57',
+                                  'figure': '{val:Bergama_city_link_analysis/city_link_results.json:shops.covered_reach|0} '
+                                            'of '
+                                            '{val:Bergama_city_link_analysis/city_link_results.json:shops.by_stream|0}',
                                   'unit': 'shops',
-                                  'note': '200 m over the stream'}]},
+                                  'note': '{val:Bergama_city_link_analysis/city_link_results.json:shops.covered_reach_m|0} '
+                                          'm over the stream'}]},
              'hero': {'type': 'drawing',
                       'asset': 'selinus_board/a3_hero',
                       'caption': 'Movement potential = routes, not counts of people {src:osm}',
