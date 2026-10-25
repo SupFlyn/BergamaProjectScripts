@@ -22350,12 +22350,93 @@ class BkPage(object):
         self.label("{:,.0f} m".format(Lm), x + 4 * seg, y + bh + 1.7, anchor="C")
 
     # ---- output
+    def trim(self, r):
+        """Cut the graphics to r = (x0, y0, x1, y1) mm: no geometry is kept outside it (a PDF clip would keep it in
+        the file, and Illustrator shows it)."""
+        out = []
+        for it in self.items:
+            kd = it[0]
+            if kd in ("fill", "hatch"):
+                polys = [Q for Q in (bk_clip_poly(P, r) for P in it[1]) if len(Q) >= 3]
+                if polys:
+                    out.append((kd, polys) + tuple(it[2:]))
+            elif kd == "line":
+                for Q in bk_clip_line(it[1], r):
+                    out.append(("line", Q) + tuple(it[2:]))
+            else:
+                out.append(it)
+        self.items = out
+
     def write(self, path):
         if getattr(self, "engine", None):                  # a page of the axonometric engine (bk_a2_hero)
             bk_engine_pdf(path, self.engine[0], self.engine[1], self.W, self.H)
             return
+        self.trim((0.0, 0.0, self.W, self.H))
         items = sorted(enumerate(self.items), key=lambda t: (float(t[1][4]) if t[1][0] != "text" else 0.0, t[0]))
         bk_write_pdf(path, [it for _i, it in items], self.W, self.H)
+
+
+def bk_clip_poly(P, r):
+    """One ring cut to the rectangle r (Sutherland-Hodgman); a hole ring stays a hole of the cut ring."""
+    x0, y0, x1, y1 = r
+    if all(x0 <= p[0] <= x1 and y0 <= p[1] <= y1 for p in P):
+        return list(P)
+    for inside, cut in ((lambda p: p[0] >= x0, lambda a, b: (x0, a[1] + (b[1] - a[1]) * (x0 - a[0]) / (b[0] - a[0]))),
+                        (lambda p: p[0] <= x1, lambda a, b: (x1, a[1] + (b[1] - a[1]) * (x1 - a[0]) / (b[0] - a[0]))),
+                        (lambda p: p[1] >= y0, lambda a, b: (a[0] + (b[0] - a[0]) * (y0 - a[1]) / (b[1] - a[1]), y0)),
+                        (lambda p: p[1] <= y1, lambda a, b: (a[0] + (b[0] - a[0]) * (y1 - a[1]) / (b[1] - a[1]), y1))):
+        if not P:
+            break
+        Q, a = [], P[-1]
+        for b in P:
+            if inside(b):
+                if not inside(a):
+                    Q.append(cut(a, b))
+                Q.append(b)
+            elif inside(a):
+                Q.append(cut(a, b))
+            a = b
+        P = Q
+    return P
+
+
+def bk_clip_line(P, r):
+    """A polyline cut to the rectangle r (Liang-Barsky per segment): the pieces inside, joined where they meet."""
+    x0, y0, x1, y1 = r
+    out, cur = [], []
+    for a, b in zip(P[:-1], P[1:]):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        t0, t1, ok = 0.0, 1.0, True
+        for p, q in ((-dx, a[0] - x0), (dx, x1 - a[0]), (-dy, a[1] - y0), (dy, y1 - a[1])):
+            if p == 0.0:
+                if q < 0.0:
+                    ok = False
+                    break
+            else:
+                t = q / p
+                if p < 0.0:
+                    t0 = max(t0, t)
+                else:
+                    t1 = min(t1, t)
+        if not ok or t0 > t1:
+            if len(cur) >= 2:
+                out.append(cur)
+            cur = []
+            continue
+        pa = (a[0] + t0 * dx, a[1] + t0 * dy)
+        pb = (a[0] + t1 * dx, a[1] + t1 * dy)
+        if cur and t0 == 0.0:
+            cur.append(pb)
+        else:
+            if len(cur) >= 2:
+                out.append(cur)
+            cur = [pa, pb]
+        if t1 < 1.0:
+            out.append(cur)
+            cur = []
+    if len(cur) >= 2:
+        out.append(cur)
+    return out
 
 
 def bk_write_pdf(path, items, W, H):
@@ -22511,6 +22592,8 @@ def bk_map_page(W, H, items, m2b, focus, fill_w=0.9, fill_h=0.8, clip=None, ox=N
         reg = (max(reg[0], clip[0]), max(reg[1], clip[1]), min(reg[2], clip[2]), min(reg[3], clip[3]))
     pg = BkPage(W, H)
     pg.put(bk_in(items, reg), b2p, k)
+    a_, b_ = b2p(reg[0], reg[1]), b2p(reg[2], reg[3])
+    pg.trim((max(0.0, a_[0]), max(0.0, a_[1]), min(W, b_[0]), min(H, b_[1])))   # the map's rectangle, cut
     pg.b2p = b2p
     f = lambda x, y: b2p(*m2b(x, y))
     return pg, f, mpm, den
@@ -23020,6 +23103,15 @@ def bk_tmap(S, B, W, H, group, png, caption, legend):
     img = [it for it in its if it[0] == "image" and os.path.basename(it[1]) == png]
     if not img:
         BK_LOG.append("%s: %s not on the board on this run" % (caption, png))
+        return None
+    try:                                                   # the map itself is the board's raster (render_tech)
+        with open(img[0][1], "rb") as fh:
+            hd = fh.read(24)
+        pw_, ph_ = _struct.unpack(">II", hd[16:24]) if hd[12:16] == b"IHDR" else (0, 0)
+    except Exception:
+        pw_ = ph_ = 0
+    if pw_ * ph_ < 10000:
+        BK_LOG.append("%s: %s is missing or empty on this run: the frame is left out" % (caption, png))
         return None
     r = img[0][2]
     tol = 0.002 * (r[2] - r[0])
