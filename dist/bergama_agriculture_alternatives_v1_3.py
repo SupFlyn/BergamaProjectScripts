@@ -712,6 +712,7 @@ BK_BANDS = [("A", "A strip and bed · permanent", "91ADB4"), ("B", "B marsh · 1
             ("C", "C willow · 50-150 d", "A9B57F"), ("D", "D wet meadow · 10-150 d", "C9D1A4"),
             ("E", "E dry meadow · 0.5-50 d", "D9CC8E"), ("F", "F terraces · extreme only", "D8D5CC")]
 # one column per ladder step: step, its bands, plan labels (key, common names, species with their source, warnings)
+# species sit on the step that holds their W3b band (Vitex, Nerium: band C); oak and elm figures are the C7 tiles
 BK_STEPS = [
     dict(step="BED", bands="AB", w=50, wet=4, jobs=("clean",), key="BED · CLEAN",
          names=["reed · cattail · water mint"],
@@ -719,15 +720,16 @@ BK_STEPS = [
                   "Iris pseudacorus {src:feis_iris}", "Mentha aquatica {src:avelar_2012}"],
          warn=["Arundo donax: remove {src:bruno_2019}"]),
     dict(step="LOWER BANK", bands="CD", w=52, wet=3, jobs=("clean", "hold"), key="LOWER BANK · CLEAN + HOLD",
-         names=["Juncus · loosestrife", "Tamarix · white willow"],
+         names=["Juncus · loosestrife", "Tamarix · white willow · Vitex"],
          species=["Salix alba {src:jrc_salix_alba}", "Tamarix smyrnensis {src:jrc_tamarix}",
+                  "Vitex agnus-castus {src:salinas_cueto_2009}", "Nerium oleander {src:salinas_cueto_2009}",
+                  "!oleander: toxic {src:pim366}",
                   "Lythrum salicaria {src:feis_lythrum}", "Carex pendula, Juncus effusus {src:usda_tn38}"], warn=[]),
     dict(step="TERRACE", bands="E", w=52, wet=2, jobs=("shade", "hold"), key="TERRACE · SHADE + HOLD",
-         names=["Vitex · white poplar · ash"],
-         species=["Vitex agnus-castus {src:salinas_cueto_2009}", "Nerium oleander {src:salinas_cueto_2009}",
-                  "!oleander: toxic {src:pim366}", "Fraxinus angustifolia {src:jrc_fraxinus}",
+         names=["white poplar · ash"],
+         species=["Fraxinus angustifolia {src:jrc_fraxinus}",
                   "Populus alba {src:jrc_populus_alba}", "Platanus orientalis {src:eunis_g1381}",
-                  "Quercus robur: 96 d a year {src:schindler_2022}", "Ulmus laevis: up to 119 d {src:schindler_2022}"],
+                  "Quercus robur {src:schindler_2022}", "Ulmus laevis {src:schindler_2022}"],
          warn=[]),
     dict(step="BANK TOP", bands="F", w=38, wet=1, jobs=("scent",), key="BANK TOP · SCENT",
          names=["lavender · rosemary"], species=["Lavandula stoechas {src:rhs_waterlogging}"], warn=[]),
