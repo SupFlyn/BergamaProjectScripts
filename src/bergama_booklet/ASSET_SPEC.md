@@ -1,6 +1,6 @@
 # Booklet assets: what every script writes for the A3 booklet (25 Oct 2026)
 
-Rules: scripts/_template/SCRIPT_STANDARD.md §8. Grid and type: booklet/design-language.md. Assembler: bergama_booklet_v1.py.
+Rules: scripts/_template/SCRIPT_STANDARD.md §8. Grid and type: booklet/design-language.md. Assembler: bergama_booklet_v2.py.
 
 ## Where
 `~/Downloads/Bergama/output/<script output folder>/booklet/` (inside the script's own folder; nothing else changes):

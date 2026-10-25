@@ -14,12 +14,16 @@ Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (+ the vec
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
        ~/Downloads/Bergama/output/bergama_booklet/booklet_slots.json: every block's frame size in mm (scripts draw to it)
 A missing asset leaves a labelled placeholder frame naming the script, so the booklet always builds.
+NEW IN v2 (Aras 25 Oct 21:47-22:08: "keep the outputs ... just scale them divide them"; never stretch, never redraw):
+every drawing is cut from the script's own sheet PDF (crop blocks), shown at one uniform scale (a true scale when
+it has one), divided into stacked pieces when far too wide; the sheet's words are set again as live labels at
+7.5 pt (7 pt if there is no room), the rest are listed in the log. Sources on ONE page.
 All text is written by this script with one embedded TrueType font (Arial on Windows), whole lines, never outlined.
 """
 import os, re, time, json, math
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v2"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -338,22 +342,22 @@ PLAN = [{'id': 'A1',
              's2': {'type': 'drawing',
                     'asset': 'selinus_board/drw_tree_cover',
                     'caption': 'Tree cover along the banks, every 25 m {src:tolan2024}'},
-             's3': {'type': 'drawing', 'asset': 'selinus_board/sec_section_S1'},
+             's3': {'type': 'drawing', 'asset': 'selinus_board/sec_section_s1'},
              's4': {'type': 'drawing', 'asset': 'selinus_board/drw_photos'}}},
  {'id': 'A4a',
   'part': 'A',
   'template': 'sections2',
   'title': 'Sections across the stream',
   'statement': '',
-  'frames': {'s1': {'type': 'drawing', 'asset': 'selinus_board/sec_section_S2'},
-             's2': {'type': 'drawing', 'asset': 'selinus_board/sec_section_S3'}}},
+  'frames': {'s1': {'type': 'drawing', 'asset': 'selinus_board/sec_section_s2'},
+             's2': {'type': 'drawing', 'asset': 'selinus_board/sec_section_s3'}}},
  {'id': 'A4b',
   'part': 'A',
   'template': 'sections2',
   'title': 'Sections across the stream',
   'statement': '',
-  'frames': {'s1': {'type': 'drawing', 'asset': 'selinus_board/sec_section_S4'},
-             's2': {'type': 'drawing', 'asset': 'selinus_board/sec_section_S5'}}},
+  'frames': {'s1': {'type': 'drawing', 'asset': 'selinus_board/sec_section_s4'},
+             's2': {'type': 'drawing', 'asset': 'selinus_board/sec_section_s5'}}},
  {'id': 'A4c',
   'part': 'A',
   'template': 'rows_332',
@@ -1479,7 +1483,12 @@ def place(fitz, pg, typo, src, pno, rect, blk, sid, assets, legend, missing):
     if kind == "drawing":
         folder, _, bid = blk["asset"].partition("/")
         a = assets.get(folder) or {}
-        ab = (a.get("blocks") or {}).get(bid)
+        bl = a.get("blocks") or {}
+        ab = bl.get(bid)
+        if ab is None:                                   # same panel under another sheet key or letter case
+            tail = bid.lower().split("_", 1)[-1]
+            ab = next((v for k, v in sorted(bl.items()) if k.lower() == bid.lower() or
+                       k.lower().split("_", 1)[-1] == tail), None)
         if ab is None:
             missing.add(folder)
             placeholder(pg, typo, rect, "%s · %s" % (SCRIPT_OF.get(folder, folder), bid))
