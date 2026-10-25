@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA PROPOSAL SECTIONS v3 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
+"""BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v4 (A3 booklet, SCRIPT_STANDARD §8; booklet/STAGE2_BRIEF.md): after the sheet, booklet_export() writes
+  output/bergama_proposal_sections/booklet/: c4_s1, c4_s2, c5_s1, c5_s2 .pdf (the four sections re-laid natively for
+  the booklet's 392 x 111 mm frames, same hand-sketch engine, no text inside) + blocks.json (every word a label from the
+  plan's list; no personal names, no flood heights: Q500 a named level line). The sheet is unchanged.
 NEW IN v3 (Aras 25 Oct 17:00, SCRIPT_STANDARD §5b visual first; audit batch_2026-10-25_visual_first/VISUAL_AUDIT.md §1):
   sentence callouts in the sketches -> short keyword callouts with hand pictograms (winter cloud, summer sun,
   fail-safe mark); garden crops as two season rows; sheet subtitle -> keyword row with the 1-11 flow; panel
@@ -43,7 +47,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v3"
+VERSION = "v4"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -329,6 +333,10 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 # owner names, working-area bars and figures printed elsewhere taken out (24 Oct). Run by sketch_engine().
 #@include data/SKETCH_SRC.py
 
+#@include ../common/booklet_assets.py
+
+#@include parts/90_booklet.py
+
 
 # ================================================================ the sheet (v1)
 PROPOSALS = [("up", u"1 · UPSTREAM ENTRY · COLLECT, CLEAN AND HOLD",        # v3: subtitles as keyword chips
@@ -413,6 +421,10 @@ def main():
             path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
             write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
         lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"), time.time() - t1))
+    try:                                              # v4: A3 booklet assets; an error here never stops the sheet
+        booklet_export(log)
+    except Exception as ex:
+        log.append(u"booklet assets not written: {}: {}".format(type(ex).__name__, ex))
     head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
     if pal is None:
         head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
