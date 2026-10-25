@@ -21,7 +21,7 @@ MAX_CALLOUTS = 12
 CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
 COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 TREES_GREEN_EVERYWHERE = False                                 # True: green trees on every page, not only D4 and D8
-SCRIPT = "selinus_board_v39.py (axonometric engine from bergama_diagrams v1.8)"
+SCRIPT = "selinus_board_v40.py (axonometric engine from bergama_diagrams v1.8)"
 VERSION = "v1.8 in board v33"
 
 # Bridges over the Selinus, survey coordinates, from the concept record's table (CONCEPT_RECORD.md section 2.1)
@@ -634,9 +634,9 @@ def floors_fact(u):
     f = u.get("floors")
     if u.get("h_src"):
         return u"{:.0f} m: {}".format(u["h"], u["h_src"].split(":")[0])
-    word = {"survey": "survey floor label", "neighbours": "floors from neighbours", "shed": "shed",
-            "published": "published"}.get(src, src or "")
-    return u"{} floor{} ({})".format(f, "" if f == 1 else "s", word) if f else word
+    if f:                                                 # v40: the figure only; where it comes from is in the notes
+        return u"{} floor{}".format(f, "" if f == 1 else "s")
+    return {"shed": "shed"}.get(src, "")
 
 
 SRC_SURVEY = u"Survey: Bergama Müdahele Alanları.3dm (course, 17 Oct 2026) via the selinus_board site model"
@@ -647,7 +647,7 @@ def river_words(ctx, color=None):
     cl = (getattr(S, "selinus", None) or [None])[0] if getattr(S, "selinus", None) else None
     if not cl:
         return []
-    return [dict(text=u"SELINUS", pts=[(p[0], p[1]) for p in cl], size=None, color=color or ctx.BP.CORE["water_deep"],
+    return [dict(text=u"SELİNOS STREAM", pts=[(p[0], p[1]) for p in cl], size=None, color=color or ctx.BP.CORE["water_deep"],
                  bold=True)]
 
 
@@ -683,19 +683,19 @@ def spec_D2(ctx, ext):
             nm = u.get("proper") or ""
             if nm:
                 seen.add(nm.lower())
-            calls.append(dict(x=b["cx"], y=b["cy"], z=b["h"], title=nm or {"monument": u"Ruin (survey, unnamed)",
-                              "sacred": u"Sacred building (unnamed)", "historic": u"Historic building (unnamed)"}[k],
+            calls.append(dict(x=b["cx"], y=b["cy"], z=b["h"], title=nm or {"monument": u"Ruin",
+                              "sacred": u"Sacred building", "historic": u"Historic building"}[k],
                               fact=floors_fact(u), letter={"monument": "A", "sacred": "S", "historic": "H"}[k],
                               color=T[k][1], prio=(1e6 if nm else 0) + u.get("A", 0)))
     for p in getattr(ctx.S, "pois", []):
         if p.get("her") and p.get("name") and not p.get("in_bld") and p["name"].lower() not in seen and \
                 ext["rect"].inside(p["x"], p["y"]):
             seen.add(p["name"].lower())
-            calls.append(dict(x=p["x"], y=p["y"], z=0.0, title=p["name"], fact=u"heritage point ({})".format(p["src"]),
+            calls.append(dict(x=p["x"], y=p["y"], z=0.0, title=p["name"], fact=u"heritage point",
                               letter="A", color=T["monument"][1], prio=5e5))
     for k, nm, x, y in BRIDGES_K:
         if k in ("K4", "K5") and ext["rect"].inside(x, y):
-            calls.append(dict(x=x, y=y, z=0.0, title=u"{} {}".format(k, nm), fact=u"historic bridge (concept record)",
+            calls.append(dict(x=x, y=y, z=0.0, title=u"{} {}".format(k, nm), fact=u"historic bridge",
                               letter="B", color=T["monument"][1], prio=2e6))
     walls = [dict(pts=list(w), color=T["monument"][1], width=0.45,
                   dash=(1.6, 0.9), layer="historic_wall") for w in getattr(ctx.S, "walls_hist", [])]
@@ -1293,12 +1293,7 @@ def compose(ctx, spec, ext, stamp):
     top = [V.P(x, y, 0.0) for x, y in edge]
     pg.poly([top], fill=BP.CONTEXT_3D["ground"], stroke=CORE["ink2"], lw=0.15, layer="base")
     G.mark_poly(hull(top + [V.P(x, y, -slab - (V.zg(x, y) if V.zg else 0.0)) for x, y in cs]), 1)
-    if GR.ok:                                              # v33: contours of the survey terrain, every CONTOUR_STEP m
-        for lev, segs in GR.contours(CONTOUR_STEP):
-            major = abs(lev / (5 * CONTOUR_STEP) - round(lev / (5 * CONTOUR_STEP))) < 1e-6
-            for a, b in segs:
-                pg.line([V.P(a[0], a[1]), V.P(b[0], b[1])], CORE["ink2"] if major else CORE["structure"],
-                        0.14 if major else 0.07, layer="contours")
+    if GR.ok:                                              # v40: no contour lines on an axonometric (Aras 25 Oct 21:42)
         cnt["relief"] = GR.relief
 
     # ---- ground plane: clipped to the slab
@@ -1463,7 +1458,7 @@ def place_word(pg, V, R, wd, G, CORE):
     my = (a[1] + b[1]) / 2 + pdir[1] * off
     c = V.P(mx, my)
     pg.text(wd["text"], c[0], c[1], s, wd["color"], bold=wd.get("bold"), align="C", layer="words",
-            mat=(vd, vp), halo="FFFFFF" if wd["color"] != "FFFFFF" else wd.get("band"))
+            mat=(vd, vp), halo=None if wd["color"] != "FFFFFF" else wd.get("band"))   # v40: no white halo
 
 
 def place_callouts(pg, V, R, calls, G, BP):
@@ -1523,10 +1518,9 @@ def place_callouts(pg, V, R, calls, G, BP):
         else:
             tx, rx = lx - 1.0, lx + 1.2 + RD / 2
             al = "R"
-        pg.text(c["title"], tx, y0 + bh - T1 * CAP - 0.3, T1, CORE["ink"], bold=True, align=al, layer="callouts",
-                halo="FFFFFF")
+        pg.text(c["title"], tx, y0 + bh - T1 * CAP - 0.3, T1, CORE["ink"], bold=True, align=al, layer="callouts")
         if c.get("fact"):
-            pg.text(c["fact"], tx, y0 + 0.5, T2, CORE["ink2"], align=al, layer="callouts", halo="FFFFFF")
+            pg.text(c["fact"], tx, y0 + 0.5, T2, CORE["ink2"], align=al, layer="callouts")    # v40: no halo
         pg.circle(rx, ly, RD / 2, fill="FFFFFF", stroke=CORE["ink2"], lw=0.25, layer="callouts")
         pg.text(c["letter"], rx, ly - 2.6 * CAP / 2, 2.6, deep, bold=True, align="C", layer="callouts")
         placed += 1
@@ -1694,8 +1688,6 @@ def spec_S1(ctx, ext):
               ("box", T4["water"][1], u"Stream channel (survey)"),
               ("box", T4["park"][1], u"Parks and green ground (OSM)")]
         L += tree_legend(ctx, c)
-        if c.get("relief"):
-            L.append(("line", BP.CORE["ink2"], u"Contours 5 m · survey terrain · {:.0f} m relief [3]".format(c["relief"])))
         L.append(("ctx", None, u"Other buildings: context"))
         return L
     # v33 (Aras 07:05-07:09): where the stream bed feels like a well: the board's sky view along the bed (callouts V)

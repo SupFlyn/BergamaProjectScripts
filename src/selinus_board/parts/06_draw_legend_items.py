@@ -336,8 +336,8 @@ def draw_legend(S, B, x, y, w, U):
     if rest:
         r2 = bcite("Unmapped ground: the ground the survey and OSM leave unmapped is split by ESA WorldCover 2021 (10 m "
                    "satellite classes, CC BY 4.0) on a {:g} m raster; orchards inferred from the survey's olive and "
-                   "fruit-tree symbols. Satellite rows: approximate.".format(REST_CELL))
-        B.fit("satellite rows · approximate " + r2, x, ry, 0.38 * U, w, INK2, L)
+                   "fruit-tree symbols.".format(REST_CELL))
+        B.fit("satellite rows · ESA WorldCover 2021 " + r2, x, ry, 0.38 * U, w, INK2, L)     # v40: no caveat
         ry -= 0.7 * U
     return ry
 
@@ -394,6 +394,8 @@ def draw_distribution(S, B, x, y, U):
         a0 = a1
     B.text("{:.1f}".format(tot / 1e4), cx, cy + 0.1 * U, 0.95 * U, INK, L, font=FONT_TITLE, align="C")
     B.text("ha site frame" if getattr(S, "rest", None) else "ha mapped", cx, cy - 0.8 * U, 0.36 * U, INK2, L, align="C")
+    crop_panel("ground_cover", x - 0.2 * U, cy - r1 - 1.5 * U, cx + r1 + 1.6 * U, cy + r1 + 1.5 * U,
+               u"Ground cover in the frame")              # v40: the booklet crop of the ring
     return cy - r1 - 1.6 * U
 
 

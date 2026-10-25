@@ -1,8 +1,22 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v39)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v40)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v40 (2026-10-25, Aras 21:38-21:52, booklet/CROP_SPEC.md: the booklet shows the sheets' own drawings):
+  * Plan 01 "what is there": the URBAN FABRIC layer is back (the v28 / bergama_fabric_green v10 fabric map): every
+    building by its fabric type (old town, planned apartment blocks, planned low-rise houses, small irregular houses
+    and the survey's shacks, civic and industrial halls, under construction, monuments, mosques), the same rules and
+    data (fabric_types), in palette v1.4 roles; its legend gives each type's share of the built footprint.
+  * Plan 01: bridges K1-K6 as ticks across the stream, conflicts C1-C6 and photo viewpoints 1-8 as dots, each with a
+    plain short label placed clear of the others (no white roundels or boxes). Plan 07: working-area names without
+    the white box. Wording: "streamside spine"; no caveat words on the tables.
+  * S1 axonometric: no contour lines; its callouts and stream words without white halos.
+  * Booklet: the separate booklet drawings (A1-A7 frames) are gone. booklet/blocks.json lists one "crop" per panel
+    of every sheet this board writes (Selinus_drawings, Selinus_sections, the axonometric, T1-T8: one per map), the
+    panel's rectangle in mm on its sheet PDF, from the layout's own numbers, with caption, scale and legend.
+    booklet/results.json keeps every key it had.
 
 NEW IN v39 (2026-10-25, SCRIPT_STANDARD 8, booklet/ASSET_SPEC.md: the A3 booklet):
   * After the board's PDFs: output/selinus_board/booklet/ holds one text-free vector PDF per booklet frame of pages
@@ -669,7 +683,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v39 (2026-10-25)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v40 (2026-10-25)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

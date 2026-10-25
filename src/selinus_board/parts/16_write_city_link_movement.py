@@ -177,18 +177,30 @@ def export_axonometrics(S):
     out = []
     if not os.path.isdir(pdf_folder()):
         os.makedirs(pdf_folder())
+    del CROP_DIRECT[:]
     for did, fn in (("S1", "Selinus_01_what_is_there_axonometric.pdf"),):
         t0 = time.time()
         ext = ctx.extents[0]
         try:
-            pg, st = DG["compose"](ctx, DG["SPECS"][did](ctx, ext), ext, stamp)
+            spec = DG["SPECS"][did](ctx, ext)
+            pg, st = DG["compose"](ctx, spec, ext, stamp)
             p = os.path.join(pdf_folder(), fn)
             DG["write_pdf"]([pg], p)
             out.append((p, time.time() - t0))
+            bx, ph = DG["BOX"], DG["PAGE_H"]                 # v40: the booklet crop: the page between the rules (the
+            bx = (0.0, bx[1], DG["PAGE_W"], bx[3])            # callouts may sit beyond the drawing box, left and right)
+            leg = [(("dot", DG["TREE_STYLES"].get(c_, DG["TREE_STYLES"]["tree"])["mid"]) if k_ == "tree" else (k_, c_))
+                   + (t_,) for k_, c_, t_ in spec["legend"]() if c_ is not None]
+            CROP_DIRECT.append(("axo_what_is_there", fn, (bx[0], ph - bx[3] - 4.0, bx[2], ph - bx[1] + 4.0),
+                                u"What is there · heights, heritage, water, green", None, crop_legend(leg), []))
         except Exception:
             LOG.append("WARNING: the {} axonometric failed:\n{}".format(did, traceback.format_exc()))
     LOG.extend(u"Axonometric engine: " + m for m in DG["LOG"])
     return out
+
+
+CROP_MV = {"walk_b": "walking_today", "car_b": "driving_today", "walk_d": "walking_change", "car_d": "driving_change",
+           "comb_d": "combined_change"}                  # v40: crop slugs of plan 07's insets
 
 
 def draw_how_people_use_it(S, B, x, y, w, U):
@@ -276,9 +288,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
                 roundel(B, px, py, rr, let_of.get(f, "?"), fcol.get(f, INK), (255, 255, 255), L, order=62)
         for nm, sh, a in stage_areas(S):                    # where each walk starts: a name, never an outline
             cx, cy = shoelace(a["P"])[1:]
-            px, py = V.p(cx, cy)
-            B.fill([rect(px - tw(nm, 0.42 * U) / 2 - 0.2 * U, py - 0.3 * U, px + tw(nm, 0.42 * U) / 2 + 0.2 * U,
-                         py + 0.45 * U)], (255, 255, 255), L, 63)
+            px, py = V.p(cx, cy)                          # v40: plain text, no white box (Aras 25 Oct 21:41)
             B.text(nm, px, py, 0.42 * U, INK, L, order=64, font=FONT_TITLE, bold=True, align="C")
     draw_map_annotations(S, B, V, U)
     B.line(V.P(F.P + [F.P[0]]), INK, L, 26, 0.25)
@@ -309,6 +319,8 @@ def draw_how_people_use_it(S, B, x, y, w, U):
             dmax = max([abs(v) for P, (c_, v) in runs] or [1.0]) or 1.0
             draw_mv_streets(B, Vi, runs, L, 14, scale=0.45, div=k.endswith("_d"), dmax=dmax)
             B.line(Vi.P(F.P + [F.P[0]]), INK2, L, 26, 0.1)
+            crop_panel(CROP_MV.get(k, k), ix, iy - 0.8 * U - ih_, ix + iw, iy - 0.8 * U, title.capitalize(),
+                       crop_scale(Vi.s))                  # v40: the booklet crop of the inset
             low = min(low, iy - 0.8 * U - ih_ - 0.4 * U)
         yy = low - 0.6 * U
     # walking lengths from each working area (D7), as a small table
@@ -351,7 +363,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     r_com = bcite("Commerce: shopfronts within 30 m of a street (survey, OSM, Overture). Services: Overture/Meta "
                   "places. Walks: the shortest along OSM streets and footways from the edge of each working area, "
                   "rounded to 10 m.")
-    r_sp = bcite("Proposed riverside spine: {}; the change maps add it to the walking network (joined to every street it "
+    r_sp = bcite("Proposed streamside spine: {}; the change maps add it to the walking network (joined to every street it "
                  "crosses) and its stops as new destinations. Walking cost follows the slope (Tobler 1993) on the survey "
                  "terrain.".format(getattr(S, "city_link", None) and S.city_link["src"] or "curves wired into the board")
                  ) if sp_props else ""
@@ -363,8 +375,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
             ("thick", mix(cc, PAPER, 0.45), "Primary commercial spine"),
             ("dash", mix(cc, PAPER, 0.45), "Secondary spine")]
     if sp_props:                                          # v34
-        leg += [("thick", sp_c, "Proposed riverside spine" + (" (bergama_city_link)" if getattr(S, "city_link", None)
-                                                             else "") + " " + r_sp), ("dot", sp_c, "New stop on the spine")]
+        leg += [("thick", sp_c, "Proposed streamside spine " + r_sp), ("dot", sp_c, "New stop on the spine")]
     leg += [("box", CAT["commercial"][1], "Commerce"), ("box", CAT["mixed"][1], "Mixed use"),
             ("box", CAT["institutional"][1], "Civic"), ("box", CAT["religious"][1], "Sacred"),
             ("dash", hc, "Constellation · 3+ in 100 m")]
@@ -375,6 +386,8 @@ def draw_how_people_use_it(S, B, x, y, w, U):
                 leg.append(("dot", fcol[f], "{} · {} places".format(lab, n_pl[f])))
         leg.append(("dash", walk_c, "Walk to the nearest (letter at the place)"))
     ly = draw_legend_items(B, leg, x, yy - 0.4 * U, mw, U, L, h=0.4)
+    crop_panel("movement", V.X0, mb - 1.6 * U, V.X0 + mw, y - 1.2 * U, u"How people use it · streets, shops, services",
+               crop_scale(V.s), crop_legend(leg))         # v40: the booklet crop of the plan
     # v38 (visual first): what the numbers say as a tile and two mini-charts (were caption sentences); computed above,
     # nothing measured on the street
     cy0 = ly - 0.4 * U
@@ -408,6 +421,8 @@ def draw_how_people_use_it(S, B, x, y, w, U):
             B.text("walking index · {} streets of 50 m+".format(len(MV["big"])), px0 + pw_ / 2.0, py0 - 0.95 * U,
                    0.28 * U, INK2, L, align="C")
             B.text("shops", px0 - 0.2 * U, py0 + 0.1 * U, 0.28 * U, INK2, L, align="R")
+            crop_panel("shops_vs_walking", cx - 0.6 * U, py0 - 1.3 * U, cx + gw, py0 + gh + 0.1 * U,
+                       u"More walkers, more shops · Spearman {:.2f}".format(rw))    # v40
             low = min(low, py0 - 1.4 * U)
             cx += gw + 2.0 * U
     if D7 and ups:                                        # the climb of every walk, as bars
@@ -428,12 +443,18 @@ def draw_how_people_use_it(S, B, x, y, w, U):
         B.text("5 m", bx0 - 0.2 * U, by0 + gh * 5.0 / ym - 0.12 * U, 0.28 * U, MARK_C, L, align="R")
         B.line([(bx0, by0), (bx0 + gw - 1.4 * U, by0)], INK2, L, 22, 0.05)
         B.text("walks, steepest first · m up", bx0 + (gw - 1.4 * U) / 2.0, by0 - 0.55 * U, 0.28 * U, INK2, L, align="C")
+        crop_panel("walk_climb", cx, by0 - 0.9 * U, cx + gw, by0 + gh + 0.1 * U, u"Climb of the walks")     # v40
         low = min(low, by0 - 1.0 * U)
     return low - 0.4 * U
 
 
 # ============================================================ v33 AXONOMETRIC ENGINE (bergama_diagrams v1.8, cut down)
 #@include ../data/DIAG_SRC.py
+
+
+CROP_DEFAULT = {"The stream's tree cover": ("tree_cover", u"Tree cover along the banks, every 25 m", "riparian"),
+                "Section along the spine": ("spine", u"Long section along the spine", "spine_section")}
+# v40: drawings cropped whole below their title when they register no crop themselves (and every section)
 
 
 def build_sheet(S, B, X, Y, U, rects):
@@ -475,8 +496,12 @@ def build_sheet(S, B, X, Y, U, rects):
             x, y = X, row_bottom - gap
             row_bottom = y
         B.begin("DRAWING · " + name, "LU_DRAWINGS")
+        n0 = len(CROP_PANELS)
         bot = fn(x, y)
         box = (x - pad, bot - pad, x + w + pad, y + 1.4 * U + pad)
+        dc = CROP_DEFAULT.get(name.split(" ", 1)[-1])
+        if dc or (" Section " in name and "key" not in name.lower() and "placeholder" not in name.lower()):   # v40
+            crop_default(name, x, bot, x + w, y - 0.45 * U, n0, *(dc or ()))
         B.line(rect(box[0], box[1], box[2], box[3]) + [(box[0], box[1])], INK2, "LU_BOARD::Crop frames", 50, 0.05)
         B.text(name.upper(), box[0], box[3] + 0.35 * U, 0.4 * U, INK2, "LU_BOARD::Crop frames")
         rects.append((name, box))
@@ -514,6 +539,7 @@ def build_layout(S):
     OX, OY = 0.0, 0.0
     rects = TimedRects()                                  # v27: each drawing's time for the log
     del DRAWING_TIMES[:]
+    del CROP_PANELS[:]                                    # v40: the booklet crops of this layout
     y = OY
     B_CUR[0] = B
     if RUN_MODE in ("board", "all"):
