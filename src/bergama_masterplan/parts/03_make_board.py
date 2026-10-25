@@ -1,5 +1,6 @@
-def make_board(opt, alt, pages):
-    """The four working areas side by side (two rows when wider than BOARD_MAX_W) under the sheet's title."""
+def make_board(opt, alt, pages, title=None):
+    """The working areas side by side (two rows when wider than BOARD_MAX_W) under the sheet's title. v21: the
+    result's .panels = [(key, crop rect in page mm from the top-left, y down)] for the booklet's crops."""
     M, HEAD, G = 14.0, 24.0, 10.0
     rows = [pages]
     if sum(p.W for p in pages) + G * (len(pages) - 1) + 2 * M > BOARD_MAX_W:
@@ -8,33 +9,48 @@ def make_board(opt, alt, pages):
     H = sum(max(p.H for p in r_) for r_ in rows) + G * (len(rows) - 1) + 2 * M + HEAD
     bd = Page(W, H)
     bd.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    sheet_head(bd, M, H - M, alt, opt)
+    sheet_head(bd, M, H - M, alt, opt, title)
     y = H - M - HEAD
+    at = []
     for r_ in rows:
         x = M
         hr = max(p.H for p in r_)
         for p in r_:
             blit(bd, p, x, y - p.H)
+            at.append((p, x, y - p.H))
             x += p.W + G
         y -= hr + G
-    return add_legend(bd, alt, _ALPHA[0], M)            # v17
+    sh = add_legend(bd, alt, _ALPHA[0], M)               # v17
+    dy = sh.H - bd.H                                     # the legend band added under the board
+    sh.panels = []
+    for p, x, y0 in at:
+        c = getattr(p, "crop", None)
+        if c:
+            x0, x1, yb, yt = x + c[0], x + c[2], y0 + dy + c[1], y0 + dy + c[3]
+            sh.panels.append((getattr(p, "key", None), (x0, sh.H - yt, x1, sh.H - yb), p))
+    return sh
 
 
 # ================================================================ v17: the legend band (only what the sheet draws)
 LEG = {}                       # what the sheet being drawn uses: key -> sample data (reset for every sheet)
 LEG_ZONE = [("WS", u"WATER STORAGE · RETENTION TERRACES"), ("WT", u"CLEANING · REED BASINS"),
             ("WD", u"CLEAN WATER BACK · SPILLWAY"), ("WA", u"AMPHIBIOUS · BED"),
-            ("WAF", u"AMPHIBIOUS · FLOOD TERRACE"), ("WP", u"RIVERSIDE PLANTING"),
+            ("WAF", u"AMPHIBIOUS · FLOOD TERRACE"), ("WP", u"STREAMSIDE PLANTING"),
             ("GR", u"GREEN · SHADED WALK, DRY TOP"), ("DG", u"DEMETER'S GARDEN"), ("WI", u"AGRICULTURE"),
             ("CH", u"HERITAGE"), ("MC", u"CENTRE"), ("HO", u"HOUSING"), ("CV", u"CIVIC"), ("SR", u"SPORT"),
             ("PA", u"SERVICE")]
-LEG_CTX = [("river", u"RIVER"), ("street", u"STREET"), ("park", u"PARK"), ("heritage", u"HERITAGE BUILDING"),
+LEG_CTX = [("river", u"STREAM"), ("street", u"STREET"), ("park", u"PARK"), ("heritage", u"HERITAGE BUILDING"),
            ("housing", u"HOUSING"), ("building", u"OTHER BUILDING"), ("cleared", u"CLEARED GROUND")]
 LEG_SW, LEG_SH, LEG_ROW, LEG_TS, LEG_HS, LEG_GAP = 22.0, 8.0, 11.0, 3.4, 4.0, 14.0   # sizes, mm
 
 
+_PLEG = [None]                 # v21: the legend keys of the panel being drawn (its booklet crop's legend)
+
+
 def leg(key, val=True):
     LEG.setdefault(key, val)
+    if _PLEG[0] is not None:
+        _PLEG[0].setdefault(key, val)
 
 
 def leg_zone(z):
@@ -101,7 +117,7 @@ def legend_groups(alt, alpha):
             pg.poly([rect(x, y, x + w, y + h)], fill=lt, alpha=0.85)
             pg.poly([rect(x, y, x + w, y + h)], stroke=dk, lw=0.35)
         zones.append((RIVER_BAND_NAME, rb_sw))
-    for nm_ in (u"MAIN SPINE", u"RIVERSIDE SPINE"):
+    for nm_ in (u"MAIN SPINE", u"STREAMSIDE SPINE"):
         if ("spinezone", nm_) in LEG:
             zones.append((nm_, fill_sw(mix(W_, MP["centre"][0], alpha))))
     if "strip" in LEG:
@@ -116,7 +132,8 @@ def legend_groups(alt, alpha):
     surv = [(("s", "contour"), u"CONTOURS", line_sw((COL["contour10"], 0.3, None, None))),
             (("s", "park"), u"EXISTING PARK", fill_sw(COL["park"])),
             (("s", "pond"), u"POND", fill_sw(COL["river"])),
-            (("s", "street"), u"STREET EDGE", line_sw((COL["road_edge"], 0.3, None, None))),
+            (("road", "main"), u"MAIN ROAD", line_sw((ROAD_TONE[2], ROAD_LW[1], None, None))),     # v21
+            (("road", "street"), u"STREET EDGE", line_sw((ROAD_TONE[1], ROAD_LW[0], None, None))),
             (("s", "building"), u"BUILDING", fill_sw(COL["bld"], COL["bld_edge"])),
             (("s", "heritage"), u"HERITAGE BUILDING", fill_sw(COL["her"], COL["her_edge"])),
             (("s", "tree"), u"TREE", None),
@@ -144,9 +161,9 @@ def legend_groups(alt, alpha):
         lines.append((u"MAIN SPINE", line_sw((COL["spine"], band * 1.25, None, 0.55),
                                              (COL["spine_dark"], 0.35, None, None))))
     if ("spine", "edge") in LEG or ("spine", "over") in LEG:
-        lines.append((u"RIVERSIDE SPINE", line_sw((COL["spine"], band, None, 0.75))))
+        lines.append((u"STREAMSIDE SPINE", line_sw((COL["spine"], band, None, 0.75))))
     if ("spine", "deck") in LEG:
-        lines.append((u"RIVERSIDE SPINE · DECK, NO ROOM ON THE BANK", line_sw((COL["spine"], band, [1.4, 0.9], 0.75))))
+        lines.append((u"STREAMSIDE SPINE · DECK", line_sw((COL["spine"], band, [1.4, 0.9], 0.75))))
     if "path" in LEG:
         lines.append((u"PATH", line_sw((W_, 1.9, None, None), (COL["path"], 1.0, [1.0, 0.35], None))))
 
@@ -167,7 +184,7 @@ def legend_groups(alt, alpha):
             pg.text(u"1", x + w / 2, y + h / 2 - 1.0, 2.8, W_, bold=True, align="C")
         links.append((u"STOP", f))
     return [(u"ZONES", zones), (u"AROUND THE ZONES", ctx),
-            (u"WALKS AND SPINES", lines), (u"LINKS", links)]
+            (u"WALKS AND SPINES", lines), (u"LINKS", links)] + detail_legend()      # v21: detail sheet groups
 
 
 def add_legend(sh, alt, alpha, M):
@@ -208,17 +225,17 @@ def add_legend(sh, alt, alpha, M):
     return pg
 
 
-def sheet_head(pg, x, y_top, alt, opt):
-    pg.text(u"BERGAMA · GROUP 6 · " + ALT_TEXT[alt], x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
+def sheet_head(pg, x, y_top, alt, opt, title=None):
+    pg.text(u"BERGAMA · GROUP 6 · " + (title or ALT_TEXT[alt]), x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
     pg.text(OPTION_TEXT[opt], x, y_top - 13.0, 3.4, COL["ink"], bold=True)
     pg.text(CREDIT, x, y_top - 18.0, 2.6, COL["ink"])
     scale_bar(pg, x + 170.0, y_top - 13.0, _SCALE[0])
 
 
-def scale_bar(pg, x, y, scale):
-    """v16: 0-50-100-200 m bar (ink and white blocks) and the scale as text, at the print scale 1:scale."""
+def scale_bar(pg, x, y, scale, marks=(0.0, 50.0, 100.0, 200.0)):
+    """v16: 0-50-100-200 m bar (ink and white blocks) and the scale as text, at the print scale 1:scale (v21: marks
+    may be given: the detail windows use 0-10-20-50 m)."""
     k = 1000.0 / scale                                    # page mm per metre
-    marks = (0.0, 50.0, 100.0, 200.0)
     for i, (a, b) in enumerate(zip(marks[:-1], marks[1:])):
         pg.poly([rect(x + a * k, y, x + b * k, y + 1.2)], fill=COL["ink_dark"] if i % 2 == 0 else COL["white"],
                 stroke=COL["ink_dark"], lw=0.15)
@@ -447,7 +464,96 @@ def river_walks(survey, removes=()):
     for x in out:
         k = x["bank"] + " " + x["cls"]
         stats[k] = stats.get(k, 0.0) + x["m"]
-    return {"runs": out, "covered": covered, "stats": stats, "ref": P}
+    return {"runs": out, "covered": covered, "stats": stats, "ref": P, "rows": rows}   # v21: rows for the promenade
+
+
+# ================================================================ v21: the promenade beside the stream
+# Aras 25 Oct 21:38: "promenade is just too thick that it covers the whole river however it should be alongside
+# river like covering %10 on left and %10 on right and rest should extend to the roadside". At every station of
+# river_walks (WALK_STEP m along STREAM_REF), on each bank: from PROM_IN x the stream's width inside the water edge
+# (the edge river_walks found) out to the first surveyed street edge (YOL_SOSE / YOL_BORDUR) within PROM_SEARCH_M;
+# a standing building (BINA_*, not cleared by the zone base) met first stops it there; with neither within
+# PROM_SEARCH_M it ends PROM_FREE_M out. No band over the covered reach. The outer edge is a running median over
+# PROM_WIN stations; option A's water edge wanders (organic only where the project meets the water).
+PROM_IN = 0.10               # share of the stream's width the band reaches over the water (Aras: "%10")
+PROM_SEARCH_M = 60.0         # the roadside is looked for this far beyond the water edge, m
+PROM_FREE_M = 15.0           # no street or building within PROM_SEARCH_M: the band's width beyond the edge, m (graphic)
+PROM_MIN_M = 1.0             # narrowest band beyond the edge (a street right at the water), m (graphic)
+PROM_WIN = 9                 # stations of the running median of the outer edge
+PROM_MIN_RUN = 12.0          # shorter runs are dropped, m
+PROM_SLOPE = 0.6             # the outer edge widens at most this much per m along the stream (hugs the roadside)
+
+
+def promenade(W, survey, removes, opt):
+    """v21: the promenade's rings (world m), one per bank and run, and {"m2", "street_pct"} for the log."""
+    rows = W.get("rows") or []
+    if not rows:
+        return [], {}
+    rm = [r for r in removes if len(r) >= 3]
+    skip = (lambda q: any(pip(q[0], q[1], r) for r in rm)) if rm else None
+    Gr = SegGrid([P for role in WALK_ROLES["road"] for P in survey.get(role, [])])
+    Go = SegGrid([P for role in WALK_ROLES["obst"] for P in survey.get(role, [])], skip)
+    nz = _noise(101)
+    loops, n_st, n_all = [], 0, 0
+    for side, sg in (("NE", 1.0), ("SW", -1.0)):
+        V = []
+        for r in rows:
+            s = r.get(side)
+            if r["cov"] or not s or not r.get("width"):
+                V.append(None)
+                continue
+            p, nl, e = r["p"], r["n"], s["e"]
+            lo, hi = sorted((e, e + sg * PROM_SEARCH_M))
+            st_ = [sg * x - sg * e for x in Gr.cross(p, nl, lo, hi)]
+            ob_ = [sg * x - sg * e for x in Go.cross(p, nl, lo, hi)]
+            st_ = [v for v in st_ if v > 0.3]
+            ob_ = [v for v in ob_ if v > 0.05]
+            n_all += 1
+            if st_ and (not ob_ or min(st_) <= min(ob_)):
+                n_st += 1
+            out = min(st_ + ob_) if st_ or ob_ else PROM_FREE_M
+            V.append([e, r["width"], max(PROM_MIN_M, out)])
+        runs, cur = [], []
+        for i, v in enumerate(V + [None]):
+            if v is None:
+                if len(cur) * WALK_STEP >= PROM_MIN_RUN:
+                    runs.append(cur)
+                cur = []
+            else:
+                cur.append(i)
+        for ix in runs:
+            n = len(ix)
+            for j in (1, 2):                             # width and outer edge: running median
+                raw = [V[i][j] for i in ix]
+                h = PROM_WIN // 2
+                for a, i in enumerate(ix):
+                    V[i].append(_median(raw[max(0, a - h):a + h + 1]))
+            for seq in (ix, ix[::-1]):                   # the outer edge widens gently, narrows to the street
+                for a, b in zip(seq, seq[1:]):
+                    V[b][4] = min(V[b][4], V[a][4] + PROM_SLOPE * WALK_STEP)
+            inner, outer = [], []
+            for i in ix:
+                r = rows[i]
+                e, w, o = V[i][0], V[i][3], V[i][4]
+                p, nl = r["p"], r["n"]
+                f = 1.0 + (0.45 * nz(p[0], p[1]) if opt == "A" else 0.0)
+                t_in = e - sg * PROM_IN * w * f
+                t_out = e + sg * o
+                inner.append((p[0] + nl[0] * t_in, p[1] + nl[1] * t_in))
+                outer.append((p[0] + nl[0] * t_out, p[1] + nl[1] * t_out))
+            if n < 3:
+                continue
+            outer = walk_form(outer, "B") if opt == "B" else \
+                [outer[0]] + [tuple(sum(outer[j][c] for j in range(a - 2, a + 3)) / 5.0 for c in (0, 1))
+                              for a in range(2, n - 2)] + [outer[-1]]
+            inner = walk_form(inner, opt)
+            Lp = inner + outer[::-1]
+            Lp = chaikin(Lp, 2, closed=True) if opt == "A" else Lp
+            if area2(Lp) < 0:
+                Lp = Lp[::-1]
+            loops.append(Lp)
+    m2 = sum(abs(area2(L_)) for L_ in loops)
+    return loops, {"m2": m2, "street_pct": 100.0 * n_st / max(1, n_all)}
 
 # v11 constants (Thread 5)
 SPINE_W_M = 6.0                # drawn width of the spines, m (graphic)
@@ -630,7 +736,10 @@ def city_layer(opt, D, areas, survey, warn):
     for s in sp:
         s["F"] = walk_form(s["P"], opt) if s["kind"] == "edge" else s["P"]
     m2 = sum(x["m"] for x in W["runs"]) * WALK_W
-    return {"W": W, "spine": sp, "main": [tuple(p) for p in spec["main_spine"]], "stops": stop_points(spec, D, areas),
+    prom, pst = promenade(W, survey, [r["P"] for r in D.removes], opt)       # v21
+    if not prom:
+        warn.append(u"option {}: no promenade drawn (no stream edges from the survey)".format(opt))
+    return {"prom": prom, "prom_stats": pst, "W": W, "spine": sp, "main": [tuple(p) for p in spec["main_spine"]], "stops": stop_points(spec, D, areas),
             "src_walks": src_w, "src_city": src_c, "walk_m2": m2,
             "spine_m": dict((k_, sum(arclen(s["P"])[-1] for s in sp if s["kind"] == k_)) for k_ in ("edge", "deck", "over"))}
 
@@ -670,7 +779,7 @@ def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=Tr
         word_along(pg, mp_, u"MAIN SPINE", 2.6, COL["spine_dark"], taken, W_, H_)
         edge = [tp(s["F"]) for s in CL["spine"] if s["kind"] != "deck"]
         if edge:
-            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"RIVERSIDE SPINE", 2.6, COL["spine_dark"],
+            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"STREAMSIDE SPINE", 2.6, COL["spine_dark"],
                        taken, W_, H_)
     if not stops:
         return
@@ -692,7 +801,7 @@ def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=Tr
                 continue
             if any(hit(b, t) for t in taken):
                 continue
-            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True, halo=COL["white"])
+            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True)
             taken.append(b)
             break
 
@@ -707,7 +816,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v20.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v21.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -908,6 +1017,7 @@ def build_all(doc, warn):
                                (b[0] - ring_m, b[1] - ring_m, b[2] + ring_m, b[3] + ring_m))
     # ---- per option: the zones (file, else zone base file, else the embedded copy), then the three alternatives
     files, lines, pages = [], [], []
+    sheets, wins, plc, missing = [], [], {}, {}           # v21: sheets for the booklet crops
     CLs = {}
     zb = None
     for opt in option_input():
@@ -935,6 +1045,9 @@ def build_all(doc, warn):
                              opt, ", ".join(u"{} {:.0f}".format(k_, v_) for k_, v_ in sorted(st_.items())),
                              CL["spine_m"]["edge"], CL["spine_m"]["deck"], CL["spine_m"]["over"], CL["walk_m2"],
                              CL["src_walks"], CL["src_city"]))
+            if CL.get("prom_stats"):                     # v21
+                lines.append(u"option {}: promenade {:,.0f} m2 beside the stream; it reaches a street edge at {:.0f} % "
+                             u"of the bank stations".format(opt, CL["prom_stats"]["m2"], CL["prom_stats"]["street_pct"]))
         except Exception as ex:
             import traceback
             CL = None
@@ -947,26 +1060,63 @@ def build_all(doc, warn):
             except Exception as ex:
                 pzs[key] = []
                 warn.append(u"option {}: the puzzle of {} failed ({}: {})".format(opt, place, type(ex).__name__, ex))
-        if opt == "A" and CL is not None:                # v20: what the booklet drawings reuse
-            _BK.clear()
-            _BK.update(areas=areas, site=site, survey=survey, D=D, CL=CL, pzs=pzs, alpha=alpha)
         for alt in (1,):                                 # v19: the one sheet
             name = OUT_NAME.format(opt, alt)
             t0 = time.time()
             LEG.clear()                                  # v17: the legend lists only this sheet's entries
             try:
-                pg = make_board(opt, alt, [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale,
-                                                     alpha, areas[spec[0]], CL) for spec in AREAS])
-                path = save(pg, folder, name, u"Bergama masterplan v20 option {} (opacity {:.2f}, "
+                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL)
+                          for spec in AREAS]
+                for p_ in panels:                        # v21: each panel is a booklet crop
+                    p_.bid = MP_CROPS[p_.key]
+                pg = make_board(opt, alt, panels)
+                path = save(pg, folder, name, u"Bergama masterplan v21 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
+                sheets.append((path, pg, scale))
                 lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
                                                        datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
             except Exception as ex:
                 import traceback
                 lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
+        if opt == "A" and CL is not None:                # v21: the 1:1,000 detail sheet (option A)
+            name = DETAIL_NAME.format(opt)
+            t0 = time.time()
+            LEG.clear()
+            _SCALE[0] = DT_SCALE
+            try:
+                plc = places(city_link()[0], CL, survey)
+                wins = detail_windows(D, plc, bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME))
+                spots = read_spots(doc, [w["R"] for w in wins]) if doc is not None else []
+                if not spots:
+                    warn.append(u"no survey spot heights ({}) in the detail windows: no spot levels".format(SPOT_LAYER))
+                dpanels = []
+                for w in wins:
+                    spec = next(a_ for a_ in AREAS if a_[0] == w["key"])
+                    Rm = (w["R"][0] - 40.0, w["R"][1] - 40.0, w["R"][2] + 40.0, w["R"][3] + 40.0)
+                    missing[w["id"]] = []
+                    p_ = draw_area(spec, opt, 1, D, prep_base(survey, BoxNear(Rm), Rm), pzs[w["key"]], DT_SCALE,
+                                   alpha, areas[w["key"]], CL, win=w["R"],
+                                   detail=detail_overlay(w, D, CL, spots, plc, missing[w["id"]], warn),
+                                   title=w["title"] + u" · 1:1,000")
+                    p_.bid = (w["id"], w["old"], w["caption"])
+                    dpanels.append(p_)
+                    for m_ in missing[w["id"]]:
+                        warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
+                pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
+                path = save(pg, folder, name, u"Bergama masterplan v21 detail option {} (1:1,000)".format(opt))
+                files.append(path)
+                pages.append((opt, "detail", pg))
+                sheets.append((path, pg, DT_SCALE))
+                lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
+                                                       datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
+            except Exception as ex:
+                import traceback
+                lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
+                warn.append(traceback.format_exc()[-480:])
+            _SCALE[0] = scale
     if CLs:                                              # v11: what the other scripts read
         try:
             with open(os.path.join(folder, RESULTS_NAME), "w", encoding="utf-8") as f:
@@ -974,10 +1124,10 @@ def build_all(doc, warn):
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))
-    if _BK:                                              # v20: the A3 booklet drawings; never breaks the sheet
+    if sheets:                                           # v21: the booklet's crops of the sheets; never breaks them
         try:
-            _BK["spec"] = city_link()[0]
-            booklet_export(folder, _BK)
+            booklet_crops(folder, sheets, wins, plc, missing)
+            lines.append(u"booklet/blocks.json  {} crops".format(sum(len(sh_.panels) for _, sh_, _ in sheets)))
         except Exception as ex:
             import traceback
             lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))

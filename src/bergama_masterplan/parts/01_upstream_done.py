@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v20 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v21 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -31,12 +31,13 @@ HOW TO USE
      Option_A::INT_* and Option_B::INT_*) and edit them as you like.
   2. Grasshopper > "Python 3 Script" component: paste this file and wire a plain Button into any input (build, out,
      run ...). Every other input is optional.
-  3. Press the Button. One press writes all six PDFs and masterplan_results.json into the folder
+  3. Press the Button. One press writes the sheet, the 1:1,000 detail sheet (v21), masterplan_results.json and
+     booklet/ (blocks.json, results.json) into the folder
      Downloads/Bergama/output/bergama_masterplan (24 Oct, Aras rule); a second press writes them again. With a Boolean Toggle on rhino_bake set to True,
      the press also bakes the six sheets into Rhino under layer MP11, beside everything else in the file and beside
      each other, never on top of each other or of the survey (a press replaces the last bake).
   INPUTS (any name case; text, number or panel)
-    run          Button (v20; any input name works; a plain Button)
+    run          Button (v21; any input name works; a plain Button)
     rhino_bake   Boolean Toggle: bake the sheets into Rhino as well (default False)
     opacity      opacity of the lower-opacity pieces, 0-1 or 1-100 % (default OPACITY = 0.5, Aras's example value)
     scale        print scale 1:scale of all three alternatives (default 1000 since v16: studio brief of 26 Oct)
@@ -62,6 +63,20 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
+NEW IN v21 (Aras 25 Oct 21:38-21:57; booklet/CROP_SPEC.md):
+  * PROMENADE beside the stream, no longer over it: on each bank from 10 % of the stream's width inside the water
+    edge out to the nearest surveyed street edge (a standing building met first stops it; 15 m where neither lies
+    within 60 m); option A's edge wanders at the water only (promenade(), PROM_*).
+  * Roads: the survey's street edges over the whole panel as one outlined network in the palette's road role, the
+    main road (Bankalar - Kınık Caddesi) in its dark tone and heavier (draw_roads); street faces in the road tone.
+  * A second sheet, Bergama_masterplan_v21_A_detail.pdf: the booklet's two 1:1,000 windows (upstream entry; K5 and
+    Demeter's Garden) with the channel cuts and site sections, bed and Q100 / Q500 levels at the cuts, the water route
+    numbered with the zones' areas, planting band letters and species codes, survey spot levels, terrace steps and
+    ramps as abstract sketch marks (02b_detail.py). North arrow and scale bar in every panel.
+  * Booklet: no separate drawings any more; booklet/blocks.json holds one crop per panel of both sheets (mp_upstream,
+    mp_downstream, dt_upstream, dt_k5); booklet/results.json keeps v20's keys. v20's c1/c3 PDFs are removed.
+  * Words: stream, never river, on the sheets; no caveat notes ("NO PROGRAMME YET" gone), no personal credit under
+    Demeter's Garden, no haloed labels.
 NEW IN v20 (Aras 25 Oct 18:37, A3 booklet; SCRIPT_STANDARD §8): the sheet and masterplan_results.json are unchanged.
   The press also writes the booklet's drawings into output/bergama_masterplan/booklet/: c1_s1 and c1_s2 (the whole
   site in two equal halves with 50 m overlap, centred, turned so the stream runs left to right, 1:5,000), c3_a and c3_b (north-up
@@ -189,8 +204,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v20 (2026-10-25)"
-SHORT = "v20"
+VERSION = "bergama_masterplan v21 (2026-10-25)"
+SHORT = "v21"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -198,11 +213,11 @@ RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: i
 BOARD_SCALE = 1000.0                  # v16: studio brief 26 Oct, "1/1000 scale master plan" (was 2000, v2.3's board scale)
 _SCALE = [BOARD_SCALE]               # v16: the scale of this press, for the scale bar in sheet_head
 _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the legend swatches
-_BK = {}                             # v20: what the booklet drawings reuse from the sheet (option A)
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v20_{}.pdf"     # v19: one sheet per option
+OUT_NAME = "Bergama_masterplan_v21_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v21_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -257,7 +272,7 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
          ("aras_alan", "WT", None): u"REED BASINS", ("aras_alan", "WD", None): u"SPILLWAY",
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
-         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"RIVERSIDE PLANTING",
+         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
          ("calisma_alan", "DG", None): u"DEMETER'S GARDEN"}   # v13: Begum's idea (card i01)
 SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a working-area key, keywords)
     ("aras_alan", "WS", "D", None, [u"WINTER RAIN", u"STEPPED", u"SEATING"]),
@@ -267,7 +282,7 @@ SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a work
     ("begum_alan", "WA", "W", None, [u"WATER STRIP", u"STEPPING STONES", u"WEIRS", u"PLAZA", u"REED"]),
     ("begum_alan", "WA", "F", None, [u"WATER STEPS", u"SEATING", u"TAMARIX"]),
     ("begum_alan", "GR", "D", None, [u"BRIDGE VIEW", u"KIOSK", u"SHADE", u"LAVENDER"]),
-    ("nil_alan", "WP", "F", None, [u"CLEAN RIVER", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
+    ("nil_alan", "WP", "F", None, [u"CLEAN STREAM", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
     ("calisma_alan", "DG", "D", None, [u"OLIVES", u"STONE PINE", u"AROMATICS", u"SEASONAL BEDS", u"CAFE",
                                        u"WATER COLLECTION BASIN"]),   # v13: Begum's PDF, verbatim words
 ]
@@ -275,7 +290,7 @@ REMOVE_WORDS = [u"CLEARED"]
 # the common piece where the functions of a working area meet: name + what it gathers. A design reading of the
 # sourced words above (Aras 19:27, campus reference), not data; edit freely.
 HUB = {"calisma_alan[0]": (u"WATER AND HERITAGE COMMONS", [u"COLLECT", u"CLEAN", u"HOLD", u"K4 BRIDGE", u"PLAZA"]),
-       "calisma_alan[1]": (u"AMPHIBIOUS RIVER COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
+       "calisma_alan[1]": (u"AMPHIBIOUS STREAM COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
 # v12: v11's four commons merged per part (WATER + HERITAGE; AMPHIBIOUS + RIVER), their words joined
 # word-size factor per zone = how much it carries the working area's idea (three_ideas.md); a design reading.
 # Upstream entry "Collect, clean and hold": the reed basins clean and the terraces hold; the spillway returns; the
@@ -290,10 +305,9 @@ STEPS = (1.0, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35)   # sizes tried, largest first, 
 HUB_R_M = (24.0, 16.0, 10.0)   # meeting distance tried, m (graphic)
 HUB_MAX = 0.35                 # the common piece takes at most this share of the programme pieces
 HUB_MIN_M2 = 150.0             # smaller common fragments are dropped
-KIND_WORD = {"river": u"RIVER", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
+KIND_WORD = {"river": u"STREAM", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
 PATH_WORDS = {"nil_alan": [u"FLOODABLE DECK"]}
 ROUND_M = 9.0                  # corner rounding of the cleared-building outlines, m (graphic)
-CREDIT_DG = u"idea: Beg\u00fcm"                 # v13: Demeter's Garden is Begum's idea alone (Aras 25 Oct 08:03)
 DROPPED = ("FARM CHANNEL", "ORCHARD", "FARMLAND")   # no farmland or farm channel inside the site (CONTEXT §2)
 
 # ---------------------------------------------------------------- links (masterplan v9, from ideas.txt)
@@ -1035,6 +1049,22 @@ def read_survey(doc, R):
         P = curve_pts(g)
         if len(P) >= 2:
             out.setdefault(ROLE_OF[path.split("::")[-1]], []).append(P)
+    return out
+
+
+SPOT_LAYER = "NOKTA_TAKEOMETRI"       # v21: the survey's spot heights (tacheometry points, m)
+
+
+def read_spots(doc, rects):
+    """v21: [(x, y, z)] of the survey's spot heights (SPOT_LAYER points) inside any of the rectangles."""
+    out = []
+    for path, o in objects_on(doc, lambda p: p.split("::")[-1] == SPOT_LAYER):
+        g = o.Geometry
+        q = getattr(g, "Location", None)
+        if q is None or abs(q.Z) < 1e-6:
+            continue
+        if any(R[0] <= q.X <= R[2] and R[1] <= q.Y <= R[3] for R in rects):
+            out.append((q.X, q.Y, q.Z))
     return out
 
 

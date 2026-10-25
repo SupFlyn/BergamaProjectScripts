@@ -213,7 +213,8 @@ def prep_base(survey, nr, R, full=False):
     footprints as faces (whole when any corner is within), street and stream lines and the line work drawn on top,
     cut at the edge; full = also contours and bank lines (alternative 3)."""
     inR = lambda P: any(R[0] <= p[0] <= R[2] and R[1] <= p[1] <= R[3] for p in P)
-    base = {"faces": {}, "lines": [], "streets": [], "streams": [], "contours": [], "contours10": [], "banks": []}
+    base = {"faces": {}, "lines": [], "streets": [], "streams": [], "contours": [], "contours10": [], "banks": [],
+            "streets_all": []}
     for role, max_a in (("park", 400000.0), ("pond", 50000.0), ("housing", 30000.0), ("building", 30000.0),
                         ("heritage", 30000.0)):
         polys = [P for P in survey.get(role, []) if inR(P)]
@@ -222,6 +223,7 @@ def prep_base(survey, nr, R, full=False):
         for P in survey.get(role, []):
             if inR(P):
                 base["streets"] += cut_runs(P, nr.within)
+                base["streets_all"].append(P)           # v21: the whole street network of the drawing
     styles = {"histwall": ("histwall", 0.30, [1.2, 0.5]), "stream": ("river_mid", 0.22, None),
               "bridge": ("ink", 0.35, None)}
     for role in ("stream", "histwall", "bridge"):
@@ -271,7 +273,7 @@ def link_shapes(L, shapes, near=30.0):
 # into each other; the cells most of them cover ("meet") carry the commons' words.
 
 EXTRO = {  # kind: (extroversion 0 introvert ... 1 extrovert, legend)
-    "river": (1.00, u"RIVER"),
+    "river": (1.00, u"STREAM"),
     "W": (0.95, u"WET BED ZONES"), "F": (0.80, u"FLOOD TERRACE ZONES"), "D": (0.65, u"DRY TOP ZONES"),
     "cleared": (0.55, u"CLEARED GROUND"),
     "street": (0.60, u"STREETS"),
@@ -287,13 +289,12 @@ HOUSING_CLOSE_M = 1.0        # housing grows this far: closes the gaps between j
 TONGUE_M = 28.0              # longest tongue a giving zone sends into the zone it feeds, m
 MAX_CELLS = 170000           # grid cells per working area (cell size follows from it, at least 0.5 m)
 BAND_CELLS = 600000          # v18: grid cells of the corridor-wide grid of the broad zones of alternative 3
-RIVER_BAND_M = 15.0          # v18: the river corridor reaches this far beyond the stream / bank lines, m (graphic default)
 SPINE_ZONE_M = 10.0          # v18: a spine zone reaches this far either side of its route, m (graphic default)
 BAND_E = 0.6                 # v18: how much the broad zones' edges wander (alternative 2's growth, 0-1)
 RIVER_BAND_TONE = ("C4CCB5", "89986A", "3C4733")   # v18: sage, palette reference 89986A (light = mixed 1:1 with white)
 RIVER_BAND_NAME = u"PROMENADE"   # v19: one catchy word for Aras's "function/circulation area" (16:39, 16:41)
 RIVER_BAND_WORDS = [u"VIEWPOINTS", u"TERRACES", u"WALK PATHS", u"RAMPS", u"CAFES"]   # his words, 16:39
-PIECE_TONE = {"river": ("91ADB4", "5D7F8D", "32525F"), "street": ("E6E3DC", "CFCCC5", "847E75"),
+PIECE_TONE = {"river": ("91ADB4", "5D7F8D", "32525F"), "street": ("CFCCC5", "847E75", "4A3F35"),   # v21: road role
               "park": ("DFEBC0", "A7B67F", "49522B"), "heritage": ("E4CAC9", "AF7474", "4C2528"),
               "building": ("D8D5CC", "B0AC9C", "847E75"), "housing": ("D9CDAE", "BFB08F", "594B2E"),
               "cleared": ("F6F4EE", "B0AC9C", "4A3F35")}
@@ -844,8 +845,6 @@ def zone_words(pg, z, TP, owner, key, opt, taken, seen, avoid=(), halo=None):
     bw = max(18.0, (bbox(TPs)[2] - bbox(TPs)[0]) * 0.8)
     for sz in [7.5 * f * t for t in STEPS]:
         lines = [(s_, sz, True) for s_ in wrap(name_of(z, owner), sz, bw, True)]
-        if z["code"] == "DG":                        # v13: the very small credit under the name
-            lines.append((CREDIT_DG, max(1.2, sz * 0.25), False))
         b = fit_inside(TPs, spots, lines, taken, avoid=avoid)
         if b:
             draw_block(pg, lines, b[0] + 0.6, b[3] - 0.6, dk, halo)
@@ -929,39 +928,10 @@ def word_along(pg, TP, word, size, colour, taken, W, H):
             b = (x - w / 2 - 0.5, y + dy - 0.5, x + w / 2 + 0.5, y + dy + size + 0.5)
             if b[0] < 0 or b[1] < 0 or b[2] > W or b[3] > H or any(hit(b, t) for t in taken):
                 continue
-            pg.text(word, x, y + dy + 0.06 * size, size, colour, bold=True, align="C", halo=COL["white"])
+            pg.text(word, x, y + dy + 0.06 * size, size, colour, bold=True, align="C")   # v21: no halo
             taken.append(b)
             return True
     return False
-
-
-def open_rest(A, zones, nr):
-    """The point of a working area farthest from its edges and its zones (where it has no programme yet)."""
-    best, bd = None, -1.0
-    bxa = bbox(A)
-    for i in range(28):
-        for j in range(28):
-            x = bxa[0] + (i + 0.5) / 28 * (bxa[2] - bxa[0])
-            y = bxa[1] + (j + 0.5) / 28 * (bxa[3] - bxa[1])
-            if not nr.inside(x, y) or any(pip(x, y, z["P"]) for z in zones):
-                continue
-            d = min([seg_dist(x, y, A[q], A[(q + 1) % len(A)]) for q in range(0, len(A), max(1, len(A) // 200))] +
-                    [math.hypot(x - z["q"][0], y - z["q"][1]) for z in zones])
-            if d > bd:
-                best, bd = (x, y), d
-    return best
-
-
-def no_programme(pg, xy, taken):
-    if not xy:
-        return
-    x, y = xy
-    lines = [(u"NO PROGRAMME YET", 4.0, True)]
-    w, h = block_size(lines)
-    b = (x - w / 2, y - h / 2, x + w / 2, y + h / 2)
-    if not any(hit(b, t) for t in taken):
-        draw_block(pg, lines, b[0], b[3], COL["ink2"], COL["white"])
-        taken.append(b)
 
 
 def soft(P, r=ROUND_M, step=1.5):
@@ -1107,12 +1077,104 @@ def boxes_along(P, half):
     return out
 
 
-# ================================================================ zone patterns (masterplan v9 5b; graphic only)
-def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
-    """One working area of alternative 1 (partition, darker commons) or 2 (free pieces that overlap) -> Page."""
+# ================================================================ v21: roads, panel marks, ring clipping
+ROAD_MAIN_M = 14.0           # v21: a surveyed street edge this close to a main road line (OSM) is a main-road edge, m
+ROAD_TONE = ("CFCCC5", "847E75", "4A3F35")   # v21: palette v1.4 role "road": light lanes, mid streets, dark main roads
+ROAD_LW = (0.22, 0.45)       # v21: street edge, main-road edge, mm (graphic)
+
+
+class LineNear(object):
+    """v21: 'within r m of any of these polylines' (segments bucketed in r-sized cells)."""
+
+    def __init__(self, lines, r):
+        self.r, self.c, self.g = r, max(r, 5.0), {}
+        for P in lines:
+            for a, b in zip(P, P[1:]):
+                for gi in range(int(math.floor(min(a[0], b[0]) / self.c)), int(math.floor(max(a[0], b[0]) / self.c)) + 1):
+                    for gj in range(int(math.floor(min(a[1], b[1]) / self.c)), int(math.floor(max(a[1], b[1]) / self.c)) + 1):
+                        self.g.setdefault((gi, gj), []).append((a, b))
+
+    def within(self, x, y):
+        gi, gj = int(math.floor(x / self.c)), int(math.floor(y / self.c))
+        for di in (-1, 0, 1):
+            for dj in (-1, 0, 1):
+                for a, b in self.g.get((gi + di, gj + dj), ()):
+                    if seg_dist(x, y, a, b) <= self.r:
+                        return True
+        return False
+
+
+class BoxNear(object):
+    """v21: a rectangle as the 'near' test of prep_base and Grid (the detail windows)."""
+
+    def __init__(self, R):
+        self.R = R
+
+    def inside(self, x, y):
+        R = self.R
+        return R[0] <= x <= R[2] and R[1] <= y <= R[3]
+
+    within = inside
+
+
+def clip_ring(R, cb):
+    """A ring cut to the rectangle cb = (x0, y0, x1, y1) (Sutherland-Hodgman on the four sides)."""
+    P = list(R)
+    for ax, lim, keep_lo in ((0, cb[0], False), (0, cb[2], True), (1, cb[1], False), (1, cb[3], True)):
+        if not P:
+            break
+        out = []
+        for i in range(len(P)):
+            a, b = P[i - 1], P[i]
+            ia = a[ax] <= lim if keep_lo else a[ax] >= lim
+            ib = b[ax] <= lim if keep_lo else b[ax] >= lim
+            if ib != ia:
+                t = (lim - a[ax]) / ((b[ax] - a[ax]) or 1e-12)
+                out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+            if ib:
+                out.append(b)
+        P = out
+    return P
+
+
+def draw_roads(pg, T, streets, mains):
+    """v21: the surveyed street edges (YOL_SOSE, YOL_BORDUR) as one outlined network over the zones: the edges of
+    the main roads (within ROAD_MAIN_M of a main road line) in the road role's dark tone and heavier."""
+    near = LineNear(mains, ROAD_MAIN_M) if mains else None
+    for P in streets:
+        runs = [(P, False)]
+        if near is not None:
+            runs = [(r_, True) for r_ in cut_runs(P, near.within, 1.0)] + \
+                   [(r_, False) for r_ in cut_runs(P, lambda x, y: not near.within(x, y), 1.0)]
+        for r_, main in runs:
+            leg(("road", "main" if main else "street"))
+            pg.line([T(p) for p in r_], ROAD_TONE[2] if main else ROAD_TONE[1], ROAD_LW[1] if main else ROAD_LW[0])
+
+
+def north_arrow(pg, x, y, h=7.0):
+    """v21: north arrow (survey grid +Y) with its tip at (x, y), page mm; 'N' beside it."""
+    pg.poly([[(x, y), (x - 1.8, y - h), (x, y - h * 0.72)]], fill=COL["ink_dark"])
+    pg.poly([[(x, y), (x, y - h * 0.72), (x + 1.8, y - h)]], fill=COL["white"], stroke=COL["ink_dark"], lw=0.15)
+    pg.text(u"N", x + 2.6, y - 3.2, 2.6, COL["ink_dark"], bold=True)
+
+
+def panel_marks(sh, x, y, scale, marks):
+    """v21: north arrow and scale bar in a panel's bottom margin (x, y = its left end, page mm)."""
+    north_arrow(sh, x + 2.0, y + 8.0)
+    scale_bar(sh, x + 12.0, y + 1.0, scale, marks)
+
+
+# ================================================================ one plan panel (sheet and detail windows)
+def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, detail=None, title=None):
+    """One working area (v19: the freely grown zones, the commons, the promenade, the spine zones) -> Page.
+    v21: win = (x0, y0, x1, y1) world rectangle of a 1:1,000 detail window (base then covers the window);
+    detail(pg, T, k, taken, dw, dh, avoid) draws the window's detail before the words (avoid: the commons' rings,
+    where its labels do not go); title replaces the place name.
+    The panel's drawing + its bottom margin (north arrow, scale bar) is sh.crop (page mm, y up)."""
     key, place, idea = spec
     k = 1000.0 / scale
-    R = base["R"]
+    R = win or base["R"]
+    _PLEG[0] = {}                                        # v21: this panel's legend keys (its booklet crop)
     M, HEAD = 12.0, 20.0
     dw, dh = (R[2] - R[0]) * k, (R[3] - R[1]) * k
     zones = sorted([z for z in D.zones if z["area"] == key], key=lambda z: -z["m2"])
@@ -1125,8 +1187,10 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         pc["TPs"] = [[T(p) for p in Lp] for Lp in pc["loops"]]
     ctx = [pc for pc in pz if pc["kind"] not in ("zone", "hub", "free", "meet")]
     W_ = COL["white"]
-    # ---- the pieces: context and the commons opaque (white seams); programme pieces at the opacity on white
+    vis = lambda TPs: [V_ for V_ in (clip_ring(T_, (0.0, 0.0, dw, dh)) for T_ in TPs) if len(V_) >= 3]   # v21
     for pc in pz:                                        # v17: the legend's entries
+        if not vis(pc["TPs"]):                           # v21: only what shows in this panel
+            continue
         if pc["kind"] == "free":
             leg_zone(pc["zone"])
         elif pc["kind"] == "hub":
@@ -1141,6 +1205,11 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         leg("cleared")
     if paths:
         leg("path")
+    if win is not None:                                  # v21: the survey under the whole window (the puzzle
+        fc = base["faces"]                               # covers only the working area and its ring)
+        pg.poly([[T(p) for p in F] for role in ("building", "housing") for F in fc.get(role, [])], fill=COL["bld"])
+        pg.poly([[T(p) for p in F] for F in fc.get("heritage", [])], fill=COL["her"], stroke=COL["her_edge"], lw=0.1)
+        pg.poly([[T(p) for p in F] for F in fc.get("park", [])], fill=COL["park"])
     # v19: context opaque; alternative 2's free zone pieces on one white base; the promenade and the spine zones;
     # the free pieces' light fill at the opacity (overlaps darken); alternative 1's commons opaque on top
     for pc in sorted(ctx, key=lambda q: q["e"]):
@@ -1150,8 +1219,9 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         pg.poly(pc["TPs"], fill=W_, stroke=W_, lw=0.5)
     G = Grid(R, base["near"], BAND_CELLS)
     CLc = clip_city(CL, base["near"].within) if CL is not None else None
-    RB = [[T(p) for p in L_] for L_ in grow_band(G, base["streams"] + base["banks"],
-                                                  [s_["P"] for s_ in D.strips], RIVER_BAND_M, 101, opt)]
+    cb = (-2.0, -2.0, dw + 2.0, dh + 2.0)
+    RB = [[T(p) for p in L_] for L_ in (CL or {}).get("prom", [])]          # v21: the promenade beside the stream
+    RB = [L_ for L_ in RB if hit(bbox(L_), cb)]
     if RB:
         leg("river_band")
         lt, md, dk = RIVER_BAND_TONE
@@ -1161,7 +1231,7 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
     SZ = []
     if CLc is not None:
         for nm_, lines_, ni in ((u"MAIN SPINE", CLc["mains"] if "mains" in CLc else [CLc["main"]], 102),
-                                (u"RIVERSIDE SPINE", [s_["P"] for s_ in CLc["spine"]], 103)):
+                                (u"STREAMSIDE SPINE", [s_["P"] for s_ in CLc["spine"]], 103)):
             TPs = [[T(p) for p in L_] for L_ in grow_band(G, lines_, [], SPINE_ZONE_M, ni, opt)]
             if TPs:
                 leg(("spinezone", nm_))
@@ -1179,7 +1249,11 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         if pc is None or not pc["TPs"]:
             zones.remove(z)
             continue
-        z["TP"] = max(pc["TPs"], key=lambda r_: abs(area2(r_)))
+        V_ = vis(pc["TPs"])                              # v21: words on the part that shows in the panel
+        if not V_:
+            zones.remove(z)
+            continue
+        z["TP"] = max(V_, key=lambda r_: abs(area2(r_)))
     taken = []
     for r in removes:
         r["TP"] = [T(p) for p in soft(r["P"])]
@@ -1190,11 +1264,19 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         pg.line(p["TP"], COL["path"], 1.0, [1.0, 0.35], cap=0)
     if CLc is not None:                                  # v11: walks (v19: the spines are zones above)
         draw_city(pg, T, CLc, k, spines=False)
+    draw_roads(pg, T, base.get("streets_all", base["streets"]), [CL["main"]] if CL is not None and CL.get("main")
+               else [])                                  # v21: the street network over the whole panel
+    if detail is not None:                               # v21: the detail window's own layers and labels
+        detail(pg, T, k, taken, dw, dh, [V_ for q in pz if q["kind"] == "hub" for V_ in vis(q["TPs"])])
     # ---- words: the commons first, the promenade and spine zones, then each zone (largest first), cleared, context
     for pc in [q for q in pz if q["kind"] == "hub"]:
-        hub_words(pg, max(pc["TPs"], key=lambda r_: abs(area2(r_))), pc["name"], pc["words"], W_, taken,
-                  pc["tones"][0])
-    for nm_, TPs in ([(RIVER_BAND_NAME, RB)] if RB else []) + SZ:   # v18-v19: names and keywords on the fills
+        if not vis(pc["TPs"]):
+            continue
+        hub_words(pg, max(vis(pc["TPs"]), key=lambda r_: abs(area2(r_))), pc["name"], pc["words"], W_, taken,
+                  None)                                  # v21: no haloed labels on maps
+    RBc = [clip_ring(L_, (0.0, 0.0, dw, dh)) for L_ in RB]          # v21: words on the visible part only
+    RBc = [L_ for L_ in RBc if len(L_) >= 3]
+    for nm_, TPs in ([(RIVER_BAND_NAME, RBc)] if RBc else []) + SZ:   # v18-v19: names and keywords on the fills
         TP_ = max(TPs, key=lambda r_: abs(area2(r_)))
         dk_ = RIVER_BAND_TONE[2] if nm_ == RIVER_BAND_NAME else MP["centre"][2]
         word_in(pg, TP_, nm_, (4.0, 3.4, 2.8), dk_, taken)
@@ -1211,15 +1293,13 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         wd = KIND_WORD.get(pc["kind"])
         if not wd or not pc["inside"]:
             continue
-        for TP in sorted(pc["TPs"], key=lambda r_: -abs(area2(r_)))[:3]:
+        for TP in sorted(vis(pc["TPs"]), key=lambda r_: -abs(area2(r_)))[:3]:
             word_in(pg, TP, wd, (2.6, 2.2, 1.8), pc["tones"][2], taken, pad=0.8)
     for p in paths:
         for w_ in PATH_WORDS.get(p.get("own"), []):
             word_along(pg, p["TP"], w_, 2.2, COL["path"], taken, dw, dh)
-    if key == "calisma_alan[1]":                         # the open rest of the area: marked, not filled in
-        xy = open_rest(A, zones, base["near"])
-        no_programme(pg, T(xy) if xy else None, taken)
-    # ---- the panel: place and idea over the plan (no owner names, no working-area outline)
+    # ---- the panel: place over the plan (no owner names, no working-area outline); v21: north arrow and scale
+    # bar in the bottom margin, inside the panel's crop
     W = M + dw + M
     H = M + HEAD + dh + M
     sh = Page(W, H)
@@ -1227,8 +1307,13 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
     sh.clip([rect(M, M, M + dw, M + dh)])
     blit(sh, pg, M, M)
     sh.unclip()
-    for txt, size, y in ((place, 8.0, H - M - 8.0), (idea, 4.0, H - M - 14.0)):
-        sh.text(txt, M, y, min(size, size * dw / max(text_w(txt, size, True), 1e-6)), COL["ink_dark"], bold=True)
+    txt = title or place
+    sh.text(txt, M, H - M - 8.0, min(8.0, 8.0 * dw / max(text_w(txt, 8.0, True), 1e-6)), COL["ink_dark"], bold=True)
+    if idea and not title:
+        sh.text(idea, M, H - M - 14.0, min(4.0, 4.0 * dw / max(text_w(idea, 4.0, True), 1e-6)), COL["ink_dark"],
+                bold=True)
+    panel_marks(sh, M, 1.5, scale, (0.0, 10.0, 20.0, 50.0) if win is not None else (0.0, 50.0, 100.0, 200.0))
+    sh.crop = (M, 0.5, M + dw, M + dh)
+    sh.key, sh.world = key, R
+    sh.pleg, _PLEG[0] = _PLEG[0], None
     return sh
-
-
