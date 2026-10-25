@@ -935,18 +935,6 @@ def node(pg, x, y, n, opt, r=3.2):
     return (x - r, y - r, x + r, y + r)
 
 
-def chaikin(P, n=3, closed=False):
-    for _ in range(n):
-        Q = [] if closed else [P[0]]
-        m = len(P) if closed else len(P) - 1
-        for i in range(m):
-            a, b = P[i], P[(i + 1) % len(P)]
-            Q += [(0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]),
-                  (0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1])]
-        P = Q if closed else Q + [P[-1]]
-    return P
-
-
 def para(pg, x, y, w, text, size, colour, bold=False, lh=1.28):
     for ln in wrap(text, size, w, bold):
         y -= size * lh
@@ -962,10 +950,6 @@ def cite(src):
     if src not in SRC_KEY:
         SRC_KEY.append(src)
     return u"[{}]".format(SRC_KEY.index(src) + 1)
-
-
-def fmt_n(v):
-    return u"{:,.0f}".format(v)
 
 
 def frame(pg, box, title, sub=None):
@@ -2539,7 +2523,7 @@ def main():
     if not pressed:
         last = mem_get("last", "")
         gh_status(mem_get("status", "") or SHORT + " · idle")
-        return (last if last else u"Idle. Press the Button to write the two water boards. ({})".format(VERSION)), \
+        return (last if last else u"Idle. Press the Button to write the water board. ({})".format(VERSION)), \
             mem_get("files", [])
     t0 = time.time()
     log, err, folder, files = [], None, None, []

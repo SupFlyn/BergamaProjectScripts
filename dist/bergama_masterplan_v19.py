@@ -3537,7 +3537,7 @@ def run():
         gh_status(mem_get("status", "") or SHORT + " · idle")
         for w in mem_get("warn", []) or []:
             gh_message("warning", w)
-        return (last if last else u"Idle. Press the Button to write the three alternatives. ({})".format(VERSION)), \
+        return (last if last else u"Idle. Press the Button to write the masterplan. ({})".format(VERSION)), \
             mem_get("files", [])
     t0 = time.time()
     warn, err, folder, files, lines = [], None, None, [], []

@@ -263,7 +263,7 @@ def live():
     lands = (d or {}).get("lands") or WB_DEFAULT
     wb_src = ("water balance results of " + t) if d else "FLAG: water balance results not found; default lands of 24 Oct"
     mv, t2 = _load([MV_FILE])
-    mv_src = ("site board movement of " + t2) if mv else "run the site board (v34) once to compute the walking potential"
+    mv_src = ("site board movement of " + t2) if mv else "run the site board once to compute the walking potential"
     votes = dict((k, dict(v)) for k, v in BANK_VOTE.items())
     vote_src = "survey floor labels (built in, 24 Oct)"
     for v in (mv or {}).get("bank_votes") or []:
@@ -576,7 +576,7 @@ def page_why(L):
         pg.line([(bx0 + 100 * sc, 20.6), (bx0 + 100 * sc, 32.4)], C["ink2"], 0.3, dash=(0.8, 0.8))
         pg.text("100", bx0 + 100 * sc, 33.0, 5.5, C["ink2"], False, "C")
     else:
-        pg.text("no data yet · run the site board (v34) once " + cite(L["mv_src"]), 14, 26.4, 6.5, C["accent"], True)
+        pg.text("no data yet · run the site board once " + cite(L["mv_src"]), 14, 26.4, 6.5, C["accent"], True)
     footer(pg)
     return pg
 

@@ -14772,10 +14772,6 @@ def sa_render(S, sc, s0, s1, zlo, zhi, res, style, leaf=1.0, season="", ground=N
     return art, res
 
 
-def _sa_c(c):
-    return tuple(v / 255.0 for v in c)
-
-
 # ============================================================ TECHNICAL SECTIONS · the seven analyses cut vertically
 # Every technical analysis can also be cut along lines of its own (inputs sound_sections, heat_sections, shade_sections,
 # solar_sections, wind_sections, air_sections, felt_sections). A section shows the analysis in the vertical plane of its

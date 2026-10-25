@@ -611,9 +611,6 @@ def hand_arrow(pg, P, kind="water", small=1.0):
 #@include ../common/node.py
 
 
-#@include ../common/chaikin.py
-
-
 #@include ../common/para.py
 
 
@@ -625,10 +622,6 @@ def cite(src):
     if src not in SRC_KEY:
         SRC_KEY.append(src)
     return u"[{}]".format(SRC_KEY.index(src) + 1)
-
-
-def fmt_n(v):
-    return u"{:,.0f}".format(v)
 
 
 def frame(pg, box, title, sub=None):
@@ -2093,7 +2086,7 @@ def main():
     if not pressed:
         last = mem_get("last", "")
         gh_status(mem_get("status", "") or SHORT + " · idle")
-        return (last if last else u"Idle. Press the Button to write the two water boards. ({})".format(VERSION)), \
+        return (last if last else u"Idle. Press the Button to write the water board. ({})".format(VERSION)), \
             mem_get("files", [])
     t0 = time.time()
     log, err, folder, files = [], None, None, []
