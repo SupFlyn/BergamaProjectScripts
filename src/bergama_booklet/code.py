@@ -184,7 +184,41 @@ class Sources(object):
         return "[%d]" % (self.order.index(key) + 1)
 
     def sub(self, s):
-        return re.sub(r"\{src:([\w.-]+)\}", lambda m: self.num(m.group(1)), str(s)) if s else s
+        """{src:key} -> [n]; {val:folder/file.json:a.b|fmt} -> the live value another script computed."""
+        if not s:
+            return s
+        s = re.sub(r"\{val:([^}]+)\}", lambda m: live_value(m.group(1)), str(s))
+        return re.sub(r"\{src:([\w.-]+)\}", lambda m: self.num(m.group(1)), s)
+
+
+_JSON = {}
+LIVE_MISSING = []
+
+
+def live_value(spec):
+    """"folder/file.json:key.sub|0" -> number from ~/Downloads/Bergama/output/folder/file.json, formatted with
+    thousands commas and the given decimals (default 0). Missing -> "?" and a log line (never a made-up number)."""
+    path, _, rest = spec.partition(":")
+    keys, _, fmt = rest.partition("|")
+    if path not in _JSON:
+        try:
+            with open(os.path.join(ASSET_ROOT, path), encoding="utf-8") as f:
+                _JSON[path] = json.load(f)
+        except Exception:
+            _JSON[path] = None
+    v = _JSON[path]
+    for k in keys.split("."):
+        if isinstance(v, list) and k.isdigit():
+            v = v[int(k)] if int(k) < len(v) else None
+        else:
+            v = v.get(k) if isinstance(v, dict) else None
+    if v is None:
+        LIVE_MISSING.append(spec)
+        return "?"
+    if isinstance(v, (int, float)):
+        d = int(fmt) if fmt.isdigit() else 0
+        return "{:,.{}f}".format(v, d)
+    return str(v)
 
 
 # ------------------------------------------------------------------ page parts
@@ -292,21 +326,28 @@ def put_text(pg, typo, pno, rect, blk, src, sid):
 
 
 def put_tiles(fitz, pg, typo, pno, rect, blk, adir, src, sid):
-    """Pictogram tiles (SCRIPT_STANDARD §5b): icon + keyword + one big figure + unit + [n]; a row in a wide frame,
-    a column in a narrow one."""
+    """Pictogram tiles (SCRIPT_STANDARD §5b): icon + keyword + one big figure + unit + [n], in the grid of columns
+    that fits the frame best."""
     x, y, w, h = rect
     tiles = blk.get("tiles") or []
     if not tiles:
         return
-    across = w > h
+    if blk.get("heading"):
+        typo.line(pg, src.sub(blk["heading"]), x, y + 5, T["sub"], INK, True)
+        y, h = y + 9, h - 9
     n = len(tiles)
-    tw = (w - (n - 1) * GUT) / n if across else w
-    th = h if across else (h - (n - 1) * GUT) / n
+    best = None
+    for c in range(1, n + 1):                     # columns: the layout whose tiles come closest to 45 x 26 mm
+        r = -(-n // c)
+        tw, th = (w - (c - 1) * GUT) / c, (h - (r - 1) * GUT) / r
+        sc = min(tw / 45.0, th / 26.0)
+        if best is None or sc > best[0]:
+            best = (sc, c, tw, th)
+    _, c, tw, th = best
+    if th < 22 or tw < 36:
+        typo.issues.append("TILES TOO SMALL p.%s %s (%d tiles in %.0f x %.0f mm)" % (pno, sid, n, w, h))
     for i, t in enumerate(tiles):
-        tx = x + i * (tw + GUT) if across else x
-        ty = y if across else y + i * (th + GUT)
-        if th < 20:
-            typo.issues.append("TILE TOO SMALL p.%s %s (%.0f mm high)" % (pno, sid, th))
+        tx, ty = x + (i % c) * (tw + GUT), y + (i // c) * (th + GUT)
         pg.draw_line((tx * K, ty * K), ((tx + tw) * K, ty * K), color=hexrgb(ACCENT), width=1.0)
         ix = tx
         if t.get("icon_pdf") and os.path.isfile(os.path.join(adir, t["icon_pdf"])):
@@ -314,10 +355,18 @@ def put_tiles(fitz, pg, typo, pno, rect, blk, adir, src, sid):
             pg.show_pdf_page(fitz.Rect(tx * K, (ty + 3) * K, (tx + 12) * K, (ty + 15) * K), s, 0)
             ix = tx + 14
         typo.line(pg, src.sub(t.get("keyword", "")).upper(), ix, ty + 6, T["label"], INK2, True)
-        fig = src.sub(t.get("figure", ""))
+        fig, unit = src.sub(t.get("figure", "")), src.sub(t.get("unit", ""))
+        fw = typo.width(fig, T["figure"], True)
+        if fw > tx + tw - ix:
+            typo.issues.append("TILE FIGURE TOO WIDE p.%s %s: %s" % (pno, sid, fig))
         typo.line(pg, fig, ix, ty + 15, T["figure"], ACCENT, True)
-        typo.line(pg, src.sub(t.get("unit", "")), ix + typo.width(fig, T["figure"], True) + 1.5, ty + 15, T["body"], INK)
-        typo.block(pg, pno, src.sub(t.get("note", "")), tx, ty + 20, tw, T["caption"], LEAD["caption"], INK2,
+        yn = ty + 20
+        if ix + fw + 1.5 + typo.width(unit, T["body"]) <= tx + tw:
+            typo.line(pg, unit, ix + fw + 1.5, ty + 15, T["body"], INK)
+        else:                                      # unit under the figure in a narrow tile
+            typo.line(pg, unit, ix, ty + 19.5, T["body"], INK)
+            yn = ty + 23.5
+        typo.block(pg, pno, src.sub(t.get("note", "")), tx, yn, tw, T["caption"], LEAD["caption"], INK2,
                    False, ty + th, sid)
 
 
@@ -381,13 +430,78 @@ def sources_page(pg, typo, src, pno):
 
 
 # ------------------------------------------------------------------ main
+def put_images(fitz, pg, typo, rect, blk, src):
+    """A row of photos (Downloads/Bergama/booklet_images/<image>.jpg|png), equal widths, caption under each."""
+    x, y, w, h = rect
+    ims = blk.get("images") or []
+    n = max(1, len(ims))
+    iw = (w - (n - 1) * GUT) / n
+    for i, im in enumerate(ims):
+        put_image(fitz, pg, typo, (x + i * (iw + GUT), y, iw, h),
+                  {"image": im.get("image", "photo_%s" % im.get("n", i + 1)), "caption": im.get("caption", "")}, src)
+
+
+def place(fitz, pg, typo, src, pno, rect, blk, sid, assets, legend, missing):
+    """One frame of the plan. A drawing comes from its script's blocks.json (asset key); the plan's caption, legend
+    and scale win over the script's (page text lives in one place)."""
+    kind = blk.get("type")
+    if kind == "stack":
+        x, y, w, h = rect
+        parts = blk.get("blocks") or []
+        wts = [float(b.get("h", 1)) for b in parts]
+        yy = y
+        for b, wt in zip(parts, wts):
+            hh = (h - GUT * (len(parts) - 1)) * wt / sum(wts)
+            place(fitz, pg, typo, src, pno, (x, yy, w, hh), b, sid, assets, legend, missing)
+            yy += hh + GUT
+        return
+    if kind == "drawing":
+        folder, _, bid = blk["asset"].partition("/")
+        a = assets.get(folder) or {}
+        ab = (a.get("blocks") or {}).get(bid)
+        if ab is None:
+            missing.add(folder)
+            placeholder(pg, typo, rect, "%s · %s" % (SCRIPT_OF.get(folder, folder), bid))
+            typo.line(pg, src.sub(blk.get("caption", "")), rect[0], rect[1] + rect[3] - 1.0, T["caption"], INK2)
+        else:
+            ab = dict(ab)
+            for k in ("caption", "scale_den"):
+                if blk.get(k):
+                    ab[k] = blk[k]
+            put_drawing(fitz, pg, typo, pno, rect, ab, a["_dir"], src, sid)
+            if not blk.get("legend"):
+                legend += [it for it in ab.get("legend") or [] if it not in legend]
+    elif kind == "tiles":
+        put_tiles(fitz, pg, typo, pno, rect, blk, OUT_DIR, src, sid)
+    elif kind == "image":
+        put_image(fitz, pg, typo, rect, blk, src)
+    elif kind == "images":
+        put_images(fitz, pg, typo, rect, blk, src)
+    else:
+        put_text(pg, typo, pno, rect, blk, src, sid)
+    legend += [it for it in blk.get("legend") or [] if it not in legend]
+
+
+def drawing_frames(blk, rect, out, pid, slot):
+    if blk.get("type") == "stack":
+        x, y, w, h = rect
+        parts = blk.get("blocks") or []
+        wts = [float(b.get("h", 1)) for b in parts]
+        yy = y
+        for b, wt in zip(parts, wts):
+            hh = (h - GUT * (len(parts) - 1)) * wt / sum(wts)
+            drawing_frames(b, (x, yy, w, hh), out, pid, slot)
+            yy += hh + GUT
+    elif blk.get("type") == "drawing":
+        out[blk["asset"]] = {"page": pid, "slot": slot, "w_mm": round(rect[2], 2), "h_mm": round(rect[3], 2)}
+
+
 def page_slots():
-    """{asset key: (page id, slot, w, h)} for every frame of the plan: scripts read booklet_slots.json to draw to size."""
+    """{asset key: page, slot, w, h} for every drawing frame: scripts read booklet_slots.json to draw to size."""
     out = {}
     for sp in PLAN:
-        for sl, key in (sp.get("slots") or {}).items():
-            x, y, w, h = slot_rect(*TEMPLATES[sp["template"]][sl])
-            out[key] = {"page": sp["id"], "slot": sl, "w_mm": round(w, 2), "h_mm": round(h, 2)}
+        for sl, blk in sp["frames"].items():
+            drawing_frames(blk, slot_rect(*TEMPLATES[sp["template"]][sl]), out, sp["id"], sl)
     return out
 
 
@@ -395,9 +509,8 @@ def main():
     t0 = time.time()
     import fitz                                   # PyMuPDF
     os.makedirs(OUT_DIR, exist_ok=True)
-    slots = page_slots()
     with open(os.path.join(OUT_DIR, "booklet_slots.json"), "w", encoding="utf-8") as f:
-        json.dump(slots, f, indent=1)
+        json.dump(page_slots(), f, indent=1)
     assets = load_assets()
     typo = Typo(fitz)
     src = Sources(assets)
@@ -409,31 +522,9 @@ def main():
         pg = frame_page(fitz, doc, typo)
         header(pg, typo, src, pno, sp)
         legend = []
-        for sl, key in (sp.get("slots") or {}).items():
-            rect = slot_rect(*TEMPLATES[sp["template"]][sl])
-            folder, _, bid = key.partition("/")
-            a = assets.get(folder) or {}
-            blk = (a.get("blocks") or {}).get(bid)
-            if blk is None:
-                missing.add(folder)
-                placeholder(pg, typo, rect, "%s · %s" % (SCRIPT_OF.get(folder, folder), bid))
-                continue
-            kind = blk.get("type")
-            if kind == "drawing":
-                put_drawing(fitz, pg, typo, pno, rect, blk, a["_dir"], src, key)
-            elif kind == "text":
-                put_text(pg, typo, pno, rect, blk, src, key)
-            elif kind == "tiles":
-                put_tiles(fitz, pg, typo, pno, rect, blk, a["_dir"], src, key)
-            elif kind == "image":
-                put_image(fitz, pg, typo, rect, blk, src)
-            legend += [it for it in blk.get("legend") or [] if it not in legend]
-        for sl, blk in (sp.get("own") or {}).items():           # page-level blocks written in the plan itself
-            rect = slot_rect(*TEMPLATES[sp["template"]][sl])
-            if blk.get("type") == "image":
-                put_image(fitz, pg, typo, rect, blk, src)
-            else:
-                put_text(pg, typo, pno, rect, blk, src, sp["id"] + "/" + sl)
+        for sl, blk in sp["frames"].items():
+            place(fitz, pg, typo, src, pno, slot_rect(*TEMPLATES[sp["template"]][sl]), blk, sp["id"] + "/" + sl,
+                  assets, legend, missing)
         footer(pg, typo, pno, sp, legend)
     sources_page(frame_page(fitz, doc, typo), typo, src, len(numbered) + 2)
     doc.subset_fonts()
@@ -446,6 +537,8 @@ def main():
         rows.append("assets %s: %s" % (name, assets[name].get("_error") or assets[name]["_time"]))
     for m in sorted(missing):
         rows.append("MISSING assets of %s: placeholders left" % SCRIPT_OF.get(m, m))
+    if LIVE_MISSING:
+        rows.append("LIVE VALUES NOT FOUND (shown as ?): " + ", ".join(sorted(set(LIVE_MISSING))[:10]))
     rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
     rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
     return "\n".join(rows)
