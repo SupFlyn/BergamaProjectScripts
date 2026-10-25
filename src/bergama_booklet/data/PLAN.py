@@ -3,7 +3,7 @@
 # One place for page-level text = no repetition. Asset keys are "<script output folder>/<block id>": the block comes from
 # that script's output/<folder>/booklet/blocks.json. {src:key} marks become [n] (one numbering for the booklet).
 BOOK = dict(
-    hook=u"MIRAQUA",                      # catchy coined name (Aras 25 Oct 20:28; card pick pending, default)
+    hook=u"MIRAQUA",                      # project name, picked by Aras 25 Oct 20:29 (mirage + aqua)
     title=u"From stream corridor to hydrological commons",
     subtitle=u"Selinos stream edge, Bergama",
     project=u"MIRAQUA · SELİNOS STREAM · BERGAMA",
