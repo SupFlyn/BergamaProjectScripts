@@ -1,4 +1,4 @@
-# bergama_water_balance_v2_4.py (v2.4, visual-first sheet 25 Oct; compute and JSON unchanged) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v2_5.py (v2.5, A3 booklet drawings added 25 Oct; sheet and compute unchanged) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,10 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v2.4"
+VERSION = "v2.5"
+# v2.5 (25 Oct, booklet stage 2, SCRIPT_STANDARD §8): also writes output/Bergama_water_balance_analysis/booklet/ (4 text-free
+#   drawing PDFs at their booklet frame size + blocks.json with every word as a label); results JSON gains
+#   jun_sep_share_of_need_pct and site_catch_share_of_need_pct. The A3 sheet is unchanged.
 # v2.3 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): option A only; the option input is ignored.
 # v2.2 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_water_balance_log.txt (next to cached/ and output/), overwritten by each press.
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
@@ -236,7 +239,7 @@ def compute(L):
     crops = list(dict.fromkeys(crops))
     if len(crops) == 1: crops.append("cotton")
     irr = {c: soil_irrigation(c, I) for c in set(crops) | set(CROP_SOIL)}
-    res = dict(script="bergama_water_balance_v2_4.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+    res = dict(script="bergama_water_balance_v2_5.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                lands={k: (round(v, 3) if isinstance(v, float) else v) for k, v in L.items()})
     # net irrigation per crop (mm a water year) and the rain the fields hold
     res["net_irrigation_mm"] = {}; res["rain_credit_pct"] = {}
@@ -726,12 +729,272 @@ def build(path, R):
             "  Calculations: research/water_balance/NOTES.md.", 14, 12, 392, 6, C["ink2"])
     write_pdf(pg, path)
 
+# ------------------------------------------------------------------ v2.5: A3 booklet drawings (SCRIPT_STANDARD §8, booklet/ASSET_SPEC.md)
+#@include ../common/booklet_assets.py
+
+BK_FOLDER = "Bergama_water_balance_analysis"
+BK_JSON = BK_FOLDER + "/" + OUT_JSON
+
+
+def bk_val(key, d=0):
+    """A live figure from this script's results JSON, resolved by the booklet assembler."""
+    return "{val:%s:%s|%d}" % (BK_JSON, key, d)
+
+
+def bk_resolve(s, R):
+    """The label as the booklet prints it ({val:} from R, {src:} as a 2-digit [n]): for widths only."""
+    import re
+    def val(m):
+        keys, _, f = m.group(1).partition(":")[2].partition("|")
+        v = R
+        for k in keys.split("."):
+            v = v[int(k)] if isinstance(v, list) and k.isdigit() and int(k) < len(v) else (v.get(k) if isinstance(v, dict) else None)
+        return "{:,.{}f}".format(v, int(f or 0)) if isinstance(v, (int, float)) else "?"
+    return re.sub(r"\{src:[\w.-]+\}", "[00]", re.sub(r"\{val:([^}]+)\}", val, s))
+
+
+def bk_w(s, size, bold, R):
+    return text_w(bk_resolve(s, R), max(size, BK_MIN_PT), bold)
+
+
+class BkPage(Page):
+    """A booklet drawing: mm from the TOP-left (td=True), graphics into the PDF, every word into items (-> labels)."""
+    def __init__(self, w, h):
+        Page.__init__(self, w, h)
+        self.items, self.td = [], True
+
+    def poly(self, P, fill=None, stroke=None, lw=0.2, closed=False, dash=None):
+        if self.td: P = [(x, self.h - y) for x, y in P]
+        Page.poly(self, P, fill, stroke, max(lw, 0.1), closed, dash)
+
+    def text(self, s, x, y, size=7.5, col=None, bold=False, align="L"):
+        self.items.append(("text", s, x, self.h - y if self.td else y, max(size, BK_MIN_PT), col or C["ink"], bold, align))
+
+
+def bk_timing(R, W, H):
+    """B3 a: farm need by month (mean, 1 in 5 dry) over the stream, site catch and strip rows; Jun-Sep bracket = focal."""
+    pg = BkPage(W, H); mix = R["design"]["mix"]
+    dn = R["farm_demand_month_m3"][mix]["mean"]; dd = R["farm_demand_month_m3"][mix]["dry5"]
+    vmax = nice(max(dn + dd) * 1.05); cx, top, base = 15.0, 14.0, 98.0
+    cw = W - cx - 1.0; ch = base - top; bw = cw / 12.0
+    pg.text("need, m³ a month", 1, 6, 8.5, C["ink"], True)
+    lx = W - 1 - sum(5.5 + bk_w(s, 7.5, False, R) for s in ("mean year", "1 in 5 dry year")) - 5
+    for col, lab in ((C["accent"], "mean year"), (C["accent_deep"], "1 in 5 dry year")):
+        pg.rect(lx, 3.6, 4, 2.6, fill=col); pg.text(lab, lx + 5.5, 6, 7.5, C["ink"])
+        lx += 5.5 + bk_w(lab, 7.5, False, R) + 5
+    for j in range(6):
+        t = vmax * j / 5.0; yy = base - ch * t / vmax
+        pg.line([(cx, yy), (cx + cw, yy)], C["faint"], 0.15)
+        pg.text(fmt(t), cx - 1.5, yy + 1.3, 7.5, C["ink2"], False, "R")
+    for m in range(12):
+        x0 = cx + m * bw
+        if dn[m] > 0: pg.rect(x0 + bw * 0.14, base - ch * dn[m] / vmax, bw * 0.34, ch * dn[m] / vmax, fill=C["accent"])
+        if dd[m] > 0: pg.rect(x0 + bw * 0.50, base - ch * dd[m] / vmax, bw * 0.34, ch * dd[m] / vmax, fill=C["accent_deep"])
+        pg.text(MON[m], x0 + bw / 2, base + 5, 7.5, C["ink"], True, "C")
+    pg.line([(cx, base), (cx + cw, base)], C["ink2"], 0.25)
+    b0, b1 = cx + 5 * bw + 0.6, cx + 9 * bw - 0.6
+    pg.line([(b0, base + 7), (b0, base + 8.5), (b1, base + 8.5), (b1, base + 7)], C["accent_deep"], 0.35)
+    pg.text("Jun-Sep: %s %% of the need" % bk_val("jun_sep_share_of_need_pct"), (b0 + b1) / 2, base + 13.5, 9.5, C["accent_deep"], True, "C")
+
+    def head(y, lab, col, note=None, ncol=None, nbold=False):
+        pg.text(lab, 1, y, 8, col, True)
+        x = 1 + bk_w(lab, 8, True, R) + 3
+        if note:
+            pg.text(note, x, y, 7.5, ncol or C["ink2"], nbold); x += bk_w(note, 7.5, nbold, R)
+        return x
+    y0 = base + 24
+    xe = head(y0, "Stream, worst case", C["water_deep"], "above legal minimum flow {src:rg30802_minflow}")
+    zero = [m for m in range(12) if R["river_month_m3"][m] <= 0]
+    for m in range(12):
+        v = R["river_month_m3"][m]; x0 = cx + m * bw
+        if v > 0:
+            pg.rect(x0 + 0.6, y0 + 2.5, bw - 1.2, 6, fill=C["water"])
+            pg.text("%.1fM" % (v / 1e6), x0 + bw / 2, y0 + 6.8, 7.5, C["white"], True, "C")
+        else:
+            pg.rect(x0 + 0.6, y0 + 2.5, bw - 1.2, 6, stroke=C["accent"], lw=0.35)
+            pg.text("0", x0 + bw / 2, y0 + 6.8, 7.5, C["accent"], True, "C")
+    if zero:
+        lab = "stream: 0 in summer"; wl = bk_w(lab, 7.5, True, R)
+        xc = min(max(cx + (min(zero) + max(zero) + 1) * bw / 2, xe + 4 + wl / 2), W - 1 - wl / 2)
+        pg.text(lab, xc, y0, 7.5, C["accent"], True, "C")
+    y1 = y0 + 18
+    head(y1, "Site catch", C["green_mid"])
+    for m in range(12):
+        x0 = cx + m * bw
+        pg.rect(x0 + 0.6, y1 + 2.5, bw - 1.2, 6, fill=C["green_mid"])
+        pg.text(k_(R["site_month_m3"][m]), x0 + bw / 2, y1 + 6.8, 7.5, C["white"], True, "C")
+    y2 = y1 + 18
+    head(y2, "Strip draw", C["water_deep"], "strip draws first", C["ink"], True)
+    for m in range(12):
+        v = R["strip_month_m3"][m]; x0 = cx + m * bw
+        if v: pg.rect(x0 + 0.6, y2 + 2.5, bw - 1.2, 6, stroke=C["water_deep"], lw=0.25)
+        pg.text(k_(v) if v else "stream", x0 + bw / 2, y2 + 6.8, 7.5, C["water_deep"], bool(v), "C")
+    return pg
+
+
+def bk_catch(R, W, H):
+    """B3 b: cumulative site catch by surface, the total and its share of the farms' need; terrace runoff bars."""
+    pg = BkPage(W, H)
+    steps = R["site_catch_steps"]; total = max(sum(s["m3_per_year"] for s in steps), 1)
+    names = ("Roofs", "Walk tops", "Streamside walks", "Terraces")
+    srcs = ("", " {src:dwa_a117}", " {src:dwa_a117}", "")
+    rows = ["%s +%s%s" % (names[i] if i < 4 else s["name"], bk_val("site_catch_steps.%d.m3_per_year" % i), srcs[i] if i < 4 else "")
+            for i, s in enumerate(steps)]
+    tot = "= %s m³ a year" % bk_val("site_catch_m3_per_year")
+    share = "= %s-%s %% of the farms' need" % (bk_val("site_catch_share_of_need_pct.0", 1), bk_val("site_catch_share_of_need_pct.1", 1))
+    runoff = (("without terraces 20 %", 20, C["structure"]), ("terraced slope 4 %", 4, C["green_mid"]))
+    bx = 1 + max([bk_w(r, 8.5, True, R) for r in rows] + [bk_w(tot, 9.5, True, R), bk_w(share, 9.5, True, R)] +
+                 [9 + bk_w(r[0], 7.5, False, R) for r in runoff]) + 4
+    bwid = W - 1 - bx; cum = 0
+    for i, s in enumerate(steps):
+        yb = 4 + i * 23; add = s["m3_per_year"]
+        pg.text(rows[i], 1, yb + 5.9, 8.5, C["green_deep"], True)
+        if cum: pg.rect(bx, yb, bwid * cum / total, 9, fill=C["faint"])
+        pg.rect(bx + bwid * cum / total, yb, max(0.4, bwid * add / total), 9, fill=C["green_mid"])
+        cum += add
+    yt = 4 + len(steps) * 23 + 6
+    pg.line([(1, yt - 4), (W - 1, yt - 4)], C["structure"], 0.2)
+    pg.rect(bx, yt, bwid, 9, fill=C["green_deep"])
+    pg.text(tot, 1, yt + 6.2, 9.5, C["green_deep"], True)
+    ys = yt + 18; sh = R.get("site_catch_share_of_need_pct") or [0.0, 0.0]
+    pg.rect(bx, ys, bwid, 6, fill=C["white"], stroke=C["structure"], lw=0.25)
+    pg.rect(bx, ys, bwid * min(sh[0], 100) / 100.0, 6, fill=C["green_deep"])
+    if sh[1] > sh[0]: pg.rect(bx + bwid * sh[0] / 100.0, ys, bwid * (min(sh[1], 100) - sh[0]) / 100.0, 6, fill=C["green_mid"])
+    pg.text(share, 1, ys + 4.6, 9.5, C["green_deep"], True)
+    yh = ys + 24
+    pg.td = False; icon(pg, "terrace", 1, H - (yh - 6.5), 7); pg.td = True
+    hd = "terraces: for plants only"
+    pg.text(hd, 10, yh, 8.5, C["green_deep"], True)
+    pg.text("rain let out {src:abu_hammad_2004}", 10 + bk_w(hd, 8.5, True, R) + 4, yh, 7.5, C["ink2"])
+    for i, (lab, v, col) in enumerate(runoff):
+        yy = yh + 13 + i * 11
+        pg.text(lab, 10, yy, 7.5, C["ink"])
+        pg.rect(bx, yy - 3.6, bwid * 0.4 * v / 20.0, 5, fill=col)
+    return pg
+
+
+def bk_curve(R, W, H):
+    """B4 hero: share of the farm need covered against storage; today, the 25/50 % targets, the cost cut-off (focal)."""
+    pg = BkPage(W, H); mix = R["design"]["mix"]; cc = R["curve_closed"][mix]
+    cx, top, base = 16.0, 12.0, H - 14.0; cw = W - cx - 4.0; ch = base - top
+    tick = nice(cc[-1][0] / 9.0); nt = int(math.ceil(cc[-1][0] / tick)); vmax = tick * nt
+    X = lambda v: cx + cw * min(v, vmax) / vmax
+    Y = lambda p: base - ch * min(p, 100.0) / 100.0
+    pg.text("farm need covered", 1, 5, 8, C["ink"], True)
+    for t in range(0, 101, 25):
+        pg.line([(cx, Y(t)), (cx + cw, Y(t))], C["faint"], 0.15)
+        pg.text("%d %%" % t, cx - 1.5, Y(t) + 1.3, 7.5, C["ink2"], t in (25, 50), "R")
+    for j in range(nt + 1):
+        pg.text(fmt(tick * j / 1000) + "k" if j else "0", X(tick * j), base + 5, 7.5, C["ink2"], False, "C")
+    pg.line([(cx, base), (cx + cw, base)], C["ink2"], 0.25)
+    pg.text("storage, m³", cx + cw, base + 11, 8, C["ink"], True, "R")
+    ntg = R["need_for_target_1in5_dry_m3"]
+    for t in (25, 50):
+        v = {m: ntg[m][str(t)] for m in ntg}
+        if not v or None in v.values(): continue
+        lo, hi = min(v, key=v.get), max(v, key=v.get)
+        pg.line([(cx, Y(t)), (X(v[hi]), Y(t))], C["ink2"], 0.3, (1.2, 0.8))
+        pg.line([(X(v[lo]), Y(t)), (X(v[hi]), Y(t))], C["ink"], 0.9)
+        for m in (lo, hi): pg.line([(X(v[m]), Y(t) - 1.2), (X(v[m]), Y(t) + 1.2)], C["ink"], 0.3)
+        pg.text("%d %%: %s-%s m³" % (t, bk_val("need_for_target_1in5_dry_m3.%s.%d" % (lo, t)), bk_val("need_for_target_1in5_dry_m3.%s.%d" % (hi, t))),
+                cx + 2, Y(t) - 1.6, 8, C["ink"], True)
+    for rows, col, colr, dash in ((cc, 1, C["water_deep"], None), (cc, 2, C["accent"], None),
+                                  (R["curve_open"], 1, C["water_deep"], (1.4, 0.9)), (R["curve_open"], 2, C["accent"], (1.4, 0.9))):
+        pg.line([(X(r[0]), Y(r[col])) for r in rows], colr, 0.7, dash)
+    xs = X(STRIP_TODAY)
+    pg.line([(xs, base), (xs, top)], C["ink2"], 0.25, (0.6, 0.6))
+    pg.text("today: the strip only", xs + 1.2, top + 4, 7.5, C["ink2"])
+    d = R["design"]; xr, yr_ = X(d["storage_m3"]), Y(d["covered_pct_1in5_dry"])
+    pg.line([(xr, base), (xr, yr_)], C["accent_deep"], 0.4, (0.8, 0.6))
+    pg.poly([(xr - 2.2, yr_), (xr, yr_ - 2.2), (xr + 2.2, yr_), (xr, yr_ + 2.2)], fill=C["accent_deep"], stroke=C["white"], lw=0.3, closed=True)
+    labs = ("cost cut-off {src:ross_hasnain_2018}",
+            "%s m³ = %s %%" % (bk_val("design.storage_m3"), bk_val("design.covered_pct_1in5_dry")))
+    wl = max(bk_w(s, 9.5, True, R) for s in labs)
+    right = xr + 3 + wl <= W - 1
+    for i, s in enumerate(labs):
+        pg.text(s, xr + 3 if right else xr - 3, yr_ + 6.5 + i * 4.6, 9.5, C["accent_deep"], True, "L" if right else "R")
+    return pg
+
+
+def bk_store(R, W, H):
+    """B4 strip: US$ per m³ delivered on a log axis, cheapest first; the recycled-water price as a band behind."""
+    pg = BkPage(W, H); a0, a1 = R["alternative_usd_m3"]; r0, r1 = R["recharge_usd_m3"]
+    rows = [("Aquifer recharge $%s-%s" % (bk_val("recharge_usd_m3.0", 2), bk_val("recharge_usd_m3.1", 2)), r0, r1, None)]
+    for i, st in enumerate(R["ladder_no_recharge"]):
+        nm = dict(pond="Ponds", crates="Crates", cistern="Cisterns").get(st["key"], st["step"]); dg = 1 if st["key"] == "crates" else 2
+        rows.append(("%s $%s-%s" % (nm, bk_val("ladder_no_recharge.%d.usd_per_m3_low" % i, dg), bk_val("ladder_no_recharge.%d.usd_per_m3_high" % i, dg)),
+                     st["usd_per_m3_low"], st["usd_per_m3_high"], i if st["key"] == "pond" else None))
+    dear = all(r[2] >= a0 for r in rows[1:])            # the claim only when every built step is dearer than recycled water
+    notes = ((("no recharge: built > recycled", 8.5, C["accent_deep"], True),) if dear else ()) + (("built costs {src:ea_suds_2015} {src:haskoning_2012}", 7.5, C["ink2"], False),
+             ("assumed %g %%/yr · £ x %g" % (RATE * 100, GBP), 7.5, C["ink2"], False))
+    bx = 1 + max(bk_w(r[0], 7.5, True, R) for r in rows) + 5
+    nx = W - 1 - max(bk_w(s, z, b, R) for s, z, _, b in notes)
+    bwid = nx - 8 - bx
+    lg = lambda v: bx + bwid * (math.log10(min(max(v, 0.1), 100.0)) + 1) / 3.0
+    pit = 8.5; c0 = 12.0; yb0, yb1 = 7.5, c0 + (len(rows) - 1) * pit + 4.5
+    pg.rect(lg(a0), yb0, lg(a1) - lg(a0), yb1 - yb0, fill=C["water_light"])
+    for t in (0.1, 1, 10, 100):
+        pg.line([(lg(t), yb0), (lg(t), yb1)], C["faint"], 0.15)
+        pg.text("$%g" % t, lg(t), yb1 + 5, 7.5, C["ink2"], False, "C")
+    pg.text("recycled water $%s-%s {src:ross_iah_2025}" % (bk_val("alternative_usd_m3.0", 2), bk_val("alternative_usd_m3.1", 2)),
+            lg(a0), 5.2, 7.5, C["water_deep"], True)
+    said = False
+    for i, (nm, lo, hi, pond) in enumerate(rows):
+        c = c0 + i * pit; cheap = hi < a0
+        pg.text(nm, 1, c + 1.3, 7.5, C["ink"], True)
+        pg.rect(lg(lo), c - 2.2, max(0.8, lg(hi) - lg(lo)), 4.4, fill=C["green_mid"] if cheap else C["accent"])
+        if cheap and not said:
+            pg.text("cheaper than recycled", lg(hi) + 2, c + 1.3, 7.5, C["green_deep"], True); said = True
+        if pond is not None:
+            pg.text("ponds: %s m³ at most" % bk_val("ladder_no_recharge.%d.to_m3" % pond), lg(hi) + 2, c + 1.3, 7.5, C["ink2"])
+    for i, (s, z, col, b) in enumerate(notes):
+        pg.text(s, nx, c0 + 1.3 + i * pit, z, col, b)
+    return pg
+
+
+BK_FRAMES = (   # block, plan frame w x h mm (booklet_slots.json), drawing, caption, legend (the plan's caption and legend win)
+    ("b3_a", 194.0, 176.0, bk_timing, "Daily soil water balance, drip {src:fao56} {src:fao_tm4}",
+     [dict(kind="fill", colour=C["accent"], label="Farm need, mean year"), dict(kind="fill", colour=C["accent_deep"], label="Farm need, 1 in 5 dry year"),
+      dict(kind="fill", colour=C["water"], label="Stream water"), dict(kind="fill", colour=C["green_mid"], label="Site catch")]),
+    ("b3_b", 194.0, 176.0, bk_catch, "Mean of 34 water years {src:open_meteo} {src:mgm17742}",
+     [dict(kind="fill", colour=C["green_mid"], label="Added by this surface"), dict(kind="fill", colour=C["faint"], label="Caught so far")]),
+    ("b4_hero", 260.0, 176.0, bk_curve, "34 water years, daily · strip served first {src:open_meteo}",
+     [dict(kind="line", colour=C["water_deep"], label="Closed store, median year"), dict(kind="line", colour=C["accent"], label="Closed store, 1 in 5 dry year"),
+      dict(kind="line", colour=C["water_deep"], label="Open pond, median year (dashed)"), dict(kind="line", colour=C["accent"], label="Open pond, 1 in 5 dry (dashed)")]),
+    ("b4_strip", 392.0, 56.0, bk_store, "US$ per m³ delivered, log scale",
+     [dict(kind="fill", colour=C["green_mid"], label="Cheaper than recycled water"), dict(kind="fill", colour=C["accent"], label="Dearer than recycled water"),
+      dict(kind="fill", colour=C["water_light"], label="Recycled water price")]))
+
+
+def booklet_figures(R):
+    """v2.5: figures the booklet prints that the sheet only computed inline (results JSON keys, read live)."""
+    dn = R["farm_demand_month_m3"][R["design"]["mix"]]["mean"]
+    R["jun_sep_share_of_need_pct"] = round(100.0 * sum(dn[5:9]) / max(sum(dn), 1), 1)
+    sh = [100.0 * R["site_catch_m3_per_year"] / d["mean"] for d in R["farm_demand_m3"].values() if d["mean"]]
+    R["site_catch_share_of_need_pct"] = [round(min(sh), 1), round(max(sh), 1)] if sh else [0.0, 0.0]
+
+
+def booklet_export(R):
+    """v2.5: output/<folder>/booklet/<block>.pdf (no text, drawn at the frame's size) + blocks.json (the words)."""
+    bk = BkBlocks(OUT_DIR, "WaterBalance", VERSION)
+    for bid, w0, h0, draw, cap, leg in BK_FRAMES:
+        W, H = bk_frame(BK_FOLDER + "/" + bid, w0, h0)
+        pg = draw(R, W, H)
+        write_pdf(pg, bk.path(bid + ".pdf"))
+        bk.drawing(bid, bid + ".pdf", bk_take_text(pg.items, H)[1], cap, None, leg)
+    return bk.save()
+
 # ------------------------------------------------------------------ run (GH Button on any input, ScriptEditor, or python)
 def main(g):
     t0 = time.time()
     os.makedirs(OUT_DIR, exist_ok=True)
     L, src = get_lands(g)
     R = compute(L); R["lands_source"] = src
+    bk_err = None
+    try:
+        booklet_figures(R)                                # v2.5: new results keys for the booklet
+    except Exception as ex:
+        bk_err = "%s: %s" % (type(ex).__name__, ex)
     path = os.path.join(OUT_DIR, OUT_PDF)
     try:
         build(path, R)
@@ -739,9 +1002,16 @@ def main(g):
         return "The PDF is open in another program. Close it and press again: " + path
     with open(os.path.join(OUT_DIR, OUT_JSON), "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)
+    if bk_err is None:
+        try:
+            booklet_export(R)                             # v2.5: a booklet error never breaks the sheet; it goes in the log
+        except Exception as ex:
+            import traceback as _tb
+            bk_err = "%s: %s %s" % (type(ex).__name__, ex, _tb.format_exc()[-300:])
     d = R["design"]; tm = time.strftime("%H:%M:%S")
     return "%s  %s\n%s  %s\ncut-off %s m3 = %.1f %% (1 in 5 dry)\n%s %s, %.1f s" % (
-        OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], "water balance", VERSION, time.time() - t0)
+        OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], "water balance", VERSION, time.time() - t0) + (
+        "\nbooklet ERROR: " + bk_err if bk_err else "")
 
 #@include ../common/chain_fire.py
 
