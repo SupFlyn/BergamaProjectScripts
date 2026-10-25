@@ -113,6 +113,10 @@ PLAN_SOURCES = {'aa_visits': {'text': "Anadolu Ajansı, UNESCO listesindeki Berg
                 'url': 'https://chsegura.es/export/descargas/cuenca/seguraripisilvanatura/docsdescarga/BRUNO_et_al_2019_Water.pdf'},
  'busch2025': {'text': 'Busch et al., PLOS ONE, 2025 (Bergama climate: Csa, WMO 17742 normals)',
                'url': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC12221027'},
+ 'chmv2': {'text': 'Meta and World Resources Institute (WRI), Version 2 High Resolution Canopy Height Maps (CHMv2), '
+                   '2026; Brandt, J. et al., CHMv2: Improvements in Global Canopy Height Mapping using DINOv3, '
+                   'arXiv:2603.06382, 2026',
+           'url': 'https://registry.opendata.aws/dataforgood-fb-forestsv2'},
  'chow_n': {'text': "Chow V.T., Open-Channel Hydraulics, 1959: Manning's n tables (Oregon State Univ. FX3 "
                     'reproduction)',
             'url': 'https://www.fsl.orst.edu/geowater/FX3/help/8_Hydraulic_Reference/Mannings_n_Tables.htm'},
@@ -328,7 +332,11 @@ PLAN = [{'id': 'A1',
                                             {'keyword': 'green',
                                              'figure': '1.6',
                                              'unit': '% mapped',
-                                             'note': '22 % with satellite green'}]},
+                                             'note': '22 % with satellite green'},
+                                            {'keyword': 'tree canopy, 3 m+',
+                                             'figure': '19.3',
+                                             'unit': 'ha',
+                                             'note': '12.8 % of the frame · 2 m+ 24.6, 5 m+ 10.6 ha {src:chmv2}'}]},
                                  {'type': 'drawing',
                                   'asset': 'selinus_board/a1_side2',
                                   'caption': 'Ground cover in the frame {src:worldcover}'}]}}},
