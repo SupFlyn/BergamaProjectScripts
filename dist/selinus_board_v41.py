@@ -1,8 +1,16 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v40)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v41)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v41 (2026-10-26, Aras 06:35 "these lines in what is there looks weird"):
+  * Plan 01 and every map with building outlines: the pale outline runs only round the outside of a footprint as
+    the survey draws it; the lines where the script cuts one footprint into buildings along its party walls (long
+    straight cuts, often crossing) are no longer drawn, so a block reads as one mass. Buildings, floors and every
+    figure are unchanged.
+  * Round scales only (Aras 06:35): the cross-sections and the long section along the spine are drawn at the round
+    scale at or just below the one that fits (1:500, 1:1,000, 1:2,000, 1:2,500 ...), never 1:750.
 
 NEW IN v40 (2026-10-25, Aras 21:38-21:52, booklet/CROP_SPEC.md: the booklet shows the sheets' own drawings):
   * Plan 01 "what is there": the URBAN FABRIC layer is back (the v28 / bergama_fabric_green v10 fabric map): every
@@ -225,7 +233,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v40 (2026-10-25)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v41 (2026-10-26)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -5798,6 +5806,49 @@ def draw_legend_items(B, items, x, y, width, U, L, h=0.5):
 
 
 # ============================================================ THE LAND-USE MAP
+def edge_key(a, b):
+    return frozenset(((round(a[0], 3), round(a[1], 3)), (round(b[0], 3), round(b[1], 3))))
+
+
+def edge_counts(polys):
+    n = {}
+    for P in polys:
+        for i in range(len(P)):
+            e = edge_key(P[i], P[(i + 1) % len(P)])
+            n[e] = n.get(e, 0) + 1
+    return n
+
+
+def unit_outline(parts, n=None):
+    """v41 (Aras 26 Oct 06:35 "these lines in what is there looks weird"): the pale outline of a building = its edges
+    without the walls it shares with another piece (n: edge counts over all buildings), so a footprint the survey
+    draws as one block and the script cuts along its party walls reads as one mass, with no cut lines through it.
+    Open runs of edges, or the closed piece where nothing is shared."""
+    n = n or edge_counts(parts)
+    k = edge_key
+    out = []
+    for P in parts:
+        m = len(P)
+        inner = [n.get(k(P[i], P[(i + 1) % m]), 0) > 1 for i in range(m)]
+        if not any(inner):
+            out.append(P + [P[0]])
+            continue
+        i0 = inner.index(True)
+        run = []
+        for j in range(1, m + 1):
+            i = (i0 + j) % m
+            if inner[i]:
+                if len(run) > 1:
+                    out.append(run)
+                run = []
+            else:
+                run = run or [P[i]]
+                run.append(P[(i + 1) % m])
+        if len(run) > 1:
+            out.append(run)
+    return out
+
+
 def draw_landuse_map(S, B, V, bcol=None):
     """bcol (v33): the colour of each building (default: its land-use colour)."""
     L = "LU_BOARD::Map"
@@ -5850,6 +5901,7 @@ def draw_landuse_map(S, B, V, bcol=None):
             off = min(3.0, 0.11 * u["h"]) * s
             B.fill([[(x + off, y - off) for x, y in V.P(P)] for P in u["parts"] + (u.get("holes") or [])], sh,
                    L + "::texture", 13)
+    shared = edge_counts([P for u in S.bld for P in u["parts"]]) if TEXTURE else None
     for u in S.bld:
         col = CAT[u["cat"]][1]
         if u["annex"]:
@@ -5858,8 +5910,8 @@ def draw_landuse_map(S, B, V, bcol=None):
             col = bcol(u)
         B.fill(V.Ps(u["parts"] + (u.get("holes") or [])), col, L + "::" + u["cat"], 14)
         if TEXTURE:
-            for P in u["parts"] + (u.get("holes") or []):
-                B.line(V.P(P + [P[0]]), PAPER, L + "::texture", 15, 0.04)
+            for P in unit_outline(u["parts"], shared) + [H + [H[0]] for H in u.get("holes") or []]:
+                B.line(V.P(P), PAPER, L + "::texture", 15, 0.04)
     for P in S.slope_hatch:
         B.line(V.P(P), mix(INK2, PAPER, 0.4), L + "::ground", 16, 0.04)
     for P in S.slopes:
@@ -16324,14 +16376,20 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
 
 
 def nice_ratio(r):
-    """A printed scale rounded as drawings state it (1:1,000 - 1:2,500 - ...)."""
+    """v41 (Aras 26 Oct 06:35 "they need to be round numbers"): the first round scale at or above r (1:500, 1:1,000,
+    1:2,000, 1:2,500, 1:5,000 ...)."""
     if r <= 0:
         return r
     e = 10 ** math.floor(math.log10(r))
-    for m in (1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.5, 10.0):
-        if r <= m * e * 1.04:
+    for m in (1.0, 2.0, 2.5, 5.0, 10.0):
+        if r <= m * e * 1.0001:
             return m * e
     return 10 * e
+
+
+def round_ss(ss):
+    """v41: page units per metre made smaller to the nearest round printed scale (at SHEET_MM), x and y alike."""
+    return 1000.0 / (nice_ratio(1000.0 / max(1e-9, ss * MMU)) * MMU)
 
 
 def strip_fit(S, sd_, w, rh, U):
@@ -16347,7 +16405,7 @@ def strip_fit(S, sd_, w, rh, U):
             ss = ss_new
             break
         ss = ss_new
-    return ss
+    return round_ss(ss)
 
 
 def draw_section_key(B, x, y, w, U):
@@ -18510,7 +18568,7 @@ def draw_spine_section(S, B, x, y, w, U, tag="drawing"):
     if D is None:
         return y
     rows = spine_rows(D)
-    ss = (w - 2.0 * SEC_END * U) / max(b - a for a, b in rows)   # page units per metre, along AND up
+    ss = round_ss((w - 2.0 * SEC_END * U) / max(b - a for a, b in rows))   # page units per metre, along AND up
     th = SEC_CALL_H * U
     locw = min(12.0 * U, 0.2 * w)
     B.fit("LONG SECTION ALONG THE STREAMSIDE SPINE  ·  THE STOPS 1-{}".format(max([r[0] for r in D["stops"]] or [0])),
@@ -19941,7 +19999,7 @@ class BkBlocks(object):
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v40"
+BK_VERSION = "v41"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)

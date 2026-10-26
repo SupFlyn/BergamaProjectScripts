@@ -780,14 +780,20 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
 
 
 def nice_ratio(r):
-    """A printed scale rounded as drawings state it (1:1,000 - 1:2,500 - ...)."""
+    """v41 (Aras 26 Oct 06:35 "they need to be round numbers"): the first round scale at or above r (1:500, 1:1,000,
+    1:2,000, 1:2,500, 1:5,000 ...)."""
     if r <= 0:
         return r
     e = 10 ** math.floor(math.log10(r))
-    for m in (1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.5, 10.0):
-        if r <= m * e * 1.04:
+    for m in (1.0, 2.0, 2.5, 5.0, 10.0):
+        if r <= m * e * 1.0001:
             return m * e
     return 10 * e
+
+
+def round_ss(ss):
+    """v41: page units per metre made smaller to the nearest round printed scale (at SHEET_MM), x and y alike."""
+    return 1000.0 / (nice_ratio(1000.0 / max(1e-9, ss * MMU)) * MMU)
 
 
 def strip_fit(S, sd_, w, rh, U):
@@ -803,7 +809,7 @@ def strip_fit(S, sd_, w, rh, U):
             ss = ss_new
             break
         ss = ss_new
-    return ss
+    return round_ss(ss)
 
 
 def draw_section_key(B, x, y, w, U):

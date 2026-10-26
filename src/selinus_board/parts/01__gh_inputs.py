@@ -1,8 +1,16 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v40)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v41)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v41 (2026-10-26, Aras 06:35 "these lines in what is there looks weird"):
+  * Plan 01 and every map with building outlines: the pale outline runs only round the outside of a footprint as
+    the survey draws it; the lines where the script cuts one footprint into buildings along its party walls (long
+    straight cuts, often crossing) are no longer drawn, so a block reads as one mass. Buildings, floors and every
+    figure are unchanged.
+  * Round scales only (Aras 06:35): the cross-sections and the long section along the spine are drawn at the round
+    scale at or just below the one that fits (1:500, 1:1,000, 1:2,000, 1:2,500 ...), never 1:750.
 
 NEW IN v40 (2026-10-25, Aras 21:38-21:52, booklet/CROP_SPEC.md: the booklet shows the sheets' own drawings):
   * Plan 01 "what is there": the URBAN FABRIC layer is back (the v28 / bergama_fabric_green v10 fabric map): every
@@ -206,7 +214,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v40 (2026-10-25)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v41 (2026-10-26)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

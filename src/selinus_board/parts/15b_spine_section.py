@@ -266,7 +266,7 @@ def draw_spine_section(S, B, x, y, w, U, tag="drawing"):
     if D is None:
         return y
     rows = spine_rows(D)
-    ss = (w - 2.0 * SEC_END * U) / max(b - a for a, b in rows)   # page units per metre, along AND up
+    ss = round_ss((w - 2.0 * SEC_END * U) / max(b - a for a, b in rows))   # page units per metre, along AND up
     th = SEC_CALL_H * U
     locw = min(12.0 * U, 0.2 * w)
     B.fit("LONG SECTION ALONG THE STREAMSIDE SPINE  ·  THE STOPS 1-{}".format(max([r[0] for r in D["stops"]] or [0])),
