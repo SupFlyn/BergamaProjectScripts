@@ -68,7 +68,8 @@ NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK
   place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
   (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
   Rough volumes (Aras 26 Oct 06:27): the route labels of the reed basins and retention terraces add
-  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces 0.30 m, design depth);
+  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces: the DSİ Q100 depth over
+  them, Q100 level at the nearest cut - (bed + 1 m), Aras 06:32);
   the method is a line in the detail legend.
   Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
@@ -2702,9 +2703,23 @@ SPOT_GAP_M, SPOT_BANK_M = 30.0, 10.0   # spot levels at least this far apart; ba
 SPOT_MAX = (6, 8)                    # at most this many bed / bank spot levels per window
 # v22 (Aras 26 Oct 06:27 "make them have calculated roughly"): rough volume on the water route = zone area x depth.
 # Reed basins: 0.46 m, the water depth of EPA's worked example ("water depth = 0.46 meters (1.5 ft)"; vegetated
-# depth "a few inches to two feet or more"), EPA 832-F-00-024 Free Water Surface Wetlands, Sep 2000. Terraces: 0.30 m,
-# our design depth (no source sets it).
-STORE_DEPTH = {"WT": 0.46, "WS": 0.30}
+# depth "a few inches to two feet or more"), EPA 832-F-00-024 Free Water Surface Wetlands, Sep 2000. Terraces (Aras
+# 06:32 picked): the water over them in the DSI Q100 flood = Q100 level at the nearest cut - (bed + TERRACE_UP).
+STORE_DEPTH = {"WT": 0.46}
+TERRACE_UP = 1.0                     # terrace level above the bed, m (the project's flood rule: "Terrace +1 m")
+
+
+def store_m3(z):
+    """(rough volume m3, words) of a water-route zone, or None: reed basins area x 0.46 m; retention terraces area x
+    the Q100 depth over them at the nearest channel cut."""
+    if z["code"] in STORE_DEPTH:
+        return z["m2"] * STORE_DEPTH[z["code"]], u""
+    if z["code"] == "WS" and z.get("P"):
+        cx = sum(p[0] for p in z["P"]) / len(z["P"])
+        cy = sum(p[1] for p in z["P"]) / len(z["P"])
+        num, nm, c, span, bed, q100, q500 = min(CUT_AT, key=lambda r: (r[2][0] - cx) ** 2 + (r[2][1] - cy) ** 2)
+        return z["m2"] * max(0.0, q100[0] - (bed + TERRACE_UP)), u" in Q100"
+    return None
 DT_TS = 2.6                          # detail label size, mm (7.4 pt at 1:1; the booklet sets them at 7.5 pt)
 
 
@@ -2912,8 +2927,9 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
                 txt = ROUTE[order][1].format(nm)
                 if z is not None:
                     txt += u" {:,.0f} m²".format(z["m2"])
-                    if z["code"] in STORE_DEPTH:             # v22: rough volume, area x depth
-                        txt += u" · ~{:,.0f} m³".format(round(z["m2"] * STORE_DEPTH[z["code"]], -1))
+                    sv = store_m3(z)                         # v22: rough volume, area x depth
+                    if sv:
+                        txt += u" · ~{:,.0f} m³{}".format(round(sv[0], -1), sv[1])
                         leg(("dt", "vol"))
             else:
                 txt = (L["label"] or u"WATER").replace(u"RIVER", u"STREAM")
@@ -3045,7 +3061,8 @@ def detail_legend():
     def none_sw(pg, x, y, w, h):
         return None
     if ("dt", "vol") in LEG:                             # v22: how the rough volumes are made
-        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m (EPA 2000) · TERRACES 0.30 m (DESIGN)", none_sw))
+        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m (EPA 2000) · TERRACES: Q100 OVER BED +1 m "
+                    u"AT THE NEAREST CUT (DSİ)", none_sw))
     bands = [(BAND_NAME[b_], none_sw) for b_ in "ABCDEF" if ("band", b_) in LEG]
     sp = [(u"{}  {}".format(c_, nm), none_sw) for c_, nm in SPECIES_CODE if ("sp", c_) in LEG]
     return [(u"DETAIL", det), (u"PLANTING BANDS · DAYS WET", bands), (u"SPECIES", sp)]
