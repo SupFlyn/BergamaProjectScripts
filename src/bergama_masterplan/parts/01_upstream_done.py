@@ -67,6 +67,9 @@ NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK
   route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
   place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
   (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
+  Rough volumes (Aras 26 Oct 06:27): the route labels of the reed basins and retention terraces add
+  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces 0.30 m, design depth);
+  the method is a line in the detail legend.
   Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 

@@ -55,6 +55,11 @@ STEP_M = 4.0                         # spacing of the terrace step strokes, m (s
 RAMP_W = (3.0, 1.2)                  # ramp wedge width at the top and at the water, m (sketch)
 SPOT_GAP_M, SPOT_BANK_M = 30.0, 10.0   # spot levels at least this far apart; bank top = within this of the edge
 SPOT_MAX = (6, 8)                    # at most this many bed / bank spot levels per window
+# v22 (Aras 26 Oct 06:27 "make them have calculated roughly"): rough volume on the water route = zone area x depth.
+# Reed basins: 0.46 m, the water depth of EPA's worked example ("water depth = 0.46 meters (1.5 ft)"; vegetated
+# depth "a few inches to two feet or more"), EPA 832-F-00-024 Free Water Surface Wetlands, Sep 2000. Terraces: 0.30 m,
+# our design depth (no source sets it).
+STORE_DEPTH = {"WT": 0.46, "WS": 0.30}
 DT_TS = 2.6                          # detail label size, mm (7.4 pt at 1:1; the booklet sets them at 7.5 pt)
 
 
@@ -262,6 +267,9 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
                 txt = ROUTE[order][1].format(nm)
                 if z is not None:
                     txt += u" {:,.0f} m²".format(z["m2"])
+                    if z["code"] in STORE_DEPTH:             # v22: rough volume, area x depth
+                        txt += u" · ~{:,.0f} m³".format(round(z["m2"] * STORE_DEPTH[z["code"]], -1))
+                        leg(("dt", "vol"))
             else:
                 txt = (L["label"] or u"WATER").replace(u"RIVER", u"STREAM")
             s = arclen(P)
@@ -273,9 +281,6 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             leg(("dt", "route"))
             route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my),   # v22: + spots along the route
                               [at_len(P, s, s[-1] * f_)[0] for f_ in (0.3, 0.7, 0.1, 0.9, 0.0, 1.0)]))
-        if steps:
-            warn.append(u"detail {}: storage volumes of the reed basins and terraces are computed by no script: "
-                        u"only areas shown".format(win["id"]))
         # ---- survey spot levels: lowest in the bed, highest on the bank tops (edges of river_walks)
         rows = [r for r in (CL["W"].get("rows") or []) if r.get("NE") and r.get("SW") and inR(r["p"], 60.0)]
         bed, bank = [], []
@@ -394,6 +399,8 @@ def detail_legend():
 
     def none_sw(pg, x, y, w, h):
         return None
+    if ("dt", "vol") in LEG:                             # v22: how the rough volumes are made
+        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m (EPA 2000) · TERRACES 0.30 m (DESIGN)", none_sw))
     bands = [(BAND_NAME[b_], none_sw) for b_ in "ABCDEF" if ("band", b_) in LEG]
     sp = [(u"{}  {}".format(c_, nm), none_sw) for c_, nm in SPECIES_CODE if ("sp", c_) in LEG]
     return [(u"DETAIL", det), (u"PLANTING BANDS · DAYS WET", bands), (u"SPECIES", sp)]
