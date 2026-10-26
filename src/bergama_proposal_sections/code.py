@@ -4,6 +4,11 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v6 (Aras's deck review 26 Oct 07:06, p.25 + global rules 3-4): every section opens with a context line (what it
+  shows, why it is here, how to read it: NOTES) at the top of its drawing box, inside the booklet crop; the sketch sits
+  right under it at the same scale and the crop ends under the sketch (no empty foot). K5: why the amphibious stream
+  commons and Demeter's Garden sit together (dry garden / wet commons under the cut, who goes where at low and high
+  water, Q500 inside the banks keeps the garden dry). No personal credit in titles (booklet rule).
 NEW IN v5 (Aras 25 Oct 21:47-21:51, booklet/CROP_SPEC.md): the booklet shows this sheet's own four sections:
   booklet/blocks.json lists one crop per section (the drawing box each panel frame leaves under its title and chips,
   kept in SHEET_BOXES); the separate booklet redraw (parts/90_booklet.py drawers, c4_s1..c5_s2.pdf) is gone. Sheet
@@ -41,7 +46,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v5"
+VERSION = "v6"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -87,7 +92,7 @@ SRC_KEY = [
     ("rain", u"water_data/README: MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
     ("concept", CR + u" (Q1: east channel wall kept, default)"),
     ("tiers", u"Aras's concept text: tiers, level 1 / 2 / 3"),
-    ("garden", u"card i01: Demeter's Garden, Begüm's idea, page and crop list (zones DG 1-2)"),
+    ("garden", u"card i01: Demeter's Garden, page and crop list (zones DG 1-2)"),
     ("zones", u"zone base ZONES.md: WP 1-2 and the floodable boardwalk"),
     ("plants", u"DATA_REGISTER PL-11, PL-12: olive and lavender, waterlogging"),
     ("gauges", u"DSİ gauge yearbooks 2016-2021"),
@@ -339,12 +344,43 @@ PROPOSALS = [("up", u"1 · UPSTREAM ENTRY · COLLECT, CLEAN AND HOLD",        # 
              ("k4", u"2 · K4 BRIDGE · AMPHIBIOUS HERITAGE THRESHOLD",
               [("steps", u"TIERS W / F / D"), ("climb", u"stream may climb the steps"),
                ("level", u"street level above Q500"), ("bridge", u"Roman bridge stays as it is")]),
-             ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN (idea: Begüm)",
+             ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN",
               [("olive", u"PRODUCTIVE HERITAGE GARDEN"), ("sun", u"dry top · south-west bank"),
                ("drop", u"watered by the clean stream")]),
              ("down", u"4 · DOWNSTREAM REACH · GIVE BACK",
               [("reed", u"FLOODABLE PLANTING · clean-stream fed"), ("deck", u"floodable boardwalk"),
                ("notreat", u"no treatment here")])]
+# v6 (review 26 Oct, rule 4): one context line per section [(text, bold)]: what it shows, why, how to read it.
+# K5 keeps to the masterplan v23 detail note (dt_note "dt_k5") without repeating it.
+NOTES = {
+    "up": [(u"WHY THIS SECTION: the one-way water system starts here.", True),
+           (u"Winter runoff from the streets is cleaned once in the reed basins, held in the terrace cascade and "
+            u"released in summer as a continuous strip in the bed. Read it left to right, the way the water moves.",
+            False)],
+    "k4": [(u"WHY THIS SECTION: at K4 the design flood (Q500) runs over today's bank top.", True),
+           (u"So the street is raised above it and steps under it let the stream climb: the lowest step is wet every "
+            u"winter, the terraces only in big floods, the street never. The Roman bridge stays as it is.", False)],
+    "k5": [(u"WHY THE STREAM COMMONS AND DEMETER'S GARDEN SIT TOGETHER AT K5", True),
+           (u"Read the cut from the dry bank top down to the wet bed: the garden holds the dry ground and is watered "
+            u"from the clean strip; the commons is the bed people use at low water and give to the stream at high "
+            u"water. Here even Q500 stays inside the banks, so the garden stays dry while the commons floods.",
+            False)],
+    "down": [(u"WHY THIS SECTION: downstream the stream gives the clean water back.", True),
+             (u"The water arrives clean from the upstream reeds, so nothing is treated here: it feeds floodable "
+              u"planting and an open boardwalk, and the surplus goes to existing farmland outside the site.", False)]}
+NOTE_TS = 4.6                                         # mm: about 9 pt at the booklet's scale of this panel
+
+
+def note(pg, box, lines):
+    """v6: the section's context line at the top of its drawing box (inside the booklet crop). Returns the box left
+    under it for the sketch."""
+    x0, y0, x1, y1 = box
+    y = y1
+    for txt, bold in lines or []:
+        y = para(pg, x0, y, (x1 - x0) * 0.66, txt, NOTE_TS, COL["ink_dark"] if bold else COL["ink"], bold) - 0.8
+    return (x0, y0, x1, y - 6.0) if lines else box
+
+
 SHEET_BOXES = {}                                      # v5: key -> drawing box (x0, y0, x1, y1), mm, y up; set by build_sheet
 SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
              "down": "concept_nil_sketch"}
@@ -392,8 +428,8 @@ def build_sheet(opt, log):
         cx = X0 + (i % 2) * (cw + G)
         cy = y1 - G - (i // 2 + 1) * ch - (i // 2) * G
         b = frame(pg, (cx, cy, cx + cw, cy + ch), ttl, sub)
-        SHEET_BOXES[key] = b                          # v5: the section's drawing box = its booklet crop
-        place(pg, draw_concept(key, opt), b, 3.0, "C", log, "section " + key)
+        _, pb = place(pg, draw_concept(key, opt), note(pg, b, NOTES.get(key)), 3.0, "TL", log, "section " + key)
+        SHEET_BOXES[key] = (b[0], max(b[1], pb[1] - 4.0), b[2], b[3])   # v6: booklet crop = context line + sketch
     t = (u"Sources by number: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)) +
          u"  ·  sketch style: water board v1.3")       # v3: the numbered source key (the [n] on the sketches)
     y = para(pg, X0, M + 13.0, X1 - X0, t, 1.9, COL["ink2"])

@@ -763,7 +763,7 @@ def _concept_k5_sketch():
     tier D). PROBLEM: olives and lavender cannot stand waterlogged soil. MOVE: the garden sits on the dry top, above the
     K5 cut's Q500, and the clean river waters it. Intake, lift and basin volume: not in her page, so not drawn."""
     o, w = ORIGIN, 200
-    title(o, 82, "K5 BRIDGE · Demeter's Garden (idea: Begüm) · form " + FORM)
+    title(o, 82, "K5 BRIDGE · Demeter's Garden · form " + FORM)
     for c in (108.3, 125.0, 141.7):                                # K5 behind: three arches by its name, schematic
         arc = [(c + 8.0 * math.cos(math.pi * i / 20.0), 20.0 + 8.0 * math.sin(math.pi * i / 20.0)) for i in range(21)]
         sketch(o, arc, "K5 bridge (existing)", STONE_HATCH, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_TREE)
@@ -791,7 +791,7 @@ def _concept_k5_sketch():
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)
     sketch(o, [(95, 35), (158, 35)], "flood lines", W_EXT, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_LINE)
     level_mark(o, 154, 35, W_EXT, "flood lines")
-    text(o, "Q500 +58.75 m · 2.79 m over the bed " + CITE("levels") + "\ninside the banks · K5 cut", 160, 54, 5.4, W_EXT, "water")
+    text(o, "Q500 +58.75 m · 2.79 m over the bed " + CITE("levels") + "\ninside the banks · K5 cut\ngarden stays dry while the bed floods", 160, 54, 5.4, W_EXT, "water")
     keyed(o, "winter", "bed under water", 162, 31, 5.6, W_EXT, "water", mask=SOIL)
     keyed(o, "summer", "continuous strip · regulated\ntoday: dry, pools", 162, 17, 5.6, W_EXT, "water", mask=SOIL)
     text(o, "olives", 22, 53, 5.2, INK2); text(o, "stone pine", 44, 58, 5.2, INK2)
@@ -806,6 +806,15 @@ def _concept_k5_sketch():
     text(o, "clean stream waters a\nproductive heritage garden", 100, 68, 8.0, SKINK, "idea")
     for n_, x_, y_ in ((6, 129, 18), (7, 110, 22), (9, 8, 45)):
         NODE(o, x_, y_, n_)
+    # v6 (Aras's review 26 Oct, p.25): the two zones under the cut, and what each water state means for people
+    for x0, x1, col, lab in ((18, 92, SUN, "DRY · DEMETER'S GARDEN · bank top"),
+                             (95, 158, W_EXT, "WET · AMPHIBIOUS STREAM COMMONS · bed")):
+        sketch(o, [(x0, 4.5), (x1, 4.5)], "zones", col, PEN_BOLD, over=0.0, retrace=False, z=Z_LINE)
+        for xe in (x0, x1):
+            sketch(o, [(xe, 3.2), (xe, 5.8)], "zones", col, PEN_BOLD, over=0.0, retrace=False, z=Z_LINE)
+        text(o, lab, x0, 0.8, 5.6, SKINK, "zones", bold=True)
+    keyed(o, "winter", "high water: people stay up in the garden", 18, -3.4, 5.6, INK2)
+    keyed(o, "summer", "low water: people go down into the commons", 95, -3.4, 5.6, W_EXT)
 
 def concept_nil_sketch():
     HAND_TEXT[0] = True
