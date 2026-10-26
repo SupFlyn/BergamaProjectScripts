@@ -10,17 +10,21 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v4 (Aras 26 Oct 06:35, lasting rules): one drawing is never divided over two pages (each panel goes on its
+page whole, and "what is there" appears once); every printed scale is a round number (1:1,000, 1:2,500, 1:5,000,
+1:10,000 ...): the page takes the largest round scale at which everything fits, and a scale a sheet states inside a
+panel is changed to the scale the booklet prints it at.
 NEW IN v3 (Aras 26 Oct 05:54 "the booklet transformation is not really successful ... drawings themselves in a
 separate pdf much more better"; 06:02 picked "sheet pages, split to 5 pt"): every page IS the sheet. An A3 sheet goes
 in as it is; a panel of a big sheet is cut out WITH its own words and shown at one scale per page (never stretched,
-nothing rewritten or moved); a panel whose words would print under about 5 pt is divided over several pages. The
+nothing rewritten or moved). The
 booklet adds only the cover, page titles, captions, page numbers and one sources page (each sheet's own source key).
 A missing drawing leaves a labelled placeholder, so the booklet always builds.
 """
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v3"
+VERSION = "v4"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -195,53 +199,48 @@ def resolve(assets, key):
     return b, find_pdf(folder, os.path.basename(b.get("pdf", "")))
 
 
+SCALE_WORD = re.compile(r"1\s?:\s?(\d{1,3}(?:,\d{3})+|\d{2,})")
+
+
+def rescaled(fitz, path, pno_, clip, s):
+    """v4: the sheet page with each scale it states inside clip ("1:400") changed to the scale the booklet prints it
+    at (1:400 / s), in the same place, size and colour; the drawing itself untouched. (doc, page index)"""
+    src = sheet_doc(fitz, path)
+    page = src[pno_]
+    hits = {}
+    for b in page.get_text("dict", clip=clip)["blocks"]:
+        for ln in b.get("lines", []):
+            for sp in ln["spans"]:
+                for m in SCALE_WORD.finditer(sp["text"]):
+                    hits[m.group(0)] = (int(m.group(1).replace(",", "")), sp["size"], sp["color"])
+    if not hits or abs(s - 1.0) < 1e-3:
+        return src, pno_
+    tmp = fitz.open()
+    tmp.insert_pdf(src, from_page=pno_, to_page=pno_)
+    pg = tmp[0]
+    put = []
+    for word, (den, size, col) in hits.items():
+        for r in pg.search_for(word, clip=clip):
+            pg.add_redact_annot(r, fill=False)
+            put.append((r, "1:{:,.0f}".format(den / s), size, col))
+    pg.apply_redactions(images=0, graphics=0, text=0)
+    for r, txt, size, col in put:
+        pg.insert_text((r.x0, r.y1 - 0.22 * size), txt, fontsize=size, fontname="helv",
+                       color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+    return tmp, 0
+
+
 def word_sizes(page, clip):
     return sorted(sp["size"] for b in page.get_text("dict", clip=clip)["blocks"] for ln in b.get("lines", [])
                   for sp in ln["spans"] if sp["text"].strip())
 
 
-def ink_cuts(fitz, page, clip, n, axis):
-    """n - 1 cut positions (points) dividing clip into n equal parts along axis 0 (x) or 1 (y), each moved within
-    1/(4n) of its place to the line with the least ink (words included), so a cut runs between things."""
-    if n < 2:
-        return []
-    pix = page.get_pixmap(clip=clip, dpi=30, colorspace=fitz.csGRAY)
-    cols, rows = pix.width, pix.height
-    m = cols if axis == 0 else rows
-    ink = [0] * m
-    sm = pix.samples
-    for yy in range(rows):
-        row = sm[yy * pix.stride: yy * pix.stride + cols]
-        for xx in range(cols):
-            v = 255 - row[xx]
-            if v > 20:
-                ink[xx if axis == 0 else yy] += 1
-    lo, span = (clip.x0, clip.width) if axis == 0 else (clip.y0, clip.height)
-    out = []
-    for i in range(1, n):
-        c0 = int(m * i / n)
-        win = range(max(1, c0 - m // (4 * n)), min(m - 1, c0 + m // (4 * n)) + 1)
-        c = min(win, key=lambda q: (ink[q], abs(q - c0)))
-        out.append(lo + span * c / float(m))
-    return out
-
-
-def pieces(fitz, page, clip, ncol, nrow=1):
-    """The clip divided into ncol x nrow rectangles (cuts between things), read left to right, top to bottom."""
-    xs = [clip.x0] + ink_cuts(fitz, page, clip, ncol, 0) + [clip.x1]
-    ys = [clip.y0] + ink_cuts(fitz, page, clip, nrow, 1) + [clip.y1]
-    return [fitz.Rect(xs[c], ys[r], xs[c + 1], ys[r + 1]) for r in range(nrow) for c in range(ncol)]
-
-
 def std_scale(den):
-    """the first standard scale at or above den, if it is at most 10 % smaller on the page; else den itself"""
-    for d in STD_SCALES:
-        if d >= den - 0.5:
-            return d if d <= den * 1.1 else den
-    return den
+    """v4 (Aras 26 Oct 06:35 "they need to be round numbers"): the first round scale at or above den"""
+    return next((d for d in STD_SCALES if d >= den - 0.5), den)
 
 
-STD_SCALES = (100, 200, 250, 500, 1000, 1250, 2000, 2500, 5000, 7500, 10000, 20000, 25000, 50000)
+STD_SCALES = (100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000)
 CAP_H, ROW_GAP = 5.0, 3.0                        # caption band under each panel, gap between rows (mm)
 AREA = (ML, 30.0, PW - ML, FOOT_RULE - 3.0)        # where the panels go (mm)
 
@@ -279,17 +278,33 @@ def footer(pg, typo, pno, spec, legend):
             if y > FOOT_B2 + 4.5:
                 typo.issues.append("LEGEND TOO LONG p.%s" % pno)
                 break
-        c = hexrgb(it.get("colour", INK))
-        r = (x * K, (y - 2.6) * K, (x + 4.0) * K, (y + 0.2) * K)
-        kind = it.get("kind", "fill")
-        if kind == "line":
-            pg.draw_line((x * K, (y - 1.2) * K), ((x + 4.0) * K, (y - 1.2) * K), color=c, width=it.get("width", 1.2))
-        elif kind == "dot":
-            pg.draw_circle(((x + 2.0) * K, (y - 1.2) * K), 1.3 * K, color=None, fill=c)
-        else:
-            pg.draw_rect(r, color=None, fill=c)
-        typo.line(pg, it.get("label", ""), x + 5.5, y, T["caption"], INK)
+        legend_item(pg, typo, it, x, y)
         x += w
+
+
+def legend_item(pg, typo, it, x, y):
+    """one legend entry: a drawn sample (fill, line or dot) and its plain name, baseline y"""
+    c = hexrgb(it.get("colour", INK))
+    kind = it.get("kind", "fill")
+    if kind == "line":
+        pg.draw_line((x * K, (y - 1.2) * K), ((x + 4.0) * K, (y - 1.2) * K), color=c, width=it.get("width", 1.2))
+    elif kind == "dot":
+        pg.draw_circle(((x + 2.0) * K, (y - 1.2) * K), 1.3 * K, color=None, fill=c)
+    else:
+        pg.draw_rect((x * K, (y - 2.6) * K, (x + 4.0) * K, (y + 0.2) * K), color=None, fill=c)
+    typo.line(pg, it.get("label", ""), x + 5.5, y, T["caption"], INK)
+
+
+def footer_rows(typo, legend):
+    """how many rows the footer band needs for this legend"""
+    x0, x1 = colx(4), PW - ML - 34.0
+    x, n = x0, 1 if legend else 0
+    for it in legend:
+        w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
+        if x + w > x1:
+            x, n = x0, n + 1
+        x += w
+    return n
 
 
 def placeholder(pg, typo, rect, text):
@@ -318,27 +333,39 @@ def sheet_page(fitz, doc, typo, pno, spec):
 
 
 def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
-    """rows of [(key, crop block, sheet path, clip)]: one scale for the whole page, the largest at which every row
-    fits the width and all rows the height (a true scale when a panel has one); each panel with its own words."""
+    """rows of [(key, crop block, sheet path, clip)]: one scale for the page, the largest at which every row fits the
+    width and all rows the height; a drawing with a true scale takes the round scale at or just below it (v4), so
+    its printed scale is always round; each panel with its own words."""
     gaps_w = [GUT * (len(r) - 1) for r in rows]
     aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
     def wh(it):
         return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
 
-    def fit(it):                                     # a piece of a split panel is sized as the largest piece
-        return (spec["size"][0] / K, spec["size"][1] / K) if spec.get("size") and it[3] is not None else wh(it)
-    s = min([(aw - g) / sum(fit(it)[0] for it in r) for r, g in zip(rows, gaps_w)] +
-            [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP) / sum(max(fit(it)[1] for it in r) for r in rows)])
-    den0 = next((it[1].get("scale_den") for r in rows for it in r if it[1] and it[1].get("scale_den")), None)
-    if den0:
-        s = min(s, den0 / std_scale(den0 / s))
+    s_fit = min([(aw - g) / sum(wh(it)[0] for it in r) for r, g in zip(rows, gaps_w)] +
+            [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP) / sum(max(wh(it)[1] for it in r) for r in rows)])
+
+    def sc(it):                                      # v4: a drawing with a scale takes the round scale at or below s
+        den = it[1].get("scale_den") if it[1] and it[3] is not None else None
+        return den / std_scale(den / s_fit) if den else s_fit
     pg = frame_page(fitz, doc, typo)
     header(pg, typo, spec)
     legend, rep, y = [], [], AREA[1]
-    for r in rows:                                   # rows centred across the page
-        rw = sum(wh(it)[0] for it in r) * s + GUT * (len(r) - 1)
-        x, rh = AREA[0] + max(0.0, (aw - rw) / 2.0), max(wh(it)[1] for it in r) * s
+    for r in rows:
+        for it in r:
+            for e in ((it[1] or {}).get("legend") or []) if it[3] is not None else []:
+                if all(e.get("label") != o.get("label") for o in legend):
+                    legend.append(e)
+    rws = [sum(wh(it)[0] * sc(it) for it in r) + GUT * (len(r) - 1) for r in rows]
+    lw = 6.0 + max([typo.width(e.get("label", ""), T["caption"]) for e in legend] or [0.0])
+    side = footer_rows(typo, legend) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
+    if side:                                         # v4: a long legend beside the drawing, all of it
+        lx = AREA[0] + max(rws) + 8.0
+        for i, e in enumerate(legend):
+            legend_item(pg, typo, e, lx, AREA[1] + 3.0 + 4.0 * i)
+    for r, rw in zip(rows, rws):                     # rows centred across the page (left with a side legend)
+        x, rh = AREA[0] + (0.0 if side else max(0.0, (aw - rw) / 2.0)), max(wh(it)[1] * sc(it) for it in r)
         for key, blk, path, clip in r:
+            s = sc((key, blk, path, clip))
             w, h = wh((key, blk, path, clip))
             if clip is None:
                 missing.add(key.partition("/")[0])
@@ -346,62 +373,42 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                                                                         key.split("/")[1]))
                 rep.append("%s MISSING" % key)
             else:
-                src = sheet_doc(fitz, path)
-                pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src,
-                                 int(blk.get("page", 0)), clip=clip)
+                src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s)
+                pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
                 cap = blk.get("caption", "")
                 if blk.get("scale_den"):
                     cap = (cap + " · " if cap else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
-                if key.count("/") > 1:
-                    cap = cap + " (%s)" % key.rsplit("/", 1)[1]
+                    if round(blk["scale_den"] / s) not in STD_SCALES:
+                        typo.issues.append("SCALE NOT ROUND p.%d %s: 1:%.0f" % (pno, key, blk["scale_den"] / s))
                 typo.line(pg, cap, x, y + h * s + 3.6, T["caption"], INK2)
-                for it in blk.get("legend") or []:
-                    if all(it.get("label") != o.get("label") for o in legend):
-                        legend.append(it)
-                ws = word_sizes(src[int(blk.get("page", 0))], clip)
+                ws = word_sizes(src[pi], clip)
                 if ws:
                     med, low = ws[len(ws) // 2] * s, ws[len(ws) // 10] * s
                     rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], med, low))
-                    if med < 4.95:
-                        typo.issues.append("SMALL WORDS p.%d %s: %.1f pt" % (pno, key, med))
             x += w * s + GUT
         y += rh + CAP_H + ROW_GAP
-    footer(pg, typo, pno, spec, legend)
-    return "p.%d %s: x%.2f · %s" % (pno, spec["title"], s, "; ".join(rep))
+    footer(pg, typo, pno, spec, [] if side else legend)
+    return "p.%d %s: x%.2f · %s" % (pno, spec["title"], s_fit, "; ".join(rep))
 
 
 def expand(fitz, spec, assets):
-    """One plan entry -> [(spec, rows)] pages: keys resolved to (key, block, path, clip); "/i" = piece i of the
-    panel cut into spec["pieces"][key] columns; spec["split"] (cols, rows) = one page per piece of a one-panel page."""
+    """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4)."""
     def item(key):
-        base, _, i = key.rpartition("/") if key.count("/") > 1 else (key, "", "")
-        blk, path = resolve(assets, base)
+        blk, path = resolve(assets, key)
         if not path:
             return (key, blk, None, None)
         page = sheet_doc(fitz, path)[int(blk.get("page", 0))]
         r = blk["rect_mm"]
         clip = fitz.Rect(r[0] * K, r[1] * K, r[2] * K, r[3] * K) & page.rect
-        if i:
-            clip = pieces(fitz, page, clip, int(spec.get("pieces", {}).get(base, 1)))[int(i) - 1]
+        if not blk.get("scale_den"):                 # v4: a panel that states one scale in its words is to scale
+            dens = set(int(m.group(1).replace(",", "")) for m in SCALE_WORD.finditer(page.get_text(clip=clip)))
+            if len(dens) == 1:
+                blk = dict(blk, scale_den=dens.pop())
         return (key, blk, path, clip)
     rows = [[item(k) for k in r] for r in spec["rows"]]
     if spec.get("optional") and all(it[3] is None for r in rows for it in r):
         return []
-    if not spec.get("split"):
-        return [(spec, rows)]
-    key, blk, path, clip = rows[0][0]
-    if clip is None:
-        return [(spec, rows)]
-    nc, nr = spec["split"]
-    parts = pieces(fitz, sheet_doc(fitz, path)[int(blk.get("page", 0))], clip, nc, nr)
-    big = (max(p_.width for p_ in parts), max(p_.height for p_ in parts))
-    keep = spec.get("keep") or range(1, len(parts) + 1)
-    out = []
-    for n_, i in enumerate(keep):                    # one scale for all the pieces: sized as the largest
-        pc = parts[i - 1]
-        sp = dict(spec, title="%s (%d/%d)" % (spec["title"], n_ + 1, len(keep)), size=big)
-        out.append((sp, [[(key, blk, path, pc)]]))
-    return out
+    return [(spec, rows)]
 
 
 def cover(pg, typo, pages):
