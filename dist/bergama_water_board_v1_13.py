@@ -41,6 +41,9 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v1.13 (Aras 26 Oct 08:27, booklet p.14 "too lean information wise"): the storage panel's eight figures and
+their keywords are drawn 1.8 x larger (they printed at about 3 pt beside the cubes); nothing else changed.
+
 NEW IN v1.12 (Aras's booklet review, 26 Oct 07:06): the sheet is a 3 x 3 grid of panels, each the size of one A3
 booklet page, so each booklet page is one panel at about 1:1 (drawings whole, at their own round scale):
   * every panel opens with a short context line (what it shows, why, what to take from it), inside its booklet crop;
@@ -85,8 +88,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v1.12 (2026-10-26)"
-SHORT = "v1.12"
+VERSION = "bergama_water_board v1.13 (2026-10-26)"
+SHORT = "v1.13"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -95,7 +98,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
 CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of these at which they fit (v1.11: round)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v1_12_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v1_13_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -2963,6 +2966,9 @@ def draw_cube(pg, V, u0, v0, e, tones, solid=True, dash=None):
     return (min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts))
 
 
+STORE_K = 1.8                        # v1.13 (Aras 26 Oct 08:27 "page 14 looks too lean"): storage words 1.8 x larger
+
+
 def draw_storage_cubes(opt):
     """The storage the strip needs, worst case, as cubes at 1:1,000 (calculated volumes), with IN and OUT."""
     pg = Page(0, 0)
@@ -2995,15 +3001,16 @@ def draw_storage_cubes(opt):
               u"calculated, sequent-peak over 2016-2021; seepage 25 mm/day = the bottom of FAO's sand range; " + RR +
               u" §4, A6; " + WB_SRC)]
     y = max(b3[3], b4[3]) + 6.0                       # v1.8: each line = pictogram + big figure + keywords + [n]
+    f = STORE_K                                       # v1.13: the figures and keywords read on the booklet page
     for kind, big, t, src in lines:
-        icon(pg, kind, tx, y, 5.0)
-        pg.text(big, tx + 6.5, y - 3.6, 3.0, C["d3"], bold=True)
-        lx = tx + 7.5 + text_w(big, 3.0, True)
-        yy = y - 1.6
-        for ln in wrap(t + u" " + cite(src), 1.9, 175.0 - (lx - tx)):
-            pg.text(ln, lx, yy, 1.9, COL["ink"])
-            yy -= 2.4
-        y = min(y - 6.6, yy - 0.8)
+        icon(pg, kind, tx, y, 5.0 * f)
+        pg.text(big, tx + 6.5 * f, y - 3.6 * f, 3.0 * f, C["d3"], bold=True)
+        lx = tx + 7.5 * f + text_w(big, 3.0 * f, True)
+        yy = y - 1.6 * f
+        for ln in wrap(t + u" " + cite(src), 1.9 * f, 175.0 - (lx - tx)):
+            pg.text(ln, lx, yy, 1.9 * f, COL["ink"])
+            yy -= 2.4 * f
+        y = min(y - 6.6 * f, yy - 0.8 * f)
     pg.text(u"cube edges = cube root of the volume, drawn at 1:{:,.0f}".format(CUBE_SCALE), b3[0], b3[1] - 4.0, 1.8,
             COL["ink2"])
     return pg

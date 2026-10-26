@@ -10,6 +10,9 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v8 (Aras 26 Oct 08:27-08:28, on the v7 build): the two masterplan halves share one page, side by side, each at
+its own round scale; "Long section along the spine" is left out (it repeated the "What is there" map); water board
+v1.13 (larger storage figures).
 NEW IN v7 (deck review 26 Oct 07:06, last pass R7; site board v43, water board v1.12, masterplan v23, city link
 v1.10, proposal sections v6, agriculture v1.5): no half-empty pages: two drawings planned together share one page
 when both fit at no less than 3/4 of the size each gets alone, else each keeps its own page (the four proposal
@@ -36,7 +39,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v7"
+VERSION = "v8"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -80,7 +83,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': 'da6acd76a2fa82dc21a0e40753ab9f28'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '01d599e765ae41ffe6b5d5bcdd864bbb'}.get(name):
         raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())
