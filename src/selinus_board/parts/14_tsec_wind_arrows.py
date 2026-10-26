@@ -513,7 +513,7 @@ def sec_art_png(S, sd_, ss, tag):
     return (path, zlo, zhi)
 
 
-def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
+def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_txt=None):
     """One long section: the surveyed ground, the bed, the buildings at their heights; behind the cut a picture of what
     the section sees (buildings and ground beyond, trees at their measured size, scale figures)."""
     L = "LU_BOARD::Sections"
@@ -530,8 +530,10 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
         B.text(nm, x + 0.45 * U, y + 0.22 * U, 0.3 * U, INK, L, font=FONT_TITLE, bold=True, align="MC")
         tx = x + 1.2 * U
         tw_ = w - locw - 2.0 * U
+        co = sd_.get("crop_of")                          # v42: a cut cropped to the part around the stream
         B.fit("SECTION {0} — {0}'  ·  THE GROUND AS IT FALLS TO THE WATER{1}".format(
-            nm, "" if pn == 1 else "  ·  IN {} PARTS".format(pn)), tx, y, 0.6 * U, tw_, INK, L, font=FONT_TITLE, bold=True)
+            nm, ("  ·  THE {:,.0f} m AROUND THE STREAM OF {:,.0f} m".format(Lm, co[0]) if co else "") if pn == 1 else
+            "  ·  IN {} PARTS".format(pn)), tx, y, 0.6 * U, tw_, INK, L, font=FONT_TITLE, bold=True)
         lines = wrap(section_caption(sd_) if pn == 1 else section_caption(sd_.get("whole", sd_)), tw_, 0.3 * U)[:3]
         cy = y - 0.95 * U
         for ln in lines:
@@ -620,7 +622,8 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
     yb = rib_low - 1.05 * U
     draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
     ratio = 1000.0 / max(1e-9, ss * MMU)
-    B.text("1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U, INK2, L)
+    B.text(scale_txt or "1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U,
+           INK2, L)                                      # v42: the cuts' common scale on the booklet page
     return yb - 0.35 * U
 
 
@@ -796,22 +799,6 @@ def round_ss(ss):
     return 1000.0 / (nice_ratio(1000.0 / max(1e-9, ss * MMU)) * MMU)
 
 
-def strip_fit(S, sd_, w, rh, U):
-    """The largest scale at which one strip (header, drawing, ribbon, callouts, scale bar) fits w x rh."""
-    ss = min((w - 2.0 * SEC_END * U) / sd_["L"], max(0.5 * U, rh - SEC_OVERHEAD * U) / (sd_["zmax"] + 3.0))
-    for _ in range(5):
-        n0 = len(LOG)
-        below = -draw_section_strip(S, Board(), sd_, 0.0, 0.0, w, ss, U, dry=True)
-        del LOG[n0:]
-        fixed = below - (sd_["zmax"] + 3.0) * ss
-        ss_new = max(0.05 * ss, min((rh - fixed) / (sd_["zmax"] + 3.0), (w - 2.0 * SEC_END * U) / sd_["L"]))
-        if abs(ss_new - ss) <= 1e-3 * ss:
-            ss = ss_new
-            break
-        ss = ss_new
-    return round_ss(ss)
-
-
 def draw_section_key(B, x, y, w, U):
     L = "LU_BOARD::Sections"
     B.text("SECTION KEY", x, y, 0.6 * U, INK, L, font=FONT_TITLE, bold=True)
@@ -928,7 +915,6 @@ def draw_section_placeholder(S, B, x, y, w, h, U, k):
     return bot - 0.5 * U
 
 
-SEC_OVERHEAD = 4.6      # page units around each strip: header, ribbon, callouts, scale bar
 SEC_END = 2.4           # page units kept free at both ends of a strip for the end names and levels
 
 
@@ -1253,7 +1239,13 @@ def draw_what_is_there(S, B, x, y, w, U):
                   "Plan 01: context beyond the frame: survey line work only.")
     B.text("WHAT IS THERE · GROUND · BUILDINGS · GREEN · STREAM EDGE " + r_map, x, y, 1.05 * U, INK, L,
            font=FONT_TITLE, bold=True)                    # v38: keywords; the coverage note is a key entry
-    V, mw, mh = view_fit(F2, x, y - 1.2 * U, w, 10.0 * w)
+    # v42 (review rule 4): what the plan shows, why it is here, what to read from it; sized with the plan's width
+    ch_ = CTX_H * U * max(1.0, w / (120.0 * U))
+    ctop = y - 0.6 * U - ch_
+    ymap = ctx_line(B, u"The whole survey area as it is today, on one plan: buildings by urban fabric, ground and green, "
+                       u"the Selinos with its edges, bridges and photo points. It is the base the later plans are read "
+                       u"on: what the project keeps, joins and changes.", x, ctop, w, ch_, L) - 0.2 * ch_
+    V, mw, mh = view_fit(F2, x, ymap, w, 10.0 * w)
     s = V.s
     # quiet context: survey line work around the frame, pale
     B.fill([V.P(F2.P)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
@@ -1342,7 +1334,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         taken.append(bx_)
         B.text(t, px + ox, py + oy, th, col, L, order=65, font=FONT_TITLE, bold=True)
     draw_north_small(B, V, mw, mh, U, L, size=0.7)
-    mb = y - 1.2 * U - mh
+    mb = ymap - mh
     draw_scalebar(B, V.X0, mb - 1.4 * U, s, nice_floor(F2.w / 8.0), U, L, h=0.32)
     # photo strip under the map
     yy = mb - 2.6 * U
@@ -1412,8 +1404,11 @@ def draw_what_is_there(S, B, x, y, w, U):
     if RF is not None:
         leg.append(("thin", INK, "Analysis range (site_alan) " + r_map))
     ly = draw_legend_items(B, leg, x, yy - 1.0 * U, mw, U, L, h=0.4)
-    crop_panel("plan01", V.X0, mb - 1.6 * U, V.X0 + mw, y - 1.2 * U, u"Plan 01 · what is there today",   # v40
-               crop_scale(s), crop_legend(leg))
+    crop_panel("plan01", V.X0, mb - 1.6 * U, V.X0 + mw, ctop + ch_ + 0.3 * U, u"Plan 01 · what is there today",
+               crop_scale(s), crop_legend(leg))           # v40; v42: from the context line down
+    # v42: survey x, y of the plan's frame corners and where they sit on the sheet, so a later script (the farms map,
+    # bergama_agriculture_alternatives) can place its own layer on this very plan in the booklet crop
+    CROP_PANELS[-1]["geo"] = [(px_, py_) + tuple(V.p(px_, py_)) for px_, py_ in F2.P[:4]]
     tot = sum(S.fabric_area.values()) or 1.0
     # v38: the caption's two figures as tiles (were sentences); its notes are the key entries cited above
     return vis_tiles(B, x, ly - 0.3 * U, min(mw, 44.0 * U), [

@@ -110,8 +110,15 @@ def draw_riparian(S, B, x, y, w, U):
 
     def X(ch):
         return x0 + ch / bm * cw
+    # v42 (review rule 4): the context line, with the cover within 15 m of the stream on each bank (the means below)
+    near = [(cor["cover"].get(sd + " 0-15", {}) or {}).get("total_pct") for sd in ("left", "right")]
+    ctx = u"Share of the ground under tree crowns in four bands either side of the stream, every 25 m downstream."
+    if None not in near:
+        ctx += (u" Within 15 m of its centre line only {:.1f}% (left) and {:.1f}% (right) is under crowns: shade at the "
+                u"stream has to come from new planting.".format(near[0], near[1]))
+    ctop = y - 1.5 * U
+    ya = ctx_line(B, ctx, x, ctop, w, CTX_H * U, L) - 0.7 * U
     # ---- distance axis, every 500 m along the stream (downstream to the right)
-    ya = y - 2.1 * U
     gtop = ya - 0.5 * U
     B.text("downstream", x0 - 0.5 * U, ya, th, INK2, L, align="R")
     for m in range(0, int(n * bm) + 1, 500):
@@ -167,7 +174,7 @@ def draw_riparian(S, B, x, y, w, U):
     for nm, c_ in secs:
         B.line([(X(c_), gb - 0.1 * U), (X(c_), gb - 0.55 * U)], INK, L, 6, 0.12)
         B.text(nm, X(c_), yl, th, INK, L, align="C", font=FONT_TITLE, bold=True)
-    PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ya + th + 0.25 * U)
+    PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ctop + CTX_H * U + 0.3 * U)     # v42: from the context line
     # ---- key: the colour steps, the stream, a covered reach, a bridge
     yk = yl - 1.6 * U
     B.text("TREE COVER · % OF THE GROUND UNDER CROWNS", x, yk, 0.42 * U, INK, L, font=FONT_TITLE, bold=True)

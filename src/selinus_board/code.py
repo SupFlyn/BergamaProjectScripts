@@ -14,6 +14,7 @@
 #@include parts/14_tsec_wind_arrows.py
 #@include parts/15_ndvi_col.py
 #@include parts/15b_spine_section.py
+#@include parts/15c_review_pages.py
 #@include parts/16_write_city_link_movement.py
 #@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py

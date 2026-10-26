@@ -5,7 +5,7 @@
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v41"
+BK_VERSION = "v42"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -101,6 +101,9 @@ def crop_rects():
             bid = "%s_%s_%d" % (crop_sheet_key(pdf), p["slug"], n)
             n += 1
         ids.add(bid)
+        if p.get("geo"):                                 # v42: survey x, y -> mm from the crop's top-left, y down
+            p["geo_mm"] = [[round(gx, 3), round(gy, 3), round((bx - r[0]) * k + ox - rect_mm[0], 3),
+                            round(ph - ((by - r[1]) * k + oy) - rect_mm[1], 3)] for gx, gy, bx, by in p["geo"]]
         out.append((bid, pdf, rect_mm, p))
     return out
 
@@ -114,6 +117,9 @@ def booklet_export(S, B, rects):
     done = []
     for bid, pdf, rmm, p in crop_rects():
         BK.crop(bid, pdf, rmm, caption=p["caption"], scale_den=p["scale_den"], legend=p["legend"], drop=p["drop"])
+        if p.get("geo_mm"):                              # v42: the plan's georeference (plan 01, for the farms map)
+            BK.d["blocks"][bid]["geo"] = {"points": p["geo_mm"], "note": "survey x, y (m) of the plan frame's corners "
+                                          "-> x, y in mm from the crop's top-left, y down, at 1:1 on the sheet PDF"}
         done.append("%s  %s  %.0f x %.0f mm  1:%s" % (bid, pdf, rmm[2] - rmm[0], rmm[3] - rmm[1], p["scale_den"]))
     for bid, pdf, rmm, cap, den, leg, drop in CROP_DIRECT:
         BK.crop(bid, pdf, rmm, caption=cap, scale_den=den, legend=leg, drop=[CROP_REF] + list(drop or []))

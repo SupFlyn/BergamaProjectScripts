@@ -1,8 +1,22 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v41)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v42)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v42 (2026-10-26, Aras's deck review 07:06, pages 02, 07, 09-11):
+  * Sections across the stream: every cut the survey's sec_lines layer holds (S1-S8) at ONE round scale, whole
+    cuts in rows (two side by side where they fit), on at most two booklet pages ("Sections across the stream S1-.."
+    drawings, booklet crops sec_sections_1 / sec_sections_2). The scale is the largest of 1:1,000 / 1:2,000 /
+    1:2,500 / 1:5,000 at which they fit; a cut too long for a row is cropped to the part around the stream (at
+    least 70 % of it kept, its title says so), never stretched. The old one-drawing-per-cut layout is gone.
+  * New drawing "What meets the water" (p.07): the site plan with the edge types along both banks (built, street,
+    walkable, planted, parking, loose), walled and embanked banks, bridges K1-K6, the cuts and the photo viewpoints
+    numbered as under the photos; one bar of each edge type's share of the bank length. Booklet crop drw_edge_plan.
+  * A context line (what it shows, why, what to take from it) under the title of plan 01, the tree cover, the edge
+    plan and the cuts; their figures are computed on the run.
+  * Booklet blocks: plan 01's crop carries "geo" (its frame corners in survey x, y and in crop mm) so the farms map
+    can be laid on this plan.
 
 NEW IN v41 (2026-10-26, Aras 06:35 "these lines in what is there looks weird"):
   * Plan 01 and every map with building outlines: the pale outline runs only round the outside of a footprint as
@@ -233,7 +247,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v41 (2026-10-26)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v42 (2026-10-26)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -16109,7 +16123,7 @@ def sec_art_png(S, sd_, ss, tag):
     return (path, zlo, zhi)
 
 
-def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
+def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_txt=None):
     """One long section: the surveyed ground, the bed, the buildings at their heights; behind the cut a picture of what
     the section sees (buildings and ground beyond, trees at their measured size, scale figures)."""
     L = "LU_BOARD::Sections"
@@ -16126,8 +16140,10 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
         B.text(nm, x + 0.45 * U, y + 0.22 * U, 0.3 * U, INK, L, font=FONT_TITLE, bold=True, align="MC")
         tx = x + 1.2 * U
         tw_ = w - locw - 2.0 * U
+        co = sd_.get("crop_of")                          # v42: a cut cropped to the part around the stream
         B.fit("SECTION {0} — {0}'  ·  THE GROUND AS IT FALLS TO THE WATER{1}".format(
-            nm, "" if pn == 1 else "  ·  IN {} PARTS".format(pn)), tx, y, 0.6 * U, tw_, INK, L, font=FONT_TITLE, bold=True)
+            nm, ("  ·  THE {:,.0f} m AROUND THE STREAM OF {:,.0f} m".format(Lm, co[0]) if co else "") if pn == 1 else
+            "  ·  IN {} PARTS".format(pn)), tx, y, 0.6 * U, tw_, INK, L, font=FONT_TITLE, bold=True)
         lines = wrap(section_caption(sd_) if pn == 1 else section_caption(sd_.get("whole", sd_)), tw_, 0.3 * U)[:3]
         cy = y - 0.95 * U
         for ln in lines:
@@ -16216,7 +16232,8 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page"):
     yb = rib_low - 1.05 * U
     draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
     ratio = 1000.0 / max(1e-9, ss * MMU)
-    B.text("1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U, INK2, L)
+    B.text(scale_txt or "1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U,
+           INK2, L)                                      # v42: the cuts' common scale on the booklet page
     return yb - 0.35 * U
 
 
@@ -16392,22 +16409,6 @@ def round_ss(ss):
     return 1000.0 / (nice_ratio(1000.0 / max(1e-9, ss * MMU)) * MMU)
 
 
-def strip_fit(S, sd_, w, rh, U):
-    """The largest scale at which one strip (header, drawing, ribbon, callouts, scale bar) fits w x rh."""
-    ss = min((w - 2.0 * SEC_END * U) / sd_["L"], max(0.5 * U, rh - SEC_OVERHEAD * U) / (sd_["zmax"] + 3.0))
-    for _ in range(5):
-        n0 = len(LOG)
-        below = -draw_section_strip(S, Board(), sd_, 0.0, 0.0, w, ss, U, dry=True)
-        del LOG[n0:]
-        fixed = below - (sd_["zmax"] + 3.0) * ss
-        ss_new = max(0.05 * ss, min((rh - fixed) / (sd_["zmax"] + 3.0), (w - 2.0 * SEC_END * U) / sd_["L"]))
-        if abs(ss_new - ss) <= 1e-3 * ss:
-            ss = ss_new
-            break
-        ss = ss_new
-    return round_ss(ss)
-
-
 def draw_section_key(B, x, y, w, U):
     L = "LU_BOARD::Sections"
     B.text("SECTION KEY", x, y, 0.6 * U, INK, L, font=FONT_TITLE, bold=True)
@@ -16524,7 +16525,6 @@ def draw_section_placeholder(S, B, x, y, w, h, U, k):
     return bot - 0.5 * U
 
 
-SEC_OVERHEAD = 4.6      # page units around each strip: header, ribbon, callouts, scale bar
 SEC_END = 2.4           # page units kept free at both ends of a strip for the end names and levels
 
 
@@ -16849,7 +16849,13 @@ def draw_what_is_there(S, B, x, y, w, U):
                   "Plan 01: context beyond the frame: survey line work only.")
     B.text("WHAT IS THERE · GROUND · BUILDINGS · GREEN · STREAM EDGE " + r_map, x, y, 1.05 * U, INK, L,
            font=FONT_TITLE, bold=True)                    # v38: keywords; the coverage note is a key entry
-    V, mw, mh = view_fit(F2, x, y - 1.2 * U, w, 10.0 * w)
+    # v42 (review rule 4): what the plan shows, why it is here, what to read from it; sized with the plan's width
+    ch_ = CTX_H * U * max(1.0, w / (120.0 * U))
+    ctop = y - 0.6 * U - ch_
+    ymap = ctx_line(B, u"The whole survey area as it is today, on one plan: buildings by urban fabric, ground and green, "
+                       u"the Selinos with its edges, bridges and photo points. It is the base the later plans are read "
+                       u"on: what the project keeps, joins and changes.", x, ctop, w, ch_, L) - 0.2 * ch_
+    V, mw, mh = view_fit(F2, x, ymap, w, 10.0 * w)
     s = V.s
     # quiet context: survey line work around the frame, pale
     B.fill([V.P(F2.P)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
@@ -16938,7 +16944,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         taken.append(bx_)
         B.text(t, px + ox, py + oy, th, col, L, order=65, font=FONT_TITLE, bold=True)
     draw_north_small(B, V, mw, mh, U, L, size=0.7)
-    mb = y - 1.2 * U - mh
+    mb = ymap - mh
     draw_scalebar(B, V.X0, mb - 1.4 * U, s, nice_floor(F2.w / 8.0), U, L, h=0.32)
     # photo strip under the map
     yy = mb - 2.6 * U
@@ -17008,8 +17014,11 @@ def draw_what_is_there(S, B, x, y, w, U):
     if RF is not None:
         leg.append(("thin", INK, "Analysis range (site_alan) " + r_map))
     ly = draw_legend_items(B, leg, x, yy - 1.0 * U, mw, U, L, h=0.4)
-    crop_panel("plan01", V.X0, mb - 1.6 * U, V.X0 + mw, y - 1.2 * U, u"Plan 01 · what is there today",   # v40
-               crop_scale(s), crop_legend(leg))
+    crop_panel("plan01", V.X0, mb - 1.6 * U, V.X0 + mw, ctop + ch_ + 0.3 * U, u"Plan 01 · what is there today",
+               crop_scale(s), crop_legend(leg))           # v40; v42: from the context line down
+    # v42: survey x, y of the plan's frame corners and where they sit on the sheet, so a later script (the farms map,
+    # bergama_agriculture_alternatives) can place its own layer on this very plan in the booklet crop
+    CROP_PANELS[-1]["geo"] = [(px_, py_) + tuple(V.p(px_, py_)) for px_, py_ in F2.P[:4]]
     tot = sum(S.fabric_area.values()) or 1.0
     # v38: the caption's two figures as tiles (were sentences); its notes are the key entries cited above
     return vis_tiles(B, x, ly - 0.3 * U, min(mw, 44.0 * U), [
@@ -17132,8 +17141,15 @@ def draw_riparian(S, B, x, y, w, U):
 
     def X(ch):
         return x0 + ch / bm * cw
+    # v42 (review rule 4): the context line, with the cover within 15 m of the stream on each bank (the means below)
+    near = [(cor["cover"].get(sd + " 0-15", {}) or {}).get("total_pct") for sd in ("left", "right")]
+    ctx = u"Share of the ground under tree crowns in four bands either side of the stream, every 25 m downstream."
+    if None not in near:
+        ctx += (u" Within 15 m of its centre line only {:.1f}% (left) and {:.1f}% (right) is under crowns: shade at the "
+                u"stream has to come from new planting.".format(near[0], near[1]))
+    ctop = y - 1.5 * U
+    ya = ctx_line(B, ctx, x, ctop, w, CTX_H * U, L) - 0.7 * U
     # ---- distance axis, every 500 m along the stream (downstream to the right)
-    ya = y - 2.1 * U
     gtop = ya - 0.5 * U
     B.text("downstream", x0 - 0.5 * U, ya, th, INK2, L, align="R")
     for m in range(0, int(n * bm) + 1, 500):
@@ -17189,7 +17205,7 @@ def draw_riparian(S, B, x, y, w, U):
     for nm, c_ in secs:
         B.line([(X(c_), gb - 0.1 * U), (X(c_), gb - 0.55 * U)], INK, L, 6, 0.12)
         B.text(nm, X(c_), yl, th, INK, L, align="C", font=FONT_TITLE, bold=True)
-    PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ya + th + 0.25 * U)
+    PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ctop + CTX_H * U + 0.3 * U)     # v42: from the context line
     # ---- key: the colour steps, the stream, a covered reach, a bridge
     yk = yl - 1.6 * U
     B.text("TREE COVER · % OF THE GROUND UNDER CROWNS", x, yk, 0.42 * U, INK, L, font=FONT_TITLE, bold=True)
@@ -18686,6 +18702,249 @@ def draw_spine_section(S, B, x, y, w, U, tag="drawing"):
     B.text("1:{:,.0f} at {:.0f} mm · lengths and heights at one scale".format(
         nice_ratio(1000.0 / max(1e-9, ss * MMU)), SHEET_MM), x + SEC_END * U, yb + 0.1 * U, 0.24 * U, INK2, L)
     return yb - 0.35 * U
+# ============================================================ v42 (Aras's deck review, 26 Oct 07:06)
+# p.07 "The stream edge": a plan of what meets the water along each bank (the edge types the board already measures,
+# every 4 m: build_edges), with walls, embankments, bridges, the cuts and the photo viewpoints, and the share of each
+# edge type as one bar. p.09-11: every cut across the stream on ONE drawing at ONE round scale, on at most two booklet
+# pages (Aras: "merge S1-S8 onto fewer pages, at a consistent scale"); a cut too long for a row is cropped to the part
+# around the stream (global rule 2: crop, never stretch). Every drawing of these pages opens with a short context line
+# (global rule 4: what it shows, why it is here, what to take from it).
+CTX_H = 0.75            # page units: the context line's text height on a drawing about 120-140 units wide
+BK_AW, BK_AH = 392.0, 238.0   # mm: the booklet's panel area on one page (bergama_booklet v4: A3 less margins, caption)
+SEC_BOOK_DENS = (1000, 2000, 2500, 5000, 10000)   # the round booklet scales tried for the cuts, largest first
+SEC_KEEP = 0.7          # a cut is cropped to the part around the stream only if at least this share of it stays
+SEC_COL_GAP = 2.0       # page units between two cuts side by side
+SEC_ROW_GAP = 1.6       # page units between rows of cuts
+EDGE_PLAN_W = EDGE_W    # print weight (mm) of the edges on the edge plan
+
+
+def ctx_line(B, txt, x, y, w, h, L):
+    """v42: a drawing's context line (1-2 sentences) under its title, from baseline y; returns the y below it."""
+    return B.para(txt, x, y, w, h, INK2, L, lead=1.45)
+
+
+def edge_shares(S):
+    """v42: {edge type: % of the bank length}, and the % walled and embanked (the key question's measure)."""
+    tot = sum(S.edge_len.values())
+    if tot <= 0:
+        return {}, 0.0, 0.0, 0.0
+    return (dict((k, 100.0 * v / tot) for k, v in S.edge_len.items()), 100.0 * S.walled_len / tot,
+            100.0 * getattr(S, "embanked_len", 0.0) / tot, tot)
+
+
+def draw_stream_edge_plan(S, B, x, y, w, U):
+    """v42 (p.07): the site frame with the stream; what meets the water along each bank in the edge colours, walls
+    and embankments marked on them, bridges K1-K6, the cuts S1..., the photo viewpoints by number (as under the
+    photos); one bar of the edge types' shares of the bank length. Returns the y below."""
+    L = "LU_BOARD::StreamEdge"
+    F = S.F
+    sh, wl_, em_, tot = edge_shares(S)
+    B.text("WHAT MEETS THE WATER · BANK BY BANK", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
+    walk = sh.get("pedestrian", 0.0)
+    loose = sh.get("open", 0.0) + sh.get("parking", 0.0)
+    ctx = (u"The edge along both banks, measured every 4 m on the survey: what touches the water, and where the bank "
+           u"is walled or embanked. It locates the photos and cuts of these pages and shows where the stream can be "
+           u"reached today ({:.0f}% of the bank walkable) and where the bank is open to change ({:.0f}% loose ground "
+           u"or parking).".format(walk, loose)) if tot > 0 else \
+        u"The edge along both banks, measured every 4 m on the survey: what touches the water."
+    top = y - 1.5 * U
+    yb = ctx_line(B, ctx, x, top, w, CTX_H * U, L)
+    V, mw, mh = view_fit(F, x, yb - 0.4 * U, w, 10.0 * w)
+    s = V.s
+    # quiet base: paper, streets, buildings, the stream
+    B.fill([V.P(F.P)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
+    road_lines(S, B, V, L, 3, casing=mix(INK2, PAPER, 0.7), surface=mix(ROADC, PAPER, 0.3), min_w=0.03,
+               fill=mix(ROAD_FILL, PAPER, 0.55), hatch=False)
+    mini_buildings(S, B, V, L, lambda u: mix(INK2, PAPER, 0.62 if not u["annex"] else 0.78), order=5)
+    for wt in S.water:
+        B.fill(V.Ps([wt["P"]] + wt.get("H", [])), CAT["water"][1], L, 6)
+    for P in getattr(S, "covered", []):                  # the covered course, dashed over the streets
+        for d in dashes(V.P(P), 0.35 * U, 0.25 * U):
+            B.line(d, BLUE_D, L, 19, 0.12)
+    # the edges, then walls (paper dashes) and embankments (paper dots) laid over them, as in the legend
+    for typ, pts in getattr(S, "edge_runs", []):
+        B.line(V.P(pts), EDGE[typ][1], L, 24, EDGE_PLAN_W)
+    for pts in getattr(S, "wall_runs", []):
+        for d in dashes(V.P(pts), 0.22 * U, 0.18 * U):
+            B.line(d, PAPER, L, 25, EDGE_MARK_W)
+    for pts in getattr(S, "bank_runs", []):
+        for d in dashes(V.P(pts), 0.06 * U, 0.22 * U):
+            B.line(d, PAPER, L, 25, EDGE_MARK_W)
+    draw_map_annotations(S, B, V, U)                     # river name, cuts S1..., frame
+    # bridges (ticks across the stream) and photo viewpoints (dots), short labels clear of each other
+    photos = []
+    try:
+        photos = photo_files(os.path.join(pdf_folder(), "_site_photos"))
+    except Exception:
+        LOG.append("WARNING: the site photos could not be read for the edge plan:\n" + traceback.format_exc())
+    th, kd = 0.4 * U, kind_of(FONT_TITLE)
+    marks, taken = [], []
+    for k, nm, bx, by in BRIDGES_K:
+        if F.inside(bx, by):
+            px, py = V.p(bx, by)
+            n = stream_normal(S, bx, by) or (0.0, 1.0)
+            a_ = V.p(bx + n[0], by + n[1])
+            ln = math.hypot(a_[0] - px, a_[1] - py) or 1.0
+            e = ((a_[0] - px) / ln * 0.6 * U, (a_[1] - py) / ln * 0.6 * U)
+            B.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], INK, L, 62, 0.3)
+            marks.append((k, px, py, INK, 0.7 * U))
+    for i, (p, it) in enumerate(photos):
+        if F.inside(it["x"], it["y"]):
+            px, py = V.p(it["x"], it["y"])
+            B.fill([circle_pts(px, py, 0.22 * U, 12)], INK, L, 64)
+            B.text(str(i + 1), px, py, 0.26 * U, (255, 255, 255), L, order=65, font=FONT_TITLE, bold=True,
+                   align="MC")
+            taken.append((px - 0.25 * U, py - 0.25 * U, px + 0.25 * U, py + 0.25 * U))
+    for t, px, py, col, d in marks:
+        taken.append((px - d * 0.5, py - d * 0.5, px + d * 0.5, py + d * 0.5))
+    for t, px, py, col, d in marks:
+        w_ = tw(t, th, kd)
+        opts = [(d, 0.2 * d), (d, -th - 0.2 * d), (-d - w_, 0.2 * d), (-d - w_, -th - 0.2 * d),
+                (-0.5 * w_, d), (-0.5 * w_, -th - d)]
+        for ox, oy in opts:
+            bx_ = (px + ox - 0.08 * U, py + oy - 0.08 * U, px + ox + w_ + 0.08 * U, py + oy + th + 0.08 * U)
+            if not any(bx_[0] < q[2] and q[0] < bx_[2] and bx_[1] < q[3] and q[1] < bx_[3] for q in taken):
+                break
+        else:
+            ox, oy = opts[0]
+            bx_ = (px + ox, py + oy, px + ox + w_, py + oy + th)
+        taken.append(bx_)
+        B.text(t, px + ox, py + oy, th, col, L, order=65, font=FONT_TITLE, bold=True)
+    draw_north_small(B, V, mw, mh, U, L, size=0.7)
+    mb = yb - 0.4 * U - mh
+    draw_scalebar(B, V.X0, mb - 1.4 * U, s, nice_floor(F.w / 8.0), U, L, h=0.36)
+    # one bar: each edge type's share of the bank length, figures on the bar where they fit
+    yy = mb - 2.6 * U
+    r_edge = bcite("Stream edges: what meets the water along each bank, sampled every 4 m along the surveyed banks "
+                   "(nearest building within 8 m, walkable path or stairs, street, parking, planted ground; else "
+                   "loose); walled = a surveyed wall within 3 m, embanked = only a surveyed slope line within 3 m.")
+    leg = []
+    if tot > 0:
+        B.text(u"SHARE OF THE BANK LENGTH · {:,.1f} km {}".format(tot / 1000.0, r_edge), V.X0, yy, 0.45 * U, INK, L,
+               font=FONT_TITLE, bold=True)
+        bh, by0 = 1.0 * U, yy - 0.8 * U - 1.0 * U
+        cx = V.X0
+        for k_ in EDGE_ORDER:
+            v_ = sh.get(k_, 0.0)
+            if v_ <= 0:
+                continue
+            bw_ = mw * v_ / 100.0
+            B.fill([rect(cx, by0, cx + bw_, by0 + bh)], EDGE[k_][1], L, 20)
+            lab = "{:.0f}%".format(v_)
+            if bw_ > tw(lab, 0.42 * U) + 0.4 * U:
+                B.text(lab, cx + bw_ / 2.0, by0 + 0.3 * U, 0.42 * U,
+                       (255, 255, 255) if k_ in ("building", "green", "pedestrian") else INK, L, align="C")
+            cx += bw_
+            leg.append(("thick", EDGE[k_][1], short(EDGE[k_][0])))
+        B.line(rect(V.X0, by0, V.X0 + mw, by0 + bh) + [(V.X0, by0)], INK2, L, 21, 0.05)
+        B.text(u"walled {:.0f}% · embanked {:.0f}% of the bank length".format(wl_, em_), V.X0, by0 - 0.85 * U,
+               0.42 * U, INK2, L)
+        yy = by0 - 1.4 * U
+    leg += [("walled", INK2, "Walled bank"), ("embanked", INK2, "Embanked bank"), ("ktick", INK, "Bridges K1-K6"),
+            ("pdot", INK, "Photo viewpoints (numbers as under the photos)")]
+    ly = draw_legend_items(B, leg, V.X0, yy - 0.4 * U, mw, U, L, h=0.42)
+    crop_panel("edge_plan", V.X0, ly + 0.2 * U, V.X0 + mw, top + CTX_H * U + 0.3 * U,
+               u"What meets the water · bank by bank", crop_scale(s), crop_legend(leg))
+    return ly
+
+
+def sec_cropped(S, sd_, Lmax):
+    """v42: the part of a cut Lmax long around the stream (centred on its water, kept inside the cut), cut again by the
+    same section engine; its title says which part of the whole it is."""
+    x0, y0, x1, y1, nm = sd_["line"]
+    L = sd_["L"]
+    if sd_["water"]:
+        c = 0.5 * (min(w_[0] for w_ in sd_["water"]) + max(w_[1] for w_ in sd_["water"]))
+    else:
+        c = 0.5 * L
+    s0 = max(0.0, min(L - Lmax, c - 0.5 * Lmax))
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    out = section_of_line(S, x0 + ux * s0, y0 + uy * s0, x0 + ux * (s0 + Lmax), y0 + uy * (s0 + Lmax), nm)
+    out["crop_of"] = (L, s0)
+    return out
+
+
+def sections_plan(S, sw, U):
+    """v42: (den, ss, pages): the largest round booklet scale 1:den at which every cut (cropped to the part around the
+    stream where it is too long, keeping >= SEC_KEEP of it) fits on at most two booklet pages; pages = [[row, ...]],
+    row = [(section, width)]. ss = page units per metre."""
+    secs = list(S.sections)
+    hmax = sw * BK_AH / BK_AW * 0.97
+    best = None
+    for den in SEC_BOOK_DENS:
+        ss = 1000.0 * sw / (den * BK_AW)             # the drawing fills the booklet's width: 1:den on the page
+        Lmax = (sw - 2.0 * SEC_END * U) / ss
+        if any(sd_["L"] * SEC_KEEP > Lmax for sd_ in secs):
+            continue
+        cut = [sd_ if sd_["L"] <= Lmax else sec_cropped(S, sd_, Lmax) for sd_ in secs]
+        items = []
+        for c_ in cut:
+            wi = min(sw, c_["L"] * ss + 2.0 * SEC_END * U)
+            n0 = len(LOG)
+            hi = -draw_section_strip(S, Board(), c_, 0.0, 0.0, wi, ss, U, dry=True)
+            del LOG[n0:]
+            items.append((c_, wi, hi))
+        rows, cur, cw = [], [], 0.0                   # in order, side by side while they fit the width
+        for it in items:
+            if cur and cw + SEC_COL_GAP * U + it[1] > sw:
+                rows.append(cur)
+                cur, cw = [], 0.0
+            cw += (SEC_COL_GAP * U if cur else 0.0) + it[1]
+            cur.append(it)
+        if cur:
+            rows.append(cur)
+        pages, ph = [[]], 4.0 * U                     # the first page also holds the context line
+        for r in rows:
+            rh = max(h_ for c_, w_, h_ in r) + SEC_ROW_GAP * U
+            if pages[-1] and ph + rh > hmax:
+                pages.append([])
+                ph = 1.0 * U
+            pages[-1].append(r)
+            ph += rh
+        best = (den, ss, [[[(c_, w_) for c_, w_, h_ in r] for r in pg] for pg in pages])
+        if len(pages) <= 2 and all(max(h_ for c_, w_, h_ in r) + 5.0 * U <= hmax for r in rows):
+            return best
+    return best
+
+
+def sections_context(S):
+    """v42: the context line of the cuts, with the bed's depth below the banks over all cuts (computed)."""
+    d = []
+    for sd_ in S.sections:
+        beds = [l for l in sd_["levels"] if l[3] == "bed"]
+        banks = [l for l in sd_["levels"] if l[3] == "bank"]
+        if beds and banks:
+            d.append(banks[0][2] - beds[0][2])
+    rng = (u" ({:.1f}-{:.1f} m)".format(min(d), max(d)) if len(d) > 1 else u" ({:.1f} m)".format(d[0])) if d else u""
+    return (u"The ground as it falls to the water at {} cuts across the Selinos, all at one scale: surveyed ground, "
+            u"bed, buildings at their floors and every street crossed. They show how far the bed lies below the "
+            u"banks{} and what stands at each bank.".format(len(S.sections), rng))
+
+
+def draw_sections_page(S, B, x, y, sw, U, plan, k):
+    """v42: page k of the cuts (sections_plan): rows of whole cuts at one scale, the context line on the first page.
+    Returns the y below."""
+    L = "LU_BOARD::Sections"
+    den, ss, pages = plan
+    names = [c_["name"] for r in pages[k] for c_, w_ in r]
+    B.text(u"SECTIONS ACROSS THE STREAM · {}{} · 1:{:,} ON THE A3 PAGE".format(
+        names[0], "" if len(names) == 1 else "-" + names[-1], den), x, y, 0.9 * U, INK, L, font=FONT_TITLE, bold=True)
+    top = y - 1.3 * U if k == 0 else y - 1.8 * U
+    yy = ctx_line(B, sections_context(S), x, top, sw, CTX_H * U, L) - 0.4 * U if k == 0 else top
+    low = yy
+    for r in pages[k]:
+        cx = x
+        rl = yy
+        for c_, w_ in r:
+            bot = draw_section_strip(S, B, c_, cx, yy, w_, ss, U, tag="drawing",
+                                     scale_txt=u"1:{:,} on the A3 booklet page".format(den))
+            rl = min(rl, bot)
+            cx += w_ + SEC_COL_GAP * U
+        yy = rl - SEC_ROW_GAP * U
+        low = rl
+    crop_panel("sections_%d" % (k + 1), x, low - 0.2 * U, x + sw, (top + CTX_H * U + 0.3 * U) if k == 0 else top + 0.9 * U,
+               u"Sections across the stream · {}".format(", ".join(names)), crop_scale(ss))
+    return low
 def write_city_link_movement(S, R):
     """v34: length-weighted walking potential (index, 100 = busiest street piece today) on the spine pieces with the
     spine, and on the existing streets within 40 m of the main Selinus line today and with the spine."""
@@ -19160,20 +19419,25 @@ def build_sheet(S, B, X, Y, U, rects):
              ("04 Green, farmland and orchards", 30.8 * U, lambda x, y: draw_green_table(S, B, x, y, 30.8 * U, U)),
              ("05 Readings", 24.0 * U, lambda x, y: draw_readings(S, B, x, y, 24.0 * U, None, U)),
              ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
+             ("06b What meets the water", 120.0 * U, lambda x, y: draw_stream_edge_plan(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
+    n_ = 13
     if S.sections:
+        # v42 (Aras 26 Oct 07:06, p.09-11): every cut at ONE round scale, rows of whole cuts, at most two booklet pages
         sw = 140.0 * U
-        for i, sd_ in enumerate(S.sections):
-            ss_k = strip_fit(S, sd_, sw, 30.0 * U, U)         # each drawing at the largest scale its frame allows
-            items.append(("{:02d} Section {}".format(12 + i, sd_["name"]), sw,
-                          (lambda s_, k_: (lambda x, y: draw_section_strip(S, B, s_, x, y, sw, k_, U, tag="drawing")))(sd_, ss_k)))
+        plan_ = sections_plan(S, sw, U)
+        for k_, pg_ in enumerate(plan_[2]):
+            nms = [c_["name"] for r_ in pg_ for c_, w_ in r_]
+            items.append(("{:02d} Sections across the stream {}".format(12 + k_, nms[0] + (
+                "" if len(nms) == 1 else "-" + nms[-1])), sw,
+                (lambda k2: (lambda x, y: draw_sections_page(S, B, x, y, sw, U, plan_, k2)))(k_)))
+        n_ = 12 + len(plan_[2])
     else:
         items.append(("12 Section placeholder", 94.8 * U,
                       lambda x, y: draw_section_placeholder(S, B, x, y, 94.8 * U, 14.0 * U, U, 1)))
-    n_ = 12 + max(1, len(S.sections))
     if spine_section(S) is not None:                     # v40: the long section along the streamside spine
         items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
                       lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))
@@ -19999,7 +20263,7 @@ class BkBlocks(object):
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v41"
+BK_VERSION = "v42"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -20095,6 +20359,9 @@ def crop_rects():
             bid = "%s_%s_%d" % (crop_sheet_key(pdf), p["slug"], n)
             n += 1
         ids.add(bid)
+        if p.get("geo"):                                 # v42: survey x, y -> mm from the crop's top-left, y down
+            p["geo_mm"] = [[round(gx, 3), round(gy, 3), round((bx - r[0]) * k + ox - rect_mm[0], 3),
+                            round(ph - ((by - r[1]) * k + oy) - rect_mm[1], 3)] for gx, gy, bx, by in p["geo"]]
         out.append((bid, pdf, rect_mm, p))
     return out
 
@@ -20108,6 +20375,9 @@ def booklet_export(S, B, rects):
     done = []
     for bid, pdf, rmm, p in crop_rects():
         BK.crop(bid, pdf, rmm, caption=p["caption"], scale_den=p["scale_den"], legend=p["legend"], drop=p["drop"])
+        if p.get("geo_mm"):                              # v42: the plan's georeference (plan 01, for the farms map)
+            BK.d["blocks"][bid]["geo"] = {"points": p["geo_mm"], "note": "survey x, y (m) of the plan frame's corners "
+                                          "-> x, y in mm from the crop's top-left, y down, at 1:1 on the sheet PDF"}
         done.append("%s  %s  %.0f x %.0f mm  1:%s" % (bid, pdf, rmm[2] - rmm[0], rmm[3] - rmm[1], p["scale_den"]))
     for bid, pdf, rmm, cap, den, leg, drop in CROP_DIRECT:
         BK.crop(bid, pdf, rmm, caption=cap, scale_den=den, legend=leg, drop=[CROP_REF] + list(drop or []))

@@ -472,20 +472,25 @@ def build_sheet(S, B, X, Y, U, rects):
              ("04 Green, farmland and orchards", 30.8 * U, lambda x, y: draw_green_table(S, B, x, y, 30.8 * U, U)),
              ("05 Readings", 24.0 * U, lambda x, y: draw_readings(S, B, x, y, 24.0 * U, None, U)),
              ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
+             ("06b What meets the water", 120.0 * U, lambda x, y: draw_stream_edge_plan(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
+    n_ = 13
     if S.sections:
+        # v42 (Aras 26 Oct 07:06, p.09-11): every cut at ONE round scale, rows of whole cuts, at most two booklet pages
         sw = 140.0 * U
-        for i, sd_ in enumerate(S.sections):
-            ss_k = strip_fit(S, sd_, sw, 30.0 * U, U)         # each drawing at the largest scale its frame allows
-            items.append(("{:02d} Section {}".format(12 + i, sd_["name"]), sw,
-                          (lambda s_, k_: (lambda x, y: draw_section_strip(S, B, s_, x, y, sw, k_, U, tag="drawing")))(sd_, ss_k)))
+        plan_ = sections_plan(S, sw, U)
+        for k_, pg_ in enumerate(plan_[2]):
+            nms = [c_["name"] for r_ in pg_ for c_, w_ in r_]
+            items.append(("{:02d} Sections across the stream {}".format(12 + k_, nms[0] + (
+                "" if len(nms) == 1 else "-" + nms[-1])), sw,
+                (lambda k2: (lambda x, y: draw_sections_page(S, B, x, y, sw, U, plan_, k2)))(k_)))
+        n_ = 12 + len(plan_[2])
     else:
         items.append(("12 Section placeholder", 94.8 * U,
                       lambda x, y: draw_section_placeholder(S, B, x, y, 94.8 * U, 14.0 * U, U, 1)))
-    n_ = 12 + max(1, len(S.sections))
     if spine_section(S) is not None:                     # v40: the long section along the streamside spine
         items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
                       lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))

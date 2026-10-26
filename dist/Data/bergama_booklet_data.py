@@ -1,7 +1,7 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
+# ---- BOOKLET PLAN v5 (review 26 Oct 07:06: p.07 edge plan, all cuts on <= 2 pages); v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
 # Every page is the scripts' OWN sheet: an A3 sheet goes in as it is; a panel of a big sheet is cut out with its own
 # words and shown at ONE scale per page (never stretched, nothing rewritten). Keys "<output folder>/<crop id>" name
 # the crop blocks in that script's output/<folder>/booklet/blocks.json; every panel goes on its page whole.
@@ -39,14 +39,14 @@ PAGES = [
     dict(part="A", title=u"Grain of the town", rows=[[SB + "drw_building_types"],
                                                     [SB + "drw_key_question", SB + "drw_ground_cover"],
                                                     [SB + "drw_shops_vs_walking"]]),
-    dict(part="A", title=u"The stream edge", rows=[[SB + "drw_tree_cover"], [SB + "drw_photos"]]),
+    dict(part="A", title=u"The stream edge", rows=[[SB + "drw_tree_cover"], [SB + "drw_edge_plan"], [SB + "drw_photos"]]),
     dict(part="A", title=u"How people use it", rows=[[SB + "drw_movement"],
                                                     [SB + "drw_walking_today", SB + "drw_driving_today"],
                                                     [SB + "drw_walking_change", SB + "drw_driving_change"],
                                                     [SB + "drw_combined_change"]]),
-    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_section_s1"], [SB + "sec_section_s2"]], optional=True),
-    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_section_s3"], [SB + "sec_section_s4"]], optional=True),
-    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_section_s5"]], optional=True),
+    # v5 (review p.09-11): every cut of the board at one round scale, at most two pages (site board v42)
+    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_sections_1"]], optional=True),
+    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_sections_2"]], optional=True),
     dict(part="A", title=u"Shops meet the stream where it is hidden", sheet=CLK + "Bergama_city_link_A3.pdf", page=0),
     dict(part="B", title=u"The water balance", sheet=BAL + "Bergama_water_balance_A3.pdf"),
     dict(part="B", title=u"The year of the water", rows=[[WB + "wb_year"]]),

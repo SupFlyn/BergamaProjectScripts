@@ -1,8 +1,22 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v41)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v42)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v42 (2026-10-26, Aras's deck review 07:06, pages 02, 07, 09-11):
+  * Sections across the stream: every cut the survey's sec_lines layer holds (S1-S8) at ONE round scale, whole
+    cuts in rows (two side by side where they fit), on at most two booklet pages ("Sections across the stream S1-.."
+    drawings, booklet crops sec_sections_1 / sec_sections_2). The scale is the largest of 1:1,000 / 1:2,000 /
+    1:2,500 / 1:5,000 at which they fit; a cut too long for a row is cropped to the part around the stream (at
+    least 70 % of it kept, its title says so), never stretched. The old one-drawing-per-cut layout is gone.
+  * New drawing "What meets the water" (p.07): the site plan with the edge types along both banks (built, street,
+    walkable, planted, parking, loose), walled and embanked banks, bridges K1-K6, the cuts and the photo viewpoints
+    numbered as under the photos; one bar of each edge type's share of the bank length. Booklet crop drw_edge_plan.
+  * A context line (what it shows, why, what to take from it) under the title of plan 01, the tree cover, the edge
+    plan and the cuts; their figures are computed on the run.
+  * Booklet blocks: plan 01's crop carries "geo" (its frame corners in survey x, y and in crop mm) so the farms map
+    can be laid on this plan.
 
 NEW IN v41 (2026-10-26, Aras 06:35 "these lines in what is there looks weird"):
   * Plan 01 and every map with building outlines: the pale outline runs only round the outside of a footprint as
@@ -214,7 +228,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v41 (2026-10-26)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v42 (2026-10-26)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
