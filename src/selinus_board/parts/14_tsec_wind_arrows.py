@@ -1117,7 +1117,7 @@ def whole_site(RAW, OSM, PLACES, FR, S):
     """v36: the site model over the whole file, for plan 01 only (land use, fabric, land cover, density, stream
     edges); FR, the analysis range, is drawn on it. The tables keep the site frame's model S."""
     FA = whole_frame(RAW, FR)
-    SA = build_site(RAW, OSM, PLACES, FA)
+    SA = build_site_once(RAW, OSM, PLACES, FA)
     SA.U = S.U                                           # the site's line and text sizes
     load_landcover(SA)
     SA.int_cells, SA.int_breaks, SA.int_cell, SA.int_peak, SA.int_peak_name = [], (0, 0, 0), 50.0, 0.0, ""

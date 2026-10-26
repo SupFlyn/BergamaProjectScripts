@@ -2,10 +2,10 @@
 
 | function / data | file | line |
 |---|---|---|
-| cite | code.py | 110 |
-| text_w | code.py | 137 |
+| cite | code.py | 98 |
+| text_w | code.py | 125 |
 | wrap | ../common/wrap.py | - |
-| Page | code.py | 144 |
+| Page | code.py | 132 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -19,19 +19,19 @@
 | rect | ../common/rect.py | - |
 | node | ../common/node.py | - |
 | para | ../common/para.py | - |
-| flow_arrow | code.py | 199 |
-| pict | code.py | 205 |
-| chips | code.py | 276 |
-| frame | code.py | 289 |
+| flow_arrow | code.py | 187 |
+| pict | code.py | 193 |
+| chips | code.py | 264 |
+| frame | code.py | 277 |
 | sketch_engine | ../common/sketch_engine.py | - |
-| draw_concept | code.py | 313 |
+| draw_concept | code.py | 301 |
 | load_palette | ../common/load_palette.py | - |
 | SKETCH_SRC | data/SKETCH_SRC.py | - |
 | booklet_assets | ../common/booklet_assets.py | - |
 | _bk_hex | parts/90_booklet.py | 16 |
 | booklet_export | parts/90_booklet.py | 20 |
-| build_sheet | code.py | 365 |
-| main | code.py | 416 |
-| chain_fire | code.py | 442 |
-| done_text | code.py | 463 |
-| write_log | code.py | 468 |
+| build_sheet | code.py | 353 |
+| main | code.py | 404 |
+| chain_fire | code.py | 430 |
+| done_text | code.py | 451 |
+| write_log | code.py | 456 |

@@ -8,6 +8,7 @@ A=$(realpath $1); B=$(realpath $2)
 if diff -q $A.hashes $B.hashes >/dev/null; then echo "IDENTICAL ($(wc -l < $A.hashes) files)"; exit 0; fi
 diff <(cut -c14- $A.hashes) <(cut -c14- $B.hashes) | grep '^[<>]' | sed 's/^</only in A:/; s/^>/only in B:/'
 join -j 2 <(sort -k2 $A.hashes) <(sort -k2 $B.hashes) | awk '$2!=$3{print $1}' | while read f; do
+  case "$f" in *.pdf) if python3 $T/pdfsame.py $A/Downloads/Bergama/$f $B/Downloads/Bergama/$f >/dev/null 2>&1; then echo "same render (bytes differ): $f"; continue; fi;; esac
   echo "DIFFERS: $f"
   case "$f" in *.json|*.txt) diff <(norm $A/Downloads/Bergama/$f $A) <(norm $B/Downloads/Bergama/$f $B) | head -6;; esac
 done

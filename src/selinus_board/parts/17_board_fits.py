@@ -391,6 +391,91 @@ def pipeline(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, te
             pool_allow(False)
 
 
+def _plain_repr(v):
+    """repr with sets in sorted order (their order changes between Rhino sessions)."""
+    if isinstance(v, (set, frozenset)):
+        return "{" + ",".join(sorted(_plain_repr(x) for x in v)) + "}"
+    if isinstance(v, dict):
+        return "{" + ",".join(_plain_repr(k) + ":" + _plain_repr(x) for k, x in v.items()) + "}"
+    if isinstance(v, (list, tuple)):
+        return ("[%s]" if isinstance(v, list) else "(%s)") % ",".join(_plain_repr(x) for x in v)
+    if type(v).__name__ == "function":                  # by name and bytecode, not by its address in memory
+        return "fn:%s:%s" % (v.__qualname__, _hashlib.sha1(v.__code__.co_code).hexdigest())
+    return repr(v)
+
+
+def build_site_key(R, osm, places, F):
+    """Fingerprint of everything build_site reads: the survey, the frame, OSM and places, the bytecode of build_site
+    and of every function and class it reaches, and the settings those read (LOG, the run's own messages, left out).
+    An edit to any of them gives a new key, so an old site model is never reused."""
+    g = globals()
+    code = _code_print()
+    seen, parts, todo = set(), [], ["build_site"]
+    while todo:
+        nm = todo.pop()
+        if nm in seen or nm == "LOG" or nm not in g:
+            continue
+        seen.add(nm)
+        v = g[nm]
+        if type(v).__name__ == "function":
+            cos = [v.__code__]
+            parts.append((nm, code.get(nm), _plain_repr(v.__defaults__)))
+        elif isinstance(v, type):
+            fs = [f for a, f in sorted(vars(v).items()) if type(f).__name__ == "function"]
+            cos = [f.__code__ for f in fs]
+            parts.append((nm, sorted((k, h) for k, h in code.items() if k.startswith(nm + ".")),
+                          [_plain_repr(f.__defaults__) for f in fs]))
+        elif isinstance(v, _types.ModuleType):
+            continue
+        else:
+            parts.append((nm, _plain_repr(v)))
+            continue
+        while cos:
+            c = cos.pop()
+            todo.extend(c.co_names)
+            cos.extend(k for k in c.co_consts if hasattr(k, "co_code"))
+    return fp("site", sorted(parts), _plain_repr(R), _plain_repr(osm), _plain_repr(places), F.P)
+
+
+def build_site_once(R, osm, places, F):
+    """build_site, worked out once and kept (Aras 25 Oct 21:29: "you check once and cache it"): in Rhino's memory for
+    this session and in cached/selinus_cache, found again only by build_site_key. Kept as pickled bytes, so later
+    changes to the model in a run never reach the kept copy; its log lines are replayed."""
+    key = ST = None
+    try:
+        key = build_site_key(R, osm, places, F)
+        ST = Store()
+        blob = ST.get("site", key)
+    except Exception:
+        key = blob = None
+    if blob is not None:
+        try:
+            _ns_register()                                   # the classes are pickled under module selinus_ns
+            S, msgs = _pickle.loads(blob)
+            LOG.extend(msgs)
+            S.F = F
+            if hasattr(S, "terrain_smp"):
+                S.z_at = terrain_z_at(S, S.terrain_smp)      # a function: made again from its samples, as the workers do
+            return S
+        except Exception:
+            pass
+    n0 = len(LOG)
+    S = build_site(R, osm, places, F)
+    if key is not None:
+        try:
+            _ns_register()
+            z_at = S.__dict__.pop("z_at", None)
+            try:
+                blob = _pickle.dumps((S, LOG[n0:]), protocol=4)
+            finally:
+                if z_at is not None:
+                    S.z_at = z_at
+            ST.put("site", key, blob)
+        except Exception:
+            pass
+    return S
+
+
 def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, tech_secs_user=None):
     """v20: the site model from what was read from the open file (read_rhino) and the picked frame and lines (file
     coordinates): alignment, survey, frame, section lines, OSM and places, build_site, study areas, fabric types.
@@ -439,7 +524,7 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
             TSEC[k] = list(SECTION_LINES_LK)
     OSM = parse_osm(osm_path) if osm_path else None
     PLACES = parse_places(places_path) if places_path else []
-    S = build_site(RAW, OSM, PLACES, FR)
+    S = build_site_once(RAW, OSM, PLACES, FR)
     S.osm = OSM                                            # v33: the movement potential reuses it
     try:
         load_landcover(S)                                 # v31: satellite land cover (farmland, orchards, ...)
