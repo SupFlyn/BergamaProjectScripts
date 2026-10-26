@@ -1,5 +1,20 @@
 # bergama_masterplan: notes of older versions (moved out of the script header)
 
+NEW IN v21 (Aras 25 Oct 21:38-21:57; booklet/CROP_SPEC.md):
+  * PROMENADE beside the stream, no longer over it: on each bank from 10 % of the stream's width inside the water
+    edge out to the nearest surveyed street edge (a standing building met first stops it; 15 m where neither lies
+    within 60 m); option A's edge wanders at the water only (promenade(), PROM_*).
+  * Roads: the survey's street edges over the whole panel as one outlined network in the palette's road role, the
+    main road (Bankalar - Kınık Caddesi) in its dark tone and heavier (draw_roads); street faces in the road tone.
+  * A second sheet, Bergama_masterplan_v21_A_detail.pdf: the booklet's two 1:1,000 windows (upstream entry; K5 and
+    Demeter's Garden) with the channel cuts and site sections, bed and Q100 / Q500 levels at the cuts, the water route
+    numbered with the zones' areas, planting band letters and species codes, survey spot levels, terrace steps and
+    ramps as abstract sketch marks (02b_detail.py). North arrow and scale bar in every panel.
+  * Booklet: no separate drawings any more; booklet/blocks.json holds one crop per panel of both sheets (mp_upstream,
+    mp_downstream, dt_upstream, dt_k5); booklet/results.json keeps v20's keys. v20's c1/c3 PDFs are removed.
+  * Words: stream, never river, on the sheets; no caveat notes ("NO PROGRAMME YET" gone), no personal credit under
+    Demeter's Garden, no haloed labels.
+
 NEW IN v20 (Aras 25 Oct 18:37, A3 booklet; SCRIPT_STANDARD §8): the sheet and masterplan_results.json are unchanged.
   The press also writes the booklet's drawings into output/bergama_masterplan/booklet/: c1_s1 and c1_s2 (the whole
   site in two equal halves with 50 m overlap, centred, turned so the stream runs left to right, 1:5,000), c3_a and c3_b (north-up

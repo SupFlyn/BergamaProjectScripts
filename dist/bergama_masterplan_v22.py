@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v21 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v22 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -63,20 +63,11 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v21 (Aras 25 Oct 21:38-21:57; booklet/CROP_SPEC.md):
-  * PROMENADE beside the stream, no longer over it: on each bank from 10 % of the stream's width inside the water
-    edge out to the nearest surveyed street edge (a standing building met first stops it; 15 m where neither lies
-    within 60 m); option A's edge wanders at the water only (promenade(), PROM_*).
-  * Roads: the survey's street edges over the whole panel as one outlined network in the palette's road role, the
-    main road (Bankalar - Kınık Caddesi) in its dark tone and heavier (draw_roads); street faces in the road tone.
-  * A second sheet, Bergama_masterplan_v21_A_detail.pdf: the booklet's two 1:1,000 windows (upstream entry; K5 and
-    Demeter's Garden) with the channel cuts and site sections, bed and Q100 / Q500 levels at the cuts, the water route
-    numbered with the zones' areas, planting band letters and species codes, survey spot levels, terrace steps and
-    ramps as abstract sketch marks (02b_detail.py). North arrow and scale bar in every panel.
-  * Booklet: no separate drawings any more; booklet/blocks.json holds one crop per panel of both sheets (mp_upstream,
-    mp_downstream, dt_upstream, dt_k5); booklet/results.json keeps v20's keys. v20's c1/c3 PDFs are removed.
-  * Words: stream, never river, on the sheets; no caveat notes ("NO PROGRAMME YET" gone), no personal credit under
-    Demeter's Garden, no haloed labels.
+NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK TO THE STREAM"): the water
+  route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
+  place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
+  (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
+  Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
@@ -109,8 +100,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v21 (2026-10-25)"
-SHORT = "v21"
+VERSION = "bergama_masterplan v22 (2026-10-26)"
+SHORT = "v22"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -121,8 +112,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v21_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v21_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v22_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v22_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -2751,26 +2742,40 @@ def detail_windows(D, plc, frame):
     return out
 
 
-def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avoid=()):
+def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avoid=(), more=(), anywhere=False):
     """A label block [(text, size, bold)] on a free spot round anchor (page mm, y up), off the rings in avoid, with
-    a thin leader when it sits off the anchor. Returns its box or None."""
+    a thin leader when it sits off the anchor. v22: then round each point of more (e.g. along the route), and with
+    anywhere the free spot nearest anchor on the whole panel (2 mm grid). Returns its box or None."""
     w, h = block_size(lines)
     ax, ay = anchor
-    for d in (d0, d0 + 2.0, d0 + 4.0, d0 + 7.0, d0 + 11.0, d0 + 16.0, 24.0, 32.0):
-        for i in range(16):
-            a = math.radians(i * 22.5 + 11.25)
-            cx, cy = ax + math.cos(a) * (d + w / 2), ay + math.sin(a) * (d + h / 2)
+    on = 0.0 <= ax <= W and 0.0 <= ay <= H              # v22: the leader goes to anchor only when it is on the panel
+
+    def free(b):
+        return not (b[0] < 0.8 or b[1] < 0.8 or b[2] > W - 0.8 or b[3] > H - 0.8 or
+                    any(hit(b, t, 0.4) for t in taken) or (avoid and not box_clear(b, avoid)))
+
+    def put(b, px, py, far):
+        draw_block(pg, lines, b[0], b[3], colour, None)
+        taken.append(b)
+        if leader and far:
+            qx, qy = min(max(px, b[0]), b[2]), min(max(py, b[1]), b[3])
+            pg.line([(px, py), (qx, qy)], COL["ink2"], 0.15)
+        return b
+
+    for k_, (px, py) in enumerate([anchor] + list(more)):
+        for d in (d0, d0 + 2.0, d0 + 4.0, d0 + 7.0, d0 + 11.0, d0 + 16.0, 24.0, 32.0):
+            for i in range(16):
+                a = math.radians(i * 22.5 + 11.25)
+                cx, cy = px + math.cos(a) * (d + w / 2), py + math.sin(a) * (d + h / 2)
+                b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+                if free(b):
+                    return put(b, ax, ay, d > 3.0 or k_ > 0) if on or k_ == 0 else put(b, px, py, d > 3.0)
+    if anywhere:                                         # v22: last, any free spot on the panel, nearest first
+        cs = [(x_ * 2.0, y_ * 2.0) for x_ in range(int(W / 2.0) + 1) for y_ in range(int(H / 2.0) + 1)]
+        for cx, cy in sorted(cs, key=lambda c_: (c_[0] - ax) ** 2 + (c_[1] - ay) ** 2):
             b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
-            if b[0] < 0.8 or b[1] < 0.8 or b[2] > W - 0.8 or b[3] > H - 0.8 or any(hit(b, t, 0.4) for t in taken):
-                continue
-            if avoid and not box_clear(b, avoid):
-                continue
-            draw_block(pg, lines, b[0], b[3], colour, None)
-            taken.append(b)
-            if leader and d > 3.0:
-                qx, qy = min(max(ax, b[0]), b[2]), min(max(ay, b[1]), b[3])
-                pg.line([(ax, ay), (qx, qy)], COL["ink2"], 0.15)
-            return b
+            if free(b):
+                return put(b, ax, ay, True) if on else put(b, cx, cy, False)
     return None
 
 
@@ -2908,7 +2913,8 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             pg.text(str(n_), mx, my - 0.85, 2.4, COL["white"], bold=True, align="C")
             taken.append((mx - 2.2, my - 2.2, mx + 2.2, my + 2.2))
             leg(("dt", "route"))
-            route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my)))
+            route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my),   # v22: + spots along the route
+                              [at_len(P, s, s[-1] * f_)[0] for f_ in (0.3, 0.7, 0.1, 0.9, 0.0, 1.0)]))
         if steps:
             warn.append(u"detail {}: storage volumes of the reed basins and terraces are computed by no script: "
                         u"only areas shown".format(win["id"]))
@@ -2947,8 +2953,9 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
         for lines, anc in cut_lab:
             if not place_label(pg, lines, anc, taken, dw, dh, ink, avoid=av):
                 missing.append(lines[0][0])
-        for lines, anc in route_lab:
-            if not place_label(pg, lines, anc, taken, dw, dh, COL["river_dark"], d0=2.6, avoid=av):
+        for lines, anc, along in route_lab:              # v22: never left out (Aras 26 Oct: 4 BACK TO THE STREAM)
+            if not place_label(pg, lines, anc, taken, dw, dh, COL["river_dark"], d0=2.6, avoid=av, more=along,
+                               anywhere=True):
                 missing.append(lines[0][0])
         for nm in (u"K4", u"K5"):                         # (not when the commons' keywords already name it)
             if plc.get(nm) and inR(plc[nm]) and nm + u" BRIDGE" not in HUB.get(win["key"], (u"", []))[1]:
@@ -3080,7 +3087,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v21.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v22.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -3921,7 +3928,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v21.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v22.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -4175,7 +4182,7 @@ def build_all(doc, warn):
                 for p_ in panels:                        # v21: each panel is a booklet crop
                     p_.bid = MP_CROPS[p_.key]
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v21 option {} (opacity {:.2f}, "
+                path = save(pg, folder, name, u"Bergama masterplan v22 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
@@ -4211,7 +4218,7 @@ def build_all(doc, warn):
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v21 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v22 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))

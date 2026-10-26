@@ -100,26 +100,40 @@ def detail_windows(D, plc, frame):
     return out
 
 
-def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avoid=()):
+def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avoid=(), more=(), anywhere=False):
     """A label block [(text, size, bold)] on a free spot round anchor (page mm, y up), off the rings in avoid, with
-    a thin leader when it sits off the anchor. Returns its box or None."""
+    a thin leader when it sits off the anchor. v22: then round each point of more (e.g. along the route), and with
+    anywhere the free spot nearest anchor on the whole panel (2 mm grid). Returns its box or None."""
     w, h = block_size(lines)
     ax, ay = anchor
-    for d in (d0, d0 + 2.0, d0 + 4.0, d0 + 7.0, d0 + 11.0, d0 + 16.0, 24.0, 32.0):
-        for i in range(16):
-            a = math.radians(i * 22.5 + 11.25)
-            cx, cy = ax + math.cos(a) * (d + w / 2), ay + math.sin(a) * (d + h / 2)
+    on = 0.0 <= ax <= W and 0.0 <= ay <= H              # v22: the leader goes to anchor only when it is on the panel
+
+    def free(b):
+        return not (b[0] < 0.8 or b[1] < 0.8 or b[2] > W - 0.8 or b[3] > H - 0.8 or
+                    any(hit(b, t, 0.4) for t in taken) or (avoid and not box_clear(b, avoid)))
+
+    def put(b, px, py, far):
+        draw_block(pg, lines, b[0], b[3], colour, None)
+        taken.append(b)
+        if leader and far:
+            qx, qy = min(max(px, b[0]), b[2]), min(max(py, b[1]), b[3])
+            pg.line([(px, py), (qx, qy)], COL["ink2"], 0.15)
+        return b
+
+    for k_, (px, py) in enumerate([anchor] + list(more)):
+        for d in (d0, d0 + 2.0, d0 + 4.0, d0 + 7.0, d0 + 11.0, d0 + 16.0, 24.0, 32.0):
+            for i in range(16):
+                a = math.radians(i * 22.5 + 11.25)
+                cx, cy = px + math.cos(a) * (d + w / 2), py + math.sin(a) * (d + h / 2)
+                b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+                if free(b):
+                    return put(b, ax, ay, d > 3.0 or k_ > 0) if on or k_ == 0 else put(b, px, py, d > 3.0)
+    if anywhere:                                         # v22: last, any free spot on the panel, nearest first
+        cs = [(x_ * 2.0, y_ * 2.0) for x_ in range(int(W / 2.0) + 1) for y_ in range(int(H / 2.0) + 1)]
+        for cx, cy in sorted(cs, key=lambda c_: (c_[0] - ax) ** 2 + (c_[1] - ay) ** 2):
             b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
-            if b[0] < 0.8 or b[1] < 0.8 or b[2] > W - 0.8 or b[3] > H - 0.8 or any(hit(b, t, 0.4) for t in taken):
-                continue
-            if avoid and not box_clear(b, avoid):
-                continue
-            draw_block(pg, lines, b[0], b[3], colour, None)
-            taken.append(b)
-            if leader and d > 3.0:
-                qx, qy = min(max(ax, b[0]), b[2]), min(max(ay, b[1]), b[3])
-                pg.line([(ax, ay), (qx, qy)], COL["ink2"], 0.15)
-            return b
+            if free(b):
+                return put(b, ax, ay, True) if on else put(b, cx, cy, False)
     return None
 
 
@@ -257,7 +271,8 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             pg.text(str(n_), mx, my - 0.85, 2.4, COL["white"], bold=True, align="C")
             taken.append((mx - 2.2, my - 2.2, mx + 2.2, my + 2.2))
             leg(("dt", "route"))
-            route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my)))
+            route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my),   # v22: + spots along the route
+                              [at_len(P, s, s[-1] * f_)[0] for f_ in (0.3, 0.7, 0.1, 0.9, 0.0, 1.0)]))
         if steps:
             warn.append(u"detail {}: storage volumes of the reed basins and terraces are computed by no script: "
                         u"only areas shown".format(win["id"]))
@@ -296,8 +311,9 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
         for lines, anc in cut_lab:
             if not place_label(pg, lines, anc, taken, dw, dh, ink, avoid=av):
                 missing.append(lines[0][0])
-        for lines, anc in route_lab:
-            if not place_label(pg, lines, anc, taken, dw, dh, COL["river_dark"], d0=2.6, avoid=av):
+        for lines, anc, along in route_lab:              # v22: never left out (Aras 26 Oct: 4 BACK TO THE STREAM)
+            if not place_label(pg, lines, anc, taken, dw, dh, COL["river_dark"], d0=2.6, avoid=av, more=along,
+                               anywhere=True):
                 missing.append(lines[0][0])
         for nm in (u"K4", u"K5"):                         # (not when the commons' keywords already name it)
             if plc.get(nm) and inR(plc[nm]) and nm + u" BRIDGE" not in HUB.get(win["key"], (u"", []))[1]:
@@ -429,7 +445,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v21.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v22.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)

@@ -816,7 +816,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v21.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v22.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -1070,7 +1070,7 @@ def build_all(doc, warn):
                 for p_ in panels:                        # v21: each panel is a booklet crop
                     p_.bid = MP_CROPS[p_.key]
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v21 option {} (opacity {:.2f}, "
+                path = save(pg, folder, name, u"Bergama masterplan v22 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
@@ -1106,7 +1106,7 @@ def build_all(doc, warn):
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v21 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v22 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))
