@@ -41,6 +41,10 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v1.11 (Aras 26 Oct 06:35 "we dont want scales like 1:7329 ... they need to be round numbers"): every drawing
+on the sheet takes the largest ROUND scale at which it fits: the six cuts 1:250 / 1:500 / 1:1,000 / 1:2,000 (was up
+to 1:400), the S4 seasons 1:250 / 1:500 / 1:1,000, the planting bands 1:200 / 1:250 / 1:500 / 1:1,000, the storage
+cubes 1:1,000 / 1:2,000 / 1:2,500 / 1:5,000 (was 1:1,250 or 1:1,500).
 NEW IN v1.10 (Aras 25 Oct 21:47-22:02: the booklet = crops of the sheet; no caveat notes; "not stretch anything ever"):
   * Booklet: the separate booklet drawings are gone; output/bergama_water_board/booklet/blocks.json lists one crop per
     panel of this board (rects from the board's own layout) and results.json keeps v1.9's keys.
@@ -70,17 +74,17 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v1.10 (2026-10-25)"
-SHORT = "v1.10"
+VERSION = "bergama_water_board v1.11 (2026-10-26)"
+SHORT = "v1.11"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
 STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the chart is gone)
 CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
-CUBE_SCALES = (1000.0, 1250.0, 1500.0, 2000.0, 2500.0)   # ... v1.6: or the first of these at which they fit
+CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of these at which they fit (v1.11: round)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v1_10_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v1_11_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -1457,9 +1461,9 @@ def draw_cut(pg, x0, y_top, cut, wmax, fs, opt, kx):
 
 
 SECT_K = 4.0                         # v1.10: every cut at 1:250 across and up (4 mm per m), one shared scale ...
-SECT_DENS = (250.0, 300.0, 400.0, 500.0)   # ... or the first of these at which the six fit the panel at 100 %
+SECT_DENS = (250.0, 500.0, 1000.0, 2000.0)  # ... or the first of these at which the six fit the panel at 100 % (v1.11: round)
 CUTS_DEN = [None]                    # the scale the six cuts end at on the sheet (read by results.json)
-S4_DENS = (250.0, 300.0, 400.0)      # the S4 season rows: the first scale at which all four fit their cells
+S4_DENS = (250.0, 500.0, 1000.0)     # the S4 season rows: the first scale at which all four fit their cells (v1.11: round)
 
 
 def draw_sections(opt, k=None):
@@ -1911,7 +1915,7 @@ bergama_data("SPECIES")
 SPECIES_SRC = {"C": u"concept v1 §9.2", "R": u"research 04 species matrix", "C+R": u"concept v1 §9.2 + research 04"}
 
 
-BANDS_DENS = (200.0, 250.0)          # v1.10: the planting bands on the S4 ground, the first of these scales that fits
+BANDS_DENS = (200.0, 250.0, 500.0, 1000.0)   # v1.11 round; v1.10: the planting bands on the S4 ground, the first of these scales that fits
 BANDS_S = (566.0, 640.0)             # the part of S4 drawn: both banks and the bed (m along S4)
 # W3b band -> its days a year under water (RWS ranges, PLANT_BANDS); A is the strip itself (permanent)
 BAND_DAYS = {"B": (150.0, 365.0), "C": (50.0, 150.0), "D": (10.0, 150.0), "E": (0.5, 50.0), "F": (0.0, 0.5)}
