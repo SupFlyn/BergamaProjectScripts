@@ -59,11 +59,9 @@ PAGES = [
     dict(part="C", title=u"K4 bridge: the amphibious threshold", rows=[[PS + "ps_k4"]]),
     dict(part="C", title=u"K5 bridge: Demeter's Garden", rows=[[PS + "ps_k5"]]),
     dict(part="C", title=u"Downstream reach: give back", rows=[[PS + "ps_downstream"]]),
-    dict(part="C", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_winter"], [WB + "wb_s4_spring"],
-                                                          [WB + "wb_s4_summer"], [WB + "wb_s4_autumn"]]),
+    dict(part="C", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # v6: one crop
     dict(part="C", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),
-    dict(part="C", title=u"Planting bands by days under water", rows=[[WB + "wb_bands"]]),
-    dict(part="C", title=u"Species by planting band", rows=[[WB + "wb_species"]]),
+    dict(part="C", title=u"Planting bands and their species", rows=[[WB + "wb_bands"], [WB + "wb_species"]]),
     dict(part="C", title=u"Where the clean water goes", rows=[[WB + "wb_farms"], [WB + "wb_decision"]]),
     dict(part="C", title=u"What each cubic metre grows", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=0),
     dict(part="C", title=u"The farms we feed", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=1),
