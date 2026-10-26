@@ -640,179 +640,186 @@ def build_sections(S):
         n_kept += 1
         name = "S{}".format(n_kept)
         S.sec_lines.append((x0, y0, x1, y1, name))
-        ux, uy = (x1 - x0) / L, (y1 - y0) / L
-        xs = [k * step for k in range(int(L / step) + 1)]
-        smp = []
-        for s in xs:
-            px, py = x0 + ux * s, y0 + uy * s
-            kind, ref = classify_point(S, px, py)
-            smp.append([s, kind, ref, S.z_at(px, py)])
-        # water intervals: the bed where the survey levels it; elsewhere the depth interpolated along the stream
-        # from the surveyed depths (bed_depth). v16.5: the water surface from water_level (approximate unless measured).
-        k = 0
-        wat = []
-        wsrcs = []
-        while k < len(smp):
-            if smp[k][1] != "water":
-                k += 1
-                continue
-            k0 = k
-            while k < len(smp) and smp[k][1] == "water":
-                k += 1
-            za = smp[max(0, k0 - 2)][3]
-            zb = smp[min(len(smp) - 1, k)][3]
-            bank = min(za, zb)
-            bed = min(r[3] for r in smp[k0:k])
-            src = "surveyed"
-            if bank - bed < 1.0:
-                sm = (smp[k0][0] + smp[k - 1][0]) / 2.0
-                dd_ = bed_depth(S, x0 + ux * sm, y0 + uy * sm)
-                if dd_ is None:
-                    src = "terrain"
-                else:
-                    bed, src = bank - dd_, ("input" if CH_DEPTH is not None else "interpolated")
-            for r in smp[k0:k]:
-                r.append(bed)
-            sm_ = (smp[k0][0] + smp[k - 1][0]) / 2.0
-            lvl, wsrc = water_level(S, x0 + ux * sm_, y0 + uy * sm_, bed, bank)
-            wat.append((smp[k0][0], smp[k - 1][0] + step, bed, lvl, bank, src))
-            wsrcs.append(wsrc)
-        for r in smp:
-            if len(r) == 4:
-                r.append(r[3])
-        base = min(r[4] for r in smp) - 2.0
-        ground = [(r[0], r[4] - base) for r in smp]
-        runs, cur = [], None
-        for r in smp:
-            key = (r[1], id(r[2]) if r[2] is not None else 0)
-            if cur is None or cur["key"] != key:
-                if cur:
-                    runs.append(cur)
-                cur = dict(key=key, kind=r[1], ref=r[2], s=[r])
-            else:
-                cur["s"].append(r)
-        if cur:
-            runs.append(cur)
-        bl, strip, comp, trees = [], [], {}, []
-        zmax = max(g[1] for g in ground)
-        for r in runs:
-            s0 = r["s"][0][0]
-            s1 = min(L, r["s"][-1][0] + step)
-            if r["kind"] == "bld":
-                u = r["ref"]
-                zb = min(q[3] for q in r["s"]) - base
-                ms_ = minaret_s(u, x0, y0, ux, uy, s0, s1) if u.get("fabric") == "sacred" else None
-                bl.append((s0, s1, zb, zb + u["h"], u["cat"], u["annex"], u.get("fabric", "regular"),
-                           unit_flags(u) + (ms_, label_name(u)), u["floors"], u["floors_src"]))  # + minaret, name
-                zmax = max(zmax, zb + u["h"] + typo_rise(u.get("fabric", "regular"), u["cat"], s1 - s0, u["h"],
-                                                         ms_ is not None) + 1.0)
-                cat = u["cat"]
-            elif r["kind"] == "water":
-                cat = "water"
-            elif r["kind"] == "green":
-                cat = "green"
-            elif r["kind"] in ("road", "parking"):
-                cat = "transport"
-            elif r["kind"] == "vacant":
-                cat = "vacant"
-            elif r["kind"] == "agri":
-                cat = "agri"
-            else:
-                cat = "void"
-            strip.append((s0, s1, cat))
-            comp[cat] = comp.get(cat, 0.0) + (s1 - s0)
+        S.sections.append(section_of_line(S, x0, y0, x1, y1, name, step))
 
-        def g_at(s):
-            return ground[max(0, min(len(ground) - 1, int(round(s / step))))][1]
-        # ---- tree crowns as measured on the canopy height map: cut by the line, and those seen beyond it
-        nx, ny = -uy, ux
-        btrees = []
-        for (tx, ty, tr, th) in crowns_near(S, (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)):
-            d = (tx - x0) * nx + (ty - y0) * ny
-            s = (tx - x0) * ux + (ty - y0) * uy
-            if not (-tr < s < L + tr):
-                continue
-            lo, hi = crown_lo(th), th
-            if abs(d) < tr:
-                hw = math.sqrt(tr * tr - d * d)
-                trees.append((s, S.z_at(tx, ty) - base, hw, lo, hi))
-                zmax = max(zmax, S.z_at(tx, ty) - base + hi)
-            elif tr <= d < 60.0:
-                btrees.append((s, S.z_at(tx, ty) - base, tr, lo, hi, d))
-        btrees.sort(key=lambda t: -t[5])
-        # ---- surveyed walls crossing the line: their place only (the survey gives no wall heights)
-        walls, chwalls = [], []
-        sbb = (min(x0, x1) - 5, min(y0, y1) - 5, max(x0, x1) + 5, max(y0, y1) + 5)
-        for P in S.g_wall.query(sbb):
-            for k in range(len(P) - 1):
-                res = seg_x((x0, y0), (x1 - x0, y1 - y0), P[k], (P[k + 1][0] - P[k][0], P[k + 1][1] - P[k][1]))
-                if res:
-                    s = res[0] * L
-                    walls.append((s, g_at(s)))
-        labels, levels = [], []
-        for (s0, s1, bed, lvl, bank, src) in wat:
-            for s in (s0, s1):
-                px, py = x0 + ux * s, y0 + uy * s
-                best, bd = None, 12.0
-                for e in S.g_edge.query((px - 12, py - 12, px + 12, py + 12)):
-                    d = math.hypot(e[0] - px, e[1] - py)
-                    if d < bd:
-                        bd, best = d, e
-                if best:
-                    labels.append((s, best[2], best[3], bank - base))
-                    if best[3] == 1:
-                        chwalls.append((s, bed - base, bank - base))     # the channel wall, bed to bank
-            levels.append(((s0 + s1) / 2.0, bed - base, bed, "bed"))
-            levels.append((s0, bank - base, bank, "bank"))
-        levels.append((0.0, ground[0][1], ground[0][1] + base, "end"))
-        levels.append((L, ground[-1][1], ground[-1][1] + base, "end"))
-        # ---- what lies beyond the cut, looking to the left of S -> S'
-        zcut = zmax
-        band = (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)
-        beyond = []
-        for u in S.g_bld.query(band):
-            d = (u["cx"] - x0) * nx + (u["cy"] - y0) * ny
-            if not 1.5 < d < 75.0:
-                continue
-            sv = [(px - x0) * ux + (py - y0) * uy for P in u["parts"] for (px, py) in P]
-            a, b = max(0.0, min(sv)), min(L, max(sv))
-            if b - a < 1.5:
-                continue
-            zb = S.z_at(u["cx"], u["cy"]) - base
-            beyond.append((a, b, zb, min(zb + u["h"], zcut + 5.0), u["cat"], d, u["floors"], u["annex"],
-                           u.get("fabric", "regular"), unit_flags(u), u["floors_src"]))
-        beyond.sort(key=lambda t: -t[5])
-        for b_ in beyond:
-            zmax = max(zmax, min(b_[3] + 1.6, zcut + 6.0))
-        for t in btrees:
-            zmax = max(zmax, min(t[1] + t[4], zcut + 6.0))
-        bridges = []
-        for P in S.bridges:
-            if len(P) < 2:
-                continue
-            mx, my = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
-            d = (mx - x0) * nx + (my - y0) * ny
-            if not 2.0 < d < 120.0:
-                continue
-            sv = [(px - x0) * ux + (py - y0) * uy for (px, py) in P]
-            a, b = max(0.0, min(sv)), min(L, max(sv))
-            if b - a > 2.0:
-                bridges.append((a, b, S.z_at(mx, my) - base, d))
-        # v16.7: named parks and places the line crosses (OpenStreetMap areas with their own name), called out by name
-        places = []
-        lbb = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
-        for z in S.zones:
-            nm_ = proper_name((z.get("tags") or {}).get("name") or "")
-            if not nm_ or not bb_hit(z["bb"], lbb):
-                continue
-            ins = [s for s in xs if region_contains(x0 + ux * s, y0 + uy * s, z["Ps"], z.get("Hs") or [])]
-            if len(ins) >= 4:
-                places.append((ins[0], ins[-1] + step, nm_))
-        S.sections.append(dict(name=name, line=(x0, y0, x1, y1, name), L=L, ground=ground, bld=bl, trees=trees, walls=walls,
-                               chwalls=chwalls, water=[(a, b, bed - base, lvl - base) for (a, b, bed, lvl, bank, src) in wat],
-                               bed_src=[src for (a, b, bed, lvl, bank, src) in wat], water_src=wsrcs,
-                               labels=labels, levels=levels, strip=strip, comp=comp, zmax=zmax, base=base,
-                               beyond=beyond, btrees=btrees, bridges=bridges, places=places))
+
+def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
+    """v40: one straight section x0,y0 -> x1,y1 (was the body of build_sections): ground, water, buildings, trees,
+    walls, levels, what lies beyond; the dict draw_section_strip draws."""
+    L = math.hypot(x1 - x0, y1 - y0)
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    xs = [k * step for k in range(int(L / step) + 1)]
+    smp = []
+    for s in xs:
+        px, py = x0 + ux * s, y0 + uy * s
+        kind, ref = classify_point(S, px, py)
+        smp.append([s, kind, ref, S.z_at(px, py)])
+    # water intervals: the bed where the survey levels it; elsewhere the depth interpolated along the stream
+    # from the surveyed depths (bed_depth). v16.5: the water surface from water_level (approximate unless measured).
+    k = 0
+    wat = []
+    wsrcs = []
+    while k < len(smp):
+        if smp[k][1] != "water":
+            k += 1
+            continue
+        k0 = k
+        while k < len(smp) and smp[k][1] == "water":
+            k += 1
+        za = smp[max(0, k0 - 2)][3]
+        zb = smp[min(len(smp) - 1, k)][3]
+        bank = min(za, zb)
+        bed = min(r[3] for r in smp[k0:k])
+        src = "surveyed"
+        if bank - bed < 1.0:
+            sm = (smp[k0][0] + smp[k - 1][0]) / 2.0
+            dd_ = bed_depth(S, x0 + ux * sm, y0 + uy * sm)
+            if dd_ is None:
+                src = "terrain"
+            else:
+                bed, src = bank - dd_, ("input" if CH_DEPTH is not None else "interpolated")
+        for r in smp[k0:k]:
+            r.append(bed)
+        sm_ = (smp[k0][0] + smp[k - 1][0]) / 2.0
+        lvl, wsrc = water_level(S, x0 + ux * sm_, y0 + uy * sm_, bed, bank)
+        wat.append((smp[k0][0], smp[k - 1][0] + step, bed, lvl, bank, src))
+        wsrcs.append(wsrc)
+    for r in smp:
+        if len(r) == 4:
+            r.append(r[3])
+    base = min(r[4] for r in smp) - 2.0
+    ground = [(r[0], r[4] - base) for r in smp]
+    runs, cur = [], None
+    for r in smp:
+        key = (r[1], id(r[2]) if r[2] is not None else 0)
+        if cur is None or cur["key"] != key:
+            if cur:
+                runs.append(cur)
+            cur = dict(key=key, kind=r[1], ref=r[2], s=[r])
+        else:
+            cur["s"].append(r)
+    if cur:
+        runs.append(cur)
+    bl, strip, comp, trees = [], [], {}, []
+    zmax = max(g[1] for g in ground)
+    for r in runs:
+        s0 = r["s"][0][0]
+        s1 = min(L, r["s"][-1][0] + step)
+        if r["kind"] == "bld":
+            u = r["ref"]
+            zb = min(q[3] for q in r["s"]) - base
+            ms_ = minaret_s(u, x0, y0, ux, uy, s0, s1) if u.get("fabric") == "sacred" else None
+            bl.append((s0, s1, zb, zb + u["h"], u["cat"], u["annex"], u.get("fabric", "regular"),
+                       unit_flags(u) + (ms_, label_name(u)), u["floors"], u["floors_src"]))  # + minaret, name
+            zmax = max(zmax, zb + u["h"] + typo_rise(u.get("fabric", "regular"), u["cat"], s1 - s0, u["h"],
+                                                     ms_ is not None) + 1.0)
+            cat = u["cat"]
+        elif r["kind"] == "water":
+            cat = "water"
+        elif r["kind"] == "green":
+            cat = "green"
+        elif r["kind"] in ("road", "parking"):
+            cat = "transport"
+        elif r["kind"] == "vacant":
+            cat = "vacant"
+        elif r["kind"] == "agri":
+            cat = "agri"
+        else:
+            cat = "void"
+        strip.append((s0, s1, cat))
+        comp[cat] = comp.get(cat, 0.0) + (s1 - s0)
+
+    def g_at(s):
+        return ground[max(0, min(len(ground) - 1, int(round(s / step))))][1]
+    # ---- tree crowns as measured on the canopy height map: cut by the line, and those seen beyond it
+    nx, ny = -uy, ux
+    btrees = []
+    for (tx, ty, tr, th) in crowns_near(S, (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)):
+        d = (tx - x0) * nx + (ty - y0) * ny
+        s = (tx - x0) * ux + (ty - y0) * uy
+        if not (-tr < s < L + tr):
+            continue
+        lo, hi = crown_lo(th), th
+        if abs(d) < tr:
+            hw = math.sqrt(tr * tr - d * d)
+            trees.append((s, S.z_at(tx, ty) - base, hw, lo, hi))
+            zmax = max(zmax, S.z_at(tx, ty) - base + hi)
+        elif tr <= d < 60.0:
+            btrees.append((s, S.z_at(tx, ty) - base, tr, lo, hi, d))
+    btrees.sort(key=lambda t: -t[5])
+    # ---- surveyed walls crossing the line: their place only (the survey gives no wall heights)
+    walls, chwalls = [], []
+    sbb = (min(x0, x1) - 5, min(y0, y1) - 5, max(x0, x1) + 5, max(y0, y1) + 5)
+    for P in S.g_wall.query(sbb):
+        for k in range(len(P) - 1):
+            res = seg_x((x0, y0), (x1 - x0, y1 - y0), P[k], (P[k + 1][0] - P[k][0], P[k + 1][1] - P[k][1]))
+            if res:
+                s = res[0] * L
+                walls.append((s, g_at(s)))
+    labels, levels = [], []
+    for (s0, s1, bed, lvl, bank, src) in wat:
+        for s in (s0, s1):
+            px, py = x0 + ux * s, y0 + uy * s
+            best, bd = None, 12.0
+            for e in S.g_edge.query((px - 12, py - 12, px + 12, py + 12)):
+                d = math.hypot(e[0] - px, e[1] - py)
+                if d < bd:
+                    bd, best = d, e
+            if best:
+                labels.append((s, best[2], best[3], bank - base))
+                if best[3] == 1:
+                    chwalls.append((s, bed - base, bank - base))     # the channel wall, bed to bank
+        levels.append(((s0 + s1) / 2.0, bed - base, bed, "bed"))
+        levels.append((s0, bank - base, bank, "bank"))
+    levels.append((0.0, ground[0][1], ground[0][1] + base, "end"))
+    levels.append((L, ground[-1][1], ground[-1][1] + base, "end"))
+    # ---- what lies beyond the cut, looking to the left of S -> S'
+    zcut = zmax
+    band = (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)
+    beyond = []
+    for u in S.g_bld.query(band):
+        d = (u["cx"] - x0) * nx + (u["cy"] - y0) * ny
+        if not 1.5 < d < 75.0:
+            continue
+        sv = [(px - x0) * ux + (py - y0) * uy for P in u["parts"] for (px, py) in P]
+        a, b = max(0.0, min(sv)), min(L, max(sv))
+        if b - a < 1.5:
+            continue
+        zb = S.z_at(u["cx"], u["cy"]) - base
+        beyond.append((a, b, zb, min(zb + u["h"], zcut + 5.0), u["cat"], d, u["floors"], u["annex"],
+                       u.get("fabric", "regular"), unit_flags(u), u["floors_src"]))
+    beyond.sort(key=lambda t: -t[5])
+    for b_ in beyond:
+        zmax = max(zmax, min(b_[3] + 1.6, zcut + 6.0))
+    for t in btrees:
+        zmax = max(zmax, min(t[1] + t[4], zcut + 6.0))
+    bridges = []
+    for P in S.bridges:
+        if len(P) < 2:
+            continue
+        mx, my = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
+        d = (mx - x0) * nx + (my - y0) * ny
+        if not 2.0 < d < 120.0:
+            continue
+        sv = [(px - x0) * ux + (py - y0) * uy for (px, py) in P]
+        a, b = max(0.0, min(sv)), min(L, max(sv))
+        if b - a > 2.0:
+            bridges.append((a, b, S.z_at(mx, my) - base, d))
+    # v16.7: named parks and places the line crosses (OpenStreetMap areas with their own name), called out by name
+    places = []
+    lbb = (min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
+    for z in S.zones:
+        nm_ = proper_name((z.get("tags") or {}).get("name") or "")
+        if not nm_ or not bb_hit(z["bb"], lbb):
+            continue
+        ins = [s for s in xs if region_contains(x0 + ux * s, y0 + uy * s, z["Ps"], z.get("Hs") or [])]
+        if len(ins) >= 4:
+            places.append((ins[0], ins[-1] + step, nm_))
+    return dict(name=name, line=(x0, y0, x1, y1, name), L=L, ground=ground, bld=bl, trees=trees, walls=walls,
+                chwalls=chwalls, water=[(a, b, bed - base, lvl - base) for (a, b, bed, lvl, bank, src) in wat],
+                bed_src=[src for (a, b, bed, lvl, bank, src) in wat], water_src=wsrcs,
+                labels=labels, levels=levels, strip=strip, comp=comp, zmax=zmax, base=base,
+                beyond=beyond, btrees=btrees, bridges=bridges, places=places)
 
 
 def crown_lo(h):
@@ -1188,12 +1195,12 @@ def draw_symbol(B, kind, col, x, y, U, L, sw=1.1, sh=0.62):
         B.line(seg, col, L, 21, THRESH_W)
     elif kind == "dense":
         B.line(seg, col, L, 21, 0.22)
-    elif kind == "kmark":
-        roundel(B, x + 0.5 * sw * U, ym, 0.3 * U, "K", (255, 255, 255), INK, L, order=21)
-    elif kind == "cmark":
-        roundel(B, x + 0.5 * sw * U, ym, 0.3 * U, "C", MARK_C, MARK_C, L, order=21)
-    elif kind == "pmark":
-        B.fill([rect(x + 0.5 * sw * U - 0.26 * U, ym - 0.26 * U, x + 0.5 * sw * U + 0.26 * U, ym + 0.26 * U)], INK, L, 21)
+    elif kind == "ktick":                             # v40: plan 01's bridge tick, conflict and photo dots
+        B.line([(x + 0.5 * sw * U, y0 - 0.1 * U), (x + 0.5 * sw * U, y1 + 0.1 * U)], col, L, 21, 0.3)
+    elif kind == "cdot":
+        B.fill([circle_pts(x + 0.5 * sw * U, ym, 0.17 * U, 12)], col, L, 21)
+    elif kind == "pdot":
+        B.fill([circle_pts(x + 0.5 * sw * U, ym, 0.13 * U, 12)], col, L, 21)
     elif kind == "street":
         B.line(seg, col, L, 21, 0.42)
         B.line(seg, ROAD_FILL if ROAD_SOLID else (255, 255, 255), L, 22, 0.3)     # v16.7: the solid street colour

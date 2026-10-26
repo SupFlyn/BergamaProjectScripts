@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v19 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v22 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -31,12 +31,13 @@ HOW TO USE
      Option_A::INT_* and Option_B::INT_*) and edit them as you like.
   2. Grasshopper > "Python 3 Script" component: paste this file and wire a plain Button into any input (build, out,
      run ...). Every other input is optional.
-  3. Press the Button. One press writes all six PDFs and masterplan_results.json into the folder
+  3. Press the Button. One press writes the sheet, the 1:1,000 detail sheet (v21), masterplan_results.json and
+     booklet/ (blocks.json, results.json) into the folder
      Downloads/Bergama/output/bergama_masterplan (24 Oct, Aras rule); a second press writes them again. With a Boolean Toggle on rhino_bake set to True,
      the press also bakes the six sheets into Rhino under layer MP11, beside everything else in the file and beside
      each other, never on top of each other or of the survey (a press replaces the last bake).
   INPUTS (any name case; text, number or panel)
-    run          Button (v19; any input name works; a plain Button)
+    run          Button (v21; any input name works; a plain Button)
     rhino_bake   Boolean Toggle: bake the sheets into Rhino as well (default False)
     opacity      opacity of the lower-opacity pieces, 0-1 or 1-100 % (default OPACITY = 0.5, Aras's example value)
     scale        print scale 1:scale of all three alternatives (default 1000 since v16: studio brief of 26 Oct)
@@ -62,95 +63,16 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v19 (Aras 25 Oct 16:41-16:42: "get rid of alternative 3. And do the changes to alternative one"; "that script
-  gonna be producing just a single alternative"; "with the curvy selection ... it should be A"). ONE sheet per press:
-  the masterplan, option A (Aras 16:43: option A project-wide, B dropped; the option input is ignored). Alternatives 2 and 3 are gone (draw_masterplan and the
-  functions only it used removed); the sections WHAT IT DRAWS above describe the older alternatives.
-  The one sheet = alternative 1 with v18's changes: the zones are alternative 2's freely grown pieces (overlaps
-  darken) in alternative 1's tones with alternative 1's darker commons on top; the main and riverside spines are
-  broad zones; the river band is named PROMENADE (Aras: "find a proper catchy singleword name"), its functions
-  scattered on it as keywords (his words of 16:39). Without alternative 3 there are no link arrows and no stop
-  roundels on any sheet (the programme diagram rule: no arrows). masterplan_results.json is written for option A.
-NEW IN v18 (Aras 25 Oct 16:35-16:36: "combine both alt1 and alt2 on masterplan ... seeable on top of eachother";
-  "alternative2s zoning is really really good"; "roads should become zones"; "river zoning is really good i want
-  something like that with volume however on a different colour and sits on top of river and goes inline with
-  river"). Alternative 3 only; alternatives 1 and 2 are unchanged.
-  * The zones are alternative 2's freely grown pieces (growth unchanged), overlapping so the colour darkens where
-    they meet, in the same light tones as alternative 1, with alternative 1's darker commons on top. The hand
-    outline, verge band and code patterns of the zones are gone (zone_pattern, hand_outline removed).
-  * The main spine and the riverside spine are no longer lines: each is one broad zone grown SPINE_ZONE_M either
-    side of the same route (city link's data, unchanged), its edge wandering like alternative 2's pieces; the
-    deck reaches are part of the zone. Names on the fills.
-  * RIVERSIDE FUNCTION AND CIRCULATION (Aras 16:39: "it a function/circulation area. There'll be viewpoints,
-    terraces, walkpaths, ramps etc. ... cafes etc. will be located"; his words are its keywords): one broad zone grown RIVER_BAND_M beyond the stream and bank
-    lines and the water strip, along the whole corridor, in sage (palette reference 89986A), drawn over the river
-    with a soft shadow and an outline for volume. Option A liquid edge, option B faceted (form rule).
-  * Widths are graphic defaults, not data. Walks unchanged (to be reworked with Aras). Legend: the new zones added.
-NEW IN v17 (Aras 25 Oct 14:40: "we want it as a legend in the diagram itself ... i wanted a graphical explanation"):
-  every sheet gets a legend band under the drawing: drawn samples (zone swatches with their pattern and outline,
-  context and survey fills, walk and spine lines, the link arrows, a stop roundel) with plain names, and only what
-  that sheet draws (collected while drawing, LEG). No hex codes. This replaces the 18 Oct "no legend" rule for the
-  masterplan sheets. Alternative 3's old one-line key of arrows, walks and spines (top right) is folded into it;
-  the north arrow stays. Nothing else changed.
-NEW IN v16 (Aras 25 Oct 11:28, studio brief for 26.10.2026: "a 1/1000 scale master plan covering the Selinos
-  Corridor"): the default scale is 1:1,000 (was 1:2,000), so alternative 3 (all of site_alan, 2,845 x 529 m) prints
-  about 2.87 x 0.58 m. Every sheet now carries its scale: a 0-50-100-200 m bar and "1:1,000" right of the option
-  line (this replaces "no scale" of 18 Oct 19:36 for the masterplan sheets, because the brief asks for the scale).
-  Nothing else changed.
-NEW IN v15 (Aras 25 Oct 10:07: "Every plan and analysis and drawing we do is to be in site_alan and for indivual proposals we can
-  zoom in."): alternative 3 (the whole masterplan) covers exactly the analysis range, layer site_alan (built-in copy
-  SITE_COPY when the file has none), turned so its long side runs left to right; the survey is drawn over all of it.
-  Alternatives 1 and 2 are the zoomed pages, one per part of calisma_alan; their margin is the input zoom_m (was
-  ring_m, which still works).
-NEW IN v14 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_masterplan_log.txt (next to cached/ and output/), overwritten by each press.
-
-NEW IN v13 (2026-10-25, Aras 08:03-08:18): DEMETER'S GARDEN, Begum's idea alone (card i01). Zone base v7's zones DG 1
-and DG 2 (layer INT_ZONE_DG, south-west bank either side of K5) are named DEMETER'S GARDEN on the fill, with the
-keywords of her PDF (olives, stone pine, aromatics, seasonal beds, cafe, water collection basin) and, under the name,
-a very small "idea: Begum" credit. Tones: the agriculture family. Reads bergama_zone_base_v7.py first. Nothing else
-changed.
-
-NEW IN v12 (2026-10-25, Aras 07:59-08:05: one file, Bergama_Altlik.3dm; "we are working the whole calisma_alan
-together now"; "Make sure our proposals stays inside of calisma_alan")
-  * Working areas = the curves on layer calisma_alan of the open file (an open outline with ends under 5 m apart counts
-    as closed), else the copy CALISMA_COPY (Bergama_Altlik.3dm, 25 Oct). One shared area in two parts: north (UPSTREAM
-    ENTRY TO K4 BRIDGE) and south (K5 BRIDGE TO DOWNSTREAM END); no split by person. Alternatives 1 and 2 show the two
-    parts side by side; each part has one commons (HUB: the two old commons readings of that part merged, a design
-    reading, edit freely). A zone keeps its sourced keywords (NAMES, SUBS, SIG) through its user text study_area.
-  * Nothing is cut (Aras 08:10-08:11: small differences do not matter; lines that nearly match count as overlapping,
-    the larger area is the true one). Walks, spine and strip are drawn continuous (207 of 4,211 m of walk lie just
-    outside; WALK_CLIP = True would cut them); a zone more than SNAP_M (15 m) outside calisma_alan is listed in the log. A zone with corners
-    outside calisma_alan is listed in the log (zone base v6 bakes them clipped; this flags later edits).
-
-NEW IN v11 (Thread 5 of the 22 Oct batch, "Masterplan: detail and unity"; notes batch_2026-10-22/thread5_masterplan/)
-  * Riverside walks on both banks wherever the survey leaves room, recomputed from the open file on every press
-    (river_walks below: the channel edge, then the ground free of buildings behind it; buildings the zone base
-    clears do not block). Three kinds: BANK WALK (car-free), STREET WALK (the footway of a surveyed street on the
-    edge), BED WALK (no room on the bank, bed at least BED_MIN_W wide: a +1 m terrace in the bed, closed in floods;
-    Thread 4 flood rule). Form rule: option A follows the edge, option B is straight facets.
-  * The riverside spine of bergama_city_link (Thread 4), read live from
-    Downloads/Bergama/output/Bergama_city_link_analysis/city_link_results.json (fallback: the embedded copy), drawn
-    on the real edge, on the bank city link chose by data (spine_banks): on the bank walk where there is one, dashed where the bank has no room (a deck is needed),
-    and on the street over the covered reach, where it meets the MAIN SPINE (Bankalar - Kınık Caddesi, OpenStreetMap,
-    converted with the h01 formula, +-10-30 m). The eight stops as numbered roundels (alternative 3).
-  * More detail on alternative 3: the survey's single trees (SEMBOL_TEK_AGAC), channel tops (SEV_SEVUST) and bank
-    tops (SEV_UST) with the bank lines; walks and both spines on alternatives 1 and 2 as well.
-  * Unity: masterplan_results.json (walks, spine, stops, riverside_walk_m2 per option) for the other scripts; the
-    water balance (v2.1) reads riverside_walk_m2 from it instead of its 17,694 m2 placeholder.
-
-NEW IN v10 (Aras 24 Oct 05:48-05:52; MERGE_PLAN.md sections 3, 5, 6 Q14 / Q16, 7)
-  * One script, one press, three alternatives per option (above), each its own single-page PDF; the opacity is a
-    setting (input opacity); a 100 % opaque white base under every lower-opacity piece in all three alternatives,
-    so the site, land cover and context never mix with the zones: only the zones overlap each other.
-  * Owner names replaced by stage and place names; working-area outlines and owner colours removed everywhere.
-  * v2.3's four per-person sheets and its board are folded into alternatives 1 and 2 (one page each with the four
-    working areas): the per-person sheets showed the same pieces and words again, only zoomed.
-  * v9's raster sheet (PNG, Photoshop layers, area register, manifest, sheet band) is replaced by the vector page;
-    its zones, link rules (link_check, WATER_STEPS), arrow snapping and bold v1.2 arrows are kept in vector.
-  * Fixed: the zone base fallback looked for ZONE_DATA, which zone base v5 does not have (it is BASE_DATA), so the
-    fallback never worked; the palette file's tones (under "masterplan" > "colours") were never read; a settings
-    input could be taken for the Button; the boardwalk's word (PATH_WORDS) was never written.
-  * Optional Rhino bake behind the rhino_bake toggle (off by default).
+NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK TO THE STREAM"): the water
+  route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
+  place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
+  (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
+  Rough volumes (Aras 26 Oct 06:27): the route labels of the reed basins and retention terraces add
+  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces: the DSİ Q100 depth over
+  them, Q100 level at the nearest cut - (bed + 1 m), Aras 06:32);
+  the method is a line in the detail legend.
+  Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
+OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
 PDFs with their times; each opens as one page. Before delivery (24 Oct): py_compile and pyflakes clean, and a mock
@@ -182,8 +104,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v19 (2026-10-25)"
-SHORT = "v19"
+VERSION = "bergama_masterplan v22 (2026-10-26)"
+SHORT = "v22"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -194,7 +116,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v19_{}.pdf"     # v19: one sheet per option
+OUT_NAME = "Bergama_masterplan_v22_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v22_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -249,7 +172,7 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
          ("aras_alan", "WT", None): u"REED BASINS", ("aras_alan", "WD", None): u"SPILLWAY",
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
-         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"RIVERSIDE PLANTING",
+         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
          ("calisma_alan", "DG", None): u"DEMETER'S GARDEN"}   # v13: Begum's idea (card i01)
 SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a working-area key, keywords)
     ("aras_alan", "WS", "D", None, [u"WINTER RAIN", u"STEPPED", u"SEATING"]),
@@ -259,7 +182,7 @@ SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a work
     ("begum_alan", "WA", "W", None, [u"WATER STRIP", u"STEPPING STONES", u"WEIRS", u"PLAZA", u"REED"]),
     ("begum_alan", "WA", "F", None, [u"WATER STEPS", u"SEATING", u"TAMARIX"]),
     ("begum_alan", "GR", "D", None, [u"BRIDGE VIEW", u"KIOSK", u"SHADE", u"LAVENDER"]),
-    ("nil_alan", "WP", "F", None, [u"CLEAN RIVER", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
+    ("nil_alan", "WP", "F", None, [u"CLEAN STREAM", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
     ("calisma_alan", "DG", "D", None, [u"OLIVES", u"STONE PINE", u"AROMATICS", u"SEASONAL BEDS", u"CAFE",
                                        u"WATER COLLECTION BASIN"]),   # v13: Begum's PDF, verbatim words
 ]
@@ -267,7 +190,7 @@ REMOVE_WORDS = [u"CLEARED"]
 # the common piece where the functions of a working area meet: name + what it gathers. A design reading of the
 # sourced words above (Aras 19:27, campus reference), not data; edit freely.
 HUB = {"calisma_alan[0]": (u"WATER AND HERITAGE COMMONS", [u"COLLECT", u"CLEAN", u"HOLD", u"K4 BRIDGE", u"PLAZA"]),
-       "calisma_alan[1]": (u"AMPHIBIOUS RIVER COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
+       "calisma_alan[1]": (u"AMPHIBIOUS STREAM COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
 # v12: v11's four commons merged per part (WATER + HERITAGE; AMPHIBIOUS + RIVER), their words joined
 # word-size factor per zone = how much it carries the working area's idea (three_ideas.md); a design reading.
 # Upstream entry "Collect, clean and hold": the reed basins clean and the terraces hold; the spillway returns; the
@@ -282,10 +205,9 @@ STEPS = (1.0, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35)   # sizes tried, largest first, 
 HUB_R_M = (24.0, 16.0, 10.0)   # meeting distance tried, m (graphic)
 HUB_MAX = 0.35                 # the common piece takes at most this share of the programme pieces
 HUB_MIN_M2 = 150.0             # smaller common fragments are dropped
-KIND_WORD = {"river": u"RIVER", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
+KIND_WORD = {"river": u"STREAM", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
 PATH_WORDS = {"nil_alan": [u"FLOODABLE DECK"]}
 ROUND_M = 9.0                  # corner rounding of the cleared-building outlines, m (graphic)
-CREDIT_DG = u"idea: Beg\u00fcm"                 # v13: Demeter's Garden is Begum's idea alone (Aras 25 Oct 08:03)
 DROPPED = ("FARM CHANNEL", "ORCHARD", "FARMLAND")   # no farmland or farm channel inside the site (CONTEXT §2)
 
 # ---------------------------------------------------------------- links (masterplan v9, from ideas.txt)
@@ -1027,6 +949,22 @@ def read_survey(doc, R):
         P = curve_pts(g)
         if len(P) >= 2:
             out.setdefault(ROLE_OF[path.split("::")[-1]], []).append(P)
+    return out
+
+
+SPOT_LAYER = "NOKTA_TAKEOMETRI"       # v21: the survey's spot heights (tacheometry points, m)
+
+
+def read_spots(doc, rects):
+    """v21: [(x, y, z)] of the survey's spot heights (SPOT_LAYER points) inside any of the rectangles."""
+    out = []
+    for path, o in objects_on(doc, lambda p: p.split("::")[-1] == SPOT_LAYER):
+        g = o.Geometry
+        q = getattr(g, "Location", None)
+        if q is None or abs(q.Z) < 1e-6:
+            continue
+        if any(R[0] <= q.X <= R[2] and R[1] <= q.Y <= R[3] for R in rects):
+            out.append((q.X, q.Y, q.Z))
     return out
 
 

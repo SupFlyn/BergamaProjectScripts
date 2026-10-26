@@ -40,6 +40,49 @@ def draw_legend_items(B, items, x, y, width, U, L, h=0.5):
 
 
 # ============================================================ THE LAND-USE MAP
+def edge_key(a, b):
+    return frozenset(((round(a[0], 3), round(a[1], 3)), (round(b[0], 3), round(b[1], 3))))
+
+
+def edge_counts(polys):
+    n = {}
+    for P in polys:
+        for i in range(len(P)):
+            e = edge_key(P[i], P[(i + 1) % len(P)])
+            n[e] = n.get(e, 0) + 1
+    return n
+
+
+def unit_outline(parts, n=None):
+    """v41 (Aras 26 Oct 06:35 "these lines in what is there looks weird"): the pale outline of a building = its edges
+    without the walls it shares with another piece (n: edge counts over all buildings), so a footprint the survey
+    draws as one block and the script cuts along its party walls reads as one mass, with no cut lines through it.
+    Open runs of edges, or the closed piece where nothing is shared."""
+    n = n or edge_counts(parts)
+    k = edge_key
+    out = []
+    for P in parts:
+        m = len(P)
+        inner = [n.get(k(P[i], P[(i + 1) % m]), 0) > 1 for i in range(m)]
+        if not any(inner):
+            out.append(P + [P[0]])
+            continue
+        i0 = inner.index(True)
+        run = []
+        for j in range(1, m + 1):
+            i = (i0 + j) % m
+            if inner[i]:
+                if len(run) > 1:
+                    out.append(run)
+                run = []
+            else:
+                run = run or [P[i]]
+                run.append(P[(i + 1) % m])
+        if len(run) > 1:
+            out.append(run)
+    return out
+
+
 def draw_landuse_map(S, B, V, bcol=None):
     """bcol (v33): the colour of each building (default: its land-use colour)."""
     L = "LU_BOARD::Map"
@@ -92,6 +135,7 @@ def draw_landuse_map(S, B, V, bcol=None):
             off = min(3.0, 0.11 * u["h"]) * s
             B.fill([[(x + off, y - off) for x, y in V.P(P)] for P in u["parts"] + (u.get("holes") or [])], sh,
                    L + "::texture", 13)
+    shared = edge_counts([P for u in S.bld for P in u["parts"]]) if TEXTURE else None
     for u in S.bld:
         col = CAT[u["cat"]][1]
         if u["annex"]:
@@ -100,8 +144,8 @@ def draw_landuse_map(S, B, V, bcol=None):
             col = bcol(u)
         B.fill(V.Ps(u["parts"] + (u.get("holes") or [])), col, L + "::" + u["cat"], 14)
         if TEXTURE:
-            for P in u["parts"] + (u.get("holes") or []):
-                B.line(V.P(P + [P[0]]), PAPER, L + "::texture", 15, 0.04)
+            for P in unit_outline(u["parts"], shared) + [H + [H[0]] for H in u.get("holes") or []]:
+                B.line(V.P(P), PAPER, L + "::texture", 15, 0.04)
     for P in S.slope_hatch:
         B.line(V.P(P), mix(INK2, PAPER, 0.4), L + "::ground", 16, 0.04)
     for P in S.slopes:
@@ -336,8 +380,8 @@ def draw_legend(S, B, x, y, w, U):
     if rest:
         r2 = bcite("Unmapped ground: the ground the survey and OSM leave unmapped is split by ESA WorldCover 2021 (10 m "
                    "satellite classes, CC BY 4.0) on a {:g} m raster; orchards inferred from the survey's olive and "
-                   "fruit-tree symbols. Satellite rows: approximate.".format(REST_CELL))
-        B.fit("satellite rows · approximate " + r2, x, ry, 0.38 * U, w, INK2, L)
+                   "fruit-tree symbols.".format(REST_CELL))
+        B.fit("satellite rows · ESA WorldCover 2021 " + r2, x, ry, 0.38 * U, w, INK2, L)     # v40: no caveat
         ry -= 0.7 * U
     return ry
 
@@ -394,6 +438,8 @@ def draw_distribution(S, B, x, y, U):
         a0 = a1
     B.text("{:.1f}".format(tot / 1e4), cx, cy + 0.1 * U, 0.95 * U, INK, L, font=FONT_TITLE, align="C")
     B.text("ha site frame" if getattr(S, "rest", None) else "ha mapped", cx, cy - 0.8 * U, 0.36 * U, INK2, L, align="C")
+    crop_panel("ground_cover", x - 0.2 * U, cy - r1 - 1.5 * U, cx + r1 + 1.6 * U, cy + r1 + 1.5 * U,
+               u"Ground cover in the frame")              # v40: the booklet crop of the ring
     return cy - r1 - 1.6 * U
 
 

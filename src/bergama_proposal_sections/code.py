@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA PROPOSAL SECTIONS v3 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
+"""BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
-NEW IN v3 (Aras 25 Oct 17:00, SCRIPT_STANDARD §5b visual first; audit batch_2026-10-25_visual_first/VISUAL_AUDIT.md §1):
-  sentence callouts in the sketches -> short keyword callouts with hand pictograms (winter cloud, summer sun,
-  fail-safe mark); garden crops as two season rows; sheet subtitle -> keyword row with the 1-11 flow; panel
-  subtitles -> keyword chips with pictograms; source notes -> [n] marks with one numbered key in the footer;
-  the four "Schematic section..." notes -> one header tag. Fix (audit accuracy problem 3): the upstream Q500
-  label said "lowest terrace floods"; the surveyed ARAS cut keeps Q500 inside the banks (rain_river_levels
-  README v1.1 line 21: 3.30 m (+73.66), "inside; the cut is about 5 m deep"), so it now reads
-  "Q500 +73.66 m · 3.30 m" and the terrace floods only if set below it. Layout, colours and frames unchanged.
-NEW IN v2 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): option A only, so one sheet per press. Nothing else changed.
+NEW IN v5 (Aras 25 Oct 21:47-21:51, booklet/CROP_SPEC.md): the booklet shows this sheet's own four sections:
+  booklet/blocks.json lists one crop per section (the drawing box each panel frame leaves under its title and chips,
+  kept in SHEET_BOXES); the separate booklet redraw (parts/90_booklet.py drawers, c4_s1..c5_s2.pdf) is gone. Sheet
+  words: the Selinos is a stream (never river), no caveat notes ("schematic", "not to scale", ": not designed",
+  "route not designed", "volume: not in the idea", "bridge not modelled"), no personal name inside the K5 drawing.
+  Layout and look unchanged.
+OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_proposal_sections/).
 
 WHAT IT DRAWS: one A0 landscape sheet per form option (A = organic only where the project meets the water, B = no
 organic forms), all vector, whole-string text, four panels:
@@ -43,7 +41,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v3"
+VERSION = "v5"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -85,7 +83,7 @@ CR = u"CONCEPT_RECORD v2.4"
 # v3: sources as [n] on the drawings, the numbered key in the footer (water board v1.6 cite() / SRC_KEY). Fixed
 # order, so the numbers stay the same on every press.
 SRC_KEY = [
-    ("levels", RR + u" v1.1 table: levels calculated on the surveyed river-height cuts (Manning, main survey TIN)"),
+    ("levels", RR + u" v1.1 table: levels calculated on the surveyed stream-height cuts (Manning, main survey TIN)"),
     ("rain", u"water_data/README: MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
     ("concept", CR + u" (Q1: east channel wall kept, default)"),
     ("tiers", u"Aras's concept text: tiers, level 1 / 2 / 3"),
@@ -329,20 +327,25 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 # owner names, working-area bars and figures printed elsewhere taken out (24 Oct). Run by sketch_engine().
 #@include data/SKETCH_SRC.py
 
+#@include ../common/booklet_assets.py
+
+#@include parts/90_booklet.py
+
 
 # ================================================================ the sheet (v1)
 PROPOSALS = [("up", u"1 · UPSTREAM ENTRY · COLLECT, CLEAN AND HOLD",        # v3: subtitles as keyword chips
-              [("reed", u"CLEAN · river + held runoff"), ("cascade", u"STORE · winter water"),
+              [("reed", u"CLEAN · stream + held runoff"), ("cascade", u"STORE · winter water"),
                ("strip", u"SUMMER STRIP")]),
              ("k4", u"2 · K4 BRIDGE · AMPHIBIOUS HERITAGE THRESHOLD",
-              [("steps", u"TIERS W / F / D"), ("climb", u"river may climb the steps"),
+              [("steps", u"TIERS W / F / D"), ("climb", u"stream may climb the steps"),
                ("level", u"street level above Q500"), ("bridge", u"Roman bridge stays as it is")]),
              ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN (idea: Begüm)",
               [("olive", u"PRODUCTIVE HERITAGE GARDEN"), ("sun", u"dry top · south-west bank"),
-               ("drop", u"watered by the clean river")]),
+               ("drop", u"watered by the clean stream")]),
              ("down", u"4 · DOWNSTREAM REACH · GIVE BACK",
-              [("reed", u"FLOODABLE PLANTING · clean-river fed"), ("deck", u"floodable boardwalk"),
+              [("reed", u"FLOODABLE PLANTING · clean-stream fed"), ("deck", u"floodable boardwalk"),
                ("notreat", u"no treatment here")])]
+SHEET_BOXES = {}                                      # v5: key -> drawing box (x0, y0, x1, y1), mm, y up; set by build_sheet
 SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
              "down": "concept_nil_sketch"}
 
@@ -367,15 +370,15 @@ def build_sheet(opt, log):
     x += 8.0
     pg.text(u"upstream", x, yb, fs, dk, bold=True)
     x += text_w(u"upstream", fs, True) + 2.5
-    flow_arrow(pg, x - 1.0, x + 11 * 4.6 + 4.0, yc, dk, 0.35, 1.4)   # under the roundels: one way, with the river
+    flow_arrow(pg, x - 1.0, x + 11 * 4.6 + 4.0, yc, dk, 0.35, 1.4)   # under the roundels: one way, with the stream
     for n_ in range(1, 12):
         node(pg, x + 1.6, yc, n_, opt, 1.6)
         x += 4.6
     x += 5.5
-    for wd in (u"downstream · one way, with the river", u"1-11 as on the water board"):
+    for wd in (u"downstream · one way, with the stream", u"1-11 as on the water board"):
         pg.text(wd, x, yb, fs, dk, bold=True)
         x += text_w(wd, fs, True) + 8.0
-    tag = u"schematic · relative levels · not to scale"
+    tag = u"relative levels"                          # v5: no caveat words
     pg.poly([rect(x, yc - 2.2, x + text_w(tag, 2.4) + 3.0, yc + 2.2)], fill=COL["lane"], stroke=COL["structure"],
             lw=0.25)
     pg.text(tag, x + 1.5, yc - 2.4 * CAP / 2, 2.4, COL["ink"])
@@ -389,6 +392,7 @@ def build_sheet(opt, log):
         cx = X0 + (i % 2) * (cw + G)
         cy = y1 - G - (i // 2 + 1) * ch - (i // 2) * G
         b = frame(pg, (cx, cy, cx + cw, cy + ch), ttl, sub)
+        SHEET_BOXES[key] = b                          # v5: the section's drawing box = its booklet crop
         place(pg, draw_concept(key, opt), b, 3.0, "C", log, "section " + key)
     t = (u"Sources by number: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)) +
          u"  ·  sketch style: water board v1.3")       # v3: the numbered source key (the [n] on the sketches)
@@ -413,6 +417,10 @@ def main():
             path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
             write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
         lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"), time.time() - t1))
+    try:                                              # v4: A3 booklet assets; an error here never stops the sheet
+        booklet_export(log)
+    except Exception as ex:
+        log.append(u"booklet assets not written: {}: {}".format(type(ex).__name__, ex))
     head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
     if pal is None:
         head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v19 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v22 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -31,12 +31,13 @@ HOW TO USE
      Option_A::INT_* and Option_B::INT_*) and edit them as you like.
   2. Grasshopper > "Python 3 Script" component: paste this file and wire a plain Button into any input (build, out,
      run ...). Every other input is optional.
-  3. Press the Button. One press writes all six PDFs and masterplan_results.json into the folder
+  3. Press the Button. One press writes the sheet, the 1:1,000 detail sheet (v21), masterplan_results.json and
+     booklet/ (blocks.json, results.json) into the folder
      Downloads/Bergama/output/bergama_masterplan (24 Oct, Aras rule); a second press writes them again. With a Boolean Toggle on rhino_bake set to True,
      the press also bakes the six sheets into Rhino under layer MP11, beside everything else in the file and beside
      each other, never on top of each other or of the survey (a press replaces the last bake).
   INPUTS (any name case; text, number or panel)
-    run          Button (v19; any input name works; a plain Button)
+    run          Button (v21; any input name works; a plain Button)
     rhino_bake   Boolean Toggle: bake the sheets into Rhino as well (default False)
     opacity      opacity of the lower-opacity pieces, 0-1 or 1-100 % (default OPACITY = 0.5, Aras's example value)
     scale        print scale 1:scale of all three alternatives (default 1000 since v16: studio brief of 26 Oct)
@@ -62,95 +63,16 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v19 (Aras 25 Oct 16:41-16:42: "get rid of alternative 3. And do the changes to alternative one"; "that script
-  gonna be producing just a single alternative"; "with the curvy selection ... it should be A"). ONE sheet per press:
-  the masterplan, option A (Aras 16:43: option A project-wide, B dropped; the option input is ignored). Alternatives 2 and 3 are gone (draw_masterplan and the
-  functions only it used removed); the sections WHAT IT DRAWS above describe the older alternatives.
-  The one sheet = alternative 1 with v18's changes: the zones are alternative 2's freely grown pieces (overlaps
-  darken) in alternative 1's tones with alternative 1's darker commons on top; the main and riverside spines are
-  broad zones; the river band is named PROMENADE (Aras: "find a proper catchy singleword name"), its functions
-  scattered on it as keywords (his words of 16:39). Without alternative 3 there are no link arrows and no stop
-  roundels on any sheet (the programme diagram rule: no arrows). masterplan_results.json is written for option A.
-NEW IN v18 (Aras 25 Oct 16:35-16:36: "combine both alt1 and alt2 on masterplan ... seeable on top of eachother";
-  "alternative2s zoning is really really good"; "roads should become zones"; "river zoning is really good i want
-  something like that with volume however on a different colour and sits on top of river and goes inline with
-  river"). Alternative 3 only; alternatives 1 and 2 are unchanged.
-  * The zones are alternative 2's freely grown pieces (growth unchanged), overlapping so the colour darkens where
-    they meet, in the same light tones as alternative 1, with alternative 1's darker commons on top. The hand
-    outline, verge band and code patterns of the zones are gone (zone_pattern, hand_outline removed).
-  * The main spine and the riverside spine are no longer lines: each is one broad zone grown SPINE_ZONE_M either
-    side of the same route (city link's data, unchanged), its edge wandering like alternative 2's pieces; the
-    deck reaches are part of the zone. Names on the fills.
-  * RIVERSIDE FUNCTION AND CIRCULATION (Aras 16:39: "it a function/circulation area. There'll be viewpoints,
-    terraces, walkpaths, ramps etc. ... cafes etc. will be located"; his words are its keywords): one broad zone grown RIVER_BAND_M beyond the stream and bank
-    lines and the water strip, along the whole corridor, in sage (palette reference 89986A), drawn over the river
-    with a soft shadow and an outline for volume. Option A liquid edge, option B faceted (form rule).
-  * Widths are graphic defaults, not data. Walks unchanged (to be reworked with Aras). Legend: the new zones added.
-NEW IN v17 (Aras 25 Oct 14:40: "we want it as a legend in the diagram itself ... i wanted a graphical explanation"):
-  every sheet gets a legend band under the drawing: drawn samples (zone swatches with their pattern and outline,
-  context and survey fills, walk and spine lines, the link arrows, a stop roundel) with plain names, and only what
-  that sheet draws (collected while drawing, LEG). No hex codes. This replaces the 18 Oct "no legend" rule for the
-  masterplan sheets. Alternative 3's old one-line key of arrows, walks and spines (top right) is folded into it;
-  the north arrow stays. Nothing else changed.
-NEW IN v16 (Aras 25 Oct 11:28, studio brief for 26.10.2026: "a 1/1000 scale master plan covering the Selinos
-  Corridor"): the default scale is 1:1,000 (was 1:2,000), so alternative 3 (all of site_alan, 2,845 x 529 m) prints
-  about 2.87 x 0.58 m. Every sheet now carries its scale: a 0-50-100-200 m bar and "1:1,000" right of the option
-  line (this replaces "no scale" of 18 Oct 19:36 for the masterplan sheets, because the brief asks for the scale).
-  Nothing else changed.
-NEW IN v15 (Aras 25 Oct 10:07: "Every plan and analysis and drawing we do is to be in site_alan and for indivual proposals we can
-  zoom in."): alternative 3 (the whole masterplan) covers exactly the analysis range, layer site_alan (built-in copy
-  SITE_COPY when the file has none), turned so its long side runs left to right; the survey is drawn over all of it.
-  Alternatives 1 and 2 are the zoomed pages, one per part of calisma_alan; their margin is the input zoom_m (was
-  ring_m, which still works).
-NEW IN v14 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_masterplan_log.txt (next to cached/ and output/), overwritten by each press.
-
-NEW IN v13 (2026-10-25, Aras 08:03-08:18): DEMETER'S GARDEN, Begum's idea alone (card i01). Zone base v7's zones DG 1
-and DG 2 (layer INT_ZONE_DG, south-west bank either side of K5) are named DEMETER'S GARDEN on the fill, with the
-keywords of her PDF (olives, stone pine, aromatics, seasonal beds, cafe, water collection basin) and, under the name,
-a very small "idea: Begum" credit. Tones: the agriculture family. Reads bergama_zone_base_v7.py first. Nothing else
-changed.
-
-NEW IN v12 (2026-10-25, Aras 07:59-08:05: one file, Bergama_Altlik.3dm; "we are working the whole calisma_alan
-together now"; "Make sure our proposals stays inside of calisma_alan")
-  * Working areas = the curves on layer calisma_alan of the open file (an open outline with ends under 5 m apart counts
-    as closed), else the copy CALISMA_COPY (Bergama_Altlik.3dm, 25 Oct). One shared area in two parts: north (UPSTREAM
-    ENTRY TO K4 BRIDGE) and south (K5 BRIDGE TO DOWNSTREAM END); no split by person. Alternatives 1 and 2 show the two
-    parts side by side; each part has one commons (HUB: the two old commons readings of that part merged, a design
-    reading, edit freely). A zone keeps its sourced keywords (NAMES, SUBS, SIG) through its user text study_area.
-  * Nothing is cut (Aras 08:10-08:11: small differences do not matter; lines that nearly match count as overlapping,
-    the larger area is the true one). Walks, spine and strip are drawn continuous (207 of 4,211 m of walk lie just
-    outside; WALK_CLIP = True would cut them); a zone more than SNAP_M (15 m) outside calisma_alan is listed in the log. A zone with corners
-    outside calisma_alan is listed in the log (zone base v6 bakes them clipped; this flags later edits).
-
-NEW IN v11 (Thread 5 of the 22 Oct batch, "Masterplan: detail and unity"; notes batch_2026-10-22/thread5_masterplan/)
-  * Riverside walks on both banks wherever the survey leaves room, recomputed from the open file on every press
-    (river_walks below: the channel edge, then the ground free of buildings behind it; buildings the zone base
-    clears do not block). Three kinds: BANK WALK (car-free), STREET WALK (the footway of a surveyed street on the
-    edge), BED WALK (no room on the bank, bed at least BED_MIN_W wide: a +1 m terrace in the bed, closed in floods;
-    Thread 4 flood rule). Form rule: option A follows the edge, option B is straight facets.
-  * The riverside spine of bergama_city_link (Thread 4), read live from
-    Downloads/Bergama/output/Bergama_city_link_analysis/city_link_results.json (fallback: the embedded copy), drawn
-    on the real edge, on the bank city link chose by data (spine_banks): on the bank walk where there is one, dashed where the bank has no room (a deck is needed),
-    and on the street over the covered reach, where it meets the MAIN SPINE (Bankalar - Kınık Caddesi, OpenStreetMap,
-    converted with the h01 formula, +-10-30 m). The eight stops as numbered roundels (alternative 3).
-  * More detail on alternative 3: the survey's single trees (SEMBOL_TEK_AGAC), channel tops (SEV_SEVUST) and bank
-    tops (SEV_UST) with the bank lines; walks and both spines on alternatives 1 and 2 as well.
-  * Unity: masterplan_results.json (walks, spine, stops, riverside_walk_m2 per option) for the other scripts; the
-    water balance (v2.1) reads riverside_walk_m2 from it instead of its 17,694 m2 placeholder.
-
-NEW IN v10 (Aras 24 Oct 05:48-05:52; MERGE_PLAN.md sections 3, 5, 6 Q14 / Q16, 7)
-  * One script, one press, three alternatives per option (above), each its own single-page PDF; the opacity is a
-    setting (input opacity); a 100 % opaque white base under every lower-opacity piece in all three alternatives,
-    so the site, land cover and context never mix with the zones: only the zones overlap each other.
-  * Owner names replaced by stage and place names; working-area outlines and owner colours removed everywhere.
-  * v2.3's four per-person sheets and its board are folded into alternatives 1 and 2 (one page each with the four
-    working areas): the per-person sheets showed the same pieces and words again, only zoomed.
-  * v9's raster sheet (PNG, Photoshop layers, area register, manifest, sheet band) is replaced by the vector page;
-    its zones, link rules (link_check, WATER_STEPS), arrow snapping and bold v1.2 arrows are kept in vector.
-  * Fixed: the zone base fallback looked for ZONE_DATA, which zone base v5 does not have (it is BASE_DATA), so the
-    fallback never worked; the palette file's tones (under "masterplan" > "colours") were never read; a settings
-    input could be taken for the Button; the boardwalk's word (PATH_WORDS) was never written.
-  * Optional Rhino bake behind the rhino_bake toggle (off by default).
+NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK TO THE STREAM"): the water
+  route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
+  place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
+  (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
+  Rough volumes (Aras 26 Oct 06:27): the route labels of the reed basins and retention terraces add
+  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces: the DSİ Q100 depth over
+  them, Q100 level at the nearest cut - (bed + 1 m), Aras 06:32);
+  the method is a line in the detail legend.
+  Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
+OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
 PDFs with their times; each opens as one page. Before delivery (24 Oct): py_compile and pyflakes clean, and a mock
@@ -182,8 +104,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v19 (2026-10-25)"
-SHORT = "v19"
+VERSION = "bergama_masterplan v22 (2026-10-26)"
+SHORT = "v22"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -194,7 +116,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v19_{}.pdf"     # v19: one sheet per option
+OUT_NAME = "Bergama_masterplan_v22_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v22_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -249,7 +172,7 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
          ("aras_alan", "WT", None): u"REED BASINS", ("aras_alan", "WD", None): u"SPILLWAY",
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
-         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"RIVERSIDE PLANTING",
+         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
          ("calisma_alan", "DG", None): u"DEMETER'S GARDEN"}   # v13: Begum's idea (card i01)
 SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a working-area key, keywords)
     ("aras_alan", "WS", "D", None, [u"WINTER RAIN", u"STEPPED", u"SEATING"]),
@@ -259,7 +182,7 @@ SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a work
     ("begum_alan", "WA", "W", None, [u"WATER STRIP", u"STEPPING STONES", u"WEIRS", u"PLAZA", u"REED"]),
     ("begum_alan", "WA", "F", None, [u"WATER STEPS", u"SEATING", u"TAMARIX"]),
     ("begum_alan", "GR", "D", None, [u"BRIDGE VIEW", u"KIOSK", u"SHADE", u"LAVENDER"]),
-    ("nil_alan", "WP", "F", None, [u"CLEAN RIVER", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
+    ("nil_alan", "WP", "F", None, [u"CLEAN STREAM", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
     ("calisma_alan", "DG", "D", None, [u"OLIVES", u"STONE PINE", u"AROMATICS", u"SEASONAL BEDS", u"CAFE",
                                        u"WATER COLLECTION BASIN"]),   # v13: Begum's PDF, verbatim words
 ]
@@ -267,7 +190,7 @@ REMOVE_WORDS = [u"CLEARED"]
 # the common piece where the functions of a working area meet: name + what it gathers. A design reading of the
 # sourced words above (Aras 19:27, campus reference), not data; edit freely.
 HUB = {"calisma_alan[0]": (u"WATER AND HERITAGE COMMONS", [u"COLLECT", u"CLEAN", u"HOLD", u"K4 BRIDGE", u"PLAZA"]),
-       "calisma_alan[1]": (u"AMPHIBIOUS RIVER COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
+       "calisma_alan[1]": (u"AMPHIBIOUS STREAM COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
 # v12: v11's four commons merged per part (WATER + HERITAGE; AMPHIBIOUS + RIVER), their words joined
 # word-size factor per zone = how much it carries the working area's idea (three_ideas.md); a design reading.
 # Upstream entry "Collect, clean and hold": the reed basins clean and the terraces hold; the spillway returns; the
@@ -282,10 +205,9 @@ STEPS = (1.0, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35)   # sizes tried, largest first, 
 HUB_R_M = (24.0, 16.0, 10.0)   # meeting distance tried, m (graphic)
 HUB_MAX = 0.35                 # the common piece takes at most this share of the programme pieces
 HUB_MIN_M2 = 150.0             # smaller common fragments are dropped
-KIND_WORD = {"river": u"RIVER", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
+KIND_WORD = {"river": u"STREAM", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
 PATH_WORDS = {"nil_alan": [u"FLOODABLE DECK"]}
 ROUND_M = 9.0                  # corner rounding of the cleared-building outlines, m (graphic)
-CREDIT_DG = u"idea: Beg\u00fcm"                 # v13: Demeter's Garden is Begum's idea alone (Aras 25 Oct 08:03)
 DROPPED = ("FARM CHANNEL", "ORCHARD", "FARMLAND")   # no farmland or farm channel inside the site (CONTEXT §2)
 
 # ---------------------------------------------------------------- links (masterplan v9, from ideas.txt)
@@ -1126,6 +1048,22 @@ def read_survey(doc, R):
     return out
 
 
+SPOT_LAYER = "NOKTA_TAKEOMETRI"       # v21: the survey's spot heights (tacheometry points, m)
+
+
+def read_spots(doc, rects):
+    """v21: [(x, y, z)] of the survey's spot heights (SPOT_LAYER points) inside any of the rectangles."""
+    out = []
+    for path, o in objects_on(doc, lambda p: p.split("::")[-1] == SPOT_LAYER):
+        g = o.Geometry
+        q = getattr(g, "Location", None)
+        if q is None or abs(q.Z) < 1e-6:
+            continue
+        if any(R[0] <= q.X <= R[2] and R[1] <= q.Y <= R[3] for R in rects):
+            out.append((q.X, q.Y, q.Z))
+    return out
+
+
 def item_kind(lay):
     if lay.startswith("INT_ZONE_"):
         return "ZONE"
@@ -1528,7 +1466,8 @@ def prep_base(survey, nr, R, full=False):
     footprints as faces (whole when any corner is within), street and stream lines and the line work drawn on top,
     cut at the edge; full = also contours and bank lines (alternative 3)."""
     inR = lambda P: any(R[0] <= p[0] <= R[2] and R[1] <= p[1] <= R[3] for p in P)
-    base = {"faces": {}, "lines": [], "streets": [], "streams": [], "contours": [], "contours10": [], "banks": []}
+    base = {"faces": {}, "lines": [], "streets": [], "streams": [], "contours": [], "contours10": [], "banks": [],
+            "streets_all": []}
     for role, max_a in (("park", 400000.0), ("pond", 50000.0), ("housing", 30000.0), ("building", 30000.0),
                         ("heritage", 30000.0)):
         polys = [P for P in survey.get(role, []) if inR(P)]
@@ -1537,6 +1476,7 @@ def prep_base(survey, nr, R, full=False):
         for P in survey.get(role, []):
             if inR(P):
                 base["streets"] += cut_runs(P, nr.within)
+                base["streets_all"].append(P)           # v21: the whole street network of the drawing
     styles = {"histwall": ("histwall", 0.30, [1.2, 0.5]), "stream": ("river_mid", 0.22, None),
               "bridge": ("ink", 0.35, None)}
     for role in ("stream", "histwall", "bridge"):
@@ -1586,7 +1526,7 @@ def link_shapes(L, shapes, near=30.0):
 # into each other; the cells most of them cover ("meet") carry the commons' words.
 
 EXTRO = {  # kind: (extroversion 0 introvert ... 1 extrovert, legend)
-    "river": (1.00, u"RIVER"),
+    "river": (1.00, u"STREAM"),
     "W": (0.95, u"WET BED ZONES"), "F": (0.80, u"FLOOD TERRACE ZONES"), "D": (0.65, u"DRY TOP ZONES"),
     "cleared": (0.55, u"CLEARED GROUND"),
     "street": (0.60, u"STREETS"),
@@ -1602,13 +1542,12 @@ HOUSING_CLOSE_M = 1.0        # housing grows this far: closes the gaps between j
 TONGUE_M = 28.0              # longest tongue a giving zone sends into the zone it feeds, m
 MAX_CELLS = 170000           # grid cells per working area (cell size follows from it, at least 0.5 m)
 BAND_CELLS = 600000          # v18: grid cells of the corridor-wide grid of the broad zones of alternative 3
-RIVER_BAND_M = 15.0          # v18: the river corridor reaches this far beyond the stream / bank lines, m (graphic default)
 SPINE_ZONE_M = 10.0          # v18: a spine zone reaches this far either side of its route, m (graphic default)
 BAND_E = 0.6                 # v18: how much the broad zones' edges wander (alternative 2's growth, 0-1)
 RIVER_BAND_TONE = ("C4CCB5", "89986A", "3C4733")   # v18: sage, palette reference 89986A (light = mixed 1:1 with white)
 RIVER_BAND_NAME = u"PROMENADE"   # v19: one catchy word for Aras's "function/circulation area" (16:39, 16:41)
 RIVER_BAND_WORDS = [u"VIEWPOINTS", u"TERRACES", u"WALK PATHS", u"RAMPS", u"CAFES"]   # his words, 16:39
-PIECE_TONE = {"river": ("91ADB4", "5D7F8D", "32525F"), "street": ("E6E3DC", "CFCCC5", "847E75"),
+PIECE_TONE = {"river": ("91ADB4", "5D7F8D", "32525F"), "street": ("CFCCC5", "847E75", "4A3F35"),   # v21: road role
               "park": ("DFEBC0", "A7B67F", "49522B"), "heritage": ("E4CAC9", "AF7474", "4C2528"),
               "building": ("D8D5CC", "B0AC9C", "847E75"), "housing": ("D9CDAE", "BFB08F", "594B2E"),
               "cleared": ("F6F4EE", "B0AC9C", "4A3F35")}
@@ -2159,8 +2098,6 @@ def zone_words(pg, z, TP, owner, key, opt, taken, seen, avoid=(), halo=None):
     bw = max(18.0, (bbox(TPs)[2] - bbox(TPs)[0]) * 0.8)
     for sz in [7.5 * f * t for t in STEPS]:
         lines = [(s_, sz, True) for s_ in wrap(name_of(z, owner), sz, bw, True)]
-        if z["code"] == "DG":                        # v13: the very small credit under the name
-            lines.append((CREDIT_DG, max(1.2, sz * 0.25), False))
         b = fit_inside(TPs, spots, lines, taken, avoid=avoid)
         if b:
             draw_block(pg, lines, b[0] + 0.6, b[3] - 0.6, dk, halo)
@@ -2244,39 +2181,10 @@ def word_along(pg, TP, word, size, colour, taken, W, H):
             b = (x - w / 2 - 0.5, y + dy - 0.5, x + w / 2 + 0.5, y + dy + size + 0.5)
             if b[0] < 0 or b[1] < 0 or b[2] > W or b[3] > H or any(hit(b, t) for t in taken):
                 continue
-            pg.text(word, x, y + dy + 0.06 * size, size, colour, bold=True, align="C", halo=COL["white"])
+            pg.text(word, x, y + dy + 0.06 * size, size, colour, bold=True, align="C")   # v21: no halo
             taken.append(b)
             return True
     return False
-
-
-def open_rest(A, zones, nr):
-    """The point of a working area farthest from its edges and its zones (where it has no programme yet)."""
-    best, bd = None, -1.0
-    bxa = bbox(A)
-    for i in range(28):
-        for j in range(28):
-            x = bxa[0] + (i + 0.5) / 28 * (bxa[2] - bxa[0])
-            y = bxa[1] + (j + 0.5) / 28 * (bxa[3] - bxa[1])
-            if not nr.inside(x, y) or any(pip(x, y, z["P"]) for z in zones):
-                continue
-            d = min([seg_dist(x, y, A[q], A[(q + 1) % len(A)]) for q in range(0, len(A), max(1, len(A) // 200))] +
-                    [math.hypot(x - z["q"][0], y - z["q"][1]) for z in zones])
-            if d > bd:
-                best, bd = (x, y), d
-    return best
-
-
-def no_programme(pg, xy, taken):
-    if not xy:
-        return
-    x, y = xy
-    lines = [(u"NO PROGRAMME YET", 4.0, True)]
-    w, h = block_size(lines)
-    b = (x - w / 2, y - h / 2, x + w / 2, y + h / 2)
-    if not any(hit(b, t) for t in taken):
-        draw_block(pg, lines, b[0], b[3], COL["ink2"], COL["white"])
-        taken.append(b)
 
 
 def soft(P, r=ROUND_M, step=1.5):
@@ -2422,12 +2330,104 @@ def boxes_along(P, half):
     return out
 
 
-# ================================================================ zone patterns (masterplan v9 5b; graphic only)
-def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
-    """One working area of alternative 1 (partition, darker commons) or 2 (free pieces that overlap) -> Page."""
+# ================================================================ v21: roads, panel marks, ring clipping
+ROAD_MAIN_M = 14.0           # v21: a surveyed street edge this close to a main road line (OSM) is a main-road edge, m
+ROAD_TONE = ("CFCCC5", "847E75", "4A3F35")   # v21: palette v1.4 role "road": light lanes, mid streets, dark main roads
+ROAD_LW = (0.22, 0.45)       # v21: street edge, main-road edge, mm (graphic)
+
+
+class LineNear(object):
+    """v21: 'within r m of any of these polylines' (segments bucketed in r-sized cells)."""
+
+    def __init__(self, lines, r):
+        self.r, self.c, self.g = r, max(r, 5.0), {}
+        for P in lines:
+            for a, b in zip(P, P[1:]):
+                for gi in range(int(math.floor(min(a[0], b[0]) / self.c)), int(math.floor(max(a[0], b[0]) / self.c)) + 1):
+                    for gj in range(int(math.floor(min(a[1], b[1]) / self.c)), int(math.floor(max(a[1], b[1]) / self.c)) + 1):
+                        self.g.setdefault((gi, gj), []).append((a, b))
+
+    def within(self, x, y):
+        gi, gj = int(math.floor(x / self.c)), int(math.floor(y / self.c))
+        for di in (-1, 0, 1):
+            for dj in (-1, 0, 1):
+                for a, b in self.g.get((gi + di, gj + dj), ()):
+                    if seg_dist(x, y, a, b) <= self.r:
+                        return True
+        return False
+
+
+class BoxNear(object):
+    """v21: a rectangle as the 'near' test of prep_base and Grid (the detail windows)."""
+
+    def __init__(self, R):
+        self.R = R
+
+    def inside(self, x, y):
+        R = self.R
+        return R[0] <= x <= R[2] and R[1] <= y <= R[3]
+
+    within = inside
+
+
+def clip_ring(R, cb):
+    """A ring cut to the rectangle cb = (x0, y0, x1, y1) (Sutherland-Hodgman on the four sides)."""
+    P = list(R)
+    for ax, lim, keep_lo in ((0, cb[0], False), (0, cb[2], True), (1, cb[1], False), (1, cb[3], True)):
+        if not P:
+            break
+        out = []
+        for i in range(len(P)):
+            a, b = P[i - 1], P[i]
+            ia = a[ax] <= lim if keep_lo else a[ax] >= lim
+            ib = b[ax] <= lim if keep_lo else b[ax] >= lim
+            if ib != ia:
+                t = (lim - a[ax]) / ((b[ax] - a[ax]) or 1e-12)
+                out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+            if ib:
+                out.append(b)
+        P = out
+    return P
+
+
+def draw_roads(pg, T, streets, mains):
+    """v21: the surveyed street edges (YOL_SOSE, YOL_BORDUR) as one outlined network over the zones: the edges of
+    the main roads (within ROAD_MAIN_M of a main road line) in the road role's dark tone and heavier."""
+    near = LineNear(mains, ROAD_MAIN_M) if mains else None
+    for P in streets:
+        runs = [(P, False)]
+        if near is not None:
+            runs = [(r_, True) for r_ in cut_runs(P, near.within, 1.0)] + \
+                   [(r_, False) for r_ in cut_runs(P, lambda x, y: not near.within(x, y), 1.0)]
+        for r_, main in runs:
+            leg(("road", "main" if main else "street"))
+            pg.line([T(p) for p in r_], ROAD_TONE[2] if main else ROAD_TONE[1], ROAD_LW[1] if main else ROAD_LW[0])
+
+
+def north_arrow(pg, x, y, h=7.0):
+    """v21: north arrow (survey grid +Y) with its tip at (x, y), page mm; 'N' beside it."""
+    pg.poly([[(x, y), (x - 1.8, y - h), (x, y - h * 0.72)]], fill=COL["ink_dark"])
+    pg.poly([[(x, y), (x, y - h * 0.72), (x + 1.8, y - h)]], fill=COL["white"], stroke=COL["ink_dark"], lw=0.15)
+    pg.text(u"N", x + 2.6, y - 3.2, 2.6, COL["ink_dark"], bold=True)
+
+
+def panel_marks(sh, x, y, scale, marks):
+    """v21: north arrow and scale bar in a panel's bottom margin (x, y = its left end, page mm)."""
+    north_arrow(sh, x + 2.0, y + 8.0)
+    scale_bar(sh, x + 12.0, y + 1.0, scale, marks)
+
+
+# ================================================================ one plan panel (sheet and detail windows)
+def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, detail=None, title=None):
+    """One working area (v19: the freely grown zones, the commons, the promenade, the spine zones) -> Page.
+    v21: win = (x0, y0, x1, y1) world rectangle of a 1:1,000 detail window (base then covers the window);
+    detail(pg, T, k, taken, dw, dh, avoid) draws the window's detail before the words (avoid: the commons' rings,
+    where its labels do not go); title replaces the place name.
+    The panel's drawing + its bottom margin (north arrow, scale bar) is sh.crop (page mm, y up)."""
     key, place, idea = spec
     k = 1000.0 / scale
-    R = base["R"]
+    R = win or base["R"]
+    _PLEG[0] = {}                                        # v21: this panel's legend keys (its booklet crop)
     M, HEAD = 12.0, 20.0
     dw, dh = (R[2] - R[0]) * k, (R[3] - R[1]) * k
     zones = sorted([z for z in D.zones if z["area"] == key], key=lambda z: -z["m2"])
@@ -2440,8 +2440,10 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         pc["TPs"] = [[T(p) for p in Lp] for Lp in pc["loops"]]
     ctx = [pc for pc in pz if pc["kind"] not in ("zone", "hub", "free", "meet")]
     W_ = COL["white"]
-    # ---- the pieces: context and the commons opaque (white seams); programme pieces at the opacity on white
+    vis = lambda TPs: [V_ for V_ in (clip_ring(T_, (0.0, 0.0, dw, dh)) for T_ in TPs) if len(V_) >= 3]   # v21
     for pc in pz:                                        # v17: the legend's entries
+        if not vis(pc["TPs"]):                           # v21: only what shows in this panel
+            continue
         if pc["kind"] == "free":
             leg_zone(pc["zone"])
         elif pc["kind"] == "hub":
@@ -2456,6 +2458,11 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         leg("cleared")
     if paths:
         leg("path")
+    if win is not None:                                  # v21: the survey under the whole window (the puzzle
+        fc = base["faces"]                               # covers only the working area and its ring)
+        pg.poly([[T(p) for p in F] for role in ("building", "housing") for F in fc.get(role, [])], fill=COL["bld"])
+        pg.poly([[T(p) for p in F] for F in fc.get("heritage", [])], fill=COL["her"], stroke=COL["her_edge"], lw=0.1)
+        pg.poly([[T(p) for p in F] for F in fc.get("park", [])], fill=COL["park"])
     # v19: context opaque; alternative 2's free zone pieces on one white base; the promenade and the spine zones;
     # the free pieces' light fill at the opacity (overlaps darken); alternative 1's commons opaque on top
     for pc in sorted(ctx, key=lambda q: q["e"]):
@@ -2465,8 +2472,9 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         pg.poly(pc["TPs"], fill=W_, stroke=W_, lw=0.5)
     G = Grid(R, base["near"], BAND_CELLS)
     CLc = clip_city(CL, base["near"].within) if CL is not None else None
-    RB = [[T(p) for p in L_] for L_ in grow_band(G, base["streams"] + base["banks"],
-                                                  [s_["P"] for s_ in D.strips], RIVER_BAND_M, 101, opt)]
+    cb = (-2.0, -2.0, dw + 2.0, dh + 2.0)
+    RB = [[T(p) for p in L_] for L_ in (CL or {}).get("prom", [])]          # v21: the promenade beside the stream
+    RB = [L_ for L_ in RB if hit(bbox(L_), cb)]
     if RB:
         leg("river_band")
         lt, md, dk = RIVER_BAND_TONE
@@ -2476,7 +2484,7 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
     SZ = []
     if CLc is not None:
         for nm_, lines_, ni in ((u"MAIN SPINE", CLc["mains"] if "mains" in CLc else [CLc["main"]], 102),
-                                (u"RIVERSIDE SPINE", [s_["P"] for s_ in CLc["spine"]], 103)):
+                                (u"STREAMSIDE SPINE", [s_["P"] for s_ in CLc["spine"]], 103)):
             TPs = [[T(p) for p in L_] for L_ in grow_band(G, lines_, [], SPINE_ZONE_M, ni, opt)]
             if TPs:
                 leg(("spinezone", nm_))
@@ -2494,7 +2502,11 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         if pc is None or not pc["TPs"]:
             zones.remove(z)
             continue
-        z["TP"] = max(pc["TPs"], key=lambda r_: abs(area2(r_)))
+        V_ = vis(pc["TPs"])                              # v21: words on the part that shows in the panel
+        if not V_:
+            zones.remove(z)
+            continue
+        z["TP"] = max(V_, key=lambda r_: abs(area2(r_)))
     taken = []
     for r in removes:
         r["TP"] = [T(p) for p in soft(r["P"])]
@@ -2505,11 +2517,19 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         pg.line(p["TP"], COL["path"], 1.0, [1.0, 0.35], cap=0)
     if CLc is not None:                                  # v11: walks (v19: the spines are zones above)
         draw_city(pg, T, CLc, k, spines=False)
+    draw_roads(pg, T, base.get("streets_all", base["streets"]), [CL["main"]] if CL is not None and CL.get("main")
+               else [])                                  # v21: the street network over the whole panel
+    if detail is not None:                               # v21: the detail window's own layers and labels
+        detail(pg, T, k, taken, dw, dh, [V_ for q in pz if q["kind"] == "hub" for V_ in vis(q["TPs"])])
     # ---- words: the commons first, the promenade and spine zones, then each zone (largest first), cleared, context
     for pc in [q for q in pz if q["kind"] == "hub"]:
-        hub_words(pg, max(pc["TPs"], key=lambda r_: abs(area2(r_))), pc["name"], pc["words"], W_, taken,
-                  pc["tones"][0])
-    for nm_, TPs in ([(RIVER_BAND_NAME, RB)] if RB else []) + SZ:   # v18-v19: names and keywords on the fills
+        if not vis(pc["TPs"]):
+            continue
+        hub_words(pg, max(vis(pc["TPs"]), key=lambda r_: abs(area2(r_))), pc["name"], pc["words"], W_, taken,
+                  None)                                  # v21: no haloed labels on maps
+    RBc = [clip_ring(L_, (0.0, 0.0, dw, dh)) for L_ in RB]          # v21: words on the visible part only
+    RBc = [L_ for L_ in RBc if len(L_) >= 3]
+    for nm_, TPs in ([(RIVER_BAND_NAME, RBc)] if RBc else []) + SZ:   # v18-v19: names and keywords on the fills
         TP_ = max(TPs, key=lambda r_: abs(area2(r_)))
         dk_ = RIVER_BAND_TONE[2] if nm_ == RIVER_BAND_NAME else MP["centre"][2]
         word_in(pg, TP_, nm_, (4.0, 3.4, 2.8), dk_, taken)
@@ -2526,15 +2546,13 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
         wd = KIND_WORD.get(pc["kind"])
         if not wd or not pc["inside"]:
             continue
-        for TP in sorted(pc["TPs"], key=lambda r_: -abs(area2(r_)))[:3]:
+        for TP in sorted(vis(pc["TPs"]), key=lambda r_: -abs(area2(r_)))[:3]:
             word_in(pg, TP, wd, (2.6, 2.2, 1.8), pc["tones"][2], taken, pad=0.8)
     for p in paths:
         for w_ in PATH_WORDS.get(p.get("own"), []):
             word_along(pg, p["TP"], w_, 2.2, COL["path"], taken, dw, dh)
-    if key == "calisma_alan[1]":                         # the open rest of the area: marked, not filled in
-        xy = open_rest(A, zones, base["near"])
-        no_programme(pg, T(xy) if xy else None, taken)
-    # ---- the panel: place and idea over the plan (no owner names, no working-area outline)
+    # ---- the panel: place over the plan (no owner names, no working-area outline); v21: north arrow and scale
+    # bar in the bottom margin, inside the panel's crop
     W = M + dw + M
     H = M + HEAD + dh + M
     sh = Page(W, H)
@@ -2542,13 +2560,586 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None):
     sh.clip([rect(M, M, M + dw, M + dh)])
     blit(sh, pg, M, M)
     sh.unclip()
-    for txt, size, y in ((place, 8.0, H - M - 8.0), (idea, 4.0, H - M - 14.0)):
-        sh.text(txt, M, y, min(size, size * dw / max(text_w(txt, size, True), 1e-6)), COL["ink_dark"], bold=True)
+    txt = title or place
+    sh.text(txt, M, H - M - 8.0, min(8.0, 8.0 * dw / max(text_w(txt, 8.0, True), 1e-6)), COL["ink_dark"], bold=True)
+    if idea and not title:
+        sh.text(idea, M, H - M - 14.0, min(4.0, 4.0 * dw / max(text_w(idea, 4.0, True), 1e-6)), COL["ink_dark"],
+                bold=True)
+    panel_marks(sh, M, 1.5, scale, (0.0, 10.0, 20.0, 50.0) if win is not None else (0.0, 50.0, 100.0, 200.0))
+    sh.crop = (M, 0.5, M + dw, M + dh)
+    sh.key, sh.world = key, R
+    sh.pleg, _PLEG[0] = _PLEG[0], None
     return sh
+# ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
+# Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
+# The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
+BK_MIN_PT = 7.5                              # labels and captions on the booklet (brief: 7-8 pt, minimum 7)
+BK_CAPTION_MM = 5.0                          # caption line under every drawing frame
 
 
-def make_board(opt, alt, pages):
-    """The four working areas side by side (two rows when wider than BOARD_MAX_W) under the sheet's title."""
+def bk_frame(key, w_default, h_default):
+    """(w, h) mm a drawing for asset key "<folder>/<block>" is drawn at: the assembler's booklet_slots.json if it has
+    run once, else the defaults given (the plan's frame size). h excludes the caption line."""
+    try:
+        import json as _j
+        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
+                               "booklet_slots.json"), encoding="utf-8") as f:
+            s = _j.load(f)[key]
+        return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
+    except Exception:
+        return float(w_default), float(h_default) - BK_CAPTION_MM
+
+
+def bk_take_text(items, H):
+    """Page items (poly/line/circle/text tuples, y up from the bottom, mm) -> (items without text, labels).
+    Labels: x, y in mm from the top-left (y to the baseline), size raised to BK_MIN_PT, colour hex."""
+    keep, labels = [], []
+    for it in items:
+        if it[0] != "text":
+            keep.append(it)
+            continue
+        _, s, x, y, size, color, bold, align = it[:8]
+        labels.append({"x": round(x, 2), "y": round(H - y, 2), "text": s, "size": max(float(size), BK_MIN_PT),
+                       "bold": bool(bold), "anchor": align or "L", "colour": color if isinstance(color, str) else "4A3F35"})
+    return keep, labels
+
+
+class BkBlocks(object):
+    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    def __init__(self, out_dir, script, version):
+        self.dir = os.path.join(out_dir, "booklet")
+        os.makedirs(self.dir, exist_ok=True)
+        self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
+
+    def path(self, name):
+        return os.path.join(self.dir, name)
+
+    def source(self, key, text, url):
+        """A public source: used in any text as {src:key}; numbered once for the whole booklet."""
+        self.d["sources"][key] = {"text": text, "url": url}
+
+    def drawing(self, bid, pdf_name, labels, caption="", scale_den=None, legend=None):
+        self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or []}
+
+    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
+        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
+        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
+        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
+        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
+        drop = regexes of sheet texts not to carry."""
+        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
+                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
+                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
+
+    def tiles(self, bid, tiles):
+        self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
+
+    def text(self, bid, heading="", body="", bullets=None):
+        self.d["blocks"][bid] = {"type": "text", "heading": heading, "body": body, "bullets": bullets or []}
+
+    def save(self):
+        import json as _j
+        p = os.path.join(self.dir, "blocks.json")
+        with open(p, "w", encoding="utf-8") as f:
+            _j.dump(self.d, f, ensure_ascii=False, indent=1)
+        return p
+# ================================================================ v21: the 1:1,000 detail sheet and the booklet crops
+# Aras 25 Oct 21:49 on the booklet's 1:1,000 page: "this should add more detail from what we have shown in
+# masterplan". The detail sheet shows the two windows of the booklet's C3 page (upstream entry; K5 with Demeter's
+# Garden) at 1:1,000 with what the whole plan cannot show, all from the project's data:
+#   cuts      the water board's surveyed channel cuts (the proposal sections stand on them) and the site board's
+#             section lines crossing the window, named; at a cut its bed level and the DSI Q100 / Q500 levels with
+#             the width each covers on the cut (CUT_AT)
+#   route     the zone base's water links numbered in the order of the water route (ROUTE), with the areas the
+#             script computes from the zone curves (no script computes a storage volume: left out, logged)
+#   planting  band letters and species codes of the booklet's verified list (plan page C7 = water board v1.9
+#             PLANT_BANDS / SPECIES) on the zones whose wetness tier they belong to (ZONE_PLANTING)
+#   levels    survey spot heights (NOKTA_TAKEOMETRI) in the bed and on the bank tops, by the edges river_walks found
+#   sketches  (Aras 21:57) terrace steps as a few strokes in the retention terraces and flood terraces, ramps as
+#             wedges on the zone base's people-to-the-water links: zones and sketch marks, abstract, no dimensions
+# Booklet (CROP_SPEC.md, Aras 21:47): the booklet's drawings are crops of the sheets; blocks.json holds one crop per
+# panel (both halves of the masterplan sheet, both detail windows), results.json the frames and places.
+DT_SCALE = 1000.0
+DT_FRAME = (194.0, 176.0)            # mm: the booklet's C3 frame (booklet_slots.json when the assembler has run)
+DT_WINDOWS = [  # crop id, old booklet id, working area, sheet title, booklet caption, zone names the window must show
+    ("dt_upstream", "c3_a", "calisma_alan[0]", u"UPSTREAM ENTRY · COLLECT, CLEAN, HOLD",
+     u"Upstream entry: collect, clean, hold", (u"REED BASINS", u"RETENTION TERRACES", u"SPILLWAY", u"SHADED WALK")),
+    ("dt_k5", "c3_b", "calisma_alan[1]", u"K5 BRIDGE · DEMETER'S GARDEN", u"K5 bridge and Demeter's Garden",
+     (u"DEMETER'S GARDEN",))]
+MP_CROPS = {"calisma_alan[0]": ("mp_upstream", "c1_s1", u"Masterplan, upstream entry to K4 bridge"),
+            "calisma_alan[1]": ("mp_downstream", "c1_s2", u"Masterplan, K5 bridge to downstream end")}
+# CUT_AT: the water board's surveyed channel cuts (water board v1.9 CUTS, proposal sections v4 panels 1-4):
+# number, name, centre (survey m) and span (u m, + = left bank looking downstream) from
+# research/rain_river_levels/scripts/surveyed_sections/levels2_out.json (24 Oct); bed and DSI Q100 / Q500 levels (m,
+# Manning n 0.050) and the width each covers (u from, to) as there (= water board CUTS bed + depth).
+CUT_AT = [("1", u"UPSTREAM ENTRY", (29693.022, 32569.176), (-74.5, 85.5), 70.36, (73.35, -29.5, 14.0), (73.66, -30.5, 15.0)),
+          ("2", u"K4 BRIDGE", (29959.774, 32264.566), (-21.0, 91.5), 64.77, (67.33, -58.5, 16.5), (67.61, -70.5, 16.5)),
+          ("3", u"K5 BRIDGE", (30354.663, 31689.671), (-86.0, 64.5), 55.96, (58.41, -37.5, 12.0), (58.75, -45.5, 12.5)),
+          ("4", u"DOWNSTREAM REACH", (30991.856, 31039.404), (-39.5, 26.5), 45.67, (47.72, -29.5, 19.5), (48.0, -30.5, 20.0))]
+# The site board's section lines S1-S6 (selinus_board v39 SECTION_LINES_LK, its names in this order), survey m
+SITE_SECTIONS = [((29545.739, 32125.562), (30167.095, 32687.137)), ((29806.600, 31571.233), (30610.920, 32286.788)),
+                 ((30366.363, 31067.627), (31210.537, 31688.982)), ((30616.355, 30540.471), (31489.513, 31161.826)),
+                 ((29455.902, 32763.450), (30154.568, 32040.938)), ((31571.801, 30442.533), (30689.179, 31396.583))]
+# The water route at the upstream entry (zone base links, by the zones they join): order and short words
+ROUTE = [((None, "WT"), u"INTO {}", 1), (("WS", "WT"), u"FROM {}", 0), (("WT", "WD"), u"TO {}", 1),
+         (("WD", None), u"BACK TO THE STREAM", None)]   # (from, to), words, which end's zone they name
+ROUTE_SHORT = {u"RETENTION TERRACES": u"TERRACES"}
+# Planting (booklet page C7 / water board v1.9 bands A-F and species): band letters and species codes per zone, by
+# the zone's wetness (bed and reed basins wet most of the year: B; flood terrace: C; terraces: C and E; dry tops: E
+# and F). A design reading of the bands; only species of the verified list.
+SPECIES_CODE = [("Ty", u"Typha angustifolia"), ("Ph", u"Phragmites australis"), ("Me", u"Mentha aquatica"),
+                ("Sa", u"Salix alba"), ("Ta", u"Tamarix smyrnensis"), ("Vi", u"Vitex agnus-castus"),
+                ("Po", u"Populus alba"), ("Fr", u"Fraxinus angustifolia"), ("Pl", u"Platanus orientalis"),
+                ("La", u"Lavandula stoechas")]
+BAND_NAME = {"A": u"A STRIP AND BED · PERMANENT", "B": u"B MARSH · 150-365 D A YEAR", "C": u"C WILLOW · 50-150 D",
+             "D": u"D WET MEADOW · 10-150 D", "E": u"E DRY MEADOW · 0.5-50 D", "F": u"F TERRACES · EXTREME ONLY"}
+ZONE_PLANTING = {("WT", None): ("B", ("Ty", "Ph", "Me")), ("WA", "W"): ("B", ("Ty", "Ph", "Me")),
+                 ("WA", "F"): ("C", ("Sa", "Ta")), ("WS", None): ("CE", ("Vi", "Po", "Fr")),
+                 ("GR", None): ("EF", ("Pl", "La"))}
+STEP_M = 4.0                         # spacing of the terrace step strokes, m (sketch)
+RAMP_W = (3.0, 1.2)                  # ramp wedge width at the top and at the water, m (sketch)
+SPOT_GAP_M, SPOT_BANK_M = 30.0, 10.0   # spot levels at least this far apart; bank top = within this of the edge
+SPOT_MAX = (6, 8)                    # at most this many bed / bank spot levels per window
+# v22 (Aras 26 Oct 06:27 "make them have calculated roughly"): rough volume on the water route = zone area x depth.
+# Reed basins: 0.46 m, the water depth of EPA's worked example ("water depth = 0.46 meters (1.5 ft)"; vegetated
+# depth "a few inches to two feet or more"), EPA 832-F-00-024 Free Water Surface Wetlands, Sep 2000. Terraces (Aras
+# 06:32 picked): the water over them in the DSI Q100 flood = Q100 level at the nearest cut - (bed + TERRACE_UP).
+STORE_DEPTH = {"WT": 0.46}
+TERRACE_UP = 1.0                     # terrace level above the bed, m (the project's flood rule: "Terrace +1 m")
+
+
+def store_m3(z):
+    """(rough volume m3, words) of a water-route zone, or None: reed basins area x 0.46 m; retention terraces area x
+    the Q100 depth over them at the nearest channel cut."""
+    if z["code"] in STORE_DEPTH:
+        return z["m2"] * STORE_DEPTH[z["code"]], u""
+    if z["code"] == "WS" and z.get("P"):
+        cx = sum(p[0] for p in z["P"]) / len(z["P"])
+        cy = sum(p[1] for p in z["P"]) / len(z["P"])
+        num, nm, c, span, bed, q100, q500 = min(CUT_AT, key=lambda r: (r[2][0] - cx) ** 2 + (r[2][1] - cy) ** 2)
+        return z["m2"] * max(0.0, q100[0] - (bed + TERRACE_UP)), u" in Q100"
+    return None
+DT_TS = 2.6                          # detail label size, mm (7.4 pt at 1:1; the booklet sets them at 7.5 pt)
+
+
+def places(spec, CL, survey):
+    """Named places (world m): K4, K3, the Red Hall and K5 are city link's surveyed spine anchors (K4 = piece A's
+    start, K3 its end, Red Hall = piece C's start, K5 its end), each bridge snapped to the nearest surveyed bridge
+    (YOL_KOPRU) within 60 m."""
+    sp = dict((pc.get("id"), pc) for pc in spec.get("spine", []))
+    out = {}
+    for nm, (pid, end) in ((u"K4", ("A", "frm")), (u"K3", ("A", "to")), (u"RED HALL", ("C", "frm")),
+                           (u"K5", ("C", "to"))):
+        if pid in sp and sp[pid].get(end):
+            out[nm] = tuple(sp[pid][end])
+    mids = [((B[0][0] + B[-1][0]) / 2.0, (B[0][1] + B[-1][1]) / 2.0) for B in survey.get("bridge", [])]
+    for nm in (u"K4", u"K3", u"K5"):
+        if nm in out and mids:
+            m = min(mids, key=lambda q: math.hypot(q[0] - out[nm][0], q[1] - out[nm][1]))
+            if math.hypot(m[0] - out[nm][0], m[1] - out[nm][1]) <= 60.0:
+                out[nm] = m
+    return out
+
+
+def detail_windows(D, plc, frame):
+    """[{id, old, key, title, caption, R}] north-up windows of frame (mm) x DT_SCALE: centred on the zones it must
+    show (and the cut in it), for K5 on the bridge moved just enough to hold Demeter's Garden and the cut."""
+    Wm, Hm = frame[0] * DT_SCALE / 1000.0, frame[1] * DT_SCALE / 1000.0
+    out = []
+    for bid, old, key, title, cap, names in DT_WINDOWS:
+        zs = [z for z in D.zones if z["area"] == key and name_of(z, z.get("own", "")) in names]
+        pts = [p for z in zs for p in z["P"]] or [p for z in D.zones if z["area"] == key for p in z["P"]]
+        if not pts:
+            continue
+        b = bbox(pts)
+        c = ((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0)
+        if bid == "dt_k5" and plc.get(u"K5"):
+            k5 = plc[u"K5"]
+            cut = [x[2] for x in CUT_AT if x[1] == u"K5 BRIDGE"]
+            need = bbox(pts + [k5] + cut)
+            c = (min(max(k5[0], need[2] - Wm / 2 + 10.0), need[0] + Wm / 2 - 10.0),
+                 min(max(k5[1], need[3] - Hm / 2 + 10.0), need[1] + Hm / 2 - 10.0))
+        out.append({"id": bid, "old": old, "key": key, "title": title, "caption": cap,
+                    "R": (c[0] - Wm / 2, c[1] - Hm / 2, c[0] + Wm / 2, c[1] + Hm / 2)})
+    return out
+
+
+def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avoid=(), more=(), anywhere=False):
+    """A label block [(text, size, bold)] on a free spot round anchor (page mm, y up), off the rings in avoid, with
+    a thin leader when it sits off the anchor. v22: then round each point of more (e.g. along the route), and with
+    anywhere the free spot nearest anchor on the whole panel (2 mm grid). Returns its box or None."""
+    w, h = block_size(lines)
+    ax, ay = anchor
+    on = 0.0 <= ax <= W and 0.0 <= ay <= H              # v22: the leader goes to anchor only when it is on the panel
+
+    def free(b):
+        return not (b[0] < 0.8 or b[1] < 0.8 or b[2] > W - 0.8 or b[3] > H - 0.8 or
+                    any(hit(b, t, 0.4) for t in taken) or (avoid and not box_clear(b, avoid)))
+
+    def put(b, px, py, far):
+        draw_block(pg, lines, b[0], b[3], colour, None)
+        taken.append(b)
+        if leader and far:
+            qx, qy = min(max(px, b[0]), b[2]), min(max(py, b[1]), b[3])
+            pg.line([(px, py), (qx, qy)], COL["ink2"], 0.15)
+        return b
+
+    for k_, (px, py) in enumerate([anchor] + list(more)):
+        for d in (d0, d0 + 2.0, d0 + 4.0, d0 + 7.0, d0 + 11.0, d0 + 16.0, 24.0, 32.0):
+            for i in range(16):
+                a = math.radians(i * 22.5 + 11.25)
+                cx, cy = px + math.cos(a) * (d + w / 2), py + math.sin(a) * (d + h / 2)
+                b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+                if free(b):
+                    return put(b, ax, ay, d > 3.0 or k_ > 0) if on or k_ == 0 else put(b, px, py, d > 3.0)
+    if anywhere:                                         # v22: last, any free spot on the panel, nearest first
+        cs = [(x_ * 2.0, y_ * 2.0) for x_ in range(int(W / 2.0) + 1) for y_ in range(int(H / 2.0) + 1)]
+        for cx, cy in sorted(cs, key=lambda c_: (c_[0] - ax) ** 2 + (c_[1] - ay) ** 2):
+            b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+            if free(b):
+                return put(b, ax, ay, True) if on else put(b, cx, cy, False)
+    return None
+
+
+def _normal_at(ref, q):
+    """Unit normal (left of the flow) of STREAM_REF at the point nearest q."""
+    s = arclen(ref)
+    c, _ = chain_at(ref, q)
+    _, t = at_len(ref, s, c)
+    return (-t[1], t[0]), t
+
+
+def _boxes_line(P, half, taken):
+    taken += boxes_along(P, half)
+
+
+def detail_overlay(win, D, CL, spots, plc, missing, warn):
+    """The detail of one window, drawn by draw_area before the words (see the head of this part)."""
+    R = win["R"]
+    inR = lambda p, m=0.0: R[0] - m <= p[0] <= R[2] + m and R[1] - m <= p[1] <= R[3] + m
+    ref = CL["W"]["ref"]
+    shapes = D.zones + D.strips
+
+    def f(pg, T, k, taken, dw, dh, hubs=()):
+        ink, ink2 = COL["ink_dark"], COL["ink2"]
+        av = [(r_, bbox(r_)) for r_ in hubs]
+        # ---- sketches: terrace steps in the terrace zones, ramps on the people-to-the-water links (under the rest)
+        for z in D.zones:
+            if not (z["code"] == "WS" or (z["code"] == "WA" and z["tier"] == "F")) or not any(inR(p) for p in z["P"]):
+                continue
+            n, t = _normal_at(ref, z["q"])
+            ext = [(p[0] - z["q"][0]) * n[0] + (p[1] - z["q"][1]) * n[1] for p in z["P"]]
+            alo = [(p[0] - z["q"][0]) * t[0] + (p[1] - z["q"][1]) * t[1] for p in z["P"]]
+            o = min(ext) + STEP_M / 2.0
+            i = 0
+            while o < max(ext):
+                L_ = [(z["q"][0] + n[0] * o + t[0] * a, z["q"][1] + n[1] * o + t[1] * a)
+                      for a in (min(alo) - 2.0, max(alo) + 2.0)]
+                for r_ in cut_runs(L_, lambda x, y: pip(x, y, z["P"]), 0.5):
+                    if len(r_) >= 2 and math.hypot(r_[-1][0] - r_[0][0], r_[-1][1] - r_[0][1]) > 3.0:
+                        P = hand_line([T(p) for p in (r_[0], r_[-1])], 0.25, 8.0, 31 + i, over=0.6)
+                        pg.line(P, zone_tones(z)[2], 0.3, alpha=0.75)
+                        leg(("dt", "steps"))
+                o += STEP_M
+                i += 1
+        for i, L in enumerate(D.links):
+            if L["kind"] != "people" or not any(inR(p) for p in L["P"]):
+                continue
+            P = [T(p) for p in L["P"]]
+            (ax, ay), (bx, by) = P[0], P[-1]
+            d = math.hypot(bx - ax, by - ay) or 1.0
+            ux, uy = (bx - ax) / d, (by - ay) / d
+            nx, ny = -uy, ux
+            w0, w1 = RAMP_W[0] * k / 2.0, RAMP_W[1] * k / 2.0
+            ring_ = [(ax + nx * w0, ay + ny * w0), (bx + nx * w1, by + ny * w1), (bx - nx * w1, by - ny * w1),
+                     (ax - nx * w0, ay - ny * w0)]
+            pg.poly([ring_], fill=ink2, alpha=0.2)
+            pg.poly([ring_], stroke=ink2, lw=0.25)
+            for j in (1, 2, 3):                          # chevrons down the slope
+                cx, cy = ax + ux * d * j / 4.0, ay + uy * d * j / 4.0
+                ww = (w0 + (w1 - w0) * j / 4.0) * 0.8
+                pg.line([(cx - ux * 1.0 + nx * ww, cy - uy * 1.0 + ny * ww), (cx, cy),
+                         (cx - ux * 1.0 - nx * ww, cy - uy * 1.0 - ny * ww)], ink2, 0.25)
+            taken.append(bbox(ring_))
+            leg(("dt", "ramp"))
+        # ---- the cuts: water board channel cuts (with their levels) and the site board's section lines
+        cut_lab = []
+        for num, nm, c, span, bed, q100, q500 in CUT_AT:
+            if not inR(c):
+                continue
+            n, t = _normal_at(ref, c)
+            at = lambda u: (c[0] + n[0] * u, c[1] + n[1] * u)
+            for lv, lw, colr in ((q500, 2.2, COL["river_mid"]), (q100, 2.2, COL["river_dark"])):
+                pg.line([T(at(lv[1])), T(at(lv[2]))], colr, lw, cap=0, alpha=0.45)
+            leg(("dt", "q"))
+            P = [T(at(span[0])), T(at(span[1]))]
+            pg.line(P, ink, 0.35, [4.0, 1.0, 0.6, 1.0], cap=0)
+            for e_, sg in ((P[0], 1.0), (P[1], -1.0)):     # view markers: filled triangles looking downstream
+                tx, ty = T((c[0] + t[0], c[1] + t[1]))
+                ox, oy = T(c)
+                vx, vy = tx - ox, ty - oy
+                L_ = math.hypot(vx, vy) or 1.0
+                vx, vy = vx / L_, vy / L_
+                pg.poly([[(e_[0] + vx * 2.6, e_[1] + vy * 2.6), (e_[0] - vy * 1.3, e_[1] + vx * 1.3),
+                          (e_[0] + vy * 1.3, e_[1] - vx * 1.3)]], fill=ink)
+            x0, y0 = T(c)
+            pg.line([(x0 - 0.9, y0 - 0.9), (x0 + 0.9, y0 + 0.9)], COL["river_dark"], 0.3)
+            pg.line([(x0 - 0.9, y0 + 0.9), (x0 + 0.9, y0 - 0.9)], COL["river_dark"], 0.3)
+            _boxes_line(P, 0.8, taken)
+            leg(("dt", "cut"))
+            inside = [p for p in P if 0 <= p[0] <= dw and 0 <= p[1] <= dh]
+            cut_lab.append(([(u"SECTION {} · {}".format(num, nm), DT_TS, True),
+                             (u"bed +{:.2f}".format(bed), DT_TS, False),
+                             (u"Q100 +{:.2f} · Q500 +{:.2f}".format(q100[0], q500[0]), DT_TS, False)],
+                            inside[0] if inside else (min(max(x0, 2.0), dw - 2.0), min(max(y0, 2.0), dh - 2.0))))
+        for i, (a, b) in enumerate(SITE_SECTIONS):
+            P = [T(p) for p in cut_runs([a, b], lambda x, y: inR((x, y)), 2.0)[0]] \
+                if cut_runs([a, b], lambda x, y: inR((x, y)), 2.0) else []
+            if len(P) < 2:
+                continue
+            pg.line(P, ink2, 0.3, [4.0, 1.0, 0.6, 1.0], cap=0)
+            _boxes_line(P, 0.8, taken)
+            leg(("dt", "site"))
+            end = max(P, key=lambda p: p[1])
+            cut_lab.append(([(u"SITE SECTION S{}".format(i + 1), DT_TS, True)],
+                            (min(max(end[0], 2.0), dw - 2.0), min(max(end[1], 2.0), dh - 2.0))))
+        # ---- the water route: the zone base's water links, numbered in the route's order
+        steps = []
+        for L in D.links:
+            if L["kind"] != "water" or not any(inR(p) for p in L["P"]):
+                continue
+            a, b = link_shapes(L, shapes)
+            ab = (a["code"] if a and a in D.zones else None, b["code"] if b and b in D.zones else None)
+            order = next((i for i, st in enumerate(ROUTE) if st[0] == ab), len(ROUTE))
+            steps.append((order, L, a, b, ab))
+        steps.sort(key=lambda s_: s_[0])
+        route_lab = []
+        for n_, (order, L, a, b, ab) in enumerate(steps, 1):
+            P = [T(p) for p in L["P"]]
+            link_arrow(pg, P, "water", L["heads"], 3 + n_)
+            leg(("link", "water"))
+            _boxes_line(P, 1.2, taken)
+            if order < len(ROUTE):
+                end = ROUTE[order][2]
+                z = (a, b)[end] if end is not None else None
+                nm = ROUTE_SHORT.get(name_of(z, z.get("own", "")), name_of(z, z.get("own", ""))) if z else u""
+                txt = ROUTE[order][1].format(nm)
+                if z is not None:
+                    txt += u" {:,.0f} m²".format(z["m2"])
+                    sv = store_m3(z)                         # v22: rough volume, area x depth
+                    if sv:
+                        txt += u" · ~{:,.0f} m³{}".format(round(sv[0], -1), sv[1])
+                        leg(("dt", "vol"))
+            else:
+                txt = (L["label"] or u"WATER").replace(u"RIVER", u"STREAM")
+            s = arclen(P)
+            (mx, my), _ = at_len(P, s, s[-1] / 2.0)
+            pg.circle(mx, my, 2.2, fill=COL["white"])
+            pg.circle(mx, my, 1.9, fill=COL["river_dark"])
+            pg.text(str(n_), mx, my - 0.85, 2.4, COL["white"], bold=True, align="C")
+            taken.append((mx - 2.2, my - 2.2, mx + 2.2, my + 2.2))
+            leg(("dt", "route"))
+            route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my),   # v22: + spots along the route
+                              [at_len(P, s, s[-1] * f_)[0] for f_ in (0.3, 0.7, 0.1, 0.9, 0.0, 1.0)]))
+        # ---- survey spot levels: lowest in the bed, highest on the bank tops (edges of river_walks)
+        rows = [r for r in (CL["W"].get("rows") or []) if r.get("NE") and r.get("SW") and inR(r["p"], 60.0)]
+        bed, bank = [], []
+        for q in spots:
+            if not inR(q, -2.0) or not rows:
+                continue
+            r = min(rows, key=lambda r_: (r_["p"][0] - q[0]) ** 2 + (r_["p"][1] - q[1]) ** 2)
+            if math.hypot(r["p"][0] - q[0], r["p"][1] - q[1]) > 40.0:
+                continue
+            t_ = (q[0] - r["p"][0]) * r["n"][0] + (q[1] - r["p"][1]) * r["n"][1]
+            e1, e0 = r["NE"]["e"], r["SW"]["e"]
+            if e0 <= t_ <= e1:
+                bed.append(q)
+            elif e1 < t_ <= e1 + SPOT_BANK_M or e0 - SPOT_BANK_M <= t_ < e0:
+                bank.append(q)
+        spot_lab = []
+        for pts, low, mx_, colr, kind in ((bed, True, SPOT_MAX[0], COL["river_dark"], "spot_bed"),
+                                          (bank, False, SPOT_MAX[1], COL["ink_dark"], "spot_bank")):
+            kept = []
+            for q in sorted(pts, key=lambda q: q[2] if low else -q[2]):
+                if len(kept) >= mx_:
+                    break
+                if all(math.hypot(q[0] - p[0], q[1] - p[1]) >= SPOT_GAP_M for p in kept):
+                    kept.append(q)
+            for q in kept:
+                x, y = T(q)
+                pg.line([(x - 0.7, y), (x + 0.7, y)], colr, 0.25)
+                pg.line([(x, y - 0.7), (x, y + 0.7)], colr, 0.25)
+                taken.append((x - 0.8, y - 0.8, x + 0.8, y + 0.8))
+                leg(("dt", kind))
+                spot_lab.append(([(u"+{:.2f}".format(q[2]), DT_TS * 0.85, False)], (x, y), colr))
+        # ---- labels: cuts, route, bridge, planting codes, spot levels (zone words follow in draw_area)
+        for lines, anc in cut_lab:
+            if not place_label(pg, lines, anc, taken, dw, dh, ink, avoid=av):
+                missing.append(lines[0][0])
+        for lines, anc, along in route_lab:              # v22: never left out (Aras 26 Oct: 4 BACK TO THE STREAM)
+            if not place_label(pg, lines, anc, taken, dw, dh, COL["river_dark"], d0=2.6, avoid=av, more=along,
+                               anywhere=True):
+                missing.append(lines[0][0])
+        for nm in (u"K4", u"K5"):                         # (not when the commons' keywords already name it)
+            if plc.get(nm) and inR(plc[nm]) and nm + u" BRIDGE" not in HUB.get(win["key"], (u"", []))[1]:
+                if not place_label(pg, [(nm + u" BRIDGE", DT_TS, True)], T(plc[nm]), taken, dw, dh, ink, d0=2.0,
+                                   avoid=av):
+                    missing.append(nm + u" BRIDGE")
+        for z in D.zones:
+            pl = ZONE_PLANTING.get((z["code"], z["tier"])) or ZONE_PLANTING.get((z["code"], None))
+            if not pl or not any(inR(p) for p in z["P"]):
+                continue
+            TP = z["TP"] if z.get("area") == win["key"] and z.get("TP") else [T(p) for p in z["P"]]
+            TP = clip_ring(TP, (0.0, 0.0, dw, dh))
+            txt = u"{} · {}".format(u" ".join(pl[0]), u" ".join(pl[1]))
+            b_ = None
+            if len(TP) >= 3:
+                TPs = thin(TP, 300)
+                for sz in (DT_TS, DT_TS * 0.85):
+                    b_ = fit_inside(TPs, inside_spots(TPs), [(txt, sz, False)], taken, pad=0.4, avoid=av)
+                    if b_:
+                        pg.text(txt, b_[0] + 0.4, b_[1] + 0.4 + 0.06 * sz, sz, zone_tones(z)[2])
+                        taken.append(b_)
+                        break
+            if b_:
+                for b_ in pl[0]:
+                    leg(("band", b_))
+                for c_ in pl[1]:
+                    leg(("sp", c_))
+            else:
+                missing.append(txt + u" (" + name_of(z, z.get("own", "")) + u")")
+        for lines, anc, colr in spot_lab:
+            place_label(pg, lines, anc, taken, dw, dh, colr, d0=0.6, leader=False, avoid=av)
+    return f
+
+
+def detail_legend():
+    """v21: the detail sheet's legend groups (only what it draws): its layers, the planting bands, species codes."""
+    W_ = COL["white"]
+
+    def line_sw(*specs):
+        def f(pg, x, y, w, h):
+            for c_, lw, dash, a_ in specs:
+                pg.line([(x, y + h / 2), (x + w, y + h / 2)], c_, lw, dash, cap=0 if dash else 1, alpha=a_)
+        return f
+
+    def cross_sw(colr):
+        def f(pg, x, y, w, h):
+            cx, cy = x + w / 2, y + h / 2
+            pg.line([(cx - 1.4, cy), (cx + 1.4, cy)], colr, 0.3)
+            pg.line([(cx, cy - 1.4), (cx, cy + 1.4)], colr, 0.3)
+        return f
+
+    def steps_sw(pg, x, y, w, h):
+        for i in range(4):
+            yy = y + h * (i + 0.5) / 4
+            pg.line([(x + 1.0, yy), (x + w - 1.0, yy)], MP["storage"][2], 0.3, alpha=0.75)
+
+    def ramp_sw(pg, x, y, w, h):
+        R_ = [(x, y + h * 0.1), (x + w, y + h * 0.35), (x + w, y + h * 0.65), (x, y + h * 0.9)]
+        pg.poly([R_], fill=COL["ink2"], alpha=0.2)
+        pg.poly([R_], stroke=COL["ink2"], lw=0.25)
+
+    def route_sw(pg, x, y, w, h):
+        pg.circle(x + w / 2, y + h / 2, 3.0, fill=COL["river_dark"])
+        pg.text(u"1", x + w / 2, y + h / 2 - 1.2, 3.4, W_, bold=True, align="C")
+
+    det = []
+    for key, name, f in ((("dt", "cut"), u"SECTION · CHANNEL CUT", line_sw((COL["ink_dark"], 0.35, [4.0, 1.0, 0.6, 1.0], None))),
+                         (("dt", "site"), u"SITE SECTION · SITE BOARD", line_sw((COL["ink2"], 0.3, [4.0, 1.0, 0.6, 1.0], None))),
+                         (("dt", "q"), u"Q500 / Q100 WIDTH ON THE CUT",
+                          line_sw((COL["river_mid"], 2.2, None, 0.45), (COL["river_dark"], 1.0, None, 0.45))),
+                         (("dt", "route"), u"WATER ROUTE · STEP", route_sw),
+                         (("dt", "spot_bed"), u"SPOT LEVEL · BED (m)", cross_sw(COL["river_dark"])),
+                         (("dt", "spot_bank"), u"SPOT LEVEL · BANK TOP (m)", cross_sw(COL["ink_dark"])),
+                         (("dt", "steps"), u"TERRACE STEPS", steps_sw),
+                         (("dt", "ramp"), u"RAMP", ramp_sw)):
+        if key in LEG:
+            det.append((name, f))
+
+    def none_sw(pg, x, y, w, h):
+        return None
+    if ("dt", "vol") in LEG:                             # v22: how the rough volumes are made
+        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m (EPA 2000) · TERRACES: Q100 OVER BED +1 m "
+                    u"AT THE NEAREST CUT (DSİ)", none_sw))
+    bands = [(BAND_NAME[b_], none_sw) for b_ in "ABCDEF" if ("band", b_) in LEG]
+    sp = [(u"{}  {}".format(c_, nm), none_sw) for c_, nm in SPECIES_CODE if ("sp", c_) in LEG]
+    return [(u"DETAIL", det), (u"PLANTING BANDS · DAYS WET", bands), (u"SPECIES", sp)]
+
+
+def crop_legend(keys, alpha):
+    """v21: a panel's legend for its booklet crop (drawn samples as colours + plain names)."""
+    W_ = COL["white"]
+    out = []
+
+    def add(kind, colour, label):
+        if all(e["label"] != label for e in out):
+            out.append({"kind": kind, "colour": colour, "label": label})
+    for code, name in LEG_ZONE:
+        if ("zone", code) in keys:
+            z = {"code": "WA" if code == "WAF" else code, "tier": "F" if code == "WAF" else "D"}
+            add("fill", mix(W_, zone_tones(z)[0], alpha), name.split(u" · ")[-1].lower())
+    if "river_band" in keys:
+        add("fill", mix(W_, RIVER_BAND_TONE[0], 0.85), RIVER_BAND_NAME.lower())
+    for nm_ in (u"MAIN SPINE", u"STREAMSIDE SPINE"):
+        if ("spinezone", nm_) in keys:
+            add("fill", mix(W_, MP["centre"][0], alpha), nm_.lower())
+    if ("ctx", "river") in keys:
+        add("fill", PIECE_TONE["river"][0], u"stream")
+    if ("road", "main") in keys:
+        add("line", ROAD_TONE[2], u"main road")
+    if ("road", "street") in keys or ("ctx", "street") in keys:
+        add("line", ROAD_TONE[1], u"street")
+    if ("walk", "bank") in keys:
+        add("line", COL["walk"], u"bank walk, car-free")
+    for key, kind, colour, label in ((("dt", "cut"), "line", COL["ink_dark"], u"section"),
+                                     (("dt", "q"), "line", COL["river_mid"], u"Q500 width on the cut"),
+                                     (("dt", "route"), "dot", COL["river_dark"], u"water route step"),
+                                     (("dt", "spot_bed"), "dot", COL["river_dark"], u"spot level, bed"),
+                                     (("dt", "spot_bank"), "dot", COL["ink_dark"], u"spot level, bank top"),
+                                     (("dt", "steps"), "line", MP["storage"][2], u"terrace steps"),
+                                     (("dt", "ramp"), "fill", mix(W_, COL["ink2"], 0.2), u"ramp")):
+        if key in keys:
+            add(kind, colour, label)
+    return out
+
+
+def booklet_crops(folder, sheets, wins, plc, missing):
+    """v21: booklet/blocks.json (one crop per panel of every sheet) and booklet/results.json (as v20's keys:
+    script, version, option, frames under the old booklet ids, labels_not_drawn, places_xy)."""
+    bk = BkBlocks(folder, u"MasterPlan", SHORT)
+    for old in ("c1_s1.pdf", "c1_s2.pdf", "c3_a.pdf", "c3_b.pdf"):   # v20's separate drawings: now crops
+        try:
+            os.remove(bk.path(old))
+        except OSError:
+            pass
+    res = {"script": "bergama_masterplan_v22.py", "version": VERSION, "option": "A", "frames": {},
+           "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
+                                                     for k_, v in sorted(plc.items()))}
+    wd = dict((w["id"], w) for w in wins)
+    drop = [r"^1:[\d,.]+$"]                               # the sheet's scale text: the booklet prints its own
+    for pdf, sh, scale in sheets:
+        for key, rc, p in sh.panels:
+            bid, old, cap = p.bid
+            bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=scale, legend=crop_legend(p.pleg, _ALPHA[0]),
+                    drop=drop)
+            fr = {"crop": bid, "scale_den": scale, "w_mm": round(rc[2] - rc[0], 1), "h_mm": round(rc[3] - rc[1], 1)}
+            if bid in wd:
+                R = wd[bid]["R"]
+                fr.update(centre_xy=[round((R[0] + R[2]) / 2, 1), round((R[1] + R[3]) / 2, 1)],
+                          window_m=[round(R[2] - R[0], 1), round(R[3] - R[1], 1)])
+            else:                                         # the masterplan panel's world extent (survey x, m)
+                R = p.world
+                fr.update(from_m=round(R[0], 1), to_m=round(R[2], 1), overlap_m=0.0)
+            res["frames"][old] = fr
+            res["labels_not_drawn"][old] = missing.get(bid, [])
+    with open(bk.path("results.json"), "w", encoding="utf-8") as f:
+        json.dump(res, f, ensure_ascii=False, indent=1)
+    return bk.save()
+def make_board(opt, alt, pages, title=None):
+    """The working areas side by side (two rows when wider than BOARD_MAX_W) under the sheet's title. v21: the
+    result's .panels = [(key, crop rect in page mm from the top-left, y down)] for the booklet's crops."""
     M, HEAD, G = 14.0, 24.0, 10.0
     rows = [pages]
     if sum(p.W for p in pages) + G * (len(pages) - 1) + 2 * M > BOARD_MAX_W:
@@ -2557,33 +3148,48 @@ def make_board(opt, alt, pages):
     H = sum(max(p.H for p in r_) for r_ in rows) + G * (len(rows) - 1) + 2 * M + HEAD
     bd = Page(W, H)
     bd.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    sheet_head(bd, M, H - M, alt, opt)
+    sheet_head(bd, M, H - M, alt, opt, title)
     y = H - M - HEAD
+    at = []
     for r_ in rows:
         x = M
         hr = max(p.H for p in r_)
         for p in r_:
             blit(bd, p, x, y - p.H)
+            at.append((p, x, y - p.H))
             x += p.W + G
         y -= hr + G
-    return add_legend(bd, alt, _ALPHA[0], M)            # v17
+    sh = add_legend(bd, alt, _ALPHA[0], M)               # v17
+    dy = sh.H - bd.H                                     # the legend band added under the board
+    sh.panels = []
+    for p, x, y0 in at:
+        c = getattr(p, "crop", None)
+        if c:
+            x0, x1, yb, yt = x + c[0], x + c[2], y0 + dy + c[1], y0 + dy + c[3]
+            sh.panels.append((getattr(p, "key", None), (x0, sh.H - yt, x1, sh.H - yb), p))
+    return sh
 
 
 # ================================================================ v17: the legend band (only what the sheet draws)
 LEG = {}                       # what the sheet being drawn uses: key -> sample data (reset for every sheet)
 LEG_ZONE = [("WS", u"WATER STORAGE · RETENTION TERRACES"), ("WT", u"CLEANING · REED BASINS"),
             ("WD", u"CLEAN WATER BACK · SPILLWAY"), ("WA", u"AMPHIBIOUS · BED"),
-            ("WAF", u"AMPHIBIOUS · FLOOD TERRACE"), ("WP", u"RIVERSIDE PLANTING"),
+            ("WAF", u"AMPHIBIOUS · FLOOD TERRACE"), ("WP", u"STREAMSIDE PLANTING"),
             ("GR", u"GREEN · SHADED WALK, DRY TOP"), ("DG", u"DEMETER'S GARDEN"), ("WI", u"AGRICULTURE"),
             ("CH", u"HERITAGE"), ("MC", u"CENTRE"), ("HO", u"HOUSING"), ("CV", u"CIVIC"), ("SR", u"SPORT"),
             ("PA", u"SERVICE")]
-LEG_CTX = [("river", u"RIVER"), ("street", u"STREET"), ("park", u"PARK"), ("heritage", u"HERITAGE BUILDING"),
+LEG_CTX = [("river", u"STREAM"), ("street", u"STREET"), ("park", u"PARK"), ("heritage", u"HERITAGE BUILDING"),
            ("housing", u"HOUSING"), ("building", u"OTHER BUILDING"), ("cleared", u"CLEARED GROUND")]
 LEG_SW, LEG_SH, LEG_ROW, LEG_TS, LEG_HS, LEG_GAP = 22.0, 8.0, 11.0, 3.4, 4.0, 14.0   # sizes, mm
 
 
+_PLEG = [None]                 # v21: the legend keys of the panel being drawn (its booklet crop's legend)
+
+
 def leg(key, val=True):
     LEG.setdefault(key, val)
+    if _PLEG[0] is not None:
+        _PLEG[0].setdefault(key, val)
 
 
 def leg_zone(z):
@@ -2650,7 +3256,7 @@ def legend_groups(alt, alpha):
             pg.poly([rect(x, y, x + w, y + h)], fill=lt, alpha=0.85)
             pg.poly([rect(x, y, x + w, y + h)], stroke=dk, lw=0.35)
         zones.append((RIVER_BAND_NAME, rb_sw))
-    for nm_ in (u"MAIN SPINE", u"RIVERSIDE SPINE"):
+    for nm_ in (u"MAIN SPINE", u"STREAMSIDE SPINE"):
         if ("spinezone", nm_) in LEG:
             zones.append((nm_, fill_sw(mix(W_, MP["centre"][0], alpha))))
     if "strip" in LEG:
@@ -2665,7 +3271,8 @@ def legend_groups(alt, alpha):
     surv = [(("s", "contour"), u"CONTOURS", line_sw((COL["contour10"], 0.3, None, None))),
             (("s", "park"), u"EXISTING PARK", fill_sw(COL["park"])),
             (("s", "pond"), u"POND", fill_sw(COL["river"])),
-            (("s", "street"), u"STREET EDGE", line_sw((COL["road_edge"], 0.3, None, None))),
+            (("road", "main"), u"MAIN ROAD", line_sw((ROAD_TONE[2], ROAD_LW[1], None, None))),     # v21
+            (("road", "street"), u"STREET EDGE", line_sw((ROAD_TONE[1], ROAD_LW[0], None, None))),
             (("s", "building"), u"BUILDING", fill_sw(COL["bld"], COL["bld_edge"])),
             (("s", "heritage"), u"HERITAGE BUILDING", fill_sw(COL["her"], COL["her_edge"])),
             (("s", "tree"), u"TREE", None),
@@ -2693,9 +3300,9 @@ def legend_groups(alt, alpha):
         lines.append((u"MAIN SPINE", line_sw((COL["spine"], band * 1.25, None, 0.55),
                                              (COL["spine_dark"], 0.35, None, None))))
     if ("spine", "edge") in LEG or ("spine", "over") in LEG:
-        lines.append((u"RIVERSIDE SPINE", line_sw((COL["spine"], band, None, 0.75))))
+        lines.append((u"STREAMSIDE SPINE", line_sw((COL["spine"], band, None, 0.75))))
     if ("spine", "deck") in LEG:
-        lines.append((u"RIVERSIDE SPINE · DECK, NO ROOM ON THE BANK", line_sw((COL["spine"], band, [1.4, 0.9], 0.75))))
+        lines.append((u"STREAMSIDE SPINE · DECK", line_sw((COL["spine"], band, [1.4, 0.9], 0.75))))
     if "path" in LEG:
         lines.append((u"PATH", line_sw((W_, 1.9, None, None), (COL["path"], 1.0, [1.0, 0.35], None))))
 
@@ -2716,7 +3323,7 @@ def legend_groups(alt, alpha):
             pg.text(u"1", x + w / 2, y + h / 2 - 1.0, 2.8, W_, bold=True, align="C")
         links.append((u"STOP", f))
     return [(u"ZONES", zones), (u"AROUND THE ZONES", ctx),
-            (u"WALKS AND SPINES", lines), (u"LINKS", links)]
+            (u"WALKS AND SPINES", lines), (u"LINKS", links)] + detail_legend()      # v21: detail sheet groups
 
 
 def add_legend(sh, alt, alpha, M):
@@ -2757,17 +3364,17 @@ def add_legend(sh, alt, alpha, M):
     return pg
 
 
-def sheet_head(pg, x, y_top, alt, opt):
-    pg.text(u"BERGAMA · GROUP 6 · " + ALT_TEXT[alt], x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
+def sheet_head(pg, x, y_top, alt, opt, title=None):
+    pg.text(u"BERGAMA · GROUP 6 · " + (title or ALT_TEXT[alt]), x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
     pg.text(OPTION_TEXT[opt], x, y_top - 13.0, 3.4, COL["ink"], bold=True)
     pg.text(CREDIT, x, y_top - 18.0, 2.6, COL["ink"])
     scale_bar(pg, x + 170.0, y_top - 13.0, _SCALE[0])
 
 
-def scale_bar(pg, x, y, scale):
-    """v16: 0-50-100-200 m bar (ink and white blocks) and the scale as text, at the print scale 1:scale."""
+def scale_bar(pg, x, y, scale, marks=(0.0, 50.0, 100.0, 200.0)):
+    """v16: 0-50-100-200 m bar (ink and white blocks) and the scale as text, at the print scale 1:scale (v21: marks
+    may be given: the detail windows use 0-10-20-50 m)."""
     k = 1000.0 / scale                                    # page mm per metre
-    marks = (0.0, 50.0, 100.0, 200.0)
     for i, (a, b) in enumerate(zip(marks[:-1], marks[1:])):
         pg.poly([rect(x + a * k, y, x + b * k, y + 1.2)], fill=COL["ink_dark"] if i % 2 == 0 else COL["white"],
                 stroke=COL["ink_dark"], lw=0.15)
@@ -2996,7 +3603,96 @@ def river_walks(survey, removes=()):
     for x in out:
         k = x["bank"] + " " + x["cls"]
         stats[k] = stats.get(k, 0.0) + x["m"]
-    return {"runs": out, "covered": covered, "stats": stats, "ref": P}
+    return {"runs": out, "covered": covered, "stats": stats, "ref": P, "rows": rows}   # v21: rows for the promenade
+
+
+# ================================================================ v21: the promenade beside the stream
+# Aras 25 Oct 21:38: "promenade is just too thick that it covers the whole river however it should be alongside
+# river like covering %10 on left and %10 on right and rest should extend to the roadside". At every station of
+# river_walks (WALK_STEP m along STREAM_REF), on each bank: from PROM_IN x the stream's width inside the water edge
+# (the edge river_walks found) out to the first surveyed street edge (YOL_SOSE / YOL_BORDUR) within PROM_SEARCH_M;
+# a standing building (BINA_*, not cleared by the zone base) met first stops it there; with neither within
+# PROM_SEARCH_M it ends PROM_FREE_M out. No band over the covered reach. The outer edge is a running median over
+# PROM_WIN stations; option A's water edge wanders (organic only where the project meets the water).
+PROM_IN = 0.10               # share of the stream's width the band reaches over the water (Aras: "%10")
+PROM_SEARCH_M = 60.0         # the roadside is looked for this far beyond the water edge, m
+PROM_FREE_M = 15.0           # no street or building within PROM_SEARCH_M: the band's width beyond the edge, m (graphic)
+PROM_MIN_M = 1.0             # narrowest band beyond the edge (a street right at the water), m (graphic)
+PROM_WIN = 9                 # stations of the running median of the outer edge
+PROM_MIN_RUN = 12.0          # shorter runs are dropped, m
+PROM_SLOPE = 0.6             # the outer edge widens at most this much per m along the stream (hugs the roadside)
+
+
+def promenade(W, survey, removes, opt):
+    """v21: the promenade's rings (world m), one per bank and run, and {"m2", "street_pct"} for the log."""
+    rows = W.get("rows") or []
+    if not rows:
+        return [], {}
+    rm = [r for r in removes if len(r) >= 3]
+    skip = (lambda q: any(pip(q[0], q[1], r) for r in rm)) if rm else None
+    Gr = SegGrid([P for role in WALK_ROLES["road"] for P in survey.get(role, [])])
+    Go = SegGrid([P for role in WALK_ROLES["obst"] for P in survey.get(role, [])], skip)
+    nz = _noise(101)
+    loops, n_st, n_all = [], 0, 0
+    for side, sg in (("NE", 1.0), ("SW", -1.0)):
+        V = []
+        for r in rows:
+            s = r.get(side)
+            if r["cov"] or not s or not r.get("width"):
+                V.append(None)
+                continue
+            p, nl, e = r["p"], r["n"], s["e"]
+            lo, hi = sorted((e, e + sg * PROM_SEARCH_M))
+            st_ = [sg * x - sg * e for x in Gr.cross(p, nl, lo, hi)]
+            ob_ = [sg * x - sg * e for x in Go.cross(p, nl, lo, hi)]
+            st_ = [v for v in st_ if v > 0.3]
+            ob_ = [v for v in ob_ if v > 0.05]
+            n_all += 1
+            if st_ and (not ob_ or min(st_) <= min(ob_)):
+                n_st += 1
+            out = min(st_ + ob_) if st_ or ob_ else PROM_FREE_M
+            V.append([e, r["width"], max(PROM_MIN_M, out)])
+        runs, cur = [], []
+        for i, v in enumerate(V + [None]):
+            if v is None:
+                if len(cur) * WALK_STEP >= PROM_MIN_RUN:
+                    runs.append(cur)
+                cur = []
+            else:
+                cur.append(i)
+        for ix in runs:
+            n = len(ix)
+            for j in (1, 2):                             # width and outer edge: running median
+                raw = [V[i][j] for i in ix]
+                h = PROM_WIN // 2
+                for a, i in enumerate(ix):
+                    V[i].append(_median(raw[max(0, a - h):a + h + 1]))
+            for seq in (ix, ix[::-1]):                   # the outer edge widens gently, narrows to the street
+                for a, b in zip(seq, seq[1:]):
+                    V[b][4] = min(V[b][4], V[a][4] + PROM_SLOPE * WALK_STEP)
+            inner, outer = [], []
+            for i in ix:
+                r = rows[i]
+                e, w, o = V[i][0], V[i][3], V[i][4]
+                p, nl = r["p"], r["n"]
+                f = 1.0 + (0.45 * nz(p[0], p[1]) if opt == "A" else 0.0)
+                t_in = e - sg * PROM_IN * w * f
+                t_out = e + sg * o
+                inner.append((p[0] + nl[0] * t_in, p[1] + nl[1] * t_in))
+                outer.append((p[0] + nl[0] * t_out, p[1] + nl[1] * t_out))
+            if n < 3:
+                continue
+            outer = walk_form(outer, "B") if opt == "B" else \
+                [outer[0]] + [tuple(sum(outer[j][c] for j in range(a - 2, a + 3)) / 5.0 for c in (0, 1))
+                              for a in range(2, n - 2)] + [outer[-1]]
+            inner = walk_form(inner, opt)
+            Lp = inner + outer[::-1]
+            Lp = chaikin(Lp, 2, closed=True) if opt == "A" else Lp
+            if area2(Lp) < 0:
+                Lp = Lp[::-1]
+            loops.append(Lp)
+    m2 = sum(abs(area2(L_)) for L_ in loops)
+    return loops, {"m2": m2, "street_pct": 100.0 * n_st / max(1, n_all)}
 
 # v11 constants (Thread 5)
 SPINE_W_M = 6.0                # drawn width of the spines, m (graphic)
@@ -3179,7 +3875,10 @@ def city_layer(opt, D, areas, survey, warn):
     for s in sp:
         s["F"] = walk_form(s["P"], opt) if s["kind"] == "edge" else s["P"]
     m2 = sum(x["m"] for x in W["runs"]) * WALK_W
-    return {"W": W, "spine": sp, "main": [tuple(p) for p in spec["main_spine"]], "stops": stop_points(spec, D, areas),
+    prom, pst = promenade(W, survey, [r["P"] for r in D.removes], opt)       # v21
+    if not prom:
+        warn.append(u"option {}: no promenade drawn (no stream edges from the survey)".format(opt))
+    return {"prom": prom, "prom_stats": pst, "W": W, "spine": sp, "main": [tuple(p) for p in spec["main_spine"]], "stops": stop_points(spec, D, areas),
             "src_walks": src_w, "src_city": src_c, "walk_m2": m2,
             "spine_m": dict((k_, sum(arclen(s["P"])[-1] for s in sp if s["kind"] == k_)) for k_ in ("edge", "deck", "over"))}
 
@@ -3219,7 +3918,7 @@ def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=Tr
         word_along(pg, mp_, u"MAIN SPINE", 2.6, COL["spine_dark"], taken, W_, H_)
         edge = [tp(s["F"]) for s in CL["spine"] if s["kind"] != "deck"]
         if edge:
-            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"RIVERSIDE SPINE", 2.6, COL["spine_dark"],
+            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"STREAMSIDE SPINE", 2.6, COL["spine_dark"],
                        taken, W_, H_)
     if not stops:
         return
@@ -3241,7 +3940,7 @@ def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=Tr
                 continue
             if any(hit(b, t) for t in taken):
                 continue
-            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True, halo=COL["white"])
+            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True)
             taken.append(b)
             break
 
@@ -3256,7 +3955,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v19.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v22.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -3457,6 +4156,7 @@ def build_all(doc, warn):
                                (b[0] - ring_m, b[1] - ring_m, b[2] + ring_m, b[3] + ring_m))
     # ---- per option: the zones (file, else zone base file, else the embedded copy), then the three alternatives
     files, lines, pages = [], [], []
+    sheets, wins, plc, missing = [], [], {}, {}           # v21: sheets for the booklet crops
     CLs = {}
     zb = None
     for opt in option_input():
@@ -3484,6 +4184,9 @@ def build_all(doc, warn):
                              opt, ", ".join(u"{} {:.0f}".format(k_, v_) for k_, v_ in sorted(st_.items())),
                              CL["spine_m"]["edge"], CL["spine_m"]["deck"], CL["spine_m"]["over"], CL["walk_m2"],
                              CL["src_walks"], CL["src_city"]))
+            if CL.get("prom_stats"):                     # v21
+                lines.append(u"option {}: promenade {:,.0f} m2 beside the stream; it reaches a street edge at {:.0f} % "
+                             u"of the bank stations".format(opt, CL["prom_stats"]["m2"], CL["prom_stats"]["street_pct"]))
         except Exception as ex:
             import traceback
             CL = None
@@ -3501,18 +4204,58 @@ def build_all(doc, warn):
             t0 = time.time()
             LEG.clear()                                  # v17: the legend lists only this sheet's entries
             try:
-                pg = make_board(opt, alt, [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale,
-                                                     alpha, areas[spec[0]], CL) for spec in AREAS])
-                path = save(pg, folder, name, u"Bergama masterplan v19 option {} (opacity {:.2f}, "
+                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL)
+                          for spec in AREAS]
+                for p_ in panels:                        # v21: each panel is a booklet crop
+                    p_.bid = MP_CROPS[p_.key]
+                pg = make_board(opt, alt, panels)
+                path = save(pg, folder, name, u"Bergama masterplan v22 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
+                sheets.append((path, pg, scale))
                 lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
                                                        datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
             except Exception as ex:
                 import traceback
                 lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
+        if opt == "A" and CL is not None:                # v21: the 1:1,000 detail sheet (option A)
+            name = DETAIL_NAME.format(opt)
+            t0 = time.time()
+            LEG.clear()
+            _SCALE[0] = DT_SCALE
+            try:
+                plc = places(city_link()[0], CL, survey)
+                wins = detail_windows(D, plc, bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME))
+                spots = read_spots(doc, [w["R"] for w in wins]) if doc is not None else []
+                if not spots:
+                    warn.append(u"no survey spot heights ({}) in the detail windows: no spot levels".format(SPOT_LAYER))
+                dpanels = []
+                for w in wins:
+                    spec = next(a_ for a_ in AREAS if a_[0] == w["key"])
+                    Rm = (w["R"][0] - 40.0, w["R"][1] - 40.0, w["R"][2] + 40.0, w["R"][3] + 40.0)
+                    missing[w["id"]] = []
+                    p_ = draw_area(spec, opt, 1, D, prep_base(survey, BoxNear(Rm), Rm), pzs[w["key"]], DT_SCALE,
+                                   alpha, areas[w["key"]], CL, win=w["R"],
+                                   detail=detail_overlay(w, D, CL, spots, plc, missing[w["id"]], warn),
+                                   title=w["title"] + u" · 1:1,000")
+                    p_.bid = (w["id"], w["old"], w["caption"])
+                    dpanels.append(p_)
+                    for m_ in missing[w["id"]]:
+                        warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
+                pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
+                path = save(pg, folder, name, u"Bergama masterplan v22 detail option {} (1:1,000)".format(opt))
+                files.append(path)
+                pages.append((opt, "detail", pg))
+                sheets.append((path, pg, DT_SCALE))
+                lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
+                                                       datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
+            except Exception as ex:
+                import traceback
+                lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
+                warn.append(traceback.format_exc()[-480:])
+            _SCALE[0] = scale
     if CLs:                                              # v11: what the other scripts read
         try:
             with open(os.path.join(folder, RESULTS_NAME), "w", encoding="utf-8") as f:
@@ -3520,6 +4263,14 @@ def build_all(doc, warn):
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))
+    if sheets:                                           # v21: the booklet's crops of the sheets; never breaks them
+        try:
+            booklet_crops(folder, sheets, wins, plc, missing)
+            lines.append(u"booklet/blocks.json  {} crops".format(sum(len(sh_.panels) for _, sh_, _ in sheets)))
+        except Exception as ex:
+            import traceback
+            lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
+            warn.append(traceback.format_exc()[-480:])
     return folder, files, lines, pages, scale
 
 
@@ -3580,659 +4331,27 @@ def run():
 # INT_WATER, INT_LINK, INT_REMOVE, INT_ROAD_path of Option_A and Option_B) with user text label, id, study_area,
 # zone and link, coordinates rounded to 1 cm; v13 adds zone base v7's DG 1 / DG 2; JSON, zlib + base64 (json md5
 # 81615ea37596b7b954663a368020b9a5).
-ZONE_COPY = (
-    "eNq0fVurdt1R5V+R7zp5mOdD7tJgN9K2itp4ESREDE0gRonxwm78771G1RhVa+8gtB3MB2Ez3rWeNY9VNatG1fzZ//nh17/411/+9oef/PDn//S7X/3j"
-    "b37+05/85E/+7K9//jc//es//suf//Pvfvurf/rhRz/8xQ8/+dnP2l2jfUb7UW+7r8/ef/uj38NWYH0bNr9g/tz47BlY8+f6F6wb1j67J2ZQ/ewaUD2G"
-    "lc8637B2Pyt/rl7Dzme9fs5+r+3Pyt9r07D1yRY3f3V+VsteVMPGZ716ZtDTifH919rnvFriWP3cS+z58xCrM7C9DCvPiAU2DKv3M/Ldar2oJ3tbniYY"
-    "tj8nIG9xXZ/Lx/r9nEWsnMD8zfkMGKHzuf6F8cxTYMN6UfunB1T8sZaPPSPrjz2tTMxXRS2fUgNr1rpyPicxn7KyNRV41ZD1GfmUfaDM90e3jWYZ7z4U"
-    "/7H+qSv7YA0uLRt3nhVoWH1aFEPCd8un5TB1YOs+f6zA1jbs+eHEbOzWfdq5YypqN2zlmi2+yNad7xlzaDy/EZgNO7Ayv2M9upHvNk0PvnAMehZR/lz1"
-    "1pXPHNliTMU6uXvQs2XYiQ2PEbDfO88ay1Ep/tyzyE6OaCNWcuRtCazzrLKRM+TffVbZ19WzTv+0kUvAH3tWmX5u+fZZp74xn4zz9HsGhrW99n02fkDV"
-    "WrxProH5uY49KzCgY1/dTydaYNuxZ356YP7V3WPDA/Ofazl4z7sG1c+6CVkndgkxg5YAWvczs1/FxmSdT3arWb/W/oyeXbVfW+sZ6sC2fXXNkCjYZNaJ"
-    "Nd77Zzr2Zdh9TBbkcu4fx2oO8eUsLsibwKZ1Yz6yJRejIU8ncn0ex3aMCeSd7ZS5PicVTRnESkr85c/N+OrorgXWHLG2H8wGYPbUW0OP9U8JyLo1s6sP"
-    "dG3U59Mi7bvJYZ8ldcD8DPvCgGgNbDVipQfmjz2r7iRkPzf25/WUdWs8k3jz1/zVGUIGmEHjk23zKXx6PPPXhmPtjXVvW/3M9q1fECz51WpfhXrIb7gY"
-    "wzqoidnvYZu+nrPfwzp9/Z4tiWeFt9d3bSYey6Dmu8N/75md/bW3vYaMeaDj2LOI9InlS+wxAnZCPhOPERAGxHZ1vGAEzMC2tQ5GgEbqWan+7szl+YhA"
-    "G4HHCjh87lkMpsmASdxNquj1mAadTX4Wl+/jllLhwe4lJuXzLMvr30ij51nR3t2WG29KfDzmgj4B9UJIOmpCDQF7LIjLXfFsQt9lD6ZF8GzVtohp4J8t"
-    "7dIdlkYNzHftg0mSr8qheqwPDd8jNlzOPli5gfmKf8wPfddEjmGP6KuBuQB9MIn3B/OhemwS6VWIMBvSxyY5IzD2rcd0PNh0rMXwAfNv1FjMwLwtqR3x"
-    "ezZ+JbXjg3V77jFedj7nYuUxXk4LrBi0YpE+3fBZK9A5gc1JrATkSu+xaCRCHqz4qz1MgWdEj7cEQjIwX/SPRSNz68EGnpuP9XLz3W7QCckFWV8N22GD"
-    "J7Zy4GnTz8d40fp+MBvQedMIe7Dr3+ihRZ9usCnPds5x2gaVbMrwLTkfq0SPPTLuEIrOLpcX8zFUYqlslyvzMVSkRR/lactxwlDRoFxXLMB6Yt7ix1DR"
-    "yeTRz4eQNinUuLX4sV1k0T3afg5isix2d5tpPgbNEjY4oCfNtz1di87HyNEq29zgwCon47FGpj/3bDkOy6bZDExrZW/fpfMxhgaH6jF4zEScjzUk4fVg"
-    "ZxPj/OAvh1JVbyr0id9NzD+xc4M/2PV3VxgcTwt8lDdUVGLTsDxN4V3/Rg/5jW/YEDxjm5CpyLnzNIXmTWIlf677Z0uO3nXbZz6zLC2MEbBPPCskZvcR"
-    "d/YuVlKOlEMrTCSzIA17LYztlulcr0WgycAOzknzV1+9oPE7V+4CYDYoj3he+dyxEYAtlS22jj3SvmeD7dcepRAN0YJ/dEdJzBryqBjtKawZx7K9z9rq"
-    "/oUUoUeS4VF3gjq32aMVJZGxHTqxeJVmw3w0qiToswv9uQfTqetQWc9x4sxxNOwjF+gjEXwPPJhm7FIxz0e7S+Y9Mqc1YlKutyU2+I1HXglSUyDWJjEN"
-    "3p0UXI+hoe4+2J3EpDQvDXFgmh+cDxsxiel71OQZihTieRDTor1+Zp8jt8/luRMY9wCOry59HqNwBHT8C00CCSdfDl7VIAPzLfVgZQTmWwWnSD1H18t8"
-    "7ETaesB8/dipLzA7Zs/HThz6vWd52YQ/duIMyE7F8zETZz7miqWH5gd2/Of6R50dbnXO3nScAua65jEdX5grll4Sm+wFHEgB2QljPqZjfHXpsa2VB8xb"
-    "8piOgW3Kj8d0nBqUQ+3wmIlb37i+RVuc7eEiGda61mOcYKE41uQXgMslsMHmPRbPJFQEDUJhS8LP4yrkwai74Q4KjDseniRiRQYNPE6BUbPCMzUJUeTD"
-    "geUL4PmDX22Vevp5nAc7+MhcRD+YZuLpdtNzWjtmWBNT62CA+7snhhOjPYmpZ80PBfPpDa1fQK5Xay7FRifDrEvHeGCHkBp33N6cdcagw71ofX2Geqlx"
-    "Vw3ukuTAhr/bJPGBuSR/MI5TL2xvjS32QG721JCfwFzRPktIo/6s8e5Ybjs4Tm2ZlPAUwL9qFveEU+0EZj6b+Sx7reJna5lDdj47Zp7A+Htddgr8uv5z"
-    "TaIc7l8fAIiMFdgWVtTb5WsHfjYi262PARGnhhw3fMcjCndA5rMCFD92/QPjxlF0P5LKdvGABObP4eRLqOqx5oJy3Nywj8xsi5h256AqG3fEMMFTcIkV"
-    "YdNX53j0CA86e/BwBkxNHptNaRKA0F/+a49hwM7CjbCJacEOLp0Bk5mT8+jXOYnRnt2z+pIdj4bcifngwY7Wu43vnhPjPqnMx6OFaQsDsyMcMI3KYzqY"
-    "vT1OWH3AbKGMR9NLUsyp555/PIHx93r01ywWYjxiApv+bpNGBuYjf+IIt2EAOVZkHAGzDT92SPfHdDKVN2Dq7cCWDQtsM332uqE6HoP2BDT9sRlrGwfl"
-    "Zlh4boH5iD5YIUS3wNhhWAHbjjXtAZyu/M1nR7MhMB39q+GjAWb+yLFudGJR440VBtOGeUqockgeK7YYtENSPtDxx8JJvZ9/toM4sKLWUQcMOBXVErqG"
-    "h53aHHsa6vsHp3R+dle3oYad8InRvQeMhjqw61jqcjhYO7F4bnDwnlGUOMIx4xKTCH1mb/h3S+yCzVMisKbfY9BgPJOsFa8jEjCJXywkg05IlUN//rCl"
-    "FZhvNHg42Q2s1UmsJGaHzvGsaE3Hs867Y1NCz86GBg05woCdS6zp5zrlxbNZtS+OG7QD+3wn5L2onxfkb8qnZJB9dKTi1o89wkpKFVvVugpj+2Y7CEVP"
-    "1VwYvSMw356P1JQARVetIbBma2AuAh5pTXveMFsoIxVNYiVnh/7iAdd0DqcLaZip2WSz8Ab0UA6nt6WH/3kjZOHYzL4N18mjj7C/DkMGA8pU/VjuRR+9"
-    "KS6zD8Nho0d8AJgdJAaUvbCjtpSPuqa919KKehSAr4CWM3QZIhxmxRCrlJYtPCX70UUuy1qaQpcuJWCSyFdD1WassiuJhCgph8DcQYb1kI0P5qK2RXAO"
-    "mAUcBixaQpNr77EeV2Iu4GCW7sBc1MLerInZz8GQfL1rTalp08ODZSuj7hBdOtYB0+q7ww8wA+ZgD6z7c1NOcgyBncNGDc8QsOHfeA1B+1xCNUfZ7OHx"
-    "mINakM8M+aw9BuHqgbkVUsNRgNmdhGKNXgqukkezBzObbjw2oizYZ025wCwvKUU3xnhsRAnMB7OWlPCMYSnzEyO3Gj1yAyZiYj6gOBqu2Brm0x4lfNqG"
-    "GVRyV03/RL8RKI6f63fHuoDtsQxbofgfzNRDvzk/8Ch0w0YYOoc+8o6JWjEqpnA7bLMW2PDnqo72wK5/I1ULtqS15YSnDZhJuY4XZkxaFSZ74NJs6Ccl"
-    "EGy8a9iSX98WgWMzDIJL3dLhlczFsrwtPQ5KD2aqvps4Dsx0EDCN/SVLoZ+ai7S6lOtQeDsxG6t9Y+tWm8meTkRriX1hR+DFWuxvBrHEemYthoF1cgTs"
-    "qzCwXiM1iL1Gzzr2GAs1l/zxx9JyfDCfSFhYKzDT/R0WVo/J9QW0gn4BzHZpX9k1bBd79zGYZi4009b9sZ1emAmbDld2bjU7K3WYbif3lT8XjpsH4s+1"
-    "MO4fzEcA8djcfd6Skkpouaepz1x6h5GxPncuUR6M+8S+ydbZBD1mSGy17aZOn3kwRG/993o4biRE+mw5UiQCdPgMR46yP1fy964rxP6YHSu3kA/BiGie"
-    "bSGDxHvJZfGYGLkqfM2O9V7bpjb7mKnSqrvp+hi5tpu7lfpIY+o21+AdgdUU3tufSw0OGe/PvQR19zMAMFk79Db2fnPLd25v46wkZp3tO7c3LeXewwNp"
-    "2voQK/mcnSl6D5pPbu/HYNGSejAXhY/B0l8b0t9tKX6Kn+/6Y7C08U109RJnw1tcXfeW4vvSx9XfVkcxN3Rv4SDFZ31jPAbGS/r45Lbx7poPS0vPCmZj"
-    "EytpsPisgXOVRkf150paCYPStt63lWAGS38sB22XuzwIBiysju0uzQ7fUkAuQx7DQb/msQQgPBleHvH7Y0n0gLZ/csgnceDQ9Z/vMn6AXWEcplPoMexV"
-    "ttRBgNAfC1sKmNlIvYa3/sApe4nR9gFm/sz+WBIcufNofOtVOTIuALlagbNJrzKwBSxat9zHh9bNGc9ddqKMgKKzt8YnOJhD+gJYjB3tF7RYIzyysxzP"
-    "rRVrg6Jpjc7WTye0VwyxnTxsRcTsHC0cGfYPFospzDyZDO1lv7ljEWtT7pLLOMfzXyyJxd30QCFQFtv7LP+exqpL92ebyPS7ZGoAC6NWs9PSQIIbSzux"
-    "5fLnNtlxyrwjd/FOG356W27oLdj1mxLg9XtuIPWaW3b68QlYnDGm3m1hX14ZevA7tsB8RMEnHYF530Dbyn3n4uORliVHWUK1fYdujuh2fyNEdAgAWroQ"
-    "76F76JOCGjiJNamLEPm0dKFWXkcWN9XgKswRKI1q6rxm6FDB7RxRn91x0pDqHiiEvpyJ2QEfenWkbnBraNaU+SQHQE/XFKA+8jNoFKYepeNv/2bAgaKS"
-    "OsRVJmyG1MpuIs60hiDzZYPI4oIOubRVXpC/ehXJTBUCM+elfjqxm5azmyVws6U1sBctqZW/dycNrvmysI8Ms7QQfHPA+ZVDwN9bqb4bpehjENb2bZgf"
-    "w/GluywcB+x+O1jD6IzlwhgYjNM8VLrmf2zY2C/DZReIh6+j9qRJnCdy1/twn+VxuR0a3TvXIw3s13qcfgyGEZ8CyPUlwssBxSGh5p6Pw0TLL/iqgLcr"
-    "dwYPSj0PNmR+4GAzE3P1e2b4ErGDeE7a9Vv/z5cN5BvjnMQ6N8bLUX6pRbCK0szzhQJL5AQ2eVIcr+0zeaKURw/nn8aTZ8s15mauSew86+jUenP7GLuz"
-    "m6T7etZ5H4LJoehJSLbzjzcl/ZfAdM7uX49JwNIGd4cWgsFpp7k3p+QxRL6H8hIVxb0biNOmVHCvNsJJr4Pook/hLY0aXQ8ljeYi7KQ17C69x7KYqePc"
-    "YfQKgcmcG2m82HrqxGKIF33TMIbSxPOQUg0XqQWX6KRZqUTky4k14SaeeYEC8QGur/V63ZEK0/AG5P4tRCx3YOHLqvnclB8sDgiX/qi3saHgETISoiXu"
-    "RHx75I68eSM/uznCLbhqYeCadzCtkkEn4k4DJJyNL8+dx1JgMKT93eXjbC9VNugLLbkorvyjOx2VHiaCHzX3mI9e7+H8N8cMsZc/odBVO3OfmDyBS7el"
-    "c8e0KrCT7jL3vvX1Pv+zyTs+i1PyJBau6SWX7snvLg4VLJA82C96sOXZ0Fkf2M0Duy9jeL9fPoFNL/muX30HY2TU9mhpg0NSv7nzRoZBD6n28NjP9Ex7"
-    "mGTsfJeG1HgZJTEEYPm8PN3fQww7AxEnP1EVwyjffBGIddRXNybDJC2b7B7xx9YIT8507grCLuF3mGrKSb/DoCt5ph0Fz5miRyMDCgoytYxPFAWjbo3I"
-    "jkf8VnoK4DhrCniNCCj1qsDYicDTqAqgRcxqCtKZYNOTg3ic5NueanF6bbbk4GOm6LgKz9kkpsndXc3bcZ547Ak2ZcdI7arvHpEXYJwo+BifLVwr60Z8"
-    "k+5RQHL64Y3J+KYk95ITemcAZNGDhtioPrEWN/jOA5V1UqHWHnFQ30I7ss4QL/UY8haVfovxiwCvvEBgHx/GgaWUYCpWxYbzOZe2O3IaEM5l104svUUO"
-    "BkLSkt7PsvHROxHbWRJnJ5fZqoyXJi0UsWaX1CdV8JKmPhF/RlRzEJIj0KKaDNRr8026PRHQl7pFWHOKDDAisO4DenK+kbhxSS6IALyTcIyXMCPuP8Rp"
-    "kFEPzkAV92EE38DDKebUSl4CiRQ6soGVuETCWEFzGIQ0FZNHBHA6JC0GU53GzXj+oEcSHJGRXA1STla0DpHNQcqJVNogSQxYMDgUZLoZdhk8PwOTDTJ4"
-    "igP7Jakp9tn5iokooxCY1MjgQQz0Gi2LQc0HTPLX3I6k6+gEo9w2YDcZNs6SeoVxuuiJjwkX727yn0rSZDqFN7ATTJ9NztFMqC1ykzSP0LOdHCZF2R5s"
-    "dHKdSj7nTNaXAdeHTyR4UtqPndQU8Kl2cpguSVdSkL2Ti1l7LOROR+1M/xtoUk7HBYluJp2qkSc2k4q1yTCbgZRLbppWQBc9s6YQaDT1jE5Xk2I2yM6T"
-    "5G5b9MT6Saqb88RaumlbkP3SRdHo4AHFUFsPbMMm2mHS83xFZX6r0fiEBYutcH5aEj3Qo0MsaIwvBqS2MhJGKjFtqmccfZCfxrfgLB7xKYPY6HTXNqNj"
-    "VTzBlsyuyvSS+fJ6VfFTW+QCgGPp/NSW5DFw8CqxYEAWdeLkc2K4v6LtxRkib0Lp5Trp6Wouot/3GqYAiKKT2E3yaBO3VUu7MEFv9uDLG/H0kCqrDW/O"
-    "WFJqV75LrmzkOxmRdZOhuwJy2n9PAwnO20vC70yu7BUxWNsi+LOg2yXm/EnETZK26+T40d9YF5f5xfjdokG/MJ9w2KYjiMaevgA29wzicl9ih9/kRi+y"
-    "zUtQqMU/V24FCNmN3HVlFshXC0x5tXBUXmLBKxc5/MGU6nOV6TJrkrm73q2R9KeoE7CV1HWx7c+L4n7Jyhcn/ZAbPpuWGRjzsxMTrfxEZkHI/CX7H8R/"
-    "0dRP9Cyz3B9ToU8mDagXh34WYMp0geXRmG/QIkHAabAzKwQc+lSQqqDUVZB4OjMalDl0vBoAII0xmFODuRDKczmM4iFnouVzvjFWyZ+rr3yLmdhlXsbr"
-    "G64JYcjlZ5XRETktdPkh82NkizsTRPr81jHk6QbkzFikm+wYp6KslBGQCwFY0om5KNuv3ArylZANo/TLQ+8WEml6Pue7dvccu5GJOfM1i0rgUVLYYZIi"
-    "En3yE0obKgn1ruyinOzITFLq2GmZwaR8Zvy5mf2kXXEKZ9FIaZkipKwrzew+7NkJWoplyFRmcem7oAA2YsosReaSksJmZmK5xjyvVCeGToApzQPnis5k"
-    "tNoiK8yTJmAjJ+ZyC2krPTLKXDYiyj0i8cy1KLxuKxLUXFHBrZF5bIsZdVo/iymewLS4n+Xl2xsutsTc9LuZ67N45AemPQpSqLL7RmL8RpaOgA/8ELv5"
-    "XGQQKvM1saj1kK+GiWTJ7Jd5iz2fY7pkye7SDbAslyW7sZkbqVHGDlMK5Q1oDKVa7sCWsjRLZhV6mQT4JXOUPc+3ROGARQI3ckOV1IzJGMwhVXbSOplr"
-    "2l9Y5KRm4qIndsPfmN/oizmuSpVbpK4iP/aub92oceQH5unPNfhFNpGHOb2RHztZxSF9jsjJPMovfmWlMoW5yMJeOgUjXXlkVqonhSMi3yNvmKnTLVNL"
-    "i+tvpE5rmCdz+YAp42uylgcw6a+5lbI9VHcAKdHje8Z2ZE7PzKYm+/Cd7T1JDlhpTyI729OLkSk+Iovb05rbzueaMsBTWYHyspiN3gMqgm4mlHttA9iO"
-    "NZPMN/PdpdUH3fPIi5e0MUebcuXzOR8VBFZfieybafbS1kMZ4JlnBcyzmvvM0gA30/tHfjfLAKzEVC4gajTcLCvQ8rnWWX6g5e91VimoryZfVjOo+eq4"
-    "rHrwwrz4xMgMzHGzhkLLpkSthZbPZUmG17uXpRuUHohvHFZ4WK8mL1aH2NmWoioSSl8c9HStl+E1TpauKFmngM9FVrhlHhLSahkMh1vFjCyscKYqa2QR"
-    "BR9lbJybdS8a63QozRGE6856HlGAgVaGJf9npSMvU7Dqu5aSbw5w1M7XSkcQCjEdJBmZ8EissSzJzno4Lm7Wqw5T8VoQEFmv0jeL1VB6lsjx6gMv+2m4"
-    "zx/qso6v9ZCgaUsW8NnCbpa5UfWWW79VyIGC79/qAaWDMV/NVM1+VfgljjJZhGd/6Zgn/O/XalRRn8eeaYn5Bt/3XQ/IK1qc1zTSBwHsNexeI+S8VigD"
-    "2marZQ2rysI8O0ti+ao4afGDCdFZ5ycKaXTu+ZMJscNTFe0Uko+xxSd/jqYnDjU7K7P4Qr4lFzyJ2Dgk3cSiSpIymxN7yYbBskbpE7RvDBZs6on5Xr6Z"
-    "JgySB+s/vSrOuL6GCy8faywnNXNAz2HZqZmDNzvLU80cZNbJ6lmHhXRbOyevwFZXWazxdW5xZi9ZYMcrrz3YzSJjUXcrRrmyyZljPiprcd0cJ0+l28k6"
-    "t8WjYl+vCj61sijYq2bbrCweNlN+3KUaYy/ZU1WLbOawH9UsWzmNU6XNcsoOi6K9asn4eNY8pgyyC+C1kmQYjBfBuxXjuT6VNdti2BeL1rWWi2JFWbj5"
-    "gn6vehzNXfjoojbNymJ0sc1WFq17YVHcbicUNfC+Y0h1Hl+q5OzMiM5OPAbCfBXTUYW+dy9UyW/mJ6Li38yeRWXA5wj1tz/64R9++btf/PAT1Bz8u1/+"
-    "+oef/PCnf/43P/6vz//9kZUb/KO/+uu//JO/+OFHP/zq759/++mPf/qXP/2rHxv24/qg//y7f/n7f/35L377y+cnfvjFb3/xzz//xa9/8ZvnH/73P/7m"
-    "lw/0Nz/827/96D9UzxDUQjIVVxIamXXYkd8wAnPmVomo+AHdoBNr4gzSTdRzlwJz3ltpsigPvIJOpKwy0k+l+uqZB3EqYzw9HfzAzJnfblSaOpWsXmBc"
-    "uaeyplC7wRw+lVyJhtPWIUauREM8owdmqx6YxqUyaaaBskaIwbV2I88AmFme7UYhtPPsuy6MGxDY9aYEHf9U+qcawvfCrp9T2i3Z5OuypYGsQgzeZ0JF"
-    "EI3qdkJHAuOryU1tzZ3P7URlm4NN689NaZfTGBMGxuPbQdKTjdQJT+tpTEEBJoZpY2JXO1GB7DybtgxiGgLQo/0bTfbPaeS7t6x8dzpr/7UTDqoDCvYi"
-    "Jo7ts5WLty84jMBsIq3SCiGGtlvGIU/3amgNiY/6NbIVgXEAuku5tiM3+CDss4hpZ6jIX0OYegdmfghgWrX9qiGT/oADU09QEVbduG9wv/CzKhwKTMM+"
-    "eExrO7jZeM6nG3HYGb+3NSY8leK7dxObIzA7y2A41RareKEhvtG1EVPRYljMyga2Voze4czWG2N8he0eWD1aKTemp29iMT9dKzSSmjDbLi/ODG5zJ98K"
-    "WDS5UF6c3PPdsypa8uiwGBv3T+yB40vghNmA5e7jjq2X20K7Ud1vTOqyXXsDc3l0bu7G4WcvCAGt7Eb2KzCR1s0vQAEyT+zu2yho+gysVwqk2lMyCLst"
-    "MMm36H9JMUh75VSSwCEue2IUqztWXmVmObCbYvBQSq/Eeqc0DzHIqgHQBJIBVSzwErVZIKWdLF+CCgRp7glXsCdPaIIrTdV7YI0KraRicX5tiWolUEBU"
-    "mlGIEJjnar0UaRVfN8ueQfE5CTFzDIE597FEKA1KczHRQE0pR7rwhmQs5MH0LNQGXe3cx1rz5+jJNGz9xy2R//LH/+1//o+f//fx71kjf/fL//Uv/2Dm"
-    "yM/K3/5BFonYBW3nXA3piR3usTNY6Mgwzt8sVLM7wmpnst4KMO266TxVQFJtlq1lWNCszpS6MyYQMRImW8YKzqTXEBgZX2cy2AgsvkEx8UCyeSbdQG1H"
-    "5ZujGgqGrcCOxH0hxGiMfYGrC3UFCclyUwlBYBL2IE3p1a4vkKhonSVEo8/GhMO+jhoXdKKzYio6nb9nx0ykZt81h0SCA3wqDbHW9HaysXVVELPMgdHr"
-    "dx5lWKUAA7nSf1ome2mUIkXvqL6YYfo1FrkEJsN1M6HcvuoQKGv6hOQ1qs1p1E8PTCPCA+wxbaZR4qAfqSvw1IUNGk87iMUHVcIcqyHqD2v1tiyOccRl"
-    "bMGOP1b6j5Cs6kO3eUO9DD1HBycwfhXcUBviKLh7lIDbEARgx5jhCkjtUNZZQziCH4A53IhpSVwWl20raKUHFvcgphkD13gRk3V2XUJ+ga4nEdirPpy3"
-    "yIhZYcfeIptwRUm4W8hyAaZXB617EACFMZbdMsH1KuqPcYrnGEG2sTvENrfYChP9FuacA4vnyHzGlHHf3coiIsAo7m6lGwsYWWzAXNljVei5pq0ddtet"
-    "Xcui6tBzqwyqHXGiW2V47Sh3B+wK02NLVmtUQL+qm2U/N4ixcJR9tgVGMzNO4rfS1wyMVtZtRdsx/Mq3xd4r+VzNYeZh/4rCg+mgyX9b1yoItzww30BL"
-    "0bjb6CrDwjh6dfJMtiIgcsOUW1EG4sLi888G0+eCV+OfDTVw29Hmi3juRe0sX5ChzID57Caz9qLw7yJG0/jCvPW2ROWP25v2WjhyLgp02DDPOEpfsL6F"
-    "CWLeNCDaY7drMc+gN14Uo+p6latgsAIHMAZi7qCxZE3h7+maAmDxbtewVMqkq8JTgKZ+jnx6jFQJ6AqiiXatNCExDd5gTioGnrbSRTVFTcZWS7QlUc2S"
-    "vwdrg5AGYEbHIsh2wUjhsqiBHEk4LbxJroKtHjZkDtoVK2qRXRBIJPaoWS7KgbevohDY1nPaGLBJNlsneQE2qzq2Atp6TIsbgcfJMVk9sKNxou1yUft8"
-    "a9wD0hxqC6yac62ZWIwJAqNmBXa0FLVkl9YJrKnErHFzfxI5vhIjNHeXW/dtzniKCRZtSsFfUMz95yNv4i5pX8QyhS2qixklty7UhGMRAb6iGgCr6tah"
-    "JTAirnkhqxox2lV3k6TbhvTv3eRBA+JS36yP1FBDjV3dTJoHpqnZDCG0EU4eYD6FIyr63O0F2lumPlwV2wUWj7FqVBuROXK37PQsVgTMV5N5Ioh5pcQ2"
-    "ImJ0D2uUAmsB+UkgiXMXngPHotz5PbylBBi9LcBcp/SUTkezDbcLocFjsFXWC4yvRgT3Hhaybz2C3Y/ZS1UGf0VAPpw93PEXbjZrXVco/h6vUdt6HBeu"
-    "8mtab9kvHaB7kwsFmLtpepztrrhvrUdUBZjr46wBf41gbljqwMvqpq1FOX5gvmRbDsAl0bq14PYC873eIo8LGH9v5HdZhaGBoBCQL4qsVADMtyx4ETMx"
-    "23lZjtMw/znV1LxKimpZst0w+wTiG2oxaZKtxiUd9zIo12qEkoH56aVGnjIwn8caIU1gbm/WOJfeKwFSg8IFzKFgel1VZWpm7BFj+KGVkz+3qFJhPAoj"
-    "VxhYdO1QL5SwroH5SJU0h+FR8eeGnGbAfKhg8KLJvTz/o/+qeOEVh1xtFZIngXl0rBWeSxyahEo+5bZC4Q51zDpWL+ubAmOyaL0MtjlmgrbenV/laqwq"
-    "ZknMf492Pn9vGzZs5fGzxyBaX46dTax8bXG97d2LZRCdTQ4Nf7O8HzNVWQ+3GYfJse2LLIeuWombhKphM/tVXc7Ww/Q0ftbfZWYwW2f9P6QcvMcYWTMn"
-    "xsQh6iOHzFaom8ETYKw/XDcZfI4dx7aLN2C8KaBulgMHRgdm3TObwjND1dkc2HI9WHFwJuR1QKs8DoAOB2C3XCikk1TdIuPY6cQ0P5VJ9BX+CD4HD5i1"
-    "eLG0ITAtFBx+a2DmOaiLdBdgJO1WqHV9Y/gxAlg9gZnTpS4v6AzIa0/WlcuzstADsPjqUktGttjTSusiRckhn23YsiMwn8bVYpfVpU6QSEfMm1Ji8CqT"
-    "Jeu8n4RMCAIqJ1vnGL3a7IV9AhVHE+O7TBvyMTGTvML+ynGa/i7LyDrmmwAuuR3jbnqgTjoFHTPrqE4mZTtmdIWK/KaAzIlRYcLn1PpSEQ2e0+0YuWtf"
-    "sOlRT75rnxjUcPyGjR7SlmouFRuCQY4pu2HLEQyClkPg7aN/hmvFvovISs64L3kVaXTM9F7tdCYDY43X2leujMPV0ld+l2WYq26oe7BGI6wq89cxO3LW"
-    "PkL+NlphwIqe400YtdOfDoz6tnZe5uCYN6+GdMQJ+xLTDm/u3au9hCSEmTGJaYM3smdruzGTTfugnVhUjcm2VRksjvkmBVtxBOYSs+XCbTwi1Tbz93iF"
-    "REVItAVmxzVgmrXOujpVRdGBVffPV92x45jvybZjT3ZJ/nZCQ4C/cNnfcwMrGpejNl+uPrAbdrRvX87Gqx8uvHqPVaUS4JjdFkM6tQhui+kwGw6LZd7A"
-    "7ACAhaYhaF6Kw9bjjjUwY92eWD8+G6qV7+vscBuUXI2b0Py+au1Ot1jdk1CIzEMZMuhScswXrfLGfQPxueaWmWM+tcM93A5VQSel7V2UDTP37aEI6TMF"
-    "sIuVFXr0jd3c3qdSJGkB4BODoiuENys5QsSFJKTHFJJw9MB8AyG/JiAfz9k01xgTyd/QSiyUADldcoh92U16EyhUGmX8DcjlkS4y8xlz+21uPYao4pK2"
-    "CcgVCxJ4883QZz1f3dKFawTmC3b13//qYoKmty4UdUwF6x+aQr8xAN68dVI7bOnbG8ZfZR5sVckan7ImI2StkPC+A3CgD0VAa6h9Uof4etrkQjhWL02k"
-    "WJ6sFFIVMnEzx6dsk5fh5pAvHhhmKzDXNXuF8XvTptOAgsRD06+nXSbopvnGPpzoamFuCazL/rL8tqzQgLqgswIrsl9XGpd70s6VXi0MylUr2xwYf+91"
-    "qKHzDFiY5jNt7pPvyjSXaiy8Gg4W/Hp9otPSz8eGP8aqCWydDgnSFYXlkHGYyMeOjhyvx3wB3J4/t6hU7/jkOMXZZ+UQ5xnp9ZzOUr83xsq+ZlMWz2sl"
-    "x2npqBdnOLmKS4tVwaNu6bHCytBRcnzydHF5ME2k8/ga77FcAI65LY9qPKqeT/16QAJ046TKA3L6oe2+Lx3Cb2DuOqvhX77M9gZ0EuORXrcT4AjuR+ua"
-    "bkLcYyMPwUmsX3oS5Di6tEVajVSCq1RKeCbkTryUJa2+/DArvRo9ITk/FDu4K30kLZ8LX8oba/S5tPyEe45xZV8LbMmtk84K94e0Vy/IlTQvUTo6PFhk"
-    "5lZgzsLLKnrAWpPHaobfxJvSM+KjykbwgO3012w6yla6a6qcbDNdQu7G7CN9LjVddi2dYvxEZAvBoeZLqgddGM44j8D2SG0B1ulQfLn2Gl2R8szADTDo"
-    "siwjMP/qKOGeZIKXeUBHuCKPnKfxc6xyCB+rHELHLyMBpOGEA3TSPUtqPRyl9ADHpUpXCZzA5P462mVjpTNWFDxcDpWe3UNIrl14gOmyDgfwpuNspCsS"
-    "CZTygIcfm8IJ3nON0+almsA0KFuLYtb0nne6J+NSrrvJKwek0NsW62m2WBSbZx5gCpRsEd9wLA2fvYuPvDIMvn0XAjPd4irfgsiDpmexYgiwmVhjzELh"
-    "16XNPTP4uEgjm0E4BNQUFNEOWNp4MwoHX6uCoyBbYj52KwrJXN052FbcwmeREYV7Aut07SJ6NCP0chV5WhmzUbh0ZGynDdEGIlLk/s8VRUgRZGJ86kQ4"
-    "Ymo8V8ZKEO9SHF1hoUnFa7H1GjE1BrJuxtTkAl4342esEgss4mcsMGtB5BWBwYjzK3g9RGHNnBsEGo8Cy9oYMPU1AjfjlosjdX8vvBnXFFkYVJiGYPDO"
-    "CgsN3oiqKtKoUN6Qy3/FNfQI0iriJwe1MoKAidTQeW0elsCJkC/nrEcsq28FS2Or6E5qQBFBnux+EJMAVYUZpRhA89Rzctp3SbIVBZstvq1Ye7wbQWXl"
-    "3SM0PjRKERovCpau/DnFrVcK/CZC0IorzRG639/muokjlbUsLeofpISZ7ADxPDTsLThMUeIEmCgdctk32VS7BU+hf0TWktpuooNlOC7IEZmGBWLFJr1Y"
-    "S71Kju/IAgVPY5CsLGlXt5hfcRmksUNEak5iyRYUX1BzV0R7VI6k2YWfwWfx2d8Z21aigPGha3BmiKXcLSeJZDsoOEHVm0nVmSJrlaT07GASjqADHRGz"
-    "SmJFcxN0IAVfdwatYCCLvqNhL1WUw0jfBlspuCt3BKvpxtK5gdX5VbSBENUlFsXsv6Jcp2g7YQi+3/WMHkCiYc0UlDfpWuqEKLOqFmqknGR6FRF6lHZg"
-    "SQ5axMEbG2JwioV4i5iJoXmP6nbanPXACqdW7HKVIwS2g/vmOmbH9cnnLDETZ1DkpohFyV6W+bSjICXIelyKyfw+yjvZSecNU2nv7EPRmojLVUEvdP7R"
-    "jlvEQU28yjlQX7d4K/skhXGKH3WS6jhETT1JYYw2h3gC59JF0Y6rAMHN7GqziqJvEb23aBUnWAqvxIalE9OOMnln8cYew3pgVe8GrXVpgnZwIhdP1W3L"
-    "MDhrZOvEB1/91eIT9Nd4VRkBsDOEaR3DoaQECDUFV0Jo5MUlx5UQMVI9yL5bXRNlc/I0D0yzoRpu1o0VJOMd3R3BRd4SoZqNqeyEvAzkWO0c5Y+MwIoW"
-    "rvjOg2Ryw3pypUdifyj7u/0nsb97gbsOa7NC7tNrUXlTuGF0INXlUZMKXbArMT9BGkb/HrBrz5VLT4OF5JZBrHkMzBN2DCsrMPiyKnRGF+b0xQqdsUZg"
-    "fG7KJW9hxE2sBgQtU6EyWj52rWely0lrkUp/NdxAwLa/W+VXrtvzVytUxgrIHoN2WHrVDMBqbFmOyfajcT13yzMI7DrGu66ADR93YBrP7Su9mnrgAGwv"
-    "U1ahHuL3dmIMisInCJ1aoR/iOc8xN4yRKTgA2Y0mLx0cgKcR4wDg5DoJ0REK/99ZxJp+buRzDFaZr68bVhl5rrzzxSCOJ9J5KqGuhhjr2CD6geHqG/4B"
-    "3kD5YODkCJvCKnSWQYw/AFr2Ueg4tvdagN4gBgwqaTAVOi4e4045J0Kx9XaOpu57BzZM7NaTPIN63Xo0TDN7B2cMuX0tMF8V4EnpOQvM1XO63K+VlxhU"
-    "aEMtWeRIGpQrlrWmK5ThCmjZm/sqcGr8DYPOG7r25t4KNVW3WOqR6HPIn5pijwCa1g7R+h3zyd9d9AQ4RG2QthyZRjfxptWcLm5/qEatarhNDdNV6sC0"
-    "qiEvvHFwpfpUr62WwJXq37CqPcQaF11GJOBM9bW5poI+xt8ZxHolRml3Vvi34VC9ixjFHTylhRADgfCUlk6MU92qBxYNY9fgFg2MQVi4RflupwcWLtBC"
-    "RB1jMMOwqce8FK9hoxHj/K+udQinKMcpJEIju9wwRojNKUoofi361STZgfmvVclE+Ek7IfW0FYqcVSTrzXW6iTEOBswndl6JMKOw2eTMo+UPrNvIzR0T"
-    "gaCnPxfBMaPEWcfmFEMJrth6iMV3O8XOHNrEwEwXHV1WAWyoLU2cGmCmZI6V3Qls+++V/L3J74KVOgLzyRgnMU/Nr8jeit9blLtjKY7YmiejPNhUaA0+"
-    "YBdkY4g40DzHsiJ7dfITyMR0rEmOwQVcDjH9XHfnZUVGq6aNFUwN057qw1U+Mlq3sMnPllg/3S1Uw6owp75WJL5S4MPf2wkt/ZqXsjZscOBRokUYrYDm"
-    "5SQM0hdG4zrrR7FVOHJbJ6YGDy/MZJjWGdxFl1hfgV1h8Q3PUKmnRzCokQ5v2BR2KEJ1Eygw93xWS9/lZNAYNWwE5MgU683o0sL0lBfEqkjopXYD5hI0"
-    "OAjwu3aHekit2akYestXvWp19cxvYtPFUa8hK+ek/OhF2qKRSF8t4fwG5s+1I8sIntfi2A55NCWP2o4hnofCB/tjBjZtW7SIwcJD6xZZG6JGAbNewK3j"
-    "yPKcuorkXdpPRqC34Ww1JnFVvhkETM+CMKzEHK7ONVavqGHG+LdP4M4nNnhx7FQnxCFbTXVHc9fyqa6sJAtI5lNdMp/MS+pYGMvmhiDEFbE906cicVcL"
-    "Z1duxDqiudtpe9WSeU9g5xDTvG53FxpWhA19o0Un9tTvVdFczBfViUm870XxWYv4K3Z8O8TiGxJ38E4Rci9FRTavdhgsHXu17I9+zU9xBpWAtg0Aorgc"
-    "ulM4hyUX0+GmKyP6fypVjy6rd+zaVJcmHhsS7v2xKuoYcusrIc3+6ZxXlR0E5oVqq93asQKD36raNRvC/ILaald/qSVeb8SwkpidAewaKb3rKfXVrowS"
-    "dnzG/MKtwLa3pccaA5f+ENMG4E2A1S/aIVbzu7LSeA2ntY+R78a7FQ27O75xO/srBc+7NGxcYjZ0DipFq+IcCgAM84nuTmGyDc7KSYshXdSfJQghGOat"
-    "RaDunskNVNKGOENTOcVnBeY6H2fcFVPuG6jsz8yFUbmQY+k1qgqVd+Q6W9oXN9fjICb1dgrPH1VHMisxwR26eu4L7Xh1Fu6uS8mgzm5Z7yoC6Tv0SPao"
-    "Y0gZbpJRKQQktm7Iiip5N0KkVMlAdWHz5FZPPuY5z4ZJLu5CDVBvykVK+3pTjB8KslbCLmJtS8Okd3kRhMl7Hskth7VKLZwU2p3qY6Rsd0umpb24BocO"
-    "xmQNzHV7G9lkLxVvikz23Wq0M1qQaUz3bCpBCZ+lRdF26p4qHXU0FavosSCmA/PHesrZeflcjxO4pSoO6nyZS/O43upBFLMssv7dqqDnB8bHqKnyL+2W"
-    "dsI0GDR4ag+rYi1iWha4EE6GluTCHLQ0+hGD3zLOwhA8aRuFqVnDhJKVSneYJ5cRC1vuysCtaWpK+4w8+oydBrNE2XCOkRnWZPWbXdmJSWFanhcxGUyD"
-    "Rz8r7BbmbKE5r1WGEnwy8SUqhs6bQzknsKGrDgJpabNfPcR23zyYjx4GWZeSHiP60GX0jaDt4iDgggdF0vLAcHlMaXmE0MmFbgkcNYZOODpZdfngdEuQ"
-    "YzxFBbUcx5mlE9PeecThwUryA4Zo5wFMr8bh6IZIsTtleXbbiflG0QXDjlWdBUeeydyRAAP72zFtjtB4ze86tiNotGRzSczXEW/pGLk/CQ2dhhNy7THz"
-    "0NPmR2frugNqPJZHO7zctB3oNa1Nbr+Vi6lJFK3g/9mxXE6OG6f3Qi/KnOEeuIMeGE1rPdzDYjC4B+IQkiyuizba2jEgdXJ9qT6C+z1cTCCQ3MM/svTu"
-    "DseKz/5Ka8luraVvqYSfZsndJDFZ5OOIDAd4fcIrJaFbNPm6qIgeo0lMXy30tmV+DJxNrjuWXOvwSblKWDd8MqVzae4S81A6j607vKPwe/m87rQ0WafB"
-    "MGnsov6Hq84YiYsOPamEUqjYd4/9BRecnIHx2UIFjfjyCKzJtyjNWwq9KIh8zXDzufcKRv395vrbsWGBLTk+OT/AJv2jtQfkB9zT3o81uVvrDsxX8Ynd"
-    "CS/kkfN2BzTl5JWrHg5M+odHDT/nlm953PSGygc902s6jzza+6urFiTW/s1lfFs6Vzs3lF35HS5tPtcjCmMV2hk0iDGOYMCIAMa51M93ZIDgKOCQI3A2"
-    "98Wdnxle/oB2BgP8+AU3cwYNGKsI3V6tcB2x3jMIsYjJDX2co+qxlBqYQi7lRpjDV+3NyUDxua3QzM6wSWUIpyZWFNXJiIvb1DckKiIzW9jagdXLuFE7"
-    "EdVZwu4IrHXGnNaKiJC5RBGbGhklGpUxLA38pnVjFVQy6rQUJisnI1GH4bQyImDFtujka4T4SehmrCuieIq67ZLBvp1YU6BQ62f5nTwWUBzrWxSvtnD3"
-    "L0+OMOxmVJC/12NYoBOsLXXETltWXdSgZ7f8/0Zc5/9Dva36B0VcmzYnLhWUtAc2hVEA4v7lTUxH1Ev3sF002ALbjs1wcFyaYrhUUL6Gu/TdyCFDVTgz"
-    "z3DRYJy0j5uiuFVwJLb8uRpGFu8cr7hVUPb+pcsEtwpyZ6N8nJ/Id6Q1dimLLZYEsMoT/o7t2Zl3XO2qwcRMfuKqwaNvMDYHjB4NYLY4947sMNSUG/5c"
-    "/8yAfFh2OPmszJxBNXvhdVsNq8J8yeGiwR6I92GFV8Zq0VkfRKgE5tSMuteWVATmc7aW5sxq1hk0tVS6DAhcFnjULatvUHEH4LkBdX+1vbHlLalvzLxo"
-    "uLTvaHbobMYNffEJqgDcxiesFq4A0DYSM3mPm/f4ierHJ1y8R1kH6BDiUuy10dmEuw+E0eWBe/eon4Adf64phN+rtsqMU1ZnWcKKm/fUELepgPC4B8gs"
-    "CtzFpxfpycBVfEcfOFw34+SrtBRwFd+cgV1/N7yy3cl+BlH8d95lVnE7n9r7mMqCNCRwO9t8jQgR9kanvF3YdwLzJTwiWtd51Zph8Vkt9REHlG5OccOK"
-    "DnfAfBf3m7/HA+rOszIw33X9SAwD86no4aruzA+tqMq8AvLN2SPA2punX1QUed4rsOpYJP0Bs9gXikZrV+iwtHv47nrb7Fovb8xXWQu/DzAzolHSWgKF"
-    "l9zVrZuFHXNB21Zs2kaNhVLaS0PgDN2624iF0fx+lWrX3a3AfOu1sNx6cyvVCn1z7fXCTQC3VAvMpRE8Wny1V5cV9Wgld22pmlIGaaf2azXSHjtCPoQ0"
-    "jeAFOzZlLfa+OD9Vh/TeeXJBiXRNY/cCPIbpMS9JU1FdPX7tUlDUrgNTH15/p27L+SbmfFTD1FWWpq87wwadXhBAtJT66Nw/6fXsrMNvmMSHAnioLy8Z"
-    "OOhXiprzwBa1UTmy7vrQei8n9u3Q4oZIF7YpK0vYrcB8gZbwhwMzUwkV9qPNm1oF1t13KBS3YQbpnGY/ZrOIEhn5AV8AOIiNr41bKv/qmB16VpYGQcfM"
-    "Q4qLCGYPzAx3XFjwwqb/ns4BgGzc141oErDuWORCA7ONjHvoXuPuLamyxw3yx8p72O3AhGscYvUY47+uTCK0AbCvnleDPT2o4vKIWD1+92XFJRPRYk+3"
-    "rbiMQrM4eazwy9SI+eXLhtHO7l6WrOK6C83FZOgM12JoAUxSitaJyGGfXk634poNdQPhVEJVX/Aq4BU3dNB/36fzbFZWFekKkuJyjxXQmYRko83L/ifh"
-    "py8e3oExpNHB4PCfiygRsOOfHWFpwC09iLFxy/csLi2R9Fh+4YthsuQWvU248ERDtxiIx8UoKzFfFLsoiglsDmIaJzjcrRfrxv5cfiFNtRuzZr5r07N2"
-    "jsDwYV/hW+8ky9a1oogMsOY/FwY4sOLv9lifli1tWDhv+/LKdHWp5iCHxYZgvbrWufBmGtvLSyxW3LWT427SCFfySOUtLwdV10xbc/EciCt+1gvz51KV"
-    "La/RUXEhVX99wyAltVvj/Ks1VwqDWric6JxvA4WLj3OgvMVD4dm+KI5xw4Oe4iFwqZQasO2SYgRZsi96YO3KIXX/+robI9t2uQPs1g/HtltudmMKf217"
-    "Lo9hMqtsVRpWY/539203gt7UN133dpHQCMycLXbhDvu1ydrDxTyST9tLn9WV9JTO9D3DGA/se+vdLTpB34dLogdPApiZI3aR1grs+jdSG+3LJdbDh9Dl"
-    "MsFlXRpkYxMaFiVkDPN3m1wrhnn7IuDd9+UO7TXH4HIn9xSC24seV1xOJtso2txOaHMF91fbCjkA899rESTIcWkRneybvjnc2SaLaW/KrZbGy96UeS1l"
-    "/ibLEVfPvTAfZxwCWmB2MMH1divn0iwLXIM3E3MxXfM8DMygqP1kkHWt5tF3+6UvFbf0ncR8K9cWOmRL79c8EGxaubgdMFeQ2SS4RDBW5OWKLME16Mcz"
-    "uCruJJTBfXjSt3sK+Qlea1pxn+HQc42rpeRR93SujBIuxg5l7L8X3OeOdBJC2myiOOC6RfX2yKIp4doF5vI34/tdnk27vVFNuRqCPGGCVjyIaWPdQkOi"
-    "hKO9XzfMVwkKY7+MMuJySa1bVu2ruIRSx5DrZJCZnkhAZtTj+sqRGF9dsUQvlWZch+nYFabJuBRLuF5TEg2YQQoLdjmt7ALPm1+YhkU9KGDbW1fCYYNS"
-    "ChhPu190fesFBvsEZvENu9c0v2GGFO5EDcwLDVbcnRq/50WiKu5dXTnIZv7PE7UcDDOohdwLKKL5BnlLomabfdXGbkfxEWuxY6laYy72igV6/VKvints"
-    "ZZjJb4/7bgPzbOGKe3Elfu7iSO105FxGX+duOY8k5sxdw66/Hn6fls5AiH4cYFxSo5Afget9pzAymHAN8BVG3iAwan5g3g1EzCox6nm7VVgYCbBzhSdv"
-    "2BWnhk2dRQfrdBhGrTYKxRnuN94BnU2IszHkQMPVyD2x46+2/Ozh5ltB4QNmlBZg5Qa2vbtFR5HBq5UqbngeeteTdCtugk7Izux2YXRLzEZe1yV+eU7l"
-    "e+zXbFDmyIGnp2DOcN0CO451HTGsxTYCM7jXo3gloTqTeTwK1f+c5f2uqXW7lTy/YeY+bjS/+a6PclhiL2hmz/yS1IqL1Hdi07GuTWpNNqhR21hnbfWM"
-    "mqvML7ypc0QMZcgjievg+WOs2V5xazwlNzAfp74Tq5RIfSn2MHihVcVl9WR5DPgfHYv4JbDr7/ZYPZWpAcCqnvPg+kTtL32W1sDsNYazbg5xV12iwZLt"
-    "D1SkCkfVqujyNY96KeBRv4MNbl40wzDaTcNcSYZFRtJofhYFVHZAyx8LhtBo5FzNlku2de+XbqYFNDhMLU7PwKb/XOzZNtTgrvPKaJMipanOFyBfTa3J"
-    "6QvMJVSLjLRB9sK0QlYBmQk265XpB8w1Vw3+52g0rWaN9BZgrmnqemPNsRnz32i+zTrev2dHkVl7fnf5gXIm3RWYSyM4qfTc9lPhrCW7xtDiLHFAHY0J"
-    "XrNEistoZKfNsmMdy9M4EZ3QNy51g65odMznu+g4PszYNkh6H5Cv7BIl7EYno3yWOHqPLtVQwtcK7BDSIus83Y9746PD3xz35Bfs9sQHCufr6H4RumES"
-    "WZ2clgHO6g3MlP64wS8ZnYphPDpXOqrTcQtMYrFz6Mbt0ToK7XGbLOQhz+UAd5UdGwyFDBiAN7A1iVVhHpYeJ/y2gKZjYfsDuwaF43bgwGm/diJhEJg5"
-    "KIZukXfMNCMwaTIU0bMxBtU0se7f6CFSrZqmYU0BB2Dmyhmn6hgyxEIbJ/ceMiPs97YiKYDMHzXsrpfAzKYfOKqOwMyFOHBcSszsirGjBuQYdEqPPfL3"
-    "pr4RlXmB2dIeu2XzKAbGrrK4h3yNA4nXNTDbZiNINmPwsDfWycc8zf/BgqE6Bj0NQ2VDHDNzZqwIzo5BivJY4ZEAZtblWF2m2uBt3A/WdOgfKCTYiNHy"
-    "G6yc8mA1TCalc4wVdviYdvNtHTO8L2PSMAVWV2C+M3BdM5f3dFk7YM6odX7VpmFVX9jckPjHHpjZ0vYb+sTRu+FWQAt8Tc1gvAKb/t1wEI7FQ+bQJdaO"
-    "zUZMcnCRm4Ah0yJgCZxqQ7sD83fhlJqBmeUHrARkZF6bZa69RbYUVoPsXN6WUEeG+4D5OsNizXe7vxtelCHiru3NxHwIRgtVIE8dxMTrG8ebXHIIurNC"
-    "TIrtwMxEgrDTtC2/FKlCKEq2LidkQu7GKA/XfCNrkg67dsMwZSIOuxPDoCb3JXZE8a/WEFSLUUFgeswjGKaI9NRhe1uIlUU6FlSd5O+6bEeLfHLsalsA"
-    "LTgVEBw+iy3X+yb9GphGfbP3LRifY5OPisZJ0Gy6tEe6riBftjDJ7l25ZnvKVcicxpEr2QlBKztmh2IMul5dXlfWJkedxZFsEjsxmtdfXXGsW5s6qe+w"
-    "NpbUI0oLBeSirN/Q3YuxPmASR4tZI1h1J5/zT4z6yal2oT+a3JImJCcXuw4IiwEM0wi5dNrm5nk953Mx1vv3fFWE0xgr8SzuWZnqS7phXHkggfVBUVFy"
-    "YfvgzRarkyYtpJFM30XiFaSWFtSibwPSreY29oFCxttKUSFpeXuImSFBO0OQLcljacLJzBf80XZgLnlmRO1N0E6pgZsCuUld7MAKtUqZId+lfHYPLUCl"
-    "Fz5y0xaLykxbYI5UcKEu+ksRBkS9mpbqJCnVVlvqMhezKw/T031qY51PakZfEytMy1loC0IS1MBc7u6SSpU0+LFjxY6rV8NbCmwcmhovXe4aZY80NSSf"
-    "shq/rcBOE0e+iUE6zrCbXQJzFQBi1Ays07BqL1Oj0QCTtB+ba+LUN7Y7DbqW5gztzR4HCSiwRQNR62n4rZZmSMq6Hn4nqBmhPS0mlzwnytGbtbVp074w"
-    "t65PHmrCorsp8RGnGTSvW1qDfK69Ddiw1tNG9k17h2TqkJ69QZeCYIozghYUDHOdJcIGLXnm6Gn8H55W6uuMoBOMtEU/edDR+uk7zkMyjvrWsSlC25DW"
-    "7ooqNX+OkmymmxqYOxVLxOGgJNyBCFf4CIyHv4jFjt55Oi9BQDI91Hlw1O7utD5wwNS4d3LygEnO9ErHU4konh0TJw+x8vZ0vxHHDruyLbsX+bNDcc9j"
-    "p/t2aq5bpA3rkC3x26lEZ406zMA6z+zldbAlFC0mq2bqZhrH3BVeI8fQLQC6D/Ru8zUAz0PJE/ZadFCUfNXPya3FWmkMm8Df0eLA7o7lFg54YIsOFSl9"
-    "ZJJMOl7GyydQ5bMZ4WNw/1SGxMyPcekW6i+XSqdHScZrG3KpVe2f5jcoGCQ9gNy1Qd/WCO+RT2zvMerw1VRiOoOw6rh51MJTJk8EeF89fGDuKekR+hnV"
-    "q/wZpmN89dK+5snT2acuOot66tU66S9Gnn0NjH62NOkrc5Nm5vwDc39xv+G1qZ2+4axSAIxu0JffrtNvN2psApCbKn2eI72PS65RCWXehGwu1JrP0SMb"
-    "NEHzXMr9ett3bCl2be/SmSuzuTJNfY4TkrAypxSOYLl3aqNHfwapG5iHV2bUfbCuLTqgX5iv7xkEbhuWSYf2y9dKT/jOp9JjPr49tsN844Uj5pMvOXYe"
-    "m1ol11nzTbXqJ0fT/cVZvwS+YfchLlGEAUX8QbrBymAxTiGrTOVb5opcZnip3ZW3UjsWv+/Q4iiS0oXKYZ3wqrtNNleKz8JUghmM41HkLYU9syLW4htg"
-    "13BbFgXmdmrQ0hjMyGr3g7c6WQiqf48F4Vg0I2a0FL5STPhKVqJicGIMVSU5xtLTGSLrGapyTbhDHiPMtRldE2HiyjO6k3IKj+BWZG5H1My9/g8m7sZd"
-    "igeWjOHS3YPo3+9ByTa6zOuY6SzrLOVtIceWwTp3Np/I2bPmHYYwa8bvOiOdJTvbDyOiZQXmW/HcN7YZYH296kv2vgLRtAbnbREUvyfCugqnA1L0t+fP"
-    "MdY7g0CBr15GmFc+NxWJPtlZ96LfiCJhUOZlAFzMbhWYstj5DKwqFl8yEu1kPVurGTu+32L7CJ5XcgBElb6VzMQyMgJeSNIosW0R23cSSUki0bkkh5Sg"
-    "LKPsVxWToQZ9wBl3IOrXoB44B6ck5e5MNSWZeajW0MiqCJqBWG0lZG8/LDsEQoZIH6clSUO0aCSxLZI5xBfh7Y1G+lDQ+oivB3l4gqXhnK4atwgAc6ZF"
-    "DQ85MEEKKIP0scg/mS8iCGkqr18rjWyWmq/WStaLWJJK0lqZv99Z9twYM6/POkmjxcnWuCaLDJwVnXWaSms531WknORin0oeSBs5eM072yIgCMjOTuAR"
-    "Rc88zLHaTkgsvBaBcmC9kb408rlJltNMyHmIvWa/ejKpzuvVQxZWSaxvsrXaqylNTK9cPcESE1vr0L8JNpkIFMcreToTLVeKs79GSebYJbVo1BAs+7g/"
-    "EkS5koQrIlp3e5P3NKIaoXHdLjFt+T3JwRojSEnDWTUjfGAg3W1h2o0oazvIEqwrMN8BcB8Fr8838ohsU9D/VtAQa9IEL+mKQUW9HKZxQs4skYdHUCqM"
-    "iWiMyBIkSXrjAAU1k5kMK7PIgTl1cEZIFPRHp9jOyMEFtgmdQHzpzBE6dK0keuaP7Uk+aE9+pW+JmSx2Xrhr9NKWjXNenjmgkod5SFet+ZyrgZVaalGt"
-    "gP6an7iHLFmJWYzcJps2XmUVs7VmTOwSUS09Sn2dJPH2nJzg+uYnghMcTNdDinXk+ANqoh2f7KwL8h3VFvraSXau59uM7ZmDxxAmCNUyItakpHiRsdeg"
-    "zttJreNlysbt1vZcUgzpLOpGIyYmPQ2ayyDLXAS0xRgmsJsk8E7S+kz6+Ojits9gmZN635IXT5tpmTQM0ro35URJQmA+BCcTv+BBFPc+mOwMToKjLzLc"
-    "bMnbl3U5G4cvfVTg4/s6O5mXNau+kflb0287sxSC1gPz7XJOcFZn4XScKwkyCyXIjfJmlhpwmbnQ53esJb+/sCmZr22faEyYKPmuEyIzD9uap1yLV/Pc"
-    "yrkrROhk4TLkbryGoCrHI57zYtqWCxK/515ppIzEZ72WuGWblMx6iKQUWTTAOnNXWj43lPcyvn7V0mPy1cIsmp0Duphsc3JMvCBVuZkwwzQNS/w5mc6x"
-    "v+cMbaZm1qQoj8WMrtrf+SzlW0rTmKxRVaOGHnKLPPGrzky3iXyrqL/W/Y4Iz7fakeU0CUXqCvsKF8eNnKkdCV0jcquYbnVe6VZM1EpubvfK7JYxprMZ"
-    "TIJDTLvMLqdktpnmsCs/CizmSBkbm4lqOhAhBNiI3YCYbpdyoTNRq4Wno3dW5UTGXAmoCxIbXZUmLdmuRtbbUVKe6LC829GS92SSKTsOyXmZMDeZCqiN"
-    "2JWY2TNFtPP0i9TCmr/myxXO0BfGTMWaDfEsup6pcNVV+e6pBCw/kfmRmfS3LtMoowv0nSHdcrySAzfTMmekEHpu4EirEjYnEz9fyYeN+aGy99p55ZZm"
-    "zqNSUGfmWvo0jEyWaszHQpZrjyxSzzYeqktjCahEIiGTnn1k1kojNGVzj8y9swVETEZWI48cCb1aD03jC4kyIwPXDgHATmbveub7jBLKyPL1WnQZ4OuV"
-    "FCtgOnvUnanKsqmr6ufNmenLKxKfTyQl+0K3IpeBMcl5x4qoTPhCtnUJqF5C2hDwQl4mamvwUKetMqF7tMBcfq3crZUpQEgQ1xI2qhoTyUtiTcnld0f6"
-    "9l3MQZcuqdp0FnUNjL+3MpWaHAykvktw1qLfy8y9ytoxSKWP3yvcdvtLsrpvnh1SB6XnK1P633nuTPyPTHot9z3eCfe+pOCuylz9wxoEMuWLsj7ftQom"
-    "c2HfNQ2m6hIkabzQyQ4s6hewNu6OSt0oX2DmMkouyCQvDNGgNINM7aI5O+IRdN5CbpCGvfCAg+oPcpqU8qocUQPLChMzqjpEJQrVSVMV7n2iKtI9LPSA"
-    "/MssMOFa90S9cWDFSzQW1TG6rJlt0B9evaP9p1XvMCrHJKskiCZc5oizKICxaYUarzQZJE40iRC46rYg8iLXPVImDzGFNFQT1cIxeo5rEJhCJHuT1Ie8"
-    "JHFZDnkBLW4pH8qbQoxG4Umc4g8xRcsPjVrEbcRNPDQkEbeRN/jQygOm8PYRLS2tkHEYb0Dc5ibmofGaLKpD4jViOXLMHwo2xG1E0D08Ao2aoaMjwmKN"
-    "NEtgHo+uyUk6XmMS3n0F+w6TEYGVgJz0BOd+QB7bLef9ptNKyo6YE+5BsC8gWYHu9TO5fEpS5c9kAL2MIH3IYWi5FOosk8Tgo1dwReWV4KNXlICX8FTz"
-    "0Y/AbFFZ/ocG4PgCghNYBKnDEtruGHbs0sJ2t3VgZjlbegrbhzynblhQkK7fk2uQQljXUyPh2lUI+HJ6LKWILb4khVqSjVoy3REId68CG5dcILh7FRG6"
-    "foGPYfrq9vMKPMAalMsisOYBXoFtQuJfXCZBwgMs2imG0X7ubIWrENf3sTsRwjA6tDBahYjr2zCdSFIFZJLY0tsusabPdlnnwMwc65lrjvC/Tbf5ME9g"
-    "278RJzaE//lcuOGBmbVv6Xz6BsvMWdLkCsz2lCVD6vdI1rLMwh6Yne/hsNvq7vbtAo8dZRxoAiYbum4Kc8x/rmdTrisjS7G9gW3/ucg6c+q8YXF5PTBf"
-    "Uys4fGAYmJsCmCB38vYs2wfIBJI5cYSRuG7OMw5ypekKh825gfm6WDO+MPXqkI8TpAPv2IrUNCMiGBTloSfvDzes6DHm5MCF09VXUr+6bpl0zHgAcOFQ"
-    "TIOwsIXxscZUGLh1KKXBVxiE6JafygSBp2f0wHyEM6HJsj0GsSZscuvNOLaBxGBHZXh6tEAbCYbm/VFTWFHOyiLo9+j563nnAjD2VpQEcB3My2fOH362"
-    "sziZ+RYS8wU1I80LZAdz0sCToPnp2qMjDHAQIHxPjeDCAPMmj7CWjBVhXRsR8QTmE4ljVD7n+xvHLf0eSwH3rPgz+9C7Qag09oS3pcYC6jxbwJmgKepe"
-    "OALOBEr92RmNM2eCMPIzrZ6LMGbQwnNwRmAWCIeXQLug0w8LN0EMCwPhwCQJB4M95ifg7w2eD3DaVzdGS6zpua53IwsDRAmfth5MeJAiXCr3nPLBHB4c"
-    "n/XqTogWB0gRZsPZKVs/5w7RnszgqQIgwDRB8KxdYtovk3zPnuRjYL5uW1TVA0/CtVcLvy54Ei4JWhwuwJTwRdAi/jrn0jdyn8IR622OEsmgT/hIJZvI"
-    "chUdC34NUhrNIgJWZ2AuMuxOzMAcinr3YGOYuYujuxbQZF4/juk0naZI/nZ0X4H5Wm5RwxSYhV5wdNe+Wowq4phOI8EYHzZUNa7P8AxOw9Yb8wUe5YwA"
-    "uciouUYXSy1ZMTI9Rz43Dsdq8mKdIjvM3sBcvZao0DGX1nIJUjIw/0aJM7HRT2wmS5ydpxj4dtZUd8liAlb03aVvRC7FVFypl6ikZXm8m5jEklWuMyzy"
-    "K8AtmYOYVvh2h5qdP/nqluQrTa49y2QmpNHbPAADK4RYcQzHVNkwqqXZzTgiRu5yz9SzqXoPPe9qA+tj6Tkt0ROdCCcIWB+jE5NNdJoGKpwMU7X3gdHM"
-    "BuYmddwqACaI7QycmK8w0jSByZo4NKeAcQR0qQBO0dFiv+IDB2a1g8UwW5Y1nYe1o63o4wjMnCLtBs1h8rrOisKSGrtDFwgKUErY6liA6xropQO2/bma"
-    "HTuuNHA1gxbK8erhdjPDDcjMSVy58MLMJMKVC7KUD4PIduXCCsyclLhKQfvnUoXj2gRNz2UCe0uHBzBzKeCOBOmHy8AD7kOQnYhL6hyLKB8wMwnsChA9"
-    "R38Mbj+Ib7D8sl1hqfZNX2Z2DaWeYy5oXC8JjNTsloxwq/ywiHFdXN5YaNei+LAYZ4YQ7SnQYxohzjfYMe0KI8SEvJYXtoEIM/RrU8+xfrh9oRHbHLvw"
-    "jIHMktAhdvNVKiWQVOITXD0gqdih1zD+XuUlTIbx9yrTbgxj/yu9JvaNE9jpassgNj/r26BUv4zWsKbmOdGu7ZG/xvJ/wIZepSrETRQ3oH0J6amrD8Qd"
-    "GsB8u4eLEqyVXglRLi5Z5y3YfSCymGlhtwmPwMxGtAvaOSJNIwdGQWI+IiuKgixdYYZ7KNjVRnYrrpxQ9xtvHrBrKGpgvhCRQaaf23quSfQuVbwHVvQc"
-    "0/ftxns2D3bWIMbHOok5gKilQXlZk1jVc92DI8AYWV66VMAwjh5qS9ogr1DJS2atYeyaYmPAtt5lDM2uv5iBnUNMrzJPxG6P4quDnmtgXRiTfO1GDHZN"
-    "qQl2QxUhnuXtIisOFJJtrWdT5doANSKkiIBn4lt7RnwPfBQfkxmnGOOysAtUIEvlClvmilpNraphF8YwoM1iNKRuTfb51ocVlCvrKiFt9kGHNNZTvzFy"
-    "g9CJ8e2XKzGWxPlocc4bM1iFSep0XsEGTB/t5NzZHVstVhO7P+WLwKpz5bHCbwWsaO/UGytWP9dbrmtCErE4F+hNntaWWP/YnRq5xvNGyzsPsMW2MPWi"
-    "bY16zn+jIxBSoZ7AuLWDS4dtvCslyk6Mkq3k7/E0aRfqBOTCaEdpxqX7DyEBWw2sTgrPkG0kztllPynczjetwMshTE+ekIqV6nSekKeVWrelJC7SxGeH"
-    "rPftuuOeSKgEH05YiCNUh4ud5ApD7YxO7M5QT13vhnriadWwHequXmEt1GL9/o1yNE43VftOjH5faOMqa2Sl1nYryKqnhXZvei60O0OpLbLyYSoMdSNs"
-    "BfrvDdNnSSyx5tWwRo6eC+OL5W/ay6+Iaw8usRH2TphZK8yiK3OMOwqYC0WYaGFRHVlyLbFBSAehy4xNuzurBeaG1wl6szGdK43Kmhj7sLQ852Vw1e8A"
-    "SyPw0HA9+ZyLqHOyZ11G6g231WXWDOzlHXbmkVktk1xlwGB+rxvYODLT00bluSKiBrBvr8x+mfOX13e0vGh6Xq3a5ALBXt46gMj+vjxK23nmZbt3Hntu"
-    "Hg/Wt9ObroJ4HxkPM4PtuLniKDR1LNUon6GjbzoCT9dno56QEfTj6BsHOndel7hUeVqOJDGdhlVMsCcPHAdJd1iUqCuGA6dHF0qY3ziYxnM6wSPjQb8X"
-    "p+ah7644rO2uw2Xw/abqRwLrO07XQ8/Jy71pVwDT7CrvHZ6D8ESw2otVlL/fT/qR/DN13zo8EeEUif6eOPmsmLZI3Jy8baEn6QqOCA91WAn4wNz3nQVv"
-    "5tJQZW4fHBvG4zOmwg3Mm5d3TVoCzqSD5uRzdLzElXrA3ClSX0M1eIavryHoLjOM+rEC89BWve/n3MeAa+DSP0OvVXyVBezM43UDK3SM3fT20Jc3w7++"
-    "yLLoVoYovEdr05cXDi/SW+AHlMhcWt/tvp1l7m1toavgo/OB6lGMEj4/X3s9owmTCb3GrZrha6QrVMWl4ZKkszVSpOG6NBUETAJjtnTytnSP8rmMf4gY"
-    "CSwcv1efjTJv5pWVc1m/N3g4BTZHOHmnMDm8Bu9dsfrmNZzGPt99phN6uFOgZ6rhFJMPzm9tl8G0E2Aag0EhDMe5pk1FzHveSOdZgnS6h7O6qG9x/TMc"
-    "5743eq7HzpqpVjF9BuYxpaybBke8u5JHeuS6s5oRTqgJ8dVI4odf35s3cpV2BVHteBAYQwwrff3OQ7eoyA6IkZKoYIuwA6Md6UznjdBGYc3ARgZydgRK"
-    "It6zEvPFMqMKlwVjmmJKGchROKqOgNxnHHX4rNDaZSRLMbUMKUVCOCJPLoGtrHZgRRE06fDGQ6bF3kZEvIYwDVQjRQyxPIWAmpYoDsYBuZBfqlmAeFxn"
-    "sFAufbHmrC50i4gfw5tdJjAwhjJzTyFVtxO7GVT0GUMZjYDKZWRUr1aWnQB2M5bpPu688mTWrbhlFN228muK0baIoGYodwX2+yHf8QoN1wzSRgg5YrkK"
-    "NJcM7zIe3TOUS66KZZrcCCBfhrdHQi4t9/pk6Nk14Y6Ky8Bc4u1IXLVQ9mCkPaLlvFXEkmoiML4Zt5d8Kn6tmGXonAizbzID9M1CbzEwLa+iYNDLVVq0"
-    "N4+ycWchDRgkBcWgYFItchnG+kYgQCbcTKJBJ19CCr5IgZ4oVw+siJKhxSk2mxXSDW6ELxzk883Aav9KBLGyCuSLqOrG5cEbXBOVDLhHTJjwdxkRhCyV"
-    "oJVsCpO7kgjCzD5L80xKig/AzXpmlxfaWlLrCTpLC7JNsF58c2YRYBBmnPz1KponSx+YSE6w6id5Pz35N17CIvMnx2UOE7CEnIYGhuEI2o+Xp4HFXQMb"
-    "oirVxPhuJBsMxQGM5hTQFhsq2EsMK1hB0oC8UE652RIWO4nq00CcvwYbMn+siM81g+F0RftSQvYhexn0ME3s2aKqZemLw3q6oJspDf44HQOstBOI0/xq"
-    "lhM6JH0aGa4mn2uQNHeTHjbIrXtx0rxQX94uD4zswrhLfRxVFGvhAgPfzllpLWt6KDPvTS+8XiWnxb2aYP75kLRQa2ANXlIaaxIJfYBbViBUEXqUotCW"
-    "YEFyQI99/x/mbf7Zn/zpv3fh2m9+9WsjbP4hbE2krnkgZwTt365BuMTkx5vylI4oCIp0tuFYKDGks3VCdLosxmJGONSX64gWV9kiuc19bihtQ8eMLnP2"
-    "G32JsW4SbvQdepcMDlzpK8+m3QZGjA4RZLx51G6EKwEZb02YXPG6Yq/lZcZIg/P29ZvvsngJbv/lTkcenMdsekTbkQdnKxE3AsubZGwtwyKUtzaTtltP"
-    "3+YmaRIYxfPalKe4OVg+y81MxNYzBoY1q+cUUgDJuglzCGnHnZAm1jhxwvQcc+QMI8SSXYBoT3naGjGN/JE/KauxAfNR7uGcWaZJiXVhpHS2LCa8DtMz"
-    "gcm9eeTxzYu07UobgyIkiwy1QqjugDhnRacMYO7Zi5p6ltvmUKT/rsPSDS1lADBfti0imZYDZx1rwWm1a3msdS0d8pdZbnZ78A7Ml0Brb8yntkV9bkug"
-    "83dL/h7ZFbg/WD7Vyyqpdn9wC8zDb3UnpuVYV/6e/Kc1HdLgrU5iipeAcWptqTmR16/ZwZ3CCgOBDl+JKWB2FR2tcd3LtpsCiFEi474m35E1Kpgi0Y7d"
-    "aNq5W3ccGjaIyQ8KTO/y6i77PUIsS2GQfo7JLsB4rERanb7AlYesuniMvUVWnU+4Vbch1rgfX71VNRhg9Pch08739xsbmtzwpSCFbtXv32AZUmsfe1uZ"
-    "sWFdG4GpyRQ1dlGafzbOlciEa4R6DcjlAEq+8LEmSViDGQbMww0Iges5nvvtKugRGJ8LDrzdALeIqXmNZYJaiTxWy5mzJpdIvQLmIY0SRg6S5lxeJH0c"
-    "mG+1EtVekEjn2qXEtXmeXGdYyfYtxtdKFIz3W/AerOb9t1uFq+3eY7WZh+F6owKO37RnWBwlkIbH3wvDbCsNzm455krr3PbA9HsojODPRXoPcu7MlgJG"
-    "W2rTuwCIotVy7joxTWVn9rZhepXF679g17euYRyWQQ6ZfYMQifE1C69Y2p0wChFLu9OrQ+96mQODOGkqpGcd46DA2VWFsRfj1Qvt5kF1YJg+wRqG9g32"
-    "YnKLW/NaYILoZrT7Nn0AcodPan9gJAXsyTJYNavRADMthFuoqV6QUNc6sboD297k8HUho84ilriZmioCmP/eyfWIapvWvqxDCGz4c3FD5Z5MGLDrqtUW"
-    "np5xXfVObPq7kTK2J8vl4Lpqrb3JSC6uq74BbYeqHGBI2zPtUpOmD2xVYjwVI5XPth+uq6aJAcy3y45Cvkjv89ndYckjvc+HHuZ7YiaCcOf00LsMd+Eu"
-    "6aXveh12XBut3QfbU5jW7SINBPdGsxeLxXLsdmlCDOUD0urerOkHTL+GArqCOD2bqs9eZR9Yotc+oF9jLdJqzxMjCwDtleTaK7GmT7DsBDBtDGVJAZPE"
-    "REyXo6TZOayRD4yKHkl7exOToD6M7L1HWGVcgG09xysq7fZvDjuvODJIj/HCAsNqYLfqE5wKReKsKcIYDrImE7oUlztycCxpTwOlubhkLtkgz8COJqMJ"
-    "q5Q+WYQMGCco6p3sy6LXwGpAPu55P982kWjYiV5c2g24I1yW0yVFtlp56cDMQK0r+GL7kpZZrdBvYL5FV2Sl7MtEhboiJxiYT+6KCNa+rARVsQc5pCqu"
-    "VVfUlwfm0mzGFRVb+ZV1xr2iB1ahQZtb6hQWKgdEP8ApdG/XufLNztbN8FydwrrXdQaL7hReHAZs6xssTGZYJSaVMUX8OyL51SzWd6oaHLy/U1kPwr7K"
-    "V2tTX5fE1oHHJlqsnyMpA9jQcyxZCWzqG4ufjbycU6X38nLDU7XgIenVFDJTgdHsPI3OsS9YpXh7vQsjTt/lvj26QcWap+d6fpdL+TQGl97DAroNIarv"
-    "05i4AKwk5tIXmefsLoIIBsW+BeT7cYaqProNuc44PgA7/omaLSbNsaJ68gjMezZujgCrHFcEdE5gQ1hJ7Di2ZV+dzpvT6oj7d4C5+obfhO/iHOvPRZF8"
-    "YGxL8MZO53VqdYTBfzqP73Wost9Blok/FqGV00lqql2VXE7nma/2yMk4nQYwsOgFoxe1h+v3dCn+HvH40+lKqT3ujT7iCNZ0h5zBBKOatUzP8Is1DdKr"
-    "fjmbQRw7hOi2MP0aM0HsC+zZYLlhYJTJR7dWAFt696q3cumeWfLn+NSs+uom/eKgVHcVtANz2dNVB+Iow+UNMd3T3uR8TXpM7JvCWGjCBlMNoXekZqF7"
-    "YHpMq2ke/Vy4ls70817tcXctIE7DkOfr0O9X03UDyMVsjyPWWZW/FvEWQPMSq/kYRySuAj5KC6moBdcCc3nXoj4LMN+yLSq2niXrOi8rB+bSo0X6CDCX"
-    "qS1lNNgO/o2oj33ElKjpqAHm+rdFDTpgPlIWUiRGdkdtUZkQmG9tHKXVPjqTa43YFzAflxrXjJzF9LJaU/iqVhewou+6q7siLugI6DIOKap1tqwy1PHR"
-    "Yzo61nDBHaXlA+Nx4FhNU2KSMVvGQY1T0tm8XxtY03elfYBx4DdrFBnG7x5yomveiX4Ocxbe30Aa/RTGb5yevycZcHgzsbWZEIkcb4jhv5rFH89hHU9r"
-    "yQns6teq3iUDvppfh9jlMoN7iKN3Gf4EptbdoumuOv2cK5OhRsGxc1n2p2Y1J2CLkJp8tQtKlFw/VxIfqfo9sLOIqRvXCdW1qEbcUWpHLVE3EZgfQ0Aa"
-    "E0ZSdC1h1ANzVZsFSo+udqwloj3Arv9eDVULe9OWD4J9MzCTAwVZ54nZsi335Lt++3Gx1JKAbMWXm7oHjkl/Lgy6ywsGyx356nWJXDI36MIq9a82ject"
-    "vBIZGFXjLT495cYs3sILIIAVQrw2r+RlobfwvFbMW0yM7O5y487KW3hJXsk6uLeQA28YW1KZ5WcYe1FpSdvv6TnapcCasP7Rz3W9Si4KMC6BW2diS8+t"
-    "eJWS8dadX+AyvnBBalA4AJW2tUF8rNFzXvJKhIvUkPoda+5q+/Iu00Bs3CcxnjqtecJI5yrpZgF217eBl3uwnKAFX2Vzl3PzOVY7LCfSVG5jeZJi5SgC"
-    "s8MeME1G422c5YTxfxuDO+VE1hMwkxYFuWAOdRarKCcId8AWITqGbieBoJwgRl2ruGpYxNRvZ2JNOaGWgdmxs+y4z/Z2hvPKjgsQbqczqyTl4yJGRCia"
-    "MrkLMhHsdp4wy46w1eX1EWWP/LXjx31gGqehAdgRWLyDaUTFKqQSa26rA6NxcYfWxY7yjHcwsebLc1PNi3DHHeujV7WkBo8XwLTicREKW1fVuqtfC618"
-    "cfhoxDQocDaub73VfTEl71+5vOfMIC5GHJcEcewmy1zYF/QmIztfWsJ6gDaeepfXhFtnCWkn5z10l8YlIPUVScz+heCt3cVKj8BqYtdnp8ZMwLPgLQ7H"
-    "PDCOXYotFPQCtBTdA+L7bgUfDZhLrRXZ41fGZcnbd+7ibcvAJD8W02HLCmoIMF/tK7g2wFxurbgXFZjLt9XemFkMZdUcASZ5lVXev+ejB8epvktbrYB/"
-    "NwPz9T6jEgsw/0ZQ/K5Yx2VGDcer28vKjNve72IyVJkth29xgU7lKVxk49jCm3Hd8lVF2jKCQX8VWgfGQ93dvMGujFDnd7NaSUnywt3kDpchv9BlhnVJ"
-    "6sLddJmXETmoF4H1S0yiZ/M+0jLipoy7d2KSFZubdqz8BE9JwLSlVEUcGE3fe0hiBiY9fbRpR/jj7mGBFWCM/txDPgSwrudohpcR2VrA/OciNeAe6t8R"
-    "MaKrskhlhKEPzJVU3rh3z9FXo8bOVf4zMA3euWpJcNuB+eIeccHglRO19JvfZS0DYHQjXxgo9m6Pq4WuGSiGhc8PmFs+PW49vXLKlh41hQzzd1PAXWbi"
-    "lh4HB8P899oXzNtX3+/68gaTINtiVm1Bhmc+5yIpKerAfKc1HfjvZYWM0pTrfK/ssmQ1XbmMS0srFIElfy4OGFcZN6VF3fR7JRpaRG6vrl0vNcrb3kuv"
-    "GjCJfV0gUWpU7L+XzCFgWgVXKhgpw1yjl7ezAbNXH2NeA1CVxvdgVY8t2hEPxis5gPmSfzCPdAByofdAJASXqpP8g2mDx2XFDyYppWPxA/HmUkC+9B5M"
-    "9lbVvXsPdnlKAMuBLa6MQxW7BDswt4bgxeVn/y9tb9er63FcB/4VgtdHG/39oTs6pD1EGFKgmAgeIxCUWBgYUJSB41xkBvnv81bVWquevQ9tSZ7khthc"
-    "p/t9uqu7q6vrsyKQt1TqH19/QkdX5ObgfwbDqPRY9C6xkJ48UljInJVpbGIIAxiGXOMVF0MX5I0KU3c5FPu4bJG9Ir2KE2wLiweLwnwCi99jLqvAoi+r"
-    "ozyxpuXOvqyBGVgMubxr98JiG413fWO7JXQ/YVdmM1sL372bQw5nVN/lawtrgTGra+yaT3GQxhB04hMNJ9434YiujNH2bV6iL7PmOna8nXkRcX3C7yhY"
-    "LL8RLvXOiiemhirmzsVJ0RZqX8fQtUW6keD/xMLP2DHOLHTrDnEkbYLGhwlMnQ8JW/y5ja7Mo+JcbRGrbHY5OLqPO5ecG9jCSCy9MDH+Xg/XD8cwkt6x"
-    "PIeeGs7ESwfG9Yky2Q4VfmG6GBr3LpanR4Y8x+oUtn3JTsl2UQTQsTKELd8Cpq7i8A6We1MF6Vj3Dbq3OAPKaTvWsu/28e3kbz2cQVxEmfl7sZP3ELdI"
-    "rItLIcDFBaOdvxcnw3L05+/F4sry6Fis2qJVI8bsc1vn2W44nVeetH5wDCyzbY6l+/gWU1AEFn2HmI319TEr+duDVqpEFWOO36OXv8sL8dkixopYIH9b"
-    "FAzFq5J9ipcK+dSIpPDxomG7CA51rAAKpbM/kCpWcnTsW5mdXLIaPmJT5hOL/IyOdcxsLGJNZwPhWo4NYicxTm1cUGoiyMVl69EAsesMLyvHOOTZsCFn"
-    "0WwRnebYIhZplR3rxKZ7jThWBF2nyrjiopNnaFxernPj+A3xacug1QGNLSx28ti6CibnasSZwm58YWk3roJdNpYY8ArB2x/mE0NBpKA/4Hmlof61P/Rv"
-    "YrGTB7UjjsUeGDRwOxaMelTdrquC244ifrYqTni/YlSr4vT1pIFh/g1ztvoMW+8wH3OfogvyarmKZeSY48Lp1GI75mvbmbDAX53BRy11QxXWYngSJVbU"
-    "3nNVFFdoNaxa2+IX9sL1FWopOKzIi+iqMvKpNUCVRgWrP56D17QuvrIWeE1jbkN/oMfJaI1X3zo4kIon8Oc+hlx1+PCsdA0ir8hdwS9a0Y27W2IN0zAd"
-    "kGP1igR7YGPUq6ltCA6VdY1ckxUjrnn5IzWx6zw1lHhqObb4iYvLrx7tqRM6LccoJ54C4US1EFxxF/uxbu2B48ksXSPLz56wFDjGbYYaS67NvexK3lBn"
-    "DmXg0qh5rA5FrMrwScd6YLkdDxe8NonKZ2LLmxNqtjvRrohlHjKgKp5kkA+53OdngR3d9eqqIq6BOZRMRF+1OK+eo4t24x3mFC1wcAzI17HQBBCYE0Cp"
-    "1Z5di94eyIUWNojEzBwR5guOeMUhNcsHb9ITsYJuSaHkYCX11qew1gxBK6AuufNEMLRbknhaThRycisUt7KJtONTWKvI+K/HfDiEpYCJym1fFJNuJ3Z0"
-    "A90RPU/yQfMwB8StbQ7mn8LgRl5xN39s5wciCArGOmDhleFGvZNYUPOwtLFbl24FFg93t0LFShwdAbNWrQtssW+Pbey2REBRps8tjpdY+BY7NhM7xDBb"
-    "N7BFXyqd3Q5XKjCItoZFs8Z7wCDMgvJBhV3IoSpoBk1oUnLMd+JREpSwEX4Ka+3iOC7Gsbc+cEF1U55ls2j1INwNCcywUhOLdlQlx8/54qh4VGC+X3fL"
-    "2UeWFbdhP/v6xHZ5fiOwdZ5jiSGbAPsYsn8jBVjDoivsgo74/WGm/pmYi9xn6aVYEd3q7gl4KRqGdqxHHlbd+EQh33GLsLebrPYRVmf/rhWbAuHrwIgn"
-    "U267tb92YGB35hQQlDeXMH5jg/JzZbsTizZZBNz9E2IxJusuux+Dv3aOMhW7v0NpwMCLaouwf8cgH5mvROzPSW/R8KmIIXdts4Ynv2Gdv+fJ6xzi2iJc"
-    "3F1qFocXWk3HWmLXd/LUA8jcRRYxfSKyK7hzz5nCzgbG1egFp3tcDdlySCxgBdO1DLtOPvMyTyxWd2ztoM5dIBWzY8GjVcTYsTikSkEQmI9v6Pn9wJiE"
-    "6tmXMXLxjRgfozsC8yUyETbH7JLP6VcMo4cbRnh4JeaPO/ME6znmoGlfz+82p32fz/EBY3Hn6Ot07l3bpUdtCfd749ntELHNZ25zLA38oV1x0R5Jt9x/"
-    "b5DOHSehMTmMY7ElG3UrFYXk3eMQO6NPrFqTktB9yxYwjXjHg8J8Hwfb4Wl85D3kDnexMxodvd0xr0dfJvN3/73gLZaqHJQakNgN4y4YHfxB2l73G4xr"
-    "sxWNZbgJ1iFuqgFFl7mELnbF684wfnVD3Kh83ZmjY0ys6kY3J8lgQPWIKMNLxrtvKufAl6xhRVDwEBNM2azi0NcpRm3nmhjkLXPrDEGlDt2Ps2GD1uQ1"
-    "ZjGNeek9XmdYlRwr2TcYRqUvwRMr1Eg45mQvVzzTvuHfLUdknw0buex34/P5mgyQv9fi95hjIebmW6+MZ7vgwaVrc8/qOmH3ix4PWsV3a44vvHfdy7qt"
-    "9+3MG7tmO2ek7sndciz7U3iB4xXocwss75LpnpvufD455Mi+Gc7snNqIZQs/eGEusJu/vHbLfIvRFR0+5PV2N33eTBP6OsM020iQXLIuj3ufuxbTIwHw"
-    "iRUOcx4xgJ9b0A8ZhF9b4eXsEOm0IizW4w944SBVk2NsFi9Fj1wASVaE73mAA6m5IvWCY5NdPeGFQ/x9CEQWLoEnsGGHGPfELhxbCl07soRF+MUW5ne1"
-    "11EiFilAPHRjVmGxOB4yDKy7rcQxXsK7k5pFUveOCnkeRQJtpUVg+Gc3i8kgjgQY74Y9QJS98xOQurfqqD+xqSOwB4a3H2QZIMHOvbij/I3H28zsW+P3"
-    "6jvsU0TvPLq6lLTXfX7CT+he5zkUYPs5ZBdP91rPqVUfnhJwxjSi3SDDNO2wE3nlvWICd2BM8uxYbAIVyIh4KB/yzBtzRySTR2vxuRPZETzOa7NZ5Pxx"
-    "jPzSMiI6VRSw4CFcPomZm/tUNpNOwYLEgA3tAVQxcgwTOyMhihZnsmuXuB9pwxFgByjcAB3DtJCjwyFeoYdcYTYN+PL8uKsNsMhOF7F+gBr23axiRreD"
-    "VZrnzhDmLNrr8/ETYX3zCEPKoRafc4FROkAiSI9YVLuoQhNRjFuYay0s2pEvgLuxj4eY293g2uYR0YXtaLbeEvLns5c7JHawPa1ORxOGkeQ79uLp6eGe"
-    "Q1iw41H1eLgwY2z5DXhYrb89Lcr0gblGyqJR+QK4EVfnUavc2xcGKYtu1VguGFyn96qH87Zox9gwx9BX77tWIrWMB9r2KyyuGhNbNzBc6Ba4i1WzEOTY"
-    "BSp87qHK/lLYjdZ1D2kGJpuFhT7H7dgkYVuIdHDHxtB9D6+O3dd42XgUNiE8Py1aexIrxGBYtLhnyEMeS36JAeo4Lo2Vhj3+P06VvdXYdbpfTGCYrWWV"
-    "EQaK1nAhCwzQyU9MYhebpTGdsKdAYE8ovy1TwgSEsSGiPEK88U1LzBs/Ji2NYXcC43jtzw2ss10ktfFw85vYJQaRzvJCBGtozMzqWJygJj18a1FD08Ph"
-    "l6Dgb002OktHgSHTpdcxH3Fl3VaH4sSb0pgjubiS6s7RhYbDsgaImhd7oibV2+XPkfla+owQNxQSECk1/FTYfklsBVYfXYNMtv2wnfhMtPQKkHEaCgx5"
-    "GgYwFcv3EZ8oFMAMCgGk5CQ6hY2Sk7BUiJ8iH8TiV2Gf87wRgGBwMIjU7HjnWMoJcB5L+RKbU7U9PF2MP5ssXQXuLU81s4FB2PQ0NR0Y3quW4qYfYhje"
-    "4IiZRtaT6Cx8FRet5d6J3fkYyQg7vUEQmC27z67ANJCLZnTIrA3lsx0bxGDqMgzifJuwkBg5C9tRnldt6xc2cE7yqdIm3C18KdhuYXcW2RHajDw3jnHI"
-    "c3N8Q3SaMCC/+72Lg1L0/GtT6zP4TLQc75Pz5e95un1g5LILT8ytbBGevX0Qq8Q6bqlStWlXJ62K5rEGpDJT/U9hbvS2tCi4uz0J+/wU6VM4D3s3tE+R"
-    "ZYXnbEWcgGdj4Z6i8WxdeexE2vRPkd2Fe9QMagdYIRYV6TwzjGgFB4HIKgMsShlERhq0c/Xrp8hcwzXfsLZbdhzy/A2dlGXb4fh2VPRzrGIsO9xcI8UP"
-    "oIHpykvek6S7wsMyBunnooxVZBHiUMK7KzCQDwVyAsOJOeFz7RhGcjxFe3wBi2vC6gQGs2BDKjPkKQIWZUwdI6H8kQeMXO+snOxmu/3GrtACeXJt0QmT"
-    "OLgcDeP5u3E5et4jjI7SqmHcUheCimPsCrcbx0ATuBDG7yW2+XuVv8cteqRibwjleTdbUxosUgoUpRzqa0EMPjbrpKRyD6aml0O7UDVZwiku940EEp6s"
-    "CnKU5eouFxhEXcNmfIJCvOXvLp8iGxYI5QWUopUuL68v/CnybUHssSzfLm4sxT845ve55eo67Bo5Wj2nF94rXpBqAcML3bJ8u3hg+cAqJ4GHneUNgxq1"
-    "I0+l5xfrxBYmtpk8ydNe4/cqBede4MNjec0uKXCxFptOrpHP+lOkRIOiwYtdb2CQmy2dtUtShoGbeR2xCqwSi8wDgWEoNVIuR19AOzQjBmFwFS4y/lVi"
-    "sPobBlWGJakWhvvL0lQPjpiL0RqJUrjJvPb6AQa50eq8YdEK3UEsd3VjXxIeWYIC4+/t2FKsaRPV6hZ/jT3xJvKRcBY3Zwv2Zpmr24fJdvgBOOkwWRoY"
-    "PLMdlqc3LgWrRkTm6mi3RagOs61h5QqL1WF4tUPBBpdkeq9sGCsrlZRh/QIrgmJeeRb7wDY2V5TEomMl5Sx4KKZfKOV6ImufgpfWE+b3uaU1HIJiCed+"
-    "Novln8w771hcyaaeyM/uaCe9g2Gx2U17wN9b2NimIhUUvGhWzR6WbKtYQ/ZEL0OrWKOl5ukc8raxDNiusvGSNcBGFCx3DEKJZcD2J6eVrAGdRmTR9JI1"
-    "uFMsA3bs4SG9mGXAbgcYd+Ig8QZjQqKQ5wRGXmnRFhsYZoZk5V4B53J0l81YmczTXePnmnb2rPwsE7l5uuvGvpVY59RkNLF014UYefSMaD7H8HDsEw4e"
-    "hpHPTnhVWDkejS+imh3DvWqYP+tWv/ndg77p/dUnzN5RP0mYi6GGcU95EuxPUc0HSosegfdetglv/U4J1jA8CQ2Lr8p1xSCMbuiwrMqR5KJR+F1dSk8v"
-    "rRsYawwH5pTqJUcHo6BX+BEUgkA7Dygabd2gy3MceYWemeNwTd6Sxc2gWDAV2vTk3rHdm3xZPOF3/JzkcsP8lWj1c7jxVlRLR0EyYFDTWwUdUThK2EVV"
-    "HSzO4qXq9xKwDWZRkRPCE3mj2dKRMmZdgUH0t6zdIVZY8CyGtytkiDp1924Y+qxID/fYjkIqUbhnCjtsx2vLnNWinaxflrg7ZLLaRaoNxycr8MOV3Ss4"
-    "fs0jZVAjxuFdiNvpDWbJvOMIVKlsLOn3Jlm43c1/pJN6++NQcq9sOPXbatSa0z3A1A7OBra6RRSNDWQ2zKRy4SbYuRrxkrD0N02r1rmBxmN12Y4neW0M"
-    "pcmo3lFrNGrVLW2gmG7LK26Byq3pmjYbwPrEUnXCysY5oPxh7z8eF1JlTUhlpt5rwhYxCpwL1oCVmkbHKs7tucJik7aUmazS1wEbeLTr4BaPnyNTuXmq"
-    "YhZdGgRPrV/BuMoRFpeh++0LA/PZfOl0r80HFioG17FHH+x3hSHSi6vdZCK6CfYHnve4bVbh7SUbgZcvIHbE9HF5jbyodGEM8ZrJtWVqZL9/cAXLc9nu"
-    "qQYI2gO/4njJl7wKccnnmTIHcLYbR1drA0QuMC6/Kh8uu6ljz46U+/JCl/rZLv5BbKaAsCiqDMkR+0CkoZQfmXscmimBbEBXgkqITEMWXMNC8EvDh8k4"
-    "IYAV8ePBoz3lI2bi0ZrAKOK6qwsEtZFiVDyuZk8hD+ZUE/x4xswYsYDdKyx23WRiHccGZEuOuFN1Mre2RL9vlFSPkAp59kgSDN3HKtnv4BGx6lNi3BVC"
-    "tIZxcKyXPN4NaxTdeR+9zlVcl2uJA/bNV8R+SygovKRxMBk3xOh182EBh1h/42zJ8/FQ2VVvwQ7tu2G8panfXZsZbaMSz8AzV48cqmvc0qw3U8hGO6fr"
-    "qdnxbOZ3Gxm0PaVvvt74vNbr7fHk1iuvQ7BSkLy/JDHmIfKZa/rlWK5epnFZKMmgv2CFURSoB3xxd7GFukkrBU8ZVthOb+4F0Xfn06SCHe+eT24YxR0D"
-    "+SreefZrXa/6zS/wCq28Vm3EghqhK7XBFI2P1AuX9OTlW/gc2FN6mBPi7J6pwTngFFsWvajlBQULV8ysYweKmJoKkRAt98nf4/tFxQdRVRy6npVKlxBx"
-    "j+z/roip0BylviZkrfPQw0Dla8opbtrS2U5mKS80Tv0kmXtpuPBSy+h1wKVjO1JiXaoANQ24bHuy8lSUhRx5i7SR9+DdZJlRUhdXDjBwd9Ptxea+OqSu"
-    "A1xUDaf+MAS/K+8j0zMOqpClZ6y4Gq9C+RqqWjsmbenFPOwbTWpQNiupLA254qbZ5KzEqBc8M6dGLbVFODRgLZW5wQeYkyYKL1LBTeMfKu05BuHNNMix"
-    "lZUJxzXNg+2o3dwHd5wS/7jmeqtvargvMRoh9nrjQlKfb64unFkbUpgTShV65ZKVIU17PFcspDw18rGlHpaADcuHYVSE02HIrAgzNfyhtLAUUFWWgNtg"
-    "qaiJhWR5FZVilgV8l77mjSE96yo+xjAYG66GvGARtRI4SzaOu2CX6Wn3CE+B0tLeQtt0edg9Fqz9doLTBtNph7rvzTdmdNxp+oG5asmhYDXYsMtOs5FM"
-    "bFvmL8uDQvsnLfYTMoPbRLfMX4XYTnPaISbT2aQF8NFu0LR5tPNmz+9SsT5xbg2rXWbBwTHj8jLzIdptbYIBHfL2bKqyRk4abXmCxoapuCzqpN24eUk/"
-    "mUA3IRpXRugGjfI3jafhWVWUEsCMrOH0Yiu0ZYzthIZsthjw1FEeJS3K96O5l/UsHcMXlgzv/fDnJHGbSfmQTjwEfdMsnGa9rvmnOawvmk9zbTueem4/"
-    "Tyy2aJXQ1agy9foEW4bxTRM9XRT6wNpWPUUNi7mZ74fs7OFDUxWW7Lb3TQeCI2zI0WAJCz+Ymlulw0nUnvEJwYEgz3eHT6x5QTw8CMJYbA4UVZizH3O0"
-    "oNHR3qkLThorPRKCoubpka4Rgz4kvDXN0+LCX0YuFBsntymq2xw8wqjctvZeA1M2F5+ejiWxQuavMeWAEm547Yotmx6LGA2vjY4FNlA5whQgUy40lx3l"
-    "QrPhdCklnTnkXCJDfjuCltx7suOVG5A+IDegrmHsdCDSYKG8NkejuoDx0NYC9tZlbUnHpa5wJfNvitOYysfG4CfDuI0Lj5SHF8iHagHigbcD3OHORfoW"
-    "WDC9lsJIl6wNV7Apz63Y7V1CnWHhzNL1JnQPL3qb8dCay8GEVxr9SkwgrPBeo5G09GBRGS3sTmQNznBDvmaxFCNFutLo+acgZcMWffB4Jxc6bI/+xGIt"
-    "xnj2javGTABLfm/wQhSLNt8HehKObBZOFeM83e2Ca42rM2sueA2Ojg83v0lnynXkIhjEm+3p1Hgm3TrTITL82Keee+44uYHtdLpE3ylf/iunU0Uue2UH"
-    "+rUyZO9WeJgqXuSWbLXlTAonWYnw9eDZ7sUVpnxT6V9LV8oDue/pc3voMDMVKGner5VY3/KSDcfmmWF8p8NxZYrHmNPtIjZaOuceYKcLgydyBkQd+hGu"
-    "kj7BF7ECpkgbwiYgRkXuix21FANcN5d2dS3FRtIJd3buwhqxk1iQYCm9i2HwgJZ5wTE6Xo/PMDlLOEZH7p7fiDHLiJuf3fU55LhVdoZcacj73dTgyj4U"
-    "NrVPuq33/RHLaJh94A+3M5BmIzZgP3y2ObN83Zof96ZDfrp7x310WsYGwEPD4gBqYnFGPSJcLuWIDcgYnB2WXQtwYLjIpnRgTjVHIQQhgFgwb1f4wW4M"
-    "vrgKXQCWUZDrJnYVG6E4EO7QRT/mdD+qEvXPlZu5VUToiCtRXyiqDFsK8IgDaa+uJiwuh3x1eUEEBq5kCEmsomfyUqTJZNCLolQuRndlFTUMn5BCxqJZ"
-    "QlK7MsZa1Es4q92RcUnwhDJMcToLV+aVacaT9S/E8zRBsWmvhPWKSjJe6EEhPjCCW3gQQzwmWe3lRRUVERhtdN83s6ikx691BC9x482F+OPCWrUonIBg"
-    "KAVrLUSu242dI45owrKeWMTrWYD1eE8AC9YqSagICCuspROYgr8+QvRRcGgglGxks3ERhjZXjngiXO1BzwjVqhkv4WESCIm7GTMVsaf1JAXw/LFwPYVq"
-    "wWpg2CPUzdfWwv/ILydjVFuy7gnTh0cidgXxIbIxQ9AHfDEN48kYcOjy6g9T4YQRSd1y25rNYyN6kgEIA/klDGNwzeiI91QxPY+AjEh6c8RpipS8Ctq8"
-    "wiImt+mpaFGWEWLXVsaAQk1zlC/eozYjBLIxj51BEUreFBDfNdtH1O/iSE5G8y5+4eq0dO7lXjIyljkCupRNHnt6EQW7BfkTywo9UG6wF2BHAG3Pdgq0"
-    "ZaxfYlORaPSQ8VIPOZSIT1Q5g/juRCCwgpIhO1vAcMkhL8QVP5qtjfjjkkNRnDJPOB+3Z0hd/cAkd1c65lh8dM8hL8ZWj/5hyGayyu/WjVjtrZhfF54t"
-    "pFtbYCD4diqBjBc86Agl55ayR8NCGPqdGZJcEcJ+6ocQcVPELIWSI2A/w6MbdJ8enb8Vwl4ngvgpX7Sd2FaUfMxsypBnwfT1AuPJbYM5BrSVUV7P0w6Q"
-    "7VkgRWcqgqFY/wGI0kUrkZ1iKheLZROI0PIpdz2vdrCAUXKkYcOSInA31o1JqAq8JzaIZVyZAqJGWKiXmUjIxTDLxcBNWyMFnkEMOapc2dWfaRciX8Hq"
-    "WtnK1V7JqK12ABJF8Br1IpfIJ0Ge53UCkHdCGSCQe8fyU9QHFp+4OhfCHrktamcOjKK7QL+3FYPg2EH+jAeG3BvvppY5OnJqFdk9nkNZSAKiIcNmcfbR"
-    "nq3wjLacIj2TW8R1aKUd+oeEF0feRV4CoSO7CV98FbvsdB2BikRfhwnPPR3HZTaWvT4kFTGPYiU3iRDqI1tRLTw8JnNuZWMBdrS2lsllMJPNVsYX/N4V"
-    "q7VHOjHecYWh28rJ74lm4htpjLGENHFCTeicSlzTmHuHuZvueWOKnpa5ceKqVrUBT6ETIsdlaRLPtBM7+TLPtifkOYDUlZLEbZm3p+PCuJnY7kJRd9Im"
-    "4HmAkHuIiYYulKuGXUH4QqYtQiFcT2/EJE0XdvpzM2PfhSe3pUZiyiyT55lCKVMZxbxuZp+6yDRlYmg2yyRNOzElc6qJMedTebQ7yA3FdJEHHgM35dCC"
-    "XMeea+rRTimpHr+XqavqR+wqsyhna5mwWs4tUkjW+pwvMno1JS08F9kDM4rLMCQXG5lILFzt7yO97jlM8rUyTxXM6LdmmsWj3GdH2+LMTKWmzw7kB218"
-    "VJfTE2JKxdOYJK4qYeZher6mtIimkajIEVczk9oENJVvjQjTam1mLHwknNuLv9+V6m9Pjk0h82UzF5rntFHWOCW6q0oudwhxChv8zrCVWEXaPCYHcy98"
-    "YEowGEVXI73eVT68iyx83NorGIUn5ptKpBdpA02ercI6oNuVg+9W5P5bgmZ8IFMLrygcG1kDq7BK7GaaP7frWcbBI+gcJCbcCTF9IROyrplpDme2UzrE"
-    "mV9Q2sRZP2L7HcY0jPPxDaZrnENYpLgdmSFwTeTkHQqgKPSZszSRj6SGkRBxJFe0GP6GVJTk4wu5a9Ohy6DOrJg1cynGwTb3rCmsDuTdbJmbUek+ldax"
-    "MvOo5CXLlEmI2fYm3FOvCuN5gk7mLL3K7BnZFR+pTSeTNapWgCcKRbvMBTgHfi2zVU446hlG0lmI4ULmVSZyZSiiYV0ZUCMl72TksOVJDVbM2gaeTvUi"
-    "sSsT/A3m7Z0ySlkm1qaksCMzti4kj+UtNrid5lae3aE0qfLh9qywF9hR8thIh5kRCoYFh1klc9bCPmbYukpGGwfF1rILW0yV2zJnbUVG3ZLNgtWvzMk8"
-    "Wmbj1SxaZu19fFbZfdfj9zayAM/sG3x9naRow4otRfZ6JYGK7MNPjFmKH7+nbMYr56asx+vRbiE7MpNQGoYkyiebxTne+5HddzB3M7NXD4holuOZ52kw"
-    "k6bJrYIqU0sraW8BoY7umH7fmM76mcgYGbNb5pUONnaSJWRO6szdzSfuTd8gS3u9mQn8KmM2hrsylbPSgz/ST9fQa13ls7E83YLIEtrNROXcno2TkOef"
-    "ZwefwGZmEQ+GdWTitGzjIbEc6aYMKwMYc6u3cHz1ihFd+czZijlYlfb8KhSjMPncVb0px4IT35pfiDgJg5hPuEHIvJmAyGsjNCSDV/7+iyvwZrbaigRy"
-    "lkeeck1FSKLlm+eRNbPsQl56JuL1eAPkrye3t9fxQZr7ku2Q+l66FceUIv++wyKV/nrXN1Luz8SUmn99xHqm5lff5Mb1sCTAkthaURu1FOVDMmyi6kBL"
-    "KCp0lJTIa8QcewkD7mQrIzFQ/kAkZf0zFdSLPPwXJRYeqf43Szbs/q4kQOT3vx9LJ+itXrx+H2pWFFVxEKQqAapjcbJ6hMpdSENiM0cdC90DsFdjh6g+"
-    "BZrJCGf0xicuhSPzOdos2pFYFOWxlMVdlTK83LthUwU1ooJKkwuZ7YYo6tXkFGK7ZrB+CIt/3agpaRBr8tyDamqtZZGWg2pIJmhPlQoZLFuiAi8s2dd6"
-    "tluo6SQVsB+cqIjWRpYtmSiZ01So9CJFjvMcFYeJ8HnnTfruiIKHRXmrHYut0o6K3FzWtjP2d4RFhbWeJfosse5BcZiZvxeFb/qDBqi90fsTUk2amZ9V"
-    "7ZqZn41aPX1l9ZWBU9AflVY6qgX2xzR6FCvqDNd1aLIsz00s6s+MprpeZnpiiaCaWNQtGSyVfm9lAScqLKMSDuscsethYbOR5bTOYd2knRWCWE5snKyb"
-    "tFDVideIX4uo/XRVKc9ekRcYy44dzfZmAaP2Nj+UoTqcxSycmF32CxALLu2bGCsebtaLsUpXKhsVNXksh9NWeamoeCgB3MWTmMSsqrWjclWTcecu7cRh"
-    "yfpau6OynVJMuaDUUZlLha5YNmuq0ubdLKc2u0i3WVRxdpXxWyhWbSI7R7fCPzuqhC2V9Yp6mXNqb1u2iImiY10Quu6sV4Z6y4apxhprIJrUPITFRpkq"
-    "+mlYfGJlpcm1URx0VRXOWhtFzFbT8VmoS2vPp9WERa2dNZ7tgsprJlnIptdSsbMFBrK2NlmEc/nTm0Uv14qSPObcWlVhDVUBS5ZEm1iL3VS5c40ssvcs"
-    "9sbafh/rzinRctS7q8BU2K3GTvEwPhXZU4HGkjX7UAJwa2XnQR2praJrk7x8qx64Pb5ixdzBQYUHgy1s5pSI+oSL2FYdw8G+qmNYcSVthHFHkYr14RPj"
-    "ol6ZVNH+Wu6AWHRtcP0f1SgtiJmTJZ3GZJXBreODWh+OfV4rMuvODdZzsnZNtScvibcF1cnPbpWtHJwFV7tf/twRX+iX5S2P+pqfWEdBTlYw66zsZn45"
-    "U1hrLOZ5VWkzjtSpKrLXVxRQNK+QLNIZa3Za1vecEN9O18Vl91pFRdKh0qBxR1nuysSCoGdp5/UG+UhVjxyL9T65QEgTFUrKm+VMFwqwzqx6OljQlfXp"
-    "Gm+kW3XTtMMir01jaQeC1FW1b9OQVZQDVj3XBQrckbVbBwsTJ09pqv07NLXWWNR4qr6jyV4bmGraFogCD6xebCDru1VKF0POwoB1sx5u1kytjzFzJetM"
-    "bA1V+g1WYyKQ6gEXTq1n3eDKrhpelIF3qkyVIQ6R8w4ROcsVD1WuLAdlEJWayHXkbEbJwsqUEeM6lsl1HDotZbJI8FClvDLeSDteyqWjnJy92RIT3W/L"
-    "ss4X1aTJuUrDZFXZr1RIUVfl6A1DzekDtaXbIUKqv1eXN5IPhj1oC+ssk60Rl1gxw+7IgtULJbZZKv5eFgCnOtIxlNjWDojiEyjtvZcwjGU9sY5C4YI2"
-    "u2Yl++u1CtwQx4L3FlnUULL8qIY3yrjXHMjMguo7a4cXlplfV7XIK6vbqxZ5+Lu4CbirTjqq1s8sgF45EroIuMXuXGCnZm33GB6NNG4pDJrUrUr2B+XJ"
-    "DetTZeZRyX6rzHzEML+DonpO9LyqbY8C9Tur0UfEVGBYxRN6ixgJCLpxohxDX7s7Pgx443H2rtli4XnaBtwsvOb7Ee/B5aH/YViU+XMs7b7xunDjPmi3"
-    "G5f75IjBzA1bSxiWVlVuzeJNaA1BUXm+MSuPG9BjeRp9wh3zW8+8Fth3hfLFvRtwNxgWFe/dI19YHJXGuE435vv73JwqShW2DjAexxUpl9whA9U8DTMd"
-    "r/ttHH4DwqX5d0BsNCwo366O7VrYLL0828VW7qyD5E4J0bfr7jIs5tF7jsXViO7ikkiNVlNQD7HEPJX0Y2H4dc8nMoFI6OH+URAFzHMjoMvDOCPpmkMc"
-    "RVgaIvM9JmBq9wUMT0R3eanA2DPU7+Hixa7cioaxHcqVG4blmu6/Ha0wAXvJcSCQys0PyFVqhqFOr7sLASJni+SL74Y7VvaEsGBOSpvTwv1kzkyH0+r8"
-    "uchtERgoN1CEOgoECFNX/hzqnPsnQJKB8rZVxix30/J7zCeG7dXxpKvKhBO1Hhqwic92zrbqYPeNfTNaNsPb18sSdGFlASOTdaXHp3D8w3vjIKeTOwiS"
-    "Ah27dbCASTi0Rdetg9hFvK0lM2EzZnu0Zshy5T6NvFJ6wyGejNR0LCj62jIaXtQJijT/gvwhURWI4O57sbaTorB7+fnEpsoUuzdgfHWJKzZo2cyJF1LA"
-    "QVETdwCGVG5YEHQeXaCNLGEy3bD7TQaLWajYFG6YGxBHwnNtr2uOpGL3WO4BtkOxZcPIZGuUencIg6tQC3pXTAKVUh3j7V5RXdw/C9rVgcmavZKf6Nig"
-    "XgEQWMt2rQormizbVRJKVY/NjTfGp2CHcPc9wKB0MLfgJgzQxlU+WQbOvYzjAp3SOp0ywQbm1W40Xe78MDzLn0oScF+UDqnisRom2MV0q27G0jC8VbVr"
-    "SxRICX/0KiyunpXXQokgxyhgcIShHX143Jc7ID1VNnyTHEOJeXMDD+HAct0MYXEylGLOXciDIy8GoToWzS7VE+597rPY9B1zzJttFrNwX/YTGEPRHYvR"
-    "KbkBClF8Qr59YhD8DbtdWIm+dL10n/waGEuIuT9/jb6b8oeFB/jr3DDsKQ9U8IXcEnssyCFumw0XiygTsQDhLO8zsc82k1N5CAamdvIT4cgXfYk1ToOR"
-    "wxH5wd/DEbIIkcvvcnH3wR41XQkWyP7k1CCpGVYAgQB74YBvcS4LaYmDtvWw36hv4Nhm3/A+DSKzb1isHRvsW0Nk2CsngTrsjqHZumDTm17ejsVLYtNT"
-    "xIN/9NlNbEeNbB8y1mwt7Nq98xuLi7G1aGtCBvVYHWHYF4ha8RgmfEIqi40kwR5gxa1i6spPEYcFKcegOKJHUp+FU4UgLQdKx2L7HFkgDAtue4YO1aqQ"
-    "GI+uJcNa9F06VavgGpFF2bFgU0eKQMNiOx5aujyizBWBFilXBYWcbw8yDNnEwWjGhNceBBd8wE6moDiPZgDhzy1c1Z6bAhhMRBYByF8buIPvysF17NDL"
-    "DLRRx+EA4xbw+gyfIvCQR35ASeflFDAUr7sAjNtsQE/tGMYCT5PAMGSrslCJYYEsIvPwG9jyFrm5Pn634YlwtxZy1GzHhRwlf69iP/YLSd8w9EXl58Dw"
-    "jb7Bp57Y4uJu8ZA+cfwetOoz+MUVv+jkZlcaUw+2JaW4uPCv9zDQdoVhJWX8siDfYASXr44Nl/soAMFPRABjFHsQ5PyyFYbOIor6U8TBcq4tAhgj/pbt"
-    "oCnxCN8tzDmcRwyz3Y694sHGVViLdotEaZGvxsOZyUFaeNt5KDTPXovgNQ+Zrl2YQ7Xo/KC6nmOwuBgWs6iVwpkFyPfAmuhpWsrAZDWxgHuXLixAfBAr"
-    "/MbU7rG3+gRGHl/xyLYQdE6j4r1nGE9GDbuJl47AUGrkYnIMwtRGOHpEtGMoFe+9d1gFRZ99Ixg5sIBMXcWf41VQTmJcxwKDpY8YMytRdMUxyN2eiqID"
-    "4xVUoB92jO3wbHVsCCv8Lq+5Einf4htsF3nrYiz8Pffyi2lEM8uWsjkUsDPDSnRFfJMnWukT0GIz7tpKnynHMJKT7VZIk1a0A2fUsAYIr0VLDeM3laUv"
-    "SMiPXqNnlUOx2o0VNT3RzI52zGzl2AiMFVUdi8GZhgZQf7ufWLJD0IqeyN7pUOzE9BRYKGPrySAgN1u2HEzhPjFX93jCiS0s1rAzNVEk5PmE1BdVkHMo"
-    "T6/BucIUbVk42A5e6J7Vg584kSnMs4TgpHja+Oira8XzSH2K5CRQblkKqtjZXRKnpaoKjteZnDtSWl1gnT+HV0fzuDlgofY3aLIrHhOO4RMbbyzD8Gsm"
-    "GQ9C6GpSFjHItJb7a/DnIPhYjrBYxsGayp5dzG8LwzjbHameHCNRNrRbLf0iLOtcnG3LCiPIxQODLrtWLPdg7RNPdheMcXQdgBVJfR27iQUFLEkioIOd"
-    "N+jo7Wn3ZnyCAayenm8Dgi7TsvgFQxmMMorMfsSg4LEE3C2wQ7ZtWQFHjORShbKQrsixldi4wF7v4v/46cv/8vt/+t2Xv/x/v/zD7/7T7//w5S+//O6H"
-    "3/zir1//+eI3X/30zY9f/PqnH7/91ZefvvyHv3/921e/+P7b737h0C/aC/xv//Tf//5//PZ3//j71y98+cd/+MNvf/eH3/3xhf8///WPv38hv/nyf/7P"
-    "T/bL/+P3//j63x/+73/6h//6x99+9ctffvv9T7/9P3/4/pvf/ubXr9a/+vKXf/d37XoNuxfp2lyIf2/XAmht87RZECr3wnrk9WqzorjtC2shqLXZEBz5"
-    "wswJpRvWYdF6YcWLVDdPEnwdsreZkaStEiK9tYp6qG2G6fhnqPT1j3/7i59++NUXP37z0zff//TtD99/8SLWj1/9m29+TVrVj/T53T/+7r99INDXf5JA"
-    "f/Pjg0BwmW9z4qXxwm7FxGm0seFfZ6UvAkE5/Tlxf2ZKv/4/vvr6m69fy/7dv/1fO4ff/PSYg+VzmTaOg2j2wGJBD7yZDYt8eI755g1sN2B9COvRF8fy"
-    "hbXw+nRsDmHG+xwr+D1zGduOoRhYYCV+D/nGDdv+IHlhRbumLWyRE5o4g0Lgf+0aOHgaNrB/N8wnhoVJ5YWhGIlh1eWfFwbfMcPChPjCRjC/F1bD5PfC"
-    "WigNDAstzAurb2y2sCt2ya4RPPvaATf0VYYNUM9sIfhsDVvWC1uJhQ+6Y4W/F+5JLyyS4BpU/KnwgkaINYFVn8WCf+cLs1xXxGpiJfo2nn7PlXaANUEt"
-    "mlXt7bJBvAU/vsD2AtaPsMV2LdtNYjWxwb5lCYv1XkULWTzkxqGTUBvA9hUW671CTgI0Aa2WWAM2c2YV0MhJFP7aqJ9j/fOu7TEQYSMxDrg+2nGuNds1"
-    "Tja/2tjsSSY2K+0D6ebVhiobG4p6XGCbWK4Om538xGSzk59YbPcg+2K7nUTZapfT2Gy3cn0O262e2CL3zW/cSuyxG9WuatcWths7MbYbXVhlO3Ikw9hO"
-    "i3vABgzLbzS2a/mNznYtD1VXO0GDzXQeDw7BhO4H5xFQOQkJyy+wZ0kkWp0QvALbhPL3N5ud/MAhlLM/apazv4B2Tv6y2e7JZQCRu5corxfYFFYJ1YTY"
-    "TEzGjSUB5Qcam438QuPgRrK7uBgmhDhgbCeexbt8Ht15JbJpBpYclc3ag8uyWctPLLar+YnFdjUJsNUuKbDZriQFDtuVHMuJdltXsrnWD2I5vqt2eYNg"
-    "MbZ2gN0ghB6XippVYQ0Qd4BBbMYdUEsw7bnfshUOBBTigQ1+dOXYBtuRAdQIVw1sJraJZd/F0Y2c12K7kX03hzdyYvsA69n3sF1PoojuPfuK7u3o4i6E"
-    "RkIkVKvCKqdWs2slCWr2bZxazb6NUyvZt3PIJft2DrlkX+z4h/xRwXhgeAAkLLuuCuxk17WIZV9cAyu3T+U1sCSEmrapE8u+oPIKO1hgl0NeKTIVQjMh"
-    "DlmbqpHKS4JfbaTyyk3VSOWVm6rhAp5LvKY2Unnlpmqk8hKvqS2p3LMvh9dXQsKyq6jcsquo3LKvqNyy7+aQa/YVlWv2FZVrFyYqlythlVSmCFJ7Upks"
-    "CUkzAkso1nuKI1nuj0Ysu4LI8y0/ChpPSSW1k8YzBfNOGkf13YAmEDEpvszmTCbVSeL5ls0Wx7sS2xzvyq6b482xHY53ZtfD8fKNhHCqwPRAKEBGvhkK"
-    "xyshf5C+M9nWSAL37CsC9+wrAvfsKwq3x1uFI27Zd5CeLfsSEtsaSeKaXUXiml1F45J9ReOSVBGNS/YFkUeyrUEij+Rbg1LJSL41QeWRbGuSyiPZ1iSV"
-    "hyTfOknlfDvXSSqPZFuTVB7JtqhcMef+mxiHvD6+HA3LvoRmdp0c8syui0Oe2XVxyCP7bg6ZIhIqUAeWfQ+H3LOvqNyzr6gsvrVEZbGtlVQW21pJ5dYT"
-    "45Br9m1c8Jp9ReWafUXlmhBHXLKriFyyq6BEYsA9udYijXtyrUUa97ccL0SLrucqCnoHll1B4i6utUjhnmxrkcLIGRCaiEIoEY53JRYPXcOyZ+V4l6DG"
-    "8c7s2jjemV07x8v3Vt0kcE++tUngnnxrU3zrybd2krhn38Uh9+wrEvfsKxpL3NpJ45Z9ReOWfUXkmn1FZIrmVW/JnozrJJnFuE6SuWRfkblkX9C5JeM6"
-    "pHNLxnVI55biuvskO3SyK8jcknEdkrkl4zokc9OTvVKLa1j2BZlbMq5DMrdkXIdkbsm4DsncknHxodiScemh2KRXrZdUbsm4LqncknFdUrkl47qkckvG"
-    "dZPKPfs2jqVnX1G5d2GEWnYVlVt2FZVbdhWVcyQics2uInLNriJyTYgDLtlVNC7ZVc0SifHW1IMWkriKb7VCElfyrVZI4Sq+1Qo0VLPqTdgKKVzfUoMK"
-    "AlfxrVZI4Cq+ZZXhCCXC8a7EJse7sufkeKkpaHrrpTrSMA54Zt/NAc/suznikX0Phzeyr5plV5GYz0SLC+eQybeQfz6wKkw0btlXNKYOudWkccu+InLN"
-    "viJyzb6CsquoXLKrqFyy6+SQS2rMQeUittUqqVzEtszJoRPLvqDyQ6FfSeUivtXqm5o9FPULGNlWa6RyEdtqjVQuYlsWas8hr+xbOWQqH1ojlVM73Bqp"
-    "XMS3WoOmfhbxLYuDINQT4pBHdp0c8siuk0Me2VdU7tlXVO7ZV1Tu2VdUTuhwxC27slXLZiJyk9FENCbXaj1pTK7VetK4JsTxlrTBNNKpZFeRuAgKCo/7"
-    "NN8MQiOhRUxQEHjc5FodBB43uVYHgccV1+qgr9los+vmV3d2DfqOVGa3DgKPVGa3/sZmK7teDlhsa4DC4ybbGqDwuMm2Big8Ur/dBkg8rtRbbYDE4ybb"
-    "GiCxZyBOExmH3LMvu/bsKhr37Coit+wqIottjSRyy76ics2+sYvHTbY1kso1+x6Or2RfNivZ9XJmsjlOUvkk2+Jbz7AhDFQ+eiY2vvVGqscb33rj5J7i"
-    "W2+kfrxNvKhHKsjbhGHGsOwbOguk0wV0Aa3EJptR89DmG2chDjWh9x8nOdR84yQoWLUJvf9IpXmL6PrAZmL8xMiJXbbrSZTLdto/KwnfE+JQqGWwpLuk"
-    "Z8t2ontN+6/oLn60oPUcRyYTsxOznbbK8ujgwHJ4Q+0SimYP2/GCQWzslJkWd/x+mqcX2+k245twpNK8Lby7R2rNDWO7nd84apcQm62kwGWzlRS4bCfT"
-    "9uZi7OQrfCqOTe1To8GS5UiAsRmF67ZhDhupIZfRfqSGvMFgO7a2wCbz2XkhbTCf1IU3vh2Z0Q/YJZY/N9m3pPfAZLuSE1scSclvgCGtXG6+J8dK4YX2"
-    "ypFK7kZ75VjJBegWMNZbNsNZWbLFN5orx8pb5MQ7fqw88Ada1bHywB+YnUfqrtuBPXmsXNnD22FpZfnoHKmmbofHZ+XpPjw+S4/xRgPmSJ10owVzrLwJ"
-    "+BI1LIdMqKbHx+SIaw5lcsQ5ksUR8+3T+DY17OFUEiOZuYwHzghj5jLCrjlmygd8ro7UIRvGdjsndjuxpDFO2UzZkm9Yw2Zik5ggtprZqnIkuuMvV3Hm"
-    "Ybzkgqn3NYyT1ZLdNw5YK8aH7kgVr5x0xpTFwKpksa/u6UvOOPPo8fU7UnfbLqwXY6aUR6voSD1tu1zbkRcwn8QW2pkExdqOPGaXd9fIBwHfyWPkAl3o"
-    "h8d4LhDus5GiGd7OIxWrjcbTMZ7+TOEfNVKJap7vjVj6RxV+omc7zuLhRlU5uvZoRgq0bNfYt2a7RgrURztOo2S7zuGVj+5bI923Ol7jBmUzbIKuxTBs"
-    "E+vCsAn605Ns8vf2o90BtrIdrswuDoecio5RJu4F5nLDWnqmcXwj221ObWQ7fpYvp05L7kg1onseA2vZjl9t2exyZuRcvZAPdHKuTiXA6En3qLD9wlrS"
-    "PbyXA8t2uIFTw9crjO8jfdA6lQWWOSfbNfblE1juf57SMzH2XTlm7JVUyfXKu7qJKXUakEfTPdIrRamo6gtoAeqPZuzakgThmGZY9p3sW3Nqk31rkmCx"
-    "b8l2i31LkiAWKDVhnTqKUSXsd9qjR5WRsVdsnyoBrlNt8cJ2zuywa34BN3/VVdBptR5VrKZXbp/UU3WqN0bV46437p8qXYFhHF7PdpV9yfl74/5JN7xO"
-    "NchIxVKnydsC2Vdi7Fsf7S4wCli9cf9UitOd2hL6iAO7wMRX6Os4iph8pwqF2QKAse9OEmD/lOQrjfsntTkWoQ5oJgUWu86cGe6g1NJYpm1C2Wyza08C"
-    "bLbLwR0gLeeF3ZPef71x96T3H1I6OVZyXpd9S34ibqWern6dmpt+Jfx02uh7akd6x/YxrAqr7EuBtXdsn55qj04VD+MOAovtg/AEQOyq3U2tT795kXbs"
-    "np6qi95xU/VUU3Qa/fuV1gsVUx1r2W6wb0sSDPatSYLJvjWnNtm35DwEZbPYPpb+ISkQ26fTs90gIicnFqolRo8AY7ud7eJB3k/u7Y7901MNYBj7zmx3"
-    "2XcmAS77jiQA9k8+8Dv1Uv3kpTm4f05emoP750jx06mrMiwhdtX2pvqqn5RW6KrQ85FuWPRNd+lOlVbPF3kf3D/pxdbpat23lMmdLg09X99WwLcTy6kN"
-    "9l1JAg5lZbPJrjMpMNk1ISIjJ7bYsycBsHvyAR3JOxxqOS9sn61XlmFsV7Mdts+WcqRTj8ayVMAOsZwYts+S1duwQezR7gCj1qNT4db1DO6Tu2fl7p7c"
-    "PUvieacOri+J531y++Sbt084eBvWhTX2HdkuXkY9/bBQwcsxvpZQwSuwmhj7SiSkr0ZfeWlObp98zfbJ7aPXbIf7Rl+5uSd3z0yRkC4dPR2iOtR8febe"
-    "ntw++XDt9PLo6erUofrrMwVCxrT0mVt7cvvM3NszLi8fUULsmjM97DkSw+aZubcnN0/6IRnGvtrcVBoa1hNjXzFuahJ9ywir7CvGvfCu7uk41Kld7Okk"
-    "hErhgSU0AIl1092k59vT9wyxHHJn35VT6+y7csiDfWdObbDvzCEPDnnk1Cb75vAmu/ac2WTXlkNe9X2glmPsW3PIi31rTm2zb8khb/YtOTXsqXScMY5A"
-    "KJEB6OSID3s+iHwJ5YAvuz5ofNlV1yN8ZPrjRbk9mUVgNTF2FYkR0mFQIuwpClNB2ntSmCEovec+pn9NT3+TTqWpYS0x9i05YnCo9CPpmxwqfUY6/XB6"
-    "e8uhhHjN8tzAJrCdQxmHWA55su/KoUz2XTmUyb4ziYdN1t5ydNhjLW9CamF7+mn4TUwsh7LZt+WQN/u2pN5h35pDPuz7oPJh35JDvuz7oHLYlHrNfbzh"
-    "SN8fz8cDXVDPOKlOL6EuDwkTgoDsbAUela9HKnD74/XIEBTDEuLY5qMZx5ZQmKJ6TSZ9YBLpVXubKt1ec28fMqOqV83hPkk3hX64T6rEProb9fRI6IhT"
-    "6fUtqbb4++XRikMrgrAh0s+gM3alF231AzVgL881CHVPL481CC1gL89FYM9cA/CX8lwDyDtFa8Awup5RZJ06317eHhA/MBKrHNpIaAPq2axx8j0hjq09"
-    "mnFsTVDn2Gp+oXPyEr3h79RLCifUArebwgm1wC0t8f2GXNNuCicMNmwZL9apGG6Pd+UF02hXNL+xQVpGgXWqiltayfuFltCwhNh1PLryAz0/GsrE9ngt"
-    "Usvc0lrdL+x07ebV98BKfjdUAS0DrTpjeVoGPfcL5WR7PASptW6Ph+CFYYnlFYCx786xqGvS+H5sNujy1fJd6SoFYltYSNnt8JQMune1DAQbBbJOyxiy"
-    "Ae2xQVcQl6fkr3F5akIiZ8ueh1uMN8So4KKPXTHoA9UyTnHQaemx2weDR3oqdFzVSI5QhYkPcQsM6UeSCQ8pB1IPOQaPdpNEbfaFyfufhJp511NoN/sU"
-    "ZTguxYKqs09p4Yau/6kdNWgMNCltCdObjzqTccmvj3btLBSVU7UwqWY3RoLfmzVVOtyhs0ofRmXibDRmiHu6Fyf1gVfYoS6Rz7HZafiqen2bfy91k+T2"
-    "U648TdfJZDTGQ6E8Ow2zKU4YRqXwizf8TCj+v/num6++//W33//NFz9+883XX/zVV6+//6LEAn/9p4Pyv34E5SsQvr9zczp858lszdn0mX54HZzEnirp"
-    "mLWIncQmszHs7NvZbma7SuzhXXb7B8G/MeLItu/64CT3EK5blZAvA399oxQpa2xJaVPO5uThPRX/KM4UwtH54Aj+EFSqXkOpWLYwCjIEuQ9LZVMkClbo"
-    "6FrqQZEeM26Y8SGqq6VDVIXD4uOWsDg53RIZnUfO/AidK2Kv/UOQ4YMz18KL7eiA1MIbNh2EKi12LTWDCrRsGVZbC4RB1KjEUIKFpz+LRd1NYI+Ys5C4"
-    "3GHlA+3WM5YooIzfmrwkZ/p24y3Y8lFvzvdIKXIeXuFMM6INq7tqPH1nOyD5BTDgrvWnBx/EkP50kVtsV9PHCZJDy758DJsXaP3gamKb/uEZMYC1NO+H"
-    "CNdKuv9dnLF68xFBM2lNfzhZ+iweIE1fcSrqftop4ht1PS1JMWbW8Hqq+Osj0Qd5BZOVPdXFtT0VnmHSqfUdtoilrjBeF7WmFEPda61P/WE8OWpL/ftg"
-    "MpX2VD/HSa4Za9Dpi1i7ngkDy1vzwT5yZg8tcKjn6nhqVeOGreM54lBH1vSY6OTSVSGGvUPrUjOMM1PmPBSoLRftYYQC8TIUvLd4ItaH2r/CzatmvoDO"
-    "WNl6n1ZcMBB51KprS+dhfqGVfNVzIK2k4rHl7n7YAzexx89B8Kypju2QTtpjVzAPS6tP41Jj39M/WIhaWmKfQuv62TxKv/7Vt99995uv/vYvubb/jIRJ"
-    "X+W1bRl+XTBpp1IcstTcLia3JQvKQZHS1q50Bof6gXalmrKM0064xoyVloAJj4JeZHA9jHLrpXP7W1Jn38TdqncAK1GQpfUqF33LuOxmr169WNXPEO6v"
-    "vvn6n6XZf/r9//Xf/4sT7e/Kf/zX0a0XL+X3GoKVKogS06Xg3ehp9Ql5xrtm+cwHoVB9WzpztQpLbp1KfVpgofWs4glNQMjZV+DnUxkhb1Ao5asn8wIU"
-    "lj5LxMzfanFaLMHy/gBtZZg2qAPiF2u8ZutWebqCgD1PQUwIQ7VkcQk1QGxlRVVsp1R5IluRQRuEp80jFCEfnpcO0A6qNkuOAmiFt2Fj/ViDIh3kC5PA"
-    "Z7WbemDyzLXaTe0jRveUtuWpeOkWbxiO9fXkWI7txBoxGXStCM4ixnZMVGIY3rZWFyX6HoVfnVvQ7uh9ZpU30E4hGlZlY3zEVmE7uS8ez2Hg2KZawWog"
-    "xFCUI8igIJUl4WYzKIGMMXDICzGnzUuAA9sY8gPb8NppXixNQ66fYScx9r1QtbQlTxErejM+wxbHJ/JdJmd6YnXk7xGbMAe3jD6xXRVjZt0C23x4Bnv+"
-    "P2DH63c3S8XIPXrioLQmK6dVRfQ92mTNS0gZu7zer5+KB9RwUKpOxYHzQ6vaFF4VOLDOFbsHEbbvsPBgbrXn0ELktQy49T1kiXIfrZzklmOXU7/Y7fVK"
-    "RrdiijuwlYMDL7ldkz+NP5fUvVgFT1qc2P0Mm/g55QYxaOGjJNxdmEN9cpgCPjQ/Qo3CiVc2BdQTahNY6fr9mLwlentggB5dY6JbzvCXW9ozrXcwxMJ2"
-    "77CDruKbFZx6i7tGGatm+ffbR2g8of7hbigF90zRNVbCs7MylOY5sKHiVF5Z2KGjy6EMXG0PHp9QSbYfv1WzI2jWp1pVOGlZgRtkvjbMm7WbN01EzFg5"
-    "H06JwcNeWaj/Cemg/W+QDiyjIuxnbSkFz2EusWbkv8qyeDqYLAWoGtqjtuSDbNUz3AbYMi2XVRlxybPNwUf0gWxhrJM2wAu/X795fjYN5V9/98MPXzP1"
-    "JOnS/0y6/PVfln3ywr+mWYg+RwizTZtN91HlZZHhI5ae06U+wwaJgLDW9kgqcGFENSqMn53xj199++tvvv7i6x//9ouffvjVX7oV/sVklT9+8+9++A/f"
-    "/PY//+H3rx/5+4ec3aFRtYSr4J1nRAUGX+rxMxjuEsP2ZrspbPwM1rl1ZvZ1U6lfpyAkvCrabtTKHYaKvcOgVG5LaUGs3EvjZ/dM8f4zDCa7tsRUvQYM"
-    "MQoyTLLQVsl2D+zRbjZgRZ+dA4diZNfFQ7H651jJdrdh39x8uMQ2lOHx0J3bZYKpzLExElvIf07x+qNpXP/9t999/e33f5OJb//qm7/59//ut/92/CJ2"
-    "yS/+xNPkX7PNChzGjclALWWYm4ANW0zvijeqMajPsUP9lWFFT0H9XHxiS91oyW7dJmPY4+eCB26lT3mHnY/D20qGxXo3IUMDWvzsoguBZeIdC7t2tc+x"
-    "kslsQQFlUzvMkuYHYybb+QxDgKNPN7HD6ULt8cCqvmuKzornQfsZrG99d1Q+QdrnmMgCc7Y9BUbLa8XHfJSiw5fjQMSfugfQTNawC1vtE9r8QDrTJbak"
-    "47lI7NhOZoOy8qMHg+NHozj6OwjBAG2nC+NFnl7DaLy+JXwZvF1i/Wewqr5IU3xI4YztSmzmZ+FY76vYNAlXS/hO0X0CaFH5e+Hj5O+W/TlG89iFY5Fx"
-    "xrs/x2a2i8muzEZdCvfi6yz8/+Mz7V/NZz7Te/j73TKsWxlKVBBpSG9WrW4e6vxY9n5LJ2+F6Q6hSGXmWAE0ogSPFatDXnfDNqBBaLInq/bZI6pFz8Ky"
-    "BvbWKhsYctMb5gUaT1fRAU/e34BBi2HJ+zcxzgHsv5qiC+n0G6I7HOM3esPw3LEGGKp5Ggb51bL3e3GhQ/dVw+LU1NNVZcKy93vCdsPYNYornS6tkUEX"
-    "0OBAwlbqGOoDecZ8hwYS7HvO+wuoEquR+92uN8ye9WMO7b2G9ahNduhQZRhqA3t5vCrsxCcqyyBaMvtdgXH2Y5GahbUzTLzz4iZWDO9yeCeKAJ6mqgMh"
-    "SDmWq8MijYahYoHd3V6F+rStb8yof+6XPoZieWYuMNRZaawW6SLTBRZ2ScdQss0kCy+MZ7X1Bj87sUFNb8TPohyfYSTp9LdPPa2xKEKb4XpW7S3APTtR"
-    "i+O0yqogJviAKiyeYVAQvhXWNXPRyrvWy+JArjRxKGm3IqTGMZTLNCx+rm6WCXApwieRBUVMQozR1ZWfRUlOv0G3sIAGlYz+VvFJVNVEMObbJrAuyMtY"
-    "nKoSCyaTeKUhuysv292oZhRPiMA2CrHZ3cvzvlHi02UD9N0RCOYYt8BucfDKYcU6g7wshmGVP9fxCbuOr7DYeGWzLrXLPT48qrhf2Am5y6fGobCkhlEK"
-    "nz2R3j2IN4TNCRpzv1ttsAuMQz4FO6qqJJphsRlNgUsKhIuUY5oumYo9rIewurGlyEJ2lHk2iCxqLzDaxspKBmHPVpZysTs5vtpUY94IhZPcciQj1qJ1"
-    "bcbNq8eyh9QP62NG16qljWursfaXQbXiwNfcFZ1MgNfWujzwKqBiOy9ulaYKKo3lgQ27Q7s22Kr5+TRt+Nh5XeVbG0v3GqZDgHJlTx7KOnHGa8kFVifT"
-    "7yzbYZgXzDm9Z98WPK8PEd5y3Q9gZDQLlZBcmSCmcnkfoaiIayIqsDPFo0bD/cYraaJGthuLdrI8YmQDMzzi/f5tJ1kosXOT1Q7c8ePBkikekHPBMcex"
-    "lVihUNKuboJG7OrCCG5uNi/dK8FCx6AAMg4/MHRjHv4+S457GRZCV3eeF/OxusCz6m6MPTZUR83v0A2MJ2AMSjiHirioLwOM+240SF8qJ9hGxIeGkHYl"
-    "CQRTnSr961VyHKqsLudlfZy+s6XcEqWPDzPvQSCJX+vZdWMJLXHllHgTfHEO3YwdF4Nlje2C4v6YuetghHeMrLLzQratNiSRBa9kxvPAMJSbwhGluSzx"
-    "6rYnp8BSaWbDglesKn7Xblyhq7LskwmWXkrZqmLPnQKoT2N13QJmFNjA7pFAG1xr5d1ouWp8GkuFgAyr8d2lzd4GGKjxlitpOxgoXjIBlZjF4aXSwBTW"
-    "YWEpl9xjEir5Y9W54toyBtmExR2wq7h2DXdaxygf1khcUb3ke2JxUswChLVADk7HuC28zJpjKghthhEvPGkV6VtiwY32lMwYOXyrFbNf+VDxsmxW9L4n"
-    "FttsJ4MyN40NbBOr2GZbRa68hp5/40h9blhsMxZ6eWGoVeKPJgp5hY8QszEIil12WNvSiv4NIHwdlIVNZkU7iU1ssjPFP8rEJjtT12Dh/XGS9xS96FTI"
-    "07DagHG8LUpRnnNyDpVDudrbBWVlDeMRLQUs6koAM7tSiJG3YjO6WekAwjY2LOS528jxzOgT98dtZFtuG/KZ3c53qdX5jJ13LQzxT1gCxr/wSK7/aj8B"
-    "c3nw3WrVZiEB9OLZ6qoVlsUh6WELdwj8xSC/nPfSWhmGX5ukUC/h5uNYacJ29KX4aD4V/tC0grF9CfPjZYVgJ6AVx8HrwHZhGEkhl+wlHqR7quhdR8mb"
-    "anVbwdUMiwFPPSq6FQ/x+VuhAEHO6DZTxBt2o7K41W0dXZgLJ1a4FW85cwzxh9b2l5mwaNZ4fjvKDlRz9oV8athqwAqghvm7P7GwmP+4fLb1SBpfd17E"
-    "BjnzM9dmXByG+SPVXaA5uIH5j0nhzLAgADPAGDZBgNHfEvJag+7IzdGh7PBmHonAYiSV5VZ73Zg/A/wDi/l3lYfvxpr9Ewy9DszZhkc2cSiRGKjuzoqZ"
-    "ndzfwyCbsCBAn3xl9AYp273RhjCv0re7zm9vqGbpnlxbWFCgy+LXYaio7mt4hflQmoqyd3gFV8+H1ITFCWib3KqzHKpnE5vCggJt6YAiDV/1XHlbWJCg"
-    "Dd7YvUWgaHVXTUBRudwdkKugIIDNkKPbIEArvBINCwJ4OlxgKJkY2YWFubplp4dSbxGKUz0H9hUWFKgsOds9jMahyfrrnUVyPb89CGXBTD682qkJ6B2K"
-    "JK++sIQFAar0Gb23N0Iw+XaW9fXKLBgdsijUnU/y3nGLe3khDi+i6qtXdurCggJlsZBk7xMUKJOKj97JBcvgo69bQK1DUkoY5AKaYRzJBgGKVF8dMYc1"
-    "arEKCwKYIZ2E8rTXdV0VyDTIJX4rvEpO5lkhHNt01eoIsqlWUBUiRh+RQMmxIsjnb+VTIbb3EZ631cqiQqg2bMVQOoXlPtwbrHoh0ynI528VSiHcdmND"
-    "zTF5jRnmBPAKpVeYcwGvUAoIZawNIiuzJ4//3Nk54omJnSXmy+eSVS0ljQeKzVvV0iFoxM91vhX7CDNStaKlZMgDemMrWso7ekCesKqlZNKWkNAgc9jK"
-    "Zi48WdVSXo0jQiTryjrwhrmeYrFeX2D+BTNJZFd/pHnR0ux6o2sXixoXRHnJ1DxRI+yhjpVsd2Ioehn3Gem3qlUohabbMNcPWTVSyNSGebFSL0cKis6K"
-    "RVtbd/JEOeW1lo7eBEe22qMrsRV9h8SeCTnTao+exGKfLanD+gzNj0FlCPJX+rInWWKurlyr5DSiQEVdLH0WmPPQxWJahsGgsKbUPIa5gnHNpU0wN4bM"
-    "8iuBxZBncpB5YshTTzyDxgBWEoszP5vY9PRMdy+o6l6ZF2fZLNHAFh6ly8KhpjAniu2tIcjfbmtsXTbm9+YjGUvndlXsgTG1lVekfHphUqX1FSmVXlgX"
-    "h1+Rs+iFqZCxYScwFcrti+s9JHCZN0x8omhtl/ue1eURpoLiFHT5RvUFe8rqWzuZGrLVVVPcsDikXS/GviZGwhwCgcVQejJC28C+pXqjO1RfEyejV11A"
-    "ZvXzLcCovMDiRCKmM6AgSnss0MY6ti2Ja8W7bzXVGTcozk9LsdG04j6SNiTmwGnxhfVcx4P1aVLXGBbMlm7qht1g+01lqw1yYW0xpiOwOBf15NJGqKZj"
-    "WNqNp/CqW0u7C0ZiloIjLDhIzYtq1xhJlY2qUz2/atfS7gqiuL+YsNgqteJl3TfU6ctChYYw13OsciWq7XiZWRlfnijTMPuAC/UoBsVxLynU7w7WY28q"
-    "zmFg/kUqHcPilJWUmXakoXlhjaL0hvJ3laqV2JEI+YWpQHXfkVzEMd6iO7Jy1HlvkhjX3rwyjPUdZTtfmGpFGzYDy4fYjnQBL2xS4dD34TeGRMSNDTUZ"
-    "DmBYlKd4YU3yll2f0bfqkjteUc8h7pRT+HOFz0TzqbR9N4/MgIb5C3Oeo+vH3CP8C2frWMBj9oWl0HRgyjIMup9+hnspvbBkFidyEVUrGsxr7+BesWLA"
-    "ZKtncix5zI7X36lWC5j3wIG8YRg394m6stVqAXOHnqhTW60YMIl83DP1BZ2c2QVV9s6ZXazZ3pqZKV/i55ZmxmrzVjOYrOxCHrSawRjda/WCKLvr0ruR"
-    "Ma5aGWHe0zd86R3j1rsdW888wPkJnAyrLcyFvBDXrbYwX3YmuXrfJaWTYX5urd4wh4JTMFP/2eGPUa20MN/7Ji8HJntHt80PiI+9u/mFLn50ocZlGWGD"
-    "UKbdSwEfYa548Sq6nFiUd6kq0hqY68C97GcV5izEaz7G740S/nbVy/0tYbFV5iQLGSXiHauX9arCRny3c18Y5rOwIBL+XKRNdKwMYc7hVGgjsBuf0PNs"
-    "FDzPPCn+EuYjHhIbR4HZwvNtV2Euv3mm5iMsjvyYZKyjTGy9oYenYTG8QW8Fg/yF4YlCia1gKqPy9WzQip6Ft9kokTqnKuFgYAMQdoVBwbb64a4YqKtb"
-    "PXGZoOCgfXFXGBak8wxcwG48MDxOfgoLPmNOhsCiJGn1SPyE4oAy44phsPp6sPAS5rKQJ7fAUEy/1YBBthoRrlMtDg33qkGx3dvWKiI8q1pg7FjCYmZt"
-    "8oCOCmvETKHEMBckZ3pDDItldkhvmIEybI6xZ9Q5qx572oWdGJ1O2agbN1K9fOwNlMOqHnfIvvHutohF7hOTYnxwdWlTVFjCZ3o0GOYijgdPop0Ffccn"
-    "hobSoBexAM1ZhcVa1EbpbTToGi18FI/CgWIpL0xBV4OKq1kLZV/DXC6d5VJ+HRY87GNO8cWw2FLmmAAIesVZFu9kw1xEnkWqu9EoRxR5ugwk539h0h+M"
-    "Br3vNG5whd0YXqOcOxqE0FkqT61twhhd7lpTSFVgEGmGp794YePKO8swF/3GlQp29Eju8MK2mEqPaJQXtmgfHEj3+sKkRzfsRN9BxdrwhwCwKsif1MPv"
-    "OmDQZYzbRAHkIHxhlXLJsOO/HSvi5shAV8dRLN7owbiGtCUD6cgcElGg0R2mLRHk0uUwZYmgG5BiQwYyJb2wwdfk6DDTjdOpoxr9guynUQAxzKWIcSo3"
-    "VMfFNVJXMgYurrGvLqmBi2tsKWDHwFkZKbwY5l/dS5fUiEzGjvGSGnBYGltGL8NidHvwOW2Yj25LszzMZh4/J6uSYRhdfeMX4J44GBcXmA9uSW9nkN8M"
-    "wxySOC9ILkNSikEzui6xngGJcSwpgcbA6puQ0gTFXl8Dj6sxotTFC+o6nSNyoL2wRinfsBM/l/xzQLAcq7wl5L82FfUzqHgaqSUZA7LmmHKmMywOmMko"
-    "WIfJAzvlOWdYrI1FrGxhznrHzHthVhxOFgkMLAgw6Tvqf8WQqwgwGwgwiwgwGw6YySiY7ewgwDhUKxu2Ats6xDPyxlZbgLGFjWiXQsocIPIYuqVn5Map"
-    "trF2Ys61bU9yuecCqYa040FJYLylLcg3+hbdPhOSqh3Bzt87aOdZzYT5UMx+QxJAKnXWcoTFEWCqzhe2wsHaMYj0hvkmYK5Fg8h5e5eItyqYVlcUs+3M"
-    "Fp+o+uxqbEetkG3q+LWiM7tgqrELQr/GA9qOePaCj4hhQ9AKaOe8JnZjU1i08a9+8Vny51PAZTwduLCygeF1bnzubhCAl/6+2Ho9b8t9sZONnoLGBnSy"
-    "K1eHl9Y+uFH61mbcoUMePffxhvrZuTc/CgWlYXcIC87L3OOGRaJO33eaxOTelteUYa1ib1M+3lE0yzHNAvZqOxdzCwvea15S/G7D2g45tQyqcQzjWdkR"
-    "lOxnlJx2RyCHn+UhKPa21dvCzy3eW+PSpDPoxjdYiC8wcLgqbrYiAaNzH96NCz48zkswtcVb2rydmrAg1dSbc1CpaPyAF+GCZWqkrtn37SK37cLAWY/Y"
-    "lI7GlPp+UNXqB7jqoC1AvFgX3J7tsGoo0AQPBm8FFlt+dTH+VbCr1nhLqEzcZzy48+a9R6qYD1YHdpNJxQoZuUcys4qrdSfP4wWcUOE13cVBx8Vtzl1r"
-    "1dcvbv26hE0IB6UJim/ufDd76WnIFTsvgkL5Q0y/g3RbxpBBI4eduNF0KQUX2I8LCEYTP/tV996BZFUTCmHTHH3zunV1z3BtWF63HcLbScxVzSbk8cyP"
-    "i8145FfsVyWFRkk5B4LvyeffOLhvz5YgaeYvSq8UOMfGfXbyQI5QvJgsXCXlbIrMJWWhBYhPszEx2XT/8bu4QyrXxKDiN+F9pUS3Ifc/pLeY633MK/LP"
-    "+ztC8+qY633Mq4faxd8lV+JmvOBKTqzFG77kio0oH+rYTVk4FHmlUSM/6KJpj6udWKgYymNiYHn2WOPMkATSH3ojZfVQyJb9FP3Pxrvx8UTAoy5n5lns"
-    "+Q7V62J1PGEf75JWgXFqJmRcPH85tc73ZboPuOCx8JzmmbLU3BPP7pmvpsrnOe9C2vvtad8T61AAaGYdyoP6mBlcd0yhkO+80Be3x8xwTRmmmcEcZiqL"
-    "k8/QA2WHJoZTa0oRTQwWVleeLGHQ2TwmBmHalTFHr+TdqLS5wjpUO01P7kOtUBUUU+05LxRmc0yvf65sz3k1rmzPiTWubM/NiOKEru/iZqQXjCeuT2xC"
-    "e9YTCo1Al2f9QOlN18bVxEJrmWbDQZdXV+6lniQUqOOdjiXUwKYrrMJCHTf6W6pxDjWP1ChZnoEODaWWgss4lu481Hl2jaeGHGW0qko2hkoplB0MCw8s"
-    "1D3jivKoVl5VCjiw0OPMmtqtCArziuNDEFTNXYSvG8dnpgKggvuaWjn1bGNA+0xBvy5qs7de2Ih9dW02Rc6KtZ0yQg166ZpyXAQYUCgtRT6MOqDfXFVS"
-    "fUWEkenfbyoVY6+Y98CWQjK2oxl9u7BJUwDFvAqznpsMZio9By0LqQhdtEBQLDP34ANLhQgfDjNm0JAetEKbvWtqc+FwbgaShGAz6alWJdffQyKDaX03"
-    "TDXcembO3DDpUJaueJyY6UcK6EsbzNFDpFwo4PfVQhaaKk5qGssBRU++swvufTN0kYmUExQ4TU+MEnmA3EZ2PmjWz8NQsXGvHHkeuKL+wDRHGbQsWBuO"
-    "PBlc7z9p/ptpHrgwE8q0gHA8syY+TBBx7936NFVM2Csp1ZdBO2mXkr/ThCkPRsPC4HRTXVp4icgry8woobi9CmEwLCZmns1LlppLi+0RtGDXpShQ6MhR"
-    "ytM+FC4lRd7mhs0KEzM1eQUvWzNF09p9YZs1kzWN4i8s3KhKeluZaZkmcNkSIyTEDOU1zWHhveau7WlJ27C7PyxuqwKjlfRueg/IVNMRKO2mfTpE3ihn"
-    "6y4AOw2CdcFVgGZSV/XCpWANYaPD84A+bRc3kHkozDRNwo9BBrwBt6J60tBHH5V639Iguho8KtoHI+lqaf69CLQ0Bw26vFw61TS9TdwQu4DR8+KGtGE+"
-    "IDT/WtK0AV+R096bes2nhH4hly6CXjhWWHi+NWkz3Zx86ckyhbmA4B4vR1iTZ0yVxTp8iHqTA9Y59NLpMp2eA9dEU5ZUWcXDR8XkvSFsLHj4lLSoVzgC"
-    "0Qvi4C2+3PlSWKcTEb0qDkLvFkuGhR0//AszuNzt/fBcWukqEH4bJvILghOVnsmGwWFqUKQzz4Mz4Ww1BPmL1Xyy6FJ+etzT5rtFV7ATVdncx6ulvwMc"
-    "wWq6QJQBh7GSrhJwZ9Nd6y4V8DWjy/YpcNacUlIaNjdc1+iGesIyuWb6Hu2L9TJF5xAWjnrz4S1zsRfnlmfmPnRxS7feTf7xcN6jO4o7+e10W9l0Brzp"
-    "3nLgNFjTNSbYmynN+3t3meUJA+VqE85MJkUkNunTKFeWCdetJfO8efMs+kjOxMKJaKXD4e4cy2NuHfPdRY77G0Ho5sNZ058pWPJWxKy7PS36hKZ71ITr"
-    "KP0iNjwF1n44JdH9cycbpA7NPFZH+ngterZyyCsUlSslC/Msi6NnkkVLr7QDf1oe0cXTfQq9glcUgHFXXDmqrXDKOi393iCYmmcvabyg3XEH4PTyCxZ6"
-    "5tOjL/bekVBrHoLBy85+ehdWOSi3dEyUH3Ni4ap17tNHMjwOncEKG3CfXuldOeFlnQ6XcU/fTr5AzZu7bF/5dMa1Yg4yicG1O/nivBjvXemFCt2OeZQ/"
-    "nFXDLfEqH4BhfcNDne7zM54X5scuV98dV6j5u5Plz0V/d6mMDRuT7vNLfrh3wfOeJLZon0lv/Cu/3jvptT/T/7fTu1+ewxFsVHa69faIMyjSs5kj8jmI"
-    "KZADdOQK9tgDjSQyDzsmQlXE5NSaTswF8QhVZg53st4IjRjpjB1BWTUXckTxaw+14AU3Qo4y6KYPeARv1SW5x3RqC8Ec6aBeO2I+eE0PmJIsNiT94hHg"
-    "IuuKudTPjfATckureD2AUdgYUIRuf0Snd/9FgAu54OgZCEMHp9EYCCM3GMNGRWANb317qh8G4CxhfTBQR/ENB+E8vKTNNLYQ9jMf0RIV0UEKF8ETe3dl"
-    "ibDoiyBUTxEM1Y4cuxnMMRGoxL3YF/anpeY+whDklJ51HaYUL7qWESntILZKkTBIfhDVm4RF5ErP6Vroc0X8Fvk29VZexESBNZPRYP1DSM5oIjHqIDt2"
-    "FfUTAx7SPhoWW3sM8V5qoyykrWdgEQLOMnCjhR3SIuRKxi5hvMpwaTFO4yK6bmd81GUQ3swwKkQSFjln05MlCn0IaxfxgI+Irj2Bkc+YA01FKCGn26IA"
-    "aoQcnowkGwxNbAo4i7UwXckWVhjpyIuwVRy0ucWSTcU4ESV5MkhudkRYMuauIWWHBWKSBvXG4i56LVi0XhxHs7VmVN9g9CdHUhGvvzMK3bDgvkux+RZM"
-    "GJRfM6P/EFrjwalTwYku6O8lL78OH69t13+GP56LiFgNBQ40eynnj4VORrtdMiQS3HzLNtdrQ4Dhlu+NYTHbDC/3wM4FTDND/PLeKZlXmBj3znDaSray"
-    "3RT5LwcSz/8tgcSm7Qs10VxPDWAoMOaQ0nLB8erhuTgRQmUGqP7BaDoVITr4PBiZ7spMLGFrGUdqa1Pw0LJY0moapkB77GzZ+GiloB4KObndIkFvuTGg"
-    "6Bhbdt5OnWXK7m71HsD6/LMzma4/czn+kkymYQ8NpVBpUm2tS2uYIpzC0AZiUY8VqZXdEg2ZxKwxV2ZYrMdFtKaZMGmHPPANupJ7zYI46DH4epr92flO"
-    "+59JmK//9D79VRLGUqw7jypTIV2WYv0ENvjsuhQQDAPvNsyfU4Zttmuhuixmlr3CRgUGe7xhzkMN22zndZ1e0KIS/lKOMIwQMhaUKUcDw/xBUBSjfunR"
-    "VtL16fZILOkYdsFFXbgXdngBGebym2FYt8tkbYap7wmhtkyZgG8/nJiiAG6H7GcYidzhkFCWdLcXdUcdG02Y608M24LiE0tOp5dRsWWJQxjm96NhIFSH"
-    "75tBO7EeP0dnrdshmhukX0OgqGHjCHOR07DNAYfXgkF3CqqBdb5/LGf/rsA010qadLKvS5mmpNXAsB5DoZ/nbZE42SGoYwxzucQwLmO7pJ0i9y/EnLIm"
-    "37oGVWIkQNsc8eT1c5tWcXJ1GrJoGQQh9NI3t6zc2g0u8IbxRFk8+gW2qjDQWI+Ja1J6tJPIbVidwBpnFqyrMJFqQG0B2/w5WNiKB6gJ69GXeqvbKneF"
-    "VD6GDTbjkrUoLOUYl6xBZ1GWHNkNqx0YlqzC3aqsPD31hjbGMLKZGuXLHIO60DBXy5ddKEZ4xYcFjNuihkmjMI+oQZCZDIMEe+vCzLYywxjmviZly7hy"
-    "KxRNhnGrVCili5xTvYjBBcTNWKO8j2M8PhV+rYaReC+sxs9Jf2R1K9YFVrew1oB1toNXn2HctagG5thiuwLOsBX6ZVgHhHfNRQr0FyZXssvYCMPwawWi"
-    "jkHQ5FwmEjEMWkQr9xAceSsIzbDBT8BCYKUiLj/BQ1W0QEOHwPKhACJDLvAcNKxPYXGmzAsO0AiRyKA1hJUDDGrUW/obm90uCMsoU9ItUc7RMY2EbHDP"
-    "HAk8ZQ1LiL+mgUShSsdEEoRrGobVscobcfua3/UU1g4wMN8TBRMcwj4xCKdHBn+vbzKAzSsMiy3B9lzeW1tXsmFYbemyzp1cbeVNM2w0YHjuWgIgHEcl"
-    "fjIs7sEtHbQlD7ob2KrCgoVu8TfDCiAcKctFNPnZe4VhVyhkyHIbhXhgCtMhDKf70BwfqZKATUEVCA6ZJVlaDRiuX8OCC25xS0vaBCZwcSUbBB4gq4Gl"
-    "e8LmkSOhp4UChFvFskdtYlDunIP4ecOwy47bc4HtLazxsyCTictO4SO/AMNc0VYytZYlwWIzjHdBjVG6gjCdeThmL7n6z74Tvvqr77754sdv/8M3P/76"
-    "26+/+eJX3331/U+PLMqf5Wb/4z/84S8vkJmC8UtUi0ihYMi+fI7ZUXIsZMBaRjgSOzOPN7NjtnyOxaXomM0z7oYhzIRvx0Lt+MLCruLYacJ6jIVaN8fK"
-    "AcbPbj/9cZ1dYSOGQi8rx+oAttk3pBa/ResUNiuwOYSx2eWIp+v//KLuTdjcwHYV1nx49Np6QXHQHRpXmEmyjonIkTTLRYu2hRVAi5OIKCsXXsoU1g+w"
-    "MYSVBexwFlFaMgSkJmwMYKsKqzEUxHa8oEip4VC/wiagfQTVGAkKThoWxn/H5hI2F7A7hbUYycJ9Wq2A2e3Adhe2YnRUYTnWK7CJWfRQOjl2Ba0YHl3U"
-    "HOsb2DrCQLyL2+6FbRLvQshwDMRjzjHHYuexarhhkWPBsZXY9Gn0qsNiSlhiXMge8TiOncSWT7fz7eJYJ7a6sBIYjYsvbODw9a4DiQqRjp3EamCMFHCe"
-    "FidInnWOYR556HvnPGbOo3EeM+fRsJR95TyaGxwdW4mVwLY2fY/soY6NxAaxkxjW4+R6RJEWx1ZiMzBmrHKsTWD/X3tXslvXkWR/hbveWEJm5LzkM6kB"
-    "pkWDlEvoRUEQqlwoo9UtQzbQv983Ik5EPImPkygaBlorAgeX7+bNITLGExUYaR27YDMwFYY1uYAk1RjVcA9M91XNvq9oQqLV7PuKNNVVsBlYln1ayeUD"
-    "t5I1zPYuDYglb3AkmAr1an2WNqzjeFTLKRdMhUutfj6UGEyg4YiKh2pVbpmb/OkOr0bQJVhrwEyQkt61GxaHnK0/QCaqWaToz1nmjmCYlPE0HtOBWDw0"
-    "c2tBXZ46fVuQycw6XdxSwaVRQ6JTwc8Z9WrmhoNLXuol5oLp4LiZd3FMr9K2t7KEy6BlF0pkO7llF3zay3mD6Gl1RNdQKsUc08uVqzuWY7oSHh3YsCRO"
-    "6sTt43zqtL2xYHbR83Wkv9dixErEJJiNmEuMJ7DVHdM9yyHUeK4VYHb2sqT/bhC8vILold5Mdc3SuFKWgnM1l2MqGdr0OdY66Q1avrGzHQr3RGXu/rjs"
-    "uTUcU6HXUwxYadEEs4OcBw58zz7iAQXG3UkbphnGG0Yx4o7d3kP+5o473SsiBdMZ6ODe2yA7POyMro41fay6UsP0iwXYdCjJBLATxyag4q7uzaUbm+Yy"
-    "Kb27dBNtDphJhVyw2r27VNDu0xsUq1hwX3haqmC6F/v0azmTfdiM5SHsk24JC4KRYnEYhUEf2AhM9SZr9AOd2rAWmK7ZsES9DVP7csMyfNyCVcNGYHrv"
-    "DTIVjh0CBjWHGpDliP5UHM80cRTZ8g+sKVbhJBJMxfOovhBpYCGEn9+xLisxrHBasGJYH47pprDGRIx1HNnR/ZpJHRKVbdruWFZs+FWWmniYBOuBqQYn"
-    "xX2OkWF2XaYKAcqmX2AqjsaKd2iDa8F6YHpdzhTvKPiOmeI71HEv2AxMJcMMdToRtHiOK03H9JxNcqmStBZfMF+PjOtykh+MlPVgzL0lzyqjZrHbMmXs"
-    "p1l9PyWoUbO6mE0JahSn8AWmxyJIBRe65wk2AuuKeTkbY6p+TC/7kraShpljZ5n6MZ1WQ7pDDmAjMNXsp9M1LfadGNYC0/09nYiLMf2MZb4EhlQznW6H"
-    "S29MmYLlBjZj1TC4ZxhTjW550iC32tQ7ZLk3ctkO5WzU7JiqH5xMbTNVsbKL3D+n6bWJ+4um6hBG4rnJjOUCbNrHFhuJxx0Z0/uc676WY3roOWHKoQSk"
-    "GUQ2Jy2WzEy21WPJCMd2eSqtfLe+wcnoGOuA2nRIDYc1Yjoz1JQ1LXC+0PVXsEmO6U5ZXskuq7e+s22p2FzqJ2ECjeaQ+olScqftBLWonJDpmHqsknMa"
-    "8d5SL07yVgqMqfMsGVHLcn9Ssmw23tGSyMOQ+XsnKCpYZpTAyDDzlvOpUcw7e6yJogBpbhqYhhVY9jmk7rRklSxyfjsg/4Zm3+BFx4xpzCM5K5F0963A"
-    "ZmBN584Tc5fl+crNgf3JLitxY6UZawGHb/J+KirTgFlIZpJNQKy2pEACMz/7ROoa36UWbZoWDM2WBCRNeSug6ZD6xbNnzTKmIdicfc9OTbRKQd8r94EM"
-    "mGthumMa5OREfHwrJwTLgFlhCUwd49lzpOVuasDs5A1UZ7PqZAKZXZ8FmO2UYY7m7Gd7KPkmIxYYGAPhjex8YGuAM4jVRFvFAXI2xmwVB1q2iHraHKsV"
-    "mC2jNbdhzMKyA7VRrD2bEBxaGyV6d3YIk2cOWtFFBqCyHFPvcQ5JbjSDbFBkG7HFW8kzhUQvAmQRrmH7ju0dGzDBB045phhVUMl5mRhSN6sYY45p7J8o"
-    "5tjCsuT0K8uYHMVWbI5paITdYDa8hFNLzrvHmM57dPcRBVXmnQ1ehfrCtAcxFWMNkEW5uwXmyRNSWFXWEF8USohKrf87PBTIccwCzC79PmzePXOPMf25"
-    "+TSewrRPl0a927R7wdzq3aZ9udTm4G4FZtkK1j5IXCg2OrRbY8wuWmkj8p26aUxUdIssFr/LO1LjUnB0MKayonjtPGMZkJ1jTpAe35kDyrHa4KS3OHK3"
-    "TI9oUMSmnAYMS+yATva/3uxCzMAMzIeX7b3eCGt1E28lbvgOmrQUjfRWT/a5PWYvIcOkRNy8o36TMZODDYmP7Ii0A9TQgkycmA5pALtMjyw2NIthzILf"
-    "0q4GmCUTgEg4RfErm/O6L4rHX8Tqz8AszNtsT9XYF0wvQcC6Q3r9VueFEP+DjKSGZGioq0vRU2lZblmqnlrJfo8FyNasWTCUveLTMc0mqZ6lx64VlXne"
-    "e4khvWpr5GswpYKO2IlVlvH8MGYnvhGuqeqcXozpFV9DzzcOa8b6dEzVg+qUU4xpYLYaWT67pXTnuUNNMN151csJGFP5Vj3cuCwjPEXqG2OYZOPR5eCQ"
-    "QqnsW46svU6lC/3CIBc9MMh1cX588va3d3/8O/K/pMuPBu6WpRZw4E5P7KyRbgC2WAnARzqVZfW4AEBbBD7srvQnnJxkSfPqc5pwksxw2Gqkxvt2SHZY"
-    "Q8DNfPRJmdoSNw+yE5bARcJTbme9gn8naSH1jXO+Oz++OHlzfPZDdGV99fLsyU/Hr188eWho8c3x69OLt7//8fHX32Lek9TBS9v7YXq1BHQGMOgeIh4y"
-    "MOTiJaSsbViHxErIWBOI7DFdsg1zBmrGmmFYM8ak+XcOTkTGpPNzzl4jIJj+r5cMC7aA+ZDRIT5np9KT4FIRzIszJAY1gMF4kViVfEfyXB+ZAkDQ+nj2"
-    "9HOT1+EzVhswGzIo7ASD0JaQWwWW7X81o3vDvAcAY9I7nbESmE5f8qQGxqTTdQ56aZGugCAqGSJ9hfsmkvZ9E6g4gh8zz1aSaGUGVodjZM+l7hgG52oa"
-    "Y2MAIxuJpnxumBOyiGDuwGpgdQFLDg0dipsbIqsLsGyvVbtswzyfSuR3B+brqGFiSkymS46xaBDMtmPVYrENM4pFBKIFqdWhKpBnsSWU0wjWHGK/q0DJ"
-    "3jl0/dPy/HjGZEoYyw5VHa6bpYz1AqzEzw19rsZIlNxUsG6/J7qCQHZ4qjYV2zCn5WKMCrAyHSv6sXEYK9p8M1aXY20BS/GOob+XTRNMkJaCmWCo6l3Y"
-    "MK8fS3XZWNx8ZazKWswV70UD88SursCmYS3eoSs74zQ2tQ82zF1sknrRgNk0cxmJfG9whCd0gxSsxf+2DCxe0SoguNMSmALlFdCZJdt5AaN4rthzNi2t"
-    "Ylq8AxtDGR9mJ6ppXxWdlOHYqJi8Fs81n+TqmL51pf3nsi3QshGrH0IW0jYLdC3BAhrYFiYXmITEMLsvmrrTZOvBrcMYRlJiikmUQ8FW/G+yHe8zkFXm"
-    "M2b3QMs2OmeYY8wO2ox/xaT0/ccwFE88Sy3bCfKqV15u7O4Rv6cEHSJBqMfu6cB67CjIgeXCvKltIViPzW0iL404BBWYixUcFhaXfiAlPKJS1Y+j3o3i"
-    "Wo9jW01GjzjegFb8K0R5Cck4cR959qTIqIobpKxP5ZvcPj3E4Gd3VDeB74TmImeH3Xg9xLFdli3kcbbnVlwC+D0nghLFftmFHJhf8DkwysD2L6RhysGK"
-    "i6tAiag57rcBzDZPraZHeb6wGDKuu1TH9Nty3n8uGTaa3+c6L9ntLbGzuulM07FSgNVQIsiwHhpDtt/zeSEVl6KXBURQ31L5/LES0+c/V/ysxGvjeFcc"
-    "ecZG/F61/10xZNUPPBlOsEXAWo6pmsBCo1GVgSO0h7T1s/M3TzaN/c2RKNRHl68vXv4U6vr35xcXL0/OL54IflVp/8eHjx9//eeHj3cs6Dp7+eqHt//7"
-    "7o9fPprOTkvKo/mLm3UM3LCseb7ExEn5cDkP23NH24+eH71+cXr0/dnp8avLzao72h1vfy6333//6//81/agvu6+g0IIgJhVSW6jDWtqcRGzY6VDY3px"
-    "enZydPHzq/Nnzx5vZFXpWakVJNZsGEpXiHnQ1sFsTxkF1hgDu/zp5dnZm+P/fOiAUA9CTPQmB4oxVSObJEbcNp7d8fc/2KBkWe87ot9++fDb+1/2hrTU"
-    "/CYn2uPVm3oSqqo/B8bElqqNQ0YW48AbbhvIv95/+PDPGMfMylBA3Ga+61rNpKEf4kbutA5uo5fPX3y6VFHNh/Hoi+47L5PvLhZCZM06ro7xwHhQMmeD"
-    "0SrPB0wMCJAreF6d2hg0fVXafP2JE6NVn2OBT3WPJ3Z/jI8zMZ8cJmQRWh1E9fKtFtVr154lFYjPTk9PLmU0e26uLz/e6ntS527LT8PxqPHRIh75RxnS"
-    "7lo3D61uFycLPrmvN4ypBvh8My3L0r0tDdtYNDGFkZhQGzY1nZtaRayYZSp8MEywWiAvprZcIeG/74otJbmgQugSzWcKhjp3+c0lsAUM/zsTdDSuwS4Q"
-    "kwv6E9f/N7wDhQukbK6QXeqwJyZxTfpeZlARZVk61gBT0gxieiabgSTGuxPTMNTFRy6T19p9dYLdk+OL48vr9IF3H9/9/pkX7829l3dy8g/J9KGuj8XU"
-    "Un2H2O+Jqa8wj1iU5gFM+7Ns2PQlQjuR7X+LOsX5HZpvTdxNGdtgohyKuPyd8v1nZnf6/Ocf3/5Qr5udvdri9PcHzVDVnILtK8k2NueoioeHjLB6w3gS"
-    "eEcQuidv0IT9QKWpE2nDlnYHISKn3kugbaAcsS5J/hVFNBrYSLKzKJ1k7H4cWhyimxbEsfkVGnXbXgG6SB6KspFvQ4GtyJhGErYR+9Fhz7UMhTpMHp4B"
-    "w7jYaj14reiR1qqkbLzkK4wV/hC5W6aktSpmtHFjeWc/Wogvj+UVaoT2hLyr4RjNHTzfSzpof/FktDts3PygyaAFJoAxPT1E6IQ6uKNKdGOa1qLKyv4H"
-    "Qp7M1GvPcbphRz+EGhyu2o2IHcGfkSex2IRniti7IXMrRulDJ40ebdKqNWmUJkPTmw8UbfrgHJ2s7UrRH/OMwRnajGW/hEnNVJcSw6HhmRzSx1Sw5pkc"
-    "zKQnC0PNi+MYkyAuY3Ar9ITmHaxCVrx26howqQmyaoS5mtdA2lqS8zZowx3yMlJhja9Y59bvvzAcY7pmI18NMt1/OZiuT0LlxD4hTEFD+g2LLY/PNqt9"
-    "NaeulppU5Kaq9ybnpepUGtX835t8VaMqMYsX6gwKadV16l4pn4uUkDKWzaOVhWtQIGOvyUJXNOVfrUJyG2nWlNiRjRZhG4rmUCTWiCxpvTRLE43cx6YB"
-    "Kolb6kZjgkHZP+Kxe8ii0QMXTYsOL/eNeW1VSkJfjLs+a+dKYhIWwp1StMUY8U4t0DtIqwKIKctxR02LHDRr/aI6C9+MzIQ6l2uQYhgz76tpHUqATkxL"
-    "POgam+IJ2xQXp69PN2X5/JXZOJfXFmUeULpObp2g4HHZRsppMuZuMT2U0zblw5n6GBPEbr4Ku37CVfPZ5B74pMsXxyenJ0f7geCv8w1vXu+7kZYqfuyx"
-    "SfCLkLJAi45svhLSLp5kdEHsPiFV61tFo3vGbKUq+OzYTCA4gJhRA/+L5kiHn7Oek4zpKSJnLuJ3aD9AYqptMzuKkkoTc2hPvIO0YJyYfPoGe0ucTBeb"
-    "tRWepjtP9rPbJ/tkb7IPzU7WLhXEBP1tb+SyAEKifnAWD22Y8Ezd+QPuIBKO900M5TohMopNPv5avL2pmRB+ak5IeIQW2P9YJHSpL9iwYRaa6HFq8YE5"
-    "kDGYIiWh4lS9PyITimYA3Eyi9VUMiCskWlL8JC5h73Qphrxp7K7Yd+RSVOdITcpCQzm4cyXvTWyCFr5zUv55YsUUaXycSCkRtMzcIs1tDHWUB/EH53R2"
-    "eUfQOXAurTrZp1O4ck6KOLspTzu0Um0g9kQKuwM5DWR9TTeMj5vaDuD7ZayaPaEFyGx2aC2ImJIZbygIb7HZAVNEyp0nsAGv2tJEtG1/gUdxw4ZykIin"
-    "DYdhSuWaYGiLwxgOF2v6Zuo2+KN5b05gogbALBrYh0jS/QRbWiMvXr+m+5DZQICRXXVSfk94rmL6OAIrv9eSXZOS8mlGJcxuSdOV/+X+bRWmnJl8rEFU"
-    "Xw6S97K1SP6cnAniRGUzA7UTxYbt/V7HmDMyMRjTJEDBCpYXfZUpr9gZU9tYbBiia3iH7LRV3IheyiezYZrZoJZrNSgN32gZ+9EMV36ZRFr4Z20kyuCx"
-    "YeDW1+fEB5uHx7RTMsiSY7nKQFNnhldNcIqW/FivHrjiCKgc0eXxraSprBvm7QakokCfc8pAqc6S81i8SZUUz8nMlUhDyPBlZen6cYvEokeQWKyLaJPP"
-    "bdMMl8yoTNswX70JGh05Odj8pLXYG9RMLZgZYWC2YVz3y6oWkBF5M9aednM7ZGhFWgu1nXVJrbkr/16547w8u5/etipkYCsmKcZCnhixzmO3U8YpZh9R"
-    "ccVWT11FIz3+YCRx8e9B5xur44vZyUB3Z9a761a4Uc27OP3x/G+nb//x/pftR/YjK8XEtbWM4btaKexkqesBzGRzNRcTP9ccqwewYlunxf+q96x332HN"
-    "rgT4dxQTh/InGEH09epDoQRR2sHpDFXiCoZkwj3fHmPZMHM8Z7vZegSc9rG959Tzxunc/tpWcShq/Gu3Q9HLVSzFc+qcbeZmFCVJt6FfOry91A/LKUbN"
-    "bS4dCS/kdartBeu0P788O9lL291z4ekuuc3f+iXbLGnthQiZhus5abdWwboZRkgcZAF1FZvunWalxVVM/zl9hRUYq5mYMrC9n1MZOKrFDz7B5ufDG25o"
-    "8HOqxQ6XiyjOlcfScBsWvnOySO4nWAozEDMwfFaycqnqwWghdq5gDcrNSOHb1+ogwcy/G1j293KoUrHhcnsfK8PfW7PFAOgq5tMygU1y5Ssh8ZBm8ZOb"
-    "MsTsNKWA7wE8NhFqYSh/Dg17gasOe5hrkCyzdZJnC6xBcZ3kL61CH/AJhLQs/vxJHqVaE9hojk3DZmDlAJb9f2HgT5vh7oGrwFq8NkMVs6p4/QiatlP8"
-    "PgHUISsY0inpff/acYzIsZEhGde4irV4Tj+2hx8Hhc16kh8mZ+iL5cwVW4wVSKnXmDObFsaqrFSiTM7YhNOfNAjMIS+4F1n75nDBLF5mxoq7EClO54xK"
-    "Ihrk18wK5VAD2Cqn8EbjOST78/8iIY9vFoGKt+sjoaCRwRl3TBKdWjBOwh23qIj1a/jJr0xkSWDRZPJsa9hTB9oTmUquvQaSNRJZ0YJC+wlx1nHz5iIa"
-    "MGBWhGjEos3HVnGWeiPV4zZo3rpNCR65aaC1vcNlLW0Z117rx4Z+oNZQl3vhLvQedkblw02a0d84RU/hhbarZUbj3aVNYZvXt0uLbzRntVQHrhhEu8E8"
-    "vDlesoZ5Rkid0D24BQseO6C1sVGn6A9hHOjJM7C5dQFVNCqwfhOEOjl2ohlb/J/IMr77xjL+V2IZ331jGb+Dy3uPZZwryrQsjJtQ3ZkL0ojCUcZF11j1"
-    "j8oPubuWOH2hSK56+4Q7VP45PWS3qrY/vRhw960Y8J7FgLuvUAy4u60YcFoxoFXbaY9FyYe2bP+CIAVnonuW/VQfv9QVtasFLzmKW6zgZUYhh5aeLO9v"
-    "k9DoWov39jBLHI9kbcvpHl8Q+P5a2dq7G7J9D6SiSURHokESKn6kbO3dPbO12SU6EdQ7nEL+1dK1bxoa05NKBIy1PdgsBc53dJX++unaNw2ItPMocZfv"
-    "eji/8DHytXf3zte+dUxflq+9+2vla+/+MvnauxvytdvUrgqSFO1WiSRjScfBP3FaVA2TLlOVXWFQWT8d4ePMyuep0VcTfCSBW9lFmGFhPmpu9J3HVC1b"
-    "h6+c+qgp5KLRnTzfy/hDoVLmCEszPwVaeIkPG9hA33pJnrbnClqRLe+LRwQyFHbFH97+pz+ebjvtPy6Pnm8ax+krux9Pnh9dvRHfvf/19/9+9yX9fvY/"
-    "krPcYPF6K3BOXu71s+6HoCtUzJ4r1hHRixIli6Cim2K3XFBlVpbn8HuEAJB0cVye1bisUyYsI04t1S505M1syToccx9CcKbJz2F0MNuhCUofxhEfIW17"
-    "uecixeBmtkZyPhDt07bXWy5VfD+zx3T/ueYYeYsz7UTJboPl7dHQI8+YTaXPX0VLTGsRmLs1Dx3XxKtu2CD0wA2y+/9wCnbfTsG3UxAb5O//B6oZPNQ="
-)
+def bergama_data(name, _c={}):
+    """Built-in data kept in Downloads/Bergama/Data/bergama_masterplan_data.py (Aras 25 Oct 21:29, scripts shortened): runs its
+    section `name` here, as if it were written in this place. The file is read once per run; a missing file or one
+    from another version of this script stops the script with a message saying which file to copy."""
+    import os as _os, hashlib as _hl
+    if not _c:
+        p_ = _os.path.join(_os.path.expanduser("~"), "Downloads", "Bergama", "Data", "bergama_masterplan_data.py")
+        if not _os.path.isfile(p_):
+            raise RuntimeError("Data file missing: copy bergama_masterplan_data.py from the run kit's Data folder into " + _os.path.dirname(p_))
+        with open(p_, encoding="utf-8", newline="") as f_:
+            for part_ in f_.read().split("\n#@@ ")[1:]:
+                k_, _, b_ = part_.partition("\n")
+                _c[k_] = b_
+    b_ = _c.get(name)
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc'}.get(name):
+        raise RuntimeError("Data file bergama_masterplan_data.py is not the one made with this script version (part " + name +
+                           "): copy it again from the same run kit as the script")
+    exec(compile(b_, "bergama_masterplan_data.py:" + name, "exec"), globals())
+
+
+bergama_data("ZONE_COPY")
 
 
 # STREAM_REF (v11): the Selinos reference line from the frame's north-west end to the Ilıca Deresi confluence, with a
@@ -4240,36 +4359,7 @@ ZONE_COPY = (
 # converted with the h01 §0 formula (x = 30037.01 + (lon - 27.18127) x 86,361; y = 32121.57 + (lat - 39.123302) x
 # 111,320; +-10-30 m), then moved onto the middle of the survey channel (HIDRO_DERE_SULU / walls; median of 21
 # stations, 2 m apart) and thinned to 10 m. Covered = OSM tunnel / culvert ways. Calculated 24 Oct 2026, Thread 5.
-STREAM_REF = (
-    "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"
-)
+bergama_data("STREAM_REF")
 
 # MAIN_SPINE (v11): Bankalar Caddesi + Kınık Caddesi (OSM "secondary" ways, same extract and formula, +-10-30 m),
 # from Bankalar's south end to Kınık Caddesi east of the frame's K5-K6 reach; used when city_link_results.json has no
@@ -4281,369 +4371,7 @@ CITY_LINK_COPY = '{"spine_banks": {"A": "SW", "B": "over", "C": "SW"}, "spine": 
 
 # WALK_COPY (v11): river_walks() run on the course survey "Bergama Müdahele Alanları" (17 Oct) with each option's
 # cleared buildings from ZONE_COPY, 24 Oct 2026; used only when the open file has no stream or bank layers.
-WALK_COPY = (
-    "eNrsvUuvNb1y3/ddznjhQfNOepYEmQYBMshA0CCxNUrgALKdieDvnv5fqrjeIx2cDSs6kqx3srhRuy9sNpssFqvq93d/+B/+8O/+7g9/+1/+43/6w7/7q7"
-    "/7w//5f/zH/+sP/+4P/8v//IfPH/79//3KJPn84X96/13K+nU+pRz81sLf/ut5fyd/N37bw9/KX/638b+N/+3Pr/L+Vv52/k7+bvwO/nfwv6P/qu/v5O/G"
-    "73z4W/nL/07+d/K/6/nV3t/K387fyd+N383/bv5387+b/93873l+9fe38rfzd/6a7+9+n7E+5a1Pfdorr8945fVZv9b7e37tTy1oh1rwpLXgWWpBfWrFNW"
-    "utOP5tpff4t5XeI+vBkY3XbI2/A8e39daktoOzevk13t+Gc/vAuX3hXh0tXwdaoL7t8x7zts8rHwfXmQXnTp41edbkWQtvpL4tU/7684f/9X2Pf1XPfJtx"
-    "nk+r630jq/31x7LWIHvfVcrKewmI5q81UzRD9oyU9UFZ/5aNStnbGa6Ip76tcL4ux1Pr27tKylahbPwa97ilc9uvcY/bOve9/z3u8Ny3n/Yr4qlvB24jH/"
-    "bplI1fZaas6NT2q1zRoqi8x9+78rC3Bzzzjxrg7RvPStnD2769plbLHrfx25+a7/G+vsF7vD3Nt3h7/EbbzfM+xEnZMylbbytatn71Qtn4dXzbt0+wQefb"
-    "laN6Y/zah7L3eXrKSqPsyeq9vaqhKhMfhkVvh5Jo/hpxalUbz/dbmjVlhbfd6FqWvS2lc99eliI+xPtdrpIidpT5frEpwwAC0W9u0PkMb1ce7VaEN3g7eb"
-    "8VbjzuHRjibb8yvlkcN1fKxvBx0XkGui9l79CyUubj3n/ubDtWD13hivgQ7xuO7vmK1HTvq+v37agm7x+9pmzwTbD5883yDgMfZYr4Bcx3tOy3o7B/zncc"
-    "bbc78Q7vAFtHdrvD2r1Db70fj497B4hzu2f1uU/77XeMc9v9LHr1uT3u8XYUyjB8RHfv+lTmO7w9KeIYAFFz22G46pS9LRa3xXAJUXu7rkXvCKHD6v3w3j"
-    "GabfdOPHHT44d9Z6TmdlrvtyjZfbEYEiXr2SirvX9SVnNY4HQC0Ts9xWEYlyB7B/s87P0+WeN39NgrZeqfmCb8YBuzHES32Xf5VXmL5507fDlMVux2z8yu"
-    "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"
-    "6q9/A1vsHqg="
-)
+bergama_data("WALK_COPY")
 
 
 if Rhino is not None:

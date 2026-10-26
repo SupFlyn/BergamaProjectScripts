@@ -117,7 +117,7 @@ SEASONS = [
                        (597.8, 2, True), (602.0, 0, True)]},
          bikes={"1": [(543.0, False)], "2": [(650.6, True)]}),
 ]
-DAYS_WET = "Days a year at or above each height on this cut (mean WY2016-2021, calculated; below 0.3 m indicative): " \
+DAYS_WET = "Days a year at or above each height on this cut (mean WY2016-2021, calculated): " \
            "0.10 m 278 d, 0.30 m 69 d, 0.50 m 9 d, 1.00 m under 1 d; bed dry (< 2 cm) about 11 d."
 
 # ---------------------------------------------------------------- the design (all design values)
@@ -134,7 +134,7 @@ SECTIONS = [
                    (561.0, 565.0, 44.90, "deck", "Wooden deck"),
                    (565.0, 571.0, 44.20, "veg", "Native vegetation")],
          regrade=(571.0, 578.0),            # gravel slope from the last terrace down to the existing bed
-         band_more=[(571.0, 590.0, "gravel", "River gravel"), (590.0, 594.0, "water", "Summer water strip")],
+         band_more=[(571.0, 590.0, "gravel", "Stream gravel"), (590.0, 594.0, "water", "Summer water strip")],
          rails=[(554.0, -1), (565.0, -1)],   # (s, side of the post: -1 = just left of s) single posts at edges
          trees=[(541.0, 3.9, 7.5, "plane")],
          shrubs=[(558.2, 1.3, 1.1), (559.9, 1.5, 1.2), (566.3, 1.7, 1.4), (568.2, 1.9, 1.5), (570.0, 1.5, 1.2)],
@@ -162,7 +162,7 @@ SECTIONS = [
                    ("steps", 638.0, 633.5, DRY, 45.35, 5, "concrete", "Concrete steps"),
                    (633.5, 622.5, 45.35, "concrete", "Concrete walkway")],
          regrade=(622.5, 619.95),
-         band_more=[(619.95, 594.0, "gravel", "River gravel"), (594.0, 590.0, "water", "Summer water strip")],
+         band_more=[(619.95, 594.0, "gravel", "Stream gravel"), (594.0, 590.0, "water", "Summer water strip")],
          rails=[],
          balcony=dict(s0=638.0, s1=617.0, top=DRY, thick=0.35, columns=(631.0, 624.0)),
          pergola=dict(posts=(649.6, 645.4), plates=[(650.6, 644.6, 3.20), (648.4, 643.2, 3.55)]),
@@ -177,10 +177,10 @@ SECTIONS = [
                    (646.4, None, "Walkway"),
                    (643.5, None, "Greenery and planters"),
                    (640.0, None, "Promenade +47.60 above Q500"),
-                   (636.0, None, "Amphitheatre toward the river"),
+                   (636.0, None, "Amphitheatre toward the stream"),
                    (628.0, None, "Floodable lower walk"),
                    (625.0, DRY + 1.10, "Handrail corten steel"),
-                   (619.0, DRY, "Balcony towards the river (beyond the cut)"),
+                   (619.0, DRY, "Balcony towards the stream (beyond the cut)"),
                    (624.0, 46.40, "Column support"),
                    (610.0, None, "Reeds and iris at the bed edge"),
                    (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
@@ -2380,7 +2380,7 @@ def swatch(pg, x0, x1, y, h, mat, seed):
 def band(pg, S, y, h=9.0):
     items = [(sa, sb, mat, lab) for sa, sb, z, mat, lab in S.flats] + list(S.d["band_more"])
     ra, rb = S.d["regrade"]
-    items.append((ra, rb, "gravel", "River gravel"))
+    items.append((ra, rb, "gravel", "Stream gravel"))
     items.sort(key=lambda t: S.X(t[0]) + S.X(t[1]))
     merged = []
     for a, b, mat, lab in items:                               # neighbours with the same label become one swatch

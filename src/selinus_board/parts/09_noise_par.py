@@ -1064,7 +1064,7 @@ def sheet_sound(S, B, X, Y, U, rects, d):
     x0, W = X + PM * U, (PW - 2 * PM) * U
     p = os.path.join(d, "T1_sound_lden.png")
     noise_render(S, "lden", p, 1.0)
-    V, wv, hv = tech_map(S, B, S.F, p, x0, top, W, 19.5 * U, U, L)
+    V, wv, hv = tech_map(S, B, S.F, p, x0, top, W, 19.5 * U, U, L, crop_bar=False)   # v40: bands and tiles beside the bar
     road_overlay(S, B, V, L, 7)                           # v16.6: the streets (the sources) over the sound colours
     edges = [35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
     labels = ["< 35"] + ["%d-%d" % (edges[k], edges[k + 1]) for k in range(len(edges) - 1)] + ["> 80"]
