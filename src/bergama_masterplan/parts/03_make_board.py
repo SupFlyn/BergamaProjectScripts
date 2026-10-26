@@ -744,68 +744,6 @@ def city_layer(opt, D, areas, survey, warn):
             "spine_m": dict((k_, sum(arclen(s["P"])[-1] for s in sp if s["kind"] == k_)) for k_ in ("edge", "deck", "over"))}
 
 
-def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=True):
-    """The main spine and the riverside spine (broad bands), the walks by class, and (alternative 3) the stops.
-    T: world -> page; k: page mm per m."""
-    tp = lambda P: [T(p) for p in P]
-    band = max(1.6, SPINE_W_M * k)
-    for M_ in ((CL["mains"] if "mains" in CL else [CL["main"]]) if spines else []):   # v18: spines=False, zones
-        leg("main")
-        pg.line(tp(M_), COL["spine"], band * 1.25, alpha=0.55)
-        pg.line(tp(M_), COL["spine_dark"], 0.35)
-    for s in (CL["spine"] if spines else []):
-        leg(("spine", s["kind"]))
-        if s["kind"] == "deck":
-            pg.line(tp(s["F"]), COL["spine"], band, [1.4, 0.9], cap=0, alpha=0.75)
-        else:
-            pg.line(tp(s["F"]), COL["spine"], band, alpha=0.75)
-    for x in CL["W"]["runs"]:
-        leg(("walk", x["cls"]))
-        P = tp(x["F"])
-        pg.line(P, COL["white"], 1.5)
-        if x["cls"] == "bank":
-            pg.line(P, COL["walk"], 0.7)
-        elif x["cls"] == "street":
-            pg.line(P, COL["walk"], 0.7, [2.2, 0.8], cap=0)
-        else:
-            pg.line(P, COL["river_dark"], 0.7, [0.5, 0.6], cap=0)
-    if taken is None:
-        return
-    for s in CL["spine"]:
-        if s["kind"] == "deck":
-            taken += boxes_along(tp(s["F"]), 1.5)
-    if W_ is not None and spines:
-        mp_ = tp(CL["main"])
-        word_along(pg, mp_, u"MAIN SPINE", 2.6, COL["spine_dark"], taken, W_, H_)
-        edge = [tp(s["F"]) for s in CL["spine"] if s["kind"] != "deck"]
-        if edge:
-            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"STREAMSIDE SPINE", 2.6, COL["spine_dark"],
-                       taken, W_, H_)
-    if not stops:
-        return
-    r = 2.3
-    for n, nm, xy, how in CL["stops"]:
-        x, y = T(xy)
-        if W_ is not None and not (0 <= x <= W_ and 0 <= y <= H_):
-            continue
-        leg("stop")
-        pg.circle(x, y, r + 0.35, fill=COL["white"])
-        pg.circle(x, y, r, fill=COL["accent"])
-        pg.text(str(n), x, y - 1.0, 2.8, COL["white"], bold=True, align="C")
-        taken.append((x - r, y - r, x + r, y + r))
-        w = text_w(nm.upper(), 2.1, True)
-        for bx, by in ((x + r + 0.8, y - 0.8), (x - r - 0.8 - w, y - 0.8), (x - w / 2, y + r + 0.8),
-                       (x - w / 2, y - r - 3.0)):
-            b = (bx - 0.4, by - 0.4, bx + w + 0.4, by + 2.5)
-            if W_ is not None and (b[0] < 0 or b[2] > W_ or b[1] < 0 or b[3] > H_):
-                continue
-            if any(hit(b, t) for t in taken):
-                continue
-            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True)
-            taken.append(b)
-            break
-
-
 def clip_city(CL, test):
     """A copy of CL cut to test(x, y) (alternatives 1 and 2: a working area and its ring)."""
     cut = lambda P: cut_runs(P, test, 1.0)
@@ -816,7 +754,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v22.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v23.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -1065,12 +1003,13 @@ def build_all(doc, warn):
             t0 = time.time()
             LEG.clear()                                  # v17: the legend lists only this sheet's entries
             try:
-                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL)
+                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL,
+                                    note=MP_NOTE.get(spec[0]))                  # v23: context line
                           for spec in AREAS]
                 for p_ in panels:                        # v21: each panel is a booklet crop
                     p_.bid = MP_CROPS[p_.key]
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v22 option {} (opacity {:.2f}, "
+                path = save(pg, folder, name, u"Bergama masterplan v23 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
@@ -1088,7 +1027,9 @@ def build_all(doc, warn):
             _SCALE[0] = DT_SCALE
             try:
                 plc = places(city_link()[0], CL, survey)
-                wins = detail_windows(D, plc, bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME))
+                fr_ = bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME)
+                nh_ = max(note_block(dt_note(w_[0]), fr_[0], DT_NOTE_TS)[1] for w_ in DT_WINDOWS)
+                wins = detail_windows(D, plc, (fr_[0], fr_[1] - nh_))   # v23: the context lines take their height
                 spots = read_spots(doc, [w["R"] for w in wins]) if doc is not None else []
                 if not spots:
                     warn.append(u"no survey spot heights ({}) in the detail windows: no spot levels".format(SPOT_LAYER))
@@ -1100,13 +1041,13 @@ def build_all(doc, warn):
                     p_ = draw_area(spec, opt, 1, D, prep_base(survey, BoxNear(Rm), Rm), pzs[w["key"]], DT_SCALE,
                                    alpha, areas[w["key"]], CL, win=w["R"],
                                    detail=detail_overlay(w, D, CL, spots, plc, missing[w["id"]], warn),
-                                   title=w["title"] + u" · 1:1,000")
+                                   title=w["title"] + u" · 1:1,000", note=dt_note(w["id"]))
                     p_.bid = (w["id"], w["old"], w["caption"])
                     dpanels.append(p_)
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v22 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v23 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))

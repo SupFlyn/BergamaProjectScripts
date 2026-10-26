@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v22 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v23 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -63,15 +63,16 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK TO THE STREAM"): the water
-  route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
-  place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
-  (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
-  Rough volumes (Aras 26 Oct 06:27): the route labels of the reed basins and retention terraces add
-  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces: the DSİ Q100 depth over
-  them, Q100 level at the nearest cut - (bed + 1 m), Aras 06:32);
-  the method is a line in the detail legend.
-  Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
+NEW IN v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026-10-26.md, R4):
+  * No walk lines on any plan (p.19: "We work with zones only"): the bank / street / bed walks are no longer drawn
+    on the sheet or the detail windows. They are still computed: masterplan_results.json and the water balance's
+    riverside walk area are unchanged.
+  * A context line under the scale bar of every panel, inside its booklet crop (global rule 4): upstream (p.18:
+    why this plan, what the zones show), downstream (p.19), the upstream detail (the water route) and the K5 detail
+    (p.20 right: why the amphibious stream commons sits with Demeter's Garden: what the two do together, why at K5,
+    with the K5 cut's Q500 level from CUT_AT). Texts in MP_NOTE / dt_note (02b_detail.py). The detail windows give
+    up the lines' height so each crop keeps the booklet frame's size and 1:1,000.
+  Output: Bergama_masterplan_v23_A.pdf, Bergama_masterplan_v23_A_detail.pdf.
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
@@ -104,8 +105,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v22 (2026-10-26)"
-SHORT = "v22"
+VERSION = "bergama_masterplan v23 (2026-10-26)"
+SHORT = "v23"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -116,8 +117,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v22_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v22_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v23_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v23_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
@@ -2417,12 +2418,19 @@ def panel_marks(sh, x, y, scale, marks):
     scale_bar(sh, x + 12.0, y + 1.0, scale, marks)
 
 
+def note_block(note, width, size):
+    """v23: a panel's context line(s) [(text, bold)] -> ([(line, size, bold)] wrapped to width, height mm)."""
+    out = [(t, size, bd) for s_, bd in (note or []) for t in wrap(s_, size, width, bd)]
+    return out, (block_size(out)[1] + 2.0 if out else 0.0)
+
+
 # ================================================================ one plan panel (sheet and detail windows)
-def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, detail=None, title=None):
+def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, detail=None, title=None, note=None):
     """One working area (v19: the freely grown zones, the commons, the promenade, the spine zones) -> Page.
     v21: win = (x0, y0, x1, y1) world rectangle of a 1:1,000 detail window (base then covers the window);
     detail(pg, T, k, taken, dw, dh, avoid) draws the window's detail before the words (avoid: the commons' rings,
-    where its labels do not go); title replaces the place name.
+    where its labels do not go); title replaces the place name. v23: note = the panel's context line(s)
+    [(text, bold)] (review 26 Oct, global rule 4), under the scale bar inside the crop.
     The panel's drawing + its bottom margin (north arrow, scale bar) is sh.crop (page mm, y up)."""
     key, place, idea = spec
     k = 1000.0 / scale
@@ -2515,8 +2523,7 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, d
         p["TP"] = [T(q) for q in p["P"]]
         pg.line(p["TP"], W_, 1.9)
         pg.line(p["TP"], COL["path"], 1.0, [1.0, 0.35], cap=0)
-    if CLc is not None:                                  # v11: walks (v19: the spines are zones above)
-        draw_city(pg, T, CLc, k, spines=False)
+    # v23 (Aras 26 Oct review p.19): no walk lines; the plan shows zones only (the walks stay in the results)
     draw_roads(pg, T, base.get("streets_all", base["streets"]), [CL["main"]] if CL is not None and CL.get("main")
                else [])                                  # v21: the street network over the whole panel
     if detail is not None:                               # v21: the detail window's own layers and labels
@@ -2553,20 +2560,24 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, d
             word_along(pg, p["TP"], w_, 2.2, COL["path"], taken, dw, dh)
     # ---- the panel: place over the plan (no owner names, no working-area outline); v21: north arrow and scale
     # bar in the bottom margin, inside the panel's crop
+    NL, NB = note_block(note, dw, max(3.0, max(dw, dh) / 110.0))   # v23: the context line(s), bottom margin
     W = M + dw + M
-    H = M + HEAD + dh + M
+    MB = M + NB
+    H = MB + HEAD + dh + M
     sh = Page(W, H)
     sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    sh.clip([rect(M, M, M + dw, M + dh)])
-    blit(sh, pg, M, M)
+    sh.clip([rect(M, MB, M + dw, MB + dh)])
+    blit(sh, pg, M, MB)
     sh.unclip()
     txt = title or place
     sh.text(txt, M, H - M - 8.0, min(8.0, 8.0 * dw / max(text_w(txt, 8.0, True), 1e-6)), COL["ink_dark"], bold=True)
     if idea and not title:
         sh.text(idea, M, H - M - 14.0, min(4.0, 4.0 * dw / max(text_w(idea, 4.0, True), 1e-6)), COL["ink_dark"],
                 bold=True)
-    panel_marks(sh, M, 1.5, scale, (0.0, 10.0, 20.0, 50.0) if win is not None else (0.0, 50.0, 100.0, 200.0))
-    sh.crop = (M, 0.5, M + dw, M + dh)
+    panel_marks(sh, M, NB + 1.5, scale, (0.0, 10.0, 20.0, 50.0) if win is not None else (0.0, 50.0, 100.0, 200.0))
+    if NL:
+        draw_block(sh, NL, M, NB - 1.0, COL["ink_dark"], None)
+    sh.crop = (M, 0.5, M + dw, MB + dh)
     sh.key, sh.world = key, R
     sh.pleg, _PLEG[0] = _PLEG[0], None
     return sh
@@ -2669,6 +2680,44 @@ DT_WINDOWS = [  # crop id, old booklet id, working area, sheet title, booklet ca
      (u"DEMETER'S GARDEN",))]
 MP_CROPS = {"calisma_alan[0]": ("mp_upstream", "c1_s1", u"Masterplan, upstream entry to K4 bridge"),
             "calisma_alan[1]": ("mp_downstream", "c1_s2", u"Masterplan, K5 bridge to downstream end")}
+# v23 (Aras 26 Oct review, p.18-20 and global rule 4): each panel's context line, what it shows, why it is here and
+# what to take from it; printed under the scale bar, inside the booklet crop. Design statements; the figures are the
+# sources' (Jul-Sep depth: research/rain_river_levels/README.md line 48; K5 cut Q500 "inside" the banks: same README,
+# v1.1 table line 23 = CUT_AT; olive "Will not tolerate waterlogged soils", lavender genus "will not thrive in ... any
+# soil that becomes waterlogged over winter": DATA_REGISTER.md PL-12, PL-11; garden plants and treated stream water:
+# card i01, the Demeter's Garden page).
+MP_NOTE = {
+    "calisma_alan[0]": [
+        (u"WHY THIS PLAN: the upstream entry is where the one-way water system starts.", True),
+        (u"The stream is collected and cleaned once in the reed basins, held on the retention terraces and returned "
+         u"by the spillway, then flows on past K4. Each colour is a use (a zone), not a design; the darker commons is "
+         u"where the uses meet.", False)],
+    "calisma_alan[1]": [
+        (u"WHY THIS PLAN: from K5 to the downstream end the stream gives the clean water back.", True),
+        (u"The bed and flood terrace are amphibious ground, open in the dry months and given to the water in floods; "
+         u"Demeter's Garden holds the dry bank by K5. Zones only: they place the uses, the design comes later.",
+         False)]}
+DT_NOTE_TS = 3.0                     # mm, the detail panels' context lines (8.5 pt at 1:1)
+
+
+def dt_note(wid):
+    """v23: the context lines [(text, bold)] of detail window wid (dt_k5's Q500 level from CUT_AT)."""
+    if wid == "dt_upstream":
+        return [(u"THE WATER ROUTE AT 1:1,000", True),
+                (u"Numbered in the order the water moves: into the reed basins, from the retention terraces, to the "
+                 u"spillway and back to the stream, with the zones' areas and rough volumes, and the bed, Q100 and Q500 "
+                 u"levels at the cut.", False)]
+    if wid == "dt_k5":
+        q500 = next(x[6][0] for x in CUT_AT if x[1] == u"K5 BRIDGE")
+        return [(u"WHY THE AMPHIBIOUS STREAM COMMONS SITS WITH DEMETER'S GARDEN", True),
+                (u"Together: the commons is the shared wet ground of the bed and flood terrace, open when the stream "
+                 u"is low (natural depth Jul-Sep: 3 cm or less) and given to the water in floods; the garden is the "
+                 u"dry bank top beside it, watered with treated stream water (olives, aromatics, seasonal beds, cafe). "
+                 u"Low water: people go down into the bed. High water: they stay in the garden above it.", False),
+                (u"Why here: at the K5 cut even the Q500 flood (+{:.2f} m) stays inside the banks, so the garden's "
+                 u"olives and lavender, which do not tolerate waterlogged soil, stay dry while the bed beside them "
+                 u"floods; the K5 bridge brings people to both.".format(q500), False)]
+    return []
 # CUT_AT: the water board's surveyed channel cuts (water board v1.9 CUTS, proposal sections v4 panels 1-4):
 # number, name, centre (survey m) and span (u m, + = left bank looking downstream) from
 # research/rain_river_levels/scripts/surveyed_sections/levels2_out.json (24 Oct); bed and DSI Q100 / Q500 levels (m,
@@ -3114,7 +3163,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v22.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v23.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -3883,68 +3932,6 @@ def city_layer(opt, D, areas, survey, warn):
             "spine_m": dict((k_, sum(arclen(s["P"])[-1] for s in sp if s["kind"] == k_)) for k_ in ("edge", "deck", "over"))}
 
 
-def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=True):
-    """The main spine and the riverside spine (broad bands), the walks by class, and (alternative 3) the stops.
-    T: world -> page; k: page mm per m."""
-    tp = lambda P: [T(p) for p in P]
-    band = max(1.6, SPINE_W_M * k)
-    for M_ in ((CL["mains"] if "mains" in CL else [CL["main"]]) if spines else []):   # v18: spines=False, zones
-        leg("main")
-        pg.line(tp(M_), COL["spine"], band * 1.25, alpha=0.55)
-        pg.line(tp(M_), COL["spine_dark"], 0.35)
-    for s in (CL["spine"] if spines else []):
-        leg(("spine", s["kind"]))
-        if s["kind"] == "deck":
-            pg.line(tp(s["F"]), COL["spine"], band, [1.4, 0.9], cap=0, alpha=0.75)
-        else:
-            pg.line(tp(s["F"]), COL["spine"], band, alpha=0.75)
-    for x in CL["W"]["runs"]:
-        leg(("walk", x["cls"]))
-        P = tp(x["F"])
-        pg.line(P, COL["white"], 1.5)
-        if x["cls"] == "bank":
-            pg.line(P, COL["walk"], 0.7)
-        elif x["cls"] == "street":
-            pg.line(P, COL["walk"], 0.7, [2.2, 0.8], cap=0)
-        else:
-            pg.line(P, COL["river_dark"], 0.7, [0.5, 0.6], cap=0)
-    if taken is None:
-        return
-    for s in CL["spine"]:
-        if s["kind"] == "deck":
-            taken += boxes_along(tp(s["F"]), 1.5)
-    if W_ is not None and spines:
-        mp_ = tp(CL["main"])
-        word_along(pg, mp_, u"MAIN SPINE", 2.6, COL["spine_dark"], taken, W_, H_)
-        edge = [tp(s["F"]) for s in CL["spine"] if s["kind"] != "deck"]
-        if edge:
-            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"STREAMSIDE SPINE", 2.6, COL["spine_dark"],
-                       taken, W_, H_)
-    if not stops:
-        return
-    r = 2.3
-    for n, nm, xy, how in CL["stops"]:
-        x, y = T(xy)
-        if W_ is not None and not (0 <= x <= W_ and 0 <= y <= H_):
-            continue
-        leg("stop")
-        pg.circle(x, y, r + 0.35, fill=COL["white"])
-        pg.circle(x, y, r, fill=COL["accent"])
-        pg.text(str(n), x, y - 1.0, 2.8, COL["white"], bold=True, align="C")
-        taken.append((x - r, y - r, x + r, y + r))
-        w = text_w(nm.upper(), 2.1, True)
-        for bx, by in ((x + r + 0.8, y - 0.8), (x - r - 0.8 - w, y - 0.8), (x - w / 2, y + r + 0.8),
-                       (x - w / 2, y - r - 3.0)):
-            b = (bx - 0.4, by - 0.4, bx + w + 0.4, by + 2.5)
-            if W_ is not None and (b[0] < 0 or b[2] > W_ or b[1] < 0 or b[3] > H_):
-                continue
-            if any(hit(b, t) for t in taken):
-                continue
-            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True)
-            taken.append(b)
-            break
-
-
 def clip_city(CL, test):
     """A copy of CL cut to test(x, y) (alternatives 1 and 2: a working area and its ring)."""
     cut = lambda P: cut_runs(P, test, 1.0)
@@ -3955,7 +3942,7 @@ def clip_city(CL, test):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v22.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v23.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -4204,12 +4191,13 @@ def build_all(doc, warn):
             t0 = time.time()
             LEG.clear()                                  # v17: the legend lists only this sheet's entries
             try:
-                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL)
+                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL,
+                                    note=MP_NOTE.get(spec[0]))                  # v23: context line
                           for spec in AREAS]
                 for p_ in panels:                        # v21: each panel is a booklet crop
                     p_.bid = MP_CROPS[p_.key]
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v22 option {} (opacity {:.2f}, "
+                path = save(pg, folder, name, u"Bergama masterplan v23 option {} (opacity {:.2f}, "
                                               u"1:{:,.0f})".format(opt, alpha, scale))
                 files.append(path)
                 pages.append((opt, alt, pg))
@@ -4227,7 +4215,9 @@ def build_all(doc, warn):
             _SCALE[0] = DT_SCALE
             try:
                 plc = places(city_link()[0], CL, survey)
-                wins = detail_windows(D, plc, bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME))
+                fr_ = bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME)
+                nh_ = max(note_block(dt_note(w_[0]), fr_[0], DT_NOTE_TS)[1] for w_ in DT_WINDOWS)
+                wins = detail_windows(D, plc, (fr_[0], fr_[1] - nh_))   # v23: the context lines take their height
                 spots = read_spots(doc, [w["R"] for w in wins]) if doc is not None else []
                 if not spots:
                     warn.append(u"no survey spot heights ({}) in the detail windows: no spot levels".format(SPOT_LAYER))
@@ -4239,13 +4229,13 @@ def build_all(doc, warn):
                     p_ = draw_area(spec, opt, 1, D, prep_base(survey, BoxNear(Rm), Rm), pzs[w["key"]], DT_SCALE,
                                    alpha, areas[w["key"]], CL, win=w["R"],
                                    detail=detail_overlay(w, D, CL, spots, plc, missing[w["id"]], warn),
-                                   title=w["title"] + u" · 1:1,000")
+                                   title=w["title"] + u" · 1:1,000", note=dt_note(w["id"]))
                     p_.bid = (w["id"], w["old"], w["caption"])
                     dpanels.append(p_)
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v22 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v23 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v22 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v23 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -63,15 +63,16 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK TO THE STREAM"): the water
-  route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
-  place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel
-  (2 mm grid), with a thin leader; still no overlap with another label. Other labels and the main sheet unchanged.
-  Rough volumes (Aras 26 Oct 06:27): the route labels of the reed basins and retention terraces add
-  "~ m³" = zone area x depth (reed basins 0.46 m, EPA 832-F-00-024, 2000; terraces: the DSİ Q100 depth over
-  them, Q100 level at the nearest cut - (bed + 1 m), Aras 06:32);
-  the method is a line in the detail legend.
-  Output: Bergama_masterplan_v22_A.pdf, Bergama_masterplan_v22_A_detail.pdf.
+NEW IN v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026-10-26.md, R4):
+  * No walk lines on any plan (p.19: "We work with zones only"): the bank / street / bed walks are no longer drawn
+    on the sheet or the detail windows. They are still computed: masterplan_results.json and the water balance's
+    riverside walk area are unchanged.
+  * A context line under the scale bar of every panel, inside its booklet crop (global rule 4): upstream (p.18:
+    why this plan, what the zones show), downstream (p.19), the upstream detail (the water route) and the K5 detail
+    (p.20 right: why the amphibious stream commons sits with Demeter's Garden: what the two do together, why at K5,
+    with the K5 cut's Q500 level from CUT_AT). Texts in MP_NOTE / dt_note (02b_detail.py). The detail windows give
+    up the lines' height so each crop keeps the booklet frame's size and 1:1,000.
+  Output: Bergama_masterplan_v23_A.pdf, Bergama_masterplan_v23_A_detail.pdf.
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
@@ -104,8 +105,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v22 (2026-10-26)"
-SHORT = "v22"
+VERSION = "bergama_masterplan v23 (2026-10-26)"
+SHORT = "v23"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -116,8 +117,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v22_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v22_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v23_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v23_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 

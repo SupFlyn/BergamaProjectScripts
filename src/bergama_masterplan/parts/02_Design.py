@@ -1164,12 +1164,19 @@ def panel_marks(sh, x, y, scale, marks):
     scale_bar(sh, x + 12.0, y + 1.0, scale, marks)
 
 
+def note_block(note, width, size):
+    """v23: a panel's context line(s) [(text, bold)] -> ([(line, size, bold)] wrapped to width, height mm)."""
+    out = [(t, size, bd) for s_, bd in (note or []) for t in wrap(s_, size, width, bd)]
+    return out, (block_size(out)[1] + 2.0 if out else 0.0)
+
+
 # ================================================================ one plan panel (sheet and detail windows)
-def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, detail=None, title=None):
+def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, detail=None, title=None, note=None):
     """One working area (v19: the freely grown zones, the commons, the promenade, the spine zones) -> Page.
     v21: win = (x0, y0, x1, y1) world rectangle of a 1:1,000 detail window (base then covers the window);
     detail(pg, T, k, taken, dw, dh, avoid) draws the window's detail before the words (avoid: the commons' rings,
-    where its labels do not go); title replaces the place name.
+    where its labels do not go); title replaces the place name. v23: note = the panel's context line(s)
+    [(text, bold)] (review 26 Oct, global rule 4), under the scale bar inside the crop.
     The panel's drawing + its bottom margin (north arrow, scale bar) is sh.crop (page mm, y up)."""
     key, place, idea = spec
     k = 1000.0 / scale
@@ -1262,8 +1269,7 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, d
         p["TP"] = [T(q) for q in p["P"]]
         pg.line(p["TP"], W_, 1.9)
         pg.line(p["TP"], COL["path"], 1.0, [1.0, 0.35], cap=0)
-    if CLc is not None:                                  # v11: walks (v19: the spines are zones above)
-        draw_city(pg, T, CLc, k, spines=False)
+    # v23 (Aras 26 Oct review p.19): no walk lines; the plan shows zones only (the walks stay in the results)
     draw_roads(pg, T, base.get("streets_all", base["streets"]), [CL["main"]] if CL is not None and CL.get("main")
                else [])                                  # v21: the street network over the whole panel
     if detail is not None:                               # v21: the detail window's own layers and labels
@@ -1300,20 +1306,24 @@ def draw_area(spec, opt, alt, D, base, pz, scale, alpha, A, CL=None, win=None, d
             word_along(pg, p["TP"], w_, 2.2, COL["path"], taken, dw, dh)
     # ---- the panel: place over the plan (no owner names, no working-area outline); v21: north arrow and scale
     # bar in the bottom margin, inside the panel's crop
+    NL, NB = note_block(note, dw, max(3.0, max(dw, dh) / 110.0))   # v23: the context line(s), bottom margin
     W = M + dw + M
-    H = M + HEAD + dh + M
+    MB = M + NB
+    H = MB + HEAD + dh + M
     sh = Page(W, H)
     sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    sh.clip([rect(M, M, M + dw, M + dh)])
-    blit(sh, pg, M, M)
+    sh.clip([rect(M, MB, M + dw, MB + dh)])
+    blit(sh, pg, M, MB)
     sh.unclip()
     txt = title or place
     sh.text(txt, M, H - M - 8.0, min(8.0, 8.0 * dw / max(text_w(txt, 8.0, True), 1e-6)), COL["ink_dark"], bold=True)
     if idea and not title:
         sh.text(idea, M, H - M - 14.0, min(4.0, 4.0 * dw / max(text_w(idea, 4.0, True), 1e-6)), COL["ink_dark"],
                 bold=True)
-    panel_marks(sh, M, 1.5, scale, (0.0, 10.0, 20.0, 50.0) if win is not None else (0.0, 50.0, 100.0, 200.0))
-    sh.crop = (M, 0.5, M + dw, M + dh)
+    panel_marks(sh, M, NB + 1.5, scale, (0.0, 10.0, 20.0, 50.0) if win is not None else (0.0, 50.0, 100.0, 200.0))
+    if NL:
+        draw_block(sh, NL, M, NB - 1.0, COL["ink_dark"], None)
+    sh.crop = (M, 0.5, M + dw, MB + dh)
     sh.key, sh.world = key, R
     sh.pleg, _PLEG[0] = _PLEG[0], None
     return sh

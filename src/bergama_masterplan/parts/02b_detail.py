@@ -23,6 +23,44 @@ DT_WINDOWS = [  # crop id, old booklet id, working area, sheet title, booklet ca
      (u"DEMETER'S GARDEN",))]
 MP_CROPS = {"calisma_alan[0]": ("mp_upstream", "c1_s1", u"Masterplan, upstream entry to K4 bridge"),
             "calisma_alan[1]": ("mp_downstream", "c1_s2", u"Masterplan, K5 bridge to downstream end")}
+# v23 (Aras 26 Oct review, p.18-20 and global rule 4): each panel's context line, what it shows, why it is here and
+# what to take from it; printed under the scale bar, inside the booklet crop. Design statements; the figures are the
+# sources' (Jul-Sep depth: research/rain_river_levels/README.md line 48; K5 cut Q500 "inside" the banks: same README,
+# v1.1 table line 23 = CUT_AT; olive "Will not tolerate waterlogged soils", lavender genus "will not thrive in ... any
+# soil that becomes waterlogged over winter": DATA_REGISTER.md PL-12, PL-11; garden plants and treated stream water:
+# card i01, the Demeter's Garden page).
+MP_NOTE = {
+    "calisma_alan[0]": [
+        (u"WHY THIS PLAN: the upstream entry is where the one-way water system starts.", True),
+        (u"The stream is collected and cleaned once in the reed basins, held on the retention terraces and returned "
+         u"by the spillway, then flows on past K4. Each colour is a use (a zone), not a design; the darker commons is "
+         u"where the uses meet.", False)],
+    "calisma_alan[1]": [
+        (u"WHY THIS PLAN: from K5 to the downstream end the stream gives the clean water back.", True),
+        (u"The bed and flood terrace are amphibious ground, open in the dry months and given to the water in floods; "
+         u"Demeter's Garden holds the dry bank by K5. Zones only: they place the uses, the design comes later.",
+         False)]}
+DT_NOTE_TS = 3.0                     # mm, the detail panels' context lines (8.5 pt at 1:1)
+
+
+def dt_note(wid):
+    """v23: the context lines [(text, bold)] of detail window wid (dt_k5's Q500 level from CUT_AT)."""
+    if wid == "dt_upstream":
+        return [(u"THE WATER ROUTE AT 1:1,000", True),
+                (u"Numbered in the order the water moves: into the reed basins, from the retention terraces, to the "
+                 u"spillway and back to the stream, with the zones' areas and rough volumes, and the bed, Q100 and Q500 "
+                 u"levels at the cut.", False)]
+    if wid == "dt_k5":
+        q500 = next(x[6][0] for x in CUT_AT if x[1] == u"K5 BRIDGE")
+        return [(u"WHY THE AMPHIBIOUS STREAM COMMONS SITS WITH DEMETER'S GARDEN", True),
+                (u"Together: the commons is the shared wet ground of the bed and flood terrace, open when the stream "
+                 u"is low (natural depth Jul-Sep: 3 cm or less) and given to the water in floods; the garden is the "
+                 u"dry bank top beside it, watered with treated stream water (olives, aromatics, seasonal beds, cafe). "
+                 u"Low water: people go down into the bed. High water: they stay in the garden above it.", False),
+                (u"Why here: at the K5 cut even the Q500 flood (+{:.2f} m) stays inside the banks, so the garden's "
+                 u"olives and lavender, which do not tolerate waterlogged soil, stay dry while the bed beside them "
+                 u"floods; the K5 bridge brings people to both.".format(q500), False)]
+    return []
 # CUT_AT: the water board's surveyed channel cuts (water board v1.9 CUTS, proposal sections v4 panels 1-4):
 # number, name, centre (survey m) and span (u m, + = left bank looking downstream) from
 # research/rain_river_levels/scripts/surveyed_sections/levels2_out.json (24 Oct); bed and DSI Q100 / Q500 levels (m,
@@ -468,7 +506,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v22.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v23.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
