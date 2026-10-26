@@ -5,7 +5,7 @@
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v42"
+BK_VERSION = "v43"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -111,7 +111,7 @@ def crop_rects():
 # ------------------------------------------------------------ the booklet step
 def booklet_export(S, B, rects):
     """v40: output/selinus_board/booklet/: blocks.json (one crop per panel of every sheet PDF written on this run),
-    results.json, booklet_log.txt; the site photos into Downloads/Bergama/booklet_images/. Returns the crop lines."""
+    results.json, booklet_log.txt; the site photos into Downloads/Bergama/cached/booklet_images/ (v43). Returns the crop lines."""
     del BK_LOG[:]
     BK = BkBlocks(out_folder(), BK_SCRIPT, BK_VERSION)
     done = []
@@ -302,7 +302,8 @@ def bk_results(S):
 def bk_photos():
     """The site photos of the data pack (photo_files, numbered as on plan 01) as booklet_images/photo_<n>.jpg."""
     import shutil
-    d = os.path.join(BERGAMA_DIR, "booklet_images")
+    d = os.path.join(BERGAMA_DIR, "cached", "booklet_images")       # v43 (Aras 26 Oct 07:38): under cached/
+    shutil.rmtree(os.path.join(BERGAMA_DIR, "booklet_images"), ignore_errors=True)   # v42 and older wrote it here
     if not os.path.isdir(d):
         os.makedirs(d)
     n = 0

@@ -10,6 +10,12 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v7 (deck review 26 Oct 07:06, last pass R7; site board v43, water board v1.12, masterplan v23, city link
+v1.10, proposal sections v6, agriculture v1.5): no half-empty pages: two drawings planned together share one page
+when both fit at no less than 3/4 of the size each gets alone, else each keeps its own page (the four proposal
+sections); a sheet's own title words it marks as not for the booklet (" · form A") are taken out of its crop, its
+source marks [n] stay (the sources page lists them); more air between a caption and the next row; where several sheet
+PDFs match a name, the newest file is used (an old version left in the folder is never picked).
 NEW IN v6 (deck review 26 Oct 07:06, water board v1.12): the water board's panels are each laid out as one A3 page;
 "Four seasons on one cut" is one crop (wb_s4_seasons, the four rows at 1:250); planting bands and species share one
 page (the species list was a half-empty page of its own).
@@ -30,7 +36,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v6"
+VERSION = "v7"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -183,11 +189,8 @@ def sheet_doc(fitz, path):
 def find_pdf(folder, name):
     """A sheet PDF of a script's output folder (subfolders too, e.g. the board's selinus_board_pdf); name may hold *."""
     root = os.path.join(ASSET_ROOT, folder)
-    for d, _, names in sorted(os.walk(root)):
-        hit = sorted(n for n in names if fnmatch.fnmatch(n, name))
-        if hit:
-            return os.path.join(d, hit[-1])
-    return None
+    hit = [os.path.join(d, n) for d, _, names in os.walk(root) for n in names if fnmatch.fnmatch(n, name)]
+    return max(hit, key=os.path.getmtime) if hit else None    # v7: the newest (v1_8 sorts after v1_12 by name)
 
 
 def resolve(assets, key):
@@ -208,22 +211,31 @@ def resolve(assets, key):
 SCALE_WORD = re.compile(r"1\s?:\s?(\d{1,3}(?:,\d{3})+|\d{2,})")
 
 
-def rescaled(fitz, path, pno_, clip, s):
+def rescaled(fitz, path, pno_, clip, s, drop=()):
     """v4: the sheet page with each scale it states inside clip ("1:400") changed to the scale the booklet prints it
-    at (1:400 / s), in the same place, size and colour; the drawing itself untouched. (doc, page index)"""
+    at (1:400 / s), in the same place, size and colour; the drawing itself untouched. v7: a line of the sheet's words
+    matching one of its crop's "drop" patterns is taken out (source marks "[n]" stay). (doc, page index)"""
     src = sheet_doc(fitz, path)
     page = src[pno_]
-    hits = {}
+    pats = [re.compile(d) for d in drop or () if not d.startswith("^\\[")]
+    hits, gone = {}, []
     for b in page.get_text("dict", clip=clip)["blocks"]:
         for ln in b.get("lines", []):
+            if pats and any(p.search("".join(sp["text"] for sp in ln["spans"]).strip()) for p in pats):
+                gone.append(fitz.Rect(ln["bbox"]))
+                continue
             for sp in ln["spans"]:
                 for m in SCALE_WORD.finditer(sp["text"]):
                     hits[m.group(0)] = (int(m.group(1).replace(",", "")), sp["size"], sp["color"])
-    if not hits or abs(s - 1.0) < 1e-3:
+    if abs(s - 1.0) < 1e-3:
+        hits = {}
+    if not hits and not gone:
         return src, pno_
     tmp = fitz.open()
     tmp.insert_pdf(src, from_page=pno_, to_page=pno_)
     pg = tmp[0]
+    for r in gone:                                   # the middle of the line only: the lines above/below stay whole
+        pg.add_redact_annot(fitz.Rect(r.x0, r.y0 + 0.3 * r.height, r.x1, r.y1 - 0.3 * r.height), fill=False)
     put = []
     for word, (den, size, col) in hits.items():
         for r in pg.search_for(word, clip=clip):
@@ -247,7 +259,7 @@ def std_scale(den):
 
 
 STD_SCALES = (100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000)
-CAP_H, ROW_GAP = 5.0, 3.0                        # caption band under each panel, gap between rows (mm)
+CAP_H, ROW_GAP = 5.0, 6.0                        # caption band under each panel, gap between rows (mm)
 AREA = (ML, 30.0, PW - ML, FOOT_RULE - 3.0)        # where the panels go (mm)
 
 
@@ -338,17 +350,23 @@ def sheet_page(fitz, doc, typo, pno, spec):
                                                    int(spec.get("page", 0)) + 1, "" if f > 0.999 else " (x%.2f)" % f)
 
 
+def wh(it):
+    return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
+
+
+def fit(rows):
+    """the one scale at which every row fits the panel area's width and all rows its height"""
+    aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
+    return min([(aw - GUT * (len(r) - 1)) / sum(wh(it)[0] for it in r) for r in rows] +
+               [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP) / sum(max(wh(it)[1] for it in r) for r in rows)])
+
+
 def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     """rows of [(key, crop block, sheet path, clip)]: one scale for the page, the largest at which every row fits the
     width and all rows the height; a drawing with a true scale takes the round scale at or just below it (v4), so
     its printed scale is always round; each panel with its own words."""
-    gaps_w = [GUT * (len(r) - 1) for r in rows]
     aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
-    def wh(it):
-        return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
-
-    s_fit = min([(aw - g) / sum(wh(it)[0] for it in r) for r, g in zip(rows, gaps_w)] +
-            [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP) / sum(max(wh(it)[1] for it in r) for r in rows)])
+    s_fit = fit(rows)
 
     def sc(it):                                      # v4: a drawing with a scale takes the round scale at or below s
         den = it[1].get("scale_den") if it[1] and it[3] is not None else None
@@ -379,7 +397,7 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                                                                         key.split("/")[1]))
                 rep.append("%s MISSING" % key)
             else:
-                src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s)
+                src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
                 pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
                 cap = blk.get("caption", "")
                 if blk.get("scale_den"):
@@ -414,6 +432,8 @@ def expand(fitz, spec, assets):
     rows = [[item(k) for k in r] for r in spec["rows"]]
     if spec.get("optional") and all(it[3] is None for r in rows for it in r):
         return []
+    if spec.get("alone") and fit(rows) < 0.75 * min(fit([r]) for r in rows):   # v7: together only if both stay big
+        return [(dict(spec, title=t), [r]) for t, r in zip(spec["alone"], rows)]
     return [(spec, rows)]
 
 

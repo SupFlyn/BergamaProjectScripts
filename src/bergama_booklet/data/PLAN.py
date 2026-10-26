@@ -1,4 +1,5 @@
-# ---- BOOKLET PLAN v5 (review 26 Oct 07:06: p.07 edge plan, all cuts on <= 2 pages); v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
+# ---- BOOKLET PLAN v7 (review R7: no half-empty pages: "alone" = the two rows share a page only if both stay >= 3/4
+# of their own-page size, else each gets its own page under these titles); v5 (review 26 Oct 07:06: p.07 edge plan, all cuts on <= 2 pages); v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
 # Every page is the scripts' OWN sheet: an A3 sheet goes in as it is; a panel of a big sheet is cut out with its own
 # words and shown at ONE scale per page (never stretched, nothing rewritten). Keys "<output folder>/<crop id>" name
 # the crop blocks in that script's output/<folder>/booklet/blocks.json; every panel goes on its page whole.
@@ -55,17 +56,17 @@ PAGES = [
     dict(part="C", title=u"The water edge at 1:1,000", rows=[[MP + "dt_upstream", MP + "dt_k5"]]),
     dict(part="C", title=u"The spine, stop by stop", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),
     dict(part="C", title=u"Long section along the spine", rows=[[SB + "sec_spine"]]),
-    dict(part="C", title=u"Upstream entry: collect, clean and hold", rows=[[PS + "ps_upstream"]]),
-    dict(part="C", title=u"K4 bridge: the amphibious threshold", rows=[[PS + "ps_k4"]]),
-    dict(part="C", title=u"K5 bridge: Demeter's Garden", rows=[[PS + "ps_k5"]]),
-    dict(part="C", title=u"Downstream reach: give back", rows=[[PS + "ps_downstream"]]),
+    dict(part="C", title=u"Upstream entry and K4 bridge", rows=[[PS + "ps_upstream"], [PS + "ps_k4"]],
+         alone=[u"Upstream entry: collect, clean and hold", u"K4 bridge: the amphibious threshold"]),
+    dict(part="C", title=u"K5 bridge and the downstream reach", rows=[[PS + "ps_k5"], [PS + "ps_downstream"]],
+         alone=[u"K5 bridge: Demeter's Garden", u"Downstream reach: give back"]),
     dict(part="C", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # v6: one crop
     dict(part="C", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),
     dict(part="C", title=u"Planting bands and their species", rows=[[WB + "wb_bands"], [WB + "wb_species"]]),
     dict(part="C", title=u"Where the clean water goes", rows=[[WB + "wb_farms"], [WB + "wb_decision"]]),
     dict(part="C", title=u"What each cubic metre grows", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=0),
     dict(part="C", title=u"The farms we feed", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=1),
-    dict(part="C", title=u"Plants by days under water", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=2),
+    dict(part="C", title=u"One plant ladder, streambed to field", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=2),
 ]
 
 # the sheets whose own "Sources by number" keys the [n] marks on these pages refer to (sources page, in this order)
