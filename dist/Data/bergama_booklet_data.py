@@ -1,7 +1,7 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
+# ---- BOOKLET PLAN v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
 # repeated the "What is there" map); v7 (review R7: no half-empty pages: "alone" = the two rows share a page only if both stay >= 3/4
 # of their own-page size, else each gets its own page under these titles); v5 (review 26 Oct 07:06: p.07 edge plan, all cuts on <= 2 pages); v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
 # Every page is the scripts' OWN sheet: an A3 sheet goes in as it is; a panel of a big sheet is cut out with its own
@@ -59,10 +59,9 @@ PAGES = [
     dict(part="C", title=u"Masterplan: upstream and downstream", rows=[[MP + "mp_upstream", MP + "mp_downstream"]]),
     dict(part="C", title=u"The water edge at 1:1,000", rows=[[MP + "dt_upstream", MP + "dt_k5"]]),
     dict(part="C", title=u"The spine, stop by stop", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),
-    dict(part="C", title=u"Upstream entry and K4 bridge", rows=[[PS + "ps_upstream"], [PS + "ps_k4"]],
-         alone=[u"Upstream entry: collect, clean and hold", u"K4 bridge: the amphibious threshold"]),
-    dict(part="C", title=u"K5 bridge and the downstream reach", rows=[[PS + "ps_k5"], [PS + "ps_downstream"]],
-         alone=[u"K5 bridge: Demeter's Garden", u"Downstream reach: give back"]),
+    # v9 (Aras 27 Oct 06:20 "pair them anyway"): two sections a page, always
+    dict(part="C", title=u"Upstream entry and K4 bridge", rows=[[PS + "ps_upstream"], [PS + "ps_k4"]]),
+    dict(part="C", title=u"K5 bridge and the downstream reach", rows=[[PS + "ps_k5"], [PS + "ps_downstream"]]),
     dict(part="C", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # v6: one crop
     dict(part="C", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),
     dict(part="C", title=u"Planting bands and their species", rows=[[WB + "wb_bands"], [WB + "wb_species"]]),
