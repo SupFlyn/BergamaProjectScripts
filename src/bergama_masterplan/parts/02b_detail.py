@@ -15,52 +15,11 @@
 # Booklet (CROP_SPEC.md, Aras 21:47): the booklet's drawings are crops of the sheets; blocks.json holds one crop per
 # panel (both halves of the masterplan sheet, both detail windows), results.json the frames and places.
 DT_SCALE = 1000.0
-DT_FRAME = (194.0, 176.0)            # mm: the booklet's C3 frame (booklet_slots.json when the assembler has run)
 DT_WINDOWS = [  # crop id, old booklet id, working area, sheet title, booklet caption, zone names the window must show
     ("dt_upstream", "c3_a", "calisma_alan[0]", u"UPSTREAM ENTRY · COLLECT, CLEAN, HOLD",
      u"Upstream entry: collect, clean, hold", (u"REED BASINS", u"RETENTION TERRACES", u"SPILLWAY", u"SHADED WALK")),
     ("dt_k5", "c3_b", "calisma_alan[1]", u"K5 BRIDGE · DEMETER'S GARDEN", u"K5 bridge and Demeter's Garden",
      (u"DEMETER'S GARDEN",))]
-MP_CROPS = {"calisma_alan[0]": ("mp_upstream", "c1_s1", u"Masterplan, upstream entry to K4 bridge"),
-            "calisma_alan[1]": ("mp_downstream", "c1_s2", u"Masterplan, K5 bridge to downstream end")}
-# v23 (Aras 26 Oct review, p.18-20 and global rule 4): each panel's context line, what it shows, why it is here and
-# what to take from it; printed under the scale bar, inside the booklet crop. Design statements; the figures are the
-# sources' (Jul-Sep depth: research/rain_river_levels/README.md line 48; K5 cut Q500 "inside" the banks: same README,
-# v1.1 table line 23 = CUT_AT; olive "Will not tolerate waterlogged soils", lavender genus "will not thrive in ... any
-# soil that becomes waterlogged over winter": DATA_REGISTER.md PL-12, PL-11; garden plants and treated stream water:
-# card i01, the Demeter's Garden page).
-MP_NOTE = {
-    "calisma_alan[0]": [
-        (u"WHY THIS PLAN: the upstream entry is where the one-way water system starts.", True),
-        (u"The stream is collected and cleaned once in the reed basins, held on the retention terraces and returned "
-         u"by the spillway, then flows on past K4. Each colour is a use (a zone), not a design; the darker commons is "
-         u"where the uses meet.", False)],
-    "calisma_alan[1]": [
-        (u"WHY THIS PLAN: from K5 to the downstream end the stream gives the clean water back.", True),
-        (u"The bed and flood terrace are amphibious ground, open in the dry months and given to the water in floods; "
-         u"Demeter's Garden holds the dry bank by K5. Zones only: they place the uses, the design comes later.",
-         False)]}
-DT_NOTE_TS = 3.0                     # mm, the detail panels' context lines (8.5 pt at 1:1)
-
-
-def dt_note(wid):
-    """v23: the context lines [(text, bold)] of detail window wid (dt_k5's Q500 level from CUT_AT)."""
-    if wid == "dt_upstream":
-        return [(u"THE WATER ROUTE AT 1:1,000", True),
-                (u"Numbered in the order the water moves: into the reed basins, from the retention terraces, to the "
-                 u"spillway and back to the stream, with the zones' areas and rough volumes, and the bed, Q100 and Q500 "
-                 u"levels at the cut.", False)]
-    if wid == "dt_k5":
-        q500 = next(x[6][0] for x in CUT_AT if x[1] == u"K5 BRIDGE")
-        return [(u"WHY THE AMPHIBIOUS STREAM COMMONS SITS WITH DEMETER'S GARDEN", True),
-                (u"Together: the commons is the shared wet ground of the bed and flood terrace, open when the stream "
-                 u"is low (natural depth Jul-Sep: 3 cm or less) and given to the water in floods; the garden is the "
-                 u"dry bank top beside it, watered with treated stream water (olives, aromatics, seasonal beds, cafe). "
-                 u"Low water: people go down into the bed. High water: they stay in the garden above it.", False),
-                (u"Why here: at the K5 cut even the Q500 flood (+{:.2f} m) stays inside the banks, so the garden's "
-                 u"olives and lavender, which do not tolerate waterlogged soil, stay dry while the bed beside them "
-                 u"floods; the K5 bridge brings people to both.".format(q500), False)]
-    return []
 # CUT_AT: the water board's surveyed channel cuts (water board v1.9 CUTS, proposal sections v4 panels 1-4):
 # number, name, centre (survey m) and span (u m, + = left bank looking downstream) from
 # research/rain_river_levels/scripts/surveyed_sections/levels2_out.json (24 Oct); bed and DSI Q100 / Q500 levels (m,
@@ -83,7 +42,7 @@ ROUTE_SHORT = {u"RETENTION TERRACES": u"TERRACES"}
 SPECIES_CODE = [("Ty", u"Typha angustifolia"), ("Ph", u"Phragmites australis"), ("Me", u"Mentha aquatica"),
                 ("Sa", u"Salix alba"), ("Ta", u"Tamarix smyrnensis"), ("Vi", u"Vitex agnus-castus"),
                 ("Po", u"Populus alba"), ("Fr", u"Fraxinus angustifolia"), ("Pl", u"Platanus orientalis"),
-                ("La", u"Lavandula stoechas")]
+                ("La", u"Lavandula stoechas"), ("Qu", u"Quercus robur"), ("Ul", u"Ulmus laevis")]   # v24: + Qu, Ul
 BAND_NAME = {"A": u"A STRIP AND BED · PERMANENT", "B": u"B MARSH · 150-365 D A YEAR", "C": u"C WILLOW · 50-150 D",
              "D": u"D WET MEADOW · 10-150 D", "E": u"E DRY MEADOW · 0.5-50 D", "F": u"F TERRACES · EXTREME ONLY"}
 ZONE_PLANTING = {("WT", None): ("B", ("Ty", "Ph", "Me")), ("WA", "W"): ("B", ("Ty", "Ph", "Me")),
@@ -207,7 +166,7 @@ def _boxes_line(P, half, taken):
 
 
 def detail_overlay(win, D, CL, spots, plc, missing, warn):
-    """The detail of one window, drawn by draw_area before the words (see the head of this part)."""
+    """The detail of one window, drawn by window_panel after the corridor (see the head of this part)."""
     R = win["R"]
     inR = lambda p, m=0.0: R[0] - m <= p[0] <= R[2] + m and R[1] - m <= p[1] <= R[3] + m
     ref = CL["W"]["ref"]
@@ -365,7 +324,7 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
                 taken.append((x - 0.8, y - 0.8, x + 0.8, y + 0.8))
                 leg(("dt", kind))
                 spot_lab.append(([(u"+{:.2f}".format(q[2]), DT_TS * 0.85, False)], (x, y), colr))
-        # ---- labels: cuts, route, bridge, planting codes, spot levels (zone words follow in draw_area)
+        # ---- labels: cuts, route, bridge, planting codes, spot levels
         for lines, anc in cut_lab:
             if not place_label(pg, lines, anc, taken, dw, dh, ink, avoid=av):
                 missing.append(lines[0][0])
@@ -453,47 +412,36 @@ def detail_legend():
     def none_sw(pg, x, y, w, h):
         return None
     if ("dt", "vol") in LEG:                             # v22: how the rough volumes are made
-        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m (EPA 2000) · TERRACES: Q100 OVER BED +1 m "
-                    u"AT THE NEAREST CUT (DSİ)", none_sw))
+        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m · TERRACES: Q100 OVER BED +1 m "
+                    u"AT THE NEAREST CUT", none_sw))
     bands = [(BAND_NAME[b_], none_sw) for b_ in "ABCDEF" if ("band", b_) in LEG]
     sp = [(u"{}  {}".format(c_, nm), none_sw) for c_, nm in SPECIES_CODE if ("sp", c_) in LEG]
     return [(u"DETAIL", det), (u"PLANTING BANDS · DAYS WET", bands), (u"SPECIES", sp)]
 
 
 def crop_legend(keys, alpha):
-    """v21: a panel's legend for its booklet crop (drawn samples as colours + plain names)."""
-    W_ = COL["white"]
+    """v24: a 1:1,000 window's legend for its booklet crop (drawn samples as colours + plain names): the corridor's
+    symbols it draws (LEG_BOOK), the detail layers and the species codes placed (which plants go where)."""
     out = []
 
     def add(kind, colour, label):
         if all(e["label"] != label for e in out):
             out.append({"kind": kind, "colour": colour, "label": label})
-    for code, name in LEG_ZONE:
-        if ("zone", code) in keys:
-            z = {"code": "WA" if code == "WAF" else code, "tier": "F" if code == "WAF" else "D"}
-            add("fill", mix(W_, zone_tones(z)[0], alpha), name.split(u" · ")[-1].lower())
-    if "river_band" in keys:
-        add("fill", mix(W_, RIVER_BAND_TONE[0], 0.85), RIVER_BAND_NAME.lower())
-    for nm_ in (u"MAIN SPINE", u"STREAMSIDE SPINE"):
-        if ("spinezone", nm_) in keys:
-            add("fill", mix(W_, MP["centre"][0], alpha), nm_.lower())
-    if ("ctx", "river") in keys:
-        add("fill", PIECE_TONE["river"][0], u"stream")
-    if ("road", "main") in keys:
-        add("line", ROAD_TONE[2], u"main road")
-    if ("road", "street") in keys or ("ctx", "street") in keys:
-        add("line", ROAD_TONE[1], u"street")
-    if ("walk", "bank") in keys:
-        add("line", COL["walk"], u"bank walk, car-free")
+    for key, nm, f in LEGEND_V24:
+        if ("v24", key) in keys and key in LEG_BOOK:
+            add(LEG_BOOK[key][0], LEG_BOOK[key][1], nm.lower() if nm.isupper() else nm)
     for key, kind, colour, label in ((("dt", "cut"), "line", COL["ink_dark"], u"section"),
                                      (("dt", "q"), "line", COL["river_mid"], u"Q500 width on the cut"),
                                      (("dt", "route"), "dot", COL["river_dark"], u"water route step"),
                                      (("dt", "spot_bed"), "dot", COL["river_dark"], u"spot level, bed"),
                                      (("dt", "spot_bank"), "dot", COL["ink_dark"], u"spot level, bank top"),
                                      (("dt", "steps"), "line", MP["storage"][2], u"terrace steps"),
-                                     (("dt", "ramp"), "fill", mix(W_, COL["ink2"], 0.2), u"ramp")):
+                                     (("dt", "ramp"), "fill", mix(COL["white"], COL["ink2"], 0.2), u"ramp")):
         if key in keys:
             add(kind, colour, label)
+    for c_, nm in SPECIES_CODE:
+        if ("sp", c_) in keys:
+            add("dot", COL["tree_mid"], u"{} {}".format(c_, nm))
     return out
 
 
@@ -506,7 +454,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v23.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v24.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -514,9 +462,10 @@ def booklet_crops(folder, sheets, wins, plc, missing):
     for pdf, sh, scale in sheets:
         for key, rc, p in sh.panels:
             bid, old, cap = p.bid
-            bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=scale, legend=crop_legend(p.pleg, _ALPHA[0]),
-                    drop=drop)
-            fr = {"crop": bid, "scale_den": scale, "w_mm": round(rc[2] - rc[0], 1), "h_mm": round(rc[3] - rc[1], 1)}
+            sc_ = getattr(p, "scale", scale)              # v24: each panel its own round scale
+            leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []   # v24: p15 halves: in the crop
+            bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=sc_, legend=leg_, drop=drop)
+            fr = {"crop": bid, "scale_den": sc_, "w_mm": round(rc[2] - rc[0], 1), "h_mm": round(rc[3] - rc[1], 1)}
             if bid in wd:
                 R = wd[bid]["R"]
                 fr.update(centre_xy=[round((R[0] + R[2]) / 2, 1), round((R[1] + R[3]) / 2, 1)],
