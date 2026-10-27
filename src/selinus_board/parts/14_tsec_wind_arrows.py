@@ -607,6 +607,7 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_t
     calls = sec_water_calls(sd_, g_at, nm, dry) + [(s, g_at(s), t) for s, t in sec_edge_calls(sd_)]
     calls += [((a + b) / 2.0, g_at((a + b) / 2.0), nm_) for a, b, nm_ in sd_.get("places", [])]   # v16.7: by name
     calls += [(s_, z_, sec_road_text(t_)) for s_, z_, t_ in road_calls]   # v25: every street crossed, its width
+    calls += [(s_, g_at(s_), t_) for s_, t_ in sec_history_calls(S, sd_) if 0.0 <= s_ <= Lm]   # v44
     low = sec_callouts(B, L, P, calls, P(0, -3.0)[1] - 0.45 * U, U, xlo=x, xhi=x + w)
     # the use ribbon and the satellite rows under the callouts
     rib = low - 0.5 * U
@@ -663,6 +664,26 @@ def sec_water_calls(sd_, g_at, nm, dry=False):
     return out
 
 
+def sec_history_calls(S, sd_):
+    """v44 (PHASE2_SPEC §3, p.7-8): where a cut crosses the survey's historic city wall line (layer SINIR_TARIHI_SUR,
+    S.walls_hist) or the covered course of the stream (OSM tunnel / culvert, S.covered): [(s, text)] along the cut.
+    Only what the data holds: the survey layer does not date the wall, so no period is named."""
+    x0, y0, x1, y1, nm = sd_["line"]
+    Lc = math.hypot(x1 - x0, y1 - y0)
+    if Lc <= 0:
+        return []
+    out = []
+    for key, txt in (("walls_hist", u"historic city wall"), ("covered", u"covered stream")):
+        for P in getattr(S, key, None) or []:
+            for a, b in zip(P[:-1], P[1:]):
+                hit = seg_x((x0, y0), (x1 - x0, y1 - y0), a, (b[0] - a[0], b[1] - a[1]))
+                if hit:
+                    s_ = hit[0] * Lc
+                    if all(abs(s_ - q) > 3.0 or t_ != txt for q, t_ in out):
+                        out.append((s_, txt))
+    return out
+
+
 def sec_road_text(t):
     """v40: a street's callout without the caveat words: its name and the length the cut runs on it."""
     return t.replace(" · OSM line, no surveyed surface", "").replace(" m on the cut", " m")
@@ -693,7 +714,8 @@ def sec_callouts(B, L, P, calls, ytop, U, lh=None, xlo=None, xhi=None):
         if xhi is not None:
             cx = min(cx, max(fx - half + 0.3 * U, xhi - half))
         tier = 0                                         # the first row where the text is clear of the others
-        while any(t2 == tier and cx - half < r2 + 0.6 * U and l2 - 0.6 * U < cx + half for l2, r2, t2 in placed):
+        gap = max(0.6 * U, 2.2 * lh)                     # v44: two characters' width between words on one row
+        while any(t2 == tier and cx - half < r2 + gap and l2 - gap < cx + half for l2, r2, t2 in placed):
             tier += 1
         placed.append((cx - half, cx + half, tier))
     for (s, zf, txt), (l1, r1, tier) in zip(calls, placed):
@@ -835,11 +857,14 @@ def draw_section_key(B, x, y, w, U):
     return draw_legend_items(B, items, x, y - 1.0 * U, w, U, L, h=0.36)
 
 
-def draw_typology_key(S, B, x, y, w, U, ymin=None):
+def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True):
     """v16.3 · the building types as the sections draw them: one small generic section of each type found in the frame
     (types under 0.5 % of the footprint are left out, as on the fabric map; mosques and monuments always shown when
-    present), with its name. Returns the y below it, or y unchanged when it would not fit above ymin."""
+    present), with its name. Returns the y below it, or y unchanged when it would not fit above ymin. v44: with ss
+    (page units per metre, a round booklet scale) and th (tag height) given, drawn at that scale under the cuts, each
+    type as wide as its tag needs, the scale written for the booklet; draw_typology_key.last_w = the width used."""
     L = "LU_BOARD::Sections"
+    draw_typology_key.last_w = 0.0
     tot = sum(S.fabric_area.values()) or 1.0
     present = set(t for t in FABRIC_ORDER if round(100.0 * S.fabric_area.get(t, 0.0) / tot) >= 1 or
                   (t in ("monument", "sacred") and S.fabric_area.get(t, 0.0) > 0))
@@ -860,20 +885,28 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None):
     gap = 3.0                                             # m between two buildings
     hmax = max(c[3] * STOREY.get(c[1], FLOOR_H) + typo_rise(c[0], c[1], c[2], c[3] * STOREY.get(c[1], FLOOR_H),
                                                             c[0] == "sacred") for c in cand)
-    ss = min(w / (sum(c[2] for c in cand) + gap * len(cand)), 0.3 * U)                 # page units per metre
-    if ymin is not None:
-        ss = min(ss, (y - ymin - 2.4 * U) / hmax)
-    if ss < 0.06 * U:
-        return y
-    B.text("BUILDING TYPES IN THE SECTIONS", x, y, 0.6 * U, INK, L, font=FONT_TITLE, bold=True)
-    B.fit("silhouettes · height = surveyed floors · details by type " + bcite(          # v38
+    fixed = ss is not None
+    if not fixed:
+        ss = min(w / (sum(c[2] for c in cand) + gap * len(cand)), 0.3 * U)             # page units per metre
+        if ymin is not None:
+            ss = min(ss, (y - ymin - 2.4 * U) / hmax)
+        if ss < 0.06 * U:
+            return y
+    t1, t2 = (th, th) if fixed else (0.2 * U, 0.17 * U)  # tag and floor-count heights
+    slot = [max(c[2] + gap, (tw(c[4], t1) + t1) / ss) if fixed else c[2] + gap for c in cand]   # m per type
+    draw_typology_key.last_w = sum(slot) * ss
+    ht = 1.5 * th if fixed else 0.6 * U
+    B.text("BUILDING TYPES IN THE SECTIONS", x, y, ht, INK, L, font=FONT_TITLE, bold=True)
+    B.fit("silhouettes · height = surveyed floors · details by type" + (u" · 1:{:,}".format(crop_scale(ss)) if fixed
+                                                                        else u"") + " " + bcite(          # v38
         "Building types: generic silhouettes of each fabric type in its own tone: the height is the surveyed floors; "
         "the roof, jetty, windows, balconies, shopfront, dome and minaret height are drawn to the type, not surveyed."),
-        x, y - 0.55 * U, 0.2 * U, w, INK2, L)
-    gy = y - 1.2 * U - hmax * ss                          # the common ground line
+        x, y - ht - 0.4 * t1 - t1, t1, max(w, draw_typology_key.last_w), INK2, L)
+    gy = y - ht - 2.0 * t1 - 0.6 * U - hmax * ss          # the common ground line
     P = (lambda s_, z_: (x + s_ * ss, gy + z_ * ss))      # s_ in metres from x, z_ in metres above the ground line
     s0 = 0.5 * gap
-    for fab, cat, bw, fl, tag in cand:
+    for (fab, cat, bw, fl, tag), sl in zip(cand, slot):
+        s0 += 0.5 * (sl - bw - gap)
         h = fl * STOREY.get(cat, FLOOR_H)
         prof = bld_profile(fab, cat, s0, s0 + bw, 0.0, 0.0, h, fl, seed=0,
                            minaret=(s0 + bw - 0.5 * MINARET_W - 0.4) if fab == "sacred" else None)
@@ -881,13 +914,15 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None):
         room = mix(typo_tone(fab, cat), PAPER, 0.12)
         wall_c = mix(FABRIC[fab][2], INK, 0.45) if heritage else INK
         bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27)
-        B.fit(tag, x + (s0 + 0.5 * bw) * ss, gy - 0.42 * U, 0.2 * U, (bw + gap) * ss * 0.95, INK2, L, align="C")
-        B.fit("{} fl".format(fl) if fab != "monument" else "at its height", x + (s0 + 0.5 * bw) * ss, gy - 0.72 * U,
-              0.17 * U, (bw + gap) * ss * 0.95, INK2, L, align="C")
-        s0 += bw + gap
+        B.fit(tag, x + (s0 + 0.5 * bw) * ss, gy - 0.4 * t1 - t1, t1, sl * ss * 0.95, INK2, L, align="C")
+        B.fit("{} fl".format(fl) if fab != "monument" else "at its height", x + (s0 + 0.5 * bw) * ss,
+              gy - 0.8 * t1 - t1 - 1.45 * t2, t2, sl * ss * 0.95, INK2, L, align="C")
+        s0 += bw + gap + 0.5 * (sl - bw - gap)
     B.line([P(0.0, 0.0), P(s0 - 0.5 * gap, 0.0)], INK, L, 28, 0.12)
-    crop_panel("building_types", x, gy - 0.95 * U, x + w, y - 1.1 * U, u"Building types in the sections")   # v40
-    return gy - 1.0 * U
+    yb = gy - 1.2 * t1 - t1 - 1.45 * t2
+    if crop:
+        crop_panel("building_types", x, yb - 0.1 * U, x + w, y - 1.1 * U, u"Building types in the sections")   # v40
+    return yb - 0.1 * U
 
 
 BED_TAG = {"surveyed": "", "interpolated": " (INTERPOLATED)", "input": " (INPUT DEPTH)", "terrain": " (NOT SURVEYED)"}
@@ -899,20 +934,6 @@ def water_tag(depth, src):
         return "NO WATER" if src != "approx" else "WATER NOT SURVEYED"
     return "WATER {:.2f} M{}".format(depth, {"approx": " (APPROXIMATE, NOT MEASURED)", "input": " (WATER_DEPTH INPUT)",
                                              "measured": " (MEASURED LEVEL)"}.get(src, ""))
-
-
-def draw_section_placeholder(S, B, x, y, w, h, U, k):
-    L = "LU_BOARD::Sections"
-    B.fit("SECTION S{0} — S{0}'".format(k), x + 1.2 * U, y, 0.6 * U, w, mix(INK2, BG, 0.3), L, font=FONT_TITLE, bold=True)
-    top, bot = y - 0.9 * U, y - 0.9 * U - h
-    frame = rect(x, bot, x + w, top) + [(x, bot)]
-    for d in dashes(frame, 0.5 * U, 0.35 * U):
-        B.line(d, INK2, L, 20, 0.05)
-    B.line([(x + 1.0 * U, bot + 0.35 * h), (x + 0.3 * w, bot + 0.4 * h), (x + 0.5 * w, bot + 0.28 * h),
-            (x + 0.62 * w, bot + 0.28 * h), (x + w - 1.0 * U, bot + 0.45 * h)], mix(INK2, BG, 0.4), L, 20, 0.07)
-    B.para("no section line · Rhino Top: draw > section_lines > run",       # v38: keywords
-           x + 2.0 * U, (top + bot) / 2.0 + 0.5 * U, w - 4.0 * U, 0.36 * U, INK2, L)
-    return bot - 0.5 * U
 
 
 SEC_END = 2.4           # page units kept free at both ends of a strip for the end names and levels
@@ -1338,31 +1359,32 @@ def draw_what_is_there(S, B, x, y, w, U):
     draw_scalebar(B, V.X0, mb - 1.4 * U, s, nice_floor(F2.w / 8.0), U, L, h=0.32)
     # photo strip under the map
     yy = mb - 2.6 * U
-    if photos:
+    if photos:                                        # v44: a keyword caption under each photo, numbers 12 pt
         n = len(photos)
         g = 0.6 * U
         pw = (mw - (n - 1) * g) / n
         ph = pw * 0.75
-        low = yy
+        s_ph = bk_s(mw, ph * 1.4)                         # the strip across a booklet page (row of its own)
+        hc, hn = bk_h(7.5, s_ph), bk_h(12.0, s_ph)
+        bn = 1.7 * hn
+        low = yy - ph
+        r_ph = bcite(u"Photos: site visit 2026-10-01 (group photos, GPS within {:.0f} m); the disc marks where each "
+                     u"was taken. Captions: keywords of the photo index (a visual reading); Roman bridges after h01 "
+                     u"§5.".format(max(it.get("gps_err_m", 0.0) for p, it in photos)))
         for i, (p, it) in enumerate(photos):
             px = V.X0 + i * (pw + g)
             B.image(p, px, yy - ph, px + pw, yy, L, order=5)
-            B.fill([rect(px, yy - 0.9 * U, px + 0.9 * U, yy)], INK, L, 64)
-            B.text(str(i + 1), px + 0.45 * U, yy - 0.45 * U, 0.45 * U, (255, 255, 255), L, order=65,
+            B.fill([rect(px, yy - bn, px + bn, yy)], INK, L, 64)
+            B.text(str(i + 1), px + 0.5 * bn, yy - 0.5 * bn, hn, (255, 255, 255), L, order=65,
                    font=FONT_TITLE, bold=True, align="MC")
-            d = it.get("description", "").split(";")[0].strip().rstrip(".")
-            low = min(low, yy - ph - 0.5 * U)
-            if d:                                         # v38: the description is a key entry; its [n] under the photo
-                B.text(u"{} {}".format(i + 1, bcite(u"Photo {}: {}.".format(i + 1, d))), px, yy - ph - 0.5 * U,
-                       0.3 * U, INK, L)
-                low = min(low, yy - ph - 0.5 * U - 0.54 * U)
-        r_ph = bcite(u"Photos: site visit 2026-10-01 (group photos, GPS within {:.0f} m); the square marks where each "
-                     u"was taken. Descriptions: the photo index, a visual reading.".format(
-                         max(it.get("gps_err_m", 0.0) for p, it in photos)))
-        crop_panel("photos", V.X0, yy - ph - 0.1 * U, V.X0 + mw, yy, u"Site photos · 1 Oct 2026")     # v40
-        B.text(u"PHOTOS · site visit 2026-10-01 · GPS within {:.0f} m {}".format(
-            max(it.get("gps_err_m", 0.0) for p, it in photos), r_ph), V.X0, low - 0.4 * U, 0.3 * U, INK2, L)
-        yy = low - 0.4 * U - 0.54 * U
+            cap = photo_caption(it) + (u" " + r_ph if i == n - 1 else u"")
+            cy_ = yy - ph - 0.6 * hc - hc
+            for ln in wrap(cap, pw, hc, "sans")[:2]:
+                B.text(ln, px, cy_, hc, INK, L, font=FONT_TITLE)
+                low = min(low, cy_)
+                cy_ -= 1.45 * hc
+        crop_panel("photos", V.X0, low - 0.5 * hc, V.X0 + mw, yy, u"Site photos · 1 Oct 2026")     # v40
+        yy = low - 1.2 * U
     # legend (v38: drawn samples with short names; explanations as [n] in the Sources key)
     r_home = bcite("Urban fabric: each building's type from its survey layer, names and heritage tags, surveyed floors, "
                    "footprint size and regularity, shared walls and the grain of the 40 m around it; shares of the "
