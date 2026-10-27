@@ -1,4 +1,5 @@
-# ---- BOOKLET PLAN v13 (Aras 27 Oct 17:34, Prompt 3: p.8 the three movement maps stacked, each the site frame at
+# ---- BOOKLET PLAN v14 (Aras 27 Oct 17:34, Prompt 4: old p13 "How the stream behaves" merged into the water balance
+# sheet's page, analysis first); v13 (Aras 27 Oct 17:34, Prompt 3: p.8 the three movement maps stacked, each the site frame at
 # 1:10,000); v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
 # where we can build; a key map on each sections page: "key" = a crop in the title band, "side" = panels at the right
 # margin beside the rows); v11 (Aras 27 Oct 17:27, Prompt 1: theme cycles, merge frames); v10 (Aras 27 Oct 11:07 review: page list above each entry); v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
@@ -70,8 +71,11 @@ PAGES = [
     dict(part="B", stage="do", title=u"How people will move", rows=[[SB + "drw_proposal"], [SB + "drw_commercial_spine"]]),
     dict(part="B", stage="do", title=u"The streamside spine, hub by hub", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),   # old p18
     # ---- C WATER (one block)
-    dict(part="C", stage="an", title=u"How the stream behaves", rows=[[WB + "wb_water"]]),   # old p13 (into p12 or p14: Prompt 4)
-    dict(part="C", stage="got", title=u"The water balance", sheet=BAL + "Bergama_water_balance_A3.pdf"),   # old p12
+    # old p13 + p12 -> one page (v14, Prompt 4): the water balance sheet v3 opens with "How the stream behaves" (its band
+    # beside the title: monthly flow, Jul-Sep dry, flood levels on the surveyed cut at 1:500), so analysis leads, then the
+    # answer; the water board's wb_water crop is no longer used
+    dict(part="C", stage="an+got", title=u"How the stream behaves, and the water balance",
+         sheet=BAL + "Bergama_water_balance_A3.pdf"),
     dict(part="C", stage="do", title=u"Collect, clean, hold", rows=[[WB + "wb_system"]]),   # old p14
     dict(part="C", stage="do", title=u"The proposals in section", rows=[[PS + "ps_all"]]),   # old p19
     dict(part="C", stage="do", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # old p20

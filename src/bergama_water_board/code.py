@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA WATER BOARD v1.14 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
+"""BERGAMA WATER BOARD v2 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
 
@@ -8,7 +8,7 @@ HOW TO RUN
   (build, run, go ...). One press writes the board (option A, storage as cubes); a second press writes it again. Nothing
   is baked into Rhino. The log is kept after the Button is released (output log; pdf = the paths) and written to
   Downloads/Bergama/logs/bergama_water_board_log.txt (v1.3).
-    Bergama_water_board_v1_14_A_cubes.pdf   option A (organic forms only where the project meets the water)
+    Bergama_water_board_v2_A_cubes.pdf      option A (organic forms only where the project meets the water)
   The plant photos (v1.14) are fetched once from Wikipedia / Wikimedia Commons into
   Downloads/Bergama/cached/bergama_water_board/plant_photos/ and read from there afterwards; offline, each photo is a
   labelled empty frame and the board is written as usual.
@@ -43,6 +43,17 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v2 (Aras 27 Oct 17:34, booklet Prompt 4 "water, part 1"; a feature change, so the next whole number):
+  * "Collect, clean, hold" (wb_system): the three tiles without data go (data honesty rule: no "NO DATA" tiles):
+    water quality measured (no measurement of the Selinos in any source the project holds, research/water_data
+    README "Still needed" 4), streamside greywater (no volume, no route in any source) and odour cut by plants (no source
+    measures it). No estimate replaces them: each would rest on an unknown, not on a figure. The rest re-grid with no
+    holes: WHY WE CLEAN 2 x 2, HOW 2 x 2 (reed beds, bed area, then the coliforms a wetland leaves, then UV, so the
+    reason for UV sits before it); the tiles grow (the same fit as before) and the rows share what height is left,
+    so the column ends level with the cubes' box, no gap at the bottom.
+  * "How the stream behaves" (wb_water) stays on this board; the booklet now takes it from the water balance sheet
+    (v3), where it leads the water balance page.
+  * the text under the component shows a newly pasted version at once, idle (Aras 27 Oct 15:35).
 NEW IN v1.14 (Aras 27 Oct 11:07, booklet v9 review; PHASE2_SPEC): visual first, fewer words, nothing overlapping.
   * p.11-14 -> two panels: "wb_water" = how the water behaves (the year on one month axis, the five surveyed cuts and
     DSİ's channel at one round scale, what each level allows (W / F / D), the Roman tunnels' capacity against DSİ's
@@ -104,8 +115,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v1.14 (2026-10-27)"
-SHORT = "v1.14"
+VERSION = "bergama_water_board v2 (2026-10-27)"
+SHORT = "v2"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -114,7 +125,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
 CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of these at which they fit (v1.11: round)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v1_14_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v2_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -2353,10 +2364,6 @@ WHY_T = [
     ("sewage", u"SEWAGE IN THE STREAM", u"3 km + 500 m",
      u"İZSU sewer + connections, Feb 2024 · against odour, flies",
      u"published, İZSU via Gerçek İzmir 28 Feb 2024; " + REG + u" SE-22"),
-    ("gauge", u"WATER QUALITY MEASURED", u"NO DATA",
-     u"in any source the project holds", WD + u", Still needed 4"),
-    ("house", u"STREAMSIDE GREYWATER", u"NO DATA",
-     u"sinks, showers, laundry: no volume, no route in any source", u"not in the project's data"),
     ("plant", u"TOWN TREATMENT PLANT", u"14,304 m³ a day",
      u"treated -> Bakırçay, not the Selinos", u"published, TMMOB 2023 citing İZSU; " + WD),
     ("tank", u"RAINWATER TANKS", u"roofs only",
@@ -2368,11 +2375,12 @@ HOW_T = [
     ("reed", u"REED-BED FIELD DATA", u"58-88 %", u"of NH4-N removed", u"published; " + REG + u" PL-09"),
     ("area", u"BED AREA PER PERSON", u"5 m² · 1-3 m²",
      u"horizontal · vertical flow", u"published, Vymazal 2010; " + REG + u" EN-D2"),
-    ("nose", u"ODOUR CUT BY PLANTS", u"NO DATA", u"no source measures it", REG + u" §2: gap"),
-    ("uv", u"DISINFECT WHERE PEOPLE TOUCH IT", u"UV",
-     u"water people touch + park irrigation · UV = the reuse method", u"inferred from EN-D3, EN-E1; EN-E2 published"),
     ("clean", u"COLIFORMS LEFT AFTER A WETLAND", u"100-100,000", u"per 100 ml · reuse class A allows 0",
-     u"published, reviews 2005 and 2020; EN-D3; 2010 communiqué, EN-E1")]
+     u"published, reviews 2005 and 2020; EN-D3; 2010 communiqué, EN-E1"),
+    ("uv", u"DISINFECT WHERE PEOPLE TOUCH IT", u"UV",
+     u"water people touch + park irrigation · UV = the reuse method", u"inferred from EN-D3, EN-E1; EN-E2 published")]
+# v2 (Aras 27 Oct, Prompt 4, data honesty): the tiles "water quality measured", "streamside greywater" and "odour cut
+# by plants" (all NO DATA) are gone; no source holds a figure for them and an estimate would rest on an unknown.
 COLIFORM = [  # (label, low, high, colour key, source); 0 = the limit is zero
     (u"Left after an emergent-plant wetland", 1e2, 1e5, "d2", u"published, reviews 2005 and 2020; EN-D3"),
     (u"Reuse class B limit (orchards, vineyards)", 200, 200, "acc", u"published, 2010 communiqué; EN-E1"),
@@ -2705,9 +2713,10 @@ def figs(pg, x, y, items, w, big=3.0, small=1.55, colour=None):
     return low
 
 
-def tiles(pg, x, y, w, items, s, cols=2):
+def tiles(pg, x, y, w, items, s, cols=2, extra=0.0):
     """v1.6: facts as tiles: pictogram, heading, the key figure large, a short line and its source number.
-    items = [(pictogram, heading, figure or None, line, source)]. Returns the bottom y."""
+    items = [(pictogram, heading, figure or None, line, source)]. Returns the bottom y. v2: extra = mm added to every
+    row's height, the content centred in it (draw_cleaning fills its column with no gap at the bottom)."""
     fh, fb, ft = 2.5 * s, 4.4 * s, 2.15 * s
     ic, pad, g = 10.0 * s, 2.2 * s, 2.4 * s
     tw = (w - (cols - 1) * g) / cols
@@ -2721,12 +2730,12 @@ def tiles(pg, x, y, w, items, s, cols=2):
     yy = y
     for r0 in range(0, len(lay), cols):
         row = lay[r0:r0 + cols]
-        rh = max(t[3] for t in row)
+        rh = max(t[3] for t in row) + extra
         for c_, (kind, big, L, _) in enumerate(row):
             tx = x + c_ * (tw + g)
             pg.poly([rect(tx, yy - rh, tx + tw, yy)], fill=C["paper"], stroke=C["faint"], lw=0.2)
-            icon(pg, kind, tx + pad, yy - pad, ic)
-            lx, ly = tx + 2 * pad + ic, yy - pad
+            icon(pg, kind, tx + pad, yy - pad - extra / 2.0, ic)
+            lx, ly = tx + 2 * pad + ic, yy - pad - extra / 2.0
             for ln in L[0]:
                 ly -= fh * 1.25
                 pg.text(ln, lx, ly, fh, C["dark"], bold=True)
@@ -2745,10 +2754,15 @@ def tiles(pg, x, y, w, items, s, cols=2):
 def draw_cleaning(pg, x, y, w, h, s):
     """v1.14 (p.11-14 -> 2 pages, chain and storage largest): why and how we clean as two groups of pictogram tiles
     (the removal and coliform charts became the tiles' key figures; their figures stay in results.json)."""
-    pg.text(u"WHY WE CLEAN", x, y - 3.4 * s, 3.4 * s, C["dark"], bold=True)
-    yy = tiles(pg, x, y - 5.2 * s, w, WHY_T, s, 2) - 3.0 * s
-    pg.text(u"HOW", x, yy - 3.4 * s, 3.4 * s, C["dark"], bold=True)
-    return tiles(pg, x, yy - 5.2 * s, w, HOW_T, s, 2)
+    def lay(p_, extra):
+        p_.text(u"WHY WE CLEAN", x, y - 3.4 * s, 3.4 * s, C["dark"], bold=True)
+        yy = tiles(p_, x, y - 5.2 * s, w, WHY_T, s, 2, extra) - 3.0 * s
+        p_.text(u"HOW", x, yy - 3.4 * s, 3.4 * s, C["dark"], bold=True)
+        return tiles(p_, x, yy - 5.2 * s, w, HOW_T, s, 2, extra)
+    rows = (len(WHY_T) + 1) // 2 + (len(HOW_T) + 1) // 2       # v2: 2 x 2 + 2 x 2 since the NO DATA tiles went
+    spare = lay(Page(1, 1), 0.0) - (y - h + 2.05)             # what the column has left at the bottom (fit_draw's pad
+                                                              # 2.0, kept 0.05 mm clear so fit's test never flips)
+    return lay(pg, spare / rows if spare > 0 and rows else 0.0)
 
 
 def draw_farms_text(pg, x, y, w, h, s):
@@ -3319,6 +3333,11 @@ def main():
     pressed = (on and not mem_get("prev", False)) or chain_fire(_GH_IN.get(btn), "chain_seen", btn)
     globals()["_ran_now"] = pressed
     mem_set("prev", on)
+    if not pressed and mem_get("ver") != SHORT:     # v2 (Aras 27 Oct 15:35): a newly pasted version shows itself at
+        for k_, v_ in (("last", ""), ("status", ""), ("files", []), ("done", "idle")):   # once, idle, without the old
+            mem_set(k_, v_)                                                              # run's time or log
+    if pressed:
+        mem_set("ver", SHORT)
     if not pressed:
         last = mem_get("last", "")
         gh_status(mem_get("status", "") or SHORT + " · idle")
