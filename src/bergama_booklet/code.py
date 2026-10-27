@@ -471,12 +471,23 @@ def cover(pg, typo, pages):
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
 
 
-def sheet_sources(fitz):
-    """[(heading, [entries])]: each sheet page's own source key ("Sources by number: [1] ... [2] ..." or lines
-    starting [n]), as the sheet prints it: the [n] marks on that sheet's pages refer to it."""
-    out = []
+def sheet_sources(fitz, assets):
+    """[(heading, [entries])]: each sheet page's own source key. v10 (Aras 27 Oct: source footers go): first the
+    key a script writes into its blocks.json "sheet_sources" ({page or "pdf#page": ["[1] ...", ...]}), else the
+    key as the sheet prints it ("Sources by number: [1] ... [2] ..." or lines starting [n], visible or not)."""
+    out, done = [], set()
     for pat in SOURCE_SHEETS:
         folder, _, name = pat.partition("/")
+        keyed = (assets.get(folder) or {}).get("sheet_sources") or {}
+        if keyed:
+            if folder not in done:
+                done.add(folder)
+                for k in sorted(keyed, key=lambda k_: str(k_)):
+                    ents = [e for e in keyed[k] if e]
+                    if ents:
+                        out.append((SCRIPT_OF.get(folder, folder) + ("" if len(keyed) == 1 else " · page %d" % (int(k) + 1) if str(k).isdigit()
+                                                                    else " · " + str(k)), ents))
+            continue
         path = find_pdf(folder, name)
         if not path:
             continue
@@ -566,7 +577,7 @@ def main():
     for pno, sp, rows in numbered:
         rep.append(sheet_page(fitz, doc, typo, pno, sp) if rows is None else
                    panel_page(fitz, doc, typo, pno, sp, rows, assets, missing))
-    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2, sheet_sources(fitz))
+    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2, sheet_sources(fitz, assets))
     text_check(fitz, doc, typo, set(n - 1 for n, sp, rows in numbered if rows is None))
     doc.subset_fonts()
     out = os.path.join(OUT_DIR, PDF_NAME)
