@@ -92,12 +92,14 @@ def rip_legend():
 
 def draw_riparian(S, B, x, y, w, U):
     """S1 companion (plant analysis panel 3): canopy cover in four bands either side of the Selinos every 25 m of
-    chainage; the stream between the banks with its covered reaches and bridges; the section lines by name."""
+    chainage; the stream between the banks with its covered reaches and bridges. v47 (Prompt 5): named tree crown
+    cover, with no claim about shade (buildings and the terrain shade the stream too: draw_shade_strip computes that)
+    and no section markers (cuts only on the sections pages' key maps)."""
     L = "LU_BOARD::Riparian"
     cor = seam_pack().get("corridor", {})
     if not cor:
         return y
-    B.text("THE STREAM'S TREE COVER · BANK BY BANK, EVERY 25 M", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
+    B.text("TREE CROWN COVER · BANK BY BANK, EVERY 25 M", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)   # v47
     n, bm = cor["n_bins"], float(cor["bin_m"])
     th = RIP_TH * U
     rh, hb, gs = 0.95 * U, 1.3 * U, 0.14 * U             # a distance band, the stream, the gap between them
@@ -113,9 +115,9 @@ def draw_riparian(S, B, x, y, w, U):
     # v42 (review rule 4): the context line, with the cover within 15 m of the stream on each bank (the means below)
     near = [(cor["cover"].get(sd + " 0-15", {}) or {}).get("total_pct") for sd in ("left", "right")]
     ctx = u"Share of the ground under tree crowns in four bands either side of the stream, every 25 m downstream."
-    if None not in near:
-        ctx += (u" Within 15 m of its centre line only {:.1f}% (left) and {:.1f}% (right) is under crowns: shade at the "
-                u"stream has to come from new planting.".format(near[0], near[1]))
+    if None not in near:                                  # v47: no shade claim (crowns are not all the shade there is)
+        ctx += u" Within 15 m of its centre line only {:.1f}% (left) and {:.1f}% (right) is under crowns.".format(
+            near[0], near[1])
     ctop = y - 1.5 * U
     ya = ctx_line(B, ctx, x, ctop, w, CTX_H * U, L) - 0.7 * U
     # ---- distance axis, every 500 m along the stream (downstream to the right)
@@ -165,19 +167,13 @@ def draw_riparian(S, B, x, y, w, U):
         if xb - xa < 0.2 * U:
             xa, xb = 0.5 * (xa + xb) - 0.1 * U, 0.5 * (xa + xb) + 0.1 * U
         B.fill([rect(xa, sb - 0.08 * U, xb, st + 0.08 * U)], INK, L, 6)
-    # ---- the section lines, by name under the chart
+    # ---- v47 (Prompt 5, Aras's rule: section cuts only on the sections pages' key maps): no section markers here
     gb = row_top(7) - rh
-    yl = gb - 0.75 * U - th
-    secs = cor.get("sections_ch", [])
-    if secs:
-        B.text("sections", x0 - 0.5 * U, yl, th, INK2, L, align="R")
-    for nm, c_ in secs:
-        B.line([(X(c_), gb - 0.1 * U), (X(c_), gb - 0.55 * U)], INK, L, 6, 0.12)
-        B.text(nm, X(c_), yl, th, INK, L, align="C", font=FONT_TITLE, bold=True)
+    yl = gb - 0.15 * U
     PANEL_RECTS["riparian"] = (x, yl - 0.25 * U, x + w, ctop + CTX_H * U + 0.3 * U)     # v42: from the context line
     # ---- key: the colour steps, the stream, a covered reach, a bridge
     yk = yl - 1.6 * U
-    B.text("TREE COVER · % OF THE GROUND UNDER CROWNS", x, yk, 0.42 * U, INK, L, font=FONT_TITLE, bold=True)
+    B.text("TREE CROWN COVER · % OF THE GROUND UNDER CROWNS", x, yk, 0.42 * U, INK, L, font=FONT_TITLE, bold=True)
     yb = yk - 1.4 * U
     bw = 2.2 * U
     for k, (t, c_) in enumerate(RIP_RAMP):
@@ -197,9 +193,10 @@ def draw_riparian(S, B, x, y, w, U):
         kx += sw + 0.4 * U + tw(lab, 0.42 * U) + 1.6 * U
     return B.para("cover = share of 1 m cells under crowns · rows by distance from the stream's centre line, left and "
                   "right looking downstream · 25 m bins · mean = the whole reach " + bcite(
-        "Stream tree cover: share of the 1 m cells under crown discs (canopy map, modelled), in bands measured from the "
-        "OSM centreline (so 0-15 m holds the channel); bins of 25 m of chainage from the upstream frame edge; a bin "
-        "under 20 cells is left blank. Covered reaches drawn on the stream, bridges as ticks across it, section lines by name."),
+        "Tree crown cover along the stream: share of the 1 m cells under crown discs (canopy map, modelled), in bands "
+        "measured from the OSM centreline (so 0-15 m holds the channel); bins of 25 m of chainage from the upstream "
+        "frame edge; a bin under 20 cells is left blank. Covered reaches drawn on the stream, bridges as ticks across "
+        "it."),
                   x, yb - 1.8 * U, w, 0.32 * U, INK2, L)
 
 

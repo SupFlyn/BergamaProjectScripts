@@ -202,9 +202,10 @@ class Binned(object):
 
 class ShadeJob(object):
     """Minutes in shade, every minute the sun is up: of every day of the year (deciduous crowns in leaf between the
-    measured leaf-out and leaf-fall days) and of the four key days; crowns count by what they block (1 - tau)."""
+    measured leaf-out and leaf-fall days) and of the four key days; crowns count by what they block (1 - tau). v47:
+    with july=True also every minute of every July day (group 6; the plan's shade strip along the stream)."""
 
-    def __init__(self, G, MS):
+    def __init__(self, G, MS, july=False):
         n = G.n
         b = sun_bin(MS["az"])
         parts = [(b, np.where(MS["leaf"], 0, 1), MS["tau"])]
@@ -217,17 +218,24 @@ class ShadeJob(object):
             self.days.append(dict(daylight=float(m.sum()) / 60.0,
                                   sunrise=(float(tl.min()) - 1.0 / 120.0) if tl.size else None,
                                   sunset=(float(tl.max()) + 1.0 / 120.0) if tl.size else None))
-        self.bs = Binned(np.concatenate([p[0] for p in parts]), np.concatenate([p[1] for p in parts]),
-                         np.concatenate([p[2] for p in parts]), 6)
-        self.acc = np.zeros((6, n))
         self.toms = [tau_mask_table(True), tau_mask_table(False)] + [tau_mask_table(leaf_key(sd["key"])) for sd in SEASONS]
+        self.july = None
+        if july:                                          # v47: July (days 182-212) lies inside the leaf period
+            m = MS["mo"] == 7                             # (LEAF_DOY), so crowns in leaf, as the summer key day
+            parts.append((b[m], np.full(int(m.sum()), 6), MS["tau"][m]))
+            self.toms.append(tau_mask_table(True))
+            self.july = dict(daylight=float(m.sum()) / 60.0 / 31.0)      # mean hours of sun up per July day
+        self.ng = len(parts)                              # v47: 6 groups, 7 with July
+        self.bs = Binned(np.concatenate([p[0] for p in parts]), np.concatenate([p[1] for p in parts]),
+                         np.concatenate([p[2] for p in parts]), self.ng)
+        self.acc = np.zeros((self.ng, n))
         self.year_daylight = MS["tau"].size / 60.0 / 365.0
 
     def trange(self, b):
         return self.bs.trange(b)
 
     def run(self, b, crit, segs):
-        par_all([(lambda g_=g: self._run_g(b, g_, crit, segs)) for g in range(6)])   # v17: each g its own sum
+        par_all([(lambda g_=g: self._run_g(b, g_, crit, segs)) for g in range(self.ng)])   # v17: each g its own sum
 
     def _run_g(self, b, g, crit, segs):
         sc, slo, shi, sm = segs
@@ -724,7 +732,7 @@ def env16_frame(S, E, solids, F, cell=3.0, want_shade=True, want_comfort=True, l
     jobs = []
     SJ = CJ = None
     if want_shade:
-        SJ = ShadeJob(G, minute_sun(E))
+        SJ = ShadeJob(G, minute_sun(E), july=True)       # v47: + the July mean day
         jobs.append(SJ)
     if want_comfort:
         t1 = _t.time()
@@ -748,6 +756,10 @@ def env16_frame(S, E, solids, F, cell=3.0, want_shade=True, want_comfort=True, l
         yr = ((SJ.acc[0] + SJ.acc[1]) / 60.0 / 365.0).astype(np.float32)
         yr[~G.open] = np.nan
         out["shade"] = dict(days=days, year=dict(hours=yr, daylight=SJ.year_daylight))
+        if SJ.july is not None:                           # v47: hours in shade on the mean July day (31 days)
+            jl = (SJ.acc[6] / 60.0 / 31.0).astype(np.float32)
+            jl[~G.open] = np.nan
+            out["shade"]["july"] = dict(hours=jl, daylight=SJ.july["daylight"])
     if CJ is not None:
         t1 = _t.time()
         CJ.finish()

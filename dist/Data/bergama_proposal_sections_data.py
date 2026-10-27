@@ -783,7 +783,7 @@ def _concept_begum_sketch():
     hub_route(o, gs, 36, 104)                                                     # hub square -> steps -> sub-hub
     hand_arrow(o, (80, 63.3), (80, 41.6), HERITAGE, width=0.35, head=1.4)         # label -> the terrace facing the ruin
     text(o, "Q500 over today's bank " + CITE("levels") + "\nhub square above it", 156, 51, 5.6, W_EXT, "water")
-    label2(o, "WALKING HUB SQUARE " + CITE("hubs"), "street level · step-free\nplane trees · irrigated from storage " + CITE("plane"),
+    label2(o, "WALKING HUB SQUARE " + CITE("hubs"), "street level · step-free\nOriental plane (Doğu çınarı) · irrigated from storage " + CITE("plane"),
            1, 82, 5.6, SKINK)
     label2(o, "TABAKLAR HAMAMI ruin " + CITE("hamam"), "~56 m downstream · terrace faces it", 58, 69, 5.6, HERITAGE)
     label2(o, "steps + flood terraces", "wet only in big floods", 41, 47, 5.6, SKINK, mask=SOIL)
@@ -844,20 +844,24 @@ def _concept_k5_sketch():
     hub_route(o, gs, 166, 138)                                                    # hub square -> steps -> sub-hub
     h = 5.6 * 0.353 * TXT_K[0]                                                    # one line of 5.6 pt words
     text(o, "Q500 +58.75 m · 2.79 m " + CITE("levels") + "\ninside the banks", 160, 64 + 2.9 * h, 5.4, W_EXT, "water")
-    label2(o, "WALKING HUB " + CITE("hubs"), "street level · step-free\nplane trees " + CITE("plane") + "\nirrigated from storage",
+    label2(o, "WALKING HUB " + CITE("hubs"), "street level · step-free\nOriental plane (Doğu çınarı) " + CITE("plane") + "\nirrigated from storage",
            160, 64, 5.6, SKINK)
     text(o, "steps", 141, 27.5, 5.6, SKINK)
     keyed(o, "winter", "bed under water", 162, 31, 5.6, W_EXT, "water", mask=SOIL)
     keyed(o, "summer", "summer strip\ntoday: dry, pools", 162, 17, 5.6, W_EXT, "water", mask=SOIL)
-    text(o, "olives", 22, 53, 5.2, INK2); text(o, "stone pine", 44, 58, 5.2, INK2)
+    text(o, "Olive (Zeytin)", 22, 53, 5.2, INK2); text(o, "Stone pine (Fıstık çamı)", 44, 58, 5.2, INK2)
     text(o, "basin", 57, 45, 5.2, INK2); text(o, "cafe", 75, 50, 5.2, INK2)
     label2(o, "DEMETER'S GARDEN " + CITE("garden"), "dry bank top · all year · DG 1-2", 20, 36.5, 5.6, mask=SOIL)
-    text(o, "olive, lavender: no waterlogged soil " + CITE("plants"), 4, 26, 5.2, ACCENT, mask=SOIL)
+    text(o, "Olive (Zeytin), French lavender (Karabaş otu): no waterlogged soil " + CITE("plants"), 4, 26, 5.2, ACCENT,
+         mask=SOIL)
     hand_arrow(o, (128, 17), (66, 38.6), SITE_WATER_D, bend=0.15)
     text(o, "strip water to the garden\nintake + lift", 62, 22, 5.2, SITE_WATER_D, mask=SOIL)
     # v3: the card's crop list as two season rows (sun = summer, cloud = winter); every crop kept
-    keyed(o, "summer", "cafe beds: beans · tomatoes · peppers · figs · grapes", 4, 80, 5.6)
-    keyed(o, "winter", "herbs · greens · cabbages · citrus · quince " + CITE("garden"), 4, 80 - 1.5 * h, 5.6)
+    # v8 (Aras 27 Oct 17:34, Prompt 5: plants as "English (Turkish)", no Latin)
+    keyed(o, "summer", "cafe beds: Bean (Fasulye) · Tomato (Domates) · Pepper (Biber) · Fig (İncir) · Grape (Üzüm)", 4, 80,
+          5.6)
+    keyed(o, "winter", "herbs · greens · Cabbage (Lahana) · Citrus (Narenciye) · Quince (Ayva) " + CITE("garden"), 4,
+          80 - 1.5 * h, 5.6)
     for n_, x_, y_ in ((6, 129, 18), (7, 110, 22), (9, 8, 45)):
         NODE(o, x_, y_, n_)
     # v6: the two zones under the cut, and what each water state means for people; v7: the bed is the sub-hub

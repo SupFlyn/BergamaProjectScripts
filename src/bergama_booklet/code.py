@@ -10,6 +10,13 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v15 (Aras 27 Oct 17:34, Prompt 5 "water, part 2"; water board v3, site board v47, agriculture v2): a crop drawn
+for its width on the booklet page (block "bk_w") keeps that size in a row too (it was shrunk with the page's one
+scale, and a crop with a scale then fell to the next round scale, half size: p.22's plants printed at 1:500 in a
+corner); the other crops of the page share what it leaves. p.20, p.21 and p.22's plants panel are such crops (water
+board v3, 1:1 on A3). p.22 "Which plant goes where": the plants over the site board's July shade strip (crop
+drw_shade_strip, hours of shade along the reach; the tree-cover chart where the board has not made it yet, a plan
+key "a||b" = the first of these the scripts have written).
 NEW IN v14 (Aras 27 Oct 17:34, Prompt 4 "water, part 1"; water balance v3, water board v2): "How the stream behaves"
 is no longer its own page: the water balance sheet (v3) opens with it in a band beside its title, so the page reads
 analysis first, then what we got (stage "Analysis, what we got"); "Collect, clean, hold" keeps its crop (the water board
@@ -61,7 +68,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v14"
+VERSION = "v15"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -404,11 +411,27 @@ def wh(it):
     return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
 
 
+def fixed(it):
+    """v15: a crop drawn for its width on the booklet page (block "bk_w") keeps that size (own_s) in a row"""
+    return bool(it[1] and it[1].get("bk_w") and it[3] is not None)
+
+
 def fit(rows, aw=None):
-    """the one scale at which every row fits the panel area's width (v12: or aw mm) and all rows its height"""
+    """the one scale at which every row fits the panel area's width (v12: or aw mm) and all rows its height; v15: the
+    fixed crops (fixed) keep their own size, the others share the width and height they leave"""
     aw, ah = aw or AREA[2] - AREA[0], AREA[3] - AREA[1]
-    return min([(aw - GUT * (len(r) - 1)) / sum(wh(it)[0] for it in r) for r in rows] +
-               [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP) / sum(max(wh(it)[1] for it in r) for r in rows)])
+    ws, hs, hfix = [], [], 0.0
+    for r in rows:
+        free = [it for it in r if not fixed(it)]
+        if free:
+            ws.append((aw - GUT * (len(r) - 1) - sum(wh(it)[0] * own_s(it) for it in r if fixed(it))) /
+                      sum(wh(it)[0] for it in free))
+            hs.append(max(wh(it)[1] for it in free))
+        else:
+            hfix += max(wh(it)[1] * own_s(it) for it in r)
+    if not hs:
+        return 1.0
+    return min(ws + [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP - hfix) / sum(hs)])
 
 
 def own_s(it):
@@ -456,6 +479,8 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     s_fit = fit(rows, aw - side_w - GUT if side_it else None)
 
     def sc(it):                                      # v4: a drawing with a scale takes the round scale at or below s
+        if fixed(it):                                # v15: drawn for its booklet width: its own size
+            return own_s(it)
         den = it[1].get("scale_den") if it[1] and it[3] is not None else None
         return den / std_scale(den / s_fit) if den else s_fit
     pg = frame_page(fitz, doc, typo)
@@ -512,6 +537,8 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                     rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], med, low))
             x += w * s + GUT
         y += rh + CAP_H + ROW_GAP
+    if y - ROW_GAP > AREA[3] + 0.5:                  # v15: fixed crops are not shrunk: say when they overrun
+        typo.issues.append("PAGE OVERRUNS ITS AREA p.%d by %.1f mm" % (pno, y - ROW_GAP - AREA[3]))
     if side_it:                                      # v12: beside the rows, right margin, top-aligned
         x1, ys, xs0 = AREA[0] + max(rws) + GUT, AREA[1], AREA[2]
         for it in side_it:
@@ -541,6 +568,9 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
 def expand(fitz, spec, assets):
     """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4)."""
     def item(key):
+        if "||" in key:                                # v15: "a||b": the first of these the scripts have written
+            its = [item(k) for k in key.split("||")]
+            return next((it for it in its if it[3] is not None), its[0])
         if key.startswith("slot|"):                    # v11: SLOT(text, w, h) of the plan
             _, w, h, text = key.split("|", 3)
             return (key, {"slot": text, "size_mm": (float(w), float(h))}, None, None)

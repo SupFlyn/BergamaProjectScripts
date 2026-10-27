@@ -80,7 +80,8 @@ PAGES = [
     dict(part="C", stage="do", title=u"The proposals in section", rows=[[PS + "ps_all"]]),   # old p19
     dict(part="C", stage="do", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # old p20
     dict(part="C", stage="do", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),   # old p21
-    dict(part="C", stage="do", title=u"Which plant goes where", rows=[[WB + "wb_plants"], [SB + "drw_tree_cover"]]),   # old p22
+    dict(part="C", stage="do", title=u"Which plant goes where",   # old p22; v15: the July shade strip (Prompt 5 3a)
+         rows=[[WB + "wb_plants"], [SB + "drw_shade_strip||" + SB + "drw_tree_cover"]]),
     dict(part="C", stage="do", title=u"Where the clean water goes", rows=[[WB + "wb_farms"], [WB + "wb_decision"]]),   # old p23
     dict(part="C", stage="do", title=u"What each cubic metre grows", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=0),   # old p24
     dict(part="C", stage="do", title=u"One plant ladder, streambed to field",

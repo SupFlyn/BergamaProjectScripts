@@ -1,8 +1,21 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v46)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v47)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v47 (2026-10-27, Aras, booklet Prompt 5 task 3a, p.22 "Which plant goes where": "it is not a shading diagram"):
+  * The shade engine (T3) also sums every minute the sun is up on all 31 days of July (crowns in leaf): the mean July
+    day's hours in shade on the 1 m grid. Its stored shade is computed again once (method version shade 4 -> 5).
+  * New drawing "06a Shade along the stream" (booklet crop drw_shade_strip, drawn for 392 mm on the booklet page, every
+    word 7.5 pt): hours in shade on the mean July day at ground level on the left bank, the bed and the right bank,
+    every 25 m on the tree crown cover chart's chainage (bed = open cells inside the stream's outline; banks = open
+    cells within 15 m beyond the channel's edge), 2 h colour steps from sun to shade, each row's mean, the covered
+    reaches hatched (no value), bridges as ticks; a context line and the method, labelled computed. Without shade
+    results (no bergama_environment.json, or mode "drawings") it is left out and the log says p.22 shows the tree
+    crown cover instead.
+  * The tree-cover chart is now "TREE CROWN COVER · BANK BY BANK, EVERY 25 M" (crop drw_tree_cover, caption "Tree
+    crown cover along the banks, every 25 m"): no shade claim in its context line, no section markers under it.
 
 NEW IN v46 (2026-10-27, Aras 17:34, booklet Prompt 3 "movement and the city"):
   * Every movement map and the heritage loop at ONE scale: the whole site frame at 1:10,000 on the booklet page, on
@@ -285,8 +298,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v46 (2026-10-27)"     # v27: the log's first line and the text under the component
-SHORT_V = "v46"                                         # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v47 (2026-10-27)"     # v27: the log's first line and the text under the component
+SHORT_V = "v47"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

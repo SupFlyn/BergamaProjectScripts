@@ -4,6 +4,10 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v8 (Aras 27 Oct 17:34, booklet Prompt 5 rule 8: "plants: English name (Turkish name), no Latin"): the plants and
+  crops the sections name read "English (Turkish)": Oriental plane (Doğu çınarı), Olive (Zeytin), Stone pine (Fıstık
+  çamı), French lavender (Karabaş otu), and Demeter's Garden's crops (Bean (Fasulye), Tomato (Domates) ...). The text
+  under the component shows a newly pasted version at once, idle (Aras 27 Oct 15:35). Nothing else changed.
 NEW IN v7 (Aras 27 Oct 11:07, revision_2026-10-27/PHASE2_SPEC.md): booklet p.18-19 become ONE page: the four
   sections sit in one 2 x 2 block shaped like the booklet's panel area (new crop ps_all), all at ONE common factor;
   words drawn large enough that the smallest prints >= 7 pt on that page (TXT_K, measured); titles short, keyword
@@ -45,7 +49,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v7"
+VERSION = "v8"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -504,8 +508,12 @@ if "ghenv" in globals():
     _pressed = any(v is True for k, v in list(globals().items())
                    if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "rhino_bake", "done")) or \
         any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    if _sc.sticky.get(_k + "_ver") != VERSION:     # v8: a newly pasted version shows itself at once, idle
+        for _s in ("_status", "_done"):
+            _sc.sticky.pop(_k + _s, None)
     if _pressed:
         _t0 = time.time()
+        _sc.sticky[_k + "_ver"] = VERSION
         try:
             _res = main()
         except Exception as _ex:

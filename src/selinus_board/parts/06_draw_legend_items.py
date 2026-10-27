@@ -630,9 +630,11 @@ import hashlib as _hashlib
 import pickle as _pickle
 import zlib as _zlib_store
 # Version of each computation. A change to a method gets a new number, so results computed the old way are never reused.
-MV = dict(solids=4, sky=2, shade=4, faces=1, ground=4, noise=6, comfort=5, shelter=3, season=3, core=2, relief=2,
+MV = dict(solids=4, sky=2, shade=5, faces=1, ground=4, noise=6, comfort=5, shelter=3, season=3, core=2, relief=2,
           render=2, blocks=1, sec_geom=6, sec_field=8)     # v24: shade, ground, comfort, sec_field +1 (olive 15 %);
-#                                                            v33: comfort +1 (the year's comfortable hours, T8)
+#                                                            v33: comfort +1 (the year's comfortable hours, T8);
+#                                                            v47: shade +1 (the July mean day, so a stored shade
+#                                                            without it is computed again once)
 _MEMSTORE = {}
 
 

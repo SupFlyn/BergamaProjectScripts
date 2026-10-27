@@ -14,9 +14,10 @@ SEC_COL_GAP = 2.0       # page units between two cuts side by side
 SEC_ROW_GAP = 1.6       # page units between rows of cuts
 
 
-def ctx_line(B, txt, x, y, w, h, L):
-    """v42: a drawing's context line (1-2 sentences) under its title, from baseline y; returns the y below it."""
-    return B.para(txt, x, y, w, h, INK2, L, lead=1.45)
+def ctx_line(B, txt, x, y, w, h, L, font=None):
+    """v42: a drawing's context line (1-2 sentences) under its title, from baseline y; returns the y below it. v47:
+    in font (FONT_TITLE for the drawings whose words are all sans; default the body font, as before)."""
+    return B.para(txt, x, y, w, h, INK2, L, lead=1.45, font=font)
 
 
 def edge_shares(S):

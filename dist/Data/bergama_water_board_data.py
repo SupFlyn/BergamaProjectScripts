@@ -40,39 +40,41 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
 
 #@@ SPECIES
 SPECIES = [  # v1.14 (Aras 27 Oct: "keep only the plants we use most or that are most beneficial"): the nine kept.
-    # (band, latin, local name, Wikipedia article, where (pictogram, keywords), why [(pictogram, keywords)], their
-    #  sources, warning). Evidence as in v1.13's list (concept v1 §9.2, research 04) and DATA_REGISTER PL rows.
-    ("E", u"Platanus orientalis", u"çınar", u"Platanus_orientalis", ("tree", u"dry hub squares K3 · K4 · K5"),
-     [("tree", u"shade where crowns are few"), ("drop", u"drought-sensitive: watered from storage")],
+    # (band, plant key in PLANTS (src/common/plant_photos.py: the printed name "English (Turkish)", v3, Aras 27 Oct
+    #  17:34: "English first, Turkish in brackets, no Latin", and the photo), where (pictogram, keywords), why
+    #  [(pictogram, keywords)], their sources, warning). Evidence as in v1.13's list (concept v1 §9.2, research 04) and
+    #  DATA_REGISTER PL rows.
+    ("E", u"plane", ("tree", u"dry hub squares K3 · K4 · K5"),
+     [("tree", u"summer shade on the hub squares"), ("drop", u"drought-sensitive: watered from storage")],
      u"D8 (history_phase1/DECISIONS.md): Ottoman squares with plane trees (ICOMOS, h02 s13 p281); h03 Q4: "
      u"drought-sensitive mesophyte along perennial streams; " + REG + u" PL-13, PL-14", u""),
-    ("F", u"Olea europaea", u"zeytin", u"Olea_europaea", ("olive", u"dry top · Demeter's Garden K5"),
+    ("F", u"olive", ("olive", u"dry top · Demeter's Garden K5"),
      [("dry", u"drought-resistant · no waterlogging"), ("olive", u"Red Hall: 19th-c. olive-oil mill")],
      REG + u" PL-12 (FAO Ecocrop); h02 §1.6: olive-oil machinery in the Red Hall south rotunda, 19th c. (s25)", u""),
-    ("F", u"Lavandula stoechas", u"karabaş otu", u"Lavandula_stoechas", ("lav", u"dry top · above Q500"),
+    ("F", u"lavender", ("lav", u"dry top · above Q500"),
      [("dry", u"xerophyte · fast-draining soil"), ("flood", u"17 days flooded: survived")],
      u"RHS trial; " + REG + u" PL-11 (RHS)", u"scent layer"),
-    ("C", u"Tamarix smyrnensis", u"ılgın", u"Tamarix_smyrnensis", ("tree", u"flood terraces"),
+    ("C", u"tamarisk", ("tree", u"flood terraces"),
      [("flood", u"long inundation (genus)"), ("native", u"native · İzmir")],
      u"JRC Atlas 'can survive prolonged periods of inundation'; " + REG + u" PL-01, PL-10", u""),
-    ("C", u"Vitex agnus-castus", u"hayıt", u"Vitex_agnus-castus", ("tree", u"flood terraces"),
+    ("C", u"chaste", ("tree", u"flood terraces"),
      [("dry", u"intermittent streams"), ("native", u"native · honey plant")],
      u"Salinas & Cueto 2009; " + REG + u" PL-02, PL-19", u"aromatic"),
-    ("C", u"Salix alba", u"ak söğüt", u"Salix_alba", ("tree", u"willow band · 50-150 d"),
+    ("C", u"willow", ("tree", u"willow band · 50-150 d"),
      [("flood", u"inundation-tolerant"), ("clean", u"cleans riverbanks")],
      u"JRC Atlas 'noticeably tolerant to inundation'; " + REG + u" PL-17 (phytoremediation of riverbanks); RWS 2023",
      u""),
-    ("B", u"Phragmites australis", u"kamış", u"Phragmites_australis", ("reed", u"reed beds · bed edge"),
+    ("B", u"reed", ("reed", u"reed beds · bed edge"),
      [("clean", u"reed beds: NH4-N 58-88 %"), ("flood", u"0.70 m standing water: dies")],
      u"Korkusuz et al. 2004 (" + REG + u" PL-09); Song 2021 (PL-06)", u"spreads"),
-    ("B", u"Iris pseudacorus", u"sarı süsen", u"Iris_pseudacorus", ("reed", u"bed edge, not where people touch"),
+    ("B", u"iris", ("reed", u"bed edge, not where people touch"),
      [("flood", u"flooded up to 6 months"), ("clean", u"takes up N and P")],
      u"FEIS; " + REG + u" PL-20, PL-21", u"POISONOUS"),
-    ("B", u"Mentha aquatica", u"su nanesi", u"Mentha_aquatica", ("reed", u"reed beds · upstream entry"),
+    ("B", u"mint", ("reed", u"reed beds · upstream entry"),
      [("clean", u"COD 71-91 % removed"), ("clean", u"microbes > 80 % removed")],
      u"HSSF wetland, Avelar 2012; " + REG + u" PL-22", u"aromatic"),
 ]
-SPECIES_REMOVE = (u"Arundo donax", u"kargı", u"remove: raises flood risk, blocks the channel",
+SPECIES_REMOVE = (u"giant_reed", u"remove: raises flood risk, blocks the channel",   # v3: (plant key, words, source)
                   u"Bruno et al. 2019 'increased flooding risk'; " + REG + u" PL-25")
 
 #@@ SKETCH_SRC
@@ -973,17 +975,19 @@ SECTIONS = [
          lavender=[(548.2, 550.8)],
          reeds=[(573.5, 576.5, 1.9), (580.0, 588.5, 2.2), (595.0, 598.0, 2.0)],
          iris=[(576.5, 580.0), (588.5, 589.6)],
-         callouts=[(540.0, None, "Greenery and planters (plane tree)"),
+         callouts=[(540.0, None, "Oriental plane (Doğu çınarı)"),
                    (543.0, None, "Bike way"),
                    (546.0, None, "Concrete walkway"),
-                   (549.5, None, "Lavender bed above the bank top"),
+                   (549.5, None, "French lavender (Karabaş otu)"),
                    (552.4, None, "Raised walk +47.60 above Q500"),
                    (553.85, DRY + 1.10, "Handrail corten steel"),
                    (555.5, None, "Multilevel walkway platforms"),
                    (559.0, None, "Flood- and drought-tolerant planting"),
                    (563.2, None, "Floodable boardwalk, open deck"),
-                   (568.0, None, "Tamarix and Vitex terrace"),
-                   (582.0, None, "Reeds and iris at the bed edge"),
+                   (567.0, None, "Tamarisk (Ilgın)"),
+                   (569.5, None, "Chaste tree (Hayıt)"),
+                   (578.2, None, "Yellow flag iris (Sarı süsen)"),
+                   (584.0, None, "Common reed (Kamış)"),
                    (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
     dict(key="2", title="SECTION 2-2'", side="NORTH-EAST BANK", s_from=652.0, s_to=588.0, look="looking south-east (downstream)",
          surfaces=[(652.0, 649.0, DRY, "asphalt", "Coloured asphalt"),
@@ -1006,14 +1010,15 @@ SECTIONS = [
          callouts=[(650.5, None, "Bike way"),
                    (648.0, DRY + 3.55, "Shading structures"),
                    (646.4, None, "Walkway"),
-                   (643.5, None, "Greenery and planters"),
+                   (643.5, None, "Oriental plane (Doğu çınarı)"),
                    (640.0, None, "Promenade +47.60 above Q500"),
                    (636.0, None, "Amphitheatre toward the stream"),
                    (628.0, None, "Floodable lower walk"),
                    (625.0, DRY + 1.10, "Handrail corten steel"),
                    (619.0, DRY, "Balcony towards the stream (beyond the cut)"),
                    (624.0, 46.40, "Column support"),
-                   (610.0, None, "Reeds and iris at the bed edge"),
+                   (615.0, None, "Common reed (Kamış)"),
+                   (610.5, None, "Yellow flag iris (Sarı süsen)"),
                    (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
 ]
 

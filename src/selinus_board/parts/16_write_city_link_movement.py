@@ -409,7 +409,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
 #@include ../data/DIAG_SRC.py
 
 
-CROP_DEFAULT = {"The stream's tree cover": ("tree_cover", u"Tree cover along the banks, every 25 m", "riparian"),
+CROP_DEFAULT = {"The stream's tree cover": ("tree_cover", u"Tree crown cover along the banks, every 25 m", "riparian"),  # v47
                 "Section along the spine": ("spine", u"Long section along the spine", "spine_section")}
 # v40: drawings cropped whole below their title when they register no crop themselves (and every section)
 
@@ -436,6 +436,7 @@ def build_sheet(S, B, X, Y, U, rects):
              ("05 Readings", 24.0 * U, lambda x, y: draw_readings(S, B, x, y, 24.0 * U, None, U)),
              ("05c Site readings", 40.0 * U, lambda x, y: draw_site_readings(S, B, x, y, 40.0 * U, U)),   # v45
              ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
+             ("06a Shade along the stream", 120.0 * U, lambda x, y: draw_shade_strip(S, B, x, y, 120.0 * U, U)),  # v47
              ("06b The stream edge and where we can build", 120.0 * U,                          # v45
               lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
@@ -444,6 +445,11 @@ def build_sheet(S, B, X, Y, U, rects):
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
+    if shade_strip_data(S) is None:                       # v47: without shade results no shade drawing and no shade
+        items = [it_ for it_ in items if not it_[0].startswith("06a ")]      # crop: p.22 keeps drw_tree_cover
+        if shade_july(S) is None:                         # (a failed computation logs its own warning)
+            LOG.append("WARNING: no shade results (bergama_environment.json missing?): booklet p.22 shows the tree "
+                       "crown cover instead")
     # v44: the masterplan's proposal map (only when masterplan_results.json holds "movement") and the walking-effort
     # proof (only with terrain heights on the network); each logs why when it is left out
     at = [nm_ for nm_, w_, f_ in items].index("07d City heritage loop")

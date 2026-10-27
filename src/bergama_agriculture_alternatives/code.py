@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v1_7.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v2.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -12,7 +12,18 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v1.7"
+VERSION = "v2"
+# v2 (Aras 27 Oct, Prompt 5, rule 8: "Plant names: English first, Turkish in brackets, no Latin ... Every plant AND every
+# crop in the booklet gets a photo of the plant itself ... openly licensed photos ... credited in the sources ... Same
+# crop ratio and size for every photo"): every plant and crop name on pages 1 and 3 is "English (Turkish)" from the
+# shared table (src/common/plant_photos.py), no Latin names on the pages. Page 3's step columns show each step's plants
+# as photos (PHOTO_W x PHOTO_H mm, two side by side) with the name and the photo's [n] credit under each; the giant reed
+# under REMOVE. Page 1 adds "THE CROPS" under the timeline: olive, cotton, maize, tomato as photos. The photos come
+# from the shared cache Downloads/Bergama/cached/plant_photos/ (the water board shows the same photo of the same
+# plant) and go into their frames with PyMuPDF after the PDF is written; a missing one is an empty frame saying "no
+# photo", never an error; the log says how many were placed. Room on page 3: the chain sits 4 mm higher, the season rows
+# are 50 mm (were 52; 4.5 mm stay above the tallest tree); the plants' reasons are left out under the photos when the
+# column would not fit (logged). The Data file changes (STEPS: plant keys instead of botanical names): copy the new one.
 # v1.7 (bugfix, Aras 27 Oct 16:05): page 3 crashed ("too many values to unpack": the sketch engine's items now
 # carry a 4th value, the label group); the text under the component shows a newly pasted version at once, idle.
 # v1.6 (Aras 27 Oct 11:07, booklet p24-26; revision_2026-10-27/PHASE2_SPEC.md): white pages (the beige paper goes); no
@@ -43,6 +54,7 @@ VERSION = "v1.7"
 # Flood figures corrected to the surveyed sections (research/rain_river_levels/README.md, v1.1 correction and line 49).
 # v1.1 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_agriculture_alternatives_log.txt (next to cached/ and output/), overwritten by each press.
 #@include ../common/bergama_paths.py
+#@include ../common/plant_photos.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 
@@ -216,6 +228,88 @@ def wrap(s, size, w, bold=False):
     if line: out.append(line)
     return out
 
+# ------------------------------------------------------------------ v2 (Aras 27 Oct, Prompt 5): plant and crop photos
+# The photos and the "English (Turkish)" names come from src/common/plant_photos.py (one cache folder for every script,
+# every photo PHOTO_W x PHOTO_H mm). This PDF writer draws only the frame (thin, faint; "no photo" inside when there is
+# none); the JPEGs go into the frames after write_pdf (put_photos, PyMuPDF). Each photo's credit is a [n] mark after its
+# name, its key on the sources page.
+PH_GAP = 2.0                         # mm between two photos side by side
+PHOTO_GOT = {}                       # key -> (jpeg path or None, credit or None, why not), read once a press
+PHOTO_LOG, PHOTO_STATE = [], {}      # plant_photos' own notes (web fetch) and its offline flag
+PHOTO_FR = []                        # frames with a photo: (page index, x0, y0, x1, y1 mm y up, jpeg path)
+PHOTO_N = [0]                        # frames drawn, with or without a photo
+
+
+def photo_get(key):
+    """v2: (jpeg path or None, credit or None, why not) of a plant in PLANTS, once a press; never raises"""
+    if key not in PHOTO_GOT:
+        try:
+            PHOTO_GOT[key] = plant_photo_of(key, PHOTO_LOG, PHOTO_STATE)
+        except Exception as ex:
+            PHOTO_GOT[key] = (None, None, "%s: %s" % (type(ex).__name__, ex))
+    return PHOTO_GOT[key]
+
+
+def photo_mark(key):
+    """v2: the [n] of a plant photo's credit (its key on the sources page); "" when there is no photo"""
+    p, credit, _ = photo_get(key)
+    return cite(credit) if p and credit else ""
+
+
+def photo_frame(pg, pi, key, x, top, P=None):
+    """v2: the frame of a plant's photo, PHOTO_W x PHOTO_H mm, its top-left at (x, top) on page index pi: a thin faint
+    outline, and the photo recorded for put_photos, or "no photo" inside the frame. P: a Placer that keeps the frame."""
+    p = photo_get(key)[0]
+    pg.rect(x, top - PHOTO_H, PHOTO_W, PHOTO_H, stroke=C["faint"], lw=0.2)
+    PHOTO_N[0] += 1
+    if p:
+        PHOTO_FR.append((pi, x, top - PHOTO_H, x + PHOTO_W, top, p))
+    else:
+        pg.text("no photo", x + PHOTO_W / 2.0, top - PHOTO_H / 2.0 - 0.8, 6, C["ink2"], align="C")
+    if P is not None:
+        P.boxes.append((x, top - PHOTO_H, x + PHOTO_W, top))
+
+
+def name_lines(key, mark, size, w, bold=True):
+    """v2: a plant's name under its photo: "English (Turkish) [n]" on one line when it fits in w, else the English name
+    and "(Turkish) [n]" on two (each wrapped to w if it is longer still)"""
+    t = plant_name(key) + ((" " + mark) if mark else "")
+    if text_w(t, size, bold) <= w:
+        return [t]
+    en, _, tr = plant_name(key).partition(" (")
+    if not tr:
+        return wrap(t, size, w, bold)
+    return wrap(en, size, w, bold) + wrap("(" + tr + ((" " + mark) if mark else ""), size, w, bold)
+
+
+def name_lc(key):
+    """v2: a plant's name in running text: "olive (Zeytin)" """
+    s = plant_name(key)
+    return s[:1].lower() + s[1:]
+
+
+def name_caps(key):
+    """v2: a plant's name in a capitals heading, the Turkish part with the dotted İ: "OLIVE (ZEYTİN)" """
+    en, _, tr = plant_name(key).partition(" (")
+    return en.upper() + ((" (" + tr.replace(u"i", u"İ").upper()) if tr else "")
+
+
+def put_photos(path):
+    """v2: the plant and crop photos into their frames on pages 1 and 3 (PyMuPDF, after write_pdf and put_base); a photo
+    error never stops the sheet. Returns the log lines: how many were placed, and why each missing one is missing."""
+    n, err = 0, ""
+    try:
+        if PHOTO_FR:
+            n = fitz_add_photos(path, PHOTO_FR)
+    except Exception as ex:
+        err = " · FLAG not placed: %s: %s" % (type(ex).__name__, ex)
+    if not err and n < len(PHOTO_FR):
+        err = " · %d JPEG(s) could not be read" % (len(PHOTO_FR) - n)
+    out = ["photos: %d of %d placed (cached/plant_photos)%s" % (n, PHOTO_N[0], err)]
+    out += ["  no photo: %s (%s)" % (plant_name(k), v[2] or "not loaded") for k, v in PHOTO_GOT.items() if not v[0]]
+    out += ["  " + t for t in PHOTO_LOG]
+    return "\n".join(out)
+
 def header(pg, n, title, sub, hole=None):
     if hole:                                       # v1.5: a window left open for a plan placed under the page
         x0, y0, x1, y1 = hole
@@ -360,12 +454,15 @@ NET_REF = ("net irrigation: research/water_balance/tables/C1 (FAO-56, Allen et a
 TAGEM = ("check: TAGEM/DSİ 2017 §12 Bergama 17742 station tables (net = ETc - 0.8 rain, our arithmetic): cotton 829 vs our 853 mm, "
          "maize 765 vs 723, tomato 606-825 vs 781, olive 502-603 vs 614")
 # v1.2: the context sentences as tiles (pictogram, heading, big figure, keyword lines, source)
+# v2 (Aras 27 Oct, Prompt 5): the crops they name as "English (Turkish)"; figures and sources as they were
 CONTEXT = [
     ("nowater", "DROUGHT 2025: NO WATER-HUNGRY CROPS", "7,500 ha",
-     ["maize, cotton, fodder · Bergama villages", "no water for second crops · DSİ + Ministry"], NEWS),
-    ("cotton", "COTTON: BERGAMA'S BIGGEST CROP", "10,000 ha",
-     ["2025 · 37 % of 26,800 ha field crops", "maize 6,000 · tomato 2,500 · olive 8,700 ha"], TUIK),
-    ("olive", "OLIVES CAN TAKE LESS · MEMECIK, DRIP", "-72 % water",
+     ["%s, %s, fodder · Bergama villages" % (name_lc("maize"), name_lc("cotton")),
+      "no water for second crops · DSİ + Ministry"], NEWS),
+    ("cotton", name_caps("cotton") + ": BERGAMA'S BIGGEST CROP", "10,000 ha",
+     ["2025 · 37 % of 26,800 ha field crops",
+      "%s 6,000 · %s 2,500 · %s 8,700 ha" % (name_lc("maize"), name_lc("tomato"), name_lc("olive"))], TUIK),
+    ("olive", name_caps("olive") + " CAN TAKE LESS · MEMECIK, DRIP", "-72 % water",
      ["İzmir station 2008-10 · 175 vs 622 mm a season", "24.9 vs 27.8 kg a tree: no significant loss",
       "highest oil content"], KAYA),
     ("drip", "TODAY'S IRRIGATION ON THE FARMS", None, ["some Bergama growers moved to drip"], ITB),
@@ -399,7 +496,7 @@ def history_line(pg, x, top, w, floor):
         return None
     P = Placer()
     P.text(pg, "WHY THE STORED WATER GOES TO FARMS", x, top, 9, C["accent"], True)
-    P.text(pg, "Bergama's cotton and olives", x, top - 3.8, 7.5, C["ink"])
+    P.text(pg, "Bergama's %s and %s" % (name_lc("cotton"), name_lc("olive")), x, top - 3.8, 7.5, C["ink"])   # v2
     ya = top - 20.0
     X = lambda yr: x + 2.0 + (w - 4.0) * (yr - 1500) / 530.0
     pg.line([(X(1500), ya), (X(2030), ya)], C["ink"], 0.3)
@@ -424,6 +521,31 @@ def history_line(pg, x, top, w, floor):
     return ya - 15.0
 
 
+CROP_ROW = ("olive", "cotton", "maize", "tomato")   # v2 (Aras 27 Oct, Prompt 5): the crops page 1 compares
+
+
+def crop_row(pg, x, top, w, floor):
+    """v2 (Aras 27 Oct, Prompt 5): "THE CROPS": page 1's crops as photos in one row (PHOTO_W x PHOTO_H each, spread
+    over w), the name "English (Turkish)" and the photo's credit [n] under each. Left out (and logged) when it would not
+    fit above `floor` with two name lines. Returns its bottom y or None."""
+    n = len(CROP_ROW)
+    gx = (w - n * PHOTO_W) / (n - 1.0)
+    if top - 3.0 - PHOTO_H - 2.5 - 2.6 - 0.6 < floor or gx < PH_GAP:
+        LOG_NOTES.append("p1 crop photos left out: no room above the 'what it replaces' tile")
+        return None
+    pg.text("THE CROPS", x, top, 9, C["accent"], True)
+    low = top
+    for i, key in enumerate(CROP_ROW):
+        px = x + i * (PHOTO_W + gx)
+        photo_frame(pg, 0, key, px, top - 3.0)
+        yy = top - 3.0 - PHOTO_H - 2.5
+        for q in name_lines(key, photo_mark(key), 7, PHOTO_W):
+            pg.text(q, px, yy, 7, C["ink"], True)
+            low = min(low, yy - 0.6); yy -= 2.6
+    ag_crop("ag1_crops", 0, x - 1.0, low - 1.0, x + w + 1.0, top + 4.0)
+    return low
+
+
 def page_cubic(L, src):
     pg = Page(420, 297)
     header(pg, "1", "WHAT EACH CUBIC METRE GROWS",
@@ -439,9 +561,9 @@ def page_cubic(L, src):
     pg.text("storage · cost cut-off " + cite(SRC1), 26, 242, 9, C["ink"])
     pg.text("%s-%s m³" % (fmt(rnd(w_lo)), fmt(rnd(w_hi))), 120, 250, 26, C["green_deep"], True)
     pg.text("to farms · 1-in-5 dry year · %s %% of need · strip first" % (("%.0f" % p_lo) if "%.0f" % p_lo == "%.0f" % p_hi else "%.0f-%.0f" % (p_lo, p_hi)), 120, 242, 9, C["ink"])
-    # bars: hectares served by W, per crop
-    rows = [("Olive, full irrigation", "olive", None), ("Olive, deficit irrigation", "olive", DEFICIT)] + \
-           [(c.capitalize(), c, None) for c in sorted(NET) if c != "olive"] + [("Bergama mix (TÜİK 2025)", "mix", None)]
+    # bars: hectares served by W, per crop (v2, Prompt 5: the crop names "English (Turkish)")
+    rows = [(plant_name("olive") + ", full irrigation", "olive", None), (plant_name("olive") + ", deficit irrigation", "olive", DEFICIT)] + \
+           [(plant_name(c) if c in PLANTS else c.capitalize(), c, None) for c in sorted(NET) if c != "olive"] + [("Bergama mix (TÜİK 2025)", "mix", None)]
     x0, y0, gw = 70, 214, 190
     vals = []
     for lab, crop, d in rows:
@@ -488,13 +610,14 @@ def page_cubic(L, src):
     pg.rect(x0 + 52, ky, 6, 3, fill=C["green_deep"]); pg.text("1-in-5 dry year", x0 + 60, ky + 0.5, 7, C["ink"])
     pg.rect(x0 + 92, ky, 6, 3, stroke=C["green_deep"], lw=0.35); pg.text("open bar: range (storage span; deficit 44-72 % saving)", x0 + 100, ky + 0.5, 7, C["ink"])
     # reading
-    best = [q for q in vals if q[0] == "Olive, deficit irrigation" and q[2] == "dry"][0]
+    best = [q for q in vals if q[1] == "olive" and q[6] and q[2] == "dry"][0]     # v2: olive with deficit (not by its label)
     worst = max((q for q in vals if q[1] not in ("olive", "mix") and q[2] == "dry"), key=lambda q: q[3])     # the thirstiest field crop
     pg.rect(14, 32, 250, 60, stroke=C["faint"], lw=0.3)       # v1.6: white page, the box only outlined
     pg.text("THE READING", 20, 84, 10, C["accent"], True)
     # v1.2: the conclusion as the two dry-year bars (same scale) and the big ratio between them
     bmax, bx0, bw = best[5] * 1.05, 20, 150
-    for k_, (q, lab) in enumerate(((worst, "%s, 1-in-5 dry year" % worst[1].capitalize()), (best, "Olive, deficit irrigation, 1-in-5 dry year"))):
+    for k_, (q, lab) in enumerate(((worst, "%s, 1-in-5 dry year" % (plant_name(worst[1]) if worst[1] in PLANTS else worst[1].capitalize())),
+                                   (best, best[0] + ", 1-in-5 dry year"))):         # v2: names "English (Turkish)"
         yb = 70 - k_ * 18
         pg.text(lab, bx0, yb + 1.5, 8, C["ink"], True)
         pg.rect(bx0, yb - 7, bw * q[4] / bmax, 7, fill=C["green_deep"])
@@ -516,6 +639,7 @@ def page_cubic(L, src):
     hb = history_line(pg, cx, yb_ - 7.0, 126.0, 64.0)          # v1.6: why the stored water goes to farms
     if hb:
         ag_crop("ag1_history", 0, cx - 1.0, hb - 1.0, cx + 127.0, yb_ - 3.0)
+    crop_row(pg, cx, (hb or yb_) - 7.0, 126.0, 64.0)           # v2 (Prompt 5): the crops as photos, above "what it replaces"
     pg.text("WHAT IT REPLACES", cx, 60, 9, C["accent"], True)
     yb_ = tiles(pg, cx, 57, 126, REPLACES)
     ag_crop("ag1_replaces", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, 58.0)
@@ -752,8 +876,8 @@ JOB_ICON = [("CLEAN", "clean"), ("HOLD", "hold"), ("SHADE", "shade"), ("SCENT", 
 # trees at the bridges (spec §3 D8; water board band E) and Demeter's Garden's olives at K5 (card i01; olive "will not
 # tolerate waterlogged soils", DATA_REGISTER PL-11)
 STEPS[3].update(sub="hub squares at the bridges · Demeter's Garden at K5", job="SHADE + SCENT",
-                plant=[("Platanus orientalis", "hub squares: Ottoman squares with plane trees (D8)")] + STEPS[3]["plant"] +
-                      [("Olive", "Demeter's Garden (K5): dry top only, no waterlogged soil")])
+                plant=[("plane", "hub squares: Ottoman squares with plane trees (D8)")] + STEPS[3]["plant"] +
+                      [("olive", "Demeter's Garden (K5): dry top only, no waterlogged soil")])   # v2: PLANTS keys
 
 
 class Placer:
@@ -818,7 +942,8 @@ LAD_F = (LAD_X1 - LAD_X0) / LAD_W    # mm a sketch unit, the same across and up
 LAD_GB = 12.0                        # the bottom of the cut ground, sketch units
 LAD_GY = (16.0, 21.0, 26.0, 30.0, 33.0)   # ground of each step (bed, lower bank, terrace, bank top, farms)
 LAD_Q100, LAD_Q500 = 30.8, 31.6      # over the bank top only at K4 / S4 (README v1.1 line 49), under the farms
-ROW_H = 52.0                         # mm a season row
+ROW_H = 50.0                         # mm a season row (v2: was 52; room for the plant photos; the tallest tree, the
+                                     # bank top's plane at 41 sketch units, ends 4.5 mm under the row's top)
 SUBHUB = (27.0, 36.0)                # the floodable sub-hub in the bed (spec §3 D2/D3/D10), sketch x
 HUB = (3 * LAD_S + 2.0, 3 * LAD_S + 17.0)   # the dry hub square on the bank top at the bridges (D2), sketch x
 SIT_FIG = [(-0.14, 0.0), (0.30, 0.0), (0.30, -0.42), (0.42, -0.42), (0.42, 0.13), (0.10, 0.14), (0.12, 0.62),
@@ -1055,8 +1180,8 @@ def page_ladder(L, src):
     header(pg, "3", "ONE PLANT LADDER, STREAMBED TO FIELD",
            "One cut from the stream to the farms, through the year: what the water does and what people do on each step")
     # 1 the chain: where the ladder sits along the stream, the programme and its roots
-    y_chain = chain_strip(pg, P, 260.0)
-    ag_crop("ag3_chain", 2, 13.0, y_chain - 1.0, 407.0, 266.0)
+    y_chain = chain_strip(pg, P, 264.0)            # v2: 4 mm higher (was 260; its names end 6 mm under the subtitle)
+    ag_crop("ag3_chain", 2, 13.0, y_chain - 1.0, 407.0, 270.0)
     # 2 the ladder, one row a season
     top = y_chain - 2.0
     for r, sea in enumerate(seasons()):
@@ -1095,12 +1220,17 @@ def page_ladder(L, src):
     bot = top - 3 * ROW_H
     ag_crop("ag3_seasons", 2, 13.0, bot - 0.5, 407.0, top + 0.5)
     # 3 what grows on each step (one column under each step) and, left, what goes and the odour
-    yt = bot - 4.0
+    # v2 (Aras 27 Oct, Prompt 5): every plant of a step as a photo, PHOTO_W x PHOTO_H, two side by side (2 x 28 + 2 mm
+    # fits the 60 mm column with 2 mm to the next), its name "English (Turkish)" and the photo's credit [n] under it
+    # (7 pt, two lines at most); the reasons under the names only when the column still ends above the 14 mm margin
+    yt = bot - 3.0                                   # v2: was bot - 4.0
     w = LAD_S * LAD_F
+    per = 2 if 2 * PHOTO_W + PH_GAP <= w - 2.0 else 1
+    short = []
     for i, st in enumerate(STEPS):
         xa = LAD_X0 + i * w + 1.0
         for brief in (False, True):                  # the species' reasons left out if the column would not fit
-            y, ops = yt, []
+            y, ops, pics = yt, [], []
             ops.append((st["name"], xa, y, 8.5, C["ink"], True)); y -= 3.4
             ops.append((st["sub"], xa, y, 7, C["ink2"], False)); y -= 6.4
             tag_y = y
@@ -1116,17 +1246,30 @@ def page_ladder(L, src):
                     ops.append((q, xa, y, 7, C["ink2"], False)); y -= 2.9
             y -= 1.2
             ops.append(("WE PLANT " + cite(SPECIES) if st["name"] != "FARMS" else "THEY GROW", xa, y, 7, C["accent"], True))
-            y -= 3.6
-            for sp, why in st["plant"]:
-                ops.append((sp, xa, y, 7.5, C["ink"], True)); y -= 3.0
-                if not brief:
-                    for q in wrap(why, 7, w - 4.0):
-                        ops.append((q, xa, y, 7, C["ink2"], False)); y -= 2.8
-                y -= 0.6
-            if y > 15.0:
+            y -= 1.6                                 # v2: the top of the first row of photos
+            low = y
+            for r0 in range(0, len(st["plant"]), per):
+                n_ = 1
+                for c_, (key, why) in enumerate(st["plant"][r0:r0 + per]):
+                    px = xa + c_ * (PHOTO_W + PH_GAP)
+                    pics.append((key, px, y))
+                    L_ = [(q, C["ink"], True) for q in name_lines(key, photo_mark(key), 7, PHOTO_W)]
+                    if not brief:
+                        L_ += [(q, C["ink2"], False) for q in wrap(why, 7, PHOTO_W)]
+                    yy = y - PHOTO_H - 2.5           # the first line's baseline, under the photo
+                    for q, col, b in L_:
+                        ops.append((q, px, yy, 7, col, b)); yy -= 2.6
+                    n_ = max(n_, len(L_))
+                low = y - PHOTO_H - 2.5 - 2.6 * (n_ - 1) - 0.6   # the row's lowest ink (descenders)
+                y = low - 1.1                        # the next row's top
+            if low >= 14.0:
                 break
+        if brief:
+            short.append(st["name"] + ("" if low >= 14.0 else " (FLAG: ends at %.1f mm, under the 14 mm margin)" % low))
         for s_, x_, y_, sz, col, b in ops:
             P.text(pg, s_, x_, y_, sz, col, b)
+        for key, px, top_ in pics:                   # v2: the frames; the photos go in after write_pdf (put_photos)
+            photo_frame(pg, 2, key, px, top_, P)
         pg.rect(xa, tag_y, text_w(st["job"], 8, True) + 4, 5.2, fill=C["accent"])
         pg.text(st["job"], xa + 2, tag_y + 1.5, 8, C["white"], True)
         jx = xa + text_w(st["job"], 8, True) + 6
@@ -1134,11 +1277,22 @@ def page_ladder(L, src):
             if word in st["job"]:
                 pg.rect(jx, tag_y - 0.4, 6.0, 6.0, fill=C["white"], stroke=C["faint"], lw=0.2)
                 icon(pg, kind, jx + 0.5, tag_y + 5.1, 5.0); jx += 7.0
+    if short:
+        LOG_NOTES.append("p3 plant reasons left out under the photos (no room above the 14 mm margin): " + ", ".join(short))
     # left column: what goes, the odour, how to read the steps
+    # v2 (Prompt 5): the giant reed by its name "English (Turkish)", its photo's credit [n] after the name, the photo
+    # under the reason (the column is LAD_X0 - 14 = 92 mm wide)
     y = yt
-    for t, sz, col, b in (("REMOVE: Arundo donax", 8, C["accent"], True), ("giant reed: raises flood risk, blocks bridges", 7, C["accent"], False)):
-        for q in wrap(t, sz, LAD_X0 - 18.0, b):
-            P.text(pg, q, 14.0, y, sz, col, b); y -= sz * 0.3528 * 1.35
+    for t, sz, col, b, mk in ((u"REMOVE: " + plant_name("giant_reed"), 8, C["accent"], True, photo_mark("giant_reed")),
+                              ("raises flood risk, blocks bridges", 7, C["accent"], False, "")):
+        lines = wrap(t, sz, LAD_X0 - 18.0, b)
+        for k_, q in enumerate(lines):
+            P.text(pg, q, 14.0, y, sz, col, b)
+            if mk and k_ == len(lines) - 1:
+                P.text(pg, mk, 14.0 + text_w(q, sz, b) + 1.0, y, 7, C["accent"])
+            y -= sz * 0.3528 * 1.35
+    photo_frame(pg, 2, "giant_reed", 14.0, y + 1.4, P)
+    y -= PHOTO_H + 0.6
     y -= 3.0
     icon(pg, "nose", 14.0, y + 3.0, 6.0)
     for t, b in (("ODOUR: no measured plant effect " + cite(SPECIES), True), ("keep sewage out", False),
@@ -1150,7 +1304,7 @@ def page_ladder(L, src):
               "downstream flat end: Q100 1.4 m, Q500 1.5 m"):
         for q in wrap(t, 7, LAD_X0 - 18.0):
             P.text(pg, q, 14.0, y, 7, C["ink2"]); y -= 2.9
-    ag_crop("ag3_plants", 2, 13.0, 14.0, 407.0, yt + 4.0)
+    ag_crop("ag3_plants", 2, 13.0, 14.0, 407.0, yt + 3.0)       # v2: yt + 3 = bot (yt is bot - 3 now)
     LOG_NOTES.extend("p3 label left out (no free place): " + s for s in P.dropped)
     return pg
 
@@ -1174,7 +1328,8 @@ def page_sources():
 AG_CROPS = []                        # (id, page index, (x0, y0, x1, y1) mm from the page's top-left, y down, den, legend, drop)
 AG_CAPTIONS = {"ag1_headline": "Storage and water to the farms", "ag1_bars": "Hectares one storage irrigates, by crop",
                "ag1_reading": "Same storage: how much more land", "ag1_context": "Why crop choice is the lever",
-               "ag1_replaces": "What it replaces", "ag2_plan": "The farms we feed, on the site plan",
+               "ag1_replaces": "What it replaces", "ag1_crops": "The crops",   # v2: the crop photos
+               "ag2_plan": "The farms we feed, on the site plan",
                "ag3_chain": "One way along the stream: the programme and its roots",
                "ag3_seasons": "One plant ladder through the year: what people do", "ag3_plants": "What grows on each step"}
 
@@ -1225,18 +1380,20 @@ def build(path):
     BASE_OFF[0] = False
     L, src = live()
     NET.clear(); NET.update(L["net"])
+    PHOTO_GOT.clear(); PHOTO_STATE.clear(); del PHOTO_LOG[:]   # v2: the plant photos, read once a press
     for _ in range(2):
-        del AG_CROPS[:], SRC_KEY[:], LOG_NOTES[:]      # v1.6: one source numbering for the whole sheet
+        del AG_CROPS[:], SRC_KEY[:], LOG_NOTES[:], PHOTO_FR[:]      # v1.6: one source numbering for the whole sheet
+        PHOTO_N[0] = 0
         pages = [page_cubic(L, src), page_farms(L, src), page_ladder(L, src)]
         write_pdf(pages + [page_sources()], path)
         try:                                       # v1.5: the site board's plan 01 under the farms layer
-            return src, put_base(path)
+            return src, put_base(path) + "\n" + put_photos(path)   # v2: then the photos (never raises)
         except PermissionError:
             raise
         except Exception as ex:                    # never an empty window: once more with the fallback drawing
             BASE_OFF[0] = True
             err = "farms map: FLAG the site plan could not be placed (%s: %s), fallback drawing" % (type(ex).__name__, ex)
-    return src, err
+    return src, err + "\n" + put_photos(path)
 
 def main():
     t0 = time.time()
