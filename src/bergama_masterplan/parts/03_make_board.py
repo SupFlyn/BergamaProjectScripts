@@ -889,7 +889,9 @@ def build_all(doc, warn):
         if C is not None and opt == "A":                 # v26: the open ground for the satellite check (Google Earth)
             try:
                 os.makedirs(LOG_DIR, exist_ok=True)
-                n_, f_ = open_ground_kml(C, os.path.join(LOG_DIR, OG_KML))
+                os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)
+                n_, f_ = open_ground_kml(C, os.path.join(LOG_DIR, OG_KML),
+                                         os.path.join(bg_cache(OUT_FOLDER), u"open_ground_check.json"))
                 lines.append(u"logs/{}  {} open areas of {:.2f} ha or more, {} with no plant cover (satellite 2021) "
                              u"first  {}".format(OG_KML, n_, OG_MIN_HA, f_, datetime.datetime.now().strftime("%H:%M:%S")))
             except Exception as ex:

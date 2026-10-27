@@ -51,10 +51,11 @@ NI_ROAD_M = 6.0              # v26: a changed road or the hidden-stream line tou
 OPEN_FILL, BLD_DARK = "CFE0A8", "9C978C"     # open ground and buildings on the open-ground map (v24 tones)
 # v26 (Prompt 7 task 3): the satellite check of the open ground. No imagery could be opened from the cloud where
 # this version was written (Esri, Google, EOX and Sentinel Hub refused, 27 Oct 2026), so it is still to do: each
-# press writes the open ground's outlines to logs/bergama_masterplan_open_ground_check.kml for Google Earth. When
-# Aras has checked them, fill in the imagery's name and date and the outlines of ground built on since the survey
-# (survey m, as the KML's numbered areas): they leave the open ground everywhere (the design moves with them) and
-# show hatched on the open-ground map; the caption then names the imagery and its date.
+# press writes the open ground's outlines to logs/bergama_masterplan_open_ground_check.kml for Google Earth (and by
+# number, in survey m, to cached/bergama_masterplan/open_ground_check.json). When Aras has checked them, fill in the
+# imagery's name and date and the outlines of ground built on since the survey (survey m: the JSON's rings of the
+# areas he names): they leave the open ground everywhere (the design moves with them) and show hatched on both
+# maps; the caption then names the imagery and its date.
 OPEN_CHECK = dict(imagery=None, date=None, built=[])
 BT_CODE = {"housing": 1, "building": 2, "heritage": 3, "shed": 4}   # v26: building kind per cell; 5 = built since
 LC_KEYS = ("farmland", "trees", "shrub", "grass", "orchard")        # v26: ESA WorldCover 2021 as the site board keys it
@@ -1607,10 +1608,11 @@ def lonlat(p, start):
     return lon, lat
 
 
-def open_ground_kml(C, path):
+def open_ground_kml(C, path, json_path):
     """v26 (Prompt 7 task 3): every open area (4-connected open cells) of OG_MIN_HA or more as a numbered polygon
     (OG n) for Google Earth, the ones whose open cells have no plant cover on ESA WorldCover 2021 for half or more
-    first (most likely built on), then by size. Returns (areas, flagged)."""
+    first (most likely built on), then by size; json_path keeps the same areas in survey m by number (what goes
+    into OPEN_CHECK["built"] once Aras has named the ones built on). Returns (areas, flagged)."""
     F, G, N, V = C.F, C.G, C.N, C.V
     nx, ny = G.nx, G.ny
     seen = bytearray(N)
@@ -1634,7 +1636,7 @@ def open_ground_kml(C, path):
             bare = sum(1 for n in comp if C.lc[n] == 0) / float(len(comp))
             comps.append((bare >= 0.5, ha, bare, comp))
     comps.sort(key=lambda c_: (not c_[0], -c_[1]))
-    pm, pts, ll = [], [], (27.18127, 39.123302)
+    pm, pts, ll, og = [], [], (27.18127, 39.123302), {}
     for i, (flag, ha, bare, comp) in enumerate(comps, 1):
         rings_ = []
         for Lp in trace(G, set(comp)):
@@ -1644,6 +1646,9 @@ def open_ground_kml(C, path):
         if not rings_:
             continue
         outer = max(rings_, key=lambda R_: area2(R_))
+        og[u"OG {}".format(i)] = {"ha": round(ha, 2), "no_plant_cover_pct": round(100.0 * bare),
+                                 "rings_survey_m": [[[round(p[0], 2), round(p[1], 2)] for p in R_]
+                                                    for R_ in [outer] + [R_ for R_ in rings_ if area2(R_) < 0]]}
         co = []
         for R_ in [outer] + [R_ for R_ in rings_ if area2(R_) < 0]:
             cs = []
@@ -1677,6 +1682,8 @@ def open_ground_kml(C, path):
            ).format(SHORT, len(comps), OG_MIN_HA, u"".join(pm), u"".join(pts))
     with open(path, "w", encoding="utf-8") as f_:
         f_.write(kml)
+    with open(json_path, "w", encoding="utf-8") as f_:
+        json.dump(og, f_, ensure_ascii=False)
     C.og_check = {"n": len(comps), "flag": nflag, "file": OG_KML}
     return len(comps), nflag
 
