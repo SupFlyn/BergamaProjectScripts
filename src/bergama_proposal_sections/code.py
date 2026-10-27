@@ -51,9 +51,10 @@ OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
 
-BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-OUT_DIR = os.path.join(BERGAMA, "output", OUT_FOLDER)
-LOG_DIR = os.path.join(BERGAMA, "logs")
+#@include ../common/bergama_paths.py
+BERGAMA = BERGAMA_ROOT
+OUT_DIR = bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
+LOG_DIR = bg_logs()
 
 
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
@@ -449,6 +450,7 @@ def main():
         booklet_export(log)
     except Exception as ex:
         log.append(u"booklet assets not written: {}: {}".format(type(ex).__name__, ex))
+    log += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
     head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
     if pal is None:
         head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")

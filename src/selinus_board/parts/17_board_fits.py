@@ -1090,6 +1090,7 @@ if HAVE_RHINO:
                 booklet_export(SITE, BOARD, RECTS)
             except Exception:
                 LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())
+            LOG.extend(bg_tidy_output("selinus_board"))       # v44 (27 Oct): output/ = PDFs only
             T = SITE.T
             names = [nm for nm, r in RECTS]
             drawings = [_crv(rect(r[0], r[1], r[2], r[3]), True) for nm, r in RECTS]

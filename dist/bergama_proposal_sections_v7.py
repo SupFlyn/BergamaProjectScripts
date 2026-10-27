@@ -51,9 +51,75 @@ OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
 
-BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-OUT_DIR = os.path.join(BERGAMA, "output", OUT_FOLDER)
-LOG_DIR = os.path.join(BERGAMA, "logs")
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+BERGAMA = BERGAMA_ROOT
+OUT_DIR = bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
+LOG_DIR = bg_logs()
 
 
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
@@ -635,8 +701,8 @@ def bk_frame(key, w_default, h_default):
     run once, else the defaults given (the plan's frame size). h excludes the caption line."""
     try:
         import json as _j
-        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
-                               "booklet_slots.json"), encoding="utf-8") as f:
+        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
+                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
             s = _j.load(f)[key]
         return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
     except Exception:
@@ -658,9 +724,10 @@ def bk_take_text(items, H):
 
 
 class BkBlocks(object):
-    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
+    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
     def __init__(self, out_dir, script, version):
-        self.dir = os.path.join(out_dir, "booklet")
+        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
         os.makedirs(self.dir, exist_ok=True)
         self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
 
@@ -724,6 +791,7 @@ def booklet_export(log):
     bk = BkBlocks(OUT_DIR, GH_LABEL, VERSION)
     for k, t, u in BK_SOURCES:
         bk.source(k, t, u)
+    bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)]}   # v7: the booklet's sources page
     E = sketch_engine()                               # the sheet's own colours for the legend samples
     wash = E["mix"]((255, 255, 255), E["FLOOD_WASH"], E["FLOOD_ALPHA"])   # the Q500 wash as it shows on white
     legend = [dict(kind="fill", colour=_bk_hex(E["W_WIN"]), label=u"winter water"),
@@ -879,6 +947,7 @@ def main():
         booklet_export(log)
     except Exception as ex:
         log.append(u"booklet assets not written: {}: {}".format(type(ex).__name__, ex))
+    log += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
     head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
     if pal is None:
         head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")

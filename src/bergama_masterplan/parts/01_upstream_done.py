@@ -136,7 +136,8 @@ OUT_FOLDER = "bergama_masterplan"
 OUT_NAME = "Bergama_masterplan_v24_{}.pdf"     # v19: one sheet per option
 DETAIL_NAME = "Bergama_masterplan_v24_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+#@include ../../common/bergama_paths.py
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 RESULTS_NAME = "masterplan_results.json"   # v11: read by the water balance (riverside_walk_m2)
 BAKE_ROOT = "MP11"                    # Rhino layer of the bake (rhino_bake = True)
@@ -984,7 +985,7 @@ def zone_base_file(doc, warn):
         cands.append(str(v).strip().strip('"'))
     for d in search_dirs(doc):
         for sub in ("", "scripts"):
-            for nm in ("bergama_zone_base_v9.py", "bergama_zone_base_v8.py", "bergama_zone_base_v7.py", "bergama_zone_base_v6.py", "bergama_zone_base_v5.py",
+            for nm in ("bergama_zone_base_v10.py", "bergama_zone_base_v9.py", "bergama_zone_base_v8.py", "bergama_zone_base_v7.py", "bergama_zone_base_v6.py", "bergama_zone_base_v5.py",
                        "zone_base_v5_embedded_data.json"):
                 cands.append(os.path.join(d, sub, nm))
     for k, p in enumerate(cands):
@@ -1040,7 +1041,7 @@ def load_palette(dirs, warn):
 
 def out_folder(doc):
     # v10 24 Oct: all files under Downloads/Bergama/ (Aras rule); was next to the .3dm / .gh, else Documents
-    return os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", OUT_FOLDER)
+    return bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
 
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here

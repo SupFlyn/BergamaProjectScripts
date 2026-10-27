@@ -6364,9 +6364,76 @@ MAIN_ROADS = ("motorway", "trunk", "primary", "secondary", "tertiary")
 #                  each season
 ENV_PATH = clean_path(inp("env_path", None), "env_path") or data_file("bergama_environment.json") or ""
 # v33 24 Oct: all files under Downloads/Bergama/ (Aras rule): cache in cached/selinus_cache, the rest in output/selinus_board
-BERGAMA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+BERGAMA_DIR = BERGAMA_ROOT
 SELINUS_CACHE_DIR = os.path.join(BERGAMA_DIR, "cached", "selinus_cache")
-SELINUS_OUT_DIR = os.path.join(BERGAMA_DIR, "output", "selinus_board")
+SELINUS_OUT_DIR = bg_output("selinus_board")          # v44 (27 Oct): final PDFs only (in selinus_board_pdf)
+SELINUS_RES_DIR = bg_cache("selinus_board")           # v44: results other scripts read, maps, photos (working files)
 ENVIRONMENT = bool(inp("environment", False))
 NOISE_PALETTE = str(inp("noise_palette", "") or "").strip().lower()     # "" = the graded bands (v16.4)
 NOISE_PTS_IN = inp("noise_points", [])
@@ -11785,7 +11852,7 @@ T_BG = (255, 255, 255)
 
 
 def tech_dir():
-    base = SELINUS_OUT_DIR                                   # v33 24 Oct (Aras rule); was beside env_path
+    base = SELINUS_RES_DIR                                   # v44: working files in cached/ (v33-v43: output/)
     d = os.path.join(base, "selinus_technical_maps")
     try:
         if not os.path.isdir(d):
@@ -16947,7 +17014,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         cs.append(("C5", c5[0], c5[1], C5_TEXT))
     photos = []
     try:
-        photos = photo_files(os.path.join(pdf_folder(), "_site_photos"))
+        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
     except Exception:
         LOG.append("WARNING: the site photos could not be written:\n" + traceback.format_exc())
     th, kd = 0.36 * U, kind_of(FONT_TITLE)
@@ -18164,9 +18231,10 @@ MV_OPT = dict(r_walk=800.0, t_car=600.0, buffer=1000.0, snap=150.0, snap_end=25.
 PROPOSAL_INPUTS = ("spine", "spine_car", "bridges", "car_closed", "attractors")
 # v34: the riverside spine of bergama_city_link (Thread 4), used when no proposal curves are wired. The file wins; the
 # built-in copy (city link v1.1, 24 Oct; pieces A and C side "auto" = the bank the data picks) is the fallback. Survey coordinates; offsets are schematic for the network.
-CITY_LINK_FILE = os.path.join(BERGAMA_DIR, "output", "Bergama_city_link_analysis", "city_link_results.json")
+CITY_LINK_FILE = bg_first([os.path.join(bg_cache("Bergama_city_link_analysis"), "city_link_results.json"),   # v44
+                           os.path.join(BERGAMA_DIR, "output", "Bergama_city_link_analysis", "city_link_results.json")])
 CITY_LINK_DEFAULT = json.loads('{"spine":[{"id":"A","name":"Ulu Cami to K3 bank walk","frm":[29846.0,32278.0],"to":[30037.0,32122.0],"side_ref":[29844.2,32313.3],"offset_m":15.0,"side":"auto","catch_m":250.0},{"id":"B","name":"Junction over the covered reach","frm":[30037.0,32122.0],"to":[30238.7,31931.2],"side_ref":null,"offset_m":0.0},{"id":"C","name":"Red Hall to Üç Kemer bank walk","frm":[30238.7,31931.2],"to":[30294.0,31792.0],"side_ref":[30245.0,31962.0],"offset_m":15.0,"side":"auto","catch_m":250.0}],"functions":[{"n":1,"name":"Bank bazaar","xy":[29890.4,32243.6],"stage":null},{"n":2,"name":"Parchment and leather workshops","xy":[30062.0,32106.0],"stage":null},{"n":3,"name":"Junction square","xy":[30058.0,32047.0],"stage":null},{"n":4,"name":"Red Hall water terrace","xy":[30238.7,31931.2],"stage":null},{"n":5,"name":"Producers\' market","xy":[30294.0,31792.0],"stage":null},{"n":6,"name":"Study terraces","xy":[29941.0,32200.0],"stage":null},{"n":7,"name":"Clean-water classroom","xy":null,"stage":"entry"},{"n":8,"name":"Summer bed events","xy":null,"stage":null}]}')
-CITY_LINK_MV = os.path.join(SELINUS_OUT_DIR, "city_link_movement.json")
+CITY_LINK_MV = os.path.join(SELINUS_RES_DIR, "city_link_movement.json")      # v44: cached/
 # OSM highway -> line class on the S2 plan (the road classes of bergama_diagrams D3); print mm
 MV_CLASS = {"primary": "main", "trunk": "main", "secondary": "main", "tertiary": "secondary",
             "unclassified": "secondary"}
@@ -18366,7 +18434,8 @@ def movement(S):
 # pieces laid end to end at ONE scale for length and height (never stretched), the picture beyond each piece, the
 # stops above it by number and short name. Without the masterplan file: the city link spine the board already uses
 # (city_link_spine); without either, no panel (logged).
-MP_RESULTS_FILE = os.path.join(BERGAMA_DIR, "output", "bergama_masterplan", "masterplan_results.json")
+MP_RESULTS_FILE = bg_first([os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # v44
+                            os.path.join(BERGAMA_DIR, "output", "bergama_masterplan", "masterplan_results.json")])
 SPINE_TOL = 2.0          # m: the spine's line simplified to straight pieces within this distance (Douglas-Peucker)
 SPINE_ROW_M = 360.0      # m: the developed section is laid out in rows of at most about this length
 SPINE_STOP_NEAR = 60.0   # m: a stop farther than this from the spine is marked at the spine's end, with its distance
@@ -19118,7 +19187,7 @@ def draw_stream_edge_plan(S, B, x, y, w, U):
     mw, mh = F.w / n * ss, F.h * ss
     photos = []
     try:
-        photos = photo_files(os.path.join(pdf_folder(), "_site_photos"))
+        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
     except Exception:
         LOG.append("WARNING: the site photos could not be read for the edge plan:\n" + traceback.format_exc())
     rd = 0.95 * h12                                       # disc radius of a photo number
@@ -19805,7 +19874,7 @@ def write_city_link_movement(S, R):
                edge_walk_with=mean(edge, "walk_a"), slope=bool(getattr(pieces, "z", None)),
                bank_votes=getattr(S, "city_link_votes", None) or [],
                note="computed movement potential (routes between buildings and everyday destinations), not counts")
-    os.makedirs(SELINUS_OUT_DIR, exist_ok=True)
+    os.makedirs(SELINUS_RES_DIR, exist_ok=True)
     with open(CITY_LINK_MV, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1)
     LOG.append("city_link_movement.json: spine {} m index {}, stream-edge streets {} m: {} today -> {} with it.".format(
@@ -21037,8 +21106,8 @@ def bk_frame(key, w_default, h_default):
     run once, else the defaults given (the plan's frame size). h excludes the caption line."""
     try:
         import json as _j
-        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
-                               "booklet_slots.json"), encoding="utf-8") as f:
+        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
+                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
             s = _j.load(f)[key]
         return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
     except Exception:
@@ -21060,9 +21129,10 @@ def bk_take_text(items, H):
 
 
 class BkBlocks(object):
-    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
+    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
     def __init__(self, out_dir, script, version):
-        self.dir = os.path.join(out_dir, "booklet")
+        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
         os.makedirs(self.dir, exist_ok=True)
         self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
 
@@ -21241,7 +21311,8 @@ def booklet_export(S, B, rects):
     except Exception:
         BK_LOG.append("photos not copied\n" + traceback.format_exc())
     BK.save()
-    with open(BK.path("booklet_log.txt"), "w", encoding="utf-8") as f_:
+    os.makedirs(bg_logs("selinus_board"), exist_ok=True)     # v44: logs only in logs/ (was output/.../booklet/)
+    with open(os.path.join(bg_logs("selinus_board"), "booklet_log.txt"), "w", encoding="utf-8") as f_:
         f_.write(u"%s booklet crops (%d)\n%s\n\n%s\n" % (SCRIPT_VERSION, len(done), "\n".join(done) or "none",
                                                      "\n".join(BK_LOG)))
     return done
@@ -21418,12 +21489,13 @@ def bk_results(S):
 def bk_photos():
     """The site photos of the data pack (photo_files, numbered as on plan 01) as booklet_images/photo_<n>.jpg."""
     import shutil
-    d = os.path.join(BERGAMA_DIR, "cached", "booklet_images")       # v43 (Aras 26 Oct 07:38): under cached/
+    d = os.path.join(bg_booklet("selinus_board"), "images")        # v44 (27 Oct): cached/booklet/selinus_board/images
     shutil.rmtree(os.path.join(BERGAMA_DIR, "booklet_images"), ignore_errors=True)   # v42 and older wrote it here
+    shutil.rmtree(os.path.join(BERGAMA_DIR, "cached", "booklet_images"), ignore_errors=True)   # v43 wrote it here
     if not os.path.isdir(d):
         os.makedirs(d)
     n = 0
-    for i, (p, it) in enumerate(photo_files(os.path.join(pdf_folder(), "_site_photos"))):
+    for i, (p, it) in enumerate(photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))):
         shutil.copyfile(p, os.path.join(d, "photo_%d.jpg" % (i + 1)))
         n += 1
     BK_LOG.append("photos: %d copied to %s as photo_1..%d.jpg" % (n, d, n))
@@ -22519,6 +22591,7 @@ if HAVE_RHINO:
                 booklet_export(SITE, BOARD, RECTS)
             except Exception:
                 LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())
+            LOG.extend(bg_tidy_output("selinus_board"))       # v44 (27 Oct): output/ = PDFs only
             T = SITE.T
             names = [nm for nm, r in RECTS]
             drawings = [_crv(rect(r[0], r[1], r[2], r[3]), True) for nm, r in RECTS]

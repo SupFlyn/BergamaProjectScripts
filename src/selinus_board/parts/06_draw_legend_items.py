@@ -566,9 +566,11 @@ MAIN_ROADS = ("motorway", "trunk", "primary", "secondary", "tertiary")
 #                  each season
 ENV_PATH = clean_path(inp("env_path", None), "env_path") or data_file("bergama_environment.json") or ""
 # v33 24 Oct: all files under Downloads/Bergama/ (Aras rule): cache in cached/selinus_cache, the rest in output/selinus_board
-BERGAMA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+#@include ../../common/bergama_paths.py
+BERGAMA_DIR = BERGAMA_ROOT
 SELINUS_CACHE_DIR = os.path.join(BERGAMA_DIR, "cached", "selinus_cache")
-SELINUS_OUT_DIR = os.path.join(BERGAMA_DIR, "output", "selinus_board")
+SELINUS_OUT_DIR = bg_output("selinus_board")          # v44 (27 Oct): final PDFs only (in selinus_board_pdf)
+SELINUS_RES_DIR = bg_cache("selinus_board")           # v44: results other scripts read, maps, photos (working files)
 ENVIRONMENT = bool(inp("environment", False))
 NOISE_PALETTE = str(inp("noise_palette", "") or "").strip().lower()     # "" = the graded bands (v16.4)
 NOISE_PTS_IN = inp("noise_points", [])

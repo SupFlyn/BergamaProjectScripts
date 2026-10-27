@@ -116,7 +116,73 @@ CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of the
 OUT_FOLDER = "bergama_water_board"
 OUT_NAME = "Bergama_water_board_v1_14_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 PHI, PSI = 32.9, 36.2                # axonometric of the storage cubes and the farm pictogram (water loop v2 view)
@@ -2502,7 +2568,7 @@ def draw_bands(opt, den=None):
 # there on every later press; the credit goes into the numbered source key. No network (or any failure) = a labelled
 # empty frame; the board never fails on a photo. JPEG is embedded as it is; a PNG is turned into a JPEG by .NET
 # (System.Drawing, Windows) where it can be, else its frame stays empty.
-PHOTO_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "cached", "bergama_water_board", "plant_photos")
+PHOTO_DIR = os.path.join(bg_cache("bergama_water_board"), "plant_photos")
 PHOTO_UA = "MIRAQUA-studio-board/1.14 (Bergama student project; urllib)"
 PHOTO_TIMEOUT = 8.0                  # s per request; after one network failure the rest are not tried this press
 PHOTOS = []                          # (x0, y0, x1, y1 board mm, y up, jpeg path): embedded after the PDF is written
@@ -2806,7 +2872,8 @@ WINTER_FLOW = 18653245          # A7: natural flow Dec-Apr at the site (m³, cal
 # v1.1: storage design, strip draw and olive need from the water balance (Thread 2), never typed in: its results file
 # (written on every run of bergama_water_balance_v2.py), else the default-lands copy of 24 Oct 08:21 (research/
 # water_balance/water_balance_results_default.json).
-WB_FILES = [os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_water_balance_analysis",
+WB_FILES = [os.path.join(bg_cache("Bergama_water_balance_analysis"), "water_balance_results.json"),   # 27 Oct: cached/
+            os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_water_balance_analysis",
                          "water_balance_results.json"),
             os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis",
                          "water_balance_results.json")]
@@ -3660,8 +3727,8 @@ def bk_frame(key, w_default, h_default):
     run once, else the defaults given (the plan's frame size). h excludes the caption line."""
     try:
         import json as _j
-        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
-                               "booklet_slots.json"), encoding="utf-8") as f:
+        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
+                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
             s = _j.load(f)[key]
         return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
     except Exception:
@@ -3683,9 +3750,10 @@ def bk_take_text(items, H):
 
 
 class BkBlocks(object):
-    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
+    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
     def __init__(self, out_dir, script, version):
-        self.dir = os.path.join(out_dir, "booklet")
+        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
         os.makedirs(self.dir, exist_ok=True)
         self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
 
@@ -3864,7 +3932,7 @@ def booklet_export(folder, pdf_path, log):
 # ---------------------------------------------------------------- run
 def out_folder(doc):
     # v1 24 Oct: all files under Downloads/Bergama/ (Aras rule); was next to the .3dm / .gh, else Documents
-    return os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", OUT_FOLDER)
+    return bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
 
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here
@@ -3941,6 +4009,7 @@ def main():
             booklet_export(folder, files[0], log)
         except Exception as ex_:
             log.append(u"booklet not written: {}: {}".format(type(ex_).__name__, ex_))
+    log += bg_tidy_output(OUT_FOLDER)               # 27 Oct: output/ = PDFs only
     secs = time.time() - t0
     head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
     text = u"\n".join(head + log)

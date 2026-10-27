@@ -214,7 +214,7 @@ def draw_stream_edge_plan(S, B, x, y, w, U):
     mw, mh = F.w / n * ss, F.h * ss
     photos = []
     try:
-        photos = photo_files(os.path.join(pdf_folder(), "_site_photos"))
+        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
     except Exception:
         LOG.append("WARNING: the site photos could not be read for the edge plan:\n" + traceback.format_exc())
     rd = 0.95 * h12                                       # disc radius of a photo number

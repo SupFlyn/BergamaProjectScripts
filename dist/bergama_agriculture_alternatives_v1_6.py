@@ -40,7 +40,73 @@ VERSION = "v1.6"
 # and source sentences become [n] marks with one numbered source key in each page's footer; layout and colours kept.
 # Flood figures corrected to the surveyed sections (research/rain_river_levels/README.md, v1.1 correction and line 49).
 # v1.1 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_agriculture_alternatives_log.txt (next to cached/ and output/), overwritten by each press.
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 
 def write_log(text):
@@ -53,7 +119,7 @@ def write_log(text):
     return text
 
 # v1 24 Oct: all files under Downloads/Bergama/ (Aras rule)
-OUT_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_agriculture_alternatives")
+OUT_DIR = bg_output("Bergama_agriculture_alternatives")       # final PDFs only (27 Oct)
 OUT_PDF = "Bergama_agriculture_alternatives_A3.pdf"
 # built-in geometry and tables (survey coordinates, m): around2 extent, site frame, WorldCover classes clipped to the
 # extent (outside / inside the site), Selinos and other streams, FAO-56 net irrigation per water year (C1), corridor cover
@@ -71,7 +137,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff', 'STEPS': 'f93b7721014f77d23de683007261e984', 'SKETCH_SRC': '96af56d7a396468b0a25e9b919384d03'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff', 'STEPS': 'f93b7721014f77d23de683007261e984', 'SKETCH_SRC': 'be6387ed413e463564bc894cacde2764'}.get(name):
         raise RuntimeError("Data file bergama_agriculture_alternatives_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_agriculture_alternatives_data.py:" + name, "exec"), globals())
@@ -82,7 +148,8 @@ bergama_data("GEO")
 # ------------------------------------------------------------------ live numbers from the water balance (Thread 2)
 # The water balance script writes its results on every run; this script reads them, so storage and the share covered
 # are never typed in here. Searched in this order; the first file found wins.
-LIVE_FILES = [os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_water_balance_analysis", "water_balance_results.json"),
+LIVE_FILES = [os.path.join(bg_cache("Bergama_water_balance_analysis"), "water_balance_results.json"),   # 27 Oct: cached/
+              os.path.join(bg_output("Bergama_water_balance_analysis"), "water_balance_results.json"),  # v2.6 and older
               os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis", "water_balance_results.json")]   # old place, read fallback
 # fallback: the cloud copy research/water_balance/water_balance_results_default.json (default lands, 24 Oct 08:23)
 DEFAULT = json.loads('{"cutoff":{"orchard olive + cropland cotton":{"central":{"storage_m3":375000,"covered_pct_1in5_dry":99.2,"delivered_m3_per_year":336093}},"orchard olive + cropland tomato":{"central":{"storage_m3":350000,"covered_pct_1in5_dry":99.7,"delivered_m3_per_year":310094}}},"farm_demand_m3":{"orchard olive + cropland cotton":{"mean":339980,"median":348773,"wet5":315782,"dry5":356580,"dry10":382453,"min":278845,"max":393001,"dry5_year":2006},"orchard olive + cropland tomato":{"mean":311982,"median":319136,"wet5":288317,"dry5":334143,"dry10":343054,"min":251458,"max":362453,"dry5_year":2021}},"net_irrigation_mm":{"olive":{"mean":614.3,"median":619.5,"wet5":519.6,"dry5":720.1,"dry10":725.2,"min":415.2,"max":822.7},"cotton":{"mean":853.2,"median":875.6,"wet5":789.5,"dry5":891.8,"dry10":962.6,"min":703.1,"max":981.9},"maize":{"mean":722.7,"median":740.8,"wet5":675.4,"dry5":761.8,"dry10":816.2,"min":605.7,"max":835.7},"tomato":{"mean":781.0,"median":801.3,"wet5":719.7,"dry5":837.0,"dry10":860.8,"min":632.5,"max":903.1}},"lands":{"cropland_ha":34.9,"orchard_ha":1.34,"cropland_crops":"cotton,tomato"}}')
@@ -566,10 +633,11 @@ def plan01_geo():
     except Exception:
         return None, "PyMuPDF missing: Rhino installs it from the '# r: pymupdf' line on the first run (needs internet)"
     try:
-        with open(os.path.join(BOARD_DIR, "booklet", "blocks.json"), encoding="utf-8") as f:
+        with open(bg_first([os.path.join(bg_booklet("selinus_board"), "blocks.json"),        # board v44+
+                            os.path.join(BOARD_DIR, "booklet", "blocks.json")]), encoding="utf-8") as f:
             d = json.load(f)
     except Exception:
-        return None, "site board output not found (output/selinus_board/booklet/blocks.json): run the site board first"
+        return None, "site board output not found (cached/booklet/selinus_board/blocks.json): run the site board first"
     blk = next((v for k, v in sorted(d.get("blocks", {}).items()) if k.lower().endswith("_plan01") and v.get("geo")), None)
     if not blk:
         return None, "the site board output has no plan 01 georeference: run the site board v42 or later"
@@ -1232,8 +1300,8 @@ def bk_frame(key, w_default, h_default):
     run once, else the defaults given (the plan's frame size). h excludes the caption line."""
     try:
         import json as _j
-        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
-                               "booklet_slots.json"), encoding="utf-8") as f:
+        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
+                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
             s = _j.load(f)[key]
         return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
     except Exception:
@@ -1255,9 +1323,10 @@ def bk_take_text(items, H):
 
 
 class BkBlocks(object):
-    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
+    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
     def __init__(self, out_dir, script, version):
-        self.dir = os.path.join(out_dir, "booklet")
+        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
         os.makedirs(self.dir, exist_ok=True)
         self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
 
@@ -1373,6 +1442,7 @@ def main():
         bk = booklet_export(live()[0])
     except Exception as ex:
         bk = "booklet ERROR (sheet saved): %s: %s" % (type(ex).__name__, ex)
+    bk = "\n".join([bk] + bg_tidy_output("Bergama_agriculture_alternatives"))   # 27 Oct: output/ = PDFs only
     flag = "".join("\n" + t for t in LOG_NOTES)
     flag += "\nFLAG: water balance results file not found in Downloads; its default-lands copy was used" if src == DEFAULT_NOTE else ""
     return "%s  %s\nfigures: %s%s\n%s\nagriculture alternatives %s, %.1f s\n%s" % (OUT_PDF, time.strftime("%H:%M:%S"), src, flag, base, VERSION, time.time() - t0, bk)

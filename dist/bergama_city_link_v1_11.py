@@ -60,7 +60,73 @@ VERSION = "v1.11"
 # v1.11 (Aras 27 Oct 12:05): the main transit hub of page 2: "İstiklal" = İstiklal Meydanı + Kızıl Avlu (the town lines
 # 651/652/653 stop there; K3, K4, K5 are walking hubs); "bridges" = K3, K4, K5 drawn as the transit hubs instead
 MAIN_TRANSIT_HUB = "İstiklal"
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 
 def write_log(text):
@@ -74,14 +140,20 @@ def write_log(text):
 
 # all files under Downloads/Bergama/ (Aras rule, 24 Oct)
 BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-OUT_DIR = os.path.join(BERGAMA, "output", "Bergama_city_link_analysis")
+OUT_DIR = bg_output("Bergama_city_link_analysis")            # final PDFs only (27 Oct)
+RES_DIR = bg_cache("Bergama_city_link_analysis")             # 27 Oct: city_link_results.json (the board and masterplan read it)
 OUT_PDF = "Bergama_city_link_A3.pdf"
 OUT_JSON = "city_link_results.json"
-WB_FILES = [os.path.join(BERGAMA, "output", "Bergama_water_balance_analysis", "water_balance_results.json"),
+WB_FILES = [os.path.join(bg_cache("Bergama_water_balance_analysis"), "water_balance_results.json"),   # 27 Oct: cached/
+            os.path.join(BERGAMA, "output", "Bergama_water_balance_analysis", "water_balance_results.json"),
             os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis", "water_balance_results.json")]
-MV_FILE = os.path.join(BERGAMA, "output", "selinus_board", "city_link_movement.json")     # written by selinus_board v34
-MP_FILE = os.path.join(BERGAMA, "output", "bergama_masterplan", "masterplan_results.json")  # v1.8: the drawn spine's length
-BD_FILE = os.path.join(BERGAMA, "output", "selinus_board", "booklet", "results.json")    # v1.8: bed depth (board v40)
+# 27 Oct: new places (cached/) first, then where older versions wrote them
+MV_FILES = [os.path.join(bg_cache("selinus_board"), "city_link_movement.json"),          # written by selinus_board v34+
+            os.path.join(BERGAMA, "output", "selinus_board", "city_link_movement.json")]
+MP_FILES = [os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # v1.8: the drawn spine's length
+            os.path.join(BERGAMA, "output", "bergama_masterplan", "masterplan_results.json")]
+BD_FILES = [os.path.join(bg_booklet("selinus_board"), "results.json"),                    # v1.8: bed depth (board v40)
+            os.path.join(BERGAMA, "output", "selinus_board", "booklet", "results.json")]
 WB_DEFAULT = dict(cropland_ha=34.9, orchard_ha=1.34, cropland_crops="cotton,tomato")      # results_default.json, 24 Oct 08:21
 
 # ------------------------------------------------------------------ the spine and the function sites (survey m)
@@ -351,7 +423,7 @@ def _load(paths):
 
 def bed_depth():
     """"1.0-2.3 m": the bed below the banks over the survey cuts, from the site board's results (v40); "" if absent."""
-    d, _ = _load([BD_FILE])
+    d, _ = _load(BD_FILES)
     try:
         a, b = float(d["bed_below_banks_min_m"]), float(d["bed_below_banks_max_m"])
         return "%.1f-%.1f m" % (a, b) if b > a else "%.1f m" % a
@@ -364,7 +436,7 @@ def live():
     d, t = _load(WB_FILES)
     lands = (d or {}).get("lands") or WB_DEFAULT
     wb_src = ("water balance results of " + t) if d else "FLAG: water balance results not found; default lands of 24 Oct"
-    mv, t2 = _load([MV_FILE])
+    mv, t2 = _load(MV_FILES)
     mv_src = ("site board movement of " + t2) if mv else "run the site board once to compute the walking potential"
     votes = dict((k, dict(v)) for k, v in BANK_VOTE.items())
     vote_src = "survey floor labels (built in, 24 Oct)"
@@ -375,7 +447,7 @@ def live():
     sides = dict((pc["id"], bank_of(votes[pc["id"]])[0] if pc.get("side") == "auto" else "over") for pc in SPINE)
     # v1.8 (FIGURE_CONFLICTS.md §2): the spine length = the masterplan's drawn pieces (edge + deck + over), read live;
     # none printed when the masterplan has not run (was a typed "about 660 m", the K4-K5 chainage)
-    mp, t3 = _load([MP_FILE])
+    mp, t3 = _load(MP_FILES)
     try:
         spine_m = sum(float(v) for v in mp["options"]["A"]["spine_m"].values())
     except Exception:
@@ -1291,8 +1363,8 @@ def bk_frame(key, w_default, h_default):
     run once, else the defaults given (the plan's frame size). h excludes the caption line."""
     try:
         import json as _j
-        with open(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_booklet",
-                               "booklet_slots.json"), encoding="utf-8") as f:
+        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
+                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
             s = _j.load(f)[key]
         return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
     except Exception:
@@ -1314,9 +1386,10 @@ def bk_take_text(items, H):
 
 
 class BkBlocks(object):
-    """Collects one script's booklet blocks and writes output/<folder>/booklet/blocks.json."""
+    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
+    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
     def __init__(self, out_dir, script, version):
-        self.dir = os.path.join(out_dir, "booklet")
+        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
         os.makedirs(self.dir, exist_ok=True)
         self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
 
@@ -1417,7 +1490,7 @@ def build(dir_):
     # last city_link_results.json (or their built-in copy). The bank choice comes from survey building counts, so it
     # only changes when the survey changes; if it did change, say so (one more press of the chain fixes the drawings).
     try:
-        with open(os.path.join(dir_, OUT_JSON), "r", encoding="utf-8") as f:
+        with open(bg_first([os.path.join(RES_DIR, OUT_JSON), os.path.join(dir_, OUT_JSON)]), "r", encoding="utf-8") as f:
             prev, prev_src = json.load(f).get("spine_banks"), "the last run"
     except Exception:
         prev = dict((pc["id"], bank_of(BANK_VOTE[pc["id"]])[0] if pc.get("side") == "auto" else "over") for pc in SPINE)
@@ -1430,7 +1503,8 @@ def build(dir_):
     write_pdf(pages, os.path.join(dir_, OUT_PDF))
     L["layout"] = ["p%d text over text: %s" % (i + 1, ", ".join(pg.clash)) for i, pg in enumerate(pages) if pg.clash] + \
         (["labels with no free place (left off): " + ", ".join(DROPPED)] if DROPPED else [])
-    with open(os.path.join(dir_, OUT_JSON), "w", encoding="utf-8") as f:
+    os.makedirs(RES_DIR, exist_ok=True)
+    with open(os.path.join(RES_DIR, OUT_JSON), "w", encoding="utf-8") as f:
         json.dump(results(L), f, ensure_ascii=False, indent=1)
     return L
 
@@ -1449,6 +1523,7 @@ def main():
         bk += ("\nbooklet: " + n_) if n_ else ""
     except Exception as ex_:
         bk += "\nbooklet: ERROR %s: %s" % (type(ex_).__name__, ex_)
+    bk += "".join("\n" + t_ for t_ in bg_tidy_output("Bergama_city_link_analysis"))   # 27 Oct: output/ = PDFs only
     t = time.strftime("%H:%M:%S")
     return "%s  %s\n%s  %s\nfigures: %s; %s\ncity link %s, %.1f s%s%s" % (OUT_PDF, t, OUT_JSON, t, L["wb_src"], L["mv_src"], VERSION, time.time() - t0, L.get("bank_note", ""), bk)
 

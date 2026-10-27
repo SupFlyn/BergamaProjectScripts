@@ -34,7 +34,8 @@ VERSION = "v2.7"
 #   jun_sep_share_of_need_pct and site_catch_share_of_need_pct. The A3 sheet is unchanged.
 # v2.3 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): option A only; the option input is ignored.
 # v2.2 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_water_balance_log.txt (next to cached/ and output/), overwritten by each press.
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+#@include ../common/bergama_paths.py
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 
 def write_log(text):
@@ -48,11 +49,13 @@ def write_log(text):
 
 # v2 24 Oct: all files under Downloads/Bergama/ (Aras rule). v2.1 (Thread 5): riverside_walk_m2 read live from the
 # masterplan (v11) results when no GH input or Rhino curve gives it
-OUT_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_water_balance_analysis")
+OUT_DIR = bg_output("Bergama_water_balance_analysis")        # final PDFs only (27 Oct)
+RES_DIR = bg_cache("Bergama_water_balance_analysis")         # 27 Oct: the results JSON other scripts read
 OLD_OUT_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis")   # read fallback only
 OUT_PDF = "Bergama_water_balance_A3.pdf"
 OUT_JSON = "water_balance_results.json"
-MP_FILE = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_masterplan", "masterplan_results.json")
+MP_FILE = bg_first([os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # 27 Oct: cached/
+                    os.path.join(bg_output("bergama_masterplan"), "masterplan_results.json")])    # masterplan v24 and older
 
 # ------------------------------------------------------------------ lands: defaults (used when nothing else is given)
 LANDS = dict(
@@ -360,8 +363,7 @@ def compute(L):
 
 def read_results(path=None):
     """For other scripts: the latest results dict (design storage and % under res['design']), or None."""
-    p = path or os.path.join(OUT_DIR, OUT_JSON)
-    if not path and not os.path.isfile(p): p = os.path.join(OLD_OUT_DIR, OUT_JSON)
+    p = path or bg_first([os.path.join(RES_DIR, OUT_JSON), os.path.join(OUT_DIR, OUT_JSON), os.path.join(OLD_OUT_DIR, OUT_JSON)])
     try:
         with open(p, encoding="utf-8") as f: return json.load(f)
     except Exception:
@@ -891,7 +893,8 @@ def main(g):
         ov = build(path, R)                               # v2.7: labels whose boxes overlap (none expected)
     except PermissionError:
         return "The PDF is open in another program. Close it and press again: " + path
-    with open(os.path.join(OUT_DIR, OUT_JSON), "w", encoding="utf-8") as f:
+    os.makedirs(RES_DIR, exist_ok=True)
+    with open(os.path.join(RES_DIR, OUT_JSON), "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)
     if bk_err is None:
         try:
@@ -903,7 +906,8 @@ def main(g):
     return "%s  %s\n%s  %s\ncut-off %s m3 = %.1f %% (1 in 5 dry)\n%s %s, %.1f s" % (
         OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], "water balance", VERSION, time.time() - t0) + (
         "\nbooklet ERROR: " + bk_err if bk_err else "") + (
-        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps")
+        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + "".join(
+        "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis"))     # 27 Oct: output/ = PDFs only
 
 #@include ../common/chain_fire.py
 

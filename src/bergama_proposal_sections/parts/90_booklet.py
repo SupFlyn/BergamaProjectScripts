@@ -24,6 +24,7 @@ def booklet_export(log):
     bk = BkBlocks(OUT_DIR, GH_LABEL, VERSION)
     for k, t, u in BK_SOURCES:
         bk.source(k, t, u)
+    bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)]}   # v7: the booklet's sources page
     E = sketch_engine()                               # the sheet's own colours for the legend samples
     wash = E["mix"]((255, 255, 255), E["FLOOD_WASH"], E["FLOOD_ALPHA"])   # the Q500 wash as it shows on white
     legend = [dict(kind="fill", colour=_bk_hex(E["W_WIN"]), label=u"winter water"),

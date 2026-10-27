@@ -116,7 +116,8 @@ CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of the
 OUT_FOLDER = "bergama_water_board"
 OUT_NAME = "Bergama_water_board_v1_14_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+#@include ../common/bergama_paths.py
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 PHI, PSI = 32.9, 36.2                # axonometric of the storage cubes and the farm pictogram (water loop v2 view)
@@ -2005,7 +2006,7 @@ def draw_bands(opt, den=None):
 # there on every later press; the credit goes into the numbered source key. No network (or any failure) = a labelled
 # empty frame; the board never fails on a photo. JPEG is embedded as it is; a PNG is turned into a JPEG by .NET
 # (System.Drawing, Windows) where it can be, else its frame stays empty.
-PHOTO_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "cached", "bergama_water_board", "plant_photos")
+PHOTO_DIR = os.path.join(bg_cache("bergama_water_board"), "plant_photos")
 PHOTO_UA = "MIRAQUA-studio-board/1.14 (Bergama student project; urllib)"
 PHOTO_TIMEOUT = 8.0                  # s per request; after one network failure the rest are not tried this press
 PHOTOS = []                          # (x0, y0, x1, y1 board mm, y up, jpeg path): embedded after the PDF is written
@@ -2309,7 +2310,8 @@ WINTER_FLOW = 18653245          # A7: natural flow Dec-Apr at the site (m³, cal
 # v1.1: storage design, strip draw and olive need from the water balance (Thread 2), never typed in: its results file
 # (written on every run of bergama_water_balance_v2.py), else the default-lands copy of 24 Oct 08:21 (research/
 # water_balance/water_balance_results_default.json).
-WB_FILES = [os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_water_balance_analysis",
+WB_FILES = [os.path.join(bg_cache("Bergama_water_balance_analysis"), "water_balance_results.json"),   # 27 Oct: cached/
+            os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "Bergama_water_balance_analysis",
                          "water_balance_results.json"),
             os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis",
                          "water_balance_results.json")]
@@ -3271,7 +3273,7 @@ def booklet_export(folder, pdf_path, log):
 # ---------------------------------------------------------------- run
 def out_folder(doc):
     # v1 24 Oct: all files under Downloads/Bergama/ (Aras rule); was next to the .3dm / .gh, else Documents
-    return os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", OUT_FOLDER)
+    return bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
 
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here
@@ -3334,6 +3336,7 @@ def main():
             booklet_export(folder, files[0], log)
         except Exception as ex_:
             log.append(u"booklet not written: {}: {}".format(type(ex_).__name__, ex_))
+    log += bg_tidy_output(OUT_FOLDER)               # 27 Oct: output/ = PDFs only
     secs = time.time() - t0
     head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
     text = u"\n".join(head + log)

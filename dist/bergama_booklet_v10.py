@@ -40,17 +40,84 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v9"
+VERSION = "v10"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
 PDF_NAME = "Bergama_booklet_A3.pdf"
 FONT = "Arial"                               # "Arial" (every Windows PC) or "Inter" (if installed)
 
-BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-OUT_DIR = os.path.join(BERGAMA, "output", OUT_FOLDER)
-LOG_DIR = os.path.join(BERGAMA, "logs")
-ASSET_ROOT = os.path.join(BERGAMA, "output")
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+BERGAMA = BERGAMA_ROOT
+OUT_DIR = bg_output(OUT_FOLDER)                  # v10 (27 Oct): the booklet PDF only
+LOG_DIR = bg_logs()
+ASSET_ROOT = os.path.join(BERGAMA, "output")     # the scripts' sheet PDFs
+BK_ROOT = bg_booklet("")                         # v10: the scripts' booklet assets (cached/booklet/<folder>/blocks.json)
 
 # ---- GRID (design-language.md: all values in mm, origin top-left) ----
 PW, PH = 420.0, 297.0
@@ -84,7 +151,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '1511b4efa9915effcbf5a5d940672d0e'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '478e36f228659a3a164920d3f699f4fb'}.get(name):
         raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())
@@ -184,10 +251,13 @@ class Typo(object):
 def load_assets():
     """{script folder: blocks.json dict (with its folder)} for every script that wrote booklet assets."""
     found = {}
-    if not os.path.isdir(ASSET_ROOT):
-        return found
-    for name in sorted(os.listdir(ASSET_ROOT)):
-        p = os.path.join(ASSET_ROOT, name, "booklet", "blocks.json")
+    names = set()
+    for root in (BK_ROOT, ASSET_ROOT):
+        if os.path.isdir(root):
+            names.update(n for n in os.listdir(root) if os.path.isdir(os.path.join(root, n)))
+    for name in sorted(names):
+        p = bg_first([os.path.join(BK_ROOT, name, "blocks.json"),                 # v10: cached/booklet/<folder>/
+                      os.path.join(ASSET_ROOT, name, "booklet", "blocks.json")])   # scripts before 27 Oct
         if os.path.isfile(p):
             try:
                 with open(p, encoding="utf-8") as f:
@@ -491,12 +561,23 @@ def cover(pg, typo, pages):
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
 
 
-def sheet_sources(fitz):
-    """[(heading, [entries])]: each sheet page's own source key ("Sources by number: [1] ... [2] ..." or lines
-    starting [n]), as the sheet prints it: the [n] marks on that sheet's pages refer to it."""
-    out = []
+def sheet_sources(fitz, assets):
+    """[(heading, [entries])]: each sheet page's own source key. v10 (Aras 27 Oct: source footers go): first the
+    key a script writes into its blocks.json "sheet_sources" ({page or "pdf#page": ["[1] ...", ...]}), else the
+    key as the sheet prints it ("Sources by number: [1] ... [2] ..." or lines starting [n], visible or not)."""
+    out, done = [], set()
     for pat in SOURCE_SHEETS:
         folder, _, name = pat.partition("/")
+        keyed = (assets.get(folder) or {}).get("sheet_sources") or {}
+        if keyed:
+            if folder not in done:
+                done.add(folder)
+                for k in sorted(keyed, key=lambda k_: str(k_)):
+                    ents = [e for e in keyed[k] if e]
+                    if ents:
+                        out.append((SCRIPT_OF.get(folder, folder) + ("" if len(keyed) == 1 else " · page %d" % (int(k) + 1) if str(k).isdigit()
+                                                                    else " · " + re.sub(r"\.pdf(#\d+)?$", "", str(k)).replace("_", " ")), ents))
+            continue
         path = find_pdf(folder, name)
         if not path:
             continue
@@ -586,7 +667,7 @@ def main():
     for pno, sp, rows in numbered:
         rep.append(sheet_page(fitz, doc, typo, pno, sp) if rows is None else
                    panel_page(fitz, doc, typo, pno, sp, rows, assets, missing))
-    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2, sheet_sources(fitz))
+    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2, sheet_sources(fitz, assets))
     text_check(fitz, doc, typo, set(n - 1 for n, sp, rows in numbered if rows is None))
     doc.subset_fonts()
     out = os.path.join(OUT_DIR, PDF_NAME)
@@ -600,6 +681,7 @@ def main():
         rows.append("MISSING drawings of %s: placeholders left" % SCRIPT_OF.get(m, m))
     rows += rep + typo.notes
     rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
+    rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
     rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
     return "\n".join(rows)
 

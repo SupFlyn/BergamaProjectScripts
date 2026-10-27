@@ -1,4 +1,4 @@
-# Bergama script standard (25 Oct 2026)
+# Bergama script standard (25 Oct 2026; folders updated 27 Oct)
 
 Every new or edited Grasshopper script follows this. Start a new script from `bergama_script_template.py`, which is in this folder. Each rule names the message from Aras it comes from.
 
@@ -6,9 +6,12 @@ Every new or edited Grasshopper script follows this. Start a new script from `be
 | folder | holds | rule |
 |---|---|---|
 | `Data/` | input data files: osm, places, environment, land cover, palette | read from here by default, with no path inputs. An input may still override (25 Oct 09:49) |
-| `output/<script folder>/` | PDFs and results JSON | one folder per script. Other scripts read results from here (24 Oct 08:28) |
-| `cached/<script folder>/` | caches | 24 Oct 08:28 |
-| `logs/` | ONE log per script, `<script base name>_log.txt`, with no version in the name, overwritten by each press | 25 Oct 09:34-09:35, 09:55. Nothing but log files goes in logs/ (10:45) |
+| `output/<script folder>/` | FINAL PDFs ONLY (sub-folders allowed, e.g. the board's selinus_board_pdf) | one folder per script (24 Oct 08:28); nothing else, no logs, no JSON, no images (27 Oct 11:07) |
+| `cached/<script folder>/` | caches, results JSON other scripts read, rendered images, any other working file | 24 Oct 08:28; results moved here from output/ 27 Oct 11:07 |
+| `cached/booklet/<script folder>/` | the script's booklet assets (blocks.json, booklet results, images); the booklet's own leftovers in `cached/booklet/` | 27 Oct 11:07 |
+| `logs/` | ONE log per script, `<script base name>_log.txt`, with no version in the name, overwritten by each press; extra log files or log folders in `logs/<script folder>/` | 25 Oct 09:34-09:35, 09:55; 27 Oct 11:07 |
+
+**Paths come from one place (27 Oct):** `src/common/bergama_paths.py` (`bg_output`, `bg_cache`, `bg_booklet`, `bg_logs`, `bg_first`, `bg_tidy_output`), included near the top of every script (the template carries a copy). Never build a Bergama path by hand. Readers look in the new place first and fall back to where older versions wrote (`bg_first`). Every `main()` ends with `bg_tidy_output(OUT_FOLDER)`: anything not a PDF left in output/ is moved (never deleted) to logs/ (log files) or cached/ (the rest), so a later mistake cannot leave clutter in output/.
 Folders are created by the script. Nothing is written anywhere else: no temp state files and no copies of the log (25 Oct 09:55). Worker scratch folders for parallel compute are the only exception. Cleanup is ours, because Aras cannot delete folders (24 Oct 08:52).
 
 ## 2. Component
@@ -80,6 +83,7 @@ Folders are created by the script. Nothing is written anywhere else: no temp sta
 | 16:41-16:43 | masterplan: one sheet (alt 1 with the v18 changes, PROMENADE band), option A only; project rule: all scripts drop option B | masterplan v18 > v19 |
 | 16:43 | option A only, project-wide (Aras): option B removed | zone base v8 > v9, water balance v2.2 > v2.3, water board v1.6 > v1.7, proposal sections v1 > v2, masterplan v19 |
 | 17:00 | VISUAL FIRST (§5b) for every output | all output scripts, one at a time from 25 Oct 17:20 (audit: batch_2026-10-25_visual_first/VISUAL_AUDIT.md) |
+| 27 Oct 11:07 | output/ = final PDFs only; logs/ = all logs; cached/ = results + working files; cached/booklet/ = booklet assets; one shared path module + bg_tidy_output at the end of every run; no source footers on sheets (each script writes its [n] key to blocks.json "sheet_sources") | zone base v10, masterplan v24, water balance v2.7, board v44, city link v1.11, agriculture v1.6, water board v1.14, proposal sections v7, booklet v10, template |
 
 ## 8. A3 BOOKLET (Aras 25 Oct 18:37, every output, drawing, diagram, label and script)
 - Format: every page landscape A3, 420 x 297 mm. Everything reads as ONE booklet: one grid, one type system, a logical page order.

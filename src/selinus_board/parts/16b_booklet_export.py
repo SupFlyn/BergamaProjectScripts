@@ -140,7 +140,8 @@ def booklet_export(S, B, rects):
     except Exception:
         BK_LOG.append("photos not copied\n" + traceback.format_exc())
     BK.save()
-    with open(BK.path("booklet_log.txt"), "w", encoding="utf-8") as f_:
+    os.makedirs(bg_logs("selinus_board"), exist_ok=True)     # v44: logs only in logs/ (was output/.../booklet/)
+    with open(os.path.join(bg_logs("selinus_board"), "booklet_log.txt"), "w", encoding="utf-8") as f_:
         f_.write(u"%s booklet crops (%d)\n%s\n\n%s\n" % (SCRIPT_VERSION, len(done), "\n".join(done) or "none",
                                                      "\n".join(BK_LOG)))
     return done
@@ -317,12 +318,13 @@ def bk_results(S):
 def bk_photos():
     """The site photos of the data pack (photo_files, numbered as on plan 01) as booklet_images/photo_<n>.jpg."""
     import shutil
-    d = os.path.join(BERGAMA_DIR, "cached", "booklet_images")       # v43 (Aras 26 Oct 07:38): under cached/
+    d = os.path.join(bg_booklet("selinus_board"), "images")        # v44 (27 Oct): cached/booklet/selinus_board/images
     shutil.rmtree(os.path.join(BERGAMA_DIR, "booklet_images"), ignore_errors=True)   # v42 and older wrote it here
+    shutil.rmtree(os.path.join(BERGAMA_DIR, "cached", "booklet_images"), ignore_errors=True)   # v43 wrote it here
     if not os.path.isdir(d):
         os.makedirs(d)
     n = 0
-    for i, (p, it) in enumerate(photo_files(os.path.join(pdf_folder(), "_site_photos"))):
+    for i, (p, it) in enumerate(photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))):
         shutil.copyfile(p, os.path.join(d, "photo_%d.jpg" % (i + 1)))
         n += 1
     BK_LOG.append("photos: %d copied to %s as photo_1..%d.jpg" % (n, d, n))

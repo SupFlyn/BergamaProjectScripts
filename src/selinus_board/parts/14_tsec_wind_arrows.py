@@ -1316,7 +1316,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         cs.append(("C5", c5[0], c5[1], C5_TEXT))
     photos = []
     try:
-        photos = photo_files(os.path.join(pdf_folder(), "_site_photos"))
+        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
     except Exception:
         LOG.append("WARNING: the site photos could not be written:\n" + traceback.format_exc())
     th, kd = 0.36 * U, kind_of(FONT_TITLE)

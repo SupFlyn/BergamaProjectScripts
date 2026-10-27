@@ -25,7 +25,7 @@ def write_city_link_movement(S, R):
                edge_walk_with=mean(edge, "walk_a"), slope=bool(getattr(pieces, "z", None)),
                bank_votes=getattr(S, "city_link_votes", None) or [],
                note="computed movement potential (routes between buildings and everyday destinations), not counts")
-    os.makedirs(SELINUS_OUT_DIR, exist_ok=True)
+    os.makedirs(SELINUS_RES_DIR, exist_ok=True)
     with open(CITY_LINK_MV, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1)
     LOG.append("city_link_movement.json: spine {} m index {}, stream-edge streets {} m: {} today -> {} with it.".format(

@@ -465,7 +465,8 @@ def river_walks(survey, removes=()):
 SPINE_W_M = 6.0                # drawn width of the spines, m (graphic)
 WALK_FACET_M = 4.0             # option B: walks as straight facets, Douglas-Peucker tolerance, m (graphic)
 _BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-CITY_LINK_FILES = [os.path.join(_BERGAMA, "output", "Bergama_city_link_analysis", "city_link_results.json")]
+CITY_LINK_FILES = [os.path.join(bg_cache("Bergama_city_link_analysis"), "city_link_results.json"),   # 27 Oct: cached/
+                   os.path.join(_BERGAMA, "output", "Bergama_city_link_analysis", "city_link_results.json")]
 
 
 def dp_open(P, tol):
@@ -942,7 +943,8 @@ def build_all(doc, warn):
             res_ = city_results(CLs)
             if "A" in Cs:                                # v24: the proposal's movement (spec §4), for the site board
                 res_["movement"] = Cs["A"].movement()
-            with open(os.path.join(folder, RESULTS_NAME), "w", encoding="utf-8") as f:
+            os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)       # 27 Oct: results in cached/, output/ = PDFs only
+            with open(os.path.join(bg_cache(OUT_FOLDER), RESULTS_NAME), "w", encoding="utf-8") as f:
                 json.dump(res_, f, ensure_ascii=False, indent=1)
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
@@ -950,7 +952,7 @@ def build_all(doc, warn):
     if sheets:                                           # v21: the booklet's crops of the sheets; never breaks them
         try:
             booklet_crops(folder, sheets, wins, plc, missing)
-            lines.append(u"booklet/blocks.json  {} crops".format(sum(len(sh_.panels) for _, sh_, _ in sheets)))
+            lines.append(u"cached/booklet/{}/blocks.json  {} crops".format(OUT_FOLDER, sum(len(sh_.panels) for _, sh_, _ in sheets)))
         except Exception as ex:
             import traceback
             lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
@@ -988,6 +990,7 @@ def run():
         import traceback
         err = u"ERROR: {}: {}".format(type(ex_).__name__, ex_)
         warn.append(traceback.format_exc()[-480:])
+    lines += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
     secs = time.time() - t0
     head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
     text = u"\n".join(head + lines)

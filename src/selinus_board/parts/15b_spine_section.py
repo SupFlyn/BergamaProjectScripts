@@ -5,7 +5,8 @@
 # pieces laid end to end at ONE scale for length and height (never stretched), the picture beyond each piece, the
 # stops above it by number and short name. Without the masterplan file: the city link spine the board already uses
 # (city_link_spine); without either, no panel (logged).
-MP_RESULTS_FILE = os.path.join(BERGAMA_DIR, "output", "bergama_masterplan", "masterplan_results.json")
+MP_RESULTS_FILE = bg_first([os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # v44
+                            os.path.join(BERGAMA_DIR, "output", "bergama_masterplan", "masterplan_results.json")])
 SPINE_TOL = 2.0          # m: the spine's line simplified to straight pieces within this distance (Douglas-Peucker)
 SPINE_ROW_M = 360.0      # m: the developed section is laid out in rows of at most about this length
 SPINE_STOP_NEAR = 60.0   # m: a stop farther than this from the spine is marked at the spine's end, with its distance

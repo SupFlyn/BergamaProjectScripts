@@ -40,17 +40,19 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v9"
+VERSION = "v10"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
 PDF_NAME = "Bergama_booklet_A3.pdf"
 FONT = "Arial"                               # "Arial" (every Windows PC) or "Inter" (if installed)
 
-BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-OUT_DIR = os.path.join(BERGAMA, "output", OUT_FOLDER)
-LOG_DIR = os.path.join(BERGAMA, "logs")
-ASSET_ROOT = os.path.join(BERGAMA, "output")
+#@include ../common/bergama_paths.py
+BERGAMA = BERGAMA_ROOT
+OUT_DIR = bg_output(OUT_FOLDER)                  # v10 (27 Oct): the booklet PDF only
+LOG_DIR = bg_logs()
+ASSET_ROOT = os.path.join(BERGAMA, "output")     # the scripts' sheet PDFs
+BK_ROOT = bg_booklet("")                         # v10: the scripts' booklet assets (cached/booklet/<folder>/blocks.json)
 
 # ---- GRID (design-language.md: all values in mm, origin top-left) ----
 PW, PH = 420.0, 297.0
@@ -164,10 +166,13 @@ class Typo(object):
 def load_assets():
     """{script folder: blocks.json dict (with its folder)} for every script that wrote booklet assets."""
     found = {}
-    if not os.path.isdir(ASSET_ROOT):
-        return found
-    for name in sorted(os.listdir(ASSET_ROOT)):
-        p = os.path.join(ASSET_ROOT, name, "booklet", "blocks.json")
+    names = set()
+    for root in (BK_ROOT, ASSET_ROOT):
+        if os.path.isdir(root):
+            names.update(n for n in os.listdir(root) if os.path.isdir(os.path.join(root, n)))
+    for name in sorted(names):
+        p = bg_first([os.path.join(BK_ROOT, name, "blocks.json"),                 # v10: cached/booklet/<folder>/
+                      os.path.join(ASSET_ROOT, name, "booklet", "blocks.json")])   # scripts before 27 Oct
         if os.path.isfile(p):
             try:
                 with open(p, encoding="utf-8") as f:
@@ -486,7 +491,7 @@ def sheet_sources(fitz, assets):
                     ents = [e for e in keyed[k] if e]
                     if ents:
                         out.append((SCRIPT_OF.get(folder, folder) + ("" if len(keyed) == 1 else " · page %d" % (int(k) + 1) if str(k).isdigit()
-                                                                    else " · " + str(k)), ents))
+                                                                    else " · " + re.sub(r"\.pdf(#\d+)?$", "", str(k)).replace("_", " ")), ents))
             continue
         path = find_pdf(folder, name)
         if not path:
@@ -591,6 +596,7 @@ def main():
         rows.append("MISSING drawings of %s: placeholders left" % SCRIPT_OF.get(m, m))
     rows += rep + typo.notes
     rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
+    rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
     rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
     return "\n".join(rows)
 
