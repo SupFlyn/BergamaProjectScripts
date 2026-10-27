@@ -35,6 +35,7 @@ MOVE_RUN_M = 30.0            # shorter runs of one move are dropped, m
 KEPT_SPACE_M = 150.0         # "kept" badges at least this far apart, m (graphic)
 TERRACE_D = (4.0, 70.0)      # upstream terraces: contours this far from the water, m
 COL_W = 103.0                # key column beside each half, mm
+NOTES_W = 392.0              # v24.1: the notes panel, one booklet page wide (392 mm), mm
 KEY_TS, KEY_MIN = 2.6, 2.47  # key text, mm (7.4 pt; 7 pt the floor)
 PLACE_TS = 4.3               # place names on the plans, mm (12.2 pt)
 LAB_TS = 2.6                 # labels on the 1:1,000 windows, mm
@@ -1078,9 +1079,17 @@ def compose_half(C, hp, used_all, warn):
             sum(max(len(b) * lh, 2 * BADGE_R) + 0.8 for _, b in ent)
         if need <= dh:
             break
-    if need > dh:
-        warn.append(u"masterplan half {}: key column {:.0f} mm for a {:.0f} mm plan: the panel is taller".format(
-            h + 1, need, dh))
+    if need > dh:                                # v24.1: notes that do not fit go on the notes panel (mp_notes)
+        head = PLACE_TS * 1.2 + 11.0 + (int(math.ceil(len(leg_items) / 2.0)) * 3.6 + 2.0 if leg_items else 0.0)
+        keep = []
+        for n, b in ent:
+            head += max(len(b) * lh, 2 * BADGE_R) + 0.8
+            if head > dh:
+                break
+            keep.append((n, b))
+        kn = set(n for n, _ in keep)
+        C.note_overflow = getattr(C, "note_overflow", []) + [nt for nt in notes if nt["n"] not in kn]
+        ent, need = keep, dh
     H = max(dh, need) + 2 * M
     sh = Page(W, H)
     sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
@@ -1123,6 +1132,46 @@ def compose_half(C, hp, used_all, warn):
     sh.key, sh.world, sh.scale, sh.pleg = "half{}".format(h), bbox(cs), MP_SCALE, None
     sh.bid = (("mp_upstream", "c1_s1", u"Masterplan upstream: entry, K4, K3, K5") if h == 0 else
               ("mp_downstream", "c1_s2", u"Masterplan downstream: K5 to the confluence"))
+    return sh
+
+
+def notes_panel(C):
+    """v24.1: the numbered notes the halves' key columns had no room for, in columns (no scale). None if all fit."""
+    rest = sorted(getattr(C, "note_overflow", []), key=lambda nt: nt["n"])
+    if not rest:
+        return None
+    M, G_, NC = 1.0, 6.0, 3
+    W = NOTES_W
+    cw = (W - 2 * M - (NC - 1) * G_) / NC
+    lh = KEY_TS * 1.18
+    ent = [(nt["n"], _col_blocks([(nt["text"], True), (u"← " + u" · ".join(nt["why"]), False)], cw - 5.0, KEY_TS))
+           for nt in rest]
+    hs = [max(len(b) * lh, 2 * BADGE_R) + 1.2 for _, b in ent]
+    target = sum(hs) / NC
+    cols, cur, acc = [], [], 0.0
+    for e, he in zip(ent, hs):                 # fill column by column, in note order
+        if cur and acc + he > target * 1.05 and len(cols) < NC - 1:
+            cols.append(cur)
+            cur, acc = [], 0.0
+        cur.append((e, he))
+        acc += he
+    cols.append(cur)
+    head = PLACE_TS * 1.2 + 2.0
+    H = 2 * M + head + max(sum(he for _, he in c) for c in cols)
+    sh = Page(W, H)
+    sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
+    sh.text(u"WHY EACH PLACE · NOTES {} TO {}".format(rest[0]["n"], rest[-1]["n"]), M, H - M - PLACE_TS, PLACE_TS,
+            COL["ink_dark"], bold=True)
+    for i, c in enumerate(cols):
+        x0, y = M + i * (cw + G_), H - M - head
+        for (n, b), he in c:
+            sh.circle(x0 + BADGE_R, y - BADGE_R, BADGE_R, fill=COL["ink_dark"])
+            sh.text(str(n), x0 + BADGE_R, y - BADGE_R - BADGE_TS * 0.36, BADGE_TS, COL["white"], bold=True, align="C")
+            draw_block(sh, b, x0 + 5.0, y - 0.4, COL["ink_dark"], None)
+            y -= he
+    sh.crop = (0.0, 0.0, W, H)
+    sh.key, sh.world, sh.scale, sh.pleg = "notes", bbox(C.V.P), None, None
+    sh.bid = ("mp_notes", "mp_notes", u"Why each place: the numbered notes on the plans")
     return sh
 
 

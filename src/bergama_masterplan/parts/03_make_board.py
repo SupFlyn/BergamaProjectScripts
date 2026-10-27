@@ -649,7 +649,7 @@ def city_layer(opt, D, areas, survey, warn):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v24.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v24_1.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -892,14 +892,20 @@ def build_all(doc, warn):
                     raise ValueError(u"no corridor computed (see the warnings)")
                 used = set()
                 hps = [half_panel(C, h, used, warn) for h in (0, 1)]
+                C.note_overflow = []
                 panels = [compose_half(C, hp, used, warn) for hp in hps] + [max_area_panel(C)]   # v24
+                np_ = notes_panel(C)                     # v24.1: notes the key columns had no room for
+                if np_ is not None:
+                    panels.append(np_)
+                    lines.append(u"notes {} on the notes panel (mp_notes): no room in the key columns".format(
+                        u", ".join(str(nt["n"]) for nt in sorted(C.note_overflow, key=lambda nt: nt["n"]))))
                 on_map = set(n for hp in hps for n in hp["placed"])
                 for nt in C.notes:
                     if nt["n"] not in on_map:
                         warn.append(u"masterplan note {} not placed on the plan (no free spot): {}".format(nt["n"], nt["text"]))
                 LEG.clear()                              # v24: the halves carry their own legend
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v24 option {} (1:{:,.0f})".format(opt, MP_SCALE))
+                path = save(pg, folder, name, u"Bergama masterplan v24.1 option {} (1:{:,.0f})".format(opt, MP_SCALE))
                 files.append(path)
                 pages.append((opt, alt, pg))
                 sheets.append((path, pg, MP_SCALE))
@@ -927,7 +933,7 @@ def build_all(doc, warn):
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v24 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v24.1 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))
@@ -970,9 +976,10 @@ def run():
     globals()["_ran_now"] = pressed
     mem_set("prev", on, persist=False)
     if not pressed:
-        last = mem_get("last", "")
-        gh_status(mem_get("status", "") or SHORT + " · idle")
-        for w in mem_get("warn", []) or []:
+        same = mem_get("ver", "") == VERSION        # v24.1 (Aras 27 Oct 15:35): a newly pasted version shows itself
+        last = mem_get("last", "") if same else ""   # at once, idle, without the old run's time, log or warnings
+        gh_status((mem_get("status", "") if same else "") or SHORT + " · idle")
+        for w in (mem_get("warn", []) if same else []) or []:
             gh_message("warning", w)
         return (last if last else u"Idle. Press the Button to write the masterplan. ({})".format(VERSION)), \
             mem_get("files", [])
@@ -1001,6 +1008,7 @@ def run():
             f.write(text)
     except Exception:
         pass
+    mem_set("ver", VERSION)
     mem_set("last", text)
     mem_set("status", status)
     mem_set("files", files)
@@ -1047,6 +1055,7 @@ if Rhino is not None:
     except Exception as _ex:
         _txt, _files = u"ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION), []
         gh_status(SHORT + " · ERROR")
+        mem_set("ver", VERSION)
         mem_set("last", _txt)   # 25 Oct: the error stays on the log after the Button is released
         mem_set("status", SHORT + " · ERROR")
     log = _txt

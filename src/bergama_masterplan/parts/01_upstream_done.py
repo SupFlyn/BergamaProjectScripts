@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v24 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v24.1 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
+
+NEW IN v24.1 (bugfix, Aras 27 Oct 16:04): the numbered notes that do not fit a half's key column (the
+"key column taller than the plan" warnings) go on a notes panel (booklet crop mp_notes) instead of making the half
+taller; the text under the component shows a newly pasted version at once, idle, without the old run's time.
 
 WHAT IT DRAWS (one page per alternative and zone-base option: 3 x 2 = six PDFs per press)
   Alternative 1  the programme puzzle of v2.3: every space of each working area (zones, river, streets, housing,
@@ -78,7 +82,7 @@ NEW IN v24 (Aras 27 Oct 11:07, booklet v9 p15-16; revision_2026-10-27/PHASE2_SPE
   * masterplan_results.json gains "movement" (spec §4: roads, routes, truck_route, crossings, hubs with role).
   * p16: the 1:1,000 windows draw the same corridor with every element and species code named; no text block under
     the plan. No personal names on the sheets.
-  Output: Bergama_masterplan_v24_A.pdf, Bergama_masterplan_v24_A_detail.pdf.
+  Output: Bergama_masterplan_v24_1_A.pdf, Bergama_masterplan_v24_1_A_detail.pdf.
 
 OLDER: v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026-10-26.md, R4):
   * No walk lines on any plan (p.19: "We work with zones only"): the bank / street / bed walks are no longer drawn
@@ -121,8 +125,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v24 (2026-10-27)"
-SHORT = "v24"
+VERSION = "bergama_masterplan v24.1 (2026-10-27)"
+SHORT = "v24.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -133,8 +137,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v24_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v24_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v24_1_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v24_1_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 #@include ../../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here

@@ -58,6 +58,8 @@ PAGES = [
     dict(part="B", title=u"Collect, clean, hold", rows=[[WB + "wb_system"]]),
     # v10: masterplan redo (v24): halves stacked at 1:5,000; close-scale plan + maximum potential area proof
     dict(part="C", title=u"Masterplan: an ecological corridor", rows=[[MP + "mp_upstream"], [MP + "mp_downstream"]]),
+    # v10.1: the numbered notes the masterplan halves had no room for (only when masterplan v24.1+ writes mp_notes)
+    dict(part="C", title=u"Why each place", rows=[[MP + "mp_notes"]], optional=True),
     dict(part="C", title=u"The water edge at 1:1,000", rows=[[MP + "dt_upstream", MP + "dt_k5"], [MP + "mp_max_area"]]),
     dict(part="C", title=u"The spine, stop by stop", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),
     # v10 (Aras 27 Oct: p18-19 into one page): the four sections as one panel

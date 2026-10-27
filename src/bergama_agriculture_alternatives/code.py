@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v1_6.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v1_7.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -12,7 +12,9 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v1.6"
+VERSION = "v1.7"
+# v1.7 (bugfix, Aras 27 Oct 16:05): page 3 crashed ("too many values to unpack": the sketch engine's items now
+# carry a 4th value, the label group); the text under the component shows a newly pasted version at once, idle.
 # v1.6 (Aras 27 Oct 11:07, booklet p24-26; revision_2026-10-27/PHASE2_SPEC.md): white pages (the beige paper goes); no
 # source footers or credit lines on the pages: the [n] marks are numbered once for the sheet and their key is a 4th
 # page "Sources" (the booklet's sources page reads it there). Page 1 adds "why the stored water goes to farms": a
@@ -1061,7 +1063,7 @@ def page_ladder(L, src):
         T, B = top - r * ROW_H, top - (r + 1) * ROW_H
         y0 = B + 2.0 - LAD_GB * LAD_F                  # page y of the sketch's 0
         mark = ((19.0 - LAD_X0) / LAD_F, (T - 6.0 - y0) / LAD_F)
-        sk_draw(pg, xform([it for _, _, it in ladder_row(sea, mark)], LAD_F, LAD_X0, y0))
+        sk_draw(pg, xform([e[2] for e in ladder_row(sea, mark)], LAD_F, LAD_X0, y0))   # v1.7: (z, order, item, group)
         if sea["mark"] == "olive":
             icon(pg, "olive", 14.0, T - 1.5, 9.0)
         P.text(pg, sea["name"], 26.0, T - 8.0, 12, C["ink"], True)
@@ -1276,6 +1278,10 @@ if _gh:
         _sc.sticky["bergama_agri_alt_log" + _ik] = write_log(_res)
         _sc.sticky["bergama_agri_alt_log_status" + _ik] = ("ERROR" if _sc.sticky["bergama_agri_alt_log" + _ik].startswith(("ERROR", "The PDF is open")) else time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky["bergama_agri_alt_log_done" + _ik] = done_text(True, not _sc.sticky["bergama_agri_alt_log_status" + _ik].startswith("ERROR"), time.time() - _t0)
+        _sc.sticky["bergama_agri_alt_log_ver" + _ik] = VERSION
+    if _sc.sticky.get("bergama_agri_alt_log_ver" + _ik) != VERSION:   # v1.7 (Aras 27 Oct 15:35): a newly pasted version
+        for _s in ("", "_status", "_done"):                            # shows itself at once, idle, no old time or log
+            _sc.sticky.pop("bergama_agri_alt_log" + _s + _ik, None)
     done = _sc.sticky.get("bergama_agri_alt_log_done" + _ik, "idle")   # 25 Oct 10:20: stays after the run; wire into the next script's run (one-click chain)
     log = _sc.sticky.get("bergama_agri_alt_log" + _ik, "Press the Button to export to " + OUT_DIR)
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log

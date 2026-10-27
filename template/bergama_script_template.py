@@ -205,6 +205,10 @@ if "ghenv" in globals():
         _sc.sticky[_k + "_status"] = ("ERROR" if _res.startswith("ERROR") else
                                       time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
+        _sc.sticky[_k + "_ver"] = VERSION
+    if _sc.sticky.get(_k + "_ver") != VERSION:   # Aras 27 Oct 15:35: a newly pasted version shows itself at once, idle
+        for _s in ("_log", "_status", "_done"):
+            _sc.sticky.pop(_k + _s, None)
     done = _sc.sticky.get(_k + "_done", "idle")
     log = _sc.sticky.get(_k + "_log", "Press the Button to export to " + OUT_DIR)
     print(log)               # 25 Oct 12:10: on Aras's canvas the log output is Grasshopper's "out" (printed text)

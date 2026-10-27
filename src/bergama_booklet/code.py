@@ -10,6 +10,9 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v10.1 (bugfix, 27 Oct 16:04): page "Why each place" after the masterplan halves, when masterplan v24.1 writes
+the notes its key columns had no room for (crop mp_notes); the text under the component shows a newly pasted version
+at once, idle.
 NEW IN v9 (Aras 27 Oct 06:20 "pair them anyway"): the four proposal sections always share pages two at a time.
 NEW IN v8 (Aras 26 Oct 08:27-08:28, on the v7 build): the two masterplan halves share one page, side by side, each at
 its own round scale; "Long section along the spine" is left out (it repeated the "What is there" map); water board
@@ -40,7 +43,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v10"
+VERSION = "v10.1"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -698,6 +701,10 @@ if "ghenv" in globals():
         _sc.sticky[_k + "_status"] = ("ERROR" if _res.startswith("ERROR") else
                                       time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
+        _sc.sticky[_k + "_ver"] = VERSION
+    if _sc.sticky.get(_k + "_ver") != VERSION:   # v10.1 (Aras 27 Oct 15:35): a newly pasted version shows itself at once,
+        for _s in ("_log", "_status", "_done"):   # idle, without the old run's time or log
+            _sc.sticky.pop(_k + _s, None)
     done = _sc.sticky.get(_k + "_done", "idle")
     log = _sc.sticky.get(_k + "_log", "Press the Button to build " + os.path.join(OUT_DIR, PDF_NAME))
     print(log)
