@@ -1,7 +1,7 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v10 (Aras 27 Oct 11:07 review: page list above each entry); v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
+# ---- BOOKLET PLAN v11 (Aras 27 Oct 17:27, Prompt 1: theme cycles, merge frames); v10 (Aras 27 Oct 11:07 review: page list above each entry); v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
 # repeated the "What is there" map); v7 (review R7: no half-empty pages: "alone" = the two rows share a page only if both stay >= 3/4
 # of their own-page size, else each gets its own page under these titles); v5 (review 26 Oct 07:06: p.07 edge plan, all cuts on <= 2 pages); v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
 # Every page is the scripts' OWN sheet: an A3 sheet goes in as it is; a panel of a big sheet is cut out with its own
@@ -18,7 +18,10 @@ BOOK = dict(
     date=u"October 2026",
 )
 
-PARTS = {"A": u"Site as it is", "B": u"Water", "C": u"Proposal"}
+# v11 (Aras 27 Oct 17:27, Prompt 1): theme cycles; each theme runs ANALYSIS -> WHAT WE GOT -> WHAT WE DO WITH IT
+PARTS = {"A": u"Site and stream edge", "B": u"Movement and the city", "C": u"Water", "D": u"History and heritage",
+         "E": u"Masterplan: the synthesis"}
+STAGES = {"an": u"Analysis", "got": u"What we got", "do": u"What we do with it"}
 
 SCRIPT_OF = {   # output folder -> script, named on placeholders, the sources page and in the log
     "selinus_board": u"Site board",
@@ -34,45 +37,64 @@ SB, WB, BAL = "selinus_board/", "bergama_water_board/", "Bergama_water_balance_a
 MP, CLK, AG, PS = "bergama_masterplan/", "Bergama_city_link_analysis/", "Bergama_agriculture_alternatives/", \
     "bergama_proposal_sections/"
 
+
+
+def SLOT(text, w=180.0, h=120.0):
+    """v11: a frame for a drawing a later prompt makes: a labelled placeholder of w x h mm (never a drawing)"""
+    return "slot|%.0f|%.0f|%s" % (w, h, text)
+
+
 # sheet = a whole A3 sheet page as it is; rows = panels side by side, rows stacked, one scale for the page
+# v11 (Prompt 1): page order = theme cycles (old v10.1 page numbers in the comments: page map
+# revision_2026-10-27/prompts/P1_PAGE_MAP.md); merges are frames only, their content comes in later prompts
 PAGES = [
-    dict(part="A", title=u"What is there", rows=[[SB + "drw_plan01"]]),
-    dict(part="A", title=u"Heights and enclosure", sheet=SB + "Selinus_01_what_is_there_axonometric.pdf"),
-    # v10 (Aras 27 Oct 11:07): building types moved into the sections (board v44), the small map at the bottom out
-    dict(part="A", title=u"Grain of the town", rows=[[SB + "drw_key_question", SB + "drw_ground_cover"]]),
-    # v10: the edge map alone and large, its edge-type shares inside the same crop; photos with captions on their own page
-    dict(part="A", title=u"The stream edge", rows=[[SB + "drw_edge_plan"]]),
-    dict(part="A", title=u"Along the stream", rows=[[SB + "drw_photos"]]),
-    # v10: the large map + walking / driving today (key roads only); change maps gone
-    dict(part="A", title=u"How people use it", rows=[[SB + "drw_movement"],
-                                                    [SB + "drw_walking_today", SB + "drw_driving_today"]]),
-    # v10: proposal map (from the masterplan's movement), commercial spine (board v19-v32.1, restored), heritage loop
-    dict(part="A", title=u"How people will move", rows=[[SB + "drw_proposal"],
-                                                       [SB + "drw_commercial_spine", SB + "drw_heritage_loop"]]),
-    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_sections_1"]], optional=True),
-    dict(part="A", title=u"Sections across the stream", rows=[[SB + "sec_sections_2"]], optional=True),
-    dict(part="A", title=u"Shops meet the stream where it is hidden", sheet=CLK + "Bergama_city_link_A3.pdf", page=0),
-    dict(part="B", title=u"The water balance", sheet=BAL + "Bergama_water_balance_A3.pdf"),
-    # v10: old p11-14 condensed to two pages (water board v1.14)
-    dict(part="B", title=u"How the stream behaves", rows=[[WB + "wb_water"]]),
-    dict(part="B", title=u"Collect, clean, hold", rows=[[WB + "wb_system"]]),
-    # v10: masterplan redo (v24): halves stacked at 1:5,000; close-scale plan + maximum potential area proof
-    dict(part="C", title=u"Masterplan: an ecological corridor", rows=[[MP + "mp_upstream"], [MP + "mp_downstream"]]),
-    # v10.1: the numbered notes the masterplan halves had no room for (only when masterplan v24.1+ writes mp_notes)
-    dict(part="C", title=u"Why each place", rows=[[MP + "mp_notes"]], optional=True),
-    dict(part="C", title=u"The water edge at 1:1,000", rows=[[MP + "dt_upstream", MP + "dt_k5"], [MP + "mp_max_area"]]),
-    dict(part="C", title=u"The spine, stop by stop", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),
-    # v10 (Aras 27 Oct: p18-19 into one page): the four sections as one panel
-    dict(part="C", title=u"The proposals in section", rows=[[PS + "ps_all"]]),
-    dict(part="C", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),
-    dict(part="C", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),
-    # v10: plants redo + the green space map from the stream edge page
-    dict(part="C", title=u"Which plant goes where", rows=[[WB + "wb_plants"], [SB + "drw_tree_cover"]]),
-    dict(part="C", title=u"Where the clean water goes", rows=[[WB + "wb_farms"], [WB + "wb_decision"]]),
-    dict(part="C", title=u"What each cubic metre grows", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=0),
-    # v10: "The farms we feed" deleted (Aras 27 Oct)
-    dict(part="C", title=u"One plant ladder, streambed to field", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=2),
+    # ---- A SITE AND STREAM EDGE
+    # old p2 + p4 -> one page (frame)
+    dict(part="A", stage="an", title=u"What is there, grain of the town",
+         rows=[[SB + "drw_plan01"], [SB + "drw_key_question", SB + "drw_ground_cover"]]),
+    dict(part="A", stage="an", title=u"Heights and enclosure", sheet=SB + "Selinus_01_what_is_there_axonometric.pdf"),   # old p3
+    dict(part="A", stage="an", title=u"Sections across the stream", rows=[[SB + "sec_sections_1"]], optional=True),   # old p9
+    dict(part="A", stage="an", title=u"Sections across the stream", rows=[[SB + "sec_sections_2"]], optional=True),   # old p10
+    # old p5 + p6 -> one page (frame): the edge plan stands in until the new edge + buildable-area diagram is drawn
+    dict(part="A", stage="got", title=u"The stream edge, along the stream", rows=[[SB + "drw_edge_plan", SB + "drw_photos"]]),
+    dict(part="A", stage="do", title=u"What we do with the edge",
+         rows=[[SLOT(u"Edge moves: proposal frame (later prompt)", 380.0, 200.0)]]),
+    # ---- B MOVEMENT AND THE CITY
+    dict(part="B", stage="an", title=u"How people use it", rows=[[SB + "drw_movement"],
+                                                                 [SB + "drw_walking_today", SB + "drw_driving_today"]]),   # old p7
+    dict(part="B", stage="got", title=u"Why shops meet the stream where it is hidden",
+         sheet=CLK + "Bergama_city_link_A3.pdf", page=0),   # old p11
+    # old p8 without the heritage loop (moved to D)
+    dict(part="B", stage="do", title=u"How people will move", rows=[[SB + "drw_proposal"], [SB + "drw_commercial_spine"]]),
+    dict(part="B", stage="do", title=u"The streamside spine, hub by hub", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),   # old p18
+    # ---- C WATER (one block)
+    dict(part="C", stage="an", title=u"How the stream behaves", rows=[[WB + "wb_water"]]),   # old p13 (into p12 or p14: Prompt 4)
+    dict(part="C", stage="got", title=u"The water balance", sheet=BAL + "Bergama_water_balance_A3.pdf"),   # old p12
+    dict(part="C", stage="do", title=u"Collect, clean, hold", rows=[[WB + "wb_system"]]),   # old p14
+    dict(part="C", stage="do", title=u"The proposals in section", rows=[[PS + "ps_all"]]),   # old p19
+    dict(part="C", stage="do", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # old p20
+    dict(part="C", stage="do", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),   # old p21
+    dict(part="C", stage="do", title=u"Which plant goes where", rows=[[WB + "wb_plants"], [SB + "drw_tree_cover"]]),   # old p22
+    dict(part="C", stage="do", title=u"Where the clean water goes", rows=[[WB + "wb_farms"], [WB + "wb_decision"]]),   # old p23
+    dict(part="C", stage="do", title=u"What each cubic metre grows", sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=0),   # old p24
+    dict(part="C", stage="do", title=u"One plant ladder, streambed to field",
+         sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=2),   # old p25
+    # ---- D HISTORY AND HERITAGE (now spread over old p3, p8, p18, p20: collected here as frames)
+    dict(part="D", stage="an", title=u"Heritage along the stream",
+         rows=[[SLOT(u"Heritage on site: Roman bridges and tunnels, Red Hall, Ulu Cami, tannery quarter (later prompt)", 230.0, 200.0),
+                SLOT(u"What history asks of the edge (later prompt)", 146.0, 200.0)]]),
+    dict(part="D", stage="do", title=u"The heritage loop", rows=[[SB + "drw_heritage_loop"]]),   # from old p8
+    # ---- E MASTERPLAN AS THE SYNTHESIS: one spread (left page even) = masterplan + open ground + new edge diagram
+    dict(part="E", stage="do", title=u"Masterplan: an ecological corridor", spread="L",
+         rows=[[MP + "mp_upstream"], [MP + "mp_downstream"]]),   # old p15
+    # old p17 bottom row (open ground) + new edge diagram + old p16 notes folded in (frame)
+    dict(part="E", stage="do", title=u"Masterplan: open ground and the new edge", spread="R",
+         rows=[[MP + "mp_max_area", SLOT(u"New edge diagram (later prompt)", 150.0, 110.0)], [MP + "mp_notes"]]),
+    dict(part="E", stage="do", title=u"The water edge at 1:1,000", rows=[[MP + "dt_upstream", MP + "dt_k5"]]),   # old p17 top row
 ]
+
+# v11: panels left out without a placeholder when their script did not write them (the masterplan notes, v24.1+)
+OPTIONAL_KEYS = {MP + "mp_notes"}
 
 # the sheets whose own "Sources by number" keys the [n] marks on these pages refer to (sources page, in this order)
 SOURCE_SHEETS = [SB + "Selinus_drawings.pdf", SB + "Selinus_01_what_is_there_axonometric.pdf",

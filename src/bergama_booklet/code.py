@@ -10,6 +10,11 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v11 (Aras 27 Oct 17:27, Prompt 1: structure only): pages run in theme cycles A site and stream edge,
+B movement and the city, C water, D history and heritage, E masterplan as the synthesis; each theme runs analysis ->
+what we got -> what we do with it, named in every page's kicker, the footer and the contents. Merges set up as frames:
+old p2 + p4, p5 + p6 one page each; the heritage loop on its own page in D; the masterplan halves + open ground + new
+edge diagram + the notes as a two-page spread (left page even). A drawing a later prompt makes is a labelled frame.
 NEW IN v10.1 (bugfix, 27 Oct 16:04): page "Why each place" after the masterplan halves, when masterplan v24.1 writes
 the notes its key columns had no room for (crop mp_notes); the text under the component shows a newly pasted version
 at once, idle.
@@ -43,7 +48,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v10.1"
+VERSION = "v11"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -285,7 +290,9 @@ def frame_page(fitz, doc, typo):
 
 def header(pg, typo, spec):
     part = PARTS.get(spec.get("part"), "")
-    typo.line(pg, (spec.get("part", "") + "   " + part).upper(), colx(1), 12, T["kicker"], ACCENT, True)
+    stage = STAGES.get(spec.get("stage"), "")         # v11: where the page sits in its theme's cycle
+    typo.line(pg, (spec.get("part", "") + "   " + part + ("   ·   " + stage if stage else "")).upper(), colx(1), 12,
+              T["kicker"], ACCENT, True)
     typo.line(pg, spec.get("title", ""), colx(1), 22, T["part"], INK, True)
     pg.draw_line((colx(1) * K, 25 * K), ((PW - ML) * K, 25 * K), color=hexrgb(RULE), width=0.25)
 
@@ -297,7 +304,7 @@ def footer(pg, typo, pno, spec, legend):
     typo.line(pg, "%02d" % pno, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
     part = PARTS.get(spec.get("part"), "")
     if part:
-        typo.line(pg, part.upper(), PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
+        typo.line(pg, (spec.get("part", "") + "  " + part).upper(), PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
     # legend: same place on every page (columns 4-10 of the footer band), drawn samples + plain names
     x0, x1 = colx(4), PW - ML - 34.0
     x, y = x0, FOOT_B1
@@ -363,6 +370,8 @@ def sheet_page(fitz, doc, typo, pno, spec):
 
 
 def wh(it):
+    if it[3] is None and it[1] and it[1].get("slot"):  # v11: a frame for a later drawing keeps its planned size
+        return it[1]["size_mm"]
     return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
 
 
@@ -403,7 +412,10 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
         for key, blk, path, clip in r:
             s = sc((key, blk, path, clip))
             w, h = wh((key, blk, path, clip))
-            if clip is None:
+            if clip is None and blk and blk.get("slot"):     # v11: frame for a drawing a later prompt makes
+                placeholder(pg, typo, (x, y, w * s, h * s), blk["slot"])
+                rep.append("frame: %s" % blk["slot"])
+            elif clip is None:
                 missing.add(key.partition("/")[0])
                 placeholder(pg, typo, (x, y, w * s, h * s), "%s · %s" % (SCRIPT_OF.get(key.partition("/")[0], ""),
                                                                         key.split("/")[1]))
@@ -430,6 +442,9 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
 def expand(fitz, spec, assets):
     """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4)."""
     def item(key):
+        if key.startswith("slot|"):                    # v11: SLOT(text, w, h) of the plan
+            _, w, h, text = key.split("|", 3)
+            return (key, {"slot": text, "size_mm": (float(w), float(h))}, None, None)
         blk, path = resolve(assets, key)
         if not path:
             return (key, blk, None, None)
@@ -442,6 +457,9 @@ def expand(fitz, spec, assets):
                 blk = dict(blk, scale_den=dens.pop())
         return (key, blk, path, clip)
     rows = [[item(k) for k in r] for r in spec["rows"]]
+    rows = [r for r in ([it for it in r if not (it[0] in OPTIONAL_KEYS and it[3] is None)] for r in rows) if r]
+    if not rows:
+        return []
     if spec.get("optional") and all(it[3] is None for r in rows for it in r):
         return []
     if spec.get("alone") and fit(rows) < 0.75 * min(fit([r]) for r in rows):   # v7: together only if both stay big
@@ -464,18 +482,21 @@ def cover(pg, typo, pages):
     # contents: parts and page titles, columns 9-12 (a title split over pages listed once)
     cx, cy = colx(9), 40
     typo.line(pg, "CONTENTS", cx, cy - 8, T["kicker"], ACCENT, True)
-    last, seen = None, set()
+    last, lstage, seen = None, None, set()
     for no, sp in pages:
         t = re.sub(r" \(\d+/\d+\)$", "", sp.get("title", ""))
         if t in seen:
             continue
         seen.add(t)
         if sp.get("part") != last:
-            last = sp.get("part")
+            last, lstage = sp.get("part"), None
             cy += 2
             typo.line(pg, (last + "  " + PARTS.get(last, "")).upper(), cx, cy, T["caption"], ACCENT, True); cy += 4.5
+        if sp.get("stage") != lstage:                  # v11: the cycle step, once where it starts
+            lstage = sp.get("stage")
+            typo.line(pg, STAGES.get(lstage, "").lower(), cx + 8, cy, T["caption"], INK2); cy += 3.6
         typo.line(pg, "%02d" % no, cx, cy, T["caption"], INK2, True)
-        typo.line(pg, t, cx + 8, cy, T["caption"], INK); cy += 4.0
+        typo.line(pg, t, cx + 12, cy, T["caption"], INK); cy += 4.0
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
 
 
@@ -582,6 +603,9 @@ def main():
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
     cover(frame_page(fitz, doc, typo), typo, [(n, sp) for n, sp, _ in numbered])
     missing, rep = set(), []
+    for pno, sp, rows in numbered:                   # v11: a spread opens on a left (even) page
+        if sp.get("spread") == "L" and pno % 2:
+            typo.issues.append("SPREAD STARTS ON A RIGHT PAGE p.%d %s" % (pno, sp.get("title", "")))
     for pno, sp, rows in numbered:
         rep.append(sheet_page(fitz, doc, typo, pno, sp) if rows is None else
                    panel_page(fitz, doc, typo, pno, sp, rows, assets, missing))
