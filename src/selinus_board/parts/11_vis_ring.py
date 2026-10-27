@@ -6,6 +6,9 @@ def vis_ring(B, cx, cy, r, pct, col, back, L, order=30):
         B.fill([annulus(cx, cy, 0.62 * r, r, a0, a0 - 2.0 * math.pi * min(1.0, pct / 100.0))], col, L, order + 1)
 
 
+TECH_KEYS = {}          # v44: each technical sheet's numbered sources {"T1": [...]}, for the booklet's sources page
+
+
 def tech_frame(S, B, X, Y, U, num, title, subtitle, sources):
     L = "LU_TECH::Frame"
     B.fill([rect(X, Y - PH * U, X + PW * U, Y)], T_BG, L, 0)
@@ -18,12 +21,12 @@ def tech_frame(S, B, X, Y, U, num, title, subtitle, sources):
     B.line([(X + m, yb), (X + PW * U - m, yb)], T_RULE, L, 2, 0.18)
     B.line([(X + PW * U - m - 26 * U, yb), (X + PW * U - m - 26 * U, Y - PH * U + m)], T_RULE, L, 2, 0.18)
     if isinstance(sources, (list, tuple)):              # v38: the method and sources as the sheet's numbered [n] key
+        TECH_KEYS[num] = list(sources)                  # v44: also into the booklet blocks (sheet_sources)
         sources = src_key_text(sources)
     B.para_fit(sources, X + PM * U, yb - 0.75 * U, PW * U - 2 * m - 29 * U, 0.26 * U, Y - PH * U + m + 0.35 * U, T_GREY, L)
     bx = X + PW * U - m - 25 * U
     B.fit(CREDIT, bx, yb - 0.9 * U, 0.34 * U, 18 * U, T_INK, L)
     B.fit("Yaşar University · site analysis", bx, yb - 1.6 * U, 0.3 * U, 18 * U, T_GREY, L)
-    B.fit("Analyses: survey + open data", bx, yb - 2.2 * U, 0.3 * U, 18 * U, T_GREY, L)
     B.text(num, X + PW * U - m - 0.8 * U, yb - 2.3 * U, 1.6 * U, T_INK, L, font=FONT_TITLE, bold=True, align="R")
     return Y - 6.4 * U, yb + 0.8 * U
 

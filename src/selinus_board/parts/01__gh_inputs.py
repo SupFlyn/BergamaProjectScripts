@@ -1,8 +1,23 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v43)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v44)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v44 (2026-10-27, Aras 11:07, booklet pages 4-8; revision_2026-10-27/PHASE2_SPEC.md):
+  * "What meets the water" (p.5): the site at the largest round booklet scale that fits an A3 page (cut into stacked
+    pieces along its length, each piece cut to its own frame), photo viewpoints as 12 pt numbers on discs, bridges
+    K1-K6 at 12 pt; the edge types' shares of the bank length and walled / embanked rings beside the map, in the same
+    crop. Keyword captions under the site photos (the photo index's own words; Roman bridge K3 / K4 named).
+  * How people use it (p.6): "walking / driving today" show only the 5 busiest named streets (the engine's street
+    table), coloured and named, the rest grey; the change maps are gone. New drawings: the commercial spines
+    (restored from v19-v32.1, "07 Commercial spines"), the masterplan's proposal (masterplan_results.json
+    "movement": roads with their notes and index today -> with it, truck route, crossings, hubs by role, later bus
+    routes; the movement engine run with it), the city heritage loop, and the walking effort (Tobler) proof map.
+  * Sections (p.7-8): the building types under the last cuts at a round scale; callout words two characters apart;
+    the historic city wall line and the covered stream marked where a cut crosses them; the cuts' scale words are
+    the sheet's own (the booklet printed 1:4,136).
+  * No placeholder drawing without section lines (logged); no "Analyses: survey + open data" line.
 
 NEW IN v43 (2026-10-26, Aras 07:38): the site photos for the booklet go to Downloads/Bergama/cached/booklet_images/
   (no longer Downloads/Bergama/booklet_images/; the old folder is removed on the run). Nothing else changed.
@@ -231,7 +246,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v43 (2026-10-26)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v44 (2026-10-27)"     # v27: the log's first line and the text under the component
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

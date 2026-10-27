@@ -296,32 +296,30 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     mb = y - 1.2 * U - mh
     draw_scalebar(B, V.X0, mb - 1.4 * U, V.s, nice_floor(F2.w / 8.0), U, L, h=0.32)
     yy = mb - 2.8 * U
-    # insets: walking and driving today (and the change with the proposal, when one is wired)
+    # insets: walking and driving today, only the key streets in colour and named (v44, Aras 27 Oct: "highlight only
+    # the key axes and roads"); the change maps are gone from the sheet (the proposal map shows the masterplan's)
     if R:
-        keys = [("walk_b", "WALKING TODAY"), ("car_b", "DRIVING TODAY")]
-        if R["has_prop"] or MV.get("attr"):
-            keys += [("walk_d", "WALKING: CHANGE WITH THE PROPOSAL"), ("car_d", "DRIVING: CHANGE WITH THE PROPOSAL"),
-                     ("comb_d", "COMBINED: CHANGE WITH THE PROPOSAL")]
+        keys = [("walk_b", "WALKING TODAY", u"Walking today · the {} busiest named streets"),
+                ("car_b", "DRIVING TODAY", u"Driving today · the {} busiest named roads")]
         n = 2
         g = 1.2 * U
         iw = (mw - (n - 1) * g) / n
         low = yy
-        for j, (k, title) in enumerate(keys):
+        for j, (k, title, cap) in enumerate(keys):
             ix = V.X0 + (j % n) * (iw + g)
-            if j and j % n == 0:
-                yy = low - 1.0 * U
             iy = yy
             B.text(title, ix, iy, 0.5 * U, INK, L, font=FONT_TITLE, bold=True)
             Vi, iw_, ih_ = view_fit(F, ix, iy - 0.8 * U, iw, 10.0 * iw)
             mini_base(S, B, Vi, L, water_col=mix(CAT["water"][1], PAPER, 0.3))
             mini_buildings(S, B, Vi, L, lambda u: quiet, order=12)
-            runs = mv_runs(S, R, k, F)
-            dmax = max([abs(v) for P, (c_, v) in runs] or [1.0]) or 1.0
-            draw_mv_streets(B, Vi, runs, L, 14, scale=0.45, div=k.endswith("_d"), dmax=dmax)
+            s_i = bk_s(iw, ih_ * 1.15, crop_scale(Vi.s), share=0.5)    # two side by side on the booklet page
+            bnd = (ix, iy - 0.8 * U - ih_, ix + iw, iy - 0.8 * U)
+            names_, key_ = draw_mv_key(S, B, Vi, R, MV, k, F, L, bk_h(8.0, s_i), bnd)
             B.line(Vi.P(F.P + [F.P[0]]), INK2, L, 26, 0.1)
-            crop_panel(CROP_MV.get(k, k), ix, iy - 0.8 * U - ih_, ix + iw, iy - 0.8 * U, title.capitalize(),
-                       crop_scale(Vi.s))                  # v40: the booklet crop of the inset
-            low = min(low, iy - 0.8 * U - ih_ - 0.4 * U)
+            kb = draw_label_key(B, key_, ix, bnd[1] - 0.3 * U, iw, bk_h(7.5, s_i), L) if key_ else bnd[1]
+            crop_panel(CROP_MV.get(k, k), ix, kb - 0.2 * U, ix + iw, iy - 0.8 * U,
+                       cap.format(len(names_)), crop_scale(Vi.s))     # v40: the booklet crop of the inset
+            low = min(low, kb - 0.4 * U)
         yy = low - 0.6 * U
     # walking lengths from each working area (D7), as a small table
     if D7:
@@ -363,7 +361,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     r_com = bcite("Commerce: shopfronts within 30 m of a street (survey, OSM, Overture). Services: Overture/Meta "
                   "places. Walks: the shortest along OSM streets and footways from the edge of each working area, "
                   "rounded to 10 m.")
-    r_sp = bcite("Proposed streamside spine: {}; the change maps add it to the walking network (joined to every street it "
+    r_sp = bcite("Proposed streamside spine: {}; the city link figures add it to the walking network (joined to every street it "
                  "crosses) and its stops as new destinations. Walking cost follows the slope (Tobler 1993) on the survey "
                  "terrain.".format(getattr(S, "city_link", None) and S.city_link["src"] or "curves wired into the board")
                  ) if sp_props else ""
@@ -474,23 +472,35 @@ def build_sheet(S, B, X, Y, U, rects):
              ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
              ("06b What meets the water", 120.0 * U, lambda x, y: draw_stream_edge_plan(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
+             ("07b Commercial spines", 120.0 * U, lambda x, y: draw_commercial_spines(S, B, x, y, 120.0 * U, U)),
+             ("07d City heritage loop", 40.0 * U, lambda x, y: draw_heritage_loop(S, B, x, y, 40.0 * U, U)),
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
+    # v44: the masterplan's proposal map (only when masterplan_results.json holds "movement") and the walking-effort
+    # proof (only with terrain heights on the network); each logs why when it is left out
+    at = [nm_ for nm_, w_, f_ in items].index("07d City heritage loop")
+    R_ = movement(S).get("R")
+    if R_ and getattr(R_["pieces"], "z", None):
+        items.insert(at + 1, ("07e Walking effort", 120.0 * U,
+                              lambda x, y: draw_walking_effort(S, B, x, y, 120.0 * U, U)))
+    M_ = mp_movement()
+    if M_ is not None:
+        items.insert(at, ("07c The proposal, how people move", 120.0 * U,
+                          lambda x, y: draw_mv_proposal(S, B, x, y, 120.0 * U, U, M_)))
     n_ = 13
     if S.sections:
         # v42 (Aras 26 Oct 07:06, p.09-11): every cut at ONE round scale, rows of whole cuts, at most two booklet pages
         sw = 140.0 * U
         plan_ = sections_plan(S, sw, U)
         for k_, pg_ in enumerate(plan_[2]):
-            nms = [c_["name"] for r_ in pg_ for c_, w_ in r_]
+            nms = [c_["name"] for r_ in pg_ for c_, w_ in r_ if not c_.get("_types")]
             items.append(("{:02d} Sections across the stream {}".format(12 + k_, nms[0] + (
                 "" if len(nms) == 1 else "-" + nms[-1])), sw,
                 (lambda k2: (lambda x, y: draw_sections_page(S, B, x, y, sw, U, plan_, k2)))(k_)))
         n_ = 12 + len(plan_[2])
-    else:
-        items.append(("12 Section placeholder", 94.8 * U,
-                      lambda x, y: draw_section_placeholder(S, B, x, y, 94.8 * U, 14.0 * U, U, 1)))
+    else:                                                 # v44: no placeholder on the sheet, the log says why
+        LOG.append("Sections: the survey has no section lines (layer sec_lines), so no cuts are drawn.")
     if spine_section(S) is not None:                     # v40: the long section along the streamside spine
         items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
                       lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))

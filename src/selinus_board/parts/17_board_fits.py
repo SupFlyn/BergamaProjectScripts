@@ -348,7 +348,7 @@ def report(S):
         tot_ = float(sum(re_.values()))
         out.append("River edges found on: " + ", ".join("{} {:.0f}%".format(k, 100.0 * v / tot_)
                                                          for k, v in sorted(re_.items(), key=lambda kv: -kv[1])))
-    out.append("Sections: {}".format(len(S.sections) if S.sections else "none (placeholders drawn)"))
+    out.append("Sections: {}".format(len(S.sections) if S.sections else "none (no section lines)"))
     return "\n".join(out)
 
 

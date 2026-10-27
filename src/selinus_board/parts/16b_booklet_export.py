@@ -5,7 +5,7 @@
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v43"
+BK_VERSION = "v44"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -126,6 +126,7 @@ def booklet_export(S, B, rects):
         done.append("%s  %s  %.0f x %.0f mm  1:%s" % (bid, pdf, rmm[2] - rmm[0], rmm[3] - rmm[1], den))
     if not done:
         BK_LOG.append("no crops: no sheet PDF was written on this run (pdf input off?)")
+    BK.d["sheet_sources"] = bk_sheet_sources()           # v44: what the [n] marks of each sheet PDF mean
     try:
         res = bk_results(S)
         import json as _j
@@ -143,6 +144,20 @@ def booklet_export(S, B, rects):
         f_.write(u"%s booklet crops (%d)\n%s\n\n%s\n" % (SCRIPT_VERSION, len(done), "\n".join(done) or "none",
                                                      "\n".join(BK_LOG)))
     return done
+
+
+def bk_sheet_sources():
+    """v44 (booklet convention 27 Oct): {"<sheet pdf>#<page index>": ["[1] ...", ...]} for every sheet PDF written on
+    this run: the drawings' and sections' sheets share the board's key (BOARD_KEY), a technical sheet T1-T8 has its
+    own (TECH_KEYS). Every sheet PDF is one page."""
+    out = {}
+    for nm, pdf, r, px, py, ph in SHEET_POS:
+        key = crop_sheet_key(pdf)
+        ents = TECH_KEYS.get("T" + key[1:]) if key[:1] == "t" and key[1:].isdigit() else (
+            BOARD_KEY if key.startswith(("drw", "sec")) else None)
+        if ents and pdf + "#0" not in out:
+            out[pdf + "#0"] = [u"[{}] {}".format(i + 1, (e or u"-").strip()) for i, e in enumerate(ents)]
+    return out
 
 
 def bk_results(S):
