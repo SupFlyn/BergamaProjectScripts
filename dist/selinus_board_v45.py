@@ -8,7 +8,8 @@ NEW IN v45 (2026-10-27, Aras 17:34, booklet Prompt 2 "site and stream edge"):
   * No section lines on any map (plan 01, how people use it, the movement maps): each sections page gets ONE key map
     instead (the whole site frame at 1:50,000, every cut thin, this page's cuts in ink with their names; booklet crops
     sec_sections_key_1 / _2, set in the booklet page's title band). The cuts lose their small locators and their own
-    scale words (the page states 1:2,500 once); the building types under them are drawn at the cuts' scale.
+    scale words (the page states 1:2,500 once; the cuts' scale search now starts at 1:2,500, as Aras asked); the
+    building types under them are drawn at the cuts' scale.
   * Plan 01 for the booklet page beside the new site readings: K names 9 pt, C and photo numbers 7.5 pt, placed clear
     of each other on leaders where needed; scale bar (numbers 7 pt under it) and north arrow under the map, never on
     it; the stream's name 8 pt; its booklet legend leaves out what the readings key (ground and green, edge types).
@@ -18851,7 +18852,8 @@ def draw_spine_section(S, B, x, y, w, U, tag="drawing"):
 # (global rule 4: what it shows, why it is here, what to take from it).
 CTX_H = 0.75            # page units: the context line's text height on a drawing about 120-140 units wide
 BK_AW, BK_AH = 392.0, 238.0   # mm: the booklet's panel area on one page (bergama_booklet v4: A3 less margins, caption)
-SEC_BOOK_DENS = (1000, 2000, 2500, 5000, 10000)   # the round booklet scales tried for the cuts, largest first
+SEC_BOOK_DENS = (2500, 5000, 10000)   # the round booklet scales tried for the cuts, largest first (v45, Prompt 2: "keep
+#                                      all eight sections at 1:2,500": the strips lost their locators, so 1:2,000 could fit)
 SEC_KEEP = 0.7          # a cut is cropped to the part around the stream only if at least this share of it stays
 SEC_COL_GAP = 2.0       # page units between two cuts side by side
 SEC_ROW_GAP = 1.6       # page units between rows of cuts

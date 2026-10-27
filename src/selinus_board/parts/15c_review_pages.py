@@ -7,7 +7,8 @@
 # (global rule 4: what it shows, why it is here, what to take from it).
 CTX_H = 0.75            # page units: the context line's text height on a drawing about 120-140 units wide
 BK_AW, BK_AH = 392.0, 238.0   # mm: the booklet's panel area on one page (bergama_booklet v4: A3 less margins, caption)
-SEC_BOOK_DENS = (1000, 2000, 2500, 5000, 10000)   # the round booklet scales tried for the cuts, largest first
+SEC_BOOK_DENS = (2500, 5000, 10000)   # the round booklet scales tried for the cuts, largest first (v45, Prompt 2: "keep
+#                                      all eight sections at 1:2,500": the strips lost their locators, so 1:2,000 could fit)
 SEC_KEEP = 0.7          # a cut is cropped to the part around the stream only if at least this share of it stays
 SEC_COL_GAP = 2.0       # page units between two cuts side by side
 SEC_ROW_GAP = 1.6       # page units between rows of cuts

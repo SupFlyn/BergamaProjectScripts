@@ -8,7 +8,8 @@ NEW IN v45 (2026-10-27, Aras 17:34, booklet Prompt 2 "site and stream edge"):
   * No section lines on any map (plan 01, how people use it, the movement maps): each sections page gets ONE key map
     instead (the whole site frame at 1:50,000, every cut thin, this page's cuts in ink with their names; booklet crops
     sec_sections_key_1 / _2, set in the booklet page's title band). The cuts lose their small locators and their own
-    scale words (the page states 1:2,500 once); the building types under them are drawn at the cuts' scale.
+    scale words (the page states 1:2,500 once; the cuts' scale search now starts at 1:2,500, as Aras asked); the
+    building types under them are drawn at the cuts' scale.
   * Plan 01 for the booklet page beside the new site readings: K names 9 pt, C and photo numbers 7.5 pt, placed clear
     of each other on leaders where needed; scale bar (numbers 7 pt under it) and north arrow under the map, never on
     it; the stream's name 8 pt; its booklet legend leaves out what the readings key (ground and green, edge types).
