@@ -1,8 +1,22 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v45)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v46)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v46 (2026-10-27, Aras 17:34, booklet Prompt 3 "movement and the city"):
+  * Every movement map and the heritage loop at ONE scale: the whole site frame at 1:10,000 on the booklet page, on
+    the frame's own axes (one north), in the masterplan's base and layer order (ground, green, water, buildings,
+    bridges, roads); the scale bar (0-400 m, "m" beside it) and the north arrow sit UNDER each map, never on it.
+  * How people use it (analysis, p.8): the proposed streamside spine and its stops are gone from the map, the legend
+    and the notes; walking today and driving today are each a map of their own at the same scale under it.
+  * The proposal (p.10) is drawn soft over the crisp base: walkable reach from the masterplan's hubs as a gradient
+    along the streets, footways and new crossings (computed: Tobler slope, 100 m steps to the method's 800 m), the
+    changed roads, truck route and bus routes as soft bands, crossings and hubs as fading fields (proposal tints
+    multiply over the base: the PDF's blend mode).
+  * Commercial spines (p.10): the caption in full under the scale bar (the bar covered it).
+  * Writes cached/selinus_board/city_context.json: the light context of the city link's shops plan (homes by the
+    sections' building types, streets by class, the stream, bridges K1-K6).
 
 NEW IN v45 (2026-10-27, Aras 17:34, booklet Prompt 2 "site and stream edge"):
   * No section lines on any map (plan 01, how people use it, the movement maps): each sections page gets ONE key map
@@ -271,8 +285,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v45 (2026-10-27)"     # v27: the log's first line and the text under the component
-SHORT_V = "v45"                                         # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v46 (2026-10-27)"     # v27: the log's first line and the text under the component
+SHORT_V = "v46"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

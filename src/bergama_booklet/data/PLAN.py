@@ -1,4 +1,5 @@
-# ---- BOOKLET PLAN v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
+# ---- BOOKLET PLAN v13 (Aras 27 Oct 17:34, Prompt 3: p.8 the three movement maps stacked, each the site frame at
+# 1:10,000); v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
 # where we can build; a key map on each sections page: "key" = a crop in the title band, "side" = panels at the right
 # margin beside the rows); v11 (Aras 27 Oct 17:27, Prompt 1: theme cycles, merge frames); v10 (Aras 27 Oct 11:07 review: page list above each entry); v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
 # repeated the "What is there" map); v7 (review R7: no half-empty pages: "alone" = the two rows share a page only if both stay >= 3/4
@@ -61,8 +62,8 @@ PAGES = [
     dict(part="A", stage="do", title=u"What we do with the edge",
          rows=[[SLOT(u"Edge moves: proposal frame (later prompt)", 380.0, 200.0)]]),
     # ---- B MOVEMENT AND THE CITY
-    dict(part="B", stage="an", title=u"How people use it", rows=[[SB + "drw_movement"],
-                                                                 [SB + "drw_walking_today", SB + "drw_driving_today"]]),   # old p7
+    dict(part="B", stage="an", title=u"How people use it", rows=[[SB + "drw_movement"], [SB + "drw_walking_today"],
+                                                                 [SB + "drw_driving_today"]]),   # old p7 (v13: stacked, 1:10,000)
     dict(part="B", stage="got", title=u"Why shops meet the stream where it is hidden",
          sheet=CLK + "Bergama_city_link_A3.pdf", page=0),   # old p11
     # old p8 without the heritage loop (moved to D)

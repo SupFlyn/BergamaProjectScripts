@@ -1,11 +1,12 @@
-# bergama_city_link_v1_11.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
+# bergama_city_link_v2.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
 # ONE all-vector A3 PDF there (two pages) plus city_link_results.json:
-#   1 WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN  (booklet p9) one focal plan at 1:5,000 (shops, main spine,
-#                                                         open and hidden stream), two charts, seven reasons, who comes,
-#                                                         walking potential, read in numbered order
-#   2 THE STREAMSIDE SPINE, HUB BY HUB                    (booklet p17) the spine as a strip along the stream, the five
+#   1 WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN  (booklet p9) one focal plan of the site frame at 1:10,000
+#                                                         (shops, main spine, open and hidden stream over light context),
+#                                                         two charts, seven reasons, who comes, walking potential
+#   2 THE STREAMSIDE SPINE, HUB BY HUB                    (booklet p11) the spine as a strip along the stream with each
+#                                                         hub's reach on foot, the five
 #                                                         bridge places as cards (bus stops, dry hub + sub-hub, stops),
 #                                                         the flood rule, which bank, the producers' market supply
 # city_link_results.json = the spine, the function sites and (v1.11) the hubs in survey coordinates. The site board (selinus_board v34,
@@ -15,7 +16,18 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v1.11"
+VERSION = "v2"
+# NEW IN v2 (Aras 27 Oct 17:34, booklet Prompt 3 "movement and the city"; a feature change, so the next whole number):
+# page 1 (booklet p9): the plan is the whole site frame at 1:10,000 on the frame's own axes (one scale, frame and north
+# with the site board's movement maps), a band across the top, with light context underneath in layer order (water,
+# homes by the sections' building types, bridges K1-K6, streets by class: the site board's city_context.json, v46+)
+# and the shops (the board's OSM points for the whole frame), the main spine and the open / covered stream on top as
+# the strongest layer; scale bar and north arrow under the plan, the key beside it; the two charts side by side under
+# it. Page 2 (booklet p11): the spine and the hubs as gradients of reach, not a fixed line of a fixed length: each hub
+# a fading field along the stream out to the movement method's walking radius (read from the board, 800 m), tints
+# multiplied (PDF blend mode) so overlapping reaches darken; the spine a soft band fading out past K4 and K5; no
+# length in the title or label. Hub cards, flood rule, bank and market unchanged. The info pane shows the pasted
+# version at once. Without the board's context file both pages still draw (logged: no context, central shops only).
 # NEW IN v1.11 (Aras 27 Oct 11:07, revision_2026-10-27/PHASE2_SPEC.md §6; history decisions D2 D3 D6 D8 D10; Aras
 # 12:05 on the transit hub): both pages white (the beige paper goes) and without the source footer (the [n] marks
 # stay; their sources go to booklet/blocks.json "sheet_sources"); no sentences, keywords and pictograms; text >= 7 pt;
@@ -112,7 +124,9 @@ MAIN_SPINE = [[29756.1, 31655.4], [29777.7, 31668.2], [29793.7, 31679.4], [29806
 #@include data/STREAM_REF.py
 # v1.10 SHOPS_XY: shops on page 1's plan = OSM shop=* and amenity cafe/restaurant/fast_food/bar/pub/ice_cream (nodes,
 # and buildings at the mean of their corners) of the same extract (28 Jul 2026, bergama_osm.osm of the commercial spine
-# thread), converted with the h01 §0 formula (+-10-30 m), kept inside MAP_WIN: 150 places (calculated 26 Oct 2026)
+# thread), converted with the h01 §0 formula (+-10-30 m), kept inside the v1.11 plan's 960 x 740 m window (survey x
+# 29700-30660, y 31570-32310): 150 places (calculated 26 Oct 2026). v2: the plan covers the whole site frame and takes
+# the site board's shop points (same OSM file and tags, city_context.json); these are its fallback (window only, logged)
 #@include data/SHOPS_XY.py
 # side="auto": the bank is picked by the data (Aras 24 Oct 09:08: where more people live and modern buildings
 # concentrate). Per bank, within catch_m of the stream along the piece: people = floors of homes (a proxy; footprints
@@ -162,8 +176,9 @@ SRC_MAIN = ("Main spine: Bankalar + Kınık Caddesi, OSM 'secondary' ways (extra
             "±10-30 m), the primary commercial spine of the PR1 board p.4 (streets ranked by shops within 30 m)")
 SRC_STREAM = ("Selinos stream: OSM 'Selinos Çayı' (same extract and formula) set on the middle of the survey channel; "
               "covered = OSM tunnel / culvert ways (masterplan v11, 24 Oct); bridges: surveyed points (h01 §0 and §5, s62)")
-SRC_PLAN07 = ("The plan of the spine is on the site board's plan 07 (movement before and after), read from "
-              "city_link_results.json")
+SRC_REACH = ("Reach on foot: steps of 1/8, 1/4, 1/2, 3/4 and all of the movement method's walking radius ({:.0f} m, "
+             "bergama_movement v1, MV_OPT r_walk{}) from each hub, along the stream to scale, across it schematic; "
+             "where reaches overlap the strip darkens")
 # who: L locals, T tourists, S students; grows: W water, E stream edge, A agriculture, H heritage
 FUNCS = [
     dict(n=1, name="Bank bazaar", where="Tabaklar Hamamı", ch=522, bank="NE", xy=[29890.4, 32243.6], who="LT", grows="HE",
@@ -273,11 +288,12 @@ class Page:
         self.poly([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], fill, stroke, lw, True)
     def poly(self, P, fill=None, stroke=None, lw=0.2, closed=False, dash=None):
         self.path([P], fill, stroke, lw, closed, dash)
-    def path(self, rings, fill=None, stroke=None, lw=0.2, closed=True, dash=None):
-        """several rings in one path; a fill uses even-odd, so holes stay open"""
-        k = 72 / 25.4; o = ["q"]
+    def path(self, rings, fill=None, stroke=None, lw=0.2, closed=True, dash=None, mul=False, cap=1):
+        """several rings in one path; a fill uses even-odd, so holes stay open. v2: mul = laid over what is under it by
+        multiplying (a proposal tint: the PDF blend mode, /GM in write_pdf); cap 0 = butt ends"""
+        k = 72 / 25.4; o = ["q"] + (["/GM gs"] if mul else [])
         if fill: o.append(self._c(fill))
-        if stroke: o.append(self._c(stroke, True)); o.append("%.3f w 1 J 1 j" % (lw * k))
+        if stroke: o.append(self._c(stroke, True)); o.append("%.3f w %d J 1 j" % (lw * k, cap))
         if dash: o.append("[%.2f %.2f] 0 d" % (dash[0] * k, dash[1] * k))
         for P in rings:
             o.append("%.2f %.2f m" % (P[0][0] * k, P[0][1] * k))
@@ -285,7 +301,7 @@ class Page:
             if closed: o.append("h")
         o.append("B*" if fill and stroke else ("f*" if fill else "S")); o.append("Q")
         self.ops.append(" ".join(o))
-    def line(self, P, col, lw=0.25, dash=None): self.path([P], None, col, lw, False, dash)
+    def line(self, P, col, lw=0.25, dash=None, mul=False, cap=1): self.path([P], None, col, lw, False, dash, mul, cap)
     def text(self, s, x, y, size, col="4A3F35", bold=False, align="L"):
         if not s:
             return
@@ -313,7 +329,7 @@ def write_pdf(pages, path):
     for i, pg in enumerate(pages):
         content = zlib.compress("\n".join(pg.ops).encode("latin-1"))
         offs.append(len(out))
-        out += ("%d 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents %d 0 R >>\nendobj\n"
+        out += ("%d 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /ExtGState << /GM << /Type /ExtGState /BM /Multiply >> >> >> /Contents %d 0 R >>\nendobj\n"
                 % (5 + 2 * i, pg.w * k, pg.h * k, 6 + 2 * i)).encode("latin-1")
         offs.append(len(out))
         out += ("%d 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n" % (6 + 2 * i, len(content))).encode("latin-1") + content + b"\nendstream\nendobj\n"
@@ -366,8 +382,16 @@ def live():
     except Exception:
         spine_m = None
     mp_src = ("masterplan results of " + t3) if spine_m else ""
+    # v2: page 1's plan context and page 2's walking radius from the site board (v46+), each with a flagged fallback
+    ctx, t4 = _load(CTX_FILES)
+    ctx_src = ("Context: site board city_context.json of %s (survey buildings, typed as the sections' building types; "
+               "OSM streets by highway class; survey water; bridges K1-K6, s62; OSM shop points, same tags as the "
+               "shop counts)" % t4) if ctx else ""
     return dict(lands=lands, wb_src=wb_src, mv=mv, mv_src=mv_src, votes=votes, vote_src=vote_src, sides=sides,
-                spine_m=spine_m, mp_src=mp_src)
+                spine_m=spine_m, mp_src=mp_src, ctx=ctx, ctx_src=ctx_src,
+                ctx_note=("plan context: site board of " + t4) if ctx else
+                "FLAG: no city_context.json (run the site board v46 first): page 1's plan has no context and its shops "
+                "cover only the old central window; page 2's reach uses 800 m")
 
 #@include ../common/fmt.py
 
@@ -375,6 +399,10 @@ GROUP = dict(L=("Locals", "CC9A52"), T=("Tourists", "8B3A3F"), S=("Students", "5
 GROWS = dict(W="water", E="stream edge", A="agriculture", H="heritage")
 GROW_C = dict(W=C["water_deep"], E=C["water"], A=C["green_mid"], H=C["accent"])   # v1.6 letter chips
 SPINE_C = "BC6F45"
+SOFT = ((1.0, 0.36), (0.6, 0.18), (0.28, 0.0))   # v2: a soft band: (width share, paler by) of its three strokes
+REACH_F = (0.125, 0.25, 0.5, 0.75, 1.0)   # v2: a hub's reach on page 2: steps as shares of the walking radius
+REACH_T = (0.62, 0.74, 0.83, 0.9, 0.95)   # ... their tints (multiplied: where reaches overlap the strip darkens)
+REACH_RY = 22.0                           # mm: a reach field's half-height at the walking radius (across: schematic)
 
 def header(pg, n, title, sub):
     """v1.11: a white page (Aras 27 Oct 11:07: the beige paper goes), the title and one keyword line"""
@@ -637,11 +665,24 @@ def shop_figures():
 # v1.11 (Aras 27 Oct 11:07 "looks scattered"): page 1 reads top left to bottom right in numbered panels: (1) the plan,
 # large, the focal point; (2) and (3) the two charts that prove it, stacked beside it; (4) seven reasons as pictogram
 # tiles; (5) who comes and (6) walking potential, the smallest, at the bottom. White page, no source footer.
-P1_MAP = (14.0, 104.0)                   # page 1 plan: bottom-left corner of the plan frame (192 x 148 mm)
-MAP_WIN = (29700.0, 31570.0, 30660.0, 32310.0)   # the plan's window in survey m: x0, y0, x1, y1 (960 x 740 m)
-MAP_DEN = 5000                           # v1.11: 1:5,000 (was 1:10,000 on a quarter of the page), x and y alike
-P1_A = (224.0, 204.0, 180.0, 46.0)       # page 1 chart A, shops along the stream: x, y (axis), w, h
-P1_B = (224.0, 134.0, 180.0, 44.0)       # page 1 chart B, shops by distance: x, y (axis), w, h
+# v2 (Aras 27 Oct 17:34, booklet Prompt 3): the plan is the whole site frame at 1:10,000 on the frame's own axes (one
+# scale, frame and north with the site board's movement maps), a band across the top with its key beside it; the two
+# charts side by side under it.
+P1_MAP = (14.0, 199.0)                   # page 1 plan: bottom-left corner of the plan frame (284.5 x 52.9 mm)
+PLAN_DEN = 10000                         # v2: 1:10,000, x and y alike (was 1:5,000 on a 960 x 740 m window)
+P1_KEY = (306.0, 252.0)                  # page 1 plan key, beside the plan: x, first row y
+P1_A = (20.0, 130.0, 180.0, 44.0)        # page 1 chart A, shops along the stream: x, y (axis), w, h
+P1_B = (226.0, 130.0, 180.0, 44.0)       # page 1 chart B, shops by distance: x, y (axis), w, h
+CTX_FILES = [os.path.join(bg_cache("selinus_board"), "city_context.json")]   # v2: written by selinus_board v46+
+SITE_FRAME = [(29388.015, 32540.503), (31220.325, 30364.153), (31625.069, 30704.915), (29792.759, 32881.264)]  # = the
+# site board's SITE_FRAME_LK (site_alan): the plan's frame when the context file is missing
+ROAD_CLS = {"main": (0.45, C["ink2"], None, "main road"), "secondary": (0.3, C["ink2"], None, "secondary road"),
+            "lane": (0.15, C["structure"], None, "lane"), "path": (0.15, C["structure"], (0.6, 0.5), "footway")}
+ROAD_ORDER = ("main", "secondary", "lane", "path")          # v2: streets by OSM class (the board's MV_CLASS), light
+HOME_TYPES = [("old town", "old town house"), ("planned low-rise", "planned low-rise house"),
+              ("apartment block", "apartment block"), ("small / shack", "small house / shack"),
+              ("shop below", "shop below, home above"), ("other", "other building")]   # the sections' building types
+PLAN_BOX = {}                            # v2: the plan's rectangle as drawn (for its booklet crop)
 P1_TILES = (14.0, 54.0, 392.0, 35.0)     # page 1 seven reasons: x, y (bottom), w, tile height
 P1_WHO = (14.0, 43.0, 5.4)               # page 1 who comes: x, first row y, row step (six rows)
 P1_WALK = (300.0, 40.0, 7.5, 92.0)       # page 1 walking potential: x, first row y, row step, longest bar
@@ -659,12 +700,12 @@ def page_why(L):
     SRC_KEY[:] = []                               # v1.6: each page has its own numbered key
     header(pg, "1", "WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN",
            "shops follow the through road and building fronts · the open stream has neither")
-    main_spine_plan(pg)                           # v1.11: (1) the focal plan first
+    main_spine_plan(pg, L.get("ctx"), L.get("ctx_src", ""))   # v1.11: (1) the focal plan first (v2: whole frame)
     sf = shop_figures()
     # (2) chart A: shops within 60 m of the stream, every 100 m of stream
     x0, y0, w, h = P1_A
-    tx = step(pg, 2, x0 - 6.0, 256)
-    fit(pg, "SHOPS WITHIN 60 M OF THE STREAM · EVERY 100 M " + cite(SRC_SHOPS) + " " + cite(SRC_CH), tx, 256, 9,
+    tx = step(pg, 2, x0 - 6.0, y0 + h + 6.0)
+    fit(pg, "SHOPS WITHIN 60 M OF THE STREAM · EVERY 100 M " + cite(SRC_SHOPS) + " " + cite(SRC_CH), tx, y0 + h + 6.0, 9,
         x0 + w - tx, C["ink"], True)
     c0, c1 = 300, 1700
     X = lambda c: x0 + (c - c0) / float(c1 - c0) * w
@@ -688,9 +729,9 @@ def page_why(L):
         pg.text("%d m" % c, X(c), y0 - 11, 7, C["ink2"], False, "C")
     # (3) chart B: shops per 100 buildings by distance
     bx, by, bw, bh_ = P1_B
-    tx = step(pg, 3, bx - 6.0, 182)
-    fit(pg, "SHOPS PER 100 BUILDINGS, BY DISTANCE FROM THE STREAM " + cite(SRC_SHOPS), tx, 182, 9, bx + bw - tx,
-        C["ink"], True)
+    tx = step(pg, 3, bx - 6.0, by + bh_ + 6.0)
+    fit(pg, "SHOPS PER 100 BUILDINGS, BY DISTANCE FROM THE STREAM " + cite(SRC_SHOPS), tx, by + bh_ + 6.0, 9,
+        bx + bw - tx, C["ink"], True)
     vmax = 70.0
     gw = bw / len(BANDS)
     for i, lab in enumerate(BANDS):
@@ -826,99 +867,187 @@ def clip_runs(P, win, flags=None):
 
 
 
-def main_spine_plan(pg):
-    """v1.11: page 1's focal plan at 1:5,000, north up (x and y alike): the shops (dots) crowd the main spine
-    (Bankalar - Kınık Caddesi) and meet the Selinos only where it runs covered, at the one road crossing. Every label
-    is placed by label() clear of the other words and, where it can be, of the lines and dots."""
+def site_frame(ctx):
+    """v2: the site frame's axes (cx, cy, ang, u0, v0, w, h; survey m): the site board's (city_context.json), else
+    from SITE_FRAME as the board computes it (the angle of its longest side, its centre)."""
+    f = (ctx or {}).get("frame")
+    if f:
+        return f
+    P = SITE_FRAME
+    cx, cy = sum(p[0] for p in P) / 4.0, sum(p[1] for p in P) / 4.0
+    i = max(range(4), key=lambda j: math.hypot(P[(j + 1) % 4][0] - P[j][0], P[(j + 1) % 4][1] - P[j][1]))
+    ang = math.atan2(P[(i + 1) % 4][1] - P[i][1], P[(i + 1) % 4][0] - P[i][0])
+    while ang > math.pi / 2:
+        ang -= math.pi
+    while ang <= -math.pi / 2:
+        ang += math.pi
+    c, s = math.cos(-ang), math.sin(-ang)
+    L_ = [(c * (x - cx) - s * (y - cy), s * (x - cx) + c * (y - cy)) for x, y in P]
+    u0, v0 = min(q[0] for q in L_), min(q[1] for q in L_)
+    return dict(cx=cx, cy=cy, ang=ang, u0=u0, v0=v0, w=max(q[0] for q in L_) - u0, h=max(q[1] for q in L_) - v0)
+
+
+def tint_hex(h, t):
+    """v2: hex colour h faded t of the way to white"""
+    return "".join("%02X" % int(round(int(h[i:i + 2], 16) + (255 - int(h[i:i + 2], 16)) * t)) for i in (0, 2, 4))
+
+
+def north_arrow(pg, x, y, a, size=4.0):
+    """v2: a north arrow centred on (x, y), size mm long, pointing at angle a (radians on the page); beside the scale
+    bar, never on the plan"""
+    q = size / 1.3
+    ux, uy = math.cos(a), math.sin(a)
+    R = lambda f_, g_: (x + ux * f_ - uy * g_, y + uy * f_ + ux * g_)
+    tip, l_, m_, r_ = R(0.75 * q, 0.0), R(-0.5 * q, 0.38 * q), R(-0.22 * q, 0.0), R(-0.5 * q, -0.38 * q)
+    pg.poly([tip, l_, m_], fill=C["ink"], closed=True)
+    pg.poly([tip, m_, r_], fill=C["white"], closed=True)
+    pg.poly([tip, l_, m_, r_], stroke=C["ink"], lw=0.15, closed=True)
+    nx, ny = R(1.2 * q, 0.0)
+    pg.text("N", nx, ny - 0.9, 7, C["ink"], True, "C")
+
+
+def main_spine_plan(pg, ctx, ctx_src=""):
+    """v2 (Aras 27 Oct 17:34, booklet Prompt 3): page 1's focal plan: the whole site frame at 1:10,000 on the frame's
+    own axes (the north of every movement map of the booklet), x and y alike. Underneath, light, in layer order: the
+    water, homes by the sections' building types, bridges K1-K6, streets by class (the site board's
+    city_context.json); on top, the strongest: the open stream, the covered reach (dashed: under the town), the main
+    spine (Bankalar - Kınık Caddesi) and the shops, which crowd the main spine and meet the Selinos only where it runs
+    covered, at the one road crossing. Labels are placed by label() clear of the other words and, where they can be,
+    of the lines and dots; the scale bar and north arrow under the plan, the key beside it."""
     mx, my = P1_MAP
-    wx0, wy0, wx1, wy1 = MAP_WIN
-    k = 1000.0 / MAP_DEN                                    # mm on the sheet per m, x and y alike (never stretched)
-    T = lambda p: (mx + (p[0] - wx0) * k, my + (p[1] - wy0) * k)
-    fw, fh = (wx1 - wx0) * k, (wy1 - wy0) * k
+    f = site_frame(ctx)
+    k = 1000.0 / PLAN_DEN                                   # mm on the sheet per m, x and y alike (never stretched)
+    c, s = math.cos(-f["ang"]), math.sin(-f["ang"])
+    T = lambda p: (mx + (c * (p[0] - f["cx"]) - s * (p[1] - f["cy"]) - f["u0"]) * k,
+                   my + (s * (p[0] - f["cx"]) + c * (p[1] - f["cy"]) - f["v0"]) * k)
+    Tc = lambda q: (mx + q[0] * k, my + q[1] * k)           # context points: already on the frame's axes
+    fw, fh = f["w"] * k, f["h"] * k
+    PLAN_BOX["r"] = (mx, my, mx + fw, my + fh)
+    inside = lambda q: mx <= q[0] <= mx + fw and my <= q[1] <= my + fh
     tx = step(pg, 1, mx, 256)
     fit(pg, "WHERE THE SHOPS ARE · AND WHERE THE STREAM IS HIDDEN " + cite(SRC_MAIN) + " " + cite(SRC_STREAM) + " " +
-        cite(SRC_SHOPS), tx, 256, 10, mx + fw - tx, C["ink"], True)
-    pg.rect(mx, my, fw, fh, stroke=C["structure"], lw=0.3)
+        cite(SRC_SHOPS) + (" " + cite(ctx_src) if ctx else ""), tx, 256, 10, mx + fw - tx, C["ink"], True)
     frame = (mx + 1.0, my + 1.0, mx + fw - 1.0, my + fh - 1.0)
+    KP = 72 / 25.4
+    ctx = ctx or {}
+    tones = ctx.get("tones") or {}
     P, cov = stream_ref()
-    win = (wx0 + 5.0, wy0 + 5.0, wx1 - 5.0, wy1 - 5.0)      # lines cut 5 m inside the frame: their round ends stay in
     obst = []
     open_pts, cov_pts = [], []
-    for c_, R_ in clip_runs(P, win, cov):                  # the stream: open in water blue, the covered reach grey
+    pg.ops.append("q %.2f %.2f %.2f %.2f re W n" % (mx * KP, my * KP, fw * KP, fh * KP))    # all cut to the frame
+    for rings in ctx.get("water") or []:                    # light context: water, homes, bridges, streets
+        pg.path([[Tc(q) for q in R_] for R_ in rings], fill=C["water_light"])
+    runs = [(c_, [T(p) for p in R_]) for c_, R_ in clip_runs(P, (-1e9, -1e9, 1e9, 1e9), cov)]
+    for c_, Q in runs:                                      # the open stream under the buildings (water never above)
+        if not c_:
+            pg.line(Q, C["water"], 1.2)
+    for ty, parts, holes in ctx.get("buildings") or []:
+        pg.path([[Tc(q) for q in R_] for R_ in parts + holes], fill=tones.get(ty, C["faint"]))
+    for kb, q, d in ctx.get("bridges") or []:
+        bx_, by_ = Tc(q)
+        pg.line([(bx_ - d[0] * 2.0, by_ - d[1] * 2.0), (bx_ + d[0] * 2.0, by_ + d[1] * 2.0)], C["ink"], 0.6)
+    for cls, P_ in ctx.get("roads") or []:
+        lw_, col_, dash_ = ROAD_CLS.get(cls, ROAD_CLS["lane"])[:3]
+        pg.line([Tc(q) for q in P_], col_, lw_, dash=dash_)
+    for c_, Q in runs:                                      # the covered reach on top, dashed: it runs under the town
+        if c_:
+            pg.line(Q, C["ink2"], 1.0, dash=(1.6, 0.9))
+    for c_, Q in runs:
+        Q = [q for q in Q if inside(q)]
+        obst += samples(Q) if len(Q) > 1 else []
+        if len(Q) > 1:
+            (cov_pts if c_ else open_pts).append(Q)
+    for _, R_ in clip_runs([tuple(p) for p in MAIN_SPINE], (-1e9, -1e9, 1e9, 1e9)):
         Q = [T(p) for p in R_]
-        pg.line(Q, C["structure"] if c_ else C["water"], 2.4)
-        obst += samples(Q)
-        (cov_pts if c_ else open_pts).append(Q)
-    for _, R_ in clip_runs([tuple(p) for p in MAIN_SPINE], win):
-        Q = [T(p) for p in R_]
-        pg.line(Q, C["accent"], 1.8)
-        obst += samples(Q)
-    shops = [q for q in SHOPS_XY if win[0] <= q[0] <= win[2] and win[1] <= q[1] <= win[3]]
-    for q in shops:                                        # v1.10: the shops, in chart A's shop colour, over the lines
-        disc(pg, T(q)[0], T(q)[1], 0.85, SPINE_C, C["white"], 0.15)
-        obst.append(T(q))
-    # the key, fixed in the plan's empty north-east corner (no shop, stream or street there in the window)
-    kx, ky = mx + fw - 58.0, my + fh - 6.0
-    rows_ = [("dot", SPINE_C, "shops and cafés (%d)" % len(shops)), ("line", C["accent"], "main spine: shops + through road"),
-             ("line", C["water"], "Selinos stream, open"), ("line", C["structure"], "stream hidden (covered)"),
-             ("big", C["accent"], "the one road crossing")]
-    for i_, (kind, col, lab) in enumerate(rows_):
-        yy = ky - i_ * 4.4
-        if kind == "line":
-            pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col, 2.0 if col != C["accent"] else 1.8)
-        else:
-            disc(pg, kx + 3.0, yy + 0.9, 0.85 if kind == "dot" else 1.6, col)
-        pg.text(lab, kx + 8.0, yy, 7.5, C["ink"])
-    # bridges (surveyed points, as SPINE): a short bar square to the stream
-    bridges = (("K4", (29846.0, 32278.0)), ("K3", (30037.0, 32122.0)), ("K5", (30294.0, 31792.0)))
-    for kb, q in bridges:
-        i = min(range(len(P) - 1), key=lambda j: math.hypot(P[j][0] - q[0], P[j][1] - q[1]))
-        dx, dy = P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]
-        n_ = math.hypot(dx, dy) or 1.0
-        nx, ny = -dy / n_ * 3.2, dx / n_ * 3.2
-        bx_, by_ = T(q)
-        pg.line([(bx_ - nx, by_ - ny), (bx_ + nx, by_ + ny)], C["ink"], 0.9)
-        obst += samples([(bx_ - nx, by_ - ny), (bx_ + nx, by_ + ny)])
+        pg.line(Q, C["accent"], 1.4)
+        obst += samples([q for q in Q if inside(q)])
+    pg.ops.append("Q")
+    if ctx.get("shops") is not None:                        # the shops of the whole frame (site board, same OSM tags)
+        shops = [Tc(q) for q in ctx["shops"]]
+    else:                                                   # the built-in points cover only the old 1:5,000 window
+        shops = [q for q in (T(p) for p in SHOPS_XY) if inside(q)]
+    for q in shops:                                         # v1.10: the shops, in chart A's shop colour, over the lines
+        disc(pg, q[0], q[1], 0.7, SPINE_C, C["white"], 0.12)
+        obst.append(q)
+    pg.rect(mx, my, fw, fh, stroke=C["ink"], lw=0.25)
+    bridges = [(kb, Tc(q)) for kb, q, d in ctx.get("bridges") or []] or \
+        [(kb, T(HUB_PTS[kb])) for kb in ("K4", "K3", "K5", "K6")]
+    for kb, (bx_, by_) in bridges:
+        obst += [(bx_, by_)]
     jx, jy = T((30058.0, 32047.0))                          # stop 3's place: Kınık Caddesi over the covered stream
-    disc(pg, jx, jy, 1.6, C["accent"])
+    disc(pg, jx, jy, 1.4, C["accent"])
     ix, iy = T((29990.0, 32030.5))                          # İstiklal Meydanı (h01 §5 P16 label), over the culvert
-    pg.rect(ix - 1.2, iy - 1.2, 2.4, 2.4, stroke=C["ink"], lw=0.35)
+    pg.rect(ix - 1.1, iy - 1.1, 2.2, 2.2, stroke=C["ink"], lw=0.35)
     rx_, ry_ = T((30245.0, 31962.0))                        # Red Hall (h01 §5 P02), built over the stream
-    pg.poly([(rx_ - 1.6, ry_), (rx_, ry_ + 2.2), (rx_ + 1.6, ry_), (rx_, ry_ - 2.2)], fill=C["accent"], closed=True)
+    pg.poly([(rx_ - 1.4, ry_), (rx_, ry_ + 2.0), (rx_ + 1.4, ry_), (rx_, ry_ - 2.0)], fill=C["accent"], closed=True)
     obst += [(jx, jy), (ix, iy), (rx_, ry_)]
-    # labels, most important first: bridges, the callout, the places, the streets (place names 12 pt)
-    for kb, q in bridges:
-        label(pg, kb, T(q)[0], T(q)[1], 12, C["ink"], True, frame, obst, (2.0, 4.0, 7.0, 11.0, 16.0))
+    # labels, most important first: the callout, bridges, the places, the streets
     sf = shop_figures()
     l1 = "%d of %d shops" % (sf["covered_reach"], sf["by_stream"])
     l2, l3 = "within 60 m of the stream:", "on the covered %d m, where the road crosses" % sf["covered_reach_m"]
-    cw = max(text_w(l1, 18, True), text_w(l2, 8), text_w(l3, 8))
-    b = spot(pg, cw, 14.5, jx, jy, frame, obst, (12.0, 18.0, 25.0, 33.0, 42.0, 52.0))
+    cw = max(text_w(l1, 14, True), text_w(l2, 7.5), text_w(l3, 7.5))
+    b = spot(pg, cw, 11.5, jx, jy, frame, obst, (8.0, 13.0, 19.0, 26.0, 34.0, 44.0, 56.0))
     if b:
         cx, cy = min(max(jx, b[0]), b[2]), min(max(jy, b[1]), b[3])
         pg.line([(jx, jy), (cx, cy)], SPINE_C, 0.35)
-        pg.text(l1, b[0], b[3] - 6.0, 18, SPINE_C, True)
-        pg.text(l2, b[0], b[3] - 10.2, 8, C["ink"])
-        pg.text(l3, b[0], b[3] - 13.6, 8, C["ink"])
+        pg.text(l1, b[0], b[3] - 4.8, 14, SPINE_C, True)
+        pg.text(l2, b[0], b[3] - 8.2, 7.5, C["ink"])
+        pg.text(l3, b[0], b[3] - 11.0, 7.5, C["ink"])
     else:
         DROPPED.append("plan callout")
-    label(pg, "İstiklal Meydanı", ix, iy, 12, C["ink"], True, frame, obst, (6.0, 10.0, 15.0, 21.0, 28.0, 36.0))
-    label(pg, "Red Hall", rx_, ry_, 12, C["accent"], True, frame, obst, (3.0, 6.0, 10.0, 15.0, 21.0))
+    for kb, (bx_, by_) in bridges:
+        label(pg, kb, bx_, by_, 8, C["ink"], True, frame, obst, (1.5, 3.0, 5.0, 8.0))
+    label(pg, "İstiklal Meydanı", ix, iy, 9, C["ink"], True, frame, obst, (4.0, 7.0, 11.0, 16.0, 22.0, 29.0))
+    label(pg, "Red Hall", rx_, ry_, 9, C["accent"], True, frame, obst, (2.5, 5.0, 8.0, 12.0, 17.0))
     if cov_pts:
         Q = max(cov_pts, key=len)
         q = Q[len(Q) // 2]
-        label(pg, "stream hidden here", q[0], q[1], 9, C["ink2"], True, frame, obst, (4.0, 8.0, 13.0, 19.0, 26.0))
+        label(pg, "stream hidden here", q[0], q[1], 8, C["ink2"], True, frame, obst, (3.0, 6.0, 10.0, 15.0, 21.0))
     if open_pts:
-        Q = open_pts[0]
-        q = Q[len(Q) // 3]
-        label(pg, "Selinos stream", q[0], q[1], 12, C["water_deep"], True, frame, obst, (3.0, 6.0, 10.0, 15.0, 21.0))
-    for s, q in (("Bankalar Caddesi", (29852.9, 31760.3)), ("Kınık Caddesi", (30499.5, 31831.0))):
-        label(pg, s, T(q)[0], T(q)[1], 12, C["accent"], True, frame, obst, (3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0, 45.0))
-    # scale bar under the plan: 0-100-200 m at 1:5,000
-    sy = my - 5.5
-    for i_ in range(2):
-        pg.rect(mx + i_ * 100.0 * k, sy, 100.0 * k, 1.2, fill=(C["ink"], C["structure"])[i_])
-    pg.text("0 · 100 · 200 m · 1:%s · north up" % fmt(MAP_DEN), mx + 200.0 * k + 3.0, sy, 7, C["ink2"])
+        Q = max(open_pts, key=len)
+        q = Q[len(Q) // 2]
+        label(pg, "Selinos stream", q[0], q[1], 9, C["water_deep"], True, frame, obst, (2.5, 5.0, 8.0, 12.0, 17.0))
+    for s_, q in (("Bankalar Caddesi", (29852.9, 31760.3)), ("Kınık Caddesi", (30499.5, 31831.0))):
+        label(pg, s_, T(q)[0], T(q)[1], 9, C["accent"], True, frame, obst, (2.5, 5.0, 8.0, 12.0, 17.0, 23.0, 30.0))
+    # under the plan: scale bar 0-400 m (four parts of 100 m) and the north arrow, never on the plan
+    sy = my - 4.0
+    for i_ in range(4):
+        pg.rect(mx + i_ * 100.0 * k, sy, 100.0 * k, 1.2, fill=(C["ink"], C["white"])[i_ % 2])
+    pg.rect(mx, sy, 400.0 * k, 1.2, stroke=C["ink"], lw=0.15)
+    pg.text("0", mx, sy - 3.6, 7, C["ink2"], False, "C")
+    pg.text("200", mx + 200.0 * k, sy - 3.6, 7, C["ink2"], False, "C")
+    pg.text("400 m", mx + 400.0 * k - text_w("400", 7) / 2.0, sy - 3.6, 7, C["ink2"])
+    pg.text("1:%s" % fmt(PLAN_DEN), mx + 400.0 * k + 18.0, sy - 3.6, 7, C["ink2"])
+    north_arrow(pg, mx + 400.0 * k + 10.0, my - 4.6, math.atan2(math.cos(f["ang"]), math.sin(f["ang"])))
+    # the key, beside the plan: the strong layers, the streets by class, then homes by type
+    kx, ky = P1_KEY
+    rows_ = [("dot", SPINE_C, "shops and cafés (%d)" % len(shops)), ("line", C["accent"], "main spine: shops, through road"),
+             ("line", C["water"], "Selinos stream, open"), ("dash", C["ink2"], "stream hidden (covered)"),
+             ("big", C["accent"], "the one road crossing")]
+    if ctx:
+        rows_ += [("bar", C["ink"], "bridge K1-K6")] + [("road", cls, ROAD_CLS[cls][3]) for cls in ROAD_ORDER]
+    cw_ = (406.0 - kx) / 2.0
+    for i_, (kind, col, lab) in enumerate(rows_):
+        yy = ky - i_ * 4.2
+        if kind == "line":
+            pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col, 1.2)
+        elif kind == "dash":
+            pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col, 1.0, dash=(1.6, 0.9))
+        elif kind == "bar":
+            pg.line([(kx + 3.0, yy - 0.8), (kx + 3.0, yy + 2.6)], col, 0.6)
+        elif kind == "road":
+            lw_, col_, dash_, lab_ = ROAD_CLS[col]
+            pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col_, lw_, dash=dash_)
+        else:
+            disc(pg, kx + 3.0, yy + 0.9, 0.7 if kind == "dot" else 1.4, col)
+        fit(pg, lab, kx + 8.0, yy, 7.5, cw_ - 9.0, C["ink"])
+    if ctx:
+        hx_ = kx + cw_
+        pg.text("HOMES BY TYPE", hx_, ky, 7.5, C["ink"], True)
+        for i_, (ty, lab) in enumerate(HOME_TYPES):
+            yy = ky - (i_ + 1) * 4.2
+            pg.rect(hx_, yy - 0.3, 6.0, 2.6, fill=tones.get(ty, C["faint"]), stroke=C["structure"], lw=0.1)
+            fit(pg, lab, hx_ + 8.0, yy, 7.5, 406.0 - hx_ - 8.0, C["ink"])
     return fw, fh
 
 # ------------------------------------------------------------------ v1.11: the bridge places (history D2 D3 D8 D10)
@@ -1081,9 +1210,8 @@ def hub_card(pg, hb, x, y0, w, h):
 def page_spine(L):
     pg = Page(420, 297)
     SRC_KEY[:] = []                               # v1.6: each page has its own numbered key
-    about = (" · about %d m" % int(round(L["spine_m"] / 10.0) * 10)) if L.get("spine_m") else ""   # v1.8: live, masterplan
-    header(pg, "2", "THE STREAMSIDE SPINE, HUB BY HUB",
-           "five bridge places on existing bus stops · walking hubs with a sub-hub in the bed · one transit hub" + about)
+    header(pg, "2", "THE STREAMSIDE SPINE, HUB BY HUB",          # v2: no length (Prompt 3: reach, not a fixed line)
+           "five bridge places on existing bus stops · walking hubs with a sub-hub in the bed · one transit hub")
     hubs = hub_list()
     x0, w, ry0, ry1 = P2_STRIP
     c0, c1 = 150, 1800
@@ -1092,7 +1220,7 @@ def page_spine(L):
     frame = (14.0, 164.0, 406.0, 258.0)
     tx = step(pg, 1, 14, 262)
     pg.text("THE SPINE ALONG THE SELINOS · TO SCALE ALONG THE STREAM " + cite(SRC_STRIP), tx, 262, 9, C["ink"], True)
-    pg.text("city heritage loop: page 6", 406, 262, 7, C["ink2"], False, "R")      # D6: drawn on the movement page
+    pg.text("city heritage loop: page 23", 406, 262, 7, C["ink2"], False, "R")     # D6: the booklet's theme D (v2)
     obst = []
     # the stream band, the covered reach, the bridges
     pg.rect(x0, ry0, w, ry1 - ry0, fill=C["water"])
@@ -1105,30 +1233,65 @@ def page_spine(L):
     xs = X(CH["cross"])
     pg.rect(xs - 1.8, 170.0, 3.6, 86.0, fill=C["accent"])
     obst += samples([(xs, 170.0), (xs, 256.0)])
-    # the streamside spine on the bank the data picked, and the walking route beyond it
+    # v2 (Prompt 3: the spine and hubs as gradients of reach, not a fixed line with fixed lengths): each hub's reach
+    # on foot as a fading field along the stream (to scale along it, schematic across), laid over by multiplying, so
+    # the strip darkens where reaches overlap; the gateway has none. Cut to the strip.
+    rw = float((L.get("ctx") or {}).get("r_walk") or 800.0)
+    src_reach = SRC_REACH.format(rw, "" if (L.get("ctx") or {}).get("r_walk") else ", built-in: no site board file")
+    xs_m = w / float(c1 - c0)                     # mm along the strip per m along the stream
+    KP = 72 / 25.4
+    pg.ops.append("q %.2f %.2f %.2f %.2f re W n" % (x0 * KP, frame[1] * KP, w * KP, (frame[3] - frame[1]) * KP))
+    ell = lambda hx, f_: [(hx + f_ * rw * xs_m * math.cos(a * math.pi / 36), ym + f_ * REACH_RY * math.sin(a * math.pi / 36))
+                          for a in range(72)]
+    for hb in hubs:
+        if hb["kind"] == "gateway":
+            continue
+        for i_, f_ in enumerate(REACH_F):
+            rings = [ell(X(hb["ch"]), f_)] + ([ell(X(hb["ch"]), REACH_F[i_ - 1])] if i_ else [])
+            pg.path(rings, fill=tint_hex(C["green_deep"], REACH_T[i_]), mul=True)
+    # the streamside spine on the bank the data picked: a soft band (three multiplied strokes) between K4 and K5,
+    # fading out past them where the walking route goes on: no drawn end, no length
     yb = lambda bank: ry1 + 5 if bank == "NE" else ry0 - 5
     ya, yc = yb(L["sides"]["A"]), yb(L["sides"]["C"])
-    for P_, col, lw_, dash in (([(X(c0), ya), (X(CH["K4"]), ya)], C["ink2"], 0.5, (1.5, 1.5)),
-                               ([(X(CH["K5"]), yc), (X(c1), yc)], C["ink2"], 0.5, (1.5, 1.5)),
-                               ([(X(CH["K4"]), ya), (X(CH["K3"]), ya)], SPINE_C, 3.2, None),
-                               ([(X(CH["K3"]), ya), (X(CH["cov0"]) + 4, ym), (X(CH["cov1"]) - 4, ym), (X(CH["cov1"]), yc)], SPINE_C, 3.2, None),
-                               ([(X(CH["cov1"]), yc), (X(CH["K5"]), yc)], SPINE_C, 3.2, None)):
-        pg.line(P_, col, lw_, dash=dash)
-        obst += samples(P_)
-    # hubs on the strip (rings; the transit hub in accent) and the leaders down to their cards
+    core = [(X(CH["K4"]), ya), (X(CH["K3"]), ya), (X(CH["cov0"]) + 4, ym), (X(CH["cov1"]) - 4, ym), (X(CH["cov1"]), yc),
+            (X(CH["K5"]), yc)]
+    for f_, dt in SOFT:
+        pg.line(core, tint_hex(SPINE_C, 0.15 + dt), 3.4 * f_, mul=True, cap=0)
+    obst += samples(core)
+    for xa, xb, yy in ((X(CH["K4"]), X(c0), ya), (X(CH["K5"]), X(c1), yc)):    # the tails, fading over 300 m
+        obst += samples([(xa, yy), (xb, yy)])
+        n_ = max(1, int(abs(xb - xa) / 2.0))
+        for j_ in range(n_):
+            p0, p1 = xa + (xb - xa) * j_ / float(n_), xa + (xb - xa) * (j_ + 1) / float(n_)
+            fade = abs((p0 + p1) / 2.0 - xa) / xs_m / 300.0
+            if fade >= 1.0:
+                break
+            for f_, dt in SOFT:
+                pg.line([(p0, yy), (p1, yy)], tint_hex(SPINE_C, min(0.97, 0.15 + dt + 0.82 * fade)), 3.4 * f_, mul=True,
+                        cap=0)
+    pg.ops.append("Q")
+    # hubs on the strip (a dot: the transit hub in accent) and the leaders down to their cards
     cx_, cy0, cw_all, ch_, gap = P2_CARDS
     cw = (cw_all - gap * (len(hubs) - 1)) / len(hubs)
     for i, hb in enumerate(hubs):
         hx = X(hb["ch"])
-        ring = [(hx + 4.6 * math.cos(a * math.pi / 12), ym + 4.6 * math.sin(a * math.pi / 12)) for a in range(25)]
-        pg.line(ring, C["accent"] if hb["transit"] else (C["green_deep"] if hb["kind"] != "gateway" else C["ink2"]),
-                0.9 if hb["transit"] else 0.6, dash=(1.0, 0.8) if hb["kind"] == "gateway" else None)
+        disc(pg, hx, ym, 1.3, C["accent"] if hb["transit"] else (C["green_deep"] if hb["kind"] != "gateway" else C["ink2"]),
+             C["white"], 0.2)
+        obst += samples([(hx - 1.3, ym), (hx + 1.3, ym)])
         ccx = cx_ + i * (cw + gap) + cw / 2.0
         xs_ = [hx] + ([X(962)] if hb["id"] == "İstiklal" else [])    # the transit hub: İstiklal Meydanı and Kızıl Avlu
         for lx in xs_:
             P_ = [(lx, ry0 - 6.0), (lx, P2_LEAD), (ccx, P2_LEAD), (ccx, cy0 + ch_)]
             pg.line(P_, C["accent"] if hb["transit"] else C["ink2"], 0.3)
             obst += samples(P_)
+    # the reach key, top right of the strip
+    kx1, ky = 406.0, 252.5
+    pg.text("REACH ON FOOT FROM A HUB " + cite(src_reach), kx1, ky, 7, C["ink"], True, "R")
+    for i_, f_ in enumerate(REACH_F):
+        xx = kx1 - (len(REACH_F) - i_) * 10.0
+        pg.rect(xx, ky - 5.0, 9.0, 2.6, fill=tint_hex(C["green_deep"], REACH_T[i_]))
+        pg.text("%d%s" % (int(round(f_ * rw)), " m" if i_ == len(REACH_F) - 1 else ""), xx + 4.5, ky - 8.6, 7, C["ink2"],
+                False, "C")
     # stops on their bank (with a tick to it), in the bed, or over the covered stream
     for f in FUNCS + [dict(EVENTS, ch=1040, bank="bed")]:
         c, bank = f["ch"], f["bank"]
@@ -1159,7 +1322,7 @@ def page_spine(L):
     for k in ("K4", "K3", "K5", "K6"):
         label(pg, k, X(CH[k]), ry1 + 2.0, 9, C["ink"], True, frame, obst, (1.0, 3.0, 5.0), ((0, 1), (1, 1), (-1, 1)))
     up_a = ya > ry1
-    label(pg, "STREAMSIDE SPINE" + about.upper() + " " + cite(SRC_PLAN07) + (" " + cite(L["mp_src"]) if about else ""),
+    label(pg, "STREAMSIDE SPINE · WALKABLE FROM EACH HUB",
           (X(CH["K4"]) + X(CH["K3"])) / 2.0, ya, 8, SPINE_C, True, frame, obst, (2.5, 5.0, 8.0, 12.0),
           ((0, 1), (1, 1), (-1, 1)) if up_a else ((0, -1), (1, -1), (-1, -1)))
     label(pg, "walking route continues upstream", (X(c0) + X(CH["K4"])) / 2.0, ya, 7, C["ink2"], False, frame, obst,
@@ -1255,7 +1418,7 @@ def results(L=None):
                  main_transit_hub=hb["transit"], plane_trees=hb["kind"] == "walk", stops=hb["stops"],
                  bus_stops=hb["bus_stops"], trips=hb["trips"], later=hb.get("later"), ch=hb["ch"]) for hb in hub_list()]
     return dict(spine_banks=(L or {}).get("sides"), bank_votes=(L or {}).get("votes"), bank_vote_source=(L or {}).get("vote_src"),
-                script="bergama_city_link_v1_11.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+                script="bergama_city_link_v2.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 spine=SPINE, functions=[dict([(k, f.get(k)) for k in ("n", "name", "where", "xy", "stage", "who", "grows", "ch", "bank")] +
                                              [("hub", "sub-hubs" if f["n"] == 8 else hub_of.get(f["n"]))])
                                         for f in FUNCS + [EVENTS]],
@@ -1283,10 +1446,9 @@ def booklet_export(out_dir):
     chip = lambda g_: dict(kind="fill", colour=GROW_C[g_], label=GROWS[g_])
     dots = [dict(kind="dot", colour=GROUP[k][1], label=GROUP[k][0]) for k in "LTS"]
     # page 1 (booklet p9): the focal plan (its frame, key inside), the two charts, the reasons, who comes, walking
-    mx, my = P1_MAP
-    crop("cl_main_spine", 0, mx - 0.5, my - 0.5, mx + (MAP_WIN[2] - MAP_WIN[0]) * 1000.0 / MAP_DEN + 0.5,
-         my + (MAP_WIN[3] - MAP_WIN[1]) * 1000.0 / MAP_DEN + 0.5, "Where the shops are, and where the stream is hidden",
-         scale_den=MAP_DEN)
+    px0, py0, px1, py1 = PLAN_BOX.get("r") or (P1_MAP[0], P1_MAP[1], P1_MAP[0] + 284.5, P1_MAP[1] + 52.9)
+    crop("cl_main_spine", 0, px0 - 0.5, py0 - 9.0, px1 + 0.5, py1 + 0.5,       # v2: with its scale bar and north arrow
+         "Where the shops are, and where the stream is hidden", scale_den=PLAN_DEN)
     x0, y0, w, h = P1_A
     crop("cl_shops_along", 0, x0 - 6.0, y0 - 13.0, x0 + w + 2.0, y0 + h, "Shops within 60 m, every 100 m of stream",
          [dict(kind="fill", colour=SPINE_C, label="shops"), dict(kind="fill", colour=C["faint"], label="stream covered")])
@@ -1304,7 +1466,9 @@ def booklet_export(out_dir):
     # page 2 (booklet p17): the strip, the hub cards (NEW), the flood rule, which bank; cl_stops is gone (v1.11)
     x0, w, ry0, ry1 = P2_STRIP
     crop("cl_spine", 1, 14.0, 164.0, 406.0, 258.0, "The streamside spine along the Selinos",
-         [dict(kind="line", colour=SPINE_C, label="streamside spine"), dict(kind="fill", colour=C["accent"], label="main spine"),
+         [dict(kind="line", colour=tint_hex(SPINE_C, 0.15), label="streamside spine"),
+          dict(kind="fill", colour=tint_hex(C["green_deep"], REACH_T[1]), label="reach on foot from a hub"),
+          dict(kind="fill", colour=C["accent"], label="main spine"),
           dict(kind="dot", colour=C["ink"], label="stop"), dict(kind="dot", colour=C["accent"], label="heritage anchor"),
           dict(kind="fill", colour=C["water"], label="the Selinos"), dict(kind="fill", colour=C["structure"], label="covered reach")])
     cx_, cy0, cw_all, ch_, gap = P2_CARDS
@@ -1364,7 +1528,7 @@ def main():
         bk += "\nbooklet: ERROR %s: %s" % (type(ex_).__name__, ex_)
     bk += "".join("\n" + t_ for t_ in bg_tidy_output("Bergama_city_link_analysis"))   # 27 Oct: output/ = PDFs only
     t = time.strftime("%H:%M:%S")
-    return "%s  %s\n%s  %s\nfigures: %s; %s\ncity link %s, %.1f s%s%s" % (OUT_PDF, t, OUT_JSON, t, L["wb_src"], L["mv_src"], VERSION, time.time() - t0, L.get("bank_note", ""), bk)
+    return "%s  %s\n%s  %s\nfigures: %s; %s; %s\ncity link %s, %.1f s%s%s" % (OUT_PDF, t, OUT_JSON, t, L["wb_src"], L["mv_src"], L["ctx_note"], VERSION, time.time() - t0, L.get("bank_note", ""), bk)
 
 #@include ../common/chain_fire.py
 
@@ -1389,6 +1553,10 @@ if _gh:
         _sc.sticky["bergama_city_link_log" + _ik] = write_log(_res)
         _sc.sticky["bergama_city_link_log_status" + _ik] = ("ERROR" if _sc.sticky["bergama_city_link_log" + _ik].startswith(("ERROR", "The PDF is open")) else time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky["bergama_city_link_log_done" + _ik] = done_text(True, not _sc.sticky["bergama_city_link_log_status" + _ik].startswith("ERROR"), time.time() - _t0)
+        _sc.sticky["bergama_city_link_log_ver" + _ik] = VERSION
+    if _sc.sticky.get("bergama_city_link_log_ver" + _ik) != VERSION:   # v2 (Aras 27 Oct 15:35): a newly pasted version
+        for _s in ("", "_status", "_done"):                              # shows itself at once, idle, without the old
+            _sc.sticky.pop("bergama_city_link_log" + _s + _ik, None)      # run's time or log
     done = _sc.sticky.get("bergama_city_link_log_done" + _ik, "idle")   # 25 Oct 10:20: stays after the run; wire into the next script's run (one-click chain)
     log = _sc.sticky.get("bergama_city_link_log" + _ik, "Press the Button to export to " + OUT_DIR)
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log

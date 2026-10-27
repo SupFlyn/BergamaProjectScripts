@@ -10,6 +10,9 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v13 (Aras 27 Oct 17:34, Prompt 3 "movement and the city"; site board v46, city link v2): p.8 "How people use
+it" stacks its three maps (the plan, walking today, driving today), each the whole site frame at 1:10,000 with its
+scale bar and north arrow under it; p.10 and p.23 take the board's redrawn maps at the same scale (same crops).
 NEW IN v12 (Aras 27 Oct 17:34, Prompt 2 "site and stream edge"; site board v45): p.2 "What is there" = plan 01 with the
 site readings (bank bars and land-use ring, crop drw_site_readings) as a side panel at the right margin, top-aligned,
 the plan's legend in two columns under it on the panel's own grid; p.6 "The stream edge and where we can build" (crop
@@ -54,7 +57,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v12"
+VERSION = "v13"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"

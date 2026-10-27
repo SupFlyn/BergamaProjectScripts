@@ -56,6 +56,7 @@ def write_board_pdf(path, title, members):
     cid = add(b"<< /Length " + str(len(data)).encode() + b" /Filter /FlateDecode >>\nstream\n" + data + b"\nendstream")
     pages_id = len(objs) + 2
     res = "/Font << %s >>" % " ".join("/F%d %d 0 R" % (i + 1, f_) for i, f_ in enumerate(fonts))
+    res += " /ExtGState << /GM << /Type /ExtGState /BM /Multiply >> /GN << /Type /ExtGState /BM /Normal >> >>"   # v46
     if xo:
         res += " /XObject << %s >>" % " ".join("/Im%d %d 0 R" % (i + 1, x_) for i, x_ in enumerate(xo))
     pw, ph = (r[2] - r[0]) * k * _PT, (r[3] - r[1]) * k * _PT
