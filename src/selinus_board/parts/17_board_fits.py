@@ -842,9 +842,9 @@ def save_last(info_, out_, secs_):
     import datetime
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mem_set("lu_last_out", out_, disk=False)
-    mem_set("lu_last", dict(info=info_, when=stamp, secs=round(secs_, 1)))
-    st_ = "v40 · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
-        "v40 · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
+    mem_set("lu_last", dict(info=info_, when=stamp, secs=round(secs_, 1), ver=SCRIPT_VERSION))
+    st_ = SHORT_V + " · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
+        SHORT_V + " · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
     mem_set("lu_status", st_)
     gh_status(st_)
     try:
@@ -947,6 +947,9 @@ if HAVE_RHINO:
     pressed = (DO_BAKE and not mem_get("lu_bake_prev", False)) or chain_fire(_button_value(), "chain_seen")
     mem_set("lu_bake_prev", bool(DO_BAKE))
     last = mem_get("lu_last")
+    if not (isinstance(last, dict) and last.get("ver") == SCRIPT_VERSION):   # v44.1 (Aras 27 Oct 15:35): a newly pasted
+        last = None                                                         # version shows itself at once, idle, with
+        mem_set("lu_status", None)                                          # no old time or report
     _t_build = __import__("time").time()
     changing, partial = component_setup()
     setup_done = sc.sticky.pop(skey("lu_setup_done"), None)
@@ -958,7 +961,7 @@ if HAVE_RHINO:
         gh_message("warning", info)
     elif not pressed:
         info = "Idle. Nothing is read or computed until you press the button."
-        gh_status(mem_get("lu_status") or "v40 · idle")              # v27: version and last total time stay shown
+        gh_status(mem_get("lu_status") or SHORT_V + " · idle")       # v27: version and last total time stay shown
         if changing:
             info += "\nSetting the component up: " + ", ".join(changing) + "."
         if last:

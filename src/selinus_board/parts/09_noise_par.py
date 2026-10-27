@@ -30,9 +30,9 @@ def _main():
     inp, out = sys.stdin.buffer, sys.stdout.buffer
     sys.stdout = sys.stderr                                # a print() in the code must not reach Rhino's pipe
     hdr = pickle.load(inp)
-    for p in reversed(hdr["path"]):
+    for p in hdr["path"]:                                  # v44.1: Rhino's folders after this Python's own
         if p and p not in sys.path:
-            sys.path.insert(0, p)
+            sys.path.append(p)
     try:
         with open(hdr["src"], "r", encoding="utf-8") as fh:
             src = fh.read()
@@ -276,7 +276,8 @@ def _pool_start():
             raise RuntimeError("a worker did not start within {:.0f} s".format(POOL_START_S))
         for st, info in hello:
             if st != "ok":
-                raise RuntimeError("a worker could not run the code: " + str(info).strip().splitlines()[-1][:200])
+                tb_ = [l_.strip() for l_ in str(info).strip().splitlines() if l_.strip()]
+                raise RuntimeError("a worker could not run the code: " + " | ".join(tb_[-4:])[:400])   # v44.1: file + line
             if info["probe"] != want["probe"] or info["np"] != want["np"]:
                 raise RuntimeError("a worker's Python or numpy does not compute exactly like Rhino's")
             bad = [k for k, v in info["code"].items() if mine.get(k) != v]

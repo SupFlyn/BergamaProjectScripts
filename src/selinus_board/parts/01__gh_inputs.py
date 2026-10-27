@@ -4,6 +4,12 @@ THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Gras
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v44.1 (bugfix + laptop speed, Aras 27 Oct 16:24-16:27): the worker processes for terrain heights and section
+drawings failed on Aras's PC ("SyntaxError: invalid syntax"), so that work ran on one core: the workers now put
+Rhino's module folders AFTER their own Python's (a folder of Rhino's could hold a module of the same name that is not
+Python 3), and the log names the file and line if a worker still fails. The text under the component shows the
+pasted version at once (it showed a fixed "v40"), idle, without the old run's time. Output unchanged.
+
 NEW IN v44 (2026-10-27, Aras 11:07, booklet pages 4-8; revision_2026-10-27/PHASE2_SPEC.md):
   * "What meets the water" (p.5): the site at the largest round booklet scale that fits an A3 page (cut into stacked
     pieces along its length, each piece cut to its own frame), photo viewpoints as 12 pt numbers on discs, bridges
@@ -246,7 +252,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v44 (2026-10-27)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v44.1 (2026-10-27)"   # v27: the log's first line and the text under the component
+SHORT_V = "v44.1"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
