@@ -4,25 +4,24 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
-NEW IN v6 (Aras's deck review 26 Oct 07:06, p.25 + global rules 3-4): every section opens with a context line (what it
-  shows, why it is here, how to read it: NOTES) at the top of its drawing box, inside the booklet crop; the sketch sits
-  right under it at the same scale and the crop ends under the sketch (no empty foot). K5: why the amphibious stream
-  commons and Demeter's Garden sit together (dry garden / wet commons under the cut, who goes where at low and high
-  water, Q500 inside the banks keeps the garden dry). No personal credit in titles (booklet rule).
-NEW IN v5 (Aras 25 Oct 21:47-21:51, booklet/CROP_SPEC.md): the booklet shows this sheet's own four sections:
-  booklet/blocks.json lists one crop per section (the drawing box each panel frame leaves under its title and chips,
-  kept in SHEET_BOXES); the separate booklet redraw (parts/90_booklet.py drawers, c4_s1..c5_s2.pdf) is gone. Sheet
-  words: the Selinos is a stream (never river), no caveat notes ("schematic", "not to scale", ": not designed",
-  "route not designed", "volume: not in the idea", "bridge not modelled"), no personal name inside the K5 drawing.
-  Layout and look unchanged.
+NEW IN v7 (Aras 27 Oct 11:07, revision_2026-10-27/PHASE2_SPEC.md): booklet p.18-19 become ONE page: the four
+  sections sit in one 2 x 2 block shaped like the booklet's panel area (new crop ps_all), all at ONE common factor;
+  words drawn large enough that the smallest prints >= 7 pt on that page (TXT_K, measured); titles short, keyword
+  chips and long context paragraphs gone (one short note under each title); no source footer or credit line (the [n]
+  key is written to the log). Labels never overlap: declutter() measures every label (text_w) and moves it to the
+  nearest free place, or leaves it out and logs it. History (D8, D10, H4; Aras 12:05): K4 and K5 are walking hubs, a
+  dry step-free hub square at street level above Q500 with plane trees (irrigated from storage) + a floodable sub-hub
+  in the bed at the strip level, a walk down the steps between; K4 names Tabaklar Hamamı (~56 m downstream, card h02
+  E08) on the terrace that faces it. Single crops ps_upstream, ps_k4, ps_k5, ps_downstream kept (tight).
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_proposal_sections/).
 
 WHAT IT DRAWS: one A0 landscape sheet per form option (A = organic only where the project meets the water, B = no
 organic forms), all vector, whole-string text, four panels:
-  1 UPSTREAM ENTRY · collect, clean and hold   reed-basin cascade (water board v1.3's sketch, unchanged)
-  2 K4 BRIDGE · amphibious heritage threshold  tiers W / F / D (water board v1.3's sketch, unchanged)
-  3 K5 BRIDGE · Demeter's Garden (idea: Begum) NEW: garden on the dry top of the south-west bank (card i01, DG 1-2)
-  4 DOWNSTREAM REACH · give back               NEW: floodable planting WP 1-2 and the floodable boardwalk (ZONES.md)
+  1 UPSTREAM ENTRY                     reed-basin cascade (water board v1.3's sketch)
+  2 K4 BRIDGE · WALKING HUB            tiers W / F / D; hub square on D, sub-hub in the bed (v7)
+  3 K5 BRIDGE · DEMETER'S GARDEN       garden on the dry top of the south-west bank (card i01, DG 1-2); hub square
+                + WALKING HUB          on the other bank top, steps down, commons in the bed = sub-hub (v7)
+  4 DOWNSTREAM REACH                   floodable planting WP 1-2 and the floodable boardwalk (ZONES.md)
   Sketch code, PDF writer and palette are copied from bergama_water_board_v1_3.py (its SKETCH_SRC); element numbers
   1-11 are the water board's. Levels printed on panels 3-4: surveyed cuts, research/rain_river_levels/README.md v1.1
   table (K5 Q500 +58.75 m, 2.79 m above the bed, inside the banks; NIL +48.00 m, 2.33 m, inside; flat end 1.54 m,
@@ -46,7 +45,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v6"
+VERSION = "v7"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -62,10 +61,6 @@ BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 
 OPTIONS = ("A",)                     # v2: option A only (organic only where the project meets the water), Aras 16:43
-
-CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
-
-COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 
 COL = {
     "sheet": "F4F3EE", "paper": "EFEDE6", "faint": "D8D5CC", "structure": "B0AC9C", "ink2": "847E75",
@@ -97,6 +92,12 @@ SRC_KEY = [
     ("plants", u"DATA_REGISTER PL-11, PL-12: olive and lavender, waterlogging"),
     ("gauges", u"DSİ gauge yearbooks 2016-2021"),
     ("survey", u"main survey: road edges YOL_SOSE"),
+    ("plane", u"plane trees at the dry hub squares: decision D8 (Ottoman squares with plane trees, ICOMOS s13 p281, "
+              u"card h02); drought-sensitive, so irrigated from storage (card h03 Q4)"),
+    ("hamam", u"card h02 E08 (s32, s63): Tabaklar Hamamı on the right bank opposite Ulu Cami, survey labels at "
+              u"(29890, 32244); K4 at (29846, 32278): about 56 m apart (calculated)"),
+    ("hubs", u"history decisions D10 + Aras 27 Oct 12:05: K4 and K5 are walking hubs, a dry step-free square above "
+             u"Q500 and a floodable sub-hub in the bed at the strip level"),
 ]
 
 
@@ -195,106 +196,19 @@ def flow_arrow(pg, x0, x1, y, col, lw=0.3, head=1.2):
     pg.poly([[(x1, y), (x1 - head, y + head * 0.45), (x1 - head, y - head * 0.45)]], fill=col)
 
 
-def pict(pg, kind, x, y, sz):
-    """v3: a small pictogram in the square (x, y - sz)-(x + sz, y), on a 10 x 10 grid (after water board v1.6
-    icon()). Graphic only."""
-    u = sz / 10.0
-    lw = 0.07 * sz
-    ink, ink2 = COL["ink_dark"], COL["ink2"]
-    w1, w2, w3 = MP["discharge"][0], MP["discharge"][1], MP["discharge"][2]
-
-    def P(pts):
-        return [(x + a * u, y - sz + b * u) for a, b in pts]
-
-    def R(a0, b0, a1, b1):
-        return P([(a0, b0), (a1, b0), (a1, b1), (a0, b1)])
-
-    def drop(a, b, r, col):
-        pg.poly([P([(a - r * 0.85, b + r * 0.45), (a, b + r * 2.2), (a + r * 0.85, b + r * 0.45)])], fill=col)
-        pg.circle(x + a * u, y - sz + b * u, r * u, fill=col)
-    if kind == "reed":
-        pg.poly([R(0, 0, 10, 2.2)], fill=w2)
-        for k_ in range(4):
-            a = 1.8 + k_ * 2.1
-            t = 6.6 + (k_ % 2) * 2.2
-            pg.line(P([(a, 0.8), (a + 0.3, t)]), MP["wetland"][2], lw)
-            pg.poly([R(a - 0.25, t - 1.8, a + 0.85, t + 0.2)], fill=MP["agriculture"][1])
-    elif kind == "cascade":
-        for a, b in ((0.4, 6.4), (3.6, 3.6), (6.8, 0.8)):
-            pg.poly([R(a, b, a + 2.8, b + 1.4)], fill=MP["storage"][1])
-        pg.line(P([(0.2, 9.4), (0.2, 6.2), (3.4, 6.2), (3.4, 3.4), (6.6, 3.4), (6.6, 0.6), (9.8, 0.6)]), ink, lw)
-    elif kind == "strip":
-        pg.poly([R(0, 3.6, 10, 6.4)], fill=w2)
-        flow_arrow(pg, x + 0.8 * u, x + 9.4 * u, y - sz + 5.0 * u, COL["white"], lw, 1.8 * u)
-    elif kind in ("steps", "climb"):
-        pg.poly([R(0.4, 0.6, 9.6, 3.0)], fill=w1)
-        pg.line(P([(0.2, 0.6), (3.4, 0.6), (3.4, 3.8), (6.6, 3.8), (6.6, 7.0), (9.8, 7.0)]), ink, lw)
-        if kind == "climb":                           # the river climbing the steps
-            pg.line(P([(1.6, 3.4), (5.0, 7.4)]), w3, lw * 1.2)
-            pg.poly([P([(5.6, 8.2), (3.9, 7.3), (5.3, 6.1)])], fill=w3)
-    elif kind == "level":                             # a block (the street level) above a dashed flood line
-        pg.poly([R(1.0, 6.0, 9.0, 9.4)], fill=COL["structure"])
-        for a in (0.4, 3.0, 5.6, 8.2):
-            pg.line(P([(a, 3.6), (a + 1.6, 3.6)]), w3, lw)
-        pg.poly([P([(4.2, 4.9), (5.8, 4.9), (5.0, 3.6)])], stroke=w3, lw=lw * 0.7)
-        pg.poly([R(0.4, 0.4, 9.6, 2.4)], fill=w1)
-    elif kind == "bridge":
-        arc = [(5 + 4.2 * math.cos(math.pi * i / 16.0), 1.0 + 4.2 * math.sin(math.pi * i / 16.0)) for i in range(17)]
-        pg.line(P(arc), ink2, lw)
-        pg.line(P([(0.2, 6.8), (9.8, 6.8)]), ink2, lw * 1.4)
-        pg.poly([R(0.6, 0.4, 9.4, 1.6)], fill=w1)
-    elif kind == "olive":
-        pg.poly([R(4.5, 0.4, 5.5, 4.4)], fill=ink2)
-        pg.circle(x + 5.0 * u, y - sz + 6.2 * u, 3.4 * u, fill=MP["agriculture"][0])
-        for a, b in ((3.8, 6.8), (6.0, 5.4), (5.4, 7.8)):
-            pg.circle(x + a * u, y - sz + b * u, 0.5 * u, fill=ink)
-    elif kind == "sun":
-        for k_ in range(8):
-            a = math.radians(k_ * 45.0)
-            pg.line(P([(5 + 3.0 * math.cos(a), 5 + 3.0 * math.sin(a)), (5 + 4.6 * math.cos(a), 5 + 4.6 * math.sin(a))]),
-                    ink2, lw)
-        pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 2.5 * u, fill="E8C64A")
-    elif kind in ("drop", "notreat"):
-        drop(5.0, 2.8, 2.2, w2)
-        if kind == "notreat":
-            pg.line(P([(1.2, 8.8), (8.8, 1.2)]), COL["accent"], lw * 1.4)
-            pg.line(P([(1.2, 1.2), (8.8, 8.8)]), COL["accent"], lw * 1.4)
-    elif kind == "deck":
-        pg.poly([R(0.4, 0.4, 9.6, 2.6)], fill=w1)
-        pg.poly([R(0.4, 5.4, 9.6, 6.8)], fill=COL["soil_dk"])
-        for a in (2.0, 5.0, 8.0):
-            pg.line(P([(a, 5.4), (a, 1.0)]), ink2, lw)
-
-
-def chips(pg, x, ytop, items, size=2.0):
-    """v3: keyword chips in one row, each a pictogram and a keyword (the panel subtitles). Returns the right end."""
-    ch = size * 1.8
-    sz = ch - 0.8
-    for kind, lab in items:
-        w = 0.5 + sz + 0.8 + text_w(lab, size, True) + 1.2
-        pg.poly([rect(x, ytop - ch, x + w, ytop)], fill=COL["lane"], stroke=COL["faint"], lw=0.2)
-        pict(pg, kind, x + 0.5, ytop - 0.4, sz)
-        pg.text(lab, x + 0.5 + sz + 0.8, ytop - ch / 2 - size * CAP / 2, size, COL["ink"], bold=True)
-        x += w + 2.0
-    return x
-
-
-def frame(pg, box, title, sub=None):
-    """A drawing's panel on the board: white ground, a coloured rule on top, the title and one line under it.
-    v3: sub may be a list of (pictogram, keyword) chips instead of a sentence. Returns the box left for the drawing."""
+def cell(pg, box, title, note_txt, ts, ns):
+    """v7: one section's panel: white ground, a coloured rule on top, the title (ts mm) and one short note (ns mm)
+    under it, both measured (wrap). Returns (drawing box under the note, right end of the note), mm."""
     x0, y0, x1, y1 = box
     pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
     pg.poly([rect(x0, y1 - 1.2, x1, y1)], fill=MP["discharge"][1])
-    pg.text(title, x0 + 4.0, y1 - 7.6, 4.0, COL["ink_dark"], bold=True)
-    y = y1 - 9.0
-    if isinstance(sub, list):
-        chips(pg, x0 + 4.0, y - 0.4, sub)
-        y -= 2.6                                      # the same drawing box as a one-line subtitle (layout kept)
-    elif sub:
-        for ln in wrap(sub, 2.0, x1 - x0 - 8.0)[:2]:
-            y -= 2.6
-            pg.text(ln, x0 + 4.0, y, 2.0, COL["ink2"])
-    return (x0 + 4.0, y0 + 3.0, x1 - 4.0, y - 2.5)
+    pg.text(title, x0 + 5.0, y1 - 1.2 - 3.0 - ts * CAP, ts, COL["ink_dark"], bold=True)
+    top = y1 - 1.2 - 3.0 - ts * (CAP + 0.25) - 3.0     # under the title row (the single crops start here)
+    w = x1 - x0 - 10.0
+    yn = para(pg, x0 + 5.0, top, w, note_txt, ns, COL["ink"])
+    nr = x0 + 5.0 + max(text_w(ln, ns) for ln in wrap(note_txt, ns, w))
+    return (x0 + 5.0, y0 + 4.0, x1 - 5.0, yn - 0.25 * ns - 4.0), top, nr
+
 
 # ---------------------------------------------------------------- W3a  concept sections (pr1 v3.1 idea sketches)
 # SKETCH_SRC (end of this file) is pr1's sketch code; it runs in its own namespace and draws page items in pr1's
@@ -303,24 +217,86 @@ _SK = []
 
 #@include ../common/sketch_engine.py
 
-def draw_concept(which, opt):
-    """which: "up", "k4", "k5" or "down" (SKETCH_FN); opt: form A (organic at the water) or B (no curves)."""
+def draw_concept(which, opt, log):
+    """which: "up", "k4", "k5" or "down" (SKETCH_FN); opt: form A (organic at the water) or B (no curves).
+    v7: texts at the engine's TXT_K; labels kept apart by declutter (notes to log)."""
     E = sketch_engine()
     E["FORM"] = opt
     del E["ZP"][:]
     E["ORDER"][0] = 0
+    E["GROUP"][0] = 0
+    E["NEXT_G"][0] = 0
+    k = E["TXT_K"][0]
 
     def NODE(o, x, y, n):
         tmp = Page(0, 0)
-        node(tmp, o[0] + x, o[1] + y, n, opt, 2.6)
+        node(tmp, o[0] + x, o[1] + y, n, opt, 2.6 * k)
+        E["NEXT_G"][0] += 1
+        E["GROUP"][0] = -E["NEXT_G"][0]                # v7: an element number never moves; labels keep off it
         for it in tmp.items:
             E["_put"](it, E["Z_TEXT"])
+        E["GROUP"][0] = 0
     E["NODE"] = NODE
     E["CITE"] = cite                                  # v3: source numbers [n] inside the sketches
     E[SKETCH_FN[which]]()
+    ent = [(it, g) for _, _, it, g in sorted(E["ZP"], key=lambda e: (e[0], e[1]))]
     pg = Page(0, 0)
-    pg.items = [it for _, _, it in sorted(E["ZP"], key=lambda e: (e[0], e[1]))]
+    pg.items = declutter(ent, log, which)
     return pg
+
+
+DECLUTTER_R = 18                                      # sketch units: how far a label may move to find a free place
+
+
+def declutter(entries, log, name):
+    """v7 (rule: no text over another, measured): entries = [(item, label group)] in drawing order. Label groups
+    (> 0: a text, or a pictogram with its words) are set in drawing order; one whose box (text_w widths, a margin of
+    0.2 x its size) would touch a label already set or an element number (group < 0) moves to the nearest free place
+    (1-unit steps, sideways counted 1.5 x, at most DECLUTTER_R away, inside the drawing's reach); with no free place
+    it is left out and logged. Returns the items."""
+    groups, order = {}, []
+    for i, (it, g) in enumerate(entries):
+        if g:
+            if g not in groups:
+                groups[g] = []
+                order.append(g)
+            groups[g].append(i)
+    items = [it for it, _ in entries]
+
+    def box(ix, pad):
+        b = items_bbox([items[i] for i in ix])
+        return (b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad)
+
+    def hit(b, others):
+        return any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in others)
+    art = items_bbox([it for it, g in entries if not g])
+    lim = (art[0] - 8.0, art[1] - 8.0, art[2] + 8.0, art[3] + 8.0)
+    placed = [box(groups[g], 0.0) for g in order if g < 0]
+    R = DECLUTTER_R
+    cand = sorted(((dx, dy) for dx in range(-R, R + 1) for dy in range(-R, R + 1) if dx or dy),
+                  key=lambda d: (abs(d[0]) * 1.5 + abs(d[1]), abs(d[0])))
+    gone = set()
+    for g in order:
+        if g < 0:
+            continue
+        ix = groups[g]
+        txt = [items[i] for i in ix if items[i][0] == "text"]
+        b = box(ix, 0.2 * max([t[4] for t in txt] or [1.0]))
+        if not hit(b, placed):
+            placed.append(b)
+            continue
+        for dx, dy in cand:
+            nb = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
+            if lim[0] <= nb[0] and nb[2] <= lim[2] and lim[1] <= nb[1] and nb[3] <= lim[3] and not hit(nb, placed):
+                for i in ix:
+                    items[i] = xform([items[i]], 1.0, float(dx), float(dy))[0]
+                placed.append(nb)
+                break
+        else:
+            gone.update(ix)
+            log.append(u"NOTE section {}: label '{}' left out (no free place near it)".format(
+                name, txt[0][1] if txt else g))
+    return [it for i, it in enumerate(items) if i not in gone]
 
 # ---------------------------------------------------------------- the board (A0 landscape, one page)
 #@include ../common/load_palette.py
@@ -337,60 +313,67 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 #@include parts/90_booklet.py
 
 
-# ================================================================ the sheet (v1)
-PROPOSALS = [("up", u"1 · UPSTREAM ENTRY · COLLECT, CLEAN AND HOLD",        # v3: subtitles as keyword chips
-              [("reed", u"CLEAN · stream + held runoff"), ("cascade", u"STORE · winter water"),
-               ("strip", u"SUMMER STRIP")]),
-             ("k4", u"2 · K4 BRIDGE · AMPHIBIOUS HERITAGE THRESHOLD",
-              [("steps", u"TIERS W / F / D"), ("climb", u"stream may climb the steps"),
-               ("level", u"street level above Q500"), ("bridge", u"Roman bridge stays as it is")]),
-             ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN",
-              [("olive", u"PRODUCTIVE HERITAGE GARDEN"), ("sun", u"dry top · south-west bank"),
-               ("drop", u"watered by the clean stream")]),
-             ("down", u"4 · DOWNSTREAM REACH · GIVE BACK",
-              [("reed", u"FLOODABLE PLANTING · clean-stream fed"), ("deck", u"floodable boardwalk"),
-               ("notreat", u"no treatment here")])]
-# v6 (review 26 Oct, rule 4): one context line per section [(text, bold)]: what it shows, why, how to read it.
-# K5 keeps to the masterplan v23 detail note (dt_note "dt_k5") without repeating it.
-NOTES = {
-    "up": [(u"WHY THIS SECTION: the one-way water system starts here.", True),
-           (u"Winter runoff from the streets is cleaned once in the reed basins, held in the terrace cascade and "
-            u"released in summer as a continuous strip in the bed. Read it left to right, the way the water moves.",
-            False)],
-    "k4": [(u"WHY THIS SECTION: at K4 the design flood (Q500) runs over today's bank top.", True),
-           (u"So the street is raised above it and steps under it let the stream climb: the lowest step is wet every "
-            u"winter, the terraces only in big floods, the street never. The Roman bridge stays as it is.", False)],
-    "k5": [(u"WHY THE STREAM COMMONS AND DEMETER'S GARDEN SIT TOGETHER AT K5", True),
-           (u"Read the cut from the dry bank top down to the wet bed: the garden holds the dry ground and is watered "
-            u"from the clean strip; the commons is the bed people use at low water and give to the stream at high "
-            u"water. Here even Q500 stays inside the banks, so the garden stays dry while the commons floods.",
-            False)],
-    "down": [(u"WHY THIS SECTION: downstream the stream gives the clean water back.", True),
-             (u"The water arrives clean from the upstream reeds, so nothing is treated here: it feeds floodable "
-              u"planting and an open boardwalk, and the surplus goes to existing farmland outside the site.", False)]}
-NOTE_TS = 4.6                                         # mm: about 9 pt at the booklet's scale of this panel
-
-
-def note(pg, box, lines):
-    """v6: the section's context line at the top of its drawing box (inside the booklet crop). Returns the box left
-    under it for the sketch."""
-    x0, y0, x1, y1 = box
-    y = y1
-    for txt, bold in lines or []:
-        y = para(pg, x0, y, (x1 - x0) * 0.66, txt, NOTE_TS, COL["ink_dark"] if bold else COL["ink"], bold) - 0.8
-    return (x0, y0, x1, y - 6.0) if lines else box
-
-
-SHEET_BOXES = {}                                      # v5: key -> drawing box (x0, y0, x1, y1), mm, y up; set by build_sheet
+# ================================================================ the sheet (v7: one 2 x 2 block = one booklet page)
+# v7 (Aras 27 Oct 11:07 "p18-19: merge into one page"; spec §5 q3): the four sections sit in one 2 x 2 block whose
+# shape is the booklet's panel area, so the booklet shows the whole block (crop ps_all) on ONE A3 page at one factor;
+# every section is placed at ONE common factor (the sketches carry relative levels, so the booklet prints no scale).
+# Titles short, one short note under each title, no source footer (the [n] key goes to the log).
+PROPOSALS = [("up", u"1 · UPSTREAM ENTRY",
+              u"Winter runoff: cleaned in reed basins, held in the terrace basins, given back in summer as the strip"),
+             ("k4", u"2 · K4 BRIDGE · WALKING HUB",
+              u"Q500 tops today's bank: dry hub square above it, floodable sub-hub in the bed, steps between"),
+             ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN + WALKING HUB",
+              u"Bank tops stay dry: garden and hub square · bed: stream commons = sub-hub, floods in winter"),
+             ("down", u"4 · DOWNSTREAM REACH",
+              u"Clean water arrives from upstream: floodable planting + boardwalk, surplus to farmland")]
+SHEET_BOXES = {}                                      # key -> crop box (x0, y0, x1, y1), mm, y up; set by build_sheet
 SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
              "down": "concept_nil_sketch"}
+# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H)
+BK_W, BK_H = 392.0, 238.0
+GRID_W = BOARD_W - 2 * M                              # the 2 x 2 block on the A0 sheet, mm
+GRID_H = GRID_W * BK_H / BK_W                         # same shape as the booklet area: it fills the page, never stretched
+BK_S = BK_W / GRID_W                                  # booklet print factor of ps_all (0.338)
+LBL_PT, TITLE_PT, NOTE_PT = 7.0, 9.0, 9.0             # smallest word / titles / notes as printed on that booklet page
+
+
+def pt_mm(pt):
+    """The sheet text size (mm) that prints at pt points on the one-page booklet panel ps_all."""
+    return pt * PT / BK_S
+
+
+def fit_s(part, box):
+    b = items_bbox(part.items)
+    return min((box[2] - box[0]) / max(b[2] - b[0], 1e-6), (box[3] - box[1]) / max(b[3] - b[1], 1e-6))
+
+
+def sections(opt, boxes, log):
+    """v7: the four sketches at ONE common factor s (the largest at which each fits its box). Their words are drawn
+    at TXT_K x their size, raised (up to 4 tries) until the smallest prints >= LBL_PT on the booklet page.
+    Returns ({key: Page}, s)."""
+    E = sketch_engine()
+    E["TXT_K"][0] = 1.0
+    for _ in range(4):
+        notes = []
+        parts = dict((k, draw_concept(k, opt, notes)) for k in SKETCH_FN)
+        s = min(fit_s(parts[k], boxes[k]) for k in parts)
+        small = min(it[4] for p in parts.values() for it in p.items
+                    if it[0] == "text" and it[5] != COL["white"])        # white = digits inside the element numbers
+        pt = small * s * BK_S / PT
+        if pt >= LBL_PT - 0.05:
+            break
+        E["TXT_K"][0] *= LBL_PT / pt * 1.02
+    log.extend(notes)
+    log.append(u"sections: one factor {:.2f} mm per sketch unit; words x{:.2f}; smallest word on the booklet page "
+               u"{:.1f} pt".format(s, E["TXT_K"][0], pt))
+    return parts, s
 
 
 def build_sheet(opt, log):
     """The four proposals in section on one A0 landscape sheet, upstream to downstream (2 x 2)."""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
-    X0, X1, G = M, BOARD_W - M, 4.0
+    X0, X1, G = M, BOARD_W - M, 8.0
     top = BOARD_H - M
     pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
     # v3: the subtitle sentence as a keyword row: problem -> one move | 1 -> 11 upstream to downstream | the tag
@@ -418,23 +401,32 @@ def build_sheet(opt, log):
     pg.poly([rect(x, yc - 2.2, x + text_w(tag, 2.4) + 3.0, yc + 2.2)], fill=COL["lane"], stroke=COL["structure"],
             lw=0.25)
     pg.text(tag, x + 1.5, yc - 2.4 * CAP / 2, 2.4, COL["ink"])
-    pg.text(u"PanelReview1A · organic forms only where it meets the water" if opt == "A" else
-            u"PanelReview1B · no organic forms anywhere", X0, top - 22.5, 2.4, COL["ink"])
-    y1 = top - 26.0
+    y1 = top - 22.0
     pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
-    y0 = M + 16.0
-    cw, ch = (X1 - X0 - G) / 2.0, (y1 - G - y0 - G) / 2.0
-    for i, (key, ttl, sub) in enumerate(PROPOSALS):
+    gy1 = y1 - 4.0
+    gy0 = gy1 - GRID_H
+    cw, ch = (GRID_W - G) / 2.0, (GRID_H - G) / 2.0
+    boxes, heads = {}, {}
+    for i, (key, ttl, txt) in enumerate(PROPOSALS):
         cx = X0 + (i % 2) * (cw + G)
-        cy = y1 - G - (i // 2 + 1) * ch - (i // 2) * G
-        b = frame(pg, (cx, cy, cx + cw, cy + ch), ttl, sub)
-        _, pb = place(pg, draw_concept(key, opt), note(pg, b, NOTES.get(key)), 3.0, "TL", log, "section " + key)
-        SHEET_BOXES[key] = (b[0], max(b[1], pb[1] - 4.0), b[2], b[3])   # v6: booklet crop = context line + sketch
-    t = (u"Sources by number: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)) +
-         u"  ·  sketch style: water board v1.3")       # v3: the numbered source key (the [n] on the sketches)
-    y = para(pg, X0, M + 13.0, X1 - X0, t, 1.9, COL["ink2"])
-    pg.text(u"{} · {} · bergama_proposal_sections {}".format(CREDIT, COURSE, VERSION), X0, y - 2.6, 1.9, COL["ink2"])
+        cy = gy1 - (i // 2 + 1) * ch - (i // 2) * G
+        boxes[key], tp, nr = cell(pg, (cx, cy, cx + cw, cy + ch), ttl, txt, pt_mm(TITLE_PT), pt_mm(NOTE_PT))
+        heads[key] = (tp, nr)
+    parts, s = sections(opt, boxes, log)
+    for key, _, _ in PROPOSALS:
+        bx = boxes[key]
+        b = items_bbox(parts[key].items)
+        dx = (bx[0] + bx[2]) / 2.0 - s * (b[0] + b[2]) / 2.0     # centred across, at the top of its box
+        dy = bx[3] - s * b[3]
+        pg.items += xform(parts[key].items, s, dx, dy)
+        tp, nr = heads[key]                           # single crop: note + sketch, tight (the title is the caption)
+        SHEET_BOXES[key] = (min(bx[0], dx + s * b[0]) - 2.0, dy + s * b[1] - 3.0,
+                            max(nr, dx + s * b[2]) + 2.0, tp)
+    SHEET_BOXES["all"] = (X0, gy0, X0 + GRID_W, gy1)  # v7: the one-page block (titles + notes + sketches)
+    log.append(u"sources by number (the sheet's [n]): " +
+               u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)))
     return pg
+
 
 
 def main():

@@ -1,5 +1,18 @@
 # bergama_proposal_sections: notes of older versions (moved out of the script header)
 
+NEW IN v6 (Aras's deck review 26 Oct 07:06, p.25 + global rules 3-4): every section opens with a context line (what it
+  shows, why it is here, how to read it: NOTES) at the top of its drawing box, inside the booklet crop; the sketch sits
+  right under it at the same scale and the crop ends under the sketch (no empty foot). K5: why the amphibious stream
+  commons and Demeter's Garden sit together (dry garden / wet commons under the cut, who goes where at low and high
+  water, Q500 inside the banks keeps the garden dry). No personal credit in titles (booklet rule).
+
+NEW IN v5 (Aras 25 Oct 21:47-21:51, booklet/CROP_SPEC.md): the booklet shows this sheet's own four sections:
+  booklet/blocks.json lists one crop per section (the drawing box each panel frame leaves under its title and chips,
+  kept in SHEET_BOXES); the separate booklet redraw (parts/90_booklet.py drawers, c4_s1..c5_s2.pdf) is gone. Sheet
+  words: the Selinos is a stream (never river), no caveat notes ("schematic", "not to scale", ": not designed",
+  "route not designed", "volume: not in the idea", "bridge not modelled"), no personal name inside the K5 drawing.
+  Layout and look unchanged.
+
 NEW IN v4 (A3 booklet, SCRIPT_STANDARD §8; booklet/STAGE2_BRIEF.md): after the sheet, booklet_export() writes
   output/bergama_proposal_sections/booklet/: c4_s1, c4_s2, c5_s1, c5_s2 .pdf (the four sections re-laid natively for
   the booklet's 392 x 111 mm frames, same hand-sketch engine, no text inside) + blocks.json (every word a label from the
