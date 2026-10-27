@@ -21,7 +21,7 @@ BOOK = dict(
 # v11 (Aras 27 Oct 17:27, Prompt 1): theme cycles; each theme runs ANALYSIS -> WHAT WE GOT -> WHAT WE DO WITH IT
 PARTS = {"A": u"Site and stream edge", "B": u"Movement and the city", "C": u"Water", "D": u"History and heritage",
          "E": u"Masterplan: the synthesis"}
-STAGES = {"an": u"Analysis", "got": u"What we got", "do": u"What we do with it"}
+STAGES = {"an": u"Analysis", "got": u"What we got", "an+got": u"Analysis, what we got", "do": u"What we do with it"}
 
 SCRIPT_OF = {   # output folder -> script, named on placeholders, the sources page and in the log
     "selinus_board": u"Site board",
@@ -80,7 +80,7 @@ PAGES = [
     dict(part="C", stage="do", title=u"One plant ladder, streambed to field",
          sheet=AG + "Bergama_agriculture_alternatives_A3.pdf", page=2),   # old p25
     # ---- D HISTORY AND HERITAGE (now spread over old p3, p8, p18, p20: collected here as frames)
-    dict(part="D", stage="an", title=u"Heritage along the stream",
+    dict(part="D", stage="an+got", title=u"Heritage along the stream",
          rows=[[SLOT(u"Heritage on site: Roman bridges and tunnels, Red Hall, Ulu Cami, tannery quarter (later prompt)", 230.0, 200.0),
                 SLOT(u"What history asks of the edge (later prompt)", 146.0, 200.0)]]),
     dict(part="D", stage="do", title=u"The heritage loop", rows=[[SB + "drw_heritage_loop"]]),   # from old p8

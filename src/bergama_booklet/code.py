@@ -297,16 +297,26 @@ def header(pg, typo, spec):
     pg.draw_line((colx(1) * K, 25 * K), ((PW - ML) * K, 25 * K), color=hexrgb(RULE), width=0.25)
 
 
+def foot_label(spec):
+    part = PARTS.get(spec.get("part"), "")
+    return (spec.get("part", "") + "  " + part).upper() if part else ""
+
+
+def foot_x1(typo, spec):
+    """v11: the legend band ends 5 mm before the footer's theme label (longer since v11), never under it"""
+    lab = foot_label(spec)
+    return PW - ML - 12 - (typo.width(lab, T["caption"], True) + 5.0 if lab else 22.0)
+
+
 def footer(pg, typo, pno, spec, legend):
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
     typo.line(pg, BOOK["project"], colx(1), FOOT_B1, T["caption"], INK, True)
     typo.line(pg, BOOK["group_line"], colx(1), FOOT_B2, T["caption"], INK2)
     typo.line(pg, "%02d" % pno, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
-    part = PARTS.get(spec.get("part"), "")
-    if part:
-        typo.line(pg, (spec.get("part", "") + "  " + part).upper(), PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
+    if foot_label(spec):
+        typo.line(pg, foot_label(spec), PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
     # legend: same place on every page (columns 4-10 of the footer band), drawn samples + plain names
-    x0, x1 = colx(4), PW - ML - 34.0
+    x0, x1 = colx(4), foot_x1(typo, spec)
     x, y = x0, FOOT_B1
     for it in legend or []:
         w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
@@ -332,9 +342,9 @@ def legend_item(pg, typo, it, x, y):
     typo.line(pg, it.get("label", ""), x + 5.5, y, T["caption"], INK)
 
 
-def footer_rows(typo, legend):
+def footer_rows(typo, legend, spec=None):
     """how many rows the footer band needs for this legend"""
-    x0, x1 = colx(4), PW - ML - 34.0
+    x0, x1 = colx(4), foot_x1(typo, spec or {})
     x, n = x0, 1 if legend else 0
     for it in legend:
         w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
@@ -402,7 +412,7 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                     legend.append(e)
     rws = [sum(wh(it)[0] * sc(it) for it in r) + GUT * (len(r) - 1) for r in rows]
     lw = 6.0 + max([typo.width(e.get("label", ""), T["caption"]) for e in legend] or [0.0])
-    side = footer_rows(typo, legend) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
+    side = footer_rows(typo, legend, spec) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
     if side:                                         # v4: a long legend beside the drawing, all of it
         lx = AREA[0] + max(rws) + 8.0
         for i, e in enumerate(legend):
