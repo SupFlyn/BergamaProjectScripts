@@ -53,10 +53,6 @@ def leg(key, val=True):
         _PLEG[0].setdefault(key, val)
 
 
-def leg_zone(z):
-    leg(("zone", "WAF" if z["code"] == "WA" and z["tier"] == "F" else z["code"]), z["tier"])
-
-
 def legend_groups(alt, alpha):
     """[(heading, [(name, draw(pg, x, y, w, h))])] of what LEG holds, in a fixed order."""
     W_ = COL["white"]
@@ -184,7 +180,7 @@ def legend_groups(alt, alpha):
             pg.text(u"1", x + w / 2, y + h / 2 - 1.0, 2.8, W_, bold=True, align="C")
         links.append((u"STOP", f))
     return [(u"ZONES", zones), (u"AROUND THE ZONES", ctx),
-            (u"WALKS AND SPINES", lines), (u"LINKS", links)] + detail_legend()      # v21: detail sheet groups
+            (u"WALKS AND SPINES", lines), (u"LINKS", links)] + legend_v24_groups() + detail_legend()
 
 
 def add_legend(sh, alt, alpha, M):
@@ -227,9 +223,7 @@ def add_legend(sh, alt, alpha, M):
 
 def sheet_head(pg, x, y_top, alt, opt, title=None):
     pg.text(u"BERGAMA · GROUP 6 · " + (title or ALT_TEXT[alt]), x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
-    pg.text(OPTION_TEXT[opt], x, y_top - 13.0, 3.4, COL["ink"], bold=True)
-    pg.text(CREDIT, x, y_top - 18.0, 2.6, COL["ink"])
-    scale_bar(pg, x + 170.0, y_top - 13.0, _SCALE[0])
+    pg.text(OPTION_TEXT[opt], x, y_top - 13.0, 3.4, COL["ink"], bold=True)   # v24: no names, each panel its scale
 
 
 def scale_bar(pg, x, y, scale, marks=(0.0, 50.0, 100.0, 200.0)):
@@ -464,101 +458,12 @@ def river_walks(survey, removes=()):
     for x in out:
         k = x["bank"] + " " + x["cls"]
         stats[k] = stats.get(k, 0.0) + x["m"]
-    return {"runs": out, "covered": covered, "stats": stats, "ref": P, "rows": rows}   # v21: rows for the promenade
+    return {"runs": out, "covered": covered, "stats": stats, "ref": P, "rows": rows}   # v21; v24: rows for the corridor
 
-
-# ================================================================ v21: the promenade beside the stream
-# Aras 25 Oct 21:38: "promenade is just too thick that it covers the whole river however it should be alongside
-# river like covering %10 on left and %10 on right and rest should extend to the roadside". At every station of
-# river_walks (WALK_STEP m along STREAM_REF), on each bank: from PROM_IN x the stream's width inside the water edge
-# (the edge river_walks found) out to the first surveyed street edge (YOL_SOSE / YOL_BORDUR) within PROM_SEARCH_M;
-# a standing building (BINA_*, not cleared by the zone base) met first stops it there; with neither within
-# PROM_SEARCH_M it ends PROM_FREE_M out. No band over the covered reach. The outer edge is a running median over
-# PROM_WIN stations; option A's water edge wanders (organic only where the project meets the water).
-PROM_IN = 0.10               # share of the stream's width the band reaches over the water (Aras: "%10")
-PROM_SEARCH_M = 60.0         # the roadside is looked for this far beyond the water edge, m
-PROM_FREE_M = 15.0           # no street or building within PROM_SEARCH_M: the band's width beyond the edge, m (graphic)
-PROM_MIN_M = 1.0             # narrowest band beyond the edge (a street right at the water), m (graphic)
-PROM_WIN = 9                 # stations of the running median of the outer edge
-PROM_MIN_RUN = 12.0          # shorter runs are dropped, m
-PROM_SLOPE = 0.6             # the outer edge widens at most this much per m along the stream (hugs the roadside)
-
-
-def promenade(W, survey, removes, opt):
-    """v21: the promenade's rings (world m), one per bank and run, and {"m2", "street_pct"} for the log."""
-    rows = W.get("rows") or []
-    if not rows:
-        return [], {}
-    rm = [r for r in removes if len(r) >= 3]
-    skip = (lambda q: any(pip(q[0], q[1], r) for r in rm)) if rm else None
-    Gr = SegGrid([P for role in WALK_ROLES["road"] for P in survey.get(role, [])])
-    Go = SegGrid([P for role in WALK_ROLES["obst"] for P in survey.get(role, [])], skip)
-    nz = _noise(101)
-    loops, n_st, n_all = [], 0, 0
-    for side, sg in (("NE", 1.0), ("SW", -1.0)):
-        V = []
-        for r in rows:
-            s = r.get(side)
-            if r["cov"] or not s or not r.get("width"):
-                V.append(None)
-                continue
-            p, nl, e = r["p"], r["n"], s["e"]
-            lo, hi = sorted((e, e + sg * PROM_SEARCH_M))
-            st_ = [sg * x - sg * e for x in Gr.cross(p, nl, lo, hi)]
-            ob_ = [sg * x - sg * e for x in Go.cross(p, nl, lo, hi)]
-            st_ = [v for v in st_ if v > 0.3]
-            ob_ = [v for v in ob_ if v > 0.05]
-            n_all += 1
-            if st_ and (not ob_ or min(st_) <= min(ob_)):
-                n_st += 1
-            out = min(st_ + ob_) if st_ or ob_ else PROM_FREE_M
-            V.append([e, r["width"], max(PROM_MIN_M, out)])
-        runs, cur = [], []
-        for i, v in enumerate(V + [None]):
-            if v is None:
-                if len(cur) * WALK_STEP >= PROM_MIN_RUN:
-                    runs.append(cur)
-                cur = []
-            else:
-                cur.append(i)
-        for ix in runs:
-            n = len(ix)
-            for j in (1, 2):                             # width and outer edge: running median
-                raw = [V[i][j] for i in ix]
-                h = PROM_WIN // 2
-                for a, i in enumerate(ix):
-                    V[i].append(_median(raw[max(0, a - h):a + h + 1]))
-            for seq in (ix, ix[::-1]):                   # the outer edge widens gently, narrows to the street
-                for a, b in zip(seq, seq[1:]):
-                    V[b][4] = min(V[b][4], V[a][4] + PROM_SLOPE * WALK_STEP)
-            inner, outer = [], []
-            for i in ix:
-                r = rows[i]
-                e, w, o = V[i][0], V[i][3], V[i][4]
-                p, nl = r["p"], r["n"]
-                f = 1.0 + (0.45 * nz(p[0], p[1]) if opt == "A" else 0.0)
-                t_in = e - sg * PROM_IN * w * f
-                t_out = e + sg * o
-                inner.append((p[0] + nl[0] * t_in, p[1] + nl[1] * t_in))
-                outer.append((p[0] + nl[0] * t_out, p[1] + nl[1] * t_out))
-            if n < 3:
-                continue
-            outer = walk_form(outer, "B") if opt == "B" else \
-                [outer[0]] + [tuple(sum(outer[j][c] for j in range(a - 2, a + 3)) / 5.0 for c in (0, 1))
-                              for a in range(2, n - 2)] + [outer[-1]]
-            inner = walk_form(inner, opt)
-            Lp = inner + outer[::-1]
-            Lp = chaikin(Lp, 2, closed=True) if opt == "A" else Lp
-            if area2(Lp) < 0:
-                Lp = Lp[::-1]
-            loops.append(Lp)
-    m2 = sum(abs(area2(L_)) for L_ in loops)
-    return loops, {"m2": m2, "street_pct": 100.0 * n_st / max(1, n_all)}
 
 # v11 constants (Thread 5)
 SPINE_W_M = 6.0                # drawn width of the spines, m (graphic)
 WALK_FACET_M = 4.0             # option B: walks as straight facets, Douglas-Peucker tolerance, m (graphic)
-TREE_MIN_MM = 0.9              # smallest drawn tree, mm (graphic)
 _BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 CITY_LINK_FILES = [os.path.join(_BERGAMA, "output", "Bergama_city_link_analysis", "city_link_results.json")]
 
@@ -736,25 +641,14 @@ def city_layer(opt, D, areas, survey, warn):
     for s in sp:
         s["F"] = walk_form(s["P"], opt) if s["kind"] == "edge" else s["P"]
     m2 = sum(x["m"] for x in W["runs"]) * WALK_W
-    prom, pst = promenade(W, survey, [r["P"] for r in D.removes], opt)       # v21
-    if not prom:
-        warn.append(u"option {}: no promenade drawn (no stream edges from the survey)".format(opt))
-    return {"prom": prom, "prom_stats": pst, "W": W, "spine": sp, "main": [tuple(p) for p in spec["main_spine"]], "stops": stop_points(spec, D, areas),
+    return {"W": W, "spine": sp, "main": [tuple(p) for p in spec["main_spine"]], "stops": stop_points(spec, D, areas),
             "src_walks": src_w, "src_city": src_c, "walk_m2": m2,
             "spine_m": dict((k_, sum(arclen(s["P"])[-1] for s in sp if s["kind"] == k_)) for k_ in ("edge", "deck", "over"))}
 
 
-def clip_city(CL, test):
-    """A copy of CL cut to test(x, y) (alternatives 1 and 2: a working area and its ring)."""
-    cut = lambda P: cut_runs(P, test, 1.0)
-    return {"main": None, "mains": cut(CL["main"]),
-            "spine": [dict(s, F=F) for s in CL["spine"] for F in cut(s["F"])],
-            "W": {"runs": [dict(x, F=F) for x in CL["W"]["runs"] for F in cut(x["F"])]}, "stops": []}
-
-
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v23.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v24.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -774,18 +668,7 @@ def city_results(CLs):
     return out
 
 
-# ================================================================ link helpers (the puzzle's tongues)
-def inset(p, q, z):
-    """Point p on zone z's edge, moved SNAP_IN_M into z, away from q (which lies outside z)."""
-    for tx, ty in ((p[0] - q[0], p[1] - q[1]), (z["q"][0] - p[0], z["q"][1] - p[1])):
-        L = math.hypot(tx, ty)
-        if L > 1e-9:
-            c = (p[0] + tx / L * SNAP_IN_M, p[1] + ty / L * SNAP_IN_M)
-            if pip(c[0], c[1], z["P"]):
-                return c
-    return p
-
-
+# ================================================================ link helpers
 # ================================================================ Rhino bake (only with rhino_bake = True)
 def _flat(c, alpha):
     """A fill's colour as it shows on white paper (the bake has no opacity)."""
@@ -948,15 +831,10 @@ def build_all(doc, warn):
     survey = read_survey(doc, R) if doc is not None else {}
     if not survey.get("building") and not survey.get("housing"):
         warn.append(u"no survey buildings (BINA_*) in the open file: the zones are drawn on plain paper")
-    bases = {}
-    for key, place, idea in AREAS:
-        b = bbox(areas[key])
-        bases[key] = prep_base(survey, Near(areas[key], ring_m),
-                               (b[0] - ring_m, b[1] - ring_m, b[2] + ring_m, b[3] + ring_m))
-    # ---- per option: the zones (file, else zone base file, else the embedded copy), then the three alternatives
+    # ---- per option: the zones (file, else zone base file, else the embedded copy), the corridor, the sheets
     files, lines, pages = [], [], []
     sheets, wins, plc, missing = [], [], {}, {}           # v21: sheets for the booklet crops
-    CLs = {}
+    CLs, Cs = {}, {}
     zb = None
     for opt in option_input():
         its = read_items(doc, opt) if doc is not None else []
@@ -983,71 +861,72 @@ def build_all(doc, warn):
                              opt, ", ".join(u"{} {:.0f}".format(k_, v_) for k_, v_ in sorted(st_.items())),
                              CL["spine_m"]["edge"], CL["spine_m"]["deck"], CL["spine_m"]["over"], CL["walk_m2"],
                              CL["src_walks"], CL["src_city"]))
-            if CL.get("prom_stats"):                     # v21
-                lines.append(u"option {}: promenade {:,.0f} m2 beside the stream; it reaches a street edge at {:.0f} % "
-                             u"of the bank stations".format(opt, CL["prom_stats"]["m2"], CL["prom_stats"]["street_pct"]))
         except Exception as ex:
             import traceback
             CL = None
             warn.append(u"option {}: walks and spine NOT drawn ({}: {})".format(opt, type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
-        pzs = {}
-        for key, place, idea in AREAS:
-            try:
-                pzs[key] = puzzle(bases[key], D, key)
-            except Exception as ex:
-                pzs[key] = []
-                warn.append(u"option {}: the puzzle of {} failed ({}: {})".format(opt, place, type(ex).__name__, ex))
+        C = None
+        try:                                             # v24: the ecological corridor of the whole site frame
+            t0 = time.time()
+            spots_all = read_spots(doc, [V.bb]) if doc is not None else []
+            C = Cs[opt] = Corridor(V, survey, CL, D, spots_all, warn)
+            st_ = C.stats
+            lines.append(u"option {}: max potential area: open {:.1f} ha, bed {:.1f} ha, buildings {:.1f} ha, roads "
+                         u"{:.1f} ha; widened {} reaches, side arms {}, kept {}; terraces {} (contours {:.0f} m/ha "
+                         u"upstream, {:.0f} below K5); crossings {}; viewing terrace {}; notes {}; {:.1f} s".format(
+                             opt, st_[0] / 1e4, st_[3] / 1e4, st_[1] / 1e4, st_[2] / 1e4, len(C.widen), len(C.arms),
+                             len(C.kept), len(C.terr), C.steep.get("up", 0.0), C.steep.get("down", 0.0),
+                             len(C.cross), u"at {:.0f}, {:.0f}".format(*C.terrace["xy"]) if C.terrace else u"none",
+                             len(C.notes), time.time() - t0))
+        except Exception as ex:
+            import traceback
+            warn.append(u"option {}: corridor NOT computed ({}: {})".format(opt, type(ex).__name__, ex))
+            warn.append(traceback.format_exc()[-480:])
         for alt in (1,):                                 # v19: the one sheet
             name = OUT_NAME.format(opt, alt)
             t0 = time.time()
-            LEG.clear()                                  # v17: the legend lists only this sheet's entries
             try:
-                panels = [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale, alpha, areas[spec[0]], CL,
-                                    note=MP_NOTE.get(spec[0]))                  # v23: context line
-                          for spec in AREAS]
-                for p_ in panels:                        # v21: each panel is a booklet crop
-                    p_.bid = MP_CROPS[p_.key]
+                if C is None:
+                    raise ValueError(u"no corridor computed (see the warnings)")
+                used = set()
+                hps = [half_panel(C, h, used, warn) for h in (0, 1)]
+                panels = [compose_half(C, hp, used, warn) for hp in hps] + [max_area_panel(C)]   # v24
+                on_map = set(n for hp in hps for n in hp["placed"])
+                for nt in C.notes:
+                    if nt["n"] not in on_map:
+                        warn.append(u"masterplan note {} not placed on the plan (no free spot): {}".format(nt["n"], nt["text"]))
+                LEG.clear()                              # v24: the halves carry their own legend
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v23 option {} (opacity {:.2f}, "
-                                              u"1:{:,.0f})".format(opt, alpha, scale))
+                path = save(pg, folder, name, u"Bergama masterplan v24 option {} (1:{:,.0f})".format(opt, MP_SCALE))
                 files.append(path)
                 pages.append((opt, alt, pg))
-                sheets.append((path, pg, scale))
+                sheets.append((path, pg, MP_SCALE))
                 lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
                                                        datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
             except Exception as ex:
                 import traceback
                 lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
-        if opt == "A" and CL is not None:                # v21: the 1:1,000 detail sheet (option A)
+        if opt == "A" and CL is not None and C is not None:   # v21: the 1:1,000 detail sheet (option A)
             name = DETAIL_NAME.format(opt)
             t0 = time.time()
             LEG.clear()
             _SCALE[0] = DT_SCALE
             try:
                 plc = places(city_link()[0], CL, survey)
-                fr_ = bk_frame("bergama_masterplan/dt_upstream", *DT_FRAME)
-                nh_ = max(note_block(dt_note(w_[0]), fr_[0], DT_NOTE_TS)[1] for w_ in DT_WINDOWS)
-                wins = detail_windows(D, plc, (fr_[0], fr_[1] - nh_))   # v23: the context lines take their height
+                wins = detail_windows(D, plc, DT_PLAN)    # v24: no text block under the plan
                 spots = read_spots(doc, [w["R"] for w in wins]) if doc is not None else []
                 if not spots:
                     warn.append(u"no survey spot heights ({}) in the detail windows: no spot levels".format(SPOT_LAYER))
                 dpanels = []
                 for w in wins:
-                    spec = next(a_ for a_ in AREAS if a_[0] == w["key"])
-                    Rm = (w["R"][0] - 40.0, w["R"][1] - 40.0, w["R"][2] + 40.0, w["R"][3] + 40.0)
                     missing[w["id"]] = []
-                    p_ = draw_area(spec, opt, 1, D, prep_base(survey, BoxNear(Rm), Rm), pzs[w["key"]], DT_SCALE,
-                                   alpha, areas[w["key"]], CL, win=w["R"],
-                                   detail=detail_overlay(w, D, CL, spots, plc, missing[w["id"]], warn),
-                                   title=w["title"] + u" · 1:1,000", note=dt_note(w["id"]))
-                    p_.bid = (w["id"], w["old"], w["caption"])
-                    dpanels.append(p_)
+                    dpanels.append(window_panel(C, w, D, CL, spots, plc, missing[w["id"]], warn))
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v23 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v24 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))
@@ -1060,8 +939,11 @@ def build_all(doc, warn):
             _SCALE[0] = scale
     if CLs:                                              # v11: what the other scripts read
         try:
+            res_ = city_results(CLs)
+            if "A" in Cs:                                # v24: the proposal's movement (spec §4), for the site board
+                res_["movement"] = Cs["A"].movement()
             with open(os.path.join(folder, RESULTS_NAME), "w", encoding="utf-8") as f:
-                json.dump(city_results(CLs), f, ensure_ascii=False, indent=1)
+                json.dump(res_, f, ensure_ascii=False, indent=1)
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v23 (2026-10-26): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v24 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
@@ -63,7 +63,24 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026-10-26.md, R4):
+NEW IN v24 (Aras 27 Oct 11:07, booklet v9 p15-16; revision_2026-10-27/PHASE2_SPEC.md; history D1-D12, H1-H7):
+  * p15 redone as an ECOLOGICAL CORRIDOR (parts/02c_corridor.py): the whole site frame turned so the water runs left
+    to right, two halves at 1:5,000 (crops mp_upstream, mp_downstream), each with a key column. The uses blend as a
+    gradient (stepped translucent planting rings from the water, programme rings densest at the hubs: H1), no zone
+    fills. Everything is placed by computation on the survey: maximum potential area (open ground, no building, no
+    road; own proof panel, crop mp_max_area at 1:10,000), widened stream / reed side arms / kept reaches downstream
+    from the open ground beside the bank, terraces on the survey contours upstream, forest corridor and tree-planted
+    areas, hub squares (K3, K4, K5 walking hubs with bed sub-hubs and stepping stones; transit hub İstiklal Meydanı +
+    Kızıl Avlu, switch MAIN_TRANSIT_HUB), canopied walkway with streamside seats, footbridges where a reach has no
+    crossing for 300 m, viewing terrace by a computed sightline to the Trajaneum (H5), H2 hidden-stream line, H4, H6.
+    Roads changed or kept from OSM classes and the site board's mark C3, each with its reason; truck route: no data
+    (pending). Numbered notes on the map, short notes + stacked reasons (D11, D12) in the key; legend rebuilt.
+  * masterplan_results.json gains "movement" (spec §4: roads, routes, truck_route, crossings, hubs with role).
+  * p16: the 1:1,000 windows draw the same corridor with every element and species code named; no text block under
+    the plan. No personal names on the sheets.
+  Output: Bergama_masterplan_v24_A.pdf, Bergama_masterplan_v24_A_detail.pdf.
+
+OLDER: v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026-10-26.md, R4):
   * No walk lines on any plan (p.19: "We work with zones only"): the bank / street / bed walks are no longer drawn
     on the sheet or the detail windows. They are still computed: masterplan_results.json and the water balance's
     riverside walk area are unchanged.
@@ -72,7 +89,6 @@ NEW IN v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026
     (p.20 right: why the amphibious stream commons sits with Demeter's Garden: what the two do together, why at K5,
     with the K5 cut's Q500 level from CUT_AT). Texts in MP_NOTE / dt_note (02b_detail.py). The detail windows give
     up the lines' height so each crop keeps the booklet frame's size and 1:1,000.
-  Output: Bergama_masterplan_v23_A.pdf, Bergama_masterplan_v23_A_detail.pdf.
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
@@ -105,8 +121,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v23 (2026-10-26)"
-SHORT = "v23"
+VERSION = "bergama_masterplan v24 (2026-10-27)"
+SHORT = "v24"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -117,27 +133,23 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v23_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v23_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v24_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v24_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
 
 RESULTS_NAME = "masterplan_results.json"   # v11: read by the water balance (riverside_walk_m2)
 BAKE_ROOT = "MP11"                    # Rhino layer of the bake (rhino_bake = True)
 BAKE_GAP = 0.10                       # gap between baked sheets and to the rest of the file (x the sheet's width)
-CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
 OPTION_TEXT = {"A": u"OPTION A · organic only where the project meets the water",
                "B": u"OPTION B · no organic forms"}
 ALT_TEXT = {1: u"MASTERPLAN · PROGRAMME"}   # v19: the one sheet
 
 # working area key (survey layer, data key only), stage / place name on the drawing (Q16), idea (CONTEXT §4)
-AREAS = [("calisma_alan[0]", u"UPSTREAM ENTRY TO K4 BRIDGE", u""),          # v12: one shared working area, north part
-         ("calisma_alan[1]", u"K5 BRIDGE TO DOWNSTREAM END", u"")]          # south part (Aras 25 Oct 08:05)
 CALISMA_LAYER = "calisma_alan"
 SITE_LAYER = "site_alan"                              # v15: analysis range = extent of alternative 3
 SITE_COPY = [(29388.015, 32540.503), (31220.325, 30364.153), (31625.069, 30704.915), (29792.759, 32881.264)]   # v15: site_alan of Bergama_Altlik.3dm (rectangle 2,845 x 529 m, 25 Oct 08:25)
 CLOSE_GAP = 5.0                                   # v12: m, an open outline closer than this counts as closed
-SPINE_OUTSIDE_OK = True                           # v12: the riverside spine (city link) may leave calisma_alan
 SNAP_M = 15.0                                     # v12: m, a proposal this close to calisma_alan counts as on it
 WALK_CLIP = False                                 # v12: Aras 08:10: the walk outside calisma_alan (207 of 4,211 m in
                                                   # the copy) is too small to matter: walks drawn continuous
@@ -175,19 +187,6 @@ NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", N
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
          ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
          ("calisma_alan", "DG", None): u"DEMETER'S GARDEN"}   # v13: Begum's idea (card i01)
-SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a working-area key, keywords)
-    ("aras_alan", "WS", "D", None, [u"WINTER RAIN", u"STEPPED", u"SEATING"]),
-    ("aras_alan", "GR", "D", None, [u"SHADE", u"WALK", u"CAFE"]),
-    ("aras_alan", "WT", "F", None, [u"CLEANING", u"DE-ODOUR", u"RUNOFF"]),
-    ("aras_alan", "WD", "W", None, [u"OVERFLOW", u"RETURN"]),
-    ("begum_alan", "WA", "W", None, [u"WATER STRIP", u"STEPPING STONES", u"WEIRS", u"PLAZA", u"REED"]),
-    ("begum_alan", "WA", "F", None, [u"WATER STEPS", u"SEATING", u"TAMARIX"]),
-    ("begum_alan", "GR", "D", None, [u"BRIDGE VIEW", u"KIOSK", u"SHADE", u"LAVENDER"]),
-    ("nil_alan", "WP", "F", None, [u"CLEAN STREAM", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
-    ("calisma_alan", "DG", "D", None, [u"OLIVES", u"STONE PINE", u"AROMATICS", u"SEASONAL BEDS", u"CAFE",
-                                       u"WATER COLLECTION BASIN"]),   # v13: Begum's PDF, verbatim words
-]
-REMOVE_WORDS = [u"CLEARED"]
 # the common piece where the functions of a working area meet: name + what it gathers. A design reading of the
 # sourced words above (Aras 19:27, campus reference), not data; edit freely.
 HUB = {"calisma_alan[0]": (u"WATER AND HERITAGE COMMONS", [u"COLLECT", u"CLEAN", u"HOLD", u"K4 BRIDGE", u"PLAZA"]),
@@ -197,18 +196,6 @@ HUB = {"calisma_alan[0]": (u"WATER AND HERITAGE COMMONS", [u"COLLECT", u"CLEAN",
 # Upstream entry "Collect, clean and hold": the reed basins clean and the terraces hold; the spillway returns; the
 # walk serves. K4 / K5 "Amphibious heritage threshold": the bed is the amphibious core, the terrace its edge, the dry
 # top the view. Downstream end "Give back": the riverside planting is the idea.
-SIG = {("aras_alan", "WT", None): 1.0, ("aras_alan", "WS", None): 1.0, ("aras_alan", "WD", None): 0.7,
-       ("aras_alan", "GR", None): 0.55,
-       ("begum_alan", "WA", "W"): 1.0, ("begum_alan", "WA", "F"): 0.75, ("begum_alan", "GR", None): 0.6,
-       ("nil_alan", "WP", None): 1.0, ("calisma_alan", "DG", None): 0.9}
-HUB_SIG = 1.25                 # the commons: above every zone
-STEPS = (1.0, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35)   # sizes tried, largest first, when a word does not fit
-HUB_R_M = (24.0, 16.0, 10.0)   # meeting distance tried, m (graphic)
-HUB_MAX = 0.35                 # the common piece takes at most this share of the programme pieces
-HUB_MIN_M2 = 150.0             # smaller common fragments are dropped
-KIND_WORD = {"river": u"STREAM", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
-PATH_WORDS = {"nil_alan": [u"FLOODABLE DECK"]}
-ROUND_M = 9.0                  # corner rounding of the cleared-building outlines, m (graphic)
 DROPPED = ("FARM CHANNEL", "ORCHARD", "FARMLAND")   # no farmland or farm channel inside the site (CONTEXT §2)
 
 # ---------------------------------------------------------------- links (masterplan v9, from ideas.txt)
@@ -222,31 +209,6 @@ LINK_TYPES = {
                   src="ideas.txt lines 8, 18, 26"),
 }
 # The water route's allowed steps (from code -> to code) and the brief's reason for each; any other step is a warning
-WATER_STEPS = {
-    (None, "WS"): "the river's extra water is stored (line 6)",
-    (None, "WT"): "river water is treated when needed (line 6)",
-    (None, "WP"): "plants feed and regulate the river (line 7)",
-    ("WP", None): "plants feed and regulate the river (line 7)",
-    ("WS", "WI"): "extra water is first spent on agriculture (line 26; drainage feeds orchards, line 12)",
-    ("WS", "WT"): "then the excess goes to treatment (line 26)",
-    ("WS", "WD"): "storage discharges (line 6)",
-    ("WS", None): "storage raises the river when needed (line 6)",
-    ("WT", "HO"): "treated water to the city mains or drinking water (line 26)",
-    ("WT", "MC"): "treated water to the city mains or drinking water (line 26)",
-    ("WT", "CV"): "treated water to the city mains or drinking water (line 26)",
-    ("WT", "PA"): "treated water to the city mains (line 26)",
-    ("WT", "WD"): "treated water is discharged (line 6)",
-    ("WT", None): "treated water back to the river (line 6)",
-    ("WD", None): "discharge back to the river (line 6)",
-    ("WD", "WI"): "the drainage channel feeds orchards and farmland (line 12)",
-    (None, "WD"): "the river feeds a channel by gravity, downstream, for the farms (lines 12, 26)",
-}
-FLOOD_TO = ("WA", "WS", "WD", "WT")                  # zones meant to take high water (ideas.txt lines 8, 18 and 26)
-CITY_CODES = ("CH", "MC", "HO", "CV", "GR", "SR", "PA")
-WATER_SIDE = ("WS", "WD", "WT", "WP", "WA", "WI")
-SNAP_IN_M = 2.0                # masterplan v7: an arrow starts / ends this far inside the zones it joins (m)
-MIN_LINK_MM = 7.0              # masterplan v7: shortest arrow on the sheet (mm)
-SHORT_LINK_M = 60.0            # masterplan v6: water / flood links up to this long also get a water band (m)
 # The masterplan's bold hand-drawn arrow (v8 / v9 G, as water loop v1.2 and the water board draw it; the standard
 # since 24 Oct): marker shaft 2.0 mm, barbs 5.84 mm at 38 deg and 1.6 mm, serifs 2.79 mm at 0.4 mm, barb overshoot
 # 0.64 mm, shaft wobble 0.175 mm over 15.2 mm; paper mm.
@@ -478,28 +440,6 @@ def principal_angle(P):
 
 def thin(P, n=120):
     return P[::max(1, len(P) // n)]
-
-
-def seg_closest(p, a, b):
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / max(dx * dx + dy * dy, 1e-12)
-    t = max(0.0, min(1.0, t))
-    return (a[0] + t * dx, a[1] + t * dy)
-
-
-def closest_pair(A, B):
-    """Closest points between two rings (or a point and a ring); returns (point on A, point on B, distance)."""
-    best = (A[0], B[0], 1e18)
-    for X, Y, flip in ((A, B, False), (B, A, True)):
-        if len(Y) < 2:
-            continue
-        for p in X:
-            for i in range(len(Y)):
-                q = seg_closest(p, Y[i], Y[(i + 1) % len(Y)])
-                d = math.hypot(q[0] - p[0], q[1] - p[1])
-                if d < best[2]:
-                    best = (q, p, d) if flip else (p, q, d)
-    return best
 
 
 def mix(c1, c2, t):
@@ -1117,28 +1057,4 @@ def link_type(tag):
         if tw & set(d_["words"]):
             return k_
     return None
-
-
-def link_check(kind, a, b):
-    """'' when an arrow of `kind` from zone code a to zone code b (None = the river or no zone) follows the brief's
-    logic, else what is wrong (masterplan v9)."""
-    nm = lambda c_: c_ or "the river (no zone)"
-    if kind == "water":
-        if (a, b) in WATER_STEPS:
-            return ""
-        return ("{} -> {} is not a step of the water route (river -> WS storage -> WI agriculture / WT treatment -> "
-                "city or back to the river, ideas.txt lines 6, 12 and 26)").format(nm(a), nm(b))
-    if kind == "flood":
-        if a in (None, "WA") and b in FLOOD_TO:
-            return ""
-        return ("a high-water arrow runs from the river (no zone, or an amphibious bed WA) into a zone that takes "
-                "water ({}); this one runs {} -> {}").format("/".join(FLOOD_TO), nm(a), nm(b))
-    if kind == "people":
-        w_ = lambda c_: c_ is None or c_ in WATER_SIDE
-        if (w_(a) and b in CITY_CODES) or (w_(b) and a in CITY_CODES):
-            return ""
-        return ("a river-city link joins the water side (a W zone or the river) with a city zone ({}); this one "
-                "runs {} -> {}").format("/".join(CITY_CODES), nm(a), nm(b))
-    return ""
-
 
