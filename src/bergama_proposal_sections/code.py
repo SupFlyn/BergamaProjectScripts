@@ -4,6 +4,12 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v8.1 (bugfix, Aras 27 Oct, Prompt 8 final check): K5's winter crop row (herbs, greens, Cabbage (Lahana), Citrus
+  (Narenciye), Quince (Ayva)) sits 2.2 lines under the summer row (was 1.5): at 1.5 its pictogram touched the summer
+  row, and with no free place inside the drawing's reach declutter left the whole row out. The booklet caption of
+  ps_all keys the numbered roundels (1-11 as in Collect, clean, hold; the sheet header that says so is outside the
+  crop). The source key names public sources where the entry rested on a public one (levels, rain, olive and
+  lavender: no internal file names). Nothing else changed.
 NEW IN v8 (Aras 27 Oct 17:34, booklet Prompt 5 rule 8: "plants: English name (Turkish name), no Latin"): the plants and
   crops the sections name read "English (Turkish)": Oriental plane (Doğu çınarı), Olive (Zeytin), Stone pine (Fıstık
   çamı), French lavender (Karabaş otu), and Demeter's Garden's crops (Bean (Fasulye), Tomato (Domates) ...). The text
@@ -49,7 +55,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v8"
+VERSION = "v8.1"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -87,14 +93,15 @@ CR = u"CONCEPT_RECORD v2.4"
 
 # v3: sources as [n] on the drawings, the numbered key in the footer (water board v1.6 cite() / SRC_KEY). Fixed
 # order, so the numbers stay the same on every press.
-SRC_KEY = [
-    ("levels", RR + u" v1.1 table: levels calculated on the surveyed stream-height cuts (Manning, main survey TIN)"),
-    ("rain", u"water_data/README: MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
+SRC_KEY = [   # v8.1 (Prompt 8: only publicly checkable sources): no internal file names where the source is public
+    ("levels", u"levels calculated on the surveyed stream-height cuts (Manning, main survey TIN)"),
+    ("rain", u"MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
     ("concept", CR + u" (Q1: east channel wall kept, default)"),
     ("tiers", u"Aras's concept text: tiers, level 1 / 2 / 3"),
     ("garden", u"card i01: Demeter's Garden, page and crop list (zones DG 1-2)"),
     ("zones", u"zone base ZONES.md: WP 1-2 and the floodable boardwalk"),
-    ("plants", u"DATA_REGISTER PL-11, PL-12: olive and lavender, waterlogging"),
+    ("plants", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter); FAO Ecocrop, olive (will not "
+               u"tolerate waterlogged soils)"),          # v8.1: the public pages of BK_SOURCES, not the internal register
     ("gauges", u"DSİ gauge yearbooks 2016-2021"),
     ("survey", u"main survey: road edges YOL_SOSE"),
     ("plane", u"plane trees at the dry hub squares: decision D8 (Ottoman squares with plane trees, ICOMOS s13 p281, "

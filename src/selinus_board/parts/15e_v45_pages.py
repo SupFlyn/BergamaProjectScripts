@@ -393,8 +393,10 @@ def draw_edge_build(S, B, x, y, w, U, with_photos=True):
     # under the strips: scale bar and north arrow, outside the map
     rb = strips[-1][2]
     Lm = 200.0
-    low = draw_scalebar_bk(B, x, rb[1] - 3.0 * k, ss, Lm, k, L)
-    draw_north_at(B, F, x + Lm * ss + 12.0 * k, rb[1] - 5.0 * k, 4.0, k, L)
+    # v49.1 (Aras 27 Oct, Prompt 8): 1 mm in from the crop's left edge (x): the "0" is centred on the bar's end, so
+    # its left half was cut off
+    low = draw_scalebar_bk(B, x + 1.0 * k, rb[1] - 3.0 * k, ss, Lm, k, L)
+    draw_north_at(B, F, x + 1.0 * k + Lm * ss + 12.0 * k, rb[1] - 5.0 * k, 4.0, k, L)
     low = min(low, rb[1] - 9.5 * k)
     # beside the strips: the photos, then the slim panel
     cx0 = x + mw + BK_GAP_MM * k
@@ -584,7 +586,8 @@ def draw_edge_build_e(S, B, x, top, w, U, k, ss, strips, L):
 def draw_sections_key(S, B, x, y, sw, names, k_):
     """v45 (Prompt 2: "no section lines on any map; one small key map at the top right of each sections page"): the
     whole site frame at 1:50,000 on the booklet page (SK_DEN), water and buildings faint, every cut thin and this
-    page's cuts in ink with their names; north arrow and scale beside it. Drawn under the page's cuts on the sheet,
+    page's cuts in ink with their names; north arrow beside it (v49.1: no scale word; the crop's block keeps its scale
+    for the booklet). Drawn under the page's cuts on the sheet,
     right-aligned; its own crop (sections_key_n) goes in the booklet page's title band. Returns the y below."""
     L = "LU_BOARD::Sections"
     F = S.F
@@ -618,10 +621,12 @@ def draw_sections_key(S, B, x, y, sw, names, k_):
                 B.text(nm, px + 0.6 * k, py - 0.5 * h, h, INK if hi else INK2, L, order=39, font=FONT_TITLE, bold=hi)
                 break
     B.line(rect(*r) + [(r[0], r[1])], INK2, L, 38, bk_lw(0.15, k))
-    lx = x0 - 2.5 * k                                     # beside it on the left: KEY, its scale, the north arrow
+    lx = x0 - 2.5 * k                                     # beside it on the left: KEY, the north arrow
     B.text(u"KEY", lx, yt - h7, h7, INK, L, font=FONT_TITLE, bold=True, align="R")
-    B.text(u"1:{:,}".format(crop_scale(ss)), lx, yt - h7 - 1.6 * k - h7, h7, INK2, L, font=FONT_TITLE, align="R")
-    nx = lx - max(tw(u"KEY", h7, "sans"), tw(u"1:{:,}".format(crop_scale(ss)), h7, "sans")) - 5.0 * k
+    # v49.1 (Aras 27 Oct, Prompt 8): no scale word. On the sheet it was the sheet's own scale (about 1:30,200), which
+    # the booklet rewrites only inside this crop: next to the cuts' crops it stayed, hidden, as a stray scale (the old
+    # "1:1,511" kind); and 1:50,000 is not one of Aras's scales (the key's scale is his call)
+    nx = lx - tw(u"KEY", h7, "sans") - 5.0 * k
     draw_north_at(B, F, nx, yt - 0.5 * mh - 0.6 * k, 4.0, k, L)
     low = r[1] - 0.6 * k
     crop_panel("sections_key_%s" % (k_ + 1 if isinstance(k_, int) else k_), nx - 4.0 * k, low, x0 + mw + 0.3 * k, y,   # v48: "s4"

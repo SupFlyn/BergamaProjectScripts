@@ -1,8 +1,15 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v49)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v49.1)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v49.1 (2026-10-27, Aras 17:35, booklet Prompt 8 "final check of every page", bugfix): the key maps print no
+scale word (the stray "1:1,511" of the old p.10); the scale bars and north arrows sit 1 mm inside their crops (the
+"0" was cut off); m² / m³ print as raised digits (unembedded Helvetica dropped ³); "->" for the arrow glyph that
+printed "?"; every movement / proposal / heritage legend names the base's tones (heritage building); the heritage
+loop at 1:5,000 (two strips, as the stream edge plan); the axonometric sheet titled as its booklet page ("Heights
+and enclosure"); warnings name the drawing, not an old page number; the "Drawn by" line names this version.
 
 NEW IN v49 (2026-10-27, Aras 17:35, booklet Prompt 7 task 4: "the masterplan, the open-ground map and the new 'stream
 edge and where we can build' diagram ... side by side, at the same scale and in the same frame"):
@@ -314,8 +321,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v49 (2026-10-27)"     # v27: the log's first line and the text under the component
-SHORT_V = "v49"                                         # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v49.1 (2026-10-27)"     # v27: the log's first line and the text under the component
+SHORT_V = "v49.1"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

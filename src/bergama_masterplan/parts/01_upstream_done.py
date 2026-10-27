@@ -1,8 +1,24 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v26 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v26.1 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
+
+NEW IN v26.1 (bugfix, Aras 27 Oct, booklet Prompt 8: final fault check of p.23, p.25, p.26):
+  * m² and m³ are written as a raised small 2 or 3 (0.6 x the size, as wide as the ²/³ glyph, so nothing moves), as
+    water board v3.1 does: the unembedded Helvetica's ²/³ glyph was dropped in some viewers ("hm³" read "hm").
+  * The 1:1,000 windows (crops dt_upstream, dt_k5) are drawn for the booklet page at 1:1 (bk_w): both fit one row
+    at 1:1,000 (194 + 4 + 194 mm = the page's 392 mm); their species are named "English (Turkish)" as the water
+    board names them, no Latin (cattail, oak and elm: English only, no Turkish name in the project's sources); a
+    species code goes into the legend only when its label is on the window; legend names in sentence case; the
+    route's rough volumes (~ m³) say how they are made in the caption; ramps have no outline (proposals soft);
+    spot levels, route numbers and the smaller planting labels at 7 pt (they printed at 6.3-6.8 pt at 1:1).
+  * Scale bar numbers at 7 pt on p.23, p.25 and p.26 (were 5.7 pt), as the site board's on p.24.
+  * The hidden-stream line is drawn with the water, under the buildings and bridges (water never over them), and is
+    in a window's legend only when it runs through that window.
+  * Callouts: "(h01 P12)" for the place register entry (it read like a page number); "open ground" no longer
+    repeated in brackets.
+  Output: Bergama_masterplan_v26_1_A.pdf, Bergama_masterplan_v26_1_A_detail.pdf, logs/ KML.
 
 NEW IN v26 (Aras 27 Oct 17:35, booklet Prompt 7: masterplan, old p.15-17):
   * Layer order on every plan: water -> buildings -> bridges -> roads -> proposal -> labels. The stream no longer
@@ -144,8 +160,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v26 (2026-10-27)"
-SHORT = "v26"
+VERSION = "bergama_masterplan v26.1 (2026-10-27)"
+SHORT = "v26.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -156,8 +172,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v26_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v26_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v26_1_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v26_1_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 #@include ../../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -553,7 +569,15 @@ class Page(object):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw, alpha))
 
     def text(self, s, x, y, size, color, bold=False, align="L", halo=None):
-        if s:
+        if s and any(ch in SUP for ch in s):             # v26.1: m² / m³ as a raised small digit (see SUP)
+            runs = sup_runs(s)
+            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
+            x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
+            for (t, up), w_ in zip(runs, ws):
+                self.items.append(("text", t, x, y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0),
+                                   color, bold, "L", halo))
+                x += w_
+        elif s:
             self.items.append(("text", s, x, y, size, color, bold, align, halo))
 
     def clip(self, rings):
@@ -566,6 +590,29 @@ class Page(object):
         """A line drawn only inside rings (the verge band inside a zone)."""
         if len(pts) >= 2:
             self.items.append(("clipline", rings, pts, stroke, lw, alpha))
+
+
+# v26.1 (Aras 27 Oct, Prompt 8; water board v3.1's fix for "hm³ renders as hm"): ² and ³ are drawn as the digit at
+# 0.6 x the size, raised 0.28 x the size (the digit is then as wide as the ²/³ glyph, 333/1000): the unembedded
+# Helvetica's ²/³ was missing in some viewers
+SUP = {u"²": u"2", u"³": u"3"}
+SUP_K, SUP_UP = 0.6, 0.28
+
+
+def sup_runs(s):
+    """v26.1: s cut into (text, raised) runs at ² and ³, which become a plain 2 or 3"""
+    out, cur = [], u""
+    for ch in s:
+        if ch in SUP:
+            if cur:
+                out.append((cur, False))
+            out.append((SUP[ch], True))
+            cur = u""
+        else:
+            cur += ch
+    if cur:
+        out.append((cur, False))
+    return out
 
 
 #@include ../../common/hex_rgb.py

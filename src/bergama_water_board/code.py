@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA WATER BOARD v3.1 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
+"""BERGAMA WATER BOARD v3.2 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
 
@@ -43,6 +43,15 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v3.2 (bugfix, Aras 27 Oct, booklet Prompt 8 "final fault check"; pages as booklet v17 numbers them):
+  * p.13 "Collect, clean, hold": "design storage" sits over its own cube (it lay on the first-fill cube); the storage
+    figures' rows share the column's spare height and the cubes sit level with the middle of the list, so the column
+    ends level with the cleaning tiles (about 70 mm were empty under the cubes, P4's open item); same scale, same words.
+  * p.16 north-east bank: the survey marks are left out, as on the season rows (their 4.5 pt labels lay on each other).
+  * p.17 plants: the band labels over the S4 cut no longer lie on each other (French lavender / tamarisk); the WHY HERE
+    row "odour: no plant measured" goes (no data: the rule the odour tile went by in v2); the day classes are no longer
+    also sent as the page's footer legend (the WHY HERE key on the panel shows them).
+  * p.18 what the figures support: "10^2-10^5 CFU/100 ml" reads "100-100,000 CFU/100 ml", as the coliform tile does.
 NEW IN v3.1 (bugfix, Aras 27 Oct 17:35, booklet Prompt 6 "water, part 3", p.23: "the Total use 198.01 hm³ a year value
 is missing on its bar, and hm³ renders as hm"): each aquifer bar carries its value on the bar (white, at its end; outside
 only when it does not fit); m² and m³ are written as a raised small 2 or 3 (0.6 x the size: the same width as the ²/³
@@ -88,7 +97,7 @@ their keywords are drawn 1.8 x larger (they printed at about 3 pt beside the cub
 
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_water_board/).
 
-HOW WE KNOW IT WORKS: after a press, the text under the component reads "v3 · done N s", the log lists the PDF with
+HOW WE KNOW IT WORKS: after a press, the text under the component reads "v3.2 · HH:MM · N s", the log lists the PDF with
 its time and the lines "p.20 S4 seasons: 1:250", "p.21 S4 north-east bank: 1:250" and "p.22 plants: ... photos 10 of 10";
 the PDF opens as one A0 page.
 """
@@ -105,8 +114,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v3.1 (2026-10-27)"
-SHORT = "v3.1"
+VERSION = "bergama_water_board v3.2 (2026-10-27)"
+SHORT = "v3.2"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -1685,7 +1694,12 @@ def draw_s4_ne(log, den=None):
     for n_ in notes:
         log.append(u"S4 detail: " + n_)
     out = Page(0, 0)
-    out.items = from_engine([it for it in pg.items if it[0] != "text" or it[8] != "title"])   # the frame names it
+    # the frame names it (title texts out). v3.2 (Aras 27 Oct, Prompt 8: labels overlapping, words under 7 pt): the
+    # survey marks are left out, as on the season rows (engine_section's drop): their 4.5 pt labels "road edge
+    # (YOL_SOSE) 626.06 / 629.99" lay on each other and on the lower walk
+    lay = {"poly": 6, "line": 5, "circle": 7, "text": 8}
+    out.items = from_engine([it for it in pg.items if (it[0] != "text" or it[8] != "title") and
+                             it[lay[it[0]]] != "survey"])
     ne_strips(out, E, S, items_bbox(out.items)[1] - 6.0)
     return out
 
@@ -1976,13 +1990,22 @@ def draw_bands(opt, den=None):
     # v3 (Aras 27 Oct 17:34): plant names "English (Turkish)", one a line, stacked up from over the plant
     names = {"B": [plant_name("reed"), plant_name("iris")], "C": [plant_name("tamarisk"), plant_name("chaste")],
              "D": [u"meadow"], "E": [plant_name("plane")], "F": [plant_name("lavender")]}
-    for code in sorted(tag):
+    taken = []                                                # v3.2: the labels set so far (x0, y0, x1, y1)
+    for code in sorted(tag, key=lambda c_: tag[c_][0]):       # v3.2: left to right (was A-F)
         x_, top = tag[code]
         y_ = max(top, yq5) + 2.6
         lines = names[code]
         cw_ = fs * 1.7 + 0.8 + max(text_w(t_, fs) for t_ in lines)
         x_ = min(max(x_ - cw_ / 2.0, 0.0), W - cw_)
         yt = y_ + (len(lines) - 1) * fs * 1.25
+        # v3.2 (Aras 27 Oct, Prompt 8: labels overlapping): the labels under the Q500 line share one baseline, and
+        # "French lavender (Karabaş otu)" ran into the tamarisk / chaste tree label; a label that would lie on one
+        # set before it moves right, clear of it (same row, same words; the drawing's size is unchanged)
+        for b_ in taken:
+            if x_ < b_[2] + 1.5 and b_[0] < x_ + cw_ and y_ - fs * 0.3 < b_[3] and b_[1] < yt + fs * 1.05:
+                x_ = b_[2] + 1.5
+        x_ = min(x_, W - cw_)
+        taken.append((x_, y_ - fs * 0.3, x_ + cw_, yt + fs * 1.05))
         _bands_chip(pg, code, x_, yt + fs * 1.05, fs)
         for i_, t_ in enumerate(lines):
             pg.text(t_, x_ + fs * 1.7 + 0.8, yt - i_ * fs * 1.25, fs, C_PL["ink"])
@@ -2199,7 +2222,7 @@ def where_on_site(pg, x0, y, x1):
 
 
 def why_here(pg, kx, ky, kw):
-    """The key at the right of the bands: why here = days a year under water on this cut, shade, cleaning, odour.
+    """The key at the right of the bands: why here = days a year under water on this cut, shade, cleaning.
     Returns bottom y."""
     fs = FS_MIN
     pg.text(u"WHY HERE", kx, ky - 3.2, 3.2, COL["ink_dark"], bold=True)
@@ -2211,8 +2234,9 @@ def why_here(pg, kx, ky, kw):
         pg.text(c[4], kx + 6.5, ky - fs * 0.9, fs, COL["ink"])
         ky -= fs * 1.45
     ky -= 2.0
+    # v3.2 (Aras 27 Oct, Prompt 8, rule 7: no "no data" rows): the row "odour: no plant measured" is left out
     for kind, words in (("tree", u"shade: new trees where the July shade below is shortest"),
-                        ("clean", u"cleaning: reed beds upstream"), ("nose", u"odour: no plant measured")):
+                        ("clean", u"cleaning: reed beds upstream")):
         icon(pg, kind, kx, ky, 4.4)
         ky = min(ky - 5.0, para(pg, kx + 5.6, ky + fs * 0.25, kw - 5.6, words, fs, COL["ink"]) - 0.8)
     return ky
@@ -2365,7 +2389,8 @@ AQUIFER = [(u"Groundwater potential", 45.4), (u"Total use", 198.01)]   # hm³/yr
 DECISION = [
     (u"KEEP SEWAGE OUT", u"İZSU sewer (SE-22)"),
     (u"CLEAN AT THE UPSTREAM END", u"reed beds at the entry · whole reach clean"),
-    (u"DISINFECT WHERE PEOPLE TOUCH IT", u"wetlands leave 10^2-10^5 CFU/100 ml · class A: 0"),
+    # v3.2 (Aras 27 Oct, Prompt 8): was "10^2-10^5" (no superscript), now as the coliform tile on p.13
+    (u"DISINFECT WHERE PEOPLE TOUCH IT", u"wetlands leave 100-100,000 CFU/100 ml · class A: 0"),
     (u"HOLD WINTER WATER", u"{:,.0f}-{:,.0f} m³ incl. strip = {:.1f}-{:.1f} % of Dec-Apr flow".format(
         WB_STORE[0], WB_STORE[1], 100.0 * WB_STORE[0] / WINTER_FLOW, 100.0 * WB_STORE[1] / WINTER_FLOW)),
     (u"KEEP THE STRIP ALIVE", u"clean water all summer · feeds the planting (D8)"),
@@ -2840,8 +2865,11 @@ STORE_K = 1.4                        # v1.14: storage words 1.4 x (keywords 2.66
 STORE_LIST_W = 112.0                 # v1.14: the figures list beside the cubes, mm
 
 
-def draw_storage_cubes(opt):
-    """The storage the strip needs, worst case, as cubes at 1:1,000 (calculated volumes), with IN and OUT."""
+def draw_storage_cubes(opt, fill_h=None, gap=0.0, lift=0.0):
+    """The storage the strip needs, worst case, as cubes at 1:1,000 (calculated volumes), with IN and OUT. v3.2:
+    fill_h = the height the column gives it: the figures' rows then share what height is left (gap, mm between rows)
+    and the cubes sit level with the middle of the list (lift, mm the list starts higher), as the cleaning tiles beside
+    them share theirs; the same scale and words."""
     pg = Page(0, 0)
     k = 1000.0 / CUBE_SCALE
     V = BoxView(PSI, 0.0, k, 0.0, 0.0)
@@ -2851,7 +2879,9 @@ def draw_storage_cubes(opt):
     b1 = draw_cube(pg, V, e3 + 14.0, 0, e1, MP["discharge"], True)
     e4 = WB_STORE[0] ** (1.0 / 3.0)                  # v1.6: the design storage (water balance), same 1:1,000
     b4 = draw_cube(pg, V, e3 + e1 + 28.0, 0, e4, MP["discharge"], False, [1.6, 0.8])
-    pg.text(u"design storage", (b4[0] + b4[2]) / 2.0, b4[1] - 4.0, FS_MIN, COL["ink2"], align="C")
+    # v3.2 (Aras 27 Oct, Prompt 8: labels overlapping): over its cube's top (it was under the cube's lowest corner,
+    # which put it on the first-fill cube in front); still under the figures' list, which starts 6 mm over that top
+    pg.text(u"design storage", (b4[0] + b4[2]) / 2.0, b4[3] + 2.0, FS_MIN, COL["ink2"], align="C")
     node(pg, b3[0] + 2.0, b3[3] + 4.0, 4, opt, 2.4)
     tx = max(b3[2], b1[2], b4[2]) + 6.0
     lines = [("cube", u"{:,.0f} m³".format(VOL_SEALED), u"worst case · clay-sealed · solid cube · {:.1f} m edge".format(e2),
@@ -2871,8 +2901,9 @@ def draw_storage_cubes(opt):
               u"5 mm/d sealed / 25 mm/d unsealed · up to 10 x possible",
               u"calculated, sequent-peak over 2016-2021; seepage 25 mm/day = the bottom of FAO's sand range; " + RR +
               u" §4, A6; " + WB_SRC)]
-    y = max(b3[3], b4[3]) + 6.0                       # v1.8: each line = pictogram + big figure + keywords + [n]
+    y = max(b3[3], b4[3]) + 6.0 + lift                # v1.8: each line = pictogram + big figure + keywords + [n]
     f = STORE_K                                       # v1.13: the figures and keywords read on the booklet page
+    n0 = len(pg.items)
     for kind, big, t, src in lines:
         icon(pg, kind, tx, y, 5.0 * f)
         pg.text(big, tx + 6.5 * f, y - 3.6 * f, 3.0 * f, C["d3"], bold=True)
@@ -2881,10 +2912,20 @@ def draw_storage_cubes(opt):
         for ln in wrap(t + u" " + cite(src), 1.9 * f, STORE_LIST_W - (lx - tx)):
             pg.text(ln, lx, yy, 1.9 * f, COL["ink"])
             yy -= 2.4 * f
-        y = min(y - 6.6 * f, yy - 0.8 * f)
+        y = min(y - 6.6 * f, yy - 0.8 * f) - gap
+    n1 = len(pg.items)
     pg.text(u"cube edges = cube root of the volume, drawn at 1:{:,.0f}".format(CUBE_SCALE), b3[0], b3[1] - 4.0 -
             FS_MIN * 1.5, FS_MIN, COL["ink2"])
-    return pg
+    if not fill_h:
+        return pg
+    # v3.2 (Aras 27 Oct, Prompt 8; P4's open item "about 70 mm empty at the bottom of the cube column"): the list
+    # (lb) is stretched to fill_h by equal gaps between its rows; the cubes, their number and note (cb) stay put and the
+    # list is lifted so that its middle meets theirs; the whole is then exactly fill_h high
+    lb, cb = items_bbox(pg.items[n0:n1]), items_bbox(pg.items[:n0] + pg.items[n1:])
+    if fill_h <= max(lb[3], cb[3]) - min(lb[1], cb[1]) or len(lines) < 2:
+        return pg
+    return draw_storage_cubes(opt, None, (fill_h - (lb[3] - lb[1])) / (len(lines) - 1.0),
+                              max(0.0, (cb[1] + cb[3] + fill_h) / 2.0 - lb[3]))
 
 
 def tree_at(pg, P, k, x, y, opt, style="tree", r=3.0, top=8.0, shadow=False):
@@ -3049,6 +3090,13 @@ def build_board(opt, storage, parts, pal_line, log):
         cp = draw_storage_cubes(opt)
         if fits(cp, box[2] - box[0], box[3] - box[1]):
             break
+    # v3.2 (Aras 27 Oct, Prompt 8; P4's open item): the column filled to the cleaning tiles' foot beside it (fit_draw
+    # keeps them 2.05 mm over the box), the same scale; kept as it was if that would not fit
+    cf = draw_storage_cubes(opt, box[3] - box[1] - 2.05)
+    if fits(cf, box[2] - box[0], box[3] - box[1]):
+        cp = cf
+    log.append(u"storage cubes (collect, clean, hold): 1:{:,.0f}, column {:.0f} of {:.0f} mm high".format(
+        CUBE_SCALE, items_bbox(cp.items)[3] - items_bbox(cp.items)[1], box[3] - box[1]))
     cs, bk = place(pg, cp, box, 1.0, "TL", log, "storage cubes")
     if cs < 0.999:
         log.append(u"NOTE: the storage cubes are printed at {:.0f} % of 1:{:,.0f}".format(100 * cs, CUBE_SCALE))
@@ -3100,8 +3148,9 @@ def build_board(opt, storage, parts, pal_line, log):
     if r[2] - r[0] + 2.0 > PLANTS_FRAME[0] or r[3] - r[1] + 2.0 > PLANTS_FRAME[1]:
         log.append(u"WARNING: wb_plants is {:.0f} x {:.0f} mm, more than the {:.0f} x {:.0f} mm kept for it on p.22".format(
             r[2] - r[0], r[3] - r[1], PLANTS_FRAME[0], PLANTS_FRAME[1]))
-    crop_add("wb_plants", r, BANDS_DEN[0],
-             [{"kind": "fill", "colour": DAYS_COL[i], "label": c[4]} for i, c in enumerate(s4_classes(detail_engine()))])
+    # v3.2 (Aras 27 Oct, Prompt 8: duplicate text): no legend for the booklet's footer: the day classes it listed
+    # are the WHY HERE key on the panel itself, so p.17 printed them twice
+    crop_add("wb_plants", r, BANDS_DEN[0])
     # row 3 -------------------------------------------------------------- the idea in section, across the board
     wh = (X1 - X0 - G) / 2.0
     for j, (key, title) in enumerate((("concept_up", u"THE IDEA IN SECTION · upstream entry"),

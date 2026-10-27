@@ -1,0 +1,1287 @@
+# -*- coding: utf-8 -*-
+# r: pymupdf==1.26.5
+"""Bergama Group 6: A3 BOOKLET ASSEMBLER (26 Oct 2026). Rules: scripts/_template/SCRIPT_STANDARD.md §8.
+Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from the scripts' OWN sheet PDFs.
+
+Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The first run installs PyMuPDF 1.26.5 (the
+"# r:" line above; needs internet once).
+  input  run   Button
+  output log   the last run's report: pages, missing drawings, the word size each page prints at
+  output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
+Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
+Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v18 (Aras 27 Oct 17:35, Prompt 8 "final check of every page"): one source numbering for the whole booklet: the
+[n] marks are renumbered in page order (first use first, one number per source text), the sources page lists only what
+the pages cite, grouped by theme, and the log names marks without a source entry; the words of a sheet that no page
+shows are taken out of it (the hidden stray "1:1,511" of the old p.10, junk in Illustrator); a whole-sheet page gets
+the booklet's page number (and its theme where the corner is free); sheet pages are titled in the contents as the
+sheets print them; a page whose drawings are all still frames ("later prompt") is left out (PLAN FRAME_PAGES); a
+legend too long for the footer goes in columns under the rows when they leave room.
+NEW IN v17 (Aras 27 Oct 17:35, Prompt 7 "masterplan"; masterplan v26, site board v49): theme E is the open ground
+(crop mp_max_area, now 1:5,000), then one spread: "Before the masterplan: the edge and where we can build" (site board
+crop drw_edge_build_e) on the left page, "Masterplan: an ecological corridor" (crop mp_plan: both halves, the notes as
+callouts beside them) on the right; all three the whole site frame at 1:5,000, drawn for the page at 1:1. "Why each
+place" is gone. A page marked flex goes after the spread that follows it when that spread would open on a right page
+(the log says so).
+NEW IN v16 (Aras 27 Oct 20:51 "Move the line"; site board v48): the S4 pages ("Four seasons on one cut", "The S4 cut,
+north-east bank") get the key map of the sections pages in their title band, S4 alone in ink (site board crop
+sec_sections_key_s4): the board's S4 is now the water board's S4. Without that crop the page is built as before and
+the log says "key map left out". Prompt 6 (water balance v4, water board v3.1, agriculture v3) needs nothing else here.
+NEW IN v15 (Aras 27 Oct 17:34, Prompt 5 "water, part 2"; water board v3, site board v47, agriculture v2): a crop drawn
+for its width on the booklet page (block "bk_w") keeps that size in a row too (it was shrunk with the page's one
+scale, and a crop with a scale then fell to the next round scale, half size: p.22's plants printed at 1:500 in a
+corner); the other crops of the page share what it leaves. p.20, p.21 and p.22's plants panel are such crops (water
+board v3, 1:1 on A3). p.22 "Which plant goes where": the plants over the site board's July shade strip (crop
+drw_shade_strip, hours of shade along the reach; the tree-cover chart where the board has not made it yet, a plan
+key "a||b" = the first of these the scripts have written).
+NEW IN v14 (Aras 27 Oct 17:34, Prompt 4 "water, part 1"; water balance v3, water board v2): "How the stream behaves"
+is no longer its own page: the water balance sheet (v3) opens with it in a band beside its title, so the page reads
+analysis first, then what we got (stage "Analysis, what we got"); "Collect, clean, hold" keeps its crop (the water board
+v2 drops the tiles without data). One page fewer from p.12 on.
+NEW IN v13 (Aras 27 Oct 17:34, Prompt 3 "movement and the city"; site board v46, city link v2): p.8 "How people use
+it" stacks its three maps (the plan, walking today, driving today), each the whole site frame at 1:10,000 with its
+scale bar and north arrow under it; p.10 and p.23 take the board's redrawn maps at the same scale (same crops).
+NEW IN v12 (Aras 27 Oct 17:34, Prompt 2 "site and stream edge"; site board v45): p.2 "What is there" = plan 01 with the
+site readings (bank bars and land-use ring, crop drw_site_readings) as a side panel at the right margin, top-aligned,
+the plan's legend in two columns under it on the panel's own grid; p.6 "The stream edge and where we can build" (crop
+drw_edge_build at 1:5,000, replaces the edge plan and the photo strip); each sections page has its key map (crop
+sec_sections_key_n, 1:50,000) in the title band at the right; a drawing designed at a round booklet scale keeps it
+when its sheet scale is rounded (a 0.05 % tolerance; it could print at the next scale, half size).
+NEW IN v11 (Aras 27 Oct 17:27, Prompt 1: structure only): pages run in theme cycles A site and stream edge,
+B movement and the city, C water, D history and heritage, E masterplan as the synthesis; each theme runs analysis ->
+what we got -> what we do with it, named in every page's kicker, the footer and the contents. Merges set up as frames:
+old p2 + p4, p5 + p6 one page each; the heritage loop on its own page in D; the masterplan halves + open ground + new
+edge diagram + the notes as a two-page spread (left page even). A drawing a later prompt makes is a labelled frame.
+NEW IN v10.1 (bugfix, 27 Oct 16:04): page "Why each place" after the masterplan halves, when masterplan v24.1 writes
+the notes its key columns had no room for (crop mp_notes); the text under the component shows a newly pasted version
+at once, idle.
+NEW IN v9 (Aras 27 Oct 06:20 "pair them anyway"): the four proposal sections always share pages two at a time.
+NEW IN v8 (Aras 26 Oct 08:27-08:28, on the v7 build): the two masterplan halves share one page, side by side, each at
+its own round scale; "Long section along the spine" is left out (it repeated the "What is there" map); water board
+v1.13 (larger storage figures).
+NEW IN v7 (deck review 26 Oct 07:06, last pass R7; site board v43, water board v1.12, masterplan v23, city link
+v1.10, proposal sections v6, agriculture v1.5): no half-empty pages: two drawings planned together share one page
+when both fit at no less than 3/4 of the size each gets alone, else each keeps its own page (the four proposal
+sections); a sheet's own title words it marks as not for the booklet (" · form A") are taken out of its crop, its
+source marks [n] stay (the sources page lists them); more air between a caption and the next row; where several sheet
+PDFs match a name, the newest file is used (an old version left in the folder is never picked).
+NEW IN v6 (deck review 26 Oct 07:06, water board v1.12): the water board's panels are each laid out as one A3 page;
+"Four seasons on one cut" is one crop (wb_s4_seasons, the four rows at 1:250); planting bands and species share one
+page (the species list was a half-empty page of its own).
+NEW IN v5 (Aras's deck review 26 Oct 07:06, site board v42): "The stream edge" page adds the plan of what meets the
+water (drw_edge_plan) between the tree cover and the photos; "Sections across the stream" shows ALL the board's cuts
+(S1-S8) at one round scale on at most two pages (sec_sections_1, sec_sections_2), not S1-S5 one by one.
+NEW IN v4 (Aras 26 Oct 06:35, lasting rules): one drawing is never divided over two pages (each panel goes on its
+page whole, and "what is there" appears once); every printed scale is a round number (1:1,000, 1:2,500, 1:5,000,
+1:10,000 ...): the page takes the largest round scale at which everything fits, and a scale a sheet states inside a
+panel is changed to the scale the booklet prints it at.
+NEW IN v3 (Aras 26 Oct 05:54 "the booklet transformation is not really successful ... drawings themselves in a
+separate pdf much more better"; 06:02 picked "sheet pages, split to 5 pt"): every page IS the sheet. An A3 sheet goes
+in as it is; a panel of a big sheet is cut out WITH its own words and shown at one scale per page (never stretched,
+nothing rewritten or moved). The
+booklet adds only the cover, page titles, captions, page numbers and one sources page (each sheet's own source key).
+A missing drawing leaves a labelled placeholder, so the booklet always builds.
+"""
+import os, re, time, json, fnmatch
+
+# ---- SETTINGS ----
+VERSION = "v18"
+GH_LABEL = "Booklet"
+OUT_FOLDER = "bergama_booklet"
+LOG_NAME = "bergama_booklet_log.txt"
+PDF_NAME = "Bergama_booklet_A3.pdf"
+FONT = "Arial"                               # "Arial" (every Windows PC) or "Inter" (if installed)
+
+# ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
+#   Downloads/Bergama/output/<name>/          final PDFs only
+#   Downloads/Bergama/logs/                    every log file and log folder
+#   Downloads/Bergama/cached/<name>/           caches, results other scripts read, any other working file
+#   Downloads/Bergama/cached/booklet/<name>/   the script's booklet assets (blocks.json, results, images);
+#                                              the booklet's own leftovers in cached/booklet/
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+
+
+def bg_output(name):
+    return os.path.join(BERGAMA_ROOT, "output", name)
+
+
+def bg_cache(name):
+    return os.path.join(BERGAMA_ROOT, "cached", name)
+
+
+def bg_booklet(name):
+    return os.path.join(BERGAMA_ROOT, "cached", "booklet", name)
+
+
+def bg_logs(*sub):
+    return os.path.join(BERGAMA_ROOT, "logs", *sub)
+
+
+def bg_first(paths):
+    """The first path that exists (new place first, then where older versions wrote it), else the first."""
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return paths[0]
+
+
+def bg_tidy_output(name, cache_dir=None):
+    """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
+    non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
+    same sub-folders). Empty folders go.
+    Returns short log lines (counts, not one line per file)."""
+    import shutil as _sh
+    root, moved, fail = bg_output(name), {}, []
+    if not os.path.isdir(root):
+        return []
+    for d, subs, files in os.walk(root, topdown=False):
+        rel = os.path.relpath(d, root)
+        rel = "" if rel == "." else rel
+        for fn in files:
+            if fn.lower().endswith(".pdf"):
+                continue
+            is_log = "log" in fn.lower() or any("log" in p.lower() for p in rel.split(os.sep) if p)
+            dst = os.path.join(bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output")), rel, fn)
+            try:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                if os.path.exists(dst):
+                    os.remove(dst)
+                _sh.move(os.path.join(d, fn), dst)
+                top = bg_logs(name) if is_log else (cache_dir or os.path.join(bg_cache(name), "from_output"))
+                moved[top] = moved.get(top, 0) + 1
+            except Exception as ex:
+                fail.append(u"%s (%s)" % (os.path.join(rel, fn), type(ex).__name__))
+        if d != root:
+            try:
+                os.rmdir(d)                       # only when empty
+            except Exception:
+                pass
+    return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
+            ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+BERGAMA = BERGAMA_ROOT
+OUT_DIR = bg_output(OUT_FOLDER)                  # v10 (27 Oct): the booklet PDF only
+LOG_DIR = bg_logs()
+ASSET_ROOT = os.path.join(BERGAMA, "output")     # the scripts' sheet PDFs
+BK_ROOT = bg_booklet("")                         # v10: the scripts' booklet assets (cached/booklet/<folder>/blocks.json)
+
+# ---- GRID (design-language.md: all values in mm, origin top-left) ----
+PW, PH = 420.0, 297.0
+ML, MT, MB = 14.0, 12.0, 12.0                # left/right margin, top, bottom
+COLS, COL, GUT = 12, 29.0, 4.0               # 14 + 12 x 29 + 11 x 4 + 14 = 420
+BASE = 4.0                                   # baseline grid, from y = 12
+FOOT_RULE, FOOT_B1, FOOT_B2 = 276.0, 280.0, 284.0
+PT = 25.4 / 72.0                             # mm per point
+K = 72.0 / 25.4                              # points per mm
+
+# ---- TYPE (pt; size follows design importance) ----
+T = dict(title=40, part=24, figure=24, sub=14, statement=13, body=9.5, caption=7.5, label=7.5, kicker=8, pageno=14)
+LEAD = dict(title=16.0, part=10.0, statement=6.0, sub=6.0, body=4.0, caption=3.2, label=3.2)   # mm
+MIN_BODY, MIN_CAPTION = 9.0, 7.0
+
+# ---- COLOUR (palette v1.4 core roles; contrast on white checked in design-language.md) ----
+INK, INK2, ACCENT = "4A3F35", "6B645B", "8B3A3F"
+RULE, FRAME, PAPER = "B0AC9C", "D8D5CC", "FFFFFF"
+
+def bergama_data(name, _c={}):
+    """Built-in data kept in Downloads/Bergama/Data/bergama_booklet_data.py (Aras 25 Oct 21:29, scripts shortened): runs its
+    section `name` here, as if it were written in this place. The file is read once per run; a missing file or one
+    from another version of this script stops the script with a message saying which file to copy."""
+    import os as _os, hashlib as _hl
+    if not _c:
+        p_ = _os.path.join(_os.path.expanduser("~"), "Downloads", "Bergama", "Data", "bergama_booklet_data.py")
+        if not _os.path.isfile(p_):
+            raise RuntimeError("Data file missing: copy bergama_booklet_data.py from the run kit's Data folder into " + _os.path.dirname(p_))
+        with open(p_, encoding="utf-8", newline="") as f_:
+            for part_ in f_.read().split("\n#@@ ")[1:]:
+                k_, _, b_ = part_.partition("\n")
+                _c[k_] = b_
+    b_ = _c.get(name)
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': 'c15a205ed46128d43795fb674eca6414'}.get(name):
+        raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
+                           "): copy it again from the same run kit as the script")
+    exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())
+
+
+bergama_data("PLAN")
+
+
+def colx(c):
+    return ML + (c - 1) * (COL + GUT)
+
+
+def hexrgb(h):
+    return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+
+# ------------------------------------------------------------------ fonts
+def font_files():
+    """(regular, bold) TrueType files for FONT, else Arial, else Liberation Sans/DejaVu (offline test only)."""
+    win = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
+    user = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "Windows", "Fonts")
+    cands = {"Inter": [("Inter-Regular.ttf", "Inter-Bold.ttf"), ("Inter-Regular.otf", "Inter-Bold.otf")],
+             "Arial": [("arial.ttf", "arialbd.ttf")]}
+    order = [FONT] + [f for f in ("Arial",) if f != FONT]
+    for fam in order:
+        for reg, bold in cands.get(fam, []):
+            for d in (win, user, "/usr/share/fonts/opentype/inter"):
+                r, b = os.path.join(d, reg), os.path.join(d, bold)
+                if os.path.isfile(r) and os.path.isfile(b):
+                    return fam, r, b
+    for d, r, b in (("/usr/share/fonts/truetype/liberation", "LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf"),
+                    ("/usr/share/fonts/truetype/dejavu", "DejaVuSans.ttf", "DejaVuSans-Bold.ttf")):
+        if os.path.isfile(os.path.join(d, r)):
+            return "fallback " + r[:-4], os.path.join(d, r), os.path.join(d, b)
+    raise RuntimeError("no TrueType font found (looked for %s and Arial in %s)" % (FONT, win))
+
+
+class Typo(object):
+    """Text writer: whole lines as live text, one embedded font, wrapping by measured width."""
+    def __init__(self, fitz):
+        self.fam, self.freg, self.fbold = font_files()
+        self.F = {False: fitz.Font(fontfile=self.freg), True: fitz.Font(fontfile=self.fbold)}
+        self.issues, self.notes = [], []
+
+    def width(self, s, size, bold=False):
+        return self.F[bold].text_length(s, fontsize=size) * PT
+
+    def split_long(self, word, w, size, bold=False):
+        """A word wider than w (a URL) cut into pieces that fit, after / . - _ ? & = where possible."""
+        out, cur = [], ""
+        for ch in word:
+            if cur and self.width(cur + ch, size, bold) > w:
+                m = max(cur.rfind(c) for c in "/.-_?&=")
+                if m > len(cur) // 2:
+                    out.append(cur[:m + 1]); cur = cur[m + 1:]
+                else:
+                    out.append(cur); cur = ""
+            cur += ch
+        return out + [cur]
+
+    def wrap(self, s, w, size, bold=False):
+        out = []
+        for para in str(s).split("\n"):
+            line = ""
+            words = []
+            for word in para.split(" "):
+                words += self.split_long(word, w, size, bold) if self.width(word, size, bold) > w else [word]
+            for word in words:
+                t = (line + " " + word).strip()
+                if line and self.width(t, size, bold) > w:
+                    out.append(line); line = word
+                else:
+                    line = t
+            out.append(line)
+        return out
+
+    def line(self, page, s, x, y, size, col=INK, bold=False, align="L", angle=0.0, small_ok=False):
+        """One line of live text; (x, y) = left (or centre/right) end of the baseline, mm; angle in degrees
+        (counter-clockwise, about the baseline start). small_ok: only the sources page may go below 7 pt."""
+        if not s:
+            return
+        if size < MIN_CAPTION and not small_ok:
+            self.issues.append("TYPE BELOW 7 pt (%.1f): %s" % (size, s[:40]))
+        if align != "L":
+            wd = self.width(s, size, bold)
+            x -= wd / 2 if align == "C" else wd
+        if abs(angle) > 0.5:
+            import fitz as _fz
+            pt = _fz.Point(x * K, y * K)
+            page.insert_text(pt, s, fontname="FB" if bold else "FR", fontsize=size, color=hexrgb(col),
+                             morph=(pt, _fz.Matrix(-angle)))
+        else:
+            page.insert_text((x * K, y * K), s, fontname="FB" if bold else "FR", fontsize=size, color=hexrgb(col))
+
+
+# ------------------------------------------------------------------ assets
+def load_assets():
+    """{script folder: blocks.json dict (with its folder)} for every script that wrote booklet assets."""
+    found = {}
+    names = set()
+    for root in (BK_ROOT, ASSET_ROOT):
+        if os.path.isdir(root):
+            names.update(n for n in os.listdir(root) if os.path.isdir(os.path.join(root, n)))
+    for name in sorted(names):
+        p = bg_first([os.path.join(BK_ROOT, name, "blocks.json"),                 # v10: cached/booklet/<folder>/
+                      os.path.join(ASSET_ROOT, name, "booklet", "blocks.json")])   # scripts before 27 Oct
+        if os.path.isfile(p):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    d = json.load(f)
+                d["_dir"] = os.path.dirname(p)
+                d["_time"] = time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(p)))
+                found[name] = d
+            except Exception as ex:
+                found[name] = {"_error": "%s: %s" % (type(ex).__name__, ex)}
+    return found
+
+
+# ------------------------------------------------------------------ sheets
+_DOCS = {}
+
+
+def sheet_doc(fitz, path):
+    if path not in _DOCS:
+        _DOCS[path] = fitz.open(path)
+    return _DOCS[path]
+
+
+def find_pdf(folder, name):
+    """A sheet PDF of a script's output folder (subfolders too, e.g. the board's selinus_board_pdf); name may hold *."""
+    root = os.path.join(ASSET_ROOT, folder)
+    hit = [os.path.join(d, n) for d, _, names in os.walk(root) for n in names if fnmatch.fnmatch(n, name)]
+    return max(hit, key=os.path.getmtime) if hit else None    # v7: the newest (v1_8 sorts after v1_12 by name)
+
+
+_COPY = {}       # v18: (sheet path, page index) -> (doc, 0): the sheet page with its marks renumbered (class Sources)
+
+
+def src_page(fitz, path, pno_):
+    """v18: (doc, page index) the booklet shows of a sheet page: its renumbered copy when Sources made one"""
+    return _COPY.get((path, pno_)) or (sheet_doc(fitz, path), pno_)
+
+
+def resolve(assets, key):
+    """(crop block, sheet path) of "<folder>/<crop id>"; an id missing under its own sheet key or letter case is looked
+    up by its panel name (the board's sections are section_s1 ... on whichever sheet holds them)."""
+    folder, _, bid = key.partition("/")
+    bl = (assets.get(folder) or {}).get("blocks") or {}
+    b = bl.get(bid)
+    if b is None:
+        tail = bid.lower().split("_", 1)[-1]
+        b = next((v for k, v in sorted(bl.items()) if k.lower() == bid.lower() or
+                  k.lower().split("_", 1)[-1] == tail), None)
+    if not b or b.get("type") != "crop":
+        return None, None
+    return b, find_pdf(folder, os.path.basename(b.get("pdf", "")))
+
+
+SCALE_WORD = re.compile(r"1\s?:\s?(\d{1,3}(?:,\d{3})+|\d{2,})")
+
+
+def rescaled(fitz, path, pno_, clip, s, drop=()):
+    """v4: the sheet page with each scale it states inside clip ("1:400") changed to the scale the booklet prints it
+    at (1:400 / s), in the same place, size and colour; the drawing itself untouched. v7: a line of the sheet's words
+    matching one of its crop's "drop" patterns is taken out (source marks "[n]" stay). (doc, page index)"""
+    src, pno_ = src_page(fitz, path, pno_)               # v18: the copy with the booklet's source numbers
+    page = src[pno_]
+    pats = [re.compile(d) for d in drop or () if not d.startswith("^\\[")]
+    hits, gone = {}, []
+    for b in page.get_text("dict", clip=clip)["blocks"]:
+        for ln in b.get("lines", []):
+            if pats and any(p.search("".join(sp["text"] for sp in ln["spans"]).strip()) for p in pats):
+                gone.append(fitz.Rect(ln["bbox"]))
+                continue
+            for sp in ln["spans"]:
+                for m in SCALE_WORD.finditer(sp["text"]):
+                    hits[m.group(0)] = (int(m.group(1).replace(",", "")), sp["size"], sp["color"])
+    if abs(s - 1.0) < 1e-3:
+        hits = {}
+    if not hits and not gone:
+        return src, pno_
+    tmp = fitz.open()
+    tmp.insert_pdf(src, from_page=pno_, to_page=pno_)
+    pg = tmp[0]
+    for r in gone:                                   # the middle of the line only: the lines above/below stay whole
+        pg.add_redact_annot(fitz.Rect(r.x0, r.y0 + 0.3 * r.height, r.x1, r.y1 - 0.3 * r.height), fill=False)
+    put = []
+    for word, (den, size, col) in hits.items():
+        for r in pg.search_for(word, clip=clip):
+            pg.add_redact_annot(r, fill=False)
+            put.append((r, "1:{:,.0f}".format(den / s), size, col))
+    pg.apply_redactions(images=0, graphics=0, text=0)
+    for r, txt, size, col in put:
+        pg.insert_text((r.x0, r.y1 - 0.22 * size), txt, fontsize=size, fontname="helv",
+                       color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+    return tmp, 0
+
+
+def word_sizes(page, clip):
+    return sorted(sp["size"] for b in page.get_text("dict", clip=clip)["blocks"] for ln in b.get("lines", [])
+                  for sp in ln["spans"] if sp["text"].strip())
+
+
+def std_scale(den):
+    """v4 (Aras 26 Oct 06:35 "they need to be round numbers"): the first round scale at or above den. v12: within
+    0.05 % counts as that scale (a drawing made at a round booklet scale, its sheet scale rounded to whole numbers)"""
+    return next((d for d in STD_SCALES if d >= den - max(0.5, 5e-4 * den)), den)
+
+
+def nearest_std(v):
+    """v12: the round scale nearest v"""
+    return min(STD_SCALES, key=lambda d: abs(d - v) / d)
+
+
+STD_SCALES = (100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000)
+CAP_H, ROW_GAP = 5.0, 6.0                        # caption band under each panel, gap between rows (mm)
+AREA = (ML, 30.0, PW - ML, FOOT_RULE - 3.0)        # where the panels go (mm)
+
+
+# ------------------------------------------------------------------ pages
+def frame_page(fitz, doc, typo):
+    pg = doc.new_page(width=PW * K, height=PH * K)
+    pg.insert_font(fontname="FR", fontfile=typo.freg)
+    pg.insert_font(fontname="FB", fontfile=typo.fbold)
+    return pg
+
+
+def header(pg, typo, spec):
+    part = PARTS.get(spec.get("part"), "")
+    stage = STAGES.get(spec.get("stage"), "")         # v11: where the page sits in its theme's cycle
+    typo.line(pg, (spec.get("part", "") + "   " + part + ("   ·   " + stage if stage else "")).upper(), colx(1), 12,
+              T["kicker"], ACCENT, True)
+    typo.line(pg, spec.get("title", ""), colx(1), 22, T["part"], INK, True)
+    pg.draw_line((colx(1) * K, 25 * K), ((PW - ML) * K, 25 * K), color=hexrgb(RULE), width=0.25)
+
+
+def foot_label(spec):
+    part = PARTS.get(spec.get("part"), "")
+    return (spec.get("part", "") + "  " + part).upper() if part else ""
+
+
+def foot_x1(typo, spec):
+    """v11: the legend band ends 5 mm before the footer's theme label (longer since v11), never under it"""
+    lab = foot_label(spec)
+    return PW - ML - 12 - (typo.width(lab, T["caption"], True) + 5.0 if lab else 22.0)
+
+
+def footer(pg, typo, pno, spec, legend):
+    pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
+    typo.line(pg, BOOK["project"], colx(1), FOOT_B1, T["caption"], INK, True)
+    typo.line(pg, BOOK["group_line"], colx(1), FOOT_B2, T["caption"], INK2)
+    typo.line(pg, "%02d" % pno, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
+    if foot_label(spec):
+        typo.line(pg, foot_label(spec), PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
+    # legend: same place on every page (columns 4-10 of the footer band), drawn samples + plain names
+    x0, x1 = colx(4), foot_x1(typo, spec)
+    x, y = x0, FOOT_B1
+    for it in legend or []:
+        w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
+        if x + w > x1:
+            x, y = x0, y + 4.0
+            if y > FOOT_B2 + 4.5:
+                typo.issues.append("LEGEND TOO LONG p.%s" % pno)
+                break
+        legend_item(pg, typo, it, x, y)
+        x += w
+
+
+def legend_item(pg, typo, it, x, y):
+    """one legend entry: a drawn sample (fill, line or dot) and its plain name, baseline y"""
+    c = hexrgb(it.get("colour", INK))
+    kind = it.get("kind", "fill")
+    if kind == "line":
+        pg.draw_line((x * K, (y - 1.2) * K), ((x + 4.0) * K, (y - 1.2) * K), color=c, width=it.get("width", 1.2))
+    elif kind == "dot":
+        pg.draw_circle(((x + 2.0) * K, (y - 1.2) * K), 1.3 * K, color=None, fill=c)
+    else:
+        pg.draw_rect((x * K, (y - 2.6) * K, (x + 4.0) * K, (y + 0.2) * K), color=None, fill=c)
+    typo.line(pg, it.get("label", ""), x + 5.5, y, T["caption"], INK)
+
+
+def footer_rows(typo, legend, spec=None):
+    """how many rows the footer band needs for this legend"""
+    x0, x1 = colx(4), foot_x1(typo, spec or {})
+    x, n = x0, 1 if legend else 0
+    for it in legend:
+        w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
+        if x + w > x1:
+            x, n = x0, n + 1
+        x += w
+    return n
+
+
+def placeholder(pg, typo, rect, text):
+    x, y, w, h = rect
+    pg.draw_rect((x * K, y * K, (x + w) * K, (y + h) * K), color=hexrgb(FRAME), width=0.5, dashes="[2 2] 0")
+    typo.line(pg, text, x + w / 2, y + h / 2, T["body"], INK2, False, "C")
+
+
+def sheet_page(fitz, doc, typo, pno, spec):
+    """A whole A3 sheet page, as it is (a sheet of another size: scaled to fit, one scale)."""
+    folder, _, name = spec["sheet"].partition("/")
+    path = find_pdf(folder, name)
+    pg = frame_page(fitz, doc, typo)
+    if not path or int(spec.get("page", 0)) >= len(sheet_doc(fitz, path)):
+        header(pg, typo, spec)
+        placeholder(pg, typo, (ML, AREA[1], PW - 2 * ML, AREA[3] - AREA[1]),
+                    "%s · %s missing: run the script" % (SCRIPT_OF.get(folder, folder), name))
+        footer(pg, typo, pno, spec, [])
+        return "p.%d %s: MISSING %s" % (pno, spec["title"], name)
+    sd, si = src_page(fitz, path, int(spec.get("page", 0)))     # v18: marks in the booklet's source numbers
+    src = sd[si]
+    f = min(PW * K / src.rect.width, PH * K / src.rect.height)
+    pg.show_pdf_page(fitz.Rect(0, 0, src.rect.width * f, src.rect.height * f), sd, si)
+    sheet_foot(fitz, pg, typo, pno, spec, src, f)
+    return "p.%d %s: sheet %s page %d as it is%s" % (pno, spec["title"], os.path.basename(path),
+                                                   int(spec.get("page", 0)) + 1, "" if f > 0.999 else " (x%.2f)" % f)
+
+
+def sheet_foot(fitz, pg, typo, pno, spec, src, f):
+    """v18 (Prompt 8: "footers and page numbers"): a whole-sheet page gets the booklet's page number in the footer's
+    place, and its theme left of it where the sheet leaves that corner free; the log says when the number sits on
+    the sheet's own words or drawing."""
+    no = "%02d" % pno
+    wn, lab = typo.width(no, T["pageno"], True), foot_label(spec)
+    rn = (PW - ML - wn - 1.0, FOOT_B2 - 4.6, PW - ML + 0.5, FOOT_B2 + 1.4)
+    wl = typo.width(lab, T["caption"], True) if lab else 0.0
+    rl = (PW - ML - 12 - wl - 1.0, FOOT_B2 - 2.8, PW - ML - 12 + 0.5, FOOT_B2 + 1.0)
+    try:
+        big = 0.5 * abs(src.rect)                      # a sheet's white ground is not "content"
+        boxes = [fitz.Rect(d["rect"]) for d in src.get_drawings() if abs(fitz.Rect(d["rect"])) < big]
+        boxes += [fitz.Rect(w[:4]) for w in src.get_text("words")]
+    except Exception:
+        boxes = []
+
+    def free(r):
+        R = fitz.Rect(r[0] * K / f, r[1] * K / f, r[2] * K / f, r[3] * K / f)
+        return not any(b.intersects(R) for b in boxes)
+    if not free(rn):
+        typo.issues.append("PAGE NUMBER ON THE SHEET'S OWN CONTENT p.%d %s" % (pno, spec.get("title", "")))
+    typo.line(pg, no, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
+    if lab and free(rl):
+        typo.line(pg, lab, PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
+
+
+def wh(it):
+    if it[3] is None and it[1] and it[1].get("slot"):  # v11: a frame for a later drawing keeps its planned size
+        return it[1]["size_mm"]
+    return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
+
+
+def fixed(it):
+    """v15: a crop drawn for its width on the booklet page (block "bk_w") keeps that size (own_s) in a row"""
+    return bool(it[1] and it[1].get("bk_w") and it[3] is not None)
+
+
+def fit(rows, aw=None):
+    """the one scale at which every row fits the panel area's width (v12: or aw mm) and all rows its height; v15: the
+    fixed crops (fixed) keep their own size, the others share the width and height they leave"""
+    aw, ah = aw or AREA[2] - AREA[0], AREA[3] - AREA[1]
+    ws, hs, hfix = [], [], 0.0
+    for r in rows:
+        free = [it for it in r if not fixed(it)]
+        if free:
+            ws.append((aw - GUT * (len(r) - 1) - sum(wh(it)[0] * own_s(it) for it in r if fixed(it))) /
+                      sum(wh(it)[0] for it in free))
+            hs.append(max(wh(it)[1] for it in free))
+        else:
+            hfix += max(wh(it)[1] * own_s(it) for it in r)
+    if not hs:
+        return 1.0
+    return min(ws + [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP - hfix) / sum(hs)])
+
+
+def own_s(it):
+    """v12: the factor a crop prints at when it is drawn for a width on the booklet page (block "bk_w", mm): exactly
+    its round scale when it has one"""
+    w, h = wh(it)
+    blk = it[1] or {}
+    s = blk["bk_w"] / w if blk.get("bk_w") and it[3] is not None else 1.0
+    den = blk.get("scale_den") if it[3] is not None else None
+    return den / nearest_std(den / s) if den else s
+
+
+def show(fitz, pg, typo, it, x, y, s, rep, missing, cap=True):
+    """v12: one crop (or its labelled placeholder) at (x, y) mm, factor s, its caption under it; returns its height"""
+    key, blk, path, clip = it
+    w, h = wh(it)
+    if clip is None:
+        missing.add(key.partition("/")[0])
+        placeholder(pg, typo, (x, y, w * s, h * s), "%s · %s" % (SCRIPT_OF.get(key.partition("/")[0], ""),
+                                                                key.split("/")[1]))
+        rep.append("%s MISSING" % key)
+        return h * s
+    src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
+    pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
+    if cap:
+        c = renum(blk.get("caption", ""), key, blk, path)      # v18: its marks in the booklet's source numbers
+        if blk.get("scale_den"):
+            c = (c + " · " if c else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
+        typo.line(pg, c, x, y + h * s + 3.6, T["caption"], INK2)
+    ws = word_sizes(src[pi], clip)
+    if ws:
+        rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], ws[len(ws) // 2] * s,
+                                                                ws[len(ws) // 10] * s))
+    return h * s
+
+
+def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
+    """rows of [(key, crop block, sheet path, clip)]: one scale for the page, the largest at which every row fits the
+    width and all rows the height; a drawing with a true scale takes the round scale at or just below it (v4), so
+    its printed scale is always round; each panel with its own words. v12: "side" panels at the right margin beside
+    the rows (their own width), the page's legend under them; a "key" map in the title band at the right."""
+    aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
+    side_it = spec.get("_side") or []
+    side_w = min(aw / 2.0, max([wh(it)[0] * own_s(it) for it in side_it] or [0.0]))
+    s_fit = fit(rows, aw - side_w - GUT if side_it else None)
+
+    def sc(it):                                      # v4: a drawing with a scale takes the round scale at or below s
+        if fixed(it):                                # v15: drawn for its booklet width: its own size
+            return own_s(it)
+        den = it[1].get("scale_den") if it[1] and it[3] is not None else None
+        return den / std_scale(den / s_fit) if den else s_fit
+    pg = frame_page(fitz, doc, typo)
+    header(pg, typo, spec)
+    legend, rep, y = [], [], AREA[1]
+    key_it = spec.get("_key")
+    if key_it is not None:                           # v12: the key map in the title band, right, above the rule
+        if key_it[3] is None:
+            rep.append("%s MISSING (key map left out)" % key_it[0])
+        else:
+            kw, kh = wh(key_it)
+            ks = own_s(key_it)
+            kx, ky = AREA[2] - kw * ks, 24.0 - kh * ks
+            if kx < colx(1) + typo.width(spec.get("title", ""), T["part"], True) + 6.0 or ky < 5.0:
+                typo.issues.append("KEY MAP CROWDS THE TITLE p.%d" % pno)
+            show(fitz, pg, typo, key_it, kx, ky, ks, rep, missing, cap=False)
+    for r in rows + [side_it]:
+        for it in r:
+            for e in ((it[1] or {}).get("legend") or []) if it[3] is not None else []:
+                e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))     # v18
+                if all(e.get("label") != o.get("label") for o in legend):
+                    legend.append(e)
+    rws = [sum(wh(it)[0] * sc(it) for it in r) + GUT * (len(r) - 1) for r in rows]
+    lw = 6.0 + max([typo.width(e.get("label", ""), T["caption"]) for e in legend] or [0.0])
+    side = not side_it and footer_rows(typo, legend, spec) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
+    if side:                                         # v4: a long legend beside the drawing, all of it
+        lx = AREA[0] + max(rws) + 8.0
+        for i, e in enumerate(legend):
+            legend_item(pg, typo, e, lx, AREA[1] + 3.0 + 4.0 * i)
+    for r, rw in zip(rows, rws):                     # rows centred across the page (left with a side legend)
+        x, rh = AREA[0] + (0.0 if side or side_it else max(0.0, (aw - rw) / 2.0)), max(wh(it)[1] * sc(it) for it in r)
+        for key, blk, path, clip in r:
+            s = sc((key, blk, path, clip))
+            w, h = wh((key, blk, path, clip))
+            if clip is None and blk and blk.get("slot"):     # v11: frame for a drawing a later prompt makes
+                placeholder(pg, typo, (x, y, w * s, h * s), blk["slot"])
+                rep.append("frame: %s" % blk["slot"])
+            elif clip is None:
+                missing.add(key.partition("/")[0])
+                placeholder(pg, typo, (x, y, w * s, h * s), "%s · %s" % (SCRIPT_OF.get(key.partition("/")[0], ""),
+                                                                        key.split("/")[1]))
+                rep.append("%s MISSING" % key)
+            else:
+                src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
+                pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
+                cap = renum(blk.get("caption", ""), key, blk, path)   # v18: the booklet's source numbers
+                if blk.get("scale_den"):
+                    cap = (cap + " · " if cap else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
+                    if round(blk["scale_den"] / s) not in STD_SCALES:
+                        typo.issues.append("SCALE NOT ROUND p.%d %s: 1:%.0f" % (pno, key, blk["scale_den"] / s))
+                typo.line(pg, cap, x, y + h * s + 3.6, T["caption"], INK2)
+                ws = word_sizes(src[pi], clip)
+                if ws:
+                    med, low = ws[len(ws) // 2] * s, ws[len(ws) // 10] * s
+                    rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], med, low))
+            x += w * s + GUT
+        y += rh + CAP_H + ROW_GAP
+    if y - ROW_GAP > AREA[3] + 0.5:                  # v15: fixed crops are not shrunk: say when they overrun
+        typo.issues.append("PAGE OVERRUNS ITS AREA p.%d by %.1f mm" % (pno, y - ROW_GAP - AREA[3]))
+    if legend and not side and not side_it and footer_rows(typo, legend, spec) > 3:
+        # v18 (Prompt 8): a legend the footer cannot hold (old p.26, ~41 entries) goes in columns under the rows
+        ncol = max(1, int((aw + 4.0) // (lw + 4.0)))
+        nrow = (len(legend) + ncol - 1) // ncol
+        yl = y - ROW_GAP + 3.0
+        if yl + 4.0 * (nrow - 1) <= AREA[3]:
+            for i, e in enumerate(legend):
+                legend_item(pg, typo, e, AREA[0] + (i // nrow) * (lw + 4.0), yl + 4.0 * (i % nrow))
+            side = True
+    if side_it:                                      # v12: beside the rows, right margin, top-aligned
+        x1, ys, xs0 = AREA[0] + max(rws) + GUT, AREA[1], AREA[2]
+        for it in side_it:
+            w, h = wh(it)
+            s = min(own_s(it), (AREA[2] - x1) / w, (AREA[3] - ys - CAP_H) / h)
+            xs = AREA[2] - w * s
+            xs0 = min(xs0, xs)
+            ys += show(fitz, pg, typo, it, xs, ys, s, rep, missing) + CAP_H
+            grid = [g * w * s / it[1]["bk_w"] for g in (it[1] or {}).get("grid", [])] if (it[1] or {}).get("bk_w") \
+                else []
+        if legend:                                   # the legend under the panel, on its grid (else two columns)
+            starts = [xs0 + g for g in grid] if len(grid) > 1 else [xs0, xs0 + 0.5 * (AREA[2] - xs0)]
+            ends = starts[1:] + [AREA[2]]
+            ncol = len(starts) if all(6.0 + typo.width(e.get("label", ""), T["caption"]) <= min(
+                b - a for a, b in zip(starts, ends)) for e in legend) else 1
+            nrow = (len(legend) + ncol - 1) // ncol
+            if ys + 3.0 + 4.0 * nrow <= AREA[3]:
+                for i, e in enumerate(legend):
+                    legend_item(pg, typo, e, starts[i // nrow], ys + 3.0 + 4.0 * (i % nrow))
+                side = True
+            else:
+                typo.issues.append("SIDE LEGEND TOO LONG p.%d: in the footer" % pno)
+    footer(pg, typo, pno, spec, [] if side else legend)
+    return "p.%d %s: x%.2f · %s" % (pno, spec["title"], s_fit, "; ".join(rep))
+
+
+def expand(fitz, spec, assets):
+    """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4)."""
+    def item(key):
+        if "||" in key:                                # v15: "a||b": the first of these the scripts have written
+            its = [item(k) for k in key.split("||")]
+            return next((it for it in its if it[3] is not None), its[0])
+        if key.startswith("slot|"):                    # v11: SLOT(text, w, h) of the plan
+            _, w, h, text = key.split("|", 3)
+            return (key, {"slot": text, "size_mm": (float(w), float(h))}, None, None)
+        blk, path = resolve(assets, key)
+        if not path:
+            return (key, blk, None, None)
+        page = sheet_doc(fitz, path)[int(blk.get("page", 0))]
+        r = blk["rect_mm"]
+        clip = fitz.Rect(r[0] * K, r[1] * K, r[2] * K, r[3] * K) & page.rect
+        if not blk.get("scale_den"):                 # v4: a panel that states one scale in its words is to scale
+            dens = set(int(m.group(1).replace(",", "")) for m in SCALE_WORD.finditer(page.get_text(clip=clip)))
+            if len(dens) == 1:
+                blk = dict(blk, scale_den=dens.pop())
+        return (key, blk, path, clip)
+    rows = [[item(k) for k in r] for r in spec["rows"]]
+    rows = [r for r in ([it for it in r if not (it[0] in OPTIONAL_KEYS and it[3] is None)] for r in rows) if r]
+    spec = dict(spec, _side=[item(k) for k in spec.get("side", [])],          # v12: side panels, title-band key map
+                _key=item(spec["key"]) if spec.get("key") else None)
+    if not rows:
+        return []
+    if spec.get("optional") and all(it[3] is None for r in rows for it in r):
+        return []
+    if spec.get("alone") and fit(rows) < 0.75 * min(fit([r]) for r in rows):   # v7: together only if both stay big
+        return [(dict(spec, title=t), [r]) for t, r in zip(spec["alone"], rows)]
+    return [(spec, rows)]
+
+
+def cover(pg, typo, pages):
+    x = colx(1)
+    typo.line(pg, BOOK["course"].upper(), x, 16, T["kicker"], ACCENT, True)
+    typo.line(pg, BOOK["hook"], x, 64, 48, ACCENT, True)
+    y = 82
+    for ln in typo.wrap(BOOK["title"], 7 * COL + 6 * GUT, T["part"], True):
+        typo.line(pg, ln, x, y, T["part"], INK, True); y += 10
+    typo.line(pg, BOOK["subtitle"], x, y + 2, T["sub"], INK)
+    yb = 232
+    for ln in BOOK["names"]:
+        typo.line(pg, ln, x, yb, T["body"], INK); yb += LEAD["body"]
+    typo.line(pg, BOOK["date"], x, yb + 4, T["caption"], INK2)
+    # contents: parts and page titles, columns 9-12 (a title split over pages listed once)
+    cx, cy = colx(9), 40
+    typo.line(pg, "CONTENTS", cx, cy - 8, T["kicker"], ACCENT, True)
+    last, lstage, seen = None, None, set()
+    for no, sp in pages:
+        t = re.sub(r" \(\d+/\d+\)$", "", sp.get("title", ""))
+        if t in seen:
+            continue
+        seen.add(t)
+        if sp.get("part") != last:
+            last, lstage = sp.get("part"), None
+            cy += 2
+            typo.line(pg, (last + "  " + PARTS.get(last, "")).upper(), cx, cy, T["caption"], ACCENT, True); cy += 4.5
+        if sp.get("stage") != lstage:                  # v11: the cycle step, once where it starts
+            lstage = sp.get("stage")
+            typo.line(pg, STAGES.get(lstage, "").lower(), cx + 8, cy, T["caption"], INK2); cy += 3.6
+        typo.line(pg, "%02d" % no, cx, cy, T["caption"], INK2, True)
+        typo.line(pg, t, cx + 12, cy, T["caption"], INK); cy += 4.0
+    pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
+
+
+def sheet_sources(fitz, assets):
+    """[(heading, [entries])]: each sheet page's own source key. v10 (Aras 27 Oct: source footers go): first the
+    key a script writes into its blocks.json "sheet_sources" ({page or "pdf#page": ["[1] ...", ...]}), else the
+    key as the sheet prints it ("Sources by number: [1] ... [2] ..." or lines starting [n], visible or not)."""
+    out, done = [], set()
+    for pat in SOURCE_SHEETS:
+        folder, _, name = pat.partition("/")
+        keyed = (assets.get(folder) or {}).get("sheet_sources") or {}
+        if keyed:
+            if folder not in done:
+                done.add(folder)
+                for k in sorted(keyed, key=lambda k_: str(k_)):
+                    ents = [e for e in keyed[k] if e]
+                    if ents:
+                        out.append((SCRIPT_OF.get(folder, folder) + ("" if len(keyed) == 1 else " · page %d" % (int(k) + 1) if str(k).isdigit()
+                                                                    else " · " + re.sub(r"\.pdf(#\d+)?$", "", str(k)).replace("_", " ")), ents))
+            continue
+        path = find_pdf(folder, name)
+        if not path:
+            continue
+        d = sheet_doc(fitz, path)
+        for i, page in enumerate(d):
+            txt = []
+            for b in page.get_text("blocks"):
+                t = re.sub(r"\s+", " ", b[4]).strip()
+                if "Sources by number:" in t:
+                    txt.append(t.split("Sources by number:", 1)[1])
+                elif re.match(r"\[\d+\] ", t):
+                    txt.append(t)
+            ents = [e.strip() for e in re.split(r"\s(?=\[\d+\] )", " " + " ".join(txt)) if e.strip()]
+            if ents:
+                head = SCRIPT_OF.get(folder, folder) + (" · page %d" % (i + 1) if len(d) > 1 else "")
+                if "axonometric" in name:
+                    head += " · axonometric"
+                out.append((head, ents))
+    return out
+
+
+# ------------------------------------------------------------------ v18 sources: one numbering for the whole booklet
+MARK = re.compile(u"\\[(\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*)\\]")              # one mark: [3] [7,8] [3-5]
+MARKS = re.compile(u"\\[\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*\\](?:\\s*\\[\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*\\])*")
+KEY_LINE = re.compile(r"^\s*\[(\d{1,3})\]\s*(.*\S)?")
+_SRC = []        # v18: this run's Sources (main), read by renum
+
+
+def renum(s, key, blk, path):
+    """v18: s with its [n] marks in the booklet's source numbers (unchanged when Sources is not working)"""
+    if not s or not _SRC or "[" not in s:
+        return s
+    return _SRC[0].renum(s, _SRC[0].key_for(key.partition("/")[0], path, int((blk or {}).get("page", 0))))
+
+
+class Sources(object):
+    """v18 (Aras 27 Oct, Prompt 8: "every [n] used exists, none are unused, numbering follows the new order"): every
+    [n] mark the pages show (sheet words inside each crop, captions, legend names), read in page order, takes one
+    booklet number: first use first, one number per source text (the board's drawings and sections sheets share a
+    key). Each sheet page the booklet shows is copied once (_COPY): its marks rewritten in place (same size, colour and
+    baseline; a longer number set smaller where the words after it would be hit) and its words that lie outside every
+    crop the booklet takes from it removed (hidden by the clip, but still in the PDF and in Illustrator)."""
+    def __init__(self, fitz, assets):
+        self.fz = fitz
+        self.keys = {}          # key id -> {n: source text}
+        self.glob = {}          # (key id, n) -> booklet number
+        self.by_text = {}       # source text (normalised) -> booklet number
+        self.order = []         # [(booklet number, key id, n, part, page, folder)]
+        self.used = {}          # (sheet path, page index) -> [folder, [clips]] (clip None = the whole page)
+        self.kid = {}           # (folder, path, page index) -> key id
+        self.log, self.n_hidden, self.n_tight = [], 0, 0
+        for folder, a in sorted(assets.items()):
+            for k, ents in sorted(((a or {}).get("sheet_sources") or {}).items(), key=lambda kv: str(kv[0])):
+                k = str(k)
+                if "#" in k:                           # the board: "<sheet pdf>#<page>"
+                    pdf, _, p_ = k.rpartition("#")
+                    kid = (folder, os.path.basename(pdf), int(p_) if p_.isdigit() else None)
+                elif k.isdigit():                      # a page of the script's sheet (one key = all its pages)
+                    kid = (folder, None, int(k))
+                else:
+                    kid = (folder, os.path.basename(k), None)
+                self.keys[kid] = self.entries(ents or [])
+
+    @staticmethod
+    def entries(ents):
+        """["[1] text", ...] -> {1: "text", ...} (an entry without its number takes its place in the list)"""
+        out = {}
+        for i, e in enumerate([str(e_).strip() for e_ in ents if e_ and str(e_).strip()]):
+            m = KEY_LINE.match(e)
+            out.setdefault(int(m.group(1)) if m else i + 1, ((m.group(2) or "") if m else e).strip())
+        return out
+
+    def parsed(self, path, i):
+        """the key a sheet page prints itself ("Sources by number: [1] ..." or lines starting [n], visible or not)"""
+        kid = ("sheet", path, i)
+        if kid not in self.keys:
+            txt = []
+            for b in sheet_doc(self.fz, path)[i].get_text("blocks"):
+                t = re.sub(r"\s+", " ", b[4]).strip()
+                if "Sources by number:" in t:
+                    txt.append(t.split("Sources by number:", 1)[1])
+                elif re.match(r"\[\d+\] ", t):
+                    txt.append(t)
+            self.keys[kid] = self.entries(re.split(r"\s(?=\[\d+\] )", " " + " ".join(txt)))
+        return kid if self.keys[kid] else None
+
+    def key_for(self, folder, path, i):
+        """the key the marks of this sheet page refer to: the script's own (blocks.json "sheet_sources": per sheet PDF
+        and page, per page, or one for all), else the one the sheet prints (this page, else the one page of this
+        sheet or of the folder's SOURCE_SHEETS sheet that has one); ("none", folder) when there is none"""
+        ck = (folder, path, i)
+        if ck not in self.kid:
+            pdf = os.path.basename(path or "")
+            kid = next((k for k in ((folder, pdf, i), (folder, pdf, None), (folder, None, i)) if self.keys.get(k)),
+                       None)
+            own = [k for k in self.keys if k[0] == folder and self.keys[k]]
+            if kid is None and len(own) == 1:
+                kid = own[0]
+            if kid is None and path:
+                kid = self.parsed(path, i)
+                cands = [path] + [p for p in (find_pdf(folder, pat.partition("/")[2]) for pat in SOURCE_SHEETS
+                                              if pat.partition("/")[0] == folder) if p and p != path]
+                for p in cands if kid is None else []:
+                    hits = [k for k in (self.parsed(p, j) for j in range(len(sheet_doc(self.fz, p)))) if k]
+                    if len(hits) == 1:
+                        kid = hits[0]
+                        break
+            self.kid[ck] = kid or ("none", folder)
+        return self.kid[ck]
+
+    @staticmethod
+    def nums(s):
+        """"3" / "7,8" / "3-5" -> [3] / [7, 8] / [3, 4, 5]"""
+        out = []
+        for part in s.split(","):
+            ab = [x for x in re.split(u"[–-]", part) if x.strip()]
+            try:
+                a, b = int(ab[0]), int(ab[-1])
+            except (ValueError, IndexError):
+                continue
+            out += list(range(a, b + 1)) if 0 <= b - a <= 12 else [a, b]
+        return out
+
+    def invisible(self, page):
+        """rects of the page's invisible words (render mode 3: e.g. the water balance's source key)"""
+        try:
+            return [self.fz.Rect(s_["bbox"]) for s_ in page.get_texttrace() if s_.get("type") == 3]
+        except Exception:
+            return []
+
+    def lines_in(self, page, clip):
+        """the visible lines of words inside clip (None = the page) holding a "[", outside any printed source key"""
+        inv, out = self.invisible(page), []
+        for b in page.get_text("dict", clip=clip)["blocks"]:
+            lines = [("".join(s_["text"] for s_ in ln["spans"]), self.fz.Rect(ln["bbox"])) for ln in b.get("lines", [])]
+            if any("Sources by number:" in t for t, _ in lines):
+                continue
+            out += [t for t, r in lines if "[" in t and not any(r.intersects(v) for v in inv)]
+        return out
+
+    def use(self, kid, n, part, pno, folder):
+        if (kid, n) in self.glob:
+            return
+        t = (self.keys.get(kid) or {}).get(n)
+        norm = re.sub(r"\W+", " ", t).strip().lower() if t else None
+        if norm and norm in self.by_text:              # the same source under another sheet's number
+            self.glob[(kid, n)] = self.by_text[norm]
+            return
+        g = len(self.order) + 1
+        self.glob[(kid, n)] = g
+        if norm:
+            self.by_text[norm] = g
+        else:
+            self.log.append("SOURCE MARK WITHOUT AN ENTRY p.%d [%d] (%s)" % (pno, n, SCRIPT_OF.get(folder, folder)))
+        self.order.append((g, kid, n, part, pno, folder))
+
+    def collect(self, numbered):
+        """pass 1: the marks of every page in page order -> booklet numbers; which parts of which sheet pages show"""
+        for pno, sp, rows in numbered:
+            its = []
+            if rows is None:
+                folder, _, name = sp["sheet"].partition("/")
+                path, i = find_pdf(folder, name), int(sp.get("page", 0))
+                if path and i < len(sheet_doc(self.fz, path)):
+                    its.append((folder, path, i, None, "", []))
+            else:
+                for key, blk, path, clip in [it for r in rows for it in r] + list(sp.get("_side") or []) + \
+                        ([sp["_key"]] if sp.get("_key") else []):
+                    if clip is not None:
+                        its.append((key.partition("/")[0], path, int(blk.get("page", 0)), clip,
+                                    blk.get("caption") or "", [e.get("label", "") for e in blk.get("legend") or []]))
+            for folder, path, i, clip, cap, labels in its:
+                self.used.setdefault((path, i), [folder, []])[1].append(clip)
+                kid = self.key_for(folder, path, i)
+                for t in self.lines_in(sheet_doc(self.fz, path)[i], clip) + [cap] + labels:
+                    for m in MARK.finditer(t):
+                        for n in self.nums(m.group(1)):
+                            self.use(kid, n, sp.get("part"), pno, folder)
+
+    def renum(self, s, kid):
+        def one(m):
+            ns = [self.glob.get((kid, n)) for n in self.nums(m.group(1))]
+            if not ns or None in ns:
+                return m.group(0)
+            ns = sorted(set(ns))
+            if len(ns) > 2 and ns[-1] - ns[0] == len(ns) - 1:
+                return "[%d-%d]" % (ns[0], ns[-1])
+            return "[%s]" % (", " if ", " in m.group(1) else ",").join(str(n) for n in ns)
+        return MARK.sub(one, s)
+
+    def build(self):
+        """pass 2: one copy of each sheet page the booklet shows, its marks renumbered, the words no page shows gone"""
+        fz = self.fz
+        for (path, i), (folder, clips) in self.used.items():
+            kid = self.key_for(folder, path, i)
+            tmp = fz.open()
+            tmp.insert_pdf(sheet_doc(fz, path), from_page=i, to_page=i)
+            pg = tmp[0]
+            near = None if any(c is None for c in clips) else \
+                [fz.Rect(c.x0 - 8.5, c.y0 - 8.5, c.x1 + 8.5, c.y1 + 8.5) for c in clips]     # 3 mm round each crop
+            inv, put = self.invisible(pg), []
+            for b in pg.get_text("rawdict")["blocks"]:
+                for ln in b.get("lines", []):
+                    lr = fz.Rect(ln["bbox"])
+                    if near is not None and not any(lr.intersects(r) for r in near):
+                        if lr.width > 0.1 and lr.height > 0.1:           # shown by no page: out
+                            pg.add_redact_annot(fz.Rect(lr.x0, lr.y0 + 0.3 * lr.height, lr.x1, lr.y1 - 0.3 * lr.height),
+                                                fill=False)
+                            self.n_hidden += 1
+                        continue
+                    if abs(ln["dir"][1]) > 0.01 or any(lr.intersects(v) for v in inv):
+                        continue                                          # turned words, the invisible key
+                    seq = [(ch, s_) for s_ in ln["spans"] for ch in s_["chars"]]
+                    txt = "".join(ch["c"] for ch, _ in seq)
+                    for m in MARKS.finditer(txt):
+                        new = self.renum(m.group(0), kid)
+                        if new == m.group(0):
+                            continue
+                        (c0, s0), c1 = seq[m.start()], seq[m.end() - 1][0]
+                        r = fz.Rect(c0["bbox"]) | fz.Rect(c1["bbox"])
+                        w0, w1 = c0["bbox"][2] - c0["bbox"][0], c1["bbox"][2] - c1["bbox"][0]
+                        pg.add_redact_annot(fz.Rect(r.x0 + 0.2 * w0, r.y0 + 0.3 * r.height, r.x1 - 0.2 * w1,
+                                                    r.y1 - 0.3 * r.height), fill=False)
+                        nxt = next((ch["bbox"][0] for ch, _ in seq[m.end():] if ch["c"].strip()), None)
+                        ends = [c.x1 for c in clips if c is not None and c.intersects(r)]
+                        room = min([pg.rect.x1 if nxt is None else nxt] + ends) - c0["origin"][0] - 0.3
+                        put.append((c0["origin"], new, s0["size"], s0["color"], "bold" in s0["font"].lower(), room))
+            pg.apply_redactions(images=0, graphics=0, text=0)
+            for org, new, size, col, bold, room in put:
+                fn = "hebo" if bold else "helv"
+                w = fz.get_text_length(new, fontname=fn, fontsize=size)
+                if w > room > 0:                                          # the words after it stay clear
+                    size2 = max(0.75 * size, size * room / w)
+                    self.n_tight += int(w * size2 / size > room + 0.2)
+                    size = size2
+                pg.insert_text(org, new, fontname=fn, fontsize=size,
+                               color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+            _COPY[(path, i)] = (tmp, 0)
+
+    def groups(self):
+        """[(theme heading, ["[n] text", ...])] in booklet order, for sources_page"""
+        out, last = [], object()
+        for g, kid, n, part, pno, folder in self.order:
+            if part != last:
+                last = part
+                out.append(((part + "  " + PARTS.get(part, "")).upper() if part else u"COVER", []))
+            t = (self.keys.get(kid) or {}).get(n)
+            out[-1][1].append(u"[%d] %s" % (g, t or u"(no entry for mark [%d] in the %s source key)" %
+                                             (n, SCRIPT_OF.get(folder, folder))))
+        return out
+
+    def report(self):
+        kids = set(self.kid.values())
+        left = sum(1 for k in kids for n in (self.keys.get(k) or {}) if (k, n) not in self.glob)
+        return ("sources: %d cited, numbered in page order (one number per source); %d entries of the scripts' keys "
+                "for these sheets not cited on any page, left out; %d words no page shows taken out of the sheets; "
+                "%d marks set smaller to fit" % (len(self.order), left, self.n_hidden, self.n_tight))
+
+
+def sources_page(pg, typo, pno, groups, head=u"Sources, by sheet"):
+    """All sources on ONE page (Aras 25 Oct 21:54): each sheet's own key under its name, three columns, the type
+    size lowered step by step until everything fits; only this page may go below 7 pt. v18: head = the page title
+    (the booklet's one numbering: groups = themes)."""
+    typo.line(pg, "SOURCES", colx(1), 12, T["kicker"], ACCENT, True)
+    typo.line(pg, head, colx(1), 22, T["part"], INK, True)
+    pg.draw_line((colx(1) * K, 25 * K), ((PW - ML) * K, 25 * K), color=hexrgb(RULE), width=0.25)
+    cols = [colx(1), colx(5), colx(9)]
+    y0, y1 = 31.0, FOOT_RULE - 3.0
+    w = 4 * COL + 3 * GUT
+    items = []
+    for head, ents in groups:
+        items.append((True, head))
+        items += [(False, e) for e in ents]
+
+    def layout(size):
+        lead, gap = size * PT * 1.18, size * PT * 0.45
+        out, ci, y = [], 0, y0 + size * PT
+        for bold, t in items:
+            lines = typo.wrap(t, w - 1.5, size, bold)
+            need = len(lines) * lead + (gap * 2 if bold else 0)
+            if y + need - lead > y1:
+                ci, y = ci + 1, y0 + size * PT
+                if ci >= len(cols):
+                    return None
+            if bold and y > y0 + size * PT + 0.1:
+                y += gap * 2
+            out.append((ci, y, lines, bold))
+            y += len(lines) * lead + gap
+        return out, lead
+    size, res = T["caption"], None
+    while size >= 3.0:
+        res = layout(size)
+        if res:
+            break
+        size = round(size - 0.25, 2)
+    if not res:
+        typo.issues.append("SOURCES DO NOT FIT ON ONE PAGE even at 3 pt")
+        return
+    rows, lead = res
+    for ci, y, lines, bold in rows:
+        for k_, ln in enumerate(lines):
+            typo.line(pg, ln, cols[ci] + (1.5 if k_ else 0.0), y + k_ * lead, size, ACCENT if bold else INK, bold,
+                      small_ok=True)
+    if size < MIN_CAPTION:
+        typo.notes.append("sources page set at %.2f pt to fit one page (%d entries)" % (size, len(items)))
+    footer(pg, typo, pno, {"part": None}, [])
+
+
+def flex_order(plan, typo):
+    """v17: a spread opens on a left (even) page: when it would open on a right page and the page before it is marked
+    flex, that page goes after the spread instead (plan index i = page i + 2: page 1 is the cover)."""
+    for i in range(1, len(plan) - 1):
+        if plan[i][0].get("spread") == "L" and i % 2 and plan[i - 1][0].get("flex"):
+            typo.notes.append("page '%s' moved after the spread '%s' so the spread opens on a left page" % (
+                plan[i - 1][0].get("title", ""), plan[i][0].get("title", "")))
+            n = 2 if plan[i + 1][0].get("spread") == "R" else 1
+            return plan[:i - 1] + plan[i:i + n] + [plan[i - 1]] + plan[i + n:]
+    return plan
+
+
+# ------------------------------------------------------------------ main
+def main():
+    t0 = time.time()
+    import fitz                                   # PyMuPDF
+    os.makedirs(OUT_DIR, exist_ok=True)
+    assets = load_assets()
+    typo = Typo(fitz)
+    doc = fitz.open()
+    plan = []
+    for spec in PAGES:
+        if spec.get("sheet"):
+            plan.append((spec, None))
+        elif not FRAME_PAGES and all(k.startswith("slot|") for r in spec.get("rows", []) for k in r):
+            typo.notes.append("page '%s' left out: its drawings are not made yet (frames only; PLAN FRAME_PAGES)" %
+                              spec.get("title", ""))           # v18 (Prompt 8): no empty frame page in the booklet
+        else:
+            plan += expand(fitz, spec, assets)
+    plan = flex_order(plan, typo)
+    numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
+    _COPY.clear()
+    del _SRC[:]
+    srcs = Sources(fitz, assets)                    # v18: one source numbering for the booklet, in page order
+    try:
+        srcs.collect(numbered)
+        srcs.build()
+        _SRC.append(srcs)
+        typo.notes.append(srcs.report())
+        typo.issues += srcs.log
+    except Exception as ex:
+        _COPY.clear()
+        typo.issues.append("SOURCES NOT RENUMBERED (%s: %s): marks and sources page by sheet, as before v18" %
+                           (type(ex).__name__, ex))
+    cover(frame_page(fitz, doc, typo), typo, [(n, sp) for n, sp, _ in numbered])
+    missing, rep = set(), []
+    for pno, sp, rows in numbered:                   # v11: a spread opens on a left (even) page
+        if sp.get("spread") == "L" and pno % 2:
+            typo.issues.append("SPREAD STARTS ON A RIGHT PAGE p.%d %s" % (pno, sp.get("title", "")))
+    for pno, sp, rows in numbered:
+        rep.append(sheet_page(fitz, doc, typo, pno, sp) if rows is None else
+                   panel_page(fitz, doc, typo, pno, sp, rows, assets, missing))
+    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2,
+                 *((srcs.groups(), u"Sources, in page order") if _SRC else (sheet_sources(fitz, assets),)))
+    text_check(fitz, doc, typo, set(n - 1 for n, sp, rows in numbered if rows is None))
+    doc.subset_fonts()
+    out = os.path.join(OUT_DIR, PDF_NAME)
+    doc.save(out, garbage=3, deflate=True)
+    n = doc.page_count
+    doc.close()
+    rows = ["%s  %s  (%d pages, font %s)" % (out, time.strftime("%H:%M:%S"), n, typo.fam)]
+    for name in sorted(assets):
+        rows.append("assets %s: %s" % (name, assets[name].get("_error") or assets[name]["_time"]))
+    for m in sorted(missing):
+        rows.append("MISSING drawings of %s: placeholders left" % SCRIPT_OF.get(m, m))
+    rows += rep + typo.notes
+    rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
+    rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
+    rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
+    return "\n".join(rows)
+
+
+def text_check(fitz, doc, typo, skip=()):
+    """The booklet's own text, read back from the PDF (cover, sources page, title and footer bands, captions): none may
+    leave the page's margins or overlap another line. The sheets' words are theirs, as the sheets print them."""
+    last = len(doc) - 1
+    for i, pg in enumerate(doc):
+        if i in skip:
+            continue
+        own = i in (0, last)
+        boxes = []
+        for b in pg.get_text("dict")["blocks"]:
+            for ln in b.get("lines", []):
+                t = "".join(sp["text"] for sp in ln["spans"]).strip()
+                if t:
+                    r = fitz.Rect(ln["bbox"])
+                    sz = max(sp["size"] for sp in ln["spans"])
+                    r = fitz.Rect(r.x0, r.y1 - sz * 0.95, r.x1, r.y1 - sz * 0.2) if r.height > sz * 0.5 else r
+                    if own or r.y1 < 27 * K or r.y0 > (FOOT_RULE - 1) * K or \
+                            any(sp["size"] == T["caption"] for sp in ln["spans"]):
+                        boxes.append((r, t))
+        lim = fitz.Rect(ML * K * 0.5, MT * K * 0.5, (PW - ML * 0.5) * K, (PH - MB * 0.5) * K)
+        for r, t in boxes:
+            if not lim.contains(r):
+                typo.issues.append("TEXT OFF THE PAGE p.%d: %s" % (i + 1, t[:40]))
+        n = 0
+        for a in range(len(boxes)):
+            ra = boxes[a][0]
+            for b_ in range(a + 1, len(boxes)):
+                rb = boxes[b_][0]
+                ov = ra & rb
+                if ov.is_empty or ov.width < 0.5 or ov.height < 0.5:
+                    continue
+                if ov.width * ov.height > 0.15 * min(ra.width * ra.height, rb.width * rb.height):
+                    n += 1
+                    if n <= 3:
+                        typo.issues.append("TEXT OVERLAPS TEXT p.%d: \"%s\" / \"%s\"" % (i + 1, boxes[a][1][:25],
+                                                                                    boxes[b_][1][:25]))
+        if n > 3:
+            typo.issues.append("TEXT OVERLAPS TEXT p.%d: %d more" % (i + 1, n - 3))
+
+
+def chain_fire(v, key):
+    if isinstance(v, (list, tuple)):
+        v = next((x for x in v if x is not None), None)
+    s = str(v) if v is not None else ""
+    if not s.startswith("done "):
+        return False
+    try:
+        import scriptcontext as _scx
+        try:
+            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+        except Exception:
+            pass
+        if _scx.sticky.get(key) == s:
+            return False
+        _scx.sticky[key] = s
+        return True
+    except Exception:
+        return False
+
+
+def done_text(ran, ok, secs):
+    return ("done " if ok else "ERROR ") + time.strftime("%H:%M:%S") + ".%02d" % int((time.time() % 1) * 100) + \
+        " · %.0f s" % secs if ran else None
+
+
+def write_log(text):
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        pass
+    return text
+
+
+# ---- Grasshopper wiring (same in every script; never define a function named run: it would hide the input) ----
+if "ghenv" in globals():
+    import scriptcontext as _sc
+    _k = "bergama_" + OUT_FOLDER
+    try:
+        _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
+    except Exception:
+        pass
+    _pressed = any(v is True for k, v in list(globals().items())
+                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "rhino_bake", "done")) or \
+        any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    if _pressed:
+        _t0 = time.time()
+        try:
+            _res = main()
+        except Exception as _ex:
+            import traceback as _tb
+            _res = "ERROR: %s: %s\n%s" % (type(_ex).__name__, _ex, _tb.format_exc()[-600:])
+        _sc.sticky[_k + "_log"] = write_log(_res)
+        _sc.sticky[_k + "_status"] = ("ERROR" if _res.startswith("ERROR") else
+                                      time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
+        _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
+        _sc.sticky[_k + "_ver"] = VERSION
+    if _sc.sticky.get(_k + "_ver") != VERSION:   # v10.1 (Aras 27 Oct 15:35): a newly pasted version shows itself at once,
+        for _s in ("_log", "_status", "_done"):   # idle, without the old run's time or log
+            _sc.sticky.pop(_k + _s, None)
+    done = _sc.sticky.get(_k + "_done", "idle")
+    log = _sc.sticky.get(_k + "_log", "Press the Button to build " + os.path.join(OUT_DIR, PDF_NAME))
+    print(log)
+    try:
+        ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821
+    except Exception:
+        pass
+else:
+    print(write_log(main()))

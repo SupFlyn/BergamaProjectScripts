@@ -34,8 +34,8 @@ def shade_strip_data(S):
             memo["shade_strip"] = shade_strip_calc(S)
         except Exception:
             memo["shade_strip"] = None
-            LOG.append("WARNING: the shade along the stream could not be computed, so booklet p.22 shows the tree crown "
-                       "cover instead:\n" + traceback.format_exc())
+            LOG.append("WARNING: the shade along the stream could not be computed, so booklet page \"Which plant goes "
+                       "where\" shows the tree crown cover instead:\n" + traceback.format_exc())   # v49.1: was "p.22"
     return memo["shade_strip"]
 
 

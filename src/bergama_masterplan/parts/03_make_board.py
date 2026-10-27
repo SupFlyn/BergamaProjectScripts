@@ -233,9 +233,9 @@ def scale_bar(pg, x, y, scale, marks=(0.0, 50.0, 100.0, 200.0)):
     for i, (a, b) in enumerate(zip(marks[:-1], marks[1:])):
         pg.poly([rect(x + a * k, y, x + b * k, y + 1.2)], fill=COL["ink_dark"] if i % 2 == 0 else COL["white"],
                 stroke=COL["ink_dark"], lw=0.15)
-    for m_ in marks:
-        pg.text(u"{:.0f}{}".format(m_, u" m" if m_ == marks[-1] else u""), x + m_ * k, y + 2.2, 2.0, COL["ink"],
-                align="C")
+    for m_ in marks:                                      # v26.1 (Prompt 8): 7 pt (KEY_MIN), the booklet's floor and
+        pg.text(u"{:.0f}{}".format(m_, u" m" if m_ == marks[-1] else u""), x + m_ * k, y + 2.2, KEY_MIN, COL["ink"],
+                align="C")                                # the site board's scale bars on p.24 (was 2 mm = 5.7 pt)
     pg.text(u"1:{:,.0f}".format(scale), x + marks[-1] * k + 6.0, y - 0.1, 3.4, COL["ink_dark"], bold=True)
 
 
@@ -911,7 +911,8 @@ def build_all(doc, warn):
                             r_["ha"], r_["why"]))
                 LEG.clear()                              # v24: the pages carry their own legend
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v26 option {} (1:{:,.0f})".format(opt, MP_SCALE))
+                path = save(pg, folder, name, u"Bergama masterplan {} option {} (1:{:,.0f})".format(SHORT, opt,
+                                                                                                    MP_SCALE))
                 files.append(path)
                 pages.append((opt, alt, pg))
                 sheets.append((path, pg, MP_SCALE))
@@ -939,7 +940,7 @@ def build_all(doc, warn):
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v26 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan {} detail option {} (1:1,000)".format(SHORT, opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))

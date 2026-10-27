@@ -2301,8 +2301,9 @@ def chrome(pg, ctx, spec, ext, V, stamp):
     BP = ctx.BP
     CORE = BP.CORE
     ink, ink2 = CORE["ink"], CORE["ink2"]
-    pg.text(u"{} · {}".format(spec["did"], spec["title"]), 14, 277, 6.2, ink, bold=True, layer="sheet")
-    pg.text(ext["name"] + u" · " + ext["note"], 14, 270.6, 2.9, ink2, layer="sheet")
+    pg.text(spec["title"], 14, 277, 6.2, ink, bold=True, layer="sheet")       # v49.1: no sheet number before it
+    pg.text((spec["sub"] + u" · " if spec.get("sub") else u"") + ext["name"] + u" · " + ext["note"], 14, 270.6, 2.9,
+            ink2, layer="sheet")                                                  # v49.1: the keywords first
     pg.text(CREDIT, 406, 279, 2.9, ink, bold=True, align="R", layer="sheet")
     pg.text(COURSE, 406, 274.6, 2.3, ink2, align="R", layer="sheet")
     pg.text(u"Selinus corridor · axonometric · camera {:.1f}° down · view {:.0f}°".format(     # v38: keywords
@@ -2457,12 +2458,16 @@ def spec_S1(ctx, ext):
     sky_note = [u"V: sky view from the stream bed = the share of the sky vault seen past buildings, crowns in leaf and "
                 u"terrain (board's 72-sector calculation, {:.1f} m grid), averaged over {:.0f} m of the bed; bed mean "
                 u"{:.0f} %. Low = enclosed, like a well".format(sky["cell"], sky["run"], 100 * sky["mean"])] if sky else []
-    return dict(did="S1", title=u"WHAT IS THERE · use · height · heritage · water · green", ghost=False, bstyle=bstyle,
-                ground=s4["ground"], trees=T4["trees"][1], calls=calls, legend=legend,
+    # v49.1 (Aras 27 Oct, Prompt 8): the booklet's title for this page (p.3, "Heights and enclosure"; p.2 is "What
+    # is there"), the keywords under it; no "S1 ·" (the old sheet number reads as section S1); [2] names the heritage
+    # sources (was "as D2", a diagram not in the booklet)
+    return dict(did="S1", title=u"Heights and enclosure", sub=u"use · height · heritage · water · green", ghost=False,
+                bstyle=bstyle, ground=s4["ground"], trees=T4["trees"][1], calls=calls, legend=legend,
                 overlays=s2["overlays"] + s4["overlays"], words=river_words(ctx),
                 notes=[u"The board's plan 01 'What is there' as a parallel axonometric: heights are the information the "
                        u"plan cannot show",
-                       SRC_SURVEY + u"; uses and floors as the board reads them; parks: OpenStreetMap; heritage as D2",
+                       SRC_SURVEY + u"; uses and floors as the board reads them; parks: OpenStreetMap; heritage points: "
+                       u"OpenStreetMap / Overture places marked historic by the board",
                        heights_note(ctx.ns) + u"; ground: the survey terrain at true scale" +
                        (u"; trees: 1 m canopy height map (Meta/WRI, modelled), leaf type CLC+ 2021" if ctx.crowns else u"")]
                 + sky_note)

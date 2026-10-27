@@ -1,5 +1,6 @@
 # ============================================================ v46 (Aras 27 Oct 17:34, booklet Prompt 3: movement and the city)
-# Theme B of the booklet (p.8 how people use it, p.10 how people will move) and the heritage loop (p.23): every map is
+# Theme B of the booklet (p.8 how people use it, p.10 how people will move) and the heritage loop (v49.1: at 1:5,000
+# in two strips, as the stream edge plan): every map is
 # the whole site frame at ONE scale, 1:10,000 on the booklet page (B_DEN), on the frame's own axes (one north), with
 # the scale bar and north arrow under the map (b_foot), never on it. The base is crisp, in the masterplan's tones and
 # Prompt 3's layer order (ground, green, water, buildings, bridges, roads: b_base); analysis stays crisp, a proposal
@@ -14,6 +15,8 @@ CITY_CTX = os.path.join(SELINUS_RES_DIR, "city_context.json")    # read by berga
 CTX_HOUSING = {"traditional": u"old town", "regular": u"planned low-rise", "block": u"apartment block",
                "selfbuilt": u"small / shack"}    # a home by the sections' building types (draw_typology_key)
 SHOP_AMEN = ("cafe", "restaurant", "fast_food", "bar", "pub", "ice_cream")   # with shop=*: the city link's shops
+B_BASE_LEG = [("box", MPL["water"], u"Selinos stream"), ("box", MPL["bld"], u"Building"),
+              ("box", MPL["her"], u"Heritage building")]   # v49.1 (Prompt 8): b_base's tones in every page's legend
 
 
 class Tint(tuple):
@@ -52,12 +55,15 @@ def b_view(F, x, ytop, U):
     return View(F, ss, x, ytop), k, ss, (x, ytop - F.h * ss, x + F.w * ss, ytop)
 
 
-def b_foot(B, F, x, yb, ss, k, L):
-    """v46: under a theme-B map whose bottom edge is at yb: the scale bar (0-400 m, "m" beside it) and the north
-    arrow beside it, both clear of the map and of any caption. Returns the y below them."""
-    low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, B_SB_M, k, L)
+def b_foot(B, F, x, yb, ss, k, L, Lm=B_SB_M):
+    """v46: under a theme-B map whose bottom edge is at yb: the scale bar (0-Lm m, "m" beside it) and the north
+    arrow beside it, both clear of the map and of any caption. Returns the y below them. v49.1 (Prompt 8): the bar
+    starts 1 mm in from the map's left edge: its "0" is centred on the bar's end and the crops end 0.5 mm left of
+    the map, so half the "0" was cut off; Lm (v49.1): the heritage loop's strips at 1:5,000 take 200 m."""
+    x += 1.0 * k
+    low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, Lm, k, L)
     ny = yb - 5.5 * k
-    hw = draw_north_at(B, F, x + B_SB_M * ss + 10.0 * k, ny, 4.0, k, L)
+    hw = draw_north_at(B, F, x + Lm * ss + 10.0 * k, ny, 4.0, k, L)
     return min(low, ny - hw)
 
 
@@ -221,7 +227,7 @@ def draw_mv_proposal(S, B, x, y, w, U, M):
             for k_, lab in (("walk", u"walk"), ("car", u"car")):
                 b_, a_ = mv_line_index(R2, P, k_ + "_b"), mv_line_index(R2, P, k_ + "_a")
                 if b_ is not None and a_ is not None:
-                    idx.append(u"{} {:.0f}→{:.0f}".format(lab, b_, a_))
+                    idx.append(u"{} {:.0f}->{:.0f}".format(lab, b_, a_))   # v49.1 (Prompt 8): "→" printed "?"
         q, t = pl_point_at(P, pl_length(P) / 2.0)
         if F.inside(q[0], q[1]):
             px, py = V.p(q[0], q[1])
@@ -314,9 +320,10 @@ def draw_mv_proposal(S, B, x, y, w, U, M):
                    "Computed; weakest assumption: every crossing open and every footway walkable all year.".format(
                        REACH_STEP, rw)), x, low - 1.2 * k - h7, h7, INK2, L, font=FONT_TITLE)
         low -= 2.2 * k + h7
-    leg += [("box", MPL["water"], u"Selinos stream"), ("box", MPL["bld"], u"Building")]
+    leg += B_BASE_LEG                                     # v49.1 (Prompt 8): + heritage building (b_base draws it)
     crop_panel("proposal", x - 0.5 * k, low - 0.5 * k, r[2] + 0.5 * k, r[3] + 0.5 * k,
-               u"The proposal · reach on foot from the hubs · roads, crossings, routes", crop_scale(ss), crop_legend(leg))
+               u"The proposal · reach on foot from the hubs · roads, crossings, routes · road labels: walk / car "
+               u"index today -> with it", crop_scale(ss), crop_legend(leg))   # v49.1: what the labels' pairs are
     ly = draw_legend_items(B, leg, x, low - 1.0 * U, r[2] - x, U, L, h=0.4)
     return ly - 0.4 * U
 
@@ -375,21 +382,25 @@ def draw_commercial_spines(S, B, x, y, w, U):
     return ly - 0.4 * U
 
 
-# ------------------------------------------------------------ p.23 the city heritage loop
+# ------------------------------------------------------------ the city heritage loop (booklet page "The heritage loop")
 def draw_heritage_loop(S, B, x, y, w, U):
-    """v46 (Prompt 3: one scale, frame and north with the movement maps; the loop is a proposal, drawn soft): the city
-    heritage loop on the whole site frame at 1:10,000: gondola valley station (to the Acropolis) -> Red Hall -> K3
-    Tabakhane -> along the stream (the loop's spine) -> K4 Ulu Cami and Tabaklar Hamamı -> the bazaar axis -> Bergama
-    Museum -> the Asklepieion. Stops beyond the frame are named at an arrow where the loop leaves it, each with its
-    straight distance (calculated). The order of the loop, not a walked route. Returns the y below."""
+    """v46 (Prompt 3: one frame and north with the movement maps; the loop is a proposal, drawn soft): the city
+    heritage loop on the whole site frame: gondola valley station (to the Acropolis) -> Red Hall -> K3 Tabakhane ->
+    along the stream (the loop's spine) -> K4 Ulu Cami and Tabaklar Hamamı -> the bazaar axis -> Bergama Museum ->
+    the Asklepieion. Stops beyond the frame are named at an arrow where the loop leaves it, each with its straight
+    distance (calculated). The order of the loop, not a walked route. v49.1 (Aras 27 Oct, Prompt 8: alone on its
+    page, the 53 mm strip at 1:10,000 left the page mostly empty): the same content at 1:5,000, the frame cut along
+    its length into two strips, upstream on top, as the stream edge plan (draw_edge_build) and the masterplan pages;
+    the scale bar and north arrow under the downstream strip; drawn for its width on the booklet page (bk_w).
+    Returns the y below."""
     L = "LU_BOARD::HeritageLoop"
     F = S.F
     B.text("CITY HERITAGE LOOP", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
-    V, k, ss, r = b_view(F, x, y - 1.2 * U, U)
-    h7, h9 = bk_hk(7.5, k), bk_hk(9.0, k)
-    CB = ClipB(B, r)
-    B.fill([rect(*r)], WHITE, L, 1)
-    b_base(S, CB, V, k, L)
+    k = 120.0 * U / BK_AW                                 # board units per booklet mm (as b_view)
+    ss = 1000.0 * k / EB_DEN                              # v49.1: 1:5,000 on the booklet page, as draw_edge_build
+    mw, mh, gap = F.w / EB_N * ss, F.h * ss, BK_GAP_MM * k
+    top = y - 1.2 * U
+    h7, h70 = bk_hk(7.5, k), bk_hk(7.0, k)
     acc = MARK_C
     order = [k_ for k_, nm, p, src in HER_LOOP]
     pts = dict((k_, p) for k_, nm, p, src in HER_LOOP)
@@ -402,12 +413,6 @@ def draw_heritage_loop(S, B, x, y, w, U):
         s0, s1 = pl_chainage(main, *pts["K3"]), pl_chainage(main, *pts["K4"])
         nn = max(2, int(abs(s1 - s0) // 10.0))
         walk = [pl_point_at(main, s0 + (s1 - s0) * i / float(nn))[0] for i in range(nn + 1)]
-    for a, b in zip(order[:-1], order[1:]):               # soft: dashes between the stops, a band along the stream
-        if (a, b) == ("K3", "K4"):
-            soft_line(CB, V.P(walk or [pts["K3"], pts["K4"]]), acc, k, L, 30, w_mm=2.6, t=0.2)
-        else:
-            for d in dashes(V.P([pts[a], pts[b]]), 2.0 * k, 1.3 * k):
-                soft_line(CB, d, acc, k, L, 30, w_mm=1.6, t=0.3)
     ins = [F.inside(*pts[k_]) for k_ in order]
     groups, j = [], 0                                     # (the stop inside, the stops beyond it in loop order)
     while j < len(order):
@@ -421,37 +426,24 @@ def draw_heritage_loop(S, B, x, y, w, U):
             groups.append((order[j0 - 1], order[j0:j]))
         elif j < len(order):
             groups.append((order[j], list(reversed(order[j0:j]))))
-    labels, taken = [], []
-    for k_ in order:
-        if not F.inside(*pts[k_]):
-            continue
-        px, py = V.p(*pts[k_])
-        rd = 1.7 * k
-        B.fill([circle_pts(px, py, rd, 20)], acc, L, 60)
-        B.text(str(num[k_]), px, py, h7, WHITE, L, order=61, font=FONT_TITLE, bold=True, align="MC")
-        taken.append((px - rd, py - rd, px + rd, py + rd))
-        labels.append(([name[k_]], px, py, h7, INK))
     for nm, p in HER_DOTS:
         if not F.inside(*p):
             LOG.append(u"Heritage loop: {} lies outside the site frame, so it is not on the map.".format(nm))
-            continue
-        px, py = V.p(*p)
-        B.fill([circle_pts(px, py, 0.6 * k, 12)], INK, L, 58)
-        taken.append((px - 0.6 * k, py - 0.6 * k, px + 0.6 * k, py + 0.6 * k))
-        labels.append(([nm], px, py, h7, INK2))
-    for a, run in groups:                                 # where the loop leaves the frame: an arrow, the stops beyond
-        A_, Bp = V.p(*pts[a]), V.p(*pts[run[0]])
-        cut = clip_rect_line([A_, Bp], r)
+    # v49.1: where the loop leaves the frame, found on the frame in one piece (Vw, rw: never drawn), then drawn on the
+    # strip that holds that point (strip i's view = the one-piece view moved by i strips: same axes, same scale)
+    Vw = View(F, ss, x, top)
+    rw = (x, top - mh, x + F.w * ss, top)
+    exits = []
+    for a, run in groups:
+        A_, Bp = Vw.p(*pts[a]), Vw.p(*pts[run[0]])
+        cut = clip_rect_line([A_, Bp], rw)
         if not cut:
             continue
         ux, uy = Bp[0] - A_[0], Bp[1] - A_[1]
         ul = math.hypot(ux, uy) or 1.0
         ux, uy = ux / ul, uy / ul
-        tip = (cut[0][-1][0] - ux * 0.6 * k, cut[0][-1][1] - uy * 0.6 * k)
-        ah = 2.2 * k
-        B.fill([[tip, (tip[0] - ux * ah - uy * 0.45 * ah, tip[1] - uy * ah + ux * 0.45 * ah),
-                 (tip[0] - ux * ah + uy * 0.45 * ah, tip[1] - uy * ah - ux * 0.45 * ah)]], tint(acc, 0.1), L, 31)
-        taken.append((tip[0] - ah, tip[1] - ah, tip[0] + ah, tip[1] + ah))
+        tx, ty = cut[0][-1][0] - ux * 0.6 * k, cut[0][-1][1] - uy * 0.6 * k
+        i = min(EB_N - 1, max(0, int((tx - x) // mw)))
         lines, prev = [], a
         for s_ in run:
             lines.append(u"{} {} · {:,.1f} km".format(num[s_], name[s_], math.hypot(
@@ -461,12 +453,57 @@ def draw_heritage_loop(S, B, x, y, w, U):
                 if frm == s_:
                     lines.append(u"then {} · {:,.1f} km".format(nm, math.hypot(p[0] - pts[s_][0],
                                                                                 p[1] - pts[s_][1]) / 1000.0))
-        labels.append((lines, tip[0], tip[1], h7, acc))
-    key = place_labels(B, labels, taken, L, bounds=r)
-    b_frame(B, r, k, L)
-    low = b_foot(B, F, x, r[1], ss, k, L)
+        exits.append((i, (tx - i * mw, ty - i * (mh + gap)), ux, uy, lines))
+    labels, taken = [], []
+    for i in range(EB_N):                                 # v49.1: the strips, upstream on top (as draw_edge_build)
+        Fi = sub_frame(F, F.u0 + i * F.w / EB_N, F.u0 + (i + 1) * F.w / EB_N)
+        yt = top - i * (mh + gap)
+        V = View(Fi, ss, x, yt)
+        r = (x, yt - mh, x + mw, yt)
+        CB = ClipB(B, r)
+        B.fill([rect(*r)], WHITE, L, 1)
+        b_base(S, CB, V, k, L)
+        for a, b in zip(order[:-1], order[1:]):           # soft: dashes between the stops, a band along the stream
+            if (a, b) == ("K3", "K4"):
+                soft_line(CB, V.P(walk or [pts["K3"], pts["K4"]]), acc, k, L, 30, w_mm=2.6, t=0.2)
+            else:
+                for d in dashes(V.P([pts[a], pts[b]]), 2.0 * k, 1.3 * k):
+                    soft_line(CB, d, acc, k, L, 30, w_mm=1.6, t=0.3)
+        for k_ in order:
+            if not (F.inside(*pts[k_]) and Fi.inside(*pts[k_])):
+                continue
+            px, py = V.p(*pts[k_])
+            rd = 1.7 * k
+            B.fill([circle_pts(px, py, rd, 20)], acc, L, 60)
+            B.text(str(num[k_]), px, py, h7, WHITE, L, order=61, font=FONT_TITLE, bold=True, align="MC")
+            taken.append((px - rd, py - rd, px + rd, py + rd))
+            labels.append(([name[k_]], px, py, h7, INK))
+        for nm, p in HER_DOTS:
+            if not (F.inside(*p) and Fi.inside(*p)):
+                continue
+            px, py = V.p(*p)
+            B.fill([circle_pts(px, py, 0.6 * k, 12)], INK, L, 58)
+            taken.append((px - 0.6 * k, py - 0.6 * k, px + 0.6 * k, py + 0.6 * k))
+            labels.append(([nm], px, py, h7, INK2))
+        for i_, tip, ux, uy, lines in exits:              # where the loop leaves the frame: an arrow, the stops beyond
+            if i_ != i:
+                continue
+            ah = 2.2 * k
+            B.fill([[tip, (tip[0] - ux * ah - uy * 0.45 * ah, tip[1] - uy * ah + ux * 0.45 * ah),
+                     (tip[0] - ux * ah + uy * 0.45 * ah, tip[1] - uy * ah - ux * 0.45 * ah)]], tint(acc, 0.1), L, 31)
+            taken.append((tip[0] - ah, tip[1] - ah, tip[0] + ah, tip[1] + ah))
+            labels.append((lines, tip[0], tip[1], h7, acc))
+        b_frame(B, r, k, L)
+        if i < EB_N - 1:                                  # as draw_edge_build; no label goes in the gap
+            B.text(u"continues below", r[2], r[1] - 1.0 * k - h70, h70, INK2, L, font=FONT_TITLE, align="R")
+            taken.append((r[0], r[1] - gap, r[2], r[1]))
+        if i > 0:
+            B.text(u"continued from above", r[0], r[3] + 1.0 * k, h70, INK2, L, font=FONT_TITLE)
+    rb = (x, top - EB_N * mh - (EB_N - 1) * gap, x + mw, top)     # v49.1: both strips (one numbering of the key)
+    key = place_labels(B, labels, taken, L, bounds=rb)
+    low = b_foot(B, F, x, rb[1], ss, k, L, 200.0)         # v49.1: 0-200 m, as the stream edge plan's bar
     if key:
-        low = draw_label_key(B, key, x, low - 0.8 * k, r[2] - x, h7, L)
+        low = draw_label_key(B, key, x, low - 0.8 * k, mw, h7, L)
     B.text(u"order of the loop, not a route · stream walk K3-K4 = its spine · beyond the frame: at the arrow, "
            u"straight distances " + bcite(
                "Heritage loop: places from the survey labels and h01 §5 (P05, P07, P23, P24); gondola valley station, "
@@ -475,9 +512,10 @@ def draw_heritage_loop(S, B, x, y, w, U):
            font=FONT_TITLE)
     low -= 2.2 * k + h7
     leg = [("line", acc, u"Heritage loop, in its order"), ("dot", acc, u"Stop, numbered in loop order"),
-           ("dot", INK, u"Heritage place")]
-    crop_panel("heritage_loop", x - 0.5 * k, low - 0.5 * k, r[2] + 0.5 * k, r[3] + 0.5 * k, u"City heritage loop",
+           ("dot", INK, u"Heritage place")] + B_BASE_LEG  # v49.1: + b_base's tones
+    crop_panel("heritage_loop", x - 0.5 * k, low - 0.5 * k, x + mw + 0.5 * k, top + 0.5 * k, u"City heritage loop",
                crop_scale(ss), crop_legend(leg))
+    CROP_PANELS[-1]["bk_w"] = mw / k + 1.0                # v49.1: its width on the booklet page, mm (prints 1:5,000)
     return low - 1.0 * U
 
 

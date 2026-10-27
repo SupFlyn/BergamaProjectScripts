@@ -1405,8 +1405,8 @@ def draw_what_is_there(S, B, x, y, w, U):
             leg.append(("box", FABRIC_PLAN[fab], u"{} · {}".format(FABRIC_SHORT[fab], "{:.0f}%".format(v_)
                                                                     if round(v_) >= 1 else "< 1%")))
     leg += [("dense", dc, "Densest grain · floor-area ratio {:.2f}+ {}".format(
-                S.int_breaks[2], bcite("Densest grain: floor-area ratio on 10 m cells, areas of 2,000 m2+."))
-             if getattr(S, "int_breaks", None) else "Densest grain")]
+                S.int_breaks[2], bcite(u"Densest grain: floor-area ratio on 10 m cells, areas of 2,000 m²+."))
+             if getattr(S, "int_breaks", None) else "Densest grain")]      # v49.1 (Prompt 8): m² (was m2)
     leg += [("hdr", None, "GROUND AND GREEN")]
     for k_, lab in (("wood", "Woods"), ("park", "Parks"), ("grass", "Grass & lawns")):
         leg.append(("box", GREEN_SUB[k_], lab))

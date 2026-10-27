@@ -99,6 +99,8 @@ def diagram_ctx(S):
         return S.dg
     DG = diagrams_engine()
     DG["CREDIT"] = CREDIT
+    # v49.1 (Aras 27 Oct, Prompt 8): the sheet's "Drawn by" line names this version (the engine's own said v40)
+    DG["SCRIPT"] = SCRIPT_VERSION.split(" (")[0] + " (axonometric engine from bergama_diagrams v1.8)"
     del DG["LOG"][:]
     dirs = []
     try:
@@ -344,7 +346,8 @@ def draw_how_people_use_it(S, B, x, y, w, U):
         leg.append(("dash", walk_c, "Walk to the nearest (letter at the place)"))
     ly = draw_legend_items(B, leg, x, yy - 0.4 * U, mw, U, L, h=0.4)
     crop_panel("movement", crop_r[0], crop_r[1], crop_r[2], crop_r[3], u"How people use it · streets, shops, services",
-               crop_scale(ss), crop_legend(leg))          # v40: the booklet crop of the plan (v46: 1:10,000)
+               crop_scale(ss), crop_legend(leg + B_BASE_LEG))    # v40: the booklet crop of the plan (v46: 1:10,000);
+    #                                                       v49.1 (Prompt 8): + the base's tones, as on p.10
     # v38 (visual first): what the numbers say as a tile and two mini-charts (were caption sentences); computed above,
     # nothing measured on the street
     cy0 = ly - 0.4 * U
@@ -450,8 +453,8 @@ def build_sheet(S, B, X, Y, U, rects):
     if shade_strip_data(S) is None:                       # v47: without shade results no shade drawing and no shade
         items = [it_ for it_ in items if not it_[0].startswith("06a ")]      # crop: p.22 keeps drw_tree_cover
         if shade_july(S) is None:                         # (a failed computation logs its own warning)
-            LOG.append("WARNING: no shade results (bergama_environment.json missing?): booklet p.22 shows the tree "
-                       "crown cover instead")
+            LOG.append("WARNING: no shade results (bergama_environment.json missing?): booklet page \"Which plant goes "
+                       "where\" shows the tree crown cover instead")    # v49.1 (Prompt 8): was "p.22"
     # v44: the masterplan's proposal map (only when masterplan_results.json holds "movement") and the walking-effort
     # proof (only with terrain heights on the network); each logs why when it is left out
     at = [nm_ for nm_, w_, f_ in items].index("07d City heritage loop")
@@ -1032,6 +1035,29 @@ def pdf_str(s_):
     return b"(" + s2.replace(b"\r", b"").replace(b"\n", b" ") + b")"
 
 
+# v49.1 (Aras 27 Oct, Prompt 8; as bergama_water_board v3.1 for "hm³ renders as hm"): ² and ³ are shown as the digit at
+# 0.6 x the size, raised 0.28 x the size (in Helvetica as wide as the ²/³ glyph, so nothing moves): the unembedded
+# standard font's ²/³ was missing in some viewers
+PDF_SUP = {u"²": u"2", u"³": u"3"}
+
+
+def pdf_shows(s_, fi):
+    """v49.1: the text-showing operators of s_ in font /F<fi> at size 1 (the text matrix carries the size): plain runs
+    as one string each (Tj), ² and ³ as a raised small digit (PDF_SUP)."""
+    out, cur = [], u""
+    for ch in s_:
+        if ch in PDF_SUP:
+            if cur:
+                out.append(pdf_str(cur).decode("latin-1") + " Tj")
+                cur = u""
+            out.append("/F%d 0.6 Tf 0.28 Ts (%s) Tj /F%d 1 Tf 0 Ts" % (fi, PDF_SUP[ch], fi))
+        else:
+            cur += ch
+    if cur:
+        out.append(pdf_str(cur).decode("latin-1") + " Tj")
+    return " ".join(out)
+
+
 def _pf(v):
     t_ = "%.3f" % v
     t_ = t_.rstrip("0").rstrip(".")
@@ -1191,9 +1217,9 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             px = (x_ - x0) * k + ca * dx - sa * dy
             py = (y_ - y0) * k + sa * dx + ca * dy
             col(c_, False)
-            A("BT /F%d 1 Tf %s %s %s %s %s %s Tm %s Tj ET" % (fi, _pf(ca * size), _pf(sa * size), _pf(-sa * size),
-                                                             _pf(ca * size), _pf(px), _pf(py),
-                                                             pdf_str(txt).decode("latin-1")))
+            A("BT /F%d 1 Tf %s %s %s %s %s %s Tm %s ET" % (fi, _pf(ca * size), _pf(sa * size), _pf(-sa * size),
+                                                          _pf(ca * size), _pf(px), _pf(py),
+                                                          pdf_shows(txt, fi)))     # v49.1: ² ³ raised (pdf_shows)
     A("Q")
     return "\n".join(o).encode("latin-1") if own else None, imgs
 

@@ -62,7 +62,8 @@ LC_KEYS = ("farmland", "trees", "shrub", "grass", "orchard")        # v26: ESA W
 PLACE_TS = 4.3               # place names on the plans, mm (12.2 pt)
 LAB_TS = 2.6                 # labels on the 1:1,000 windows, mm
 BADGE_R, BADGE_TS = 1.95, 2.5
-DT_PLAN = (194.0, 160.0)     # p16 windows, mm at 1:1,000 (194 x 171.5 crop + 53 mm max area row fit 243 mm)
+DT_PLAN = (194.0, 160.0)     # p16 windows, mm at 1:1,000 (194 x 171.5 crop + 53 mm max area row fit 243 mm; v26.1:
+#                              booklet p.26 holds the two crops alone, one row: 194 + 4 + 194 = 392 mm, bk_w)
 ECO_COL, HUB_COL = "6F8A4E", "D9A35E"        # palette "tree" family darkened / "centre" family (graphic)
 WATER_COL, WET_COL = COL["river"], "B7CFC8"
 SQ_FILL, SQ_EDGE = "F4E6CC", "9C7440"
@@ -606,7 +607,8 @@ class Corridor(object):
                 txt, why = u"GATEWAY OUT · K6", [u"OSM primary road kept (h02 E12)", stop]
             else:
                 txt = u"WALKING HUB · {} · DRY SQUARE{}".format(hid, u" + BED SUB-HUB" if h.get("sub_xy") else u"")
-                why = [u"H1 Roman bridge", u"open ground (open ground)", stop, u"D8 plane trees, irrigated from storage"]
+                # v26.1 (Prompt 8): the reason is the analysis' own name ("open ground (open ground)" read twice)
+                why = [u"H1 Roman bridge", u"open ground", stop, u"D8 plane trees, irrigated from storage"]
                 if h.get("sub_xy"):
                     why.append(u"sub-hub closes in floods (Q100/Q500 cuts)")
                 if hid == u"K3":
@@ -616,7 +618,8 @@ class Corridor(object):
             self.note(("hub", hid), txt, why, sq)
         self.note(("h4",), u"STEP TO THE WATER FACING TABAKLAR HAMAMI", [u"H4 bath ruin 1.5 m from the stream"],
                   [PLACES[1][1]])
-        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman complex, ~120 m bank wall (P12)"], [ROMAN_WALL])
+        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman complex, ~120 m bank wall (h01 P12)"],
+                  [ROMAN_WALL])                          # v26.1: h01's place register P12 (it read like a page number)
         if self.terrace:
             z = u", highest clear ground +{:.1f} m".format(self.terrace["z"]) if self.terrace["z"] is not None else u""
             self.note(("view",), u"VIEWING TERRACE · TRAJANEUM {:,.0f} m".format(self.terrace["d"]),
@@ -920,6 +923,13 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=False):
         used.add("bed")
     for P in C.streams:
         pg.line([T(p) for p in P], COL["river_mid"], 0.15)
+    # v26.1 (Prompt 8): the hidden-stream line (proposal, soft) with the water, never over the buildings or bridges
+    # above it; in the legend only where it is on this plan (a 1:1,000 window)
+    for P in C.covered:
+        Q = [T(p) for p in P]
+        pg.line(Q, COL["river_mid"], 1.6 if big else 0.8, [1.6, 0.9], cap=0, alpha=0.7)
+        if on(Q):
+            used.add("hidden")
     # ---- buildings (survey); built on since the survey hatched (satellite check, OPEN_CHECK)
     for role, fill in (("building", COL["bld"]), ("housing", COL["bld"]), ("shed", COL["bld"]),
                        ("heritage", COL["her"])):
@@ -982,9 +992,6 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=False):
         else:
             soft_fill(pg, [Q], MP["agriculture"][2], 0.16, hal)
             used.add("dg")
-    for P in C.covered:
-        pg.line([T(p) for p in P], COL["river_mid"], 1.6 if big else 0.8, [1.6, 0.9], cap=0, alpha=0.7)
-        used.add("hidden")
     # ---- proposal, soft: terraces on the contours (upstream): edge + ticks toward the stream
     for P in C.terr:
         Q = [T(p) for p in P]
@@ -1148,7 +1155,8 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=False):
             at = min(cand, key=lambda p: (T(p)[0] - dw / 2) ** 2 + (T(p)[1] - dh / 2) ** 2)
         if not inP(at):
             continue
-        place_label(pg, lines, T(at), taken, dw, dh, ink, d0=1.5, anywhere=True)
+        if not place_label(pg, lines, T(at), taken, dw, dh, ink, d0=1.5, anywhere=True):
+            continue                                      # v26.1: species in the legend only when their label is drawn
         for code in [c_ for k_, v in PLANT_AT.items() if k_ in (key, "wet" if key in ("forest", "widen") else "")
                      for c_ in v[1]]:
             leg(("sp", code))

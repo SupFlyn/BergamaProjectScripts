@@ -7,7 +7,8 @@ BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becom
                u"https://www.rhs.org.uk/Advice/profile?pid=127"),
               ("ecocrop_olive", u"FAO Ecocrop, Olea europaea (will not tolerate waterlogged soils)",
                u"https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=1553")]
-BK_CROPS = [("ps_all", "all", u"Proposal sections, upstream to downstream · relative levels"),
+BK_CROPS = [("ps_all", "all", u"Proposal sections, upstream to downstream · relative levels · 1-11 as in Collect, clean, hold"),
+            # v8.1 (Prompt 8): the roundels' key; the sheet header that says "1-11 as on the water board" is outside ps_all
             ("ps_upstream", "up", u"1 · Upstream entry: collect, clean and hold"),
             ("ps_k4", "k4", u"2 · K4 bridge: walking hub"),
             ("ps_k5", "k5", u"3 · K5 bridge: Demeter's Garden and walking hub"),

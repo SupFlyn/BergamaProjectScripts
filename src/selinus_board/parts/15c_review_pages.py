@@ -107,7 +107,11 @@ def sections_plan(S, sw, U):
                 if t_ is None:
                     LOG.append("Sections: the building types do not fit beside or under the cuts on two pages at "
                                "1:{:,}; drawn only as their own drawing (booklet crop drw_building_types).".format(den))
+                if den != SEC_BOOK_DENS[0]:              # v49.1 (Aras 27 Oct, Prompt 8): was silent
+                    LOG.append("WARNING: Sections: the cuts do not fit two booklet pages at 1:{:,}; drawn at 1:{:,} "
+                               "(Aras: all cuts at 1:{:,}).".format(SEC_BOOK_DENS[0], den, SEC_BOOK_DENS[0]))
                 return best
+    LOG.append("WARNING: Sections: the cuts do not fit two booklet pages even at 1:{:,}.".format(SEC_BOOK_DENS[-1]))
     return best
 
 

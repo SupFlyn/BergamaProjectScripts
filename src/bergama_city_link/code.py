@@ -1,4 +1,4 @@
-# bergama_city_link_v2.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
+# bergama_city_link_v2_1.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
 # ONE all-vector A3 PDF there (two pages) plus city_link_results.json:
@@ -16,7 +16,12 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v2"
+VERSION = "v2.1"
+# NEW IN v2.1 (bugfix, Aras 27 Oct, booklet Prompt 8 "final check of every page"): page 1 (booklet "Why shops meet
+# the stream only where it is hidden"): the "PEDESTRIANS ON THE STREETS · no data" row of who comes is gone (rule: no
+# "no data" rows; no count exists, so no estimate either) with its source, the five rows that stay share the six rows'
+# height, and walking potential's [n] moves up one (the source key follows); chart A prints "0" on its empty 100 m bins
+# too. Page 2: the corner note names the heritage loop drawing instead of a booklet page number (the pages moved).
 # NEW IN v2 (Aras 27 Oct 17:34, booklet Prompt 3 "movement and the city"; a feature change, so the next whole number):
 # page 1 (booklet p9): the plan is the whole site frame at 1:10,000 on the frame's own axes (one scale, frame and north
 # with the site board's movement maps), a band across the top, with light context underneath in layer order (water,
@@ -166,7 +171,7 @@ SRC_SHOPS = ("Shops: OSM shop=* and cafe/restaurant/fast food/bar/pub/ice cream 
              "low, not high)")
 SRC_CH = "Chainage from the frame's NW end; bridges h02 card (s62); covered reach K3 to the end of the survey gap (h02 E01)"
 SRC_HIST = "History: h01, h02 (sources s13 s28 s32 s36 s40 s42 s43 s59 s110)"
-SRC_WHO = "Who comes: library/research/city_link_2026-10-24/city_link_research_v1.md §0; no data = no source anywhere"
+SRC_WHO = "Who comes: library/research/city_link_2026-10-24/city_link_research_v1.md §0"   # v2.1: no "no data" row left
 SRC_STRIP = ("Chainage along the stream, to scale (bridges s62; other places from h01 §5 survey coordinates, calculated, "
              "±30 m)")
 SRC_TABAK = ("h02 calls Tabaklar Hamamı 'opposite Ulu Cami on the right bank' (s32), but both survey points lie on the "
@@ -233,7 +238,7 @@ WHO = [  # v1.6 bars: (pictogram, keyword heading, big figure, low, high, keywor
     ("student", "STUDENTS · EGE UNIV. MYO", "1,425", 1425, 1425, ("2024/25", "campus 3.5-3.7 km away"), "Ege MYO report 2025; §0 Q1"),
     ("student", "STUDENTS · DEÜ BERGAMA MYO", "400-500", 400, 500, ("2025", "campus 1.5-1.7 km away"), "press 01.08.2025; §0 Q1"),
     ("bed", "KYK STUDENT DORMITORY", "750 beds", 750, 750, ("on the Ege campus", "Efeler Cad. 7"), "two sources; §0 Q1 [V]"),
-    ("walker", "PEDESTRIANS ON THE STREETS", None, None, None, ("no count exists", "needs an on-site count"), "none found; §0 Q8"),
+    # v2.1 (Prompt 8, rule: no "no data" rows): "PEDESTRIANS ON THE STREETS" gone: no count exists (§0 Q8), no estimate
 ]
 FLOOD = [  # v1.6: (level, keyword lines on how often wet, [(rule pictogram, rule keywords)], source of the wet lines)
     ("Bed", ("dry or 3 cm Jul-Sep", "0.1 m on about 100 days"),
@@ -684,7 +689,8 @@ HOME_TYPES = [("old town", "old town house"), ("planned low-rise", "planned low-
               ("shop below", "shop below, home above"), ("other", "other building")]   # the sections' building types
 PLAN_BOX = {}                            # v2: the plan's rectangle as drawn (for its booklet crop)
 P1_TILES = (14.0, 54.0, 392.0, 35.0)     # page 1 seven reasons: x, y (bottom), w, tile height
-P1_WHO = (14.0, 43.0, 5.4)               # page 1 who comes: x, first row y, row step (six rows)
+P1_WHO = (14.0, 43.0, 6.75)              # page 1 who comes: x, first row y, row step (v2.1: five rows over the six
+                                         # rows' height, was 5.4; the last row stays at y 16)
 P1_WALK = (300.0, 40.0, 7.5, 92.0)       # page 1 walking potential: x, first row y, row step, longest bar
 # page 2: the strip on top, the five bridge places as cards under it (leaders from the strip), rules at the bottom
 P2_STRIP = (22.0, 384.0, 206.0, 216.0)   # page 2 strip: x, w, stream band y0, y1
@@ -716,8 +722,7 @@ def page_why(L):
     for c, n in SHOPS_PER_100M:
         bh = n / vmax * (h - 8)
         pg.rect(X(c) + 1.2, y0, X(c + 100) - X(c) - 2.4, max(bh, 0.3), fill=SPINE_C)
-        if n:
-            pg.text(str(n), (X(c) + X(c + 100)) / 2, y0 + bh + 1.2, 7, C["ink"], True, "C")
+        pg.text(str(n), (X(c) + X(c + 100)) / 2, y0 + bh + 1.2, 7, C["ink"], True, "C")   # v2.1: "0" too (was left off)
     pg.line([(x0, y0), (x0 + w, y0)], C["ink"], 0.35)
     for k in ("K4", "K3", "K5"):
         pg.line([(X(CH[k]), y0 - 3), (X(CH[k]), y0)], C["ink"], 0.35)
@@ -1220,7 +1225,8 @@ def page_spine(L):
     frame = (14.0, 164.0, 406.0, 258.0)
     tx = step(pg, 1, 14, 262)
     pg.text("THE SPINE ALONG THE SELINOS · TO SCALE ALONG THE STREAM " + cite(SRC_STRIP), tx, 262, 9, C["ink"], True)
-    pg.text("city heritage loop: page 23", 406, 262, 7, C["ink2"], False, "R")     # D6: the booklet's theme D (v2)
+    pg.text("city heritage loop: see 'The heritage loop'", 406, 262, 7, C["ink2"], False, "R")   # D6: the booklet's
+    # theme D (v2.1, Prompt 8: the drawing named, not "page 23": the booklet's page numbers moved)
     obst = []
     # the stream band, the covered reach, the bridges
     pg.rect(x0, ry0, w, ry1 - ry0, fill=C["water"])
@@ -1418,7 +1424,7 @@ def results(L=None):
                  main_transit_hub=hb["transit"], plane_trees=hb["kind"] == "walk", stops=hb["stops"],
                  bus_stops=hb["bus_stops"], trips=hb["trips"], later=hb.get("later"), ch=hb["ch"]) for hb in hub_list()]
     return dict(spine_banks=(L or {}).get("sides"), bank_votes=(L or {}).get("votes"), bank_vote_source=(L or {}).get("vote_src"),
-                script="bergama_city_link_v2.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+                script="bergama_city_link_v2_1.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 spine=SPINE, functions=[dict([(k, f.get(k)) for k in ("n", "name", "where", "xy", "stage", "who", "grows", "ch", "bank")] +
                                              [("hub", "sub-hubs" if f["n"] == 8 else hub_of.get(f["n"]))])
                                         for f in FUNCS + [EVENTS]],

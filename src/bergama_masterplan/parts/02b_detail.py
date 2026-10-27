@@ -34,10 +34,15 @@ ROUTE_SHORT = {u"RETENTION TERRACES": u"TERRACES"}
 # Planting (booklet page C7 / water board v1.9 bands A-F and species): band letters and species codes per zone, by
 # the zone's wetness (bed and reed basins wet most of the year: B; flood terrace: C; terraces: C and E; dry tops: E
 # and F). A design reading of the bands; only species of the verified list.
-SPECIES_CODE = [("Ty", u"Typha angustifolia"), ("Ph", u"Phragmites australis"), ("Me", u"Mentha aquatica"),
-                ("Sa", u"Salix alba"), ("Ta", u"Tamarix smyrnensis"), ("Vi", u"Vitex agnus-castus"),
-                ("Po", u"Populus alba"), ("Fr", u"Fraxinus angustifolia"), ("Pl", u"Platanus orientalis"),
-                ("La", u"Lavandula stoechas"), ("Qu", u"Quercus robur"), ("Ul", u"Ulmus laevis")]   # v24: + Qu, Ul
+# v26.1 (Aras 27 Oct, Prompt 8: "English name first, Turkish name in brackets, no Latin"): the printed names of
+# common/plant_photos.py PLANTS, as the water board prints them; Ty (Typha angustifolia), Qu (Quercus robur) and Ul
+# (Ulmus laevis) are not in that list: their English names as concept v1 §9.2 gives them, no Turkish name in the
+# project's sources (research 04 names only the broadleaf cattail "hasır otu", another species)
+SPECIES_CODE = [("Ty", u"Narrow-leaf cattail"), ("Ph", u"Common reed (Kamış)"), ("Me", u"Water mint (Su nanesi)"),
+                ("Sa", u"White willow (Ak söğüt)"), ("Ta", u"Tamarisk (Ilgın)"), ("Vi", u"Chaste tree (Hayıt)"),
+                ("Po", u"White poplar (Ak kavak)"), ("Fr", u"Narrow-leaved ash (Dişbudak)"),
+                ("Pl", u"Oriental plane (Doğu çınarı)"), ("La", u"French lavender (Karabaş otu)"), ("Qu", u"Oak"),
+                ("Ul", u"Elm")]   # v24: + Qu, Ul
 BAND_NAME = {"A": u"A STRIP AND BED · PERMANENT", "B": u"B MARSH · 150-365 D A YEAR", "C": u"C WILLOW · 50-150 D",
              "D": u"D WET MEADOW · 10-150 D", "E": u"E DRY MEADOW · 0.5-50 D", "F": u"F TERRACES · EXTREME ONLY"}
 ZONE_PLANTING = {("WT", None): ("B", ("Ty", "Ph", "Me")), ("WA", "W"): ("B", ("Ty", "Ph", "Me")),
@@ -67,6 +72,8 @@ def store_m3(z):
         return z["m2"] * max(0.0, q100[0] - (bed + TERRACE_UP)), u" in Q100"
     return None
 DT_TS = 2.6                          # detail label size, mm (7.4 pt at 1:1; the booklet sets them at 7.5 pt)
+DT_MIN = 2.47                        # v26.1 (Prompt 8): the smallest words on a window, mm (7 pt: the booklet's floor;
+#                                      p.26 prints the windows at 1:1, so 0.85 x DT_TS printed at 6.3 pt)
 
 
 def places(spec, CL, survey):
@@ -200,13 +207,12 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             w0, w1 = RAMP_W[0] * k / 2.0, RAMP_W[1] * k / 2.0
             ring_ = [(ax + nx * w0, ay + ny * w0), (bx + nx * w1, by + ny * w1), (bx - nx * w1, by - ny * w1),
                      (ax - nx * w0, ay - ny * w0)]
-            pg.poly([ring_], fill=ink2, alpha=0.2)
-            pg.poly([ring_], stroke=ink2, lw=0.25)
-            for j in (1, 2, 3):                          # chevrons down the slope
+            pg.poly([ring_], fill=ink2, alpha=0.2)       # v26.1 (Prompt 8, proposals soft): no outline
+            for j in (1, 2, 3):                          # chevrons down the slope (v26.1: translucent)
                 cx, cy = ax + ux * d * j / 4.0, ay + uy * d * j / 4.0
                 ww = (w0 + (w1 - w0) * j / 4.0) * 0.8
                 pg.line([(cx - ux * 1.0 + nx * ww, cy - uy * 1.0 + ny * ww), (cx, cy),
-                         (cx - ux * 1.0 - nx * ww, cy - uy * 1.0 - ny * ww)], ink2, 0.25)
+                         (cx - ux * 1.0 - nx * ww, cy - uy * 1.0 - ny * ww)], ink2, 0.25, alpha=0.6)
             taken.append(bbox(ring_))
             leg(("dt", "ramp"))
         # ---- the flood levels at the water board's surveyed channel cuts: the width Q100 / Q500 cover there, the bed
@@ -261,7 +267,7 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             (mx, my), _ = at_len(P, s, s[-1] / 2.0)
             pg.circle(mx, my, 2.2, fill=COL["white"])
             pg.circle(mx, my, 1.9, fill=COL["river_dark"])
-            pg.text(str(n_), mx, my - 0.85, 2.4, COL["white"], bold=True, align="C")
+            pg.text(str(n_), mx, my - 0.85, DT_MIN, COL["white"], bold=True, align="C")   # v26.1: 7 pt (DT_MIN)
             taken.append((mx - 2.2, my - 2.2, mx + 2.2, my + 2.2))
             leg(("dt", "route"))
             route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my),   # v22: + spots along the route
@@ -296,7 +302,7 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
                 pg.line([(x, y - 0.7), (x, y + 0.7)], colr, 0.25)
                 taken.append((x - 0.8, y - 0.8, x + 0.8, y + 0.8))
                 leg(("dt", kind))
-                spot_lab.append(([(u"+{:.2f}".format(q[2]), DT_TS * 0.85, False)], (x, y), colr))
+                spot_lab.append(([(u"+{:.2f}".format(q[2]), DT_MIN, False)], (x, y), colr))   # v26.1: 7 pt
         # ---- labels: cuts, route, bridge, planting codes, spot levels
         for lines, anc in cut_lab:
             if not place_label(pg, lines, anc, taken, dw, dh, ink, avoid=av):
@@ -320,7 +326,7 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             b_ = None
             if len(TP) >= 3:
                 TPs = thin(TP, 300)
-                for sz in (DT_TS, DT_TS * 0.85):
+                for sz in (DT_TS, DT_MIN):               # v26.1: the smaller try at 7 pt, not 6.3 pt
                     b_ = fit_inside(TPs, inside_spots(TPs), [(txt, sz, False)], taken, pad=0.4, avoid=av)
                     if b_:
                         pg.text(txt, b_[0] + 0.4, b_[1] + 0.4 + 0.06 * sz, sz, zone_tones(z)[2])
@@ -362,8 +368,7 @@ def detail_legend():
 
     def ramp_sw(pg, x, y, w, h):
         R_ = [(x, y + h * 0.1), (x + w, y + h * 0.35), (x + w, y + h * 0.65), (x, y + h * 0.9)]
-        pg.poly([R_], fill=COL["ink2"], alpha=0.2)
-        pg.poly([R_], stroke=COL["ink2"], lw=0.25)
+        pg.poly([R_], fill=COL["ink2"], alpha=0.2)       # v26.1: no outline, as on the windows
 
     def route_sw(pg, x, y, w, h):
         pg.circle(x + w / 2, y + h / 2, 3.0, fill=COL["river_dark"])
@@ -401,12 +406,13 @@ def crop_legend(keys, alpha):
     for key, nm, f in LEGEND_V24:
         if ("v24", key) in keys and key in LEG_BOOK:
             add(LEG_BOOK[key][0], LEG_BOOK[key][1], nm.lower() if nm.isupper() else nm)
-    for key, kind, colour, label in ((("dt", "q"), "line", COL["river_mid"], u"Q500 flood width"),
-                                     (("dt", "route"), "dot", COL["river_dark"], u"water route step"),
-                                     (("dt", "spot_bed"), "dot", COL["river_dark"], u"spot level, bed"),
-                                     (("dt", "spot_bank"), "dot", COL["ink_dark"], u"spot level, bank top"),
-                                     (("dt", "steps"), "line", MP["storage"][2], u"terrace steps"),
-                                     (("dt", "ramp"), "fill", mix(COL["white"], COL["ink2"], 0.2), u"ramp")):
+    # v26.1 (Prompt 8): both flood bands are drawn, so both named (as the sheet's legend); sentence case as the rest
+    for key, kind, colour, label in ((("dt", "q"), "line", COL["river_mid"], u"Q500 / Q100 flood width"),
+                                     (("dt", "route"), "dot", COL["river_dark"], u"Water route step"),
+                                     (("dt", "spot_bed"), "dot", COL["river_dark"], u"Spot level, bed"),
+                                     (("dt", "spot_bank"), "dot", COL["ink_dark"], u"Spot level, bank top"),
+                                     (("dt", "steps"), "line", MP["storage"][2], u"Terrace steps"),
+                                     (("dt", "ramp"), "fill", mix(COL["white"], COL["ink2"], 0.2), u"Ramp")):
         if key in keys:
             add(kind, colour, label)
     for c_, nm in SPECIES_CODE:
@@ -424,7 +430,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v26.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v26_1.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -434,9 +440,13 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             bid, old, cap = p.bid
             sc_ = getattr(p, "scale", scale)              # v24: each panel its own round scale
             leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []   # v24: p15 halves: in the crop
+            if ("dt", "vol") in (getattr(p, "pleg", None) or {}):   # v26.1 (Prompt 8): the rough volumes' method,
+                cap += u" · ~ m³ = area × depth: reed basins 0.46 m (EPA 2000), terraces Q100 depth over bed +1 m " \
+                       u"at the nearest cut"                 # as the sheet's legend says it (the booklet sets no note)
             bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=sc_, legend=leg_, drop=drop)
-            if bid in ("mp_plan", "mp_max_area"):         # v26: drawn for the booklet page at 1:1 (its width there)
-                bk.d["blocks"][bid]["bk_w"] = round(rc[2] - rc[0], 3)
+            if bid in ("mp_plan", "mp_max_area", "dt_upstream", "dt_k5"):   # v26: drawn for the booklet page at 1:1
+                bk.d["blocks"][bid]["bk_w"] = round(rc[2] - rc[0], 3)   # (its width there); v26.1: the 1:1,000
+                # windows too (194 + 4 + 194 mm = the page's 392 mm), so p.26 prints them at 1:1,000 in one row
             fr = {"crop": bid, "scale_den": sc_, "w_mm": round(rc[2] - rc[0], 1), "h_mm": round(rc[3] - rc[1], 1)}
             if bid in wd:
                 R = wd[bid]["R"]

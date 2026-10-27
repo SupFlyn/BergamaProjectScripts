@@ -10,6 +10,13 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v18 (Aras 27 Oct 17:35, Prompt 8 "final check of every page"): one source numbering for the whole booklet: the
+[n] marks are renumbered in page order (first use first, one number per source text), the sources page lists only what
+the pages cite, grouped by theme, and the log names marks without a source entry; the words of a sheet that no page
+shows are taken out of it (the hidden stray "1:1,511" of the old p.10, junk in Illustrator); a whole-sheet page gets
+the booklet's page number (and its theme where the corner is free); sheet pages are titled in the contents as the
+sheets print them; a page whose drawings are all still frames ("later prompt") is left out (PLAN FRAME_PAGES); a
+legend too long for the footer goes in columns under the rows when they leave room.
 NEW IN v17 (Aras 27 Oct 17:35, Prompt 7 "masterplan"; masterplan v26, site board v49): theme E is the open ground
 (crop mp_max_area, now 1:5,000), then one spread: "Before the masterplan: the edge and where we can build" (site board
 crop drw_edge_build_e) on the left page, "Masterplan: an ecological corridor" (crop mp_plan: both halves, the notes as
@@ -78,7 +85,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v17"
+VERSION = "v18"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -240,6 +247,14 @@ def find_pdf(folder, name):
     return max(hit, key=os.path.getmtime) if hit else None    # v7: the newest (v1_8 sorts after v1_12 by name)
 
 
+_COPY = {}       # v18: (sheet path, page index) -> (doc, 0): the sheet page with its marks renumbered (class Sources)
+
+
+def src_page(fitz, path, pno_):
+    """v18: (doc, page index) the booklet shows of a sheet page: its renumbered copy when Sources made one"""
+    return _COPY.get((path, pno_)) or (sheet_doc(fitz, path), pno_)
+
+
 def resolve(assets, key):
     """(crop block, sheet path) of "<folder>/<crop id>"; an id missing under its own sheet key or letter case is looked
     up by its panel name (the board's sections are section_s1 ... on whichever sheet holds them)."""
@@ -262,7 +277,7 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
     """v4: the sheet page with each scale it states inside clip ("1:400") changed to the scale the booklet prints it
     at (1:400 / s), in the same place, size and colour; the drawing itself untouched. v7: a line of the sheet's words
     matching one of its crop's "drop" patterns is taken out (source marks "[n]" stay). (doc, page index)"""
-    src = sheet_doc(fitz, path)
+    src, pno_ = src_page(fitz, path, pno_)               # v18: the copy with the booklet's source numbers
     page = src[pno_]
     pats = [re.compile(d) for d in drop or () if not d.startswith("^\\[")]
     hits, gone = {}, []
@@ -407,12 +422,39 @@ def sheet_page(fitz, doc, typo, pno, spec):
                     "%s · %s missing: run the script" % (SCRIPT_OF.get(folder, folder), name))
         footer(pg, typo, pno, spec, [])
         return "p.%d %s: MISSING %s" % (pno, spec["title"], name)
-    src = sheet_doc(fitz, path)[int(spec.get("page", 0))]
+    sd, si = src_page(fitz, path, int(spec.get("page", 0)))     # v18: marks in the booklet's source numbers
+    src = sd[si]
     f = min(PW * K / src.rect.width, PH * K / src.rect.height)
-    pg.show_pdf_page(fitz.Rect(0, 0, src.rect.width * f, src.rect.height * f), sheet_doc(fitz, path),
-                     int(spec.get("page", 0)))
+    pg.show_pdf_page(fitz.Rect(0, 0, src.rect.width * f, src.rect.height * f), sd, si)
+    sheet_foot(fitz, pg, typo, pno, spec, src, f)
     return "p.%d %s: sheet %s page %d as it is%s" % (pno, spec["title"], os.path.basename(path),
                                                    int(spec.get("page", 0)) + 1, "" if f > 0.999 else " (x%.2f)" % f)
+
+
+def sheet_foot(fitz, pg, typo, pno, spec, src, f):
+    """v18 (Prompt 8: "footers and page numbers"): a whole-sheet page gets the booklet's page number in the footer's
+    place, and its theme left of it where the sheet leaves that corner free; the log says when the number sits on
+    the sheet's own words or drawing."""
+    no = "%02d" % pno
+    wn, lab = typo.width(no, T["pageno"], True), foot_label(spec)
+    rn = (PW - ML - wn - 1.0, FOOT_B2 - 4.6, PW - ML + 0.5, FOOT_B2 + 1.4)
+    wl = typo.width(lab, T["caption"], True) if lab else 0.0
+    rl = (PW - ML - 12 - wl - 1.0, FOOT_B2 - 2.8, PW - ML - 12 + 0.5, FOOT_B2 + 1.0)
+    try:
+        big = 0.5 * abs(src.rect)                      # a sheet's white ground is not "content"
+        boxes = [fitz.Rect(d["rect"]) for d in src.get_drawings() if abs(fitz.Rect(d["rect"])) < big]
+        boxes += [fitz.Rect(w[:4]) for w in src.get_text("words")]
+    except Exception:
+        boxes = []
+
+    def free(r):
+        R = fitz.Rect(r[0] * K / f, r[1] * K / f, r[2] * K / f, r[3] * K / f)
+        return not any(b.intersects(R) for b in boxes)
+    if not free(rn):
+        typo.issues.append("PAGE NUMBER ON THE SHEET'S OWN CONTENT p.%d %s" % (pno, spec.get("title", "")))
+    typo.line(pg, no, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
+    if lab and free(rl):
+        typo.line(pg, lab, PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
 
 
 def wh(it):
@@ -467,7 +509,7 @@ def show(fitz, pg, typo, it, x, y, s, rep, missing, cap=True):
     src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
     pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
     if cap:
-        c = blk.get("caption", "")
+        c = renum(blk.get("caption", ""), key, blk, path)      # v18: its marks in the booklet's source numbers
         if blk.get("scale_den"):
             c = (c + " · " if c else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
         typo.line(pg, c, x, y + h * s + 3.6, T["caption"], INK2)
@@ -510,6 +552,7 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     for r in rows + [side_it]:
         for it in r:
             for e in ((it[1] or {}).get("legend") or []) if it[3] is not None else []:
+                e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))     # v18
                 if all(e.get("label") != o.get("label") for o in legend):
                     legend.append(e)
     rws = [sum(wh(it)[0] * sc(it) for it in r) + GUT * (len(r) - 1) for r in rows]
@@ -535,7 +578,7 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
             else:
                 src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
                 pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
-                cap = blk.get("caption", "")
+                cap = renum(blk.get("caption", ""), key, blk, path)   # v18: the booklet's source numbers
                 if blk.get("scale_den"):
                     cap = (cap + " · " if cap else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
                     if round(blk["scale_den"] / s) not in STD_SCALES:
@@ -549,6 +592,15 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
         y += rh + CAP_H + ROW_GAP
     if y - ROW_GAP > AREA[3] + 0.5:                  # v15: fixed crops are not shrunk: say when they overrun
         typo.issues.append("PAGE OVERRUNS ITS AREA p.%d by %.1f mm" % (pno, y - ROW_GAP - AREA[3]))
+    if legend and not side and not side_it and footer_rows(typo, legend, spec) > 3:
+        # v18 (Prompt 8): a legend the footer cannot hold (old p.26, ~41 entries) goes in columns under the rows
+        ncol = max(1, int((aw + 4.0) // (lw + 4.0)))
+        nrow = (len(legend) + ncol - 1) // ncol
+        yl = y - ROW_GAP + 3.0
+        if yl + 4.0 * (nrow - 1) <= AREA[3]:
+            for i, e in enumerate(legend):
+                legend_item(pg, typo, e, AREA[0] + (i // nrow) * (lw + 4.0), yl + 4.0 * (i % nrow))
+            side = True
     if side_it:                                      # v12: beside the rows, right margin, top-aligned
         x1, ys, xs0 = AREA[0] + max(rws) + GUT, AREA[1], AREA[2]
         for it in side_it:
@@ -679,11 +731,250 @@ def sheet_sources(fitz, assets):
     return out
 
 
-def sources_page(pg, typo, pno, groups):
+# ------------------------------------------------------------------ v18 sources: one numbering for the whole booklet
+MARK = re.compile(u"\\[(\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*)\\]")              # one mark: [3] [7,8] [3-5]
+MARKS = re.compile(u"\\[\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*\\](?:\\s*\\[\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*\\])*")
+KEY_LINE = re.compile(r"^\s*\[(\d{1,3})\]\s*(.*\S)?")
+_SRC = []        # v18: this run's Sources (main), read by renum
+
+
+def renum(s, key, blk, path):
+    """v18: s with its [n] marks in the booklet's source numbers (unchanged when Sources is not working)"""
+    if not s or not _SRC or "[" not in s:
+        return s
+    return _SRC[0].renum(s, _SRC[0].key_for(key.partition("/")[0], path, int((blk or {}).get("page", 0))))
+
+
+class Sources(object):
+    """v18 (Aras 27 Oct, Prompt 8: "every [n] used exists, none are unused, numbering follows the new order"): every
+    [n] mark the pages show (sheet words inside each crop, captions, legend names), read in page order, takes one
+    booklet number: first use first, one number per source text (the board's drawings and sections sheets share a
+    key). Each sheet page the booklet shows is copied once (_COPY): its marks rewritten in place (same size, colour and
+    baseline; a longer number set smaller where the words after it would be hit) and its words that lie outside every
+    crop the booklet takes from it removed (hidden by the clip, but still in the PDF and in Illustrator)."""
+    def __init__(self, fitz, assets):
+        self.fz = fitz
+        self.keys = {}          # key id -> {n: source text}
+        self.glob = {}          # (key id, n) -> booklet number
+        self.by_text = {}       # source text (normalised) -> booklet number
+        self.order = []         # [(booklet number, key id, n, part, page, folder)]
+        self.used = {}          # (sheet path, page index) -> [folder, [clips]] (clip None = the whole page)
+        self.kid = {}           # (folder, path, page index) -> key id
+        self.log, self.n_hidden, self.n_tight = [], 0, 0
+        for folder, a in sorted(assets.items()):
+            for k, ents in sorted(((a or {}).get("sheet_sources") or {}).items(), key=lambda kv: str(kv[0])):
+                k = str(k)
+                if "#" in k:                           # the board: "<sheet pdf>#<page>"
+                    pdf, _, p_ = k.rpartition("#")
+                    kid = (folder, os.path.basename(pdf), int(p_) if p_.isdigit() else None)
+                elif k.isdigit():                      # a page of the script's sheet (one key = all its pages)
+                    kid = (folder, None, int(k))
+                else:
+                    kid = (folder, os.path.basename(k), None)
+                self.keys[kid] = self.entries(ents or [])
+
+    @staticmethod
+    def entries(ents):
+        """["[1] text", ...] -> {1: "text", ...} (an entry without its number takes its place in the list)"""
+        out = {}
+        for i, e in enumerate([str(e_).strip() for e_ in ents if e_ and str(e_).strip()]):
+            m = KEY_LINE.match(e)
+            out.setdefault(int(m.group(1)) if m else i + 1, ((m.group(2) or "") if m else e).strip())
+        return out
+
+    def parsed(self, path, i):
+        """the key a sheet page prints itself ("Sources by number: [1] ..." or lines starting [n], visible or not)"""
+        kid = ("sheet", path, i)
+        if kid not in self.keys:
+            txt = []
+            for b in sheet_doc(self.fz, path)[i].get_text("blocks"):
+                t = re.sub(r"\s+", " ", b[4]).strip()
+                if "Sources by number:" in t:
+                    txt.append(t.split("Sources by number:", 1)[1])
+                elif re.match(r"\[\d+\] ", t):
+                    txt.append(t)
+            self.keys[kid] = self.entries(re.split(r"\s(?=\[\d+\] )", " " + " ".join(txt)))
+        return kid if self.keys[kid] else None
+
+    def key_for(self, folder, path, i):
+        """the key the marks of this sheet page refer to: the script's own (blocks.json "sheet_sources": per sheet PDF
+        and page, per page, or one for all), else the one the sheet prints (this page, else the one page of this
+        sheet or of the folder's SOURCE_SHEETS sheet that has one); ("none", folder) when there is none"""
+        ck = (folder, path, i)
+        if ck not in self.kid:
+            pdf = os.path.basename(path or "")
+            kid = next((k for k in ((folder, pdf, i), (folder, pdf, None), (folder, None, i)) if self.keys.get(k)),
+                       None)
+            own = [k for k in self.keys if k[0] == folder and self.keys[k]]
+            if kid is None and len(own) == 1:
+                kid = own[0]
+            if kid is None and path:
+                kid = self.parsed(path, i)
+                cands = [path] + [p for p in (find_pdf(folder, pat.partition("/")[2]) for pat in SOURCE_SHEETS
+                                              if pat.partition("/")[0] == folder) if p and p != path]
+                for p in cands if kid is None else []:
+                    hits = [k for k in (self.parsed(p, j) for j in range(len(sheet_doc(self.fz, p)))) if k]
+                    if len(hits) == 1:
+                        kid = hits[0]
+                        break
+            self.kid[ck] = kid or ("none", folder)
+        return self.kid[ck]
+
+    @staticmethod
+    def nums(s):
+        """"3" / "7,8" / "3-5" -> [3] / [7, 8] / [3, 4, 5]"""
+        out = []
+        for part in s.split(","):
+            ab = [x for x in re.split(u"[–-]", part) if x.strip()]
+            try:
+                a, b = int(ab[0]), int(ab[-1])
+            except (ValueError, IndexError):
+                continue
+            out += list(range(a, b + 1)) if 0 <= b - a <= 12 else [a, b]
+        return out
+
+    def invisible(self, page):
+        """rects of the page's invisible words (render mode 3: e.g. the water balance's source key)"""
+        try:
+            return [self.fz.Rect(s_["bbox"]) for s_ in page.get_texttrace() if s_.get("type") == 3]
+        except Exception:
+            return []
+
+    def lines_in(self, page, clip):
+        """the visible lines of words inside clip (None = the page) holding a "[", outside any printed source key"""
+        inv, out = self.invisible(page), []
+        for b in page.get_text("dict", clip=clip)["blocks"]:
+            lines = [("".join(s_["text"] for s_ in ln["spans"]), self.fz.Rect(ln["bbox"])) for ln in b.get("lines", [])]
+            if any("Sources by number:" in t for t, _ in lines):
+                continue
+            out += [t for t, r in lines if "[" in t and not any(r.intersects(v) for v in inv)]
+        return out
+
+    def use(self, kid, n, part, pno, folder):
+        if (kid, n) in self.glob:
+            return
+        t = (self.keys.get(kid) or {}).get(n)
+        norm = re.sub(r"\W+", " ", t).strip().lower() if t else None
+        if norm and norm in self.by_text:              # the same source under another sheet's number
+            self.glob[(kid, n)] = self.by_text[norm]
+            return
+        g = len(self.order) + 1
+        self.glob[(kid, n)] = g
+        if norm:
+            self.by_text[norm] = g
+        else:
+            self.log.append("SOURCE MARK WITHOUT AN ENTRY p.%d [%d] (%s)" % (pno, n, SCRIPT_OF.get(folder, folder)))
+        self.order.append((g, kid, n, part, pno, folder))
+
+    def collect(self, numbered):
+        """pass 1: the marks of every page in page order -> booklet numbers; which parts of which sheet pages show"""
+        for pno, sp, rows in numbered:
+            its = []
+            if rows is None:
+                folder, _, name = sp["sheet"].partition("/")
+                path, i = find_pdf(folder, name), int(sp.get("page", 0))
+                if path and i < len(sheet_doc(self.fz, path)):
+                    its.append((folder, path, i, None, "", []))
+            else:
+                for key, blk, path, clip in [it for r in rows for it in r] + list(sp.get("_side") or []) + \
+                        ([sp["_key"]] if sp.get("_key") else []):
+                    if clip is not None:
+                        its.append((key.partition("/")[0], path, int(blk.get("page", 0)), clip,
+                                    blk.get("caption") or "", [e.get("label", "") for e in blk.get("legend") or []]))
+            for folder, path, i, clip, cap, labels in its:
+                self.used.setdefault((path, i), [folder, []])[1].append(clip)
+                kid = self.key_for(folder, path, i)
+                for t in self.lines_in(sheet_doc(self.fz, path)[i], clip) + [cap] + labels:
+                    for m in MARK.finditer(t):
+                        for n in self.nums(m.group(1)):
+                            self.use(kid, n, sp.get("part"), pno, folder)
+
+    def renum(self, s, kid):
+        def one(m):
+            ns = [self.glob.get((kid, n)) for n in self.nums(m.group(1))]
+            if not ns or None in ns:
+                return m.group(0)
+            ns = sorted(set(ns))
+            if len(ns) > 2 and ns[-1] - ns[0] == len(ns) - 1:
+                return "[%d-%d]" % (ns[0], ns[-1])
+            return "[%s]" % (", " if ", " in m.group(1) else ",").join(str(n) for n in ns)
+        return MARK.sub(one, s)
+
+    def build(self):
+        """pass 2: one copy of each sheet page the booklet shows, its marks renumbered, the words no page shows gone"""
+        fz = self.fz
+        for (path, i), (folder, clips) in self.used.items():
+            kid = self.key_for(folder, path, i)
+            tmp = fz.open()
+            tmp.insert_pdf(sheet_doc(fz, path), from_page=i, to_page=i)
+            pg = tmp[0]
+            near = None if any(c is None for c in clips) else \
+                [fz.Rect(c.x0 - 8.5, c.y0 - 8.5, c.x1 + 8.5, c.y1 + 8.5) for c in clips]     # 3 mm round each crop
+            inv, put = self.invisible(pg), []
+            for b in pg.get_text("rawdict")["blocks"]:
+                for ln in b.get("lines", []):
+                    lr = fz.Rect(ln["bbox"])
+                    if near is not None and not any(lr.intersects(r) for r in near):
+                        if lr.width > 0.1 and lr.height > 0.1:           # shown by no page: out
+                            pg.add_redact_annot(fz.Rect(lr.x0, lr.y0 + 0.3 * lr.height, lr.x1, lr.y1 - 0.3 * lr.height),
+                                                fill=False)
+                            self.n_hidden += 1
+                        continue
+                    if abs(ln["dir"][1]) > 0.01 or any(lr.intersects(v) for v in inv):
+                        continue                                          # turned words, the invisible key
+                    seq = [(ch, s_) for s_ in ln["spans"] for ch in s_["chars"]]
+                    txt = "".join(ch["c"] for ch, _ in seq)
+                    for m in MARKS.finditer(txt):
+                        new = self.renum(m.group(0), kid)
+                        if new == m.group(0):
+                            continue
+                        (c0, s0), c1 = seq[m.start()], seq[m.end() - 1][0]
+                        r = fz.Rect(c0["bbox"]) | fz.Rect(c1["bbox"])
+                        w0, w1 = c0["bbox"][2] - c0["bbox"][0], c1["bbox"][2] - c1["bbox"][0]
+                        pg.add_redact_annot(fz.Rect(r.x0 + 0.2 * w0, r.y0 + 0.3 * r.height, r.x1 - 0.2 * w1,
+                                                    r.y1 - 0.3 * r.height), fill=False)
+                        nxt = next((ch["bbox"][0] for ch, _ in seq[m.end():] if ch["c"].strip()), None)
+                        ends = [c.x1 for c in clips if c is not None and c.intersects(r)]
+                        room = min([pg.rect.x1 if nxt is None else nxt] + ends) - c0["origin"][0] - 0.3
+                        put.append((c0["origin"], new, s0["size"], s0["color"], "bold" in s0["font"].lower(), room))
+            pg.apply_redactions(images=0, graphics=0, text=0)
+            for org, new, size, col, bold, room in put:
+                fn = "hebo" if bold else "helv"
+                w = fz.get_text_length(new, fontname=fn, fontsize=size)
+                if w > room > 0:                                          # the words after it stay clear
+                    size2 = max(0.75 * size, size * room / w)
+                    self.n_tight += int(w * size2 / size > room + 0.2)
+                    size = size2
+                pg.insert_text(org, new, fontname=fn, fontsize=size,
+                               color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+            _COPY[(path, i)] = (tmp, 0)
+
+    def groups(self):
+        """[(theme heading, ["[n] text", ...])] in booklet order, for sources_page"""
+        out, last = [], object()
+        for g, kid, n, part, pno, folder in self.order:
+            if part != last:
+                last = part
+                out.append(((part + "  " + PARTS.get(part, "")).upper() if part else u"COVER", []))
+            t = (self.keys.get(kid) or {}).get(n)
+            out[-1][1].append(u"[%d] %s" % (g, t or u"(no entry for mark [%d] in the %s source key)" %
+                                             (n, SCRIPT_OF.get(folder, folder))))
+        return out
+
+    def report(self):
+        kids = set(self.kid.values())
+        left = sum(1 for k in kids for n in (self.keys.get(k) or {}) if (k, n) not in self.glob)
+        return ("sources: %d cited, numbered in page order (one number per source); %d entries of the scripts' keys "
+                "for these sheets not cited on any page, left out; %d words no page shows taken out of the sheets; "
+                "%d marks set smaller to fit" % (len(self.order), left, self.n_hidden, self.n_tight))
+
+
+def sources_page(pg, typo, pno, groups, head=u"Sources, by sheet"):
     """All sources on ONE page (Aras 25 Oct 21:54): each sheet's own key under its name, three columns, the type
-    size lowered step by step until everything fits; only this page may go below 7 pt."""
+    size lowered step by step until everything fits; only this page may go below 7 pt. v18: head = the page title
+    (the booklet's one numbering: groups = themes)."""
     typo.line(pg, "SOURCES", colx(1), 12, T["kicker"], ACCENT, True)
-    typo.line(pg, "Sources, by sheet", colx(1), 22, T["part"], INK, True)
+    typo.line(pg, head, colx(1), 22, T["part"], INK, True)
     pg.draw_line((colx(1) * K, 25 * K), ((PW - ML) * K, 25 * K), color=hexrgb(RULE), width=0.25)
     cols = [colx(1), colx(5), colx(9)]
     y0, y1 = 31.0, FOOT_RULE - 3.0
@@ -751,10 +1042,26 @@ def main():
     for spec in PAGES:
         if spec.get("sheet"):
             plan.append((spec, None))
+        elif not FRAME_PAGES and all(k.startswith("slot|") for r in spec.get("rows", []) for k in r):
+            typo.notes.append("page '%s' left out: its drawings are not made yet (frames only; PLAN FRAME_PAGES)" %
+                              spec.get("title", ""))           # v18 (Prompt 8): no empty frame page in the booklet
         else:
             plan += expand(fitz, spec, assets)
     plan = flex_order(plan, typo)
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
+    _COPY.clear()
+    del _SRC[:]
+    srcs = Sources(fitz, assets)                    # v18: one source numbering for the booklet, in page order
+    try:
+        srcs.collect(numbered)
+        srcs.build()
+        _SRC.append(srcs)
+        typo.notes.append(srcs.report())
+        typo.issues += srcs.log
+    except Exception as ex:
+        _COPY.clear()
+        typo.issues.append("SOURCES NOT RENUMBERED (%s: %s): marks and sources page by sheet, as before v18" %
+                           (type(ex).__name__, ex))
     cover(frame_page(fitz, doc, typo), typo, [(n, sp) for n, sp, _ in numbered])
     missing, rep = set(), []
     for pno, sp, rows in numbered:                   # v11: a spread opens on a left (even) page
@@ -763,7 +1070,8 @@ def main():
     for pno, sp, rows in numbered:
         rep.append(sheet_page(fitz, doc, typo, pno, sp) if rows is None else
                    panel_page(fitz, doc, typo, pno, sp, rows, assets, missing))
-    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2, sheet_sources(fitz, assets))
+    sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2,
+                 *((srcs.groups(), u"Sources, in page order") if _SRC else (sheet_sources(fitz, assets),)))
     text_check(fitz, doc, typo, set(n - 1 for n, sp, rows in numbered if rows is None))
     doc.subset_fonts()
     out = os.path.join(OUT_DIR, PDF_NAME)

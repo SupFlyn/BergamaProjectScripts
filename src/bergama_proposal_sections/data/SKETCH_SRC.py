@@ -857,8 +857,10 @@ def _concept_k5_sketch():
     # v8 (Aras 27 Oct 17:34, Prompt 5: plants as "English (Turkish)", no Latin)
     keyed(o, "summer", "cafe beds: Bean (Fasulye) · Tomato (Domates) · Pepper (Biber) · Fig (İncir) · Grape (Üzüm)", 4, 80,
           5.6)
+    # v8.1 (Prompt 8): 2.2 lines under the summer row (was 1.5: the cloud touched the sun row's box and, with no free
+    # place within DECLUTTER_R inside the drawing's reach, the board's declutter left the whole winter row out)
     keyed(o, "winter", "herbs · greens · Cabbage (Lahana) · Citrus (Narenciye) · Quince (Ayva) " + CITE("garden"), 4,
-          80 - 1.5 * h, 5.6)
+          80 - 2.2 * h, 5.6)
     for n_, x_, y_ in ((6, 129, 18), (7, 110, 22), (9, 8, 45)):
         NODE(o, x_, y_, n_)
     # v6: the two zones under the cut, and what each water state means for people; v7: the bed is the sub-hub

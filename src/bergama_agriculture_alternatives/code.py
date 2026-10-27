@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v3.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v3_1.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -12,7 +12,14 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v3"
+VERSION = "v3.1"
+# v3.1 (bugfix, Aras 27 Oct, booklet Prompt 8 "final check of every page"): plant and crop names "English (Turkish)"
+#   from the shared table where pages 1 and 3 still had the English alone: page 3's season row OLIVE (ZEYTİN) HARVEST,
+#   its labels (hub square: oriental plane (Doğu çınarı) shade; common reed (Kamış) gold; olive (Zeytin) harvest;
+#   olive (Zeytin) trees on the fields) and page 1's "what it replaces" figure. Page 3: "stored winter water" and
+#   "site edge: farmland outside" sit at the row's top edge, so they found no free place above it and were left out on
+#   every run: they now go under their anchors. The h01 timeline quotes stay word for word. Page 1's "THE STREAM COMES
+#   FIRST" block and the step chips: its 6.5 pt words are 7 pt, the smallest size on a booklet page.
 # v3 (Aras 27 Oct 17:35, Prompt 6 "water, part 3"; the booklet's p.24-25):
 #   * page 1, "THE STREAM COMES FIRST" between the headline and the bars (task 1: "show the defence ON the board"): the
 #     priority 1 stream: summer strip -> 2 on-site planting -> 3 farms (the model has no draw of its own for the
@@ -514,7 +521,7 @@ CONTEXT = [
       "highest oil content"], KAYA),
     ("drip", "TODAY'S IRRIGATION ON THE FARMS", None, ["some Bergama growers moved to drip"], ITB),
 ]
-REPLACES = [("cube", "THE WATER BOARD LINE IT REPLACES", "10,000 m³ = 1.22 ha olive",
+REPLACES = [("cube", "THE WATER BOARD LINE IT REPLACES", "10,000 m³ = 1.22 ha " + name_lc("olive"),   # v3.1: (Zeytin)
              ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
 DEFICIT = (1 - 350.0 / 622, 1 - 175.0 / 622)   # olive water saved: S0.50 and S0.25 against the control SC, Kaya et al. 2017 Table II
 # Bergama district areas 2025, da (TÜİK MEDAS export, library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §1.25):
@@ -602,7 +609,7 @@ WE_DO = [(1, "clean once, at the upstream end"), (2, "hold winter water"), (3, "
 def chip(pg, x, y, n, label, size=7.5):
     """v3: a numbered step: the number white in an accent square, the label after it (baseline y). Returns x after it."""
     pg.rect(x, y - 0.7, 3.6, 3.6, fill=C["accent"])
-    pg.text(str(n), x + 1.8, y + 0.15, 6.5, C["white"], True, "C")
+    pg.text(str(n), x + 1.8, y + 0.15, 7, C["white"], True, "C")   # v3.1: 7 pt, the smallest size (was 6.5)
     pg.text(label, x + 4.8, y, size, C["ink"])
     return x + 4.8 + text_w(label, size)
 
@@ -684,20 +691,20 @@ def stream_first(pg, L, src, y_top):
             if w_ > 0.05:
                 pg.rect(xs, bot, w_, 6.0, fill=col)
             t = v_t(v)
-            if v >= 0.5:
-                tw_ = text_w(t, 6.5, True)
+            if v >= 0.5:                           # v3.1: the block's small words 7 pt, the smallest size (were 6.5)
+                tw_ = text_w(t, 7, True)
                 if tw_ + 1.6 <= w_:                # inside, centred
-                    pg.text(t, xs + w_ / 2.0, bot + 2.2, 6.5, ink, True, "C")
+                    pg.text(t, xs + w_ / 2.0, bot + 2.2, 7, ink, True, "C")
                 else:                              # outside: over the normal bar, under the dry bar
                     tx = max(xs + w_ / 2.0 - tw_ / 2.0, out_x + 1.5)
-                    pg.text(t, tx, top + 0.9 if j == 0 else bot - 2.9, 6.5, C["ink"], True)
+                    pg.text(t, tx, top + 0.9 if j == 0 else bot - 2.9, 7, C["ink"], True)
                     out_x = tx + tw_
             xs += w_
         pg.text(lab, x0 - 3.0, top - 2.6, 8, C["ink"], True, "R")
-        pg.text("water year " + d["water_year"], x0 - 3.0, bot + 0.6, 6.5, C["ink2"], align="R")
+        pg.text("water year " + d["water_year"], x0 - 3.0, bot + 0.6, 7, C["ink2"], align="R")
         pg.text("%s m³ through the store" % v_t(tot[k]), x0 + BW + 4.0, top - 2.4, 7.5, C["ink"], True)
         pg.text("stream's winter flow: %.0f %% of a median year" % d["winter_flow_pct_of_median"], x0 + BW + 4.0,
-                bot + 0.6, 6.5, C["ink2"])
+                bot + 0.6, 7, C["ink2"])
     if V > 0:                                      # the store size, dashed across both bars
         xv = x0 + kx * V
         pg.line([(xv, b1 - 17.8), (xv, b1 + 0.8)], C["ink"], 0.35, (1.0, 0.7))
@@ -712,8 +719,8 @@ def stream_first(pg, L, src, y_top):
                 pg.rect(xx, lg - 0.3, 3.5, 2.6, fill=c_); xx += 4.0
             else:
                 pg.line([(xx + 1.7, lg - 0.6), (xx + 1.7, lg + 2.6)], c_, 0.35, (1.0, 0.7)); xx += 4.0
-        pg.text(lab, xx + 0.8, lg, 6.5, C["ink"])
-        xx += 0.8 + text_w(lab, 6.5) + 5.0
+        pg.text(lab, xx + 0.8, lg, 7, C["ink"])           # v3.1: 7 pt (was 6.5)
+        xx += 0.8 + text_w(lab, 7) + 5.0
     a, b, c = squeeze(ys)
     pg.text("1-in-5 dry year vs normal year: left for farms after the strip %s · need per hectare %s · hectares %s %s" % (
         pc(a), pc(b), pc(c), mk), 26, lg - 4.0, 7.5, C["accent"], True)
@@ -1173,15 +1180,15 @@ def seasons():
                    (2, SUBHUB[0] + 3.0, g0 + 0.7, False, "sub-hub open", PROG),
                    (None, 6.0, g0 + 6.0, False, "Kermes (since 1937) in the dry bed", KERMES),
                    (1, 2 * LAD_S + 20.0, g2, False, "shade under the trees", None),
-                   (0, HUB[0] + 4.0, g3, False, "hub square: plane-tree shade", PROG),
+                   (0, HUB[0] + 4.0, g3, False, "hub square: %s shade" % name_lc("plane"), PROG),   # v3.1: names
                    (None, 3 * LAD_S + 25.0, g3 + 2.0, False, "at K5: Demeter's Garden · café, summer beds", GARDEN),
-                   (3, 4 * LAD_S + 19.0, g4, False, "fields + olives watered from storage", None)]),
-        dict(key="harvest", name="OLIVE HARVEST", months="Nov", mark="olive",
-             side=[("olives hand-picked in Nov", HARVEST), ("storage low until the rains", WB_YEAR),
+                   (3, 4 * LAD_S + 19.0, g4, False, "fields + %s trees watered from storage" % name_lc("olive"), None)]),
+        dict(key="harvest", name=name_caps("olive") + " HARVEST", months="Nov", mark="olive",   # v3.1: (ZEYTİN)
+             side=[("%s: hand-picked in Nov" % name_lc("olive"), HARVEST), ("storage low until the rains", WB_YEAR),
                    ("first-flush cleaning", WB_YEAR)],
-             acts=[(None, 5.0, g0 + 3.0, False, "reeds gold · seed heads", WB_YEAR),
+             acts=[(None, 5.0, g0 + 3.0, False, "%s gold · seed heads" % name_lc("reed"), WB_YEAR),   # the bed's reed
                    (0, 3 * LAD_S + 30.0, g3, False, "Demeter's Garden: winter herbs + greens · education", GARDEN),
-                   (3, 4 * LAD_S + 12.0, g4, False, "olive harvest", HARVEST),
+                   (3, 4 * LAD_S + 12.0, g4, False, "%s harvest" % name_lc("olive"), HARVEST),
                    (1, 4 * LAD_S + 23.0, g4, True, None, None)])]
 
 
@@ -1426,10 +1433,13 @@ def page_ladder(L, src):
                 P.put(pg, lab, X(1.5), Y(lv), 7, "8B2D2D", region=reg, gap=0.8, up=up, lanes=3)
             P.put(pg, "over the bank top only at K4 (right bank) and S4 (left)", X(3 * LAD_S + 3.0), Y(LAD_Q500) + 3.0,
                   7, "8B2D2D", region=reg, gap=0.5)
-            P.put(pg, "site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], region=reg, gap=0.6)
-        if sea["key"] == "low":
+            # v3.1 (Prompt 8): this anchor (the top of the site edge line) is the row's top: no room above, so the
+            # label was left out on every run; now under it, its leader along the site edge line
+            P.put(pg, "site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], region=reg, gap=0.6,
+                  up=False)
+        if sea["key"] == "low":                        # v3.1: under the arrow's tail (1.5 mm under the row's top: no
             P.put(pg, "stored winter water", X(3 * LAD_S + 22.0), Y(LAD_GY[4] + 10.0), 7, C["water_deep"], True,
-                  region=reg, gap=1.0)
+                  region=reg, gap=1.0, up=False)       # room above it, so it was left out on every run)
         for kind, x, yv, flip, lab, ref in sea["acts"]:
             if lab:
                 hgt = 0.0 if kind is None else (3.2 if kind == "sit" else 4.9)

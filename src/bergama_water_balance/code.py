@@ -1,4 +1,4 @@
-# bergama_water_balance_v4.py (v4, 27 Oct: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v4_1.py (v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,12 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v4"
+VERSION = "v4.1"
+# NEW IN v4.1 (bugfix, Aras 27 Oct, Prompt 8 final check): ² and ³ on the sheet are drawn as a raised small 2 or 3
+#   (0.6 x the size, as the water board v3.1 and agriculture v3 do; see SUP): the unembedded Helvetica's ²/³ glyph was
+#   missing in some viewers ("hm" for "hm³"). The invisible source key names only public sources (no internal research
+#   file names: "Calculations: research/water_balance/NOTES.md", "rain_river_levels README / table A2 / A3s" gone).
+#   Layout, figures and the results JSON unchanged.
 # v4 (Aras 27 Oct 17:35, booklet Prompt 6 "water, part 3", p24: "show the defence ON the board ... normal year vs dry
 #   year as two stacked bars"): the results JSON gains design.year_split, the design store through two real water years
 #   of the same daily run: "normal" = the year whose farm need is nearest the median, "dry5" = the 1-in-5 dry year
@@ -470,6 +475,23 @@ _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278
 
 _ENC_EXTRA = {u"Ğ": 0x81, u"ğ": 0x8D, u"İ": 0x8F, u"ı": 0x90, u"Ş": 0x9D, u"ş": 0x9E}   # Turkish letters in unused WinAnsi slots
 _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157 /Scedilla 158 /scedilla]"
+# v4.1 (Aras 27 Oct, Prompt 8: "hm" for "hm³"): ² and ³ are drawn as the digit at 0.6 x the size, raised 0.28 x the
+# size (then as wide as the ²/³ glyph, 333/1000), as water board v3.1: the unembedded Helvetica's ²/³ was missing in some viewers
+SUP = {u"²": u"2", u"³": u"3"}
+SUP_K, SUP_UP = 0.6, 0.28
+
+
+def sup_runs(s):
+    """v4.1: s cut into (text, raised) runs at ² and ³, which become a plain 2 or 3"""
+    out, cur = [], u""
+    for ch in s:
+        if ch in SUP:
+            if cur: out.append((cur, False))
+            out.append((SUP[ch], True)); cur = u""
+        else:
+            cur += ch
+    if cur: out.append((cur, False))
+    return out
 
 
 class Page:
@@ -492,6 +514,16 @@ class Page:
         self.ops.append(" ".join(o))
     def line(self, P, col, lw=0.25, dash=None): self.poly(P, None, col, lw, False, dash)
     def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", hidden=False):
+        if not hidden and any(ch in SUP for ch in s):   # v4.1 (Prompt 8): m² / m³ as a raised small digit (see SUP);
+            runs = sup_runs(s)                          # the invisible source key keeps the glyph (the booklet reads it)
+            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
+            x0 = x - {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]; xx, n = x0, len(self.boxes)
+            for (t, up), w_ in zip(runs, ws):
+                self.text(t, xx, y + (size * SUP_UP * 0.3528 if up else 0.0), size * (SUP_K if up else 1.0), col, bold)
+                xx += w_
+            del self.boxes[n:]                          # one box for the whole label in the overlap check, as before
+            self.boxes.append(tbox(s, x0, y, size, bold) + (s,))
+            return
         if align == "C": x -= text_w(s, size, bold) / 2
         elif align == "R": x -= text_w(s, size, bold)
         k = 72 / 25.4
@@ -598,9 +630,9 @@ SOURCES = dict(    # every source and method sentence of the v2.3 sheet; v2.7: a
     abu="Abu Hammad et al. 2004: runoff 20 % without terraces, 4 % terraced",
     ross="Ross & Hasnain 2018",
     suds="UK EA 2015 and Royal Haskoning 2012 SuDS costs (GBP x 1.25)",
-    flow="rain_river_levels README §1-2, table A2: natural flow past the site = DSI gauges D04A053 + D04A063, Oct 2015-Sep 2021, "
+    flow="Natural flow past the site = DSI gauges D04A053 + D04A063, Oct 2015-Sep 2021, "   # v4.1 (Prompt 8): no internal file names
          "each area-scaled to 101 km², mean of the two (upper case: the Kestel diversion not counted); both gauges fully dry 0-111 days a year",
-    lev="rain_river_levels table A3s (v1.1): Manning normal depth, n 0.050 (worst), on the surveyed cuts of Bergama Müdahele Alanları (1).dxf; "
+    lev="Manning normal depth, n 0.050 (worst), on the surveyed cuts of Bergama Müdahele Alanları (1).dxf; "
         "DSI Q100 205.2 / Q500 263.3 m³/s (Danıştay 6. D. 2021/9521 E.); max 2017 = highest day 2016-2021, 6 Jan 2017, 43.9 m³/s area-scaled")
 SRC_KEY = []
 
@@ -1008,8 +1040,8 @@ def build(path, R):
         if k not in SRC_KEY: SRC_KEY.append(k)
     # v2.7: no source footer on the sheet (Aras 27 Oct 11:07); the key stays as INVISIBLE text so the booklet's
     # sources page (bergama_booklet sheet_sources: "Sources by number:") still lists what the [n] marks refer to
-    pg.para("Sources by number: " + "  ".join("[%d] %s" % (i + 1, SOURCES[k]) for i, k in enumerate(SRC_KEY)) +
-            "  Calculations: research/water_balance/NOTES.md.", 14, 8, 392, 6, C["ink2"], hidden=True)
+    pg.para("Sources by number: " + "  ".join("[%d] %s" % (i + 1, SOURCES[k]) for i, k in enumerate(SRC_KEY)),
+            14, 8, 392, 6, C["ink2"], hidden=True)       # v4.1 (Prompt 8): public sources only, no internal notes file
     write_pdf(pg, path)
     return overlaps(pg)
 

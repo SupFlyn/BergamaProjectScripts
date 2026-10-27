@@ -1,7 +1,8 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v17 (Aras 27 Oct 17:35, Prompt 7: E = open ground, then the spread edge | masterplan at 1:5,000;
+# ---- BOOKLET PLAN v18 (Aras 27 Oct 17:35, Prompt 8 final check: sheet pages titled as the sheets print them; empty
+# frame pages left out, FRAME_PAGES); v17 (Aras 27 Oct 17:35, Prompt 7: E = open ground, then the spread edge | masterplan at 1:5,000;
 # "Why each place" gone, its notes are callouts beside the masterplan); v16 (Aras 27 Oct 20:51: key map on the two S4 pages); v14 (Aras 27 Oct 17:34, Prompt 4: old p13 "How the stream behaves" merged into the water balance
 # sheet's page, analysis first); v13 (Aras 27 Oct 17:34, Prompt 3: p.8 the three movement maps stacked, each the site frame at
 # 1:10,000); v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
@@ -69,7 +70,7 @@ PAGES = [
     # ---- B MOVEMENT AND THE CITY
     dict(part="B", stage="an", title=u"How people use it", rows=[[SB + "drw_movement"], [SB + "drw_walking_today"],
                                                                  [SB + "drw_driving_today"]]),   # old p7 (v13: stacked, 1:10,000)
-    dict(part="B", stage="got", title=u"Why shops meet the stream where it is hidden",
+    dict(part="B", stage="got", title=u"Why shops meet the stream only where it is hidden",   # v18: the sheet's own title
          sheet=CLK + "Bergama_city_link_A3.pdf", page=0),   # old p11
     # old p8 without the heritage loop (moved to D)
     dict(part="B", stage="do", title=u"How people will move", rows=[[SB + "drw_proposal"], [SB + "drw_commercial_spine"]]),
@@ -78,7 +79,7 @@ PAGES = [
     # old p13 + p12 -> one page (v14, Prompt 4): the water balance sheet v3 opens with "How the stream behaves" (its band
     # beside the title: monthly flow, Jul-Sep dry, flood levels on the surveyed cut at 1:500), so analysis leads, then the
     # answer; the water board's wb_water crop is no longer used
-    dict(part="C", stage="an+got", title=u"How the stream behaves, and the water balance",
+    dict(part="C", stage="an+got", title=u"The water balance",   # v18: the sheet's own title (its band: how the stream behaves)
          sheet=BAL + "Bergama_water_balance_A3.pdf"),
     dict(part="C", stage="do", title=u"Collect, clean, hold", rows=[[WB + "wb_system"]]),   # old p14
     dict(part="C", stage="do", title=u"The proposals in section", rows=[[PS + "ps_all"]]),   # old p19
@@ -113,6 +114,10 @@ PAGES = [
 
 # v11: panels left out without a placeholder when their script did not write them (v17: none since the notes page went)
 OPTIONAL_KEYS = set()
+
+# v18 (Prompt 8 final check): a page whose every drawing is still a frame (SLOT) is left out of the booklet, logged;
+# True puts the empty frames back (A "What we do with the edge", D "Heritage along the stream")
+FRAME_PAGES = False
 
 # the sheets whose own "Sources by number" keys the [n] marks on these pages refer to (sources page, in this order)
 SOURCE_SHEETS = [SB + "Selinus_drawings.pdf", SB + "Selinus_01_what_is_there_axonometric.pdf",
