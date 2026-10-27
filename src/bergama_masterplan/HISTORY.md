@@ -1,5 +1,14 @@
 # bergama_masterplan: notes of older versions (moved out of the script header)
 
+NEW IN v25 (Aras 27 Oct 17:34, booklet Prompt 2: "no section lines on any map"): the 1:1,000 detail windows no
+longer draw the water board's cut lines, their view markers or the site board's section lines S1-S6; at each surveyed
+cut the Q100 / Q500 flood widths stay, labelled with the place, the bed and both levels. Nothing else changed.
+
+NEW IN v24.1 (bugfix, Aras 27 Oct 16:04): the numbered notes that do not fit a half's key column (the
+"key column taller than the plan" warnings) go on a notes panel (booklet crop mp_notes) instead of making the half
+taller; the text under the component shows a newly pasted version at once, idle, without the old run's time.
+(v26 replaces the halves, the notes panel and the max area panel by the two booklet pages mp_plan and mp_max_area.)
+
 NEW IN v22 (Aras 26 Oct, Rhino log "detail dt_upstream: label not placed: 4 BACK TO THE STREAM"): the water
   route's labels on the detail sheet are never left out. When no spot round the numbered marker is free,
   place_label tries round points along the route, then the free spot nearest the marker anywhere on the panel

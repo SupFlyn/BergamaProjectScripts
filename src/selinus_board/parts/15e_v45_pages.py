@@ -12,6 +12,8 @@ RD_BK_W = 156.0         # mm: the site readings' width on the booklet page
 EB_DEN = 5000           # the stream edge plan at 1:5,000 on the booklet page: two strips of 284.5 x 105.8 mm
 EB_N = 2                # strips, cut along the frame's length, stacked (upstream on top)
 EB_CONE_M = 45.0        # m: the drawn length of a photo's view cone (its angle is the camera's, from the photo)
+EB_COL_X = 297.0        # v49: mm from the panel's left edge to the spread copy's column (booklet grid column 10, as the
+#                         masterplan page beside it)
 SK_DEN = 50000          # the sections pages' key map at 1:50,000 (57 x 11 mm: fits the booklet page's title band)
 WHITE = (255, 255, 255)
 # the masterplan's tones (bergama_masterplan COL, ROAD_TONE, RIVER_BAND_TONE, MP["agriculture"]; palette v1.4)
@@ -282,8 +284,9 @@ def eb_caption(it, width, h):
     return t
 
 
-def draw_edge_build(S, B, x, y, w, U):
-    """v45 (Prompt 2, replaces v44's "what meets the water"): THE STREAM EDGE AND WHERE WE CAN BUILD. The whole site
+def draw_edge_build(S, B, x, y, w, U, with_photos=True):
+    """v49 (Prompt 7 task 4): with_photos=False draws the copy for the masterplan spread (draw_edge_build_e).
+    v45 (Prompt 2, replaces v44's "what meets the water"): THE STREAM EDGE AND WHERE WE CAN BUILD. The whole site
     frame at 1:5,000 on the booklet page, cut along its length into two strips (upstream on top), in the masterplan's
     drawing language: what meets the water on both banks every 4 m (built, street, walkable, planted, parking, loose;
     walled and embanked marked), the ground open to change hatched (open ground, parking and yards, loose ground),
@@ -300,7 +303,7 @@ def draw_edge_build(S, B, x, y, w, U):
     top = y
     photos = []
     try:
-        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
+        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos")) if with_photos else []
     except Exception:
         LOG.append("WARNING: the site photos could not be read for the stream edge plan:\n" + traceback.format_exc())
     rd = 2.0 * k                                          # photo disc radius; its number 9 pt
@@ -385,6 +388,8 @@ def draw_edge_build(S, B, x, y, w, U):
             B.text(u"continues below", r[2], r[1] - 1.0 * k - h7, h7, INK2, L, font=FONT_TITLE, align="R")
         if i > 0:
             B.text(u"continued from above", r[0], r[3] + 1.0 * k, h7, INK2, L, font=FONT_TITLE)
+    if not with_photos:
+        return draw_edge_build_e(S, B, x, top, w, U, k, ss, strips, L)
     # under the strips: scale bar and north arrow, outside the map
     rb = strips[-1][2]
     Lm = 200.0
@@ -483,6 +488,96 @@ def draw_edge_build(S, B, x, y, w, U):
                u"parking & yards {:,.2f}, loose ground {:,.2f} ha.".format(EB_DEN, opn / 1e4, 100.0 * opn / max(
                    1.0, S.frame_area), vac / 1e4, park / 1e4, loose / 1e4))
     return low - 1.0 * U
+
+
+def draw_edge_build_e(S, B, x, top, w, U, k, ss, strips, L):
+    """v49 (Prompt 7 task 4, the masterplan spread p.24-25): the strips draw_edge_build drew (no photos, no
+    viewpoints) on a page laid out as the masterplan page beside it: exactly BK_AW x BK_AH booklet mm, the column on
+    the booklet's 12-column grid from EB_COL_X (the edge shares beside the upstream strip, the walled / embanked rings
+    and where we can build beside the downstream strip), the legend under the strips, scale bar and north arrow at
+    the column's foot. Crop drw_edge_build_e, drawn for its width on the booklet page. Returns the y below."""
+    F = S.F
+    h7, h75, h8 = bk_hk(7.0, k), bk_hk(7.5, k), bk_hk(8.0, k)
+    bot = top - BK_AH * k
+    cx0, cw = x + EB_COL_X * k, w - EB_COL_X * k
+    sh_, wl_, em_, tot = edge_shares(S)
+    vac, park, loose, opn = ground_open(S)
+    yy = top
+    if tot > 0:                                           # beside the upstream strip: what meets the water
+        B.text(u"THE EDGE " + bcite(EDGE_SRC), cx0, yy - h75, h75, INK, L, font=FONT_TITLE, bold=True)
+        yy -= h75 + 1.6 * k
+        B.text(u"% of {:,.1f} km of bank, both sides, every 4 m".format(tot / 1000.0), cx0, yy - h7, h7, INK2, L,
+               font=FONT_TITLE)
+        yy -= h7 + 3.0 * k
+        lw_ = 40.0 * k
+        bw0 = cw - lw_ - 9.0 * k
+        vmax = max(sh_.values() or [1.0]) or 1.0
+        for k_ in EDGE_ORDER:
+            v_ = sh_.get(k_, 0.0)
+            B.text(EB_EDGE_LAB[k_], cx0, yy - h7, h7, INK, L, font=FONT_TITLE)
+            bx_ = cx0 + lw_
+            if v_ > 0:
+                B.fill([rect(bx_, yy - h7 - 0.3 * k, bx_ + bw0 * v_ / vmax, yy + 0.2 * k)], EDGE[k_][1], L, 20)
+            B.text(u"{:.0f}%".format(v_), bx_ + bw0 * v_ / vmax + 1.2 * k, yy - h7, h7, INK, L, font=FONT_TITLE,
+                   bold=True)
+            yy -= 4.6 * k
+        yy = min(yy - 3.0 * k, strips[-1][2][3])          # beside the downstream strip: walled, embanked, open ground
+        rr = 5.0 * k
+        for j, (pct, lab, dash) in enumerate(((wl_, u"walled", (1.2, 0.9)), (em_, u"embanked", (0.2, 1.1)))):
+            rx = cx0 + rr + j * 21.0 * k
+            ry = yy - rr
+            vis_ring(B, rx, ry, rr, pct, INK2, FAINT, L)
+            B.text(u"{:.0f}%".format(pct), rx, ry, h8, INK, L, order=40, font=FONT_TITLE, bold=True, align="MC")
+            sx, sy = rx - rr, ry - rr - 2.8 * k
+            B.line([(sx, sy), (sx + 4.5 * k, sy)], INK2, L, 40, bk_lw(1.0, k))
+            for d in dashes([(sx, sy), (sx + 4.5 * k, sy)], dash[0] * k, dash[1] * k):
+                B.line(d, WHITE, L, 41, bk_lw(0.4, k))
+            B.text(lab, sx + 5.5 * k, sy - 0.5 * h7, h7, INK, L, font=FONT_TITLE)
+        B.text(u"disconnected", cx0, yy - 2.0 * rr - 6.2 * k, h7, INK2, L, font=FONT_TITLE)
+        oy = yy - 2.0 * rr - 6.2 * k - h7 - 5.0 * k
+        B.text(u"WHERE WE CAN BUILD " + bcite(OPEN_SRC), cx0, oy - h75, h75, INK, L, font=FONT_TITLE, bold=True)
+        B.text(u"{:,.1f} ha · {:.0f}% of the frame, open to change".format(opn / 1e4, 100.0 * opn / max(
+            1.0, S.frame_area)), cx0, oy - h75 - 1.6 * k - h7, h7, INK2, L, font=FONT_TITLE)
+        oy -= h75 + 1.6 * k + h7 + 2.6 * k
+        for lab, a, angs in ((u"Open ground", vac, (45.0,)), (u"Parking & yards", park, (45.0, 135.0)),
+                             (u"Loose ground", loose, (135.0,))):
+            sw_ = rect(cx0, oy - 3.0 * k, cx0 + 6.0 * k, oy)
+            B.fill([sw_], OPEN_TINT, L, 20)
+            for a_ in angs:
+                B.hatch([sw_], OPEN_HATCH, L, 21, 1.0 * k, math.radians(a_), bk_lw(0.1, k))
+            B.line(sw_ + [sw_[0]], OPEN_HATCH, L, 22, bk_lw(0.1, k))
+            B.text(u"{} · {:,.1f} ha".format(lab, a / 1e4), cx0 + 7.5 * k, oy - 3.0 * k + 0.5 * k, h7, INK, L,
+                   font=FONT_TITLE)
+            oy -= 4.4 * k
+    rb = strips[-1][2]                                    # under the strips: the legend, columns top down
+    leg = [("box", MPL["bld"], u"Building"), ("box", MPL["her"], u"Heritage building"),
+           ("box", MPL["water"], u"Stream"), ("line", MPL["water_edge"], u"Covered course, dashed"),
+           ("box", MPL["tree"], u"Woods, tree cover"), ("box", MPL["park"], u"Parks, grass"),
+           ("box", MPL["field"], u"Fields, orchards"), ("box", MPL["road"], u"Street"),
+           ("line", MPL["ink_dark"], u"Bridge, K1-K6")]
+    leg += [("line", EDGE[k_][1], EB_EDGE_LAB[k_].split(u" · ")[0]) for k_ in EDGE_ORDER]
+    leg += [("hatch", None, u"Ground open to change")]
+    pitch = 3.3 * k
+    nrow = max(1, int((rb[1] - bot - 2.0 * k) / pitch))
+    ncol = (len(leg) + nrow - 1) // nrow
+    colw = min(48.0 * k, (rb[2] - x) / ncol)
+    for i, (kind, col, lab) in enumerate(leg):
+        lx, ly = x + (i // nrow) * colw, rb[1] - 1.6 * k - (i % nrow) * pitch
+        sw_ = rect(lx, ly - 2.4 * k, lx + 6.0 * k, ly)
+        if kind == "box":
+            B.fill([sw_], col, L, 20)
+        elif kind == "line":
+            B.line([(lx, ly - 1.2 * k), (lx + 6.0 * k, ly - 1.2 * k)], col, L, 20, bk_lw(1.0, k))
+        else:
+            B.fill([sw_], OPEN_TINT, L, 20)
+            B.hatch([sw_], OPEN_HATCH, L, 21, 1.0 * k, math.radians(45.0), bk_lw(0.1, k))
+        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h7, INK, L, font=FONT_TITLE)
+    draw_scalebar_bk(B, cx0, bot + 9.0 * k, ss, 200.0, k, L)
+    draw_north_at(B, F, cx0 + 200.0 * ss + 12.0 * k, bot + 6.0 * k, 4.0, k, L)
+    crop_panel("edge_build_e", x, bot, x + w, top,
+               u"Before the masterplan: both banks, the edge every 4 m · ground open to change", crop_scale(ss), [])
+    CROP_PANELS[-1]["bk_w"] = BK_AW                       # drawn for the full booklet panel width
+    return bot - 1.0 * U
 
 
 # ------------------------------------------------------------ sections pages: one key map each

@@ -1,16 +1,31 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v25 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v26 (2026-10-27): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
-NEW IN v25 (Aras 27 Oct 17:34, booklet Prompt 2: "no section lines on any map"): the 1:1,000 detail windows no
-longer draw the water board's cut lines, their view markers or the site board's section lines S1-S6; at each surveyed
-cut the Q100 / Q500 flood widths stay, labelled with the place, the bed and both levels. Nothing else changed.
-
-NEW IN v24.1 (bugfix, Aras 27 Oct 16:04): the numbered notes that do not fit a half's key column (the
-"key column taller than the plan" warnings) go on a notes panel (booklet crop mp_notes) instead of making the half
-taller; the text under the component shows a newly pasted version at once, idle, without the old run's time.
+NEW IN v26 (Aras 27 Oct 17:35, booklet Prompt 7: masterplan, old p.15-17):
+  * Layer order on every plan: water -> buildings -> bridges -> roads -> proposal -> labels. The stream no longer
+    covers trees, bridges or the note numbers; survey bridges (YOL_KOPRU) are drawn. What exists is crisp, what
+    we propose is soft (Prompt 7 rule 1): fading fields with haloes, translucent bands, no outlines, no fixed widths;
+    the planting gradient in ten fainter steps, on open ground only.
+  * The site frame (site_alan) as a very faint line along its edges.
+  * Every area the plan leaves untouched (1 ha or more) says why, inside it: "NO INTERVENTION" + homes / heritage
+    buildings / buildings and streets (survey building kinds), or the satellite's land cover (ESA WorldCover 2021,
+    the site board's copy) and how far it lies from the water through open ground, or that no open way reaches the
+    water within 200 m (Corridor.no_go). No data maps private plots, the heritage protection zone or the Q100 extent.
+  * The old p.16 "Why each place" is gone: all numbered notes are callouts in the column beside the plan (badge, note,
+    its reasons; reasons cut only when the column is full, logged; all in masterplan_results.json "notes").
+  * Booklet pages drawn at 1:1 for the A3 page (crops mp_plan and mp_max_area, 392 x 238 mm, scale 1:5,000): both
+    halves stacked at the top-left, the legend under them (existing / proposed), the column on the 12-column grid
+    from 297 mm, scale bar and north arrow at its foot. The open ground is now at 1:5,000 too, with its figures as
+    bars (frame split, by distance from the water, by satellite land cover).
+  * Satellite check of the open ground (task 3): no imagery could be opened from the cloud (27 Oct 2026), so each
+    press writes logs/bergama_masterplan_open_ground_check.kml: every open area of 0.25 ha or more, numbered OG n,
+    those with no plant cover on the satellite first. Areas Aras finds built on go into OPEN_CHECK (02c_corridor.py)
+    with the imagery and its date: they leave the open ground and the design, hatched on both maps.
+  * Labels: no arrow glyphs (they printed as "?").
+  Output: Bergama_masterplan_v26_A.pdf, Bergama_masterplan_v26_A_detail.pdf, logs/ KML.
 
 WHAT IT DRAWS (one page per alternative and zone-base option: 3 x 2 = six PDFs per press)
   Alternative 1  the programme puzzle of v2.3: every space of each working area (zones, river, streets, housing,
@@ -129,8 +144,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v25 (2026-10-27)"
-SHORT = "v25"
+VERSION = "bergama_masterplan v26 (2026-10-27)"
+SHORT = "v26"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -141,8 +156,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v25_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v25_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v26_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v26_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 #@include ../../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here

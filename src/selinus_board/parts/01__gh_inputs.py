@@ -1,9 +1,16 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v48)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v49)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v49 (2026-10-27, Aras 17:35, booklet Prompt 7 task 4: "the masterplan, the open-ground map and the new 'stream
+edge and where we can build' diagram ... side by side, at the same scale and in the same frame"):
+  * New drawing "06c The stream edge, masterplan spread" (crop drw_edge_build_e, drawn for 392 x 238 mm on the
+    booklet page, 1:5,000): the same two strips as 06b without the photos and viewpoints, laid out as the masterplan
+    page beside it (bergama_masterplan v26 crop mp_plan): the column on the booklet's 12-column grid from 297 mm
+    (edge shares beside the upstream strip; walled / embanked rings and where we can build beside the downstream
+    one), the legend under the strips, scale bar and north arrow at the column's foot. 06b (p.6) is unchanged.
 NEW IN v48 (2026-10-27, Aras 20:51 "Move the line", on the open point of booklet Prompt 5: the sections page's S4 and the
 water board's S4 were two different lines):
   * S4 is the water board's S4 (its detail section v2: the flat downstream end, the 62 m north-east bank cut, bed
@@ -307,8 +314,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v48 (2026-10-27)"     # v27: the log's first line and the text under the component
-SHORT_V = "v48"                                         # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v49 (2026-10-27)"     # v27: the log's first line and the text under the component
+SHORT_V = "v49"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

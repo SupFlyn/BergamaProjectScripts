@@ -649,7 +649,7 @@ def city_layer(opt, D, areas, survey, warn):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v25.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v26.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -880,32 +880,36 @@ def build_all(doc, warn):
                              len(C.kept), len(C.terr), C.steep.get("up", 0.0), C.steep.get("down", 0.0),
                              len(C.cross), u"at {:.0f}, {:.0f}".format(*C.terrace["xy"]) if C.terrace else u"none",
                              len(C.notes), time.time() - t0))
+            lines.append(u"option {}: no intervention: {} areas of {:.0f} ha or more ({})".format(
+                opt, len(C.nogo), NI_MIN_HA, u"; ".join(u"{:.1f} ha {}".format(r_["ha"], r_["why"]) for r_ in C.nogo)))
         except Exception as ex:
             import traceback
             warn.append(u"option {}: corridor NOT computed ({}: {})".format(opt, type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
+        if C is not None and opt == "A":                 # v26: the open ground for the satellite check (Google Earth)
+            try:
+                os.makedirs(LOG_DIR, exist_ok=True)
+                n_, f_ = open_ground_kml(C, os.path.join(LOG_DIR, OG_KML))
+                lines.append(u"logs/{}  {} open areas of {:.2f} ha or more, {} with no plant cover (satellite 2021) "
+                             u"first  {}".format(OG_KML, n_, OG_MIN_HA, f_, datetime.datetime.now().strftime("%H:%M:%S")))
+            except Exception as ex:
+                lines.append(u"logs/{}  NOT WRITTEN ({}: {})".format(OG_KML, type(ex).__name__, ex))
         for alt in (1,):                                 # v19: the one sheet
             name = OUT_NAME.format(opt, alt)
             t0 = time.time()
             try:
                 if C is None:
                     raise ValueError(u"no corridor computed (see the warnings)")
-                used = set()
-                hps = [half_panel(C, h, used, warn) for h in (0, 1)]
-                C.note_overflow = []
-                panels = [compose_half(C, hp, used, warn) for hp in hps] + [max_area_panel(C)]   # v24
-                np_ = notes_panel(C)                     # v24.1: notes the key columns had no room for
-                if np_ is not None:
-                    panels.append(np_)
-                    lines.append(u"notes {} on the notes panel (mp_notes): no room in the key columns".format(
-                        u", ".join(str(nt["n"]) for nt in sorted(C.note_overflow, key=lambda nt: nt["n"]))))
-                on_map = set(n for hp in hps for n in hp["placed"])
-                for nt in C.notes:
-                    if nt["n"] not in on_map:
-                        warn.append(u"masterplan note {} not placed on the plan (no free spot): {}".format(nt["n"], nt["text"]))
-                LEG.clear()                              # v24: the halves carry their own legend
+                panels = [ground_page(C, warn), plan_page(C, warn)]   # v26: the booklet pages p.23 and p.25
+                lines.append(u"masterplan page: {} callouts beside the plan; no-intervention notes placed {} of {}".format(
+                    len(C.notes), C.ni_placed, len(C.nogo)))
+                for r_ in C.nogo:
+                    if not r_.get("placed"):
+                        warn.append(u"no-intervention note not placed (no free spot in its area): {:.1f} ha {}".format(
+                            r_["ha"], r_["why"]))
+                LEG.clear()                              # v24: the pages carry their own legend
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v25 option {} (1:{:,.0f})".format(opt, MP_SCALE))
+                path = save(pg, folder, name, u"Bergama masterplan v26 option {} (1:{:,.0f})".format(opt, MP_SCALE))
                 files.append(path)
                 pages.append((opt, alt, pg))
                 sheets.append((path, pg, MP_SCALE))
@@ -933,7 +937,7 @@ def build_all(doc, warn):
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v25 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v26 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))
@@ -948,7 +952,16 @@ def build_all(doc, warn):
         try:
             res_ = city_results(CLs)
             if "A" in Cs:                                # v24: the proposal's movement (spec §4), for the site board
-                res_["movement"] = Cs["A"].movement()
+                C_ = Cs["A"]
+                res_["movement"] = C_.movement()
+                r2 = lambda p: [round(p[0], 1), round(p[1], 1)]
+                res_["notes"] = [{"n": nt["n"], "text": nt["text"], "why": nt["why"], "at": [r2(p) for p in nt["at"]]}
+                                 for nt in sorted(C_.notes, key=lambda nt: nt["n"])]   # v26: every reason, in full
+                res_["no_intervention"] = [{"kind": r_["kind"], "why": r_["why"], "ha": round(r_["ha"], 2),
+                                            "at": r2(r_["at"][0])} for r_ in C_.nogo]
+                res_["open_ground_check"] = {"imagery": OPEN_CHECK.get("imagery"), "date": OPEN_CHECK.get("date"),
+                                             "built_since": len(C_.built_since),
+                                             "kml": getattr(C_, "og_check", None)}
             os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)       # 27 Oct: results in cached/, output/ = PDFs only
             with open(os.path.join(bg_cache(OUT_FOLDER), RESULTS_NAME), "w", encoding="utf-8") as f:
                 json.dump(res_, f, ensure_ascii=False, indent=1)
@@ -1047,6 +1060,11 @@ CITY_LINK_COPY = '{"spine_banks": {"A": "SW", "B": "over", "C": "SW"}, "spine": 
 # WALK_COPY (v11): river_walks() run on the course survey "Bergama Müdahele Alanları" (17 Oct) with each option's
 # cleared buildings from ZONE_COPY, 24 Oct 2026; used only when the open file has no stream or bank layers.
 #@include ../data/WALK_COPY.py
+
+# LC_EMBED (v26): ESA WorldCover 2021 (CC BY 4.0) in survey coordinates, the site board's built-in copy
+# (data/landcover/bergama_landcover_worldcover2021.json, zlib + base64): the no-intervention reasons and the
+# open-ground figures read it.
+#@include ../../selinus_board/data/LC_EMBED.py
 
 
 if Rhino is not None:

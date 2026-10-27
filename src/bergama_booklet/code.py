@@ -10,6 +10,12 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v17 (Aras 27 Oct 17:35, Prompt 7 "masterplan"; masterplan v26, site board v49): theme E is the open ground
+(crop mp_max_area, now 1:5,000), then one spread: "Before the masterplan: the edge and where we can build" (site board
+crop drw_edge_build_e) on the left page, "Masterplan: an ecological corridor" (crop mp_plan: both halves, the notes as
+callouts beside them) on the right; all three the whole site frame at 1:5,000, drawn for the page at 1:1. "Why each
+place" is gone. A page marked flex goes after the spread that follows it when that spread would open on a right page
+(the log says so).
 NEW IN v16 (Aras 27 Oct 20:51 "Move the line"; site board v48): the S4 pages ("Four seasons on one cut", "The S4 cut,
 north-east bank") get the key map of the sections pages in their title band, S4 alone in ink (site board crop
 sec_sections_key_s4): the board's S4 is now the water board's S4. Without that crop the page is built as before and
@@ -72,7 +78,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v16"
+VERSION = "v17"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -721,6 +727,18 @@ def sources_page(pg, typo, pno, groups):
     footer(pg, typo, pno, {"part": None}, [])
 
 
+def flex_order(plan, typo):
+    """v17: a spread opens on a left (even) page: when it would open on a right page and the page before it is marked
+    flex, that page goes after the spread instead (plan index i = page i + 2: page 1 is the cover)."""
+    for i in range(1, len(plan) - 1):
+        if plan[i][0].get("spread") == "L" and i % 2 and plan[i - 1][0].get("flex"):
+            typo.notes.append("page '%s' moved after the spread '%s' so the spread opens on a left page" % (
+                plan[i - 1][0].get("title", ""), plan[i][0].get("title", "")))
+            n = 2 if plan[i + 1][0].get("spread") == "R" else 1
+            return plan[:i - 1] + plan[i:i + n] + [plan[i - 1]] + plan[i + n:]
+    return plan
+
+
 # ------------------------------------------------------------------ main
 def main():
     t0 = time.time()
@@ -735,6 +753,7 @@ def main():
             plan.append((spec, None))
         else:
             plan += expand(fitz, spec, assets)
+    plan = flex_order(plan, typo)
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
     cover(frame_page(fitz, doc, typo), typo, [(n, sp) for n, sp, _ in numbered])
     missing, rep = set(), []

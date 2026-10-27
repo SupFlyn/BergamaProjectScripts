@@ -1,4 +1,5 @@
-# ---- BOOKLET PLAN v16 (Aras 27 Oct 20:51: key map on the two S4 pages); v14 (Aras 27 Oct 17:34, Prompt 4: old p13 "How the stream behaves" merged into the water balance
+# ---- BOOKLET PLAN v17 (Aras 27 Oct 17:35, Prompt 7: E = open ground, then the spread edge | masterplan at 1:5,000;
+# "Why each place" gone, its notes are callouts beside the masterplan); v16 (Aras 27 Oct 20:51: key map on the two S4 pages); v14 (Aras 27 Oct 17:34, Prompt 4: old p13 "How the stream behaves" merged into the water balance
 # sheet's page, analysis first); v13 (Aras 27 Oct 17:34, Prompt 3: p.8 the three movement maps stacked, each the site frame at
 # 1:10,000); v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
 # where we can build; a key map on each sections page: "key" = a crop in the title band, "side" = panels at the right
@@ -94,17 +95,21 @@ PAGES = [
          rows=[[SLOT(u"Heritage on site: Roman bridges and tunnels, Red Hall, Ulu Cami, tannery quarter (later prompt)", 230.0, 200.0),
                 SLOT(u"What history asks of the edge (later prompt)", 146.0, 200.0)]]),
     dict(part="D", stage="do", title=u"The heritage loop", rows=[[SB + "drw_heritage_loop"]]),   # from old p8
-    # ---- E MASTERPLAN AS THE SYNTHESIS: one spread (left page even) = masterplan + open ground + new edge diagram
-    dict(part="E", stage="do", title=u"Masterplan: an ecological corridor", spread="L",
-         rows=[[MP + "mp_upstream"], [MP + "mp_downstream"]]),   # old p15
-    # old p17 bottom row (open ground) + new edge diagram + old p16 notes folded in (frame)
-    dict(part="E", stage="do", title=u"Masterplan: open ground and the new edge", spread="R",
-         rows=[[MP + "mp_max_area", SLOT(u"New edge diagram (later prompt)", 150.0, 110.0)], [MP + "mp_notes"]]),
+    # ---- E MASTERPLAN AS THE SYNTHESIS (v17, Prompt 7): the open ground, then one spread (left page even): the stream
+    # edge and where we can build | the masterplan; all three the whole site frame at 1:5,000, same frame and north,
+    # each drawn for the page at 1:1 (masterplan v26, site board v49). flex: this page goes after the spread when
+    # the spread would otherwise open on a right page.
+    dict(part="E", stage="an", title=u"Open ground: the most the masterplan can use", flex=True,
+         rows=[[MP + "mp_max_area"]]),   # old p17 bottom row
+    dict(part="E", stage="got", title=u"Before the masterplan: the edge and where we can build", spread="L",
+         rows=[[SB + "drw_edge_build_e"]]),   # Prompt 2's diagram (p.6) laid out for the spread
+    dict(part="E", stage="do", title=u"Masterplan: an ecological corridor", spread="R",
+         rows=[[MP + "mp_plan"]]),   # old p15 + old p16's notes as callouts
     dict(part="E", stage="do", title=u"The water edge at 1:1,000", rows=[[MP + "dt_upstream", MP + "dt_k5"]]),   # old p17 top row
 ]
 
-# v11: panels left out without a placeholder when their script did not write them (the masterplan notes, v24.1+)
-OPTIONAL_KEYS = {MP + "mp_notes"}
+# v11: panels left out without a placeholder when their script did not write them (v17: none since the notes page went)
+OPTIONAL_KEYS = set()
 
 # the sheets whose own "Sources by number" keys the [n] marks on these pages refer to (sources page, in this order)
 SOURCE_SHEETS = [SB + "Selinus_drawings.pdf", SB + "Selinus_01_what_is_there_axonometric.pdf",

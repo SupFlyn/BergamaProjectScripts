@@ -439,6 +439,8 @@ def build_sheet(S, B, X, Y, U, rects):
              ("06a Shade along the stream", 120.0 * U, lambda x, y: draw_shade_strip(S, B, x, y, 120.0 * U, U)),  # v47
              ("06b The stream edge and where we can build", 120.0 * U,                          # v45
               lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U)),
+             ("06c The stream edge, masterplan spread", 120.0 * U,                             # v49 (Prompt 7)
+              lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U, with_photos=False)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
              ("07b Commercial spines", 120.0 * U, lambda x, y: draw_commercial_spines(S, B, x, y, 120.0 * U, U)),
              ("07d City heritage loop", 120.0 * U, lambda x, y: draw_heritage_loop(S, B, x, y, 120.0 * U, U)),   # v46

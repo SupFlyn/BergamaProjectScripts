@@ -424,7 +424,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v25.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v26.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -435,6 +435,8 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             sc_ = getattr(p, "scale", scale)              # v24: each panel its own round scale
             leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []   # v24: p15 halves: in the crop
             bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=sc_, legend=leg_, drop=drop)
+            if bid in ("mp_plan", "mp_max_area"):         # v26: drawn for the booklet page at 1:1 (its width there)
+                bk.d["blocks"][bid]["bk_w"] = round(rc[2] - rc[0], 3)
             fr = {"crop": bid, "scale_den": sc_, "w_mm": round(rc[2] - rc[0], 1), "h_mm": round(rc[3] - rc[1], 1)}
             if bid in wd:
                 R = wd[bid]["R"]
