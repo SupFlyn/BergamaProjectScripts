@@ -2308,7 +2308,7 @@ def callouts(pg, S, placed, ybase, size):
 
 
 def dims(pg, S, y):
-    """Bottom chain: the design widths in mm (red), ticks at every boundary."""
+    """Bottom chain: the design widths in cm (red; water board v1.14, was mm), ticks at every boundary."""
     bounds = []
     for sa, sb, z, mat, lab in S.flats:
         bounds += [sa, sb]
@@ -2320,9 +2320,10 @@ def dims(pg, S, y):
     for X in xs:
         pg.line([(X - 0.8, y - 0.8), (X + 0.8, y + 0.8)], DIM, 0.2, layer="dimensions")
         pg.line([(X, y - 1.2), (X, y + 1.2)], DIM, 0.1, layer="dimensions")
-    for i in range(len(bounds) - 1):
-        mm = abs(bounds[i + 1] - bounds[i]) * 1000.0
-        pg.text("%d" % round(mm), (xs[i] + xs[i + 1]) / 2, y + 1.0, 1.9, DIM, align="C", layer="dimensions")
+    for i in range(len(bounds) - 1):          # water board v1.14 (Aras 27 Oct): the widths in cm, 7.5 pt
+        cm = abs(bounds[i + 1] - bounds[i]) * 100.0
+        pg.text("%d" % round(cm), (xs[i] + xs[i + 1]) / 2, y + 1.0, 2.65, DIM, align="C", layer="dimensions")
+    pg.text("cm", xs[-1] + 2.0, y - 0.9, 2.65, DIM, layer="dimensions")
 
 
 def vdims(pg, S, levels, x):
@@ -2388,17 +2389,22 @@ def band(pg, S, y, h=9.0):
             merged[-1] = (merged[-1][0], b, mat, lab)
         else:
             merged.append((a, b, mat, lab))
-    for a, b, mat, lab in merged:
+    drop = 0.0                                # water board v1.14: 7.5 pt names, every other one a row lower
+    for j, (a, b, mat, lab) in enumerate(merged):
         x0, x1 = sorted((S.X(a), S.X(b)))
         swatch(pg, x0, x1, y, h, mat, S.d["key"])
-        for i, l in enumerate(wrap(lab, max(8, int((x1 - x0) / 1.4)))):
-            pg.text(l, (x0 + x1) / 2, y - 3.6 - i * 2.6, 2.0, INK2, align="C", layer="band")
+        lines = wrap(lab, max(6, int((x1 - x0 + 4.0) / 1.5)))
+        y0 = y - 3.6 - (drop if j % 2 else 0.0)
+        for i, l in enumerate(lines):
+            pg.text(l, (x0 + x1) / 2, y0 - i * 3.4, 2.65, INK2, align="C", layer="band")
+        if j % 2 == 0:
+            drop = len(lines) * 3.4 + 0.8
 
 
 # ================================================================ one section
 def draw_section(pg, S, x_left, y_top, notes, sea):
     d = S.d
-    size = 2.3
+    size = 2.65                               # water board v1.14: callouts at 7.5 pt (was 2.3 mm)
     # vertical extents
     tops = [S.surf(t[0]) + t[2] for t in d["trees"]] + [DRY + 1.1]
     if d.get("pergola"):

@@ -3,7 +3,7 @@
 #@@ CUTS
 CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the bed low point), depths of EVENTS (m above the bed),
           # the width each level covers (from, to; m from the centreline, + = left bank looking downstream), notes
-    dict(key="flat", name=u"4 · FLAT DOWNSTREAM END", bed=41.33, u0=-62,
+    dict(key="flat", name=u"5 · FLAT DOWNSTREAM END", bed=41.33, u0=-62,
          ground=[3.97, 3.92, 3.88, 3.84, 3.80, 3.78, 3.76, 3.74, 3.72, 3.42, 2.79, 2.16, 1.52, 0.95, 0.89, 0.82, 0.76, 0.70, 0.68, 0.66, 0.64, 0.61, 0.59, 0.57, 0.55, 0.52, 0.50, 0.48, 0.46, 0.44, 0.41, 0.39, 0.37, 0.35, 0.33, 0.32, 0.30, 0.29, 0.27, 0.26, 0.24, 0.23, 0.21, 0.20, 0.19, 0.17, 0.16, 0.14, 0.13, 0.11, 0.10, 0.08, 0.07, 0.06, 0.04, 0.03, 0.01, 0.00, 0.00, 0.01, 0.01, 0.02, 0.02, 0.02, 0.03, 0.03, 0.04, 0.04, 0.05, 0.05, 0.06, 0.06, 0.07, 0.07, 0.08, 0.08, 0.08, 0.09, 0.09, 0.10, 0.09, 0.11, 0.13, 0.16, 0.18, 0.21, 0.24, 0.26, 0.29, 0.32, 0.35, 0.38, 0.41, 0.43, 0.46, 0.49, 0.54, 0.59, 0.64, 0.70, 0.75, 0.80, 0.86, 0.91, 0.96, 1.02, 1.07, 1.12, 1.18, 1.23, 1.28, 1.34, 1.46, 1.65, 1.84, 2.03, 2.22, 2.41, 2.61, 2.80, 2.94, 3.06, 3.17, 3.29, 3.40],
          dep=(0.23, 0.69, 1.14, 1.38, 1.54),
          ext=[(-20.5, 23.5), (-44.0, 36.5), (-49.0, 45.0), (-49.5, 49.0), (-50.0, 50.0)],
@@ -35,44 +35,45 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
          ground=[3.0] * 7 + [0.0] * 19 + [3.0] * 7,
          dep=(0.22, 1.07, 2.20, 2.87, 3.39),
          ext=[(-10.0, 10.0)] * 5,
-         tags=[("pin", u"20.00 m bed · 3.00 m deep · 3,720 m " + cite(u"SYGM North Aegean flood management plan 2019, p.75; depths on the design trapezoid, walls above 3 m taken as vertical"))]),
+         tags=[]),   # v1.14: its size is printed under the cut (draw_cut, DSI_SRC)
 ]
 
 #@@ SPECIES
-SPECIES = [  # v1.8: band, latin, local name, evidence as pictogram chips (figures as in the files), its source, flag
-    ("B", u"Typha angustifolia", u"narrow-leaf cattail", [("flood", u"70 cm water: 72 % biomass kept")], u"Song 2021", "", "C"),
-    ("B", u"Phragmites australis", u"kamış / saz", [("flood", u"70 cm continuous: 100 % die"), ("clean", u"TN 41–44 %")],
-     u"Song 2021; Turkish VF pilot, Korkusuz et al. 2004", u"spreads aggressively", "C+R"),
-    ("B", u"Iris pseudacorus", u"sarı süsen", [("flood", u"flooded up to 6 months")], u"FEIS", u"POISONOUS", "R"),
-    ("B", u"Juncus acutus", u"sharp rush", [("clean", u"Fe2+ 62 %")],
-     u"Turkish HSSF wetland Kızılcaören, Aydın Temel et al. 2017", "", "R"),
-    ("B", u"Mentha aquatica", u"su nanesi", [("clean", u"COD 71.3–91.4 % · BOD5 75.3–91.0 %")], u"HSSF wetland, Avelar 2012",
-     u"aromatic", "R"),
-    ("C", u"Salix alba", u"ak söğüt", [("flood", u"inundation-tolerant"), ("days", u"50–150 d/yr")],
-     u"JRC Atlas 'noticeably tolerant to inundation'; RWS 2023", "", "C+R"),
-    ("C", u"Tamarix smyrnensis", u"ılgın", [("flood", u"long inundation (genus)"), ("native", u"native · İzmir")],
-     u"JRC Atlas 'can survive prolonged periods of inundation'", "", "R"),
-    ("C", u"Vitex agnus-castus", u"hayıt", [("dry", u"intermittent streams · 92D0")], u"Salinas & Cueto 2009",
-     u"aromatic", "R"),
-    ("C", u"Nerium oleander", u"zakkum", [("dry", u"streams dry most of the year")], u"Salinas & Cueto 2009",
-     u"HIGHLY TOXIC: not near play", "C+R"),
-    ("D", u"Lythrum salicaria", u"aklar otu", [("flood", u"quite flood-tolerant"), ("clean", u"TN > 60 %")],
-     u"FEIS 'quite flood tolerant'; Xie et al. 2021", "", "R"),
-    ("D", u"Carex pendula, Juncus effusus", u"sedge, soft rush", [("flood", u"shallow-water banks (general)")],
-     u"USDA NRCS TN-38", "", "R"),
-    ("E", u"Fraxinus angustifolia", u"dişbudak", [("flood", u"temporary flooded lowlands")],
-     u"JRC Atlas 'grows well ... in temporary flooded lowlands'", "", "R"),
-    ("E", u"Populus alba", u"ak kavak", [("flood", u"waterlogged"), ("dry", u"to drought")],
-     u"JRC Atlas 'tolerating from waterlogged to drought habitats'", u"root suckers", "R"),
-    ("E", u"Platanus orientalis", u"çınar", [("dry", u"torrent gravels · drought-sensitive")],
-     u"EUNIS G1.381; Velikova et al. 2018", "", "C+R"),
-    ("E", u"Quercus robur, Ulmus laevis", u"oak, elm", [("days", u"oak 96 d/yr · elm ≤ 119 d/yr")],
-     u"hardwood floodplain, Schindler et al. 2022", "", "C"),
-    ("F", u"Lavandula stoechas", u"karabaş otu", [("flood", u"17 days flooded: survived"), ("dry", u"xerophyte")],
-     u"RHS trial; RHS", u"scent layer", "R"),
-    ("-", u"Arundo donax", u"kargı", [("warn", u"flood risk up · blocks watercourses, bridges")],
-     u"Bruno et al. 2019 'increased flooding risk'", u"REMOVE, do not plant", "R"),
+SPECIES = [  # v1.14 (Aras 27 Oct: "keep only the plants we use most or that are most beneficial"): the nine kept.
+    # (band, latin, local name, Wikipedia article, where (pictogram, keywords), why [(pictogram, keywords)], their
+    #  sources, warning). Evidence as in v1.13's list (concept v1 §9.2, research 04) and DATA_REGISTER PL rows.
+    ("E", u"Platanus orientalis", u"çınar", u"Platanus_orientalis", ("tree", u"dry hub squares K3 · K4 · K5"),
+     [("tree", u"shade where crowns are few"), ("drop", u"drought-sensitive: watered from storage")],
+     u"D8 (history_phase1/DECISIONS.md): Ottoman squares with plane trees (ICOMOS, h02 s13 p281); h03 Q4: "
+     u"drought-sensitive mesophyte along perennial streams; " + REG + u" PL-13, PL-14", u""),
+    ("F", u"Olea europaea", u"zeytin", u"Olea_europaea", ("olive", u"dry top · Demeter's Garden K5"),
+     [("dry", u"drought-resistant · no waterlogging"), ("olive", u"Red Hall: 19th-c. olive-oil mill")],
+     REG + u" PL-12 (FAO Ecocrop); h02 §1.6: olive-oil machinery in the Red Hall south rotunda, 19th c. (s25)", u""),
+    ("F", u"Lavandula stoechas", u"karabaş otu", u"Lavandula_stoechas", ("lav", u"dry top · above Q500"),
+     [("dry", u"xerophyte · fast-draining soil"), ("flood", u"17 days flooded: survived")],
+     u"RHS trial; " + REG + u" PL-11 (RHS)", u"scent layer"),
+    ("C", u"Tamarix smyrnensis", u"ılgın", u"Tamarix_smyrnensis", ("tree", u"flood terraces"),
+     [("flood", u"long inundation (genus)"), ("native", u"native · İzmir")],
+     u"JRC Atlas 'can survive prolonged periods of inundation'; " + REG + u" PL-01, PL-10", u""),
+    ("C", u"Vitex agnus-castus", u"hayıt", u"Vitex_agnus-castus", ("tree", u"flood terraces"),
+     [("dry", u"intermittent streams"), ("native", u"native · honey plant")],
+     u"Salinas & Cueto 2009; " + REG + u" PL-02, PL-19", u"aromatic"),
+    ("C", u"Salix alba", u"ak söğüt", u"Salix_alba", ("tree", u"willow band · 50-150 d"),
+     [("flood", u"inundation-tolerant"), ("clean", u"cleans riverbanks")],
+     u"JRC Atlas 'noticeably tolerant to inundation'; " + REG + u" PL-17 (phytoremediation of riverbanks); RWS 2023",
+     u""),
+    ("B", u"Phragmites australis", u"kamış", u"Phragmites_australis", ("reed", u"reed beds · bed edge"),
+     [("clean", u"reed beds: NH4-N 58-88 %"), ("flood", u"0.70 m standing water: dies")],
+     u"Korkusuz et al. 2004 (" + REG + u" PL-09); Song 2021 (PL-06)", u"spreads"),
+    ("B", u"Iris pseudacorus", u"sarı süsen", u"Iris_pseudacorus", ("reed", u"bed edge, not where people touch"),
+     [("flood", u"flooded up to 6 months"), ("clean", u"takes up N and P")],
+     u"FEIS; " + REG + u" PL-20, PL-21", u"POISONOUS"),
+    ("B", u"Mentha aquatica", u"su nanesi", u"Mentha_aquatica", ("reed", u"reed beds · upstream entry"),
+     [("clean", u"COD 71-91 % removed"), ("clean", u"microbes > 80 % removed")],
+     u"HSSF wetland, Avelar 2012; " + REG + u" PL-22", u"aromatic"),
 ]
+SPECIES_REMOVE = (u"Arundo donax", u"kargı", u"remove: raises flood risk, blocks the channel",
+                  u"Bruno et al. 2019 'increased flooding risk'; " + REG + u" PL-25")
 
 #@@ SKETCH_SRC
 SKETCH_SRC = r'''# The idea sketches of pr1_drawings v3.1 (concept sections, SKETCH style), run in their own namespace: pr1 baked them
@@ -3138,7 +3139,7 @@ def callouts(pg, S, placed, ybase, size):
 
 
 def dims(pg, S, y):
-    """Bottom chain: the design widths in mm (red), ticks at every boundary."""
+    """Bottom chain: the design widths in cm (red; water board v1.14, was mm), ticks at every boundary."""
     bounds = []
     for sa, sb, z, mat, lab in S.flats:
         bounds += [sa, sb]
@@ -3150,9 +3151,10 @@ def dims(pg, S, y):
     for X in xs:
         pg.line([(X - 0.8, y - 0.8), (X + 0.8, y + 0.8)], DIM, 0.2, layer="dimensions")
         pg.line([(X, y - 1.2), (X, y + 1.2)], DIM, 0.1, layer="dimensions")
-    for i in range(len(bounds) - 1):
-        mm = abs(bounds[i + 1] - bounds[i]) * 1000.0
-        pg.text("%d" % round(mm), (xs[i] + xs[i + 1]) / 2, y + 1.0, 1.9, DIM, align="C", layer="dimensions")
+    for i in range(len(bounds) - 1):          # water board v1.14 (Aras 27 Oct): the widths in cm, 7.5 pt
+        cm = abs(bounds[i + 1] - bounds[i]) * 100.0
+        pg.text("%d" % round(cm), (xs[i] + xs[i + 1]) / 2, y + 1.0, 2.65, DIM, align="C", layer="dimensions")
+    pg.text("cm", xs[-1] + 2.0, y - 0.9, 2.65, DIM, layer="dimensions")
 
 
 def vdims(pg, S, levels, x):
@@ -3218,17 +3220,22 @@ def band(pg, S, y, h=9.0):
             merged[-1] = (merged[-1][0], b, mat, lab)
         else:
             merged.append((a, b, mat, lab))
-    for a, b, mat, lab in merged:
+    drop = 0.0                                # water board v1.14: 7.5 pt names, every other one a row lower
+    for j, (a, b, mat, lab) in enumerate(merged):
         x0, x1 = sorted((S.X(a), S.X(b)))
         swatch(pg, x0, x1, y, h, mat, S.d["key"])
-        for i, l in enumerate(wrap(lab, max(8, int((x1 - x0) / 1.4)))):
-            pg.text(l, (x0 + x1) / 2, y - 3.6 - i * 2.6, 2.0, INK2, align="C", layer="band")
+        lines = wrap(lab, max(6, int((x1 - x0 + 4.0) / 1.5)))
+        y0 = y - 3.6 - (drop if j % 2 else 0.0)
+        for i, l in enumerate(lines):
+            pg.text(l, (x0 + x1) / 2, y0 - i * 3.4, 2.65, INK2, align="C", layer="band")
+        if j % 2 == 0:
+            drop = len(lines) * 3.4 + 0.8
 
 
 # ================================================================ one section
 def draw_section(pg, S, x_left, y_top, notes, sea):
     d = S.d
-    size = 2.3
+    size = 2.65                               # water board v1.14: callouts at 7.5 pt (was 2.3 mm)
     # vertical extents
     tops = [S.surf(t[0]) + t[2] for t in d["trees"]] + [DRY + 1.1]
     if d.get("pergola"):
