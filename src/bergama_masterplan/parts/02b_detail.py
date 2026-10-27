@@ -2,9 +2,8 @@
 # Aras 25 Oct 21:49 on the booklet's 1:1,000 page: "this should add more detail from what we have shown in
 # masterplan". The detail sheet shows the two windows of the booklet's C3 page (upstream entry; K5 with Demeter's
 # Garden) at 1:1,000 with what the whole plan cannot show, all from the project's data:
-#   cuts      the water board's surveyed channel cuts (the proposal sections stand on them) and the site board's
-#             section lines crossing the window, named; at a cut its bed level and the DSI Q100 / Q500 levels with
-#             the width each covers on the cut (CUT_AT)
+#   cuts      at the water board's surveyed channel cuts (the proposal sections stand on them) the bed level and
+#             the DSI Q100 / Q500 levels with the width each covers there (CUT_AT); v25: no cut or section lines
 #   route     the zone base's water links numbered in the order of the water route (ROUTE), with the areas the
 #             script computes from the zone curves (no script computes a storage volume: left out, logged)
 #   planting  band letters and species codes of the booklet's verified list (plan page C7 = water board v1.9
@@ -28,10 +27,6 @@ CUT_AT = [("1", u"UPSTREAM ENTRY", (29693.022, 32569.176), (-74.5, 85.5), 70.36,
           ("2", u"K4 BRIDGE", (29959.774, 32264.566), (-21.0, 91.5), 64.77, (67.33, -58.5, 16.5), (67.61, -70.5, 16.5)),
           ("3", u"K5 BRIDGE", (30354.663, 31689.671), (-86.0, 64.5), 55.96, (58.41, -37.5, 12.0), (58.75, -45.5, 12.5)),
           ("4", u"DOWNSTREAM REACH", (30991.856, 31039.404), (-39.5, 26.5), 45.67, (47.72, -29.5, 19.5), (48.0, -30.5, 20.0))]
-# The site board's section lines S1-S6 (selinus_board v39 SECTION_LINES_LK, its names in this order), survey m
-SITE_SECTIONS = [((29545.739, 32125.562), (30167.095, 32687.137)), ((29806.600, 31571.233), (30610.920, 32286.788)),
-                 ((30366.363, 31067.627), (31210.537, 31688.982)), ((30616.355, 30540.471), (31489.513, 31161.826)),
-                 ((29455.902, 32763.450), (30154.568, 32040.938)), ((31571.801, 30442.533), (30689.179, 31396.583))]
 # The water route at the upstream entry (zone base links, by the zones they join): order and short words
 ROUTE = [((None, "WT"), u"INTO {}", 1), (("WS", "WT"), u"FROM {}", 0), (("WT", "WD"), u"TO {}", 1),
          (("WD", None), u"BACK TO THE STREAM", None)]   # (from, to), words, which end's zone they name
@@ -214,7 +209,9 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
                          (cx - ux * 1.0 - nx * ww, cy - uy * 1.0 - ny * ww)], ink2, 0.25)
             taken.append(bbox(ring_))
             leg(("dt", "ramp"))
-        # ---- the cuts: water board channel cuts (with their levels) and the site board's section lines
+        # ---- the flood levels at the water board's surveyed channel cuts: the width Q100 / Q500 cover there, the bed
+        # and both levels. v25 (booklet Prompt 2: "no section lines on any map"): the cut lines, their view markers
+        # and the site board's section lines are no longer drawn (each sections page has its own key map)
         cut_lab = []
         for num, nm, c, span, bed, q100, q500 in CUT_AT:
             if not inR(c):
@@ -224,37 +221,13 @@ def detail_overlay(win, D, CL, spots, plc, missing, warn):
             for lv, lw, colr in ((q500, 2.2, COL["river_mid"]), (q100, 2.2, COL["river_dark"])):
                 pg.line([T(at(lv[1])), T(at(lv[2]))], colr, lw, cap=0, alpha=0.45)
             leg(("dt", "q"))
-            P = [T(at(span[0])), T(at(span[1]))]
-            pg.line(P, ink, 0.35, [4.0, 1.0, 0.6, 1.0], cap=0)
-            for e_, sg in ((P[0], 1.0), (P[1], -1.0)):     # view markers: filled triangles looking downstream
-                tx, ty = T((c[0] + t[0], c[1] + t[1]))
-                ox, oy = T(c)
-                vx, vy = tx - ox, ty - oy
-                L_ = math.hypot(vx, vy) or 1.0
-                vx, vy = vx / L_, vy / L_
-                pg.poly([[(e_[0] + vx * 2.6, e_[1] + vy * 2.6), (e_[0] - vy * 1.3, e_[1] + vx * 1.3),
-                          (e_[0] + vy * 1.3, e_[1] - vx * 1.3)]], fill=ink)
+            P = [T(at(q500[1])), T(at(q500[2]))]
             x0, y0 = T(c)
-            pg.line([(x0 - 0.9, y0 - 0.9), (x0 + 0.9, y0 + 0.9)], COL["river_dark"], 0.3)
-            pg.line([(x0 - 0.9, y0 + 0.9), (x0 + 0.9, y0 - 0.9)], COL["river_dark"], 0.3)
-            _boxes_line(P, 0.8, taken)
-            leg(("dt", "cut"))
+            _boxes_line(P, 1.2, taken)
             inside = [p for p in P if 0 <= p[0] <= dw and 0 <= p[1] <= dh]
-            cut_lab.append(([(u"SECTION {} · {}".format(num, nm), DT_TS, True),
-                             (u"bed +{:.2f}".format(bed), DT_TS, False),
+            cut_lab.append(([(nm, DT_TS, True), (u"bed +{:.2f}".format(bed), DT_TS, False),
                              (u"Q100 +{:.2f} · Q500 +{:.2f}".format(q100[0], q500[0]), DT_TS, False)],
                             inside[0] if inside else (min(max(x0, 2.0), dw - 2.0), min(max(y0, 2.0), dh - 2.0))))
-        for i, (a, b) in enumerate(SITE_SECTIONS):
-            P = [T(p) for p in cut_runs([a, b], lambda x, y: inR((x, y)), 2.0)[0]] \
-                if cut_runs([a, b], lambda x, y: inR((x, y)), 2.0) else []
-            if len(P) < 2:
-                continue
-            pg.line(P, ink2, 0.3, [4.0, 1.0, 0.6, 1.0], cap=0)
-            _boxes_line(P, 0.8, taken)
-            leg(("dt", "site"))
-            end = max(P, key=lambda p: p[1])
-            cut_lab.append(([(u"SITE SECTION S{}".format(i + 1), DT_TS, True)],
-                            (min(max(end[0], 2.0), dw - 2.0), min(max(end[1], 2.0), dh - 2.0))))
         # ---- the water route: the zone base's water links, numbered in the route's order
         steps = []
         for L in D.links:
@@ -397,9 +370,7 @@ def detail_legend():
         pg.text(u"1", x + w / 2, y + h / 2 - 1.2, 3.4, W_, bold=True, align="C")
 
     det = []
-    for key, name, f in ((("dt", "cut"), u"SECTION · CHANNEL CUT", line_sw((COL["ink_dark"], 0.35, [4.0, 1.0, 0.6, 1.0], None))),
-                         (("dt", "site"), u"SITE SECTION · SITE BOARD", line_sw((COL["ink2"], 0.3, [4.0, 1.0, 0.6, 1.0], None))),
-                         (("dt", "q"), u"Q500 / Q100 WIDTH ON THE CUT",
+    for key, name, f in ((("dt", "q"), u"Q500 / Q100 FLOOD WIDTH AT A SURVEYED CUT",
                           line_sw((COL["river_mid"], 2.2, None, 0.45), (COL["river_dark"], 1.0, None, 0.45))),
                          (("dt", "route"), u"WATER ROUTE · STEP", route_sw),
                          (("dt", "spot_bed"), u"SPOT LEVEL · BED (m)", cross_sw(COL["river_dark"])),
@@ -430,8 +401,7 @@ def crop_legend(keys, alpha):
     for key, nm, f in LEGEND_V24:
         if ("v24", key) in keys and key in LEG_BOOK:
             add(LEG_BOOK[key][0], LEG_BOOK[key][1], nm.lower() if nm.isupper() else nm)
-    for key, kind, colour, label in ((("dt", "cut"), "line", COL["ink_dark"], u"section"),
-                                     (("dt", "q"), "line", COL["river_mid"], u"Q500 width on the cut"),
+    for key, kind, colour, label in ((("dt", "q"), "line", COL["river_mid"], u"Q500 flood width"),
                                      (("dt", "route"), "dot", COL["river_dark"], u"water route step"),
                                      (("dt", "spot_bed"), "dot", COL["river_dark"], u"spot level, bed"),
                                      (("dt", "spot_bank"), "dot", COL["ink_dark"], u"spot level, bank top"),
@@ -454,7 +424,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v24_1.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v25.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)

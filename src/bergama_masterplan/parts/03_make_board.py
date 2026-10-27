@@ -649,7 +649,7 @@ def city_layer(opt, D, areas, survey, warn):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v24_1.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v25.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -905,7 +905,7 @@ def build_all(doc, warn):
                         warn.append(u"masterplan note {} not placed on the plan (no free spot): {}".format(nt["n"], nt["text"]))
                 LEG.clear()                              # v24: the halves carry their own legend
                 pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan v24.1 option {} (1:{:,.0f})".format(opt, MP_SCALE))
+                path = save(pg, folder, name, u"Bergama masterplan v25 option {} (1:{:,.0f})".format(opt, MP_SCALE))
                 files.append(path)
                 pages.append((opt, alt, pg))
                 sheets.append((path, pg, MP_SCALE))
@@ -933,7 +933,7 @@ def build_all(doc, warn):
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan v24.1 detail option {} (1:1,000)".format(opt))
+                path = save(pg, folder, name, u"Bergama masterplan v25 detail option {} (1:1,000)".format(opt))
                 files.append(path)
                 pages.append((opt, "detail", pg))
                 sheets.append((path, pg, DT_SCALE))

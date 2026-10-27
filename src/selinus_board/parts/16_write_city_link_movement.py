@@ -463,14 +463,17 @@ def build_sheet(S, B, X, Y, U, rects):
     SA = getattr(S, "whole", None) or S                  # v36: plan 01 over the whole file
     if SA is not S:
         SA.sec_lines, SA.sections = S.sec_lines, S.sections
+        SA.site = S                                      # v45: plan 01's booklet legend leaves out the ring's colours
     w01 = 120.0 * U * (SA.F.w / context_frame(F).w if SA is not S else 1.0)    # v36: same print scale as the site
     items = [("01 What is there", w01, lambda x, y: draw_what_is_there(SA, B, x, y, w01, U)),
              ("02 Land-use legend", 30.8 * U, lambda x, y: draw_legend(S, B, x, y, 30.8 * U, U)),
              ("03 Distribution", 12.4 * U, lambda x, y: draw_distribution(S, B, x, y, U)),
              ("04 Green, farmland and orchards", 30.8 * U, lambda x, y: draw_green_table(S, B, x, y, 30.8 * U, U)),
              ("05 Readings", 24.0 * U, lambda x, y: draw_readings(S, B, x, y, 24.0 * U, None, U)),
+             ("05c Site readings", 40.0 * U, lambda x, y: draw_site_readings(S, B, x, y, 40.0 * U, U)),   # v45
              ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
-             ("06b What meets the water", 120.0 * U, lambda x, y: draw_stream_edge_plan(S, B, x, y, 120.0 * U, U)),
+             ("06b The stream edge and where we can build", 120.0 * U,                          # v45
+              lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
              ("07b Commercial spines", 120.0 * U, lambda x, y: draw_commercial_spines(S, B, x, y, 120.0 * U, U)),
              ("07d City heritage loop", 40.0 * U, lambda x, y: draw_heritage_loop(S, B, x, y, 40.0 * U, U)),

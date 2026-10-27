@@ -1,5 +1,5 @@
 # ============================================================ v44 (Aras 27 Oct 11:07; revision_2026-10-27/PHASE2_SPEC.md)
-# Booklet pages 5-8 of the site board: the stream edge large with its analyses beside it, the movement page's key
+# Booklet pages 5-8 of the site board (v45: the stream edge plan is draw_edge_build, 15e): the movement page's key
 # streets, the masterplan's proposal map, the commercial spines (restored from v19-v32.1), the city heritage loop,
 # the walking-effort proof (Tobler) and the building types under the cuts. Sizes are set from the booklet page: a
 # drawing w board units wide fills the booklet's panel width BK_AW mm, so 1 booklet mm = w / BK_AW board units and a
@@ -7,8 +7,6 @@
 # test (place_labels); a label with no free spot becomes a number with a key line under the map.
 BK_STD = (100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000)   # = bergama_booklet STD_SCALES
 BK_GAP_MM = 6.0         # mm on the booklet page between two map pieces / a map and its analysis column
-EDGE_COL_MM = 92.0      # mm of the booklet page kept beside the edge maps for the edge analyses
-EDGE_PLAN_DENS = (1000, 2000, 2500, 5000, 10000, 20000)   # round booklet scales tried for the edge plan, largest first
 MV_KEY_N = 5            # key streets named on "walking / driving today": the top 5 named streets (50 m+) by potential
 CROSS_HALF = 20.0       # m: a masterplan crossing joins the walking network as a line this far to each side of its
 #                         point, across the stream (a network join for the engine, never drawn)
@@ -179,170 +177,6 @@ def sub_frame(F, ua, ub, va=None, vb=None):
     va = F.v0 if va is None else va
     vb = F.v1 if vb is None else vb
     return Frame([F.world(ua, va), F.world(ub, va), F.world(ub, vb), F.world(ua, vb)])
-
-
-# ------------------------------------------------------------ p.5 the stream edge, large, with its analyses
-def edge_plan_fit(F):
-    """v44: (den, n): the largest round booklet scale 1:den at which the site frame, cut along its length into n equal
-    pieces stacked (n <= 3, each still longer than wide), fits the booklet page with the analysis column beside it."""
-    for den in EDGE_PLAN_DENS:
-        for n in (1, 2, 3):
-            if F.w / n < 1.05 * F.h:
-                break
-            mw, mh = F.w / n * 1000.0 / den, F.h * 1000.0 / den
-            if mw + BK_GAP_MM + EDGE_COL_MM <= BK_AW and n * mh + (n - 1) * BK_GAP_MM <= BK_AH:
-                return den, n
-    return EDGE_PLAN_DENS[-1], 1
-
-
-def draw_stream_edge_plan(S, B, x, y, w, U):
-    """v44 (p.5, Aras 27 Oct: "edge map on its own and large; photo numbers large; edge types and distribution on the
-    same page"): the site frame at the largest round booklet scale that fits an A3 page (cut into stacked pieces along
-    its length when one piece would be too small), the edge types along both banks, walls and embankments, bridges
-    K1-K6, the cuts and the photo viewpoints as 12 pt numbers on discs; beside it, inside the same crop, each edge
-    type's share of the bank length and the walled / embanked shares. Returns the y below."""
-    L = "LU_BOARD::StreamEdge"
-    F = S.F
-    sh, wl_, em_, tot = edge_shares(S)
-    k = w / BK_AW                                         # board units per booklet mm: the crop fills the page width
-    h7, h9, h12 = bk_hk(7.5, k), bk_hk(9.0, k), bk_hk(12.0, k)
-    den, n = edge_plan_fit(F)
-    ss = 1000.0 * k / den                                 # board units per metre: 1:den on the booklet page
-    B.text("WHAT MEETS THE WATER · BANK BY BANK", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
-    B.text(u"edge types every 4 m · walls · bridges · cuts · photo viewpoints", x, y - 1.5 * U, CTX_H * U, INK2, L)
-    top = y - 2.6 * U
-    mw, mh = F.w / n * ss, F.h * ss
-    photos = []
-    try:
-        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
-    except Exception:
-        LOG.append("WARNING: the site photos could not be read for the edge plan:\n" + traceback.format_exc())
-    rd = 0.95 * h12                                       # disc radius of a photo number
-    taken, klabels, low = [], [], top
-    for i in range(n):
-        Fi = sub_frame(F, F.u0 + i * F.w / n, F.u0 + (i + 1) * F.w / n)
-        yt = top - i * (mh + BK_GAP_MM * k)
-        V = View(Fi, ss, x, yt)
-        r = (x, yt - mh, x + mw, yt)
-        CB = ClipB(B, r)
-        if i == 0:                                        # the north arrow's corner stays free
-            taken.append((x + mw - 2.2 * U, yt - 2.2 * U, x + mw, yt))
-        B.fill([rect(*r)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
-        road_lines(S, CB, V, L, 3, casing=mix(INK2, PAPER, 0.7), surface=mix(ROADC, PAPER, 0.3), min_w=0.03,
-                   fill=mix(ROAD_FILL, PAPER, 0.55), hatch=False)
-        mini_buildings(S, CB, V, L, lambda u: mix(INK2, PAPER, 0.62 if not u["annex"] else 0.78), order=5)
-        for wt in S.water:
-            CB.fill(V.Ps([wt["P"]] + wt.get("H", [])), CAT["water"][1], L, 6)
-        for P in getattr(S, "covered", []):              # the covered course, dashed over the streets
-            for d in dashes(V.P(P), 0.35 * U, 0.25 * U):
-                CB.line(d, BLUE_D, L, 19, 0.12)
-        for typ, pts in getattr(S, "edge_runs", []):
-            CB.line(V.P(pts), EDGE[typ][1], L, 24, EDGE_PLAN_W)
-        for pts in getattr(S, "wall_runs", []):
-            for d in dashes(V.P(pts), 0.22 * U, 0.18 * U):
-                CB.line(d, PAPER, L, 25, EDGE_MARK_W)
-        for pts in getattr(S, "bank_runs", []):
-            for d in dashes(V.P(pts), 0.06 * U, 0.22 * U):
-                CB.line(d, PAPER, L, 25, EDGE_MARK_W)
-        for x0, y0, x1, y1, nm in S.sec_lines:            # the cuts: dashed, their names at the ends inside the map
-            a_, b_ = V.p(x0, y0), V.p(x1, y1)
-            for seg in dashes([a_, b_], 0.55 * U, 0.3 * U):
-                CB.line(seg, INK2, L, 20, 0.1)
-            for (sx, sy), lab in ((a_, nm), (b_, nm + "'")):
-                if r[0] <= sx <= r[2] and r[1] <= sy <= r[3]:
-                    klabels.append(([lab], sx, sy, h9, INK2))
-        for kk, nm, bx, by in BRIDGES_K:                  # bridges: a tick across the stream, the name beside it
-            if not Fi.inside(bx, by):
-                continue
-            px, py = V.p(bx, by)
-            nrm = stream_normal(S, bx, by) or (0.0, 1.0)
-            a_ = V.p(bx + nrm[0], by + nrm[1])
-            ln = math.hypot(a_[0] - px, a_[1] - py) or 1.0
-            e = ((a_[0] - px) / ln * 0.5 * h12, (a_[1] - py) / ln * 0.5 * h12)
-            B.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], INK, L, 62, 0.35)
-            taken.append((px - 0.3 * h12, py - 0.3 * h12, px + 0.3 * h12, py + 0.3 * h12))
-            klabels.append(([kk], px, py, h12, INK))
-        for j, (p, it) in enumerate(photos):              # photo viewpoints: numbered discs, moved onto a leader
-            if not Fi.inside(it["x"], it["y"]):           # when they would cover another
-                continue
-            px, py = V.p(it["x"], it["y"])
-            spot = None
-            for far in (0.0, 2.4, 3.6):
-                for a in range(8 if far else 1):
-                    cx_, cy_ = px + far * rd * math.cos(a * math.pi / 4.0), py + far * rd * math.sin(a * math.pi / 4.0)
-                    b = (cx_ - rd, cy_ - rd, cx_ + rd, cy_ + rd)
-                    if r[0] <= b[0] and b[2] <= r[2] and r[1] <= b[1] and b[3] <= r[3] and not _hit(b, taken):
-                        spot = (cx_, cy_, b)
-                        break
-                if spot:
-                    break
-            if spot is None:
-                spot = (px, py, (px - rd, py - rd, px + rd, py + rd))
-            cx_, cy_, b = spot
-            if (cx_, cy_) != (px, py):
-                B.line([(px, py), (cx_, cy_)], INK, L, 63, 0.12)
-                B.fill([circle_pts(px, py, 0.18 * rd, 8)], INK, L, 63)
-            B.fill([circle_pts(cx_, cy_, rd, 20)], INK, L, 64)
-            B.text(str(j + 1), cx_, cy_, h12, (255, 255, 255), L, order=65, font=FONT_TITLE, bold=True, align="MC")
-            taken.append(b)
-        B.line(rect(*r) + [(r[0], r[1])], INK, L, 26, 0.2)
-        if i == 0:
-            draw_north_small(B, V, mw, mh, U, L, size=0.7)
-        if i < n - 1:
-            B.text(u"continues below", r[2], r[1] - 0.4 * h7 - h7, h7, INK2, L, font=FONT_TITLE, align="R")
-        if i > 0:
-            B.text(u"continued from above", r[0], r[3] + 0.4 * h7, h7, INK2, L, font=FONT_TITLE)
-        low = r[1]
-    key = place_labels(B, klabels, taken, L, bounds=(x, low, x + mw, top))
-    if key:
-        low = draw_label_key(B, key, x, low - 0.5 * h9, mw, h9, L)
-    # the analyses beside the maps: share of the bank length per edge type, walled and embanked
-    cx0 = x + mw + BK_GAP_MM * k
-    cw = x + w - cx0
-    yy = top - h9
-    leg = []
-    if tot > 0:
-        B.text(u"EDGE TYPES · % OF THE BANK LENGTH", cx0, yy, h9, INK, L, font=FONT_TITLE, bold=True)
-        yy -= 1.5 * h9
-        B.text(u"{:,.1f} km of bank, both sides, every 4 m {}".format(tot / 1000.0, bcite(
-            "Stream edges: what meets the water along each bank, sampled every 4 m along the surveyed banks (nearest "
-            "building within 8 m, walkable path or stairs, street, parking, planted ground; else loose); walled = a "
-            "surveyed wall within 3 m, embanked = only a surveyed slope line within 3 m.")), cx0, yy, h7, INK2, L,
-            font=FONT_TITLE)
-        yy -= 2.6 * h9
-        vmax = max(sh.values() or [1.0]) or 1.0
-        lw = 0.42 * cw
-        bw0 = cw - lw - tw(u"100%", h9, "sans") - 1.0 * h9
-        for k_ in EDGE_ORDER:
-            v_ = sh.get(k_, 0.0)
-            if v_ <= 0:
-                continue
-            B.fit(short(EDGE[k_][0]), cx0, yy, h9, lw - 0.5 * h9, INK, L, font=FONT_TITLE)
-            bx_ = cx0 + lw
-            B.fill([rect(bx_, yy - 0.2 * h9, bx_ + bw0 * v_ / vmax, yy + 1.1 * h9)], EDGE[k_][1], L, 20)
-            B.text(u"{:.0f}%".format(v_), bx_ + bw0 * v_ / vmax + 0.5 * h9, yy, h9, INK, L, font=FONT_TITLE, bold=True)
-            leg.append(("thick", EDGE[k_][1], short(EDGE[k_][0])))
-            yy -= 2.2 * h9
-        yy -= 0.8 * h9
-        rr = min(0.2 * cw, 3.2 * h12)                     # walled and embanked as two rings
-        for j, (pct, lab) in enumerate(((wl_, u"walled"), (em_, u"embanked"))):
-            rx = cx0 + rr + j * (2.0 * rr + 0.12 * cw)
-            ry = yy - rr
-            vis_ring(B, rx, ry, rr, pct, INK2, FAINT, L)
-            B.text(u"{:.0f}%".format(pct), rx, ry, h12, INK, L, order=40, font=FONT_TITLE, bold=True, align="MC")
-            B.text(lab, rx, ry - rr - 1.6 * h9, h9, INK, L, font=FONT_TITLE, align="C")
-        yy -= 2.0 * rr + 3.4 * h9
-    leg2 = [("walled", INK2, "Walled bank"), ("embanked", INK2, "Embanked bank"), ("ktick", INK, "Bridges K1-K6"),
-            ("cdot", INK, "Photo viewpoint, numbered as under the photos"), ("dash", BLUE_D, "Covered course"),
-            ("dash", INK2, "Cut S1-S8")]
-    yy = draw_legend_items(B, leg2, cx0, yy, cw, U, L, h=h9 / U)
-    sb = nice_floor(min(F.w / n / 4.0, max(10.0, (cw - 3.0 * U) / ss)))
-    draw_scalebar(B, cx0, yy - 1.8 * h9, ss, sb, U, L, h=h7 / U)
-    yy -= 3.0 * h9
-    low = min(low, yy)
-    crop_panel("edge_plan", x, low - 0.2 * U, x + w, top + 0.2 * U, u"What meets the water · bank by bank",
-               crop_scale(ss), crop_legend(leg + leg2))
-    return low - 0.4 * U
 
 
 # ------------------------------------------------------------ p.5 photo captions

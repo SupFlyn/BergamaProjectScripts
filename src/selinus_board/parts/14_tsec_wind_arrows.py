@@ -513,15 +513,16 @@ def sec_art_png(S, sd_, ss, tag):
     return (path, zlo, zhi)
 
 
-def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_txt=None):
+def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_txt=None, loc=True):
     """One long section: the surveyed ground, the bed, the buildings at their heights; behind the cut a picture of what
-    the section sees (buildings and ground beyond, trees at their measured size, scale figures)."""
+    the section sees (buildings and ground beyond, trees at their measured size, scale figures). v45: loc=False draws
+    no locator (the sections page has one key map); scale_txt="" writes no scale word (the page states one)."""
     L = "LU_BOARD::Sections"
     nm = sd_["name"]
     Lm = sd_["L"]
     pk, pn = sd_.get("part", (1, 1))
     off = sd_.get("s_off", 0.0)
-    locw = min(9.0 * U, 0.22 * w)
+    locw = min(9.0 * U, 0.22 * w) if loc else 0.0
     if pk == 1:
         # ---- header: mark, title, one or two caption lines, locator with north arrow
         mk = circle_pts(x + 0.45 * U, y + 0.22 * U, 0.45 * U, 24)
@@ -539,8 +540,11 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_t
         for ln in lines:
             B.text(ln, tx, cy, 0.3 * U, INK2, L)
             cy -= 0.3 * U * 1.8
-        lb = draw_locator(S, B, x + w - locw, y + 0.55 * U, locw, U, L, [sd_["line"]])
-        top = min(cy + 0.3 * U, lb - 1.2 * U) - 0.5 * U        # v40: the end name S' clear of the locator
+        if loc:
+            lb = draw_locator(S, B, x + w - locw, y + 0.55 * U, locw, U, L, [sd_["line"]])
+            top = min(cy + 0.3 * U, lb - 1.2 * U) - 0.5 * U    # v40: the end name S' clear of the locator
+        else:
+            top = cy + 0.3 * U - 0.5 * U
     else:
         B.fit("SECTION {0} — {0}'  ·  CONTINUED, {1:.0f}-{2:.0f} m".format(nm, off, off + Lm), x + 1.2 * U, y, 0.42 * U,
               w - 2.0 * U, INK2, L, font=FONT_TITLE, bold=True)
@@ -623,8 +627,9 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_t
     yb = rib_low - 1.05 * U
     draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
     ratio = 1000.0 / max(1e-9, ss * MMU)
-    B.text(scale_txt or "1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U, 0.24 * U,
-           INK2, L)                                      # v42: the cuts' common scale on the booklet page
+    if scale_txt != "":                                  # v45: "" = the page states the one scale
+        B.text(scale_txt or "1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U,
+               0.24 * U, INK2, L)                        # v42: the cuts' common scale on the booklet page
     return yb - 0.35 * U
 
 
@@ -862,7 +867,8 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True):
     (types under 0.5 % of the footprint are left out, as on the fabric map; mosques and monuments always shown when
     present), with its name. Returns the y below it, or y unchanged when it would not fit above ymin. v44: with ss
     (page units per metre, a round booklet scale) and th (tag height) given, drawn at that scale under the cuts, each
-    type as wide as its tag needs, the scale written for the booklet; draw_typology_key.last_w = the width used."""
+    type as wide as its tag needs; draw_typology_key.last_w = the width used. v45: drawn at the cuts' own scale, so
+    it writes no scale of its own (the page states the one scale)."""
     L = "LU_BOARD::Sections"
     draw_typology_key.last_w = 0.0
     tot = sum(S.fabric_area.values()) or 1.0
@@ -897,8 +903,7 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True):
     draw_typology_key.last_w = sum(slot) * ss
     ht = 1.5 * th if fixed else 0.6 * U
     B.text("BUILDING TYPES IN THE SECTIONS", x, y, ht, INK, L, font=FONT_TITLE, bold=True)
-    B.fit("silhouettes · height = surveyed floors · details by type" + (u" · 1:{:,}".format(crop_scale(ss)) if fixed
-                                                                        else u"") + " " + bcite(          # v38
+    B.fit("silhouettes · height = surveyed floors · details by type" + " " + bcite(          # v38; v45: no scale word
         "Building types: generic silhouettes of each fabric type in its own tone: the height is the surveyed floors; "
         "the roof, jetty, windows, balconies, shopfront, dome and minaret height are drawn to the type, not surveyed."),
         x, y - ht - 0.4 * t1 - t1, t1, max(w, draw_typology_key.last_w), INK2, L)
@@ -1213,12 +1218,13 @@ def roundel(B, x, y, r, txt, fill, ink, L, order=62, h=None):
 
 
 def photo_files(folder):
-    """The site photos of the data pack as JPEG files in folder (written once); [(path, item)]."""
+    """The site photos of the data pack as JPEG files in folder (written once); [(path, item)]. v45: in the order
+    they were taken (the walk ran upstream to downstream), so photo 1 is the most upstream on every drawing."""
     import base64 as _b64
     out = []
     if not os.path.isdir(folder):
         os.makedirs(folder)
-    for it in seam_pack().get("photos", {}).get("items", []):
+    for it in sorted(seam_pack().get("photos", {}).get("items", []), key=lambda i_: i_.get("taken", "")):
         p = os.path.join(folder, os.path.splitext(it["file"])[0].replace(".JPG", "") + ".jpg")
         if not os.path.isfile(p):
             with open(p, "wb") as f_:
@@ -1260,8 +1266,12 @@ def draw_what_is_there(S, B, x, y, w, U):
                   "Plan 01: context beyond the frame: survey line work only.")
     B.text("WHAT IS THERE · GROUND · BUILDINGS · GREEN · STREAM EDGE " + r_map, x, y, 1.05 * U, INK, L,
            font=FONT_TITLE, bold=True)                    # v38: keywords; the coverage note is a key entry
+    # v45: plan 01 prints at 1:den_bk beside the site readings (P01_BK_W mm wide): its marks and words are sized for
+    # that page (kb = board units per booklet mm; the map is as wide as w)
+    den_bk = bk_std(F2.w * 1000.0 / P01_BK_W)
+    kb = w / F2.w * den_bk / 1000.0
     # v42 (review rule 4): what the plan shows, why it is here, what to read from it; sized with the plan's width
-    ch_ = CTX_H * U * max(1.0, w / (120.0 * U))
+    ch_ = max(CTX_H * U * max(1.0, w / (120.0 * U)), bk_hk(7.0, kb, mono=True))
     ctop = y - 0.6 * U - ch_
     ymap = ctx_line(B, u"The whole survey area as it is today, on one plan: buildings by urban fabric, ground and green, "
                        u"the Selinos with its edges, bridges and photo points. It is the base the later plans are read "
@@ -1305,7 +1315,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         for d in dashes(V.P(pts), 0.16 * U, 0.14 * U):
             B.line(d, PAPER, L, 25, THRESH_W * 0.4)
     # frame, river name, section marks (shared with the section drawings)
-    draw_map_annotations(S, B, V, U)
+    draw_map_annotations(S, B, V, U, rh=bk_hk(8.0, kb))  # v45: no cut lines; the stream's name 8 pt
     B.line(V.P(F.P + [F.P[0]]), INK, L, 26, 0.25)
     if RF is not None:                                    # v36: the analysis range (site_alan) on the whole-file map
         B.line(V.P(RF.P + [RF.P[0]]), INK, L, 26, 0.12)
@@ -1319,46 +1329,41 @@ def draw_what_is_there(S, B, x, y, w, U):
         photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
     except Exception:
         LOG.append("WARNING: the site photos could not be written:\n" + traceback.format_exc())
-    th, kd = 0.36 * U, kind_of(FONT_TITLE)
-    marks, taken = [], []
+    # v45: marks and names sized for the booklet page (K names 9 pt, C and photo numbers 7.5 pt), each name placed
+    # clear of every mark and name (place_labels: on a thin leader where it must move away)
+    hk, hs = bk_hk(9.0, kb), bk_hk(7.5, kb)
+    taken, labs = [], []
     for k, nm, bx, by in BRIDGES_K:                       # a tick across the stream
         if F.inside(bx, by):
             px, py = V.p(bx, by)
             n = stream_normal(S, bx, by) or (0.0, 1.0)
             a_ = V.p(bx + n[0], by + n[1])
             ln = math.hypot(a_[0] - px, a_[1] - py) or 1.0
-            e = ((a_[0] - px) / ln * 0.55 * U, (a_[1] - py) / ln * 0.55 * U)
-            B.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], INK, L, 62, 0.3)
-            marks.append((k, px, py, INK, 0.65 * U))
+            e = ((a_[0] - px) / ln * 1.6 * kb, (a_[1] - py) / ln * 1.6 * kb)
+            B.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], INK, L, 62, bk_lw(0.35, kb))
+            taken.append((px - 1.6 * kb, py - 1.6 * kb, px + 1.6 * kb, py + 1.6 * kb))
+            labs.append(([k], px, py, hk, INK))
     for k, cx, cy, t in cs:                               # a dot in the accent
         if F.inside(cx, cy):
             px, py = V.p(cx, cy)
-            B.fill([circle_pts(px, py, 0.17 * U, 12)], MARK_C, L, 63)
-            marks.append((k, px, py, MARK_C, 0.35 * U))
+            B.fill([circle_pts(px, py, 0.9 * kb, 12)], MARK_C, L, 63)
+            taken.append((px - 0.9 * kb, py - 0.9 * kb, px + 0.9 * kb, py + 0.9 * kb))
+            labs.append(([k], px, py, hs, MARK_C))
     for i, (p, it) in enumerate(photos):                  # a small ink dot
         px, py = V.p(it["x"], it["y"])
-        B.fill([circle_pts(px, py, 0.13 * U, 12)], INK, L, 64)
-        marks.append((str(i + 1), px, py, INK, 0.3 * U))
-    for t, px, py, col, d in marks:
-        taken.append((px - d * 0.5, py - d * 0.5, px + d * 0.5, py + d * 0.5))
-    for t, px, py, col, d in marks:                       # each label beside its mark, where it collides with none
-        w_ = tw(t, th, kd)
-        opts = [(d, 0.2 * d), (d, -th - 0.2 * d), (-d - w_, 0.2 * d), (-d - w_, -th - 0.2 * d),
-                (-0.5 * w_, d), (-0.5 * w_, -th - d), (1.8 * d, -0.5 * th), (-1.8 * d - w_, -0.5 * th)]
-        for ox, oy in opts:
-            bx_ = (px + ox - 0.08 * U, py + oy - 0.08 * U, px + ox + w_ + 0.08 * U, py + oy + th + 0.08 * U)
-            if not any(bx_[0] < q[2] and q[0] < bx_[2] and bx_[1] < q[3] and q[1] < bx_[3] for q in taken):
-                break
-        else:
-            ox, oy = opts[0]
-            bx_ = (px + ox, py + oy, px + ox + w_, py + oy + th)
-        taken.append(bx_)
-        B.text(t, px + ox, py + oy, th, col, L, order=65, font=FONT_TITLE, bold=True)
-    draw_north_small(B, V, mw, mh, U, L, size=0.7)
+        B.fill([circle_pts(px, py, 0.7 * kb, 12)], INK, L, 64)
+        taken.append((px - 0.7 * kb, py - 0.7 * kb, px + 0.7 * kb, py + 0.7 * kb))
+        labs.append(([str(i + 1)], px, py, hs, INK))
     mb = ymap - mh
-    draw_scalebar(B, V.X0, mb - 1.4 * U, s, nice_floor(F2.w / 8.0), U, L, h=0.32)
+    pkey = place_labels(B, labs, taken, L, bounds=(V.X0, mb, V.X0 + mw, ymap), order=65)
+    # v45: scale bar and north arrow under the map, never on it; numbers 7 pt under the bar
+    sbl = nice_floor(F2.w / 8.0)
+    mb_crop = min(draw_scalebar_bk(B, V.X0, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
+    draw_north_at(B, F2, V.X0 + sbl * s + 12.0 * kb, mb - 5.0 * kb, 4.0, kb, L)
+    if pkey:                                              # names with no free place: a number, the words under the bar
+        mb_crop = draw_label_key(B, pkey, V.X0, mb_crop - 1.0 * kb, mw, hs, L)
     # photo strip under the map
-    yy = mb - 2.6 * U
+    yy = min(mb - 2.6 * U, mb_crop - 1.0 * U)
     if photos:                                        # v44: a keyword caption under each photo, numbers 12 pt
         n = len(photos)
         g = 0.6 * U
@@ -1426,8 +1431,17 @@ def draw_what_is_there(S, B, x, y, w, U):
     if RF is not None:
         leg.append(("thin", INK, "Analysis range (site_alan) " + r_map))
     ly = draw_legend_items(B, leg, x, yy - 1.0 * U, mw, U, L, h=0.4)
-    crop_panel("plan01", V.X0, mb - 1.6 * U, V.X0 + mw, ctop + ch_ + 0.3 * U, u"Plan 01 · what is there today",
-               crop_scale(s), crop_legend(leg))           # v40; v42: from the context line down
+    # v45: the booklet page's legend leaves out what the site readings beside the plan already key: the ground and
+    # green colours (the land-use ring's key) and the edge types (the bars); footpaths as a line
+    ring_c = set(c_ for l_, c_, a_ in landuse_slices(getattr(S, "site", S))[0])
+    leg_bk, grp = [], ""
+    for kind, col, lab in leg:
+        if kind == "hdr":
+            grp = lab
+        elif not ((grp == "GROUND AND GREEN" and kind == "box" and col in ring_c) or grp.startswith("THE STREAM EDGE")):
+            leg_bk.append(("line" if kind == "dash" else kind, col, lab))
+    crop_panel("plan01", V.X0, mb_crop - 0.5 * kb, V.X0 + mw, ctop + ch_ + 0.3 * U, u"Plan 01 · what is there today",
+               crop_scale(s), crop_legend(leg_bk))        # v40; v42: from the context line down
     # v42: survey x, y of the plan's frame corners and where they sit on the sheet, so a later script (the farms map,
     # bergama_agriculture_alternatives) can place its own layer on this very plan in the booklet crop
     CROP_PANELS[-1]["geo"] = [(px_, py_) + tuple(V.p(px_, py_)) for px_, py_ in F2.P[:4]]

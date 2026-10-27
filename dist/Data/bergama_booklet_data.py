@@ -1,7 +1,9 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v11 (Aras 27 Oct 17:27, Prompt 1: theme cycles, merge frames); v10 (Aras 27 Oct 11:07 review: page list above each entry); v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
+# ---- BOOKLET PLAN v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
+# where we can build; a key map on each sections page: "key" = a crop in the title band, "side" = panels at the right
+# margin beside the rows); v11 (Aras 27 Oct 17:27, Prompt 1: theme cycles, merge frames); v10 (Aras 27 Oct 11:07 review: page list above each entry); v9 (Aras 27 Oct 06:20: proposal sections always two to a page); v8 (Aras 26 Oct 08:27-08:28: masterplan halves on one page; long section along the spine left out, it
 # repeated the "What is there" map); v7 (review R7: no half-empty pages: "alone" = the two rows share a page only if both stay >= 3/4
 # of their own-page size, else each gets its own page under these titles); v5 (review 26 Oct 07:06: p.07 edge plan, all cuts on <= 2 pages); v4 (Aras 26 Oct 06:02 "sheet pages"; 06:35: never divide a drawing, each drawing once) ----
 # Every page is the scripts' OWN sheet: an A3 sheet goes in as it is; a panel of a big sheet is cut out with its own
@@ -49,14 +51,16 @@ def SLOT(text, w=180.0, h=120.0):
 # revision_2026-10-27/prompts/P1_PAGE_MAP.md); merges are frames only, their content comes in later prompts
 PAGES = [
     # ---- A SITE AND STREAM EDGE
-    # old p2 + p4 -> one page (frame)
+    # old p2 + p4 -> one page (v12: plan 01 with the bank readings and the land-use ring beside it)
     dict(part="A", stage="an", title=u"What is there, grain of the town",
-         rows=[[SB + "drw_plan01"], [SB + "drw_key_question", SB + "drw_ground_cover"]]),
+         rows=[[SB + "drw_plan01"]], side=[SB + "drw_site_readings"]),
     dict(part="A", stage="an", title=u"Heights and enclosure", sheet=SB + "Selinus_01_what_is_there_axonometric.pdf"),   # old p3
-    dict(part="A", stage="an", title=u"Sections across the stream", rows=[[SB + "sec_sections_1"]], optional=True),   # old p9
-    dict(part="A", stage="an", title=u"Sections across the stream", rows=[[SB + "sec_sections_2"]], optional=True),   # old p10
-    # old p5 + p6 -> one page (frame): the edge plan stands in until the new edge + buildable-area diagram is drawn
-    dict(part="A", stage="got", title=u"The stream edge, along the stream", rows=[[SB + "drw_edge_plan", SB + "drw_photos"]]),
+    dict(part="A", stage="an", title=u"Sections across the stream", rows=[[SB + "sec_sections_1"]], optional=True,
+         key=SB + "sec_sections_key_1"),   # old p9
+    dict(part="A", stage="an", title=u"Sections across the stream", rows=[[SB + "sec_sections_2"]], optional=True,
+         key=SB + "sec_sections_key_2"),   # old p10
+    # old p5 + p6 -> one page (v12: the edge every 4 m, ground open to change, photo viewpoints and the photos)
+    dict(part="A", stage="got", title=u"The stream edge and where we can build", rows=[[SB + "drw_edge_build"]]),
     dict(part="A", stage="do", title=u"What we do with the edge",
          rows=[[SLOT(u"Edge moves: proposal frame (later prompt)", 380.0, 200.0)]]),
     # ---- B MOVEMENT AND THE CITY

@@ -1,8 +1,26 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v44)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v45)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v45 (2026-10-27, Aras 17:34, booklet Prompt 2 "site and stream edge"):
+  * No section lines on any map (plan 01, how people use it, the movement maps): each sections page gets ONE key map
+    instead (the whole site frame at 1:50,000, every cut thin, this page's cuts in ink with their names; booklet crops
+    sec_sections_key_1 / _2, set in the booklet page's title band). The cuts lose their small locators and their own
+    scale words (the page states 1:2,500 once); the building types under them are drawn at the cuts' scale.
+  * Plan 01 for the booklet page beside the new site readings: K names 9 pt, C and photo numbers 7.5 pt, placed clear
+    of each other on leaders where needed; scale bar (numbers 7 pt under it) and north arrow under the map, never on
+    it; the stream's name 8 pt; its booklet legend leaves out what the readings key (ground and green, edge types).
+  * New drawing "05c Site readings" (crop drw_site_readings): the six bank readings (accessible, visible, permeable,
+    enclosed, disconnected, transformable) as bars and the site frame's land use as a ring with its key, in plan 01's
+    colours (old p.4 folded into p.2).
+  * New drawing "06b The stream edge and where we can build" (crop drw_edge_build; replaces "what meets the water"):
+    the whole site frame at 1:5,000 in two stacked strips in the masterplan's tones, the edge type every 4 m on both
+    banks, walls and embankments, the ground open to change hatched (open ground, parking and yards, loose grass or
+    scrub, areas computed on the run), bridges K1-K6, photo viewpoints 1-8 with view cones from each photo's own
+    compass bearing and focal length; the photos beside it with one-line captions; edge shares, walled and embanked.
+  * The photos are numbered in the order they were taken (upstream to downstream) on every drawing.
 
 NEW IN v44.1 (bugfix + laptop speed, Aras 27 Oct 16:24-16:27): the worker processes for terrain heights and section
 drawings failed on Aras's PC ("SyntaxError: invalid syntax"), so that work ran on one core: the workers now put
@@ -252,8 +270,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v44.1 (2026-10-27)"   # v27: the log's first line and the text under the component
-SHORT_V = "v44.1"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v45 (2026-10-27)"     # v27: the log's first line and the text under the component
+SHORT_V = "v45"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

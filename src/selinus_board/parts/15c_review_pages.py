@@ -11,7 +11,6 @@ SEC_BOOK_DENS = (1000, 2000, 2500, 5000, 10000)   # the round booklet scales tri
 SEC_KEEP = 0.7          # a cut is cropped to the part around the stream only if at least this share of it stays
 SEC_COL_GAP = 2.0       # page units between two cuts side by side
 SEC_ROW_GAP = 1.6       # page units between rows of cuts
-EDGE_PLAN_W = EDGE_W    # print weight (mm) of the edges on the edge plan
 
 
 def ctx_line(B, txt, x, y, w, h, L):
@@ -44,9 +43,6 @@ def sec_cropped(S, sd_, Lmax):
     return out
 
 
-SEC_TYPES_DENS = (500, 1000, 2000)   # v44: round booklet scales tried for the building types under the cuts
-
-
 def typology_size(S, ss_t, th, U):
     """v44: (width, height) in page units of the building types drawn at ss_t page units per metre, tags th high."""
     yb = draw_typology_key(S, Board(), 0.0, 0.0, 1e9, U, ss=ss_t, th=th, crop=False)
@@ -57,8 +53,9 @@ def sections_plan(S, sw, U):
     """v42: (den, ss, pages): the largest round booklet scale 1:den at which every cut (cropped to the part around the
     stream where it is too long, keeping >= SEC_KEEP of it) fits on at most two booklet pages; pages = [[row, ...]],
     row = [(section, width)]. ss = page units per metre. v44 (Aras 27 Oct: "move the building types to p8 with the
-    other sections"): the building types are one more item after the last cut, at the largest round booklet scale
-    of SEC_TYPES_DENS that still keeps the cuts on two pages (a dict with "_types"); without room, left out (logged)."""
+    other sections"): the building types are one more item after the last cut (a dict with "_types"); without room,
+    left out (logged). v45 (Prompt 2: neighbouring drawings at one scale): the types at the cuts' own scale; the
+    strips without locators (each page has one key map, draw_sections_key)."""
     secs = list(S.sections)
     hmax = sw * BK_AH / BK_AW * 0.97
     th = bk_hk(7.5, sw / BK_AW, mono=True)            # tags 7.5 pt on the booklet page
@@ -94,15 +91,13 @@ def sections_plan(S, sw, U):
         for c_ in cut:
             wi = min(sw, c_["L"] * ss + 2.0 * SEC_END * U)
             n0 = len(LOG)
-            hi = -draw_section_strip(S, Board(), c_, 0.0, 0.0, wi, ss, U, dry=True)
+            hi = -draw_section_strip(S, Board(), c_, 0.0, 0.0, wi, ss, U, dry=True, loc=False)
             del LOG[n0:]
             items.append((c_, wi, hi))
         tries = []
-        for den_t in SEC_TYPES_DENS:
-            ss_t = 1000.0 * sw / (den_t * BK_AW)
-            wt, ht = typology_size(S, ss_t, th, U)
-            if 0.0 < wt <= sw:
-                tries.append((dict(_types=True, name=u"building types", ss=ss_t, th=th, den=den_t), wt, ht + 0.6 * U))
+        wt, ht = typology_size(S, ss, th, U)
+        if 0.0 < wt <= sw:
+            tries.append((dict(_types=True, name=u"building types", ss=ss, th=th, den=den), wt, ht + 0.6 * U))
         for t_ in tries + [None]:
             pages, ok = pack(items + ([t_] if t_ else []))
             best = (den, ss, pages)
@@ -129,7 +124,8 @@ def sections_context(S):
 
 def draw_sections_page(S, B, x, y, sw, U, plan, k):
     """v42: page k of the cuts (sections_plan): rows of whole cuts at one scale, the context line on the first page.
-    Returns the y below."""
+    v45: no locator and no scale word per cut (the caption states the one scale); the page's key map under it, its
+    own crop for the booklet page's title band. Returns the y below."""
     L = "LU_BOARD::Sections"
     den, ss, pages = plan
     names = [c_["name"] for r in pages[k] for c_, w_ in r if not c_.get("_types")]
@@ -145,8 +141,7 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
             if c_.get("_types"):                         # v44: the building types, at their own round scale
                 bot = draw_typology_key(S, B, cx, yy, w_, U, ss=c_["ss"], th=c_["th"], crop=False)
             else:                                        # v44: the sheet's own scale; the booklet prints 1:den
-                bot = draw_section_strip(S, B, c_, cx, yy, w_, ss, U, tag="drawing",
-                                         scale_txt=u"1:{:,}".format(crop_scale(ss)))
+                bot = draw_section_strip(S, B, c_, cx, yy, w_, ss, U, tag="drawing", scale_txt="", loc=False)
             rl = min(rl, bot)
             cx += w_ + SEC_COL_GAP * U
         yy = rl - SEC_ROW_GAP * U
@@ -154,4 +149,4 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     crop_panel("sections_%d" % (k + 1), x, low - 0.2 * U, x + sw, (top + CTX_H * U + 0.3 * U) if k == 0 else top + 0.9 * U,
                u"Sections across the stream · {}{}".format(", ".join(names), u" · building types" if any(
                    c_.get("_types") for r in pages[k] for c_, w_ in r) else u""), crop_scale(ss))
-    return low
+    return draw_sections_key(S, B, x, low - 1.6 * U, sw, names, k)

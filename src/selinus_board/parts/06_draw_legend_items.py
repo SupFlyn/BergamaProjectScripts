@@ -280,7 +280,9 @@ def draw_sec_roads(S, B, L, P, g_at, line, Lm, U, off=0.0, order=36, w=0.5):
     return out
 
 
-def draw_map_annotations(S, B, V, U):
+def draw_map_annotations(S, B, V, U, rh=None):
+    """The stream's name and the frame line. v45 (Prompt 2: "no section lines on any map"): the cuts S1-S8 are no
+    longer marked here (each sections page has its own key map); rh = the name's height (default 0.5 U)."""
     L = "LU_BOARD::Map::annotation"
     s = V.s
     if S.river_label and S.selinus:                     # river name on the stretch farthest from the section marks
@@ -296,24 +298,10 @@ def draw_map_annotations(S, B, V, U):
         _, p, t = best
         ang = V.angle(t[0], t[1])
         bx, by = V.p(p[0], p[1])
-        off = 1.4 * U
-        B.text(S.river_label[3], bx - math.sin(ang) * off, by + math.cos(ang) * off, 0.5 * U, BLUE_D, L,
+        rh = rh or 0.5 * U
+        off = 2.8 * rh
+        B.text(S.river_label[3], bx - math.sin(ang) * off, by + math.cos(ang) * off, rh, BLUE_D, L,
                align="MC", angle=ang, italic=True)
-    for x0, y0, x1, y1, nm in S.sec_lines:              # light section marks, labels inside the map
-        a, b = V.p(x0, y0), V.p(x1, y1)
-        Lb = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
-        d = ((b[0] - a[0]) / Lb, (b[1] - a[1]) / Lb)
-        nrm = (-d[1], d[0])
-        for seg in dashes([a, b], 0.55 * U, 0.3 * U):
-            B.line(seg, INK2, L, 20, 0.08)
-        for p, inward, lab in ((a, d, nm), (b, (-d[0], -d[1]), nm + "'")):
-            base = (p[0] + inward[0] * 0.35 * U, p[1] + inward[1] * 0.35 * U)
-            tri = [(base[0] + nrm[0] * 0.45 * U, base[1] + nrm[1] * 0.45 * U),
-                   (base[0] - d[0] * 0.18 * U, base[1] - d[1] * 0.18 * U),
-                   (base[0] + d[0] * 0.18 * U, base[1] + d[1] * 0.18 * U)]
-            B.fill([tri], INK, L, 21)
-            lp = (p[0] + inward[0] * 1.1 * U - nrm[0] * 0.35 * U, p[1] + inward[1] * 1.1 * U - nrm[1] * 0.35 * U)
-            B.text(lab, lp[0], lp[1], 0.36 * U, INK, L, font=FONT_TITLE, bold=True, align="MC")
     B.line(V.P(S.F.P + [S.F.P[0]]), INK, L, 21, 0.25)
 
 

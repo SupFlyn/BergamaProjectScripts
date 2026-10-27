@@ -10,6 +10,12 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v12 (Aras 27 Oct 17:34, Prompt 2 "site and stream edge"; site board v45): p.2 "What is there" = plan 01 with the
+site readings (bank bars and land-use ring, crop drw_site_readings) as a side panel at the right margin, top-aligned,
+the plan's legend in two columns under it on the panel's own grid; p.6 "The stream edge and where we can build" (crop
+drw_edge_build at 1:5,000, replaces the edge plan and the photo strip); each sections page has its key map (crop
+sec_sections_key_n, 1:50,000) in the title band at the right; a drawing designed at a round booklet scale keeps it
+when its sheet scale is rounded (a 0.05 % tolerance; it could print at the next scale, half size).
 NEW IN v11 (Aras 27 Oct 17:27, Prompt 1: structure only): pages run in theme cycles A site and stream edge,
 B movement and the city, C water, D history and heritage, E masterplan as the synthesis; each theme runs analysis ->
 what we got -> what we do with it, named in every page's kicker, the footer and the contents. Merges set up as frames:
@@ -48,7 +54,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v11"
+VERSION = "v12"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -271,8 +277,14 @@ def word_sizes(page, clip):
 
 
 def std_scale(den):
-    """v4 (Aras 26 Oct 06:35 "they need to be round numbers"): the first round scale at or above den"""
-    return next((d for d in STD_SCALES if d >= den - 0.5), den)
+    """v4 (Aras 26 Oct 06:35 "they need to be round numbers"): the first round scale at or above den. v12: within
+    0.05 % counts as that scale (a drawing made at a round booklet scale, its sheet scale rounded to whole numbers)"""
+    return next((d for d in STD_SCALES if d >= den - max(0.5, 5e-4 * den)), den)
+
+
+def nearest_std(v):
+    """v12: the round scale nearest v"""
+    return min(STD_SCALES, key=lambda d: abs(d - v) / d)
 
 
 STD_SCALES = (100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000)
@@ -385,19 +397,56 @@ def wh(it):
     return (it[3].width / K, it[3].height / K) if it[3] is not None else (200.0, 60.0)
 
 
-def fit(rows):
-    """the one scale at which every row fits the panel area's width and all rows its height"""
-    aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
+def fit(rows, aw=None):
+    """the one scale at which every row fits the panel area's width (v12: or aw mm) and all rows its height"""
+    aw, ah = aw or AREA[2] - AREA[0], AREA[3] - AREA[1]
     return min([(aw - GUT * (len(r) - 1)) / sum(wh(it)[0] for it in r) for r in rows] +
                [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP) / sum(max(wh(it)[1] for it in r) for r in rows)])
+
+
+def own_s(it):
+    """v12: the factor a crop prints at when it is drawn for a width on the booklet page (block "bk_w", mm): exactly
+    its round scale when it has one"""
+    w, h = wh(it)
+    blk = it[1] or {}
+    s = blk["bk_w"] / w if blk.get("bk_w") and it[3] is not None else 1.0
+    den = blk.get("scale_den") if it[3] is not None else None
+    return den / nearest_std(den / s) if den else s
+
+
+def show(fitz, pg, typo, it, x, y, s, rep, missing, cap=True):
+    """v12: one crop (or its labelled placeholder) at (x, y) mm, factor s, its caption under it; returns its height"""
+    key, blk, path, clip = it
+    w, h = wh(it)
+    if clip is None:
+        missing.add(key.partition("/")[0])
+        placeholder(pg, typo, (x, y, w * s, h * s), "%s · %s" % (SCRIPT_OF.get(key.partition("/")[0], ""),
+                                                                key.split("/")[1]))
+        rep.append("%s MISSING" % key)
+        return h * s
+    src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
+    pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
+    if cap:
+        c = blk.get("caption", "")
+        if blk.get("scale_den"):
+            c = (c + " · " if c else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
+        typo.line(pg, c, x, y + h * s + 3.6, T["caption"], INK2)
+    ws = word_sizes(src[pi], clip)
+    if ws:
+        rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], ws[len(ws) // 2] * s,
+                                                                ws[len(ws) // 10] * s))
+    return h * s
 
 
 def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     """rows of [(key, crop block, sheet path, clip)]: one scale for the page, the largest at which every row fits the
     width and all rows the height; a drawing with a true scale takes the round scale at or just below it (v4), so
-    its printed scale is always round; each panel with its own words."""
+    its printed scale is always round; each panel with its own words. v12: "side" panels at the right margin beside
+    the rows (their own width), the page's legend under them; a "key" map in the title band at the right."""
     aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
-    s_fit = fit(rows)
+    side_it = spec.get("_side") or []
+    side_w = min(aw / 2.0, max([wh(it)[0] * own_s(it) for it in side_it] or [0.0]))
+    s_fit = fit(rows, aw - side_w - GUT if side_it else None)
 
     def sc(it):                                      # v4: a drawing with a scale takes the round scale at or below s
         den = it[1].get("scale_den") if it[1] and it[3] is not None else None
@@ -405,20 +454,31 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     pg = frame_page(fitz, doc, typo)
     header(pg, typo, spec)
     legend, rep, y = [], [], AREA[1]
-    for r in rows:
+    key_it = spec.get("_key")
+    if key_it is not None:                           # v12: the key map in the title band, right, above the rule
+        if key_it[3] is None:
+            rep.append("%s MISSING (key map left out)" % key_it[0])
+        else:
+            kw, kh = wh(key_it)
+            ks = own_s(key_it)
+            kx, ky = AREA[2] - kw * ks, 24.0 - kh * ks
+            if kx < colx(1) + typo.width(spec.get("title", ""), T["part"], True) + 6.0 or ky < 5.0:
+                typo.issues.append("KEY MAP CROWDS THE TITLE p.%d" % pno)
+            show(fitz, pg, typo, key_it, kx, ky, ks, rep, missing, cap=False)
+    for r in rows + [side_it]:
         for it in r:
             for e in ((it[1] or {}).get("legend") or []) if it[3] is not None else []:
                 if all(e.get("label") != o.get("label") for o in legend):
                     legend.append(e)
     rws = [sum(wh(it)[0] * sc(it) for it in r) + GUT * (len(r) - 1) for r in rows]
     lw = 6.0 + max([typo.width(e.get("label", ""), T["caption"]) for e in legend] or [0.0])
-    side = footer_rows(typo, legend, spec) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
+    side = not side_it and footer_rows(typo, legend, spec) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
     if side:                                         # v4: a long legend beside the drawing, all of it
         lx = AREA[0] + max(rws) + 8.0
         for i, e in enumerate(legend):
             legend_item(pg, typo, e, lx, AREA[1] + 3.0 + 4.0 * i)
     for r, rw in zip(rows, rws):                     # rows centred across the page (left with a side legend)
-        x, rh = AREA[0] + (0.0 if side else max(0.0, (aw - rw) / 2.0)), max(wh(it)[1] * sc(it) for it in r)
+        x, rh = AREA[0] + (0.0 if side or side_it else max(0.0, (aw - rw) / 2.0)), max(wh(it)[1] * sc(it) for it in r)
         for key, blk, path, clip in r:
             s = sc((key, blk, path, clip))
             w, h = wh((key, blk, path, clip))
@@ -445,6 +505,28 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                     rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], med, low))
             x += w * s + GUT
         y += rh + CAP_H + ROW_GAP
+    if side_it:                                      # v12: beside the rows, right margin, top-aligned
+        x1, ys, xs0 = AREA[0] + max(rws) + GUT, AREA[1], AREA[2]
+        for it in side_it:
+            w, h = wh(it)
+            s = min(own_s(it), (AREA[2] - x1) / w, (AREA[3] - ys - CAP_H) / h)
+            xs = AREA[2] - w * s
+            xs0 = min(xs0, xs)
+            ys += show(fitz, pg, typo, it, xs, ys, s, rep, missing) + CAP_H
+            grid = [g * w * s / it[1]["bk_w"] for g in (it[1] or {}).get("grid", [])] if (it[1] or {}).get("bk_w") \
+                else []
+        if legend:                                   # the legend under the panel, on its grid (else two columns)
+            starts = [xs0 + g for g in grid] if len(grid) > 1 else [xs0, xs0 + 0.5 * (AREA[2] - xs0)]
+            ends = starts[1:] + [AREA[2]]
+            ncol = len(starts) if all(6.0 + typo.width(e.get("label", ""), T["caption"]) <= min(
+                b - a for a, b in zip(starts, ends)) for e in legend) else 1
+            nrow = (len(legend) + ncol - 1) // ncol
+            if ys + 3.0 + 4.0 * nrow <= AREA[3]:
+                for i, e in enumerate(legend):
+                    legend_item(pg, typo, e, starts[i // nrow], ys + 3.0 + 4.0 * (i % nrow))
+                side = True
+            else:
+                typo.issues.append("SIDE LEGEND TOO LONG p.%d: in the footer" % pno)
     footer(pg, typo, pno, spec, [] if side else legend)
     return "p.%d %s: x%.2f · %s" % (pno, spec["title"], s_fit, "; ".join(rep))
 
@@ -468,6 +550,8 @@ def expand(fitz, spec, assets):
         return (key, blk, path, clip)
     rows = [[item(k) for k in r] for r in spec["rows"]]
     rows = [r for r in ([it for it in r if not (it[0] in OPTIONAL_KEYS and it[3] is None)] for r in rows) if r]
+    spec = dict(spec, _side=[item(k) for k in spec.get("side", [])],          # v12: side panels, title-band key map
+                _key=item(spec["key"]) if spec.get("key") else None)
     if not rows:
         return []
     if spec.get("optional") and all(it[3] is None for r in rows for it in r):

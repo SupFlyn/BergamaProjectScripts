@@ -5,7 +5,7 @@
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v44.1"
+BK_VERSION = "v45"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -117,6 +117,10 @@ def booklet_export(S, B, rects):
     done = []
     for bid, pdf, rmm, p in crop_rects():
         BK.crop(bid, pdf, rmm, caption=p["caption"], scale_den=p["scale_den"], legend=p["legend"], drop=p["drop"])
+        if p.get("bk_w"):                                # v45: the width (mm) it is drawn for on the booklet page
+            BK.d["blocks"][bid]["bk_w"] = round(p["bk_w"], 3)
+        if p.get("grid"):                                # v45: its column edges at that width (mm), for the legend
+            BK.d["blocks"][bid]["grid"] = list(p["grid"])
         if p.get("geo_mm"):                              # v42: the plan's georeference (plan 01, for the farms map)
             BK.d["blocks"][bid]["geo"] = {"points": p["geo_mm"], "note": "survey x, y (m) of the plan frame's corners "
                                           "-> x, y in mm from the crop's top-left, y down, at 1:1 on the sheet PDF"}
