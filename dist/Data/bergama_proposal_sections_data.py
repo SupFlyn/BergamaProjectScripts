@@ -11,6 +11,10 @@ PEOPLE = True
 NODE = None                                          # set by the board: the element numbers
 CITE = None                                          # v3: set by the board: a source's number "[n]" (footer key)
 ORIGIN = (0.0, 0.0)                                  # pr1 placed the sketches beside the site map; here at 0
+TXT_K = [1.0]                                        # v7: every text (and its pictogram) at this multiple of its size; set by
+                                                      # the board so the smallest word prints >= 7 pt on the one booklet page
+GROUP = [0]                                          # v7: label group of the items being put (0: none, < 0: fixed, e.g. numbers)
+NEXT_G = [0]                                         # v7: last label group number given out
 
 
 def _hexc(c):
@@ -19,7 +23,16 @@ def _hexc(c):
 
 def _put(item, z):
     ORDER[0] += 1
-    ZP.append((ORDER[0] + z, ORDER[0], item))
+    ZP.append((ORDER[0] + z, ORDER[0], item, GROUP[0]))   # v7: + the label group (the board keeps labels apart)
+
+
+def _group():
+    """v7: open a new label group unless one is open. Returns True if this call opened it (then it closes it)."""
+    if GROUP[0]:
+        return False
+    NEXT_G[0] += 1
+    GROUP[0] = NEXT_G[0]
+    return True
 
 
 def P(o, x, y):
@@ -69,12 +82,15 @@ def hatch_lines(o, pts, sub, colour, spacing=1.6, angle=45.0, width=None):
 
 def text(o, s, x, y, size_pt, colour=None, sub="text", just="left", bold=False, mask=None):
     colour = INK if colour is None else colour
-    h = size_pt * 0.353
+    h = size_pt * 0.353 * TXT_K[0]
+    own = _group()                                    # v7: one text (all its lines) = one label group
     for i, ln in enumerate(s.split("\n")):
         if ln.strip():
             q = P(o, x, y - i * h * 1.35)
             _put(("text", ln, q[0], q[1], h, _hexc(colour), bold, {"left": "L", "right": "R"}.get(just, "C"), None,
                   _hexc(mask) if mask else None), Z_TEXT)      # pr1's text mask: a halo in its colour
+    if own:
+        GROUP[0] = 0
 
 
 def _smooth(o, pts):
@@ -90,9 +106,6 @@ def _smooth(o, pts):
     out.append(pts[-1])
     return add_polyline([P(o, x, y) for x, y in out])
 
-
-def title(o, h, s):
-    text(o, s, 0, h + 4, 7.0, INK, "title", bold=True)
 
 def hx(h):
     h = h.lstrip("#")
@@ -494,7 +507,8 @@ def failsafe_mark(o, x, y, r=1.4):
 def keyed(o, kind, s, x, y, size_pt, colour=None, sub="text", mask=None):
     """v3: a keyword callout led by a hand pictogram at its first line: "winter" (cloud and rain), "summer" (the
     sun) or "failsafe". The text starts a little to the right of x."""
-    h = size_pt * 0.353
+    h = size_pt * 0.353 * TXT_K[0]
+    own = _group()                                    # v7: the pictogram and its words move together
     cx, cy = x + 1.1 * h, y + 0.36 * h
     if kind == "winter":
         cloud_rain(o, cx, cy + 0.15 * h, 0.5 * h)
@@ -503,6 +517,8 @@ def keyed(o, kind, s, x, y, size_pt, colour=None, sub="text", mask=None):
     elif kind == "failsafe":
         failsafe_mark(o, cx, cy, 0.62 * h)
     text(o, s, x + 2.4 * h, y, size_pt, colour, sub, mask=mask)
+    if own:
+        GROUP[0] = 0
 
 def tick_dim(o, x, y0, y1, colour=INK2):
     """Sketch dimension: a vertical line with slashed ticks at both ends (example 4); no figure."""
@@ -637,6 +653,26 @@ def water_level(o, surface, xs, level, colour, bed_hatch=False, line=True):
         sketch(o, [pts[0], pts[-1]], "water lines", SITE_WATER_D, PEN_FINE, over=0.0, retrace=False, z=Z_LINE)
     return pts
 
+def label2(o, head, body, x, y, size_pt, colour=None, mask=None):
+    """v7: a bold name line with plain lines under it, one label group (they move together)."""
+    own = _group()
+    text(o, head, x, y, size_pt, colour, "labels", bold=True, mask=mask)
+    text(o, body, x, y - size_pt * 0.353 * TXT_K[0] * 1.35, size_pt, colour, "labels", mask=mask)
+    if own:
+        GROUP[0] = 0
+
+def hub_route(o, gs, x0, x1, rise=1.4):
+    """v7 (history D10): the walk between the dry walking hub square and the sub-hub in the bed: an accent dashed line
+    just over the steps from x0 (hub side) to x1 (sub-hub side), its head at the sub-hub."""
+    r = surface_between(gs, min(x0, x1), max(x0, x1), rise)
+    if len(r) < 2:
+        return
+    r = r if x0 < x1 else r[::-1]
+    sketch(o, r, "hub route", ACCENT, PEN_MED, over=0.0, retrace=False, dashed=True, z=Z_LINE)
+    (ax, ay), (bx, by) = r[-2], r[-1]
+    L = math.hypot(bx - ax, by - ay) or 1.0
+    hand_arrow(o, (bx - (bx - ax) / L * 4.0, by - (by - ay) / L * 4.0), (bx, by), ACCENT, width=0.4, head=1.6)
+
 def concept_aras_sketch():
     HAND_TEXT[0] = True
     try:
@@ -646,9 +682,8 @@ def concept_aras_sketch():
 
 def _concept_aras_sketch():
     """PROBLEM: the bed is dry in summer, the winter runoff leaves the streets. MOVE: the bank becomes a cascade that
-    holds the winter water, cleans it in reed basins and gives it back to the summer river."""
+    holds the winter water, cleans it in reed basins and gives it back to the summer stream. v7: shorter words."""
     o, w = ORIGIN, 200
-    title(o, 82, "UPSTREAM ENTRY · collect, clean and hold · form " + FORM)
     g = [(0, 8), (0, 64), (34, 64), (34, 52), (68, 52), (68, 40), (102, 40), (102, 28), (130, 28)] + bank((130, 28), (140, 12))[1:] + \
         [(170, 12), (170, 28), (w, 28), (w, 8)]
     basins = ((40, 52), (74, 40), (108, 28))
@@ -669,30 +704,26 @@ def _concept_aras_sketch():
     for pc in band(gs, 34, 130, 1.6):
         marker(o, pc, "terraces", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
     sketch_tree(o, 65, 52, 9); sketch_tree(o, 99, 40, 7)    # on the strips between the basins, above Q500's reach
-    # summer: the river (dry bed today) gets the clean water back
+    # summer: the stream (dry bed today) gets the clean water back
     water_level(o, gs, 155, 19, W_WIN, bed_hatch=True)
     water_level(o, gs, 155, 12, W_EXT, line=False)
     sun(o, 188, 58)
     sketch_person(o, 13, 65.3, kind=1); sketch_person(o, 70.8, 40)               # never inside water or the Q500 reach
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)                      # the cut: the gesture
     keyed(o, "winter", "winter flow", 172, 24, 5.6, W_EXT, "water")
-    keyed(o, "summer", "low-flow strip\nregulated release\ntoday: dry bed", 172, 19, 5.6, W_EXT, "water")
+    keyed(o, "summer", "low-flow strip\ntoday: dry bed", 172, 19, 5.6, W_EXT, "water")
     sketch(o, [(102, 31.5), (w, 31.5)], "flood lines", HERITAGE, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_LINE)
     level_mark(o, 123.8, 31.5, HERITAGE, "flood lines")
     # v3 fix (audit problem 3): the surveyed ARAS cut keeps Q500 inside the banks (rain_river_levels README v1.1
-    # line 21); the lowest terrace floods only if it is set below that level
-    text(o, "Q500 +73.66 m · 3.30 m · inside the banks " + CITE("levels") + "\nlowest terrace floods only if set below it",
-         126, 35.6, 5.0, HERITAGE, "flood")
+    # line 21: 3.30 m, +73.66 m)
+    text(o, "Q500 +73.66 m · 3.30 m " + CITE("levels") + "\ninside the banks", 126, 35.6, 5.2, HERITAGE, "flood")
     hand_arrow(o, (8, 72), (44, 56), SITE_WATER_D, bend=0.12)
-    keyed(o, "winter", "street + roof runoff · Nov-Feb 59.1 % of rain " + CITE("rain") + "\nreed basins clean it with stream water",
-          6, 77.4, 5.8)
+    keyed(o, "winter", "street + roof runoff " + CITE("rain") + "\nNov-Feb 59.1 % of rain", 6, 77.4, 5.8)
     hand_arrow(o, (126, 31), (150, 20), SITE_WATER_D, bend=-0.15)
-    keyed(o, "summer", "regulated release · continuous strip\nJun-Sep 7.4 % of rain " + CITE("rain") + "\nstream below runs clean",
-          109, 47, 5.8)
+    keyed(o, "summer", "summer release " + CITE("rain") + "\nJun-Sep 7.4 % of rain", 109, 47, 5.8)
     for a, b in (((64, 49), (66, 44)), ((98, 37), (100, 32)), ((130, 26), (141, 18))):
         hand_arrow(o, a, b, ACCENT, width=0.4, head=1.5, bend=-0.2)
-    keyed(o, "failsafe", "FAIL-SAFE\nfull basin: spills to the next\nlast basin: into the channel\nflood flow bypasses the reeds\ngravity · no pumps",
-          2, 31, 5.8, ACCENT, mask=SOIL)
+    keyed(o, "failsafe", "FAIL-SAFE · gravity\nfull basin spills to the next", 2, 31, 5.8, ACCENT, mask=SOIL)
     text(o, "hold in winter,\ngive back in summer", 46, 21, 8.0, SKINK, "idea")
     for n_, x_, y_ in ((2, 51, 56), (3, 65, 56), (4, 85, 44), (5, 143, 22), (6, 155, 24)):
         NODE(o, x_, y_, n_)
@@ -706,49 +737,60 @@ def concept_begum_sketch():
 
 def _concept_begum_sketch():
     """PROBLEM: the design flood runs over today's bank top. MOVE: the street level D is raised above it and the steps
-    under it let the river climb: W wet every winter, F only in big floods, D never. K4 stays as it is."""
+    under it let the stream climb: W wet every winter, F only in big floods, D never. K4 stays as it is.
+    v7 (history D8, D10, H4): D = the dry, step-free WALKING HUB SQUARE with plane trees (irrigated from storage, h03 Q4); the bed beside the summer strip =
+    the floodable SUB-HUB (its floor meets the strip: the water-touching step); a route runs down the steps between
+    them. The overtopped bank is the right bank (water board CUTS k4: "right bank 2.1 m: street floods"), the bank card
+    h02 gives Tabaklar Hamamı (E08, ~56 m downstream of K4, calculated): named on the lower flood terrace that faces
+    it, not drawn (no surveyed outline or height in this script)."""
     o, w = (ORIGIN[0], ORIGIN[1] - 110), 200
-    title(o, 82, "K4 BRIDGE · amphibious heritage threshold · form " + FORM)
     cx, cy = 120.0, 11.9                                           # the v2.8 arc through (98,14) (120,34) (142,14)
     r = math.hypot(98 - cx, 14 - cy)
     t0, t1 = math.atan2(14 - cy, 142 - cx), math.atan2(14 - cy, 98 - cx)
     arc = [(cx + r * math.cos(t0 + (t1 - t0) * i / 30.0), cy + r * math.sin(t0 + (t1 - t0) * i / 30.0)) for i in range(31)]
     sketch(o, arc, "K4 bridge (existing)", STONE_HATCH, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_TREE)  # behind
-    text(o, "K4 Roman bridge behind\nexisting · kept untouched", 104, 45, 5.4, INK2)
+    text(o, "Roman bridge K4\nbehind · kept", 104, 45, 5.4, INK2)
     g = [(0, 8), (0, 62), (40, 62), (40, 50), (62, 50), (62, 40), (84, 40), (84, 30), (90, 30)] + bank((90, 30), (100, 14))[1:] + \
         [(150, 14), (150, 62), (w, 62), (w, 8)]
     gs = sketch_ground(o, notch(g, [(118, 132, 14, 2.5)]))     # summer strip: low-flow channel (v2.8: 118-132, 2.5)
     wall = [(150, 14), (154, 14), (154, 62), (150, 62)]
     marker(o, wall, "wall", STONE, angle=45.0, spacing=0.55, thick=0.5, alpha=0.55, base=0.35)
-    text(o, "east: existing channel wall kept\ndefault · Q1 " + CITE("concept"), 156, 65, 5.4)
-    # the river climbing the steps: every winter (W), the design flood (F), never D
+    text(o, "channel wall kept " + CITE("concept"), 156, 65, 5.4)
+    # the stream climbing the steps: every winter (W), the design flood (F), never D
     fl = under_level(gs, 40, 150, 52)
     if fl:
         wash(o, fl, "flood", FLOOD_WASH, FLOOD_ALPHA)
     water_level(o, gs, 125, 33, W_WIN, bed_hatch=True)
     water_level(o, gs, 125, 14, W_EXT, line=False)
-    keyed(o, "winter", "every winter: bed under water", 156, 31.8, 5.6, W_EXT, "water")
-    keyed(o, "summer", "continuous strip · regulated\ntoday: dry, pools", 156, 15.3, 5.6, W_EXT, "water")
-    for x0, x1, y, lab in ((0, 40, 62, "dry top · in use all year"), (40, 84, 50, "flood terraces · out of\nservice only in big floods"),
-                           (84, 100, 30, "bed + lowest\nstep · wet\nin winter")):
+    keyed(o, "winter", "bed under water", 156, 31.8, 5.6, W_EXT, "water")
+    keyed(o, "summer", "summer strip\ntoday: dry, pools", 156, 15.3, 5.6, W_EXT, "water")
+    for x0, x1 in ((0, 40), (40, 84), (84, 100)):
         for pc in band(gs, x0, x1, 1.5):
             marker(o, pc, "tiers", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
-        text(o, lab, x0 + 1, y - 3.0, 5.8, mask=SOIL)
-    reeds(o, 102, 148, 14, 4.5)
+    # v7: the sub-hub floor in the bed at the strip level, up to the channel edge (the water-touching step)
+    fill(o, [(101, 14), (117.6, 14), (117.6, 15.0), (101, 15.0)], "sub-hub", SEC_PAVE)
+    reeds(o, 133, 148, 14, 4.5)
     road(o, 0, 16, 62, "ROAD " + CITE("survey") + "\nK4 deck: traffic", ly=54.5, mask=SOIL)
-    sketch_tree(o, 24, 62, 9)                               # only on D: F floods in big floods, W every winter
-    sketch_person(o, 31, 62, kind=1); sketch_person(o, 35, 62, kind=2, flip=True); sketch_person(o, 195, 62)  # on dry D / east
+    sketch_tree(o, 22, 62, 10); sketch_tree(o, 35, 62, 10)                      # plane trees on the dry hub square (D8)
+    sketch_person(o, 28, 62, kind=1); sketch_person(o, 30.5, 62, kind=2, flip=True); sketch_person(o, 195, 62)
+    sketch_person(o, 108, 15.0, kind=0)                                         # sub-hub at low water
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)                      # the cut: the gesture
     sketch(o, wall, "wall lines", SKINK, PEN_BOLD, closed=True, z=Z_LINE)
     sketch(o, [(40, 52), (150, 52)], "flood lines", W_EXT, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_LINE)
     tick_dim(o, 43, 52, 62, SKINK)                                                # D: raised clear of the flood
-    hand_arrow(o, (138, 34.5), (138, 50.5), SITE_WATER_D, width=0.45, head=1.8)  # the river climbs in big floods
+    hand_arrow(o, (138, 34.5), (138, 50.5), SITE_WATER_D, width=0.45, head=1.8)  # the stream climbs in big floods
     level_mark(o, 146, 52, W_EXT, "flood lines")
-    text(o, "Q500 over today's bank top\nK4 cut " + CITE("levels") + "\ndry top raised above it", 156, 51, 5.6, W_EXT, "water")
-    text(o, "the stream may climb the steps,\nthe street stays above Q500", 6, 31, 8.0, SKINK, "idea")
-    text(o, "tiers " + CITE("tiers") + ": level 1 floods yearly · 2 only in 10-year storms\n"
-         "level 3 street: dry, only if set above Q500", 2, 5.5, 5.2, INK2)
-    for n_, x_, y_ in ((6, 125, 18), (7, 110, 22), (8, 73, 44), (9, 6, 67)):
+    hub_route(o, gs, 36, 104)                                                     # hub square -> steps -> sub-hub
+    hand_arrow(o, (80, 63.3), (80, 41.6), HERITAGE, width=0.35, head=1.4)         # label -> the terrace facing the ruin
+    text(o, "Q500 over today's bank " + CITE("levels") + "\nhub square above it", 156, 51, 5.6, W_EXT, "water")
+    label2(o, "WALKING HUB SQUARE " + CITE("hubs"), "street level · step-free\nplane trees · irrigated from storage " + CITE("plane"),
+           1, 82, 5.6, SKINK)
+    label2(o, "TABAKLAR HAMAMI ruin " + CITE("hamam"), "~56 m downstream · terrace faces it", 58, 69, 5.6, HERITAGE)
+    label2(o, "steps + flood terraces", "wet only in big floods", 41, 47, 5.6, SKINK, mask=SOIL)
+    label2(o, "SUB-HUB in the bed " + CITE("hubs"), "strip level · shut in winter floods\nwater-touching step at the strip",
+           100, 10.8, 5.6, SKINK, mask=SOIL)
+    text(o, "the stream climbs the steps,\nthe hub square stays dry", 6, 31, 8.0, SKINK, "idea")
+    for n_, x_, y_ in ((6, 125, 18), (7, 110, 27), (8, 75, 35.5), (9, 6, 67)):
         NODE(o, x_, y_, n_)
 
 def concept_k5_sketch():
@@ -759,17 +801,21 @@ def concept_k5_sketch():
         HAND_TEXT[0] = False
 
 def _concept_k5_sketch():
-    """v1.4. Demeter's Garden (Begüm's idea alone, card i01) on the dry top of the south-west bank by K5 (zones DG 1-2,
-    tier D). PROBLEM: olives and lavender cannot stand waterlogged soil. MOVE: the garden sits on the dry top, above the
-    K5 cut's Q500, and the clean river waters it. Intake, lift and basin volume: not in her page, so not drawn."""
+    """v1.4. Demeter's Garden (card i01) on the dry top of the south-west bank by K5 (zones DG 1-2, tier D). PROBLEM:
+    olives and lavender cannot stand waterlogged soil. MOVE: the garden sits on the dry top, above the K5 cut's Q500,
+    and the clean stream waters it. Intake, lift and basin volume: not in the card, so not drawn.
+    v7 (history D8, D10): the other bank top = the dry, step-free WALKING HUB SQUARE with plane trees (irrigated from storage, h03 Q4); steps down that
+    bank to the bed; the stream commons in the bed = the floodable SUB-HUB at the strip level."""
     o, w = ORIGIN, 200
-    title(o, 82, "K5 BRIDGE · Demeter's Garden · form " + FORM)
     for c in (108.3, 125.0, 141.7):                                # K5 behind: three arches by its name, schematic
         arc = [(c + 8.0 * math.cos(math.pi * i / 20.0), 20.0 + 8.0 * math.sin(math.pi * i / 20.0)) for i in range(21)]
         sketch(o, arc, "K5 bridge (existing)", STONE_HATCH, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_TREE)
     sketch(o, [(98, 36), (156, 36)], "K5 bridge (existing)", STONE_HATCH, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_TREE)
-    text(o, "K5 Üçkemer bridge behind\nexisting · kept", 100, 50, 5.4, INK2)
-    g = [(0, 8), (0, 40), (92, 40)] + bank((92, 40), (104, 14))[1:] + [(150, 14), (160, 40), (w, 40), (w, 8)]
+    text(o, "Üç Kemer bridge K5\nbehind · kept", 100, 50, 5.4, INK2)
+    stairs = []                                                    # v7: the bank from the bed to the hub as steps
+    for k_ in range(1, 7):
+        stairs += [(150 + 10.0 * (k_ - 1) / 6.0, 14 + 26.0 * k_ / 6.0), (150 + 10.0 * k_ / 6.0, 14 + 26.0 * k_ / 6.0)]
+    g = [(0, 8), (0, 40), (92, 40)] + bank((92, 40), (104, 14))[1:] + [(150, 14)] + stairs + [(w, 40), (w, 8)]
     gs = sketch_ground(o, notch(g, [(56, 68, 40, 3.5), (122, 136, 14, 2.5)]))   # basin by the bridge; summer strip
     fl = under_level(gs, 92, 158, 35)
     if fl:
@@ -779,42 +825,51 @@ def _concept_k5_sketch():
     water_level(o, gs, 62, 39.6, W_WIN)                            # the water collection basin (volume: not given)
     for pc in band(gs, 18, 92, 1.5):
         marker(o, pc, "tiers", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
+    for pc in band(gs, 160, w, 1.5):                               # v7: the hub square, dry like the garden
+        marker(o, pc, "tiers", SUN, angle=60.0, spacing=0.7, thick=0.6, alpha=0.5, base=0.0)
     reeds(o, 104, 118, 14, 4.0)
-    road(o, 0, 16, 40, "STREET (survey)", ly=37.5, mask=SOIL)
+    road(o, 0, 16, 40, "STREET " + CITE("survey"), ly=37.5, mask=SOIL)
     cafe = [(72, 40), (86, 40), (86, 45.5), (72, 45.5)]
     wash(o, cafe, "garden", HOUSE_WALL, 0.45)
     sketch(o, cafe, "garden", INK2, LW_FINE, closed=True)
     sketch(o, [(71, 45.5), (87, 45.5), (85, 47.5), (73, 47.5)], "garden", INK2, LW_FINE, closed=True)
     sketch_tree(o, 26, 40, 9); sketch_tree(o, 38, 40, 8)                 # olives
     sketch_tree(o, 49, 40, 12)                                           # stone pine
-    sketch_person(o, 89, 40, kind=1); sketch_person(o, 31, 40, kind=2, flip=True); sketch_person(o, 195, 40)
+    sketch_tree(o, 170, 40, 10); sketch_tree(o, 184, 40, 10)             # v7: plane trees on the hub square (D8)
+    sketch_person(o, 89, 40, kind=1); sketch_person(o, 31, 40, kind=2, flip=True)
+    sketch_person(o, 177, 40); sketch_person(o, 195, 40, kind=2, flip=True); sketch_person(o, 142, 14, kind=0)
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)
     sketch(o, [(95, 35), (158, 35)], "flood lines", W_EXT, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_LINE)
     level_mark(o, 154, 35, W_EXT, "flood lines")
-    text(o, "Q500 +58.75 m · 2.79 m over the bed " + CITE("levels") + "\ninside the banks · K5 cut\ngarden stays dry while the bed floods", 160, 54, 5.4, W_EXT, "water")
+    hub_route(o, gs, 166, 138)                                                    # hub square -> steps -> sub-hub
+    h = 5.6 * 0.353 * TXT_K[0]                                                    # one line of 5.6 pt words
+    text(o, "Q500 +58.75 m · 2.79 m " + CITE("levels") + "\ninside the banks", 160, 64 + 2.9 * h, 5.4, W_EXT, "water")
+    label2(o, "WALKING HUB " + CITE("hubs"), "street level · step-free\nplane trees " + CITE("plane") + "\nirrigated from storage",
+           160, 64, 5.6, SKINK)
+    text(o, "steps", 141, 27.5, 5.6, SKINK)
     keyed(o, "winter", "bed under water", 162, 31, 5.6, W_EXT, "water", mask=SOIL)
-    keyed(o, "summer", "continuous strip · regulated\ntoday: dry, pools", 162, 17, 5.6, W_EXT, "water", mask=SOIL)
+    keyed(o, "summer", "summer strip\ntoday: dry, pools", 162, 17, 5.6, W_EXT, "water", mask=SOIL)
     text(o, "olives", 22, 53, 5.2, INK2); text(o, "stone pine", 44, 58, 5.2, INK2)
     text(o, "basin", 57, 45, 5.2, INK2); text(o, "cafe", 75, 50, 5.2, INK2)
-    text(o, "DEMETER'S GARDEN " + CITE("garden") + "\nSW bank · dry top · all year · DG 1-2", 20, 37, 5.6, mask=SOIL)
-    text(o, "olive, lavender: no waterlogged soil " + CITE("plants") + "\ngarden on the dry top", 4, 27, 5.2, ACCENT, mask=SOIL)
+    label2(o, "DEMETER'S GARDEN " + CITE("garden"), "dry bank top · all year · DG 1-2", 20, 36.5, 5.6, mask=SOIL)
+    text(o, "olive, lavender: no waterlogged soil " + CITE("plants"), 4, 26, 5.2, ACCENT, mask=SOIL)
     hand_arrow(o, (128, 17), (66, 38.6), SITE_WATER_D, bend=0.15)
-    text(o, "clean strip water for the garden\nintake and lift", 56, 31, 5.2, SITE_WATER_D, mask=SOIL)
-    # v3: Begüm's crop list as two season rows (sun = summer, cloud = winter); every crop kept
-    keyed(o, "summer", "farm-to-table cafe beds: beans · tomatoes · peppers\nfigs · grapes", 4, 79, 5.6)
-    keyed(o, "winter", "Aegean herbs · greens · cabbages · citrus · quince " + CITE("garden"), 4, 73.6, 5.6)
-    text(o, "clean stream waters a\nproductive heritage garden", 100, 68, 8.0, SKINK, "idea")
+    text(o, "strip water to the garden\nintake + lift", 62, 22, 5.2, SITE_WATER_D, mask=SOIL)
+    # v3: the card's crop list as two season rows (sun = summer, cloud = winter); every crop kept
+    keyed(o, "summer", "cafe beds: beans · tomatoes · peppers · figs · grapes", 4, 80, 5.6)
+    keyed(o, "winter", "herbs · greens · cabbages · citrus · quince " + CITE("garden"), 4, 80 - 1.5 * h, 5.6)
     for n_, x_, y_ in ((6, 129, 18), (7, 110, 22), (9, 8, 45)):
         NODE(o, x_, y_, n_)
-    # v6 (Aras's review 26 Oct, p.25): the two zones under the cut, and what each water state means for people
+    # v6: the two zones under the cut, and what each water state means for people; v7: the bed is the sub-hub
+    yz = 3.0 - 0.75 * h
     for x0, x1, col, lab in ((18, 92, SUN, "DRY · DEMETER'S GARDEN · bank top"),
-                             (95, 158, W_EXT, "WET · AMPHIBIOUS STREAM COMMONS · bed")):
+                             (95, 158, W_EXT, "WET · COMMONS = SUB-HUB · bed")):
         sketch(o, [(x0, 4.5), (x1, 4.5)], "zones", col, PEN_BOLD, over=0.0, retrace=False, z=Z_LINE)
         for xe in (x0, x1):
             sketch(o, [(xe, 3.2), (xe, 5.8)], "zones", col, PEN_BOLD, over=0.0, retrace=False, z=Z_LINE)
-        text(o, lab, x0, 0.8, 5.6, SKINK, "zones", bold=True)
-    keyed(o, "winter", "high water: people stay up in the garden", 18, -3.4, 5.6, INK2)
-    keyed(o, "summer", "low water: people go down into the commons", 95, -3.4, 5.6, W_EXT)
+        text(o, lab, x0, yz, 5.6, SKINK, "zones", bold=True)
+    keyed(o, "winter", "high water: up in the garden + hub", 18, yz - 1.5 * h, 5.6, INK2)
+    keyed(o, "summer", "low water: down to the sub-hub", 95, yz - 1.5 * h, 5.6, W_EXT)
 
 def concept_nil_sketch():
     HAND_TEXT[0] = True
@@ -825,10 +880,9 @@ def concept_nil_sketch():
 
 def _concept_nil_sketch():
     """v1.4. Give back (zones WP 1-2 and the floodable boardwalk, ZONES.md). PROBLEM: the downstream edge is unused
-    ground and the summer bed is a trickle. MOVE: the clean river from the upstream basins feeds floodable planting
-    people can walk along; nothing is treated here; surplus goes to the farmland outside the site."""
+    ground and the summer bed is a trickle. MOVE: the clean stream from the upstream basins feeds floodable planting
+    people can walk along; nothing is treated here; surplus goes to the farmland outside the site. v7: shorter words."""
     o, w = ORIGIN, 200
-    title(o, 82, "DOWNSTREAM REACH · give back · form " + FORM)
     g = [(0, 8), (0, 62), (30, 62), (46, 30), (110, 30)] + bank((110, 30), (120, 14))[1:] + \
         [(165, 14), (175, 32), (w, 32), (w, 8)]
     gs = sketch_ground(o, notch(g, [(136, 150, 14, 2.2)]))     # summer strip: low-flow channel
@@ -849,18 +903,18 @@ def _concept_nil_sketch():
     sketch(o, gs, "ground lines", SKINK, PEN_BOLD, z=Z_LINE)
     sketch(o, [(112, 27), (178, 27)], "flood lines", W_EXT, PEN_FINE, over=0.0, retrace=False, dashed=True, z=Z_LINE)
     level_mark(o, 172, 27, W_EXT, "flood lines")
-    text(o, "Q500 +48.00 m · 2.33 m over the bed " + CITE("levels") + "\ninside the banks · NİL cut\nflat end: 1.54 m\nbanks about 114 m apart\nfloods spread wide, shallow", 150, 60, 5.4, W_EXT, "water")
-    keyed(o, "winter", "bed under water", 176, 28.5, 5.6, W_EXT, "water", mask=SOIL)
-    keyed(o, "summer", "regulated strip\ntoday: trickle\nor dry bed " + CITE("gauges"), 176, 23.5, 5.6, W_EXT, "water", mask=SOIL)
-    text(o, "floodable streamside planting · WP 1-2 " + CITE("zones") + "\nflood- + drought-tolerant · clean-stream fed\nno farmland inside the site", 48, 27, 5.4, mask=SOIL)
-    text(o, "floodable boardwalk: an open deck " + CITE("zones"), 48, 45, 5.4)
+    text(o, "Q500 +48.00 m · 2.33 m " + CITE("levels") + "\ninside the banks\nflat end: floods wide + shallow", 150, 60, 5.4, W_EXT, "water")
+    keyed(o, "winter", "bed under water", 170, 28.5, 5.6, W_EXT, "water", mask=SOIL)
+    keyed(o, "summer", "summer strip\ntoday: trickle " + CITE("gauges"), 170, 23.5, 5.6, W_EXT, "water", mask=SOIL)
+    text(o, "floodable planting · WP 1-2 " + CITE("zones") + "\nclean-stream fed", 48, 27, 5.4, mask=SOIL)
+    text(o, "floodable boardwalk " + CITE("zones"), 48, 45, 5.4)
     text(o, "slope", 2, 59, 5.2, INK2, mask=SOIL)
-    keyed(o, "failsafe", "FAIL-SAFE\nfloodable planting · open deck\nhigh water passes over", 1, 50, 5.6, ACCENT, mask=SOIL)
+    keyed(o, "failsafe", "FAIL-SAFE\nhigh water passes over", 1, 50, 5.6, ACCENT, mask=SOIL)
     hand_arrow(o, (141, 16), (100, 31.5), SITE_WATER_D, bend=0.15)
     text(o, "clean stream + strip\nfeed the planting", 112, 45, 5.6, SITE_WATER_D)
     hand_arrow(o, (184, 35), (196, 44), ACCENT, width=0.4, head=1.5, bend=-0.2)
-    text(o, "surplus clean water · existing farmland outside", 150, 72, 5.6, ACCENT)
-    text(o, "arrives clean from the upstream reeds · no treatment here", 62, 76, 5.6)
+    text(o, "surplus · farmland outside", 150, 72, 5.6, ACCENT)
+    text(o, "arrives clean · no treatment here", 62, 76, 5.6)
     text(o, "clean stream back to a\nwalkable planted edge", 4, 76, 8.0, SKINK, "idea")
     for n_, x_, y_ in ((6, 143, 17.5), (7, 84, 34), (10, 158, 18), (11, 190, 38)):
         NODE(o, x_, y_, n_)
