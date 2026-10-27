@@ -1,6 +1,6 @@
 CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the bed low point), depths of EVENTS (m above the bed),
           # the width each level covers (from, to; m from the centreline, + = left bank looking downstream), notes
-    dict(key="flat", name=u"4 · FLAT DOWNSTREAM END", bed=41.33, u0=-62,
+    dict(key="flat", name=u"5 · FLAT DOWNSTREAM END", bed=41.33, u0=-62,
          ground=[3.97, 3.92, 3.88, 3.84, 3.80, 3.78, 3.76, 3.74, 3.72, 3.42, 2.79, 2.16, 1.52, 0.95, 0.89, 0.82, 0.76, 0.70, 0.68, 0.66, 0.64, 0.61, 0.59, 0.57, 0.55, 0.52, 0.50, 0.48, 0.46, 0.44, 0.41, 0.39, 0.37, 0.35, 0.33, 0.32, 0.30, 0.29, 0.27, 0.26, 0.24, 0.23, 0.21, 0.20, 0.19, 0.17, 0.16, 0.14, 0.13, 0.11, 0.10, 0.08, 0.07, 0.06, 0.04, 0.03, 0.01, 0.00, 0.00, 0.01, 0.01, 0.02, 0.02, 0.02, 0.03, 0.03, 0.04, 0.04, 0.05, 0.05, 0.06, 0.06, 0.07, 0.07, 0.08, 0.08, 0.08, 0.09, 0.09, 0.10, 0.09, 0.11, 0.13, 0.16, 0.18, 0.21, 0.24, 0.26, 0.29, 0.32, 0.35, 0.38, 0.41, 0.43, 0.46, 0.49, 0.54, 0.59, 0.64, 0.70, 0.75, 0.80, 0.86, 0.91, 0.96, 1.02, 1.07, 1.12, 1.18, 1.23, 1.28, 1.34, 1.46, 1.65, 1.84, 2.03, 2.22, 2.41, 2.61, 2.80, 2.94, 3.06, 3.17, 3.29, 3.40],
          dep=(0.23, 0.69, 1.14, 1.38, 1.54),
          ext=[(-20.5, 23.5), (-44.0, 36.5), (-49.0, 45.0), (-49.5, 49.0), (-50.0, 50.0)],
@@ -32,5 +32,5 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
          ground=[3.0] * 7 + [0.0] * 19 + [3.0] * 7,
          dep=(0.22, 1.07, 2.20, 2.87, 3.39),
          ext=[(-10.0, 10.0)] * 5,
-         tags=[("pin", u"20.00 m bed · 3.00 m deep · 3,720 m " + cite(u"SYGM North Aegean flood management plan 2019, p.75; depths on the design trapezoid, walls above 3 m taken as vertical"))]),
+         tags=[]),   # v1.14: its size is printed under the cut (draw_cut, DSI_SRC)
 ]
