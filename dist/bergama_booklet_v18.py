@@ -16,7 +16,8 @@ the pages cite, grouped by theme, and the log names marks without a source entry
 shows are taken out of it (the hidden stray "1:1,511" of the old p.10, junk in Illustrator); a whole-sheet page gets
 the booklet's page number (and its theme where the corner is free); sheet pages are titled in the contents as the
 sheets print them; a page whose drawings are all still frames ("later prompt") is left out (PLAN FRAME_PAGES); a
-legend too long for the footer goes in columns under the rows when they leave room.
+legend too long for the footer goes in columns under the rows when they leave room; two or more rows that leave more
+than 40 mm of the page empty share that height out (above, between and below them).
 NEW IN v17 (Aras 27 Oct 17:35, Prompt 7 "masterplan"; masterplan v26, site board v49): theme E is the open ground
 (crop mp_max_area, now 1:5,000), then one spread: "Before the masterplan: the edge and where we can build" (site board
 crop drw_edge_build_e) on the left page, "Masterplan: an ecological corridor" (crop mp_plan: both halves, the notes as
@@ -647,6 +648,12 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
         lx = AREA[0] + max(rws) + 8.0
         for i, e in enumerate(legend):
             legend_item(pg, typo, e, lx, AREA[1] + 3.0 + 4.0 * i)
+    # v18 (Prompt 8, rule 4 "no large empty areas"): rows that leave more than 40 mm of the height empty share it out
+    # (old p.10: 91 mm under two maps the width holds at 1:10,000)
+    free = ah - sum(max(wh(it)[1] * sc(it) for it in r) + CAP_H + ROW_GAP for r in rows) + ROW_GAP
+    pad = free / (len(rows) + 1) if len(rows) > 1 and free > 40.0 and not side_it and \
+        footer_rows(typo, legend, spec) <= 3 else 0.0
+    y += pad
     for r, rw in zip(rows, rws):                     # rows centred across the page (left with a side legend)
         x, rh = AREA[0] + (0.0 if side or side_it else max(0.0, (aw - rw) / 2.0)), max(wh(it)[1] * sc(it) for it in r)
         for key, blk, path, clip in r:
@@ -674,7 +681,7 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                     med, low = ws[len(ws) // 2] * s, ws[len(ws) // 10] * s
                     rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], med, low))
             x += w * s + GUT
-        y += rh + CAP_H + ROW_GAP
+        y += rh + CAP_H + ROW_GAP + pad
     if y - ROW_GAP > AREA[3] + 0.5:                  # v15: fixed crops are not shrunk: say when they overrun
         typo.issues.append("PAGE OVERRUNS ITS AREA p.%d by %.1f mm" % (pno, y - ROW_GAP - AREA[3]))
     if legend and not side and not side_it and footer_rows(typo, legend, spec) > 3:
