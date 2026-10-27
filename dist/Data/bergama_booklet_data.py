@@ -1,7 +1,7 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v14 (Aras 27 Oct 17:34, Prompt 4: old p13 "How the stream behaves" merged into the water balance
+# ---- BOOKLET PLAN v16 (Aras 27 Oct 20:51: key map on the two S4 pages); v14 (Aras 27 Oct 17:34, Prompt 4: old p13 "How the stream behaves" merged into the water balance
 # sheet's page, analysis first); v13 (Aras 27 Oct 17:34, Prompt 3: p.8 the three movement maps stacked, each the site frame at
 # 1:10,000); v12 (Aras 27 Oct 17:34, Prompt 2: p.2 plan 01 + site readings side panel; p.6 the stream edge and
 # where we can build; a key map on each sections page: "key" = a crop in the title band, "side" = panels at the right
@@ -81,8 +81,11 @@ PAGES = [
          sheet=BAL + "Bergama_water_balance_A3.pdf"),
     dict(part="C", stage="do", title=u"Collect, clean, hold", rows=[[WB + "wb_system"]]),   # old p14
     dict(part="C", stage="do", title=u"The proposals in section", rows=[[PS + "ps_all"]]),   # old p19
-    dict(part="C", stage="do", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]]),   # old p20
-    dict(part="C", stage="do", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]]),   # old p21
+    # v16 (Aras 27 Oct 20:51 "Move the line"): the board's S4 is the water board's S4, so these pages get its key map
+    dict(part="C", stage="do", title=u"Four seasons on one cut", rows=[[WB + "wb_s4_seasons"]],
+         key=SB + "sec_sections_key_s4"),   # old p20
+    dict(part="C", stage="do", title=u"The S4 cut, north-east bank", rows=[[WB + "wb_s4_ne"]],
+         key=SB + "sec_sections_key_s4"),   # old p21
     dict(part="C", stage="do", title=u"Which plant goes where",   # old p22; v15: the July shade strip (Prompt 5 3a)
          rows=[[WB + "wb_plants"], [SB + "drw_shade_strip||" + SB + "drw_tree_cover"]]),
     dict(part="C", stage="do", title=u"Where the clean water goes", rows=[[WB + "wb_farms"], [WB + "wb_decision"]]),   # old p23

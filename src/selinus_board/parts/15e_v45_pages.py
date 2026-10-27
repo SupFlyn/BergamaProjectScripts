@@ -529,7 +529,7 @@ def draw_sections_key(S, B, x, y, sw, names, k_):
     nx = lx - max(tw(u"KEY", h7, "sans"), tw(u"1:{:,}".format(crop_scale(ss)), h7, "sans")) - 5.0 * k
     draw_north_at(B, F, nx, yt - 0.5 * mh - 0.6 * k, 4.0, k, L)
     low = r[1] - 0.6 * k
-    crop_panel("sections_key_%d" % (k_ + 1), nx - 4.0 * k, low, x0 + mw + 0.3 * k, y,
+    crop_panel("sections_key_%s" % (k_ + 1 if isinstance(k_, int) else k_), nx - 4.0 * k, low, x0 + mw + 0.3 * k, y,   # v48: "s4"
                u"Key · " + u", ".join(names), crop_scale(ss))
     CROP_PANELS[-1]["bk_w"] = (x0 + mw + 0.3 * k - (nx - 4.0 * k)) / k     # its width on the booklet page, mm
     return low

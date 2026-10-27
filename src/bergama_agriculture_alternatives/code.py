@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v2.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v3.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -12,7 +12,22 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v2"
+VERSION = "v3"
+# v3 (Aras 27 Oct 17:35, Prompt 6 "water, part 3"; the booklet's p.24-25):
+#   * page 1, "THE STREAM COMES FIRST" between the headline and the bars (task 1: "show the defence ON the board"): the
+#     priority 1 stream: summer strip -> 2 on-site planting -> 3 farms (the model has no draw of its own for the
+#     planting: it lives on the strip's water, so it shares the strip's bar); the design store through a normal and the
+#     1-in-5 dry water year as two stacked bars on one scale (strip, farms, left over; the store size dashed across
+#     both), read live from the water balance v4 results (design.year_split, one daily run); and the double squeeze in
+#     one line, computed: water left for the farms after the strip, the need per hectare and the hectares that water
+#     serves, dry year against normal, then why deficit-irrigated olive is the lever. Without year_split (water balance
+#     v3 or older) only the priority row is drawn (logged). The bars move down to make room: rows 16.5 mm apart (were
+#     19.5), the reading box ends at the 14 mm margin.
+#   * pages 1 and 3 say where they sit in the booklet: "C WATER · WHAT WE DO WITH IT" (was "AGRICULTURE ANALYSIS");
+#     page 3, the last page of the water theme, closes it top right: what we do with the water in five steps and NEXT
+#     D HISTORY AND HERITAGE (rule 7, task 3).
+#   * m² and m³ are written as a raised small 2 or 3 (0.6 x the size, as wide as the glyph), which every PDF viewer
+#     shows (task 2: "325,000-375,000 m" in some viewers).
 # v2 (Aras 27 Oct, Prompt 5, rule 8: "Plant names: English first, Turkish in brackets, no Latin ... Every plant AND every
 # crop in the booklet gets a photo of the plant itself ... openly licensed photos ... credited in the sources ... Same
 # crop ratio and size for every photo"): every plant and crop name on pages 1 and 3 is "English (Turkish)" from the
@@ -103,6 +118,8 @@ def live():
              cropland_ha=d["lands"]["cropland_ha"], orchard_ha=d["lands"]["orchard_ha"],
              crops=[c.strip() for c in str(d["lands"].get("cropland_crops", "")).split(",") if c.strip()],
              net=d["net_irrigation_mm"])
+    L["year_split"] = (d.get("design") or {}).get("year_split")      # v3: water balance v4 and newer
+    L["design_mix"] = (d.get("design") or {}).get("mix", "")
     return L, src
 
 def span(v):
@@ -125,6 +142,23 @@ _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278
 
 _ENC_EXTRA = {u"Ğ": 0x81, u"ğ": 0x8D, u"İ": 0x8F, u"ı": 0x90, u"Ş": 0x9D, u"ş": 0x9E}   # Turkish letters in unused WinAnsi slots
 _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157 /Scedilla 158 /scedilla]"
+# v3 (Aras 27 Oct, Prompt 6: "325,000-375,000 m"): ² and ³ are drawn as the digit at 0.6 x the size, raised 0.28 x the
+# size (then as wide as the ²/³ glyph, 333/1000): the unembedded Helvetica's ²/³ was missing in some viewers
+SUP = {u"²": u"2", u"³": u"3"}
+SUP_K, SUP_UP = 0.6, 0.28
+
+
+def sup_runs(s):
+    """v3: s cut into (text, raised) runs at ² and ³, which become a plain 2 or 3"""
+    out, cur = [], u""
+    for ch in s:
+        if ch in SUP:
+            if cur: out.append((cur, False))
+            out.append((SUP[ch], True)); cur = u""
+        else:
+            cur += ch
+    if cur: out.append((cur, False))
+    return out
 
 #@include ../common/text_w.py
 
@@ -155,6 +189,15 @@ class Page:
     def circle(self, x, y, r, fill=None, stroke=None, lw=0.2):          # v1.2: for the pictograms
         self.poly([(x + r * math.cos(k * math.pi / 12), y + r * math.sin(k * math.pi / 12)) for k in range(24)], fill, stroke, lw, True)
     def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", halo=None):
+        if any(ch in SUP for ch in s):             # v3 (Prompt 6): m² / m³ as a raised small digit (see SUP)
+            runs = sup_runs(s)
+            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
+            x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
+            for (t, up), w_ in zip(runs, ws):
+                self.text(t, x, y + (size * SUP_UP * 0.3528 if up else 0.0), size * (SUP_K if up else 1.0), col, bold,
+                          "L", halo)
+                x += w_
+            return
         if align == "C": x -= text_w(s, size, bold) / 2
         elif align == "R": x -= text_w(s, size, bold)
         k = 72 / 25.4
@@ -310,7 +353,10 @@ def put_photos(path):
     out += ["  " + t for t in PHOTO_LOG]
     return "\n".join(out)
 
-def header(pg, n, title, sub, hole=None):
+STAGE_TAG = u"C  WATER  ·  WHAT WE DO WITH IT"   # v3 (Prompt 6, rule 7): the booklet's theme and stage of pages 1 and 3
+
+
+def header(pg, n, title, sub, hole=None, tag="AGRICULTURE ANALYSIS · GROUP 6"):
     if hole:                                       # v1.5: a window left open for a plan placed under the page
         x0, y0, x1, y1 = hole
         pg.path([[(0, 0), (420, 0), (420, 297), (0, 297)], [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]], fill=C["white"])
@@ -319,7 +365,8 @@ def header(pg, n, title, sub, hole=None):
     pg.text(n, 14, 279, 22, C["accent"], True)
     pg.text(title, 26, 279, 22, C["ink"], True)
     pg.text(sub, 26, 271.5, 11, C["ink2"])
-    pg.text("AGRICULTURE ANALYSIS · GROUP 6", 406, 281, 7, C["ink2"], True, "R")
+    if tag:                                        # v3: pages 1 and 3 name their booklet stage (accent, as its kicker)
+        pg.text(tag, 406, 281, 7, C["accent"] if tag == STAGE_TAG else C["ink2"], True, "R")
 
 # ------------------------------------------------------------------ v1.2 pictograms and tiles (from water board v1.6/v1.7)
 def icon(pg, kind, x, y, sz):
@@ -546,10 +593,157 @@ def crop_row(pg, x, top, w, floor):
     return low
 
 
+# ------------------------------------------------------------------ v3 (Prompt 6): the stream comes first
+PRIORITY = [(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
+WE_DO = [(1, "clean once, at the upstream end"), (2, "hold winter water"), (3, "strip first, all summer"),
+         (4, "plant each step for the water it gets"), (5, "surplus to the farms outside, never drinking")]
+
+
+def chip(pg, x, y, n, label, size=7.5):
+    """v3: a numbered step: the number white in an accent square, the label after it (baseline y). Returns x after it."""
+    pg.rect(x, y - 0.7, 3.6, 3.6, fill=C["accent"])
+    pg.text(str(n), x + 1.8, y + 0.15, 6.5, C["white"], True, "C")
+    pg.text(label, x + 4.8, y, size, C["ink"])
+    return x + 4.8 + text_w(label, size)
+
+
+def step_arrow(pg, x, y):
+    """v3: a small arrow, 4 mm long, at the mid-height of a label on baseline y. Returns x after it."""
+    ym = y + 1.1
+    pg.line([(x, ym), (x + 3.0, ym)], C["ink2"], 0.3)
+    pg.poly([(x + 2.9, ym + 0.8), (x + 4.0, ym), (x + 2.9, ym - 0.8)], fill=C["ink2"], closed=True)
+    return x + 4.0
+
+
+def chips(pg, x, y, steps, size=7.5):
+    """v3: numbered steps in one row, an arrow between two, from x on baseline y"""
+    for i, (n, lab) in enumerate(steps):
+        if i: x = step_arrow(pg, x + 1.5, y) + 1.5
+        x = chip(pg, x, y, n, lab, size)
+    return x
+
+
+def chips_w(steps, size=7.5):
+    return sum(4.8 + text_w(lab, size) for _, lab in steps) + 7.0 * (len(steps) - 1)
+
+
+def squeeze(ys):
+    """v3: the double squeeze, dry year against normal, from the water balance's year_split (one daily run of the
+    design store): water left for the farms after the strip (carried in + filled - strip), the farms' need per hectare
+    (the same fields both years, so their need) and the hectares that water serves = left / need per ha. Fractions."""
+    n, d = ys["normal"], ys["dry5"]
+    left = lambda q: q["carried_in_m3"] + q["filled_m3"] - q["strip_m3"]
+    a = left(d) / max(left(n), 1.0) - 1.0
+    b = d["farm_need_m3"] / max(n["farm_need_m3"], 1.0) - 1.0
+    return a, b, (1.0 + a) / (1.0 + b) - 1.0
+
+
+def pc(v):
+    """v3: a change as a signed whole percent, "+11 %", "-2 %", "0 %" """
+    return "0 %" if abs(v) < 0.005 else "%+.0f %%" % (100.0 * v)
+
+
+def stream_first(pg, L, src, y_top):
+    """v3 (Aras 27 Oct 17:35, Prompt 6 task 1: "the board sends LESS water to farms in a 1-in-5 dry year than storage
+    holds ... show the defence ON the board"): the priority as numbered steps; the design store through a normal and the
+    1-in-5 dry water year, two stacked bars on one scale from x 70 (the hectare bars' origin): strip (it also waters the
+    bed planting: the model has no draw of its own for it), farms (light normal, deep dry, as the bars below), left over
+    (carried on, or back to the stream after 365 days), the store size dashed across both; then the double squeeze.
+    All from the water balance results (design.year_split); without them only the priority row. Returns the bottom y."""
+    yA = y_top - 3.5
+    pg.text("THE STREAM COMES FIRST", 26, yA, 9, C["accent"], True)
+    chips(pg, 26 + text_w("THE STREAM COMES FIRST", 9, True) + 5.0, yA, PRIORITY)
+    ys = L.get("year_split")
+    if not (ys and "normal" in ys and "dry5" in ys):
+        LOG_NOTES.append("FLAG p1: the water balance results have no year_split (water balance v4 has not run): the "
+                         "normal and dry-year bars and the squeeze line are left out")
+        ag_crop("ag1_stream", 0, 24.0, yA - 2.0, 266.0, y_top + 1.0)
+        return yA - 1.0
+    mix = L.get("design_mix") or "design mix"
+    mix_t = " + ".join(name_lc(w.split()[-1]) if w.split() and w.split()[-1] in PLANTS else w for w in mix.split(" + "))
+    SRC_Y = ("normal and 1-in-5 dry year: " + src + "; design store, " + mix_t + "; one daily run of the store over 34 "
+             "water years: normal = the year of median farm need, dry = the 1-in-5 dry year of farm need; carried in + "
+             "filled = strip + farms + left over; left for farms = carried in + filled - strip; hectares = left for farms "
+             "/ need per hectare (calculated)")
+    mk = cite(SRC_Y)
+    V = float(ys.get("storage_m3") or 0.0)
+    YRS = (("normal", "normal year", C["green_light"], C["ink"]), ("dry5", "1-in-5 dry year", C["green_deep"], C["white"]))
+    tot = dict((k, ys[k]["carried_in_m3"] + ys[k]["filled_m3"]) for k, _, _, _ in YRS)
+    x0, BW = 70.0, 140.0
+    kx = BW / max(max(tot.values()), V, 1.0)
+    v_t = lambda v: fmt(rnd(v, 1000 if v >= 10000 else 100))
+    b1 = yA - 7.0                                  # the normal bar's top; the dry bar 11 mm under it
+    for j, (k, lab, fcol, fink) in enumerate(YRS):
+        d = ys[k]
+        top = b1 - 11.0 * j; bot = top - 6.0
+        segs = [(d["strip_m3"], C["water_deep"], C["white"]), (d["farms_m3"], fcol, fink),
+                (max(0.0, tot[k] - d["strip_m3"] - d["farms_m3"]), C["faint"], C["ink"])]
+        xs, out_x = x0, -1e9                       # out_x: where the last outside value ended (pushed right past it)
+        for v, col, ink in segs:
+            w_ = kx * v
+            if w_ > 0.05:
+                pg.rect(xs, bot, w_, 6.0, fill=col)
+            t = v_t(v)
+            if v >= 0.5:
+                tw_ = text_w(t, 6.5, True)
+                if tw_ + 1.6 <= w_:                # inside, centred
+                    pg.text(t, xs + w_ / 2.0, bot + 2.2, 6.5, ink, True, "C")
+                else:                              # outside: over the normal bar, under the dry bar
+                    tx = max(xs + w_ / 2.0 - tw_ / 2.0, out_x + 1.5)
+                    pg.text(t, tx, top + 0.9 if j == 0 else bot - 2.9, 6.5, C["ink"], True)
+                    out_x = tx + tw_
+            xs += w_
+        pg.text(lab, x0 - 3.0, top - 2.6, 8, C["ink"], True, "R")
+        pg.text("water year " + d["water_year"], x0 - 3.0, bot + 0.6, 6.5, C["ink2"], align="R")
+        pg.text("%s m³ through the store" % v_t(tot[k]), x0 + BW + 4.0, top - 2.4, 7.5, C["ink"], True)
+        pg.text("stream's winter flow: %.0f %% of a median year" % d["winter_flow_pct_of_median"], x0 + BW + 4.0,
+                bot + 0.6, 6.5, C["ink2"])
+    if V > 0:                                      # the store size, dashed across both bars
+        xv = x0 + kx * V
+        pg.line([(xv, b1 - 17.8), (xv, b1 + 0.8)], C["ink"], 0.35, (1.0, 0.7))
+    lg = b1 - 17.0 - 7.0                           # the legend row, then the squeeze in two lines
+    xx = 26.0
+    for kind, cols, lab in (("fill", (C["water_deep"],), "strip, also waters the bed planting"),
+                            ("fill", (C["green_light"], C["green_deep"]), "farms: normal · dry year"),
+                            ("fill", (C["faint"],), "left: carried on, or back to the stream after a year"),
+                            ("dash", (C["ink"],), "store %s m³ %s" % (fmt(V), mk))):
+        for c_ in cols:
+            if kind == "fill":
+                pg.rect(xx, lg - 0.3, 3.5, 2.6, fill=c_); xx += 4.0
+            else:
+                pg.line([(xx + 1.7, lg - 0.6), (xx + 1.7, lg + 2.6)], c_, 0.35, (1.0, 0.7)); xx += 4.0
+        pg.text(lab, xx + 0.8, lg, 6.5, C["ink"])
+        xx += 0.8 + text_w(lab, 6.5) + 5.0
+    a, b, c = squeeze(ys)
+    pg.text("1-in-5 dry year vs normal year: left for farms after the strip %s · need per hectare %s · hectares %s %s" % (
+        pc(a), pc(b), pc(c), mk), 26, lg - 4.0, 7.5, C["accent"], True)
+    if b > 0.0 and a <= 0.0:                       # what the run shows, said as it is (the log flags the other cases)
+        t2 = "so the hectares fall faster than the volume: why deficit-irrigated %s is the lever" % name_lc("olive")
+    elif b > 0.0 and c < 0.0:
+        t2 = "the need per hectare outgrows the water left: why deficit-irrigated %s is the lever" % name_lc("olive")
+    else:
+        t2 = "the hectares hold in this dry year: the store covers it"
+    pg.text(t2, 26, lg - 7.4, 7.5, C["ink"])
+    if a > 0.0 or b <= 0.0:
+        LOG_NOTES.append("MODEL p1: the dry year (%s) leaves the farms %s water after the strip and needs %s per hectare: "
+                         "the squeeze is %s" % (ys["dry5"]["water_year"], pc(a), pc(b),
+                                                "the need per hectare only" if b > 0.0 else "not there this time"))
+    n_, d_ = ys["normal"], ys["dry5"]
+    LOG_NOTES.append("p1 stream first (%s, store %s m3): normal %s / dry %s: in %s / %s m3 (filled %s / %s), strip %s / %s, "
+                     "farms %s / %s of need %s / %s; left for farms %s, need per ha %s, hectares %s; winter flow %.0f / %.0f %% "
+                     "of median" % (mix, fmt(V), n_["water_year"], d_["water_year"], fmt(tot["normal"]), fmt(tot["dry5"]),
+                                    fmt(n_["filled_m3"]), fmt(d_["filled_m3"]), fmt(n_["strip_m3"]), fmt(d_["strip_m3"]),
+                                    fmt(n_["farms_m3"]), fmt(d_["farms_m3"]), fmt(n_["farm_need_m3"]),
+                                    fmt(d_["farm_need_m3"]), pc(a), pc(b), pc(c), n_["winter_flow_pct_of_median"],
+                                    d_["winter_flow_pct_of_median"]))
+    ag_crop("ag1_stream", 0, 24.0, lg - 9.0, 266.0, y_top + 1.0)
+    return lg - 8.2
+
+
 def page_cubic(L, src):
     pg = Page(420, 297)
     header(pg, "1", "WHAT EACH CUBIC METRE GROWS",
-           "Same storage, different crops: hectares irrigated a season")
+           "Same storage, different crops: hectares irrigated a season", tag=STAGE_TAG)
     s_lo, s_hi = span(L["storage_m3"]); p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
     w_lo, w_hi = n_lo * p_lo / 100.0, n_hi * p_hi / 100.0          # m3 the storage gives the farms in the 1-in-5 dry year
     fed = L["cropland_ha"] + L["orchard_ha"]
@@ -564,7 +758,10 @@ def page_cubic(L, src):
     # bars: hectares served by W, per crop (v2, Prompt 5: the crop names "English (Turkish)")
     rows = [(plant_name("olive") + ", full irrigation", "olive", None), (plant_name("olive") + ", deficit irrigation", "olive", DEFICIT)] + \
            [(plant_name(c) if c in PLANTS else c.capitalize(), c, None) for c in sorted(NET) if c != "olive"] + [("Bergama mix (TÜİK 2025)", "mix", None)]
-    x0, y0, gw = 70, 214, 190
+    stream_first(pg, L, src, 236.0)                 # v3 (Prompt 6): between the headline and the bars
+    x0, y0, gw = 70, 181, 190                       # v3: y0 was 214, the stream-first block sits above
+    RP = 16.5                                       # v3: rows 16.5 mm apart (were 19.5)
+    yb_ = y0 - (len(rows) - 1) * RP - 13.5           # the last row's dry bar bottom (= the grid's foot, as before)
     vals = []
     for lab, crop, d in rows:
         for yr in ("normal", "dry"):
@@ -576,13 +773,13 @@ def page_cubic(L, src):
     step = 25 if vmax < 160 else (50 if vmax < 400 else 100)
     for t in range(0, int(vmax) + 1, step):
         xx = x0 + gw * t / vmax
-        pg.line([(xx, y0 - len(rows) * 19.5 + 6), (xx, y0 + 6)], C["faint"], 0.2)
-        pg.text("%d ha" % t, xx, y0 - len(rows) * 19.5 + 1.5, 7, C["ink2"], align="C")
+        pg.line([(xx, yb_), (xx, y0 + 6)], C["faint"], 0.2)
+        pg.text("%d ha" % t, xx, yb_ - 4.5, 7, C["ink2"], align="C")
     xf = x0 + gw * fed / vmax
-    pg.line([(xf, y0 - len(rows) * 19.5 + 6), (xf, y0 + 9)], C["accent"], 0.5, (1.5, 1.0))
+    pg.line([(xf, yb_), (xf, y0 + 9)], C["accent"], 0.5, (1.5, 1.0))
     pg.text("farms we feed: %s ha" % fmt1(fed), xf + 1.2, y0 + 7.5, 7.5, C["accent"], True)
     for i, (lab, crop, d) in enumerate(rows):
-        yy = y0 - i * 19.5
+        yy = y0 - i * RP
         pg.text(lab, x0 - 3, yy - 4.5, 10, C["ink"], True, "R")
         if crop in TUIK_2025_DA:
             pg.text("Bergama 2025: %s ha %s" % (fmt(TUIK_2025_DA[crop] / 10.0), cite(TUIK)), x0 - 3, yy - 13.6, 7, C["accent"], align="R")
@@ -599,38 +796,38 @@ def page_cubic(L, src):
         if d: g_n, g_d = g_n * (1 - d[1]), g_d * (1 - d[0])
         mk = cite(NET_REF) + (cite(TAGEM) if i == 0 else "") + (cite(KAYA) if d else "") + (cite(MIX) if crop == "mix" else "")
         pg.text("%s-%s m³ per ha a season %s" % (fmt(rnd(min(g_n, g_d), 10)), fmt(rnd(max(g_n, g_d), 10)), mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
-    ag_crop("ag1_bars", 0, 13.0, y0 - len(rows) * 19.5 + 0.5, 277.0, y0 + 11.0,
+    ag_crop("ag1_bars", 0, 13.0, yb_ - 5.5, 277.0, y0 + 11.0,
             legend=[{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
                     {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
                     {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
     ag_crop("ag1_headline", 0, 24.0, 239.0, 262.0, 261.0)
     # key to the two bars
-    ky = y0 - len(rows) * 19.5 - 4
+    ky = yb_ - 10.0
     pg.rect(x0, ky, 6, 3, fill=C["green_light"]); pg.text("normal year (mean of 34)", x0 + 8, ky + 0.5, 7, C["ink"])
     pg.rect(x0 + 52, ky, 6, 3, fill=C["green_deep"]); pg.text("1-in-5 dry year", x0 + 60, ky + 0.5, 7, C["ink"])
     pg.rect(x0 + 92, ky, 6, 3, stroke=C["green_deep"], lw=0.35); pg.text("open bar: range (storage span; deficit 44-72 % saving)", x0 + 100, ky + 0.5, 7, C["ink"])
     # reading
     best = [q for q in vals if q[1] == "olive" and q[6] and q[2] == "dry"][0]     # v2: olive with deficit (not by its label)
     worst = max((q for q in vals if q[1] not in ("olive", "mix") and q[2] == "dry"), key=lambda q: q[3])     # the thirstiest field crop
-    pg.rect(14, 32, 250, 60, stroke=C["faint"], lw=0.3)       # v1.6: white page, the box only outlined
-    pg.text("THE READING", 20, 84, 10, C["accent"], True)
+    pg.rect(14, 14, 250, 59, stroke=C["faint"], lw=0.3)       # v1.6: white page, the box only outlined (v3: 14-73)
+    pg.text("THE READING", 20, 65, 10, C["accent"], True)    # v3: the reading 19 mm lower (was 32-92), as the bars
     # v1.2: the conclusion as the two dry-year bars (same scale) and the big ratio between them
     bmax, bx0, bw = best[5] * 1.05, 20, 150
     for k_, (q, lab) in enumerate(((worst, "%s, 1-in-5 dry year" % (plant_name(worst[1]) if worst[1] in PLANTS else worst[1].capitalize())),
                                    (best, best[0] + ", 1-in-5 dry year"))):         # v2: names "English (Turkish)"
-        yb = 70 - k_ * 18
+        yb = 51 - k_ * 18
         pg.text(lab, bx0, yb + 1.5, 8, C["ink"], True)
         pg.rect(bx0, yb - 7, bw * q[4] / bmax, 7, fill=C["green_deep"])
         if q[5] > q[4] * 1.01:
             pg.rect(bx0 + bw * q[4] / bmax, yb - 7, bw * (q[5] - q[4]) / bmax, 7, fill=None, stroke=C["green_deep"], lw=0.35)
         pg.text("%s-%s ha" % (fmt(q[4]), fmt(q[5])), bx0 + bw * q[5] / bmax + 2, yb - 5.2, 9, C["ink"], True)
     bkx = 192
-    pg.line([(bkx - 2, 66.5), (bkx, 66.5), (bkx, 48.5), (bkx - 2, 48.5)], C["accent"], 0.5)
-    pg.text("%.1f-%.1f x" % (best[4] / worst[4], best[5] / worst[5]), bkx + 3, 55, 24, C["accent"], True)
-    pg.text("as much land, same storage", bkx + 3, 49.5, 7.5, C["ink"])
-    pg.text("lever: crop + irrigation method, more than storage", 20, 39, 8, C["ink"], True)
-    pg.text("same water: more farmland · same farms: less storage", 20, 35, 8, C["ink"])
-    ag_crop("ag1_reading", 0, 18.0, 33.0, 262.0, 81.0)
+    pg.line([(bkx - 2, 47.5), (bkx, 47.5), (bkx, 29.5), (bkx - 2, 29.5)], C["accent"], 0.5)
+    pg.text("%.1f-%.1f x" % (best[4] / worst[4], best[5] / worst[5]), bkx + 3, 36, 24, C["accent"], True)
+    pg.text("as much land, same storage", bkx + 3, 30.5, 7.5, C["ink"])
+    pg.text("lever: crop + irrigation method, more than storage", 20, 21, 8, C["ink"], True)
+    pg.text("same water: more farmland · same farms: less storage", 20, 17, 8, C["ink"])
+    ag_crop("ag1_reading", 0, 18.0, 14.5, 262.0, 62.0)
     # context column
     cx, cy = 280, 250
     pg.text("WHY CROP CHOICE IS THE LEVER", cx, cy, 11, C["ink"], True)
@@ -1174,11 +1371,33 @@ def chain_strip(pg, P, y_top):
     return low
 
 
+def we_do_band(pg, P):
+    """v3 (Aras 27 Oct 17:35, Prompt 6 task 3 and rule 7: "the last page of the block clearly states 'what we do with
+    it' and leads into the next theme"): top right, beside the title, left-aligned in a block that ends at the margin:
+    the stage (C WATER · WHAT WE DO WITH IT), what we do with the water in five numbered steps (the water board's p.23
+    loop and this page's ladder, in brief) and NEXT D HISTORY AND HERITAGE, which starts from the roots drawn in red on
+    the chain below. Rows 4.5 mm apart, the last 6 mm over the chain's key."""
+    rows = [WE_DO[:3], WE_DO[3:]]
+    nxt = [("D  HISTORY AND HERITAGE", C["ink"], True), (": it starts from the roots in red on this chain", C["ink"], False)]
+    w_n = text_w("NEXT", 7, True) + 7.0 + sum(text_w(t, 7, b) for t, _, b in nxt)
+    x = 406.0 - max([text_w(STAGE_TAG, 7, True), w_n] + [chips_w(r) for r in rows])
+    P.text(pg, STAGE_TAG, x, 286.0, 7, C["accent"], True)
+    for k, r in enumerate(rows):
+        chips(pg, x, 281.5 - 4.5 * k, r)
+        P.boxes.append((x, 281.5 - 4.5 * k - 0.8, x + chips_w(r), 281.5 - 4.5 * k + 3.0))
+    P.text(pg, "NEXT", x, 272.5, 7, C["accent"], True)
+    xx = step_arrow(pg, x + text_w("NEXT", 7, True) + 1.5, 272.5) + 1.5
+    for t, col, b in nxt:
+        P.text(pg, t, xx, 272.5, 7, col, b); xx += text_w(t, 7, b)
+
+
 def page_ladder(L, src):
     pg = Page(420, 297)
     P = Placer()
     header(pg, "3", "ONE PLANT LADDER, STREAMBED TO FIELD",
-           "One cut from the stream to the farms, through the year: what the water does and what people do on each step")
+           "One cut from the stream to the farms, through the year: what the water does and what people do on each step",
+           tag=None)
+    we_do_band(pg, P)                              # v3 (Prompt 6): the water theme closes here, top right
     # 1 the chain: where the ladder sits along the stream, the programme and its roots
     y_chain = chain_strip(pg, P, 264.0)            # v2: 4 mm higher (was 260; its names end 6 mm under the subtitle)
     ag_crop("ag3_chain", 2, 13.0, y_chain - 1.0, 407.0, 270.0)
@@ -1329,6 +1548,7 @@ AG_CROPS = []                        # (id, page index, (x0, y0, x1, y1) mm from
 AG_CAPTIONS = {"ag1_headline": "Storage and water to the farms", "ag1_bars": "Hectares one storage irrigates, by crop",
                "ag1_reading": "Same storage: how much more land", "ag1_context": "Why crop choice is the lever",
                "ag1_replaces": "What it replaces", "ag1_crops": "The crops",   # v2: the crop photos
+               "ag1_stream": "The stream comes first: a normal and a 1-in-5 dry year",   # v3 (Prompt 6)
                "ag2_plan": "The farms we feed, on the site plan",
                "ag3_chain": "One way along the stream: the programme and its roots",
                "ag3_seasons": "One plant ladder through the year: what people do", "ag3_plants": "What grows on each step"}
@@ -1360,6 +1580,12 @@ def ha_results(L):
     if "olive_deficit" in out and "cotton" in out:
         a, b = out["olive_deficit"]["dry5"], out["cotton"]["dry5"]
         R["ratio_olive_deficit_vs_cotton_dry5"] = {"lo": round(a["lo"] / b["lo"], 2), "hi": round(a["hi"] / b["hi"], 2)}
+    ys = L.get("year_split")
+    if ys and "normal" in ys and "dry5" in ys:      # v3 (Prompt 6): page 1's double squeeze, dry year against normal
+        a_, b_, c_ = squeeze(ys)
+        R["stream_first"] = {"water_years": [ys["normal"]["water_year"], ys["dry5"]["water_year"]],
+                             "left_for_farms_change_pct": round(100.0 * a_, 1), "need_per_ha_change_pct": round(100.0 * b_, 1),
+                             "hectares_change_pct": round(100.0 * c_, 1)}
     return R
 
 

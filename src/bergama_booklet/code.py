@@ -10,6 +10,10 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v16 (Aras 27 Oct 20:51 "Move the line"; site board v48): the S4 pages ("Four seasons on one cut", "The S4 cut,
+north-east bank") get the key map of the sections pages in their title band, S4 alone in ink (site board crop
+sec_sections_key_s4): the board's S4 is now the water board's S4. Without that crop the page is built as before and
+the log says "key map left out". Prompt 6 (water balance v4, water board v3.1, agriculture v3) needs nothing else here.
 NEW IN v15 (Aras 27 Oct 17:34, Prompt 5 "water, part 2"; water board v3, site board v47, agriculture v2): a crop drawn
 for its width on the booklet page (block "bk_w") keeps that size in a row too (it was shrunk with the page's one
 scale, and a crop with a scale then fell to the next round scale, half size: p.22's plants printed at 1:500 in a
@@ -68,7 +72,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v15"
+VERSION = "v16"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"

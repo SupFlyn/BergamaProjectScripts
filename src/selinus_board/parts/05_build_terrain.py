@@ -612,6 +612,12 @@ def sec_endpoints(ln):
     return e
 
 
+# v48 (Aras 27 Oct 20:51 "Move the line"): the 4th cut IS the water board's S4 (its detail section v2 at the flat
+# downstream end: the 62 m north-east bank cut, bed +43.59; DETAIL_SRC S4_A -> S4_B), in survey coordinates: the S4
+# that selinos.gh picked in Nilnoktali-BERGAMA_layerekli.3dm (SECTION_LINES_LK[3]). Trimmed to the frame as every cut.
+S4_WB = ((30616.354683, 30540.470648), (31489.513378, 31161.826317))
+
+
 def build_sections(S):
     lines_ = []
     for k, ln in enumerate(SEC_IN):
@@ -626,6 +632,20 @@ def build_sections(S):
         if math.hypot(a[0] - e[0][0], a[1] - e[0][1]) + math.hypot(b[0] - e[1][0], b[1] - e[1][1]) > 1.0:
             LOG.append("Section line {} was trimmed to the frame.".format(k + 1))
         lines_.append((a, b))
+    s4 = S.F.clip_line([S4_WB[0], S4_WB[1]]) if len(lines_) >= 3 else None    # v48: S4 = the water board's S4
+    if s4:
+        s4 = (s4[0][0], s4[0][-1])
+        if len(lines_) >= 4:
+            lines_[3] = s4
+            LOG.append("Section S4 is the water board's S4 (its 62 m north-east bank cut; S4_WB), {:.0f} m inside the "
+                       "frame, in place of the 4th line picked or on sec_lines.".format(
+                           math.hypot(s4[1][0] - s4[0][0], s4[1][1] - s4[0][1])))
+        else:
+            lines_.append(s4)
+            LOG.append("Section S4 added: the water board's S4 (S4_WB), {:.0f} m inside the frame.".format(
+                math.hypot(s4[1][0] - s4[0][0], s4[1][1] - s4[0][1])))
+    elif len(lines_) >= 3:
+        LOG.append("WARNING: the water board's S4 (S4_WB) does not cross the frame; S4 stays the 4th line picked.")
     if SEC_IN and not lines_:
         LOG.append("WARNING: none of the {} section lines cross the study area. If they were drawn before you rotated or "
                    "moved the drawing, redraw them across the stream (or rotate them with it).".format(len(SEC_IN)))

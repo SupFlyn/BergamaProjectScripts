@@ -151,4 +151,7 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     crop_panel("sections_%d" % (k + 1), x, low - 0.2 * U, x + sw, (top + CTX_H * U + 0.3 * U) if k == 0 else top + 0.9 * U,
                u"Sections across the stream · {}{}".format(", ".join(names), u" · building types" if any(
                    c_.get("_types") for r in pages[k] for c_, w_ in r) else u""), crop_scale(ss))
-    return draw_sections_key(S, B, x, low - 1.6 * U, sw, names, k)
+    low = draw_sections_key(S, B, x, low - 1.6 * U, sw, names, k)
+    if k == len(pages) - 1 and any(c_[4] == "S4" for c_ in S.sec_lines):   # v48: the water board's S4 pages' key map
+        low = draw_sections_key(S, B, x, low - 1.6 * U, sw, ["S4"], "s4")
+    return low

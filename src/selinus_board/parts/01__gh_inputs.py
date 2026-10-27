@@ -1,9 +1,18 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v47)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v48)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v48 (2026-10-27, Aras 20:51 "Move the line", on the open point of booklet Prompt 5: the sections page's S4 and the
+water board's S4 were two different lines):
+  * S4 is the water board's S4 (its detail section v2: the flat downstream end, the 62 m north-east bank cut, bed
+    +43.59): S4_WB, the S4 recorded from Nilnoktali-BERGAMA_layerekli.3dm (SECTION_LINES_LK[3]), trimmed to the frame
+    like every cut (about 531 m of its 1,072 m; it starts 350 m along the water board's line). It takes the 4th place
+    whatever line is picked or on the layer sec_lines there (the log says so), so S4 is one cut on every page. The
+    cut it replaces ran about 288 m along the water.
+  * One more key map under the last sections page, S4 alone in ink (booklet crop sec_sections_key_s4): the booklet
+    sets it in the title band of the water board's S4 pages (four seasons, north-east bank), as on the sections pages.
 NEW IN v47 (2026-10-27, Aras, booklet Prompt 5 task 3a, p.22 "Which plant goes where": "it is not a shading diagram"):
   * The shade engine (T3) also sums every minute the sun is up on all 31 days of July (crowns in leaf): the mean July
     day's hours in shade on the 1 m grid. Its stored shade is computed again once (method version shade 4 -> 5).
@@ -298,8 +307,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v47 (2026-10-27)"     # v27: the log's first line and the text under the component
-SHORT_V = "v47"                                         # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v48 (2026-10-27)"     # v27: the log's first line and the text under the component
+SHORT_V = "v48"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

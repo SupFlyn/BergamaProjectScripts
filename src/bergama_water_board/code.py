@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA WATER BOARD v3 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
+"""BERGAMA WATER BOARD v3.1 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
 
@@ -43,6 +43,10 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v3.1 (bugfix, Aras 27 Oct 17:35, booklet Prompt 6 "water, part 3", p.23: "the Total use 198.01 hm³ a year value
+is missing on its bar, and hm³ renders as hm"): each aquifer bar carries its value on the bar (white, at its end; outside
+only when it does not fit); m² and m³ are written as a raised small 2 or 3 (0.6 x the size: the same width as the ²/³
+glyph, so nothing moves), which every PDF viewer shows; the ²/³ glyph of the unembedded Helvetica was dropped in some.
 NEW IN v3 (Aras 27 Oct 17:34, booklet Prompt 5 "water, part 2"; a feature change, so the next whole number):
   * p.20 four seasons (wb_s4_seasons): one row a season between divider lines, the S4 cut at 1:250 standing on its
     row's divider, all four on one x so the bank lines up, between the season column and FEEL · HEAR · TOUCH (which
@@ -101,8 +105,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v3 (2026-10-27)"
-SHORT = "v3"
+VERSION = "bergama_water_board v3.1 (2026-10-27)"
+SHORT = "v3.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -343,8 +347,38 @@ class Page(object):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw))
 
     def text(self, s, x, y, size, color, bold=False, align="L", mat=None, halo=None):
-        if s:
+        if s and mat is None and any(ch in SUP for ch in s):    # v3.1: m² / m³ as a raised small digit (see SUP)
+            runs = sup_runs(s)
+            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
+            x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
+            for (t, up), w_ in zip(runs, ws):
+                self.items.append(("text", t, x, y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0), color,
+                                   bold, "L", None, halo))
+                x += w_
+        elif s:
             self.items.append(("text", s, x, y, size, color, bold, align, mat, halo))
+
+
+# v3.1 (Aras 27 Oct, Prompt 6: "hm³ renders as hm"): ² and ³ are drawn as the digit at 0.6 x the size, raised 0.28 x the
+# size (the digit is then as wide as the ²/³ glyph, 333/1000): the unembedded Helvetica's ²/³ was missing in some viewers
+SUP = {u"²": u"2", u"³": u"3"}
+SUP_K, SUP_UP = 0.6, 0.28
+
+
+def sup_runs(s):
+    """v3.1: s cut into (text, raised) runs at ² and ³, which become a plain 2 or 3"""
+    out, cur = [], u""
+    for ch in s:
+        if ch in SUP:
+            if cur:
+                out.append((cur, False))
+            out.append((SUP[ch], True))
+            cur = u""
+        else:
+            cur += ch
+    if cur:
+        out.append((cur, False))
+    return out
 
 
 #@include ../common/hex_rgb.py
@@ -2700,8 +2734,11 @@ def draw_farms_text(pg, x, y, w, h, s):
         yy = top - r * (bh + 2.4 * s)
         pg.text(lab, gx - 2.0, yy - bh * 0.5 - fs * 0.35, fs, C["ink"], align="R")
         pg.poly([rect(gx, yy - bh, gx + gw * v / 200.0, yy)], fill=C["w3"] if r == 0 else C["agri"])
-        pg.text(u"{} hm³ a year".format(v), gx + gw * v / 200.0 + 2.0, yy - bh * 0.5 - fs * 0.35, fs, C["ink"],
-                bold=True)
+        t, bw_ = u"{} hm³ a year".format(v), gw * v / 200.0
+        if text_w(t, fs, True) + 3.0 <= bw_:          # v3.1 (Aras 27 Oct, Prompt 6): the value on its bar, at its end
+            pg.text(t, gx + bw_ - 1.5, yy - bh * 0.5 - fs * 0.35, fs, C["white"], bold=True, align="R")
+        else:
+            pg.text(t, gx + bw_ + 2.0, yy - bh * 0.5 - fs * 0.35, fs, C["ink"], bold=True)
     yy = figs(pg, x + 10.0, top - 2 * (bh + 2.4 * s) - 1.0, [(u"use = {:.1f} x potential".format(198.01 / 45.4),
               u"Lower Bakırçay · farm water eases the aquifer " + cite(u"published, North Aegean drought management "
               u"plan 2018 (official); ratio calculated; " + WD))], w - 20.0, 4.0 * s, 2.6 * s, C["acc"]) - 2.8 * s * 0.8

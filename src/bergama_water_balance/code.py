@@ -1,4 +1,4 @@
-# bergama_water_balance_v3.py (v3, 27 Oct: the stream on the sheet; v2.7 layout kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v4.py (v4, 27 Oct: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,15 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v3"
+VERSION = "v4"
+# v4 (Aras 27 Oct 17:35, booklet Prompt 6 "water, part 3", p24: "show the defence ON the board ... normal year vs dry
+#   year as two stacked bars"): the results JSON gains design.year_split, the design store through two real water years
+#   of the same daily run: "normal" = the year whose farm need is nearest the median, "dry5" = the 1-in-5 dry year
+#   (farm_demand_m3 dry5_year). Each: carried in (Oct 1), filled that year (stream + site catch), the strip's draw and
+#   need, the farms' draw and need, released after 365 days, carried out (Sep 30), and the stream's winter water that
+#   year as % of a median year. run_storage also counts per water year what it lets go after 365 days and the store
+#   at the year's end (the store is closed, no evaporation: carried in + filled = strip + farms + released + carried
+#   out). The agriculture sheet draws it. The sheet and every other key are unchanged.
 # v3 (Aras 27 Oct 17:34, booklet Prompt 4 "water, part 1"; v2.7's layout kept, nothing moved):
 #   * panel 2 "What the site can catch" adds what the STREAM gives, same units and bars: the Selinos winter flow the
 #     store takes (Nov-Apr, the worst-case gauge series the storage already runs on, at the design store) and the share
@@ -248,7 +256,7 @@ def run_storage(V, A, demand, strip, inflow, et0, days, reserve, max_age=MAX_AGE
     """v3: with site (the site catch each day) also counts per water year the stream's part of what enters the
     store (per[y][4]) and all that enters it (per[y][5]): the site catch fills first, the stream tops up."""
     Q = deque(); S = 0.0; flushed = 0.0; oldest = 0
-    per = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    per = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])   # v4: [6] released after max_age, [7] store at the end
     i = 0
     def take(n, keep=0.0):
         nonlocal S, oldest
@@ -261,7 +269,7 @@ def run_storage(V, A, demand, strip, inflow, et0, days, reserve, max_age=MAX_AGE
         return got
     for i, d in enumerate(days):
         while Q and i - Q[0][0] >= max_age:
-            flushed += Q[0][1]; S -= Q[0][1]; Q.popleft()
+            flushed += Q[0][1]; per[wy(d)][6] += Q[0][1]; S -= Q[0][1]; Q.popleft()
         x = min(V - S, inflow[i])
         if x > 0:
             Q.append([i, x]); S += x
@@ -273,10 +281,35 @@ def run_storage(V, A, demand, strip, inflow, et0, days, reserve, max_age=MAX_AGE
                 t = min(loss, Q[0][1]); Q[0][1] -= t; loss -= t
                 if Q[0][1] <= 1e-9: Q.popleft()
         gs = take(strip[i]); gf = take(demand[i], reserve[i])
-        r = per[wy(d)]; r[0] += demand[i]; r[1] += gf; r[2] += strip[i]; r[3] += gs
+        r = per[wy(d)]; r[0] += demand[i]; r[1] += gf; r[2] += strip[i]; r[3] += gs; r[7] = S
     return per, flushed, oldest
 
 def crf(r, n): return r * (1 + r) ** n / ((1 + r) ** n - 1)
+
+def year_split(V, demand, strip, R, site, et0, days, reserve, avail, fd):
+    """v4 (Aras 27 Oct, Prompt 6): the closed store V (no open water, so no evaporation) through two water years of one
+    daily run: "normal" = the year whose farm need is nearest the median, "dry5" = the 1-in-5 dry year of the farm need
+    (fd["dry5_year"]; the nearest year when that is the spin-up year). m3 per water year (Oct-Sep):
+    carried in + filled = strip + farms + released + carried out."""
+    inflow = [min(V / INTAKE_DAYS, r) + s for r, s in zip(R, site)]
+    per, _, _ = run_storage(V, 0.0, demand, strip, inflow, et0, days, reserve, site=site)
+    ys = sorted(per)
+    start = {y: (per[ys[k - 1]][7] if k else 0.0) for k, y in enumerate(ys)}
+    ys = ys[1:]                                             # the first water year is the spin-up (the store starts empty)
+    near = lambda v: min(ys, key=lambda y: abs(per[y][0] - v))
+    yd = fd["dry5_year"] if fd.get("dry5_year") in ys else near(fd["dry5"])
+    yn = near(fd["median"])
+    a_med = sorted(avail[y] for y in ys)[len(ys) // 2]
+    out = {}
+    for k, y in (("normal", yn), ("dry5", yd)):
+        r = per[y]
+        out[k] = dict(water_year="%d-%02d" % (y - 1, y % 100), carried_in_m3=round(start[y]), filled_m3=round(r[5]),
+                      strip_m3=round(r[3]), strip_need_m3=round(r[2]), farms_m3=round(r[1]), farm_need_m3=round(r[0]),
+                      released_m3=round(r[6]), carried_out_m3=round(r[7]),
+                      winter_flow_pct_of_median=round(100.0 * avail[y] / max(a_med, 1.0), 1))
+    out["storage_m3"] = int(V)
+    out["note"] = "closed store, one daily run; normal = median farm-need year, dry5 = 1-in-5 dry year of the farm need"
+    return out
 
 def compute(L):
     I = load_inputs(); days, P, E, R = I["days"], I["P"], I["E"], I["R"]
@@ -285,7 +318,7 @@ def compute(L):
     crops = list(dict.fromkeys(crops))
     if len(crops) == 1: crops.append("cotton")
     irr = {c: soil_irrigation(c, I) for c in set(crops) | set(CROP_SOIL)}
-    res = dict(script="bergama_water_balance_v3.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+    res = dict(script="bergama_water_balance_v4.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                lands={k: (round(v, 3) if isinstance(v, float) else v) for k, v in L.items()})
     # net irrigation per crop (mm a water year) and the rain the fields hold
     res["net_irrigation_mm"] = {}; res["rain_credit_pct"] = {}
@@ -387,6 +420,9 @@ def compute(L):
                          river_take_share_pct=round(100.0 * st["river_in"] / max(st["stored"], 1.0), 1),
                          river_left_pct=[round(100.0 * (1.0 - st["river_share_max"]), 1), round(100.0 * (1.0 - st["river_share"]), 1)])
     res["river_avail_m3_per_year"] = round(st["avail"])
+    # v4 (Prompt 6): the design store through a normal and the 1-in-5 dry water year, from the same daily run
+    res["design"]["year_split"] = year_split(dc["storage_m3"], dem[design], strip, R, site, E, days, RES, avail,
+                                             res["farm_demand_m3"][design])
     # open ponds for comparison (design mix) and the built-storage ladder without recharge (US$ per m3 delivered)
     vmax = res["curve_closed"][design][-1][0]
     res["curve_open"] = [[int(v), pct(s["median"]), pct(s["dry5"])] for v in [vmax * k / 8.0 for k in range(9)] for s in [stats(v, design, v)]]
@@ -1053,7 +1089,11 @@ def main(g):
         d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
         "\nbooklet ERROR: " + bk_err if bk_err else "") + (
         "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + "".join(
-        "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis"))     # 27 Oct: output/ = PDFs only
+        "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
+        "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
+            k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
+            fmt(v["farm_need_m3"]), fmt(v["released_m3"]), fmt(v["carried_out_m3"]), v["winter_flow_pct_of_median"])
+        for k, v in ((yk, d["year_split"][yk]) for yk in ("normal", "dry5")))     # v4 (Prompt 6)
 
 #@include ../common/chain_fire.py
 
