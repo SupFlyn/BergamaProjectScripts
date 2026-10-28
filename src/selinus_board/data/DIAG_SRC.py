@@ -440,10 +440,7 @@ def write_pdf(pages, path):
     def add(b):
         objs.append(b)
         return len(objs)
-    font = []
-    for nm in ("Helvetica", "Helvetica-Bold"):
-        font.append(add("<< /Type /Font /Subtype /Type1 /BaseFont /{} /Encoding << /Type /Encoding /BaseEncoding "
-                        "/WinAnsiEncoding {} >> >>".format(nm, _DIFF).encode("latin-1")))
+    font = pdf_fonts(add, ("R", "B"))                     # G2/G3 28 Oct: Arial embedded (the board's pdf_fonts)
     gs = [add("<< /Type /ExtGState /ca {0} /CA {0} >>".format(_f(i / 20.0)).encode("latin-1")) for i in range(1, 20)]
     gs_res = " ".join("/A{:02d} {} 0 R".format(i + 1, o_) for i, o_ in enumerate(gs))
     pages_id = add(b"")                                   # placeholder

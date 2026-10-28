@@ -38,8 +38,9 @@ def write_board_pdf(path, title, members):
     def add(b):
         objs.append(b)
         return len(objs)
-    fonts = [add(("<< /Type /Font /Subtype /Type1 /BaseFont /%s /Encoding << /Type /Encoding /BaseEncoding "
-                  "/WinAnsiEncoding %s >> >>" % (nm, _PDF_DIFF)).encode("latin-1")) for nm in _PDF_FONTS]
+    # G2/G3 28 Oct: Arial embedded in every slot (common/pdf_fonts.py); the four Courier slots are Arial too (G2:
+    # no monospace captions), only the slots this page uses carry the font file
+    fonts = pdf_fonts(add, ("R", "B", "I", "BI", "R", "B", "I", "BI"), stream)
     xo = []
     for im_ in imgs:
         w_, h_, data = im_[:3]

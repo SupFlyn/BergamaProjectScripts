@@ -409,6 +409,9 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 #@include ../common/_text_ops.py
 
 
+#@include ../common/pdf_fonts.py
+
+
 #@include ../common/write_pdf.py
 
 # ============================================================ TREES (self-contained: copy this block as it is)

@@ -22,4 +22,5 @@
 #@include parts/16_write_city_link_movement.py
 #@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py
+#@include ../common/pdf_fonts.py
 #@include parts/17_board_fits.py

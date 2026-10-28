@@ -86,6 +86,7 @@ def diagrams_engine():
     """The axonometric engine (bergama_diagrams v1.8, cut down), executed once."""
     if not _DG:
         _DG["__name__"] = "bergama_diagrams_engine"
+        _DG["pdf_fonts"] = pdf_fonts                   # G2/G3 28 Oct: the engine's PDF embeds Arial too
         exec(compile(DIAG_SRC, "bergama_diagrams_engine", "exec"), _DG)    # its functions read and see _DG itself
     return _DG
 
