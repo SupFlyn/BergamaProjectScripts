@@ -231,6 +231,10 @@ def _pool_start():
     if src is None:
         _POOL["why"] = "this component's code could not be read from Python here"
         return
+    # v49.2 (Aras 28 Oct log: "SyntaxError ... line 630", the "+ \" line 315): the component's text has Windows line
+    # ends; written in text mode each "\r\n" became "\r\r\n", read back as two lines, so every line doubled and a
+    # line ending in "\" met an empty line. One "\n" per line now.
+    src = src.replace("\r\n", "\n").replace("\r", "\n")
     py = noise_worker_python()
     if py is None:
         _POOL["why"] = _NOISE_PY.get("why", "") or "no python executable found beside Rhino"

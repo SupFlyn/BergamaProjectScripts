@@ -889,17 +889,21 @@ def badge(pg, n, anchor, taken, W, H, colour=None):
 def ni_label(pg, r_, T, inP, taken, dw, dh):
     """v26: a no-intervention note centred on the first free one of its area's innermost blocks; True if placed."""
     lines = [(u"NO INTERVENTION", NI_TS, True), (r_["why"], NI_TS, False)]
-    w, h = block_size(lines)
-    for p in r_["at"]:
-        if not inP(p):
-            continue
-        x, y = T(p)
-        b = (x - w / 2.0, y - h / 2.0, x + w / 2.0, y + h / 2.0)
-        if b[0] < 0.8 or b[1] < 0.8 or b[2] > dw - 0.8 or b[3] > dh - 0.8 or any(hit(b, t, 0.4) for t in taken):
-            continue
-        draw_block(pg, lines, b[0], b[3], COL["ink"], None)      # no haloed labels (v21)
-        taken.append(b)
-        return True
+    a_, s_, b_ = r_["why"].partition(u", ")
+    # v26.2 (Aras 28 Oct log: "no-intervention note not placed (no free spot in its area): 2.9 ha tree cover ..."):
+    # when no spot holds the note on two lines, the reason goes on two lines at its comma (about half as wide)
+    for ls in [lines] + ([[lines[0], (a_ + u",", NI_TS, False), (b_, NI_TS, False)]] if s_ else []):
+        w, h = block_size(ls)
+        for p in r_["at"]:
+            if not inP(p):
+                continue
+            x, y = T(p)
+            b = (x - w / 2.0, y - h / 2.0, x + w / 2.0, y + h / 2.0)
+            if b[0] < 0.8 or b[1] < 0.8 or b[2] > dw - 0.8 or b[3] > dh - 0.8 or any(hit(b, t, 0.4) for t in taken):
+                continue
+            draw_block(pg, ls, b[0], b[3], COL["ink"], None)      # no haloed labels (v21)
+            taken.append(b)
+            return True
     return False
 
 

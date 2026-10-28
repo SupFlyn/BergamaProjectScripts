@@ -225,7 +225,8 @@ class ShadeJob(object):
             parts.append((b[m], np.full(int(m.sum()), 6), MS["tau"][m]))
             self.toms.append(tau_mask_table(True))
             self.july = dict(daylight=float(m.sum()) / 60.0 / 31.0)      # mean hours of sun up per July day
-        self.ng = len(parts)                              # v47: 6 groups, 7 with July
+        self.ng = len(parts) + 1                          # v47: 6 groups, 7 with July (v49.2: + 1, the year part holds
+        # two groups, in leaf 0 and bare 1: len(parts) gave 6 with July, so group 6 had no row: IndexError in env16_frame)
         self.bs = Binned(np.concatenate([p[0] for p in parts]), np.concatenate([p[1] for p in parts]),
                          np.concatenate([p[2] for p in parts]), self.ng)
         self.acc = np.zeros((self.ng, n))
