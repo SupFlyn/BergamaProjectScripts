@@ -10,6 +10,20 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v19 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
+  * G1 footer without the project and course lines (legend from column 1); G2 every word the booklet adds to a crop
+    in the embedded Arial; G9 each crop shows its own stripped copy of its sheet page (words, images and line art
+    outside it removed, 0.5 mm margin; G9_LINE_ART = False turns the line-art pass off).
+  * G10 one figure, one value: a figure printed two ways is logged. N1 pages renumbered, cross-references checked by
+    theme and title, references by number logged.
+  * P04.1 / P14.1 section and heritage key maps at 1:1 in a band under the title; the rows make room.
+  * N2 sources page: photo credits, the OSM footprints note, Corn (Mısır), the masterplan's place sources (its
+    plan_sources), the senses sheet. F5 sources that are not public online removed with their marks (F5_DROP); the
+    log lists the figures left without one.
+  * D1 "Open ground and where we can build" is one page (MERGE_21_22); S1 new senses page after the S4 cut; p.02 edge
+    types, p.07 notes beside the maps, p.09 index change, p.20 key map; no spreads.
+  * P78.ALT pp.07 and 08 on one page as a separate PDF (Bergama_booklet_A3_ALT_p07-08.pdf) when legible, otherwise
+    the log says why.
 NEW IN v18 (Aras 27 Oct 17:35, Prompt 8 "final check of every page"): one source numbering for the whole booklet: the
 [n] marks are renumbered in page order (first use first, one number per source text), the sources page lists only what
 the pages cite, grouped by theme, and the log names marks without a source entry; the words of a sheet that no page
@@ -86,7 +100,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v18"
+VERSION = "v19"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -871,26 +885,31 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     return "p.%d %s: x%.2f · %s" % (pno, spec["title"], s_fit, "; ".join(rep))
 
 
+def panel_item(fitz, assets, key):
+    """a plan key -> (key, block, path, clip) (v19: was expand's own item, now also for the P78.ALT page)"""
+    if "||" in key:                                    # v15: "a||b": the first of these the scripts have written
+        its = [panel_item(fitz, assets, k) for k in key.split("||")]
+        return next((it for it in its if it[3] is not None), its[0])
+    if key.startswith("slot|"):                        # v11: SLOT(text, w, h) of the plan
+        _, w, h, text = key.split("|", 3)
+        return (key, {"slot": text, "size_mm": (float(w), float(h))}, None, None)
+    blk, path = resolve(assets, key)
+    if not path:
+        return (key, blk, None, None)
+    page = sheet_doc(fitz, path)[int(blk.get("page", 0))]
+    r = blk["rect_mm"]
+    clip = fitz.Rect(r[0] * K, r[1] * K, r[2] * K, r[3] * K) & page.rect
+    if not blk.get("scale_den"):                     # v4: a panel that states one scale in its words is to scale
+        dens = set(int(m.group(1).replace(",", "")) for m in SCALE_WORD.finditer(page.get_text(clip=clip)))
+        if len(dens) == 1:
+            blk = dict(blk, scale_den=dens.pop())
+    return (key, blk, path, clip)
+
+
 def expand(fitz, spec, assets):
     """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4)."""
     def item(key):
-        if "||" in key:                                # v15: "a||b": the first of these the scripts have written
-            its = [item(k) for k in key.split("||")]
-            return next((it for it in its if it[3] is not None), its[0])
-        if key.startswith("slot|"):                    # v11: SLOT(text, w, h) of the plan
-            _, w, h, text = key.split("|", 3)
-            return (key, {"slot": text, "size_mm": (float(w), float(h))}, None, None)
-        blk, path = resolve(assets, key)
-        if not path:
-            return (key, blk, None, None)
-        page = sheet_doc(fitz, path)[int(blk.get("page", 0))]
-        r = blk["rect_mm"]
-        clip = fitz.Rect(r[0] * K, r[1] * K, r[2] * K, r[3] * K) & page.rect
-        if not blk.get("scale_den"):                 # v4: a panel that states one scale in its words is to scale
-            dens = set(int(m.group(1).replace(",", "")) for m in SCALE_WORD.finditer(page.get_text(clip=clip)))
-            if len(dens) == 1:
-                blk = dict(blk, scale_den=dens.pop())
-        return (key, blk, path, clip)
+        return panel_item(fitz, assets, key)
     rows = [[item(k) for k in r] for r in spec["rows"]]
     rows = [r for r in ([it for it in r if not (it[0] in OPTIONAL_KEYS and it[3] is None)] for r in rows) if r]
     spec = dict(spec, _side=[item(k) for k in spec.get("side", [])],          # v12: side panels, title-band key map
@@ -937,10 +956,112 @@ def cover(pg, typo, pages):
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
 
 
+_F5_RX = []
+
+
+def f5_rx():
+    """v19 (F5): the plan's (F5_INTERNAL, F5_PUBLIC, F5_STRIP) patterns, compiled once"""
+    if not _F5_RX:
+        _F5_RX.extend([re.compile(p) for p in ps] for ps in (F5_INTERNAL, F5_PUBLIC, F5_STRIP))
+    return _F5_RX
+
+
+def split_top(t, sep=";"):
+    """t split at sep outside brackets (the separators stay out)"""
+    out, cur, depth = [], "", 0
+    for ch in t:
+        depth += (ch in "([") - (ch in ")]")
+        if ch == sep and depth <= 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    return out + [cur]
+
+
+def corn(t):
+    """v19 (MIRAQUA 28 Oct, G11): "Corn (Mısır)", never maize, in the booklet's sources text; Wikimedia file names
+    (File:... .jpg) and links stay as they are"""
+    if not t or "aize" not in t:
+        return t
+    parts = re.split(r"(File:[^\n]*?\.(?:jpe?g|png|tiff?|gif|svg|webp)|\S*wikimedia\.org\S*)", t, flags=re.I)
+    for k in range(0, len(parts), 2):
+        p = re.sub(u"\\b[Mm]aize \\(Mısır\\)", u"Corn (Mısır)", parts[k])
+        parts[k] = re.sub(r"\bmaize\b", "corn", re.sub(r"\bMaize\b", "Corn", p))
+    return "".join(parts)
+
+
+def public_src(t):
+    """v19 (MIRAQUA 28 Oct, F5, Aras 28 Oct 11:38: "every [n] whose source is not public online (research cards,
+    notes, decisions, chats, Begüm's page) goes"): a source text as the sources page prints it, or None when it cites
+    our own working material (F5_INTERNAL) and names no public source (F5_PUBLIC). A kept text loses its ';' parts
+    that only cite that material, and the brackets and register codes of F5_STRIP. Corn, not maize (G11)."""
+    t = (t or "").strip()
+    if not t or not F5_DROP:
+        return corn(t)
+    rin, rpub, rstrip = f5_rx()
+    if not any(r.search(t) for r in rin):
+        return corn(t)                                # our survey, our own reading or calculation: as it is
+    if not any(r.search(t) for r in rpub):
+        return None
+    t = ";".join(s for s in split_top(t) if s.strip() and not (any(r.search(s) for r in rin) and
+                                                                not any(r.search(s) for r in rpub)))
+    for r in rstrip:
+        t = r.sub("", t)
+    return corn(re.sub(r"\s{2,}", " ", t).strip(" ;,"))
+
+
+def src_line(e):
+    """"[n] text" -> the line the sources page prints (public_src), or None (F5)"""
+    m = KEY_LINE.match(str(e or ""))
+    if not m:
+        return public_src(str(e or "")) or None
+    t = public_src(m.group(2) or "")
+    return "[%s] %s" % (m.group(1), t) if t else None
+
+
+def plan_codes(assets):
+    """v19 (MIRAQUA 28 Oct, P23.2 + N2): the technical source codes the masterplan's numbered list no longer prints,
+    from its booklet results.json key "plan_codes" (a list of "n name: codes" lines, or of {"n", "name", "codes"}, or
+    {n: codes / {"name", "codes"}}): ["n · name: codes", ...] with only the public ones (F5); [] when there are none"""
+    a = assets.get(MP.rstrip("/")) or {}
+    try:
+        with open(os.path.join(a.get("_dir", ""), "results.json"), encoding="utf-8") as f:
+            j_ = json.load(f)
+    except Exception:
+        return []
+    d, ps = j_.get("plan_codes"), j_.get("plan_sources")
+    if not d and isinstance(ps, dict):                    # masterplan v27 writes "plan_sources" (pl28_plan_sources)
+        d = [{"n": m_.get("n"), "name": m_.get("name"),
+              "codes": [s_.get("text", "") for s_ in m_.get("sources") or [] if s_.get("kind") == u"public online"]}
+             for m_ in ps.get("markers") or []] + \
+            [{"n": l_.get("id"), "name": u"left as it is", "codes": l_.get("sources") or []}
+             for l_ in ps.get("left_as_is") or []]
+    if isinstance(d, dict):
+        d = [dict(v, n=k) if isinstance(v, dict) else {"n": k, "codes": v} for k, v in
+             sorted(d.items(), key=lambda kv: (int(kv[0]) if str(kv[0]).isdigit() else 999, str(kv[0])))]
+    out = []
+    for e in d or []:
+        if not isinstance(e, dict):
+            t = public_src(str(e))
+            if t:
+                out.append(t)
+            continue
+        codes = e.get("codes") or e.get("source") or e.get("sources") or ""
+        codes = [str(c) for c in codes] if isinstance(codes, (list, tuple)) else \
+            [c for c in re.split(r"\s*[,;]\s*", str(codes)) if c]
+        codes = [c for c in (public_src(c) for c in codes) if c]
+        if codes:
+            head = " · ".join(str(v) for v in (e.get("n"), e.get("name")) if v not in (None, ""))
+            out.append((head + ": " if head else "") + ", ".join(codes))
+    return out
+
+
 def sheet_sources(fitz, assets):
     """[(heading, [entries])]: each sheet page's own source key. v10 (Aras 27 Oct: source footers go): first the
     key a script writes into its blocks.json "sheet_sources" ({page or "pdf#page": ["[1] ...", ...]}), else the
-    key as the sheet prints it ("Sources by number: [1] ... [2] ..." or lines starting [n], visible or not)."""
+    key as the sheet prints it ("Sources by number: [1] ... [2] ..." or lines starting [n], visible or not).
+    v19 (F5, G11): public online sources only, corn not maize (src_line)."""
     out, done = [], set()
     for pat in SOURCE_SHEETS:
         folder, _, name = pat.partition("/")
@@ -949,7 +1070,7 @@ def sheet_sources(fitz, assets):
             if folder not in done:
                 done.add(folder)
                 for k in sorted(keyed, key=lambda k_: str(k_)):
-                    ents = [e for e in keyed[k] if e]
+                    ents = [e for e in (src_line(e_) for e_ in keyed[k] if e_) if e]
                     if ents:
                         out.append((SCRIPT_OF.get(folder, folder) + ("" if len(keyed) == 1 else " · page %d" % (int(k) + 1) if str(k).isdigit()
                                                                     else " · " + re.sub(r"\.pdf(#\d+)?$", "", str(k)).replace("_", " ")), ents))
@@ -966,7 +1087,8 @@ def sheet_sources(fitz, assets):
                     txt.append(t.split("Sources by number:", 1)[1])
                 elif re.match(r"\[\d+\] ", t):
                     txt.append(t)
-            ents = [e.strip() for e in re.split(r"\s(?=\[\d+\] )", " " + " ".join(txt)) if e.strip()]
+            ents = [e for e in (src_line(e_.strip()) for e_ in re.split(r"\s(?=\[\d+\] )", " " + " ".join(txt))
+                                if e_.strip()) if e]
             if ents:
                 head = SCRIPT_OF.get(folder, folder) + (" · page %d" % (i + 1) if len(d) > 1 else "")
                 if "axonometric" in name:
@@ -979,6 +1101,7 @@ def sheet_sources(fitz, assets):
 MARK = re.compile(u"\\[(\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*)\\]")              # one mark: [3] [7,8] [3-5]
 MARKS = re.compile(u"\\[\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*\\](?:\\s*\\[\\d{1,3}(?:\\s*[,–-]\\s*\\d{1,3})*\\])*")
 KEY_LINE = re.compile(r"^\s*\[(\d{1,3})\]\s*(.*\S)?")
+WMARK = re.compile(u"(\\s*)" + MARK.pattern)         # v19: a mark with the space before it (F5: both go)
 _SRC = []        # v18: this run's Sources (main), read by renum
 
 
@@ -993,18 +1116,21 @@ class Sources(object):
     """v18 (Aras 27 Oct, Prompt 8: "every [n] used exists, none are unused, numbering follows the new order"): every
     [n] mark the pages show (sheet words inside each crop, captions, legend names), read in page order, takes one
     booklet number: first use first, one number per source text (the board's drawings and sections sheets share a
-    key). Each sheet page the booklet shows is copied once (_COPY): its marks rewritten in place (same size, colour and
-    baseline; a longer number set smaller where the words after it would be hit) and its words that lie outside every
-    crop the booklet takes from it removed (hidden by the clip, but still in the PDF and in Illustrator)."""
+    key). v19 (G9): each place a sheet page is shown gets its own copy (strip_copy): its marks rewritten in place (same
+    size, colour and baseline, in the booklet's Arial; a longer number set smaller where the words after it would be
+    hit) and nothing outside that crop. v19 (F5): a source not public online takes no number; its marks go."""
     def __init__(self, fitz, assets):
         self.fz = fitz
+        self.assets = assets    # v19: for the photo credits and the masterplan's plan_codes (N2)
+        self.f5 = []            # v19 (F5): the marks taken out, for the log
+        self.numbered = []      # v19: the booklet's pages (collect), for the sources page's headings
         self.keys = {}          # key id -> {n: source text}
         self.glob = {}          # (key id, n) -> booklet number
         self.by_text = {}       # source text (normalised) -> booklet number
         self.order = []         # [(booklet number, key id, n, part, page, folder)]
         self.used = {}          # (sheet path, page index) -> [folder, [clips]] (clip None = the whole page)
         self.kid = {}           # (folder, path, page index) -> key id
-        self.log, self.n_hidden, self.n_tight = [], 0, 0
+        self.log, self.n_tight = [], 0
         for folder, a in sorted(assets.items()):
             for k, ents in sorted(((a or {}).get("sheet_sources") or {}).items(), key=lambda kv: str(kv[0])):
                 k = str(k)
@@ -1084,9 +1210,10 @@ class Sources(object):
         except Exception:
             return []
 
-    def lines_in(self, page, clip):
-        """the visible lines of words inside clip (None = the page) holding a "[", outside any printed source key"""
-        inv, out = self.invisible(page), []
+    def lines_in(self, page, clip, inv=None):
+        """the visible lines of words inside clip (None = the page) holding a "[", outside any printed source key
+        (v19: inv = the page's invisible words when read before, page_text)"""
+        inv, out = self.invisible(page) if inv is None else inv, []
         for b in page.get_text("dict", clip=clip)["blocks"]:
             lines = [("".join(s_["text"] for s_ in ln["spans"]), self.fz.Rect(ln["bbox"])) for ln in b.get("lines", [])]
             if any("Sources by number:" in t for t, _ in lines):
@@ -1098,6 +1225,10 @@ class Sources(object):
         if (kid, n) in self.glob:
             return
         t = (self.keys.get(kid) or {}).get(n)
+        if t and public_src(t) is None:                # v19 (F5): not public online: no number, its marks go
+            self.glob[(kid, n)] = 0
+            self.f5.append(u"p.%02d [%d] (%s): %s" % (pno, n, SCRIPT_OF.get(folder, folder), t[:110]))
+            return
         norm = re.sub(r"\W+", " ", t).strip().lower() if t else None
         if norm and norm in self.by_text:              # the same source under another sheet's number
             self.glob[(kid, n)] = self.by_text[norm]
@@ -1112,6 +1243,7 @@ class Sources(object):
 
     def collect(self, numbered):
         """pass 1: the marks of every page in page order -> booklet numbers; which parts of which sheet pages show"""
+        self.numbered = numbered
         for pno, sp, rows in numbered:
             its = []
             if rows is None:
@@ -1128,89 +1260,80 @@ class Sources(object):
             for folder, path, i, clip, cap, labels in its:
                 self.used.setdefault((path, i), [folder, []])[1].append(clip)
                 kid = self.key_for(folder, path, i)
-                for t in self.lines_in(sheet_doc(self.fz, path)[i], clip) + [cap] + labels:
+                inv = page_text(self.fz, path, i)[1]   # v19: read once per sheet page, not once per crop
+                for t in self.lines_in(sheet_doc(self.fz, path)[i], clip, inv) + [cap] + labels:
                     for m in MARK.finditer(t):
                         for n in self.nums(m.group(1)):
                             self.use(kid, n, sp.get("part"), pno, folder)
 
     def renum(self, s, kid):
+        """s with its marks in the booklet's numbers; v19 (F5): a mark whose sources all are not public online goes
+        with the space before it, a mark with some keeps the others"""
         def one(m):
-            ns = [self.glob.get((kid, n)) for n in self.nums(m.group(1))]
+            ns = [self.glob.get((kid, n)) for n in self.nums(m.group(2))]
             if not ns or None in ns:
                 return m.group(0)
-            ns = sorted(set(ns))
+            ns = sorted(set(n for n in ns if n))
+            if not ns:
+                return ""
             if len(ns) > 2 and ns[-1] - ns[0] == len(ns) - 1:
-                return "[%d-%d]" % (ns[0], ns[-1])
-            return "[%s]" % (", " if ", " in m.group(1) else ",").join(str(n) for n in ns)
-        return MARK.sub(one, s)
+                return m.group(1) + "[%d-%d]" % (ns[0], ns[-1])
+            return m.group(1) + "[%s]" % (", " if ", " in m.group(2) else ",").join(str(n) for n in ns)
+        return WMARK.sub(one, s)
 
     def build(self):
-        """pass 2: one copy of each sheet page the booklet shows, its marks renumbered, the words no page shows gone"""
-        fz = self.fz
+        """pass 2 (v19, G9): the copy of every place a sheet page is shown (strip_copy), made now, its marks renumbered"""
         for (path, i), (folder, clips) in self.used.items():
-            kid = self.key_for(folder, path, i)
-            tmp = fz.open()
-            tmp.insert_pdf(sheet_doc(fz, path), from_page=i, to_page=i)
-            pg = tmp[0]
-            near = None if any(c is None for c in clips) else \
-                [fz.Rect(c.x0 - 8.5, c.y0 - 8.5, c.x1 + 8.5, c.y1 + 8.5) for c in clips]     # 3 mm round each crop
-            inv, put = self.invisible(pg), []
-            for b in pg.get_text("rawdict")["blocks"]:
-                for ln in b.get("lines", []):
-                    lr = fz.Rect(ln["bbox"])
-                    if near is not None and not any(lr.intersects(r) for r in near):
-                        if lr.width > 0.1 and lr.height > 0.1:           # shown by no page: out
-                            pg.add_redact_annot(fz.Rect(lr.x0, lr.y0 + 0.3 * lr.height, lr.x1, lr.y1 - 0.3 * lr.height),
-                                                fill=False)
-                            self.n_hidden += 1
-                        continue
-                    if abs(ln["dir"][1]) > 0.01 or any(lr.intersects(v) for v in inv):
-                        continue                                          # turned words, the invisible key
-                    seq = [(ch, s_) for s_ in ln["spans"] for ch in s_["chars"]]
-                    txt = "".join(ch["c"] for ch, _ in seq)
-                    for m in MARKS.finditer(txt):
-                        new = self.renum(m.group(0), kid)
-                        if new == m.group(0):
-                            continue
-                        (c0, s0), c1 = seq[m.start()], seq[m.end() - 1][0]
-                        r = fz.Rect(c0["bbox"]) | fz.Rect(c1["bbox"])
-                        w0, w1 = c0["bbox"][2] - c0["bbox"][0], c1["bbox"][2] - c1["bbox"][0]
-                        pg.add_redact_annot(fz.Rect(r.x0 + 0.2 * w0, r.y0 + 0.3 * r.height, r.x1 - 0.2 * w1,
-                                                    r.y1 - 0.3 * r.height), fill=False)
-                        nxt = next((ch["bbox"][0] for ch, _ in seq[m.end():] if ch["c"].strip()), None)
-                        ends = [c.x1 for c in clips if c is not None and c.intersects(r)]
-                        room = min([pg.rect.x1 if nxt is None else nxt] + ends) - c0["origin"][0] - 0.3
-                        put.append((c0["origin"], new, s0["size"], s0["color"], "bold" in s0["font"].lower(), room))
-            pg.apply_redactions(images=0, graphics=0, text=0)
-            for org, new, size, col, bold, room in put:
-                fn = "hebo" if bold else "helv"
-                w = fz.get_text_length(new, fontname=fn, fontsize=size)
-                if w > room > 0:                                          # the words after it stay clear
-                    size2 = max(0.75 * size, size * room / w)
-                    self.n_tight += int(w * size2 / size > room + 0.2)
-                    size = size2
-                pg.insert_text(org, new, fontname=fn, fontsize=size,
-                               color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
-            _COPY[(path, i)] = (tmp, 0)
+            for clip in clips:
+                ck = (path, i, clip_key(clip))
+                if ck not in _COPY:
+                    _COPY[ck] = strip_copy(self.fz, path, i, clip, self)
 
     def groups(self):
-        """[(theme heading, ["[n] text", ...])] in booklet order, for sources_page"""
-        out, last = [], object()
+        """[(theme heading, ["[n] text", ...])] in booklet order, for sources_page. v19: public online sources only (F5)
+        and corn, not maize (G11) (public_src); then (N2) the photo credits and data notes of the sheets shown that no
+        page cites by a number (plan ALWAYS_LIST; blocks.json "photo_credits"), once each, and the technical source
+        codes the masterplan's list no longer prints (plan_codes), headed by that page's title (N1)"""
+        def ck(t):                                    # one photo = one credit (its Commons page id)
+            m = re.search(r"curid=(\d+)", t or "")
+            return ("id", m.group(1)) if m else ("t", re.sub(r"\W+", " ", t or "").strip().lower())
+        out, last, printed = [], object(), set()
         for g, kid, n, part, pno, folder in self.order:
             if part != last:
                 last = part
                 out.append(((part + "  " + PARTS.get(part, "")).upper() if part else u"COVER", []))
             t = (self.keys.get(kid) or {}).get(n)
+            t = public_src(t) if t else t
+            printed.add(ck(t))
             out[-1][1].append(u"[%d] %s" % (g, t or u"(no entry for mark [%d] in the %s source key)" %
                                              (n, SCRIPT_OF.get(folder, folder))))
+        pats, texts, extra = [re.compile(p) for p in ALWAYS_LIST], [], []
+        for kid in sorted(set(self.kid.values()), key=str):
+            texts += [t for n, t in sorted((self.keys.get(kid) or {}).items())
+                      if (kid, n) not in self.glob and t and any(p.search(t) for p in pats)]
+        for _, a in sorted(self.assets.items()):
+            texts += [str(t) for t in (a or {}).get("photo_credits") or [] if t]
+        for t in texts:
+            t = public_src(t)
+            if t and ck(t) not in printed:
+                printed.add(ck(t))
+                extra.append(t)
+        if extra:
+            out.append((u"PHOTO CREDITS AND DATA NOTES", extra))
+        codes = plan_codes(self.assets)
+        if codes:
+            title = next((sp.get("title", "") for _, sp, rows in self.numbered if rows and
+                          any(it[0] == MP + "mp_plan" for r in rows for it in r)), u"Masterplan: an ecological corridor")
+            out.append((u"SOURCES OF THE NUMBERED PLACES IN ‘%s’" % title.upper(), codes))
         return out
 
     def report(self):
         kids = set(self.kid.values())
         left = sum(1 for k in kids for n in (self.keys.get(k) or {}) if (k, n) not in self.glob)
         return ("sources: %d cited, numbered in page order (one number per source); %d entries of the scripts' keys "
-                "for these sheets not cited on any page, left out; %d words no page shows taken out of the sheets; "
-                "%d marks set smaller to fit" % (len(self.order), left, self.n_hidden, self.n_tight))
+                "for these sheets not cited on any page, left out; %d not public online, their marks taken off the "
+                "pages (F5, listed at the end of this log); %d marks set smaller to fit" % (
+                    len(self.order), left, len(self.f5), self.n_tight))
 
 
 def sources_page(pg, typo, pno, groups, head=u"Sources, by sheet"):
@@ -1274,6 +1397,163 @@ def flex_order(plan, typo):
     return plan
 
 
+def pno_of(numbered, key=None, sheet=None, page=0):
+    """v19: the page number (2 digits) of the page showing crop key, or sheet page; "" when no page does"""
+    for pno, sp, rows in numbered:
+        if (key and rows and any(it[0] == key for r in rows for it in r)) or \
+                (sheet and rows is None and sp.get("sheet") == sheet and int(sp.get("page", 0)) == page):
+            return "%02d" % pno
+    return ""
+
+
+def alt_page(fitz, typo, assets, numbered):
+    """v19 (MIRAQUA 28 Oct, P78.ALT: "try merging pp.07 and 08 into one sheet ... if it can't be done without
+    shrinking things below legibility or cramming, say so and keep the two pages"): ONE page in its own file (ALT_NAME
+    next to the booklet, which keeps both pages and its numbering): p.07's three maps (ALT_MAPS) at one round scale
+    (the one they print at on their own), then the city link's page_why panels (ALT_WHY), every panel at the size the
+    booklet prints it, never stretched or squeezed, in columns; a panel with a scale at the maps' scale (one scale per
+    page); the legend in the footer. Written only when everything fits with its words at 7 pt or more; else no file
+    (an older one is removed) and the reason in the log. Returns the log line."""
+    out = os.path.join(OUT_DIR, ALT_NAME)
+
+    def no(why):
+        try:
+            if os.path.isfile(out):
+                os.remove(out)                       # never an old alternative beside a new booklet
+        except Exception:
+            pass
+        return "P78.ALT pp.07+08: no alternative page written: " + why
+    its = [panel_item(fitz, assets, k) for k in ALT_MAPS + ALT_WHY]
+    miss = [it[0] for it in its if it[3] is None]
+    if miss:
+        return no("%s not written yet (run their scripts)" % ", ".join(miss))
+    aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
+    nm = len(ALT_MAPS)
+    dens = [std_scale(it[1]["scale_den"] / own_s(it)) for it in its[:nm] if it[1].get("scale_den")]
+    D = max(dens) if dens else None                  # the three maps' one scale
+
+    def fac(it, d):
+        den = it[1].get("scale_den")
+        return den / d if den and d else own_s(it)
+
+    def low(it, s_):                                 # the smallest tenth of its words at factor s_, pt
+        ws = word_sizes(sheet_doc(fitz, it[2])[int(it[1].get("page", 0))], it[3])
+        return ws[len(ws) // 10] * s_ if ws else 99.0
+    sz = [(it, fac(it, D), wh(it)[0] * fac(it, D), wh(it)[1] * fac(it, D)) for it in its]
+    small = [(k_, v_) for k_, v_ in ((it[0].split("/", 1)[1], low(it, s_)) for it, s_, _, _ in sz)
+             if v_ < MIN_CAPTION - 0.05]
+    if small:
+        return no("at one scale for the page (1:{:,.0f}) the words of {} would print at {} pt, under 7 pt".format(
+            D or 0, ", ".join(k for k, _ in small), ", ".join("%.1f" % v for _, v in small)))
+
+    def pack(order):                                 # columns, top to bottom, in this order
+        cols, cur, ch = [], [], 0.0
+        for e in order:
+            if e[3] + CAP_H > ah:
+                return None
+            if cur and ch + ROW_GAP + e[3] + CAP_H > ah:
+                cols.append(cur)
+                cur, ch = [], 0.0
+            ch += (ROW_GAP if cur else 0.0) + e[3] + CAP_H
+            cur.append(e)
+        return cols + [cur]
+    best = None
+    for order in (sz, sz[:nm] + sorted(sz[nm:], key=lambda e: -e[3]), sz[:nm] + sorted(sz[nm:], key=lambda e: -e[2])):
+        cols = pack(order)
+        if cols:
+            wsum = sum(max(e[2] for e in c) for c in cols) + 2 * GUT * (len(cols) - 1)
+            if best is None or wsum < best[0]:
+                best = (wsum, cols)
+    if best is None or best[0] > aw + 0.5:
+        nxt = next((d for d in STD_SCALES if D and d > D), None)
+        tail = "; at 1:{:,.0f} the maps' words would print at {:.1f} pt".format(
+            nxt, min(low(it, fac(it, nxt)) for it in its[:nm])) if nxt else ""
+        return no(("at the sizes the booklet prints them (maps 1:{:,.0f}) the six panels need {}; the page holds "
+                   "{:.0f} x {:.0f} mm{}: the two pages stay").format(
+            D or 0, "%.0f mm of width" % best[0] if best else "more than the page height for one panel", aw, ah, tail))
+    spec = dict(part="B", stage="an+got", title=ALT_TITLE)
+    legend = []
+    for it in its:
+        for e in (it[1] or {}).get("legend") or []:
+            e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))
+            if all(e.get("label") != o.get("label") for o in legend):
+                legend.append(e)
+    if footer_rows(typo, legend, spec) > 3:
+        return no("its legend (%d entries) needs more than the footer band's three rows" % len(legend))
+    if typo.width(ALT_TITLE, T["part"], True) > aw:
+        return no("its title is wider than the page: shorten ALT_TITLE in the plan")
+    a = pno_of(numbered, key=ALT_MAPS[0])
+    b = pno_of(numbered, sheet=CLK + "Bergama_city_link_A3.pdf", page=0)
+    doc = fitz.open()
+    pg = frame_page(fitz, doc, typo)
+    header(pg, typo, spec)
+    typo.line(pg, (u"ALTERNATIVE TO PAGES %s AND %s" % (a, b)) if a and b else u"ALTERNATIVE", PW - ML, 12,
+              T["kicker"], ACCENT, True, "R")
+    rep, x = [], AREA[0]
+    for c in best[1]:
+        y = AREA[1]
+        for it, s_, w_, h_ in c:
+            show(fitz, pg, typo, it, x, y, s_, rep, set())
+            y += h_ + CAP_H + ROW_GAP
+        x += max(e[2] for e in c) + 2 * GUT
+    footer(pg, typo, ("%s+%s" % (a, b)) if a and b else "ALT", spec, legend)
+    doc.subset_fonts()
+    doc.save(out, garbage=3, deflate=True)
+    doc.close()
+    return "P78.ALT pp.07+08: written %s (maps 1:{:,.0f}, %d columns) · %s".format(D or 0) % (
+        out, len(best[1]), "; ".join(rep))
+
+
+def page_checks(doc, numbered, typo):
+    """v19 (MIRAQUA 28 Oct): read back from the finished pages. G10 ("one number, one calculation"): a figure of the
+    plan's FIGURE_CHECKS printed two ways on the booklet's pages (e.g. the frame 150.5 ha on p.02, 151 ha on p.21)
+    is logged with every page of each value. N1: the cross-references the pages print still point right after the
+    renumbering: "NEXT <theme letter> <theme>" names the next theme, "see '<title>'" a page title; a reference by
+    page number is logged (pages are named by their titles). The sources page and the cover are not read."""
+    last = len(doc)
+    texts = {}
+    for i, pg in enumerate(doc):
+        if 0 < i < last - 1:
+            try:
+                texts[i + 1] = re.sub(r"\s+", " ", pg.get_text("text"))
+            except Exception:
+                texts[i + 1] = ""
+    for name, unit, pats in FIGURE_CHECKS:
+        seen = {}
+        for pno, t in texts.items():
+            for p in pats:
+                for m in re.finditer(p, t):
+                    seen.setdefault(m.group("v").replace(",", ""), set()).add(pno)
+        if len(seen) > 1:
+            typo.issues.append(u"ONE FIGURE, TWO VALUES (G10) %s: %s" % (name, u" · ".join(
+                u"%s %s (p.%s)" % (v, unit, ", ".join("%02d" % p for p in sorted(ps))) for v, ps in sorted(seen.items()))))
+        elif seen and len(list(seen.values())[0]) > 1:
+            v, ps = list(seen.items())[0]
+            typo.notes.append(u"G10 %s: %s %s on p.%s, the same everywhere" % (name, v, unit,
+                                                                            ", ".join("%02d" % p for p in sorted(ps))))
+    titles = dict((re.sub(r"\W+", " ", sp.get("title", "")).strip().lower(), pno) for pno, sp, _ in numbered)
+    part_of = dict((pno, sp.get("part")) for pno, sp, _ in numbered)
+    n_ok = 0
+    for pno, t in sorted(texts.items()):
+        for m in re.finditer(u"NEXT\\W{0,4}([A-E])\\b", t):
+            nxt = next((part_of[p] for p in sorted(part_of) if p > pno and part_of[p] != part_of.get(pno)), None)
+            if m.group(1) != nxt:
+                typo.issues.append(u"CROSS-REFERENCE p.%02d: \"NEXT %s\", but the next theme is %s" % (
+                    pno, m.group(1), nxt or "none"))
+            else:
+                n_ok += 1
+        for m in re.finditer(u"(?i)\\bsee\\s+[‘'\"“]([^’'\"”]{3,80})[’'\"”]", t):
+            if re.sub(r"\W+", " ", m.group(1)).strip().lower() not in titles:
+                typo.issues.append(u"CROSS-REFERENCE p.%02d: see '%s', but no page has that title" % (pno, m.group(1)))
+            else:
+                n_ok += 1
+        for m in re.finditer(r"(?i)\b(?:pp?\.|page) ?\d{1,2}\b(?! ?of\b)", t):
+            typo.issues.append(u"CROSS-REFERENCE BY NUMBER p.%02d: \"%s\" (pages are renumbered: name the page by its "
+                               u"title)" % (pno, m.group(0)))
+    if n_ok:
+        typo.notes.append("cross-references checked (N1): %d point to the right theme or title" % n_ok)
+
+
 # ------------------------------------------------------------------ main
 def main():
     t0 = time.time()
@@ -1294,6 +1574,8 @@ def main():
     plan = flex_order(plan, typo)
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
     _COPY.clear()
+    _PAGE_TXT.clear()
+    G9_STATS.update(copies=0, lines=0, chars=0, images=0, failed=[])
     del _SRC[:]
     srcs = Sources(fitz, assets)                    # v18: one source numbering for the booklet, in page order
     try:
@@ -1317,6 +1599,16 @@ def main():
     sources_page(frame_page(fitz, doc, typo), typo, len(numbered) + 2,
                  *((srcs.groups(), u"Sources, in page order") if _SRC else (sheet_sources(fitz, assets),)))
     text_check(fitz, doc, typo, set(n - 1 for n, sp, rows in numbered if rows is None))
+    page_checks(doc, numbered, typo)                 # v19: G10 figures, N1 cross-references
+    try:                                             # v19 (P78.ALT): pp.07 + 08 on one page, its own file
+        typo.notes.append(alt_page(fitz, typo, assets, numbered))
+    except Exception as ex:
+        typo.issues.append("P78.ALT pp.07+08: no alternative page written (%s: %s)" % (type(ex).__name__, ex))
+    typo.notes.append("G9: %d crops each shown from its own copy of its sheet page; taken out of the copies: %d lines "
+                      "and %d letters of words outside them, %d images wholly outside, the line art lying wholly "
+                      "outside%s" % (G9_STATS["copies"], G9_STATS["lines"], G9_STATS["chars"], G9_STATS["images"],
+                                     "" if G9_LINE_ART else " (off: G9_LINE_ART)"))
+    typo.issues += ["G9 COPY FAILED, the whole sheet page shown: %s" % f for f in G9_STATS["failed"]]
     doc.subset_fonts()
     out = os.path.join(OUT_DIR, PDF_NAME)
     doc.save(out, garbage=3, deflate=True)
@@ -1330,6 +1622,10 @@ def main():
     rows += rep + typo.notes
     rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
     rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
+    if _SRC and _SRC[0].f5:                       # v19 (F5): Aras's list of figures left without a public source
+        rows += ["F5 · sources not public online: left off the sources page, their marks taken off the pages; the "
+                 "figures they backed have no public source now (page, the sheet's own mark, its source):"]
+        rows += ["  " + t for t in _SRC[0].f5]
     rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
     return "\n".join(rows)
 
@@ -1417,8 +1713,10 @@ if "ghenv" in globals():
         _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
     except Exception:
         pass
+    # v19: a setting in capitals (MERGE_21_22, F5_DROP, G9_LINE_ART = True) is never the Button
     _pressed = any(v is True for k, v in list(globals().items())
-                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "rhino_bake", "done")) or \
+                   if not k.startswith("_") and not k.isupper() and isinstance(v, bool) and
+                   k not in ("True", "False", "rhino_bake", "done")) or \
         any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
     if _pressed:
         _t0 = time.time()

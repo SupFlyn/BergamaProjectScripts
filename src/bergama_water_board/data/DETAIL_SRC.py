@@ -86,7 +86,7 @@ SEASONS = [
          climate=["Rain 28.5 mm (4.6 %), 5.9 rain days, mean 26.5 C (measured, WMO 1991-2020).",
                   "Rain minus open-water evaporation -552.2 mm: the deepest deficit (calculated, case.md s.1)."],
          river=["Natural river Jul-Sep: monthly means 0.04-0.11 m on this cut, a trickle (calculated, indicative: bed",
-                "interpolated); bed dry (< 2 cm) about 11 days a year. Drawn: the continuous regulated water strip 4.0 x 0.30 m, topped up from",
+                "interpolated); bed dry (< 2 cm) about 11 days a year. Drawn: the continuous regulated water strip 400 cm × 0.30 m, topped up from",
                 "storage and flowing one way downstream (design, case.md s.4; Aras 17 Oct 22:01, 19 Oct 07:43)."],
          life=["All bands open; the strip used: wading at 0.30 m, cooling, evening lights; dry meadow",
                "as a lie-down lawn (concept s.10.1, design). People sit at the strip edge with their feet in the water."],
@@ -155,7 +155,7 @@ SECTIONS = [
                    (569.5, None, "Chaste tree (Hayıt)"),
                    (578.2, None, "Yellow flag iris (Sarı süsen)"),
                    (584.0, None, "Common reed (Kamış)"),
-                   (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
+                   (592.0, None, "Summer water strip 400 cm × 0.30 m")]),   # v4 (MIRAQUA 28 Oct, G13 / P15.1)
     dict(key="2", title="SECTION 2-2'", side="NORTH-EAST BANK", s_from=652.0, s_to=588.0, look="looking south-east (downstream)",
          surfaces=[(652.0, 649.0, DRY, "asphalt", "Coloured asphalt"),
                    (649.0, 645.0, DRY, "concrete", "Concrete walkway"),
@@ -186,7 +186,7 @@ SECTIONS = [
                    (624.0, 46.40, "Column support"),
                    (615.0, None, "Common reed (Kamış)"),
                    (610.5, None, "Yellow flag iris (Sarı süsen)"),
-                   (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
+                   (592.0, None, "Summer water strip 400 cm × 0.30 m")]),   # v4 (MIRAQUA 28 Oct, G13 / P15.1)
 ]
 
 # ---------------------------------------------------------------- colours (reference language)

@@ -288,36 +288,7 @@ def fade(col, t):
     return mix(col, BG, max(0.0, min(1.0, t)))
 
 
-def section_caption(sd_):
-    g = sd_["ground"]
-    base = sd_["base"]
-    # v38 (visual first): keywords, " · " between them (was sentences); the figures are the same, computed live
-    cap = "ground +{:.2f} to +{:.2f} · {:.0f} m".format(g[0][1] + base, g[-1][1] + base, sd_["L"])
-    beds = [l for l in sd_["levels"] if l[3] == "bed"]
-    banks = [l for l in sd_["levels"] if l[3] == "bank"]
-    if beds and banks:
-        cap += " · bed {:.1f} m below banks{}".format(banks[0][2] - beds[0][2], {   # v40: no caveat words
-            "interpolated": " " + bcite("Section bed levels: interpolated along the stream from the "
-                                        "surveyed depths.")}.get((sd_.get("bed_src") or ["surveyed"])[0], ""))
-        types = sorted(set(short(EDGE[t][0]).lower() for s, t, wl, gz in sd_["labels"]))
-        walled = [wl for s, t, wl, gz in sd_["labels"]]
-        if types:
-            cap += " · banks: " + ", ".join(types)
-            if walled and all(w_ == 1 for w_ in walled):
-                cap += " · all walled"
-            elif any(w_ == 1 for w_ in walled):
-                cap += " · partly walled"
-            if any(w_ == 2 for w_ in walled):
-                cap += " · embanked" if all(w_ == 2 for w_ in walled) else " · partly embanked"
-    elif not sd_["water"]:
-        cap += " · does not cross the stream"
-    tot = sum(sd_["comp"].values()) or 1.0
-    top = sorted(sd_["comp"].items(), key=lambda kv: -kv[1])[:3]
-    cap += " · through " + ", ".join(["{} {:.0f}%".format(short(CAT[k][0]).lower(), 100.0 * v / tot)
-                                      for k, v in top])
-    return cap
-
-
+# v50 (MIRAQUA 28 Oct, P04.2): section_caption is gone (the cut's header is site28_sec_reading's key sentence)
 def draw_locator(S, B, x, ytop, w, U, L, lines_):
     F = S.F
     V, mw, mh = view_fit(F, x, ytop, w, w * F.h / F.w)
@@ -342,10 +313,12 @@ SEC_CHANNEL = mix(CAT["water"][1], PAPER, 0.5)        # v16.4: the stream channe
 SEC_CHANNEL_HATCH = C("3E7DAE")                      # ... and its blue hatch
 
 
-def channel_polys(ground, a, b, pad=4.0, top=None):
+def channel_polys(ground, a, b, pad=4.0, top=None, bank=None, lim=None):
     """v16.4: the stream channel in section: the area between the cut ground (the bed, carved from the surveyed bed
     levels) and the top of the lower bank, around the water span a..b (m along the line). The bank tops are the
-    ground just outside the span; where the ground rises above that level the channel ends. Returns [[(s, z)...]]."""
+    ground just outside the span; where the ground rises above that level the channel ends. Returns [[(s, z)...]].
+    v50 (MIRAQUA 28 Oct, bank depth REPORT §4 1a): bank = the bank top given (the lower crest, or the DSİ walls'
+    top) in place of the ground just outside, lim = (s0, s1) the stretch of the cut it is taken within (the crests)."""
     gs = [p[0] for p in ground]
 
     def g_at(s):
@@ -353,10 +326,11 @@ def channel_polys(ground, a, b, pad=4.0, top=None):
         k1 = min(len(ground) - 1, k + 1)
         (sa_, za), (sb_, zb) = ground[k], ground[k1]
         return za if sb_ <= sa_ else za + (zb - za) * (s - sa_) / (sb_ - sa_)
-    zt = min(g_at(max(gs[0], a - 1.0)), g_at(min(gs[-1], b + 1.0)))
+    zt = min(g_at(max(gs[0], a - 1.0)), g_at(min(gs[-1], b + 1.0))) if bank is None else bank
     if top is not None:                                   # v16.5: up to the water surface instead
         zt = min(zt, top)
-    pts = [(s, z) for s, z in ground if a - pad <= s <= b + pad]
+    lo, hi = (a - pad, b + pad) if lim is None else lim
+    pts = [(s, z) for s, z in ground if lo <= s <= hi]
     out = []
     run = None
     for k, (s1, z1) in enumerate(pts):
@@ -390,18 +364,18 @@ def draw_channel(B, L, P, polys, U, fill, hatch, order, lw=0.035, spacing=0.16):
                 B.line(seg, hatch, L, order + 1, lw)
 
 
-def draw_stream(B, L, P, ground, a, b, bed, lvl, U, wash, fill, hatch, line_c, order, lw=0.035):
+def draw_stream(B, L, P, ground, a, b, bed, lvl, U, wash, fill, hatch, line_c, order, lw=0.035, bank=None, lim=None):
     """v16.5: the stream in section: the channel from the bed to the lower bank top in a pale wash, the water from the
     bed to its surface (lvl) filled and hatched in blue, the water line on top. Without water (lvl at the bed) the
-    channel itself is hatched, as in v16.4, and the bed drawn as a blue line."""
+    channel itself is hatched, as in v16.4, and the bed drawn as a blue line. v50: bank, lim as channel_polys."""
     if lvl - bed > 0.005:
-        draw_channel(B, L, P, channel_polys(ground, a, b), U, wash, None, order)
-        wp = channel_polys(ground, a, b, top=lvl)
+        draw_channel(B, L, P, channel_polys(ground, a, b, bank=bank, lim=lim), U, wash, None, order)
+        wp = channel_polys(ground, a, b, top=lvl, bank=bank, lim=lim)
         draw_channel(B, L, P, wp, U, fill, hatch, order + 1, lw=lw, spacing=0.08)
         for poly in wp:                               # the water line, over the ground line, so a thin layer still reads
             B.line([P(poly[0][0], lvl), P(poly[-1][0], lvl)], line_c, L, order + 6, 0.35)
     else:
-        draw_channel(B, L, P, channel_polys(ground, a, b), U, fill, hatch, order, lw=lw)
+        draw_channel(B, L, P, channel_polys(ground, a, b, bank=bank, lim=lim), U, fill, hatch, order, lw=lw)
         B.line([P(a, bed), P(b, bed)], line_c, L, order + 5, 0.4)
 
 
@@ -516,40 +490,47 @@ def sec_art_png(S, sd_, ss, tag):
 def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_txt=None, loc=True):
     """One long section: the surveyed ground, the bed, the buildings at their heights; behind the cut a picture of what
     the section sees (buildings and ground beyond, trees at their measured size, scale figures). v45: loc=False draws
-    no locator (the sections page has one key map); scale_txt="" writes no scale word (the page states one)."""
+    no locator (the sections page has one key map); scale_txt="" writes no scale word (the page states one).
+    v50 (MIRAQUA 28 Oct, P04.2, F12, G4, G13): the header is the cut's name, one key sentence with bold keywords and
+    what on the cut steers the project (site28_sec_reading; was a caption of figures, section_caption); every word at
+    the sizes of the cut's step (sd_["_txt"], set by sections_plan; SITE28_SEC_TXT), placed by its real width; the
+    callouts by priority on at most SITE28_SEC_TIERS rows (site28_callouts: the water always, then edges and history,
+    then streets and places); levels and heights in m with 2 decimals, horizontal dimensions in cm; the cut's length
+    is no longer printed (its scale bar gives it) and the width dimension over the water is gone (its callout says
+    the bed width where the cut crosses the stream)."""
     L = "LU_BOARD::Sections"
     nm = sd_["name"]
     Lm = sd_["L"]
     pk, pn = sd_.get("part", (1, 1))
     off = sd_.get("s_off", 0.0)
+    hd, hc, hm, hs, end = site28_sec_sizes(sd_, U)
     locw = min(9.0 * U, 0.22 * w) if loc else 0.0
+    gq = sd_["ground"]                                   # v50: room over the drawing for the end names (over their
+    need = max([0.38 * U + hm + hd - (sd_["zmax"] - g_[1]) * ss for g_ in (gq[0], gq[-1])] +     # levels) and tags
+               ([0.12 * U + hm - 1.0 * ss] if sd_["bld"] else []))
     if pk == 1:
-        # ---- header: mark, title, one or two caption lines, locator with north arrow
-        mk = circle_pts(x + 0.45 * U, y + 0.22 * U, 0.45 * U, 24)
-        B.fill([mk], BG, L, 40)
-        B.line(mk + [mk[0]], INK, L, 41, 0.1)
-        B.text(nm, x + 0.45 * U, y + 0.22 * U, 0.3 * U, INK, L, font=FONT_TITLE, bold=True, align="MC")
-        tx = x + 1.2 * U
-        tw_ = w - locw - 2.0 * U
+        # ---- header: the name, the key sentence, what steers the project; a locator with north arrow (loc)
+        tw_ = w - locw - (0.6 * U if loc else 0.0)
         co = sd_.get("crop_of")                          # v42: a cut cropped to the part around the stream
-        B.fit("SECTION {0} — {0}'  ·  THE GROUND AS IT FALLS TO THE WATER{1}".format(
-            nm, ("  ·  THE {:,.0f} m AROUND THE STREAM OF {:,.0f} m".format(Lm, co[0]) if co else "") if pn == 1 else
-            "  ·  IN {} PARTS".format(pn)), tx, y, 0.6 * U, tw_, INK, L, font=FONT_TITLE, bold=True)
-        lines = wrap(section_caption(sd_) if pn == 1 else section_caption(sd_.get("whole", sd_)), tw_, 0.3 * U)[:3]
-        cy = y - 0.95 * U
-        for ln in lines:
-            B.text(ln, tx, cy, 0.3 * U, INK2, L)
-            cy -= 0.3 * U * 1.8
+        tx_ = site28_text(B, u"**SECTION {0} — {0}'**".format(nm), x, y, hd, INK, L)[1]
+        if pn > 1 or co:
+            site28_text(B, u" · in {} parts".format(pn) if pn > 1 else u" · the part around the stream", tx_, y, hd,
+                        INK2, L)
+        key_, steer_ = site28_sec_reading(S, sd_.get("whole", sd_) if pn > 1 else sd_)
+        cy = y - 0.45 * hd - 1.3 * hc
+        for t_, c_ in ((key_, INK), (steer_, INK2)):
+            if t_:
+                cy = site28_para(B, t_, x, cy, tw_, hc, c_, L, lead=1.5, bcol=INK)
+        last = cy + 1.2 * hc                             # the last line's foot
         if loc:
             lb = draw_locator(S, B, x + w - locw, y + 0.55 * U, locw, U, L, [sd_["line"]])
-            top = min(cy + 0.3 * U, lb - 1.2 * U) - 0.5 * U    # v40: the end name S' clear of the locator
+            top = min(last, lb - 1.2 * U) - 0.35 * U - max(0.0, need)
         else:
-            top = cy + 0.3 * U - 0.5 * U
+            top = last - 0.35 * U - max(0.0, need)
     else:
-        B.fit("SECTION {0} — {0}'  ·  CONTINUED, {1:.0f}-{2:.0f} m".format(nm, off, off + Lm), x + 1.2 * U, y, 0.42 * U,
-              w - 2.0 * U, INK2, L, font=FONT_TITLE, bold=True)
-        top = y - 0.7 * U
-    X0 = x + max(SEC_END * U, (w - Lm * ss) / 2.0)
+        site28_text(B, u"**SECTION {0} — {0}'** · continued".format(nm), x, y, hd, INK2, L)
+        top = y - 0.3 * hd - 0.35 * U - max(0.0, need)
+    X0 = x + max(end, (w - Lm * ss) / 2.0)
     Y0 = top - sd_["zmax"] * ss
 
     def P(px, pz):
@@ -566,70 +547,71 @@ def draw_section_strip(S, B, sd_, x, y, w, ss, U, dry=False, tag="page", scale_t
             B.image(path, X0, Y0 + (zlo_a - base) * ss, X0 + Lm * ss, Y0 + (zhi_a - base) * ss, L, 5)
     tags_ = sec_cut(B, L, sd_, P, Lm, ss, U, dry)
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
-    # ---- annotation: channel width (its figure goes to the callouts), end levels, end marks, callouts below
-    for a, b, bed, lvl in sd_["water"]:
-        zt = max(g_at(max(0.0, a - 1.0)), g_at(min(Lm, b + 1.0))) + 2.4
-        q0, q1 = P(a, zt), P(b, zt)
-        B.line([q0, q1], INK2, L, 35, 0.05)
-        for q in (q0, q1):
-            B.line([(q[0] - 0.14 * U, q[1] - 0.14 * U), (q[0] + 0.14 * U, q[1] + 0.14 * U)], INK2, L, 35, 0.06)
+    # ---- annotation: end levels and names, the tallest roof's level, callouts below (v50: no width dimension)
     for s, zl, za, kind in sd_["levels"]:
         if kind != "end":
             continue
         bx, by = P(s, zl)
         B.fill([[(bx, by), (bx - 0.22 * U, by + 0.38 * U), (bx + 0.22 * U, by + 0.38 * U)]], INK, L, 36)
-        out = -1.0 if s < Lm * 0.5 else 1.0              # outside the strip, clear of the buildings at the ends
-        B.text("+{:.2f}".format(za), bx + out * 0.4 * U, by + 0.08 * U, 0.26 * U, INK, L,
-               align="L" if out > 0 else "R")
+        t_ = u_level(za)                                 # outside the strip, clear of the buildings at the ends
+        site28_text(B, t_, bx + 0.4 * U if s >= Lm * 0.5 else bx - 0.4 * U - site28_tw(t_, hm), by + 0.08 * U, hm,
+                    INK, L)
     g0, g1 = sd_["ground"][0], sd_["ground"][-1]
     for px_, pz_, lab, out, real in ((g0[0], g0[1], nm, -1.0, pk == 1), (g1[0], g1[1], nm + "'", 1.0, pk == pn)):
         bx, by = P(px_, pz_)
-        if real:
-            B.text(lab, bx + out * 0.4 * U, by + 0.62 * U, 0.42 * U, INK, L, font=FONT_TITLE, bold=True,
-                   align="L" if out > 0 else "R")
+        if real:                                         # over its end level
+            site28_text(B, u"**{}**".format(lab), bx + out * 0.4 * U, by + 0.38 * U + hm, hd, INK, L,
+                        align="L" if out > 0 else "R")
         else:                                            # where the parts meet
             B.line([(bx, by - 0.9 * U), (bx, by + 1.2 * U)], INK2, L, 36, 0.05)
-            B.text("continues below" if out > 0 else "continued from above", bx - out * 0.3 * U, by + 0.95 * U,
-                   0.22 * U, INK2, L, align="R" if out > 0 else "L")
+            site28_text(B, u"continues below" if out > 0 else u"continued from above", bx - out * 0.3 * U,
+                        by + 0.95 * U, hm, INK2, L, align="R" if out > 0 else "L")
     # the tallest cut roof: its level, as on an architectural section
     if sd_["bld"]:
         a, b, z0, z1, cat, annex, ftype, fl, floors, fsrc = max(sd_["bld"], key=lambda t: t[3])
-        lev_ = "+{:.2f}".format(z1 + sd_["base"])
-        lw_ = tw(lev_, 0.22 * U)
+        lev_ = u_level(z1 + sd_["base"])
+        lw_ = site28_tw(lev_, hm)
         for side in ((1.0, -1.0) if (b - a) * ss > 0.6 * U else ()):
             bx, by = P(b if side > 0 else a, z1)         # v16.3: at the eaves beside the wall, clear of the type's tag
             bx += side * 0.4 * U
             t0, t1 = (bx - 0.16 * U, bx + 0.25 * U + lw_) if side > 0 else (bx - 0.25 * U - lw_, bx + 0.16 * U)
-            if any(t0 < x1_ and x0_ < t1 and -0.35 * U < y_ - by < 0.35 * U for x0_, x1_, y_ in tags_):
+            if any(t0 < x1_ and x0_ < t1 and -(hm + 0.2 * U) < y_ - by < hm + 0.2 * U for x0_, x1_, y_ in tags_):
                 continue                                 # v40: never over a building's tag; else the other wall
             B.line([(bx - side * 0.4 * U, by), (bx + side * 0.16 * U, by)], INK, L, 36, 0.04)
             B.fill([[(bx, by), (bx - 0.16 * U, by + 0.28 * U), (bx + 0.16 * U, by + 0.28 * U)]], INK, L, 36)
-            B.text(lev_, bx + side * 0.25 * U, by + 0.06 * U, 0.22 * U, INK, L, align="L" if side > 0 else "R")
+            site28_text(B, lev_, bx + 0.25 * U if side > 0 else bx - 0.25 * U - lw_, by + 0.06 * U, hm, INK, L)
             break
     # v40 (Aras 25 Oct): the words at the water in one clean band right under the cut ground, each on a short leader
-    # to its bank or bed point; no word on the drawing's ink, none over another; caveats go to the log, not the page
-    calls = sec_water_calls(sd_, g_at, nm, dry) + [(s, g_at(s), t) for s, t in sec_edge_calls(sd_)]
-    calls += [((a + b) / 2.0, g_at((a + b) / 2.0), nm_) for a, b, nm_ in sd_.get("places", [])]   # v16.7: by name
-    calls += [(s_, z_, sec_road_text(t_)) for s_, z_, t_ in road_calls]   # v25: every street crossed, its width
-    calls += [(s_, g_at(s_), t_) for s_, t_ in sec_history_calls(S, sd_) if 0.0 <= s_ <= Lm]   # v44
-    low = sec_callouts(B, L, P, calls, P(0, -3.0)[1] - 0.45 * U, U, xlo=x, xhi=x + w)
+    # to its bank or bed point; no word on the drawing's ink, none over another; caveats go to the log, not the page.
+    # v50 (P04.2, G4): by priority, at most SITE28_SEC_TIERS rows: the water (0), edges and history (1), named
+    # streets with the length the cut runs on them in cm (2), other streets and places (3); the rest left out
+    calls = list(sec_water_calls(sd_, g_at, nm, dry)) + [(s, g_at(s), t, 1) for s, t in sec_edge_calls(sd_)]
+    calls += [((a + b) / 2.0, g_at((a + b) / 2.0), nm_, 3) for a, b, nm_ in sd_.get("places", [])]   # v16.7
+    for s_, z_, t_ in road_calls:                        # v25: every street crossed
+        c_ = site28_road_call(t_)
+        calls.append((s_, z_, c_[0], c_[1]))
+    calls += [(s_, g_at(s_), t_, 1) for s_, t_ in sec_history_calls(S, sd_) if 0.0 <= s_ <= Lm]   # v44
+    low, left_ = site28_callouts(B, L, P, calls, P(0, -3.0)[1] - 0.45 * U, U, hc, x, x + w)
+    if left_ and not dry:
+        LOG.append(u"Section {}: {} callout(s) left out, no free row under the cut: {}.".format(nm, len(left_),
+                                                                                             u"; ".join(left_)))
     # the use ribbon and the satellite rows under the callouts
-    rib = low - 0.5 * U
+    rib = low - 0.3 * hc - 0.35 * U
     for a, b, cat in sd_["strip"]:
         B.fill([rect(P(a, 0)[0], rib - 0.16 * U, P(b, 0)[0], rib)], CAT[cat][1], L, 20)
     rib_low = rib - 0.16 * U
     if "_sat" not in sd_:
         sd_["_sat"] = section_sat(sd_)
     if sd_["_sat"]:                                      # v33: land cover and greenness from satellite, metre by metre
-        rib_low = draw_sat_strips(B, sd_["_sat"], P, Lm, rib_low, x, U, L)
+        rib_low = draw_sat_strips(B, sd_["_sat"], P, Lm, rib_low, x, U, L, th=hs)
     sb = nice_floor(Lm / 4.0)
     xb = X0 + Lm * ss - sb * ss - 0.9 * U
-    yb = rib_low - 1.05 * U
-    draw_scalebar(B, xb, yb, ss, sb, U, L, h=0.26)
+    yb = rib_low - 0.73 * U - hm - 0.25 * U              # the bar's numbers sit over it, hm high
+    draw_scalebar(B, xb, yb, ss, sb, U, L, h=hm / U)
     ratio = 1000.0 / max(1e-9, ss * MMU)
     if scale_txt != "":                                  # v45: "" = the page states the one scale
         B.text(scale_txt or "1:{:,.0f} at {:.0f} mm".format(nice_ratio(ratio), SHEET_MM), X0, yb + 0.1 * U,
-               0.24 * U, INK2, L)                        # v42: the cuts' common scale on the booklet page
+               hm, INK2, L)                              # v42: the cuts' common scale on the booklet page
     return yb - 0.35 * U
 
 
@@ -639,23 +621,44 @@ SEC_CALL_H = 0.6        # v40: the callouts' text height (page units): >= 7.5 pt
 def sec_water_calls(sd_, g_at, nm, dry=False):
     """v40: the stream's callouts in a section: its width and depth at the water, its bed level and depth below the
     lower bank at the bed; [(s, z, text)] (text <= 30 characters). Where a figure is interpolated or approximate the
-    log says so (not the page)."""
+    log says so (not the page). v50 (MIRAQUA 28 Oct, bank depth REPORT §4 1a-1e, G13): [(s, z, text, priority 0)]:
+    the bed width in cm only where the cut crosses the stream at SITE28_CROSS° or more (1c); the water "approx."
+    unless measured (1d); the bed level and its depth below the lower bank crest (1a), or between the DSİ walls
+    (WALL_H, photos) in the walled town reach (1b), or "bed not surveyed" (1e); there the survey's crest, labelled
+    "survey, before the DSİ walls" (Aras 28 Oct 14:12). Levels and heights in m, 2 decimals."""
     out, notes = [], []
     srcs = sd_.get("bed_src") or ["surveyed"] * len(sd_["water"])
     wsrc_ = sd_.get("water_src") or [WATER_SRC] * len(sd_["water"])
-    banks = [l for l in sd_["levels"] if l[3] == "bank"]
+    base = sd_["base"]
     for k, ((a, b, bed, lvl), src, ws_) in enumerate(zip(sd_["water"], srcs, wsrc_)):
+        cr, zb = site28_bank_of(sd_, k)
         dep = lvl - bed
-        txt = "stream {:.0f} m wide".format(b - a)
+        wt = []
+        if cr.get("ang", 90.0) >= SITE28_CROSS:
+            wt.append(u"bed {} wide".format(u_dim(cr.get("w", b - a))))
         if dep > 0.005:
-            txt += " · {:.1f} m deep".format(dep)
+            wt.append((u"water " if ws_ == "measured" else u"water approx. ") + u_height(dep))
         elif ws_ != "approx":
-            txt += " · no water"
-        out.append((a + (b - a) / 3.0, lvl if dep > 0.005 else bed, txt))
-        btxt = "bed +{:.2f}".format(bed + sd_["base"])
-        if k < len(banks):
-            btxt += " · {:.1f} m below bank".format(banks[k][2] - (bed + sd_["base"]))
-        out.append((a + 2.0 * (b - a) / 3.0, bed, btxt))
+            wt.append(u"no water")
+        if wt:
+            out.append((a + (b - a) / 3.0, lvl if dep > 0.005 else bed, u" · ".join(wt), 0))
+        btxt = u"bed not surveyed" if cr.get("nobed") else u"bed " + u_level(bed + base)
+        if cr.get("kind") == "wall":
+            btxt += u" · walls {} (photos)".format(u_height(WALL_H))
+        elif zb is not None and not cr.get("nobed"):
+            btxt += u" · {} below {}".format(u_height(zb - (bed + base)), u"crest" if cr.get("kind") == "crest" else
+                                             u"bank")
+        out.append((a + 2.0 * (b - a) / 3.0, bed, btxt, 0))
+        if cr.get("town"):                                # the survey's bank top, from before the walls
+            pt_ = min(cr.get("pts") or [(a, cr["survey"])], key=lambda q: q[1])
+            out.append((pt_[0], pt_[1] - base, u"survey {} {}, before the DSİ walls".format(
+                u"crest" if cr.get("crest") is not None else u"bank", u_level(cr["survey"])),
+                0 if cr.get("kind") == "crest" else 1))
+        if not dry and cr.get("kind") == "wall":
+            notes.append(u"Section {}: the bank top is the DSİ walls, {} above the bed (wall_height; site photos 1 Oct "
+                         u"2026, 4-6 m): the survey's {} {} is from before the walls.".format(
+                             nm, u_height(WALL_H), u"crest" if cr.get("crest") is not None else u"bank top",
+                             u_level(cr["survey"])))
         if not dry and (src != "surveyed" or ws_ in ("approx", "input")):
             notes.append("Section {}: {}{}.".format(nm, {"interpolated": "bed level interpolated along the stream from the "
                                                                       "surveyed depths", "input": "bed from the "
@@ -689,11 +692,7 @@ def sec_history_calls(S, sd_):
     return out
 
 
-def sec_road_text(t):
-    """v40: a street's callout without the caveat words: its name and the length the cut runs on it."""
-    return t.replace(" · OSM line, no surveyed surface", "").replace(" m on the cut", " m")
-
-
+# v50 (MIRAQUA 28 Oct, G13): sec_road_text is gone (site28_road_call: the length in cm, a priority)
 def sec_edge_calls(sd_):
     """v40: the bank edges where the section meets the water: [(s, text)], e.g. "loose edge · embanked"."""
     return [(s, short(EDGE[typ][0]).lower() + {1: " · walled", 2: " · embanked"}.get(wl, ""))
@@ -774,11 +773,14 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
         run.append(P(s, z))
     if len(run) >= 2:
         B.line(run, INK, L, 26, 0.22)
-    for a, b, bed, lvl in sd_["water"]:
+    bks = sd_.get("banks") or []
+    for kw_, (a, b, bed, lvl) in enumerate(sd_["water"]):
         # v16.5: the water hatched in blue at its depth (approximate unless measured), the channel above it in a pale
-        # wash (v16.4: the whole channel hatched, up to the lower bank top)
+        # wash (v16.4: the whole channel hatched, up to the lower bank top); v50 (MIRAQUA 28 Oct, bank depth REPORT
+        # §4 1a-1b): up to the lower bank crest, or the DSİ walls' top in the walled town reach
+        zt_, lim_ = site28_channel_top(sd_, bks[kw_] if kw_ < len(bks) else None, a, b)
         draw_stream(B, L, P, sd_["ground"], a, b, bed, lvl, U, mix(CAT["water"][1], PAPER, 0.72), SEC_CHANNEL,
-                    SEC_CHANNEL_HATCH, SEC_CHANNEL_HATCH, 22)
+                    SEC_CHANNEL_HATCH, SEC_CHANNEL_HATCH, 22, bank=zt_, lim=lim_)
     for s, zb, zt in sd_.get("chwalls", []):
         r0, r1 = P(s - 0.3, zb), P(s + 0.3, zt)
         B.fill([rect(r0[0], r0[1], r1[0], r1[1])], SEC_WALL, L, 27)
@@ -787,6 +789,7 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
         B.fill([[(bx, by + 0.16 * U), (bx - 0.11 * U, by), (bx + 0.11 * U, by)]], SEC_WALL, L, 28)
     # ---- cut buildings: the volume to its height, a line at every storey
     tags_ = []
+    th_ = site28_sec_sizes(sd_, U)[2] if sd_.get("_txt") else None   # v50 (F12): the tags at the cut's minor size
     for a, b, z0, z1, cat, annex, ftype, fl, floors, fsrc in sd_["bld"]:
         r0, r1 = P(a, z0), P(b, z1)
         if b - a < 1.2:
@@ -801,8 +804,14 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
         prof = bld_profile(ftype, cat, a, b, z0, z0, z1, floors, fsrc == "published", seed=int(a * 7.0), ruin=fl[2],
                            minaret=fl[3] if len(fl) > 3 else None)
         tag_ = typo_label(ftype, cat, floors, fl[0], fl[4] if len(fl) > 4 else "")
-        lab_ = tag_ if (not annex and (b - a) * ss > 0.6 * tw(tag_, 0.17 * U)) else None
-        bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27, label=lab_, placed=tags_)
+        if th_ is None:
+            lab_ = tag_ if (not annex and (b - a) * ss > 0.6 * tw(tag_, 0.17 * U)) else None
+            bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27, label=lab_, placed=tags_)
+            continue
+        bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27)
+        lab_ = None if annex else site28_tag_fit(tag_, (b - a) * ss, th_)   # v50: the tag, else its floors alone
+        if lab_:
+            site28_bld_tag(B, L, P, prof, lab_, th_, wall_c, U, tags_)
     if dry or not HAVE_NP:                               # no picture: the measured crowns as before
         for s_, zg_, hw_, lo_, hi_ in sd_["trees"]:
             draw_crown(B, L, P, s_, zg_, hw_, lo_, hi_, SEC_CROWN, 30)
@@ -862,13 +871,16 @@ def draw_section_key(B, x, y, w, U):
     return draw_legend_items(B, items, x, y - 1.0 * U, w, U, L, h=0.36)
 
 
-def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True):
+def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True, enl=1.0):
     """v16.3 · the building types as the sections draw them: one small generic section of each type found in the frame
     (types under 0.5 % of the footprint are left out, as on the fabric map; mosques and monuments always shown when
     present), with its name. Returns the y below it, or y unchanged when it would not fit above ymin. v44: with ss
     (page units per metre, a round booklet scale) and th (tag height) given, drawn at that scale under the cuts, each
     type as wide as its tag needs; draw_typology_key.last_w = the width used. v45: drawn at the cuts' own scale, so
-    it writes no scale of its own (the page states the one scale)."""
+    it writes no scale of its own (the page states the one scale). v50 (MIRAQUA 28 Oct, P05.1): under each type its
+    floors and height, "2 fl · 6.00 m" (floors x the storey height: FLOOR_H, STOREY), the words centred by their
+    real width and the subtitle's keywords in bold; enl > 1: ss is the cuts' scale x enl (sections_plan), the types
+    drawn enlarged as a diagram, so said in the subtitle."""
     L = "LU_BOARD::Sections"
     draw_typology_key.last_w = 0.0
     tot = sum(S.fabric_area.values()) or 1.0
@@ -899,18 +911,26 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True):
         if ss < 0.06 * U:
             return y
     t1, t2 = (th, th) if fixed else (0.2 * U, 0.17 * U)  # tag and floor-count heights
-    slot = [max(c[2] + gap, (tw(c[4], t1) + t1) / ss) if fixed else c[2] + gap for c in cand]   # m per type
-    draw_typology_key.last_w = sum(slot) * ss
+    hts = [u"at its height" if c[0] == "monument" else u"{} fl · {}".format(c[3], u_height(c[3] * STOREY.get(
+        c[1], FLOOR_H))) for c in cand]                   # v50 (P05.1): floors and height
+    slot = [max(c[2] + gap, (max(site28_tw(c[4], t1), site28_tw(h_, t2)) + t1) / ss) if fixed else c[2] + gap
+            for c, h_ in zip(cand, hts)]                  # m per type
     ht = 1.5 * th if fixed else 0.6 * U
+    draw_typology_key.last_w = max(sum(slot) * ss, site28_tw(u"BUILDING TYPES IN THE SECTIONS", ht, True) if fixed
+                                   else 0.0)              # v50: the title within the width (its neighbours' room)
     B.text("BUILDING TYPES IN THE SECTIONS", x, y, ht, INK, L, font=FONT_TITLE, bold=True)
-    B.fit("silhouettes · height = surveyed floors · details by type" + " " + bcite(          # v38; v45: no scale word
+    ys_ = site28_para(B, u"generic silhouettes{} · height = **floors × storey height**: {}, civic {}, sacred {}, industry {} "
+               u"· details by type ".format(u", enlarged (a diagram, not to the cuts' scale)" if enl > 1.0 else u"",
+                                            u_height(FLOOR_H), u_height(STOREY["institutional"]),
+                                            u_height(STOREY["religious"]), u_height(STOREY["industrial"])) + bcite(
         "Building types: generic silhouettes of each fabric type in its own tone: the height is the surveyed floors; "
         "the roof, jetty, windows, balconies, shopfront, dome and minaret height are drawn to the type, not surveyed."),
-        x, y - ht - 0.4 * t1 - t1, t1, max(w, draw_typology_key.last_w), INK2, L)
-    gy = y - ht - 2.0 * t1 - 0.6 * U - hmax * ss          # the common ground line
+        x, y - ht - 0.4 * t1 - t1, draw_typology_key.last_w if fixed else max(w, draw_typology_key.last_w), t1, INK2,
+        L, lead=1.45, bcol=INK)
+    gy = ys_ + 0.85 * t1 - 0.6 * U - hmax * ss            # the common ground line (v50: under the wrapped subtitle)
     P = (lambda s_, z_: (x + s_ * ss, gy + z_ * ss))      # s_ in metres from x, z_ in metres above the ground line
     s0 = 0.5 * gap
-    for (fab, cat, bw, fl, tag), sl in zip(cand, slot):
+    for (fab, cat, bw, fl, tag), sl, h_t in zip(cand, slot, hts):
         s0 += 0.5 * (sl - bw - gap)
         h = fl * STOREY.get(cat, FLOOR_H)
         prof = bld_profile(fab, cat, s0, s0 + bw, 0.0, 0.0, h, fl, seed=0,
@@ -919,9 +939,9 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True):
         room = mix(typo_tone(fab, cat), PAPER, 0.12)
         wall_c = mix(FABRIC[fab][2], INK, 0.45) if heritage else INK
         bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27)
-        B.fit(tag, x + (s0 + 0.5 * bw) * ss, gy - 0.4 * t1 - t1, t1, sl * ss * 0.95, INK2, L, align="C")
-        B.fit("{} fl".format(fl) if fab != "monument" else "at its height", x + (s0 + 0.5 * bw) * ss,
-              gy - 0.8 * t1 - t1 - 1.45 * t2, t2, sl * ss * 0.95, INK2, L, align="C")
+        site28_fit(B, tag, x + (s0 + 0.5 * bw) * ss, gy - 0.4 * t1 - t1, t1, sl * ss * 0.95, INK, L, align="C")
+        site28_fit(B, h_t, x + (s0 + 0.5 * bw) * ss, gy - 0.8 * t1 - t1 - 1.45 * t2, t2, sl * ss * 0.95, INK2, L,
+                   align="C")
         s0 += bw + gap + 0.5 * (sl - bw - gap)
     B.line([P(0.0, 0.0), P(s0 - 0.5 * gap, 0.0)], INK, L, 28, 0.12)
     yb = gy - 1.2 * t1 - t1 - 1.45 * t2
@@ -988,9 +1008,13 @@ def draw_footer(S, B, x, y, w, U, h=0.26):
     """v38: the drawings' ONE numbered source key: the entries the drawings cited as [n] (bcite), then the survey,
     height, use, street, terrain and land-cover sources (were one paragraph). Drawn last, so every [n] is in it."""
     L = "LU_BOARD::Text"
-    bcite("Survey: 1/1000 survey (halihazir) of Bergama, course material; {} footprints from OpenStreetMap where the "
-          "survey has none; {} surveyed floor labels whose outline the survey never closed are not drawn.".format(
-              S.stats.get("osm_infill", 0) + S.stats.get("osm_fallback", 0), S.stats.get("labels_open", 0)))
+    bcite(u"Survey: 1/1000 survey (halihazır) of Bergama, course material; {} house outlines the survey closed "   # v50
+          u"without a floor label ({:.0f} m² or more, not walled yards, courtyards or block insides) drawn as one "   # (P06.3)
+          u"storey; {} footprints from OpenStreetMap (© OpenStreetMap contributors, ODbL) where the survey has none, "
+          u"drawn with a thin outline on the stream edge plan; {} surveyed floor labels with neither a closed outline "
+          u"nor an OpenStreetMap footprint are not drawn.".format(
+              S.stats.get("unlabelled", 0), UNLAB_MIN_A, S.stats.get("osm_infill", 0) + S.stats.get("osm_fallback", 0),
+              S.stats.get("labels_open", 0)))
     bcite(height_note(S))
     bcite("Storey heights 3.0 m; civic 3.5, sacred 5.0, industry 4.5.")
     bcite("Uses: survey layers and names, Overture Maps places (CDLA-Permissive-2.0) and OpenStreetMap contributors (ODbL).")
@@ -1261,7 +1285,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     F = S.F
     RF = getattr(S, "range_F", None)                      # v36: set on the whole-file model: the analysis range
     F2 = F if RF is not None else context_frame(F)
-    r_map = bcite("Plan 01: the map covers the whole survey file; the thin line is the analysis range (site_alan). Crowns "
+    r_map = bcite("Plan 01: the map covers the whole survey file; the thin line is the analysis frame (site_alan). Crowns "
                   "and photos exist for the site only." if RF is not None else
                   "Plan 01: context beyond the frame: survey line work only.")
     B.text("WHAT IS THERE · GROUND · BUILDINGS · GREEN · STREAM EDGE " + r_map, x, y, 1.05 * U, INK, L,
@@ -1319,6 +1343,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     B.line(V.P(F.P + [F.P[0]]), INK, L, 26, 0.25)
     if RF is not None:                                    # v36: the analysis range (site_alan) on the whole-file map
         B.line(V.P(RF.P + [RF.P[0]]), INK, L, 26, 0.12)
+    draw_r28_study(getattr(S, "site", S), B, V, kb, L, order=27)    # v50 (MIRAQUA 28 Oct, G8): the study area
     # bridges, conflicts, photos (v40, Aras 25 Oct 21:41: drawn marks with plain short labels, no boxes, no sentences)
     cs = list(CONFLICTS_C)
     c5 = c5_point(S)
@@ -1428,8 +1453,9 @@ def draw_what_is_there(S, B, x, y, w, U):
     leg += [("cdot", MARK_C, "{} {}".format(k, t)) for k, cx, cy, t in sorted(cs) if F.inside(cx, cy)]
     if photos:
         leg.append(("pdot", INK, "Photo viewpoints 1-{}".format(len(photos))))
+    leg.append(R28_STUDY_LEG)                             # v50 (G8): the study area, one name on every map
     if RF is not None:
-        leg.append(("thin", INK, "Analysis range (site_alan) " + r_map))
+        leg.append(("thin", INK, R28_FRAME_NAME + " (site_alan) " + r_map))   # v50 (G8): was "Analysis range"
     ly = draw_legend_items(B, leg, x, yy - 1.0 * U, mw, U, L, h=0.4)
     # v45: the booklet page's legend leaves out what the site readings beside the plan already key: the ground and
     # green colours (the land-use ring's key) and the edge types (the bars); footpaths as a line

@@ -166,7 +166,8 @@ F5_PUBLIC = (
     u"\\bDS[İI]\\b|TÜİK|ERA5|Open-Meteo|Wikipedia|Wikimedia|\\bRHS\\b|\\bJRC\\b|POWO|FEIS|USDA|NRCS|ICOMOS|MITECO|"
     u"Rijkswaterstaat|ESHOT|İZSU|NOAA|Meeus|TAGEM|ÇŞİDB|TMMOB|Danıştay|Resmî Gazete|\\bRG \\d|\\bArt\\. ?\\d|Yön\\.|"
     u"\\bDWA\\b|Ecocrop|Meta/WRI|\\bCLC\\b|Corine|Haskoning|\\bUK EA\\b|Ticaret Borsası|Ajans|\\bAA\\b|\\bEPA\\b|"
-    u"IUCN|UNESCO",
+    u"IUCN|UNESCO|Google|Bakanlığı|Belediye|Valiliği|\\bTKGM\\b|\\bMTA\\b|\\bAFAD\\b|TÜBİTAK|\\bEEA\\b|\\bUSGS\\b|"
+    u"\\bNASA\\b|SRTM|Landsat",
     r"(?i)\bpublished\b|\bofficial\b|\bpress\b|\bnews\b",
     # an author and year ("Vymazal 2010", "Kaya et al. 2017", "Somay & Gemici 2015"), never a month or a date
     u"\\b(?!(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\b)(?!(?:Aras|Begüm|Nil|Fall|Spring)\\b)"
@@ -191,7 +192,7 @@ FIGURE_CHECKS = (
     (u"study area", u"ha", (r"(?i)\bstudy area\b" + _NOT + r"{0,40}?" + _HA,)),
     (u"open ground", u"ha", (r"(?i)\bopen ground\b(?:(?!chang)[^\d]){0,30}?" + _HA,)),
     (u"open to change", u"ha", (r"(?i)\bopen to change\b[^\d]{0,30}?" + _HA,
-                                _HA + r"(?:(?!frame|ground)[^\d]){0,24}?\bopen to change\b")),
+                                r"(?i)" + _HA + r"(?:(?!frame|ground)[^\d]){0,24}?\bopen to change\b")),
     (u"Q100 flow", u"m³/s", (u"Q100[^\\d]{0,12}(?P<v>\\d{3}(?:\\.\\d)?) ?m³/s",)),
     (u"Q500 flow", u"m³/s", (u"Q500[^\\d]{0,12}(?P<v>\\d{3}(?:\\.\\d)?) ?m³/s",)),
     (u"rain a year", u"mm", (r"(?P<v>\d{3}(?:\.\d)?) ?mm (?:a|per) year\b", r"(?P<v>\d{3}(?:\.\d)?) ?mm/yr\b")),

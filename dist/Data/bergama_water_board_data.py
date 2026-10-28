@@ -19,7 +19,9 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
          dep=(0.28, 0.99, 1.83, 2.56, 2.84),
          ext=[(-16.0, 12.5), (-18.0, 15.0), (-20.0, 15.5), (-58.5, 16.5), (-70.5, 16.5)],
          tags=[("slope", u"bed 0.81 %"), ("flag", u"no stream/bank lines: spot heights + contours · 5 bed points"),
-               ("over", u"right bank 2.1 m: street floods · Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
+               # v4 (MIRAQUA 28 Oct, bank-depth research REPORT §4.4, Aras 14:12: the survey is the inferior source)
+               ("over", u"right bank 2.1 m (survey, before the DSİ walls): street floods"),   # two chips: they wrap
+               ("over", u"Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
                ("road", u"road 10-13 m wide · 42-52 m off · right bank")]),
     dict(key="k5", name=u"3 · K5 BRIDGE", bed=55.96, u0=-57,
          ground=[3.12, 3.11, 3.09, 3.08, 3.06, 3.05, 3.02, 2.97, 2.93, 2.89, 2.85, 2.80, 2.76, 2.72, 2.68, 2.63, 2.59, 2.55, 2.51, 2.46, 2.42, 2.38, 2.34, 2.29, 2.25, 2.20, 2.16, 2.11, 2.07, 1.99, 1.89, 1.78, 1.67, 1.56, 1.45, 1.36, 1.26, 1.17, 1.07, 0.95, 0.82, 0.69, 0.58, 0.47, 0.33, 0.19, 0.16, 0.13, 0.09, 0.06, 0.02, 0.00, 0.01, 0.02, 0.03, 0.05, 0.06, 0.07, 0.08, 0.09, 0.11, 0.12, 0.13, 0.14, 0.15, 0.17, 0.32, 1.03, 1.73, 2.43, 3.02, 3.60, 4.18, 4.73, 5.26, 5.77, 6.23, 6.66, 7.08, 7.43, 7.80, 8.09],
@@ -43,38 +45,38 @@ SPECIES = [  # v1.14 (Aras 27 Oct: "keep only the plants we use most or that are
     # (band, plant key in PLANTS (src/common/plant_photos.py: the printed name "English (Turkish)", v3, Aras 27 Oct
     #  17:34: "English first, Turkish in brackets, no Latin", and the photo), where (pictogram, keywords), why
     #  [(pictogram, keywords)], their sources, warning). Evidence as in v1.13's list (concept v1 §9.2, research 04) and
-    #  DATA_REGISTER PL rows.
-    ("E", u"plane", ("tree", u"dry hub squares K3 · K4 · K5"),
-     [("tree", u"summer shade on the hub squares"), ("drop", u"drought-sensitive: watered from storage")],
+    #  DATA_REGISTER PL rows. v4 (MIRAQUA 28 Oct, P16.2): the keywords of where and why in **bold**
+    ("E", u"plane", ("tree", u"**dry hub squares** K3 · K4 · K5"),
+     [("tree", u"summer **shade** on the hub squares"), ("drop", u"**drought-sensitive**: watered from storage")],
      u"D8 (history_phase1/DECISIONS.md): Ottoman squares with plane trees (ICOMOS, h02 s13 p281); h03 Q4: "
      u"drought-sensitive mesophyte along perennial streams; " + REG + u" PL-13, PL-14", u""),
-    ("F", u"olive", ("olive", u"dry top · Demeter's Garden K5"),
-     [("dry", u"drought-resistant · no waterlogging"), ("olive", u"Red Hall: 19th-c. olive-oil mill")],
+    ("F", u"olive", ("olive", u"**dry top** · Demeter's Garden K5"),
+     [("dry", u"**drought-resistant** · no waterlogging"), ("olive", u"Red Hall: 19th-c. **olive-oil mill**")],
      REG + u" PL-12 (FAO Ecocrop); h02 §1.6: olive-oil machinery in the Red Hall south rotunda, 19th c. (s25)", u""),
-    ("F", u"lavender", ("lav", u"dry top · above Q500"),
-     [("dry", u"xerophyte · fast-draining soil"), ("flood", u"17 days flooded: survived")],
+    ("F", u"lavender", ("lav", u"**dry top** · above Q500"),
+     [("dry", u"**xerophyte** · fast-draining soil"), ("flood", u"17 days flooded: **survived**")],
      u"RHS trial; " + REG + u" PL-11 (RHS)", u"scent layer"),
-    ("C", u"tamarisk", ("tree", u"flood terraces"),
-     [("flood", u"long inundation (genus)"), ("native", u"native · İzmir")],
+    ("C", u"tamarisk", ("tree", u"**flood terraces**"),
+     [("flood", u"**long inundation** (genus)"), ("native", u"**native** · İzmir")],
      u"JRC Atlas 'can survive prolonged periods of inundation'; " + REG + u" PL-01, PL-10", u""),
-    ("C", u"chaste", ("tree", u"flood terraces"),
-     [("dry", u"intermittent streams"), ("native", u"native · honey plant")],
+    ("C", u"chaste", ("tree", u"**flood terraces**"),
+     [("dry", u"**intermittent streams**"), ("native", u"**native** · honey plant")],
      u"Salinas & Cueto 2009; " + REG + u" PL-02, PL-19", u"aromatic"),
-    ("C", u"willow", ("tree", u"willow band · 50-150 d"),
-     [("flood", u"inundation-tolerant"), ("clean", u"cleans riverbanks")],
+    ("C", u"willow", ("tree", u"**willow band** · 50-150 d"),
+     [("flood", u"**inundation-tolerant**"), ("clean", u"**cleans** riverbanks")],
      u"JRC Atlas 'noticeably tolerant to inundation'; " + REG + u" PL-17 (phytoremediation of riverbanks); RWS 2023",
      u""),
-    ("B", u"reed", ("reed", u"reed beds · bed edge"),
-     [("clean", u"reed beds: NH4-N 58-88 %"), ("flood", u"0.70 m standing water: dies")],
+    ("B", u"reed", ("reed", u"**reed beds** · bed edge"),
+     [("clean", u"reed beds: **NH4-N 58-88 %**"), ("flood", u"0.70 m standing water: **dies**")],
      u"Korkusuz et al. 2004 (" + REG + u" PL-09); Song 2021 (PL-06)", u"spreads"),
-    ("B", u"iris", ("reed", u"bed edge, not where people touch"),
-     [("flood", u"flooded up to 6 months"), ("clean", u"takes up N and P")],
+    ("B", u"iris", ("reed", u"**bed edge**, not where people touch"),
+     [("flood", u"**flooded** up to 6 months"), ("clean", u"takes up **N and P**")],
      u"FEIS; " + REG + u" PL-20, PL-21", u"POISONOUS"),
-    ("B", u"mint", ("reed", u"reed beds · upstream entry"),
-     [("clean", u"COD 71-91 % removed"), ("clean", u"microbes > 80 % removed")],
+    ("B", u"mint", ("reed", u"**reed beds** · upstream entry"),
+     [("clean", u"**COD 71-91 %** removed"), ("clean", u"**microbes > 80 %** removed")],
      u"HSSF wetland, Avelar 2012; " + REG + u" PL-22", u"aromatic"),
 ]
-SPECIES_REMOVE = (u"giant_reed", u"remove: raises flood risk, blocks the channel",   # v3: (plant key, words, source)
+SPECIES_REMOVE = (u"giant_reed", u"**remove**: raises **flood risk**, blocks the channel",   # v3: (plant key, words, source)
                   u"Bruno et al. 2019 'increased flooding risk'; " + REG + u" PL-25")
 
 #@@ SKETCH_SRC
@@ -919,7 +921,7 @@ SEASONS = [
          climate=["Rain 28.5 mm (4.6 %), 5.9 rain days, mean 26.5 C (measured, WMO 1991-2020).",
                   "Rain minus open-water evaporation -552.2 mm: the deepest deficit (calculated, case.md s.1)."],
          river=["Natural river Jul-Sep: monthly means 0.04-0.11 m on this cut, a trickle (calculated, indicative: bed",
-                "interpolated); bed dry (< 2 cm) about 11 days a year. Drawn: the continuous regulated water strip 4.0 x 0.30 m, topped up from",
+                "interpolated); bed dry (< 2 cm) about 11 days a year. Drawn: the continuous regulated water strip 400 cm × 0.30 m, topped up from",
                 "storage and flowing one way downstream (design, case.md s.4; Aras 17 Oct 22:01, 19 Oct 07:43)."],
          life=["All bands open; the strip used: wading at 0.30 m, cooling, evening lights; dry meadow",
                "as a lie-down lawn (concept s.10.1, design). People sit at the strip edge with their feet in the water."],
@@ -988,7 +990,7 @@ SECTIONS = [
                    (569.5, None, "Chaste tree (Hayıt)"),
                    (578.2, None, "Yellow flag iris (Sarı süsen)"),
                    (584.0, None, "Common reed (Kamış)"),
-                   (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
+                   (592.0, None, "Summer water strip 400 cm × 0.30 m")]),   # v4 (MIRAQUA 28 Oct, G13 / P15.1)
     dict(key="2", title="SECTION 2-2'", side="NORTH-EAST BANK", s_from=652.0, s_to=588.0, look="looking south-east (downstream)",
          surfaces=[(652.0, 649.0, DRY, "asphalt", "Coloured asphalt"),
                    (649.0, 645.0, DRY, "concrete", "Concrete walkway"),
@@ -1019,7 +1021,7 @@ SECTIONS = [
                    (624.0, 46.40, "Column support"),
                    (615.0, None, "Common reed (Kamış)"),
                    (610.5, None, "Yellow flag iris (Sarı süsen)"),
-                   (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
+                   (592.0, None, "Summer water strip 400 cm × 0.30 m")]),   # v4 (MIRAQUA 28 Oct, G13 / P15.1)
 ]
 
 # ---------------------------------------------------------------- colours (reference language)

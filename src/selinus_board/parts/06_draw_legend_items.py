@@ -261,7 +261,15 @@ def draw_sec_roads(S, B, L, P, g_at, line, Lm, U, off=0.0, order=36, w=0.5):
         return []
     ux, uy = (x1 - x0) / Ll, (y1 - y0) / Ll
     out = []
-    for s0, s1, nm, src in sec_road_spans(S, x0, y0, ux, uy, Ll):
+    # v50 (MIRAQUA 28 Oct, laptop speed): the spans of a line once (sections_plan draws each cut dry at every step
+    # of its words; the streets' point-in-polygon search was repeated each time)
+    memo = getattr(S, "_s28_spans", None)
+    if memo is None:
+        memo = S._s28_spans = {}
+    kk_ = (x0, y0, x1, y1)
+    if kk_ not in memo:
+        memo[kk_] = sec_road_spans(S, x0, y0, ux, uy, Ll)
+    for s0, s1, nm, src in memo[kk_]:
         a0, a1 = s0 - off, s1 - off
         if a1 < -1e-6 or a0 > Lm + 1e-6:
             continue
@@ -524,7 +532,7 @@ def mini_buildings(S, B, V, L, colfn, order=12):
         if col is not None:
             by_col.setdefault(col, []).append(u["parts"] + (u.get("holes") or []))
     for col, groups in by_col.items():
-        fill_units(B, V, groups, col, L, order)
+        fill_units(B, V, groups, r28_nz(col), L, order)   # v50 (MIRAQUA 28 Oct, P06.3): nonzero, overlaps stay filled
 
 
 MAIN_ROADS = ("motorway", "trunk", "primary", "secondary", "tertiary")

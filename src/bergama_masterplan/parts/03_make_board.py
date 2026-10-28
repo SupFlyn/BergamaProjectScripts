@@ -910,13 +910,14 @@ def build_all(doc, warn):
             try:
                 if C is None:
                     raise ValueError(u"no corridor computed (see the warnings)")
-                panels = [ground_page(C, warn), plan_page(C, warn)]   # v26: the booklet pages p.23 and p.25
-                lines.append(u"masterplan page: {} callouts beside the plan; no-intervention notes placed {} of {}".format(
-                    len(C.notes), C.ni_placed, len(C.nogo)))
+                panels = [ground_page(C, warn), plan_page(C, warn)]   # v27 (MIRAQUA 28 Oct): booklet p.21 and p.23
+                lines.append(u"masterplan page: {} numbered markers on the strip (1:{:,.0f}), listed under it by group; "
+                             u"areas left as they are lettered {} of {}".format(len(C.notes), MP_SCALE, C.ni_placed,
+                                                                             len(C.nogo)))
                 for r_ in C.nogo:
                     if not r_.get("placed"):
-                        warn.append(u"no-intervention note not placed (no free spot in its area): {:.1f} ha {}".format(
-                            r_["ha"], r_["why"]))
+                        warn.append(u"area left as it is not lettered on the plan (no free spot), only in the list: "
+                                    u"{:.1f} ha {}".format(r_["ha"], r_["why"]))
                 LEG.clear()                              # v24: the pages carry their own legend
                 pg = make_board(opt, alt, panels)
                 path = save(pg, folder, name, u"Bergama masterplan {} option {} (1:{:,.0f})".format(SHORT, opt,
@@ -938,13 +939,10 @@ def build_all(doc, warn):
             try:
                 plc = places(city_link()[0], CL, survey)
                 wins = detail_windows(D, plc, DT_PLAN)    # v24: no text block under the plan
-                spots = read_spots(doc, [w["R"] for w in wins]) if doc is not None else []
-                if not spots:
-                    warn.append(u"no survey spot heights ({}) in the detail windows: no spot levels".format(SPOT_LAYER))
-                dpanels = []
-                for w in wins:
+                dpanels = []                              # v27 (MIRAQUA 28 Oct, P24.1-P24.5): the fade-out windows
+                for w in wins:                            # (02e); no survey spot heights, so no second survey read
                     missing[w["id"]] = []
-                    dpanels.append(window_panel(C, w, D, CL, spots, plc, missing[w["id"]], warn))
+                    dpanels.append(r28_window_panel(C, w, areas, missing[w["id"]], warn))
                     for m_ in missing[w["id"]]:
                         warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
                 pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
@@ -959,6 +957,13 @@ def build_all(doc, warn):
                 lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
             _SCALE[0] = scale
+    if Cs.get("A") is not None:                          # v27 (MIRAQUA 28 Oct, S1): the senses sheet; a failure only warns
+        try:
+            lines.append(senses_sheet(Cs["A"], areas, folder, files, warn))
+        except Exception as ex:
+            import traceback
+            warn.append(u"{}  NOT WRITTEN ({}: {})".format(SN_NAME, type(ex).__name__, ex))
+            warn.append(traceback.format_exc()[-480:])
     if CLs:                                              # v11: what the other scripts read
         try:
             res_ = city_results(CLs)

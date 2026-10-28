@@ -385,15 +385,15 @@ def r28mv_note_top(S, B, crop, k, L, MV, n_pl):
     if rho is not None and big:
         out.append(u"**Shops and walking**: Spearman {:.2f} over the {} named streets of 50 m or more (1 = the same "
                    u"order).".format(rho, len(big)))
-    cl = getattr(S, "clusters", None) or []
+    cl = [c_ for c_ in getattr(S, "clusters", None) or [] if any(S.F.inside(p[0], p[1]) for p in c_["P"])]
     if cl:
-        out.append(u"**{} civic constellation{}**: 3 or more civic or sacred places, each within 100 m of the "
-                   u"next.".format(len(cl), u"" if len(cl) == 1 else u"s"))
+        out.append(u"**{} civic constellation{}** on the map: 3 or more civic or sacred places, each within 100 m of "
+                   u"the next.".format(len(cl), u"" if len(cl) == 1 else u"s"))
     tot = sum((n_pl or {}).values())
     if tot:
         f, n = max(n_pl.items(), key=lambda kv: kv[1])
         lab = dict((f_, lab_) for f_, let_, c_, lab_ in WALK_FUN).get(f, f)
-        out.append(u"**{} services** on the map (Overture places), {} of them {}.".format(tot, n, lab.lower()))
+        out.append(u"**{} services** on the map (Overture places); the most are {} ({}).".format(tot, lab.lower(), n))
     r28mv_note(B, crop, k, L, 1, out)
 
 

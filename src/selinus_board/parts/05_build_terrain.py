@@ -124,7 +124,7 @@ def channel_profile(S):
     main = max(streams, key=pl_length)
     L = pl_length(main)
     ch, dd = [], []
-    n_cuts = 0
+    n_cuts = n_crest = 0
     s = 5.0
     gB = S.g_bld
     while s < L - 5.0:
@@ -145,12 +145,20 @@ def channel_profile(S):
             a, b = pts[max(0, k0 - 2)], pts[min(len(pts) - 1, k1)]       # the banks, as the sections take them
             if a is not None and b is not None:
                 n_cuts += 1
-                depth = min(S.z_at(*a), S.z_at(*b)) - min(S.z_at(*pts[i]) for i in range(k0, k1))
+                # v50 (MIRAQUA 28 Oct, bank depth REPORT §4 1a): below the lower bank CREST (the water board's rule,
+                # site28_cut_top, out from the bed point); the ground just outside the water where a side shows none
+                zb_ = [S.z_at(*pts[i]) for i in range(k0, k1)]
+                ib_ = min(range(len(zb_)), key=zb_.__getitem__)
+                top_ = site28_cut_top(S, pts[k0 + ib_], nx, ny)
+                n_crest += top_ is not None
+                depth = (min(S.z_at(*a), S.z_at(*b)) if top_ is None else top_) - zb_[ib_]
                 if depth >= 1.0:
                     ch.append(s)
                     dd.append(depth)
         s += 10.0
     S.chan = dict(line=main, ch=ch, d=dd, n_cuts=n_cuts)
+    LOG.append("Stream depth below the banks: the lower bank crest (the water board's rule) at {} of {} cuts every "
+               "10 m; at the others the ground just outside the water.".format(n_crest, n_cuts))
 
 
 def bed_depth(S, x, y):
@@ -679,6 +687,7 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
     k = 0
     wat = []
     wsrcs = []
+    crs = []                                             # v50: each crossing's bank top (site28_bank_top / _rule)
     while k < len(smp):
         if smp[k][1] != "water":
             k += 1
@@ -689,6 +698,13 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
         za = smp[max(0, k0 - 2)][3]
         zb = smp[min(len(smp) - 1, k)][3]
         bank = min(za, zb)
+        # v50 (MIRAQUA 28 Oct, bank depth REPORT §4 1a): the bank top = the lower bank CREST (the water board's
+        # rule) out from the bed, along the cut or, where the cut runs along the stream, across it at the bed; the
+        # ground just outside the water (as before) where a side shows none
+        cr_ = site28_bank_top(S, smp, k0, k, step, x0, y0, ux, uy)
+        old_ = bank
+        if cr_["crest"] is not None:
+            bank = cr_["crest"]
         bed = min(r[3] for r in smp[k0:k])
         src = "surveyed"
         if bank - bed < 1.0:
@@ -702,7 +718,9 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
             r.append(bed)
         sm_ = (smp[k0][0] + smp[k - 1][0]) / 2.0
         lvl, wsrc = water_level(S, x0 + ux * sm_, y0 + uy * sm_, bed, bank)
-        wat.append((smp[k0][0], smp[k - 1][0] + step, bed, lvl, bank, src))
+        cr_.update(site28_bank_rule(cr_, bed, old_, (k - k0) * step))   # v50 (1b-1e): the DSİ walls, no bed, width
+        crs.append(cr_)
+        wat.append((smp[k0][0], smp[k - 1][0] + step, bed, lvl, cr_["top"], src))
         wsrcs.append(wsrc)
     for r in smp:
         if len(r) == 4:
@@ -777,7 +795,7 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
                 s = res[0] * L
                 walls.append((s, g_at(s)))
     labels, levels = [], []
-    for (s0, s1, bed, lvl, bank, src) in wat:
+    for (s0, s1, bed, lvl, bank, src), cr_ in zip(wat, crs):
         for s in (s0, s1):
             px, py = x0 + ux * s, y0 + uy * s
             best, bd = None, 12.0
@@ -787,8 +805,11 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
                     bd, best = d, e
             if best:
                 labels.append((s, best[2], best[3], bank - base))
-                if best[3] == 1:
+                if best[3] == 1 and cr_["kind"] != "wall":
                     chwalls.append((s, bed - base, bank - base))     # the channel wall, bed to bank
+            if cr_["kind"] == "wall":                     # v50 (REPORT §4 1b): the DSİ walls, bed to wall top
+                chwalls.append((s, bed - base, bank - base))
+                zmax = max(zmax, bank - base + 0.5)
         levels.append(((s0 + s1) / 2.0, bed - base, bed, "bed"))
         levels.append((s0, bank - base, bank, "bank"))
     levels.append((0.0, ground[0][1], ground[0][1] + base, "end"))
@@ -839,7 +860,8 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
                 chwalls=chwalls, water=[(a, b, bed - base, lvl - base) for (a, b, bed, lvl, bank, src) in wat],
                 bed_src=[src for (a, b, bed, lvl, bank, src) in wat], water_src=wsrcs,
                 labels=labels, levels=levels, strip=strip, comp=comp, zmax=zmax, base=base,
-                beyond=beyond, btrees=btrees, bridges=bridges, places=places)
+                beyond=beyond, btrees=btrees, bridges=bridges, places=places,
+                banks=crs)                                # v50: per crossing, its bank top (site28_bank_rule)
 
 
 def crown_lo(h):

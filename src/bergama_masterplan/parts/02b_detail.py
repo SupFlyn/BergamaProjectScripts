@@ -135,249 +135,9 @@ def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avo
     return None
 
 
-def _normal_at(ref, q):
-    """Unit normal (left of the flow) of STREAM_REF at the point nearest q."""
-    s = arclen(ref)
-    c, _ = chain_at(ref, q)
-    _, t = at_len(ref, s, c)
-    return (-t[1], t[0]), t
-
-
-def _boxes_line(P, half, taken):
-    taken += boxes_along(P, half)
-
-
-def detail_overlay(win, D, CL, spots, plc, missing, warn):
-    """The detail of one window, drawn by window_panel after the corridor (see the head of this part)."""
-    R = win["R"]
-    inR = lambda p, m=0.0: R[0] - m <= p[0] <= R[2] + m and R[1] - m <= p[1] <= R[3] + m
-    ref = CL["W"]["ref"]
-    shapes = D.zones + D.strips
-
-    def f(pg, T, k, taken, dw, dh, hubs=()):
-        ink, ink2 = COL["ink_dark"], COL["ink2"]
-        av = [(r_, bbox(r_)) for r_ in hubs]
-        # ---- sketches: terrace steps in the terrace zones, ramps on the people-to-the-water links (under the rest)
-        for z in D.zones:
-            if not (z["code"] == "WS" or (z["code"] == "WA" and z["tier"] == "F")) or not any(inR(p) for p in z["P"]):
-                continue
-            n, t = _normal_at(ref, z["q"])
-            ext = [(p[0] - z["q"][0]) * n[0] + (p[1] - z["q"][1]) * n[1] for p in z["P"]]
-            alo = [(p[0] - z["q"][0]) * t[0] + (p[1] - z["q"][1]) * t[1] for p in z["P"]]
-            o = min(ext) + STEP_M / 2.0
-            i = 0
-            while o < max(ext):
-                L_ = [(z["q"][0] + n[0] * o + t[0] * a, z["q"][1] + n[1] * o + t[1] * a)
-                      for a in (min(alo) - 2.0, max(alo) + 2.0)]
-                for r_ in cut_runs(L_, lambda x, y: pip(x, y, z["P"]), 0.5):
-                    if len(r_) >= 2 and math.hypot(r_[-1][0] - r_[0][0], r_[-1][1] - r_[0][1]) > 3.0:
-                        P = hand_line([T(p) for p in (r_[0], r_[-1])], 0.25, 8.0, 31 + i, over=0.6)
-                        pg.line(P, zone_tones(z)[2], 0.3, alpha=0.75)
-                        leg(("dt", "steps"))
-                o += STEP_M
-                i += 1
-        for i, L in enumerate(D.links):
-            if L["kind"] != "people" or not any(inR(p) for p in L["P"]):
-                continue
-            P = [T(p) for p in L["P"]]
-            (ax, ay), (bx, by) = P[0], P[-1]
-            d = math.hypot(bx - ax, by - ay) or 1.0
-            ux, uy = (bx - ax) / d, (by - ay) / d
-            nx, ny = -uy, ux
-            w0, w1 = RAMP_W[0] * k / 2.0, RAMP_W[1] * k / 2.0
-            ring_ = [(ax + nx * w0, ay + ny * w0), (bx + nx * w1, by + ny * w1), (bx - nx * w1, by - ny * w1),
-                     (ax - nx * w0, ay - ny * w0)]
-            pg.poly([ring_], fill=ink2, alpha=0.2)       # v26.1 (Prompt 8, proposals soft): no outline
-            for j in (1, 2, 3):                          # chevrons down the slope (v26.1: translucent)
-                cx, cy = ax + ux * d * j / 4.0, ay + uy * d * j / 4.0
-                ww = (w0 + (w1 - w0) * j / 4.0) * 0.8
-                pg.line([(cx - ux * 1.0 + nx * ww, cy - uy * 1.0 + ny * ww), (cx, cy),
-                         (cx - ux * 1.0 - nx * ww, cy - uy * 1.0 - ny * ww)], ink2, 0.25, alpha=0.6)
-            taken.append(bbox(ring_))
-            leg(("dt", "ramp"))
-        # ---- the flood levels at the water board's surveyed channel cuts: the width Q100 / Q500 cover there, the bed
-        # and both levels. v25 (booklet Prompt 2: "no section lines on any map"): the cut lines, their view markers
-        # and the site board's section lines are no longer drawn (each sections page has its own key map)
-        cut_lab = []
-        for num, nm, c, span, bed, q100, q500 in CUT_AT:
-            if not inR(c):
-                continue
-            n, t = _normal_at(ref, c)
-            at = lambda u: (c[0] + n[0] * u, c[1] + n[1] * u)
-            for lv, lw, colr in ((q500, 2.2, COL["river_mid"]), (q100, 2.2, COL["river_dark"])):
-                pg.line([T(at(lv[1])), T(at(lv[2]))], colr, lw, cap=0, alpha=0.45)
-            leg(("dt", "q"))
-            P = [T(at(q500[1])), T(at(q500[2]))]
-            x0, y0 = T(c)
-            _boxes_line(P, 1.2, taken)
-            inside = [p for p in P if 0 <= p[0] <= dw and 0 <= p[1] <= dh]
-            cut_lab.append(([(nm, DT_TS, True), (u"bed +{:.2f}".format(bed), DT_TS, False),
-                             (u"Q100 +{:.2f} · Q500 +{:.2f}".format(q100[0], q500[0]), DT_TS, False)],
-                            inside[0] if inside else (min(max(x0, 2.0), dw - 2.0), min(max(y0, 2.0), dh - 2.0))))
-        # ---- the water route: the zone base's water links, numbered in the route's order
-        steps = []
-        for L in D.links:
-            if L["kind"] != "water" or not any(inR(p) for p in L["P"]):
-                continue
-            a, b = link_shapes(L, shapes)
-            ab = (a["code"] if a and a in D.zones else None, b["code"] if b and b in D.zones else None)
-            order = next((i for i, st in enumerate(ROUTE) if st[0] == ab), len(ROUTE))
-            steps.append((order, L, a, b, ab))
-        steps.sort(key=lambda s_: s_[0])
-        route_lab = []
-        for n_, (order, L, a, b, ab) in enumerate(steps, 1):
-            P = [T(p) for p in L["P"]]
-            link_arrow(pg, P, "water", L["heads"], 3 + n_)
-            leg(("link", "water"))
-            _boxes_line(P, 1.2, taken)
-            if order < len(ROUTE):
-                end = ROUTE[order][2]
-                z = (a, b)[end] if end is not None else None
-                nm = ROUTE_SHORT.get(name_of(z, z.get("own", "")), name_of(z, z.get("own", ""))) if z else u""
-                txt = ROUTE[order][1].format(nm)
-                if z is not None:
-                    txt += u" {:,.0f} m²".format(z["m2"])
-                    sv = store_m3(z)                         # v22: rough volume, area x depth
-                    if sv:
-                        txt += u" · ~{:,.0f} m³{}".format(round(sv[0], -1), sv[1])
-                        leg(("dt", "vol"))
-            else:
-                txt = (L["label"] or u"WATER").replace(u"RIVER", u"STREAM")
-            s = arclen(P)
-            (mx, my), _ = at_len(P, s, s[-1] / 2.0)
-            pg.circle(mx, my, 2.2, fill=COL["white"])
-            pg.circle(mx, my, 1.9, fill=COL["river_dark"])
-            pg.text(str(n_), mx, my - 0.85, DT_MIN, COL["white"], bold=True, align="C")   # v26.1: 7 pt (DT_MIN)
-            taken.append((mx - 2.2, my - 2.2, mx + 2.2, my + 2.2))
-            leg(("dt", "route"))
-            route_lab.append(([(u"{} {}".format(n_, txt), DT_TS, True)], (mx, my),   # v22: + spots along the route
-                              [at_len(P, s, s[-1] * f_)[0] for f_ in (0.3, 0.7, 0.1, 0.9, 0.0, 1.0)]))
-        # ---- survey spot levels: lowest in the bed, highest on the bank tops (edges of river_walks)
-        rows = [r for r in (CL["W"].get("rows") or []) if r.get("NE") and r.get("SW") and inR(r["p"], 60.0)]
-        bed, bank = [], []
-        for q in spots:
-            if not inR(q, -2.0) or not rows:
-                continue
-            r = min(rows, key=lambda r_: (r_["p"][0] - q[0]) ** 2 + (r_["p"][1] - q[1]) ** 2)
-            if math.hypot(r["p"][0] - q[0], r["p"][1] - q[1]) > 40.0:
-                continue
-            t_ = (q[0] - r["p"][0]) * r["n"][0] + (q[1] - r["p"][1]) * r["n"][1]
-            e1, e0 = r["NE"]["e"], r["SW"]["e"]
-            if e0 <= t_ <= e1:
-                bed.append(q)
-            elif e1 < t_ <= e1 + SPOT_BANK_M or e0 - SPOT_BANK_M <= t_ < e0:
-                bank.append(q)
-        spot_lab = []
-        for pts, low, mx_, colr, kind in ((bed, True, SPOT_MAX[0], COL["river_dark"], "spot_bed"),
-                                          (bank, False, SPOT_MAX[1], COL["ink_dark"], "spot_bank")):
-            kept = []
-            for q in sorted(pts, key=lambda q: q[2] if low else -q[2]):
-                if len(kept) >= mx_:
-                    break
-                if all(math.hypot(q[0] - p[0], q[1] - p[1]) >= SPOT_GAP_M for p in kept):
-                    kept.append(q)
-            for q in kept:
-                x, y = T(q)
-                pg.line([(x - 0.7, y), (x + 0.7, y)], colr, 0.25)
-                pg.line([(x, y - 0.7), (x, y + 0.7)], colr, 0.25)
-                taken.append((x - 0.8, y - 0.8, x + 0.8, y + 0.8))
-                leg(("dt", kind))
-                spot_lab.append(([(u"+{:.2f}".format(q[2]), DT_MIN, False)], (x, y), colr))   # v26.1: 7 pt
-        # ---- labels: cuts, route, bridge, planting codes, spot levels
-        for lines, anc in cut_lab:
-            if not place_label(pg, lines, anc, taken, dw, dh, ink, avoid=av):
-                missing.append(lines[0][0])
-        for lines, anc, along in route_lab:              # v22: never left out (Aras 26 Oct: 4 BACK TO THE STREAM)
-            if not place_label(pg, lines, anc, taken, dw, dh, COL["river_dark"], d0=2.6, avoid=av, more=along,
-                               anywhere=True):
-                missing.append(lines[0][0])
-        for nm in (u"K4", u"K5"):                         # (not when the commons' keywords already name it)
-            if plc.get(nm) and inR(plc[nm]) and nm + u" BRIDGE" not in HUB.get(win["key"], (u"", []))[1]:
-                if not place_label(pg, [(nm + u" BRIDGE", DT_TS, True)], T(plc[nm]), taken, dw, dh, ink, d0=2.0,
-                                   avoid=av):
-                    missing.append(nm + u" BRIDGE")
-        for z in D.zones:
-            pl = ZONE_PLANTING.get((z["code"], z["tier"])) or ZONE_PLANTING.get((z["code"], None))
-            if not pl or not any(inR(p) for p in z["P"]):
-                continue
-            TP = z["TP"] if z.get("area") == win["key"] and z.get("TP") else [T(p) for p in z["P"]]
-            TP = clip_ring(TP, (0.0, 0.0, dw, dh))
-            txt = u"{} · {}".format(u" ".join(pl[0]), u" ".join(pl[1]))
-            b_ = None
-            if len(TP) >= 3:
-                TPs = thin(TP, 300)
-                for sz in (DT_TS, DT_MIN):               # v26.1: the smaller try at 7 pt, not 6.3 pt
-                    b_ = fit_inside(TPs, inside_spots(TPs), [(txt, sz, False)], taken, pad=0.4, avoid=av)
-                    if b_:
-                        pg.text(txt, b_[0] + 0.4, b_[1] + 0.4 + 0.06 * sz, sz, zone_tones(z)[2])
-                        taken.append(b_)
-                        break
-            if b_:
-                for b_ in pl[0]:
-                    leg(("band", b_))
-                for c_ in pl[1]:
-                    leg(("sp", c_))
-            else:
-                missing.append(txt + u" (" + name_of(z, z.get("own", "")) + u")")
-        for lines, anc, colr in spot_lab:
-            place_label(pg, lines, anc, taken, dw, dh, colr, d0=0.6, leader=False, avoid=av)
-    return f
-
-
-def detail_legend():
-    """v21: the detail sheet's legend groups (only what it draws): its layers, the planting bands, species codes."""
-    W_ = COL["white"]
-
-    def line_sw(*specs):
-        def f(pg, x, y, w, h):
-            for c_, lw, dash, a_ in specs:
-                pg.line([(x, y + h / 2), (x + w, y + h / 2)], c_, lw, dash, cap=0 if dash else 1, alpha=a_)
-        return f
-
-    def cross_sw(colr):
-        def f(pg, x, y, w, h):
-            cx, cy = x + w / 2, y + h / 2
-            pg.line([(cx - 1.4, cy), (cx + 1.4, cy)], colr, 0.3)
-            pg.line([(cx, cy - 1.4), (cx, cy + 1.4)], colr, 0.3)
-        return f
-
-    def steps_sw(pg, x, y, w, h):
-        for i in range(4):
-            yy = y + h * (i + 0.5) / 4
-            pg.line([(x + 1.0, yy), (x + w - 1.0, yy)], MP["storage"][2], 0.3, alpha=0.75)
-
-    def ramp_sw(pg, x, y, w, h):
-        R_ = [(x, y + h * 0.1), (x + w, y + h * 0.35), (x + w, y + h * 0.65), (x, y + h * 0.9)]
-        pg.poly([R_], fill=COL["ink2"], alpha=0.2)       # v26.1: no outline, as on the windows
-
-    def route_sw(pg, x, y, w, h):
-        pg.circle(x + w / 2, y + h / 2, 3.0, fill=COL["river_dark"])
-        pg.text(u"1", x + w / 2, y + h / 2 - 1.2, 3.4, W_, bold=True, align="C")
-
-    det = []
-    for key, name, f in ((("dt", "q"), u"Q500 / Q100 FLOOD WIDTH AT A SURVEYED CUT",
-                          line_sw((COL["river_mid"], 2.2, None, 0.45), (COL["river_dark"], 1.0, None, 0.45))),
-                         (("dt", "route"), u"WATER ROUTE · STEP", route_sw),
-                         (("dt", "spot_bed"), u"SPOT LEVEL · BED (m)", cross_sw(COL["river_dark"])),
-                         (("dt", "spot_bank"), u"SPOT LEVEL · BANK TOP (m)", cross_sw(COL["ink_dark"])),
-                         (("dt", "steps"), u"TERRACE STEPS", steps_sw),
-                         (("dt", "ramp"), u"RAMP", ramp_sw)):
-        if key in LEG:
-            det.append((name, f))
-
-    def none_sw(pg, x, y, w, h):
-        return None
-    if ("dt", "vol") in LEG:                             # v22: how the rough volumes are made
-        det.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m · TERRACES: Q100 OVER BED +1 m "
-                    u"AT THE NEAREST CUT", none_sw))
-    bands = [(BAND_NAME[b_], none_sw) for b_ in "ABCDEF" if ("band", b_) in LEG]
-    sp = [(u"{}  {}".format(c_, nm), none_sw) for c_, nm in SPECIES_CODE if ("sp", c_) in LEG]
-    return [(u"DETAIL", det), (u"PLANTING BANDS · DAYS WET", bands), (u"SPECIES", sp)]
-
-
 def crop_legend(keys, alpha):
-    """v24: a 1:1,000 window's legend for its booklet crop (drawn samples as colours + plain names): the corridor's
-    symbols it draws (LEG_BOOK), the detail layers and the species codes placed (which plants go where)."""
+    """v24: a panel's legend for its booklet crop (drawn samples as colours + plain names): the corridor's symbols
+    it draws (LEG_BOOK). v27 (MIRAQUA 28 Oct, P24.4): the 1:1,000 windows carry their own (sh.r28_leg, 02e)."""
     out = []
 
     def add(kind, colour, label):
@@ -386,18 +146,6 @@ def crop_legend(keys, alpha):
     for key, nm, f in LEGEND_V24:
         if ("v24", key) in keys and key in LEG_BOOK:
             add(LEG_BOOK[key][0], LEG_BOOK[key][1], nm.lower() if nm.isupper() else nm)
-    # v26.1 (Prompt 8): both flood bands are drawn, so both named (as the sheet's legend); sentence case as the rest
-    for key, kind, colour, label in ((("dt", "q"), "line", COL["river_mid"], u"Q500 / Q100 flood width"),
-                                     (("dt", "route"), "dot", COL["river_dark"], u"Water route step"),
-                                     (("dt", "spot_bed"), "dot", COL["river_dark"], u"Spot level, bed"),
-                                     (("dt", "spot_bank"), "dot", COL["ink_dark"], u"Spot level, bank top"),
-                                     (("dt", "steps"), "line", MP["storage"][2], u"Terrace steps"),
-                                     (("dt", "ramp"), "fill", mix(COL["white"], COL["ink2"], 0.2), u"Ramp")):
-        if key in keys:
-            add(kind, colour, label)
-    for c_, nm in SPECIES_CODE:
-        if ("sp", c_) in keys:
-            add("dot", COL["tree_mid"], u"{} {}".format(c_, nm))
     return out
 
 
@@ -410,7 +158,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v26_2.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v27.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -420,10 +168,14 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             bid, old, cap = p.bid
             sc_ = getattr(p, "scale", scale)              # v24: each panel its own round scale
             leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []   # v24: p15 halves: in the crop
+            if getattr(p, "r28_leg", None):               # v27 (MIRAQUA 28 Oct, P24.4): the windows' dot legend
+                leg_ = p.r28_leg
             if ("dt", "vol") in (getattr(p, "pleg", None) or {}):   # v26.1 (Prompt 8): the rough volumes' method,
                 cap += u" · ~ m³ = area × depth: reed basins 0.46 m (EPA 2000), terraces Q100 depth over bed +1 m " \
                        u"at the nearest cut"                 # as the sheet's legend says it (the booklet sets no note)
             bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=sc_, legend=leg_, drop=drop)
+            if getattr(p, "plan_sources", None):          # v27 (MIRAQUA 28 Oct, P23.2, N2): what the p.23 list no
+                bk.d["plan_sources"] = res["plan_sources"] = p.plan_sources   # longer prints, for the sources page
             if bid in ("mp_plan", "mp_max_area", "dt_upstream", "dt_k5"):   # v26: drawn for the booklet page at 1:1
                 bk.d["blocks"][bid]["bk_w"] = round(rc[2] - rc[0], 3)   # (its width there); v26.1: the 1:1,000
                 # windows too (194 + 4 + 194 mm = the page's 392 mm), so p.26 prints them at 1:1,000 in one row

@@ -45,9 +45,10 @@ def sec_cropped(S, sd_, Lmax):
     return out
 
 
-def typology_size(S, ss_t, th, U):
-    """v44: (width, height) in page units of the building types drawn at ss_t page units per metre, tags th high."""
-    yb = draw_typology_key(S, Board(), 0.0, 0.0, 1e9, U, ss=ss_t, th=th, crop=False)
+def typology_size(S, ss_t, th, U, enl=1.0):
+    """v44: (width, height) in page units of the building types drawn at ss_t page units per metre, tags th high.
+    v50 (P05.1): enl as draw_typology_key's."""
+    yb = draw_typology_key(S, Board(), 0.0, 0.0, 1e9, U, ss=ss_t, th=th, crop=False, enl=enl)
     return getattr(draw_typology_key, "last_w", 0.0), -yb
 
 
@@ -57,10 +58,15 @@ def sections_plan(S, sw, U):
     row = [(section, width)]. ss = page units per metre. v44 (Aras 27 Oct: "move the building types to p8 with the
     other sections"): the building types are one more item after the last cut (a dict with "_types"); without room,
     left out (logged). v45 (Prompt 2: neighbouring drawings at one scale): the types at the cuts' own scale; the
-    strips without locators (each page has one key map, draw_sections_key)."""
+    strips without locators (each page has one key map, draw_sections_key). v50 (MIRAQUA 28 Oct, F12, P05.1): the
+    cuts' words at the largest step of SITE28_SEC_TXT (booklet pt) at which they still fit as at the smallest one:
+    the same scale and pages, S4 on the same page, the building types kept (set on each cut as c_["_txt"]); then the
+    building types enlarged as a diagram (SITE28_TYPES_F) as far as that fit allows (the types item's "tf")."""
     secs = list(S.sections)
     hmax = sw * BK_AH / BK_AW * 0.97
-    th = bk_hk(7.5, sw / BK_AW, mono=True)            # tags 7.5 pt on the booklet page
+    kb = sw / BK_AW                                   # board units per booklet mm
+    th = bk_hk(7.5, kb, mono=True)                    # tags 7.5 pt on the booklet page
+    nst = len(SITE28_SEC_TXT)
     best = None
 
     def pack(items):
@@ -85,67 +91,123 @@ def sections_plan(S, sw, U):
         return [[[(c_, w_) for c_, w_, h_ in r] for r in pg] for pg in pages], ok
     for den in SEC_BOOK_DENS:
         ss = 1000.0 * sw / (den * BK_AW)             # the drawing fills the booklet's width: 1:den on the page
-        Lmax = (sw - 2.0 * SEC_END * U) / ss
+        end = site28_sec_end(SITE28_SEC_TXT[0], kb, U)    # v50: the ends' room for the largest words, at every step
+        Lmax = (sw - 2.0 * end) / ss
         if any(sd_["L"] * SEC_KEEP > Lmax for sd_ in secs):
             continue
         cut = [sd_ if sd_["L"] <= Lmax else sec_cropped(S, sd_, Lmax) for sd_ in secs]
-        items = []
+        tcache = {}
+
+        def items_at(st):
+            out = []
+            for c_ in cut:
+                c_["_txt"] = dict(step=st, k=kb, end=end)
+                wi = min(sw, c_["L"] * ss + 2.0 * end)
+                n0 = len(LOG)
+                hi = -draw_section_strip(S, Board(), c_, 0.0, 0.0, wi, ss, U, dry=True, loc=False)
+                del LOG[n0:]
+                out.append((c_, wi, hi))
+            return out
+
+        def types_at(tf):
+            if tf not in tcache:
+                wt, ht = typology_size(S, ss * tf, th, U, tf)
+                tcache[tf] = (dict(_types=True, name=u"building types", ss=ss * tf, th=th, den=den, tf=tf), wt,
+                              ht + 0.6 * U) if 0.0 < wt <= sw else None
+            return tcache[tf]
+        ref = items_at(nst - 1)                      # the smallest words: the reference fit (about v49's)
+        t1 = types_at(1.0)
+        pages0, ok0 = pack(ref + ([t1] if t1 else []))
+        has_t = ok0 and t1 is not None
+        if not has_t:
+            pages0, ok0 = pack(ref)
+        best = (den, ss, pages0)
+        if not ok0:
+            continue
+        p4 = site28_page_of(pages0, "S4")
+        got = None
+        for st in range(nst):                        # the largest words first, then the largest building types
+            its = ref if st == nst - 1 else items_at(st)
+            for tf in (SITE28_TYPES_F if has_t else (None,)):
+                tt = types_at(tf) if tf else None
+                if tf and tt is None:
+                    continue
+                pg_, ok_ = pack(its + ([tt] if tt else []))
+                if ok_ and len(pg_) == len(pages0) and site28_page_of(pg_, "S4") == p4:
+                    got = (st, tf or 1.0, pg_)
+                    break
+            if got:
+                break
+        st, tf, pages = got or (nst - 1, 1.0, pages0)
         for c_ in cut:
-            wi = min(sw, c_["L"] * ss + 2.0 * SEC_END * U)
-            n0 = len(LOG)
-            hi = -draw_section_strip(S, Board(), c_, 0.0, 0.0, wi, ss, U, dry=True, loc=False)
-            del LOG[n0:]
-            items.append((c_, wi, hi))
-        tries = []
-        wt, ht = typology_size(S, ss, th, U)
-        if 0.0 < wt <= sw:
-            tries.append((dict(_types=True, name=u"building types", ss=ss, th=th, den=den), wt, ht + 0.6 * U))
-        for t_ in tries + [None]:
-            pages, ok = pack(items + ([t_] if t_ else []))
-            best = (den, ss, pages)
-            if ok:
-                if t_ is None:
-                    LOG.append("Sections: the building types do not fit beside or under the cuts on two pages at "
-                               "1:{:,}; drawn only as their own drawing (booklet crop drw_building_types).".format(den))
-                if den != SEC_BOOK_DENS[0]:              # v49.1 (Aras 27 Oct, Prompt 8): was silent
-                    LOG.append("WARNING: Sections: the cuts do not fit two booklet pages at 1:{:,}; drawn at 1:{:,} "
-                               "(Aras: all cuts at 1:{:,}).".format(SEC_BOOK_DENS[0], den, SEC_BOOK_DENS[0]))
-                return best
+            c_["_txt"] = dict(step=st, k=kb, end=end)
+        best = (den, ss, pages)
+        LOG.append("Sections (F12, P05.1): the cuts' words at step {} of {} (names {head} pt, sentences and callouts "
+                   "{call} pt, levels and tags {minor} pt, satellite rows {sat} pt){}; the building types {}.".format(
+                       st + 1, nst, " (the smallest: larger words break the fit)" if st == nst - 1 else "",
+                       "enlarged {:g} x (a diagram)".format(tf) if tf > 1.0 else "at the cuts' scale",
+                       **SITE28_SEC_TXT[st]))
+        if not has_t:
+            LOG.append("Sections: the building types do not fit beside or under the cuts on two pages at "
+                       "1:{:,}; drawn only as their own drawing (booklet crop drw_building_types).".format(den))
+        if den != SEC_BOOK_DENS[0]:                  # v49.1 (Aras 27 Oct, Prompt 8): was silent
+            LOG.append("WARNING: Sections: the cuts do not fit two booklet pages at 1:{:,}; drawn at 1:{:,} "
+                       "(Aras: all cuts at 1:{:,}).".format(SEC_BOOK_DENS[0], den, SEC_BOOK_DENS[0]))
+        return best
     LOG.append("WARNING: Sections: the cuts do not fit two booklet pages even at 1:{:,}.".format(SEC_BOOK_DENS[-1]))
     return best
 
 
 def sections_context(S):
-    """v42: the context line of the cuts, with the bed's depth below the banks over all cuts (computed)."""
-    d = []
+    """v42: the context line of the cuts, with the bed's depth below the banks over all cuts (computed). v50 (MIRAQUA
+    28 Oct, P04.2, G5, G13, bank depth REPORT §4 1a-1e): bold keywords; the depth at each cut's main crossing below
+    its lower bank crest (2 decimals), the crossings at the DSİ walls and those with no surveyed bed left out of the
+    range, the walls named (WALL_H, site photos)."""
+    d, kinds, wall = [], set(), False
     for sd_ in S.sections:
-        beds = [l for l in sd_["levels"] if l[3] == "bed"]
-        banks = [l for l in sd_["levels"] if l[3] == "bank"]
-        if beds and banks:
-            d.append(banks[0][2] - beds[0][2])
-    rng = (u" ({:.1f}-{:.1f} m)".format(min(d), max(d)) if len(d) > 1 else u" ({:.1f} m)".format(d[0])) if d else u""
-    return (u"{} cuts · one scale · surveyed ground, bed, buildings at their floors, streets crossed · bed below "
-            u"the banks{}".format(len(S.sections), rng))            # v44: keywords (visual first)
+        wall = wall or any((b_ or {}).get("kind") == "wall" for b_ in sd_.get("banks") or [])
+        k_ = site28_main_k(sd_)
+        if k_ is None:
+            continue
+        cr, top = site28_bank_of(sd_, k_)
+        if top is None or cr.get("kind") == "wall" or cr.get("nobed"):
+            continue
+        d.append(top - (sd_["water"][k_][2] + sd_["base"]))     # the water runs' beds are above the cut's base
+        kinds.add(cr.get("kind", "ground"))
+    if d:
+        rng = (u"{:.2f}-{}".format(min(d), u_height(max(d))) if len(d) > 1 else u_height(d[0]))
+        dep = u"the bed **{} below** the lower bank {}".format(rng, u"crest" if kinds == {"crest"} else u"top")
+    else:
+        dep = u"the bed below the banks"
+    return (u"**{} cuts** · **one scale** · surveyed ground, bed, buildings at their floors, streets crossed · {}{}"
+            u"".format(len(S.sections), dep, u" · **walls {} high** in the town reach (site photos, 1 Oct 2026)".format(
+                u_height(WALL_H)) if wall else u""))            # v44: keywords (visual first)
 
 
 def draw_sections_page(S, B, x, y, sw, U, plan, k):
     """v42: page k of the cuts (sections_plan): rows of whole cuts at one scale, the context line on the first page.
     v45: no locator and no scale word per cut (the caption states the one scale); the page's key map under it, its
-    own crop for the booklet page's title band. Returns the y below."""
+    own crop for the booklet page's title band. Returns the y below. v50 (MIRAQUA 28 Oct, P04.1, P04.2, P05.1): the
+    key maps at their booklet size (draw_sections_key, parts/15l), the context line's keywords bold, the building
+    types enlarged as a diagram where sections_plan found room."""
     L = "LU_BOARD::Sections"
     den, ss, pages = plan
     names = [c_["name"] for r in pages[k] for c_, w_ in r if not c_.get("_types")]
     B.text(u"SECTIONS ACROSS THE STREAM · {}{} · 1:{:,} ON THE A3 PAGE".format(
         names[0], "" if len(names) == 1 else "-" + names[-1], den), x, y, 0.9 * U, INK, L, font=FONT_TITLE, bold=True)
     top = y - 1.3 * U if k == 0 else y - 1.8 * U
-    yy = ctx_line(B, sections_context(S), x, top, sw, CTX_H * U, L) - 0.4 * U if k == 0 else top
+    # v50 (MIRAQUA 28 Oct, P04.2, G5): the context line with its keywords bold
+    yy = site28_para(B, sections_context(S), x, top, sw, CTX_H * U, INK2, L, lead=1.45, bcol=INK) - 0.4 * U \
+        if k == 0 else top
     low = yy
     for r in pages[k]:
         cx = x
         rl = yy
         for c_, w_ in r:
             if c_.get("_types"):                         # v44: the building types, at their own round scale
-                bot = draw_typology_key(S, B, cx, yy, w_, U, ss=c_["ss"], th=c_["th"], crop=False)
+                # v50 (P05.1): enlarged as a diagram by sections_plan's tf
+                bot = draw_typology_key(S, B, cx, yy, w_, U, ss=c_["ss"], th=c_["th"], crop=False,
+                                        enl=c_.get("tf", 1.0))
             else:                                        # v44: the sheet's own scale; the booklet prints 1:den
                 bot = draw_section_strip(S, B, c_, cx, yy, w_, ss, U, tag="drawing", scale_txt="", loc=False)
             rl = min(rl, bot)
@@ -153,8 +215,9 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
         yy = rl - SEC_ROW_GAP * U
         low = rl
     crop_panel("sections_%d" % (k + 1), x, low - 0.2 * U, x + sw, (top + CTX_H * U + 0.3 * U) if k == 0 else top + 0.9 * U,
-               u"Sections across the stream · {}{}".format(", ".join(names), u" · building types" if any(
-                   c_.get("_types") for r in pages[k] for c_, w_ in r) else u""), crop_scale(ss))
+               u"Sections across the stream · {}{}".format(", ".join(names), next((
+                   u" · building types" + (u" (diagram, enlarged)" if c_.get("tf", 1.0) > 1.0 else u"")
+                   for r in pages[k] for c_, w_ in r if c_.get("_types")), u"")), crop_scale(ss))   # v50 (P05.1)
     low = draw_sections_key(S, B, x, low - 1.6 * U, sw, names, k)
     if k == len(pages) - 1 and any(c_[4] == "S4" for c_ in S.sec_lines):   # v48: the water board's S4 pages' key map
         low = draw_sections_key(S, B, x, low - 1.6 * U, sw, ["S4"], "s4")

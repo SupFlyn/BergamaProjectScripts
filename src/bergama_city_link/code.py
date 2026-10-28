@@ -1,4 +1,4 @@
-# bergama_city_link_v2_1.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
+# bergama_city_link_v3.py · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
 # ONE all-vector A3 PDF there (two pages) plus city_link_results.json:
@@ -16,7 +16,17 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v2.1"
+VERSION = "v3"
+# NEW IN v3 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
+#   * Page 1 (booklet p.08): street and stream names along their own lines, the other labels placed clear of each
+#     other with leaders (P08.1, G4); the covered reach as a thin strip under chart A's axis, no block behind the bars
+#     (P08.2); the study-area outline and its key row (G8); lengths in m (G13); flood tile: over the banks only at S4,
+#     K4 before the DSİ walls (bank depth research 28 Oct §4.2).
+#   * Page 2 (p.10): the strip at 1:5,000 along the stream with its own scale bar, panels numbered 1, 2, 3 (F9); reach
+#     on foot as a thin rim under the band in three classes to the nearest hub (P10.1); Oriental plane (Doğu çınarı)
+#     and crops in English (Turkish), Corn (Mısır) (F13, G11); K4 card and flood-rule row as page 1; ha, terrace +1.00 m.
+#   * Both pages: no big page number and no "PAGE n OF 2 · GROUP 6" line (F10, G1); bold keywords (G5); no [n] for
+#     sources that are not public online (F5). Booklet crops cl_why_1 to cl_why_3 for the pp.07+08 alternative.
 # NEW IN v2.1 (bugfix, Aras 27 Oct, booklet Prompt 8 "final check of every page"): page 1 (booklet "Why shops meet
 # the stream only where it is hidden"): the "PEDESTRIANS ON THE STREETS · no data" row of who comes is gone (rule: no
 # "no data" rows; no count exists, so no estimate either) with its source, the five rows that stay share the six rows'
@@ -1567,7 +1577,7 @@ def page_spine(L):
         pg.rect(fx, y - 4.6, 3, 8.6, fill=(C["water"], C["water_light"], C["faint"])[i])
         pg.text(lev, fx + 6, y + 1.2, 8, C["ink"], True)
         for j, k in enumerate(wet):
-            fit(pg, k + (" " + cite(wsrc) if j == len(wet) - 1 else ""), fx + 6, y - 2.4 - j * 3.0, 7, 57, C["ink2"])
+            fit(pg, (k + (" " + cite(wsrc) if j == len(wet) - 1 else "")).strip(), fx + 6, y - 2.4 - j * 3.0, 7, 57, C["ink2"])
         for j, (ic, k) in enumerate(rules):
             icon(pg, ic, fx + 66, y + 4.0 - j * 4.8, 4.2)
             fit(pg, k, fx + 72, y + 1.2 - j * 4.8, 7, 100, C["ink"])
@@ -1640,7 +1650,7 @@ def results(L=None):
                  main_transit_hub=hb["transit"], plane_trees=hb["kind"] == "walk", stops=hb["stops"],
                  bus_stops=hb["bus_stops"], trips=hb["trips"], later=hb.get("later"), ch=hb["ch"]) for hb in hub_list()]
     return dict(spine_banks=(L or {}).get("sides"), bank_votes=(L or {}).get("votes"), bank_vote_source=(L or {}).get("vote_src"),
-                script="bergama_city_link_v2_1.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+                script="bergama_city_link_v3.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 spine=SPINE, functions=[dict([(k, f.get(k)) for k in ("n", "name", "where", "xy", "stage", "who", "grows", "ch", "bank")] +
                                              [("hub", "sub-hubs" if f["n"] == 8 else hub_of.get(f["n"]))])
                                         for f in FUNCS + [EVENTS]],

@@ -621,6 +621,9 @@ class Site(object):
 
 # ------------------------------------------------------------ floors and heights that the survey does not record
 NB_K = 5            # unlabelled buildings take the floor count shared by most of the 5 nearest surveyed counts
+UNLAB_MIN_A = 12.0  # v50 (MIRAQUA 28 Oct, P06.3): m2, a house outline the survey closed without a floor label is kept
+#                     (one storey) from this net area on ...
+UNLAB_SHUT = 0.9    # ... unless this share of its outline runs along other buildings (a courtyard or a block's inside)
 # Monuments with a published height (OSM way id: metres, source). Used instead of floors x storey height.
 DOC_HEIGHT = {
     "1087234401": (19.0, "Red Basilica hall: walls stand to 19 m (Koester 2007, p. 171; Wikipedia 'Red Basilica')"),
@@ -756,7 +759,9 @@ def build_site(R, osm, places, F):
         if not cp:
             return None
         hs = [q for q in (F.clip_poly(H) for H in (holes or [])) if q]
-        A = sum(shoelace(P)[0] for P in cp) - sum(shoelace(H)[0] for H in hs)
+        cp = [P if signed_area(P) > 0.0 else P[::-1] for P in cp]    # v50 (MIRAQUA 28 Oct, P06.3): outlines anti-
+        hs = [H if signed_area(H) < 0.0 else H[::-1] for H in hs]    # clockwise, holes clockwise: the nonzero fill
+        A = sum(shoelace(P)[0] for P in cp) - sum(shoelace(H)[0] for H in hs)   # keeps courtyards open
         if A < 1.0:
             return None
         cx = (sum(shoelace(P)[0] * shoelace(P)[1] for P in cp) - sum(shoelace(H)[0] * shoelace(H)[1] for H in hs)) / A
@@ -791,6 +796,39 @@ def build_site(R, osm, places, F):
                 if P:
                     add_unit([P], l[2], layer, "dwg", holes=holes_in(f["H"], [P]))
     n_shed = n_yard = 0
+    # v50 (MIRAQUA 28 Oct, P06.3): a house outline (BINA_MESKEN, BINA) the survey closed without a floor label is a
+    # house too (left out until v49: the undercount on p.06); it is kept as one storey (no label, no surveyed floors)
+    # unless it is under UNLAB_MIN_A, a yard closed by garden walls, larger than all but 1 % of the faces holding one
+    # floor label, or shut in: UNLAB_SHUT of its outline runs along other buildings (a courtyard, a block's inside)
+    bface = [dom_kind(f_["tags"]) is not None and not is_yard(f_["tags"]) for f_ in faces]
+    gB = Grid(10.0)                                       # the building faces, for shut_in
+    for j_, f_ in enumerate(faces):
+        if bface[j_]:
+            gB.add(j_, f_["bb"])
+    la_ = sorted(faces[fi]["A"] for fi, labs in lab.items() if len(labs) == 1 and
+                 DWG["bld"].get(dom_kind(faces[fi]["tags"])) == "mesken")
+    a_big = la_[int(0.99 * (len(la_) - 1))] if la_ else None
+
+    def shut_in(fi):
+        """the share of face fi's outline whose outside (0.3 m off each edge's middle) lies in another building face"""
+        P = faces[fi]["P"] if signed_area(faces[fi]["P"]) > 0.0 else faces[fi]["P"][::-1]
+        tot = hit = 0.0
+        for i in range(len(P)):
+            a, b = P[i], P[(i + 1) % len(P)]
+            l_ = math.hypot(b[0] - a[0], b[1] - a[1])
+            if l_ < 1e-6:
+                continue
+            px = 0.5 * (a[0] + b[0]) + 0.3 * (b[1] - a[1]) / l_
+            py = 0.5 * (a[1] + b[1]) - 0.3 * (b[0] - a[0]) / l_
+            tot += l_
+            for j in gB.query((px, py, px, py)):
+                bb = faces[j]["bb"]
+                if j != fi and bb[0] <= px <= bb[2] and bb[1] <= py <= bb[3] and in_face(px, py, faces[j]):
+                    hit += l_
+                    break
+        return hit / tot if tot > 0.0 else 0.0
+    n_unlab = n_small = n_uyard = n_big = n_shut = 0
+    a_unlab = []
     for fi, f in enumerate(faces):
         if fi in lab:
             continue
@@ -804,6 +842,31 @@ def build_site(R, osm, places, F):
                 n_shed += 1 if u else 0
             else:
                 add_unit([f["P"]], None, layer, "dwg", holes=f["H"])
+        elif layer in DWG["bld"] and DWG["bld"][layer] == "mesken":   # v50 (P06.3)
+            if f["A"] < UNLAB_MIN_A:
+                n_small += 1
+            elif is_yard(f["tags"]):
+                n_uyard += 1
+            elif a_big is not None and f["A"] > a_big:
+                n_big += 1
+            elif shut_in(fi) >= UNLAB_SHUT:
+                n_shut += 1
+            else:
+                u = add_unit([f["P"]], None, layer, "dwg", holes=f["H"])
+                if u:
+                    u["unlab"] = True
+                    n_unlab += 1
+                    a_unlab.append(u["A"])
+    S.stats["unlabelled"] = n_unlab
+    S.stats["unlabelled_left"] = (n_small, n_uyard, n_big, n_shut)
+    LOG.append(u"P06.3 buildings: {:,} house outlines (BINA_MESKEN, BINA) the survey closed without a floor label are "
+               u"kept as one storey ({:.2f} ha in the frame{}); left out, in and around the frame: {:,} under {:.0f} m², "
+               u"{:,} walled yards, {:,} larger than {} (all but 1% of the one-label houses are smaller), {:,} shut in "
+               u"by other buildings (courtyards, block insides).".format(
+                   n_unlab, sum(a_unlab) / 1e4, (u", the largest " + u", ".join(u"{:,.0f} m²".format(a_) for a_ in
+                                                                              sorted(a_unlab)[::-1][:3]))
+                   if a_unlab else u"", n_small, UNLAB_MIN_A, n_uyard, n_big,
+                   u"{:,.0f} m²".format(a_big) if a_big is not None else u"-", n_shut))
     S.stats["survey_units"] = len([u for u in units if u["src"] == "dwg"])
     S.stats["floor_labels"] = len(labels)
     S.stats["labels_unmatched"] = len(miss)
@@ -952,6 +1015,8 @@ def build_site(R, osm, places, F):
             lv = num(tg.get("building:levels"))
             if lv is not None and 1.0 <= lv <= 60.0:
                 floors, fsrc = int(round(lv)), "osm"
+        if floors is None and u.get("unlab"):            # v50 (MIRAQUA 28 Oct, P06.3): no label, no surveyed floors
+            floors, fsrc = 1, "unlabelled"
         cnt = {}
         for p in gP.query((u["bb"][0] - 3, u["bb"][1] - 3, u["bb"][2] + 3, u["bb"][3] + 3)):
             inside = any(pip(p["x"], p["y"], P) for P in u["parts"])
@@ -1212,6 +1277,7 @@ def build_site(R, osm, places, F):
 
     # ------------------------------------------------ terrain (survey points + contours + spot heights)
     build_terrain(S, R)
+    S.contours = r28e_contours(R, F)                     # v50 (MIRAQUA 28 Oct, P06.1): the stream edge plan's contours
     channel_profile(S)
 
     # ------------------------------------------------ areas (ground coverage inside the frame)

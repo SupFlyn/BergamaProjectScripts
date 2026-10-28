@@ -372,7 +372,7 @@ def _r28_route_runs(order, L, a, b):
     """v27 (P24.2, G5): one water route step as text runs [(text, bold)]: the move, the zone in bold, its area and
     rough volume (v22-v26's figures and wording, sentence case)."""
     if order < len(ROUTE):
-        words, end = ROUTE[order][1].lower(), ROUTE[order][2]
+        words, end = ROUTE[order][1].capitalize(), ROUTE[order][2]   # "Into {}", "Back to the stream"
         z = (a, b)[end] if end is not None else None
         if z is None:
             w0, _, rest = words.partition(u" ")
@@ -387,7 +387,7 @@ def _r28_route_runs(order, L, a, b):
             runs.append((u" · ~" + u_volume(round(sv[0], -1)) + sv[1], False))
             leg(("dt", "vol"))
         return runs
-    t_ = (L["label"] or u"water").lower().replace(u"river", u"stream")
+    t_ = (L["label"] or u"water").lower().replace(u"river", u"stream").capitalize()
     head, _, last = t_.rpartition(u" ")
     return [(head + u" ", False), (last, True)] if head else [(t_, True)]
 
@@ -670,8 +670,8 @@ def detail_legend():
         (("r28dt", "foot"), u"New footbridge", line_sw(COL["ink"], 0.5)),
         (("r28dt", "hidden"), u"Hidden stream line", line_sw(COL["river_mid"], 1.2, [1.6, 0.9], 0.7))) if key in LEG]
     if ("dt", "vol") in LEG:                             # v22: how the rough volumes are made
-        water.append((u"~ m³ = ROUGH VOLUME, AREA × DEPTH · REED BASINS 0.46 m · TERRACES: Q100 OVER BED +1 m "
-                      u"AT THE NEAREST CUT", none_sw))
+        water.append((u"~ m³ = rough volume, area × depth · reed basins 0.46 m · terraces: Q100 over bed +1 m "
+                      u"at the nearest cut", none_sw))   # (sentence case, as this legend's other lines)
     surv = [(nm, f) for key, nm, f in (
         (("r28dt", "bed"), u"Stream bed", _sw_fill(cl["bed"])),
         (("r28dt", "contour"), u"Contour", line_sw(COL["contour10"], 0.3)),

@@ -215,47 +215,11 @@ def mv_key_rows(MV, key, n=MV_KEY_N):
     return [r for r in sorted(MV.get("big") or [], key=lambda r: -r[key]) if r[key] > 0][:n]
 
 
-def draw_mv_key(S, B, V, R, MV, key, F, L, h, bounds):
-    """v44: one network map with only its key streets in colour (index of the street, SEQ ramp) and named; every other
-    street piece thin grey. Returns the names drawn."""
-    rows = mv_key_rows(MV, key)
-    val_of = dict((r["name"], r[key]) for r in rows)
-    pieces = R["pieces"]
-    net = "car_b" if key.startswith("car") else "walk_b"
-
-    def val(pi):
-        p = pieces[pi]
-        nm = (p["tags"].get("name") or "").strip()
-        return (MV_CLASS.get(p["tags"].get("highway"), "lane"), nm if nm in val_of else "")
-    runs = _runs(R["chains"][net], pieces, R["xy"], val, set(R["inside"]), F)
-    grey = mix(INK2, PAPER, 0.55)
-    best = {}
-    for P, (cls, nm) in runs:
-        if not nm:
-            B.line(V.P(P), grey, L, 14, MV_W[cls] * 0.3)
-            continue
-        B.line(V.P(P), mv_ramp(SEQ, seq_t(val_of[nm], 100.0)), L, 16, MV_W[cls] * 0.6 + 0.35)
-        if nm not in best or pl_length(P) > pl_length(best[nm]):
-            best[nm] = P
-    labels = []
-    for r in rows:
-        P = best.get(r["name"])
-        if P:
-            q, t = pl_point_at(P, pl_length(P) / 2.0)
-            px, py = V.p(q[0], q[1])
-            labels.append(([u"{} · {:.0f}".format(r["name"], r[key])], px, py, h, INK))
-    key_ = place_labels(B, labels, [], L, bounds=bounds)
-    return [r["name"] for r in rows], key_
+# v50 (MIRAQUA 28 Oct, P07.3): draw_mv_key moved to parts/15i_r28_movement.py (every street piece graded there).
 
 
 # ------------------------------------------------------------ p.6 the proposal (masterplan_results.json "movement")
-MP_CHANGE = {"relocated": (u"relocated", MARK_C), "calmed": (u"calmed", (214, 130, 40)),
-             "pedestrian": (u"pedestrian", PROP_C), "shared": (u"shared", (120, 90, 160)),
-             "kept": (u"kept", mix(INK2, PAPER, 0.3))}
-HUB_C = {"transit": MARK_C, "walking": PROP_C}
-TRANSIT_C = (52, 92, 160)
-
-
+# v50 (MIRAQUA 28 Oct, P09.1): MP_CHANGE, HUB_C and TRANSIT_C are gone (the map's styles: R28MV_ROAD, R28_MARKERS).
 def mp_movement():
     """v44 (PHASE2_SPEC §4): the masterplan's proposal for movement (roads, truck route, crossings, hubs, routes), from
     masterplan_results.json key "movement"; None (logged) without the file or the key."""
@@ -318,37 +282,34 @@ def mv_with_masterplan(S, M):
     return S.mv_mp
 
 
-def mv_line_index(R, P, key, d=12.0):
+MV_LINE_D = 12.0        # m: a line's street pieces for mv_line_index (their middles this close to it)
+
+
+def mv_line_index(R, P, keys, d=MV_LINE_D):
     """v44: the length-weighted mean index `key` of the street pieces inside the frame whose middle lies within d m
-    of the line P; None when none does."""
-    pieces, xy, IDX = R["pieces"], R["xy"], R["IDX"][key]
-    s_, l_ = 0.0, 0.0
+    of the line P; None when none does. v50 (MIRAQUA 28 Oct, P09.3, laptop speed): keys = one key or several, the
+    pieces found once for all of them (a box round P first, then the distance, same pieces as before); returns
+    {key: mean or None}."""
+    if isinstance(keys, str):
+        keys = [keys]
+    pieces, xy = R["pieces"], R["xy"]
+    if not P:
+        return dict((k_, None) for k_ in keys)
+    bb = (min(p_[0] for p_ in P) - d, min(p_[1] for p_ in P) - d, max(p_[0] for p_ in P) + d, max(p_[1] for p_ in P) + d)
+    near = []
     for i in R["inside"]:
         p = pieces[i]
         if p["prop"]:
             continue
         m = ((xy[p["a"]][0] + xy[p["b"]][0]) / 2.0, (xy[p["a"]][1] + xy[p["b"]][1]) / 2.0)
-        if pl_dist(m[0], m[1], P, False) <= d:
-            s_ += IDX.get(i, 0.0) * p["L"]
-            l_ += p["L"]
-    return s_ / l_ if l_ > 0 else None
+        if bb[0] <= m[0] <= bb[2] and bb[1] <= m[1] <= bb[3] and pl_dist(m[0], m[1], P, False) <= d:
+            near.append((i, p["L"]))
+    l_ = sum(L_ for i, L_ in near)
+    return dict((k_, sum(R["IDX"][k_].get(i, 0.0) * L_ for i, L_ in near) / l_ if l_ > 0 else None) for k_ in keys)
 
 
-# ------------------------------------------------------------ p.6 the city heritage loop (spec §3 D6)
-# Places in survey coordinates and where each comes from. Lat/lon -> survey with h01 §0's formula (anchor K3, ±10-30 m).
-HER_LOOP = [  # (key, name, (x, y), source)
-    ("gondola", u"Gondola · to the Acropolis", (30720.4, 32370.1), "h03 Q3: valley station 39.1255343, 27.1891834"),
-    ("redhall", u"Red Hall", (30203.92, 31974.82), "survey label 'Kızıl Avlu' (REF_LABELS)"),
-    ("K3", u"K3 · Tabakhane", (30037.01, 32121.57), "BRIDGES_K"),
-    ("K4", u"K4 · Ulu Cami 1398-99", (29846.40, 32277.71), "BRIDGES_K; Ulu Cami h01 §5 P05"),
-    ("bazaar", u"Bazaar · Hacı Hekim · arasta", (29926.0, 31855.0), "h01 §5 P23 (hamam, calc)"),
-    ("museum", u"Bergama Museum", (29560.0, 31358.0), "h01 §5 P24"),
-]
-HER_DOTS = [(u"Ulu Cami", (29844.17, 32313.30)),          # survey label 'Ulu Camii' (REF_LABELS)
-            (u"Tabaklar Hamamı", (29890.4, 32243.6)),      # h01 §5 P07, survey 'Hamam'
-            (u"Çizmeciler Arastası", (29794.31, 31929.85))]   # survey label (REF_LABELS)
-HER_OFF = [(u"Acropolis · Trajaneum", "gondola", (30209.0, 33177.0)),   # h03 Q3: OSM centroid 39.1327803, 27.1832652
-           (u"Asklepieion", "museum", (29077.3, 31867.3))]             # h03 Q3: ticket building 39.1210181, 27.1701577
+# v50 (MIRAQUA 28 Oct, P20.1-P20.3): the city heritage loop's places (HER_STOPS, HER_WALK, HER_BEYOND, HER_DOTS) and
+# its drawing moved to parts/15j_r28_heritage.py (HER_LOOP and HER_OFF are gone).
 
 
 # ------------------------------------------------------------ proof (D11/D12): walking effort, Tobler

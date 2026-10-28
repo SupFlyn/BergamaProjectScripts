@@ -4,6 +4,16 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v9 (MIRAQUA 28 Oct, booklet revision v4: F4, F7, F14, G5, G8, F5; bank depth research 28 Oct §4.6; a feature
+  change, so the next whole number):
+  * A key map of the four measured cuts under the upstream sketch (study area, Selinos, K4 and Üç Kemer bridges, north
+    arrow, no scale), with the measured note that the K4 and K5 cuts lie about 114 m and 119 m downstream of the
+    bridges their sketches draw.
+  * Upstream: the right bank is the channel wall about 5 m above the bed (site photos 1 Oct 2026), so Q500 stays inside
+    the banks as its label says. K4: Q500 drawn under the street and wall top. No level value changed.
+  * Sub-hub floor and boardwalk drawn soft; legend entries for the yellow bands, the dashed route, the soft paving and
+    the study area; bold keywords in the notes; [n] marks for public online sources only.
+
 NEW IN v8.1 (bugfix, Aras 27 Oct, Prompt 8 final check): K5's winter crop row (herbs, greens, Cabbage (Lahana), Citrus
   (Narenciye), Quince (Ayva)) sits 2.2 lines under the summer row (was 1.5): at 1.5 its pictogram touched the summer
   row, and with no free place inside the drawing's reach declutter left the whole row out. The booklet caption of
@@ -55,7 +65,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v8.1"
+VERSION = "v9"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -87,29 +97,22 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
       "agriculture": ("C6C08D", "948B49", "534E25"), "park": ("DFEBC0", "A7B67F", "49522B")}
 
 # ---------------------------------------------------------------- sources (short names printed on the board)
-RR = u"rain_river_levels/README"
-
-CR = u"CONCEPT_RECORD v2.4"
-
 # v3: sources as [n] on the drawings, the numbered key in the footer (water board v1.6 cite() / SRC_KEY). Fixed
 # order, so the numbers stay the same on every press.
-SRC_KEY = [   # v8.1 (Prompt 8: only publicly checkable sources): no internal file names where the source is public
-    ("levels", u"levels calculated on the surveyed stream-height cuts (Manning, main survey TIN)"),
+# v9 (MIRAQUA 28 Oct, F5: public online sources only): the [n] of the concept record, Aras's tier text, card i01, the
+# zone base, the course survey's road edges and the hub decisions are gone (with their entries); plane and hamam keep
+# only their public sources; levels read as the water balance's (method + the DSİ design flow). In reading order.
+SRC_KEY = [
+    ("levels", u"levels: Manning normal depth, n 0.050, on the surveyed cross-sections; DSİ Q500 263.3 m³/s "
+               u"(Danıştay 6. D. 2021/9521 E.)"),
     ("rain", u"MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
-    ("concept", CR + u" (Q1: east channel wall kept, default)"),
-    ("tiers", u"Aras's concept text: tiers, level 1 / 2 / 3"),
-    ("garden", u"card i01: Demeter's Garden, page and crop list (zones DG 1-2)"),
-    ("zones", u"zone base ZONES.md: WP 1-2 and the floodable boardwalk"),
+    ("plane", u"Ottoman squares with plane trees: ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered "
+              u"Cultural Landscape, p. 281"),
+    ("hamam", u"Tabaklar Hamamı across the stream from Ulu Cami: Köylü H., Ege Telgraf, 31 Dec 2025; KTB İzmir, Baths "
+              u"(Hamams) in İzmir; about 56 m from K4: calculated on the survey"),
     ("plants", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter); FAO Ecocrop, olive (will not "
                u"tolerate waterlogged soils)"),          # v8.1: the public pages of BK_SOURCES, not the internal register
     ("gauges", u"DSİ gauge yearbooks 2016-2021"),
-    ("survey", u"main survey: road edges YOL_SOSE"),
-    ("plane", u"plane trees at the dry hub squares: decision D8 (Ottoman squares with plane trees, ICOMOS s13 p281, "
-              u"card h02); drought-sensitive, so irrigated from storage (card h03 Q4)"),
-    ("hamam", u"card h02 E08 (s32, s63): Tabaklar Hamamı on the right bank opposite Ulu Cami, survey labels at "
-              u"(29890, 32244); K4 at (29846, 32278): about 56 m apart (calculated)"),
-    ("hubs", u"history decisions D10 + Aras 27 Oct 12:05: K4 and K5 are walking hubs, a dry step-free square above "
-             u"Q500 and a floodable sub-hub in the bed at the strip level"),
 ]
 
 
@@ -144,7 +147,7 @@ def text_w(s, size, bold=False):
     w = _W[1 if bold else 0]
     return sum(w.get(c, _WX.get(c, 600 if c.isupper() else 556)) for c in s) / 1000.0 * size
 
-#@include ../common/wrap.py
+# v9 (MIRAQUA 28 Oct, G5): the notes are wrapped and drawn by ps_rich_para (parts/80_key_map.py), with bold keywords
 
 # ---------------------------------------------------------------- page and PDF writer (v1; see-through fills as bergama_diagrams v1.8)
 class Page(object):
@@ -203,8 +206,6 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 #@include ../common/node.py
 
-#@include ../common/para.py
-
 def flow_arrow(pg, x0, x1, y, col, lw=0.3, head=1.2):
     """v3: a straight arrow from x0 to x1 at height y (the keyword row's links)."""
     pg.line([(x0, y), (x1 - head * 0.8, y)], col, lw)
@@ -213,15 +214,15 @@ def flow_arrow(pg, x0, x1, y, col, lw=0.3, head=1.2):
 
 def cell(pg, box, title, note_txt, ts, ns):
     """v7: one section's panel: white ground, a coloured rule on top, the title (ts mm) and one short note (ns mm)
-    under it, both measured (wrap). Returns (drawing box under the note, right end of the note), mm."""
+    under it, both measured. Returns (drawing box under the note, right end of the note), mm.
+    v9 (MIRAQUA 28 Oct, G5): the note's **keywords** bold (ps_rich_para)."""
     x0, y0, x1, y1 = box
     pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
     pg.poly([rect(x0, y1 - 1.2, x1, y1)], fill=MP["discharge"][1])
     pg.text(title, x0 + 5.0, y1 - 1.2 - 3.0 - ts * CAP, ts, COL["ink_dark"], bold=True)
     top = y1 - 1.2 - 3.0 - ts * (CAP + 0.25) - 3.0     # under the title row (the single crops start here)
     w = x1 - x0 - 10.0
-    yn = para(pg, x0 + 5.0, top, w, note_txt, ns, COL["ink"])
-    nr = x0 + 5.0 + max(text_w(ln, ns) for ln in wrap(note_txt, ns, w))
+    yn, nr = ps_rich_para(pg, x0 + 5.0, top, w, note_txt, ns, COL["ink"])
     return (x0 + 5.0, y0 + 4.0, x1 - 5.0, yn - 0.25 * ns - 4.0), top, nr
 
 
@@ -325,6 +326,12 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 
 #@include ../common/booklet_assets.py
 
+#@include ../common/r28_style.py
+
+#@include ../common/label_place.py
+
+#@include parts/80_key_map.py
+
 #@include parts/90_booklet.py
 
 
@@ -333,14 +340,16 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 # shape is the booklet's panel area, so the booklet shows the whole block (crop ps_all) on ONE A3 page at one factor;
 # every section is placed at ONE common factor (the sketches carry relative levels, so the booklet prints no scale).
 # Titles short, one short note under each title, no source footer (the [n] key goes to the log).
+# v9 (MIRAQUA 28 Oct): G5 keywords in **bold**; K4 (bank-depth research §4.6, Aras 14:12): the walls stand about 5 m
+# above the bed, so Q500 stays under the street (was "Q500 tops today's bank", the survey before the DSİ walls)
 PROPOSALS = [("up", u"1 · UPSTREAM ENTRY",
-              u"Winter runoff: cleaned in reed basins, held in the terrace basins, given back in summer as the strip"),
+              u"Winter runoff: cleaned in **reed basins**, held in the terrace basins, given back in **summer** as the strip"),
              ("k4", u"2 · K4 BRIDGE · WALKING HUB",
-              u"Q500 tops today's bank: dry hub square above it, floodable sub-hub in the bed, steps between"),
+              u"Q500 stays **under the street**: dry **hub square** above it, floodable sub-hub in the bed, steps between"),
              ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN + WALKING HUB",
-              u"Bank tops stay dry: garden and hub square · bed: stream commons = sub-hub, floods in winter"),
+              u"Bank tops stay **dry**: garden and hub square · bed: **stream commons** = sub-hub, floods in winter"),
              ("down", u"4 · DOWNSTREAM REACH",
-              u"Clean water arrives from upstream: floodable planting + boardwalk, surplus to farmland")]
+              u"Clean water arrives from upstream: **floodable planting** + boardwalk, surplus to farmland")]
 SHEET_BOXES = {}                                      # key -> crop box (x0, y0, x1, y1), mm, y up; set by build_sheet
 SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
              "down": "concept_nil_sketch"}
@@ -428,6 +437,7 @@ def build_sheet(opt, log):
         boxes[key], tp, nr = cell(pg, (cx, cy, cx + cw, cy + ch), ttl, txt, pt_mm(TITLE_PT), pt_mm(NOTE_PT))
         heads[key] = (tp, nr)
     parts, s = sections(opt, boxes, log)
+    low = {}                                          # v9: each sketch's bottom on the sheet (the key map goes under one)
     for key, _, _ in PROPOSALS:
         bx = boxes[key]
         b = items_bbox(parts[key].items)
@@ -437,6 +447,8 @@ def build_sheet(opt, log):
         tp, nr = heads[key]                           # single crop: note + sketch, tight (the title is the caption)
         SHEET_BOXES[key] = (min(bx[0], dx + s * b[0]) - 2.0, dy + s * b[1] - 3.0,
                             max(nr, dx + s * b[2]) + 2.0, tp)
+        low[key] = dy + s * b[1]
+    ps_key_map(pg, boxes, low, log)                   # v9 (MIRAQUA 28 Oct, F4): inside ps_all, outside the single crops
     SHEET_BOXES["all"] = (X0, gy0, X0 + GRID_W, gy1)  # v7: the one-page block (titles + notes + sketches)
     log.append(u"sources by number (the sheet's [n]): " +
                u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)))

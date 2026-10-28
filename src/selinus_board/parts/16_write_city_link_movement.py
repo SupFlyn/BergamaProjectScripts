@@ -282,12 +282,16 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     b_frame(B, r, k, L)
     foot = b_foot(B, F, x, r[1], ss, k, L)                # v46: under the map, never on it
     crop_r = (x - 0.5 * k, foot - 0.5 * k, r[2] + 0.5 * k, r[3] + 0.5 * k)    # the booklet crop of the plan
+    r28mv_note_top(S, B, crop_r, k, L, MV, n_pl)          # v50 (MIRAQUA 28 Oct, P07.2): drw_mv_note_1 beside the plan
     yy = foot - 3.0 * U
     # walking and driving today, only the key streets in colour and named (v44, Aras 27 Oct: "highlight only the key
     # axes and roads"); v46: each its own map at the theme's one scale, stacked under the plan
     if R:
-        for key_, title, cap in (("walk_b", "WALKING TODAY", u"Walking today · the {} busiest named streets"),
-                                 ("car_b", "DRIVING TODAY", u"Driving today · the {} busiest named roads")):
+        # v50 (MIRAQUA 28 Oct, P07.3): the index on every street piece, the busiest named (draw_mv_today, 15i)
+        for key_, title, cap in (("walk_b", "WALKING TODAY", u"Walking today · index on every street piece · the {} "
+                                                             u"busiest named"),
+                                 ("car_b", "DRIVING TODAY", u"Driving today · index on every street piece · the {} "
+                                                            u"busiest named")):
             yy = draw_mv_today(S, B, x, yy, U, R, MV, key_, title, cap) - 2.0 * U
     # walking lengths from each working area (D7), as a small table
     if D7:
@@ -445,8 +449,10 @@ def build_sheet(S, B, X, Y, U, rects):
               lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U)),
              ("06c The stream edge, masterplan spread", 120.0 * U,                             # v49 (Prompt 7)
               lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U, with_photos=False)),
+             ("06d The filter, before the masterplan", 120.0 * U,                              # v50 (MIRAQUA 28 Oct, D1)
+              lambda x, y: r28e_draw_filter(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
-             ("07b Commercial spines", 120.0 * U, lambda x, y: draw_commercial_spines(S, B, x, y, 120.0 * U, U)),
+             # v50 (MIRAQUA 28 Oct, P09.3): "07b Commercial spines" is gone (drw_index_change under the proposal)
              ("07d City heritage loop", 120.0 * U, lambda x, y: draw_heritage_loop(S, B, x, y, 120.0 * U, U)),   # v46
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
@@ -1175,7 +1181,7 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             col(it[2], False)
             for P in rings:
                 path(P, True)
-            A("f*")
+            A("f" if getattr(it[2], "nz", False) else "f*")   # v50 (MIRAQUA 28 Oct, P06.3): R28NZ fills nonzero
         elif kind == "line":
             if len(it[1]) < 2:
                 continue

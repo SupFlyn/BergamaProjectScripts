@@ -1,4 +1,4 @@
-# bergama_water_balance_v4_1.py (v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v5.py (v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,15 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v4.1"
+VERSION = "v5"
+# NEW IN v5 (MIRAQUA 28 Oct, booklet revision v4: P11.1, P11.2, G3/G5/G11/G13; bank depth research 28 Oct §4.3; a
+#   feature change, so the next whole number):
+#   * The sheet re-laid in reading order: 1 the question, 2 how the stream behaves, 3 what the farms need, 4 what the
+#     site can catch, 5 storage size, 6 cost, 7 the answer (a light water-tint band, not the dark block).
+#   * Bold keywords in every block line; DSİ with its İ; corn (not maize); heights with 2 decimals; the 1:500 cut's
+#     scale bar in cm; land areas in ha on the whole sheet (Aras 28 Oct 13:21), the cistern's land per m³ in m².
+#   * "K4: right bank floods from Q100" left out (the survey shows K4 before the DSİ walls); no internal file name in
+#     the sources. Every number is computed as before.
 # NEW IN v4.1 (bugfix, Aras 27 Oct, Prompt 8 final check): ² and ³ on the sheet are drawn as a raised small 2 or 3
 #   (0.6 x the size, as the water board v3.1 and agriculture v3 do; see SUP): the unembedded Helvetica's ²/³ glyph was
 #   missing in some viewers ("hm" for "hm³"). The invisible source key names only public sources (no internal research
@@ -919,7 +927,7 @@ def panel_catch(pg, R, x, y, w, h):
         add = s["m3_per_year"]; cum = cum_prev + add
         pg.text(s["name"], x, yy + 1.2, 7.5, C["ink"], True)
         sk = {"Walk tops": " " + cite("dwa"), "Streamside walks": " " + cite("dwa"), "Retention terraces": " " + cite("abu")}.get(s["name"], "")
-        lab = "%s m², %.2f m³/m²%s" % (fmt(s["m2"]), add / s["m2"] if s["m2"] else 0.0, sk)
+        lab = "%s, %.2f m³/m²%s" % (u_area(s["m2"], "ha"), add / s["m2"] if s["m2"] else 0.0, sk)   # v5: ha page-wide
         pg.text(lab, x, yy - 2.6, fit_size(lab, bx - x - 1.5, 7.0), C["ink2"])
         pg.rect(bx, yy - 2, bw * cum_prev / vmax, 6, fill=C["faint"])
         pg.rect(bx + bw * cum_prev / vmax, yy - 2, max(0.4, bw * add / vmax), 6, fill=C["green_mid"])
@@ -1088,9 +1096,10 @@ def panel_store(pg, R, x, y, w, h):
                 "**US$/m³ delivered** · log scale · capital 5 %/yr " + cite("suds"))
     na = {r["key"]: r for r in R["ladder_no_recharge"]}
     rows = [("Aquifer recharge", "winter water into the alluvium " + cite("ross"), RECHARGE_USD[0], RECHARGE_USD[1])]
-    # v5 (MIRAQUA 28 Oct, G13): the pond land in m² like the block's other areas (was "2.8 ha"; same value)
-    lab = dict(pond="%s, %s m³ at most" % (u_area(L["pond_land_ha"] * 1e4), fmt(L["pond_land_ha"] * 1e4 * POND_DEPTH * POND_USE)),
-               crates="%s m² of walks" % fmt(L["walk_m2"] + L["riverside_walk_m2"]), cistern="0.12 m² of land per m³")
+    # v5 (MIRAQUA 28 Oct, G13 + Aras 13:21 "if a page uses ha for areas try to keep ha for everywhere"): land areas in
+    # ha like block 3's farm land (same values); the cistern's land per m³ stays a m² ratio
+    lab = dict(pond="%s, %s m³ at most" % (u_area(L["pond_land_ha"] * 1e4, "ha"), fmt(L["pond_land_ha"] * 1e4 * POND_DEPTH * POND_USE)),
+               crates="%s of walks" % u_area(L["walk_m2"] + L["riverside_walk_m2"], "ha"), cistern="0.12 m² of land per m³")
     for key, name, _, _ in BUILT:
         if key in na: rows.append((name, lab[key], na[key]["usd_per_m3_low"], na[key]["usd_per_m3_high"]))
     bx = x + 48; bw = w - 50

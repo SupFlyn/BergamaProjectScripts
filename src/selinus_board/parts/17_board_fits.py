@@ -290,12 +290,14 @@ def frame_rest(S):
             wr = mask_of(F, [w_["P"]], cell, nx, ny, holes=w_.get("H") or None)
             mrows = [a | b for a, b in zip(mrows, wr)]
     free = [a & ~b for a, b in zip(free, mrows)]
-    cnt = []
+    S.rest_rows = {}                                      # v50 (MIRAQUA 28 Oct, P06.2): the counted cells by class,
+    cnt = []                                              # traced into the stream edge plan's loose ground (15k)
     for k, lab, col in reversed(LC_CLASSES):
         rings = getattr(S, "lc", {}).get(k) or []
         if not rings:
             continue
         m = [a & b for a, b in zip(free, _loop_rows(F, rings, cell, nx, ny))]
+        S.rest_rows[k] = m
         free = [a & ~b for a, b in zip(free, m)]
         cnt.append((k, lab, col, sum(bin(r).count("1") for r in m)))
     cnt.append(("rest", "Other unmapped ground · yards, streets without a measured width, bare or built", REST_C,

@@ -41,9 +41,11 @@ def section_sat(sd_):
     return rows
 
 
-def draw_sat_strips(B, rows, P, Lm, ytop, x, U, L):
-    """The satellite rows under the use ribbon, named at the left; returns the y below them."""
-    h, g = 0.24 * U, 0.06 * U
+def draw_sat_strips(B, rows, P, Lm, ytop, x, U, L, th=None):
+    """The satellite rows under the use ribbon, named at the left; returns the y below them. v50 (MIRAQUA 28 Oct,
+    F12): th = the names' capital height (the rows as tall as their names, the names right-aligned by their real
+    width); without it as before."""
+    h, g = (0.24 * U if th is None else max(0.24 * U, 1.15 * th)), 0.06 * U
     y = ytop - g
     for k, lab in SAT_ROWS:
         vals = rows[k]
@@ -55,7 +57,10 @@ def draw_sat_strips(B, rows, P, Lm, ytop, x, U, L):
             if vals[a] is not None:
                 B.fill([rect(P(a, 0)[0], y - h, P(min(Lm, b + 1), 0)[0], y)], vals[a], L, 20)
             a = b + 1
-        B.text(lab, P(0, 0)[0] - 0.25 * U, y - h * 0.85, 0.18 * U, INK2, L, align="R")
+        if th is None:
+            B.text(lab, P(0, 0)[0] - 0.25 * U, y - h * 0.85, 0.18 * U, INK2, L, align="R")
+        else:
+            B.text(lab, P(0, 0)[0] - 0.25 * U - site28_tw(lab, th), y - 0.5 * (h + th), th, INK2, L, font=FONT_TITLE)
         y -= h + g
     return y
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA WATER BOARD v3.2 (2026-10-27; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
+"""BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
 
@@ -8,11 +8,11 @@ HOW TO RUN
   (build, run, go ...). One press writes the board (option A, storage as cubes); a second press writes it again. Nothing
   is baked into Rhino. The log is kept after the Button is released (output log; pdf = the paths) and written to
   Downloads/Bergama/logs/bergama_water_board_log.txt (v1.3).
-    Bergama_water_board_v3_A_cubes.pdf      option A (organic forms only where the project meets the water)
+    Bergama_water_board_v4_A_cubes.pdf      option A (organic forms only where the project meets the water)
   The plant photos are fetched once from Wikipedia / Wikimedia Commons (open licences only) into
   Downloads/Bergama/cached/plant_photos/ (v3: shared with the agriculture alternatives) and read from there afterwards;
   offline, each photo is a labelled empty frame and the board is written as usual.
-  The board is one A0 landscape page (1189 x 841 mm), vector (the plant photos excepted), whole-string Helvetica text.
+  The board is one A0 landscape page (1189 x 841 mm), vector (the plant photos excepted), whole-string Arial text (v4: embedded).
   Open Bergama_Altlik.3dm (25 Oct; the course survey works the same) first if you have it: the S4 detail then cuts its ground again
   from the survey heights; without it the embedded survey profile is used (the log says which).
 
@@ -42,6 +42,20 @@ DATA RULES
   Settled 24 Oct (CONFLICTS.md, this account wins): one-way loop, nothing pumped back; a continuous regulated strip
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
+
+NEW IN v4 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
+  * p.14 seasons: one scale, 1:500, with a scale bar; a THE SEASON column (climate measured, water balance, plants
+    designed) and FEEL · HEAR · TOUCH with bold keywords; compact season tags; the panel fits under the S4 key map.
+  * p.15 north-east bank: THROUGH THE YEAR under the cut: a lane for each band of the bank, the users as see-through
+    bands (how busy: design assumption), the season water and the winter flood reach, free time, the in-bed sub-hub
+    and the Kermes week; the four season strips go; the summer strip reads 400 cm × 0.30 m.
+  * pp.14-15: the people are common/figures.py silhouettes, the Kermes stall in thin lines.
+  * p.16 plants: the photos from common/plant_photos (an empty frame says why); the keywords of where and why bold.
+  * K4 cut: "right bank 2.1 m (survey, before the DSİ walls)"; the DSİ cut cites SYGM 2019 Yönetici Özeti p.75,
+    measure 155 (bank depth research 28 Oct §4).
+  * Decision panel: "THEN THE FARMS". Footer: version and palette only. Bold keywords in every context line.
+  * Sources: no [n] for our own research notes on pp.14-16 (the activities read as design). Arial embedded (G3).
+  Output: Bergama_water_board_v4_A_cubes.pdf.
 
 NEW IN v3.2 (bugfix, Aras 27 Oct, booklet Prompt 8 "final fault check"; pages as booklet v17 numbers them):
   * p.13 "Collect, clean, hold": "design storage" sits over its own cube (it lay on the first-fill cube); the storage
@@ -114,8 +128,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v3.2 (2026-10-27)"
-SHORT = "v3.2"
+VERSION = "bergama_water_board v4 (2026-10-28)"
+SHORT = "v4"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -124,12 +138,11 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
 CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of these at which they fit (v1.11: round)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v3_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v4_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
-COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 PHI, PSI = 32.9, 36.2                # axonometric of the storage cubes and the farm pictogram (water loop v2 view)
 
 COL = {
@@ -681,9 +694,14 @@ def hand_arrow(pg, P, kind="water", small=1.0, cols=None):
 
 
 #@include ../common/para.py
+# v4 (MIRAQUA 28 Oct, PLAN §2): the round's shared definitions (styles, units, figures, label placing)
+#@include ../common/r28_style.py
+#@include ../common/units.py
+#@include ../common/figures.py
+#@include ../common/label_place.py
 
 
-SRC_KEY = []                         # v1.6: sources printed as [n] on the drawings; the numbered key is in the footer
+SRC_KEY = []                       # v1.6: sources printed as [n] on the drawings; the numbered key is in the footer
 
 
 def cite(src):
@@ -730,7 +748,7 @@ CHAIN = [  # (place, what it does, [(element number or None, pictogram, keywords
       (3, "slope", u"terraces hold street + roof runoff"), (4, "cube", u"planted basins store winter water"),
       (5, "drop", u"spillway: overflow back to the stream")]),
     (u"K4 + K5 BRIDGES", u"live with the water",
-     [(6, "strip", u"summer strip 4 m x 0.30 m"), (7, "tree", u"strip waters the bank planting"),
+     [(6, "strip", u"summer strip 400 cm × 0.30 m"), (7, "tree", u"strip waters the bank planting"),   # v4 (G13)
       (8, "spread", u"floods spread onto terraces"), (9, "person", u"people on the raised dry top"),
       (None, "olive", u"K5 Demeter's Garden: olives, aromatics, beds")]),
     (u"DOWNSTREAM END", u"gives back",
@@ -1179,7 +1197,9 @@ def draw_sections(opt, box=SECT_BOX):
 
 SECT_K = 4.0                         # v1.10: every cut at 1:250 across and up (4 mm per m), one shared scale
 CUTS_DEN = [None]                    # the scale the six cuts end at on the sheet (read by results.json)
-S4_DENS = (250.0, 500.0, 1000.0)     # the S4 season rows: the first scale at which all four fit their cells (v1.11: round)
+S4_DENS = (500.0,)                   # the S4 season rows' scale. v4 (MIRAQUA 28 Oct, P14.2): 1:500 only (at 1:250 the four
+#                                      rows are about 200 mm tall, more than the page leaves under the S4 key map; the
+#                                      1:250 try, four engine cuts, is no longer drawn and dropped)
 
 
 # ---------------------------------------------------------------- W2b  the S4 detail (folded in from bergama_detail_section v2)
@@ -1238,6 +1258,7 @@ def detail_engine():
             pg.text("%+.2f %s" % (z, names[z]), x + 4.4, Yl - 0.1, FS_MIN, ns["GREY"], layer="dimensions")
     ns["level_line"] = level_line
     ns["vdims"] = vdims
+    r28_people(ns)                    # v4 (MIRAQUA 28 Oct, P19.2): the people of pp.14-15 as common/figures.py silhouettes
     _DET.append(ns)
     return ns
 
@@ -1398,32 +1419,36 @@ S4_MONTH_IDX = {"winter": (11, 0, 1), "spring": (2, 3, 4), "summer": (5, 6, 7), 
 # bed to people: outside Dec-Apr (89 % of the year's flow, RIVER) and with rain below open-water evaporation
 # (RAIN < EVAP, no surplus month). Computed: May-Oct.
 SUBHUB_OPEN = [m for m in range(12) if m not in (11, 0, 1, 2, 3) and RAIN[m] < EVAP[m]]
-ACT_SRC = (u"concept/Selinos_riverfront_design_concept_v1.md §10.1 (design: life on the bands by season); detail "
-           u"section v2 season texts")
-KERMES_SRC = (u"h01 §2.8: Bergama Kermesi since 1937, 90th edition 29 Jun-5 Jul 2026 (s60, s100); h03 Q5: 2024 "
+# v4 (MIRAQUA 28 Oct, F5: booklet sources are public online only): KERMES_SRC, TOUCH_SRC and TUNNEL_SRC are our own
+# research notes, so pp.14-15 print no [n] for them (the activities, once ACT_SRC, are said to be design instead)
+KERMES_SRC =(u"h01 §2.8: Bergama Kermesi since 1937, 90th edition 29 Jun-5 Jul 2026 (s60, s100); h03 Q5: 2024 "
               u"concerts in Kızıl Avlu (Red Hall) and events at the Arasta, by the stream")
 TOUCH_SRC = (u"history_phase1/DECISIONS.md D9: water people touch is UV-disinfected; " + REG +
              u" EN-D3, EN-E1, EN-E2")
 # FEEL / HEAR / TOUCH: what we design each season to feel, sound and touch like in the amphibious ground (design
-# intentions, ours; no measurement). (pictogram, keywords)
+# intentions, ours; no measurement). (pictogram, keywords). v4 (MIRAQUA 28 Oct, G5): **bold** keywords
 SEASON_USE = {
     "winter": dict(water=("flood", u"high water"), acts=("sit", "watch"),
-                   feel=("awe", u"awe at its force"), hear=("snd3", u"rushing water"), touch=("watch", u"look, keep back"),
-                   extra=("tunnel", u"the Roman tunnels at work", TUNNEL_SRC)),
+                   feel=("awe", u"**awe** at its force"), hear=("snd3", u"**rushing water**"),
+                   touch=("watch", u"**look**, keep back"),
+                   extra=("tunnel", u"the **Roman tunnels** at work", TUNNEL_SRC)),
     "spring": dict(water=("rain", u"water falling"), acts=("walk", "child"),
-                   feel=("curious", u"curiosity, new green"), hear=("snd2", u"running water, birds"),
-                   touch=("hand", u"hands at the edge")),
+                   feel=("curious", u"**curiosity**, new green"), hear=("snd2", u"running water, **birds**"),
+                   touch=("hand", u"**hands** at the edge")),
     "summer": dict(water=("strip", u"low water, strip"), acts=("walk", "wade", "stall"),
-                   feel=("joy", u"play, cool shade"), hear=("snd1", u"trickle and voices"),
-                   touch=("foot", u"feet in UV-clean water", TOUCH_SRC),
-                   extra=("stall", u"Kermes in the dry bed", KERMES_SRC)),
+                   feel=("joy", u"**play**, cool shade"), hear=("snd1", u"trickle and **voices**"),
+                   touch=("foot", u"**feet** in UV-clean water", TOUCH_SRC),
+                   extra=("stall", u"**Kermes** in the dry bed", KERMES_SRC)),
     "autumn": dict(water=("dry", u"low water"), acts=("walk", "sit"),
-                   feel=("calm", u"calm, waiting for rain"), hear=("snd1", u"reeds rustle, first rain"),
-                   touch=("gravel", u"gravel underfoot")),
+                   feel=("calm", u"**calm**, waiting for rain"), hear=("snd1", u"reeds rustle, **first rain**"),
+                   touch=("gravel", u"**gravel** underfoot")),
 }
 TAG_W = 40.0                         # the season column at the left, mm (v1.14: 36)
 SENSE_MIN = 40.0                     # v3: the narrowest FEEL / HEAR / TOUCH column (it takes the width the cuts leave)
 SEASON_GAP = 2.5                     # v3: between the columns and between the rows, mm
+
+
+#@include parts/r28_occupancy.py
 
 
 def subhub_words(key):
@@ -1439,7 +1464,7 @@ def subhub_words(key):
 def draw_s4_season(key, log=None, scale=None):
     """One season of the S4 cut, south-west bank and bed: the season's water hatched and its levels at the right, and
     what people do there (S4_SEASON words) set in the sky with leaders. v1.14: the season's name, water, hub and
-    senses are drawn beside the row by draw_seasons_panel. v3: no scale bar (the scale is in the caption)."""
+    senses are drawn beside the row by draw_seasons_panel (v4: with one scale bar under the four rows)."""
     scale = scale or S4_SCALE
     E = detail_engine()
     prof = s4_profile(E, log)
@@ -1463,8 +1488,8 @@ def draw_s4_season(key, log=None, scale=None):
         lv.append((S.Y(w[0]), u"{:.2f} m {}".format(w[0] - bed, names[i] if i < len(names) else u""),
                    E["FLOOD"], i == 0))
     if sea["strip_held"] and not [w for w in sea["water"] if w[1]]:
-        lv.append((S.Y(bed) + 0.01, u"strip {:.1f} x {:.2f} m".format(abs(E["STRIP"][1] - E["STRIP"][0]),
-                                                                   E["STRIP"][2]), E["FLOOD"], True))
+        lv.append((S.Y(bed) + 0.01, u"strip {} × {}".format(u_dim(abs(E["STRIP"][1] - E["STRIP"][0])),   # v4 (G13)
+                                                            u_height(E["STRIP"][2])), E["FLOOD"], True))
     if key == "winter":
         lv += [(S.Y(q100), u"{:.2f} m Q100".format(q100 - bed), E["FLOOD"], True),
                (S.Y(q500), u"{:.2f} m Q500".format(q500 - bed), E["FLOOD"], True)]
@@ -1481,42 +1506,43 @@ def draw_s4_season(key, log=None, scale=None):
 
 def senses(pg, x, y, use, w, fs=FS_MIN):
     """FEEL / HEAR / TOUCH of one season in a column w wide: three pictograms with their keywords from the top y.
-    Returns bottom y."""
+    v4 (MIRAQUA 28 Oct): keywords bold (G5), no [n] (F5: design intentions, our own record), a little smaller so the
+    1:500 rows keep their height. Returns bottom y."""
     for slot in ("feel", "hear", "touch"):
-        kind, words = use[slot][0], use[slot][1]
-        icon(pg, kind, x, y, 6.4)
-        t = words + (u" " + cite(use[slot][2]) if len(use[slot]) > 2 else u"")
-        yy = para(pg, x + 8.0, y + fs * 0.2, w - 8.0, t, fs, COL["ink"])
-        y = min(y - 7.6, yy - 1.2)
+        icon(pg, use[slot][0], x, y, 5.6)
+        yy = r28_para(pg, x + 7.0, y + fs * 0.2, w - 7.0, use[slot][1], fs, COL["ink"])
+        y = min(y - 6.6, yy - 1.0)
     return y
 
 
 def season_tag(pg, x, y, key):
-    """The season's column: name, months, water state, what people do (pictograms), the in-bed hub, and (winter,
-    summer) the season's story. Returns bottom y."""
+    """The season's column: name, months, water state, what people do, the in-bed hub. v4 (MIRAQUA 28 Oct, P14.2):
+    compact for the 1:500 rows; what people do as common/figures.py silhouettes 6 mm tall (P19.2), said to be design
+    (F5: no [n] for our concept note); the season's story moved to THE SEASON (season_info). Returns bottom y."""
     fs = FS_MIN
     w = TAG_W - 2.0
     use = SEASON_USE[key]
     sea = [s for s in detail_engine()["SEASONS"] if s["key"] == key][0]
     pg.poly([rect(x, y - 1.0, x + w, y)], fill=BAND_BLUE[SEAS.index(key)])
-    pg.text(sea["name"], x, y - 6.4, 5.0, COL["ink_dark"], bold=True)
-    yy = para(pg, x, y - 7.4, w, S4_MONTHS[key] + u" · " + S4_SEASON[key]["head"], fs, COL["ink2"], bold=True) - 1.4
-    icon(pg, use["water"][0], x, yy, 5.6)
-    pg.text(use["water"][1], x + 7.0, yy - 3.6, fs, MP["discharge"][2], bold=True)
-    yy -= 7.2
-    for j, kind in enumerate(use["acts"]):
-        icon(pg, kind, x + j * 8.0, yy, 7.0)
-    pg.text(cite(ACT_SRC), x + len(use["acts"]) * 8.0 + 0.4, yy - 4.4, fs, COL["ink2"])
-    yy -= 8.8
+    pg.text(sea["name"], x, y - 5.6, 4.4, COL["ink_dark"], bold=True)
+    yy = para(pg, x, y - 6.2, w, S4_MONTHS[key] + u" · " + S4_SEASON[key]["head"], fs, COL["ink2"], bold=True) - 1.0
+    icon(pg, use["water"][0], x, yy, 4.6)
+    pg.text(use["water"][1], x + 6.0, yy - 3.2, fs, MP["discharge"][2], bold=True)
+    yy -= 6.0
+    k = 6.0 / 1.75                                       # an adult 6 mm tall
+    xa = x + 0.6
+    for kind in use["acts"]:
+        if kind == "stall":
+            xa = r28_stall(pg, xa + 3.8, yy - 6.0, k * 0.75, COL["ink"])[2] + 1.4
+        else:
+            pose, h = R28_ACT_POSE[kind]
+            bx = r28_fig(pg, pose, xa + 0.6, yy - 6.0, k, COL["ink"], 1, h)
+            xa = bx[2] + 1.4
+    pg.text(u"design", xa + 0.4, yy - 5.6, fs, COL["ink2"])
+    yy -= 7.4
     kind, words = subhub_words(key)
-    icon(pg, kind, x, yy, 5.6)
-    yy = para(pg, x + 7.0, yy + fs * 0.2, w - 7.0, words, fs, COL["ink"], bold=True) - 1.6
-    if use.get("extra"):
-        kind, words, src = use["extra"]
-        icon(pg, kind, x, yy, 5.6)
-        yy = para(pg, x + 7.0, yy + fs * 0.2, w - 7.0, words + u" " + cite(src), fs, MP["discharge"][2],
-                  bold=True) - 1.0
-    return yy
+    icon(pg, kind, x, yy, 4.6)
+    return para(pg, x + 6.0, yy + fs * 0.2, w - 6.0, words, fs, COL["ink"], bold=True) - 1.0
 
 
 def month_strip(pg, x, y, gx, gw):
@@ -1535,18 +1561,19 @@ def month_strip(pg, x, y, gx, gw):
         pg.poly([rect(gx + m * cw + 0.3, yc - 5.0, gx + (m + 1) * cw - 0.3, yc)], fill="E4D6B0" if op else C["w2"])
         pg.text(MONTHS[m], gx + (m + 0.5) * cw, yc - 3.6, fs, COL["ink_dark"] if op else COL["white"], bold=True,
                 align="C")
-    xk = gx + (5 + 28.5 / 30.0) * cw                     # Kermes 29 Jun-5 Jul (h01 §2.8)
-    xk1 = gx + (6 + 5.0 / 31.0) * cw
-    pg.poly([rect(xk, yc - 6.2, xk1, yc - 5.4)], fill=C["acc"])
-    icon(pg, "stall", xk - 2.0, yc - 6.8, 4.6)
-    pg.text(u"Kermes " + cite(KERMES_SRC), xk + 3.4, yc - 10.3, fs, C["acc"], bold=True)
+    xk = gx + OCC_KERMES[0] * cw                         # Kermes 29 Jun-5 Jul (h01 §2.8)
+    xk1 = gx + OCC_KERMES[1] * cw
+    # v4 (MIRAQUA 28 Oct): the Kermes in its p.15 colour, its stall in thin lines as on p.15; no [n] (F5: the dates
+    # and the tunnels come from our own research notes)
+    pg.poly([rect(xk, yc - 6.2, xk1, yc - 5.4)], fill=OCC_COL["kermes"])
+    r28_stall(pg, xk + 0.3, yc - 11.0, 1.7, OCC_COL["kermes"])
+    pg.text(u"Kermes · late Jun-early Jul", xk + 3.4, yc - 10.3, fs, OCC_COL["kermes"], bold=True)
     yb = yc - 6.2
     for a_, b_ in ((0, 3), (11, 11)):                    # Dec-Apr
         pg.line([(gx + a_ * cw + 0.5, yb), (gx + a_ * cw + 0.5, yb - 1.2), (gx + (b_ + 1) * cw - 0.5, yb - 1.2),
                  (gx + (b_ + 1) * cw - 0.5, yb)], MP["discharge"][2], 0.35)
     icon(pg, "tunnel", gx, yb - 2.0, 4.6)
-    pg.text(u"high water: the Roman tunnels at work " + cite(TUNNEL_SRC), gx + 5.6, yb - 5.6, fs,
-            MP["discharge"][2], bold=True)
+    r28_text(pg, u"high water: the **Roman tunnels** at work", gx + 5.6, yb - 5.6, fs, MP["discharge"][2])
     return min(yb - 8.0, y - 10.5)
 
 
@@ -1556,113 +1583,61 @@ def draw_seasons_panel(W, H, log):
     All four at the same scale and the same horizontal extent, stacked so the bank lines up"): the month strip, then
     one row a season, each closed by its divider line: the season's column at the left, the S4 cut standing on the
     divider (all four on one x, so the bank lines up), FEEL / HEAR / TOUCH at the right in the width the cuts leave.
-    The rows share the height that is left, so the panel fills W x H with no empty band. The largest of S4_DENS at
-    which it fits (1:250 on the A3 page). Returns (Page, scale denominator)."""
+    The rows share the height that is left, so the panel fills W x H with no empty band. v4 (MIRAQUA 28 Oct, P14.2
+    "empty right side"): one stated scale, 1:500 (S4_DENS; H is at most R28_PART_H under the S4 key map), and the
+    width the cuts leave filled with content: THE SEASON (season_info: climate measured, plants designed) between the
+    cuts and FEEL · HEAR · TOUCH; the scale bar under the cuts. Returns (Page, scale denominator)."""
     W, H = W - 0.5, H - 0.5                              # a hair inside, so the panel is placed at 1:1
-    pg = den = None
-    for den in S4_DENS:
-        cuts = dict((k_, draw_s4_season(k_, log, den)) for k_ in SEAS)
-        bbs = [items_bbox(cuts[k_].items) for k_ in SEAS]
-        cx0, foot = min(b[0] for b in bbs), min(b[1] for b in bbs)
-        wcut, hcut = max(b[2] for b in bbs) - cx0, max(b[3] for b in bbs) - foot
-        xc = TAG_W + SEASON_GAP                          # the cuts' band, the same x for all four
-        xs = xc + wcut + SEASON_GAP                      # FEEL / HEAR / TOUCH
-        sw = W - xs
-        scratch = Page(0, 0)
-        hrow = max([hcut] + [-season_tag(scratch, 0.0, 0.0, k_) for k_ in SEAS] +
-                   [-senses(scratch, 0.0, 0.0, SEASON_USE[k_], max(sw, SENSE_MIN)) for k_ in SEAS]) + 1.5
-        pg = Page(0, 0)
-        y = month_strip(pg, 0.0, 0.0, xc, wcut) - SEASON_GAP
-        para(pg, xs, 3.2 * 0.2, max(sw, SENSE_MIN), u"FEEL · HEAR · TOUCH", 3.2, COL["ink_dark"], bold=True)
-        para(pg, xs, -5.0, max(sw, SENSE_MIN), u"design intention, ours", FS_MIN, COL["ink2"])
-        free = H - (items_bbox(pg.items)[3] - y) - 4 * hrow - 3 * SEASON_GAP
-        if (sw >= SENSE_MIN and free >= 0.0) or den == S4_DENS[-1]:
-            break
+    den = S4_DENS[0]
+    cuts = dict((k_, draw_s4_season(k_, log, den)) for k_ in SEAS)
+    bbs = [items_bbox(cuts[k_].items) for k_ in SEAS]
+    cx0, foot = min(b[0] for b in bbs), min(b[1] for b in bbs)
+    wcut, hcut = max(b[2] for b in bbs) - cx0, max(b[3] for b in bbs) - foot
+    xc = TAG_W + SEASON_GAP                              # the cuts' band, the same x for all four
+    xi = xc + wcut + SEASON_GAP                          # THE SEASON
+    sw = max(SENSE_MIN, min(R28_SENSE_W, (W - xi) * 0.4))   # FEEL / HEAR / TOUCH
+    iw = W - xi - SEASON_GAP - sw
+    xs = xi + iw + SEASON_GAP
+    scratch = Page(0, 0)
+    hrow = max([hcut] + [-season_tag(scratch, 0.0, 0.0, k_) for k_ in SEAS] +
+               [-season_info(scratch, 0.0, 0.0, k_, iw) for k_ in SEAS] +
+               [-senses(scratch, 0.0, 0.0, SEASON_USE[k_], sw) for k_ in SEAS]) + 1.5
+    pg = Page(0, 0)
+    y = month_strip(pg, 0.0, 0.0, xc, wcut) - SEASON_GAP
+    for x_, w_, head, sub in ((xi, iw, u"THE SEASON", u"climate **measured** · plants **designed**"),
+                              (xs, sw, u"FEEL · HEAR · TOUCH", u"design intention, ours")):
+        para(pg, x_, 3.2 * 0.2, w_, head, 3.2, COL["ink_dark"], bold=True)
+        r28_para(pg, x_, -5.0, w_, sub, FS_MIN, COL["ink2"])
+    top = items_bbox(pg.items)[3]
+    bar = r28_bar_box(0.0, 0.0, den)
+    gap = SEASON_GAP
+    free = H - (top - y) - 4 * hrow - 4 * gap - (bar[3] - bar[1])
+    if free < 0.0:                                       # tighter gaps before anything is shrunk
+        gap = 1.0
+        free = H - (top - y) - 4 * hrow - 4 * gap - (bar[3] - bar[1])
+    if free < 0.0 and log is not None:
+        log.append(u"WARNING: p.14 S4 seasons {:.1f} mm taller than the {:.0f} mm under the key map".format(-free, H))
     hrow += max(free, 0.0) / 4.0
     for key in SEAS:
         div = y - hrow                                   # the row's divider line: the cut stands on it
         pg.items += xform(cuts[key].items, 1.0, xc - cx0, div - foot)
         season_tag(pg, 0.0, y, key)
-        senses(pg, xs, y, SEASON_USE[key], max(sw, SENSE_MIN))
-        pg.line([(0.0, div), (xs + max(sw, SENSE_MIN), div)], COL["faint"], 0.25)
-        y = div - SEASON_GAP
+        season_info(pg, xi, y, key, iw)
+        senses(pg, xs, y, SEASON_USE[key], sw)
+        pg.line([(0.0, div), (xs + sw, div)], COL["faint"], 0.25)
+        y = div - gap
+    r28_scale_bar(pg, xc, y - bar[3], den)               # one bar for the four cuts (one scale)
     if log is not None:
-        log.append(u"p.20 S4 seasons: 1:{:,.0f}, rows {:.1f} mm, cuts {:.0f} mm wide, FEEL column {:.0f} mm{}".format(
-            den, hrow, wcut, sw, u"" if den == S4_DENS[0] else u" (1:{:,.0f} did not fit the panel)".format(S4_DENS[0])))
+        log.append(u"p.14 S4 seasons: 1:{:,.0f}, rows {:.1f} mm, cuts {:.0f} mm wide, THE SEASON {:.0f} mm, FEEL column "
+                   u"{:.0f} mm, panel {:.0f} x {:.0f} mm".format(den, hrow, wcut, iw, sw, W, top - y + bar[3] - bar[1]))
     return pg, den
 
 
-NE_ZONES = [  # v1.14: the fixed parts of the north-east bank (SECTIONS[1] of the detail engine), s along S4 (m)
-    (652.0, 638.0, u"promenade +47.60", "D9D6CC"), (638.0, 633.5, u"steps", "C9C8C3"),
-    (633.5, 622.5, u"lower walk +45.35", "D9D6CC"), (622.5, 594.0, u"gravel bed", "CFC6B2"),
-    (594.0, 590.0, u"strip", "9CC7DE")]
-NE_USE = {  # what people do on this bank by season: (s, pictogram, keywords); concept v1 §10.1 (ACT_SRC), Kermes
-    "winter": [(645.5, "watch", u"watch the floods"), (635.8, "sit", u"sit"), (628.5, "walk", u"open between storms")],
-    "spring": [(645.5, "walk", u"walk"), (635.8, "sit", u"sit"), (628.5, "walk", u"lower walk open"),
-               (613.0, "child", u"at the water's edge")],
-    "summer": [(645.5, "walk", u"walk"), (635.8, "sit", u"sit"), (617.0, "stall", u"Kermes"),
-               (606.0, "walk", u"walk in the bed"), (592.5, "wade", u"wade")],
-    "autumn": [(645.5, "walk", u"walk"), (635.8, "sit", u"sit"), (612.0, "walk", u"walk the gravel bed")],
-}
-
-
-def ne_strips(pg, E, S, y):
-    """v1.14 (Aras 27 Oct, p.21: "fixed elements like terraces stay in place; what changes by season is how people
-    interact with the stream"): under the cut, on its own x, one strip a season: the fixed parts of the bank as a bar,
-    the season's water over it (where this cut's ground lies under the season's water), hatched where Q100 / Q500 reach
-    (winter), what people do there as pictograms, and FEEL / HEAR / TOUCH. Returns the bottom y."""
-    fs = FS_MIN
-    xl = S.X(NE_ZONES[0][0])
-    pg.text(u"THE TERRACES STAY · THE WATER AND WHAT PEOPLE DO CHANGE " + cite(ACT_SRC), xl, y - 3.2, 3.2,
-            COL["ink_dark"], bold=True)
-    y -= 3.2 + fs * 1.8
-    for a, b, name, _ in NE_ZONES:
-        pg.text(name, (S.X(a) + S.X(b)) / 2.0, y, fs, COL["ink2"], align="C")
-    y -= 3.0
-    q500 = E["Q500"]
-
-    def runs(level):
-        """[(x0, x1)] where the ground of this cut lies under level."""
-        out, cur = [], None
-        n = int((NE_ZONES[0][0] - NE_ZONES[-1][1]) / 0.25)
-        for i in range(n + 1):
-            s = NE_ZONES[0][0] - 0.25 * i
-            if S.surf(s) < level:
-                cur = [S.X(s), S.X(s)] if cur is None else [cur[0], S.X(s)]
-            elif cur is not None:
-                out.append(cur)
-                cur = None
-        if cur is not None:
-            out.append(cur)
-        return out
-    for key in SEAS:
-        sea = [s_ for s_ in E["SEASONS"] if s_["key"] == key][0]
-        use = SEASON_USE[key]
-        pg.text(sea["name"], xl - 3.0, y - 4.8, 3.6, COL["ink_dark"], bold=True, align="R")
-        pg.text(S4_MONTHS[key], xl - 3.0, y - 4.8 - fs * 1.4, fs, COL["ink2"], align="R")
-        for s, kind, words in NE_USE[key]:
-            x = S.X(s)
-            icon(pg, kind, x - 3.2, y, 6.4)
-            pg.text(words, x + 3.8, y - 4.4, fs, COL["ink"])
-        yb = y - 8.0
-        for a, b, _, colr in NE_ZONES:
-            pg.poly([rect(S.X(a), yb - 3.0, S.X(b), yb)], fill=colr)
-        filled = [w[0] for w in sea["water"] if w[1]] + ([E["THALWEG"][1] + 0.005] if sea["strip_held"] else [])
-        for x0, x1 in runs(max(filled) if filled else -99.0):
-            pg.poly([rect(x0, yb - 3.0, x1, yb)], fill=C["w3"])
-        if key == "winter":
-            for x0, x1 in runs(q500):
-                pg.poly([rect(x0, yb - 3.0, x1, yb)], fill=None, stroke=C["w4"], lw=0.15,
-                        stripes=(C["w4"], 0.9, 0.15))
-            pg.text(u"hatched: Q100 / Q500 reach", S.X(NE_ZONES[-1][1]), yb - 3.0 - fs * 1.3, fs, C["w4"],
-                    align="R")
-        y = chips(pg, xl, yb - 4.0, [(use[k][0], use[k][1]) for k in ("feel", "hear", "touch")], fs) - 3.0
-    return y
-
-
-def draw_s4_ne(log, den=None):
+def draw_s4_ne(log, den=None, h_max=None):
     """The north-east bank of the S4 cut at 1:den (v3: S4_NE_SCALE, 1:250), summer, with the engine's callouts, widths
-    (cm, v1.14), materials and levels, the flood levels at its left, and under it the four season strips (ne_strips)."""
+    (cm, v1.14), materials and levels, the flood levels at its left. v4 (MIRAQUA 28 Oct, P15.2): under it the
+    occupancy diagram THROUGH THE YEAR (draw_occupancy, was the four season strips of ne_strips), the whole at most
+    h_max tall (R28_PART_H: the booklet's key map); the scale bar beside the cut; soil S4_NE_POCHE under the strip."""
     den = den or S4_NE_SCALE
     E = detail_engine()
     prof = s4_profile(E, log)
@@ -1674,6 +1649,7 @@ def draw_s4_ne(log, den=None):
         sea = dict(E["SEASONS"][2])
         pg = E["Page"]("detail", "S4")
         S = E["Sec"](E["SECTIONS"][1], prof)
+        S.zb = E["THALWEG"][1] - E["STRIP"][2] - S4_NE_POCHE   # v4 (MIRAQUA 28 Oct, P15.2): room for the diagram
         del E["_LV"][:]
         notes = []
         E["draw_section"](pg, S, 0.0, 0.0, notes, sea)
@@ -1703,7 +1679,24 @@ def draw_s4_ne(log, den=None):
     lay = {"poly": 6, "line": 5, "circle": 7, "text": 8}
     out.items = from_engine([it for it in pg.items if (it[0] != "text" or it[8] != "title") and
                              it[lay[it[0]]] != "survey"])
-    ne_strips(out, E, S, items_bbox(out.items)[1] - 6.0)
+    # v4 (MIRAQUA 28 Oct): the scale bar in a free corner under the cut (its left or right foot), else in the gap
+    # under it; then the occupancy diagram (P15.2) in the height left under h_max
+    bb = items_bbox(out.items)
+    bx = r28_bar_box(0.0, 0.0, den)
+    spot = r28_bar_free(out.items, [(bb[0] + 1.0, bb[1] - bx[1]), (bb[2] - bx[2] - 0.5, bb[1] - bx[1])], den)
+    y0 = bb[1] - 5.0
+    if spot:
+        r28_scale_bar(out, spot[0], spot[1], den)
+    else:
+        yb_ = bb[1] - 1.0 - (r28_bar_box(0.0, 0.0, den, below=False)[3])
+        r28_scale_bar(out, S.X(OCC_S[0]), yb_, den, below=False)
+        y0 = yb_ - FS_MIN * 0.3 - 4.0
+    h_max = h_max or R28_PART_H
+    draw_occupancy(out, E, S, y0, h_max - (bb[3] - y0) - 0.5, bb[0], bb[2])
+    ob = items_bbox(out.items)
+    log.append(u"p.15 S4 north-east bank 1:{:,.0f} with the occupancy diagram: {:.0f} x {:.0f} mm{}".format(
+        den, ob[2] - ob[0], ob[3] - ob[1], u"" if ob[3] - ob[1] <= h_max + 0.05 else
+        u" (WARNING: more than the {:.0f} mm under the key map)".format(h_max)))
     return out
 
 
@@ -2064,10 +2057,15 @@ def draw_bands(opt, den=None):
         _bands_chip(pg, code, x_, y + fs * 1.05, fs)
         pg.text(t, x_ + fs * 1.7 + 1.0, y, fs, COL["ink"])
         x_ += w_
-    t = u"S4, looking upstream · bands " + cite(BAND_SOURCE)    # v3: no scale bar (the scale is in the caption)
+    t = u"S4, looking upstream · bands " + cite(BAND_SOURCE)
     if x_ > 0.0 and x_ + text_w(t, fs) > W:
         x_, y = 0.0, y - fs * 1.7
     pg.text(t, x_, y, fs, COL["ink2"])
+    # v4 (MIRAQUA 28 Oct, PLAN §2): the scale bar after the caption (or on a line of its own), "1:den" after it
+    xb = x_ + text_w(t, fs) + 4.0
+    if xb + r28_bar_box(0.0, 0.0, den, fs, False)[2] > W:
+        xb, y = 0.0, y - fs * 1.7 - 1.0
+    r28_scale_bar(pg, xb, y - 0.6, den, fs, False)
     return pg
 
 
@@ -2151,14 +2149,16 @@ def pdf_add_images(path, imgs):
 
 # ---------------------------------------------------------------- v1.14 p.22: the plants panel
 PLANT_SITES = [  # where on site, in water order (not to scale): (place, pictograms, keywords, source or None)
-    (u"UPSTREAM ENTRY", ("reed",), u"reed beds clean the inflow: {}, {}, {}".format(
+    # v4 (MIRAQUA 28 Oct): **bold** keywords (P16.2); K5 without its [n] (F5: "card i01" is our own research card)
+    (u"UPSTREAM ENTRY", ("reed",), u"**reed beds** clean the inflow: {}, {}, {}".format(
         plant_name("reed"), plant_name("mint"), plant_name("iris")), CHAIN_SRC),
-    (u"K4 · K3", ("tree",), u"dry hub squares: {}, watered from storage".format(plant_name("plane")), SPECIES[0][4]),
-    (u"RED HALL", ("olive",), u"{}: the 19th-c. olive-oil mill in its rotunda".format(plant_name("olive")),
+    (u"K4 · K3", ("tree",), u"**dry hub squares**: {}, watered from storage".format(plant_name("plane")),
+     SPECIES[0][4]),
+    (u"RED HALL", ("olive",), u"{}: the 19th-c. **olive-oil mill** in its rotunda".format(plant_name("olive")),
      SPECIES[1][4]),
-    (u"K5", ("tree", "olive", "lav"), u"hub square: {} · Demeter's Garden: {}, {}".format(
-        plant_name("plane"), plant_name("olive"), plant_name("lavender")), u"card i01"),
-    (u"DOWNSTREAM END", ("reed",), u"the bands continue: wetter low, drier high", None),
+    (u"K5", ("tree", "olive", "lav"), u"**hub square**: {} · **Demeter's Garden**: {}, {}".format(
+        plant_name("plane"), plant_name("olive"), plant_name("lavender")), None),
+    (u"DOWNSTREAM END", ("reed",), u"the bands continue: **wetter low, drier high**", None),
 ]
 CARD_GAP = 3.0                       # v3: between the photo cards, mm
 
@@ -2167,7 +2167,8 @@ def plant_card(pg, x, y, w, card, photo, photos):
     """v3: one plant: its photo PHOTO_W x PHOTO_H (every photo in the booklet the same size, cut to 4:3 about its
     centre, never stretched; none = a labelled empty frame, its JPEG listed in photos), the band letter (x = take out)
     and the name "English (Turkish)" with its sources, then its rows [(pictogram, keywords, colour, bold)]. card =
-    (band, plant key, rows, source). Returns bottom y."""
+    (band, plant key, rows, source). v4 (MIRAQUA 28 Oct): P16.1 the photo from common/plant_photos.py, an empty
+    frame says "no photo: " and the reason it gives; P16.2 the rows' keywords **bold**. Returns bottom y."""
     fs = FS_MIN
     band, key, rows, src = card
     path, credit, why_not = photo
@@ -2183,7 +2184,7 @@ def plant_card(pg, x, y, w, card, photo, photos):
               bold=True) - 1.0
     for kind, words, colour, bold in rows:
         icon(pg, kind, x, yy, 4.2)
-        yy = min(yy - 4.6, para(pg, x + 5.0, yy + fs * 0.25, w - 5.0, words, fs, colour, bold=bold) - 0.8)
+        yy = min(yy - 4.6, r28_para(pg, x + 5.0, yy + fs * 0.25, w - 5.0, words, fs, colour, bold=bold) - 0.8)
     return yy
 
 
@@ -2192,14 +2193,15 @@ def plant_cards():
     every plant the booklet names gets its photo)."""
     out = []
     for band, key, where, why, src, flag in SPECIES:
-        rows = [(where[0], where[1], COL["river_dark"], True)] + [(k_, t_, COL["ink"], False) for k_, t_ in why]
+        # v4 (MIRAQUA 28 Oct, P16.2): the where row no longer all bold; its keywords are (SPECIES **markup**)
+        rows = [(where[0], where[1], COL["river_dark"], False)] + [(k_, t_, COL["ink"], False) for k_, t_ in why]
         if flag:
             hot = flag.isupper()
             rows.append(("scent" if flag in (u"aromatic", u"scent layer") else "warn", flag.lower() if hot else flag,
                          C["acc"] if hot else COL["ink2"], hot))
         out.append((band, key, rows, src))
     key, words, src = SPECIES_REMOVE
-    out.append(("x", key, [("warn", words, C["acc"], True)], src))
+    out.append(("x", key, [("warn", words, C["acc"], False)], src))
     return out
 
 
@@ -2219,8 +2221,8 @@ def where_on_site(pg, x0, y, x1):
         for i, kind in enumerate(kinds):
             icon(pg, kind, sx + 4.4 + i * 6.0, y + 7.4, 5.4)
         pg.text(place_, sx + 4.4 + len(kinds) * 6.0 + 1.0, y + 3.0, fs, COL["ink_dark"], bold=True)
-        low = min(low, para(pg, sx, y - rh - 0.6, sw - 3.0, words + (u" " + cite(src) if src else u""), fs,
-                            COL["ink"]))
+        low = min(low, r28_para(pg, sx, y - rh - 0.6, sw - 3.0, words + (u" " + cite(src) if src else u""), fs,
+                                COL["ink"]))           # v4 (P16.2): **bold** keywords
     return low
 
 
@@ -2238,10 +2240,10 @@ def why_here(pg, kx, ky, kw):
         ky -= fs * 1.45
     ky -= 2.0
     # v3.2 (Aras 27 Oct, Prompt 8, rule 7: no "no data" rows): the row "odour: no plant measured" is left out
-    for kind, words in (("tree", u"shade: new trees where the July shade below is shortest"),
-                        ("clean", u"cleaning: reed beds upstream")):
+    for kind, words in (("tree", u"**shade**: new trees where the July shade below is shortest"),   # v4 (P16.2)
+                        ("clean", u"**cleaning**: reed beds upstream")):
         icon(pg, kind, kx, ky, 4.4)
-        ky = min(ky - 5.0, para(pg, kx + 5.6, ky + fs * 0.25, kw - 5.6, words, fs, COL["ink"]) - 0.8)
+        ky = min(ky - 5.0, r28_para(pg, kx + 5.6, ky + fs * 0.25, kw - 5.6, words, fs, COL["ink"]) - 0.8)
     return ky
 
 
@@ -2260,7 +2262,8 @@ def draw_plants_panel(pg, box, opt, log):
     n = len(cards)
     cw = (W - (n - 1) * CARD_GAP) / n
     state = {}
-    photos = [plant_photo_of(c[1], log, state) if PHOTO_ON[0] else (None, None, u"not loaded") for c in cards]
+    photos = [plant_photo_of(c[1], log, state) if PHOTO_ON[0] else (None, None, u"photos switched off")   # v4 (P16.1)
+              for c in cards]
     hc = max(-plant_card(Page(0, 0), 0.0, 0.0, cw, c, p, []) for c, p in zip(cards, photos))
     hw = -where_on_site(Page(0, 0), 0.0, 0.0, W)
     hk = -why_here(Page(0, 0), 0.0, 0.0, kw)
@@ -2397,7 +2400,7 @@ DECISION = [
     (u"HOLD WINTER WATER", u"{:,.0f}-{:,.0f} m³ incl. strip = {:.1f}-{:.1f} % of Dec-Apr flow".format(
         WB_STORE[0], WB_STORE[1], 100.0 * WB_STORE[0] / WINTER_FLOW, 100.0 * WB_STORE[1] / WINTER_FLOW)),
     (u"KEEP THE STRIP ALIVE", u"clean water all summer · feeds the planting (D8)"),
-    (u"FARMS FIRST", u"farms outside (class B) · 10,000 m³ = {:.2f} ha olives · aquifer used 4.4 x".format(
+    (u"THEN THE FARMS", u"farms outside (class B) · 10,000 m³ = {:.2f} ha olives · aquifer used 4.4 x".format(   # v4 (F6)
         10000.0 / OLIVE_M3_HA)),
     (u"NOT FOR DRINKING", u"arsenic > 10 µg/L · stored rain not listed for drinking")]
 
@@ -2585,28 +2588,13 @@ def icon(pg, kind, x, y, sz):
     elif kind == "pin":
         pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 2.0 * u, fill=acc)
     # ---- v1.14: what people do, feel, hear and touch (p.20-21), plants and the tunnels (p.11, p.22)
-    elif kind in ("sit", "walk", "wade", "watch", "child"):
-        if kind == "sit":                                   # sitting on an edge, legs over it
-            pg.poly([R(0.4, 0.4, 4.6, 4.2)], fill=C["structure"])
-            pg.circle(x + 4.2 * u, y - sz + 8.6 * u, 1.2 * u, fill=ink)
-            pg.line(P([(4.0, 7.2), (3.6, 4.6), (6.6, 4.6), (7.0, 1.2)]), ink, lw * 1.6)
-        elif kind == "watch":                               # an eye: look, keep back
-            pg.poly([P([(0.6, 5.0), (2.6, 7.2), (5.0, 8.0), (7.4, 7.2), (9.4, 5.0), (7.4, 2.8), (5.0, 2.0), (2.6, 2.8)])],
-                    fill=COL["white"], stroke=ink, lw=lw)
-            pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 1.8 * u, fill=w3)
-            pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 0.8 * u, fill=ink)
-        else:
-            k_ = 0.75 if kind == "child" else 1.0
-            pg.circle(x + 5.0 * u, y - sz + (1.2 + 7.4 * k_) * u, 1.2 * k_ * u, fill=ink)
-            pg.line(P([(5.0, 1.2 + 6.1 * k_), (5.0, 1.2 + 3.2 * k_)]), ink, lw * 1.6)
-            pg.line(P([(3.4, 1.2), (5.0, 1.2 + 3.2 * k_), (6.6, 1.2)]), ink, lw * 1.6)
-            pg.line(P([(3.4, 1.2 + 4.0 * k_), (5.0, 1.2 + 5.6 * k_), (6.8, 1.2 + 4.4 * k_)]), ink, lw * 1.2)
-            if kind == "wade":
-                pg.poly([R(0, 0.2, 10, 2.4)], fill=w2, alpha=0.85)
-    elif kind == "stall":                                   # a festival stall (the Kermes)
-        pg.poly([P([(1.0, 6.2), (5.0, 9.4), (9.0, 6.2)])], fill=acc)
-        pg.poly([R(1.6, 0.6, 8.4, 6.2)], fill=COL["white"], stroke=ink, lw=lw)
-        pg.poly([R(3.6, 0.6, 6.4, 4.0)], fill=agri)
+    # v4 (MIRAQUA 28 Oct, P19.2 / P15.2): the people pictograms sit, walk, wade, child and the stall are gone: people
+    # are common/figures.py silhouettes (r28_fig), the stall thin lines (r28_stall)
+    elif kind == "watch":                                   # an eye: look, keep back
+        pg.poly([P([(0.6, 5.0), (2.6, 7.2), (5.0, 8.0), (7.4, 7.2), (9.4, 5.0), (7.4, 2.8), (5.0, 2.0), (2.6, 2.8)])],
+                fill=COL["white"], stroke=ink, lw=lw)
+        pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 1.8 * u, fill=w3)
+        pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 0.8 * u, fill=ink)
     elif kind in ("awe", "joy", "calm", "curious"):         # faces: the feeling we design for
         pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 4.4 * u, fill="F3E6BF", stroke=ink, lw=lw * 0.8)
         if kind == "calm":
@@ -2990,8 +2978,9 @@ def draw_title(pg, x0, y0, x1, y1, opt, storage):
 
 def draw_footer(pg, x0, y0, x1, pal_line):
     """v1.14: no source lines on the sheet (Aras 27 Oct: "delete ... source footers"); the numbered key goes to the
-    booklet's blocks.json (sheet_sources) and the log. One line: project, course, version, palette."""
-    pg.text(u"MIRAQUA · Group 6 · {} · {} · {}".format(COURSE, VERSION, pal_line), x0, y0 + 3.0, 1.9, COL["ink2"])
+    booklet's blocks.json (sheet_sources) and the log. v4 (MIRAQUA 28 Oct, G1): no project or course line; the
+    version and the palette only (outside every booklet crop)."""
+    pg.text(u"{} · {}".format(VERSION, pal_line), x0, y0 + 3.0, 1.9, COL["ink2"])
 
 
 BK_CROPS = []                        # v1.10: (id, (x0, y0, x1, y1) board mm y up, scale_den, legend, drop) per panel
@@ -3009,20 +2998,21 @@ def drawn(pg, fn):
 
 
 # v1.12 (Aras 26 Oct 07:06): every diagram carries a short context line, inside its panel's crop. v1.14: shorter.
+# v4 (MIRAQUA 28 Oct, G5): one or two **bold** keywords in each (context() sets them)
 CONTEXT = {
-    "water": u"The Selinos brings its water in winter and almost none in summer, and in a flood it rises {} m above "
-             u"the bed. So winter water is held, and nothing fixed may narrow the bed.",
-    "system": u"What we do with the water, one way with the stream: clean it once upstream, hold winter water, keep a "
-              u"clean summer strip, give it back clean downstream.",
-    "concept": u"The idea in section at the upstream entry and at K4: the problem on site and the one move that answers "
-               u"it. Numbers as in the chain.",
-    "farms": u"Where the clean water ends up: farmland outside the site, easing an aquifer used 4.4 times its "
-             u"potential. Never drinking water.",
-    "seasons": u"One cut through the year: the water level decides where people can be and what they do there.",
-    "ne": u"The other bank of S4: the terraces stay where they are; the water, and what people do on them, change "
-          u"with the season.",
-    "plants": u"Nine plants, chosen by the days water covers their ground, for cleaning and for shade, where each one "
-              u"goes on the site, and the one to take out.",
+    "water": u"The Selinos brings its water in **winter** and almost none in summer, and in a flood it rises {} m above "
+             u"the bed. So winter water is held, and nothing fixed may **narrow the bed**.",
+    "system": u"What we do with the water, **one way** with the stream: clean it once upstream, hold winter water, keep "
+              u"a clean **summer strip**, give it back clean downstream.",
+    "concept": u"The idea in section at the upstream entry and at K4: the **problem** on site and the **one move** that "
+               u"answers it. Numbers as in the chain.",
+    "farms": u"Where the clean water ends up: **farmland outside** the site, easing an aquifer used 4.4 times its "
+             u"potential. **Never drinking water**.",
+    "seasons": u"One cut through the year: the **water level** decides where people can be and **what they do** there.",
+    "ne": u"The other bank of S4: the **terraces stay** where they are; the water, and **what people do** on them, "
+          u"change with the season.",
+    "plants": u"Nine plants, chosen by the **days water covers** their ground, for cleaning and for shade, where each "
+              u"one goes on the site, and the **one to take out**.",
 }
 CTX_FS = FS_MIN                      # context line size, mm (7.5 pt when the panel prints 1:1 on A3)
 PLANTS_FRAME = (371.0, 170.0)        # the most wb_plants may take on p.22 at 1:1, above the site board's July shade strip
@@ -3030,8 +3020,8 @@ PLANTS_FRAME = (371.0, 170.0)        # the most wb_plants may take on p.22 at 1:
 
 
 def context(pg, x, y, w, key, *args):
-    """The panel's context line from its top y; returns the box (x0, y0, x1, y1) it took."""
-    yy = para(pg, x, y, w, CONTEXT[key].format(*args), CTX_FS, COL["ink"])
+    """The panel's context line from its top y; returns the box (x0, y0, x1, y1) it took. v4: **bold** keywords (G5)."""
+    yy = r28_para(pg, x, y, w, CONTEXT[key].format(*args), CTX_FS, COL["ink"])
     return (x, yy - CTX_FS * 0.3, x + w, y)
 
 
@@ -3122,18 +3112,19 @@ def build_board(opt, storage, parts, pal_line, log):
     # bank the left one
     b = cell(1, 1, u"FOUR SEASONS ON ONE CUT · S4, south-west bank and bed")
     cb = context(pg, b[0], b[3], b[2] - b[0], "seasons")
-    box = (b[0], b[1], b[2], cb[1] - 3.0)
+    box = (b[0], max(b[1], cb[1] - 3.0 - R28_PART_H), b[2], cb[1] - 3.0)   # v4: <= BK_KEY_H with its context line
     part, den = draw_seasons_panel(box[2] - box[0], box[3] - box[1], log)
     s, bb = place(pg, part, box, 1.0, "TL", log, "S4 seasons")
     if s < 0.999:
         log.append(u"WARNING: the S4 seasons are printed at {:.0f} % of 1:{:,.0f}".format(100 * s, den))
     crop_add("wb_s4_seasons", union(cb, bb), den / s)
+    r28_crop_note(log, "wb_s4_seasons")
     # p.21 the north-east bank: the summer cut (cm), the season strips under it. v3 (Prompt 5 task 2: "the title says
     # 1:200 but the caption says 1:250"): drawn at the first round scale at which it fits, never shrunk; the scale is
-    # said once, in the caption (the frame title no longer names one)
+    # said once, in the caption (the frame title no longer names one). v4: the occupancy diagram under it (P15.2)
     b = cell(0, 1, u"S4 · NORTH-EAST BANK · what changes with the seasons")
     cb = context(pg, b[0], b[3], b[2] - b[0], "ne")
-    box = (b[0], b[1], b[2], cb[1] - 3.0)
+    box = (b[0], max(b[1], cb[1] - 3.0 - R28_PART_H), b[2], cb[1] - 3.0)   # v4: <= BK_KEY_H with its context line
     for den in S4_NE_DENS:
         part = parts["detail"] if den == S4_NE_SCALE else draw_s4_ne(log, den)
         if fits(part, box[2] - box[0], box[3] - box[1]):
@@ -3143,6 +3134,7 @@ def build_board(opt, storage, parts, pal_line, log):
         log.append(u"WARNING: the S4 north-east bank is printed at {:.0f} % of 1:{:,.0f}".format(100 * s, den))
     log.append(u"p.21 S4 north-east bank: 1:{:,.0f}".format(den / s))
     crop_add("wb_s4_ne", union(cb, bb), den / s)
+    r28_crop_note(log, "wb_s4_ne")
     # p.22 plants: bands on the S4 cut, where on site, the photo cards
     b = cell(2, 1, u"PLANTS · where each one goes, and why")
     cb = context(pg, b[0], b[3], b[2] - b[0], "plants")

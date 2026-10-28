@@ -740,7 +740,8 @@ def canopy_note(S, short=False):
 def height_note(S):
     """Where the building heights come from, with the counts of this bake (one sentence for every sheet)."""
     mains = [u for u in S.bld if not u["annex"]]
-    n = dict((k, len([u for u in mains if u["floors_src"] == k])) for k in ("survey", "neighbours", "published", "osm"))
+    n = dict((k, len([u for u in mains if u["floors_src"] == k])) for k in ("survey", "neighbours", "published", "osm",
+                                                                            "unlabelled"))   # v50 (P06.3)
     t = getattr(S, "floor_test", (0, 0.0, 0.0))
     s = ("Building heights: floors x typical storey height; {} buildings carry a surveyed floor count".format(n["survey"]))
     if n["neighbours"]:
@@ -750,6 +751,8 @@ def height_note(S):
                   n["neighbours"], NB_K, t[0], t[1], t[2]))
     if n["osm"]:
         s += ", {} from OpenStreetMap levels".format(n["osm"])
+    if n["unlabelled"]:                                  # v50 (MIRAQUA 28 Oct, P06.3)
+        s += ", {} house outlines the survey closed without a floor label count as one storey".format(n["unlabelled"])
     if n["published"]:
         s += "; the Red Basilica hall and rotundas at their published heights (19 m, 18 m)"
     return s + "."

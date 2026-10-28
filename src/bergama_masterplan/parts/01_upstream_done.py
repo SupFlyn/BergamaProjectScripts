@@ -1,8 +1,26 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v26.2 (2026-10-28): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v27 (2026-10-28): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
+
+NEW IN v27 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
+  * p.23 masterplan: one strip of the whole analysis frame at 1:10,000 (G7), with the study-area outline (G8);
+    markers coloured by group, a list under the strip by group (number, name, one line); the reasons and sources go
+    to the booklet's sources page (plan_sources); the areas left as they are get a letter (P23.1-P23.3, G4).
+  * p.21 open ground: the same strip and scale, its own colours, the study outline; one frame figure (150.52 ha,
+    cells inside the frame only, G10), and the split adds up to it. Writes cached/bergama_masterplan/
+    r28_open_ground.json for the site board's filter sheet (D1; the site board runs after the masterplan).
+  * p.24 1:1,000 plans redrawn in the programme-diagram language: soft fade-out fields in the shared zone colours,
+    one bold title per field with p.16's plants in small grey, a dot-and-colour legend, a faint grey survey, the study
+    outline; the water route 1-4 as one line with arrowheads and numbered dots and a route key; levels only at the
+    channel cuts (bed, Q100, Q500); plant codes, band letters, flood bands, spot heights, step sketches and the ochre
+    rings and icons removed (P24.1-P24.5, F11).
+  * NEW sheet Bergama_senses_A3.pdf "The senses and the water" (S1): six strips of the analysis frame at 1:20,000:
+    zones, feeling, sound, smell, encounters and history, each with the study outline and the zone fields of p.24.
+  * Speed: the frame figures take one pass over the grid, the plan is drawn once (no two halves), the detail windows
+    need no second survey pass. Output: Bergama_masterplan_v27_A.pdf, Bergama_masterplan_v27_A_detail.pdf,
+    Bergama_senses_A3.pdf.
 
 NEW IN v26.2 (bugfix, Aras 28 Oct run: "no-intervention note not placed (no free spot in its area): 2.9 ha tree
   cover ..."): a no-intervention note that finds no free spot on two lines tries again with its reason on two lines
@@ -163,8 +181,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v26.2 (2026-10-28)"
-SHORT = "v26.2"
+VERSION = "bergama_masterplan v27 (2026-10-28)"
+SHORT = "v27"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -175,8 +193,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v26_2_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v26_2_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v27_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v27_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 #@include ../../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here

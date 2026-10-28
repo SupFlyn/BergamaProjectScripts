@@ -41,7 +41,7 @@ TERRACE_D = (4.0, 70.0)      # upstream terraces: contours this far from the wat
 # beside it from COL_X, the scale bar under it, the list / figures under them (parts/02d_r28_ground.py).
 BK_W, BK_H = 392.0, 238.0    # mm: the booklet's panel area (A3 less margins and the caption line)
 COL_X = 297.0                # mm from the panel's left edge: booklet grid column 10 (14 + 9 x 33 mm on the page)
-KEY_TS, KEY_MIN = 2.6, 2.47  # key text, mm (7.4 pt; 7 pt the floor)
+KEY_MIN = 2.47               # key text floor, mm (7 pt); v27: KEY_TS (2.6) unused, removed
 NI_BLOCK, NI_SHARE, NI_MIN_HA, NI_BUILT = 15.0, 0.9, 1.0, 0.4   # v26: no-intervention regions: block m, share of a
 #   block the plan leaves untouched, smallest region ha, built share (buildings + streets) that makes it "built"
 NI_ROAD_M = 6.0              # v26: a changed road or the hidden-stream line touches this far either side, m
@@ -128,9 +128,6 @@ TOWN_LINE = dict(name=u"town bus line to K4", change=u"proposed later: bus line 
                  xy=[[29995.4, 32019.8], [30005.0, 32029.4], [30032.5, 32038.3], [30084.6, 32056.0], [30089.7, 32057.7],
                      [30075.0, 32066.0], [30041.0, 32089.8], [30017.4, 32106.8], [30015.5, 32111.3], [29976.9, 32203.2],
                      [29960.0, 32218.3], [29934.1, 32225.0], [29873.2, 32232.0], [29841.0, 32243.7]])
-# Species codes (water board SPECIES, bands B-F; only species of that list): which plants go where (p16)
-PLANT_AT = {"bed": ("B", ("Ty", "Ph", "Me")), "wet": ("C", ("Sa", "Ta")), "forest": ("E", ("Fr", "Po", "Qu", "Ul")),
-            "trees": ("E", ("Po", "Fr")), "hub": ("E", ("Pl",)), "terrace": ("F", ("La",)), "arm": ("B", ("Ty", "Ph"))}
 
 
 class _All(object):
@@ -857,9 +854,9 @@ def icon(pg, kind, x, y, s):
         pg.poly([rect(x - s * 0.5, y - s * 0.3, x + s * 0.5, y + s * 0.3)], fill=COL["histwall"], stroke=W_, lw=0.25)
 
 
-def draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=False):
+def draw_corridor(pg, T, k, C, inP, taken, dw, dh):
     """Every layer of the corridor on plan page pg (T: world -> page mm, k: mm per m; inP: world point on this
-    plan). Returns (legend keys used, note numbers placed). detail = the 1:1,000 windows: direct labels, species.
+    plan). Returns (legend keys used, note numbers placed). v27: the plan strips only (p.24's windows = 02e).
     v26 (Prompt 7 rules 1 and 5): the layers in the order water -> buildings -> bridges -> roads -> proposal ->
     labels (the paper is the ground; the planting is proposed, so it is a proposal tint); what exists (survey) is
     crisp, what we propose is soft: fading fields, haloes, translucent bands, no outlines."""
@@ -1040,7 +1037,7 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=False):
             icon(pg, it[0], x, y, s_ic * (1.25 if it[0] in ("transit", "walkhub", "gate") else 1.0))
             taken.append((x - s_ic * 0.6, y - s_ic * 0.6, x + s_ic * 0.6, y + s_ic * 0.6))
             used.add(it[0])
-    # ---- words: place names (large; v27: 7.5 pt on the 1:10,000 strip), then direct labels (detail)
+    # ---- words: place names (large; v27: 7.5 pt on the 1:10,000 strip), (v27: the detail labels moved to 02e)
     names = [(HUB_NAME[h["id"]], h["xy"]) for h in C.hubs] + \
         [(nm, xy) for nm, xy in BRIDGES_K if nm in (u"K1", u"K2")] + PLACES
     for nm, xy in names:
@@ -1053,61 +1050,7 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=False):
         x2, y2 = T(p2)
         place_label(pg, [(u"TRAJANEUM {:,.0f} m".format(C.terrace["d"]), LAB_TS, True)],   # v26: no arrow glyph
                     (min(max(x2, 1.0), dw - 1.0), min(max(y2, 1.0), dh - 1.0)), taken, dw, dh, COL["accent"], d0=1.0)
-    if not detail:                                       # v27 (MIRAQUA 28 Oct, P23.1): the plan's numbered markers and
-        return used, placed                              # the letters of the areas left as they are: plan_page (02d)
-    # ---- detail windows: direct labels, species (which plants go where)
-    sp = lambda key: u"{} {}".format(PLANT_AT[key][0], u" ".join(PLANT_AT[key][1]))
-    lab = []
-    for h in C.hubs:
-        if h.get("square"):
-            L_ = max(h["square"], key=lambda q: abs(area2(q)))
-            lab.append(([(u"HUB SQUARE · DRY, STEP-FREE", LAB_TS, True),
-                         (u"plane trees {} · irrigated from storage".format(sp("hub")), LAB_TS, False)], inner_pt(L_), "hub"))
-        if h.get("sub_xy"):
-            lab.append(([(u"SUB-HUB IN THE BED · STEPPING STONES", LAB_TS, True),
-                         (u"closes in floods · {}".format(sp("bed")), LAB_TS, False)], h["sub_xy"]["c"], "bed"))
-    if C.forest:
-        lab.append(([(u"FOREST CORRIDOR", LAB_TS, True), (u"{} · {} at the water".format(sp("forest"), sp("wet")),
-                                                          LAB_TS, False)], None, "forest"))
-    if C.trees:
-        lab.append(([(u"TREE-PLANTED AREA · {}".format(sp("trees")), LAB_TS, True)], None, "trees"))
-    if C.terr:
-        lab.append(([(u"TERRACES ON CONTOURS · HOLD RAIN", LAB_TS, True), (sp("terrace"), LAB_TS, False)], None,
-                    "terrace"))
-    for w in C.widen:
-        lab.append(([(u"STREAM WIDENED · WETLAND {}".format(sp("wet")), LAB_TS, True)], w["at"], "widen"))
-    for a in C.arms:
-        lab.append(([(u"REED SIDE ARM · {}".format(sp("arm")), LAB_TS, True)], a["at"], "arm"))
-    for P in C.canopy:
-        lab.append(([(u"CANOPIED WALKWAY · SEATS", LAB_TS, True)], None, "canopy"))
-        break
-    for c_ in C.cross:
-        if c_["kind"] == "footbridge":
-            lab.append(([(u"FOOTBRIDGE", LAB_TS, True)], c_["xy"], "foot"))
-    if C.terrace:
-        lab.append(([(u"VIEWING TERRACE · TRAJANEUM VIEW", LAB_TS, True)], C.terrace["xy"], "view"))
-    lab.append(([(u"STEP TO THE WATER · TABAKLAR HAMAMI", LAB_TS, True)], PLACES[1][1], "h4"))
-    lab.append(([(u"DECK · ROMAN BANK WALL", LAB_TS, True)], ROMAN_WALL, "h6"))
-    lab.append(([(u"WORKSHOPS · EDUCATION", LAB_TS, True)], CRAFT_XY, "edu"))
-    for z in C.D.zones:
-        if z["code"] in ("GR", "DG"):
-            lab.append(([(u"CAFE", LAB_TS, True)], z["q"], "cafe"))
-    pts_of = {"forest": C.forest, "trees": C.trees, "terrace": [p for P in C.terr for p in P],
-              "canopy": [p for P in C.canopy for p in P]}
-    for lines, at, key in lab:
-        if at is None:                                    # the visible point nearest the plan's middle
-            cand = [p for p in pts_of.get(key, []) if inP(p)]
-            if not cand:
-                continue
-            at = min(cand, key=lambda p: (T(p)[0] - dw / 2) ** 2 + (T(p)[1] - dh / 2) ** 2)
-        if not inP(at):
-            continue
-        if not place_label(pg, lines, T(at), taken, dw, dh, ink, d0=1.5, anywhere=True):
-            continue                                      # v26.1: species in the legend only when their label is drawn
-        for code in [c_ for k_, v in PLANT_AT.items() if k_ in (key, "wet" if key in ("forest", "widen") else "")
-                     for c_ in v[1]]:
-            leg(("sp", code))
-    return used, placed
+    return used, placed                                  # v27: the detail windows' labels went (p.24 = 02e)
 
 
 # ================================================================ v24: the legend (rebuilt for the corridor)
@@ -1357,35 +1300,4 @@ def open_ground_kml(C, path, json_path):
     return len(comps), nflag
 
 
-def window_panel(C, w, D, CL, spots, plc, missing, warn):
-    """A 1:1,000 window (p16), north up: the corridor with every element named, which plants go where (species
-    codes of the water board list), seating; the water board cuts, water route and spot levels of the detail
-    overlay. No text block under the plan (Aras 27 Oct)."""
-    R = w["R"]
-    k = 1000.0 / DT_SCALE
-    dw, dh = (R[2] - R[0]) * k, (R[3] - R[1]) * k
-    T = lambda p: ((p[0] - R[0]) * k, (p[1] - R[1]) * k)
-    inP = lambda p: R[0] <= p[0] <= R[2] and R[1] <= p[1] <= R[3]
-    _PLEG[0] = {}
-    pg = Page(dw, dh)
-    taken = []
-    used, _ = draw_corridor(pg, T, k, C, inP, taken, dw, dh, detail=True)
-    detail_overlay(w, D, CL, spots, plc, missing, warn)(pg, T, k, taken, dw, dh, ())
-    for key in used:
-        leg(("v24", key))
-    M = 12.0
-    W, H = M + dw + M, M + dh + 14.0
-    sh = Page(W, H)
-    sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    sh.clip([rect(M, M, M + dw, M + dh)])
-    blit(sh, pg, M, M)
-    sh.unclip()
-    sh.text(w["title"] + u" · 1:1,000", M, M + dh + 5.0, 5.0, COL["ink_dark"], bold=True)
-    panel_marks(sh, M, 1.5, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
-    sh.crop = (M, 0.5, M + dw, M + dh)
-    sh.key, sh.world, sh.scale = w["key"], R, DT_SCALE
-    pl = dict(_PLEG[0])
-    pl.update((("v24", u_), True) for u_ in used)
-    sh.pleg, _PLEG[0] = pl, None
-    sh.bid = (w["id"], w["old"], w["caption"])
-    return sh
+# v27 (MIRAQUA 28 Oct, P24.1-P24.5): window_panel gone: the 1:1,000 windows are r28_window_panel (02e_r28_detail.py)

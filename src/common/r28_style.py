@@ -45,7 +45,8 @@ def r28_to_strip(p, axis):
 
 # P06.2 / P22.1 "where we can build": three hatches, apart from the base map and from each other (dE00 >= 19.6 to the
 # base colours, >= 24.4 between them)
-R28_BUILD_HATCH = (("open", u"Open ground", "BD5833", 45.0),           # (key, legend name, line colour, hatch angle)
+R28_BUILD_HATCH = (("open", u"Vacant ground", "BD5833", 45.0),         # (key, legend name, line colour, hatch angle);
+                   # 28 Oct: "Vacant ground", not "Open ground" (that is the masterplan's open ground, P21.2)
                    ("parking", u"Parking & yards", "6C5594", -45.0),
                    ("loose", u"Loose ground", "BF8F34", 0.0))
 

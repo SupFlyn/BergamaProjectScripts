@@ -1,8 +1,41 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v49.2)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v50)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v50 (2026-10-28, MIRAQUA booklet revision v4 + bank depth research 28 Oct; a feature change, so the next whole
+number):
+  * All text in Arial, embedded (G2/G3: İ ğ ş print in every viewer); the study area (calisma_alan, both parts) as a
+    dash-dot outline on every base map, with its legend row (G8).
+  * p.02: the readings' ring key on the booklet legend grid; NEW "Where each edge is" (drw_edge_types): both banks
+    straightened along the stream by edge type, with bridges and covered reaches (P02.1, P02.2). p.03: no course line.
+  * pp.04-05/14: each sections page has a key map at its booklet size (190 mm, no scale) with the study area; the water
+    board's S4 cut in the accent colour (P04.1, P14.1). Each cut opens with one key sentence and what on it steers the
+    project; callouts by priority on at most three rows; the words grow as far as the pages allow (P04.2, G4, F12);
+    dimensions in cm, levels and heights in m with 2 decimals (G13). Building types "N fl · height" (P05.1).
+  * Bank depth: measured to the lower bank crest (the water board's rule); in the walled town reach the DSİ walls stand
+    5.00 m above the bed (NEW optional input wall_height; site photos 1 Oct 2026), the survey levels there marked
+    "before the DSİ walls"; bed width only where a cut crosses the stream squarely; water "approx."; "bed not
+    surveyed" where the survey has no bed. So the "below bank" depths change (results.json bed_below_banks_min/max).
+  * p.06: ONE strip at 1:10,000 (was two at 1:5,000) with street, mahalle, heritage and bridge names, 5 m contours and
+    the study area; photos four to a row; where we can build in vector hatches (loose ground traced from the counted
+    cells and smoothed, no figure moved), same on p.22 (P06.1-P06.4, P22.1, G7). Buildings: survey house outlines
+    without a floor label kept as one storey (so p.03's counts can rise and the 16.1 ha can fall), nonzero fill,
+    darker tone, OpenStreetMap footprints thin-outlined, and a sources note (P06.3).
+  * D1: NEW filter sheet drw_filter (frame -> the masterplan's open ground, read from its r28_open_ground.json -> open
+    to change) and cached/selinus_board/r28_open_to_change.json. The masterplan must run first (run order).
+  * p.07: walking and driving today with the index on every street piece in five classes and a class legend; street
+    names 7 pt; a note beside each map (drw_mv_note_1-3). p.09: the proposal map redrawn (pale base, reach on foot in
+    three classes, road / crossing / hub symbols, numbered callouts, grouped list); the commercial spines map replaced
+    by the walk and car index today vs with the proposal (drw_index_change).
+  * p.16: the shade strip on the frame's axis at 1:10,000 with the study area and a scale bar (G7, G8).
+  * p.20 the heritage loop: one map at 1:10,000, north up, every stop on the whole survey as quiet context; the stream
+    walk K3-K4 as the spine; the Acropolis at an edge arrow with its distance; stops numbered in loop order with a
+    short text each (English · Turkish, public sources); NEW key map drw_heritage_key. HER_EXTENT = "survey": the
+    drawn survey at 1:20,000 with the loop core at 1:5,000 (D2).
+  * Bugfix: the water_depth input is no longer overwritten by the approximate default.
+  * Speed: mv_line_index one pass per road; cut readings, edge bins and road spans computed once per run.
 
 NEW IN v49.2 (2026-10-28, Aras's run of v49.1 FAILED: "IndexError: index 6 is out of bounds for axis 0 with size 6"
 in env16_frame; bugfix): the shade job counts 7 groups with the July day (the year part holds two, in leaf and bare;
@@ -327,8 +360,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v49.2 (2026-10-28)"     # v27: the log's first line and the text under the component
-SHORT_V = "v49.2"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v50 (2026-10-28)"     # v27: the log's first line and the text under the component
+SHORT_V = "v50"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -597,7 +630,7 @@ for _k in TSEC_KEYS:
     except TypeError:
         TSEC_IN[_k] = [_v]
 TSEC = dict((k, []) for k in TSEC_KEYS)      # the same lines in survey coordinates (set by pipeline)
-KNOWN_INPUTS = set(['spine', 'spine_car', 'bridges', 'car_closed', 'attractors', 'rhino_bake', 'mode', 'channel_depth', 'credit', 'env_path', 'environment', 'focus', 'frame', 'hour', 'hours', 'layout', 'noise_db', 'noise_palette', 'noise_points', 'osm_path', 'pdf', 'places_path', 'section_lines', 'sheet_mm', 'subtitle', 'texture', 'title', 'water_depth', 'water_levels'])          # v30: this script's named inputs (anything else may be the Button)
+KNOWN_INPUTS = set(['spine', 'spine_car', 'bridges', 'car_closed', 'attractors', 'rhino_bake', 'mode', 'channel_depth', 'credit', 'env_path', 'environment', 'focus', 'frame', 'hour', 'hours', 'layout', 'noise_db', 'noise_palette', 'noise_points', 'osm_path', 'pdf', 'places_path', 'section_lines', 'sheet_mm', 'subtitle', 'texture', 'title', 'wall_height', 'water_depth', 'water_levels'])          # v30: this script's named inputs (anything else may be the Button); v50 (MIRAQUA 28 Oct, bank depth 1b): + wall_height
 def _button_value():
     """The Button, on whatever input name or case it is wired (Aras's rule): "bake" first, then build / button /
     press / go in any case, then any other input that is not one of this script's named options and holds True or
@@ -624,12 +657,6 @@ CH_DEPTH = to_float(inp("channel_depth", None), None, "channel_depth")   # None 
 if CH_DEPTH is not None and not (0.0 < CH_DEPTH < 30.0):
     LOG.append("WARNING: channel_depth {} m is outside 0-30 m and was ignored.".format(CH_DEPTH))
     CH_DEPTH = None
-_wd = to_float(inp("water_depth", None), None, "water_depth")
-if _wd is not None:
-    if 0.0 <= _wd < 10.0:
-        WATER_DEPTH, WATER_SRC = _wd, "input"
-    else:
-        LOG.append("WARNING: water_depth {} m is outside 0-10 m and was ignored.".format(_wd))
 WATER_LEVELS_IN = inp("water_levels", None)
 SHEET_MM = to_float(inp("sheet_mm", 406.4), 406.4, "sheet_mm")
 if not (50.0 <= SHEET_MM <= 5000.0):
@@ -653,7 +680,22 @@ FONT_BODY = "Arial"                                  # v50 (G2, 28 Oct): Arial f
 WATER_DEPTH_APPROX = 0.15                            # m above the bed: APPROXIMATE (low flow / standing water), not measured
 WATER_DEPTH = WATER_DEPTH_APPROX                     # replaced by the water_depth input below
 WATER_SRC = "approx"                                 # "approx", "input" or (per point) "measured"
+# v50 bugfix: the water_depth input is read after the approximate default (it was read before and then overwritten)
+_wd = to_float(inp("water_depth", None), None, "water_depth")
+if _wd is not None:
+    if 0.0 <= _wd < 10.0:
+        WATER_DEPTH, WATER_SRC = _wd, "input"
+    else:
+        LOG.append("WARNING: water_depth {} m is outside 0-10 m and was ignored.".format(_wd))
 WATER_PTS_USER = []                                  # water_levels input: (x, y, z of the water surface), user coordinates
+# v50 (MIRAQUA 28 Oct, bank depth REPORT §4 1b; Aras 28 Oct 14:12 "the survey is the inferior source"): the DSİ walls
+# of the town reach (the frame's upstream end to Üç Kemer), m above the bed: measured from site photos 1 Oct 2026,
+# 4-6 m. The sections use them wherever the survey's bank crest is lower (the survey shows the banks before the walls).
+WALL_H_DEFAULT = 5.0
+WALL_H = to_float(inp("wall_height", WALL_H_DEFAULT), WALL_H_DEFAULT, "wall_height")
+if not (0.5 <= WALL_H <= 15.0):
+    LOG.append("WARNING: wall_height {} m is outside 0.5-15 m; {:.1f} m used.".format(WALL_H, WALL_H_DEFAULT))
+    WALL_H = WALL_H_DEFAULT
 MMU = 0.3
 
 

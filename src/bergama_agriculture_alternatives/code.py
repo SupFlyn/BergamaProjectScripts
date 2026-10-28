@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v3_1.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v4.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -12,7 +12,19 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math
 
-VERSION = "v3.1"
+VERSION = "v4"
+# v4 (MIRAQUA 28 Oct, booklet revision v4, pages 18-19; a feature change, so the next whole number):
+#   * P18.1 / P19.3 / P19.4 / G11 / G12: every photo through common/plant_photos.py; corn printed as "Corn (Mısır)"
+#     (data key "maize" and the Wikimedia file kept); an empty frame says "no photo: <reason>".
+#   * P19.1 / G5 / F10: the kicker top left; page 3's top-right corner on the booklet grid (column 8, 4 rows 5.2 mm
+#     apart, 7.5 pt): steps 1-5, NEXT -> D The heritage loop (title bold), the chain key; no big page numbers.
+#   * P19.2: the ladder's people from common/figures.py at true scale (1.75 m), one colour, no stroke.
+#   * G4 / F13: ladder labels placed by common/label_place.py clear of figures, lines, plants and each other;
+#     "hub square: dry, step-free" and "wade the strip" now print.
+#   * G13: flood heights in m with 2 decimals (values unchanged). Bank depth research 28 Oct §4.5: over the bank top
+#     only at S4 (left); K4 before the DSİ walls.
+#   * F5: [n] marks only for public online sources; internal pointers out of the printed source list.
+#   * G1: page 2's group line removed; page 1's left column on the 14 mm margin.
 # v3.1 (bugfix, Aras 27 Oct, booklet Prompt 8 "final check of every page"): plant and crop names "English (Turkish)"
 #   from the shared table where pages 1 and 3 still had the English alone: page 3's season row OLIVE (ZEYTİN) HARVEST,
 #   its labels (hub square: oriental plane (Doğu çınarı) shade; common reed (Kamış) gold; olive (Zeytin) harvest;
@@ -1070,7 +1082,7 @@ def page_farms(L, src):
         for key, lab, col in CLS:
             key_sample(pg, "fill", col, x, y)
             pg.text(lab, x + 5.5, y - 2.0, 5.5, C["ink"]); y -= 3.6
-    ag_crop("ag2_plan", 1, 13.0, min(y, wy0) - 1.0, 407.0, 269.0, den)
+    ag_crop("ag2_plan", 1, 13.0, min(y, wy0) - 1.0, 407.0, 267.6, den)   # v4: under the subtitle (269.5 now)
     return pg
 
 
@@ -1234,8 +1246,8 @@ def seasons():
         dict(key="low", name="LOW WATER", months="Jul-Sep", mark="summer",
              side=[("bed " + _bed(0), DEPTH), ("strip 0.30 m all summer (design)", None), ("sub-hubs open", PROG),
                    (STEPS[4]["water"][0], None)],
-             acts=[("walk", 10.5, g0, False, "walk in the bed", PROG),
-                   ("wade", 19.0, g0 - 2.0, False, "wade the strip", None),
+             acts=[("wade", 19.0, g0 - 2.0, False, "wade the strip", None),   # v4 (MIRAQUA 28 Oct, F13): its label
+                   ("walk", 10.5, g0, False, "walk in the bed", PROG),       # is placed first now (was blocked)
                    ("stand", SUBHUB[0] + 3.0, g0 + 0.7, False, "sub-hub open", PROG),
                    (None, 6.0, g0 + 6.0, False, "Kermes (since 1937) in the dry bed", KERMES),
                    ("walk", 2 * LAD_S + 20.0, g2, False, "shade under the trees", None),
@@ -1270,7 +1282,7 @@ def ladder_row(sea, mark_xy):
     """One season of the plant ladder in the p.23 sketch language: [(z, order, item)] in sketch units (0..LAD_W
     across). mark_xy: where the season's sun / rain mark goes, sketch units (in the season column). v4: returns
     (items, keep): keep = what its labels keep clear of (sketch units): ground (the cut's surface), lines, boxes,
-    figs (one box or None for each of the season's acts)."""
+    soft (the plants), figs (one box or None for each of the season's acts)."""
     E = sketch_engine()
     E["FORM"] = "A"                                   # organic only where the project meets the water
     del E["ZP"][:]
@@ -1305,10 +1317,11 @@ def ladder_row(sea, mark_xy):
         E["water_level"](o, gs, 19.0, gy[0] - 1.2, E["W_SUM"], line=False)       # autumn: water back in the channel
     # plants by step (graphic sizes): reeds in the bed, rushes and shrubs on the lower bank, trees on the terrace,
     # plane tree + lavender on the bank top, olives and a field crop on the farms
-    # v4 (MIRAQUA 28 Oct, G4 / F13): what the row's labels must keep clear of, sketch units: boxes (plants, figures,
-    # level marks) and lines (the cut ground, the site edge, the flood lines, the summer arrow)
-    keep = dict(ground=gs, lines=[gs, [(4 * w, gy[3] + 1.5), (4 * w, gy[4] + 11.0)]], boxes=[(1.5, gy[0], 8.0, gy[0] + 4.2)],
-                figs=[])
+    # v4 (MIRAQUA 28 Oct, G4 / F13): what the row's labels must keep clear of, sketch units: boxes (figures, level
+    # marks; never covered), soft (the plants: kept clear when the row has room, see lad_labels) and lines (the cut
+    # ground, the site edge, the flood lines, the summer arrow)
+    keep = dict(ground=gs, lines=[gs, [(4 * w, gy[3] + 1.5), (4 * w, gy[4] + 11.0)]], boxes=[],
+                soft=[(1.5, gy[0], 8.0, gy[0] + 4.2)], figs=[])
     E["reeds"](o, 1.5, 8.0, gy[0] - 0.2, 4.2)
     x_ = w + 4.0
     while x_ < w + 18.0:                              # rushes: short hand tufts
@@ -1321,11 +1334,11 @@ def ladder_row(sea, mark_xy):
         E["wash"](o, dome, "planting", E["SITE_TREE"][1], 0.6, z=E["Z_TREE"])
         E["sketch"](o, dome, "planting", E["SITE_TREE"][2], E["LW_FINE"], closed=True, over=0.0, amp=0.12, retrace=False,
                     z=E["Z_TREE"])
-        keep["boxes"].append((xs - ws / 2.0, gy[1], xs + ws / 2.0, gy[1] + hs))
+        keep["soft"].append((xs - ws / 2.0, gy[1], xs + ws / 2.0, gy[1] + hs))
     for tx_, ty_, th_ in ((2 * w + 14.0, gy[2], 11.0), (2 * w + 30.0, gy[2], 9.0), (HUB[0] + 7.0, gy[3], 11.0),
                           (3 * w + 34.5, gy[3], 6.0), (4 * w + 6.0, gy[4], 7.0), (4 * w + 15.0, gy[4], 7.0)):
-        keep["boxes"].append((tx_ - 0.4 * th_, ty_ + 0.3 * th_, tx_ + 0.4 * th_, ty_ + 0.98 * th_))   # the crowns
-    keep["boxes"].append((4 * w + 26.0, gy[4], LAD_W, gy[4] + 1.6))                                   # the crop rows
+        keep["soft"].append((tx_ - 0.4 * th_, ty_ + 0.3 * th_, tx_ + 0.4 * th_, ty_ + 0.98 * th_))   # the crowns
+    keep["soft"].append((4 * w + 26.0, gy[4], LAD_W, gy[4] + 1.6))                                   # the crop rows
     E["sketch_tree"](o, 2 * w + 14.0, gy[2], 11.0)
     E["sketch_tree"](o, 2 * w + 30.0, gy[2], 9.0)
     E["sketch_tree"](o, HUB[0] + 7.0, gy[3], 11.0)   # the hub square's plane tree (D8)
@@ -1496,22 +1509,30 @@ def lad_labels(pg, P, labs, keep, X, Y, reg):
     free spot round its point (a figure's head, a level line, a line's end), clear of the other labels, the figures,
     the plants, the level marks and the cut ground (its line and the soil under it), the flood and site-edge lines and
     the summer arrow, LAB_PAD mm round each; farther out on a hair leader; always 7 pt (the booklet's minimum), so a
-    label is left out only when its row is full (logged). labs = [(text, x, y, size, colour, bold)] page mm; keep =
-    the row's sketch geometry (ladder_row); X, Y: sketch units -> page mm; reg: the row's box. Returns the texts left
-    out."""
+    label is left out only when its row is full (logged). Two passes: first every label clear of the plants too; the
+    ones with no spot near their point then may sit over a plant (white halo), still never over a figure, a level
+    mark, a line or a label, and with none there take the nearest free spot in the row on a leader. labs = [(text, x,
+    y, size, colour, bold)] page mm, in placing order; keep = the row's sketch geometry (ladder_row); X, Y: sketch
+    units -> page mm; reg: the row's box. Returns the texts left out."""
     k = 0.3528
-    taken = [(X(b[0]), Y(b[1]), X(b[2]), Y(b[3])) for b in keep["boxes"]]
+    pm = lambda bs: [(X(b[0]), Y(b[1]), X(b[2]), Y(b[3])) for b in bs]   # sketch units -> page mm
+    hard = pm(keep["boxes"])
     g = keep["ground"]
     for (ax_, ay_), (bx_, by_) in zip(g[:-1], g[1:]):          # the soil under the cut line
         if abs(bx_ - ax_) > 1e-6:
-            taken.append((X(min(ax_, bx_)), reg[1] - 1.0, X(max(ax_, bx_)), Y(min(ay_, by_))))
-    taken += [b for b in P.boxes if lp_hit(b, reg, 1.0)]       # only what lies in the row (speed)
+            hard.append((X(min(ax_, bx_)), reg[1] - 1.0, X(max(ax_, bx_)), Y(min(ay_, by_))))
+    hard += [b for b in P.boxes if lp_hit(b, reg, 1.0)]        # only what lies in the row (speed)
     segs = [((X(p[0]), Y(p[1])), (X(q[0]), Y(q[1]))) for ln in keep["lines"] for p, q in zip(ln[:-1], ln[1:])]
     items = []
     for s, ax, ay, size, col, bold in labs:
         wh = (text_w(s, size, bold) + 1.0 + 2 * LAB_PAD, size * k * 1.08 + 0.8 + 2 * LAB_PAD)
-        items.append(dict(x=ax, y=ay, wh=(lambda f, wh=wh: wh), rank=0))
-    got = place_labels_all(items, taken, bounds=reg, segs=segs, sizes=(1.0,), pad=0.3)
+        items.append(dict(x=ax, y=ay, wh=(lambda f, wh=wh: wh), rank=1))
+    got = place_labels_all(items, hard + pm(keep["soft"]), bounds=reg, segs=segs, sizes=(1.0,), pad=0.3)   # pass 1
+    rest = [i for i in range(len(items)) if i not in got]
+    if rest:                                                    # pass 2: over a plant, else anywhere free (rank 0)
+        more = place_labels_all([dict(items[i], rank=0) for i in rest], hard + [v[0] for v in got.values()],
+                                bounds=reg, segs=segs, sizes=(1.0,), pad=0.3)
+        got.update((rest[j], v) for j, v in more.items())
     out = []
     for i, (s, ax, ay, size, col, bold) in enumerate(labs):
         if i not in got:
@@ -1535,7 +1556,7 @@ def page_ladder(L, src):
     we_do_band(pg, P)                              # v3 (Prompt 6): the water theme closes here, top right
     # 1 the chain: where the ladder sits along the stream, the programme and its roots
     y_chain = chain_strip(pg, P, 264.0)            # v2: 4 mm higher (was 260; its names end 6 mm under the subtitle)
-    ag_crop("ag3_chain", 2, 13.0, y_chain - 1.0, 407.0, 270.0)
+    ag_crop("ag3_chain", 2, 13.0, y_chain - 1.0, 407.0, 266.5)   # v4: top under the subtitle (269.5 now; was 270)
     # 2 the ladder, one row a season
     top = y_chain - 2.0
     for r, sea in enumerate(seasons()):
@@ -1556,26 +1577,27 @@ def page_ladder(L, src):
         reg = (LAD_X0, B + 1.0, LAD_X1, T - 0.8)
         Y = lambda v: y0 + v * LAD_F
         X = lambda v: LAD_X0 + v * LAD_F
-        # v4 (MIRAQUA 28 Oct, G4, F13): the row's labels, fixed ones first, all placed together by lad_labels (was
+        # v4 (MIRAQUA 28 Oct, G4, F13): the row's labels, all placed together by lad_labels in this order: the flood
+        # levels at their lines, the people's labels at their heads, then the notes that can sit farther off (was
         # Placer.put: upwards over the point only, so "hub square: dry, step-free" and "wade the strip" found no
         # place on every run). G13: heights in m with 2 decimals (values unchanged). Bank depth research 28 Oct §4.5:
         # Q100 / Q500 top the bank only at S4; the survey's K4 bank predates the DSİ walls.
-        labs = []
-        if sea["key"] == "high":                       # flood levels first: they sit at their lines
+        labs, notes = [], []
+        if sea["key"] == "high":
             labs += [(cited(u"Q500 · 263 m³/s · %s-%s m above the bed" % (u_num(2.3, 2), u_num(3.3, 2)), DEPTH),
                       X(1.5), Y(LAD_Q500), 7, "8B2D2D", False),
                      (u"Q100 · 205 m³/s · %s-%s m" % (u_num(2.0, 2), u_num(3.0, 2)), X(1.5), Y(LAD_Q100), 7, "8B2D2D",
-                      False),
-                     (u"over the bank top only at S4 (left); K4 before the DSİ walls", X(3 * LAD_S + 3.0), Y(LAD_Q500),
-                      7, "8B2D2D", False),
-                     (u"site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], False)]
+                      False)]
+            notes += [(u"over the bank top only at S4 (left); K4 before the DSİ walls", X(3 * LAD_S + 3.0),
+                       Y(LAD_Q500), 7, "8B2D2D", False),
+                      (u"site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], False)]
         if sea["key"] == "low":                        # at the summer arrow's tail
-            labs.append((u"stored winter water", X(3 * LAD_S + 22.0), Y(LAD_GY[4] + 10.0), 7, C["water_deep"], True))
+            notes.append((u"stored winter water", X(3 * LAD_S + 22.0), Y(LAD_GY[4] + 10.0), 7, C["water_deep"], True))
         for (kind, x, yv, flip, lab, ref), f in zip(sea["acts"], keep["figs"]):
             if lab:                                    # a figure's label points at its head
                 ax, ay = ((f[0] + f[2]) / 2.0, f[3]) if f else (x, yv)
                 labs.append((cited(lab, ref), X(ax), Y(ay), 7, C["ink"], True))
-        P.dropped += lad_labels(pg, P, labs, keep, X, Y, reg)
+        P.dropped += lad_labels(pg, P, labs + notes, keep, X, Y, reg)
         if r < 2:
             pg.line([(14.0, B), (406.0, B)], C["faint"], 0.3)
     bot = top - 3 * ROW_H
