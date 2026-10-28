@@ -30,8 +30,8 @@ def bk_s(cw, ch, den=None, share=1.0, hshare=1.0):
 
 def bk_hk(pt, k, mono=False):
     """v44: the text height (capital, board units) that prints at pt points on the booklet page, k = board units per
-    booklet mm (the writer's font size = height / capital ratio, _PDF_CAP: sans 0.718, mono 0.571)."""
-    return pt * 25.4 / 72.0 * (0.571 if mono else 0.718) * k
+    booklet mm (the writer's font size = height / capital ratio, _PDF_CAP 0.718)."""
+    return pt * 25.4 / 72.0 * 0.718 * k                  # v50 (G2): body text is Arial too (mono was Courier, 0.571)
 
 
 def bk_h(pt, s, mono=False):

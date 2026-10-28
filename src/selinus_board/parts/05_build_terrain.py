@@ -961,7 +961,7 @@ def build_observations(S):
 # ============================================================ TEXT METRICS
 # Rhino's text height is the CAPITAL height. Courier New advances ~1.05 x height per character,
 # Arial/Josefin capitals ~0.92 x height. All wrapping and column fitting uses these widths.
-ADV = {"mono": 1.05, "sans": 0.92}
+ADV = {"mono": 0.92, "sans": 0.92}                   # v50 (G2): the body font is Arial too (was Courier, mono 1.05)
 
 
 def kind_of(font):

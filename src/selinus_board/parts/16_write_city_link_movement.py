@@ -1009,13 +1009,13 @@ def bake(B):
 
 # ============================================================ v28: ONE VECTOR PDF PER DRAWING (no libraries)
 # Written like bergama_diagrams_v1_7.py's writer: every label is one whole string (Tj), so Illustrator keeps it as
-# one editable text object. Fonts are the PDF standard fonts (no embedding): Helvetica stands in for Josefin Sans,
-# Courier for Courier New. WinAnsi encoding with the Turkish letters put in unused slots.
+# one editable text object. v50 (G2/G3): every slot is Arial, embedded by common/pdf_fonts.py (write_board_pdf);
+# _PDF_FONTS are the standard fonts a slot falls back to. WinAnsi encoding with the Turkish letters in unused slots.
 _PDF_ENC_EXTRA = {u"Ğ": 0x81, u"ğ": 0x8D, u"İ": 0x8F, u"ı": 0x90, u"Ş": 0x9D, u"ş": 0x9E}
 _PDF_DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157 /Scedilla 158 /scedilla]"
 _PDF_FONTS = ("Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
               "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique")
-_PDF_CAP = {"sans": 0.718, "mono": 0.571}             # capital height / font size (Rhino's text height is the capital)
+_PDF_CAP = {"sans": 0.718, "mono": 0.718}             # capital height / font size; v50 (G2): "mono" prints Arial too
 _PT = 72.0 / 25.4
 
 

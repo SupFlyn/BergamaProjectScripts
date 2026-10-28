@@ -16,7 +16,8 @@ CTX_HOUSING = {"traditional": u"old town", "regular": u"planned low-rise", "bloc
                "selfbuilt": u"small / shack"}    # a home by the sections' building types (draw_typology_key)
 SHOP_AMEN = ("cafe", "restaurant", "fast_food", "bar", "pub", "ice_cream")   # with shop=*: the city link's shops
 B_BASE_LEG = [("box", MPL["water"], u"Selinos stream"), ("box", MPL["bld"], u"Building"),
-              ("box", MPL["her"], u"Heritage building")]   # v49.1 (Prompt 8): b_base's tones in every page's legend
+              ("box", MPL["her"], u"Heritage building"),
+              R28_STUDY_LEG]   # v49.1 (Prompt 8): b_base's tones in every page's legend; v50 (G8): + the study area
 
 
 class Tint(tuple):
@@ -101,6 +102,7 @@ def b_base(S, CB, V, k, L, colfn=None):
     for r_ in S.roads:
         if not r_.get("w"):
             CB.line(V.P(r_["P"]), MPL["road_edge"], L, 12, bk_lw(0.12, k))
+    draw_r28_study(S, CB, V, k, L)                        # v50 (G8): the study area's outline on every base
 
 
 def b_frame(B, r, k, L):

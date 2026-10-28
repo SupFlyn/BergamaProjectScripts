@@ -269,6 +269,7 @@ def draw_eb_base(S, CB, V, k, L):
     for r_ in S.roads:
         if not r_.get("w"):
             CB.line(V.P(r_["P"]), MPL["road_edge"], L, 30, bk_lw(0.18, k))
+    draw_r28_study(S, CB, V, k, L)                        # v50 (G8): the study area's outline on every base
 
 
 def eb_caption(it, width, h):

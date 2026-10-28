@@ -1,7 +1,14 @@
 #@include parts/01_upstream_done.py
 #@include ../common/pdf_fonts.py
+#@include ../common/r28_style.py
+#@include ../common/units.py
+#@include ../common/label_place.py
+#@include ../common/figures.py
 #@include parts/02_Design.py
 #@include ../common/booklet_assets.py
 #@include parts/02b_detail.py
 #@include parts/02c_corridor.py
+#@include parts/02d_r28_ground.py
+#@include parts/02e_r28_detail.py
+#@include parts/02f_r28_senses.py
 #@include parts/03_make_board.py

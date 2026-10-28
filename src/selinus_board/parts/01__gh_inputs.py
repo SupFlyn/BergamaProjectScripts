@@ -642,7 +642,7 @@ BAKE_RHINO = to_bool(inp("rhino_bake", False), False)  # v31: a Boolean Toggle o
 PDF_LINE_SCALE = 1.0                                  # v28: multiplies every print line weight in the PDFs
 
 FONT_TITLE = "Josefin Sans"
-FONT_BODY = "Courier New"
+FONT_BODY = "Arial"                                  # v50 (G2, 28 Oct): Arial for all text (was Courier New)
 # v16.5: the water in the stream. The survey has no water level, and no published depth or flow figure for the Selinus
 # in Bergama was found. What is published: the Kestel dam (opened 1988) holds the stream's water upstream and much of
 # it is led through a channel and tunnel into the neighbouring catchment (DAI TransPergMikro field notes, 2024);
