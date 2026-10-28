@@ -95,3 +95,14 @@ def build(name):
 if __name__ == "__main__":
     names = sys.argv[1:] or sorted(n for n in os.listdir("src") if os.path.isfile(os.path.join("src", n, "target.txt")))
     for n in names: build(n)
+    # the line numbers in the project's SCRIPT_MAP.md (which function draws which drawing) follow the new build
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import script_map
+    p = os.environ.get("BERGAMA_SCRIPT_MAP", script_map.DEFAULT)
+    if os.path.isfile(p):
+        try:
+            script_map.refresh(p)
+        except Exception as e:
+            print("SCRIPT_MAP not refreshed (%s): run python3 tools/script_map.py and fix the map" % e)
+    else:
+        print("SCRIPT_MAP not found at", p)

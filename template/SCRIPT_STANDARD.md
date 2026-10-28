@@ -64,7 +64,8 @@ Folders are created by the script. Nothing is written anywhere else: no temp sta
 - **Version numbers (Aras 27 Oct 15:37-15:40):** a bugfix = the next minor step (v10 -> v10.1; scripts on two decimals step the last digit, v1.14 -> v1.15); a feature added, changed or removed = the next whole number (v10.x -> v11, v1.14 -> v2; v2.99 -> v3). File names use `_` for the dot (`_v10_1`).
 - **Laptop speed (Aras 27 Oct 16:24):** at each script's next change, also make it faster on a laptop CPU (i5-12450HX: chain ~1600 s vs ~400 s on the desktop) without changing the output: cache repeated work, no per-object document calls inside loops, parse data once. Not a sweep.
 - A new version gets a new file name `_vN`. Move the old one to `scripts/_superseded/` and delete superseded functions (lesson of 18 Oct 17:33). Small fixes made the same day, before Aras has run the script, may be done in place with the version kept; say so in the reply.
-- In the same turn, update: `run_kit_2026-10-25/RUN_GUIDE.md`, then the kit zip, then the `library/START.md` row, then the `library/_index/MASTER_INDEX.md` row, then memory.
+- **SCRIPT_MAP (Aras 28 Oct 12:59):** every script change updates `library/SCRIPT_MAP.md` in the same turn: new/renamed/removed drawing, crop id, page, output file or reader = edit its rows; new version = the file names. `tools/build.py` refreshes the line numbers (or `python3 tools/script_map.py`); a "NOT FOUND" row = fix the map. For a revision of one drawing read SCRIPT_MAP first, then only the functions it names.
+- In the same turn, update: `library/SCRIPT_MAP.md`, `run_kit_2026-10-25/RUN_GUIDE.md`, then the kit zip, then the `library/START.md` row, then the `library/_index/MASTER_INDEX.md` row, then memory.
 - Check that it compiles. Aras runs it in Rhino; never list a run as waiting on him.
 - The reply ends with: "If it fails, set Effort to High before you paste the error."
 
