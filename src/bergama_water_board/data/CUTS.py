@@ -16,7 +16,9 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
          dep=(0.28, 0.99, 1.83, 2.56, 2.84),
          ext=[(-16.0, 12.5), (-18.0, 15.0), (-20.0, 15.5), (-58.5, 16.5), (-70.5, 16.5)],
          tags=[("slope", u"bed 0.81 %"), ("flag", u"no stream/bank lines: spot heights + contours · 5 bed points"),
-               ("over", u"right bank 2.1 m: street floods · Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
+               # v4 (MIRAQUA 28 Oct, bank-depth research REPORT §4.4, Aras 14:12: the survey is the inferior source)
+               ("over", u"right bank 2.1 m (survey, before the DSİ walls): street floods"),   # two chips: they wrap
+               ("over", u"Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
                ("road", u"road 10-13 m wide · 42-52 m off · right bank")]),
     dict(key="k5", name=u"3 · K5 BRIDGE", bed=55.96, u0=-57,
          ground=[3.12, 3.11, 3.09, 3.08, 3.06, 3.05, 3.02, 2.97, 2.93, 2.89, 2.85, 2.80, 2.76, 2.72, 2.68, 2.63, 2.59, 2.55, 2.51, 2.46, 2.42, 2.38, 2.34, 2.29, 2.25, 2.20, 2.16, 2.11, 2.07, 1.99, 1.89, 1.78, 1.67, 1.56, 1.45, 1.36, 1.26, 1.17, 1.07, 0.95, 0.82, 0.69, 0.58, 0.47, 0.33, 0.19, 0.16, 0.13, 0.09, 0.06, 0.02, 0.00, 0.01, 0.02, 0.03, 0.05, 0.06, 0.07, 0.08, 0.09, 0.11, 0.12, 0.13, 0.14, 0.15, 0.17, 0.32, 1.03, 1.73, 2.43, 3.02, 3.60, 4.18, 4.73, 5.26, 5.77, 6.23, 6.66, 7.08, 7.43, 7.80, 8.09],

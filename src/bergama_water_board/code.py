@@ -1059,8 +1059,8 @@ def draw_cut(pg, x0, y_top, cut, kx, opt, fs=SECT_FS, w_txt=None):
     return chips(pg, x0, y + fs * 0.6, tags, fs, w_txt) if tags else y
 
 
-DSI_SRC = (u"SYGM North Aegean flood management plan 2019, p.75: 20.00 m bed, 3.00 m deep, 3,720 m; depths on the "
-           u"design trapezoid, walls above 3 m taken as vertical")
+DSI_SRC = (u"SYGM 2019 Yönetici Özeti p.75, measure 155 (North Aegean flood management plan): 20.00 m bed, 3.00 m "
+           u"deep, 3,720 m; depths on the design trapezoid, walls above 3 m taken as vertical")   # v4 (28 Oct, bank-depth REPORT §4.4)
 ZONES = [  # v1.14: what each level allows, as three zones (keywords of LEVEL_MEAN, its sources)
     ("W", u"WET BED", (0, 1), u"floods every winter · stone, gravel, stepping stones · nothing fixed narrows the bed · "
                               u"events Jul-Sep", (LV_ZONES, LV_RULE)),

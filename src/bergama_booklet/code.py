@@ -91,7 +91,10 @@ GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
 PDF_NAME = "Bergama_booklet_A3.pdf"
+ALT_NAME = "Bergama_booklet_A3_ALT_p07-08.pdf"   # v19 (MIRAQUA 28 Oct, P78.ALT): pp.07 + 08 on one page, its own file
 FONT = "Arial"                               # "Arial" (every Windows PC) or "Inter" (if installed)
+G9_MARGIN = 0.5                              # v19 (MIRAQUA 28 Oct, G9): mm round a crop that its own copy keeps
+G9_LINE_ART = True                           # v19 (G9): False keeps the line art outside a crop (only words and images go)
 
 #@include ../common/bergama_paths.py
 BERGAMA = BERGAMA_ROOT
@@ -106,6 +109,8 @@ ML, MT, MB = 14.0, 12.0, 12.0                # left/right margin, top, bottom
 COLS, COL, GUT = 12, 29.0, 4.0               # 14 + 12 x 29 + 11 x 4 + 14 = 420
 BASE = 4.0                                   # baseline grid, from y = 12
 FOOT_RULE, FOOT_B1, FOOT_B2 = 276.0, 280.0, 284.0
+FOOT_LEG_COL = 1                             # v19 (MIRAQUA 28 Oct, G1): the footer legend from column 1 (was 4: the
+                                             # project and course lines sat in columns 1-3)
 PT = 25.4 / 72.0                             # mm per point
 K = 72.0 / 25.4                              # points per mm
 
@@ -248,12 +253,172 @@ def find_pdf(folder, name):
     return max(hit, key=os.path.getmtime) if hit else None    # v7: the newest (v1_8 sorts after v1_12 by name)
 
 
-_COPY = {}       # v18: (sheet path, page index) -> (doc, 0): the sheet page with its marks renumbered (class Sources)
+_COPY = {}       # v19 (G9): (sheet path, page index, clip key) -> (doc, page index): one copy per place a page shows
+_PAGE_TXT = {}   # v19: (sheet path, page index) -> (its lines of words, invisible words, images): read once a run
+_FONTBUF = {}    # v19 (G2): bold -> (font file bytes, fitz.Font): the booklet's Arial, read once a run
+G9_STATS = dict(copies=0, lines=0, chars=0, images=0, failed=[])
+_RED = dict(img_none=0, img_remove=1, art_none=0, art_covered=1, txt_remove=0, txt_none=1)   # PyMuPDF redaction codes
 
 
-def src_page(fitz, path, pno_):
-    """v18: (doc, page index) the booklet shows of a sheet page: its renumbered copy when Sources made one"""
-    return _COPY.get((path, pno_)) or (sheet_doc(fitz, path), pno_)
+def clip_key(clip):
+    return None if clip is None else tuple(round(v, 1) for v in clip)
+
+
+def src_page(fitz, path, pno_, clip=None):
+    """v18: (doc, page index) the booklet shows of a sheet page. v19 (MIRAQUA 28 Oct, G9): one copy per (sheet, page,
+    clip), made once (strip_copy): its marks in the booklet's source numbers and, for a crop, nothing outside it"""
+    ck = (path, pno_, clip_key(clip))
+    if ck not in _COPY:
+        _COPY[ck] = strip_copy(fitz, path, pno_, clip, _SRC[0] if _SRC else None)
+    return _COPY[ck]
+
+
+def own_font(fitz, pg, bold=False):
+    """v19 (MIRAQUA 28 Oct, G2): the booklet's Arial, embedded on a copied sheet page for the words the booklet
+    rewrites there (scales, source numbers; they were the standard Helvetica helv/hebo, not embedded):
+    (font name on pg, fitz.Font to measure with)"""
+    if bold not in _FONTBUF:
+        with open(font_files()[2 if bold else 1], "rb") as f:
+            data = f.read()
+        _FONTBUF[bold] = (data, fitz.Font(fontbuffer=data))
+    name = "BkB" if bold else "BkR"                  # never the sheets' own /F1 ... names
+    pg.insert_font(fontname=name, fontbuffer=_FONTBUF[bold][0])
+    return name, _FONTBUF[bold][1]
+
+
+def page_text(fitz, path, i):
+    """v19: a sheet page's lines of words (rawdict), its invisible words (render mode 3, e.g. the water balance's
+    source key) and its images (bboxes), read once a run for every copy made of it (laptop speed: they were read
+    again for each copy)"""
+    k = (path, i)
+    if k not in _PAGE_TXT:
+        page = sheet_doc(fitz, path)[i]
+        lines = [ln for b in page.get_text("rawdict")["blocks"] for ln in b.get("lines", [])]
+        try:
+            inv = [fitz.Rect(s_["bbox"]) for s_ in page.get_texttrace() if s_.get("type") == 3]
+        except Exception:
+            inv = []
+        try:
+            ims = [fitz.Rect(im["bbox"]) for im in page.get_image_info()]
+        except Exception:
+            ims = []
+        _PAGE_TXT[k] = (lines, inv, ims)
+    return _PAGE_TXT[k]
+
+
+def strip_copy(fitz, path, i, clip, srcs=None):
+    """v19 (MIRAQUA 28 Oct, G9 "remove everything that isn't visible on its own page"): (doc, page index) of sheet page
+    i copied for ONE place the booklet shows it; the sheet page itself when nothing changes or the copy fails (logged)"""
+    try:
+        return _strip_copy(fitz, path, i, clip, srcs)
+    except Exception as ex:
+        G9_STATS["failed"].append("%s page %d (%s: %s)" % (os.path.basename(path), i + 1, type(ex).__name__, ex))
+        return sheet_doc(fitz, path), i
+
+
+def _strip_copy(fitz, path, i, clip, srcs):
+    """The copy: its [n] marks in the booklet's numbers (srcs; v18) and, for a crop (clip), what no viewer sees taken out
+    (v18 took out only the words outside every crop of the page, 3 mm round them; graphics and images all stayed):
+    the words outside the clip + G9_MARGIN (whole lines, else the letters of a line across its edge); the images
+    wholly outside it; the line art lying wholly in the four bands round it (PDF_REDACT_LINE_ART_REMOVE_IF_COVERED: a
+    path partly inside stays whole with its hidden part, e.g. the long street lines and the big building fills; never
+    IF_TOUCHED, which would cut visible lines). Three redaction passes: words, images, line art, each blind to the others."""
+    lines, inv, ims = page_text(fitz, path, i)
+    folder = (srcs.used.get((path, i)) or [None])[0] if srcs else None
+    kid = srcs.key_for(folder, path, i) if srcs and folder else None
+    pr = sheet_doc(fitz, path)[i].rect
+    mg = G9_MARGIN * K
+    near = None if clip is None else fitz.Rect(clip.x0 - mg, clip.y0 - mg, clip.x1 + mg, clip.y1 + mg)
+    cut, put, seen, n_l, n_c = [], [], [], 0, 0
+
+    def mid(r, a=None, b=None):                       # the middle of letters: the lines above and below stay whole
+        a, b = r if a is None else a, r if b is None else b
+        return fitz.Rect(r.x0 + 0.2 * a.width, r.y0 + 0.3 * r.height, r.x1 - 0.2 * b.width, r.y1 - 0.3 * r.height)
+    for ln in lines:
+        lr = fitz.Rect(ln["bbox"])
+        if lr.width < 0.1 or lr.height < 0.1:
+            continue
+        if near is not None and not lr.intersects(near):          # shown nowhere here: the whole line goes
+            cut.append(fitz.Rect(lr.x0, lr.y0 + 0.3 * lr.height, lr.x1, lr.y1 - 0.3 * lr.height))
+            n_l += 1
+            continue
+        seen.append(lr)
+        seq = [(ch, s_) for s_ in ln["spans"] for ch in s_["chars"]]
+        if near is not None and not near.contains(lr):            # across the clip's edge: its letters outside
+            run = []
+            for ch, _ in seq + [(None, None)]:
+                cr = fitz.Rect(ch["bbox"]) if ch is not None else None
+                if cr is not None and cr.width > 0.05 and not cr.intersects(near):
+                    run.append(cr)
+                    continue
+                if run:
+                    u = fitz.Rect(run[0])
+                    for c_ in run[1:]:
+                        u |= c_
+                    cut.append(mid(fitz.Rect(u.x0, lr.y0, u.x1, lr.y1), run[0], run[-1]))
+                    n_c += len(run)
+                    run = []
+        if kid is None or abs(ln["dir"][1]) > 0.01 or any(lr.intersects(v) for v in inv):
+            continue                                              # turned words, the invisible key
+        txt = "".join(ch["c"] for ch, _ in seq)
+        for m in MARKS.finditer(txt):
+            new = srcs.renum(m.group(0), kid)
+            if new == m.group(0):
+                continue
+            (c0, s0), c1 = seq[m.start()], seq[m.end() - 1][0]
+            r = fitz.Rect(c0["bbox"]) | fitz.Rect(c1["bbox"])
+            if near is not None and not r.intersects(near):
+                continue                                          # it goes with the letters outside the clip
+            cut.append(mid(r, fitz.Rect(c0["bbox"]), fitz.Rect(c1["bbox"])))
+            if new:                                               # v19 (F5): "" = its sources are not public online
+                nxt = next((ch["bbox"][0] for ch, _ in seq[m.end():] if ch["c"].strip()), None)
+                ends = [clip.x1] if clip is not None and clip.intersects(r) else []
+                room = min([pr.x1 if nxt is None else nxt] + ends) - c0["origin"][0] - 0.3
+                put.append((c0["origin"], new, s0["size"], s0["color"], "bold" in s0["font"].lower(), room))
+    gone, bands = [], []
+    if near is not None:
+        keep = [r for r in ims if r.intersects(near)]
+        for r in ims:                                 # an image wholly outside: a dot at its centre that hits nothing seen
+            if r.is_empty or r.intersects(near):
+                continue
+            c = fitz.Point((r.x0 + r.x1) / 2.0, (r.y0 + r.y1) / 2.0)
+            if not any(k_.contains(c) for k_ in keep + seen):
+                gone.append(fitz.Rect(c.x - 0.05, c.y - 0.05, c.x + 0.05, c.y + 0.05))
+        if G9_LINE_ART:                               # left and right bands full height: a corner path lies in one
+            bands = [b for b in (fitz.Rect(pr.x0, pr.y0, pr.x1, near.y0), fitz.Rect(pr.x0, near.y1, pr.x1, pr.y1),
+                                 fitz.Rect(pr.x0, pr.y0, near.x0, pr.y1), fitz.Rect(near.x1, pr.y0, pr.x1, pr.y1))
+                     if b.width > 1.0 and b.height > 1.0]
+    if clip is None and not cut and not put:
+        return sheet_doc(fitz, path), i               # a whole sheet page with nothing to renumber: the sheet itself
+    tmp = fitz.open()
+    tmp.insert_pdf(sheet_doc(fitz, path), from_page=i, to_page=i)
+    pg = tmp[0]
+    for annots, opt in ((cut, dict(images=_RED["img_none"], graphics=_RED["art_none"], text=_RED["txt_remove"])),
+                        (gone, dict(images=_RED["img_remove"], graphics=_RED["art_none"], text=_RED["txt_none"])),
+                        (bands, dict(images=_RED["img_none"], graphics=_RED["art_covered"], text=_RED["txt_none"]))):
+        if annots:
+            for r in annots:
+                pg.add_redact_annot(r, fill=False)
+            pg.apply_redactions(**opt)
+    fonts = {}
+    for org, new, size, col, bold, room in put:       # the new numbers in the booklet's own Arial (G2)
+        if bold not in fonts:
+            fonts[bold] = own_font(fitz, pg, bold)
+        fn, font = fonts[bold]
+        w = font.text_length(new, fontsize=size)
+        if w > room > 0:                              # the words after it stay clear
+            size2 = max(0.75 * size, size * room / w)
+            if srcs:
+                srcs.n_tight += int(w * size2 / size > room + 0.2)
+            size = size2
+        pg.insert_text(org, new, fontname=fn, fontsize=size,
+                       color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+    if clip is not None:
+        G9_STATS["copies"] += 1
+        G9_STATS["lines"] += n_l
+        G9_STATS["chars"] += n_c
+        G9_STATS["images"] += len(gone)
+    return tmp, 0
 
 
 def resolve(assets, key):
@@ -278,7 +443,7 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
     """v4: the sheet page with each scale it states inside clip ("1:400") changed to the scale the booklet prints it
     at (1:400 / s), in the same place, size and colour; the drawing itself untouched. v7: a line of the sheet's words
     matching one of its crop's "drop" patterns is taken out (source marks "[n]" stay). (doc, page index)"""
-    src, pno_ = src_page(fitz, path, pno_)               # v18: the copy with the booklet's source numbers
+    src, pno_ = src_page(fitz, path, pno_, clip)         # v18: the booklet's source numbers; v19 (G9): this crop's copy
     page = src[pno_]
     pats = [re.compile(d) for d in drop or () if not d.startswith("^\\[")]
     hits, gone = {}, []
@@ -289,7 +454,8 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
                 continue
             for sp in ln["spans"]:
                 for m in SCALE_WORD.finditer(sp["text"]):
-                    hits[m.group(0)] = (int(m.group(1).replace(",", "")), sp["size"], sp["color"])
+                    hits[m.group(0)] = (int(m.group(1).replace(",", "")), sp["size"], sp["color"],
+                                        "bold" in sp["font"].lower())
     if abs(s - 1.0) < 1e-3:
         hits = {}
     if not hits and not gone:
@@ -300,13 +466,16 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
     for r in gone:                                   # the middle of the line only: the lines above/below stay whole
         pg.add_redact_annot(fitz.Rect(r.x0, r.y0 + 0.3 * r.height, r.x1, r.y1 - 0.3 * r.height), fill=False)
     put = []
-    for word, (den, size, col) in hits.items():
+    for word, (den, size, col, bold) in hits.items():
         for r in pg.search_for(word, clip=clip):
             pg.add_redact_annot(r, fill=False)
-            put.append((r, "1:{:,.0f}".format(den / s), size, col))
+            put.append((r, "1:{:,.0f}".format(den / s), size, col, bold))
     pg.apply_redactions(images=0, graphics=0, text=0)
-    for r, txt, size, col in put:
-        pg.insert_text((r.x0, r.y1 - 0.22 * size), txt, fontsize=size, fontname="helv",
+    fonts = {}
+    for r, txt, size, col, bold in put:              # v19 (MIRAQUA 28 Oct, G2): in the booklet's embedded Arial
+        if bold not in fonts:
+            fonts[bold] = own_font(fitz, pg, bold)[0]
+        pg.insert_text((r.x0, r.y1 - 0.22 * size), txt, fontsize=size, fontname=fonts[bold],
                        color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
     return tmp, 0
 
@@ -361,14 +530,16 @@ def foot_x1(typo, spec):
 
 
 def footer(pg, typo, pno, spec, legend):
+    """v19 (MIRAQUA 28 Oct, G1): the rule, the theme label and the page number (pno: a number, or the words to print
+    there); the project and course lines are gone"""
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
-    typo.line(pg, BOOK["project"], colx(1), FOOT_B1, T["caption"], INK, True)
-    typo.line(pg, BOOK["group_line"], colx(1), FOOT_B2, T["caption"], INK2)
-    typo.line(pg, "%02d" % pno, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
+    no = pno if isinstance(pno, str) else "%02d" % pno
+    typo.line(pg, no, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
+    lab_x = PW - ML - 12 - max(0.0, typo.width(no, T["pageno"], True) - typo.width("00", T["pageno"], True))
     if foot_label(spec):
-        typo.line(pg, foot_label(spec), PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
-    # legend: same place on every page (columns 4-10 of the footer band), drawn samples + plain names
-    x0, x1 = colx(4), foot_x1(typo, spec)
+        typo.line(pg, foot_label(spec), lab_x, FOOT_B2, T["caption"], INK2, True, "R")
+    # legend: same place on every page (v19: from column 1 of the footer band), drawn samples + plain names
+    x0, x1 = colx(FOOT_LEG_COL), foot_x1(typo, spec) - (PW - ML - 12 - lab_x)
     x, y = x0, FOOT_B1
     for it in legend or []:
         w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
@@ -400,7 +571,7 @@ def legend_item(pg, typo, it, x, y):
 
 def footer_rows(typo, legend, spec=None):
     """how many rows the footer band needs for this legend"""
-    x0, x1 = colx(4), foot_x1(typo, spec or {})
+    x0, x1 = colx(FOOT_LEG_COL), foot_x1(typo, spec or {})
     x, n = x0, 1 if legend else 0
     for it in legend:
         w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
@@ -473,12 +644,35 @@ def fixed(it):
     return bool(it[1] and it[1].get("bk_w") and it[3] is not None)
 
 
-def fit(rows, aw=None):
-    """the one scale at which every row fits the panel area's width (v12: or aw mm) and all rows its height; v15: the
-    fixed crops (fixed) keep their own size, the others share the width and height they leave"""
-    aw, ah = aw or AREA[2] - AREA[0], AREA[3] - AREA[1]
+def absent(it):
+    """v19: a panel its script has not written (a frame for a later drawing is not absent)"""
+    return it[3] is None and not (it[1] and it[1].get("slot"))
+
+
+def row_items(r):
+    """v19: the panels of a row that set its size: a missing panel beside drawn ones only takes the room they leave
+    (its labelled frame there), so a note not yet written never shrinks the maps of p.07"""
+    return [it for it in r if not absent(it)] or r
+
+
+def scale_of(it, s_fit):
+    """v19 (was panel_page's sc): the factor a panel prints at on a page of scale s_fit: drawn for its booklet width
+    (v15): its own size; with a true scale: the round scale at or below s_fit (v4); else s_fit"""
+    if fixed(it):
+        return own_s(it)
+    den = it[1].get("scale_den") if it[1] and it[3] is not None else None
+    return den / std_scale(den / s_fit) if den else s_fit
+
+
+def fit(rows, aw=None, ah=None):
+    """the one scale at which every row fits the panel area's width (v12: or aw mm) and all rows its height (v19: or ah
+    mm: a key map's band takes its share); v15: the fixed crops (fixed) keep their own size, the others share the
+    width and height they leave"""
+    aw = aw if aw is not None else AREA[2] - AREA[0]
+    ah = ah if ah is not None else AREA[3] - AREA[1]
     ws, hs, hfix = [], [], 0.0
     for r in rows:
+        r = row_items(r)                               # v19
         free = [it for it in r if not fixed(it)]
         if free:
             ws.append((aw - GUT * (len(r) - 1) - sum(wh(it)[0] * own_s(it) for it in r if fixed(it))) /
@@ -488,7 +682,7 @@ def fit(rows, aw=None):
             hfix += max(wh(it)[1] * own_s(it) for it in r)
     if not hs:
         return 1.0
-    return min(ws + [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP - hfix) / sum(hs)])
+    return max(0.02, min(ws + [(ah - len(rows) * CAP_H - (len(rows) - 1) * ROW_GAP - hfix) / sum(hs)]))
 
 
 def own_s(it):
@@ -529,55 +723,92 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     """rows of [(key, crop block, sheet path, clip)]: one scale for the page, the largest at which every row fits the
     width and all rows the height; a drawing with a true scale takes the round scale at or just below it (v4), so
     its printed scale is always round; each panel with its own words. v12: "side" panels at the right margin beside
-    the rows (their own width), the page's legend under them; a "key" map in the title band at the right."""
+    the rows (their own width), the page's legend under them; a "key" map in the title band at the right.
+    v19 (MIRAQUA 28 Oct, P04.1, P14.1): the key map at scale 1.0 (drawn at its booklet size, 190 x <= 42 mm; never
+    stretched) in a band under the title, the rows below it making room; beside the rows at the top right instead
+    when that costs them less (a narrow map, or a fixed crop the band would push past the page)."""
     aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
     side_it = spec.get("_side") or []
-    side_w = min(aw / 2.0, max([wh(it)[0] * own_s(it) for it in side_it] or [0.0]))
-    s_fit = fit(rows, aw - side_w - GUT if side_it else None)
+    # v19: a missing side panel does not set the column's width (its labelled frame takes the column)
+    side_w = min(aw / 2.0, max([wh(it)[0] * own_s(it) for it in row_items(side_it)] or [0.0]))
+    aw_r = aw - side_w - GUT if side_it else aw      # the rows' width
+    key_it, key_at, kw, kh, ks = spec.get("_key"), None, 0.0, 0.0, 1.0
+    if key_it is not None and key_it[3] is not None:
+        kw, kh = wh(key_it)
+        ks = min(1.0, aw / kw)
+        kw, kh = kw * ks, kh * ks
+        opts = [("band", aw_r, ah - kh - ROW_GAP)] + ([("beside", aw_r - kw - GUT, ah)]
+                                                       if not side_it and aw_r - kw - GUT >= 60.0 else [])
+        best = None
+        for at, w_, h_ in opts:                      # least overrun first, then the largest scale; a tie: the band
+            s_ = fit(rows, w_, h_)
+            hh = sum(max(wh(it)[1] * scale_of(it, s_) for it in row_items(r)) + CAP_H for r in rows) + \
+                ROW_GAP * (len(rows) - 1)
+            ww = max(sum(wh(it)[0] * scale_of(it, s_) for it in row_items(r)) + GUT * (len(row_items(r)) - 1)
+                     for r in rows)
+            cost = (round(max(0.0, hh - h_, ww - w_), 1), -round(s_, 4))
+            if best is None or cost < best[0]:
+                best = (cost, at)
+        key_at = best[1]
+        if ks < 0.999:
+            typo.issues.append("KEY MAP WIDER THAN THE PAGE p.%d: printed at %.0f %%" % (pno, 100.0 * ks))
+        if kh > 42.5:
+            typo.issues.append("KEY MAP TALLER THAN 42 mm p.%d (%.0f mm): the rows lose that height" % (pno, kh))
+    ah_r = ah - (kh + ROW_GAP if key_at == "band" else 0.0)
+    aw_r -= kw + GUT if key_at == "beside" else 0.0
+    s_fit = fit(rows, aw_r, ah_r)
 
-    def sc(it):                                      # v4: a drawing with a scale takes the round scale at or below s
-        if fixed(it):                                # v15: drawn for its booklet width: its own size
-            return own_s(it)
-        den = it[1].get("scale_den") if it[1] and it[3] is not None else None
-        return den / std_scale(den / s_fit) if den else s_fit
+    def sc(it):                                      # v4, v15 (v19: scale_of)
+        return scale_of(it, s_fit)
     pg = frame_page(fitz, doc, typo)
     header(pg, typo, spec)
-    legend, rep, y = [], [], AREA[1]
-    key_it = spec.get("_key")
-    if key_it is not None:                           # v12: the key map in the title band, right, above the rule
-        if key_it[3] is None:
-            rep.append("%s MISSING (key map left out)" % key_it[0])
-        else:
-            kw, kh = wh(key_it)
-            ks = own_s(key_it)
-            kx, ky = AREA[2] - kw * ks, 24.0 - kh * ks
-            if kx < colx(1) + typo.width(spec.get("title", ""), T["part"], True) + 6.0 or ky < 5.0:
-                typo.issues.append("KEY MAP CROWDS THE TITLE p.%d" % pno)
-            show(fitz, pg, typo, key_it, kx, ky, ks, rep, missing, cap=False)
+    legend, rep = [], []
+    y = y_top = AREA[1] + (kh + ROW_GAP if key_at == "band" else 0.0)
+    if key_it is not None and key_it[3] is None:
+        rep.append("%s MISSING (key map left out)" % key_it[0])
     for r in rows + [side_it]:
         for it in r:
             for e in ((it[1] or {}).get("legend") or []) if it[3] is not None else []:
                 e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))     # v18
                 if all(e.get("label") != o.get("label") for o in legend):
                     legend.append(e)
-    rws = [sum(wh(it)[0] * sc(it) for it in r) + GUT * (len(r) - 1) for r in rows]
+    rws = [sum(wh(it)[0] * sc(it) for it in row_items(r)) + GUT * (len(row_items(r)) - 1) for r in rows]
     lw = 6.0 + max([typo.width(e.get("label", ""), T["caption"]) for e in legend] or [0.0])
-    side = not side_it and footer_rows(typo, legend, spec) > 2 and aw - max(rws) >= lw + 8.0 and 4.0 * len(legend) <= ah
+    side = not side_it and footer_rows(typo, legend, spec) > 2 and aw_r - max(rws) >= lw + 8.0 and \
+        4.0 * len(legend) <= ah_r
     if side:                                         # v4: a long legend beside the drawing, all of it
         lx = AREA[0] + max(rws) + 8.0
         for i, e in enumerate(legend):
-            legend_item(pg, typo, e, lx, AREA[1] + 3.0 + 4.0 * i)
+            legend_item(pg, typo, e, lx, y_top + 3.0 + 4.0 * i)
+    if key_at:                                       # v19: the key map, scale 1.0, no caption (no scale: a key map)
+        kx = AREA[2] - kw if key_at == "beside" or side or side_it else \
+            max(AREA[0], min(AREA[2], AREA[0] + (aw + max(rws)) / 2.0) - kw)   # band: flush with the rows' right edge
+        show(fitz, pg, typo, key_it, kx, AREA[1], ks, rep, missing, cap=False)
+        rep.append("key map %s" % ("beside the rows" if key_at == "beside" else "in the band under the title"))
     # v18 (Prompt 8, rule 4 "no large empty areas"): rows that leave more than 40 mm of the height empty share it out
     # (old p.10: 91 mm under two maps the width holds at 1:10,000)
-    free = ah - sum(max(wh(it)[1] * sc(it) for it in r) + CAP_H + ROW_GAP for r in rows) + ROW_GAP
+    free = ah_r - sum(max(wh(it)[1] * sc(it) for it in row_items(r)) + CAP_H + ROW_GAP for r in rows) + ROW_GAP
     pad = free / (len(rows) + 1) if len(rows) > 1 and free > 40.0 and not side_it and \
         footer_rows(typo, legend, spec) <= 3 else 0.0
     y += pad
     for r, rw in zip(rows, rws):                     # rows centred across the page (left with a side legend)
-        x, rh = AREA[0] + (0.0 if side or side_it else max(0.0, (aw - rw) / 2.0)), max(wh(it)[1] * sc(it) for it in r)
-        for key, blk, path, clip in r:
-            s = sc((key, blk, path, clip))
-            w, h = wh((key, blk, path, clip))
+        pres = row_items(r)
+        fill = [it for it in r if not any(it is p for p in pres)]    # v19: missing beside drawn panels
+        x = AREA[0] + (0.0 if side or side_it or fill or key_at == "beside" else max(0.0, (aw - rw) / 2.0))
+        rh = max(wh(it)[1] * sc(it) for it in pres)
+        fw = (aw_r - rw - GUT * len(fill)) / len(fill) if fill else 0.0
+        for it in r:
+            key, blk, path, clip = it
+            if any(it is f for f in fill):          # v19: its labelled frame in the room the drawn panels leave
+                missing.add(key.partition("/")[0])
+                rep.append("%s MISSING" % key)
+                if fw >= 20.0:
+                    placeholder(pg, typo, (x, y, fw, rh), "%s · %s" % (SCRIPT_OF.get(key.partition("/")[0], ""),
+                                                                      key.split("/")[1]))
+                    x += fw + GUT
+                continue
+            s = sc(it)
+            w, h = wh(it)
             if clip is None and blk and blk.get("slot"):     # v11: frame for a drawing a later prompt makes
                 placeholder(pg, typo, (x, y, w * s, h * s), blk["slot"])
                 rep.append("frame: %s" % blk["slot"])
@@ -613,17 +844,19 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                 legend_item(pg, typo, e, AREA[0] + (i // nrow) * (lw + 4.0), yl + 4.0 * (i % nrow))
             side = True
     if side_it:                                      # v12: beside the rows, right margin, top-aligned
-        x1, ys, xs0 = AREA[0] + max(rws) + GUT, AREA[1], AREA[2]
+        x1, ys, xs0, grid = AREA[0] + max(rws) + GUT, y_top, AREA[2], []
         for it in side_it:
             w, h = wh(it)
-            s = min(own_s(it), (AREA[2] - x1) / w, (AREA[3] - ys - CAP_H) / h)
+            s = max(0.05, min(own_s(it), (AREA[2] - x1) / w, (AREA[3] - ys - CAP_H) / h))
             xs = AREA[2] - w * s
             xs0 = min(xs0, xs)
             ys += show(fitz, pg, typo, it, xs, ys, s, rep, missing) + CAP_H
-            grid = [g * w * s / it[1]["bk_w"] for g in (it[1] or {}).get("grid", [])] if (it[1] or {}).get("bk_w") \
-                else []
+            g_ = [xs + g * w * s / it[1]["bk_w"] for g in (it[1] or {}).get("grid", [])] \
+                if it[3] is not None and (it[1] or {}).get("bk_w") else []
+            grid = grid or g_                        # v19: the grid of the first side panel that has one (the site
+                                                     # readings, P02.1), not the last one's (the edge types)
         if legend:                                   # the legend under the panel, on its grid (else two columns)
-            starts = [xs0 + g for g in grid] if len(grid) > 1 else [xs0, xs0 + 0.5 * (AREA[2] - xs0)]
+            starts = list(grid) if len(grid) > 1 else [xs0, xs0 + 0.5 * (AREA[2] - xs0)]
             ends = starts[1:] + [AREA[2]]
             ncol = len(starts) if all(6.0 + typo.width(e.get("label", ""), T["caption"]) <= min(
                 b - a for a, b in zip(starts, ends)) for e in legend) else 1

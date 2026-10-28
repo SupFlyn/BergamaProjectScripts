@@ -826,6 +826,7 @@ def build_all(doc, warn):
     if not site_found:
         warn.append(u"no site_alan outline in the open file: the built-in copy (Bergama_Altlik.3dm, 25 Oct) was used")
     V = View(areas, 0.0, 1000.0 / scale, frame=site)            # v15: alternative 3 = exactly site_alan
+    V.frame_P, V.study = list(site), [areas[k_] for k_ in sorted(areas)]   # v27 (MIRAQUA 28 Oct, G10, G8): 02d
     bb = [bbox(A) for A in areas.values()] + [V.bb]
     R = (min(b[0] for b in bb) - ring_m - 5, min(b[1] for b in bb) - ring_m - 5,
          max(b[2] for b in bb) + ring_m + 5, max(b[3] for b in bb) + ring_m + 5)
@@ -896,6 +897,13 @@ def build_all(doc, warn):
                              u"first  {}".format(OG_KML, n_, OG_MIN_HA, f_, datetime.datetime.now().strftime("%H:%M:%S")))
             except Exception as ex:
                 lines.append(u"logs/{}  NOT WRITTEN ({}: {})".format(OG_KML, type(ex).__name__, ex))
+            try:                                         # v27 (MIRAQUA 28 Oct, D1): for the site board's filter sheet
+                os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)
+                og_ = pl28_open_ground_json(C, os.path.join(bg_cache(OUT_FOLDER), PL28_OPEN_JSON))
+                lines.append(u"{}  frame {:.2f} ha, open ground {:.2f} ha  {}".format(
+                    PL28_OPEN_JSON, og_["frame_ha"], og_["open_ha"], datetime.datetime.now().strftime("%H:%M:%S")))
+            except Exception as ex:
+                lines.append(u"{}  NOT WRITTEN ({}: {})".format(PL28_OPEN_JSON, type(ex).__name__, ex))
         for alt in (1,):                                 # v19: the one sheet
             name = OUT_NAME.format(opt, alt)
             t0 = time.time()

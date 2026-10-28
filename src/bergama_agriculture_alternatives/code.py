@@ -40,7 +40,7 @@ VERSION = "v3.1"
 # crop ratio and size for every photo"): every plant and crop name on pages 1 and 3 is "English (Turkish)" from the
 # shared table (src/common/plant_photos.py), no Latin names on the pages. Page 3's step columns show each step's plants
 # as photos (PHOTO_W x PHOTO_H mm, two side by side) with the name and the photo's [n] credit under each; the giant reed
-# under REMOVE. Page 1 adds "THE CROPS" under the timeline: olive, cotton, maize, tomato as photos. The photos come
+# under REMOVE. Page 1 adds "THE CROPS" under the timeline: olive, cotton, corn, tomato as photos. The photos come
 # from the shared cache Downloads/Bergama/cached/plant_photos/ (the water board shows the same photo of the same
 # plant) and go into their frames with PyMuPDF after the PDF is written; a missing one is an empty frame saying "no
 # photo", never an error; the log says how many were placed. Room on page 3: the chain sits 4 mm higher, the season rows
@@ -77,7 +77,10 @@ VERSION = "v3.1"
 # v1.1 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_agriculture_alternatives_log.txt (next to cached/ and output/), overwritten by each press.
 #@include ../common/bergama_paths.py
 #@include ../common/plant_photos.py
-LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
+#@include ../common/units.py
+#@include ../common/figures.py
+#@include ../common/label_place.py
+LOG_DIR = bg_logs()                       # Aras 25 Oct 09:34-09:35: every script's log here
 
 
 def write_log(text):
@@ -276,9 +279,18 @@ SRC_KEY = []          # v1.6: sources printed as [n] on pages 1-3, numbered once
 LOG_NOTES = []        # v1.6: what the layout left out (log)
 
 def cite(src):
-    """v1.2 (water board v1.6 method): the number of a source in the sheet's key (v1.6: page 4), as "[n]"."""
+    """v1.2 (water board v1.6 method): the number of a source in the sheet's key (v1.6: page 4), as "[n]".
+    v4 (MIRAQUA 28 Oct, F5): "" for a source that is not public online (F5_OFF): no mark, not in the key."""
+    if src in F5_OFF:
+        return ""
     if src not in SRC_KEY: SRC_KEY.append(src)
     return "[%d]" % (SRC_KEY.index(src) + 1)
+
+
+def cited(s, *srcs):
+    """v4 (F5): s with its [n] marks after one space, or s alone when none of its sources is public"""
+    mk = "".join(cite(q) for q in srcs if q)
+    return s + (" " + mk if mk else "")
 
 def wrap(s, size, w, bold=False):
     out, line = [], ""
@@ -319,14 +331,17 @@ def photo_mark(key):
 
 def photo_frame(pg, pi, key, x, top, P=None):
     """v2: the frame of a plant's photo, PHOTO_W x PHOTO_H mm, its top-left at (x, top) on page index pi: a thin faint
-    outline, and the photo recorded for put_photos, or "no photo" inside the frame. P: a Placer that keeps the frame."""
-    p = photo_get(key)[0]
+    outline, and the photo recorded for put_photos, or "no photo" inside the frame. P: a Placer that keeps the frame.
+    v4 (MIRAQUA 28 Oct, G12): an empty frame says why, as the water board's cards: "no photo: " + the loader's reason
+    (common/plant_photos.py: offline, Wikimedia refused (HTTP 429) press again later, file not found, licence ...),
+    7 pt (the booklet's smallest), top left in the frame."""
+    p, _cr, why = photo_get(key)
     pg.rect(x, top - PHOTO_H, PHOTO_W, PHOTO_H, stroke=C["faint"], lw=0.2)
     PHOTO_N[0] += 1
     if p:
         PHOTO_FR.append((pi, x, top - PHOTO_H, x + PHOTO_W, top, p))
     else:
-        pg.text("no photo", x + PHOTO_W / 2.0, top - PHOTO_H / 2.0 - 0.8, 6, C["ink2"], align="C")
+        pg.para(u"no photo: " + (why or u"not loaded"), x + 1.5, top - 4.0, PHOTO_W - 3.0, 7, C["ink2"], lead=1.2)
     if P is not None:
         P.boxes.append((x, top - PHOTO_H, x + PHOTO_W, top))
 
@@ -355,6 +370,12 @@ def name_caps(key):
     return en.upper() + ((" (" + tr.replace(u"i", u"İ").upper()) if tr else "")
 
 
+def crop_word(key):
+    """v4 (MIRAQUA 28 Oct, G11): a crop key as a short printed word, the English name of the shared table: "maize" ->
+    "corn", "cotton" -> "cotton"; a key the table does not have stays as it is"""
+    return plant_name(key).partition(" (")[0].lower() if key in PLANTS else key
+
+
 def put_photos(path):
     """v2: the plant and crop photos into their frames on pages 1 and 3 (PyMuPDF, after write_pdf and put_base); a photo
     error never stops the sheet. Returns the log lines: how many were placed, and why each missing one is missing."""
@@ -374,17 +395,23 @@ def put_photos(path):
 STAGE_TAG = u"C  WATER  ·  WHAT WE DO WITH IT"   # v3 (Prompt 6, rule 7): the booklet's theme and stage of pages 1 and 3
 
 
-def header(pg, n, title, sub, hole=None, tag="AGRICULTURE ANALYSIS · GROUP 6"):
+HEAD_Y = (285.0, 276.5, 269.5)       # v4 (MIRAQUA 28 Oct, P19.1): baselines of the kicker, the title and the subtitle
+
+
+def header(pg, title, sub, hole=None, tag=None):
+    """v4 (MIRAQUA 28 Oct, F10 decision 3, default remove; P19.1): the sheet's big page number before the title is
+    gone (it read as a booklet page number); the booklet stage tag (pages 1 and 3) is the kicker over the title, top
+    left, where the booklet's own pages carry theirs (8 pt, 12 mm from the top edge); title and subtitle on the 14 mm
+    margin (were at 26 behind the number). G1: no "AGRICULTURE ANALYSIS · GROUP 6" line (page 2 had it)."""
     if hole:                                       # v1.5: a window left open for a plan placed under the page
         x0, y0, x1, y1 = hole
         pg.path([[(0, 0), (420, 0), (420, 297), (0, 297)], [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]], fill=C["white"])
     else:                                          # v1.6 (Aras 27 Oct): white, the beige paper goes
         pg.rect(0, 0, 420, 297, fill=C["white"])
-    pg.text(n, 14, 279, 22, C["accent"], True)
-    pg.text(title, 26, 279, 22, C["ink"], True)
-    pg.text(sub, 26, 271.5, 11, C["ink2"])
     if tag:                                        # v3: pages 1 and 3 name their booklet stage (accent, as its kicker)
-        pg.text(tag, 406, 281, 7, C["accent"] if tag == STAGE_TAG else C["ink2"], True, "R")
+        pg.text(tag, 14, HEAD_Y[0], 8, C["accent"], True)
+    pg.text(title, 14, HEAD_Y[1], 22, C["ink"], True)
+    pg.text(sub, 14, HEAD_Y[2], 11, C["ink2"])
 
 # ------------------------------------------------------------------ v1.2 pictograms and tiles (from water board v1.6/v1.7)
 def icon(pg, kind, x, y, sz):
@@ -510,14 +537,17 @@ def north(pg, x, y, ang_deg, r=7.0):
     pg.text("N", tip[0] + ux * 3.0, tip[1] + uy * 3.0 - 1.2, 8, C["ink"], True, "C")
 
 # ------------------------------------------------------------------ page 1: what each cubic metre grows
-NEWS = "news: Ajans Bakırçay 19.03.2025 (research/water_data/03 §3)"
-TUIK = "TÜİK Bitkisel Üretim, Bergama 2025 (library/research/crops_2026-10-24 §1.24-1.25)"
+# v4 (MIRAQUA 28 Oct, F5: public online sources only): the public sources keep their words, the project's own file
+# pointers go from the printed key (kept here: NEWS research/water_data/03 §3; TUIK library/research/crops_2026-10-24
+# §1.24-1.25; NET_REF research/water_balance/tables/C1). G11: corn, not maize, where printed (data keys stay "maize").
+NEWS = "news: Ajans Bakırçay 19.03.2025"
+TUIK = "TÜİK Bitkisel Üretim, Bergama 2025"
 KAYA = "Kaya et al. 2017, Irrig. Drain. 66(5):820-827, Tables II, III, VI, pp.823-826 (deficit saving: Table II, S0.50 and S0.25 vs control)"
 ITB = "İzmir Ticaret Borsası cotton report 2025, p.5"
-NET_REF = ("net irrigation: research/water_balance/tables/C1 (FAO-56, Allen et al. 1998; MGM/WMO 17742 normals; ERA5 1991-2025 "
-           "scaled); per ha = FAO-56 daily soil balance net need (34 water years, Bergama climate) / 0.90 drip (calculated)")
+NET_REF = ("net irrigation: FAO-56 (Allen et al. 1998), MGM/WMO 17742 normals, ERA5 1991-2025 scaled; per ha = FAO-56 "
+           "daily soil balance net need (34 water years, Bergama climate) / 0.90 drip (calculated)")
 TAGEM = ("check: TAGEM/DSİ 2017 §12 Bergama 17742 station tables (net = ETc - 0.8 rain, our arithmetic): cotton 829 vs our 853 mm, "
-         "maize 765 vs 723, tomato 606-825 vs 781, olive 502-603 vs 614")
+         "corn 765 vs 723, tomato 606-825 vs 781, olive 502-603 vs 614")
 # v1.2: the context sentences as tiles (pictogram, heading, big figure, keyword lines, source)
 # v2 (Aras 27 Oct, Prompt 5): the crops they name as "English (Turkish)"; figures and sources as they were
 CONTEXT = [
@@ -580,7 +610,7 @@ def history_line(pg, x, top, w, floor):
                 pg.line([(X(a), yb), (X(b), yb)], col, 1.0)
         else:
             pg.circle(X(a), yb, 0.8, fill=col)
-        if P.put(pg, lab + " " + cite(ref), X((a + b) / 2.0 if b else a), yb + (0.6 if up else -0.6), 7, col, False, region=reg,
+        if P.put(pg, cited(lab, ref), X((a + b) / 2.0 if b else a), yb + (0.6 if up else -0.6), 7, col, False, region=reg,
                  gap=2.0, up=up, lanes=4, lead_col=col, stick=True) is None:
             LOG_NOTES.append("p1 history label left out (no free place): " + lab)
     return ya - 15.0
@@ -612,7 +642,9 @@ def crop_row(pg, x, top, w, floor):
 
 
 # ------------------------------------------------------------------ v3 (Prompt 6): the stream comes first
-PRIORITY = [(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
+P1_X = 14.0                          # v4 (MIRAQUA 28 Oct, F10): page 1's left column on the 14 mm margin with the title
+                                     # (was 26, behind the page number that is gone)
+PRIORITY =[(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
 WE_DO = [(1, "clean once, at the upstream end"), (2, "hold winter water"), (3, "strip first, all summer"),
          (4, "plant each step for the water it gets"), (5, "surplus to the farms outside, never drinking")]
 
@@ -669,13 +701,13 @@ def stream_first(pg, L, src, y_top):
     (carried on, or back to the stream after 365 days), the store size dashed across both; then the double squeeze.
     All from the water balance results (design.year_split); without them only the priority row. Returns the bottom y."""
     yA = y_top - 3.5
-    pg.text("THE STREAM COMES FIRST", 26, yA, 9, C["accent"], True)
-    chips(pg, 26 + text_w("THE STREAM COMES FIRST", 9, True) + 5.0, yA, PRIORITY)
+    pg.text("THE STREAM COMES FIRST", P1_X, yA, 9, C["accent"], True)
+    chips(pg, P1_X + text_w("THE STREAM COMES FIRST", 9, True) + 5.0, yA, PRIORITY)
     ys = L.get("year_split")
     if not (ys and "normal" in ys and "dry5" in ys):
         LOG_NOTES.append("FLAG p1: the water balance results have no year_split (water balance v4 has not run): the "
                          "normal and dry-year bars and the squeeze line are left out")
-        ag_crop("ag1_stream", 0, 24.0, yA - 2.0, 266.0, y_top + 1.0)
+        ag_crop("ag1_stream", 0, P1_X - 2.0, yA - 2.0, 266.0, y_top + 1.0)
         return yA - 1.0
     mix = L.get("design_mix") or "design mix"
     mix_t = " + ".join(name_lc(w.split()[-1]) if w.split() and w.split()[-1] in PLANTS else w for w in mix.split(" + "))
@@ -720,7 +752,7 @@ def stream_first(pg, L, src, y_top):
         xv = x0 + kx * V
         pg.line([(xv, b1 - 17.8), (xv, b1 + 0.8)], C["ink"], 0.35, (1.0, 0.7))
     lg = b1 - 17.0 - 7.0                           # the legend row, then the squeeze in two lines
-    xx = 26.0
+    xx = P1_X
     for kind, cols, lab in (("fill", (C["water_deep"],), "strip, also waters the bed planting"),
                             ("fill", (C["green_light"], C["green_deep"]), "farms: normal · dry year"),
                             ("fill", (C["faint"],), "left: carried on, or back to the stream after a year"),
@@ -734,14 +766,14 @@ def stream_first(pg, L, src, y_top):
         xx += 0.8 + text_w(lab, 7) + 5.0
     a, b, c = squeeze(ys)
     pg.text("1-in-5 dry year vs normal year: left for farms after the strip %s · need per hectare %s · hectares %s %s" % (
-        pc(a), pc(b), pc(c), mk), 26, lg - 4.0, 7.5, C["accent"], True)
+        pc(a), pc(b), pc(c), mk), P1_X, lg - 4.0, 7.5, C["accent"], True)
     if b > 0.0 and a <= 0.0:                       # what the run shows, said as it is (the log flags the other cases)
         t2 = "so the hectares fall faster than the volume: why deficit-irrigated %s is the lever" % name_lc("olive")
     elif b > 0.0 and c < 0.0:
         t2 = "the need per hectare outgrows the water left: why deficit-irrigated %s is the lever" % name_lc("olive")
     else:
         t2 = "the hectares hold in this dry year: the store covers it"
-    pg.text(t2, 26, lg - 7.4, 7.5, C["ink"])
+    pg.text(t2, P1_X, lg - 7.4, 7.5, C["ink"])
     if a > 0.0 or b <= 0.0:
         LOG_NOTES.append("MODEL p1: the dry year (%s) leaves the farms %s water after the strip and needs %s per hectare: "
                          "the squeeze is %s" % (ys["dry5"]["water_year"], pc(a), pc(b),
@@ -754,23 +786,23 @@ def stream_first(pg, L, src, y_top):
                                     fmt(n_["farms_m3"]), fmt(d_["farms_m3"]), fmt(n_["farm_need_m3"]),
                                     fmt(d_["farm_need_m3"]), pc(a), pc(b), pc(c), n_["winter_flow_pct_of_median"],
                                     d_["winter_flow_pct_of_median"]))
-    ag_crop("ag1_stream", 0, 24.0, lg - 9.0, 266.0, y_top + 1.0)
+    ag_crop("ag1_stream", 0, P1_X - 2.0, lg - 9.0, 266.0, y_top + 1.0)
     return lg - 8.2
 
 
 def page_cubic(L, src):
     pg = Page(420, 297)
-    header(pg, "1", "WHAT EACH CUBIC METRE GROWS",
+    header(pg, "WHAT EACH CUBIC METRE GROWS",
            "Same storage, different crops: hectares irrigated a season", tag=STAGE_TAG)
     s_lo, s_hi = span(L["storage_m3"]); p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
     w_lo, w_hi = n_lo * p_lo / 100.0, n_hi * p_hi / 100.0          # m3 the storage gives the farms in the 1-in-5 dry year
     fed = L["cropland_ha"] + L["orchard_ha"]
     SRC1 = "storage, need and share: " + src + "; water to farms = 1-in-5 dry-year need x share covered (calculated)"
-    MIX = ("Bergama mix = cotton, maize and tomato weighted by their 2025 district areas; no map shows what the 34.9 ha grow, "
-           "so the mix stands in; water balance crops: %s" % (", ".join(L["crops"]) or "not set"))
-    # key line
-    pg.text("%s-%s m³" % (fmt(rnd(s_lo)), fmt(rnd(s_hi))) if rnd(s_lo) != rnd(s_hi) else "%s m³" % fmt(rnd(s_lo)), 26, 250, 26, C["water_deep"], True)
-    pg.text("storage · cost cut-off " + cite(SRC1), 26, 242, 9, C["ink"])
+    MIX = ("Bergama mix = cotton, corn and tomato weighted by their 2025 district areas; no map shows what the 34.9 ha grow, "
+           "so the mix stands in; water balance crops: %s" % (", ".join(crop_word(c) for c in L["crops"]) or "not set"))
+    # key line (v4, F10: on the 14 mm margin with the title, was 26)
+    pg.text("%s-%s m³" % (fmt(rnd(s_lo)), fmt(rnd(s_hi))) if rnd(s_lo) != rnd(s_hi) else "%s m³" % fmt(rnd(s_lo)), P1_X, 250, 26, C["water_deep"], True)
+    pg.text("storage · cost cut-off " + cite(SRC1), P1_X, 242, 9, C["ink"])
     pg.text("%s-%s m³" % (fmt(rnd(w_lo)), fmt(rnd(w_hi))), 120, 250, 26, C["green_deep"], True)
     pg.text("to farms · 1-in-5 dry year · %s %% of need · strip first" % (("%.0f" % p_lo) if "%.0f" % p_lo == "%.0f" % p_hi else "%.0f-%.0f" % (p_lo, p_hi)), 120, 242, 9, C["ink"])
     # bars: hectares served by W, per crop (v2, Prompt 5: the crop names "English (Turkish)")
@@ -818,7 +850,7 @@ def page_cubic(L, src):
             legend=[{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
                     {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
                     {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
-    ag_crop("ag1_headline", 0, 24.0, 239.0, 262.0, 261.0)
+    ag_crop("ag1_headline", 0, P1_X - 2.0, 239.0, 262.0, 261.0)
     # key to the two bars
     ky = yb_ - 10.0
     pg.rect(x0, ky, 6, 3, fill=C["green_light"]); pg.text("normal year (mean of 34)", x0 + 8, ky + 0.5, 7, C["ink"])
@@ -959,18 +991,19 @@ def page_farms(L, src):
         else:
             G, gnote = None, "the farms lie outside the site board's plan 01"
     BASE["note"] = gnote
-    header(pg, "2", "THE FARMS WE FEED", "Fields and orchards the stored water serves, on the site plan \"What is there\"",
+    header(pg, "THE FARMS WE FEED", "Fields and orchards the stored water serves, on the site plan \"What is there\"",
            hole=hole if G else None)
-    WC = "ESA WorldCover 2021 v200, 10 m (CC BY 4.0), data/landcover"
-    ORCH = "orchards inferred from survey symbols SEMBOL_ZEYTINLIK / SEMBOL_MEYVA_BAH"
-    EXT = "extent = around2.pdf registered to the survey (research/water_balance)"
+    WC = "ESA WorldCover 2021 v200, 10 m (CC BY 4.0)"                # v4 (F5): read from Data/landcover
     NEED2 = "need: FAO-56 soil balance / 0.90 drip, normal and 1-in-5 dry years"
     SRC2 = "farm areas from " + src
-    PLAN = "base: site board plan 01 'What is there' (selinus_board, its own sheet PDF, cut and scaled, not redrawn)"
-    # context line (review global rule 4): what it shows, why it is here, what to take from it
-    pg.text("The site plan \"What is there\" with the fields and orchards our stored water serves outlined: the farms read "
-            "off the same base, colours and key as the site " + cite(PLAN if G else WC),
-            14, 265.5, 8.5, C["ink"])
+    # v4 (MIRAQUA 28 Oct, F5): no [n] for what is not public online: the orchards (course survey symbols
+    # SEMBOL_ZEYTINLIK / SEMBOL_MEYVA_BAH), the extent (around2.pdf registered to the survey) and the base (the site
+    # board's own plan 01, cut and scaled, not redrawn) are said on the page without a mark
+    # context line (review global rule 4): what it shows, why it is here, what to take from it; v4: 0.7 mm lower, under
+    # the subtitle's new baseline (header)
+    pg.text(cited("The site plan \"What is there\" with the fields and orchards our stored water serves outlined: the "
+                  "farms read off the same base, colours and key as the site", None if G else WC),
+            14, 264.8, 8.5, C["ink"])
     hx0, hy0, hx1, hy1 = hole
     if not G:                                      # fallback: v1.4's land cover drawing in the window, flagged
         A = GEO["around2"]
@@ -1011,10 +1044,11 @@ def page_farms(L, src):
     y -= 3.0
     rows = [("outline", C["accent"], "fields " + cite(SRC2), "%s ha" % fmt1(fed_c),
              ["%s-%s m³ a season %s" % (fmt(rnd(fed_c * c_lo)), fmt(rnd(fed_c * c_hi)), cite(NEED2)),
-              "as " + " / ".join(cc) + " " + cite(TUIK), "inside the site %s ha · outside %s ha %s" % (fmt1(f_in), fmt1(f_out), cite(WC))]),
-            ("outline2", C["accent_deep"], "orchards " + cite(ORCH), "%s ha" % fmt1(fed_o),
+              "as " + " / ".join(crop_word(c_) for c_ in cc) + " " + cite(TUIK),   # v4 (G11): corn, not maize
+              "inside the site %s ha · outside %s ha %s" % (fmt1(f_in), fmt1(f_out), cite(WC))]),
+            ("outline2", C["accent_deep"], "orchards", "%s ha" % fmt1(fed_o),             # v4 (F5): survey, no mark
              ["%s-%s m³ a season" % (fmt(rnd(fed_o * o_lo, 100)), fmt(rnd(fed_o * o_hi, 100))), "as olive"]),
-            ("dash", C["ink"], "the extent they lie in " + cite(EXT), "%s ha" % fmt(L.get("extent_ha", 455.0)), [])]
+            ("dash", C["ink"], "the extent they lie in", "%s ha" % fmt(L.get("extent_ha", 455.0)), [])]
     for kind, col, lab, big, lines in rows:
         key_sample(pg, kind, col, x, y)
         pg.text(lab, x + 5.5, y - 2.1, 6.5, C["ink"], True)
@@ -1062,13 +1096,15 @@ def put_base(path):
 # zones: interpretation of research/water_data/04 §3 (MITECO bands, 92D0 thickets, USDA NRCS TN-38 zones); depths
 # from research/rain_river_levels/README.md "The answers in short" and (Q100/Q500, v1.2) its v1.1 correction of 24 Oct
 # (surveyed sections, line 49); today's cover from the satellite corridor bands
-SPECIES = ("species, flood and cleaning evidence: research/water_data/04 (POWO, FEIS, JRC Atlas, Korkusuz et al. 2004, "
-           "Aydın Temel et al. 2017, Xie et al. 2021, RHS)")
+# v4 (MIRAQUA 28 Oct, F5): the printed key names the public sources only; the project's own pointers stay here:
+# SPECIES research/water_data/04; DEPTH research/rain_river_levels, v1.1 correction of 24 Oct; REUSE quoted in EN-E1;
+# HARVEST library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §4.19
+SPECIES = ("species, flood and cleaning evidence: POWO, FEIS, JRC Atlas, Korkusuz et al. 2004, Aydın Temel et al. 2017, "
+           "Xie et al. 2021, RHS")
 BANDS = "bands = our reading of MITECO, Salinas & Cueto 2009 (92D0), USDA NRCS TN-38"
-DEPTH = ("depths: research/rain_river_levels (DSİ Q100/Q500, calculated; Q100/Q500 on the surveyed sections, v1.1 "
-         "correction of 24 Oct)")
+DEPTH = "depths: DSİ Q100/Q500, calculated on the surveyed sections"
 TODAY = "today's cover: ESA WorldCover 2021 by distance from the OSM Selinos centreline"
-REUSE = "reuse class B: 2010 communiqué as quoted (EN-E1)"
+REUSE = "reuse class B: 2010 communiqué"
 # v1.6 (Aras 27 Oct 11:07, p26 "update to match the current project ... how the program changes people's
 # interactions"): the programme of option A and its historic roots, each from the project's own record
 CHAIN_REF = ("option A water chain: one way, cleaned once upstream in the reed basins, held in the terrace cascade, "
@@ -1083,15 +1119,20 @@ GARDEN = ("card i01: Demeter's Garden (Begüm's page, 25 Oct): Demeter 'the anci
 KERMES = "h01 §2.8: Kermes first 1937 (s100, s60); 90th edition 29.06-05.07.2026 (s60); in the low-water season"
 WB_YEAR = ("water board v1.13, S4 season rows: storage fills (winter), full by end of April (spring), low until the "
            "rains (autumn); reeds gold, seed heads; first-flush cleaning")
-HARVEST = ("olive harvest month: Kaya et al. 2017, Memecik trees hand-harvested 6 Nov 2008, 10 Nov 2009, 14 Nov 2010 "
-           "(library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §4.19)")
-JOB_ICON = [("CLEAN", "clean"), ("HOLD", "hold"), ("SHADE", "shade"), ("SCENT", "scent"), ("HARVEST", "olive")]   # v1.2 job pictograms
+HARVEST = "olive harvest month: Kaya et al. 2017, Memecik trees hand-harvested 6 Nov 2008, 10 Nov 2009, 14 Nov 2010"
+# v4 (MIRAQUA 28 Oct, F5, Aras 28 Oct 11:38 "remove non-public citations"): these are the project's own record or
+# internal research cards (h01, i01, t02, decisions, the spec, Begüm's page, our other sheets), not public online:
+# cite() gives them no [n] and they leave the key; their words stay on the page as our own design statement. Facts
+# now without a public source (reported): Tersane cotton (16th c.), ginning 1861, Sümerbank (1954/60-2008), the
+# 19th-c. olive-oil machinery in the Red Hall S rotunda, Kermes since 1937.
+F5_OFF = (COTTON_H, OLIVE_H, CHAIN_REF, PROG, GARDEN, KERMES, WB_YEAR)
+JOB_ICON =[("CLEAN", "clean"), ("HOLD", "hold"), ("SHADE", "shade"), ("SCENT", "scent"), ("HARVEST", "olive")]   # v1.2 job pictograms
 #@include data/STEPS.py
 # v1.6: the bank top as the project has it now (kept here so the Data file stays the v1.5 one): hub squares with plane
 # trees at the bridges (spec §3 D8; water board band E) and Demeter's Garden's olives at K5 (card i01; olive "will not
 # tolerate waterlogged soils", DATA_REGISTER PL-11)
 STEPS[3].update(sub="hub squares at the bridges · Demeter's Garden at K5", job="SHADE + SCENT",
-                plant=[("plane", "hub squares: Ottoman squares with plane trees (D8)")] + STEPS[3]["plant"] +
+                plant=[("plane", "hub squares: Ottoman squares with plane trees")] + STEPS[3]["plant"] +   # v4: no D8
                       [("olive", "Demeter's Garden (K5): dry top only, no waterlogged soil")])   # v2: PLANTS keys
 
 
@@ -1156,13 +1197,17 @@ LAD_X0, LAD_X1 = 106.0, 406.0        # the cut on the page, mm (left of it: the 
 LAD_F = (LAD_X1 - LAD_X0) / LAD_W    # mm a sketch unit, the same across and up
 LAD_GB = 12.0                        # the bottom of the cut ground, sketch units
 LAD_GY = (16.0, 21.0, 26.0, 30.0, 33.0)   # ground of each step (bed, lower bank, terrace, bank top, farms)
-LAD_Q100, LAD_Q500 = 30.8, 31.6      # over the bank top only at K4 / S4 (README v1.1 line 49), under the farms
+LAD_Q100, LAD_Q500 = 30.8, 31.6      # over the bank top only at S4 (README v1.1 line 49; K4 only in the survey, before
+                                     # the DSİ walls: bank depth research 28 Oct §4.5), under the farms
 ROW_H = 50.0                         # mm a season row (v2: was 52; room for the plant photos; the tallest tree, the
                                      # bank top's plane at 41 sketch units, ends 4.5 mm under the row's top)
 SUBHUB = (27.0, 36.0)                # the floodable sub-hub in the bed (spec §3 D2/D3/D10), sketch x
 HUB = (3 * LAD_S + 2.0, 3 * LAD_S + 17.0)   # the dry hub square on the bank top at the bridges (D2), sketch x
-SIT_FIG = [(-0.14, 0.0), (0.30, 0.0), (0.30, -0.42), (0.42, -0.42), (0.42, 0.13), (0.10, 0.14), (0.12, 0.62),
-           (0.05, 0.70), (-0.10, 0.70), (-0.17, 0.58)]   # a seated figure (m, as the board's SA_FIGS), seat at (0, 0)
+LAD_U = 4.5 / 1.745                  # v4 (MIRAQUA 28 Oct, P19.2): sketch units a metre, up: the sketch engine's own figure
+                                     # scale (its 1.745 m figures stood 4.5 units), so the bank top, 14 units over the
+                                     # bed, stands 5.4 m (the town reach's walls: 5.0 m) and an adult of 1.75 m
+                                     # (common/figures.py) is 4.51 units, 6.8 mm on the page
+LAD_SEAT = 0.46                      # m from the feet of the seated figure (fig_polys "sit") to its seat
 
 
 def _bed(i):
@@ -1170,9 +1215,12 @@ def _bed(i):
     return STEPS[0]["water"][i].split(": ", 1)[1]
 
 
-# the season rows: what the water does (left column) and what people do where (on the cut). acts: (figure kind or
-# "sit" / None, sketch x, sketch y, flip, label, source). Sources: STEPS (water), spec §3 (programme), card i01
+# the season rows: what the water does (left column) and what people do where (on the cut). acts: (figure pose or
+# None, sketch x, sketch y, flip, label, source). Sources: STEPS (water), spec §3 (programme), card i01
 # (garden), h01 (Kermes), Kaya 2017 (olive harvest), the water board's season words.
+# v4 (MIRAQUA 28 Oct, P19.2): the pose is a common/figures.py pose (stand, walk, watch, sit, touch, wade; was the
+# board's four SA_FIGS kinds): the seated one sits on the terrace's sitting step, legs over the edge; the wader stands
+# in the summer strip; the gardener crouches over the winter herbs; the picker reaches into the olive tree.
 def seasons():
     g0, g1, g2, g3, g4 = LAD_GY
     return [
@@ -1180,27 +1228,28 @@ def seasons():
              side=[("bed " + _bed(1) + " deep", DEPTH), ("lower bank under water", None), ("sub-hubs closed", PROG),
                    ("storage fills", WB_YEAR)],
              acts=[("sit", 2 * LAD_S + 1.0, g2, True, "sit at the edge · watch the water", PROG),
-                   (0, HUB[0] + 4.0, g3, False, "hub square: dry, step-free", PROG),
-                   (2, HUB[0] + 8.5, g3, True, None, None),
+                   ("stand", HUB[0] + 4.0, g3, False, "hub square: dry, step-free", PROG),
+                   ("watch", HUB[0] + 8.5, g3, True, None, None),
                    (None, sum(SUBHUB) / 2.0, g1 + 1.8, False, "sub-hub under water: closed", PROG)]),
         dict(key="low", name="LOW WATER", months="Jul-Sep", mark="summer",
              side=[("bed " + _bed(0), DEPTH), ("strip 0.30 m all summer (design)", None), ("sub-hubs open", PROG),
                    (STEPS[4]["water"][0], None)],
-             acts=[(1, 10.5, g0, False, "walk in the bed", PROG),
-                   (0, 19.0, g0 - 2.0, False, "wade the strip", None),
-                   (2, SUBHUB[0] + 3.0, g0 + 0.7, False, "sub-hub open", PROG),
+             acts=[("walk", 10.5, g0, False, "walk in the bed", PROG),
+                   ("wade", 19.0, g0 - 2.0, False, "wade the strip", None),
+                   ("stand", SUBHUB[0] + 3.0, g0 + 0.7, False, "sub-hub open", PROG),
                    (None, 6.0, g0 + 6.0, False, "Kermes (since 1937) in the dry bed", KERMES),
-                   (1, 2 * LAD_S + 20.0, g2, False, "shade under the trees", None),
-                   (0, HUB[0] + 4.0, g3, False, "hub square: %s shade" % name_lc("plane"), PROG),   # v3.1: names
+                   ("walk", 2 * LAD_S + 20.0, g2, False, "shade under the trees", None),
+                   ("stand", HUB[0] + 4.0, g3, False, "hub square: %s shade" % name_lc("plane"), PROG),   # v3.1: names
                    (None, 3 * LAD_S + 25.0, g3 + 2.0, False, "at K5: Demeter's Garden · café, summer beds", GARDEN),
-                   (3, 4 * LAD_S + 19.0, g4, False, "fields + %s trees watered from storage" % name_lc("olive"), None)]),
+                   ("walk", 4 * LAD_S + 19.0, g4, False, "fields + %s trees watered from storage" % name_lc("olive"),
+                    None)]),
         dict(key="harvest", name=name_caps("olive") + " HARVEST", months="Nov", mark="olive",   # v3.1: (ZEYTİN)
              side=[("%s: hand-picked in Nov" % name_lc("olive"), HARVEST), ("storage low until the rains", WB_YEAR),
                    ("first-flush cleaning", WB_YEAR)],
              acts=[(None, 5.0, g0 + 3.0, False, "%s gold · seed heads" % name_lc("reed"), WB_YEAR),   # the bed's reed
-                   (0, 3 * LAD_S + 30.0, g3, False, "Demeter's Garden: winter herbs + greens · education", GARDEN),
-                   (3, 4 * LAD_S + 12.0, g4, False, "%s harvest" % name_lc("olive"), HARVEST),
-                   (1, 4 * LAD_S + 23.0, g4, True, None, None)])]
+                   ("touch", 3 * LAD_S + 30.0, g3, False, "Demeter's Garden: winter herbs + greens · education", GARDEN),
+                   ("watch", 4 * LAD_S + 12.0, g4, False, "%s harvest" % name_lc("olive"), HARVEST),
+                   ("walk", 4 * LAD_S + 23.0, g4, True, None, None)])]
 
 
 def sk_draw(pg, items):
@@ -1219,7 +1268,9 @@ def sk_draw(pg, items):
 
 def ladder_row(sea, mark_xy):
     """One season of the plant ladder in the p.23 sketch language: [(z, order, item)] in sketch units (0..LAD_W
-    across). mark_xy: where the season's sun / rain mark goes, sketch units (in the season column)."""
+    across). mark_xy: where the season's sun / rain mark goes, sketch units (in the season column). v4: returns
+    (items, keep): keep = what its labels keep clear of (sketch units): ground (the cut's surface), lines, boxes,
+    figs (one box or None for each of the season's acts)."""
     E = sketch_engine()
     E["FORM"] = "A"                                   # organic only where the project meets the water
     del E["ZP"][:]
@@ -1254,6 +1305,10 @@ def ladder_row(sea, mark_xy):
         E["water_level"](o, gs, 19.0, gy[0] - 1.2, E["W_SUM"], line=False)       # autumn: water back in the channel
     # plants by step (graphic sizes): reeds in the bed, rushes and shrubs on the lower bank, trees on the terrace,
     # plane tree + lavender on the bank top, olives and a field crop on the farms
+    # v4 (MIRAQUA 28 Oct, G4 / F13): what the row's labels must keep clear of, sketch units: boxes (plants, figures,
+    # level marks) and lines (the cut ground, the site edge, the flood lines, the summer arrow)
+    keep = dict(ground=gs, lines=[gs, [(4 * w, gy[3] + 1.5), (4 * w, gy[4] + 11.0)]], boxes=[(1.5, gy[0], 8.0, gy[0] + 4.2)],
+                figs=[])
     E["reeds"](o, 1.5, 8.0, gy[0] - 0.2, 4.2)
     x_ = w + 4.0
     while x_ < w + 18.0:                              # rushes: short hand tufts
@@ -1266,6 +1321,11 @@ def ladder_row(sea, mark_xy):
         E["wash"](o, dome, "planting", E["SITE_TREE"][1], 0.6, z=E["Z_TREE"])
         E["sketch"](o, dome, "planting", E["SITE_TREE"][2], E["LW_FINE"], closed=True, over=0.0, amp=0.12, retrace=False,
                     z=E["Z_TREE"])
+        keep["boxes"].append((xs - ws / 2.0, gy[1], xs + ws / 2.0, gy[1] + hs))
+    for tx_, ty_, th_ in ((2 * w + 14.0, gy[2], 11.0), (2 * w + 30.0, gy[2], 9.0), (HUB[0] + 7.0, gy[3], 11.0),
+                          (3 * w + 34.5, gy[3], 6.0), (4 * w + 6.0, gy[4], 7.0), (4 * w + 15.0, gy[4], 7.0)):
+        keep["boxes"].append((tx_ - 0.4 * th_, ty_ + 0.3 * th_, tx_ + 0.4 * th_, ty_ + 0.98 * th_))   # the crowns
+    keep["boxes"].append((4 * w + 26.0, gy[4], LAD_W, gy[4] + 1.6))                                   # the crop rows
     E["sketch_tree"](o, 2 * w + 14.0, gy[2], 11.0)
     E["sketch_tree"](o, 2 * w + 30.0, gy[2], 9.0)
     E["sketch_tree"](o, HUB[0] + 7.0, gy[3], 11.0)   # the hub square's plane tree (D8)
@@ -1288,32 +1348,43 @@ def ladder_row(sea, mark_xy):
     # the site edge: farmland only outside the site
     E["sketch"](o, [(4 * w, gy[3] + 1.5), (4 * w, gy[4] + 11.0)], "site edge", E["INK2"], E["PEN_FINE"], over=0.0,
                 retrace=False, dashed=True, z=E["Z_LINE"])
-    s_ = 4.5 / 1.745                                  # people: the season's activities
+    # people: the season's activities. v4 (MIRAQUA 28 Oct, P19.2): ONE figure set, common/figures.py silhouettes at
+    # true scale (an adult 1.75 m, LAD_U units a metre), the section's people colour (the board's SA people tone, as
+    # the sketch engine had it), every outline of a figure filled opaque in that one colour, no stroke (was the
+    # board's stick-like SA_FIGS at 0.9 opacity and a hand-made seated figure)
     for kind, x, y, flip, _lab, _src in sea["acts"]:
-        if kind == "sit":
-            sg = -1.0 if flip else 1.0
-            E["fill"](o, [(x + sg * a * s_, y + b * s_) for a, b in SIT_FIG], "people", E["SITE_PEOPLE"], alpha=0.9,
-                      boundary=False, z=E["Z_PEOPLE"], hand_=False)
-            hx_, hy_, hr = E["SA_HEAD"][0] - 0.02, 0.84, E["SA_HEAD"][2]
-            E["fill"](o, [(x + sg * hx_ * s_ + hr * s_ * math.cos(6.283 * i / 12), y + hy_ * s_ + hr * s_ * math.sin(6.283 * i / 12))
-                          for i in range(12)], "people", E["SITE_PEOPLE"], alpha=0.9, boundary=False, z=E["Z_PEOPLE"],
-                      hand_=False)
-        elif kind is not None:
-            E["sketch_person"](o, x, y, kind=kind, flip=flip)
+        if kind is None:
+            keep["figs"].append(None)
+            continue
+        yf = y - LAD_SEAT * LAD_U if kind == "sit" else y   # the seated figure's seat on (x, y), its legs hang down
+        rings = [[(x + a * LAD_U, yf + b * LAD_U) for a, b in r] for r in fig_polys(kind, 1.75, -1 if flip else 1)]
+        for r in rings:
+            E["fill"](o, r, "people", E["SITE_PEOPLE"], boundary=False, z=E["Z_PEOPLE"], hand_=False)
+        xs_, ys_ = [p[0] for r in rings for p in r], [p[1] for r in rings for p in r]
+        keep["figs"].append((min(xs_), min(ys_), max(xs_), max(ys_)))
+    keep["boxes"] += [f for f in keep["figs"] if f]
     if sea["key"] == "high":                          # the design flood levels, hand dashed lines and level marks
         xe = 4 * w - 2.0 + 4.0 * (LAD_Q500 - gy[3]) / (gy[4] - gy[3])
         for lv in (LAD_Q500, LAD_Q100):
             E["sketch"](o, [(0.0, lv), (xe, lv)], "flood lines", E["HERITAGE"], E["PEN_FINE"], over=0.0, retrace=False,
                         dashed=True, z=E["Z_LINE"])
-            E["level_mark"](o, 3 * w + 26.0 if lv == LAD_Q500 else 3 * w + 20.0, lv, E["HERITAGE"], "flood lines")
+            xm = 3 * w + 26.0 if lv == LAD_Q500 else 3 * w + 20.0
+            E["level_mark"](o, xm, lv, E["HERITAGE"], "flood lines")
+            keep["lines"].append([(0.0, lv), (xe, lv)])
+            keep["boxes"].append((xm - 1.0, lv, xm + 1.0, lv + 1.7))
     if sea["key"] == "low":                           # the farms are watered from storage in summer: the one arrow
-        E["hand_arrow"](o, (3 * w + 22.0, gy[4] + 10.0), (4 * w + 9.0, gy[4] + 8.0), E["SITE_WATER_D"], bend=-0.15)
+        a_, b_ = (3 * w + 22.0, gy[4] + 10.0), (4 * w + 9.0, gy[4] + 8.0)
+        E["hand_arrow"](o, a_, b_, E["SITE_WATER_D"], bend=-0.15)
+        m_ = ((a_[0] + b_[0]) / 2.0 + (b_[1] - a_[1]) * 0.15, (a_[1] + b_[1]) / 2.0 - (b_[0] - a_[0]) * 0.15)   # its bow
+        keep["lines"].append([(a_[0] * (1 - t) ** 2 + 2 * m_[0] * t * (1 - t) + b_[0] * t * t,
+                               a_[1] * (1 - t) ** 2 + 2 * m_[1] * t * (1 - t) + b_[1] * t * t) for t in
+                              (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)])
     if sea["mark"] == "winter":
         E["cloud_rain"](o, mark_xy[0], mark_xy[1], 2.0)
     elif sea["mark"] == "summer":
         E["sun"](o, mark_xy[0], mark_xy[1], 1.7)
     E["sketch"](o, gs, "ground lines", E["SKINK"], E["PEN_BOLD"], z=E["Z_LINE"])   # the cut: the gesture
-    return sorted(E["ZP"], key=lambda e: (e[0], e[1]))
+    return sorted(E["ZP"], key=lambda e: (e[0], e[1])), keep
 
 
 # v1.6: the one-way chain along the stream, upstream to the farms: (name, marker, programme, historic root, sources).
@@ -1369,52 +1440,98 @@ def chain_strip(pg, P, y_top):
             P.text(pg, q, tx, y, 7, col)
             y -= 2.9
         low = min(low, y + 2.9 - 1.2)
-    # key to the markers, top right
-    kx, ky = 406.0, y_top + 2.5
-    items = [("ribbon", "one way, with the stream"), ("dash", "covered reach"), ("dot", "sub-hub in the bed, floodable"),
-             ("hub", "hub square, dry")]
-    for kind, lab in items:
-        kx -= text_w(lab, 7)
-        P.text(pg, lab, kx, ky, 7, C["ink"])
-        kx -= 5.0
-        if kind == "hub":
-            pg.rect(kx + 0.6, ky - 0.2, 2.6, 2.6, fill=HUB_COL, stroke=C["ink"], lw=0.2)
-        elif kind == "dot":
-            pg.circle(kx + 1.9, ky + 1.1, 0.8, fill=C["water_deep"])
-        elif kind == "dash":
-            pg.line([(kx, ky + 1.1), (kx + 4.0, ky + 1.1)], C["water"], 1.4, (1.2, 0.8))
-        else:
-            pg.line([(kx, ky + 1.1), (kx + 4.0, ky + 1.1)], C["water"], 1.4)
-        kx -= 4.0
-    return low
+    return low                                       # v4 (P19.1): the key to the markers is in we_do_band now
+
+
+WE_X = 14.0 + 7 * ((392.0 - 11 * 5.0) / 12.0 + 5.0)   # v4 (P19.1): 245.6 mm, grid column 8 of 12 (14 mm margins,
+                                                      # 5 mm gutters, the booklet grid)
+WE_Y = (HEAD_Y[0], 279.8, 274.6, HEAD_Y[2])           # baselines: steps 1-3, steps 4-5, NEXT, the chain's key
+WE_PT = 7.5                                           # the booklet's label size
+# v4 (P19.1, N1): NEXT names the page that really follows in the booklet's order, by its title (the booklet
+# renumbers): theme D's first page, "The heritage loop" (bergama_booklet data/PLAN.py; "Heritage along the stream" is
+# a frame page the booklet leaves out)
+NEXT_PAGE = [(u"D  The heritage loop", C["ink"], True), (u": it starts from the roots in red on this chain", C["ink"], False)]
+CHAIN_KEY = [("ribbon", u"one way, with the stream"), ("dash", u"covered reach"), ("hub", u"hub square, dry"),
+             ("dot", u"sub-hub in the bed, floodable")]   # in the order the chain shows them, left to right
 
 
 def we_do_band(pg, P):
     """v3 (Aras 27 Oct 17:35, Prompt 6 task 3 and rule 7: "the last page of the block clearly states 'what we do with
-    it' and leads into the next theme"): top right, beside the title, left-aligned in a block that ends at the margin:
-    the stage (C WATER · WHAT WE DO WITH IT), what we do with the water in five numbered steps (the water board's p.23
-    loop and this page's ladder, in brief) and NEXT D HISTORY AND HERITAGE, which starts from the roots drawn in red on
-    the chain below. Rows 4.5 mm apart, the last 6 mm over the chain's key."""
-    rows = [WE_DO[:3], WE_DO[3:]]
-    nxt = [("D  HISTORY AND HERITAGE", C["ink"], True), (": it starts from the roots in red on this chain", C["ink"], False)]
-    w_n = text_w("NEXT", 7, True) + 7.0 + sum(text_w(t, 7, b) for t, _, b in nxt)
-    x = 406.0 - max([text_w(STAGE_TAG, 7, True), w_n] + [chips_w(r) for r in rows])
-    P.text(pg, STAGE_TAG, x, 286.0, 7, C["accent"], True)
-    for k, r in enumerate(rows):
-        chips(pg, x, 281.5 - 4.5 * k, r)
-        P.boxes.append((x, 281.5 - 4.5 * k - 0.8, x + chips_w(r), 281.5 - 4.5 * k + 3.0))
-    P.text(pg, "NEXT", x, 272.5, 7, C["accent"], True)
-    xx = step_arrow(pg, x + text_w("NEXT", 7, True) + 1.5, 272.5) + 1.5
-    for t, col, b in nxt:
-        P.text(pg, t, xx, 272.5, 7, col, b); xx += text_w(t, 7, b)
+    it' and leads into the next theme"): what we do with the water in five numbered steps (the water board's p.23
+    loop and this page's ladder, in brief) and NEXT, which starts from the roots drawn in red on the chain below.
+    v4 (MIRAQUA 28 Oct, P19.1: the corner was cramped, five rows 4.5 mm apart on a ragged edge, the key right-aligned
+    against the chain): the stage tag is the kicker over the title now (header); the corner is ONE block on the page
+    grid, left edge on grid column 8 (WE_X), four rows from the kicker's baseline down to the subtitle's (WE_Y, 5.2 mm
+    apart, the chip squares 1.6 mm clear of each other, the key 5 mm clear of the chain): steps 1-3, steps 4-5, NEXT
+    and the page that follows, then the chain's key (moved up from over the chain), all at 7.5 pt."""
+    x = WE_X
+    for k, r in enumerate((WE_DO[:3], WE_DO[3:])):
+        chips(pg, x, WE_Y[k], r, WE_PT)
+        P.boxes.append((x, WE_Y[k] - 0.8, x + chips_w(r, WE_PT), WE_Y[k] + 3.0))
+    yb = WE_Y[2]
+    P.text(pg, "NEXT", x, yb, WE_PT, C["accent"], True)
+    xx = step_arrow(pg, x + text_w("NEXT", WE_PT, True) + 1.5, yb) + 1.5
+    for t, col, b in NEXT_PAGE:
+        P.text(pg, t, xx, yb, WE_PT, col, b); xx += text_w(t, WE_PT, b)
+    xx, yb = x, WE_Y[3]                              # the chain's key: sample, name; 5 mm between two
+    for kind, lab in CHAIN_KEY:
+        if kind == "hub":
+            pg.rect(xx + 0.6, yb - 0.2, 2.6, 2.6, fill=HUB_COL, stroke=C["ink"], lw=0.2)
+        elif kind == "dot":
+            pg.circle(xx + 1.9, yb + 1.1, 0.8, fill=C["water_deep"])
+        elif kind == "dash":
+            pg.line([(xx, yb + 1.1), (xx + 4.0, yb + 1.1)], C["water"], 1.4, (1.2, 0.8))
+        else:
+            pg.line([(xx, yb + 1.1), (xx + 4.0, yb + 1.1)], C["water"], 1.4)
+        P.text(pg, lab, xx + 5.0, yb, WE_PT, C["ink"])
+        xx += 5.0 + text_w(lab, WE_PT) + 5.0
+
+
+LAB_PAD = 0.6                        # v4 (G4): mm kept clear round a ladder label (lines, figures, plants, labels)
+
+
+def lad_labels(pg, P, labs, keep, X, Y, reg):
+    """v4 (MIRAQUA 28 Oct, G4; F13 "the two blocked ladder labels placed": "hub square: dry, step-free" and "wade the
+    strip" were left out on every run): a season row's labels placed by common/label_place.py, each in the nearest
+    free spot round its point (a figure's head, a level line, a line's end), clear of the other labels, the figures,
+    the plants, the level marks and the cut ground (its line and the soil under it), the flood and site-edge lines and
+    the summer arrow, LAB_PAD mm round each; farther out on a hair leader; always 7 pt (the booklet's minimum), so a
+    label is left out only when its row is full (logged). labs = [(text, x, y, size, colour, bold)] page mm; keep =
+    the row's sketch geometry (ladder_row); X, Y: sketch units -> page mm; reg: the row's box. Returns the texts left
+    out."""
+    k = 0.3528
+    taken = [(X(b[0]), Y(b[1]), X(b[2]), Y(b[3])) for b in keep["boxes"]]
+    g = keep["ground"]
+    for (ax_, ay_), (bx_, by_) in zip(g[:-1], g[1:]):          # the soil under the cut line
+        if abs(bx_ - ax_) > 1e-6:
+            taken.append((X(min(ax_, bx_)), reg[1] - 1.0, X(max(ax_, bx_)), Y(min(ay_, by_))))
+    taken += [b for b in P.boxes if lp_hit(b, reg, 1.0)]       # only what lies in the row (speed)
+    segs = [((X(p[0]), Y(p[1])), (X(q[0]), Y(q[1]))) for ln in keep["lines"] for p, q in zip(ln[:-1], ln[1:])]
+    items = []
+    for s, ax, ay, size, col, bold in labs:
+        wh = (text_w(s, size, bold) + 1.0 + 2 * LAB_PAD, size * k * 1.08 + 0.8 + 2 * LAB_PAD)
+        items.append(dict(x=ax, y=ay, wh=(lambda f, wh=wh: wh), rank=0))
+    got = place_labels_all(items, taken, bounds=reg, segs=segs, sizes=(1.0,), pad=0.3)
+    out = []
+    for i, (s, ax, ay, size, col, bold) in enumerate(labs):
+        if i not in got:
+            out.append(s)
+            continue
+        b, lead, _f = got[i]
+        b = (b[0] + LAB_PAD, b[1] + LAB_PAD, b[2] - LAB_PAD, b[3] - LAB_PAD)   # the text's own box
+        if lead:
+            pg.line([(ax, ay), lp_leader_end(b, (ax, ay))], C["ink2"], 0.15)
+        pg.text(s, b[0] + 0.5, b[1] + 0.4 + 0.28 * size * k, size, col, bold, halo="FFFFFF")
+        P.boxes.append(b)
+    return out
 
 
 def page_ladder(L, src):
     pg = Page(420, 297)
     P = Placer()
-    header(pg, "3", "ONE PLANT LADDER, STREAMBED TO FIELD",
+    header(pg, "ONE PLANT LADDER, STREAMBED TO FIELD",
            "One cut from the stream to the farms, through the year: what the water does and what people do on each step",
-           tag=None)
+           tag=STAGE_TAG)                          # v4 (P19.1): the stage tag is the kicker, as on page 1
     we_do_band(pg, P)                              # v3 (Prompt 6): the water theme closes here, top right
     # 1 the chain: where the ladder sits along the stream, the programme and its roots
     y_chain = chain_strip(pg, P, 264.0)            # v2: 4 mm higher (was 260; its names end 6 mm under the subtitle)
@@ -1425,7 +1542,8 @@ def page_ladder(L, src):
         T, B = top - r * ROW_H, top - (r + 1) * ROW_H
         y0 = B + 2.0 - LAD_GB * LAD_F                  # page y of the sketch's 0
         mark = ((19.0 - LAD_X0) / LAD_F, (T - 6.0 - y0) / LAD_F)
-        sk_draw(pg, xform([e[2] for e in ladder_row(sea, mark)], LAD_F, LAD_X0, y0))   # v1.7: (z, order, item, group)
+        items, keep = ladder_row(sea, mark)            # v4: and what the labels keep clear of
+        sk_draw(pg, xform([e[2] for e in items], LAD_F, LAD_X0, y0))   # v1.7: (z, order, item, group)
         if sea["mark"] == "olive":
             icon(pg, "olive", 14.0, T - 1.5, 9.0)
         P.text(pg, sea["name"], 26.0, T - 8.0, 12, C["ink"], True)
@@ -1438,23 +1556,26 @@ def page_ladder(L, src):
         reg = (LAD_X0, B + 1.0, LAD_X1, T - 0.8)
         Y = lambda v: y0 + v * LAD_F
         X = lambda v: LAD_X0 + v * LAD_F
+        # v4 (MIRAQUA 28 Oct, G4, F13): the row's labels, fixed ones first, all placed together by lad_labels (was
+        # Placer.put: upwards over the point only, so "hub square: dry, step-free" and "wade the strip" found no
+        # place on every run). G13: heights in m with 2 decimals (values unchanged). Bank depth research 28 Oct §4.5:
+        # Q100 / Q500 top the bank only at S4; the survey's K4 bank predates the DSİ walls.
+        labs = []
         if sea["key"] == "high":                       # flood levels first: they sit at their lines
-            for lv, lab, up in ((LAD_Q500, "Q500 · 263 m³/s · 2.3-3.3 m above the bed " + cite(DEPTH), True),
-                                (LAD_Q100, "Q100 · 205 m³/s · 2.0-3.0 m", False)):
-                P.put(pg, lab, X(1.5), Y(lv), 7, "8B2D2D", region=reg, gap=0.8, up=up, lanes=3)
-            P.put(pg, "over the bank top only at K4 (right bank) and S4 (left)", X(3 * LAD_S + 3.0), Y(LAD_Q500) + 3.0,
-                  7, "8B2D2D", region=reg, gap=0.5)
-            # v3.1 (Prompt 8): this anchor (the top of the site edge line) is the row's top: no room above, so the
-            # label was left out on every run; now under it, its leader along the site edge line
-            P.put(pg, "site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], region=reg, gap=0.6,
-                  up=False)
-        if sea["key"] == "low":                        # v3.1: under the arrow's tail (1.5 mm under the row's top: no
-            P.put(pg, "stored winter water", X(3 * LAD_S + 22.0), Y(LAD_GY[4] + 10.0), 7, C["water_deep"], True,
-                  region=reg, gap=1.0, up=False)       # room above it, so it was left out on every run)
-        for kind, x, yv, flip, lab, ref in sea["acts"]:
-            if lab:
-                hgt = 0.0 if kind is None else (3.2 if kind == "sit" else 4.9)
-                P.put(pg, lab + ((" " + cite(ref)) if ref else ""), X(x), Y(yv + hgt), 7, C["ink"], True, region=reg)
+            labs += [(cited(u"Q500 · 263 m³/s · %s-%s m above the bed" % (u_num(2.3, 2), u_num(3.3, 2)), DEPTH),
+                      X(1.5), Y(LAD_Q500), 7, "8B2D2D", False),
+                     (u"Q100 · 205 m³/s · %s-%s m" % (u_num(2.0, 2), u_num(3.0, 2)), X(1.5), Y(LAD_Q100), 7, "8B2D2D",
+                      False),
+                     (u"over the bank top only at S4 (left); K4 before the DSİ walls", X(3 * LAD_S + 3.0), Y(LAD_Q500),
+                      7, "8B2D2D", False),
+                     (u"site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], False)]
+        if sea["key"] == "low":                        # at the summer arrow's tail
+            labs.append((u"stored winter water", X(3 * LAD_S + 22.0), Y(LAD_GY[4] + 10.0), 7, C["water_deep"], True))
+        for (kind, x, yv, flip, lab, ref), f in zip(sea["acts"], keep["figs"]):
+            if lab:                                    # a figure's label points at its head
+                ax, ay = ((f[0] + f[2]) / 2.0, f[3]) if f else (x, yv)
+                labs.append((cited(lab, ref), X(ax), Y(ay), 7, C["ink"], True))
+        P.dropped += lad_labels(pg, P, labs, keep, X, Y, reg)
         if r < 2:
             pg.line([(14.0, B), (406.0, B)], C["faint"], 0.3)
     bot = top - 3 * ROW_H
@@ -1541,7 +1662,7 @@ def page_ladder(L, src):
             P.text(pg, q, 22.0, y, 7.5, C["ink"], b); y -= 3.2
     y -= 3.0
     for t in ("steps = planting bands " + cite(BANDS), "depths above the bed " + cite(DEPTH), "a diagram, not to scale",
-              "downstream flat end: Q100 1.4 m, Q500 1.5 m"):
+              "downstream flat end: Q100 %s, Q500 %s" % (u_height(1.4), u_height(1.5))):   # v4 (G13): 1.40 m, 1.50 m
         for q in wrap(t, 7, LAD_X0 - 18.0):
             P.text(pg, q, 14.0, y, 7, C["ink2"]); y -= 2.9
     ag_crop("ag3_plants", 2, 13.0, 14.0, 407.0, yt + 3.0)       # v2: yt + 3 = bot (yt is bot - 3 now)

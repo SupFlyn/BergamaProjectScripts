@@ -19,7 +19,7 @@ PSI = 36.2                                                     # view direction 
 PLACES_MIN_CONF = 0.60                                         # Overture/Meta confidence, lowest quarter dropped
 MAX_CALLOUTS = 12
 CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
-COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
+# v50 (MIRAQUA 28 Oct, G1): no course line in the header any more (was COURSE, "ARCH 4410 ... Fall 2026")
 TREES_GREEN_EVERYWHERE = False                                 # True: green trees on every page, not only D4 and D8
 SCRIPT = "selinus_board_v40.py (axonometric engine from bergama_diagrams v1.8)"
 VERSION = "v1.8 in board v33"
@@ -1546,7 +1546,6 @@ def chrome(pg, ctx, spec, ext, V, stamp):
     pg.text((spec["sub"] + u" · " if spec.get("sub") else u"") + ext["name"] + u" · " + ext["note"], 14, 270.6, 2.9,
             ink2, layer="sheet")                                                  # v49.1: the keywords first
     pg.text(CREDIT, 406, 279, 2.9, ink, bold=True, align="R", layer="sheet")
-    pg.text(COURSE, 406, 274.6, 2.3, ink2, align="R", layer="sheet")
     pg.text(u"Selinus corridor · axonometric · camera {:.1f}° down · view {:.0f}°".format(     # v38: keywords
         PHI, V.theta % 360), 406, 270.6, 2.3, ink2, align="R", layer="sheet")
     pg.line([(14, 266.5), (406, 266.5)], ink, 0.25, layer="sheet")

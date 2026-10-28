@@ -181,9 +181,6 @@ SRC_MAIN = ("Main spine: Bankalar + Kınık Caddesi, OSM 'secondary' ways (extra
             "±10-30 m), the primary commercial spine of the PR1 board p.4 (streets ranked by shops within 30 m)")
 SRC_STREAM = ("Selinos stream: OSM 'Selinos Çayı' (same extract and formula) set on the middle of the survey channel; "
               "covered = OSM tunnel / culvert ways (masterplan v11, 24 Oct); bridges: surveyed points (h01 §0 and §5, s62)")
-SRC_REACH = ("Reach on foot: steps of 1/8, 1/4, 1/2, 3/4 and all of the movement method's walking radius ({:.0f} m, "
-             "bergama_movement v1, MV_OPT r_walk{}) from each hub, along the stream to scale, across it schematic; "
-             "where reaches overlap the strip darkens")
 # who: L locals, T tourists, S students; grows: W water, E stream edge, A agriculture, H heritage
 FUNCS = [
     dict(n=1, name="Bank bazaar", where="Tabaklar Hamamı", ch=522, bank="NE", xy=[29890.4, 32243.6], who="LT", grows="HE",
@@ -217,17 +214,25 @@ SHOPS_PER_100M = [(300, 2), (400, 3), (500, 1), (600, 2), (700, 17), (800, 14), 
 BANDS = ["0-30", "30-60", "60-120", "120-250", "250-500"]                          # m from the stream
 OPEN_BAND = [(30, 9), (168, 27), (401, 37), (689, 25), (769, 27)]                 # (buildings, shops) by the open stream
 COVERED_BAND = [(24, 15), (11, 6), (30, 18), (85, 23), (135, 6)]                  # ... by the covered pieces
+SRC_BANK = "PR1 board p.2 (v18 bank analysis)"
+SRC_BED = ("Bed depth: the site board's channel profile (survey bank crests; in the walled town reach the walls, "
+           "5.0 m above the bed, site photos 1 Oct 2026)")      # v3: bank-depth research REPORT §4.1-4.2, §5
 REASONS = [  # v1.6 tiles: (pictogram, keyword heading, big figure, keyword lines, source in the key)
     ("road", "MAIN ROAD MEETS THE STREAM", "1 crossing", ("Bankalar - Kınık Caddesi", "only where the stream runs covered"), "OSM, calculated"),
-    ("front", "BUILDINGS WITHIN 30 M", "30 buildings", ("on 1.7 km of open stream", "almost no frontage for a shop"), "OSM, calculated"),
-    ("bank", "BANK DISCONNECTED", "68 %", ("12 % enclosed by building backs", "2 % accessible"), "PR1 board p.2 (v18 bank analysis)"),
+    # v3 (MIRAQUA 28 Oct, G13): lengths on this page in m (a 1:10,000 map page): "1.7 km" -> "1,700 m", same value
+    ("front", "BUILDINGS WITHIN 30 M", "30 buildings", ("on 1,700 m of open stream", "almost no frontage for a shop"), "OSM, calculated"),
+    ("bank", "BANK DISCONNECTED", "68 %", ("12 % enclosed by building backs", "2 % accessible"), SRC_BANK),
     # v1.8 (booklet/research/FIGURE_CONFLICTS.md §1): the typed "1.1-6.7 m" (an old 9-10 Oct board run) is gone; the
-    # site board v40 writes it live (bed_below_banks_min_m/max_m): read in bed_depth(); no figure when it has not run
-    ("deep", "BED BELOW THE BANKS", "", ("walls", "no way down"), "Bed depth: read from the survey terrain (site board channel profile)"),
+    # site board v40 writes it live (bed_below_banks_min_m/max_m): read in bed_depth(); no figure when it has not run.
+    # v3 (MIRAQUA 28 Oct, bank-depth research REPORT §4.2): it follows the board's bank crests (v50: the crest of the
+    # bank, the walled town reach at the walls' 5.0 m above the bed, Aras 28 Oct 14:12) through the same two keys
+    ("deep", "BED BELOW THE BANKS", "", ("walls", "no way down"), SRC_BED),
     # v1.6 fix (VISUAL_AUDIT accuracy 1): was "0.4-1.4 m / Q500 rises over the banks; Q100 tops every bank too" (withdrawn);
     # now README v1.1 line 49: "on the surveyed sections Q100 2.0-3.0 m and Q500 2.3-3.3 m, flat end 1.4 / 1.5 m,
-    # overtopping only at K4 and S4"
-    ("flood", "Q100 OVER THE BED", "2.0-3.0 m", ("Q500 2.3-3.3 m · flat end 1.4 / 1.5 m", "over the banks only at K4 and S4"), SRC_FLOOD),
+    # overtopping only at K4 and S4". v3 (MIRAQUA 28 Oct, bank-depth research REPORT §4.2 + §5, Aras 14:12: the survey
+    # is the inferior source): K4's low bank is the survey's, before the DSİ walls; the depths stay as they are
+    ("flood", "Q100 OVER THE BED", "2.0-3.0 m", ("Q500 2.3-3.3 m · flat end 1.4 / 1.5 m", "over the banks only at S4",
+                                                 u"K4 before the DSİ walls (survey)"), SRC_FLOOD),
     ("sewage", "SEPTIC SEWAGE IN THE STREAM", "until 2024", ("odour", "flies"), "İZSU sewer, s59; E13"),
     ("arch", "RED HALL BUILT OVER THE STREAM", "AD 117-138", ("Ottoman bazaar still met it", "at Tabaklar Hamamı"), "h02 s13 s28; s32"),
 ]
@@ -235,19 +240,23 @@ WHO = [  # v1.6 bars: (pictogram, keyword heading, big figure, low, high, keywor
     # Research: library/research/city_link_2026-10-24/city_link_research_v1.md
     ("visitor", "VISITS · PERGAMON SITES 2023", "433,000", 433000, 433000, ("Minister: about 480,000", "mostly day trips"), "AA; research §0 Q2 [U]"),
     ("resident", "RESIDENTS · 7 MAHALLES 2025", "11,002", 11002, 11002, ("by the stream", "district 107,549"), "TÜİK ADNKS via republishers; §0 Q3"),
-    ("student", "STUDENTS · EGE UNIV. MYO", "1,425", 1425, 1425, ("2024/25", "campus 3.5-3.7 km away"), "Ege MYO report 2025; §0 Q1"),
-    ("student", "STUDENTS · DEÜ BERGAMA MYO", "400-500", 400, 500, ("2025", "campus 1.5-1.7 km away"), "press 01.08.2025; §0 Q1"),
+    # v3 (MIRAQUA 28 Oct, G13): distances in m on this page, as its map ("3.5-3.7 km" = "3,500-3,700 m")
+    ("student", "STUDENTS · EGE UNIV. MYO", "1,425", 1425, 1425, ("2024/25", "campus 3,500-3,700 m away"), "Ege MYO report 2025; §0 Q1"),
+    ("student", "STUDENTS · DEÜ BERGAMA MYO", "400-500", 400, 500, ("2025", "campus 1,500-1,700 m away"), "press 01.08.2025; §0 Q1"),
     ("bed", "KYK STUDENT DORMITORY", "750 beds", 750, 750, ("on the Ege campus", "Efeler Cad. 7"), "two sources; §0 Q1 [V]"),
     # v2.1 (Prompt 8, rule: no "no data" rows): "PEDESTRIANS ON THE STREETS" gone: no count exists (§0 Q8), no estimate
 ]
 FLOOD = [  # v1.6: (level, keyword lines on how often wet, [(rule pictogram, rule keywords)], source of the wet lines)
     ("Bed", ("dry or 3 cm Jul-Sep", "0.1 m on about 100 days"),
      [("nofix", "nothing fixed narrows the bed (17/1)"), ("calendar", "clearable stalls and events, Jul-Sep only")], SRC_WET),
-    ("Terrace +1 m", ("0 days in an average year", "floods only"),
+    ("Terrace +1.00 m", ("0 days in an average year", "floods only"),     # v3 (G13): a level, 2 decimals
      [("stamp", "low stone seats only with DSİ approval"), ("stall", "stalls taken in on a warning")], SRC_WET),
     # v1.6 fix (VISUAL_AUDIT accuracy 1): was "Q100 2.6-3.0 m and Q500 2.9-3.5 m over the bed" (withdrawn); README v1.1
-    # line 49 and its table (Q100 2.05-2.99 m, Q500 2.33-3.30 m on the five surveyed cuts; flat end 1.38 / 1.54 m)
-    ("Bank top", ("Q100 2.0-3.0 m · Q500 2.3-3.3 m over the bed", "flat end 1.4 / 1.5 m · over the banks: K4, S4"),
+    # line 49 and its table (Q100 2.05-2.99 m, Q500 2.33-3.30 m on the five surveyed cuts; flat end 1.38 / 1.54 m).
+    # v3 (MIRAQUA 28 Oct, bank-depth research REPORT §4.2 + §5): as page 1's flood tile, K4's bank is the survey's,
+    # before the DSİ walls (one claim on both pages); the depths stay as they are
+    ("Bank top", ("Q100 2.0-3.0 m · Q500 2.3-3.3 m over the bed", "flat end 1.4 / 1.5 m · over the banks only at S4",
+                  u"K4 before the DSİ walls (survey)"),
      [("road", "6 m service road kept clear"), ("crest", "occupied floors at DSİ crest + 1.50 m (5/10)")], SRC_FLOOD),
 ]
 # ------------------------------------------------------------------ colours (palette v1.4 core roles)
@@ -257,6 +266,9 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
          field="BDB57A", orchard="70754C", tree="89986A", grass="C9CDB0", shrub="A2B6B5", olive="5C7A86")
 
 #@include ../common/rgb.py
+#@include ../common/r28_style.py
+#@include ../common/units.py
+#@include ../common/label_place.py
 
 # ------------------------------------------------------------------ minimal vector PDF (mm units, Helvetica, whole strings)
 _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278] + [556] * 10 + \
@@ -302,7 +314,7 @@ class Page:
         k = 72 / 25.4; o = ["q"] + (["/GM gs"] if mul else [])
         if fill: o.append(self._c(fill))
         if stroke: o.append(self._c(stroke, True)); o.append("%.3f w %d J 1 j" % (lw * k, cap))
-        if dash: o.append("[%.2f %.2f] 0 d" % (dash[0] * k, dash[1] * k))
+        if dash: o.append("[%s] 0 d" % " ".join("%.2f" % (d_ * k) for d_ in dash))   # v3 (G8): any on/off pattern
         for P in rings:
             o.append("%.2f %.2f m" % (P[0][0] * k, P[0][1] * k))
             o += ["%.2f %.2f l" % (x * k, y * k) for x, y in P[1:]]
@@ -320,9 +332,34 @@ class Page:
         if align == "C": x -= text_w(s, size, bold) / 2
         elif align == "R": x -= text_w(s, size, bold)
         k = 72 / 25.4
+        self.ops.append("BT /%s %.2f Tf %s %.2f %.2f Td (%s) Tj ET" % ("F2" if bold else "F1", size, self._c(col), x * k, y * k, self._enc(s)))
+    def _enc(self, s):
         b = b"".join(bytes([_ENC_EXTRA[ch]]) if ch in _ENC_EXTRA else ch.encode("cp1252", "replace") for ch in s)   # 25 Oct: ı İ ğ Ğ ş Ş spelt right
-        b = b.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
-        self.ops.append("BT /%s %.2f Tf %s %.2f %.2f Td (%s) Tj ET" % ("F2" if bold else "F1", size, self._c(col), x * k, y * k, b.decode("latin-1")))
+        return b.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)").decode("latin-1")
+    def text_rot(self, s, x, y, size, col="4A3F35", bold=False, ang=0.0):
+        """v3 (MIRAQUA 28 Oct, P08.1): a line of text along a street, baseline from (x, y) at angle ang (radians);
+        its boxes (one per short piece, so a slanted name blocks only its own strip) are recorded like text()'s"""
+        bs = rot_boxes(s, x, y, size, bold, ang)
+        if any(self.hit(b_, -0.05) for b_ in bs):
+            self.clash.append(s)
+        self.boxes += bs
+        k, ca, sa = 72 / 25.4, math.cos(ang), math.sin(ang)
+        self.ops.append("BT /%s %.2f Tf %s %.4f %.4f %.4f %.4f %.2f %.2f Tm (%s) Tj ET" % (
+            "F2" if bold else "F1", size, self._c(col), ca, sa, -sa, ca, x * k, y * k, self._enc(s)))
+
+
+def rot_boxes(s, x, y, size, bold, ang):
+    """v3 (MIRAQUA 28 Oct, P08.1): the boxes a slanted line of text covers, one per piece about a letter height long"""
+    w, h = text_w(s, size, bold), size * 0.3528
+    ca, sa = math.cos(ang), math.sin(ang)
+    n = max(1, int(w / max(h, 0.5)) + 1)
+    out = []
+    for i in range(n):
+        P = [(x + ca * t - sa * v, y + sa * t + ca * v) for t in (w * i / n, w * (i + 1) / n) for v in (-0.21 * h, 0.74 * h)]
+        out.append((min(p[0] for p in P), min(p[1] for p in P), max(p[0] for p in P), max(p[1] for p in P)))
+    return out
+
+
 
 def write_pdf(pages, path):
     k = 72 / 25.4
@@ -416,17 +453,33 @@ GROWS = dict(W="water", E="stream edge", A="agriculture", H="heritage")
 GROW_C = dict(W=C["water_deep"], E=C["water"], A=C["green_mid"], H=C["accent"])   # v1.6 letter chips
 SPINE_C = "BC6F45"
 SOFT = ((1.0, 0.36), (0.6, 0.18), (0.28, 0.0))   # v2: a soft band: (width share, paler by) of its three strokes
-REACH_F = (0.125, 0.25, 0.5, 0.75, 1.0)   # v2: a hub's reach on page 2: steps as shares of the walking radius
-REACH_T = (0.62, 0.74, 0.83, 0.9, 0.95)   # ... their tints (multiplied: where reaches overlap the strip darkens)
-REACH_RY = 22.0                           # mm: a reach field's half-height at the walking radius (across: schematic)
+REACH_RIM = 1.2                           # v3 (MIRAQUA 28 Oct, P10.1): mm of the reach rim showing above and below the
+                                          # page 2 stream band (the reach classes of R28_REACH, drawn under the band)
+# v3 (MIRAQUA 28 Oct, G11 / F13): crops and plants by their printed names, "English (Turkish)" as the shared table
+# common/plant_photos.py PLANTS (maize prints "Corn (Mısır)"); keys as the water balance writes them
+CROP_NAME = {"cotton": u"Cotton (Pamuk)", "maize": u"Corn (Mısır)", "corn": u"Corn (Mısır)",
+             "tomato": u"Tomato (Domates)", "olive": u"Olive (Zeytin)"}
+PLANE_NAME = u"Oriental plane (Doğu çınarı)"
 
-def header(pg, n, title, sub):
-    """v1.11: a white page (Aras 27 Oct 11:07: the beige paper goes), the title and one keyword line"""
+
+def header(pg, title, sub):
+    """v1.11: a white page (Aras 27 Oct 11:07: the beige paper goes), the title and one keyword line. v3 (MIRAQUA
+    28 Oct, F10 + G1): no big page number before the title and no "CONNECTION TO THE CITY · PAGE n OF 2 · GROUP 6"
+    line (course / group lines go); title and keywords on the left margin; G5: the keyword line's **words** bold"""
     pg.rect(0, 0, 420, 297, fill=C["white"])
-    pg.text(n, 14, 279, 22, C["accent"], True)
-    pg.text(title, 26, 279, 22, C["ink"], True)
-    pg.text(sub, 26, 271.5, 11, C["ink2"])
-    pg.text("CONNECTION TO THE CITY · PAGE %s OF 2 · GROUP 6" % n, 406, 288, 7, C["ink2"], True, "R")
+    pg.text(title, 14, 279, 22, C["ink"], True)
+    rich(pg, sub, 14, 271.5, 11, C["ink2"])
+
+
+def rich(pg, s, x, y, size, col, bold_col=None):
+    """v3 (MIRAQUA 28 Oct, G5): one line with its **keywords** bold (runs split at "**", each run a live text);
+    returns the end x"""
+    for i, part in enumerate(s.split("**")):
+        if part:
+            b_ = i % 2 == 1
+            pg.text(part, x, y, size, (bold_col or C["ink"]) if b_ else col, b_)
+            x += text_w(part, size, b_)
+    return x
 
 SRC_KEY = []                         # v1.6: sources printed as [n] on the page
 PAGE_SRC = {}                        # v1.11: page index -> its numbered sources (no footer on the sheet: blocks.json)
@@ -435,7 +488,7 @@ PAGE_SRC = {}                        # v1.11: page index -> its numbered sources
 def cite(src):
     """v1.6 (water board v1.6 method): the number of a source in this page's key, as "[n]". v1.11: the key is no
     longer printed on the sheet (Aras 27 Oct: source footers go); it goes to booklet/blocks.json "sheet_sources"."""
-    if not src:
+    if not src or src in CITE_OFF:       # v3 (MIRAQUA 28 Oct, F5): no mark for a source that is not public online
         return ""
     if src not in SRC_KEY:
         SRC_KEY.append(src)
@@ -506,6 +559,74 @@ def label(pg, s, ax, ay, size, col, bold, frame, obst, dists=DISTS, dirs=DIRS, l
         pg.line([(ax, ay), (cx, cy)], lead or C["ink2"], 0.2)
     pg.text(s, b[0], b[1] + 0.21 * hh, size, col, bold)
     return b
+
+
+def along_label(pg, s, Q, size, col, frame, pts, avoid=(), lw=1.4, bold=True):
+    """v3 (MIRAQUA 28 Oct, P08.1): the name s set along its own line Q (page mm, points inside the plan): on a run of
+    Q at least as long as the name and straight to 0.6 mm, just beside the line (lw = the line's width), reading left
+    to right, inside frame and clear of every word on the page; of those places the one over the fewest symbols (pts)
+    and other lines (avoid: [(p, q)] segments), then the one nearest the middle of Q. False when no run fits (or every
+    fit sits on more than three symbols): the caller then sets the name beside the line on a leader."""
+    wt, h = text_w(s, size, bold), size * 0.3528
+    L_ = [0.0]
+    for a, b in zip(Q, Q[1:]):
+        L_.append(L_[-1] + math.hypot(b[0] - a[0], b[1] - a[1]))
+    if L_[-1] < wt + 1.0:
+        return False
+
+    def at(t):
+        for i in range(1, len(Q)):
+            if L_[i] >= t:
+                u = (t - L_[i - 1]) / max(L_[i] - L_[i - 1], 1e-9)
+                return (Q[i - 1][0] + (Q[i][0] - Q[i - 1][0]) * u, Q[i - 1][1] + (Q[i][1] - Q[i - 1][1]) * u)
+        return Q[-1]
+    best, half, t = None, wt / 2.0 + 0.5, wt / 2.0 + 0.5
+    while t <= L_[-1] - half:
+        a, b = at(t - half), at(t + half)
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ln = math.hypot(dx, dy)
+        if ln >= wt + 0.5:
+            ux, uy = dx / ln, dy / ln
+            run = [a] + [q for q, lq in zip(Q, L_) if t - half < lq < t + half] + [b]
+            if max(abs((q[0] - a[0]) * uy - (q[1] - a[1]) * ux) for q in run) <= 0.6:
+                if ux < 0:                                     # read left to right
+                    ux, uy = -ux, -uy
+                ang, (nx, ny), m = math.atan2(uy, ux), (-uy, ux), at(t)
+                for off in (lw / 2.0 + 0.5 + 0.21 * h, -(lw / 2.0 + 0.5 + 0.74 * h)):   # above the line, then below
+                    x0_, y0_ = m[0] - ux * wt / 2.0 + nx * off, m[1] - uy * wt / 2.0 + ny * off
+                    bs = rot_boxes(s, x0_, y0_, size, bold, ang)
+                    if any(b_[0] < frame[0] or b_[1] < frame[1] or b_[2] > frame[2] or b_[3] > frame[3] for b_ in bs):
+                        continue
+                    if any(pg.hit(b_, 0.4) for b_ in bs):
+                        continue
+                    n = sum(1 for p in pts if any(b_[0] <= p[0] <= b_[2] and b_[1] <= p[1] <= b_[3] for b_ in bs))
+                    n += 5 * sum(1 for p, q in avoid if any(_lp_seg_box(p, q, b_) for b_ in bs))
+                    key = (n, abs(t - L_[-1] / 2.0))
+                    if best is None or key < best[0]:
+                        best = (key, x0_, y0_, ang)
+        t += 1.0
+    if best is None or best[0][0] > 3:
+        return False
+    pg.text_rot(s, best[1], best[2], size, col, bold, best[3])
+    return True
+
+
+def plan_labels(pg, items, frame, symbols, segs):
+    """v3 (MIRAQUA 28 Oct, G4 / P08.1): labels [(text, (x, y), size, colour, rank)], bold, placed by
+    common/label_place.py (place_labels_all: rank 0 must show, rank 1 may drop; sizes 1.0 / 0.9) clear of every word
+    on the page, of the symbols (boxes) and of the important lines (segs), inside frame; a thin leader where a label
+    sits off its point. A label left off goes to DROPPED (the log)."""
+    its = [dict(x=q[0], y=q[1], rank=r, wh=(lambda f, s=s, z=z: (text_w(s, z * f, True), 0.95 * z * f * 0.3528)))
+           for s, q, z, col, r in items]
+    got = place_labels_all(its, list(pg.boxes) + list(symbols), frame, segs)
+    for i, (s, q, z, col, r) in enumerate(items):
+        if i not in got:
+            DROPPED.append(s)
+            continue
+        b, lead, f = got[i]
+        if lead:
+            pg.line([q, lp_leader_end(b, q)], C["ink2"], 0.2)
+        pg.text(s, b[0], b[1] + 0.21 * z * f * 0.3528, z * f, col, True)
 
 
 def disc(pg, x, y, r, fill=None, stroke=None, lw=0.2):
@@ -710,13 +831,27 @@ P2_CARDS = (14.0, 68.0, 392.0, 86.0, 2.4)   # page 2 hub cards: x, bottom y, tot
 P2_FLOOD = (14.0, 45.0, 11.0)            # page 2 flood rule: x, first row y, row step
 P2_BANK = (192.0, 54.0)                  # page 2 which bank: x, title y
 P2_MARKET = (364.0, 54.0)                # page 2 producers' market: x, title y
+# v3 (MIRAQUA 28 Oct, F9): page 2's strip covers the stream from chainage 150 to 1,800 m at a standard scale along it,
+# the largest at which it fits the strip's width (1:5,000: 330 mm of the 384), its own scale bar beside it
+STRIP_CH = (150.0, 1800.0)
+STRIP_DEN = r28_scale(STRIP_CH[1] - STRIP_CH[0], P2_STRIP[1])
+# v3 (MIRAQUA 28 Oct, G8): the study area on page 1's plan: calisma_alan of Bergama_Altlik.3dm (25 Oct 08:25, survey
+# m), two parts worked as one, the recorded copy the site board (R28_STUDY_COPY) and masterplan (CALISMA_COPY) keep
+CL_STUDY = [
+    [(29696.903, 32800.562), (29872.423, 32572.84), (29880.693, 32496.334), (29818.865, 32475.301), (29825.821, 32398.074), (29923.185, 32344.348), (29904.985, 32311.252), (29997.056, 32290.092), (30053.417, 32139.667), (30004.049, 32108.006), (29954.803, 32210.611), (29792.114, 32247.062), (29761.684, 32302.735), (29754.016, 32451.383), (29678.437, 32447.696), (29632.398, 32496.591), (29665.339, 32526.253), (29612.859, 32696.506), (29600.496, 32719.394)],
+    [(30178.18, 31923.887), (30138.072, 31887.655), (30257.694, 31773.217), (30389.686, 31405.252), (30701.152, 30991.252), (30840.053, 31053.865), (31044.852, 30781.877), (31014.2, 30757.409), (31373.442, 30493.066), (31453.175, 30560.194), (31332.978, 30864.179), (31012.679, 31323.349), (30737.856, 31286.66), (30712.87, 31331.891), (30556.09, 31450.103), (30454.629, 31577.301), (30434.156, 31607.332), (30313.613, 31812.92)],
+]
+# v3 (MIRAQUA 28 Oct, P08.1): the two streets of MAIN_SPINE by their point ranges: Bankalar Caddesi from its south end
+# to the junction by İstiklal Meydanı (point 23, 30005.0 / 32029.4), Kınık Caddesi from there east over the covered
+# stream past Red Hall (as the v1.9 label anchors and stop 3 "Kınık Caddesi over the covered stream")
+STREET_NAMES = ((u"Bankalar Caddesi", 0, 24), (u"Kınık Caddesi", 23, len(MAIN_SPINE)))
 
 # ------------------------------------------------------------------ page 1: why shops meet the stream only where it is hidden
 def page_why(L):
     pg = Page(420, 297)
     SRC_KEY[:] = []                               # v1.6: each page has its own numbered key
-    header(pg, "1", "WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN",
-           "shops follow the through road and building fronts · the open stream has neither")
+    header(pg, "WHY SHOPS MEET THE STREAM ONLY WHERE IT IS HIDDEN",
+           "shops follow the **through road** and building fronts · the **open stream** has neither")
     main_spine_plan(pg, L.get("ctx"), L.get("ctx_src", ""))   # v1.11: (1) the focal plan first (v2: whole frame)
     sf = shop_figures()
     # (2) chart A: shops within 60 m of the stream, every 100 m of stream
@@ -728,8 +863,10 @@ def page_why(L):
     X = lambda c: x0 + (c - c0) / float(c1 - c0) * w
     vmax = 18.0
     cx0, cx1 = X(CH["cov0"]), X(CH["cov1"])
-    pg.rect(cx0, y0, cx1 - cx0, h, fill=C["faint"])
-    pg.text("stream covered", (cx0 + cx1) / 2, y0 + h - 4, 7, C["ink2"], True, "C")
+    # v3 (MIRAQUA 28 Oct, P08.2): no block behind the bars any more (the "cream block" was this band drawn at the
+    # chart's full height): the covered reach is a thin strip just under the axis, its label in the row of K3 / K5
+    pg.rect(cx0, y0 - 1.8, cx1 - cx0, 1.55, fill=C["structure"])
+    pg.text("stream covered", (cx0 + cx1) / 2, y0 - 6.5, 7, C["ink2"], True, "C")
     for c, n in SHOPS_PER_100M:
         bh = n / vmax * (h - 8)
         pg.rect(X(c) + 1.2, y0, X(c + 100) - X(c) - 2.4, max(bh, 0.3), fill=SPINE_C)
@@ -773,8 +910,8 @@ def page_why(L):
     lx_ = bx + 3 + (gw - 6) / 4 - 0.5                # the figure tied by a leader to its bar (open stream, 0-30 m)
     pg.line([(lx_, by - 15.5), (lx_, by - 0.5)], C["water_deep"], 0.35)
     pg.text("%d per 100" % sf["open_0_30m_per_100_buildings"], bx, by - 20, 14, C["water_deep"], True)
-    pg.text("shops like the water · but only %d buildings face it" % sf["open_0_30m_buildings"], bx + 30, by - 18.5, 7.5,
-            C["ink"])
+    rich(pg, "shops **like the water** · but only **%d buildings** face it" % sf["open_0_30m_buildings"], bx + 30,
+         by - 18.5, 7.5, C["ink"])                         # v3 (G5): the two keywords bold
     # (4) seven reasons: pictogram tiles (icon, one big figure, keyword heading, keywords, [n])
     rx, ry, rw, rh = P1_TILES
     tx = step(pg, 4, rx, ry + rh + 3.5)
@@ -821,8 +958,8 @@ def page_why(L):
     tx = step(pg, 6, vx, wy0 + 6.0)
     pg.text("WALKING POTENTIAL", tx, wy0 + 6.0, 9, C["ink"], True)
     if mv and mv.get("spine_walk_index") is not None:
-        fit(pg, "computed, not a count · index 100 = busiest street piece today " + cite(L["mv_src"]), vx, wy0 + 1.5, 7,
-            406 - vx, C["ink2"])
+        fit(pg, "computed, not a count · index 100 = busiest street piece today", vx, wy0 + 1.5, 7,   # v3 (F5): no
+            406 - vx, C["ink2"])                                    # [n] for the site board's run (not public)
         rows = [("the spine", mv["spine_walk_index"], SPINE_C),
                 ("streets within 40 m of the stream · today", mv.get("edge_walk_today", 0), C["structure"]),
                 ("streets within 40 m of the stream · with the spine", mv.get("edge_walk_with", 0), C["water_deep"])]
@@ -836,7 +973,7 @@ def page_why(L):
         pg.line([(x100, vy0 - 2 * vst - 5.6), (x100, vy0 - 2.6)], C["ink2"], 0.3, dash=(0.8, 0.8))
         pg.text("100", x100 + 1.0, vy0 - 2 * vst - 8.2, 7, C["ink2"])
     else:
-        fit(pg, "no data yet · run the site board once " + cite(L["mv_src"]), vx, wy0 + 1.5, 7, 406 - vx, C["accent"], True)
+        fit(pg, "no data yet · run the site board once", vx, wy0 + 1.5, 7, 406 - vx, C["accent"], True)
     PAGE_SRC[0] = list(SRC_KEY)
     return pg
 
@@ -928,8 +1065,9 @@ def main_spine_plan(pg, ctx, ctx_src=""):
     water, homes by the sections' building types, bridges K1-K6, streets by class (the site board's
     city_context.json); on top, the strongest: the open stream, the covered reach (dashed: under the town), the main
     spine (Bankalar - Kınık Caddesi) and the shops, which crowd the main spine and meet the Selinos only where it runs
-    covered, at the one road crossing. Labels are placed by label() clear of the other words and, where they can be,
-    of the lines and dots; the scale bar and north arrow under the plan, the key beside it."""
+    covered, at the one road crossing. v3 (MIRAQUA 28 Oct): the study area outline (G8); the street and stream names
+    along their own lines (along_label, P08.1), the other labels by plan_labels (common/label_place.py, G4); the
+    scale bar and north arrow under the plan, the key beside it."""
     mx, my = P1_MAP
     f = site_frame(ctx)
     k = 1000.0 / PLAN_DEN                                   # mm on the sheet per m, x and y alike (never stretched)
@@ -942,7 +1080,7 @@ def main_spine_plan(pg, ctx, ctx_src=""):
     inside = lambda q: mx <= q[0] <= mx + fw and my <= q[1] <= my + fh
     tx = step(pg, 1, mx, 256)
     fit(pg, "WHERE THE SHOPS ARE · AND WHERE THE STREAM IS HIDDEN " + cite(SRC_MAIN) + " " + cite(SRC_STREAM) + " " +
-        cite(SRC_SHOPS) + (" " + cite(ctx_src) if ctx else ""), tx, 256, 10, mx + fw - tx, C["ink"], True)
+        cite(SRC_SHOPS), tx, 256, 10, mx + fw - tx, C["ink"], True)   # v3 (F5): no [n] for the board's context file
     frame = (mx + 1.0, my + 1.0, mx + fw - 1.0, my + fh - 1.0)
     KP = 72 / 25.4
     ctx = ctx or {}
@@ -965,6 +1103,9 @@ def main_spine_plan(pg, ctx, ctx_src=""):
     for cls, P_ in ctx.get("roads") or []:
         lw_, col_, dash_ = ROAD_CLS.get(cls, ROAD_CLS["lane"])[:3]
         pg.line([Tc(q) for q in P_], col_, lw_, dash=dash_)
+    for P_ in CL_STUDY:                                     # v3 (MIRAQUA 28 Oct, G8): the study area, one line style
+        pg.line([T(p) for p in P_ + [P_[0]]], R28_STUDY_LINE["colour"], R28_STUDY_LINE["width_mm"],
+                dash=R28_STUDY_LINE["dash_mm"], cap=0)
     for c_, Q in runs:                                      # the covered reach on top, dashed: it runs under the town
         if c_:
             pg.line(Q, C["ink2"], 1.0, dash=(1.6, 0.9))
@@ -997,7 +1138,7 @@ def main_spine_plan(pg, ctx, ctx_src=""):
     rx_, ry_ = T((30245.0, 31962.0))                        # Red Hall (h01 §5 P02), built over the stream
     pg.poly([(rx_ - 1.4, ry_), (rx_, ry_ + 2.0), (rx_ + 1.4, ry_), (rx_, ry_ - 2.0)], fill=C["accent"], closed=True)
     obst += [(jx, jy), (ix, iy), (rx_, ry_)]
-    # labels, most important first: the callout, bridges, the places, the streets
+    # labels, most important first: the callout, the streets and the stream, bridges, the places
     sf = shop_figures()
     l1 = "%d of %d shops" % (sf["covered_reach"], sf["by_stream"])
     l2, l3 = "within 60 m of the stream:", "on the covered %d m, where the road crosses" % sf["covered_reach_m"]
@@ -1011,20 +1152,34 @@ def main_spine_plan(pg, ctx, ctx_src=""):
         pg.text(l3, b[0], b[3] - 11.0, 7.5, C["ink"])
     else:
         DROPPED.append("plan callout")
-    for kb, (bx_, by_) in bridges:
-        label(pg, kb, bx_, by_, 8, C["ink"], True, frame, obst, (1.5, 3.0, 5.0, 8.0))
-    label(pg, "İstiklal Meydanı", ix, iy, 9, C["ink"], True, frame, obst, (4.0, 7.0, 11.0, 16.0, 22.0, 29.0))
-    label(pg, "Red Hall", rx_, ry_, 9, C["accent"], True, frame, obst, (2.5, 5.0, 8.0, 12.0, 17.0))
+    # v3 (MIRAQUA 28 Oct, P08.1 + G4): each street's name along its own line, on the straightest free run of it inside
+    # the frame (was a name pinned to one survey point, which put "Bankalar Caddesi" off the plan and onto another
+    # street); a street with no run as long as its name gets it beside it on a leader to the street itself. The
+    # stream's name along the open stream. The other labels by common/label_place.py: clear of every word, of the
+    # symbols (shops, bridges, markers) and of the stream and the main spine; a secondary one with no free place is
+    # left off (logged)
+    sym = list(shops) + [(jx, jy), (ix, iy), (rx_, ry_)] + [q for _, q in bridges]
+    sym_boxes = [(q[0] - 0.8, q[1] - 0.8, q[0] + 0.8, q[1] + 0.8) for q in shops] + \
+        [(q[0] - 1.5, q[1] - 2.1, q[0] + 1.5, q[1] + 2.1) for q in ((jx, jy), (ix, iy), (rx_, ry_))] + \
+        [(q[0] - 1.2, q[1] - 2.2, q[0] + 1.2, q[1] + 2.2) for _, q in bridges]
+    s_stream = [sg for Q in open_pts + cov_pts for sg in zip(Q, Q[1:])]
+    sp_ = [T(tuple(p)) for p in MAIN_SPINE]
+    s_spine = [sg for sg in zip(sp_, sp_[1:]) if inside(sg[0]) and inside(sg[1])]
+    items = []
+    for s_, i0, i1 in STREET_NAMES:
+        Q = [q for q in sp_[i0:i1] if inside(q)]
+        if len(Q) > 1 and not along_label(pg, s_, Q, 9, C["accent"], frame, sym, s_stream, 1.4):
+            items.append((s_, Q[len(Q) // 2], 9, C["accent"], 0))
+    if open_pts and not any(along_label(pg, "Selinos stream", Q, 9, C["water_deep"], frame, sym, s_spine, 1.2)
+                            for Q in sorted(open_pts, key=len, reverse=True)):
+        Q = max(open_pts, key=len)
+        items.append(("Selinos stream", Q[len(Q) // 2], 9, C["water_deep"], 0))
+    items += [(kb, q, 8, C["ink"], 0) for kb, q in bridges]
+    items += [(u"İstiklal Meydanı", (ix, iy), 9, C["ink"], 0), ("Red Hall", (rx_, ry_), 9, C["accent"], 0)]
     if cov_pts:
         Q = max(cov_pts, key=len)
-        q = Q[len(Q) // 2]
-        label(pg, "stream hidden here", q[0], q[1], 8, C["ink2"], True, frame, obst, (3.0, 6.0, 10.0, 15.0, 21.0))
-    if open_pts:
-        Q = max(open_pts, key=len)
-        q = Q[len(Q) // 2]
-        label(pg, "Selinos stream", q[0], q[1], 9, C["water_deep"], True, frame, obst, (2.5, 5.0, 8.0, 12.0, 17.0))
-    for s_, q in (("Bankalar Caddesi", (29852.9, 31760.3)), ("Kınık Caddesi", (30499.5, 31831.0))):
-        label(pg, s_, T(q)[0], T(q)[1], 9, C["accent"], True, frame, obst, (2.5, 5.0, 8.0, 12.0, 17.0, 23.0, 30.0))
+        items.append(("stream hidden here", Q[len(Q) // 2], 8, C["ink2"], 1))
+    plan_labels(pg, items, frame, sym_boxes, s_stream + s_spine)
     # under the plan: scale bar 0-400 m (four parts of 100 m) and the north arrow, never on the plan
     sy = my - 4.0
     for i_ in range(4):
@@ -1039,7 +1194,7 @@ def main_spine_plan(pg, ctx, ctx_src=""):
     kx, ky = P1_KEY
     rows_ = [("dot", SPINE_C, "shops and cafés (%d)" % len(shops)), ("line", C["accent"], "main spine: shops, through road"),
              ("line", C["water"], "Selinos stream, open"), ("dash", C["ink2"], "stream hidden (covered)"),
-             ("big", C["accent"], "the one road crossing")]
+             ("big", C["accent"], "the one road crossing"), ("study", R28_STUDY_LINE["colour"], R28_STUDY_NAME)]   # v3: G8
     if ctx:
         rows_ += [("bar", C["ink"], "bridge K1-K6")] + [("road", cls, ROAD_CLS[cls][3]) for cls in ROAD_ORDER]
     cw_ = (406.0 - kx) / 2.0
@@ -1049,6 +1204,9 @@ def main_spine_plan(pg, ctx, ctx_src=""):
             pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col, 1.2)
         elif kind == "dash":
             pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col, 1.0, dash=(1.6, 0.9))
+        elif kind == "study":
+            pg.line([(kx, yy + 0.9), (kx + 6.0, yy + 0.9)], col, R28_STUDY_LINE["width_mm"], dash=R28_STUDY_LINE["dash_mm"],
+                    cap=0)
         elif kind == "bar":
             pg.line([(kx + 3.0, yy - 0.8), (kx + 3.0, yy + 2.6)], col, 0.6)
         elif kind == "road":
@@ -1117,6 +1275,10 @@ SRC_HUBS = "Hubs: history decisions D2 D3 D8 D10 and Aras 27 Oct 12:05 (history_
 SRC_PLANE = ("Plane trees: Ottoman squares with plane trees (h02, ICOMOS s13 p281); drought-sensitive, watered "
              "(h03 Q4)")
 SRC_HIDDEN = "Covered reach: Red Hall twin tunnels (h02 E01); the stream under İstiklal Meydanı (h02 E02)"
+# v3 (MIRAQUA 28 Oct, F5: booklet sources are public online only): these sources name only our own files, boards,
+# runs or decisions, so the sheet prints no [n] for them (cite() gives ""); the run-provenance sources (site board
+# movement, context and bank vote, water balance results, the reach method) are no longer cited at their calls
+CITE_OFF = (SRC_WHO, SRC_TABAK, SRC_HUBS, SRC_WET, SRC_HIDDEN, SRC_BANK, SRC_BED)
 
 
 def is_transit(hb):
@@ -1192,18 +1354,28 @@ def hub_card(pg, hb, x, y0, w, h):
     gy = y1 - 30.0 if not hb.get("later") and len(hb["bus_stops"]) < 2 else y1 - 35.0
     hub_glyph(pg, hb["kind"], x + 2.5, gy, 26.0, 18.0)
     kx = x + 31.0
+    # v3 (MIRAQUA 28 Oct, F13): the tree by its printed name, English (Turkish), as common/plant_photos.py PLANTS;
+    # bank-depth research REPORT §4.2 + §5 (Aras 28 Oct 14:12): K4's "Q500 tops this bank" was the survey's bank
+    # before the DSİ walls: Q500 tops the banks only at S4. Lines 3.2 mm apart from the glyph's top, a little air
+    # before each bold heading but the first (K4 takes seven lines)
     if hb["kind"] == "walk":
-        kws = [("DRY HUB · plane trees " + cite(SRC_PLANE), True),
-               ("above Q500 · Q500 tops this bank " + cite(SRC_FLOOD) if hb["id"] == "K4" else "street level, above Q500", False),
-               ("trees watered from storage", False),
-               ("SUB-HUB in the bed", True), ("open Jul-Sep · shut in floods " + cite(SRC_WET), False)]
+        kws = [("DRY HUB · above Q500" if hb["id"] == "K4" else "DRY HUB · street level, above Q500", True),
+               (PLANE_NAME + " " + cite(SRC_PLANE), False), ("trees watered from storage", False)]
+        if hb["id"] == "K4":
+            kws += [("Q500 over the banks only at S4 " + cite(SRC_FLOOD), False),
+                    (u"K4 before the DSİ walls (survey)", False)]
+        kws += [("SUB-HUB in the bed", True), ("open Jul-Sep · shut in floods " + cite(SRC_WET), False)]
     elif hb["kind"] == "hidden":
         kws = [("HIDDEN STREAM SQUARE", True), ("water line in the paving " + cite(SRC_HIDDEN), False),
                ("over the culvert", False), ("RED HALL TUNNEL MOUTHS", True), ("a viewing edge", False)]
     else:
         kws = [("GATEWAY OUT", True), ("no hub square", False)]
+    ky_ = gy - 0.5
     for j, (s, b_) in enumerate(kws):
-        fit(pg, s, kx, gy - 3.0 - j * 3.5 - (1.5 if j >= 3 else 0.0), 7.5 if b_ else 7, x + w - 2.0 - kx, C["ink"], b_)
+        if j and b_:
+            ky_ -= 1.2
+        fit(pg, s.strip(), kx, ky_, 7.5 if b_ else 7, x + w - 2.0 - kx, C["ink"], b_)
+        ky_ -= 3.2
     sy = gy - 25.0
     for n in hb["stops"]:
         f = [g for g in FUNCS + [EVENTS] if g["n"] == n][0]
@@ -1226,21 +1398,43 @@ def hub_card(pg, hb, x, y0, w, h):
 def page_spine(L):
     pg = Page(420, 297)
     SRC_KEY[:] = []                               # v1.6: each page has its own numbered key
-    header(pg, "2", "THE STREAMSIDE SPINE, HUB BY HUB",          # v2: no length (Prompt 3: reach, not a fixed line)
-           "five bridge places on existing bus stops · walking hubs with a sub-hub in the bed · one transit hub")
+    header(pg, "THE STREAMSIDE SPINE, HUB BY HUB",          # v2: no length (Prompt 3: reach, not a fixed line)
+           "five **bridge places** on existing bus stops · walking hubs with a **sub-hub in the bed** · one transit hub")
     hubs = hub_list()
-    x0, w, ry0, ry1 = P2_STRIP
-    c0, c1 = 150, 1800
-    X = lambda c: x0 + (c - c0) / float(c1 - c0) * w
+    x0, _w, ry0, ry1 = P2_STRIP                   # _w: the width the scale was chosen for (STRIP_DEN)
+    c0, c1 = STRIP_CH
+    ks = 1000.0 / STRIP_DEN                       # v3 (F9): mm along the strip per m along the stream, 1:5,000
+    X = lambda c: x0 + (c - c0) * ks
+    wd = (c1 - c0) * ks                           # the drawn strip's width (330 mm of the 384)
     ym = (ry0 + ry1) / 2.0
     frame = (14.0, 164.0, 406.0, 258.0)
     tx = step(pg, 1, 14, 262)
-    pg.text("THE SPINE ALONG THE SELINOS · TO SCALE ALONG THE STREAM " + cite(SRC_STRIP), tx, 262, 9, C["ink"], True)
+    pg.text("THE SPINE ALONG THE SELINOS · 1:%s ALONG THE STREAM " % fmt(STRIP_DEN) + cite(SRC_STRIP), tx, 262, 9,
+            C["ink"], True)
     pg.text("city heritage loop: see 'The heritage loop'", 406, 262, 7, C["ink2"], False, "R")   # D6: the booklet's
     # theme D (v2.1, Prompt 8: the drawing named, not "page 23": the booklet's page numbers moved)
     obst = []
+    # v3 (MIRAQUA 28 Oct, P10.1: the opaque multiplied reach fields, 44 mm tall over a 10 mm band, are gone): reach on
+    # foot = the distance along the stream to the nearest hub (not the gateway), in the three R28_REACH classes
+    # (0-100, 100-400, 400-800 m, as p.09's map), as a thin rim of the band: drawn first, under the band, in flat
+    # colours (no multiply, nothing laid over the drawing); none beyond the walking radius
+    rw = float((L.get("ctx") or {}).get("r_walk") or 800.0)   # the movement method's walking radius (board), else 800 m
+    hc = [hb["ch"] for hb in hubs if hb["kind"] != "gateway"]
+    lims = [lim for lim, _, _ in R28_REACH]
+    cuts = sorted(set([c0, c1] + [h_ + s_ * lim for h_ in hc for lim in lims for s_ in (-1, 1) if c0 < h_ + s_ * lim < c1]))
+    rim = []
+    for a, b in zip(cuts, cuts[1:]):
+        d = min(abs((a + b) / 2.0 - h_) for h_ in hc) if hc else 1e9
+        i_ = next((i for i, lim in enumerate(lims) if d <= lim and d <= rw), None)
+        if rim and rim[-1][0] == i_:
+            rim[-1][2] = b
+        else:
+            rim.append([i_, a, b])
+    for i_, a, b in rim:
+        if i_ is not None:
+            pg.rect(X(a), ry0 - REACH_RIM, (b - a) * ks, ry1 - ry0 + 2 * REACH_RIM, fill=R28_REACH[i_][2])
     # the stream band, the covered reach, the bridges
-    pg.rect(x0, ry0, w, ry1 - ry0, fill=C["water"])
+    pg.rect(x0, ry0, wd, ry1 - ry0, fill=C["water"])
     cx0, cx1 = X(CH["cov0"]), X(CH["cov1"])
     pg.rect(cx0, ry0, cx1 - cx0, ry1 - ry0, fill=C["structure"])
     for k in ("K4", "K3", "K5", "K6"):
@@ -1250,22 +1444,18 @@ def page_spine(L):
     xs = X(CH["cross"])
     pg.rect(xs - 1.8, 170.0, 3.6, 86.0, fill=C["accent"])
     obst += samples([(xs, 170.0), (xs, 256.0)])
-    # v2 (Prompt 3: the spine and hubs as gradients of reach, not a fixed line with fixed lengths): each hub's reach
-    # on foot as a fading field along the stream (to scale along it, schematic across), laid over by multiplying, so
-    # the strip darkens where reaches overlap; the gateway has none. Cut to the strip.
-    rw = float((L.get("ctx") or {}).get("r_walk") or 800.0)
-    src_reach = SRC_REACH.format(rw, "" if (L.get("ctx") or {}).get("r_walk") else ", built-in: no site board file")
-    xs_m = w / float(c1 - c0)                     # mm along the strip per m along the stream
-    KP = 72 / 25.4
-    pg.ops.append("q %.2f %.2f %.2f %.2f re W n" % (x0 * KP, frame[1] * KP, w * KP, (frame[3] - frame[1]) * KP))
-    ell = lambda hx, f_: [(hx + f_ * rw * xs_m * math.cos(a * math.pi / 36), ym + f_ * REACH_RY * math.sin(a * math.pi / 36))
-                          for a in range(72)]
-    for hb in hubs:
-        if hb["kind"] == "gateway":
-            continue
-        for i_, f_ in enumerate(REACH_F):
-            rings = [ell(X(hb["ch"]), f_)] + ([ell(X(hb["ch"]), REACH_F[i_ - 1])] if i_ else [])
-            pg.path(rings, fill=tint_hex(C["green_deep"], REACH_T[i_]), mul=True)
+    # v3 (F9): the strip's own scale bar, beside it on the right (0-200 m in four parts of 50 m), never on the strip
+    sx_, sy_ = x0 + wd + 8.0, ym - 0.6
+    for i_ in range(4):
+        pg.rect(sx_ + i_ * 50.0 * ks, sy_, 50.0 * ks, 1.2, fill=(C["ink"], C["white"])[i_ % 2])
+    pg.rect(sx_, sy_, 200.0 * ks, 1.2, stroke=C["ink"], lw=0.15)
+    pg.text("0", sx_, sy_ - 3.6, 7, C["ink2"], False, "C")
+    pg.text("100", sx_ + 100.0 * ks, sy_ - 3.6, 7, C["ink2"], False, "C")
+    pg.text("200 m", sx_ + 200.0 * ks - text_w("200", 7) / 2.0, sy_ - 3.6, 7, C["ink2"])
+    pg.text("1:%s" % fmt(STRIP_DEN), sx_, sy_ + 2.8, 7, C["ink2"])
+    KP = 72 / 25.4                                # the spine's soft band and its tails, cut to the strip
+    pg.ops.append("q %.2f %.2f %.2f %.2f re W n" % (x0 * KP, frame[1] * KP, wd * KP, (frame[3] - frame[1]) * KP))
+    xs_m = ks                                     # mm along the strip per m along the stream
     # the streamside spine on the bank the data picked: a soft band (three multiplied strokes) between K4 and K5,
     # fading out past them where the walking route goes on: no drawn end, no length
     yb = lambda bank: ry1 + 5 if bank == "NE" else ry0 - 5
@@ -1301,14 +1491,13 @@ def page_spine(L):
             P_ = [(lx, ry0 - 6.0), (lx, P2_LEAD), (ccx, P2_LEAD), (ccx, cy0 + ch_)]
             pg.line(P_, C["accent"] if hb["transit"] else C["ink2"], 0.3)
             obst += samples(P_)
-    # the reach key, top right of the strip
+    # the reach key, top right of the strip (v3, P10.1: the rim's three classes; F5: the method is ours, no [n])
     kx1, ky = 406.0, 252.5
-    pg.text("REACH ON FOOT FROM A HUB " + cite(src_reach), kx1, ky, 7, C["ink"], True, "R")
-    for i_, f_ in enumerate(REACH_F):
-        xx = kx1 - (len(REACH_F) - i_) * 10.0
-        pg.rect(xx, ky - 5.0, 9.0, 2.6, fill=tint_hex(C["green_deep"], REACH_T[i_]))
-        pg.text("%d%s" % (int(round(f_ * rw)), " m" if i_ == len(REACH_F) - 1 else ""), xx + 4.5, ky - 8.6, 7, C["ink2"],
-                False, "C")
+    pg.text("ON FOOT TO THE NEAREST HUB", kx1, ky, 7, C["ink"], True, "R")
+    for i_, (lim, lab, hx_) in enumerate(R28_REACH):
+        xx = kx1 - (len(R28_REACH) - i_) * 14.0
+        pg.rect(xx, ky - 4.6, 13.0, 1.6, fill=hx_)
+        pg.text(lab, xx + 6.5, ky - 8.4, 7, C["ink2"], False, "C")
     # stops on their bank (with a tick to it), in the bed, or over the covered stream
     for f in FUNCS + [dict(EVENTS, ch=1040, bank="bed")]:
         c, bank = f["ch"], f["bank"]
@@ -1327,7 +1516,7 @@ def page_spine(L):
         pg.line([(X(c), y + (-2.4 if up else 2.4)), (X(c), ry1 + 0.5 if up else ry0 - 0.5)], C["accent"], 0.25, dash=(0.8, 0.8))
         pg.poly([(X(c) - 1.6, y), (X(c), y + 2.4), (X(c) + 1.6, y), (X(c), y - 2.4)], fill=C["accent"], closed=True)
         obst += [(X(c), y)]
-        marks.append((X(c), y, up, lab + (" " + cite(SRC_TABAK) if lab == "Tabaklar Hamamı" else "")))
+        marks.append((X(c), y, up, (lab + (" " + cite(SRC_TABAK) if lab == "Tabaklar Hamamı" else "")).strip()))
     # fixed words first, then every placed label (label(): clear of all words, off the lines where it can be)
     pg.text("covered", (cx0 + cx1) / 2, ry0 + 3.4, 7, C["white"], True, "C")
     pg.text("THE SELINOS, FLOWING  >", X(1300), ry0 + 3.4, 7, C["white"], True)
@@ -1348,7 +1537,7 @@ def page_spine(L):
           (1.5, 4.0, 7.0), ((0, 1), (0, -1), (-1, 1), (-1, -1)))
     label(pg, "NORTH-EAST BANK", X(1620), ry1 + 7.0, 8, C["ink2"], True, frame, obst, (0.5, 3.0, 6.0), ((0, 1), (-1, 1), (1, 1)))
     label(pg, "SOUTH-WEST BANK", X(1620), ry0 - 7.0, 8, C["ink2"], True, frame, obst, (0.5, 3.0, 6.0), ((0, -1), (-1, -1), (1, -1)))
-    # (2) the five bridge places
+    # the five bridge places, hanging from the strip (part of panel 1, v3 F9)
     for i, hb in enumerate(hubs):
         hub_card(pg, hb, cx_ + i * (cw + gap), cy0, cw, ch_)
     # legend row under the cards
@@ -1367,10 +1556,11 @@ def page_spine(L):
     pg.text("heritage", lx + 4.5, ly, 7, C["ink"]); lx += 4.5 + text_w("heritage", 7) + 3.5
     icon(pg, "bus", lx, ly + 2.6, 3.4)
     pg.text("existing stop: lines, metres " + cite(SRC_BUS), lx + 4.6, ly, 7, C["ink"])
-    pg.text("hubs linked on foot by the spine " + cite(SRC_HUBS), 406, ly, 7, C["ink2"], False, "R")
-    # (3) flood rule: three levels; the rules as pictograms with keywords
+    pg.text(("hubs linked on foot by the spine " + cite(SRC_HUBS)).strip(), 406, ly, 7, C["ink2"], False, "R")
+    # (2) flood rule: three levels; the rules as pictograms with keywords. v3 (MIRAQUA 28 Oct, F9): the panels are
+    # numbered 1, 2, 3 in reading order (were 1, 3, 4): 1 the strip with its five bridge places hanging from it
     fx, fy0, fst = P2_FLOOD
-    tx = step(pg, 3, fx, fy0 + 9)
+    tx = step(pg, 2, fx, fy0 + 9)
     pg.text("WHAT STANDS WHERE: THE FLOOD RULE " + cite(SRC_RULES), tx, fy0 + 9, 9, C["ink"], True)
     for i, (lev, wet, rules, wsrc) in enumerate(FLOOD):
         y = fy0 - i * fst
@@ -1381,9 +1571,9 @@ def page_spine(L):
         for j, (ic, k) in enumerate(rules):
             icon(pg, ic, fx + 66, y + 4.0 - j * 4.8, 4.2)
             fit(pg, k, fx + 72, y + 1.2 - j * 4.8, 7, 100, C["ink"])
-    # (4) which bank: paired bars NE / SW per piece (people = home floors, modern = buildings of 3+ floors, 250 m)
+    # (3) which bank: paired bars NE / SW per piece (people = home floors, modern = buildings of 3+ floors, 250 m)
     bkx, yy = P2_BANK
-    tx = step(pg, 4, bkx, yy)
+    tx = step(pg, 3, bkx, yy)
     pg.text("WHICH BANK THE SPINE TAKES · WITHIN 250 M", tx, yy, 9, C["ink"], True)
     pg.text("home floors", bkx + 6, yy - 4.6, 7, C["ink2"], True)
     pg.text("buildings of 3+ floors", bkx + 72, yy - 4.6, 7, C["ink2"], True)
@@ -1411,15 +1601,30 @@ def page_spine(L):
             pg.text("-> over the covered stream", bkx + 112, yy + 0.4, 7.5, C["ink"], True)
             pg.text("reaches both", bkx + 112, yy - 2.8, 7, C["ink2"])
         yy -= 8.4
-    pg.text("floors: proxy for residents " + cite(L["vote_src"]), bkx, yy + 2.6, 7, C["ink2"])
-    # (5) producers' market supply: live figures (water balance)
+    pg.text("floors: proxy for residents", bkx, yy + 2.6, 7, C["ink2"])   # v3 (F5): course survey / board run, no [n]
+    # (market) producers' market supply: live figures (water balance), a side note of panel 3 (no number)
     ln = L["lands"]
     mkx, mky = P2_MARKET
     pg.text("PRODUCERS' MARKET", mkx, mky, 8, C["ink"], True)
-    fit(pg, "fed by the stored water " + cite(L["wb_src"]), mkx, mky - 4.2, 7, 406 - mkx, C["ink2"])
-    pg.text("%.1f ha fields" % float(ln.get("cropland_ha", 0)), mkx, mky - 10.5, 10, SPINE_C, True)
-    fit(pg, str(ln.get("cropland_crops", "")).replace(",", ", "), mkx, mky - 14.5, 7, 406 - mkx, C["ink2"])
-    pg.text("%.2f ha orchards" % float(ln.get("orchard_ha", 0)), mkx, mky - 20.5, 10, SPINE_C, True)
+    fit(pg, "fed by the stored water", mkx, mky - 4.2, 7, 406 - mkx, C["ink2"])   # v3 (F5): our own calculation
+    # v3 (MIRAQUA 28 Oct, G13): areas in ha as the page's other figures (u_area: 2 decimals below 10 ha, 1 above),
+    # values unchanged; G11: the crops by their printed names, English (Turkish), "Corn (Mısır)" for maize, in one or
+    # two lines of the block's width
+    pg.text(u_area(float(ln.get("cropland_ha", 0)) * 1e4, "ha") + " fields", mkx, mky - 10.5, 10, SPINE_C, True)
+    crops = [CROP_NAME.get(c_.strip().lower(), c_.strip()) for c_ in str(ln.get("cropland_crops", "")).split(",") if c_.strip()]
+    rows_, cur = [], ""
+    for c_ in crops:
+        t_ = (cur + ", " + c_) if cur else c_
+        if cur and text_w(t_, 7) > 406 - mkx:
+            rows_.append(cur + ",")
+            cur = c_
+        else:
+            cur = t_
+    rows_ += [cur] if cur else []
+    for j_, s_ in enumerate(rows_[:2]):
+        fit(pg, s_, mkx, mky - 14.5 - j_ * 3.0, 7, 406 - mkx, C["ink2"])
+    pg.text(u_area(float(ln.get("orchard_ha", 0)) * 1e4, "ha") + " orchards", mkx, mky - 20.5 - (2.4 if len(rows_) > 1 else 0.0),
+            10, SPINE_C, True)
     icon(pg, "farm", mkx + 30.0, mky - 25.0, 8)
     PAGE_SRC[1] = list(SRC_KEY)
     return pg
@@ -1457,22 +1662,43 @@ def booklet_export(out_dir):
     bk = BkBlocks(out_dir, "CityLink", VERSION)
     H = 297.0
 
-    def crop(bid, page, x0, y0, x1, y1, caption, legend=None, scale_den=None):
+    def crop(bid, page, x0, y0, x1, y1, caption, legend=None, scale_den=None, drop=None, bk_w=None):
         bk.crop(bid, OUT_PDF, (x0, H - y1, x1, H - y0), caption=caption, scale_den=scale_den, legend=legend, page=page,
-                drop=BK_DROP)
+                drop=BK_DROP + (drop or []))
+        if bk_w:                                   # v3: drawn for the booklet page at 1:1 (its width there), as the
+            bk.d["blocks"][bid]["bk_w"] = round(bk_w, 3)   # masterplan's mp_plan: the booklet keeps its scale
     chip = lambda g_: dict(kind="fill", colour=GROW_C[g_], label=GROWS[g_])
     dots = [dict(kind="dot", colour=GROUP[k][1], label=GROUP[k][0]) for k in "LTS"]
+    mk = lambda p_, *ss: " ".join("[%d]" % (PAGE_SRC[p_].index(s_) + 1) for s_ in ss if s_ in PAGE_SRC.get(p_, []))
+    cov_leg = dict(kind="fill", colour=C["structure"], label="stream covered · strip under the axis")   # v3: P08.2
     # page 1 (booklet p9): the focal plan (its frame, key inside), the two charts, the reasons, who comes, walking
     px0, py0, px1, py1 = PLAN_BOX.get("r") or (P1_MAP[0], P1_MAP[1], P1_MAP[0] + 284.5, P1_MAP[1] + 52.9)
     crop("cl_main_spine", 0, px0 - 0.5, py0 - 9.0, px1 + 0.5, py1 + 0.5,       # v2: with its scale bar and north arrow
          "Where the shops are, and where the stream is hidden", scale_den=PLAN_DEN)
     x0, y0, w, h = P1_A
     crop("cl_shops_along", 0, x0 - 6.0, y0 - 13.0, x0 + w + 2.0, y0 + h, "Shops within 60 m, every 100 m of stream",
-         [dict(kind="fill", colour=SPINE_C, label="shops"), dict(kind="fill", colour=C["faint"], label="stream covered")])
+         [dict(kind="fill", colour=SPINE_C, label="shops"), cov_leg])
     x0, y0, w, h = P1_B
     crop("cl_shops_distance", 0, x0 - 2.0, y0 - 22.0, x0 + w + 2.0, y0 + h - 3.6, "Shops per 100 buildings, by distance",
          [dict(kind="fill", colour=C["water_deep"], label="by the open stream"),
           dict(kind="fill", colour=C["structure"], label="by the covered pieces")])
+    # v3 (MIRAQUA 28 Oct, P78.ALT): page 1's numbered panels 1, 2, 3 for the booklet's alternative pp.07+08 page, each
+    # whole with the words it carries (the panel heading goes to the caption, with its source marks): cl_why_1 = the
+    # plan WITH its key, scale bar and north arrow (392 mm wide, drawn at 1:1 = 1:10,000: bk_w keeps it there; the
+    # sheet's "1:10,000" text is dropped, the caption prints the scale), cl_why_2 = chart A with its covered strip,
+    # cl_why_3 = chart B with its legend row and the "per 100" callout. Reasons, who comes and walking potential stay
+    # as cl_reasons, cl_who, cl_walk.
+    kx_, ky_ = P1_KEY
+    crop("cl_why_1", 0, px0 - 0.12, py0 - 9.0, 405.88, max(py1 + 0.5, ky_ + 2.5),
+         ("Where the shops are, and where the stream is hidden " + mk(0, SRC_MAIN, SRC_STREAM, SRC_SHOPS)).strip(),
+         scale_den=PLAN_DEN, drop=[r"^1:[\d,.]+$"], bk_w=405.88 - (px0 - 0.12))
+    x0, y0, w, h = P1_A
+    crop("cl_why_2", 0, x0 - 6.0, y0 - 13.0, x0 + w + 2.0, y0 + h,
+         ("Shops within 60 m of the stream, every 100 m " + mk(0, SRC_SHOPS, SRC_CH)).strip(),
+         [dict(kind="fill", colour=SPINE_C, label="shops"), cov_leg])
+    x0, y0, w, h = P1_B
+    crop("cl_why_3", 0, x0 - 2.0, y0 - 22.0, x0 + w + 2.0, y0 + h + 0.5,
+         ("Shops per 100 buildings, by distance from the stream " + mk(0, SRC_SHOPS)).strip())
     x0, y0, w, h = P1_TILES
     crop("cl_reasons", 0, x0, y0 - 1.0, x0 + w, y0 + h + 1.0, "Seven reasons the stream edge has no spine")
     wx, wy0, wst = P1_WHO
@@ -1482,19 +1708,19 @@ def booklet_export(out_dir):
     crop("cl_walk", 0, vx - 1.0, vy0 - 2 * vst - 9.0, 406.0, vy0 + 2.0, "Walking potential · index 100 = busiest street today")
     # page 2 (booklet p17): the strip, the hub cards (NEW), the flood rule, which bank; cl_stops is gone (v1.11)
     x0, w, ry0, ry1 = P2_STRIP
-    crop("cl_spine", 1, 14.0, 164.0, 406.0, 258.0, "The streamside spine along the Selinos",
-         [dict(kind="line", colour=tint_hex(SPINE_C, 0.15), label="streamside spine"),
-          dict(kind="fill", colour=tint_hex(C["green_deep"], REACH_T[1]), label="reach on foot from a hub"),
-          dict(kind="fill", colour=C["accent"], label="main spine"),
+    crop("cl_spine", 1, 14.0, 164.0, 406.0, 258.0, "The streamside spine along the Selinos, 1:%s along the stream" % fmt(STRIP_DEN),
+         [dict(kind="line", colour=tint_hex(SPINE_C, 0.15), label="streamside spine")] +
+         [dict(kind="fill", colour=hx_, label="on foot to the nearest hub: " + lab_) for _, lab_, hx_ in R28_REACH] +   # v3
+         [dict(kind="fill", colour=C["accent"], label="main spine"),
           dict(kind="dot", colour=C["ink"], label="stop"), dict(kind="dot", colour=C["accent"], label="heritage anchor"),
           dict(kind="fill", colour=C["water"], label="the Selinos"), dict(kind="fill", colour=C["structure"], label="covered reach")])
     cx_, cy0, cw_all, ch_, gap = P2_CARDS
     crop("cl_hubs", 1, cx_ - 0.5, cy0 - 7.5, cx_ + cw_all + 0.5, cy0 + ch_ + 0.5,
          "Five bridge places: transit hub, walking hubs with sub-hubs, gateway", [chip(g_) for g_ in "WEAH"] + dots)
     fx, fy0, fst = P2_FLOOD
-    crop("cl_flood", 1, fx - 1.0, fy0 - (len(FLOOD) - 1) * fst - 6.5, 187.0, fy0 + 5.0,
+    crop("cl_flood", 1, fx - 1.0, fy0 - (len(FLOOD) - 1) * fst - 9.5, 187.0, fy0 + 5.0,     # v3: + the third bank-top line
          "What stands where: the flood rule",
-         [dict(kind="fill", colour=C["water"], label="bed"), dict(kind="fill", colour=C["water_light"], label="terrace +1 m"),
+         [dict(kind="fill", colour=C["water"], label="bed"), dict(kind="fill", colour=C["water_light"], label="terrace +1.00 m"),
           dict(kind="fill", colour=C["faint"], label="bank top")])
     bkx, ty = P2_BANK
     crop("cl_bank", 1, bkx - 0.5, ty - 10.5 - (len(SPINE) - 1) * 8.4 - 4.0, P2_MARKET[0] - 2.0, ty - 3.4,

@@ -13,6 +13,10 @@
 #             wedges on the zone base's people-to-the-water links: zones and sketch marks, abstract, no dimensions
 # Booklet (CROP_SPEC.md, Aras 21:47): the booklet's drawings are crops of the sheets; blocks.json holds one crop per
 # panel (both halves of the masterplan sheet, both detail windows), results.json the frames and places.
+# v27 (MIRAQUA 28 Oct, P24.1-P24.5, F11): the windows are drawn by r28_window_panel (parts/02e_r28_detail.py) in the
+# fade-out programme language; of the list above they keep the cuts' bed and flood levels (no bands across the
+# stream) and the water route with its areas and rough volumes. The planting codes, band letters, survey spot
+# heights and sketches are gone (their tables with them).
 DT_SCALE = 1000.0
 DT_WINDOWS = [  # crop id, old booklet id, working area, sheet title, booklet caption, zone names the window must show
     ("dt_upstream", "c3_a", "calisma_alan[0]", u"UPSTREAM ENTRY · COLLECT, CLEAN, HOLD",
@@ -31,27 +35,6 @@ CUT_AT = [("1", u"UPSTREAM ENTRY", (29693.022, 32569.176), (-74.5, 85.5), 70.36,
 ROUTE = [((None, "WT"), u"INTO {}", 1), (("WS", "WT"), u"FROM {}", 0), (("WT", "WD"), u"TO {}", 1),
          (("WD", None), u"BACK TO THE STREAM", None)]   # (from, to), words, which end's zone they name
 ROUTE_SHORT = {u"RETENTION TERRACES": u"TERRACES"}
-# Planting (booklet page C7 / water board v1.9 bands A-F and species): band letters and species codes per zone, by
-# the zone's wetness (bed and reed basins wet most of the year: B; flood terrace: C; terraces: C and E; dry tops: E
-# and F). A design reading of the bands; only species of the verified list.
-# v26.1 (Aras 27 Oct, Prompt 8: "English name first, Turkish name in brackets, no Latin"): the printed names of
-# common/plant_photos.py PLANTS, as the water board prints them; Ty (Typha angustifolia), Qu (Quercus robur) and Ul
-# (Ulmus laevis) are not in that list: their English names as concept v1 §9.2 gives them, no Turkish name in the
-# project's sources (research 04 names only the broadleaf cattail "hasır otu", another species)
-SPECIES_CODE = [("Ty", u"Narrow-leaf cattail"), ("Ph", u"Common reed (Kamış)"), ("Me", u"Water mint (Su nanesi)"),
-                ("Sa", u"White willow (Ak söğüt)"), ("Ta", u"Tamarisk (Ilgın)"), ("Vi", u"Chaste tree (Hayıt)"),
-                ("Po", u"White poplar (Ak kavak)"), ("Fr", u"Narrow-leaved ash (Dişbudak)"),
-                ("Pl", u"Oriental plane (Doğu çınarı)"), ("La", u"French lavender (Karabaş otu)"), ("Qu", u"Oak"),
-                ("Ul", u"Elm")]   # v24: + Qu, Ul
-BAND_NAME = {"A": u"A STRIP AND BED · PERMANENT", "B": u"B MARSH · 150-365 D A YEAR", "C": u"C WILLOW · 50-150 D",
-             "D": u"D WET MEADOW · 10-150 D", "E": u"E DRY MEADOW · 0.5-50 D", "F": u"F TERRACES · EXTREME ONLY"}
-ZONE_PLANTING = {("WT", None): ("B", ("Ty", "Ph", "Me")), ("WA", "W"): ("B", ("Ty", "Ph", "Me")),
-                 ("WA", "F"): ("C", ("Sa", "Ta")), ("WS", None): ("CE", ("Vi", "Po", "Fr")),
-                 ("GR", None): ("EF", ("Pl", "La"))}
-STEP_M = 4.0                         # spacing of the terrace step strokes, m (sketch)
-RAMP_W = (3.0, 1.2)                  # ramp wedge width at the top and at the water, m (sketch)
-SPOT_GAP_M, SPOT_BANK_M = 30.0, 10.0   # spot levels at least this far apart; bank top = within this of the edge
-SPOT_MAX = (6, 8)                    # at most this many bed / bank spot levels per window
 # v22 (Aras 26 Oct 06:27 "make them have calculated roughly"): rough volume on the water route = zone area x depth.
 # Reed basins: 0.46 m, the water depth of EPA's worked example ("water depth = 0.46 meters (1.5 ft)"; vegetated
 # depth "a few inches to two feet or more"), EPA 832-F-00-024 Free Water Surface Wetlands, Sep 2000. Terraces (Aras
@@ -71,9 +54,6 @@ def store_m3(z):
         num, nm, c, span, bed, q100, q500 = min(CUT_AT, key=lambda r: (r[2][0] - cx) ** 2 + (r[2][1] - cy) ** 2)
         return z["m2"] * max(0.0, q100[0] - (bed + TERRACE_UP)), u" in Q100"
     return None
-DT_TS = 2.6                          # detail label size, mm (7.4 pt at 1:1; the booklet sets them at 7.5 pt)
-DT_MIN = 2.47                        # v26.1 (Prompt 8): the smallest words on a window, mm (7 pt: the booklet's floor;
-#                                      p.26 prints the windows at 1:1, so 0.85 x DT_TS printed at 6.3 pt)
 
 
 def places(spec, CL, survey):
