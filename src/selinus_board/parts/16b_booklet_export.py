@@ -50,7 +50,7 @@ def crop_hex(c):
 
 CROP_LEG_KIND = {"box": "fill", "dot": "dot", "dash": "dash", "line": "line", "thin": "line", "thick": "line",
                  "dense": "line", "street": "line", "walled": "line", "embanked": "line", "ktick": "line",
-                 "cdot": "dot", "pdot": "dot"}
+                 "cdot": "dot", "pdot": "dot", "study": "dashdot"}
 
 
 def crop_legend(leg):

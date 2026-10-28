@@ -19,6 +19,11 @@
 #@include parts/15e_v45_pages.py
 #@include parts/15f_v46_pages.py
 #@include parts/15g_v47_pages.py
+#@include ../common/r28_style.py
+#@include ../common/units.py
+#@include ../common/label_place.py
+#@include ../common/figures.py
+#@include parts/15h_r28_shared.py
 #@include parts/16_write_city_link_movement.py
 #@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py

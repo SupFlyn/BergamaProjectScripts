@@ -546,6 +546,7 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
         S.ctx_lines = {}
         LOG.append("WARNING: context around the frame not read:\n" + traceback.format_exc())
     S.study_areas = study_areas_from(STUDY_RAW, I)                          # v19: read only, never drawn (v33)
+    S.r28_study = r28_study_from(R28_STUDY_RAW, I)                          # v50 (G8): calisma_alan, drawn on every map
     S.whole = None
     if RUN_MODE != "technical":
         try:
@@ -1019,6 +1020,8 @@ if HAVE_RHINO:
             RAWu = read_rhino(None)                       # the whole file: alignment and fallbacks need it
             STUDY_RAW.clear()
             STUDY_RAW.update(read_rhino(None, STUDY_LAYERS))   # v19: the group's study areas, read only
+            R28_STUDY_RAW.clear()
+            R28_STUDY_RAW.update(read_rhino(None, [R28_STUDY_LAYER]))   # v50 (G8): the study area, drawn on every map
             del FOCUS_PTS_USER[:]
             fc = as_curve(FOCUS_IN)
             if fc is not None:

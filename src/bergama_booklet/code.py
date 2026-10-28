@@ -389,6 +389,10 @@ def legend_item(pg, typo, it, x, y):
         pg.draw_line((x * K, (y - 1.2) * K), ((x + 4.0) * K, (y - 1.2) * K), color=c, width=it.get("width", 1.2))
     elif kind == "dot":
         pg.draw_circle(((x + 2.0) * K, (y - 1.2) * K), 1.3 * K, color=None, fill=c)
+    elif kind in ("dash", "dashdot"):                    # MIRAQUA round: dashed samples (dashdot = the study area, G8)
+        pat = "[3 0.8 0.4 0.8]" if kind == "dashdot" else "[1.6 0.9]"
+        pg.draw_line((x * K, (y - 1.2) * K), ((x + 5.0) * K, (y - 1.2) * K), color=c, width=it.get("width", 1.2),
+                     dashes="[%s] 0" % " ".join("%.2f" % (float(v) * K) for v in pat.strip("[]").split()))
     else:
         pg.draw_rect((x * K, (y - 2.6) * K, (x + 4.0) * K, (y + 0.2) * K), color=None, fill=c)
     typo.line(pg, it.get("label", ""), x + 5.5, y, T["caption"], INK)

@@ -1201,6 +1201,9 @@ def draw_symbol(B, kind, col, x, y, U, L, sw=1.1, sh=0.62):
     elif kind == "dash":
         for d in dashes(seg, 0.32 * U, 0.2 * U):
             B.line(d, col, L, 21, 0.3)
+    elif kind == "study":                                # v50 (G8): the study area's dash-dot
+        for d in r28_pattern(seg, [m * 0.22 * U for m in R28_STUDY_LINE["dash_mm"]]):      # one dash-dot in the sample
+            B.line(d, col, L, 21, 0.45)
     elif kind == "walled":
         B.line(seg, col, L, 21, EDGE_W)
         for d in dashes(seg, 0.22 * U, 0.18 * U):
