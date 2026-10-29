@@ -488,7 +488,7 @@ def _p02_put(B, shapes, L, order, k):
             B.line(list(sh[1]), _p02_col(sh[2]), L, order, bk_lw(sh[3] if len(sh) > 3 else 0.1, k))
 
 
-def _t3_fig(pose, x, y, k, facing=1, view="side", ang=0.0):
+def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0):
     """ONE helper for every human figure of p.02-03 (HELPER_BRIEF rule 3): house shapes, k = drawing units per metre.
     side: the legacy silhouette fig_polys(pose, 1.75, facing) with its feet at (x, y) (poses stand, walk, watch, sit,
     touch, wade, bike), filled in ink; top: a plan figure centred on (x, y) heading ang (radians, 0 = +x): the
@@ -932,7 +932,7 @@ def _p02_zone(B, t, x0, x1, yw, yl, k, L, order):
         for j in range(n):                                # people walking it, both ways
             fx = x0 + (j + 0.5) * (x1 - x0) / n
             fy = 0.5 * (ya + yb) + (0.08 if j % 2 else -0.08) * hz
-            _p02_put(B, _t3_fig("walk", fx, fy, 3.0 * k, view="top", ang=0.0 if j % 2 else math.pi), L, order + 3, k)
+            _p02_put(B, _p02_fig("walk", fx, fy, 3.0 * k, view="top", ang=0.0 if j % 2 else math.pi), L, order + 3, k)
     elif t == "street":
         B.fill([r_], P02_ROAD, L, order)
         for y_ in (ya, yb):                               # kerbs
@@ -1260,7 +1260,7 @@ def _p03_segd(px, py, a, b):
 
 
 def _p03_figures(S, pg, V, R):
-    """v51 (WO-T3a-2, 02 §3): people at true height (1.75 m, _t3_fig side view) on the p.03 axonometric, placed by
+    """v51 (WO-T3a-2, 02 §3): people at true height (1.75 m, _p02_fig side view) on the p.03 axonometric, placed by
     what they do there: watching the water along the walkable bank stretches (the edge samples of type walkable, one
     every P03_FIG_EDGE m, facing the stream) and walking the footpaths (one every P03_FIG_PATH m, facing the way the
     path runs); only on open ground (no building footprint within 3 m) inside the model's extent R, far to near.
@@ -1309,7 +1309,7 @@ def _p03_figures(S, pg, V, R):
     col = crop_hex(FIG_INK)
     for px, py, pose, fc in sorted(spots, key=lambda s_: -V.depth(s_[0], s_[1])):
         z0 = zg(px, py) if zg is not None else 0.0
-        for sh in _t3_fig(pose, 0.0, 0.0, 1.0, fc):       # in metres, feet at the origin
+        for sh in _p02_fig(pose, 0.0, 0.0, 1.0, fc):       # in metres, feet at the origin
             pts = []
             for fx, fy in sh[1]:
                 u_, v_ = V.uv(px + fx * g0, py + fx * g1, z0 + fy)

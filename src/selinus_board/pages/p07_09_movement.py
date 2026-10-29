@@ -70,7 +70,7 @@ def _t3_base_leg():
             ("box", C(bf.get("bld", "D3D0CB")), u"Building"), R28_STUDY_LEG]
 
 
-def _t3_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
+def _p07_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
     """T3a: the ONE figure helper of this file: house shapes ("poly", ring, fill, stroke, lw), page mm, feet at (x, y),
     k mm per m. Side view = the legacy fig_polys (poses stand, walk, watch, sit, touch, wade, bike); top view = a
     minimal plan figure (shoulder ellipse + head circle, one ink weight, light flat fill).
@@ -86,7 +86,7 @@ def _t3_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
 
 
 class _T3Put(object):
-    """T3a: house shapes (page mm, y up, hex colours: icons.py, section_parts.py, plants.py, _t3_fig) onto the board:
+    """T3a: house shapes (page mm, y up, hex colours: icons.py, section_parts.py, plants.py, _p07_fig) onto the board:
     board = (ox + x * kb, oy + y * kb), kb = board units per booklet mm"""
 
     def __init__(self, B, ox, oy, kb, L):
@@ -681,7 +681,7 @@ def _t3_sec_draw(PU, cut, after, x0, gy, k):
     for cx in cars:
         sh += _t3_car(X(cx), gs, k)
     for pose, fx, f_ in figs:
-        sh += _t3_fig(pose, X(fx), gs, k, facing=f_)
+        sh += _p07_fig(pose, X(fx), gs, k, facing=f_)
     PU.put(sh, 40)
     return (xr - xl) * k
 
@@ -711,7 +711,7 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     before / after cross-sections of one street per road change of the masterplan (kept, calmed, pedestrian,
     shared), each cut where the survey measured the street (_t3_sec_cut): carriageway and frontages as surveyed,
     buildings at the board's heights, the cut ground (section_parts.py), plane trees from plants.py where the
-    proposal leaves T3_SEC_TREE_MIN, people by what the street is for (_t3_fig), cars as the drawing's symbol. A
+    proposal leaves T3_SEC_TREE_MIN, people by what the street is for (_p07_fig), cars as the drawing's symbol. A
     kept road is drawn once (no change). One standard scale for all (T3_SEC_DENS: the largest that fits two rows on
     the booklet width), a scale bar under every section (G5), widths in cm. Crop drw_street_sections. Returns the y
     below."""

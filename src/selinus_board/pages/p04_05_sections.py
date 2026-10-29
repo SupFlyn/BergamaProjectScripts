@@ -5,7 +5,7 @@
 # the largest round scale that fits, each beside a column with its name, its reading and its scale bar. Each cut is
 # drawn as it really is (p45_strip): its banks and bed from the level module (section_parts: DSİ walls, embankments,
 # loose earth; the bed at its level, 100- and 500-year flood levels, terraces), the measured trees at true size and the
-# olive rows the survey shows (plants), the buildings at their floors, figures (_t3_fig); under it a segmented strip of
+# olive rows the survey shows (plants), the buildings at their floors, figures (_p45_fig); under it a segmented strip of
 # what the cut crosses, each segment exactly under its part of the cut (R02). Callouts never overlap (one row each).
 # The satellite rows, the building types diagram, the per-cut locator and the S4 key map (p14-15 draw their own) are gone.
 
@@ -31,7 +31,7 @@ P45_BANK_WORD = {"dsi_wall": u"a DSİ stone wall", "embankment": u"an embankment
                  "no_crest": u"rising ground"}
 
 
-def _t3_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, height=1.75):
+def _p45_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, height=1.75):
     """every human figure of pp.04-05: pose (stand, walk, watch, sit, touch, wade, bike) at true height, feet at
     (x, y) board units, k = board units per metre; facing -1 looks left; view "top": a plan figure (shoulders and
     head, one ink weight, a light flat fill)"""
@@ -466,12 +466,12 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                     continue
                 zf = sd["zt"] if sd["typ"] in ("dsi_wall", "embankment") and sd["zt"] is not None else g_at(sd["crest"])
                 fx, fy = P(sd["crest"] + sd["dirn"] * 0.8, zf)
-                _t3_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"])
+                _p45_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"])
         st_ = [sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport"]
         if st_:
             a, b, cat = max(st_, key=lambda q_: q_[1] - q_[0])
             fx, fy = P(0.5 * (a + b), g_at(0.5 * (a + b)))
-            _t3_fig(B, L, "walk", fx, fy, ss, facing=1)
+            _p45_fig(B, L, "walk", fx, fy, ss, facing=1)
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
     co = sd_.get("crop_of")

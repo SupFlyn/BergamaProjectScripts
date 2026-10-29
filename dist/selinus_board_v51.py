@@ -24704,7 +24704,7 @@ def _p02_put(B, shapes, L, order, k):
             B.line(list(sh[1]), _p02_col(sh[2]), L, order, bk_lw(sh[3] if len(sh) > 3 else 0.1, k))
 
 
-def _t3_fig(pose, x, y, k, facing=1, view="side", ang=0.0):
+def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0):
     """ONE helper for every human figure of p.02-03 (HELPER_BRIEF rule 3): house shapes, k = drawing units per metre.
     side: the legacy silhouette fig_polys(pose, 1.75, facing) with its feet at (x, y) (poses stand, walk, watch, sit,
     touch, wade, bike), filled in ink; top: a plan figure centred on (x, y) heading ang (radians, 0 = +x): the
@@ -25148,7 +25148,7 @@ def _p02_zone(B, t, x0, x1, yw, yl, k, L, order):
         for j in range(n):                                # people walking it, both ways
             fx = x0 + (j + 0.5) * (x1 - x0) / n
             fy = 0.5 * (ya + yb) + (0.08 if j % 2 else -0.08) * hz
-            _p02_put(B, _t3_fig("walk", fx, fy, 3.0 * k, view="top", ang=0.0 if j % 2 else math.pi), L, order + 3, k)
+            _p02_put(B, _p02_fig("walk", fx, fy, 3.0 * k, view="top", ang=0.0 if j % 2 else math.pi), L, order + 3, k)
     elif t == "street":
         B.fill([r_], P02_ROAD, L, order)
         for y_ in (ya, yb):                               # kerbs
@@ -25476,7 +25476,7 @@ def _p03_segd(px, py, a, b):
 
 
 def _p03_figures(S, pg, V, R):
-    """v51 (WO-T3a-2, 02 §3): people at true height (1.75 m, _t3_fig side view) on the p.03 axonometric, placed by
+    """v51 (WO-T3a-2, 02 §3): people at true height (1.75 m, _p02_fig side view) on the p.03 axonometric, placed by
     what they do there: watching the water along the walkable bank stretches (the edge samples of type walkable, one
     every P03_FIG_EDGE m, facing the stream) and walking the footpaths (one every P03_FIG_PATH m, facing the way the
     path runs); only on open ground (no building footprint within 3 m) inside the model's extent R, far to near.
@@ -25525,7 +25525,7 @@ def _p03_figures(S, pg, V, R):
     col = crop_hex(FIG_INK)
     for px, py, pose, fc in sorted(spots, key=lambda s_: -V.depth(s_[0], s_[1])):
         z0 = zg(px, py) if zg is not None else 0.0
-        for sh in _t3_fig(pose, 0.0, 0.0, 1.0, fc):       # in metres, feet at the origin
+        for sh in _p02_fig(pose, 0.0, 0.0, 1.0, fc):       # in metres, feet at the origin
             pts = []
             for fx, fy in sh[1]:
                 u_, v_ = V.uv(px + fx * g0, py + fx * g1, z0 + fy)
@@ -25609,7 +25609,7 @@ def draw_landcover(S, B, V, L, order=2):
 # the largest round scale that fits, each beside a column with its name, its reading and its scale bar. Each cut is
 # drawn as it really is (p45_strip): its banks and bed from the level module (section_parts: DSİ walls, embankments,
 # loose earth; the bed at its level, 100- and 500-year flood levels, terraces), the measured trees at true size and the
-# olive rows the survey shows (plants), the buildings at their floors, figures (_t3_fig); under it a segmented strip of
+# olive rows the survey shows (plants), the buildings at their floors, figures (_p45_fig); under it a segmented strip of
 # what the cut crosses, each segment exactly under its part of the cut (R02). Callouts never overlap (one row each).
 # The satellite rows, the building types diagram, the per-cut locator and the S4 key map (p14-15 draw their own) are gone.
 
@@ -25635,7 +25635,7 @@ P45_BANK_WORD = {"dsi_wall": u"a DSİ stone wall", "embankment": u"an embankment
                  "no_crest": u"rising ground"}
 
 
-def _t3_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, height=1.75):
+def _p45_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, height=1.75):
     """every human figure of pp.04-05: pose (stand, walk, watch, sit, touch, wade, bike) at true height, feet at
     (x, y) board units, k = board units per metre; facing -1 looks left; view "top": a plan figure (shoulders and
     head, one ink weight, a light flat fill)"""
@@ -26070,12 +26070,12 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                     continue
                 zf = sd["zt"] if sd["typ"] in ("dsi_wall", "embankment") and sd["zt"] is not None else g_at(sd["crest"])
                 fx, fy = P(sd["crest"] + sd["dirn"] * 0.8, zf)
-                _t3_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"])
+                _p45_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"])
         st_ = [sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport"]
         if st_:
             a, b, cat = max(st_, key=lambda q_: q_[1] - q_[0])
             fx, fy = P(0.5 * (a + b), g_at(0.5 * (a + b)))
-            _t3_fig(B, L, "walk", fx, fy, ss, facing=1)
+            _p45_fig(B, L, "walk", fx, fy, ss, facing=1)
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
     co = sd_.get("crop_of")
@@ -27734,7 +27734,7 @@ def _t3_base_leg():
             ("box", C(bf.get("bld", "D3D0CB")), u"Building"), R28_STUDY_LEG]
 
 
-def _t3_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
+def _p07_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
     """T3a: the ONE figure helper of this file: house shapes ("poly", ring, fill, stroke, lw), page mm, feet at (x, y),
     k mm per m. Side view = the legacy fig_polys (poses stand, walk, watch, sit, touch, wade, bike); top view = a
     minimal plan figure (shoulder ellipse + head circle, one ink weight, light flat fill).
@@ -27750,7 +27750,7 @@ def _t3_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
 
 
 class _T3Put(object):
-    """T3a: house shapes (page mm, y up, hex colours: icons.py, section_parts.py, plants.py, _t3_fig) onto the board:
+    """T3a: house shapes (page mm, y up, hex colours: icons.py, section_parts.py, plants.py, _p07_fig) onto the board:
     board = (ox + x * kb, oy + y * kb), kb = board units per booklet mm"""
 
     def __init__(self, B, ox, oy, kb, L):
@@ -28345,7 +28345,7 @@ def _t3_sec_draw(PU, cut, after, x0, gy, k):
     for cx in cars:
         sh += _t3_car(X(cx), gs, k)
     for pose, fx, f_ in figs:
-        sh += _t3_fig(pose, X(fx), gs, k, facing=f_)
+        sh += _p07_fig(pose, X(fx), gs, k, facing=f_)
     PU.put(sh, 40)
     return (xr - xl) * k
 
@@ -28375,7 +28375,7 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     before / after cross-sections of one street per road change of the masterplan (kept, calmed, pedestrian,
     shared), each cut where the survey measured the street (_t3_sec_cut): carriageway and frontages as surveyed,
     buildings at the board's heights, the cut ground (section_parts.py), plane trees from plants.py where the
-    proposal leaves T3_SEC_TREE_MIN, people by what the street is for (_t3_fig), cars as the drawing's symbol. A
+    proposal leaves T3_SEC_TREE_MIN, people by what the street is for (_p07_fig), cars as the drawing's symbol. A
     kept road is drawn once (no change). One standard scale for all (T3_SEC_DENS: the largest that fits two rows on
     the booklet width), a scale bar under every section (G5), widths in cm. Crop drw_street_sections. Returns the y
     below."""
