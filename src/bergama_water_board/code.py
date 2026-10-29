@@ -8,7 +8,7 @@ HOW TO RUN
   (build, run, go ...). One press writes the board (option A, storage as cubes); a second press writes it again. Nothing
   is baked into Rhino. The log is kept after the Button is released (output log; pdf = the paths) and written to
   Downloads/Bergama/logs/bergama_water_board_log.txt (v1.3).
-    Bergama_water_board_v4_A_cubes.pdf      option A (organic forms only where the project meets the water)
+    Bergama_water_board_v5_A_cubes.pdf      option A (organic forms only where the project meets the water)
   The plant photos are fetched once from Wikipedia / Wikimedia Commons (open licences only) into
   Downloads/Bergama/cached/plant_photos/ (v3: shared with the agriculture alternatives) and read from there afterwards;
   offline, each photo is a labelled empty frame and the board is written as usual.
@@ -119,6 +119,7 @@ the PDF opens as one A0 page.
 import os
 import json
 import math
+import re
 import time
 import zlib
 import tempfile
@@ -128,8 +129,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v4 (2026-10-28)"
-SHORT = "v4"
+VERSION = "bergama_water_board v5 (2026-10-29)"
+SHORT = "v5"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -138,7 +139,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
 CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of these at which they fit (v1.11: round)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v4_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v5_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -174,9 +175,9 @@ CONCEPT = (u"The loop runs one way, with the river: the water is cleaned and hel
            u"terraces, and Nil's downstream end lets the clean river leave the site, for the existing farmland on the "
            u"slopes outside it. Nothing is pumped back upstream.",
            u"Aras 2026-10-18 14:29; ideas.txt l.6, 12, 18, 24, 26; " + CR + u" D8")
-CONCEPT_CHIPS = [("rain", u"STREAM IN"), ("reed", u"CLEAN ONCE · UPSTREAM (ARAS)"), ("cube", u"HOLD WINTER WATER"),
+CONCEPT_CHIPS = [("rain", u"STREAM IN"), ("reed", u"CLEAN ONCE · UPSTREAM END"), ("cube", u"HOLD WINTER WATER"),
                  ("strip", u"SUMMER STRIP · FEEDS PLANTING"), ("spread", u"FLOODS ONTO TERRACES"),
-                 ("out", u"LEAVES CLEAN · DOWNSTREAM (NİL) · FARMS OUTSIDE"), ("noback", u"NO PUMPING BACK")]
+                 ("out", u"LEAVES CLEAN · DOWNSTREAM END · FARMS OUTSIDE"), ("noback", u"NO PUMPING BACK")]
 
 # ---------------------------------------------------------------- the year (Group 6's tables)
 MONTHS = [u"Jan", u"Feb", u"Mar", u"Apr", u"May", u"Jun", u"Jul", u"Aug", u"Sep", u"Oct", u"Nov", u"Dec"]
@@ -593,6 +594,13 @@ def spread(ys, gap, lo=None, hi=None):
 
 
 #@include ../common/section_style.py
+# v5 (revision 29 Oct, T3b): the shared modules the pages call (T2a levels + basemap, T2b plants + icons); plants after
+# section_style (it includes section_parts)
+#@include ../common/plants.py
+#@include ../common/icons.py
+#@include ../common/data/LEVELS.py
+#@include ../common/levels.py
+#@include ../common/basemap.py
 
 
 def sec_put(pg, shapes):
@@ -684,8 +692,33 @@ def hand_arrow(pg, P, kind="water", small=1.0, cols=None):
 SRC_KEY = []                       # v1.6: sources printed as [n] on the drawings; the numbered key is in the footer
 
 
+# v5 (revision 29 Oct, D13 + Aras 18:56 "just source if it is available publicly"): only the public parts of a source
+# text are printed; parts naming our own files, notes, cards, chats or people, and parts whose value is our own
+# (calculated, assumed, interpolated, estimated, design) are dropped; status words are never printed
+SRC_INTERNAL = re.compile(u"Aras|Begüm|Nil\\b|README|CONCEPT_RECORD|DATA_REGISTER|case\\.md|ideas\\.txt|\\.md\\b|\\.json|\\.csv|"
+                          u"\\bcard\\b|\\bh0\\d|thread|\\b\\d\\d:\\d\\d\\b|default|design|zone base|Group 6|D\\d+\\b|"
+                          u"history_phase|library/|v\\d+\\.\\d+ table|arithmetic", re.I)
+SRC_OWN = re.compile(u"^\\s*(calculated|assumed|interpolated|estimated|design)", re.I)
+SRC_WORD = re.compile(u"^\\s*(measured|published|official)[ ,:;]+", re.I)
+
+
+def public_src(src):
+    """v5: the publicly available part of a source text, or None when nothing public is left."""
+    keep = []
+    for part in (src or u"").split(u";"):
+        if not part.strip() or SRC_OWN.match(part) or SRC_INTERNAL.search(part):
+            continue
+        part = SRC_WORD.sub(u"", part).strip()
+        if part:
+            keep.append(part)
+    return u"; ".join(keep) or None
+
+
 def cite(src):
-    """v1.6: the number of a source in the footer key, as "[n]"."""
+    """v1.6: the number of a source in the footer key, as "[n]". v5: "" when the source has no public part (D13)."""
+    src = public_src(src)
+    if not src:
+        return u""
     if src not in SRC_KEY:
         SRC_KEY.append(src)
     return u"[{}]".format(SRC_KEY.index(src) + 1)
@@ -2065,32 +2098,11 @@ def build_board(opt, storage, parts, pal_line, log):
     log.append(u"p.11: the cuts at 1:{:,.0f}".format(den / s))
     CUTS_DEN[0] = den / s
     crop_add("wb_water", union(cb, by, bs), den / s)
-    # p.12 what we do with it: the chain over the storage cubes (largest) and why / how we clean
-    b = cell(1, 0, u"WHAT WE DO WITH IT · collect, clean, hold, give back (1-11)")
-    cb = context(pg, b[0], b[3], b[2] - b[0], "system")
-    _, bc = place(pg, draw_chain(opt, b[2] - b[0] - 2.0), (b[0], b[1], b[2], cb[1] - 4.0), 1.0, "TL", log, "chain")
-    ys = bc[1] - 6.0
-    split = b[0] + (b[2] - b[0]) * 0.58
-    box = (b[0], b[1], split - 3.0, ys)
-    pg.text(u"HOW MUCH TO HOLD FOR THE SUMMER STRIP (4)", box[0], ys - 3.4, 3.4, COL["ink_dark"], bold=True)
-    box = (box[0], box[1], box[2], ys - 6.0)
-    for sc_ in CUBE_SCALES:
-        globals()["CUBE_SCALE"] = sc_
-        cp = draw_storage_cubes(opt)
-        if fits(cp, box[2] - box[0], box[3] - box[1]):
-            break
-    # v3.2 (Aras 27 Oct, Prompt 8; P4's open item): the column filled to the cleaning tiles' foot beside it (fit_draw
-    # keeps them 2.05 mm over the box), the same scale; kept as it was if that would not fit
-    cf = draw_storage_cubes(opt, box[3] - box[1] - 2.05)
-    if fits(cf, box[2] - box[0], box[3] - box[1]):
-        cp = cf
-    log.append(u"storage cubes (collect, clean, hold): 1:{:,.0f}, column {:.0f} of {:.0f} mm high".format(
-        CUBE_SCALE, items_bbox(cp.items)[3] - items_bbox(cp.items)[1], box[3] - box[1]))
-    cs, bk = place(pg, cp, box, 1.0, "TL", log, "storage cubes")
-    if cs < 0.999:
-        log.append(u"NOTE: the storage cubes are printed at {:.0f} % of 1:{:,.0f}".format(100 * cs, CUBE_SCALE))
-    bl = drawn(pg, lambda: fit_draw(pg, draw_cleaning, (split + 3.0, b[1], b[2], ys), 1.6))
-    crop_add("wb_system", union(cb, bc, (box[0], ys - 6.0, box[2], ys), bk, bl), CUBE_SCALE / cs)
+    # p.12 (v5, revision 29 Oct, T3b): pages/p12_system.py draws the whole panel (the water map and what stays beside
+    # it) and returns its crops [(crop id, bbox, scale denominator or None)]
+    b = cell(1, 0, P12_TITLE)
+    for cid_, bb_, den_ in p12_page(pg, b, opt, storage, log):
+        crop_add(cid_, bb_, den_)
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
     b = cell(2, 0, u"WHERE THE CLEAN WATER GOES (10, 11) · and what the figures support")
     cb = context(pg, b[0], b[3], b[2] - b[0], "farms")
@@ -2103,34 +2115,13 @@ def build_board(opt, storage, parts, pal_line, log):
     dw, dh = b[2] - b[0], yd - b[1]
     crop_add("wb_decision", drawn(pg, lambda: draw_decision(pg, b[0], yd, dw, dh,
                                                               fit(draw_decision, b[0], yd, dw, dh, 1.0, 0.5, 1.2))))
-    # row 2 -------------------------------------------------------------- p.20 four seasons on one cut
-    # v3 (Prompt 5 task 1): the seasons take the wider middle cell (the A3 page's full width at 1:250), the north-east
-    # bank the left one
-    b = cell(1, 1, u"FOUR SEASONS ON ONE CUT · S4, south-west bank and bed")
-    cb = context(pg, b[0], b[3], b[2] - b[0], "seasons")
-    box = (b[0], max(b[1], cb[1] - 3.0 - R28_PART_H), b[2], cb[1] - 3.0)   # v4: <= BK_KEY_H with its context line
-    part, den = draw_seasons_panel(box[2] - box[0], box[3] - box[1], log)
-    s, bb = place(pg, part, box, 1.0, "TL", log, "S4 seasons")
-    if s < 0.999:
-        log.append(u"WARNING: the S4 seasons are printed at {:.0f} % of 1:{:,.0f}".format(100 * s, den))
-    crop_add("wb_s4_seasons", union(cb, bb), den / s)
-    r28_crop_note(log, "wb_s4_seasons")
-    # p.21 the north-east bank: the summer cut (cm), the season strips under it. v3 (Prompt 5 task 2: "the title says
-    # 1:200 but the caption says 1:250"): drawn at the first round scale at which it fits, never shrunk; the scale is
-    # said once, in the caption (the frame title no longer names one). v4: the occupancy diagram under it (P15.2)
-    b = cell(0, 1, u"S4 · NORTH-EAST BANK · what changes with the seasons")
-    cb = context(pg, b[0], b[3], b[2] - b[0], "ne")
-    box = (b[0], max(b[1], cb[1] - 3.0 - R28_PART_H), b[2], cb[1] - 3.0)   # v4: <= BK_KEY_H with its context line
-    for den in S4_NE_DENS:
-        part = parts["detail"] if den == S4_NE_SCALE else draw_s4_ne(log, den)
-        if fits(part, box[2] - box[0], box[3] - box[1]):
-            break
-    s, bb = place(pg, part, box, 1.0, "TL", log, "S4 north-east bank")
-    if s < 0.999:
-        log.append(u"WARNING: the S4 north-east bank is printed at {:.0f} % of 1:{:,.0f}".format(100 * s, den))
-    log.append(u"p.21 S4 north-east bank: 1:{:,.0f}".format(den / s))
-    crop_add("wb_s4_ne", union(cb, bb), den / s)
-    r28_crop_note(log, "wb_s4_ne")
+    # row 2 -------------------------------------------------------------- pp.14-15, the S4 pair
+    # v5 (revision 29 Oct, T3b): pages/p14_15_s4.py draws both panels whole (p.14 in the wider middle cell, p.15 in the
+    # left one) and returns their crops [(crop id, bbox, scale denominator or None)]
+    for c_, r_, title_, fn_ in ((1, 1, P14_TITLE, p14_page), (0, 1, P15_TITLE, p15_page)):
+        b = cell(c_, r_, title_)
+        for cid_, bb_, den_ in fn_(pg, b, opt, log):
+            crop_add(cid_, bb_, den_)
     # p.22 plants: bands on the S4 cut, where on site, the photo cards
     b = cell(2, 1, u"PLANTS · where each one goes, and why")
     cb = context(pg, b[0], b[3], b[2] - b[0], "plants")
@@ -2319,11 +2310,10 @@ def build_all(doc, log):
     folder = out_folder(doc)
     if not os.path.isdir(folder):
         os.makedirs(folder)
-    detail = draw_s4_ne(log)                        # v1.10: the north-east bank; the seasons are the south-west rows
     files = []
     for opt in OPTIONS:
         parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt),
-                 "detail": detail, "farm": draw_farm_picto(opt)}
+                 "farm": draw_farm_picto(opt)}
         for st in STORAGE_STYLES:
             t0 = time.time()
             pg = build_board(opt, st, parts, pal_line, log)
