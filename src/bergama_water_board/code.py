@@ -8,7 +8,7 @@ HOW TO RUN
   (build, run, go ...). One press writes the board (option A, storage as cubes); a second press writes it again. Nothing
   is baked into Rhino. The log is kept after the Button is released (output log; pdf = the paths) and written to
   Downloads/Bergama/logs/bergama_water_board_log.txt (v1.3).
-    Bergama_water_board_v5_A_cubes.pdf      option A (organic forms only where the project meets the water)
+    Bergama_water_board_v6_A_cubes.pdf      option A (organic forms only where the project meets the water)
   The plant photos are fetched once from Wikipedia / Wikimedia Commons (open licences only) into
   Downloads/Bergama/cached/plant_photos/ (v3: shared with the agriculture alternatives) and read from there afterwards;
   offline, each photo is a labelled empty frame and the board is written as usual.
@@ -50,7 +50,11 @@ NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole n
     plants, space types, recorded fauna, one rectangular view per season, water and rain as graphics.
   * Core: only public sources are printed (public_src() in cite()); no status words; the shared modules (levels,
     basemap, plants, icons) included; build_board calls the page functions p12_page, p14_page, p15_page.
-  Output: Bergama_water_board_v5_A_cubes.pdf.
+v6 (revision 29 Oct, T4a, a feature change): p.17 planting and water on two pages (pages/p17_planting.py: p17_page =
+  wb_plants, the plans + water spaces + catalogue; p17b_page = wb_plants_b, the F1-F4 sections at 1:500, in row 3 beside
+  the concept sections); p.18 icons and olive block (pages/p18_farms.py); D6 in data/SPECIES.py and PLANT_SITES; the
+  old p.17 panel constants removed.
+  Output: Bergama_water_board_v6_A_cubes.pdf.
 
 NEW IN v4 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
   * p.14 seasons: one scale, 1:500, with a scale bar; a THE SEASON column (climate measured, water balance, plants
@@ -138,8 +142,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v5 (2026-10-29)"
-SHORT = "v5"
+VERSION = "bergama_water_board v6 (2026-10-29)"
+SHORT = "v6"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -148,7 +152,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v5_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v6_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -1362,14 +1366,10 @@ BAND_SOURCE = (u"Bands: Rijkswaterstaat memo 'Hydrologische randvoorwaarden van 
 #@include data/SPECIES.py
 
 
-BANDS_DENS = (200.0, 250.0, 500.0, 1000.0)   # v1.11 round; v1.10: the planting bands on the S4 ground, the first of these scales that fits
-BANDS_S = (566.0, 634.0)             # the part of S4 drawn: both banks and the bed, to the north-east road (m along S4)
 # W3b band -> its days a year under water (RWS ranges, PLANT_BANDS); A is the strip itself (permanent)
 BAND_DAYS = {"B": (150.0, 365.0), "C": (50.0, 150.0), "D": (10.0, 150.0), "E": (0.5, 50.0), "F": (0.0, 0.5)}
-DAYS_COL = ["1B535E", "4B92A3", "90C5D2", "C1D3DB", "E4EEF0", "F4F3EE"]   # wettest -> dry
 
 
-BANDS_FS, BANDS_HEAD = FS_MIN, 3.4   # v1.14: label and heading size (mm; printed about 1:1 on A3)
 
 
 
@@ -1451,23 +1451,21 @@ def pdf_add_images(path, imgs):
 
 
 # ---------------------------------------------------------------- v1.14 p.22: the plants panel
-PLANT_SITES = [  # where on site, in water order (not to scale): (place, pictograms, keywords, source or None)
-    # v4 (MIRAQUA 28 Oct): **bold** keywords (P16.2); K5 without its [n] (F5: "card i01" is our own research card)
-    (u"UPSTREAM ENTRY", ("reed",), u"**reed beds** clean the inflow: {}, {}, {}".format(
-        plant_name("reed"), plant_name("mint"), plant_name("iris")), CHAIN_SRC),
-    (u"K4 · K3", ("tree",), u"**dry hub squares**: {}, watered from storage".format(plant_name("plane")),
-     SPECIES[0][4]),
-    (u"RED HALL", ("olive",), u"{}: the 19th-c. **olive-oil mill** in its rotunda".format(plant_name("olive")),
-     SPECIES[1][4]),
-    (u"K5", ("tree", "olive", "lav"), u"**hub square**: {} · **Demeter's Garden**: {}, {}".format(
-        plant_name("plane"), plant_name("olive"), plant_name("lavender")), None),
-    (u"DOWNSTREAM END", ("reed",), u"the bands continue: **wetter low, drier high**", None),
+PLANT_SITES = [  # v6 (T4a WO-T4a-2, p.17 plans): the water spaces, numbered on the plans (R35), in water order:
+    # (number, zone code (zone base; ARM = the masterplan's side arm), name, plants.py species planted there). D2:
+    # common reed only in the lined basin cells; D6: no iris, water mint only in lined cells; the side arm carries
+    # rushes and loosestrife (it is not lined, so no common reed)
+    (1, "WT", u"Reed basins, lined", ("reed", "mint")),
+    (2, "WD", u"Spillway, clean water back", ("soft_rush",)),
+    (3, "GR", u"Shaded walk", ("plane",)),
+    (4, "WS", u"Rain terraces", ("olive", "rosemary", "lavender")),
+    (5, "STRIP", u"Summer strip", ("soft_rush", "loosestrife")),
+    (6, "WP", u"Widened stream and wetland", ("willow", "tamarisk", "chaste", "ash", "soft_rush", "loosestrife")),
+    (7, "ARM", u"Side arm", ("soft_rush", "loosestrife")),
 ]
-CARD_GAP = 3.0                       # v3: between the photo cards, mm
 
 
 PHOTO_ON = [True]                    # the photos are fetched / read on a press (set False to leave the frames empty)
-BANDS_DEN = [None]                   # the scale the planting bands end at (read by the crop)
 
 
 # ---------------------------------------------------------------- W4, W6, W7 and the decision row (bergama_water_case v1.1)
@@ -1989,11 +1987,8 @@ CONTEXT = {
                u"**plants** are in leaf or flower, and which **animals** are about.",
     "ne": u"The north-east bank of S4: **seat steps** and a **raised promenade** over Q500 stay; the planting follows "
           u"the **days under water**, the use follows the months.",
-    "plants": u"Nine plants, chosen by the **days water covers** their ground, for cleaning and for shade, where each "
-              u"one goes on the site, and the **one to take out**.",
 }
 CTX_FS = FS_MIN                      # context line size, mm (7.5 pt when the panel prints 1:1 on A3)
-PLANTS_FRAME = (371.0, 170.0)        # the most wb_plants may take on p.22 at 1:1, above the site board's July shade strip
 #                                      (booklet v15: 392 x 243 mm less the strip, two captions and the row gap; v1.14: 377 x 195)
 
 
@@ -2011,8 +2006,8 @@ def build_board(opt, storage, parts, pal_line, log):
     """v1.14 (Aras 27 Oct 11:07): a 3 x 3 grid of A3-page panels, each one booklet page at about 1:1, drawings at their
     own round scale:
       row 1  how the water behaves (p.11) · what we do with it (p.12) · where the clean water goes (p.23)
-      row 2  S4 north-east bank (p.21) · four seasons on one cut (p.20, v3: the wider middle cell) · plants (p.22)
-      row 3  the idea in section, upstream entry and K4, across the board (not in the booklet)"""
+      row 2  S4 north-east bank (p.15) · four seasons on one cut (p.14, the wider middle cell) · planting and water A (p.17)
+      row 3  the idea in section, upstream entry and K4 (not in the booklet) · planting and water B, the sections (p.17)"""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     del BK_CROPS[:]
@@ -2071,28 +2066,22 @@ def build_board(opt, storage, parts, pal_line, log):
         b = cell(c_, r_, title_)
         for cid_, bb_, den_ in fn_(pg, b, opt, log):
             crop_add(cid_, bb_, den_)
-    # p.22 plants: bands on the S4 cut, where on site, the photo cards
-    b = cell(2, 1, u"PLANTS · where each one goes, and why")
-    cb = context(pg, b[0], b[3], b[2] - b[0], "plants")
-    bp = draw_plants_panel(pg, (b[0], max(b[1], b[3] - PLANTS_FRAME[1] + 2.5), b[2], cb[1] - 3.0), opt, log)
-    r = union(cb, bp)
-    if r[2] - r[0] + 2.0 > PLANTS_FRAME[0] or r[3] - r[1] + 2.0 > PLANTS_FRAME[1]:
-        log.append(u"WARNING: wb_plants is {:.0f} x {:.0f} mm, more than the {:.0f} x {:.0f} mm kept for it on p.22".format(
-            r[2] - r[0], r[3] - r[1], PLANTS_FRAME[0], PLANTS_FRAME[1]))
-    # v3.2 (Aras 27 Oct, Prompt 8: duplicate text): no legend for the booklet's footer: the day classes it listed
-    # are the WHY HERE key on the panel itself, so p.17 printed them twice
-    crop_add("wb_plants", r, BANDS_DEN[0])
-    # row 3 -------------------------------------------------------------- the idea in section, across the board
-    wh = (X1 - X0 - G) / 2.0
+    # p.17 (v6, revision 29 Oct, T4a): pages/p17_planting.py draws page A (the plans, water spaces, catalogue) whole and
+    # returns its crops [(crop id, bbox, scale denominator or None)]; page B (the sections) sits in row 3
+    b = cell(2, 1, P17_TITLE)
+    for cid_, bb_, den_ in p17_page(pg, b, opt, log):
+        crop_add(cid_, bb_, den_)
+    # row 3 -------------------------------------------------------------- the idea in section (not in the booklet), p.17 B
+    # v6: the two concept sections take the first two columns; the third holds p.17's page B (the sections at 1:500)
     for j, (key, title) in enumerate((("concept_up", u"THE IDEA IN SECTION · upstream entry"),
                                       ("concept_k4", u"THE IDEA IN SECTION · K4 bridge"))):
-        x0 = X0 + j * (wh + G)
-        y1 = y_title - G - 2 * (ch + G)
-        bx = frame(pg, (x0, y1 - ch, x0 + wh, y1), title)
-        bx = (bx[0], bx[1] + 1.0, bx[2], bx[3] - 1.0)
+        bx = cell(j, 2, title)
         cb = context(pg, bx[0], bx[3], bx[2] - bx[0], "concept") if j == 0 else (bx[0], bx[3], bx[0], bx[3])
         _, bu = place(pg, parts[key], (bx[0], bx[1], bx[2], cb[1] - 3.0), 1.6, "C", log, key)
         crop_add("wb_" + key, union(cb, bu) if j == 0 else bu)
+    b = cell(2, 2, P17B_TITLE)
+    for cid_, bb_, den_ in p17b_page(pg, b, opt, log):
+        crop_add(cid_, bb_, den_)
     draw_footer(pg, X0, 1.5, X1, pal_line)
     return pg
 
@@ -2108,11 +2097,12 @@ BK_CAPTIONS = {
     "wb_system": u"What we do with it: collect, clean, hold, give back",
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
-    "wb_plants": u"Plants: where each one goes, and why",
+    "wb_plants": u"Planting and water: where each plant goes",
+    "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 
 
-BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
+BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
 
 
 def res_s4_cut():

@@ -640,4 +640,77 @@ LEVELS = [
         'q500': {'value': 42.87, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
         'note': None,
     },
+    # ==== rows added by T4a (WO-T4a-2, p17 planting sections, 29 Oct). F1 = the W1 line, F3 = the S4 line (no rows of
+    # their own). F2 and F4 are new lines, first end = SW. Two extra fields, read through level_cut(cid) only:
+    #   ground  {value: [(m along the cut from the first end, m a.s.l.)] every 2 m, status, source}: the surveyed ground
+    #   zones   [(code, from_m, to_m)]: the project's water spaces the cut crosses (zone base codes; ARM = reed side arm)
+    # ---- F2: Rain terraces (upstream entry) (T4a, p17)
+    {
+        'id': 'F2',
+        'cut': 'F2',
+        'json_id': None,
+        'crossing': None,
+        'name': 'Rain terraces (upstream entry)',
+        'pages': ['17 (planting section)'],
+        'ends': {'value': ((29665.43, 32501.89), (29843.63, 32592.69)), 'labels': ('F2', "F2'"), 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the rain terraces (zone base WS), the shaded walk (GR), the reed basins (WT), the spillway (WD) and the stream at the upstream entry; measured with T1/levels/work/sample_cut.py (29665.43, 32501.89) -> (29843.63, 32592.69)'},
+        'length_m': {'value': 200.0, 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the rain terraces (zone base WS), the shaded walk (GR), the reed basins (WT), the spillway (WD) and the stream at the upstream entry; measured with T1/levels/work/sample_cut.py (29665.43, 32501.89) -> (29843.63, 32592.69)'},
+        'chainage_m': {'value': 5531.2, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
+        'angle_deg': {'value': 74.4, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
+        'walled': True,
+        'bed': {'value': 68.87, 'status': 's', 'source': 'survey TIN low point; 8 real heights in the bed band, nearest 7.8 m (z 68.80)'},
+        'bed_width_cm': {'value': 2220, 'status': 's', 'source': "between the survey's two stream lines HIDRO_DERE_SULU either side of the stream axis, across the stream"},
+        'NE': {
+            'type': 'dsi_wall',
+            'top': {'value': 73.87, 'status': 'a', 'source': 'DSİ stone wall 5.00 m above the bed (Aras 28 Oct 14:12; research/bank_depth_2026-10-28/REPORT.md s.4-5)'},
+            'height': {'value': 5.0, 'status': 'a', 'source': 'wall height above the bed'},
+            'survey_top': {'value': 78.89, 'status': 'i', 'source': 'survey, before the DSİ walls: survey TIN, res_bank_top crest, 49.1 m out across the stream; nearest survey height 6.8 m away'},
+        },
+        'SW': {
+            'type': 'dsi_wall',
+            'top': {'value': 73.87, 'status': 'a', 'source': 'DSİ stone wall 5.00 m above the bed (Aras 28 Oct 14:12; research/bank_depth_2026-10-28/REPORT.md s.4-5)'},
+            'height': {'value': 5.0, 'status': 'a', 'source': 'wall height above the bed'},
+            'survey_top': {'value': 75.35, 'status': 'i', 'source': 'survey, before the DSİ walls: survey TIN, top of the first steep rise (no level ground behind it), 39.5 m out across the stream; nearest survey height 5.9 m away'},
+        },
+        'terraces': [
+            {'side': 'NE', 'from_m': 14.0, 'to_m': 24.0, 'level': {'value': 75.31, 'status': 'i', 'source': 'level shelf (<= 6 cm per m over >= 4 m) on the survey TIN, 6.44 m above the bed'}},
+            {'side': 'NE', 'from_m': 28.0, 'to_m': 34.0, 'level': {'value': 75.90, 'status': 'i', 'source': 'level shelf (<= 6 cm per m over >= 4 m) on the survey TIN, 7.03 m above the bed'}},
+        ],
+        'q100': {'value': 72.05, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
+        'q500': {'value': 72.41, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'ground': {'value': [(0.0, 80.79), (2.0, 80.1), (4.0, 79.46), (6.0, 78.84), (8.0, 78.25), (10.0, 77.65), (12.0, 77.02), (14.0, 76.56), (16.0, 76.04), (18.0, 75.84), (20.0, 75.67), (22.0, 75.51), (24.0, 75.45), (26.0, 75.45), (28.0, 75.06), (30.0, 74.66), (32.0, 74.27), (34.0, 73.72), (36.0, 73.15), (38.0, 72.57), (40.0, 71.99), (42.0, 71.41), (44.0, 70.83), (46.0, 70.6), (48.0, 70.44), (50.0, 70.27), (52.0, 70.11), (54.0, 69.95), (56.0, 69.78), (58.0, 69.62), (60.0, 69.46), (62.0, 69.3), (64.0, 69.13), (66.0, 68.97), (68.0, 69.01), (70.0, 69.55), (72.0, 70.1), (74.0, 70.64), (76.0, 71.57), (78.0, 73.15), (80.0, 74.81), (82.0, 75.1), (84.0, 75.22), (86.0, 75.33), (88.0, 75.45), (90.0, 75.42), (92.0, 75.56), (94.0, 75.74), (96.0, 75.83), (98.0, 75.9), (100.0, 75.97), (102.0, 76.26), (104.0, 76.69), (106.0, 77.18), (108.0, 77.66), (110.0, 78.11), (112.0, 78.55), (114.0, 78.85), (116.0, 78.87), (118.0, 78.89), (120.0, 78.91), (122.0, 78.92), (124.0, 78.94), (126.0, 78.97), (128.0, 78.99), (130.0, 79.01), (132.0, 79.03), (134.0, 79.05), (136.0, 79.13), (138.0, 79.26), (140.0, 79.38), (142.0, 79.51), (144.0, 79.63), (146.0, 79.76), (148.0, 79.87), (150.0, 79.98), (152.0, 80.71), (154.0, 81.59), (156.0, 82.44), (158.0, 83.32), (160.0, 83.47), (162.0, 83.54), (164.0, 83.65), (166.0, 83.75), (168.0, 83.84), (170.0, 83.94), (172.0, 84.0), (174.0, 84.0), (176.0, 84.38), (178.0, 84.89), (180.0, 85.43), (182.0, 85.96), (184.0, 86.48), (186.0, 87.03), (188.0, 87.46), (190.0, 87.55), (192.0, 87.63), (194.0, 87.71), (196.0, 87.89), (198.0, 88.81), (199.0, 89.22)], 'status': 'i', 'source': 'survey TIN along the cut every 2 m from the first end (m along the cut, m a.s.l.), sample_cut.py profile'},
+        'zones': [('STRIP', 49.2, 54.0), ('WD', 54.1, 75.4), ('WT', 77.7, 97.1), ('GR', 115.6, 135.6), ('WS', 135.6, 177.6)],
+        'note': 'T4a: crosses the zone base (ZONE_COPY) at m along the cut: STRIP 49.2-54.0, WD 54.1-75.4, WT 77.7-97.1, GR 115.6-135.6, WS 135.6-177.6 (also in zones). The cut runs within 20 m of the stream axis from 42 to 80 m (angle 74 deg).',
+    },
+    # ---- F4: Reed side arm (lower reach) (T4a, p17)
+    {
+        'id': 'F4',
+        'cut': 'F4',
+        'json_id': None,
+        'crossing': None,
+        'name': 'Reed side arm (lower reach)',
+        'pages': ['17 (planting section)'],
+        'ends': {'value': ((30789.65, 31065.56), (30867.18, 31195.77)), 'labels': ('F4', "F4'"), 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the reed side arm of the masterplan corridor (C.arms; its middle digitised from the p23 plan, georeferenced on the analysis frame, +-5 m) and the stream below K6; measured with T1/levels/work/sample_cut.py (30789.65, 31065.56) -> (30867.18, 31195.77)'},
+        'length_m': {'value': 151.5, 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the reed side arm of the masterplan corridor (C.arms; its middle digitised from the p23 plan, georeferenced on the analysis frame, +-5 m) and the stream below K6; measured with T1/levels/work/sample_cut.py (30789.65, 31065.56) -> (30867.18, 31195.77)'},
+        'chainage_m': {'value': 7439.9, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
+        'angle_deg': {'value': 90.0, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
+        'walled': False,
+        'bed': {'value': 47.63, 'status': 's', 'source': 'survey TIN low point; 5 real heights in the bed band, nearest 12.5 m (z 47.66)'},
+        'bed_width_cm': {'value': 4020, 'status': 's', 'source': "between the survey's two stream lines HIDRO_DERE_SULU either side of the stream axis, across the stream"},
+        'NE': {
+            'type': 'loose_earth',
+            'top': {'value': 51.11, 'status': 's', 'source': 'survey TIN, res_bank_top crest, 28.0 m out across the stream; nearest survey height 4.2 m away'},
+            'height': {'value': 3.48, 'status': 's', 'source': 'bank top minus bed'},
+        },
+        'SW': {
+            'type': 'loose_earth',
+            'top': {'value': 51.08, 'status': 'i', 'source': 'survey TIN, res_bank_top crest, 43.0 m out across the stream; nearest survey height 5.1 m away'},
+            'height': {'value': 3.45, 'status': 'i', 'source': 'bank top minus bed'},
+        },
+        'terraces': [],
+        'q100': {'value': 49.85, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
+        'q500': {'value': 50.13, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'ground': {'value': [(0.0, 52.37), (2.0, 52.39), (4.0, 52.41), (6.0, 52.42), (8.0, 52.42), (10.0, 52.42), (12.0, 52.44), (14.0, 52.46), (16.0, 52.4), (18.0, 52.33), (20.0, 52.26), (22.0, 52.19), (24.0, 52.13), (26.0, 52.08), (28.0, 52.03), (30.0, 51.98), (32.0, 51.91), (34.0, 51.85), (36.0, 51.79), (38.0, 51.72), (40.0, 51.66), (42.0, 51.6), (44.0, 51.54), (46.0, 51.45), (48.0, 51.36), (50.0, 51.26), (52.0, 51.16), (54.0, 51.13), (56.0, 51.1), (58.0, 51.08), (60.0, 51.05), (62.0, 51.02), (64.0, 50.85), (66.0, 50.44), (68.0, 50.01), (70.0, 49.61), (72.0, 49.22), (74.0, 49.05), (76.0, 48.87), (78.0, 48.71), (80.0, 48.56), (82.0, 48.42), (84.0, 48.28), (86.0, 48.13), (88.0, 48.0), (90.0, 47.9), (92.0, 47.85), (94.0, 47.8), (96.0, 47.75), (98.0, 47.7), (100.0, 47.65), (102.0, 47.64), (104.0, 47.65), (106.0, 47.66), (108.0, 47.67), (110.0, 47.81), (112.0, 48.4), (114.0, 48.98), (116.0, 49.57), (118.0, 49.71), (120.0, 49.85), (122.0, 50.05), (124.0, 50.37), (126.0, 50.7), (128.0, 51.02), (130.0, 51.09), (132.0, 51.07), (134.0, 51.06), (136.0, 51.0), (138.0, 50.98), (140.0, 50.93), (142.0, 50.88), (144.0, 50.83), (146.0, 50.78), (148.0, 50.74), (150.0, 50.71), (151.0, 50.7)], 'status': 'i', 'source': 'survey TIN along the cut every 2 m from the first end (m along the cut, m a.s.l.), sample_cut.py profile'},
+        'zones': [('ARM', 27.0, 33.0)],
+        'note': 'T4a: the side arm (masterplan C.arms, not in the zone base) is crossed at 30 m along the cut (its middle, 66 m from the stream axis on the SW side, digitised from booklet p23 +-5 m); recheck against masterplan_results.json "corridor" when the masterplan exports it.',
+    },
 ]
