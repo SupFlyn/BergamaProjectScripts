@@ -10,6 +10,18 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v20 (revision 29 Oct, WO-T5-1; a feature change, so the next whole number):
+  * Page list of the revision (data/PLAN.py): p.02 side column = plan 01's key, the edge from above, the readings;
+    p.04-05, p.14-15 and p.21 carry their key maps inside their crops (D11: each shows only its page's cuts), no key
+    band; p.06 holds the old p.22 filter (D1 a); movement on three pages (D8 b): how people use it, the framework +
+    who the project brings + street sections before/after (D3 b), the spine hub by hub; p.17 on two pages, the plant
+    ladder page gone (D9 a); masterplan at 1:5,000, the water edge plans with their sections at 1:1,000.
+  * Sources page public only (D13, Aras 29 Oct 18:56): a source text prints only the parts that name a public source;
+    our survey, readings and calculations get no line; "assumed / interpolated / calculated / estimated" never print;
+    a mark with no entry is taken off its page (logged); the site board's p.21 sources and every Commons photo credit
+    are listed (blocks.json "sources", PLAN ALWAYS_KEYS); own site photos carry no credit.
+  * One figure, one value (G10) also checks the olive area (ha). The pp.07-08 ALT page and the filter page switch
+    (MERGE_21_22) are gone with the pages they joined.
 NEW IN v19 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
   * G1 footer without the project and course lines (legend from column 1); G2 every word the booklet adds to a crop
     in the embedded Arial; G9 each crop shows its own stripped copy of its sheet page (words, images and line art
@@ -100,12 +112,11 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v19"
+VERSION = "v20"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
 PDF_NAME = "Bergama_booklet_A3.pdf"
-ALT_NAME = "Bergama_booklet_A3_ALT_p07-08.pdf"   # v19 (MIRAQUA 28 Oct, P78.ALT): pp.07 + 08 on one page, its own file
 FONT = "Arial"                               # "Arial" (every Windows PC) or "Inter" (if installed)
 G9_MARGIN = 0.5                              # v19 (MIRAQUA 28 Oct, G9): mm round a crop that its own copy keeps
 G9_LINE_ART = True                           # v19 (G9): False keeps the line art outside a crop (only words and images go)
@@ -963,6 +974,7 @@ def f5_rx():
     """v19 (F5): the plan's (F5_INTERNAL, F5_PUBLIC, F5_STRIP) patterns, compiled once"""
     if not _F5_RX:
         _F5_RX.extend([re.compile(p) for p in ps] for ps in (F5_INTERNAL, F5_PUBLIC, F5_STRIP))
+        _F5_RX.append(re.compile(F5_STATUS))          # v20 (Aras 29 Oct 18:56): status words
     return _F5_RX
 
 
@@ -995,20 +1007,22 @@ def public_src(t):
     """v19 (MIRAQUA 28 Oct, F5, Aras 28 Oct 11:38: "every [n] whose source is not public online (research cards,
     notes, decisions, chats, Begüm's page) goes"): a source text as the sources page prints it, or None when it cites
     our own working material (F5_INTERNAL) and names no public source (F5_PUBLIC). A kept text loses its ';' parts
-    that only cite that material, and the brackets and register codes of F5_STRIP. Corn, not maize (G11)."""
+    that only cite that material, and the brackets and register codes of F5_STRIP. Corn, not maize (G11).
+    v20 (Aras 29 Oct 18:56, D13): every ';' part must name a public source (F5_PUBLIC), else it goes, our survey and
+    our own readings and calculations too; None when no part is left; the status words (F5_STATUS) never print."""
     t = (t or "").strip()
     if not t or not F5_DROP:
         return corn(t)
-    rin, rpub, rstrip = f5_rx()
-    if not any(r.search(t) for r in rin):
-        return corn(t)                                # our survey, our own reading or calculation: as it is
-    if not any(r.search(t) for r in rpub):
+    rin, rpub, rstrip, rstat = f5_rx()
+    t = ";".join(s for s in split_top(t) if s.strip() and any(r.search(s) for r in rpub) and
+                 re.sub(r"\W+", "", rstat.sub("", s)))
+    if not t:
         return None
-    t = ";".join(s for s in split_top(t) if s.strip() and not (any(r.search(s) for r in rin) and
-                                                                not any(r.search(s) for r in rpub)))
     for r in rstrip:
         t = r.sub("", t)
-    return corn(re.sub(r"\s{2,}", " ", t).strip(" ;,"))
+    t = re.sub(r"\s*,\s*(?=[;)]|$)", "", rstat.sub("", t))
+    t = re.sub(r"\s{2,}", " ", t).strip(" ;,")
+    return corn(t[:1].upper() + t[1:]) if t else None
 
 
 def src_line(e):
@@ -1229,6 +1243,11 @@ class Sources(object):
             self.glob[(kid, n)] = 0
             self.f5.append(u"p.%02d [%d] (%s): %s" % (pno, n, SCRIPT_OF.get(folder, folder), t[:110]))
             return
+        if not t:                                      # v20 (D13): no entry = nothing public to print: the mark goes
+            self.glob[(kid, n)] = 0
+            self.log.append("SOURCE MARK WITHOUT AN ENTRY p.%d [%d] (%s): taken off the page" % (
+                pno, n, SCRIPT_OF.get(folder, folder)))
+            return
         norm = re.sub(r"\W+", " ", t).strip().lower() if t else None
         if norm and norm in self.by_text:              # the same source under another sheet's number
             self.glob[(kid, n)] = self.by_text[norm]
@@ -1237,8 +1256,6 @@ class Sources(object):
         self.glob[(kid, n)] = g
         if norm:
             self.by_text[norm] = g
-        else:
-            self.log.append("SOURCE MARK WITHOUT AN ENTRY p.%d [%d] (%s)" % (pno, n, SCRIPT_OF.get(folder, folder)))
         self.order.append((g, kid, n, part, pno, folder))
 
     def collect(self, numbered):
@@ -1305,14 +1322,17 @@ class Sources(object):
             t = (self.keys.get(kid) or {}).get(n)
             t = public_src(t) if t else t
             printed.add(ck(t))
-            out[-1][1].append(u"[%d] %s" % (g, t or u"(no entry for mark [%d] in the %s source key)" %
-                                             (n, SCRIPT_OF.get(folder, folder))))
+            out[-1][1].append(u"[%d] %s" % (g, t))
         pats, texts, extra = [re.compile(p) for p in ALWAYS_LIST], [], []
         for kid in sorted(set(self.kid.values()), key=str):
             texts += [t for n, t in sorted((self.keys.get(kid) or {}).items())
                       if (kid, n) not in self.glob and t and any(p.search(t) for p in pats)]
-        for _, a in sorted(self.assets.items()):
+        shown = set(f for f, _ in self.used.values())
+        for f_, a in sorted(self.assets.items()):
             texts += [str(t) for t in (a or {}).get("photo_credits") or [] if t]
+            if f_ in shown:                           # v20 (WO-T5-1): registered public sources and photo credits
+                texts += [str((v or {}).get("text") or "") for k, v in sorted(((a or {}).get("sources") or {}).items())
+                          if re.match(ALWAYS_KEYS, str(k)) and isinstance(v, dict)]
         for t in texts:
             t = public_src(t)
             if t and ck(t) not in printed:
@@ -1404,104 +1424,6 @@ def pno_of(numbered, key=None, sheet=None, page=0):
                 (sheet and rows is None and sp.get("sheet") == sheet and int(sp.get("page", 0)) == page):
             return "%02d" % pno
     return ""
-
-
-def alt_page(fitz, typo, assets, numbered):
-    """v19 (MIRAQUA 28 Oct, P78.ALT: "try merging pp.07 and 08 into one sheet ... if it can't be done without
-    shrinking things below legibility or cramming, say so and keep the two pages"): ONE page in its own file (ALT_NAME
-    next to the booklet, which keeps both pages and its numbering): p.07's three maps (ALT_MAPS) at one round scale
-    (the one they print at on their own), then the city link's page_why panels (ALT_WHY), every panel at the size the
-    booklet prints it, never stretched or squeezed, in columns; a panel with a scale at the maps' scale (one scale per
-    page); the legend in the footer. Written only when everything fits with its words at 7 pt or more; else no file
-    (an older one is removed) and the reason in the log. Returns the log line."""
-    out = os.path.join(OUT_DIR, ALT_NAME)
-
-    def no(why):
-        try:
-            if os.path.isfile(out):
-                os.remove(out)                       # never an old alternative beside a new booklet
-        except Exception:
-            pass
-        return "P78.ALT pp.07+08: no alternative page written: " + why
-    its = [panel_item(fitz, assets, k) for k in ALT_MAPS + ALT_WHY]
-    miss = [it[0] for it in its if it[3] is None]
-    if miss:
-        return no("%s not written yet (run their scripts)" % ", ".join(miss))
-    aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
-    nm = len(ALT_MAPS)
-    dens = [std_scale(it[1]["scale_den"] / own_s(it)) for it in its[:nm] if it[1].get("scale_den")]
-    D = max(dens) if dens else None                  # the three maps' one scale
-
-    def fac(it, d):
-        den = it[1].get("scale_den")
-        return den / d if den and d else own_s(it)
-
-    def low(it, s_):                                 # the smallest tenth of its words at factor s_, pt
-        ws = word_sizes(sheet_doc(fitz, it[2])[int(it[1].get("page", 0))], it[3])
-        return ws[len(ws) // 10] * s_ if ws else 99.0
-    sz = [(it, fac(it, D), wh(it)[0] * fac(it, D), wh(it)[1] * fac(it, D)) for it in its]
-    small = [(k_, v_) for k_, v_ in ((it[0].split("/", 1)[1], low(it, s_)) for it, s_, _, _ in sz)
-             if v_ < MIN_CAPTION - 0.05]
-    if small:
-        return no("at one scale for the page (1:{:,.0f}) the words of {} would print at {} pt, under 7 pt".format(
-            D or 0, ", ".join(k for k, _ in small), ", ".join("%.1f" % v for _, v in small)))
-
-    def pack(order):                                 # columns, top to bottom, in this order
-        cols, cur, ch = [], [], 0.0
-        for e in order:
-            if e[3] + CAP_H > ah:
-                return None
-            if cur and ch + ROW_GAP + e[3] + CAP_H > ah:
-                cols.append(cur)
-                cur, ch = [], 0.0
-            ch += (ROW_GAP if cur else 0.0) + e[3] + CAP_H
-            cur.append(e)
-        return cols + [cur]
-    best = None
-    for order in (sz, sz[:nm] + sorted(sz[nm:], key=lambda e: -e[3]), sz[:nm] + sorted(sz[nm:], key=lambda e: -e[2])):
-        cols = pack(order)
-        if cols:
-            wsum = sum(max(e[2] for e in c) for c in cols) + 2 * GUT * (len(cols) - 1)
-            if best is None or wsum < best[0]:
-                best = (wsum, cols)
-    if best is None or best[0] > aw + 0.5:
-        nxt = next((d for d in STD_SCALES if D and d > D), None)
-        tail = "; at 1:{:,.0f} the maps' words would print at {:.1f} pt".format(
-            nxt, min(low(it, fac(it, nxt)) for it in its[:nm])) if nxt else ""
-        return no(("at the sizes the booklet prints them (maps 1:{:,.0f}) the six panels need {}; the page holds "
-                   "{:.0f} x {:.0f} mm{}: the two pages stay").format(
-            D or 0, "%.0f mm of width" % best[0] if best else "more than the page height for one panel", aw, ah, tail))
-    spec = dict(part="B", stage="an+got", title=ALT_TITLE)
-    legend = []
-    for it in its:
-        for e in (it[1] or {}).get("legend") or []:
-            e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))
-            if all(e.get("label") != o.get("label") for o in legend):
-                legend.append(e)
-    if footer_rows(typo, legend, spec) > 3:
-        return no("its legend (%d entries) needs more than the footer band's three rows" % len(legend))
-    if typo.width(ALT_TITLE, T["part"], True) > aw:
-        return no("its title is wider than the page: shorten ALT_TITLE in the plan")
-    a = pno_of(numbered, key=ALT_MAPS[0])
-    b = pno_of(numbered, sheet=CLK + "Bergama_city_link_A3.pdf", page=0)
-    doc = fitz.open()
-    pg = frame_page(fitz, doc, typo)
-    header(pg, typo, spec)
-    typo.line(pg, (u"ALTERNATIVE TO PAGES %s AND %s" % (a, b)) if a and b else u"ALTERNATIVE", PW - ML, 12,
-              T["kicker"], ACCENT, True, "R")
-    rep, x = [], AREA[0]
-    for c in best[1]:
-        y = AREA[1]
-        for it, s_, w_, h_ in c:
-            show(fitz, pg, typo, it, x, y, s_, rep, set())
-            y += h_ + CAP_H + ROW_GAP
-        x += max(e[2] for e in c) + 2 * GUT
-    footer(pg, typo, ("%s+%s" % (a, b)) if a and b else "ALT", spec, legend)
-    doc.subset_fonts()
-    doc.save(out, garbage=3, deflate=True)
-    doc.close()
-    return "P78.ALT pp.07+08: written %s (maps 1:{:,.0f}, %d columns) · %s".format(D or 0) % (
-        out, len(best[1]), "; ".join(rep))
 
 
 def page_checks(doc, numbered, typo):
@@ -1600,10 +1522,6 @@ def main():
                  *((srcs.groups(), u"Sources, in page order") if _SRC else (sheet_sources(fitz, assets),)))
     text_check(fitz, doc, typo, set(n - 1 for n, sp, rows in numbered if rows is None))
     page_checks(doc, numbered, typo)                 # v19: G10 figures, N1 cross-references
-    try:                                             # v19 (P78.ALT): pp.07 + 08 on one page, its own file
-        typo.notes.append(alt_page(fitz, typo, assets, numbered))
-    except Exception as ex:
-        typo.issues.append("P78.ALT pp.07+08: no alternative page written (%s: %s)" % (type(ex).__name__, ex))
     typo.notes.append("G9: %d crops each shown from its own copy of its sheet page; taken out of the copies: %d lines "
                       "and %d letters of words outside them, %d images wholly outside, the line art lying wholly "
                       "outside%s" % (G9_STATS["copies"], G9_STATS["lines"], G9_STATS["chars"], G9_STATS["images"],
