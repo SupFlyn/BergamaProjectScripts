@@ -46,7 +46,8 @@ SN_SOUND = (("water", u"Running water", "5D7F8D"), ("reeds", u"Reeds", R28_ZONE[
             ("birds", u"Birds", COL["tree_mid"]), ("children", u"Children", "7F5B7B"),
             ("voices", u"Market · Kermes", "C2603A"), ("traffic", u"Traffic", SN_DARK), ("wind", u"Wind", SN_RULE))
 # Smell (senses_ref4): each source in the colour of the zone it grows in where it is one, else palette v1.4
-SN_SMELL = (("reeds", u"Reed beds", R28_ZONE["reed"][1]), ("mint", u"Water mint", R28_ZONE["wetland"][1]),
+# v28.1 (D2, D6): reed beds = the lined basins only; water mint left out (it grows only in lined cells, not drawn here)
+SN_SMELL = (("reeds", u"Reed beds", R28_ZONE["reed"][1]),
             ("lavender", u"French lavender", R28_ZONE["terraces"][1]),   # p.16's plant list (no rosemary there)
             ("demeter", u"Demeter's Garden", R28_ZONE["demeter"][1]), ("cafe", u"Café", R28_ZONE["cafe"][1]),
             ("olive", u"Olive harvest", MP["agriculture"][2]))

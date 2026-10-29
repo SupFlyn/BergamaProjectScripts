@@ -90,7 +90,8 @@ def draw_farms_text(pg, x, y, w, h, s):
             pg.text(t, gx + bw_ + 2.0, yy - bh * 0.5 - fs * 0.35, fs, C["ink"], bold=True)
     yy = figs(pg, x + 10.0, top - 2 * (bh + 2.4 * s) - 1.0, [(u"use = {:.1f} x potential".format(198.01 / 45.4),
               u"Lower Bakırçay · farm water eases the aquifer " + cite(u"published, North Aegean drought management "
-              u"plan 2018 (official); ratio calculated; " + WD))], w - 20.0, 4.0 * s, 2.6 * s, C["acc"]) - 2.8 * s * 0.8
+              u"plan 2018 (official); " + WD))], w - 20.0, 4.0 * s, 2.6 * s, C["acc"]) - 2.8 * s * 0.8
+    # v6.1: "ratio calculated" taken out of the source above (no status words)
     return _p18_tiles(pg, x + 10.0, yy, w - 20.0, GOES_T, s, 2)
 
 

@@ -10,6 +10,7 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v20.1 (bugfix, T5 fix pass 29 Oct): "inferred" joins the status words the sources page never prints.
 NEW IN v20 (revision 29 Oct, WO-T5-1; a feature change, so the next whole number):
   * Page list of the revision (data/PLAN.py): p.02 side column = plan 01's key, the edge from above, the readings;
     p.04-05, p.14-15 and p.21 carry their key maps inside their crops (D11: each shows only its page's cuts), no key
@@ -112,7 +113,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v20"
+VERSION = "v20.1"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -227,7 +228,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '1c6646e994a76f4deca8d715b0b54f72'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': 'e42957c11a33a4b6335cc6a276a116cc'}.get(name):
         raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())

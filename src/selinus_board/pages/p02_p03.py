@@ -580,7 +580,7 @@ def landuse_slices(S):
              (u"Grass", GREEN_SUB["grass"], gz.get("grass", 0.0) + rest_of(S, "grass")),
              (u"Shrubs", lcc.get("shrub", mix(CAT["green"][1], PAPER, 0.3)), rest_of(S, "shrub")),
              (u"Fields & orchards, mapped", CAT["agri"][1], S.area.get("agri", 0.0) + rest_of(S, "farmland")),
-             (u"Orchards, inferred", lcc.get("orchard", ORCH_C), rest_of(S, "orchard")),
+             (u"Orchards (satellite)", lcc.get("orchard", ORCH_C), rest_of(S, "orchard")),
              (u"Vacant ground", CAT["vacant"][1], S.area.get("vacant", 0.0)),
              (u"The stream", CAT["water"][1], S.area.get("water", 0.0)),
              (u"Other unmapped", REST_C, rest_of(S, "rest"))]

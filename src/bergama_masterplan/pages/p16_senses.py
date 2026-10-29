@@ -696,12 +696,9 @@ def sn_sound(pg, G, cell, warn):
                 sn_mark(pg, "water", x - math.sin(ang) * off, y + math.cos(ang) * off, col["water"], ang)
             t += 2.0 / SN_K
             k += 1
-    for z in G["zones_raw"]:                             # reeds: the reed basins and the reed side arms
-        if z["code"] == "WT":
+    for z in G["zones_raw"]:                             # reeds: the lined reed basins only (v28.1, D2: the side
+        if z["code"] == "WT":                            # arms are open channels with rush and loosestrife, no reed)
             sn_cluster(pg, "reeds", T(z["q"]), 2.2, 7, col["reeds"], rnd, 0.25)
-    for a in G["arms"]:
-        for p in sn_along(a["P"], 1.6 / SN_K):
-            sn_cluster(pg, "reeds", T(p), 0.8, 2, col["reeds"], rnd, 0.25)
     for p in sn_spaced(G["forest"], T, 3.5):             # birds: the forest corridor and the wetland
         x, y = T(p)
         sn_cluster(pg, "birds", (x, y + 0.8), 1.2, 2, col["birds"], rnd)
@@ -754,8 +751,6 @@ def sn_smell(pg, G, cell, warn):
         c = z["code"]
         if c == "WT":
             S.append(("reeds", z["q"], 5, 0.9, 0.7))
-        elif c == "WA" and z["tier"] == "W":             # the bed band B: reeds, cattail, water mint (p.16)
-            S.append(("mint", z["q"], 4, 0.7, 0.55))
         elif c == "WS":                                  # the terraces' dry band F (French lavender, rosemary)
             S.append(("lavender", z["q"], 5, 0.9, 0.7))
         elif c == "DG":                                  # herbs and greens (card i01)
@@ -763,8 +758,6 @@ def sn_smell(pg, G, cell, warn):
             dg += z["P"]
         if c in ("GR", "DG"):                            # the plan's café places
             S.append(("cafe", z["q"], 3, 0.6, 0.55))
-    for p in sn_spaced([a["at"] for a in G["arms"]], T, 6.0):
-        S.append(("reeds", p, 4, 0.7, 0.6))
     mids = [P[len(P) // 2] for P in G["terr"] if P]
     for p in sn_spaced(mids, T, 8.0)[:4]:
         S.append(("lavender", p, 4, 0.7, 0.6))

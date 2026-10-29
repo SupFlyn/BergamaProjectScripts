@@ -270,7 +270,7 @@ def _p12_figures(zones):
     f["collect"] = (take, site)
     wt = _p12_pick(zones, "WT")
     f["reed_m2"] = sum(z.get("m2") or _p12_area(z["ring"]) for z in wt) if wt else None
-    f["store"] = WB_STORE
+    f["store"] = WB_STORE if WB_LIVE else None          # v6.1: never the built-in default
     left = _p12_get("design", "river_left_pct")
     f["left"] = tuple(left) if left else None
     mix = _p12_get("design", "mix")
@@ -278,7 +278,7 @@ def _p12_figures(zones):
     ha = [_p12_get("lands", "cropland_ha"), _p12_get("lands", "orchard_ha")]
     f["farm_ha"] = sum(ha) if None not in ha else None
     s2 = _p12_get("lands", "strip_m2")
-    f["strip"] = (s2 / 4.0, s2 * STRIP_DEPTH, WB_STRIP) if s2 else None      # 400 cm wide (the strip's design)
+    f["strip"] = (s2 / 4.0, s2 * STRIP_DEPTH, WB_STRIP) if s2 and WB_LIVE else None      # 400 cm wide (the strip's design)
     return f
 
 
@@ -503,7 +503,7 @@ def _p12_map_labels(pg, ga, M, zones, f, log):
                           small=[u"lined, root-contained · cleaned once,", u"then the whole reach runs clean"]))
     if at[3]:
         specs.append(dict(x=at[3][0], y=at[3][1], icon="storage", head=u"3 HOLD", col=P12_STEP_COL[3],
-                          big=u"{:,.0f}-{:,.0f} m³".format(*f["store"]),
+                          big=u"{:,.0f}-{:,.0f} m³".format(*f["store"]) if f["store"] else None,
                           small=[u"winter water held in the ground,", u"at most a year · cube at the map's scale"]))
     if at[4]:
         sm = [u"spillway: overflow back to the stream"]
@@ -797,6 +797,8 @@ def p12_page(pg, box, opt, storage, log):
     x0, y0, x1, y1 = box
     zones, links = _p12_zones(log)
     f = _p12_figures(zones)
+    if not WB_LIVE:                                      # v6.1
+        log.append("p.12: no water_balance_results.json: HOLD volume and strip figures left out (run the water balance first)")
     xs = x1 - P12_COL_W
     ga = (x0, y0, xs - 7.0, y1)
     n0 = len(pg.items)

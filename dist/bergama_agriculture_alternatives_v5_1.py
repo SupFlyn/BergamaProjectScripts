@@ -1,18 +1,42 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v3.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v5.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
 #   1 WHAT EACH CUBIC METRE GROWS   chart: hectares the stored water irrigates, per crop, normal and 1-in-5 dry year
 #   2 THE FARMS WE FEED             the site board's plan 01 "What is there" at a round scale with the fields and orchards fed
-#   3 ONE PLANT LADDER              the one-way chain and its programme; the ladder by season: water, what people do, plants
-#   4 SOURCES                       the numbered key of the [n] marks on pages 1-3
+#   3 SOURCES                       the numbered key of the [n] marks on pages 1-2
+# T4a (revision 29 Oct, WO-T4a-4): D9 a: the plant ladder page (booklet p20) is gone with everything only it used (its
+#   content lives on the water board's p17 and p14-15); pictograms and step markers from common/icons.py (02 §2); D13:
+#   sources naming our own model run or method and status words never reach the printed key (cite).
 # Storage, water to the farms and the farm areas are read on every run from the water balance script's output
 # (bergama_water_balance), so they follow its cost cut-off; the fallback is the shared key-figures file (flagged).
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
-import os, time, json, zlib, math
+import os, time, json, zlib, math, re
 
-VERSION = "v3"
+VERSION = "v5.1"
+# NEW IN v5.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.19 "10,000 m³ = N ha olive" is computed live, the
+# same way as the water board's p.18 (10,000 / gross m³ a ha of olive in a dry year, from water_balance_results.json);
+# it was the fixed text "1.22 ha".
+# v4 (MIRAQUA 28 Oct, booklet revision v4, pages 18-19; a feature change, so the next whole number):
+#   * P18.1 / P19.3 / P19.4 / G11 / G12: every photo through common/plant_photos.py; corn printed as "Corn (Mısır)"
+#     (data key "maize" and the Wikimedia file kept); an empty frame says "no photo: <reason>".
+#   * P19.1 / G5 / F10: the kicker top left; page 3's top-right corner on the booklet grid (column 8, 4 rows 5.2 mm
+#     apart, 7.5 pt): steps 1-5, NEXT -> D The heritage loop (title bold), the chain key; no big page numbers.
+#   * P19.2: the ladder's people from common/figures.py at true scale (1.75 m), one colour, no stroke.
+#   * G4 / F13: ladder labels placed by common/label_place.py clear of figures, lines, plants and each other;
+#     "hub square: dry, step-free" and "wade the strip" now print.
+#   * G13: flood heights in m with 2 decimals (values unchanged). Bank depth research 28 Oct §4.5: over the bank top
+#     only at S4 (left); K4 before the DSİ walls.
+#   * F5: [n] marks only for public online sources; internal pointers out of the printed source list.
+#   * G1: page 2's group line removed; page 1's left column on the 14 mm margin.
+# v3.1 (bugfix, Aras 27 Oct, booklet Prompt 8 "final check of every page"): plant and crop names "English (Turkish)"
+#   from the shared table where pages 1 and 3 still had the English alone: page 3's season row OLIVE (ZEYTİN) HARVEST,
+#   its labels (hub square: oriental plane (Doğu çınarı) shade; common reed (Kamış) gold; olive (Zeytin) harvest;
+#   olive (Zeytin) trees on the fields) and page 1's "what it replaces" figure. Page 3: "stored winter water" and
+#   "site edge: farmland outside" sit at the row's top edge, so they found no free place above it and were left out on
+#   every run: they now go under their anchors. The h01 timeline quotes stay word for word. Page 1's "THE STREAM COMES
+#   FIRST" block and the step chips: its 6.5 pt words are 7 pt, the smallest size on a booklet page.
 # v3 (Aras 27 Oct 17:35, Prompt 6 "water, part 3"; the booklet's p.24-25):
 #   * page 1, "THE STREAM COMES FIRST" between the headline and the bars (task 1: "show the defence ON the board"): the
 #     priority 1 stream: summer strip -> 2 on-site planting -> 3 farms (the model has no draw of its own for the
@@ -33,7 +57,7 @@ VERSION = "v3"
 # crop ratio and size for every photo"): every plant and crop name on pages 1 and 3 is "English (Turkish)" from the
 # shared table (src/common/plant_photos.py), no Latin names on the pages. Page 3's step columns show each step's plants
 # as photos (PHOTO_W x PHOTO_H mm, two side by side) with the name and the photo's [n] credit under each; the giant reed
-# under REMOVE. Page 1 adds "THE CROPS" under the timeline: olive, cotton, maize, tomato as photos. The photos come
+# under REMOVE. Page 1 adds "THE CROPS" under the timeline: olive, cotton, corn, tomato as photos. The photos come
 # from the shared cache Downloads/Bergama/cached/plant_photos/ (the water board shows the same photo of the same
 # plant) and go into their frames with PyMuPDF after the PDF is written; a missing one is an empty frame saying "no
 # photo", never an error; the log says how many were placed. Room on page 3: the chain sits 4 mm higher, the season rows
@@ -137,40 +161,56 @@ def bg_tidy_output(name, cache_dir=None):
 # ---- plant photos, shared by the water board and the agriculture alternatives (Aras 27 Oct, Prompt 5: "every plant
 # AND every crop in the booklet gets a photo of the plant itself. Use openly licensed photos (e.g. Wikimedia Commons)
 # credited in the sources, never photos from shop or nursery sites. Same crop ratio and size for every photo").
-# Fetched once on Aras's PC (the cloud cannot reach Wikimedia), kept in the script's cache folder and read from there
-# on every later press. First the English Wikipedia article's lead image (a Commons file chosen by the article's
-# editors), else a Commons search for the botanical name (used only to find the file, never printed) that skips
-# herbarium sheets, drawings and maps. Only CC BY, CC BY-SA, CC0 and public-domain files are used; the credit
-# (author, licence, file) goes into the numbered source key. A photo Aras puts into the cache folder himself
-# (<key>.jpg with a <key>.json {"file", "credit"}) is used as it is. No network or any failure = an empty frame.
+# MIRAQUA round 28 Oct (G12): every photo is PINNED to one Wikimedia Commons file page (PLANTS), the whole plant or
+# crop in its setting, the same file wherever the species shows. No lead image and no search at run time (they gave
+# the museum cob and the African olive). Why cards printed "not loaded": Wikimedia answered a burst of 3-4 requests a
+# plant with HTTP errors (most likely 429, too many requests) and the code kept asking. Now: ONE batched API call for
+# all photos still to fetch, then one 500 px download at a time with a pause, Retry-After honoured once, and after a
+# second refusal nothing more this press (remembered 10 min, so a quick second press does not trip it again). The
+# user agent names the project and its repository (Wikimedia's user-agent policy).
+# Fetched once on Aras's PC (the cloud cannot reach Wikimedia), kept in the cache folder and read from there on every
+# later press. Only CC BY, CC BY-SA, CC0 and public-domain files are used. A photo Aras puts into the cache folder
+# himself (<key>.jpg with a <key>.json {"file", "credit"}) is used as it is. If the pinned files cannot be fetched,
+# an older cached photo of the same plant stays (where its row allows), else the frame says why.
+# Credit (Aras 28 Oct 11:38, fault table F15: "no Latin file names"): author, licence, Wikimedia Commons and the page-id
+# link that opens exactly that file page; PHOTO_CREDIT_FILE = True adds the file name (brief G12) if that is chosen.
 PHOTO_W, PHOTO_H = 28.0, 21.0        # mm on the A3 page, every photo in the booklet (4:3, cover-cropped, never stretched)
-PHOTO_PX = 480                       # px wide fetched (about 435 dpi at PHOTO_W)
+PHOTO_PX = 500                       # px wide fetched: a standard Wikimedia thumbnail step (about 450 dpi at PHOTO_W)
+PHOTO_CREDIT_FILE = False            # True = the credit names the Commons file too (G12) besides the page-id link (F15)
 PLANT_PHOTO_DIR = bg_cache("plant_photos")   # one folder for every script: the same plant shows the same photo
-# Every plant and crop the booklet names: key -> (printed name "English (Turkish)", English Wikipedia article, botanical
-# name for the Commons search; the botanical name is never printed). Names: English and Turkish as in
-# research/water_data/04 §1 (species matrix), Aras's examples "Common reed (Kamış)", "Oriental plane (Doğu çınarı)";
-# Kofa = the rush genus Juncus (turkiyebitkileri.com, Juncaceae - Kofagiller, Juncus - Kofa).
+# Every plant and crop the booklet names: key -> (printed name "English (Turkish)", the Commons files to use in order
+# (file page titles without "File:"; the first that is free and loads is used), keep_old = an older cached photo of
+# this plant may stay when none of them loads). Names: English and Turkish as in research/water_data/04 §1 (species
+# matrix), Aras's examples "Common reed (Kamış)", "Oriental plane (Doğu çınarı)"; Kofa = the rush genus Juncus
+# (turkiyebitkileri.com, Juncaceae - Kofagiller, Juncus - Kofa). Files: revision_2026-10-28/checks/photos.md §2-3
+# (whole plant in its setting; author and licence are read from each file page at the fetch and checked there).
 PLANTS = {
-    "reed": (u"Common reed (Kamış)", u"Phragmites_australis", u"Phragmites australis"),
-    "cattail": (u"Broadleaf cattail (Hasır otu)", u"Typha_latifolia", u"Typha latifolia"),
-    "mint": (u"Water mint (Su nanesi)", u"Mentha_aquatica", u"Mentha aquatica"),
-    "iris": (u"Yellow flag iris (Sarı süsen)", u"Iris_pseudacorus", u"Iris pseudacorus"),
-    "rush": (u"Sharp rush (Kofa)", u"Juncus_acutus", u"Juncus acutus"),
-    "loosestrife": (u"Purple loosestrife (Aklar otu)", u"Lythrum_salicaria", u"Lythrum salicaria"),
-    "tamarisk": (u"Tamarisk (Ilgın)", u"Tamarix_smyrnensis", u"Tamarix smyrnensis"),
-    "willow": (u"White willow (Ak söğüt)", u"Salix_alba", u"Salix alba"),
-    "chaste": (u"Chaste tree (Hayıt)", u"Vitex_agnus-castus", u"Vitex agnus-castus"),
-    "poplar": (u"White poplar (Ak kavak)", u"Populus_alba", u"Populus alba"),
-    "ash": (u"Narrow-leaved ash (Dişbudak)", u"Fraxinus_angustifolia", u"Fraxinus angustifolia"),
-    "oleander": (u"Oleander (Zakkum)", u"Nerium_oleander", u"Nerium oleander"),
-    "plane": (u"Oriental plane (Doğu çınarı)", u"Platanus_orientalis", u"Platanus orientalis"),
-    "lavender": (u"French lavender (Karabaş otu)", u"Lavandula_stoechas", u"Lavandula stoechas"),
-    "rosemary": (u"Rosemary (Biberiye)", u"Salvia_rosmarinus", u"Salvia rosmarinus"),
-    "olive": (u"Olive (Zeytin)", u"Olea_europaea", u"Olea europaea tree"),
-    "cotton": (u"Cotton (Pamuk)", u"Gossypium_hirsutum", u"Gossypium hirsutum"),
-    "maize": (u"Maize (Mısır)", None, u"Zea mays plant"),        # these two: Commons search for the growing plant
-    "tomato": (u"Tomato (Domates)", None, u"Solanum lycopersicum plant"),  # (a lead image may show only the fruit)
-    "giant_reed": (u"Giant reed (Kargı)", u"Arundo_donax", u"Arundo donax"),
+    "reed": (u"Common reed (Kamış)", (u"Common Reed (Phragmites australis) (8131465127).jpg",
+                                     u"Reed panicle at Brodalen 1.jpg"), True),
+    "cattail": (u"Broadleaf cattail (Hasır otu)", (u"Bulrush (Typha latifolia) (8139113636).jpg",), True),
+    "mint": (u"Water mint (Su nanesi)", (u"Mentha aquatica Meinerswijk.jpg", u"Mentha aquatica 02.jpg"), True),
+    "iris": (u"Yellow flag iris (Sarı süsen)", (u"Yellow Iris, Gunnersbury Triangle.JPG",
+                                                u"Iris pseudacorus (yellow flag iris) (Newark, Ohio, USA) 5 (27772297656).jpg"), True),
+    "rush": (u"Sharp rush (Kofa)", (u"Juncus acutus2.jpg",), True),
+    "loosestrife": (u"Purple loosestrife (Aklar otu)", (u"Lythrum salicaria, field of purple loosestrife, Concord, Massachusetts.jpg",
+                                                        u"Purple Loosestrife (Lythrum salicaria) - geograph.org.uk - 950598.jpg"), True),
+    "tamarisk": (u"Tamarisk (Ilgın)", (u"A Tamarisk Tree in Israel (5759425470).jpg", u"Tamarix canariensis-Daimiel.jpg"), True),
+    "willow": (u"White willow (Ak söğüt)", (u"A big white willow tree (Salix alba) at the bay of lake Juojärvi in Tuusniemi, Finland, 2018 September.jpg",
+                                            u"Silberweide (Salix alba).JPG"), True),
+    "chaste": (u"Chaste tree (Hayıt)", (u"Vitex-agnus-castus-habitus.jpg", u"Vitex-agnus-castus-habit.JPG"), True),
+    "poplar": (u"White poplar (Ak kavak)", (u"Pioppo (populus alba).jpg", u"Daniel Fuchs.CC-BY-SA.Populus alba.jpg"), True),
+    "ash": (u"Narrow-leaved ash (Dişbudak)", (u"Fraxinus angustifolia - Israel.JPG", u"Fraxinus-angustifolia.jpg"), True),
+    "oleander": (u"Oleander (Zakkum)", (u"Oleander (Nerium oleander) habit.jpg", u"Nerium oleander (Adelfa).jpg"), True),
+    "plane": (u"Oriental plane (Doğu çınarı)", (u"Oriental Plane tree - Platanus orientalis - Doğu Çınarı, Arslanköy 04.JPG",
+                                                u"TRSTENO ORIENTAL PLANE TREE, CROATIA.jpg"), True),
+    "lavender": (u"French lavender (Karabaş otu)", (u"Lavandula stoechas (cantueso).jpg", u"Lavandula stoechas 1.JPG"), True),
+    "rosemary": (u"Rosemary (Biberiye)", (u"Large rosemary bush.jpg", u"Rosmarinus officinalis (Italy) 01.jpg"), True),
+    "olive": (u"Olive (Zeytin)", (u"Olive trees on Thassos.JPG",), True),       # was the African wild olive (Cape Town)
+    "cotton": (u"Cotton (Pamuk)", (u"CottonPlant.JPG",), True),
+    "maize": (u"Corn (Mısır)", (u"Maize field, Balcalı 01.jpg", u"A Maize Crop with beautiful Corn.jpg"), False),  # G11, P18.1:
+    "tomato": (u"Tomato (Domates)", (u"Solanum lycopersicum in Kaunas.jpg",), True),                       # never the cob
+    "giant_reed": (u"Giant reed (Kargı)", (u"Poaceae plant at golden hour near the river in Laos.jpg",
+                                           u"Arundo donax 2007.JPG"), True),
 }
 
 
@@ -181,15 +221,15 @@ def plant_name(key):
 
 def plant_photo_of(key, log, state):
     """(jpeg path or None, credit or None, why not) of a plant in PLANTS, from the shared folder."""
-    name, article, search = PLANTS[key]
-    return plant_photo(key, name, article, search, PLANT_PHOTO_DIR, log, state)
+    name, files, keep_old = PLANTS[key]
+    return plant_photo(key, name, files, keep_old, PLANT_PHOTO_DIR, log, state)
 
 
-PHOTO_UA = "MIRAQUA-studio-booklet/2 (Bergama student project, Yasar University; Python urllib)"
+PHOTO_UA = ("MIRAQUA-booklet/3 (https://github.com/SupFlyn/BergamaProjectScripts; Bergama student project, "
+            "Yasar University) Python-urllib")
 PHOTO_TIMEOUT = 8.0                  # s per request; after one network failure the rest are not tried this press
-PHOTO_SKIP = ("herbar", "illustrat", "drawing", "kohler", "köhler", "koehler", "plate", "tafel", "map", "distribution",
-              "flora", "botanical", "lithograph", "engraving", "seed", "pollen", "microscop", "stamp", "logo", "diagram",
-              "range", "specimen")
+PHOTO_PAUSE = 1.0                    # s between two downloads
+PHOTO_HOLD = 600.0                   # s: after Wikimedia refused twice, no new request for this long (any press)
 
 
 def jpeg_info(data):
@@ -213,11 +253,52 @@ def jpeg_info(data):
     return None
 
 
-def _photo_http(url):
+def _photo_http(url, state):
+    """the bytes at url; an HTTP 429/503 waits for its Retry-After (at most 30 s) and tries once more, a second
+    refusal sets state["refused"] (nothing more is fetched this press). A pause before every request but the first."""
+    import time
     import urllib.request
-    req = urllib.request.Request(url, headers={"User-Agent": PHOTO_UA})
-    with urllib.request.urlopen(req, timeout=PHOTO_TIMEOUT) as r:
-        return r.read()
+    import urllib.error
+    for attempt in (0, 1):
+        wait = PHOTO_PAUSE - (time.time() - state.get("last", 0.0))
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": PHOTO_UA})
+            with urllib.request.urlopen(req, timeout=PHOTO_TIMEOUT) as r:
+                return r.read()
+        except urllib.error.HTTPError as ex:
+            if ex.code not in (429, 503):
+                raise
+            if attempt:
+                state["refused"] = u"Wikimedia refused (HTTP %d)" % ex.code
+                _photo_hold(state["refused"])
+                raise
+            try:
+                ra = float(ex.headers.get("Retry-After") or 5.0)
+            except Exception:
+                ra = 5.0
+            time.sleep(min(30.0, max(1.0, ra)))
+        finally:
+            state["last"] = time.time()
+
+
+def _photo_hold(why=None):
+    """the refusal memo in the cache folder: written with why, else read: (why, seconds left) or None"""
+    import time
+    p = os.path.join(PLANT_PHOTO_DIR, "_refused.json")
+    try:
+        if why:
+            os.makedirs(PLANT_PHOTO_DIR, exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump({"why": why, "t": time.time()}, f)
+            return None
+        with open(p, "r", encoding="utf-8") as f:
+            m = json.load(f)
+        left = PHOTO_HOLD - (time.time() - float(m["t"]))
+        return (m["why"], left) if left > 0 else None
+    except Exception:
+        return None
 
 
 def _png_to_jpeg(src, dst):
@@ -257,83 +338,127 @@ def _photo_meta(info):
     return re.sub(r"\s+", u" ", artist), md.get("LicenseShortName", {}).get("value", u"").strip()
 
 
-def _photo_pick_lead(article):
-    """The article's lead image as a Commons imageinfo record {title, thumburl, extmetadata}, or None."""
+def _photo_infos(titles, state):
+    """ONE Commons API call for up to 50 file titles: {title: imageinfo record + pageid} for the files that exist"""
     import urllib.parse
-    summ = json.loads(_photo_http("https://en.wikipedia.org/api/rest_v1/page/summary/" +
-                                  urllib.parse.quote(article)).decode("utf-8"))
-    orig = (summ.get("originalimage") or {}).get("source") or (summ.get("thumbnail") or {}).get("source")
-    if not orig or "/commons/" not in orig:              # a file kept on Wikipedia itself may be non-free: skipped
-        return None
-    parts = urllib.parse.urlparse(orig).path.split("/")
-    fname = urllib.parse.unquote(parts[-2] if "thumb" in parts else parts[-1])
-    q = json.loads(_photo_http("https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo"
-                               "&iiprop=url|mime|extmetadata&iiurlwidth={}&titles={}".format(
-                                   PHOTO_PX, urllib.parse.quote(u"File:" + fname))).decode("utf-8"))
-    for pg_ in q.get("query", {}).get("pages", {}).values():
-        ii = (pg_.get("imageinfo") or [None])[0]
-        if ii:
-            ii["title"] = pg_.get("title", u"File:" + fname)
-            return ii
-    return None
+    out = {}
+    for i in range(0, len(titles), 50):
+        part = titles[i:i + 50]
+        q = json.loads(_photo_http("https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo"
+                                   "&iiprop=url|mime|size|user|extmetadata&iiurlwidth={}&titles={}".format(
+                                       PHOTO_PX, urllib.parse.quote(u"|".join(u"File:" + t for t in part))),
+                                   state).decode("utf-8"))
+        qq = q.get("query", {})
+        norm = dict((n_.get("to"), n_.get("from")) for n_ in qq.get("normalized", []) or [])
+        for pg_ in qq.get("pages", {}).values():
+            ii = (pg_.get("imageinfo") or [None])[0]
+            if "missing" in pg_ or not ii:
+                continue
+            t = pg_.get("title", u"")
+            t = norm.get(t, t)
+            ii["pageid"] = pg_.get("pageid")
+            out[t.replace(u"File:", u"", 1)] = ii
+    return out
 
 
-def _photo_pick_search(search):
-    """The first openly licensed JPEG photo a Commons file search for `search` finds, skipping herbarium sheets,
-    drawings and maps: an imageinfo record, or None."""
-    import urllib.parse
-    q = json.loads(_photo_http("https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search"
-                               "&gsrnamespace=6&gsrlimit=12&gsrsearch={}&prop=imageinfo&iiprop=url|mime|extmetadata"
-                               "&iiurlwidth={}".format(urllib.parse.quote(search + u" filemime:image/jpeg"), PHOTO_PX)
-                               ).decode("utf-8"))
-    pages = sorted(q.get("query", {}).get("pages", {}).values(), key=lambda p_: p_.get("index", 99))
-    for pg_ in pages:
-        t = pg_.get("title", u"").lower()
-        ii = (pg_.get("imageinfo") or [None])[0]
-        if not ii or any(w in t for w in PHOTO_SKIP) or ii.get("mime") != "image/jpeg":
-            continue
-        if photo_free(_photo_meta(ii)[1]):
-            ii["title"] = pg_.get("title")
-            return ii
-    return None
+def _photo_safe(s):
+    """a name the sheets' fonts can print (WinAnsi + the Turkish letters): other letters lose their accents (Kaunas
+    authors etc.), anything still unprintable leaves the name out"""
+    import unicodedata
+    tr = u"ĞğİıŞş"
+    out = u""
+    for ch in s or u"":
+        try:
+            ch.encode("cp1252")
+            out += ch
+        except Exception:
+            if ch in tr:
+                out += ch
+            else:
+                b = unicodedata.normalize("NFKD", ch)[0]
+                out += b if ord(b) < 128 else u""
+    out = u" ".join(out.split())
+    return out if sum(c.isalpha() for c in out) >= 2 else u""
 
 
-def plant_photo(key, name, article, search, photo_dir, log, state):
+def photo_credit(name, m):
+    """the printed credit of a photo record m {author, licence, pageid, title} (F15: no Latin file names)"""
+    link = u"commons.wikimedia.org/?curid={}".format(m["pageid"]) if m.get("pageid") else u"Wikimedia Commons"
+    cr = u"photo {}: {}, {}, Wikimedia Commons, {}".format(name, m.get("author") or u"author named on the file page",
+                                                            m.get("licence") or u"licence on the file page", link)
+    if PHOTO_CREDIT_FILE and m.get("title"):
+        cr += u" (File:{})".format(m["title"])
+    return cr
+
+
+def plant_photo(key, name, files, keep_old, photo_dir, log, state):
     """(jpeg path or None, credit or None, why not) for one plant or crop: key = file name in photo_dir, name = the
-    English name the credit gives, article = English Wikipedia article, search = botanical name for the Commons
-    search. Cache first, then the web (see the header of this part)."""
+    printed name, files = its pinned Commons files in order, keep_old = an older cached photo may stay. Cache first
+    (when it holds one of the pinned files, or Aras's own photo), then the web (see the header of this part)."""
     meta = os.path.join(photo_dir, key + ".json")
+    old = None
     try:
         with open(meta, "r", encoding="utf-8") as f:
             m = json.load(f)
         p = os.path.join(photo_dir, m["file"])
         with open(p, "rb") as f:
             if jpeg_info(f.read(256 * 1024) + b"\x00" * 10):
-                return p, m["credit"], None
+                if not m.get("source") and not m.get("title"):
+                    return p, m["credit"], None                       # Aras's own photo, as it is
+                if m.get("title") in files and m.get("pageid"):
+                    return p, photo_credit(name, m), None             # one of the pinned files, fetched before
+                old = (p, m.get("credit"))                            # fetched by an older version
     except Exception:
         pass
+
+    def fallback(why):
+        if old and keep_old:
+            log.append(u"photo {}: {}; the older cached photo stays".format(key, why))
+            return old[0], old[1], None
+        log.append(u"photo {}: {}; pinned file(s): {}".format(key, why, u"; ".join(
+            u"commons.wikimedia.org/wiki/File:" + t.replace(u" ", u"_") for t in files)))
+        return None, None, why
     if state.get("offline"):
-        return None, None, u"offline"
-    why = u"no open-licence photo found"
+        return fallback(u"offline")
+    if "refused" not in state:
+        h = _photo_hold()
+        if h:
+            state["refused"] = u"{}, press again in {:.0f} min".format(h[0], max(1.0, h[1] / 60.0))
+    if state.get("refused"):
+        return fallback(state["refused"])
     try:
         os.makedirs(photo_dir, exist_ok=True)
-        ii = None
-        if article:
-            try:
-                ii = _photo_pick_lead(article)
-            except Exception as ex:
-                log.append(u"photo {}: lead image of {} not read ({}), Commons search next".format(key, article,
-                                                                                                     type(ex).__name__))
-            if ii is not None and (not photo_free(_photo_meta(ii)[1]) or ii.get("mime") not in ("image/jpeg",
-                                                                                                  "image/png")):
-                ii = None
-        if ii is None and search:
-            ii = _photo_pick_search(search)
+        if "infos" not in state:                                      # every photo still to fetch, in one call
+            need = []
+            for k_, row in PLANTS.items():
+                try:
+                    with open(os.path.join(photo_dir, k_ + ".json"), "r", encoding="utf-8") as f:
+                        m_ = json.load(f)
+                    if (m_.get("title") in row[1] and m_.get("pageid")) or not (m_.get("source") or m_.get("title")):
+                        continue
+                except Exception:
+                    pass
+                need += [t for t in row[1] if t not in need]
+            state["infos"] = {}                                       # a failed call is not repeated this press
+            state["infos"] = _photo_infos(need, state)
+        ii, why = None, u"file not found on Commons"
+        for t in files:
+            c = state["infos"].get(t)
+            if c is None:
+                continue
+            artist, lic = _photo_meta(c)
+            if not photo_free(lic):
+                why = u"licence not open ({})".format(lic or u"none")
+                continue
+            if c.get("mime") not in ("image/jpeg", "image/png"):
+                why = u"not a photo file"
+                continue
+            ii = (t, c, artist, lic)
+            break
         if ii is None:
-            log.append(u"photo {}: {}".format(key, why))
-            return None, None, why
-        artist, lic = _photo_meta(ii)
-        data = _photo_http(ii.get("thumburl") or ii["url"])
+            return fallback(why)
+        t, c, artist, lic = ii
+        data = _photo_http(c.get("thumburl") or c["url"], state)
         p = os.path.join(photo_dir, key + ".jpg")
         if jpeg_info(data):
             with open(p, "wb") as f:
@@ -343,14 +468,18 @@ def plant_photo(key, name, article, search, photo_dir, log, state):
             with open(tmp, "wb") as f:
                 f.write(data)
             if not _png_to_jpeg(tmp, p):
-                return None, None, u"not a JPEG"
-        fname = ii.get("title", u"").replace(u"File:", u"", 1)
-        credit = u"photo {}: {}, {}, Wikimedia Commons, File:{}".format(name, artist or u"author not named", lic,
-                                                                         fname)
+                return fallback(u"not a JPEG")
+        au = _photo_safe(artist) or _photo_safe(c.get("user", u""))
+        if artist and au != " ".join(artist.split()):
+            log.append(u"photo {}: author '{}' printed as '{}' (the sheets' fonts)".format(key, artist, au))
+        m = {"file": os.path.basename(p), "title": t, "pageid": c.get("pageid"), "author": au, "licence": lic,
+             "source": c.get("descriptionurl", u""), "size": [c.get("width"), c.get("height")]}
+        m["credit"] = photo_credit(name, m)
         with open(meta, "w", encoding="utf-8") as f:
-            json.dump({"file": os.path.basename(p), "credit": credit, "source": ii.get("descriptionurl", u"")}, f,
-                      ensure_ascii=False)
-        return p, credit, None
+            json.dump(m, f, ensure_ascii=False)
+        log.append(u"photo {}: {} · page {} · {} · {} · {} x {} px".format(key, t, c.get("pageid"), au, lic,
+                                                                          c.get("width"), c.get("height")))
+        return p, m["credit"], None
     except Exception as ex:
         import socket
         import urllib.error
@@ -358,7 +487,9 @@ def plant_photo(key, name, article, search, photo_dir, log, state):
                                                                                               urllib.error.HTTPError):
             state["offline"] = True
         log.append(u"photo {}: {}: {}".format(key, type(ex).__name__, ex))
-        return None, None, u"offline" if state.get("offline") else u"not loaded"
+        if isinstance(ex, urllib.error.HTTPError):
+            return fallback(state.get("refused") or u"Wikimedia error (HTTP {})".format(ex.code))
+        return fallback(u"offline" if state.get("offline") else u"not loaded ({})".format(type(ex).__name__))
 
 
 def fitz_add_photos(path, photos, page_h=297.0):
@@ -396,7 +527,409 @@ def fitz_add_photos(path, photos, page_h=297.0):
     else:
         doc.close()
     return n
-LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
+# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1): every symbol drawn on one 24-unit square grid,
+# scaled to `size` page mm, with one stroke weight, one corner radius and one colour rule, so water, planting, plant,
+# people and warning marks read as one family (quality bar: refs/R19, the crossed glass on page 18).
+#   grid      24 x 24 units, origin at the icon centre, y up; drawing inside +-10 (2 units clear on every side)
+#   stroke    ICO_LW_UNITS = 1.5 units = size / 16 page mm (0.375 at 6 mm, 1.25 at 20 mm); one weight per icon;
+#             only the "not allowed" cross is heavier (1.5 x), on a paper casing
+#   corners   boxes rounded at 1.5 units (one stroke); open lines end on whole or half grid units; gaps >= 2 units
+#   colour    ink lines + at most two flat colours (c1, c2) from palette v1.4; c2 left None = c1 mixed 60 % to paper
+#   text      none: numbers and labels are drawn by the caller (ico_step gives the anchor)
+# Pure geometry: shapes in the house format of section_style.py, page mm, y up; the script's own put() draws them.
+#   ("poly", ring, fill, stroke, lw)    ("line", pts, colour, lw)
+
+
+# palette v1.4 (/mnt/project-files/palette/bergama_palette.py) and section_style.py SEC: hex without '#'
+ICO_PAL = dict(
+    ink="4A3F35",          # CORE ink
+    paper="EFEDE6",        # CORE paper
+    structure="B0AC9C",    # CORE structure
+    water="91ADB4",        # CORE water
+    water_deep="5D7F8D",   # CORE water_deep
+    water_light="C1D3DB",  # CORE water_light
+    green_mid="727A4E",    # CORE green_mid
+    green_light="8C9969",  # CORE green_light
+    olive="8E9A6C",        # section_style SEC olive
+    reed="8E9466",         # section_style SEC reed
+    agri="BDB57A",         # LAND_USE agri
+    accent="8B3A3F",       # CORE accent (heritage, walking routes, warnings)
+    market="BC6F45",       # LAND_USE commercial
+    uv="8C7088",           # LAND_USE institutional (the violet of UV light)
+    sun="F4C178",          # SCHEMES D5 education
+    timber="AA8148",       # MASTERPLAN centre mid
+    sewage="767167",       # MASTERPLAN service mid
+)
+
+ICO_GRID = 24.0
+ICO_LW_UNITS = 1.5
+
+# default (c1, c2) of every icon; None = c1 mixed toward paper
+ICO_COL = {
+    "water": ("water", None),
+    "stream": ("water", "water_deep"),
+    "stream_out": ("water", "agri"),
+    "flow": ("water_deep", None),
+    "depth": ("water", None),
+    "high_water": ("water", "water_deep"),
+    "rain": ("water_light", "water_deep"),
+    "drought": ("agri", "sun"),
+    "sun": ("sun", None),
+    "shade": ("green_mid", "structure"),
+    "reeds": ("water", "reed"),
+    "plants": ("green_light", "green_mid"),
+    "tree": ("green_mid", None),
+    "olive": ("olive", None),
+    "field": ("agri", None),
+    "drip": ("water", None),
+    "sewage": ("sewage", "structure"),
+    "nutrients": ("water", "sewage"),
+    "treatment": ("water", "structure"),
+    "storage": ("water", "water_light"),
+    "uv": ("water", "uv"),
+    "glass": ("water", None),
+    "not_drinkable": ("water", None),
+    "chart": ("water_deep", "water"),
+    "people": ("accent", None),
+    "walk": ("accent", None),
+    "bike": ("accent", None),
+    "hub": ("accent", None),
+    "market": ("market", None),
+    "heritage": ("accent", None),
+    "cafe": ("market", None),
+    "seating": ("timber", None),
+    "viewpoint": ("accent", None),
+    "warning": ("accent", None),
+    "key_area": ("accent", None),
+    "key_line": ("accent", None),
+    "key_dash": ("accent", None),
+    "key_point": ("accent", None),
+}
+
+ICO_NAMES = tuple(ICO_COL.keys())
+
+
+def ico_lw(size):
+    """The one stroke weight (page mm) of an icon `size` mm square: 1.5 grid units = size / 16."""
+    return size * ICO_LW_UNITS / ICO_GRID
+
+
+def _ico_mix(a, b, t):
+    """hex a -> hex b by t."""
+    pa = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    pb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(pa[i] + (pb[i] - pa[i]) * t)) for i in range(3))
+
+
+def _ico_arc(x, y, rx, ry, a0, a1, n=16):
+    """Points on an ellipse arc from a0 to a1 degrees (both included), grid units."""
+    import math as _m
+    return [(x + rx * _m.cos(_m.radians(a0 + (a1 - a0) * i / float(n))),
+             y + ry * _m.sin(_m.radians(a0 + (a1 - a0) * i / float(n)))) for i in range(n + 1)]
+
+
+def _ico_circ(x, y, r, n=32):
+    return _ico_arc(x, y, r, r, 0.0, 360.0, n)[:-1]
+
+
+def _ico_ell(x, y, rx, ry, n=32):
+    return _ico_arc(x, y, rx, ry, 0.0, 360.0, n)[:-1]
+
+
+def _ico_rrect(x0, y0, x1, y1, r=1.5):
+    """A box with the set's rounded corners (r grid units, clipped to half the short side)."""
+    r = max(0.0, min(r, (x1 - x0) / 2.0, (y1 - y0) / 2.0))
+    if r <= 0.0:
+        return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    return (_ico_arc(x1 - r, y0 + r, r, r, 270.0, 360.0, 4) + _ico_arc(x1 - r, y1 - r, r, r, 0.0, 90.0, 4)
+            + _ico_arc(x0 + r, y1 - r, r, r, 90.0, 180.0, 4) + _ico_arc(x0 + r, y0 + r, r, r, 180.0, 270.0, 4))
+
+
+def _ico_drop(x, yc, r, apex):
+    """A water drop: round body r at (x, yc), point at (x, apex)."""
+    import math as _m
+    a = _m.degrees(_m.acos(r / float(apex - yc)))
+    return [(x, apex)] + _ico_arc(x, yc, r, r, 90.0 + a, 450.0 - a, 24)
+
+
+def _ico_leaf(b, t, w):
+    """A pointed leaf from base b to tip t, w wide at its middle."""
+    import math as _m
+    dx, dy = t[0] - b[0], t[1] - b[1]
+    L = _m.hypot(dx, dy)
+    nx, ny = -dy / L, dx / L
+    pts = []
+    for s_ in (1, -1):
+        rng = range(11) if s_ > 0 else range(10, -1, -1)
+        for i in rng:
+            s = i / 10.0
+            o = s_ * w / 2.0 * _m.sin(_m.pi * s)
+            pts.append((b[0] + dx * s + nx * o, b[1] + dy * s + ny * o))
+    return pts[:-1]
+
+
+def _ico_wave(x0, x1, y, amp, periods, n=24):
+    import math as _m
+    return [(x0 + (x1 - x0) * i / float(n), y + amp * _m.sin(2 * _m.pi * periods * i / float(n))) for i in range(n + 1)]
+
+
+def _ico_union(ox, oy, circles, rect, n=72):
+    """Outline of circles [(x, y, r)] united with a box (x0, y0, x1, y1) around (ox, oy), sampled by rays."""
+    import math as _m
+    out = []
+    for i in range(n):
+        a = 2 * _m.pi * i / n
+        dx, dy = _m.cos(a), _m.sin(a)
+        ts = []
+        if abs(dx) > 1e-9:
+            ts.append(((rect[2] if dx > 0 else rect[0]) - ox) / dx)
+        if abs(dy) > 1e-9:
+            ts.append(((rect[3] if dy > 0 else rect[1]) - oy) / dy)
+        t = min(ts)
+        for cx, cy, r in circles:
+            px, py = ox - cx, oy - cy
+            b = dx * px + dy * py
+            disc = b * b - (px * px + py * py - r * r)
+            if disc >= 0.0:
+                t = max(t, -b + _m.sqrt(disc))
+        out.append((ox + t * dx, oy + t * dy))
+    return out
+
+
+def _ico_arrowhead(x, y, ang, L=3.0, w=3.0):
+    """A filled arrow tip at (x, y) pointing at ang degrees."""
+    import math as _m
+    a = _m.radians(ang)
+    ux, uy = _m.cos(a), _m.sin(a)
+    bx, by = x - ux * L, y - uy * L
+    return [(x, y), (bx - uy * w / 2.0, by + ux * w / 2.0), (bx + uy * w / 2.0, by - ux * w / 2.0)]
+
+
+def _ico_grid(name):
+    """The icon in grid units with colour tokens: ("poly", ring, fill, stroke) / ("line", pts, colour)."""
+    import math as _m
+    P, L = "poly", "line"
+    G = -8.0                                                         # the ground line of standing objects
+    if name == "water":
+        return [(P, _ico_drop(0.0, -3.0, 6.5, 10.0), "c1", "ink")]
+    if name == "stream":
+        top, bot = _ico_wave(-10.0, 10.0, 3.0, 1.2, 1.5), _ico_wave(-10.0, 10.0, -5.0, 1.2, 1.5)
+        return [(P, top + bot[::-1], "c1", None), (L, top, "ink"), (L, bot, "ink"),
+                (L, _ico_wave(-6.0, 6.0, -1.0, 1.0, 1.0, 16), "c2")]
+    if name == "stream_out":                                         # page 18: the clean stream leaves past the fields
+        return [(P, [(-10.0, 3.5), (2.0, 3.5), (2.0, 0.5), (10.0, 5.5), (2.0, 10.5), (2.0, 7.5), (-10.0, 7.5)],
+                 "c1", "ink"),
+                (P, [(-10.0, -9.0), (4.0, -9.0), (10.0, -2.0), (-4.0, -2.0)], "c2", "ink"),
+                (L, [(-5.3, -9.0), (0.7, -2.0)], "ink"), (L, [(-0.7, -9.0), (5.3, -2.0)], "ink")]
+    if name == "flow":
+        return [(P, [(-10.0, -1.75), (2.0, -1.75), (2.0, -6.0), (10.0, 0.0), (2.0, 6.0), (2.0, 1.75), (-10.0, 1.75)],
+                 "c1", "ink")]
+    if name == "depth":                                              # a basin section with its water depth
+        return [(P, [(-8.0, 1.0), (8.0, 1.0), (5.0, -8.0), (-5.0, -8.0)], "c1", None),
+                (L, [(-11.0, 5.0), (-9.4, 5.0), (-5.0, -8.0), (5.0, -8.0), (9.4, 5.0), (11.0, 5.0)], "ink"),
+                (L, [(0.0, -5.0), (0.0, -2.0)], "ink"), (P, _ico_arrowhead(0.0, -8.0, -90.0), "ink", None),
+                (P, _ico_arrowhead(0.0, 1.0, 90.0), "ink", None)]
+    if name == "high_water":
+        surf = _ico_wave(-10.0, 10.0, -1.0, 0.9, 2.0)
+        return [(P, surf + [(10.0, -9.0), (-10.0, -9.0)], "c1", None), (L, surf, "ink"),
+                (P, [(-3.5, 6.0), (3.5, 6.0), (0.0, 0.0)], "c2", "ink"),
+                (L, [(-2.5, -3.5), (2.5, -3.5)], "ink"), (L, [(-1.25, -6.0), (1.25, -6.0)], "ink"),
+                (L, [(8.0, 0.5), (8.0, 6.5)], "ink"), (P, _ico_arrowhead(8.0, 10.0, 90.0, 3.5, 4.0), "ink", None)]
+    if name == "rain":
+        cloud = _ico_union(0.0, 0.0, [(-6.5, -0.5, 2.5), (6.5, -0.5, 2.5), (-3.0, 2.0, 3.5), (2.5, 3.0, 4.5)],
+                           (-6.5, -3.0, 6.5, 2.0))
+        return [(P, cloud, "c1", "ink")] + [(L, [(x, -5.5), (x - 1.5, -9.5)], "c2") for x in (-4.0, 0.5, 5.0)]
+    if name == "drought":
+        sh = [(P, _ico_rrect(-10.0, -9.0, 10.0, -3.0), "c1", "ink"),
+              (L, [(-5.0, -3.0), (-3.8, -5.2), (-5.8, -7.0), (-4.8, -9.0)], "ink"),
+              (L, [(3.5, -3.0), (2.4, -5.6), (4.4, -7.2), (3.6, -9.0)], "ink"),
+              (P, _ico_circ(0.0, 4.5, 3.0), "c2", "ink")]
+        return sh + [(L, _ico_arc(0.0, 4.5, 4.75, 4.75, a, a, 1)[:1] + _ico_arc(0.0, 4.5, 6.75, 6.75, a, a, 1)[:1],
+                      "ink") for a in (0.0, 45.0, 90.0, 135.0, 180.0)]
+    if name == "sun":
+        sh = [(P, _ico_circ(0.0, 0.0, 4.5), "c1", "ink")]
+        return sh + [(L, _ico_arc(0.0, 0.0, 6.5, 6.5, a, a, 1)[:1] + _ico_arc(0.0, 0.0, 9.5, 9.5, a, a, 1)[:1], "ink")
+                     for a in range(0, 360, 45)]
+    if name == "shade":                                              # a crown and the shadow it casts
+        return [(P, _ico_ell(0.0, G - 0.5, 9.0, 1.75), "c2", None), (L, [(0.0, G), (0.0, -1.0)], "ink"),
+                (P, _ico_ell(0.0, 3.5, 9.0, 5.0), "c1", "ink")]
+    if name == "reeds":                                              # D2 a: common reed only in a lined, root-contained basin
+        sh = [(P, [(-7.55, -3.0), (7.55, -3.0), (5.0, -9.0), (-5.0, -9.0)], "c1", None)]
+        for x, h, s, ly in ((-4.0, 6.5, -1.0, -1.0), (0.0, 8.5, 1.0, 1.0), (4.0, 5.5, 1.0, -2.0)):
+            sh += [(L, [(x, -6.0), (x, h - 2.0)], "c2"),
+                   (P, _ico_leaf((x, ly), (x + 3.0 * s, ly + 3.5), 1.6), "c2", None),
+                   (P, _ico_ell(x, h, 1.1, 2.4, 16), "c2", "ink")]
+        return sh + [(L, [(-11.0, 0.5), (-8.8, 0.5), (-5.0, -9.0), (5.0, -9.0), (8.8, 0.5), (11.0, 0.5)], "ink")]
+    if name == "plants":
+        return [(P, _ico_leaf((-0.75, G), (-8.0, 2.0), 4.0), "c1", "ink"),
+                (P, _ico_leaf((0.75, G), (8.0, 2.0), 4.0), "c1", "ink"),
+                (P, _ico_leaf((0.0, G), (0.0, 8.0), 5.0), "c2", "ink"), (L, [(-10.0, G), (10.0, G)], "ink")]
+    if name == "tree":
+        return [(L, [(0.0, G - 1.0), (0.0, -3.0)], "ink"), (L, [(-5.0, G - 1.0), (5.0, G - 1.0)], "ink"),
+                (P, _ico_circ(0.0, 3.0, 7.0), "c1", "ink")]
+    if name == "olive":                                              # a forked trunk under a wide crown, three fruits
+        return [(L, [(0.0, G - 1.0), (0.0, -5.0), (-3.0, -1.5)], "ink"), (L, [(0.0, -5.0), (3.0, -1.5)], "ink"),
+                (L, [(-5.0, G - 1.0), (5.0, G - 1.0)], "ink"), (P, _ico_ell(0.0, 3.5, 9.5, 5.5), "c1", "ink"),
+                (P, _ico_circ(-4.0, 3.0, 1.25, 12), "ink", None), (P, _ico_circ(1.0, 5.5, 1.25, 12), "ink", None),
+                (P, _ico_circ(3.5, 1.5, 1.25, 12), "ink", None)]
+    if name == "field":
+        return [(P, [(-10.0, -6.0), (4.0, -6.0), (10.0, 6.0), (-4.0, 6.0)], "c1", "ink"),
+                (L, [(-5.3, -6.0), (0.7, 6.0)], "ink"), (L, [(-0.7, -6.0), (5.3, 6.0)], "ink")]
+    if name == "drip":
+        sh = [(L, [(-10.0, 4.0), (10.0, 4.0)], "ink"), (L, [(-10.0, G), (10.0, G)], "ink")]
+        for x in (-6.0, 0.0, 6.0):
+            sh += [(P, _ico_rrect(x - 1.25, 2.75, x + 1.25, 5.25, 0.6), "ink", None),
+                   (P, _ico_drop(x, -3.0, 1.75, 0.5), "c1", "ink")]
+        return sh
+    if name == "sewage":                                             # a pipe mouth and what falls from it
+        return [(P, _ico_rrect(-10.0, 1.0, 4.0, 7.0, 0.0), "c2", "ink"),
+                (P, _ico_rrect(3.5, -0.5, 6.0, 8.5), "c2", "ink"),
+                (P, _ico_drop(8.0, -3.0, 2.0, 1.0), "c1", "ink"),
+                (P, _ico_ell(5.0, -8.5, 5.0, 1.5), "c1", "ink")]
+    if name == "nutrients":                                          # a drop with what it carries (NH4-N, P)
+        return [(P, _ico_drop(0.0, -3.0, 6.5, 10.0), "c1", "ink"),
+                (P, _ico_circ(-2.5, -4.5, 1.25, 12), "c2", None), (P, _ico_circ(2.0, -2.0, 1.25, 12), "c2", None),
+                (P, _ico_circ(0.5, -6.5, 1.25, 12), "c2", None), (P, _ico_circ(-0.5, 1.5, 1.0, 12), "c2", None)]
+    if name == "treatment":                                          # a sawtooth works hall and a round settling tank
+        return [(L, [(-11.0, G), (11.0, G)], "ink"),
+                (P, [(-10.0, G), (-2.0, G), (-2.0, 4.0), (-6.0, 1.5), (-6.0, 4.0), (-10.0, 1.5)], "c2", "ink"),
+                (P, _ico_circ(5.5, -3.25, 4.75), "c1", "ink"), (P, _ico_circ(5.5, -3.25, 2.0, 16), None, "ink")]
+    if name == "storage":                                            # a cylinder tank, filled to its level
+        rx, ry, top, lev, bot = 7.0, 2.0, 5.0, -1.0, -7.0
+        front = _ico_arc(0.0, bot, rx, ry, 180.0, 360.0)
+        return [(P, [(-rx, top)] + front + [(rx, top)], "paper", None),
+                (P, [(-rx, lev)] + front + [(rx, lev)] + _ico_arc(0.0, lev, rx, ry, 0.0, -180.0), "c1", None),
+                (P, _ico_ell(0.0, lev, rx, ry), "c2", None),
+                (L, [(-rx, top)] + front + [(rx, top)], "ink"),
+                (P, _ico_ell(0.0, top, rx, ry), "paper", "ink")]
+    if name == "uv":                                                 # a UV lamp over the water it disinfects
+        sh = [(P, _ico_rrect(-10.0, -9.0, 10.0, -4.0, 0.0), "c1", None), (L, [(-10.0, -4.0), (10.0, -4.0)], "ink"),
+              (P, _ico_rrect(-7.0, 2.0, 7.0, 5.5, 1.75), "c2", "ink")]
+        sh += [(L, [(x, 0.0), (x * 1.25, -2.5)], "c2") for x in (-6.0, -3.0, 0.0, 3.0, 6.0)]
+        return sh + [(L, [(x, 7.5), (x * 1.25, 10.0)], "c2") for x in (-4.5, 0.0, 4.5)]
+    if name in ("glass", "not_drinkable"):
+        return [(P, [(-5.5, 3.0), (5.5, 3.0), (4.5, -9.0), (-4.5, -9.0)], "c1", None),
+                (L, [(-6.0, 9.0), (-4.5, -9.0), (4.5, -9.0), (6.0, 9.0)], "ink")]
+    if name == "chart":
+        return [(P, _ico_rrect(-7.0, -9.0, -3.0, 5.0, 0.0), "c1", None),
+                (P, _ico_rrect(-1.0, -9.0, 3.0, -1.0, 0.0), "c2", None),
+                (P, _ico_rrect(5.0, -9.0, 9.0, -5.0, 0.0), "c2", None),
+                (L, [(-10.0, 9.0), (-10.0, -9.0), (10.0, -9.0)], "ink")]
+    if name == "people":
+        return [(P, _ico_circ(-4.0, 5.5, 2.5, 20), "ink", None), (P, _ico_rrect(-8.0, -9.0, 0.0, 2.0, 3.0), "c1", "ink"),
+                (P, _ico_circ(5.0, 2.5, 2.0, 20), "ink", None), (P, _ico_rrect(2.0, -9.0, 8.0, -0.5, 2.5), "c2", "ink")]
+    if name == "walk":
+        return [(P, _ico_circ(1.0, 7.5, 2.25, 20), "c1", None),
+                (L, [(0.5, 4.0), (-1.0, -2.0)], "c1"), (L, [(-1.0, -2.0), (-4.0, -5.0), (-5.0, -9.0)], "c1"),
+                (L, [(-1.0, -2.0), (2.0, -5.5), (3.5, -9.0)], "c1"), (L, [(-4.5, -0.5), (-2.5, 2.5), (0.3, 3.2)], "c1"),
+                (L, [(0.3, 3.2), (2.5, 0.5), (5.0, -0.5)], "c1")]
+    if name == "bike":
+        return [(P, _ico_circ(-6.0, -4.0, 4.0), None, "ink"), (P, _ico_circ(6.0, -4.0, 4.0), None, "ink"),
+                (L, [(-6.0, -4.0), (-1.0, -4.0), (-3.0, 2.0), (-6.0, -4.0)], "c1"),
+                (L, [(-3.0, 2.0), (4.0, 2.0), (-1.0, -4.0)], "c1"), (L, [(6.0, -4.0), (3.0, 5.0), (5.5, 5.0)], "c1"),
+                (L, [(-5.0, 3.5), (-1.5, 3.5)], "c1")]
+    if name == "hub":                                                # a meeting node: a disc in a ring, routes leaving it
+        sh = [(P, _ico_circ(0.0, 0.0, 7.0), "c2", "ink"), (P, _ico_circ(0.0, 0.0, 3.5, 24), "c1", "ink")]
+        return sh + [(L, _ico_arc(0.0, 0.0, 7.0, 7.0, a, a, 1)[:1] + _ico_arc(0.0, 0.0, 10.5, 10.5, a, a, 1)[:1], "ink")
+                     for a in (45.0, 135.0, 225.0, 315.0)]
+    if name == "market":                                             # a Kermes stall: striped awning, posts, counter
+        sh = [(P, [(-10.0, 7.0), (0.0, 10.0), (10.0, 7.0)], "c1", "ink"),
+              (L, [(-8.75, 3.0), (-8.75, G)], "ink"), (L, [(8.75, 3.0), (8.75, G)], "ink")]
+        for i in range(4):
+            x0 = -10.0 + 5.0 * i
+            sh.append((P, [(x0, 7.0)] + _ico_arc(x0 + 2.5, 4.0, 2.5, 2.0, 180.0, 360.0, 8) + [(x0 + 5.0, 7.0)],
+                       "c1" if i % 2 == 0 else "c2", "ink"))
+        return sh + [(P, _ico_rrect(-10.0, G - 1.0, 10.0, -3.5), "c2", "ink")]
+    if name == "heritage":                                           # a temple front
+        sh = [(P, [(-10.0, 3.0), (10.0, 3.0), (0.0, 9.5)], "c1", "ink"), (P, _ico_rrect(-10.0, -9.0, 10.0, -6.0, 0.0), "c1", "ink")]
+        return sh + [(P, _ico_rrect(x - 1.0, -6.0, x + 1.0, 3.0, 0.0), "c2", "ink") for x in (-6.5, -2.2, 2.2, 6.5)]
+    if name == "cafe":
+        steam = [(L, [(x + 0.8 * _m.sin(i * 1.05), 4.0 + i * 0.75) for i in range(8)], "ink") for x in (-3.0, 1.5)]
+        return steam + [(L, _ico_arc(5.3, -2.0, 3.0, 3.0, -90.0, 90.0, 10), "ink"),
+                        (P, [(-7.0, 2.0), (6.0, 2.0), (4.5, -6.5), (-5.5, -6.5)], "c1", "ink"),
+                        (L, [(-9.0, -8.5), (8.0, -8.5)], "ink")]
+    if name == "seating":                                            # a bench with a back
+        return [(L, [(-10.0, G), (10.0, G)], "ink"), (L, [(-7.5, -1.5), (-7.5, G)], "ink"),
+                (L, [(7.5, -1.5), (7.5, G)], "ink"), (L, [(-7.5, 0.5), (-7.5, 3.5)], "ink"),
+                (L, [(7.5, 0.5), (7.5, 3.5)], "ink"),
+                (P, _ico_rrect(-10.0, -2.0, 10.0, 0.5, 0.75), "c1", "ink"),
+                (P, _ico_rrect(-10.0, 3.0, 10.0, 6.0, 0.75), "c1", "ink")]
+    if name == "viewpoint":                                          # an eye
+        return [(P, _ico_arc(0.0, -6.0, 11.66, 11.66, 30.96, 149.04, 16)
+                 + _ico_arc(0.0, 6.0, 11.66, 11.66, 210.96, 329.04, 16), "paper", "ink"),
+                (P, _ico_circ(0.0, 0.0, 3.75, 24), "c1", "ink"), (P, _ico_circ(0.0, 0.0, 1.25, 12), "ink", None)]
+    if name == "warning":
+        return [(P, [(-10.0, -8.0), (10.0, -8.0), (0.0, 9.32)], "c1", "c1"),
+                (P, _ico_rrect(-1.0, -2.5, 1.0, 4.5, 1.0), "paper", None), (P, _ico_circ(0.0, -5.25, 1.25, 12), "paper", None)]
+    if name == "key_area":
+        return [(P, _ico_rrect(-9.0, -6.0, 9.0, 6.0), "c1", "ink")]
+    if name == "key_line":
+        return [(L, [(-10.0, 0.0), (10.0, 0.0)], "c1")]
+    if name == "key_dash":
+        return [(L, [(x, 0.0), (x + 4.0, 0.0)], "c1") for x in (-10.0, -2.0, 6.0)]
+    if name == "key_point":
+        return [(P, _ico_circ(0.0, 0.0, 4.5, 24), "c1", "ink")]
+    raise ValueError("icons: unknown icon %r (see ICO_NAMES)" % (name,))
+
+
+def _ico_colours(name, ink, accent, second):
+    """Token -> hex for one icon: ink, c1 (accent overrides), c2 (second overrides; None = c1 mixed to paper)."""
+    d1, d2 = ICO_COL[name]
+    c1 = accent or ICO_PAL[d1]
+    c2 = second or (ICO_PAL[d2] if d2 else _ico_mix(c1, ICO_PAL["paper"], 0.6))
+    return dict(ink=ink or ICO_PAL["ink"], c1=c1, c2=c2, paper=ICO_PAL["paper"])
+
+
+def ico_cross(cx, cy, size, colour=None, casing=True):
+    """The "not allowed / not drinkable" cross over an icon: corner to corner of the live area, 1.5 x the stroke,
+    on a paper casing one stroke wider."""
+    u, lw = size / ICO_GRID, ico_lw(size)
+    a, b = [(cx - 9.5 * u, cy - 9.5 * u), (cx + 9.5 * u, cy + 9.5 * u)], [(cx - 9.5 * u, cy + 9.5 * u), (cx + 9.5 * u, cy - 9.5 * u)]
+    sh = [("line", a, ICO_PAL["paper"], 2.5 * lw), ("line", b, ICO_PAL["paper"], 2.5 * lw)] if casing else []
+    return sh + [("line", a, colour or ICO_PAL["accent"], 1.5 * lw), ("line", b, colour or ICO_PAL["accent"], 1.5 * lw)]
+
+
+def ico_draw(name, cx, cy, size, ink=None, accent=None, second=None):
+    """Icon `name` (ICO_NAMES) centred at (cx, cy), size mm square: shapes. accent recolours c1, second c2."""
+    u, lw = size / ICO_GRID, ico_lw(size)
+    grid = _ico_grid(name)                                           # unknown names stop here
+    col = _ico_colours(name, ink, accent, second)
+    out = []
+    for s in grid:
+        if s[0] == "poly":
+            ring = [(cx + x * u, cy + y * u) for x, y in s[1]]
+            out.append(("poly", ring, col.get(s[2]) if s[2] else None, col.get(s[3]) if s[3] else None, lw))
+        else:
+            out.append(("line", [(cx + x * u, cy + y * u) for x, y in s[1]], col.get(s[2], s[2]), lw))
+    if name == "not_drinkable":
+        out += ico_cross(cx, cy, size)
+    return out
+
+
+def ico_badge(name, cx, cy, size, frame="circle", fill=None, edge=None, ink=None, accent=None, second=None):
+    """Icon `name` on a round ("circle") or rounded-square ("square") plate size mm across, for legends: the icon at
+    0.72 of the plate; plate in paper unless fill, with an edge line (one stroke of the plate size) only if edge."""
+    lw = ico_lw(size)
+    if frame == "square":
+        h = size / 2.0 - lw / 2.0
+        r = size * 3.0 / ICO_GRID
+        ring = [(cx + x, cy + y) for x, y in _ico_rrect(-h, -h, h, h, r)]
+    else:
+        ring = [(cx + x, cy + y) for x, y in _ico_circ(0.0, 0.0, size / 2.0 - lw / 2.0, 40)]
+    plate = ("poly", ring, fill or ICO_PAL["paper"], edge, lw if edge else 0.0)
+    return [plate] + ico_draw(name, cx, cy, size * 0.72, ink, accent, second)
+
+
+def ico_step(cx, cy, size, style="solid", colour=None, ink=None):
+    """A numbered flow-step marker (page 18, steps 1-7) size mm across: (shapes, (ax, ay), text_hex, cap_mm).
+    The caller writes the number centred on (ax, ay) in text_hex at cap height cap_mm (0.42 x size)."""
+    lw = ico_lw(size)
+    c = colour or ICO_PAL["water_deep"]
+    ring = [(cx + x, cy + y) for x, y in _ico_circ(0.0, 0.0, size / 2.0 - lw / 2.0, 40)]
+    if style == "ring":
+        return [("poly", ring, ICO_PAL["paper"], c, lw)], (cx, cy), (ink or ICO_PAL["ink"]), 0.42 * size
+    return [("poly", ring, c, None, lw)], (cx, cy), ICO_PAL["paper"], 0.42 * size
+LOG_DIR = bg_logs()                       # Aras 25 Oct 09:34-09:35: every script's log here
 
 
 def write_log(text):
@@ -427,7 +960,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff', 'STEPS': '1fda2b774117b9c7a365a61ad6be5ac7', 'SKETCH_SRC': 'b858333cd0fa1e8cb4e112dc932789ee'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff'}.get(name):
         raise RuntimeError("Data file bergama_agriculture_alternatives_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_agriculture_alternatives_data.py:" + name, "exec"), globals())
@@ -510,6 +1043,151 @@ def text_w(s, size, bold=False):
     w = sum(_HW[ord(ch) - 32] if 32 <= ord(ch) < 127 else 556 for ch in s)
     return w / 1000.0 * size * (1.06 if bold else 1.0) * 0.3528      # size in pt -> width in mm
 
+
+# ---- G2/G3 (MIRAQUA round, 28 Oct 2026): Arial EMBEDDED in every sheet PDF -------------------------------------
+# The sheets wrote the PDF standard fonts without embedding (Helvetica, Courier) with the Turkish letters in unused
+# WinAnsi slots: the text was right (it copies and searches as İ ğ ş), but viewers without those glyphs drew nothing
+# ("stiklal", "De irmen"). Now each font slot is Arial, embedded as a simple TrueType font with the SAME encoding
+# (WinAnsi + the six Turkish letters in slots 129/141/143/144/157/158), so the strings, their measuring and the
+# booklet's reading of the sheets stay as they were. Arial has Helvetica's widths, so nothing moves; text measured
+# as Courier (the old monospace captions) comes out a little shorter. Text stays live for Illustrator.
+# The font files are the system's (C:\Windows\Fonts\arial*.ttf, or the user's font folder): read and packed once per
+# run. If a file is missing, that slot falls back to the old standard font and PDF_FONT_NOTE says so (for the log).
+_PF_EXTRA = {u"Ğ": 0x81, u"ğ": 0x8D, u"İ": 0x8F, u"ı": 0x90, u"Ş": 0x9D, u"ş": 0x9E}
+_PF_DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157 /Scedilla 158 /scedilla]"
+_PF_FILES = {"R": ("arial.ttf", "ArialMT", "Helvetica"), "B": ("arialbd.ttf", "Arial-BoldMT", "Helvetica-Bold"),
+             "I": ("ariali.ttf", "Arial-ItalicMT", "Helvetica-Oblique"),
+             "BI": ("arialbi.ttf", "Arial-BoldItalicMT", "Helvetica-BoldOblique")}
+_PF_CACHE = {}
+PDF_FONT_NOTE = []
+
+
+def _pf_path(fn):
+    import os as _o
+    dirs = [_o.path.join(_o.environ.get("WINDIR", r"C:\Windows"), "Fonts"),
+            _o.path.join(_o.environ.get("LOCALAPPDATA", ""), "Microsoft", "Windows", "Fonts"),
+            "/Library/Fonts", "/System/Library/Fonts/Supplemental", "/usr/share/fonts/truetype/msttcorefonts"]
+    for d in dirs:
+        for nm in (fn, fn.capitalize(), fn.upper()):
+            p = _o.path.join(d, nm)
+            if _o.path.isfile(p):
+                return p
+    return None
+
+
+def _pf_metrics(data):
+    """widths of codes 32-255 (1000 units per em) and the descriptor numbers, read from the TrueType tables"""
+    import struct as _s
+    n = _s.unpack(">H", data[4:6])[0]
+    tab = {}
+    for i in range(n):
+        tag, _c, off, ln = _s.unpack(">4sIII", data[12 + 16 * i:28 + 16 * i])
+        tab[tag.decode("latin-1")] = (off, ln)
+    h = tab["head"][0]
+    upm = _s.unpack(">H", data[h + 18:h + 20])[0]
+    bbox = _s.unpack(">hhhh", data[h + 36:h + 44])
+    hh = tab["hhea"][0]
+    asc, desc = _s.unpack(">hh", data[hh + 4:hh + 8])
+    nhm = _s.unpack(">H", data[hh + 34:hh + 36])[0]
+    hm = tab["hmtx"][0]
+    adv = [_s.unpack(">H", data[hm + 4 * i:hm + 4 * i + 2])[0] for i in range(nhm)]
+    cm = tab["cmap"][0]
+    sub = None
+    for i in range(_s.unpack(">H", data[cm + 2:cm + 4])[0]):
+        pid, eid, off = _s.unpack(">HHI", data[cm + 4 + 8 * i:cm + 12 + 8 * i])
+        if pid == 3 and eid == 1:
+            sub = cm + off
+    seg = _s.unpack(">H", data[sub + 6:sub + 8])[0] // 2
+    ends = _s.unpack(">%dH" % seg, data[sub + 14:sub + 14 + 2 * seg])
+    p = sub + 16 + 2 * seg
+    starts = _s.unpack(">%dH" % seg, data[p:p + 2 * seg])
+    deltas = _s.unpack(">%dh" % seg, data[p + 2 * seg:p + 4 * seg])
+    ro_at = p + 4 * seg
+    ros = _s.unpack(">%dH" % seg, data[ro_at:ro_at + 2 * seg])
+
+    def gid(u):
+        for k in range(seg):
+            if starts[k] <= u <= ends[k]:
+                if ros[k] == 0:
+                    return (u + deltas[k]) & 0xFFFF
+                a = ro_at + 2 * k + ros[k] + 2 * (u - starts[k])
+                g = _s.unpack(">H", data[a:a + 2])[0]
+                return (g + deltas[k]) & 0xFFFF if g else 0
+        return 0
+    inv = dict((v, k) for k, v in _PF_EXTRA.items())
+    widths = []
+    for code in range(32, 256):
+        try:
+            ch = inv.get(code) or bytes([code]).decode("cp1252")
+        except Exception:
+            ch = None
+        g = gid(ord(ch)) if ch else 0
+        widths.append(int(round(adv[min(g, nhm - 1)] * 1000.0 / upm)) if g else 0)
+    cap, ital, weight = 0.716 * upm, 0.0, 400
+    if "OS/2" in tab:
+        o = tab["OS/2"][0]
+        weight = _s.unpack(">H", data[o + 4:o + 6])[0]
+        if _s.unpack(">H", data[o:o + 2])[0] >= 2:
+            cap = _s.unpack(">h", data[o + 88:o + 90])[0]
+    if "post" in tab:
+        o = tab["post"][0]
+        ital = _s.unpack(">i", data[o + 4:o + 8])[0] / 65536.0
+    k = 1000.0 / upm
+    return dict(widths=widths, bbox=[int(round(v * k)) for v in bbox], asc=int(round(asc * k)),
+                desc=int(round(desc * k)), cap=int(round(cap * k)), ital=ital, bold=weight >= 600)
+
+
+def _pf_style(st):
+    """(compressed font file, its length, metrics, PostScript name) of one style, or None: read once per run"""
+    if st not in _PF_CACHE:
+        fn, ps, _std = _PF_FILES[st]
+        p, got = _pf_path(fn), None
+        if p:
+            try:
+                import zlib as _z
+                with open(p, "rb") as fh:
+                    raw = fh.read()
+                got = (_z.compress(raw, 6), len(raw), _pf_metrics(raw), ps)
+            except Exception as e:
+                PDF_FONT_NOTE.append("font %s not read (%s): standard font used" % (fn, e))
+        else:
+            PDF_FONT_NOTE.append("font %s not found: standard font %s used (Turkish letters may not show)" % (fn, _std))
+        _PF_CACHE[st] = got
+    return _PF_CACHE[st]
+
+
+def pdf_fonts(add, styles, content=None):
+    """Font objects for a PDF writer: styles = one of "R", "B", "I", "BI" per font slot /F1, /F2 ... in order (a slot
+    may repeat a style: the same objects are used). add(bytes) -> object number, as the writers' own add().
+    content: the page content (str or bytes); when given, a slot it never uses gets the light standard-font object
+    instead of an embedded file. Returns the object numbers, one per slot."""
+    if isinstance(content, bytes):
+        content = content.decode("latin-1")
+    made, out = {}, []
+    for i, st in enumerate(styles):
+        used = content is None or ("/F%d " % (i + 1)) in content
+        key = st if used else "std-" + st
+        if key not in made:
+            got = _pf_style(st) if used else None
+            if got is None:
+                made[key] = add(("<< /Type /Font /Subtype /Type1 /BaseFont /%s /Encoding << /Type /Encoding "
+                                 "/BaseEncoding /WinAnsiEncoding %s >> >>" % (_PF_FILES[st][2], _PF_DIFF)).encode("latin-1"))
+            else:
+                data, n, m, ps = got
+                ff = add(("<< /Length %d /Length1 %d /Filter /FlateDecode >>\nstream\n" % (len(data), n)).encode("latin-1")
+                         + data + b"\nendstream")
+                flags = 32 + (64 if "I" in st else 0)
+                fd = add(("<< /Type /FontDescriptor /FontName /%s /Flags %d /FontBBox [%s] /ItalicAngle %s /Ascent %d "
+                          "/Descent %d /CapHeight %d /StemV %d /FontFile2 %d 0 R >>" % (
+                              ps, flags, " ".join(str(v) for v in m["bbox"]), ("%.1f" % m["ital"]), m["asc"], m["desc"],
+                              m["cap"], 140 if m["bold"] else 80, ff)).encode("latin-1"))
+                made[key] = add(("<< /Type /Font /Subtype /TrueType /BaseFont /%s /FirstChar 32 /LastChar 255 "
+                                 "/Widths [%s] /FontDescriptor %d 0 R /Encoding << /Type /Encoding /BaseEncoding "
+                                 "/WinAnsiEncoding %s >> >>" % (ps, " ".join(str(w) for w in m["widths"]), fd, _PF_DIFF)
+                                 ).encode("latin-1"))
+        out.append(made[key])
+    return out
+
 class Page:
     def __init__(self, w, h):
         self.w, self.h, self.ops, self.alphas = w, h, [], set()
@@ -570,8 +1248,14 @@ def write_pdf(pages, path):
     n = len(pages)
     objs = ["<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [%s] /Count %d >>" % (" ".join("%d 0 R" % (5 + 2 * i) for i in range(n)), n),
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding %s >> >>" % _DIFF,
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding %s >> >>" % _DIFF]
+            "", ""]
+    extra, first = [], 5 + 2 * n                          # G2/G3 28 Oct: Arial embedded (common/pdf_fonts.py):
+
+    def add(b):                                           # font file + descriptor go after the pages
+        extra.append(b.decode("latin-1"))
+        return first + len(extra) - 1
+    fid = pdf_fonts(add, ("R", "B"))
+    objs[2], objs[3] = extra[fid[0] - first], extra[fid[1] - first]   # the font dicts themselves stay objects 3, 4
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"); offs = []
     for i, o in enumerate(objs):
         offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (i + 1, o)).encode("latin-1")
@@ -583,6 +1267,8 @@ def write_pdf(pages, path):
                 % (5 + 2 * i, pg.w * k, pg.h * k, (" /ExtGState << %s>>" % gs) if gs else "", 6 + 2 * i)).encode("latin-1")
         offs.append(len(out))
         out += ("%d 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n" % (6 + 2 * i, len(content))).encode("latin-1") + content + b"\nendstream\nendobj\n"
+    for j, o in enumerate(extra):
+        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (first + j, o)).encode("latin-1")
     x = len(out)
     out += ("xref\n0 %d\n0000000000 65535 f \n" % (len(offs) + 1) + "".join("%010d 00000 n \n" % o for o in offs) +
             "trailer\n<< /Size %d /Root 1 0 R /Info << /Title (Bergama agriculture alternatives) >> >>\nstartxref\n%d\n%%%%EOF\n" % (len(offs) + 1, x)).encode("latin-1")
@@ -606,9 +1292,20 @@ SRC_KEY = []          # v1.6: sources printed as [n] on pages 1-3, numbered once
 LOG_NOTES = []        # v1.6: what the layout left out (log)
 
 def cite(src):
-    """v1.2 (water board v1.6 method): the number of a source in the sheet's key (v1.6: page 4), as "[n]"."""
+    """v1.2 (water board v1.6 method): the number of a source in the sheet's key (v1.6: page 4), as "[n]".
+    v4 (MIRAQUA 28 Oct, F5): "" for a source that is not public online (F5_OFF): no mark, not in the key.
+    v5 (T4a, D13): also "" for a source naming our own model run or method (F5_INTERNAL); status words cut (F5_STATUS)."""
+    if not src or src in F5_OFF or any(t in src for t in F5_INTERNAL):
+        return ""
+    src = F5_STATUS.sub("", src).strip()
     if src not in SRC_KEY: SRC_KEY.append(src)
     return "[%d]" % (SRC_KEY.index(src) + 1)
+
+
+def cited(s, *srcs):
+    """v4 (F5): s with its [n] marks after one space, or s alone when none of its sources is public"""
+    mk = "".join(cite(q) for q in srcs if q)
+    return s + (" " + mk if mk else "")
 
 def wrap(s, size, w, bold=False):
     out, line = [], ""
@@ -649,14 +1346,17 @@ def photo_mark(key):
 
 def photo_frame(pg, pi, key, x, top, P=None):
     """v2: the frame of a plant's photo, PHOTO_W x PHOTO_H mm, its top-left at (x, top) on page index pi: a thin faint
-    outline, and the photo recorded for put_photos, or "no photo" inside the frame. P: a Placer that keeps the frame."""
-    p = photo_get(key)[0]
+    outline, and the photo recorded for put_photos, or "no photo" inside the frame. P: a Placer that keeps the frame.
+    v4 (MIRAQUA 28 Oct, G12): an empty frame says why, as the water board's cards: "no photo: " + the loader's reason
+    (common/plant_photos.py: offline, Wikimedia refused (HTTP 429) press again later, file not found, licence ...),
+    7 pt (the booklet's smallest), top left in the frame."""
+    p, _cr, why = photo_get(key)
     pg.rect(x, top - PHOTO_H, PHOTO_W, PHOTO_H, stroke=C["faint"], lw=0.2)
     PHOTO_N[0] += 1
     if p:
         PHOTO_FR.append((pi, x, top - PHOTO_H, x + PHOTO_W, top, p))
     else:
-        pg.text("no photo", x + PHOTO_W / 2.0, top - PHOTO_H / 2.0 - 0.8, 6, C["ink2"], align="C")
+        pg.para(u"no photo: " + (why or u"not loaded"), x + 1.5, top - 4.0, PHOTO_W - 3.0, 7, C["ink2"], lead=1.2)
     if P is not None:
         P.boxes.append((x, top - PHOTO_H, x + PHOTO_W, top))
 
@@ -685,6 +1385,12 @@ def name_caps(key):
     return en.upper() + ((" (" + tr.replace(u"i", u"İ").upper()) if tr else "")
 
 
+def crop_word(key):
+    """v4 (MIRAQUA 28 Oct, G11): a crop key as a short printed word, the English name of the shared table: "maize" ->
+    "corn", "cotton" -> "cotton"; a key the table does not have stays as it is"""
+    return plant_name(key).partition(" (")[0].lower() if key in PLANTS else key
+
+
 def put_photos(path):
     """v2: the plant and crop photos into their frames on pages 1 and 3 (PyMuPDF, after write_pdf and put_base); a photo
     error never stops the sheet. Returns the log lines: how many were placed, and why each missing one is missing."""
@@ -704,94 +1410,46 @@ def put_photos(path):
 STAGE_TAG = u"C  WATER  ·  WHAT WE DO WITH IT"   # v3 (Prompt 6, rule 7): the booklet's theme and stage of pages 1 and 3
 
 
-def header(pg, n, title, sub, hole=None, tag="AGRICULTURE ANALYSIS · GROUP 6"):
+HEAD_Y = (285.0, 276.5, 269.5)       # v4 (MIRAQUA 28 Oct, P19.1): baselines of the kicker, the title and the subtitle
+
+
+def header(pg, title, sub, hole=None, tag=None):
+    """v4 (MIRAQUA 28 Oct, F10 decision 3, default remove; P19.1): the sheet's big page number before the title is
+    gone (it read as a booklet page number); the booklet stage tag (pages 1 and 3) is the kicker over the title, top
+    left, where the booklet's own pages carry theirs (8 pt, 12 mm from the top edge); title and subtitle on the 14 mm
+    margin (were at 26 behind the number). G1: no "AGRICULTURE ANALYSIS · GROUP 6" line (page 2 had it)."""
     if hole:                                       # v1.5: a window left open for a plan placed under the page
         x0, y0, x1, y1 = hole
         pg.path([[(0, 0), (420, 0), (420, 297), (0, 297)], [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]], fill=C["white"])
     else:                                          # v1.6 (Aras 27 Oct): white, the beige paper goes
         pg.rect(0, 0, 420, 297, fill=C["white"])
-    pg.text(n, 14, 279, 22, C["accent"], True)
-    pg.text(title, 26, 279, 22, C["ink"], True)
-    pg.text(sub, 26, 271.5, 11, C["ink2"])
     if tag:                                        # v3: pages 1 and 3 name their booklet stage (accent, as its kicker)
-        pg.text(tag, 406, 281, 7, C["accent"] if tag == STAGE_TAG else C["ink2"], True, "R")
+        pg.text(tag, 14, HEAD_Y[0], 8, C["accent"], True)
+    pg.text(title, 14, HEAD_Y[1], 22, C["ink"], True)
+    pg.text(sub, 14, HEAD_Y[2], 11, C["ink2"])
 
-# ------------------------------------------------------------------ v1.2 pictograms and tiles (from water board v1.6/v1.7)
-def icon(pg, kind, x, y, sz):
-    """a pictogram in the square (x, y - sz)-(x + sz, y), drawn on a 10 x 10 grid. Graphic only."""
-    u = sz / 10.0; lw = 0.07 * sz
-    P = lambda pts: [(x + a * u, y - sz + b * u) for a, b in pts]
-    Q = lambda a0, b0, a1, b1: P([(a0, b0), (a1, b0), (a1, b1), (a0, b1)])
-    O = lambda a, b, r, **kw: pg.circle(x + a * u, y - sz + b * u, r * u, **kw)
-    pt = lambda mm: mm / 0.3528
+# ------------------------------------------------------------------ pictograms and tiles
+# v5 (T4a, 29 Oct, 02 §2): every pictogram comes from the shared icon set (common/icons.py); the script's own icon()
+# with its 10 x 10 grid drawings is gone. AG_ICONS: tile key -> (icons.py name, crossed out).
+AG_ICONS = {"nowater": ("drought", False), "cotton": ("field", False), "olive": ("olive", False),
+            "drip": ("drip", False), "cube": ("storage", False)}
 
-    def drop(a, b, r, col):
-        pg.poly(P([(a - r * 0.85, b + r * 0.45), (a, b + r * 2.2), (a + r * 0.85, b + r * 0.45)]), fill=col, closed=True)
-        O(a, b, r, fill=col)
-    ink, ink2, acc = C["ink"], C["ink2"], C["accent"]
-    if kind == "nowater":                       # no water-hungry crops
-        drop(5.0, 2.6, 2.3, C["water"])
-        pg.line(P([(1.2, 1.0), (8.8, 9.2)]), acc, lw * 1.4)
-    elif kind == "cotton":
-        pg.line(P([(5.0, 0.4), (5.0, 5.0)]), C["green_deep"], lw)
-        for a, b in ((3.3, 5.9), (6.7, 5.9), (5.0, 8.1)): O(a, b, 1.9, fill=C["white"], stroke=ink2, lw=lw * 0.6)
-    elif kind == "olive":
-        pg.poly(Q(4.5, 0.4, 5.5, 4.4), fill=ink2, closed=True)
-        O(5.0, 6.2, 3.4, fill=C["green_mid"])
-        for a, b in ((3.8, 6.8), (6.0, 5.4), (5.4, 7.8)): O(a, b, 0.5, fill=ink)
-    elif kind == "drip":
-        pg.poly(Q(0, 7.0, 10, 8.4), fill=ink2, closed=True)
-        for a in (2.0, 5.0, 8.0): drop(a, 3.4, 0.8, C["water_deep"])
-        pg.poly(Q(0, 0.4, 10, 1.6), fill=C["field"], closed=True)
-    elif kind == "cube":                        # storage
-        pg.poly(P([(5, 9.8), (9.2, 7.6), (5, 5.4), (0.8, 7.6)]), fill=C["water_light"], closed=True)
-        pg.poly(P([(0.8, 7.6), (5, 5.4), (5, 0.4), (0.8, 2.6)]), fill=C["water"], closed=True)
-        pg.poly(P([(5, 5.4), (9.2, 7.6), (9.2, 2.6), (5, 0.4)]), fill=C["water_deep"], closed=True)
-    elif kind in ("inside", "outside"):         # fields inside / outside the site frame
-        if kind == "inside":
-            pg.poly(Q(0.6, 0.6, 9.4, 9.4), fill="E8E5DA", stroke=ink, lw=lw, closed=True)
-            pg.poly(P([(2.0, 2.0), (6.6, 2.0), (8.0, 6.4), (3.4, 6.4)]), fill=C["field"], closed=True)
+
+def _ag_put(pg, shapes):
+    """icons.py house shapes ("poly", ring, fill, stroke, lw) / ("line", pts, colour, lw), page mm y up, on this Page"""
+    for sh in shapes:
+        if sh[0] == "poly":
+            pg.poly(sh[1], fill=sh[2], stroke=sh[3], lw=sh[4] or 0.2, closed=True)
         else:
-            pg.poly(Q(0.4, 3.4, 5.4, 9.4), fill="E8E5DA", stroke=ink, lw=lw, closed=True)
-            pg.poly(P([(4.6, 0.4), (8.6, 0.4), (9.8, 3.6), (5.8, 3.6)]), fill=C["field"], closed=True)
-            pg.poly(P([(6.6, 4.6), (9.0, 4.6), (9.8, 8.2), (7.4, 8.2)]), fill=C["field"], closed=True)
-    elif kind == "extent":
-        pg.poly(P([(0.4, 3.0), (7.4, 0.4), (9.6, 7.0), (2.6, 9.6)]), fill=C["paper"], stroke=ink, lw=lw, closed=True)
-        pg.poly(P([(2.4, 3.6), (5.0, 2.6), (5.8, 5.0), (3.2, 6.0)]), fill=C["field"], closed=True)
-        O(6.6, 6.4, 1.2, fill=C["orchard"])
-    elif kind == "route":                       # a route not drawn yet
-        pg.line(P([(0.6, 1.4), (4.0, 4.6), (6.2, 3.6), (9.4, 8.6)]), C["water_deep"], lw, (lw * 2.0, lw * 1.6))
-        pg.text("?", x + 7.6 * u, y - sz + 1.0 * u, pt(4.2 * u), acc, True, "C")
-    elif kind == "clean":                       # reeds in water
-        pg.poly(Q(0, 0, 10, 2.4), fill=C["water"], closed=True)
-        for k_ in range(5):
-            a = 1.6 + k_ * 1.7; t = 6.4 + (k_ % 2) * 2.4
-            pg.line(P([(a, 0.8), (a + 0.3, t)]), C["green_deep"], lw)
-            pg.poly(Q(a - 0.25, t - 1.8, a + 0.85, t + 0.2), fill=C["green_mid"], closed=True)
-    elif kind == "hold":                        # roots holding the bank
-        pg.poly(P([(0, 0.4), (10, 0.4), (10, 6.0), (0, 2.0)]), fill=C["structure"], closed=True)
-        for a in (3.0, 6.6):
-            b = 2.0 + a * 0.4
-            pg.line(P([(a, b), (a, b + 3.2)]), C["green_deep"], lw)
-            pg.line(P([(a, b), (a - 1.4, b - 1.6)]), ink, lw * 0.7)
-            pg.line(P([(a, b), (a + 1.2, b - 1.8)]), ink, lw * 0.7)
-            pg.line(P([(a, b), (a, b - 1.6)]), ink, lw * 0.7)
-            O(a, b + 3.6, 1.0, fill=C["green_mid"])
-    elif kind == "shade":                       # tree and its shade
-        pg.poly(Q(0.6, 0.4, 9.4, 1.4), fill=C["ink2"], closed=True)
-        pg.poly(Q(4.5, 1.4, 5.5, 5.2), fill=ink2, closed=True)
-        O(5.0, 6.8, 3.0, fill=C["green_deep"])
-    elif kind == "scent":                       # flowering shrub and scent lines
-        for a in (3.2, 5.0, 6.8):
-            pg.line(P([(5.0, 0.4), (a, 5.0)]), C["green_deep"], lw)
-            O(a, 5.6, 0.8, fill=acc)
-        for a in (2.6, 5.0, 7.4):
-            pg.line(P([(a + (0.5 if j % 2 else -0.5), 6.8 + j * 0.8) for j in range(4)]), ink2, lw * 0.7)
-    elif kind == "nose":                        # odour, effect not measured
-        for k_ in range(3):
-            a = 2.0 + k_ * 2.6
-            pg.line(P([(a + (0.7 if j % 2 else -0.7), 0.8 + j * 1.6) for j in range(6)]), ink2, lw)
-        pg.text("?", x + 8.8 * u, y - sz + 0.6 * u, pt(3.4 * u), acc, True, "C")
+            pg.line(sh[1], sh[2], sh[3])
+
+
+def _ag_icon(pg, kind, x, y, sz):
+    """the icon set's pictogram for a tile key in the square (x, y - sz)-(x + sz, y)"""
+    name, crossed = AG_ICONS.get(kind, (kind, False))
+    _ag_put(pg, ico_draw(name, x + sz / 2.0, y - sz / 2.0, sz))
+    if crossed:
+        _ag_put(pg, ico_cross(x + sz / 2.0, y - sz / 2.0, sz))
 
 def tiles(pg, x, y, w, items, cols=1, s=1.0, fill=None):
     """v1.2 (water board v1.6): facts as tiles: pictogram, keyword heading, the key figure large, short keyword lines and
@@ -815,7 +1473,7 @@ def tiles(pg, x, y, w, items, cols=1, s=1.0, fill=None):
         for c_, (kind, big, L3, _) in enumerate(row):
             tx = x + c_ * (tw + g)
             pg.rect(tx, yy - rh, tw, rh, fill=fill or C["white"], stroke=C["faint"], lw=0.2)
-            icon(pg, kind, tx + pad, yy - pad, ic)
+            _ag_icon(pg, kind, tx + pad, yy - pad, ic)
             lx, ly = tx + 2 * pad + ic, yy - pad
             for ln in L3[0]:
                 ly -= fh * 1.25 * k; pg.text(ln, lx, ly + fh * 0.25 * k, fh, C["ink"], True)
@@ -840,14 +1498,17 @@ def north(pg, x, y, ang_deg, r=7.0):
     pg.text("N", tip[0] + ux * 3.0, tip[1] + uy * 3.0 - 1.2, 8, C["ink"], True, "C")
 
 # ------------------------------------------------------------------ page 1: what each cubic metre grows
-NEWS = "news: Ajans Bakırçay 19.03.2025 (research/water_data/03 §3)"
-TUIK = "TÜİK Bitkisel Üretim, Bergama 2025 (library/research/crops_2026-10-24 §1.24-1.25)"
+# v4 (MIRAQUA 28 Oct, F5: public online sources only): the public sources keep their words, the project's own file
+# pointers go from the printed key (kept here: NEWS research/water_data/03 §3; TUIK library/research/crops_2026-10-24
+# §1.24-1.25; NET_REF research/water_balance/tables/C1). G11: corn, not maize, where printed (data keys stay "maize").
+NEWS = "news: Ajans Bakırçay 19.03.2025"
+TUIK = "TÜİK Bitkisel Üretim, Bergama 2025"
 KAYA = "Kaya et al. 2017, Irrig. Drain. 66(5):820-827, Tables II, III, VI, pp.823-826 (deficit saving: Table II, S0.50 and S0.25 vs control)"
 ITB = "İzmir Ticaret Borsası cotton report 2025, p.5"
-NET_REF = ("net irrigation: research/water_balance/tables/C1 (FAO-56, Allen et al. 1998; MGM/WMO 17742 normals; ERA5 1991-2025 "
-           "scaled); per ha = FAO-56 daily soil balance net need (34 water years, Bergama climate) / 0.90 drip (calculated)")
-TAGEM = ("check: TAGEM/DSİ 2017 §12 Bergama 17742 station tables (net = ETc - 0.8 rain, our arithmetic): cotton 829 vs our 853 mm, "
-         "maize 765 vs 723, tomato 606-825 vs 781, olive 502-603 vs 614")
+NET_REF = ("net irrigation: FAO-56 (Allen et al. 1998), MGM/WMO 17742 normals, ERA5 1991-2025 scaled; per ha = FAO-56 "
+           "daily soil balance net need (34 water years, Bergama climate) / 0.90 drip")
+TAGEM = ("TAGEM/DSİ 2017 §12, Bergama station 17742 tables (net = ETc - 0.8 rain): cotton 829 mm, corn 765, "
+         "tomato 606-825, olive 502-603")   # v5 (D13): was our check against our own figures
 # v1.2: the context sentences as tiles (pictogram, heading, big figure, keyword lines, source)
 # v2 (Aras 27 Oct, Prompt 5): the crops they name as "English (Turkish)"; figures and sources as they were
 CONTEXT = [
@@ -862,8 +1523,11 @@ CONTEXT = [
       "highest oil content"], KAYA),
     ("drip", "TODAY'S IRRIGATION ON THE FARMS", None, ["some Bergama growers moved to drip"], ITB),
 ]
-REPLACES = [("cube", "THE WATER BOARD LINE IT REPLACES", "10,000 m³ = 1.22 ha olive",
-             ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
+def replaces():
+    """v5.1: the "what it replaces" tile, its hectares live (NET is filled by build() before page_cubic runs)"""
+    return [("cube", "THE WATER BOARD LINE IT REPLACES", u"10,000 m³ = {:.2f} ha {}".format(
+        10000.0 / gross_m3_ha("olive", "dry"), name_lc("olive")),   # v3.1: (Zeytin)
+        ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
 DEFICIT = (1 - 350.0 / 622, 1 - 175.0 / 622)   # olive water saved: S0.50 and S0.25 against the control SC, Kaya et al. 2017 Table II
 # Bergama district areas 2025, da (TÜİK MEDAS export, library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §1.25):
 # the share of each crop the water balance models, used for the district mix row
@@ -910,7 +1574,7 @@ def history_line(pg, x, top, w, floor):
                 pg.line([(X(a), yb), (X(b), yb)], col, 1.0)
         else:
             pg.circle(X(a), yb, 0.8, fill=col)
-        if P.put(pg, lab + " " + cite(ref), X((a + b) / 2.0 if b else a), yb + (0.6 if up else -0.6), 7, col, False, region=reg,
+        if P.put(pg, cited(lab, ref), X((a + b) / 2.0 if b else a), yb + (0.6 if up else -0.6), 7, col, False, region=reg,
                  gap=2.0, up=up, lanes=4, lead_col=col, stick=True) is None:
             LOG_NOTES.append("p1 history label left out (no free place): " + lab)
     return ya - 15.0
@@ -942,17 +1606,21 @@ def crop_row(pg, x, top, w, floor):
 
 
 # ------------------------------------------------------------------ v3 (Prompt 6): the stream comes first
-PRIORITY = [(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
-WE_DO = [(1, "clean once, at the upstream end"), (2, "hold winter water"), (3, "strip first, all summer"),
-         (4, "plant each step for the water it gets"), (5, "surplus to the farms outside, never drinking")]
+P1_X = 14.0                          # v4 (MIRAQUA 28 Oct, F10): page 1's left column on the 14 mm margin with the title
+                                     # (was 26, behind the page number that is gone)
+PRIORITY =[(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
+AG_STEP_MM = 4.0                     # v5 (T4a): the flow-step marker (icons.py ico_step), mm
 
 
 def chip(pg, x, y, n, label, size=7.5):
-    """v3: a numbered step: the number white in an accent square, the label after it (baseline y). Returns x after it."""
-    pg.rect(x, y - 0.7, 3.6, 3.6, fill=C["accent"])
-    pg.text(str(n), x + 1.8, y + 0.15, 6.5, C["white"], True, "C")
-    pg.text(label, x + 4.8, y, size, C["ink"])
-    return x + 4.8 + text_w(label, size)
+    """v3: a numbered step, the label after it (baseline y). Returns x after it. v5 (T4a, 02 §2): the marker is the
+    icon set's flow-step marker (icons.py ico_step), its number written in it, never under 7 pt."""
+    s = AG_STEP_MM
+    sh, (ax, ay), th, cap = ico_step(x + s / 2.0, y + 1.1, s, "solid", C["accent"])
+    _ag_put(pg, sh)
+    pg.text(str(n), ax, ay - cap / 2.0, max(7.0, cap / 0.716 / 0.3528), th, True, "C")
+    pg.text(label, x + s + 1.2, y, size, C["ink"])
+    return x + s + 1.2 + text_w(label, size)
 
 
 def step_arrow(pg, x, y):
@@ -969,10 +1637,6 @@ def chips(pg, x, y, steps, size=7.5):
         if i: x = step_arrow(pg, x + 1.5, y) + 1.5
         x = chip(pg, x, y, n, lab, size)
     return x
-
-
-def chips_w(steps, size=7.5):
-    return sum(4.8 + text_w(lab, size) for _, lab in steps) + 7.0 * (len(steps) - 1)
 
 
 def squeeze(ys):
@@ -999,13 +1663,13 @@ def stream_first(pg, L, src, y_top):
     (carried on, or back to the stream after 365 days), the store size dashed across both; then the double squeeze.
     All from the water balance results (design.year_split); without them only the priority row. Returns the bottom y."""
     yA = y_top - 3.5
-    pg.text("THE STREAM COMES FIRST", 26, yA, 9, C["accent"], True)
-    chips(pg, 26 + text_w("THE STREAM COMES FIRST", 9, True) + 5.0, yA, PRIORITY)
+    pg.text("THE STREAM COMES FIRST", P1_X, yA, 9, C["accent"], True)
+    chips(pg, P1_X + text_w("THE STREAM COMES FIRST", 9, True) + 5.0, yA, PRIORITY)
     ys = L.get("year_split")
     if not (ys and "normal" in ys and "dry5" in ys):
         LOG_NOTES.append("FLAG p1: the water balance results have no year_split (water balance v4 has not run): the "
                          "normal and dry-year bars and the squeeze line are left out")
-        ag_crop("ag1_stream", 0, 24.0, yA - 2.0, 266.0, y_top + 1.0)
+        ag_crop("ag1_stream", 0, P1_X - 2.0, yA - 2.0, 266.0, y_top + 1.0)
         return yA - 1.0
     mix = L.get("design_mix") or "design mix"
     mix_t = " + ".join(name_lc(w.split()[-1]) if w.split() and w.split()[-1] in PLANTS else w for w in mix.split(" + "))
@@ -1032,25 +1696,25 @@ def stream_first(pg, L, src, y_top):
             if w_ > 0.05:
                 pg.rect(xs, bot, w_, 6.0, fill=col)
             t = v_t(v)
-            if v >= 0.5:
-                tw_ = text_w(t, 6.5, True)
+            if v >= 0.5:                           # v3.1: the block's small words 7 pt, the smallest size (were 6.5)
+                tw_ = text_w(t, 7, True)
                 if tw_ + 1.6 <= w_:                # inside, centred
-                    pg.text(t, xs + w_ / 2.0, bot + 2.2, 6.5, ink, True, "C")
+                    pg.text(t, xs + w_ / 2.0, bot + 2.2, 7, ink, True, "C")
                 else:                              # outside: over the normal bar, under the dry bar
                     tx = max(xs + w_ / 2.0 - tw_ / 2.0, out_x + 1.5)
-                    pg.text(t, tx, top + 0.9 if j == 0 else bot - 2.9, 6.5, C["ink"], True)
+                    pg.text(t, tx, top + 0.9 if j == 0 else bot - 2.9, 7, C["ink"], True)
                     out_x = tx + tw_
             xs += w_
         pg.text(lab, x0 - 3.0, top - 2.6, 8, C["ink"], True, "R")
-        pg.text("water year " + d["water_year"], x0 - 3.0, bot + 0.6, 6.5, C["ink2"], align="R")
+        pg.text("water year " + d["water_year"], x0 - 3.0, bot + 0.6, 7, C["ink2"], align="R")
         pg.text("%s m³ through the store" % v_t(tot[k]), x0 + BW + 4.0, top - 2.4, 7.5, C["ink"], True)
         pg.text("stream's winter flow: %.0f %% of a median year" % d["winter_flow_pct_of_median"], x0 + BW + 4.0,
-                bot + 0.6, 6.5, C["ink2"])
+                bot + 0.6, 7, C["ink2"])
     if V > 0:                                      # the store size, dashed across both bars
         xv = x0 + kx * V
         pg.line([(xv, b1 - 17.8), (xv, b1 + 0.8)], C["ink"], 0.35, (1.0, 0.7))
     lg = b1 - 17.0 - 7.0                           # the legend row, then the squeeze in two lines
-    xx = 26.0
+    xx = P1_X
     for kind, cols, lab in (("fill", (C["water_deep"],), "strip, also waters the bed planting"),
                             ("fill", (C["green_light"], C["green_deep"]), "farms: normal · dry year"),
                             ("fill", (C["faint"],), "left: carried on, or back to the stream after a year"),
@@ -1060,18 +1724,18 @@ def stream_first(pg, L, src, y_top):
                 pg.rect(xx, lg - 0.3, 3.5, 2.6, fill=c_); xx += 4.0
             else:
                 pg.line([(xx + 1.7, lg - 0.6), (xx + 1.7, lg + 2.6)], c_, 0.35, (1.0, 0.7)); xx += 4.0
-        pg.text(lab, xx + 0.8, lg, 6.5, C["ink"])
-        xx += 0.8 + text_w(lab, 6.5) + 5.0
+        pg.text(lab, xx + 0.8, lg, 7, C["ink"])           # v3.1: 7 pt (was 6.5)
+        xx += 0.8 + text_w(lab, 7) + 5.0
     a, b, c = squeeze(ys)
     pg.text("1-in-5 dry year vs normal year: left for farms after the strip %s · need per hectare %s · hectares %s %s" % (
-        pc(a), pc(b), pc(c), mk), 26, lg - 4.0, 7.5, C["accent"], True)
+        pc(a), pc(b), pc(c), mk), P1_X, lg - 4.0, 7.5, C["accent"], True)
     if b > 0.0 and a <= 0.0:                       # what the run shows, said as it is (the log flags the other cases)
         t2 = "so the hectares fall faster than the volume: why deficit-irrigated %s is the lever" % name_lc("olive")
     elif b > 0.0 and c < 0.0:
         t2 = "the need per hectare outgrows the water left: why deficit-irrigated %s is the lever" % name_lc("olive")
     else:
         t2 = "the hectares hold in this dry year: the store covers it"
-    pg.text(t2, 26, lg - 7.4, 7.5, C["ink"])
+    pg.text(t2, P1_X, lg - 7.4, 7.5, C["ink"])
     if a > 0.0 or b <= 0.0:
         LOG_NOTES.append("MODEL p1: the dry year (%s) leaves the farms %s water after the strip and needs %s per hectare: "
                          "the squeeze is %s" % (ys["dry5"]["water_year"], pc(a), pc(b),
@@ -1084,23 +1748,23 @@ def stream_first(pg, L, src, y_top):
                                     fmt(n_["farms_m3"]), fmt(d_["farms_m3"]), fmt(n_["farm_need_m3"]),
                                     fmt(d_["farm_need_m3"]), pc(a), pc(b), pc(c), n_["winter_flow_pct_of_median"],
                                     d_["winter_flow_pct_of_median"]))
-    ag_crop("ag1_stream", 0, 24.0, lg - 9.0, 266.0, y_top + 1.0)
+    ag_crop("ag1_stream", 0, P1_X - 2.0, lg - 9.0, 266.0, y_top + 1.0)
     return lg - 8.2
 
 
 def page_cubic(L, src):
     pg = Page(420, 297)
-    header(pg, "1", "WHAT EACH CUBIC METRE GROWS",
+    header(pg, "WHAT EACH CUBIC METRE GROWS",
            "Same storage, different crops: hectares irrigated a season", tag=STAGE_TAG)
     s_lo, s_hi = span(L["storage_m3"]); p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
     w_lo, w_hi = n_lo * p_lo / 100.0, n_hi * p_hi / 100.0          # m3 the storage gives the farms in the 1-in-5 dry year
     fed = L["cropland_ha"] + L["orchard_ha"]
     SRC1 = "storage, need and share: " + src + "; water to farms = 1-in-5 dry-year need x share covered (calculated)"
-    MIX = ("Bergama mix = cotton, maize and tomato weighted by their 2025 district areas; no map shows what the 34.9 ha grow, "
-           "so the mix stands in; water balance crops: %s" % (", ".join(L["crops"]) or "not set"))
-    # key line
-    pg.text("%s-%s m³" % (fmt(rnd(s_lo)), fmt(rnd(s_hi))) if rnd(s_lo) != rnd(s_hi) else "%s m³" % fmt(rnd(s_lo)), 26, 250, 26, C["water_deep"], True)
-    pg.text("storage · cost cut-off " + cite(SRC1), 26, 242, 9, C["ink"])
+    MIX = ("Bergama mix = cotton, corn and tomato weighted by their 2025 district areas; no map shows what the 34.9 ha grow, "
+           "so the mix stands in; water balance crops: %s" % (", ".join(crop_word(c) for c in L["crops"]) or "not set"))
+    # key line (v4, F10: on the 14 mm margin with the title, was 26)
+    pg.text("%s-%s m³" % (fmt(rnd(s_lo)), fmt(rnd(s_hi))) if rnd(s_lo) != rnd(s_hi) else "%s m³" % fmt(rnd(s_lo)), P1_X, 250, 26, C["water_deep"], True)
+    pg.text("storage · cost cut-off " + cite(SRC1), P1_X, 242, 9, C["ink"])
     pg.text("%s-%s m³" % (fmt(rnd(w_lo)), fmt(rnd(w_hi))), 120, 250, 26, C["green_deep"], True)
     pg.text("to farms · 1-in-5 dry year · %s %% of need · strip first" % (("%.0f" % p_lo) if "%.0f" % p_lo == "%.0f" % p_hi else "%.0f-%.0f" % (p_lo, p_hi)), 120, 242, 9, C["ink"])
     # bars: hectares served by W, per crop (v2, Prompt 5: the crop names "English (Turkish)")
@@ -1148,7 +1812,7 @@ def page_cubic(L, src):
             legend=[{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
                     {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
                     {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
-    ag_crop("ag1_headline", 0, 24.0, 239.0, 262.0, 261.0)
+    ag_crop("ag1_headline", 0, P1_X - 2.0, 239.0, 262.0, 261.0)
     # key to the two bars
     ky = yb_ - 10.0
     pg.rect(x0, ky, 6, 3, fill=C["green_light"]); pg.text("normal year (mean of 34)", x0 + 8, ky + 0.5, 7, C["ink"])
@@ -1186,7 +1850,7 @@ def page_cubic(L, src):
         ag_crop("ag1_history", 0, cx - 1.0, hb - 1.0, cx + 127.0, yb_ - 3.0)
     crop_row(pg, cx, (hb or yb_) - 7.0, 126.0, 64.0)           # v2 (Prompt 5): the crops as photos, above "what it replaces"
     pg.text("WHAT IT REPLACES", cx, 60, 9, C["accent"], True)
-    yb_ = tiles(pg, cx, 57, 126, REPLACES)
+    yb_ = tiles(pg, cx, 57, 126, replaces())
     ag_crop("ag1_replaces", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, 58.0)
     return pg
 
@@ -1289,18 +1953,19 @@ def page_farms(L, src):
         else:
             G, gnote = None, "the farms lie outside the site board's plan 01"
     BASE["note"] = gnote
-    header(pg, "2", "THE FARMS WE FEED", "Fields and orchards the stored water serves, on the site plan \"What is there\"",
+    header(pg, "THE FARMS WE FEED", "Fields and orchards the stored water serves, on the site plan \"What is there\"",
            hole=hole if G else None)
-    WC = "ESA WorldCover 2021 v200, 10 m (CC BY 4.0), data/landcover"
-    ORCH = "orchards inferred from survey symbols SEMBOL_ZEYTINLIK / SEMBOL_MEYVA_BAH"
-    EXT = "extent = around2.pdf registered to the survey (research/water_balance)"
+    WC = "ESA WorldCover 2021 v200, 10 m (CC BY 4.0)"                # v4 (F5): read from Data/landcover
     NEED2 = "need: FAO-56 soil balance / 0.90 drip, normal and 1-in-5 dry years"
     SRC2 = "farm areas from " + src
-    PLAN = "base: site board plan 01 'What is there' (selinus_board, its own sheet PDF, cut and scaled, not redrawn)"
-    # context line (review global rule 4): what it shows, why it is here, what to take from it
-    pg.text("The site plan \"What is there\" with the fields and orchards our stored water serves outlined: the farms read "
-            "off the same base, colours and key as the site " + cite(PLAN if G else WC),
-            14, 265.5, 8.5, C["ink"])
+    # v4 (MIRAQUA 28 Oct, F5): no [n] for what is not public online: the orchards (course survey symbols
+    # SEMBOL_ZEYTINLIK / SEMBOL_MEYVA_BAH), the extent (around2.pdf registered to the survey) and the base (the site
+    # board's own plan 01, cut and scaled, not redrawn) are said on the page without a mark
+    # context line (review global rule 4): what it shows, why it is here, what to take from it; v4: 0.7 mm lower, under
+    # the subtitle's new baseline (header)
+    pg.text(cited("The site plan \"What is there\" with the fields and orchards our stored water serves outlined: the "
+                  "farms read off the same base, colours and key as the site", None if G else WC),
+            14, 264.8, 8.5, C["ink"])
     hx0, hy0, hx1, hy1 = hole
     if not G:                                      # fallback: v1.4's land cover drawing in the window, flagged
         A = GEO["around2"]
@@ -1341,10 +2006,11 @@ def page_farms(L, src):
     y -= 3.0
     rows = [("outline", C["accent"], "fields " + cite(SRC2), "%s ha" % fmt1(fed_c),
              ["%s-%s m³ a season %s" % (fmt(rnd(fed_c * c_lo)), fmt(rnd(fed_c * c_hi)), cite(NEED2)),
-              "as " + " / ".join(cc) + " " + cite(TUIK), "inside the site %s ha · outside %s ha %s" % (fmt1(f_in), fmt1(f_out), cite(WC))]),
-            ("outline2", C["accent_deep"], "orchards " + cite(ORCH), "%s ha" % fmt1(fed_o),
+              "as " + " / ".join(crop_word(c_) for c_ in cc) + " " + cite(TUIK),   # v4 (G11): corn, not maize
+              "inside the site %s ha · outside %s ha %s" % (fmt1(f_in), fmt1(f_out), cite(WC))]),
+            ("outline2", C["accent_deep"], "orchards", "%s ha" % fmt1(fed_o),             # v4 (F5): survey, no mark
              ["%s-%s m³ a season" % (fmt(rnd(fed_o * o_lo, 100)), fmt(rnd(fed_o * o_hi, 100))), "as olive"]),
-            ("dash", C["ink"], "the extent they lie in " + cite(EXT), "%s ha" % fmt(L.get("extent_ha", 455.0)), [])]
+            ("dash", C["ink"], "the extent they lie in", "%s ha" % fmt(L.get("extent_ha", 455.0)), [])]
     for kind, col, lab, big, lines in rows:
         key_sample(pg, kind, col, x, y)
         pg.text(lab, x + 5.5, y - 2.1, 6.5, C["ink"], True)
@@ -1366,7 +2032,7 @@ def page_farms(L, src):
         for key, lab, col in CLS:
             key_sample(pg, "fill", col, x, y)
             pg.text(lab, x + 5.5, y - 2.0, 5.5, C["ink"]); y -= 3.6
-    ag_crop("ag2_plan", 1, 13.0, min(y, wy0) - 1.0, 407.0, 269.0, den)
+    ag_crop("ag2_plan", 1, 13.0, min(y, wy0) - 1.0, 407.0, 267.6, den)   # v4: under the subtitle (269.5 now)
     return pg
 
 
@@ -1388,41 +2054,17 @@ def put_base(path):
     os.replace(tmp, path)
     return "farms map on %s at 1:{:,} (georeference fit {:.2f} mm)".format(BASE["den"], BASE["err"]) % BASE["note"]
 
-# ------------------------------------------------------------------ page 3: one plant ladder, streambed to field
-# zones: interpretation of research/water_data/04 §3 (MITECO bands, 92D0 thickets, USDA NRCS TN-38 zones); depths
-# from research/rain_river_levels/README.md "The answers in short" and (Q100/Q500, v1.2) its v1.1 correction of 24 Oct
-# (surveyed sections, line 49); today's cover from the satellite corridor bands
-SPECIES = ("species, flood and cleaning evidence: research/water_data/04 (POWO, FEIS, JRC Atlas, Korkusuz et al. 2004, "
-           "Aydın Temel et al. 2017, Xie et al. 2021, RHS)")
-BANDS = "bands = our reading of MITECO, Salinas & Cueto 2009 (92D0), USDA NRCS TN-38"
-DEPTH = ("depths: research/rain_river_levels (DSİ Q100/Q500, calculated; Q100/Q500 on the surveyed sections, v1.1 "
-         "correction of 24 Oct)")
-TODAY = "today's cover: ESA WorldCover 2021 by distance from the OSM Selinos centreline"
-REUSE = "reuse class B: 2010 communiqué as quoted (EN-E1)"
-# v1.6 (Aras 27 Oct 11:07, p26 "update to match the current project ... how the program changes people's
-# interactions"): the programme of option A and its historic roots, each from the project's own record
-CHAIN_REF = ("option A water chain: one way, cleaned once upstream in the reed basins, held in the terrace cascade, "
-             "summer strip from storage, surplus to existing farmland outside the site (proposal sections v6, "
-             "masterplan v23 detail notes)")
-PROG = ("MIRAQUA programme and its historic roots: hubs at the Roman bridges K3, K4, K5 (H1) with floodable in-bed "
-        "sub-hubs, hidden-stream square at İstiklal Meydanı (H2), tanning reach at K3 (H3), Tabaklar Hamamı at K4 (H4), "
-        "Late Antique workshops downstream (H7), plane-tree squares (D8): history decisions D1-D12 / H1-H7, "
-        "revision 27 Oct PHASE2_SPEC §3 (cards h01 §5, h02 §5, t02)")
-GARDEN = ("card i01: Demeter's Garden (Begüm's page, 25 Oct): Demeter 'the ancient symbol of abundance'; olives; "
-          "summer farm-to-table use; winter herbs and greens; seasonal production, education; south-west bank at K5")
-KERMES = "h01 §2.8: Kermes first 1937 (s100, s60); 90th edition 29.06-05.07.2026 (s60); in the low-water season"
-WB_YEAR = ("water board v1.13, S4 season rows: storage fills (winter), full by end of April (spring), low until the "
-           "rains (autumn); reeds gold, seed heads; first-flush cleaning")
-HARVEST = ("olive harvest month: Kaya et al. 2017, Memecik trees hand-harvested 6 Nov 2008, 10 Nov 2009, 14 Nov 2010 "
-           "(library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §4.19)")
-JOB_ICON = [("CLEAN", "clean"), ("HOLD", "hold"), ("SHADE", "shade"), ("SCENT", "scent"), ("HARVEST", "olive")]   # v1.2 job pictograms
-bergama_data("STEPS")
-# v1.6: the bank top as the project has it now (kept here so the Data file stays the v1.5 one): hub squares with plane
-# trees at the bridges (spec §3 D8; water board band E) and Demeter's Garden's olives at K5 (card i01; olive "will not
-# tolerate waterlogged soils", DATA_REGISTER PL-11)
-STEPS[3].update(sub="hub squares at the bridges · Demeter's Garden at K5", job="SHADE + SCENT",
-                plant=[("plane", "hub squares: Ottoman squares with plane trees (D8)")] + STEPS[3]["plant"] +
-                      [("olive", "Demeter's Garden (K5): dry top only, no waterlogged soil")])   # v2: PLANTS keys
+# ------------------------------------------------------------------ sources that are not public (F5, D13)
+# v4 (MIRAQUA 28 Oct, F5, Aras 28 Oct 11:38 "remove non-public citations"): the project's own record or internal
+# research cards are not public online: cite() gives them no [n] and they leave the key; their words stay on the page
+# as our own design statement. Facts now without a public source (reported): Tersane cotton (16th c.), ginning 1861,
+# Sümerbank (1954/60-2008), the 19th-c. olive-oil machinery in the Red Hall S rotunda.
+# v5 (T4a, 29 Oct, D13): also every source that names our own model run or method (F5_INTERNAL, by its words), and no
+# status word (calculated, assumed ...) is ever printed in a source (F5_STATUS); page 3 (the plant ladder) is gone (D9 a).
+F5_OFF = (COTTON_H, OLIVE_H)
+F5_INTERNAL = ("water balance results", "default-lands copy", "farm areas from", "Bergama mix = ", "our arithmetic")
+F5_STATUS = re.compile(r"\s*\((?:calculated|assumed|estimated|interpolated|indicative|design value)\)|"
+                       r"\s*\b(?:calculated|assumed|estimated|interpolated|indicative)\b", re.I)
 
 
 class Placer:
@@ -1471,443 +2113,6 @@ class Placer:
         return None
 
 
-# v1.6: the ladder is drawn three times, one row a season (as the water board's season pages): the same cut, the
-# season's water, and what people do on each step, by the proposal sections' sketch engine (p.23 language: hand
-# ground, washes, people). A diagram: one size across and up; heights not to scale.
-_SK = []
-def _tree_rand(x, y):
-    """A small repeatable random stream from the tree's position (the same in every Python)."""
-    s = [(int(round(x * 100.0)) * 73856093 ^ int(round(y * 100.0)) * 19349663) & 0x7FFFFFFF or 1]
-
-    def nxt():
-        s[0] = (s[0] * 1103515245 + 12345) & 0x7FFFFFFF
-        return s[0] / 2147483648.0
-    return nxt
-def sketch_engine():
-    if not _SK:
-        ns = {"__name__": "pr1_sketches", "_tree_rand": _tree_rand}   # reeds use the trees' random stream
-        exec(compile(SKETCH_SRC, "pr1_sketches", "exec"), ns)
-        _SK.append(ns)
-    return _SK[0]
-def xform(items, s, dx, dy):
-    """The items scaled by s about the origin, then moved by (dx, dy)."""
-    def T(p):
-        return (dx + s * p[0], dy + s * p[1])
-    out = []
-    for it in items:
-        k = it[0]
-        if k == "poly":
-            _, rings, fill, stroke, lw, dash, stripes, alpha = it
-            st = (stripes[0], stripes[1] * s, stripes[2] * s) + tuple(stripes[3:]) if stripes else None
-            out.append(("poly", [[T(p) for p in r] for r in rings], fill, stroke, lw * s,
-                        [d * s for d in dash] if dash else dash, st, alpha))
-        elif k == "line":
-            _, pts, stroke, lw, dash, cap = it
-            out.append(("line", [T(p) for p in pts], stroke, lw * s, [d * s for d in dash] if dash else dash, cap))
-        elif k == "circle":
-            _, cx, cy, r, fill, stroke, lw = it
-            out.append(("circle", dx + s * cx, dy + s * cy, r * s, fill, stroke, lw * s))
-        elif k == "text":
-            _, t, x, y, size, color, bold, align, mat, halo = it
-            out.append(("text", t, dx + s * x, dy + s * y, size * s, color, bold, align, mat, halo))
-    return out
-bergama_data("SKETCH_SRC")
-
-LAD_W = 200.0                        # sketch units across: 5 steps of 40
-LAD_S = LAD_W / 5.0
-LAD_X0, LAD_X1 = 106.0, 406.0        # the cut on the page, mm (left of it: the season column)
-LAD_F = (LAD_X1 - LAD_X0) / LAD_W    # mm a sketch unit, the same across and up
-LAD_GB = 12.0                        # the bottom of the cut ground, sketch units
-LAD_GY = (16.0, 21.0, 26.0, 30.0, 33.0)   # ground of each step (bed, lower bank, terrace, bank top, farms)
-LAD_Q100, LAD_Q500 = 30.8, 31.6      # over the bank top only at K4 / S4 (README v1.1 line 49), under the farms
-ROW_H = 50.0                         # mm a season row (v2: was 52; room for the plant photos; the tallest tree, the
-                                     # bank top's plane at 41 sketch units, ends 4.5 mm under the row's top)
-SUBHUB = (27.0, 36.0)                # the floodable sub-hub in the bed (spec §3 D2/D3/D10), sketch x
-HUB = (3 * LAD_S + 2.0, 3 * LAD_S + 17.0)   # the dry hub square on the bank top at the bridges (D2), sketch x
-SIT_FIG = [(-0.14, 0.0), (0.30, 0.0), (0.30, -0.42), (0.42, -0.42), (0.42, 0.13), (0.10, 0.14), (0.12, 0.62),
-           (0.05, 0.70), (-0.10, 0.70), (-0.17, 0.58)]   # a seated figure (m, as the board's SA_FIGS), seat at (0, 0)
-
-
-def _bed(i):
-    """the bed's water from STEPS (research/rain_river_levels): 0 = Jul-Sep, 1 = Jan-Apr"""
-    return STEPS[0]["water"][i].split(": ", 1)[1]
-
-
-# the season rows: what the water does (left column) and what people do where (on the cut). acts: (figure kind or
-# "sit" / None, sketch x, sketch y, flip, label, source). Sources: STEPS (water), spec §3 (programme), card i01
-# (garden), h01 (Kermes), Kaya 2017 (olive harvest), the water board's season words.
-def seasons():
-    g0, g1, g2, g3, g4 = LAD_GY
-    return [
-        dict(key="high", name="HIGH WATER", months="Jan-Apr", mark="winter",
-             side=[("bed " + _bed(1) + " deep", DEPTH), ("lower bank under water", None), ("sub-hubs closed", PROG),
-                   ("storage fills", WB_YEAR)],
-             acts=[("sit", 2 * LAD_S + 1.0, g2, True, "sit at the edge · watch the water", PROG),
-                   (0, HUB[0] + 4.0, g3, False, "hub square: dry, step-free", PROG),
-                   (2, HUB[0] + 8.5, g3, True, None, None),
-                   (None, sum(SUBHUB) / 2.0, g1 + 1.8, False, "sub-hub under water: closed", PROG)]),
-        dict(key="low", name="LOW WATER", months="Jul-Sep", mark="summer",
-             side=[("bed " + _bed(0), DEPTH), ("strip 0.30 m all summer (design)", None), ("sub-hubs open", PROG),
-                   (STEPS[4]["water"][0], None)],
-             acts=[(1, 10.5, g0, False, "walk in the bed", PROG),
-                   (0, 19.0, g0 - 2.0, False, "wade the strip", None),
-                   (2, SUBHUB[0] + 3.0, g0 + 0.7, False, "sub-hub open", PROG),
-                   (None, 6.0, g0 + 6.0, False, "Kermes (since 1937) in the dry bed", KERMES),
-                   (1, 2 * LAD_S + 20.0, g2, False, "shade under the trees", None),
-                   (0, HUB[0] + 4.0, g3, False, "hub square: plane-tree shade", PROG),
-                   (None, 3 * LAD_S + 25.0, g3 + 2.0, False, "at K5: Demeter's Garden · café, summer beds", GARDEN),
-                   (3, 4 * LAD_S + 19.0, g4, False, "fields + olives watered from storage", None)]),
-        dict(key="harvest", name="OLIVE HARVEST", months="Nov", mark="olive",
-             side=[("olives hand-picked in Nov", HARVEST), ("storage low until the rains", WB_YEAR),
-                   ("first-flush cleaning", WB_YEAR)],
-             acts=[(None, 5.0, g0 + 3.0, False, "reeds gold · seed heads", WB_YEAR),
-                   (0, 3 * LAD_S + 30.0, g3, False, "Demeter's Garden: winter herbs + greens · education", GARDEN),
-                   (3, 4 * LAD_S + 12.0, g4, False, "olive harvest", HARVEST),
-                   (1, 4 * LAD_S + 23.0, g4, True, None, None)])]
-
-
-def sk_draw(pg, items):
-    """sketch-engine page items (already placed with xform) on this script's Page"""
-    for it in items:
-        if it[0] == "poly":
-            _, rings, fill, stroke, lw, dash, _st, alpha = it
-            pg.path(rings, fill, stroke, lw, True, dash, alpha)
-        elif it[0] == "line":
-            _, pts, stroke, lw, dash, _cap = it
-            pg.line(pts, stroke, lw, dash)
-        elif it[0] == "text":
-            _, s, x, y, h, col, bold, align, _m, halo = it
-            pg.text(s, x, y, h / 0.3528, col, bool(bold), align or "L", halo)
-
-
-def ladder_row(sea, mark_xy):
-    """One season of the plant ladder in the p.23 sketch language: [(z, order, item)] in sketch units (0..LAD_W
-    across). mark_xy: where the season's sun / rain mark goes, sketch units (in the season column)."""
-    E = sketch_engine()
-    E["FORM"] = "A"                                   # organic only where the project meets the water
-    del E["ZP"][:]
-    E["ORDER"][0] = 0
-    o, w, gy = (0.0, 0.0), LAD_S, LAD_GY
-    g = [(0.0, LAD_GB), (0.0, gy[0])]
-    for i in range(1, 5):
-        xa = i * w
-        if i == 1:                                    # the water's edge: the bank in form A (organic)
-            g += E["bank"]((xa - 3.0, gy[0]), (xa + 3.0, gy[1]))
-        elif i == 2:                                  # the terrace edge: a sitting step (straight riser)
-            g += [(xa - 0.5, gy[1]), (xa + 0.5, gy[2])]
-        else:                                         # elsewhere faceted, straight slopes
-            g += [(xa - 2.0, gy[i - 1]), (xa + 2.0, gy[i])]
-    g += [(LAD_W, gy[4]), (LAD_W, LAD_GB)]
-    gs = E["sketch_ground"](o, E["notch"](g, [(13.0, 25.0, gy[0], 2.0)]))   # the summer strip's low-flow channel
-    pave = E["SEC_PAVE"]
-    E["fill"](o, [(HUB[0], gy[3] - 0.6), (HUB[1], gy[3] - 0.6), (HUB[1], gy[3]), (HUB[0], gy[3])], "paving", pave,
-              boundary=False, hand_=False)        # the dry hub square at street level (D2)
-    slab = [(SUBHUB[0], gy[0]), (SUBHUB[1], gy[0]), (SUBHUB[1], gy[0] + 0.7), (SUBHUB[0], gy[0] + 0.7)]
-    E["fill"](o, slab, "paving", pave, boundary=False, hand_=False)   # the floodable sub-hub in the bed
-    if sea["key"] == "high":
-        pc = E["under_level"](gs, 0.0, LAD_W, LAD_Q500)   # the design flood's reach (faint, as on p.23)
-        if pc:
-            E["wash"](o, pc, "flood", E["FLOOD_WASH"], E["FLOOD_ALPHA"])
-        E["water_level"](o, gs, 19.0, gy[1] + 1.8, E["W_WIN"], bed_hatch=True)   # winter highs: bed + lower bank
-        E["sketch"](o, slab, "paving", E["SKINK"], E["PEN_HAIR"], closed=True, over=0.0, retrace=False,
-                    dashed=True, z=E["Z_LINE"])       # the sub-hub under the water
-    elif sea["key"] == "low":
-        E["water_level"](o, gs, 19.0, gy[0] - 0.8, E["W_EXT"], line=False)       # the summer strip in its channel
-    else:
-        E["water_level"](o, gs, 19.0, gy[0] - 1.2, E["W_SUM"], line=False)       # autumn: water back in the channel
-    # plants by step (graphic sizes): reeds in the bed, rushes and shrubs on the lower bank, trees on the terrace,
-    # plane tree + lavender on the bank top, olives and a field crop on the farms
-    E["reeds"](o, 1.5, 8.0, gy[0] - 0.2, 4.2)
-    x_ = w + 4.0
-    while x_ < w + 18.0:                              # rushes: short hand tufts
-        for d in (-0.5, 0.0, 0.5):
-            E["sketch"](o, [(x_, gy[1]), (x_ + d * 0.9, gy[1] + 2.0 - abs(d))], "planting", E["REED"], E["LW_FINE"],
-                        over=0.0, amp=0.03, retrace=False, z=E["Z_TREE"])
-        x_ += 1.6
-    for xs, hs, ws in ((w + 24.0, 5.0, 6.0), (w + 33.0, 4.2, 5.0)):   # shrubs: Tamarix, Salix (domes, washes)
-        dome = [(xs + ws / 2.0 * math.cos(math.pi * i / 14.0), gy[1] + hs * math.sin(math.pi * i / 14.0) ** 0.7) for i in range(15)]
-        E["wash"](o, dome, "planting", E["SITE_TREE"][1], 0.6, z=E["Z_TREE"])
-        E["sketch"](o, dome, "planting", E["SITE_TREE"][2], E["LW_FINE"], closed=True, over=0.0, amp=0.12, retrace=False,
-                    z=E["Z_TREE"])
-    E["sketch_tree"](o, 2 * w + 14.0, gy[2], 11.0)
-    E["sketch_tree"](o, 2 * w + 30.0, gy[2], 9.0)
-    E["sketch_tree"](o, HUB[0] + 7.0, gy[3], 11.0)   # the hub square's plane tree (D8)
-    x_ = 3 * w + 20.0
-    while x_ < 3 * w + 31.0:                          # lavender mounds with flower spikes
-        mound = [(x_ + 1.2 * math.cos(math.pi * i / 10.0), gy[3] + 1.0 * math.sin(math.pi * i / 10.0)) for i in range(11)]
-        E["wash"](o, mound, "planting", E["hx"](C["olive"]), 0.6, z=E["Z_TREE"])
-        for d in (-0.5, 0.0, 0.5):
-            E["sketch"](o, [(x_ + d, gy[3] + 0.8), (x_ + d * 1.3, gy[3] + 1.9)], "planting", E["hx"]("8E7CC3"), 0.3,
-                        over=0.0, amp=0.02, retrace=False, z=E["Z_TREE"])
-        x_ += 2.8
-    E["sketch_tree"](o, 3 * w + 34.5, gy[3], 6.0)     # Demeter's Garden olive (K5)
-    for xs in (4 * w + 6.0, 4 * w + 15.0):            # olives
-        E["sketch_tree"](o, xs, gy[4], 7.0)
-    x_ = 4 * w + 26.0
-    while x_ < LAD_W - 1.0:                           # field crop rows
-        E["sketch"](o, [(x_, gy[4]), (x_, gy[4] + 1.6)], "planting", E["hx"](C["field"]), 0.35, over=0.0, amp=0.02,
-                    retrace=False, z=E["Z_TREE"])
-        x_ += 1.4
-    # the site edge: farmland only outside the site
-    E["sketch"](o, [(4 * w, gy[3] + 1.5), (4 * w, gy[4] + 11.0)], "site edge", E["INK2"], E["PEN_FINE"], over=0.0,
-                retrace=False, dashed=True, z=E["Z_LINE"])
-    s_ = 4.5 / 1.745                                  # people: the season's activities
-    for kind, x, y, flip, _lab, _src in sea["acts"]:
-        if kind == "sit":
-            sg = -1.0 if flip else 1.0
-            E["fill"](o, [(x + sg * a * s_, y + b * s_) for a, b in SIT_FIG], "people", E["SITE_PEOPLE"], alpha=0.9,
-                      boundary=False, z=E["Z_PEOPLE"], hand_=False)
-            hx_, hy_, hr = E["SA_HEAD"][0] - 0.02, 0.84, E["SA_HEAD"][2]
-            E["fill"](o, [(x + sg * hx_ * s_ + hr * s_ * math.cos(6.283 * i / 12), y + hy_ * s_ + hr * s_ * math.sin(6.283 * i / 12))
-                          for i in range(12)], "people", E["SITE_PEOPLE"], alpha=0.9, boundary=False, z=E["Z_PEOPLE"],
-                      hand_=False)
-        elif kind is not None:
-            E["sketch_person"](o, x, y, kind=kind, flip=flip)
-    if sea["key"] == "high":                          # the design flood levels, hand dashed lines and level marks
-        xe = 4 * w - 2.0 + 4.0 * (LAD_Q500 - gy[3]) / (gy[4] - gy[3])
-        for lv in (LAD_Q500, LAD_Q100):
-            E["sketch"](o, [(0.0, lv), (xe, lv)], "flood lines", E["HERITAGE"], E["PEN_FINE"], over=0.0, retrace=False,
-                        dashed=True, z=E["Z_LINE"])
-            E["level_mark"](o, 3 * w + 26.0 if lv == LAD_Q500 else 3 * w + 20.0, lv, E["HERITAGE"], "flood lines")
-    if sea["key"] == "low":                           # the farms are watered from storage in summer: the one arrow
-        E["hand_arrow"](o, (3 * w + 22.0, gy[4] + 10.0), (4 * w + 9.0, gy[4] + 8.0), E["SITE_WATER_D"], bend=-0.15)
-    if sea["mark"] == "winter":
-        E["cloud_rain"](o, mark_xy[0], mark_xy[1], 2.0)
-    elif sea["mark"] == "summer":
-        E["sun"](o, mark_xy[0], mark_xy[1], 1.7)
-    E["sketch"](o, gs, "ground lines", E["SKINK"], E["PEN_BOLD"], z=E["Z_LINE"])   # the cut: the gesture
-    return sorted(E["ZP"], key=lambda e: (e[0], e[1]))
-
-
-# v1.6: the one-way chain along the stream, upstream to the farms: (name, marker, programme, historic root, sources).
-# Spec §3 / Aras 27 Oct: option A only; hubs at the bridges with in-bed sub-hubs; Demeter's Garden on the SW bank at
-# K5; farmland only outside the site.
-CHAIN = [("UPSTREAM ENTRY", "reeds", "reed basins clean once · terraces hold", None, (CHAIN_REF,)),
-         ("K4", "hub", "hub + sub-hub · water-touching step", "Roman bridge · Tabaklar Hamamı", (PROG,)),
-         ("K3", "hub", "hub + sub-hub · craft workshops", "tanning quarter (Tabakhane)", (PROG,)),
-         (u"İSTİKLAL MEYDANI", "small", "hidden-stream square", "over the Red Hall tunnels", (PROG,)),
-         ("K5", "hub", "hub + sub-hub · Demeter's Garden", "Roman bridge · Demeter, abundance", (PROG, GARDEN)),
-         ("K6", "gate", "gateway out", None, (PROG,)),
-         ("DOWNSTREAM REACH", "reeds", "floodable planting · boardwalk", "Late Antique workshops", (CHAIN_REF, PROG)),
-         ("FARMLAND", "farm", "outside the site · water from storage", "Tersane cotton (16th c.)", (COTTON_H,))]
-HUB_COL = "BC6F45"                                   # the sketch engine's walkable edge (terracotta)
-
-
-def chain_strip(pg, P, y_top):
-    """the chain across the page: node names, the one-way water ribbon with hubs and sub-hubs, programme and root
-    keywords. Returns the lowest y used."""
-    n = len(CHAIN)
-    x0, dx = 16.0, (404.0 - 16.0) / n
-    yr = y_top - 6.0                                 # the ribbon
-    xs = [x0 + 2.0 + i * dx for i in range(n)]
-    pg.line([(xs[0], yr), (xs[2], yr)], C["water"], 1.6)
-    pg.line([(xs[2], yr), (xs[3] + dx * 0.5, yr)], C["water"], 1.6, (1.6, 1.1))   # the covered reach (H2)
-    pg.line([(xs[3] + dx * 0.5, yr), (xs[-1] - 4.0, yr)], C["water"], 1.6)
-    pg.poly([(xs[-1] - 4.0, yr + 1.8), (xs[-1] - 0.6, yr), (xs[-1] - 4.0, yr - 1.8)], fill=C["water"], closed=True)
-    for i in range(n - 2):                           # one way, with the stream
-        ax = (xs[i] + xs[i + 1]) / 2.0 + 4.0
-        pg.poly([(ax - 1.2, yr + 1.1), (ax + 0.6, yr), (ax - 1.2, yr - 1.1)], fill=C["water_deep"], closed=True)
-    low = yr
-    for i, (name, mk, prog, root, refs) in enumerate(CHAIN):
-        x = xs[i]
-        if mk == "hub":
-            pg.rect(x - 1.6, yr - 1.6, 3.2, 3.2, fill=HUB_COL, stroke=C["ink"], lw=0.2)
-            pg.circle(x, yr - 3.4, 0.8, fill=C["water_deep"])
-        elif mk == "small":
-            pg.rect(x - 1.1, yr - 1.1, 2.2, 2.2, fill=C["white"], stroke=HUB_COL, lw=0.4)
-        elif mk == "gate":
-            pg.line([(x - 1.2, yr + 1.8), (x + 0.8, yr), (x - 1.2, yr - 1.8)], C["ink"], 0.4)
-        elif mk == "reeds":
-            icon(pg, "clean", x - 2.5, yr + 2.3, 5.0)
-        else:
-            icon(pg, "outside", x - 2.0, yr + 2.8, 5.6)
-        tx = x - 1.5
-        P.text(pg, name, tx, yr + 3.6, 8.5, C["ink"], True)
-        y = yr - 7.0                               # clear of the sub-hub dot
-        mark = "".join(cite(r) for r in refs)
-        lines = [(q, C["ink"]) for q in wrap(prog + ("" if root else " " + mark), 7, dx - 3.0)]
-        if root:
-            lines += [(q, C["accent"]) for q in wrap(root + " " + mark, 7, dx - 3.0)]
-        for q, col in lines:
-            P.text(pg, q, tx, y, 7, col)
-            y -= 2.9
-        low = min(low, y + 2.9 - 1.2)
-    # key to the markers, top right
-    kx, ky = 406.0, y_top + 2.5
-    items = [("ribbon", "one way, with the stream"), ("dash", "covered reach"), ("dot", "sub-hub in the bed, floodable"),
-             ("hub", "hub square, dry")]
-    for kind, lab in items:
-        kx -= text_w(lab, 7)
-        P.text(pg, lab, kx, ky, 7, C["ink"])
-        kx -= 5.0
-        if kind == "hub":
-            pg.rect(kx + 0.6, ky - 0.2, 2.6, 2.6, fill=HUB_COL, stroke=C["ink"], lw=0.2)
-        elif kind == "dot":
-            pg.circle(kx + 1.9, ky + 1.1, 0.8, fill=C["water_deep"])
-        elif kind == "dash":
-            pg.line([(kx, ky + 1.1), (kx + 4.0, ky + 1.1)], C["water"], 1.4, (1.2, 0.8))
-        else:
-            pg.line([(kx, ky + 1.1), (kx + 4.0, ky + 1.1)], C["water"], 1.4)
-        kx -= 4.0
-    return low
-
-
-def we_do_band(pg, P):
-    """v3 (Aras 27 Oct 17:35, Prompt 6 task 3 and rule 7: "the last page of the block clearly states 'what we do with
-    it' and leads into the next theme"): top right, beside the title, left-aligned in a block that ends at the margin:
-    the stage (C WATER · WHAT WE DO WITH IT), what we do with the water in five numbered steps (the water board's p.23
-    loop and this page's ladder, in brief) and NEXT D HISTORY AND HERITAGE, which starts from the roots drawn in red on
-    the chain below. Rows 4.5 mm apart, the last 6 mm over the chain's key."""
-    rows = [WE_DO[:3], WE_DO[3:]]
-    nxt = [("D  HISTORY AND HERITAGE", C["ink"], True), (": it starts from the roots in red on this chain", C["ink"], False)]
-    w_n = text_w("NEXT", 7, True) + 7.0 + sum(text_w(t, 7, b) for t, _, b in nxt)
-    x = 406.0 - max([text_w(STAGE_TAG, 7, True), w_n] + [chips_w(r) for r in rows])
-    P.text(pg, STAGE_TAG, x, 286.0, 7, C["accent"], True)
-    for k, r in enumerate(rows):
-        chips(pg, x, 281.5 - 4.5 * k, r)
-        P.boxes.append((x, 281.5 - 4.5 * k - 0.8, x + chips_w(r), 281.5 - 4.5 * k + 3.0))
-    P.text(pg, "NEXT", x, 272.5, 7, C["accent"], True)
-    xx = step_arrow(pg, x + text_w("NEXT", 7, True) + 1.5, 272.5) + 1.5
-    for t, col, b in nxt:
-        P.text(pg, t, xx, 272.5, 7, col, b); xx += text_w(t, 7, b)
-
-
-def page_ladder(L, src):
-    pg = Page(420, 297)
-    P = Placer()
-    header(pg, "3", "ONE PLANT LADDER, STREAMBED TO FIELD",
-           "One cut from the stream to the farms, through the year: what the water does and what people do on each step",
-           tag=None)
-    we_do_band(pg, P)                              # v3 (Prompt 6): the water theme closes here, top right
-    # 1 the chain: where the ladder sits along the stream, the programme and its roots
-    y_chain = chain_strip(pg, P, 264.0)            # v2: 4 mm higher (was 260; its names end 6 mm under the subtitle)
-    ag_crop("ag3_chain", 2, 13.0, y_chain - 1.0, 407.0, 270.0)
-    # 2 the ladder, one row a season
-    top = y_chain - 2.0
-    for r, sea in enumerate(seasons()):
-        T, B = top - r * ROW_H, top - (r + 1) * ROW_H
-        y0 = B + 2.0 - LAD_GB * LAD_F                  # page y of the sketch's 0
-        mark = ((19.0 - LAD_X0) / LAD_F, (T - 6.0 - y0) / LAD_F)
-        sk_draw(pg, xform([e[2] for e in ladder_row(sea, mark)], LAD_F, LAD_X0, y0))   # v1.7: (z, order, item, group)
-        if sea["mark"] == "olive":
-            icon(pg, "olive", 14.0, T - 1.5, 9.0)
-        P.text(pg, sea["name"], 26.0, T - 8.0, 12, C["ink"], True)
-        P.text(pg, sea["months"], 26.0, T - 13.0, 9, C["accent"], True)
-        y = T - 18.5
-        for t, ref in sea["side"]:
-            for q in wrap(t + ((" " + cite(ref)) if ref else ""), 7.5, LAD_X0 - 30.0):
-                P.text(pg, q, 26.0, y, 7.5, C["ink"])
-                y -= 3.2
-        reg = (LAD_X0, B + 1.0, LAD_X1, T - 0.8)
-        Y = lambda v: y0 + v * LAD_F
-        X = lambda v: LAD_X0 + v * LAD_F
-        if sea["key"] == "high":                       # flood levels first: they sit at their lines
-            for lv, lab, up in ((LAD_Q500, "Q500 · 263 m³/s · 2.3-3.3 m above the bed " + cite(DEPTH), True),
-                                (LAD_Q100, "Q100 · 205 m³/s · 2.0-3.0 m", False)):
-                P.put(pg, lab, X(1.5), Y(lv), 7, "8B2D2D", region=reg, gap=0.8, up=up, lanes=3)
-            P.put(pg, "over the bank top only at K4 (right bank) and S4 (left)", X(3 * LAD_S + 3.0), Y(LAD_Q500) + 3.0,
-                  7, "8B2D2D", region=reg, gap=0.5)
-            P.put(pg, "site edge: farmland outside", X(4 * LAD_S), Y(LAD_GY[4] + 11.0), 7, C["ink2"], region=reg, gap=0.6)
-        if sea["key"] == "low":
-            P.put(pg, "stored winter water", X(3 * LAD_S + 22.0), Y(LAD_GY[4] + 10.0), 7, C["water_deep"], True,
-                  region=reg, gap=1.0)
-        for kind, x, yv, flip, lab, ref in sea["acts"]:
-            if lab:
-                hgt = 0.0 if kind is None else (3.2 if kind == "sit" else 4.9)
-                P.put(pg, lab + ((" " + cite(ref)) if ref else ""), X(x), Y(yv + hgt), 7, C["ink"], True, region=reg)
-        if r < 2:
-            pg.line([(14.0, B), (406.0, B)], C["faint"], 0.3)
-    bot = top - 3 * ROW_H
-    ag_crop("ag3_seasons", 2, 13.0, bot - 0.5, 407.0, top + 0.5)
-    # 3 what grows on each step (one column under each step) and, left, what goes and the odour
-    # v2 (Aras 27 Oct, Prompt 5): every plant of a step as a photo, PHOTO_W x PHOTO_H, two side by side (2 x 28 + 2 mm
-    # fits the 60 mm column with 2 mm to the next), its name "English (Turkish)" and the photo's credit [n] under it
-    # (7 pt, two lines at most); the reasons under the names only when the column still ends above the 14 mm margin
-    yt = bot - 3.0                                   # v2: was bot - 4.0
-    w = LAD_S * LAD_F
-    per = 2 if 2 * PHOTO_W + PH_GAP <= w - 2.0 else 1
-    short = []
-    for i, st in enumerate(STEPS):
-        xa = LAD_X0 + i * w + 1.0
-        for brief in (False, True):                  # the species' reasons left out if the column would not fit
-            y, ops, pics = yt, [], []
-            ops.append((st["name"], xa, y, 8.5, C["ink"], True)); y -= 3.4
-            ops.append((st["sub"], xa, y, 7, C["ink2"], False)); y -= 6.4
-            tag_y = y
-            y -= 4.0
-            if st["band"]:
-                l_, r_ = GEO["corridor"]["left " + st["band"]], GEO["corridor"]["right " + st["band"]]
-                v = [(l_[k] + r_[k]) / 2.0 for k in ("trees", "grass", "farmland")]
-                t = "today: trees %.0f %% · grass %.0f %% · fields %.0f %% %s" % (v[0], v[1], v[2], cite(TODAY))
-                for q in wrap(t, 7, w - 4.0):
-                    ops.append((q, xa, y, 7, C["ink2"], False)); y -= 2.9
-            if st["name"] == "FARMS":
-                for q in wrap(STEPS[4]["water"][1].replace("{reuse}", cite(REUSE)), 7, w - 4.0):
-                    ops.append((q, xa, y, 7, C["ink2"], False)); y -= 2.9
-            y -= 1.2
-            ops.append(("WE PLANT " + cite(SPECIES) if st["name"] != "FARMS" else "THEY GROW", xa, y, 7, C["accent"], True))
-            y -= 1.6                                 # v2: the top of the first row of photos
-            low = y
-            for r0 in range(0, len(st["plant"]), per):
-                n_ = 1
-                for c_, (key, why) in enumerate(st["plant"][r0:r0 + per]):
-                    px = xa + c_ * (PHOTO_W + PH_GAP)
-                    pics.append((key, px, y))
-                    L_ = [(q, C["ink"], True) for q in name_lines(key, photo_mark(key), 7, PHOTO_W)]
-                    if not brief:
-                        L_ += [(q, C["ink2"], False) for q in wrap(why, 7, PHOTO_W)]
-                    yy = y - PHOTO_H - 2.5           # the first line's baseline, under the photo
-                    for q, col, b in L_:
-                        ops.append((q, px, yy, 7, col, b)); yy -= 2.6
-                    n_ = max(n_, len(L_))
-                low = y - PHOTO_H - 2.5 - 2.6 * (n_ - 1) - 0.6   # the row's lowest ink (descenders)
-                y = low - 1.1                        # the next row's top
-            if low >= 14.0:
-                break
-        if brief:
-            short.append(st["name"] + ("" if low >= 14.0 else " (FLAG: ends at %.1f mm, under the 14 mm margin)" % low))
-        for s_, x_, y_, sz, col, b in ops:
-            P.text(pg, s_, x_, y_, sz, col, b)
-        for key, px, top_ in pics:                   # v2: the frames; the photos go in after write_pdf (put_photos)
-            photo_frame(pg, 2, key, px, top_, P)
-        pg.rect(xa, tag_y, text_w(st["job"], 8, True) + 4, 5.2, fill=C["accent"])
-        pg.text(st["job"], xa + 2, tag_y + 1.5, 8, C["white"], True)
-        jx = xa + text_w(st["job"], 8, True) + 6
-        for word, kind in JOB_ICON:                  # the job as pictograms beside the tag
-            if word in st["job"]:
-                pg.rect(jx, tag_y - 0.4, 6.0, 6.0, fill=C["white"], stroke=C["faint"], lw=0.2)
-                icon(pg, kind, jx + 0.5, tag_y + 5.1, 5.0); jx += 7.0
-    if short:
-        LOG_NOTES.append("p3 plant reasons left out under the photos (no room above the 14 mm margin): " + ", ".join(short))
-    # left column: what goes, the odour, how to read the steps
-    # v2 (Prompt 5): the giant reed by its name "English (Turkish)", its photo's credit [n] after the name, the photo
-    # under the reason (the column is LAD_X0 - 14 = 92 mm wide)
-    y = yt
-    for t, sz, col, b, mk in ((u"REMOVE: " + plant_name("giant_reed"), 8, C["accent"], True, photo_mark("giant_reed")),
-                              ("raises flood risk, blocks bridges", 7, C["accent"], False, "")):
-        lines = wrap(t, sz, LAD_X0 - 18.0, b)
-        for k_, q in enumerate(lines):
-            P.text(pg, q, 14.0, y, sz, col, b)
-            if mk and k_ == len(lines) - 1:
-                P.text(pg, mk, 14.0 + text_w(q, sz, b) + 1.0, y, 7, C["accent"])
-            y -= sz * 0.3528 * 1.35
-    photo_frame(pg, 2, "giant_reed", 14.0, y + 1.4, P)
-    y -= PHOTO_H + 0.6
-    y -= 3.0
-    icon(pg, "nose", 14.0, y + 3.0, 6.0)
-    for t, b in (("ODOUR: no measured plant effect " + cite(SPECIES), True), ("keep sewage out", False),
-                 ("clean once, at the upstream end", False), ("plants: clean nutrients, give scent", False)):
-        for q in wrap(t, 7.5, LAD_X0 - 30.0, b):
-            P.text(pg, q, 22.0, y, 7.5, C["ink"], b); y -= 3.2
-    y -= 3.0
-    for t in ("steps = planting bands " + cite(BANDS), "depths above the bed " + cite(DEPTH), "a diagram, not to scale",
-              "downstream flat end: Q100 1.4 m, Q500 1.5 m"):
-        for q in wrap(t, 7, LAD_X0 - 18.0):
-            P.text(pg, q, 14.0, y, 7, C["ink2"]); y -= 2.9
-    ag_crop("ag3_plants", 2, 13.0, 14.0, 407.0, yt + 3.0)       # v2: yt + 3 = bot (yt is bot - 3 now)
-    LOG_NOTES.extend("p3 label left out (no free place): " + s for s in P.dropped)
-    return pg
-
 # ------------------------------------------------------------------ v1.6: the sources page (Aras 27 Oct: no source footers)
 def page_sources():
     """the sheet's one numbered source key, on its own page: the [n] marks on pages 1-3 refer to it, and the
@@ -1915,7 +2120,7 @@ def page_sources():
     pg = Page(420, 297)
     pg.rect(0, 0, 420, 297, fill=C["white"])
     pg.text("SOURCES", 14, 279, 22, C["ink"], True)
-    pg.text("Numbered as the [n] marks on pages 1-3", 14, 271.5, 11, C["ink2"])
+    pg.text("Numbered as the [n] marks on pages 1-2", 14, 271.5, 11, C["ink2"])
     key = "Sources by number: " + "  ".join("[%d] %s" % (i + 1, k) for i, k in enumerate(SRC_KEY))
     pg.para(key, 14, 260, 392, 8, C["ink"], lead=1.35)
     return pg
@@ -2004,9 +2209,7 @@ AG_CAPTIONS = {"ag1_headline": "Storage and water to the farms", "ag1_bars": "He
                "ag1_reading": "Same storage: how much more land", "ag1_context": "Why crop choice is the lever",
                "ag1_replaces": "What it replaces", "ag1_crops": "The crops",   # v2: the crop photos
                "ag1_stream": "The stream comes first: a normal and a 1-in-5 dry year",   # v3 (Prompt 6)
-               "ag2_plan": "The farms we feed, on the site plan",
-               "ag3_chain": "One way along the stream: the programme and its roots",
-               "ag3_seasons": "One plant ladder through the year: what people do", "ag3_plants": "What grows on each step"}
+               "ag2_plan": "The farms we feed, on the site plan"}   # v5 (D9 a): ag3_* gone with the ladder page
 
 
 def ag_crop(cid, page, x0, y0, x1, y1, den=None, legend=None, drop=None):
@@ -2065,7 +2268,7 @@ def build(path):
     for _ in range(2):
         del AG_CROPS[:], SRC_KEY[:], LOG_NOTES[:], PHOTO_FR[:]      # v1.6: one source numbering for the whole sheet
         PHOTO_N[0] = 0
-        pages = [page_cubic(L, src), page_farms(L, src), page_ladder(L, src)]
+        pages = [page_cubic(L, src), page_farms(L, src)]       # v5 (D9 a): the plant ladder page is gone
         write_pdf(pages + [page_sources()], path)
         try:                                       # v1.5: the site board's plan 01 under the farms layer
             return src, put_base(path) + "\n" + put_photos(path)   # v2: then the photos (never raises)

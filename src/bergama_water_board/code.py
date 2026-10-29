@@ -50,6 +50,10 @@ NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole n
     plants, space types, recorded fauna, one rectangular view per season, water and rain as graphics.
   * Core: only public sources are printed (public_src() in cite()); no status words; the shared modules (levels,
     basemap, plants, icons) included; build_board calls the page functions p12_page, p14_page, p15_page.
+v6.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.12's reed pilot figure cites its public paper (Korkusuz et
+  al. 2004, Turk. J. Eng. Env. Sci. 28; was "published" + a register code, which left it without a source); p.12 prints
+  the HOLD volume and the strip's summer volume only from the live water balance results (WB_LIVE), never from the
+  built-in default, and logs it; p.18 aquifer line without "ratio calculated". Output: Bergama_water_board_v6_1_A_cubes.pdf.
 v6 (revision 29 Oct, T4a, a feature change): p.17 planting and water on two pages (pages/p17_planting.py: p17_page =
   wb_plants, the plans + water spaces + catalogue; p17b_page = wb_plants_b, the F1-F4 sections at 1:500, in row 3 beside
   the concept sections); p.18 icons and olive block (pages/p18_farms.py); D6 in data/SPECIES.py and PLANT_SITES; the
@@ -142,8 +146,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v6 (2026-10-29)"
-SHORT = "v6"
+VERSION = "bergama_water_board v6.1 (2026-10-29)"
+SHORT = "v6.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -152,7 +156,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v6_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v6_1_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -1497,13 +1501,14 @@ def wb_results():
 
 
 WB, WB_SRC = wb_results()
+WB_LIVE = WB is not WB_DEFAULT          # v6.1: False = the built-in default; p.12 then prints no storage figures
 try:
     WB_STORE = tuple(WB["design"]["central_range_m3"])
     WB_PCT = tuple(WB["design"]["central_range_pct_1in5_dry"])
     WB_STRIP = float(WB["strip_m3_per_year"])
     OLIVE_M3_HA = WB["net_irrigation_mm"]["olive"]["dry5"] / DRIP_EFF * 10.0     # m³/ha at the intake, 1-in-5 dry year
 except Exception:
-    WB, WB_SRC = WB_DEFAULT, u"water balance default lands, 24 Oct"
+    WB, WB_SRC, WB_LIVE = WB_DEFAULT, u"water balance default lands, 24 Oct", False
     WB_STORE, WB_PCT = (350000, 375000), (99.2, 99.7)
     WB_STRIP, OLIVE_M3_HA = 23462.0, 720.1 / DRIP_EFF * 10.0
 MIN_FLOW = 1001453              # A7: minimum flow kept in the stream Dec-Apr (m³)
@@ -1528,7 +1533,8 @@ WHY_T = [
 # The bed-area tile (Vymazal 2010) is left out; the coliform and UV tiles are the column's coliform chart (COLIFORM).
 HOW_T = [
     ("reeds", u"common reed, pilot", u"lined cells · NH4-N", ((u"slag", 88, u"88 %"), (u"gravel", 58, u"58 %")),
-     u"published; " + REG + u" PL-09"),
+     u"Korkusuz et al. 2004, Turk. J. Eng. Env. Sci. 28, aj.tubitak.gov.tr/engineering/issues/muh-04-28-5/"
+     u"muh-28-5-6-0406-12.pdf"),          # v6.1: the pilot's public paper (DATA_REGISTER PL-09, confirmed)
     ("plants", u"purple loosestrife", u"TN", ((u"", 60, u"> 60 %"),), None)]
 # v2 (Aras 27 Oct, Prompt 4, data honesty): the tiles "water quality measured", "streamside greywater" and "odour cut
 # by plants" (all NO DATA) are gone; no source holds a figure for them and an estimate would rest on an unknown.

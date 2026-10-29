@@ -721,7 +721,7 @@ def tree_legend(ctx, c):
     if not ctx.crowns:
         return [("tree", "tree", u"Surveyed tree symbols, drawn at a fixed size: no size in the survey ({})".format(
             c.get("trees", 0)))]
-    head = u"Tree crowns 3 m and taller, at modelled (estimated) radius and height"
+    head = u"Tree crowns 3 m and taller, radius and height from the Meta/WRI canopy height map"
     if not ctx.leaf:
         return [("tree", "tree", u"{}; leaf type not in the environment file ({})".format(head, c.get("trees", 0)))]
     L = [("tree", k, u"{}: {} ({})".format(head if i == 0 else u"Tree crowns", w, c.get("trees_" + k, 0)))

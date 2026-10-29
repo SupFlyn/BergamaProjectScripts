@@ -15,7 +15,10 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v4"
+VERSION = "v4.1"
+# NEW IN v4.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): the flood depths over the bed on p.08's flood tile and
+# p.09's bank-top rule come from the level table (common/data/LEVELS.py, cuts S1-S8: Q100 and Q500 minus the bed, and
+# where Q100 tops a bank), no longer typed in (they read "Q100 2.0-3.0 m · Q500 2.3-3.3 m", against 1.71-4.25 m there).
 # NEW IN v4 (T3a WO-T3a-5, 29 Oct 2026, package B, decisions D3 b, D8 b, D10 a; a feature change, so the next whole
 # number): the movement pages are three: p.07 how people use it (site board), p.08 this sheet's page 1, p.09 its
 # page 2. Page 1 = ONE framework diagram (framework_map: shops and uses as soft zones, the stream hidden where the
@@ -153,6 +156,27 @@ MAIN_SPINE = [[29756.1, 31655.4], [29777.7, 31668.2], [29793.7, 31679.4], [29806
 # 29700-30660, y 31570-32310): 150 places (calculated 26 Oct 2026). v2: the plan covers the whole site frame and takes
 # the site board's shop points (same OSM file and tags, city_context.json); these are its fallback (window only, logged)
 #@include data/SHOPS_XY.py
+#@include ../common/data/LEVELS.py
+#@include ../common/levels.py
+
+
+def cl_flood():
+    """v4.1: ("a-b m" Q100 over the bed, "a-b m" Q500 over the bed, "over the banks only at S4" or similar) on the
+    level table's cuts S1-S8 (every crossing of S5/S6), heights in m with 2 decimals"""
+    ids = [c for c in level_ids() if c.startswith("S")]
+    def rng(which):
+        v = [d for d in (level_flood_depth(c, which) for c in ids) if d is not None]
+        return u"{:.2f}-{:.2f} m".format(min(v), max(v)) if v else u""
+    over = []
+    for c in ids:
+        q, tops = level(c, "q100"), [level(c, "top", s) for s in ("NE", "SW")]
+        if q is not None and any(t is not None and q > t for t in tops) and c.split("-")[0] not in over:
+            over.append(c.split("-")[0])
+    return rng("q100"), rng("q500"), (u"over the banks only at " + u", ".join(over)) if over else \
+        u"inside the banks on every cut"
+
+
+CL_Q100, CL_Q500, CL_OVER = cl_flood()
 # side="auto": the bank is picked by the data (Aras 24 Oct 09:08: where more people live and modern buildings
 # concentrate). Per bank, within catch_m of the stream along the piece: people = floors of homes (a proxy; footprints
 # not weighted), modern = buildings of 3+ floors. More of both wins; on a split, modern decides when people differ by
@@ -248,8 +272,8 @@ REASONS = [  # v1.6 tiles: (pictogram, keyword heading, big figure, keyword line
     # now README v1.1 line 49: "on the surveyed sections Q100 2.0-3.0 m and Q500 2.3-3.3 m, flat end 1.4 / 1.5 m,
     # overtopping only at K4 and S4". v3 (MIRAQUA 28 Oct, bank-depth research REPORT §4.2 + §5, Aras 14:12: the survey
     # is the inferior source): K4's low bank is the survey's, before the DSİ walls; the depths stay as they are
-    ("flood", "Q100 OVER THE BED", "2.0-3.0 m", ("Q500 2.3-3.3 m · flat end 1.4 / 1.5 m", "over the banks only at S4",
-                                                 u"K4 before the DSİ walls (survey)"), SRC_FLOOD),
+    ("flood", "Q100 OVER THE BED", CL_Q100, (u"Q500 " + CL_Q500, CL_OVER,    # v4.1: from the level table
+                                             u"K4 before the DSİ walls (survey)"), SRC_FLOOD),
     ("sewage", "SEPTIC SEWAGE IN THE STREAM", "until 2024", ("odour", "flies"), "İZSU sewer, s59; E13"),
     ("arch", "RED HALL BUILT OVER THE STREAM", "AD 117-138", ("Ottoman bazaar still met it", "at Tabaklar Hamamı"), "h02 s13 s28; s32"),
 ]
@@ -272,7 +296,7 @@ FLOOD = [  # v1.6: (level, keyword lines on how often wet, [(rule pictogram, rul
     # line 49 and its table (Q100 2.05-2.99 m, Q500 2.33-3.30 m on the five surveyed cuts; flat end 1.38 / 1.54 m).
     # v3 (MIRAQUA 28 Oct, bank-depth research REPORT §4.2 + §5): as page 1's flood tile, K4's bank is the survey's,
     # before the DSİ walls (one claim on both pages); the depths stay as they are
-    ("Bank top", ("Q100 2.0-3.0 m · Q500 2.3-3.3 m over the bed", "flat end 1.4 / 1.5 m · over the banks only at S4",
+    ("Bank top", (u"Q100 {} · Q500 {} over the bed".format(CL_Q100, CL_Q500), CL_OVER,   # v4.1: level table
                   u"K4 before the DSİ walls (survey)"),
      [("road", "6 m service road kept clear"), ("crest", "occupied floors at DSİ crest + 1.50 m (5/10)")], SRC_FLOOD),
 ]

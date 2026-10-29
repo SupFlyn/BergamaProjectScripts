@@ -14,7 +14,10 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math, re
 
-VERSION = "v5"
+VERSION = "v5.1"
+# NEW IN v5.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.19 "10,000 m³ = N ha olive" is computed live, the
+# same way as the water board's p.18 (10,000 / gross m³ a ha of olive in a dry year, from water_balance_results.json);
+# it was the fixed text "1.22 ha".
 # v4 (MIRAQUA 28 Oct, booklet revision v4, pages 18-19; a feature change, so the next whole number):
 #   * P18.1 / P19.3 / P19.4 / G11 / G12: every photo through common/plant_photos.py; corn printed as "Corn (Mısır)"
 #     (data key "maize" and the Wikimedia file kept); an empty frame says "no photo: <reason>".
@@ -522,8 +525,11 @@ CONTEXT = [
       "highest oil content"], KAYA),
     ("drip", "TODAY'S IRRIGATION ON THE FARMS", None, ["some Bergama growers moved to drip"], ITB),
 ]
-REPLACES = [("cube", "THE WATER BOARD LINE IT REPLACES", "10,000 m³ = 1.22 ha " + name_lc("olive"),   # v3.1: (Zeytin)
-             ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
+def replaces():
+    """v5.1: the "what it replaces" tile, its hectares live (NET is filled by build() before page_cubic runs)"""
+    return [("cube", "THE WATER BOARD LINE IT REPLACES", u"10,000 m³ = {:.2f} ha {}".format(
+        10000.0 / gross_m3_ha("olive", "dry"), name_lc("olive")),   # v3.1: (Zeytin)
+        ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
 DEFICIT = (1 - 350.0 / 622, 1 - 175.0 / 622)   # olive water saved: S0.50 and S0.25 against the control SC, Kaya et al. 2017 Table II
 # Bergama district areas 2025, da (TÜİK MEDAS export, library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §1.25):
 # the share of each crop the water balance models, used for the district mix row
@@ -846,7 +852,7 @@ def page_cubic(L, src):
         ag_crop("ag1_history", 0, cx - 1.0, hb - 1.0, cx + 127.0, yb_ - 3.0)
     crop_row(pg, cx, (hb or yb_) - 7.0, 126.0, 64.0)           # v2 (Prompt 5): the crops as photos, above "what it replaces"
     pg.text("WHAT IT REPLACES", cx, 60, 9, C["accent"], True)
-    yb_ = tiles(pg, cx, 57, 126, REPLACES)
+    yb_ = tiles(pg, cx, 57, 126, replaces())
     ag_crop("ag1_replaces", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, 58.0)
     return pg
 

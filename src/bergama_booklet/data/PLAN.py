@@ -168,7 +168,7 @@ F5_STRIP = (
 )
 # v20 (Aras 29 Oct 18:56): status words never printed as a source or a note (the word and a "from"/"by" after it go;
 # "published" / "official" alone name no source: a part left empty without them goes)
-F5_STATUS = r"(?i)\(?\b(?:assumed|interpolated|calculated|computed|estimated|derived|published|official)\b\)?(?:\s+(?:from|by|with|on|after|as|in|using))?[\s:,]*"
+F5_STATUS = r"(?i)\(?\b(?:assumed|interpolated|inferred|calculated|computed|estimated|derived|published|official)\b\)?(?:\s+(?:from|by|with|on|after|as|in|using))?[\s:,]*"
 
 # v19 (N2, G12): source texts listed on the sources page even when no page cites them by a number: the photo credits
 # ("photo <English (Turkish)>: author, licence, Wikimedia Commons, commons.wikimedia.org/?curid=N") and the data notes

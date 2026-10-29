@@ -4,6 +4,9 @@ as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. 
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v28.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.16 Sound and Smell no longer put reeds on the
+    open side arms (D2: reed only in the lined basins) or water mint on the open bed (D6: mint only in lined cells);
+    "Water mint" left the Smell key. Output: Bergama_masterplan_v28_1_A.pdf, Bergama_masterplan_v28_1_A_detail.pdf.
 NEW IN v28 (revision 29 Oct, T4b: WO-T4b-1..3; a feature change, so the next whole number):
   * p.23: the analysis frame in two rows at 1:5,000, every numbered move as a short box on the map with an arrow,
     the riverside walk with its bike lane (Aras 29 Oct 21:04), a small legend in the side column; public sources only.
@@ -191,8 +194,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v28 (2026-10-29)"
-SHORT = "v28"
+VERSION = "bergama_masterplan v28.1 (2026-10-29)"
+SHORT = "v28.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -203,8 +206,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v28_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v28_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v28_1_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v28_1_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 #@include ../../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here

@@ -10,6 +10,7 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v20.1 (bugfix, T5 fix pass 29 Oct): "inferred" joins the status words the sources page never prints.
 NEW IN v20 (revision 29 Oct, WO-T5-1; a feature change, so the next whole number):
   * Page list of the revision (data/PLAN.py): p.02 side column = plan 01's key, the edge from above, the readings;
     p.04-05, p.14-15 and p.21 carry their key maps inside their crops (D11: each shows only its page's cuts), no key
@@ -112,7 +113,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v20"
+VERSION = "v20.1"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
