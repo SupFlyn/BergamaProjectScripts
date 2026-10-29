@@ -47,12 +47,6 @@ LEG_SW, LEG_SH, LEG_ROW, LEG_TS, LEG_HS, LEG_GAP = 22.0, 8.0, 11.0, 3.4, 4.0, 14
 _PLEG = [None]                 # v21: the legend keys of the panel being drawn (its booklet crop's legend)
 
 
-def leg(key, val=True):
-    LEG.setdefault(key, val)
-    if _PLEG[0] is not None:
-        _PLEG[0].setdefault(key, val)
-
-
 def legend_groups(alt, alpha):
     """[(heading, [(name, draw(pg, x, y, w, h))])] of what LEG holds, in a fixed order."""
     W_ = COL["white"]

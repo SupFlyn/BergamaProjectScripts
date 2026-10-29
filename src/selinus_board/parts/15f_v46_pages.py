@@ -31,22 +31,6 @@ def tint(c, t=0.0):
     return Tint(mix(c, WHITE, t))
 
 
-def soft_line(B, P, col, k, L, order, w_mm=2.4, t=0.5):
-    """v46: a proposal line drawn soft: three multiplying strokes of col, from a pale halo w_mm wide on the booklet
-    page to a narrow core (t = how pale the core is): no hard edge, no width that reads as decided."""
-    for f, dt in ((1.0, 0.36), (0.6, 0.18), (0.28, 0.0)):
-        B.line(P, tint(col, min(0.97, t + dt)), L, order, bk_lw(w_mm * f, k))
-
-
-def b_view(F, x, ytop, U):
-    """v46: a theme-B map: the whole frame F at 1:10,000 on the booklet page, its top-left corner at (x, ytop); k =
-    board units per booklet mm of a drawing 120 U wide (as draw_edge_build). Returns (View, k, board units per metre,
-    the map's rectangle)."""
-    k = 120.0 * U / BK_AW
-    ss = 1000.0 * k / B_DEN
-    return View(F, ss, x, ytop), k, ss, (x, ytop - F.h * ss, x + F.w * ss, ytop)
-
-
 def b_foot(B, F, x, yb, ss, k, L, Lm=B_SB_M):
     """v46: under a theme-B map whose bottom edge is at yb: the scale bar (0-Lm m, "m" beside it) and the north
     arrow beside it, both clear of the map and of any caption. Returns the y below them. v49.1 (Prompt 8): the bar
@@ -99,38 +83,6 @@ def b_base(S, CB, V, k, L, colfn=None):
 def b_frame(B, r, k, L):
     """v46: the site frame's line round a theme-B map (its rectangle r)."""
     B.line(rect(*r) + [(r[0], r[1])], INK, L, 70, bk_lw(0.25, k))
-
-
-def mv_reach(R, starts, rmax):
-    """v46: walkable reach: the walking cost (flat-ground metres; Tobler slope on the survey terrain where the network
-    has heights) from the nearest start point to every node of the walking network WITH the proposal (walk_a: today's
-    streets and footways and the masterplan's crossings), out to rmax; each start joins the network at its nearest
-    node within MV_OPT["snap"], that distance counted. Returns {node: cost}."""
-    pieces, xy = R["pieces"], R["xy"]
-    z = getattr(pieces, "z", None) or {}
-    adj = {}
-    for p in pieces:
-        if not p["walk"] or p["L"] <= 0:
-            continue
-        a, b = p["a"], p["b"]
-        za, zb = z.get(a), z.get(b)
-        g = (zb - za) / p["L"] if za is not None and zb is not None else 0.0
-        adj.setdefault(a, []).append((b, p["L"] * tobler_factor(g)))
-        adj.setdefault(b, []).append((a, p["L"] * tobler_factor(-g)))
-    hq, cost = [], {}
-    for sx, sy in starts:
-        best = min(((xy[n][0] - sx) ** 2 + (xy[n][1] - sy) ** 2, n) for n in adj) if adj else None
-        if best and best[0] <= MV_OPT["snap"] ** 2:
-            heapq.heappush(hq, (math.sqrt(best[0]), best[1]))
-    while hq:
-        d, n = heapq.heappop(hq)
-        if n in cost:
-            continue
-        cost[n] = d
-        for m, c in adj[n]:
-            if m not in cost and d + c <= rmax:
-                heapq.heappush(hq, (d + c, m))
-    return cost
 
 
 # v50 (MIRAQUA 28 Oct, P07.3, P09.1): draw_mv_today and draw_mv_proposal are redrawn in parts/15i_r28_movement.py;

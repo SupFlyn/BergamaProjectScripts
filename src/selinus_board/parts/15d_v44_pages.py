@@ -208,13 +208,6 @@ def photo_caption(it):
     return kw
 
 
-# ------------------------------------------------------------ p.6 walking / driving today: the key streets only
-def mv_key_rows(MV, key, n=MV_KEY_N):
-    """v44: the n named streets (50 m+ in the frame) with the highest potential `key` today (the engine's own street
-    table), highest first."""
-    return [r for r in sorted(MV.get("big") or [], key=lambda r: -r[key]) if r[key] > 0][:n]
-
-
 # v50 (MIRAQUA 28 Oct, P07.3): draw_mv_key moved to parts/15i_r28_movement.py (every street piece graded there).
 
 
@@ -247,39 +240,6 @@ def _xy1(v):
         return (float(v[0]), float(v[1]))
     except Exception:
         return None
-
-
-def mv_with_masterplan(S, M):
-    """v44: the movement engine run with the masterplan's proposal (once per run, S.mv_mp): cars off the roads it makes
-    pedestrian or relocates, each crossing joined to the walking network across the stream, the hub squares as new
-    everyday destinations (as the city link stops are in the board's own proposal run). None without OSM."""
-    if getattr(S, "mv_mp", None) is not None:
-        return S.mv_mp or None
-    S.mv_mp = {}
-    osm = getattr(S, "osm", None)
-    if not osm:
-        return None
-    closed = [_xy_list(r.get("xy")) for r in M.get("roads") or [] if r.get("change") in ("pedestrian", "relocated")]
-    closed = [P for P in closed if len(P) >= 2]
-    props = []
-    for c in M.get("crossings") or []:
-        p = _xy1(c.get("xy"))
-        nrm = stream_normal(S, p[0], p[1]) if p else None
-        if p and nrm:
-            props.append(("bridge", [(p[0] - nrm[0] * CROSS_HALF, p[1] - nrm[1] * CROSS_HALF),
-                                     (p[0] + nrm[0] * CROSS_HALF, p[1] + nrm[1] * CROSS_HALF)], False))
-    attr = [p for p in (_xy1(h.get("xy")) for h in M.get("hubs") or []) if p]
-    t0, log = time.time(), []
-    try:
-        ns = dict(globals())
-        ns["build_corridors"] = lambda S_: None              # the board has built its spines already
-        S.mv_mp = dict(R=analyse(ns, S, osm, PLACES_PATH or None, props, closed, attr, MV_OPT, log))
-    except Exception:
-        LOG.append("WARNING: movement with the masterplan's proposal failed:\n" + traceback.format_exc())
-        return None
-    LOG.append("Movement with the masterplan's proposal ({:.0f} s; {} roads closed to cars, {} crossings, {} hubs): "
-               .format(time.time() - t0, len(closed), len(props), len(attr)) + " ".join(l_ for l_ in log if l_))
-    return S.mv_mp
 
 
 MV_LINE_D = 12.0        # m: a line's street pieces for mv_line_index (their middles this close to it)

@@ -311,18 +311,6 @@ def frame_rest(S):
         "{} {:.2f} ha".format(k, a / 1e4) for k, _l, _c, a in S.rest))
 
 
-def draw_landcover(S, B, V, L, order=2):
-    """v31: the land-cover classes, each one fill (even-odd over all its rings), order 2 after the paper."""
-    leg = []
-    for k, lab, col in LC_CLASSES:
-        rings = getattr(S, "lc", {}).get(k)
-        if rings:
-            for i in range(0, len(rings), 400):
-                B.fill(V.Ps(rings[i:i + 400]), col, L, order)
-            leg.append(("box", col, lab))
-    return leg
-
-
 # ============================================================ REPORT + RUN (only when the button is pressed)
 def report(S):
     st = S.stats

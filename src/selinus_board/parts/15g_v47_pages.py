@@ -122,10 +122,5 @@ def shade_strip_calc(S):
                 under2=(100.0 * sum(1 for v in bed if v < SS_STEP) / len(bed)) if bed else None)
 
 
-def ss_colour(v):
-    """v47: the colour step of v hours in shade (SS_STEP h each, the last open-ended)."""
-    return SS_RAMP[min(len(SS_RAMP) - 1, int(v // SS_STEP))]
-
-
 # v50 (MIRAQUA 28 Oct, G7, G8): draw_shade_strip (p.16, crop drw_shade_strip: its rows along the analysis frame's
 # axis at 1:10,000, the study area marked, a scale bar) is in parts/15k_r28_edge.py

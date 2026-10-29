@@ -43,19 +43,6 @@ STORE_DEPTH = {"WT": 0.46}
 TERRACE_UP = 1.0                     # terrace level above the bed, m (the project's flood rule: "Terrace +1 m")
 
 
-def store_m3(z):
-    """(rough volume m3, words) of a water-route zone, or None: reed basins area x 0.46 m; retention terraces area x
-    the Q100 depth over them at the nearest channel cut."""
-    if z["code"] in STORE_DEPTH:
-        return z["m2"] * STORE_DEPTH[z["code"]], u""
-    if z["code"] == "WS" and z.get("P"):
-        cx = sum(p[0] for p in z["P"]) / len(z["P"])
-        cy = sum(p[1] for p in z["P"]) / len(z["P"])
-        num, nm, c, span, bed, q100, q500 = min(CUT_AT, key=lambda r: (r[2][0] - cx) ** 2 + (r[2][1] - cy) ** 2)
-        return z["m2"] * max(0.0, q100[0] - (bed + TERRACE_UP)), u" in Q100"
-    return None
-
-
 def places(spec, CL, survey):
     """Named places (world m): K4, K3, the Red Hall and K5 are city link's surveyed spine anchors (K4 = piece A's
     start, K3 its end, Red Hall = piece C's start, K5 its end), each bridge snapped to the nearest surveyed bridge
@@ -96,43 +83,6 @@ def detail_windows(D, plc, frame):
         out.append({"id": bid, "old": old, "key": key, "title": title, "caption": cap,
                     "R": (c[0] - Wm / 2, c[1] - Hm / 2, c[0] + Wm / 2, c[1] + Hm / 2)})
     return out
-
-
-def place_label(pg, lines, anchor, taken, W, H, colour, d0=1.2, leader=True, avoid=(), more=(), anywhere=False):
-    """A label block [(text, size, bold)] on a free spot round anchor (page mm, y up), off the rings in avoid, with
-    a thin leader when it sits off the anchor. v22: then round each point of more (e.g. along the route), and with
-    anywhere the free spot nearest anchor on the whole panel (2 mm grid). Returns its box or None."""
-    w, h = block_size(lines)
-    ax, ay = anchor
-    on = 0.0 <= ax <= W and 0.0 <= ay <= H              # v22: the leader goes to anchor only when it is on the panel
-
-    def free(b):
-        return not (b[0] < 0.8 or b[1] < 0.8 or b[2] > W - 0.8 or b[3] > H - 0.8 or
-                    any(hit(b, t, 0.4) for t in taken) or (avoid and not box_clear(b, avoid)))
-
-    def put(b, px, py, far):
-        draw_block(pg, lines, b[0], b[3], colour, None)
-        taken.append(b)
-        if leader and far:
-            qx, qy = min(max(px, b[0]), b[2]), min(max(py, b[1]), b[3])
-            pg.line([(px, py), (qx, qy)], COL["ink2"], 0.15)
-        return b
-
-    for k_, (px, py) in enumerate([anchor] + list(more)):
-        for d in (d0, d0 + 2.0, d0 + 4.0, d0 + 7.0, d0 + 11.0, d0 + 16.0, 24.0, 32.0):
-            for i in range(16):
-                a = math.radians(i * 22.5 + 11.25)
-                cx, cy = px + math.cos(a) * (d + w / 2), py + math.sin(a) * (d + h / 2)
-                b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
-                if free(b):
-                    return put(b, ax, ay, d > 3.0 or k_ > 0) if on or k_ == 0 else put(b, px, py, d > 3.0)
-    if anywhere:                                         # v22: last, any free spot on the panel, nearest first
-        cs = [(x_ * 2.0, y_ * 2.0) for x_ in range(int(W / 2.0) + 1) for y_ in range(int(H / 2.0) + 1)]
-        for cx, cy in sorted(cs, key=lambda c_: (c_[0] - ax) ** 2 + (c_[1] - ay) ** 2):
-            b = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
-            if free(b):
-                return put(b, ax, ay, True) if on else put(b, cx, cy, False)
-    return None
 
 
 def crop_legend(keys, alpha):

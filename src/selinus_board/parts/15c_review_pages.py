@@ -20,15 +20,6 @@ def ctx_line(B, txt, x, y, w, h, L, font=None):
     return B.para(txt, x, y, w, h, INK2, L, lead=1.45, font=font)
 
 
-def edge_shares(S):
-    """v42: {edge type: % of the bank length}, and the % walled and embanked (the key question's measure)."""
-    tot = sum(S.edge_len.values())
-    if tot <= 0:
-        return {}, 0.0, 0.0, 0.0
-    return (dict((k, 100.0 * v / tot) for k, v in S.edge_len.items()), 100.0 * S.walled_len / tot,
-            100.0 * getattr(S, "embanked_len", 0.0) / tot, tot)
-
-
 def sec_cropped(S, sd_, Lmax):
     """v42: the part of a cut Lmax long around the stream (centred on its water, kept inside the cut), cut again by the
     same section engine; its title says which part of the whole it is."""
@@ -158,67 +149,3 @@ def sections_plan(S, sw, U):
     return best
 
 
-def sections_context(S):
-    """v42: the context line of the cuts, with the bed's depth below the banks over all cuts (computed). v50 (MIRAQUA
-    28 Oct, P04.2, G5, G13, bank depth REPORT §4 1a-1e): bold keywords; the depth at each cut's main crossing below
-    its lower bank crest (2 decimals), the crossings at the DSİ walls and those with no surveyed bed left out of the
-    range, the walls named (WALL_H, site photos)."""
-    d, kinds, wall = [], set(), False
-    for sd_ in S.sections:
-        wall = wall or any((b_ or {}).get("kind") == "wall" for b_ in sd_.get("banks") or [])
-        k_ = site28_main_k(sd_)
-        if k_ is None:
-            continue
-        cr, top = site28_bank_of(sd_, k_)
-        if top is None or cr.get("kind") == "wall" or cr.get("nobed"):
-            continue
-        d.append(top - (sd_["water"][k_][2] + sd_["base"]))     # the water runs' beds are above the cut's base
-        kinds.add(cr.get("kind", "ground"))
-    if d:
-        rng = (u"{:.2f}-{}".format(min(d), u_height(max(d))) if len(d) > 1 else u_height(d[0]))
-        dep = u"the bed **{} below** the lower bank {}".format(rng, u"crest" if kinds == {"crest"} else u"top")
-    else:
-        dep = u"the bed below the banks"
-    return (u"**{} cuts** · **one scale** · surveyed ground, bed, buildings at their floors, streets crossed · {}{}"
-            u"".format(len(S.sections), dep, u" · **walls {} high** in the town reach (site photos, 1 Oct 2026)".format(
-                u_height(WALL_H)) if wall else u""))            # v44: keywords (visual first)
-
-
-def draw_sections_page(S, B, x, y, sw, U, plan, k):
-    """v42: page k of the cuts (sections_plan): rows of whole cuts at one scale, the context line on the first page.
-    v45: no locator and no scale word per cut (the caption states the one scale); the page's key map under it, its
-    own crop for the booklet page's title band. Returns the y below. v50 (MIRAQUA 28 Oct, P04.1, P04.2, P05.1): the
-    key maps at their booklet size (draw_sections_key, parts/15l), the context line's keywords bold, the building
-    types enlarged as a diagram where sections_plan found room."""
-    L = "LU_BOARD::Sections"
-    den, ss, pages = plan
-    names = [c_["name"] for r in pages[k] for c_, w_ in r if not c_.get("_types")]
-    B.text(u"SECTIONS ACROSS THE STREAM · {}{} · 1:{:,} ON THE A3 PAGE".format(
-        names[0], "" if len(names) == 1 else "-" + names[-1], den), x, y, 0.9 * U, INK, L, font=FONT_TITLE, bold=True)
-    top = y - 1.3 * U if k == 0 else y - 1.8 * U
-    # v50 (MIRAQUA 28 Oct, P04.2, G5): the context line with its keywords bold
-    yy = site28_para(B, sections_context(S), x, top, sw, CTX_H * U, INK2, L, lead=1.45, bcol=INK) - 0.4 * U \
-        if k == 0 else top
-    low = yy
-    for r in pages[k]:
-        cx = x
-        rl = yy
-        for c_, w_ in r:
-            if c_.get("_types"):                         # v44: the building types, at their own round scale
-                # v50 (P05.1): enlarged as a diagram by sections_plan's tf
-                bot = draw_typology_key(S, B, cx, yy, w_, U, ss=c_["ss"], th=c_["th"], crop=False,
-                                        enl=c_.get("tf", 1.0))
-            else:                                        # v44: the sheet's own scale; the booklet prints 1:den
-                bot = draw_section_strip(S, B, c_, cx, yy, w_, ss, U, tag="drawing", scale_txt="", loc=False)
-            rl = min(rl, bot)
-            cx += w_ + SEC_COL_GAP * U
-        yy = rl - SEC_ROW_GAP * U
-        low = rl
-    crop_panel("sections_%d" % (k + 1), x, low - 0.2 * U, x + sw, (top + CTX_H * U + 0.3 * U) if k == 0 else top + 0.9 * U,
-               u"Sections across the stream · {}{}".format(", ".join(names), next((
-                   u" · building types" + (u" (diagram, enlarged)" if c_.get("tf", 1.0) > 1.0 else u"")
-                   for r in pages[k] for c_, w_ in r if c_.get("_types")), u"")), crop_scale(ss))   # v50 (P05.1)
-    low = draw_sections_key(S, B, x, low - 1.6 * U, sw, names, k)
-    if k == len(pages) - 1 and any(c_[4] == "S4" for c_ in S.sec_lines):   # v48: the water board's S4 pages' key map
-        low = draw_sections_key(S, B, x, low - 1.6 * U, sw, ["S4"], "s4")
-    return low

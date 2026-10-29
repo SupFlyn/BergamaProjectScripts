@@ -170,25 +170,6 @@ def cut_runs(P, test, step=LINE_STEP_M):
     return runs
 
 
-# ================================================================ links between shapes (v2.3)
-def link_shapes(L, shapes, near=30.0):
-    """The shape (zone or strip) a link starts in and the one it ends in (holding the end, else nearest)."""
-    def at(e, skip=None):
-        for z in shapes:
-            if z is not skip and pip(e[0], e[1], z["P"]):
-                return z
-        best, bd = None, near
-        for z in shapes:
-            if z is skip:
-                continue
-            d = min(seg_dist(e[0], e[1], a, b) for a, b in zip(thin(z["P"]), thin(z["P"])[1:] + thin(z["P"])[:1]))
-            if d < bd:
-                best, bd = z, d
-        return best
-    a = at(L["P"][0])
-    return a, at(L["P"][-1], skip=a)
-
-
 # ================================================================ grid and outlines (from the v2.3 puzzle; v24: the
 # corridor's grid, Corridor in 02c_corridor.py, uses Grid, trace and smooth; the puzzle itself is gone)
 MAX_CELLS = 170000           # grid cells per working area (cell size follows from it, at least 0.5 m)
@@ -347,33 +328,11 @@ def box_clear(b, avoid):
     return True
 
 
-def inside_spots(TP, n=16):
-    bx = bbox(TP)
-    pole = inner_pt(TP)
-    S = []
-    for i in range(n):
-        for j in range(n):
-            x = bx[0] + (i + 0.5) / n * (bx[2] - bx[0])
-            y = bx[1] + (j + 0.5) / n * (bx[3] - bx[1])
-            if pip(x, y, TP):
-                S.append((x, y))
-    S.sort(key=lambda p: (p[0] - pole[0]) ** 2 + (p[1] - pole[1]) ** 2)
-    return [pole] + S
-
-
 def block_size(lines):
     """lines: [(text, size, bold)] -> (w, h)."""
     w = max(text_w(s, sz, bd) for s, sz, bd in lines)
     h = sum(sz * 1.18 for s, sz, bd in lines)
     return w, h
-
-
-def draw_block(pg, lines, x0, y_top, colour, halo):
-    y = y_top
-    for s, sz, bd in lines:
-        y -= sz * 1.0
-        pg.text(s, x0, y, sz, colour, bold=bd, halo=halo)
-        y -= sz * 0.18
 
 
 def fit_inside(TP, spots, lines, taken, pad=0.6, avoid=()):
@@ -514,39 +473,6 @@ def boxes_along(P, half):
 # ================================================================ v21: roads, panel marks, ring clipping
 ROAD_TONE = ("CFCCC5", "847E75", "4A3F35")   # v21: palette v1.4 role "road": light lanes, mid streets, dark main roads
 ROAD_LW = (0.22, 0.45)       # v21: street edge, main-road edge, mm (graphic)
-
-
-def clip_ring(R, cb):
-    """A ring cut to the rectangle cb = (x0, y0, x1, y1) (Sutherland-Hodgman on the four sides)."""
-    P = list(R)
-    for ax, lim, keep_lo in ((0, cb[0], False), (0, cb[2], True), (1, cb[1], False), (1, cb[3], True)):
-        if not P:
-            break
-        out = []
-        for i in range(len(P)):
-            a, b = P[i - 1], P[i]
-            ia = a[ax] <= lim if keep_lo else a[ax] >= lim
-            ib = b[ax] <= lim if keep_lo else b[ax] >= lim
-            if ib != ia:
-                t = (lim - a[ax]) / ((b[ax] - a[ax]) or 1e-12)
-                out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
-            if ib:
-                out.append(b)
-        P = out
-    return P
-
-
-def north_arrow(pg, x, y, h=7.0):
-    """v21: north arrow (survey grid +Y) with its tip at (x, y), page mm; 'N' beside it."""
-    pg.poly([[(x, y), (x - 1.8, y - h), (x, y - h * 0.72)]], fill=COL["ink_dark"])
-    pg.poly([[(x, y), (x, y - h * 0.72), (x + 1.8, y - h)]], fill=COL["white"], stroke=COL["ink_dark"], lw=0.15)
-    pg.text(u"N", x + 2.6, y - 3.2, 2.6, COL["ink_dark"], bold=True)
-
-
-def panel_marks(sh, x, y, scale, marks):
-    """v21: north arrow and scale bar in a panel's bottom margin (x, y = its left end, page mm)."""
-    north_arrow(sh, x + 2.0, y + 8.0)
-    scale_bar(sh, x + 12.0, y + 1.0, scale, marks)
 
 
 # ================================================================ one plan panel (sheet and detail windows)

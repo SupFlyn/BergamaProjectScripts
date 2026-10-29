@@ -32,4 +32,10 @@
 #@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py
 #@include ../common/pdf_fonts.py
+#@include pages/p02_p03.py
+#@include pages/p04_05_sections.py
+#@include pages/p06_22_build.py
+#@include pages/p07_09_movement.py
+#@include pages/p17_shade.py
+#@include pages/p21_heritage.py
 #@include parts/17_board_fits.py

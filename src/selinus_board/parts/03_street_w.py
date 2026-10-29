@@ -481,45 +481,6 @@ ROAD_FILL = (207, 204, 197)       # v16.7: that colour on the plans and in the l
 ROAD_FILL_OVER = (178, 178, 184)  # v16.7: the street surfaces over the sound maps (T1), a cool grey that reads on them
 
 
-def road_lines(S, B, V, L, order, casing=None, surface=ROADC, min_w=0.06, paths=False, fill=None, hatch=True):
-    """Streets at their surveyed width: the surface between its two edges (one outline per block of streets, so
-    junctions are clean); a street whose width the survey does not show is a single thin line on its centre.
-    Footpaths optional as thin dashes. v16.5: the street surfaces hatched (fine 45-degree lines, a shade darker than
-    the edges' paper) in every plan that shows them."""
-    casing = casing or mix(INK, PAPER, 0.5)
-    net = getattr(S, "road_net", None)
-    if net:
-        col = fill if fill is not None else surface
-        hc = mix(casing, col, 0.2)
-        for rg_ in net:
-            if hatch and ROAD_SOLID:                      # v16.7: one solid colour
-                B.fill(V.Ps([rg_["P"]] + rg_["H"]), ROAD_FILL if fill is None else col, L, order)
-                continue
-            B.fill(V.Ps([rg_["P"]] + rg_["H"]), col, L, order)
-            if hatch:
-                B.hatch(V.Ps([rg_["P"]] + rg_["H"]), hc, L, order, ROAD_HATCH_SP * S.U, w=ROAD_HATCH_W)
-        for P in getattr(S, "road_lines_net", []):
-            B.line(V.P(P), casing, L, order + 1, 0.05)
-        for r in S.roads:
-            if not r.get("w"):
-                B.line(V.P(r["P"]), casing, L, order + 1, 0.06)
-    else:
-        s = V.s
-        rs = sorted(S.roads, key=lambda r: r["tags"].get("highway") in MAIN_ROADS)
-        for r in rs:
-            if r.get("w"):
-                B.line(V.P(r["P"]), casing, L, order, max(min_w, r["w"] * s * MMU) + 0.07)
-            else:
-                B.line(V.P(r["P"]), casing, L, order, 0.07)
-        for r in rs:
-            if r.get("w"):
-                B.line(V.P(r["P"]), surface, L, order + 1, max(min_w, r["w"] * s * MMU))
-    if paths:
-        for p in S.paths:
-            for d in dashes(V.P(p["P"]), 0.3 * S.U, 0.2 * S.U):
-                B.line(d, casing, L, order + 1, 0.05)
-
-
 def road_overlay(S, B, V, L, order, col=(52, 52, 58)):
     """v16.6: the streets drawn OVER an analysis map without hiding it: each street surface hatched with fine lines
     (no fill, the analysis colours show between them), its edges, and the centre line of a street whose width the
