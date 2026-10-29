@@ -488,24 +488,14 @@ def _p02_put(B, shapes, L, order, k):
             B.line(list(sh[1]), _p02_col(sh[2]), L, order, bk_lw(sh[3] if len(sh) > 3 else 0.1, k))
 
 
-def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0):
+def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0, mm_per_m=None, pick=None):
     """ONE helper for every human figure of p.02-03 (HELPER_BRIEF rule 3): house shapes, k = drawing units per metre.
-    side: the legacy silhouette fig_polys(pose, 1.75, facing) with its feet at (x, y) (poses stand, walk, watch, sit,
-    touch, wade, bike), filled in ink; top: a plan figure centred on (x, y) heading ang (radians, 0 = +x): the
-    shoulders an ellipse 0.52 m across and 0.28 m deep, the head a circle 0.23 m wide, one ink weight, light flat fill.
-    Line weights in mm of the drawing it lands on."""
-    # swap point: figures.py fig_side/fig_top when the silhouette set arrives
+    v52: the A1 pen figures of figures.py (adult 1.70 m). side: fig_side(pose) with its feet at (x, y); top:
+    fig_top(pose) centred on (x, y) heading ang (radians, 0 = +x). mm_per_m = booklet mm per metre where k is not
+    (keeps the pen at least 0.10 mm). Line weights in mm of the drawing it lands on."""
     if view == "top":
-        ca, sa = math.cos(ang), math.sin(ang)
-
-        def R(px, py):
-            return (x + (px * ca - py * sa) * k, y + (px * sa + py * ca) * k)
-        sho = [R(0.14 * math.cos(2.0 * math.pi * i / 16), 0.26 * math.sin(2.0 * math.pi * i / 16)) for i in range(16)]
-        head = [R(0.03 + 0.115 * math.cos(2.0 * math.pi * i / 12), 0.115 * math.sin(2.0 * math.pi * i / 12))
-                for i in range(12)]
-        return [("poly", sho, FIG_FILL, FIG_INK, 0.1), ("poly", head, FIG_FILL, FIG_INK, 0.1)]
-    return [("poly", [(x + px * k, y + py * k) for px, py in ring], FIG_INK, None, 0.0)
-            for ring in fig_polys(pose, 1.75, facing)]
+        return fig_top(pose, x, y, k, ang=ang, ink=FIG_INK, mm_per_m=mm_per_m)
+    return fig_side(pose, x, y, k, facing, ink=FIG_INK, mm_per_m=mm_per_m, pick=pick)
 
 
 def draw_plan01_key(S, B, x, y, w, U):
@@ -932,7 +922,8 @@ def _p02_zone(B, t, x0, x1, yw, yl, k, L, order):
         for j in range(n):                                # people walking it, both ways
             fx = x0 + (j + 0.5) * (x1 - x0) / n
             fy = 0.5 * (ya + yb) + (0.08 if j % 2 else -0.08) * hz
-            _p02_put(B, _p02_fig("walk", fx, fy, 3.0 * k, view="top", ang=0.0 if j % 2 else math.pi), L, order + 3, k)
+            _p02_put(B, _p02_fig("walk", fx, fy, 3.0 * k, view="top", ang=0.0 if j % 2 else math.pi, mm_per_m=3.0),
+                     L, order + 3, k)
     elif t == "street":
         B.fill([r_], P02_ROAD, L, order)
         for y_ in (ya, yb):                               # kerbs
@@ -1260,7 +1251,7 @@ def _p03_segd(px, py, a, b):
 
 
 def _p03_figures(S, pg, V, R):
-    """v51 (WO-T3a-2, 02 §3): people at true height (1.75 m, _p02_fig side view) on the p.03 axonometric, placed by
+    """v51 (WO-T3a-2, 02 §3; v52 A1 pen figures, 1.70 m): people at true height (_p02_fig side view) on the p.03 axonometric, placed by
     what they do there: watching the water along the walkable bank stretches (the edge samples of type walkable, one
     every P03_FIG_EDGE m, facing the stream) and walking the footpaths (one every P03_FIG_PATH m, facing the way the
     path runs); only on open ground (no building footprint within 3 m) inside the model's extent R, far to near.
@@ -1309,14 +1300,14 @@ def _p03_figures(S, pg, V, R):
     col = crop_hex(FIG_INK)
     for px, py, pose, fc in sorted(spots, key=lambda s_: -V.depth(s_[0], s_[1])):
         z0 = zg(px, py) if zg is not None else 0.0
-        for sh in _p02_fig(pose, 0.0, 0.0, 1.0, fc):       # in metres, feet at the origin
+        for sh in _p02_fig(pose, 0.0, 0.0, 1.0, fc, pick=int(abs(px) + abs(py))):   # metres, feet at the origin
             pts = []
             for fx, fy in sh[1]:
                 u_, v_ = V.uv(px + fx * g0, py + fx * g1, z0 + fy)
                 pts.append((V.ox + V.k * u_, V.oy + V.k * v_))
             pg.poly([pts], fill=col, stroke=None, layer="figures")
-    LOG.append(u"p.03 axonometric: {} figures at true height (1.75 m = {:.2f} mm on the sheet): {} watching the water "
-               u"on walkable banks, {} walking footpaths.".format(len(spots), 1.75 * V.k * V.cp,
+    LOG.append(u"p.03 axonometric: {} figures at true height (1.70 m = {:.2f} mm on the sheet): {} watching the water "
+               u"on walkable banks, {} walking footpaths.".format(len(spots), 1.70 * V.k * V.cp,
                                                                   sum(1 for s_ in spots if s_[2] == "watch"),
                                                                   sum(1 for s_ in spots if s_[2] == "walk")))
     return len(spots)

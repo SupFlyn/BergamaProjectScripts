@@ -1,8 +1,14 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v51)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v52)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v52 (2026-10-29, revision round 29 Oct, figures pass; a feature change):
+  * Every human figure (p.02 edge strip, p.03 axonometric, p.04-05 sections, p.07-09 street sections) is now an A1
+    pen figure (figures.py fig_side / fig_top, adult 1.70 m), drawn no thinner than 0.10 mm. The 24 picked figures
+    come from Downloads/Bergama/Data/figures_A1.json (copy it from the run kit); without it the script draws its
+    own A1 figures. A seated figure on a street is the library's figure on a chair.
 
 NEW IN v51 (2026-10-29, revision round 29 Oct, step T3a; a feature change):
   * Shared modules included: the basemap (written once a run by basemap_export in site_model, kept while the site
@@ -376,8 +382,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v51 (2026-10-29)"     # v27: the log's first line and the text under the component
-SHORT_V = "v50"                                         # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v52 (2026-10-29)"     # v27: the log's first line and the text under the component
+SHORT_V = "v52"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

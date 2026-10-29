@@ -31,22 +31,20 @@ P45_BANK_WORD = {"dsi_wall": u"a DSİ stone wall", "embankment": u"an embankment
                  "no_crest": u"rising ground"}
 
 
-def _p45_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, height=1.75):
-    """every human figure of pp.04-05: pose (stand, walk, watch, sit, touch, wade, bike) at true height, feet at
-    (x, y) board units, k = board units per metre; facing -1 looks left; view "top": a plan figure (shoulders and
-    head, one ink weight, a light flat fill)"""
-    # swap point: figures.py fig_side/fig_top when the silhouette set arrives
+def _p45_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, height=1.70, kb=None):
+    """every human figure of pp.04-05: v52 the A1 pen figures of figures.py (fig_side / fig_top, adult 1.70 m), feet
+    at (x, y) board units, k = board units per metre, kb = board units per booklet mm (pen kept >= 0.10 mm);
+    facing -1 looks left"""
     c_ = col or mix(INK, PAPER, 0.2)
+    mpm = k / kb if kb else None
     if view == "top":
-        sh = [(x + 0.25 * k * math.cos(t * math.pi / 12.0), y + 0.14 * k * math.sin(t * math.pi / 12.0))
-              for t in range(24)]
-        hd = circle_pts(x, y, 0.11 * k, 12)
-        for P_ in (sh, hd):
-            B.fill([P_], mix(c_, WHITE, 0.7), L, order)
-            B.line(P_ + [P_[0]], c_, L, order + 1, 0.04)
-        return
-    for P_ in fig_polys(pose, height, facing):
-        B.fill([[(x + px * k, y + py * k) for px, py in P_]], c_, L, order)
+        shs = fig_top(pose, x, y, k, mm_per_m=mpm)
+    else:
+        shs = fig_side(pose, x, y, k, facing, mm_per_m=mpm, h_m=height)
+    for sh in shs:
+        B.fill([sh[1]], c_, L, order)
+        if kb and sh[4]:
+            B.line(list(sh[1]) + [sh[1][0]], c_, L, order, bk_lw(sh[4], kb))
 
 
 def _p45_c(c):
@@ -466,12 +464,12 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                     continue
                 zf = sd["zt"] if sd["typ"] in ("dsi_wall", "embankment") and sd["zt"] is not None else g_at(sd["crest"])
                 fx, fy = P(sd["crest"] + sd["dirn"] * 0.8, zf)
-                _p45_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"])
+                _p45_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"], kb=kb)
         st_ = [sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport"]
         if st_:
             a, b, cat = max(st_, key=lambda q_: q_[1] - q_[0])
             fx, fy = P(0.5 * (a + b), g_at(0.5 * (a + b)))
-            _p45_fig(B, L, "walk", fx, fy, ss, facing=1)
+            _p45_fig(B, L, "walk", fx, fy, ss, facing=1, kb=kb)
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
     co = sd_.get("crop_of")
