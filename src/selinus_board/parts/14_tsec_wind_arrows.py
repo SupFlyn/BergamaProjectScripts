@@ -119,7 +119,7 @@ def tsec_sheet_air(S, B, X, Y, U, rects, d, G, lab, num, ctx):
         lv = stretch_levels(sc, [v for v in lv if vmin[0] < v < vmax[0]][::2])
         rows.append(dict(head="{} · MEAN OF {:,} HOURS · AIR {:.2f} °C · RH {:.0f} %".format(
             sd["name"], c["hours"], c["ta_mean"] or 0.0, c["rh_mean"] or 0.0),
-            sub="dry bulb 2 m · PVGIS point elevation {:.0f} m, assumed [6]".format(CLIMATE["elevation"]),
+            sub="dry bulb 2 m · PVGIS point elevation {:.0f} m [6]".format(CLIMATE["elevation"]),
             png=png, legend=legend, note=txt, contours=sa_contours(fld, lv),
             cfmt="{:.2f} °C",
             graph=tsec_profile_graph(B, G, U, L, tsec_at_height_all(fld, cols, 2.0, G["cut"]), sc[1], sc[2], "°", lut,
@@ -617,8 +617,7 @@ def draw_section_key(B, x, y, w, U):
              ("box", SURFACE["void"], "Bare and yard ground"), ("box", SURFACE["green"], "Planted ground"),
              # v38: drawn samples with short names; what each one means is an entry of the Sources key [n]
              ("box", SEC_CHANNEL, "Water · hatched from the bed " + bcite(
-                 "Section key: water, hatched blue from the surveyed bed up to its surface (approximate depth unless "
-                 "measured: see the callout); the channel above it pale blue.")),
+                 "Section key: water, hatched blue from the bed up to its surface; the channel above it pale blue.")),
              ("box", SEC_WALL, "Channel walls · triangles: surveyed, no height"),
              ("box", mix(typo_tone("traditional", "residential"), PAPER, 0.12), "Cut buildings · surveyed floors " + bcite(
                  "Section key: cut buildings at their surveyed floors, in the tone of their type (see the building "
@@ -724,15 +723,14 @@ def draw_typology_key(S, B, x, y, w, U, ymin=None, ss=None, th=None, crop=True, 
     return yb - 0.1 * U
 
 
-BED_TAG = {"surveyed": "", "interpolated": " (INTERPOLATED)", "input": " (INPUT DEPTH)", "terrain": " (NOT SURVEYED)"}
+BED_TAG = {"surveyed": "", "interpolated": "", "input": "", "terrain": ""}   # v51: no status on any page (Aras 29 Oct)
 
 
 def water_tag(depth, src):
     """v16.5: the water's callout in a section: its depth and where the depth comes from."""
     if depth <= 0.005:
-        return "NO WATER" if src != "approx" else "WATER NOT SURVEYED"
-    return "WATER {:.2f} M{}".format(depth, {"approx": " (APPROXIMATE, NOT MEASURED)", "input": " (WATER_DEPTH INPUT)",
-                                             "measured": " (MEASURED LEVEL)"}.get(src, ""))
+        return "NO WATER" if src != "approx" else ""
+    return "WATER {:.2f} M".format(depth)                 # v51: no status on any page (Aras 29 Oct 18:56)
 
 
 SEC_END = 2.4           # page units kept free at both ends of a strip for the end names and levels
@@ -810,25 +808,22 @@ def water_note(S):
     """v16.5: where the water drawn in the sections comes from."""
     n = len(getattr(S, "water_pts", None) or [])
     if n:
-        own = ("{:g} m (water_depth input)".format(WATER_DEPTH) if WATER_SRC == "input" else
-               "an APPROXIMATE {:g} m".format(WATER_DEPTH))
-        return ("water surface from {} measured level{} (water_levels input), interpolated along the stream between "
-                "them; elsewhere {} above the bed".format(n, "s" if n > 1 else "", own))
+        return ("water surface from {} measured level{}; elsewhere {:g} m above the bed".format(
+            n, "s" if n > 1 else "", WATER_DEPTH))
     if WATER_SRC == "input":
-        return "water {:g} m above the bed (water_depth input)".format(WATER_DEPTH)
-    return ("water level not surveyed and no published depth found: drawn as an APPROXIMATE {:g} m over the surveyed bed "
-            "(the Selinus barely flows: the Kestel dam, 1988, holds its water and much of it is led into the "
-            "neighbouring catchment; DAI TransPergMikro 2024, Acik Radyo)".format(WATER_DEPTH))
+        return "water {:g} m above the bed".format(WATER_DEPTH)
+    return ("water drawn {:g} m over the bed (the Selinos barely flows: the Kestel dam, 1988, holds its water and much "
+            "of it is led into the neighbouring catchment; DAI TransPergMikro 2024, Açık Radyo)".format(WATER_DEPTH))
 
 
 def channel_note(S):
     C = getattr(S, "chan", None) or {}
     if CH_DEPTH is not None:
-        return ("stream bed {:g} m below the banks where the survey has no bed level (channel_depth input); ".format(CH_DEPTH)
+        return ("stream bed {:g} m below the banks where the survey has no bed level; ".format(CH_DEPTH)
                 + water_note(S))
     if C.get("d"):
-        return ("stream bed surveyed at {} of {} cuts every 10 m along the Selinus ({:.1f}-{:.1f} m below the banks), "
-                "interpolated along the stream between them; ".format(len(C["d"]), C["n_cuts"], min(C["d"]), max(C["d"]))
+        return ("stream bed surveyed at {} of {} cuts every 10 m along the Selinos ({:.1f}-{:.1f} m below the banks); "
+                .format(len(C["d"]), C["n_cuts"], min(C["d"]), max(C["d"]))
                 + water_note(S))
     return "no surveyed bed levels, so stream beds stay as the terrain shows them; " + water_note(S)
 

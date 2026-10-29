@@ -1,8 +1,24 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v50)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v51)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v51 (2026-10-29, revision round 29 Oct, step T3a; a feature change):
+  * Shared modules included: the basemap (written once a run by basemap_export in site_model, kept while the site
+    model is unchanged), the level table, section parts, plants, icons.
+  * p.02: C1-C6 legible discs, no photo points, side column map key -> edge strip -> readings, the edge strip as a
+    top-view drawing (walls, slopes, trees, walking people); p.03 axonometric with figures.
+  * p.04-05: key maps (topographic, this page's cuts only, view triangles) and sections fill the page; levels from the
+    level table (S4 bed +42.48); banks, planting and farm rows per cut; label strips under their parts.
+  * p.06: where we can build recounted on one 2 m raster (no double counts), bare ground and grass lots added, sites
+    A-F with their m² and what they open to (p.22 folded in: drw_edge_build_e and drw_filter removed).
+  * p.07-09: sharper map titles and gradient streets (p.07); before/after street sections per road type
+    (drw_street_sections, item 07c); movement_framework.json for the city link's framework diagram; the walk/car
+    index chart and the proposal map removed.
+  * p.21: one map on the shared basemap with photo cards, the stream walk labelled; no key map.
+  * p.17 shade drawing retired: output/selinus_board/shade_july.json carries the July shade for the water board.
+  * K4 chainage 5,849.4 (level table); no status words (assumed / interpolated / approximate) on any page.
 
 NEW IN v50 (2026-10-28, MIRAQUA booklet revision v4 + bank depth research 28 Oct; a feature change, so the next whole
 number):
@@ -360,7 +376,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v50 (2026-10-28)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v51 (2026-10-29)"     # v27: the log's first line and the text under the component
 SHORT_V = "v50"                                         # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 

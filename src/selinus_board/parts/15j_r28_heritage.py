@@ -73,10 +73,7 @@ HER_SRC = (u"Heritage loop, the places and their dates (public sources): Wikiped
            u"Basilica'; Kültür Envanteri (kulturenvanteri.com) 'Kızıl Avlu', 'Tabak Köprüsü', 'Bergama Müzesi'; Visit "
            u"İzmir (visitizmir.org) 'Bergama Ulu (Yıldırım) Mosque' and 'Mevlâna Hacı Hekim Hammam'; KTB İzmir 'Baths "
            u"(Hamams) in İzmir' (Tabaklar Hamamı, named after the tanneries); KTB Türkiye Müzeleri (turkishmuseums.com) "
-           u"'The Archaeological Site of Asklepion'; Wikipedia 'Bergama Museum'. Positions: bridges and survey labels on "
-           u"the survey drawing; the gondola's valley station, the Trajaneum and the Asklepieion's ticket building from "
-           u"OpenStreetMap, lat/lon to survey metres by a linear fit at K3 (±10-30 m). Distances straight between "
-           u"places, the stream walk along the stream's centre line; calculated.")
+           u"'The Archaeological Site of Asklepion'; Wikipedia 'Bergama Museum'; OpenStreetMap (ODbL).")   # v51: public only (D13)
 
 # Arial (= Helvetica) advance widths, 1000 units per em (as DIAG_SRC's text_w): words set run by run (G5) are placed
 # at their printed widths

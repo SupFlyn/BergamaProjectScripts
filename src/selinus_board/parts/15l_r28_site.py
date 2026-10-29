@@ -156,7 +156,7 @@ def site28_para(B, txt, x, y, width, h, col, L, lead=1.7, order=40, bcol=None):
 # reach before the DSİ walls: from the frame's upstream end to Üç Kemer (research chainage 5,290-6,560) the walls,
 # WALL_H above the bed (site photos 1 Oct 2026, 4-6 m; input wall_height), stand wherever the survey crest is lower.
 SITE28_CREST_M = 60     # m: the crest is searched this far out from the bed on each side (as the research cuts)
-SITE28_RCH = (5965.0, 6560.0)       # research chainage of K4 and Üç Kemer (K5) on the survey centreline (REPORT)
+SITE28_RCH = (5849.4, 6559.6)       # chainage of K4 and Üç Kemer (K5) on the survey centreline (v51: K4 from the level table, T1 levels gap 3)
 SITE28_WALLED = (5290.0, 6560.0)    # the DSİ walled town reach in that chainage: the frame's upstream end to Üç Kemer
 SITE28_NOBED = ((5790.0, 5940.0), (6065.0, 6390.0))   # no survey heights in the channel: "bed not surveyed"
 SITE28_CROSS = 60.0     # degrees: a cut crossing the stream at this angle or more prints its bed width (REPORT 1c)

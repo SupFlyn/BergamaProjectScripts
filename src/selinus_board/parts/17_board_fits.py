@@ -446,6 +446,7 @@ def build_site_once(R, osm, places, F):
             S, msgs = _pickle.loads(blob)
             LOG.extend(msgs)
             S.F = F
+            S.site_key = key                                 # v51: the shared basemap is kept while this is unchanged
             if hasattr(S, "terrain_smp"):
                 S.z_at = terrain_z_at(S, S.terrain_smp)      # a function: made again from its samples, as the workers do
             return S
@@ -453,6 +454,7 @@ def build_site_once(R, osm, places, F):
             pass
     n0 = len(LOG)
     S = build_site(R, osm, places, F)
+    S.site_key = key
     if key is not None:
         try:
             _ns_register()
@@ -523,6 +525,7 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
     except Exception:
         LOG.append("WARNING: land-cover file could not be read:\n" + traceback.format_exc())
         S.lc, S.lc_area = {}, {}
+    basemap_export(S, LOG)                                # v51 (T3a): the shared basemap every script reads
     try:
         frame_rest(S)                                     # v35: the unmapped ground of the frame, by satellite class
     except Exception:

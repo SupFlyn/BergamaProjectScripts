@@ -179,25 +179,15 @@ def build_sheet(S, B, X, Y, U, rects):
              ("04 Green, farmland and orchards", 30.8 * U, lambda x, y: draw_green_table(S, B, x, y, 30.8 * U, U)),
              ("05 Readings", 24.0 * U, lambda x, y: draw_readings(S, B, x, y, 24.0 * U, None, U)),
              ("05c Site readings", 40.0 * U, lambda x, y: draw_site_readings(S, B, x, y, 40.0 * U, U)),   # v45
-             ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
-             ("06a Shade along the stream", 120.0 * U, lambda x, y: draw_shade_strip(S, B, x, y, 120.0 * U, U)),  # v47
              ("06b The stream edge and where we can build", 120.0 * U,                          # v45
               lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U)),
-             ("06c The stream edge, masterplan spread", 120.0 * U,                             # v49 (Prompt 7)
-              lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U, with_photos=False)),
-             ("06d The filter, before the masterplan", 120.0 * U,                              # v50 (MIRAQUA 28 Oct, D1)
-              lambda x, y: r28e_draw_filter(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
              # v50 (MIRAQUA 28 Oct, P09.3): "07b Commercial spines" is gone (drw_index_change under the proposal)
              ("07d City heritage loop", 120.0 * U, lambda x, y: draw_heritage_loop(S, B, x, y, 120.0 * U, U)),   # v46
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
-    if shade_strip_data(S) is None:                       # v47: without shade results no shade drawing and no shade
-        items = [it_ for it_ in items if not it_[0].startswith("06a ")]      # crop: p.22 keeps drw_tree_cover
-        if shade_july(S) is None:                         # (a failed computation logs its own warning)
-            LOG.append("WARNING: no shade results (bergama_environment.json missing?): booklet page \"Which plant goes "
-                       "where\" shows the tree crown cover instead")    # v49.1 (Prompt 8): was "p.22"
+    shade_july_export(S)                                  # v51 (T3a): the shade drawing moved to p.17 (water board)
     # v44: the masterplan's proposal map (only when masterplan_results.json holds "movement") and the walking-effort
     # proof (only with terrain heights on the network); each logs why when it is left out
     at = [nm_ for nm_, w_, f_ in items].index("07d City heritage loop")
@@ -207,13 +197,13 @@ def build_sheet(S, B, X, Y, U, rects):
                               lambda x, y: draw_walking_effort(S, B, x, y, 120.0 * U, U)))
     M_ = mp_movement()
     if M_ is not None:
-        items.insert(at, ("07c The proposal, how people move", 120.0 * U,
+        items.insert(at, ("07c Streets before and after", 120.0 * U,
                           lambda x, y: draw_mv_proposal(S, B, x, y, 120.0 * U, U, M_)))
     n_ = 13
     if S.sections:
         # v42 (Aras 26 Oct 07:06, p.09-11): every cut at ONE round scale, rows of whole cuts, at most two booklet pages
         sw = 140.0 * U
-        plan_ = sections_plan(S, sw, U)
+        plan_ = p45_plan(S, sw, U)                   # v51: p.04 S1-S4, p.05 S5-S8
         for k_, pg_ in enumerate(plan_[2]):
             nms = [c_["name"] for r_ in pg_ for c_, w_ in r_ if not c_.get("_types")]
             items.append(("{:02d} Sections across the stream {}".format(12 + k_, nms[0] + (

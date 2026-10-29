@@ -144,6 +144,17 @@ def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildi
     D = D if D is not None else basemap_load()
     if not D:
         return []
+    # the same request in one run is made once and copied (Aras 29 Oct 19:18: build once, cache, copy the layers)
+    mk = ("items", id(D), mode, repr(sorted((override or {}).items())), tuple(box) if box else None,
+          bool(split_buildings))
+    if mk in _BM_MEMO:
+        return list(_BM_MEMO[mk])
+    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings)
+    return list(_BM_MEMO[mk])
+
+
+def _bm_items(D, mode, override, box, split_buildings):
+    """basemap_items without the memo"""
     lay = basemap_layers(mode, override)
     L = D["layers"]
     out = []
@@ -418,6 +429,17 @@ def basemap_export(S, log=None):
     twice; contours (survey, frame only) carry their height. Returns the path, or None (a WARNING in log)."""
     import time as _t
     log = log if log is not None else []
+    # unchanged site model (same build_site key, S.site_key) = the file on disk is kept, not made again
+    kf = BASEMAP_FILE + ".key"
+    key = u"{}|{}|{}".format(BASEMAP_FORMAT, globals().get("SCRIPT_VERSION", ""), getattr(S, "site_key", None) or "")
+    try:
+        if getattr(S, "site_key", None) and _bm_os.path.isfile(BASEMAP_FILE) and _bm_os.path.isfile(kf):
+            with open(kf, "r", encoding="utf-8") as fh:
+                if fh.read().strip() == key:
+                    log.append(u"Shared basemap unchanged (same site model): {} kept.".format(BASEMAP_FILE))
+                    return BASEMAP_FILE
+    except Exception:
+        pass
     try:
         F = S.F
         loc = lambda p: F.local(p[0], p[1])
@@ -565,7 +587,12 @@ def basemap_export(S, log=None):
         _bm_os.makedirs(_bm_os.path.dirname(BASEMAP_FILE), exist_ok=True)
         with open(BASEMAP_FILE, "w", encoding="utf-8") as fh:
             _bm_json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
-        _BM_MEMO.pop(BASEMAP_FILE, None)
+        for k_ in list(_BM_MEMO):
+            if k_ == BASEMAP_FILE or (isinstance(k_, tuple) and k_[0] == "items"):
+                _BM_MEMO.pop(k_, None)
+        if getattr(S, "site_key", None):
+            with open(kf, "w", encoding="utf-8") as fh:
+                fh.write(key)
         log.append(u"Shared basemap written ({}): {:,} buildings in the frame, {:,} beyond it, {:,} contours, extent "
                    u"{:,.0f} x {:,.0f} m.".format(BASEMAP_FILE, n_in, n_out, len(L["contours"]), ex[2] - ex[0],
                                                  ex[3] - ex[1]))

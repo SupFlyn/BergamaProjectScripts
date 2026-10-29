@@ -32,10 +32,15 @@
 #@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py
 #@include ../common/pdf_fonts.py
+#@include ../common/data/LEVELS.py
+#@include ../common/levels.py
+#@include ../common/basemap.py
+#@include ../common/section_parts.py
+#@include ../common/plants.py
+#@include ../common/icons.py
 #@include pages/p02_p03.py
 #@include pages/p04_05_sections.py
 #@include pages/p06_22_build.py
 #@include pages/p07_09_movement.py
-#@include pages/p17_shade.py
 #@include pages/p21_heritage.py
 #@include parts/17_board_fits.py

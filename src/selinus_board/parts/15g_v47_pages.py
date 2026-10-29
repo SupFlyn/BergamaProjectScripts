@@ -39,6 +39,57 @@ def shade_strip_data(S):
     return memo["shade_strip"]
 
 
+SHADE_JULY_CELL_M = 5.0     # m: shade_july.json's map cells (mean of the 1 m cells inside; p.17 plan at 1:2,500 = 2 mm)
+
+
+def shade_july_export(S):
+    """v51 (T3a, WO-T3a-1): the July shade for p.17 (water board, T4a) as output/selinus_board/shade_july.json, once a
+    run: daylight h, the strip along the Selinos (25 m bins, rows left / bed / right, mean h in shade; chainage from the
+    data pack's centreline, given as x, y, ch) and the map: 5 m cells (survey m, the cell's centre) with the mean hours
+    in shade of their open 1 m cells. Nothing without July shade results (logged)."""
+    jl = shade_july(S)
+    if not jl:
+        LOG.append("Shade for p.17: no July shade results (bergama_environment.json missing, or mode \"drawings\"): "
+                   "shade_july.json not written.")
+        return None
+    try:
+        G = S.env["shade"]["grid"]
+        hrs = np.asarray(jl["hours"], float).ravel()
+        xx, yy = np.asarray(G["xx"], float).ravel(), np.asarray(G["yy"], float).ravel()
+        o = np.isfinite(hrs)
+        c = SHADE_JULY_CELL_M
+        ix, iy = np.floor(xx[o] / c).astype(np.int64), np.floor(yy[o] / c).astype(np.int64)
+        k_, inv = np.unique(np.stack([ix, iy], 1), axis=0, return_inverse=True)
+        inv = inv.ravel()
+        tot = np.bincount(inv, weights=hrs[o])
+        cnt = np.bincount(inv)
+        cells = [[round((float(a_) + 0.5) * c, 1), round((float(b_) + 0.5) * c, 1), round(float(t_ / n_), 2)]
+                 for (a_, b_), t_, n_ in zip(k_, tot, cnt)]
+        D = shade_strip_data(S)
+        sel = (seam_pack().get("selinos") or {})
+        out = dict(format=1, source=SCRIPT_VERSION, daylight_h=round(float(jl["daylight"]), 2),
+                   note=u"mean July day, hours in shade at ground level (site board shade engine: surveyed footprints at "
+                        u"their heights, canopy crowns, terrain horizon); survey m",
+                   map=dict(cell_m=c, cells=cells),
+                   strip=None if not D else dict(
+                       bin_m=D["bm"], n_bins=D["n"],
+                       rows={k2: dict(vals=[None if v is None else round(v, 2) for v in r2["vals"]],
+                                      mean=None if r2["mean"] is None else round(r2["mean"], 2))
+                             for k2, r2 in D["rows"].items()},
+                       centreline=dict(x=[round(float(v), 1) for v in sel.get("x", [])],
+                                       y=[round(float(v), 1) for v in sel.get("y", [])],
+                                       ch=[round(float(v), 1) for v in sel.get("ch", [])])))
+        os.makedirs(SELINUS_OUT_DIR, exist_ok=True)
+        fn = os.path.join(SELINUS_OUT_DIR, "shade_july.json")
+        with open(fn, "w", encoding="utf-8") as fh:
+            json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
+        LOG.append("Shade for p.17: {} ({:,} cells of {:g} m).".format(fn, len(cells), c))
+        return fn
+    except Exception:
+        LOG.append("WARNING: shade_july.json not written:\n" + traceback.format_exc())
+        return None
+
+
 def shade_strip_calc(S):
     """v47: hours in shade on the mean July day along the Selinos (the shade grid's "july", 1 m cells at ground level)
     per 25 m bin of the tree crown cover chart's chainage (the data pack's OSM centreline, 0 at the upstream frame

@@ -5,7 +5,7 @@
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v50"
+BK_VERSION = "v51"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -131,6 +131,12 @@ def booklet_export(S, B, rects):
     if not done:
         BK_LOG.append("no crops: no sheet PDF was written on this run (pdf input off?)")
     BK.d["sheet_sources"] = bk_sheet_sources()           # v44: what the [n] marks of each sheet PDF mean
+    try:                                                  # v51 (D13): p.21's public sources and Commons photo credits
+        BK.source("heritage_loop", HER_SRC, "")
+        for pl_, cr_ in her21_credits():
+            BK.source("photo_" + her21_norm(pl_), cr_, "")
+    except Exception:
+        BK_LOG.append("heritage sources not registered:\n" + traceback.format_exc())
     try:
         res = bk_results(S)
         import json as _j
