@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v27 (2026-10-28): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v28 (2026-10-29): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
+
+NEW IN v28 (revision 29 Oct, T4b: WO-T4b-1..3; a feature change, so the next whole number):
+  * p.23: the analysis frame in two rows at 1:5,000, every numbered move as a short box on the map with an arrow,
+    the riverside walk with its bike lane (Aras 29 Oct 21:04), a small legend in the side column; public sources only.
+  * p.24: the 1:1,000 plans in an architectural plan language (lined reed cells, olive rows, paved squares, crowns at
+    true width, walk + bike lane, stepping stones, footbridge decks, changed roads) and under each its section, D1 on
+    the W1 line and D2 on the W3 line, from the level table and the survey's heights, zone lines above, people.
+  * The open ground page (mp_max_area) and r28_open_ground.json are gone (p.22 merged into p.06, D1 a). The shared
+    modules (levels, basemap, section parts, plants, icons) are included. Output: Bergama_masterplan_v28_A.pdf,
+    Bergama_masterplan_v28_A_detail.pdf, Bergama_senses_A3.pdf.
 
 NEW IN v27 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
   * p.23 masterplan: one strip of the whole analysis frame at 1:10,000 (G7), with the study-area outline (G8);
@@ -181,8 +191,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v27 (2026-10-28)"
-SHORT = "v27"
+VERSION = "bergama_masterplan v28 (2026-10-29)"
+SHORT = "v28"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -193,8 +203,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v27_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v27_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v28_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v28_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 #@include ../../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -978,7 +988,10 @@ def read_survey(doc, R):
             continue
         P = curve_pts(g)
         if len(P) >= 2:
-            out.setdefault(ROLE_OF[path.split("::")[-1]], []).append(P)
+            role = ROLE_OF[path.split("::")[-1]]
+            out.setdefault(role, []).append(P)
+            if role in ("contour", "contour10"):          # v28: its height, for the p.24 sections' ground
+                out.setdefault("contour_z", []).append((P, g.PointAtStart.Z))
     return out
 
 

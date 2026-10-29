@@ -891,23 +891,16 @@ def build_all(doc, warn):
                              u"first  {}".format(OG_KML, n_, OG_MIN_HA, f_, datetime.datetime.now().strftime("%H:%M:%S")))
             except Exception as ex:
                 lines.append(u"logs/{}  NOT WRITTEN ({}: {})".format(OG_KML, type(ex).__name__, ex))
-            try:                                         # v27 (MIRAQUA 28 Oct, D1): for the site board's filter sheet
-                os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)
-                og_ = pl28_open_ground_json(C, os.path.join(bg_cache(OUT_FOLDER), PL28_OPEN_JSON))
-                lines.append(u"{}  frame {:.2f} ha, open ground {:.2f} ha  {}".format(
-                    PL28_OPEN_JSON, og_["frame_ha"], og_["open_ha"], datetime.datetime.now().strftime("%H:%M:%S")))
-            except Exception as ex:
-                lines.append(u"{}  NOT WRITTEN ({}: {})".format(PL28_OPEN_JSON, type(ex).__name__, ex))
         for alt in (1,):                                 # v19: the one sheet
             name = OUT_NAME.format(opt, alt)
             t0 = time.time()
             try:
                 if C is None:
                     raise ValueError(u"no corridor computed (see the warnings)")
-                panels = [ground_page(C, warn), plan_page(C, warn)]   # v27 (MIRAQUA 28 Oct): booklet p.21 and p.23
-                lines.append(u"masterplan page: {} numbered markers on the strip (1:{:,.0f}), listed under it by group; "
-                             u"areas left as they are lettered {} of {}".format(len(C.notes), MP_SCALE, C.ni_placed,
-                                                                             len(C.nogo)))
+                panels = [plan_page(C, warn)]           # v28 (revision 29 Oct, D1 a): p.23 only; the open ground page is gone
+                sc_mp = getattr(panels[0], "scale", MP_SCALE)
+                lines.append(u"masterplan page: {} numbered moves on the plan (1:{:,.0f}); areas left as they are "
+                             u"lettered {} of {}".format(len(C.notes), sc_mp, getattr(C, "ni_placed", 0), len(C.nogo)))
                 for r_ in C.nogo:
                     if not r_.get("placed"):
                         warn.append(u"area left as it is not lettered on the plan (no free spot), only in the list: "
@@ -915,10 +908,10 @@ def build_all(doc, warn):
                 LEG.clear()                              # v24: the pages carry their own legend
                 pg = make_board(opt, alt, panels)
                 path = save(pg, folder, name, u"Bergama masterplan {} option {} (1:{:,.0f})".format(SHORT, opt,
-                                                                                                    MP_SCALE))
+                                                                                                    sc_mp))
                 files.append(path)
                 pages.append((opt, alt, pg))
-                sheets.append((path, pg, MP_SCALE))
+                sheets.append((path, pg, sc_mp))
                 lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
                                                        datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
             except Exception as ex:

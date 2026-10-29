@@ -58,8 +58,8 @@ LC_KEYS = ("farmland", "trees", "shrub", "grass", "orchard")        # v26: ESA W
 PLACE_TS = 4.3               # place names on the plans, mm (12.2 pt)
 LAB_TS = 2.6                 # labels on the 1:1,000 windows, mm
 BADGE_R, BADGE_TS = 1.95, 2.5
-DT_PLAN = (194.0, 160.0)     # p16 windows, mm at 1:1,000 (194 x 171.5 crop + 53 mm max area row fit 243 mm; v26.1:
-#                              booklet p.26 holds the two crops alone, one row: 194 + 4 + 194 = 392 mm, bk_w)
+DT_PLAN = (194.0, 120.0)     # p.24 windows, mm at 1:1,000: one row, 194 + 4 + 194 = 392 mm (bk_w); v28: 120 mm high so
+#                              each crop holds its plan and its section (D1, D2) under it in the 238 mm panel
 ECO_COL, HUB_COL = "6F8A4E", "D9A35E"        # palette "tree" family darkened / "centre" family (graphic)
 WATER_COL, WET_COL = COL["river"], "B7CFC8"
 SQ_FILL, SQ_EDGE = "F4E6CC", "9C7440"
@@ -214,6 +214,7 @@ class Corridor(object):
                 t += G.c * 0.5
         self.streams = [P for P in survey.get("stream", []) if inF(P)]
         self.contours = [P for role in ("contour", "contour10") for P in survey.get(role, []) if inF(P)]
+        self.contour_z = [(P, z) for P, z in survey.get("contour_z", []) if inF(P)]   # v28: p.24 section ground
         for P in self.streams:
             for n in G.line_cells(uvP(P)):
                 if F[n] == 0:
@@ -973,9 +974,7 @@ def legend_v24_groups():
     return [(u"CORRIDOR", [(nm, f) for key, nm, f in LEGEND_V24 if ("v24", key) in LEG])]
 
 
-# v27 (MIRAQUA 28 Oct, P23.3, P21.1, G7): the booklet pages (p.23 plan_page, p.21 ground_page) are drawn in
-# parts/02d_r28_ground.py, each as one strip of the whole analysis frame at 1:10,000; the v26 two-halves pages
-# and their helpers (half_geom, two_halves, marks_at_foot, foot_legend, pack_why, callouts) are gone.
+# v28 (revision 29 Oct): the booklet's p.23 is plan_page (pages/p23_plan.py); ground_page (p.21/22) is gone (D1 a).
 
 
 # ================================================================ v26: the open ground for Google Earth (task 3)

@@ -41,6 +41,7 @@ ROUTE_SHORT = {u"RETENTION TERRACES": u"TERRACES"}
 # 06:32 picked): the water over them in the DSI Q100 flood = Q100 level at the nearest cut - (bed + TERRACE_UP).
 STORE_DEPTH = {"WT": 0.46}
 TERRACE_UP = 1.0                     # terrace level above the bed, m (the project's flood rule: "Terrace +1 m")
+DT_CUT_ROOM = (70.0, 30.0)           # v28: m from the section's stream axis to the window's left/right and top/bottom edges
 
 
 def places(spec, CL, survey):
@@ -80,6 +81,11 @@ def detail_windows(D, plc, frame):
             need = bbox(pts + [k5] + cut)
             c = (min(max(k5[0], need[2] - Wm / 2 + 10.0), need[0] + Wm / 2 - 10.0),
                  min(max(k5[1], need[3] - Hm / 2 + 10.0), need[1] + Hm / 2 - 10.0))
+        cid = P24_CUTS.get(bid, (None,))[0]               # v28 (WO-T4b-3): the section's cut keeps DT_CUT_ROOM to the
+        if cid:                                          # window's sides, so its section reaches both banks' land
+            a_ = CUT_AT[{"W1": 0, "W3": 2}[cid]][2]
+            mx, my = max(0.0, Wm / 2 - DT_CUT_ROOM[0]), max(0.0, Hm / 2 - DT_CUT_ROOM[1])
+            c = (min(max(c[0], a_[0] - mx), a_[0] + mx), min(max(c[1], a_[1] - my), a_[1] + my))
         out.append({"id": bid, "old": old, "key": key, "title": title, "caption": cap,
                     "R": (c[0] - Wm / 2, c[1] - Hm / 2, c[0] + Wm / 2, c[1] + Hm / 2)})
     return out
@@ -108,7 +114,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v27.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v28.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)
@@ -120,9 +126,6 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []   # v24: p15 halves: in the crop
             if getattr(p, "r28_leg", None):               # v27 (MIRAQUA 28 Oct, P24.4): the windows' dot legend
                 leg_ = p.r28_leg
-            if ("dt", "vol") in (getattr(p, "pleg", None) or {}):   # v26.1 (Prompt 8): the rough volumes' method,
-                cap += u" · ~ m³ = area × depth: reed basins 0.46 m (EPA 2000), terraces Q100 depth over bed +1 m " \
-                       u"at the nearest cut"                 # as the sheet's legend says it (the booklet sets no note)
             bk.crop(bid, os.path.basename(pdf), rc, caption=cap, scale_den=sc_, legend=leg_, drop=drop)
             if getattr(p, "plan_sources", None):          # v27 (MIRAQUA 28 Oct, P23.2, N2): what the p.23 list no
                 bk.d["plan_sources"] = res["plan_sources"] = p.plan_sources   # longer prints, for the sources page

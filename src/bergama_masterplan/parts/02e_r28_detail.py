@@ -36,15 +36,7 @@ R28DT_TITLE_MM2 = 60.0               # a field shows less than this on a window:
 R28DT_ROUTE = dict((k_, c_) for k_, _, c_ in R28_MARKERS)["water"]   # the water route = p.23's water markers
 R28DT_CODE = {("WT", None): "reed", ("WD", None): "reed", ("WS", None): "terraces", ("DG", None): "demeter",
               ("GR", None): "forest", ("WA", "F"): "wetland", ("WP", None): "wetland", ("WA", "W"): "subhub"}
-# The small grey line under a field's title (P24.4, F11): plants only from p.16's list (water board SPECIES, the nine
-# kept) where p.16 places them, printed as common/plant_photos.py PLANTS prints them ("English (Turkish)"); the
-# forest corridor's trees (ash, poplar, oak, elm) and the cattails are not on that list: not named.
-R28DT_SUB = {"reed": (u"Common reed (Kamış)", u"Water mint (Su nanesi)"),     # p.16: reed beds, upstream entry
-             "terraces": (u"French lavender (Karabaş otu)",),                  # dry top, above Q500
-             "hub": (u"Oriental plane (Doğu çınarı)",),                        # dry hub squares K3, K4, K5
-             "demeter": (u"Olive (Zeytin)",),                                  # dry top, Demeter's Garden K5
-             "wetland": (u"White willow (Ak söğüt)", u"Tamarisk (Ilgın)"),     # willow band, flood terraces
-             "subhub": (u"stepping stones · closes in floods",)}
+# v28 (WO-T4b-3): R28DT_SUB is gone: p.24 names its species from common/plants.py (P24_SPECIES, pages/p24_detail.py).
 
 
 def _r28_nb(c):

@@ -4,6 +4,12 @@
 #@include ../common/units.py
 #@include ../common/label_place.py
 #@include ../common/figures.py
+#@include ../common/data/LEVELS.py
+#@include ../common/levels.py
+#@include ../common/basemap.py
+#@include ../common/section_parts.py
+#@include ../common/plants.py
+#@include ../common/icons.py
 #@include parts/02_Design.py
 #@include ../common/booklet_assets.py
 #@include parts/02b_detail.py
