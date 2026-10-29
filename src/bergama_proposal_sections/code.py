@@ -4,6 +4,14 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v10 (revision 29 Oct, WO-T3b-3, booklet page 13; package C "Page 13", brief 02 §3-§6; a feature change):
+  * The four sections are redrawn true to their cuts W1-W4 at 1:500 on the booklet page (parts/70_sections.py): bed,
+    bed width, DSİ walls (5.00 m), embankments at their surveyed angle, the loose earth bank, the SW shelf, Q100 and
+    Q500 all from the level module (common/levels.py), banks, hatches and steps from section_parts, every species at
+    its true size from plants (D6: chaste tree + plane in the café beds, no fig or citrus; D2: common reed only in
+    lined basins above Q500), figures placed by what they do (_p13_fig, the one swap point). Scale bar beside each.
+  * The key map is a strip across the top of the page, outside every section's panel, showing only W1-W4 on the
+    topographic basemap, each cut named with its section's badge and name. The sketch engine is no longer included.
 NEW IN v9 (MIRAQUA 28 Oct, booklet revision v4: F4, F7, F14, G5, G8, F5; bank depth research 28 Oct §4.6; a feature
   change, so the next whole number):
   * A key map of the four measured cuts under the upstream sketch (study area, Selinos, K4 and Üç Kemer bridges, north
@@ -35,22 +43,20 @@ NEW IN v7 (Aras 27 Oct 11:07, revision_2026-10-27/PHASE2_SPEC.md): booklet p.18-
   E08) on the terrace that faces it. Single crops ps_upstream, ps_k4, ps_k5, ps_downstream kept (tight).
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_proposal_sections/).
 
-WHAT IT DRAWS: one A0 landscape sheet per form option (A = organic only where the project meets the water, B = no
-organic forms), all vector, whole-string text, four panels:
-  1 UPSTREAM ENTRY                     reed-basin cascade (water board v1.3's sketch)
-  2 K4 BRIDGE · WALKING HUB            tiers W / F / D; hub square on D, sub-hub in the bed (v7)
-  3 K5 BRIDGE · DEMETER'S GARDEN       garden on the dry top of the south-west bank (card i01, DG 1-2); hub square
-                + WALKING HUB          on the other bank top, steps down, commons in the bed = sub-hub (v7)
-  4 DOWNSTREAM REACH                   floodable planting WP 1-2 and the floodable boardwalk (ZONES.md)
-  Sketch code, PDF writer and palette are copied from bergama_water_board_v1_3.py (its SKETCH_SRC); element numbers
-  1-11 are the water board's. Levels printed on panels 3-4: surveyed cuts, research/rain_river_levels/README.md v1.1
-  table (K5 Q500 +58.75 m, 2.79 m above the bed, inside the banks; NIL +48.00 m, 2.33 m, inside; flat end 1.54 m,
-  banks about 114 m apart). Not drawn (not in any source): Demeter's Garden intake, lift and basin volume.
-  OVERLAP (SCRIPT_STANDARD §5): panels 1-2 are also on the water board (W3a); to be merged after 26 Oct.
+WHAT IT DRAWS (v10): one A0 landscape sheet, all vector, whole-string text; the block on it is booklet page 13:
+  KEY MAP strip   the four cuts W1-W4 only, on the topographic basemap
+  1 W1 UPSTREAM ENTRY       DSİ walls; three lined reed basins behind the SW wall clean street runoff, summer release
+  2 W2 K4 WALKING HUB       SW wall replaced by a sub-hub floor and seating steps; hub square with planes on top
+  3 W3 K5 DEMETER'S GARDEN  steps seated into the NE loose earth bank; stream commons on the SW shelf; garden raised
+                            above Q500 (olive, lavender, tomato, café beds with chaste tree and plane)
+  4 W4 DOWNSTREAM REACH     planting bands by flood level on the 8.9° NE embankment, floodable boardwalk, field SW
+  Every section looks downstream (NE left), 1:500 on the booklet page. Not drawn (not in any source): the garden's
+  intake and lift, basin volumes.
 
 COMPONENT: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. Input run (Button), outputs log and done.
-Writes Downloads/Bergama/output/bergama_proposal_sections/Bergama_proposal_sections_{A,B}.pdf; log in
-Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads nothing from other scripts; palette from
+Writes Downloads/Bergama/output/bergama_proposal_sections/Bergama_proposal_sections_A.pdf; log in
+Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
+board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
 HOW WE KNOW IT WORKS: the text under the component reads "ProposalSections v1 · HH:MM · N s" and the log lists the
 two PDFs; each opens as one A0 page with four sections.
@@ -65,7 +71,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v9"
+VERSION = "v10"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -102,23 +108,26 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 # v9 (MIRAQUA 28 Oct, F5: public online sources only): the [n] of the concept record, Aras's tier text, card i01, the
 # zone base, the course survey's road edges and the hub decisions are gone (with their entries); plane and hamam keep
 # only their public sources; levels read as the water balance's (method + the DSİ design flow). In reading order.
+# v10: no [n] marks on the drawings any more (cite() removed); the key goes to the booklet's sources page and the log.
+# Rain, hamam and gauges went with the sketches; the bed width's public source comes from the level module.
 SRC_KEY = [
-    ("levels", u"levels: Manning normal depth, n 0.050, on the surveyed cross-sections; DSİ Q500 263.3 m³/s "
-               u"(Danıştay 6. D. 2021/9521 E.)"),
-    ("rain", u"MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
+    ("levels", u"Q100, Q500: DSİ design flows, Q500 263.3 m³/s (Danıştay 6. D. 2021/9521 E.)"),
     ("plane", u"Ottoman squares with plane trees: ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered "
               u"Cultural Landscape, p. 281"),
-    ("hamam", u"Tabaklar Hamamı across the stream from Ulu Cami: Köylü H., Ege Telgraf, 31 Dec 2025; KTB İzmir, Baths "
-              u"(Hamams) in İzmir; about 56 m from K4: calculated on the survey"),
     ("plants", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter); FAO Ecocrop, olive (will not "
                u"tolerate waterlogged soils)"),          # v8.1: the public pages of BK_SOURCES, not the internal register
-    ("gauges", u"DSİ gauge yearbooks 2016-2021"),
 ]
 
 
-def cite(key):
-    """v3: the number of a source in the footer key, as "[n]"."""
-    return u"[{}]".format([k for k, _ in SRC_KEY].index(key) + 1)
+def ps_sources():
+    """SRC_KEY plus the public sources the level module gives for the four cuts (today: the DSİ bed width, SYGM)"""
+    out, seen = list(SRC_KEY), set()
+    for _, cid, _, _, _ in PS_CUTS:
+        s = level_public_source(cid, "bed_width_cm")
+        if s and s not in seen:
+            seen.add(s)
+            out.append(("bed_" + cid, u"DSİ bed width: " + s))
+    return out
 
 # ---------------------------------------------------------------- text metrics, page and PDF writer (water loop v2)
 _MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
@@ -190,268 +199,83 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 #@include ../common/write_pdf.py
 
-#@include ../common/_tree_rand.py
-
 # ---------------------------------------------------------------- composing the board from drawn parts
-# Every drawing is drawn on its own Page at its natural size (page mm), then placed on the board at one uniform
-# scale that fits its box (place). Text, lines and dashes scale with it, as a reduced print does.
+# v10: the page block is drawn in booklet print mm and placed on the board at 1 / BK_S (xform). Text, lines and
+# dashes scale with it, as a reduced print does.
 #@include ../common/items_bbox.py
 
 #@include ../common/xform.py
 
-#@include ../common/place.py
-
 # ---------------------------------------------------------------- drawing helpers (page mm, y up)
 #@include ../common/rect.py
 
-#@include ../common/node.py
+# ---------------------------------------------------------------- shared modules (revision 29 Oct, T2a / T2b)
+# v10: the level table (data first), the section parts before the plants, the legacy figures (through _p13_fig
+# only), the basemap for the key map. Names checked: no module name is defined by this script.
+#@include ../common/data/LEVELS.py
 
-def flow_arrow(pg, x0, x1, y, col, lw=0.3, head=1.2):
-    """v3: a straight arrow from x0 to x1 at height y (the keyword row's links)."""
-    pg.line([(x0, y), (x1 - head * 0.8, y)], col, lw)
-    pg.poly([[(x1, y), (x1 - head, y + head * 0.45), (x1 - head, y - head * 0.45)]], fill=col)
+#@include ../common/levels.py
 
+#@include ../common/section_parts.py
 
-def cell(pg, box, title, note_txt, ts, ns):
-    """v7: one section's panel: white ground, a coloured rule on top, the title (ts mm) and one short note (ns mm)
-    under it, both measured. Returns (drawing box under the note, right end of the note), mm.
-    v9 (MIRAQUA 28 Oct, G5): the note's **keywords** bold (ps_rich_para)."""
-    x0, y0, x1, y1 = box
-    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
-    pg.poly([rect(x0, y1 - 1.2, x1, y1)], fill=MP["discharge"][1])
-    pg.text(title, x0 + 5.0, y1 - 1.2 - 3.0 - ts * CAP, ts, COL["ink_dark"], bold=True)
-    top = y1 - 1.2 - 3.0 - ts * (CAP + 0.25) - 3.0     # under the title row (the single crops start here)
-    w = x1 - x0 - 10.0
-    yn, nr = ps_rich_para(pg, x0 + 5.0, top, w, note_txt, ns, COL["ink"])
-    return (x0 + 5.0, y0 + 4.0, x1 - 5.0, yn - 0.25 * ns - 4.0), top, nr
+#@include ../common/plants.py
 
+#@include ../common/figures.py
 
-# ---------------------------------------------------------------- W3a  concept sections (pr1 v3.1 idea sketches)
-# SKETCH_SRC (end of this file) is pr1's sketch code; it runs in its own namespace and draws page items in pr1's
-# order. The element numbers come from node() of this board.
-_SK = []
+#@include ../common/basemap.py
 
-#@include ../common/sketch_engine.py
-
-def draw_concept(which, opt, log):
-    """which: "up", "k4", "k5" or "down" (SKETCH_FN); opt: form A (organic at the water) or B (no curves).
-    v7: texts at the engine's TXT_K; labels kept apart by declutter (notes to log)."""
-    E = sketch_engine()
-    E["FORM"] = opt
-    del E["ZP"][:]
-    E["ORDER"][0] = 0
-    E["GROUP"][0] = 0
-    E["NEXT_G"][0] = 0
-    k = E["TXT_K"][0]
-
-    def NODE(o, x, y, n):
-        tmp = Page(0, 0)
-        node(tmp, o[0] + x, o[1] + y, n, opt, 2.6 * k)
-        E["NEXT_G"][0] += 1
-        E["GROUP"][0] = -E["NEXT_G"][0]                # v7: an element number never moves; labels keep off it
-        for it in tmp.items:
-            E["_put"](it, E["Z_TEXT"])
-        E["GROUP"][0] = 0
-    E["NODE"] = NODE
-    E["CITE"] = cite                                  # v3: source numbers [n] inside the sketches
-    E[SKETCH_FN[which]]()
-    ent = [(it, g) for _, _, it, g in sorted(E["ZP"], key=lambda e: (e[0], e[1]))]
-    pg = Page(0, 0)
-    pg.items = declutter(ent, log, which)
-    return pg
-
-
-DECLUTTER_R = 18                                      # sketch units: how far a label may move to find a free place
-
-
-def declutter(entries, log, name):
-    """v7 (rule: no text over another, measured): entries = [(item, label group)] in drawing order. Label groups
-    (> 0: a text, or a pictogram with its words) are set in drawing order; one whose box (text_w widths, a margin of
-    0.2 x its size) would touch a label already set or an element number (group < 0) moves to the nearest free place
-    (1-unit steps, sideways counted 1.5 x, at most DECLUTTER_R away, inside the drawing's reach); with no free place
-    it is left out and logged. Returns the items."""
-    groups, order = {}, []
-    for i, (it, g) in enumerate(entries):
-        if g:
-            if g not in groups:
-                groups[g] = []
-                order.append(g)
-            groups[g].append(i)
-    items = [it for it, _ in entries]
-
-    def box(ix, pad):
-        b = items_bbox([items[i] for i in ix])
-        return (b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad)
-
-    def hit(b, others):
-        return any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in others)
-    art = items_bbox([it for it, g in entries if not g])
-    lim = (art[0] - 8.0, art[1] - 8.0, art[2] + 8.0, art[3] + 8.0)
-    placed = [box(groups[g], 0.0) for g in order if g < 0]
-    R = DECLUTTER_R
-    cand = sorted(((dx, dy) for dx in range(-R, R + 1) for dy in range(-R, R + 1) if dx or dy),
-                  key=lambda d: (abs(d[0]) * 1.5 + abs(d[1]), abs(d[0])))
-    gone = set()
-    for g in order:
-        if g < 0:
-            continue
-        ix = groups[g]
-        txt = [items[i] for i in ix if items[i][0] == "text"]
-        b = box(ix, 0.2 * max([t[4] for t in txt] or [1.0]))
-        if not hit(b, placed):
-            placed.append(b)
-            continue
-        for dx, dy in cand:
-            nb = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
-            if lim[0] <= nb[0] and nb[2] <= lim[2] and lim[1] <= nb[1] and nb[3] <= lim[3] and not hit(nb, placed):
-                for i in ix:
-                    items[i] = xform([items[i]], 1.0, float(dx), float(dy))[0]
-                placed.append(nb)
-                break
-        else:
-            gone.update(ix)
-            log.append(u"NOTE section {}: label '{}' left out (no free place near it)".format(
-                name, txt[0][1] if txt else g))
-    return [it for i, it in enumerate(items) if i not in gone]
 
 # ---------------------------------------------------------------- the board (A0 landscape, one page)
 #@include ../common/load_palette.py
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here
 
-# ================================================================ embedded engines
-# SKETCH_SRC: pr1_drawings v3.1's concept sketches (SKETCH style) with a page-item layer instead of Rhino baking;
-# owner names, working-area bars and figures printed elsewhere taken out (24 Oct). Run by sketch_engine().
-#@include data/SKETCH_SRC.py
-
+# v10: the sketch engine and data/SKETCH_SRC.py are no longer included (the sections are drawn to the level table in
+# parts/70_sections.py); data/SKETCH_SRC.py stays in the repo because bergama_agriculture_alternatives includes it.
 #@include ../common/booklet_assets.py
 
-#@include ../common/r28_style.py
-
 #@include ../common/label_place.py
+
+#@include parts/70_sections.py
 
 #@include parts/80_key_map.py
 
 #@include parts/90_booklet.py
 
 
-# ================================================================ the sheet (v7: one 2 x 2 block = one booklet page)
-# v7 (Aras 27 Oct 11:07 "p18-19: merge into one page"; spec §5 q3): the four sections sit in one 2 x 2 block whose
-# shape is the booklet's panel area, so the booklet shows the whole block (crop ps_all) on ONE A3 page at one factor;
-# every section is placed at ONE common factor (the sketches carry relative levels, so the booklet prints no scale).
-# Titles short, one short note under each title, no source footer (the [n] key goes to the log).
-# v9 (MIRAQUA 28 Oct): G5 keywords in **bold**; K4 (bank-depth research §4.6, Aras 14:12): the walls stand about 5 m
-# above the bed, so Q500 stays under the street (was "Q500 tops today's bank", the survey before the DSİ walls)
-PROPOSALS = [("up", u"1 · UPSTREAM ENTRY",
-              u"Winter runoff: cleaned in **reed basins**, held in the terrace basins, given back in **summer** as the strip"),
-             ("k4", u"2 · K4 BRIDGE · WALKING HUB",
-              u"Q500 stays **under the street**: dry **hub square** above it, floodable sub-hub in the bed, steps between"),
-             ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN + WALKING HUB",
-              u"Bank tops stay **dry**: garden and hub square · bed: **stream commons** = sub-hub, floods in winter"),
-             ("down", u"4 · DOWNSTREAM REACH",
-              u"Clean water arrives from upstream: **floodable planting** + boardwalk, surplus to farmland")]
+# ================================================================ the sheet (v10: one block = booklet page 13)
+# v7 (Aras 27 Oct 11:07): one block shaped like the booklet's panel area, so the booklet shows it whole (crop ps_all)
+# on ONE A3 page at the factor BK_S. v10 (WO-T3b-3): the block is drawn in booklet print mm (parts/70_sections.py:
+# the key map strip across the top, the four sections W1-W4 at 1:500 in a 2 x 2 under it) and placed here at 1 / BK_S,
+# so ps_all prints every section at exactly 1:500.
 SHEET_BOXES = {}                                      # key -> crop box (x0, y0, x1, y1), mm, y up; set by build_sheet
-SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
-             "down": "concept_nil_sketch"}
 # The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H)
 BK_W, BK_H = 392.0, 238.0
-GRID_W = BOARD_W - 2 * M                              # the 2 x 2 block on the A0 sheet, mm
+GRID_W = BOARD_W - 2 * M                              # the block on the A0 sheet, mm
 GRID_H = GRID_W * BK_H / BK_W                         # same shape as the booklet area: it fills the page, never stretched
 BK_S = BK_W / GRID_W                                  # booklet print factor of ps_all (0.338)
-LBL_PT, TITLE_PT, NOTE_PT = 7.0, 9.0, 9.0             # smallest word / titles / notes as printed on that booklet page
-
-
-def pt_mm(pt):
-    """The sheet text size (mm) that prints at pt points on the one-page booklet panel ps_all."""
-    return pt * PT / BK_S
-
-
-def fit_s(part, box):
-    b = items_bbox(part.items)
-    return min((box[2] - box[0]) / max(b[2] - b[0], 1e-6), (box[3] - box[1]) / max(b[3] - b[1], 1e-6))
-
-
-def sections(opt, boxes, log):
-    """v7: the four sketches at ONE common factor s (the largest at which each fits its box). Their words are drawn
-    at TXT_K x their size, raised (up to 4 tries) until the smallest prints >= LBL_PT on the booklet page.
-    Returns ({key: Page}, s)."""
-    E = sketch_engine()
-    E["TXT_K"][0] = 1.0
-    for _ in range(4):
-        notes = []
-        parts = dict((k, draw_concept(k, opt, notes)) for k in SKETCH_FN)
-        s = min(fit_s(parts[k], boxes[k]) for k in parts)
-        small = min(it[4] for p in parts.values() for it in p.items
-                    if it[0] == "text" and it[5] != COL["white"])        # white = digits inside the element numbers
-        pt = small * s * BK_S / PT
-        if pt >= LBL_PT - 0.05:
-            break
-        E["TXT_K"][0] *= LBL_PT / pt * 1.02
-    log.extend(notes)
-    log.append(u"sections: one factor {:.2f} mm per sketch unit; words x{:.2f}; smallest word on the booklet page "
-               u"{:.1f} pt".format(s, E["TXT_K"][0], pt))
-    return parts, s
 
 
 def build_sheet(opt, log):
-    """The four proposals in section on one A0 landscape sheet, upstream to downstream (2 x 2)."""
+    """v10: the page-13 block (key map strip + the four sections at 1:500) on one A0 landscape sheet."""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
-    X0, X1, G = M, BOARD_W - M, 8.0
+    X0, X1 = M, BOARD_W - M
     top = BOARD_H - M
     pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    # v3: the subtitle sentence as a keyword row: problem -> one move | 1 -> 11 upstream to downstream | the tag
-    fs, yc, dk = 2.9, top - 16.96, MP["discharge"][2]
-    yb = yc - fs * CAP / 2
-    x = X0
-    for i_, wd in enumerate((u"PROBLEM", u"ONE MOVE")):
-        pg.text(wd, x, yb, fs, dk, bold=True)
-        x += text_w(wd, fs, True) + 1.5
-        if i_ == 0:
-            flow_arrow(pg, x, x + 6.0, yc, dk, 0.35, 1.4)
-            x += 7.5
-    x += 8.0
-    pg.text(u"upstream", x, yb, fs, dk, bold=True)
-    x += text_w(u"upstream", fs, True) + 2.5
-    flow_arrow(pg, x - 1.0, x + 11 * 4.6 + 4.0, yc, dk, 0.35, 1.4)   # under the roundels: one way, with the stream
-    for n_ in range(1, 12):
-        node(pg, x + 1.6, yc, n_, opt, 1.6)
-        x += 4.6
-    x += 5.5
-    for wd in (u"downstream · one way, with the stream", u"1-11 as on the water board"):
-        pg.text(wd, x, yb, fs, dk, bold=True)
-        x += text_w(wd, fs, True) + 8.0
-    tag = u"relative levels"                          # v5: no caveat words
-    pg.poly([rect(x, yc - 2.2, x + text_w(tag, 2.4) + 3.0, yc + 2.2)], fill=COL["lane"], stroke=COL["structure"],
-            lw=0.25)
-    pg.text(tag, x + 1.5, yc - 2.4 * CAP / 2, 2.4, COL["ink"])
+    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · the block below is booklet page 13",
+            X0, top - 18.0, 3.6, MP["discharge"][2], bold=True)
     y1 = top - 22.0
     pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
     gy1 = y1 - 4.0
     gy0 = gy1 - GRID_H
-    cw, ch = (GRID_W - G) / 2.0, (GRID_H - G) / 2.0
-    boxes, heads = {}, {}
-    for i, (key, ttl, txt) in enumerate(PROPOSALS):
-        cx = X0 + (i % 2) * (cw + G)
-        cy = gy1 - (i // 2 + 1) * ch - (i // 2) * G
-        boxes[key], tp, nr = cell(pg, (cx, cy, cx + cw, cy + ch), ttl, txt, pt_mm(TITLE_PT), pt_mm(NOTE_PT))
-        heads[key] = (tp, nr)
-    parts, s = sections(opt, boxes, log)
-    low = {}                                          # v9: each sketch's bottom on the sheet (the key map goes under one)
-    for key, _, _ in PROPOSALS:
-        bx = boxes[key]
-        b = items_bbox(parts[key].items)
-        dx = (bx[0] + bx[2]) / 2.0 - s * (b[0] + b[2]) / 2.0     # centred across, at the top of its box
-        dy = bx[3] - s * b[3]
-        pg.items += xform(parts[key].items, s, dx, dy)
-        tp, nr = heads[key]                           # single crop: note + sketch, tight (the title is the caption)
-        SHEET_BOXES[key] = (min(bx[0], dx + s * b[0]) - 2.0, dy + s * b[1] - 3.0,
-                            max(nr, dx + s * b[2]) + 2.0, tp)
-        low[key] = dy + s * b[1]
-    ps_key_map(pg, boxes, low, log)                   # v9 (MIRAQUA 28 Oct, F4): inside ps_all, outside the single crops
-    SHEET_BOXES["all"] = (X0, gy0, X0 + GRID_W, gy1)  # v7: the one-page block (titles + notes + sketches)
-    log.append(u"sources by number (the sheet's [n]): " +
-               u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)))
+    blk, boxes = ps_block(log)
+    s = 1.0 / BK_S
+    pg.items += xform(blk.items, s, X0, gy0)
+    for key, b in boxes.items():                      # single crops: one section panel each
+        SHEET_BOXES[key] = (X0 + s * b[0], gy0 + s * b[1], X0 + s * b[2], gy0 + s * b[3])
+    SHEET_BOXES["all"] = (X0, gy0, X0 + GRID_W, gy1)  # ps_all: the whole block = page 13
+    log.append(u"sources: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())))
     return pg
 
 

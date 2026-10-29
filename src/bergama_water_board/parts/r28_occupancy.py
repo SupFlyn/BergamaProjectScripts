@@ -1,23 +1,8 @@
 # ---- v4 (MIRAQUA 28 Oct 2026): the water board's part of the round (revision_2026-10-28/PLAN.md, row WB) ----------
 # Bold keywords in running text (G5), the scale bar (PLAN §2: standard scales, a bar beside every orthogonal drawing),
-# the shared silhouettes of common/figures.py for the people of the S4 cuts (pp.14-15, P19.2), THE SEASON beside the
-# p.14 rows (P14.2) and the p.15 occupancy diagram (P15.2). Included by code.py after the season tables (SEASON_USE),
-# before the code that calls it.
-BK_KEY_H = 190.0                     # the most a fixed 1:1 crop may be tall on pp.14-15: the booklet puts the S4 key map
-#                                      (190 x up to 42 mm) under the title, so the rows start at y <= 78 mm (273 - 78 - 5)
-R28_PART_H = BK_KEY_H - 10.0         # its panel under the context line (crop pads 2 x 1 mm, one 4.2 mm line, the 3 mm gap)
-R28_SENSE_W = 72.0                   # p.14: the FEEL / HEAR / TOUCH column at most, mm (THE SEASON takes the rest)
-S4_NE_POCHE = 1.0                    # p.15: soil drawn under the strip, m (the engine's 1.9): the room goes to the diagram
-
-
-def r28_crop_note(log, cid):
-    """the size of a fixed crop of pp.14-15 in the log, with a warning when it is taller than BK_KEY_H"""
-    for c in BK_CROPS:
-        if c[0] == cid:
-            w, h = c[1][2] - c[1][0], c[1][3] - c[1][1]
-            log.append(u"{}{}: {:.1f} x {:.1f} mm{}".format(u"WARNING: " if h > BK_KEY_H else u"", cid, w, h,
-                                                            u" (more than the {:.0f} mm under the S4 key map)".format(
-                                                                BK_KEY_H) if h > BK_KEY_H else u""))
+# the shared silhouettes of common/figures.py for the detail engine's people (r28_fig, r28_people). v5 (revision
+# 29 Oct, T3b WO-T3b-4): THE SEASON, the occupancy diagram and their tables are gone; pp.14-15 are drawn whole by
+# pages/p14_15_s4.py.
 
 
 # ---------------------------------------------------------------- G5: text with **bold** keywords
@@ -128,8 +113,6 @@ R28_ASSET_POSE = {  # the detail engine's traced people (DETAIL_SRC FIGS) as pos
     "I_photographer": ("watch", None), "J_man_and_child": ("walk", "child"), "J_photographer_balcony": ("watch", None),
     "J_woman_on_steps": ("stand", None), "I_child_on_sand": ("touch", "small"), "J_person_seated": ("sit", "edge"),
     "J_person_sitting": ("sit", "stool"), "J_cyclist_cheering": ("bike", None), "I_cyclist_waving": ("bike", None)}
-R28_ACT_POSE = {"sit": ("sit", 1.75), "watch": ("watch", 1.75), "walk": ("walk", 1.75), "child": ("walk", R28_CHILD),
-                "wade": ("wade", 1.75)}       # p.14 season column: what people do (SEASON_USE acts) as silhouettes
 
 
 def r28_fig(pg, pose, x, y, k, colour, facing=1, height=1.75, layer="people"):
@@ -171,54 +154,5 @@ def r28_people(E):
         r28_fig(pg, "bike", X, Y, E["K"], E["FIG"], -1 if flip else 1, 1.75, "people")
     E["draw_asset"] = draw_asset
     E["bike"] = bike
-
-
-# ---------------------------------------------------------------- P14.2: THE SEASON beside the p.14 rows
-R28_PLANT_KEY = {"winter": (u"bare", u"evergreen"), "spring": (u"Fresh leaves", u"in flower"),
-                 "summer": (u"Full leaf", u"meadow drying"), "autumn": (u"turning", u"gold")}   # G5 in SEASONS plants
-
-
-# ---------------------------------------------------------------- P15.2: the occupancy diagram under the p.15 cut
-# Design spec (change log WB): the time axis Jan-Dec on the cut's own width (s 652 -> 588, Jan under the promenade,
-# Dec under the strip; 1:250 = 21.3 mm a month); a head row (floods and Kermes; the in-bed sub-hub), the months, one
-# lane a band of the cut top to bottom by level as the bank steps down, feel · hear · touch under them; the lanes'
-# names and levels and a small profile of the cut (the lane's band in ink) at the left, the key at the right.
-OCC_LANES = [  # (key, name, s from, s to along S4, m): the bands of the north-east bank (SECTIONS[1]), was NE_ZONES
-    ("prom", u"promenade", 652.0, 638.0), ("steps", u"steps · amphitheatre", 638.0, 633.5),
-    ("lower", u"lower walk", 633.5, 622.5), ("bed", u"gravel bed", 622.5, 594.0), ("strip", u"summer strip", 594.0, 590.0)]
-OCC_S = (652.0, 588.0)               # the time axis spans the cut above it, s along S4
-OCC_GROUPS = [  # who: (key, name, colour); locals, tourists, students as the city link's GROUP (pp.08, 10)
-    ("locals", u"locals", "CC9A52"), ("tourists", u"tourists", "8B3A3F"), ("students", u"students", "5C7A86"),
-    ("kermes", u"Kermes visitors", "5E4B8B")]   # new: dE00 >= 20.6 to the other three (>= 13.2 at OCC_ALPHA)
-OCC_COL = dict((k_, c_) for k_, _, c_ in OCC_GROUPS)
-OCC_KERMES = (5 + 28.5 / 30.0, 6 + 5.0 / 31.0)   # 29 Jun-5 Jul in months from 1 Jan (h01 §2.8, the 90th Kermes, 2026)
-OCC_FLOOD = S4_MONTH_IDX["winter"]   # the months the flood reach (Q100 / Q500) is drawn, as the winter cut draws them
-OCC_HUB_COL = R28_ZONE["subhub"][1]  # the in-bed sub-hub, as on the p.24 plans and the senses page
-OCC_ALPHA = 0.45                     # the user bands, see-through so that the overlaps show
-OCC_T = 0.6                          # a band at 3 (busy) is 0.6 of its lane tall
-OCC_OFF = (0.0, 0.15, -0.15)         # the 1st, 2nd and 3rd group of a lane: its centre line off the lane's middle, x lane
-OCC_FIG = 0.62                       # an adult silhouette, x lane
-# DESIGN ASSUMPTION (ours, said on the diagram): how busy each band is a month (Jan-Dec, 0 nobody - 3 busy), and where
-# a figure stands and what it does: (months from 1 Jan, pose or "stall", height m, keywords or None). The activities
-# are the season cuts' own (S4_SEASON, the detail section's season texts, concept v1 §10.1); the Kermes visitors come
-# in the Kermes week only (OCC_KERMES); none of it is a count.
-OCC_USE = {
-    "prom": [("locals", (2, 2, 2, 2, 3, 3, 3, 3, 3, 2, 2, 2), [(1.0, "watch", 1.75, u"watch the **floods**"),
-                                                               (8.5, "walk", 1.75, u"**walk** the promenade")]),
-             ("tourists", (0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 0, 0), [(4.4, "walk", 1.75, None)]),
-             ("kermes", None, [(6.05, "walk", 1.75, None)])],
-    "steps": [("locals", (1, 1, 1, 2, 2, 2, 3, 3, 2, 2, 1, 1), [(7.0, "sit", 1.75, u"**sit** by the water")]),
-              ("students", (1, 1, 2, 2, 2, 1, 0, 0, 1, 2, 2, 1), [(10.4, "sit", 1.75, u"**students** on the steps")])],
-    "lower": [("locals", (1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1), [(1.2, "walk", 1.75, u"open **between storms**")]),
-              ("tourists", (0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 0, 0), [(3.6, "walk", 1.75, u"lower walk **open**")])],
-    "bed": [("locals", (0, 0, 1, 1, 1, 2, 3, 3, 2, 1, 0, 0), [
-                (3.3, "touch", R28_CHILD, u"children at the **water's edge**"),
-                (8.9, "walk", 1.75, u"walk the **gravel bed**")]),
-            ("tourists", (0, 0, 0, 0, 1, 1, 2, 2, 1, 0, 0, 0), []),
-            ("kermes", None, [(6.05, "stall", 1.75, u"**Kermes** stalls")])],
-    "strip": [("locals", (0, 0, 0, 1, 1, 2, 3, 3, 1, 0, 0, 0), [(6.9, "wade", 1.75, u"**wade** · feet in the water")]),
-              ("tourists", (0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 0, 0), [])],
-}
-OCC_NOTES = [("bed", 0.9, u"the river **takes the bed back**")]   # words on the water: (lane, months, keywords)
 
 

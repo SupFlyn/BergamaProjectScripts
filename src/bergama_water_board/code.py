@@ -43,6 +43,15 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
+NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole number):
+  * p.12 (pages/p12_system.py): one axonometric water map (collect, clean, hold, give back, to the farms) with volumes
+    read live from the water balance, a round plan zoom of the upstream entry, the remaining analysis beside it.
+  * pp.14-15 (pages/p14_15_s4.py): the S4 pair rebuilt on the level module (bed +42.48), S4-only key maps, seasonal
+    plants, space types, recorded fauna, one rectangular view per season, water and rain as graphics.
+  * Core: only public sources are printed (public_src() in cite()); no status words; the shared modules (levels,
+    basemap, plants, icons) included; build_board calls the page functions p12_page, p14_page, p15_page.
+  Output: Bergama_water_board_v5_A_cubes.pdf.
+
 NEW IN v4 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
   * p.14 seasons: one scale, 1:500, with a scale bar; a THE SEASON column (climate measured, water balance, plants
     designed) and FEEL · HEAR · TOUCH with bold keywords; compact season tags; the panel fits under the S4 key map.
@@ -136,8 +145,8 @@ BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
 STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the chart is gone)
-CUBE_SCALE = 1000.0                  # the storage cubes are drawn at 1:1,000 ...
-CUBE_SCALES = (1000.0, 2000.0, 2500.0, 5000.0)   # ... v1.6: or the first of these at which they fit (v1.11: round)
+CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
+#                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
 OUT_NAME = "Bergama_water_board_v5_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
@@ -217,8 +226,6 @@ NDVI = [(u"riparian strip, 0-30 m of the Selinos", "8B3A3F", 0.7, None,
          [0.681, 0.677, 0.637, 0.605, 0.538, 0.497, 0.493, 0.484, 0.498, 0.564, 0.591, 0.661])]
 LEAF_ON, LEAF_OFF = 106, 318         # day of the year, deciduous pixels, double-logistic fit (phenology)
 VOL_SEALED, VOL_UNSEALED, VOL_FIRST = 26675.0, 83060.0, 3539.0   # m³ (A6_strip_storage.csv; case.md §4)
-ROUTE_IN = (u"Dec-Apr carries 89 % of the year's flow", u"calculated; " + RR + u" §0")
-ROUTE_OUT = (u"worst case: no stream inflow May-Oct", u"calculated case; " + CM + u" §4")
 
 
 # ---------------------------------------------------------------- Grasshopper: Button, kept log
@@ -755,18 +762,14 @@ def fit(fn, x, y, w, h, pad=4.0, lo=0.5, hi=3.0):
 # v1.14 (Aras 27 Oct 11:07 "replace text with diagrams"; booklet rule: no personal names): one stream ribbon, the
 # elements 1-11 as numbered roundels on it, a pictogram and a few words under each, grouped by place.
 FS_MIN = 2.65                        # v1.14: the least text size on a booklet panel, mm (7.5 pt printed 1:1 on A3)
-CHAIN = [  # (place, what it does, [(element number or None, pictogram, keywords)])
-    (u"UPSTREAM ENTRY", u"cleans · holds · stores",
-     [(1, "rain", u"stream in · mostly winter"), (2, "reed", u"reed beds clean it"),
-      (3, "slope", u"terraces hold street + roof runoff"), (4, "cube", u"planted basins store winter water"),
-      (5, "drop", u"spillway: overflow back to the stream")]),
-    (u"K4 + K5 BRIDGES", u"live with the water",
-     [(6, "strip", u"summer strip 400 cm × 0.30 m"), (7, "tree", u"strip waters the bank planting"),   # v4 (G13)
-      (8, "spread", u"floods spread onto terraces"), (9, "person", u"people on the raised dry top"),
-      (None, "olive", u"K5 Demeter's Garden: olives, aromatics, beds")]),
-    (u"DOWNSTREAM END", u"gives back",
-     [(None, "clean", u"arrives clean · no treatment"), (10, "out", u"the clean stream leaves the site"),
-      (11, "farm", u"existing farmland outside the site")]),
+# v5 (revision 29 Oct, T3b WO-T3b-2): the chain ribbon is gone (p.12 is one water map now); its logic stays as the five
+# steps the map numbers, one row each beside it: (step, icons.py icon, verb, how in keywords)
+CHAIN = [
+    (1, "rain", u"COLLECT", u"winter stream water and street + roof runoff, at the upstream entry"),
+    (2, "reeds", u"CLEAN", u"once, in lined reed basins; the whole reach then runs clean"),
+    (3, "storage", u"HOLD", u"winter water in the ground, for the dry summer, at most a year"),
+    (4, "stream", u"GIVE BACK", u"clean water back to the stream; a summer strip keeps the bed wet"),
+    (5, "stream_out", u"TO THE FARMS", u"the clean stream leaves the site for the farms outside; nothing is pumped back"),
 ]
 CHAIN_SRC = (u"Aras 2026-10-18 14:29 (one way, cleaned once at the upstream end, no treatment at the downstream end), "
              u"14:49 and 15:02 (no farmland inside the site); strip: design values, " + RR + u" §4; minimum flow: "
@@ -1179,9 +1182,6 @@ def draw_sections(opt, box=SECT_BOX):
 
 SECT_K = 4.0                         # v1.10: every cut at 1:250 across and up (4 mm per m), one shared scale
 CUTS_DEN = [None]                    # the scale the six cuts end at on the sheet (read by results.json)
-S4_DENS = (500.0,)                   # the S4 season rows' scale. v4 (MIRAQUA 28 Oct, P14.2): 1:500 only (at 1:250 the four
-#                                      rows are about 200 mm tall, more than the page leaves under the S4 key map; the
-#                                      1:250 try, four engine cuts, is no longer drawn and dropped)
 
 
 # ---------------------------------------------------------------- W2b  the S4 detail (folded in from bergama_detail_section v2)
@@ -1278,64 +1278,16 @@ def level_ladder(pg, entries, x_line, x_text, fs, boxes=None, lo=None):
             boxes.append((x_text, yl - fs * 0.3, x_text + text_w(t, fs, bold) * BK_GROW, yl + fs * BK_GROW))
 
 
-S4_SCALE = 250.0                     # v1.10: the season rows of the S4 cut (south-west bank), 1:250
-S4_NE_SCALE = 250.0                  # the north-east bank: v3 drawn at 1:250, the scale it printed at (was 1:200, shrunk)
-S4_NE_DENS = (250.0, 500.0)          # v3: ... or the next round scale if it does not fit its panel (never shrunk)
-S4_FS = FS_MIN                       # label size on the season rows, mm (v1.14: was 2.2)
-S4_POCHE = 0.6                       # soil drawn under the strip on the season rows, m (the engine's is 1.9; v1.12: 0.9,
-#                                      v3: 0.6, so the four rows fit the A3 page at 1:250)
+# v5 (revision 29 Oct, T3b WO-T3b-4): pp.14-15 are drawn whole by pages/p14_15_s4.py from the level module (D4 b) and
+# its own tables (P14_*, P15_*); the core keeps only the seasons, their months and the open months of the gravel bed.
+# The detail engine (detail_engine, s4_profile) stays for p.17 and results.json only.
 SEAS = ("winter", "spring", "summer", "autumn")
-# v1.14 (Aras 27 Oct 11:07, p.20: "make it clear how use of the site changes with the seasons ... activities should
-# change, not only plants and water"): each row keeps its own water and levels and says what people do there. The
-# activities are the concept's own (concept v1 §10.1, the S4 season texts of the detail section v2: "people watch the
-# river from the terrace edges", "children and parents at the water's edge", "people sit at the strip edge with their
-# feet in the water", "people walk the gravel bed to the water"); the words on the cut are (s along S4, level or None =
-# on the ground, text). Spring planting, summer widths and autumn materials moved to p.22 and p.21 (cm).
-S4_SEASON = {
-    "winter": dict(head=u"storage fills", water=[u"Jan-Feb", u"max day 2017"],
-                   words=[(553.0, None, u"sit at the edge · watch the floods"), (563.0, None, u"terraces open between storms"),
-                          (586.0, None, u"marsh flooded · birds")]),
-    "spring": dict(head=u"storage full by end of April", water=[u"Mar-Apr", u"Jan-Apr high"],
-                   words=[(563.0, None, u"boardwalk open"), (586.5, None, u"children at the water's edge")]),
-    "summer": dict(head=u"strip runs on stored water", water=[],
-                   words=[(577.0, None, u"walk in the dry stream bed"), (583.0, None, u"Kermes stalls in the bed"),
-                          (589.85, None, u"feet in the strip · 0.30 m")]),
-    "autumn": dict(head=u"storage low until the rains", water=[u"Oct-Dec high"],
-                   words=[(579.0, None, u"walk the gravel bed to the water"), (592.0, None, u"first-flush cleaning")]),
-}
 S4_MONTHS = {"winter": u"Dec-Feb", "spring": u"Mar-May", "summer": u"Jun-Aug", "autumn": u"Sep-Nov"}
 S4_MONTH_IDX = {"winter": (11, 0, 1), "spring": (2, 3, 4), "summer": (5, 6, 7), "autumn": (8, 9, 10)}
 # D10 (history_phase1/DECISIONS.md): the in-bed sub-hub opens in the months this board's own year calendar gives the
 # bed to people: outside Dec-Apr (89 % of the year's flow, RIVER) and with rain below open-water evaporation
 # (RAIN < EVAP, no surplus month). Computed: May-Oct.
 SUBHUB_OPEN = [m for m in range(12) if m not in (11, 0, 1, 2, 3) and RAIN[m] < EVAP[m]]
-# v4 (MIRAQUA 28 Oct, F5: booklet sources are public online only): KERMES_SRC, TOUCH_SRC and TUNNEL_SRC are our own
-# research notes, so pp.14-15 print no [n] for them (the activities, once ACT_SRC, are said to be design instead)
-KERMES_SRC =(u"h01 §2.8: Bergama Kermesi since 1937, 90th edition 29 Jun-5 Jul 2026 (s60, s100); h03 Q5: 2024 "
-              u"concerts in Kızıl Avlu (Red Hall) and events at the Arasta, by the stream")
-TOUCH_SRC = (u"history_phase1/DECISIONS.md D9: water people touch is UV-disinfected; " + REG +
-             u" EN-D3, EN-E1, EN-E2")
-# FEEL / HEAR / TOUCH: what we design each season to feel, sound and touch like in the amphibious ground (design
-# intentions, ours; no measurement). (pictogram, keywords). v4 (MIRAQUA 28 Oct, G5): **bold** keywords
-SEASON_USE = {
-    "winter": dict(water=("flood", u"high water"), acts=("sit", "watch"),
-                   feel=("awe", u"**awe** at its force"), hear=("snd3", u"**rushing water**"),
-                   touch=("watch", u"**look**, keep back"),
-                   extra=("tunnel", u"the **Roman tunnels** at work", TUNNEL_SRC)),
-    "spring": dict(water=("rain", u"water falling"), acts=("walk", "child"),
-                   feel=("curious", u"**curiosity**, new green"), hear=("snd2", u"running water, **birds**"),
-                   touch=("hand", u"**hands** at the edge")),
-    "summer": dict(water=("strip", u"low water, strip"), acts=("walk", "wade", "stall"),
-                   feel=("joy", u"**play**, cool shade"), hear=("snd1", u"trickle and **voices**"),
-                   touch=("foot", u"**feet** in UV-clean water", TOUCH_SRC),
-                   extra=("stall", u"**Kermes** in the dry bed", KERMES_SRC)),
-    "autumn": dict(water=("dry", u"low water"), acts=("walk", "sit"),
-                   feel=("calm", u"**calm**, waiting for rain"), hear=("snd1", u"reeds rustle, **first rain**"),
-                   touch=("gravel", u"**gravel** underfoot")),
-}
-TAG_W = 40.0                         # the season column at the left, mm (v1.14: 36)
-SENSE_MIN = 40.0                     # v3: the narrowest FEEL / HEAR / TOUCH column (it takes the width the cuts leave)
-SEASON_GAP = 2.5                     # v3: between the columns and between the rows, mm
 
 
 #@include parts/r28_occupancy.py
@@ -1564,32 +1516,30 @@ WETLAND_KEYS = [u"BOD5", u"Solids", u"Total P", u"Total N", u"NH4-N"]
 
 # v1.6 (Aras 25 Oct 13:12 "too much text too little visual"): the water case's text panels as pictogram tiles,
 # (pictogram, heading, key figure, short line, source); every fact and figure of v1.3's sentences is kept.
+# v5 (revision 29 Oct, T3b WO-T3b-2): p.12's tiles became one water map + a column beside it (G7). WHY_T: the two
+# published facts kept as pictogram rows (icons.py names); the rainwater-tank and "so the stream is cleaned" tiles are
+# gone (the map's COLLECT and CLEAN carry them). (icon, heading, key figure, short line, source)
 WHY_T = [
     ("sewage", u"SEWAGE IN THE STREAM", u"3 km + 500 m",
-     u"İZSU sewer + connections, Feb 2024 · against odour, flies",
+     u"new İZSU sewer + connections, Feb 2024 · against odour, flies",
      u"published, İZSU via Gerçek İzmir 28 Feb 2024; " + REG + u" SE-22"),
-    ("plant", u"TOWN TREATMENT PLANT", u"14,304 m³ a day",
-     u"treated -> Bakırçay, not the Selinos", u"published, TMMOB 2023 citing İZSU; " + WD),
-    ("tank", u"RAINWATER TANKS", u"roofs only",
-     u"garden + toilets only · not listed for drinking",
-     u"published, ÇŞİDB guide 2025; rainwater regulation Art. 13, 16(1); " + REG + u" EN-E5, EN-A2"),
-    ("reed", u"SO THE STREAM IS CLEANED", None,
-     u"before people + plants use it · first treatment designed here", REG + u" §2, row 'Is treatment necessary?'")]
+    ("treatment", u"TOWN TREATMENT PLANT", u"14,304 m³ a day",
+     u"treated, to the Bakırçay, not the Selinos", u"published, TMMOB 2023 citing İZSU; " + WD)]
+# HOW_T: what the planting removes, as bars (icon, plant, nutrient, bars (label, %, printed), source). D2 a: the reed
+# figure only as the pilot result (slag 88 %, gravel 58 %), reed only in lined cells; D6: loosestrife "TN > 60 %", no P.
+# The bed-area tile (Vymazal 2010) is left out; the coliform and UV tiles are the column's coliform chart (COLIFORM).
 HOW_T = [
-    ("reed", u"REED-BED FIELD DATA", u"58-88 %", u"of NH4-N removed", u"published; " + REG + u" PL-09"),
-    ("area", u"BED AREA PER PERSON", u"5 m² · 1-3 m²",
-     u"horizontal · vertical flow", u"published, Vymazal 2010; " + REG + u" EN-D2"),
-    ("clean", u"COLIFORMS LEFT AFTER A WETLAND", u"100-100,000", u"per 100 ml · reuse class A allows 0",
-     u"published, reviews 2005 and 2020; EN-D3; 2010 communiqué, EN-E1"),
-    ("uv", u"DISINFECT WHERE PEOPLE TOUCH IT", u"UV",
-     u"water people touch + park irrigation · UV = the reuse method", u"inferred from EN-D3, EN-E1; EN-E2 published")]
+    ("reeds", u"common reed, pilot", u"lined cells · NH4-N", ((u"slag", 88, u"88 %"), (u"gravel", 58, u"58 %")),
+     u"published; " + REG + u" PL-09"),
+    ("plants", u"purple loosestrife", u"TN", ((u"", 60, u"> 60 %"),), None)]
 # v2 (Aras 27 Oct, Prompt 4, data honesty): the tiles "water quality measured", "streamside greywater" and "odour cut
 # by plants" (all NO DATA) are gone; no source holds a figure for them and an estimate would rest on an unknown.
+# v5 (T3b): shorter labels for p.12's chart; the internal register codes out of the sources (D13)
 COLIFORM = [  # (label, low, high, colour key, source); 0 = the limit is zero
-    (u"Left after an emergent-plant wetland", 1e2, 1e5, "d2", u"published, reviews 2005 and 2020; EN-D3"),
-    (u"Reuse class B limit (orchards, vineyards)", 200, 200, "acc", u"published, 2010 communiqué; EN-E1"),
-    (u"Reuse class A limit (parks, raw-eaten crops)", 0, 0, "acc", u"published, 2010 communiqué; EN-E1"),
-    (u"Drinking water limit (E. coli)", 0, 0, "acc", u"published, Ministry of Health; EN-E3")]
+    (u"left after a planted wetland", 1e2, 1e5, "d2", u"published, reviews 2005 and 2020"),
+    (u"reuse class B · orchards", 200, 200, "acc", u"published, 2010 wastewater reuse communiqué"),
+    (u"reuse class A · parks", 0, 0, "acc", u"published, 2010 wastewater reuse communiqué"),
+    (u"drinking water · E. coli", 0, 0, "acc", u"published, Ministry of Health")]
 GOES_T = [
     ("out", u"THE CLEAN STREAM LEAVES THE SITE", None,
      u"-> existing farmland on the slopes outside · no farm channel inside",
@@ -1804,7 +1754,7 @@ def icon(pg, kind, x, y, sz):
         pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 2.0 * u, fill=acc)
     # ---- v1.14: what people do, feel, hear and touch (p.20-21), plants and the tunnels (p.11, p.22)
     # v4 (MIRAQUA 28 Oct, P19.2 / P15.2): the people pictograms sit, walk, wade, child and the stall are gone: people
-    # are common/figures.py silhouettes (r28_fig), the stall thin lines (r28_stall)
+    # are common/figures.py silhouettes (r28_fig)
     elif kind == "watch":                                   # an eye: look, keep back
         pg.poly([P([(0.6, 5.0), (2.6, 7.2), (5.0, 8.0), (7.4, 7.2), (9.4, 5.0), (7.4, 2.8), (5.0, 2.0), (2.6, 2.8)])],
                 fill=COL["white"], stroke=ink, lw=lw)
@@ -1972,8 +1922,6 @@ class BoxView(object):
         return x * -math.cos(self.t) + y * -math.sin(self.t) > 1e-9, (x * math.sin(self.t) - y * math.cos(self.t)) < 0
 
 
-STORE_K = 1.4                        # v1.14: storage words 1.4 x (keywords 2.66 mm = 7.5 pt; v1.13 had 1.8)
-STORE_LIST_W = 112.0                 # v1.14: the figures list beside the cubes, mm
 
 
 # ---------------------------------------------------------------- the board (A0 landscape, one page)
@@ -2031,15 +1979,16 @@ def drawn(pg, fn):
 CONTEXT = {
     "water": u"The Selinos brings its water in **winter** and almost none in summer, and in a flood it rises {} m above "
              u"the bed. So winter water is held, and nothing fixed may **narrow the bed**.",
-    "system": u"What we do with the water, **one way** with the stream: clean it once upstream, hold winter water, keep "
-              u"a clean **summer strip**, give it back clean downstream.",
+    "system": u"**One way**, with the stream: cleaned once at the upstream entry, winter water **held** in the ground "   # v5 (T3b): p.12's conclusion
+              u"for the dry summer, the stream given back clean to the **farms** downstream. Nothing is pumped back.",
     "concept": u"The idea in section at the upstream entry and at K4: the **problem** on site and the **one move** that "
                u"answers it. Numbers as in the chain.",
     "farms": u"Where the clean water ends up: **farmland outside** the site, easing an aquifer used 4.4 times its "
              u"potential. **Never drinking water**.",
-    "seasons": u"One cut through the year: the **water level** decides where people can be and **what they do** there.",
-    "ne": u"The other bank of S4: the **terraces stay** where they are; the water, and **what people do** on them, "
-          u"change with the season.",
+    "seasons": u"One cut, one viewpoint, four seasons: the **water level** decides what the place becomes, which "
+               u"**plants** are in leaf or flower, and which **animals** are about.",
+    "ne": u"The north-east bank of S4: **seat steps** and a **raised promenade** over Q500 stay; the planting follows "
+          u"the **days under water**, the use follows the months.",
     "plants": u"Nine plants, chosen by the **days water covers** their ground, for cleaning and for shade, where each "
               u"one goes on the site, and the **one to take out**.",
 }
@@ -2158,7 +2107,7 @@ BK_CAPTIONS = {
     "wb_water": u"How the water behaves: the year, and how high the stream rises",
     "wb_system": u"What we do with it: collect, clean, hold, give back",
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
-    "wb_s4_seasons": u"S4, south-west bank: what the seasons change", "wb_s4_ne": u"S4, north-east bank, through the year",
+    "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Plants: where each one goes, and why",
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 

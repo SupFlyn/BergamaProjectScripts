@@ -1,28 +1,15 @@
-# ================================================================ v9 key map: where the four sections are cut (F4, G8)
-# v9 (MIRAQUA 28 Oct, F4; P8 fault table F row 4): the page had no key map, and the K4 and K5 cuts lie downstream of
-# the bridges their sketches draw behind them. The key map shows the four surveyed cuts (centres as the masterplan's
-# parts/02b_detail.py CUT_AT), the two bridges (site board data/DIAG_SRC.py BRIDGES_K), the Selinos (agriculture
-# data/GEO.py "selinos", survey m) and the study area (calisma_alan of Bergama_Altlik.3dm, the recorded copy the site
-# board keeps as R28_STUDY_COPY) in R28_STUDY_LINE, named in the booklet legend by R28_STUDY_NAME (G8). A key map, so no
-# scale bar (SCRIPT_STANDARD §8); the frame axis horizontal, upstream on the left (G7), a north arrow. It sits in the
-# free band under the upstream sketch: inside ps_all, outside the single crops. The note's distances are measured
-# here, every press (K4 cut 114.1 m and K5 cut 119.4 m from the bridges, both downstream along the stream line).
-PS_KEY_CUTS = [("up", u"1 · UPSTREAM ENTRY", (29693.022, 32569.176)),
-               ("k4", u"2 · K4 CUT", (29959.774, 32264.566)),
-               ("k5", u"3 · K5 CUT", (30354.663, 31689.671)),
-               ("down", u"4 · DOWNSTREAM REACH", (30991.856, 31039.404))]
-PS_KEY_BRIDGES = [("k4", u"K4 bridge", (29846.40, 32277.71)),
-                  ("k5", u"K5 bridge (Üç Kemer)", (30293.63, 31792.25))]
-PS_KEY_STUDY = [
-    [(29696.903, 32800.562), (29872.423, 32572.84), (29880.693, 32496.334), (29818.865, 32475.301), (29825.821, 32398.074),
-     (29923.185, 32344.348), (29904.985, 32311.252), (29997.056, 32290.092), (30053.417, 32139.667), (30004.049, 32108.006),
-     (29954.803, 32210.611), (29792.114, 32247.062), (29761.684, 32302.735), (29754.016, 32451.383), (29678.437, 32447.696),
-     (29632.398, 32496.591), (29665.339, 32526.253), (29612.859, 32696.506), (29600.496, 32719.394)],
-    [(30178.18, 31923.887), (30138.072, 31887.655), (30257.694, 31773.217), (30389.686, 31405.252), (30701.152, 30991.252),
-     (30840.053, 31053.865), (31044.852, 30781.877), (31014.2, 30757.409), (31373.442, 30493.066), (31453.175, 30560.194),
-     (31332.978, 30864.179), (31012.679, 31323.349), (30737.856, 31286.66), (30712.87, 31331.891), (30556.09, 31450.103),
-     (30454.629, 31577.301), (30434.156, 31607.332), (30313.613, 31812.92)],
-]
+# ================================================================ v10 key map strip: the four cuts of this page (WO-T3b-3)
+# v10 (package C "Page 13": "today it sits inside section 1's box, so it reads as belonging to that drawing only"):
+# the key map is a strip across the top of the page block, outside every section's panel, inside ps_all. It shows ONLY
+# page 13's four cut lines W1-W4 (basemap_cut_items with basemap_cut_ids, D11 / brief: each key map its own cuts) on
+# the shared basemap in mode "topographic", each labelled with the badge and name of its section title. A key map, so
+# no scale bar (SCRIPT_STANDARD §8); the frame axis turned horizontal, upstream on the left, a north arrow. The two
+# bridges (site board data/DIAG_SRC.py BRIDGES_K) name the places; PS_KEY_SELINOS (agriculture data/GEO.py
+# "selinos", survey m) orients the bridge bars and is the stream when no basemap.json exists yet.
+PS_KEY_BRIDGES = [("k4", u"K4 köprüsü", (29846.40, 32277.71)),
+                  ("k5", u"Üç Kemer Köprüsü", (30293.63, 31792.25))]
+PS_KEY_H = 50.0                       # print mm: the strip's height on the booklet page
+PS_KEY_MARGIN = (60.0, 46.0)          # m around the four cuts in the turned frame (along, across)
 PS_KEY_SELINOS = [
     (29642.6, 32739.4), (29633.1, 32660.6), (29643.3, 32638.1), (29645.7, 32633.8), (29652.9, 32627.1),
     (29660.7, 32621.7), (29671.3, 32612.4), (29681.0, 32595.6), (29690.4, 32573.6), (29710.7, 32540.0),
@@ -40,10 +27,6 @@ PS_KEY_SELINOS = [
     (31154.8, 30764.8), (31158.1, 30761.4), (31193.6, 30733.8), (31242.2, 30700.3), (31308.9, 30668.1),
     (31393.4, 30634.5)]
 PS_KEY_TURN = 49.905                  # degrees: turns the frame axis horizontal, downstream to the right (PLAN §1, G7)
-PS_KEY_PANEL = "up"                   # the panel whose free band under its sketch holds the key map
-PS_KEY_GAP = 8.0                      # mm (sheet) between a single crop's bottom and the key map
-PS_KEY_MIN_H = 60.0                   # mm (sheet): with less room there, the panel with the most room takes it (logged)
-PS_KEY_PRINT = dict(cut=(6.0, 0.9), bridge=(3.2, 0.6), river=0.8, leader=0.15, arrow=4.0, pad=2.0)   # booklet print mm
 
 
 def ps_rich_lines(s, size, width):
@@ -109,123 +92,178 @@ def ps_key_chain(p):
     return best[1], best[2]
 
 
-def ps_key_note():
-    """The key map's note, measured: how far (m, straight) and which way along the stream each of the K4 and K5 cuts
-    lies from the bridge its sketch draws. Returns (text with **bold** runs, {key: m})."""
-    at = dict((k, p) for k, _, p in PS_KEY_CUTS)
-    bits, dist, ways = [], {}, set()
-    for k, nm, b in PS_KEY_BRIDGES:
-        c = at[k]
-        dist[k] = math.hypot(c[0] - b[0], c[1] - b[1])
-        way = u"downstream" if ps_key_chain(c)[0] > ps_key_chain(b)[0] else u"upstream"
-        ways.add(way)
-        bits.append(u"**%s cut**%s about %.0f m %s of the %s" % (k.upper(), u"" if bits else u" lies", dist[k], way, nm))
-    if len(ways) == 1:                                         # today: both downstream (one short line)
-        return (u"The **K4 cut** lies about %.0f m and the **K5 cut** about %.0f m %s of the bridges their sketches draw "
-                u"behind them" % (dist["k4"], dist["k5"], ways.pop()), dist)
-    return u"The " + u", the ".join(bits) + u": the sketches draw these bridges behind the cut", dist
+def ps_key_unturn(q):
+    """key map m -> survey m (the inverse of ps_key_turn)"""
+    a = math.radians(PS_KEY_TURN)
+    return (q[0] * math.cos(a) + q[1] * math.sin(a), -q[0] * math.sin(a) + q[1] * math.cos(a))
 
 
-def ps_key_map(pg, boxes, low, log):
-    """v9 (F4): the key map in the free band under a sketch (boxes: the panels' drawing boxes; low: each sketch's
-    bottom, mm on the sheet), under PS_KEY_PANEL unless it has less than PS_KEY_MIN_H there. Returns its box."""
-    room = dict((k, low[k] - 3.0 - PS_KEY_GAP - boxes[k][1]) for k in low)
-    key = PS_KEY_PANEL
-    if room.get(key, 0.0) < PS_KEY_MIN_H:
-        key = max(room, key=lambda k_: room[k_])
-        log.append(u"NOTE key map: {:.0f} mm free under the {} sketch, so it sits under the {} sketch ({:.0f} mm)".format(
-            room.get(PS_KEY_PANEL, 0.0), PS_KEY_PANEL, key, room[key]))
-    bx = boxes[key]
-    return draw_key_map(pg, (bx[0], bx[1], bx[2], bx[1] + room[key]), key, log)
+def ps_clip_ring(ring, R):
+    """a ring cut to the rectangle R (x0, y0, x1, y1) (Sutherland-Hodgman); [] when nothing is left"""
+    x0, y0, x1, y1 = R
+    out = list(ring)
+    for e in range(4):
+        if not out:
+            break
+        inp, out = out, []
+        for i in range(len(inp)):
+            p, q = inp[i - 1], inp[i]
+            ip = (p[0] >= x0, p[0] <= x1, p[1] >= y0, p[1] <= y1)[e]
+            iq = (q[0] >= x0, q[0] <= x1, q[1] >= y0, q[1] <= y1)[e]
+            if ip != iq:
+                if e < 2:
+                    xe = x0 if e == 0 else x1
+                    out.append((xe, p[1] + (q[1] - p[1]) * (xe - p[0]) / (q[0] - p[0])))
+                else:
+                    ye = y0 if e == 2 else y1
+                    out.append((p[0] + (q[0] - p[0]) * (ye - p[1]) / (q[1] - p[1]), ye))
+            if iq:
+                out.append(q)
+    return out if len(out) >= 3 else []
 
 
-def draw_key_map(pg, area, where, log):
-    """v9 (F4, G4, G5, G8): the key map hung from the top of area (x0, y0, x1, y1), mm on the sheet: a frame, the
-    title row with the north arrow, the map (study area, Selinos, bridges, the four cuts; labels kept apart by
-    place_labels_all), the measured note. Print sizes (booklet mm, pt) are turned into sheet mm by 1 / BK_S."""
+def ps_clip_line(pts, R):
+    """a polyline cut to the rectangle R: the pieces inside (Liang-Barsky per segment)"""
+    x0, y0, x1, y1 = R
+    runs, cur = [], []
+    for p, q in zip(pts[:-1], pts[1:]):
+        dx, dy = q[0] - p[0], q[1] - p[1]
+        t0, t1, ok = 0.0, 1.0, True
+        for pp, qq in ((-dx, p[0] - x0), (dx, x1 - p[0]), (-dy, p[1] - y0), (dy, y1 - p[1])):
+            if pp == 0:
+                if qq < 0:
+                    ok = False
+                    break
+                continue
+            t = qq / pp
+            if pp < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+            if t0 > t1:
+                ok = False
+                break
+        if not ok:
+            if cur:
+                runs.append(cur)
+            cur = []
+            continue
+        a, b = (p[0] + dx * t0, p[1] + dy * t0), (p[0] + dx * t1, p[1] + dy * t1)
+        if not cur or t0 > 0.0:
+            if cur:
+                runs.append(cur)
+            cur = [a]
+        cur.append(b)
+        if t1 < 1.0:
+            runs.append(cur)
+            cur = []
+    if cur:
+        runs.append(cur)
+    return [r for r in runs if len(r) >= 2]
+
+
+def ps_key_strip(pg, area, log):
+    """v10: the key map strip in area (x0, y0, x1, y1), print mm: frame, title row with the north arrow, the
+    topographic basemap cut to the map window, the bridges, page 13's four cuts W1-W4 (triangles point the way each
+    section looks: downstream), each with its section's badge and name. Returns the area."""
     x0, y0, x1, y1 = area
-    P = dict((k, (tuple(v_ / BK_S for v_ in v) if isinstance(v, tuple) else v / BK_S)) for k, v in PS_KEY_PRINT.items())
-    pad, ts, ls = P["pad"], pt_mm(7.5), pt_mm(LBL_PT)
-    note, dist = ps_key_note()
-    nlines = ps_rich_lines(note, ls, x1 - x0 - 2 * pad)
-    note_n = len(nlines)
-    title_h, note_h = ts * 1.3, ls * 1.28 * note_n
-    polys = [[ps_key_turn(p) for p in R] for R in PS_KEY_STUDY]
-    river = [ps_key_turn(p) for p in PS_KEY_SELINOS]
-    ext = [p for R in polys for p in R] + river
-    ex0, ey0 = min(p[0] for p in ext), min(p[1] for p in ext)
-    ex1, ey1 = max(p[0] for p in ext), max(p[1] for p in ext)
-    k = min((x1 - x0 - 2 * pad) / (ex1 - ex0), (y1 - y0 - 4 * pad - title_h - note_h) / (ey1 - ey0))
-    if k <= 0:
-        log.append(u"NOTE key map: no room under the {} sketch, left out".format(where))
-        return None
-    w, h = (ex1 - ex0) * k, (ey1 - ey0) * k
-    ox, oy = x0 + pad, y1 - 2 * pad - title_h - h              # the map's lower left
-
-    def T(q):                                                  # turned m -> sheet mm
-        return (ox + (q[0] - ex0) * k, oy + (q[1] - ey0) * k)
-    title = u"**KEY MAP** · where the four sections are cut, upstream to downstream"
-    tw = text_w(title.replace(u"**", u""), ts, True)
-    nw = max(text_w(u" ".join(t for t, _, _ in ln), ls, True) for ln in nlines)
-    fx1 = min(x1, x0 + 2 * pad + max(w, tw + 3.0 * P["arrow"], nw))
-    yn0 = oy - pad - ls * CAP                                  # the note's first baseline
-    fy0 = max(y0, yn0 - (note_n - 1) * ls * 1.28 - 0.25 * ls - pad)
-    pg.poly([rect(x0, fy0, fx1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
-    # title row (G5: the keyword bold) and the north arrow at its right end
-    ps_rich_para(pg, x0 + pad, y1 - pad - ts * CAP + ts * 1.28, fx1 - x0, title, ts, COL["ink_dark"])
+    pad, ls, ts = 2.5, PS_LBL, PS_NOTE
+    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
+    pg.poly([rect(x0, y1 - 0.8, x1, y1)], fill=MP["discharge"][1])
+    yt = y1 - 0.8 - 1.8 - ts * CAP
+    ps_rich_para(pg, x0 + pad, yt + ts * 1.28, x1 - x0 - 20.0,
+                 u"**KEY MAP** · the four cuts drawn on this page, upstream to downstream; the triangles point the "
+                 u"way each section looks", ts, COL["ink_dark"])
+    # north arrow at the title row's right end
     nx, ny = ps_key_turn((0.0, 1.0))
-    cx, cy = fx1 - pad - P["arrow"], y1 - pad - title_h / 2.0
-    tail = (cx - nx * P["arrow"] / 2.0, cy - ny * P["arrow"] / 2.0)
-    tip = (cx + nx * P["arrow"] / 2.0, cy + ny * P["arrow"] / 2.0)
-    hd = 0.3 * P["arrow"]
-    pg.line([tail, tip], COL["ink"], P["leader"] * 2.0)
+    L = 4.0
+    cx, cy = x1 - pad - 3.0, yt + ts * CAP / 2.0
+    tail, tip = (cx - nx * L / 2.0, cy - ny * L / 2.0), (cx + nx * L / 2.0, cy + ny * L / 2.0)
+    hd = 0.3 * L
+    pg.line([tail, tip], COL["ink"], 0.3)
     pg.poly([[tip, (tip[0] - nx * hd - ny * hd * 0.45, tip[1] - ny * hd + nx * hd * 0.45),
               (tip[0] - nx * hd + ny * hd * 0.45, tip[1] - ny * hd - nx * hd * 0.45)]], fill=COL["ink"])
-    pg.text(u"N", tip[0] - 0.6 * ls, tip[1] - ls * CAP / 2.0, ls, COL["ink"], bold=True, align="R")
-    # the map: study area (light ground + R28_STUDY_LINE), the Selinos, then the bridges and the cuts across it
-    st = R28_STUDY_LINE
-    for R in polys:
-        pg.poly([[T(q) for q in R]], fill=COL["paper"])
-    river_s = [T(q) for q in river]
-    pg.line(river_s, COL["river"], P["river"])
-    rings = [[T(q) for q in R] + [T(R[0])] for R in polys]
-    for r_ in rings:
-        pg.line(r_, st["colour"], st["width_mm"] / BK_S, dash=[d / BK_S for d in st["dash_mm"]], cap=0)
-    taken, items, anchors = [], [], []
+    pg.text(u"N", tip[0] - 1.2, tip[1] - ls * CAP / 2.0, ls, COL["ink"], bold=True, align="R")
+    # the map window: the four cuts in the turned frame plus PS_KEY_MARGIN, widened to fill the strip
+    R = (x0 + pad, y0 + pad, x1 - pad, yt - 0.25 * ts - 1.5)
+    ids = [cid for _, cid, _, _, _ in PS_CUTS]
+    cuts = basemap_cut_ids(ids, looks=dict((cid, -1) for cid in ids))   # the viewer looks downstream: SW on the right
+    tq = [ps_key_turn(p) for c in cuts for p in c[:2]]
+    wx0, wx1 = min(q[0] for q in tq) - PS_KEY_MARGIN[0], max(q[0] for q in tq) + PS_KEY_MARGIN[0]
+    wy0, wy1 = min(q[1] for q in tq) - PS_KEY_MARGIN[1], max(q[1] for q in tq) + PS_KEY_MARGIN[1]
+    km = min((R[2] - R[0]) / (wx1 - wx0), (R[3] - R[1]) / (wy1 - wy0))      # print mm per m
+    mx, my = (wx0 + wx1) / 2.0, (wy0 + wy1) / 2.0
+    wx0, wx1 = mx - (R[2] - R[0]) / km / 2.0, mx + (R[2] - R[0]) / km / 2.0
+    wy0, wy1 = my - (R[3] - R[1]) / km / 2.0, my + (R[3] - R[1]) / km / 2.0
+    frame = [ps_key_unturn(q) for q in ((wx0, wy0), (wx1, wy0), (wx1, wy1), (wx0, wy1))]
 
-    def bar(p, L, lw, col):                                    # a short bar across the stream at survey point p
+    def T(p):                                                  # survey m -> print mm
+        q = ps_key_turn(p)
+        return (R[0] + (q[0] - wx0) * km, R[1] + (q[1] - wy0) * km)
+
+    def fill_fn(rings, hx, alpha, nonzero):
+        rr = [r_ for r_ in (ps_clip_ring(r, R) for r in rings) if r_]
+        if rr:
+            pg.poly(rr, fill=hx, alpha=(alpha if alpha is not None and alpha < 0.975 else None))
+
+    def line_fn(pts, hx, w, dash, alpha):
+        for piece in ps_clip_line(pts, R):
+            pg.line(piece, hx, w, dash=list(dash) if dash else None)
+    taken = []
+
+    def text_fn(s, xy, size, hx, bold, align):
+        w = text_w(s, size, bold)
+        pg.text(s, xy[0], xy[1] - size * CAP / 2.0, size, hx, bold=bold, align="C")
+        taken.append((xy[0] - w / 2.0, xy[1] - size * 0.6, xy[0] + w / 2.0, xy[1] + size * 0.6))
+    bx = (min(p[0] for p in frame), min(p[1] for p in frame), max(p[0] for p in frame), max(p[1] for p in frame))
+    items = basemap_items("topographic", box=bx)
+    if items:
+        basemap_draw(items, T, fill_fn, line_fn)
+    else:                                                      # no basemap.json yet: the stream line only
+        log.append(u"NOTE key map: no basemap (run the site board once); the stream line alone is drawn")
+        line_fn([T(p) for p in PS_KEY_SELINOS], COL["river"], 0.8, None, 1.0)
+    # the bridges: short bars across the stream, named
+    lab = []
+    for _, nm, p in PS_KEY_BRIDGES:
         _, (dx, dy) = ps_key_chain(p)
         tx, ty = ps_key_turn((dx, dy))
-        c = T(ps_key_turn(p))
-        a_, b_ = (c[0] - ty * L / 2.0, c[1] + tx * L / 2.0), (c[0] + ty * L / 2.0, c[1] - tx * L / 2.0)
-        pg.line([a_, b_], col, lw, cap=0)
-        taken.append((min(a_[0], b_[0]) - lw, min(a_[1], b_[1]) - lw, max(a_[0], b_[0]) + lw, max(a_[1], b_[1]) + lw))
-        return c
-    for key_, nm, p in PS_KEY_BRIDGES:
-        c = bar(p, P["bridge"][0], P["bridge"][1], COL["ink"])
-        items.append(dict(x=c[0], y=c[1], rank=0, wh=lambda f, s_=nm: (text_w(s_, ls * f), ls * f * (CAP + 0.25))))
-        anchors.append((c, nm, False))
-    for key_, nm, p in PS_KEY_CUTS:
-        c = bar(p, P["cut"][0], P["cut"][1], COL["accent"])
-        items.append(dict(x=c[0], y=c[1], rank=0, wh=lambda f, s_=nm: (text_w(s_, ls * f, True), ls * f * (CAP + 0.25))))
-        anchors.append((c, nm, True))
-    c = river_s[int(len(river_s) * 0.8)]                       # the stream's name, between cuts 3 and 4 (may drop)
-    items.append(dict(x=c[0], y=c[1], rank=1, wh=lambda f: (text_w(u"Selinos", ls * f), ls * f * (CAP + 0.25))))
-    anchors.append((c, u"Selinos", None))
-    segs = list(zip(river_s[:-1], river_s[1:])) + [s_ for r_ in rings for s_ in zip(r_[:-1], r_[1:])]
-    bounds = (x0 + 0.5 * pad, oy - 0.5 * pad, fx1 - 0.5 * pad, oy + h + 0.5 * pad)
-    got = place_labels_all(items, taken, bounds, segs, sizes=(1.0,), pad=0.6 / BK_S)
-    for i, (c, s_, bold) in enumerate(anchors):
+        c = T(p)
+        a_, b_ = (c[0] - ty * 1.6, c[1] + tx * 1.6), (c[0] + ty * 1.6, c[1] - tx * 1.6)
+        pg.line([a_, b_], COL["ink"], 0.6, cap=0)
+        taken.append((min(a_[0], b_[0]) - 0.3, min(a_[1], b_[1]) - 0.3, max(a_[0], b_[0]) + 0.3, max(a_[1], b_[1]) + 0.3))
+        lab.append((c, nm, False, None))
+    # page 13's cuts only, then each cut's badge and name as in its section title
+    ci = basemap_cut_items(cuts, 1000.0 / km, frame=frame, inset_mm=0.6, tri_mm=1.6, text_mm=ls, col=COL["accent"])
+    basemap_draw(ci, T, fill_fn, line_fn, text_fn)
+    segs = []
+    for it in ci:
+        if it[0] == "line":
+            P = [T(p) for p in it[1]]
+            segs += list(zip(P[:-1], P[1:]))
+    for (key, cid, n, name, _), c in zip(PS_CUTS, cuts):
+        m = ((c[0][0] + c[1][0]) / 2.0, (c[0][1] + c[1][1]) / 2.0)
+        lab.append((T(m), u"%s · %s" % (cid, name), True, n))
+    lab.append((T(PS_KEY_SELINOS[int(len(PS_KEY_SELINOS) * 0.8)]), u"Selinos", False, None))
+    r = 1.6
+    items_l = []
+    for c, s_, bold, n in lab:
+        w = text_w(s_, ls, bold) + (2 * r + 0.8 if n else 0.0)
+        hb = 2 * r if n else 0.0
+        items_l.append(dict(x=c[0], y=c[1], rank=0 if n else 1,
+                            wh=lambda f, w_=w, h_=hb: (w_ * f, max(ls * f * (CAP + 0.25), h_))))
+    got = place_labels_all(items_l, taken, R, segs, sizes=(1.0,), pad=0.6)
+    for i, (c, s_, bold, n) in enumerate(lab):
         if i not in got:
             log.append(u"NOTE key map: label '{}' left out (no free place)".format(s_))
             continue
         b, leader, _ = got[i]
         if leader:
-            pg.line([c, lp_leader_end(b, c)], COL["ink2"], P["leader"])
-        col = COL["river_mid"] if bold is None else (COL["ink_dark"] if bold else COL["ink2"])
-        pg.text(s_, b[0], b[1] + 0.25 * ls, ls, col, bold=bool(bold), halo=COL["white"])
-    # the measured note (G5: the two cuts bold)
-    ps_rich_para(pg, x0 + pad, yn0 + ls * 1.28, fx1 - x0 - 2 * pad, note, ls, COL["ink"])
-    log.append(u"key map (F4): under the {} sketch, {:.0f} x {:.0f} mm on the sheet; K4 cut {:.1f} m and K5 cut {:.1f} m "
-               u"from the bridges the sketches draw".format(where, fx1 - x0, y1 - fy0, dist["k4"], dist["k5"]))
-    return (x0, fy0, fx1, y1)
+            pg.line([c, lp_leader_end(b, c)], COL["ink2"], 0.15)
+        tx_ = b[0]
+        if n:
+            ps_badge(pg, b[0] + r, (b[1] + b[3]) / 2.0, n, r)
+            tx_ += 2 * r + 0.8
+        yb = (b[1] + b[3]) / 2.0 - ls * CAP / 2.0
+        pg.text(s_, tx_, yb, ls, COL["ink_dark"] if bold else COL["ink2"], bold=bold)
+    log.append(u"key map (v10): strip across the top of ps_all, about 1:{:,.0f}; cuts W1-W4 only".format(1000.0 / km))
+    return area

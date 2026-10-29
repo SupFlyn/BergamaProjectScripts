@@ -1,4 +1,4 @@
-# bergama_water_balance_v5.py (v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v6.py (v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,21 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v5"
+VERSION = "v6"
+# NEW IN v6 (revision 29 Oct 2026, T3b WO-T3b-2, package C items 1-4 and G7; a feature change, so the next whole
+#   number). Pages 11-12 are one story: p.12 (water board) is now one diagrammatic water map, so the analysis it shows
+#   left this sheet, and what stays is drawn per G7 (R31: every user its own row, one common time axis, bars):
+#   * block 1 "One year of water": the stream, the site catch, the store, the summer strip and the farms as five rows of
+#     icons.py pictograms and bars on ONE month axis (replaces the question, the farm tiles, the monthly chart with its
+#     number rows, and the stream's monthly flow). The store's monthly level is new: results key
+#     design.store_month_m3 (run_storage now records the level, `lev`; store_months()).
+#   * gone from the sheet: the site-catch bars (block 4; its figures are on the p.12 map, results keys unchanged), the
+#     1:500 flood cut (the flood levels belong to the sections, p.13), the open-pond curves, the claims column.
+#   * blocks 2 storage curve, 3 cost, 4 the answer with ONE short conclusion paragraph; icons from common/icons.py
+#     (the sheet's own icon() and tile() are gone); crops wb_year, wb_curve, wb_store, wb_answer (wb_tiles,
+#     wb_timing, wb_catch, wb_stream removed).
+#   * results key "zones" (new): the Option A zones and water links in survey m (zone base layers of the open Rhino file,
+#     else the built-in copy data/ZONE_COPY.py), read by the water board's p.12 map. Every other key unchanged.
 # NEW IN v5 (MIRAQUA 28 Oct, booklet revision v4: P11.1, P11.2, G3/G5/G11/G13; bank depth research 28 Oct §4.3; a
 #   feature change, so the next whole number):
 #   * The sheet re-laid in reading order: 1 the question, 2 how the stream behaves, 3 what the farms need, 4 what the
@@ -138,24 +152,14 @@ ET0_NORMAL = 1369.1          # mm/yr, FAO-56 Penman-Monteith on WMO 17742 normal
 # Oct 2015-Sep 2021, each area-scaled to 101 km², mean of the two; the upper case, the Kestel diversion not counted).
 STREAM_MONTH_M3 = [7073107, 4466564, 3692654, 2319752, 917943, 427462, 154468, 39136, 37531, 208432, 513967, 1101169]
 STREAM_DRY_DAYS = (0, 111)   # measured: days a year both gauges were completely dry, 2016-2021 (rain_river README §1)
-# The surveyed upstream-entry cut (water board CUTS "up" = rain_river_levels A3s, v1.1 24 Oct): ground every 1 m from
-# u0 (m from the centreline; - = right bank), m above the bed low point; depths (m above the bed, Manning n 0.050) and
-# the width each covers (from, to). max 2017 = the highest day of 2016-2021, 6 Jan 2017 (43.9 m³/s area-scaled).
-STREAM_CUT = dict(u0=-42, ground=[
-    5.45, 5.24, 5.17, 5.11, 5.05, 4.99, 4.92, 4.86, 4.55, 4.18, 3.82, 3.45, 3.01, 2.57, 2.21, 2.14, 2.07, 2.0, 1.93,
-    1.86, 1.8, 1.73, 1.66, 1.59, 1.52, 1.45, 1.38, 1.32, 1.25, 1.19, 1.12, 1.06, 0.99, 0.93, 0.87, 0.8, 0.74, 0.67,
-    0.61, 0.54, 0.48, 0.41, 0.35, 0.29, 0.22, 0.16, 0.09, 0.03, 0.02, 0.39, 0.75, 1.1, 1.46, 1.82, 2.19, 2.54, 2.86,
-    3.16, 3.46, 3.75, 3.97, 4.05, 4.24, 4.46, 4.7, 4.94, 5.07, 5.08, 5.12, 5.14],
-    levels=[("Jan-Feb", 0.64, (-4.0, 7.5)), ("max 2017", 1.69, (-20.0, 10.5)), ("Q100", 2.99, (-29.5, 14.0)),
-            ("Q500", 3.30, (-30.5, 15.0))])
-CUT_Q500 = dict(upstream=3.30, K4=2.84, K5=2.79, downstream=2.33, flat_end=1.54)   # A3s, m above the bed, the five cuts
-K4_RIGHT_BANK, K4_Q100 = 2.08, 2.56     # A3s: K4's lower (right) bank top and its Q100 depth, m above the bed
-# v5 (MIRAQUA 28 Oct; bank-depth research REPORT §4.3, Aras 14:12 "the survey is the inferior source"): K4_RIGHT_BANK is
-# the survey, before the DSİ walls (photos 1 Oct 2026: a wall about 5 m above the bed), so the sheet no longer prints
-# "K4: right bank floods from Q100"; both values kept unchanged for the record
-STREAM_DEN = 500.0                      # the cut at 1:500, true proportions (a standard scale)
+# v6 (T3b): the 1:500 upstream-entry flood cut (STREAM_CUT, CUT_Q500, K4_RIGHT_BANK, K4_Q100, STREAM_DEN) left the
+# sheet: flood levels belong to the sections (p.13, the level table), not to the water balance
 
 #@include data/INPUT_DATA.py
+# v6 (T3b WO-T3b-2): ZONE_COPY = the Option A zones and links of zone base v7 (the masterplan's data/ZONE_COPY.py,
+# md5 7c7d4a4a21af391460ac0701ae5e3902, Option A only, rings thinned to 10 cm), JSON {zones: [{code, label, id,
+# study_area, zone, ring}], links: [{kind, label, P}]}, zlib + base64; used when the open Rhino file has no zones
+#@include data/ZONE_COPY.py
 
 # ------------------------------------------------------------------ lands: GH inputs > Rhino objects > defaults
 def _num(v):
@@ -223,6 +227,75 @@ def get_lands(g):
     L["option"] = option
     return L, src
 
+# ------------------------------------------------------------------ v6: the project's zones and links, for p.12's map
+ZONE_CODES = ("WS", "WT", "WD", "GR", "WA", "WP", "DG")    # retention terraces, reed basins, spillway, walks / dry tops,
+                                                          # bed + flood terraces, streamside planting, Demeter's Garden
+
+def ring_area(P):
+    return abs(sum(P[i][0] * P[(i + 1) % len(P)][1] - P[(i + 1) % len(P)][0] * P[i][1] for i in range(len(P)))) / 2.0
+
+def rhino_zones(option):
+    """v6: (zones, links) of Option_<option> in the open Rhino file, survey m: closed curves on INT_ZONE_<code> and
+    INT_WATER_strip (code "STRIP"), with the zone base's user text (label, id, study_area, zone); INT_LINK_<kind>
+    curves as start -> end. None when not in Rhino or the file has none."""
+    try:
+        import Rhino
+        doc = Rhino.RhinoDoc.ActiveDoc
+    except Exception:
+        return None
+    if doc is None:
+        return None
+    s = Rhino.RhinoMath.UnitScale(doc.ModelUnitSystem, Rhino.UnitSystem.Meters)
+    parent = "Option_" + option + "::"
+    zones, links = [], []
+    for o in doc.Objects.GetObjectList(Rhino.DocObjects.ObjectType.Curve):
+        path = doc.Layers[o.Attributes.LayerIndex].FullPath
+        if not path.startswith(parent):
+            continue
+        lay = path[len(parent):].split("::")[0]
+        g, a = o.Geometry, o.Attributes
+        meta = dict((k, a.GetUserString(k)) for k in ("label", "id", "study_area", "zone") if a.GetUserString(k))
+        meta.setdefault("label", a.Name or "")
+        if lay.startswith("INT_LINK_"):
+            p0, p1 = g.PointAtStart, g.PointAtEnd
+            links.append(dict(kind=lay[len("INT_LINK_"):], label=meta["label"],
+                              P=[[round(p0.X * s, 2), round(p0.Y * s, 2)], [round(p1.X * s, 2), round(p1.Y * s, 2)]]))
+            continue
+        code = "STRIP" if lay == "INT_WATER_strip" else (lay[len("INT_ZONE_"):][:2].upper() if lay.startswith("INT_ZONE_") else None)
+        if code not in ZONE_CODES + ("STRIP",) or not g.IsClosed:
+            continue
+        pts = None
+        try:
+            ok, pl = g.TryGetPolyline()
+            if ok:
+                pts = [(p.X, p.Y) for p in pl]
+        except Exception:
+            pts = None
+        if not pts:                                     # a smooth curve: points about every 50 cm
+            ts = g.DivideByCount(max(8, min(800, int(g.GetLength() * s / 0.5))), True) or []
+            pts = [(g.PointAt(t).X, g.PointAt(t).Y) for t in ts]
+        if len(pts) > 1 and pts[0] == pts[-1]:
+            pts = pts[:-1]
+        if len(pts) < 3:
+            continue
+        ring = [[round(x * s, 2), round(y * s, 2)] for x, y in pts]
+        zones.append(dict(meta, code=code, ring=ring, m2=round(ring_area(ring), 1)))
+    return (zones, links) if zones else None
+
+def get_zones(option="A"):
+    """v6: the results key "zones": the open Rhino file's Option A zones when it has the reed basins, else the
+    built-in copy (data/ZONE_COPY.py); the water board's p.12 water map reads it."""
+    rz = rhino_zones(option)
+    if rz and any(z["code"] == "WT" for z in rz[0]):
+        zs, ls, src = rz[0], rz[1], "rhino option " + option
+    else:
+        d = json.loads(zlib.decompress(base64.b64decode("".join(ZONE_COPY))).decode("utf-8"))
+        zs, ls, src = d["zones"], d["links"], "built-in copy (zone base v7, option A)"
+        for z in zs:
+            z["m2"] = round(ring_area(z["ring"]), 1)
+    return dict(source=src, option=option, zones=zs, links=ls,
+                note="survey m; zones: INT_ZONE_<code> and INT_WATER_strip (code STRIP); links: INT_LINK_<kind>, start -> end")
+
 # ------------------------------------------------------------------ built-in daily inputs
 def load_inputs():
     d = json.loads(zlib.decompress(base64.b64decode("".join(INPUT_DATA))).decode("utf-8"))
@@ -268,9 +341,10 @@ def strip_reserve(strip, days):
     for d, r in zip(days, rem): best[(d.month, d.day)] = max(best[(d.month, d.day)], r)
     return [best[(d.month, d.day)] for d in days]
 
-def run_storage(V, A, demand, strip, inflow, et0, days, reserve, max_age=MAX_AGE, site=None):
+def run_storage(V, A, demand, strip, inflow, et0, days, reserve, max_age=MAX_AGE, site=None, lev=None):
     """v3: with site (the site catch each day) also counts per water year the stream's part of what enters the
-    store (per[y][4]) and all that enters it (per[y][5]): the site catch fills first, the stream tops up."""
+    store (per[y][4]) and all that enters it (per[y][5]): the site catch fills first, the stream tops up.
+    v6: with lev (a list) the store's level at the end of every day is appended to it."""
     Q = deque(); S = 0.0; flushed = 0.0; oldest = 0
     per = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])   # v4: [6] released after max_age, [7] store at the end
     i = 0
@@ -298,7 +372,20 @@ def run_storage(V, A, demand, strip, inflow, et0, days, reserve, max_age=MAX_AGE
                 if Q[0][1] <= 1e-9: Q.popleft()
         gs = take(strip[i]); gf = take(demand[i], reserve[i])
         r = per[wy(d)]; r[0] += demand[i]; r[1] += gf; r[2] += strip[i]; r[3] += gs; r[7] = S
+        if lev is not None: lev.append(S)
     return per, flushed, oldest
+
+def store_months(V, demand, strip, R, site, et0, days, reserve):
+    """v6 (T3b, G7): the closed design store V through the same daily run as year_split: its mean level at the end of
+    each calendar month, m3, Jan-Dec (the first water year, the spin-up, left out). Sheet block 1, the store's row."""
+    inflow = [min(V / INTAKE_DAYS, r) + s for r, s in zip(R, site)]
+    lev = []
+    run_storage(V, 0.0, demand, strip, inflow, et0, days, reserve, lev=lev)
+    y0 = wy(days[0]); acc = defaultdict(list)
+    for i, d in enumerate(days):
+        if wy(d) == y0: continue
+        if i + 1 == len(days) or days[i + 1].month != d.month: acc[d.month].append(lev[i])
+    return [round(sum(acc[m]) / len(acc[m])) if acc[m] else 0 for m in range(1, 13)]
 
 def crf(r, n): return r * (1 + r) ** n / ((1 + r) ** n - 1)
 
@@ -334,7 +421,7 @@ def compute(L):
     crops = list(dict.fromkeys(crops))
     if len(crops) == 1: crops.append("cotton")
     irr = {c: soil_irrigation(c, I) for c in set(crops) | set(CROP_SOIL)}
-    res = dict(script="bergama_water_balance_v4.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+    res = dict(script="bergama_water_balance_v6.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                lands={k: (round(v, 3) if isinstance(v, float) else v) for k, v in L.items()})
     # net irrigation per crop (mm a water year) and the rain the fields hold
     res["net_irrigation_mm"] = {}; res["rain_credit_pct"] = {}
@@ -439,6 +526,7 @@ def compute(L):
     # v4 (Prompt 6): the design store through a normal and the 1-in-5 dry water year, from the same daily run
     res["design"]["year_split"] = year_split(dc["storage_m3"], dem[design], strip, R, site, E, days, RES, avail,
                                              res["farm_demand_m3"][design])
+    res["design"]["store_month_m3"] = store_months(dc["storage_m3"], dem[design], strip, R, site, E, days, RES)   # v6
     # open ponds for comparison (design mix) and the built-storage ladder without recharge (US$ per m3 delivered)
     vmax = res["curve_closed"][design][-1][0]
     res["curve_open"] = [[int(v), pct(s["median"]), pct(s["dry5"])] for v in [vmax * k / 8.0 for k in range(9)] for s in [stats(v, design, v)]]
@@ -488,6 +576,9 @@ _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278
 
 
 #@include ../common/units.py
+
+
+#@include ../common/icons.py
 
 
 #@include ../common/pdf_fonts.py
@@ -699,16 +790,11 @@ SOURCES = dict(    # every source and method sentence of the v2.3 sheet; v2.7: a
     fao_t="FAO-56 Tables 19 and 22",
     fao_tm4="FAO Training Manual 4 (drip)",
     rg="RG 30802 minimum flow: stream counted above the legal minimum, worst case",
-    dwa="DWA-A 117",
-    abu="Abu Hammad et al. 2004: runoff 20 % without terraces, 4 % terraced",
     ross="Ross & Hasnain 2018",
     suds="UK EA 2015 and Royal Haskoning 2012 SuDS costs (GBP x 1.25)",
     flow=u"Natural flow past the site = DSİ gauges D04A053 + D04A063, Oct 2015-Sep 2021, "   # v4.1 (Prompt 8): no internal file names
-         u"each area-scaled to 101 km², mean of the two (upper case: the Kestel diversion not counted); both gauges fully dry 0-111 days a year",
-    # v5 (MIRAQUA 28 Oct, F5): the course survey's file name out (not public online); the cut's ground line has no
-    # public source (reported to Aras), its method and flows keep theirs
-    lev=u"Manning normal depth, n 0.050 (worst), on the surveyed cross-sections; "
-        u"DSİ Q100 205.2 / Q500 263.3 m³/s (Danıştay 6. D. 2021/9521 E.); max 2017 = highest day 2016-2021, 6 Jan 2017, 43.9 m³/s area-scaled")
+         u"each area-scaled to 101 km², mean of the two (upper case: the Kestel diversion not counted); both gauges fully dry 0-111 days a year")
+# v6 (T3b): "dwa", "abu" (the site-catch block) and "lev" (the flood cut) left with what cited them
 SRC_KEY = []
 
 def cite(*keys):
@@ -717,51 +803,15 @@ def cite(*keys):
         if k not in SRC_KEY: SRC_KEY.append(k)
     return "[" + ",".join(str(SRC_KEY.index(k) + 1) for k in keys) + "]"
 
-def circle(pg, cx, cy, r, fill=None, stroke=None, lw=0.2):
-    pg.poly([(cx + r * math.cos(a * math.pi / 10), cy + r * math.sin(a * math.pi / 10)) for a in range(20)], fill, stroke, lw, True)
-
-def icon(pg, kind, x, y, sz):
-    """v2.4: a pictogram in the square (x, y - sz)-(x + sz, y), on a 10 x 10 grid. Graphic only."""
-    u = sz / 10.0; lw = 0.06 * sz
-    P = lambda pts: [(x + a * u, y - sz + b * u) for a, b in pts]
-    if kind == "field":
-        pg.poly(P([(0, 1), (7, 1), (10, 6), (3, 6)]), fill=C["green_light"], closed=True)
-        for b in (2.2, 3.5, 4.8):
-            f = (b - 1) / 5.0; pg.line(P([(0.6 + 3 * f, b), (6.6 + 3 * f, b)]), C["green_deep"], lw * 0.6)
-    elif kind == "olive":
-        pg.rect(x + 4.5 * u, y - sz + 0.6 * u, u, 4 * u, fill=C["ink2"])
-        circle(pg, x + 5 * u, y - sz + 6.4 * u, 3.4 * u, fill=C["green_mid"])
-        for a, b in ((3.8, 7.0), (6.0, 5.6), (5.4, 8.0)): circle(pg, x + a * u, y - sz + b * u, 0.5 * u, fill=C["ink"])
-    elif kind == "sun":
-        for k in range(8):
-            a = k * math.pi / 4
-            pg.line(P([(5 + 3.0 * math.cos(a), 5 + 3.0 * math.sin(a)), (5 + 4.6 * math.cos(a), 5 + 4.6 * math.sin(a))]), C["accent"], lw)
-        circle(pg, x + 5 * u, y - sz + 5 * u, 2.3 * u, fill=C["accent"])
-    elif kind == "strip":
-        pg.rect(x, y - sz + 3.4 * u, sz, 3.2 * u, fill=C["water"])
-        for a in (1.5, 4.5, 7.5): pg.line(P([(a, 6.6), (a + 0.3, 9.2)]), C["green_mid"], lw)
-    elif kind == "drop":
-        pg.poly(P([(5 - 2.6, 4.6), (5, 9.6), (5 + 2.6, 4.6)]), fill=C["water_deep"], closed=True)
-        circle(pg, x + 5 * u, y - sz + 3.6 * u, 3.0 * u, fill=C["water_deep"])
-    elif kind == "clock":
-        circle(pg, x + 5 * u, y - sz + 5 * u, 4.2 * u, fill=C["white"], stroke=C["ink"], lw=lw)
-        pg.line(P([(5, 8.0), (5, 5), (7.2, 5)]), C["ink"], lw)
-    elif kind == "cube":
-        pg.poly(P([(5, 9.8), (9.2, 7.6), (5, 5.4), (0.8, 7.6)]), fill=C["faint"], closed=True)
-        pg.poly(P([(0.8, 7.6), (5, 5.4), (5, 0.4), (0.8, 2.6)]), fill=C["structure"], closed=True)
-        pg.poly(P([(5, 5.4), (9.2, 7.6), (9.2, 2.6), (5, 0.4)]), fill=C["ink2"], closed=True)
-    elif kind == "terrace":
-        pg.poly(P([(0, 0.6), (10, 0.6), (10, 3.2), (6.6, 3.2), (6.6, 5.8), (3.3, 5.8), (3.3, 8.4), (0, 8.4)]), fill=C["green_mid"], closed=True)
-
-def tile(pg, kind, x, y, w, h, head, big, foot):
-    """v2.4: pictogram tile: icon, keyword heading, ONE big figure, a short foot with [n]. v2.7: no fill (white sheet), 7 pt words.
-    v5 (MIRAQUA 28 Oct, P11.2): compact (about 56 x 15.5 mm), the four stacked in block 3 beside the monthly need."""
-    pg.rect(x, y - h, w, h, stroke=C["faint"], lw=0.3)
-    sz = min(h - 6.0, 9.0); icon(pg, kind, x + 2.5, y - (h - sz) / 2.0, sz)
-    lx = x + 5.5 + sz; tw = x + w - 1.5 - lx; fs = fit_size(big, tw, 11.0, True)
-    pg.text(head, lx, y - 4.2, 7, C["ink2"], True)
-    pg.text(big, lx, y - 9.4, fs, C["ink"], True)
-    pg.text(foot, lx, y - h + 2.6, 7, C["ink2"])
+def ico(pg, name, cx, cy, size):
+    """v6 (T3b, 02 §2): an icon of the booklet's one set (common/icons.py) centred on (cx, cy), size mm square; the
+    sheet's own 10 x 10 pictograms (icon, tile) are gone"""
+    for sh in ico_draw(name, cx, cy, size):
+        if sh[0] == "poly":
+            if sh[2] or sh[3]:
+                pg.poly(sh[1], sh[2], sh[3], sh[4], True)
+        else:
+            pg.line(sh[1], sh[2], sh[3])
 
 def inline(pg, x, y, parts):
     """v2.4: a keyword row: parts = [(text, size, colour, bold)] set one after another; returns the end x."""
@@ -781,16 +831,17 @@ def panel_answer(pg, R, x, y, w, h):
     Every figure from R (results JSON): design.central_range_m3 / _pct_1in5_dry, full_range_*, need_for_target_1in5_dry_m3,
     today_strip_storage; prices RECHARGE_USD / ALTERNATIVE_USD (Ross & Hasnain 2018).
     v5 (MIRAQUA 28 Oct, P11.1/P11.2): block 7, the sheet's last: its numbered title, then a LIGHT tint field (water_tint;
-    was the dark water_light block at the top); one row: store -> carries -> cost cut-off | our claims."""
+    was the dark water_light block at the top); one row: store -> carries -> cost cut-off | our claims.
+    v6 (T3b): block 4; "our claims" became the one short conclusion paragraph (G7); the store's icon from icons.py."""
     d = R["design"]
-    panel_title(pg, x, y + h, w, "7", "The answer")
+    panel_title(pg, x, y + h, w, "4", "The answer")
     top = y + h - 7.0                                           # the tint field under the title
     pg.rect(x, y, w, top - y, fill=C["water_tint"])
     lo_, hi_ = d["central_range_m3"]; plo, phi = d["central_range_pct_1in5_dry"]
     ky, big_y, l1, l2 = top - 5.0, top - 13.5, top - 18.5, top - 22.5
     wa, wb, wc, gap = 84.0, 62.0, 62.0, 12.0
     # A: the store
-    ax = x + 6; icon(pg, "cube", ax, top - 4.0, 13)
+    ax = x + 6; ico(pg, "storage", ax + 6.5, top - 10.5, 13)
     tx = ax + 17; tw = wa - 17
     pg.text("STORE", tx, ky, 8, C["ink2"], True)
     s = "%s" % span(lo_, hi_); fs = fit_size(s, tw, 22.0, True)
@@ -821,234 +872,101 @@ def panel_answer(pg, R, x, y, w, h):
         yy = l2 - 4.0 - i * 2.6
         pg.line([(cx, yy + 0.9), (cx + wc, yy + 0.9)], C["water_light"], 0.3)
         pg.rect(cx + wc * rng[0] / vm, yy, wc * (rng[1] - rng[0]) / vm, 1.8, fill=col)
-    # D: our claims, a column right of the cut-off (was a row under the three)
+    # D (v6, T3b, G7: "one short paragraph states the conclusion"): right of the cut-off (was "our claims": the 25 / 50 %
+    # sizes and the cost cases stay in the results JSON)
     qx = cx + wc + 12.0
     pg.line([(qx - 6.0, y + 3.0), (qx - 6.0, top - 3.0)], C["water_light"], 0.4)
-    pg.text("Our claims, 1 in 5 dry year", qx, ky, 8, C["ink2"], True)
-    yy = ky - 5.5
-    for pct in ("25", "50"):
-        v = [t[pct] for t in R["need_for_target_1in5_dry_m3"].values()]
-        inline(pg, qx, yy, [("%s %% " % pct, 9, C["accent"], True),
-                            ("= " + ("not reached" if None in v else "%s m³" % span(min(v), max(v))), 8, C["ink"], True)])
-        yy -= 5.0
-    tc = [t["covered_pct_1in5_dry"] for t in R["today_strip_storage"].values()]
-    inline(pg, qx, yy, [("today ", 7.5, C["ink2"], False), ("%s m³ = %.0f %%" % (fmt(STRIP_TODAY), max(tc)), 8, C["ink"], True),
-                        (" (the strip's own)", 7.5, C["ink2"], False)])
-    inline(pg, qx, yy - 6.0, [("All cost cases:  ", 7.5, C["ink2"], True),
-                              ("%s m³ = %s %%" % (span(*d["full_range_m3"]), span(*[round(v) for v in d["full_range_pct_1in5_dry"]])), 8, C["ink"], True)])
+    pg.text("So", qx, ky, 8, C["ink2"], True)
+    tc = max(t["covered_pct_1in5_dry"] for t in R["today_strip_storage"].values())
+    s_ = ("Winter brings the water, summer needs it. Held in the ground, **%s m³** of winter water carries the farms "
+          "through a **1 in 5 dry** year; past that, each more m³ costs more than recycled water. Today the strip "
+          "alone holds %s m³: **%.0f %%** of the need." % (span(lo_, hi_), fmt(STRIP_TODAY), tc))
+    rich_para(pg, s_, qx, ky - 5.0, x + w - 4.0 - qx, 8.5, C["ink"], C["ink"], 1.35)
 
-# ------------------------------------------------------------------ v5 (MIRAQUA 28 Oct, P11.2): 1 the question
+# ------------------------------------------------------------------ the question (v6: the sheet's subtitle, under the title)
 QUESTION = u"How much **winter water** can we hold for the farms' **dry summer**, and at what **cost**?"
 
 
-def panel_question(pg, R, x, y, w, h):
-    """v5 (MIRAQUA 28 Oct, P11.2): block 1, the question the sheet answers in block 7, keywords bold (G5); the run line
-    under it (was under the subtitle)"""
-    panel_title(pg, x, y + h, w, "1", "The question")
-    yy = rich_para(pg, QUESTION, x + 6.5, y + h - 6.0, w - 6.5, 11, C["ink"], C["ink"])
-    pg.text("lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), x + 6.5, min(yy, y + 0.5), 7, C["ink2"])
+# ------------------------------------------------------------------ v6 (T3b, G7): 1 one year of water, five rows, one month axis
+STORE_COL = ("CBD9F8", "92A3C9", "3E4C6E")       # the masterplan's storage tones (light, mid, dark), as on p.12's map
+YEAR_RH = 16.5                                   # one row of block 1, mm
+YEAR_LAB_W, YEAR_TOT_W = 68.0, 40.0              # the label column before the month axis, the year column after it
 
 
-# ------------------------------------------------------------------ 3 what the farms need: the tiles + the monthly need
-TILE_W, TILE_H, TILE_GAP = 56.0, 15.5, 2.5      # v5: the four farm tiles, one column left of the monthly chart
-
-
-def panel_need(pg, R, x, y, w, h):
-    """v5 (MIRAQUA 28 Oct, P11.2): block 3, what the farms need: the four tiles (cropland, orchard, ET0, the strip; were
-    the 2 x 2 tiles at the top right) in a column, the monthly need beside them (panel_timing, was panel 1).
-    G13: the areas of this block in ha (farm land; one unit in the block), values unchanged."""
-    L = R["lands"]
-    rc = R["rain_credit_pct"]; rv = [rc[c] for c in ["olive"] + [m.split()[-1] for m in R["farm_demand_m3"]]]
-    panel_title(pg, x, y + h, w, "3", "What the farms need",
-                "**need** m³ a month · %s · drip %s · **rain held** %.0f-%.0f %% of crop use %s"
-                % (u_area((L["cropland_ha"] + L["orchard_ha"]) * 1e4, "ha"), cite("fao_tm4"), min(rv), max(rv), cite("fao56", "fao_t")))
-    for i, (kind, head, big, foot) in enumerate((
-            ("field", "Cropland", u_area(L["cropland_ha"] * 1e4, "ha"), "satellite " + cite("esa")),
-            ("olive", "Orchard", u_area(L["orchard_ha"] * 1e4, "ha"), "satellite " + cite("esa")),
-            ("sun", "Need: ET0, normal", "%s mm/yr" % fmt(ET0_NORMAL), "daily · drip " + cite("fao56", "mgm")),
-            ("strip", "Strip, sealed", u_area(L["strip_m2"], "ha"), "low-flow strip"))):
-        tile(pg, kind, x, y + h - 9.5 - i * (TILE_H + TILE_GAP), TILE_W, TILE_H, head, big, foot)
-    panel_timing(pg, R, x + TILE_W + 10.0, y, w - TILE_W - 10.0, h)
-
-
-def panel_timing(pg, R, x, y, w, h):
-    """The monthly chart of block 3 (x, w = the chart's part of the block; the title is panel_need's): the farms' need
-    J-D, mean and 1 in 5 dry year, Jun-Sep marked; the stream / site / strip rows under it."""
-    mix = R["design"]["mix"]
-    cx, cw = x + 16, w - 24
-    cy = y + 31; ch = (y + h - 14) - cy
-    dem_n = R["farm_demand_month_m3"][mix]["mean"]; dem_d = R["farm_demand_month_m3"][mix]["dry5"]
-    vmax = nice(max(dem_n + dem_d) * 1.05)
-    bw = cw / 12.0
-    yr = max(sum(dem_n), 1); jun_sep = sum(dem_n[5:9])
-    # the four summer months: one band through the chart and the stream / site / strip rows
-    bx0, bx1 = cx + 5 * bw, cx + 9 * bw
-    pg.rect(bx0, y + 1.0, bx1 - bx0, cy + ch + 5.5 - (y + 1.0), fill=C["accent_tint"])
-    for j in range(6):
-        t = vmax * j / 5.0; yy = cy + ch * t / vmax
-        pg.line([(cx, yy), (cx + cw, yy)], C["faint"], 0.15)
-        pg.text(fmt(t), cx - 1.5, yy - 1, 7, C["ink2"], align="R")
+def panel_year(pg, R, x, y, w, h):
+    """v6 (revision 29 Oct, T3b WO-T3b-2; G7 after R31: every user its own row with its pictogram, one common time
+    axis drawn as bars, figures read as charts): block 1, the whole balance through one year. Five rows share the
+    month axis J-D: the Selinos stream (natural flow, Dec-Apr dark), the site catch, the design store's level, the
+    summer strip and the farms (mean year and 1 in 5 dry). Each row has its own scale: its peak month carries its
+    figure, its year total sits at the right. One band marks Jun-Sep across all rows and says what it means. Replaces
+    v5's question block, farm tiles, monthly chart with its number rows, and the stream's monthly flow."""
+    mix = R["design"]["mix"]; L = R["lands"]; crop = mix.split()[-1]
+    q = STREAM_MONTH_M3; yr = float(sum(q)); win = (0, 1, 2, 3, 11)
+    dn = R["farm_demand_month_m3"][mix]["mean"]; dd = R["farm_demand_month_m3"][mix]["dry5"]
+    sm = R["design"].get("store_month_m3") or [0] * 12
+    panel_title(pg, x, y + h, w, "1", "One year of water: it comes in winter, it is needed in summer",
+                "**one month axis** for every user · each row to its own scale: its peak month and its year are written")
+    lx, rx = x + YEAR_LAB_W, x + w - YEAR_TOT_W
+    bw = (rx - lx) / 12.0
+    top = y + h - 10.0                                        # the first row's top
+    rows = [
+        ("stream", "Selinos stream", "natural flow past the site " + cite("flow"), (q,),
+         lambda m: C["water_deep"] if m in win else C["water"], "%.1f million m³" % (yr / 1e6),
+         "a year, %d %% in Dec-Apr" % round(100.0 * sum(q[m] for m in win) / yr)),
+        ("rain", "Site catch", "roofs, walks, terraces " + cite("era5", "mgm"), (R["site_month_m3"],),
+         lambda m: C["green_mid"], "%s m³" % fmt(R["site_catch_m3_per_year"]), "a year"),
+        ("storage", "The store", "winter water held in the ground, level at month end " + cite("dsi", "rg"), (sm,),
+         lambda m: STORE_COL[1], "%s m³" % fmt(max(sm)), "at its fullest"),
+        ("water", "Summer strip", "%s, sealed: evaporation + seepage" % u_area(L["strip_m2"], "ha"),
+         (R["strip_month_m3"],), lambda m: C["water"], "%s m³" % fmt(R["strip_m3_per_year"]), "a year, May-Oct"),
+        ("olive", "Farms", "%s %s + %s olives, drip %s" % (u_area(L["cropland_ha"] * 1e4, "ha"), CROP_NAME.get(crop, crop),
+                                                           u_area(L["orchard_ha"] * 1e4, "ha"),
+                                                           cite("fao56", "fao_t", "fao_tm4", "esa")),
+         (dn, dd), None, "%s m³" % fmt(R["farm_demand_m3"][mix]["dry5"]), "a year, 1 in 5 dry")]
+    yb_rows = top - len(rows) * YEAR_RH
+    bx0, bx1 = lx + 5 * bw, lx + 9 * bw                      # Jun-Sep: one band behind every row
+    pg.rect(bx0, yb_rows - 13.0, bx1 - bx0, top + 1.0 - (yb_rows - 13.0), fill=C["accent_tint"])
+    for i, (ic, name, sub, series, colf, tot, tot2) in enumerate(rows):
+        ty = top - i * YEAR_RH
+        by, bh = ty - YEAR_RH + 2.6, YEAR_RH - 7.0
+        ico(pg, ic, x + 5.0, ty - YEAR_RH / 2.0 + 0.6, 9.0)
+        pg.text(name, x + 12.0, ty - 5.0, 9, C["ink"], True)
+        pg.para(sub, x + 12.0, ty - 8.8, YEAR_LAB_W - 14.0, 7, C["ink2"])
+        pg.line([(lx, by), (rx, by)], C["structure"], 0.2)
+        vmax = float(max(max(s) for s in series)) or 1.0
+        pk = None
+        for m in range(12):
+            x0 = lx + m * bw
+            if len(series) == 1:
+                v = series[0][m]; hh = bh * v / vmax
+                if v > 0: pg.rect(x0 + bw * 0.2, by, bw * 0.6, max(0.3, hh), fill=colf(m))
+                if pk is None or v > pk[1]: pk = (x0 + bw / 2.0, v, hh)
+            else:                                             # the farms: mean year and 1 in 5 dry side by side
+                for j, (s, col) in enumerate(((series[0], C["accent"]), (series[1], C["accent_deep"]))):
+                    v = s[m]; hh = bh * v / vmax
+                    if v > 0: pg.rect(x0 + bw * (0.16 + 0.35 * j), by, bw * 0.33, max(0.3, hh), fill=col)
+                    if j == 1 and (pk is None or v > pk[1]): pk = (x0 + bw * 0.675, v, hh)
+        if pk and pk[1] > 0 and ic != "storage":              # (the store's peak is its year figure, at the right)
+            s_ = ("%.2f million m³" % (pk[1] / 1e6)) if ic == "stream" else "%s m³" % fmt(pk[1])
+            pg.text(s_, pk[0], by + pk[2] + 0.9, 7, C["ink"], True, "C")
+        pg.text(tot, x + w, ty - 5.0, 9, C["ink"], True, "R")
+        pg.text(tot2, x + w, ty - 8.6, 7, C["ink2"], False, "R")
+        if len(series) == 2:                                  # the farms' two bars, named in the year column
+            ex = x + w - inline_w([("mean", 7, 0, False), ("1 in 5 dry", 7, 0, False)]) - 2 * 3.6 - 4.0
+            pg.rect(ex, ty - 12.6, 2.4, 2.4, fill=C["accent"]); ex = inline(pg, ex + 3.6, ty - 12.3, [("mean", 7, C["ink"], False)])
+            pg.rect(ex + 4.0, ty - 12.6, 2.4, 2.4, fill=C["accent_deep"]); pg.text("1 in 5 dry", ex + 7.6, ty - 12.3, 7)
     for m in range(12):
-        x0 = cx + m * bw
-        pg.rect(x0 + bw * 0.14, cy, bw * 0.34, ch * dem_n[m] / vmax, fill=C["accent"])
-        pg.rect(x0 + bw * 0.50, cy, bw * 0.34, ch * dem_d[m] / vmax, fill=C["accent_deep"])
-        pg.text(MON[m], x0 + bw / 2, cy - 4, 7.5, C["ink"], True, "C")
-    inline(pg, (bx0 + bx1) / 2.0 - inline_w([("%d %%" % round(100.0 * jun_sep / yr), 10, 0, True), (" of the need", 7.5, 0, True)]) / 2.0,
-           cy + ch + 1.6, [("%d %%" % round(100.0 * jun_sep / yr), 10, C["accent_deep"], True), (" of the need", 7.5, C["accent_deep"], True)])
-    ry = cy - 12
-    pg.text("Stream", cx - 1.5, ry + 1, 7.5, C["water_deep"], True, "R")
-    pg.text(cite("dsi", "rg"), cx + cw + 1, ry + 0.3, 7, C["water_deep"])
-    for m in range(12):
-        v = R["river_month_m3"][m]; x0 = cx + m * bw
-        if v > 0:
-            pg.rect(x0 + 0.6, ry - 1.2, bw - 1.2, 5.2, fill=C["water"])
-            pg.text("%.1fM" % (v / 1e6), x0 + bw / 2, ry + 0.3, 7, C["white"], True, "C")
-        else:
-            pg.text("0", x0 + bw / 2, ry + 0.3, 7, C["ink2"], False, "C")
-    sy = ry - 7; ty = sy - 6
-    pg.text("Site", cx - 1.5, sy + 0.3, 7.5, C["green_mid"], True, "R")
-    pg.text("Strip", cx - 1.5, ty + 0.3, 7.5, C["water_deep"], True, "R")
-    for m in range(12):
-        x0 = cx + m * bw
-        pg.text(k_(R["site_month_m3"][m]), x0 + bw / 2, sy + 0.3, 7, C["green_mid"], False, "C")
-        v = R["strip_month_m3"][m]
-        pg.text(k_(v) if v else "stream", x0 + bw / 2, ty + 0.3, 7, C["water_deep"], False, "C")
-    lx = x + w - 2 - inline_w([("mean year", 7, 0, False), ("1 in 5 dry", 7, 0, False)]) - 2 * 4.5 - 6
-    pg.rect(lx, y + h - 0.4, 3, 3, fill=C["accent"]); ex = inline(pg, lx + 4.5, y + h, [("mean year", 7, C["ink"], False)])
-    pg.rect(ex + 6, y + h - 0.4, 3, 3, fill=C["accent_deep"]); pg.text("1 in 5 dry", ex + 10.5, y + h, 7)
+        pg.text(MON[m], lx + (m + 0.5) * bw, yb_rows - 1.4, 7.5, C["ink"], True, "C")
+    js = round(100.0 * sum(dn[5:9]) / max(sum(dn), 1))
+    pg.text("JUN-SEP: %d %% of the farms' need" % js, (bx0 + bx1) / 2.0, yb_rows - 7.0, 8, C["accent_deep"], True, "C")
+    pg.text("%.0f %% of the stream's flow" % (100.0 * sum(q[5:9]) / yr), (bx0 + bx1) / 2.0, yb_rows - 10.6, 7.5, C["ink"],
+            False, "C")
 
-# ------------------------------------------------------------------ 4 what the site can catch (v5: was panel 2)
-def panel_catch(pg, R, x, y, w, h):
-    panel_title(pg, x, y + h, w, "4", "What the site can catch", "**m³ a year** · mean of 34 years · cumulative %s" % cite("era5", "mgm"))
-    steps = R["site_catch_steps"]; total = sum(s["m3_per_year"] for s in steps)
-    take = R["design"].get("river_take_m3_per_year") or 0           # v3: the stream's part, on the same bar scale
-    cum_prev = 0; bx = x + 44; bw = w - 44 - 20; vmax = nice(max(total + take, 1) * 1.1); yy = y + h - 15
-    for s in steps:
-        add = s["m3_per_year"]; cum = cum_prev + add
-        pg.text(s["name"], x, yy + 1.2, 7.5, C["ink"], True)
-        sk = {"Walk tops": " " + cite("dwa"), "Streamside walks": " " + cite("dwa"), "Retention terraces": " " + cite("abu")}.get(s["name"], "")
-        lab = "%s, %.2f m³/m²%s" % (u_area(s["m2"], "ha"), add / s["m2"] if s["m2"] else 0.0, sk)   # v5: ha page-wide
-        pg.text(lab, x, yy - 2.6, fit_size(lab, bx - x - 1.5, 7.0), C["ink2"])
-        pg.rect(bx, yy - 2, bw * cum_prev / vmax, 6, fill=C["faint"])
-        pg.rect(bx + bw * cum_prev / vmax, yy - 2, max(0.4, bw * add / vmax), 6, fill=C["green_mid"])
-        pg.text("+" + fmt(add), bx + bw * cum / vmax + 1.5, yy - 0.2, 7.5, C["green_deep"], True)
-        cum_prev = cum; yy -= 8                             # v3: rows 8 mm apart (were 10) to make room for the stream
-    sh = [100.0 * total / d["mean"] for d in R["farm_demand_m3"].values() if d["mean"]]
-    p1 = [("= %s m³ a year" % fmt(total), 11, C["green_deep"], True), (" from the site", 8.5, C["green_deep"], True)]
-    p2 = [("= %.1f-%.1f %% of the farms' need" % (min(sh or [0]), max(sh or [0])), 8.5, C["green_deep"], True)]
-    ey = yy + 0.5                                           # v3: was + 1.5 (rows 8 mm apart)
-    if inline_w(p1 + p2) + 2 <= w:
-        inline(pg, x, ey, p1 + [("  ", 8.5, C["ink"], False)] + p2); ey -= 8.5
-    else:
-        inline(pg, x, ey, p1); inline(pg, x, ey - 4.6, p2); ey -= 12.5
-    if take:      # v3 (Aras 27 Oct, Prompt 4): what the STREAM gives, same units and bars; then the share left in it
-        d = R["design"]; yy = ey + 1.0; xe = bx + bw * (total + take) / vmax
-        pg.text("Selinos: winter flow we take", x, yy + 1.2, 7.5, C["water_deep"], True)
-        lab = "Nov-Apr · %s m³ store %s" % (fmt(d["storage_m3"]), cite("dsi", "rg"))
-        pg.text(lab, x, yy - 2.6, fit_size(lab, bx - x - 1.5, 7.0), C["ink2"])
-        pg.rect(bx, yy - 2, bw * total / vmax, 6, fill=C["faint"])
-        pg.rect(bx + bw * total / vmax, yy - 2, max(0.4, bw * take / vmax), 6, fill=C["water_deep"])
-        pg.text("+" + fmt(take), xe + 1.5, yy - 0.2, 7.5, C["water_deep"], True)
-        s_ = "%d %% of the water stored" % math.floor(d["river_take_share_pct"])
-        if text_w(s_, 7, True) + 3.0 <= bw * take / vmax:          # inside the stream's bar, else after its figure
-            pg.text(s_, xe - 1.5, yy + 0.2, 7, C["white"], True, "R")
-        elif xe + 3.5 + text_w("+" + fmt(take), 7.5, True) + text_w(s_, 7, True) <= x + w:
-            pg.text(s_, xe + 3.5 + text_w("+" + fmt(take), 7.5, True), yy - 0.2, 7, C["water_deep"], True)
-        lo_l, mean_l = d["river_left_pct"]; yy -= 8
-        pg.text("Left in the Selinos", x, yy + 1.2, 7.5, C["water_deep"], True)
-        lab = "winter flow, worst case " + cite("dsi", "rg")
-        pg.text(lab, x, yy - 2.6, fit_size(lab, bx - x - 1.5, 7.0), C["ink2"])
-        sw = bw * 0.5                                               # 100 % of the stream's winter flow
-        pg.rect(bx, yy - 1.0, sw, 4.0, fill=C["water_light"])
-        pg.rect(bx, yy - 1.0, max(0.4, sw * (100.0 - mean_l) / 100.0), 4.0, fill=C["water_deep"])
-        xd = bx + sw * (100.0 - lo_l) / 100.0                       # the driest year's take: a tick
-        pg.line([(xd, yy - 1.8), (xd, yy + 3.8)], C["accent_deep"], 0.4)
-        inline(pg, bx + sw + 1.5, yy + 0.2, [("%d %% stays" % math.floor(mean_l), 7.5, C["water_deep"], True),
-                                            ("  driest year %d %%" % math.floor(lo_l), 7, C["accent_deep"], True)])
-        ey = yy - 8.5
-    # terraces: two drawn runoff bars (same figures, same source)
-    icon(pg, "terrace", x, ey + 3.0, 6.0)
-    inline(pg, x + 8, ey, [("Terraces: ", 7.5, C["green_deep"], True), ("for the plants, ", 7.5, C["green_deep"], False),   # v5 (G5): one keyword bold
-                           ("not a supply", 7.5, C["green_deep"], True), (" " + cite("abu"), 7, C["ink2"], False)])
-    for i, (lab, v, col) in enumerate((("without terraces", 20, C["structure"]), ("terraced slope", 4, C["green_mid"]))):
-        ry = ey - 5.5 - i * 4.8
-        pg.text(lab, x + 8, ry + 0.4, 7, C["ink"])
-        pg.rect(bx, ry - 0.2, bw * 0.4 * v / 20.0, 3.0, fill=col)
-        pg.text("%d %% let out" % v, bx + bw * 0.4 * v / 20.0 + 1.5, ry + 0.4, 7.5, C["ink"], True)
-
-# ------------------------------------------------------------------ 2 how the stream behaves (v3: the band beside the title)
-STREAM_CHART_W, STREAM_CUT_DX = 134.0, 144.0   # v5: the flow chart's width; the cut's left edge from the block's left
-
-
-def panel_stream(pg, x, y, w, h):
-    """v3 (Aras 27 Oct, Prompt 4): the natural flow past the site by month, J-D as block 3 (Dec-Apr dark; Jul-Sep marked
-    dry, in block 3's summer tint), and how high the stream rises on the surveyed upstream-entry cut at 1:500, true
-    proportions (ground, Jan-Feb water, max 2017, Q100, Q500), a label column with leaders, the scale bar under it, the
-    five cuts' Q500 range under the cut.
-    v5 (MIRAQUA 28 Oct, P11.2): block 2, its own numbered title and room (was a band squeezed beside the sheet title);
-    taller bars. The cut stays a section at 1:500 with its own scale bar. G13: heights in m with 2 decimals; the scale
-    bar in cm (a section's horizontal dimensions). Bank and stream depth values unchanged."""
-    panel_title(pg, x, y + h, w, "2", "How the stream behaves")
-    cx0, cx1, kx0 = x, x + STREAM_CHART_W, x + STREAM_CUT_DX
-    hy = y + h - 4.8                                         # the two drawings' keyword lines
-    q = STREAM_MONTH_M3; yr = float(sum(q)); win = (0, 1, 2, 3, 11); dry = (6, 7, 8)
-    inline(pg, cx0, hy, [("natural flow past the site, million m³ a month · %.0f million m³ a year · " % (yr / 1e6), 7, C["ink2"], False),
-                         ("Dec-Apr %.0f %%" % (100.0 * sum(q[m] for m in win) / yr), 7, C["water_deep"], True),
-                         (" " + cite("flow"), 7, C["ink2"], False)])
-    bw = (cx1 - cx0) / 12.0; bh = 14.0; by = hy - bh - 4.6; vmax = max(q) * 1.06
-    pg.rect(cx0 + 6 * bw, by - 4.4, 3 * bw, bh + 6.4, fill=C["accent_tint"])        # Jul-Sep, as block 3's summer band
-    for m in range(12):
-        x0 = cx0 + m * bw; hh = max(0.25, bh * q[m] / vmax)
-        pg.rect(x0 + bw * 0.2, by, bw * 0.6, hh, fill=C["water_deep"] if m in win else C["water"])
-        pg.text("%.2f" % (q[m] / 1e6), x0 + bw / 2, by + hh + 0.8, 7, C["ink2"], False, "C")
-        pg.text(MON[m], x0 + bw / 2, by - 3.4, 7.5, C["ink"], True, "C")
-    pg.line([(cx0, by), (cx1, by)], C["ink2"], 0.25)
-    mx = cx0 + 7.5 * bw
-    pg.text("JUL-SEP: TRICKLE OR DRY", mx, by + bh - 0.4, 7, C["accent_deep"], True, "C")
-    pg.text("%.0f %% of the year's flow" % (100.0 * sum(q[m] for m in dry) / yr), mx, by + bh - 3.4, 7, C["ink"], False, "C")
-    pg.text("gauges dry %d-%d days a year" % STREAM_DRY_DAYS, mx, by + bh - 6.4, 7, C["ink2"], False, "C")
-    # the cut: crisp analysis, true proportions, crop 4 m outside where Q500 meets the ground
-    g, u0, lv = STREAM_CUT["ground"], STREAM_CUT["u0"], STREAM_CUT["levels"]
-    kx = 1000.0 / STREAM_DEN; a5, b5 = lv[-1][2]
-    i0 = max(0, int(math.floor(a5 - 4.0 - u0))); i1 = min(len(g) - 1, int(math.ceil(b5 + 4.0 - u0)))
-    xl, xr = float(u0 + i0), float(u0 + i1); top = lv[-1][1] + 0.8
-    inline(pg, kx0, hy, rich_parts("**how high it rises** · upstream entry, surveyed cut · 1:%s · true proportions %s"
-                                   % (fmt(STREAM_DEN), cite("lev")), 7, C["ink2"], C["ink"]))
-    oy = hy - 5.6 - top * kx                                 # the bed's y
-    T = lambda u, v: (kx0 + (u - xl) * kx, oy + v * kx)
-    pts = [T(u0 + i, min(g[i], top)) for i in range(i0, i1 + 1)]
-    pg.poly(pts + [T(xr, -0.6), T(xl, -0.6)], fill=C["structure"], closed=True)      # cut ground (poché)
-    d0, (a0, b0) = lv[0][1], lv[0][2]                        # Jan-Feb water in the bed
-    wr = [T(u0 + i, min(g[i], d0)) for i in range(i0, i1 + 1) if a0 - 0.5 <= u0 + i <= b0 + 0.5]
-    if len(wr) >= 2:
-        pg.poly([(wr[0][0], T(0, d0)[1])] + wr + [(wr[-1][0], T(0, d0)[1])], fill=C["water_light"], closed=True)
-    pg.line(pts, C["ink"], 0.35)
-    cols = [(C["water"], 0.3, None, False), (C["water_deep"], 0.35, None, False), (C["accent"], 0.35, (1.2, 0.6), True),
-            (C["accent_deep"], 0.45, None, True)]
-    X1 = kx0 + (xr - xl) * kx; ly = -1e9
-    for (nm, dv, (a, b)), (col, lw, dash, bold) in zip(lv, cols):
-        pg.line([T(max(a, xl), dv), T(min(b, xr), dv)], col, lw, dash)
-        yl = max(T(0, dv)[1] - 0.9, ly + 3.0); ly = yl                         # the label column, 3 mm apart
-        pg.line([T(min(b, xr), dv), (X1 + 1.2, yl + 0.9), (X1 + 2.2, yl + 0.9)], col, 0.15)
-        pg.text(u"%s · %s" % (nm, u_height(dv)), X1 + 2.6, yl, 7, col, bold)       # v5 (G13): "Q500 · 3.30 m"
-    yb = T(0, -0.6)[1] - 3.4
-    pg.text("right bank", kx0, yb, 7, C["ink2"], True)
-    pg.text("left bank", X1, yb, 7, C["ink2"], True, "R")
-    sx = X1 + 1.0                                            # scale bar 0-500-1,000 cm (v5 G13; was 0-5-10 m) under the label column
-    for a, b, f in ((0, 5, C["ink"]), (5, 10, C["white"])):
-        pg.rect(sx + a * kx, yb + 0.4, (b - a) * kx, 1.2, fill=f, stroke=C["ink"], lw=0.15)
-    for v in (0, 5, 10):
-        pg.text(u_dim(v, "cm", bare=True), sx + v * kx, yb - 2.6, 7, C["ink2"], False, "C")
-    pg.text("cm", sx + 10 * kx + 4.6, yb - 2.6, 7, C["ink2"])
-    # v5 (MIRAQUA 28 Oct): heights with 2 decimals (G13); "K4: right bank floods from Q100" left out: the survey's K4 bank
-    # is before the DSİ walls (bank-depth research 28 Oct, K4_RIGHT_BANK above)
-    s_ = "**Q500 %.2f-%s** above the bed at five surveyed cuts %s" % (min(CUT_Q500.values()), u_height(max(CUT_Q500.values())), cite("lev"))
-    inline(pg, kx0, yb - 6.4, rich_parts(s_, 7, C["ink"], C["ink"]))
 
 # ------------------------------------------------------------------ 5 storage size: the sizing curve (v5: was panel 3)
 def panel_curve(pg, R, x, y, w, h):
     mix = R["design"]["mix"]; crop = mix.split()[-1]
-    panel_title(pg, x, y + h, w, "5", "Storage size against the farm need covered",
+    panel_title(pg, x, y + h, w, "2", "How much to hold: the farm need covered, by store size",   # v6: block 2
                 "34 water years 1991-2025 · daily · cropland as %s %s · in: **winter stream + site catch**, strip first %s"
                 % (CROP_NAME.get(crop, crop), cite("era5", "fao56"), cite("dsi")))     # v5 (G11): "corn", the key stays maize
     lgx = x + w - 52                                         # legend column right of the plot
@@ -1062,10 +980,8 @@ def panel_curve(pg, R, x, y, w, h):
         v = tick * j
         pg.text(fmt(v / 1000) + "k" if v else "0", cx + cw * v / vmax, cy - 4.5, 7, C["ink2"], False, "C")
     pg.text("storage, m³", cx + cw, cy - 9, 7, C["ink2"], False, "R")
-    series = [(cc, 1, C["water_deep"], None, "closed store: median year"),
-              (cc, 2, C["accent"], None, "closed store: 1 in 5 dry"),
-              (R["curve_open"], 1, C["water_deep"], (1.4, 0.9), "open pond: median year"),
-              (R["curve_open"], 2, C["accent"], (1.4, 0.9), "open pond: 1 in 5 dry")]
+    series = [(cc, 1, C["water_deep"], None, "median year"),          # v6 (T3b): the open-pond curves left the sheet
+              (cc, 2, C["accent"], None, "1 in 5 dry year")]          # (results key curve_open unchanged)
     for rows, col, colr, dash, lab in series:
         pg.line([(cx + cw * r[0] / vmax, cy + ch * min(r[col], 100.0) / 100.0) for r in rows], colr, 0.7, dash)
     xs = cx + cw * STRIP_TODAY / vmax
@@ -1085,14 +1001,14 @@ def panel_curve(pg, R, x, y, w, h):
     for i, (rows, col, colr, dash, lab) in enumerate(series):
         lyy = y + h - 13 - i * 4.6
         pg.line([(lgx, lyy + 1), (lgx + 6, lyy + 1)], colr, 0.7, dash); pg.text(lab, lgx + 7.5, lyy, 7)
-    icon(pg, "clock", lgx, y + h - 34, 5.5)
+    ico(pg, "storage", lgx + 2.75, y + h - 36.75, 5.5)
     pg.text("max 365 days", lgx + 7.5, y + h - 36.5, 8, C["ink"], True)
     pg.text("in store, then to the strip", lgx + 7.5, y + h - 40.3, 7, C["ink2"])
 
 # ------------------------------------------------------------------ 6 cost per m3, where to stop (v5: was panel 4)
 def panel_store(pg, R, x, y, w, h):
     L = R["lands"]
-    panel_title(pg, x, y + h, w, "6", "Cost per m³: cheapest first, then stop",
+    panel_title(pg, x, y + h, w, "3", "Cost per m³: cheapest first, then stop",   # v6: block 3
                 "**US$/m³ delivered** · log scale · capital 5 %/yr " + cite("suds"))
     na = {r["key"]: r for r in R["ladder_no_recharge"]}
     rows = [("Aquifer recharge", "winter water into the alluvium " + cite("ross"), RECHARGE_USD[0], RECHARGE_USD[1])]
@@ -1123,7 +1039,7 @@ def panel_store(pg, R, x, y, w, h):
     cheap = [r[0] for r in rows if r[3] < a0]
     inline(pg, x, ky - 6.0, ([] if cheap else [("nothing cheaper · ", 7.5, C["accent_deep"], True)]) +
            [("recharge pays up to ", 7.5, C["accent_deep"], True), ("%s m³" % span(lo_, hi_), 9, C["accent_deep"], True)])
-    icon(pg, "cube", x, ky - 8.6, 4.5)
+    ico(pg, "storage", x + 2.25, ky - 10.85, 4.5)
     inline(pg, x + 6, ky - 11.8, rich_parts("**recharge fails tests**: built > recycled, every step " + cite("suds"), 7, C["ink2"], C["ink"]))
 
 # v5 (MIRAQUA 28 Oct, P11.2): the sheet re-laid in Aras's reading order, top-left -> bottom-right, a rule and a numbered
@@ -1134,27 +1050,30 @@ def panel_store(pg, R, x, y, w, h):
 #   [7 the answer: a light band across the foot, the bottom-right corner left free for the booklet's page number]
 # (x, y bottom, w, h) in mm, y up; a block's title sits on y + h, its rule 4.5 mm above (panel_title). Shared with the
 # booklet crops (booklet_export). Replaces v2.7's FARMS / PANELS / STREAM_BAND.
-BLOCKS = dict(question=(14.0, 249.0, 96.0, 16.0), stream=(120.0, 251.0, 286.0, 30.5),
-              need=(14.0, 154.5, 248.0, 82.0), catch=(272.0, 154.5, 134.0, 82.0),
-              curve=(14.0, 71.0, 248.0, 70.0), store=(272.0, 71.0, 134.0, 70.0),
+# v6 (T3b WO-T3b-2, G7): four blocks in reading order, the question as the sheet's subtitle:
+#   [title + the question, the run line at the right]
+#   [1 one year of water: five rows on one month axis, across the sheet (the focal block)]
+#   [2 how much to hold: the storage curve]                 [3 cost per m³]
+#   [4 the answer: store -> carries -> cost cut-off | the conclusion, the bottom-right corner free for the page number]
+BLOCKS = dict(year=(14.0, 148.0, 392.0, 112.0),
+              curve=(14.0, 66.0, 248.0, 70.0), store=(272.0, 66.0, 134.0, 70.0),
               answer=(14.0, 18.5, 392.0, 39.0))
 
 
 def build(path, R):
     """The A3 sheet; returns the list of overlapping labels (empty = none).
-    v5 (MIRAQUA 28 Oct, P11.2): the blocks of BLOCKS drawn in reading order 1-7, so the [n] marks count up that way."""
+    v5 (MIRAQUA 28 Oct, P11.2): the blocks of BLOCKS drawn in reading order 1-7, so the [n] marks count up that way.
+    v6 (T3b): four blocks (1 the year, 2 the curve, 3 the cost, 4 the answer); the question under the title."""
     pg = Page(420.0, 297.0)
     pg.rect(0, 0, 420, 297, fill=C["white"])               # v2.7: white sheet (Aras 27 Oct 11:07)
     del SRC_KEY[:]                                        # v2.4: [n] numbers restart on every run
     pg.text("THE WATER BALANCE", 14, 281.5, 22, C["ink"], True)
-    pg.text("Farm water · what our system can carry", 14, 274.0, 11, C["ink2"])
-    panel_question(pg, R, *BLOCKS["question"])            # 1 (the run line is under the question now)
-    panel_stream(pg, *BLOCKS["stream"])                   # 2
-    panel_need(pg, R, *BLOCKS["need"])                    # 3: the farm tiles + the monthly need
-    panel_catch(pg, R, *BLOCKS["catch"])                  # 4
-    panel_curve(pg, R, *BLOCKS["curve"])                  # 5
-    panel_store(pg, R, *BLOCKS["store"])                  # 6
-    panel_answer(pg, R, *BLOCKS["answer"])                # 7
+    rich_para(pg, QUESTION, 14, 273.5, 300, 11, C["ink2"], C["ink"])
+    pg.text("lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), 406, 281.5, 7, C["ink2"], align="R")
+    panel_year(pg, R, *BLOCKS["year"])                    # 1: the five users of the water on one month axis
+    panel_curve(pg, R, *BLOCKS["curve"])                  # 2
+    panel_store(pg, R, *BLOCKS["store"])                  # 3
+    panel_answer(pg, R, *BLOCKS["answer"])                # 4
     for k in SOURCES:                                     # v2.4: one numbered source key (no source can drop out)
         if k not in SRC_KEY: SRC_KEY.append(k)
     # v2.7: no source footer on the sheet (Aras 27 Oct 11:07); the key stays as INVISIBLE text so the booklet's
@@ -1191,20 +1110,10 @@ def booklet_export(R):
         bk.crop(bid, OUT_PDF, (x0, H - y1, x1, H - y0), caption=caption, scale_den=None, legend=legend, drop=BK_DROP)
     x, y, w, h = BLOCKS["answer"]
     crop("wb_answer", x - 0.5, y - 0.5, x + w + 0.5, y + h - 6.5, "The answer: storage, what it carries, the cost cut-off")
-    x, y, w, h = BLOCKS["need"]
-    tyt = y + h - 9.5; tyb = tyt - 4 * TILE_H - 3 * TILE_GAP
-    crop("wb_tiles", x - 0.5, tyb - 0.5, x + TILE_W + 0.5, tyt + 0.5, "Farms, need and strip")
-    crop("wb_timing", x + TILE_W + 9.5, y - 0.5, x + w + 0.5, y + h - 7.5, "When water comes, when the farms need it",
-         [dict(kind="fill", colour=C["accent"], label="need, mean year"), dict(kind="fill", colour=C["accent_deep"], label="need, 1 in 5 dry year"),
-          dict(kind="fill", colour=C["water"], label="stream water")])
-    x, y, w, h = BLOCKS["catch"]
-    crop("wb_catch", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "What the site can catch",
-         [dict(kind="fill", colour=C["green_mid"], label="added by this surface"), dict(kind="fill", colour=C["faint"], label="caught so far"),
-          dict(kind="fill", colour=C["water_deep"], label="taken from the stream")])
-    x, y, w, h = BLOCKS["stream"]
-    crop("wb_stream", x - 0.5, y - 0.5, x + w + 0.5, y + h - 2.2, "How the stream behaves: the year, and how high it rises",
-         [dict(kind="fill", colour=C["water_deep"], label="Dec-Apr"), dict(kind="fill", colour=C["water"], label="May-Nov"),
-          dict(kind="fill", colour=C["accent_tint"], label="Jul-Sep, dry")])
+    # v6 (T3b): wb_year = block 1 under its title (the five rows, the months, the Jun-Sep line); wb_tiles, wb_timing,
+    # wb_catch and wb_stream are gone with their blocks
+    x, y, w, h = BLOCKS["year"]
+    crop("wb_year", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "One year of water: it comes in winter, it is needed in summer")
     x, y, w, h = BLOCKS["curve"]
     crop("wb_curve", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "Storage size against the farm need covered")
     x, y, w, h = BLOCKS["store"]
@@ -1217,6 +1126,11 @@ def main(g):
     os.makedirs(OUT_DIR, exist_ok=True)
     L, src = get_lands(g)
     R = compute(L); R["lands_source"] = src
+    try:                                                  # v6 (T3b): the zones for the water board's p.12 map; never
+        R["zones"] = get_zones(L["option"])               # breaks the balance (no key = p.12 shows the places only)
+        zone_line = "zones for p.12: %d zones, %d links (%s)" % (len(R["zones"]["zones"]), len(R["zones"]["links"]), R["zones"]["source"])
+    except Exception as ex:
+        zone_line = "zones for p.12 NOT WRITTEN: %s: %s" % (type(ex).__name__, ex)
     bk_err = None
     try:
         booklet_figures(R)                                # v2.5: new results keys for the booklet
@@ -1240,7 +1154,7 @@ def main(g):
     return "%s  %s\n%s  %s\ncut-off %s m3 = %.1f %% (1 in 5 dry)\nstream: %s m3 a year taken = %.1f %% of the water stored; %.1f %% of its winter flow left (driest year %.1f %%)\n%s %s, %.1f s" % (
         OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], fmt(d["river_take_m3_per_year"]),
         d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
-        "\nbooklet ERROR: " + bk_err if bk_err else "") + (
+        "\nbooklet ERROR: " + bk_err if bk_err else "") + "\n" + zone_line + (
         "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + "".join(
         "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
         "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
