@@ -70,19 +70,13 @@ def _t3_base_leg():
             ("box", C(bf.get("bld", "D3D0CB")), u"Building"), R28_STUDY_LEG]
 
 
-def _p07_fig(pose, x, y, k, facing=1, view="side", h_m=1.75, col="4A3F35"):
+def _p07_fig(pose, x, y, k, facing=1, view="side", h_m=1.70, col="4A3F35"):
     """T3a: the ONE figure helper of this file: house shapes ("poly", ring, fill, stroke, lw), page mm, feet at (x, y),
-    k mm per m. Side view = the legacy fig_polys (poses stand, walk, watch, sit, touch, wade, bike); top view = a
-    minimal plan figure (shoulder ellipse + head circle, one ink weight, light flat fill).
-    # swap point: figures.py fig_side/fig_top when the silhouette set arrives"""
+    k mm per m. v52: the A1 pen figures of figures.py (fig_side / fig_top, adult 1.70 m); "sit" on a street = the
+    library's figure on a chair (a café seat), not a figure sitting on nothing."""
     if view == "top":
-        sh = [(x + 0.25 * k * math.cos(a_ * math.pi / 12.0), y + 0.13 * k * math.sin(a_ * math.pi / 12.0))
-              for a_ in range(24)]
-        hd = [(x + 0.11 * k * math.cos(a_ * math.pi / 8.0), y + 0.11 * k * math.sin(a_ * math.pi / 8.0))
-              for a_ in range(16)]
-        return [("poly", sh, "E2E0D4", col, 0.13), ("poly", hd, "E2E0D4", col, 0.13)]
-    return [("poly", [(x + px * k, y + py * k) for px, py in R_], col, None, 0.0)
-            for R_ in fig_polys(pose, h_m, facing)]
+        return fig_top(pose, x, y, k, ink=col)
+    return fig_side("sit_chair" if pose == "sit" else pose, x, y, k, facing, ink=col, h_m=h_m)
 
 
 class _T3Put(object):
