@@ -2267,7 +2267,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '8551cde39acb06f38457fe7e819bb5b3', 'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': 'a217c1d07ff06bcb3cd55255c619aa7c', 'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b'}.get(name):
         raise RuntimeError("Data file bergama_masterplan_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_masterplan_data.py:" + name, "exec"), globals())
@@ -6548,6 +6548,39 @@ SN_EXP = (("watch", u"Watch", "2F5F9E", "watch"), ("walk", u"Walk", R28_REACH[1]
 SN_HER = _SN_MK["heritage"]                  # History: the heritage colour (same meaning as p.23's markers)
 
 # p.16 the senses and the water: senses_sheet and its sn_* helpers (split from parts/02e_r28_detail.py, parts/02f_r28_senses.py on 29 Oct 2026; moved unchanged)
+# T4a (29 Oct 2026, WO-T4a-1, package E): the shared basemap (02 §1) under every strip, chosen per panel (D5) by
+# P16_BASEMAP; the stream comes only from the basemap (never the corridor's own pieces); every strip is widened so its
+# surroundings show and fills its cell (labels sit on the drawing); Encounters rebuilt as five lanes that meet at the
+# hubs, Kermes and the flood zone; History with small photos beside its places. basemap.py and icons.py come from
+# the masterplan core includes (T4b, v28).
+
+# D5 (Aras 29 Oct): (mode, override) of the basemap per panel; senses_sheet(..., basemap={title: (mode, override)})
+# changes a panel's choice for one run
+P16_BASEMAP = {u"Zones": ("minimal", None),
+               u"Feeling": ("minimal", {"streets": False, "buildings": False}),
+               u"Sound": ("minimal", {"streets": ("main",), "buildings": False}),
+               u"Smell": ("minimal", {"streets": False, "buildings": False}),
+               u"Encounters": ("minimal", None),
+               u"History": ("minimal", None)}
+P16_STRIP_TOP = 10.5                         # mm: the strip's top below its cell's top (title, then the bridge ruler)
+P16_STRIP_H = 62.0                           # mm: every strip's height (1,240 m across at 1:20,000; the cell is 76)
+P16_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")   # the run kit's photo folder (p.21's contract)
+P16_PHOTO_CSV = "photos.csv"
+P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo (4:3, cropped to fill)
+# History photos: own site photos by file name (no credit, D13) first, else a photos.csv row whose place or file
+# name holds an alias (Commons: its credit line is printed). Kermes has no photo (DHA, excluded).
+P16_PLACES = (
+    dict(key="hamam", cap=(u"Tabaklar Hamamı",), own=(u"tabaklar_hamami_1.jpg", u"tabaklar_hamami_2.jpg"),
+         alias=(u"tabaklarhamami",)),
+    dict(key="tabakhane", cap=(u"Tabakhane",), own=(u"tabakhane_1.jpg",), alias=(u"tabakhane",),
+         notalias=(u"koprusu",)),
+    dict(key="k3", cap=(u"Tabak Köprüsü", u"Roman bridge · K3"), own=(u"tabak_koprusu_1.jpg", u"tabak_koprusu_2.jpg"),
+         alias=(u"tabakkoprusu",)),
+    dict(key="k5", cap=(u"Üç Kemer Köprüsü", u"Roman bridge · K5"), own=(), alias=(u"uckemer",)),
+    dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)))
+# Encounters: where the lines meet (kind, word, icon of common/icons.py), in the order they rank when two coincide
+P16_MEET = (("hub", u"Hub", "hub"), ("kermes", u"Kermes", "market"), ("flood", u"Flood zone", "high_water"))
+_P16_MEMO = {}
 
 
 def r28_zone_fields(C):
@@ -6662,10 +6695,13 @@ def sn_vcent(P):
     return (sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P))
 
 
-def sn_T(V, x0, y0):
+def sn_T(V, x0, y0, u0=None, v0=None):
     """survey m -> page mm of a strip whose frame's lower-left corner is (x0, y0): the corridor's View (site_alan
-    turned so the water runs left to right, the north-east bank on top) at 1:20,000"""
-    c_, s_, cx, cy, u0, v0 = V.c, V.s, V.cx, V.cy, V.u0, V.v0
+    turned so the water runs left to right, the north-east bank on top) at 1:20,000; (u0, v0) = the widened frame's
+    lower-left corner in the View (default the View's own)"""
+    c_, s_, cx, cy = V.c, V.s, V.cx, V.cy
+    u0 = V.u0 if u0 is None else u0
+    v0 = V.v0 if v0 is None else v0
 
     def T(p):
         dx, dy = p[0] - cx, p[1] - cy
@@ -6781,15 +6817,8 @@ def sn_data(C, areas, warn):
     G["fields"], G["fields_src"] = sn_fields(C, warn)
     G["bath"] = next((xy for nm, xy in PLACES if u"TABAKLAR" in nm), None)
     G["kermes"] = sn_seg_cross(ref, SN_S4[0], SN_S4[1]) or sn_on_ref(G, sn_vcent(list(SN_S4)))
-    cut = dict((r_[1], r_[2]) for r_ in globals().get("CUT_AT", ()) if len(r_) > 2)   # the water board's cuts
-    V = C.V
-    up = cut.get(u"UPSTREAM ENTRY") or V.xy(V.u0 + 0.07 * (V.u1 - V.u0), (V.v0 + V.v1) / 2.0)
-    dn = cut.get(u"DOWNSTREAM REACH") or V.xy(V.u0 + 0.77 * (V.u1 - V.u0), (V.v0 + V.v1) / 2.0)
-    bk = dict(BRIDGES_K)
-    hub = G["hub"]
-    G["stops"] = [(u"Upstream entry", up, True), (u"K4", bk.get("K4"), False), (u"K3", bk.get("K3"), False),
-                  (u"İstiklal Meydanı", hub[u"İstiklal"]["xy"] if u"İstiklal" in hub else None, True),
-                  (u"K5", bk.get("K5"), False), (u"Downstream", dn, True)]
+    _p16_frame(G, C.V)
+    _p16_basemap(G, warn)
     G["traffic"] = [(rd["xy"], rd["change"]) for rd in ROADS
                     if u"Cami Kebir" in rd["name"] or u"Adnan Menderes" in rd["name"]]   # K4 and K6 (BRIEF §3)
     G["market"] = []
@@ -6804,32 +6833,113 @@ def sn_data(C, areas, warn):
 
 
 # ---------------------------------------------------------------- the strip frame every panel shares
-def sn_cell(pg, G, cx, top, title, under=None):
-    """one cell: its title, the strip frame (the whole analysis frame at 1:20,000), the spine (bed, stream lines,
-    hidden stream) and the bridge ruler on the frame's top edge. Returns the cell (T, box, label room)."""
-    V = G["V"]
-    sw, sh = (V.u1 - V.u0) * SN_K, (V.v1 - V.v0) * SN_K
-    x0, y1 = cx, sn_y(top + SN_TOP)
+def _p16_frame(G, V):
+    """T4a: the widened strip frame in the View (u0, v0, u1, v1), the same for all six strips: the analysis frame
+    grown to the strip width the cell allows (SN_SIDE - 4 mm) and to P16_STRIP_H tall at 1:20,000, so the stream
+    reads with its surroundings; G["bm_box"] = its survey bounding box (the basemap's cull box)"""
+    sw0, sh0 = (V.u1 - V.u0) * SN_K, (V.v1 - V.v0) * SN_K
+    pu = max(0.0, (SN_SIDE - 4.0 - sw0) / 2.0) / SN_K
+    pv = max(0.0, (P16_STRIP_H - sh0) / 2.0) / SN_K
+    fr = (V.u0 - pu, V.v0 - pv, V.u1 + pu, V.v1 + pv)
+    G["fr"] = fr
+    G["bm_box"] = tuple(bbox([V.xy(u, v) for u, v in ((fr[0], fr[1]), (fr[2], fr[1]), (fr[2], fr[3]),
+                                                       (fr[0], fr[3]))]))
+
+
+def _p16_basemap(G, warn):
+    """T4a: the shared basemap's data, read once a run (common/basemap.py); None without it (the site board writes
+    it): the strips are then drawn without stream, streets and buildings, and the log says so (one line)"""
+    D = None
+    try:
+        D = basemap_load(log=[])
+    except Exception as ex:
+        warn.append(u"senses sheet: basemap not read ({}: {})".format(type(ex).__name__, ex))
+    if not D:
+        warn.append(u"senses sheet: no basemap data (Downloads/Bergama/cached/basemap/basemap.json, written by the "
+                    u"site board): the strips are drawn without stream, streets and buildings")
+    G["bm"] = D or None
+
+
+def _p16_bm_items(G, choice):
+    """the basemap items of one panel: choice = (mode, override) of P16_BASEMAP (memoised by basemap_items)"""
+    if not G.get("bm"):
+        return []
+    mode, ov = choice if choice else ("minimal", None)
+    try:
+        return basemap_items(mode, ov, G["bm_box"], G["bm"], True)
+    except Exception as ex:
+        k = ("bm_err", mode, repr(ov))
+        if k not in _P16_MEMO:
+            _P16_MEMO[k] = 1
+            G.setdefault("warn", []).append(u"senses sheet: basemap {} not drawn ({}: {})".format(
+                mode, type(ex).__name__, ex))
+        return []
+
+
+def _p16_bm_draw(pg, items, T):
+    """the basemap items through this page's calls (even-odd fills: buildings come split, one fill each)"""
+    def fill(rings, hx, a, nz):
+        pg.poly(rings, fill=hx, alpha=a)
+
+    def line(pts, hx, w, dash, a):
+        pg.line(pts, hx, w, list(dash) if dash else None, cap=0 if dash else 1, alpha=a)
+    basemap_draw(items, T, fill, line)
+
+
+def _p16_bm_style(items):
+    """what the basemap items of a panel draw, for its key: {water, edge, covered, street, bld} -> (hex, width or
+    alpha, dash); only the kinds present"""
+    out = {}
+    for it in items:
+        if it[0] == "fill":
+            if it[2] == BM_COL["water"]:
+                out.setdefault("water", (it[2], it[3], None))
+            elif it[2] in (BM_FAINT["bld_veryfaint"], BM_FAINT["bld"], BM_COL["bld"]):
+                out.setdefault("bld", (it[2], it[3], None))
+        elif it[0] == "line":
+            if it[4]:
+                if it[2] in (BM_COL["water_edge"], BM_COL["water"]):
+                    out.setdefault("covered", (it[2], it[3], list(it[4])))
+            elif it[2] == BM_COL["water_edge"]:
+                out.setdefault("edge", (it[2], it[3], None))
+            elif abs(it[3] - BM_LW["main"]) < 1e-6:
+                out.setdefault("street", (it[2], it[3], None))
+    return out
+
+
+def _p16_shapes(pg, shapes):
+    """house shapes of common/icons.py ("poly", ring, fill, stroke, lw) / ("line", pts, colour, lw) on the page"""
+    for sh in shapes or ():
+        if sh[0] == "poly":
+            pg.poly([sh[1]], fill=sh[2], stroke=sh[3], lw=sh[4] if len(sh) > 4 else 0.1)
+        elif sh[0] == "line":
+            pg.line(sh[1], sh[2], sh[3] if len(sh) > 3 else 0.1)
+
+
+def sn_cell(pg, G, cx, top, title, choice=None):
+    """one cell: its title, the strip frame (the widened analysis frame at 1:20,000, P16_STRIP_H tall), the shared
+    basemap of this panel (choice = (mode, override), D5; the stream only from the basemap) and the bridge ruler on
+    the frame's top edge. Returns the cell (T, box, label room: labels sit on the drawing, off the stream line)."""
+    V, fr = G["V"], G["fr"]
+    sw, sh = (fr[2] - fr[0]) * SN_K, (fr[3] - fr[1]) * SN_K
+    x0, y1 = cx, sn_y(top + P16_STRIP_TOP)
     box = (x0, y1 - sh, x0 + sw, y1)
-    T = sn_T(V, box[0], box[1])
+    T = sn_T(V, box[0], box[1], fr[0], fr[1])
     size = sn_mm(SN_TS["panel"])
     yt = sn_y(top + 5.0)
     pg.text(title, cx, yt, size, SN_INK, bold=True)
+    refp = [T(p) for p in G["ref"]]
     cell = {"x": cx, "top": top, "box": box, "T": T, "side": cx + SN_SIDE,
-            "bounds": (cx, sn_y(top + SN_CH), cx + SN_SIDE - 3.0, sn_y(top + 0.5)),
-            "taken": [(cx, yt - size * 0.25, cx + text_w(title, size, True) + 1.0, yt + size * 0.8), box,
-                      (cx + SN_SIDE - 2.0, sn_y(top + SN_CH), cx + SN_CW, sn_y(top))]}
-    pg.clip([rect(*box)])
-    if under:
-        under(pg, G, cell)
-    Ps = [[T(p) for p in L_] for L_ in G["bed"]]
-    if Ps:
-        pg.poly(Ps, fill=SN_WATER, alpha=0.55)
-    for P in G["streams"]:
-        pg.line([T(p) for p in P], SN_WATER_MID, 0.1, alpha=0.6)
-    for P in G["covered"]:
-        pg.line([T(p) for p in P], SN_WATER_MID, 0.4, [1.0, 0.6], cap=0, alpha=0.75)
-    pg.unclip()
+            "bounds": (box[0] + 0.6, box[1] + 0.6, box[2] - 0.6, box[3] - 0.6),
+            "taken": [(cx, yt - size * 0.25, cx + text_w(title, size, True) + 1.0, yt + size * 0.8),
+                      (cx + SN_SIDE - 2.0, sn_y(top + SN_CH), cx + SN_CW, sn_y(top))],
+            "segs": list(zip(refp, refp[1:]))}
+    items = _p16_bm_items(G, choice)
+    cell["bm_style"] = _p16_bm_style(items)
+    if items:
+        pg.clip([rect(*box)])
+        _p16_bm_draw(pg, items, T)
+        pg.unclip()
     xs = {}
     for nm, xy in BRIDGES_K:                             # the ruler: a tick per bridge, its name above the frame
         x = T(xy)[0]
@@ -6839,14 +6949,15 @@ def sn_cell(pg, G, cx, top, title, under=None):
     labs = ([(u"K1·K2", (xs["K1"] + xs["K2"]) / 2.0)] if "K1" in xs and "K2" in xs else []) + \
         [(nm, xs[nm]) for nm in ("K3", "K4", "K5", "K6") if nm in xs]
     fs = sn_mm(SN_TS["small"])
+    ruler = []
     for s, x in labs:
         w = text_w(s, fs)
         xl = min(max(x - w / 2.0, box[0]), box[2] - w)
         b = (xl - 0.3, box[3] + 0.6, xl + w + 0.3, box[3] + 1.0 + fs * 0.8)
-        if any(lp_hit(b, t) for t in cell["taken"][3:]):
+        if any(lp_hit(b, t) for t in ruler):
             continue
         pg.text(s, xl, box[3] + 1.0, fs, SN_INK2)
-        cell["taken"].append(b)
+        ruler.append(b)
     return cell
 
 
@@ -6863,20 +6974,24 @@ def sn_outline(pg, G, cell):
 
 
 def sn_place(pg, cell, labs, warn):
-    """G4 (common/label_place.py): each word round its place, outside the strip (its box is taken), on a thin
-    leader when off it; "more" = further places the same word points to. A word with no room is logged."""
+    """G4 (common/label_place.py): each word round its place ON the strip (T4a: the widened frame has room), never
+    on the stream line or a panel's own lines (cell["segs"]) or boxes (cell["taken"]), on a thin leader when off
+    it; "more" = further places the same word points to. A word with no room is logged."""
     items = []
     for L_ in labs:
         size, b = sn_mm(L_.get("pt", SN_TS["label"])), L_.get("bold", True)
         items.append(dict(x=L_["at"][0], y=L_["at"][1], rank=L_.get("rank", 0),
-                          wh=lambda f, s=L_["s"], size=size, b=b: (text_w(s, size * f, b), size * f * 0.95)))
-    got = place_labels_all(items, cell["taken"], cell["bounds"], (), sizes=(1.0, SN_TS["small"] / SN_TS["label"]))
+                          wh=lambda f, s=L_["s"], size=size, b=b: (text_w(s, max(size * f, sn_mm(SN_TS["small"])), b),
+                                                                   max(size * f, sn_mm(SN_TS["small"])) * 0.95)))
+    got = place_labels_all(items, cell["taken"], cell["bounds"], cell.get("segs", ()),
+                           sizes=(1.0, SN_TS["small"] / SN_TS["label"]))
     for i, L_ in enumerate(labs):
         if i not in got:
-            warn.append(u"senses sheet: no room for the word '{}'".format(L_["s"]))
+            if L_.get("rank", 0) == 0:
+                warn.append(u"senses sheet: no room for the word '{}'".format(L_["s"]))
             continue
         bx, leader, f = got[i]
-        size = sn_mm(L_.get("pt", SN_TS["label"])) * f
+        size = max(sn_mm(L_.get("pt", SN_TS["label"])) * f, sn_mm(SN_TS["small"]))   # never under 7 pt
         pg.text(L_["s"], bx[0], bx[1] + size * 0.2, size, L_.get("col", SN_INK), bold=L_.get("bold", True))
         for k, a in enumerate([L_["at"]] + list(L_.get("more", ()))):
             if leader or k > 0:
@@ -6884,11 +6999,11 @@ def sn_place(pg, cell, labs, warn):
                 pg.circle(a[0], a[1], 0.3, fill=SN_INK2)
 
 
-def sn_figure(pg, pose, x, y, h, colour, facing=1):
-    """a figure of common/figures.py, h mm tall, feet at (x, y): filled outlines, one colour, no stroke"""
-    f = h / 1.75
-    for Q in fig_polys(pose, 1.75, facing):
-        pg.poly([[(x + px * f, y + py * f) for px, py in Q]], fill=colour)
+def _p16_fig(pg, pose, x, y, h, colour, facing=1):
+    """p.16's ONE figure point: the figure library's side view (common/figures.py fig_side; adult 1.70 m), h mm
+    tall on this diagram (pictogram size, not to scale), feet at (x, y), one colour. "sit" = sit_chair."""
+    k = h / 1.70
+    _p16_shapes(pg, fig_side({"sit": "sit_chair"}.get(pose, pose), x, y, k, facing, ink=colour))
 
 
 def sn_key_row(pg, x, y, word, pt=None):
@@ -6911,14 +7026,6 @@ def sn_field(pg, rings, colour, core=0.42, halo=(1.3, 0.9, 0.5), ha=0.12):
         pg.poly([Q], fill=colour, alpha=core)
 
 
-def sn_zones_under(pg, G, cell):
-    """the faint survey base under the zones: the survey buildings as the plans read them, light"""
-    T, box = cell["T"], cell["box"]
-    Ps = [Q for Q in ([T(p) for p in P] for P in G["bld"]) if len(Q) >= 3 and sn_in(bbox(Q), box)]
-    if Ps:
-        pg.poly(Ps, fill=COL["bld"], alpha=0.6)
-
-
 def sn_zones(pg, G, cell, warn):
     T, box = cell["T"], cell["box"]
     labs = []
@@ -6929,26 +7036,35 @@ def sn_zones(pg, G, cell, warn):
         if not Ps:
             continue
         sn_field(pg, Ps, hx)
+        for Q in Ps:                                     # the words stay off the fields' edges
+            Qs = Q[::max(1, len(Q) // 24)] + Q[:1]
+            cell["segs"].extend(zip(Qs, Qs[1:]))
         at = inner_pt(max(Ps, key=lambda Q: abs(area2(Q))))
         labs.append(dict(s=SN_ZONE_SHORT.get(key, name), at=at, col=mix(hx, SN_DARK, 0.5)))
     pg.unclip()
-    sx, top = cell["side"], cell["top"]                  # key column: the spine's legend, north, scale bar
-    st = R28_STUDY_LINE
+    sx, top = cell["side"], cell["top"]                  # key column: what the strips draw, north, scale bar
+    st, bs = R28_STUDY_LINE, cell.get("bm_style", {})
     y = sn_y(top + 4.0)
-    rows = [(R28_STUDY_NAME, "study"), (u"Stream · bed", "bed"), (u"Hidden stream", "hidden"), (u"Bridge", "bridge"),
-            (u"Buildings · survey", "bld"), (u"Water flow", "flow")]
+    rows = [(R28_STUDY_NAME, "study"), (u"Stream", "water"), (u"Hidden stream", "covered"), (u"Main streets", "street"),
+            (u"Bridge", "bridge"), (u"Buildings", "bld"), (u"Water flow", "flow")]
     for word, kind in rows:
+        if kind in ("water", "covered", "street", "bld") and kind not in bs:
+            continue                                     # the key lists only what the basemap drew
         if kind == "study":
             pg.line([(sx, y), (sx + 9.0, y)], st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
-        elif kind == "bed":
-            pg.poly([rect(sx, y - 0.9, sx + 9.0, y + 0.9)], fill=SN_WATER, alpha=0.55)
-            pg.line([(sx, y), (sx + 9.0, y)], SN_WATER_MID, 0.1, alpha=0.6)
-        elif kind == "hidden":
-            pg.line([(sx, y), (sx + 9.0, y)], SN_WATER_MID, 0.4, [1.0, 0.6], cap=0, alpha=0.75)
+        elif kind == "water":
+            pg.poly([rect(sx, y - 0.9, sx + 9.0, y + 0.9)], fill=bs["water"][0], alpha=bs["water"][1])
+            if "edge" in bs:
+                for yy in (y - 0.9, y + 0.9):
+                    pg.line([(sx, yy), (sx + 9.0, yy)], bs["edge"][0], bs["edge"][1])
+        elif kind == "covered":
+            pg.line([(sx, y), (sx + 9.0, y)], bs["covered"][0], bs["covered"][1], bs["covered"][2], cap=0)
+        elif kind == "street":
+            pg.line([(sx, y), (sx + 9.0, y)], bs["street"][0], bs["street"][1])
         elif kind == "bridge":
             pg.line([(sx + 4.5, y + 0.9), (sx + 4.5, y - 0.9)], SN_INK2, 0.2)
         elif kind == "bld":
-            pg.poly([rect(sx, y - 0.9, sx + 9.0, y + 0.9)], fill=COL["bld"], alpha=0.6)
+            pg.poly([rect(sx, y - 0.9, sx + 9.0, y + 0.9)], fill=bs["bld"][0], alpha=bs["bld"][1])
         else:                                            # the water's direction in every strip (left to right)
             pg.line([(sx, y), (sx + 7.6, y)], SN_WATER_MID, 0.35)
             pg.poly([[(sx + 9.0, y), (sx + 7.2, y + 0.8), (sx + 7.2, y - 0.8)]], fill=SN_WATER_MID)
@@ -7051,7 +7167,7 @@ def sn_feeling(pg, G, cell, warn):
     for p, mood, R, veins, pose in B:                    # pictograms (senses_ref1's black figures), not crowded
         x, y = T(p)
         if pose and sn_in((x, y, x, y), box) and all(math.hypot(x - a, y - b) >= 2.2 for a, b in figs):
-            sn_figure(pg, pose, x, y - 1.4, 2.8, SN_DARK)
+            _p16_fig(pg, pose, x, y - 1.4, 2.8, SN_DARK)
             figs.append((x, y))
     pg.unclip()
     for p, mood, R, veins, pose in sorted(B, key=lambda e: -e[2]):
@@ -7282,7 +7398,7 @@ def sn_bubble(pg, x, y, key, word, colour, pose):
         sn_wave(pg, fx - 3.5, fx + 4.5, fy + (0.9 if key == "cross" else 0.0), SN_WATER_MID)
     else:
         pg.line([(fx - 3.5, fy), (fx + 6.5, fy)], SN_INK2, 0.2)
-    sn_figure(pg, pose, fx, fy, 7.0, colour)
+    _p16_fig(pg, pose, fx, fy, 7.0, colour)
     if key == "watch":                                   # the line of sight
         pg.line([(fx + 0.6, fy + 6.2), (fx + 5.6, fy + 5.4)], colour, 0.2, [0.6, 0.4], cap=0)
     size = sn_mm(SN_TS["label"])
@@ -7303,57 +7419,103 @@ def sn_exp_places(G):
     return dict((k, [p for p in v if p]) for k, v in pl.items())
 
 
+def sn_meet_points(G, T, box):
+    """T4a: where the experience lines meet, [(page x, set of P16_MEET kinds)] left to right: every hub, Kermes
+    (at the S4 cut) and the flood zone (the widened reaches; without them the bed sub-hubs high water closes).
+    Meeting points closer than 7 mm become one, named by all its kinds."""
+    pts = [(T(h["xy"])[0], "hub") for h in G["hubs"] if h.get("xy")]
+    if G["kermes"]:
+        pts.append((T(G["kermes"])[0], "kermes"))
+    fl = sn_spaced([w["at"] for w in G["widen"]], T, 9.0) or \
+        [h["sub_xy"]["c"] for h in G["hubs"] if h.get("sub_xy")]
+    pts += [(T(p)[0], "flood") for p in fl]
+    rank = dict((k, i) for i, (k, _, _) in enumerate(P16_MEET))
+    out = []
+    for x, k in sorted(pts, key=lambda e: rank[e[1]]):
+        if not (box[0] + 4.0 <= x <= box[2] - 4.0):
+            continue
+        near = [n for n in out if abs(n[0] - x) < 7.0]
+        if near:
+            near[0][1].add(k)
+        else:
+            out.append([x, set([k])])
+    return sorted((x, ks) for x, ks in out)
+
+
 def sn_encounters(pg, G, cell, warn):
+    """T4a (package E, R23-R26): five experience lines, each in its own lane along the stream from the upstream edge
+    to its vignette, never crossing another (the lane order is the vignettes' order); the lines draw together at the
+    meeting points (hubs, Kermes, the flood zone), marked by a ring and a post of icons (R25), and part again in the
+    same order; the places of each experience sit on its line as circles (R24, R26)."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
-    xs, ys = sn_spine_y([T(p) for p in G["ref"]], x0, x1, 0.5)
+    step = 0.5
+    xs, ys = sn_spine_y([T(p) for p in G["ref"]], x0, x1, step)
     if ys is None:
         ys = [(y0 + y1) / 2.0] * len(xs)
-        warn.append(u"senses sheet: no stream line in the strip: the ribbons run along its middle")
+        warn.append(u"senses sheet: no stream line in the strip: the encounter lines run along its middle")
+    n = len(ys)                                          # a calmer path for the lanes: 15 mm moving mean
+    ys = [sum(ys[max(0, i - 15):i + 16]) / len(ys[max(0, i - 15):i + 16]) for i in range(n)]
+    nodes = sn_meet_points(G, T, box)
+    gap, keep, wp = 2.6, 0.24, 3.2                       # mm: lane spacing, share left at a meeting, pinch length
+    pinch = [max([math.exp(-((x - nx) / wp) ** 2) for nx, _ in nodes] or [0.0]) for x in xs]
+    m = len(SN_EXP)
+
+    def lane_y(i, k):
+        y = ys[k] + ((m - 1) / 2.0 - i) * gap * (1.0 - (1.0 - keep) * pinch[k])
+        return min(max(y, y0 + 1.5), y1 - 1.5)
+
+    def at_x(i, x):
+        k = min(n - 1, max(0, int(round((x - x0) / step))))
+        return lane_y(i, k)
+    for nx, ks in nodes:                                 # the flood zone: a hatched cloud under the lines
+        if "flood" in ks:
+            ym = (at_x(0, nx) + at_x(m - 1, nx)) / 2.0
+            pg.poly([sn_ring(nx, ym, gap * m * 0.5 + 1.6, 77, 0.18, 40, (3, 5))],
+                    stripes=(SN_INK2, 0.45, 0.12, 0.0), alpha=0.8)
     pl = sn_exp_places(G)
-    sig, A, lam = 2.6, 3.0, 30.0                         # graphic: swell width, braid amplitude and length, mm
     top = cell["top"]
     for i, (key, word, colour, pose) in enumerate(SN_EXP):
-        px = [x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0]
-        C_, W_ = [], []
-        for x, yb in zip(xs, ys):
-            b = max([math.exp(-((x - q) / sig) ** 2) for q in px] or [0.0])
-            w = 0.45 + 1.9 * b
-            o = A * math.sin(2.0 * math.pi * (x - x0) / lam + 2.0 * math.pi * i / 5.0) * (1.0 - 0.8 * b)
-            f = min(1.0, max(0.0, (x - (x1 - 18.0)) / 18.0))
-            f = f * f * (3.0 - 2.0 * f)                  # into its exit lane (watch on top) before the end
-            yc = yb + o * (1.0 - f) + (2 - i) * 2.2 * f
-            C_.append((x, min(max(yc, y0 + 1.0 + w / 2.0), y1 - 1.0 - w / 2.0)))
-            W_.append(w)
+        C_ = [(x, lane_y(i, k)) for k, x in enumerate(xs)]
         bx, by = cell["side"] + 11.0, sn_y(top + 8.0 + 14.5 * i)
         ex, ey = C_[-1]
-        fan = [sn_bez((ex, ey), (ex + 7.0, ey), (bx - 7.0, by), (bx, by), t / 24.0) for t in range(1, 25)]
-        P = C_ + fan
-        Wl = W_ + [W_[-1] + (1.3 - W_[-1]) * t / 24.0 for t in range(1, 25)]
-        N = sn_normals(P)
-        pg.poly([[(p[0] + n_[0] * w / 2.0, p[1] + n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)] +
-                 [(p[0] - n_[0] * w / 2.0, p[1] - n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)][::-1]],
-                fill=colour, alpha=0.78)
+        fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), t / 24.0) for t in range(1, 25)]
+        pg.line(C_ + fan, colour, 0.6, alpha=0.92)
+        pg.circle(C_[0][0] + 0.6, C_[0][1], 0.6, fill=colour)          # where the line starts
+        Cs = C_[::6] + C_[-1:]
+        cell["segs"].extend(zip(Cs, Cs[1:]))
         sn_bubble(pg, bx, by, key, word, colour, pose)
-    labs, first = [], None
-    for h in G["hubs"]:                                  # hatched clouds: high water closes the bed sub-hubs
-        s_ = h.get("sub_xy")
-        if s_:
-            x, y = T(s_["c"])
-            if sn_in((x, y, x, y), box):
-                pg.poly([sn_ring(x, y, 1.9, 77, 0.22, 40, (3, 5))], stripes=(SN_INK2, 0.45, 0.12, 0.0), alpha=0.8)
-                first = first or (x, y)
-    for name, xy, named in G["stops"]:                   # the stops of the water's journey
-        q = sn_on_ref(G, xy)
-        if q is None:
-            continue
-        x, y = T(q)
-        if x0 <= x <= x1:
-            pg.circle(x, y, 0.75, fill="FFFFFF", stroke=SN_INK, lw=0.25)
-            if named:                                    # the bridges are named by the ruler
-                labs.append(dict(s=name, at=(x, y)))
-    if first:
-        labs.append(dict(s=u"Floods", at=first, bold=False, col=SN_INK2))
+        got = []                                         # its places: circles on its own line
+        for x in sorted(T(p)[0] for p in pl.get(key, [])):
+            if not (x0 + 2.0 <= x <= x1 - 2.0) or any(abs(x - nx) < 2.6 for nx, _ in nodes) or \
+                    any(abs(x - g) < 3.0 for g in got):
+                continue
+            got.append(x)
+            pg.circle(x, at_x(i, x), 0.95, fill=mix(colour, "FFFFFF", 0.55), stroke=colour, lw=0.3)
+    labs, firsts = [], {}
+    bs, pitch = 4.4, 5.2                                 # mm: icon plate, post pitch
+    for nx, ks in nodes:                                 # the meeting points: a ring round the bundle, a post of icons
+        ya, yb = at_x(0, nx), at_x(m - 1, nx)
+        ym, r = (ya + yb) / 2.0, abs(ya - yb) / 2.0 + 1.2
+        pg.circle(nx, ym, r, stroke=SN_DARK, lw=0.3)
+        kinds = [k for k, _, _ in P16_MEET if k in ks]
+        down = ym - r - 1.5 - pitch * len(kinds) >= y0 + 0.5
+        sgn = -1.0 if down else 1.0
+        end = ym + sgn * (r + 1.5 + pitch * (len(kinds) - 1) + bs / 2.0)
+        pg.line([(nx, ym + sgn * r), (nx, end - sgn * bs / 2.0)], SN_INK2, 0.2)
+        for j, k in enumerate(kinds):
+            cy = ym + sgn * (r + 1.5 + bs / 2.0 + pitch * j)
+            icon = [ic for kk, _, ic in P16_MEET if kk == k][0]
+            try:
+                _p16_shapes(pg, ico_badge(icon, nx, cy, bs, "circle", fill="FFFFFF", edge=SN_INK2))
+            except Exception:
+                pg.circle(nx, cy, bs / 2.0, fill="FFFFFF", stroke=SN_INK2, lw=0.2)
+            cell["taken"].append((nx - bs / 2.0, cy - bs / 2.0, nx + bs / 2.0, cy + bs / 2.0))
+            firsts.setdefault(k, []).append((nx, cy))
+        cell["taken"].append((nx - r, ym - r, nx + r, ym + r))
+    for k, word, _ in P16_MEET:                          # a word beside each plate (repeats may give way)
+        for j, at in enumerate(firsts.get(k, ())):
+            labs.append(dict(s=word, at=at, col=SN_INK, pt=SN_TS["small"], rank=0 if j == 0 else 1))
     return labs
 
 
@@ -7376,10 +7538,144 @@ def sn_layers_band(pg, P, W, colour, n=6, a=0.1):
     return at_len(P, s, L / 2.0)[0]
 
 
+def _p16_norm(s):
+    """lower case, Turkish (and other) accents folded, letters and digits only ('Kızıl Avlu' -> 'kizilavlu')"""
+    import unicodedata
+    t = unicodedata.normalize("NFKD", (s or u"").replace(u"ı", u"i").replace(u"İ", u"I")).lower()
+    return u"".join(c for c in t if c.isalnum() and not unicodedata.combining(c))
+
+
+def _p16_jpeg(path):
+    """(width px, height px, components, bytes) of a JPEG file read from its header, once a run; None if it is not
+    a JPEG with 1 or 3 components (a PDF DCTDecode image)"""
+    m = _P16_MEMO.setdefault("jpg", {})
+    if path in m:
+        return m[path]
+    got = None
+    try:
+        with open(path, "rb") as fh:
+            b = fh.read()
+        i = 2 if b[:2] == b"\xff\xd8" else len(b)
+        while i + 9 < len(b):
+            if b[i] != 0xFF:
+                break
+            mk = b[i + 1]
+            if mk == 0xFF:
+                i += 1
+                continue
+            if mk == 0x01 or 0xD0 <= mk <= 0xD8:
+                i += 2
+                continue
+            L = (b[i + 2] << 8) | b[i + 3]
+            if mk in (0xC0, 0xC1, 0xC2):
+                h, w, nc = (b[i + 5] << 8) | b[i + 6], (b[i + 7] << 8) | b[i + 8], b[i + 9]
+                if w and h and nc in (1, 3):
+                    got = (w, h, nc, b)
+                break
+            i += 2 + L
+    except Exception:
+        got = None
+    m[path] = got
+    return got
+
+
+def _p16_photos(warn):
+    """{P16_PLACES key: (path, credit line or None)} once a run, from P16_PHOTO_DIR (p.21's run-kit contract): own
+    photos by file name (no credit, D13), else the first unused photos.csv row whose place or file name holds an
+    alias (its credit line). Kermes rows are never used. A missing folder: {} and one log line."""
+    if "photos" in _P16_MEMO:
+        return _P16_MEMO["photos"]
+    d, out = P16_PHOTO_DIR, {}
+    if not os.path.isdir(d):
+        warn.append(u"senses sheet: no photo folder {}: History is drawn without photos".format(d))
+        _P16_MEMO["photos"] = out
+        return out
+
+    def find(f):
+        for p in (os.path.join(d, f), os.path.join(d, "own", os.path.basename(f)),
+                  os.path.join(d, "photos", os.path.basename(f))):
+            if os.path.isfile(p) and _p16_jpeg(p):
+                return p
+        return None
+    own = set(_p16_norm(os.path.basename(f)) for pl in P16_PLACES for f in pl["own"])
+    rows, cp = [], os.path.join(d, P16_PHOTO_CSV)
+    if os.path.isfile(cp):
+        try:
+            import csv as _csv
+            with open(cp, encoding="utf-8-sig", newline="") as fh:
+                for r_ in _csv.DictReader(fh):
+                    rows.append(dict((_p16_norm(k_), (v_ or u"").strip()) for k_, v_ in r_.items() if k_))
+        except Exception as ex:
+            warn.append(u"senses sheet: {} not read ({}): own photos only".format(cp, ex))
+    used = set()
+    for pl in P16_PLACES:
+        got = None
+        for f in pl["own"]:
+            p = find(f)
+            if p:
+                got = (p, None)
+                break
+        for r_ in ([] if got else rows):
+            fn = r_.get("file", u"")
+            tx = _p16_norm(r_.get("place", u"")) + u"|" + _p16_norm(os.path.splitext(os.path.basename(fn))[0])
+            if not fn or fn in used or u"kermes" in tx or not any(a in tx for a in pl["alias"]) or \
+                    any(a in tx for a in pl.get("notalias", ())):
+                continue
+            p = find(fn)
+            if p is None:
+                continue
+            used.add(fn)
+            cr = r_.get("creditline") or r_.get("credit") or u""
+            got = (p, None if _p16_norm(os.path.basename(fn)) in own or not cr else cr)
+            break
+        if got:
+            out[pl["key"]] = got
+    miss = [pl["cap"][0] for pl in P16_PLACES if pl["key"] not in out]
+    if miss:
+        warn.append(u"senses sheet: no photo for {} (named on the strip instead)".format(u", ".join(miss)))
+    _P16_MEMO["photos"] = out
+    return out
+
+
+def _p16_photo_slots(keys_at, box, refp, capm, wide=None):
+    """{key: (x, y, up)}: the lower-left corner of each photo, alternately above and below the stream (left to
+    right), as near its place as the photos beside it allow, clear of the stream line by 4 mm, inside the strip;
+    capm = the caption's room on the photo's outer side; wide = {key: caption width mm}"""
+    W, H = P16_PHOTO_W, P16_PHOTO_H
+    wide = wide or {}
+    srt = sorted(keys_at, key=lambda e: e[1][0])
+    out = {}
+    for up in (True, False):
+        lst = [e for i, e in enumerate(srt) if (i % 2 == 0) == up]
+        xs, prev = [], box[0] + 1.0 - 2.5
+        ws = [max(W, wide.get(k, 0.0)) for k, a in lst]   # a caption wider than its photo keeps its room
+        for (k, a), wk in zip(lst, ws):
+            x = max(a[0] - W / 2.0, prev + 2.5)
+            xs.append(x)
+            prev = x + wk
+        if xs and xs[-1] + ws[-1] > box[2] - 1.0:
+            d = xs[-1] + ws[-1] - (box[2] - 1.0)
+            xs, prev = [x - d for x in xs], box[0] + 1.0 - 2.5
+            for j in range(len(xs)):
+                xs[j] = max(xs[j], prev + 2.5)
+                prev = xs[j] + ws[j]
+        for (k, a), x in zip(lst, xs):
+            near = [q[1] for q in refp if x - 2.0 <= q[0] <= x + W + 2.0] + [a[1]]
+            if up:
+                y = min(max(near) + 4.0, box[3] - 1.0 - capm - H)
+            else:
+                y = max(min(near) - 4.0 - H, box[1] + 1.0 + capm)
+            out[k] = (x, y, up)
+    return out
+
+
 def sn_history(pg, G, cell, warn):
+    """layered heritage fields on the stream's places (senses_ref2) and, T4a, a small photo beside each place
+    named (P16_PLACES; Kermes without one): own photos without credit, Commons photos numbered, their credit lines
+    in the key column. The photos are embedded by _p16_save (the core's PDF writer draws no images)."""
     T, box = cell["T"], cell["box"]
     txt = COL["accent_dark"]
-    labs = []
+    labs, anchors = [], {}
 
     def field(q, half, R, seed):
         """a field along the stream line round q (half m either side), else a round one"""
@@ -7403,36 +7699,151 @@ def sn_history(pg, G, cell, warn):
                 sn_layers_round(pg, T(ka["xy"])[0], T(ka["xy"])[1], 2.4, SN_HER, 31)
         else:
             at = sn_layers_round(pg, T(ka["xy"])[0], T(ka["xy"])[1], 2.4, SN_HER, 31)
-        labs.append(dict(s=u"Red Hall tunnels", at=at, col=txt))
+        anchors["tunnels"] = at
     bk = dict(BRIDGES_K)
-    rb = []
     for i, k in enumerate(("K3", "K5")):                 # the Roman bridges (h01 §5 P08, P09; K4 "Roman?", P06)
         if bk.get(k):
             x, y = T(bk[k])
-            rb.append(sn_layers_round(pg, x, y, 2.3, SN_HER, 40 + i))
-    if rb:
-        labs.append(dict(s=u"Roman bridges", at=rb[0], more=rb[1:], col=txt))
+            anchors[k.lower()] = sn_layers_round(pg, x, y, 2.3, SN_HER, 40 + i)
     if G["bath"]:                                        # Tabaklar Hamamı (H4)
         x, y = T(G["bath"])
-        labs.append(dict(s=u"Tabaklar Hamamı", at=sn_layers_round(pg, x, y, 2.0, SN_HER, 50), col=txt))
-    labs.append(dict(s=u"Tannery quarter", at=field(CRAFT_XY, 70.0, 1.8, 60), col=txt))   # Tabakhane (H3)
-    if G["kermes"]:                                      # Kermes in the dry bed (h01 §2.8), at the S4 cut
+        anchors["hamam"] = sn_layers_round(pg, x, y, 2.0, SN_HER, 50)
+    anchors["tabakhane"] = field(CRAFT_XY, 70.0, 1.8, 60)   # Tabakhane (H3)
+    if G["kermes"]:                                      # Kermes in the dry bed (h01 §2.8), at the S4 cut: no photo
         labs.append(dict(s=u"Kermes", at=field(G["kermes"], 90.0, 1.8, 70), col=txt))
     pg.unclip()
-    sx, top = cell["side"], cell["top"]                  # key column: how the page is read (G5)
-    sn_rich(pg, sx, sn_y(top + 62.0), [(u"Places", True), (u": the masterplan's data", False)], SN_TS["label"],
-            SN_INK2)
-    sn_rich(pg, sx, sn_y(top + 66.5), [(u"Intensities", True), (u": design readings", False)], SN_TS["label"],
-            SN_INK2)
+    anchors = dict((k, a) for k, a in anchors.items() if sn_in((a[0], a[1], a[0], a[1]), box))
+    ph = _p16_photos(warn)
+    with_ph = [(k, anchors[k]) for k in (pl["key"] for pl in P16_PLACES) if k in anchors and k in ph]
+    names = dict((pl["key"], pl["cap"]) for pl in P16_PLACES)
+    rb = [anchors[k] for k in ("k3", "k5") if k in anchors and k not in ph]
+    if rb:                                               # places without a photo keep their word on the strip
+        labs.append(dict(s=u"Roman bridges", at=rb[0], more=rb[1:], col=txt))
+    for k, s in (("hamam", u"Tabaklar Hamamı"), ("tabakhane", u"Tabakhane"), ("tunnels", u"Kızıl Avlu tunnels")):
+        if k in anchors and k not in ph:
+            labs.append(dict(s=s, at=anchors[k], col=txt))
+    fs = sn_mm(SN_TS["small"])
+    lh = fs * 1.2
+    capm = 0.8 + 2.0 * lh
+    W, H = P16_PHOTO_W, P16_PHOTO_H
+    refp = [T(p) for p in G["ref"]]
+    wide = dict((k, max(text_w(s + (u"  [9]" if ph[k][1] and j == len(names[k]) - 1 else u""), fs, j == 0)
+                        for j, s in enumerate(names[k]))) for k, _ in with_ph)
+    slots = _p16_photo_slots(with_ph, box, refp, capm, wide)
+    credits = []
+    for k, a in sorted(with_ph, key=lambda e: slots[e[0]][0]):
+        x, y, up = slots[k]
+        path, cr = ph[k]
+        cap = list(names[k])
+        if cr:                                           # Commons: numbered, its credit line in the key column
+            credits.append(cr)
+            cap[-1] = u"{}  [{}]".format(cap[-1], len(credits))
+        pr = (x, y, x + W, y + H)
+        e = lp_leader_end(pr, a)
+        pg.line([a, e], SN_INK2, 0.15)
+        pg.circle(a[0], a[1], 0.35, fill=SN_INK2)
+        for j, s in enumerate(cap):
+            yb = (y + H + 0.8 + (len(cap) - 1 - j) * lh + fs * 0.2) if up else (y - 0.8 - fs * 0.8 - j * lh)
+            pg.text(s, x, yb, fs, txt if j == 0 else SN_INK2, bold=(j == 0))
+        cy0, cy1 = (y + H, y + H + capm) if up else (y - capm, y)
+        cell["taken"] += [pr, (x, cy0, x + max(W, max(text_w(s, fs, True) for s in cap)), cy1)]
+        G.setdefault("imgs", []).append((path, (x, y, W, H)))
+    sx, top = cell["side"], cell["top"]                  # key column: the heritage field, then the photo credits
+    sn_layers_round(pg, sx + 4.5, sn_y(top + 5.0), 2.3, SN_HER, 40)
+    sn_key_row(pg, sx + 11.0, sn_y(top + 5.0), u"Heritage place")
+    if credits:
+        y = sn_y(top + 13.0)
+        pg.text(u"Photos", sx, y, fs, SN_INK, bold=True)
+        for n_, cr in enumerate(credits):
+            for j, s in enumerate(wrap(u"[{}] {}".format(n_ + 1, cr), fs, SN_CW - SN_SIDE - 1.0)):
+                y -= lh
+                pg.text(s, sx + (0.0 if j == 0 else 2.6), y, fs, SN_INK2)
+            y -= 0.6
     return labs
 
 
+# ---------------------------------------------------------------- the sheet's writer with photos (T4a)
+def _p16_write_pdf(pg, path, title, imgs):
+    """the core's write_pdf (parts/01) plus JPEG photos: imgs = [(path, (x, y, w, h) page mm)], each embedded once
+    as a DCTDecode image XObject, drawn after the page's vector items (cropped to fill its slot, a hairline frame).
+    Kept here because the core's writer draws no images (T4b may move image support into the core)."""
+    objs = []
+
+    def add(b):
+        objs.append(b)
+        return len(objs)
+    font = pdf_fonts(add, ("R", "B"))
+    gs = [add("<< /Type /ExtGState /ca {0} /CA {0} >>".format(_f(i / 100.0)).encode("latin-1")) for i in range(1, 100)]
+    gs_res = " ".join("/A{:02d} {} 0 R".format(i + 1, o_) for i, o_ in enumerate(gs))
+    xo, ops, names = [], [], {}
+    for p_, (x, y, w, h) in imgs:
+        j = _p16_jpeg(p_)
+        if not j:
+            continue
+        iw, ih, nc, data = j
+        if p_ not in names:
+            oid = add("<< /Type /XObject /Subtype /Image /Width {} /Height {} /ColorSpace /{} /BitsPerComponent 8 "
+                      "/Filter /DCTDecode /Length {} >>\nstream\n".format(
+                          iw, ih, "DeviceRGB" if nc == 3 else "DeviceGray", len(data)).encode("latin-1") +
+                      data + b"\nendstream")
+            names[p_] = "/Im{}".format(len(names) + 1)
+            xo.append("{} {} 0 R".format(names[p_], oid))
+        a = iw / float(ih)
+        dw, dh = (h * a, h) if a > w / h else (w, w / a)
+        r_, g_, b_ = hex_rgb(SN_INK2)
+        ops.append("q {} {} {} {} re W n {} 0 0 {} {} {} cm {} Do Q".format(
+            _f(x), _f(y), _f(w), _f(h), _f(dw), _f(dh), _f(x - (dw - w) / 2.0), _f(y - (dh - h) / 2.0), names[p_]))
+        ops.append("q {} {} {} RG 0.15 w {} {} {} {} re S Q".format(_f(r_), _f(g_), _f(b_), _f(x), _f(y), _f(w), _f(h)))
+    pages_id = add(b"")
+    body = page_stream(pg) + (("\n" + "\n".join(ops)).encode("latin-1") if ops else b"")
+    data = zlib.compress(body, 6)
+    cid = add(b"<< /Length " + str(len(data)).encode() + b" /Filter /FlateDecode >>\nstream\n" + data +
+              b"\nendstream")
+    kid = add("<< /Type /Page /Parent {} 0 R /MediaBox [0 0 {} {}] /Contents {} 0 R /Resources << /Font "
+              "<< /F1 {} 0 R /F2 {} 0 R >> /ExtGState << {} >>{} >> >>".format(
+                  pages_id, _f(pg.W / PT), _f(pg.H / PT), cid, font[0], font[1], gs_res,
+                  " /XObject << {} >>".format(" ".join(xo)) if xo else "").encode("latin-1"))
+    objs[pages_id - 1] = "<< /Type /Pages /Kids [{} 0 R] /Count 1 >>".format(kid).encode("latin-1")
+    cat = add("<< /Type /Catalog /Pages {} 0 R >>".format(pages_id).encode("latin-1"))
+    info = add(b"<< /Title " + pdf_str(title) + b" /Producer " + pdf_str(VERSION) + b" >>")
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offs = []
+    for i, b in enumerate(objs):
+        offs.append(len(out))
+        out += "{} 0 obj\n".format(i + 1).encode() + b + b"\nendobj\n"
+    x = len(out)
+    out += "xref\n0 {}\n0000000000 65535 f \n".format(len(objs) + 1).encode()
+    for o_ in offs:
+        out += "{:010d} 00000 n \n".format(o_).encode()
+    out += "trailer\n<< /Size {} /Root {} 0 R /Info {} 0 R >>\nstartxref\n{}\n%%EOF\n".format(
+        len(objs) + 1, cat, info, x).encode()
+    with open(path, "wb") as fh:
+        fh.write(bytes(out))
+
+
+def _p16_save(pg, folder, name, title, imgs):
+    """the core's save() with _p16_write_pdf: a new name when the old file is open in another program"""
+    path = os.path.join(folder, name)
+    try:
+        _p16_write_pdf(pg, path, title, imgs)
+    except (IOError, OSError):
+        path = os.path.join(folder, name.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf")))
+        _p16_write_pdf(pg, path, title, imgs)
+    return path
+
+
 # ---------------------------------------------------------------- the sheet
-def senses_sheet(C, areas, folder, files, warn):
-    """S1: writes Bergama_senses_A3.pdf into the masterplan's output folder (the masterplan's own PDF writer, Arial
-    embedded); returns the log line. Called once a press by build_all (a failure is only a warning there)."""
+def senses_sheet(C, areas, folder, files, warn, basemap=None):
+    """S1: writes Bergama_senses_A3.pdf into the masterplan's output folder (the masterplan's PDF writer, Arial
+    embedded; with History photos _p16_save, the same writer plus JPEG images); returns the log line. Called once a
+    press by build_all (a failure is only a warning there). basemap = {panel title: (mode, override)} changes
+    P16_BASEMAP's choice (D5) for this run."""
     t0 = time.time()
+    _P16_MEMO.clear()                                    # photos are read once a run
+    bm = dict(P16_BASEMAP)
+    bm.update(basemap or {})
     G = sn_data(C, areas, warn)
+    G["warn"] = warn
     pg = Page(SN_PW, SN_PH)
     pg.poly([rect(0.0, 0.0, SN_PW, SN_PH)], fill="FFFFFF")
     pg.text(SN_KICKER, SN_ML, sn_y(12.0), sn_mm(SN_TS["kicker"]), SN_ACC, bold=True)   # the booklet's header band
@@ -7440,14 +7851,14 @@ def senses_sheet(C, areas, folder, files, warn):
     pg.line([(SN_ML, sn_y(25.0)), (SN_PW - SN_ML, sn_y(25.0))], SN_RULE, 0.25 * SN_PT)
     sn_rich(pg, SN_ML, sn_y(30.5), [(u"The fade-out zones and the ", False), (u"senses", True),
                                     (u" · every strip ", False), (u"1:20,000", True)], SN_TS["statement"], SN_INK)
-    cells = [(SN_COLX[0], SN_ROWS[0], u"Zones", sn_zones, sn_zones_under),
-             (SN_COLX[1], SN_ROWS[0], u"Feeling", sn_feeling, None),
-             (SN_COLX[0], SN_ROWS[1], u"Sound", sn_sound, None),
-             (SN_COLX[1], SN_ROWS[1], u"Smell", sn_smell, None),
-             (SN_COLX[0], SN_ROWS[2], u"Encounters", sn_encounters, None),
-             (SN_COLX[1], SN_ROWS[2], u"History", sn_history, None)]
-    for cx, top, title, layer, under in cells:
-        cell = sn_cell(pg, G, cx, top, title, under)
+    cells = [(SN_COLX[0], SN_ROWS[0], u"Zones", sn_zones),
+             (SN_COLX[1], SN_ROWS[0], u"Feeling", sn_feeling),
+             (SN_COLX[0], SN_ROWS[1], u"Sound", sn_sound),
+             (SN_COLX[1], SN_ROWS[1], u"Smell", sn_smell),
+             (SN_COLX[0], SN_ROWS[2], u"Encounters", sn_encounters),
+             (SN_COLX[1], SN_ROWS[2], u"History", sn_history)]
+    for cx, top, title, layer in cells:
+        cell = sn_cell(pg, G, cx, top, title, bm.get(title))
         labs, n0 = [], len(pg.items)
         try:
             labs = layer(pg, G, cell, warn) or []
@@ -7460,7 +7871,8 @@ def senses_sheet(C, areas, folder, files, warn):
                 pg.unclip()
         sn_outline(pg, G, cell)
         sn_place(pg, cell, labs, warn)
-    path = save(pg, folder, SN_NAME, SN_TITLE)
+    imgs = G.get("imgs") or []
+    path = _p16_save(pg, folder, SN_NAME, SN_TITLE, imgs) if imgs else save(pg, folder, SN_NAME, SN_TITLE)
     files.append(path)
     return u"{}  {}  {:.1f} s (zones: {})".format(os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"),
                                                   time.time() - t0, G["fields_src"])
