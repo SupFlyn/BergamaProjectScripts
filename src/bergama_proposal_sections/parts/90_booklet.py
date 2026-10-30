@@ -10,7 +10,7 @@ BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becom
               # v9 (MIRAQUA 28 Oct, F5): the public page behind SRC_KEY plane (v10: the hamam is no longer drawn)
               ("icomos_2014", u"ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered Cultural Landscape",
                u"https://whc.unesco.org/document/152724")]
-# v10: ps_all = page 13 (key map strip + the four sections at 1:500, scale_den set so the booklet prints "1:500");
+# v10: ps_all = page 12 (key map strip + the four sections at 1:500, scale_den set so the booklet prints "1:500");
 # the single crops are the four panels (unused by the booklet today, kept for other pages)
 BK_CROPS = [("ps_all", "all", u"Proposal sections W1-W4, upstream to downstream, each looking downstream"),
             ("ps_upstream", "up", u"W1 · Upstream entry, looking downstream"),
@@ -32,21 +32,29 @@ def booklet_export(log):
     for k, t, u in BK_SOURCES:
         bk.source(k, t, u)
     bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())]}   # v7: the booklet's sources page
-    # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour)
+    # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour), for
+    # the single crops; ps_all carries its own legend band (revision 30 Oct, G1), so the booklet adds none under it
+    P = _wat_pal()
     legend = [dict(kind="fill", colour=_ps_mix(PS_FLOOD, "FFFFFF", PS_FLOOD_A), label=u"reach of the 500-year flood (Q500)"),
-              dict(kind="dash", colour=COL["river_mid"], label=u"Q500 (dashed) and Q100 (dotted) water levels"),
-              dict(kind="fill", colour=SEC["channel"], label=u"summer strip, basin water"),
+              dict(kind="fill", colour=P["sec"], label=u"water at the average yearly flow"),
+              dict(kind="dash", colour=P["q100"], label=u"Q100 flood level"),
+              dict(kind="dash", colour=P["q500"], label=u"Q500 flood level"),
               dict(kind="fill", colour=SCT["stone"], label=u"stone: DSİ walls, steps, garden wall"),
-              dict(kind="fill", colour=SCT["concrete"], label=u"concrete: basins, floors"),
+              dict(kind="fill", colour=SCT["concrete"], label=u"concrete: stairs, ramp, basins"),
               dict(kind="fill", colour=SCT["earth"], label=u"earth"),
               dict(kind="fill", colour=SCT["gravel"], label=u"gravel bed"),
-              dict(kind="fill", colour=PS_TIMBER, label=u"timber boardwalk"),
+              dict(kind="fill", colour=PS_TIMBER, label=u"timber: terrace, boardwalk"),
+              dict(kind="fill", colour=SF_LANE["walk"], label=u"walk paving"),
+              dict(kind="fill", colour=SF_LANE["bike"], label=u"bike lane"),
               dict(kind="fill", colour=COL["accent"], label=u"proposal (labels), cut lines on the key map")]
-    for bid, key, cap in BK_CROPS:
-        if key not in SHEET_BOXES:
-            log.append(u"booklet %s: section %s not on the sheet" % (bid, key))
-            continue
-        x0, y0, x1, y1 = SHEET_BOXES[key]
-        bk.crop(bid, OUT_NAME.format("A"), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
-                scale_den=PS_SCALE * BK_S, legend=legend, drop=BK_DROP)
+    for style, part in STYLES:                        # revision 30 Oct (D1): ids _a / _b, the plain id = style b
+        boxes = SHEET_BOXES.get(style, {})
+        for bid, key, cap in BK_CROPS:
+            if key not in boxes:
+                log.append(u"booklet %s_%s: section %s not on the sheet" % (bid, style, key))
+                continue
+            x0, y0, x1, y1 = boxes[key]
+            for b_id in ((bid + "_" + style, bid) if style == "b" else (bid + "_" + style,)):
+                bk.crop(b_id, OUT_NAME.format(part), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
+                        scale_den=PS_SCALE * BK_S, legend=([] if key == "all" else legend), drop=BK_DROP)
     return bk.save()

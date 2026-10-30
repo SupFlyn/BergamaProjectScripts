@@ -4,6 +4,17 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN (revision 30 Oct, T6, booklet p12; the version number is set at the end of the revision):
+  * D6: the block sits on the A0 sheet at exactly 1:200 (BK_S = 0.4), so the booklet prints it at 1:500 and its scale
+    bars read 1:500 (they read 1:1,481: the sheet's words said 1:500 at a non-standard sheet factor).
+  * M7 figures at 1.75 m doing what each zone is for, M6 species at sourced heights in mixed wet-to-dry planting, the
+    G6 ratios checked (sf_assert_g6, log), the M5 water at average yearly flow with Q100 / Q500, stepping stones.
+  * W1: a stone stair down the NE wall into the bed, life in the wet bed, an edge walk and a bike lane. W2: walk, bike
+    lane, tree band, people on the steps and at the water. W3: a mixed wet edge up to the commons, herbs at the
+    garden wall. W4: crest walk, bike lane and tree corridor, a ramp on a berm to a viewing terrace above Q500, steps
+    to the boardwalk. Faded trees behind every cut (R16). Key map on the M4 base with the study area.
+  * D1: two sheets from one geometry: Bergama_proposal_sections_A.pdf (style b, vector) and ..._A_style_a.pdf (style
+    a, cutouts from Downloads/Bergama/Data/cutouts/); crops suffixed _a / _b (unsuffixed = b). Legend inside ps_all.
 NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
@@ -80,6 +91,7 @@ GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
+STYLES = (("b", "A"), ("a", "A_style_a"))              # revision 30 Oct (D1): style -> the sheet's OUT_NAME part
 
 #@include ../common/bergama_paths.py
 BERGAMA = BERGAMA_ROOT
@@ -214,8 +226,8 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 #@include ../common/rect.py
 
 # ---------------------------------------------------------------- shared modules (revision 29 Oct, T2a / T2b)
-# v10: the level table (data first), the section parts before the plants, the legacy figures (through _p13_fig
-# only), the basemap for the key map. Names checked: no module name is defined by this script.
+# v10: the level table (data first), the section parts before the plants, the figures (M7, through ps_fig
+# and ps_people), the basemap for the key map. Names checked: no module name is defined by this script.
 #@include ../common/data/LEVELS.py
 
 #@include ../common/levels.py
@@ -257,33 +269,36 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 # on ONE A3 page at the factor BK_S. v10 (WO-T3b-3): the block is drawn in booklet print mm (parts/70_sections.py:
 # the key map strip across the top, the four sections W1-W4 at 1:500 in a 2 x 2 under it) and placed here at 1 / BK_S,
 # so ps_all prints every section at exactly 1:500.
-SHEET_BOXES = {}                                      # key -> crop box (x0, y0, x1, y1), mm, y up; set by build_sheet
-# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H)
-BK_W, BK_H = 392.0, 238.0
-GRID_W = BOARD_W - 2 * M                              # the block on the A0 sheet, mm
-GRID_H = GRID_W * BK_H / BK_W                         # same shape as the booklet area: it fills the page, never stretched
-BK_S = BK_W / GRID_W                                  # booklet print factor of ps_all (0.338)
+SHEET_BOXES = {}                                      # style -> {key -> crop box (x0, y0, x1, y1), mm, y up}; build_sheet
+# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H); revision
+# 30 Oct: a little under it (390 x 234), so 1:500 fits whatever the grid takes, the legend inside the block
+BK_W, BK_H = 390.0, 234.0
+BK_S = 0.4                                            # booklet print factor of ps_all: the sheet at 1:200 prints 1:500
+GRID_W = BK_W / BK_S                                  # the block on the A0 sheet, mm (975 x 585)
+GRID_H = BK_H / BK_S
 
 
-def build_sheet(opt, log):
-    """v10: the page-13 block (key map strip + the four sections at 1:500) on one A0 landscape sheet."""
+def build_sheet(opt, log, style="b"):
+    """v10: the page-12 block (key map strip + the four sections at 1:500 on the booklet, 1:200 here) on one A0
+    landscape sheet, in style b (vector) or a (cutouts, D1)."""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     X0, X1 = M, BOARD_W - M
     top = BOARD_H - M
     pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · the block below is booklet page 13",
+    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · 1:200 on this sheet",
             X0, top - 18.0, 3.6, MP["discharge"][2], bold=True)
     y1 = top - 22.0
     pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
     gy1 = y1 - 4.0
     gy0 = gy1 - GRID_H
-    blk, boxes = ps_block(log)
+    blk, boxes = ps_block(log, style)
     s = 1.0 / BK_S
-    pg.items += xform(blk.items, s, X0, gy0)
+    pg.items += ps_xform(blk.items, s, X0, gy0)
+    sb = SHEET_BOXES.setdefault(style, {})
     for key, b in boxes.items():                      # single crops: one section panel each
-        SHEET_BOXES[key] = (X0 + s * b[0], gy0 + s * b[1], X0 + s * b[2], gy0 + s * b[3])
-    SHEET_BOXES["all"] = (X0, gy0, X0 + GRID_W, gy1)  # ps_all: the whole block = page 13
+        sb[key] = (X0 + s * b[0], gy0 + s * b[1], X0 + s * b[2], gy0 + s * b[3])
+    sb["all"] = (X0, gy0, X0 + GRID_W, gy1)           # ps_all: the whole block = page 12
     log.append(u"sources: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())))
     return pg
 
@@ -296,15 +311,19 @@ def main():
     pal = load_palette([DATA_DIR], log)
     lines = []
     for opt in OPTIONS:
-        t1 = time.time()
-        pg = build_sheet(opt, log)
-        path = os.path.join(OUT_DIR, OUT_NAME.format(opt))
-        try:
-            write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
-        except (IOError, OSError):
-            path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
-            write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
-        lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"), time.time() - t1))
+        for style, part in STYLES:                    # revision 30 Oct (D1): one sheet per style, same geometry
+            t1 = time.time()
+            pg = build_sheet(opt, log if style == "b" else [], style)
+            path = os.path.join(OUT_DIR, OUT_NAME.format(part))
+            try:
+                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
+            except (IOError, OSError):
+                path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
+                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
+            lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"),
+                                                     time.time() - t1))
+    log.append(cut_log_line())
+    log += [u"PDF images: " + x for x in WP_IMG_LOG[:5]]
     try:                                              # v4: A3 booklet assets; an error here never stops the sheet
         booklet_export(log)
     except Exception as ex:
