@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 run*/
 *.hashes
+# traced Pinterest / copyrighted assets stay local (Aras 30 Oct 06:19)
+trace_in/
+bergama_trace_assets/
