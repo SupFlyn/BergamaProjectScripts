@@ -698,6 +698,8 @@ def p24_section(C, w, warn):
                 S.zl.append((P24_NAME["hub"], t_, _p24_zat(prof, t_), True))
                 seen.add("hub")
     for c_ in C.cross:                                    # footbridges and stepping stones beyond
+        if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
+            continue
         ts_ = [_p24_tz(c0, cd, f, p) for p in c_["P"]]
         if not all(0.0 < d <= P24_BEYOND_M for _, d in ts_):
             continue
@@ -911,6 +913,8 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
             leg(("p24", "bike"))
     # ---- crossings: stepping stones (true size), footbridge decks (the walk's width)
     for c_ in C.cross:
+        if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
+            continue
         A_, B_ = c_["P"][0], c_["P"][1]
         if c_["kind"] == "stepping stones" and (inP(A_) or inP(B_)):
             L = math.hypot(B_[0] - A_[0], B_[1] - A_[1]) or 1.0

@@ -583,7 +583,7 @@ def pl23_busy(C, T, half=1.4):
     out = []
     lines = list(C.bed_loops) + list(C.covered) + list(C.canopy) + [a["P"] for a in C.arms] + \
         [x.get("P") or [] for x in (C.CL.get("W") or {}).get("runs") or []] + [rd["xy"] for rd in ROADS] + \
-        [c_["P"] for c_ in C.cross]
+        [c_["P"] for c_ in C.cross if c_.get("P")]          # v30.1: kept bridges have only "xy"
     for P in lines:
         if len(P) >= 2:
             out += boxes_along([T(p) for p in P], half)
