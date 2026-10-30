@@ -329,11 +329,11 @@ def site28_sec_sizes(sd_, U):
 
 def site28_tag_fit(tag, wpx, h):
     """a cut building's tag at height h if the building (wpx board units wide) holds it (as v16.4: 0.6 x its
-    width), else its floors alone ("2 fl"), else None"""
+    width), else its height alone ("6.00 m"), else None (revision 30 Oct, G6: never a floor count)"""
     if wpx > 0.6 * site28_tw(tag, h):
         return tag
     short_ = tag.split(u" · ")[-1]
-    if short_ != tag and short_.endswith(u" fl") and wpx > 0.6 * site28_tw(short_, h):
+    if short_ != tag and short_.endswith(u" m") and wpx > 0.6 * site28_tw(short_, h):
         return short_
     return None
 

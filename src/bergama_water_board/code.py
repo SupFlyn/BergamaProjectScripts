@@ -56,6 +56,8 @@ v7: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the det
   the recorded animals as PhyloPic silhouettes in their own colours (P14_HR; wagtails + green toad keep their
   pictograms) and the bare plane in its leafless silhouette; p.17 sections and cards; p.18 axonometric keeps its
   primitives. Output: Bergama_water_board_v7_A_cubes.pdf.
+v8 (revision 30 Oct, T5-T8): p11 system axonometric + zoom (D1 a/b), pp.13-14 seasons and S4 bank (D1 a/b), p16/p17
+  planting (a/b), p18 farms without the axonometric (D2 a); captions for the _a/_b crops. Output: Bergama_water_board_v8_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -155,8 +157,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v7.1 (2026-10-30)"
-SHORT = "v7.1"
+VERSION = "bergama_water_board v8 (2026-10-30)"
+SHORT = "v8"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -165,7 +167,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v7_1_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v8_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -787,14 +789,7 @@ def fit(fn, x, y, w, h, pad=4.0, lo=0.5, hi=3.0):
 # elements 1-11 as numbered roundels on it, a pictogram and a few words under each, grouped by place.
 FS_MIN = 2.65                        # v1.14: the least text size on a booklet panel, mm (7.5 pt printed 1:1 on A3)
 # v5 (revision 29 Oct, T3b WO-T3b-2): the chain ribbon is gone (p.12 is one water map now); its logic stays as the five
-# steps the map numbers, one row each beside it: (step, icons.py icon, verb, how in keywords)
-CHAIN = [
-    (1, "rain", u"COLLECT", u"winter stream water and street + roof runoff, at the upstream entry"),
-    (2, "reeds", u"CLEAN", u"once, in lined reed basins; the whole reach then runs clean"),
-    (3, "storage", u"HOLD", u"winter water in the ground, for the dry summer, at most a year"),
-    (4, "stream", u"GIVE BACK", u"clean water back to the stream; a summer strip keeps the bed wet"),
-    (5, "stream_out", u"TO THE FARMS", u"the clean stream leaves the site for the farms outside; nothing is pumped back"),
-]
+# steps the map numbers (the step rows went with CHAIN; their source stays)
 CHAIN_SRC = (u"Aras 2026-10-18 14:29 (one way, cleaned once at the upstream end, no treatment at the downstream end), "
              u"14:49 and 15:02 (no farmland inside the site); strip: design values, " + RR + u" §4; minimum flow: "
              u"\"at least 10 %\" of the 10-year mean, HES water-use-rights regulation Art. 15/1, RG 15.06.2019 no. "
@@ -1560,36 +1555,7 @@ COLIFORM = [  # (label, low, high, colour key, source); 0 = the limit is zero
     (u"reuse class B · orchards", 200, 200, "acc", u"published, 2010 wastewater reuse communiqué"),
     (u"reuse class A · parks", 0, 0, "acc", u"published, 2010 wastewater reuse communiqué"),
     (u"drinking water · E. coli", 0, 0, "acc", u"published, Ministry of Health")]
-GOES_T = [
-    ("out", u"THE CLEAN STREAM LEAVES THE SITE", None,
-     u"-> existing farmland on the slopes outside · no farm channel inside",
-     u"design decision, Aras 2026-10-18 14:49, 15:02"),
-    ("olive", u"OLIVES HERE, 1-IN-5 DRY YEAR, DRIP", u"{:,.0f} m³ per ha".format(OLIVE_M3_HA),
-     u"so 10,000 m³ of stored water serves {:.2f} ha".format(10000.0 / OLIVE_M3_HA),
-     u"calculated, FAO-56 soil water balance for Bergama, 34 water years; " + WB_SRC),
-    ("plant", u"THE PLANT'S TREATED WATER, 120 SUMMER DAYS", u"about {:,.0f} ha".format(
-        round(14304 * 120 / OLIVE_M3_HA / 5.0) * 5),
-     u"of olives from 1.72 million m³", u"calculated from 14,304 m³/day; " + WB_SRC),
-    ("drought", u"NORTH AEGEAN BASIN: FARMS GET", u"75 % · 29 %",
-     u"of demand · normal year · very severe drought",
-     u"published, North Aegean water allocation plan 2025; " + REG + u" CL-21"),
-    ("nodrink", u"NOT FOR DRINKING", u"arsenic > 10 µg/L",
-     u"groundwater · drinking needs 0 E. coli/100 ml · none of it for drinking", u"published, Somay & Gemici 2015; " +
-     REG + u" EN-E3")]
 AQUIFER = [(u"Groundwater potential", 45.4), (u"Total use", 198.01)]   # hm³/yr, Lower Bakırçay, official (2018)
-DECISION = [
-    (u"KEEP SEWAGE OUT", u"İZSU sewer (SE-22)"),
-    (u"CLEAN AT THE UPSTREAM END", u"reed beds at the entry · whole reach clean"),
-    # v3.2 (Aras 27 Oct, Prompt 8): was "10^2-10^5" (no superscript), now as the coliform tile on p.13
-    (u"DISINFECT WHERE PEOPLE TOUCH IT", u"wetlands leave 100-100,000 CFU/100 ml · class A: 0"),
-    (u"HOLD WINTER WATER", u"{:,.0f}-{:,.0f} m³ incl. strip = {:.1f}-{:.1f} % of Dec-Apr flow".format(
-        WB_STORE[0], WB_STORE[1], 100.0 * WB_STORE[0] / WINTER_FLOW, 100.0 * WB_STORE[1] / WINTER_FLOW)),
-    (u"KEEP THE STRIP ALIVE", u"clean water all summer · feeds the planting (D8)"),
-    (u"THEN THE FARMS", u"farms outside (class B) · 10,000 m³ = {:.2f} ha olives · aquifer used 4.4 x".format(   # v4 (F6)
-        10000.0 / OLIVE_M3_HA)),
-    (u"NOT FOR DRINKING", u"arsenic > 10 µg/L · stored rain not listed for drinking")]
-
-
 
 
 def icon(pg, kind, x, y, sz):
@@ -1913,7 +1879,6 @@ def tiles(pg, x, y, w, items, s, cols=2, extra=0.0):
 
 
 
-DEC_ICONS = ["sewer_x", "reed", "uv", "cube", "strip", "farm", "nodrink"]
 
 
 LOOP_BACK = u"next winter: new stream water refills the storage · one way, nothing pumped back"
@@ -2003,10 +1968,11 @@ CONTEXT = {
               u"for the dry summer, the stream given back clean to the **farms** downstream. Nothing is pumped back.",
     "concept": u"The idea in section at the upstream entry and at K4: the **problem** on site and the **one move** that "
                u"answers it. Numbers as in the chain.",
-    "farms": u"Where the clean water ends up: **farmland outside** the site, easing an aquifer used 4.4 times its "
+    "farms": u"Where the clean water ends up: **farmland outside** the site, easing an aquifer used far beyond its "
              u"potential. **Never drinking water**.",
     "seasons": u"One cut, one viewpoint, four seasons: the **water level** decides what the place becomes, which "
-               u"**plants** are in leaf or flower, and which **animals** are about.",
+               u"**plants** are in leaf or flower, which **animals** are about, and how **people** use it: walking the "
+               u"promenade, sitting on the seat steps, wading in the summer strip, the Kermes market.",
     "ne": u"The north-east bank of S4: **seat steps** and a **raised promenade** over Q500 stay; the planting follows "
           u"the **days under water**, the use follows the months.",
 }
@@ -2075,7 +2041,7 @@ def build_board(opt, storage, parts, pal_line, log):
     yf = cb[1] - 3.0
     split = b[0] + (b[2] - b[0]) * 0.64
     bt = drawn(pg, lambda: fit_draw(pg, boxed(draw_farms_text), (b[0], yf - 112.0, split, yf)))
-    _, bp = place(pg, parts["farm"], (split + 3.0, yf - 112.0, b[2], yf), 1.4, "C", log, "farm pictogram")
+    _, bp = place(pg, parts["farm"], (split + 3.0, yf - 112.0, b[2], yf), 1.4, "C", log, "aquifer")
     crop_add("wb_farms", union(cb, bt, bp))
     yd = min(bt[1], bp[1]) - 5.0
     dw, dh = b[2] - b[0], yd - b[1]
@@ -2117,14 +2083,24 @@ def build_board(opt, storage, parts, pal_line, log):
 BK_CAPTIONS = {
     "wb_water": u"How the water behaves: the year, and how high the stream rises",
     "wb_system": u"What we do with it: collect, clean, hold, give back",
+    "wb_system_a": u"What we do with it: collect, clean, hold, give back · style a, raster collage",
+    "wb_system_b": u"What we do with it: collect, clean, hold, give back · style b, textured vector",
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
     "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
+    "wb_plants_b_a": u"Planting and water in section: four cuts, the species and their year · style a, raster collage",
+    "wb_plants_b_b": u"Planting and water in section: four cuts, the species and their year · style b, textured vector",
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 
 
+for _c in ("wb_s4_seasons", "wb_s4_ne"):             # D1: the style a / b copies carry the panel's caption
+    for _s in ("_a", "_b"):
+        BK_CAPTIONS.setdefault(_c + _s, BK_CAPTIONS[_c])
+
+
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
+BK_FIXED += tuple(c + s for c in BK_FIXED if c != "wb_plants" for s in ("_a", "_b"))   # D1: their style a / b copies
 
 
 def res_s4_cut():

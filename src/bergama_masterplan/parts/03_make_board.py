@@ -22,12 +22,14 @@ def make_board(opt, alt, pages, title=None):
         y -= hr + G
     sh = add_legend(bd, alt, _ALPHA[0], M)               # v17
     dy = sh.H - bd.H                                     # the legend band added under the board
-    sh.panels = []
+    sh.panels, sh.panels_more = [], []                   # T7: panels_more = [(crop id, rect, page)] of p.crops_more
     for p, x, y0 in at:
         c = getattr(p, "crop", None)
         if c:
             x0, x1, yb, yt = x + c[0], x + c[2], y0 + dy + c[1], y0 + dy + c[3]
             sh.panels.append((getattr(p, "key", None), (x0, sh.H - yt, x1, sh.H - yb), p))
+        for id_, c_ in getattr(p, "crops_more", ()):   # T7 (p23/p24 D1): the style copies, as extra booklet crops
+            sh.panels_more.append((id_, (x + c_[0], sh.H - (y0 + dy + c_[3]), x + c_[2], sh.H - (y0 + dy + c_[1])), p))
     return sh
 
 
@@ -974,7 +976,13 @@ def build_all(doc, warn):
     if sheets:                                           # v21: the booklet's crops of the sheets; never breaks them
         try:
             booklet_crops(folder, sheets, wins, plc, missing)
-            lines.append(u"cached/booklet/{}/blocks.json  {} crops".format(OUT_FOLDER, sum(len(sh_.panels) for _, sh_, _ in sheets)))
+            lines.append(u"cached/booklet/{}/blocks.json  {} crops (+{} style copies)".format(
+                OUT_FOLDER, sum(len(sh_.panels) for _, sh_, _ in sheets),
+                sum(len(getattr(sh_, "panels_more", ())) for _, sh_, _ in sheets)))
+            cl_ = cut_log_line()                         # T7: the style a cutouts and the images (write_pdf)
+            if cl_:
+                lines.append(cl_)
+            lines.extend(MP_IMG_LOG)
         except Exception as ex:
             import traceback
             lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))

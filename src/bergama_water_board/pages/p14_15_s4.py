@@ -1258,11 +1258,7 @@ def _p14_ext_box(pg, box, title):
 
 
 def _p14_crop_ids(cid):
-    """the D1 crop ids cid_a / cid_b laid out like cid (BK_FIXED: printed 1:1) with cid's caption"""
-    global BK_FIXED
-    BK_FIXED = tuple(BK_FIXED) + tuple(i for i in (cid + "_a", cid + "_b") if i not in BK_FIXED)
-    for s_ in ("_a", "_b"):
-        BK_CAPTIONS.setdefault(cid + s_, BK_CAPTIONS.get(cid, u""))
+    """the D1 crop ids of cid: cid, cid_b, cid_a (their BK_FIXED entries and captions are set in code.py)"""
     return [cid, cid + "_b", cid + "_a"]
 
 

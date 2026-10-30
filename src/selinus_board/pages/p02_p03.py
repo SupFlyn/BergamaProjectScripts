@@ -1425,11 +1425,6 @@ def export_axonometrics(S):
     # compose() calls chrome() last with the drawing's view, so the figures go in there (_p03_figures), and the
     # engine's own chrome is put back after the loop
     chrome0 = DG.get("chrome")
-    # revision 30 Oct (G6, PG1 p3): the heritage callouts give the building's height in m (2 decimals), never floors:
-    # the engine's floors_fact is swapped for _p03_height_fact during the loop and put back after it
-    fact0 = DG.get("floors_fact")
-    if fact0 is not None:
-        DG["floors_fact"] = _p03_height_fact
 
     def chrome_figs(pg_, ctx_, spec_, ext_, V_, stamp_):
         try:
@@ -1444,20 +1439,8 @@ def export_axonometrics(S):
     finally:
         if chrome0 is not None:
             DG["chrome"] = chrome0
-        if fact0 is not None:
-            DG["floors_fact"] = fact0
     LOG.extend(u"Axonometric engine: " + m for m in DG["LOG"])
     return out
-
-
-def _p03_height_fact(u):
-    """revision 30 Oct (G6): a callout's fact line: the building's height in m with 2 decimals (the site model's
-    u["h"], the same height the axonometric extrudes), never a floor count; "" without one"""
-    h = u.get("h")
-    try:
-        return u"{:.2f} m".format(float(h)) if h else u""
-    except (TypeError, ValueError):
-        return u""
 
 
 def _p03_label(t):

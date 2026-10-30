@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v30.2 (2026-10-30): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v31 (2026-10-30): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v31 (revision 30 Oct, T7 + T8): p.21 masterplan and p.22 1:1,000 windows redrawn on the shared modules;
+    D1 style a / b copies of the windows written as extra booklet crops (dt_upstream_a/_b, dt_k5_a/_b); the PDF
+    writer draws images. Output: Bergama_masterplan_v31_A.pdf, Bergama_masterplan_v31_A_detail.pdf, Bergama_senses_A3.pdf.
 NEW IN v30.2 (bugfix, Aras 30 Oct 13:05 run): p.23 side column: the "More moves" list is sized as it is drawn
     (each move at least its badge's height), so the legend pitch leaves room for it (was 0.7 mm over). Output:
     Bergama_masterplan_v30_2_A.pdf, Bergama_masterplan_v30_2_A_detail.pdf, Bergama_senses_A3.pdf.
@@ -208,8 +211,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v30.2 (2026-10-30)"
-SHORT = "v30.2"
+VERSION = "bergama_masterplan v31 (2026-10-30)"
+SHORT = "v31"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -220,8 +223,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v30_2_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v30_2_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v31_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v31_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -8530,6 +8533,14 @@ def booklet_crops(folder, sheets, wins, plc, missing):
                 fr.update(from_m=round(R[0], 1), to_m=round(R[2], 1), overlap_m=0.0)
             res["frames"][old] = fr
             res["labels_not_drawn"][old] = missing.get(bid, [])
+        for bid, rc, p in getattr(sh, "panels_more", ()):   # T7 (p23/p24 D1): p.crops_more, its style copies:
+            sc_ = getattr(p, "scale", scale)              # the main crop's caption, scale and legend
+            leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []
+            if getattr(p, "r28_leg", None):
+                leg_ = p.r28_leg
+            bk.crop(bid, os.path.basename(pdf), rc, caption=p.bid[2], scale_den=sc_, legend=leg_, drop=drop)
+            if p.bid[0] in ("mp_plan", "mp_max_area", "dt_upstream", "dt_k5"):   # drawn at 1:1 as the main crop
+                bk.d["blocks"][bid]["bk_w"] = round(rc[2] - rc[0], 3)
     with open(bk.path("results.json"), "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False, indent=1)
     return bk.save()
@@ -13775,12 +13786,14 @@ def make_board(opt, alt, pages, title=None):
         y -= hr + G
     sh = add_legend(bd, alt, _ALPHA[0], M)               # v17
     dy = sh.H - bd.H                                     # the legend band added under the board
-    sh.panels = []
+    sh.panels, sh.panels_more = [], []                   # T7: panels_more = [(crop id, rect, page)] of p.crops_more
     for p, x, y0 in at:
         c = getattr(p, "crop", None)
         if c:
             x0, x1, yb, yt = x + c[0], x + c[2], y0 + dy + c[1], y0 + dy + c[3]
             sh.panels.append((getattr(p, "key", None), (x0, sh.H - yt, x1, sh.H - yb), p))
+        for id_, c_ in getattr(p, "crops_more", ()):   # T7 (p23/p24 D1): the style copies, as extra booklet crops
+            sh.panels_more.append((id_, (x + c_[0], sh.H - (y0 + dy + c_[3]), x + c_[2], sh.H - (y0 + dy + c_[1])), p))
     return sh
 
 
@@ -14727,7 +14740,13 @@ def build_all(doc, warn):
     if sheets:                                           # v21: the booklet's crops of the sheets; never breaks them
         try:
             booklet_crops(folder, sheets, wins, plc, missing)
-            lines.append(u"cached/booklet/{}/blocks.json  {} crops".format(OUT_FOLDER, sum(len(sh_.panels) for _, sh_, _ in sheets)))
+            lines.append(u"cached/booklet/{}/blocks.json  {} crops (+{} style copies)".format(
+                OUT_FOLDER, sum(len(sh_.panels) for _, sh_, _ in sheets),
+                sum(len(getattr(sh_, "panels_more", ())) for _, sh_, _ in sheets)))
+            cl_ = cut_log_line()                         # T7: the style a cutouts and the images (write_pdf)
+            if cl_:
+                lines.append(cl_)
+            lines.extend(MP_IMG_LOG)
         except Exception as ex:
             import traceback
             lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))

@@ -1,9 +1,12 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v53.1)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v54)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v54 (revision 30 Oct, T4 + T6 + T8): town map pages p2, p3, p6 (D5 a/b), p7, p8 street sections (D1 a/b),
+p15 senses, p20 heritage, pp.4-5 sections redrawn on the shared modules; the PDF writer draws cutout images; heights
+printed in m (no floor counts on p3 and the core sections).
 NEW IN v53.1 (bugfix, Aras 30 Oct 12:41 run): pages 04-05 sections key map no longer stops in basemap_draw
   ("p() missing 'y'"): the shared basemap hands one point (x, y), the page's V.p takes x and y.
 NEW IN v53: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
@@ -410,7 +413,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v53.1 (2026-10-30)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v54 (2026-10-30)"     # v27: the log's first line and the text under the component
 SHORT_V = "v53"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
@@ -875,7 +878,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'REF_LABELS': '776d8caf5b5d9ea0061c0f4658ae8184', 'NOISE_KERNEL': '01b8cb14e278f24b14cf38cb3f144eb1', 'CLIMATE': 'ff5e2a39ea1582fe5835508061f8373a', 'UTCI_COEF': 'f9a042398c5738cdfec070e76c033e89', 'TYPO': '8ce83a96d9e586c6baee1d0de5886e91', 'DIAG_SRC': '74859169a480d7643a649bafd863a7dc', 'LEVELS': '86d74f065d5084a6a48e2a041f6b920b', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'SEAM_PACK': '085995a020c4250c1934b10c24b09c1e'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'REF_LABELS': '776d8caf5b5d9ea0061c0f4658ae8184', 'NOISE_KERNEL': '01b8cb14e278f24b14cf38cb3f144eb1', 'CLIMATE': 'ff5e2a39ea1582fe5835508061f8373a', 'UTCI_COEF': 'f9a042398c5738cdfec070e76c033e89', 'TYPO': '8ce83a96d9e586c6baee1d0de5886e91', 'DIAG_SRC': '436685414e31128c7d6d1b82a060fbe8', 'LEVELS': '86d74f065d5084a6a48e2a041f6b920b', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'SEAM_PACK': '085995a020c4250c1934b10c24b09c1e'}.get(name):
         raise RuntimeError("Data file selinus_board_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "selinus_board_data.py:" + name, "exec"), globals())
@@ -16384,12 +16387,14 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
         prof = bld_profile(ftype, cat, a, b, z0, z0, z1, floors, fsrc == "published", seed=int(a * 7.0), ruin=fl[2],
                            minaret=fl[3] if len(fl) > 3 else None)
         tag_ = typo_label(ftype, cat, floors, fl[0], fl[4] if len(fl) > 4 else "")
+        if tag_.endswith(u" fl"):                         # revision 30 Oct (G6): its height in m, never floors
+            tag_ = tag_.rsplit(u" · ", 1)[0] + u" · " + u_height(z1 - z0)
         if th_ is None:
             lab_ = tag_ if (not annex and (b - a) * ss > 0.6 * tw(tag_, 0.17 * U)) else None
             bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27, label=lab_, placed=tags_)
             continue
         bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27)
-        lab_ = None if annex else site28_tag_fit(tag_, (b - a) * ss, th_)   # v50: the tag, else its floors alone
+        lab_ = None if annex else site28_tag_fit(tag_, (b - a) * ss, th_)   # v50: the tag, else its height alone
         if lab_:
             site28_bld_tag(B, L, P, prof, lab_, th_, wall_c, U, tags_)
     if dry or not HAVE_NP:                               # no picture: the measured crowns as before
@@ -20250,8 +20255,6 @@ def draw_walking_effort(S, B, x, y, w, U):
 # (k = board units per booklet mm, as in v44); text never under 7 pt on the booklet page.
 # v50 (MIRAQUA 28 Oct, P06.1-P06.4, P22.1): p.6 and p.22 are drawn in parts/15k_r28_edge.py (ONE strip at 1:10,000,
 # G7; vector hatches, P06.2); EB_DEN, EB_N, OPEN_TINT, OPEN_HATCH, eb_hatched and draw_eb_base are gone.
-P01_BK_W = 232.0        # mm: plan 01's width on the booklet page beside the site readings (sets its label sizes)
-RD_BK_W = 156.0         # mm: the site readings' width on the booklet page
 EB_CONE_M = 45.0       # m: the drawn length of a photo's view cone (its angle is the camera's, from the photo)
 EB_COL_X = 297.0        # v49: mm from the panel's left edge to the spread copy's column (booklet grid column 10, as the
 #                         masterplan page beside it)
@@ -21615,11 +21618,11 @@ def site28_sec_sizes(sd_, U):
 
 def site28_tag_fit(tag, wpx, h):
     """a cut building's tag at height h if the building (wpx board units wide) holds it (as v16.4: 0.6 x its
-    width), else its floors alone ("2 fl"), else None"""
+    width), else its height alone ("6.00 m"), else None (revision 30 Oct, G6: never a floor count)"""
     if wpx > 0.6 * site28_tw(tag, h):
         return tag
     short_ = tag.split(u" · ")[-1]
-    if short_ != tag and short_.endswith(u" fl") and wpx > 0.6 * site28_tw(short_, h):
+    if short_ != tag and short_.endswith(u" m") and wpx > 0.6 * site28_tw(short_, h):
         return short_
     return None
 
@@ -22827,7 +22830,7 @@ class BkBlocks(object):
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v53.1"
+BK_VERSION = "v54"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -29440,11 +29443,6 @@ def export_axonometrics(S):
     # compose() calls chrome() last with the drawing's view, so the figures go in there (_p03_figures), and the
     # engine's own chrome is put back after the loop
     chrome0 = DG.get("chrome")
-    # revision 30 Oct (G6, PG1 p3): the heritage callouts give the building's height in m (2 decimals), never floors:
-    # the engine's floors_fact is swapped for _p03_height_fact during the loop and put back after it
-    fact0 = DG.get("floors_fact")
-    if fact0 is not None:
-        DG["floors_fact"] = _p03_height_fact
 
     def chrome_figs(pg_, ctx_, spec_, ext_, V_, stamp_):
         try:
@@ -29459,20 +29457,8 @@ def export_axonometrics(S):
     finally:
         if chrome0 is not None:
             DG["chrome"] = chrome0
-        if fact0 is not None:
-            DG["floors_fact"] = fact0
     LOG.extend(u"Axonometric engine: " + m for m in DG["LOG"])
     return out
-
-
-def _p03_height_fact(u):
-    """revision 30 Oct (G6): a callout's fact line: the building's height in m with 2 decimals (the site model's
-    u["h"], the same height the axonometric extrudes), never a floor count; "" without one"""
-    h = u.get("h")
-    try:
-        return u"{:.2f} m".format(float(h)) if h else u""
-    except (TypeError, ValueError):
-        return u""
 
 
 def _p03_label(t):
