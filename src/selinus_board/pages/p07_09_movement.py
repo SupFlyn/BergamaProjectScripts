@@ -70,18 +70,13 @@ def _t3_base_leg():
             ("box", C(bf.get("bld", "D3D0CB")), u"Building"), R28_STUDY_LEG]
 
 
-def _p07_fig(pose, x, y, k, facing=1, view="side", h_m=1.70, col="4A3F35"):
-    """T3a: the ONE figure helper of this file: house shapes ("poly", ring, fill, stroke, lw), page mm, feet at (x, y),
-    k mm per m. v52: the A1 pen figures of figures.py (fig_side / fig_top, adult 1.70 m); "sit" on a street = the
-    library's figure on a chair (a café seat), not a figure sitting on nothing."""
-    if view == "top":
-        return fig_top(pose, x, y, k, ink=col)
-    return fig_side("sit_chair" if pose == "sit" else pose, x, y, k, facing, ink=col, h_m=h_m)
-
-
 class _T3Put(object):
-    """T3a: house shapes (page mm, y up, hex colours: icons.py, section_parts.py, plants.py, _p07_fig) onto the board:
-    board = (ox + x * kb, oy + y * kb), kb = board units per booklet mm"""
+    """T3a: house shapes (page mm, y up, hex colours: icons.py, section_parts.py, plants.py, figures.py,
+    section_frame.py) onto the board: board = (ox + x * kb, oy + y * kb), kb = board units per booklet mm. T4 (30
+    Oct): every shape kind of the modules: ("poly", ring, fill, stroke, lw[, alpha]) (alpha = the fill mixed toward
+    the white board), ("line", pts, colour, lw[, dash mm]), ("text", s, x, y, font size mm, colour, bold, align) and
+    ("image", x, y, w, h, path, alpha, flip, clip) (D1 a: B.image; clip ignored); one order per call, so the shapes
+    keep their own drawing order"""
 
     def __init__(self, B, ox, oy, kb, L):
         self.B, self.ox, self.oy, self.kb, self.L = B, ox, oy, kb, L
@@ -90,6 +85,7 @@ class _T3Put(object):
         return [(self.ox + p[0] * self.kb, self.oy + p[1] * self.kb) for p in pts]
 
     def put(self, shapes, order=40):
+        col_ = lambda c_: C(c_) if isinstance(c_, str) else c_
         for s_ in shapes or []:
             if s_[0] == "poly":
                 ring, fill, stroke, lw = s_[1], s_[2], s_[3], s_[4]
@@ -97,14 +93,24 @@ class _T3Put(object):
                     continue
                 Q = self.P(ring)
                 if fill:
-                    self.B.fill([Q], C(fill) if isinstance(fill, str) else fill, self.L, order)
+                    a_ = s_[5] if len(s_) > 5 and s_[5] is not None else 1.0
+                    self.B.fill([Q], mix(col_(fill), WHITE, 1.0 - max(0.0, min(1.0, a_))), self.L, order)
                 if stroke and lw:
-                    self.B.line(Q + [Q[0]], C(stroke) if isinstance(stroke, str) else stroke, self.L, order + 1,
-                                bk_lw(lw, self.kb))
+                    self.B.line(Q + [Q[0]], col_(stroke), self.L, order, bk_lw(lw, self.kb))
             elif s_[0] == "line" and len(s_[1]) >= 2:
-                col = s_[2]
-                self.B.line(self.P(s_[1]), C(col) if isinstance(col, str) else col, self.L, order + 1,
-                            bk_lw(s_[3], self.kb))
+                Q, w_ = self.P(s_[1]), bk_lw(s_[3], self.kb)
+                dash = s_[4] if len(s_) > 4 else None
+                for d in (dashes(Q, dash[0] * self.kb, dash[1] * self.kb) if dash else [Q]):
+                    self.B.line(d, col_(s_[2]), self.L, order, w_)
+            elif s_[0] == "text" and u"{}".format(s_[1]).strip():
+                self.B.text(s_[1], self.ox + s_[2] * self.kb, self.oy + s_[3] * self.kb, s_[4] * R28MV_CAP * self.kb,
+                            col_(s_[5]), self.L, order=order, font=FONT_TITLE, bold=bool(s_[6]) if len(s_) > 6 else False,
+                            align=s_[7] if len(s_) > 7 else "L")
+            elif s_[0] == "image":
+                x_, y_, w_, h_ = s_[1], s_[2], s_[3], s_[4]
+                self.B.image(s_[5], self.ox + x_ * self.kb, self.oy + y_ * self.kb, self.ox + (x_ + w_) * self.kb,
+                             self.oy + (y_ + h_) * self.kb, self.L, order=order, alpha=s_[6] if len(s_) > 6 else None,
+                             flip=bool(s_[7]) if len(s_) > 7 else False)
 
     def rect(self, x0, y0, x1, y1, fill, stroke=None, lw=0.15, order=40):
         self.put([("poly", [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], fill, stroke, lw)], order)
@@ -273,11 +279,83 @@ def r28mv_class_legend():
                  width=round(_t3_grad_w(v_) * 72.0 / 25.4, 2)) for v_, lab in zip(R28MV_CLS, labs)]
 
 
-def draw_mv_key(S, B, V, R, MV, key, F, L, h, bounds):
+def _t3_rot_box(cx, cy, ux, uy, a0, a1, b0, b1):
+    """the corners of a rectangle round (cx, cy): a0..a1 along the unit direction (ux, uy), b0..b1 across it (to
+    its left)"""
+    nx, ny = -uy, ux
+    return [(cx + ux * a + nx * b, cy + uy * a + ny * b) for a, b in ((a0, b0), (a1, b0), (a1, b1), (a0, b1))]
+
+
+def _t3_bb(P):
+    return (min(p[0] for p in P), min(p[1] for p in P), max(p[0] for p in P), max(p[1] for p in P))
+
+
+def _t3_poly_hit(P, Q):
+    """True when the convex polygons P and Q (a segment = a polygon of two points) touch (separating axes)"""
+    for R_ in (P, Q):
+        n = len(R_)
+        for i in range(n):
+            ex, ey = R_[(i + 1) % n][0] - R_[i][0], R_[(i + 1) % n][1] - R_[i][1]
+            if abs(ex) + abs(ey) < 1e-12:
+                continue
+            pa = [p[0] * -ey + p[1] * ex for p in P]
+            qa = [q[0] * -ey + q[1] * ex for q in Q]
+            if max(pa) < min(qa) or max(qa) < min(pa):
+                return False
+    return True
+
+
+def _t3_run_label(Qs, wt, h, half, bounds, taken, segs):
+    """T4 (30 Oct, p7 G3): a spot where a street name (wt long, capital height h, board units) runs ALONG its own
+    street: a straight enough stretch of one of its runs Qs (board polylines; the longest run first, its middle
+    first), the name beside the line (half = half the drawn street's width) on either side, upright, inside bounds,
+    clear of the names already placed (taken: rotated boxes) and of the linework segs [(a, b, bbox)]. Returns
+    (x, y of the baseline's middle, angle (radians), its box) or None."""
+    pad = 0.15 * h
+    for Q in sorted(Qs, key=lambda Q_: -pl_length(Q_)):
+        Lq = pl_length(Q)
+        if Lq < wt + 2.0 * pad:
+            continue
+        step, ds, d = max(0.2 * wt, 0.5 * h), [], 0.0
+        while d + wt <= Lq + 1e-9:
+            ds.append(d)
+            d += step
+        ds.sort(key=lambda d_: abs(d_ + 0.5 * wt - 0.5 * Lq))
+        for d in ds:
+            p0, p1 = pl_point_at(Q, d)[0], pl_point_at(Q, d + wt)[0]
+            cl = math.hypot(p1[0] - p0[0], p1[1] - p0[1])
+            if cl < 0.85 * wt:
+                continue
+            ux, uy = (p1[0] - p0[0]) / cl, (p1[1] - p0[1]) / cl
+            if ux < -1e-9 or (abs(ux) <= 1e-9 and uy < 0):
+                ux, uy = -ux, -uy                         # upright: never upside down
+            nx, ny = -uy, ux
+            if any(abs((q[0] - p0[0]) * nx + (q[1] - p0[1]) * ny) > 0.3 * h
+                   for q in (pl_point_at(Q, d + wt * i / 6.0)[0] for i in range(1, 6))):
+                continue                                  # the stretch bends: the name would leave its street
+            mx, my = 0.5 * (p0[0] + p1[0]), 0.5 * (p0[1] + p1[1])
+            g = half + 0.3 * h
+            for b0 in (g, -g - h):
+                poly = _t3_rot_box(mx, my, ux, uy, -0.5 * wt - pad, 0.5 * wt + pad, b0 - pad, b0 + h + pad)
+                if not all(bounds[0] <= p[0] <= bounds[2] and bounds[1] <= p[1] <= bounds[3] for p in poly):
+                    continue
+                if any(_t3_poly_hit(poly, t_) for t_ in taken):
+                    continue
+                bb = _t3_bb(poly)
+                if any(sb[0] <= bb[2] and bb[0] <= sb[2] and sb[1] <= bb[3] and bb[1] <= sb[3] and
+                       _t3_poly_hit([a, b], poly) for a, b, sb in segs):
+                    continue
+                return mx + nx * b0, my + ny * b0, math.atan2(uy, ux), poly
+    return None
+
+
+def draw_mv_key(S, B, V, R, MV, key, F, L, h, bounds, k):
     """v44: the key streets of the walking / driving map, named. v50 (MIRAQUA 28 Oct, P07.3, P07.4): every street
     piece is drawn graded (r28mv_class_streets), so this names the 5 busiest named streets (mv_key_rows) at h (7 pt),
-    "name · index" on its longest run, placed without overlaps (place_labels). Returns (their rows, the key of the
-    labels that found no place, {name: every point of its runs})."""
+    "name · index". T4 (30 Oct, p7 G3: "which name belongs to which street"): each name runs along its own street
+    (_t3_run_label), clear of the other names, the study-area outline and the named streets' lines; where no
+    stretch of its street holds it, M2 lp_place sets it beside the street on a short leader that touches it.
+    Returns (their rows, {name: every point of its runs})."""
     rows = mv_key_rows(MV, key)
     names = set(r_["name"] for r_ in rows)
     pieces = R["pieces"]
@@ -286,19 +364,48 @@ def draw_mv_key(S, B, V, R, MV, key, F, L, h, bounds):
     def val(pi):
         nm = (pieces[pi]["tags"].get("name") or "").strip()
         return nm if nm in names else None
-    best, pts = {}, {}
+    runs, pts = {}, {}
     for P, nm in _runs(R["chains"][net], pieces, R["xy"], val, set(R["inside"]), F):
         pts.setdefault(nm, []).extend(P)
-        if nm not in best or pl_length(P) > pl_length(best[nm]):
-            best[nm] = P
-    labels = []
+        runs.setdefault(nm, []).append(V.P(P))
+    obst = [V.P(list(P) + [P[0]]) for P in getattr(S, "r28_study", None) or [] if len(P) >= 2]
+    obst += [Q for Qs in runs.values() for Q in Qs]
+    segs = [(a, b, _t3_bb([a, b])) for Q in obst for a, b in zip(Q[:-1], Q[1:])]
+    kd = kind_of(FONT_TITLE)
+    taken, rest = [], []
     for r_ in rows:
-        P = best.get(r_["name"])
-        if P:
-            q, t = pl_point_at(P, pl_length(P) / 2.0)
-            px, py = V.p(q[0], q[1])
-            labels.append(([u"{} · {:.0f}".format(r_["name"], r_[key])], px, py, h, INK))
-    return rows, place_labels(B, labels, [], L, bounds=bounds), pts
+        Qs = runs.get(r_["name"])
+        if not Qs:
+            continue
+        s = u"{} · {:.0f}".format(r_["name"], r_[key])
+        wt = tw(s, h, kd)
+        got = _t3_run_label(Qs, wt, h, 1.1 * _t3_grad_w(r_[key]) * k, bounds, taken, segs)
+        if got is None:
+            rest.append((s, wt, Qs))
+            continue
+        x_, y_, ang, poly = got
+        taken.append(poly)
+        B.text(s, x_, y_, h, INK, L, order=66, font=FONT_TITLE, bold=True, align="C", angle=ang)
+    if rest:                                              # M2: beside its street on a leader that touches it
+        labs = []
+        for s, wt, Qs in rest:
+            Q = max(Qs, key=pl_length)
+            q = pl_point_at(Q, pl_length(Q) / 2.0)[0]
+            labs.append(dict(x=q[0] / k, y=q[1] / k, w=(wt + 0.4 * h) / k, h=1.5 * h / k, rank=0, r=0.0))
+        obs = [tuple(v / k for v in _t3_bb(t_)) for t_ in taken]
+        res = lp_place(labs, obstacles=obs, lines=[[(p[0] / k, p[1] / k) for p in Q] for Q in obst],
+                       bounds=tuple(v / k for v in bounds), max_leader=12.0)
+        for (s, wt, Qs), g in zip(rest, res):
+            if g is None:
+                LOG.append(u"p.07 {}: no room for the street name \"{}\".".format(key, s))
+                continue
+            bx, f = g["box"], g["size"]
+            B.text(s, bx[0] * k + 0.2 * h * f, bx[1] * k + 0.25 * h * f, h * f, INK, L, order=66, font=FONT_TITLE,
+                   bold=True)
+            if g["leader"]:
+                (a, b) = g["leader"]
+                B.line([(a[0] * k, a[1] * k), (b[0] * k, b[1] * k)], INK, L, 65, bk_lw(0.15, k))
+    return rows, pts
 
 
 def r28mv_main_stream(S):
@@ -451,28 +558,38 @@ def r28mv_note_today(S, R, MV, key, rows, pts, lens):
     return out
 
 
+T3_HEAD_PT = 10.0        # pt: a p.07 map's own heading, inside its crop (T4, G1)
+
+
+def _t3_map_head(B, x, y, U, head, L):
+    """T4 (30 Oct, p7 G1): a p.07 map's heading at the top of its crop (y = the crop's top); returns the y of the
+    map's top edge under it"""
+    k0 = 120.0 * U / BK_AW
+    hh = bk_hk(T3_HEAD_PT, k0)
+    B.text(head, x, y - 0.5 * k0 - hh, hh, INK, L, order=66, font=FONT_TITLE, bold=True)
+    return y - 0.5 * k0 - hh - 2.0 * k0
+
+
 def draw_mv_today(S, B, x, y, U, R, MV, key, title, cap):
     """v46 (Prompt 3, p.8): walking or driving today as its own map at the theme's one scale: the whole site frame at
     1:10,000, the masterplan base, the scale bar and north arrow under it. v50 (MIRAQUA 28 Oct, P07.3): the index on
     EVERY street piece of its network (mv_runs walk_b / car_b; walking-only pieces stay base street on the driving
     map), graded in five classes by colour and line weight (r28mv_class_streets), the classes in the crop's legend;
     the 5 busiest named streets named at 7 pt (draw_mv_key, P07.4); P07.2: its note beside it (drw_mv_note_2 / _3).
-    Returns the y below its crop."""
+    T4 (30 Oct, p7): title = the map's own heading, inside its crop (G1); the names run along their streets (G3);
+    the crop's legend (drawn by the booklet under the crop, M2) holds every symbol. Returns the y below its crop."""
     L = "LU_BOARD::HowPeopleUseIt"
     F = S.F
-    B.text(title, x, y, 0.5 * U, INK, L, font=FONT_TITLE, bold=True)
-    V, k, ss, r = b_view(F, x, y - 0.8 * U, U)
+    V, k, ss, r = b_view(F, x, _t3_map_head(B, x, y, U, title, L), U)
     h = bk_hk(R28MV_LABEL_PT, k)
     CB = ClipB(B, r)
     B.fill([rect(*r)], WHITE, L, 1)
     _t3_base(S, CB, V, k, L)                              # T3a: the shared basemap, simple mode (pp.07-09)
     lens = r28mv_class_streets(CB, V, mv_runs(S, R, key, F), k, L, 14)
-    rows, key_, pts = draw_mv_key(S, CB, V, R, MV, key, F, L, h, r)
+    rows, pts = draw_mv_key(S, CB, V, R, MV, key, F, L, h, r, k)
     b_frame(B, r, k, L)
     low = b_foot(B, F, x, r[1], ss, k, L)
-    if key_:
-        low = draw_label_key(B, key_, x, low - 0.8 * k, r[2] - x, h, L)
-    crop = (x - 0.5 * k, low - 0.5 * k, r[2] + 0.5 * k, r[3] + 0.5 * k)
+    crop = (x - 0.5 * k, low - 0.5 * k, r[2] + 0.5 * k, y)
     crop_panel(CROP_MV.get(key, key), crop[0], crop[1], crop[2], crop[3], cap, crop_scale(ss),
                r28mv_class_legend() + crop_legend(_t3_base_leg()))     # T3a: cap is the caller's whole caption
     if key in R28MV_NOTE_OF:
@@ -490,6 +607,16 @@ def draw_mv_proposal(S, B, x, y, w, U, M):
     return _t3_street_sections(S, B, x, y, w, U, M)
 
 # ------------------------------------------------------------ p.08 before / after street sections per road type (D3 b)
+# T4 (30 Oct 2026; PG2 ③ "just a car, a house and a person", plain rectangles, weird hatches; D1 both, D4 a, D9; G1,
+# G6, G7, G10): M8 sections. The cut ground in its hatch (sf_ground) and the lanes (sf_lane); the fronting buildings as
+# real profiles (M11 bld_section_items: survey height and floors, cut walls, slabs, windows, roof) and, behind them,
+# the façades further along the same street (the same survey, faded); trees behind (sf_atmosphere, D9 layers 2, 1);
+# people at 1.75 m doing what the street lets them do (M7 fig_side / fig_group / fig_stall, at least three
+# interactions), walkers further along (D9); speech bubbles (fig_bubble) marked "illustrative scenario" (D4); icon
+# labels naming each use above the section (M9, R04); numbered callouts with their reasons (SfCallouts, R07); widths
+# in cm (sf_width_label); a scale bar; the G6 check (sf_assert_g6); the legend under the drawing with the hatch itself
+# (M2 Legend). Drawn twice from the same geometry: style "b" (textured vector) and "a" (cutouts placed with B.image; a
+# missing cutout is drawn in style b), crops drw_street_sections_b (= drw_street_sections) and drw_street_sections_a.
 T3_SEC_ORDER = ("kept", "calmed", "pedestrian", "shared")   # the masterplan's road changes, one section pair each
 T3_SEC_DENS = (200, 250, 500)   # the standard scales tried, largest first: two rows at most on one booklet width
 T3_SEC_ROW_W = 392.0     # mm: one booklet row (BK_AW)
@@ -497,12 +624,43 @@ T3_SEC_GAP = 7.0         # mm between today and with the project
 T3_SEC_PAIR_GAP = 14.0   # mm between two road types
 T3_SEC_MATCH = 10.0      # m: an OSM street piece runs along a masterplan road when half its points lie this close
 T3_SEC_REACH = 15.0      # m: a frontage (survey building) is looked for this far across, each side (as measure_widths)
-T3_SEC_STUB = 4.0        # m of each fronting building drawn beyond its frontage
+T3_SEC_DEEP = 24.0       # m: a fronting building is followed this far back from its frontage (its real depth)
+T3_SEC_BEYOND = (-16.0, -8.0, 8.0, 16.0)   # m along the street: where the façades behind the cut are looked for
 T3_SEC_OPEN = 3.0        # m of ground drawn beyond the street edge where no building fronts it
-T3_SEC_TREE_MIN = 6.0    # m: a street at least this wide (frontage to frontage) takes a tree row in the proposal
-T3_SEC_CAR = (1.80, 1.45)   # m: a car seen from the front (width, height), the drawing's symbol
-T3_COL = dict(asphalt="6E675F", paving="CFC6B4", bld="E2E0D4", bld_edge="4A3F35", car="A7A299", car_edge="6E675F",
-              ink="4A3F35", ink2="7A6E60", head="8B3A3F")
+T3_SEC_TREE_MIN = 6.0    # m: a street at least this wide (frontage to frontage) takes a tree in the proposal
+T3_SEC_CAR = (1.80, 1.45)   # m: a car seen from the front (width, height), the drawing's symbol (no module draws cars)
+T3_SEC_GROUND_M = 1.2    # m of cut ground drawn under the street (drawing rule)
+T3_FS = 2.3              # mm: the font size of every word in the sections (6.5 pt)
+T3_ICO = 4.2             # mm: an icon label's badge
+T3_MK = 2.6              # mm: a numbered callout (its number 6.3 pt)
+T3_COL = dict(car="A7A299", car_edge="6E675F", ink="4A3F35", ink2="7A6E60", head="8B3A3F", beyond="F2F0EC",
+              beyond_edge="C9C3BA", lead="9A9086")
+T3_CHANGE_TXT = dict(kept=u"kept as it is", calmed=u"calmed", pedestrian=u"made pedestrian", shared=u"shared street")
+# the people of a section: footprint (m along the cut) and head height (m) of each act; who does what per street
+T3_ACT = dict(adult_child=(1.0, 1.75), group=(1.8, 1.75), kerb=(0.6, 1.75), bike=(1.9, 1.80), bench=(1.0, 1.30),
+              market=(2.6, 1.75), child_play=(0.8, 1.15))
+T3_SCRIPT = dict(today=("adult_child", "group", "kerb", "bike"),
+                 calmed=("bike", "group", "bench", "adult_child", "child_play"),
+                 pedestrian=("market", "bench", "group", "child_play", "adult_child"),
+                 shared=("bike", "group", "bench", "adult_child"))
+T3_ACT_USE = dict(group=("people", u"Meeting"), bench=("seating", u"Seating"), market=("market", u"Market stall"),
+                  bike=("bike", u"Cycling"), child_play=("people", u"Play"))
+# D4 a: the bubbles caricature the situation (an illustrative scenario, never a quote); three at most per section
+T3_BUBBLES = {("today", "adult_child"): u"Hold my hand,\nthe cars!",
+              ("today", "group"): u"Let's talk\nsomewhere quieter.",
+              ("today", "kerb"): u"Still waiting\nto cross...",
+              ("today", "bike"): u"Squeezed between\ncars again.",
+              ("calmed", "bike"): u"Cars at my pace,\nfor once.",
+              ("calmed", "group"): u"We can hear\neach other now!",
+              ("calmed", "bench"): u"A seat on this\nstreet? New.",
+              ("calmed", "adult_child"): u"We cross\nwhere we like.",
+              ("pedestrian", "market"): u"Two kilos,\nstraight from the stall!",
+              ("pedestrian", "bench"): u"Shade, a bench,\nno engines.",
+              ("pedestrian", "group"): u"Same street,\nhalf the noise.",
+              ("pedestrian", "child_play"): u"Race you\nto the stream!",
+              ("shared", "bike"): u"Room for me\nand the car.",
+              ("shared", "group"): u"Coffee\noutside today?",
+              ("shared", "bench"): u"Watching the\nstreet go by."}
 
 
 def _t3_ray(g, px, py, dx, dy, reach):
@@ -540,8 +698,9 @@ def _t3_sec_cut(S, rd):
     """T3a (D3 b): today's street along the masterplan road rd, from the survey only: of the OSM street pieces that run
     along rd (half their points within T3_SEC_MATCH of its line), the one with a measured width (measure_widths:
     road edges first, else frontages); across its middle: the carriageway between the surveyed road edges, each
-    side's frontage (survey building within T3_SEC_REACH) and that building's height (the board's building model).
-    None when no piece along rd has a measured width."""
+    side's frontage (survey building within T3_SEC_REACH), that building and its height (the board's building
+    model). T4: + the cut point p, the street's direction t, each side's normal n and building u, and the buildings
+    in section (_t3_sec_bld). None when no piece along rd has a measured width."""
     Lr = _xy_list(rd.get("xy"))
     if len(Lr) < 2:
         return None
@@ -569,7 +728,8 @@ def _t3_sec_cut(S, rd):
         f_, u = _t3_ray(gb, px, py, nx, ny, T3_SEC_REACH)
         if e_ is not None and f_ is not None and e_ > f_:
             e_ = None                                     # an edge behind the frontage is another street's
-        side[sg] = dict(edge=e_, front=f_, h=(float(u.get("h") or 0.0) or None) if u else None)
+        side[sg] = dict(edge=e_, front=f_, h=(float(u.get("h") or 0.0) or None) if u else None,
+                        u=u if f_ is not None else None, n=(nx, ny), back=None, g6=None)
     w, src = float(r_["w"]), r_.get("w_src")
     if src == "road edges":
         a_ = side[-1]["edge"] if side[-1]["edge"] and side[1]["edge"] else w / 2.0
@@ -581,24 +741,72 @@ def _t3_sec_cut(S, rd):
             if side[sg]["front"] is None:
                 side[sg]["front"] = w / 2.0
     name = (r_["tags"].get("name") or u"").strip() or rd.get("name", u"")
-    return dict(name=name, change=rd.get("change", "kept"), w=w, w_src=src, carriage=carriage, side=side)
+    cut = dict(name=name, change=rd.get("change", "kept"), w=w, w_src=src, carriage=carriage, side=side,
+               p=(px, py), t=(tx, ty))
+    _t3_sec_bld(S, cut)
+    return cut
+
+
+def _t3_bld_cut(q, n, front, sg, u):
+    """T4 (M11, G7): survey building u cut along the ray from q (survey m) in direction n, its frontage `front` m
+    away, as bld_section_items in section m: (x across the street, side sg; z m above the street). Its height and
+    floors are the survey's; the roof is the module's convention (no roof survey)."""
+    d0 = max(0.0, front - 0.5)
+    a = (q[0] + n[0] * d0, q[1] + n[1] * d0)
+    b = (q[0] + n[0] * (front + T3_SEC_DEEP), q[1] + n[1] * (front + T3_SEC_DEEP))
+    out = []
+    for it in bld_section_items(a, b, [u], ground=lambda x_, y_: 0.0, label=False):
+        if it[0] == "fill":
+            out.append(("fill", [[(sg * (d0 + s), z) for s, z in R_] for R_ in it[1]], it[2]))
+        elif it[0] == "line":
+            out.append(("line", [(sg * (d0 + s), z) for s, z in it[1]], it[2], it[3], it[4]))
+    return out
+
+
+def _t3_sec_bld(S, cut):
+    """T4: the cut's buildings in section m: each side's fronting building cut (cut["bld"], its back = side "back",
+    its drawn eaves against the survey height = side "g6") and the profiles of the other buildings fronting the
+    street T3_SEC_BEYOND m along it, seen behind the cut (cut["beyond"]: rings), all from the survey"""
+    gb = _t3_sec_grids(S)[1]
+    p, t = cut["p"], cut["t"]
+    cutb, beyond = [], []
+    for sg in (-1, 1):
+        sd = cut["side"][sg]
+        if sd["u"] is not None and sd["h"]:
+            its = _t3_bld_cut(p, sd["n"], sd["front"], sg, sd["u"])
+            xs = [abs(q[0]) for it in its if it[0] == "fill" for R_ in it[1] for q in R_]
+            if xs:
+                cutb += its
+                sd["back"] = max(xs)
+                eav = [z for it in its if it[0] == "line" and it[2] == BLD_COL["sec_line"] for _m, z in it[1]]
+                sd["g6"] = (max(eav) if eav else None, sd["h"])
+        seen = set([id(sd["u"])])
+        for off in T3_SEC_BEYOND:
+            q = (p[0] + t[0] * off, p[1] + t[1] * off)
+            f_, u = _t3_ray(gb, q[0], q[1], sd["n"][0], sd["n"][1], T3_SEC_REACH)
+            if u is None or id(u) in seen or not u.get("h"):
+                continue
+            seen.add(id(u))
+            beyond += [R_ for it in _t3_bld_cut(q, sd["n"], f_, sg, u) if it[0] == "fill" and
+                       it[2] == BLD_COL["sec_fill"] for R_ in it[1]]
+    cut["bld"], cut["beyond"] = cutb, beyond
 
 
 def _t3_sec_extent(cut):
-    """(left, right) m of the drawing: each side to its fronting building's back (frontage + T3_SEC_STUB), else the
-    street edge + T3_SEC_OPEN; and (street left, street right): frontage or edge"""
+    """(left, right) m of the drawing: each side to its fronting building's back (+ 0.5 m), else the street edge +
+    T3_SEC_OPEN; and (street left, street right): frontage or edge"""
     st, ex = [], []
     for sg in (-1, 1):
         sd = cut["side"][sg]
         edge = sd["front"] if sd["front"] is not None else (
             abs(cut["carriage"][0 if sg < 0 else 1]) if cut["carriage"] else cut["w"] / 2.0)
         st.append(sg * edge)
-        ex.append(sg * (edge + (T3_SEC_STUB if sd["front"] is not None else T3_SEC_OPEN)))
+        ex.append(sg * (sd["back"] + 0.5 if sd.get("back") else edge + T3_SEC_OPEN))
     return tuple(ex), tuple(st)
 
 
 def _t3_car(x, gy, k, facing=1):
-    """a car seen from the front, the drawing's symbol (T3_SEC_CAR), its middle at x, wheels on gy"""
+    """a car seen from the front, the drawing's symbol (T3_SEC_CAR, true size), its middle at x, wheels on gy"""
     w_, h_ = T3_SEC_CAR
     b0, b1, c1 = gy + 0.30 * k, gy + 0.95 * k, gy + h_ * k
     body = [(x - 0.5 * w_ * k, b0), (x + 0.5 * w_ * k, b0), (x + 0.5 * w_ * k, b1), (x + 0.36 * w_ * k, c1),
@@ -610,105 +818,375 @@ def _t3_car(x, gy, k, facing=1):
     return out
 
 
-def _t3_sec_draw(PU, cut, after, x0, gy, k):
-    """one section of cut (today, or with the project when after) with its left edge at x0, ground at gy (mm),
-    k mm per m. Returns the mm width drawn."""
+def _t3_take(f, zones, occ, prefer):
+    """the left end (m) of a free stretch f m long in zones [(a, b)], clear of occ (grows), nearest prefer"""
+    cands = []
+    for a, b in zones:
+        x = a + 0.15
+        while x + f <= b - 0.15 + 1e-9:
+            cands.append(x)
+            x += 0.2
+    cands.sort(key=lambda c_: abs(c_ + 0.5 * f - prefer))
+    for c_ in cands:
+        if all(c_ + f <= o0 or c_ >= o1 for o0, o1 in occ):
+            occ.append((c_ - 0.25, c_ + f + 0.25))
+            return c_
+    return None
+
+
+def _t3_shift(shapes, dx, dy):
+    """house shapes moved by (dx, dy) mm"""
+    out = []
+    for s_ in shapes:
+        t = s_[0]
+        if t in ("poly", "line"):
+            out.append((t, [(p[0] + dx, p[1] + dy) for p in s_[1]]) + tuple(s_[2:]))
+        elif t == "text":
+            out.append((t, s_[1], s_[2] + dx, s_[3] + dy) + tuple(s_[4:]))
+        elif t == "image":
+            out.append((t, s_[1] + dx, s_[2] + dy) + tuple(s_[3:]))
+    return out
+
+
+def _t3_top(shapes):
+    """the highest y (mm) the shapes reach"""
+    ys = [0.0]
+    for s_ in shapes:
+        if s_[0] in ("poly", "line"):
+            ys += [p[1] for p in s_[1]]
+        elif s_[0] == "text":
+            ys.append(s_[3] + s_[4])
+        elif s_[0] == "image":
+            ys.append(s_[2] + s_[4])
+    return max(ys)
+
+
+def _t3_badge(ico, cx, cy, size):
+    """an icon label's badge: M9 ico_badge, or the drawing's car on the same plate (icons.py has no car)"""
+    if ico == "car":
+        return [("poly", sec_ellipse(cx, cy, 0.5 * size, 0.5 * size, 28), ICO_PAL["paper"], None, 0.0)] + \
+            _t3_car(cx, cy - 0.27 * size, 0.5 * size / T3_SEC_CAR[1])
+    return ico_badge(ico, cx, cy, size)
+
+
+def _t3_icon_row(uses, x0, W, yc, gy):
+    """R04: the uses of one section as icon labels in a row above it (centre height yc), each named, spread so no two
+    touch, each on a thin leader to its zone (target y above the ground gy). Returns (badges and names, leaders)."""
+    kd = kind_of(FONT_TITLE)
+    its = sorted(uses, key=lambda u_: u_[2])
+    wid = [max(T3_ICO, tw(lab, T3_FS * R28MV_CAP, kd)) for _i, lab, _x, _y in its]
+    xs = [x0 + u_[2] for u_ in its]
+    for i in range(1, len(xs)):
+        xs[i] = max(xs[i], xs[i - 1] + 0.5 * (wid[i - 1] + wid[i]) + 1.2)
+    if xs and xs[-1] + 0.5 * wid[-1] > x0 + W:
+        xs[-1] = x0 + W - 0.5 * wid[-1]
+        for i in range(len(xs) - 2, -1, -1):
+            xs[i] = min(xs[i], xs[i + 1] - 0.5 * (wid[i] + wid[i + 1]) - 1.2)
+    sh, lead = [], []
+    for (ico, lab, tx_, ty_), cx in zip(its, xs):
+        sh += _t3_badge(ico, cx, yc, T3_ICO)
+        sh.append(("text", lab, cx, yc + 0.5 * T3_ICO + 0.8, T3_FS, T3_COL["ink"], False, "C"))
+        tgt = (x0 + tx_, gy + ty_ + 0.3)
+        lead += [("line", [(cx, yc - 0.5 * T3_ICO), tgt], T3_COL["lead"], 0.1),
+                 ("poly", sec_ellipse(tgt[0], tgt[1], 0.35, 0.35, 10), T3_COL["lead"], None, 0.0)]
+    return sh, lead
+
+
+def _t3_sec_make(cut, after, style, k, CO, seed):
+    """T4: one section of cut (today, or with the project when after) in style "b" / "a": page mm, its left edge at
+    x 0, the street surface at y 0, k mm per m. Returns dict(wl = its WaterLayers draw list, w = width mm, uses =
+    [(icon, name, x, y target)], acts = the interactions drawn, low = the lowest y used, g6 = G6 messages, tree)."""
     (xl, xr), (sl, sr) = _t3_sec_extent(cut)
-    X = lambda m: x0 + (m - xl) * k
+    X = lambda m: (m - xl) * k
+    W = (xr - xl) * k
     ch = cut["change"]
-    sh = []
-    sh += sct_ground([(X(xl), gy), (X(xr), gy)], gy - 1.0 * k, k)          # the cut ground, 1 m deep
-    one_level = after and ch in ("calmed", "pedestrian", "shared")
-    # surfaces: the carriageway (asphalt) and the footways (paving) today; one paved level with the project
-    if one_level or not cut["carriage"]:
-        sh.append(("poly", [(X(sl), gy), (X(sr), gy), (X(sr), gy + 0.15 * k), (X(sl), gy + 0.15 * k)],
-                   T3_COL["paving"] if (one_level or not cut["carriage"]) else T3_COL["asphalt"], None, 0.0))
+    var = ch if after and ch != "kept" else "today"
+    one = var in ("calmed", "pedestrian", "shared")
+    width, mid = sr - sl, 0.5 * (sl + sr)
+    gm = T3_SEC_GROUND_M
+    kd = kind_of(FONT_TITLE)
+    wl = water_layers()
+    # behind the cut (D9): trees, the façades further along the street (survey), walkers further along
+    sf_atmosphere(0.0, W, 0.0, 0.0, k, seed=seed, sky=False, birds=False, mix={"plane": 1.0, "ash": 1.0}, t0=0.48,
+                  t1=0.52, density=0.35, style=style, into=wl)
+    for R_ in sorted(cut["beyond"], key=lambda R_: -max(q[1] for q in R_)):
+        ring = clip_rect_poly([(X(q[0]), q[1] * k) for q in R_], (0.0, -1.0, W, 1e6))
+        if len(ring) >= 3:
+            wl.add("background", [("poly", ring, T3_COL["beyond"], T3_COL["beyond_edge"], 0.10)])
+    # the ground and the lanes: carriageway and footways today, one paved level with the project
+    if one or not cut["carriage"]:
+        lanes = [(sl, sr, "walk")]
     else:
         c0, c1 = cut["carriage"]
-        sh.append(("poly", [(X(c0), gy), (X(c1), gy), (X(c1), gy + 0.15 * k), (X(c0), gy + 0.15 * k)],
-                   T3_COL["asphalt"], None, 0.0))
-        for a_, b_ in ((sl, c0), (c1, sr)):
-            if b_ - a_ > 0.05:
-                sh.append(("poly", [(X(a_), gy), (X(b_), gy), (X(b_), gy + 0.15 * k), (X(a_), gy + 0.15 * k)],
-                           T3_COL["paving"], None, 0.0))
-    gs = gy + 0.15 * k
-    # the fronting buildings, cut, at their height in the board's building model
-    for sg, edge, ext in ((-1, sl, xl), (1, sr, xr)):
+        lanes = [(a_, b_, kn) for a_, b_, kn in ((sl, c0, "walk"), (c0, c1, "road"), (c1, sr, "walk")) if b_ - a_ > 0.05]
+    sf_ground([(0.0, 0.0), (W, 0.0)], k, depth_m=gm, into=wl)
+    for a_, b_, kn in lanes:
+        wl.add("ground", sf_lane(X(a_), 0.0, b_ - a_, k, kind=kn))
+    # the fronting buildings, cut (M11, survey heights)
+    bsh = []
+    for it in cut["bld"]:
+        if it[0] == "fill":
+            bsh += [("poly", [(X(m), z * k) for m, z in R_], it[2], None, 0.0) for R_ in it[1]]
+        else:
+            bsh.append(("line", [(X(m), z * k) for m, z in it[1]], it[2], it[3]) + ((it[4],) if it[4] else ()))
+    wl.add("structures", bsh)
+    marks, uses, occ, cars = [], [], [], []
+    for sg in (-1, 1):
         sd = cut["side"][sg]
-        if sd["front"] is not None and sd["h"]:
-            a_, b_ = sorted((edge, ext))
-            sh.append(("poly", [(X(a_), gy), (X(b_), gy), (X(b_), gy + sd["h"] * k), (X(a_), gy + sd["h"] * k)],
-                       T3_COL["bld"], T3_COL["bld_edge"], 0.25))
-    # trees (plants.py, D6: plane) where the proposal leaves room: pedestrian and shared streets T3_SEC_TREE_MIN wide
-    width = sr - sl
-    if after and ch in ("pedestrian", "shared") and width >= T3_SEC_TREE_MIN:
-        tx = 0.5 * (sl + sr) if ch == "pedestrian" else sl + 0.25 * width
-        cr = (PLA_SPECIES.get("plane") or {}).get("crown_m") or width     # the species' crown (plants.py), kept
-        sh += pla_section("plane", X(tx), gs, k, crown_m=min(cr, width - 1.0))   # inside the street (no overlap, G5)
-    # people and cars by what the street is for
-    figs, cars = [], []
-    if not after or ch == "kept":
+        if sd.get("back"):
+            marks.append((X(sg * 0.5 * (sd["front"] + sd["back"])), u"Building, cut: height and floors as surveyed"))
+    road = []
+    if var == "today":
         if cut["carriage"]:
             c0, c1 = cut["carriage"]
             n = max(1, min(2, int((c1 - c0) // 3.0)))
             cars = [c0 + (c1 - c0) * (j + 0.5) / n for j in range(n)]
-            for a_, b_, f_ in ((sl, c0, 1), (c1, sr, -1)):
-                if b_ - a_ >= 1.2:
-                    figs.append(("walk", 0.5 * (a_ + b_), f_))
+            zones, road = [(sl, c0), (c1, sr)], [(c0, c1)]
+            uses.append(("car", u"Cars", X(0.5 * (c0 + c1)), T3_SEC_CAR[1] * k))
+            marks.append((X(0.5 * (c0 + c1)), u"Carriageway: the middle of the street belongs to cars"))
+            for a_, b_ in zones:
+                if b_ - a_ >= 0.5:
+                    uses.append(("walk", u"Footway", X(0.5 * (a_ + b_)), 0.0))
+                    marks.append((X(0.5 * (a_ + b_)), u"Footway: what is left for people"))
         else:
-            figs.append(("walk", 0.5 * (sl + sr) - 0.6, 1))
-    elif ch == "calmed":
-        c0, c1 = cut["carriage"] or (sl + 0.25 * width, sr - 0.25 * width)
-        cars = [c0 + 0.3 * (c1 - c0)]
-        figs += [("walk", c0 + 0.75 * (c1 - c0), -1)]
-        for a_, b_, f_ in ((sl, c0, 1), (c1, sr, -1)):
-            if b_ - a_ >= 1.2:
-                figs.append(("stand", 0.5 * (a_ + b_), f_))
-    elif ch == "pedestrian":
-        n = max(2, min(5, int(width // 2.5)))
-        poses = ("walk", "stand", "walk", "sit", "walk")
-        for j in range(n):
-            figs.append((poses[j % len(poses)], sl + width * (j + 0.5) / n, 1 if j % 2 == 0 else -1))
-    else:                                                 # shared
-        cars = [sl + 0.62 * width]
-        figs += [("walk", sl + 0.12 * width + 0.3, 1), ("bike", sl + 0.40 * width, 1), ("walk", sr - 0.12 * width, -1)]
+            zones = [(sl, sr)]
+            uses.append(("walk", u"Street", X(mid), 0.0))
+    else:
+        zones = [(sl, sr)]
+        uses.append(("walk", u"One level for people", X(sl + 0.15 * width), 0.0))
+        marks.append((X(sl + 0.15 * width), u"One level, no kerb: people cross anywhere"))
+        if var == "calmed":
+            c0, c1 = cut["carriage"] or (sl + 0.25 * width, sr - 0.25 * width)
+            cars = [c0 + 0.3 * (c1 - c0)]
+        elif var == "shared":
+            cars = [sl + 0.62 * width]
+        if cars:
+            uses.append(("car", u"Slow cars", X(cars[0]), T3_SEC_CAR[1] * k))
+            marks.append((X(cars[0]), u"Cars pass at walking pace"))
+    sh_ = []
     for cx in cars:
-        sh += _t3_car(X(cx), gs, k)
-    for pose, fx, f_ in figs:
-        sh += _p07_fig(pose, X(fx), gs, k, facing=f_)
-    PU.put(sh, 40)
-    return (xr - xl) * k
+        sh_ += _t3_car(X(cx), 0.0, k)
+        occ.append((cx - 1.1, cx + 1.1))
+    wl.add("figures", sh_)
+    # the project's tree where the street leaves room (plants.py, true size)
+    tx, trees = None, []
+    if var in ("pedestrian", "shared") and width >= T3_SEC_TREE_MIN:
+        tx = mid if var == "pedestrian" else sl + 0.25 * width
+        sp = PLA_SPECIES.get("plane") or {}
+        cr = min(sp.get("crown_m") or width, width - 1.0)       # the species' crown, kept inside the street (G5)
+        wl.add("vegetation", pla_section("plane", X(tx), 0.0, k, crown_m=cr, style=style, seed=seed))
+        trees.append(("plane", float(sp.get("h_m") or 0.0)))
+        occ.append((tx - 0.35, tx + 0.35))
+        uses.append(("shade", u"Shade tree", X(tx), float(sp.get("h_m") or 0.0) * k))
+    # walkers further along the street (D9 layers 2 and 1: smaller, paler)
+    for lay in (2, 1):
+        for a_, b_ in zones:
+            if b_ - a_ >= 1.5:
+                sh_, _pl = fig_activity("walkway", X(a_), X(b_), 0.0, k, layer=lay, seed=seed + 5 * lay, density=0.5,
+                                        style=style, max_n=2)
+                wl.add("background", sh_)
+    # the people at the cut (1.75 m): the street's interactions (G10)
+    script = T3_SCRIPT[var]
+    acts, bub = [], []
+    for i, act in enumerate(script):
+        f, head = T3_ACT[act]
+        zs = road if (act == "bike" and var == "today") else zones
+        if not zs:
+            continue
+        if act == "kerb" and cut["carriage"]:
+            prefer = cut["carriage"][0] - 0.5 * f - 0.2
+        elif act == "bench" and tx is not None:
+            prefer = tx + 0.4 + 0.5 * f
+        elif act == "bike" and var == "today":
+            prefer = 0.5 * (zs[0][0] + zs[0][1])
+        else:
+            prefer = sl + width * (i + 0.5) / len(script)
+        a_ = _t3_take(f, zs, occ, prefer)
+        if a_ is None:
+            continue
+        cx = a_ + 0.5 * f
+        fac = 1 if cx < mid else -1
+        hx = X(cx)
+        if act == "group":
+            sh_ = fig_group(X(cx), 0.0, k, n=3, seed=seed + i, style=style)
+        elif act == "bench":
+            an = fig_meta("sit_step", fac, seat_h=SF_SEAT_H)
+            sh_ = sf_bench(X(cx) + float(an.get("seat_x", 0.15 * fac)) * k, 0.0, k, side=-fac) + \
+                fig_side("sit_step", X(cx), 0.0, k, facing=fac, style=style, pick=seed + i, seat_h=SF_SEAT_H)
+            marks.append((X(cx), u"Bench here because the tree gives shade" if tx is not None else
+                          u"Bench: a place to stop on the way"))
+        elif act == "market":
+            xf = X(a_ + 1.45) if fac > 0 else X(a_ + f - 1.45)
+            sh_ = fig_stall(xf, 0.0, k, facing=fac, style=style, seed=seed + i)
+            hx = xf + fac * 0.45 * k
+            marks.append((X(cx), u"Market stall: trade moves into the street"))
+        else:
+            sh_ = fig_side({"kerb": "watch"}.get(act, act), X(cx), 0.0, k, facing=fac, style=style, pick=seed + i)
+        wl.add("figures", sh_)
+        acts.append(act)
+        bub.append((act, hx, head * k, fac))
+        if act in T3_ACT_USE:
+            uses.append(T3_ACT_USE[act] + (X(cx), head * k))
+    if tx is not None:
+        marks.append((X(tx), u"Plane tree: shade over the bench" if "bench" in acts else
+                      u"Plane tree: shade over the street"))
+    # D4 a: speech bubbles, toward the street's middle, never on each other or off the drawing
+    wfn = lambda s, size: tw(s, size * R28MV_CAP, kd)
+    boxes = []
+    for act, hx, hy, fac in bub:
+        t_ = T3_BUBBLES.get((var, act))
+        if not t_ or len(boxes) >= 3:
+            continue
+        for sd_ in (fac, -fac):
+            sh_ = fig_bubble(t_, hx, hy + 0.25 * k, size=T3_FS, side=sd_, width_fn=wfn)
+            bb = _t3_bb(sh_[0][1])
+            if bb[0] < 0.0 or bb[2] > W or any(bb[0] < q[2] and q[0] < bb[2] and bb[1] < q[3] and q[1] < bb[3]
+                                               for q in boxes):
+                continue
+            boxes.append(bb)
+            wl.add("labels", sh_)
+            break
+    # R07: numbered callouts in the cut ground (one number per element, its reason in the key)
+    r_ = 0.75 * T3_MK
+    ym = -0.55 * gm * k
+    marks.sort(key=lambda m_: m_[0])
+    xs = [m_[0] for m_ in marks]
+    for i in range(1, len(xs)):
+        xs[i] = max(xs[i], xs[i - 1] + 2.0 * r_ + 0.5)
+    if xs and xs[-1] > W - r_:
+        xs[-1] = W - r_
+        for i in range(len(xs) - 2, -1, -1):
+            xs[i] = min(xs[i], xs[i + 1] - 2.0 * r_ - 0.5)
+    for (mx, txt), x_ in zip(marks, xs):
+        n_ = CO.add(x_, ym, txt)
+        wl.add("labels", [("poly", sec_ellipse(x_, ym, r_, r_, 20), "FFFFFF", SEC["ink"], 0.15),
+                          ("text", u"%d" % n_, x_, ym - 0.36 * T3_MK, 0.85 * T3_MK, SEC["ink"], True, "C")])
+    # widths in cm, as surveyed: the lanes (where the number fits), then the street frontage to frontage
+    yw = -gm * k - 2.6
+    rows_w = [(a_, b_) for a_, b_, _kn in lanes] if len(lanes) > 1 else []
+    for a_, b_ in rows_w:
+        sh_ = sf_width_label(X(a_), X(b_), yw, b_ - a_, size=T3_FS)
+        if tw(sh_[-1][1], T3_FS * R28MV_CAP, kd) > (b_ - a_) * k - 0.4:
+            sh_ = sh_[:-1]                                # too narrow for its number: the dimension line only
+            LOG.append(u"Street sections {}: the {:,.0f} cm lane is too narrow on the page for its width; only the "
+                       u"street's total is written.".format(cut["name"], (b_ - a_) * 100.0))
+        wl.add("labels", sh_)
+    ys = yw - (3.6 if rows_w else 0.0)
+    wl.add("labels", sf_width_label(X(sl), X(sr), ys, sr - sl, size=T3_FS))
+    g6 = sf_assert_g6(k, trees=trees, buildings=[(u"{} side {}".format(cut["name"], sg),
+                                                   cut["side"][sg]["g6"][0], cut["side"][sg]["g6"][1])
+                                                  for sg in (-1, 1) if cut["side"][sg].get("g6") and
+                                                  cut["side"][sg]["g6"][0] is not None], strict=False)
+    return dict(wl=wl, w=W, uses=uses, acts=acts, low=ys - 1.5, g6=g6, tree=tx is not None)
 
 
-def _t3_sec_dims(PU, cut, x0, gy, k):
-    """the measured widths under a section, in cm: frontage to frontage (or the measured street width) and the
-    carriageway between the surveyed road edges. Returns the lowest y used."""
-    (xl, xr), (sl, sr) = _t3_sec_extent(cut)
-    X = lambda m: x0 + (m - xl) * k
-    rows = []
-    if cut["carriage"]:
-        rows.append((cut["carriage"][0], cut["carriage"][1], u"carriageway"))
-    rows.append((sl, sr, u"street"))
-    y = gy - 1.0 * k - 3.0
-    for a_, b_, lab in rows:
-        PU.line([(X(a_), y), (X(b_), y)], T3_COL["ink2"], 0.15)
-        for xx in (X(a_), X(b_)):
-            PU.line([(xx - 0.6, y - 0.6), (xx + 0.6, y + 0.6)], T3_COL["ink2"], 0.2)
-        PU.text(u"{} {:,.0f} cm".format(lab, round((b_ - a_) * 100.0)), 0.5 * (X(a_) + X(b_)), y + 0.8, 7.0,
-                T3_COL["ink"], False, "C")
-        y -= 4.2
-    return y + 1.5
+def _t3_swatch(kind, b, k):
+    """a legend swatch (page mm box b) drawn as the section draws it"""
+    x0, y0, x1, y1 = b
+    w, h, cx = x1 - x0, y1 - y0, 0.5 * (x0 + x1)
+    ring = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    if kind == "road":
+        return [("poly", ring, SF_LANE["road"], SCT["cut"], 0.15)]
+    if kind == "walk":
+        return sf_lane(x0, y1, w / k, k, kind="walk", t_m=h / k)
+    if kind == "earth":
+        return sct_hatch_fill(ring, "earth", k, SCT["cut"], 0.15)
+    if kind == "bld":
+        return [("poly", ring, BLD_COL["sec_fill"], BLD_COL["sec_cut"], BLD_LW["sec_cut"])]
+    if kind == "beyond":
+        return [("poly", ring, T3_COL["beyond"], T3_COL["beyond_edge"], 0.10)]
+    if kind == "car":
+        return _t3_car(cx, y0, h / T3_SEC_CAR[1])
+    if kind == "person":
+        return fig_side("stand", cx, y0, h / FIG_ADULT_H)
+    if kind == "far":
+        return fig_side("stand", cx, y0, h / FIG_ADULT_H, layer=1)
+    if kind == "tree":
+        return pla_section("plane", cx, y0, h / float((PLA_SPECIES.get("plane") or {}).get("h_m") or 15.0),
+                           hires=False, detail=False)
+    if kind == "bubble":
+        return [("poly", sec_ellipse(cx, 0.5 * (y0 + y1), 0.5 * w, 0.5 * h, 20), "FFFFFF", T3_COL["ink"], 0.15)]
+    return []
+
+
+def _t3_sec_block(B, x, y, kb, groups, den, rows, style, L):
+    """T4: every street section in style "b" or "a" from the top y (board units) down: title, rows of sections
+    (heading, today / with the project, icon labels, the section, widths, scale bar), then the legend (M2) and the
+    numbered callouts' key under it. Returns (the y below, the width used mm)."""
+    k = 1000.0 / den                                      # mm per m on the booklet page
+    PU = _T3Put(B, x, 0.0, kb, L)
+    CO = SfCallouts()
+    ytop = y / kb                                         # mm
+    PU.text(u"The same surveyed width, given back to people: each street today and with the project", 0.0,
+            ytop - 4.0, 11.0, T3_COL["ink"], True)
+    PU.text(u"Speech bubbles: {} · widths in cm as surveyed: the lanes, then the street from frontage to "
+            u"frontage".format(FIG_BUBBLE_TAG.lower()), 0.0, ytop - 8.5, 7.0, T3_COL["ink2"], False)
+    yrow = ytop - 13.0
+    xmax, g6, tree = 0.0, [], False
+    o_lead = 40 + 2 * WAT_LAYERS.index("figures") - 1     # leaders over trees and buildings, under the people
+    for ri, row in enumerate(rows):
+        made = []
+        for gi, c_ in enumerate(row):
+            n = 1 if c_["change"] == "kept" else 2
+            for j in range(n):
+                made.append((c_, j, n, _t3_sec_make(c_, j == 1, style, k, CO, 17 * ri + 5 * gi + j)))
+        top = max(_t3_top(s_["wl"].shapes()) for _c, _j, _n, s_ in made)
+        gy = yrow - 7.5 - (T3_FS + T3_ICO + 3.0) - top    # this row's street surface (mm)
+        yc = gy + top + 2.0 + 0.5 * T3_ICO
+        cx, low = 0.0, gy
+        for c_, j, n, sec in made:
+            if j == 0:
+                PU.text(u"{} · {}".format(c_["name"], T3_CHANGE_TXT.get(c_["change"], c_["change"])), cx, yrow - 3.0,
+                        8.5, T3_COL["head"], True)
+            sub = u"today = with the project" if n == 1 else (u"with the project" if j == 1 else u"today")
+            PU.text(sub, cx, yrow - 6.5, 7.0, T3_COL["ink2"], False)
+            ico, lead = _t3_icon_row(sec["uses"], cx, sec["w"], yc, gy)
+            for li, lay in enumerate(WAT_LAYERS):
+                PU.put(_t3_shift(sec["wl"].L[lay], cx, gy), 40 + 2 * li)
+            PU.put(lead, o_lead)
+            PU.put(ico, 60)
+            sb = draw_scalebar_bk(B, x + cx * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0, kb, L)
+            low = min(low, sb / kb)
+            g6 += sec["g6"]
+            tree = tree or sec["tree"]
+            if len(set(sec["acts"])) < 3:
+                LOG.append(u"Street sections {} ({}): only {} interaction(s) fit the surveyed width: {}.".format(
+                    c_["name"], sub, len(set(sec["acts"])), u", ".join(sec["acts"]) or u"none"))
+            cx += sec["w"] + (T3_SEC_GAP if j < n - 1 else T3_SEC_PAIR_GAP)
+        xmax = max(xmax, cx - T3_SEC_PAIR_GAP)
+        yrow = low - 4.0
+    if g6:
+        LOG.append(u"WARNING: street sections, G6 check: " + u"; ".join(sorted(set(g6))))
+    # the legend under the drawing (M2: attached to its frame), every symbol and the hatch itself; the key beside it
+    kd = kind_of(FONT_TITLE)
+    lw_ = max(60.0, 0.55 * xmax)
+    lg = Legend((0.0, yrow + 2.0, lw_, ytop), side="below", y_down=False, gap=2.0)
+    for lab, kn in ((u"Carriageway", "road"), (u"Paving: footway, one-level street", "walk"), (u"Ground, cut", "earth"),
+                    (u"Building, cut: surveyed height and floors", "bld"),
+                    (u"Buildings further along the street", "beyond"), (u"Car", "car"),
+                    (u"Person, 1.75 m at the cut", "person"),
+                    (u"People and trees further along: smaller, paler", "far")) + \
+            (((u"Plane tree", "tree"),) if tree else ()) + ((u"Speech bubble: " + FIG_BUBBLE_TAG.lower(), "bubble"),):
+        lg.add(lab, kn)
+    lay_ = lg.layout(lambda s, pt, b: tw(s, bk_hk(pt, 1.0), kd), size_pt=7.0)
+    for e in lay_["rows"]:
+        PU.put(_t3_swatch(e["kind"], e["swatch"], k), 62)
+        PU.text(e["label"], e["text"][0], e["text"][1], e["size_pt"], T3_COL["ink"], False)
+    kx, ky = lw_ + 6.0, yrow + 2.0 - 2.0
+    PU.put(CO.key(kx, ky, size=T3_MK), 62)
+    n_key = len(set(t_ for _n, _x, _y, t_ in CO.items))
+    bot = min(lay_["box"][1], ky - n_key * 1.5 * T3_MK) - 1.0
+    return bot * kb, max(xmax, kx + 2.0 * T3_MK + max([tw(t_, T3_MK * R28MV_CAP, kd) for _n, _x, _y, t_ in CO.items]
+                                                      or [0.0]))
 
 
 def _t3_street_sections(S, B, x, y, w, U, M):
     """T3a (D3 b, Aras 29 Oct 18:53; replaces the walk / car index chart and the city link's walking potential):
     before / after cross-sections of one street per road change of the masterplan (kept, calmed, pedestrian,
-    shared), each cut where the survey measured the street (_t3_sec_cut): carriageway and frontages as surveyed,
-    buildings at the board's heights, the cut ground (section_parts.py), plane trees from plants.py where the
-    proposal leaves T3_SEC_TREE_MIN, people by what the street is for (_p07_fig), cars as the drawing's symbol. A
-    kept road is drawn once (no change). One standard scale for all (T3_SEC_DENS: the largest that fits two rows on
-    the booklet width), a scale bar under every section (G5), widths in cm. Crop drw_street_sections. Returns the y
-    below."""
+    shared), each cut where the survey measured the street (_t3_sec_cut). A kept road is drawn once (no change).
+    One standard scale for all (T3_SEC_DENS: the largest that fits two rows on the booklet width). T4 (30 Oct, PG2
+    ③, D1 both): drawn by _t3_sec_block in style b, then in style a under it, from the same geometry; crops
+    drw_street_sections_b (= drw_street_sections, older readers) and drw_street_sections_a. Returns the y below."""
     L = "LU_BOARD::StreetSections"
     kb = 120.0 * U / BK_AW                                # board units per booklet mm
     groups = []
@@ -729,7 +1207,6 @@ def _t3_street_sections(S, B, x, y, w, U, M):
         LOG.append("Street sections: nothing to draw (no masterplan roads with measured widths).")
         return y - 0.4 * U
     ext = dict((id(c_), _t3_sec_extent(c_)[0]) for c_ in groups)
-    hmax = max([4.0] + [c_["side"][s_]["h"] or 0.0 for c_ in groups for s_ in (-1, 1)])
 
     def pack(den):
         k_ = 1000.0 / den
@@ -749,48 +1226,23 @@ def _t3_street_sections(S, B, x, y, w, U, M):
         den = d_
         if len(rows) <= 2:
             break
-    k = 1000.0 / den                                      # mm per m on the booklet page
-    PU = _T3Put(B, x, 0.0, kb, L)
-    ytop = y / kb                                         # mm
-    PU.text(u"The same surveyed width, given back to people: each street today and with the project", 0.0,
-            ytop - 4.0, 11.0, T3_COL["ink"], True)
-    yrow = ytop - 10.0
-    xmax = 0.0
-    tree_h = (PLA_SPECIES.get("plane") or {}).get("h_m") or 0.0
-    for row in rows:
-        trees = any(c_["change"] in ("pedestrian", "shared") and _t3_sec_extent(c_)[1][1] - _t3_sec_extent(c_)[1][0]
-                    >= T3_SEC_TREE_MIN for c_ in row)
-        top_m = max(hmax, tree_h if trees else 0.0) + 1.0
-        gy = yrow - 9.0 - top_m * k                       # the ground line of this row (mm)
-        cx = 0.0
-        low = gy
-        for c_ in row:
-            n = 1 if c_["change"] == "kept" else 2
-            PU.text(u"{} · {}".format(c_["name"], c_["change"]), cx, yrow - 3.0, 8.5, T3_COL["head"], True)
-            for j in range(n):
-                after = j == 1
-                wd = _t3_sec_draw(PU, c_, after, cx, gy, k)
-                sub = u"today = with the project" if n == 1 else (u"with the project" if after else u"today")
-                PU.text(sub, cx, yrow - 7.0, 7.0, T3_COL["ink2"], False)
-                yd = _t3_sec_dims(PU, c_, cx, gy, k)
-                sb = draw_scalebar_bk(B, x + cx * kb, yd * kb - 1.0 * kb, k * kb, 5.0 if den <= 250 else 10.0, kb, L)
-                low = min(low, sb / kb)
-                cx += wd + (T3_SEC_GAP if j < n - 1 else 0.0)
-            cx += T3_SEC_PAIR_GAP
-        xmax = max(xmax, cx - T3_SEC_PAIR_GAP)
-        yrow = low - 4.0
-    bot = yrow + 2.0
     LOG.append(u"Street sections at 1:{:,}: ".format(den) + u"; ".join(
-        u"{} ({}) {:.1f} m {}{}".format(c_["name"], c_["change"], c_["w"], c_["w_src"],
-                                       u", carriageway {:.1f} m".format(c_["carriage"][1] - c_["carriage"][0])
-                                       if c_["carriage"] else u"") for c_ in groups))
-    crop_panel("street_sections", x - 0.5 * kb, bot * kb - 0.5 * kb, x + (xmax + 0.5) * kb, y + 0.5 * kb,
-               u"The same surveyed width, given back to people · streets today and with the project",
-               den, crop_legend([("box", C(T3_COL["asphalt"]), u"Carriageway"),
-                                 ("box", C(T3_COL["paving"]), u"Paving, one level"),
-                                 ("box", C(T3_COL["bld"]), u"Building, cut")]))
-    CROP_PANELS[-1]["bk_w"] = xmax + 1.0
-    return bot * kb - 0.5 * kb
+        u"{} ({}) {:.1f} m {}{}; buildings cut {}, behind {}".format(
+            c_["name"], c_["change"], c_["w"], c_["w_src"],
+            u", carriageway {:.1f} m".format(c_["carriage"][1] - c_["carriage"][0]) if c_["carriage"] else u"",
+            sum(1 for s_ in (-1, 1) if c_["side"][s_].get("back")), len(c_["beyond"])) for c_ in groups))
+    cap = u"The same surveyed width, given back to people · streets today and with the project"
+    out = y
+    for style, ids in (("b", ("street_sections_b", "street_sections")), ("a", ("street_sections_a",))):
+        bot, xmax = _t3_sec_block(B, x, out, kb, groups, den, rows, style, L)
+        for id_ in ids:
+            crop_panel(id_, x - 0.5 * kb, bot - 0.5 * kb, x + (xmax + 0.5) * kb, out + 0.5 * kb, cap, den)
+            CROP_PANELS[-1]["bk_w"] = xmax + 1.0
+        out = bot - 8.0 * kb
+    cl = cut_log_line()
+    if cl:
+        LOG.append(u"Street sections (style a): " + cl)
+    return out + 7.5 * kb
 
 
 def mv_runs(S, R, key, F):
@@ -835,8 +1287,8 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     rho_ = (MV.get("rho") or {}).get("walk_b")
     t_top = (u"Shops line the streets people walk most" if rho_ is not None and rho_ >= 0.3 else
              u"Shops, services and everyday walks on one map")
-    B.text(t_top, x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
-    V, k, ss, r = b_view(F, x, y - 1.2 * U, U)            # v46: the site frame at 1:10,000, as every theme-B map
+    # T4 (30 Oct, p7 G1): the map's own heading inside its crop; the takeaway stays its caption
+    V, k, ss, r = b_view(F, x, _t3_map_head(B, x, y, U, u"Shops, services and everyday walks", L), U)   # 1:10,000
     mw = F.w * ss
     CB = ClipB(B, r)
     try:                                                  # T3a (D8 b): the framework diagram's hand-off (city link v4)
@@ -905,7 +1357,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     draw_map_annotations(S, B, V, U, rh=bk_hk(8.0, k))
     b_frame(B, r, k, L)
     foot = b_foot(B, F, x, r[1], ss, k, L)                # v46: under the map, never on it
-    crop_r = (x - 0.5 * k, foot - 0.5 * k, r[2] + 0.5 * k, r[3] + 0.5 * k)    # the booklet crop of the plan
+    crop_r = (x - 0.5 * k, foot - 0.5 * k, r[2] + 0.5 * k, y)     # the booklet crop of the plan, with its heading
     r28mv_note_top(S, B, crop_r, k, L, MV, n_pl)          # v50 (MIRAQUA 28 Oct, P07.2): drw_mv_note_1 beside the plan
     yy = foot - 3.0 * U
     # walking and driving today, only the key streets in colour and named (v44, Aras 27 Oct: "highlight only the key
@@ -913,11 +1365,14 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     if R:
         # v50 (MIRAQUA 28 Oct, P07.3): the index on every street piece, the busiest named (draw_mv_today, 15i)
         # T3a (package B p.07): sharper, title-like names that state what each map shows (G1)
-        for key_, lead, mode in (("walk_b", u"Where feet go", u"walking"), ("car_b", u"Where cars go", u"driving")):
+        # T4 (30 Oct, p7 G1): each map its own heading ("Pedestrian flow", "Vehicle traffic"), the takeaway its caption
+        for key_, head, lead, mode in (("walk_b", u"Pedestrian flow · where feet go", u"Where feet go", u"walking"),
+                                       ("car_b", u"Vehicle traffic · where cars go", u"Where cars go", u"driving")):
             two = _t3_names(mv_key_rows(MV, key_))
             title = (u"{}: {} carry the most {} routes".format(lead, two, mode) if two else lead)
-            cap = title + u" · every street by the share of everyday {} routes that use it".format(mode)
-            yy = draw_mv_today(S, B, x, yy, U, R, MV, key_, title, cap) - 2.0 * U
+            cap = title + (u" · every street by the share of everyday {} routes that use it; the busiest named, "
+                           u"with their index (100 = the busiest street piece)").format(mode)
+            yy = draw_mv_today(S, B, x, yy, U, R, MV, key_, head, cap) - 2.0 * U
     # walking lengths from each working area (D7), as a small table
     if D7:
         st = [(nm, sh) for nm, sh, a in stage_areas(S) if nm in D7["res"]]
@@ -964,8 +1419,8 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     if ctx is not None:
         leg += [("hdr", None, "SERVICES AND WALKS " + r_com)]
         for f, let, c, lab in WALK_FUN:
-            if n_pl.get(f):
-                leg.append(("dot", fcol[f], "{} · {} places".format(lab, n_pl[f])))
+            if n_pl.get(f):                               # T4 (G1): the roundel's letter in its row
+                leg.append(("dot", fcol[f], u"{} · {} · {} places".format(let, lab, n_pl[f])))
         leg.append(("dash", walk_c, "Walk to the nearest (letter at the place)"))
     ly = draw_legend_items(B, leg, x, yy - 0.4 * U, mw, U, L, h=0.4)
     crop_panel("movement", crop_r[0], crop_r[1], crop_r[2], crop_r[3], t_top + u" · streets, shops, services",

@@ -44,7 +44,19 @@ def write_board_pdf(path, title, members):
     xo = []
     for im_ in imgs:
         w_, h_, data = im_[:3]
-        if len(im_) > 3:                                  # v33: a JPEG, embedded as it is
+        kd_ = im_[3] if len(im_) > 3 else None
+        if kd_ == "RAW":                                  # T4 30 Oct (D1 a): any PNG, alpha as SMask (_png_rgba)
+            sm_ = ""
+            if im_[4] is not None:
+                sm_ = " /SMask %d 0 R" % add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace "
+                                              "/DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\n"
+                                              "stream\n" % (w_, h_, len(im_[4]))).encode("latin-1") + im_[4] +
+                                             b"\nendstream")
+            xo.append(add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB "
+                           "/BitsPerComponent 8%s /Filter /FlateDecode /Length %d >>\nstream\n" % (w_, h_, sm_, len(data))
+                           ).encode("latin-1") + data + b"\nendstream"))
+            continue
+        if kd_ == "DCT":                                  # v33: a JPEG, embedded as it is
             xo.append(add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB "
                            "/BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n" % (w_, h_, len(data))
                            ).encode("latin-1") + data + b"\nendstream"))
@@ -57,7 +69,9 @@ def write_board_pdf(path, title, members):
     cid = add(b"<< /Length " + str(len(data)).encode() + b" /Filter /FlateDecode >>\nstream\n" + data + b"\nendstream")
     pages_id = len(objs) + 2
     res = "/Font << %s >>" % " ".join("/F%d %d 0 R" % (i + 1, f_) for i, f_ in enumerate(fonts))
-    res += " /ExtGState << /GM << /Type /ExtGState /BM /Multiply >> /GN << /Type /ExtGState /BM /Normal >> >>"   # v46
+    res += (" /ExtGState << /GM << /Type /ExtGState /BM /Multiply >> /GN << /Type /ExtGState /BM /Normal >> %s >>" %
+            " ".join("/A%02d << /Type /ExtGState /ca %s /CA %s >>" % (i_, _pf(i_ / 20.0), _pf(i_ / 20.0))
+                     for i_ in range(1, 20)))           # v46; T4 30 Oct: /A01-/A19 image opacity (D1 a)
     if xo:
         res += " /XObject << %s >>" % " ".join("/Im%d %d 0 R" % (i + 1, x_) for i, x_ in enumerate(xo))
     pw, ph = (r[2] - r[0]) * k * _PT, (r[3] - r[1]) * k * _PT

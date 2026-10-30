@@ -69,51 +69,10 @@ def river_free_banks(S, step=2.0, near=1.5):
 
 
 # ============================================================ THE LAND-USE MAP
-def edge_key(a, b):
-    return frozenset(((round(a[0], 3), round(a[1], 3)), (round(b[0], 3), round(b[1], 3))))
-
-
-def edge_counts(polys):
-    n = {}
-    for P in polys:
-        for i in range(len(P)):
-            e = edge_key(P[i], P[(i + 1) % len(P)])
-            n[e] = n.get(e, 0) + 1
-    return n
-
-
-def unit_outline(parts, n=None):
-    """v41 (Aras 26 Oct 06:35 "these lines in what is there looks weird"): the pale outline of a building = its edges
-    without the walls it shares with another piece (n: edge counts over all buildings), so a footprint the survey
-    draws as one block and the script cuts along its party walls reads as one mass, with no cut lines through it.
-    Open runs of edges, or the closed piece where nothing is shared."""
-    n = n or edge_counts(parts)
-    k = edge_key
-    out = []
-    for P in parts:
-        m = len(P)
-        inner = [n.get(k(P[i], P[(i + 1) % m]), 0) > 1 for i in range(m)]
-        if not any(inner):
-            out.append(P + [P[0]])
-            continue
-        i0 = inner.index(True)
-        run = []
-        for j in range(1, m + 1):
-            i = (i0 + j) % m
-            if inner[i]:
-                if len(run) > 1:
-                    out.append(run)
-                run = []
-            else:
-                run = run or [P[i]]
-                run.append(P[(i + 1) % m])
-        if len(run) > 1:
-            out.append(run)
-    return out
-
-
-def draw_landuse_map(S, B, V, bcol=None):
-    """bcol (v33): the colour of each building (default: its land-use colour)."""
+def draw_landuse_map(S, B, V, bcol=None, den=None, kb=10.0):
+    """bcol (v33): the colour of each building (default: its land-use colour). Revision 30 Oct (G7, M11): the buildings
+    through _p02_bld_plan (outline per block + roof reading at 1:den; kb = board units per booklet mm), no piece
+    outlines."""
     L = "LU_BOARD::Map"
     s = V.s
     U = S.U
@@ -164,17 +123,7 @@ def draw_landuse_map(S, B, V, bcol=None):
             off = min(3.0, 0.11 * u["h"]) * s
             B.fill([[(x + off, y - off) for x, y in V.P(P)] for P in u["parts"] + (u.get("holes") or [])], sh,
                    L + "::texture", 13)
-    shared = edge_counts([P for u in S.bld for P in u["parts"]]) if TEXTURE else None
-    for u in S.bld:
-        col = CAT[u["cat"]][1]
-        if u["annex"]:
-            col = mix(col, PAPER, 0.35)
-        if bcol is not None:
-            col = bcol(u)
-        B.fill(V.Ps(u["parts"] + (u.get("holes") or [])), col, L + "::" + u["cat"], 14)
-        if TEXTURE:
-            for P in unit_outline(u["parts"], shared) + [H + [H[0]] for H in u.get("holes") or []]:
-                B.line(V.P(P), PAPER, L + "::texture", 15, 0.04)
+    _p02_bld_plan(S, B, V, L + "::buildings", 14, den or crop_scale(V.s) or 1000.0, kb, bcol=bcol)
     for P in S.slope_hatch:
         B.line(V.P(P), mix(INK2, PAPER, 0.4), L + "::ground", 16, 0.04)
     for P in S.slopes:
@@ -259,17 +208,16 @@ def draw_what_is_there(S, B, x, y, w, U):
                   "Plan 01: context beyond the frame: survey line work only.")
     B.text("WHAT IS THERE · GROUND · BUILDINGS · GREEN · STREAM EDGE " + r_map, x, y, 1.05 * U, INK, L,
            font=FONT_TITLE, bold=True)                    # v38: keywords; the coverage note is a key entry
-    # v45: plan 01 prints at 1:den_bk beside the site readings (P01_BK_W mm wide): its marks and words are sized for
+    # v45: plan 01 prints at 1:den_bk beside the site readings (P02_MAP_W mm wide): its marks and words are sized for
     # that page (kb = board units per booklet mm; the map is as wide as w)
-    den_bk = bk_std(F2.w * 1000.0 / P01_BK_W)
+    den_bk = bk_std(F2.w * 1000.0 / P02_MAP_W)        # revision 30 Oct (G2, M1): 7 grid columns wide
     kb = w / F2.w * den_bk / 1000.0
     # v51 (WO-T3a-2, p.02 flipped): what the plan shows is no longer a line over the map: it opens plan 01's own key
     # panel (draw_plan01_key, crop drw_plan01_key) at the top of the page's side column; the map starts under the title
     _P02.clear()
-    _P02["text"] = (u"The whole survey area as it is today, on one plan: buildings by urban fabric, ground and green, "
-                    u"the Selinos stream with its edges and bridges K1-K6, and the places where the stream and the town "
-                    u"work against each other. It is the base the later plans are read on: what the project keeps, "
-                    u"joins and changes.")
+    # revision 30 Oct (G4): one line; the page's own intro (the booklet PLAN, bold key words) says the finding
+    _P02["text"] = (u"The survey area today: **buildings** by urban fabric, **ground and green**, the **Selinos stream** "
+                    u"with its edges and bridges K1-K6, and where stream and town **clash**.")
     ymap = y - 0.8 * U
     V, mw, mh = view_fit(F2, x, ymap, w, 10.0 * w)
     s = V.s
@@ -281,11 +229,8 @@ def draw_what_is_there(S, B, x, y, w, U):
         for a, b in ctx.get(key, []):
             B.line([V.p(*a), V.p(*b)], col, L, 2, wd)
     # the site: land use, land cover, ground, streets, trees, buildings (homes by fabric), walls, bridges
-    draw_landuse_map(S, B, V, bcol=fabric_col)            # v40: buildings by urban fabric type
-    for u in S.bld:                                       # light types get a hairline so they read on paper
-        if not u["annex"] and u.get("fabric") in ("selfbuilt", "large", "construction"):
-            for P in u["parts"]:
-                B.line(V.P(P + [P[0]]), FABRIC_EDGE, L, 15, 0.03)
+    # v40: buildings by urban fabric type; revision 30 Oct (G7, M11): outline per block + roof, no piece lines
+    draw_landuse_map(S, B, V, bcol=fabric_col, den=den_bk, kb=kb)
     # canopy-map crowns (modelled), under the surveyed tree symbols
     crowns = [c for c in site_crowns(S, F) if F.inside(c[0], c[1])]
     for leaf in (0, 1, 2):
@@ -452,8 +397,12 @@ P02_ET_ZONE = 8.0         # m: the edge zone along the water where each edge typ
 P02_ET_ROWS = 2           # the straightened stream in two rows (upstream half over downstream half): twice the length
 P02_LEAF_SP = {0: "plane", 1: "olive", 2: "stone_pine"}   # crown glyph (plants.py pla_plan) by the canopy map's leaf type
 P02_GROUND = mix(PAPER, (255, 255, 255), 0.45)            # open ground in the edge strip
-P02_BLD = mix(INK2, PAPER, 0.3)                           # buildings in the edge strip (one tone: a plan, not a use map)
+P02_ROOF = mix(INK2, PAPER, 0.62)                         # roofs in the edge strip (one tone: a plan, not a use map)
+P02_ROOF_L = mix(INK2, PAPER, 0.1)                        # their ridges, hips and fall lines (M11)
 P02_ROAD = mix(INK2, PAPER, 0.5)                          # carriageway
+P02_MAP_W = grid_w(7)     # booklet mm: plan 01 on the M1 grid (7 columns) ...
+P02_SIDE_W = grid_w(5)    # ... and p.02's side column beside it (5 columns): the key, the edge strip, the readings
+P02_GAP = GRID_GUT        # booklet mm between the side panels' halves / columns (the grid's gutter)
 P03_FIG_EDGE = 30.0       # m: one figure watching the water along each walkable bank stretch, every this many m
 P03_FIG_PATH = 80.0       # m: one figure walking a footpath every this many m
 P03_FIG_MAX = 240         # at most this many figures on the axonometric
@@ -488,10 +437,43 @@ def _p02_put(B, shapes, L, order, k):
             B.line(list(sh[1]), _p02_col(sh[2]), L, order, bk_lw(sh[3] if len(sh) > 3 else 0.1, k))
 
 
+def _p02_items(B, V, items, L, order, k, lw_f=1.0, fills=True, lines=True):
+    """revision 30 Oct (M11): basemap-format items ("fill", rings, hex, alpha, nonzero) / ("line", pts, hex, width_mm,
+    dash, alpha) in survey m, drawn on the board through V; line widths in booklet mm x lw_f (k = board units per
+    booklet mm). A fill's rings go in one call (even-odd: courtyards stay open)."""
+    for it in items:
+        if it[0] == "fill" and fills:
+            rings = [R for R in it[1] if len(R) >= 3]
+            if rings:
+                B.fill(V.Ps(rings), _p02_col(it[2]), L, order)
+        elif it[0] == "line" and lines and len(it[1]) >= 2:
+            B.line(V.P(it[1]), _p02_col(it[2]), L, order + 1, bk_lw(it[3] * lw_f, k))
+
+
+def _p02_bld_plan(S, B, V, L, order, den, kb, bcol=None, lw_f=0.6):
+    """revision 30 Oct (G7, M11; Aras "just draw the outlines and hatch the inside"): plan 01's buildings through
+    bld_plan_items: per colour (bcol, the urban fabric) the light fill and the roof reading (ridge and hips where a
+    building is BLD_MIN_ROOF_MM wide at 1:den), then ONE outline per block (S.blocks, merged in build_site): no line
+    between buildings that share a wall, no piece outlines. lw_f thins the module's pens for the 1:20,000 plan."""
+    groups = {}
+    for u in S.bld:
+        if not u.get("parts"):
+            continue
+        col = bcol(u) if bcol is not None else (mix(CAT[u["cat"]][1], PAPER, 0.35) if u["annex"] else CAT[u["cat"]][1])
+        groups.setdefault(crop_hex(col), []).append(u)
+    roof_c = crop_hex(mix(INK, PAPER, 0.45))
+    for h_, us in sorted(groups.items()):
+        _p02_items(B, V, bld_plan_items(us, None, den, fill=h_, her_fill=h_, roof_col=roof_c, outline=False), L,
+                   order, kb, lw_f)
+    edge = crop_hex(FABRIC_EDGE)
+    _p02_items(B, V, bld_plan_items(S.bld, getattr(S, "blocks", None), den, roof="none", edge=edge, her_edge=edge), L,
+               order + 2, kb, lw_f, fills=False)
+
+
 def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0, mm_per_m=None, pick=None):
     """ONE helper for every human figure of p.02-03 (HELPER_BRIEF rule 3): house shapes, k = drawing units per metre.
-    v52: the A1 pen figures of figures.py (adult 1.70 m). side: fig_side(pose) with its feet at (x, y); top:
-    fig_top(pose) centred on (x, y) heading ang (radians, 0 = +x). mm_per_m = booklet mm per metre where k is not
+    v52: the A1 pen figures of figures.py (adult 1.75 m since the revision of 30 Oct, D9). side: fig_side(pose) with
+    its feet at (x, y); top: fig_top(pose) centred on (x, y) heading ang (radians, 0 = +x). mm_per_m = booklet mm per metre where k is not
     (keeps the pen at least 0.10 mm). Line weights in mm of the drawing it lands on."""
     if view == "top":
         return fig_top(pose, x, y, k, ang=ang, ink=FIG_INK, mm_per_m=mm_per_m)
@@ -500,7 +482,7 @@ def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0, mm_per_m=None, pick=
 
 def draw_plan01_key(S, B, x, y, w, U):
     """v51 (WO-T3a-2, p.02 flipped): plan 01's explanation as its own panel at the top of p.02's side column (crop
-    drw_plan01_key, RD_BK_W mm on the booklet page, on the readings' two-column grid): what the plan shows, the
+    drw_plan01_key, P02_SIDE_W mm on the booklet page, three grid columns): what the plan shows, the
     conflicts C1-C6 drawn as on the plan (disc, name inside, words beside), then the plan's key (the land-use ring
     under the edge strip keys the ground colours). Words 7-8 pt. Returns the y below."""
     import re as _re
@@ -508,17 +490,18 @@ def draw_plan01_key(S, B, x, y, w, U):
     if not _P02.get("leg"):
         LOG.append("Plan 01's key (drw_plan01_key): plan 01 was not drawn before it, so not drawn.")
         return y
-    k = w / RD_BK_W
+    k = w / P02_SIDE_W
     h7, h75, h8 = bk_hk(7.0, k), bk_hk(7.5, k), bk_hk(8.0, k)
-    hw = 74.0 * k
-    cols = (x, x + w - hw)
+    # revision 30 Oct (G2, M1): three columns on the side column's grid (was two on 156 mm): the key is a third shorter
+    hw = (w - 2.0 * P02_GAP * k) / 3.0
+    cols = tuple(x + j_ * (hw + P02_GAP * k) for j_ in range(3))
     top = y
     cs = _P02.get("cs", [])
     site28_fit(B, u"**PLAN 01 · WHAT IS THERE TODAY{}**".format(
         u" · {} PLACES WHERE STREAM AND TOWN CLASH".format(len(cs)) if cs else u""), x, y - h8, h8, w, INK, L)
     yy = site28_para(B, _P02.get("text", u""), x, y - h8 - 1.6 * k - h7, w, h7, INK2, L, lead=1.45)
     # the conflicts as plan 01 draws them
-    nr = (len(cs) + 1) // 2
+    nr = (len(cs) + 2) // 3
     rc, hn = 2.0 * k, bk_hk(6.5, k)
     for j, (nm_, t_) in enumerate(cs):
         kx, yk = cols[j // nr], yy - (j % nr) * 5.6 * k
@@ -530,7 +513,7 @@ def draw_plan01_key(S, B, x, y, w, U):
     yy -= nr * 5.6 * k + 1.0 * k
     # the plan's key in the booklet legend's look (a 4.0 mm sample, the name 5.5 mm in at 7.5 pt, 4.0 mm a row)
     leg = [(kd, c_, _re.sub(r"\s*\[\d+\]", u"", lb).strip()) for kd, c_, lb in _P02["leg"] if kd not in ("cdot", "pdot")]
-    nr = (len(leg) + 1) // 2
+    nr = (len(leg) + 2) // 3
     Us = 4.0 * k / 1.1
     for j, (kd, c_, lb) in enumerate(leg):
         kx, yk = cols[j // nr], yy - h75 - (j % nr) * 4.0 * k
@@ -538,8 +521,8 @@ def draw_plan01_key(S, B, x, y, w, U):
         site28_fit(B, lb, kx + 5.5 * k, yk, h75, hw - 6.0 * k, INK, L)
     low = yy - h75 - (nr - 1) * 4.0 * k - 1.5 * k
     crop_panel("plan01_key", x, low, x + w, top + 0.5 * k, u"Plan 01 · how to read it")
-    CROP_PANELS[-1]["bk_w"] = RD_BK_W                     # its width on the booklet page (p.02's side column) ...
-    CROP_PANELS[-1]["grid"] = [0.0, RD_BK_W - 74.0]       # ... on the site readings' grid
+    CROP_PANELS[-1]["bk_w"] = P02_SIDE_W                  # its width on the booklet page (p.02's side column) ...
+    CROP_PANELS[-1]["grid"] = [(c_ - x) / k for c_ in cols]   # ... and its three columns' left edges
     return low - 1.0 * U
 
 
@@ -597,7 +580,7 @@ def draw_site_readings(S, B, x, y, w, U):
     """v51 (WO-T3a-2, p.02 flipped: Aras "first that map's explanation, below it the edge strip, below that the strip's
     analyses"): p.02's side column, top down: plan 01's key (draw_plan01_key, crop drw_plan01_key), the stream edge
     drawn from above (draw_edge_types, crop drw_edge_types), the bank readings and the land-use ring (_p02_readings,
-    crop drw_site_readings). Each its own crop at RD_BK_W mm; returns the y below."""
+    crop drw_site_readings). Each its own crop at P02_SIDE_W mm (5 grid columns); returns the y below."""
     y = draw_plan01_key(S, B, x, y, w, U)
     y = draw_edge_types(S, B, x, y, w, U)
     return _p02_readings(S, B, x, y, w, U)
@@ -606,13 +589,14 @@ def draw_site_readings(S, B, x, y, w, U):
 def _p02_readings(S, B, x, y, w, U):
     """v45 (p.2: old p.4 "grain of the town" folded in): the six readings of the bank (accessible ... transformable)
     as bars, and the land use of the site frame as a ring with its key, in plan 01's colours; one panel w wide,
-    designed for RD_BK_W mm beside plan 01 on the booklet page. Returns the y below. v50 (MIRAQUA 28 Oct, P02.1,
+    designed for P02_SIDE_W mm beside plan 01 on the booklet page. Returns the y below. v50 (MIRAQUA 28 Oct, P02.1,
     P02.2): the ring's key on the panel's two-column grid. v51: the last panel of the side column (the edge strip is
-    drawn above it by draw_site_readings)."""
+    drawn above it by draw_site_readings). Revision 30 Oct (G2, M1: no leftover space): the side column on 5 grid
+    columns, the ring's key beside the ring (was under both halves), so the panel prints at its own size, not shrunk."""
     L = "LU_BOARD::SiteReadings"
-    k = w / RD_BK_W
+    k = w / P02_SIDE_W
     h7, h75, h8, h9, h12 = (bk_hk(p_, k) for p_ in (7.0, 7.5, 8.0, 9.0, 12.0))
-    hw = 74.0 * k                                         # each half; 8 mm between them
+    hw = 0.5 * (w - P02_GAP * k)                          # each half; the grid's gutter between them
     top = y
     # left: the bars
     tot = sum(S.edge_len.values())
@@ -634,7 +618,7 @@ def _p02_readings(S, B, x, y, w, U):
                     bx += hw * v_ / tot
             yp = yb - 2.2 * k - 1.0 * k - h7
             B.text(phrase, x, yp, h7, INK2, L, font=FONT_TITLE)
-            yy = yp - 3.0 * k
+            yy = yp - 2.0 * k
     low = yy
     # right: the land-use ring
     rx = x + w - hw
@@ -645,8 +629,8 @@ def _p02_readings(S, B, x, y, w, U):
         u"and the measured street surfaces from the survey; parks, fields, vacant ground, parking and yards from the "
         u"survey and OpenStreetMap; the unmapped rest by satellite class.".format(ftot / 1e4)) + bcite(LC_CREDIT)),
         rx, y - h8 - 1.6 * k - h7, h7, INK2, L, font=FONT_TITLE)
-    r1, r0 = 25.0 * k, 15.0 * k
-    cx, cy = rx + 0.5 * hw, y - h8 - 1.6 * k - h7 - 4.0 * k - r1
+    r1, r0 = 17.0 * k, 10.5 * k
+    cx, cy = rx + r1, y - h8 - 1.6 * k - h7 - 4.0 * k - r1
     a0 = math.pi / 2.0
     for lab, col, a in sl:
         a1 = a0 - 2.0 * math.pi * a / ftot
@@ -657,23 +641,22 @@ def _p02_readings(S, B, x, y, w, U):
     site28_text(B, u"**{:,.1f}**".format(ftot / 1e4), cx, cy + 0.6 * k, h12, INK, L, align="C")   # v50: real widths
     site28_text(B, u"ha", cx, cy - 1.4 * k - h7, h7, INK2, L, align="C")
     low = min(low, cy - r1)
-    # under both: the ring's key (the plan's ground and green colours, so the plan needs no other key). v50 (MIRAQUA
-    # 28 Oct, P02.1): on the panel's grid, two columns at the halves' left edges (0 and RD_BK_W - 74 mm: the grid of
-    # the booklet's legend under the panel), each entry as the booklet's legend_item draws one: a 4.0 x 2.8 mm
-    # swatch from 0.2 mm under the baseline, the name 5.5 mm in at 7.5 pt, 4.0 mm a row (were three columns, 7 pt)
-    ky = low - 5.0 * k
-    nr = (len(sl) + 1) // 2
+    # beside the ring: its key (the plan's ground and green colours, so the plan needs no other key), next to its
+    # drawing (G1); each entry as the booklet's legend_item draws one: a 4.0 x 2.8 mm swatch from 0.2 mm under the
+    # baseline, the name 5.5 mm in at 7 pt, 3.6 mm a row
+    kx = cx + r1 + P02_GAP * k
+    kw = rx + hw - kx
+    ky = cy + r1 - h7
     for j, (lab, col, a) in enumerate(sl):
-        kx = x + (j // nr) * (w - hw)
-        yk = ky - (j % nr) * 4.0 * k
+        yk = ky - j * 3.6 * k
         B.fill([rect(kx, yk - 0.2 * k, kx + 4.0 * k, yk + 2.6 * k)], col, L, 20)
         pct = 100.0 * a / ftot
-        site28_fit(B, u"{} {}".format(lab, u"{:.0f}%".format(pct) if pct >= 1.0 else u"< 1%"), kx + 5.5 * k, yk, h75,
-                   hw - 5.5 * k, INK, L)
-    low = ky - (nr - 1) * 4.0 * k - 1.5 * k
+        site28_fit(B, u"{} {}".format(lab, u"{:.0f}%".format(pct) if pct >= 1.0 else u"< 1%"), kx + 5.5 * k, yk, h7,
+                   kw - 5.5 * k, INK, L)
+    low = min(low, ky - max(0, len(sl) - 1) * 3.6 * k - 1.5 * k)
     crop_panel("site_readings", x, low, x + w, top + 0.5 * k, u"Site readings · bank and ground")
-    CROP_PANELS[-1]["bk_w"] = RD_BK_W                     # v45: its width on the booklet page (side panel of p.2) ...
-    CROP_PANELS[-1]["grid"] = [0.0, RD_BK_W - 74.0]       # ... and its two halves' left edges (the legend under it)
+    CROP_PANELS[-1]["bk_w"] = P02_SIDE_W                  # v45: its width on the booklet page (side panel of p.2) ...
+    CROP_PANELS[-1]["grid"] = [0.0, (w - hw) / k]         # ... and its two halves' left edges (the legend under it)
     return low - 1.0 * U                                  # v51: the edge strip now sits above (draw_site_readings)
 
 
@@ -793,12 +776,15 @@ def _p02_join(vals, nmin):
     return v
 
 
-def _p02_strip(S, d):
+def _p02_strip(S, d, den=5000.0):
     """v51: the edge strip's data, once per run (S._p02_st; build once, reuse): on the straightened stream
     (d = site28_edge_bins) per bank the edge types and the bank faces (walled 1, embanked 2, else 0) as stretches
     (_p02_join, P02_ET_MIN), the bank line's distance from the centreline per bin (the bank samples' mean, smoothed
     over 7 bins), and what stands within P02_ET_LAND m beyond the bank line, in (chainage m, m beyond the bank line):
-    the canopy map's crowns, the survey buildings, green ground (parks, woods, grass) and the footpaths."""
+    the canopy map's crowns, the survey buildings, green ground (parks, woods, grass) and the footpaths. Revision 30
+    Oct (G7, M11): the buildings are bld_plan_items at 1:den (light roof, ridge, hips and fall lines, ONE outline per
+    block of S.blocks: no piece or parcel lines), each item's points carried onto the strip: st["bitems"] =
+    [(bank, "fill", [rings], hex, None) | (bank, "line", pts, hex, width booklet mm)]."""
     st = getattr(S, "_p02_st", None)
     if st is not None:
         return st
@@ -844,8 +830,7 @@ def _p02_strip(S, d):
 
     def ctr(P):
         return (sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P))
-    bl = near([u for u in S.bld if u.get("parts")], lambda u: ctr(u["parts"][0]))
-    bl = rings_of([P for u in bl for P in u["parts"]], 150.0)
+    bitems = _p02_strip_blds(S, LX, LY, LC, Lt, reach, beyond, ctr, den)
     gr = []
     for z in near([z for z in S.zones if z["kind"] == "green" and z.get("Ps")], lambda z: ctr(z["Ps"][0])):
         gr += [(sd, ring, z.get("sub")) for sd, ring in rings_of(z["Ps"], 400.0)]
@@ -879,12 +864,67 @@ def _p02_strip(S, d):
     nmin = max(1, int(round(P02_ET_MIN / bm)))
     st = dict(types=[_p02_join([v_[0] if v_ else None for v_ in d["bins"][sd]], nmin) for sd in (0, 1)],
               walls=[_p02_join([v_[1] if v_ else None for v_ in d["bins"][sd]], nmin) for sd in (0, 1)],
-              off=off, crowns=cr, blds=bl, greens=gr, paths=pth)
+              off=off, crowns=cr, bitems=bitems, greens=gr, paths=pth)
     S._p02_st = st
-    LOG.append(u"Stream edge strip (drw_edge_types): {} crowns, {} building footprints, {} green areas and {} path "
-               u"pieces within {:.0f} m of the banks; stretches under {:.0f} m joined to their neighbour.".format(
-                   len(cr), len(bl), len(gr), len(pth), P02_ET_LAND, P02_ET_MIN))
+    LOG.append(u"Stream edge strip (drw_edge_types): {} crowns, {} building fills and outlines (M11), {} green areas "
+               u"and {} path pieces within {:.0f} m of the banks; stretches under {:.0f} m joined to their "
+               u"neighbour.".format(len(cr), len(bitems), len(gr), len(pth), P02_ET_LAND, P02_ET_MIN))
     return st
+
+
+def _p02_strip_blds(S, LX, LY, LC, Lt, reach, beyond, ctr, den):
+    """revision 30 Oct (G7, M11): the buildings within reach of the stream as bld_plan_items (survey m) at 1:den, in
+    the strip's (chainage m, m beyond the bank line) per bank: a ring or line across the stream, out of the frame's
+    chainage, past P02_ET_LAND or longer than 150 m is left out. Whole blocks: a block with one building in reach
+    comes with all of its buildings, so its one outline is kept. Fills keep their rings together (courtyards open)."""
+    if not S.bld:
+        return []
+    keep = set()
+    cen = site28_project(LX, LY, LC, [ctr(u["parts"][0]) if u.get("parts") else (LX[0], LY[0]) for u in S.bld])
+    for i, (u, (s_, o_)) in enumerate(zip(S.bld, cen)):
+        if u.get("parts") and -60.0 <= s_ <= Lt + 60.0 and abs(o_) < reach:
+            keep.add(i)
+    blocks = getattr(S, "blocks", None)
+    if blocks:
+        for b_ in blocks:
+            if any(i in keep for i in b_["units"]):
+                keep.update(b_["units"])
+    idx = sorted(keep)
+    if not idx:
+        return []
+    remap = dict((i, j) for j, i in enumerate(idx))
+    sb = [dict(b_, units=[remap[i] for i in b_["units"]]) for b_ in blocks
+          if any(i in remap for i in b_["units"])] if blocks else None
+    rf, ed = crop_hex(P02_ROOF), crop_hex(INK)            # heritage in the same tones: the strip has no heritage key
+    items = bld_plan_items([S.bld[i] for i in idx], sb, den, roof="hatch", fill=rf, edge=ed,
+                           roof_col=crop_hex(P02_ROOF_L), her_fill=rf, her_edge=ed)
+    pts, segs = [], []                                    # every point projected in one go
+    for n_, it in enumerate(items):
+        if it[0] == "fill":
+            for R in it[1]:
+                if len(R) >= 3:
+                    segs.append((n_, "fill", len(pts), len(R), it[2], None))
+                    pts.extend(R)
+        elif it[0] == "line" and len(it[1]) >= 2:
+            segs.append((n_, "line", len(pts), len(it[1]), it[2], it[3]))
+            pts.extend(it[1])
+    q = site28_project(LX, LY, LC, pts)
+    fills, out = {}, []
+    for n_, kind, i0, m_, col, lw in segs:
+        Q = q[i0:i0 + m_]
+        sides = set(0 if o_ > 0.0 else 1 for s_, o_ in Q)
+        if len(sides) != 1:
+            continue
+        sd = sides.pop()
+        ring = [(s_, beyond(s_, o_, sd)) for s_, o_ in Q]
+        ss, dd = [r_[0] for r_ in ring], [r_[1] for r_ in ring]
+        if max(ss) < 0.0 or min(ss) > Lt or min(dd) > P02_ET_LAND or max(dd) < -1.0 or max(ss) - min(ss) > 150.0:
+            continue
+        if kind == "fill":
+            fills.setdefault((n_, sd), (col, []))[1].append(ring)
+        else:
+            out.append((sd, "line", ring, col, lw))
+    return [(sd, "fill", rings, col, None) for (n_, sd), (col, rings) in sorted(fills.items())] + out
 
 
 def _p02_crown(leaf, cx, cy, D, k, seed=0):
@@ -913,10 +953,14 @@ def _p02_zone(B, t, x0, x1, yw, yl, k, L, order):
     sg = 1.0 if yl > yw else -1.0                         # towards the land
     if t == "pedestrian":
         B.fill([r_], mix(EDGE["pedestrian"][1], PAPER, 0.8), L, order)
-        xx = x0 + 0.7 * k
-        while xx < x1:                                    # paving joints
-            B.line([(xx, ya), (xx, yb)], mix(INK2, PAPER, 0.55), L, order + 1, bk_lw(0.05, k))
-            xx += 0.7 * k
+        jc = mix(INK2, PAPER, 0.55)                       # revision 30 Oct (R02): paving slabs in a running bond
+        for yj in (ya + hz / 3.0, ya + 2.0 * hz / 3.0):   # course joints
+            B.line([(x0, yj), (x1, yj)], jc, L, order + 1, bk_lw(0.05, k))
+        for c_ in range(3):                               # cross joints, staggered course to course
+            xx = x0 + (0.35 if c_ % 2 else 0.7) * k
+            while xx < x1:
+                B.line([(xx, ya + c_ * hz / 3.0), (xx, ya + (c_ + 1) * hz / 3.0)], jc, L, order + 1, bk_lw(0.05, k))
+                xx += 0.7 * k
         B.line([(x0, yl), (x1, yl)], INK2, L, order + 1, bk_lw(0.1, k))
         n = int((x1 - x0) / (4.2 * k)) or (1 if x1 - x0 >= 2.0 * k else 0)
         for j in range(n):                                # people walking it, both ways
@@ -952,8 +996,16 @@ def _p02_zone(B, t, x0, x1, yw, yl, k, L, order):
         for j in range(int((x1 - x0) / (0.45 * k))):     # bare ground, stippled
             B.fill([circle_pts(x0 + (j + 0.5) * 0.45 * k, ya + ((j * 37) % 10 + 0.5) / 10.0 * hz, 0.1 * k, 6)], dc, L,
                    order + 1)
-    elif t == "building":
-        B.fill([r_], P02_BLD, L, order)
+    elif t == "building":                                 # revision 30 Oct (G7, M11): a row of roofs, as the
+        B.fill([r_], P02_ROOF, L, order)                  # buildings beyond: roof tone, ridge, party walls
+        ym = 0.5 * (ya + yb)
+        B.line([(x0, ym), (x1, ym)], P02_ROOF_L, L, order + 1, bk_lw(0.07, k))
+        xx, j = x0 + 1.6 * k, 0
+        while xx < x1 - 0.3 * k:                          # party walls between the roofs, a hip on each side
+            B.line([(xx, ya), (xx, yb)], INK, L, order + 1, bk_lw(0.06, k))
+            xx += (1.6 if j % 2 else 2.1) * k
+            j += 1
+        B.line([(x0, yl), (x1, yl)], INK, L, order + 2, bk_lw(0.12, k))
         B.line([(x0, yw), (x1, yw)], INK, L, order + 2, bk_lw(0.45, k))     # the backs on the water
 
 
@@ -989,6 +1041,37 @@ def _p02_wall(B, wl, x0, x1, yw, yl, k, L, order):
         B.fill([r_], P02_GROUND, L, order)
 
 
+def _p02_water(B, x0, y0, x1, y1, k, L, order, seed=0, bank=True):
+    """revision 30 Oct (G8, M5): water in the rectangle x0-x1, y0-y1 (board units) through water.py's water_plan
+    (calm surface, flow streaks along the stream deepening toward the middle, the bank edge), drawn in booklet mm
+    (k = board units per booklet mm); a plain fill only when the module is missing or fails (logged once)"""
+    fn = globals().get("water_plan")
+    if fn is not None:
+        try:
+            ring = [(x0 / k, y0 / k), (x1 / k, y0 / k), (x1 / k, y1 / k), (x0 / k, y1 / k)]
+            sh = fn(ring, 1.0, flow_deg=0.0, bank=bank, seed=seed, spacing=0.9).shapes()
+            _p02_put(B, [(s_[0], [(px * k, py * k) for px, py in s_[1]]) + tuple(s_[2:]) for s_ in sh], L, order, k)
+            return
+        except Exception:
+            if not _P02.get("wlog"):
+                _P02["wlog"] = 1
+                LOG.append("WARNING: the edge strip's water (water_plan) failed, drawn as a plain fill:\n" +
+                           traceback.format_exc())
+    B.fill([rect(x0, y0, x1, y1)], CAT["water"][1], L, order)
+
+
+def _p02_deck(B, x0, y0, x1, y1, k, L, order):
+    """revision 30 Oct (R02): a bridge deck over the water from above: the deck in planks across the way it crosses
+    (y), its two edges firm"""
+    B.fill([rect(x0, y0, x1, y1)], WHITE, L, order)
+    pc, yy = mix(INK2, PAPER, 0.5), y0 + 0.35 * k
+    while yy < y1 - 0.1 * k:
+        B.line([(x0, yy), (x1, yy)], pc, L, order, bk_lw(0.05, k))
+        yy += 0.35 * k
+    for xe in (x0, x1):
+        B.line([(xe, y0), (xe, y1)], INK, L, order, bk_lw(0.15, k))
+
+
 def draw_edge_types(S, B, x, y, w, U):
     """v51 (WO-T3a-2, Aras: "redraw it in a top-view architectural drawing language ... not an analysis"; the idea of
     R01: each stretch of the corridor in its own drawn language): both banks of the Selinos stream straightened along
@@ -999,27 +1082,25 @@ def draw_edge_types(S, B, x, y, w, U):
     beyond it what stands within P02_ET_LAND m of the water (_p02_strip): green ground, footpaths, the survey's
     buildings, the canopy map's trees (plants.py crowns). The same 4 m bank samples as the bars (site28_edge_bins),
     stretches under P02_ET_MIN m joined to their neighbour. Each edge type named on its longest stretch, K1-K6 under
-    each row, the key as drawn samples. Its own crop (drw_edge_types), RD_BK_W mm in p.02's side column under plan
-    01's key; words 6.5-8 pt. Returns the y below."""
+    each row, the key as drawn samples. Its own crop (drw_edge_types), P02_SIDE_W mm in p.02's side column under plan
+    01's key; words 6.5-8 pt. Returns the y below. Revision 30 Oct (PG1 p2, G7, G8, M2, M5, M11): buildings as
+    outline + roof (bld_plan_items, no piece lines), the water through water_plan, decks in planks, paving in slabs, the
+    key laid out by M2 Legend under the drawing; the page's finding (walled ... walkable ...) is the booklet intro
+    only (not repeated here)."""
     L = "LU_BOARD::SiteReadings"
     d = site28_edge_bins(S)
     if not d:
         LOG.append("Stream edge diagram (drw_edge_types): no bank samples or no centreline in the data pack, so not "
                    "drawn.")
         return y
-    st = _p02_strip(S, d)
-    k = w / RD_BK_W
+    k = w / P02_SIDE_W
     h65, h7, h8 = bk_hk(6.5, k), bk_hk(7.0, k), bk_hk(8.0, k)
     top = y
-    e_ = S.edge_len
-    tot = sum(e_.values()) or 1.0
-    site28_fit(B, u"**THE BANKS ARE WALLED OR EMBANKED ALONG {:.0f}% OF THEIR LENGTH, WALKABLE ALONG {:.0f}%**".format(
-        100.0 * (S.walled_len + getattr(S, "embanked_len", 0.0)) / tot, 100.0 * e_.get("pedestrian", 0.0) / tot),
-        x, y - h8, h8, w, INK, L)
-    yy = site28_para(B, u"Both banks of the Selinos stream straightened and seen from above, with what stands within "
-                        u"{:.0f} m of the water; left and right bank looking downstream; chainage in m from the upstream "
-                        u"end of the frame; stretches under {:.0f} m drawn as their neighbour {}{}".format(
-                            P02_ET_LAND, P02_ET_MIN, bcite(EDGE_SRC),
+    # revision 30 Oct (G4): the heading names the drawing; the finding (walled ... walkable ...) is the page intro
+    site28_fit(B, u"**THE STREAM EDGE FROM ABOVE · BOTH BANKS, STRAIGHTENED**", x, y - h8, h8, w, INK, L)
+    yy = site28_para(B, u"What stands within {:.0f} m of the water, **left** and **right** bank looking downstream; "
+                        u"chainage in m from the upstream end of the frame {}{}".format(
+                            P02_ET_LAND, bcite(EDGE_SRC),
                             bcite("Crowns: modelled heights and leaf types (Meta/WRI 1 m canopy height map, Tolan et al. "
                                   "2024; CLC+ 2021 and Sentinel-2).")),
                      x, y - h8 - 1.6 * k - h7, w, h7, INK2, L, lead=1.45)
@@ -1030,9 +1111,9 @@ def draw_edge_types(S, B, x, y, w, U):
     sx = (gx1 - gx0) / Lr
     HB, WS, SW = 7.0 * k, 1.5 * k, 4.0 * k               # each bank, each bank face, the stream (booklet mm)
     my = HB / P02_ET_LAND
+    st = _p02_strip(S, d, den=bk_std(1000.0 * k / my))   # M11 roofs read at the strip's scale across the banks
     bm = d["bm"]
     cov_c = mix(CAT["water"][1], PAPER, 0.55)
-    wat_e = mix(CAT["water"][1], INK, 0.35)
     path_c = mix(CAT["green"][1], INK, 0.35)
     LX, LY, LC = d["line"]
     kp = site28_project(LX, LY, LC, [(b_[2], b_[3]) for b_ in BRIDGES_K])
@@ -1092,12 +1173,22 @@ def draw_edge_types(S, B, x, y, w, U):
                     if len(run_) > 1:
                         for d_ in dashes(list(run_), 0.5 * k, 0.35 * k):
                             B.line(d_, path_c, L, 23, bk_lw(0.12, k))
-            for sd_, ring in st["blds"]:                  # the survey's buildings
-                if sd_ == sd and max(p[0] for p in ring) >= s0 and min(p[0] for p in ring) <= s1:
-                    P = clip_rect_poly([(X(a_), Yd(sd, b_)) for a_, b_ in ring], box)
-                    if len(P) >= 3:
-                        B.fill([P], P02_BLD, L, 24)
-                        B.line(list(P) + [P[0]], INK, L, 24, bk_lw(0.06, k))
+            for sd_, kd_, geo, col_, lw_ in st["bitems"]:  # the survey's buildings: roofs and block outlines (M11)
+                if sd_ != sd:
+                    continue
+                if kd_ == "fill":
+                    Ps = []
+                    for ring in geo:
+                        if max(p[0] for p in ring) >= s0 and min(p[0] for p in ring) <= s1:
+                            P = clip_rect_poly([(X(a_), Yd(sd, b_)) for a_, b_ in ring], box)
+                            if len(P) >= 3:
+                                Ps.append(P)
+                    if Ps:
+                        B.fill(Ps, _p02_col(col_), L, 24)
+                elif max(p[0] for p in geo) >= s0 and min(p[0] for p in geo) <= s1:
+                    for run_ in clip_rect_line([(X(a_), Yd(sd, b_)) for a_, b_ in geo], box):
+                        if len(run_) > 1:
+                            B.line(list(run_), _p02_col(col_), L, 25, bk_lw(lw_, k))
             grid_, kept = {}, []                          # trees, the larger first, none hiding another
             for sd_, s_, b_, rr, lf in sorted(st["crowns"], key=lambda c_: -c_[3]):
                 if sd_ != sd or not s0 <= s_ < s1:
@@ -1119,10 +1210,9 @@ def draw_edge_types(S, B, x, y, w, U):
                 a_, b_ = max(i0 * bm, s0), min(i1 * bm, s1)
                 if b_ > a_:
                     _p02_wall(B, wv, X(a_), X(b_), yw_, yl_, k, L, 27)
-        # the stream, its covered reaches, the bridges' decks
-        B.fill([rect(gx0, ysb, gx1, yst)], CAT["water"][1], L, 20)
-        for y_ in (ysb, yst):
-            B.line([(gx0, y_), (gx1, y_)], wat_e, L, 28, bk_lw(0.12, k))
+        # the stream (M5 water_plan: surface, flow streaks deepening to the middle, bank edge), its covered reaches,
+        # the bridges' decks
+        _p02_water(B, gx0, ysb, gx1, yst, k, L, 20, seed=r)
         for a_, b_ in covs:
             a_, b_ = max(a_, s0), min(b_, s1)
             if b_ > a_:
@@ -1132,9 +1222,7 @@ def draw_edge_types(S, B, x, y, w, U):
         for a_, b_ in decks:
             if b_ >= s0 and a_ <= s1:
                 xm, hd = X(0.5 * (a_ + b_)), max(0.35 * k, 0.5 * (b_ - a_) * sx)
-                B.fill([rect(xm - hd, yRw, xm + hd, yLw)], WHITE, L, 29)
-                for xe in (xm - hd, xm + hd):
-                    B.line([(xe, yRw), (xe, yLw)], INK, L, 29, bk_lw(0.15, k))
+                _p02_deck(B, xm - hd, yRw, xm + hd, yLw, k, L, 29)
         c_ = s0
         for a_, b_ in sorted([(max(a_, s0), min(b_, s1)) for a_, b_ in covs + decks if b_ > s0 and a_ < s1]) + \
                 [(s1, s1)]:
@@ -1177,57 +1265,67 @@ def draw_edge_types(S, B, x, y, w, U):
     snm = u"Selinos stream"
     if free[0] > site28_tw(snm, h65) + 6.0 * k:
         sxm, sym = 0.5 * (free[1] + free[2]), 0.5 * (free[3] + free[4])
-        B.text(snm, sxm - 1.2 * k, sym, h65, WHITE, L, order=31, font=FONT_TITLE, italic=True, align="MC")
+        wn_c = mix(CAT["water"][1], INK, 0.55)            # revision 30 Oct: dark on the calm M5 surface, on a
+        tw_s = site28_tw(snm, h65)                        # plate of that surface (no streak through the name, G3)
+        B.fill([rect(sxm - 1.2 * k - 0.5 * tw_s - 0.6 * k, sym - 0.75 * h65, sxm - 1.2 * k + 0.5 * tw_s + 4.0 * k,
+                     sym + 0.75 * h65)], mix(CAT["water"][1], PAPER, 0.62), L, 30)
+        B.text(snm, sxm - 1.2 * k, sym, h65, wn_c, L, order=31, font=FONT_TITLE, italic=True, align="MC")
         ax0 = sxm - 1.2 * k + 0.5 * site28_tw(snm, h65) + 0.8 * k        # the way it flows
-        B.line([(ax0, sym), (ax0 + 2.0 * k, sym)], WHITE, L, 31, bk_lw(0.2, k))
-        B.fill([[(ax0 + 2.6 * k, sym), (ax0 + 1.8 * k, sym + 0.45 * k), (ax0 + 1.8 * k, sym - 0.45 * k)]], WHITE, L,
+        B.line([(ax0, sym), (ax0 + 2.0 * k, sym)], wn_c, L, 31, bk_lw(0.2, k))
+        B.fill([[(ax0 + 2.6 * k, sym), (ax0 + 1.8 * k, sym + 0.45 * k), (ax0 + 1.8 * k, sym - 0.45 * k)]], wn_c, L,
                31)
-    # the key: drawn samples of what is drawn
+    # the key: drawn samples of what is drawn (each the drawing's own texture), laid out by M2 Legend under the drawing
     tys = set(v_ for row_ in st["types"] for v_ in row_ if v_)
     wls = set(v_ for row_ in st["walls"] for v_ in row_ if v_ in (1, 2))
-    keys = [("z", t_, nm_) for t_, nm_ in ((u"pedestrian", u"walkable, people on it"),
-                                           (u"street", u"street along the water"), (u"green", u"planted"),
-                                           (u"building", u"buildings' backs on the water"), (u"parking", u"parking"),
-                                           (u"open", u"loose ground")) if t_ in tys]
-    keys += [("w", v_, nm_) for v_, nm_ in ((1, u"wall"), (2, u"embankment")) if v_ in wls]
-    keys += [("g", None, u"green ground"), ("b", None, u"buildings"), ("t", None, u"trees"),
-             ("p", None, u"footpaths"), ("c", None, u"covered stream"), ("k", None, u"bridge")]
-    ky, kx = yy - 0.4 * k - h7, x
-    sw_w, sw_h = 6.0 * k, 2.8 * k
-    for kd, v_, nm_ in keys:
-        iw = sw_w + 1.2 * k + site28_tw(nm_, h7)
-        if kx > x and kx + iw > x + w:
-            kx, ky = x, ky - 4.4 * k
-        y0_, y1_ = ky - 0.4 * k, ky - 0.4 * k + sw_h
+    lg = Legend((x / k, yy / k, (x + w) / k, top / k), side="below", gap=0.6, y_down=False, swatch=(6.0, 2.8),
+                col_gap=3.0)
+    for t_, nm_ in ((u"pedestrian", u"walkable paving"), (u"street", u"street"), (u"green", u"planted"),
+                    (u"building", u"built: backs on the water"), (u"parking", u"parking"), (u"open", u"loose ground")):
+        if t_ in tys:
+            lg.add(nm_, "sample", code=("z", t_))
+    for v_, nm_ in ((1, u"wall"), (2, u"embankment")):
+        if v_ in wls:
+            lg.add(nm_, "sample", code=("w", v_))
+    for cd_, nm_ in ((("g", None), u"green ground"), (("b", None), u"roofs and buildings"), (("t", None), u"trees"),
+                     (("p", None), u"footpaths"), (("s", None), u"the stream"), (("c", None), u"covered stream"),
+                     (("k", None), u"bridge deck")):
+        lg.add(nm_, "sample", code=cd_)
+    lay = lg.layout(lambda s_, pt_, b_: site28_tw(s_, bk_hk(pt_, k), b_) / k, size_pt=7.0)
+    for row_ in lay["rows"]:
+        kd, v_ = row_["code"]
+        kx, y0_, x1_, y1_ = (c_ * k for c_ in row_["swatch"])
         if kd == "z":
-            _p02_zone(B, v_, kx, kx + sw_w, y0_, y1_, k, L, 22)
+            _p02_zone(B, v_, kx, x1_, y0_, y1_, k, L, 22)
         elif kd == "w":
-            _p02_wall(B, v_, kx, kx + sw_w, y0_, y1_, k, L, 22)
+            _p02_wall(B, v_, kx, x1_, y0_, y1_, k, L, 22)
         elif kd == "g":
-            B.fill([rect(kx, y0_, kx + sw_w, y1_)], mix(GREEN_SUB["park"], PAPER, 0.45), L, 21)
-        elif kd == "b":
-            B.fill([rect(kx, y0_, kx + sw_w, y1_)], P02_BLD, L, 21)
-            B.line(rect(kx, y0_, kx + sw_w, y1_) + [(kx, y0_)], INK, L, 21, bk_lw(0.06, k))
+            B.fill([rect(kx, y0_, x1_, y1_)], mix(GREEN_SUB["park"], PAPER, 0.45), L, 21)
+        elif kd == "b":                                   # a building as the strip draws it (M11 roof reading)
+            Pb = rect(kx + 0.4 * k, y0_ + 0.3 * k, x1_ - 0.4 * k, y1_ - 0.3 * k)
+            B.fill([Pb], P02_ROOF, L, 21)
+            for a_, b_ in bld_roof_lines(Pb, "ridge"):
+                B.line([a_, b_], P02_ROOF_L, L, 22, bk_lw(0.07, k))
+            B.line(Pb + [Pb[0]], INK, L, 22, bk_lw(0.18, k))
         elif kd == "t":
             for j_, lf in enumerate((0, 2)):
                 _p02_put(B, _p02_crown(lf, kx + (1.5 + 3.0 * j_) * k, 0.5 * (y0_ + y1_), 2.4 * k, k, j_), L, 26, k)
         elif kd == "p":
-            for d_ in dashes([(kx, 0.5 * (y0_ + y1_)), (kx + sw_w, 0.5 * (y0_ + y1_))], 0.5 * k, 0.35 * k):
+            for d_ in dashes([(kx, 0.5 * (y0_ + y1_)), (x1_, 0.5 * (y0_ + y1_))], 0.5 * k, 0.35 * k):
                 B.line(d_, path_c, L, 23, bk_lw(0.12, k))
+        elif kd == "s":
+            _p02_water(B, kx, y0_, x1_, y1_, k, L, 21, seed=7)
         elif kd == "c":
-            B.fill([rect(kx, y0_, kx + sw_w, y1_)], cov_c, L, 21)
-            B.hatch([rect(kx, y0_, kx + sw_w, y1_)], SS_COVER_C, L, 22, 0.8 * k, math.radians(45.0), bk_lw(0.12, k))
+            B.fill([rect(kx, y0_, x1_, y1_)], cov_c, L, 21)
+            B.hatch([rect(kx, y0_, x1_, y1_)], SS_COVER_C, L, 22, 0.8 * k, math.radians(45.0), bk_lw(0.12, k))
         elif kd == "k":
-            B.fill([rect(kx, y0_, kx + sw_w, y1_)], CAT["water"][1], L, 21)
-            B.fill([rect(kx + 2.4 * k, y0_, kx + 3.6 * k, y1_)], WHITE, L, 22)
-            for xe in (kx + 2.4 * k, kx + 3.6 * k):
-                B.line([(xe, y0_), (xe, y1_)], INK, L, 22, bk_lw(0.15, k))
-        B.text(nm_, kx + sw_w + 1.2 * k, ky, h7, INK, L, font=FONT_TITLE)
-        kx += iw + 3.0 * k
-    low = ky - 1.5 * k
+            _p02_water(B, kx, y0_, x1_, y1_, k, L, 21, seed=3, bank=False)
+            _p02_deck(B, kx + 2.2 * k, y0_, kx + 3.8 * k, y1_, k, L, 22)
+        B.text(row_["label"], row_["text"][0] * k, row_["text"][1] * k, bk_hk(row_["size_pt"], k), INK, L,
+               font=FONT_TITLE)
+    low = lay["box"][1] * k - 1.0 * k
     crop_panel("edge_types", x, low, x + w, top + 0.5 * k, u"The stream edge · both banks, straightened, from above")
-    CROP_PANELS[-1]["bk_w"] = RD_BK_W                     # its width on the booklet page (p.02's side column) ...
-    CROP_PANELS[-1]["grid"] = [0.0, RD_BK_W - 74.0]       # ... on the site readings' grid
+    CROP_PANELS[-1]["bk_w"] = P02_SIDE_W                  # its width on the booklet page (p.02's side column) ...
+    CROP_PANELS[-1]["grid"] = [0.0, P02_SIDE_W - 0.5 * (P02_SIDE_W - P02_GAP)]   # ... on the readings' two halves
     LOG.append("Stream edge diagram (drw_edge_types): {:,.0f} m of the bars' {:,.0f} m of bank lie within {:.0f} m of "
                "the stream's centreline and are drawn ({} bins of {:.0f} m a bank, {} rows).".format(
                    d["used"], d["tot"], SITE28_ET_NEAR, d["n"], d["bm"], nrow))
@@ -1251,7 +1349,7 @@ def _p03_segd(px, py, a, b):
 
 
 def _p03_figures(S, pg, V, R):
-    """v51 (WO-T3a-2, 02 §3; v52 A1 pen figures, 1.70 m): people at true height (_p02_fig side view) on the p.03 axonometric, placed by
+    """v51 (WO-T3a-2, 02 §3; v52 A1 pen figures; 1.75 m since 30 Oct, D9): people at true height (_p02_fig side view) on the p.03 axonometric, placed by
     what they do there: watching the water along the walkable bank stretches (the edge samples of type walkable, one
     every P03_FIG_EDGE m, facing the stream) and walking the footpaths (one every P03_FIG_PATH m, facing the way the
     path runs); only on open ground (no building footprint within 3 m) inside the model's extent R, far to near.
@@ -1306,8 +1404,8 @@ def _p03_figures(S, pg, V, R):
                 u_, v_ = V.uv(px + fx * g0, py + fx * g1, z0 + fy)
                 pts.append((V.ox + V.k * u_, V.oy + V.k * v_))
             pg.poly([pts], fill=col, stroke=None, layer="figures")
-    LOG.append(u"p.03 axonometric: {} figures at true height (1.70 m = {:.2f} mm on the sheet): {} watching the water "
-               u"on walkable banks, {} walking footpaths.".format(len(spots), 1.70 * V.k * V.cp,
+    LOG.append(u"p.03 axonometric: {} figures at true height (1.75 m = {:.2f} mm on the sheet): {} watching the water "
+               u"on walkable banks, {} walking footpaths.".format(len(spots), 1.75 * V.k * V.cp,
                                                                   sum(1 for s_ in spots if s_[2] == "watch"),
                                                                   sum(1 for s_ in spots if s_[2] == "walk")))
     return len(spots)
@@ -1327,6 +1425,11 @@ def export_axonometrics(S):
     # compose() calls chrome() last with the drawing's view, so the figures go in there (_p03_figures), and the
     # engine's own chrome is put back after the loop
     chrome0 = DG.get("chrome")
+    # revision 30 Oct (G6, PG1 p3): the heritage callouts give the building's height in m (2 decimals), never floors:
+    # the engine's floors_fact is swapped for _p03_height_fact during the loop and put back after it
+    fact0 = DG.get("floors_fact")
+    if fact0 is not None:
+        DG["floors_fact"] = _p03_height_fact
 
     def chrome_figs(pg_, ctx_, spec_, ext_, V_, stamp_):
         try:
@@ -1341,26 +1444,90 @@ def export_axonometrics(S):
     finally:
         if chrome0 is not None:
             DG["chrome"] = chrome0
+        if fact0 is not None:
+            DG["floors_fact"] = fact0
     LOG.extend(u"Axonometric engine: " + m for m in DG["LOG"])
     return out
 
 
+def _p03_height_fact(u):
+    """revision 30 Oct (G6): a callout's fact line: the building's height in m with 2 decimals (the site model's
+    u["h"], the same height the axonometric extrudes), never a floor count; "" without one"""
+    h = u.get("h")
+    try:
+        return u"{:.2f} m".format(float(h)) if h else u""
+    except (TypeError, ValueError):
+        return u""
+
+
+def _p03_label(t):
+    """revision 30 Oct (G1, G12): a legend name of the axonometric without its internal source words (where the data
+    comes from goes to the Sources page): "(survey)", "(OSM)", the canopy map's method"""
+    import re as _re
+    t = _re.sub(r"\s*\((survey|OSM)\)", u"", t)
+    t = _re.sub(r"^Tree crowns 3 m and taller, radius and height from the Meta/WRI canopy height map", u"Tree crowns", t)
+    t = _re.sub(r"^Surveyed tree symbols, drawn at a fixed size: no size in the survey", u"Tree symbols", t)
+    return t.replace(u"; leaf type not in the environment file", u"")
+
+
+def _p03_bbox(pg, DG, y0, y1):
+    """revision 30 Oct (G2: no leftover space): the extent (x0, y0, x1, y1, page mm, y up) of what the axonometric
+    draws between the sheet's rules y0-y1 (model, words, callouts; not the sheet's title, legend, scale bars or north
+    arrow, which lie outside the rules); None when nothing is there"""
+    xs, ys = [], []
+    tw = DG.get("text_w")
+    for it in pg.items:
+        if it[0] == "poly" and it[6] not in ("sheet", "legend", "north", "scale"):
+            for R in it[1]:
+                xs += [p_[0] for p_ in R]
+                ys += [p_[1] for p_ in R]
+        elif it[0] == "line" and it[5] not in ("sheet", "legend", "north", "scale"):
+            xs += [p_[0] for p_ in it[1]]
+            ys += [p_[1] for p_ in it[1]]
+        elif it[0] == "circle" and it[7] not in ("sheet", "legend", "north", "scale"):
+            xs += [it[1] - it[3], it[1] + it[3]]
+            ys += [it[2] - it[3], it[2] + it[3]]
+        elif it[0] == "text" and it[8] not in ("sheet", "legend", "north", "scale"):
+            s_, x_, y_, sz = it[1], it[2], it[3], it[4]
+            w_ = tw(s_, sz, it[6]) if tw is not None else 0.6 * sz * len(s_)
+            x0_ = x_ - w_ if it[7] == "R" else (x_ - 0.5 * w_ if it[7] == "C" else x_)
+            xs += [x0_, x0_ + w_]
+            ys += [y_ - 0.3 * sz, y_ + sz]
+    pts = [(a_, b_) for a_, b_ in zip(xs, ys) if y0 <= b_ <= y1]
+    if not pts:
+        return None
+    return (min(p_[0] for p_ in pts), min(p_[1] for p_ in pts), max(p_[0] for p_ in pts), max(p_[1] for p_ in pts))
+
+
 def _p03_axo_loop(S, DG, ctx, stamp, out):
-    """export_axonometrics' loop (v33-v40, unchanged; v51 moved here so the figures' hook wraps it)"""
+    """export_axonometrics' loop (v33-v40; v51 moved here so the figures' hook wraps it). Revision 30 Oct (PG1 p3):
+    the callout titles without source marks, the legend names without source words (_p03_label), the booklet crop
+    tight round what is drawn between the rules (_p03_bbox, 2 mm margin: no empty band above the model)"""
+    import re as _re
     for did, fn in (("S1", "Selinus_01_what_is_there_axonometric.pdf"),):
         t0 = time.time()
         ext = ctx.extents[0]
         try:
             spec = DG["SPECS"][did](ctx, ext)
+            for c_ in spec.get("calls", []):
+                c_["title"] = _re.sub(r"\s*\[\d+\]", u"", c_.get("title", u""))
+            leg0 = spec["legend"]
+            spec["legend"] = lambda leg0=leg0: [(k_, c_, _p03_label(t_)) for k_, c_, t_ in
+                                                (leg0() if callable(leg0) else leg0)]
             pg, st = DG["compose"](ctx, spec, ext, stamp)
             p = os.path.join(pdf_folder(), fn)
             DG["write_pdf"]([pg], p)
             out.append((p, time.time() - t0))
             bx, ph = DG["BOX"], DG["PAGE_H"]                 # v40: the booklet crop: the page between the rules (the
             bx = (0.0, bx[1], DG["PAGE_W"], bx[3])            # callouts may sit beyond the drawing box, left and right)
+            rm = (bx[0], ph - bx[3] - 4.0, bx[2], ph - bx[1] + 4.0)    # y down
+            bb = _p03_bbox(pg, DG, bx[1] - 4.0, bx[3] + 4.0)
+            if bb is not None:                                # tight round the model and its callouts (y down)
+                rm = (max(rm[0], bb[0] - 2.0), max(rm[1], ph - bb[3] - 2.0), min(rm[2], bb[2] + 2.0),
+                      min(rm[3], ph - bb[1] + 2.0))
             leg = [(("dot", DG["TREE_STYLES"].get(c_, DG["TREE_STYLES"]["tree"])["mid"]) if k_ == "tree" else (k_, c_))
                    + (t_,) for k_, c_, t_ in spec["legend"]() if c_ is not None]
-            CROP_DIRECT.append(("axo_what_is_there", fn, (bx[0], ph - bx[3] - 4.0, bx[2], ph - bx[1] + 4.0),
+            CROP_DIRECT.append(("axo_what_is_there", fn, rm,
                                 u"What is there · heights, heritage, water, green", None, crop_legend(leg), []))
         except Exception:
             LOG.append("WARNING: the {} axonometric failed:\n{}".format(did, traceback.format_exc()))

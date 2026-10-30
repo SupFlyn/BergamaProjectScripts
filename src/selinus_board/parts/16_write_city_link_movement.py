@@ -823,6 +823,90 @@ def _png_rgb(path):
         return None
 
 
+def _png_rgba(path):
+    """T4 30 Oct (D1 a cutouts): (w, h, zlib RGB, "RAW", zlib alpha or None) of an 8/16-bit non-interlaced PNG of any
+    colour type (grey, grey+alpha, RGB, RGBA, palette + tRNS), else None. Pure Python: slow on very large files."""
+    try:
+        with open(path, "rb") as f_:
+            d_ = f_.read()
+        if d_[:8] != b"\x89PNG\r\n\x1a\n":
+            return None
+        i_, idat, hdr, plte, trns = 8, [], None, b"", None
+        while i_ + 8 <= len(d_):
+            n_ = _struct.unpack(">I", d_[i_:i_ + 4])[0]
+            t_, c_ = d_[i_ + 4:i_ + 8], d_[i_ + 8:i_ + 8 + n_]
+            i_ += 12 + n_
+            if t_ == b"IHDR":
+                hdr = _struct.unpack(">IIBBBBB", c_[:13])
+            elif t_ == b"PLTE":
+                plte = c_
+            elif t_ == b"tRNS":
+                trns = c_
+            elif t_ == b"IDAT":
+                idat.append(c_)
+            elif t_ == b"IEND":
+                break
+        if not hdr:
+            return None
+        w_, h_, bd, ct, _cm, _fm, il = hdr
+        ch = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+        if ch is None or il or bd not in (8, 16) or (ct == 3 and bd != 8):
+            return None
+        import zlib as _zl
+        bpp = ch * bd // 8
+        raw = _zl.decompress(b"".join(idat))
+        st = w_ * bpp
+        out, prev, j_ = bytearray(h_ * st), bytearray(st), 0
+        for y_ in range(h_):
+            ft, ln = raw[j_], bytearray(raw[j_ + 1:j_ + 1 + st])
+            j_ += 1 + st
+            if ft == 1:
+                for x_ in range(bpp, st):
+                    ln[x_] = (ln[x_] + ln[x_ - bpp]) & 255
+            elif ft == 2:
+                for x_ in range(st):
+                    ln[x_] = (ln[x_] + prev[x_]) & 255
+            elif ft == 3:
+                for x_ in range(st):
+                    ln[x_] = (ln[x_] + (((ln[x_ - bpp] if x_ >= bpp else 0) + prev[x_]) >> 1)) & 255
+            elif ft == 4:
+                for x_ in range(st):
+                    a, b = (ln[x_ - bpp] if x_ >= bpp else 0), prev[x_]
+                    c = prev[x_ - bpp] if x_ >= bpp else 0
+                    p = a + b - c
+                    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                    ln[x_] = (ln[x_] + (a if pa <= pb and pa <= pc else (b if pb <= pc else c))) & 255
+            out[y_ * st:(y_ + 1) * st] = ln
+            prev = ln
+        if bd == 16:
+            out = out[0::2]
+        out, n = bytes(out), w_ * h_
+        alpha = None
+        if ct == 3:
+            pal = bytes(plte) + b"\x00" * (768 - len(plte))
+            rgb = bytearray(n * 3)
+            for c_ in range(3):
+                rgb[c_::3] = out.translate(bytes(pal[3 * q + c_] for q in range(256)))
+            if trns:
+                alpha = out.translate(bytes(trns) + b"\xff" * (256 - len(trns)))
+        elif ct in (0, 4):
+            g_ = out if ct == 0 else out[0::2]
+            alpha = None if ct == 0 else out[1::2]
+            rgb = bytearray(n * 3)
+            rgb[0::3], rgb[1::3], rgb[2::3] = g_, g_, g_
+        elif ct == 2:
+            rgb = out
+        else:
+            rgb = bytearray(n * 3)
+            rgb[0::3], rgb[1::3], rgb[2::3] = out[0::4], out[1::4], out[2::4]
+            alpha = out[3::4]
+        if alpha is not None and alpha.count(b"\xff") == n:
+            alpha = None
+        return (w_, h_, _zl.compress(bytes(rgb), 6), "RAW", None if alpha is None else _zl.compress(bytes(alpha), 6))
+    except Exception:
+        return None
+
+
 def _jpg_rgb(path):
     """v33: (width, height, file bytes, "DCT") of a baseline RGB JPEG (the site photos), else None."""
     try:
@@ -926,14 +1010,25 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
                 A("%.2f %.2f m %.2f %.2f l" % ((p[0] - x0) * k, (p[1] - y0) * k, (q[0] - x0) * k, (q[1] - y0) * k))
             A("S")
         elif kind == "image":
-            png = _png_rgb(it[1]) or _jpg_rgb(it[1])          # v33: JPEG photos too
-            if png is None:
-                continue
+            # T4 30 Oct (D1 a): each file once per board (imgs entry: w, h, data, kind, alpha, path); PNG alpha kept
+            # (SMask); it[6] opacity 0-1, it[7] mirrored
+            n_ = next((j_ + 1 for j_, e_ in enumerate(imgs) if len(e_) > 5 and e_[5] == it[1]), 0)
+            if not n_:
+                png = _png_rgb(it[1]) or _jpg_rgb(it[1]) or _png_rgba(it[1])   # v33: JPEG photos too
+                if png is None:
+                    continue
+                png = tuple(png) + (None,) * (5 - len(png)) + (it[1],)
+                imgs.append(png)
+                n_ = len(imgs)
             ix0, iy0, ix1, iy1 = it[2]
+            a_ = it[6] if len(it) > 6 else None
+            fl_ = bool(it[7]) if len(it) > 7 else False
             blend("/GN")
-            imgs.append(png)
-            A("q %s 0 0 %s %s %s cm /Im%d Do Q" % (_pf((ix1 - ix0) * k), _pf((iy1 - iy0) * k), _pf((ix0 - x0) * k),
-                                                   _pf((iy0 - y0) * k), len(imgs)))
+            iw_ = (ix1 - ix0) * k
+            A("q %s%s 0 0 %s %s %s cm /Im%d Do Q" % (
+                "/A%02d gs " % max(1, min(19, int(round(a_ * 20)))) if a_ is not None and a_ < 0.975 else "",
+                _pf(-iw_ if fl_ else iw_), _pf((iy1 - iy0) * k), _pf((ix0 - x0) * k + (iw_ if fl_ else 0.0)),
+                _pf((iy0 - y0) * k), n_))
         else:
             _, txt, (x_, y_), h_, c_, _l, _o, font, bold, align, ang, italic = it[:12]
             txt = str(txt)
