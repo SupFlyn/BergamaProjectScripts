@@ -9796,23 +9796,29 @@ SN_HER = _SN_MK["heritage"]                  # History: the heritage colour (sam
 # surroundings show and fills its cell (labels sit on the drawing); Encounters rebuilt as five lanes that meet at the
 # hubs, Kermes and the flood zone; History with small photos beside its places. basemap.py and icons.py come from
 # the masterplan core includes (T4b, v28).
+# T4 (30 Oct 2026, booklet p15, PG1): all six maps on ONE M3 base (basemap mode "base": the stream by M5, faint
+# streets, M11 buildings, the study area) with one legend logic: every key column starts level with its strip's top
+# edge under a title, and every strip has its own north arrow and scale bar at the key column's foot. Encounters =
+# the previous trial's flow ribbons (v27, git 8f04e72) in separate lanes, no hub / flood icons or hatched clouds;
+# History photos in one ordered, numbered row; Smell shows the sourced flowering months; no photo credits on the
+# sheet (they go to the Sources page).
 
-# D5 (Aras 29 Oct): (mode, override) of the basemap per panel; senses_sheet(..., basemap={title: (mode, override)})
-# changes a panel's choice for one run
-P16_BASEMAP = {u"Zones": ("minimal", None),
-               u"Feeling": ("minimal", {"streets": False, "buildings": False}),
-               u"Sound": ("minimal", {"streets": ("main",), "buildings": False}),
-               u"Smell": ("minimal", {"streets": False, "buildings": False}),
-               u"Encounters": ("minimal", None),
-               u"History": ("minimal", None)}
+# D5 / M3: (mode, override) of the basemap per panel, the same base under all six (T4, PG1 p15 "every analysis map
+# sits on the M3 base"); senses_sheet(..., basemap={title: (mode, override)}) changes a panel's choice for one run
+P16_BASEMAP = dict((t_, ("base", None)) for t_ in (u"Zones", u"Feeling", u"Sound", u"Smell", u"Encounters",
+                                                    u"History"))
+P16_WATER_OPTS = {"spacing": 0.6, "seed": 5}  # M5 water_plan at 1:20,000 (the stream is only a few mm wide here)
+# Smell: the species whose flowering months common/plants.py holds (pla_months, sourced there); the other sources
+# have no season data in the repo and get no month bar
+P16_SMELL_SPECIES = {"reeds": "reed", "lavender": "lavender"}
 P16_STRIP_TOP = 10.5                         # mm: the strip's top below its cell's top (title, then the bridge ruler)
 P16_STRIP_H = 62.0                           # mm: every strip's height (1,240 m across at 1:20,000; the cell is 76)
 P16_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")   # the run kit's photo folder (p.21's contract)
 P16_PHOTO_CSV = "photos.csv"
-P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo (4:3, cropped to fill)
+P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo at most (4:3, cropped to fill)
 # History photos: own site photos by file name (no credit, D13) first, else a photos.csv row whose place or file
-# name holds an alias (Commons: its credit line is printed). v29 (Aras 30 Oct "ok to use kermes photos"): Kermes takes
-# the DHA photo with its credit line.
+# name holds an alias. v29 (Aras 30 Oct "ok to use kermes photos"): Kermes takes the DHA photo. T4 (G12): no credit
+# lines on the sheet; the csv's credit lines go to the Sources page (p23).
 P16_PLACES = (
     dict(key="hamam", cap=(u"Tabaklar Hamamı",), own=(u"tabaklar_hamami_1.jpg", u"tabaklar_hamami_2.jpg"),
          alias=(u"tabaklarhamami",)),
@@ -9822,9 +9828,8 @@ P16_PLACES = (
          alias=(u"tabakkoprusu",)),
     dict(key="k5", cap=(u"Üç Kemer Köprüsü", u"Roman bridge · K5"), own=(), alias=(u"uckemer",)),
     dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)),
-    dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo, credit printed
-# Encounters: where the lines meet (kind, word, icon of common/icons.py), in the order they rank when two coincide
-P16_MEET = (("hub", u"Hub", "hub"), ("kermes", u"Kermes", "market"), ("flood", u"Flood zone", "high_water"))
+    dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo
+P16_KEY_ROW = 4.6                            # mm: one row of every key column
 _P16_MEMO = {}
 
 
@@ -10109,9 +10114,9 @@ def _p16_bm_items(G, choice):
     """the basemap items of one panel: choice = (mode, override) of P16_BASEMAP (memoised by basemap_items)"""
     if not G.get("bm"):
         return []
-    mode, ov = choice if choice else ("minimal", None)
+    mode, ov = choice if choice else ("base", None)
     try:
-        return basemap_items(mode, ov, G["bm_box"], G["bm"], True)
+        return basemap_items(mode, ov, G["bm_box"], G["bm"], True, SN_SCALE)
     except Exception as ex:
         k = ("bm_err", mode, repr(ov))
         if k not in _P16_MEMO:
@@ -10122,34 +10127,59 @@ def _p16_bm_items(G, choice):
 
 
 def _p16_bm_draw(pg, items, T):
-    """the basemap items through this page's calls (even-odd fills: buildings come split, one fill each)"""
+    """the basemap items through this page's calls (even-odd fills: buildings come split, one fill each); the
+    stream through M5 (water_plan, P16_WATER_OPTS) when the script includes common/water.py"""
     def fill(rings, hx, a, nz):
         pg.poly(rings, fill=hx, alpha=a)
 
     def line(pts, hx, w, dash, a):
         pg.line(pts, hx, w, list(dash) if dash else None, cap=0 if dash else 1, alpha=a)
-    basemap_draw(items, T, fill, line)
+    basemap_draw(items, T, fill, line, None, P16_WATER_OPTS)
 
 
 def _p16_bm_style(items):
-    """what the basemap items of a panel draw, for its key: {water, edge, covered, street, bld} -> (hex, width or
-    alpha, dash); only the kinds present"""
+    """T4 (H-A request): what a panel's basemap items draw, for the shared key, only the kinds present: water ("m5"
+    or "fill"; read with basemap_water_rings, so the M5 stream counts), covered (hex, width, dash), street (hex),
+    bld and her (fill hex, edge hex or None), study (True)"""
     out = {}
+    if basemap_water_rings(items):
+        out["water"] = "m5" if any(it[0] == "water" for it in items) else "fill"
+    fills = set(it[2] for it in items if it[0] == "fill")
     for it in items:
-        if it[0] == "fill":
-            if it[2] == BM_COL["water"]:
-                out.setdefault("water", (it[2], it[3], None))
-            elif it[2] in (BM_FAINT["bld_veryfaint"], BM_FAINT["bld"], BM_COL["bld"]):
-                out.setdefault("bld", (it[2], it[3], None))
-        elif it[0] == "line":
-            if it[4]:
-                if it[2] in (BM_COL["water_edge"], BM_COL["water"]):
-                    out.setdefault("covered", (it[2], it[3], list(it[4])))
-            elif it[2] == BM_COL["water_edge"]:
-                out.setdefault("edge", (it[2], it[3], None))
-            elif abs(it[3] - BM_LW["main"]) < 1e-6:
-                out.setdefault("street", (it[2], it[3], None))
+        if it[0] == "line" and it[4]:
+            if it[2] == R28_STUDY_LINE["colour"]:
+                out["study"] = True
+            elif it[2] in (BM_COL["water_edge"], BM_COL["water"]):
+                out.setdefault("covered", (it[2], it[3], list(it[4])))
+    for hx in (BM_FAINT["road"], BM_COL["road"]):
+        if hx in fills:
+            out["street"] = hx
+            break
+    bc = globals().get("BLD_COL") or {}
+    for f_, e_ in ((BM_FAINT["bld_veryfaint"], BM_FAINT["road_line"]), (bc.get("fill"), bc.get("edge")),
+                   (BM_FAINT["bld"], None), (BM_COL["bld"], None)):
+        if f_ and f_ in fills:
+            out["bld"] = (f_, e_)
+            break
+    for f_, e_ in (("F1E6E5", "CDAAAA"), (bc.get("her_fill"), bc.get("her_edge")), (BM_COL["her"], BM_COL["her_edge"])):
+        if f_ and f_ in fills:                           # heritage buildings (basemap "plan_faint" tones first)
+            out["her"] = (f_, e_)
+            break
     return out
+
+
+def _p16_water_swatch(pg, x, y, kind, w=9.0, h=1.8):
+    """the key's stream sample as the strip draws it: M5's surface, bank line and a depth streak, else the plain fill"""
+    sf, ed, dp = BM_COL["water"], BM_COL["water_edge"], None
+    if kind == "m5":
+        try:
+            P_ = _wat_pal()
+            sf, ed, dp = P_["surface"], P_["edge"], P_["deep"]
+        except Exception:
+            pass
+    pg.poly([rect(x, y - h / 2.0, x + w, y + h / 2.0)], fill=sf, stroke=ed, lw=0.25)
+    if dp:
+        pg.line([(x + 1.5, y), (x + w - 1.5, y)], dp, 0.2)
 
 
 def _p16_shapes(pg, shapes):
@@ -10163,8 +10193,10 @@ def _p16_shapes(pg, shapes):
 
 def sn_cell(pg, G, cx, top, title, choice=None):
     """one cell: its title, the strip frame (the widened analysis frame at 1:20,000, P16_STRIP_H tall), the shared
-    basemap of this panel (choice = (mode, override), D5; the stream only from the basemap) and the bridge ruler on
-    the frame's top edge. Returns the cell (T, box, label room: labels sit on the drawing, off the stream line)."""
+    M3 base of this panel (choice = (mode, override); the stream only from the base, by M5), the study area with
+    the base (under the panel's own layer; drawn here from calisma_alan when the base has none) and the bridge
+    ruler on the frame's top edge. Returns the cell (T, box, label room: labels sit on the drawing, off the stream
+    line)."""
     V, fr = G["V"], G["fr"]
     sw, sh = (fr[2] - fr[0]) * SN_K, (fr[3] - fr[1]) * SN_K
     x0, y1 = cx, sn_y(top + P16_STRIP_TOP)
@@ -10180,11 +10212,17 @@ def sn_cell(pg, G, cx, top, title, choice=None):
                       (cx + SN_SIDE - 2.0, sn_y(top + SN_CH), cx + SN_CW, sn_y(top))],
             "segs": list(zip(refp, refp[1:]))}
     items = _p16_bm_items(G, choice)
-    cell["bm_style"] = _p16_bm_style(items)
+    cell["bm_style"] = bs = _p16_bm_style(items)
+    pg.clip([rect(*box)])
     if items:
-        pg.clip([rect(*box)])
         _p16_bm_draw(pg, items, T)
-        pg.unclip()
+    if not bs.get("study"):                              # the study area once, in R28_STUDY_LINE, with the base
+        st = R28_STUDY_LINE
+        for A in G["study"]:
+            Q = [T(p) for p in A]
+            if len(Q) >= 3:
+                pg.line(Q + Q[:1], st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
+    pg.unclip()
     xs = {}
     for nm, xy in BRIDGES_K:                             # the ruler: a tick per bridge, its name above the frame
         x = T(xy)[0]
@@ -10207,15 +10245,8 @@ def sn_cell(pg, G, cx, top, title, choice=None):
 
 
 def sn_outline(pg, G, cell):
-    """G8: the study area (calisma_alan, both parts) in R28_STUDY_LINE, then the frame's own hairline"""
-    st, T, box = R28_STUDY_LINE, cell["T"], cell["box"]
-    pg.clip([rect(*box)])
-    for A in G["study"]:
-        Q = [T(p) for p in A]
-        if len(Q) >= 3:
-            pg.line(Q + Q[:1], st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
-    pg.unclip()
-    pg.poly([rect(*box)], stroke=SN_FRAME, lw=0.15)
+    """the frame's own hairline (T4: the study area is drawn with the base, sn_cell)"""
+    pg.poly([rect(*cell["box"])], stroke=SN_FRAME, lw=0.15)
 
 
 def sn_place(pg, cell, labs, warn):
@@ -10256,6 +10287,23 @@ def sn_key_row(pg, x, y, word, pt=None):
     pg.text(word, x, y - size * 0.35, size, SN_INK)
 
 
+def sn_key_title(pg, cell, s):
+    """T4 (G1, one legend logic for all six): the key column starts level with its own strip's top edge, under a
+    bold title; returns the y of its first row's middle"""
+    fs = sn_mm(SN_TS["small"])
+    yb = cell["box"][3] - fs * 0.8
+    pg.text(s, cell["side"], yb, fs, SN_INK, bold=True)
+    return yb - 3.6
+
+
+def sn_key_foot(pg, G, cell):
+    """T4 (G1: every plan its own scale bar and north arrow): the north arrow and the scale bar at the foot of the
+    key column, level with its strip's bottom edge (rows above end 9 mm over it)"""
+    sx, yb = cell["side"], cell["box"][1] + 2.4
+    sn_north(pg, G["V"], sx + 3.0, yb + 1.4)
+    sn_scale_bar(pg, sx + 11.0, yb, (0.0, 100.0, 250.0, 500.0))
+
+
 # ---------------------------------------------------------------- Zones: the base map (p24_ref2 fade-out fields)
 def sn_field(pg, rings, colour, core=0.42, halo=(1.3, 0.9, 0.5), ha=0.12):
     """a fade-out field: a translucent core and, outside its edge only, steps fading outward (no outline)"""
@@ -10287,36 +10335,35 @@ def sn_zones(pg, G, cell, warn):
         at = inner_pt(max(Ps, key=lambda Q: abs(area2(Q))))
         labs.append(dict(s=SN_ZONE_SHORT.get(key, name), at=at, col=mix(hx, SN_DARK, 0.5)))
     pg.unclip()
-    sx, top = cell["side"], cell["top"]                  # key column: what the strips draw, north, scale bar
+    sx = cell["side"]                                    # key column: the ONE base all six strips share (T4)
     st, bs = R28_STUDY_LINE, cell.get("bm_style", {})
-    y = sn_y(top + 4.0)
-    rows = [(R28_STUDY_NAME, "study"), (u"Stream", "water"), (u"Hidden stream", "covered"), (u"Main streets", "street"),
-            (u"Bridge", "bridge"), (u"Buildings", "bld"), (u"Water flow", "flow")]
+    y = sn_key_title(pg, cell, u"Base map · all six strips")
+    rows = [(R28_STUDY_NAME, "study"), (u"Selinos stream", "water"), (u"Hidden (covered) stream", "covered"),
+            (u"Streets", "street"), (u"Buildings", "bld"), (u"Heritage buildings", "her"),
+            (u"Bridge (ticks on top)", "bridge"), (u"Flow direction", "flow")]
     for word, kind in rows:
-        if kind in ("water", "covered", "street", "bld") and kind not in bs:
-            continue                                     # the key lists only what the basemap drew
+        if kind in ("water", "covered", "street", "bld", "her") and kind not in bs:
+            continue                                     # the key lists only what the base drew
+        if kind == "study" and not (bs.get("study") or G["study"]):
+            continue
         if kind == "study":
             pg.line([(sx, y), (sx + 9.0, y)], st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
         elif kind == "water":
-            pg.poly([rect(sx, y - 0.9, sx + 9.0, y + 0.9)], fill=bs["water"][0], alpha=bs["water"][1])
-            if "edge" in bs:
-                for yy in (y - 0.9, y + 0.9):
-                    pg.line([(sx, yy), (sx + 9.0, yy)], bs["edge"][0], bs["edge"][1])
+            _p16_water_swatch(pg, sx, y, bs["water"])
         elif kind == "covered":
             pg.line([(sx, y), (sx + 9.0, y)], bs["covered"][0], bs["covered"][1], bs["covered"][2], cap=0)
         elif kind == "street":
-            pg.line([(sx, y), (sx + 9.0, y)], bs["street"][0], bs["street"][1])
+            pg.poly([rect(sx, y - 0.7, sx + 9.0, y + 0.7)], fill=bs["street"])
+        elif kind in ("bld", "her"):
+            f_, e_ = bs[kind]
+            pg.poly([rect(sx + 1.5, y - 1.0, sx + 7.5, y + 1.0)], fill=f_, stroke=e_, lw=0.18 if e_ else 0.1)
         elif kind == "bridge":
             pg.line([(sx + 4.5, y + 0.9), (sx + 4.5, y - 0.9)], SN_INK2, 0.2)
-        elif kind == "bld":
-            pg.poly([rect(sx, y - 0.9, sx + 9.0, y + 0.9)], fill=bs["bld"][0], alpha=bs["bld"][1])
         else:                                            # the water's direction in every strip (left to right)
             pg.line([(sx, y), (sx + 7.6, y)], SN_WATER_MID, 0.35)
             pg.poly([[(sx + 9.0, y), (sx + 7.2, y + 0.8), (sx + 7.2, y - 0.8)]], fill=SN_WATER_MID)
         sn_key_row(pg, sx + 11.0, y, word)
-        y -= 4.6
-    sn_north(pg, G["V"], sx + 4.0, sn_y(top + 46.0))
-    sn_scale_bar(pg, sx, sn_y(top + 62.0), (0.0, 100.0, 250.0, 500.0))
+        y -= P16_KEY_ROW
     return labs
 
 
@@ -10334,16 +10381,16 @@ def sn_north(pg, V, ax, ay):
 
 
 def sn_scale_bar(pg, x, y, marks):
-    """the strips' scale bar (m, G13), numbers at 7 pt, the scale beside it"""
+    """a strip's scale bar (m), its bar from y to y + 1.2: the numbers at 7 pt under it, the scale over its start
+    (T4: fits the 46 mm key column beside the north arrow)"""
     for i, (a, b) in enumerate(zip(marks[:-1], marks[1:])):
         pg.poly([rect(x + a * SN_K, y, x + b * SN_K, y + 1.2)], fill=SN_DARK if i % 2 == 0 else "FFFFFF",
                 stroke=SN_DARK, lw=0.15)
     fs = sn_mm(SN_TS["small"])
     for m_ in marks:
-        pg.text(u"{:,.0f}{}".format(m_, u" m" if m_ == marks[-1] else u""), x + m_ * SN_K, y + 2.2, fs, SN_INK,
-                align="C")
-    pg.text(u"1:{:,.0f}".format(SN_SCALE), x + marks[-1] * SN_K + 5.0, y - 0.1, sn_mm(SN_TS["label"]), SN_DARK,
-            bold=True)
+        pg.text(u"{:,.0f}{}".format(m_, u" m" if m_ == marks[-1] else u""), x + m_ * SN_K, y - fs * 0.95, fs,
+                SN_INK, align="C")
+    pg.text(u"1:{:,.0f}".format(SN_SCALE), x, y + 2.0, fs, SN_DARK, bold=True)
 
 
 # ---------------------------------------------------------------- Feeling (senses_ref1: emotion blots)
@@ -10420,8 +10467,9 @@ def sn_feeling(pg, G, cell, warn):
         if mood not in seen and sn_in((x, y, x, y), box):
             seen.add(mood)
             labs.append(dict(s=mood, at=(x, y), col=mix(sn_mood_col(SN_MOOD[mood]), SN_DARK, 0.45)))
-    sx, top = cell["side"], cell["top"]                  # key column: the feeling wheel, gathers / thins out
-    cx, cy, r = sx + 23.0, sn_y(top + 22.0), 8.5
+    sx = cell["side"]                                    # key column: the feeling wheel, gathers / thins out, people
+    y0 = sn_key_title(pg, cell, u"Mood")
+    cx, cy, r = sx + 23.0, y0 - 12.0, 8.5
     for i in range(72):
         a0, a1 = math.radians(5.0 * i), math.radians(5.0 * (i + 1))
         pg.line([(cx + r * math.cos(a0 + (a1 - a0) * t / 3.0), cy + r * math.sin(a0 + (a1 - a0) * t / 3.0))
@@ -10431,11 +10479,14 @@ def sn_feeling(pg, G, cell, warn):
     pg.text(u"passive", cx, cy - r - 1.6 - fs * 0.75, fs, SN_INK, align="C")
     pg.text(u"positive", cx + r + 1.8, cy - fs * 0.35, fs, SN_INK)
     pg.text(u"negative", cx - r - 1.8, cy - fs * 0.35, fs, SN_INK, align="R")
-    y1, y2 = sn_y(top + 44.0), sn_y(top + 58.0)
-    sn_blot(pg, sx + 5.0, y1, 3.0, sn_mood_col(SN_MOOD["lively"]), 6, 5)
-    sn_key_row(pg, sx + 12.0, y1, u"Gathers")
-    sn_blot(pg, sx + 5.0, y2, 3.6, sn_mood_col(SN_MOOD["calm"]), 0, 6)
-    sn_key_row(pg, sx + 12.0, y2, u"Thins out")
+    y1, y2, y3 = y0 - 29.0, y0 - 36.0, y0 - 43.0
+    sn_blot(pg, sx + 4.5, y1, 2.4, sn_mood_col(SN_MOOD["lively"]), 6, 5)
+    sn_key_row(pg, sx + 11.0, y1, u"Gathers")
+    sn_blot(pg, sx + 4.5, y2, 2.6, sn_mood_col(SN_MOOD["calm"]), 0, 6)
+    sn_key_row(pg, sx + 11.0, y2, u"Thins out")
+    _p16_fig(pg, "walk", sx + 2.5, y3 - 1.4, 2.8, SN_DARK)        # the pictograms on the strip (G1)
+    _p16_fig(pg, "sit", sx + 6.5, y3 - 1.4, 2.8, SN_DARK)
+    sn_key_row(pg, sx + 11.0, y3, u"What people do there")
     return labs
 
 
@@ -10523,7 +10574,8 @@ def sn_sound(pg, G, cell, warn):
         for j in range(3):
             sn_mark(pg, "wind", x + (j - 1) * 1.2, y + (j - 1) * 1.3, col["wind"], ang)
     pg.unclip()
-    sx, y = cell["side"], sn_y(cell["top"] + 5.0)        # key column: the playful key
+    sx = cell["side"]                                    # key column: the playful key
+    y = sn_key_title(pg, cell, u"Sound sources")
     for key, word, c in SN_SOUND:
         if key in ("water", "traffic", "wind"):
             for j in range(3 if key != "wind" else 1):
@@ -10537,47 +10589,90 @@ def sn_sound(pg, G, cell, warn):
 
 
 # ---------------------------------------------------------------- Smell (senses_ref4: contour rings)
+def _p16_bloom(key):
+    """the sourced flowering months (1-12) of a smell source's species (P16_SMELL_SPECIES, common/plants.py
+    pla_months), [] where the repo has none"""
+    sp = P16_SMELL_SPECIES.get(key)
+    f = globals().get("pla_months")
+    if not sp or not callable(f):
+        return []
+    try:
+        return sorted(set(int(m_) for m_ in f(sp).get("bloom", []) if 1 <= int(m_) <= 12))
+    except Exception:
+        return []
+
+
+def _p16_month_bar(pg, x, y, months, colour, cw=1.5, ch=1.2):
+    """12 month cells (Jan to Dec) from x, centred on y: the given months filled in colour, the others an outline"""
+    for m_ in range(12):
+        r_ = rect(x + m_ * cw, y - ch / 2.0, x + (m_ + 1) * cw - 0.25, y + ch / 2.0)
+        if m_ + 1 in months:
+            pg.poly([r_], fill=colour, alpha=0.85)
+        else:
+            pg.poly([r_], stroke=SN_FRAME, lw=0.1)
+
+
 def sn_smell(pg, G, cell, warn):
+    """the smell sources (senses_ref4: contour rings round each source at its place in the masterplan's design) and,
+    T4 (PG1 p15 "sources, intensity and seasons"), the sourced flowering months of each source's species in the key.
+    The repo holds no smell intensity: every source gets the same rings (no strength is implied), and the sources
+    without season data get no month bar (reported, never invented)."""
     T, box = cell["T"], cell["box"]
     col = dict((k, c) for k, _, c in SN_SMELL)
-    S, dg = [], []                                       # (key, survey xy, rings, first radius mm, step mm)
+    S, dg = [], []                                       # (key, survey xy)
     for z in G["zones_raw"]:
         c = z["code"]
         if c == "WT":
-            S.append(("reeds", z["q"], 5, 0.9, 0.7))
-        elif c == "WS":                                  # the terraces' dry band F (French lavender, rosemary)
-            S.append(("lavender", z["q"], 5, 0.9, 0.7))
+            S.append(("reeds", z["q"]))
+        elif c == "WS":                                  # the terraces' dry band F (French lavender)
+            S.append(("lavender", z["q"]))
         elif c == "DG":                                  # herbs and greens (card i01)
-            S.append(("demeter", sn_vcent(z["P"]), 5, 0.9, 0.75))
+            S.append(("demeter", sn_vcent(z["P"])))
             dg += z["P"]
         if c in ("GR", "DG"):                            # the plan's café places
-            S.append(("cafe", z["q"], 3, 0.6, 0.55))
+            S.append(("cafe", z["q"]))
     mids = [P[len(P) // 2] for P in G["terr"] if P]
     for p in sn_spaced(mids, T, 8.0)[:4]:
-        S.append(("lavender", p, 4, 0.7, 0.6))
-    if dg:                                               # olives in Demeter's Garden (card i01), harvested in Nov
-        S.append(("olive", sn_vcent(dg), 6, 2.0, 1.1))
+        S.append(("lavender", p))
+    if dg:                                               # olives in Demeter's Garden (card i01)
+        S.append(("olive", sn_vcent(dg)))
+    n, r0, dr = 4, 0.9, 0.7                              # rings, first radius, step (mm): the same for every source
     pg.clip([rect(*box)])
     dots = []
-    for i, (key, p, n, r0, dr) in enumerate(S):
+    for i, (key, p) in enumerate(S):
         x, y = T(p)
         if not sn_in((x, y, x, y), box, r0 + n * dr):
             continue
         for k in range(n):
             Q = sn_ring(x, y, r0 + k * dr, 101 + i, 0.06 + 0.03 * k, 56)
-            pg.line(Q + Q[:1], col[key], 0.16, alpha=0.9 - 0.55 * k / max(1.0, n - 1.0))
+            pg.line(Q + Q[:1], col[key], 0.16, alpha=0.9 - 0.55 * k / (n - 1.0))
         dots.append((x, y, col[key]))
     for x, y, c in dots:
         pg.circle(x, y, 0.6, fill=c)
     pg.unclip()
-    sx, y = cell["side"], sn_y(cell["top"] + 5.0)        # key column
+    sx = cell["side"]                                    # key column: source, then its months in flower under it
+    y = sn_key_title(pg, cell, u"Smell sources")
+    fs = sn_mm(SN_TS["small"])
+    shown = set(k for k, _ in S)
     for key, word, c in SN_SMELL:
+        if key not in shown:
+            continue                                     # only the sources the strip draws
         for r in (1.1, 1.8):
-            Q = sn_ring(sx + 2.4, y, r, 3, 0.08, 36)
+            Q = sn_ring(sx + 4.5, y, r, 3, 0.08, 36)
             pg.line(Q + Q[:1], c, 0.16, alpha=0.8)
-        pg.circle(sx + 2.4, y, 0.6, fill=c)
-        sn_key_row(pg, sx + 7.0, y, word)
-        y -= 6.0
+        pg.circle(sx + 4.5, y, 0.6, fill=c)
+        sn_key_row(pg, sx + 11.0, y, word)
+        months = _p16_bloom(key)
+        if months:
+            y -= 3.0
+            _p16_month_bar(pg, sx + 11.0, y, months, c)
+        y -= 5.2
+    if any(_p16_bloom(k) for k in shown):                # what the month bar says (G1)
+        _p16_month_bar(pg, sx + 11.0, y, [], SN_INK2)    # 12 cells, Jan to Dec
+        pg.text(u"Jan to Dec", sx + 11.0 + 12 * 1.5 + 1.5, y - fs * 0.35, fs, SN_INK)
+        y -= 3.4
+        pg.poly([rect(sx + 11.0, y - 0.6, sx + 12.25, y + 0.6)], fill=SN_INK2, alpha=0.85)
+        pg.text(u"filled: month in flower", sx + 13.5, y - fs * 0.35, fs, SN_INK)
     return []
 
 
@@ -10625,20 +10720,21 @@ def sn_wave(pg, x0, x1, y, colour, lw=0.3):
 
 
 def sn_bubble(pg, x, y, key, word, colour, pose):
-    """a vignette at a ribbon's end: an organic bubble, a figure of common/figures.py and one word"""
-    w, h = 34.0, 11.0
-    pg.poly([sn_rrect(x, y - h / 2.0, x + w, y + h / 2.0, 4.0)], fill="FFFFFF", stroke=colour, lw=0.35)
-    fx, fy = x + 6.5, y - h / 2.0 + 1.8
+    """a vignette at a ribbon's end: an organic bubble, a figure of common/figures.py and one word (T4: 8 mm tall,
+    so the five bubbles, the swell key and the strip's foot fit its key column)"""
+    w, h = 34.0, 8.0
+    pg.poly([sn_rrect(x, y - h / 2.0, x + w, y + h / 2.0, 3.2)], fill="FFFFFF", stroke=colour, lw=0.35)
+    fx, fy = x + 6.5, y - h / 2.0 + 1.1
     if key == "remember":                                # under a Roman arch
-        pg.line([(fx + 3.4 + 2.6 * math.cos(math.radians(a)), fy + 2.6 * math.sin(math.radians(a)))
+        pg.line([(fx + 3.0 + 2.3 * math.cos(math.radians(a)), fy + 2.3 * math.sin(math.radians(a)))
                  for a in range(0, 181, 15)], colour, 0.45, alpha=0.55)
     if key in ("touch", "cross"):
-        sn_wave(pg, fx - 3.5, fx + 4.5, fy + (0.9 if key == "cross" else 0.0), SN_WATER_MID)
+        sn_wave(pg, fx - 3.5, fx + 4.5, fy + (0.8 if key == "cross" else 0.0), SN_WATER_MID)
     else:
-        pg.line([(fx - 3.5, fy), (fx + 6.5, fy)], SN_INK2, 0.2)
-    _p16_fig(pg, pose, fx, fy, 7.0, colour)
+        pg.line([(fx - 3.5, fy), (fx + 6.0, fy)], SN_INK2, 0.2)
+    _p16_fig(pg, pose, fx, fy, 5.6, colour)
     if key == "watch":                                   # the line of sight
-        pg.line([(fx + 0.6, fy + 6.2), (fx + 5.6, fy + 5.4)], colour, 0.2, [0.6, 0.4], cap=0)
+        pg.line([(fx + 0.5, fy + 5.0), (fx + 5.0, fy + 4.3)], colour, 0.2, [0.6, 0.4], cap=0)
     size = sn_mm(SN_TS["label"])
     pg.text(word, x + 14.0, y - size * 0.35, size, mix(colour, SN_DARK, 0.3), bold=True)
 
@@ -10657,104 +10753,53 @@ def sn_exp_places(G):
     return dict((k, [p for p in v if p]) for k, v in pl.items())
 
 
-def sn_meet_points(G, T, box):
-    """T4a: where the experience lines meet, [(page x, set of P16_MEET kinds)] left to right: every hub, Kermes
-    (at the S4 cut) and the flood zone (the widened reaches; without them the bed sub-hubs high water closes).
-    Meeting points closer than 7 mm become one, named by all its kinds."""
-    pts = [(T(h["xy"])[0], "hub") for h in G["hubs"] if h.get("xy")]
-    if G["kermes"]:
-        pts.append((T(G["kermes"])[0], "kermes"))
-    fl = sn_spaced([w["at"] for w in G["widen"]], T, 9.0) or \
-        [h["sub_xy"]["c"] for h in G["hubs"] if h.get("sub_xy")]
-    pts += [(T(p)[0], "flood") for p in fl]
-    rank = dict((k, i) for i, (k, _, _) in enumerate(P16_MEET))
-    out = []
-    for x, k in sorted(pts, key=lambda e: rank[e[1]]):
-        if not (box[0] + 4.0 <= x <= box[2] - 4.0):
-            continue
-        near = [n for n in out if abs(n[0] - x) < 7.0]
-        if near:
-            near[0][1].add(k)
-        else:
-            out.append([x, set([k])])
-    return sorted((x, ks) for x, ks in out)
-
-
 def sn_encounters(pg, G, cell, warn):
-    """T4a (package E, R23-R26): five experience lines, each in its own lane along the stream from the upstream edge
-    to its vignette, never crossing another (the lane order is the vignettes' order); the lines draw together at the
-    meeting points (hubs, Kermes, the flood zone), marked by a ring and a post of icons (R25), and part again in the
-    same order; the places of each experience sit on its line as circles (R24, R26)."""
+    """T4 (30 Oct, PG1 p15 "the encounters map in the previous trial was much better"): the previous trial's flow
+    ribbons (v27, git 8f04e72 sn_encounters) as the starting point, made simple: five ribbons, one per way of meeting
+    the water, each in its OWN lane along the stream (a fixed offset: never braided, never crossing), each swelling
+    where its encounter happens (its places, sn_exp_places) and running on in the same order to its vignette in the
+    key column. No meeting posts, hub / flood icons or hatched clouds (G1); the swell is explained in the key."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
     step = 0.5
     xs, ys = sn_spine_y([T(p) for p in G["ref"]], x0, x1, step)
     if ys is None:
         ys = [(y0 + y1) / 2.0] * len(xs)
-        warn.append(u"senses sheet: no stream line in the strip: the encounter lines run along its middle")
+        warn.append(u"senses sheet: no stream line in the strip: the encounter ribbons run along its middle")
     n = len(ys)                                          # a calmer path for the lanes: 15 mm moving mean
     ys = [sum(ys[max(0, i - 15):i + 16]) / len(ys[max(0, i - 15):i + 16]) for i in range(n)]
-    nodes = sn_meet_points(G, T, box)
-    gap, keep, wp = 2.6, 0.24, 3.2                       # mm: lane spacing, share left at a meeting, pinch length
-    pinch = [max([math.exp(-((x - nx) / wp) ** 2) for nx, _ in nodes] or [0.0]) for x in xs]
     m = len(SN_EXP)
-
-    def lane_y(i, k):
-        y = ys[k] + ((m - 1) / 2.0 - i) * gap * (1.0 - (1.0 - keep) * pinch[k])
-        return min(max(y, y0 + 1.5), y1 - 1.5)
-
-    def at_x(i, x):
-        k = min(n - 1, max(0, int(round((x - x0) / step))))
-        return lane_y(i, k)
-    for nx, ks in nodes:                                 # the flood zone: a hatched cloud under the lines
-        if "flood" in ks:
-            ym = (at_x(0, nx) + at_x(m - 1, nx)) / 2.0
-            pg.poly([sn_ring(nx, ym, gap * m * 0.5 + 1.6, 77, 0.18, 40, (3, 5))],
-                    stripes=(SN_INK2, 0.45, 0.12, 0.0), alpha=0.8)
+    gap, sig, w0, w1 = 3.0, 2.6, 0.45, 1.6               # mm: lane pitch, swell length, width, swell (w0 + w1 < gap)
+    half = gap * (m - 1) / 2.0 + (w0 + w1) / 2.0 + 1.0   # the bundle stays whole inside the frame
+    ys = [min(max(y, y0 + half), y1 - half) for y in ys]
     pl = sn_exp_places(G)
-    top = cell["top"]
+    sx, ytop = cell["side"], box[3]
+    pitch = 8.8                                          # mm: the vignettes' pitch (8 mm bubbles)
     for i, (key, word, colour, pose) in enumerate(SN_EXP):
-        C_ = [(x, lane_y(i, k)) for k, x in enumerate(xs)]
-        bx, by = cell["side"] + 11.0, sn_y(top + 8.0 + 14.5 * i)
-        ex, ey = C_[-1]
+        px = [x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0]
+        off = ((m - 1) / 2.0 - i) * gap                  # lane i: watch on top, remember at the bottom
+        C_, W_ = [], []
+        for x, yb in zip(xs, ys):
+            b = max([math.exp(-((x - q) / sig) ** 2) for q in px] or [0.0])
+            C_.append((x, yb + off))
+            W_.append(w0 + w1 * b)
+        bx, by = sx + 11.0, ytop - 8.4 - pitch * i
+        ex, ey = C_[-1]                                  # the same x for every lane: the fans keep their order
         fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), t / 24.0) for t in range(1, 25)]
-        pg.line(C_ + fan, colour, 0.6, alpha=0.92)
-        pg.circle(C_[0][0] + 0.6, C_[0][1], 0.6, fill=colour)          # where the line starts
+        P = C_ + fan
+        Wl = W_ + [W_[-1] + (w0 - W_[-1]) * t / 24.0 for t in range(1, 25)]
+        N = sn_normals(P)
+        pg.poly([[(p[0] + n_[0] * w / 2.0, p[1] + n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)] +
+                 [(p[0] - n_[0] * w / 2.0, p[1] - n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)][::-1]],
+                fill=colour, alpha=0.85)
         Cs = C_[::6] + C_[-1:]
         cell["segs"].extend(zip(Cs, Cs[1:]))
         sn_bubble(pg, bx, by, key, word, colour, pose)
-        got = []                                         # its places: circles on its own line
-        for x in sorted(T(p)[0] for p in pl.get(key, [])):
-            if not (x0 + 2.0 <= x <= x1 - 2.0) or any(abs(x - nx) < 2.6 for nx, _ in nodes) or \
-                    any(abs(x - g) < 3.0 for g in got):
-                continue
-            got.append(x)
-            pg.circle(x, at_x(i, x), 0.95, fill=mix(colour, "FFFFFF", 0.55), stroke=colour, lw=0.3)
-    labs, firsts = [], {}
-    bs, pitch = 4.4, 5.2                                 # mm: icon plate, post pitch
-    for nx, ks in nodes:                                 # the meeting points: a ring round the bundle, a post of icons
-        ya, yb = at_x(0, nx), at_x(m - 1, nx)
-        ym, r = (ya + yb) / 2.0, abs(ya - yb) / 2.0 + 1.2
-        pg.circle(nx, ym, r, stroke=SN_DARK, lw=0.3)
-        kinds = [k for k, _, _ in P16_MEET if k in ks]
-        down = ym - r - 1.5 - pitch * len(kinds) >= y0 + 0.5
-        sgn = -1.0 if down else 1.0
-        end = ym + sgn * (r + 1.5 + pitch * (len(kinds) - 1) + bs / 2.0)
-        pg.line([(nx, ym + sgn * r), (nx, end - sgn * bs / 2.0)], SN_INK2, 0.2)
-        for j, k in enumerate(kinds):
-            cy = ym + sgn * (r + 1.5 + bs / 2.0 + pitch * j)
-            icon = [ic for kk, _, ic in P16_MEET if kk == k][0]
-            try:
-                _p16_shapes(pg, ico_badge(icon, nx, cy, bs, "circle", fill="FFFFFF", edge=SN_INK2))
-            except Exception:
-                pg.circle(nx, cy, bs / 2.0, fill="FFFFFF", stroke=SN_INK2, lw=0.2)
-            cell["taken"].append((nx - bs / 2.0, cy - bs / 2.0, nx + bs / 2.0, cy + bs / 2.0))
-            firsts.setdefault(k, []).append((nx, cy))
-        cell["taken"].append((nx - r, ym - r, nx + r, ym + r))
-    for k, word, _ in P16_MEET:                          # a word beside each plate (repeats may give way)
-        for j, at in enumerate(firsts.get(k, ())):
-            labs.append(dict(s=word, at=at, col=SN_INK, pt=SN_TS["small"], rank=0 if j == 0 else 1))
-    return labs
+    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key row: what the swell means (G1)
+    sw = [(sx + 9.0 * t / 30.0, w0 + w1 * math.exp(-((t / 30.0 - 0.5) / 0.16) ** 2)) for t in range(31)]
+    pg.poly([[(x, y + w / 2.0) for x, w in sw] + [(x, y - w / 2.0) for x, w in sw][::-1]], fill=SN_INK2, alpha=0.85)
+    sn_key_row(pg, sx + 11.0, y, u"Wider: where it happens")
+    return []
 
 
 # ---------------------------------------------------------------- History (senses_ref2: layered fade fields)
@@ -10875,42 +10920,51 @@ def _p16_photos(warn):
     return out
 
 
-def _p16_photo_slots(keys_at, box, refp, capm, wide=None):
-    """{key: (x, y, up)}: the lower-left corner of each photo, alternately above and below the stream (left to
-    right), as near its place as the photos beside it allow, clear of the stream line by 4 mm, inside the strip;
-    capm = the caption's room on the photo's outer side; wide = {key: caption width mm}"""
-    W, H = P16_PHOTO_W, P16_PHOTO_H
-    wide = wide or {}
+def _p16_photo_row(keys_at, box, avoid, capm):
+    """T4 (PG1 p15 "the photos are scattered"): ONE ordered row of photos along the strip's top or bottom edge, left
+    to right in the order of their places, each as near above or below its place as the row allows; the edge whose
+    band covers the fewest places (weight per point in avoid = [((x, y), weight)]) is taken. capm = the caption's
+    room under each photo. Returns ({key: (x, y) lower-left photo corner}, W, H)."""
+    n = len(keys_at)
+    if not n:
+        return {}, 0.0, 0.0
+    gap = 2.4
+    W = min(P16_PHOTO_W, (box[2] - box[0] - 2.0 - (n - 1) * gap) / float(n))
+    H = W * P16_PHOTO_H / P16_PHOTO_W
     srt = sorted(keys_at, key=lambda e: e[1][0])
-    out = {}
-    for up in (True, False):
-        lst = [e for i, e in enumerate(srt) if (i % 2 == 0) == up]
-        xs, prev = [], box[0] + 1.0 - 2.5
-        ws = [max(W, wide.get(k, 0.0)) for k, a in lst]   # a caption wider than its photo keeps its room
-        for (k, a), wk in zip(lst, ws):
-            x = max(a[0] - W / 2.0, prev + 2.5)
-            xs.append(x)
-            prev = x + wk
-        if xs and xs[-1] + ws[-1] > box[2] - 1.0:
-            d = xs[-1] + ws[-1] - (box[2] - 1.0)
-            xs, prev = [x - d for x in xs], box[0] + 1.0 - 2.5
-            for j in range(len(xs)):
-                xs[j] = max(xs[j], prev + 2.5)
-                prev = xs[j] + ws[j]
-        for (k, a), x in zip(lst, xs):
-            near = [q[1] for q in refp if x - 2.0 <= q[0] <= x + W + 2.0] + [a[1]]
-            if up:
-                y = min(max(near) + 4.0, box[3] - 1.0 - capm - H)
-            else:
-                y = max(min(near) - 4.0 - H, box[1] + 1.0 + capm)
-            out[k] = (x, y, up)
-    return out
+    xs, prev = [], box[0] + 1.0 - gap
+    for k, a in srt:
+        x = max(a[0] - W / 2.0, prev + gap)
+        xs.append(x)
+        prev = x + W
+    over = xs[-1] + W - (box[2] - 1.0)
+    if over > 0.0:                                       # pulled back from the right edge, the order kept
+        xs[-1] -= over
+        for j in range(n - 2, -1, -1):
+            xs[j] = min(xs[j], xs[j + 1] - gap - W)
+    best = None
+    for top in (True, False):
+        yb = box[3] - 1.0 - H - capm if top else box[1] + 1.0     # the band's bottom (captions under the photos)
+        sc = sum(w for (px, py), w in avoid
+                 if yb - 1.0 <= py <= yb + H + capm + 1.0 and any(x - 1.0 <= px <= x + W + 1.0 for x in xs))
+        if best is None or sc < best[0]:
+            best = (sc, yb)
+    y = best[1] + capm
+    return dict((k, (x, y)) for (k, a), x in zip(srt, xs)), W, H
+
+
+def sn_num(pg, x, y, n_, colour):
+    """a numbered marker (G3: its number explained by the photo caption of the same number)"""
+    fs = sn_mm(SN_TS["small"])
+    pg.circle(x, y, 1.3, fill=colour, stroke="FFFFFF", lw=0.2)
+    pg.text(u"{}".format(n_), x, y - fs * 0.36, fs, "FFFFFF", bold=True, align="C")
 
 
 def sn_history(pg, G, cell, warn):
-    """layered heritage fields on the stream's places (senses_ref2) and, T4a, a small photo beside each place
-    named (P16_PLACES; v29: Kermes too): own photos without credit, Commons photos numbered, their credit lines
-    in the key column. The photos are embedded by _p16_save (the core's PDF writer draws no images)."""
+    """layered heritage fields on the stream's places (senses_ref2) and, T4, the photos (P16_PLACES) in ONE ordered
+    row along the strip's top or bottom edge, numbered left to right; the same number marks each photo's place on
+    the map (no leaders, nothing crosses). Own photos and csv photos alike carry no credit on the sheet (G12: the
+    credits go to the Sources page). The photos are embedded by _p16_save (the core's PDF writer draws no images)."""
     T, box = cell["T"], cell["box"]
     txt = COL["accent_dark"]
     labs, anchors = [], {}
@@ -10953,6 +11007,13 @@ def sn_history(pg, G, cell, warn):
     anchors = dict((k, a) for k, a in anchors.items() if sn_in((a[0], a[1], a[0], a[1]), box))
     ph = _p16_photos(warn)
     with_ph = [(k, anchors[k]) for k in (pl["key"] for pl in P16_PLACES) if k in anchors and k in ph]
+    try:                                                 # T4 (M12): the shown photos' credit lines for the Sources page
+        d_ = bg_booklet(os.path.basename(os.path.normpath(OUT_FOLDER)))
+        os.makedirs(d_, exist_ok=True)
+        with open(os.path.join(d_, "photo_credits.json"), "w", encoding="utf-8") as f_:
+            json.dump({"photo_credits": [ph[k][1] for k, _a in with_ph if ph[k][1]]}, f_, ensure_ascii=False)
+    except Exception as ex:
+        warn.append(u"senses photo credits not written for the Sources page ({})".format(type(ex).__name__))
     names = dict((pl["key"], pl["cap"]) for pl in P16_PLACES)
     rb = [anchors[k] for k in ("k3", "k5") if k in anchors and k not in ph]
     if rb:                                               # places without a photo keep their word on the strip
@@ -10963,41 +11024,41 @@ def sn_history(pg, G, cell, warn):
             labs.append(dict(s=s, at=anchors[k], col=txt))
     fs = sn_mm(SN_TS["small"])
     lh = fs * 1.2
-    capm = 0.8 + 2.0 * lh
-    W, H = P16_PHOTO_W, P16_PHOTO_H
-    refp = [T(p) for p in G["ref"]]
-    wide = dict((k, max(text_w(s + (u"  [9]" if ph[k][1] and j == len(names[k]) - 1 else u""), fs, j == 0)
-                        for j, s in enumerate(names[k]))) for k, _ in with_ph)
-    slots = _p16_photo_slots(with_ph, box, refp, capm, wide)
-    credits = []
-    for k, a in sorted(with_ph, key=lambda e: slots[e[0]][0]):
-        x, y, up = slots[k]
-        path, cr = ph[k]
-        cap = list(names[k])
-        if cr:                                           # Commons: numbered, its credit line in the key column
-            credits.append(cr)
-            cap[-1] = u"{}  [{}]".format(cap[-1], len(credits))
-        pr = (x, y, x + W, y + H)
-        e = lp_leader_end(pr, a)
-        pg.line([a, e], SN_INK2, 0.15)
-        pg.circle(a[0], a[1], 0.35, fill=SN_INK2)
-        for j, s in enumerate(cap):
-            yb = (y + H + 0.8 + (len(cap) - 1 - j) * lh + fs * 0.2) if up else (y - 0.8 - fs * 0.8 - j * lh)
-            pg.text(s, x, yb, fs, txt if j == 0 else SN_INK2, bold=(j == 0))
-        cy0, cy1 = (y + H, y + H + capm) if up else (y - capm, y)
-        cell["taken"] += [pr, (x, cy0, x + max(W, max(text_w(s, fs, True) for s in cap)), cy1)]
+    capm = 0.8 + 2.0 * lh                                # two caption lines under each photo
+    avoid = [(a, 50.0) for a in anchors.values()] + [(p, 1.0) for p in (T(q) for q in G["ref"])] + \
+        [(p, 1.0) for A in G["study"] for p in (T(q) for q in A)]
+    slots, W, H = _p16_photo_row(with_ph, box, avoid, capm)
+    marks = []
+    for n_, (k, a) in enumerate(sorted(with_ph, key=lambda e: slots[e[0]][0]), 1):
+        x, y = slots[k]
+        path = ph[k][0]                                  # ph[k][1] = the csv credit line: Sources page only (G12)
+        cap = names[k]
+        lines = wrap(cap[0], fs, W - 3.2, True)[:2]
+        nb = len(lines)                                  # the name's lines are bold, a second caption line is not
+        if nb == 1 and len(cap) > 1:
+            lines.append(cap[1])
+        yb = y - 0.8 - fs * 0.8
+        sn_num(pg, x + 1.3, yb + fs * 0.36, n_, txt)
+        for j, s in enumerate(lines):
+            pg.text(s, x + 3.2, yb - j * lh, fs, txt if j < nb else SN_INK2, bold=(j < nb))
+        m_ = (a[0], a[1])                                # its place on the map, the same number
+        while any(math.hypot(m_[0] - q[0], m_[1] - q[1]) < 2.7 for q in marks):
+            m_ = (m_[0], m_[1] + 2.7)                    # two places close together: stacked, a short tie
+        if m_ != (a[0], a[1]):
+            pg.line([a, (m_[0], m_[1] - 1.3)], SN_INK2, 0.15)
+        sn_num(pg, m_[0], m_[1], n_, txt)
+        marks.append(m_)
+        cell["taken"] += [(x, y - capm, x + W, y + H), (m_[0] - 1.4, m_[1] - 1.4, m_[0] + 1.4, m_[1] + 1.4)]
         G.setdefault("imgs", []).append((path, (x, y, W, H)))
-    sx, top = cell["side"], cell["top"]                  # key column: the heritage field, then the photo credits
-    sn_layers_round(pg, sx + 4.5, sn_y(top + 5.0), 2.3, SN_HER, 40)
-    sn_key_row(pg, sx + 11.0, sn_y(top + 5.0), u"Heritage place")
-    if credits:
-        y = sn_y(top + 13.0)
-        pg.text(u"Photos", sx, y, fs, SN_INK, bold=True)
-        for n_, cr in enumerate(credits):
-            for j, s in enumerate(wrap(u"[{}] {}".format(n_ + 1, cr), fs, SN_CW - SN_SIDE - 1.0)):
-                y -= lh
-                pg.text(s, sx + (0.0 if j == 0 else 2.6), y, fs, SN_INK2)
-            y -= 0.6
+    sx = cell["side"]                                    # key column: the heritage field, the numbered places
+    y = sn_key_title(pg, cell, u"Heritage")
+    sn_layers_round(pg, sx + 4.5, y, 2.3, SN_HER, 40)
+    sn_key_row(pg, sx + 11.0, y, u"Heritage place")
+    if with_ph:
+        y -= P16_KEY_ROW + 0.6
+        sn_num(pg, sx + 4.5, y, 1, txt)
+        sn_key_row(pg, sx + 11.0, y, u"Place of the photo")
+        sn_key_row(pg, sx + 11.0, y - 3.4, u"with the same number")
     return labs
 
 
@@ -11089,6 +11150,7 @@ def senses_sheet(C, areas, folder, files, warn, basemap=None):
     pg.text(SN_TITLE, SN_ML, sn_y(22.0), sn_mm(SN_TS["title"]), SN_INK, bold=True)
     pg.line([(SN_ML, sn_y(25.0)), (SN_PW - SN_ML, sn_y(25.0))], SN_RULE, 0.25 * SN_PT)
     sn_rich(pg, SN_ML, sn_y(30.5), [(u"The fade-out zones and the ", False), (u"senses", True),
+                                    (u" along the Selinos stream: six maps on ", False), (u"one base map", True),
                                     (u" · every strip ", False), (u"1:20,000", True)], SN_TS["statement"], SN_INK)
     cells = [(SN_COLX[0], SN_ROWS[0], u"Zones", sn_zones),
              (SN_COLX[1], SN_ROWS[0], u"Feeling", sn_feeling),
@@ -11109,7 +11171,10 @@ def senses_sheet(C, areas, folder, files, warn, basemap=None):
             for _ in range(max(0, open_)):               # close a clip the failed panel left open
                 pg.unclip()
         sn_outline(pg, G, cell)
+        sn_key_foot(pg, G, cell)
         sn_place(pg, cell, labs, warn)
+    if callable(globals().get("basemap_warnings")):
+        warn.extend(basemap_warnings())                  # e.g. the M5 stream fell back to the plain fill
     imgs = G.get("imgs") or []
     path = _p16_save(pg, folder, SN_NAME, SN_TITLE, imgs) if imgs else save(pg, folder, SN_NAME, SN_TITLE)
     files.append(path)
