@@ -1064,7 +1064,19 @@ def build_site(R, osm, places, F):
             u["h"] = FLOOR_H * u["floors"]               # one level at the typical storey height
         else:
             u["h"] = u["floors"] * STOREY.get(u["cat"], FLOOR_H)
+    # revision 30 Oct (G7, M11): the fake division lines fixed at the source. A building's pieces (its survey face
+    # cut along party-wall ticks extended across the face, or a Voronoi split between floor labels) are merged into
+    # one outline per building, and buildings that share a wall into one block outline (S.blocks, the plan's
+    # outline layer): a line is drawn only where the survey has a building edge facing open ground
+    for u in units:
+        u["parts"], u["holes"] = bld_merge_unit(u["parts"], u.get("holes") or [])
     S.bld = units
+    try:
+        S.blocks = bld_blocks(units)
+    except Exception:
+        LOG.append("WARNING: the building blocks could not be merged (each building keeps its own outline):\n" +
+                   traceback.format_exc())
+        S.blocks = None
     S.g_bld = Grid(40.0)
     for u in units:
         S.g_bld.add(u, u["bb"])

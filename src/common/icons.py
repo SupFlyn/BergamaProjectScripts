@@ -1,4 +1,5 @@
-# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1): every symbol drawn on one 24-unit square grid,
+# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1; M9 30 Oct: every icon has its legend name,
+# ICO_LEGEND / ico_legend_entry): every symbol drawn on one 24-unit square grid,
 # scaled to `size` page mm, with one stroke weight, one corner radius and one colour rule, so water, planting, plant,
 # people and warning marks read as one family (quality bar: refs/R19, the crossed glass on page 18).
 #   grid      24 x 24 units, origin at the icon centre, y up; drawing inside +-10 (2 units clear on every side)
@@ -75,9 +76,45 @@ ICO_COL = {
     "key_line": ("accent", None),
     "key_dash": ("accent", None),
     "key_point": ("accent", None),
+    # M9 (30 Oct): the plant-group functions of p.17 (G9) and the p.15 flood zone mark
+    "flood_zone": ("water", "water_deep"),
+    "wind": ("structure", None),
+    "noise": ("structure", None),
+    "corridor": ("green_mid", "green_light"),
 }
 
 ICO_NAMES = tuple(ICO_COL.keys())
+
+# M9 (30 Oct): every icon's legend name (G1: no icon without its meaning). A page's legend row for an icon is
+# ico_legend_entry(name) (or the Legend of label_place.py: lg.add(ico_legend_name(n), kind="icon", icon=n)).
+ICO_LEGEND = {
+    "water": u"Water", "stream": u"Selinos stream", "stream_out": u"Clean stream water to the fields",
+    "flow": u"Flow direction", "depth": u"Water depth", "high_water": u"High water (flood level)",
+    "rain": u"Rain", "drought": u"Dry season", "sun": u"Sun", "shade": u"Gives shade",
+    "reeds": u"Reed basin (cleans water)", "plants": u"Planting", "tree": u"Tree", "olive": u"Olive grove",
+    "field": u"Farmland", "drip": u"Drip irrigation", "sewage": u"Sewage outfall", "nutrients": u"Nutrients in the water",
+    "treatment": u"Treatment works", "storage": u"Storage", "uv": u"UV disinfection", "glass": u"Drinking water",
+    "not_drinkable": u"Not drinking water", "chart": u"Figures", "people": u"People", "walk": u"Walking",
+    "bike": u"Cycling", "hub": u"Hub (meeting point)", "market": u"Market", "heritage": u"Heritage site",
+    "cafe": u"Café", "seating": u"Seating", "viewpoint": u"Viewpoint", "warning": u"Warning",
+    "key_area": u"Area", "key_line": u"Route", "key_dash": u"Path", "key_point": u"Place",
+    "flood_zone": u"Flood zone", "wind": u"Cuts wind", "noise": u"Cuts street noise",
+    "corridor": u"Ecological corridor",
+}
+
+
+def ico_legend_name(name):
+    """M9: the legend name of icon `name` (every icon has one)"""
+    if name not in ICO_LEGEND:
+        raise ValueError("icons: %r has no legend name (ICO_LEGEND)" % (name,))
+    return ICO_LEGEND[name]
+
+
+def ico_legend_entry(name, label=None, **colours):
+    """M9: the legend row of an icon: dict(label, kind="icon", icon=name, ...) for a page legend (label overrides the
+    standard name only where the page means something narrower, e.g. "Kermes market")"""
+    _ico_grid(name)                                                  # unknown names stop here
+    return dict(colours, label=label or ico_legend_name(name), kind="icon", icon=name)
 
 
 def ico_lw(size):
@@ -340,6 +377,22 @@ def _ico_grid(name):
         return [(L, [(x, 0.0), (x + 4.0, 0.0)], "c1") for x in (-10.0, -2.0, 6.0)]
     if name == "key_point":
         return [(P, _ico_circ(0.0, 0.0, 4.5, 24), "c1", "ink")]
+    if name == "flood_zone":                                         # a ground band under a raised wave line
+        surf = _ico_wave(-10.0, 10.0, 2.0, 1.2, 2.0)
+        return [(P, surf + [(10.0, -8.0), (-10.0, -8.0)], "c1", None), (L, surf, "ink"),
+                (L, [(-10.0, -8.0), (10.0, -8.0)], "ink"),
+                (L, _ico_wave(-7.0, 7.0, -3.0, 0.9, 1.5, 16), "c2"),
+                (L, [(0.0, 5.5), (0.0, 9.5)], "ink"), (P, _ico_arrowhead(0.0, 10.5, 90.0, 3.0, 3.5), "ink", None)]
+    if name == "wind":                                               # three gusts stopped by a crown
+        sh = [(L, _ico_wave(-10.0, -1.0, y, 0.6, 1.0, 12), "ink") for y in (4.0, 0.0, -4.0)]
+        return sh + [(P, _ico_ell(5.5, 1.0, 4.5, 7.0), "c1", "ink"), (L, [(5.5, -6.0), (5.5, -9.0)], "ink")]
+    if name == "noise":                                              # sound arcs stopped by a crown
+        sh = [(L, _ico_arc(-10.0, 0.0, r, r, -45.0, 45.0, 8), "ink") for r in (3.0, 6.0, 9.0)]
+        return sh + [(P, _ico_ell(5.5, 1.0, 4.5, 7.0), "c1", "ink"), (L, [(5.5, -6.0), (5.5, -9.0)], "ink")]
+    if name == "corridor":                                           # a green band linking two patches
+        return [(P, _ico_circ(-6.5, 0.0, 3.5, 24), "c1", "ink"), (P, _ico_circ(6.5, 0.0, 3.5, 24), "c1", "ink"),
+                (P, _ico_rrect(-6.5, -1.75, 6.5, 1.75, 0.0), "c2", None),
+                (L, [(-3.4, 1.75), (3.4, 1.75)], "ink"), (L, [(-3.4, -1.75), (3.4, -1.75)], "ink")]
     raise ValueError("icons: unknown icon %r (see ICO_NAMES)" % (name,))
 
 

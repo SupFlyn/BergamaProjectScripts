@@ -9,7 +9,7 @@
 # second refusal nothing more this press (remembered 10 min, so a quick second press does not trip it again). The
 # user agent names the project and its repository (Wikimedia's user-agent policy).
 # Fetched once on Aras's PC (the cloud cannot reach Wikimedia), kept in the cache folder and read from there on every
-# later press. Only CC BY, CC BY-SA, CC0 and public-domain files are used. A photo Aras puts into the cache folder
+# later press. Any licence is accepted (D8, PHOTO_ANY_LICENCE); credits stay. A photo Aras puts into the cache folder
 # himself (<key>.jpg with a <key>.json {"file", "credit"}) is used as it is. If the pinned files cannot be fetched,
 # an older cached photo of the same plant stays (where its row allows), else the frame says why.
 # Credit (Aras 28 Oct 11:38, fault table F15: "no Latin file names"): author, licence, Wikimedia Commons and the page-id
@@ -32,6 +32,13 @@ PLANTS = {
     "iris": (u"Yellow flag iris (Sarı süsen)", (u"Yellow Iris, Gunnersbury Triangle.JPG",
                                                 u"Iris pseudacorus (yellow flag iris) (Newark, Ohio, USA) 5 (27772297656).jpg"), True),
     "rush": (u"Sharp rush (Kofa)", (u"Juncus acutus2.jpg",), True),
+    # H-B 30 Oct (M6, p16 gap): titles from the Commons search index (T1 sourcing §2 and a web search, 30 Oct); not
+    # opened from here (Commons blocked in the cloud): UNVERIFIED until the first fetch on Aras's PC logs them.
+    # Turkish name of Juncus effusus not verified: the genus name Kofa (as for the sharp rush) is used.
+    "soft_rush": (u"Soft rush (Kofa)", (u"Pitrus (Juncus effusus) 07.JPG", u"Pitrus plant (Juncus effusus) (1).jpg",
+                                       u"Pitrus (Juncus effusus) 05.JPG", u"JuncusEffusus.jpg"), True),
+    "stone_pine": (u"Stone pine (Fıstık çamı)", (u"Stone Pine (Pinus pinea) - Rome, Italy 2024-03-04.jpg",
+                                                 u"Pinus pinea.JPG"), True),
     "loosestrife": (u"Purple loosestrife (Aklar otu)", (u"Lythrum salicaria, field of purple loosestrife, Concord, Massachusetts.jpg",
                                                         u"Purple Loosestrife (Lythrum salicaria) - geograph.org.uk - 950598.jpg"), True),
     "tamarisk": (u"Tamarisk (Ilgın)", (u"A Tamarisk Tree in Israel (5759425470).jpg", u"Tamarix canariensis-Daimiel.jpg"), True),
@@ -161,8 +168,14 @@ def _png_to_jpeg(src, dst):
         return False
 
 
+PHOTO_ANY_LICENCE = True            # D8 (Aras, 30 Oct): licences are not regarded; every source is still credited
+
+
 def photo_free(lic):
-    """True for an open licence: CC BY / CC BY-SA (any version), CC0, public domain."""
+    """True for an open licence: CC BY / CC BY-SA (any version), CC0, public domain; always True while
+    PHOTO_ANY_LICENCE (D8)."""
+    if PHOTO_ANY_LICENCE:
+        return True
     t = (lic or u"").lower()
     if not t or "non-free" in t or "fair use" in t or "-nc" in t or "-nd" in t or " nc" in t or " nd" in t:
         return False

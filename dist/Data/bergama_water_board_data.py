@@ -28,6 +28,13 @@
 #                   angle_deg   embankments only: slope angle (deg; TIN angles are lower bounds)
 #   terraces      list of {side, from_m, to_m, level}: level shelves on the TIN, from_m/to_m = m out across the stream
 #   q100, q500    flood water levels (m a.s.l., absolute)
+#   avg_flow      (H-B 30 Oct, M8 cut registry) water level at the mean yearly flow (m a.s.l.) = bed + avg_flow_depth:
+#                 the level every section draws its water at (G8, never a dry bed). "c" on the six surveyed sections
+#                 of research/rain_river_levels (W1-W5, S4), "i" (chainage-interpolated between them) elsewhere
+#   avg_flow_depth  depth of that water above the bed (m)
+#   location      short text: name, stream chainage, walled / unwalled reach (internal, for messages and registry)
+#   booklet_pages booklet page numbers (revision 30 Oct) that draw the cut; "pages" keeps the old sheet numbers
+#   aliases       other names of the same line, accepted by level_cut() and never printed (W1 = F1, S4 = F3: PLAN T1)
 #   along         S5/S6 only: stretches where the cut runs within 20 m of the stream axis: {from_m, to_m (m along the
 #                 cut), chainage_from_m, chainage_to_m, ground = (min, max) m a.s.l., not a bed}
 #   note          internal note or None (never printed)
@@ -64,6 +71,9 @@ LEVELS = [
         'json_id': 'S1',
         'crossing': None,
         'name': 'Cut S1',
+        'location': 'Cut S1, stream chainage 5,555 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['4'],
+        'aliases': [],
         'pages': ['04'],
         'ends': {'value': ((29552.11, 32345.6), (29945.02, 32700.41)), 'labels': ('S1', "S1'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 529.4, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -87,6 +97,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 72.05, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 72.51, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.30, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
+        'avg_flow': {'value': 68.10, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
         'note': 'D4 b (29 Oct): bed +67.80 (site board v50 page value) instead of levels.json +68.57 s.',
     },
     # ---- S2: Cut S2
@@ -96,6 +108,9 @@ LEVELS = [
         'json_id': 'S2',
         'crossing': None,
         'name': 'Cut S2',
+        'location': 'Cut S2, stream chainage 7,485 m, unwalled reach',
+        'booklet_pages': ['4'],
+        'aliases': [],
         'pages': ['04'],
         'ends': {'value': ((30691.3, 30992.51), (31123.78, 31300.33)), 'labels': ('S2', "S2'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 530.8, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -117,6 +132,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 49.55, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 49.78, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.19, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K5 (0.17 m) and NİL (0.19 m)'},
+        'avg_flow': {'value': 47.49, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K5 (0.17 m) and NİL (0.19 m)'},
         'note': None,
     },
     # ---- S3: Cut S3
@@ -126,6 +143,9 @@ LEVELS = [
         'json_id': 'S3',
         'crossing': None,
         'name': 'Cut S3',
+        'location': 'Cut S3, stream chainage 5,822 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['4'],
+        'aliases': [],
         'pages': ['04'],
         'ends': {'value': ((29747.61, 32113.39), (29979.55, 32659.4)), 'labels': ('S3', "S3'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 593.2, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -151,6 +171,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 69.9, 'status': 'i', 'source': 'interpolated bed + mean Q100 depth of the two anchor cuts (3.55, 2.56 m)'},
         'q500': {'value': 70.19, 'status': 'i', 'source': 'interpolated bed + mean Q500 depth of the two anchor cuts (3.85, 2.84 m)'},
+        'avg_flow_depth': {'value': 0.20, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
+        'avg_flow': {'value': 67.04, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
         'note': None,
     },
     # ---- S4: Cut S4
@@ -160,6 +182,9 @@ LEVELS = [
         'json_id': 'S4',
         'crossing': None,
         'name': 'Cut S4',
+        'location': 'Cut S4, stream chainage 7,818 m, unwalled reach',
+        'booklet_pages': ['4', '13', '14', '17'],
+        'aliases': ['F3'],
         'pages': ['04', '14', '15', '17 (band section)'],
         'ends': {'value': ((30901.21, 30743.18), (31333.72, 31050.96)), 'labels': ('S4', "S4'"), 'status': 's', 'source': 'exact: site board v50 S4_WB = water board DETAIL_SRC S4_A -> S4_B (SECTION_LINES_LK[3], Nilnoktali-BERGAMA_layerekli.3dm sec_lines), trimmed to site_alan (starts 349.6 m along the 1,071.7 m water-board line)'},
         'length_m': {'value': 530.8, 'status': 's', 'source': 'exact: site board v50 S4_WB = water board DETAIL_SRC S4_A -> S4_B (SECTION_LINES_LK[3], Nilnoktali-BERGAMA_layerekli.3dm sec_lines), trimmed to site_alan (starts 349.6 m along the 1,071.7 m water-board line)'},
@@ -185,6 +210,8 @@ LEVELS = [
         ],
         'q100': {'value': 45.84, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 46.19, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
+        'avg_flow': {'value': 42.72, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
         'note': 'D4 b (29 Oct): bed +42.48 everywhere. Survey low point +43.58 (levels.json +43.59 s, a tacheometric point 0.3 m away) kept here only as a note, never printed.',
     },
     # ---- S5-1: Cut S5 crossing 1
@@ -194,6 +221,9 @@ LEVELS = [
         'json_id': 'S5',
         'crossing': 1,
         'name': 'Cut S5 crossing 1',
+        'location': 'Cut S5 crossing 1, stream chainage 7,507 m, unwalled reach',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((31427.59, 30538.66), (30654.07, 31377.08)), 'labels': ('S5', "S5'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 1140.7, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -216,6 +246,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 48.99, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 49.22, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.19, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K5 (0.17 m) and NİL (0.19 m)'},
+        'avg_flow': {'value': 47.39, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K5 (0.17 m) and NİL (0.19 m)'},
         'along': [
             {'from_m': 132.0, 'to_m': 230.0, 'chainage_from_m': 8176.6, 'chainage_to_m': 8086.7, 'ground': {'value': (39.62, 41.65), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
             {'from_m': 390.0, 'to_m': 852.0, 'chainage_from_m': 7896.6, 'chainage_to_m': 7440.8, 'ground': {'value': (43.43, 49.9), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
@@ -229,6 +261,9 @@ LEVELS = [
         'json_id': 'S5',
         'crossing': 2,
         'name': 'Cut S5 crossing 2',
+        'location': 'Cut S5 crossing 2, stream chainage 7,842 m, unwalled reach',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((31427.59, 30538.66), (30654.07, 31377.08)), 'labels': ('S5', "S5'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 1140.7, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -254,6 +289,8 @@ LEVELS = [
         ],
         'q100': {'value': 45.39, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 45.65, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.23, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections S4 detail cut (0.24 m) and NİL flat end (0.12 m)'},
+        'avg_flow': {'value': 42.98, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections S4 detail cut (0.24 m) and NİL flat end (0.12 m)'},
         'along': [
             {'from_m': 132.0, 'to_m': 230.0, 'chainage_from_m': 8176.6, 'chainage_to_m': 8086.7, 'ground': {'value': (39.62, 41.65), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
             {'from_m': 390.0, 'to_m': 852.0, 'chainage_from_m': 7896.6, 'chainage_to_m': 7440.8, 'ground': {'value': (43.43, 49.9), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
@@ -267,6 +304,9 @@ LEVELS = [
         'json_id': 'S5',
         'crossing': 3,
         'name': 'Cut S5 crossing 3',
+        'location': 'Cut S5 crossing 3, stream chainage 8,136 m, unwalled reach',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((31427.59, 30538.66), (30654.07, 31377.08)), 'labels': ('S5', "S5'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 1140.7, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -291,6 +331,8 @@ LEVELS = [
         ],
         'q100': {'value': 42.07, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 42.25, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.12, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; beyond the last surveyed section: the depth of NİL flat end (chainage 8,100 m)'},
+        'avg_flow': {'value': 40.48, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; beyond the last surveyed section: the depth of NİL flat end (chainage 8,100 m)'},
         'along': [
             {'from_m': 132.0, 'to_m': 230.0, 'chainage_from_m': 8176.6, 'chainage_to_m': 8086.7, 'ground': {'value': (39.62, 41.65), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
             {'from_m': 390.0, 'to_m': 852.0, 'chainage_from_m': 7896.6, 'chainage_to_m': 7440.8, 'ground': {'value': (43.43, 49.9), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
@@ -304,6 +346,9 @@ LEVELS = [
         'json_id': 'S6',
         'crossing': 1,
         'name': 'Cut S6 crossing 1',
+        'location': 'Cut S6 crossing 1, stream chainage 5,741 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((30629.06, 31428.05), (29742.13, 32386.34)), 'labels': ('S6', "S6'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 1305.7, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -328,6 +373,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 71.61, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 71.91, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.23, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
+        'avg_flow': {'value': 68.31, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
         'along': [
             {'from_m': 390.0, 'to_m': 854.0, 'chainage_from_m': 6661.3, 'chainage_to_m': 6202.0, 'ground': {'value': (54.68, 65.39), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
             {'from_m': 1124.0, 'to_m': 1282.0, 'chainage_from_m': 5868.6, 'chainage_to_m': 5718.1, 'ground': {'value': (68.03, 72.01), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
@@ -341,6 +388,9 @@ LEVELS = [
         'json_id': 'S6',
         'crossing': 2,
         'name': 'Cut S6 crossing 2',
+        'location': 'Cut S6 crossing 2, stream chainage 5,849 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((30629.06, 31428.05), (29742.13, 32386.34)), 'labels': ('S6', "S6'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 1305.7, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -366,6 +416,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 69.51, 'status': 'i', 'source': 'interpolated bed + mean Q100 depth of the two anchor cuts (3.55, 2.56 m)'},
         'q500': {'value': 69.8, 'status': 'i', 'source': 'interpolated bed + mean Q500 depth of the two anchor cuts (3.85, 2.84 m)'},
+        'avg_flow_depth': {'value': 0.19, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
+        'avg_flow': {'value': 66.64, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
         'along': [
             {'from_m': 390.0, 'to_m': 854.0, 'chainage_from_m': 6661.3, 'chainage_to_m': 6202.0, 'ground': {'value': (54.68, 65.39), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
             {'from_m': 1124.0, 'to_m': 1282.0, 'chainage_from_m': 5868.6, 'chainage_to_m': 5718.1, 'ground': {'value': (68.03, 72.01), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
@@ -379,6 +431,9 @@ LEVELS = [
         'json_id': 'S6',
         'crossing': 3,
         'name': 'Cut S6 crossing 3',
+        'location': 'Cut S6 crossing 3, stream chainage 6,294 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((30629.06, 31428.05), (29742.13, 32386.34)), 'labels': ('S6', "S6'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 1305.7, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -406,6 +461,8 @@ LEVELS = [
         ],
         'q100': {'value': 62.58, 'status': 'i', 'source': 'interpolated bed + mean Q100 depth of the two anchor cuts (3.97, 2.79 m); tunnels not modelled: levels just upstream of them can be higher (README v1.1)'},
         'q500': {'value': 62.92, 'status': 'i', 'source': 'interpolated bed + mean Q500 depth of the two anchor cuts (3.97, 2.79 m); tunnels not modelled: levels just upstream of them can be higher (README v1.1)'},
+        'avg_flow_depth': {'value': 0.16, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K4 (0.15 m) and BEGÜM K5 (0.17 m)'},
+        'avg_flow': {'value': 59.36, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K4 (0.15 m) and BEGÜM K5 (0.17 m)'},
         'along': [
             {'from_m': 390.0, 'to_m': 854.0, 'chainage_from_m': 6661.3, 'chainage_to_m': 6202.0, 'ground': {'value': (54.68, 65.39), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
             {'from_m': 1124.0, 'to_m': 1282.0, 'chainage_from_m': 5868.6, 'chainage_to_m': 5718.1, 'ground': {'value': (68.03, 72.01), 'status': 'i', 'source': 'survey TIN along the cut where it runs within 20 m of the stream axis (the cut lies in or beside the channel; not a bed level)'}},
@@ -419,6 +476,9 @@ LEVELS = [
         'json_id': 'S7',
         'crossing': None,
         'name': 'Cut S7',
+        'location': 'Cut S7, stream chainage 6,415 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((30031.85, 31775.78), (30458.68, 32090.31)), 'labels': ('S7', "S7'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 530.2, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -445,6 +505,8 @@ LEVELS = [
         ],
         'q100': {'value': 61.09, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 61.39, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.16, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K4 (0.15 m) and BEGÜM K5 (0.17 m)'},
+        'avg_flow': {'value': 58.22, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K4 (0.15 m) and BEGÜM K5 (0.17 m)'},
         'note': 'D4 b (29 Oct): bed +58.06 (site board v50 page value) instead of levels.json +57.93 s.',
     },
     # ---- S8: Cut S8
@@ -454,6 +516,9 @@ LEVELS = [
         'json_id': 'S8',
         'crossing': None,
         'name': 'Cut S8',
+        'location': 'Cut S8, stream chainage 6,638 m, unwalled reach',
+        'booklet_pages': ['5'],
+        'aliases': [],
         'pages': ['05'],
         'ends': {'value': ((30157.18, 31626.92), (30629.14, 31887.84)), 'labels': ('S8', "S8'"), 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
         'length_m': {'value': 539.3, 'status': 'i', 'source': "digitised from the booklet key maps (revision package booklet/p04.jpg, p05.jpg; frame = site_alan, 2.75 m per pixel, line fit rms 0.8-1.0 px); checked: cut length and both end levels match the page within 0.1 m (S1-S4, S7, S8; S5 length 1,140 m as printed). +-3 m. Replace with the sec_lines coordinates of Aras's working file when available."},
@@ -479,6 +544,8 @@ LEVELS = [
         ],
         'q100': {'value': 58.72, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 59.12, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.17, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K4 (0.15 m) and BEGÜM K5 (0.17 m)'},
+        'avg_flow': {'value': 55.30, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K4 (0.15 m) and BEGÜM K5 (0.17 m)'},
         'note': 'D4 b (29 Oct): bed +55.13 (site board v50 page value) instead of levels.json +55.76 s.',
     },
     # ---- W1: Upstream entry
@@ -488,6 +555,9 @@ LEVELS = [
         'json_id': 'W1_upstream_entry',
         'crossing': None,
         'name': 'Upstream entry',
+        'location': 'Upstream entry, stream chainage 5,483 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['10', '12', '17', '22'],
+        'aliases': ['F1'],
         'pages': ['13 (panel 1)', '24 (upstream window: level mark)', '11 (water balance STREAM_CUT)'],
         'ends': {'value': ((29657.106, 32547.404), (29716.111, 32583.173)), 'labels': ('SW', 'NE'), 'status': 'c', 'source': 'right-angle cut at chainage 5483.2, centre (29693.022, 32569.176) from research levels2_out.json; drawn span u -42..27 m (water board CUTS ground)'},
         'length_m': {'value': 69.0, 'status': 'c', 'source': 'right-angle cut at chainage 5483.2, centre (29693.022, 32569.176) from research levels2_out.json; drawn span u -42..27 m (water board CUTS ground)'},
@@ -511,6 +581,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 73.35, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 73.66, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.33, 'status': 'c', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section ARAS (chainage 5,483 m)'},
+        'avg_flow': {'value': 70.69, 'status': 'c', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section ARAS (chainage 5,483 m)'},
         'note': None,
     },
     # ---- W2: K4 cut
@@ -520,6 +592,9 @@ LEVELS = [
         'json_id': 'W2_K4',
         'crossing': None,
         'name': 'K4 cut',
+        'location': 'K4 cut, stream chainage 5,965 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['12'],
+        'aliases': [],
         'pages': ['13 (panel 2)'],
         'ends': {'value': ((29940.346, 32186.961), (29966.574, 32291.728)), 'labels': ('SW', 'NE'), 'status': 'c', 'source': 'right-angle cut at chainage 5964.9, centre (29959.774, 32264.566) from research levels2_out.json; drawn span u -80..28 m (water board CUTS ground)'},
         'length_m': {'value': 108.0, 'status': 'c', 'source': 'right-angle cut at chainage 5964.9, centre (29959.774, 32264.566) from research levels2_out.json; drawn span u -80..28 m (water board CUTS ground)'},
@@ -544,6 +619,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 67.33, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 67.61, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.15, 'status': 'c', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section BEGÜM K4 (chainage 5,965 m)'},
+        'avg_flow': {'value': 64.92, 'status': 'c', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section BEGÜM K4 (chainage 5,965 m)'},
         'note': None,
     },
     # ---- W3: K5 cut
@@ -553,6 +630,9 @@ LEVELS = [
         'json_id': 'W3_K5',
         'crossing': None,
         'name': 'K5 cut',
+        'location': 'K5 cut, stream chainage 6,679 m, unwalled reach',
+        'booklet_pages': ['12', '22'],
+        'aliases': [],
         'pages': ['13 (panel 3)', '24 (K5 window: level mark)'],
         'ends': {'value': ((30303.892, 31663.762), (30376.04, 31700.58)), 'labels': ('SW', 'NE'), 'status': 'c', 'source': 'right-angle cut at chainage 6678.9, centre (30354.663, 31689.671) from research levels2_out.json; drawn span u -57..24 m (water board CUTS ground)'},
         'length_m': {'value': 81.0, 'status': 'c', 'source': 'right-angle cut at chainage 6678.9, centre (30354.663, 31689.671) from research levels2_out.json; drawn span u -57..24 m (water board CUTS ground)'},
@@ -576,6 +656,8 @@ LEVELS = [
         ],
         'q100': {'value': 58.41, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 58.75, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.17, 'status': 'c', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section BEGÜM K5 (chainage 6,679 m)'},
+        'avg_flow': {'value': 56.13, 'status': 'c', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section BEGÜM K5 (chainage 6,679 m)'},
         'note': None,
     },
     # ---- W4: Downstream reach
@@ -585,6 +667,9 @@ LEVELS = [
         'json_id': 'W4_downstream',
         'crossing': None,
         'name': 'Downstream reach',
+        'location': 'Downstream reach, stream chainage 7,629 m, unwalled reach',
+        'booklet_pages': ['12'],
+        'aliases': [],
         'pages': ['13 (panel 4)'],
         'ends': {'value': ((30959.672, 31012.419), (31016.376, 31059.965)), 'labels': ('SW', 'NE'), 'status': 'c', 'source': 'right-angle cut at chainage 7628.6, centre (30991.856, 31039.404) from research levels2_out.json; drawn span u -42..32 m (water board CUTS ground)'},
         'length_m': {'value': 74.0, 'status': 'c', 'source': 'right-angle cut at chainage 7628.6, centre (30991.856, 31039.404) from research levels2_out.json; drawn span u -42..32 m (water board CUTS ground)'},
@@ -610,6 +695,8 @@ LEVELS = [
         ],
         'q100': {'value': 47.72, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 48.0, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.19, 'status': 'c', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section NİL (chainage 7,629 m)'},
+        'avg_flow': {'value': 45.86, 'status': 'c', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section NİL (chainage 7,629 m)'},
         'note': None,
     },
     # ---- W5: Flat downstream end
@@ -619,6 +706,9 @@ LEVELS = [
         'json_id': 'W5_flat_end',
         'crossing': None,
         'name': 'Flat downstream end',
+        'location': 'Flat downstream end, stream chainage 8,100 m, unwalled reach',
+        'booklet_pages': [],
+        'aliases': [],
         'pages': ["water board sheet only (CUTS 'flat'); not on the checked pages"],
         'ends': {'value': ((31247.837, 30628.656), (31302.032, 30740.186)), 'labels': ('SW', 'NE'), 'status': 'c', 'source': 'right-angle cut at chainage 8099.8, centre (31274.935, 30684.421) from research levels2_out.json; drawn span u -62..62 m (water board CUTS ground)'},
         'length_m': {'value': 124.0, 'status': 'c', 'source': 'right-angle cut at chainage 8099.8, centre (31274.935, 30684.421) from research levels2_out.json; drawn span u -62..62 m (water board CUTS ground)'},
@@ -641,6 +731,8 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 42.71, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 42.87, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.12, 'status': 'c', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section NİL flat end (chainage 8,100 m)'},
+        'avg_flow': {'value': 41.45, 'status': 'c', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section NİL flat end (chainage 8,100 m)'},
         'note': None,
     },
     # ==== rows added by T4a (WO-T4a-2, p17 planting sections, 29 Oct). F1 = the W1 line, F3 = the S4 line (no rows of
@@ -654,6 +746,9 @@ LEVELS = [
         'json_id': None,
         'crossing': None,
         'name': 'Rain terraces (upstream entry)',
+        'location': 'Rain terraces (upstream entry), stream chainage 5,531 m, walled town reach (DSİ walls)',
+        'booklet_pages': ['17'],
+        'aliases': [],
         'pages': ['17 (planting section)'],
         'ends': {'value': ((29665.43, 32501.89), (29843.63, 32592.69)), 'labels': ('F2', "F2'"), 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the rain terraces (zone base WS), the shaded walk (GR), the reed basins (WT), the spillway (WD) and the stream at the upstream entry; measured with T1/levels/work/sample_cut.py (29665.43, 32501.89) -> (29843.63, 32592.69)'},
         'length_m': {'value': 200.0, 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the rain terraces (zone base WS), the shaded walk (GR), the reed basins (WT), the spillway (WD) and the stream at the upstream entry; measured with T1/levels/work/sample_cut.py (29665.43, 32501.89) -> (29843.63, 32592.69)'},
@@ -680,6 +775,8 @@ LEVELS = [
         ],
         'q100': {'value': 72.05, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 72.41, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.31, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
+        'avg_flow': {'value': 69.18, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections ARAS (0.33 m) and BEGÜM K4 (0.15 m)'},
         'ground': {'value': [(0.0, 80.79), (2.0, 80.1), (4.0, 79.46), (6.0, 78.84), (8.0, 78.25), (10.0, 77.65), (12.0, 77.02), (14.0, 76.56), (16.0, 76.04), (18.0, 75.84), (20.0, 75.67), (22.0, 75.51), (24.0, 75.45), (26.0, 75.45), (28.0, 75.06), (30.0, 74.66), (32.0, 74.27), (34.0, 73.72), (36.0, 73.15), (38.0, 72.57), (40.0, 71.99), (42.0, 71.41), (44.0, 70.83), (46.0, 70.6), (48.0, 70.44), (50.0, 70.27), (52.0, 70.11), (54.0, 69.95), (56.0, 69.78), (58.0, 69.62), (60.0, 69.46), (62.0, 69.3), (64.0, 69.13), (66.0, 68.97), (68.0, 69.01), (70.0, 69.55), (72.0, 70.1), (74.0, 70.64), (76.0, 71.57), (78.0, 73.15), (80.0, 74.81), (82.0, 75.1), (84.0, 75.22), (86.0, 75.33), (88.0, 75.45), (90.0, 75.42), (92.0, 75.56), (94.0, 75.74), (96.0, 75.83), (98.0, 75.9), (100.0, 75.97), (102.0, 76.26), (104.0, 76.69), (106.0, 77.18), (108.0, 77.66), (110.0, 78.11), (112.0, 78.55), (114.0, 78.85), (116.0, 78.87), (118.0, 78.89), (120.0, 78.91), (122.0, 78.92), (124.0, 78.94), (126.0, 78.97), (128.0, 78.99), (130.0, 79.01), (132.0, 79.03), (134.0, 79.05), (136.0, 79.13), (138.0, 79.26), (140.0, 79.38), (142.0, 79.51), (144.0, 79.63), (146.0, 79.76), (148.0, 79.87), (150.0, 79.98), (152.0, 80.71), (154.0, 81.59), (156.0, 82.44), (158.0, 83.32), (160.0, 83.47), (162.0, 83.54), (164.0, 83.65), (166.0, 83.75), (168.0, 83.84), (170.0, 83.94), (172.0, 84.0), (174.0, 84.0), (176.0, 84.38), (178.0, 84.89), (180.0, 85.43), (182.0, 85.96), (184.0, 86.48), (186.0, 87.03), (188.0, 87.46), (190.0, 87.55), (192.0, 87.63), (194.0, 87.71), (196.0, 87.89), (198.0, 88.81), (199.0, 89.22)], 'status': 'i', 'source': 'survey TIN along the cut every 2 m from the first end (m along the cut, m a.s.l.), sample_cut.py profile'},
         'zones': [('STRIP', 49.2, 54.0), ('WD', 54.1, 75.4), ('WT', 77.7, 97.1), ('GR', 115.6, 135.6), ('WS', 135.6, 177.6)],
         'note': 'T4a: crosses the zone base (ZONE_COPY) at m along the cut: STRIP 49.2-54.0, WD 54.1-75.4, WT 77.7-97.1, GR 115.6-135.6, WS 135.6-177.6 (also in zones). The cut runs within 20 m of the stream axis from 42 to 80 m (angle 74 deg).',
@@ -691,6 +788,9 @@ LEVELS = [
         'json_id': None,
         'crossing': None,
         'name': 'Reed side arm (lower reach)',
+        'location': 'Reed side arm (lower reach), stream chainage 7,440 m, unwalled reach',
+        'booklet_pages': ['17'],
+        'aliases': [],
         'pages': ['17 (planting section)'],
         'ends': {'value': ((30789.65, 31065.56), (30867.18, 31195.77)), 'labels': ('F4', "F4'"), 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the reed side arm of the masterplan corridor (C.arms; its middle digitised from the p23 plan, georeferenced on the analysis frame, +-5 m) and the stream below K6; measured with T1/levels/work/sample_cut.py (30789.65, 31065.56) -> (30867.18, 31195.77)'},
         'length_m': {'value': 151.5, 'status': 'a', 'source': 'T4a WO-T4a-2 (29 Oct): p17 cut line placed by the page thread across the reed side arm of the masterplan corridor (C.arms; its middle digitised from the p23 plan, georeferenced on the analysis frame, +-5 m) and the stream below K6; measured with T1/levels/work/sample_cut.py (30789.65, 31065.56) -> (30867.18, 31195.77)'},
@@ -712,11 +812,90 @@ LEVELS = [
         'terraces': [],
         'q100': {'value': 49.85, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 50.13, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
+        'avg_flow_depth': {'value': 0.18, 'status': 'i', 'source': 'research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K5 (0.17 m) and NİL (0.19 m)'},
+        'avg_flow': {'value': 47.81, 'status': 'i', 'source': 'bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; interpolated by chainage between the surveyed sections BEGÜM K5 (0.17 m) and NİL (0.19 m)'},
         'ground': {'value': [(0.0, 52.37), (2.0, 52.39), (4.0, 52.41), (6.0, 52.42), (8.0, 52.42), (10.0, 52.42), (12.0, 52.44), (14.0, 52.46), (16.0, 52.4), (18.0, 52.33), (20.0, 52.26), (22.0, 52.19), (24.0, 52.13), (26.0, 52.08), (28.0, 52.03), (30.0, 51.98), (32.0, 51.91), (34.0, 51.85), (36.0, 51.79), (38.0, 51.72), (40.0, 51.66), (42.0, 51.6), (44.0, 51.54), (46.0, 51.45), (48.0, 51.36), (50.0, 51.26), (52.0, 51.16), (54.0, 51.13), (56.0, 51.1), (58.0, 51.08), (60.0, 51.05), (62.0, 51.02), (64.0, 50.85), (66.0, 50.44), (68.0, 50.01), (70.0, 49.61), (72.0, 49.22), (74.0, 49.05), (76.0, 48.87), (78.0, 48.71), (80.0, 48.56), (82.0, 48.42), (84.0, 48.28), (86.0, 48.13), (88.0, 48.0), (90.0, 47.9), (92.0, 47.85), (94.0, 47.8), (96.0, 47.75), (98.0, 47.7), (100.0, 47.65), (102.0, 47.64), (104.0, 47.65), (106.0, 47.66), (108.0, 47.67), (110.0, 47.81), (112.0, 48.4), (114.0, 48.98), (116.0, 49.57), (118.0, 49.71), (120.0, 49.85), (122.0, 50.05), (124.0, 50.37), (126.0, 50.7), (128.0, 51.02), (130.0, 51.09), (132.0, 51.07), (134.0, 51.06), (136.0, 51.0), (138.0, 50.98), (140.0, 50.93), (142.0, 50.88), (144.0, 50.83), (146.0, 50.78), (148.0, 50.74), (150.0, 50.71), (151.0, 50.7)], 'status': 'i', 'source': 'survey TIN along the cut every 2 m from the first end (m along the cut, m a.s.l.), sample_cut.py profile'},
         'zones': [('ARM', 27.0, 33.0)],
         'note': 'T4a: the side arm (masterplan C.arms, not in the zone base) is crossed at 30 m along the cut (its middle, 66 m from the stream axis on the SW side, digitised from booklet p23 +-5 m); recheck against masterplan_results.json "corridor" when the masterplan exports it.',
     },
 ]
+
+#@@ FACTS
+# ---- Shared facts (H-B 30 Oct 2026, M10): every value printed on more than one page, or printed on one page and
+# used by another, has ONE row here. Read it through ../common/facts.py, never directly:
+#   #@include ../common/data/FACTS.py
+#   #@include ../common/facts.py
+# Plain Python data (exec'd into globals by tools/build.py's bergama_data): no imports, no functions, one assignment.
+#
+# ROW: key -> dict
+#   kind        "live" = read on every run from another script's results file (never typed here; no fallback: a
+#               missing file gives None and the page prints nothing for it) | "static" = a sourced constant |
+#               "derived" = computed from another row (of)
+#   file        live: "water_balance" (water_balance_results.json, facts.py FACT_FILES)
+#   path        live: the keys into that JSON
+#   conv        None | "drip_m3_ha" (net mm / drip efficiency x 10 = m³ per ha at the intake) | "ha_per_10000" (10,000 /
+#               value) | "ratio" (value[0] / value[1])
+#   value       static: the value (a number, or a tuple for parts that are summed / divided by conv)
+#   round       the step the printed value is rounded to (10 -> 8,000; 1 -> 8,705); nd = decimals instead
+#   unit, note  printed after the number ("m³ per ha", "(1-in-5 dry year)")
+#   ref         the source (internal wording; print only "public")
+#   public      the citation a page may print (Sources page), None when not public
+#   printed_on  the ONE booklet page that prints the fact (G4 "a fact appears once"); used_by = pages that use the
+#               value without printing it (or print it only as part of a derived line)
+FACTS = {
+    # ---- olive water need: water board OLIVE_M3_HA = FAO-56 net dry5 / drip efficiency (water_board code.py 1519,
+    # printed 8,001) and agriculture gross normal..dry (code.py 812, printed 6,830-8,000): same quantity, one rounding (T1)
+    "olive_need_m3_ha": dict(
+        kind="live", file="water_balance", path=("net_irrigation_mm", "olive", "dry5"), conv="drip_m3_ha",
+        round=10, unit=u"m³ per ha", note=u"(1-in-5 dry year)",
+        ref=u"FAO-56 soil water balance for Bergama, 34 water years (water balance results, net irrigation olive dry5); "
+            u"drip efficiency 90 % (FAO Training Manual 4 ch. 3)",
+        public=u"Allen et al. 1998, FAO Irrigation and Drainage Paper 56",
+        printed_on="18", used_by=["19"]),
+    "olive_need_normal_m3_ha": dict(
+        kind="live", file="water_balance", path=("net_irrigation_mm", "olive", "mean"), conv="drip_m3_ha",
+        round=10, unit=u"m³ per ha", note=u"(normal year)",
+        ref=u"as olive_need_m3_ha, mean year", public=u"Allen et al. 1998, FAO Irrigation and Drainage Paper 56",
+        printed_on="19", used_by=[]),
+    "olive_ha_per_10000_m3": dict(
+        kind="derived", of="olive_need_m3_ha", conv="ha_per_10000", nd=2, unit=u"ha", note=u"of olives per 10,000 m³",
+        ref=u"10,000 m³ / olive_need_m3_ha (unrounded)", public=None,
+        printed_on="18", used_by=["19"]),
+    # ---- lands the water balance serves (water_balance LANDS: around2.pdf farm extent, ESA WorldCover 2021)
+    "cropland_ha": dict(
+        kind="live", file="water_balance", path=("lands", "cropland_ha"), conv=None, nd=1, unit=u"ha",
+        note=u"fields", ref=u"around2.pdf farm extent, ESA WorldCover 2021 cropland (water balance LANDS)",
+        public=u"ESA WorldCover 2021", printed_on="9", used_by=["10"]),
+    "orchard_ha": dict(
+        kind="live", file="water_balance", path=("lands", "orchard_ha"), conv=None, nd=2, unit=u"ha",
+        note=u"olive grove", ref=u"orchards within 35 m of survey olive/fruit symbols (water balance LANDS)",
+        public=None, printed_on="9", used_by=["10"]),
+    # ---- storage (live from the water balance; PLAN T1: never typed)
+    "storage_m3": dict(
+        kind="live", file="water_balance", path=("design", "central_range_m3"), conv=None, round=1000,
+        unit=u"m³", note=u"", ref=u"water balance results, design central range (sequent peak, cost cut-off)",
+        public=None, printed_on="10", used_by=["11", "18"]),
+    # ---- groundwater (water board AQUIFER, DECISION; research/water_data/03 rows 17 and 19)
+    "aquifer_use_ratio": dict(
+        kind="static", value=(198.01, 45.4), conv="ratio", nd=1, unit=u"×", note=u"its potential",
+        ref=u"Lower Bakırçay: total water use 198.01 hm³ (Tablo 4.3 p.31) / groundwater potential 45.4 hm³ (Tablo 5.3 "
+            u"p.36), Kuzey Ege Kuraklık Yönetim Planı 2018 (S10)",
+        public=u"Kuzey Ege Havzası Kuraklık Yönetim Planı, 2018", printed_on="18", used_by=["19"]),
+    "arsenic_ug_l": dict(
+        kind="static", value=10, conv=None, round=1, unit=u"µg/L", note=u"arsenic above (not for drinking)",
+        ref=u"Somay & Gemici 2015 (DATA_REGISTER EN-E3)", public=u"Somay & Gemici 2015",
+        printed_on="18", used_by=[]),
+    # ---- olive area in Bergama: TÜİK 2025, 65,978 + 21,068 da (agriculture code.py 536) = 8,704.6 ha (PLAN T1)
+    "olive_area_ha": dict(
+        kind="static", value=(65978.0, 21068.0), conv="da_sum_ha", round=1, unit=u"ha", note=u"of olives in Bergama",
+        ref=u"TÜİK 2025 district crop areas, MEDAS export (library/research/crops_2026-10-24/"
+            u"bergama_crops_irrigation_v1.md §1.25)",
+        public=u"TÜİK, Bitkisel Üretim İstatistikleri 2025", printed_on="19", used_by=[]),
+    # ---- constants used by the conversions (sourced)
+    "drip_efficiency": dict(
+        kind="static", value=0.90, conv=None, nd=2, unit=u"", note=u"",
+        ref=u"water balance v2 DRIP_EFF (FAO Training Manual 4 ch. 3)", public=None, printed_on=None, used_by=["18", "19"]),
+}
 
 #@@ CUTS
 CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the bed low point), depths of EVENTS (m above the bed),

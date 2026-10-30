@@ -7,10 +7,14 @@
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
 #@include ../common/basemap.py
+#@include ../common/grid.py
+#@include ../common/buildings.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py
 #@include ../common/hires.py
 #@include ../common/icons.py
+#@include ../common/water.py
+#@include ../common/section_frame.py
 #@include parts/02_Design.py
 #@include ../common/booklet_assets.py
 #@include parts/02b_detail.py

@@ -708,10 +708,14 @@
 | LEVELS | ../common/data/LEVELS.py | - |
 | levels | ../common/levels.py | - |
 | basemap | ../common/basemap.py | - |
+| grid | ../common/grid.py | - |
+| buildings | ../common/buildings.py | - |
 | section_parts | ../common/section_parts.py | - |
 | plants | ../common/plants.py | - |
 | hires | ../common/hires.py | - |
 | icons | ../common/icons.py | - |
+| water | ../common/water.py | - |
+| section_frame | ../common/section_frame.py | - |
 | p02_p03 | pages/p02_p03.py | - |
 | p04_05_sections | pages/p04_05_sections.py | - |
 | p06_22_build | pages/p06_22_build.py | - |

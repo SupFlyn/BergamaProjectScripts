@@ -20,6 +20,11 @@
 #   ("fill", rings, hex, alpha, nonzero)        rings = [[(x, y), ...], ...] (outlines and their holes)
 #   ("line", pts, hex, width_mm, dash_mm, alpha) dash_mm = None or [on, off, ...] in print mm
 #   ("text", s, (x, y), size_mm, hex, bold, align)   align as the scripts' text calls ("MC" = middle centre)
+# M3 (revision 30 Oct 2026, H-A): the 29 Oct modes and switches are kept as they were; added the layers study_area
+# (calisma_alan, ONE outline reused on every map, R28_STUDY_LINE), names (place names) and the building styles "plan" /
+# "plan_faint" (M11: block outlines + roof reading, no stripes), the modes "base" (the faint base of a map page) and
+# "key" (key maps, M4), the water drawn by M5 (water_plan, when included) and keymap_items (M4). The data carries per
+# building its height (h, floors) and a "blocks" layer (buildings sharing a wall merged: no fake division lines).
 import os as _bm_os
 import json as _bm_json
 import math as _bm_math
@@ -50,15 +55,27 @@ BM_COVERED_DASH = (1.6, 0.9)     # mm: the covered course
 # the modes of 02 §1; a value per layer: False = off, True = on, "faint" / "veryfaint" = buildings or streets faint,
 # a tuple of street classes ("main", "lane", "path") = only those as centrelines, "height" = contours by height
 BASEMAP_MODES = {
-    "detailed": dict(stream=True, streets=True, buildings=True, green=True, trees=True, fields=True, contours=True),
+    "detailed": dict(stream=True, streets=True, buildings=True, green=True, trees=True, fields=True, contours=True,
+                     study_area=False, names=False),
     "simple": dict(stream=True, streets="faint", buildings="faint", green=False, trees=False, fields=False,
-                   contours=False),
+                   contours=False, study_area=False, names=False),
     "minimal": dict(stream=True, streets=("main", "lane"), buildings="veryfaint", green=False, trees=False,
-                    fields=False, contours=False),
+                    fields=False, contours=False, study_area=False, names=False),
     "topographic": dict(stream=True, streets=False, buildings="faint", green=False, trees=False, fields=False,
-                        contours="height"),
+                        contours="height", study_area=False, names=False),
+    # M3 (30 Oct): the faint base under a map page's message (G5), and the key map's base (M4)
+    "base": dict(stream=True, streets="faint", buildings="plan_faint", green=False, trees=False, fields=False,
+                 contours=False, study_area=True, names=False),
+    "key": dict(stream=True, streets=("main",), buildings="veryfaint", green=False, trees=False, fields=False,
+                contours=False, study_area=True, names=False),
 }
+# M3 layer list -> switches: basemap_layers accepts these names too (buildings, streets, water, topography,
+# study_area, names; green, trees, fields as before)
+BM_LAYER_ALIAS = dict(water="stream", topography="contours")
+BM_STUDY_LINE = dict(colour="262626", width_mm=0.45, dash_mm=(3.0, 0.8, 0.4, 0.8))   # = R28_STUDY_LINE
+BM_NAME_MM = 2.47                  # place names: the M1 label size (7 pt)
 _BM_MEMO = {}
+_BM_WARN = []
 
 
 # ------------------------------------------------------------------------------------------- reading
@@ -101,11 +118,22 @@ def basemap_extent(D=None):
 
 def basemap_layers(mode, override=None):
     """the layer switches of a mode (BASEMAP_MODES) with a drawing's own changes laid over them, e.g.
-    basemap_layers("minimal", {"streets": ("main",), "buildings": False}) for D5 Sound b (stream + main roads)"""
+    basemap_layers("minimal", {"streets": ("main",), "buildings": False}) for D5 Sound b (stream + main roads).
+    M3 (30 Oct): override may also be a LIST of layer names = only those on (the others off), each at the mode's
+    own value, e.g. basemap_layers("base", ["buildings", "water", "study_area"]); "water" = stream, "topography" =
+    contours. buildings: True / "faint" / "veryfaint" / "plan" / "plan_faint" (M11) / False."""
     if mode not in BASEMAP_MODES:
         raise ValueError(u"basemap mode '{}' unknown: one of {}".format(mode, ", ".join(sorted(BASEMAP_MODES))))
     lay = dict(BASEMAP_MODES[mode])
+    if isinstance(override, (list, tuple, set, frozenset)):
+        want = set(BM_LAYER_ALIAS.get(k, k) for k in override)
+        for k in want:
+            if k not in lay:
+                raise ValueError(u"basemap layer '{}' unknown: one of {}".format(k, ", ".join(sorted(lay))))
+        on = dict(BASEMAP_MODES["detailed"], study_area=True, names=True)
+        override = dict((k, (lay[k] or on[k]) if k in want else False) for k in lay)
     for k, v in (override or {}).items():
+        k = BM_LAYER_ALIAS.get(k, k)
         if k not in lay:
             raise ValueError(u"basemap layer '{}' unknown: one of {}".format(k, ", ".join(sorted(lay))))
         lay[k] = v
@@ -135,25 +163,80 @@ def _bm_ramp(t):
                    for j in (0, 2, 4))
 
 
-def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildings=False):
+def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildings=False, scale_den=None):
     """the basemap of a drawing as items (bottom first; see the head of this file), in survey m. mode: "detailed",
-    "simple", "minimal", "topographic" (02 §1); override: layer changes for this drawing (basemap_layers); box =
-    (x0, y0, x1, y1) survey m: only what touches it (the caller clips to its frame); split_buildings=True gives
-    every building its own fill item (for a page that fills even-odd only; default: nonzero fills in chunks).
-    [] without data."""
+    "simple", "minimal", "topographic" (02 §1), "base", "key" (M3, 30 Oct); override: layer changes for this drawing,
+    a dict or a list of the layers to show (basemap_layers); box = (x0, y0, x1, y1) survey m: only what touches it
+    (the caller clips to its frame); split_buildings=True gives every building its own fill item (for a page that
+    fills even-odd only; default: nonzero fills in chunks); scale_den: the drawing's scale (1:scale_den) for the
+    M11 roof marks of buildings "plan" / "plan_faint" (default 1:5,000). [] without data."""
     D = D if D is not None else basemap_load()
     if not D:
         return []
     # the same request in one run is made once and copied (Aras 29 Oct 19:18: build once, cache, copy the layers)
-    mk = ("items", id(D), mode, repr(sorted((override or {}).items())), tuple(box) if box else None,
-          bool(split_buildings))
+    ov = sorted(override) if isinstance(override, (list, tuple, set, frozenset)) else sorted((override or {}).items())
+    mk = ("items", id(D), mode, repr(ov), tuple(box) if box else None, bool(split_buildings), scale_den)
     if mk in _BM_MEMO:
         return list(_BM_MEMO[mk])
-    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings)
+    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings, scale_den)
     return list(_BM_MEMO[mk])
 
 
-def _bm_items(D, mode, override, box, split_buildings):
+def basemap_water_rings(items):
+    """M3: the stream's rings (survey m) in an item list, whether drawn plain (fill items of the water colour) or by
+    M5 (the "water" item): for a page that clips or measures by the water"""
+    out = []
+    for it in items:
+        if it[0] == "water":
+            out += [R for g in it[1] for R in g if len(R) >= 3]
+        elif it[0] == "fill" and it[2] == BM_COL["water"]:
+            out += [R for R in it[1] if len(R) >= 3]
+    return out
+
+
+def basemap_warnings():
+    """M3: what the basemap could not draw as asked this run (e.g. the M5 water drawing failed): log lines, emptied"""
+    out = list(_BM_WARN)
+    del _BM_WARN[:]
+    return out
+
+
+def basemap_study(D=None):
+    """M3: the study area (calisma_alan, two closed parts worked as one) as rings in survey m: the basemap's study
+    layer, else the recorded copy a script includes (R28_STUDY_COPY, CALISMA_COPY, CL_STUDY); [] without either"""
+    D = D if D is not None else basemap_load()
+    st = ((D or {}).get("layers") or {}).get("study")
+    if st:
+        return [[tuple(p) for p in R] for R in st]
+    for nm in ("R28_STUDY_COPY", "CALISMA_COPY", "CL_STUDY"):
+        v = globals().get(nm)
+        if v:
+            return [[tuple(p) for p in R] for R in v]
+    return []
+
+
+def basemap_study_items(D=None, style=None):
+    """M3: the study-area outline as line items (survey m), one style everywhere (R28_STUDY_LINE when included)"""
+    st = style or globals().get("R28_STUDY_LINE") or BM_STUDY_LINE
+    return [("line", list(R) + [R[0]], st["colour"], st["width_mm"], list(st["dash_mm"]), 1.0)
+            for R in basemap_study(D) if len(R) >= 3]
+
+
+def basemap_names(box=None, D=None):
+    """M3: the place names [(name, (x, y))] in survey m (the extent's landmarks and named heritage buildings), for a
+    page to place with M2 (lp_place) so no name collides"""
+    D = D if D is not None else basemap_load()
+    if not D:
+        return []
+    nm = (D.get("layers") or {}).get("names") or [[n, list(p)] for n, p in (D.get("reach") or BASEMAP_REACH)]
+    out = []
+    for n, p in nm:
+        if box is None or (box[0] <= p[0] <= box[2] and box[1] <= p[1] <= box[3]):
+            out.append((n, (p[0], p[1])))
+    return out
+
+
+def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
     """basemap_items without the memo"""
     lay = basemap_layers(mode, override)
     L = D["layers"]
@@ -215,10 +298,17 @@ def _bm_items(D, mode, override, box, split_buildings):
         for cl, P in L["streets_in"] + L["streets_out"]:
             if cl in st:
                 lines([P], BM_FAINT["road_line"] if cl != "main" else BM_COL["road_edge"], BM_LW[cl])
-    # the stream: ONE drawing (the site board's water and its edge inside the frame, OpenStreetMap's course beyond)
+    # the stream: ONE drawing (the site board's water and its edge inside the frame, OpenStreetMap's course beyond).
+    # M3 (30 Oct): drawn by M5 (common/water.py water_plan, page mm) when the script includes it: one "water" item
+    # that basemap_draw hands to water_plan after the map's T (else the plain fill and edge, as before)
     if lay["stream"]:
-        fills(L["water"], BM_COL["water"], nonzero=False)
-        lines(L["water_edge"], BM_COL["water_edge"], BM_LW["water_edge"])
+        if callable(globals().get("water_plan")):
+            ws = [g for g in L["water"] if g and len(g[0]) >= 3 and _bm_hit(g[0], box)]
+            if ws:
+                out.append(("water", ws, [P for P in L["water_edge"] if len(P) >= 2 and _bm_hit(P, box)], 1.0))
+        else:
+            fills(L["water"], BM_COL["water"], nonzero=False)
+            lines(L["water_edge"], BM_COL["water_edge"], BM_LW["water_edge"])
         if st is True or st == "faint":
             fills([[R] for R in L["decks"]], BM_FAINT["road"] if st == "faint" else BM_COL["road"])
         for P in L["covered"]:
@@ -228,7 +318,22 @@ def _bm_items(D, mode, override, box, split_buildings):
             lines([P], BM_COL["water"], BM_LW["river_osm" if kind == "river" else "stream_osm"])
     # buildings
     bl = lay["buildings"]
-    if bl:
+    if bl in ("plan", "plan_faint"):                        # M11: outline per block + roof reading, no stripes
+        pf = globals().get("bld_plan_items")
+        if callable(pf):
+            faint = bl == "plan_faint"
+            blocks = L.get("blocks")
+            out.extend(pf(L["buildings"], blocks=blocks, scale_den=scale_den or 5000.0, box=box,
+                          fill=BM_FAINT["bld_veryfaint"] if faint else None,
+                          edge=BM_FAINT["road_line"] if faint else None,
+                          roof_col=BM_FAINT["bld"] if faint else None,
+                          her_fill=BM_COL["her"] if not faint else "F1E6E5",
+                          her_edge=BM_COL["her_edge"] if not faint else "CDAAAA"))
+        else:
+            _BM_WARN.append(u"WARNING: basemap buildings '{}' need common/buildings.py (M11): drawn faint "
+                            u"instead.".format(bl))
+            fills([b["rings"] for b in L["buildings"]], BM_FAINT["bld"])
+    elif bl:
         if bl is True:
             fills([b["rings"] for b in L["buildings"] if not b.get("her")], BM_COL["bld"])
             fills([b["rings"] for b in L["buildings"] if b.get("her")], BM_COL["her"])
@@ -240,15 +345,26 @@ def _bm_items(D, mode, override, box, split_buildings):
         else:
             fills([b["rings"] for b in L["buildings"]],
                   BM_FAINT["bld_veryfaint"] if bl == "veryfaint" else BM_FAINT["bld"])
-    if lay["stream"] and (st is True or bl is True):
+    if lay["stream"] and (st is True or bl is True or bl == "plan"):
         lines(L["bridges"], BM_COL["ink"], BM_LW["bridge"])
+    # M3 (30 Oct): the study area (one outline, one style, on top of the base) and the place names
+    if lay.get("study_area"):
+        for it in basemap_study_items(D):
+            if _bm_hit(it[1], box):
+                out.append(it)
+    if lay.get("names"):
+        for n, p in basemap_names(box, D):
+            out.append(("text", n, p, BM_NAME_MM, BM_COL["ink"], False, "MC"))
     return out
 
 
-def basemap_draw(items, T, fill_fn, line_fn, text_fn=None):
+def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
     """draws items through the caller's page: T(p) survey m -> page point; fill_fn(rings, hex, alpha, nonzero);
     line_fn(pts, hex, width_mm, dash_mm, alpha); text_fn(s, (x, y), size_mm, hex, bold, align) (texts are left out
-    without it). Returns the number of items drawn."""
+    without it). Returns the number of items drawn. M3 (30 Oct): a "water" item (the stream, when the script includes
+    M5 common/water.py) is drawn by water_plan(ring in page mm, k, **water_opts) through the same three functions
+    (k = page mm per survey m, from T); if M5 fails, the plain fill and bank line (a WARNING in basemap_warnings())."""
+    import math as _m
     n = 0
     for it in items:
         if it[0] == "fill":
@@ -257,6 +373,32 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None):
             line_fn([T(p) for p in it[1]], it[2], it[3], it[4], it[5])
         elif it[0] == "text" and text_fn is not None:
             text_fn(it[1], T(it[2]), it[3], it[4], it[5], it[6])
+        elif it[0] == "water":
+            p0 = it[1][0][0][0], it[1][0][0][1]
+            a, b = T(p0), T((p0[0] + 100.0, p0[1]))
+            k = _m.hypot(b[0] - a[0], b[1] - a[1]) / 100.0
+            try:
+                wp = globals()["water_plan"]                # M5 (common/water.py), present: _bm_items checked it
+                for g in it[1]:
+                    wl = wp([T(p) for p in g[0]], k, **(water_opts or {}))
+                    for s_ in wl.shapes():
+                        if s_[0] == "poly" and len(s_[1]) >= 3:
+                            al = s_[5] if len(s_) > 5 and s_[5] is not None else 1.0
+                            if s_[2]:
+                                fill_fn([list(s_[1])], s_[2], al, True)
+                            if s_[3]:
+                                line_fn(list(s_[1]) + [s_[1][0]], s_[3], s_[4] or 0.1, None, al)
+                        elif s_[0] == "line" and len(s_[1]) >= 2:
+                            line_fn(list(s_[1]), s_[2], s_[3], s_[4] if len(s_) > 4 else None, 1.0)
+                        elif s_[0] == "text" and text_fn is not None:
+                            text_fn(s_[1], (s_[2], s_[3]), s_[4], s_[5], s_[6] if len(s_) > 6 else False,
+                                    s_[7] if len(s_) > 7 else "L")
+            except Exception as ex_:
+                _BM_WARN.append(u"WARNING: basemap: the M5 water drawing failed ({}: {}); the stream is drawn as the "
+                                u"base map's own fill.".format(type(ex_).__name__, ex_))
+                fill_fn([[T(p) for p in R] for g in it[1] for R in g], BM_COL["water"], 1.0, False)
+                for P in it[2]:
+                    line_fn([T(p) for p in P], BM_COL["water_edge"], BM_LW["water_edge"], None, 1.0)
         else:
             continue
         n += 1
@@ -348,6 +490,92 @@ def basemap_cut_ids(ids, looks=None):
         a, b = ends(cid)
         out.append((a, b, labs(cid), (looks or {}).get(cid, 1)))
     return out
+
+
+# ------------------------------------------------------------------------------------------- M4 key map
+def keymap_items(ids=(), scale_den=10000.0, box=None, zooms=None, mode="key", override=None, looks=None, D=None,
+                 margin=0.06, text_mm=2.4, col=None, log=None, page=None):
+    """M4: the key map of a page = a small M3 extract that ALWAYS shows the study-area outline and EVERY cut or zoom
+    id passed, each labelled. ids: cut ids of the cut registry (common/levels.py, level_ends / level_end_labels) or
+    zoom ids; a zoom id is looked up in zooms {id: polygon survey m} first, then in the registry's level_window(id)
+    when the level module has it. box (survey m) defaults to the study area + every cut and zoom, widened by margin.
+    page = a booklet page number: with no ids, every cut the registry draws on that page (level_registry_all).
+    Each cut is labelled with its registry name (level_name: F1 -> W1) where its end names do not already say it.
+    Returns dict(items (survey m; draw with basemap_draw and the key map's T, clipped to box), box, drawn=[ids],
+    missing=[ids]); a missing id is logged (WARNING), never left out silently."""
+    import math as _m
+    if not ids and page is not None and callable(globals().get("level_registry_all")):
+        ids = [e["id"] for e in level_registry_all(str(page))]
+    D = D if D is not None else basemap_load()
+    col = col or BM_COL["cut"]
+    log = log if log is not None else _BM_WARN
+    cuts, wins, drawn, missing = [], [], [], []
+    seen_ends = set()
+    win_fn = globals().get("level_window")
+    for cid in ids:
+        if zooms and cid in zooms:
+            wins.append((cid, [tuple(p) for p in zooms[cid]]))
+            drawn.append(cid)
+            continue
+        try:
+            c = basemap_cut_ids([cid], looks)[0]
+            ek = (round(c[0][0], 1), round(c[0][1], 1), round(c[1][0], 1), round(c[1][1], 1))
+            if ek not in seen_ends:                       # the crossings of one cut (S5-1 .. S5-3) share one line
+                seen_ends.add(ek)
+                cuts.append((cid, c))
+            drawn.append(cid)
+            continue
+        except Exception:
+            pass
+        try:
+            if callable(win_fn):
+                w = win_fn(cid)
+                if w:
+                    wins.append((cid, [tuple(p) for p in w]))
+                    drawn.append(cid)
+                    continue
+        except Exception:
+            pass
+        missing.append(cid)
+        log.append(u"WARNING: key map: '{}' is neither a cut of the registry nor a zoom passed in: not drawn.".format(cid))
+    study = basemap_study(D)
+    if box is None:
+        pts = [p for R in study for p in R] + [p for _, c in cuts for p in c[:2]] + [p for _, w in wins for p in w]
+        if not pts:
+            ext = basemap_extent(D) or []
+            pts = list(ext)
+        if pts:
+            x0, y0, x1, y1 = _bm_bb(pts)
+            d = margin * max(x1 - x0, y1 - y0, 1.0)
+            box = (x0 - d, y0 - d, x1 + d, y1 + d)
+    items = basemap_items(mode, override, box=box, D=D, scale_den=scale_den) if D else []
+    if not (D and basemap_layers(mode, override).get("study_area")):
+        items += basemap_study_items(D)                  # the outline is always there, whatever the layers
+    if box is not None:
+        frame = [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])]
+    else:
+        frame = None
+    m = scale_den / 1000.0
+    for cid, c in cuts:
+        its = basemap_cut_items([c], scale_den, frame=frame, text_mm=text_mm, col=col, D=D)
+        items += its
+        nm_fn = globals().get("level_name")
+        try:
+            name = nm_fn(cid) if callable(nm_fn) else cid
+        except Exception:
+            name = cid
+        name = str(name).split("-")[0]                    # a crossing row (S5-2) is labelled by its cut (S5)
+        if name not in c[2][0] and name not in c[2][1]:   # end names that do not say the id ("SW" / "NE"): the id too
+            a, b = c[0], c[1]
+            L0 = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+            nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
+            q = ((a[0] + b[0]) / 2.0 + nx * text_mm * m * 1.2, (a[1] + b[1]) / 2.0 + ny * text_mm * m * 1.2)
+            items.append(("text", name, q, text_mm, col, True, "MC"))
+    for cid, w in wins:
+        items.append(("line", list(w) + [w[0]], col, BM_LW["cut"], None, 1.0))
+        x0, y0, x1, y1 = _bm_bb(w)
+        items.append(("text", cid, (x0 + text_mm * m * 0.9, y1 + text_mm * m * 0.8), text_mm, col, True, "MC"))
+    return dict(items=items, box=box, drawn=drawn, missing=missing)
 
 
 # ------------------------------------------------------------------------------------------- writing (site board)
@@ -465,12 +693,16 @@ def basemap_export(S, log=None):
             Q = [loc(p) for p in P]
             return [_bm_r([wld(q) for q in run]) for r in ring for run in _bm_clip_rect(Q, False, r)]
 
+        def in_frame_name(u):
+            u_, v_ = loc((u["cx"], u["cy"]))
+            return fr[0] <= u_ <= fr[2] and fr[1] <= v_ <= fr[3]
+
         def in_ring(p):
             u, v = loc(p)
             return ex[0] <= u <= ex[2] and ex[1] <= v <= ex[3] and not (fr[0] <= u <= fr[2] and fr[1] <= v <= fr[3])
         L = dict(lc={}, zones=[], contours=[], street_areas=[], street_edges=[], streets_in=[], streets_out=[],
                  water=[], water_edge=[], decks=[], covered=[], water_out=[], waterways_out=[], buildings=[],
-                 bridges=[])
+                 bridges=[], blocks=[], study=[], names=[])
         mains = set(globals().get("MAIN_ROADS") or ("motorway", "trunk", "primary", "secondary", "tertiary"))
         peds = set(globals().get("PED") or ("footway", "path", "pedestrian", "steps", "cycleway", "bridleway",
                                              "track", "corridor"))
@@ -508,12 +740,31 @@ def basemap_export(S, log=None):
         L["decks"] = [_bm_r(P) for P in getattr(S, "decks", None) or []]
         L["covered"] = [_bm_r(P) for P in getattr(S, "covered", None) or []]
         L["bridges"] = [_bm_r(P) for P in getattr(S, "bridges", None) or []]
-        for u in S.bld:
+        # buildings: one outline per building (build_site merged its pieces: revision 30 Oct, G7) with its height,
+        # and the blocks (buildings sharing a wall as ONE outline, S.blocks): the plan's outline layer, so no party
+        # wall, survey tick or label split is ever drawn as a line
+        idx_of = {}
+        for i_u, u in enumerate(S.bld):
             parts = [_bm_r(P) for P in u["parts"] if len(P) >= 3]
             if parts:
+                idx_of[i_u] = len(L["buildings"])
+                tg = u.get("tags") or {}
+                her = u.get("fabric") in ("monument", "sacred") or bool(tg.get("historic")) or \
+                    tg.get("amenity") == "place_of_worship"
                 L["buildings"].append(dict(rings=parts + [_bm_r(H) for H in (u.get("holes") or [])], np=len(parts),
-                                           her=u.get("fabric") in ("monument", "sacred"),
-                                           osm=u.get("src") in ("osm", "osm+label")))
+                                           her=her, osm=u.get("src") in ("osm", "osm+label"),
+                                           h=round(float(u.get("h") or 0.0), 2), floors=int(u.get("floors") or 0)))
+                if her and (u.get("name") or "").strip() and in_frame_name(u):
+                    L["names"].append([u["name"].strip(), [round(u["cx"], 1), round(u["cy"], 1)]])
+        blocks = getattr(S, "blocks", None)
+        if blocks is None and callable(globals().get("bld_blocks")):
+            blocks = bld_blocks(S.bld)
+        for bk in blocks or []:
+            mem = [idx_of[i] for i in bk.get("units", []) if i in idx_of]
+            L["blocks"].append(dict(rings=[_bm_r(bk["outer"])] + [_bm_r(H) for H in bk.get("holes") or []],
+                                    her=bool(mem) and all(L["buildings"][i]["her"] for i in mem)))
+        L["study"] = [_bm_r(P) for P in (getattr(S, "r28_study", None) or globals().get("R28_STUDY_COPY") or [])]
+        L["names"] = [[n, [round(p[0], 1), round(p[1], 1)]] for n, p in BASEMAP_REACH] + L["names"]
         n_in = len(L["buildings"])
         # ---- the ring between frame and extent: OpenStreetMap
         osm = getattr(S, "osm", None)
@@ -535,7 +786,14 @@ def basemap_export(S, log=None):
                         if in_ring(c):
                             her = bool(tags.get("historic")) or tags.get("amenity") == "place_of_worship" or \
                                 tags.get("building") in ("mosque", "church", "synagogue", "temple")
-                            L["buildings"].append(dict(rings=[_bm_r(P[:-1])], np=1, her=her, osm=True))
+                            lv = tags.get("building:levels")
+                            try:
+                                lv = int(float(lv)) if lv else 0
+                            except ValueError:
+                                lv = 0
+                            L["buildings"].append(dict(rings=[_bm_r(P[:-1])], np=1, her=her, osm=True, h=0.0,
+                                                       floors=lv))
+                            L["blocks"].append(dict(rings=[_bm_r(P[:-1])], her=her))
                             n_out += 1
                     continue
                 hw = tags.get("highway")

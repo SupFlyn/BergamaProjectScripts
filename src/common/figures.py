@@ -119,10 +119,14 @@ def fig_polys(pose, height=1.75, facing=1):
 #  2. figures drawn here in the same pen language for the poses the sets lack (wade, sit_step, bike, adult_child,
 #     stall, railing, olive, touch, and every plan view). Each one is posed by its contact: the step, rail, counter,
 #     water or branch it touches is a parameter, and the limbs are solved to reach it.
-# Adult 1.70 m. Body proportions = Drillis & Contini (1966) segment ratios of stature (as reproduced in Winter,
+# Adult 1.75 m (G6, H-B 30 Oct: the library is drawn at 1.70 m and scaled by FIG_ADULT_H / its adult_m; the drawn
+# poses are built at 1.75 m), cyclist 1.80 m overall (FIG_CYCLIST_H), child 1.15 m. Body proportions = Drillis & Contini (1966) segment ratios of stature (as reproduced in Winter,
 # Biomechanics and Motor Control of Human Movement, Fig. 4.1; page not re-checked): FIG_DC below.
 # No library file -> the drawn figures stand in for stand/walk/watch/lean/sit_chair (never nothing).
-FIG_A1_H = 1.70
+FIG_ADULT_H = 1.75             # m, G6 (brief 00 G6; PLAN D9)
+FIG_A1_LIB_H = 1.70            # m, the stature the A1 library JSON is drawn at (its "adult_m"; INDEX.md)
+FIG_A1_H = FIG_ADULT_H         # m, the drawn poses' stature
+FIG_CYCLIST_H = 1.80           # m, G6 "cyclists about 1.8 m": ground to the top of the head of the riding figure
 FIG_A1_INK = "2B2B2B"
 FIG_A1_PEN = 0.019              # m: pen width = the median stroke of the curated library at 1.70 m
 FIG_PEN_MIN_MM = 0.10           # page mm: no figure line prints thinner (small scales get an outline)
@@ -148,7 +152,9 @@ def fig_library():
         if _o.path.exists(p):
             try:
                 with open(p, "r") as fh:
-                    lib = _j.load(fh).get("figures", {})
+                    js = _j.load(fh)
+                lib = js.get("figures", {})
+                _FIG_LIB["adult_m"] = float(js.get("adult_m") or FIG_A1_LIB_H)
                 FIG_LOG.append(u"Figures: %d A1 figures from %s" % (len(lib), p))
                 break
             except Exception as ex:
@@ -416,11 +422,14 @@ def _fa_side(pose, seed=0, **p):
         F = FIG_BIKE
         r, wb, cr, bb = F["wheel_r"], F["wheelbase"], F["crank"], F["bb_h"]
         rear, front, bbp = (-0.5 * wb, r), (0.5 * wb, r), (-0.05, bb)
+        lean = p.get("lean", 0.30)                  # upright city-bike posture (drawing value)
+        if "h_m" not in p:                          # G6: the rider's stature so the figure stands FIG_CYCLIST_H tall
+            H = _fig_rider_h(FIG_CYCLIST_H, lean)
         legl = (D["thigh"] + D["shank"]) * H
         # saddle: the leg reaches 96 % of its length to the lowest pedal (nearly straight at the bottom of the stroke)
         hip = (bbp[0] - 0.24, bb - cr + 0.04 + _m.sqrt((0.96 * legl) ** 2 - 0.24 ** 2))
         bar = (front[0] - 0.12, hip[1] + 0.06)
-        B = _FaBody(H, hip=hip, lean=0.62)
+        B = _FaBody(H, hip=hip, lean=lean)
         out = [_fa_oval(rear[0], rear[1], r, r, rnd, gap=0.5, a0=0.3), _fa_oval(front[0], front[1], r, r, rnd, gap=0.5, a0=3.4)]
         out += [_fa_stroke(P, rnd, FIG_A1_PEN * 0.75, over=0.04) for P in (
             [rear, bbp, (hip[0] + 0.02, hip[1] - 0.08)], [(hip[0] + 0.02, hip[1] - 0.10), (bar[0] - 0.05, bar[1] - 0.10), front],
@@ -432,8 +441,25 @@ def _fa_side(pose, seed=0, **p):
         legs = [B.leg((pa[0] - 0.05, pa[1] + 0.04), bend=1), B.leg((pb[0] - 0.05, pb[1] + 0.04), bend=1)]
         arms = [B.arm(bar, bend=-1)]
         out += _fa_draw(B, legs, arms, rnd, hatch=False, coat=0.0)
-        an.update(length=wb + 2 * r)
+        an.update(length=wb + 2 * r, rider_h=H)
         return [o for o in out if o], an
+    if pose == "child_play":                        # a child running / hopping, arms up (children playing)
+        ch = p.get("child_h", FIG_CHILD_H)
+        A = D["ankle"] * ch
+        B = _FaBody(ch, lean=0.10)
+        st = 0.42 * ch
+        legs = [B.leg((0.5 * st, A + 0.10 * ch)), B.leg((-0.5 * st, A))]
+        arms = [B.arm((B.sho[0] + 0.18 * ch, D["shoulder"] * ch + 0.16 * ch), bend=-1),
+                B.arm((B.sho[0] - 0.20 * ch, D["shoulder"] * ch + 0.05 * ch), bend=1)]
+        return _fa_draw(B, legs, arms, rnd, w=FIG_A1_PEN * 0.85, hatch=False, coat=0.03), dict(child_h=ch)
+    if pose == "vendor":                            # behind the counter, both hands on it, facing the buyer (+x)
+        ch = p.get("counter_h", FIG_STALL["counter_h"])
+        A = D["ankle"] * H
+        B = _FaBody(H, lean=0.08)
+        arms = [B.arm((B.sho[0] + 0.40, ch + 0.04), bend=-1), B.arm((B.sho[0] + 0.32, ch + 0.03), bend=-1)]
+        legs = [B.leg((0.04, A)), B.leg((-0.10, A))]
+        an.update(counter_x=0.30, counter_y=ch)
+        return _fa_draw(B, legs, arms, rnd, coat=0.06, hem=ch - 0.05), an
     if pose == "adult_child":                       # walking hand in hand: the hands meet where both reach
         ch = p.get("child_h", FIG_CHILD_H)
         A = FIG_DC["ankle"]
@@ -480,6 +506,10 @@ def _fa_top(pose, seed=0, **p):
                                             _fa_stroke([(L - F["wheel_r"], 0.0), (L + F["wheel_r"], 0.0)], rnd, FIG_A1_PEN * 1.6),
                                             _fa_stroke([(-L, 0.0), (L - 0.12, 0.0)], rnd, FIG_A1_PEN * 0.8),
                                             _fa_stroke([(L - 0.12, -0.24), (L - 0.12, 0.24)], rnd, FIG_A1_PEN * 0.8)]
+    elif pose == "child_play":
+        R = one(0.0, 0.0, s=p.get("child_h", FIG_CHILD_H) / H, hatch=False)
+    elif pose == "vendor":
+        R = one(0.0, 0.0)
     elif pose == "adult_child":
         ch = p.get("child_h", FIG_CHILD_H) / H
         R = one(0.0, 0.20) + one(0.0, -0.22, s=ch, hatch=False) + [_fa_stroke([(0.02, 0.0), (0.04, -0.06)], rnd, FIG_A1_PEN * 0.8)]
@@ -488,9 +518,33 @@ def _fa_top(pose, seed=0, **p):
     return [r for r in R if r]
 
 
-FIG_DRAWN_SIDE = ("stand", "walk", "watch", "wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child")
-FIG_DRAWN_TOP = ("stand", "watch", "walk", "sit", "sit_step", "sit_chair", "bike", "adult_child")
-FIG_POSE_ALIAS = {"sit": "sit_step"}
+FIG_DRAWN_SIDE = ("stand", "walk", "watch", "wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child",
+                  "child_play", "vendor")
+FIG_DRAWN_TOP = ("stand", "watch", "walk", "sit", "sit_step", "sit_chair", "bike", "adult_child", "child_play", "vendor")
+FIG_POSE_ALIAS = {"sit": "sit_step", "cycle": "bike", "trade": "stall", "buy": "stall", "children": "child_play",
+                  "play": "child_play", "sell": "vendor"}
+FIG_DRAWN_ONLY = ("wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child", "child_play", "vendor")
+
+
+def _fig_rider_h(top, lean):
+    """the stature whose bike pose reaches `top` m (head top above the ground) at this lean (fixed-point solve on
+    the pose's own geometry: saddle from the leg length, then hip-shoulder-head at the lean)"""
+    import math as _m
+    D, F = FIG_DC, FIG_BIKE
+    c = _m.cos(lean)
+    H = FIG_ADULT_H
+    for _ in range(8):
+        legl = (D["thigh"] + D["shank"]) * H
+        hip = F["bb_h"] - F["crank"] + 0.04 + _m.sqrt(max(0.0, (0.96 * legl) ** 2 - 0.24 ** 2))
+        t = hip + (D["shoulder"] - D["hip"]) * H * c + (1.0 - D["shoulder"]) * H * c + 0.060 * H * (1.0 - c)
+        H += (top - t) / 0.95
+    return H
+
+
+def _fig_lib_k():
+    """factor from the library's drawn stature to FIG_ADULT_H (1.75 / 1.70)"""
+    fig_library()
+    return FIG_ADULT_H / float(_FIG_LIB.get("adult_m") or FIG_A1_LIB_H)
 
 
 def _fig_pick(pose, pick):
@@ -507,8 +561,12 @@ def fig_meta(pose, facing=1, pick=0, **p):
     adult_child hand, child_h; bike length; lean (library) ledge_y_m. Use them to place the step, rail, counter or
     water the figure touches."""
     pose = FIG_POSE_ALIAS.get(pose, pose)
-    f = None if pose in ("wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child") else _fig_pick(pose, pick)
+    f = None if pose in FIG_DRAWN_ONLY else _fig_pick(pose, pick)
     an = dict(f.get("anchor") or {}) if f else _fa_side(pose, pick, **p)[1]
+    if f:                                              # library anchors are in m at the library's stature
+        lk = _fig_lib_k()
+        an = dict((k_, (v * lk if isinstance(v, (int, float)) and not isinstance(v, bool) else
+                        (tuple(c * lk for c in v) if isinstance(v, (tuple, list)) else v))) for k_, v in an.items())
     s = 1.0 if facing >= 0 else -1.0
     for k_ in list(an):
         v = an[k_]
@@ -519,24 +577,37 @@ def fig_meta(pose, facing=1, pick=0, **p):
     return an
 
 
-def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, **p):
+def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, layer=0, style="b",
+             **p):
     """side-view figure, feet at (x, y), k units per m, facing -1 = mirrored. pose: a library id (e.g.
     "a1_group_child"), a library pose (stand, walk, watch, lean, sit_chair; pick (default: from x, y) = which one, cycling),
     or a drawn pose (wade depth_m, sit_step seat_h, touch reach_y, stall counter_h, railing rail_h, olive branch_h,
     bike, adult_child child_h = hand in hand; the library's family group is "a1_group_child"). Library figures face as drawn (their "facing" in the file); facing flips them so they
     look the asked way. mm_per_m: printed page mm per metre (default k, the house convention); where the pen
     (0.019 m) would print thinner than pen_min_mm, every stroke gets an outline of the difference (lw in page mm).
-    Returns house shapes ("poly", ring, ink, stroke, lw)."""
+    layer: D9 depth layer 0 (cut plane, true size) / 1 / 2 (smaller and paler, fig_depth). style "a": the pose's
+    cutout (cut_image key "person_<pose>") where Data/cutouts has one, else this drawing (counted, cut_log_line).
+    Returns house shapes ("poly", ring, ink, stroke, lw) (style a: an "image" shape)."""
     pose = FIG_POSE_ALIAS.get(pose, pose)
-    ink = ink or FIG_A1_INK
+    sc, fade = fig_depth(layer)
+    if style == "a":
+        h_true = FIG_CYCLIST_H if pose == "bike" else (p.get("child_h", FIG_CHILD_H) if pose == "child_play" else None)
+        y_im = y
+        if pose == "wade":                             # the cutout is cut at the water line: it stands on the water
+            dep = p.get("depth_m", FIG_DC["knee"] * FIG_A1_H)
+            y_im, h_true = y + dep * k * sc, FIG_ADULT_H - dep
+        im = cut_image("person_" + pose, x, y_im, k, h_m=h_true, layer=layer, facing=facing)
+        if im:
+            return im
+    k = k * sc
+    ink = fig_fade(ink or FIG_A1_INK, layer)
     if pick is None:                                   # variety: the place picks the figure, the same every run
         pick = int(abs(x * 7.31 + y * 3.17) * 10.0) % 997
-    rings, flip = None, 1.0 if facing >= 0 else -1.0
-    drawn_only = ("wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child")
-    if pose not in drawn_only:
+    rings, flip, lk = None, 1.0 if facing >= 0 else -1.0, 1.0
+    if pose not in FIG_DRAWN_ONLY:
         f = _fig_pick(pose, pick)
         if f:
-            rings = f["rings"]
+            rings, lk = f["rings"], _fig_lib_k()
             if f.get("facing", 0) < 0:
                 flip = -flip
     if rings is None:
@@ -544,11 +615,12 @@ def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_mi
     if not rings:                                      # never nothing: the legacy silhouette
         rings = fig_polys(pose if pose in FIG_POSES else "stand", FIG_A1_H, 1)
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
-    return [("poly", [(x + flip * px * k, y + py * k) for px, py in r], ink, ink if add > 0 else None, add)
+    kk = k * lk
+    return [("poly", [(x + flip * px * kk, y + py * kk) for px, py in r], ink, ink if add > 0 else None, add)
             for r in rings]
 
 
-def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, **p):
+def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, style="b", **p):
     """plan figure centred on (x, y), heading ang (radians, 0 = +x), k units per m: stand, watch, walk, sit,
     sit_step, sit_chair, bike, adult_child (child_h). Same pen and mm_per_m rule as fig_side."""
     import math as _m
@@ -558,3 +630,349 @@ def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
     return [("poly", [(x + (px * ca - py * sa) * k, y + (px * sa + py * ca) * k) for px, py in r], ink,
              ink if add > 0 else None, add) for r in rings]
+
+
+# ---- D9 depth layers (H-B 30 Oct 2026): 0 = the cut plane (true size, G6 asserts here), 1 = mid, 2 = back --------
+# (scale, tone mix toward the paper, raster alpha). Plants (plants.py) and cutouts use the same table.
+FIG_DEPTH = {0: (1.00, 0.00, 1.00), 1: (0.80, 0.40, 0.70), 2: (0.62, 0.62, 0.45)}
+
+
+def fig_depth(layer=0):
+    """(scale, fade) of a D9 depth layer: 0 -> (1.00, 0.0), 1 -> (0.80, 0.40), 2 -> (0.62, 0.62)"""
+    s, f, _a = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
+    return s, f
+
+
+def _fig_mix(a, b, t):
+    pa = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    pb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(pa[i] + (pb[i] - pa[i]) * t)) for i in range(3))
+
+
+def fig_fade(col, layer=0, paper=None):
+    """a hex colour faded toward the paper for depth layer `layer` (unchanged at layer 0 or for None)"""
+    f = fig_depth(layer)[1]
+    if not col or f <= 0.0:
+        return col
+    return _fig_mix(col, paper or (globals().get("SEC") or {}).get("paper", "F1EDDF"), f)
+
+
+# ---- D1 style a: raster cutouts (PNG with alpha) -------------------------------------------------------------------
+# Downloads/Bergama/Data/cutouts/cutouts.json: {"cutouts": {key: {"file": "olive_1.png", "h_m": 9.0, "kind": "tree"},
+# ...}} (or the dict alone); a key may hold a list of such entries (variants, picked by seed). h_m = the true height
+# of what the PNG shows from its bottom edge (ground / feet) to its top; the PNG is drawn h_m (or the caller's h_m)
+# x k x the D9 layer scale tall, width by its own proportions, centred on x, bottom on the ground. Keys: plants =
+# the plants.py species key ("olive"), people = "person_<pose>" (fig_side poses), "stall". Spec:
+# revision_2026-10-30/handover/CUTOUTS_SPEC.md. A missing key is drawn in style b and counted (cut_log_line).
+CUT_LOG = []
+CUT_MISSING = {}
+CUT_USED = {}
+_CUT_LIB = {}
+
+
+def cut_dir():
+    import os as _o
+    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "cutouts")
+
+
+def cut_library():
+    """{key: [entry, ...]} from cutouts.json, {} when the folder or file is missing (read once per run)"""
+    import os as _o
+    import json as _j
+    if "lib" in _CUT_LIB:
+        return _CUT_LIB["lib"]
+    lib = {}
+    p = _o.path.join(cut_dir(), "cutouts.json")
+    try:
+        with open(p, "r", encoding="utf-8") as fh:
+            js = _j.load(fh)
+        js = js.get("cutouts", js) if isinstance(js, dict) else {}
+        for k_, v in js.items():
+            vs = v if isinstance(v, list) else [v]
+            ok = [e for e in vs if isinstance(e, dict) and e.get("file") and e.get("h_m") and
+                  _o.path.isfile(_o.path.join(cut_dir(), e["file"]))]
+            if ok:
+                lib[k_] = ok
+        CUT_LOG.append(u"Cutouts: %d keys from %s" % (len(lib), p))
+    except Exception as ex:
+        CUT_LOG.append(u"Cutouts: %s not read (%s); style a draws style b everywhere" % (p, type(ex).__name__))
+    _CUT_LIB["lib"] = lib
+    return lib
+
+
+def _cut_px(path):
+    """(width, height) in px of a PNG or JPEG, None if unknown"""
+    import struct as _st
+    try:
+        with open(path, "rb") as f:
+            d = f.read(65536)
+        if d[:8] == b"\x89PNG\r\n\x1a\n":
+            return _st.unpack(">II", d[16:24])
+        i = 2
+        while d[:2] == b"\xff\xd8" and i + 9 < len(d):
+            if d[i + 1] in (0xC0, 0xC1, 0xC2):
+                return (d[i + 7] << 8) | d[i + 8], (d[i + 5] << 8) | d[i + 6]
+            i += 2 + ((d[i + 2] << 8) | d[i + 3])
+    except Exception:
+        pass
+    return None
+
+
+def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
+    """style a: [("image", x0, y0, w, h, path, alpha, flip, None)] of cutout `key` standing on (x, gy) page mm (gy
+    may be a function of x), h_m (default the cutout's own true height) x k x the layer scale tall; w_max (mm)
+    shrinks it uniformly if wider. None (counted as missing) when there is no such cutout."""
+    import os as _o
+    lib = cut_library().get(key)
+    if not lib:
+        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
+        return None
+    e = lib[int(pick) % len(lib)]
+    p = _o.path.join(cut_dir(), e["file"])
+    px = _cut_px(p)
+    if not px or not px[1]:
+        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
+        return None
+    sc, _f_, al = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
+    h = float(h_m or e["h_m"]) * k * sc
+    w = h * px[0] / float(px[1])
+    if w_max and w > w_max:
+        h, w = h * w_max / w, w_max
+    g = gy(x) if callable(gy) else gy
+    flip = (facing < 0) != (e.get("facing", 1) < 0)
+    CUT_USED[key] = CUT_USED.get(key, 0) + 1
+    return [("image", x - w / 2.0, g, w, h, p, None if al >= 0.999 else al, flip, None)]
+
+
+def cut_log_line():
+    """one log line: cutouts drawn, and the items drawn in style b because their cutout is missing"""
+    n_ok, n_miss = sum(CUT_USED.values()), sum(CUT_MISSING.values())
+    if not n_ok and not n_miss:
+        return None
+    s = u"Cutouts (style a): %d drawn" % n_ok
+    if n_miss:
+        s += u"; %d drawn in style b, no cutout for: %s" % (n_miss, u", ".join(sorted(CUT_MISSING)))
+    return s
+
+
+# ---- market stall / canopy (G6 true size) --------------------------------------------------------------------------
+# counter_h 0.90 m = the repo's stall pose value (fig_side "stall" counter_h); every other size is DRAWN TO TYPE (a
+# typical open-market trestle stall), not data: never print them as measured.
+FIG_STALL = dict(counter_h=0.90, depth_m=1.00, width_m=2.00, canopy_h=2.30, canopy_top=2.60, canopy_over=0.35,
+                 post_m=0.05, top_m=0.05)
+
+
+def fig_stall(x, gy, k, facing=1, layer=0, vendor=True, buyer=True, seed=0, ink=None, fill=None, canopy=None,
+              style="b"):
+    """a market stall in section at true size, its counter's front edge at x (page mm), ground gy, k mm per m:
+    trestle counter (FIG_STALL), two posts and a sloped canopy, a vendor behind and a buyer in front (facing = the
+    side the buyers stand on). style a: the "stall" cutout (people still drawn). Returns house shapes."""
+    sc, _fd = fig_depth(layer)
+    K = k * sc
+    g = gy(x) if callable(gy) else gy
+    S, f = FIG_STALL, (1.0 if facing >= 0 else -1.0)
+    ink = fig_fade(ink or FIG_A1_INK, layer)
+    fill = fig_fade(fill or "E9E2D0", layer)
+    can = fig_fade(canopy or "C9B48A", layer)
+    d, ch = S["depth_m"] * K, S["counter_h"] * K
+    xb = x - f * d                                     # the back edge (the vendor's side)
+    sh = None
+    if style == "a":
+        sh = cut_image("stall", x - f * d / 2.0, g, k, layer=layer, facing=facing)
+    if not sh:
+        sh = []
+        x0, x1 = min(x, xb), max(x, xb)
+        sh.append(("poly", [(x0, g + ch - S["top_m"] * K), (x1, g + ch - S["top_m"] * K), (x1, g + ch), (x0, g + ch)],
+                   fill, ink, 0.12))
+        xm = (x0 + x1) / 2.0                                             # trestle: two crossed legs
+        sh.append(("line", [(x0 + 0.1 * K, g), (x1 - 0.1 * K, g + ch - S["top_m"] * K)], ink, 0.12))
+        sh.append(("line", [(x1 - 0.1 * K, g), (x0 + 0.1 * K, g + ch - S["top_m"] * K)], ink, 0.12))
+        sh.append(("line", [(xm - 0.25 * K, g + 0.5 * ch), (xm + 0.25 * K, g + 0.5 * ch)], ink, 0.08))
+        sh.append(("poly", [(x0 + 0.1 * K, g + ch + 0.02 * K), (x1 - 0.1 * K, g + ch + 0.02 * K),
+                            (x1 - 0.18 * K, g + ch + 0.16 * K), (x0 + 0.18 * K, g + ch + 0.16 * K)],
+                   fig_fade("B98E5A", layer), None, 0.1))                # goods on the counter
+        pb, pf = xb - f * 0.05 * K, x + f * S["canopy_over"] * 0.2 * K
+        for px_ in (pb, pf):
+            sh.append(("line", [(px_, g), (px_, g + S["canopy_h"] * K)], ink, max(0.12, S["post_m"] * K)))
+        cb, cf = xb - f * 0.15 * K, x + f * S["canopy_over"] * K
+        sh.append(("poly", [(cb, g + S["canopy_top"] * K), (cf, g + S["canopy_h"] * K),
+                            (cf, g + (S["canopy_h"] - 0.12) * K), (cb, g + (S["canopy_top"] - 0.12) * K)], can, ink, 0.12))
+        for i in range(3):                             # scalloped valance on the front
+            vx = cf - f * (i + 0.5) * 0.12 * K
+            sh.append(("poly", [(vx - 0.06 * K, g + (S["canopy_h"] - 0.12) * K), (vx + 0.06 * K, g + (S["canopy_h"] - 0.12) * K),
+                                (vx, g + (S["canopy_h"] - 0.22) * K)], can, None, 0.1))
+    if vendor:
+        sh += fig_side("vendor", xb - f * 0.35 * k * sc, g, k, facing=facing, ink=ink, layer=layer, style=style,
+                       pick=seed)
+    if buyer:
+        sh += fig_side("stall", x + f * 0.45 * k * sc, g, k, facing=-facing, ink=ink, layer=layer, style=style,
+                       pick=seed + 1)
+    return sh
+
+
+# ---- groups and activity sets per zone type (G10) ------------------------------------------------------------------
+def fig_group(x, gy, k, n=3, seed=0, layer=0, ink=None, style="b"):
+    """2-4 people standing together in conversation (library stand / watch figures, one hand-in-hand pair when
+    n >= 3), turned toward each other; x = the group's centre. Returns house shapes."""
+    rnd = _fa_rand(seed + 41)
+    g = gy(x) if callable(gy) else gy
+    sc = fig_depth(layer)[0]
+    n = max(2, min(4, int(n)))
+    sh, off = [], -0.5 * (n - 1) * 0.55
+    for i in range(n):
+        xi = x + (off + i * 0.55 + 0.08 * rnd()) * k * sc
+        pose = ("adult_child" if (i == n - 1 and n >= 3) else ("watch" if i % 2 else "stand"))
+        sh += fig_side(pose, xi, gy(xi) if callable(gy) else g, k, facing=(1 if i < n / 2.0 else -1), ink=ink,
+                       layer=layer, style=style, pick=seed + i)
+    return sh
+
+
+# zone type -> [(pose, weight, footprint m along the cut)]; "market" = a stall with vendor and buyer, "group" =
+# fig_group. Only poses that fit the zone (G10); "bed" is for the wet bed only (pass water=), never a dry bed (p12).
+FIG_ACTIVITY = {
+    "bike_lane": [("bike", 1.0, 1.9)],
+    "walkway": [("walk", 3.0, 0.8), ("adult_child", 1.5, 1.0), ("group", 1.0, 1.7), ("watch", 0.6, 0.6)],
+    "viewing_terrace": [("watch", 2.0, 0.7), ("railing", 2.0, 0.8), ("sit_step", 1.0, 0.8), ("group", 1.0, 1.7)],
+    "wading_strip": [("wade", 3.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.5, 0.8)],
+    "market_ground": [("market", 3.0, 3.2), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0), ("group", 1.0, 1.7)],
+    "sun_steps": [("sit_step", 4.0, 0.8), ("watch", 0.5, 0.7), ("touch", 0.5, 0.9)],
+    "bridge_crossing": [("walk", 3.0, 0.8), ("railing", 1.5, 0.8), ("bike", 0.7, 1.9), ("watch", 1.0, 0.7)],
+    "bed": [("wade", 2.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.0, 0.8)],
+}
+FIG_ZONE_ALIAS = {"bike": "bike_lane", "walk": "walkway", "terrace": "viewing_terrace", "wading": "wading_strip",
+                  "market": "market_ground", "steps": "sun_steps", "bridge": "bridge_crossing",
+                  "stream_bed": "bed"}
+
+
+def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, style="b", water=None, max_n=None,
+                 **p):
+    """people doing what the zone is for, placed along x0..x1 (page mm) on the ground gy (number or function of x),
+    k mm per m: poses drawn from FIG_ACTIVITY[zone] by weight, never the same pose twice in a row (when the zone has
+    two or more), irregular gaps (0.6-3.2 m / density), at least two people where two fit. water = the water level
+    (page y, or a function of x) for wading figures (their depth). p goes to every figure (seat_h, rail_h, ...).
+    Returns (shapes, placed [(pose, x page mm)])."""
+    zone = FIG_ZONE_ALIAS.get(zone, zone)
+    if zone not in FIG_ACTIVITY:
+        raise KeyError("fig_activity: zone %r; known: %s" % (zone, ", ".join(sorted(FIG_ACTIVITY))))
+    acts = FIG_ACTIVITY[zone]
+    rnd = _fa_rand(seed * 13 + 7)
+    sc = fig_depth(layer)[0]
+    K = k * sc
+    sh, placed, last = [], [], None
+    x = x0 + (0.3 + 0.8 * (rnd() + 0.5)) * K
+    while True:
+        cand = [a for a in acts if a[0] != last] or acts
+        tot = sum(a[1] for a in cand)
+        t, pick = (rnd() + 0.5) * tot, cand[-1]
+        for a in cand:
+            t -= a[1]
+            if t <= 0:
+                pick = a
+                break
+        pose, _w, foot = pick
+        if x + foot * K > x1:
+            if len(placed) < 2:                        # try the narrowest pose before giving up
+                pose, _w, foot = min(acts, key=lambda a: a[2])
+                if x + foot * K > x1:
+                    break
+            else:
+                break
+        cx = x + 0.5 * foot * K
+        g = gy(cx) if callable(gy) else gy
+        fac = 1 if rnd() > 0 else -1
+        if pose == "market":
+            sh += fig_stall(cx + 0.5 * FIG_STALL["depth_m"] * K, gy, k, facing=fac, layer=layer, seed=seed + len(placed),
+                            ink=ink, style=style)
+        elif pose == "group":
+            sh += fig_group(cx, gy, k, n=2 + int((rnd() + 0.5) * 2.99), seed=seed + len(placed), layer=layer, ink=ink,
+                            style=style)
+        else:
+            q = dict(p)
+            if pose == "wade" and water is not None:
+                wl = water(cx) if callable(water) else water
+                q["depth_m"] = max(0.05, min(FIG_DC["knee"] * FIG_A1_H * 1.4, (wl - g) / K))
+            sh += fig_side(pose, cx, g, k, facing=fac, ink=ink, layer=layer, style=style, pick=seed + len(placed), **q)
+        placed.append((pose, cx))
+        last = pose
+        if max_n and len(placed) >= max_n:
+            break
+        x += foot * K + (0.6 + 2.6 * (rnd() + 0.5)) / max(0.2, density) * K
+    return sh, placed
+
+
+# ---- speech bubbles (D4 a: p8 street sections, marked "illustrative scenario") -------------------------------------
+FIG_BUBBLE_TAG = u"Illustrative scenario"
+
+
+def fig_bubble(text, x, y, size=2.0, side=1, ink=None, fill="FFFFFF", lw=0.15, pad=None, tag=False, width_fn=None):
+    """a speech bubble whose tail touches (x, y) (page mm, above a figure's head) and whose box sits above, to the
+    right (side 1) or left (-1); text: lines split at "\\n", size = the font size in the page's text unit (mm on
+    the common Page). width_fn(s, size) = the script's text width in page mm (default 0.52 x size per letter, Arial).
+    tag: the "Illustrative scenario" line under the box (D4; once per drawing is enough). Returns shapes incl.
+    ("text", s, x, y, size, colour, bold, align)."""
+    import math as _m
+    ink = ink or FIG_A1_INK
+    lines = [ln for ln in u"{}".format(text).split(u"\n") if ln.strip()]
+    wid = max((width_fn(ln, size) if width_fn else 0.52 * size * len(ln)) for ln in lines) if lines else size
+    pad = 0.45 * size if pad is None else pad
+    lh = 1.2 * size
+    bw, bh = wid + 2 * pad, len(lines) * lh + 2 * pad - 0.2 * size
+    bx0 = x + (0.4 * size if side >= 0 else -0.4 * size - bw)
+    by0 = y + 1.2 * size
+    r = min(0.6 * size, bh / 2.0)
+    ring = []
+    for cx_, cy_, a0 in ((bx0 + bw - r, by0 + r, -90), (bx0 + bw - r, by0 + bh - r, 0), (bx0 + r, by0 + bh - r, 90),
+                         (bx0 + r, by0 + r, 180)):
+        for i in range(7):
+            a = _m.radians(a0 + 15 * i)
+            ring.append((cx_ + r * _m.cos(a), cy_ + r * _m.sin(a)))
+    tb = bx0 + (0.25 * bw if side >= 0 else 0.75 * bw)
+    tail = [(tb - 0.35 * size, by0 + 0.05), (x, y), (tb + 0.35 * size, by0 + 0.05)]
+    sh = [("poly", ring, fill, ink, lw), ("poly", tail, fill, None, 0.1), ("line", tail, ink, lw)]
+    for i, ln in enumerate(lines):
+        sh.append(("text", ln, bx0 + pad, by0 + bh - pad - (i + 0.8) * lh + 0.2 * size, size, ink, False, "L"))
+    if tag:
+        sh += fig_bubble_tag(bx0, by0 - 0.9 * size, 0.75 * size, ink)
+    return sh
+
+
+def fig_bubble_tag(x, y, size=1.6, ink=None):
+    """the D4 mark "Illustrative scenario" as a text shape at (x, y) (page mm, left aligned)"""
+    return [("text", FIG_BUBBLE_TAG, x, y, size, ink or FIG_A1_INK, False, "L")]
+
+
+# ---- scale assertion (G6, against M8's unit: k = page mm per m) ----------------------------------------------------
+def _fig_top_y(rings):
+    return max(py for r in rings for _px, py in r), min(py for r in rings for _px, py in r)
+
+
+def fig_check_scale(k, layer=0, tol=0.04):
+    """asserts that an adult prints FIG_ADULT_H x k x layer scale tall (drawn stand pose and, if loaded, a library
+    stand figure), a cyclist FIG_CYCLIST_H and a child FIG_CHILD_H (same tolerance). Returns {name: page mm}.
+    AssertionError naming the figure otherwise."""
+    sc = fig_depth(layer)[0]
+    out = {}
+    drawn = [[(px * k * sc, py * k * sc) for px, py in r] for r in _fa_side("stand", 0)[0]]
+    bike = [[(px * k * sc, py * k * sc) for px, py in r] for r in _fa_side("bike", 0)[0]]
+    child = [[(px * k * sc, py * k * sc) for px, py in r] for r in _fa_side("child_play", 0)[0]]
+    items = [("adult (drawn)", drawn, FIG_ADULT_H, True), ("cyclist", bike, FIG_CYCLIST_H, True),
+             ("child", child, FIG_CHILD_H, False)]
+    lib_st = [f for f in fig_library().values() if f.get("pose") == "stand"]
+    if lib_st:
+        lk = _fig_lib_k()
+        items.append(("adult (library)", [[(px * lk * k * sc, py * lk * k * sc) for px, py in r]
+                                          for r in lib_st[0]["rings"]], FIG_ADULT_H, False))
+    for name, rings, h, top_only in items:
+        hi, lo = _fig_top_y(rings)
+        got = hi if top_only else hi - lo
+        want = h * k * sc
+        out[name] = got
+        if name == "child":                            # a hopping child: its top is below its stature
+            if not (0.80 * want <= got <= (1.0 + tol) * want):
+                raise AssertionError("G6 scale: %s prints %.2f mm, expected about %.2f mm (k %.3f, layer %s)"
+                                     % (name, got, want, k, layer))
+            continue
+        if abs(got - want) > tol * want:
+            raise AssertionError("G6 scale: %s prints %.2f mm, expected %.2f mm (%.2f m x k %.3f x %.2f, layer %s)"
+                                 % (name, got, want, h, k, sc, layer))
+    return out
