@@ -579,6 +579,10 @@ _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278
 
 
 #@include ../common/icons.py
+#@include ../common/grid.py
+#@include ../common/label_place.py
+#@include ../common/data/FACTS.py
+#@include ../common/facts.py
 
 
 #@include ../common/pdf_fonts.py

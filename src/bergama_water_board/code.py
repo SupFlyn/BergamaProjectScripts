@@ -626,6 +626,8 @@ def spread(ys, gap, lo=None, hi=None):
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
 #@include ../common/basemap.py
+#@include ../common/grid.py
+#@include ../common/buildings.py
 
 
 def sec_put(pg, shapes):
@@ -712,6 +714,10 @@ def hand_arrow(pg, P, kind="water", small=1.0, cols=None):
 #@include ../common/units.py
 #@include ../common/figures.py
 #@include ../common/label_place.py
+#@include ../common/water.py
+#@include ../common/section_frame.py
+#@include ../common/data/FACTS.py
+#@include ../common/facts.py
 
 
 SRC_KEY = []                       # v1.6: sources printed as [n] on the drawings; the numbered key is in the footer

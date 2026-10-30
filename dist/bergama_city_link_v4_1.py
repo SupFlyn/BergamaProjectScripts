@@ -228,7 +228,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'SHOPS_XY': '938d12716e4355018e4de86927b3b4ab', 'LEVELS': 'a217c1d07ff06bcb3cd55255c619aa7c'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'SHOPS_XY': '938d12716e4355018e4de86927b3b4ab', 'LEVELS': '86d74f065d5084a6a48e2a041f6b920b', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011'}.get(name):
         raise RuntimeError("Data file bergama_city_link_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_city_link_data.py:" + name, "exec"), globals())
@@ -272,9 +272,13 @@ def _lv_cut_rows(cid):
 
 
 def level_cut(cid):
-    """the row dict of cut (crossing) cid; KeyError naming the known ids"""
+    """the row dict of cut (crossing) cid (an alias such as F1 -> W1, F3 -> S4 is accepted); KeyError naming the
+    known ids"""
     for r in _lv_rows():
         if r["id"] == cid:
+            return r
+    for r in _lv_rows():
+        if cid in (r.get("aliases") or ()):
             return r
     many = _lv_cut_rows(cid)
     if len(many) == 1:
@@ -357,6 +361,37 @@ def level_flood_depth(cid, which):
         raise KeyError("level flood must be q100 or q500, not %r" % (which,))
     q, bed = level(cid, k), level(cid, "bed")
     return None if q is None or bed is None else round(q - bed, 2)
+
+
+# ---- cut registry (H-B 30 Oct 2026, M8): one entry per LEVELS row; every section on every page reads its levels here,
+# never types them. Printed name = the row id (W1, never F1: PLAN T1).
+def level_name(cid):
+    """the one printed name of a cut: the row id ("F1" -> "W1", "F3" -> "S4")"""
+    return level_cut(cid)["id"]
+
+
+def level_avg_flow(cid):
+    """water level at the mean yearly flow (m a.s.l., 2 decimals): the level a section draws its water at (G8)"""
+    return level(cid, "avg_flow")
+
+
+def level_registry(cid):
+    """the registry entry of a cut: dict(id, name, location, chainage_m, walled, bed, avg_flow, avg_flow_depth, q100,
+    q500, walls={NE: (type, top), SW: (type, top)}, bed_width_cm, pages (booklet), aliases); levels m a.s.l."""
+    r = level_cut(cid)
+    i = r["id"]
+    return dict(id=i, name=r.get("name"), location=r.get("location"), chainage_m=level(i, "chainage_m"),
+                walled=bool(r.get("walled")), bed=level(i, "bed"), avg_flow=level(i, "avg_flow"),
+                avg_flow_depth=level(i, "avg_flow_depth"), q100=level(i, "q100"), q500=level(i, "q500"),
+                walls=dict((s_, ((r.get(s_) or {}).get("type"), level(i, "top", s_))) for s_ in ("NE", "SW")),
+                bed_width_cm=level(i, "bed_width_cm"), pages=list(r.get("booklet_pages") or []),
+                aliases=list(r.get("aliases") or []))
+
+
+def level_registry_all(page=None):
+    """every registry entry in table order; page = a booklet page number ("12") keeps only the cuts drawn there"""
+    out = [level_registry(i) for i in level_ids()]
+    return [e for e in out if page is None or str(page) in e["pages"]]
 
 
 def cl_flood():
@@ -651,15 +686,69 @@ def _lp_seg_box(p, q, b):
     return True
 
 
+def lp_seg_cross(p, q, r, s):
+    """True when segments p-q and r-s cross (touching at a shared end point does not count)"""
+    def orient(a, b, c):
+        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+    for a in (p, q):
+        for b in (r, s):
+            if abs(a[0] - b[0]) < 1e-9 and abs(a[1] - b[1]) < 1e-9:
+                return False
+    d1, d2, d3, d4 = orient(r, s, p), orient(r, s, q), orient(p, q, r), orient(p, q, s)
+    return d1 * d2 < 0 and d3 * d4 < 0
+
+
+class LpSegIndex(object):
+    """M2: important linework (polylines, page mm) in buckets, so a label tests only the lines near it; pass it as
+    `segs` to label_spot / place_labels_all instead of a list"""
+    def __init__(self, polylines=(), segs=(), cell=10.0):
+        self.cell, self.b = float(cell), {}
+        for P in polylines:
+            for a, c in zip(P, P[1:]):
+                self.add(a, c)
+        for a, c in segs:
+            self.add(a, c)
+
+    def add(self, a, c):
+        k = self.cell
+        for i in range(int(min(a[0], c[0]) // k), int(max(a[0], c[0]) // k) + 1):
+            for j in range(int(min(a[1], c[1]) // k), int(max(a[1], c[1]) // k) + 1):
+                self.b.setdefault((i, j), []).append((a, c))
+
+    def near(self, box):
+        k, seen, out = self.cell, set(), []
+        for i in range(int(box[0] // k), int(box[2] // k) + 1):
+            for j in range(int(box[1] // k), int(box[3] // k) + 1):
+                for sg in self.b.get((i, j), ()):
+                    if id(sg) not in seen:
+                        seen.add(id(sg))
+                        out.append(sg)
+        return out
+
+    def __iter__(self):
+        seen = set()
+        for lst in self.b.values():
+            for sg in lst:
+                if id(sg) not in seen:
+                    seen.add(id(sg))
+                    yield sg
+
+
+def _lp_near(segs, b):
+    return segs.near(b) if hasattr(segs, "near") else segs
+
+
 def lp_leader_end(b, p):
     """the point of box b nearest p (where a leader from p meets the label)"""
     return (min(max(p[0], b[0]), b[2]), min(max(p[1], b[1]), b[3]))
 
 
 def label_spot(ax, ay, w, h, taken, bounds=None, segs=(), pad=0.5,
-               rings=(0.8, 2.5, 5.0, 8.0, 12.0, 17.0, 24.0), n_ang=16):
+               rings=(0.8, 2.5, 5.0, 8.0, 12.0, 17.0, 24.0), n_ang=16, leaders=None, max_leader=None):
     """a free box w x h near (ax, ay): (box, leader) or None. taken: placed boxes and symbol boxes; segs: important
-    lines [(p, q)] a label may not sit on. leader = True when the box sits off the point (draw a thin leader)."""
+    lines [(p, q)] (or an LpSegIndex) a label may not sit on. leader = True when the box sits off the point (draw a
+    thin leader). M2 (30 Oct): leaders = the leaders placed so far [(p, q)]: a new leader may not cross one;
+    max_leader (mm): no leader longer than this (G3: short leaders)."""
     import math as _m
 
     def free(b):
@@ -667,7 +756,9 @@ def label_spot(ax, ay, w, h, taken, bounds=None, segs=(), pad=0.5,
             return False
         if any(lp_hit(b, t, pad) for t in taken):
             return False
-        return not any(_lp_seg_box(p, q, b) for p, q in segs)
+        if leaders and any(_lp_seg_box(p, q, b) for p, q in leaders):
+            return False
+        return not any(_lp_seg_box(p, q, b) for p, q in _lp_near(segs, b))
 
     for i_r, d in enumerate(rings):
         for i in range(n_ang):
@@ -679,25 +770,35 @@ def label_spot(ax, ay, w, h, taken, bounds=None, segs=(), pad=0.5,
             far = i_r >= 2
             if far:
                 e = lp_leader_end(b, (ax, ay))
+                if max_leader is not None and _m.hypot(e[0] - ax, e[1] - ay) > max_leader:
+                    continue
                 if any(_lp_seg_box((ax, ay), e, t) for t in taken
                        if not (t[0] <= ax <= t[2] and t[1] <= ay <= t[3])):     # the point's own symbol is passed
+                    continue
+                if leaders and any(lp_seg_cross((ax, ay), e, p, q) for p, q in leaders):
                     continue
             return b, far
     return None
 
 
-def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0.5):
+def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0.5, leaders=None,
+                     max_leader=None):
     """items: dicts with x, y (anchor), wh (function size_factor -> (w, h)), rank (0 = must show, 1 = may be
     dropped). Places rank 0 first, then rank 1, each nearest its point. Returns {index: (box, leader, size_factor)}
-    for the placed ones; dropped rank-1 labels are left out (the caller may list them in a key). taken grows."""
+    for the placed ones; dropped rank-1 labels are left out (the caller may list them in a key). taken grows.
+    M2 (30 Oct): leaders (a list, grows) = leaders placed so far: no two leaders cross; max_leader (mm) = the
+    longest leader allowed (a rank-0 label that finds no spot within it takes the nearest free spot as before)."""
+    import math as _m
     out = {}
+    leaders = leaders if leaders is not None else []
     order = sorted(range(len(items)), key=lambda i: items[i].get("rank", 0))
     for i in order:
         it = items[i]
         got = None
         for f in sizes:
             w, h = it["wh"](f)
-            got = label_spot(it["x"], it["y"], w, h, taken, bounds, segs, pad)
+            got = label_spot(it["x"], it["y"], w, h, taken, bounds, segs, pad, leaders=leaders,
+                             max_leader=max_leader)
             if got:
                 got = (got[0], got[1], f)
                 break
@@ -714,13 +815,167 @@ def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0
             cands.sort(key=lambda c: (c[0] + w / 2.0 - it["x"]) ** 2 + (c[1] + h / 2.0 - it["y"]) ** 2)
             for gx, gy in cands:
                 b = (gx, gy, gx + w, gy + h)
-                if not any(lp_hit(b, t, pad) for t in taken) and not any(_lp_seg_box(p, q, b) for p, q in segs):
+                if not any(lp_hit(b, t, pad) for t in taken) and \
+                        not any(_lp_seg_box(p, q, b) for p, q in _lp_near(segs, b)):
+                    e = lp_leader_end(b, (it["x"], it["y"]))
+                    if any(lp_seg_cross((it["x"], it["y"]), e, p, q) for p, q in leaders):
+                        continue
                     got = (b, True, sizes[-1])
                     break
         if got:
             taken.append(got[0])
+            if got[1]:
+                leaders.append(((it["x"], it["y"]), lp_leader_end(got[0], (it["x"], it["y"]))))
             out[i] = got
     return out
+
+
+def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8)):
+    """M2, the one call a page makes for its labels (G3): features + labels in, placed labels out, none overlapping
+    another label, a symbol (obstacles) or the linework (lines). Page mm, any y direction.
+      labels    dicts: x, y = the target point; w, h = the label's box at size 1 (or wh = f -> (w, h)); rank 0 = must
+                show, 1 = may be dropped; r = the target's radius in mm (a symbol or a dot; 0 = a point): a leader
+                starts on its edge, so it visibly touches the target
+      obstacles boxes (x0, y0, x1, y1) of symbols, other drawings, legends (they are not changed)
+      lines     polylines (page mm) a label may not sit on (streets, banks, cut lines), or an LpSegIndex
+    Returns a list in the labels' order: None (a rank-1 label dropped: list it in the legend) or dict(box, size,
+    leader) with leader = None or ((x, y) on the target's edge, (x, y) on the label box): short (<= max_leader
+    where any spot allows), never crossing another leader or a label."""
+    import math as _m
+    segs = lines if hasattr(lines, "near") else LpSegIndex(polylines=lines)
+    taken = list(obstacles)
+    its = []
+    for L in labels:
+        if "wh" in L:
+            its.append(dict(L))
+        else:
+            w0, h0 = L["w"], L["h"]
+            its.append(dict(L, wh=(lambda f, w0=w0, h0=h0: (w0 * f, h0 * f))))
+    leaders = []
+    got = place_labels_all(its, taken, bounds, segs, sizes, pad, leaders, max_leader)
+    out = []
+    for i, L in enumerate(labels):
+        g = got.get(i)
+        if g is None:
+            out.append(None)
+            continue
+        box, far, f = g
+        lead = None
+        if far:
+            e = lp_leader_end(box, (L["x"], L["y"]))
+            r = float(L.get("r", 0.0))
+            d = _m.hypot(e[0] - L["x"], e[1] - L["y"])
+            s0 = (L["x"] + (e[0] - L["x"]) * r / d, L["y"] + (e[1] - L["y"]) * r / d) if r > 0 and d > r else \
+                (L["x"], L["y"])
+            lead = (s0, e)
+        out.append(dict(box=box, size=f, leader=lead))
+    return out
+
+
+# ------------------------------------------------------------------------------------------- M2 legends and markers
+class Legend(object):
+    """M2: a legend that can only exist attached to its drawing's frame (G1: next to its drawing, aligned to it, never
+    at the page bottom). Numbered markers exist only through marker(), which makes their legend entry at the same
+    time (G3: no number without its explanation).
+      lg = Legend(frame, side="right")          frame = (x0, y0, x1, y1) of the drawing, page mm
+      lg.add("Selinos stream", kind="fill", colour="91ADB4")    kinds: fill, line, dash, dot, icon, hatch, marker
+      n = lg.marker("Kermes market")            -> "1": draw n on the map; the legend lists "1  Kermes market"
+      L = lg.layout(measure)                    measure(s, size_pt, bold) -> mm
+    L = dict(box, rows=[dict(entry, swatch=(x0, y0, x1, y1), text=(x, baseline_y), size_pt)], title=(s, x, y) or None,
+    taken=box): the caller draws each swatch by its kind and the text at text; box joins the label obstacles.
+    side: "right" / "left" (top-aligned beside the frame, more columns when taller than the frame), "below" /
+    "above" (left-aligned to the frame, as many columns as its width holds), "inside_tl" / "inside_tr" /
+    "inside_bl" / "inside_br" (in a corner of the frame, on a paper plate: draw L["plate"] first)."""
+    SIDES = ("right", "left", "below", "above", "inside_tl", "inside_tr", "inside_bl", "inside_br")
+
+    def __init__(self, frame, side="right", gap=3.0, y_down=True, title=None, style="legend", swatch=(4.0, 2.6),
+                 col_gap=4.0):
+        if not frame or len(frame) != 4 or frame[2] <= frame[0] or frame[3] <= frame[1]:
+            raise ValueError("a legend needs its drawing's frame (x0, y0, x1, y1): it is never placed on its own")
+        if side not in self.SIDES:
+            raise ValueError("legend side %r: one of %s" % (side, ", ".join(self.SIDES)))
+        self.frame, self.side, self.gap, self.y_down, self.title = tuple(frame), side, gap, y_down, title
+        self.style, self.swatch, self.col_gap = style, swatch, col_gap
+        self.entries, self._n = [], 0
+
+    def add(self, label, kind="fill", **sample):
+        """an entry: label + its sample (colour, width, dash, icon name, hatch ...): the entry dict"""
+        for e in self.entries:
+            if e["label"] == label and e.get("kind") == kind:
+                return e
+        e = dict(sample, label=label, kind=kind)
+        self.entries.append(e)
+        return e
+
+    def marker(self, label, prefix="", **sample):
+        """a numbered (or prefix-lettered) marker and its legend entry, made together: returns the marker text"""
+        for e in self.entries:
+            if e.get("kind") == "marker" and e["label"] == label:
+                return e["marker"]
+        self._n += 1
+        m = "%s%d" % (prefix, self._n)
+        self.entries.append(dict(sample, label=label, kind="marker", marker=m))
+        return m
+
+    def layout(self, measure, size_pt=None, max_h=None):
+        """the placed legend (see the class doc)"""
+        s0, b0, lead, col = grid_style(self.style) if "grid_style" in globals() else (7.0, False, 4.0, "4A3F35")
+        size = size_pt or s0
+        lead = lead * size / s0
+        sw, sh = self.swatch
+        tx = sw + 1.5                                      # text start after the swatch
+        ent_w = max([tx + measure(e["label"], size, False) for e in self.entries] or [0.0])
+        tw = measure(self.title, size, True) if self.title else 0.0
+        f = self.frame
+        fw, fh = f[2] - f[0], f[3] - f[1]
+        n = len(self.entries)
+        th = lead if self.title else 0.0
+        if self.side in ("right", "left") or self.side.startswith("inside"):
+            avail = (max_h or fh) - th
+            nrow = max(1, min(n, int((avail + 1e-6) // lead))) if n else 0
+            ncol = max(1, -(-n // nrow)) if nrow else 1
+        else:
+            ncol = max(1, min(n, int((fw + self.col_gap) // (ent_w + self.col_gap)))) if n else 1
+            nrow = -(-n // ncol) if n else 0
+        W = max(tw, ncol * ent_w + (ncol - 1) * self.col_gap)
+        H = th + nrow * lead
+        pad = 1.5 if self.side.startswith("inside") else 0.0
+        # the box in y-down terms first (top = the frame's visual top)
+        if self.side == "right":
+            x0, top = f[2] + self.gap, 0.0
+        elif self.side == "left":
+            x0, top = f[0] - self.gap - W, 0.0
+        elif self.side == "below":
+            x0, top = f[0], fh + self.gap
+        elif self.side == "above":
+            x0, top = f[0], -self.gap - H
+        else:
+            right = self.side.endswith("r")
+            bottom = self.side[-2] == "b"
+            x0 = f[2] - pad - W if right else f[0] + pad
+            top = fh - pad - H if bottom else pad
+        Y = (lambda t: f[1] + t) if self.y_down else (lambda t: f[3] - t)
+
+        def box(x_0, t0, x_1, t1):
+            a, b = Y(t0), Y(t1)
+            return (x_0, min(a, b), x_1, max(a, b))
+        rows = []
+        for i, e in enumerate(self.entries):
+            c, r = i // nrow, i % nrow
+            ex = x0 + c * (ent_w + self.col_gap)
+            t = top + th + r * lead
+            mid = t + lead * 0.5
+            sw_box = box(ex, mid - sh / 2.0, ex + sw, mid + sh / 2.0)
+            base = Y(mid + size * GRID_PT_ * 0.35)
+            rows.append(dict(e, swatch=sw_box, text=(ex + tx, base), size_pt=size))
+        out = dict(box=box(x0 - pad, top - pad, x0 + W + pad, top + H + pad), rows=rows, size_pt=size, colour=col,
+                   title=(self.title, x0, Y(top + lead * 0.75)) if self.title else None)
+        out["taken"] = out["box"]
+        out["plate"] = out["box"] if self.side.startswith("inside") else None
+        return out
+
+
+GRID_PT_ = 25.4 / 72.0                                    # mm per pt (the legend's baseline offset)
 # ---- Shared basemap (revision 29 Oct 2026, brief 02 §1, WO-T2a-1) -------------------------------------------------
 # ONE base for every map of the booklet (site board, water board, city link, masterplan, agriculture): the same
 # stream, streets, buildings, green, tree cover, fields and contours, switched on and off per page by its MODE, with a
@@ -743,6 +998,11 @@ def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0
 #   ("fill", rings, hex, alpha, nonzero)        rings = [[(x, y), ...], ...] (outlines and their holes)
 #   ("line", pts, hex, width_mm, dash_mm, alpha) dash_mm = None or [on, off, ...] in print mm
 #   ("text", s, (x, y), size_mm, hex, bold, align)   align as the scripts' text calls ("MC" = middle centre)
+# M3 (revision 30 Oct 2026, H-A): the 29 Oct modes and switches are kept as they were; added the layers study_area
+# (calisma_alan, ONE outline reused on every map, R28_STUDY_LINE), names (place names) and the building styles "plan" /
+# "plan_faint" (M11: block outlines + roof reading, no stripes), the modes "base" (the faint base of a map page) and
+# "key" (key maps, M4), the water drawn by M5 (water_plan, when included) and keymap_items (M4). The data carries per
+# building its height (h, floors) and a "blocks" layer (buildings sharing a wall merged: no fake division lines).
 import os as _bm_os
 import json as _bm_json
 import math as _bm_math
@@ -773,15 +1033,27 @@ BM_COVERED_DASH = (1.6, 0.9)     # mm: the covered course
 # the modes of 02 §1; a value per layer: False = off, True = on, "faint" / "veryfaint" = buildings or streets faint,
 # a tuple of street classes ("main", "lane", "path") = only those as centrelines, "height" = contours by height
 BASEMAP_MODES = {
-    "detailed": dict(stream=True, streets=True, buildings=True, green=True, trees=True, fields=True, contours=True),
+    "detailed": dict(stream=True, streets=True, buildings=True, green=True, trees=True, fields=True, contours=True,
+                     study_area=False, names=False),
     "simple": dict(stream=True, streets="faint", buildings="faint", green=False, trees=False, fields=False,
-                   contours=False),
+                   contours=False, study_area=False, names=False),
     "minimal": dict(stream=True, streets=("main", "lane"), buildings="veryfaint", green=False, trees=False,
-                    fields=False, contours=False),
+                    fields=False, contours=False, study_area=False, names=False),
     "topographic": dict(stream=True, streets=False, buildings="faint", green=False, trees=False, fields=False,
-                        contours="height"),
+                        contours="height", study_area=False, names=False),
+    # M3 (30 Oct): the faint base under a map page's message (G5), and the key map's base (M4)
+    "base": dict(stream=True, streets="faint", buildings="plan_faint", green=False, trees=False, fields=False,
+                 contours=False, study_area=True, names=False),
+    "key": dict(stream=True, streets=("main",), buildings="veryfaint", green=False, trees=False, fields=False,
+                contours=False, study_area=True, names=False),
 }
+# M3 layer list -> switches: basemap_layers accepts these names too (buildings, streets, water, topography,
+# study_area, names; green, trees, fields as before)
+BM_LAYER_ALIAS = dict(water="stream", topography="contours")
+BM_STUDY_LINE = dict(colour="262626", width_mm=0.45, dash_mm=(3.0, 0.8, 0.4, 0.8))   # = R28_STUDY_LINE
+BM_NAME_MM = 2.47                  # place names: the M1 label size (7 pt)
 _BM_MEMO = {}
+_BM_WARN = []
 
 
 # ------------------------------------------------------------------------------------------- reading
@@ -824,11 +1096,22 @@ def basemap_extent(D=None):
 
 def basemap_layers(mode, override=None):
     """the layer switches of a mode (BASEMAP_MODES) with a drawing's own changes laid over them, e.g.
-    basemap_layers("minimal", {"streets": ("main",), "buildings": False}) for D5 Sound b (stream + main roads)"""
+    basemap_layers("minimal", {"streets": ("main",), "buildings": False}) for D5 Sound b (stream + main roads).
+    M3 (30 Oct): override may also be a LIST of layer names = only those on (the others off), each at the mode's
+    own value, e.g. basemap_layers("base", ["buildings", "water", "study_area"]); "water" = stream, "topography" =
+    contours. buildings: True / "faint" / "veryfaint" / "plan" / "plan_faint" (M11) / False."""
     if mode not in BASEMAP_MODES:
         raise ValueError(u"basemap mode '{}' unknown: one of {}".format(mode, ", ".join(sorted(BASEMAP_MODES))))
     lay = dict(BASEMAP_MODES[mode])
+    if isinstance(override, (list, tuple, set, frozenset)):
+        want = set(BM_LAYER_ALIAS.get(k, k) for k in override)
+        for k in want:
+            if k not in lay:
+                raise ValueError(u"basemap layer '{}' unknown: one of {}".format(k, ", ".join(sorted(lay))))
+        on = dict(BASEMAP_MODES["detailed"], study_area=True, names=True)
+        override = dict((k, (lay[k] or on[k]) if k in want else False) for k in lay)
     for k, v in (override or {}).items():
+        k = BM_LAYER_ALIAS.get(k, k)
         if k not in lay:
             raise ValueError(u"basemap layer '{}' unknown: one of {}".format(k, ", ".join(sorted(lay))))
         lay[k] = v
@@ -858,25 +1141,80 @@ def _bm_ramp(t):
                    for j in (0, 2, 4))
 
 
-def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildings=False):
+def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildings=False, scale_den=None):
     """the basemap of a drawing as items (bottom first; see the head of this file), in survey m. mode: "detailed",
-    "simple", "minimal", "topographic" (02 §1); override: layer changes for this drawing (basemap_layers); box =
-    (x0, y0, x1, y1) survey m: only what touches it (the caller clips to its frame); split_buildings=True gives
-    every building its own fill item (for a page that fills even-odd only; default: nonzero fills in chunks).
-    [] without data."""
+    "simple", "minimal", "topographic" (02 §1), "base", "key" (M3, 30 Oct); override: layer changes for this drawing,
+    a dict or a list of the layers to show (basemap_layers); box = (x0, y0, x1, y1) survey m: only what touches it
+    (the caller clips to its frame); split_buildings=True gives every building its own fill item (for a page that
+    fills even-odd only; default: nonzero fills in chunks); scale_den: the drawing's scale (1:scale_den) for the
+    M11 roof marks of buildings "plan" / "plan_faint" (default 1:5,000). [] without data."""
     D = D if D is not None else basemap_load()
     if not D:
         return []
     # the same request in one run is made once and copied (Aras 29 Oct 19:18: build once, cache, copy the layers)
-    mk = ("items", id(D), mode, repr(sorted((override or {}).items())), tuple(box) if box else None,
-          bool(split_buildings))
+    ov = sorted(override) if isinstance(override, (list, tuple, set, frozenset)) else sorted((override or {}).items())
+    mk = ("items", id(D), mode, repr(ov), tuple(box) if box else None, bool(split_buildings), scale_den)
     if mk in _BM_MEMO:
         return list(_BM_MEMO[mk])
-    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings)
+    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings, scale_den)
     return list(_BM_MEMO[mk])
 
 
-def _bm_items(D, mode, override, box, split_buildings):
+def basemap_water_rings(items):
+    """M3: the stream's rings (survey m) in an item list, whether drawn plain (fill items of the water colour) or by
+    M5 (the "water" item): for a page that clips or measures by the water"""
+    out = []
+    for it in items:
+        if it[0] == "water":
+            out += [R for g in it[1] for R in g if len(R) >= 3]
+        elif it[0] == "fill" and it[2] == BM_COL["water"]:
+            out += [R for R in it[1] if len(R) >= 3]
+    return out
+
+
+def basemap_warnings():
+    """M3: what the basemap could not draw as asked this run (e.g. the M5 water drawing failed): log lines, emptied"""
+    out = list(_BM_WARN)
+    del _BM_WARN[:]
+    return out
+
+
+def basemap_study(D=None):
+    """M3: the study area (calisma_alan, two closed parts worked as one) as rings in survey m: the basemap's study
+    layer, else the recorded copy a script includes (R28_STUDY_COPY, CALISMA_COPY, CL_STUDY); [] without either"""
+    D = D if D is not None else basemap_load()
+    st = ((D or {}).get("layers") or {}).get("study")
+    if st:
+        return [[tuple(p) for p in R] for R in st]
+    for nm in ("R28_STUDY_COPY", "CALISMA_COPY", "CL_STUDY"):
+        v = globals().get(nm)
+        if v:
+            return [[tuple(p) for p in R] for R in v]
+    return []
+
+
+def basemap_study_items(D=None, style=None):
+    """M3: the study-area outline as line items (survey m), one style everywhere (R28_STUDY_LINE when included)"""
+    st = style or globals().get("R28_STUDY_LINE") or BM_STUDY_LINE
+    return [("line", list(R) + [R[0]], st["colour"], st["width_mm"], list(st["dash_mm"]), 1.0)
+            for R in basemap_study(D) if len(R) >= 3]
+
+
+def basemap_names(box=None, D=None):
+    """M3: the place names [(name, (x, y))] in survey m (the extent's landmarks and named heritage buildings), for a
+    page to place with M2 (lp_place) so no name collides"""
+    D = D if D is not None else basemap_load()
+    if not D:
+        return []
+    nm = (D.get("layers") or {}).get("names") or [[n, list(p)] for n, p in (D.get("reach") or BASEMAP_REACH)]
+    out = []
+    for n, p in nm:
+        if box is None or (box[0] <= p[0] <= box[2] and box[1] <= p[1] <= box[3]):
+            out.append((n, (p[0], p[1])))
+    return out
+
+
+def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
     """basemap_items without the memo"""
     lay = basemap_layers(mode, override)
     L = D["layers"]
@@ -938,10 +1276,17 @@ def _bm_items(D, mode, override, box, split_buildings):
         for cl, P in L["streets_in"] + L["streets_out"]:
             if cl in st:
                 lines([P], BM_FAINT["road_line"] if cl != "main" else BM_COL["road_edge"], BM_LW[cl])
-    # the stream: ONE drawing (the site board's water and its edge inside the frame, OpenStreetMap's course beyond)
+    # the stream: ONE drawing (the site board's water and its edge inside the frame, OpenStreetMap's course beyond).
+    # M3 (30 Oct): drawn by M5 (common/water.py water_plan, page mm) when the script includes it: one "water" item
+    # that basemap_draw hands to water_plan after the map's T (else the plain fill and edge, as before)
     if lay["stream"]:
-        fills(L["water"], BM_COL["water"], nonzero=False)
-        lines(L["water_edge"], BM_COL["water_edge"], BM_LW["water_edge"])
+        if callable(globals().get("water_plan")):
+            ws = [g for g in L["water"] if g and len(g[0]) >= 3 and _bm_hit(g[0], box)]
+            if ws:
+                out.append(("water", ws, [P for P in L["water_edge"] if len(P) >= 2 and _bm_hit(P, box)], 1.0))
+        else:
+            fills(L["water"], BM_COL["water"], nonzero=False)
+            lines(L["water_edge"], BM_COL["water_edge"], BM_LW["water_edge"])
         if st is True or st == "faint":
             fills([[R] for R in L["decks"]], BM_FAINT["road"] if st == "faint" else BM_COL["road"])
         for P in L["covered"]:
@@ -951,7 +1296,22 @@ def _bm_items(D, mode, override, box, split_buildings):
             lines([P], BM_COL["water"], BM_LW["river_osm" if kind == "river" else "stream_osm"])
     # buildings
     bl = lay["buildings"]
-    if bl:
+    if bl in ("plan", "plan_faint"):                        # M11: outline per block + roof reading, no stripes
+        pf = globals().get("bld_plan_items")
+        if callable(pf):
+            faint = bl == "plan_faint"
+            blocks = L.get("blocks")
+            out.extend(pf(L["buildings"], blocks=blocks, scale_den=scale_den or 5000.0, box=box,
+                          fill=BM_FAINT["bld_veryfaint"] if faint else None,
+                          edge=BM_FAINT["road_line"] if faint else None,
+                          roof_col=BM_FAINT["bld"] if faint else None,
+                          her_fill=BM_COL["her"] if not faint else "F1E6E5",
+                          her_edge=BM_COL["her_edge"] if not faint else "CDAAAA"))
+        else:
+            _BM_WARN.append(u"WARNING: basemap buildings '{}' need common/buildings.py (M11): drawn faint "
+                            u"instead.".format(bl))
+            fills([b["rings"] for b in L["buildings"]], BM_FAINT["bld"])
+    elif bl:
         if bl is True:
             fills([b["rings"] for b in L["buildings"] if not b.get("her")], BM_COL["bld"])
             fills([b["rings"] for b in L["buildings"] if b.get("her")], BM_COL["her"])
@@ -963,15 +1323,26 @@ def _bm_items(D, mode, override, box, split_buildings):
         else:
             fills([b["rings"] for b in L["buildings"]],
                   BM_FAINT["bld_veryfaint"] if bl == "veryfaint" else BM_FAINT["bld"])
-    if lay["stream"] and (st is True or bl is True):
+    if lay["stream"] and (st is True or bl is True or bl == "plan"):
         lines(L["bridges"], BM_COL["ink"], BM_LW["bridge"])
+    # M3 (30 Oct): the study area (one outline, one style, on top of the base) and the place names
+    if lay.get("study_area"):
+        for it in basemap_study_items(D):
+            if _bm_hit(it[1], box):
+                out.append(it)
+    if lay.get("names"):
+        for n, p in basemap_names(box, D):
+            out.append(("text", n, p, BM_NAME_MM, BM_COL["ink"], False, "MC"))
     return out
 
 
-def basemap_draw(items, T, fill_fn, line_fn, text_fn=None):
+def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
     """draws items through the caller's page: T(p) survey m -> page point; fill_fn(rings, hex, alpha, nonzero);
     line_fn(pts, hex, width_mm, dash_mm, alpha); text_fn(s, (x, y), size_mm, hex, bold, align) (texts are left out
-    without it). Returns the number of items drawn."""
+    without it). Returns the number of items drawn. M3 (30 Oct): a "water" item (the stream, when the script includes
+    M5 common/water.py) is drawn by water_plan(ring in page mm, k, **water_opts) through the same three functions
+    (k = page mm per survey m, from T); if M5 fails, the plain fill and bank line (a WARNING in basemap_warnings())."""
+    import math as _m
     n = 0
     for it in items:
         if it[0] == "fill":
@@ -980,6 +1351,32 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None):
             line_fn([T(p) for p in it[1]], it[2], it[3], it[4], it[5])
         elif it[0] == "text" and text_fn is not None:
             text_fn(it[1], T(it[2]), it[3], it[4], it[5], it[6])
+        elif it[0] == "water":
+            p0 = it[1][0][0][0], it[1][0][0][1]
+            a, b = T(p0), T((p0[0] + 100.0, p0[1]))
+            k = _m.hypot(b[0] - a[0], b[1] - a[1]) / 100.0
+            try:
+                wp = globals()["water_plan"]                # M5 (common/water.py), present: _bm_items checked it
+                for g in it[1]:
+                    wl = wp([T(p) for p in g[0]], k, **(water_opts or {}))
+                    for s_ in wl.shapes():
+                        if s_[0] == "poly" and len(s_[1]) >= 3:
+                            al = s_[5] if len(s_) > 5 and s_[5] is not None else 1.0
+                            if s_[2]:
+                                fill_fn([list(s_[1])], s_[2], al, True)
+                            if s_[3]:
+                                line_fn(list(s_[1]) + [s_[1][0]], s_[3], s_[4] or 0.1, None, al)
+                        elif s_[0] == "line" and len(s_[1]) >= 2:
+                            line_fn(list(s_[1]), s_[2], s_[3], s_[4] if len(s_) > 4 else None, 1.0)
+                        elif s_[0] == "text" and text_fn is not None:
+                            text_fn(s_[1], (s_[2], s_[3]), s_[4], s_[5], s_[6] if len(s_) > 6 else False,
+                                    s_[7] if len(s_) > 7 else "L")
+            except Exception as ex_:
+                _BM_WARN.append(u"WARNING: basemap: the M5 water drawing failed ({}: {}); the stream is drawn as the "
+                                u"base map's own fill.".format(type(ex_).__name__, ex_))
+                fill_fn([[T(p) for p in R] for g in it[1] for R in g], BM_COL["water"], 1.0, False)
+                for P in it[2]:
+                    line_fn([T(p) for p in P], BM_COL["water_edge"], BM_LW["water_edge"], None, 1.0)
         else:
             continue
         n += 1
@@ -1071,6 +1468,92 @@ def basemap_cut_ids(ids, looks=None):
         a, b = ends(cid)
         out.append((a, b, labs(cid), (looks or {}).get(cid, 1)))
     return out
+
+
+# ------------------------------------------------------------------------------------------- M4 key map
+def keymap_items(ids=(), scale_den=10000.0, box=None, zooms=None, mode="key", override=None, looks=None, D=None,
+                 margin=0.06, text_mm=2.4, col=None, log=None, page=None):
+    """M4: the key map of a page = a small M3 extract that ALWAYS shows the study-area outline and EVERY cut or zoom
+    id passed, each labelled. ids: cut ids of the cut registry (common/levels.py, level_ends / level_end_labels) or
+    zoom ids; a zoom id is looked up in zooms {id: polygon survey m} first, then in the registry's level_window(id)
+    when the level module has it. box (survey m) defaults to the study area + every cut and zoom, widened by margin.
+    page = a booklet page number: with no ids, every cut the registry draws on that page (level_registry_all).
+    Each cut is labelled with its registry name (level_name: F1 -> W1) where its end names do not already say it.
+    Returns dict(items (survey m; draw with basemap_draw and the key map's T, clipped to box), box, drawn=[ids],
+    missing=[ids]); a missing id is logged (WARNING), never left out silently."""
+    import math as _m
+    if not ids and page is not None and callable(globals().get("level_registry_all")):
+        ids = [e["id"] for e in level_registry_all(str(page))]
+    D = D if D is not None else basemap_load()
+    col = col or BM_COL["cut"]
+    log = log if log is not None else _BM_WARN
+    cuts, wins, drawn, missing = [], [], [], []
+    seen_ends = set()
+    win_fn = globals().get("level_window")
+    for cid in ids:
+        if zooms and cid in zooms:
+            wins.append((cid, [tuple(p) for p in zooms[cid]]))
+            drawn.append(cid)
+            continue
+        try:
+            c = basemap_cut_ids([cid], looks)[0]
+            ek = (round(c[0][0], 1), round(c[0][1], 1), round(c[1][0], 1), round(c[1][1], 1))
+            if ek not in seen_ends:                       # the crossings of one cut (S5-1 .. S5-3) share one line
+                seen_ends.add(ek)
+                cuts.append((cid, c))
+            drawn.append(cid)
+            continue
+        except Exception:
+            pass
+        try:
+            if callable(win_fn):
+                w = win_fn(cid)
+                if w:
+                    wins.append((cid, [tuple(p) for p in w]))
+                    drawn.append(cid)
+                    continue
+        except Exception:
+            pass
+        missing.append(cid)
+        log.append(u"WARNING: key map: '{}' is neither a cut of the registry nor a zoom passed in: not drawn.".format(cid))
+    study = basemap_study(D)
+    if box is None:
+        pts = [p for R in study for p in R] + [p for _, c in cuts for p in c[:2]] + [p for _, w in wins for p in w]
+        if not pts:
+            ext = basemap_extent(D) or []
+            pts = list(ext)
+        if pts:
+            x0, y0, x1, y1 = _bm_bb(pts)
+            d = margin * max(x1 - x0, y1 - y0, 1.0)
+            box = (x0 - d, y0 - d, x1 + d, y1 + d)
+    items = basemap_items(mode, override, box=box, D=D, scale_den=scale_den) if D else []
+    if not (D and basemap_layers(mode, override).get("study_area")):
+        items += basemap_study_items(D)                  # the outline is always there, whatever the layers
+    if box is not None:
+        frame = [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])]
+    else:
+        frame = None
+    m = scale_den / 1000.0
+    for cid, c in cuts:
+        its = basemap_cut_items([c], scale_den, frame=frame, text_mm=text_mm, col=col, D=D)
+        items += its
+        nm_fn = globals().get("level_name")
+        try:
+            name = nm_fn(cid) if callable(nm_fn) else cid
+        except Exception:
+            name = cid
+        name = str(name).split("-")[0]                    # a crossing row (S5-2) is labelled by its cut (S5)
+        if name not in c[2][0] and name not in c[2][1]:   # end names that do not say the id ("SW" / "NE"): the id too
+            a, b = c[0], c[1]
+            L0 = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+            nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
+            q = ((a[0] + b[0]) / 2.0 + nx * text_mm * m * 1.2, (a[1] + b[1]) / 2.0 + ny * text_mm * m * 1.2)
+            items.append(("text", name, q, text_mm, col, True, "MC"))
+    for cid, w in wins:
+        items.append(("line", list(w) + [w[0]], col, BM_LW["cut"], None, 1.0))
+        x0, y0, x1, y1 = _bm_bb(w)
+        items.append(("text", cid, (x0 + text_mm * m * 0.9, y1 + text_mm * m * 0.8), text_mm, col, True, "MC"))
+    return dict(items=items, box=box, drawn=drawn, missing=missing)
 
 
 # ------------------------------------------------------------------------------------------- writing (site board)
@@ -1188,12 +1671,16 @@ def basemap_export(S, log=None):
             Q = [loc(p) for p in P]
             return [_bm_r([wld(q) for q in run]) for r in ring for run in _bm_clip_rect(Q, False, r)]
 
+        def in_frame_name(u):
+            u_, v_ = loc((u["cx"], u["cy"]))
+            return fr[0] <= u_ <= fr[2] and fr[1] <= v_ <= fr[3]
+
         def in_ring(p):
             u, v = loc(p)
             return ex[0] <= u <= ex[2] and ex[1] <= v <= ex[3] and not (fr[0] <= u <= fr[2] and fr[1] <= v <= fr[3])
         L = dict(lc={}, zones=[], contours=[], street_areas=[], street_edges=[], streets_in=[], streets_out=[],
                  water=[], water_edge=[], decks=[], covered=[], water_out=[], waterways_out=[], buildings=[],
-                 bridges=[])
+                 bridges=[], blocks=[], study=[], names=[])
         mains = set(globals().get("MAIN_ROADS") or ("motorway", "trunk", "primary", "secondary", "tertiary"))
         peds = set(globals().get("PED") or ("footway", "path", "pedestrian", "steps", "cycleway", "bridleway",
                                              "track", "corridor"))
@@ -1231,12 +1718,31 @@ def basemap_export(S, log=None):
         L["decks"] = [_bm_r(P) for P in getattr(S, "decks", None) or []]
         L["covered"] = [_bm_r(P) for P in getattr(S, "covered", None) or []]
         L["bridges"] = [_bm_r(P) for P in getattr(S, "bridges", None) or []]
-        for u in S.bld:
+        # buildings: one outline per building (build_site merged its pieces: revision 30 Oct, G7) with its height,
+        # and the blocks (buildings sharing a wall as ONE outline, S.blocks): the plan's outline layer, so no party
+        # wall, survey tick or label split is ever drawn as a line
+        idx_of = {}
+        for i_u, u in enumerate(S.bld):
             parts = [_bm_r(P) for P in u["parts"] if len(P) >= 3]
             if parts:
+                idx_of[i_u] = len(L["buildings"])
+                tg = u.get("tags") or {}
+                her = u.get("fabric") in ("monument", "sacred") or bool(tg.get("historic")) or \
+                    tg.get("amenity") == "place_of_worship"
                 L["buildings"].append(dict(rings=parts + [_bm_r(H) for H in (u.get("holes") or [])], np=len(parts),
-                                           her=u.get("fabric") in ("monument", "sacred"),
-                                           osm=u.get("src") in ("osm", "osm+label")))
+                                           her=her, osm=u.get("src") in ("osm", "osm+label"),
+                                           h=round(float(u.get("h") or 0.0), 2), floors=int(u.get("floors") or 0)))
+                if her and (u.get("name") or "").strip() and in_frame_name(u):
+                    L["names"].append([u["name"].strip(), [round(u["cx"], 1), round(u["cy"], 1)]])
+        blocks = getattr(S, "blocks", None)
+        if blocks is None and callable(globals().get("bld_blocks")):
+            blocks = bld_blocks(S.bld)
+        for bk in blocks or []:
+            mem = [idx_of[i] for i in bk.get("units", []) if i in idx_of]
+            L["blocks"].append(dict(rings=[_bm_r(bk["outer"])] + [_bm_r(H) for H in bk.get("holes") or []],
+                                    her=bool(mem) and all(L["buildings"][i]["her"] for i in mem)))
+        L["study"] = [_bm_r(P) for P in (getattr(S, "r28_study", None) or globals().get("R28_STUDY_COPY") or [])]
+        L["names"] = [[n, [round(p[0], 1), round(p[1], 1)]] for n, p in BASEMAP_REACH] + L["names"]
         n_in = len(L["buildings"])
         # ---- the ring between frame and extent: OpenStreetMap
         osm = getattr(S, "osm", None)
@@ -1258,7 +1764,14 @@ def basemap_export(S, log=None):
                         if in_ring(c):
                             her = bool(tags.get("historic")) or tags.get("amenity") == "place_of_worship" or \
                                 tags.get("building") in ("mosque", "church", "synagogue", "temple")
-                            L["buildings"].append(dict(rings=[_bm_r(P[:-1])], np=1, her=her, osm=True))
+                            lv = tags.get("building:levels")
+                            try:
+                                lv = int(float(lv)) if lv else 0
+                            except ValueError:
+                                lv = 0
+                            L["buildings"].append(dict(rings=[_bm_r(P[:-1])], np=1, her=her, osm=True, h=0.0,
+                                                       floors=lv))
+                            L["blocks"].append(dict(rings=[_bm_r(P[:-1])], her=her))
                             n_out += 1
                     continue
                 hw = tags.get("highway")
@@ -1324,7 +1837,905 @@ def basemap_export(S, log=None):
         import traceback as _tb
         log.append(u"WARNING: the shared basemap was not written ({}):\n{}".format(ex_, _tb.format_exc()))
         return None
-# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1): every symbol drawn on one 24-unit square grid,
+# ---- M1 (revision 30 Oct 2026, H-A): ONE booklet grid and ONE set of type styles for every page ----------------------
+# Page mm, A3 landscape 420 x 297, origin top-left, y DOWN (the booklet's own system). A script that draws y-up calls
+# grid_flip(y) / grid_rect_up(r) for its coordinates. Every block of a page (map, section, legend, intro, key map, box)
+# is placed by grid cells: a column span (c0, n) and baseline rows, never by hand-tuned mm.
+#   columns   12 x 29 mm, gutters 4 mm, margins 14 mm left/right: 14 + 12 x 29 + 11 x 4 + 14 = 420
+#   rows      baseline 4 mm from y = 12 (the top margin); title band 12..25, drawing area 30..273, footer from 276
+#   crops     a crop the booklet shows at 1:1 is drawn GRID_W(n) wide (n whole columns), so its own sub-blocks fall on
+#             the page grid when the booklet places it on a column line (grid_sub gives that sub-grid inside a crop)
+# Type: GRID_TYPE (pt, bold, lead mm, colour role). Intro helper: "*word*" (or "**word**") marks the bold key words.
+GRID_PAGE = (420.0, 297.0)
+GRID_ML, GRID_MR, GRID_MT, GRID_MB = 14.0, 14.0, 12.0, 12.0
+GRID_COLS, GRID_COL, GRID_GUT = 12, 29.0, 4.0
+GRID_BASE = 4.0                                   # baseline step, from y = GRID_MT
+GRID_TITLE_Y, GRID_RULE_Y = 22.0, 25.0            # title baseline, the rule under the title band
+GRID_AREA = (GRID_ML, 30.0, GRID_PAGE[0] - GRID_MR, 273.0)   # where drawings go (x0, y0, x1, y1)
+GRID_FOOT_RULE = 276.0
+GRID_MIN_PT = 6.0                                 # no text below this size on any page (PLAN p18-19 rule)
+
+# colour roles (palette v1.4 core): ink, second ink, accent, rule
+GRID_INK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F", rule="B0AC9C", paper="FFFFFF")
+# style -> (size pt, bold, lead mm, colour role)
+GRID_TYPE = dict(
+    page_title=(24.0, True, 10.0, "ink"),         # the page's title (booklet header)
+    kicker=(8.0, True, 3.6, "accent"),            # the theme line above the title
+    intro=(9.5, False, 4.0, "ink"),               # 2-3 lines, key words bold (G4)
+    heading=(10.0, True, 4.0, "ink"),             # a drawing's own heading ("Pedestrian flow")
+    subheading=(8.0, True, 3.6, "ink2"),
+    label=(7.0, False, 3.0, "ink"),               # labels on drawings
+    label_small=(6.0, False, 2.6, "ink"),         # the smallest a label may get (crowded maps)
+    legend=(7.0, False, 4.0, "ink"),              # legend entries (row pitch = lead)
+    legend_title=(7.0, True, 4.0, "ink"),
+    caption=(7.5, False, 3.2, "ink2"),            # under a drawing: what, scale
+    value=(18.0, True, 7.0, "accent"),            # a box's one headline value (G4)
+    note=(7.5, False, 3.2, "ink2"),               # the one line under a value
+    pageno=(14.0, True, 6.0, "accent"),
+)
+GRID_PT = 25.4 / 72.0                             # mm per pt
+
+
+def grid_style(name):
+    """(size_pt, bold, lead_mm, hex) of a type style (GRID_TYPE)"""
+    s, b, ld, role = GRID_TYPE[name]
+    return s, b, ld, GRID_INK[role]
+
+
+def grid_w(n):
+    """width (mm) of n whole columns with their inner gutters"""
+    n = max(1, int(n))
+    return n * GRID_COL + (n - 1) * GRID_GUT
+
+
+def grid_x(c):
+    """left edge (mm) of column c (1-based; c = GRID_COLS + 1 gives the right margin line)"""
+    return GRID_ML + (c - 1) * (GRID_COL + GRID_GUT)
+
+
+def grid_x1(c):
+    """right edge (mm) of column c"""
+    return grid_x(c) + GRID_COL
+
+
+def grid_span(c0, n):
+    """(x, w) of the span of n columns from column c0"""
+    if c0 < 1 or c0 + n - 1 > GRID_COLS:
+        raise ValueError("grid span %d+%d is off the %d-column grid" % (c0, n, GRID_COLS))
+    return grid_x(c0), grid_w(n)
+
+
+def grid_cols_for(w, lo=1):
+    """the fewest whole columns (>= lo) at least w mm wide (GRID_COLS when w is wider than the page)"""
+    for n in range(max(1, lo), GRID_COLS + 1):
+        if grid_w(n) >= w - 1e-6:
+            return n
+    return GRID_COLS
+
+
+def grid_snap_y(y, up=True):
+    """y (mm from the top) on the baseline grid: the next line at or below the point (up=True gives the line at or
+    above it)"""
+    import math as _m
+    k = (y - GRID_MT) / GRID_BASE
+    k = _m.floor(k + 1e-6) if up else _m.ceil(k - 1e-6)
+    return GRID_MT + k * GRID_BASE
+
+
+def grid_snap_h(h):
+    """a height rounded UP to whole baseline steps"""
+    import math as _m
+    return GRID_BASE * _m.ceil(h / GRID_BASE - 1e-6)
+
+
+def grid_rows(n):
+    """the height of n baseline rows"""
+    return n * GRID_BASE
+
+
+def grid_cell(c0, n, y, h, snap=True):
+    """the block rect (x0, y0, x1, y1) of n columns from c0, top y, height h; snap: top on the baseline (next line
+    down) and the height to whole steps"""
+    x, w = grid_span(c0, n)
+    if snap:
+        y, h = grid_snap_y(y, up=False), grid_snap_h(h)
+    return (x, y, x + w, y + h)
+
+
+def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
+    """blocks of the given heights stacked down one column span from y0 (default the drawing area's top), each on the
+    baseline: [rect]; raises when the stack runs past the drawing area (no block may leave the page)"""
+    y = GRID_AREA[1] if y0 is None else grid_snap_y(y0, up=False)
+    out = []
+    for h in heights:
+        r = grid_cell(c0, n, y, h)
+        out.append(r)
+        y = r[3] + gap
+    if out and out[-1][3] > GRID_AREA[3] + 1e-6:
+        raise ValueError("grid stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
+    return out
+
+
+def grid_row(widths_cols, y, h, c0=1):
+    """blocks side by side on one baseline row: widths_cols = [n columns each] from column c0: [rect]"""
+    out, c = [], c0
+    for n in widths_cols:
+        out.append(grid_cell(c, n, y, h))
+        c += n
+    if c - 1 > GRID_COLS:
+        raise ValueError("grid row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
+    return out
+
+
+def grid_sub(width_mm, n=None):
+    """the sub-grid INSIDE a crop of width_mm (drawn to be shown at 1:1 on the page): [(x0, x1)] of its columns from
+    the crop's left edge; n defaults to the whole page columns the width holds"""
+    n = n or max(1, int(round((width_mm + GRID_GUT) / (GRID_COL + GRID_GUT))))
+    col = (width_mm - (n - 1) * GRID_GUT) / float(n)
+    return [(i * (col + GRID_GUT), i * (col + GRID_GUT) + col) for i in range(n)]
+
+
+def grid_flip(y, page_h=None):
+    """a top-down y (mm) as y-up (or back): page_h - y"""
+    return (page_h or GRID_PAGE[1]) - y
+
+
+def grid_rect_up(r, page_h=None):
+    """a top-down rect (x0, y0, x1, y1) as a y-up rect (x0, y0, x1, y1) with y0 < y1"""
+    H = page_h or GRID_PAGE[1]
+    return (r[0], H - r[3], r[2], H - r[1])
+
+
+def grid_page_counter(n, total):
+    """the page counter, computed: "07/23" (n of total pages)"""
+    return "%02d/%02d" % (int(n), int(total))
+
+
+# ------------------------------------------------------------------------------------------- intro with bold runs
+def grid_marked_runs(text):
+    """marked text -> runs [(s, bold)]: "*word*" or "**words**" are bold key words, the rest regular. An unpaired
+    star is printed as it is."""
+    import re as _re
+    out = []
+    pos = 0
+    for m in _re.finditer(r"\*\*(.+?)\*\*|\*(?!\s)([^*]+?)\*", text):
+        if m.start() > pos:
+            out.append((text[pos:m.start()], False))
+        out.append((m.group(1) if m.group(1) is not None else m.group(2), True))
+        pos = m.end()
+    if pos < len(text):
+        out.append((text[pos:], False))
+    return [(s, b) for s, b in out if s]
+
+
+def grid_plain(text):
+    """marked text without its marks (for measuring or logging)"""
+    return "".join(s for s, _ in grid_marked_runs(text))
+
+
+def grid_wrap_runs(runs, width_mm, size_pt, measure):
+    """runs wrapped to width_mm: lines of [(s, bold, x_offset_mm)]. measure(s, size_pt, bold) -> mm. Words keep their
+    own weight; a bold run is never split from its following punctuation."""
+    words = []                                    # [word, bold, space_before]
+    sp_next = False
+    for s, b in runs:
+        for ch in s:
+            if ch.isspace():
+                sp_next = True
+            elif words and not sp_next and words[-1][1] == b:
+                words[-1][0] += ch
+            else:
+                words.append([ch, b, bool(words) and sp_next])
+                sp_next = False
+    lines, cur, x = [], [], 0.0
+    for w, b, sp in words:
+        gap = measure(" ", size_pt, False) if (sp and cur) else 0.0
+        ww = measure(w, size_pt, b)
+        if cur and x + gap + ww > width_mm + 1e-6 and sp:
+            lines.append(cur)
+            cur, x, gap = [], 0.0, 0.0
+        if cur and not sp:                       # glued (e.g. "word," after a bold run): no space
+            gap = 0.0
+        cur.append((w, b, x + gap))
+        x += gap + ww
+    if cur:
+        lines.append(cur)
+    out = []                                      # merge neighbouring words of one weight into one run
+    for ln in lines:
+        m = []
+        for w, b, xo in ln:
+            if m and m[-1][1] == b:
+                m[-1] = (m[-1][0] + (" " if xo > m[-1][3] + 1e-6 else "") + w, b, m[-1][2], xo + measure(w, size_pt, b))
+            else:
+                m.append((w, b, xo, xo + measure(w, size_pt, b)))
+        out.append([(s, b, xo) for s, b, xo, _ in m])
+    return out
+
+
+def grid_intro(text, width_mm, measure, max_lines=3, style="intro", min_pt=8.0, log=None):
+    """the page intro (G4: 2-3 lines, key words bold): marked text -> (lines, size_pt, lead_mm, hex). lines =
+    [[(s, bold, x_offset_mm)]]. The size steps down by 0.5 pt (not below min_pt) until it fits max_lines; text that
+    still does not fit keeps its lines and a WARNING goes to log (shorten it: the rule is 3 lines)."""
+    size, _, lead, col = grid_style(style)
+    runs = grid_marked_runs(text)
+    s = size
+    while True:
+        lines = grid_wrap_runs(runs, width_mm, s, measure)
+        if len(lines) <= max_lines or s - 0.5 < min_pt - 1e-6:
+            break
+        s -= 0.5
+    if len(lines) > max_lines and log is not None:
+        log.append(u"WARNING: intro longer than %d lines at %.1f pt (%d lines): %s" % (
+            max_lines, s, len(lines), grid_plain(text)[:60]))
+    return lines, s, lead * s / size, col
+
+
+def grid_text_runs(lines, x, y, lead, y_down=True):
+    """intro lines placed: [(s, x_mm, baseline_y_mm, bold)] from the first baseline (x, y); y_down=False for y-up
+    pages (lines go to smaller y)"""
+    out = []
+    for i, ln in enumerate(lines):
+        yy = y + i * lead if y_down else y - i * lead
+        for s, b, xo in ln:
+            out.append((s, x + xo, yy, b))
+    return out
+# ---- M11 (revision 30 Oct 2026, H-A): the building renderer, plan / axonometric / section ---------------------------
+# G7 "buildings look like buildings": plan = the footprint outline + a roof reading (ridge and hips, or fall-line
+# hatch), never loose stripes; axonometric = light volumes with roofs (idea R09); section = profiles with their real
+# heights in m, roofs and openings. Also the merge that fixes the fake parcel division lines AT THE SOURCE (bld_merge,
+# called by the site board's build_site and by basemap_export): pieces of one footprint that share an edge become ONE
+# outline, so no survey tick, party-wall split or Voronoi cut is ever drawn as a line.
+# Geometry: survey m in, items out in the basemap item format (common/basemap.py head):
+#   ("fill", rings, hex, alpha, nonzero)   ("line", pts, hex, width_mm, dash_mm, alpha)
+#   ("text", s, (x, y), size_mm, hex, bold, align)
+# plan items are in survey m (draw them with basemap_draw and the map's T); axo items are already projected (the
+# caller's proj); section items are in (s, z) m along the cut (the caller's section transform).
+# A unit (building) is either a site board unit (parts, holes, h, floors) or a basemap building (rings, np, h, floors).
+# Roof form: the survey records no roof shapes, so the plan and axo read every pitched building as a hipped tile roof
+# at BLD_PITCH (the common Bergama roof; a drawing convention, never printed as data); a unit flagged roof="flat" (or
+# with h >= BLD_FLAT_H) is drawn flat with a parapet.
+BLD_PITCH = 30.0                    # degrees, hipped tile roofs (drawing convention)
+BLD_FLAT_H = 1e9                    # m: units at or above this height drawn flat (off: no survey of roof forms)
+BLD_STOREY = 3.0                    # m per storey where a unit gives no floor count
+BLD_COL = dict(fill="ECE9E3", edge="7D756C", roof="A39A90", her_fill="EEDCDB", her_edge="AF7474",
+               wall_lit="F7F5F1", wall_shade="DCD8D1", roof_lit="EAE5DE", roof_shade="CFC8BE", axo_line="7D756C",
+               sec_fill="EEEBE6", sec_cut="2C2219", sec_line="7D756C", opening="FFFFFF", glass="9FB3BA",
+               text="4A3F35")
+BLD_LW = dict(block=0.18, roof=0.07, hatch=0.05, axo=0.08, sec_cut=0.30, sec_line=0.10, glass=0.08)
+BLD_MIN_ROOF_MM = 1.6               # a roof mark only where the building is at least this wide on the page
+
+
+# ------------------------------------------------------------------------------------------- small geometry
+def _bld_area(P):
+    n = len(P)
+    return 0.5 * sum(P[i][0] * P[(i + 1) % n][1] - P[(i + 1) % n][0] * P[i][1] for i in range(n))
+
+
+def _bld_pip(x, y, P):
+    c, n = False, len(P)
+    j = n - 1
+    for i in range(n):
+        xi, yi, xj, yj = P[i][0], P[i][1], P[j][0], P[j][1]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-12) + xi:
+            c = not c
+        j = i
+    return c
+
+
+def _bld_bb(P):
+    xs, ys = [p[0] for p in P], [p[1] for p in P]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _bld_inner(P):
+    """a point strictly inside polygon P (its centroid when inside, else the middle of the first span of a scan
+    line through it)"""
+    A = _bld_area(P)
+    n = len(P)
+    if abs(A) > 1e-9:
+        cx = sum((P[i][0] + P[(i + 1) % n][0]) * (P[i][0] * P[(i + 1) % n][1] - P[(i + 1) % n][0] * P[i][1])
+                 for i in range(n)) / (6.0 * A)
+        cy = sum((P[i][1] + P[(i + 1) % n][1]) * (P[i][0] * P[(i + 1) % n][1] - P[(i + 1) % n][0] * P[i][1])
+                 for i in range(n)) / (6.0 * A)
+        if _bld_pip(cx, cy, P):
+            return cx, cy
+    else:
+        cy = sum(p[1] for p in P) / float(n)
+    b = _bld_bb(P)
+    for f in (0.5, 0.37, 0.63, 0.25, 0.75, 0.1, 0.9):
+        y = b[1] + (b[3] - b[1]) * f
+        xs = []
+        for i in range(n):
+            a, c = P[i], P[(i + 1) % n]
+            if (a[1] > y) != (c[1] > y):
+                xs.append(a[0] + (y - a[1]) * (c[0] - a[0]) / (c[1] - a[1]))
+        xs.sort()
+        if len(xs) >= 2 and xs[1] - xs[0] > 1e-6:
+            return (xs[0] + xs[1]) / 2.0, y
+    return P[0][0], P[0][1]
+
+
+def _bld_unit(u):
+    """(outlines, holes) of a site board unit or a basemap building"""
+    if "parts" in u:
+        return list(u["parts"]), list(u.get("holes") or [])
+    R = u.get("rings") or []
+    k = u.get("np", len(R))
+    return list(R[:k]), list(R[k:])
+
+
+def _bld_her(u):
+    """a heritage building (basemap flag her, or a site board unit of fabric monument / sacred)"""
+    return bool(u.get("her")) or u.get("fabric") in ("monument", "sacred")
+
+
+def _bld_h(u):
+    h = u.get("h")
+    if h:
+        return float(h)
+    f = u.get("floors") or 1
+    return BLD_STOREY * f
+
+
+# ------------------------------------------------------------------------------------------- merge (G7 at the source)
+def bld_merge(rings, holes=(), tol=0.03):
+    """the outlines of pieces merged where they share an edge (also along part of an edge: T-junctions are split
+    first), by cancelling every edge two pieces share: [(outline ccw, [holes cw])]. tol (m): points this close are
+    one point. Pieces that only overlap (no shared edge) stay as they are."""
+    import math as _m
+    pts, grid = [], {}
+
+    def vid(p):
+        kx, ky = int(_m.floor(p[0] / tol)), int(_m.floor(p[1] / tol))
+        for i in (kx - 1, kx, kx + 1):
+            for j in (ky - 1, ky, ky + 1):
+                for k in grid.get((i, j), ()):
+                    q = pts[k]
+                    if abs(q[0] - p[0]) <= tol and abs(q[1] - p[1]) <= tol:
+                        return k
+        pts.append((float(p[0]), float(p[1])))
+        grid.setdefault((kx, ky), []).append(len(pts) - 1)
+        return len(pts) - 1
+    loops = []
+    for R in rings:
+        if len(R) >= 3:
+            loops.append(list(R) if _bld_area(R) > 0 else list(R)[::-1])
+    for H in holes:
+        if len(H) >= 3:
+            loops.append(list(H) if _bld_area(H) < 0 else list(H)[::-1])
+    edges = []
+    for R in loops:
+        ids = [vid(p) for p in R]
+        ids = [k for i, k in enumerate(ids) if k != ids[i - 1]] if len(ids) > 1 else ids
+        for i in range(len(ids)):
+            a, b = ids[i], ids[(i + 1) % len(ids)]
+            if a != b:
+                edges.append((a, b))
+    C = 5.0                                              # T-junctions: points lying on another piece's edge
+    vg = {}
+    for k, p in enumerate(pts):
+        vg.setdefault((int(_m.floor(p[0] / C)), int(_m.floor(p[1] / C))), []).append(k)
+    cnt = {}
+    for a, b in edges:
+        pa, pb = pts[a], pts[b]
+        dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+        L2 = dx * dx + dy * dy
+        cand = []
+        if L2 > (2.0 * tol) ** 2:
+            Ln = _m.sqrt(L2)
+            for i in range(int(_m.floor((min(pa[0], pb[0]) - tol) / C)), int(_m.floor((max(pa[0], pb[0]) + tol) / C)) + 1):
+                for j in range(int(_m.floor((min(pa[1], pb[1]) - tol) / C)),
+                               int(_m.floor((max(pa[1], pb[1]) + tol) / C)) + 1):
+                    for k in vg.get((i, j), ()):
+                        if k == a or k == b:
+                            continue
+                        p = pts[k]
+                        t = ((p[0] - pa[0]) * dx + (p[1] - pa[1]) * dy) / L2
+                        if t <= 1e-6 or t >= 1.0 - 1e-6:
+                            continue
+                        if abs((p[0] - pa[0]) * dy - (p[1] - pa[1]) * dx) / Ln <= tol:
+                            cand.append((t, k))
+        seq = [a] + [k for _, k in sorted(cand)] + [b]
+        for s0, s1 in zip(seq, seq[1:]):
+            if s0 != s1:
+                cnt[(s0, s1)] = cnt.get((s0, s1), 0) + 1
+    out = {}
+    keep = [e for e, c in cnt.items() if c > cnt.get((e[1], e[0]), 0)]
+    for a, b in keep:
+        out.setdefault(a, []).append(b)
+    used, res_loops = set(), []
+    for a0, b0 in keep:
+        if (a0, b0) in used:
+            continue
+        used.add((a0, b0))
+        ring, prev, cur, ok = [a0], a0, b0, False
+        for _ in range(len(keep) + 1):
+            if cur == a0:
+                ok = True
+                break
+            ring.append(cur)
+            nxt = [n for n in out.get(cur, ()) if (cur, n) not in used]
+            if not nxt:
+                break
+            if len(nxt) > 1:                             # a pinch point: the sharpest right turn keeps rings simple
+                ix, iy = pts[cur][0] - pts[prev][0], pts[cur][1] - pts[prev][1]
+                nxt.sort(key=lambda n: _m.atan2(ix * (pts[n][1] - pts[cur][1]) - iy * (pts[n][0] - pts[cur][0]),
+                                                ix * (pts[n][0] - pts[cur][0]) + iy * (pts[n][1] - pts[cur][1])))
+            used.add((cur, nxt[0]))
+            prev, cur = cur, nxt[0]
+        if ok and len(ring) >= 3:
+            res_loops.append([pts[k] for k in ring])
+    clean = []
+    for R in res_loops:                                  # straight-through points go
+        changed = True
+        while changed and len(R) > 3:
+            changed = False
+            for i in range(len(R)):
+                p, q, r = R[i - 1], R[i], R[(i + 1) % len(R)]
+                dx, dy = r[0] - p[0], r[1] - p[1]
+                L = _m.hypot(dx, dy)
+                if L < 1e-9:
+                    continue
+                if abs((q[0] - p[0]) * dy - (q[1] - p[1]) * dx) / L <= tol * 0.5 and \
+                        (q[0] - p[0]) * dx + (q[1] - p[1]) * dy > 0 and (r[0] - q[0]) * dx + (r[1] - q[1]) * dy > 0:
+                    del R[i]
+                    changed = True
+                    break
+        A = _bld_area(R)
+        if abs(A) >= 0.05:
+            clean.append((A, R))
+    outs = [[A, R, []] for A, R in clean if A > 0]
+    outs.sort(key=lambda o: o[0])
+    for A, R in clean:
+        if A < 0:
+            x, y = _bld_inner(R[::-1])
+            for o in outs:                               # the smallest outline holding it
+                if _bld_pip(x, y, o[1]):
+                    o[2].append(R)
+                    break
+    return [(R, H) for _, R, H in outs]
+
+
+def bld_merge_unit(parts, holes=(), tol=0.03):
+    """(parts, holes) of ONE building with its pieces merged into one outline per connected piece (the survey's
+    party-wall ticks, extended across the face, are not building edges). The input comes back unchanged when the
+    merge would change the area by more than 1 % (a piece overlapping another)."""
+    A0 = sum(abs(_bld_area(P)) for P in parts) - sum(abs(_bld_area(H)) for H in holes)
+    if len(parts) < 2 and not holes:
+        return list(parts), list(holes)
+    try:
+        res = bld_merge(parts, holes, tol)
+    except Exception:
+        return list(parts), list(holes)
+    A1 = sum(_bld_area(o) + sum(_bld_area(h) for h in hs) for o, hs in res)
+    if not res or abs(A1 - A0) > 0.01 * max(A0, 1.0):
+        return list(parts), list(holes)
+    return [o for o, _ in res], [h for _, hs in res for h in hs]
+
+
+def bld_blocks(units, tol=0.03):
+    """the blocks: buildings that share a wall merged into ONE outline (the plan's outline layer; no party walls
+    drawn as lines): [dict(outer, holes, units=[index], h=max height m)]. A block whose merged area exceeds its
+    buildings' (a failed merge) falls back to its buildings' own outlines."""
+    rings, holes = [], []
+    for u in units:
+        P_, H_ = _bld_unit(u)
+        rings += P_
+        holes += H_
+    res = bld_merge(rings, holes, tol) if rings else []
+    cells = {}
+    C = 40.0
+    for bi, (o, hs) in enumerate(res):
+        b = _bld_bb(o)
+        for i in range(int(b[0] // C), int(b[2] // C) + 1):
+            for j in range(int(b[1] // C), int(b[3] // C) + 1):
+                cells.setdefault((i, j), []).append(bi)
+    members = {}
+    lone = []
+    for i, u in enumerate(units):
+        P_, _ = _bld_unit(u)
+        if not P_:
+            continue
+        P0 = max(P_, key=lambda P: abs(_bld_area(P)))
+        x, y = _bld_inner(P0 if _bld_area(P0) > 0 else P0[::-1])
+        hit = None
+        for bi in sorted(cells.get((int(x // C), int(y // C)), ()), key=lambda k: _bld_area(res[k][0])):
+            if _bld_pip(x, y, res[bi][0]):
+                hit = bi
+                break
+        if hit is None:
+            lone.append(i)
+        else:
+            members.setdefault(hit, []).append(i)
+    out = []
+    for bi, idx in members.items():
+        o, hs = res[bi]
+        A = _bld_area(o) + sum(_bld_area(h) for h in hs)
+        A_u = sum(sum(abs(_bld_area(P)) for P in _bld_unit(units[i])[0]) -
+                  sum(abs(_bld_area(H)) for H in _bld_unit(units[i])[1]) for i in idx)
+        if A > 1.02 * A_u + 1.0:
+            lone += idx
+            continue
+        out.append(dict(outer=o, holes=hs, units=sorted(idx), h=max(_bld_h(units[i]) for i in idx)))
+    for i in lone:
+        P_, H_ = _bld_unit(units[i])
+        for P in P_:
+            out.append(dict(outer=P if _bld_area(P) > 0 else P[::-1], holes=[], units=[i], h=_bld_h(units[i])))
+        for k, H in enumerate(H_):
+            out[-1]["holes"].append(H)
+    return out
+
+
+# ------------------------------------------------------------------------------------------- roof geometry
+def bld_rect(P):
+    """the minimum-area rectangle round P: (cx, cy, ux, uy, L, W), u along the long side (L >= W)"""
+    import math as _m
+    pts = sorted(set((round(p[0], 4), round(p[1], 4)) for p in P))
+    if len(pts) < 3:
+        return None
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lo, hi = [], []
+    for p in pts:
+        while len(lo) >= 2 and cross(lo[-2], lo[-1], p) <= 0:
+            lo.pop()
+        lo.append(p)
+    for p in reversed(pts):
+        while len(hi) >= 2 and cross(hi[-2], hi[-1], p) <= 0:
+            hi.pop()
+        hi.append(p)
+    hull = lo[:-1] + hi[:-1]
+    best = None
+    for i in range(len(hull)):
+        a, b = hull[i], hull[(i + 1) % len(hull)]
+        L = _m.hypot(b[0] - a[0], b[1] - a[1])
+        if L < 1e-9:
+            continue
+        ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        su = [p[0] * ux + p[1] * uy for p in hull]
+        sv = [-p[0] * uy + p[1] * ux for p in hull]
+        area = (max(su) - min(su)) * (max(sv) - min(sv))
+        if best is None or area < best[0]:
+            best = (area, ux, uy, min(su), max(su), min(sv), max(sv))
+    if best is None:
+        return None
+    _, ux, uy, u0, u1, v0, v1 = best
+    cu, cv = (u0 + u1) / 2.0, (v0 + v1) / 2.0
+    cx, cy = cu * ux - cv * uy, cu * uy + cv * ux
+    Lu, Lv = u1 - u0, v1 - v0
+    if Lv > Lu:
+        ux, uy, Lu, Lv = -uy, ux, Lv, Lu
+    return cx, cy, ux, uy, Lu, Lv
+
+
+def _bld_clip_seg(a, b, P):
+    """the pieces of segment a-b inside polygon P"""
+    ts = [0.0, 1.0]
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    n = len(P)
+    for i in range(n):
+        p, q = P[i], P[(i + 1) % n]
+        ex, ey = q[0] - p[0], q[1] - p[1]
+        den = dx * ey - dy * ex
+        if abs(den) < 1e-12:
+            continue
+        t = ((p[0] - a[0]) * ey - (p[1] - a[1]) * ex) / den
+        s = ((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / den
+        if 0.0 < t < 1.0 and -1e-9 <= s <= 1.0 + 1e-9:
+            ts.append(t)
+    ts.sort()
+    out = []
+    for t0, t1 in zip(ts, ts[1:]):
+        if t1 - t0 < 1e-6:
+            continue
+        tm = (t0 + t1) / 2.0
+        if _bld_pip(a[0] + dx * tm, a[1] + dy * tm, P):
+            out.append([(a[0] + dx * t0, a[1] + dy * t0), (a[0] + dx * t1, a[1] + dy * t1)])
+    return out
+
+
+def bld_roof_lines(P, mode="ridge", spacing=None):
+    """the roof reading of one footprint P (survey m): segments [(a, b)] clipped to P. mode "ridge" = ridge + four
+    hips of a hipped roof on the footprint's minimum rectangle; "hatch" = the same plus fall lines across the long
+    planes every `spacing` m; "flat" = a parapet line inset 0.4 m; "none" = []"""
+    if mode == "none":
+        return []
+    r = bld_rect(P)
+    if r is None:
+        return []
+    cx, cy, ux, uy, L, W = r
+    vx, vy = -uy, ux
+    out = []
+    if mode == "flat":
+        k = 0.4
+        if W > 2.5 * k:
+            Q = [(cx + ux * su * (L / 2 - k) + vx * sv * (W / 2 - k), cy + uy * su * (L / 2 - k) + vy * sv * (W / 2 - k))
+                 for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+            for a, b in zip(Q, Q[1:] + Q[:1]):
+                out += _bld_clip_seg(a, b, P)
+        return out
+    h = (L - W) / 2.0
+    e1, e2 = (cx - ux * h, cy - uy * h), (cx + ux * h, cy + uy * h)
+    segs = [(e1, e2)] if h > 0.05 else []
+    for e, su in ((e1, -1), (e2, 1)):
+        for sv in (-1, 1):
+            segs.append((e, (cx + ux * su * L / 2 + vx * sv * W / 2, cy + uy * su * L / 2 + vy * sv * W / 2)))
+    if mode == "hatch" and spacing and h > spacing:
+        k = -h + spacing / 2.0
+        while k < h:
+            for sv in (-1, 1):
+                a = (cx + ux * k, cy + uy * k)
+                segs.append((a, (a[0] + vx * sv * W / 2, a[1] + vy * sv * W / 2)))
+            k += spacing
+    for a, b in segs:
+        out += _bld_clip_seg(a, b, P)
+    return out
+
+
+def _bld_roof_mode(u, mode):
+    if u.get("roof") == "flat" or _bld_h(u) >= BLD_FLAT_H:
+        return "flat"
+    return mode
+
+
+# ------------------------------------------------------------------------------------------- plan
+def bld_plan_items(units, blocks=None, scale_den=1000.0, roof="ridge", box=None, fill=None, edge=None,
+                   roof_col=None, her_fill=None, her_edge=None, alpha=1.0, outline=True, hatch_mm=1.2):
+    """G7 plan: buildings as items (survey m): a light fill per building, the roof reading (ridge + hips; roof="hatch"
+    adds fall lines every hatch_mm on the page; "none" leaves it out) where the building is at least BLD_MIN_ROOF_MM
+    wide at 1:scale_den, and ONE outline per block (blocks: bld_blocks(units), made when not given): no line between
+    buildings that share a wall. Heritage units (her=True) in their own tone. box (x0, y0, x1, y1): only what touches
+    it."""
+    fill, edge = fill or BLD_COL["fill"], edge or BLD_COL["edge"]
+    roof_col = roof_col or BLD_COL["roof"]
+    her_fill, her_edge = her_fill or BLD_COL["her_fill"], her_edge or BLD_COL["her_edge"]
+    mpm = scale_den / 1000.0                             # survey m per page mm
+
+    def hit(P):
+        if box is None:
+            return True
+        b = _bld_bb(P)
+        return not (b[2] < box[0] or b[0] > box[2] or b[3] < box[1] or b[1] > box[3])
+    out, chunk, chunk_h, roofs = [], [], [], []
+    for u in units:
+        P_, H_ = _bld_unit(u)
+        P_ = [P for P in P_ if len(P) >= 3 and hit(P)]
+        if not P_:
+            continue
+        (chunk_h if _bld_her(u) else chunk).extend(P_ + H_)
+        if roof != "none":
+            mode = _bld_roof_mode(u, roof)
+            for P in P_:
+                r = bld_rect(P)
+                if r is None or r[5] / mpm < BLD_MIN_ROOF_MM:
+                    continue
+                roofs += bld_roof_lines(P, mode, hatch_mm * mpm)
+        if len(chunk) >= 300:
+            out.append(("fill", chunk, fill, alpha, True))
+            chunk = []
+    if chunk:
+        out.append(("fill", chunk, fill, alpha, True))
+    if chunk_h:
+        out.append(("fill", chunk_h, her_fill, alpha, True))
+    for a, b in roofs:
+        out.append(("line", [a, b], roof_col, BLD_LW["roof"], None, alpha))
+    if outline:
+        if blocks is None:
+            blocks = bld_blocks(units)
+        her_idx = set(i for i, u in enumerate(units) if _bld_her(u))
+        for bk in blocks:
+            o = bk["outer"] if "outer" in bk else bk["rings"][0]
+            hs = bk.get("holes") if "outer" in bk else bk["rings"][1:]
+            if len(o) < 3 or not hit(o):
+                continue
+            col = her_edge if bk.get("her") or (bk.get("units") and all(i in her_idx for i in bk["units"])) else edge
+            for R in [o] + list(hs or []):
+                out.append(("line", list(R) + [R[0]], col, BLD_LW["block"], None, alpha))
+    return out
+
+
+# ------------------------------------------------------------------------------------------- axonometric
+def _bld_mix(a, b, t):
+    pa = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    pb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(pa[i] + (pb[i] - pa[i]) * t)) for i in range(3))
+
+
+def bld_axo_items(units, proj, view=(-0.70711, -0.70711), ground=None, pitch=BLD_PITCH, box=None, sun=(-0.6, 0.8),
+                  cols=None, lw=None, roofs=True):
+    """G7 axonometric (idea R09): light volumes with roofs, as page items. proj(x, y, z) -> (X, Y) page mm (the
+    caller's axonometric); view = the horizontal direction from the scene TOWARDS the viewer (survey axes), used for
+    which walls show and the drawing order (far first); ground(x, y) -> terrain m (else u["z0"] or 0); sun = the
+    horizontal light direction (lit walls and roof planes lighter). Pitched units get a hipped roof on their
+    minimum rectangle when the footprint fills >= 80 % of it, else a flat top; flat units a flat top."""
+    import math as _m
+    C = dict(BLD_COL)
+    C.update(cols or {})
+    lw = lw if lw is not None else BLD_LW["axo"]
+    vx, vy = view
+    sn = _m.hypot(*sun) or 1.0
+    sx, sy = sun[0] / sn, sun[1] / sn
+    jobs = []
+    for u in units:
+        P_, H_ = _bld_unit(u)
+        for P in P_:
+            if len(P) < 3:
+                continue
+            if box is not None:
+                b = _bld_bb(P)
+                if b[2] < box[0] or b[0] > box[2] or b[3] < box[1] or b[1] > box[3]:
+                    continue
+            P = P if _bld_area(P) > 0 else P[::-1]
+            cx, cy = _bld_inner(P)
+            jobs.append((cx * vx + cy * vy, u, P, cx, cy))
+    jobs.sort(key=lambda j: j[0])                         # far first
+    out = []
+    for _, u, P, cx, cy in jobs:
+        z0 = ground(cx, cy) if ground else float(u.get("z0") or 0.0)
+        h = _bld_h(u)
+        zt = z0 + h
+        walls = []
+        n = len(P)
+        for i in range(n):
+            p, q = P[i], P[(i + 1) % n]
+            ex, ey = q[0] - p[0], q[1] - p[1]
+            L = _m.hypot(ex, ey)
+            if L < 1e-6:
+                continue
+            nx, ny = ey / L, -ex / L                     # outward (ccw outline)
+            if nx * vx + ny * vy <= 1e-6:
+                continue
+            lit = nx * sx + ny * sy
+            col = _bld_mix(C["wall_shade"], C["wall_lit"], max(0.0, min(1.0, 0.5 + 0.5 * lit)))
+            mx, my = (p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0
+            walls.append((mx * vx + my * vy, [proj(p[0], p[1], z0), proj(q[0], q[1], z0), proj(q[0], q[1], zt),
+                                              proj(p[0], p[1], zt)], col))
+        walls.sort(key=lambda w: w[0])
+        for _, ring, col in walls:
+            out.append(("fill", [ring], col, 1.0, True))
+            out.append(("line", ring + ring[:1], C["axo_line"], lw, None, 1.0))
+        r = bld_rect(P)
+        pitched = roofs and _bld_roof_mode(u, "ridge") != "flat" and r is not None and \
+            abs(_bld_area(P)) >= 0.8 * r[4] * r[5]
+        if pitched:
+            rcx, rcy, ux, uy, L, W = r
+            wx, wy = -uy, ux
+            rise = _m.tan(_m.radians(pitch)) * W / 2.0
+            hh = (L - W) / 2.0
+            c4 = [(rcx + ux * su * L / 2 + wx * sv * W / 2, rcy + uy * su * L / 2 + wy * sv * W / 2)
+                  for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+            r1, r2 = (rcx - ux * hh, rcy - uy * hh), (rcx + ux * hh, rcy + uy * hh)
+            planes = [([c4[0], c4[1], r2, r1], (-wx, -wy)), ([c4[2], c4[3], r1, r2], (wx, wy)),
+                      ([c4[3], c4[0], r1], (-ux, -uy)), ([c4[1], c4[2], r2], (ux, uy))]
+            rp = []
+            for pl, (nx, ny) in planes:
+                pts3 = [(x, y, zt if (x, y) in c4 else zt + rise) for x, y in pl]
+                mx = sum(p[0] for p in pl) / len(pl)
+                my = sum(p[1] for p in pl) / len(pl)
+                lit = nx * sx + ny * sy
+                col = _bld_mix(C["roof_shade"], C["roof_lit"], max(0.0, min(1.0, 0.5 + 0.5 * lit)))
+                rp.append((mx * vx + my * vy, [proj(*p3) for p3 in pts3], col))
+            rp.sort(key=lambda w: w[0])
+            for _, ring, col in rp:
+                out.append(("fill", [ring], col, 1.0, True))
+                out.append(("line", ring + ring[:1], C["axo_line"], lw, None, 1.0))
+        else:
+            top = [proj(p[0], p[1], zt) for p in P]
+            hs = [[proj(p[0], p[1], zt) for p in H] for H in H_ if len(H) >= 3 and _bld_pip(H[0][0], H[0][1], P)]
+            out.append(("fill", [top] + hs, C["roof_lit"], 1.0, False))
+            out.append(("line", top + top[:1], C["axo_line"], lw, None, 1.0))
+    return out
+
+
+# ------------------------------------------------------------------------------------------- section
+def bld_section_profile(s0, s1, z0, h, floors=None, roof="gable", pitch=BLD_PITCH, depth_w=None, wall=0.3,
+                        openings=True, label=False, label_mm=2.2, cols=None, lw=None, label_gap_m=1.5):
+    """G7 section: ONE building cut between s0 and s1 (m along the section), ground z0 and eaves height h (m), as
+    items in (s, z) m: the profile (light fill), the cut walls and floor slabs in ink with a window opening per floor
+    in each cut wall (sill 0.90 m, head 2.10 m above the floor where the storey allows), the roof cut: "gable" (cut
+    across the ridge: apex in the middle), "hip" (cut along the ridge: slopes of depth_w / 2 at both ends), "flat"
+    (a 0.60 m parapet). label=True writes the real height "9.60 m" centred label_gap_m over the roof top (2
+    decimals; run it through M2 lp_place when buildings stand close)."""
+    import math as _m
+    C = dict(BLD_COL)
+    C.update(cols or {})
+    lw = lw or BLD_LW
+    if s1 < s0:
+        s0, s1 = s1, s0
+    w = s1 - s0
+    if w <= 2.0 * wall or h <= 0.5:
+        return []
+    zt = z0 + h
+    t = _m.tan(_m.radians(pitch))
+    if roof == "flat":
+        top = [(s1, zt), (s1, zt + 0.6), (s1 - wall, zt + 0.6), (s1 - wall, zt), (s0 + wall, zt), (s0 + wall, zt + 0.6),
+               (s0, zt + 0.6), (s0, zt)]
+        apex = zt + 0.6
+    elif roof == "hip":
+        run = min(w / 2.0, (depth_w or w) / 2.0)
+        rise = t * run
+        top = [(s1, zt), (s1 - run, zt + rise), (s0 + run, zt + rise), (s0, zt)]
+        apex = zt + rise
+    else:
+        rise = t * w / 2.0
+        top = [(s1, zt), ((s0 + s1) / 2.0, zt + rise), (s0, zt)]
+        apex = zt + rise
+    prof = [(s0, z0), (s1, z0)] + top
+    out = [("fill", [prof], C["sec_fill"], 1.0, True)]
+    nf = int(floors) if floors else max(1, int(round(h / BLD_STOREY)))
+    st = h / float(nf)
+    for k in range(1, nf + 1):                           # floor slabs (the top one under the roof)
+        z = z0 + k * st
+        out.append(("fill", [[(s0, z - 0.25), (s1, z - 0.25), (s1, z), (s0, z)]], C["sec_cut"], 1.0, True))
+    for sa in (s0, s1 - wall):                           # cut walls, each storey with its window opening
+        for k in range(nf):
+            zf = z0 + k * st
+            if openings and st >= 2.4:
+                for za, zb in ((zf, zf + 0.9), (zf + 2.1, zf + st)):
+                    if zb - za > 1e-3:
+                        out.append(("fill", [[(sa, za), (sa + wall, za), (sa + wall, zb), (sa, zb)]], C["sec_cut"], 1.0,
+                                    True))
+                out.append(("line", [(sa + wall / 2.0, zf + 0.9), (sa + wall / 2.0, zf + 2.1)], C["glass"],
+                            lw["glass"], None, 1.0))
+            else:
+                out.append(("fill", [[(sa, zf), (sa + wall, zf), (sa + wall, zf + st), (sa, zf + st)]], C["sec_cut"],
+                            1.0, True))
+    out.append(("line", list(top), C["sec_cut"], lw["sec_cut"], None, 1.0))
+    out.append(("line", [(s0, z0), (s0, zt)], C["sec_line"], lw["sec_line"], None, 1.0))
+    out.append(("line", [(s1, z0), (s1, zt)], C["sec_line"], lw["sec_line"], None, 1.0))
+    if label:
+        out.append(("text", u"{:.2f} m".format(h), ((s0 + s1) / 2.0, apex + label_gap_m), label_mm, C["text"], False,
+                    "MC"))
+    return out
+
+
+def bld_section_items(a, b, units, ground=None, pitch=BLD_PITCH, label=False, openings=True, cols=None):
+    """G7 section along the cut a -> b (survey m): every building the cut passes through, as bld_section_profile
+    items in (s, z) m (s from a). ground(x, y) -> terrain m (else u["z0"] or 0). The roof is cut "gable" where the
+    cut crosses the ridge (within 45 degrees of square to it), else "hip"; flat units flat. Heights are the units'
+    own (u["h"], m)."""
+    import math as _m
+    L = _m.hypot(b[0] - a[0], b[1] - a[1])
+    if L < 1e-6:
+        return []
+    dx, dy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    out = []
+    for u in units:
+        P_, _ = _bld_unit(u)
+        for P in P_:
+            bb = _bld_bb(P)
+            if max(min(a[0], b[0]), bb[0]) > min(max(a[0], b[0]), bb[2]) + 1e-6 or \
+                    max(min(a[1], b[1]), bb[1]) > min(max(a[1], b[1]), bb[3]) + 1e-6:
+                continue
+            ts = []
+            n = len(P)
+            for i in range(n):
+                p, q = P[i], P[(i + 1) % n]
+                ex, ey = q[0] - p[0], q[1] - p[1]
+                den = dx * ey - dy * ex
+                if abs(den) < 1e-12:
+                    continue
+                t = ((p[0] - a[0]) * ey - (p[1] - a[1]) * ex) / den
+                s = ((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / den
+                if -1e-9 <= s < 1.0 - 1e-9:
+                    ts.append(t)
+            ts.sort()
+            r = bld_rect(P)
+            across = r is None or abs(dx * r[2] + dy * r[3]) < 0.7071
+            mode = _bld_roof_mode(u, "ridge")
+            for t0, t1 in zip(ts[0::2], ts[1::2]):
+                t0, t1 = max(0.0, t0), min(L, t1)
+                if t1 - t0 < 1.0:
+                    continue
+                mx, my = a[0] + dx * (t0 + t1) / 2.0, a[1] + dy * (t0 + t1) / 2.0
+                z0 = ground(mx, my) if ground else float(u.get("z0") or 0.0)
+                out += bld_section_profile(t0, t1, z0, _bld_h(u), u.get("floors"),
+                                           "flat" if mode == "flat" else ("gable" if across else "hip"), pitch,
+                                           r[5] if r else None, openings=openings, label=label, cols=cols)
+    return out
+# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1; M9 30 Oct: every icon has its legend name,
+# ICO_LEGEND / ico_legend_entry): every symbol drawn on one 24-unit square grid,
 # scaled to `size` page mm, with one stroke weight, one corner radius and one colour rule, so water, planting, plant,
 # people and warning marks read as one family (quality bar: refs/R19, the crossed glass on page 18).
 #   grid      24 x 24 units, origin at the icon centre, y up; drawing inside +-10 (2 units clear on every side)
@@ -1401,9 +2812,45 @@ ICO_COL = {
     "key_line": ("accent", None),
     "key_dash": ("accent", None),
     "key_point": ("accent", None),
+    # M9 (30 Oct): the plant-group functions of p.17 (G9) and the p.15 flood zone mark
+    "flood_zone": ("water", "water_deep"),
+    "wind": ("structure", None),
+    "noise": ("structure", None),
+    "corridor": ("green_mid", "green_light"),
 }
 
 ICO_NAMES = tuple(ICO_COL.keys())
+
+# M9 (30 Oct): every icon's legend name (G1: no icon without its meaning). A page's legend row for an icon is
+# ico_legend_entry(name) (or the Legend of label_place.py: lg.add(ico_legend_name(n), kind="icon", icon=n)).
+ICO_LEGEND = {
+    "water": u"Water", "stream": u"Selinos stream", "stream_out": u"Clean stream water to the fields",
+    "flow": u"Flow direction", "depth": u"Water depth", "high_water": u"High water (flood level)",
+    "rain": u"Rain", "drought": u"Dry season", "sun": u"Sun", "shade": u"Gives shade",
+    "reeds": u"Reed basin (cleans water)", "plants": u"Planting", "tree": u"Tree", "olive": u"Olive grove",
+    "field": u"Farmland", "drip": u"Drip irrigation", "sewage": u"Sewage outfall", "nutrients": u"Nutrients in the water",
+    "treatment": u"Treatment works", "storage": u"Storage", "uv": u"UV disinfection", "glass": u"Drinking water",
+    "not_drinkable": u"Not drinking water", "chart": u"Figures", "people": u"People", "walk": u"Walking",
+    "bike": u"Cycling", "hub": u"Hub (meeting point)", "market": u"Market", "heritage": u"Heritage site",
+    "cafe": u"Café", "seating": u"Seating", "viewpoint": u"Viewpoint", "warning": u"Warning",
+    "key_area": u"Area", "key_line": u"Route", "key_dash": u"Path", "key_point": u"Place",
+    "flood_zone": u"Flood zone", "wind": u"Cuts wind", "noise": u"Cuts street noise",
+    "corridor": u"Ecological corridor",
+}
+
+
+def ico_legend_name(name):
+    """M9: the legend name of icon `name` (every icon has one)"""
+    if name not in ICO_LEGEND:
+        raise ValueError("icons: %r has no legend name (ICO_LEGEND)" % (name,))
+    return ICO_LEGEND[name]
+
+
+def ico_legend_entry(name, label=None, **colours):
+    """M9: the legend row of an icon: dict(label, kind="icon", icon=name, ...) for a page legend (label overrides the
+    standard name only where the page means something narrower, e.g. "Kermes market")"""
+    _ico_grid(name)                                                  # unknown names stop here
+    return dict(colours, label=label or ico_legend_name(name), kind="icon", icon=name)
 
 
 def ico_lw(size):
@@ -1666,6 +3113,22 @@ def _ico_grid(name):
         return [(L, [(x, 0.0), (x + 4.0, 0.0)], "c1") for x in (-10.0, -2.0, 6.0)]
     if name == "key_point":
         return [(P, _ico_circ(0.0, 0.0, 4.5, 24), "c1", "ink")]
+    if name == "flood_zone":                                         # a ground band under a raised wave line
+        surf = _ico_wave(-10.0, 10.0, 2.0, 1.2, 2.0)
+        return [(P, surf + [(10.0, -8.0), (-10.0, -8.0)], "c1", None), (L, surf, "ink"),
+                (L, [(-10.0, -8.0), (10.0, -8.0)], "ink"),
+                (L, _ico_wave(-7.0, 7.0, -3.0, 0.9, 1.5, 16), "c2"),
+                (L, [(0.0, 5.5), (0.0, 9.5)], "ink"), (P, _ico_arrowhead(0.0, 10.5, 90.0, 3.0, 3.5), "ink", None)]
+    if name == "wind":                                               # three gusts stopped by a crown
+        sh = [(L, _ico_wave(-10.0, -1.0, y, 0.6, 1.0, 12), "ink") for y in (4.0, 0.0, -4.0)]
+        return sh + [(P, _ico_ell(5.5, 1.0, 4.5, 7.0), "c1", "ink"), (L, [(5.5, -6.0), (5.5, -9.0)], "ink")]
+    if name == "noise":                                              # sound arcs stopped by a crown
+        sh = [(L, _ico_arc(-10.0, 0.0, r, r, -45.0, 45.0, 8), "ink") for r in (3.0, 6.0, 9.0)]
+        return sh + [(P, _ico_ell(5.5, 1.0, 4.5, 7.0), "c1", "ink"), (L, [(5.5, -6.0), (5.5, -9.0)], "ink")]
+    if name == "corridor":                                           # a green band linking two patches
+        return [(P, _ico_circ(-6.5, 0.0, 3.5, 24), "c1", "ink"), (P, _ico_circ(6.5, 0.0, 3.5, 24), "c1", "ink"),
+                (P, _ico_rrect(-6.5, -1.75, 6.5, 1.75, 0.0), "c2", None),
+                (L, [(-3.4, 1.75), (3.4, 1.75)], "ink"), (L, [(-3.4, -1.75), (3.4, -1.75)], "ink")]
     raise ValueError("icons: unknown icon %r (see ICO_NAMES)" % (name,))
 
 
@@ -1726,6 +3189,156 @@ def ico_step(cx, cy, size, style="solid", colour=None, ink=None):
     if style == "ring":
         return [("poly", ring, ICO_PAL["paper"], c, lw)], (cx, cy), (ink or ICO_PAL["ink"]), 0.42 * size
     return [("poly", ring, c, None, lw)], (cx, cy), ICO_PAL["paper"], 0.42 * size
+bergama_data("FACTS")
+# ---- Shared facts reader (H-B 30 Oct 2026, M10). Include the data first:
+#   #@include ../common/data/FACTS.py
+#   #@include ../common/facts.py
+# fact(key) = the value (float, or a (lo, hi) tuple for a range), unrounded; fact_text(key) = the printed form with
+# the fact's fixed rounding and unit ("8,000 m³ per ha (1-in-5 dry year)"); None when a live file is missing (the
+# page then prints nothing for it, never a typed copy). Live values come from Downloads/Bergama outputs on every run.
+# The one page that prints a fact: fact_owner(key); a page that is not the owner should not print it (G4).
+FACT_LOG = []
+_FACT_CACHE = {}
+
+
+def _fact_home(*p):
+    import os as _o
+    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", *p)
+
+
+# results files other scripts write (new place first, then where older versions wrote them)
+FACT_FILES = dict(water_balance=[
+    ("cached", "Bergama_water_balance_analysis", "water_balance_results.json"),
+    ("output", "Bergama_water_balance_analysis", "water_balance_results.json")])
+
+
+def _fact_rows():
+    rows = globals().get("FACTS")
+    if rows is None:
+        raise RuntimeError("FACTS data missing: include ../common/data/FACTS.py before ../common/facts.py")
+    return rows
+
+
+def fact_file(name):
+    """the parsed results file of another script (dict) or None; read once per run"""
+    import os as _o
+    import json as _j
+    if name in _FACT_CACHE:
+        return _FACT_CACHE[name]
+    data = None
+    paths = [_fact_home(*p) for p in FACT_FILES.get(name, [])]
+    if name == "water_balance":                    # the oldest place, before Downloads/Bergama (water board WB_FILES)
+        paths.append(_o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis",
+                                  "water_balance_results.json"))
+    for p in paths:
+        try:
+            with open(p, "r", encoding="utf-8") as fh:
+                data = _j.load(fh)
+            FACT_LOG.append(u"Facts: %s read from %s" % (name, p))
+            break
+        except Exception:
+            pass
+    if data is None:
+        FACT_LOG.append(u"Facts: %s results not found (run that script first); its facts are left out" % name)
+    _FACT_CACHE[name] = data
+    return data
+
+
+def _fact_conv(row, v):
+    c = row.get("conv")
+    if v is None or c is None:
+        return v
+    if c == "drip_m3_ha":                          # net mm -> m³ per ha at the intake (1 mm on 1 ha = 10 m³)
+        return v / fact("drip_efficiency") * 10.0
+    if c == "ha_per_10000":
+        return 10000.0 / v
+    if c == "ratio":
+        return float(v[0]) / float(v[1])
+    if c == "da_sum_ha":                           # decares summed -> ha
+        return sum(v) / 10.0
+    raise ValueError("facts: unknown conv %r" % c)
+
+
+def fact(key):
+    """the value of a fact, unrounded (float, or (lo, hi)); None when a live source is missing"""
+    rows = _fact_rows()
+    if key not in rows:
+        raise KeyError("no fact %r; known: %s" % (key, ", ".join(sorted(rows))))
+    row = rows[key]
+    k = row["kind"]
+    if k == "static":
+        return _fact_conv(row, row["value"])
+    if k == "derived":
+        return _fact_conv(row, fact(row["of"]))
+    d = fact_file(row["file"])
+    try:
+        for p in row["path"]:
+            d = d[p]
+    except Exception:
+        if d is not None:
+            FACT_LOG.append(u"Facts: %s not in the %s results" % (key, row["file"]))
+        return None
+    if isinstance(d, (list, tuple)):
+        return tuple(float(x) for x in d)
+    return _fact_conv(row, float(d))
+
+
+def fact_live(key):
+    """True when the fact has a value now (static, or its live file was read)"""
+    return fact(key) is not None
+
+
+def fact_round(key, v):
+    """v rounded as the fact prints it (round step, or nd decimals)"""
+    row = _fact_rows()[key]
+    if row.get("round"):
+        st = float(row["round"])
+        return int(round(v / st) * st)
+    return round(v, row.get("nd", 0))
+
+
+def fact_num(key, v=None):
+    """the printed number only ("8,000", "1.25", "350,000-375,000"); None when missing"""
+    v = fact(key) if v is None else v
+    if v is None:
+        return None
+    row = _fact_rows()[key]
+    nd = 0 if row.get("round") else row.get("nd", 0)
+
+    def one(x):
+        return ("{:,.%df}" % nd).format(fact_round(key, x))
+    if isinstance(v, tuple):
+        a, b = one(v[0]), one(v[1])
+        return a if a == b else u"%s-%s" % (a, b)
+    return one(v)
+
+
+def fact_text(key, note=True):
+    """number + unit (+ note): "8,000 m³ per ha (1-in-5 dry year)", "4.4 × its potential"; None when missing"""
+    n = fact_num(key)
+    if n is None:
+        return None
+    row = _fact_rows()[key]
+    s = n + (u" " + row["unit"] if row.get("unit") else u"")
+    if note and row.get("note"):
+        s += u" " + row["note"]
+    return s
+
+
+def fact_ref(key):
+    """(internal reference, public citation or None) of a fact"""
+    row = _fact_rows()[key]
+    return row.get("ref"), row.get("public")
+
+
+def fact_owner(key):
+    """the booklet page that prints the fact ("18"), None for a value that is never printed"""
+    return _fact_rows()[key].get("printed_on")
+
+
+def fact_prints_on(key, page):
+    """True when page (a booklet page number) is the one that prints this fact (G4: once in the booklet)"""
+    return str(_fact_rows()[key].get("printed_on")) == str(page)
 
 # ------------------------------------------------------------------ minimal vector PDF (mm units, Helvetica, whole strings)
 _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278] + [556] * 10 + \

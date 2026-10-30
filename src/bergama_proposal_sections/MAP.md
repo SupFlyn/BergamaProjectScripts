@@ -23,9 +23,13 @@
 | hires | ../common/hires.py | - |
 | figures | ../common/figures.py | - |
 | basemap | ../common/basemap.py | - |
+| grid | ../common/grid.py | - |
+| buildings | ../common/buildings.py | - |
 | load_palette | ../common/load_palette.py | - |
 | booklet_assets | ../common/booklet_assets.py | - |
 | label_place | ../common/label_place.py | - |
+| water | ../common/water.py | - |
+| section_frame | ../common/section_frame.py | - |
 | ps_lv | parts/70_sections.py | 38 |
 | ps_put | parts/70_sections.py | 42 |
 | PsSec | parts/70_sections.py | 55 |
@@ -67,8 +71,8 @@
 | ps_key_strip | parts/80_key_map.py | 165 |
 | _ps_mix | parts/90_booklet.py | 23 |
 | booklet_export | parts/90_booklet.py | 29 |
-| build_sheet | code.py | 264 |
-| main | code.py | 288 |
-| chain_fire | code.py | 315 |
-| done_text | code.py | 336 |
-| write_log | code.py | 341 |
+| build_sheet | code.py | 268 |
+| main | code.py | 292 |
+| chain_fire | code.py | 319 |
+| done_text | code.py | 340 |
+| write_log | code.py | 345 |

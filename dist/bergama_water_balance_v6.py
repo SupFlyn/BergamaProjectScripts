@@ -234,7 +234,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'INPUT_DATA': '1c4b3056c69043ddf2d0e860039d5e8b', 'ZONE_COPY': 'f6b0e5bb3b4894b038cff898d3ce30fb'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'INPUT_DATA': '1c4b3056c69043ddf2d0e860039d5e8b', 'ZONE_COPY': 'f6b0e5bb3b4894b038cff898d3ce30fb', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011'}.get(name):
         raise RuntimeError("Data file bergama_water_balance_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_water_balance_data.py:" + name, "exec"), globals())
@@ -704,7 +704,8 @@ def u_volume(m3, nd=0):
     return u_num(m3, nd) + u" m³"
 
 
-# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1): every symbol drawn on one 24-unit square grid,
+# ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1; M9 30 Oct: every icon has its legend name,
+# ICO_LEGEND / ico_legend_entry): every symbol drawn on one 24-unit square grid,
 # scaled to `size` page mm, with one stroke weight, one corner radius and one colour rule, so water, planting, plant,
 # people and warning marks read as one family (quality bar: refs/R19, the crossed glass on page 18).
 #   grid      24 x 24 units, origin at the icon centre, y up; drawing inside +-10 (2 units clear on every side)
@@ -781,9 +782,45 @@ ICO_COL = {
     "key_line": ("accent", None),
     "key_dash": ("accent", None),
     "key_point": ("accent", None),
+    # M9 (30 Oct): the plant-group functions of p.17 (G9) and the p.15 flood zone mark
+    "flood_zone": ("water", "water_deep"),
+    "wind": ("structure", None),
+    "noise": ("structure", None),
+    "corridor": ("green_mid", "green_light"),
 }
 
 ICO_NAMES = tuple(ICO_COL.keys())
+
+# M9 (30 Oct): every icon's legend name (G1: no icon without its meaning). A page's legend row for an icon is
+# ico_legend_entry(name) (or the Legend of label_place.py: lg.add(ico_legend_name(n), kind="icon", icon=n)).
+ICO_LEGEND = {
+    "water": u"Water", "stream": u"Selinos stream", "stream_out": u"Clean stream water to the fields",
+    "flow": u"Flow direction", "depth": u"Water depth", "high_water": u"High water (flood level)",
+    "rain": u"Rain", "drought": u"Dry season", "sun": u"Sun", "shade": u"Gives shade",
+    "reeds": u"Reed basin (cleans water)", "plants": u"Planting", "tree": u"Tree", "olive": u"Olive grove",
+    "field": u"Farmland", "drip": u"Drip irrigation", "sewage": u"Sewage outfall", "nutrients": u"Nutrients in the water",
+    "treatment": u"Treatment works", "storage": u"Storage", "uv": u"UV disinfection", "glass": u"Drinking water",
+    "not_drinkable": u"Not drinking water", "chart": u"Figures", "people": u"People", "walk": u"Walking",
+    "bike": u"Cycling", "hub": u"Hub (meeting point)", "market": u"Market", "heritage": u"Heritage site",
+    "cafe": u"Café", "seating": u"Seating", "viewpoint": u"Viewpoint", "warning": u"Warning",
+    "key_area": u"Area", "key_line": u"Route", "key_dash": u"Path", "key_point": u"Place",
+    "flood_zone": u"Flood zone", "wind": u"Cuts wind", "noise": u"Cuts street noise",
+    "corridor": u"Ecological corridor",
+}
+
+
+def ico_legend_name(name):
+    """M9: the legend name of icon `name` (every icon has one)"""
+    if name not in ICO_LEGEND:
+        raise ValueError("icons: %r has no legend name (ICO_LEGEND)" % (name,))
+    return ICO_LEGEND[name]
+
+
+def ico_legend_entry(name, label=None, **colours):
+    """M9: the legend row of an icon: dict(label, kind="icon", icon=name, ...) for a page legend (label overrides the
+    standard name only where the page means something narrower, e.g. "Kermes market")"""
+    _ico_grid(name)                                                  # unknown names stop here
+    return dict(colours, label=label or ico_legend_name(name), kind="icon", icon=name)
 
 
 def ico_lw(size):
@@ -1046,6 +1083,22 @@ def _ico_grid(name):
         return [(L, [(x, 0.0), (x + 4.0, 0.0)], "c1") for x in (-10.0, -2.0, 6.0)]
     if name == "key_point":
         return [(P, _ico_circ(0.0, 0.0, 4.5, 24), "c1", "ink")]
+    if name == "flood_zone":                                         # a ground band under a raised wave line
+        surf = _ico_wave(-10.0, 10.0, 2.0, 1.2, 2.0)
+        return [(P, surf + [(10.0, -8.0), (-10.0, -8.0)], "c1", None), (L, surf, "ink"),
+                (L, [(-10.0, -8.0), (10.0, -8.0)], "ink"),
+                (L, _ico_wave(-7.0, 7.0, -3.0, 0.9, 1.5, 16), "c2"),
+                (L, [(0.0, 5.5), (0.0, 9.5)], "ink"), (P, _ico_arrowhead(0.0, 10.5, 90.0, 3.0, 3.5), "ink", None)]
+    if name == "wind":                                               # three gusts stopped by a crown
+        sh = [(L, _ico_wave(-10.0, -1.0, y, 0.6, 1.0, 12), "ink") for y in (4.0, 0.0, -4.0)]
+        return sh + [(P, _ico_ell(5.5, 1.0, 4.5, 7.0), "c1", "ink"), (L, [(5.5, -6.0), (5.5, -9.0)], "ink")]
+    if name == "noise":                                              # sound arcs stopped by a crown
+        sh = [(L, _ico_arc(-10.0, 0.0, r, r, -45.0, 45.0, 8), "ink") for r in (3.0, 6.0, 9.0)]
+        return sh + [(P, _ico_ell(5.5, 1.0, 4.5, 7.0), "c1", "ink"), (L, [(5.5, -6.0), (5.5, -9.0)], "ink")]
+    if name == "corridor":                                           # a green band linking two patches
+        return [(P, _ico_circ(-6.5, 0.0, 3.5, 24), "c1", "ink"), (P, _ico_circ(6.5, 0.0, 3.5, 24), "c1", "ink"),
+                (P, _ico_rrect(-6.5, -1.75, 6.5, 1.75, 0.0), "c2", None),
+                (L, [(-3.4, 1.75), (3.4, 1.75)], "ink"), (L, [(-3.4, -1.75), (3.4, -1.75)], "ink")]
     raise ValueError("icons: unknown icon %r (see ICO_NAMES)" % (name,))
 
 
@@ -1106,6 +1159,717 @@ def ico_step(cx, cy, size, style="solid", colour=None, ink=None):
     if style == "ring":
         return [("poly", ring, ICO_PAL["paper"], c, lw)], (cx, cy), (ink or ICO_PAL["ink"]), 0.42 * size
     return [("poly", ring, c, None, lw)], (cx, cy), ICO_PAL["paper"], 0.42 * size
+# ---- M1 (revision 30 Oct 2026, H-A): ONE booklet grid and ONE set of type styles for every page ----------------------
+# Page mm, A3 landscape 420 x 297, origin top-left, y DOWN (the booklet's own system). A script that draws y-up calls
+# grid_flip(y) / grid_rect_up(r) for its coordinates. Every block of a page (map, section, legend, intro, key map, box)
+# is placed by grid cells: a column span (c0, n) and baseline rows, never by hand-tuned mm.
+#   columns   12 x 29 mm, gutters 4 mm, margins 14 mm left/right: 14 + 12 x 29 + 11 x 4 + 14 = 420
+#   rows      baseline 4 mm from y = 12 (the top margin); title band 12..25, drawing area 30..273, footer from 276
+#   crops     a crop the booklet shows at 1:1 is drawn GRID_W(n) wide (n whole columns), so its own sub-blocks fall on
+#             the page grid when the booklet places it on a column line (grid_sub gives that sub-grid inside a crop)
+# Type: GRID_TYPE (pt, bold, lead mm, colour role). Intro helper: "*word*" (or "**word**") marks the bold key words.
+GRID_PAGE = (420.0, 297.0)
+GRID_ML, GRID_MR, GRID_MT, GRID_MB = 14.0, 14.0, 12.0, 12.0
+GRID_COLS, GRID_COL, GRID_GUT = 12, 29.0, 4.0
+GRID_BASE = 4.0                                   # baseline step, from y = GRID_MT
+GRID_TITLE_Y, GRID_RULE_Y = 22.0, 25.0            # title baseline, the rule under the title band
+GRID_AREA = (GRID_ML, 30.0, GRID_PAGE[0] - GRID_MR, 273.0)   # where drawings go (x0, y0, x1, y1)
+GRID_FOOT_RULE = 276.0
+GRID_MIN_PT = 6.0                                 # no text below this size on any page (PLAN p18-19 rule)
+
+# colour roles (palette v1.4 core): ink, second ink, accent, rule
+GRID_INK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F", rule="B0AC9C", paper="FFFFFF")
+# style -> (size pt, bold, lead mm, colour role)
+GRID_TYPE = dict(
+    page_title=(24.0, True, 10.0, "ink"),         # the page's title (booklet header)
+    kicker=(8.0, True, 3.6, "accent"),            # the theme line above the title
+    intro=(9.5, False, 4.0, "ink"),               # 2-3 lines, key words bold (G4)
+    heading=(10.0, True, 4.0, "ink"),             # a drawing's own heading ("Pedestrian flow")
+    subheading=(8.0, True, 3.6, "ink2"),
+    label=(7.0, False, 3.0, "ink"),               # labels on drawings
+    label_small=(6.0, False, 2.6, "ink"),         # the smallest a label may get (crowded maps)
+    legend=(7.0, False, 4.0, "ink"),              # legend entries (row pitch = lead)
+    legend_title=(7.0, True, 4.0, "ink"),
+    caption=(7.5, False, 3.2, "ink2"),            # under a drawing: what, scale
+    value=(18.0, True, 7.0, "accent"),            # a box's one headline value (G4)
+    note=(7.5, False, 3.2, "ink2"),               # the one line under a value
+    pageno=(14.0, True, 6.0, "accent"),
+)
+GRID_PT = 25.4 / 72.0                             # mm per pt
+
+
+def grid_style(name):
+    """(size_pt, bold, lead_mm, hex) of a type style (GRID_TYPE)"""
+    s, b, ld, role = GRID_TYPE[name]
+    return s, b, ld, GRID_INK[role]
+
+
+def grid_w(n):
+    """width (mm) of n whole columns with their inner gutters"""
+    n = max(1, int(n))
+    return n * GRID_COL + (n - 1) * GRID_GUT
+
+
+def grid_x(c):
+    """left edge (mm) of column c (1-based; c = GRID_COLS + 1 gives the right margin line)"""
+    return GRID_ML + (c - 1) * (GRID_COL + GRID_GUT)
+
+
+def grid_x1(c):
+    """right edge (mm) of column c"""
+    return grid_x(c) + GRID_COL
+
+
+def grid_span(c0, n):
+    """(x, w) of the span of n columns from column c0"""
+    if c0 < 1 or c0 + n - 1 > GRID_COLS:
+        raise ValueError("grid span %d+%d is off the %d-column grid" % (c0, n, GRID_COLS))
+    return grid_x(c0), grid_w(n)
+
+
+def grid_cols_for(w, lo=1):
+    """the fewest whole columns (>= lo) at least w mm wide (GRID_COLS when w is wider than the page)"""
+    for n in range(max(1, lo), GRID_COLS + 1):
+        if grid_w(n) >= w - 1e-6:
+            return n
+    return GRID_COLS
+
+
+def grid_snap_y(y, up=True):
+    """y (mm from the top) on the baseline grid: the next line at or below the point (up=True gives the line at or
+    above it)"""
+    import math as _m
+    k = (y - GRID_MT) / GRID_BASE
+    k = _m.floor(k + 1e-6) if up else _m.ceil(k - 1e-6)
+    return GRID_MT + k * GRID_BASE
+
+
+def grid_snap_h(h):
+    """a height rounded UP to whole baseline steps"""
+    import math as _m
+    return GRID_BASE * _m.ceil(h / GRID_BASE - 1e-6)
+
+
+def grid_rows(n):
+    """the height of n baseline rows"""
+    return n * GRID_BASE
+
+
+def grid_cell(c0, n, y, h, snap=True):
+    """the block rect (x0, y0, x1, y1) of n columns from c0, top y, height h; snap: top on the baseline (next line
+    down) and the height to whole steps"""
+    x, w = grid_span(c0, n)
+    if snap:
+        y, h = grid_snap_y(y, up=False), grid_snap_h(h)
+    return (x, y, x + w, y + h)
+
+
+def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
+    """blocks of the given heights stacked down one column span from y0 (default the drawing area's top), each on the
+    baseline: [rect]; raises when the stack runs past the drawing area (no block may leave the page)"""
+    y = GRID_AREA[1] if y0 is None else grid_snap_y(y0, up=False)
+    out = []
+    for h in heights:
+        r = grid_cell(c0, n, y, h)
+        out.append(r)
+        y = r[3] + gap
+    if out and out[-1][3] > GRID_AREA[3] + 1e-6:
+        raise ValueError("grid stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
+    return out
+
+
+def grid_row(widths_cols, y, h, c0=1):
+    """blocks side by side on one baseline row: widths_cols = [n columns each] from column c0: [rect]"""
+    out, c = [], c0
+    for n in widths_cols:
+        out.append(grid_cell(c, n, y, h))
+        c += n
+    if c - 1 > GRID_COLS:
+        raise ValueError("grid row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
+    return out
+
+
+def grid_sub(width_mm, n=None):
+    """the sub-grid INSIDE a crop of width_mm (drawn to be shown at 1:1 on the page): [(x0, x1)] of its columns from
+    the crop's left edge; n defaults to the whole page columns the width holds"""
+    n = n or max(1, int(round((width_mm + GRID_GUT) / (GRID_COL + GRID_GUT))))
+    col = (width_mm - (n - 1) * GRID_GUT) / float(n)
+    return [(i * (col + GRID_GUT), i * (col + GRID_GUT) + col) for i in range(n)]
+
+
+def grid_flip(y, page_h=None):
+    """a top-down y (mm) as y-up (or back): page_h - y"""
+    return (page_h or GRID_PAGE[1]) - y
+
+
+def grid_rect_up(r, page_h=None):
+    """a top-down rect (x0, y0, x1, y1) as a y-up rect (x0, y0, x1, y1) with y0 < y1"""
+    H = page_h or GRID_PAGE[1]
+    return (r[0], H - r[3], r[2], H - r[1])
+
+
+def grid_page_counter(n, total):
+    """the page counter, computed: "07/23" (n of total pages)"""
+    return "%02d/%02d" % (int(n), int(total))
+
+
+# ------------------------------------------------------------------------------------------- intro with bold runs
+def grid_marked_runs(text):
+    """marked text -> runs [(s, bold)]: "*word*" or "**words**" are bold key words, the rest regular. An unpaired
+    star is printed as it is."""
+    import re as _re
+    out = []
+    pos = 0
+    for m in _re.finditer(r"\*\*(.+?)\*\*|\*(?!\s)([^*]+?)\*", text):
+        if m.start() > pos:
+            out.append((text[pos:m.start()], False))
+        out.append((m.group(1) if m.group(1) is not None else m.group(2), True))
+        pos = m.end()
+    if pos < len(text):
+        out.append((text[pos:], False))
+    return [(s, b) for s, b in out if s]
+
+
+def grid_plain(text):
+    """marked text without its marks (for measuring or logging)"""
+    return "".join(s for s, _ in grid_marked_runs(text))
+
+
+def grid_wrap_runs(runs, width_mm, size_pt, measure):
+    """runs wrapped to width_mm: lines of [(s, bold, x_offset_mm)]. measure(s, size_pt, bold) -> mm. Words keep their
+    own weight; a bold run is never split from its following punctuation."""
+    words = []                                    # [word, bold, space_before]
+    sp_next = False
+    for s, b in runs:
+        for ch in s:
+            if ch.isspace():
+                sp_next = True
+            elif words and not sp_next and words[-1][1] == b:
+                words[-1][0] += ch
+            else:
+                words.append([ch, b, bool(words) and sp_next])
+                sp_next = False
+    lines, cur, x = [], [], 0.0
+    for w, b, sp in words:
+        gap = measure(" ", size_pt, False) if (sp and cur) else 0.0
+        ww = measure(w, size_pt, b)
+        if cur and x + gap + ww > width_mm + 1e-6 and sp:
+            lines.append(cur)
+            cur, x, gap = [], 0.0, 0.0
+        if cur and not sp:                       # glued (e.g. "word," after a bold run): no space
+            gap = 0.0
+        cur.append((w, b, x + gap))
+        x += gap + ww
+    if cur:
+        lines.append(cur)
+    out = []                                      # merge neighbouring words of one weight into one run
+    for ln in lines:
+        m = []
+        for w, b, xo in ln:
+            if m and m[-1][1] == b:
+                m[-1] = (m[-1][0] + (" " if xo > m[-1][3] + 1e-6 else "") + w, b, m[-1][2], xo + measure(w, size_pt, b))
+            else:
+                m.append((w, b, xo, xo + measure(w, size_pt, b)))
+        out.append([(s, b, xo) for s, b, xo, _ in m])
+    return out
+
+
+def grid_intro(text, width_mm, measure, max_lines=3, style="intro", min_pt=8.0, log=None):
+    """the page intro (G4: 2-3 lines, key words bold): marked text -> (lines, size_pt, lead_mm, hex). lines =
+    [[(s, bold, x_offset_mm)]]. The size steps down by 0.5 pt (not below min_pt) until it fits max_lines; text that
+    still does not fit keeps its lines and a WARNING goes to log (shorten it: the rule is 3 lines)."""
+    size, _, lead, col = grid_style(style)
+    runs = grid_marked_runs(text)
+    s = size
+    while True:
+        lines = grid_wrap_runs(runs, width_mm, s, measure)
+        if len(lines) <= max_lines or s - 0.5 < min_pt - 1e-6:
+            break
+        s -= 0.5
+    if len(lines) > max_lines and log is not None:
+        log.append(u"WARNING: intro longer than %d lines at %.1f pt (%d lines): %s" % (
+            max_lines, s, len(lines), grid_plain(text)[:60]))
+    return lines, s, lead * s / size, col
+
+
+def grid_text_runs(lines, x, y, lead, y_down=True):
+    """intro lines placed: [(s, x_mm, baseline_y_mm, bold)] from the first baseline (x, y); y_down=False for y-up
+    pages (lines go to smaller y)"""
+    out = []
+    for i, ln in enumerate(lines):
+        yy = y + i * lead if y_down else y - i * lead
+        for s, b, xo in ln:
+            out.append((s, x + xo, yy, b))
+    return out
+# ---- G4 (MIRAQUA round 28 Oct 2026): labels never overlap each other, symbols or important linework ----------------
+# Geometry only (page mm, any y direction): the caller measures its text and draws. Order of tries for each label:
+# the spots round its point, then farther out on a thin leader (the leader may not cross a placed label), then the
+# same at the smaller sizes in `sizes`; a label still without a spot is dropped if its rank allows it (secondary
+# labels), else it gets the nearest free spot anywhere in bounds, on a leader. Boxes are (x0, y0, x1, y1).
+def lp_hit(a, b, pad=0.0):
+    return a[0] < b[2] + pad and b[0] < a[2] + pad and a[1] < b[3] + pad and b[1] < a[3] + pad
+
+
+def _lp_seg_box(p, q, b):
+    """True when the segment p-q passes through box b (Liang-Barsky)"""
+    x0, y0 = p
+    dx, dy = q[0] - x0, q[1] - y0
+    t0, t1 = 0.0, 1.0
+    for pp, qq in ((-dx, x0 - b[0]), (dx, b[2] - x0), (-dy, y0 - b[1]), (dy, b[3] - y0)):
+        if pp == 0:
+            if qq < 0:
+                return False
+        else:
+            t = qq / pp
+            if pp < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+            if t0 > t1:
+                return False
+    return True
+
+
+def lp_seg_cross(p, q, r, s):
+    """True when segments p-q and r-s cross (touching at a shared end point does not count)"""
+    def orient(a, b, c):
+        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+    for a in (p, q):
+        for b in (r, s):
+            if abs(a[0] - b[0]) < 1e-9 and abs(a[1] - b[1]) < 1e-9:
+                return False
+    d1, d2, d3, d4 = orient(r, s, p), orient(r, s, q), orient(p, q, r), orient(p, q, s)
+    return d1 * d2 < 0 and d3 * d4 < 0
+
+
+class LpSegIndex(object):
+    """M2: important linework (polylines, page mm) in buckets, so a label tests only the lines near it; pass it as
+    `segs` to label_spot / place_labels_all instead of a list"""
+    def __init__(self, polylines=(), segs=(), cell=10.0):
+        self.cell, self.b = float(cell), {}
+        for P in polylines:
+            for a, c in zip(P, P[1:]):
+                self.add(a, c)
+        for a, c in segs:
+            self.add(a, c)
+
+    def add(self, a, c):
+        k = self.cell
+        for i in range(int(min(a[0], c[0]) // k), int(max(a[0], c[0]) // k) + 1):
+            for j in range(int(min(a[1], c[1]) // k), int(max(a[1], c[1]) // k) + 1):
+                self.b.setdefault((i, j), []).append((a, c))
+
+    def near(self, box):
+        k, seen, out = self.cell, set(), []
+        for i in range(int(box[0] // k), int(box[2] // k) + 1):
+            for j in range(int(box[1] // k), int(box[3] // k) + 1):
+                for sg in self.b.get((i, j), ()):
+                    if id(sg) not in seen:
+                        seen.add(id(sg))
+                        out.append(sg)
+        return out
+
+    def __iter__(self):
+        seen = set()
+        for lst in self.b.values():
+            for sg in lst:
+                if id(sg) not in seen:
+                    seen.add(id(sg))
+                    yield sg
+
+
+def _lp_near(segs, b):
+    return segs.near(b) if hasattr(segs, "near") else segs
+
+
+def lp_leader_end(b, p):
+    """the point of box b nearest p (where a leader from p meets the label)"""
+    return (min(max(p[0], b[0]), b[2]), min(max(p[1], b[1]), b[3]))
+
+
+def label_spot(ax, ay, w, h, taken, bounds=None, segs=(), pad=0.5,
+               rings=(0.8, 2.5, 5.0, 8.0, 12.0, 17.0, 24.0), n_ang=16, leaders=None, max_leader=None):
+    """a free box w x h near (ax, ay): (box, leader) or None. taken: placed boxes and symbol boxes; segs: important
+    lines [(p, q)] (or an LpSegIndex) a label may not sit on. leader = True when the box sits off the point (draw a
+    thin leader). M2 (30 Oct): leaders = the leaders placed so far [(p, q)]: a new leader may not cross one;
+    max_leader (mm): no leader longer than this (G3: short leaders)."""
+    import math as _m
+
+    def free(b):
+        if bounds and not (bounds[0] <= b[0] and b[2] <= bounds[2] and bounds[1] <= b[1] and b[3] <= bounds[3]):
+            return False
+        if any(lp_hit(b, t, pad) for t in taken):
+            return False
+        if leaders and any(_lp_seg_box(p, q, b) for p, q in leaders):
+            return False
+        return not any(_lp_seg_box(p, q, b) for p, q in _lp_near(segs, b))
+
+    for i_r, d in enumerate(rings):
+        for i in range(n_ang):
+            a = 2 * _m.pi * (i + 0.5) / n_ang
+            cx, cy = ax + _m.cos(a) * (d + w / 2.0), ay + _m.sin(a) * (d + h / 2.0)
+            b = (cx - w / 2.0, cy - h / 2.0, cx + w / 2.0, cy + h / 2.0)
+            if not free(b):
+                continue
+            far = i_r >= 2
+            if far:
+                e = lp_leader_end(b, (ax, ay))
+                if max_leader is not None and _m.hypot(e[0] - ax, e[1] - ay) > max_leader:
+                    continue
+                if any(_lp_seg_box((ax, ay), e, t) for t in taken
+                       if not (t[0] <= ax <= t[2] and t[1] <= ay <= t[3])):     # the point's own symbol is passed
+                    continue
+                if leaders and any(lp_seg_cross((ax, ay), e, p, q) for p, q in leaders):
+                    continue
+            return b, far
+    return None
+
+
+def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0.5, leaders=None,
+                     max_leader=None):
+    """items: dicts with x, y (anchor), wh (function size_factor -> (w, h)), rank (0 = must show, 1 = may be
+    dropped). Places rank 0 first, then rank 1, each nearest its point. Returns {index: (box, leader, size_factor)}
+    for the placed ones; dropped rank-1 labels are left out (the caller may list them in a key). taken grows.
+    M2 (30 Oct): leaders (a list, grows) = leaders placed so far: no two leaders cross; max_leader (mm) = the
+    longest leader allowed (a rank-0 label that finds no spot within it takes the nearest free spot as before)."""
+    import math as _m
+    out = {}
+    leaders = leaders if leaders is not None else []
+    order = sorted(range(len(items)), key=lambda i: items[i].get("rank", 0))
+    for i in order:
+        it = items[i]
+        got = None
+        for f in sizes:
+            w, h = it["wh"](f)
+            got = label_spot(it["x"], it["y"], w, h, taken, bounds, segs, pad, leaders=leaders,
+                             max_leader=max_leader)
+            if got:
+                got = (got[0], got[1], f)
+                break
+        if got is None and it.get("rank", 0) == 0 and bounds:
+            w, h = it["wh"](sizes[-1])
+            cands = []
+            gx = bounds[0]
+            while gx + w <= bounds[2]:
+                gy = bounds[1]
+                while gy + h <= bounds[3]:
+                    cands.append((gx, gy))
+                    gy += 2.0
+                gx += 2.0
+            cands.sort(key=lambda c: (c[0] + w / 2.0 - it["x"]) ** 2 + (c[1] + h / 2.0 - it["y"]) ** 2)
+            for gx, gy in cands:
+                b = (gx, gy, gx + w, gy + h)
+                if not any(lp_hit(b, t, pad) for t in taken) and \
+                        not any(_lp_seg_box(p, q, b) for p, q in _lp_near(segs, b)):
+                    e = lp_leader_end(b, (it["x"], it["y"]))
+                    if any(lp_seg_cross((it["x"], it["y"]), e, p, q) for p, q in leaders):
+                        continue
+                    got = (b, True, sizes[-1])
+                    break
+        if got:
+            taken.append(got[0])
+            if got[1]:
+                leaders.append(((it["x"], it["y"]), lp_leader_end(got[0], (it["x"], it["y"]))))
+            out[i] = got
+    return out
+
+
+def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8)):
+    """M2, the one call a page makes for its labels (G3): features + labels in, placed labels out, none overlapping
+    another label, a symbol (obstacles) or the linework (lines). Page mm, any y direction.
+      labels    dicts: x, y = the target point; w, h = the label's box at size 1 (or wh = f -> (w, h)); rank 0 = must
+                show, 1 = may be dropped; r = the target's radius in mm (a symbol or a dot; 0 = a point): a leader
+                starts on its edge, so it visibly touches the target
+      obstacles boxes (x0, y0, x1, y1) of symbols, other drawings, legends (they are not changed)
+      lines     polylines (page mm) a label may not sit on (streets, banks, cut lines), or an LpSegIndex
+    Returns a list in the labels' order: None (a rank-1 label dropped: list it in the legend) or dict(box, size,
+    leader) with leader = None or ((x, y) on the target's edge, (x, y) on the label box): short (<= max_leader
+    where any spot allows), never crossing another leader or a label."""
+    import math as _m
+    segs = lines if hasattr(lines, "near") else LpSegIndex(polylines=lines)
+    taken = list(obstacles)
+    its = []
+    for L in labels:
+        if "wh" in L:
+            its.append(dict(L))
+        else:
+            w0, h0 = L["w"], L["h"]
+            its.append(dict(L, wh=(lambda f, w0=w0, h0=h0: (w0 * f, h0 * f))))
+    leaders = []
+    got = place_labels_all(its, taken, bounds, segs, sizes, pad, leaders, max_leader)
+    out = []
+    for i, L in enumerate(labels):
+        g = got.get(i)
+        if g is None:
+            out.append(None)
+            continue
+        box, far, f = g
+        lead = None
+        if far:
+            e = lp_leader_end(box, (L["x"], L["y"]))
+            r = float(L.get("r", 0.0))
+            d = _m.hypot(e[0] - L["x"], e[1] - L["y"])
+            s0 = (L["x"] + (e[0] - L["x"]) * r / d, L["y"] + (e[1] - L["y"]) * r / d) if r > 0 and d > r else \
+                (L["x"], L["y"])
+            lead = (s0, e)
+        out.append(dict(box=box, size=f, leader=lead))
+    return out
+
+
+# ------------------------------------------------------------------------------------------- M2 legends and markers
+class Legend(object):
+    """M2: a legend that can only exist attached to its drawing's frame (G1: next to its drawing, aligned to it, never
+    at the page bottom). Numbered markers exist only through marker(), which makes their legend entry at the same
+    time (G3: no number without its explanation).
+      lg = Legend(frame, side="right")          frame = (x0, y0, x1, y1) of the drawing, page mm
+      lg.add("Selinos stream", kind="fill", colour="91ADB4")    kinds: fill, line, dash, dot, icon, hatch, marker
+      n = lg.marker("Kermes market")            -> "1": draw n on the map; the legend lists "1  Kermes market"
+      L = lg.layout(measure)                    measure(s, size_pt, bold) -> mm
+    L = dict(box, rows=[dict(entry, swatch=(x0, y0, x1, y1), text=(x, baseline_y), size_pt)], title=(s, x, y) or None,
+    taken=box): the caller draws each swatch by its kind and the text at text; box joins the label obstacles.
+    side: "right" / "left" (top-aligned beside the frame, more columns when taller than the frame), "below" /
+    "above" (left-aligned to the frame, as many columns as its width holds), "inside_tl" / "inside_tr" /
+    "inside_bl" / "inside_br" (in a corner of the frame, on a paper plate: draw L["plate"] first)."""
+    SIDES = ("right", "left", "below", "above", "inside_tl", "inside_tr", "inside_bl", "inside_br")
+
+    def __init__(self, frame, side="right", gap=3.0, y_down=True, title=None, style="legend", swatch=(4.0, 2.6),
+                 col_gap=4.0):
+        if not frame or len(frame) != 4 or frame[2] <= frame[0] or frame[3] <= frame[1]:
+            raise ValueError("a legend needs its drawing's frame (x0, y0, x1, y1): it is never placed on its own")
+        if side not in self.SIDES:
+            raise ValueError("legend side %r: one of %s" % (side, ", ".join(self.SIDES)))
+        self.frame, self.side, self.gap, self.y_down, self.title = tuple(frame), side, gap, y_down, title
+        self.style, self.swatch, self.col_gap = style, swatch, col_gap
+        self.entries, self._n = [], 0
+
+    def add(self, label, kind="fill", **sample):
+        """an entry: label + its sample (colour, width, dash, icon name, hatch ...): the entry dict"""
+        for e in self.entries:
+            if e["label"] == label and e.get("kind") == kind:
+                return e
+        e = dict(sample, label=label, kind=kind)
+        self.entries.append(e)
+        return e
+
+    def marker(self, label, prefix="", **sample):
+        """a numbered (or prefix-lettered) marker and its legend entry, made together: returns the marker text"""
+        for e in self.entries:
+            if e.get("kind") == "marker" and e["label"] == label:
+                return e["marker"]
+        self._n += 1
+        m = "%s%d" % (prefix, self._n)
+        self.entries.append(dict(sample, label=label, kind="marker", marker=m))
+        return m
+
+    def layout(self, measure, size_pt=None, max_h=None):
+        """the placed legend (see the class doc)"""
+        s0, b0, lead, col = grid_style(self.style) if "grid_style" in globals() else (7.0, False, 4.0, "4A3F35")
+        size = size_pt or s0
+        lead = lead * size / s0
+        sw, sh = self.swatch
+        tx = sw + 1.5                                      # text start after the swatch
+        ent_w = max([tx + measure(e["label"], size, False) for e in self.entries] or [0.0])
+        tw = measure(self.title, size, True) if self.title else 0.0
+        f = self.frame
+        fw, fh = f[2] - f[0], f[3] - f[1]
+        n = len(self.entries)
+        th = lead if self.title else 0.0
+        if self.side in ("right", "left") or self.side.startswith("inside"):
+            avail = (max_h or fh) - th
+            nrow = max(1, min(n, int((avail + 1e-6) // lead))) if n else 0
+            ncol = max(1, -(-n // nrow)) if nrow else 1
+        else:
+            ncol = max(1, min(n, int((fw + self.col_gap) // (ent_w + self.col_gap)))) if n else 1
+            nrow = -(-n // ncol) if n else 0
+        W = max(tw, ncol * ent_w + (ncol - 1) * self.col_gap)
+        H = th + nrow * lead
+        pad = 1.5 if self.side.startswith("inside") else 0.0
+        # the box in y-down terms first (top = the frame's visual top)
+        if self.side == "right":
+            x0, top = f[2] + self.gap, 0.0
+        elif self.side == "left":
+            x0, top = f[0] - self.gap - W, 0.0
+        elif self.side == "below":
+            x0, top = f[0], fh + self.gap
+        elif self.side == "above":
+            x0, top = f[0], -self.gap - H
+        else:
+            right = self.side.endswith("r")
+            bottom = self.side[-2] == "b"
+            x0 = f[2] - pad - W if right else f[0] + pad
+            top = fh - pad - H if bottom else pad
+        Y = (lambda t: f[1] + t) if self.y_down else (lambda t: f[3] - t)
+
+        def box(x_0, t0, x_1, t1):
+            a, b = Y(t0), Y(t1)
+            return (x_0, min(a, b), x_1, max(a, b))
+        rows = []
+        for i, e in enumerate(self.entries):
+            c, r = i // nrow, i % nrow
+            ex = x0 + c * (ent_w + self.col_gap)
+            t = top + th + r * lead
+            mid = t + lead * 0.5
+            sw_box = box(ex, mid - sh / 2.0, ex + sw, mid + sh / 2.0)
+            base = Y(mid + size * GRID_PT_ * 0.35)
+            rows.append(dict(e, swatch=sw_box, text=(ex + tx, base), size_pt=size))
+        out = dict(box=box(x0 - pad, top - pad, x0 + W + pad, top + H + pad), rows=rows, size_pt=size, colour=col,
+                   title=(self.title, x0, Y(top + lead * 0.75)) if self.title else None)
+        out["taken"] = out["box"]
+        out["plate"] = out["box"] if self.side.startswith("inside") else None
+        return out
+
+
+GRID_PT_ = 25.4 / 72.0                                    # mm per pt (the legend's baseline offset)
+bergama_data("FACTS")
+# ---- Shared facts reader (H-B 30 Oct 2026, M10). Include the data first:
+#   #@include ../common/data/FACTS.py
+#   #@include ../common/facts.py
+# fact(key) = the value (float, or a (lo, hi) tuple for a range), unrounded; fact_text(key) = the printed form with
+# the fact's fixed rounding and unit ("8,000 m³ per ha (1-in-5 dry year)"); None when a live file is missing (the
+# page then prints nothing for it, never a typed copy). Live values come from Downloads/Bergama outputs on every run.
+# The one page that prints a fact: fact_owner(key); a page that is not the owner should not print it (G4).
+FACT_LOG = []
+_FACT_CACHE = {}
+
+
+def _fact_home(*p):
+    import os as _o
+    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", *p)
+
+
+# results files other scripts write (new place first, then where older versions wrote them)
+FACT_FILES = dict(water_balance=[
+    ("cached", "Bergama_water_balance_analysis", "water_balance_results.json"),
+    ("output", "Bergama_water_balance_analysis", "water_balance_results.json")])
+
+
+def _fact_rows():
+    rows = globals().get("FACTS")
+    if rows is None:
+        raise RuntimeError("FACTS data missing: include ../common/data/FACTS.py before ../common/facts.py")
+    return rows
+
+
+def fact_file(name):
+    """the parsed results file of another script (dict) or None; read once per run"""
+    import os as _o
+    import json as _j
+    if name in _FACT_CACHE:
+        return _FACT_CACHE[name]
+    data = None
+    paths = [_fact_home(*p) for p in FACT_FILES.get(name, [])]
+    if name == "water_balance":                    # the oldest place, before Downloads/Bergama (water board WB_FILES)
+        paths.append(_o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis",
+                                  "water_balance_results.json"))
+    for p in paths:
+        try:
+            with open(p, "r", encoding="utf-8") as fh:
+                data = _j.load(fh)
+            FACT_LOG.append(u"Facts: %s read from %s" % (name, p))
+            break
+        except Exception:
+            pass
+    if data is None:
+        FACT_LOG.append(u"Facts: %s results not found (run that script first); its facts are left out" % name)
+    _FACT_CACHE[name] = data
+    return data
+
+
+def _fact_conv(row, v):
+    c = row.get("conv")
+    if v is None or c is None:
+        return v
+    if c == "drip_m3_ha":                          # net mm -> m³ per ha at the intake (1 mm on 1 ha = 10 m³)
+        return v / fact("drip_efficiency") * 10.0
+    if c == "ha_per_10000":
+        return 10000.0 / v
+    if c == "ratio":
+        return float(v[0]) / float(v[1])
+    if c == "da_sum_ha":                           # decares summed -> ha
+        return sum(v) / 10.0
+    raise ValueError("facts: unknown conv %r" % c)
+
+
+def fact(key):
+    """the value of a fact, unrounded (float, or (lo, hi)); None when a live source is missing"""
+    rows = _fact_rows()
+    if key not in rows:
+        raise KeyError("no fact %r; known: %s" % (key, ", ".join(sorted(rows))))
+    row = rows[key]
+    k = row["kind"]
+    if k == "static":
+        return _fact_conv(row, row["value"])
+    if k == "derived":
+        return _fact_conv(row, fact(row["of"]))
+    d = fact_file(row["file"])
+    try:
+        for p in row["path"]:
+            d = d[p]
+    except Exception:
+        if d is not None:
+            FACT_LOG.append(u"Facts: %s not in the %s results" % (key, row["file"]))
+        return None
+    if isinstance(d, (list, tuple)):
+        return tuple(float(x) for x in d)
+    return _fact_conv(row, float(d))
+
+
+def fact_live(key):
+    """True when the fact has a value now (static, or its live file was read)"""
+    return fact(key) is not None
+
+
+def fact_round(key, v):
+    """v rounded as the fact prints it (round step, or nd decimals)"""
+    row = _fact_rows()[key]
+    if row.get("round"):
+        st = float(row["round"])
+        return int(round(v / st) * st)
+    return round(v, row.get("nd", 0))
+
+
+def fact_num(key, v=None):
+    """the printed number only ("8,000", "1.25", "350,000-375,000"); None when missing"""
+    v = fact(key) if v is None else v
+    if v is None:
+        return None
+    row = _fact_rows()[key]
+    nd = 0 if row.get("round") else row.get("nd", 0)
+
+    def one(x):
+        return ("{:,.%df}" % nd).format(fact_round(key, x))
+    if isinstance(v, tuple):
+        a, b = one(v[0]), one(v[1])
+        return a if a == b else u"%s-%s" % (a, b)
+    return one(v)
+
+
+def fact_text(key, note=True):
+    """number + unit (+ note): "8,000 m³ per ha (1-in-5 dry year)", "4.4 × its potential"; None when missing"""
+    n = fact_num(key)
+    if n is None:
+        return None
+    row = _fact_rows()[key]
+    s = n + (u" " + row["unit"] if row.get("unit") else u"")
+    if note and row.get("note"):
+        s += u" " + row["note"]
+    return s
+
+
+def fact_ref(key):
+    """(internal reference, public citation or None) of a fact"""
+    row = _fact_rows()[key]
+    return row.get("ref"), row.get("public")
+
+
+def fact_owner(key):
+    """the booklet page that prints the fact ("18"), None for a value that is never printed"""
+    return _fact_rows()[key].get("printed_on")
+
+
+def fact_prints_on(key, page):
+    """True when page (a booklet page number) is the one that prints this fact (G4: once in the booklet)"""
+    return str(_fact_rows()[key].get("printed_on")) == str(page)
 
 
 # ---- G2/G3 (MIRAQUA round, 28 Oct 2026): Arial EMBEDDED in every sheet PDF -------------------------------------

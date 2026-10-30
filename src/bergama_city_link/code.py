@@ -311,7 +311,11 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
 #@include ../common/units.py
 #@include ../common/label_place.py
 #@include ../common/basemap.py
+#@include ../common/grid.py
+#@include ../common/buildings.py
 #@include ../common/icons.py
+#@include ../common/data/FACTS.py
+#@include ../common/facts.py
 
 # ------------------------------------------------------------------ minimal vector PDF (mm units, Helvetica, whole strings)
 _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278] + [556] * 10 + \

@@ -525,7 +525,8 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
     except Exception:
         LOG.append("WARNING: land-cover file could not be read:\n" + traceback.format_exc())
         S.lc, S.lc_area = {}, {}
-    basemap_export(S, LOG)                                # v51 (T3a): the shared basemap every script reads
+    S.r28_study = r28_study_from(R28_STUDY_RAW, I)        # v50 (G8): calisma_alan; revision 30 Oct: before the
+    basemap_export(S, LOG)                                # basemap, which carries it as its study-area layer (M3)
     try:
         frame_rest(S)                                     # v35: the unmapped ground of the frame, by satellite class
     except Exception:
@@ -539,7 +540,6 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
         S.ctx_lines = {}
         LOG.append("WARNING: context around the frame not read:\n" + traceback.format_exc())
     S.study_areas = study_areas_from(STUDY_RAW, I)                          # v19: read only, never drawn (v33)
-    S.r28_study = r28_study_from(R28_STUDY_RAW, I)                          # v50 (G8): calisma_alan, drawn on every map
     S.whole = None
     if RUN_MODE != "technical":
         try:

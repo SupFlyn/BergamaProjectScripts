@@ -228,6 +228,8 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 #@include ../common/figures.py
 
 #@include ../common/basemap.py
+#@include ../common/grid.py
+#@include ../common/buildings.py
 
 
 # ---------------------------------------------------------------- the board (A0 landscape, one page)
@@ -240,6 +242,8 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 #@include ../common/booklet_assets.py
 
 #@include ../common/label_place.py
+#@include ../common/water.py
+#@include ../common/section_frame.py
 
 #@include parts/70_sections.py
 

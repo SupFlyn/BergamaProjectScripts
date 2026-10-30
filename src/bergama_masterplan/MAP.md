@@ -73,10 +73,14 @@
 | LEVELS | ../common/data/LEVELS.py | - |
 | levels | ../common/levels.py | - |
 | basemap | ../common/basemap.py | - |
+| grid | ../common/grid.py | - |
+| buildings | ../common/buildings.py | - |
 | section_parts | ../common/section_parts.py | - |
 | plants | ../common/plants.py | - |
 | hires | ../common/hires.py | - |
 | icons | ../common/icons.py | - |
+| water | ../common/water.py | - |
+| section_frame | ../common/section_frame.py | - |
 | Design | parts/02_Design.py | 1 |
 | zone_tones | parts/02_Design.py | 37 |
 | View | parts/02_Design.py | 45 |

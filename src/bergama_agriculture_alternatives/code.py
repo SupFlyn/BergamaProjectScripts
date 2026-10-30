@@ -95,6 +95,10 @@ VERSION = "v5.1"
 #@include ../common/bergama_paths.py
 #@include ../common/plant_photos.py
 #@include ../common/icons.py
+#@include ../common/grid.py
+#@include ../common/label_place.py
+#@include ../common/data/FACTS.py
+#@include ../common/facts.py
 LOG_DIR = bg_logs()                       # Aras 25 Oct 09:34-09:35: every script's log here
 
 

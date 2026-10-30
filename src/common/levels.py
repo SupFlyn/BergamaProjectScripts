@@ -28,9 +28,13 @@ def _lv_cut_rows(cid):
 
 
 def level_cut(cid):
-    """the row dict of cut (crossing) cid; KeyError naming the known ids"""
+    """the row dict of cut (crossing) cid (an alias such as F1 -> W1, F3 -> S4 is accepted); KeyError naming the
+    known ids"""
     for r in _lv_rows():
         if r["id"] == cid:
+            return r
+    for r in _lv_rows():
+        if cid in (r.get("aliases") or ()):
             return r
     many = _lv_cut_rows(cid)
     if len(many) == 1:
@@ -113,3 +117,34 @@ def level_flood_depth(cid, which):
         raise KeyError("level flood must be q100 or q500, not %r" % (which,))
     q, bed = level(cid, k), level(cid, "bed")
     return None if q is None or bed is None else round(q - bed, 2)
+
+
+# ---- cut registry (H-B 30 Oct 2026, M8): one entry per LEVELS row; every section on every page reads its levels here,
+# never types them. Printed name = the row id (W1, never F1: PLAN T1).
+def level_name(cid):
+    """the one printed name of a cut: the row id ("F1" -> "W1", "F3" -> "S4")"""
+    return level_cut(cid)["id"]
+
+
+def level_avg_flow(cid):
+    """water level at the mean yearly flow (m a.s.l., 2 decimals): the level a section draws its water at (G8)"""
+    return level(cid, "avg_flow")
+
+
+def level_registry(cid):
+    """the registry entry of a cut: dict(id, name, location, chainage_m, walled, bed, avg_flow, avg_flow_depth, q100,
+    q500, walls={NE: (type, top), SW: (type, top)}, bed_width_cm, pages (booklet), aliases); levels m a.s.l."""
+    r = level_cut(cid)
+    i = r["id"]
+    return dict(id=i, name=r.get("name"), location=r.get("location"), chainage_m=level(i, "chainage_m"),
+                walled=bool(r.get("walled")), bed=level(i, "bed"), avg_flow=level(i, "avg_flow"),
+                avg_flow_depth=level(i, "avg_flow_depth"), q100=level(i, "q100"), q500=level(i, "q500"),
+                walls=dict((s_, ((r.get(s_) or {}).get("type"), level(i, "top", s_))) for s_ in ("NE", "SW")),
+                bed_width_cm=level(i, "bed_width_cm"), pages=list(r.get("booklet_pages") or []),
+                aliases=list(r.get("aliases") or []))
+
+
+def level_registry_all(page=None):
+    """every registry entry in table order; page = a booklet page number ("12") keeps only the cuts drawn there"""
+    out = [level_registry(i) for i in level_ids()]
+    return [e for e in out if page is None or str(page) in e["pages"]]

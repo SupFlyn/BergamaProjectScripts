@@ -9,7 +9,8 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output log   the last run's report: pages, missing drawings, the word size each page prints at
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
-Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3_alt_a.pdf and ..._alt_b.pdf (revision 30 Oct:
+  D1/D5 a and b; each crop's _a / _b version where its script wrote one)
 NEW IN v21 (Aras 30 Oct 06:20, a feature change): the Sources page lists every asset source once under its own
   ASSETS heading (high-res silhouettes from Data/assets_hires.json, the A1 scale figure sets); no source note beside
   a drawing.
@@ -127,6 +128,7 @@ G9_LINE_ART = True                           # v19 (G9): False keeps the line ar
 
 #@include ../common/bergama_paths.py
 #@include ../common/hires.py
+#@include ../common/grid.py
 BERGAMA = BERGAMA_ROOT
 OUT_DIR = bg_output(OUT_FOLDER)                  # v10 (27 Oct): the booklet PDF only
 LOG_DIR = bg_logs()
@@ -134,10 +136,15 @@ ASSET_ROOT = os.path.join(BERGAMA, "output")     # the scripts' sheet PDFs
 BK_ROOT = bg_booklet("")                         # v10: the scripts' booklet assets (cached/booklet/<folder>/blocks.json)
 
 # ---- GRID (design-language.md: all values in mm, origin top-left) ----
-PW, PH = 420.0, 297.0
-ML, MT, MB = 14.0, 12.0, 12.0                # left/right margin, top, bottom
-COLS, COL, GUT = 12, 29.0, 4.0               # 14 + 12 x 29 + 11 x 4 + 14 = 420
-BASE = 4.0                                   # baseline grid, from y = 12
+# revision 30 Oct (M1): the ONE booklet grid lives in common/grid.py; the names below are its values
+PW, PH = GRID_PAGE
+ML, MT, MB = GRID_ML, GRID_MT, GRID_MB       # left/right margin, top, bottom
+COLS, COL, GUT = GRID_COLS, GRID_COL, GRID_GUT   # 14 + 12 x 29 + 11 x 4 + 14 = 420
+BASE = GRID_BASE                             # baseline grid, from y = 12
+BOOK_VARIANTS = ("a", "b")                   # revision 30 Oct (D1, D5): two PDFs, ..._alt_a.pdf and ..._alt_b.pdf, each
+                                             # crop id taken with the suffix _a / _b where its script wrote one
+INTRO_MIN_COLS = 5                           # the intro sits beside the title when this many columns are free
+LEG_ROW, LEG_GAP = 4.0, 4.0                  # a drawing's legend: row pitch, gap between its columns (mm)
 FOOT_RULE, FOOT_B1, FOOT_B2 = 276.0, 280.0, 284.0
 FOOT_LEG_COL = 1                             # v19 (MIRAQUA 28 Oct, G1): the footer legend from column 1 (was 4: the
                                              # project and course lines sat in columns 1-3)
@@ -539,6 +546,36 @@ def frame_page(fitz, doc, typo):
     return pg
 
 
+_TOTAL = [0]       # revision 30 Oct (G2): the final page count of the booklet being built (cover + pages + sources)
+_VARIANT = [None]  # revision 30 Oct (D1, D5): "a" / "b" while that PDF is built
+
+
+def page_no(pno):
+    """revision 30 Oct (G2 [C]): the page counter, computed from the final page list: "07/23" (a text is kept)"""
+    if isinstance(pno, str):
+        return pno
+    return grid_page_counter(pno, _TOTAL[0]) if _TOTAL[0] else "%02d" % pno
+
+
+def intro_layout(typo, spec):
+    """revision 30 Oct (M1, G4): the page intro of PLAN (spec "intro", key words marked "*word*") as (lines, size,
+    lead, x, first baseline, extra): beside the title in the title band when INTRO_MIN_COLS columns are free there,
+    else under the rule, where `extra` mm is the room the panels give up. None without an intro."""
+    txt = spec.get("intro")
+    if not txt:
+        return None
+    measure = lambda s_, size_, bold_: typo.width(s_, size_, bold_)
+    tw = typo.width(spec.get("title", ""), T["part"], True)
+    c0 = next((c for c in range(2, COLS + 1) if colx(c) >= colx(1) + tw + GUT), COLS + 1)
+    if COLS - c0 + 1 >= INTRO_MIN_COLS:
+        x = colx(c0)
+        lines, size, lead, _ = grid_intro(txt, PW - ML - x, measure, 3, log=typo.issues)
+        y0 = 25.0 - 1.6 - lead * (len(lines) - 1)     # the last line sits on the band's lowest baseline
+        return lines, size, lead, x, max(MT + 2.4, y0), 0.0
+    lines, size, lead, _ = grid_intro(txt, PW - 2 * ML, measure, 3, log=typo.issues)
+    return lines, size, lead, colx(1), 25.0 + BASE + 0.4, grid_snap_h(lead * len(lines) + 1.0)
+
+
 def header(pg, typo, spec):
     part = PARTS.get(spec.get("part"), "")
     stage = STAGES.get(spec.get("stage"), "")         # v11: where the page sits in its theme's cycle
@@ -546,6 +583,19 @@ def header(pg, typo, spec):
               T["kicker"], ACCENT, True)
     typo.line(pg, spec.get("title", ""), colx(1), 22, T["part"], INK, True)
     pg.draw_line((colx(1) * K, 25 * K), ((PW - ML) * K, 25 * K), color=hexrgb(RULE), width=0.25)
+    il = intro_layout(typo, spec)                     # revision 30 Oct (M1, G4): 2-3 lines, key words bold
+    if il:
+        lines, size, lead, x, y0, extra = il
+        for s_, x_, y_, b_ in grid_text_runs(lines, x, y0, lead):
+            typo.line(pg, s_, x_, y_, size, INK, b_)
+        return extra
+    return 0.0
+
+
+def intro_extra(typo, spec):
+    """the mm the intro takes from the panel area (0 when it sits beside the title)"""
+    il = intro_layout(typo, spec)
+    return il[5] if il else 0.0
 
 
 def foot_label(spec):
@@ -563,7 +613,7 @@ def footer(pg, typo, pno, spec, legend):
     """v19 (MIRAQUA 28 Oct, G1): the rule, the theme label and the page number (pno: a number, or the words to print
     there); the project and course lines are gone"""
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
-    no = pno if isinstance(pno, str) else "%02d" % pno
+    no = page_no(pno)                                # revision 30 Oct (G2): "NN/total", computed
     typo.line(pg, no, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
     lab_x = PW - ML - 12 - max(0.0, typo.width(no, T["pageno"], True) - typo.width("00", T["pageno"], True))
     if foot_label(spec):
@@ -599,18 +649,6 @@ def legend_item(pg, typo, it, x, y):
     typo.line(pg, it.get("label", ""), x + 5.5, y, T["caption"], INK)
 
 
-def footer_rows(typo, legend, spec=None):
-    """how many rows the footer band needs for this legend"""
-    x0, x1 = colx(FOOT_LEG_COL), foot_x1(typo, spec or {})
-    x, n = x0, 1 if legend else 0
-    for it in legend:
-        w = 4.0 + 1.5 + typo.width(it.get("label", ""), T["caption"]) + 5.0
-        if x + w > x1:
-            x, n = x0, n + 1
-        x += w
-    return n
-
-
 def placeholder(pg, typo, rect, text):
     x, y, w, h = rect
     pg.draw_rect((x * K, y * K, (x + w) * K, (y + h) * K), color=hexrgb(FRAME), width=0.5, dashes="[2 2] 0")
@@ -641,11 +679,12 @@ def sheet_foot(fitz, pg, typo, pno, spec, src, f):
     """v18 (Prompt 8: "footers and page numbers"): a whole-sheet page gets the booklet's page number in the footer's
     place, and its theme left of it where the sheet leaves that corner free; the log says when the number sits on
     the sheet's own words or drawing."""
-    no = "%02d" % pno
+    no = page_no(pno)                                # revision 30 Oct (G2): "NN/total", computed
     wn, lab = typo.width(no, T["pageno"], True), foot_label(spec)
     rn = (PW - ML - wn - 1.0, FOOT_B2 - 4.6, PW - ML + 0.5, FOOT_B2 + 1.4)
     wl = typo.width(lab, T["caption"], True) if lab else 0.0
-    rl = (PW - ML - 12 - wl - 1.0, FOOT_B2 - 2.8, PW - ML - 12 + 0.5, FOOT_B2 + 1.0)
+    sh_ = max(0.0, wn - typo.width("00", T["pageno"], True))      # revision 30 Oct: the longer "NN/total"
+    rl = (PW - ML - 12 - sh_ - wl - 1.0, FOOT_B2 - 2.8, PW - ML - 12 - sh_ + 0.5, FOOT_B2 + 1.0)
     try:
         big = 0.5 * abs(src.rect)                      # a sheet's white ground is not "content"
         boxes = [fitz.Rect(d["rect"]) for d in src.get_drawings() if abs(fitz.Rect(d["rect"])) < big]
@@ -660,7 +699,7 @@ def sheet_foot(fitz, pg, typo, pno, spec, src, f):
         typo.issues.append("PAGE NUMBER ON THE SHEET'S OWN CONTENT p.%d %s" % (pno, spec.get("title", "")))
     typo.line(pg, no, PW - ML, FOOT_B2 + 0.6, T["pageno"], ACCENT, True, "R")
     if lab and free(rl):
-        typo.line(pg, lab, PW - ML - 12, FOOT_B2, T["caption"], INK2, True, "R")
+        typo.line(pg, lab, PW - ML - 12 - sh_, FOOT_B2, T["caption"], INK2, True, "R")
 
 
 def wh(it):
@@ -756,8 +795,12 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
     the rows (their own width), the page's legend under them; a "key" map in the title band at the right.
     v19 (MIRAQUA 28 Oct, P04.1, P14.1): the key map at scale 1.0 (drawn at its booklet size, 190 x <= 42 mm; never
     stretched) in a band under the title, the rows below it making room; beside the rows at the top right instead
-    when that costs them less (a narrow map, or a fixed crop the band would push past the page)."""
-    aw, ah = AREA[2] - AREA[0], AREA[3] - AREA[1]
+    when that costs them less (a narrow map, or a fixed crop the band would push past the page).
+    Revision 30 Oct (G1, M1, M2): each crop's legend is drawn under it, aligned to its left edge, in the columns its
+    width holds (never in the footer band, never detached); the rows make room for it. The page intro (PLAN "intro",
+    G4) sits beside the title or under it; the footer prints the page counter NN/total."""
+    top0 = AREA[1] + intro_extra(typo, spec)          # revision 30 Oct (G4): an intro under the title takes its room
+    aw, ah = AREA[2] - AREA[0], AREA[3] - top0
     side_it = spec.get("_side") or []
     # v19: a missing side panel does not set the column's width (its labelled frame takes the column)
     side_w = min(aw / 2.0, max([wh(it)[0] * own_s(it) for it in row_items(side_it)] or [0.0]))
@@ -786,45 +829,38 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
             typo.issues.append("KEY MAP TALLER THAN 42 mm p.%d (%.0f mm): the rows lose that height" % (pno, kh))
     ah_r = ah - (kh + ROW_GAP if key_at == "band" else 0.0)
     aw_r -= kw + GUT if key_at == "beside" else 0.0
+
+    def row_leg(r, s_):                              # revision 30 Oct (G1): the legend band under a row's crops
+        return max([legend_h(typo, crop_legend(it), wh(it)[0] * scale_of(it, s_)) for it in row_items(r)] or [0.0])
     s_fit = fit(rows, aw_r, ah_r)
+    for _ in range(3):                               # narrower crops hold fewer legend columns: settle the scale
+        s_fit = fit(rows, aw_r, ah_r - sum(row_leg(r, s_fit) for r in rows))
+    leg_rows = [row_leg(r, s_fit) for r in rows]
 
     def sc(it):                                      # v4, v15 (v19: scale_of)
         return scale_of(it, s_fit)
     pg = frame_page(fitz, doc, typo)
     header(pg, typo, spec)
-    legend, rep = [], []
-    y = y_top = AREA[1] + (kh + ROW_GAP if key_at == "band" else 0.0)
+    rep = []
+    y = y_top = top0 + (kh + ROW_GAP if key_at == "band" else 0.0)
     if key_it is not None and key_it[3] is None:
         rep.append("%s MISSING (key map left out)" % key_it[0])
-    for r in rows + [side_it]:
-        for it in r:
-            for e in ((it[1] or {}).get("legend") or []) if it[3] is not None else []:
-                e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))     # v18
-                if all(e.get("label") != o.get("label") for o in legend):
-                    legend.append(e)
     rws = [sum(wh(it)[0] * sc(it) for it in row_items(r)) + GUT * (len(row_items(r)) - 1) for r in rows]
-    lw = 6.0 + max([typo.width(e.get("label", ""), T["caption"]) for e in legend] or [0.0])
-    side = not side_it and footer_rows(typo, legend, spec) > 2 and aw_r - max(rws) >= lw + 8.0 and \
-        4.0 * len(legend) <= ah_r
-    if side:                                         # v4: a long legend beside the drawing, all of it
-        lx = AREA[0] + max(rws) + 8.0
-        for i, e in enumerate(legend):
-            legend_item(pg, typo, e, lx, y_top + 3.0 + 4.0 * i)
     if key_at:                                       # v19: the key map, scale 1.0, no caption (no scale: a key map)
-        kx = AREA[2] - kw if key_at == "beside" or side or side_it else \
+        kx = AREA[2] - kw if key_at == "beside" or side_it else \
             max(AREA[0], min(AREA[2], AREA[0] + (aw + max(rws)) / 2.0) - kw)   # band: flush with the rows' right edge
-        show(fitz, pg, typo, key_it, kx, AREA[1], ks, rep, missing, cap=False)
+        show(fitz, pg, typo, key_it, kx, top0, ks, rep, missing, cap=False)
         rep.append("key map %s" % ("beside the rows" if key_at == "beside" else "in the band under the title"))
     # v18 (Prompt 8, rule 4 "no large empty areas"): rows that leave more than 40 mm of the height empty share it out
     # (old p.10: 91 mm under two maps the width holds at 1:10,000)
-    free = ah_r - sum(max(wh(it)[1] * sc(it) for it in row_items(r)) + CAP_H + ROW_GAP for r in rows) + ROW_GAP
-    pad = free / (len(rows) + 1) if len(rows) > 1 and free > 40.0 and not side_it and \
-        footer_rows(typo, legend, spec) <= 3 else 0.0
+    free = ah_r - sum(max(wh(it)[1] * sc(it) for it in row_items(r)) + CAP_H + lh + ROW_GAP
+                      for r, lh in zip(rows, leg_rows)) + ROW_GAP
+    pad = free / (len(rows) + 1) if len(rows) > 1 and free > 40.0 and not side_it else 0.0
     y += pad
-    for r, rw in zip(rows, rws):                     # rows centred across the page (left with a side legend)
+    for r, rw, lh in zip(rows, rws, leg_rows):       # rows centred across the page
         pres = row_items(r)
         fill = [it for it in r if not any(it is p for p in pres)]    # v19: missing beside drawn panels
-        x = AREA[0] + (0.0 if side or side_it or fill or key_at == "beside" else max(0.0, (aw - rw) / 2.0))
+        x = AREA[0] + (0.0 if side_it or fill or key_at == "beside" else max(0.0, (aw - rw) / 2.0))
         rh = max(wh(it)[1] * sc(it) for it in pres)
         fw = (aw_r - rw - GUT * len(fill)) / len(fill) if fill else 0.0
         for it in r:
@@ -856,49 +892,71 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                     if round(blk["scale_den"] / s) not in STD_SCALES:
                         typo.issues.append("SCALE NOT ROUND p.%d %s: 1:%.0f" % (pno, key, blk["scale_den"] / s))
                 typo.line(pg, cap, x, y + h * s + 3.6, T["caption"], INK2)
+                lg = crop_legend(it)                 # revision 30 Oct (G1): its legend under it, aligned to it
+                if lg:
+                    draw_legend_under(pg, typo, lg, x, y + h * s + CAP_H - 0.6, w * s, pno)
                 ws = word_sizes(src[pi], clip)
                 if ws:
                     med, low = ws[len(ws) // 2] * s, ws[len(ws) // 10] * s
                     rep.append("%s words %.1f pt (smallest tenth %.1f)" % (key.split("/", 1)[1], med, low))
             x += w * s + GUT
-        y += rh + CAP_H + ROW_GAP + pad
+        y += rh + CAP_H + lh + ROW_GAP + pad
     if y - ROW_GAP > AREA[3] + 0.5:                  # v15: fixed crops are not shrunk: say when they overrun
         typo.issues.append("PAGE OVERRUNS ITS AREA p.%d by %.1f mm" % (pno, y - ROW_GAP - AREA[3]))
-    if legend and not side and not side_it and footer_rows(typo, legend, spec) > 3:
-        # v18 (Prompt 8): a legend the footer cannot hold (old p.26, ~41 entries) goes in columns under the rows
-        ncol = max(1, int((aw + 4.0) // (lw + 4.0)))
-        nrow = (len(legend) + ncol - 1) // ncol
-        yl = y - ROW_GAP + 3.0
-        if yl + 4.0 * (nrow - 1) <= AREA[3]:
-            for i, e in enumerate(legend):
-                legend_item(pg, typo, e, AREA[0] + (i // nrow) * (lw + 4.0), yl + 4.0 * (i % nrow))
-            side = True
     if side_it:                                      # v12: beside the rows, right margin, top-aligned
-        x1, ys, xs0, grid = AREA[0] + max(rws) + GUT, y_top, AREA[2], []
+        x1, ys = AREA[0] + max(rws) + GUT, y_top
         for it in side_it:
             w, h = wh(it)
-            s = max(0.05, min(own_s(it), (AREA[2] - x1) / w, (AREA[3] - ys - CAP_H) / h))
+            lg = crop_legend(it)                     # revision 30 Oct (G1): each side panel's legend under it
+            s = max(0.05, min(own_s(it), (AREA[2] - x1) / w,
+                              (AREA[3] - ys - CAP_H - legend_h(typo, lg, AREA[2] - x1)) / h))
             xs = AREA[2] - w * s
-            xs0 = min(xs0, xs)
             ys += show(fitz, pg, typo, it, xs, ys, s, rep, missing) + CAP_H
-            g_ = [xs + g * w * s / it[1]["bk_w"] for g in (it[1] or {}).get("grid", [])] \
-                if it[3] is not None and (it[1] or {}).get("bk_w") else []
-            grid = grid or g_                        # v19: the grid of the first side panel that has one (the site
-                                                     # readings, P02.1), not the last one's (the edge types)
-        if legend:                                   # the legend under the panel, on its grid (else two columns)
-            starts = list(grid) if len(grid) > 1 else [xs0, xs0 + 0.5 * (AREA[2] - xs0)]
-            ends = starts[1:] + [AREA[2]]
-            ncol = len(starts) if all(6.0 + typo.width(e.get("label", ""), T["caption"]) <= min(
-                b - a for a, b in zip(starts, ends)) for e in legend) else 1
-            nrow = (len(legend) + ncol - 1) // ncol
-            if ys + 3.0 + 4.0 * nrow <= AREA[3]:
-                for i, e in enumerate(legend):
-                    legend_item(pg, typo, e, starts[i // nrow], ys + 3.0 + 4.0 * (i % nrow))
-                side = True
-            else:
-                typo.issues.append("SIDE LEGEND TOO LONG p.%d: in the footer" % pno)
-    footer(pg, typo, pno, spec, [] if side else legend)
+            if lg:
+                draw_legend_under(pg, typo, lg, xs, ys - 0.6, w * s, pno)
+                ys += legend_h(typo, lg, w * s)
+            if ys > AREA[3] + 0.5:
+                typo.issues.append("SIDE COLUMN OVERRUNS ITS AREA p.%d by %.1f mm" % (pno, ys - AREA[3]))
+    footer(pg, typo, pno, spec, [])
     return "p.%d %s: x%.2f · %s" % (pno, spec["title"], s_fit, "; ".join(rep))
+
+
+def crop_legend(it):
+    """revision 30 Oct (G1, M2): a crop's own legend entries, its marks in the booklet's source numbers ([] for a
+    missing crop)"""
+    if it is None or it[3] is None:
+        return []
+    out = []
+    for e in (it[1] or {}).get("legend") or []:
+        e = dict(e, label=renum(e.get("label", ""), it[0], it[1], it[2]))     # v18
+        if all(e.get("label") != o.get("label") for o in out):
+            out.append(e)
+    return out
+
+
+def legend_cols(typo, legend, w):
+    """(columns, rows, column width mm) of a drawing's legend laid out under it, w mm wide"""
+    if not legend:
+        return 0, 0, 0.0
+    lw = 6.0 + max(typo.width(e.get("label", ""), T["caption"]) for e in legend)
+    ncol = max(1, min(len(legend), int((w + LEG_GAP) // (lw + LEG_GAP))))
+    return ncol, -(-len(legend) // ncol), lw
+
+
+def legend_h(typo, legend, w):
+    """the height (mm) a drawing's legend takes under its caption, w mm wide"""
+    n = legend_cols(typo, legend, w)[1]
+    return n * LEG_ROW + 1.0 if n else 0.0
+
+
+def draw_legend_under(pg, typo, legend, x, y, w, pno):
+    """revision 30 Oct (G1): a drawing's legend under it from its left edge (y = the top of the legend band), in the
+    columns its width holds: next to its drawing, aligned to it, never at the page bottom"""
+    ncol, nrow, lw = legend_cols(typo, legend, w)
+    if lw > w + 0.5:
+        typo.issues.append("LEGEND WIDER THAN ITS DRAWING p.%d (%.0f mm, the drawing %.0f mm)" % (pno, lw, w))
+    for i, e in enumerate(legend):
+        legend_item(pg, typo, e, x + (i // nrow) * (lw + LEG_GAP), y + 3.0 + LEG_ROW * (i % nrow))
 
 
 def panel_item(fitz, assets, key):
@@ -909,6 +967,20 @@ def panel_item(fitz, assets, key):
     if key.startswith("slot|"):                        # v11: SLOT(text, w, h) of the plan
         _, w, h, text = key.split("|", 3)
         return (key, {"slot": text, "size_mm": (float(w), float(h))}, None, None)
+    if _VARIANT[0]:                                    # revision 30 Oct (D1, D5): the _a / _b crop of this PDF where
+        folder, _, bid = key.partition("/")             # its script wrote one, under the plan's own key
+        vk = "%s_%s" % (bid, _VARIANT[0])
+        if vk in ((assets.get(folder) or {}).get("blocks") or {}):
+            _VARIANT_USED.add(folder + "/" + vk)
+            return (key,) + tuple(panel_item_one(fitz, assets, folder + "/" + vk)[1:])
+    return panel_item_one(fitz, assets, key)
+
+
+_VARIANT_USED = set()   # revision 30 Oct: the _a / _b crops this build took (logged)
+
+
+def panel_item_one(fitz, assets, key):
+    """panel_item for one plain crop key (no "||", no slot, no variant)"""
     blk, path = resolve(assets, key)
     if not path:
         return (key, blk, None, None)
@@ -1496,9 +1568,29 @@ def page_checks(doc, numbered, typo):
 
 # ------------------------------------------------------------------ main
 def main():
+    """revision 30 Oct (D1, D5): the booklet built twice, ..._alt_a.pdf and ..._alt_b.pdf (BOOK_VARIANTS), each taking
+    a crop's _a / _b version where its script wrote one (else the crop itself); one log for both"""
     t0 = time.time()
+    rows = []
+    for v in BOOK_VARIANTS:
+        rows += build_variant(v)
+    rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
+    rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
+    return "\n".join(rows)
+
+
+def variant_pdf(v):
+    """the PDF name of variant v: Bergama_booklet_A3_alt_a.pdf"""
+    root, ext = os.path.splitext(PDF_NAME)
+    return "%s_alt_%s%s" % (root, v, ext) if v else PDF_NAME
+
+
+def build_variant(variant):
+    """one booklet PDF (variant "a" / "b", None = the plain one): its log rows"""
     import fitz                                   # PyMuPDF
     os.makedirs(OUT_DIR, exist_ok=True)
+    _VARIANT[0] = variant
+    _VARIANT_USED.clear()
     assets = load_assets()
     typo = Typo(fitz)
     doc = fitz.open()
@@ -1513,6 +1605,7 @@ def main():
             plan += expand(fitz, spec, assets)
     plan = flex_order(plan, typo)
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
+    _TOTAL[0] = len(numbered) + 2                   # revision 30 Oct (G2): cover + pages + sources, the counter's total
     _COPY.clear()
     _PAGE_TXT.clear()
     G9_STATS.update(copies=0, lines=0, chars=0, images=0, failed=[])
@@ -1546,24 +1639,27 @@ def main():
                                      "" if G9_LINE_ART else " (off: G9_LINE_ART)"))
     typo.issues += ["G9 COPY FAILED, the whole sheet page shown: %s" % f for f in G9_STATS["failed"]]
     doc.subset_fonts()
-    out = os.path.join(OUT_DIR, PDF_NAME)
+    out = os.path.join(OUT_DIR, variant_pdf(variant))
     doc.save(out, garbage=3, deflate=True)
     n = doc.page_count
     doc.close()
+    if n != _TOTAL[0]:
+        typo.issues.append("PAGE COUNTER: %d pages built, the counter says %d" % (n, _TOTAL[0]))
     rows = ["%s  %s  (%d pages, font %s)" % (out, time.strftime("%H:%M:%S"), n, typo.fam)]
+    if variant:
+        rows.append("variant %s: %d crops taken as their _%s version%s" % (
+            variant, len(_VARIANT_USED), variant, (": " + ", ".join(sorted(_VARIANT_USED))) if _VARIANT_USED else ""))
     for name in sorted(assets):
         rows.append("assets %s: %s" % (name, assets[name].get("_error") or assets[name]["_time"]))
     for m in sorted(missing):
         rows.append("MISSING drawings of %s: placeholders left" % SCRIPT_OF.get(m, m))
     rows += rep + typo.notes
     rows += typo.issues[:40] + (["... %d more" % (len(typo.issues) - 40)] if len(typo.issues) > 40 else [])
-    rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
     if _SRC and _SRC[0].f5:                       # v19 (F5): Aras's list of figures left without a public source
         rows += ["F5 · sources not public online: left off the sources page, their marks taken off the pages; the "
                  "figures they backed have no public source now (page, the sheet's own mark, its source):"]
         rows += ["  " + t for t in _SRC[0].f5]
-    rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
-    return "\n".join(rows)
+    return rows
 
 
 def text_check(fitz, doc, typo, skip=()):
@@ -1670,7 +1766,8 @@ if "ghenv" in globals():
         for _s in ("_log", "_status", "_done"):   # idle, without the old run's time or log
             _sc.sticky.pop(_k + _s, None)
     done = _sc.sticky.get(_k + "_done", "idle")
-    log = _sc.sticky.get(_k + "_log", "Press the Button to build " + os.path.join(OUT_DIR, PDF_NAME))
+    log = _sc.sticky.get(_k + "_log", "Press the Button to build " + " and ".join(
+        os.path.join(OUT_DIR, variant_pdf(v_)) for v_ in BOOK_VARIANTS))
     print(log)
     try:
         ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821
