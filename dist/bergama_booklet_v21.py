@@ -10,6 +10,9 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v21 (Aras 30 Oct 06:20, a feature change): the Sources page lists every asset source once under its own
+  ASSETS heading (high-res silhouettes from Data/assets_hires.json, the A1 scale figure sets); no source note beside
+  a drawing.
 NEW IN v20.1 (bugfix, T5 fix pass 29 Oct): "inferred" joins the status words the sources page never prints.
 NEW IN v20 (revision 29 Oct, WO-T5-1; a feature change, so the next whole number):
   * Page list of the revision (data/PLAN.py): p.02 side column = plan 01's key, the edge from above, the readings;
@@ -113,7 +116,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v20.1"
+VERSION = "v21"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -188,6 +191,89 @@ def bg_tidy_output(name, cache_dir=None):
                 pass
     return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
             ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+# ---- high-res silhouettes (assets_2, Aras 30 Oct 2026): PhyloPic trees, crops and animals as filled vector rings,
+# drawn only in the detailed (true-to-cut) sections and recoloured there with that section's own colours. The
+# sketchy sections and diagrams keep their own drawing (an abstract set comes later).
+# Library: Downloads/Bergama/Data/assets_hires.json (run kit Data/), built in the cloud by
+# tools/assets2/build_hires.py from revision_2026-10-29/assets_2_2026-10/ (roots cut at the ground, height 1.0,
+# ground / feet at y = 0, y up). Each part = one keyhole ring for the even-odd fill + its outer and hole rings for
+# outlines. Uniform scale only (never stretched). No JSON on the PC -> callers fall back to their own drawing.
+# The sources are listed once on the booklet's Sources page under ASSETS (Aras 30 Oct 06:20), never beside a drawing.
+
+HR_LOG = []
+_HR_LIB = {}
+
+
+def hr_library():
+    """the high-res library (dict key -> asset) or {} when Downloads/Bergama/Data/assets_hires.json is missing"""
+    import os as _o
+    import json as _j
+    if "lib" in _HR_LIB:
+        return _HR_LIB["lib"]
+    lib = {}
+    p = _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "assets_hires.json")
+    if _o.path.exists(p):
+        try:
+            with open(p, "r") as fh:
+                lib = _j.load(fh).get("lib", {})
+            HR_LOG.append(u"High-res assets: %d from %s" % (len(lib), p))
+        except Exception as ex:
+            HR_LOG.append(u"High-res assets: %s unreadable (%s); own drawings used" % (p, type(ex).__name__))
+    else:
+        HR_LOG.append(u"High-res assets: Data/assets_hires.json not found; own drawings used")
+    _HR_LIB["lib"] = lib
+    return lib
+
+
+def _hr_draw(a, T, fill, edge, lw):
+    out = []
+    for part in a.get("parts", []):
+        out.append(("poly", [T(q) for q in part["fill"]], fill, None, 0.0))   # lw 0.0 marks a high-res fill
+        if edge:
+            for r in part["lines"]:
+                pts = [T(q) for q in r]
+                out.append(("line", pts + [pts[0]], edge, lw))
+    return out
+
+
+def hr_side(key, x, gy, k, h_m, w_m=None, fill="000000", edge=None, lw=0.08, facing=1):
+    """house shapes of one high-res plant: ground at (x, gy) page mm, h_m tall (m), k page mm per m; when w_m is given
+    and the silhouette would be wider, the whole drawing is scaled down until it is w_m wide (uniform). facing -1 =
+    mirrored. None when the library or the key is missing."""
+    a = hr_library().get(key) if key else None
+    if not a or not h_m:
+        return None
+    s = h_m * k
+    wd = float(a["x1"] - a["x0"])
+    if w_m and wd * h_m > w_m:
+        s = w_m / wd * k
+    f = -1.0 if facing < 0 else 1.0
+    return _hr_draw(a, lambda q: (x + f * q[0] * s, gy + q[1] * s), fill, edge, lw)
+
+
+def hr_fauna(key, x, y, size, fill="000000", edge=None, lw=0.05, facing=1, foot=None):
+    """house shapes of one high-res animal in a size-mm square centred on (x, y), head to the left (facing -1: to the
+    right, PhyloPic draws most animals facing left; the library's face tells which way each one looks); with foot
+    the feet sit foot x size below y (the pictograms' ground rule), otherwise the animal is centred. None when
+    missing."""
+    a = hr_library().get(key) if key else None
+    if not a:
+        return None
+    wd = float(a["x1"] - a["x0"])
+    s = size / max(wd, 1.0)
+    cx = (a["x0"] + a["x1"]) / 2.0
+    f = (-1.0 if facing < 0 else 1.0) * (-1.0 if a.get("face", 1) < 0 else 1.0)
+    y0 = y - foot * size if foot is not None else y - s / 2.0
+    return _hr_draw(a, lambda q: (x + f * (q[0] - cx) * s, y0 + q[1] * s), fill, edge, lw)
+
+
+def hr_sources():
+    """one line per asset used from the library, for the booklet's Sources page (ASSETS)"""
+    out = []
+    for key, a in sorted(hr_library().items()):
+        out.append(u"%s silhouette, %s, PhyloPic (%s), %s" % (a.get("what", key), a.get("author", ""),
+                                                              a.get("url", ""), a.get("licence", "")))
+    return out
 BERGAMA = BERGAMA_ROOT
 OUT_DIR = bg_output(OUT_FOLDER)                  # v10 (27 Oct): the booklet PDF only
 LOG_DIR = bg_logs()
@@ -1212,6 +1298,16 @@ def renum(s, key, blk, path):
     return _SRC[0].renum(s, _SRC[0].key_for(key.partition("/")[0], path, int((blk or {}).get("page", 0))))
 
 
+# v21 (Aras 30 Oct 06:20): the scale figure sets the pages draw from (common/figures.py, library/figures_A1/INDEX.md);
+# the high-res silhouettes come from Data/assets_hires.json (hr_sources)
+BK_ASSET_SOURCES = [
+    u"Scale figures: Wijayarathna S., Architectural human figures sketches (set 1), https://sashx.gumroad.com/l/gSAgZ",
+    u"Scale figures: studio_articulation, Sketchy Human Figures 2, "
+    u"https://learnarchitecture.online/products/sketchy-human-figures-2",
+    u"Scale figures: studio_articulation, Sketchy Human Figures 3, "
+    u"https://learnarchitecture.online/products/sketchy-human-figures-3"]
+
+
 class Sources(object):
     """v18 (Aras 27 Oct, Prompt 8: "every [n] used exists, none are unused, numbering follows the new order"): every
     [n] mark the pages show (sheet words inside each crop, captions, legend names), read in page order, takes one
@@ -1431,6 +1527,9 @@ class Sources(object):
             title = next((sp.get("title", "") for _, sp, rows in self.numbered if rows and
                           any(it[0] == MP + "mp_plan" for r in rows for it in r)), u"Masterplan: an ecological corridor")
             out.append((u"SOURCES OF THE NUMBERED PLACES IN ‘%s’" % title.upper(), codes))
+        assets = [public_src(t) or corn(t) for t in hr_sources() + BK_ASSET_SOURCES]
+        if assets:                                    # v21 (Aras 30 Oct 06:20): every asset source once, under ASSETS
+            out.append((u"ASSETS", assets))
         return out
 
     def report(self):

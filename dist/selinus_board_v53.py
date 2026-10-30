@@ -1,9 +1,13 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v52.1)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v53)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v53: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
+  PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
+  colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Pages
+  04-05 sections, 07c street sections.
 NEW IN v52.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08: no status words on a page): p.03 tree legend
   "radius and height from the Meta/WRI canopy height map" (was "modelled (estimated)"); p.02 land-use key "Orchards
   (satellite)" (was "inferred").
@@ -404,8 +408,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v52.1 (2026-10-29)"     # v27: the log's first line and the text under the component
-SHORT_V = "v52.1"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v53 (2026-10-30)"     # v27: the log's first line and the text under the component
+SHORT_V = "v53"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -22074,7 +22078,7 @@ class BkBlocks(object):
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v52.1"
+BK_VERSION = "v53"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -24068,11 +24072,25 @@ def _pla_size(key, sp, h_m, crown_m):
     return h, w
 
 
-def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0):
-    """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x)."""
+# species / crops with a high-res silhouette (hires.py, assets_2 30 Oct): same genus stand-ins per GAPS.md A
+PLA_HIRES = dict(plane="plane", ash="ash", olive="olive", stone_pine="stone_pine", maize="maize", tomato="tomato")
+
+
+def _pla_hr(key, x, gy, h, w, c, seed):
+    """the high-res silhouette in the species' own fill (this section's colours, paler beyond), mirrored on odd
+    seeds; None -> the primitive"""
+    return hr_side(PLA_HIRES.get(key), x, gy, 1.0, h, w, c["fill"], facing=-1 if seed % 2 else 1) if key in PLA_HIRES \
+        else None
+
+
+def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hires=True):
+    """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x). hires: the high-res
+    silhouette where the library has one (detailed sections); False for sketchy drawings and diagrams."""
     sp = _pla_get(key)
     h, w = _pla_size(key, sp, h_m, crown_m)
-    return _pla_sec(sp["form"], x, gy(x) if callable(gy) else gy, h, w, k, _pla_cols(sp, beyond), seed)
+    g, c = gy(x) if callable(gy) else gy, _pla_cols(sp, beyond)
+    sh = _pla_hr(key, x, g, h * k, w * k, c, seed) if hires else None
+    return sh or _pla_sec(sp["form"], x, g, h, w, k, c, seed)
 
 
 def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0):
@@ -24096,9 +24114,13 @@ def _pla_crop_size(crop, h_m, crown_m):
 def _pla_crop_sec(crop, x, gy, h, w, k, i, beyond):
     """One crop plant in section."""
     if crop == "olive":
-        return _pla_sec("gnarled", x, gy, h, w, k, _pla_cols(PLA_SPECIES["olive"], beyond), i)
+        c = _pla_cols(PLA_SPECIES["olive"], beyond)
+        return _pla_hr("olive", x, gy, h * k, w * k, c, i) or _pla_sec("gnarled", x, gy, h, w, k, c, i)
     H, R = h * k, w / 2.0 * k
     c = _pla_cols(dict(colours=_pla_c(SEC["grass"])), beyond)
+    sh = _pla_hr(crop, x, gy, H, 2.0 * R, c, i)
+    if sh:
+        return sh
     if crop == "maize":                         # stalk, arching leaves, tassel
         sh = [("line", [(x, gy), (x, gy + H)], c["fill"], 0.2)]
         for j in range(1, 7):
@@ -24271,6 +24293,89 @@ def pla_cell_plan(kind, ring_or_rect, k, kerb_t_m=0.15):
                     sh += _pla_plan("mound", px, py, sp["crown_m"] * 0.9, k, sp["colours"], i * 7 + j)
     sh.append(("poly", ring, None, SCT["line"], max(0.15, kerb_t_m * k)))
     return sh
+# ---- high-res silhouettes (assets_2, Aras 30 Oct 2026): PhyloPic trees, crops and animals as filled vector rings,
+# drawn only in the detailed (true-to-cut) sections and recoloured there with that section's own colours. The
+# sketchy sections and diagrams keep their own drawing (an abstract set comes later).
+# Library: Downloads/Bergama/Data/assets_hires.json (run kit Data/), built in the cloud by
+# tools/assets2/build_hires.py from revision_2026-10-29/assets_2_2026-10/ (roots cut at the ground, height 1.0,
+# ground / feet at y = 0, y up). Each part = one keyhole ring for the even-odd fill + its outer and hole rings for
+# outlines. Uniform scale only (never stretched). No JSON on the PC -> callers fall back to their own drawing.
+# The sources are listed once on the booklet's Sources page under ASSETS (Aras 30 Oct 06:20), never beside a drawing.
+
+HR_LOG = []
+_HR_LIB = {}
+
+
+def hr_library():
+    """the high-res library (dict key -> asset) or {} when Downloads/Bergama/Data/assets_hires.json is missing"""
+    import os as _o
+    import json as _j
+    if "lib" in _HR_LIB:
+        return _HR_LIB["lib"]
+    lib = {}
+    p = _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "assets_hires.json")
+    if _o.path.exists(p):
+        try:
+            with open(p, "r") as fh:
+                lib = _j.load(fh).get("lib", {})
+            HR_LOG.append(u"High-res assets: %d from %s" % (len(lib), p))
+        except Exception as ex:
+            HR_LOG.append(u"High-res assets: %s unreadable (%s); own drawings used" % (p, type(ex).__name__))
+    else:
+        HR_LOG.append(u"High-res assets: Data/assets_hires.json not found; own drawings used")
+    _HR_LIB["lib"] = lib
+    return lib
+
+
+def _hr_draw(a, T, fill, edge, lw):
+    out = []
+    for part in a.get("parts", []):
+        out.append(("poly", [T(q) for q in part["fill"]], fill, None, 0.0))   # lw 0.0 marks a high-res fill
+        if edge:
+            for r in part["lines"]:
+                pts = [T(q) for q in r]
+                out.append(("line", pts + [pts[0]], edge, lw))
+    return out
+
+
+def hr_side(key, x, gy, k, h_m, w_m=None, fill="000000", edge=None, lw=0.08, facing=1):
+    """house shapes of one high-res plant: ground at (x, gy) page mm, h_m tall (m), k page mm per m; when w_m is given
+    and the silhouette would be wider, the whole drawing is scaled down until it is w_m wide (uniform). facing -1 =
+    mirrored. None when the library or the key is missing."""
+    a = hr_library().get(key) if key else None
+    if not a or not h_m:
+        return None
+    s = h_m * k
+    wd = float(a["x1"] - a["x0"])
+    if w_m and wd * h_m > w_m:
+        s = w_m / wd * k
+    f = -1.0 if facing < 0 else 1.0
+    return _hr_draw(a, lambda q: (x + f * q[0] * s, gy + q[1] * s), fill, edge, lw)
+
+
+def hr_fauna(key, x, y, size, fill="000000", edge=None, lw=0.05, facing=1, foot=None):
+    """house shapes of one high-res animal in a size-mm square centred on (x, y), head to the left (facing -1: to the
+    right, PhyloPic draws most animals facing left; the library's face tells which way each one looks); with foot
+    the feet sit foot x size below y (the pictograms' ground rule), otherwise the animal is centred. None when
+    missing."""
+    a = hr_library().get(key) if key else None
+    if not a:
+        return None
+    wd = float(a["x1"] - a["x0"])
+    s = size / max(wd, 1.0)
+    cx = (a["x0"] + a["x1"]) / 2.0
+    f = (-1.0 if facing < 0 else 1.0) * (-1.0 if a.get("face", 1) < 0 else 1.0)
+    y0 = y - foot * size if foot is not None else y - s / 2.0
+    return _hr_draw(a, lambda q: (x + f * (q[0] - cx) * s, y0 + q[1] * s), fill, edge, lw)
+
+
+def hr_sources():
+    """one line per asset used from the library, for the booklet's Sources page (ASSETS)"""
+    out = []
+    for key, a in sorted(hr_library().items()):
+        out.append(u"%s silhouette, %s, PhyloPic (%s), %s" % (a.get("what", key), a.get("author", ""),
+                                                              a.get("url", ""), a.get("licence", "")))
+    return out
 # ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1): every symbol drawn on one 24-unit square grid,
 # scaled to `size` page mm, with one stroke weight, one corner radius and one colour rule, so water, planting, plant,
 # people and warning marks read as one family (quality bar: refs/R19, the crossed glass on page 18).

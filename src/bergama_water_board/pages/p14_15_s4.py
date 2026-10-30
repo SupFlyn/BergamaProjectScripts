@@ -366,6 +366,9 @@ def _p14_cell(pg, x0, y0, x1, y1, st, leaf=None):
         pg.poly([r], fill=COL["white"], stroke=P14_BLOOM, lw=0.1, stripes=(P14_BLOOM, 0.55, 0.1, 45.0))
 
 
+P14_HR_BARE = {"plane": "plane_bare"}   # bare-month silhouettes of the high-res library (hires.py)
+
+
 def _p14_plant(pg, key, x, gy, k, month, h=None, cw=None, seed=0):
     """a species in section at true size (plants.py) as it is that month (1-12): a bare crown see-through, flowers
     only in its flowering months, loosestrife without its heads once they are cut"""
@@ -373,11 +376,20 @@ def _p14_plant(pg, key, x, gy, k, month, h=None, cw=None, seed=0):
     st = _p14_state(key, month)
     fol = (c.get("fill"), c.get("lt"))
     acc = c.get("accent")
+    if st == "bare" and key in P14_HR_BARE:            # assets_2: the high-res bare crown, branches in the stem colour
+        sp = PLA_SPECIES[key]
+        bare = hr_side(P14_HR_BARE[key], x, gy, k, h or sp["h_m"], cw or sp["crown_m"], c.get("stem"),
+                       facing=-1 if seed % 2 else 1)
+        if bare:
+            for sh in bare:
+                if sh[0] == "poly":
+                    pg.poly([sh[1]], fill=sh[2])
+            return
     for sh in pla_section(key, x, gy, k, h, cw, False, seed):
         if sh[0] == "poly":
             fill = sh[2]
-            if st == "bare" and fill in fol:
-                pg.poly([sh[1]], fill=P14_BARE, stroke=c.get("stem"), lw=0.06, alpha=0.6)
+            if st == "bare" and fill in fol:          # a high-res fill (lw 0.0) takes no edge: its keyhole would show
+                pg.poly([sh[1]], fill=P14_BARE, stroke=c.get("stem") if sh[4] else None, lw=0.06, alpha=0.6)
                 continue
             if acc and fill == acc and st != "bloom":
                 if st in ("cut", "bare"):
@@ -425,6 +437,11 @@ P14_FAUNA = [
     dict(key="tree_frog", name=u"Eastern tree frog", kind="frog", m={4}, h=0.05,
          c=("7DBA4A", "4F8A2E", "EAF0C8", "2C2219", "4F8A2E")),
 ]
+# P14_FAUNA key -> high-res silhouette (hires.py; stand-ins of the same genus or family per GAPS.md D). Wagtails and
+# the green toad have no vector in the pack: their pictograms stay.
+P14_HR = dict(grey_heron="heron", white_stork="stork", kingfisher="kingfisher", barn_swallow="swallow",
+              little_egret="egret", black_stork="stork", caspian_turtle="turtle", marsh_frog="frog",
+              red_veined_darter="dragonfly", banded_demoiselle="damselfly", dice_snake="snake", tree_frog="frog")
 P14_BIRDS = ("heron", "stork", "kingfisher", "swallow", "songbird")
 P14_FAUNA_N = (7, 3)                 # animals shown a season at most, of them not birds at most
 P14_FOOT = {"heron": 0.44, "stork": 0.46, "kingfisher": 0.27, "songbird": 0.2, "turtle": 0.1, "frog": 0.17,
@@ -448,12 +465,21 @@ def _p14_fauna_for(sea):
 def _p14_fauna(pg, key, x, y, size, facing=1):
     """ONE place for the animal pictograms of pp.14-15 (figures.py, which will hold them, is paused): the P14_FAUNA
     animal key drawn in a size-mm square centred on (x, y), head to the left (facing -1: to the right), simple flat
-    shapes in its own colours. Swap the new set in here."""
+    shapes in its own colours. 30 Oct: the high-res set (P14_HR) first, the pictograms where it has none."""
     fa = [f for f in P14_FAUNA if f["key"] == key][0]
     body, wing, light, bill, legs = fa["c"]
     kind = fa["kind"]
     lw = max(0.05, size / 70.0)
     white = body.upper() == "FFFFFF"
+    hr = hr_fauna(P14_HR.get(key), x, y, size, fill=body, edge=COL["ink2"] if white else None, lw=lw,
+                  facing=facing, foot=P14_FOOT.get(kind))   # assets_2: the high-res silhouette in its own body colour
+    if hr:
+        for sh in hr:
+            if sh[0] == "poly":
+                pg.poly([sh[1]], fill=sh[2])
+            else:
+                pg.line(sh[1], sh[2], sh[3])
+        return
     dark = "2C2219"
 
     def T(u, v):

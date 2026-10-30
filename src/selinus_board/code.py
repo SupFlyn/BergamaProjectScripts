@@ -37,6 +37,7 @@
 #@include ../common/basemap.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py
+#@include ../common/hires.py
 #@include ../common/icons.py
 #@include pages/p02_p03.py
 #@include pages/p04_05_sections.py

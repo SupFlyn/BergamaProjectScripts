@@ -50,6 +50,12 @@ NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole n
     plants, space types, recorded fauna, one rectangular view per season, water and rain as graphics.
   * Core: only public sources are printed (public_src() in cite()); no status words; the shared modules (levels,
     basemap, plants, icons) included; build_board calls the page functions p12_page, p14_page, p15_page.
+v7: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the PhyloPic trees
+  (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own colours, roots
+  cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). pp.14-15 also draw
+  the recorded animals as PhyloPic silhouettes in their own colours (P14_HR; wagtails + green toad keep their
+  pictograms) and the bare plane in its leafless silhouette; p.17 sections and cards; p.18 axonometric keeps its
+  primitives. Output: Bergama_water_board_v7_A_cubes.pdf.
 v6.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.12's reed pilot figure cites its public paper (Korkusuz et
   al. 2004, Turk. J. Eng. Env. Sci. 28; was "published" + a register code, which left it without a source); p.12 prints
   the HOLD volume and the strip's summer volume only from the live water balance results (WB_LIVE), never from the
@@ -146,8 +152,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v6.1 (2026-10-29)"
-SHORT = "v6.1"
+VERSION = "bergama_water_board v7 (2026-10-30)"
+SHORT = "v7"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -156,7 +162,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v6_1_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v7_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -612,6 +618,7 @@ def spread(ys, gap, lo=None, hi=None):
 # v5 (revision 29 Oct, T3b): the shared modules the pages call (T2a levels + basemap, T2b plants + icons); plants after
 # section_style (it includes section_parts)
 #@include ../common/plants.py
+#@include ../common/hires.py
 #@include ../common/icons.py
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py

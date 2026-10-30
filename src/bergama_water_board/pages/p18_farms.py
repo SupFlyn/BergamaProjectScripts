@@ -220,7 +220,7 @@ def draw_farm_picto(opt):
     for (px, py), kind, i in sorted(items, key=lambda t: -t[0][1]):
         if kind == "t":
             _p18_put(pg, pla_section("olive", px, py, k, h_m=sp["h_m"] * math.cos(math.radians(PHI)),
-                                     crown_m=sp["crown_m"], seed=i))
+                                     crown_m=sp["crown_m"], seed=i, hires=False))   # axonometric drawing: no high-res
         else:
             _p18_fig(pg, "olive", px, py, kz, C["dark"], facing=i, branch_h=P18_BRANCH_M)
     bb = items_bbox(pg.items)

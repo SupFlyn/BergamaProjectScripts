@@ -4,6 +4,10 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
+  PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
+  colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
+  13 (W1-W4).
 NEW IN v10 (revision 29 Oct, WO-T3b-3, booklet page 13; package C "Page 13", brief 02 §3-§6; a feature change):
   * The four sections are redrawn true to their cuts W1-W4 at 1:500 on the booklet page (parts/70_sections.py): bed,
     bed width, DSİ walls (5.00 m), embankments at their surveyed angle, the loose earth bank, the SW shelf, Q100 and
@@ -71,7 +75,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v10"
+VERSION = "v11"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -219,6 +223,7 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 #@include ../common/section_parts.py
 
 #@include ../common/plants.py
+#@include ../common/hires.py
 
 #@include ../common/figures.py
 

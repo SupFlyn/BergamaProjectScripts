@@ -10,6 +10,9 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf
+NEW IN v21 (Aras 30 Oct 06:20, a feature change): the Sources page lists every asset source once under its own
+  ASSETS heading (high-res silhouettes from Data/assets_hires.json, the A1 scale figure sets); no source note beside
+  a drawing.
 NEW IN v20.1 (bugfix, T5 fix pass 29 Oct): "inferred" joins the status words the sources page never prints.
 NEW IN v20 (revision 29 Oct, WO-T5-1; a feature change, so the next whole number):
   * Page list of the revision (data/PLAN.py): p.02 side column = plan 01's key, the edge from above, the readings;
@@ -113,7 +116,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v20.1"
+VERSION = "v21"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -123,6 +126,7 @@ G9_MARGIN = 0.5                              # v19 (MIRAQUA 28 Oct, G9): mm roun
 G9_LINE_ART = True                           # v19 (G9): False keeps the line art outside a crop (only words and images go)
 
 #@include ../common/bergama_paths.py
+#@include ../common/hires.py
 BERGAMA = BERGAMA_ROOT
 OUT_DIR = bg_output(OUT_FOLDER)                  # v10 (27 Oct): the booklet PDF only
 LOG_DIR = bg_logs()
@@ -1127,6 +1131,16 @@ def renum(s, key, blk, path):
     return _SRC[0].renum(s, _SRC[0].key_for(key.partition("/")[0], path, int((blk or {}).get("page", 0))))
 
 
+# v21 (Aras 30 Oct 06:20): the scale figure sets the pages draw from (common/figures.py, library/figures_A1/INDEX.md);
+# the high-res silhouettes come from Data/assets_hires.json (hr_sources)
+BK_ASSET_SOURCES = [
+    u"Scale figures: Wijayarathna S., Architectural human figures sketches (set 1), https://sashx.gumroad.com/l/gSAgZ",
+    u"Scale figures: studio_articulation, Sketchy Human Figures 2, "
+    u"https://learnarchitecture.online/products/sketchy-human-figures-2",
+    u"Scale figures: studio_articulation, Sketchy Human Figures 3, "
+    u"https://learnarchitecture.online/products/sketchy-human-figures-3"]
+
+
 class Sources(object):
     """v18 (Aras 27 Oct, Prompt 8: "every [n] used exists, none are unused, numbering follows the new order"): every
     [n] mark the pages show (sheet words inside each crop, captions, legend names), read in page order, takes one
@@ -1346,6 +1360,9 @@ class Sources(object):
             title = next((sp.get("title", "") for _, sp, rows in self.numbered if rows and
                           any(it[0] == MP + "mp_plan" for r in rows for it in r)), u"Masterplan: an ecological corridor")
             out.append((u"SOURCES OF THE NUMBERED PLACES IN ‘%s’" % title.upper(), codes))
+        assets = [public_src(t) or corn(t) for t in hr_sources() + BK_ASSET_SOURCES]
+        if assets:                                    # v21 (Aras 30 Oct 06:20): every asset source once, under ASSETS
+            out.append((u"ASSETS", assets))
         return out
 
     def report(self):

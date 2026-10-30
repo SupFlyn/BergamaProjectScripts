@@ -377,11 +377,25 @@ def _pla_size(key, sp, h_m, crown_m):
     return h, w
 
 
-def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0):
-    """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x)."""
+# species / crops with a high-res silhouette (hires.py, assets_2 30 Oct): same genus stand-ins per GAPS.md A
+PLA_HIRES = dict(plane="plane", ash="ash", olive="olive", stone_pine="stone_pine", maize="maize", tomato="tomato")
+
+
+def _pla_hr(key, x, gy, h, w, c, seed):
+    """the high-res silhouette in the species' own fill (this section's colours, paler beyond), mirrored on odd
+    seeds; None -> the primitive"""
+    return hr_side(PLA_HIRES.get(key), x, gy, 1.0, h, w, c["fill"], facing=-1 if seed % 2 else 1) if key in PLA_HIRES \
+        else None
+
+
+def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hires=True):
+    """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x). hires: the high-res
+    silhouette where the library has one (detailed sections); False for sketchy drawings and diagrams."""
     sp = _pla_get(key)
     h, w = _pla_size(key, sp, h_m, crown_m)
-    return _pla_sec(sp["form"], x, gy(x) if callable(gy) else gy, h, w, k, _pla_cols(sp, beyond), seed)
+    g, c = gy(x) if callable(gy) else gy, _pla_cols(sp, beyond)
+    sh = _pla_hr(key, x, g, h * k, w * k, c, seed) if hires else None
+    return sh or _pla_sec(sp["form"], x, g, h, w, k, c, seed)
 
 
 def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0):
@@ -405,9 +419,13 @@ def _pla_crop_size(crop, h_m, crown_m):
 def _pla_crop_sec(crop, x, gy, h, w, k, i, beyond):
     """One crop plant in section."""
     if crop == "olive":
-        return _pla_sec("gnarled", x, gy, h, w, k, _pla_cols(PLA_SPECIES["olive"], beyond), i)
+        c = _pla_cols(PLA_SPECIES["olive"], beyond)
+        return _pla_hr("olive", x, gy, h * k, w * k, c, i) or _pla_sec("gnarled", x, gy, h, w, k, c, i)
     H, R = h * k, w / 2.0 * k
     c = _pla_cols(dict(colours=_pla_c(SEC["grass"])), beyond)
+    sh = _pla_hr(crop, x, gy, H, 2.0 * R, c, i)
+    if sh:
+        return sh
     if crop == "maize":                         # stalk, arching leaves, tassel
         sh = [("line", [(x, gy), (x, gy + H)], c["fill"], 0.2)]
         for j in range(1, 7):

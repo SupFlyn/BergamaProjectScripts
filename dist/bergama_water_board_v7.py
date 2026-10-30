@@ -50,6 +50,12 @@ NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole n
     plants, space types, recorded fauna, one rectangular view per season, water and rain as graphics.
   * Core: only public sources are printed (public_src() in cite()); no status words; the shared modules (levels,
     basemap, plants, icons) included; build_board calls the page functions p12_page, p14_page, p15_page.
+v7: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the PhyloPic trees
+  (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own colours, roots
+  cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). pp.14-15 also draw
+  the recorded animals as PhyloPic silhouettes in their own colours (P14_HR; wagtails + green toad keep their
+  pictograms) and the bare plane in its leafless silhouette; p.17 sections and cards; p.18 axonometric keeps its
+  primitives. Output: Bergama_water_board_v7_A_cubes.pdf.
 v6.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.12's reed pilot figure cites its public paper (Korkusuz et
   al. 2004, Turk. J. Eng. Env. Sci. 28; was "published" + a register code, which left it without a source); p.12 prints
   the HOLD volume and the strip's summer volume only from the live water balance results (WB_LIVE), never from the
@@ -146,8 +152,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v6.1 (2026-10-29)"
-SHORT = "v6.1"
+VERSION = "bergama_water_board v7 (2026-10-30)"
+SHORT = "v7"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -156,7 +162,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v6_1_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v7_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -1924,11 +1930,25 @@ def _pla_size(key, sp, h_m, crown_m):
     return h, w
 
 
-def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0):
-    """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x)."""
+# species / crops with a high-res silhouette (hires.py, assets_2 30 Oct): same genus stand-ins per GAPS.md A
+PLA_HIRES = dict(plane="plane", ash="ash", olive="olive", stone_pine="stone_pine", maize="maize", tomato="tomato")
+
+
+def _pla_hr(key, x, gy, h, w, c, seed):
+    """the high-res silhouette in the species' own fill (this section's colours, paler beyond), mirrored on odd
+    seeds; None -> the primitive"""
+    return hr_side(PLA_HIRES.get(key), x, gy, 1.0, h, w, c["fill"], facing=-1 if seed % 2 else 1) if key in PLA_HIRES \
+        else None
+
+
+def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hires=True):
+    """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x). hires: the high-res
+    silhouette where the library has one (detailed sections); False for sketchy drawings and diagrams."""
     sp = _pla_get(key)
     h, w = _pla_size(key, sp, h_m, crown_m)
-    return _pla_sec(sp["form"], x, gy(x) if callable(gy) else gy, h, w, k, _pla_cols(sp, beyond), seed)
+    g, c = gy(x) if callable(gy) else gy, _pla_cols(sp, beyond)
+    sh = _pla_hr(key, x, g, h * k, w * k, c, seed) if hires else None
+    return sh or _pla_sec(sp["form"], x, g, h, w, k, c, seed)
 
 
 def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0):
@@ -1952,9 +1972,13 @@ def _pla_crop_size(crop, h_m, crown_m):
 def _pla_crop_sec(crop, x, gy, h, w, k, i, beyond):
     """One crop plant in section."""
     if crop == "olive":
-        return _pla_sec("gnarled", x, gy, h, w, k, _pla_cols(PLA_SPECIES["olive"], beyond), i)
+        c = _pla_cols(PLA_SPECIES["olive"], beyond)
+        return _pla_hr("olive", x, gy, h * k, w * k, c, i) or _pla_sec("gnarled", x, gy, h, w, k, c, i)
     H, R = h * k, w / 2.0 * k
     c = _pla_cols(dict(colours=_pla_c(SEC["grass"])), beyond)
+    sh = _pla_hr(crop, x, gy, H, 2.0 * R, c, i)
+    if sh:
+        return sh
     if crop == "maize":                         # stalk, arching leaves, tassel
         sh = [("line", [(x, gy), (x, gy + H)], c["fill"], 0.2)]
         for j in range(1, 7):
@@ -2127,6 +2151,89 @@ def pla_cell_plan(kind, ring_or_rect, k, kerb_t_m=0.15):
                     sh += _pla_plan("mound", px, py, sp["crown_m"] * 0.9, k, sp["colours"], i * 7 + j)
     sh.append(("poly", ring, None, SCT["line"], max(0.15, kerb_t_m * k)))
     return sh
+# ---- high-res silhouettes (assets_2, Aras 30 Oct 2026): PhyloPic trees, crops and animals as filled vector rings,
+# drawn only in the detailed (true-to-cut) sections and recoloured there with that section's own colours. The
+# sketchy sections and diagrams keep their own drawing (an abstract set comes later).
+# Library: Downloads/Bergama/Data/assets_hires.json (run kit Data/), built in the cloud by
+# tools/assets2/build_hires.py from revision_2026-10-29/assets_2_2026-10/ (roots cut at the ground, height 1.0,
+# ground / feet at y = 0, y up). Each part = one keyhole ring for the even-odd fill + its outer and hole rings for
+# outlines. Uniform scale only (never stretched). No JSON on the PC -> callers fall back to their own drawing.
+# The sources are listed once on the booklet's Sources page under ASSETS (Aras 30 Oct 06:20), never beside a drawing.
+
+HR_LOG = []
+_HR_LIB = {}
+
+
+def hr_library():
+    """the high-res library (dict key -> asset) or {} when Downloads/Bergama/Data/assets_hires.json is missing"""
+    import os as _o
+    import json as _j
+    if "lib" in _HR_LIB:
+        return _HR_LIB["lib"]
+    lib = {}
+    p = _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "assets_hires.json")
+    if _o.path.exists(p):
+        try:
+            with open(p, "r") as fh:
+                lib = _j.load(fh).get("lib", {})
+            HR_LOG.append(u"High-res assets: %d from %s" % (len(lib), p))
+        except Exception as ex:
+            HR_LOG.append(u"High-res assets: %s unreadable (%s); own drawings used" % (p, type(ex).__name__))
+    else:
+        HR_LOG.append(u"High-res assets: Data/assets_hires.json not found; own drawings used")
+    _HR_LIB["lib"] = lib
+    return lib
+
+
+def _hr_draw(a, T, fill, edge, lw):
+    out = []
+    for part in a.get("parts", []):
+        out.append(("poly", [T(q) for q in part["fill"]], fill, None, 0.0))   # lw 0.0 marks a high-res fill
+        if edge:
+            for r in part["lines"]:
+                pts = [T(q) for q in r]
+                out.append(("line", pts + [pts[0]], edge, lw))
+    return out
+
+
+def hr_side(key, x, gy, k, h_m, w_m=None, fill="000000", edge=None, lw=0.08, facing=1):
+    """house shapes of one high-res plant: ground at (x, gy) page mm, h_m tall (m), k page mm per m; when w_m is given
+    and the silhouette would be wider, the whole drawing is scaled down until it is w_m wide (uniform). facing -1 =
+    mirrored. None when the library or the key is missing."""
+    a = hr_library().get(key) if key else None
+    if not a or not h_m:
+        return None
+    s = h_m * k
+    wd = float(a["x1"] - a["x0"])
+    if w_m and wd * h_m > w_m:
+        s = w_m / wd * k
+    f = -1.0 if facing < 0 else 1.0
+    return _hr_draw(a, lambda q: (x + f * q[0] * s, gy + q[1] * s), fill, edge, lw)
+
+
+def hr_fauna(key, x, y, size, fill="000000", edge=None, lw=0.05, facing=1, foot=None):
+    """house shapes of one high-res animal in a size-mm square centred on (x, y), head to the left (facing -1: to the
+    right, PhyloPic draws most animals facing left; the library's face tells which way each one looks); with foot
+    the feet sit foot x size below y (the pictograms' ground rule), otherwise the animal is centred. None when
+    missing."""
+    a = hr_library().get(key) if key else None
+    if not a:
+        return None
+    wd = float(a["x1"] - a["x0"])
+    s = size / max(wd, 1.0)
+    cx = (a["x0"] + a["x1"]) / 2.0
+    f = (-1.0 if facing < 0 else 1.0) * (-1.0 if a.get("face", 1) < 0 else 1.0)
+    y0 = y - foot * size if foot is not None else y - s / 2.0
+    return _hr_draw(a, lambda q: (x + f * (q[0] - cx) * s, y0 + q[1] * s), fill, edge, lw)
+
+
+def hr_sources():
+    """one line per asset used from the library, for the booklet's Sources page (ASSETS)"""
+    out = []
+    for key, a in sorted(hr_library().items()):
+        out.append(u"%s silhouette, %s, PhyloPic (%s), %s" % (a.get("what", key), a.get("author", ""),
+                                                              a.get("url", ""), a.get("licence", "")))
+    return out
 # ---- the booklet's one icon set (02_SHARED_SYSTEMS §2, WO-T2b-1): every symbol drawn on one 24-unit square grid,
 # scaled to `size` page mm, with one stroke weight, one corner radius and one colour rule, so water, planting, plant,
 # people and warning marks read as one family (quality bar: refs/R19, the crossed glass on page 18).
@@ -7544,6 +7651,9 @@ def _p14_cell(pg, x0, y0, x1, y1, st, leaf=None):
         pg.poly([r], fill=COL["white"], stroke=P14_BLOOM, lw=0.1, stripes=(P14_BLOOM, 0.55, 0.1, 45.0))
 
 
+P14_HR_BARE = {"plane": "plane_bare"}   # bare-month silhouettes of the high-res library (hires.py)
+
+
 def _p14_plant(pg, key, x, gy, k, month, h=None, cw=None, seed=0):
     """a species in section at true size (plants.py) as it is that month (1-12): a bare crown see-through, flowers
     only in its flowering months, loosestrife without its heads once they are cut"""
@@ -7551,11 +7661,20 @@ def _p14_plant(pg, key, x, gy, k, month, h=None, cw=None, seed=0):
     st = _p14_state(key, month)
     fol = (c.get("fill"), c.get("lt"))
     acc = c.get("accent")
+    if st == "bare" and key in P14_HR_BARE:            # assets_2: the high-res bare crown, branches in the stem colour
+        sp = PLA_SPECIES[key]
+        bare = hr_side(P14_HR_BARE[key], x, gy, k, h or sp["h_m"], cw or sp["crown_m"], c.get("stem"),
+                       facing=-1 if seed % 2 else 1)
+        if bare:
+            for sh in bare:
+                if sh[0] == "poly":
+                    pg.poly([sh[1]], fill=sh[2])
+            return
     for sh in pla_section(key, x, gy, k, h, cw, False, seed):
         if sh[0] == "poly":
             fill = sh[2]
-            if st == "bare" and fill in fol:
-                pg.poly([sh[1]], fill=P14_BARE, stroke=c.get("stem"), lw=0.06, alpha=0.6)
+            if st == "bare" and fill in fol:          # a high-res fill (lw 0.0) takes no edge: its keyhole would show
+                pg.poly([sh[1]], fill=P14_BARE, stroke=c.get("stem") if sh[4] else None, lw=0.06, alpha=0.6)
                 continue
             if acc and fill == acc and st != "bloom":
                 if st in ("cut", "bare"):
@@ -7603,6 +7722,11 @@ P14_FAUNA = [
     dict(key="tree_frog", name=u"Eastern tree frog", kind="frog", m={4}, h=0.05,
          c=("7DBA4A", "4F8A2E", "EAF0C8", "2C2219", "4F8A2E")),
 ]
+# P14_FAUNA key -> high-res silhouette (hires.py; stand-ins of the same genus or family per GAPS.md D). Wagtails and
+# the green toad have no vector in the pack: their pictograms stay.
+P14_HR = dict(grey_heron="heron", white_stork="stork", kingfisher="kingfisher", barn_swallow="swallow",
+              little_egret="egret", black_stork="stork", caspian_turtle="turtle", marsh_frog="frog",
+              red_veined_darter="dragonfly", banded_demoiselle="damselfly", dice_snake="snake", tree_frog="frog")
 P14_BIRDS = ("heron", "stork", "kingfisher", "swallow", "songbird")
 P14_FAUNA_N = (7, 3)                 # animals shown a season at most, of them not birds at most
 P14_FOOT = {"heron": 0.44, "stork": 0.46, "kingfisher": 0.27, "songbird": 0.2, "turtle": 0.1, "frog": 0.17,
@@ -7626,12 +7750,21 @@ def _p14_fauna_for(sea):
 def _p14_fauna(pg, key, x, y, size, facing=1):
     """ONE place for the animal pictograms of pp.14-15 (figures.py, which will hold them, is paused): the P14_FAUNA
     animal key drawn in a size-mm square centred on (x, y), head to the left (facing -1: to the right), simple flat
-    shapes in its own colours. Swap the new set in here."""
+    shapes in its own colours. 30 Oct: the high-res set (P14_HR) first, the pictograms where it has none."""
     fa = [f for f in P14_FAUNA if f["key"] == key][0]
     body, wing, light, bill, legs = fa["c"]
     kind = fa["kind"]
     lw = max(0.05, size / 70.0)
     white = body.upper() == "FFFFFF"
+    hr = hr_fauna(P14_HR.get(key), x, y, size, fill=body, edge=COL["ink2"] if white else None, lw=lw,
+                  facing=facing, foot=P14_FOOT.get(kind))   # assets_2: the high-res silhouette in its own body colour
+    if hr:
+        for sh in hr:
+            if sh[0] == "poly":
+                pg.poly([sh[1]], fill=sh[2])
+            else:
+                pg.line(sh[1], sh[2], sh[3])
+        return
     dark = "2C2219"
 
     def T(u, v):
@@ -10259,7 +10392,7 @@ def draw_farm_picto(opt):
     for (px, py), kind, i in sorted(items, key=lambda t: -t[0][1]):
         if kind == "t":
             _p18_put(pg, pla_section("olive", px, py, k, h_m=sp["h_m"] * math.cos(math.radians(PHI)),
-                                     crown_m=sp["crown_m"], seed=i))
+                                     crown_m=sp["crown_m"], seed=i, hires=False))   # axonometric drawing: no high-res
         else:
             _p18_fig(pg, "olive", px, py, kz, C["dark"], facing=i, branch_h=P18_BRANCH_M)
     bb = items_bbox(pg.items)

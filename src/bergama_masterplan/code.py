@@ -9,6 +9,7 @@
 #@include ../common/basemap.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py
+#@include ../common/hires.py
 #@include ../common/icons.py
 #@include parts/02_Design.py
 #@include ../common/booklet_assets.py

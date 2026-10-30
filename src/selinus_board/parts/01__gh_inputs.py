@@ -1,9 +1,13 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v52.1)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v53)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v53: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
+  PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
+  colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Pages
+  04-05 sections, 07c street sections.
 NEW IN v52.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08: no status words on a page): p.03 tree legend
   "radius and height from the Meta/WRI canopy height map" (was "modelled (estimated)"); p.02 land-use key "Orchards
   (satellite)" (was "inferred").
@@ -385,8 +389,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v52.1 (2026-10-29)"     # v27: the log's first line and the text under the component
-SHORT_V = "v52.1"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v53 (2026-10-30)"     # v27: the log's first line and the text under the component
+SHORT_V = "v53"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

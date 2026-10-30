@@ -3,9 +3,9 @@
 | function / data | file | line |
 |---|---|---|
 | bergama_paths | ../common/bergama_paths.py | - |
-| ps_sources | code.py | 122 |
-| text_w | code.py | 155 |
-| Page | code.py | 162 |
+| ps_sources | code.py | 126 |
+| text_w | code.py | 159 |
+| Page | code.py | 166 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -20,6 +20,7 @@
 | levels | ../common/levels.py | - |
 | section_parts | ../common/section_parts.py | - |
 | plants | ../common/plants.py | - |
+| hires | ../common/hires.py | - |
 | figures | ../common/figures.py | - |
 | basemap | ../common/basemap.py | - |
 | load_palette | ../common/load_palette.py | - |
@@ -66,8 +67,8 @@
 | ps_key_strip | parts/80_key_map.py | 165 |
 | _ps_mix | parts/90_booklet.py | 23 |
 | booklet_export | parts/90_booklet.py | 29 |
-| build_sheet | code.py | 259 |
-| main | code.py | 283 |
-| chain_fire | code.py | 310 |
-| done_text | code.py | 331 |
-| write_log | code.py | 336 |
+| build_sheet | code.py | 264 |
+| main | code.py | 288 |
+| chain_fire | code.py | 315 |
+| done_text | code.py | 336 |
+| write_log | code.py | 341 |
