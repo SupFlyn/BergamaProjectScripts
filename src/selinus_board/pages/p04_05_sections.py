@@ -1017,7 +1017,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     except Exception as e:
         LOG.append(u"Sections key map: no basemap ({}).".format(e))
     if items:
-        basemap_draw(items, V.p, fill_fn, line_fn, text_fn)
+        basemap_draw(items, lambda p: V.p(p[0], p[1]), fill_fn, line_fn, text_fn)   # v53.1: T takes one point
     else:                                                 # before the first basemap export: water and buildings
         for wt in S.water:
             CB.fill(V.Ps([wt["P"]] + wt.get("H", [])), BLUE_L, L, 31)
@@ -1031,7 +1031,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
         LOG.append(u"Sections key map: cut lines from the site board's sec_lines ({}).".format(e))
     den_k = 1000.0 * kb / ssk                             # the key map's scale (no bar: the triangles' size)
     ci = basemap_cut_items(cuts, den_k, frame=list(F.P), tri_mm=3.0, text_mm=3.4, col="4A3F35")
-    basemap_draw(ci, V.p, lambda rings, hx, al, nz: CB.fill(rings, _p45_c(hx), L, 39),
+    basemap_draw(ci, lambda p: V.p(p[0], p[1]), lambda rings, hx, al, nz: CB.fill(rings, _p45_c(hx), L, 39),
                  lambda pts, hx, wmm, dash, al: line_fn(pts, hx, wmm, dash, al, 39),
                  lambda s, p, size_mm, hx, bold, align: text_fn(s, p, size_mm, hx, bold, align, 42))
     B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.15, kb))

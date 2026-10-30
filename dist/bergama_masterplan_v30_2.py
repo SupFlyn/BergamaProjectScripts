@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v30 (2026-10-30): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v30.2 (2026-10-30): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v30.2 (bugfix, Aras 30 Oct 13:05 run): p.23 side column: the "More moves" list is sized as it is drawn
+    (each move at least its badge's height), so the legend pitch leaves room for it (was 0.7 mm over). Output:
+    Bergama_masterplan_v30_2_A.pdf, Bergama_masterplan_v30_2_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v30.1 (bugfix, Aras 30 Oct 12:21 run): p.23 and p.24 no longer stop on the kept bridges (KeyError 'P'):
+    a kept bridge has only a point, so the callout boxes and the p.24 crossings skip it. Output:
+    Bergama_masterplan_v30_1_A.pdf, Bergama_masterplan_v30_1_A_detail.pdf, Bergama_senses_A3.pdf.
 NEW IN v30: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). p.24
@@ -202,8 +208,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v30 (2026-10-30)"
-SHORT = "v30"
+VERSION = "bergama_masterplan v30.2 (2026-10-30)"
+SHORT = "v30.2"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -214,8 +220,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v30_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v30_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v30_2_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v30_2_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -8570,7 +8576,7 @@ def pl23_busy(C, T, half=1.4):
     out = []
     lines = list(C.bed_loops) + list(C.covered) + list(C.canopy) + [a["P"] for a in C.arms] + \
         [x.get("P") or [] for x in (C.CL.get("W") or {}).get("runs") or []] + [rd["xy"] for rd in ROADS] + \
-        [c_["P"] for c_ in C.cross]
+        [c_["P"] for c_ in C.cross if c_.get("P")]          # v30.1: kept bridges have only "xy"
     for P in lines:
         if len(P) >= 2:
             out += boxes_along([T(p) for p in P], half)
@@ -8751,8 +8757,8 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
     more = [e for e in ents if not e[4]]
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
     lines_more = [(e,) + pl23_box_lines(e[2], e[3], cw)[:1] for e in more]
-    h_more = (PL28_HEAD_TS * 1.18 + 3.9 + sum(sum(sz * 1.18 for s_, sz, bd in rows) + 1.8
-                                                for e, rows in lines_more)) if more else 0.0
+    h_more = (PL28_HEAD_TS * 1.18 + 3.9 + sum(max(sum(sz * 1.18 for s_, sz, bd in rows), 2 * BADGE_R) + 1.8
+                                                for e, rows in lines_more)) if more else 0.0   # v30.2: as drawn below
     h_nogo = pl23_nogo_h(nis, cw)
     leg_ = PL23_LEGEND + [(k_, nm, f) for k_, nm, f in LEGEND_V24 if k_ not in PL23_LEG_KEYS]
     groups = [(u"EXISTING · SURVEY", [(nm, f) for key, nm, f in leg_ if key in used and key in EXISTING]),
@@ -9564,6 +9570,8 @@ def p24_section(C, w, warn):
                 S.zl.append((P24_NAME["hub"], t_, _p24_zat(prof, t_), True))
                 seen.add("hub")
     for c_ in C.cross:                                    # footbridges and stepping stones beyond
+        if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
+            continue
         ts_ = [_p24_tz(c0, cd, f, p) for p in c_["P"]]
         if not all(0.0 < d <= P24_BEYOND_M for _, d in ts_):
             continue
@@ -9777,6 +9785,8 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
             leg(("p24", "bike"))
     # ---- crossings: stepping stones (true size), footbridge decks (the walk's width)
     for c_ in C.cross:
+        if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
+            continue
         A_, B_ = c_["P"][0], c_["P"][1]
         if c_["kind"] == "stepping stones" and (inP(A_) or inP(B_)):
             L = math.hypot(B_[0] - A_[0], B_[1] - A_[1]) or 1.0

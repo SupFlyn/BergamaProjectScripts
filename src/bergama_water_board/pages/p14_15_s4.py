@@ -718,7 +718,7 @@ def _p14_keymap(pg, box, log=None):
         sp.line(pts, fade(hx, alpha), w_mm, dash=d_)
 
     def text_fn(s, xy, size_mm, hx, bold=False, align="L"):
-        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[:1]).upper())
+        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[-1:]).upper())   # v7.1: "MC" -> "C"
     try:
         items = basemap_items("topographic", box=sbox, split_buildings=True)
         cut = basemap_cut_items(basemap_cut_ids(["S4"]), den, text_mm=FS_MIN)

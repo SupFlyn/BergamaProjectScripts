@@ -1,9 +1,11 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v53)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v53.1)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v53.1 (bugfix, Aras 30 Oct 12:41 run): pages 04-05 sections key map no longer stops in basemap_draw
+  ("p() missing 'y'"): the shared basemap hands one point (x, y), the page's V.p takes x and y.
 NEW IN v53: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Pages
@@ -408,7 +410,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v53 (2026-10-30)"     # v27: the log's first line and the text under the component
+SCRIPT_VERSION = "selinus_board v53.1 (2026-10-30)"     # v27: the log's first line and the text under the component
 SHORT_V = "v53"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
@@ -22078,7 +22080,7 @@ class BkBlocks(object):
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v53"
+BK_VERSION = "v53.1"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -27176,7 +27178,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     except Exception as e:
         LOG.append(u"Sections key map: no basemap ({}).".format(e))
     if items:
-        basemap_draw(items, V.p, fill_fn, line_fn, text_fn)
+        basemap_draw(items, lambda p: V.p(p[0], p[1]), fill_fn, line_fn, text_fn)   # v53.1: T takes one point
     else:                                                 # before the first basemap export: water and buildings
         for wt in S.water:
             CB.fill(V.Ps([wt["P"]] + wt.get("H", [])), BLUE_L, L, 31)
@@ -27190,7 +27192,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
         LOG.append(u"Sections key map: cut lines from the site board's sec_lines ({}).".format(e))
     den_k = 1000.0 * kb / ssk                             # the key map's scale (no bar: the triangles' size)
     ci = basemap_cut_items(cuts, den_k, frame=list(F.P), tri_mm=3.0, text_mm=3.4, col="4A3F35")
-    basemap_draw(ci, V.p, lambda rings, hx, al, nz: CB.fill(rings, _p45_c(hx), L, 39),
+    basemap_draw(ci, lambda p: V.p(p[0], p[1]), lambda rings, hx, al, nz: CB.fill(rings, _p45_c(hx), L, 39),
                  lambda pts, hx, wmm, dash, al: line_fn(pts, hx, wmm, dash, al, 39),
                  lambda s, p, size_mm, hx, bold, align: text_fn(s, p, size_mm, hx, bold, align, 42))
     B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.15, kb))
