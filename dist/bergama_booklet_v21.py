@@ -562,7 +562,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': 'e42957c11a33a4b6335cc6a276a116cc'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': 'b61f0a78329ad458706171ecaa03b11a'}.get(name):
         raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())
