@@ -19,7 +19,8 @@ P16_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")   # the run kit's phot
 P16_PHOTO_CSV = "photos.csv"
 P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo (4:3, cropped to fill)
 # History photos: own site photos by file name (no credit, D13) first, else a photos.csv row whose place or file
-# name holds an alias (Commons: its credit line is printed). Kermes has no photo (DHA, excluded).
+# name holds an alias (Commons: its credit line is printed). v29 (Aras 30 Oct "ok to use kermes photos"): Kermes takes
+# the DHA photo with its credit line.
 P16_PLACES = (
     dict(key="hamam", cap=(u"Tabaklar Hamamı",), own=(u"tabaklar_hamami_1.jpg", u"tabaklar_hamami_2.jpg"),
          alias=(u"tabaklarhamami",)),
@@ -28,7 +29,8 @@ P16_PLACES = (
     dict(key="k3", cap=(u"Tabak Köprüsü", u"Roman bridge · K3"), own=(u"tabak_koprusu_1.jpg", u"tabak_koprusu_2.jpg"),
          alias=(u"tabakkoprusu",)),
     dict(key="k5", cap=(u"Üç Kemer Köprüsü", u"Roman bridge · K5"), own=(), alias=(u"uckemer",)),
-    dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)))
+    dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)),
+    dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo, credit printed
 # Encounters: where the lines meet (kind, word, icon of common/icons.py), in the order they rank when two coincide
 P16_MEET = (("hub", u"Hub", "hub"), ("kermes", u"Kermes", "market"), ("flood", u"Flood zone", "high_water"))
 _P16_MEMO = {}
@@ -1026,7 +1028,7 @@ def _p16_jpeg(path):
 def _p16_photos(warn):
     """{P16_PLACES key: (path, credit line or None)} once a run, from P16_PHOTO_DIR (p.21's run-kit contract): own
     photos by file name (no credit, D13), else the first unused photos.csv row whose place or file name holds an
-    alias (its credit line). Kermes rows are never used. A missing folder: {} and one log line."""
+    alias (its credit line). v29: Kermes rows are used for Kermes. A missing folder: {} and one log line."""
     if "photos" in _P16_MEMO:
         return _P16_MEMO["photos"]
     d, out = P16_PHOTO_DIR, {}
@@ -1062,7 +1064,7 @@ def _p16_photos(warn):
         for r_ in ([] if got else rows):
             fn = r_.get("file", u"")
             tx = _p16_norm(r_.get("place", u"")) + u"|" + _p16_norm(os.path.splitext(os.path.basename(fn))[0])
-            if not fn or fn in used or u"kermes" in tx or not any(a in tx for a in pl["alias"]) or \
+            if not fn or fn in used or not any(a in tx for a in pl["alias"]) or \
                     any(a in tx for a in pl.get("notalias", ())):
                 continue
             p = find(fn)
@@ -1115,7 +1117,7 @@ def _p16_photo_slots(keys_at, box, refp, capm, wide=None):
 
 def sn_history(pg, G, cell, warn):
     """layered heritage fields on the stream's places (senses_ref2) and, T4a, a small photo beside each place
-    named (P16_PLACES; Kermes without one): own photos without credit, Commons photos numbered, their credit lines
+    named (P16_PLACES; v29: Kermes too): own photos without credit, Commons photos numbered, their credit lines
     in the key column. The photos are embedded by _p16_save (the core's PDF writer draws no images)."""
     T, box = cell["T"], cell["box"]
     txt = COL["accent_dark"]
@@ -1153,8 +1155,8 @@ def sn_history(pg, G, cell, warn):
         x, y = T(G["bath"])
         anchors["hamam"] = sn_layers_round(pg, x, y, 2.0, SN_HER, 50)
     anchors["tabakhane"] = field(CRAFT_XY, 70.0, 1.8, 60)   # Tabakhane (H3)
-    if G["kermes"]:                                      # Kermes in the dry bed (h01 §2.8), at the S4 cut: no photo
-        labs.append(dict(s=u"Kermes", at=field(G["kermes"], 90.0, 1.8, 70), col=txt))
+    if G["kermes"]:                                      # Kermes in the dry bed (h01 §2.8), at the S4 cut (v29: photo)
+        anchors["kermes"] = field(G["kermes"], 90.0, 1.8, 70)
     pg.unclip()
     anchors = dict((k, a) for k, a in anchors.items() if sn_in((a[0], a[1], a[0], a[1]), box))
     ph = _p16_photos(warn)
@@ -1163,7 +1165,8 @@ def sn_history(pg, G, cell, warn):
     rb = [anchors[k] for k in ("k3", "k5") if k in anchors and k not in ph]
     if rb:                                               # places without a photo keep their word on the strip
         labs.append(dict(s=u"Roman bridges", at=rb[0], more=rb[1:], col=txt))
-    for k, s in (("hamam", u"Tabaklar Hamamı"), ("tabakhane", u"Tabakhane"), ("tunnels", u"Kızıl Avlu tunnels")):
+    for k, s in (("hamam", u"Tabaklar Hamamı"), ("tabakhane", u"Tabakhane"), ("tunnels", u"Kızıl Avlu tunnels"),
+                 ("kermes", u"Kermes")):                 # v29: Kermes keeps its word when it has no photo
         if k in anchors and k not in ph:
             labs.append(dict(s=s, at=anchors[k], col=txt))
     fs = sn_mm(SN_TS["small"])

@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v28 (2026-10-29): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v29 (2026-10-30): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v29 (Aras 30 Oct "ok to use kermes photos"; a feature change): p.16 History shows a Kermes photo (DHA, 29 Jun
+    2026, from Data/heritage_photos/photos.csv) with its credit line, like the other Commons photos. Output:
+    Bergama_masterplan_v29_A.pdf, Bergama_masterplan_v29_A_detail.pdf, Bergama_senses_A3.pdf.
 NEW IN v28.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.16 Sound and Smell no longer put reeds on the
     open side arms (D2: reed only in the lined basins) or water mint on the open bed (D6: mint only in lined cells);
     "Water mint" left the Smell key. Output: Bergama_masterplan_v28_1_A.pdf, Bergama_masterplan_v28_1_A_detail.pdf.
@@ -194,8 +197,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v28.1 (2026-10-29)"
-SHORT = "v28.1"
+VERSION = "bergama_masterplan v29 (2026-10-30)"
+SHORT = "v29"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -206,8 +209,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v28_1_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v28_1_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v29_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v29_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -6572,7 +6575,8 @@ P16_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")   # the run kit's phot
 P16_PHOTO_CSV = "photos.csv"
 P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo (4:3, cropped to fill)
 # History photos: own site photos by file name (no credit, D13) first, else a photos.csv row whose place or file
-# name holds an alias (Commons: its credit line is printed). Kermes has no photo (DHA, excluded).
+# name holds an alias (Commons: its credit line is printed). v29 (Aras 30 Oct "ok to use kermes photos"): Kermes takes
+# the DHA photo with its credit line.
 P16_PLACES = (
     dict(key="hamam", cap=(u"Tabaklar Hamamı",), own=(u"tabaklar_hamami_1.jpg", u"tabaklar_hamami_2.jpg"),
          alias=(u"tabaklarhamami",)),
@@ -6581,7 +6585,8 @@ P16_PLACES = (
     dict(key="k3", cap=(u"Tabak Köprüsü", u"Roman bridge · K3"), own=(u"tabak_koprusu_1.jpg", u"tabak_koprusu_2.jpg"),
          alias=(u"tabakkoprusu",)),
     dict(key="k5", cap=(u"Üç Kemer Köprüsü", u"Roman bridge · K5"), own=(), alias=(u"uckemer",)),
-    dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)))
+    dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)),
+    dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo, credit printed
 # Encounters: where the lines meet (kind, word, icon of common/icons.py), in the order they rank when two coincide
 P16_MEET = (("hub", u"Hub", "hub"), ("kermes", u"Kermes", "market"), ("flood", u"Flood zone", "high_water"))
 _P16_MEMO = {}
@@ -7579,7 +7584,7 @@ def _p16_jpeg(path):
 def _p16_photos(warn):
     """{P16_PLACES key: (path, credit line or None)} once a run, from P16_PHOTO_DIR (p.21's run-kit contract): own
     photos by file name (no credit, D13), else the first unused photos.csv row whose place or file name holds an
-    alias (its credit line). Kermes rows are never used. A missing folder: {} and one log line."""
+    alias (its credit line). v29: Kermes rows are used for Kermes. A missing folder: {} and one log line."""
     if "photos" in _P16_MEMO:
         return _P16_MEMO["photos"]
     d, out = P16_PHOTO_DIR, {}
@@ -7615,7 +7620,7 @@ def _p16_photos(warn):
         for r_ in ([] if got else rows):
             fn = r_.get("file", u"")
             tx = _p16_norm(r_.get("place", u"")) + u"|" + _p16_norm(os.path.splitext(os.path.basename(fn))[0])
-            if not fn or fn in used or u"kermes" in tx or not any(a in tx for a in pl["alias"]) or \
+            if not fn or fn in used or not any(a in tx for a in pl["alias"]) or \
                     any(a in tx for a in pl.get("notalias", ())):
                 continue
             p = find(fn)
@@ -7668,7 +7673,7 @@ def _p16_photo_slots(keys_at, box, refp, capm, wide=None):
 
 def sn_history(pg, G, cell, warn):
     """layered heritage fields on the stream's places (senses_ref2) and, T4a, a small photo beside each place
-    named (P16_PLACES; Kermes without one): own photos without credit, Commons photos numbered, their credit lines
+    named (P16_PLACES; v29: Kermes too): own photos without credit, Commons photos numbered, their credit lines
     in the key column. The photos are embedded by _p16_save (the core's PDF writer draws no images)."""
     T, box = cell["T"], cell["box"]
     txt = COL["accent_dark"]
@@ -7706,8 +7711,8 @@ def sn_history(pg, G, cell, warn):
         x, y = T(G["bath"])
         anchors["hamam"] = sn_layers_round(pg, x, y, 2.0, SN_HER, 50)
     anchors["tabakhane"] = field(CRAFT_XY, 70.0, 1.8, 60)   # Tabakhane (H3)
-    if G["kermes"]:                                      # Kermes in the dry bed (h01 §2.8), at the S4 cut: no photo
-        labs.append(dict(s=u"Kermes", at=field(G["kermes"], 90.0, 1.8, 70), col=txt))
+    if G["kermes"]:                                      # Kermes in the dry bed (h01 §2.8), at the S4 cut (v29: photo)
+        anchors["kermes"] = field(G["kermes"], 90.0, 1.8, 70)
     pg.unclip()
     anchors = dict((k, a) for k, a in anchors.items() if sn_in((a[0], a[1], a[0], a[1]), box))
     ph = _p16_photos(warn)
@@ -7716,7 +7721,8 @@ def sn_history(pg, G, cell, warn):
     rb = [anchors[k] for k in ("k3", "k5") if k in anchors and k not in ph]
     if rb:                                               # places without a photo keep their word on the strip
         labs.append(dict(s=u"Roman bridges", at=rb[0], more=rb[1:], col=txt))
-    for k, s in (("hamam", u"Tabaklar Hamamı"), ("tabakhane", u"Tabakhane"), ("tunnels", u"Kızıl Avlu tunnels")):
+    for k, s in (("hamam", u"Tabaklar Hamamı"), ("tabakhane", u"Tabakhane"), ("tunnels", u"Kızıl Avlu tunnels"),
+                 ("kermes", u"Kermes")):                 # v29: Kermes keeps its word when it has no photo
         if k in anchors and k not in ph:
             labs.append(dict(s=s, at=anchors[k], col=txt))
     fs = sn_mm(SN_TS["small"])
