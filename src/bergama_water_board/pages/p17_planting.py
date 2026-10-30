@@ -763,7 +763,7 @@ def _p17_keymap(pg, box, cuts, wins, log):
     sp = Page(0, 0)
 
     def text_fn(s, xy, size_mm, hx, bold=False, align="L"):
-        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[:1]).upper())
+        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[-1:]).upper())   # v7.1: "MC" -> "C"
     try:
         items = list(basemap_items("topographic", box=sbox, split_buildings=True))
         if cuts:

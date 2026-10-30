@@ -56,6 +56,9 @@ v7: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the det
   the recorded animals as PhyloPic silhouettes in their own colours (P14_HR; wagtails + green toad keep their
   pictograms) and the bare plane in its leafless silhouette; p.17 sections and cards; p.18 axonometric keeps its
   primitives. Output: Bergama_water_board_v7_A_cubes.pdf.
+v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
+  shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
+  Bergama_water_board_v7_1_A_cubes.pdf.
 v6.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.12's reed pilot figure cites its public paper (Korkusuz et
   al. 2004, Turk. J. Eng. Env. Sci. 28; was "published" + a register code, which left it without a source); p.12 prints
   the HOLD volume and the strip's summer volume only from the live water balance results (WB_LIVE), never from the
@@ -152,8 +155,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v7 (2026-10-30)"
-SHORT = "v7"
+VERSION = "bergama_water_board v7.1 (2026-10-30)"
+SHORT = "v7.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -162,7 +165,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v7_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v7_1_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -8003,7 +8006,7 @@ def _p14_keymap(pg, box, log=None):
         sp.line(pts, fade(hx, alpha), w_mm, dash=d_)
 
     def text_fn(s, xy, size_mm, hx, bold=False, align="L"):
-        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[:1]).upper())
+        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[-1:]).upper())   # v7.1: "MC" -> "C"
     try:
         items = basemap_items("topographic", box=sbox, split_buildings=True)
         cut = basemap_cut_items(basemap_cut_ids(["S4"]), den, text_mm=FS_MIN)
@@ -9407,7 +9410,7 @@ def _p17_keymap(pg, box, cuts, wins, log):
     sp = Page(0, 0)
 
     def text_fn(s, xy, size_mm, hx, bold=False, align="L"):
-        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[:1]).upper())
+        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[-1:]).upper())   # v7.1: "MC" -> "C"
     try:
         items = list(basemap_items("topographic", box=sbox, split_buildings=True))
         if cuts:

@@ -764,8 +764,8 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
     more = [e for e in ents if not e[4]]
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
     lines_more = [(e,) + pl23_box_lines(e[2], e[3], cw)[:1] for e in more]
-    h_more = (PL28_HEAD_TS * 1.18 + 3.9 + sum(sum(sz * 1.18 for s_, sz, bd in rows) + 1.8
-                                                for e, rows in lines_more)) if more else 0.0
+    h_more = (PL28_HEAD_TS * 1.18 + 3.9 + sum(max(sum(sz * 1.18 for s_, sz, bd in rows), 2 * BADGE_R) + 1.8
+                                                for e, rows in lines_more)) if more else 0.0   # v30.2: as drawn below
     h_nogo = pl23_nogo_h(nis, cw)
     leg_ = PL23_LEGEND + [(k_, nm, f) for k_, nm, f in LEGEND_V24 if k_ not in PL23_LEG_KEYS]
     groups = [(u"EXISTING · SURVEY", [(nm, f) for key, nm, f in leg_ if key in used and key in EXISTING]),
