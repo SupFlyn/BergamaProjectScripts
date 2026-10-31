@@ -14,6 +14,7 @@ PL23_SIDE_MIN = 80.0         # mm: the side column at least this wide
 PL23_SIDE_GAP = 5.0          # mm between the map and the side column
 PL23_MARKS = {5000.0: (0.0, 50.0, 100.0, 250.0), 10000.0: (0.0, 100.0, 200.0, 500.0)}   # scale bar, m (50 mm)
 PL23_NAME_TS = 3.2           # mm: place names on the 1:5,000 rows (9 pt)
+PL23_TAG_TS = 2.65           # mm (7.5 pt): v34 a move's name tag beside its badge on the map, no box
 PL23_FEW_WORDS = True        # v33 (Aras 31 Oct p21 "less crowded"): the plan rows name only the hubs, no Trajaneum label
 PL23_WALK_COL, PL23_BIKE_COL = "4C2528", "5C7A86"         # palette references (library/examples/palettes)
 PL23_BIKE = True             # the riverside walk carries a bike lane on its land side (Aras 29 Oct 21:04, decision card)
@@ -637,10 +638,12 @@ def pl23_arrow(sh, p, q, col):
 
 
 def pl23_labels(sh, C, rws, taken):
-    """v33 (Aras 31 Oct critique p21: "so many information on the map ... make it less crowded"): every word on
-    the map in ONE pass per row (lp_place): the hub names, each numbered move as its number badge alone at its first
-    place (names in the side column's key, no explanation lines, no boxes, no badges at further places), the letters
-    of the areas left as they are. No hub-to-hub distances. Nothing overlaps a label, a pictogram or the linework;
+    """v34 (Aras 31 Oct p21: text was in front of the map; between too empty and too crowded): every word on the
+    map in ONE pass per row (lp_place), one level of words: the hub names; each numbered move ONCE as its number
+    badge + its short name tag (7.5 pt, halo, no box, no explanation line) at its first place and the badge alone at
+    its further places, so the same move reads as one relation along the stream; an edge kept (no intervention) as
+    its badge only; the letters of the areas left as they are. Explanations stay off the map (side column names the
+    rest, reasons on the sources page). No hub-to-hub distances. Nothing overlaps a label, a pictogram or the linework;
     leaders short and never crossing. rws = [(T sheet, mine, bounds, name specs (sheet mm), lines (sheet mm))].
     Returns (ents, nis)."""
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
@@ -670,18 +673,29 @@ def pl23_labels(sh, C, rws, taken):
         ent = [nt, grp, nm, line, False]
         ents.append(ent)
         col = mk[grp]
-        p = next((q for q in nt["at"] if row_of(q) is not None), None)
-        if p is None:
-            continue
-        i = row_of(p)
-        x, y = rws[i][0](p)
-        s = 2 * BADGE_R + 0.5                             # v33: the number badge alone, once, at its first place
+        kept = nt["key"][0] == "kept"
+        first = True
+        for p in nt["at"]:                                # v34: first place = badge + short name tag, no box;
+            i = row_of(p)                                 # further places = the badge alone (the same move)
+            if i is None:
+                continue
+            x, y = rws[i][0](p)
+            s = 2 * BADGE_R + 0.5
+            tag = first and not kept                      # an edge kept is no intervention: its badge only
+            w = s + (0.8 + text_w(nm, PL23_TAG_TS, True) if tag else 0.0)
 
-        def draw(b, lead, x=x, y=y, n=nt["n"], col=col, ent=ent):
-            arrow_to(b, lead, (x, y), col)
-            pl23_badge(sh, (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, n, col)
-            ent[4] = True
-        per[i].append(dict(x=x, y=y, w=s, h=s, rank=0, r=0.0, draw=draw))
+            def draw(b, lead, x=x, y=y, n=nt["n"], col=col, ent=ent, tag=tag, nm=nm):
+                arrow_to(b, lead, (x, y), col)
+                cy = (b[1] + b[3]) / 2.0
+                pl23_badge(sh, b[0] + BADGE_R + 0.25, cy, n, col)
+                if tag:
+                    sh.text(nm, b[0] + 2 * BADGE_R + 1.3, cy - PL23_TAG_TS * 0.36, PL23_TAG_TS, COL["ink"],
+                            bold=True, halo=COL["white"])
+                    ent[4] = True
+            per[i].append(dict(x=x, y=y, w=w, h=s, rank=0 if first else 1, r=0.0, draw=draw))
+            if kept:
+                break
+            first = False
     rn = PL28_NI_R
     for j, r_ in enumerate(C.nogo):                       # the areas left as they are: a grey letter by their spot
         nis.append([pl28_letter(j), r_, False])
@@ -727,10 +741,10 @@ def pl23_nogo_h(nis, cw):
 
 def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
     """the side column from x0 to x1: on top the small legend (two columns, only what the page draws), under it the
-    key of the numbered moves (v33: every move, number and name only, no explanation line), at its foot the areas
-    left as they are (letter and area)"""
+    moves not named on the map (v34: edges kept and moves with no room; number and name only, no explanation line),
+    at its foot the areas left as they are (letter and area)"""
     cw = x1 - x0
-    more = list(ents)
+    more = [e for e in ents if not e[4]]
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
     lines_more = [(e,) + pl23_box_lines(e[2], None, cw)[:1] for e in more]
     h_more = (PL28_HEAD_TS * 1.18 + 3.9 + sum(max(sum(sz * 1.18 for s_, sz, bd in rows), 2 * BADGE_R) + 1.8
@@ -747,7 +761,7 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
     pl28_legend(sh, groups, x0, x1, H, y_leg, 2, warn, pitch=pitch)
     y = y_leg - 2.0
     if more:
-        y = pl28_list_head(sh, u"Moves", COL["ink2"], x0, y, cw)
+        y = pl28_list_head(sh, u"More moves", COL["ink2"], x0, y, cw)
         tx = x0 + 2 * BADGE_R + 2.2
         for e, rows_ in lines_more:
             pl23_badge(sh, x0 + BADGE_R, y - BADGE_R, e[0]["n"], mk[e[1]])
@@ -867,8 +881,8 @@ def plan_page(C, warn):
             x_side, H - y_top - PL23_GAP, W, H))
     ents, nis = pl23_labels(sh, C, rws, taken)
     for nt, grp, nm, line, ok in ents:
-        if not ok:
-            warn.append(u"masterplan move {} has no room on the map: its badge is only in the side column ({})".format(nt["n"], nm))
+        if not ok and nt["key"][0] != "kept":
+            warn.append(u"masterplan move {} has no room on the map: named in the side column ({})".format(nt["n"], nm))
     pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn)
     sh.crop = (0.0, 0.0, W, H)
     sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
