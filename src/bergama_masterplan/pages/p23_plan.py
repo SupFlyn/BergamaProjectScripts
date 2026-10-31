@@ -14,7 +14,6 @@ PL23_SIDE_MIN = 80.0         # mm: the side column at least this wide
 PL23_SIDE_GAP = 5.0          # mm between the map and the side column
 PL23_MARKS = {5000.0: (0.0, 50.0, 100.0, 250.0), 10000.0: (0.0, 100.0, 200.0, 500.0)}   # scale bar, m (50 mm)
 PL23_NAME_TS = 3.2           # mm: place names on the 1:5,000 rows (9 pt)
-PL23_TAG_TS = 2.47           # mm (7 pt = KEY_MIN): a move's name tag beside its badge on the map, no box (v34 2.65; v35 smaller)
 PL23_REPEAT_MM = 45.0        # v35 (round 2 "upper map still crowded"): a move's badge again only this far (row mm) from its others
 PL23_FEW_WORDS = True        # v33 (Aras 31 Oct p21 "less crowded"): the plan rows name only the hubs, no Trajaneum label
 PL23_WALK_COL, PL23_BIKE_COL = "4C2528", "5C7A86"         # palette references (library/examples/palettes)
@@ -38,6 +37,7 @@ PL23_BELT_GAP = 0.85         # forest belt: at least this x the two crowns' mean
 PL23_COPSE_M = 42.0          # trees band: copse centres at least this far apart, m (design value)
 PL23_COPSE_N = (2, 4)        # trees per copse
 PL23_SEED = 2310
+PL23_DG_ICON_MM = 4.0        # v37 (round 3, G9): Demeter's Garden's one olive symbol on the 1:5,000 plan, mm across
 
 
 def _pl23_pick(t, rnd):
@@ -126,8 +126,44 @@ def pl23_tree_set(C):
                 add(e)
                 got_ += 1
     out.sort(key=lambda e: PLA_SPECIES[e[1]]["h_m"])      # the lower crowns first, the taller over them
+    # v37 (round 3, P21.2 / G8): clipped to land at the source, so p.21 and p.22 (plans and sections) inherit it
+    out = water_clip_points(out, [], pl23_wet_rings(C), crown_frac=0.5, get=lambda e: (e[0][0], e[0][1], e[2] / 2.0),
+                            page=u"p21 + p22 tree set")
     C.pl23_trees = out
     return out
+
+
+PL23_ARM_HALF_M = 3.0        # v37: half the drawn width of a side arm (draw_corridor: 6 m), m, for the tree clip
+
+
+def pl23_wet_rings(C):
+    """v37 (round 3, G8): every water ring the plans draw, survey m, once per corridor (C.pl23_wet): the stream's
+    outer rings (its islands count as water: no tree on a gravel bar in the channel), the widened reaches, the side
+    arms (PL23_ARM_HALF_M either side of their line) and the reed basins (zone WT)"""
+    got = getattr(C, "pl23_wet", None)
+    if got is not None:
+        return got
+    out = [list(R) for R, _Hs in pl23_water_groups(C)]
+    out += [list(w["ring"]) for w in C.widen if len(w["ring"]) >= 3]
+    for a in C.arms:
+        P = [tuple(p) for p in a["P"]]
+        if len(P) >= 2:
+            out.append(pl23_offset(P, PL23_ARM_HALF_M) + list(reversed(pl23_offset(P, -PL23_ARM_HALF_M))))
+    out += [list(z["P"]) for z in C.D.zones if z["code"] == "WT" and len(z["P"]) >= 3]
+    C.pl23_wet = out
+    return out
+
+
+def pl23_hub_trees(C):
+    """v37 (G8): [(xy survey m, i)] of the hub squares' plane trees kept on land, once per corridor"""
+    got = getattr(C, "pl23_hub_trees_", None)
+    if got is not None:
+        return got
+    cr = PLA_SPECIES["plane"]["crown_m"] * 0.8
+    pts = [(p, i) for h in C.hubs for i, p in enumerate(h.get("trees") or [])]
+    C.pl23_hub_trees_ = water_clip_points(pts, [], pl23_wet_rings(C), crown_frac=0.5,
+                                          get=lambda e: (e[0][0], e[0][1], cr / 2.0), page=u"p21 + p22 hub squares")
+    return C.pl23_hub_trees_
 
 
 def pl23_put(pg, shapes, alpha=None):
@@ -151,7 +187,7 @@ def pl23_trees_draw(pg, C, T, k, box):
         r = cr * k / 2.0
         if x + r < box[0] or x - r > box[2] or y + r < box[1] or y - r > box[3]:
             continue
-        pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=i, distinct=k >= 0.5), alpha=0.88)
+        pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=i, distinct=k >= 0.5))   # v37 (D7): opaque
         used.add("tree_wet" if key in PL23_WET_KEYS else "tree_dry")
     return used
 
@@ -182,17 +218,14 @@ def pl23_water_draw(pg, C, T, k, on, spacing):
     """the stream (M5 water_plan: surface tone, bank line, flow streaks deeper to the middle); islands in paper.
     Returns the page rings drawn (for the labels' linework)."""
     rings = []
-    edge = _wat_pal()["edge"]
     for i, (R, Hs) in enumerate(pl23_water_groups(C)):
         Q = [T(p) for p in R]
         if not on(Q):
             continue
-        shp_put(pg, water_plan(Q, k, seed=i, spacing=spacing).shapes())
+        QHs = [[T(p) for p in H] for H in Hs]            # v37 (P21.2 glitch): islands left open by water_plan (the
+        shp_put(pg, water_plan(Q, k, seed=i, spacing=spacing, holes=QHs).shapes())   # ground shows), no paper patch
         rings.append(Q)
-        for H in Hs:
-            QH = [T(p) for p in H]
-            pg.poly([QH], fill=COL["paper"], stroke=edge, lw=0.3)
-            rings.append(QH)
+        rings += QHs
     return rings
 
 
@@ -240,6 +273,7 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh):
             pg.line(Q, ROAD_TONE[1], 0.3 if big else (0.1 if fine else 0.18))
             used.add("street")
     # ---- ground proposals: hub squares, Demeter's Garden, terraces on the contours (ticks toward the stream)
+    dg_ic = []
     for h in C.hubs:
         Ps = TL(h.get("square") or [])
         if Ps:
@@ -250,6 +284,7 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh):
         if Q and on(Q):
             soft_fill(pg, [Q], MP["agriculture"][2], 0.16, hal)
             used.add("dg")
+            dg_ic.append(z["q"])                         # v37 (G9): one olive symbol per garden, drawn with the trees
     for P in C.terr:
         Q = [T(p) for p in P]
         if not on(Q):
@@ -273,9 +308,8 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh):
         Q = [T(p) for p in w["ring"]]
         if not on(Q):
             continue
-        pg.poly([Q], fill=WET_COL, alpha=0.85)
-        pg.poly([Q], stripes=(COL["river_dark"], 1.4 if big else 0.9, 0.1, 0.0, True), alpha=0.35)
-        pg.line(Q + Q[:1], _wat_pal()["edge"], 0.2, alpha=0.7)
+        pg.poly([Q], fill=WET_COL)                       # v37 (D2, G8): flat wetland tone, no wavy stripes
+        pg.line(Q + Q[:1], _wat_pal()["edge"], 0.3 if big else 0.25)   # the new bank, firm
         rings.append(Q)
         used.add("widen")
     for a in C.arms:
@@ -361,13 +395,18 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh):
         used.add("sight")
     # ---- vegetation (G9): the tree set at crown width; the hub squares' plane trees
     used |= pl23_trees_draw(pg, C, T, k, (-2.0, -2.0, dw + 2.0, dh + 2.0))
-    for h in C.hubs:
-        for i, p in enumerate(h.get("trees") or []):
-            x, y = T(p)
-            if -2.0 <= x <= dw + 2.0 and -2.0 <= y <= dh + 2.0:
-                pl23_put(pg, pla_plan("plane", x, y, k, crown_m=PLA_SPECIES["plane"]["crown_m"] * 0.8, seed=200 + i,
-                                      distinct=k >= 0.5), alpha=0.9)
-                used.add("tree_dry")
+    for p, i in pl23_hub_trees(C):                       # v37 (G8, D7): kept on land, opaque
+        x, y = T(p)
+        if -2.0 <= x <= dw + 2.0 and -2.0 <= y <= dh + 2.0:
+            pl23_put(pg, pla_plan("plane", x, y, k, crown_m=PLA_SPECIES["plane"]["crown_m"] * 0.8, seed=200 + i,
+                                  distinct=k >= 0.5))
+            used.add("tree_dry")
+    for j, q in enumerate(dg_ic):                        # v37 (G9): Demeter's Garden = its texture + ONE olive
+        x, y = T(q)                                      # symbol at print size (PL23_DG_ICON_MM across)
+        if 0.0 <= x <= dw and 0.0 <= y <= dh:
+            d_ = PL23_DG_ICON_MM if not big else max(PL23_DG_ICON_MM, PLA_SPECIES["olive"]["crown_m"] * k)
+            pl23_put(pg, pla_plan("olive", x, y, k, crown_m=d_ / k, seed=300 + j, distinct=True))
+            taken.append((x - d_ / 2.0, y - d_ / 2.0, x + d_ / 2.0, y + d_ / 2.0))
     # ---- pictograms: hubs, sub-hubs, cafes, education, viewing terrace, H4 step, H6 deck, gateway, seats
     s_ic = 3.0 if big else (1.8 if fine else 2.2)
     for p in C.seats:
@@ -398,7 +437,7 @@ def draw_corridor(pg, T, k, C, inP, taken, dw, dh):
     ts = PL28_TS if fine else (PL23_NAME_TS if k < 0.5 else PLACE_TS * 1.15)
     names = [(HUB_NAME[h["id"]], h["xy"]) for h in C.hubs]
     if not PL23_FEW_WORDS:                               # v33: at 1:5,000 only the hub names (Aras 31 Oct p21)
-        names += [(nm, xy) for nm, xy in BRIDGES_K if nm in (u"K1", u"K2")] + PLACES
+        names += [(bridge_name(nm), xy) for nm, xy in BRIDGES_K if nm in (u"K1", u"K2")] + PLACES
     for nm, xy in names:
         if inP(xy):
             specs.append(dict(kind="name", text=nm, size=ts, colour=ink, xy=T(xy), r=s_ic * 0.6))
@@ -520,7 +559,8 @@ def pl28_note_entry(C, nt):
         return nm + u" · walking hub", (u"dry square" if extra else u"dry square at the Roman bridge") + sub + extra
     if k[0] == "road":
         if k[1] == TOWN_LINE["name"]:
-            return u"Town bus line to K4 · later step", u"on the existing streets from İstiklal to the K4 stop"
+            return u"Town bus line to {} · later step".format(bridge_name("K4", short=True)), \
+                u"on the existing streets from İstiklal to the {} stop".format(bridge_name("K4", short=True))
         rd = next((r_ for r_ in ROADS if r_["name"] == k[1]), None)
         if rd is not None:
             ch, _, rest = rd["note"].partition(u": ")
@@ -558,20 +598,6 @@ def pl28_list_head(sh, lab, col, x, y, cw):
     y -= 1.3
     sh.line([(x, y), (x + cw, y)], col, 0.2, alpha=0.5)
     return y - 2.6
-
-
-def pl28_list_nogo(sh, nis, x, y, cw):
-    """the areas left as they are: grey letter and its size in ha (G13) in bold (v33: no why line; the reasons
-    and their sources go to the sources page); returns the y under it"""
-    y = pl28_list_head(sh, u"Left as it is · no intervention", COL["ink2"], x, y, cw)
-    rn, tx = PL28_NI_R, x + 2 * BADGE_R + 2.2
-    for lt, r_, ok in nis:
-        sh.circle(x + BADGE_R, y - rn, rn, fill=COL["white"], stroke=COL["ink2"], lw=0.2)
-        sh.text(lt, x + BADGE_R, y - rn - KEY_MIN * 0.36, KEY_MIN, COL["ink2"], bold=True, align="C")
-        yy = y - PL28_TS * 1.18                         # v33: the area only; why goes to the sources page
-        sh.text(u_area(r_["ha"] * 1e4, "ha"), tx, yy + PL28_TS * 0.2, PL28_TS, COL["ink"], bold=True)
-        y = min(yy, y - 2 * rn) - 1.6
-    return y
 
 
 def pl28_src_kind(s):
@@ -680,82 +706,59 @@ def pl23_badge(sh, cx, cy, n, col):
     sh.text(str(n), cx, cy - BADGE_TS * 0.36, BADGE_TS, COL["white"], bold=True, align="C")
 
 
-def pl23_arrow(sh, p, q, col):
-    """an arrow from the box edge q to the place p, its small head at the place"""
-    d = math.hypot(p[0] - q[0], p[1] - q[1])
-    if d < 0.8:
-        return
-    ux, uy = (p[0] - q[0]) / d, (p[1] - q[1]) / d
-    hl = min(1.3, d * 0.5)
-    bx, by = p[0] - ux * hl, p[1] - uy * hl
-    sh.line([q, (bx, by)], col, 0.2)
-    sh.poly([[p, (bx - uy * hl * 0.4, by + ux * hl * 0.4), (bx + uy * hl * 0.4, by - ux * hl * 0.4)]], fill=col)
-
-
 def pl23_labels(sh, C, rws, taken):
-    """v34 (Aras 31 Oct p21: text was in front of the map; between too empty and too crowded): every word on the
-    map in ONE pass per row (lp_place), one level of words: the hub names; each numbered move ONCE as its number
-    badge + its short name tag (7.5 pt, halo, no box, no explanation line) at its first place and the badge alone at
-    its further places, so the same move reads as one relation along the stream; an edge kept (no intervention) as
-    its badge only; the letters of the areas left as they are. Explanations stay off the map (side column names the
-    rest, reasons on the sources page). No hub-to-hub distances. Nothing overlaps a label, a pictogram or the linework;
-    leaders short and never crossing. rws = [(T sheet, mine, bounds, name specs (sheet mm), lines (sheet mm))].
-    Returns (ents, nis)."""
+    """v37 (round 3, P21.1 / G3: no leader lines, numbers on the element they name, the list in reading order): the
+    words on the map in ONE pass per row (lp_place, leaders=False): the hub names (bold, halo) on or right next to
+    their spot; each numbered move as its number badge ON its place (at every place, a repeat only PL23_REPEAT_MM from
+    the others), never a name tag, arrow or box: the side column lists every move by number (pl23_side); the letters
+    of the areas left as they are on their spot. The moves are numbered along the frame (Corridor.make_notes: by u),
+    which is the reading order of the two rows (upper row left to right, then the lower row). A hub name with no free
+    spot is left to the list (warning); a badge or letter with no free spot sits on its place anyway (the overlap
+    test counts it). rws = [(T sheet, mine, bounds, name specs (sheet mm), lines (sheet mm))]. Returns (ents, nis,
+    label boxes)."""
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
     per = [[] for _ in rws]
-    ents, nis = [], []
+    ents, nis, boxes = [], [], []
+    s_b = 2 * BADGE_R + 0.5
+    rn = PL28_NI_R
 
     def row_of(p):
         return next((i for i, r_ in enumerate(rws) if r_[1](p)), None)
 
-    def arrow_to(b, lead, xy, col):
-        q = lead[1] if lead else lp_leader_end(b, xy)
-        p = lead[0] if lead else xy
-        if math.hypot(q[0] - p[0], q[1] - p[1]) > 0.8:
-            pl23_arrow(sh, p, q, col)
-
-    for i, r_ in enumerate(rws):                          # place names: bold, white halo, thin leader when moved
+    for i, r_ in enumerate(rws):                          # place names: bold, white halo, no leader
         for s in r_[3]:
-            def draw(b, lead, s=s):
-                if lead:
-                    sh.line([lead[0], lead[1]], COL["ink2"], 0.15)
+            def draw(b, num, s=s):
+                if num is not None:                       # no free spot next to the hub: the list names it
+                    C.pl23_warn.append(u"masterplan p21: hub name not placed (no free spot): " + s["text"])
+                    return False
                 sh.text(s["text"], b[0], b[1] + s["size"] * 0.22, s["size"], s["colour"], bold=True, halo=COL["white"])
+                return True
             per[i].append(dict(x=s["xy"][0], y=s["xy"][1], w=text_w(s["text"], s["size"], True),
-                               h=s["size"] * 1.15, rank=0, r=s.get("r", 0.0), draw=draw))
-    for nt in sorted(C.notes, key=lambda nt_: nt_["n"]):  # the numbered moves
+                               h=s["size"] * 1.15, rank=0, r=s.get("r", 0.0), draw=draw, num_wh=None))
+    for nt in sorted(C.notes, key=lambda nt_: nt_["n"]):  # the numbered moves: the badge on each place
         grp = pl28_note_group(nt)
         nm, line = pl28_note_entry(C, nt)
         ent = [nt, grp, nm, line, False]
         ents.append(ent)
         col = mk[grp]
-        kept = nt["key"][0] == "kept"
-        first, seen = True, []
-        for p in nt["at"]:                                # v34: first place = badge + short name tag, no box;
-            i = row_of(p)                                 # further places = the badge alone (the same move)
+        seen = []
+        for p in nt["at"]:
+            i = row_of(p)
             if i is None:
                 continue
             x, y = rws[i][0](p)
-            if not first and any(j == i and math.hypot(x - a, y - b) < PL23_REPEAT_MM for j, a, b in seen):
+            if any(j == i and math.hypot(x - a, y - b) < PL23_REPEAT_MM for j, a, b in seen):
                 continue                                  # v35: no repeat badge near one of the same move
             seen.append((i, x, y))
-            s = 2 * BADGE_R + 0.5
-            tag = first and not kept                      # an edge kept is no intervention: its badge only
-            w = s + (0.8 + text_w(nm, PL23_TAG_TS, True) if tag else 0.0)
 
-            def draw(b, lead, x=x, y=y, n=nt["n"], col=col, ent=ent, tag=tag, nm=nm):
-                arrow_to(b, lead, (x, y), col)
-                cy = (b[1] + b[3]) / 2.0
-                pl23_badge(sh, b[0] + BADGE_R + 0.25, cy, n, col)
-                if tag:
-                    sh.text(nm, b[0] + 2 * BADGE_R + 1.3, cy - PL23_TAG_TS * 0.36, PL23_TAG_TS, COL["ink"],
-                            bold=True, halo=COL["white"])
-                    ent[4] = True
-            per[i].append(dict(x=x, y=y, w=w, h=s, rank=0 if first else 1, r=0.0, draw=draw))
-            if kept:
+            def draw(b, num, n=nt["n"], col=col, ent=ent):
+                pl23_badge(sh, (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, n, col)
+                ent[4] = True
+                return True
+            per[i].append(dict(x=x, y=y, w=s_b, h=s_b, rank=0, r=0.0, draw=draw, num_wh=(s_b, s_b)))
+            if nt["key"][0] == "kept":                    # an edge kept: one badge
                 break
-            first = False
-    rn = PL28_NI_R
-    for j, r_ in enumerate(C.nogo):                       # the areas left as they are: a grey letter by their spot
+    for j, r_ in enumerate(C.nogo):                       # the areas left as they are: a grey letter on their spot
         nis.append([pl28_letter(j), r_, False])
         p = next((q for q in r_["at"] if row_of(q) is not None), None)
         if p is None:
@@ -763,82 +766,134 @@ def pl23_labels(sh, C, rws, taken):
         i = row_of(p)
         x, y = rws[i][0](p)
 
-        def draw(b, lead, ni=nis[-1], r_=r_):
-            if lead:
-                sh.line([lead[0], lead[1]], COL["ink2"], 0.15)
+        def draw(b, num, ni=nis[-1], r_=r_):
             cx, cy = (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0
             sh.circle(cx, cy, rn, fill=COL["white"], stroke=COL["ink2"], lw=0.2)
             sh.text(ni[0], cx, cy - KEY_MIN * 0.36, KEY_MIN, COL["ink2"], bold=True, align="C")
             ni[2] = True
             r_["placed"] = r_.get("placed", 0) + 1
-        per[i].append(dict(x=x, y=y, w=2 * rn, h=2 * rn, rank=1, r=0.0, draw=draw))
+            return True
+        per[i].append(dict(x=x, y=y, w=2 * rn, h=2 * rn, rank=1, r=0.0, draw=draw, num_wh=(2 * rn, 2 * rn)))
     for i, r_ in enumerate(rws):
-        specs = per[i]
-        if not specs:
-            continue
-        got = lp_place(specs, obstacles=taken, lines=LpSegIndex(polylines=r_[4]), bounds=r_[2], pad=0.6,
-                       max_leader=12.0, sizes=(1.0,))
-        for s, g in zip(specs, got):
-            if g is None:
+        for grp_ in ([s for s in per[i] if s["num_wh"] is None], [s for s in per[i] if s["num_wh"] is not None]):
+            if not grp_:                                  # names first (they need the room), then the marks
                 continue
-            s["draw"](g["box"], g["leader"])
-            taken.append(g["box"])
-    return ents, nis
+            wh = grp_[0]["num_wh"]
+            got = lp_place(grp_, obstacles=taken, lines=LpSegIndex(polylines=r_[4]), bounds=r_[2], pad=0.6,
+                           sizes=(1.0,), leaders=False, num_wh=(lambda t, wh=wh: wh) if wh else None)
+            for s, g in zip(grp_, got):
+                if g is None:
+                    continue
+                if s["draw"](g["box"], g["number"]):
+                    taken.append(g["box"])
+                    boxes.append(g["box"])
+    return ents, nis, boxes
 
 
-def pl23_nogo_h(nis, cw):
-    """the height pl28_list_nogo takes for these areas in a column cw mm wide, mm"""
-    if not nis:
-        return 0.0
-    h = PL28_HEAD_TS * 1.18 + 1.3 + 2.6
-    rn = PL28_NI_R
+PL23_LIST_COLS = 2           # v37: the side lists (moves, areas left as they are) in this many columns
+PL23_LIST_GAP = 3.0          # mm between the list columns
+
+
+def pl23_list_entries(ents, nis, cw):
+    """v37 (round 3, P21.1 / P21.3): the side lists' entries [(kind, n or letter, colour, rows [(text, size, bold)],
+    h mm)]: every move by number (badge + full name, the order of the map's numbers), then every area left as it is
+    (letter + its size in ha and its reason from the data: survey building kinds or the satellite land cover and its
+    distance to the water; G18: no space without a reason)"""
+    mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
+    tw = cw - 2 * BADGE_R - 2.2
+    out = []
+    for e in ents:
+        rows = [(t_, PL28_TS, True) for t_ in wrap(e[2], PL28_TS, tw, True)]
+        out.append(("move", e[0]["n"], mk[e[1]], rows, max(sum(sz * 1.18 for _t, sz, _b in rows), 2 * BADGE_R) + 1.2))
     for lt, r_, ok in nis:
-        h += max(PL28_TS * 1.18, 2 * rn) + 1.6
-    return h
+        why = PL28_SRC_TAG.sub(u"", r_["why"]).strip()
+        rows = [(u_area(r_["ha"] * 1e4, "ha"), PL28_TS, True)] + [(t_, KEY_MIN, False) for t_ in wrap(why, KEY_MIN, tw)]
+        out.append(("area", lt, COL["ink2"], rows, max(sum(sz * 1.18 for _t, sz, _b in rows), 2 * PL28_NI_R) + 1.2))
+    return out
+
+
+def pl23_list_h(es, ncol):
+    """the height the entries take flowed into ncol columns (column by column, same split as pl23_list_draw), mm"""
+    if not es:
+        return 0.0
+    tot = sum(e[4] for e in es)
+    goal, cur, cols = tot / float(ncol), 0.0, [0.0]
+    for e in es:
+        if cur + e[4] > goal + 0.01 and cur > 0.0 and len(cols) < ncol:
+            cols.append(0.0)
+            cur = 0.0
+        cur += e[4]
+        cols[-1] = cur
+    return max(cols)
+
+
+def pl23_list_draw(sh, es, x0, cw, y_top, ncol, head):
+    """the entries under a group head (name over a hairline), flowed column by column into ncol columns of width
+    (cw - gaps) / ncol from y_top down; returns (y under the lowest column, text boxes)"""
+    boxes = []
+    y = pl28_list_head(sh, head, COL["ink2"], x0, y_top, cw)
+    w = (cw - PL23_LIST_GAP * (ncol - 1)) / float(ncol)
+    goal, cur, c, y_low = sum(e[4] for e in es) / float(ncol), 0.0, 0, y
+    yy = y
+    for kind, n, col, rows, h in es:
+        if cur + h > goal + 0.01 and cur > 0.0 and c < ncol - 1:
+            c, cur, yy = c + 1, 0.0, y
+        x = x0 + c * (w + PL23_LIST_GAP)
+        if kind == "move":
+            pl23_badge(sh, x + BADGE_R, yy - BADGE_R, n, col)
+        else:
+            rn = PL28_NI_R
+            sh.circle(x + BADGE_R, yy - rn, rn, fill=COL["white"], stroke=COL["ink2"], lw=0.2)
+            sh.text(n, x + BADGE_R, yy - rn - KEY_MIN * 0.36, KEY_MIN, COL["ink2"], bold=True, align="C")
+        tx, ty = x + 2 * BADGE_R + 2.2, yy
+        for t_, sz, bd in rows:
+            ty -= sz * 1.18
+            sh.text(t_, tx, ty + sz * 0.2, sz, COL["ink"] if bd else COL["ink2"], bold=bd)
+            boxes.append((tx, ty, tx + text_w(t_, sz, bd), ty + sz * 1.0))
+        yy -= h
+        cur += h
+        y_low = min(y_low, yy)
+    return y_low, boxes
 
 
 def pl23_side(sh, x0, x1, H, used, ents, nis, warn, y_low=None):
-    """the side column from x0 to x1: on top the small legend (two columns, only what the page draws), under it the
-    moves not named on the map (v34: edges kept and moves with no room; number and name only, no explanation line),
-    at its foot the areas left as they are (letter and area). v35 (round 2: "the legend on the right is not aligned
-    with the one below"): with two rows the legend sits beside the upper row (its top = the row's top) and the lists
-    beside the lower row (their top = y_low, the lower row's top edge), same left edge and width; when the lists do
-    not fit beside the lower row, the v34 stacking is kept (and a warning)."""
+    """v37 (round 3): the side column from x0 to x1: on top the small legend (two columns, only what the page draws,
+    beside the upper row); beside the lower row (its top = y_low) the list of EVERY move by number (the map carries
+    the badges only, P21.1) and under it the areas left as they are with their reasons (P21.3), each list in
+    PL23_LIST_COLS columns. When the lists do not fit beside the lower row they stack under the legend (warning).
+    Returns the text boxes of the lists (for the overlap test)."""
     cw = x1 - x0
-    more = [e for e in ents if not e[4]]
-    mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
-    lines_more = [(e,) + pl23_box_lines(e[2], None, cw)[:1] for e in more]
-    h_more = (PL28_HEAD_TS * 1.18 + 3.9 + sum(max(sum(sz * 1.18 for s_, sz, bd in rows), 2 * BADGE_R) + 1.8
-                                                for e, rows in lines_more)) if more else 0.0   # v30.2: as drawn below
-    h_nogo = pl23_nogo_h(nis, cw)
+    w_ = (cw - PL23_LIST_GAP * (PL23_LIST_COLS - 1)) / float(PL23_LIST_COLS)
+    es = pl23_list_entries(ents, nis, w_)
+    e_mv, e_ar = [e for e in es if e[0] == "move"], [e for e in es if e[0] == "area"]
+    hh = PL28_HEAD_TS * 1.18 + 3.9
+    h_lists = (hh + pl23_list_h(e_mv, PL23_LIST_COLS) if e_mv else 0.0) + \
+        (hh + 2.0 + pl23_list_h(e_ar, PL23_LIST_COLS) if e_ar else 0.0)
     leg_ = PL23_LEGEND + [(k_, nm, f) for k_, nm, f in LEGEND_V24 if k_ not in PL23_LEG_KEYS]
     groups = [(u"EXISTING · SURVEY", [(nm, f) for key, nm, f in leg_ if key in used and key in EXISTING]),
               (u"PROPOSED", [(nm, f) for key, nm, f in leg_ if key in used and key not in EXISTING])]
     n = sum(len(it) + 1 for _, it in groups if it)
     rows = int(math.ceil(n / 2.0)) + 1
-    split = y_low is not None and h_more + h_nogo + 1.0 <= y_low and rows * 3.0 <= H - y_low - 1.0
+    split = y_low is not None and h_lists + 1.0 <= y_low and rows * 3.0 <= H - y_low - 1.0
     if y_low is not None and not split:
-        warn.append(u"masterplan page: the side lists do not fit beside the lower row: stacked under the legend")
-    room = (H - y_low - 1.0) if split else (H - h_nogo - h_more - 4.0)
+        warn.append(u"masterplan page: the side lists ({:.0f} mm) do not fit beside the lower row: stacked under the "
+                    u"legend".format(h_lists))
+    room = (H - y_low - 1.0) if split else (H - h_lists - 4.0)
     pitch = max(3.0, min(3.6, room / float(rows)))
     y_leg = H - rows * pitch
     pl28_legend(sh, groups, x0, x1, H, y_leg, 2, warn, pitch=pitch)
     y = y_low if split else y_leg - 2.0
-    if more:
-        y = pl28_list_head(sh, u"More moves", COL["ink2"], x0, y, cw)
-        tx = x0 + 2 * BADGE_R + 2.2
-        for e, rows_ in lines_more:
-            pl23_badge(sh, x0 + BADGE_R, y - BADGE_R, e[0]["n"], mk[e[1]])
-            yy = y
-            for s_, sz, bd in rows_:
-                yy -= sz * 1.18
-                sh.text(s_, tx, yy + sz * 0.2, sz, COL["ink"] if bd else COL["ink2"], bold=bd)
-            y = min(yy, y - 2 * BADGE_R) - 1.8
-    if nis:
-        if y < h_nogo + 1.0:
-            warn.append(u"masterplan page: the side column runs {:.1f} mm over (legend, moves, areas left as they "
-                        u"are)".format(h_nogo + 1.0 - y))
-        pl28_list_nogo(sh, nis, x0, (y - 1.0 if more else y) if split else h_nogo + 1.0, cw)   # v35: one block when split
+    boxes = []
+    if e_mv:
+        y, b_ = pl23_list_draw(sh, e_mv, x0, cw, y, PL23_LIST_COLS, u"The moves, by number")
+        boxes += b_
+    if e_ar:
+        y, b_ = pl23_list_draw(sh, e_ar, x0, cw, y - 2.0, PL23_LIST_COLS, u"Left as it is · no intervention, because")
+        boxes += b_
+    if y < -0.5:
+        warn.append(u"masterplan page: the side column runs {:.1f} mm over (legend, moves, areas left as they "
+                    u"are)".format(-y))
+    return boxes
 
 
 # v28: the route's legend samples (before the core's LEGEND_V24 rows of the same key); T7: the stream, the wetland
@@ -859,9 +914,8 @@ def _pl23_sw_water():
 def _pl23_sw_wet():
     def f(pg, x, y, w, h):
         R = rect(x, y, x + w, y + h)
-        pg.poly([R], fill=WET_COL, alpha=0.85)
-        pg.poly([R], stripes=(COL["river_dark"], 0.9, 0.1, 0.0, True), alpha=0.35)
-        pg.line(R + R[:1], _wat_pal()["edge"], 0.2, alpha=0.7)
+        pg.poly([R], fill=WET_COL)                       # v37: as the plan draws it (flat, firm bank, no waves)
+        pg.line(R + R[:1], _wat_pal()["edge"], 0.25)
     return f
 
 
@@ -870,7 +924,7 @@ def _pl23_sw_trees(keys):
         for j, key in enumerate(keys):
             cr = PLA_SPECIES[key]["crown_m"]
             pl23_put(pg, pla_plan(key, x + h / 2.0 + j * (h + 0.6), y + h / 2.0, h / cr, crown_m=cr, seed=j,
-                                  distinct=False), alpha=0.88)
+                                  distinct=False))
     return f
 
 
@@ -944,11 +998,15 @@ def plan_page(C, warn):
     if y_top + PL23_GAP < -0.5 or x_side > W - PL23_SIDE_MIN:
         warn.append(u"masterplan page: the map ({:.0f} x {:.0f} mm) runs over the {:.0f} x {:.0f} mm crop".format(
             x_side, H - y_top - PL23_GAP, W, H))
-    ents, nis = pl23_labels(sh, C, rws, taken)
+    C.pl23_warn = warn
+    ents, nis, lab_boxes = pl23_labels(sh, C, rws, taken)
     for nt, grp, nm, line, ok in ents:
-        if not ok and nt["key"][0] != "kept":
-            warn.append(u"masterplan move {} has no room on the map: named in the side column ({})".format(nt["n"], nm))
-    pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn, tops[-1] if len(tops) > 1 else None)
+        if not ok:
+            warn.append(u"masterplan move {} has no badge on the map (its places lie outside both rows): only in the "
+                        u"side list ({})".format(nt["n"], nm))
+    lab_boxes += pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn, tops[-1] if len(tops) > 1 else None)
+    lp_overlap_flag(u"p21", lab_boxes, (), (0.0, 0.0, W, H))   # v37 (G3): labels vs labels and the page edge
+    wat_draw_order_lines(page=u"p21", steps=["ground", "water", "structures", "vegetation", "labels"])
     sh.crop = (0.0, 0.0, W, H)
     sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
     sh.bid = ("mp_plan", "c1_s1", u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower()))

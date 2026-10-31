@@ -44,6 +44,8 @@ COL_X = 297.0                # mm from the panel's left edge: booklet grid colum
 KEY_MIN = 2.47               # key text floor, mm (7 pt); v27: KEY_TS (2.6) unused, removed
 NI_BLOCK, NI_SHARE, NI_MIN_HA, NI_BUILT = 15.0, 0.9, 1.0, 0.4   # v26: no-intervention regions: block m, share of a
 #   block the plan leaves untouched, smallest region ha, built share (buildings + streets) that makes it "built"
+NI_MIN_HA_STUDY = 0.25       # v37 (round 3, P21.3 / G18 "no undefined space"): inside the study area (calisma_alan)
+#   untouched regions get a letter and their reason from this size, ha (design rule; NI_MIN_HA elsewhere)
 NI_ROAD_M = 6.0              # v26: a changed road or the hidden-stream line touches this far either side, m
 # v26 (Prompt 7 task 3): the satellite check of the open ground. No imagery could be opened from the cloud where
 # this version was written (Esri, Google, EOX and Sentinel Hub refused, 27 Oct 2026), so it is still to do: each
@@ -79,8 +81,16 @@ HUBS = [(u"K4", "K4", (29846.0, 32278.0), u"Camikebir Caddesi", (29841.0, 32243.
         (u"Kızıl Avlu", u"İstiklal", (30245.0, 31962.0), u"Kızıl Avlu", (30245.0, 32020.1), False),
         (u"K5", "K5", (30294.0, 31792.0), u"Üç Kemer Köprüsü", (30296.4, 31696.7), True),
         (u"K6", "K6", (30647.0, 31252.0), u"Bergama Sanayi", (30575.0, 31232.4), False)]
-HUB_NAME = {u"K4": u"K4 · ULUCAMİ ÖNÜ", u"K3": u"K3 · TABAK", u"İstiklal": u"İSTİKLAL MEYDANI",
-            u"Kızıl Avlu": u"KIZIL AVLU", u"K5": u"K5 · ÜÇ KEMER", u"K6": u"K6"}
+def mp_upper(s):
+    """Turkish capitals (i -> İ, ı -> I) for the place names on the plans"""
+    return s.replace(u"i", u"İ").upper()
+
+
+# v37 (round 3, G16 / D9): hub names from common/data/NAMES.py (bridge_name); no K-code is printed. Map words use the
+# short bridge name (the full name stands in the page's list of moves).
+HUB_NAME = {u"K4": mp_upper(bridge_name("K4", short=True)), u"K3": mp_upper(bridge_name("K3", short=True)),
+            u"İstiklal": u"İSTİKLAL MEYDANI", u"Kızıl Avlu": u"KIZIL AVLU",
+            u"K5": mp_upper(bridge_name("K5", short=True)), u"K6": mp_upper(bridge_name("K6", short=True))}
 # Places named on the plans (h01 §5 register; survey labels, m): Ulu Cami P05, Tabaklar Hamamı P07, Tabakhane E07
 PLACES = [(u"ULU CAMİ", (29844.2, 32313.3)), (u"TABAKLAR HAMAMI", (29890.4, 32243.6)),
           (u"TABAKHANE", (30062.0, 32106.0)), (u"HARAP CAMİİ", (30435.7, 31584.6))]
@@ -99,11 +109,12 @@ ROADS = [
              [29627.8, 32656.7], [29636.9, 32624.0], [29648.9, 32599.2], [29667.9, 32549.9], [29687.1, 32517.5],
              [29726.2, 32490.9], [29760.3, 32463.9], [29772.4, 32442.5], [29775.9, 32394.5], [29772.1, 32343.5],
              [29773.3, 32313.3], [29777.8, 32297.2], [29792.2, 32271.3]]),
-    dict(name=u"Cami Kebir Caddesi + Ulucami Köprüsü", change="calmed", note=u"calmed: monument meets traffic at K4",
+    dict(name=u"Cami Kebir Caddesi + " + bridge_name("K4"), change="calmed",
+         note=u"calmed: monument meets traffic at " + bridge_name("K4"),
          proof=u"edge plan mark C3; OSM secondary",
          xy=[[29854.5, 32289.9], [29843.7, 32252.8], [29873.2, 32232.0], [29934.1, 32225.0], [29960.0, 32218.3],
              [29976.9, 32203.2], [30015.5, 32111.3]]),
-    dict(name=u"Tabak Köprüsü", change="calmed", note=u"calmed: hub square and workshops at K3",
+    dict(name=u"Tabak Köprüsü", change="calmed", note=u"calmed: hub square and workshops at " + bridge_name("K3"),
          proof=u"H1, H3 (h01/h02); OSM secondary", xy=[[30023.7, 32110.3], [30052.5, 32130.6]]),
     dict(name=u"Kınık Caddesi", change="kept", note=u"kept: main spine, shops",
          proof=u"city link main spine; OSM secondary",
@@ -114,7 +125,7 @@ ROADS = [
     dict(name=u"Üç Kemer Köprüsü", change="pedestrian", note=u"pedestrian: car crossings 190-230 m away",
          proof=u"OSM residential; OSM chainage of Kızıl Avlu Cd / next bridge (calc); H1",
          xy=[[30277.2, 31777.9], [30314.7, 31804.7]]),
-    dict(name=u"Adnan Menderes Bulvarı", change="kept", note=u"kept: regional road İzmir-Soma at K6",
+    dict(name=u"Adnan Menderes Bulvarı", change="kept", note=u"kept: regional road İzmir-Soma at the " + bridge_name("K6"),
          proof=u"OSM primary; h02 E12", xy=[[30609.3, 31239.0], [30695.5, 31266.2]]),
     dict(name=u"bank street, lower reach", change="shared", note=u"shared: local bank street, stream widens",
          proof=u"OSM residential; open ground",
@@ -123,8 +134,8 @@ ROADS = [
              [31216.8, 30791.6]])]
 # Aras 12:05: a town-line extension to K4 as a PROPOSED LATER STEP, on the existing streets İstiklal stop -> Kınık Cd
 # -> Cami Kebir Cd -> K4 stop (OSM ways 370936581, 1222988932, 371130159, as above)
-TOWN_LINE = dict(name=u"town bus line to K4", change=u"proposed later: bus line 651 to K4",
-                 note=u"later step: town line on to K4", proof=u"h03 Q1 (town lines stop at İstiklal); K4 stop 35 m",
+TOWN_LINE = dict(name=u"town bus line to " + bridge_name("K4"), change=u"proposed later: bus line 651 to " +
+                 bridge_name("K4"), note=u"later step: town line on to " + bridge_name("K4"), proof=u"h03 Q1 (town lines stop at İstiklal); K4 stop 35 m",
                  xy=[[29995.4, 32019.8], [30005.0, 32029.4], [30032.5, 32038.3], [30084.6, 32056.0], [30089.7, 32057.7],
                      [30075.0, 32066.0], [30041.0, 32089.8], [30017.4, 32106.8], [30015.5, 32111.3], [29976.9, 32203.2],
                      [29960.0, 32218.3], [29934.1, 32225.0], [29873.2, 32232.0], [29841.0, 32243.7]])
@@ -598,9 +609,9 @@ class Corridor(object):
                 why += [u"H2 culvert under the square: hidden-stream square", u"D8 plane trees, irrigated from storage"] \
                     if hid == u"İstiklal" else [u"H2 Red Hall tunnels"]
             elif hid == u"K6":
-                txt, why = u"GATEWAY OUT · K6", [u"OSM primary road kept (h02 E12)", stop]
+                txt, why = u"GATEWAY OUT · " + mp_upper(bridge_name("K6")), [u"OSM primary road kept (h02 E12)", stop]
             else:
-                txt = u"WALKING HUB · {} · DRY SQUARE{}".format(hid, u" + BED SUB-HUB" if h.get("sub_xy") else u"")
+                txt = u"WALKING HUB · {} · DRY SQUARE{}".format(mp_upper(bridge_name(hid)), u" + BED SUB-HUB" if h.get("sub_xy") else u"")
                 # v26.1 (Prompt 8): the reason is the analysis' own name ("open ground (open ground)" read twice)
                 why = [u"H1 Roman bridge", u"open ground", stop, u"D8 plane trees, irrigated from storage"]
                 if h.get("sub_xy"):
@@ -720,7 +731,7 @@ class Corridor(object):
             cells = [j * nx + i for b in reg for j in range((b // bx) * s, min(ny, (b // bx) * s + s))
                      for i in range((b % bx) * s, min(nx, (b % bx) * s + s))]
             ha = len(cells) * G.c * G.c / 1e4
-            if ha < NI_MIN_HA:
+            if ha < min(NI_MIN_HA, NI_MIN_HA_STUDY):
                 continue
             if kind == "built":
                 cnt = {}
@@ -763,6 +774,9 @@ class Corridor(object):
                         q.append(m_)
             spots = sorted(reg, key=lambda b: -dist.get(b, 0))[:24]
             at = [V.xy(G.x0 + ((b % bx) * s + s / 2.0) * G.c, G.y0 + ((b // bx) * s + s / 2.0) * G.c) for b in spots]
+            if ha < NI_MIN_HA and not any(pip(at[0][0], at[0][1], P_) for P_ in (getattr(V, "study", None) or [])
+                                          if len(P_) >= 3):
+                continue                                 # v37 (G18): small regions only inside the study area
             self.nogo.append({"kind": kind, "why": why, "ha": ha, "at": at})
         self.nogo.sort(key=lambda r_: -r_["ha"])
 
