@@ -10,6 +10,7 @@
 # stream, the study area; no green, contours, street / heritage / mahalle names), where we can build the strongest
 # tone, sites as filled lettered squares repeated on their boxes, labels by M2 clear of the buildings, only the m²
 # the boxes explain; the page drawn twice (P06_PAL a / b), crops drw_edge_build_a, _b and drw_edge_build (= b).
+# v55 (Aras 31 Oct, critique p6): the beige palette b only, ONE copy, crop drw_edge_build; palette a removed.
 
 
 def edge_shares(S):
@@ -367,18 +368,12 @@ P06_N_SITES = 6                 # the largest pieces of open ground, lettered A-
 P06_LETTERS = u"ABCDEFGH"
 P06_BY_M = 150.0                # m: a site this close to a bridge is "by K.."
 P06_BANK_M = 40.0               # m: a site this close to the stream's centre line is on its bank
-# revision 30 Oct (p6, D5 BOTH): two palettes from the same geometry, each a crop (drw_edge_build_a / _b). The base
-# (M3 "base": faint warm greys, the stream's blue) is the same in both; where we can build is the strongest tone.
-#   a = one hue family + one accent: the four classes are tones of the board's accent (palette v1.4 accent 8B3A3F),
-#       told apart by hatch angle; the bank edge is a warm-grey ramp from enclosed (dark) to transformable (light).
+# revision 30 Oct (p6, D5): the palette (v55: b only, Aras 31 Oct). The base (M3 "base": faint warm greys, the
+# stream's blue); where we can build is the strongest tone.
 #   b = muted multi-hue: the four classes in four muted hues; the bank edge in its board colours (EDGE).
 # tint: a hatch's ground = its line colour this far to white; mark: the sites' squares and leaders; site: their
 # outlines; head "class": a site box's head in its main class's colour (b), else in mark (a)
 P06_PAL = {
-    "a": dict(name="a", tint=0.62, mark=C("8B3A3F"), site=C("633131"), head=None,
-              cls={"open": C("8B3A3F"), "parking": C("A65A4E"), "loose": C("C2805F"), "bare": C("9C6A63")},
-              edge=dict(zip(EDGE_ORDER, (C("3E352D"), C("615950"), C("837B71"), C("A19A8F"), C("B9B3A9"),
-                                         C("CEC9C0"))))),
     "b": dict(name="b", tint=0.66, mark=MPL["ink_dark"], site=MPL["ink_dark"], head="class",
               cls={"open": C("B5735A"), "parking": C("8A7FA8"), "loose": C("BE9F5E"), "bare": C("847E75")},
               edge=dict((k_, EDGE[k_][1]) for k_ in EDGE_ORDER)),
@@ -387,7 +382,6 @@ P06_BASE_LAYERS = ("buildings", "streets", "water", "study_area")   # the M3 "ba
 P06_HER_FAINT = ("F1E6E5", "CDAAAA")   # heritage buildings in the M3 base's "plan_faint" (basemap.py), for the key
 P06_EDGE_LINE_MM = 0.5          # mm: the bank edge line on the booklet page (was 0.7: it crowded the areas)
 P06_MARK_MM = 1.9               # mm: half a site's square
-P06_COPY_GAP_MM = 12.0          # mm: between the palette b and palette a copies on the sheet
 P06_HATCH_MM = (0.8, 0.2)       # mm: hatch spacing and line weight on the booklet page (were 1.0, 0.12)
 P06_EDGE_MM = 0.15              # mm: each open piece's edge in its hatch colour
 P06_SITE_MM = 0.35              # mm: a site's outline
@@ -844,9 +838,7 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
 
 def draw_edge_build(S, B, x, y, w, U, with_photos=True):
     """v51, revision 30 Oct (p6, D5 BOTH): THE STREAM EDGE AND WHERE WE CAN BUILD (p.06). The page (p06_page) drawn
-    twice from the same geometry and counts: palette b (muted multi-hue) at (x, y), crops drw_edge_build_b and
-    drw_edge_build (the unsuffixed id = b, so older readers still work); palette a (one hue family, one accent for
-    where we can build) under it, crop drw_edge_build_a. with_photos=False (the retired p.22 copy, drw_edge_build_e)
+    once in the beige palette b (v55, Aras 31 Oct), crop drw_edge_build. with_photos=False (the retired p.22 copy, drw_edge_build_e)
     draws nothing. Drawn for the full booklet panel width (BK_AW). Returns the y below."""
     L = "LU_BOARD::EdgeBuild"
     if not with_photos:
@@ -864,15 +856,11 @@ def draw_edge_build(S, B, x, y, w, U, with_photos=True):
     cap = (u"Where we can build: {} open to change, {:.0f}% of the analysis frame · sites {} · photo viewpoints "
            u"1-{}".format(u_area(O["open"]), 100.0 * O["open"] / max(1.0, O["frame"]),
                           u"A-" + O["sites"][-1]["id"] if O["sites"] else u"none", n_ph or 8))
-    top, dropped = y, []
-    for nm_, slugs in (("b", ("edge_build", "edge_build_b")), ("a", ("edge_build_a",))):
-        low, ss, dr_ = p06_page(S, B, x, top, w, k, L, photos, O, P06_PAL[nm_])
-        dropped += [t for t in dr_ if t not in dropped]
-        for slug in slugs:
-            crop_panel(slug, x, low - 0.5 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
-            CROP_PANELS[-1]["bk_w"] = BK_AW               # drawn for the full booklet panel width
-        top = low - P06_COPY_GAP_MM * k
-    LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm, palettes b and a (D5); {} open to "
+    top = y                                               # v55 (Aras 31 Oct): the beige palette b only
+    low, ss, dropped = p06_page(S, B, x, top, w, k, L, photos, O, P06_PAL["b"])
+    crop_panel("edge_build", x, low - 0.5 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
+    CROP_PANELS[-1]["bk_w"] = BK_AW                       # drawn for the full booklet panel width
+    LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm, palette b; {} open to "
                u"change; {} sites; {} photos; labels left out (G3): {}.".format(
                    R28E_DEN, F.w * ss / k, F.h * ss / k, u_area(O["open"]), len(O["sites"]), n_ph,
                    u", ".join(dropped) or u"none"))
