@@ -29,6 +29,9 @@
 #                 the level every section draws its water at (G8, never a dry bed). "c" on the six surveyed sections
 #                 of research/rain_river_levels (W1-W5, S4), "i" (chainage-interpolated between them) elsewhere
 #   avg_flow_depth  depth of that water above the bed (m)
+#   depth_month   (round 3, A2, DATA-1; S4 only so far) mean water depth above the bed per month, Jan..Dec (m), value =
+#                 {"komurcu": [12], "ilica": [12]} (the two gauge routes of the CSV); read with level_month_depth() /
+#                 level_season_depth() (levels.py), never with level(). Depths, so they hold on either S4 datum (N1)
 #   location      short text: name, stream chainage, walled / unwalled reach (internal, for messages and registry)
 #   booklet_pages booklet page numbers (revision 30 Oct) that draw the cut; "pages" keeps the old sheet numbers
 #   aliases       other names of the same line, accepted by level_cut() and never printed (W1 = F1, S4 = F3: PLAN T1)
@@ -47,6 +50,8 @@
 # Line status (ends, length_m): "i" = digitised from the p04/p05 key maps (+-3 m), "s" = S4's exact board line,
 # "c" = W1-W5 right-angle cuts computed at their chainage.
 #
+# N1 a (Aras 31 Oct 21:37, round 3) SUPERSEDES D4 b for S4: survey datum everywhere (bed +43.59, average flow +43.83,
+# Q100 +45.84, Q500 +46.19; bank heights from the survey bed). D4 b below still holds for S1, S7, S8.
 # D4 b (Aras 29 Oct): the S4 bed is +42.48 everywhere (the site board's value; the survey's low point +43.58 / table
 # +43.59 is kept only in S4's note). The site board's bed rule also stays for S1 (+67.80), S7 (+58.06), S8 (+55.13)
 # (RESULT.md s.3, "Page" column). Changed for these four (status "a"): the bed; the DSİ wall tops of the walled cuts
@@ -188,17 +193,17 @@ LEVELS = [
         'chainage_m': {'value': 7817.6, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
         'angle_deg': {'value': 89.4, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
         'walled': False,
-        'bed': {'value': 42.48, 'status': 'a', 'source': "D4 b (29 Oct): Aras's decision, bed = the site board v50 page value (p04)"},
+        'bed': {'value': 43.59, 'status': 's', 'source': "N1 a (Aras 31 Oct 21:37, round 3): survey datum everywhere for S4: levels.json +43.59 (survey TIN low point, tacheometric point 0.3 m away; the datum the Q100/Q500 and average-flow depths were computed on, rain_river README l.25). Replaces D4 b +42.48"},
         'bed_width_cm': {'value': 2600, 'status': 'i', 'source': 'no pair of survey stream lines at this cut: width of the TIN floor within 0.5 m of the bed on the right-angle section'},
         'NE': {
             'type': 'loose_earth',
             'top': {'value': 45.64, 'status': 'i', 'source': 'survey TIN, res_bank_top crest, 31.0 m out across the stream; nearest survey height 5.9 m away'},
-            'height': {'value': 3.16, 'status': 'a', 'source': 'bank top minus the D4 b bed (D4 b 29 Oct)'},
+            'height': {'value': 2.05, 'status': 'c', 'source': 'bank top 45.64 minus the survey bed 43.59 (N1 a, 31 Oct)'},
         },
         'SW': {
             'type': 'embankment',
             'top': {'value': 47.35, 'status': 's', 'source': 'survey TIN, survey bank-top line SEV_UST (no height on the line: TIN there), 30.3 m out across the stream; nearest survey height 0.9 m away'},
-            'height': {'value': 4.87, 'status': 'a', 'source': 'bank top minus the D4 b bed (D4 b 29 Oct)'},
+            'height': {'value': 3.76, 'status': 'c', 'source': 'bank top 47.35 minus the survey bed 43.59 (N1 a, 31 Oct)'},
             'angle_deg': {'value': 7.0, 'status': 'i', 'source': "between the survey's slope lines SEV_ALT (toe) and SEV_UST (top) on the cut"},
         },
         'terraces': [
@@ -207,9 +212,12 @@ LEVELS = [
         ],
         'q100': {'value': 45.84, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 46.19, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
-        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
-        'avg_flow': {'value': 42.72, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
-        'note': 'D4 b (29 Oct): bed +42.48 everywhere. Survey low point +43.58 (levels.json +43.59 s, a tacheometric point 0.3 m away) kept here only as a note, never printed.',
+        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m), its bed +43.59 (N1 a)"},
+        'avg_flow': {'value': 43.83, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m): survey bed +43.59 + 0.24 (N1 a, 31 Oct)"},
+        'depth_month': {'value': {'komurcu': [0.352, 0.345, 0.32, 0.282, 0.212, 0.161, 0.114, 0.073, 0.05, 0.115, 0.143, 0.203],
+                                  'ilica': [0.432, 0.35, 0.304, 0.251, 0.159, 0.125, 0.08, 0.036, 0.068, 0.106, 0.165, 0.199]},
+                        'status': 'c', 'source': "research/rain_river_levels/tables/A3s_monthly_mean_depth_surveyed_sections.csv rows S4_detail_cut Jan-Dec, columns depth_via_Komurcu_m and depth_via_Ilica_m (Manning n 0.050 normal depth on the surveyed S4 detail cut, DSİ gauge flows 2016-2021 area-scaled to the Selinos, 101 km²; rain_river README §2); below ~0.3 m indicative (README l.36)"},
+        'note': 'N1 a (Aras 31 Oct 21:37): survey datum for every S4 level (bed +43.59, avg +43.83, Q100 +45.84, Q500 +46.19); the D4 b bed +42.48 (29 Oct) is retired. Pages draw the bed from the survey profile (water board DETAIL_SRC PROFILE_Z), low point +43.59.',
     },
     # ---- S5-1: Cut S5 crossing 1
     {
