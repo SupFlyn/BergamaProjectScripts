@@ -10,10 +10,23 @@
 #   wl.add("figures", people); wl.add("labels", texts); wl.put(pg)
 # Needs section_parts.py (SEC, SCT, sec_hatch, sct_hatch_fill, sct_bed, _sec_mix, _sct_inside) and, for cid=,
 # levels.py + data/LEVELS.py. Never: a blue fill with waves, a squiggle in mid-stream, a dry bed in a section.
+# Round 3 (A2, 31 Oct 2026, G8 / D2): no low-flow line in any plan (the summer strip shows in sections only); the depth
+# tone of the flow streaks is capped (WAT_STREAK_CAP) so no dark centre line forms; islands (holes=) stay untextured;
+#   water_clip_points(points, water_rings, ...)  drops tree / plant symbols in the water, logs "planting clipped to
+#                                                 land: n symbols removed from water"
+#   wat_draw_order_lines(page, wl=None, steps=None)  "draw order: ..." (+ a FLAG line when steps break WAT_LAYERS)
+#   wat_flag_lines()                             this run's water log lines (emptied): every page script appends them
 # Shapes: ("poly", ring, fill, stroke, lw[, alpha]) ("line", pts, colour, lw[, dash]) ("text", s, x, y, size,
 # colour, bold, align) ("image", x, y, w, h, path, alpha, flip, clip); page mm, y up.
 
 WAT_LAYERS = ("atmosphere", "background", "ground", "bed", "water", "structures", "vegetation", "figures", "labels")
+# the layer names as the log prints them (PLAN §2 Layer order: terrain, bed, water, structures over water, bank
+# planting clipped to land, people, labels)
+WAT_LAYER_WORDS = dict(atmosphere="sky", background="background", ground="terrain", bed="bed", water="water",
+                       structures="structures over water", vegetation="bank planting (clipped to land)",
+                       figures="people", labels="labels")
+WAT_STREAK_CAP = 0.6             # plan streaks: the depth tone stops darkening here (0..1), so no dark centre line
+WAT_LOG = []                     # this run's water log lines (planting clips, draw orders); wat_flag_lines() empties
 
 
 class WaterLayers(object):
@@ -50,20 +63,21 @@ def water_layers():
 def shp_put(pg, shapes):
     """draws house shapes on a Page with the common API (poly(rings, fill, stroke, lw[, dash, stripes, alpha]),
     line(pts, stroke, lw, dash), text(s, x, y, size, color, bold, align)); "image" shapes go into pg.items for the
-    common write_pdf (D1 a)"""
+    common write_pdf (D1 a). A poly's 7th element = its holes (rings, filled even-odd: islands stay open)"""
     for s_ in shapes or []:
         t = s_[0]
         if t == "poly":
             if len(s_[1]) < 3:
                 continue
             a = s_[5] if len(s_) > 5 else None
+            rings = [list(s_[1])] + [list(R) for R in (s_[6] if len(s_) > 6 and s_[6] else ()) if len(R) >= 3]
             if a is not None:
                 try:
-                    pg.poly([list(s_[1])], fill=s_[2] or None, stroke=s_[3] or None, lw=s_[4] or 0.1, alpha=a)
+                    pg.poly(rings, fill=s_[2] or None, stroke=s_[3] or None, lw=s_[4] or 0.1, alpha=a)
                     continue
                 except TypeError:
                     pass
-            pg.poly([list(s_[1])], fill=s_[2] or None, stroke=s_[3] or None, lw=s_[4] or 0.1)
+            pg.poly(rings, fill=s_[2] or None, stroke=s_[3] or None, lw=s_[4] or 0.1)
         elif t == "line":
             if len(s_[1]) >= 2:
                 pg.line(list(s_[1]), s_[2], s_[3], s_[4] if len(s_) > 4 else None)
@@ -80,7 +94,8 @@ def _wat_pal():
     return dict(surface=m(SEC["water"], SEC["paper"], 0.62), shallow=m(SEC["water"], SEC["paper"], 0.45),
                 deep=m(SEC["hatch"], SEC["water"], 0.45), streak=m(SEC["water"], SEC["paper"], 0.15),
                 edge=m(SEC["hatch"], SEC["ink"], 0.55), sec=SEC["channel"], sec_line=m(SEC["hatch"], SEC["paper"], 0.35),
-                q100=m(SEC["hatch"], SEC["ink"], 0.35), q500=m(SEC["hatch"], SEC["ink"], 0.65), low=m(SEC["hatch"], SEC["water"], 0.2))
+                q100=m(SEC["hatch"], SEC["ink"], 0.35), q500=m(SEC["hatch"], SEC["ink"], 0.65),
+                low=m(SEC["hatch"], SEC["water"], 0.2))    # "low": the summer strip's tone, SECTIONS only (D2)
 
 
 def _wat_rng(seed):
@@ -131,12 +146,13 @@ def _wat_near_edge(idx, cell, p, rmax):
     return min(bd, rmax), best
 
 
-def _wat_scan_inside(ring, spacing, rnd):
-    """jittered sample points inside the ring, row by row (crossings of each row with the ring: fast on long rings)"""
+def _wat_scan_inside(ring, spacing, rnd, holes=()):
+    """jittered sample points inside the ring and outside its holes, row by row (crossings of each row with the
+    rings, paired even-odd: fast on long rings)"""
     ys = [p[1] for p in ring]
     out = []
     y = min(ys) + 0.5 * spacing
-    E = list(zip(ring, ring[1:] + ring[:1]))
+    E = [e for R in [ring] + [list(H) for H in holes if len(H) >= 3] for e in zip(R, R[1:] + R[:1])]
     while y < max(ys):
         xs = sorted(a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) for a, b in E
                     if (a[1] <= y < b[1]) or (b[1] <= y < a[1]))
@@ -149,23 +165,28 @@ def _wat_scan_inside(ring, spacing, rnd):
     return out
 
 
-def water_plan(ring, k, depth=None, flow_deg=None, bank=True, low_flow=None, seed=0, spacing=1.3, style="b", into=None):
+def water_plan(ring, k, depth=None, flow_deg=None, bank=True, seed=0, spacing=1.3, style="b", into=None, holes=None):
     """the stream in plan inside ring (page mm, the bank line = the wet edge at average flow): a calm surface tone, the
     bank edge as a firm line, and short flow streaks running along the banks (local direction = the nearest bank,
-    or flow_deg) whose tone deepens toward the middle (depth tone: distance to the bank, or depth(x, y) 0..1).
-    low_flow = {"path": [page pts], "width_m": m} only where the low-flow channel is defined; it then needs its
-    legend entry (water_legend(low_flow=True)). Plans are vector in both styles. Returns the WaterLayers."""
+    or flow_deg) whose tone deepens toward the middle (depth tone: distance to the bank, or depth(x, y) 0..1), capped
+    at WAT_STREAK_CAP so the middle never reads as a dark centre line (D2). holes = islands inside the ring (page mm
+    rings): left open, no streaks, their edge drawn as bank. No low-flow line (round 3, D2: the summer strip is shown
+    in sections only). Plans are vector in both styles. Returns the WaterLayers."""
     import math as _m
     wl = into if into is not None else water_layers()
     P = _wat_pal()
     ring = list(ring)
-    sh = [("poly", ring, P["surface"], None, 0.1)]
+    holes = [list(H) for H in (holes or ()) if len(H) >= 3]
+    sh = [("poly", ring, P["surface"], None, 0.1, None, holes) if holes else ("poly", ring, P["surface"], None, 0.1)]
     rnd = _wat_rng(seed)
     cell = 4.0 * spacing
     idx = _wat_edge_index(ring, cell)
+    for H in holes:                                    # an island's edge is a bank too (shallow next to it)
+        for key, es in _wat_edge_index(H, cell).items():
+            idx.setdefault(key, []).extend(es)
     reach = 40.0 * spacing                             # depth tone saturates this far (page mm) from the bank
     samples = []
-    for p in _wat_scan_inside(ring, spacing, rnd):
+    for p in _wat_scan_inside(ring, spacing, rnd, holes):
         d, u = _wat_near_edge(idx, cell, p, reach)
         samples.append((p, d, u))
     dmax = max([s_[1] for s_ in samples] or [1.0]) or 1.0
@@ -173,29 +194,26 @@ def water_plan(ring, k, depth=None, flow_deg=None, bank=True, low_flow=None, see
         t = depth(p[0], p[1]) if depth else d / dmax
         if t < 0.15:                                   # a clear, light margin along the bank (shallow water)
             continue
+        tc = min(float(t), WAT_STREAK_CAP)             # the tone stops deepening: no dark line down the middle
         if flow_deg is not None:
             u = (_m.cos(_m.radians(flow_deg)), _m.sin(_m.radians(flow_deg)))
-        L = (0.5 + 0.9 * t) * spacing * (0.7 + 0.5 * rnd())
-        col = _sec_mix(P["shallow"], P["deep"], min(1.0, t))
+        L = (0.5 + 0.9 * tc) * spacing * (0.7 + 0.5 * rnd())
+        col = _sec_mix(P["shallow"], P["deep"], tc)
         a = (p[0] - 0.5 * L * u[0], p[1] - 0.5 * L * u[1])
         b = (p[0] + 0.5 * L * u[0], p[1] + 0.5 * L * u[1])
-        sh.append(("line", [a, b], col, 0.12 + 0.12 * t))
-    if low_flow:
-        sh.append(("line", list(low_flow["path"]), P["low"], max(0.3, float(low_flow["width_m"]) * k)))
+        sh.append(("line", [a, b], col, 0.12 + 0.12 * tc))
     wl.add("water", sh)
     if bank:
-        wl.add("water", [("line", ring + [ring[0]], P["edge"], 0.35)])
+        wl.add("water", [("line", R + [R[0]], P["edge"], 0.35) for R in [ring] + holes])
     return wl
 
 
-def water_legend(x, y, size=1.8, low_flow=False, floods=False, gap=None):
-    """legend rows for the water drawings (G1: every symbol explained): the stream, the low-flow channel (only when
-    drawn), the Q100 / Q500 lines (sections); x, y = top left, page mm. Returns shapes (incl. text)."""
+def water_legend(x, y, size=1.8, floods=False, gap=None):
+    """legend rows for the water drawings (G1: every symbol explained): the stream, the Q100 / Q500 lines and the
+    average-flow water (sections); x, y = top left, page mm. Returns shapes (incl. text)."""
     P = _wat_pal()
     gap = gap or 1.6 * size
     rows = [("Selinos stream (darker = deeper)", "water")]
-    if low_flow:
-        rows.append(("Low-flow channel", "low"))
     if floods:
         rows += [("Q100 flood level", "q100"), ("Q500 flood level", "q500"), ("Water at average yearly flow", "avg")]
     sh, yy = [], y
@@ -205,8 +223,6 @@ def water_legend(x, y, size=1.8, low_flow=False, floods=False, gap=None):
             sh += [("poly", [(x, cy - 0.5 * size), (x + 2.5 * size, cy - 0.5 * size), (x + 2.5 * size, cy + 0.5 * size),
                              (x, cy + 0.5 * size)], P["surface"], P["edge"], 0.25),
                    ("line", [(x + 0.6 * size, cy), (x + 1.9 * size, cy)], P["deep"], 0.2)]
-        elif kind == "low":
-            sh.append(("line", [(x, cy), (x + 2.5 * size, cy)], P["low"], 0.6 * size))
         elif kind == "avg":
             sh += [("poly", [(x, cy - 0.5 * size), (x + 2.5 * size, cy - 0.5 * size), (x + 2.5 * size, cy),
                              (x, cy)], P["sec"], None, 0.1),
@@ -217,6 +233,107 @@ def water_legend(x, y, size=1.8, low_flow=False, floods=False, gap=None):
         sh.append(("text", label, x + 3.2 * size, cy - 0.35 * size, size, SEC["ink"], False, "L"))
         yy -= gap
     return sh
+
+
+# ---- G8 (round 3, A2): planting kept on land, the draw-order log ---------------------------------------------------
+def _wat_bands(rings, h):
+    """the rings' edges bucketed by horizontal band of height h: {j: [(a, b), ...]} (for the even-odd point test)"""
+    import math as _m
+    out = {}
+    for R in rings:
+        for a, b in zip(R, R[1:] + R[:1]):
+            if a[1] == b[1]:
+                continue
+            for j in range(int(_m.floor(min(a[1], b[1]) / h)), int(_m.floor(max(a[1], b[1]) / h)) + 1):
+                out.setdefault(j, []).append((a, b))
+    return out
+
+
+def _wat_inside(bands, h, p):
+    """True when p lies inside the rings (even-odd: a hole of a group counts as land)"""
+    import math as _m
+    x, y = p[0], p[1]
+    c = False
+    for a, b in bands.get(int(_m.floor(y / h)), ()):
+        if (a[1] > y) != (b[1] > y) and x < a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]):
+            c = not c
+    return c
+
+
+def water_clip_points(points, water_rings, extra_rings=(), margin=0.0, crown_frac=0.5, get=None, page=None,
+                      log=None):
+    """G8: the tree / plant symbols that stay on land. points: the symbols, each (x, y) or (x, y, r) with r the crown
+    radius (or any item: get(item) -> (x, y, r)); water_rings: the stream's rings (outlines and island holes, even-odd)
+    in the SAME units as the points (page mm or survey m: basemap_water_rings gives survey m); extra_rings: more
+    water the page draws beyond the stream (widened wetlands, side arms, reed basins, ponds). A symbol is removed
+    when its centre lies in water, or within margin + crown_frac x r of the water's edge (its crown reaching more
+    than crown_frac of its radius over the water; crown_frac 0 = any overhang). A designed planted island is land
+    only when it is a hole in the rings. Logs "planting clipped to land: n symbols removed from water (page)" into
+    log (a list) or WAT_LOG. Returns the kept symbols, in their order."""
+    import math as _m
+    rings = [list(R) for R in list(water_rings or ()) + list(extra_rings or ()) if R and len(R) >= 3]
+    pts = list(points or ())
+    if get is None:
+        def get(q):
+            r_ = q[2] if len(q) > 2 and isinstance(q[2], (int, float)) else 0.0
+            return q[0], q[1], r_
+    if not rings or not pts:
+        n, kept = 0, pts
+    else:
+        xs = [p[0] for R in rings for p in R]
+        ys = [p[1] for R in rings for p in R]
+        span = max(max(xs) - min(xs), max(ys) - min(ys), 1e-6)
+        h = span / 400.0                                # band / cell size: about 400 across the water's extent
+        bands = _wat_bands(rings, h)
+        idx = {}
+        for R in rings:
+            for key, es in _wat_edge_index(R, h).items():
+                idx.setdefault(key, []).extend(es)
+        bb = (min(xs), min(ys), max(xs), max(ys))
+        kept, n = [], 0
+        for q in pts:
+            x, y, r = get(q)
+            reach = max(0.0, margin) + max(0.0, crown_frac) * max(0.0, float(r or 0.0))
+            if x < bb[0] - reach or x > bb[2] + reach or y < bb[1] - reach or y > bb[3] + reach:
+                kept.append(q)
+                continue
+            wet = _wat_inside(bands, h, (x, y))
+            if not wet and reach > 0.0:
+                d, _u = _wat_near_edge(idx, h, (x, y), reach)
+                wet = d < reach                          # the crown reaches over the water
+            if wet:
+                n += 1
+            else:
+                kept.append(q)
+    line = u"planting clipped to land: %d symbols removed from water%s" % (n, u" (%s)" % page if page else u"")
+    (log if log is not None else WAT_LOG).append(line)
+    return kept
+
+
+def wat_draw_order_lines(page=None, wl=None, steps=None):
+    """G8 done-when: the log line(s) naming the order a drawing was drawn in. wl: a WaterLayers (its filled layers, in
+    WAT_LAYERS order); steps: the layer names (WAT_LAYERS) in the order a page that draws by hand drew them: out of
+    order -> a "FLAG draw order" line naming the pair. Appended to WAT_LOG and returned (list of lines)."""
+    if steps is not None:
+        seq = [n for n in steps if n in WAT_LAYERS]
+    elif wl is not None:
+        seq = [n for n in WAT_LAYERS if wl.L.get(n)]
+    else:
+        seq = list(WAT_LAYERS)
+    tag = u" %s" % page if page else u""
+    out = [u"draw order%s: %s" % (tag, u", ".join(WAT_LAYER_WORDS[n] for n in seq))]
+    for a, b in zip(seq, seq[1:]):
+        if WAT_LAYERS.index(b) < WAT_LAYERS.index(a):
+            out.append(u"FLAG draw order%s: %s drawn after %s" % (tag, WAT_LAYER_WORDS[b], WAT_LAYER_WORDS[a]))
+    WAT_LOG.extend(out)
+    return out
+
+
+def wat_flag_lines():
+    """this run's water log lines (planting clips, draw orders, FLAGs), oldest first; the list is emptied"""
+    out = list(WAT_LOG)
+    del WAT_LOG[:]
+    return out
 
 
 # ---- axonometric (R10 idea: the water body cut open at the box edge, its depth visible) ---------------------------
