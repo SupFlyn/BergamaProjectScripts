@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v31.1 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v32 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v32 (Aras 31 Oct critique, booklet p15 senses sheet): the six maps lighter and less dense (buildings very
+    faint, every layer more transparent, fewer veins, dots, rings and birds); Encounters redrawn after the flow-ribbon
+    reference: ribbons that braid and cross on the stream at their places, dotted clouds where they cross, organic
+    vignette bubbles. Output: Bergama_masterplan_v32_A.pdf, Bergama_masterplan_v32_A_detail.pdf, Bergama_senses_A3.pdf.
 NEW IN v31.1 (bugfix, Aras 31 Oct run): base maps with the stream (M5 water) no longer stop on the first point.
 NEW IN v31 (revision 30 Oct, T7 + T8): p.21 masterplan and p.22 1:1,000 windows redrawn on the shared modules;
     D1 style a / b copies of the windows written as extra booklet crops (dt_upstream_a/_b, dt_k5_a/_b); the PDF
@@ -212,8 +216,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v31.1 (2026-10-31)"
-SHORT = "v31.1"
+VERSION = "bergama_masterplan v32 (2026-10-31)"
+SHORT = "v32"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -224,8 +228,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v31_1_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v31_1_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v32_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v32_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -10010,10 +10014,16 @@ SN_HER = _SN_MK["heritage"]                  # History: the heritage colour (sam
 # the previous trial's flow ribbons (v27, git 8f04e72) in separate lanes, no hub / flood icons or hatched clouds;
 # History photos in one ordered, numbered row; Smell shows the sourced flowering months; no photo credits on the
 # sheet (they go to the Sources page).
+# v32 (Aras 31 Oct, booklet p15 "the maps look so crowded, make it more transparent and less dense, somewhere between
+# the previous drawing and now"; "I don't like the encounters", redraw like the references he sent): one base for
+# all six, between the 29 Oct "minimal" and the 30 Oct M3 base (buildings very faint); every panel layer at P16_FADE
+# of its opacity; fewer feeling veins and dots (they read as trees), fewer smell rings, birds half as dense;
+# Encounters redrawn after senses_ref3: braided ribbons that meet on the stream at their places and run on to
+# organic, outlined vignette bubbles (sn_encounters, sn_bubble).
 
 # D5 / M3: (mode, override) of the basemap per panel, the same base under all six (T4, PG1 p15 "every analysis map
 # sits on the M3 base"); senses_sheet(..., basemap={title: (mode, override)}) changes a panel's choice for one run
-P16_BASEMAP = dict((t_, ("base", None)) for t_ in (u"Zones", u"Feeling", u"Sound", u"Smell", u"Encounters",
+P16_BASEMAP = dict((t_, ("base", {"buildings": "veryfaint"})) for t_ in (u"Zones", u"Feeling", u"Sound", u"Smell", u"Encounters",
                                                     u"History"))
 P16_WATER_OPTS = {"spacing": 0.6, "seed": 5}  # M5 water_plan at 1:20,000 (the stream is only a few mm wide here)
 # Smell: the species whose flowering months common/plants.py holds (pla_months, sourced there); the other sources
@@ -10038,6 +10048,8 @@ P16_PLACES = (
     dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)),
     dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo
 P16_KEY_ROW = 4.6                            # mm: one row of every key column
+P16_FADE = 0.65                              # v32: every panel layer's opacity times this (Aras 31 Oct: lighter)
+P16_THIN = 0.5                               # v32: feeling veins and dots times this (they read as trees)
 _P16_MEMO = {}
 
 
@@ -10513,7 +10525,7 @@ def sn_key_foot(pg, G, cell):
 
 
 # ---------------------------------------------------------------- Zones: the base map (p24_ref2 fade-out fields)
-def sn_field(pg, rings, colour, core=0.42, halo=(1.3, 0.9, 0.5), ha=0.12):
+def sn_field(pg, rings, colour, core=0.42 * P16_FADE, halo=(1.3, 0.9, 0.5), ha=0.12 * P16_FADE):
     """a fade-out field: a translucent core and, outside its edge only, steps fading outward (no outline)"""
     rings = [Q for Q in rings if len(Q) >= 3]
     m = halo[0] + 1.0
@@ -10619,20 +10631,20 @@ def sn_blot(pg, x, y, R, colour, veins, seed, dots=True):
     for i in range(7):
         r = R * (1.0 - i * 0.12)
         pg.poly([sn_ring(x + rnd.uniform(-0.08, 0.08) * R, y + rnd.uniform(-0.08, 0.08) * R, r, seed * 31 + i,
-                         0.22, 36)], fill=colour, alpha=0.08)
+                         0.22, 36)], fill=colour, alpha=0.08 * P16_FADE)
     dark = mix(colour, SN_DARK, 0.35)
-    for j in range(veins):
+    for j in range(int(round(veins * P16_THIN))):
         a = rnd.uniform(0.0, 2.0 * math.pi)
         L = R * rnd.uniform(0.9, 1.55)
         ph = rnd.uniform(0.0, 6.0)
         pts = [(x + math.cos(a + 0.35 * math.sin(t * 3.0 + ph) * t) * L * t,
                 y + math.sin(a + 0.35 * math.sin(t * 3.0 + ph) * t) * L * t) for t in [k / 8.0 for k in range(9)]]
         for seg, w in ((pts[:4], 0.28), (pts[3:7], 0.17), (pts[6:], 0.09)):
-            pg.line(seg, dark, w, alpha=0.6)
+            pg.line(seg, dark, w, alpha=0.6 * P16_FADE)
     if dots:
-        for k in range(int(R * 9)):
+        for k in range(int(R * 9 * P16_THIN)):
             a, d = rnd.uniform(0.0, 2.0 * math.pi), R * 1.15 * rnd.random() ** 0.8
-            pg.circle(x + math.cos(a) * d, y + math.sin(a) * d, 0.11, fill=SN_DARK, alpha=0.45)
+            pg.circle(x + math.cos(a) * d, y + math.sin(a) * d, 0.11, fill=SN_DARK, alpha=0.45 * P16_FADE)
 
 
 def sn_feeling(pg, G, cell, warn):
@@ -10752,7 +10764,7 @@ def sn_sound(pg, G, cell, warn):
     for z in G["zones_raw"]:                             # reeds: the lined reed basins only (v28.1, D2: the side
         if z["code"] == "WT":                            # arms are open channels with rush and loosestrife, no reed)
             sn_cluster(pg, "reeds", T(z["q"]), 2.2, 7, col["reeds"], rnd, 0.25)
-    for p in sn_spaced(G["forest"], T, 3.5):             # birds: the forest corridor and the wetland
+    for p in sn_spaced(G["forest"], T, 7.0):             # birds: the forest corridor and the wetland (v32: 7 mm)
         x, y = T(p)
         sn_cluster(pg, "birds", (x, y + 0.8), 1.2, 2, col["birds"], rnd)
     for p in sn_spaced([w["at"] for w in G["widen"]], T, 6.0):
@@ -10844,7 +10856,7 @@ def sn_smell(pg, G, cell, warn):
         S.append(("lavender", p))
     if dg:                                               # olives in Demeter's Garden (card i01)
         S.append(("olive", sn_vcent(dg)))
-    n, r0, dr = 4, 0.9, 0.7                              # rings, first radius, step (mm): the same for every source
+    n, r0, dr = 3, 0.9, 0.8                              # rings, first radius, step (mm): the same for every source
     pg.clip([rect(*box)])
     dots = []
     for i, (key, p) in enumerate(S):
@@ -10853,7 +10865,7 @@ def sn_smell(pg, G, cell, warn):
             continue
         for k in range(n):
             Q = sn_ring(x, y, r0 + k * dr, 101 + i, 0.06 + 0.03 * k, 56)
-            pg.line(Q + Q[:1], col[key], 0.16, alpha=0.9 - 0.55 * k / (n - 1.0))
+            pg.line(Q + Q[:1], col[key], 0.16, alpha=(0.9 - 0.55 * k / (n - 1.0)) * P16_FADE)
         dots.append((x, y, col[key]))
     for x, y, c in dots:
         pg.circle(x, y, 0.6, fill=c)
@@ -10914,24 +10926,24 @@ def sn_bez(a, b, c, d, t):
             m ** 3 * a[1] + 3 * m * m * t * b[1] + 3 * m * t * t * c[1] + t ** 3 * d[1])
 
 
-def sn_rrect(x0, y0, x1, y1, r, n=6):
-    out = []
-    for cx, cy, a0 in ((x1 - r, y1 - r, 0.0), (x0 + r, y1 - r, 90.0), (x0 + r, y0 + r, 180.0), (x1 - r, y0 + r, 270.0)):
-        for i in range(n + 1):
-            a = math.radians(a0 + 90.0 * i / n)
-            out.append((cx + r * math.cos(a), cy + r * math.sin(a)))
-    return out
-
-
 def sn_wave(pg, x0, x1, y, colour, lw=0.3):
     pg.line([(x0 + (x1 - x0) * i / 16.0, y + 0.25 * math.sin(i * math.pi / 2.0)) for i in range(17)], colour, lw)
 
 
-def sn_bubble(pg, x, y, key, word, colour, pose):
-    """a vignette at a ribbon's end: an organic bubble, a figure of common/figures.py and one word (T4: 8 mm tall,
-    so the five bubbles, the swell key and the strip's foot fit its key column)"""
-    w, h = 34.0, 8.0
-    pg.poly([sn_rrect(x, y - h / 2.0, x + w, y + h / 2.0, 3.2)], fill="FFFFFF", stroke=colour, lw=0.35)
+def sn_blob_ring(x, y, w, h, seed, n=48):
+    """v32: an organic outline w x h mm, its left end at x, centred on y (senses_ref3's vignette bubbles)"""
+    ph = 1.7 * seed
+    a, b, cx = w / 2.0, h / 2.0, x + w / 2.0
+    return [(cx + a * math.cos(t) * (1.0 + 0.03 * math.sin(3.0 * t + ph)),
+             y + b * math.sin(t) * (1.0 + 0.07 * math.sin(2.0 * t + ph))) for t in
+            (2.0 * math.pi * i / n for i in range(n))]
+
+
+def sn_bubble(pg, x, y, key, word, colour, pose, seed=0):
+    """a vignette at a ribbon's end (v32, senses_ref3): an organic bubble outlined in the ribbon's colour on a pale
+    tint of it, a small scene with a figure of common/figures.py, and the word in capitals"""
+    w, h = 34.0, 7.6
+    pg.poly([sn_blob_ring(x, y, w, h, seed)], fill=mix(colour, "FFFFFF", 0.86), stroke=colour, lw=0.45)
     fx, fy = x + 6.5, y - h / 2.0 + 1.1
     if key == "remember":                                # under a Roman arch
         pg.line([(fx + 3.0 + 2.3 * math.cos(math.radians(a)), fy + 2.3 * math.sin(math.radians(a)))
@@ -10940,11 +10952,21 @@ def sn_bubble(pg, x, y, key, word, colour, pose):
         sn_wave(pg, fx - 3.5, fx + 4.5, fy + (0.8 if key == "cross" else 0.0), SN_WATER_MID)
     else:
         pg.line([(fx - 3.5, fy), (fx + 6.0, fy)], SN_INK2, 0.2)
-    _p16_fig(pg, pose, fx, fy, 5.6, colour)
+    _p16_fig(pg, pose, fx, fy, 5.2, colour)
     if key == "watch":                                   # the line of sight
-        pg.line([(fx + 0.5, fy + 5.0), (fx + 5.0, fy + 4.3)], colour, 0.2, [0.6, 0.4], cap=0)
+        pg.line([(fx + 0.5, fy + 4.6), (fx + 5.0, fy + 3.9)], colour, 0.2, [0.6, 0.4], cap=0)
     size = sn_mm(SN_TS["label"])
-    pg.text(word, x + 14.0, y - size * 0.35, size, mix(colour, SN_DARK, 0.3), bold=True)
+    pg.text(word.upper(), x + 14.0, y - size * 0.35, size, mix(colour, SN_DARK, 0.3), bold=True)
+
+
+def sn_cloud(pg, x, y, r, seed):
+    """v32: a soft dotted cloud (senses_ref3's dotted patches): where two or more ways of meeting the water cross"""
+    rnd = random.Random(seed)
+    Q = sn_ring(x, y, r, seed, 0.18, 40)
+    pg.poly([Q], fill=SN_WATER_MID, alpha=0.10)
+    for _ in range(int(r * r * 3.0)):
+        a, d = rnd.uniform(0.0, 2.0 * math.pi), r * 0.92 * math.sqrt(rnd.random())
+        pg.circle(x + math.cos(a) * d, y + math.sin(a) * d, 0.12, fill=SN_WATER_MID, alpha=0.45)
 
 
 def sn_exp_places(G):
@@ -10962,11 +10984,12 @@ def sn_exp_places(G):
 
 
 def sn_encounters(pg, G, cell, warn):
-    """T4 (30 Oct, PG1 p15 "the encounters map in the previous trial was much better"): the previous trial's flow
-    ribbons (v27, git 8f04e72 sn_encounters) as the starting point, made simple: five ribbons, one per way of meeting
-    the water, each in its OWN lane along the stream (a fixed offset: never braided, never crossing), each swelling
-    where its encounter happens (its places, sn_exp_places) and running on in the same order to its vignette in the
-    key column. No meeting posts, hub / flood icons or hatched clouds (G1); the swell is explained in the key."""
+    """v32 (Aras 31 Oct: "I don't like the encounters", redraw like the references he sent, senses_ref3 flow
+    ribbons): five ribbons, one per way of meeting the water. Each enters from the strip's left edge, runs in its own
+    lane along the stream and, at its places (sn_exp_places), swings onto the stream line and swells, so the ribbons
+    braid and cross where encounters happen; a soft dotted cloud marks where two or more cross. They leave the strip
+    in order to organic, outlined vignette bubbles in the key column. A design reading of the masterplan's places,
+    never a measurement (no numbers)."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
     step = 0.5
@@ -10974,50 +10997,75 @@ def sn_encounters(pg, G, cell, warn):
     if ys is None:
         ys = [(y0 + y1) / 2.0] * len(xs)
         warn.append(u"senses sheet: no stream line in the strip: the encounter ribbons run along its middle")
-    n = len(ys)                                          # a calmer path for the lanes: 15 mm moving mean
+    n = len(ys)                                          # a calmer path: 15 mm moving mean
     ys = [sum(ys[max(0, i - 15):i + 16]) / len(ys[max(0, i - 15):i + 16]) for i in range(n)]
     m = len(SN_EXP)
-    gap, sig, w0, w1 = 3.0, 2.6, 0.45, 1.6               # mm: lane pitch, swell length, width, swell (w0 + w1 < gap)
+    gap, sig, sigp, w0, w1, lead = 4.0, 2.6, 5.0, 0.8, 1.6, 18.0   # mm: lane pitch, swell, pull, width, swell, entry
     half = gap * (m - 1) / 2.0 + (w0 + w1) / 2.0 + 1.0   # the bundle stays whole inside the frame
     ys = [min(max(y, y0 + half), y1 - half) for y in ys]
     pl = sn_exp_places(G)
+    PX = [[x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0] for key, _w, _c, _p in SN_EXP]
+    allx = sorted(x for px in PX for x in px if x0 + lead <= x <= x1)
+    groups = []                                          # places within 4 mm of each other: one meeting point
+    for x in allx:
+        if groups and x - groups[-1][-1] <= 4.0:
+            groups[-1].append(x)
+        else:
+            groups.append([x])
+    pg.clip([rect(*box)])
+    for gi, g_ in enumerate(groups):                     # the clouds first, under the ribbons
+        gx = sum(g_) / len(g_)
+        who = sum(1 for px in PX if any(abs(q - gx) <= 4.0 for q in px))
+        if who >= 2:
+            j = min(n - 1, max(0, int((gx - x0) / step)))
+            sn_cloud(pg, gx, ys[j], 2.6 + 0.5 * who, 300 + gi)
+    pg.unclip()
     sx, ytop = cell["side"], box[3]
-    pitch = 8.8                                          # mm: the vignettes' pitch (8 mm bubbles)
+    pitch = 8.8                                          # mm: the vignettes' pitch
     for i, (key, word, colour, pose) in enumerate(SN_EXP):
-        px = [x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0]
+        px = PX[i]
         off = ((m - 1) / 2.0 - i) * gap                  # lane i: watch on top, remember at the bottom
+        ys0 = y1 - 5.0 - i * (y1 - y0 - 10.0) / max(1, m - 1)    # where it enters at the strip's left edge
         C_, W_ = [], []
         for x, yb in zip(xs, ys):
+            pull = max([math.exp(-((x - q) / sigp) ** 2) for q in px] or [0.0])
             b = max([math.exp(-((x - q) / sig) ** 2) for q in px] or [0.0])
-            C_.append((x, yb + off))
-            W_.append(w0 + w1 * b)
+            y_ = yb + off * (1.0 - pull)
+            t = min(1.0, (x - x0) / lead)
+            t = t * t * (3.0 - 2.0 * t)                  # smoothstep: from its entry into its lane
+            C_.append((x, ys0 + (y_ - ys0) * t))
+            W_.append((0.25 + (w0 - 0.25) * t) + w1 * b)
         bx, by = sx + 11.0, ytop - 8.4 - pitch * i
-        ex, ey = C_[-1]                                  # the same x for every lane: the fans keep their order
-        fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), t / 24.0) for t in range(1, 25)]
+        ex, ey = C_[-1]
+        fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), k_ / 24.0) for k_ in range(1, 25)]
         P = C_ + fan
-        Wl = W_ + [W_[-1] + (w0 - W_[-1]) * t / 24.0 for t in range(1, 25)]
+        Wl = W_ + [W_[-1] + (w0 - W_[-1]) * k_ / 24.0 for k_ in range(1, 25)]
         N = sn_normals(P)
-        pg.poly([[(p[0] + n_[0] * w / 2.0, p[1] + n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)] +
-                 [(p[0] - n_[0] * w / 2.0, p[1] - n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)][::-1]],
-                fill=colour, alpha=0.85)
+        L_ = [(p[0] + n_[0] * w / 2.0, p[1] + n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)]
+        R_ = [(p[0] - n_[0] * w / 2.0, p[1] - n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)]
+        pg.poly([L_ + R_[::-1]], fill=colour, alpha=0.72)
+        pg.line(L_, "FFFFFF", 0.12)                      # a white hairline each side: crossings stay readable
+        pg.line(R_, "FFFFFF", 0.12)
         Cs = C_[::6] + C_[-1:]
         cell["segs"].extend(zip(Cs, Cs[1:]))
-        sn_bubble(pg, bx, by, key, word, colour, pose)
-    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key row: what the swell means (G1)
+        sn_bubble(pg, bx, by, key, word, colour, pose, i)
+    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key rows: the swell and the cloud (G1)
     sw = [(sx + 9.0 * t / 30.0, w0 + w1 * math.exp(-((t / 30.0 - 0.5) / 0.16) ** 2)) for t in range(31)]
-    pg.poly([[(x, y + w / 2.0) for x, w in sw] + [(x, y - w / 2.0) for x, w in sw][::-1]], fill=SN_INK2, alpha=0.85)
+    pg.poly([[(x, y + w / 2.0) for x, w in sw] + [(x, y - w / 2.0) for x, w in sw][::-1]], fill=SN_INK2, alpha=0.72)
     sn_key_row(pg, sx + 11.0, y, u"Wider: where it happens")
+    y -= 5.2
+    sn_cloud(pg, sx + 4.5, y, 2.2, 7)
+    sn_key_row(pg, sx + 11.0, y, u"Where ways cross")
     return []
 
 
-# ---------------------------------------------------------------- History (senses_ref2: layered fade fields)
-def sn_layers_round(pg, x, y, R, colour, seed, n=6, a=0.1):
+def sn_layers_round(pg, x, y, R, colour, seed, n=6, a=0.1 * P16_FADE):
     for k in range(n):
         pg.poly([sn_ring(x, y, R * (1.0 - k / float(n)), seed, 0.12, 40, (2, 3))], fill=colour, alpha=a)
     return (x, y)
 
 
-def sn_layers_band(pg, P, W, colour, n=6, a=0.1):
+def sn_layers_band(pg, P, W, colour, n=6, a=0.1 * P16_FADE):
     """layers along a page polyline, each narrower and shorter: darkest at the core"""
     s = arclen(P)
     L = s[-1]

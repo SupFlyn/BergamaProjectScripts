@@ -615,8 +615,8 @@ def draw_mv_proposal(S, B, x, y, w, U, M):
 # interactions), walkers further along (D9); speech bubbles (fig_bubble) marked "illustrative scenario" (D4); icon
 # labels naming each use above the section (M9, R04); numbered callouts with their reasons (SfCallouts, R07); widths
 # in cm (sf_width_label); a scale bar; the G6 check (sf_assert_g6); the legend under the drawing with the hatch itself
-# (M2 Legend). Drawn twice from the same geometry: style "b" (textured vector) and "a" (cutouts placed with B.image; a
-# missing cutout is drawn in style b), crops drw_street_sections_b (= drw_street_sections) and drw_street_sections_a.
+# (M2 Legend). v55 (Aras 31 Oct): style "a" only (cutouts placed with B.image; a missing cutout is drawn in style b),
+# crop drw_street_sections; the trees behind each section fitted inside its width (_t3_trees_behind).
 T3_SEC_ORDER = ("kept", "calmed", "pedestrian", "shared")   # the masterplan's road changes, one section pair each
 T3_SEC_DENS = (200, 250, 500)   # the standard scales tried, largest first: two rows at most on one booklet width
 T3_SEC_ROW_W = 392.0     # mm: one booklet row (BK_AW)
@@ -861,6 +861,38 @@ def _t3_top(shapes):
     return max(ys)
 
 
+def _t3_xext(shapes):
+    """(lowest x, highest x) mm the shapes reach (poly, line, image); (0, 0) for none"""
+    xs = []
+    for s_ in shapes:
+        if s_[0] in ("poly", "line"):
+            xs += [p[0] for p in s_[1]]
+        elif s_[0] == "image":
+            xs += [s_[1], s_[1] + s_[3]]
+    return (min(xs), max(xs)) if xs else (0.0, 0.0)
+
+
+def _t3_trees_behind(W, k, seed, style):
+    """v55 (Aras 31 Oct, p8: trees cut off at the page edge): the depth trees behind a section (D9 layers 2 and 1,
+    plane and ash, as sf_atmosphere drew them), planted in a band narrowed until every crown lies inside 0..W mm
+    (at most 4 tries; the last try's trees are kept). Returns the shapes."""
+    a_, b_, sh = 0.0, W, []
+    for _t in range(4):
+        sh = []
+        for lay in (2, 1):
+            s_, _pl = pla_scatter_section(a_, b_, 0.0, k, t0=0.48, t1=0.52, mix={"plane": 1.0, "ash": 1.0},
+                                          seed=seed + 31 * lay, layer=lay, style=style, density=0.35, hires=False,
+                                          detail=False)
+            sh += s_
+        lo, hi = _t3_xext(sh)
+        if not sh or (lo >= -0.05 and hi <= W + 0.05):
+            break
+        a_, b_ = a_ + max(0.0, -lo), b_ - max(0.0, hi - W)
+        if b_ <= a_:
+            return []
+    return sh
+
+
 def _t3_badge(ico, cx, cy, size):
     """an icon label's badge: M9 ico_badge, or the drawing's car on the same plate (icons.py has no car)"""
     if ico == "car":
@@ -907,8 +939,7 @@ def _t3_sec_make(cut, after, style, k, CO, seed):
     kd = kind_of(FONT_TITLE)
     wl = water_layers()
     # behind the cut (D9): trees, the façades further along the street (survey), walkers further along
-    sf_atmosphere(0.0, W, 0.0, 0.0, k, seed=seed, sky=False, birds=False, mix={"plane": 1.0, "ash": 1.0}, t0=0.48,
-                  t1=0.52, density=0.35, style=style, into=wl)
+    wl.add("background", _t3_trees_behind(W, k, seed, style))   # v55: whole crowns inside the section width
     for R_ in sorted(cut["beyond"], key=lambda R_: -max(q[1] for q in R_)):
         ring = clip_rect_poly([(X(q[0]), q[1] * k) for q in R_], (0.0, -1.0, W, 1e6))
         if len(ring) >= 3:
@@ -1185,8 +1216,8 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     before / after cross-sections of one street per road change of the masterplan (kept, calmed, pedestrian,
     shared), each cut where the survey measured the street (_t3_sec_cut). A kept road is drawn once (no change).
     One standard scale for all (T3_SEC_DENS: the largest that fits two rows on the booklet width). T4 (30 Oct, PG2
-    ③, D1 both): drawn by _t3_sec_block in style b, then in style a under it, from the same geometry; crops
-    drw_street_sections_b (= drw_street_sections, older readers) and drw_street_sections_a. Returns the y below."""
+    ③, D1): v55 (Aras 31 Oct) style a only, drawn by _t3_sec_block, crop drw_street_sections. Returns the y
+    below."""
     L = "LU_BOARD::StreetSections"
     kb = 120.0 * U / BK_AW                                # board units per booklet mm
     groups = []
@@ -1233,12 +1264,10 @@ def _t3_street_sections(S, B, x, y, w, U, M):
             sum(1 for s_ in (-1, 1) if c_["side"][s_].get("back")), len(c_["beyond"])) for c_ in groups))
     cap = u"The same surveyed width, given back to people · streets today and with the project"
     out = y
-    for style, ids in (("b", ("street_sections_b", "street_sections")), ("a", ("street_sections_a",))):
-        bot, xmax = _t3_sec_block(B, x, out, kb, groups, den, rows, style, L)
-        for id_ in ids:
-            crop_panel(id_, x - 0.5 * kb, bot - 0.5 * kb, x + (xmax + 0.5) * kb, out + 0.5 * kb, cap, den)
-            CROP_PANELS[-1]["bk_w"] = xmax + 1.0
-        out = bot - 8.0 * kb
+    bot, xmax = _t3_sec_block(B, x, out, kb, groups, den, rows, "a", L)   # v55 (Aras 31 Oct): style a only
+    crop_panel("street_sections", x - 0.5 * kb, bot - 0.5 * kb, x + (xmax + 0.5) * kb, out + 0.5 * kb, cap, den)
+    CROP_PANELS[-1]["bk_w"] = xmax + 1.0
+    out = bot - 8.0 * kb
     cl = cut_log_line()
     if cl:
         LOG.append(u"Street sections (style a): " + cl)
