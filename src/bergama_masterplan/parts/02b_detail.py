@@ -21,7 +21,8 @@ DT_SCALE = 1000.0
 DT_WINDOWS = [  # crop id, old booklet id, working area, sheet title, booklet caption, zone names the window must show
     ("dt_upstream", "c3_a", "calisma_alan[0]", u"UPSTREAM ENTRY · COLLECT, CLEAN, HOLD",
      u"Upstream entry: collect, clean, hold", (u"REED BASINS", u"RETENTION TERRACES", u"SPILLWAY", u"SHADED WALK")),
-    ("dt_k5", "c3_b", "calisma_alan[1]", u"K5 BRIDGE · DEMETER'S GARDEN", u"K5 bridge and Demeter's Garden",
+    ("dt_k5", "c3_b", "calisma_alan[1]", bridge_name("K5").upper() + u" · DEMETER'S GARDEN",
+     bridge_name("K5") + u" and Demeter's Garden",       # v37 (G16): the bridge by its one spelling (NAMES.py)
      (u"DEMETER'S GARDEN",))]
 # CUT_AT: the water board's surveyed channel cuts (water board v1.9 CUTS, proposal sections v4 panels 1-4):
 # number, name, centre (survey m) and span (u m, + = left bank looking downstream) from

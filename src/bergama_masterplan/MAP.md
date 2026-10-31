@@ -108,10 +108,10 @@
 | link_arrow | parts/02_Design.py | 429 |
 | boxes_along | parts/02_Design.py | 461 |
 | booklet_assets | ../common/booklet_assets.py | - |
-| places | parts/02b_detail.py | 47 |
-| detail_windows | parts/02b_detail.py | 66 |
-| crop_legend | parts/02b_detail.py | 94 |
-| booklet_crops | parts/02b_detail.py | 108 |
+| places | parts/02b_detail.py | 48 |
+| detail_windows | parts/02b_detail.py | 67 |
+| crop_legend | parts/02b_detail.py | 95 |
+| booklet_crops | parts/02b_detail.py | 109 |
 | mp_upper | parts/02c_corridor.py | 84 |
 | _All | parts/02c_corridor.py | 144 |
 | landcover_grid | parts/02c_corridor.py | 153 |
