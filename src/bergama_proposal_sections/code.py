@@ -19,6 +19,10 @@ NEW IN (revision 30 Oct, T6, booklet p12; the version number is set at the end o
 NEW IN v14 (round 2 critique, Aras 31 Oct, booklet p12; R2-A modules): nobody in the water except on stepping stones,
   back trees on the cut ground and never over the water, mixed planting groups on depth layers, designed sky, all
   labels as "Element: reason" callouts with one purpose callout per planting group, the Q500 wash gone (lines stay).
+NEW IN v15 (Aras 31 Oct 12:01): W1 redrawn to p.17 F1's layout (path and bike lane under the trees SW, view terrace
+  on the NE wall top, reed basins beyond), a way down by sitting steps in three flights with planted landings to a
+  railed floor at the water's edge (no straight stair), no blocks in the bed; background houses behind W1-W4; people as
+  scenes facing the water.
 NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
@@ -90,7 +94,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v14"
+VERSION = "v15"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"

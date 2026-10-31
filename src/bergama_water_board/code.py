@@ -74,6 +74,11 @@ v10 (round 2 critique, Aras 31 Oct, booklet pp.11, 13, 14, 16, 17; R2-A modules)
   cut lines with their view direction, the two plans apart, north sign clear of the scale; p.17 F1-F4 with sky,
   background ground and houses, mixed groups, people by zone (nobody in the walled channels' water), "Element:
   reason" callouts. Output: Bergama_water_board_v10_A_cubes.pdf.
+v11 (Aras 31 Oct 12:01): background houses behind every section (common sf_back_buildings: the survey's buildings
+  8-120 m behind the cut, data height else floors x 3.00 m, drawn layer by layer behind that layer's trees) on pp.11,
+  13, 14, 17; people as scenes (those who stay look at the water / stall, children and waders in pairs; p.13 a story
+  per season); p.17 F1 without blocks in the bed, F4's shallow strip with water actions (wade, bend to the water,
+  play). Output: Bergama_water_board_v11_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -173,8 +178,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v10 (2026-10-31)"
-SHORT = "v10"
+VERSION = "bergama_water_board v11 (2026-10-31)"
+SHORT = "v11"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -183,7 +188,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v10_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v11_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here

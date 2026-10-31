@@ -79,21 +79,48 @@ P14_SPACE_COL = {"bed": "1B535E", "strip": "1B535E", "gravel": "6B5B2E", "terrac
 P14_USE = {  # who is where, doing what, each season (G10; our programme, as the rows of P15_USE; Aras 31 Oct: summer on
     # the wading strip and the market ground, autumn on the sun steps, winter few people on the high walk, spring
     # walkers and children): (zone of _p14_geo, FIG_ACTIVITY zone kind, density, seed, D9 layer: 0 at the cut, 1 just
-    # beyond it, smaller and paler); figures.py's fig_place_zones places the people (walkable zones only, nobody where
-    # the season's water is deeper than knee, poses that fit the zone, irregular gaps)
-    "winter": [("sw_path", "walkway", 0.3, 1, 0), ("prom", "walkway", 0.5, 2, 0), ("bike", "bike_lane", 0.4, 3, 0)],
-    "spring": [("sw_path", "walkway", 0.6, 5, 0), ("market", "lawn", 0.9, 6, 0), ("walk", "walkway", 0.8, 7, 0),
-               ("steps", "sun_steps", 0.5, 8, 0), ("prom", "walkway", 0.8, 9, 0), ("bike", "bike_lane", 0.6, 10, 0),
-               ("market", "lawn", 0.5, 25, 1), ("prom", "walkway", 0.5, 26, 1)],
-    "summer": [("sw_path", "walkway", 0.8, 11, 0), ("strip", "wading_strip", 1.4, 12, 0), ("open", "walkway", 0.7, 13, 0),
-               ("market", "market_ground", 1.2, 14, 0), ("walk", "walkway", 1.0, 15, 0),
-               ("steps", "sun_steps", 1.0, 16, 0), ("prom", "walkway", 1.0, 17, 0), ("bike", "bike_lane", 1.0, 18, 0),
-               ("market", "walkway", 0.7, 27, 1), ("open", "walkway", 0.5, 28, 1), ("prom", "walkway", 0.6, 29, 1)],
-    "autumn": [("sw_path", "walkway", 0.6, 19, 0), ("open", "walkway", 1.0, 20, 0), ("strip", "wading_strip", 0.4, 21, 0),
-               ("steps", "sun_steps", 1.6, 22, 0), ("prom", "walkway", 0.8, 23, 0), ("bike", "bike_lane", 0.7, 24, 0),
-               ("steps", "sun_steps", 0.9, 30, 1), ("open", "walkway", 0.5, 31, 1)],
+    # beyond it, smaller and paler, focus, cast, at most); figures.py's fig_place_zones places the people (walkable
+    # zones only, nobody where the season's water is deeper than knee, poses that fit the zone, irregular gaps).
+    # R2-C scenes (Aras 31 Oct 12:01 "they look like they are just put in there"): focus "water" = people who stay
+    # look at the season's water, children play in pairs turned to each other; "stall" = on the market ground everyone
+    # turns to the nearest stall, each stall to its nearest buyer (its vendor behind the counter: fig_stall); cast =
+    # the poses of that zone's people in turn (a small story; markets, groups and bikes stay as placed)
+    "winter": [("sw_path", "walkway", 0.3, 1, 0, None, None, None),          # a few at the promenade's edge over the
+               ("prom_edge", "viewing_terrace", 0.8, 2, 0, "water", ("watch", "stand", "watch"), 3),   # steps,
+               ("prom_in", "walkway", 0.3, 32, 0, None, None, None),     # watching the high water
+               ("bike", "bike_lane", 0.4, 3, 0, None, None, None)],
+    "spring": [("sw_path", "walkway", 0.6, 5, 0, None, None, None),
+               ("market", "lawn", 0.9, 6, 0, "water", ("child_play", "child_play", "adult_child"), None),  # children in
+               ("walk", "walkway", 0.8, 7, 0, "water", ("adult_child", "walk"), None),   # pairs; walkers stop, a child
+               ("steps", "sun_steps", 0.5, 8, 0, "water", None, None),                   # points at the water
+               ("prom", "walkway", 0.8, 9, 0, "water", ("walk", "adult_child", "walk"), None),
+               ("bike", "bike_lane", 0.6, 10, 0, None, None, None),
+               ("market", "lawn", 0.5, 25, 1, "water", ("child_play", "child_play", "walk"), None),
+               ("prom", "walkway", 0.5, 26, 1, None, None, None)],
+    "summer": [("sw_path", "walkway", 0.8, 11, 0, None, None, None),
+               ("edge", "walkway", 1.5, 33, 0, "water", ("adult_child", "watch", "adult_child"), 3),   # a family at
+               ("strip", "wading_strip", 1.4, 12, 0, "water", ("child_play", "child_play", "touch_water", "stand"),
+                None),                                                   # the strip's edge, children playing in pairs
+               ("open_w", "walkway", 0.7, 13, 0, "water", None, None),
+               ("market", "market_ground", 1.2, 14, 0, "stall", None, None),   # buyers at the Kermes stalls
+               ("walk", "walkway", 1.0, 15, 0, "water", None, None),
+               ("steps", "sun_steps", 1.0, 16, 0, "water", None, None),
+               ("prom", "walkway", 1.0, 17, 0, "water", None, None),
+               ("bike", "bike_lane", 1.0, 18, 0, None, None, None),
+               ("market", "walkway", 0.7, 27, 1, "stall", None, None),
+               ("open", "walkway", 0.5, 28, 1, "water", None, None),
+               ("prom", "walkway", 0.6, 29, 1, "water", None, None)],
+    "autumn": [("sw_path", "walkway", 0.6, 19, 0, None, None, None),
+               ("open", "walkway", 1.0, 20, 0, "water", None, None),
+               ("strip", "wading_strip", 0.4, 21, 0, "water", ("touch_water", "stand"), None),
+               ("steps", "sun_steps", 1.6, 22, 0, "water", ("sit_step", "sit_step", "sit_step", "stand"),
+                None),                                                   # friends on the sun steps, facing the water
+               ("prom", "walkway", 0.8, 23, 0, "water", None, None),
+               ("bike", "bike_lane", 0.7, 24, 0, None, None, None),
+               ("steps", "sun_steps", 0.9, 30, 1, "water", None, None),
+               ("open", "walkway", 0.5, 31, 1, "water", None, None)],
 }
-P14_POSE_A = {"wade": "stand", ("sun_steps", "touch"): "sit_step", "touch": "child_play"}   # one people style (Aras 31
+P14_POSE_A = {"wade": "stand", "touch_water": "stand", ("sun_steps", "touch"): "sit_step", "touch": "child_play"}   # one people style (Aras 31
 #                                      Oct): poses with no style a cutout take the nearest one that has; a figure in the
 #                                      strip stands on its floor with the water drawn over its shins (_p14_person)
 P14_STALL_CANOPY = "CDBFDB"          # the Kermes stalls' canopy: the Kermes visitors' purple, light
@@ -181,7 +208,9 @@ def _p14_geo():
                         market=(t0 + 2.0, P14_WALK[0] - 1.0), walk=P14_WALK, steps=(ne1, p0), prom=(p0, p1),
                         bike=(p1, p2), fill=(p2, p3), sw_slope=(-sw0, b0), sw_path=(-sw1, -sw0),
                         bed_sw=(b0, b0 + 2.5), open=(b0 + 3.0, st0 - 0.5), terr_a=(t0, t0 + 2.0),
-                        terr_b=(P14_WALK[0] - 1.0, P14_WALK[0]), terr_c=(P14_WALK[1], ne1)))
+                        terr_b=(P14_WALK[0] - 1.0, P14_WALK[0]), terr_c=(P14_WALK[1], ne1),
+                        edge=(st0 - 4.0, st0 - 0.2), open_w=(b0 + 3.0, st0 - 4.5), prom_edge=(p0, p0 + 3.0),
+                        prom_in=(p0 + 3.0, p1)))   # R2-C scenes: the strip's edge, the promenade's edge over the steps
     _P14_GEO.append(G)
     _p14_planting()
     return G
@@ -264,21 +293,70 @@ def _p14_people(sea, mode="season"):
     through figures.py's fig_place_zones on the cut's own ground (k 1: positions and levels in m; walkable zones only,
     nobody where the water drawn in mode (_p14_water) is deeper than knee, G10 + Aras 31 Oct); poses with no cutout
     take P14_POSE_A's (one people style); pose "market" = a stall with its vendor and buyer, "group" = three people
-    together (_p14_person)"""
+    together (_p14_person). R2-C scenes: each zone's cast and focus (P14_USE) turn the people to what they are there
+    for (the water, a stall: _p14_face)"""
     if (sea, mode) in _P14_PEOPLE:
         return _P14_PEOPLE[(sea, mode)]
     zn = _p14_geo()["zones"]
-    wfn = _p14_water(sea, mode)[2]
-    out = []
-    for zone, kind, dens, seed, layer in P14_USE.get(sea, []):
+    _zw, wet, wfn = _p14_water(sea, mode)
+    out, stalls = [], []
+    for u_ in P14_USE.get(sea, []):
+        zone, kind, dens, seed, layer, fo, cast, mx = (tuple(u_) + (None,) * 3)[:8]
         a, b = zn[zone]
+        fs = _p14_focus(wet, a, b) if fo == "water" else None
         _sh, placed = fig_place_zones([(kind, a, b)], _p14_surf, 1.0, seed=seed, layer=layer, style="b",
-                                      density=dens, water=wfn)
+                                      density=dens, water=wfn, max_per_zone=mx, focus=fs)
+        poses = []
         for i, (kd, pose, s) in enumerate(placed):
+            if cast and pose not in ("market", "group", "bike"):
+                pose = cast[i % len(cast)]
+            poses.append(pose)
+        faces = _p14_face(poses, [s for _kd, _p, s in placed], seed, fs, stalls if fo == "stall" else None)
+        for i, ((kd, _p, s), pose, face) in enumerate(zip(placed, poses, faces)):
+            if pose == "market":
+                stalls.append(s)
             pose = P14_POSE_A.get((kd, pose), P14_POSE_A.get(pose, pose))
-            out.append((pose, s, 1 if (seed + i) % 2 else -1, seed * 10 + i, layer, kd))
+            out.append((pose, s, face, seed * 10 + i, layer, kd))
     _P14_PEOPLE[(sea, mode)] = out
     return out
+
+
+def _p14_focus(wet, a, b):
+    """the m across people in the zone a..b look at: the nearest point of the season's water (wet stretches), the
+    zone's middle where it lies in the water; None without water"""
+    m = (a + b) / 2.0
+    pts = [min(max(m, wa), wb) for wa, wb in wet]
+    return min(pts, key=lambda q: abs(q - m)) if pts else None
+
+
+def _p14_face(poses, xs, seed, focus=None, stalls=None):
+    """R2-C scenes (figures.py's fig_activity rule): the facing (1 = to the north-east) of each of a zone's people.
+    focus (m): people who stay (FIG_FOCUS_POSES, sitters, groups) look at it, children playing turn to each other in
+    pairs (the left one looks right). stalls (a list, the market ground's): each stall faces its nearest person (its
+    buyers' side), every person faces the nearest stall (this zone's or one drawn before); walkers and riders keep
+    their own way."""
+    face = [1 if (seed + i) % 2 else -1 for i in range(len(poses))]
+    if stalls is not None:
+        own = [x for p_, x in zip(poses, xs) if p_ == "market"]
+        folk = [x for p_, x in zip(poses, xs) if p_ != "market"]
+        for i, (p_, x) in enumerate(zip(poses, xs)):
+            if p_ == "market":
+                to = min(folk, key=lambda q: abs(q - x)) if folk else (min(xs) + max(xs)) / 2.0
+                face[i] = 1 if to >= x else -1
+            elif own or stalls:
+                to = min(own + list(stalls), key=lambda q: abs(q - x))
+                face[i] = 1 if to >= x else -1
+        return face
+    run = 0
+    for i, (p_, x) in enumerate(zip(poses, xs)):
+        if p_ in FIG_PAIR_POSES:
+            face[i] = 1 if run % 2 == 0 else -1
+            run += 1
+            continue
+        run = 0
+        if focus is not None and (p_ in FIG_FOCUS_POSES or p_ in ("sit_step", "group")):
+            face[i] = 1 if focus >= x else -1
+    return face
 
 
 def _p14_person(pose, x, gy, k, facing, seed, style="b", layer=0, wl=None, ink=None, wcol=None):
@@ -298,7 +376,7 @@ def _p14_person(pose, x, gy, k, facing, seed, style="b", layer=0, wl=None, ink=N
             sh += fig_side(p_, x + dx * k, gy, K, facing=facing if j else -facing, ink=ink, layer=layer, style=style,
                            pick=seed + j)
         return sh
-    if wet and pose not in ("walk", "stand", "child_play", "adult_child"):
+    if wet and pose not in ("walk", "stand", "child_play", "adult_child", "touch_water"):
         pose = "stand"
     sh = fig_side(pose, x, gy, K, facing=facing, ink=ink, layer=layer, style=style, pick=seed)
     if wet:
@@ -923,33 +1001,98 @@ P14_LOOK = {  # each season's colours in the views, and its water on the cuts
 P14_FIG = "4F453C"                   # the people in the views
 
 
-def _p14_back(X, Y, k, rng, month, style="b", zw=None):
-    """the trees beyond the cut (R16: depth through faded background trees): plants.py's pla_group_section of S4's
-    own trees and shrubs in D9 layers 2 and 1 (G9 mixed groups; depth tone by layer), each seated on the lowest
-    ground of the cut's line under it (G14), never over the bed nor where the ground lies under the water zw (m),
-    each in the month's state. Returns house shapes."""
+P14_HOUSE_ON = 0.50                  # m: a background house stands only where the cut's ground under all of it lies
+#                                      no lower than this under the lower bank top (drawing rule: no house in the
+#                                      stream's valley, where the bed and its terraces run on behind the cut)
+_P14_HOUSES = {}
+
+
+def _p14_t0():
+    """m along the registry cut S4 (from its end S4) where it crosses the Selinos line (p.12's P12_SELINOS): the
+    page's 0 m across, north-east + (as p.17's _p17_s4_pt); None where it does not cross"""
+    a, b = level_ends("S4")
+    L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    d1 = (b[0] - a[0], b[1] - a[1])
+    P = globals().get("P12_SELINOS") or []
+    for p, q in zip(P[:-1], P[1:]):
+        d2 = (q[0] - p[0], q[1] - p[1])
+        den = d1[0] * d2[1] - d1[1] * d2[0]
+        if abs(den) > 1e-12:
+            w = (p[0] - a[0], p[1] - a[1])
+            t = (w[0] * d2[1] - w[1] * d2[0]) / den
+            u = (w[0] * d1[1] - w[1] * d1[0]) / den
+            if 0.0 <= t <= 1.0 and 0.0 <= u <= 1.0:
+                return t * L
+    return None
+
+
+def _p14_houses(rng, log=None):
+    """the basemap houses behind S4 over rng (m across), once a run (section_frame.py's sf_back_buildings: SF_BACK_BAND
+    m behind the cut, data height else floors x BLD_STOREY): [(m from, m to, h m, floors, m behind)] farthest first,
+    only those on the high ground beside the stream (P14_HOUSE_ON)"""
+    if rng in _P14_HOUSES:
+        return _P14_HOUSES[rng]
+    t0 = _p14_t0()
+    if t0 is None:
+        if log is not None:
+            log.append(u"pp.14-15 background houses: S4 does not cross the Selinos line (P12_SELINOS); none drawn")
+        _P14_HOUSES[rng] = []
+        return []
+    G = _p14_geo()
+    z_on = min(G["sw_top"], G["ne_top"]) - P14_HOUSE_ON
+    out, low = [], 0
+    for ta, tb, h, fl, d in sf_back_buildings("S4", t0 + rng[0], t0 + rng[1], log=log):
+        sa, sb = ta - t0, tb - t0
+        zs = [_p14_surf(sa + (sb - sa) * i / 8.0) for i in range(9)] + [z for s_, z in G["prof"] if sa < s_ < sb]
+        if min(zs) < z_on:
+            low += 1
+            continue
+        out.append((sa, sb, h, fl, d))
+    if log is not None:
+        log.append(u"pp.14-15 background houses {:.0f} to {:+.0f} m across: {} drawn, {} over the stream's valley left "
+                   u"out".format(rng[0], rng[1], len(out), low))
+    _P14_HOUSES[rng] = out
+    return out
+
+
+def _p14_back(X, Y, k, rng, month, style="b", zw=None, ytop=None):
+    """the houses and trees beyond the cut (R16: depth through faded background houses and trees): the basemap's
+    houses behind S4 (_p14_houses; sf_back_house, D9 layer 1 nearer than the band's middle, else 2), farthest first,
+    left out where the roof would leave the drawing (above ytop, page y); then plants.py's pla_group_section of S4's
+    own trees and shrubs in D9 layers 2 and 1 (G9 mixed groups; depth tone by layer) in front of them; all seated on
+    the lowest ground of the cut's line under them (G14), no tree over the bed nor where the ground lies under the
+    water zw (m), each in the month's state. Returns house shapes."""
     G = _p14_geo()
     xa, xb = X(rng[0]), X(rng[1])
 
     def gy(x):
         return Y(_p14_surf(rng[0] + (x - xa) / k))
-    mix = sorted(set(p[0] for p in P14_PLANTS if PLA_SPECIES[p[0]]["layer"] in ("tree", "shrub")))
     out = []
-    if len(mix) < 2:
-        return out
-    _sh, placed, _gr = pla_group_section(xa, xb, gy, k, t0=0.40, t1=0.70, mix=mix, seed=40, layers=(2, 1), style="b",
-                                         density=0.6, avoid=[(X(G["b0"]), X(G["b1"]))], hires=False, detail=False,
-                                         water=None if zw is None else Y(zw))
-    for i, (key, x, h, w, layer) in enumerate(placed):
-        if h > P14_TREE_MAX:
-            w, h = w * P14_TREE_MAX / h, P14_TREE_MAX
-        sc = fig_depth(layer)[0]
-        y = sf_seat_x(gy, x, (0.12 if PLA_SPECIES[key]["layer"] == "tree" else 0.35) * w * k * sc)
-        out += _p14_plant(key, x, y, k * sc, month, h, w, 50 * layer + i, style, layer, detail=False)
+    pitch = math.tan(math.radians(globals().get("BLD_PITCH", 30.0)))
+    mix = sorted(set(p[0] for p in P14_PLANTS if PLA_SPECIES[p[0]]["layer"] in ("tree", "shrub")))
+    for lay in (2, 1):                                  # layer by layer, farthest first: its houses, then its trees
+        for sa, sb, h, fl, d in _p14_houses(rng):
+            if (1 if d < 0.5 * sum(SF_BACK_BAND) else 2) != lay:
+                continue
+            x_a, x_b = X(sa), X(sb)
+            if ytop is not None and sf_ground_min(gy, x_a, x_b) + (h + pitch * min(0.5 * (sb - sa) + 0.3, 4.0)) * k > ytop:
+                continue
+            out += sf_back_house(x_a, x_b, gy, h, k, layer=lay, floors=fl)
+        if len(mix) < 2:
+            continue
+        _sh, placed, _gr = pla_group_section(xa, xb, gy, k, t0=0.40, t1=0.70, mix=mix, seed=40, layers=(lay,), style="b",
+                                             density=0.6, avoid=[(X(G["b0"]), X(G["b1"]))], hires=False, detail=False,
+                                             water=None if zw is None else Y(zw))
+        for i, (key, x, h, w, layer) in enumerate(placed):
+            if h > P14_TREE_MAX:
+                w, h = w * P14_TREE_MAX / h, P14_TREE_MAX
+            sc = fig_depth(layer)[0]
+            y = sf_seat_x(gy, x, (0.12 if PLA_SPECIES[key]["layer"] == "tree" else 0.35) * w * k * sc)
+            out += _p14_plant(key, x, y, k * sc, month, h, w, 50 * layer + i, style, layer, detail=False)
     return out
 
 
-def _p14_cut(pg, x0, yb, k, rng, sea, month, people=True, style="b", water="season", back=True):
+def _p14_cut(pg, x0, yb, k, rng, sea, month, people=True, style="b", water="season", back=True, ytop=None):
     """the S4 cut from rng[0] to rng[1] (m across) at k mm per m, rng[0] at x0 and its base (G["base"]) at yb, as it is
     in sea, layered as M5 sets it: the trees beyond (R16), the cut ground (earth, the gravel bed, the concrete strip
     liner, walk, steps and promenade), the water (_p14_water: water "season": the season's mean depth as a sheet over
@@ -973,7 +1116,7 @@ def _p14_cut(pg, x0, yb, k, rng, sea, month, people=True, style="b", water="seas
     zw, wet, _wf = _p14_water(sea, "avg" if water == "avg" else "season")
     clip = (X(s0), -1e9, X(s1), 1e9)
     if back:
-        shp_put(pg, _p14_back(X, Y, k, rng, month, style, zw))
+        shp_put(pg, _p14_back(X, Y, k, rng, month, style, zw, ytop))
 
     def put(ring_m, mat):
         r_ = _p14_clip_ring([(X(s), Y(z)) for s, z in ring_m], clip)
@@ -1208,10 +1351,11 @@ def _p14_view(pg, box, sea, style="b"):
     for i, (pose, s, face, seed, layer, _kd) in enumerate(_p14_people(sea)):
         d = P14_VIEW_PEOPLE[0] + P14_VIEW_PEOPLE[1] * ((seed * 53 + i * 29) % 97) / 97.0 + 6.0 * layer
         spr.append((d, "fig", (pose, s, face, seed)))
-        if pose != "market":
-            for c in range(P14_VIEW_BUSY[sea]):
+        if pose != "market":                                      # R2-C scenes: who stays keeps looking at the
+            stay = pose in FIG_FOCUS_POSES or pose in ("sit_step", "group", "child_play")   # water (players at their
+            for c in range(P14_VIEW_BUSY[sea]):                       # partner), walkers come and go
                 spr.append((d + P14_VIEW_PEOPLE[2] * (c + 1) * (0.8 + 0.4 * rnd()), "fig",
-                            (pose, s + (rnd() - 0.5) * 1.2, -face if c % 2 == 0 else face, seed + 5 * (c + 1))))
+                            (pose, s + (rnd() - 0.5) * 1.2, face if stay or c % 2 else -face, seed + 5 * (c + 1))))
     fa = _p14_fauna_for(sea)                                      # a wading bird, a flying or perched one, one more
     wad = [a for a in fa if a["kind"] in ("heron", "stork")]
     fly = [a for a in fa if a["kind"] in ("swallow", "kingfisher", "songbird")]
@@ -1410,6 +1554,7 @@ def _p14_panel(pg, box, log, style):
         pg.text(t2, hx, yh - fs * 2.3, fs, COL["ink2"])
     yt = yh - fs * 2.3 - 2.0
     rh = (yt - y0 - (fs * 1.3 + 2.4 + fs * CAP) - 1.5) / 4.0
+    _p14_houses(P14_RANGE, log)                  # checklist 7: the houses behind the cut, logged once
     for i, sea in enumerate(SEAS):
         rt = yt - i * rh
         rbot = rt - rh
@@ -1418,7 +1563,7 @@ def _p14_panel(pg, box, log, style):
         yb = rbot + 5.0
         shp_put(pg, sf_sky(xb, xb + wb, yb, rt - 1.0, seed=i + 1))     # D8: the designed sky behind the cut
         sp = Page(0, 0)
-        X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style)
+        X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style, ytop=rt - 1.0)
         pg.items += _p14_clip_items(sp.items, (xb, yb - 1.0, xb + wb, rt - 1.0))   # crowns stay in the cut's frame
         _p14_cal_band(pg, X, yb - 0.8, sea, P14_RANGE)
         d = _p14_sea_depth(sea)
@@ -1672,7 +1817,9 @@ def _p15_panel(pg, box, log, style):
     yb = cb[1] - 10.0 - (ztop - G["base"]) * k
     shp_put(pg, sf_sky(x0, x0 + ws, yb, cb[1] - 1.0, seed=7))     # D8: the designed sky behind the cut
     sp = Page(0, 0)
-    X, Y = _p14_cut(sp, x0, yb, k, P15_RANGE, "summer", P14_SEA_MONTH["summer"], style=style, water="avg")
+    _p14_houses(P15_RANGE, log)                  # checklist 7: the houses behind the cut, logged once
+    X, Y = _p14_cut(sp, x0, yb, k, P15_RANGE, "summer", P14_SEA_MONTH["summer"], style=style, water="avg",
+                    ytop=cb[1] - 1.0)
     pg.items += _p14_clip_items(sp.items, (x0, yb - 1.0, x0 + ws, cb[1] - 1.0))   # G3: no crown reaches the lists
     pg.line([(X(s), Y(z)) for s, z in G["today"] if s <= s1], COL["ink2"], 0.2, dash=[1.0, 0.6])
     labs = []                                     # G9: each mixed group says what it does, over its tallest plant
