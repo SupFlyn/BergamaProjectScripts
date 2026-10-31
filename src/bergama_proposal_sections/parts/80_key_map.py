@@ -8,7 +8,7 @@
 # "selinos", survey m) orients the bridge bars and is the stream when no basemap.json exists yet.
 PS_KEY_BRIDGES = [("k4", u"K4 köprüsü", (29846.40, 32277.71)),
                   ("k5", u"Üç Kemer Köprüsü", (30293.63, 31792.25))]
-PS_KEY_H = 50.0                       # print mm: the strip's height on the booklet page
+PS_KEY_H = 46.0                       # print mm: the strip's height on the booklet page (revision 30 Oct: 46)
 PS_KEY_MARGIN = (60.0, 46.0)          # m around the four cuts in the turned frame (along, across)
 PS_KEY_SELINOS = [
     (29642.6, 32739.4), (29633.1, 32660.6), (29643.3, 32638.1), (29645.7, 32633.8), (29652.9, 32627.1),
@@ -216,7 +216,11 @@ def ps_key_strip(pg, area, log):
         pg.text(s, xy[0], xy[1] - size * CAP / 2.0, size, hx, bold=bold, align="C")
         taken.append((xy[0] - w / 2.0, xy[1] - size * 0.6, xy[0] + w / 2.0, xy[1] + size * 0.6))
     bx = (min(p[0] for p in frame), min(p[1] for p in frame), max(p[0] for p in frame), max(p[1] for p in frame))
-    items = basemap_items("topographic", box=bx)
+    try:                                                       # revision 30 Oct (M4): the key map base with the study
+        items = keymap_items((), scale_den=1000.0 / km, box=bx, log=log)["items"]   # area; the cuts drawn below
+    except Exception as ex:
+        log.append(u"NOTE key map: base not drawn (%s)" % type(ex).__name__)
+        items = []
     if items:
         basemap_draw(items, T, fill_fn, line_fn)
     else:                                                      # no basemap.json yet: the stream line only

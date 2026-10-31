@@ -578,12 +578,14 @@ def sec_cut(B, L, sd_, P, Lm, ss, U, dry=False):
         prof = bld_profile(ftype, cat, a, b, z0, z0, z1, floors, fsrc == "published", seed=int(a * 7.0), ruin=fl[2],
                            minaret=fl[3] if len(fl) > 3 else None)
         tag_ = typo_label(ftype, cat, floors, fl[0], fl[4] if len(fl) > 4 else "")
+        if tag_.endswith(u" fl"):                         # revision 30 Oct (G6): its height in m, never floors
+            tag_ = tag_.rsplit(u" · ", 1)[0] + u" · " + u_height(z1 - z0)
         if th_ is None:
             lab_ = tag_ if (not annex and (b - a) * ss > 0.6 * tw(tag_, 0.17 * U)) else None
             bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27, label=lab_, placed=tags_)
             continue
         bld_draw_cut(B, L, P, prof, room, wall_c, ss, U, order=27)
-        lab_ = None if annex else site28_tag_fit(tag_, (b - a) * ss, th_)   # v50: the tag, else its floors alone
+        lab_ = None if annex else site28_tag_fit(tag_, (b - a) * ss, th_)   # v50: the tag, else its height alone
         if lab_:
             site28_bld_tag(B, L, P, prof, lab_, th_, wall_c, U, tags_)
     if dry or not HAVE_NP:                               # no picture: the measured crowns as before

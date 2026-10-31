@@ -9,8 +9,6 @@
 # (k = board units per booklet mm, as in v44); text never under 7 pt on the booklet page.
 # v50 (MIRAQUA 28 Oct, P06.1-P06.4, P22.1): p.6 and p.22 are drawn in parts/15k_r28_edge.py (ONE strip at 1:10,000,
 # G7; vector hatches, P06.2); EB_DEN, EB_N, OPEN_TINT, OPEN_HATCH, eb_hatched and draw_eb_base are gone.
-P01_BK_W = 232.0        # mm: plan 01's width on the booklet page beside the site readings (sets its label sizes)
-RD_BK_W = 156.0         # mm: the site readings' width on the booklet page
 EB_CONE_M = 45.0       # m: the drawn length of a photo's view cone (its angle is the camera's, from the photo)
 EB_COL_X = 297.0        # v49: mm from the panel's left edge to the spread copy's column (booklet grid column 10, as the
 #                         masterplan page beside it)

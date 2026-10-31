@@ -117,7 +117,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v21"
+VERSION = "v22"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -1213,6 +1213,24 @@ BK_ASSET_SOURCES = [
     u"https://learnarchitecture.online/products/sketchy-human-figures-3"]
 
 
+def cutout_sources():
+    """T4 30 Oct (M12, D1 a): one line per cutout source in Data/cutouts/cutouts.json (optional "source" of an entry:
+    author / title / URL), once each, in key order; [] when the file or the field is missing"""
+    p_ = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data", "cutouts", "cutouts.json")
+    try:
+        with open(p_, encoding="utf-8") as f_:
+            d_ = json.load(f_).get("cutouts") or {}
+    except Exception:
+        return []
+    out = []
+    for key, ents in sorted(d_.items()):
+        for e_ in (ents if isinstance(ents, list) else [ents]):
+            t = str((e_ or {}).get("source") or "").strip() if isinstance(e_, dict) else ""
+            if t and t not in out:
+                out.append(t)
+    return [u"Cutout: " + t for t in out]
+
+
 class Sources(object):
     """v18 (Aras 27 Oct, Prompt 8: "every [n] used exists, none are unused, numbering follows the new order"): every
     [n] mark the pages show (sheet words inside each crop, captions, legend names), read in page order, takes one
@@ -1231,6 +1249,7 @@ class Sources(object):
         self.order = []         # [(booklet number, key id, n, part, page, folder)]
         self.used = {}          # (sheet path, page index) -> [folder, [clips]] (clip None = the whole page)
         self.kid = {}           # (folder, path, page index) -> key id
+        self.first = {}         # T4 30 Oct (M12): folder -> first booklet page showing it (credits in page order)
         self.log, self.n_tight = [], 0
         for folder, a in sorted(assets.items()):
             for k, ents in sorted(((a or {}).get("sheet_sources") or {}).items(), key=lambda kv: str(kv[0])):
@@ -1363,6 +1382,7 @@ class Sources(object):
                                     blk.get("caption") or "", [e.get("label", "") for e in blk.get("legend") or []]))
             for folder, path, i, clip, cap, labels in its:
                 self.used.setdefault((path, i), [folder, []])[1].append(clip)
+                self.first.setdefault(folder, pno)
                 kid = self.key_for(folder, path, i)
                 inv = page_text(self.fz, path, i)[1]   # v19: read once per sheet page, not once per crop
                 for t in self.lines_in(sheet_doc(self.fz, path)[i], clip, inv) + [cap] + labels:
@@ -1415,8 +1435,15 @@ class Sources(object):
             texts += [t for n, t in sorted((self.keys.get(kid) or {}).items())
                       if (kid, n) not in self.glob and t and any(p.search(t) for p in pats)]
         shown = set(f for f, _ in self.used.values())
-        for f_, a in sorted(self.assets.items()):
+        # T4 30 Oct (M12): the scripts' photo credits in booklet page order (first page each sheet shows on), so the
+        # p.20 photo credits moved off the heritage map print here with the others
+        for f_, a in sorted(self.assets.items(), key=lambda kv: (self.first.get(kv[0], 999), str(kv[0]))):
             texts += [str(t) for t in (a or {}).get("photo_credits") or [] if t]
+            try:                                      # T4 (M12): photo_credits.json beside blocks.json (masterplan
+                with open(os.path.join((a or {}).get("_dir") or "", "photo_credits.json"), encoding="utf-8") as fh:
+                    texts += [str(t) for t in json.load(fh).get("photo_credits") or [] if t]   # senses photos)
+            except Exception:
+                pass
             if f_ in shown:                           # v20 (WO-T5-1): registered public sources and photo credits
                 texts += [str((v or {}).get("text") or "") for k, v in sorted(((a or {}).get("sources") or {}).items())
                           if re.match(ALWAYS_KEYS, str(k)) and isinstance(v, dict)]
@@ -1432,7 +1459,7 @@ class Sources(object):
             title = next((sp.get("title", "") for _, sp, rows in self.numbered if rows and
                           any(it[0] == MP + "mp_plan" for r in rows for it in r)), u"Masterplan: an ecological corridor")
             out.append((u"SOURCES OF THE NUMBERED PLACES IN ‘%s’" % title.upper(), codes))
-        assets = [public_src(t) or corn(t) for t in hr_sources() + BK_ASSET_SOURCES]
+        assets = [public_src(t) or corn(t) for t in hr_sources() + BK_ASSET_SOURCES + cutout_sources()]
         if assets:                                    # v21 (Aras 30 Oct 06:20): every asset source once, under ASSETS
             out.append((u"ASSETS", assets))
         return out

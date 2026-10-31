@@ -6,6 +6,10 @@
 # here on ONE 2 m raster (p06_open: every cell counted once, buildings / streets / water first), bare open ground
 # added, the largest pieces named as sites A-F with boxes (R10 / R11 idea: what it is, m², what it opens to); the
 # base is the basemap module's detailed mode; hatches heavier. Every m² figure is a cell count, never typed.
+# Revision 30 Oct 2026 (T4, PG1 p6, D5 BOTH): the strip on the faint M3 "base" (buildings as plan, streets, the
+# stream, the study area; no green, contours, street / heritage / mahalle names), where we can build the strongest
+# tone, sites as filled lettered squares repeated on their boxes, labels by M2 clear of the buildings, only the m²
+# the boxes explain; the page drawn twice (P06_PAL a / b), crops drw_edge_build_a, _b and drw_edge_build (= b).
 
 
 def edge_shares(S):
@@ -42,204 +46,83 @@ def r28e_rich(B, s, x, y, h, col, L, order=40):
     return r28mv_draw_line(B, ln[0], x, y, h, col, L, order) if ln else 0.0
 
 
-def r28e_streets(S):
-    """P06.1: the named streets of the strip (OpenStreetMap names of S.roads): those with a main-road class
-    (MAIN_ROADS) first, then the longest, each R28E_STREET_MIN or more inside the frame, at most R28E_N_STREET:
-    [(name, x, y)] at the middle of its longest piece"""
-    by = {}
-    for r_ in S.roads:
-        t = r_.get("tags") or {}
-        nm = u" ".join((t.get("name") or u"").split())
-        if not nm or r_.get("L", 0.0) <= 0.0 or len(r_["P"]) < 2:
-            continue
-        e = by.setdefault(nm, dict(L=0.0, main=False, best=None))
-        e["L"] += r_["L"]
-        e["main"] = e["main"] or t.get("highway") in MAIN_ROADS
-        if e["best"] is None or r_["L"] > e["best"]["L"]:
-            e["best"] = r_
-    names = sorted((nm for nm, e in by.items() if e["L"] >= R28E_STREET_MIN),
-                   key=lambda nm: (not by[nm]["main"], -by[nm]["L"]))
-    out = []
-    for nm in names[:R28E_N_STREET]:
-        P = by[nm]["best"]["P"]
-        q = pl_point_at(P, 0.5 * pl_length(P))[0]
-        out.append((nm, q[0], q[1]))
-    return out
-
-
-def r28e_heritage(S):
-    """P06.1: the heritage names of the strip: the monuments' and sacred buildings' own names (u["proper"]: survey or
-    OpenStreetMap), the largest first, then named heritage points (OpenStreetMap, places) standing free; one label a
-    place (a name, or the same first word within 60 m, once), at most R28E_N_HER: [(name, x, y)]"""
-    F = S.F
-    cand = sorted([(u["A"], u["proper"], interior_point(u["parts"][0])) for u in S.bld
-                   if u.get("fabric") in ("monument", "sacred") and u.get("proper")], key=lambda c_: -c_[0])
-    cand += [(0.0, p_["name"], (p_["x"], p_["y"])) for p_ in getattr(S, "pois", None) or []
-             if p_.get("her") and not p_.get("in_bld") and proper_name(p_.get("name") or u"")]
-    out = []
-    for a_, nm, (x_, y_) in cand:
-        nm = u" ".join(nm.split())
-        w0 = nm.split()[0].lower()
-        if not F.inside(x_, y_) or any(nm == o[0] or (o[0].split()[0].lower() == w0 and
-                                                      math.hypot(o[1] - x_, o[2] - y_) < 60.0) for o in out):
-            continue
-        out.append((nm, x_, y_))
-        if len(out) >= R28E_N_HER:
-            break
-    return out
-
-
-def r28e_mahalle(S):
-    """P06.1: the mahalle names of the strip: OpenStreetMap boundary=administrative, admin_level 8 relations (their
-    outer ways joined into closed rings, cut to the frame), each named at an inside point of its largest piece in the
-    frame when that holds R28E_MAH_MIN or more: [(name without "Mahallesi", x, y)]"""
-    m = r28e_memo(S)
-    if "mahalle" in m:
-        return m["mahalle"]
-    out, F = [], S.F
-    osm = getattr(S, "osm", None) or {}
-    ways, Pj = osm.get("ways") or {}, osm.get("P")
-    for mem, tags in osm.get("rels") or []:
-        nm = u" ".join((tags.get("name") or u"").split())
-        if tags.get("boundary") != "administrative" or str(tags.get("admin_level")) != "8" or not nm or Pj is None:
-            continue
-        lines_ = []
-        for ref, role in mem:
-            if role in ("outer", "", None) and ref in ways:
-                pts = [q for q in (Pj(n_) for n_ in ways[ref][0]) if q]
-                if len(pts) >= 2:
-                    lines_.append(pts)
-        best = None
-        for R_ in chain_segments(lines_, 0.05):
-            if len(R_) < 4 or math.hypot(R_[0][0] - R_[-1][0], R_[0][1] - R_[-1][1]) > 1.0:
-                continue
-            Q = F.clip_poly(R_[:-1])
-            a_ = shoelace(Q)[0] if Q else 0.0
-            if a_ >= R28E_MAH_MIN and (best is None or a_ > best[0]):
-                best = (a_, Q)
-        if best is not None:
-            for suf in (u" Mahallesi", u" Mahalle"):
-                if nm.endswith(suf):
-                    nm = nm[:-len(suf)].strip()
-            x_, y_ = interior_point(best[1])
-            out.append((nm, x_, y_))
-    m["mahalle"] = out
-    LOG.append(u"Mahalle names on the stream edge plan (OpenStreetMap, admin_level 8): {}.".format(
-        u", ".join(nm for nm, x_, y_ in out) or u"none (no closed boundary with 2 ha or more in the frame)"))
-    return out
-
-
 def r28e_names(S, V, k):
-    """P06.1: the strip's context names as r28e_place items, 7 pt: the stream (always shown), heritage, main
-    streets, mahalle (each may be dropped where nothing is free)"""
-    F = S.F
-    h = bk_hk(7.0, k)
-    out = []
+    """revision 30 Oct (p6 change 1, G3: no label on the buildings): the strip's one context name is the stream's
+    (rank 0, italic, the water's edge tone). The street, heritage and mahalle names sat on the buildings and are gone
+    (r28e_streets, r28e_heritage, r28e_mahalle deleted)."""
     rl = getattr(S, "river_label", None)
-    if rl and F.inside(rl[0], rl[1]):
-        px, py = V.p(rl[0], rl[1])
-        out.append(dict(x=px, y=py, lines=[(rl[3], False)], h=h, col=MPL["water_edge"], rank=0, italic=True))
-    for nm, x_, y_ in r28e_heritage(S):
-        px, py = V.p(x_, y_)
-        out.append(dict(x=px, y=py, lines=[(nm, False)], h=h, col=R28E_HER_TXT, rank=1))
-    for nm, x_, y_ in r28e_streets(S):
-        px, py = V.p(x_, y_)
-        out.append(dict(x=px, y=py, lines=[(nm, False)], h=h, col=INK, rank=1))
-    for nm, x_, y_ in r28e_mahalle(S):
-        px, py = V.p(x_, y_)
-        out.append(dict(x=px, y=py, lines=[(tr_upper(nm), False)], h=h, col=INK2, rank=1, centre=True))
-    return out
+    if not rl or not S.F.inside(rl[0], rl[1]):
+        return []
+    px, py = V.p(rl[0], rl[1])
+    return [dict(x=px, y=py, lines=[(rl[3], False)], h=bk_hk(7.0, k), col=MPL["water_edge"], rank=0, italic=True)]
 
 
-def r28e_place(B, items, taken, bounds, k, L, segs=(), order=66):
-    """G4 (common/label_place.py): the labels items [dict(x, y (board units), lines [(text, bold)], h (capital
-    height), col, rank (0 always shown, 1 may be dropped), centre (an area's name: on its point when that is free),
-    italic)] placed clear of each other, of the boxes in taken (symbols) and of the lines segs [(p, q)], inside
-    bounds; a label set off its point gets a thin leader. Worked in booklet mm; never smaller than drawn (7 pt).
-    Returns the texts of the labels dropped; taken grows."""
+def r28e_place(B, items, taken, bounds, k, L, lines=(), order=66):
+    """M2 (common/label_place.py lp_place): the labels items [dict(x, y (board units), lines [(text, bold)], h
+    (capital height), col, rank (0 always shown, 1 may be dropped), r (the target's radius, board units), italic)]
+    placed clear of each other, of the boxes in taken (symbols) and of the polylines lines (board units: the
+    stream's centre line, the building outlines, the bank edge), inside bounds; a label set off its point gets a
+    short leader that starts on its target's edge. Worked in booklet mm, 7 pt, never smaller. Returns the texts of
+    the labels dropped; taken grows by the placed boxes."""
     mm = 1.0 / k
     pad, lead = 0.3, 1.4
-    tk = [tuple(v * mm for v in b) for b in taken]
-    bd = tuple(v * mm for v in bounds) if bounds else None
-    sg = [((p[0] * mm, p[1] * mm), (q[0] * mm, q[1] * mm)) for p, q in segs]
-
-    def size(it):
+    labs = []
+    for it in items:
         h = it["h"] * mm
-        return (max(r28mv_tw(t, h, b) for t, b in it["lines"]) + 2.0 * pad,
-                h * (1.0 + lead * (len(it["lines"]) - 1)) + 2.0 * pad)
-
-    def free(b):
-        return ((bd is None or (bd[0] <= b[0] and b[2] <= bd[2] and bd[1] <= b[1] and b[3] <= bd[3])) and
-                not any(lp_hit(b, t) for t in tk) and not any(_lp_seg_box(p, q, b) for p, q in sg))
-
-    placed = {}
-
-    def run(idx):
-        sub = []
-        for i in idx:
-            wh_ = size(items[i])
-            sub.append(dict(x=items[i]["x"] * mm, y=items[i]["y"] * mm, wh=(lambda f, s_=wh_: s_),
-                            rank=items[i].get("rank", 1)))
-        for j, got in place_labels_all(sub, tk, bd, sg, sizes=(1.0,), pad=0.2).items():
-            placed[idx[j]] = (got[0], got[1])
-
-    run([i for i, it in enumerate(items) if it.get("rank", 1) == 0])
-    rest = []
-    for i, it in enumerate(items):
-        if it.get("rank", 1) == 0:
-            continue
-        if it.get("centre"):
-            w_, h_ = size(it)
-            ax, ay = it["x"] * mm, it["y"] * mm
-            b = (ax - 0.5 * w_, ay - 0.5 * h_, ax + 0.5 * w_, ay + 0.5 * h_)
-            if free(b):
-                tk.append(b)
-                placed[i] = (b, False)
-                continue
-        rest.append(i)
-    run(rest)
+        labs.append(dict(x=it["x"] * mm, y=it["y"] * mm, rank=it.get("rank", 1), r=it.get("r", 0.0) * mm,
+                         w=max(r28mv_tw(t, h, b) for t, b in it["lines"]) + 2.0 * pad,
+                         h=h * (1.0 + lead * (len(it["lines"]) - 1)) + 2.0 * pad))
+    idx = LpSegIndex(polylines=[[(p[0] * mm, p[1] * mm) for p in P] for P in lines if len(P) >= 2])
+    got = lp_place(labs, obstacles=[tuple(v * mm for v in b) for b in taken], lines=idx,
+                   bounds=tuple(v * mm for v in bounds) if bounds else None, pad=0.3, max_leader=8.0, sizes=(1.0,))
     dropped = []
-    for i, it in enumerate(items):
-        if i not in placed:
+    for it, g in zip(items, got):
+        if g is None:
             dropped.append(u" ".join(t for t, b_ in it["lines"]))
             continue
-        b, far = placed[i]
+        b = g["box"]
+        if g["leader"]:
+            (a0, a1), (e0, e1) = g["leader"]
+            B.line([(a0 * k, a1 * k), (e0 * k, e1 * k)], it["col"], L, order - 1, bk_lw(0.1, k))
         x0, y1 = b[0] * k, b[3] * k
-        if far:
-            e = lp_leader_end(b, (it["x"] * mm, it["y"] * mm))
-            B.line([(it["x"], it["y"]), (e[0] * k, e[1] * k)], it["col"], L, order - 1, bk_lw(0.1, k))
         h = it["h"]
         yl = y1 - pad * k - h
         for t, bold in it["lines"]:
             B.text(t, x0 + pad * k, yl, h, it["col"], L, order=order, font=FONT_TITLE, bold=bold,
                    italic=it.get("italic", False))
             yl -= lead * h
-    taken[:] = [tuple(v * k for v in b) for b in tk]
+        taken.append(tuple(v * k for v in b))
     return dropped
 
 
-def r28e_strip(S, B, x, yt, k, L, photos=(), sites=()):
-    """v50 (G7, P06.1, P06.4): the whole frame as ONE strip at 1:10,000, its top-left corner at (x, yt): the base,
-    the edge every 4 m on both banks (walled and embanked marked), bridges K1-K6 as bars with their names, the photo
-    viewpoints (numbered discs, view cones), the context names (G4), the frame's line. v51 (WO-T3a-4): the base is the
-    basemap's detailed mode (p06_base), where we can build is p06_open's four classes (p06_hatched), the sites
-    (p06_open's largest pieces) outlined with a lettered square each; every site gets its badge's page point as
-    s["px"], s["py"]. Returns (View, board units per metre, the strip's rectangle, the labels dropped)."""
+def r28e_strip(S, B, x, yt, k, L, photos=(), sites=(), pal=None):
+    """v50 (G7, P06.1, P06.4), revision 30 Oct (p6, D5): the whole frame as ONE strip at 1:10,000, its top-left
+    corner at (x, yt), in the palette pal (P06_PAL "a" / "b"): the faint M3 base (p06_base: buildings as plan, streets,
+    the stream, the study area), where we can build in p06_open's four classes (p06_hatched: the strongest tone on
+    the map), the sites outlined with a filled lettered square each (s["px"], s["py"] = its page point, for the
+    boxes' leaders), the edge every 4 m on both banks (walled and embanked marked), bridges K1-K6 as bars with their
+    K code, the photo viewpoints (numbered discs, view cones), the stream's name, the frame's line. Labels by M2
+    (r28e_place), clear of the buildings. Returns (View, board units per metre, the strip's rectangle, the labels
+    dropped)."""
+    pal = pal or P06_PAL["b"]
     F = S.F
     ss = 1000.0 * k / R28E_DEN
     V = View(F, ss, x, yt)
     r = (x, yt - F.h * ss, x + F.w * ss, yt)
     CB = ClipB(B, r)
     B.fill([rect(*r)], WHITE, L, 1)
-    p06_base(S, CB, V, k, L)
+    if not p06_base(S, CB, V, k, L):
+        draw_r28_study(S, CB, V, k, L)
     O = p06_open(S)
-    for part, hk in P06_CLASSES:                          # where we can build: tint, hatch and edge, legible
-        p06_hatched(CB, V, O["draw"][part], hk, k, L, 6)
+    for part, hk in P06_CLASSES:                          # where we can build: the map's one strong tone
+        p06_hatched(CB, V, O["draw"][part], hk, k, L, 6, pal)
     for P in getattr(S, "bridges", []) or []:
         CB.line(V.P(P), MPL["ink_dark"], L, 25, bk_lw(0.3, k))
-    draw_r28_study(S, CB, V, k, L)
+    lines_ = []                                           # what no label may sit on
     for typ, pts in getattr(S, "edge_runs", []):          # the edge every 4 m, both banks
-        CB.line(V.P(pts), EDGE[typ][1], L, 40, bk_lw(0.7, k))
+        Q = V.P(pts)
+        CB.line(Q, pal["edge"][typ], L, 40, bk_lw(P06_EDGE_LINE_MM, k))
+        lines_.append(Q)
     for pts in getattr(S, "wall_runs", []):
         for d in dashes(V.P(pts), 1.0 * k, 0.8 * k):
             CB.line(d, WHITE, L, 41, bk_lw(0.3, k))
@@ -248,7 +131,7 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=()):
             CB.line(d, WHITE, L, 41, bk_lw(0.3, k))
     h7 = bk_hk(7.0, k)
     taken, items = [], []
-    for kk, nm, bx, by in BRIDGES_K:                      # the six crossings: a bar across the stream, K and name
+    for kk, nm, bx, by in BRIDGES_K:                      # the six crossings: a bar across the stream, its K code
         if not F.inside(bx, by):
             continue
         px, py = V.p(bx, by)
@@ -258,18 +141,18 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=()):
         e = ((a_[0] - px) / ln * 1.6 * k, (a_[1] - py) / ln * 1.6 * k)
         CB.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], MPL["ink_dark"], L, 45, bk_lw(0.6, k))
         taken.append((px - 1.6 * k, py - 1.6 * k, px + 1.6 * k, py + 1.6 * k))
-        items.append(dict(x=px, y=py, lines=[(kk, True), (nm, False)], h=h7, col=INK, rank=0))
-    sq = 1.7 * k                                          # a site: its outline and a lettered square (photos: discs)
+        items.append(dict(x=px, y=py, lines=[(kk, True)], h=h7, col=INK, rank=0, r=1.6 * k))
+    sq = P06_MARK_MM * k                                  # a site: its outline and a filled lettered square
     for st in sites:
         for g in st["rings"]:
             for P in g:
-                CB.line(V.P(list(P) + [P[0]]), MPL["ink_dark"], L, 44, bk_lw(P06_SITE_MM, k))
+                CB.line(V.P(list(P) + [P[0]]), pal["site"], L, 44, bk_lw(P06_SITE_MM, k))
         px, py = V.p(st["x"], st["y"])
         st["px"], st["py"] = px, py
         q = rect(px - sq, py - sq, px + sq, py + sq)
-        B.fill([q], WHITE, L, 62)
-        B.line(q + [q[0]], MPL["ink_dark"], L, 63, bk_lw(0.3, k))
-        B.text(st["id"], px, py, h7, MPL["ink_dark"], L, order=64, font=FONT_TITLE, bold=True, align="MC")
+        B.fill([q], pal["mark"], L, 62)
+        B.line(q + [q[0]], WHITE, L, 63, bk_lw(0.25, k))
+        B.text(st["id"], px, py, bk_hk(8.0, k), WHITE, L, order=64, font=FONT_TITLE, bold=True, align="MC")
         taken.append((px - sq - 0.3 * k, py - sq - 0.3 * k, px + sq + 0.3 * k, py + sq + 0.3 * k))
     rd = 1.6 * k                                          # a viewpoint's disc; its number 7 pt
     for j, (p, it) in enumerate(photos):                  # viewpoints: cone from the camera, disc behind it
@@ -318,38 +201,45 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=()):
         B.text(str(j + 1), cx_, cy_, h7, WHITE, L, order=61, font=FONT_TITLE, bold=True, align="MC")
         taken.append(b)
     items += r28e_names(S, V, k)
-    segs = []                                             # labels never sit on the stream's centre line
-    for P in getattr(S, "selinus", None) or []:
-        Q = V.P(dp_simplify(P, 15.0))
-        segs += list(zip(Q[:-1], Q[1:]))
+    for P_ in getattr(S, "selinus", None) or []:          # labels never sit on the stream's centre line ...
+        lines_.append(V.P(dp_simplify(P_, 15.0)))
+    for u in S.bld:                                       # ... nor on a building (G3)
+        for P_ in u["parts"]:
+            if P_ and len(P_) >= 3 and F.inside(P_[0][0], P_[0][1]):
+                lines_.append(V.P(list(P_) + [P_[0]]))
     dropped = r28e_place(B, items, taken, (r[0] + 0.5 * k, r[1] + 0.5 * k, r[2] - 0.5 * k, r[3] - 0.5 * k), k, L,
-                         segs)
+                         lines_)
     B.line(rect(*r) + [(r[0], r[1])], INK, L, 70, bk_lw(0.25, k))
     return V, ss, r, dropped
 
 
 # ------------------------------------------------------------ the key and the panels beside the strip
-def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20):
-    """a key sample w x h booklet mm, its top-left corner at (x, y): box (fill ref), osm (a building with the
-    OpenStreetMap footprint's thin outline), her (heritage building), hatch / hatchline (P06_CLASSES hatch key ref:
-    tint, hatch and edge as the strip / the hatch alone), line (ref = (colour, mm)), dash (ref = colour: the covered
-    course), study (G8), contour (a 10 m and a 5 m line), bridge (a bar across the stream), edge (the six edge
-    colours), walled / embanked (the bank marks), cone (a viewpoint), frame (the analysis frame's line), site (v51)"""
+def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20, pal=None):
+    """a key sample w x h booklet mm, its top-left corner at (x, y), in the palette pal (P06_PAL): box (fill ref),
+    bld / her (a building / heritage building as the M3 base draws them: faint fill, outline, roof ridge and hips),
+    hatch / hatchline (P06_CLASSES hatch key ref: tint, hatch and edge as the strip / the hatch alone), line (ref =
+    (colour, mm)), dash (ref = colour: the covered course), study (G8), bridge (a bar across the stream), edge (the
+    six edge colours), walled / embanked (the bank marks), cone (a viewpoint), frame (the analysis frame's line),
+    site (an outline and its filled square)"""
+    pal = pal or P06_PAL["b"]
     w, h = w * k, h * k
     sw_ = rect(x, y - h, x + w, y)
     ym = y - 0.5 * h
     if kind == "box":
         B.fill([sw_], ref, L, order)
-    elif kind == "osm":
-        B.fill([sw_], R28E_BLD, L, order)
-        B.line(sw_ + [sw_[0]], R28E_OSM_EDGE, L, order + 1, bk_lw(0.08, k))
-    elif kind == "her":
-        B.fill([sw_], MPL["her"], L, order)
-        B.line(sw_ + [sw_[0]], MPL["her_edge"], L, order + 1, bk_lw(0.12, k))
+    elif kind in ("bld", "her"):                          # the M3 base's buildings "plan_faint" (basemap.py)
+        fc, ec = ((C(BM_FAINT["bld_veryfaint"]), C(BM_FAINT["road_line"])) if kind == "bld" else
+                  (C(P06_HER_FAINT[0]), C(P06_HER_FAINT[1])))
+        B.fill([sw_], fc, L, order)
+        e_ = 0.5 * h
+        for P in ([(x + e_, ym), (x + w - e_, ym)], [(x, y), (x + e_, ym), (x, y - h)],
+                  [(x + w, y), (x + w - e_, ym), (x + w, y - h)]):
+            B.line(P, C(BM_FAINT["bld"]) if kind == "bld" else ec, L, order + 1, bk_lw(0.08, k))
+        B.line(sw_ + [sw_[0]], ec, L, order + 2, bk_lw(0.1, k))
     elif kind in ("hatch", "hatchline"):
-        lab, col, ang = p06_hatch_spec(ref)
+        lab, col, ang = p06_hatch_spec(ref, pal)
         if kind == "hatch":
-            B.fill([sw_], mix(col, WHITE, P06_TINT), L, order)
+            B.fill([sw_], mix(col, WHITE, pal["tint"]), L, order)
         B.hatch([sw_], col, L, order + 1, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
         B.line(sw_ + [sw_[0]], col, L, order + 2, bk_lw(P06_EDGE_MM, k))
     elif kind == "line":
@@ -361,16 +251,14 @@ def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20):
         st = R28_STUDY_LINE
         for d in r28_pattern([(x, ym), (x + w, ym)], [m_ * k for m_ in st["dash_mm"]]):
             B.line(d, C(st["colour"]), L, order, bk_lw(st["width_mm"], k))
-    elif kind == "contour":
-        B.line([(x, ym + 0.6 * k), (x + w, ym + 0.6 * k)], R28E_CONTOUR, L, order, bk_lw(R28E_CONTOUR_W[1], k))
-        B.line([(x, ym - 0.6 * k), (x + w, ym - 0.6 * k)], R28E_CONTOUR, L, order, bk_lw(R28E_CONTOUR_W[0], k))
     elif kind == "bridge":
         B.fill([rect(x, ym - 0.7 * k, x + w, ym + 0.7 * k)], MPL["water"], L, order)
         B.line([(x + 0.5 * w, y), (x + 0.5 * w, y - h)], MPL["ink_dark"], L, order + 1, bk_lw(0.6, k))
     elif kind == "edge":
         n_ = len(EDGE_ORDER)
         for i, k_ in enumerate(EDGE_ORDER):
-            B.line([(x + i * w / n_, ym), (x + (i + 1) * w / n_, ym)], EDGE[k_][1], L, order, bk_lw(0.7, k))
+            B.line([(x + i * w / n_, ym), (x + (i + 1) * w / n_, ym)], pal["edge"][k_], L, order,
+                   bk_lw(P06_EDGE_LINE_MM, k))
     elif kind in ("walled", "embanked"):
         B.line([(x, ym), (x + w, ym)], INK2, L, order, bk_lw(0.7, k))
         dd = (1.0, 0.8) if kind == "walled" else (0.2, 1.0)
@@ -381,46 +269,45 @@ def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20):
         B.fill([circle_pts(x + 0.8 * k, ym, 0.4 * k, 10)], INK, L, order + 1)
     elif kind == "frame":
         B.line(sw_ + [sw_[0]], INK, L, order, bk_lw(0.25, k))
-    elif kind == "site":                                  # v51: a site's outline and its lettered square
-        B.line(sw_ + [sw_[0]], MPL["ink_dark"], L, order, bk_lw(P06_SITE_MM, k))
+    elif kind == "site":                                  # a site's outline and its filled lettered square
+        B.line(sw_ + [sw_[0]], pal["site"], L, order, bk_lw(P06_SITE_MM, k))
         q = rect(x + 0.5 * w - 0.9 * k, ym - 0.9 * k, x + 0.5 * w + 0.9 * k, ym + 0.9 * k)
-        B.fill([q], WHITE, L, order + 1)
-        B.line(q + [q[0]], MPL["ink_dark"], L, order + 2, bk_lw(0.2, k))
+        B.fill([q], pal["mark"], L, order + 1)
 
 
-def r28e_key(B, rows, x, y, ncol, colw, k, L):
+def r28e_key(B, rows, x, y, ncol, colw, k, L, pal=None):
     """the map's key (P06.2, P06.3: it draws the hatches and outlined fills the booklet's legend cannot), rows
-    [(kind, ref, label)] in ncol columns colw wide, filled column by column from (x, y) (top), 7 pt. Returns the y
-    under it."""
+    [(kind, ref, label)] in ncol columns colw wide, filled column by column from (x, y) (top), 7 pt, in the palette
+    pal. Returns the y under it."""
     pitch = 3.3 * k
     nrow = max(1, (len(rows) + ncol - 1) // ncol)
     h7 = bk_hk(7.0, k)
     for i, (kind, ref, lab) in enumerate(rows):
         lx, ly = x + (i // nrow) * colw, y - (i % nrow) * pitch
-        r28e_swatch(B, kind, ref, lx, ly, k, L)
+        r28e_swatch(B, kind, ref, lx, ly, k, L, pal=pal)
         B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h7, INK, L, font=FONT_TITLE)
     return y - nrow * pitch
 
 
 def r28e_key_rows(photos=True):
-    """the stream edge plan's key (the hatches of where we can build are in its own panel, with their areas)"""
-    rows = [("box", R28E_BLD, u"Building (survey)"), ("osm", None, u"Building, OpenStreetMap footprint"),
-            ("her", None, u"Heritage building"), ("box", MPL["road"], u"Street"),
-            ("box", MPL["water"], u"Stream"), ("dash", MPL["water_edge"], u"Covered course"),
-            ("box", MPL["tree"], u"Woods, tree cover"), ("box", MPL["park"], u"Parks, grass"),
-            ("box", MPL["field"], u"Fields, orchards"), ("contour", None, u"Contours, 5 m (10 m bolder)"),
-            ("bridge", None, u"Bridge K1-K6 and its name"), ("edge", None, u"Bank edge, every 4 m (THE EDGE)"),
-            ("walled", None, u"Walled bank"), ("embanked", None, u"Embanked bank (slope line)"),
-            ("study", None, R28_STUDY_NAME), ("frame", None, R28_FRAME_NAME + u" (the map's edge)"),
-            ("site", None, u"Site: open ground in one piece (boxes under the map)")]
+    """the stream edge plan's key: every layer the strip draws (revision 30 Oct: the M3 base's layers only; the
+    hatches of where we can build are in their own panel, with their areas)"""
+    rows = [("bld", None, u"Building"), ("her", None, u"Heritage building"),
+            ("box", C(BM_FAINT["road"]), u"Street"), ("box", MPL["water"], u"Stream"),
+            ("dash", MPL["water_edge"], u"Covered course"), ("bridge", None, u"Bridge K1-K6"),
+            ("edge", None, u"Bank edge, every 4 m (THE EDGE)"), ("walled", None, u"Walled bank"),
+            ("embanked", None, u"Embanked bank (slope line)"), ("study", None, R28_STUDY_NAME),
+            ("frame", None, R28_FRAME_NAME + u" (the map's edge)"),
+            ("site", None, u"Site A-F: open ground in one piece (its box under the map)")]
     if photos:
         rows.append(("cone", None, u"Photo viewpoint and view cone"))
     return rows
 
 
-def r28e_edge_panel(S, B, x, y, w, k, L):
-    """THE EDGE: what meets the water, % of the bank length on both sides, six bars in the strip's edge colours,
-    from (x, y) (top), w wide. Returns (the y under it, % walled, % embanked)."""
+def r28e_edge_panel(S, B, x, y, w, k, L, pal=None):
+    """THE EDGE: what meets the water, % of the bank length on both sides, six bars in the strip's edge colours
+    (palette pal), from (x, y) (top), w wide. Returns (the y under it, % walled, % embanked)."""
+    pal = pal or P06_PAL["b"]
     sh_, wl_, em_, tot = edge_shares(S)
     if tot <= 0:
         return y, wl_, em_
@@ -437,7 +324,7 @@ def r28e_edge_panel(S, B, x, y, w, k, L):
         B.text(EB_EDGE_LAB[k_], x, y - h7, h7, INK, L, font=FONT_TITLE)
         bx_ = x + lw_
         if v_ > 0:
-            B.fill([rect(bx_, y - h7 - 0.3 * k, bx_ + bw0 * v_ / vmax, y + 0.2 * k)], EDGE[k_][1], L, 20)
+            B.fill([rect(bx_, y - h7 - 0.3 * k, bx_ + bw0 * v_ / vmax, y + 0.2 * k)], pal["edge"][k_], L, 20)
         B.text(u"{:.0f}%".format(v_), bx_ + bw0 * v_ / vmax + 1.2 * k, y - h7, h7, INK, L, font=FONT_TITLE, bold=True)
         y -= 3.5 * k
     return y, wl_, em_
@@ -467,7 +354,7 @@ def r28e_rings(B, x, y, wl_, em_, k, L):
 # ground with no satellite class, wide enough for a P06_BARE_R opening and P06_BARE_MIN or more in one piece). Every
 # m² printed is (cells) x REST_CELL²: the drawing traces the same cells, so figure and hatch agree.
 P06_CLASSES = (("vacant", "open"), ("parking", "parking"), ("loose", "loose"), ("bare", "bare"))  # count -> hatch key
-P06_BARE_HATCH = (u"Bare ground", "847E75", 90.0)   # palette v1.4 ink2; vertical, apart from the other three angles
+P06_ANG = {"open": 45.0, "parking": -45.0, "loose": 0.0, "bare": 90.0}   # hatch angles: R28_BUILD_HATCH, bare vertical
 P06_LABEL = {"open": u"Vacant ground", "parking": u"Parking & yards", "loose": u"Loose ground", "bare": u"Bare ground"}
 P06_WHAT = {"open": u"vacant lot", "parking": u"parking, yards", "loose": u"grass, scrub", "bare": u"bare ground"}
 P06_GRASS_LU = ("grass", "greenery")                # OpenStreetMap grass lots: no use recorded, counted as loose
@@ -480,7 +367,27 @@ P06_N_SITES = 6                 # the largest pieces of open ground, lettered A-
 P06_LETTERS = u"ABCDEFGH"
 P06_BY_M = 150.0                # m: a site this close to a bridge is "by K.."
 P06_BANK_M = 40.0               # m: a site this close to the stream's centre line is on its bank
-P06_TINT = 0.72                 # a hatch's ground: its line colour this far to white (was 0.86: too faint)
+# revision 30 Oct (p6, D5 BOTH): two palettes from the same geometry, each a crop (drw_edge_build_a / _b). The base
+# (M3 "base": faint warm greys, the stream's blue) is the same in both; where we can build is the strongest tone.
+#   a = one hue family + one accent: the four classes are tones of the board's accent (palette v1.4 accent 8B3A3F),
+#       told apart by hatch angle; the bank edge is a warm-grey ramp from enclosed (dark) to transformable (light).
+#   b = muted multi-hue: the four classes in four muted hues; the bank edge in its board colours (EDGE).
+# tint: a hatch's ground = its line colour this far to white; mark: the sites' squares and leaders; site: their
+# outlines; head "class": a site box's head in its main class's colour (b), else in mark (a)
+P06_PAL = {
+    "a": dict(name="a", tint=0.62, mark=C("8B3A3F"), site=C("633131"), head=None,
+              cls={"open": C("8B3A3F"), "parking": C("A65A4E"), "loose": C("C2805F"), "bare": C("9C6A63")},
+              edge=dict(zip(EDGE_ORDER, (C("3E352D"), C("615950"), C("837B71"), C("A19A8F"), C("B9B3A9"),
+                                         C("CEC9C0"))))),
+    "b": dict(name="b", tint=0.66, mark=MPL["ink_dark"], site=MPL["ink_dark"], head="class",
+              cls={"open": C("B5735A"), "parking": C("8A7FA8"), "loose": C("BE9F5E"), "bare": C("847E75")},
+              edge=dict((k_, EDGE[k_][1]) for k_ in EDGE_ORDER)),
+}
+P06_BASE_LAYERS = ("buildings", "streets", "water", "study_area")   # the M3 "base" layers p.06 needs (no green, contours)
+P06_HER_FAINT = ("F1E6E5", "CDAAAA")   # heritage buildings in the M3 base's "plan_faint" (basemap.py), for the key
+P06_EDGE_LINE_MM = 0.5          # mm: the bank edge line on the booklet page (was 0.7: it crowded the areas)
+P06_MARK_MM = 1.9               # mm: half a site's square
+P06_COPY_GAP_MM = 12.0          # mm: between the palette b and palette a copies on the sheet
 P06_HATCH_MM = (0.8, 0.2)       # mm: hatch spacing and line weight on the booklet page (were 1.0, 0.12)
 P06_EDGE_MM = 0.15              # mm: each open piece's edge in its hatch colour
 P06_SITE_MM = 0.35              # mm: a site's outline
@@ -489,12 +396,10 @@ P06_SRC = (u"Land cover: ESA WorldCover 10 m 2021 v200 (CC BY 4.0, contains modi
            u"2021). Lots, parking, grass and streets: © OpenStreetMap contributors (ODbL).")
 
 
-def p06_hatch_spec(key):
-    """(legend name, colour, hatch angle) of a P06_CLASSES hatch key"""
-    if key == "bare":
-        return P06_LABEL["bare"], C(P06_BARE_HATCH[1]), P06_BARE_HATCH[2]
-    lab, col, ang = R28E_HATCH[key]
-    return P06_LABEL.get(key, lab), col, ang
+def p06_hatch_spec(key, pal=None):
+    """(legend name, colour, hatch angle) of a P06_CLASSES hatch key in the palette pal (P06_PAL, default "b")"""
+    pal = pal or P06_PAL["b"]
+    return P06_LABEL[key], pal["cls"][key], P06_ANG[key]
 
 
 def p06_grass_zone(z):
@@ -714,9 +619,11 @@ class _P06NoOpen(object):
 
 
 def p06_base(S, CB, V, k, L):
-    """v51 (02 §1): the strip's base = the basemap module's detailed mode inside the frame (memoised by the module):
-    its fills at order 3 (under the hatches), its lines at 9 (over them), no texts (the strip names its own); without
-    the basemap file, the board's own base (r28e_base) without its open-ground layers"""
+    """revision 30 Oct (p6 change 1, M3): the strip's base = the basemap module's faint "base" mode inside the frame,
+    only the layers the page needs (buildings as plan, M11; streets; the stream, M5; the study area, ONE outline):
+    its fills at order 3 (under the hatches), its lines at 9 (over them), no texts. Drawn in booklet mm (so M5's
+    water reads its own mm sizes) and scaled to the board. Returns True; without the basemap file False after the
+    board's own base (r28e_base) without its open-ground layers."""
     D = None
     try:
         lg = []
@@ -727,49 +634,57 @@ def p06_base(S, CB, V, k, L):
     if not D:
         LOG.append(u"p.06: no basemap file: the board's own base is drawn.")
         r28e_base(S, _P06NoOpen(CB), V, k, L)
-        return
+        return False
     xs, ys = [p[0] for p in S.F.P], [p[1] for p in S.F.P]
-    items = basemap_items("detailed", box=(min(xs), min(ys), max(xs), max(ys)), D=D)
+    items = basemap_items("base", override=list(P06_BASE_LAYERS), box=(min(xs), min(ys), max(xs), max(ys)), D=D,
+                          scale_den=R28E_DEN)
+
+    def col_(hx, alpha):
+        c_ = C(hx) if isinstance(hx, str) else tuple(int(v) for v in hx[:3])
+        return mix(c_, WHITE, 1.0 - alpha) if alpha is not None and alpha < 1.0 else c_
+
+    def up(P):
+        return [(p[0] * k, p[1] * k) for p in P]
 
     def fill_fn(rings, hx, alpha, nonzero):
-        col = C(hx)
-        if alpha is not None and alpha < 1.0:
-            col = mix(col, WHITE, 1.0 - alpha)
-        CB.fill(rings, r28_nz(col) if nonzero else col, L, 3)
+        col = col_(hx, alpha)
+        CB.fill([up(R) for R in rings], r28_nz(col) if nonzero else col, L, 3)
 
     def line_fn(pts, hx, width_mm, dash_mm, alpha):
-        col = C(hx)
-        if alpha is not None and alpha < 1.0:
-            col = mix(col, WHITE, 1.0 - alpha)
-        lw = bk_lw(width_mm or 0.1, k)
+        col, lw, P = col_(hx, alpha), bk_lw(width_mm or 0.1, k), up(pts)
         if dash_mm:
-            on, off = (dash_mm[0], dash_mm[1]) if isinstance(dash_mm, (tuple, list)) else (dash_mm, dash_mm)
-            for d in dashes(pts, on * k, off * k):
+            pat = list(dash_mm) if isinstance(dash_mm, (tuple, list)) else [dash_mm, dash_mm]
+            for d in r28_pattern(P, [m_ * k for m_ in (pat if len(pat) >= 2 else pat * 2)]):
                 CB.line(d, col, L, 9, lw)
         else:
-            CB.line(pts, col, L, 9, lw)
-    basemap_draw(items, lambda p: V.p(p[0], p[1]), fill_fn, line_fn, None)
+            CB.line(P, col, L, 9, lw)
+    basemap_draw(items, lambda p: tuple(v / k for v in V.p(p[0], p[1])), fill_fn, line_fn, None)
+    LOG.extend(basemap_warnings())
+    return True
 
 
-def p06_hatched(CB, V, groups, key, k, L, order):
-    """one class of where we can build: light tint (P06_TINT), hatch (P06_HATCH_MM) and a thin edge in its colour"""
-    lab, col, ang = p06_hatch_spec(key)
+def p06_hatched(CB, V, groups, key, k, L, order, pal=None):
+    """one class of where we can build in the palette pal: tint (pal["tint"]), hatch (P06_HATCH_MM) and a thin edge
+    in its colour"""
+    pal = pal or P06_PAL["b"]
+    lab, col, ang = p06_hatch_spec(key, pal)
     chunk = []
     for i, g in enumerate(groups):
         chunk.extend(g)
         if len(chunk) >= 400 or i == len(groups) - 1:
             Ps = V.Ps(chunk)
-            CB.fill(Ps, mix(col, WHITE, P06_TINT), L, order)
+            CB.fill(Ps, mix(col, WHITE, pal["tint"]), L, order)
             CB.hatch(Ps, col, L, order + 1, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
             for P in Ps:
                 CB.line(P + [P[0]], col, L, order + 1, bk_lw(P06_EDGE_MM, k))
             chunk = []
 
 
-def p06_build_panel(S, B, x, y, w, k, L):
+def p06_build_panel(S, B, x, y, w, k, L, pal=None):
     """WHERE WE CAN BUILD beside the strip (p.22's filter folded in as one bar): the figure, the analysis frame as one
-    bar (open to change by class, other unbuilt ground, streets, buildings, the stream: p06_open's counts), the four
-    classes with their m². Top at y. Returns the y under it."""
+    bar (open to change by class in the palette pal, other unbuilt ground, streets, buildings, the stream: p06_open's
+    counts), the four classes with their m². Top at y. Returns the y under it."""
+    pal = pal or P06_PAL["b"]
     O = p06_open(S)
     h65, h7, h75 = bk_hk(6.5, k), bk_hk(7.0, k), bk_hk(7.5, k)
     B.text(u"WHERE WE CAN BUILD " + bcite(P06_SRC), x, y - h75, h75, INK, L, font=FONT_TITLE, bold=True)
@@ -784,13 +699,15 @@ def p06_build_panel(S, B, x, y, w, k, L):
         sw = w * O["area"][part] / fr
         if sw > 0.0:
             q = rect(cx_, y - bh, cx_ + sw, y)
-            lab, col, ang = p06_hatch_spec(hk)
-            B.fill([q], mix(col, WHITE, P06_TINT), L, 20)
+            lab, col, ang = p06_hatch_spec(hk, pal)
+            B.fill([q], mix(col, WHITE, pal["tint"]), L, 20)
             B.hatch([q], col, L, 21, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
             cx_ += sw
     x_open = cx_
-    for nm_, key, col, tc in ((u"other unbuilt", "other", P06_OTHER, INK), (u"streets", "streets", MPL["road"], INK),
-                              (u"buildings", "buildings", R28E_BLD, INK), (u"stream", "stream", MPL["water"], INK)):
+    for nm_, key, col, tc in ((u"other unbuilt", "other", P06_OTHER, INK),
+                              (u"streets", "streets", C(BM_FAINT["bld"]), INK),
+                              (u"buildings", "buildings", C(BM_FAINT["road_line"]), INK),
+                              (u"stream", "stream", MPL["water"], INK)):
         sw = w * O["bar"][key] / fr
         if sw <= 0.0:
             continue
@@ -808,60 +725,65 @@ def p06_build_panel(S, B, x, y, w, k, L):
     B.text(t_, x + w - r28mv_tw(t_, h65), yt_, h65, INK2, L, font=FONT_TITLE)
     y = yt_ - 2.4 * k
     for part, hk in P06_CLASSES:
-        r28e_swatch(B, "hatch", hk, x, y, k, L, h=3.0)
-        r28e_rich(B, u"**{}** · {}".format(p06_hatch_spec(hk)[0], u_area(O["area"][part])), x + 7.5 * k, y - 2.5 * k,
-                  h7, INK, L)
+        r28e_swatch(B, "hatch", hk, x, y, k, L, h=3.0, pal=pal)
+        r28e_rich(B, u"**{}** · {}".format(p06_hatch_spec(hk, pal)[0], u_area(O["area"][part])), x + 7.5 * k,
+                  y - 2.5 * k, h7, INK, L)
         y -= 4.2 * k
     return y
 
 
 def p06_site_lines(st):
-    """a site box's lines: (title, [body lines with **bold**])"""
-    t = u"{} · {}".format(st["id"], u", ".join(v for v in (st["side"], st["pos"]) if v) or u"open ground")
-    what = u" + ".join(P06_WHAT[hk] for part, hk in P06_CLASSES if st["shares"][part] >= 0.2)
+    """a site box's text (G4: one headline value plus a line): (the m², [what it is and where; what it opens to and
+    the study area], with **bold**)"""
+    where = u", ".join(v for v in (st["side"], st["pos"]) if v)
+    what = u" + ".join(P06_WHAT[hk] for part, hk in P06_CLASSES if st["shares"][part] >= 0.2) or P06_WHAT[st["key"]]
     what = what[:1].upper() + what[1:]
-    opens = (u"Opens to " + u", ".join(P06_OPEN_TO[o] for o in st["opens"])) if st["opens"] else \
-        u"Closed in by buildings"
-    stdy = (u"Inside the study area" if st["study"] >= 0.5 else
-            u"Partly in the study area" if st["study"] > 0.0 else u"Outside the study area")
-    return t, [u"**{}**".format(u_area(st["a"])), what or P06_WHAT[st["key"]].capitalize(), opens, stdy]
+    l1 = u"**{}**, {}".format(what, where[:1].lower() + where[1:]) if where else u"**{}**".format(what)
+    opens = (u"opens to " + u", ".join(P06_OPEN_TO[o] for o in st["opens"])) if st["opens"] else \
+        u"closed in by buildings"
+    stdy = (u"inside the study area" if st["study"] >= 0.5 else
+            u"partly in the study area" if st["study"] > 0.0 else u"outside the study area")
+    return u_area(st["a"]), [l1, opens[:1].upper() + opens[1:] + u" · " + stdy]
 
 
-def p06_site_boxes(B, sites, x0, x1, ytop, ystrip, k, L):
-    """R10 / R11: one box a site, side by side under the strip from (x0, ytop) to x1, in the order of their squares
-    on the map (so no two leaders cross): a title bar in the colour of its main class, the m², what it is, what it
-    opens to, the study area; a thin leader from the box up to its square. Returns the y under them."""
+def p06_site_boxes(B, sites, x0, x1, ytop, ystrip, k, L, pal=None):
+    """R10 / R11, revision 30 Oct (p6 change 3): one box a site, side by side under the strip from (x0, ytop) to x1,
+    in the order of their squares on the map (so no two leaders cross). Its head bar repeats the map's marker (the
+    letter in the same square, the head in the marker's colour, palette b: the site's main class) with the m² as the
+    headline; under it what it is and where, what it opens to and the study area; a leader in the marker's colour
+    from the square straight down to the strip's edge, then to the box. Returns the y under them."""
     if not sites:
         return ytop
-    h7, h75 = bk_hk(7.0, k), bk_hk(7.5, k)
+    pal = pal or P06_PAL["b"]
+    h7, h9 = bk_hk(7.0, k), bk_hk(9.0, k)
     order_ = sorted(sites, key=lambda s_: s_.get("px", 0.0))
     n, g = len(order_), 3.0 * k
     bw = (x1 - x0 - (n - 1) * g) / n
     tw_ = bw - 2.4 * k
-    hb = h75 + 2.2 * k
+    hb = h9 + 2.6 * k
+    sq = hb - 1.4 * k
     body = []
     for st in order_:
-        t, lines_ = p06_site_lines(st)
-        while len(t) > 3 and r28mv_tw(t, h75, True) > tw_:
-            t = t[:-2].rstrip(u" ,·–") + u"…"
-        wrapped = []
-        for s_ in lines_:
-            wrapped.append((s_, len(r28mv_lines(s_, tw_, h7))))
-        body.append((t, wrapped))
+        head, lines_ = p06_site_lines(st)
+        body.append((head, [(s_, len(r28mv_lines(s_, tw_, h7))) for s_ in lines_]))
     hmax = max(sum(n_ for s_, n_ in wr) for t, wr in body)
     bh = hb + 1.6 * k + h7 + (hmax - 1) * R28MV_LEAD * h7 + 1.6 * k
-    for i, (st, (t, wr)) in enumerate(zip(order_, body)):
+    for i, (st, (head, wr)) in enumerate(zip(order_, body)):
         bx = x0 + i * (bw + g)
-        lab, col, ang = p06_hatch_spec(st["key"])
+        col = pal["mark"] if pal.get("head") != "class" else mix(p06_hatch_spec(st["key"], pal)[1], MPL["ink_dark"],
+                                                                   0.3)
         cx_ = bx + 0.5 * bw
         if "px" in st:                                    # leader: down from the square, then to the box
-            B.line([(st["px"], st["py"] - 1.7 * k), (st["px"], ystrip), (cx_, ytop)], MPL["ink_dark"], L, 58,
-                   bk_lw(0.15, k))
+            B.line([(st["px"], st["py"] - P06_MARK_MM * k), (st["px"], ystrip), (cx_, ytop)], pal["mark"], L, 58,
+                   bk_lw(0.2, k))
         q = rect(bx, ytop - bh, bx + bw, ytop)
         B.fill([q], WHITE, L, 30)
         B.fill([rect(bx, ytop - hb, bx + bw, ytop)], col, L, 31)
-        B.line(q + [q[0]], col, L, 32, bk_lw(0.2, k))
-        B.text(t, bx + 1.2 * k, ytop - 0.5 * (hb + h75), h75, WHITE, L, order=33, font=FONT_TITLE, bold=True)
+        B.line(q + [q[0]], col, L, 32, bk_lw(0.25, k))
+        mx0, my = bx + 0.7 * k, ytop - 0.5 * hb           # the marker again: a white square, the letter in col
+        B.fill([rect(mx0, my - 0.5 * sq, mx0 + sq, my + 0.5 * sq)], WHITE, L, 33)
+        B.text(st["id"], mx0 + 0.5 * sq, my, bk_hk(8.0, k), col, L, order=34, font=FONT_TITLE, bold=True, align="MC")
+        B.text(head, mx0 + sq + 1.4 * k, my - 0.5 * h9, h9, WHITE, L, order=34, font=FONT_TITLE, bold=True)
         yl = ytop - hb - 1.6 * k - h7
         for s_, n_ in wr:
             r28mv_para(B, s_, bx + 1.2 * k, yl, tw_, h7, INK, L, order=40)
@@ -870,43 +792,27 @@ def p06_site_boxes(B, sites, x0, x1, ytop, ystrip, k, L):
 
 
 # ------------------------------------------------------------ p.06
-def draw_edge_build(S, B, x, y, w, U, with_photos=True):
-    """v51 (revision 29 Oct, WO-T3a-4; D1 a: p.22 merged into p.06): THE STREAM EDGE AND WHERE WE CAN BUILD (p.06,
-    crop drw_edge_build). The whole frame as ONE strip at 1:10,000 on the booklet page (r28e_strip on the basemap's
-    detailed mode: the edge every 4 m on both banks, walls and embankments, where we can build hatched in four
-    classes, the six largest pieces outlined and lettered, bridges K1-K6, street, mahalle and heritage names,
-    contours, the study area, the photo viewpoints), its scale bar and north arrow under it on the side with fewer
-    sites; beside it THE EDGE, the walled / embanked rings and WHERE WE CAN BUILD (p06_build_panel); under them a box
-    a site (p06_site_boxes), the map's key, the photos four to a row in the height left (the page's BK_AH).
-    with_photos=False (the retired p.22 copy, drw_edge_build_e) draws nothing. Drawn for the full booklet panel
-    width (BK_AW). Returns the y below."""
-    L = "LU_BOARD::EdgeBuild"
-    if not with_photos:
-        LOG.append(u"The p.22 copy of the stream edge plan (drw_edge_build_e) is retired (D1 a): nothing drawn.")
-        return y
+def p06_page(S, B, x, top, w, k, L, photos, O, pal):
+    """one copy of p.06 in the palette pal (D5), top-left at (x, top), w wide (the full booklet panel): the strip
+    (r28e_strip), its scale bar and north arrow under it on the side with fewer site leaders; beside it THE EDGE, the
+    walled / embanked rings and WHERE WE CAN BUILD (p06_build_panel); under them a box a site (p06_site_boxes), the
+    map's key, the photos four to a row in the height left (the page's BK_AH). Returns (the y below, board units per
+    metre, the labels dropped)."""
     F = S.F
-    k = w / BK_AW
-    top = y
     h7, h75, h9 = bk_hk(7.0, k), bk_hk(7.5, k), bk_hk(9.0, k)
-    photos = []
-    try:
-        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
-    except Exception:
-        LOG.append("WARNING: the site photos could not be read for the stream edge plan:\n" + traceback.format_exc())
-    O = p06_open(S)
-    V, ss, r, dropped = r28e_strip(S, B, x, top, k, L, photos, O["sites"])
+    V, ss, r, dropped = r28e_strip(S, B, x, top, k, L, photos, O["sites"], pal)
     span = R28E_SB_M * ss + 18.0 * k                      # the scale bar on the side with fewer site leaders
     n_l = len([s_ for s_ in O["sites"] if s_.get("px", 0.0) < r[0] + span])
     n_r = len([s_ for s_ in O["sites"] if s_.get("px", 0.0) > r[2] - span])
     foot = b_foot(B, F, x if n_l <= n_r else r[2] - span, r[1], ss, k, L, R28E_SB_M)
     cx0 = r[2] + R28E_GAP * k                             # the column beside the strip
     cw = x + w - cx0
-    yy, wl_, em_ = r28e_edge_panel(S, B, cx0, top, cw, k, L)
+    yy, wl_, em_ = r28e_edge_panel(S, B, cx0, top, cw, k, L, pal)
     yy -= 2.5 * k
     y1 = r28e_rings(B, cx0, yy, wl_, em_, k, L)
-    y2 = p06_build_panel(S, B, cx0 + 44.0 * k, yy, cw - 44.0 * k, k, L)
-    ys = p06_site_boxes(B, O["sites"], x, r[2], min(foot, y1, y2) - 3.0 * k, r[1], k, L)
-    low = r28e_key(B, r28e_key_rows(bool(photos)), x, min(ys, y1, y2) - 3.0 * k, 6, w / 6.0, k, L)
+    y2 = p06_build_panel(S, B, cx0 + 44.0 * k, yy, cw - 44.0 * k, k, L, pal)
+    ys = p06_site_boxes(B, O["sites"], x, r[2], min(foot, y1, y2) - 3.0 * k, r[1], k, L, pal)
+    low = r28e_key(B, r28e_key_rows(bool(photos)), x, min(ys, y1, y2) - 3.0 * k, 6, w / 6.0, k, L, pal)
     bot = top - BK_AH * k
     n_ph = len(photos)
     if n_ph:                                              # P06.4: the photos in the height left (D13: no credit line)
@@ -931,17 +837,45 @@ def draw_edge_build(S, B, x, y, w, U, with_photos=True):
             B.text(eb_caption(it, pw, h7), px, py - ph - 1.2 * k - h7, h7, INK, L, font=FONT_TITLE)
         low = py0 - rows_ * (ph + cap_h) + 2.2 * k
         if low < bot + 0.5 * k:
-            LOG.append(u"WARNING: the stream edge plan's photos end {:.1f} mm below the booklet page's area.".format(
-                (bot + 0.5 * k - low) / k))
-    crop_panel("edge_build", x, low - 0.5 * k, x + w, top + 0.5 * k,
-               u"Where we can build: {} open to change, {:.0f}% of the analysis frame · sites {} · photo viewpoints "
-               u"1-{}".format(u_area(O["open"]), 100.0 * O["open"] / max(1.0, O["frame"]),
-                              u"A-" + O["sites"][-1]["id"] if O["sites"] else u"none", n_ph or 8),
-               crop_scale(ss), [])
-    CROP_PANELS[-1]["bk_w"] = BK_AW                       # drawn for the full booklet panel width
-    LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm; {} open to change; {} sites; {} "
-               u"photos; labels left out (G4): {}.".format(R28E_DEN, F.w * ss / k, F.h * ss / k, u_area(O["open"]),
-                                                          len(O["sites"]), n_ph, u", ".join(dropped) or u"none"))
+            LOG.append(u"WARNING: the stream edge plan's photos end {:.1f} mm below the booklet page's area "
+                       u"(palette {}).".format((bot + 0.5 * k - low) / k, pal["name"]))
+    return low, ss, dropped
+
+
+def draw_edge_build(S, B, x, y, w, U, with_photos=True):
+    """v51, revision 30 Oct (p6, D5 BOTH): THE STREAM EDGE AND WHERE WE CAN BUILD (p.06). The page (p06_page) drawn
+    twice from the same geometry and counts: palette b (muted multi-hue) at (x, y), crops drw_edge_build_b and
+    drw_edge_build (the unsuffixed id = b, so older readers still work); palette a (one hue family, one accent for
+    where we can build) under it, crop drw_edge_build_a. with_photos=False (the retired p.22 copy, drw_edge_build_e)
+    draws nothing. Drawn for the full booklet panel width (BK_AW). Returns the y below."""
+    L = "LU_BOARD::EdgeBuild"
+    if not with_photos:
+        LOG.append(u"The p.22 copy of the stream edge plan (drw_edge_build_e) is retired (D1 a): nothing drawn.")
+        return y
+    F = S.F
+    k = w / BK_AW
+    photos = []
+    try:
+        photos = photo_files(os.path.join(SELINUS_RES_DIR, "_site_photos"))
+    except Exception:
+        LOG.append("WARNING: the site photos could not be read for the stream edge plan:\n" + traceback.format_exc())
+    O = p06_open(S)
+    n_ph = len(photos)
+    cap = (u"Where we can build: {} open to change, {:.0f}% of the analysis frame · sites {} · photo viewpoints "
+           u"1-{}".format(u_area(O["open"]), 100.0 * O["open"] / max(1.0, O["frame"]),
+                          u"A-" + O["sites"][-1]["id"] if O["sites"] else u"none", n_ph or 8))
+    top, dropped = y, []
+    for nm_, slugs in (("b", ("edge_build", "edge_build_b")), ("a", ("edge_build_a",))):
+        low, ss, dr_ = p06_page(S, B, x, top, w, k, L, photos, O, P06_PAL[nm_])
+        dropped += [t for t in dr_ if t not in dropped]
+        for slug in slugs:
+            crop_panel(slug, x, low - 0.5 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
+            CROP_PANELS[-1]["bk_w"] = BK_AW               # drawn for the full booklet panel width
+        top = low - P06_COPY_GAP_MM * k
+    LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm, palettes b and a (D5); {} open to "
+               u"change; {} sites; {} photos; labels left out (G3): {}.".format(
+                   R28E_DEN, F.w * ss / k, F.h * ss / k, u_area(O["open"]), len(O["sites"]), n_ph,
+                   u", ".join(dropped) or u"none"))
     r28e_export_open(S)
     return low - 1.0 * U
 

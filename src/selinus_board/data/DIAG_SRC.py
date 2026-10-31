@@ -617,23 +617,13 @@ def base_ground(ctx, ghost):
     return g
 
 
-def heights_note(ns):
-    try:
-        st = ns["STOREY"]
-        return (u"Heights = floors x storey height (board convention, not measured): {} m; sacred {} m, civic {} m, "
-                u"industry {} m".format(ns["FLOOR_H"], st["religious"], st["institutional"], st["industrial"]))
-    except Exception:
-        return u"Heights = floors x storey height (board convention, not measured)"
-
-
 def floors_fact(u):
-    src = u.get("floors_src")
-    f = u.get("floors")
-    if u.get("h_src"):
-        return u"{:.0f} m: {}".format(u["h"], u["h_src"].split(":")[0])
-    if f:                                                 # v40: the figure only; where it comes from is in the notes
-        return u"{} floor{}".format(f, "" if f == 1 else "s")
-    return {"shed": "shed"}.get(src, "")
+    """revision 30 Oct (G6): a callout's fact line: the building's height in m with 2 decimals (u["h"], the height
+    the axonometric extrudes), never a floor count or its source; "" without one"""
+    try:
+        return u"{:.2f} m".format(float(u["h"])) if u.get("h") else u""
+    except (TypeError, ValueError):
+        return u""
 
 
 SRC_SURVEY = u"Survey: Bergama Müdahele Alanları.3dm (course, 17 Oct 2026) via the selinus_board site model"
@@ -706,7 +696,7 @@ def spec_D2(ctx, ext):
                 trees="context", calls=calls, legend=legend, overlays=walls, words=river_words(ctx),
                 notes=[SRC_SURVEY + u"; heritage points: OpenStreetMap / Overture places marked historic by the board",
                        u"Which landmarks matter is a design choice: here every named sacred, historic or ruin building, "
-                       u"and bridges K4 and K5", heights_note(ctx.ns)])
+                       u"and bridges K4 and K5"])
 
 
 ROAD_CLASS = {"primary": "main", "trunk": "main", "secondary": "main", "tertiary": "secondary",
@@ -1708,7 +1698,7 @@ def spec_S1(ctx, ext):
                        u"plan cannot show",
                        SRC_SURVEY + u"; uses and floors as the board reads them; parks: OpenStreetMap; heritage points: "
                        u"OpenStreetMap / Overture places marked historic by the board",
-                       heights_note(ctx.ns) + u"; ground: the survey terrain at true scale" +
+                       u"Ground: the survey terrain at true scale" +
                        (u"; trees: 1 m canopy height map (Meta/WRI, modelled), leaf type CLC+ 2021" if ctx.crowns else u"")]
                 + sky_note)
 

@@ -142,6 +142,14 @@ def booklet_crops(folder, sheets, wins, plc, missing):
                 fr.update(from_m=round(R[0], 1), to_m=round(R[2], 1), overlap_m=0.0)
             res["frames"][old] = fr
             res["labels_not_drawn"][old] = missing.get(bid, [])
+        for bid, rc, p in getattr(sh, "panels_more", ()):   # T7 (p23/p24 D1): p.crops_more, its style copies:
+            sc_ = getattr(p, "scale", scale)              # the main crop's caption, scale and legend
+            leg_ = crop_legend(p.pleg, _ALPHA[0]) if getattr(p, "pleg", None) else []
+            if getattr(p, "r28_leg", None):
+                leg_ = p.r28_leg
+            bk.crop(bid, os.path.basename(pdf), rc, caption=p.bid[2], scale_den=sc_, legend=leg_, drop=drop)
+            if p.bid[0] in ("mp_plan", "mp_max_area", "dt_upstream", "dt_k5"):   # drawn at 1:1 as the main crop
+                bk.d["blocks"][bid]["bk_w"] = round(rc[2] - rc[0], 3)
     with open(bk.path("results.json"), "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False, indent=1)
     return bk.save()

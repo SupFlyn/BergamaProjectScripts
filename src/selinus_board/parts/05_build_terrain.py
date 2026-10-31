@@ -1033,8 +1033,10 @@ class Board(object):
         if polys and spacing > 0:
             self.items.append(("hatch", polys, color, self._lay(layer), order, spacing, ang, w, self.group))
 
-    def image(self, path, x0, y0, x1, y1, layer, order=5):
-        self.items.append(("image", path, (x0, y0, x1, y1), self._lay(layer), order, self.group))
+    def image(self, path, x0, y0, x1, y1, layer, order=5, alpha=None, flip=False):
+        """T4 30 Oct (D1 a): a PNG (alpha kept) or JPEG over (x0, y0)-(x1, y1); alpha 0-1 = opacity, flip = mirrored.
+        The PDF writer (_pdf_page) embeds each file once per board."""
+        self.items.append(("image", path, (x0, y0, x1, y1), self._lay(layer), order, self.group, alpha, flip))
 
     def text(self, txt, x, y, h, color, layer, order=40, font=None, bold=False, align="L", angle=0.0, italic=False):
         self.items.append(("text", txt, (x, y), h, color, self._lay(layer), order, font or FONT_BODY, bold, align,

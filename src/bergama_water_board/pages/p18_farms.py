@@ -1,25 +1,35 @@
-# p.18 the farms and the decision (split from code.py on 29 Oct 2026)
-# T4a (WO-T4a-3, 29 Oct): every pictogram from icons.py (02 §2, R19 quality bar), the 1-7 flow on ico_step markers,
-# the farm block redrawn per 02 §4 (plants.py rows at the published olive spacing), people through _p18_fig only.
+# p.18 where the clean water goes (split from code.py on 29 Oct 2026)
+# Revision 30 Oct (T5; D2 a, D7 a, G4, M1, M9, M10): the farmland axonometric is gone; the farms are ONE field tile
+# (plants.py pla_field_tile: one texture + one olive symbol) at step 6 of the flow. Three blocks, each drawn at its
+# booklet size (mm, 1:1 on A3; the size factor s that code.py's fit() hands in is not used):
+#   wb_farms, left   draw_farms_text: the flow 1-7 on 4 step columns (grid_sub of 7 page columns), two rows, clockwise
+#   wb_farms, right  draw_farm_picto: the aquifer, use against potential (4 page columns, as tall as code.py's box)
+#   wb_decision      draw_decision: the fact boxes under the flow, on the same 4 columns (one value + one line each)
+# Every fact once; the shared ones (olive need, 1.25 ha, aquifer ratio, arsenic, storage) through facts.py.
 
-P18_TILE_ICONS = {"out": ("stream_out", "field"), "olive": ("olive",), "plant": ("treatment",), "drought": ("chart",),
-                  "nodrink": ("not_drinkable",)}
+P18_FLOW_W = grid_w(7)                           # the flow and the fact boxes: 7 page columns (227 mm)
+P18_COLS = 4                                     # step / box columns inside them (grid_sub)
+P18_PIC_W, P18_PIC_H = grid_w(4), 112.0          # the aquifer block: 4 page columns x code.py's farm box height, so
+#                                                  place() puts it at 1:1 with its top level with the flow's
+P18_FLOW_H = 108.0                               # the flow block's height (code.py's box 112, fit() pad 2)
+P18_GAP_R = 10.0                                 # the least gap between the flow's two rows
+P18_TILE_H = 30.0                                # step 6's field tile, mm (one column wide)
+P18_MK, P18_IC = 6.0, 7.0                        # step marker (icons.py ico_step) and step icon, mm
+P18_FV = 4.2                                     # a box's headline value / step 7's value, mm (12 pt)
+P18_BIG = grid_style("value")[0] * GRID_PT       # the aquifer ratio, the block's one headline value
+P18_OLIVE_MM = 14.0                              # the field tile's olive symbol (a symbol, not to scale)
+P18_OLIVE_ROW_M, P18_OLIVE_TREE_M = 7.0, 5.0     # plants.py: olive 5 x 7 m (Kaya 2017 p.821), printed in cm
+P18_PLANT_M3_DAY, P18_PLANT_DAYS = 14304.0, 120  # the town plant's treated water a day (p.12), summer days
 P18_DEC_ICONS = [("sewage", True), ("reeds", False), ("uv", False), ("storage", False), ("stream", False),
                  ("field", False), ("not_drinkable", False)]     # (icon, crossed) for steps 1-7
-P18_INTERNAL = re.compile(u"\\s*\\((?:D\\d+|[A-Z]{2}-[A-Z]?\\d+)\\)")   # register / decision codes, never printed (D13)
-P18_OLIVE_ROW_M, P18_OLIVE_TREE_M = 7.0, 5.0     # plants.py: olive 5 x 7 m (Kaya 2017 p.821), 7 m between the rows
-P18_BLOCK = (8, 10)                              # rows, trees per row: one 56 x 50 m block
-P18_SOIL_M = 2.0                                 # soil shown under the field, graphic only
-P18_BRANCH_M = 1.90                              # the branch the picker reaches (figures.py "olive" pose)
+P18_SRC_AQ = u"published, North Aegean drought management plan 2018 (official); " + WD
+P18_SRC_NA = u"published, North Aegean water allocation plan 2025; " + REG + u" CL-21"
+P18_SRC_AS = u"published, Somay & Gemici 2015; " + REG + u" EN-E3"
 
 
 def _p18_put(pg, shapes):
     """icons.py / plants.py shapes onto the page (the core's sec_put)"""
     sec_put(pg, shapes)
-
-
-def _p18_clean(t):
-    return P18_INTERNAL.sub(u"", t)
 
 
 def _p18_icon(pg, names, x, y, sz, cross=False):
@@ -35,197 +45,172 @@ def _p18_icon(pg, names, x, y, sz, cross=False):
         _p18_put(pg, ico_cross(x + sz / 2.0, y - sz / 2.0, sz))
 
 
-def _p18_tiles(pg, x, y, w, items, s, cols=2):
-    """p.18's fact tiles (the core's tiles() layout) with icons.py pictograms: items = [(tile key, heading, figure or
-    None, line, source)]; the source prints only its public part (cite). Returns the bottom y."""
-    fh, fb, ft = 2.5 * s, 4.4 * s, 2.15 * s
-    ic, pad, g = 10.0 * s, 2.2 * s, 2.4 * s
-    tw = (w - (cols - 1) * g) / cols
-    txw = tw - ic - 3 * pad
-    lay = []
-    for kind, head, big, line, src in items:
-        c_ = cite(src) if src else u""
-        L = (wrap(head, fh, txw, True), wrap(big, fb, txw, True) if big else [],
-             wrap(_p18_clean(line) + (u" " + c_ if c_ else u""), ft, txw))
-        hh = pad * 2 + len(L[0]) * fh * 1.25 + len(L[1]) * fb * 1.18 + len(L[2]) * ft * 1.28 + (fh * 0.3 if L[1] else 0)
-        lay.append((kind, L, max(hh, ic + 2 * pad)))
-    yy = y
-    for r0 in range(0, len(lay), cols):
-        row = lay[r0:r0 + cols]
-        rh = max(t[2] for t in row)
-        for c_, (kind, L, _) in enumerate(row):
-            tx = x + c_ * (tw + g)
-            pg.poly([rect(tx, yy - rh, tx + tw, yy)], fill=C["paper"], stroke=C["faint"], lw=0.2)
-            _p18_icon(pg, P18_TILE_ICONS.get(kind, ("water",)), tx + pad, yy - pad, ic)
-            lx, ly = tx + 2 * pad + ic, yy - pad
-            for ln in L[0]:
-                ly -= fh * 1.25
-                pg.text(ln, lx, ly, fh, C["dark"], bold=True)
-            if L[1]:
-                ly -= fh * 0.3
-            for ln in L[1]:
-                ly -= fb * 1.18
-                pg.text(ln, lx, ly, fb, C["d3"], bold=True)
-            for ln in L[2]:
-                ly -= ft * 1.28
-                pg.text(ln, lx, ly, ft, C["ink"])
-        yy -= rh + g
-    return yy + g
+def _p18_cols(x0):
+    """the 4 step / box columns [(x0, x1)] of the 7-column block from x0"""
+    return [(x0 + a, x0 + b) for a, b in grid_sub(P18_FLOW_W, P18_COLS)]
+
+
+def _p18_steps():
+    """the seven steps: (heading, value or None, line). Storage itself is p.10's fact: step 4 says only its share of
+    the winter flow (live); arsenic from facts.py (printed here once)"""
+    st = fact("storage_m3")
+    hold = (u"storage incl. the strip: {:.1f}-{:.1f} % of the Dec-Apr flow".format(
+        100.0 * st[0] / WINTER_FLOW, 100.0 * st[1] / WINTER_FLOW) if st else
+        u"winter water in the ground, for the dry summer")
+    return [
+        (u"KEEP SEWAGE OUT", None, u"İZSU sewer"),
+        (u"CLEAN AT THE UPSTREAM END", None, u"reed beds at the entry · whole reach clean"),
+        (u"DISINFECT WHERE PEOPLE TOUCH IT", None, u"wetlands leave 100-100,000 CFU/100 ml · class A: 0"),
+        (u"HOLD WINTER WATER", None, hold),
+        (u"KEEP THE STRIP ALIVE", None, u"clean water all summer · feeds the planting"),
+        (u"THEN THE FARMS", None, u"existing farmland on the slopes outside the site · reuse class B · no farm "
+                                  u"channel inside"),
+        (u"NOT FOR DRINKING", u"arsenic > {} µg/L".format(fact_num("arsenic_ug_l")),
+         (u"groundwater · stored rain not listed for drinking · drinking needs 0 E. coli/100 ml " +
+          cite(P18_SRC_AS)).strip())]
+
+
+def _p18_step(pg, i, step, x0, top, cw):
+    """step i in its column from top: the marker and the icon on one line, the heading, the value, the line.
+    Returns (bottom y, the marker's centre y)."""
+    head, val, line = step
+    ym = top - P18_MK / 2.0
+    sh, (ax, ay), th, cap = ico_step(x0 + P18_MK / 2.0, ym, P18_MK, "solid")
+    _p18_put(pg, sh)
+    pg.text(str(i + 1), ax, ay - cap / 2.0, cap / CAP, th, bold=True, align="C")
+    nm, crossed = P18_DEC_ICONS[i]
+    _p18_icon(pg, (nm,), x0 + P18_MK + 1.5, ym + P18_IC / 2.0, P18_IC, crossed)
+    tw = cw - 2.0
+    yy = para(pg, x0, top - P18_MK - 1.0, tw, head, FS_MIN, C["dark"], bold=True)
+    if val:
+        yy = para(pg, x0, yy - 0.6, tw, val, P18_FV, C["d3"], bold=True)
+    if line:
+        yy = para(pg, x0, yy - 0.6, tw, line, FS_MIN, C["ink"])
+    return yy - FS_MIN * 0.3, ym
 
 
 def draw_farms_text(pg, x, y, w, h, s):
-    fs = 2.6 * s
-    lab_w = text_w(u"Groundwater potential", fs) + 4.0
-    gx, top = x + 10.0 + lab_w, y - 4.0
-    gw = w - 20.0 - lab_w - text_w(u"198.01 hm³ a year", fs, True) - 4.0
-    bh = 3.6 * s
-    for r, (lab, v) in enumerate(AQUIFER):
-        yy = top - r * (bh + 2.4 * s)
-        pg.text(lab, gx - 2.0, yy - bh * 0.5 - fs * 0.35, fs, C["ink"], align="R")
-        pg.poly([rect(gx, yy - bh, gx + gw * v / 200.0, yy)], fill=C["w3"] if r == 0 else C["agri"])
-        t, bw_ = u"{} hm³ a year".format(v), gw * v / 200.0
-        if text_w(t, fs, True) + 3.0 <= bw_:          # v3.1 (Aras 27 Oct, Prompt 6): the value on its bar, at its end
-            pg.text(t, gx + bw_ - 1.5, yy - bh * 0.5 - fs * 0.35, fs, C["white"], bold=True, align="R")
-        else:
-            pg.text(t, gx + bw_ + 2.0, yy - bh * 0.5 - fs * 0.35, fs, C["ink"], bold=True)
-    yy = figs(pg, x + 10.0, top - 2 * (bh + 2.4 * s) - 1.0, [(u"use = {:.1f} x potential".format(198.01 / 45.4),
-              u"Lower Bakırçay · farm water eases the aquifer " + cite(u"published, North Aegean drought management "
-              u"plan 2018 (official); " + WD))], w - 20.0, 4.0 * s, 2.6 * s, C["acc"]) - 2.8 * s * 0.8
-    # v6.1: "ratio calculated" taken out of the source above (no status words)
-    return _p18_tiles(pg, x + 10.0, yy, w - 20.0, GOES_T, s, 2)
-
-
-def draw_decision(pg, x, y, w, h, s):
-    """v1.12 (Aras 26 Oct 07:06 and his sketch): the seven steps clockwise round a rectangle, 1-4 along the top, 5-7
-    back along the bottom; the closing arrow (7 -> 1) in red says what really closes the loop: the next winter's
-    stream, never a pump (the water runs one way). Returns the lowest y drawn."""
-    steps = [(_p18_clean(t), _p18_clean(src)) for t, src in DECISION]
-    n = len(steps)
-    top_n = (n + 1) // 2
-    gap, vg = 16.0 * s, 24.0 * s
-    bw = (w - (top_n - 1) * gap) / top_n
-    bh = 0.0
-    for t, src in steps:                             # one height for every box: the tallest content
-        bh = max(bh, 9.0 * s + len(wrap(t, 3.2 * s, bw - 8.0, True)) * 3.2 * s * 1.28 +
-                 len(wrap(src, 2.5 * s, bw - 8.0)) * 2.5 * s * 1.28 + 3.0)
-    yt = y                                           # top row: its boxes' top edge
-    yb = y - bh - vg                                 # bottom row
-    bot_x = [x + w - bw - (w - bw) * j / (n - top_n - 1) for j in range(n - top_n)] if n - top_n > 1 else [x]
-    pos = [(x + i * (bw + gap), yt) for i in range(top_n)] + [(bot_x[j], yb) for j in range(n - top_n)]
-    for i, (t, src) in enumerate(steps):
-        bx, by = pos[i]
-        pg.poly([rect(bx, by - bh, bx + bw, by)], fill=C["white"], stroke=C["d2"], lw=0.4)
-        sz = 5.6 * s                                 # the step marker (icons.py ico_step), its number written in it
-        sh, (ax, ay), th, cap = ico_step(bx + 3.0 + sz / 2.0, by - 1.6 - sz / 2.0, sz, "solid")
-        _p18_put(pg, sh)
-        pg.text(str(i + 1), ax, ay - cap / 2.0, cap / CAP, th, bold=True, align="C")
-        nm, crossed = P18_DEC_ICONS[i] if i < len(P18_DEC_ICONS) else ("water", False)
-        _p18_icon(pg, (nm,), bx + bw - 3.0 - 7.0 * s, by - 1.5, 7.0 * s, crossed)
-        yy = para(pg, bx + 4.0, by - 8.5 * s, bw - 8.0, t, 3.2 * s, C["dark"], bold=True)
-        para(pg, bx + 4.0, yy - 0.6, bw - 8.0, src, 2.5 * s, C["ink"])
-    ym = yt - bh / 2.0
-    for i in range(top_n - 1):                       # along the top, left to right
-        hand_arrow(pg, [(pos[i][0] + bw + 2.0, ym), (pos[i + 1][0] - 2.0, ym)], small=0.7)
-    xr = pos[top_n - 1][0] + bw / 2.0                # down the right side
-    hand_arrow(pg, [(xr, yt - bh - 2.0), (xr, yb + 2.0)], small=0.7)
-    ymb = yb - bh / 2.0
-    for j in range(top_n, n - 1):                    # back along the bottom, right to left
-        hand_arrow(pg, [(pos[j][0] - 2.0, ymb), (pos[j + 1][0] + bw + 2.0, ymb)], small=0.7)
-    xl = pos[0][0] + bw / 2.0                        # the red closing arrow, up the left side
-    hand_arrow(pg, [(xl, yb + 2.0), (xl, yt - bh - 2.0)], small=0.7, cols=(C["acc"], C["acc"]))
-    para(pg, xl + 6.0, yt - bh - vg / 2.0 + 2.6 * s * 1.28, w * 0.42, LOOP_BACK, 2.6 * s, C["acc"], bold=True)
-    pg.text(u"ONE WAY, WITH THE STREAM", x + w * 0.72, yt - bh - vg / 2.0 - 1.2 * s, 3.2 * s, C["d3"], bold=True,
-            align="C")
-    return yb - bh
-
-
-def _p18_fig(pg, pose, x, y, k, colour, facing=1, h_m=1.70, **params):
-    """ONE place for p.18's people: the figure library (common/figures.py fig_side), feet at (x, y), k mm per m,
-    in one ink; params go to the drawn pose (olive: branch_h)"""
-    _p18_put(pg, fig_side(pose, x, y, k, facing, ink=colour, mm_per_m=k, h_m=h_m, **params))
-
-
-def _p18_olive_spots(shapes, crown_cols):
-    """the tree centres pla_crop_plan drew (the centroids of its olive crowns, merged within 1 m), so the standing
-    trees sit exactly on the plan's rows"""
-    pts = []
-    for sh in shapes:
-        if sh[0] == "poly" and sh[2] in crown_cols and len(sh[1]) > 2:
-            cx = sum(p[0] for p in sh[1]) / float(len(sh[1]))
-            cy = sum(p[1] for p in sh[1]) / float(len(sh[1]))
-            if all(math.hypot(cx - a, cy - b) > 1.0 for a, b in pts):
-                pts.append((cx, cy))
-    return pts
-
-
-def _p18_gap(vals):
-    q = sorted(set(round(v * 2.0) / 2.0 for v in vals))
-    return min([q[i + 1] - q[i] for i in range(len(q) - 1)] or [0.0])
+    """p.18 the flow (Aras 26 Oct 07:06 and his sketch: the seven steps clockwise round a ring, 1-4 along the top,
+    5-7 back along the bottom), on the 4 step columns of 7 page columns: markers and icons (icons.py) on one line, a
+    heading and one line under each; the bottom row stands on the block's foot, so the ring is as tall as the aquifer
+    block beside it. Step 6 holds the farms as ONE field tile (D2 a). Inside the ring the red closing arrow (7 -> 1):
+    the next winter's stream, never a pump. boxed() hands x 6 mm left of the panel edge. Returns the lowest y drawn."""
+    X0 = x + 6.0
+    cols = _p18_cols(X0)
+    cw = cols[0][1] - cols[0][0]
+    steps = _p18_steps()
+    cap = wrap(u"olives {:.0f} × {:.0f} cm · drip along every row".format(P18_OLIVE_TREE_M * 100, P18_OLIVE_ROW_M * 100),
+               FS_MIN, cw - 2.0)
+    lead = FS_MIN * 1.28
+    tall = [-_p18_step(Page(1, 1), i, steps[i], 0.0, 0.0, cw)[0] for i in range(4, 7)]   # row 2's heights
+    tall[1] += 1.5 + P18_TILE_H + 1.2 + FS_MIN * CAP + (len(cap) - 1) * lead + FS_MIN * 0.3
+    foot = y - P18_FLOW_H
+    bots, ym = [], {}
+    for i in range(4):                               # row 1: steps 1-4, left to right
+        b_, ym[i] = _p18_step(pg, i, steps[i], cols[i][0], y, cw)
+        bots.append(b_)
+    y1b = min(bots)
+    y2 = min(foot + max(tall), y1b - P18_GAP_R)      # row 2 on the foot (never closer than the gap to row 1)
+    low = y2
+    b6 = y2
+    for i, c in ((4, 3), (5, 2), (6, 1)):            # row 2: steps 5-7, right to left under columns 4, 3, 2
+        b_, ym[i] = _p18_step(pg, i, steps[i], cols[c][0], y2, cw)
+        low = min(low, b_)
+        if i == 5:
+            b6 = b_
+    # step 6: the farms, one field tile (texture + one olive), the olive spacing under it
+    t1 = b6 - 1.5
+    t0 = t1 - P18_TILE_H
+    tx0, tx1 = cols[2]
+    _p18_put(pg, pla_field_tile((tx0, t0, tx1 - 2.0, t1), 1.0, "olive", symbol_mm=P18_OLIVE_MM))
+    for j, ln in enumerate(cap):
+        bl = t0 - 1.2 - FS_MIN * CAP - j * lead
+        pg.text(ln, tx0, bl, FS_MIN, C["ink"])
+        low = min(low, bl - FS_MIN * 0.3)
+    # the arrows: along the top, down column 4, back along the bottom (water); the red closing arrow up column 1
+    ia = P18_MK + 1.5 + P18_IC + 1.5                 # where an arrow leaves a step's marker line
+    for i in range(3):
+        arrow(pg, [(cols[i][0] + ia, ym[i]), (cols[i + 1][0] - 1.0, ym[i])], C["d2"], 0.45, 2.0)
+    xd = cols[3][0] + P18_MK / 2.0
+    arrow(pg, [(xd, bots[3] - 1.0), (xd, y2 + 0.3)], C["d2"], 0.45, 2.0)
+    for i, (ca, cb) in ((4, (3, 2)), (5, (2, 1))):
+        arrow(pg, [(cols[ca][0] - 1.0, ym[i]), (cols[cb][0] + ia, ym[i])], C["d2"], 0.45, 2.0)
+    xl = X0 + P18_MK / 2.0
+    arrow(pg, [(cols[1][0] - 1.0, ym[6]), (xl, ym[6]), (xl, bots[0] - 1.0)], C["acc"], 0.45, 2.0)
+    # inside the ring: what closes the loop (beside the red arrow) and the one-way rule (column 3)
+    lw_ = cols[1][1] - X0 - P18_MK
+    nl = len(wrap(LOOP_BACK, FS_MIN, lw_, True))
+    ymid = (y1b + y2) / 2.0
+    para(pg, X0 + P18_MK, ymid + nl * lead / 2.0 + FS_MIN * 0.2, lw_, LOOP_BACK, FS_MIN, C["acc"], bold=True)
+    pg.text(u"ONE WAY, WITH THE STREAM", (cols[2][0] + cols[2][1]) / 2.0, ymid - FS_MIN * CAP / 2.0, FS_MIN, C["d3"],
+            bold=True, align="C")
+    return low
 
 
 def draw_farm_picto(opt):
-    """p.18 farm block (02 §4): the existing olive grove off the site as an axonometric in true proportion. The field,
-    its rows and the crowns come from plants.py pla_crop_plan at the published olive spacing (5 m in the row, 7 m
-    between rows); the crowns lie on the ground as their midday shade and every tree stands on its spot as its plants.py
-    section silhouette at true size; a drip line runs along every row from a header fed by the clean stream water; one
-    person picks at true height. A diagram (no scale bar): place() fits it to the panel."""
+    """p.18 the aquifer under the farms (Lower Bakırçay, AQUIFER): groundwater potential against total use as two
+    bars on one scale, the potential's level dashed across the use, and the ratio (facts.py, printed here once).
+    The block is P18_PIC_W x P18_PIC_H (its white ground sets the extent), so code.py's place() puts it at 1:1.
+    (The name stays for code.py's call; D2 a: no farm pictogram any more.)"""
     pg = Page(0, 0)
-    k = 1.2
-    V = BoxView(PSI, 0.0, k, 0.0, 0.0)
-    nr, nt = P18_BLOCK
-    a, b = nt * P18_OLIVE_TREE_M, nr * P18_OLIVE_ROW_M
-    sides = [((0, -1), (0, 0), (1, 0)), ((1, 0), (1, 0), (1, 1)), ((0, 1), (1, 1), (0, 1)), ((-1, 0), (0, 1), (0, 0))]
-    for (nu, nv), (i0, j0), (i1, j1) in sides:
-        vis, lit = V.visible(nu, nv)
-        if vis:
-            pg.poly([[V(i0 * a, j0 * b, 0), V(i1 * a, j1 * b, 0), V(i1 * a, j1 * b, -P18_SOIL_M),
-                      V(i0 * a, j0 * b, -P18_SOIL_M)]], fill=COL["soil"] if lit else COL["soil_dk"],
-                    stroke=COL["edge3d"], lw=0.15)
-    pg.poly([[V(0, 0, 0), V(a, 0, 0), V(a, b, 0), V(0, b, 0)]], fill=MP["agriculture"][0], stroke=COL["edge3d"], lw=0.15)
-    # the field from plants.py, in metres (k = 1), laid on the axonometric ground
-    plan = pla_crop_plan("olive", [(0.0, 0.0), (a, 0.0), (a, b), (0.0, b)], 1.0, row_spacing=P18_OLIVE_ROW_M,
-                         plant_spacing=P18_OLIVE_TREE_M)
-    sp = PLA_SPECIES["olive"]
-    crown = set(v for kk, v in sp["colours"].items() if kk != "stem" and isinstance(v, str) and v)
-    spots = _p18_olive_spots(plan, crown)
-    if len(spots) < 4:                               # fallback: the same grid, half a spacing in from the edges
-        spots = [((j + 0.5) * P18_OLIVE_TREE_M, (i + 0.5) * P18_OLIVE_ROW_M) for i in range(nr) for j in range(nt)]
-    for sh in plan:
-        pts = [V(p[0], p[1], 0.0) for p in sh[1]]
-        if sh[0] != "poly":
-            pg.line(pts, sh[2], sh[3])
-        elif sh[2] in crown:                         # the crown's footprint = its midday shade on the ground
-            pg.poly([pts], fill=COL["shade"], stroke=None, alpha=0.6)
-        else:
-            pg.poly([pts], fill=sh[2], stroke=sh[3], lw=sh[4])
-    # drip: one line along every row, from a header on the edge where the clean stream water arrives
-    along_u = _p18_gap([p[1] for p in spots]) >= _p18_gap([p[0] for p in spots])
-    rows = sorted(set(round((p[1] if along_u else p[0]) * 2.0) / 2.0 for p in spots))
-    for r_ in rows:
-        ln = [V(0.0, r_, 0.0), V(a, r_, 0.0)] if along_u else [V(r_, 0.0, 0.0), V(r_, b, 0.0)]
-        pg.line(ln, C["w3"], 0.25)
-    head = [V(0.0, 0.0, 0.0), V(0.0, b, 0.0)] if along_u else [V(0.0, 0.0, 0.0), V(a, 0.0, 0.0)]
-    pg.line(head, C["d3"], 0.5)
-    mid = (0.0, b / 2.0) if along_u else (a / 2.0, 0.0)
-    tail = (mid[0] - 14.0, mid[1]) if along_u else (mid[0], mid[1] - 14.0)
-    arrow(pg, [V(tail[0], tail[1], 0.0), V(mid[0], mid[1], 0.0)], C["d2"], 0.6, 2.2)
-    tx, ty = V(tail[0], tail[1], 0.0)
-    pg.text(u"clean stream water", tx, ty + 1.6, FS_MIN, C["d3"], bold=True, align="C")
-    # the trees standing, and one person picking, drawn back to front
-    kz = k * math.cos(math.radians(PHI))             # vertical metres on this axonometric
-    items = [(V(u, v, 0.0), "t", i) for i, (u, v) in enumerate(spots)]
-    fu, fv = min(spots, key=lambda p: V(p[0], p[1], 0.0)[1])
-    fp = V(fu + (1.4 if along_u else 0.0), fv + (0.0 if along_u else 1.4), 0.0)
-    items.append((fp, "f", -1 if fp[0] > V(fu, fv, 0.0)[0] else 1))
-    for (px, py), kind, i in sorted(items, key=lambda t: -t[0][1]):
-        if kind == "t":
-            _p18_put(pg, pla_section("olive", px, py, k, h_m=sp["h_m"] * math.cos(math.radians(PHI)),
-                                     crown_m=sp["crown_m"], seed=i, hires=False))   # axonometric drawing: no high-res
-        else:
-            _p18_fig(pg, "olive", px, py, kz, C["dark"], facing=i, branch_h=P18_BRANCH_M)
-    bb = items_bbox(pg.items)
-    node(pg, bb[0] + 3.0, bb[3] + 8.0, 11, opt, 2.6)
-    pg.text(u"EXISTING FARMLAND, OFF SITE", bb[0] + 7.0, bb[3] + 7.2, FS_MIN, COL["ink"], bold=True)
-    pg.text(u"olives {:.0f} x {:.0f} cm · drip along every row".format(P18_OLIVE_TREE_M * 100, P18_OLIVE_ROW_M * 100),
-            bb[0] + 7.0, bb[3] + 7.2 - FS_MIN * 1.35, FS_MIN, COL["ink"])
+    W, H = P18_PIC_W, P18_PIC_H
+    pg.poly([rect(0.0, 0.0, W, H)], fill=COL["white"])
+    pg.text(u"GROUNDWATER, LOWER BAKIRÇAY", 0.0, H - 1.0 - CAP * FS_MIN, FS_MIN, C["dark"], bold=True)
+    (pot_lab, pot), (use_lab, use) = AQUIFER
+    base, top = 12.0, 92.0
+    k = (top - base) / max(pot, use)
+    bw = 24.0
+    for lab, v, col, bx in ((pot_lab, pot, C["w3"], 4.0), (use_lab, use, C["agri"], 34.0)):
+        pg.poly([rect(bx, base, bx + bw, base + k * v)], fill=col)
+        pg.text(u"{} hm³ a year".format(v), bx + bw / 2.0, base + k * v + 1.5, FS_MIN, C["ink"], bold=True,
+                align="C")
+        for j, ln in enumerate(wrap(lab, FS_MIN, bw + 4.0)):
+            pg.text(ln, bx + bw / 2.0, base - 3.4 - j * FS_MIN * 1.28, FS_MIN, C["ink"], align="C")
+    yp, yu = base + k * pot, base + k * use
+    pg.line([(4.0, yp), (34.0 + bw + 1.0, yp)], C["dark"], 0.3, dash=[1.0, 0.7])
+    xb = 34.0 + bw + 4.0
+    pg.line([(xb - 1.2, yp), (xb, yp), (xb, yu), (xb - 1.2, yu)], C["acc"], 0.4)
+    yv = (yp + yu) / 2.0
+    pg.text(fact_num("aquifer_use_ratio") + u" ×", xb + 3.0, yv, P18_BIG, C["acc"], bold=True)
+    yy = para(pg, xb + 3.0, yv - 0.6, W - xb - 3.0, u"total use against potential", FS_MIN, C["ink"])
+    para(pg, xb + 3.0, yy - 0.6, W - xb - 3.0, (u"farm water eases the aquifer " + cite(P18_SRC_AQ)).strip(), FS_MIN,
+         C["ink"])
     return pg
+
+
+def draw_decision(pg, x, y, w, h, s):
+    """p.18 what the figures support: one box per fact (G4: an icon, one headline value, one line), on the flow's
+    4 step columns from the panel edge x, top y. The olive figures from facts.py (8,000 m³ per ha, 1.25 ha: printed
+    here once); a missing live value leaves its boxes out. Returns the lowest y drawn."""
+    need = fact("olive_need_m3_ha")
+    items = []
+    if need:
+        items += [
+            ("olive", fact_num("olive_need_m3_ha") + u" m³ per ha",
+             (u"olives on drip, 1-in-5 dry year " + cite(fact_ref("olive_need_m3_ha")[1] or u"")).strip()),
+            ("storage", fact_num("olive_ha_per_10000_m3") + u" ha", u"of olives per 10,000 m³ of stored water"),
+            ("treatment", u"about {:,.0f} ha".format(round(P18_PLANT_M3_DAY * P18_PLANT_DAYS / need / 5.0) * 5),
+             u"of olives from the town plant's treated water: {:.2f} million m³ in {} summer days".format(
+                 P18_PLANT_M3_DAY * P18_PLANT_DAYS / 1e6, P18_PLANT_DAYS))]
+    items.append(("chart", u"75 % · 29 %", (u"of farm demand met, North Aegean basin: normal year · very severe "
+                                            u"drought " + cite(P18_SRC_NA)).strip()))
+    cols = _p18_cols(x)
+    pad, ic = 2.0, 8.0
+    lay = []
+    for (nm, val, line), (c0, c1) in zip(items, cols):
+        tw = c1 - c0 - 3 * pad - ic
+        V, L = wrap(val, P18_FV, tw, True), wrap(line, FS_MIN, tw)
+        lay.append((nm, c0, c1, V, L, 2 * pad + len(V) * P18_FV * 1.18 + 0.8 + len(L) * FS_MIN * 1.28))
+    bh = max([t[5] for t in lay] + [ic + 2 * pad])
+    for nm, c0, c1, V, L, _ in lay:
+        pg.poly([rect(c0, y - bh, c1, y)], fill=C["paper"], stroke=C["faint"], lw=0.2)
+        _p18_icon(pg, (nm,), c0 + pad, y - pad, ic)
+        lx, ly = c0 + 2 * pad + ic, y - pad
+        for ln in V:
+            ly -= P18_FV * 1.18
+            pg.text(ln, lx, ly, P18_FV, C["d3"], bold=True)
+        ly -= 0.8
+        for ln in L:
+            ly -= FS_MIN * 1.28
+            pg.text(ln, lx, ly, FS_MIN, C["ink"])
+    return y - bh

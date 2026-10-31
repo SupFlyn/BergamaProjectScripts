@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v5.py · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v6.py (v6, 30 Oct: revision T5, pp.18-19 crops) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -14,7 +14,12 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math, re
 
-VERSION = "v5.1"
+VERSION = "v6"
+# Revision 30 Oct (T5, booklet p.19; M10, G4): every fact once in the booklet. Storage (p.10) is no longer printed
+#   here (headline, store legend); the olive area is facts.py "8,705 ha", printed once (the olive bar row; the
+#   cotton tile and the timeline no longer repeat the 2025 areas: "8,700" gone); the olive full-irrigation row prints
+#   its normal-year need from facts.py (the dry-year need and 1.25 ha are p.18's); "what it replaces" (1.25 ha again,
+#   and a note on an older board version) is gone with its crop ag1_replaces.
 # NEW IN v5.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.19 "10,000 m³ = N ha olive" is computed live, the
 # same way as the water board's p.18 (10,000 / gross m³ a ha of olive in a dry year, from water_balance_results.json);
 # it was the fixed text "1.22 ha".
@@ -438,7 +443,7 @@ def header(pg, title, sub, hole=None, tag=None):
 # v5 (T4a, 29 Oct, 02 §2): every pictogram comes from the shared icon set (common/icons.py); the script's own icon()
 # with its 10 x 10 grid drawings is gone. AG_ICONS: tile key -> (icons.py name, crossed out).
 AG_ICONS = {"nowater": ("drought", False), "cotton": ("field", False), "olive": ("olive", False),
-            "drip": ("drip", False), "cube": ("storage", False)}
+            "drip": ("drip", False)}
 
 
 def _ag_put(pg, shapes):
@@ -521,19 +526,13 @@ CONTEXT = [
     ("nowater", "DROUGHT 2025: NO WATER-HUNGRY CROPS", "7,500 ha",
      ["%s, %s, fodder · Bergama villages" % (name_lc("maize"), name_lc("cotton")),
       "no water for second crops · DSİ + Ministry"], NEWS),
-    ("cotton", name_caps("cotton") + ": BERGAMA'S BIGGEST CROP", "10,000 ha",
-     ["2025 · 37 % of 26,800 ha field crops",
-      "%s 6,000 · %s 2,500 · %s 8,700 ha" % (name_lc("maize"), name_lc("tomato"), name_lc("olive"))], TUIK),
+    ("cotton", name_caps("cotton") + ": BERGAMA'S BIGGEST CROP", "37 %",
+     ["of 26,800 ha field crops · 2025"], TUIK),
     ("olive", name_caps("olive") + " CAN TAKE LESS · MEMECIK, DRIP", "-72 % water",
      ["İzmir station 2008-10 · 175 vs 622 mm a season", "24.9 vs 27.8 kg a tree: no significant loss",
       "highest oil content"], KAYA),
     ("drip", "TODAY'S IRRIGATION ON THE FARMS", None, ["some Bergama growers moved to drip"], ITB),
 ]
-def replaces():
-    """v5.1: the "what it replaces" tile, its hectares live (NET is filled by build() before page_cubic runs)"""
-    return [("cube", "THE WATER BOARD LINE IT REPLACES", u"10,000 m³ = {:.2f} ha {}".format(
-        10000.0 / gross_m3_ha("olive", "dry"), name_lc("olive")),   # v3.1: (Zeytin)
-        ["was: İzmir crop water use", "now: Bergama climate · rain in the soil · live storage"], None)]
 DEFICIT = (1 - 350.0 / 622, 1 - 175.0 / 622)   # olive water saved: S0.50 and S0.25 against the control SC, Kaya et al. 2017 Table II
 # Bergama district areas 2025, da (TÜİK MEDAS export, library/research/crops_2026-10-24/bergama_crops_irrigation_v1.md §1.25):
 # the share of each crop the water balance models, used for the district mix row
@@ -548,16 +547,14 @@ OLIVE_H = ("h01 §2 + §5 P04: \"19th-c. olive-oil machinery in the Red Hall S r
 HISTORY = [("cotton", "Tersane cotton (16th c.)", 1500, 1600, COTTON_H),
            ("cotton", "ginning 1861", 1861, None, COTTON_H),
            ("cotton", "Sümerbank (1954/60–2008)", 1954, 2008, COTTON_H),
-           ("cotton", "2025: %s ha" % fmt(rnd(TUIK_2025_DA["cotton"] / 10.0, 100)), 2025, None, TUIK),
-           ("olive", "19th-c. olive-oil machinery · Red Hall S rotunda", 1800, 1900, OLIVE_H),
-           ("olive", "2025: %s ha" % fmt(rnd(TUIK_2025_DA["olive"] / 10.0, 100)), 2025, None, TUIK)]
+           ("olive", "19th-c. olive-oil machinery · Red Hall S rotunda", 1800, 1900, OLIVE_H)]
 
 
 def history_line(pg, x, top, w, floor):
     """a timeline 1500-2030 with the cotton (above) and olive (below) history, labels placed by measured width (no
     overlaps). Left out (and logged) when it does not fit above `floor`. Returns its bottom y or None."""
     if top - 35.0 < floor:
-        LOG_NOTES.append("p1 history timeline left out: no room above the 'what it replaces' tile")
+        LOG_NOTES.append("p1 history timeline left out: no room above the page foot")
         return None
     P = Placer()
     P.text(pg, "WHY THE STORED WATER GOES TO FARMS", x, top, 9, C["accent"], True)
@@ -596,7 +593,7 @@ def crop_row(pg, x, top, w, floor):
     n = len(CROP_ROW)
     gx = (w - n * PHOTO_W) / (n - 1.0)
     if top - 3.0 - PHOTO_H - 2.5 - 2.6 - 0.6 < floor or gx < PH_GAP:
-        LOG_NOTES.append("p1 crop photos left out: no room above the 'what it replaces' tile")
+        LOG_NOTES.append("p1 crop photos left out: no room above the page foot")
         return None
     pg.text("THE CROPS", x, top, 9, C["accent"], True)
     low = top
@@ -724,7 +721,7 @@ def stream_first(pg, L, src, y_top):
     for kind, cols, lab in (("fill", (C["water_deep"],), "strip, also waters the bed planting"),
                             ("fill", (C["green_light"], C["green_deep"]), "farms: normal · dry year"),
                             ("fill", (C["faint"],), "left: carried on, or back to the stream after a year"),
-                            ("dash", (C["ink"],), "store %s m³ %s" % (fmt(V), mk))):
+                            ("dash", (C["ink"],), ("store size " + mk).strip())):
         for c_ in cols:
             if kind == "fill":
                 pg.rect(xx, lg - 0.3, 3.5, 2.6, fill=c_); xx += 4.0
@@ -762,17 +759,17 @@ def page_cubic(L, src):
     pg = Page(420, 297)
     header(pg, "WHAT EACH CUBIC METRE GROWS",
            "Same storage, different crops: hectares irrigated a season", tag=STAGE_TAG)
-    s_lo, s_hi = span(L["storage_m3"]); p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
+    p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
     w_lo, w_hi = n_lo * p_lo / 100.0, n_hi * p_hi / 100.0          # m3 the storage gives the farms in the 1-in-5 dry year
     fed = L["cropland_ha"] + L["orchard_ha"]
     SRC1 = "storage, need and share: " + src + "; water to farms = 1-in-5 dry-year need x share covered (calculated)"
     MIX = ("Bergama mix = cotton, corn and tomato weighted by their 2025 district areas; no map shows what the 34.9 ha grow, "
            "so the mix stands in; water balance crops: %s" % (", ".join(crop_word(c) for c in L["crops"]) or "not set"))
-    # key line (v4, F10: on the 14 mm margin with the title, was 26)
-    pg.text("%s-%s m³" % (fmt(rnd(s_lo)), fmt(rnd(s_hi))) if rnd(s_lo) != rnd(s_hi) else "%s m³" % fmt(rnd(s_lo)), P1_X, 250, 26, C["water_deep"], True)
-    pg.text("storage · cost cut-off " + cite(SRC1), P1_X, 242, 9, C["ink"])
-    pg.text("%s-%s m³" % (fmt(rnd(w_lo)), fmt(rnd(w_hi))), 120, 250, 26, C["green_deep"], True)
-    pg.text("to farms · 1-in-5 dry year · %s %% of need · strip first" % (("%.0f" % p_lo) if "%.0f" % p_lo == "%.0f" % p_hi else "%.0f-%.0f" % (p_lo, p_hi)), 120, 242, 9, C["ink"])
+    # key line (v4, F10: on the 14 mm margin with the title, was 26); T5 (30 Oct, M10): the storage figure is p.10's
+    hl = ("%s-%s m³" % (fmt(rnd(w_lo)), fmt(rnd(w_hi))), "to farms · 1-in-5 dry year · %s %% of need · strip first %s" % (
+        ("%.0f" % p_lo) if "%.0f" % p_lo == "%.0f" % p_hi else "%.0f-%.0f" % (p_lo, p_hi), cite(SRC1)))
+    pg.text(hl[0], P1_X, 250, 26, C["green_deep"], True)
+    pg.text(hl[1].strip(), P1_X, 242, 9, C["ink"])
     # bars: hectares served by W, per crop (v2, Prompt 5: the crop names "English (Turkish)")
     rows = [(plant_name("olive") + ", full irrigation", "olive", None), (plant_name("olive") + ", deficit irrigation", "olive", DEFICIT)] + \
            [(plant_name(c) if c in PLANTS else c.capitalize(), c, None) for c in sorted(NET) if c != "olive"] + [("Bergama mix (TÜİK 2025)", "mix", None)]
@@ -799,8 +796,9 @@ def page_cubic(L, src):
     for i, (lab, crop, d) in enumerate(rows):
         yy = y0 - i * RP
         pg.text(lab, x0 - 3, yy - 4.5, 10, C["ink"], True, "R")
-        if crop in TUIK_2025_DA:
-            pg.text("Bergama 2025: %s ha %s" % (fmt(TUIK_2025_DA[crop] / 10.0), cite(TUIK)), x0 - 3, yy - 13.6, 7, C["accent"], align="R")
+        area = fact_num("olive_area_ha") if crop == "olive" else (fmt(TUIK_2025_DA[crop] / 10.0) if crop in TUIK_2025_DA else None)
+        if area and not (crop == "olive" and d):      # T5 (M10): the olive area once, on the full-irrigation row
+            pg.text("Bergama 2025: %s ha %s" % (area, cite(TUIK)), x0 - 3, yy - 13.6, 7, C["accent"], align="R")
         for j, yr in enumerate(("normal", "dry")):
             v = [q for q in vals if q[0] == lab and q[2] == yr][0]
             by = yy - j * 7.5
@@ -813,12 +811,17 @@ def page_cubic(L, src):
         g_n, g_d = gross_m3_ha(crop, "normal"), gross_m3_ha(crop, "dry")
         if d: g_n, g_d = g_n * (1 - d[1]), g_d * (1 - d[0])
         mk = cite(NET_REF) + (cite(TAGEM) if i == 0 else "") + (cite(KAYA) if d else "") + (cite(MIX) if crop == "mix" else "")
-        pg.text("%s-%s m³ per ha a season %s" % (fmt(rnd(min(g_n, g_d), 10)), fmt(rnd(max(g_n, g_d), 10)), mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
+        if crop == "olive" and not d:                 # T5 (M10): facts.py; the 1-in-5 dry-year need prints on p.18
+            need_t = fact_text("olive_need_normal_m3_ha")
+            if need_t:
+                pg.text("%s %s" % (need_t, mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
+        else:
+            pg.text("%s-%s m³ per ha a season %s" % (fmt(rnd(min(g_n, g_d), 10)), fmt(rnd(max(g_n, g_d), 10)), mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
     ag_crop("ag1_bars", 0, 13.0, yb_ - 5.5, 277.0, y0 + 11.0,
             legend=[{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
                     {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
                     {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
-    ag_crop("ag1_headline", 0, P1_X - 2.0, 239.0, 262.0, 261.0)
+    ag_crop("ag1_headline", 0, P1_X - 2.0, 239.0, P1_X + max(text_w(hl[0], 26, True), text_w(hl[1], 9)) + 2.0, 261.0)
     # key to the two bars
     ky = yb_ - 10.0
     pg.rect(x0, ky, 6, 3, fill=C["green_light"]); pg.text("normal year (mean of 34)", x0 + 8, ky + 0.5, 7, C["ink"])
@@ -851,13 +854,10 @@ def page_cubic(L, src):
     pg.text("WHY CROP CHOICE IS THE LEVER", cx, cy, 11, C["ink"], True)
     yb_ = tiles(pg, cx, cy - 6, 126, CONTEXT)
     ag_crop("ag1_context", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, cy - 5.0)
-    hb = history_line(pg, cx, yb_ - 7.0, 126.0, 64.0)          # v1.6: why the stored water goes to farms
+    hb = history_line(pg, cx, yb_ - 7.0, 126.0, 14.0)          # v1.6: why the stored water goes to farms
     if hb:
         ag_crop("ag1_history", 0, cx - 1.0, hb - 1.0, cx + 127.0, yb_ - 3.0)
-    crop_row(pg, cx, (hb or yb_) - 7.0, 126.0, 64.0)           # v2 (Prompt 5): the crops as photos, above "what it replaces"
-    pg.text("WHAT IT REPLACES", cx, 60, 9, C["accent"], True)
-    yb_ = tiles(pg, cx, 57, 126, replaces())
-    ag_crop("ag1_replaces", 0, cx - 1.0, yb_ - 1.0, cx + 127.0, 58.0)
+    crop_row(pg, cx, (hb or yb_) - 7.0, 126.0, 14.0)           # v2 (Prompt 5): the crops as photos
     return pg
 
 # ------------------------------------------------------------------ page 2: the farms we feed, on the site board's plan 01
@@ -1137,9 +1137,9 @@ def page_sources():
 # booklet/results.json (hectares per crop, same keys as v1.3). The v1.3 booklet redraws are gone.
 #@include ../common/booklet_assets.py
 AG_CROPS = []                        # (id, page index, (x0, y0, x1, y1) mm from the page's top-left, y down, den, legend, drop)
-AG_CAPTIONS = {"ag1_headline": "Storage and water to the farms", "ag1_bars": "Hectares one storage irrigates, by crop",
+AG_CAPTIONS = {"ag1_headline": "Water to the farms", "ag1_bars": "Hectares one storage irrigates, by crop",
                "ag1_reading": "Same storage: how much more land", "ag1_context": "Why crop choice is the lever",
-               "ag1_replaces": "What it replaces", "ag1_crops": "The crops",   # v2: the crop photos
+               "ag1_crops": "The crops",   # v2: the crop photos
                "ag1_stream": "The stream comes first: a normal and a 1-in-5 dry year",   # v3 (Prompt 6)
                "ag2_plan": "The farms we feed, on the site plan"}   # v5 (D9 a): ag3_* gone with the ladder page
 

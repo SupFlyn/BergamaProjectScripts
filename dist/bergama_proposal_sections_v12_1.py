@@ -4,6 +4,17 @@ water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want sectio
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN (revision 30 Oct, T6, booklet p12; the version number is set at the end of the revision):
+  * D6: the block sits on the A0 sheet at exactly 1:200 (BK_S = 0.4), so the booklet prints it at 1:500 and its scale
+    bars read 1:500 (they read 1:1,481: the sheet's words said 1:500 at a non-standard sheet factor).
+  * M7 figures at 1.75 m doing what each zone is for, M6 species at sourced heights in mixed wet-to-dry planting, the
+    G6 ratios checked (sf_assert_g6, log), the M5 water at average yearly flow with Q100 / Q500, stepping stones.
+  * W1: a stone stair down the NE wall into the bed, life in the wet bed, an edge walk and a bike lane. W2: walk, bike
+    lane, tree band, people on the steps and at the water. W3: a mixed wet edge up to the commons, herbs at the
+    garden wall. W4: crest walk, bike lane and tree corridor, a ramp on a berm to a viewing terrace above Q500, steps
+    to the boardwalk. Faded trees behind every cut (R16). Key map on the M4 base with the study area.
+  * D1: two sheets from one geometry: Bergama_proposal_sections_A.pdf (style b, vector) and ..._A_style_a.pdf (style
+    a, cutouts from Downloads/Bergama/Data/cutouts/); crops suffixed _a / _b (unsuffixed = b). Legend inside ps_all.
 NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
@@ -75,11 +86,12 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v11"
+VERSION = "v12.1"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
+STYLES = (("b", "A"), ("a", "A_style_a"))              # revision 30 Oct (D1): style -> the sheet's OUT_NAME part
 
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -824,8 +836,8 @@ def rect(x0, y0, x1, y1):
     return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
 
 # ---------------------------------------------------------------- shared modules (revision 29 Oct, T2a / T2b)
-# v10: the level table (data first), the section parts before the plants, the legacy figures (through _p13_fig
-# only), the basemap for the key map. Names checked: no module name is defined by this script.
+# v10: the level table (data first), the section parts before the plants, the figures (M7, through ps_fig
+# and ps_people), the basemap for the key map. Names checked: no module name is defined by this script.
 def bergama_data(name, _c={}):
     """Built-in data kept in Downloads/Bergama/Data/bergama_proposal_sections_data.py (Aras 25 Oct 21:29, scripts shortened): runs its
     section `name` here, as if it were written in this place. The file is read once per run; a missing file or one
@@ -3949,7 +3961,7 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
         elif it[0] == "text" and text_fn is not None:
             text_fn(it[1], T(it[2]), it[3], it[4], it[5], it[6])
         elif it[0] == "water":
-            p0 = it[1][0][0][0], it[1][0][0][1]
+            p0 = it[1][0][0][0][0], it[1][0][0][0][1]          # first point of the first ring of the first group
             a, b = T(p0), T((p0[0] + 100.0, p0[1]))
             k = _m.hypot(b[0] - a[0], b[1] - a[1]) / 100.0
             try:
@@ -6518,9 +6530,15 @@ def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
 # and angle, terraces, Q100, Q500) with the shared section parts (DSİ walls, embankments, loose earth, railings,
 # stone / concrete / earth / gravel hatches, steps seated into the bank) and the plants module (every species at its
 # true size and form; D6: no fig, citrus, iris, oleander, white poplar; D2: common reed only in lined basins the flood
-# passes by). Figures through ONE helper, _p13_fig (figures.py paused: swap the new set in there). All four sections
+# passes by). Figures through ps_fig / ps_people (M7, revision 30 Oct). All four sections
 # look downstream: the NE bank (left bank) on the left, the SW bank on the right, as the key map's triangles show.
 # Drawn in booklet print mm (k = PS_K mm per m); build_sheet() places the block on the A0 sheet at 1 / BK_S.
+# Revision 30 Oct (T6, booklet p12): people are the M7 figures at 1.75 m (D9 layer 0 at the cut), plants the M6
+# species at their sourced heights in mixed, wet-to-dry scatters (G9), checked by sf_assert_g6 (G6); the water is the
+# M5 section (average yearly flow, never dry; Q100 / Q500 from the cut registry); every bank is a designed place with
+# its reason (G10): walks, bike lanes, a stair down the W1 wall into the bed, life in the wet bed, the W4 ramp to a
+# viewing terrace and the boardwalk; faded trees behind the cut (R16). Each section is drawn in style "b" (vector)
+# and "a" (cutouts, D1) from the same geometry (PsSec.style).
 PS_SCALE = 500                        # 1:500 on the booklet page (standard scales, SCRIPT_STANDARD §8)
 PS_K = 1000.0 / PS_SCALE              # print mm per m (k of section_parts and plants)
 PS_DEPTH = 1.0                        # m of cut ground drawn under the bed (section_parts drawing rule)
@@ -6533,8 +6551,10 @@ PS_LBL = BK_MIN_PT * PT               # print mm: the smallest word on the page 
 PS_TTL = 9.5 * PT                     # section titles
 PS_NOTE = 8.0 * PT                    # the key line under a title, the key map title
 PS_ROW = PS_LBL * 1.35                # one label row
-PS_FIG = "5E5650"                     # figures
-PS_TIMBER = "AA8148"                  # boardwalk timber (icons palette: timber)
+PS_TIMBER = SF_LANE["timber"]         # boardwalk timber: the same tone as the M8 terraces and lanes
+PS_STAIR = (0.30, 0.18)               # m: tread, largest rise of the stairs drawn here (design rule)
+PS_RAMP = 1.0 / 12.0                  # rise per run of the W4 ramp (design rule)
+PS_TERRACE_W = 4.0                    # m: the W4 viewing terrace's width across the cut (design rule)
 PS_FLOOD = "C1D3DB"                   # the reach of Q500 (wash, see-through)
 PS_FLOOD_A = 0.55
 # where each cut crosses the stream axis (survey m; the cut centres of the level table's W rows): the drawn span runs
@@ -6546,7 +6566,10 @@ PS_CUTS = [("up", "W1", 1, u"Upstream entry", u"runoff cleaned in lined reed bas
            ("k4", "W2", 2, u"K4 walking hub", u"seating steps down to the summer strip, the hub square stays dry"),
            ("k5", "W3", 3, u"K5 Demeter's Garden", u"garden above Q500, stream commons below it"),
            ("down", "W4", 4, u"Downstream reach", u"planting bands and a boardwalk that follow the flood levels")]
-PS_BREAK = {"W2": ("SW", 50.0)}       # W2's SW land (flat street level to the cut end 80 m out) drawn to 50 m, broken
+PS_BREAK = {"W2": ("SW", 50.0)}
+# m of level ground drawn behind an embankment crest (default 3.0): W4 NE 8.0 for the crest walk, bike lane and tree
+# corridor (the level table's survey source reads that crest "50.0 m out", about 8 m behind the angled crest)
+PS_CREST_FLAT = {("W4", "NE"): 8.0}       # W2's SW land (flat street level to the cut end 80 m out) drawn to 50 m, broken
 
 
 def ps_lv(z):
@@ -6554,24 +6577,65 @@ def ps_lv(z):
 
 
 def ps_put(pg, shapes):
-    """house shapes ("poly", ring, fill, stroke, lw) / ("line", pts, colour, lw) of the shared modules -> page items"""
-    for s in shapes:
-        if not s or len(s) < 3 or not s[1]:
+    """house shapes of the shared modules -> page items: multi-ring polys here, everything else (poly, line, text,
+    image) through M5 shp_put"""
+    for s in shapes or []:
+        if not s:
             continue
-        if s[0] == "poly":
-            r = s[1]
-            rings = r if isinstance(r[0][0], (list, tuple)) else [r]
-            pg.poly(rings, fill=s[2], stroke=s[3] if len(s) > 3 else None, lw=(s[4] if len(s) > 4 and s[4] else 0.1))
-        elif s[0] == "line":
-            pg.line(s[1], s[2], s[3] if len(s) > 3 and s[3] else 0.1)
+        if s[0] == "poly" and s[1] and isinstance(s[1][0][0], (list, tuple)):
+            pg.poly(s[1], fill=s[2], stroke=s[3] if len(s) > 3 else None, lw=(s[4] if len(s) > 4 and s[4] else 0.1),
+                    alpha=s[5] if len(s) > 5 else None)
+        else:
+            shp_put(pg, [s])
+
+
+def ps_xform(items, s, dx, dy):
+    """xform with the D1 a "image" items kept in their place in the drawing order"""
+    out = []
+    for it in items:
+        if it[0] == "image":
+            _, x, y, w, h, path, a, flip, clip = (tuple(it) + (None,) * 9)[:9]
+            out.append(("image", dx + s * x, dy + s * y, w * s, h * s, path, a, flip,
+                        (dx + s * clip[0], dy + s * clip[1], dx + s * clip[2], dy + s * clip[3]) if clip else None))
+        else:
+            out += xform([it], s, dx, dy)
+    return out
+
+
+def ps_bbox(items):
+    """items_bbox with the image items' extents"""
+    b = items_bbox([it for it in items if it[0] != "image"])
+    ims = [it for it in items if it[0] == "image"]
+    if not ims:
+        return b
+    xs = [it[1] for it in ims] + [it[1] + it[3] for it in ims]
+    ys = [it[2] for it in ims] + [it[2] + it[4] for it in ims]
+    if b == (0.0, 0.0, 0.0, 0.0) and len(ims) == len(items):
+        return (min(xs), min(ys), max(xs), max(ys))
+    return (min([b[0]] + xs), min([b[1]] + ys), max([b[2]] + xs), max([b[3]] + ys))
+
+
+def ps_z_at(prof, u):
+    """the level (m) of the cut line prof [(u, z)] at u (its highest where it is vertical)"""
+    if u <= prof[0][0]:
+        return prof[0][1]
+    best = None
+    for (ua, za), (ub, zb) in zip(prof[:-1], prof[1:]):
+        if ua <= u <= ub:
+            z = za if ub - ua < 1e-9 else za + (zb - za) * (u - ua) / (ub - ua)
+            best = z if best is None else max(best, z)
+    return best if best is not None else prof[-1][1]
 
 
 class PsSec(object):
     """One section: its own page in print mm, (0, 0) = (left end u0, PS_DEPTH under the bed); u = m across the stream
     from the axis (NE negative), z = m a.s.l."""
 
-    def __init__(self, cid, u0, u1, d):
+    def __init__(self, cid, u0, u1, d, style="b"):
         self.cid, self.u0, self.u1, self.d = cid, float(u0), float(u1), d
+        self.style = style                                    # D1: "b" vector, "a" cutouts, one geometry
+        self.trees = []                                       # (key, x, h_m, crown_m) at the cut, for the G6 check
+        self.lab_u = 2.5                                      # m: where the water level labels start (clear of people)
         self.bed = level(cid, "bed")
         self.z0 = self.bed - PS_DEPTH
         self.k = PS_K
@@ -6589,6 +6653,13 @@ class PsSec(object):
 
     def P(self, pts):
         return [(self.X(u), self.Y(z)) for u, z in pts]
+
+    def U(self, x):
+        return self.u0 + x / self.k
+
+    def zf(self, f):
+        """a level function of u (m) -> a page-y function of page x"""
+        return lambda x: self.Y(f(self.U(x)))
 
     def put(self, shapes):
         ps_put(self.pg, shapes)
@@ -6614,7 +6685,7 @@ def ps_extent(cid):
             e = max(e, hw + PS_WALL_T + 4.0)
         elif kind == "embankment":
             h = level(cid, "top", side) - level(cid, "bed")
-            e = max(e, hw + h / math.tan(math.radians(level(cid, "angle_deg", side))) + 3.0)
+            e = max(e, hw + h / math.tan(math.radians(level(cid, "angle_deg", side))) + PS_CREST_FLAT.get((cid, side), 3.0))
         elif kind == "loose_earth":
             e = e + 4.0
         ext[side] = e
@@ -6624,11 +6695,53 @@ def ps_extent(cid):
     return -ext["NE"], ext["SW"], d
 
 
-def _p13_fig(S, pose, u, z, height=1.75, facing=1):
-    """page 13's ONE figure helper (figures.py paused: the new silhouette set goes in here): the legacy fig_polys
-    at true height for the section's scale, feet at (u, z)"""
-    for ring in fig_polys(pose, height, facing):
-        S.pg.poly([[(S.X(u + px), S.Y(z + py)) for px, py in ring]], fill=PS_FIG)
+def ps_fig(S, pose, u, z, facing=1, **p):
+    """one person at the cut (M7: adult 1.75 m, cyclist 1.80 m, D9 layer 0), feet at (u, z), in the section's style"""
+    S.put(fig_side(pose, S.X(u), S.Y(z), S.k, facing=facing, style=S.style, **p))
+
+
+def ps_people(S, zone, ua, ub, zf, seed, water=None, **p):
+    """people doing what the zone is for (M7 FIG_ACTIVITY) from ua to ub (m) on the ground zf(u) (m a.s.l.); water =
+    the water level (m) for wading figures"""
+    a, b = sorted((ua, ub))
+    sh, placed = fig_activity(zone, S.X(a), S.X(b), S.zf(zf), S.k, seed=seed, style=S.style,
+                              water=(S.Y(water) if water is not None else None), **p)
+    S.put(sh)
+    return placed
+
+
+def ps_lane(S, ua, ub, z, kind, label=None):
+    """an M8 lane (walk, bike, gravel, timber) from ua to ub on level z; label = the zone and its reason (G10)"""
+    a, b = sorted((ua, ub))
+    S.put(sf_lane(S.X(a), S.Y(z), b - a, S.k, kind=kind))
+    if label:
+        S.lab(label, (a + b) / 2.0, z, True)
+
+
+def ps_scatter(S, ua, ub, zf, t0, t1, mix, seed, density=1.0, avoid=(), label=True):
+    """mixed planting (M6) from ua to ub (m) on the ground zf(u): band t0 (wet) to t1 (dry), crowns overlapping, no
+    rows or repeated clusters (G9); each species named once over the drawing"""
+    a, b = sorted((ua, ub))
+    if b - a < 0.3:
+        return []
+    av = [tuple(sorted((S.X(p), S.X(q)))) for p, q in avoid] or None
+    sh, placed = pla_scatter_section(S.X(a), S.X(b), S.zf(zf), S.k, t0=t0, t1=t1, mix=mix, seed=seed,
+                                     style=S.style, density=density, avoid=av)
+    S.put(sh)
+    for key, x, h, cr in placed:
+        S.trees.append((key, x, h, cr))
+        if label:
+            u = S.U(x)
+            S.lab(ps_name(key), u, zf(u) + h)
+    return placed
+
+
+def ps_back(S, seed):
+    """depth behind the cut (R16): faded trees in D9 layers 2 and 1, standing at the bank tops (never in the bed)"""
+    top = min(S.prof[0][1], S.prof[-1][1])
+    wl = sf_atmosphere(0.0, S.w, lambda x: S.Y(max(top, ps_z_at(S.prof, S.U(x)))), 0.0, S.k, seed=seed, sky=False,
+                       birds=False, mix=["plane", "ash", "chaste", "olive", "tamarisk"], style=S.style)
+    wl.put(S.pg)
 
 
 def ps_name(key):
@@ -6638,10 +6751,13 @@ def ps_name(key):
 
 
 def ps_plant(S, key, u, z, label=True, **kw):
-    """a species at true size on the ground at (u, z); labelled at its top once per section"""
-    S.put(pla_section(key, S.X(u), S.Y(z), S.k, **kw))
+    """a species at its sourced height (M6) on the ground at (u, z); labelled at its top once per section"""
+    S.put(pla_section(key, S.X(u), S.Y(z), S.k, style=S.style, **kw))
+    h = pla_height_ok(key, kw.get("h_m") or PLA_SPECIES[key]["h_m"])
+    if not kw.get("beyond"):
+        S.trees.append((key, S.X(u), h, kw.get("crown_m") or PLA_SPECIES[key]["crown_m"]))
     if label:
-        S.lab(ps_name(key), u, z + (kw.get("h_m") or PLA_SPECIES[key]["h_m"]))
+        S.lab(ps_name(key), u, z + h)
 
 
 def ps_land(S, pts, material="earth"):
@@ -6649,14 +6765,40 @@ def ps_land(S, pts, material="earth"):
     S.put(sct_ground(S.P(pts), 0.0, S.k, material))
 
 
-def ps_bed(S, uL, uR):
-    """the gravel bed from uL to uR with the summer strip channel (PS_STRIP) on the axis, water in it"""
+def ps_strip(S):
+    """the summer strip channel (PS_STRIP) on the axis: its four points"""
     w, dp = PS_STRIP
     b = S.bed
-    pts = [(uL, b), (-w / 2.0, b), (-w / 2.0 + 0.6, b - dp), (w / 2.0 - 0.6, b - dp), (w / 2.0, b), (uR, b)]
-    S.put(sct_ground(S.P(pts), 0.0, S.k, "gravel"))
-    S.put(sec_water(S.P(pts[1:5])))
-    S.lab(u"summer strip", 0.0, b, True)
+    return [(-w / 2.0, b), (-w / 2.0 + 0.6, b - dp), (w / 2.0 - 0.6, b - dp), (w / 2.0, b)]
+
+
+def ps_bed(S, uL, uR):
+    """the gravel bed from uL to uR with the summer strip, then the M5 water (G8): the average yearly flow over the
+    wet bed (never dry), Q100 and Q500 wall to wall, their levels stacked from S.lab_u; stepping stones across the
+    strip"""
+    b = S.bed
+    st = ps_strip(S)
+    S.put(sct_ground(S.P([(uL, b)] + st + [(uR, b)]), 0.0, S.k, "gravel"))
+    prof = []
+    for i, p in enumerate(S.prof):                              # the cut line with the strip in its bed
+        prof.append(p)
+        q = S.prof[i + 1] if i + 1 < len(S.prof) else None
+        if q and abs(p[1] - b) < 1e-6 and abs(q[1] - b) < 1e-6 and p[0] < st[0][0] and q[0] > st[-1][0]:
+            prof += st
+    wl = water_section(S.P(prof), S.k, S.Y, cid=S.cid, fill_ground=False, label_size=PS_LBL,
+                       label_x=S.X(S.lab_u))
+    wl.put(S.pg)
+    S.put(sf_stepping_stones(S.X(st[0][0] - 0.2), S.X(st[-1][0] + 0.2), S.Y(st[1][1]), S.Y(level_avg_flow(S.cid)),
+                             S.k, seed=len(S.cid)))
+    S.lab(u"summer strip · stepping stones", 0.0, b, True)
+
+
+def ps_stair_z(u_bot, z_bot, n, rise, tread, side):
+    """the tread level (m) at u of a flight climbing from (u_bot, z_bot) toward side"""
+    def f(u):
+        i = int(math.ceil((u - u_bot) * side / tread - 1e-9))
+        return z_bot + rise * max(0, min(n, i))
+    return f
 
 
 def ps_wall(S, u_face, side, top, rail=True):
@@ -6720,19 +6862,6 @@ def ps_flood_wash(S):
         S.pg.poly([S.P(r)], fill=PS_FLOOD, alpha=PS_FLOOD_A)
 
 
-def ps_flood_lines(S):
-    """Q500 dashed and Q100 dotted across every wet stretch; one label over the widest, at its left end"""
-    q1, q5 = level(S.cid, "q100"), level(S.cid, "q500")
-    for wl, dash in ((q5, [1.2, 0.6]), (q1, [0.3, 0.45])):
-        for r in ps_wet(S.prof, wl):
-            S.pg.line([(S.X(r[0][0]), S.Y(wl)), (S.X(r[-1][0]), S.Y(wl))], COL["river_mid"], 0.22, dash=dash)
-    runs = [r_ for r_ in ps_wet(S.prof, q5) if r_[0][0] <= -S.hw + 0.01 <= r_[-1][0]]
-    if runs:                                                    # in the channel, from its NE side: Q500 over its
-        x = S.X(max(runs[0][0][0], -S.hw)) + 0.8                # line, Q100 under its own (clear of the strip)
-        S.pg.text(u"Q500 %s" % ps_lv(q5), x, S.Y(q5) + 0.6, PS_LBL, COL["river_dark"])
-        S.pg.text(u"Q100 %s" % ps_lv(q1), x, S.Y(q1) - 0.6 - PS_LBL * CAP, PS_LBL, COL["river_dark"])
-
-
 def ps_arrow(S, pts, col, lw=0.3, dash=None):
     P = S.P(pts)
     S.pg.line(P, col, lw, dash=dash)
@@ -6763,7 +6892,9 @@ def ps_bank_text(S, side):
 def ps_sec_w1(S):
     c, b, hw = S.cid, S.bed, S.hw
     tN, tS = level(c, "top", "NE"), level(c, "top", "SW")
+    avg = level_avg_flow(c)
     S.prof = [(S.u0, tN), (-hw, tN), (-hw, b), (hw, b), (hw, tS), (S.u1, tS)]
+    ps_back(S, 11)
     ps_flood_wash(S)
     ps_land(S, [(S.u0, tN), (-hw, tN)])                         # NE: the street behind the wall
     # SW: three lined reed basins sunk into the land (D2 a: lined, root-contained, the flood passes by above Q500),
@@ -6776,8 +6907,12 @@ def ps_sec_w1(S):
         surf += [(u0 - kt, tS), (u0 - kt, f), (u1 + kt, f), (u1 + kt, tS)]
     surf.append((S.u1, tS))
     ps_land(S, surf)
+    # NE street, from the wall: a walk along the edge, the bike lane behind it, shade trees at the street side
+    ps_lane(S, -hw - 0.6, -hw - 3.6, tN, "walk", u"edge walk · looks down into the bed")
+    ps_lane(S, -hw - 4.0, -hw - 6.0, tN, "bike", u"bike lane · street side, clear of the walk")
+    ps_lane(S, hw + 0.8, hw + 3.8, tS, "walk")
     ps_bed(S, -hw, hw)
-    ps_wall(S, -hw, -1, tN)
+    ps_wall(S, -hw, -1, tN, rail=False)                         # the stair's head opens the NE wall
     ps_wall(S, hw, 1, tS)
     for i, (u0, u1, dp) in enumerate(bas):
         f = tS - dp
@@ -6791,14 +6926,25 @@ def ps_sec_w1(S):
     ps_arrow(S, [(bas[0][0] - 0.3, f_near + 0.45), (hw + PS_WALL_T, f_near + 0.45), (hw - 0.1, f_near + 0.45),
                  (hw - 1.4, b + 0.25)], COL["river_dark"], 0.3, dash=[0.8, 0.4])
     S.lab(u"summer release to the strip", hw - 0.7, f_near + 0.6, True)
-    # planting and people, each where it happens
-    ps_plant(S, "plane", -21.5, tN, seed=1)
-    ps_plant(S, "chaste", 20.2, tS, seed=2)
-    for i, u in enumerate((-4.6, -3.7, 3.6, 4.5)):
-        ps_plant(S, "soft_rush", u, b, label=(i == 0), seed=i)
-    _p13_fig(S, "watch", -hw - 1.3, tN, facing=1)               # at the railing, looking into the channel
-    _p13_fig(S, "walk", 18.6, tS, facing=1)                     # along the basins
-    _p13_fig(S, "wade", 0.5, b - PS_STRIP[1], facing=-1)        # in the summer strip
+    # the way down: a stone stair from the NE wall top into the bed (it floods), its rail on the open side
+    n = int(math.ceil((tN - b) / PS_STAIR[1]))
+    rise, tread = (tN - b) / n, PS_STAIR[0]
+    u_bot = -hw + n * tread
+    sh, _ = sf_stairs(S.X(u_bot), S.Y(b), n, rise, tread, S.k, side=-1, material="stone", rail=True)
+    S.put(sh)
+    S.lab(u"stair down into the bed %d × %d cm" % (n, round(rise * 100)), -hw + n * tread * 0.5,
+          b + (tN - b) * 0.5 + 1.2, True)
+    # planting: shade trees at the street side, a mixed bed edge, shrubs between the SW walk and the basins
+    ps_scatter(S, S.u0 + 0.3, -hw - 6.4, lambda u: tN, 0.48, 0.6, {"plane": 1.0, "chaste": 0.8}, 12)
+    ps_scatter(S, -4.4, -2.0, lambda u: b, 0.0, 0.16, ["soft_rush", "loosestrife", "rush"], 13, density=0.9)
+    ps_scatter(S, hw + 4.2, bas[0][0] - 0.6, lambda u: tS, 0.5, 0.92, ["chaste", "rosemary", "lavender"], 14)
+    # people, each where it happens: on the edge walk and bike lane, down the stair, in the bed, along the basins
+    ps_people(S, "walkway", -hw - 0.6, -hw - 3.6, lambda u: tN, 15)
+    ps_people(S, "bike_lane", -hw - 4.0, -hw - 6.0, lambda u: tN, 16)
+    ps_fig(S, "walk", -hw + 0.45 * n * tread, ps_stair_z(u_bot, b, n, rise, tread, -1)(-hw + 0.45 * n * tread),
+           facing=1)
+    ps_people(S, "bed", u_bot + 0.4, -4.6, lambda u: b, 17, water=avg)
+    ps_people(S, "walkway", hw + 0.8, hw + 3.8, lambda u: tS, 18)
 
 
 # ---------------------------------------------------------------- W2 K4 walking hub
@@ -6812,9 +6958,14 @@ def ps_sec_w2(S):
     steps, blocks = ps_steps(u_st, plat, n, rise, tread, 1)
     u_sq = u_st + n * tread                                     # the hub square from here, at the wall top level
     S.prof = [(S.u0, tN), (-hw, tN), (-hw, b), (hw, b), (hw, plat), (u_st, plat)] + steps + [(S.u1, tS)]
+    S.lab_u = -hw + 0.6                                         # people wade on the SW side of the strip
+    avg = level_avg_flow(c)
+    ps_back(S, 21)
     ps_flood_wash(S)
     ps_land(S, [(S.u0, tN), (-hw, tN)])
     ps_land(S, [(hw, plat), (u_st, plat)] + steps + [(S.u1, tS)])
+    ps_lane(S, -hw - 0.6, -hw - 4.1, tN, "walk", u"edge walk · looks across to the steps")
+    ps_lane(S, -hw - 4.5, -hw - 6.5, tN, "bike", u"bike lane · street side, clear of the walk")
     ps_bed(S, -hw, hw)
     ps_wall(S, -hw, -1, tN)
     ps_block_ring(S, hw, u_st, plat - 0.25, plat, "concrete")   # sub-hub floor slab
@@ -6827,24 +6978,29 @@ def ps_sec_w2(S):
     S.lab(u"sub-hub floor %s" % ps_lv(plat), (hw + u_st) / 2.0, plat, True)
     S.lab(u"seating steps %d × %d cm" % (n, round(rise * 100)), u_st + 0.5 * n * tread, plat + 0.5 * n * rise + 0.6,
           True)
-    S.lab(u"hub square %s" % ps_lv(tS), u_sq + 3.0, tS + 0.1, True)
+    S.lab(u"hub square %s · dry above Q500, plane shade" % ps_lv(tS), u_sq + 3.0, tS + 0.1, True)
     xb = S.X(S.u1)                                              # break line: the land goes on to the cut end
     yb, yt = S.Y(S.z0), S.Y(tS)
     S.pg.line([(xb, yb - 0.6), (xb, yb + 0.35 * (yt - yb)), (xb - 0.7, yb + 0.45 * (yt - yb)),
                (xb + 0.7, yb + 0.6 * (yt - yb)), (xb, yb + 0.7 * (yt - yb)), (xb, yt + 0.8)], COL["ink"], 0.2)
+    # planting: the square's planes (Ottoman squares with plane trees, ICOMOS 2014), a mixed tree band behind the NE
+    # walk, rushes at the bed's SW edge
     ps_plant(S, "plane", u_sq + 7.0, tS, seed=3)
-    ps_plant(S, "plane", u_sq + 21.0, tS, label=False, seed=4)
-    for i, u in enumerate((hw + 0.4, hw + 1.0)):
-        ps_plant(S, "soft_rush", u, plat, label=(i == 0), seed=5 + i)
-    _p13_fig(S, "watch", -hw - 1.3, tN, facing=1)
-    _p13_fig(S, "bike", -22.0, tN, facing=1)
-    _p13_fig(S, "touch", hw + 1.8, plat, facing=-1)            # at the strip's edge
-    for i in (3, 7):                                           # sitting on the steps, facing the stream
-        ua, ub, _, z1 = blocks[i]
-        _p13_fig(S, "sit", (ua + ub) / 2.0, z1, facing=-1)
-    _p13_fig(S, "stand", u_sq + 1.0, tS, facing=-1)            # at the top of the steps, the viewing edge
-    _p13_fig(S, "walk", u_sq + 15.0, tS, facing=1)
-    _p13_fig(S, "sit", u_sq + 9.0, tS, facing=1)               # in the plane's shade
+    ps_plant(S, "plane", u_sq + 19.5, tS, label=False, seed=4)
+    ps_scatter(S, S.u0 + 0.3, -hw - 7.0, lambda u: tN, 0.48, 0.88,
+               {"plane": 1.0, "ash": 0.5, "chaste": 0.9, "rosemary": 0.7}, 22)
+    ps_scatter(S, hw - 2.2, hw - 0.3, lambda u: b, 0.0, 0.14, ["soft_rush", "loosestrife"], 23, density=0.9)
+    # people: the NE walk and bike lane, wading in the bed, at the water on the sub-hub floor, sitting on the steps,
+    # watching from the top of the steps, walking in the square's shade
+    ps_people(S, "walkway", -hw - 0.6, -hw - 4.1, lambda u: tN, 24)
+    ps_people(S, "bike_lane", -hw - 4.5, -hw - 6.5, lambda u: tN, 25)
+    ps_people(S, "bed", 3.6, hw - 2.4, lambda u: b, 26, water=avg)
+    ps_fig(S, "touch", hw + 0.9, plat, facing=-1)
+    ps_fig(S, "child_play", hw + 2.6, plat, facing=-1)
+    ps_people(S, "sun_steps", u_st + 0.2, u_sq - 0.2, ps_stair_z(u_st, plat, n, rise, tread, 1), 27)
+    ps_fig(S, "watch", u_sq + 0.8, tS, facing=-1)
+    S.put(fig_group(S.X(u_sq + 3.0), S.Y(tS), S.k, n=3, seed=28, style=S.style))
+    ps_people(S, "walkway", u_sq + 9.5, S.u1 - 1.0, lambda u: tS, 29)
 
 
 # ---------------------------------------------------------------- W3 K5 Demeter's Garden
@@ -6865,6 +7021,9 @@ def ps_sec_w3(S):
     steps, _ = ps_steps(-hw, b, n, rise, tread, -1)
     S.prof = list(reversed([(-hw, b)] + steps)) + [(hw, b), (s0, shelf), (s1, shelf), (s1, gf), (S.u1, gf)]
     S.prof = [(S.u0, tN)] + S.prof
+    avg = level_avg_flow(c)
+    S.lab_u = -1.9                                              # level labels over the water, clear of the SW slope
+    ps_back(S, 31)
     ps_flood_wash(S)
     # NE: today's loose earth bank (dashed) and the steps seated into it (section_parts earth bank with steps)
     sh, _ = sct_bank("earth", S.X(-hw), S.Y(tN), S.Y(b), -1, k, run_m=run, reach_m=crest - S.u0, depth_m=PS_DEPTH,
@@ -6882,25 +7041,25 @@ def ps_sec_w3(S):
     S.lab(u"stream commons %s" % ps_lv(shelf), (s0 + s1) / 2.0, shelf, True)
     S.lab(u"Demeter's Garden %s" % ps_lv(gf), s1 + 1.5, gf + 0.3, True)
     gy = lambda u: shelf + (b - shelf) * max(0.0, min(1.0, (s0 - u) / (s0 - hw)))
-    for i, u in enumerate((s0 - 3.2, s0 - 2.4, s0 - 1.6, s0 - 0.8)):
-        ps_plant(S, "loosestrife" if i % 2 else "soft_rush", u, gy(u), label=(i < 2), seed=10 + i)
-    for i in range(3):
-        u = s1 + 0.9 + i * 0.6
-        ps_plant(S, "lavender", u, gf, label=(i == 0), seed=20 + i)
+    S.lab(u"wet edge · floods at Q100, holds the bank", (hw + s0) / 2.0, gy((hw + s0) / 2.0) + 0.4, True)
+    # planting: a mixed wet edge on the slope up to the commons (wet to drier), herbs along the garden wall,
+    # tomato rows, olive and chaste tree, the café's plane a step behind the cut
+    ps_scatter(S, hw + 2.4, s0 - 0.3, gy, 0.0, 0.42, ["soft_rush", "loosestrife", "rush", "willow", "tamarisk"], 33)
+    ps_scatter(S, s1 + 0.6, s1 + 2.4, lambda u: gf, 0.84, 1.0, ["lavender", "rosemary"], 34)
     S.put(pla_crop_rows("tomato", S.X(s1 + 2.6), S.X(s1 + 7.0), S.Y(gf), k, spacing=1.0, h_m=1.0, crown_m=0.8))
     S.lab(u"Tomato (Domates)", s1 + 4.8, gf + 1.0)
     ps_plant(S, "plane", s1 + 14.5, gf, beyond=True, seed=30)  # café shade, a step behind the cut
     ps_plant(S, "olive", s1 + 10.0, gf, seed=31)
     ps_plant(S, "chaste", s1 + 8.0, gf, seed=32)
     S.lab(u"café beds", s1 + 13.0, gf + 2.1, True)
-    _p13_fig(S, "watch", crest - 1.2, tN, facing=1)
-    i = n // 2
-    _p13_fig(S, "walk", -hw - tread * (i + 0.5), b + rise * (i + 1), facing=1)
-    _p13_fig(S, "wade", -0.4, b - PS_STRIP[1], height=1.15, facing=1)
-    _p13_fig(S, "sit", s0 + 5.0, shelf, facing=-1)
-    _p13_fig(S, "walk", s0 + 10.5, shelf, facing=1)
-    _p13_fig(S, "touch", s1 + 5.2, gf, facing=-1)             # picking tomatoes
-    _p13_fig(S, "sit", s1 + 13.6, gf, facing=-1)              # café under the plane
+    # people: watching from the crest, sitting and walking on the bank steps, wading in the bed, on the commons,
+    # picking tomatoes, at the café under the plane
+    ps_fig(S, "watch", crest + 0.5, tN, facing=1)
+    ps_people(S, "sun_steps", crest + 1.6, -hw - 0.4, ps_stair_z(-hw, b, n, rise, tread, -1), 35)
+    ps_people(S, "bed", -hw + 0.4, -2.6, lambda u: b, 36, water=avg)
+    ps_people(S, "walkway", s0 + 1.0, s1 - 1.0, lambda u: shelf, 37)
+    ps_fig(S, "touch", s1 + 5.2, gf, facing=-1)                # picking tomatoes
+    ps_fig(S, "sit_step", s1 + 13.6, gf, facing=-1)            # café under the plane
 
 
 # ---------------------------------------------------------------- W4 downstream reach
@@ -6909,47 +7068,76 @@ def ps_sec_w4(S):
     tN, aN = level(c, "top", "NE"), level(c, "angle_deg", "NE")
     tS, aS = level(c, "top", "SW"), level(c, "angle_deg", "SW")
     q1, q5 = level(c, "q100"), level(c, "q500")
+    avg = level_avg_flow(c)
     gN, gS = math.tan(math.radians(aN)), math.tan(math.radians(aS))
     cN, cS = -hw - (tN - b) / gN, hw + (tS - b) / gS            # crests (u)
     S.prof = [(S.u0, tN), (cN, tN), (-hw, b), (hw, b), (cS, tS), (S.u1, tS)]
+    S.lab_u = 1.9
+    ps_back(S, 41)
     ps_flood_wash(S)
     zN = lambda u: b + (-hw - u) * gN                           # the NE slope's level at u
+    zS = lambda u: b + (u - hw) * gS
     sh, _ = sct_bank("embankment", S.X(-hw), S.Y(tN), S.Y(b), -1, k, angle_deg=aN, reach_m=cN - S.u0,
                      depth_m=PS_DEPTH)
     S.put(sh)
     sh, _ = sct_bank("embankment", S.X(hw), S.Y(tS), S.Y(b), 1, k, angle_deg=aS, reach_m=S.u1 - cS,
                      depth_m=PS_DEPTH)
     S.put(sh)
-    ps_bed(S, -hw, hw)
-    # NE: planting in bands by flood level: wet edge under Q100, the boardwalk in the Q100 band, trees above Q500
+    # NE crest: the tree corridor, the bike lane, the crest walk (G10)
+    ps_lane(S, cN - 0.3, cN - 2.8, tN, "walk", u"crest walk")
+    ps_lane(S, cN - 3.2, cN - 5.2, tN, "bike", u"bike lane · along the crest, clear of the walk")
+    # the ramp down the embankment on an earth berm to a viewing terrace above Q500, steps to the boardwalk
+    tT = math.ceil((q5 + PS_FREEBOARD) * 20.0) / 20.0           # terrace floor: dry above Q500
+    run = (tN - tT) / PS_RAMP
+    uT = cN + run                                               # the ramp's foot = the terrace's landward edge
+    uW = uT + PS_TERRACE_W                                      # the terrace's water edge
     dk = round((q1 - 0.40) * 20.0) / 20.0                       # boardwalk deck: floods at Q100 (design rule)
-    ub = -hw - (dk - b) / gN                                    # where the deck meets the slope
-    ua = ub + 6.0
+    ns = int(math.ceil((tT - dk) / PS_STAIR[1]))
+    rs = (tT - dk) / ns
+    ub = uW + ns * PS_STAIR[0]                                  # the boardwalk's landward edge
+    ua = -hw + 1.6                                              # ... its end, over the bed's edge
+    ps_bed(S, -hw, hw)
+    ring = [(cN, tN), (uT, tT - 0.20), (uT, zN(uT))]            # the berm under the ramp
+    S.put(sct_hatch_fill(S.P(ring), "earth", k, SCT["cut"], 0.25))
+    sh, _, _ = sf_ramp(S.X(uT), S.Y(tT), run, tN - tT, k, side=-1, material="concrete", rail=True)
+    S.put(sh)
+    S.lab(u"ramp · step-free from the crest", (cN + uT) / 2.0, (tN + tT) / 2.0 + PS_RAIL_H, True)
+    S.put(sf_terrace(S.X(uT), S.Y(tT), PS_TERRACE_W, k, side=1, material="timber", rail=False))
+    u = uT + 0.4
+    while u < uW:                                               # the terrace's piles down into the bank
+        S.pg.line(S.P([(u, tT - 0.25), (u, zN(u) - 0.6)]), PS_TIMBER, 0.35)
+        u += 1.8
+    S.lab(u"viewing terrace %s · above Q500" % ps_lv(tT), (uT + uW) / 2.0, tT + 1.8, True)
+    sh, _ = sf_stairs(S.X(ub), S.Y(dk), ns, rs, PS_STAIR[0], k, side=-1, material="concrete", rail=True)
+    S.put(sh)
     S.pg.poly([S.P([(ua, dk - 0.20), (ua, dk), (ub, dk), (ub, dk - 0.20)])], fill=PS_TIMBER, stroke=SCT["cut"],
               lw=0.25)
-    u = ua - 0.3
-    while u > ub + 0.5:                                         # piles down into the bank
-        S.pg.line(S.P([(u, dk - 0.20), (u, zN(u) - 0.6)]), PS_TIMBER, 0.35)
-        u -= 2.0
-    ps_rail(S, ua - 0.1, dk)
-    S.lab(u"boardwalk %s" % ps_lv(dk), (ua + ub) / 2.0, dk + PS_RAIL_H, True)
-    u_q1 = -hw - (q1 - b) / gN
-    for i, u in enumerate([-hw - 0.6 - 0.9 * j for j in range(5)]):
-        ps_plant(S, "soft_rush" if i % 2 else "loosestrife", u, zN(u), label=(i < 2), seed=40 + i)
-    S.lab(u"floodable planting", (-hw + u_q1) / 2.0 - 1.0, zN(-hw - 2.0) + 1.6, True)
-    u_q5 = -hw - (q5 - b) / gN
-    ps_plant(S, "tamarisk", (u_q5 + ub) / 2.0, zN((u_q5 + ub) / 2.0), seed=46)
-    ps_plant(S, "ash", u_q5 - 4.0, zN(u_q5 - 4.0), seed=47)
-    ps_plant(S, "plane", cN + 1.5, zN(cN + 1.5), seed=48)
-    # SW: grass slope, rush at the toe, the field behind the crest takes the surplus water
-    for i, u in enumerate((hw + 0.6, hw + 1.5)):
-        ps_plant(S, "soft_rush", u, b + (u - hw) * gS, label=False, seed=50 + i)
+    u = ub + 0.3
+    while u < ua - 0.3:                                         # piles down into the bank and the bed
+        S.pg.line(S.P([(u, dk - 0.20), (u, min(zN(u), b) - 0.6)]), PS_TIMBER, 0.35)
+        u += 2.0
+    ps_rail(S, ua + 0.1, dk)
+    S.lab(u"boardwalk %s · floods at Q100" % ps_lv(dk), (ua + ub) / 2.0, dk + PS_RAIL_H, True)
+    # planting: the crest corridor (mixed trees and shrubs), a wet edge under the terrace and boardwalk, the SW slope
+    # wet to dry; the field behind the SW crest takes the surplus water
+    ps_scatter(S, S.u0 + 0.3, cN - 5.6, lambda u: tN, 0.48, 0.9,
+               {"plane": 1.0, "ash": 0.5, "chaste": 1.0, "rosemary": 0.8, "olive": 0.6}, 42)
+    S.lab(u"ecological corridor · trees and shrubs along the crest", (S.u0 + cN - 5.6) / 2.0, tN + 0.5, True)
+    ps_scatter(S, uT + 0.3, -hw - 0.2, zN, 0.0, 0.16, ["soft_rush", "loosestrife", "rush"], 43)
+    ps_scatter(S, hw + 0.3, cS - 0.6, zS, 0.0, 0.5, ["soft_rush", "loosestrife", "willow", "tamarisk", "chaste"], 44)
     S.put(pla_crop_rows("cotton", S.X(cS + 1.0), S.X(S.u1 - 0.4), S.Y(tS), k, spacing=0.9, h_m=1.0, crown_m=0.6))
     S.lab(u"Cotton (Pamuk) · surplus water", (cS + S.u1) / 2.0, tS + 1.0, True)
-    _p13_fig(S, "bike", S.u0 + 1.4, tN, facing=1)
-    _p13_fig(S, "walk", (ua + ub) / 2.0 + 1.0, dk, facing=1)
-    _p13_fig(S, "wade", 0.3, b - PS_STRIP[1], height=1.15, facing=-1)
-    _p13_fig(S, "stand", S.u1 - 1.2, tS, facing=-1)
+    # people: cycling and walking on the crest, down the ramp, gathered on the terrace, on the boardwalk, in the bed
+    ps_people(S, "walkway", cN - 0.3, cN - 2.8, lambda u: tN, 45)
+    ps_people(S, "bike_lane", cN - 3.2, cN - 5.2, lambda u: tN, 46)
+    ps_people(S, "walkway", cN + 1.0, uT - 1.0, lambda u: tN - (u - cN) * PS_RAMP, 47)
+    ps_fig(S, "sit_step", uT + 0.5, tT, facing=1)
+    S.put(fig_group(S.X(uT + 1.9), S.Y(tT), k, n=3, seed=48, style=S.style))
+    ps_fig(S, "watch", uW - 0.5, tT, facing=1)
+    ps_fig(S, "walk", ub - 0.8, dk, facing=1)
+    ps_fig(S, "watch", ua + 0.7, dk, facing=1)
+    ps_people(S, "bed", -hw + 0.8, -2.0, lambda u: b, 49, water=avg)
+    ps_fig(S, "stand", S.u1 - 1.2, tS, facing=-1)
 
 
 PS_DRAW = {"W1": ps_sec_w1, "W2": ps_sec_w2, "W3": ps_sec_w3, "W4": ps_sec_w4}
@@ -6987,7 +7175,8 @@ def ps_pack(items, xmin, xmax, rows=3, gap=1.2):
 
 
 def ps_scale_bar(pg, x, y, k):
-    """0-5-10-20 m at k mm per m from (x, y), its numbers over it, the round scale after it"""
+    """0-5-10-20 m at k mm per m from (x, y), its numbers over it, the round scale after it: the A0 SHEET's scale
+    (PS_SCALE x BK_S, standard), which the booklet re-sets to the scale it prints (1:500, D6)"""
     h, col = 0.9, COL["ink"]
     marks = (0, 5, 10, 20)
     for i, (a, b_) in enumerate(zip(marks[:-1], marks[1:])):
@@ -6995,14 +7184,15 @@ def ps_scale_bar(pg, x, y, k):
                 lw=0.15)
     for m_ in marks:
         pg.text(str(m_), x + m_ * k, y + h + 0.6, PS_LBL, col, align="C")
-    pg.text(u"m · 1:%d" % PS_SCALE, x + 20 * k + text_w(u"20", PS_LBL) / 2.0 + 1.2, y + h + 0.6, PS_LBL, col)
+    pg.text(u"m · 1:%d" % sf_scale_ok(round(PS_SCALE * BK_S)), x + 20 * k + text_w(u"20", PS_LBL) / 2.0 + 1.2, y + h + 0.6, PS_LBL, col)
 
 
 def ps_finish(S, log):
     """flood levels, the labels over the drawing, the bank / bed rows under it, the scale bar"""
     pg = S.pg
-    ps_flood_lines(S)
-    top = items_bbox(pg.items)[3]
+    for m_ in sf_assert_g6(S.k, trees=S.trees, strict=False):  # G6: people 1.75 m, trees in their sourced range
+        log.append(u"G6 CHECK section %s (style %s): %s" % (S.cid, S.style, m_))
+    top = ps_bbox(pg.items)[3]
     seen, labs = set(), []
     for t, u, z, prop in S.labels:
         if t not in seen:
@@ -7043,10 +7233,10 @@ def ps_finish(S, log):
     ps_scale_bar(pg, 0.0, -1.6 - PS_LBL * CAP - last * PS_ROW - 4.8, S.k)
 
 
-def ps_section(cid, log):
-    """one cut as a Page in print mm (see PsSec)"""
+def ps_section(cid, log, style="b"):
+    """one cut as a Page in print mm (see PsSec), in style b (vector) or a (cutouts, D1)"""
     u0, u1, d = ps_extent(cid)
-    S = PsSec(cid, u0, u1, d)
+    S = PsSec(cid, u0, u1, d, style)
     PS_DRAW[cid](S)
     ps_finish(S, log)
     return S.pg
@@ -7054,6 +7244,7 @@ def ps_section(cid, log):
 
 # ---------------------------------------------------------------- the page block: key map strip + 2 x 2 sections
 PS_GAP = 4.0                           # print mm between the panels
+PS_LEG_H = 9.0                         # print mm: the legend band at the block's bottom (two rows)
 
 
 def ps_badge(pg, x, y, n, r=2.0):
@@ -7093,14 +7284,46 @@ def ps_note(cid):
         ps_lv(q5), level(cid, "top", "NE") - q5)
 
 
-def ps_block(log):
-    """page 13: the key map strip across the top (it serves all four sections), the four sections under it in
-    reading order, all at 1:500, in print mm (0, 0)-(BK_W, BK_H). Returns (Page, {sheet key: panel box})."""
+def ps_legend(pg, x0, x1, y1):
+    """G1: the samples of everything the sections draw, in rows from the top y1 across x0-x1 (print mm), next to the
+    drawings inside the block. Returns the band's bottom y."""
+    P = _wat_pal()
+    rows = [("wash", u"reach of the 500-year flood (Q500)"), ("water", u"water at the average yearly flow"),
+            ("q100", u"Q100 flood level"), ("q500", u"Q500 flood level"),
+            (SCT["stone"], u"stone: DSİ walls, steps, garden wall"), (SCT["concrete"], u"concrete: stairs, ramp, basins"),
+            (SCT["earth"], u"earth"), (SCT["gravel"], u"gravel bed"), (PS_TIMBER, u"timber: terrace, boardwalk"),
+            (SF_LANE["walk"], u"walk paving"), (SF_LANE["bike"], u"bike lane"),
+            ("accent", u"proposal (labels)")]
+    sw, gap, x, y = 5.0, 4.0, x0, y1 - PS_ROW
+    for kind, lab in rows:
+        w = sw + 1.2 + text_w(lab, PS_LBL)
+        if x + w > x1 and x > x0:
+            x, y = x0, y - PS_ROW
+        cy = y + PS_LBL * CAP / 2.0
+        if kind in ("q100", "q500"):
+            pg.line([(x, cy), (x + sw, cy)], P[kind], 0.3, dash=[1.2, 0.6] if kind == "q100" else [0.4, 0.5])
+        else:
+            fill = {"wash": PS_FLOOD, "water": P["sec"], "accent": COL["accent"]}.get(kind, kind)
+            pg.poly([rect(x, cy - 1.0, x + sw, cy + 1.0)], fill=fill, stroke=COL["faint"], lw=0.1,
+                    alpha=(PS_FLOOD_A if kind == "wash" else None))
+            if kind == "water":
+                pg.line([(x, cy + 1.0), (x + sw, cy + 1.0)], SEC["hatch"], 0.3)
+        pg.text(lab, x + sw + 1.2, y, PS_LBL, COL["ink"])
+        x += w + gap
+    return y - 0.25 * PS_LBL
+
+
+def ps_block(log, style="b"):
+    """page 12 (p13 before): the key map strip across the top (it serves all four sections), the four sections under
+    it in reading order, all at 1:500, the legend band at the bottom, in print mm (0, 0)-(BK_W, BK_H), in style b or
+    a (D1). Returns (Page, {sheet key: panel box})."""
     pg = Page(BK_W, BK_H)
     yk = BK_H - PS_KEY_H
     ps_key_strip(pg, (0.0, yk, BK_W, BK_H), log)
+    yl = PS_LEG_H
+    ps_legend(pg, 0.0, BK_W, yl)
     cw = (BK_W - PS_GAP) / 2.0
-    ch = (yk - 2.0 * PS_GAP) / 2.0
+    ch = (yk - yl - 2.0 * PS_GAP) / 2.0
     boxes = {}
     for i, (key, cid, n, name, take) in enumerate(PS_CUTS):
         x0 = (i % 2) * (cw + PS_GAP)
@@ -7108,15 +7331,20 @@ def ps_block(log):
         box = (x0, y1 - ch, x0 + cw, y1)
         boxes[key] = box
         inner = ps_cell(pg, box, n, cid, name, take, ps_note(cid))
-        sec = ps_section(cid, log)
-        b = items_bbox(sec.items)
+        sec = ps_section(cid, log, style)
+        b = ps_bbox(sec.items)
         if b[2] - b[0] > inner[2] - inner[0] + 0.01 or b[3] - b[1] > inner[3] - inner[1] + 0.01:
             log.append(u"NOTE section %s: %.0f x %.0f mm at 1:%d, room %.0f x %.0f mm (kept to scale)" % (
                 cid, b[2] - b[0], b[3] - b[1], PS_SCALE, inner[2] - inner[0], inner[3] - inner[1]))
+        else:                                                  # D6: 1:500 is the largest standard scale that fits
+            den = sf_scale_pick((b[2] - b[0]) / PS_K, inner[2] - inner[0], min_den=PS_SCALE)
+            if den != PS_SCALE:
+                log.append(u"NOTE section %s: fits only at 1:%d" % (cid, den))
         dx = (inner[0] + inner[2]) / 2.0 - (b[0] + b[2]) / 2.0
         dy = inner[1] - b[1]
-        pg.items += xform(sec.items, 1.0, dx, dy)
-    log.append(u"sections (v10): W1-W4 at 1:%d on the booklet page, looking downstream" % PS_SCALE)
+        pg.items += ps_xform(sec.items, 1.0, dx, dy)
+    log.append(u"sections (v10, revision 30 Oct style %s): W1-W4 at 1:%d on the booklet page, looking downstream"
+               % (style, sf_scale_ok(PS_SCALE)))
     return pg, boxes
 
 # ================================================================ v10 key map strip: the four cuts of this page (WO-T3b-3)
@@ -7129,7 +7357,7 @@ def ps_block(log):
 # "selinos", survey m) orients the bridge bars and is the stream when no basemap.json exists yet.
 PS_KEY_BRIDGES = [("k4", u"K4 köprüsü", (29846.40, 32277.71)),
                   ("k5", u"Üç Kemer Köprüsü", (30293.63, 31792.25))]
-PS_KEY_H = 50.0                       # print mm: the strip's height on the booklet page
+PS_KEY_H = 46.0                       # print mm: the strip's height on the booklet page (revision 30 Oct: 46)
 PS_KEY_MARGIN = (60.0, 46.0)          # m around the four cuts in the turned frame (along, across)
 PS_KEY_SELINOS = [
     (29642.6, 32739.4), (29633.1, 32660.6), (29643.3, 32638.1), (29645.7, 32633.8), (29652.9, 32627.1),
@@ -7337,7 +7565,11 @@ def ps_key_strip(pg, area, log):
         pg.text(s, xy[0], xy[1] - size * CAP / 2.0, size, hx, bold=bold, align="C")
         taken.append((xy[0] - w / 2.0, xy[1] - size * 0.6, xy[0] + w / 2.0, xy[1] + size * 0.6))
     bx = (min(p[0] for p in frame), min(p[1] for p in frame), max(p[0] for p in frame), max(p[1] for p in frame))
-    items = basemap_items("topographic", box=bx)
+    try:                                                       # revision 30 Oct (M4): the key map base with the study
+        items = keymap_items((), scale_den=1000.0 / km, box=bx, log=log)["items"]   # area; the cuts drawn below
+    except Exception as ex:
+        log.append(u"NOTE key map: base not drawn (%s)" % type(ex).__name__)
+        items = []
     if items:
         basemap_draw(items, T, fill_fn, line_fn)
     else:                                                      # no basemap.json yet: the stream line only
@@ -7401,7 +7633,7 @@ BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becom
               # v9 (MIRAQUA 28 Oct, F5): the public page behind SRC_KEY plane (v10: the hamam is no longer drawn)
               ("icomos_2014", u"ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered Cultural Landscape",
                u"https://whc.unesco.org/document/152724")]
-# v10: ps_all = page 13 (key map strip + the four sections at 1:500, scale_den set so the booklet prints "1:500");
+# v10: ps_all = page 12 (key map strip + the four sections at 1:500, scale_den set so the booklet prints "1:500");
 # the single crops are the four panels (unused by the booklet today, kept for other pages)
 BK_CROPS = [("ps_all", "all", u"Proposal sections W1-W4, upstream to downstream, each looking downstream"),
             ("ps_upstream", "up", u"W1 · Upstream entry, looking downstream"),
@@ -7423,23 +7655,31 @@ def booklet_export(log):
     for k, t, u in BK_SOURCES:
         bk.source(k, t, u)
     bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())]}   # v7: the booklet's sources page
-    # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour)
+    # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour), for
+    # the single crops; ps_all carries its own legend band (revision 30 Oct, G1), so the booklet adds none under it
+    P = _wat_pal()
     legend = [dict(kind="fill", colour=_ps_mix(PS_FLOOD, "FFFFFF", PS_FLOOD_A), label=u"reach of the 500-year flood (Q500)"),
-              dict(kind="dash", colour=COL["river_mid"], label=u"Q500 (dashed) and Q100 (dotted) water levels"),
-              dict(kind="fill", colour=SEC["channel"], label=u"summer strip, basin water"),
+              dict(kind="fill", colour=P["sec"], label=u"water at the average yearly flow"),
+              dict(kind="dash", colour=P["q100"], label=u"Q100 flood level"),
+              dict(kind="dash", colour=P["q500"], label=u"Q500 flood level"),
               dict(kind="fill", colour=SCT["stone"], label=u"stone: DSİ walls, steps, garden wall"),
-              dict(kind="fill", colour=SCT["concrete"], label=u"concrete: basins, floors"),
+              dict(kind="fill", colour=SCT["concrete"], label=u"concrete: stairs, ramp, basins"),
               dict(kind="fill", colour=SCT["earth"], label=u"earth"),
               dict(kind="fill", colour=SCT["gravel"], label=u"gravel bed"),
-              dict(kind="fill", colour=PS_TIMBER, label=u"timber boardwalk"),
+              dict(kind="fill", colour=PS_TIMBER, label=u"timber: terrace, boardwalk"),
+              dict(kind="fill", colour=SF_LANE["walk"], label=u"walk paving"),
+              dict(kind="fill", colour=SF_LANE["bike"], label=u"bike lane"),
               dict(kind="fill", colour=COL["accent"], label=u"proposal (labels), cut lines on the key map")]
-    for bid, key, cap in BK_CROPS:
-        if key not in SHEET_BOXES:
-            log.append(u"booklet %s: section %s not on the sheet" % (bid, key))
-            continue
-        x0, y0, x1, y1 = SHEET_BOXES[key]
-        bk.crop(bid, OUT_NAME.format("A"), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
-                scale_den=PS_SCALE * BK_S, legend=legend, drop=BK_DROP)
+    for style, part in STYLES:                        # revision 30 Oct (D1): ids _a / _b, the plain id = style b
+        boxes = SHEET_BOXES.get(style, {})
+        for bid, key, cap in BK_CROPS:
+            if key not in boxes:
+                log.append(u"booklet %s_%s: section %s not on the sheet" % (bid, style, key))
+                continue
+            x0, y0, x1, y1 = boxes[key]
+            for b_id in ((bid + "_" + style, bid) if style == "b" else (bid + "_" + style,)):
+                bk.crop(b_id, OUT_NAME.format(part), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
+                        scale_den=PS_SCALE * BK_S, legend=([] if key == "all" else legend), drop=BK_DROP)
     return bk.save()
 
 
@@ -7448,33 +7688,36 @@ def booklet_export(log):
 # on ONE A3 page at the factor BK_S. v10 (WO-T3b-3): the block is drawn in booklet print mm (parts/70_sections.py:
 # the key map strip across the top, the four sections W1-W4 at 1:500 in a 2 x 2 under it) and placed here at 1 / BK_S,
 # so ps_all prints every section at exactly 1:500.
-SHEET_BOXES = {}                                      # key -> crop box (x0, y0, x1, y1), mm, y up; set by build_sheet
-# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H)
-BK_W, BK_H = 392.0, 238.0
-GRID_W = BOARD_W - 2 * M                              # the block on the A0 sheet, mm
-GRID_H = GRID_W * BK_H / BK_W                         # same shape as the booklet area: it fills the page, never stretched
-BK_S = BK_W / GRID_W                                  # booklet print factor of ps_all (0.338)
+SHEET_BOXES = {}                                      # style -> {key -> crop box (x0, y0, x1, y1), mm, y up}; build_sheet
+# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H); revision
+# 30 Oct: a little under it (390 x 234), so 1:500 fits whatever the grid takes, the legend inside the block
+BK_W, BK_H = 390.0, 234.0
+BK_S = 0.4                                            # booklet print factor of ps_all: the sheet at 1:200 prints 1:500
+GRID_W = BK_W / BK_S                                  # the block on the A0 sheet, mm (975 x 585)
+GRID_H = BK_H / BK_S
 
 
-def build_sheet(opt, log):
-    """v10: the page-13 block (key map strip + the four sections at 1:500) on one A0 landscape sheet."""
+def build_sheet(opt, log, style="b"):
+    """v10: the page-12 block (key map strip + the four sections at 1:500 on the booklet, 1:200 here) on one A0
+    landscape sheet, in style b (vector) or a (cutouts, D1)."""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     X0, X1 = M, BOARD_W - M
     top = BOARD_H - M
     pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · the block below is booklet page 13",
+    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · 1:200 on this sheet",
             X0, top - 18.0, 3.6, MP["discharge"][2], bold=True)
     y1 = top - 22.0
     pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
     gy1 = y1 - 4.0
     gy0 = gy1 - GRID_H
-    blk, boxes = ps_block(log)
+    blk, boxes = ps_block(log, style)
     s = 1.0 / BK_S
-    pg.items += xform(blk.items, s, X0, gy0)
+    pg.items += ps_xform(blk.items, s, X0, gy0)
+    sb = SHEET_BOXES.setdefault(style, {})
     for key, b in boxes.items():                      # single crops: one section panel each
-        SHEET_BOXES[key] = (X0 + s * b[0], gy0 + s * b[1], X0 + s * b[2], gy0 + s * b[3])
-    SHEET_BOXES["all"] = (X0, gy0, X0 + GRID_W, gy1)  # ps_all: the whole block = page 13
+        sb[key] = (X0 + s * b[0], gy0 + s * b[1], X0 + s * b[2], gy0 + s * b[3])
+    sb["all"] = (X0, gy0, X0 + GRID_W, gy1)           # ps_all: the whole block = page 12
     log.append(u"sources: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())))
     return pg
 
@@ -7487,15 +7730,19 @@ def main():
     pal = load_palette([DATA_DIR], log)
     lines = []
     for opt in OPTIONS:
-        t1 = time.time()
-        pg = build_sheet(opt, log)
-        path = os.path.join(OUT_DIR, OUT_NAME.format(opt))
-        try:
-            write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
-        except (IOError, OSError):
-            path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
-            write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
-        lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"), time.time() - t1))
+        for style, part in STYLES:                    # revision 30 Oct (D1): one sheet per style, same geometry
+            t1 = time.time()
+            pg = build_sheet(opt, log if style == "b" else [], style)
+            path = os.path.join(OUT_DIR, OUT_NAME.format(part))
+            try:
+                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
+            except (IOError, OSError):
+                path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
+                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
+            lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"),
+                                                     time.time() - t1))
+    log.append(cut_log_line())
+    log += [u"PDF images: " + x for x in WP_IMG_LOG[:5]]
     try:                                              # v4: A3 booklet assets; an error here never stops the sheet
         booklet_export(log)
     except Exception as ex:

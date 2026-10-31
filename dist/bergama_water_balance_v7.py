@@ -1,4 +1,4 @@
-# bergama_water_balance_v6.py (v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v7.py (v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,7 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v6"
+VERSION = "v7"
 # NEW IN v6 (revision 29 Oct 2026, T3b WO-T3b-2, package C items 1-4 and G7; a feature change, so the next whole
 #   number). Pages 11-12 are one story: p.12 (water board) is now one diagrammatic water map, so the analysis it shows
 #   left this sheet, and what stays is drawn per G7 (R31: every user its own row, one common time axis, bars):
@@ -506,7 +506,7 @@ def compute(L):
     crops = list(dict.fromkeys(crops))
     if len(crops) == 1: crops.append("cotton")
     irr = {c: soil_irrigation(c, I) for c in set(crops) | set(CROP_SOIL)}
-    res = dict(script="bergama_water_balance_v6.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+    res = dict(script="bergama_water_balance_v7.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                lands={k: (round(v, 3) if isinstance(v, float) else v) for k, v in L.items()})
     # net irrigation per crop (mm a water year) and the rain the fields hold
     res["net_irrigation_mm"] = {}; res["rain_credit_pct"] = {}
@@ -645,7 +645,7 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
          green_deep="495338", green_mid="727A4E", green_light="8C9969", water_deep="5D7F8D", water="91ADB4",
          water_light="C1D3DB", accent="8B3A3F", accent_deep="633131", white="FFFFFF")
 C["accent_tint"] = "".join("%02X" % int(round(255 - 0.12 * (255 - int(C["accent"][i:i + 2], 16)))) for i in (0, 2, 4))   # v2.7: accent at 12 % on white (the Jun-Sep band)
-C["water_tint"] = "".join("%02X" % int(round(255 - 0.40 * (255 - int(C["water_light"][i:i + 2], 16)))) for i in (0, 2, 4))  # v5 (MIRAQUA 28 Oct, P11.1): water_light at 40 % on white, the answer's field
+C["water_tint"] = "".join("%02X" % int(round(255 - 0.15 * (255 - int(C["water_light"][i:i + 2], 16)))) for i in (0, 2, 4))  # revision 30 Oct (p10, G5): water_light at 15 % on white (was 40 %), the answer's light field
 CROP_NAME = dict(maize="corn")            # v5 (MIRAQUA 28 Oct, G11): the name printed for a crop key (keys unchanged)
 
 def rgb(h): return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
@@ -2260,61 +2260,53 @@ def span(a, b, f=fmt):
 
 # ------------------------------------------------------------------ 7 THE ANSWER: the conclusion (store -> carries -> cut-off)
 def panel_answer(pg, R, x, y, w, h):
-    """The answer, read left to right: how much storage, what it carries, where cost stops it; our claims beside it.
-    Every figure from R (results JSON): design.central_range_m3 / _pct_1in5_dry, full_range_*, need_for_target_1in5_dry_m3,
-    today_strip_storage; prices RECHARGE_USD / ALTERNATIVE_USD (Ross & Hasnain 2018).
-    v5 (MIRAQUA 28 Oct, P11.1/P11.2): block 7, the sheet's last: its numbered title, then a LIGHT tint field (water_tint;
-    was the dark water_light block at the top); one row: store -> carries -> cost cut-off | our claims.
-    v6 (T3b): block 4; "our claims" became the one short conclusion paragraph (G7); the store's icon from icons.py."""
+    """The answer, read left to right: the store (the sheet's one headline value) -> what it carries -> where cost stops
+    it. Every figure from R (results JSON): design.central_range_m3 / _pct_1in5_dry; prices RECHARGE_USD /
+    ALTERNATIVE_USD (Ross & Hasnain 2018).
+    revision 30 Oct (p10, G4/G5): a LIGHT field (water_tint at 15 %), the emphasis in the type: one headline value (the
+    store, M10 storage_m3 formatted from the live results) plus one line; the carries and cost parts are small diagrams
+    on the M1 columns (headline cols 1-5, carries 6-8, cost 9-12). v6's conclusion paragraph left (today's strip moved
+    to block 2's marker; the cost cut-off is block 2's marker)."""
     d = R["design"]
     panel_title(pg, x, y + h, w, "4", "The answer")
-    top = y + h - 7.0                                           # the tint field under the title
+    top = y + h - 7.0                                           # the light field under the title
     pg.rect(x, y, w, top - y, fill=C["water_tint"])
     lo_, hi_ = d["central_range_m3"]; plo, phi = d["central_range_pct_1in5_dry"]
-    ky, big_y, l1, l2 = top - 5.0, top - 13.5, top - 18.5, top - 22.5
-    wa, wb, wc, gap = 84.0, 62.0, 62.0, 12.0
-    # A: the store
-    ax = x + 6; ico(pg, "storage", ax + 6.5, top - 10.5, 13)
-    tx = ax + 17; tw = wa - 17
-    pg.text("STORE", tx, ky, 8, C["ink2"], True)
-    s = "%s" % span(lo_, hi_); fs = fit_size(s, tw, 22.0, True)
-    pg.text(s, tx, big_y, fs, C["ink"], True)
-    pg.text("m³ · aquifer recharge", tx, l1, 8.5, C["ink"], True)
-    inline(pg, tx, l2, rich_parts("if **borehole tests** accept it", 7.5, C["ink2"], C["ink"]))
-    arrow(pg, ax + wa + 1.5, ax + wa + gap - 1.5, big_y + 2.5, C["water_deep"])
-    # B: what it carries
-    bx = ax + wa + gap
-    pg.text("CARRIES", bx, ky, 8, C["ink2"], True)
-    s = "%s %%" % span(round(plo), round(phi)); fs = fit_size(s, wb, 24.0, True)
-    pg.text(s, bx, big_y, fs, C["water_deep"], True)
-    s = "of the farms' need"; pg.text(s, bx, l1, fit_size(s, wb, 8.5, True), C["ink"], True)
-    inline(pg, bx, l2, rich_parts("**1 in 5 dry** year", 7.5, C["ink2"], C["ink"]))
-    by = l2 - 4.0                                               # a 100 % bar filled to the lower % of the range
-    pg.rect(bx, by, wb, 2.4, fill=C["white"], stroke=C["structure"], lw=0.2)
-    pg.rect(bx, by, wb * min(plo, 100.0) / 100.0, 2.4, fill=C["water_deep"])
-    arrow(pg, bx + wb + 1.5, bx + wb + gap - 1.5, big_y + 2.5, C["water_deep"])
-    # C: the cost cut-off
-    cx = bx + wb + gap
-    pg.text("COST CUT-OFF", cx, ky, 8, C["ink2"], True)
-    s = "$%g-%g /m³" % RECHARGE_USD; fs = fit_size(s, wc, 18.0, True)
-    pg.text(s, cx, big_y, fs, C["green_deep"], True)
-    s = "recharge " + cite("ross"); pg.text(s, cx, l1, 8.5, C["green_deep"], True)
-    s = "recycled water $%g-%g" % ALTERNATIVE_USD; pg.text(s, cx, l2, fit_size(s, wc, 7.5, True), C["accent"], True)
-    vm = ALTERNATIVE_USD[1] * 1.02                              # the two price ranges on one linear US$ scale
-    for i, (rng, col) in enumerate(((RECHARGE_USD, C["green_mid"]), (ALTERNATIVE_USD, C["accent"]))):
-        yy = l2 - 4.0 - i * 2.6
-        pg.line([(cx, yy + 0.9), (cx + wc, yy + 0.9)], C["water_light"], 0.3)
-        pg.rect(cx + wc * rng[0] / vm, yy, wc * (rng[1] - rng[0]) / vm, 1.8, fill=col)
-    # D (v6, T3b, G7: "one short paragraph states the conclusion"): right of the cut-off (was "our claims": the 25 / 50 %
-    # sizes and the cost cases stay in the results JSON)
-    qx = cx + wc + 12.0
-    pg.line([(qx - 6.0, y + 3.0), (qx - 6.0, top - 3.0)], C["water_light"], 0.4)
-    pg.text("So", qx, ky, 8, C["ink2"], True)
-    tc = max(t["covered_pct_1in5_dry"] for t in R["today_strip_storage"].values())
-    s_ = ("Winter brings the water, summer needs it. Held in the ground, **%s m³** of winter water carries the farms "
-          "through a **1 in 5 dry** year; past that, each more m³ costs more than recycled water. Today the strip "
-          "alone holds %s m³: **%.0f %%** of the need." % (span(lo_, hi_), fmt(STRIP_TODAY), tc))
-    rich_para(pg, s_, qx, ky - 5.0, x + w - 4.0 - qx, 8.5, C["ink"], C["ink"], 1.35)
+    ky, vy, ly = top - 5.5, top - 13.5, top - 19.5               # kicker, headline value, the one line
+    vpt, _, _, vcol = grid_style("value"); npt, _, _, ncol = grid_style("note")
+    # A: the store, the one headline value (cols 1-5)
+    ax, aw = grid_span(1, 5)
+    ico(pg, "storage", ax + 9.0, vy + 2.0, 11.0)
+    tx = ax + 18.0
+    pg.text("STORE", tx, ky, 7.5, C["ink2"], True)
+    s = u"%s m³" % (fact_num("storage_m3", (float(lo_), float(hi_))) or span(lo_, hi_))
+    fs = fit_size(s, aw - 22.0, vpt, True)
+    pg.text(s, tx, vy, fs, vcol, True)
+    line = rich_parts("winter water held in the ground: **aquifer recharge**, if **borehole tests** accept it",
+                      npt, ncol, C["ink"])
+    inline(pg, tx, ly, line)
+    a0 = tx + max(text_w(s, fs, True), inline_w(line)) + 4.0
+    # B: what it carries (cols 6-8): a 100 % bar filled to the lower % of the range
+    bx, bw_ = grid_span(6, 3); wb = bw_ - 14.0
+    if bx - 3.0 - a0 > 6.0: arrow(pg, a0, bx - 3.0, vy + 2.0, C["water_deep"], 0.5)
+    pg.text("CARRIES", bx, ky, 7.5, C["ink2"], True)
+    pg.rect(bx, vy + 0.5, wb, 3.0, fill=C["white"], stroke=C["structure"], lw=0.2)
+    pg.rect(bx, vy + 0.5, wb * min(plo, 100.0) / 100.0, 3.0, fill=C["water_deep"])
+    pg.text("100 %", bx + wb, vy - 3.0, 6.5, C["ink2"], False, "R")
+    inline(pg, bx, ly, rich_parts("**%s %%** of the farms' need, **1 in 5 dry** year" % span(round(plo), round(phi)),
+                                  npt, ncol, C["ink"]))
+    # C: the cost cut-off (cols 9-12): the two price ranges on one linear US$ scale, each named at its bar's end
+    cx, cw_ = grid_span(9, 4); ws = 58.0
+    arrow(pg, bx + wb + 2.0, cx - 3.0, vy + 2.0, C["water_deep"], 0.5)
+    pg.text("COST CUT-OFF", cx, ky, 7.5, C["ink2"], True)
+    vm = ALTERNATIVE_USD[1] * 1.02
+    for i, (rng, col, lab) in enumerate(((RECHARGE_USD, C["green_mid"], "recharge $%g-%g /m³ " % RECHARGE_USD + cite("ross")),
+                                         (ALTERNATIVE_USD, C["accent"], "recycled water $%g-%g /m³" % ALTERNATIVE_USD))):
+        yy = vy + 3.0 - i * 4.5
+        pg.line([(cx, yy + 0.9), (cx + ws, yy + 0.9)], C["water_light"], 0.3)
+        pg.rect(cx + ws * rng[0] / vm, yy, ws * (rng[1] - rng[0]) / vm, 1.8, fill=col)
+        pg.text(lab, cx + ws + 3.0, yy, fit_size(lab, cw_ - ws - 3.0, 7.5, True, 6.0), C["green_deep"] if i == 0 else C["accent"], True)
+    inline(pg, cx, ly, rich_parts("past it, each more m³ costs **more than recycled water**", npt, ncol, C["ink"]))
 
 # ------------------------------------------------------------------ the question (v6: the sheet's subtitle, under the title)
 QUESTION = u"How much **winter water** can we hold for the farms' **dry summer**, and at what **cost**?"
@@ -2322,7 +2314,7 @@ QUESTION = u"How much **winter water** can we hold for the farms' **dry summer**
 
 # ------------------------------------------------------------------ v6 (T3b, G7): 1 one year of water, five rows, one month axis
 STORE_COL = ("CBD9F8", "92A3C9", "3E4C6E")       # the masterplan's storage tones (light, mid, dark), as on p.12's map
-YEAR_RH = 16.5                                   # one row of block 1, mm
+YEAR_RH = 13.5                                   # one row of block 1, mm (revision 30 Oct, p10: 16.5 -> 13.5, a secondary scale)
 YEAR_LAB_W, YEAR_TOT_W = 68.0, 40.0              # the label column before the month axis, the year column after it
 
 
@@ -2337,6 +2329,11 @@ def panel_year(pg, R, x, y, w, h):
     q = STREAM_MONTH_M3; yr = float(sum(q)); win = (0, 1, 2, 3, 11)
     dn = R["farm_demand_month_m3"][mix]["mean"]; dd = R["farm_demand_month_m3"][mix]["dry5"]
     sm = R["design"].get("store_month_m3") or [0] * 12
+    # revision 30 Oct (D3, M10): the field / olive grove areas print on p9 (their owner); here only when M10 says p10
+    fa = (u_area(L["cropland_ha"] * 1e4, "ha") + " ") if fact_prints_on("cropland_ha", "10") else ""
+    oa = (u_area(L["orchard_ha"] * 1e4, "ha") + " ") if fact_prints_on("orchard_ha", "10") else ""
+    farm_sub = "%s%s fields + %solive grove, drip %s" % (fa, CROP_NAME.get(crop, crop), oa,
+                                                        cite("fao56", "fao_t", "fao_tm4", "esa"))
     panel_title(pg, x, y + h, w, "1", "One year of water: it comes in winter, it is needed in summer",
                 "**one month axis** for every user · each row to its own scale: its peak month and its year are written")
     lx, rx = x + YEAR_LAB_W, x + w - YEAR_TOT_W
@@ -2352,9 +2349,7 @@ def panel_year(pg, R, x, y, w, h):
          lambda m: STORE_COL[1], "%s m³" % fmt(max(sm)), "at its fullest"),
         ("water", "Summer strip", "%s, sealed: evaporation + seepage" % u_area(L["strip_m2"], "ha"),
          (R["strip_month_m3"],), lambda m: C["water"], "%s m³" % fmt(R["strip_m3_per_year"]), "a year, May-Oct"),
-        ("olive", "Farms", "%s %s + %s olives, drip %s" % (u_area(L["cropland_ha"] * 1e4, "ha"), CROP_NAME.get(crop, crop),
-                                                           u_area(L["orchard_ha"] * 1e4, "ha"),
-                                                           cite("fao56", "fao_t", "fao_tm4", "esa")),
+        ("olive", "Farms", farm_sub,
          (dn, dd), None, "%s m³" % fmt(R["farm_demand_m3"][mix]["dry5"]), "a year, 1 in 5 dry")]
     yb_rows = top - len(rows) * YEAR_RH
     bx0, bx1 = lx + 5 * bw, lx + 9 * bw                      # Jun-Sep: one band behind every row
@@ -2424,7 +2419,8 @@ def panel_curve(pg, R, x, y, w, h):
     pg.line([(xr, cy), (xr, yr_)], C["accent_deep"], 0.4, (0.8, 0.6))
     pg.poly([(xr - 1.8, yr_), (xr, yr_ + 1.8), (xr + 1.8, yr_), (xr, yr_ - 1.8)], fill=C["accent_deep"], closed=True)
     # labels last, each at the first free place (white field under it over the curves)
-    place(pg, "today %s m³: the strip only" % fmt(STRIP_TODAY), [(xs + 1.2, cy + ch - 3, "L"), (xs + 1.2, cy + ch - 7, "L")], 7, C["ink2"], halo=True)
+    tc = max(t["covered_pct_1in5_dry"] for t in R["today_strip_storage"].values())   # revision 30 Oct: from block 4's paragraph
+    place(pg, "today %s m³: the strip only, %.0f %% of the need" % (fmt(STRIP_TODAY), tc), [(xs + 1.2, cy + ch - 3, "L"), (xs + 1.2, cy + ch - 7, "L")], 7, C["ink2"], halo=True)
     s1 = "cost cut-off " + cite("ross"); s2 = "%s m³ = %.0f %%" % (fmt(d["storage_m3"]), d["covered_pct_1in5_dry"])
     for dx, al, dy in ((-2.5, "R", -5.0), (2.5, "L", -5.0), (-2.5, "R", -14.0)):
         b1 = tbox(s1, xr + dx, yr_ + dy, 8, True, al); b2 = tbox(s2, xr + dx, yr_ + dy - 3.8, 8.5, True, al)
@@ -2468,10 +2464,9 @@ def panel_store(pg, R, x, y, w, h):
     ky = top - n * rh - 7.5                                  # colour key, then the result
     pg.rect(x, ky - 0.4, 3, 3, fill=C["green_mid"]); ex = inline(pg, x + 4.5, ky, [("cheaper than recycled", 7, C["ink"], False)])
     pg.rect(ex + 5, ky - 0.4, 3, 3, fill=C["accent"]); pg.text("dearer", ex + 9.5, ky, 7)
-    lo_, hi_ = R["design"]["central_range_m3"]
     cheap = [r[0] for r in rows if r[3] < a0]
     inline(pg, x, ky - 6.0, ([] if cheap else [("nothing cheaper · ", 7.5, C["accent_deep"], True)]) +
-           [("recharge pays up to ", 7.5, C["accent_deep"], True), ("%s m³" % span(lo_, hi_), 9, C["accent_deep"], True)])
+           [("recharge pays, up to the cost cut-off in 2", 7.5, C["accent_deep"], True)])   # revision 30 Oct: the m³ once, in 4
     ico(pg, "storage", x + 2.25, ky - 10.85, 4.5)
     inline(pg, x + 6, ky - 11.8, rich_parts("**recharge fails tests**: built > recycled, every step " + cite("suds"), 7, C["ink2"], C["ink"]))
 
@@ -2488,9 +2483,18 @@ def panel_store(pg, R, x, y, w, h):
 #   [1 one year of water: five rows on one month axis, across the sheet (the focal block)]
 #   [2 how much to hold: the storage curve]                 [3 cost per m³]
 #   [4 the answer: store -> carries -> cost cut-off | the conclusion, the bottom-right corner free for the page number]
-BLOCKS = dict(year=(14.0, 148.0, 392.0, 112.0),
-              curve=(14.0, 66.0, 248.0, 70.0), store=(272.0, 66.0, 134.0, 70.0),
-              answer=(14.0, 18.5, 392.0, 39.0))
+# revision 30 Oct (p10, D3 a, G2): the same four blocks on the M1 grid (columns, 4 mm baselines, top-down tops), the
+# graphs at a secondary scale (block 1 rows 16.5 -> 13.5 mm; block 2 cols 1-7, block 3 cols 8-12), 16-20 mm between the
+# rows, block 4 a light band across the foot that ends on the drawing area's last baseline (273)
+def _grid_block(c0, n, top, h):
+    """(x, y bottom, w, h) mm y-up of an M1 grid cell: n columns from c0, top (mm from the page top), height h"""
+    r = grid_rect_up(grid_cell(c0, n, top, h))
+    return (r[0], r[1], r[2] - r[0], r[3] - r[1])
+
+
+BLOCKS = dict(year=_grid_block(1, 12, 36.0, 92.0),
+              curve=_grid_block(1, 7, 144.0, 72.0), store=_grid_block(8, 5, 144.0, 72.0),
+              answer=_grid_block(1, 12, 236.0, 36.0))
 
 
 def build(path, R):
