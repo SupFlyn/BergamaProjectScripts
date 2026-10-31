@@ -25,7 +25,8 @@ P16_WATER_OPTS = {"spacing": 0.6, "seed": 5}  # M5 water_plan at 1:20,000 (the s
 # Smell: the species whose flowering months common/plants.py holds (pla_months, sourced there); the other sources
 # have no season data in the repo and get no month bar
 P16_SMELL_SPECIES = {"reeds": "reed", "lavender": "lavender"}
-P16_STRIP_TOP = 10.5                         # mm: the strip's top below its cell's top (title, then the bridge ruler)
+P16_STRIP_TOP = 13.0                         # mm: the strip's top below its cell's top (title, then the bridge ruler;
+#                                              v37: 10.5 -> 13.0, two rows of bridge names; 13 + 62 = 75 <= SN_CH 76)
 P16_STRIP_H = 62.0                           # mm: every strip's height (1,240 m across at 1:20,000; the cell is 76)
 P16_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")   # the run kit's photo folder (p.21's contract)
 P16_PHOTO_CSV = "photos.csv"
@@ -38,9 +39,9 @@ P16_PLACES = (
          alias=(u"tabaklarhamami",)),
     dict(key="tabakhane", cap=(u"Tabakhane",), own=(u"tabakhane_1.jpg",), alias=(u"tabakhane",),
          notalias=(u"koprusu",)),
-    dict(key="k3", cap=(u"Tabak Köprüsü", u"Roman bridge · K3"), own=(u"tabak_koprusu_1.jpg", u"tabak_koprusu_2.jpg"),
+    dict(key="k3", cap=(bridge_name("K3"), u"Roman bridge"), own=(u"tabak_koprusu_1.jpg", u"tabak_koprusu_2.jpg"),
          alias=(u"tabakkoprusu",)),
-    dict(key="k5", cap=(u"Üç Kemer Köprüsü", u"Roman bridge · K5"), own=(), alias=(u"uckemer",)),
+    dict(key="k5", cap=(bridge_name("K5"), u"Roman bridge"), own=(), alias=(u"uckemer",)),
     dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)),
     dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo
 P16_KEY_ROW = 4.6                            # mm: one row of every key column
@@ -422,7 +423,7 @@ def sn_cell(pg, G, cx, top, title, choice=None):
     yt = sn_y(top + 5.0)
     pg.text(title, cx, yt, size, SN_INK, bold=True)
     refp = [T(p) for p in G["ref"]]
-    cell = {"x": cx, "top": top, "box": box, "T": T, "side": cx + SN_SIDE,
+    cell = {"x": cx, "top": top, "box": box, "T": T, "side": cx + SN_SIDE, "title": title,
             "bounds": (box[0] + 0.6, box[1] + 0.6, box[2] - 0.6, box[3] - 0.6),
             "taken": [(cx, yt - size * 0.25, cx + text_w(title, size, True) + 1.0, yt + size * 0.8),
                       (cx + SN_SIDE - 2.0, sn_y(top + SN_CH), cx + SN_CW, sn_y(top))],
@@ -445,18 +446,25 @@ def sn_cell(pg, G, cx, top, title, choice=None):
         if box[0] <= x <= box[2]:
             pg.line([(x, box[3]), (x, box[3] - 1.0)], SN_INK2, 0.2)
             xs[nm] = x
-    labs = ([(u"K1·K2", (xs["K1"] + xs["K2"]) / 2.0)] if "K1" in xs and "K2" in xs else []) + \
-        [(nm, xs[nm]) for nm in ("K3", "K4", "K5", "K6") if nm in xs]
+    # v37 (round 3, G16 / D9): the bridges by their names (common/names.py, short form; the History key and p.21 carry
+    # the full names), in stream order; K1 and K2 (about 25 m apart) share one tick label; a name that would touch its
+    # neighbour goes up one row (two rows above the frame, P16_STRIP_TOP)
+    labs = ([(u"side crossings", (xs["K1"] + xs["K2"]) / 2.0)] if "K1" in xs and "K2" in xs else []) + \
+        [(bridge_name(nm, short=True), xs[nm]) for nm in bridges_in_order() if nm in xs and nm not in ("K1", "K2")]
     fs = sn_mm(SN_TS["small"])
     ruler = []
     for s, x in labs:
         w = text_w(s, fs)
         xl = min(max(x - w / 2.0, box[0]), box[2] - w)
-        b = (xl - 0.3, box[3] + 0.6, xl + w + 0.3, box[3] + 1.0 + fs * 0.8)
-        if any(lp_hit(b, t) for t in ruler):
-            continue
-        pg.text(s, xl, box[3] + 1.0, fs, SN_INK2)
-        ruler.append(b)
+        for r_ in (0, 1):
+            yb = box[3] + 1.0 + r_ * fs * 1.15
+            b = (xl - 0.3, yb - 0.4, xl + w + 0.3, yb + fs * 0.8)
+            if not any(lp_hit(b, t) for t in ruler + cell["taken"][:1]):
+                pg.text(s, xl, yb, fs, SN_INK2)
+                ruler.append(b)
+                break
+        else:
+            cell.setdefault("ruler_missing", []).append(s)
     return cell
 
 
@@ -466,29 +474,34 @@ def sn_outline(pg, G, cell):
 
 
 def sn_place(pg, cell, labs, warn):
-    """G4 (common/label_place.py): each word round its place ON the strip (T4a: the widened frame has room), never
-    on the stream line or a panel's own lines (cell["segs"]) or boxes (cell["taken"]), on a thin leader when off
-    it; "more" = further places the same word points to. A word with no room is logged."""
+    """v37 (round 3, G3: no leader lines): each word on or right next to its place ON the strip (common/label_place
+    label_spot, LP_NEAR_RINGS), never on the stream line or a panel's own lines (cell["segs"]) or boxes
+    (cell["taken"]), at its size or the small size; "more" = further places of the same word: the word again at
+    each, small (rank 1). A rank-0 word with no room is logged, a rank-1 word is left out. Logs FLAG overlap for the
+    strip (cell["page"]) through lp_overlap_flag."""
+    segs = LpSegIndex(segs=cell.get("segs", ()))
+    small = sn_mm(SN_TS["small"])
     items = []
     for L_ in labs:
-        size, b = sn_mm(L_.get("pt", SN_TS["label"])), L_.get("bold", True)
-        items.append(dict(x=L_["at"][0], y=L_["at"][1], rank=L_.get("rank", 0),
-                          wh=lambda f, s=L_["s"], size=size, b=b: (text_w(s, max(size * f, sn_mm(SN_TS["small"])), b),
-                                                                   max(size * f, sn_mm(SN_TS["small"])) * 0.95)))
-    got = place_labels_all(items, cell["taken"], cell["bounds"], cell.get("segs", ()),
-                           sizes=(1.0, SN_TS["small"] / SN_TS["label"]))
-    for i, L_ in enumerate(labs):
-        if i not in got:
-            if L_.get("rank", 0) == 0:
-                warn.append(u"senses sheet: no room for the word '{}'".format(L_["s"]))
-            continue
-        bx, leader, f = got[i]
-        size = max(sn_mm(L_.get("pt", SN_TS["label"])) * f, sn_mm(SN_TS["small"]))   # never under 7 pt
-        pg.text(L_["s"], bx[0], bx[1] + size * 0.2, size, L_.get("col", SN_INK), bold=L_.get("bold", True))
-        for k, a in enumerate([L_["at"]] + list(L_.get("more", ()))):
-            if leader or k > 0:
-                pg.line([a, lp_leader_end(bx, a)], SN_INK2, 0.15)
-                pg.circle(a[0], a[1], 0.3, fill=SN_INK2)
+        items.append((L_.get("rank", 0), L_, L_["at"], sn_mm(L_.get("pt", SN_TS["label"]))))
+        for a in L_.get("more", ()):
+            items.append((1, L_, a, small))
+    boxes = []
+    for rank, L_, at, size0 in sorted(items, key=lambda it: it[0]):
+        b_ = L_.get("bold", True)
+        for size in ([size0, small] if size0 > small else [small]):
+            w, h = text_w(L_["s"], size, b_), size * 0.95
+            got = label_spot(at[0], at[1], w, h, cell["taken"], cell["bounds"], segs, 0.6, rings=LP_NEAR_RINGS)
+            if got:
+                bx = got[0]
+                pg.text(L_["s"], bx[0], bx[1] + size * 0.2, size, L_.get("col", SN_INK), bold=b_)
+                cell["taken"].append(bx)
+                boxes.append(bx)
+                break
+        else:
+            if rank == 0:
+                warn.append(u"senses sheet: no room next to its place for the word '{}'".format(L_["s"]))
+    lp_overlap_flag(u"p15 " + cell.get("title", u""), boxes, (), cell["bounds"])
 
 
 def _p16_fig(pg, pose, x, y, h, colour, facing=1):
@@ -956,70 +969,155 @@ def sn_bubble(pg, x, y, key, word, colour, pose, seed=0):
 
 
 def sn_exp_places(G):
-    """where each way of meeting the water is strongest (the masterplan's places; design reading)"""
+    """v37 (round 3, P15.1 / G19: each encounter only where the project makes it happen), survey m:
+    cross    the real crossings: the six bridges (BRIDGES_K) and the masterplan's new footbridges and stepping stones
+    watch    the viewing terrace (with its sightline) and the open edges of the widened reaches (wetlands)
+    touch    the sub-hubs in the bed (dry months) and the step to the water facing Tabaklar Hamamı
+    walk     the riverside walk as the masterplan runs it (its lines, both banks where it has them)
+    remember the heritage places only: the Roman bridges Tabak, Ulucami Önü, Üç Kemer, Tabaklar Hamamı, Tabakhane,
+             the Roman bank wall and the Red Hall (Kızıl Avlu) tunnels"""
     hub = G["hub"]
-    walk = [h["xy"] for h in G["hubs"] if h["role"] == "walking" and h["id"] != u"K6"]
     bk = dict(BRIDGES_K)
-    pl = {"watch": ([G["terrace"]["xy"]] if G["terrace"] else []) + [z["q"] for z in G["zones_raw"] if z["code"] == "WT"],
-          "walk": walk + [p for P in G["canopy"] for p in sn_along(P, 40.0)],
-          "touch": [h["sub_xy"]["c"] for h in G["hubs"] if h.get("sub_xy")] + [G["bath"], G["kermes"]],
-          "cross": [c_["xy"] for c_ in G["cross"]],
-          "remember": [bk.get(k) for k in ("K3", "K4", "K5")] + [G["bath"], CRAFT_XY, ROMAN_WALL] +
-          [hub[k]["xy"] for k in (u"İstiklal", u"Kızıl Avlu") if k in hub]}
-    return dict((k, [p for p in v if p]) for k, v in pl.items())
+    edges = []
+    ref = G["ref"]
+    for w_ in G.get("widen") or []:                      # the land edge of each widened reach: its point farthest
+        R_ = w_.get("ring") or []                        # from the stream line
+        if len(R_) >= 3 and len(ref) >= 2:
+            q = max(R_, key=lambda p: min(seg_dist(p[0], p[1], a, b) for a, b in zip(ref, ref[1:])))
+            edges.append(q)
+    pl = {"cross": [bk[k_] for k_ in bridges_in_order() if k_ in bk] + [c_["xy"] for c_ in G["cross"]
+                                                                       if c_.get("P") and c_.get("xy")],
+          "watch": ([G["terrace"]["xy"]] if G["terrace"] else []) + edges,
+          "touch": [h["sub_xy"]["c"] for h in G["hubs"] if h.get("sub_xy")] + ([G["bath"]] if G["bath"] else []),
+          "remember": [bk.get(k_) for k_ in ("K4", "K3", "K5")] + [G["bath"], CRAFT_XY, ROMAN_WALL] +
+          ([hub[u"Kızıl Avlu"]["xy"]] if u"Kızıl Avlu" in hub else [])}
+    return dict((k_, [p for p in v if p]) for k_, v in pl.items())
+
+
+def _sn_tangent(refp, q):
+    """the unit tangent of the page polyline refp at its point nearest q, and that point"""
+    best = None
+    for a, b in zip(refp, refp[1:]):
+        d = seg_dist(q[0], q[1], a, b)
+        if best is None or d < best[0]:
+            best = (d, a, b)
+    if best is None:
+        return (1.0, 0.0), q
+    _d, a, b = best
+    L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    t = max(0.0, min(L, (q[0] - a[0]) * ux + (q[1] - a[1]) * uy))
+    return (ux, uy), (a[0] + ux * t, a[1] + uy * t)
+
+
+def sn_enc_mark(pg, key, x, y, colour, ux=1.0, uy=0.0, dirx=None):
+    """v37 (P15.1, R02 idea: each mode its own mark where it happens) one encounter mark at page (x, y):
+    cross = a bar across the water (perpendicular to the stream tangent ux, uy) with end ticks; watch = a sight wedge
+    toward dirx (unit vector); touch = a disc with a wave; walk = (drawn as the walk's own line, here a key sample);
+    remember = a small Roman arch on a white disc"""
+    white = COL["white"]
+    if key == "cross":
+        nx_, ny_ = -uy, ux
+        h = SN_ENC_CROSS_MM / 2.0
+        a, b = (x - nx_ * h, y - ny_ * h), (x + nx_ * h, y + ny_ * h)
+        pg.line([a, b], white, 1.3, cap=0)
+        pg.line([a, b], colour, 0.7, cap=0)
+        for e in (a, b):
+            pg.line([(e[0] - ux * 0.7, e[1] - uy * 0.7), (e[0] + ux * 0.7, e[1] + uy * 0.7)], colour, 0.35)
+    elif key == "watch":
+        dx, dy = dirx or (0.0, -1.0)
+        L, s = 4.2, 0.45
+        tip1 = (x + (dx * math.cos(s) - dy * math.sin(s)) * L, y + (dx * math.sin(s) + dy * math.cos(s)) * L)
+        tip2 = (x + (dx * math.cos(-s) - dy * math.sin(-s)) * L, y + (dx * math.sin(-s) + dy * math.cos(-s)) * L)
+        pg.poly([[(x, y), tip1, tip2]], fill=mix(colour, "FFFFFF", 0.55), stroke=colour, lw=0.2)
+        pg.circle(x, y, 0.75, fill=colour, stroke=white, lw=0.2)
+    elif key == "touch":
+        pg.circle(x, y, 1.05, fill=colour, stroke=white, lw=0.25)
+        pg.line([(x - 0.6 + 1.2 * i / 8.0, y + 0.18 * math.sin(i * math.pi / 2.0)) for i in range(9)], white, 0.2)
+    elif key == "walk":
+        pg.line([(x - 2.5, y), (x + 2.5, y)], colour, SN_ENC_WALK_LW)
+    else:                                                # remember: an arch
+        pg.circle(x, y, 1.25, fill=white, stroke=colour, lw=0.25)
+        pg.line([(x + 0.8 * math.cos(math.radians(a)), y - 0.45 + 0.9 * math.sin(math.radians(a)))
+                 for a in range(0, 181, 20)], colour, 0.35)
+        pg.line([(x - 0.95, y - 0.45), (x + 0.95, y - 0.45)], colour, 0.3)
+
+
+SN_ENC_CROSS_MM = 5.0        # v37: a cross mark's length across the water, mm (the stream is 1-4 mm wide at 1:20,000)
+SN_ENC_WALK_LW = 0.7         # v37: the walk's line, mm
+SN_ENC_REM_OFF = 2.4         # v37: a remember mark at a bridge sits this far beside its cross mark, along the stream, mm
 
 
 def sn_encounters(pg, G, cell, warn):
-    """v35 (round 2, Aras 31 Oct: "still overlapping", no overlapping lines left): five ribbons, one per way of
-    meeting the water, each in its OWN lane along the stream (fixed offset, never pulled onto the stream line), so no
-    two ribbons ever touch or cross. At its places (sn_exp_places) a ribbon swells inside its lane. Thickness is
-    measured vertically and lanes are gap apart (> the widest swell), so the bands stay apart on slopes too; the
-    entry and the fan to the vignette bubbles keep the lane order (no crossings). The v32 crossing clouds are gone.
-    A design reading of the masterplan's places, never a measurement (no numbers)."""
+    """v37 (round 3, P15.1, Aras: "it says cross but it is parallel to river", "it says watch however it has
+    buildings in front"; G19): no bands along the stream. Each way of meeting the water is drawn ONLY where the
+    masterplan makes it happen (sn_exp_places), in its colour with its own mark (R02 idea): WALK as the riverside
+    walk's own line on the banks it runs on (R01: on the real path, from place to place), CROSS as a bar across the
+    water at each real crossing, WATCH as a sight wedge from the viewing terrace (along its sightline) and from the
+    open edge of each widened reach toward the water, TOUCH as a disc at the sub-hubs in the bed and the step facing
+    Tabaklar Hamamı, REMEMBER as an arch at the heritage places only (R03: attached to the exact stretch, both banks).
+    Layer order: walk lines, then cross, watch, touch, remember. The key column keeps the five vignette bubbles, each
+    with its mark sample. A design reading of the masterplan, no numbers."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
-    step = 0.5
-    xs, ys = sn_spine_y([T(p) for p in G["ref"]], x0, x1, step)
-    if ys is None:
-        ys = [(y0 + y1) / 2.0] * len(xs)
-        warn.append(u"senses sheet: no stream line in the strip: the encounter ribbons run along its middle")
-    n = len(ys)                                          # a calmer path: 15 mm moving mean
-    ys = [sum(ys[max(0, i - 15):i + 16]) / len(ys[max(0, i - 15):i + 16]) for i in range(n)]
-    m = len(SN_EXP)
-    gap, sig, w0, w1, lead = 4.0, 2.6, 0.8, 1.6, 18.0   # mm: lane pitch (> w0 + w1), swell, width, swell, entry
-    half = gap * (m - 1) / 2.0 + (w0 + w1) / 2.0 + 1.0   # the bundle stays whole inside the frame
-    ys = [min(max(y, y0 + half), y1 - half) for y in ys]
+    refp = [T(p) for p in G["ref"]]
     pl = sn_exp_places(G)
-    PX = [[x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0] for key, _w, _c, _p in SN_EXP]
+    col = dict((k_, c_) for k_, _w, c_, _p in SN_EXP)
+    inb = lambda q: x0 + 1.0 <= q[0] <= x1 - 1.0 and y0 + 1.0 <= q[1] <= y1 - 1.0
+    n = {}
+    pg.clip([rect(*box)])
+    for P in G["canopy"]:                                # walk: the masterplan's walk lines
+        Q = [T(p) for p in P]
+        if len(Q) >= 2 and any(inb(q) for q in Q):
+            pg.line(Q, COL["white"], SN_ENC_WALK_LW + 0.5)
+            pg.line(Q, col["walk"], SN_ENC_WALK_LW)
+            n["walk"] = n.get("walk", 0) + 1
+    pg.unclip()
+    cross_at = []
+    for p in pl["cross"]:
+        q = T(p)
+        if not inb(q):
+            continue
+        (ux, uy), _m = _sn_tangent(refp, q)
+        sn_enc_mark(pg, "cross", q[0], q[1], col["cross"], ux, uy)
+        cross_at.append((q, ux, uy))
+        n["cross"] = n.get("cross", 0) + 1
+    for i, p in enumerate(pl["watch"]):
+        q = T(p)
+        if not inb(q):
+            continue
+        if i == 0 and G["terrace"]:                      # the terrace: along its sightline (data: C.terrace["dir"])
+            d0 = G["terrace"]["dir"]
+            q2 = T((p[0] + d0[0] * 50.0, p[1] + d0[1] * 50.0))
+        else:                                            # an open edge: toward the water
+            q2 = _sn_tangent(refp, q)[1]
+        L = math.hypot(q2[0] - q[0], q2[1] - q[1]) or 1.0
+        sn_enc_mark(pg, "watch", q[0], q[1], col["watch"], dirx=((q2[0] - q[0]) / L, (q2[1] - q[1]) / L))
+        n["watch"] = n.get("watch", 0) + 1
+    for p in pl["touch"]:
+        q = T(p)
+        if inb(q):
+            sn_enc_mark(pg, "touch", q[0], q[1], col["touch"])
+            n["touch"] = n.get("touch", 0) + 1
+    for p in pl["remember"]:
+        q = T(p)
+        if not inb(q):
+            continue
+        near = [c_ for c_ in cross_at if math.hypot(c_[0][0] - q[0], c_[0][1] - q[1]) < 1.5]
+        if near:                                         # a Roman bridge: the arch beside its cross bar
+            (cq, ux, uy) = near[0]
+            q = (cq[0] + ux * SN_ENC_REM_OFF, cq[1] + uy * SN_ENC_REM_OFF)
+        sn_enc_mark(pg, "remember", q[0], q[1], col["remember"])
+        n["remember"] = n.get("remember", 0) + 1
+    for k_, _w, _c, _p in SN_EXP:
+        if not n.get(k_):
+            warn.append(u"senses sheet: Encounters: no {} place inside the strip".format(k_))
     sx, ytop = cell["side"], box[3]
     pitch = 8.8                                          # mm: the vignettes' pitch
     for i, (key, word, colour, pose) in enumerate(SN_EXP):
-        px = PX[i]
-        off = ((m - 1) / 2.0 - i) * gap                  # lane i: watch on top, remember at the bottom
-        ys0 = y1 - 5.0 - i * (y1 - y0 - 10.0) / max(1, m - 1)    # where it enters at the strip's left edge
-        C_, W_ = [], []
-        for x, yb in zip(xs, ys):
-            b = max([math.exp(-((x - q) / sig) ** 2) for q in px] or [0.0])
-            y_ = yb + off                                # v35: its own lane everywhere (no pull)
-            t = min(1.0, (x - x0) / lead)
-            t = t * t * (3.0 - 2.0 * t)                  # smoothstep: from its entry into its lane
-            C_.append((x, ys0 + (y_ - ys0) * t))
-            W_.append((0.25 + (w0 - 0.25) * t) + w1 * b)
         bx, by = sx + 11.0, ytop - 8.4 - pitch * i
-        ex, ey = C_[-1]
-        fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), k_ / 24.0) for k_ in range(1, 25)]
-        P = C_ + fan
-        Wl = W_ + [W_[-1] + (w0 - W_[-1]) * k_ / 24.0 for k_ in range(1, 25)]
-        L_ = [(p[0], p[1] + w / 2.0) for p, w in zip(P, Wl)]    # v35: vertical thickness (lanes never meet)
-        R_ = [(p[0], p[1] - w / 2.0) for p, w in zip(P, Wl)]
-        pg.poly([L_ + R_[::-1]], fill=colour, alpha=0.85)
-        Cs = C_[::6] + C_[-1:]
-        cell["segs"].extend(zip(Cs, Cs[1:]))
+        sn_enc_mark(pg, key, sx + 4.5, by, colour, 1.0, 0.0, dirx=(1.0, 0.0))
         sn_bubble(pg, bx, by, key, word, colour, pose, i)
-    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key row: the swell (G1)
-    sw = [(sx + 9.0 * t / 30.0, w0 + w1 * math.exp(-((t / 30.0 - 0.5) / 0.16) ** 2)) for t in range(31)]
-    pg.poly([[(x, y + w / 2.0) for x, w in sw] + [(x, y - w / 2.0) for x, w in sw][::-1]], fill=SN_INK2, alpha=0.72)
-    sn_key_row(pg, sx + 11.0, y, u"Wider: where it happens")
     return []
 
 
@@ -1380,6 +1478,8 @@ def senses_sheet(C, areas, folder, files, warn, basemap=None):
              (SN_COLX[1], SN_ROWS[2], u"History", sn_history)]
     for cx, top, title, layer in cells:
         cell = sn_cell(pg, G, cx, top, title, bm.get(title))
+        for s_ in cell.get("ruler_missing") or []:      # v37: a bridge name with no room on the ruler
+            warn.append(u"senses sheet {}: bridge name not on the ruler (no room): {}".format(title, s_))
         labs, n0 = [], len(pg.items)
         try:
             labs = layer(pg, G, cell, warn) or []
