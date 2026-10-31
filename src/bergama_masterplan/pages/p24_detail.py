@@ -230,7 +230,8 @@ P24_WALL_DG = 0.40           # Demeter's Garden's stone edge wall, m thick (as p
 P24_PAVE_T = 0.25            # paving of hub squares and streets in section, m (drawing value, as p.13)
 P24_SPOT_M = 5.0             # survey spot heights this far from the cut line make its ground, m
 P24_BEYOND_M = 150.0         # proposals this far beyond the cut, in the view direction, show paler in the section, m
-P24_BELOW_M = 3.0            # cut ground drawn this far under the lowest point, m
+P24_BELOW_M = 6.0            # cut ground drawn this far under the lowest point, m (v36: 3.0 -> 6.0, room for the
+#                              callout circles in the cut ground under the bed)
 P24_STEP_M = 0.5             # the section's sampling step, m
 P24_MIN_RUN = 4.0            # zone runs shorter than this get no zone line, m
 P24_TREE_M = 6.0             # forest and street trees this far from the cut line stand in the section, m
@@ -252,6 +253,49 @@ P24_NAME = {"reed": u"REED BASINS, LINED", "spill": u"SPILLWAY", "terraces": u"R
 # D6: no iris, oleander, white poplar; water mint left out of the open ground)
 P24_SPECIES = {"reed": ("reed",), "terraces": ("lavender",), "hub": ("plane",), "demeter": ("olive", "lavender"),
                "wetland": ("willow", "tamarisk", "loosestrife"), "forest": ("ash", "plane")}
+# v36 (R2-M left items, checklist 5 + 8; the water board's callout style, R2-C SfCallouts): numbered circles in the
+# cut ground under each element, a numbered key under the section, each line "Element: reason" (<= 55 letters)
+P24_CO = 2.65                # callout circle and key size, mm (= the water board's FS_MIN, 7.5 pt; R28DT_TS label)
+P24_GROUP_DO = {"shade": u"shade", "wind": u"break the wind", "noise": u"soften the noise",
+                "corridor": u"green corridor", "cleaning": u"clean the water", "perception": u"colour and scent"}
+#                              what a planting group does (water board P12_GROUP_DO; plants.py purpose tags, sure only)
+# the reasons: p24_reason's words, the corridor's notes (crossings, H5 sightline) and the section's own drawing rules
+P24_WHY = {"walk": (u"Walk + bike lane" if P24_BIKE else u"Riverside walk") + u": in the shade, between the hubs",
+           "reed": u"Reed cells: clean the water once before it goes back",
+           "touch": u"Cell edge: a clean-water classroom",
+           "terraces": u"Rain terraces: hold the rain, overflow to the reeds",
+           "spill": u"Spillway: gives the cleaned water back to the stream",
+           "wetland": u"Wetland bench: floods first, {:.2f} m over the bed",
+           "demeter": u"Demeter's Garden: raised over Q500, stays dry",
+           "dg_wall": u"Stone wall: holds the raised garden's edge",
+           "hub": u"Hub square: a dry square at the bridge, plane shade",
+           "wall": u"DSİ wall: kept, a railing to look into the channel",
+           "wall_gone": u"DSİ wall: gives way to the wetland's soft toe",
+           "subhub": u"Sub-hub: a place in the bed for the dry months",
+           "stones": u"Stepping stones: sub-hub crossing, closes in floods",
+           "foot": u"Footbridge: {:.0f} m reach without a crossing",
+           "view": u"Viewing terrace: sightline to the Trajaneum"}
+
+
+def _p24_group_text(keys):
+    """v36 (G9, as the water board's _p12_group_text): one planting group's callout, "Element: reason" (<= 55
+    letters): its species, what it does (plants.py purpose tags, sure only); None when no sourced purpose is known"""
+    keys = [q for q in dict.fromkeys(keys) if q in PLA_SPECIES]
+    tags = set(t_ for q in keys for t_ in pla_purpose(q, sure_only=True))
+    does = [P24_GROUP_DO[t_] for t_ in PLA_TAGS if t_ in tags and t_ in P24_GROUP_DO][:2]
+    if not does:
+        return None
+    keys.sort(key=lambda q: -PLA_SPECIES[q]["h_m"])        # the tallest first
+    nm = []
+    for q in keys:
+        w_ = PLA_SPECIES[q]["name"]
+        nm.append(w_.lower() if w_.split()[-1].lower() == "tree" else w_.split()[-1].lower())
+    tail = u": " + u", ".join(does)
+    n = min(3, len(nm))
+    while n > 1 and len(u" + ".join(nm[:n]) + tail) > 55:
+        n -= 1
+    s_ = u" + ".join(nm[:n]) + tail
+    return s_[:1].upper() + s_[1:]
 
 
 def _p24_put(pg, shapes, alpha=None):
@@ -449,6 +493,28 @@ class P24Sec(object):
         self.trees = []                                  # (key, h_m) drawn at layer 0 (G6 check)
         self.zl = []                                     # zone lines: (name, t, z of the ground, beyond)
         self.lv = []                                     # level words: (text, t, z)
+        self.gnd = None                                  # v35 G14: z of the finished ground at t (set by p24_section)
+        self.seated = 0                                  # v35 G14: items lowered onto the ground
+        self.co = []                                     # v36: callouts (t, z of the ground, "Element: reason", row)
+
+    def callout(self, t, z, text, row=0):
+        """v36: a numbered callout under the element at t (row 0) or its planting group (row 1); placed by
+        _p24_marks"""
+        if text:
+            self.co.append((t, z, text, row))
+
+    def seat(self, t, z, half=None, count=True):
+        """v35 (G14, nothing floats): z lowered to the lowest finished ground under the item's base (t +- half m)
+        when it stands up to P24_SEAT_MAX above it (a slope); a bigger drop is a wall edge or a deliberate level
+        (wall top, raised garden, water): z kept"""
+        if self.gnd is None:
+            return z
+        half = P24_SEAT_HALF if half is None else half
+        zm = min(self.gnd(t + d) for d in (-half, -half / 2.0, 0.0, half / 2.0, half))
+        if 0.005 < z - zm <= P24_SEAT_MAX:
+            self.seated += 1 if count else 0
+            return zm
+        return z
 
     def X(self, t):
         return (t - self.ta) * self.k
@@ -461,6 +527,7 @@ class P24Sec(object):
         self.shapes += list(shapes or [])
 
     def plant(self, key, t, z, layer=0, seed=0, into="vegetation", **kw):
+        z = self.seat(t, z) if not layer else z           # v35 G14 (behind the cut: on the cut ground as before)
         self.put(pla_section(key, self.X(t), self.Y(z), self.k, seed=seed, style=self.style, layer=layer, **kw), into)
         if not layer:
             self.trees.append((key, kw.get("h_m") or PLA_SPECIES[key]["h_m"]))
@@ -471,16 +538,24 @@ class P24Sec(object):
                                          self.k, t0=b0, t1=b1, mix=mix, seed=seed, style=self.style, density=density)
         self.put(sh, "vegetation")
         self.trees += [(key, h) for key, x, h, cr in placed]
+        return [key for key, x, h, cr in placed]          # v36: the group's species (its callout)
 
     def fig(self, pose, t, z, facing=1, **kw):
+        z = self.seat(t, z)                              # v35 G14
         self.put(fig_side(pose, self.X(t), self.Y(z), self.k, facing=facing, mm_per_m=self.k, style=self.style, **kw),
                  "figures")
 
     def people(self, zone, t0, t1, z, seed=0, **kw):
-        """people doing what the zone is for (M7 fig_activity), on flat ground z from t0 to t1"""
+        """people doing what the zone is for (M7 fig_activity) from t0 to t1, standing at z; v35 (G14): on dry ground
+        each figure stands on the lowest finished ground under its feet (seat), so none floats on a slope or a terrace
+        step; in the bed ("bed": wading) at z"""
         if t1 - t0 < 1.0:
             return
-        sh, _ = fig_activity(zone, self.X(t0), self.X(t1), self.Y(z), self.k, seed=seed, style=self.style, **kw)
+        gy = self.Y(z)
+        kw.setdefault("focus", self.X(0.0))              # v36 (Aras 31 Oct 12:01): who stays looks at the stream
+        if zone != "bed" and self.gnd is not None:
+            gy = lambda x, z=z: self.Y(self.seat(x / self.k + self.ta, z, 0.25, count=False))
+        sh, _ = fig_activity(zone, self.X(t0), self.X(t1), gy, self.k, seed=seed, style=self.style, **kw)
         self.put(sh, "figures")
 
     def block(self, t0, t1, z0, z1, material):
@@ -497,6 +572,8 @@ class P24Sec(object):
         self.wl.put(self.pg)
 
 
+P24_SEAT_HALF = 0.3         # v35 G14: half the base of a plant or person, m (the lowest ground under it carries it)
+P24_SEAT_MAX = 0.6          # v35 G14: lowered at most this much, m (more = a wall edge or a set level: kept)
 P24_BACK_M = (140.0, 60.0)   # T7: ground lines this far behind the cut (view direction), from the survey: the context
 P24_ARM_M = 60.0             # T7: trees of the corridor this far behind the cut stand in depth layer 1, farther in 2
 P24_BACK_GAP = 6.0           # T7: trees behind the cut at least this far apart along it per depth layer, m (legible)
@@ -598,16 +675,54 @@ def p24_section(C, w, warn, style="b"):
     S = P24Sec(ta, tb, z0, style)
     X, Y, k = S.X, S.Y, S.k
     zat = lambda t: _p24_zat(prof, t)
+    S.gnd = zat                                           # v35 G14: the finished ground (after cuts, terraces, walks)
     # ---- context: the ground behind the cut (survey heights on lines parallel to it, farthest first), the corridor's
     # trees behind the cut in depth layers 1 and 2 (D9), on the background behind the cut ground
-    backs = []
+    backs, back_d = [], []
     for d in P24_BACK_M:
         g = [(t, z) for t, z in p24_ground(C, (c0[0] + f[0] * d, c0[1] + f[1] * d), cd, ta, tb) if ta <= t <= tb]
         if len(g) >= 2:
             backs.append([(X(t), Y(z)) for t, z in g])
+            back_d.append(d)
+    # v36 (Aras 31 Oct 12:01 "no background houses", checklist 7; R2-C sf_back_buildings): the basemap houses
+    # SF_BACK_BAND m behind the cut (data height, else floors x BLD_STOREY), projected onto this cut (registry t, d ->
+    # this section's t from c0 and d behind it); up to P24_ARM_M behind on the near ground line (layer 1, as the trees),
+    # farther on the far one (layer 2); each layer's houses after its ground, so a nearer ground hides their feet;
+    # none over the channel (it runs on behind the cut)
+    houses, hspan, nh, nx = [], [], 0, 0
+    try:
+        ea, eb = level_ends(cid)
+        sgn = 1.0 if (eb[0] - ea[0]) * cd[0] + (eb[1] - ea[1]) * cd[1] > 0 else -1.0   # this cut runs as the registry's
+        off = (ea[0] - c0[0]) * cd[0] + (ea[1] - c0[1]) * cd[1]
+        dsh = (ea[0] - c0[0]) * f[0] + (ea[1] - c0[1]) * f[1]
+        s0, s1 = sorted(((ta - off) * sgn, (tb - off) * sgn))
+        hlog = []
+        for sa, sb, h_m, fl, dd in sf_back_buildings(cid, s0, s1, SF_BACK_BAND[0] - dsh, SF_BACK_BAND[1] - dsh,
+                                                     log=hlog, look=int(sgn)):
+            ha, hb = sorted((off + sgn * sa, off + sgn * sb))
+            houses.append((ha, hb, h_m, fl, dd + dsh))
+    except Exception as ex:
+        warn.append(u"section {}: background houses not drawn ({}: {})".format(name, type(ex).__name__, ex))
     if backs:
-        sf_topo_back(backs, Y(z0), into=S.wl)
+        bsh = sf_topo_back(backs, Y(z0)).L["background"]  # two shapes per ground line, the farthest first
+        for i, d in enumerate(back_d):
+            S.wl.add("background", bsh[2 * i:2 * i + 2])
+            ly = 1 if d <= P24_ARM_M else 2
+            for ha, hb, h_m, fl, dd in houses:
+                if (1 if dd <= P24_ARM_M else 2) != ly:
+                    continue
+                if hb - ha < 3.0 or (hb > -hw - P24_WALL_T - 1.0 and ha < hw + P24_WALL_T + 1.0):
+                    nx += 1                               # under one bay (sf_back_house's 3.0 m) or over the channel
+                    continue
+                S.put(sf_back_house(X(ha), X(hb), sf_gy(backs[i]), h_m, k, layer=ly, floors=fl), "background")
+                hspan.append((ha, hb, dd))
+                nh += 1
         keys.add("back")
+        if nh:
+            keys.add("bhouse")
+    if style == "b":
+        warn.append(u"section {}: {} background houses drawn ({} left out: narrow or over the channel)".format(
+            name, nh, nx + max(0, len(houses) - nh - nx)))
     near0, back = [], []
     for i, (p, key, cr) in enumerate(pl23_tree_set(C)):
         t, d = _p24_tz(c0, cd, f, p)
@@ -620,6 +735,8 @@ def p24_section(C, w, warn, style="b"):
     shown = {1: [], 2: []}
     for d, t, key, cr, i in sorted(back):                 # behind the cut: the nearest first, one per P24_BACK_GAP m
         ly = 1 if d <= P24_ARM_M else 2
+        if any(ha <= t <= hb and dd < d for ha, hb, dd in hspan):
+            continue                                      # v36: behind a nearer house (nothing see-through)
         if all(abs(t - t_) >= P24_BACK_GAP for t_ in shown[ly]):
             shown[ly].append(t)
             S.plant(key, t, zat(t), layer=ly, seed=300 + i, into="background", crown_m=cr, detail=False)
@@ -659,6 +776,7 @@ def p24_section(C, w, warn, style="b"):
             continue
         a, b = sg * hw, sg * (hw + P24_WALL_T)
         ring_ = [(X(a), Y(bed)), (X(b), Y(bed)), (X(b), Y(tops[side])), (X(a), Y(tops[side]))]
+        S.callout((a + b) / 2.0, tops[side], P24_WHY["wall_gone" if side in gone else "wall"])   # v36
         if side in gone:
             S.put([("line", ring_ + ring_[:1], COL["ink2"], 0.15, [0.8, 0.5])])
             continue
@@ -674,16 +792,27 @@ def p24_section(C, w, warn, style="b"):
             S.fig("railing", sg * (hw + P24_WALL_T / 2.0) - m_.get("rail_x", 0.0), tops[side], facing=fc,
                   rail_h=P24_RAIL_H)
             railed = True
-    # ---- the sub-hub in the bed (zone WA, bed tier) where the cut crosses it: people in the water at average flow
+    # ---- the sub-hub in the bed (zone WA, bed tier) where the cut crosses it (v36: no people in its water)
     sub = any(p24_zone(C, (c0[0] + cd[0] * u, c0[1] + cd[1] * u)) == "subhub"
               for u in [-hw + (i + 0.5) * (2.0 * hw) / 8.0 for i in range(8)])
-    if sub:
-        S.people("bed", -hw + 0.6, hw - 0.6, bed, seed=11, water=Y(avg))
+    if sub:                                               # v36 (Aras 31 Oct 11:28, checklist 11): nobody in the
+        #                                                   water-filled channel: the sub-hub keeps its name and callout
         S.zl.append((P24_NAME["subhub"], 0.0, bed, False))
+        S.callout(0.0, bed, P24_WHY["subhub"])           # v36
     # ---- the corridor's trees at the cut (the plan's tree set, layer 0)
     for t, key, cr, i in near0:
         S.plant(key, t, zat(t), seed=i, crown_m=cr)
         keys.add("forest")
+    grp = []                                              # v36 (G9): one callout per group of them (a gap > 10 m or
+    for t, key, cr, i in sorted(near0):                   # the stream between splits a group)
+        if grp and (t - grp[-1][-1][0] > 10.0 or (t > 0.0) != (grp[-1][-1][0] > 0.0)):
+            grp.append([])
+        if not grp:
+            grp.append([])
+        grp[-1].append((t, key))
+    for g_ in grp:
+        tm_ = (g_[0][0] + g_[-1][0]) / 2.0
+        S.callout(tm_, zat(tm_), _p24_group_text([q for _t, q in g_]), row=1)
     # ---- what each zone holds: its ground, paths, planting and people (G10)
     for key, t0, t1 in runs:
         ln_, tm = t1 - t0, (t0 + t1) / 2.0
@@ -697,6 +826,9 @@ def p24_section(C, w, warn, style="b"):
                 S.plant("plane", t, zf, seed=70 + j)
             S.people("walkway", t0 + 0.5, t1 - 0.5, zf, seed=21)
             S.lv.append((u_level(zf), tm, zf))
+            S.callout(tm, zf, P24_WHY["hub"])             # v36
+            if hub_t:
+                S.callout(sum(hub_t) / len(hub_t), zf, _p24_group_text(["plane"]), row=1)
         elif key == "street":
             zf = zat(tm)
             S.lane(t0, t1, zf, "road")
@@ -714,16 +846,28 @@ def p24_section(C, w, warn, style="b"):
                 S.fig("olive", t_o + 1.3, gf, facing=-1)
             S.plant("lavender", te - sg * 1.2, gf, seed=81)
             S.lv.append((u_level(gf), tm, gf))
+            S.callout(tm, gf, P24_WHY["demeter"])         # v36
+            S.callout(te - sg * P24_WALL_DG / 2.0, gf, P24_WHY["dg_wall"])
+            S.callout(tm + sg * 3.0, gf, _p24_group_text((["olive"] if x1_ > x0_ else []) + ["lavender"]), row=1)
         elif key == "wetland" and abs(tm) > hw:
             te = min((t0, t1), key=abs)                   # the water's side of the bench
             b0, b1 = (0.0, 0.45) if te == t0 else (0.45, 0.0)
-            S.scatter(t0, t1, prof, b0, b1, ("soft_rush", "loosestrife", "willow", "tamarisk"), seed=90, density=0.9)
+            got = S.scatter(t0, t1, prof, b0, b1, ("soft_rush", "loosestrife", "willow", "tamarisk"), seed=90,
+                            density=0.9)
+            S.callout(tm, zat(tm), P24_WHY["wetland"].format(TERRACE_UP))   # v36
+            if got:
+                S.callout(tm, zat(tm), _p24_group_text(got), row=1)
             sg = 1.0 if tm > 0 else -1.0
             if ln_ >= 8.0:
                 S.fig("watch", te + sg * 3.0, zat(te + sg * 3.0), facing=-1 if sg > 0 else 1)
         elif key == "terraces":
-            S.scatter(t0, t1, prof, 0.86, 0.94, ("lavender",), seed=100, density=0.8)
+            got = S.scatter(t0, t1, prof, 0.86, 0.94, ("lavender",), seed=100, density=0.8)
             S.people("walkway", t0 + 1.0, t1 - 1.0, zat(tm), seed=31, density=0.5, max_n=2)
+            S.callout(tm, zat(tm), P24_WHY["terraces"])   # v36
+            if got:
+                S.callout(tm, zat(tm), _p24_group_text(got), row=1)
+        elif key == "spill" and ln_ >= P24_MIN_RUN:
+            S.callout(tm, zat(tm), P24_WHY["spill"])      # v36
         elif key == "bld":
             zf = zat(tm)
             S.put([("line", [(X(t0), Y(zf) + 0.4), (X(t1), Y(zf) + 0.4)], COL["bld"], 0.8)])
@@ -736,6 +880,9 @@ def p24_section(C, w, warn, style="b"):
         a, b, rim = cells[0]
         S.fig("touch", a - 0.7, rim, facing=1)            # the clean-water classroom: a hand into the cell
         S.lv.append((u_level(cells[0][2]), (cells[0][0] + cells[-1][1]) / 2.0, cells[0][2]))
+        S.callout(a - 0.7, rim, P24_WHY["touch"])         # v36
+        tc = (cells[0][0] + cells[-1][1]) / 2.0
+        S.callout(tc, zat(tc), P24_WHY["reed"])
     for t, te, z0_, zt, sg in terr:                       # each terrace's riser, where the old ground stood higher
         if zt > z0_ + 0.05:
             S.block(te, te + sg * 0.15, z0_ - 0.3, zt, "concrete")
@@ -749,6 +896,7 @@ def p24_section(C, w, warn, style="b"):
             S.people("bike_lane", min(wb, wb + sg * P24_BIKE_W), max(wb, wb + sg * P24_BIKE_W), zw, seed=51 + j,
                      max_n=1)
         S.zl.append((P24_NAME["walk"], t, zw, False))
+        S.callout(t, zw, P24_WHY["walk"])                 # v36
         keys.add("walk")
         keys.add("lane")
     # ---- zone lines: one per run (bed = the stream), then what stands beyond the cut, paler (D9 layer 1)
@@ -786,6 +934,8 @@ def p24_section(C, w, warn, style="b"):
             zd = max(zat(t1_), zat(t2_))
             S.put([("line", [(X(t1_), Y(zd)), (X(t2_), Y(zd))], pale, 0.6)], "background")
             S.zl.append((P24_NAME["foot"], (t1_ + t2_) / 2.0, zd, True))
+            if c_.get("gap"):                             # v36: the corridor's reason (its crossings note)
+                S.callout((t1_ + t2_) / 2.0, zat((t1_ + t2_) / 2.0), P24_WHY["foot"].format(c_["gap"]))
         elif c_["kind"] == "stepping stones":
             t = max(t1_, -hw) + P24_STONE[1] / 2.0
             while t < min(t2_, hw):
@@ -793,6 +943,7 @@ def p24_section(C, w, warn, style="b"):
                         pale, None, 0.1)], "structures")
                 t += P24_STONE[1]
             S.zl.append((P24_NAME["stones"], 0.0, bed, True))
+            S.callout(0.0, bed, P24_WHY["stones"])        # v36
     if C.terrace:
         t, d = _p24_tz(c0, cd, f, C.terrace["xy"])
         if 0.0 < d <= P24_BEYOND_M and ta + 3.0 <= t <= tb - 3.0:
@@ -800,10 +951,17 @@ def p24_section(C, w, warn, style="b"):
             S.put([("line", [(X(t - 2.0), Y(zz + 0.3)), (X(t + 2.0), Y(zz + 0.3))], fig_fade(COL["ink2"], 1), 0.5)],
                   "background")
             S.zl.append((P24_NAME["view"], t, zz, True))
+            S.callout(t, zz, P24_WHY["view"])             # v36
+    if SF_SKY_DEFAULT == "designed":                     # v36 (D8, default a: every section): the designed sky, behind all
+        g0_ = min(Y(p[1]) for p in prof)
+        S.wl.add("atmosphere", sf_sky(0.0, S.w, g0_, max(_p24_top(S.shapes) or 0.0, g0_ + 10.0) + 3.0,
+                                      seed={"W1": 5, "W3": 7}.get(cid, 5)))
     S.draw()
     bad = sf_assert_g6(k, trees=S.trees, strict=False)   # G6: people 1.75 m, every tree in its sourced height range
     if bad and style == "b":
         warn.append(u"section {}: {}".format(name, u"; ".join(bad)))
+    if style == "a" and S.seated:                         # v35 G14 log (style a = the booklet's)
+        warn.append(u"section {}: G14 {} plants / single figures lowered onto the ground (groups follow the ground per figure)".format(name, S.seated))
     # ---- words: the zone lines and names in rows above everything (R18 idea), the levels by their points
     top = max([_p24_top(S.shapes) or 0.0] + [Y(p[1]) for p in prof] + [Y(q500) + 2.0 * KEY_MIN]) + 2.0
     rows = [[] for _ in range(P24_LAB_ROWS)]
@@ -837,6 +995,8 @@ def p24_section(C, w, warn, style="b"):
         S.pg.text(s_, x, y, 3.4, COL["ink_dark"], bold=True, align=al)
         wd = text_w(s_, 3.4, True)
         taken.append((x if al == "L" else x - wd, y - 0.3, x + wd if al == "L" else x, y + 3.4))
+    co = _p24_marks(S, zat, taken, missing)               # v36: the numbered circles in the cut ground
+    shp_put(S.pg, co.marks(size=P24_CO))
     for s_, t, zz in S.lv:
         wd = text_w(s_, ts_lab)
         got = label_spot(X(t), Y(zz) + 1.2, wd, ts_lab * 1.1, taken, (0.0, 0.5, S.w, top - 0.5), (), 0.3)
@@ -847,7 +1007,59 @@ def p24_section(C, w, warn, style="b"):
         S.pg.text(s_, b[0], b[1] + ts_lab * 0.2, ts_lab, COL["ink"])
         taken.append(b)
     keys.add("section")
-    return S.pg, S.w, h, keys, missing
+    # v36: the numbered key under the section (as p.17's: columns across the section's width); kh = its depth under
+    # the drawing (y < 0), which the panel adds to the section's block, so the booklet crop reaches down to it
+    items = sorted(dict((n_, t_) for n_, _x, _y, t_ in co.items).items())
+    kh = 0.0
+    if items:
+        cw = max(text_w(t_, P24_CO) for _n, t_ in items) + 2.0 * P24_CO + 4.0
+        nc = max(1, min(len(items), int((S.w + 4.0) // cw)))
+        per = (len(items) + nc - 1) // nc
+        yk = -(1.5 + 0.35 * P24_CO)
+        for c_ in range(nc):
+            part = items[c_ * per:(c_ + 1) * per]
+            if part:
+                kc = SfCallouts()
+                kc.items = [(n_, 0.0, 0.0, t_) for n_, t_ in part]
+                shp_put(S.pg, kc.key(c_ * cw, yk, size=P24_CO))
+        kh = -(yk - (per - 1) * 1.5 * P24_CO - 1.15 * P24_CO) + 0.5
+        if nc * cw - 4.0 > S.w + 0.1:
+            warn.append(u"section {}: the callout key ({:.0f} mm) is wider than the section ({:.0f} mm)".format(
+                name, nc * cw - 4.0, S.w))
+    return S.pg, S.w, h, keys, missing, kh
+
+
+def _p24_marks(S, zat, taken, missing):
+    """v36 (the water board's callout style, R2-C): each callout of S.co as a numbered circle (SfCallouts, P24_CO) in
+    the cut ground under its element (row 0) or a circle lower under its planting group (row 1); a circle that would
+    touch another circle, a word box (taken) or leave the drawing moves sideways by one circle, then deeper; the same
+    text keeps one number. Its boxes join taken (the level words keep clear). Returns the SfCallouts."""
+    co = SfCallouts()
+    r = 0.75 * P24_CO
+    step = 2.0 * r + 0.4
+    done = []
+    for t, z, txt, row in sorted(S.co, key=lambda c_: (c_[3], c_[0])):
+        got = None
+        for dx in (0, 1, -1, 2, -2, 3, -3):
+            x = min(max(S.X(t) + dx * step, r + 0.3), S.w - r - 0.3)
+            gyx = min(S.Y(zat(min(max(x_ / S.k + S.ta, S.ta), S.tb))) for x_ in (x - r, x, x + r))
+            for j in ((0, 1, 2) if row == 0 else (1, 2, 0)):
+                y = gyx - 0.4 - r - j * step
+                b = (x - r, y - r, x + r, y + r)
+                if b[1] < 0.4 or any(math.hypot(x - px, y - py) < step for px, py in done) or \
+                        any(b[0] < q[2] and q[0] < b[2] and b[1] < q[3] and q[1] < b[3] for q in taken):
+                    continue
+                got = (x, y, b)
+                break
+            if got:
+                break
+        if got is None:
+            missing.append(u"callout: " + txt)
+            continue
+        co.add(got[0], got[1], txt)
+        done.append((got[0], got[1]))
+        taken.append(got[2])
+    return co
 
 
 def p24_cut_on_plan(pg, w, T, taken, segs, bounds):
@@ -1034,9 +1246,9 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
         if on(Q):
             pg.line(Q, COL["river_mid"], 1.2, [1.6, 0.9], cap=0, alpha=0.7)
             leg(("p24", "hidden"))
-    # ---- vegetation over the ground, water and paths (M5 order; G9): the corridor's tree set as on p.21 (groves
-    # and clearings, species by their band from the water, each at its crown width with its own plan mark; no
-    # identical clusters), the hub squares' planes
+    # ---- vegetation over the ground, water and paths (M5 order; G9): the corridor's tree set as on p.21 (v33: rows
+    # along the water's edge, one species per row from wet to dry, each at its crown width with its own plan mark),
+    # the hub squares' planes
     if pl23_trees_draw(pg, C, T, k, (-8.0, -8.0, dw + 8.0, dh + 8.0)):
         leg(("p24", "tree"))
     for h in C.hubs:
@@ -1327,7 +1539,8 @@ def r28_window_panel(C, w, areas, missing, warn):
             leg(("p24s", k_))
     units = units or [("b", None)]
     SCALE_ROW, MARK_ROW, TITLE_ROW, GAP = 2 * GRID_BASE, 3 * GRID_BASE, 3 * GRID_BASE, 4 * GRID_BASE
-    hs = [((SCALE_ROW + grid_snap_h(sec[2])) if sec else 0.0) + MARK_ROW + dh for st, sec in units]
+    kh_ = lambda sec: sec[5] if len(sec) > 5 else 0.0    # v36: the callout key's depth under the section
+    hs = [((SCALE_ROW + grid_snap_h(sec[2] + kh_(sec))) if sec else 0.0) + MARK_ROW + dh for st, sec in units]
     W = M + dw + M
     H = 1.0 + sum(hs) + TITLE_ROW * len(units) + GAP * (len(units) - 1)
     sh = Page(W, H)
@@ -1342,8 +1555,8 @@ def r28_window_panel(C, w, areas, missing, warn):
             sh.text(u"Section {0} {0}' on cut {1} · every zone of the plan above, looking upstream".format(
                 nm, level_name(cid)), M + 72.0, y + 1.7, ts["label"], COL["ink_dark"], bold=True)
             y += SCALE_ROW
-            blit(sh, spg, M, y)                           # images (style a) stay outside every clip
-            y += grid_snap_h(shh)
+            blit(sh, spg, M, y + kh_(sec))                # images (style a) stay outside every clip; v36: the key
+            y += grid_snap_h(shh + kh_(sec))              # under the drawing, inside the crop (it reaches down to y0)
         panel_marks(sh, M, y, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
         y += MARK_ROW
         sh.clip([rect(M, y, M + dw, y + dh)])
@@ -1399,6 +1612,7 @@ def r28_crop_legend(keys):
             (("p24s", "flood"), "fill", P24_FLOOD, u"Reach of Q500 (lines: Q100, Q500)"),
             (("p24s", "lane"), "fill", SF_LANE["walk"], u"Walk, bike lane, street in section"),
             (("p24s", "back"), "fill", _sec_mix(SEC["soil"], SEC["paper"], 0.6), u"Ground behind the cut (survey)"),
+            (("p24s", "bhouse"), "fill", BLD_COL["fill"], u"Buildings behind the cut (survey)"),
             (("p24s", "wall"), "fill", SCT["stone"], u"DSİ stone wall"),
             (("r28dt", "bed"), "fill", _wat_pal()["surface"], u"Selinos stream (darker = deeper)"),
             (("r28dt", "bld"), "fill", cl["bld"], u"Building (survey)"),

@@ -1,9 +1,19 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v54.1)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v57)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v57 (round 2 closing, Aras 31 Oct 12:01): p8 street sections draw the survey's houses further down the street
+behind each cut (data heights, on the street level, paler with distance, none above the drawing); people who stay on
+pp.4-5 and p8 look at what they are there for (the stream when it is near, else each other), walkers keep their way.
+NEW IN v56 (round 2, Aras 31 Oct notes): p2 the edge strip's buildings as roof blocks, C1-C6 and K1-K6 listed under
+plan 01 in the map's own marker style, the town outside the study area a little fainter; pp.4-5 houses, trees and
+people beyond the cut stand on their own ground, no wall triangles, a designed sky, one people style; p7 each street
+name clear of every other line (nearest line = its street, else a leader with a dot); p8 street sections whole in
+one row (max 110 mm) with a key map, real house profiles behind, mixed planting groups, people by zone, sky.
+NEW IN v55 (Aras 31 Oct critique): p6 the stream edge plan once, in the beige palette (b); p8 street sections in
+style a only, the trees behind each section kept whole inside the drawing (no crowns cut at the edge).
 NEW IN v54.1 (bugfix, Aras 31 Oct run): base maps with the stream (M5 water) no longer stop on the first point
 (list - float in T); the maps on the affected pages are drawn again.
 NEW IN v54 (revision 30 Oct, T4 + T6 + T8): town map pages p2, p3, p6 (D5 a/b), p7, p8 street sections (D1 a/b),
@@ -396,8 +406,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v54.1 (2026-10-31)"     # v27: the log's first line and the text under the component
-SHORT_V = "v54.1"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v57 (2026-10-31)"     # v27: the log's first line and the text under the component
+SHORT_V = "v57"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

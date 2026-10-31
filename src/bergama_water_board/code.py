@@ -60,6 +60,25 @@ v8 (revision 30 Oct, T5-T8): p11 system axonometric + zoom (D1 a/b), pp.13-14 se
   planting (a/b), p18 farms without the axonometric (D2 a); captions for the _a/_b crops. Output: Bergama_water_board_v8_A_cubes.pdf.
 v8.1 (bugfix, Aras 31 Oct run): pp.14-15 and p.17 key maps and p.17 plan base maps no longer stop on the stream
   (M5 water: list - float). Output: Bergama_water_board_v8_1_A_cubes.pdf.
+v9 (Aras 31 Oct critique, booklet pp.11, 13, 14): style a only. p.11: one up-close section band at the bottom (b's
+  layout, a's drawing), buildings as volumes only within 60 m of the stream and heritage, the rest as faint footprints;
+  p.13 seasons: style a, trees lighter (cutout opacity 0.70); p.14 S4 bank: style a. Plain crop ids (no _a/_b) for
+  wb_system, wb_s4_seasons, wb_s4_ne; p.17 keeps its a/b. Output: Bergama_water_board_v9_A_cubes.pdf.
+v9.1 (bugfix, Aras 31 Oct: every plant photo frame on booklet pp.16-17 empty): the photos are added to the page's
+  existing image list instead of a second /XObject entry, which hid them once the style a cutouts put images on the
+  page. Output: Bergama_water_board_v9_1_A_cubes.pdf.
+v10 (round 2 critique, Aras 31 Oct, booklet pp.11, 13, 14, 16, 17; R2-A modules): p.11 map shows only the numbered
+  steps (texts in the side key), the up-close section with the designed sky, mixed planting groups on depth layers,
+  people by zone, nothing floating or in the water; p.13 denser render-like views with seasonal people, mixed
+  grounded planting, trees opaque; p.14 lists and level labels clear of the trees; p.16 wet-to-dry species areas,
+  cut lines with their view direction, the two plans apart, north sign clear of the scale; p.17 F1-F4 with sky,
+  background ground and houses, mixed groups, people by zone (nobody in the walled channels' water), "Element:
+  reason" callouts. Output: Bergama_water_board_v10_A_cubes.pdf.
+v11 (Aras 31 Oct 12:01): background houses behind every section (common sf_back_buildings: the survey's buildings
+  8-120 m behind the cut, data height else floors x 3.00 m, drawn layer by layer behind that layer's trees) on pp.11,
+  13, 14, 17; people as scenes (those who stay look at the water / stall, children and waders in pairs; p.13 a story
+  per season); p.17 F1 without blocks in the bed, F4's shallow strip with water actions (wade, bend to the water,
+  play). Output: Bergama_water_board_v11_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -159,8 +178,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v8.1 (2026-10-31)"
-SHORT = "v8.1"
+VERSION = "bergama_water_board v11 (2026-10-31)"
+SHORT = "v11"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -169,7 +188,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v8_1_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v11_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -1445,7 +1464,10 @@ def pdf_add_images(path, imgs):
     d_id = add(b"<< /Length " + str(len(st)).encode() + b" /Filter /FlateDecode >>\nstream\n" + st + b"\nendstream")
     cm = re.search(r"/Contents (\d+) 0 R", pdict)
     newp = pdict.replace(cm.group(0), "/Contents [{} 0 R {} 0 R {} 0 R]".format(q_id, cm.group(1), d_id), 1)
-    newp = newp.replace("/Resources << ", "/Resources << /XObject << {} >> ".format(" ".join(names)), 1)
+    if "/XObject << " in newp:                      # v9.1: the page already has images (style a cutouts): the
+        newp = newp.replace("/XObject << ", "/XObject << {} ".format(" ".join(names)), 1)   # photos join that dict
+    else:                                           # (a second /XObject key hid every photo: p.16-17 frames empty)
+        newp = newp.replace("/Resources << ", "/Resources << /XObject << {} >> ".format(" ".join(names)), 1)
     out = bytearray(pdf)
     if not out.endswith(b"\n"):
         out += b"\n"
@@ -2085,24 +2107,16 @@ def build_board(opt, storage, parts, pal_line, log):
 BK_CAPTIONS = {
     "wb_water": u"How the water behaves: the year, and how high the stream rises",
     "wb_system": u"What we do with it: collect, clean, hold, give back",
-    "wb_system_a": u"What we do with it: collect, clean, hold, give back · style a, raster collage",
-    "wb_system_b": u"What we do with it: collect, clean, hold, give back · style b, textured vector",
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
     "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
     "wb_plants_b_a": u"Planting and water in section: four cuts, the species and their year · style a, raster collage",
-    "wb_plants_b_b": u"Planting and water in section: four cuts, the species and their year · style b, textured vector",
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 
 
-for _c in ("wb_s4_seasons", "wb_s4_ne"):             # D1: the style a / b copies carry the panel's caption
-    for _s in ("_a", "_b"):
-        BK_CAPTIONS.setdefault(_c + _s, BK_CAPTIONS[_c])
-
-
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
-BK_FIXED += tuple(c + s for c in BK_FIXED if c != "wb_plants" for s in ("_a", "_b"))   # D1: their style a / b copies
+BK_FIXED += ("wb_plants_b_a",)   # v10: p.17 style a only (as p.11, p.13, p.14 since v9)
 
 
 def res_s4_cut():

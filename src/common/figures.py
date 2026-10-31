@@ -291,6 +291,15 @@ def _fa_off(P, d):
     return out
 
 
+class _FaFill(list):
+    """a body fill ring (opaque, under the pen strokes): the drawn figures are never see-through (Aras 31 Oct)"""
+
+
+def _fa_ellipse(cx, cy, rx, ry, n=16):
+    import math as _m
+    return [(cx + rx * _m.cos(2 * _m.pi * i / n), cy + ry * _m.sin(2 * _m.pi * i / n)) for i in range(n)]
+
+
 def _fa_draw(B, legs, arms, rnd, w=FIG_A1_PEN, hatch=True, hem=None, coat=0.0, cut_y=None):
     """pen strokes of one body in the R20 manner: small open head oval; the coat as two contour strokes falling from
     the neck over round shoulders to the hem, a hem/belt stroke overshooting both sides; each leg as two contour
@@ -313,6 +322,9 @@ def _fa_draw(B, legs, arms, rnd, w=FIG_A1_PEN, hatch=True, hem=None, coat=0.0, c
     back = [neck, T(-0.75 * dep, tl - 0.01), T(-1.0 * dep, tl - 0.10), T(-0.95 * dep, 0.45 * tl), T(-0.92 * dep, hv)]
     front = [(neck[0] + 0.03, neck[1] - 0.01), T(0.70 * dep, tl - 0.03), T(0.95 * dep, tl - 0.16), T(0.80 * dep, 0.45 * tl),
              T(0.90 * dep, hv)]
+    fills = [_FaFill(_fa_ellipse(hx, hy, B.hr[0], B.hr[1])), _FaFill(back + list(reversed(front)))]   # R2-A 31 Oct
+    for e, hnd in arms:
+        fills += [_FaFill(_fig_band((s[0] + 0.01, s[1] - 0.03), e, 0.05 * B.h, 3)), _FaFill(_fig_band(e, hnd, 0.04 * B.h, 3))]
     out += [_fa_stroke(back, rnd, w), _fa_stroke(front, rnd, w * 0.85)]
     out.append(_fa_stroke([T(-1.15 * dep, hv + 0.01), T(1.20 * dep, hv - 0.005)], rnd, w * 0.9, over=0.12))
     if hatch:
@@ -325,6 +337,10 @@ def _fa_draw(B, legs, arms, rnd, w=FIG_A1_PEN, hatch=True, hem=None, coat=0.0, c
     lw0 = 0.055 * B.h                                   # half leg width at the hip
     for i, (kn, an) in enumerate(legs):
         P = [p, kn, an]
+        q1 = _fa_clip(_fa_off(P, [lw0, 0.6 * lw0, 0.12 * lw0]), cut_y)
+        q2 = _fa_clip(_fa_off(P, [-lw0, -0.6 * lw0, -0.12 * lw0]), cut_y)
+        if len(q1) >= 2 and len(q2) >= 2:
+            fills.append(_FaFill(q1 + list(reversed(q2))))
         for side in ((1, -1) if i == 0 else (-1,)):     # the far leg: its back contour only
             Q = _fa_off(P, [side * lw0, side * 0.6 * lw0, side * 0.12 * lw0])
             Q = _fa_clip(Q, cut_y)
@@ -333,7 +349,7 @@ def _fa_draw(B, legs, arms, rnd, w=FIG_A1_PEN, hatch=True, hem=None, coat=0.0, c
         if cut_y is None or an[1] > cut_y:
             out.append(_fa_stroke([(an[0] - 0.02, an[1] - B.L["ankle"] * 0.6), (an[0] + 0.6 * B.L["foot"], an[1] - B.L["ankle"])],
                                   rnd, w, over=0.1, smooth=False))
-    return [r for r in out if r]
+    return fills + [r for r in out if r]
 
 
 def _fa_side(pose, seed=0, **p):
@@ -523,6 +539,8 @@ FIG_DRAWN_SIDE = ("stand", "walk", "watch", "wade", "sit_step", "touch", "stall"
 FIG_DRAWN_TOP = ("stand", "watch", "walk", "sit", "sit_step", "sit_chair", "bike", "adult_child", "child_play", "vendor")
 FIG_POSE_ALIAS = {"sit": "sit_step", "cycle": "bike", "trade": "stall", "buy": "stall", "children": "child_play",
                   "play": "child_play", "sell": "vendor"}
+FIG_CUT_ALIAS = dict(watch="stand", lean="stand", railing="stand", touch="stand", olive="stand")   # style a
+FIG_BODY_FILL = "FFFFFF"     # the drawn figures' body, opaque like the cutouts' white interiors
 FIG_DRAWN_ONLY = ("wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child", "child_play", "vendor")
 
 
@@ -590,13 +608,15 @@ def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_mi
     Returns house shapes ("poly", ring, ink, stroke, lw) (style a: an "image" shape)."""
     pose = FIG_POSE_ALIAS.get(pose, pose)
     sc, fade = fig_depth(layer)
-    if style == "a":
+    water_act = pose == "touch_water"                  # R2-C (Aras 31 Oct 12:01): in shallow water the action reads:
+    if water_act:                                      # bending to the water stays drawn (no cutout does it)
+        pose = "touch"
+    if style == "a" and pose != "wade" and not water_act:   # one people style (Aras 31 Oct): poses without a cutout
+        cp = FIG_CUT_ALIAS.get(pose, pose)              # of their own take the standing cutouts; wading stays drawn
         h_true = FIG_CYCLIST_H if pose == "bike" else (p.get("child_h", FIG_CHILD_H) if pose == "child_play" else None)
         y_im = y
-        if pose == "wade":                             # the cutout is cut at the water line: it stands on the water
-            dep = p.get("depth_m", FIG_DC["knee"] * FIG_A1_H)
-            y_im, h_true = y + dep * k * sc, FIG_ADULT_H - dep
-        im = cut_image("person_" + pose, x, y_im, k, h_m=h_true, layer=layer, facing=facing)
+        pk = pick if pick is not None else int(abs(x * 7.31 + y * 3.17) * 10.0) % 997   # 31 Oct: variety (was
+        im = cut_image("person_" + cp, x, y_im, k, h_m=h_true, layer=layer, facing=facing, pick=pk)   # always no. 1)
         if im:
             return im
     k = k * sc
@@ -616,7 +636,10 @@ def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_mi
         rings = fig_polys(pose if pose in FIG_POSES else "stand", FIG_A1_H, 1)
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
     kk = k * lk
-    return [("poly", [(x + flip * px * kk, y + py * kk) for px, py in r], ink, ink if add > 0 else None, add)
+    body = fig_fade(FIG_BODY_FILL, layer)
+    rings = [r for r in rings if isinstance(r, _FaFill)] + [r for r in rings if not isinstance(r, _FaFill)]
+    return [("poly", [(x + flip * px * kk, y + py * kk) for px, py in r], body, None, 0.0) if isinstance(r, _FaFill)
+            else ("poly", [(x + flip * px * kk, y + py * kk) for px, py in r], ink, ink if add > 0 else None, add)
             for r in rings]
 
 
@@ -633,7 +656,7 @@ def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=
 
 
 # ---- D9 depth layers (H-B 30 Oct 2026): 0 = the cut plane (true size, G6 asserts here), 1 = mid, 2 = back --------
-# (scale, tone mix toward the paper, raster alpha). Plants (plants.py) and cutouts use the same table.
+# (scale, tone mix toward the paper, raster alpha: no longer used, cutouts are opaque toned copies since R2-A 31 Oct).
 FIG_DEPTH = {0: (1.00, 0.00, 1.00), 1: (0.80, 0.40, 0.70), 2: (0.62, 0.62, 0.45)}
 
 
@@ -719,9 +742,12 @@ def _cut_px(path):
 
 
 def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
-    """style a: [("image", x0, y0, w, h, path, alpha, flip, None)] of cutout `key` standing on (x, gy) page mm (gy
+    """style a: [("image", x0, y0, w, h, path, None, flip, None)] of cutout `key` standing on (x, gy) page mm (gy
     may be a function of x), h_m (default the cutout's own true height) x k x the layer scale tall; w_max (mm)
-    shrinks it uniformly if wider. None (counted as missing) when there is no such cutout."""
+    shrinks it uniformly if wider. None (counted as missing) when there is no such cutout. Always opaque (Aras 31
+    Oct: nothing see-through); depth layers 1, 2 take the entry's toned copy (cutouts.json "depth": {"1": file,
+    "2": file}, made by tools/cutouts/depth_tones.py: colours mixed toward the paper by FIG_DEPTH's fade, so nearer
+    = stronger, farther = paler, the section rule), else the full-tone file."""
     import os as _o
     lib = cut_library().get(key)
     if not lib:
@@ -729,11 +755,14 @@ def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
         return None
     e = lib[int(pick) % len(lib)]
     p = _o.path.join(cut_dir(), e["file"])
+    dfile = (e.get("depth") or {}).get(str(int(layer or 0)))   # R2-A 31 Oct: the depth layer's own toned copy
+    if dfile and _o.path.isfile(_o.path.join(cut_dir(), dfile)):
+        p = _o.path.join(cut_dir(), dfile)
     px = _cut_px(p)
     if not px or not px[1]:
         CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
         return None
-    sc, _f_, al = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
+    sc, _f_, _al = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
     h = float(h_m or e["h_m"]) * k * sc
     w = h * px[0] / float(px[1])
     if w_max and w > w_max:
@@ -741,7 +770,7 @@ def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
     g = gy(x) if callable(gy) else gy
     flip = (facing < 0) != (e.get("facing", 1) < 0)
     CUT_USED[key] = CUT_USED.get(key, 0) + 1
-    return [("image", x - w / 2.0, g, w, h, p, None if al >= 0.999 else al, flip, None)]
+    return [("image", x - w / 2.0, g, w, h, p, None, flip, None)]   # opaque: never see-through (Aras 31 Oct)
 
 
 def cut_log_line():
@@ -833,28 +862,35 @@ FIG_ACTIVITY = {
     "bike_lane": [("bike", 1.0, 1.9)],
     "walkway": [("walk", 3.0, 0.8), ("adult_child", 1.5, 1.0), ("group", 1.0, 1.7), ("watch", 0.6, 0.6)],
     "viewing_terrace": [("watch", 2.0, 0.7), ("railing", 2.0, 0.8), ("sit_step", 1.0, 0.8), ("group", 1.0, 1.7)],
-    "wading_strip": [("wade", 3.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.5, 0.8)],
+    "wading_strip": [("wade", 3.0, 0.8), ("touch_water", 1.5, 0.9), ("child_play", 1.5, 0.8)],   # R2-C: water actions
     "market_ground": [("market", 3.0, 3.2), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0), ("group", 1.0, 1.7)],
     "sun_steps": [("sit_step", 4.0, 0.8), ("watch", 0.5, 0.7), ("touch", 0.5, 0.9)],
     "bridge_crossing": [("walk", 3.0, 0.8), ("railing", 1.5, 0.8), ("bike", 0.7, 1.9), ("watch", 1.0, 0.7)],
     "bed": [("wade", 2.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.0, 0.8)],
+    "stepping_stones": [("walk", 2.0, 0.8), ("adult_child", 1.5, 1.0), ("stand", 0.6, 0.6)],   # R2-A: on the stones
+    "lawn": [("child_play", 1.5, 0.8), ("group", 1.0, 1.7), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0)],
 }
+FIG_FOCUS_POSES = ("watch", "railing", "sit_step", "touch", "touch_water", "stand", "adult_child")   # R2-C scenes
+FIG_PAIR_POSES = ("wade", "child_play")        # R2-C scenes: playing together in the water or on the lawn
 FIG_ZONE_ALIAS = {"bike": "bike_lane", "walk": "walkway", "terrace": "viewing_terrace", "wading": "wading_strip",
                   "market": "market_ground", "steps": "sun_steps", "bridge": "bridge_crossing",
-                  "stream_bed": "bed"}
+                  "stream_bed": "bed", "stones": "stepping_stones", "open_ground": "lawn"}
 
 
 def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, style="b", water=None, max_n=None,
-                 **p):
+                 acts=None, focus=None, **p):
     """people doing what the zone is for, placed along x0..x1 (page mm) on the ground gy (number or function of x),
     k mm per m: poses drawn from FIG_ACTIVITY[zone] by weight, never the same pose twice in a row (when the zone has
     two or more), irregular gaps (0.6-3.2 m / density), at least two people where two fit. water = the water level
     (page y, or a function of x) for wading figures (their depth). p goes to every figure (seat_h, rail_h, ...).
-    Returns (shapes, placed [(pose, x page mm)])."""
+    acts: this zone's [(pose, weight, footprint m)] instead of FIG_ACTIVITY's (fig_place_zones filters it).
+    focus (page x, R2-C scenes, Aras 31 Oct 12:01 "they look like they are just put there"): people who stay look at
+    it (the water, a stall, a view), people playing in the water turn to each other in pairs, walkers and riders
+    keep their own way. Returns (shapes, placed [(pose, x page mm)])."""
     zone = FIG_ZONE_ALIAS.get(zone, zone)
     if zone not in FIG_ACTIVITY:
         raise KeyError("fig_activity: zone %r; known: %s" % (zone, ", ".join(sorted(FIG_ACTIVITY))))
-    acts = FIG_ACTIVITY[zone]
+    acts = acts or FIG_ACTIVITY[zone]
     rnd = _fa_rand(seed * 13 + 7)
     sc = fig_depth(layer)[0]
     K = k * sc
@@ -880,6 +916,10 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
         cx = x + 0.5 * foot * K
         g = gy(cx) if callable(gy) else gy
         fac = 1 if rnd() > 0 else -1
+        if focus is not None and pose in FIG_FOCUS_POSES:
+            fac = 1 if focus >= cx else -1
+        elif focus is not None and pose in FIG_PAIR_POSES:
+            fac = 1 if len(placed) % 2 == 0 else -1    # pairs turned to each other (left looks right, right looks left)
         if pose == "market":
             sh += fig_stall(cx + 0.5 * FIG_STALL["depth_m"] * K, gy, k, facing=fac, layer=layer, seed=seed + len(placed),
                             ink=ink, style=style)
@@ -890,13 +930,92 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
             q = dict(p)
             if pose == "wade" and water is not None:
                 wl = water(cx) if callable(water) else water
-                q["depth_m"] = max(0.05, min(FIG_DC["knee"] * FIG_A1_H * 1.4, (wl - g) / K))
+                q["depth_m"] = max(0.05, min(globals().get("FIG_WADE_MAX_M", FIG_DC["knee"] * FIG_A1_H * 1.4),
+                                             (wl - g) / K))
             sh += fig_side(pose, cx, g, k, facing=fac, ink=ink, layer=layer, style=style, pick=seed + len(placed), **q)
         placed.append((pose, cx))
         last = pose
         if max_n and len(placed) >= max_n:
             break
         x += foot * K + (0.6 + 2.6 * (rnd() + 0.5)) / max(0.2, density) * K
+    return sh, placed
+
+
+# ---- G10 + G14 people by zone (R2-A 31 Oct 2026) ------------------------------------------------------------------
+# People stand only where a zone is walkable; in the water only on a wading strip or stepping stones (U26: nobody in
+# the stream for no reason); bikes only on bike lanes; every figure on the lowest ground under its feet (G14).
+FIG_WALKABLE = ("walkway", "bike_lane", "viewing_terrace", "sun_steps", "market_ground", "bridge_crossing",
+                "wading_strip", "stepping_stones", "lawn")
+FIG_FOOT_HALF_M = 0.30       # m, half the ground a standing figure covers (drawing rule for G14 seating)
+_FIG_NPICK = [0]
+FIG_WADE_MAX_M = FIG_DC["knee"] * FIG_ADULT_H   # m: water at most knee deep where people wade (Aras 31 Oct: a
+# person in a channel drawn full of water reads wrong); drawing rule from the figure's own proportions
+
+
+def _fig_dry_runs(xa, xb, g, water, k, limit_m):
+    """the parts of [xa, xb] where the water stands at most limit_m above the ground g (page y functions)"""
+    n = max(2, int((xb - xa) / max(1e-6, 0.25 * k)))
+    runs, a = [], None
+    for i in range(n + 1):
+        x = xa + (xb - xa) * i / float(n)
+        w = water(x) if callable(water) else water
+        ok = (w - g(x)) / k <= limit_m + 1e-6
+        if ok and a is None:
+            a = x
+        if (not ok or i == n) and a is not None:
+            b = x if ok else xa + (xb - xa) * (i - 1) / float(n)
+            if b > a:
+                runs.append((a, b))
+            a = None
+    return runs
+
+
+def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water=None, ink=None, max_per_zone=None,
+                    focus=None, **p):
+    """G10 people in a section, zone by zone: zones = [(kind, x0, x1)] or [(kind, x0, x1, ground)] left to right
+    (page mm; ground = that zone's own walking surface: stone tops, a terrace deck, a bridge deck; else gy). kind =
+    a FIG_ACTIVITY zone (walkway, bike_lane, viewing_terrace, sun_steps, market_ground, bridge_crossing,
+    wading_strip, stepping_stones, lawn, or an alias); any other kind (water, bed, planting, slope, wall ...) gets
+    nobody and is counted in the G14 log line. Groups, adult with child, sitting, walking, trading, children
+    playing by the zone's set; bikes only on bike lanes; wading figures take their depth from water (page y or
+    function of x) on a wading strip only; cutout variants vary across the whole run (a running pick); every figure
+    seated on the lowest ground under its feet (sf_seat_x). Pass water whenever a zone reaches the channel: nobody
+    stands where the drawn water is deeper than FIG_WADE_MAX_M (knee) on a wading strip, or above the ground at all
+    on any other zone (refused parts counted in the G14 log line as "<kind> (too deep)"). p goes to every figure
+    (seat_h, rail_h ...). focus = page x everyone who stays looks at (R2-C scenes: the water; see fig_activity), or
+    a function of (kind, x0, x1) -> page x or None per zone. Returns (shapes, placed [(kind, pose, x)])."""
+    seat = globals().get("sf_seat_x")
+    gfn = globals().get("_sf_fn")
+    sc = fig_depth(layer)[0]
+    sh, placed = [], []
+    for i, z in enumerate(zones):
+        kind, xa, xb = z[0], min(z[1], z[2]), max(z[1], z[2])
+        kz = FIG_ZONE_ALIAS.get(kind, kind)
+        if kz not in FIG_WALKABLE:
+            rf = globals().get("SF_G14", {}).get("refused")
+            if rf is not None:
+                rf[kind] = rf.get(kind, 0) + 1
+            continue
+        g = z[3] if len(z) > 3 and z[3] is not None else gy
+        g = gfn(g) if gfn else g
+        gs = (lambda x, _g=g: seat(_g, x, FIG_FOOT_HALF_M * k * sc)) if seat else g
+        acts = [a for a in FIG_ACTIVITY[kz] if a[0] != "bike" or kz == "bike_lane"]
+        runs = [(xa, xb)]
+        if water is not None:
+            runs = _fig_dry_runs(xa, xb, g, water, k * sc, FIG_WADE_MAX_M if kz == "wading_strip" else 0.0)
+            if sum(b - a for a, b in runs) < (xb - xa) - 0.3 * k * sc:
+                rf = globals().get("SF_G14", {}).get("refused")
+                if rf is not None:
+                    rf[kind + " (too deep)"] = rf.get(kind + " (too deep)", 0) + 1
+        fz = focus(kind, xa, xb) if callable(focus) else focus
+        for ra, rb in runs:
+            _FIG_NPICK[0] += 1
+            s_, p_ = fig_activity(kz, ra, rb, gs, k, layer=layer, seed=seed * 101 + i * 17 + _FIG_NPICK[0] * 7,
+                                  density=density, ink=ink, style=style,
+                                  water=water if kz == "wading_strip" else None, max_n=max_per_zone, acts=acts,
+                                  focus=fz, **p)
+            sh += s_
+            placed += [(kind, pose, x) for pose, x in p_]
     return sh, placed
 
 

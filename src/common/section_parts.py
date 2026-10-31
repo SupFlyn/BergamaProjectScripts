@@ -237,7 +237,7 @@ def sct_hatch_fill(ring, material, k, outline=None, lw=0.25):
                 px, py = (i + _sct_rnd(i, j)) * d, (j + _sct_rnd(j, i + 7)) * d
                 if not _sct_inside(ring, (px, py)):
                     continue
-                if (i + j) % 3 == 0:
+                if (i + j) % 3 == 0 and globals().get("SF_TRI", {}).get("aggregate", True):   # R2-A: sf_triangles
                     s, a = 0.28 * g, _sct_rnd(i + 3, j) * 6.283
                     tri = [(px + s * _m.cos(a + t * 2.094), py + s * _m.sin(a + t * 2.094)) for t in range(3)]
                     sh.append(("line", tri + [tri[0]], ln, 0.07))

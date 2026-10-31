@@ -13,6 +13,11 @@
 # floors); civic halls cut as real profiles (M11 bld_section_profile) and every cut building down to its lowest ground;
 # buildings beyond drawn as legible elevations; one callout for two equal banks, looser callout rows; key map from
 # M4 keymap_items with its names placed by M2 lp_place; scale bars print the sheet ratio (the booklet re-sets it).
+# v56 (round 2, R2-B, G14/U22/D8): houses and trees beyond stand on their own depth layer's ground (sf_back_profile,
+# sf_back_house), every tree and person seated on the cut ground (sf_seat_x), wall triangles off (sf_triangles), the
+# designed sky behind each cut, people by zone in the one booklet style (fig_place_zones), never in the channel.
+# v57 (Aras 31 Oct 12:01 "they look like they are just put there"; R2-C focus): the people on the crossed streets
+# who stay look at the stream when it is near (P45_FOCUS_WATER_M), else at each other (their zone's middle).
 
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S5", "S6")          # cuts that run along the stream: cropped to the part around their crossings
@@ -24,6 +29,11 @@ P45_GAP = 4.0                     # mm: between a cut and its column, and betwee
 P45_KEY_COL = 14.0                # mm: the key map's left column (KEY, the north arrow)
 P45_KEY_MIN = 34.0                # mm: the key map at least this tall
 P45_KEY_TXT = 78.0                # mm: kept right of the key map for the page's reading and the strip's colours
+P45_FIG_STYLE = "a"               # v56: the one human style of the booklet (D1 a; Aras 31 Oct 11:24)
+P45_FOCUS_WATER_M = 40.0          # m: v57: people on a street this near a crossing look at the water (drawing rule, as
+#                                   P45_NEAR_M), else at each other
+P45_NEAR_M = 40.0                 # m: v56 G14: buildings / trees beyond within this are the near depth layer (drawing rule;
+#                                   the v55 outline limit)
 P45_MATCH_M = 3.0                 # m: a level row is drawn at the crossing whose bed is nearest, within this
 P45_WALL_T_M = 0.60               # m: DSİ wall thickness: the value the site board drew (sec_cut chwalls, s +-0.30 m);
 #                                   no source found (section_parts asks the caller): see WO-T3a-3 OPEN
@@ -45,8 +55,12 @@ def _p45_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, kb=
     if view == "top":
         shs = fig_top(pose, x, y, k, mm_per_m=mpm)
     else:
-        shs = fig_side(pose, x, y, k, facing, mm_per_m=mpm)
+        shs = fig_side(pose, x, y, k, facing, mm_per_m=mpm, style=P45_FIG_STYLE)
     for sh in shs:
+        if sh and sh[0] == "image":                      # v56: style a cutout (board units already: k = ss)
+            B.image(sh[5], sh[1], sh[2], sh[1] + sh[3], sh[2] + sh[4], L, order=order,
+                    alpha=sh[6] if len(sh) > 6 else None, flip=bool(sh[7]) if len(sh) > 7 else False)
+            continue
         B.fill([sh[1]], c_, L, order)
         if kb and sh[4]:
             B.line(list(sh[1]) + [sh[1][0]], c_, L, order, bk_lw(sh[4], kb))
@@ -61,6 +75,12 @@ def _p45_put(B, L, shapes, T, kb, order):
     y up) through T (mm -> board units), line weights in booklet mm; text and image shapes are not used here"""
     for sh in shapes or []:
         if not sh:
+            continue
+        if sh[0] == "image":                              # v56: style a cutouts (people, plants)
+            x0_, y0_ = T((sh[1], sh[2]))
+            x1_, y1_ = T((sh[1] + sh[3], sh[2] + sh[4]))
+            B.image(sh[5], x0_, y0_, x1_, y1_, L, order=order, alpha=sh[6] if len(sh) > 6 else None,
+                    flip=bool(sh[7]) if len(sh) > 7 else False)
             continue
         if sh[0] == "poly":
             pts = [T(p) for p in sh[1]]
@@ -438,26 +458,40 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
     if not dry:
         # ---- beyond the cut: the buildings as elevations (wall, a hipped roof by convention, outline), the near ones
         # clearly, paler with distance (far first), then the trees beyond
-        for a, b, zb_, zt_, cat, d, floors, annex, fabric, flags, fsrc in sorted(sd_.get("beyond") or [],
-                                                                                 key=lambda t_: -t_[5]):
-            fd = min(0.75, 0.12 + 0.55 * d / 75.0)
-            col = mix(sa_board_bld(dict(cat=cat, fabric=fabric, annex=annex)), WHITE, fd)
-            r0, r1 = P(a, zb_), P(b, zt_)
-            ink_ = mix(INK2, WHITE, min(0.85, 0.35 + fd))
-            B.fill([rect(r0[0], r0[1], r1[0], r1[1])], col, L, 12)
-            w_ = b - a
-            if w_ >= 3.0 and not annex:
-                rise = 0.577 * min(0.5 * w_, 4.0)          # M11 roof convention: hipped, 30 degrees (not surveyed)
-                run_ = rise / 0.577
-                roof = [P(a - 0.3, zt_), P(b + 0.3, zt_), P(b - run_ + 0.3, zt_ + rise), P(a + run_ - 0.3, zt_ + rise)]
-                B.fill([roof], mix(col, INK2, 0.12), L, 12)
-                B.line(roof + [roof[0]], ink_, L, 12, bk_lw(0.06, kb))
-            if d <= 40.0:
-                B.line([r0, (r0[0], r1[1]), r1, (r1[0], r0[1])], ink_, L, 12, bk_lw(0.06, kb))
-        for i, (s, zg, tr, lo, hi, d) in enumerate(sd_.get("btrees") or []):
-            key = p45_kind(S, sd_, s, d, tr)
-            _p45_put(B, L, pla_section(key, s * km, zg * km, km, h_m=hi, crown_m=max(1.5, 2.0 * tr), beyond=True,
-                                       seed=i), T, kb, 13)
+        # v56 (R2-B, G14 / U22, D8): the designed sky first (sf_sky, D8 default a: every section); then two depth
+        # layers beyond the cut (near <= P45_NEAR_M, far), each on its OWN ground line through its houses' and trees'
+        # surveyed bases (sf_back_profile, drawn as a faded silhouette like sf_topo_back), so no house or tree beyond
+        # floats over the cut; houses as elevations with windows and a hipped roof (sf_back_house, M11 convention)
+        y_sky = (ytop - Y0) / kb
+        if SF_SKY_DEFAULT and y_sky > min(z for s, z in g) * km + 1.0:
+            _p45_put(B, L, sf_sky(0.0, Lm * km, min(z for s, z in g) * km, y_sky, seed=len(nm) * 7 + int(Lm)),
+                     T, kb, 9)
+        beyond = sd_.get("beyond") or []
+        btrees = sd_.get("btrees") or []
+        for li, near in ((2, False), (1, True)):           # far layer first
+            hs_ = [h_ for h_ in beyond if (h_[5] <= P45_NEAR_M) == near]
+            ts_ = [t_ for t_ in btrees if (t_[5] <= P45_NEAR_M) == near]
+            bases = [(h_[0] * km, h_[1] * km, h_[2] * km) for h_ in hs_] + \
+                    [((t_[0] - 0.3) * km, (t_[0] + 0.3) * km, t_[1] * km) for t_ in ts_]
+            prof = sf_back_profile(bases, 0.0, Lm * km)
+            if not prof:
+                continue
+            tb = 0.75 if li == 2 else 0.55                 # drawing rule: far paler (sf_topo_back's range)
+            _p45_put(B, L, [("poly", prof + [(Lm * km, zbot * km), (0.0, zbot * km)],
+                             _sec_mix(SEC["soil"], SEC["paper"], tb), None, 0.1),
+                            ("line", prof, _sec_mix(SEC["ink2"], SEC["paper"], tb), 0.12)], T, kb, 14 - 2 * li)
+            gyl = sf_gy(prof)
+            for a, b, zb_, zt_, cat, d, floors, annex, fabric, flags, fsrc in sorted(hs_, key=lambda t_: -t_[5]):
+                if b - a < 0.5 or zt_ - zb_ < 0.5:
+                    continue
+                fl_ = int(floors) if isinstance(floors, (int, float)) and floors >= 1 else None
+                _p45_put(B, L, sf_back_house(a * km, b * km, gyl, zt_ - zb_, km, layer=li, floors=fl_,
+                                             roof="flat" if annex else "hip"), T, kb, 15 - 2 * li)
+            for i, (s, zg, tr, lo, hi, d) in enumerate(ts_):
+                key = p45_kind(S, sd_, s, d, tr)
+                _p45_put(B, L, pla_section(key, s * km, sf_ground_fn(gyl, 0.3 * km), km, h_m=hi,
+                                           crown_m=max(1.5, 2.0 * tr), beyond=True, seed=i, layer=li),
+                         T, kb, 15 - 2 * li)   # v56: paler with depth (Aras 31 Oct 11:24)
         # ---- the cut ground: poche, then the banks' earth in its hatch near the water
         B.fill([[P(s, z) for s, z in g] + [P(Lm, zbot), P(0.0, zbot)]], SEC_SOIL, L, 20)
         for cr in crs:
@@ -530,36 +564,54 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
             run.append(P(s, z))
         if len(run) >= 2:
             B.line(run, INK, L, 26, bk_lw(0.35, kb))
-        for s, zg in sd_["walls"]:                       # a surveyed wall: its place on the ground (no height surveyed)
-            bx, by = P(s, zg)
-            B.fill([[(bx, by + 1.0 * kb), (bx - 0.6 * kb, by), (bx + 0.6 * kb, by)]], SEC_WALL, L, 28)
+        for s, zg in sd_["walls"]:                       # a surveyed wall: its place on the ground (no height surveyed);
+            _p45_put(B, L, sf_wall_mark(s * km, zg * km, 1.0, fill=SEC["ink2"]), T, kb, 28)   # v56: [] (U22, walls off)
         # ---- planting at true size (02 §4): the measured trees on the cut; olive rows where the survey shows them
         for i, (s, zg, hw, lo, hi) in enumerate(sd_["trees"]):
             key = p45_kind(S, sd_, s, 0.0, hw)
-            _p45_put(B, L, pla_section(key, s * km, zg * km, km, h_m=hi, crown_m=max(1.5, 2.0 * hw), seed=i),
-                     T, kb, 32)
+            _p45_put(B, L, pla_section(key, s * km, sf_ground_fn(gy_mm, 0.3 * km), km, h_m=hi,
+                                       crown_m=max(1.5, 2.0 * hw), seed=i), T, kb, 32)   # v56 G14: seated
         for a, b, cat in p45_segments(sd_, 4.0):
             if cat != "agri" or b - a < 10.0:
                 continue
             if p45_olives(S, sd_, a, b):
-                _p45_put(B, L, pla_crop_rows("olive", a * km, b * km, gy_mm, km), T, kb, 32)
+                _p45_put(B, L, pla_crop_rows("olive", a * km, b * km, sf_ground_fn(gy_mm, 0.3 * km), km), T, kb, 32)
             elif not sd_.get("_p45_nocrop"):
                 sd_["_p45_nocrop"] = True
                 LOG.append(u"Section {}: farmland on the cut with no crop in the survey or OpenStreetMap: drawn as "
                            u"field ground only (no rows).".format(nm))
-        # ---- figures where people are (02 §3): at each bank top, looking at the water; one on the widest street
+        # ---- figures where people are (02 §3; v56 G14 + G10): at each bank top one person looking at the water, its
+        # feet on the lowest cut ground under them (sf_seat_x, never on a wall top in the air); on the streets the cut
+        # crosses (the three widest, >= 4 m) people by the walkway set (fig_place_zones: walk, adult with child, a
+        # group, watch; varied, seated), at true height (1.75 m), in the booklet's one human style (P45_FIG_STYLE,
+        # Aras 31 Oct 11:24: the same style everywhere; cutouts without see-through insides are the module's pick)
+        figs_ = []
         for cr in crs:
             for sd in cr["sides"]:
                 if sd["crest"] is None:
                     continue
-                zf = sd["zt"] if sd["typ"] in ("dsi_wall", "embankment") and sd["zt"] is not None else g_at(sd["crest"])
-                fx, fy = P(sd["crest"] + sd["dirn"] * 0.8, zf)
+                xm_ = (sd["crest"] + sd["dirn"] * 0.8) * km
+                ym_ = sf_seat_x(gy_mm, xm_, FIG_FOOT_HALF_M * km)
+                fx, fy = T((xm_, ym_))
                 _p45_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"], kb=kb)
-        st_ = [sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport"]
-        if st_:
-            a, b, cat = max(st_, key=lambda q_: q_[1] - q_[0])
-            fx, fy = P(0.5 * (a + b), g_at(0.5 * (a + b)))
-            _p45_fig(B, L, "walk", fx, fy, ss, facing=1, kb=kb)
+                figs_.append([("poly", [(xm_ - 0.2 * km, ym_), (xm_ + 0.2 * km, ym_), (xm_, ym_ + 1.75 * km)],
+                               None, None, 0.0)])
+        st_ = sorted([sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport" and sg[1] - sg[0] >= 4.0
+                      and not any(sg[0] < cr["b"] and cr["a"] < sg[1] for cr in crs)],   # never in the channel (Aras 11:28)
+                     key=lambda q_: q_[0] - q_[1])[:3]
+        zones_ = [("walkway", a * km, b * km) for a, b, cat in sorted(st_)]
+        def foc_(_k, xa_, xb_):                          # v57 (R2-C focus): the near water, else each other
+            m_ = 0.5 * (xa_ + xb_) / km
+            w_ = [0.5 * (cr["a"] + cr["b"]) for cr in crs if not cr["along"] and
+                  min(abs(cr["a"] - m_), abs(cr["b"] - m_)) <= P45_FOCUS_WATER_M]
+            return (min(w_, key=lambda c_: abs(c_ - m_)) if w_ else m_) * km
+        if zones_:
+            sh_, placed_ = fig_place_zones(zones_, gy_mm, km, seed=len(nm) * 13, style=P45_FIG_STYLE, density=0.6,
+                                           max_per_zone=2, ink=mix(INK, PAPER, 0.2), focus=foc_)
+            _p45_put(B, L, sh_, T, kb, 34)
+        if figs_:
+            for m_ in sf_assert_g14(figs_, gy_mm, strict=False):
+                LOG.append(u"Section {}: {}".format(nm, m_))
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
     co = sd_.get("crop_of")
@@ -866,12 +918,19 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
             if cat not in cats:
                 cats.append(cat)
     yy = draw_sections_key(S, B, x, top, sw, hk, names, kb, cats) - gap - extra
-    for c_, h_ in rows:
+    tri_ = sf_triangles(walls=False, aggregate=False)    # v56 (U22): no meaningless triangles in the cuts (key map's
+    for c_, h_ in rows:                                  # cut-direction triangles are drawn above and stay)
         c_["_p45"] = dict(k=kb, den=den)
         p45_strip(S, B, c_, x, yy, wd, ss, kb, U)
         p45_head(S, B, c_, x + wd + gap, yy, wc, kb, U)
         p45_bar(B, x + wd + gap, yy - h_ + 0.6 * kb, wc, ss, c_, den, kb, U)
         yy -= h_ + gap + extra
+    sf_triangles(**tri_)
+    for m_ in sf_assert_g6(ss / kb, strict=False):       # v56 G6: figures print 1.75 m (1.80 m cyclist) at the page scale
+        LOG.append(u"Sections {}: {}".format(u", ".join(names), m_))
+    g14_ = sf_g14_line()
+    if g14_:
+        LOG.append(u"Sections {}: {}".format(u", ".join(names), g14_))
     low = min(top - H, yy + gap + extra)
     crop_panel("sections_%d" % (k + 1), x, low, x + sw, top,
                u"Sections across the stream · {} · key map and cuts".format(u", ".join(names)),
