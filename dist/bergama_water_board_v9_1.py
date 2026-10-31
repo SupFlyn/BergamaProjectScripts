@@ -64,6 +64,9 @@ v9 (Aras 31 Oct critique, booklet pp.11, 13, 14): style a only. p.11: one up-clo
   layout, a's drawing), buildings as volumes only within 60 m of the stream and heritage, the rest as faint footprints;
   p.13 seasons: style a, trees lighter (cutout opacity 0.70); p.14 S4 bank: style a. Plain crop ids (no _a/_b) for
   wb_system, wb_s4_seasons, wb_s4_ne; p.17 keeps its a/b. Output: Bergama_water_board_v9_A_cubes.pdf.
+v9.1 (bugfix, Aras 31 Oct: every plant photo frame on booklet pp.16-17 empty): the photos are added to the page's
+  existing image list instead of a second /XObject entry, which hid them once the style a cutouts put images on the
+  page. Output: Bergama_water_board_v9_1_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -163,8 +166,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v9 (2026-10-31)"
-SHORT = "v9"
+VERSION = "bergama_water_board v9.1 (2026-10-31)"
+SHORT = "v9.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -173,7 +176,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v9_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v9_1_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -8991,7 +8994,10 @@ def pdf_add_images(path, imgs):
     d_id = add(b"<< /Length " + str(len(st)).encode() + b" /Filter /FlateDecode >>\nstream\n" + st + b"\nendstream")
     cm = re.search(r"/Contents (\d+) 0 R", pdict)
     newp = pdict.replace(cm.group(0), "/Contents [{} 0 R {} 0 R {} 0 R]".format(q_id, cm.group(1), d_id), 1)
-    newp = newp.replace("/Resources << ", "/Resources << /XObject << {} >> ".format(" ".join(names)), 1)
+    if "/XObject << " in newp:                      # v9.1: the page already has images (style a cutouts): the
+        newp = newp.replace("/XObject << ", "/XObject << {} ".format(" ".join(names)), 1)   # photos join that dict
+    else:                                           # (a second /XObject key hid every photo: p.16-17 frames empty)
+        newp = newp.replace("/Resources << ", "/Resources << /XObject << {} >> ".format(" ".join(names)), 1)
     out = bytearray(pdf)
     if not out.endswith(b"\n"):
         out += b"\n"
