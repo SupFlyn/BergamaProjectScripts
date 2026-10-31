@@ -362,8 +362,9 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
     """draws items through the caller's page: T(p) survey m -> page point; fill_fn(rings, hex, alpha, nonzero);
     line_fn(pts, hex, width_mm, dash_mm, alpha); text_fn(s, (x, y), size_mm, hex, bold, align) (texts are left out
     without it). Returns the number of items drawn. M3 (30 Oct): a "water" item (the stream, when the script includes
-    M5 common/water.py) is drawn by water_plan(ring in page mm, k, **water_opts) through the same three functions
-    (k = page mm per survey m, from T); if M5 fails, the plain fill and bank line (a WARNING in basemap_warnings())."""
+    M5 common/water.py) is drawn by water_plan(ring in page mm, k, holes=its islands, **water_opts) through the same
+    three functions (k = page mm per survey m, from T); if M5 fails, the plain fill and bank line (a WARNING in
+    basemap_warnings())."""
     import math as _m
     n = 0
     for it in items:
@@ -380,12 +381,14 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
             try:
                 wp = globals()["water_plan"]                # M5 (common/water.py), present: _bm_items checked it
                 for g in it[1]:
-                    wl = wp([T(p) for p in g[0]], k, **(water_opts or {}))
+                    hs = [[T(p) for p in R] for R in g[1:] if len(R) >= 3]     # islands: open, untextured (A2 fix)
+                    wl = wp([T(p) for p in g[0]], k, holes=hs, **(water_opts or {}))
                     for s_ in wl.shapes():
                         if s_[0] == "poly" and len(s_[1]) >= 3:
                             al = s_[5] if len(s_) > 5 and s_[5] is not None else 1.0
+                            ho = [list(R) for R in (s_[6] if len(s_) > 6 and s_[6] else ())]
                             if s_[2]:
-                                fill_fn([list(s_[1])], s_[2], al, True)
+                                fill_fn([list(s_[1])] + ho, s_[2], al, not ho)          # even-odd with holes
                             if s_[3]:
                                 line_fn(list(s_[1]) + [s_[1][0]], s_[3], s_[4] or 0.1, None, al)
                         elif s_[0] == "line" and len(s_[1]) >= 2:
