@@ -20,12 +20,6 @@ BK_CROPS = [("ps_all", "all", u"Proposal sections W1-W4, upstream to downstream,
 BK_DROP = [u"^\\[\\d+\\]$"]                           # the sheet's source numbers: the booklet has its own source list
 
 
-def _ps_mix(a, b, t):
-    """hex a seen at opacity t over hex b"""
-    A, B = hex_rgb(a), hex_rgb(b)
-    return "%02X%02X%02X" % tuple(int(round(255.0 * (B[i] + (A[i] - B[i]) * t))) for i in range(3))
-
-
 def booklet_export(log):
     """booklet/blocks.json: one crop per section of the sheet + ps_all (rect in mm from the sheet's top-left, y down)."""
     bk = BkBlocks(OUT_DIR, GH_LABEL, VERSION)
@@ -35,8 +29,7 @@ def booklet_export(log):
     # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour), for
     # the single crops; ps_all carries its own legend band (revision 30 Oct, G1), so the booklet adds none under it
     P = _wat_pal()
-    legend = [dict(kind="fill", colour=_ps_mix(PS_FLOOD, "FFFFFF", PS_FLOOD_A), label=u"reach of the 500-year flood (Q500)"),
-              dict(kind="fill", colour=P["sec"], label=u"water at the average yearly flow"),
+    legend = [dict(kind="fill", colour=P["sec"], label=u"water at the average yearly flow"),
               dict(kind="dash", colour=P["q100"], label=u"Q100 flood level"),
               dict(kind="dash", colour=P["q500"], label=u"Q500 flood level"),
               dict(kind="fill", colour=SCT["stone"], label=u"stone: DSİ walls, steps, garden wall"),
