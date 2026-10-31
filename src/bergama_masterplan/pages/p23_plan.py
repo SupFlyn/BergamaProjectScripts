@@ -14,7 +14,8 @@ PL23_SIDE_MIN = 80.0         # mm: the side column at least this wide
 PL23_SIDE_GAP = 5.0          # mm between the map and the side column
 PL23_MARKS = {5000.0: (0.0, 50.0, 100.0, 250.0), 10000.0: (0.0, 100.0, 200.0, 500.0)}   # scale bar, m (50 mm)
 PL23_NAME_TS = 3.2           # mm: place names on the 1:5,000 rows (9 pt)
-PL23_TAG_TS = 2.65           # mm (7.5 pt): v34 a move's name tag beside its badge on the map, no box
+PL23_TAG_TS = 2.47           # mm (7 pt = KEY_MIN): a move's name tag beside its badge on the map, no box (v34 2.65; v35 smaller)
+PL23_REPEAT_MM = 45.0        # v35 (round 2 "upper map still crowded"): a move's badge again only this far (row mm) from its others
 PL23_FEW_WORDS = True        # v33 (Aras 31 Oct p21 "less crowded"): the plan rows name only the hubs, no Trajaneum label
 PL23_WALK_COL, PL23_BIKE_COL = "4C2528", "5C7A86"         # palette references (library/examples/palettes)
 PL23_BIKE = True             # the riverside walk carries a bike lane on its land side (Aras 29 Oct 21:04, decision card)
@@ -22,54 +23,108 @@ PL23_BIKE = True             # the riverside walk carries a bike lane on its lan
 
 # T7 (revision 30 Oct, PG4 p21): the plan language. G8 / M5: the stream textured with a defined bank (water_plan),
 # the site board's stream polygon (basemap "water") where there is one, else the corridor's bed; no mid-stream line.
-# v33 (Aras 31 Oct critique p22: the trees in top view "so randomised and clustered ... doesnt have logic under it"):
-# the trees stand in ROWS that follow the water's edge, one species per row from wet to dry. The rows run along the
-# lines of equal distance from the water (the corridor's distance field) at the middle of each spacing step of the
-# FOREST band (6-32 m, 9 m apart: 10.5, 19.5, 28.5 m) and the TREES band (32-60 m, 18 m apart: 41, 59 m); a row's
-# species is the one whose niche centre (PLA_NICHE, t = distance / TREES[1]) lies nearest its t: willow, tamarisk,
-# ash, then plane. Along a row the trees stand one crown width apart (at least the band's spacing), every second row
-# offset by half a step; no rows within the band's hub distance (FOREST[2] / TREES[2]: programme at the hubs), none
-# on a building, road or the bed. No noise, no jitter. The same set draws p.21 and p.22.
+# v35 (round 2, Aras 31 Oct p21: rows read "incredibly patterned and regular"; wanted scattered, never one tree type,
+# natural but in a planned, architectural order, G9): the order is the ecology, not a pattern. Two bands from the
+# water: the FOREST band (6-32 m) is one continuous riparian belt, mixed species whose crowns interpenetrate (trees
+# at least PL23_BELT_GAP x their mean crown apart, dart thrown, row-like picks thrown away); the TREES band (32-60 m)
+# is open ground with copses of 2-4 mixed trees (centres PL23_COPSE_M apart), lawns between. Species per tree:
+# weighted by PLA_NICHE at t = distance / TREES[1] (wet to dry: willow, tamarisk, ash, plane), so neighbours mix where
+# niches overlap; t is held inside the four trees' niche centres (0.24-0.52: past 0.52 = the driest of them).
+# Crowns 0.88-1.08 x the sourced crown (_pla_size_var). Off the hubs (FOREST[2] / TREES[2]), only on open cells (no
+# building, road or bed). Seeded: the same set every press. The same set draws p.21 and p.22 (plans and sections).
 PL23_TREE_KEYS = ("willow", "tamarisk", "ash", "plane")   # the corridor's trees (P24_SPECIES wetland + forest)
 PL23_WET_KEYS = ("willow", "tamarisk")                    # legend group "wet edge"
+PL23_BELT_GAP = 0.85         # forest belt: at least this x the two crowns' mean apart (crowns overlap a little)
+PL23_COPSE_M = 42.0          # trees band: copse centres at least this far apart, m (design value)
+PL23_COPSE_N = (2, 4)        # trees per copse
+PL23_SEED = 2310
 
 
-def pl23_tree_rows(C):
-    """[(distance from the water m, species key, along-row spacing m, hub distance m)] of the tree rows (v33)"""
-    out = []
-    for d0, d1, hmin, sp in (FOREST, TREES):
-        d = d0 + sp / 2.0
-        while d <= d1 + 1e-9:
-            t = d / TREES[1]
-            key = min(PL23_TREE_KEYS, key=lambda k_: abs(PLA_NICHE[k_][0] - t))
-            out.append((d, key, max(sp, PLA_SPECIES[key]["crown_m"]), hmin))
-            d += sp
-    return out
+def _pl23_pick(t, rnd):
+    """a corridor tree species for band position t, weighted by its niche (PLA_NICHE), t held inside the centres"""
+    cs = [PLA_NICHE[k_][0] for k_ in PL23_TREE_KEYS]
+    t = min(max(t, min(cs)), max(cs))
+    ws = [(k_, PLA_NICHE[k_][2] * math.exp(-((t - PLA_NICHE[k_][0]) / PLA_NICHE[k_][1]) ** 2)) for k_ in PL23_TREE_KEYS]
+    r = rnd.random() * sum(w for _k, w in ws)
+    for k_, w in ws:
+        r -= w
+        if r <= 0.0:
+            return k_
+    return ws[-1][0]
 
 
 def pl23_tree_set(C):
-    """[(xy survey m, species key, crown m)] of the corridor's trees, once per corridor (C.pl23_trees), v33: rows
-    along the lines of equal distance from the water (pl23_tree_rows), each line traced from the corridor's distance field
-    (C.Dst, cells within the row's distance; C.loops smooths it at the water), the trees one spacing apart on the
-    stretches of the line that lie at that distance (not along a building's or the frame's edge), off the hubs."""
+    """[(xy survey m, species key, crown m)] of the corridor's trees, once per corridor (C.pl23_trees), v35: a mixed
+    riparian belt (FOREST band) and mixed copses (TREES band), see the note above"""
     got = getattr(C, "pl23_trees", None)
     if got is not None:
         return got
-    out, tol = [], 1.5 * C.G.c
-    for r, (d, key, sp, hmin) in enumerate(pl23_tree_rows(C)):
-        cells = [n for n in range(C.N) if C.Dst[n] <= d]
-        cr = PLA_SPECIES[key]["crown_m"]
-        for L in C.loops(cells, True):
-            P = list(L) + [L[0]]
-            s = arclen(P)
-            t = sp / 2.0 if r % 2 else 0.0
-            while t < s[-1]:
-                q = at_len(P, s, t)[0]
-                t += sp
-                n = C.cell(q)
-                if n is None or C.F[n] != 0 or abs(C.Dst[n] - d) > tol or C.dhub(q) < hmin:
-                    continue
-                out.append((q, key, cr))
+    rnd = random.Random(PL23_SEED)
+    c, B = C.G.c, 12.0
+    hsh, out = {}, []
+
+    def near(q, r):
+        i0, j0, m = int(math.floor(q[0] / B)), int(math.floor(q[1] / B)), int(math.ceil(r / B))
+        return [e for i in range(i0 - m, i0 + m + 1) for j in range(j0 - m, j0 + m + 1) for e in hsh.get((i, j), ())]
+
+    def free(q, cr, f):
+        return all(math.hypot(q[0] - e[0][0], q[1] - e[0][1]) >= f * (cr + e[2]) / 2.0 for e in near(q, 16.0))
+
+    def at(q, d0, d1, hmin):
+        n = C.cell(q)
+        if n is None or C.F[n] != 0 or not (d0 <= C.Dst[n] <= d1) or C.dhub(q) < hmin:
+            return None
+        return C.Dst[n]
+
+    def put(q, key):
+        cr = PLA_SPECIES[key]["crown_m"] * (0.88 + 0.20 * rnd.random())
+        return q, key, cr
+
+    def jit(n):
+        u, v = C.G.xy(n)
+        return C.V.xy(u + (rnd.random() - 0.5) * c, v + (rnd.random() - 0.5) * c)
+
+    def add(e):
+        out.append(e)
+        hsh.setdefault((int(math.floor(e[0][0] / B)), int(math.floor(e[0][1] / B))), []).append(e)
+    belt = [n for n in range(C.N) if C.F[n] == 0 and FOREST[0] <= C.Dst[n] < FOREST[1]]
+    rnd.shuffle(belt)
+    for n in belt:                                       # the riparian belt: dart throwing, no rows
+        q = jit(n)
+        d = at(q, FOREST[0], FOREST[1], FOREST[2])
+        if d is None:
+            continue
+        e = put(q, _pl23_pick(d / TREES[1], rnd))
+        if not free(q, e[2], PL23_BELT_GAP):
+            continue
+        if _pla_rowlike(q, [x[0] for x in near(q, 3.0 * e[2])], 3.0 * e[2]):
+            continue
+        add(e)
+    outer = [n for n in range(C.N) if C.F[n] == 0 and FOREST[1] <= C.Dst[n] <= TREES[1]]
+    rnd.shuffle(outer)
+    cen, CB = {}, PL23_COPSE_M                           # copse centres by 42 m bucket (fast on the laptop)
+    for n in outer:                                      # the open band: copses of mixed trees, lawns between
+        q = jit(n)
+        if at(q, FOREST[1], TREES[1], TREES[2]) is None:
+            continue
+        ci, cj = int(math.floor(q[0] / CB)), int(math.floor(q[1] / CB))
+        if any(math.hypot(q[0] - p[0], q[1] - p[1]) < PL23_COPSE_M
+               for i in (ci - 1, ci, ci + 1) for j in (cj - 1, cj, cj + 1) for p in cen.get((i, j), ())):
+            continue
+        cen.setdefault((ci, cj), []).append(q)
+        want, got_ = rnd.randint(*PL23_COPSE_N), 0
+        for _ in range(12 * PL23_COPSE_N[1]):
+            if got_ >= want:
+                break
+            a, r = rnd.uniform(0.0, 2.0 * math.pi), 9.0 * math.sqrt(rnd.random())
+            q2 = (q[0] + r * math.cos(a), q[1] + r * math.sin(a))
+            d = at(q2, FOREST[1], TREES[1], TREES[2])
+            if d is None:
+                continue
+            e = put(q2, _pl23_pick(d / TREES[1], rnd))
+            if free(q2, e[2], 0.75):
+                add(e)
+                got_ += 1
     out.sort(key=lambda e: PLA_SPECIES[e[1]]["h_m"])      # the lower crowns first, the taller over them
     C.pl23_trees = out
     return out
@@ -674,12 +729,15 @@ def pl23_labels(sh, C, rws, taken):
         ents.append(ent)
         col = mk[grp]
         kept = nt["key"][0] == "kept"
-        first = True
+        first, seen = True, []
         for p in nt["at"]:                                # v34: first place = badge + short name tag, no box;
             i = row_of(p)                                 # further places = the badge alone (the same move)
             if i is None:
                 continue
             x, y = rws[i][0](p)
+            if not first and any(j == i and math.hypot(x - a, y - b) < PL23_REPEAT_MM for j, a, b in seen):
+                continue                                  # v35: no repeat badge near one of the same move
+            seen.append((i, x, y))
             s = 2 * BADGE_R + 0.5
             tag = first and not kept                      # an edge kept is no intervention: its badge only
             w = s + (0.8 + text_w(nm, PL23_TAG_TS, True) if tag else 0.0)
@@ -739,10 +797,13 @@ def pl23_nogo_h(nis, cw):
     return h
 
 
-def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
+def pl23_side(sh, x0, x1, H, used, ents, nis, warn, y_low=None):
     """the side column from x0 to x1: on top the small legend (two columns, only what the page draws), under it the
     moves not named on the map (v34: edges kept and moves with no room; number and name only, no explanation line),
-    at its foot the areas left as they are (letter and area)"""
+    at its foot the areas left as they are (letter and area). v35 (round 2: "the legend on the right is not aligned
+    with the one below"): with two rows the legend sits beside the upper row (its top = the row's top) and the lists
+    beside the lower row (their top = y_low, the lower row's top edge), same left edge and width; when the lists do
+    not fit beside the lower row, the v34 stacking is kept (and a warning)."""
     cw = x1 - x0
     more = [e for e in ents if not e[4]]
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
@@ -755,11 +816,14 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
               (u"PROPOSED", [(nm, f) for key, nm, f in leg_ if key in used and key not in EXISTING])]
     n = sum(len(it) + 1 for _, it in groups if it)
     rows = int(math.ceil(n / 2.0)) + 1
-    room = H - h_nogo - h_more - 4.0
+    split = y_low is not None and h_more + h_nogo + 1.0 <= y_low and rows * 3.0 <= H - y_low - 1.0
+    if y_low is not None and not split:
+        warn.append(u"masterplan page: the side lists do not fit beside the lower row: stacked under the legend")
+    room = (H - y_low - 1.0) if split else (H - h_nogo - h_more - 4.0)
     pitch = max(3.0, min(3.6, room / float(rows)))
     y_leg = H - rows * pitch
     pl28_legend(sh, groups, x0, x1, H, y_leg, 2, warn, pitch=pitch)
-    y = y_leg - 2.0
+    y = y_low if split else y_leg - 2.0
     if more:
         y = pl28_list_head(sh, u"More moves", COL["ink2"], x0, y, cw)
         tx = x0 + 2 * BADGE_R + 2.2
@@ -774,7 +838,7 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
         if y < h_nogo + 1.0:
             warn.append(u"masterplan page: the side column runs {:.1f} mm over (legend, moves, areas left as they "
                         u"are)".format(h_nogo + 1.0 - y))
-        pl28_list_nogo(sh, nis, x0, h_nogo + 1.0, cw)
+        pl28_list_nogo(sh, nis, x0, (y - 1.0 if more else y) if split else h_nogo + 1.0, cw)   # v35: one block when split
 
 
 # v28: the route's legend samples (before the core's LEGEND_V24 rows of the same key); T7: the stream, the wetland
@@ -838,11 +902,12 @@ def plan_page(C, warn):
     sh = Page(W, H)
     sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
     pl23_water_groups(C, warn)
-    used, taken, rws, x_side = set(), [], [], 0.0
+    used, taken, rws, x_side, tops = set(), [], [], 0.0, []
     y_top = H
     for i, row in enumerate(rows):
         dw = (row["b"] - row["a"]) * k
         x0, y0 = 0.0, y_top - dh
+        tops.append(y_top)
         T, mine = pl23_row_T(C, row, k)
         tk = []
         pg = Page(dw, dh)
@@ -883,7 +948,7 @@ def plan_page(C, warn):
     for nt, grp, nm, line, ok in ents:
         if not ok and nt["key"][0] != "kept":
             warn.append(u"masterplan move {} has no room on the map: named in the side column ({})".format(nt["n"], nm))
-    pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn)
+    pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn, tops[-1] if len(tops) > 1 else None)
     sh.crop = (0.0, 0.0, W, H)
     sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
     sh.bid = ("mp_plan", "c1_s1", u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower()))

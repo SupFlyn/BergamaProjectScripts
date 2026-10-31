@@ -955,16 +955,6 @@ def sn_bubble(pg, x, y, key, word, colour, pose, seed=0):
     pg.text(word.upper(), x + 14.0, y - size * 0.35, size, mix(colour, SN_DARK, 0.3), bold=True)
 
 
-def sn_cloud(pg, x, y, r, seed):
-    """v32: a soft dotted cloud (senses_ref3's dotted patches): where two or more ways of meeting the water cross"""
-    rnd = random.Random(seed)
-    Q = sn_ring(x, y, r, seed, 0.18, 40)
-    pg.poly([Q], fill=SN_WATER_MID, alpha=0.10)
-    for _ in range(int(r * r * 3.0)):
-        a, d = rnd.uniform(0.0, 2.0 * math.pi), r * 0.92 * math.sqrt(rnd.random())
-        pg.circle(x + math.cos(a) * d, y + math.sin(a) * d, 0.12, fill=SN_WATER_MID, alpha=0.45)
-
-
 def sn_exp_places(G):
     """where each way of meeting the water is strongest (the masterplan's places; design reading)"""
     hub = G["hub"]
@@ -980,12 +970,12 @@ def sn_exp_places(G):
 
 
 def sn_encounters(pg, G, cell, warn):
-    """v32 (Aras 31 Oct: "I don't like the encounters", redraw like the references he sent, senses_ref3 flow
-    ribbons): five ribbons, one per way of meeting the water. Each enters from the strip's left edge, runs in its own
-    lane along the stream and, at its places (sn_exp_places), swings onto the stream line and swells, so the ribbons
-    braid and cross where encounters happen; a soft dotted cloud marks where two or more cross. They leave the strip
-    in order to organic, outlined vignette bubbles in the key column. A design reading of the masterplan's places,
-    never a measurement (no numbers)."""
+    """v35 (round 2, Aras 31 Oct: "still overlapping", no overlapping lines left): five ribbons, one per way of
+    meeting the water, each in its OWN lane along the stream (fixed offset, never pulled onto the stream line), so no
+    two ribbons ever touch or cross. At its places (sn_exp_places) a ribbon swells inside its lane. Thickness is
+    measured vertically and lanes are gap apart (> the widest swell), so the bands stay apart on slopes too; the
+    entry and the fan to the vignette bubbles keep the lane order (no crossings). The v32 crossing clouds are gone.
+    A design reading of the masterplan's places, never a measurement (no numbers)."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
     step = 0.5
@@ -996,26 +986,11 @@ def sn_encounters(pg, G, cell, warn):
     n = len(ys)                                          # a calmer path: 15 mm moving mean
     ys = [sum(ys[max(0, i - 15):i + 16]) / len(ys[max(0, i - 15):i + 16]) for i in range(n)]
     m = len(SN_EXP)
-    gap, sig, sigp, w0, w1, lead = 4.0, 2.6, 5.0, 0.8, 1.6, 18.0   # mm: lane pitch, swell, pull, width, swell, entry
+    gap, sig, w0, w1, lead = 4.0, 2.6, 0.8, 1.6, 18.0   # mm: lane pitch (> w0 + w1), swell, width, swell, entry
     half = gap * (m - 1) / 2.0 + (w0 + w1) / 2.0 + 1.0   # the bundle stays whole inside the frame
     ys = [min(max(y, y0 + half), y1 - half) for y in ys]
     pl = sn_exp_places(G)
     PX = [[x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0] for key, _w, _c, _p in SN_EXP]
-    allx = sorted(x for px in PX for x in px if x0 + lead <= x <= x1)
-    groups = []                                          # places within 4 mm of each other: one meeting point
-    for x in allx:
-        if groups and x - groups[-1][-1] <= 4.0:
-            groups[-1].append(x)
-        else:
-            groups.append([x])
-    pg.clip([rect(*box)])
-    for gi, g_ in enumerate(groups):                     # the clouds first, under the ribbons
-        gx = sum(g_) / len(g_)
-        who = sum(1 for px in PX if any(abs(q - gx) <= 4.0 for q in px))
-        if who >= 2:
-            j = min(n - 1, max(0, int((gx - x0) / step)))
-            sn_cloud(pg, gx, ys[j], 2.6 + 0.5 * who, 300 + gi)
-    pg.unclip()
     sx, ytop = cell["side"], box[3]
     pitch = 8.8                                          # mm: the vignettes' pitch
     for i, (key, word, colour, pose) in enumerate(SN_EXP):
@@ -1024,9 +999,8 @@ def sn_encounters(pg, G, cell, warn):
         ys0 = y1 - 5.0 - i * (y1 - y0 - 10.0) / max(1, m - 1)    # where it enters at the strip's left edge
         C_, W_ = [], []
         for x, yb in zip(xs, ys):
-            pull = max([math.exp(-((x - q) / sigp) ** 2) for q in px] or [0.0])
             b = max([math.exp(-((x - q) / sig) ** 2) for q in px] or [0.0])
-            y_ = yb + off * (1.0 - pull)
+            y_ = yb + off                                # v35: its own lane everywhere (no pull)
             t = min(1.0, (x - x0) / lead)
             t = t * t * (3.0 - 2.0 * t)                  # smoothstep: from its entry into its lane
             C_.append((x, ys0 + (y_ - ys0) * t))
@@ -1036,22 +1010,16 @@ def sn_encounters(pg, G, cell, warn):
         fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), k_ / 24.0) for k_ in range(1, 25)]
         P = C_ + fan
         Wl = W_ + [W_[-1] + (w0 - W_[-1]) * k_ / 24.0 for k_ in range(1, 25)]
-        N = sn_normals(P)
-        L_ = [(p[0] + n_[0] * w / 2.0, p[1] + n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)]
-        R_ = [(p[0] - n_[0] * w / 2.0, p[1] - n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)]
-        pg.poly([L_ + R_[::-1]], fill=colour, alpha=0.72)
-        pg.line(L_, "FFFFFF", 0.12)                      # a white hairline each side: crossings stay readable
-        pg.line(R_, "FFFFFF", 0.12)
+        L_ = [(p[0], p[1] + w / 2.0) for p, w in zip(P, Wl)]    # v35: vertical thickness (lanes never meet)
+        R_ = [(p[0], p[1] - w / 2.0) for p, w in zip(P, Wl)]
+        pg.poly([L_ + R_[::-1]], fill=colour, alpha=0.85)
         Cs = C_[::6] + C_[-1:]
         cell["segs"].extend(zip(Cs, Cs[1:]))
         sn_bubble(pg, bx, by, key, word, colour, pose, i)
-    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key rows: the swell and the cloud (G1)
+    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key row: the swell (G1)
     sw = [(sx + 9.0 * t / 30.0, w0 + w1 * math.exp(-((t / 30.0 - 0.5) / 0.16) ** 2)) for t in range(31)]
     pg.poly([[(x, y + w / 2.0) for x, w in sw] + [(x, y - w / 2.0) for x, w in sw][::-1]], fill=SN_INK2, alpha=0.72)
     sn_key_row(pg, sx + 11.0, y, u"Wider: where it happens")
-    y -= 5.2
-    sn_cloud(pg, sx + 4.5, y, 2.2, 7)
-    sn_key_row(pg, sx + 11.0, y, u"Where ways cross")
     return []
 
 

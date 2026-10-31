@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v34 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v35 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v35 (round 2, Aras 31 Oct, brief2 PG1 p15 #6, PG4 p21/p22, G9, G14): p15 Encounters: the five ribbons
+    each in their own lane along the stream (never pulled onto it), so no two ever touch or cross; crossing clouds
+    gone. p21 + p22 trees: a mixed riparian belt (6-32 m from the water, crowns interpenetrating, dart thrown, no
+    rows) and mixed copses of 2-4 trees in the open band (32-60 m), species by niche wet to dry. p21: name tags 7 pt,
+    a move's badge repeated only 45 mm from its others; the side column's legend beside the upper row and its lists
+    beside the lower row (aligned tops). p22 sections: plants and people stand on the lowest finished ground under
+    them (G14), the count logged. Output: Bergama_masterplan_v35_A.pdf, Bergama_masterplan_v35_A_detail.pdf,
+    Bergama_senses_A3.pdf.
 NEW IN v34 (Aras 31 Oct 09:01, p21: text in front of the map; "somewhere between too empty and too crowded"): one
     level of words on the map: each move once as its number badge + short name tag (7.5 pt, halo, no box, no
     explanation line), its further places the badge alone; an edge kept its badge only; the side column names only
@@ -228,8 +236,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v34 (2026-10-31)"
-SHORT = "v34"
+VERSION = "bergama_masterplan v35 (2026-10-31)"
+SHORT = "v35"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -240,8 +248,8 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v34_{}.pdf"     # v19: one sheet per option
-DETAIL_NAME = "Bergama_masterplan_v34_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
+OUT_NAME = "Bergama_masterplan_v35_{}.pdf"     # v19: one sheet per option
+DETAIL_NAME = "Bergama_masterplan_v35_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -2744,7 +2752,8 @@ def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_mi
         if pose == "wade":                             # the cutout is cut at the water line: it stands on the water
             dep = p.get("depth_m", FIG_DC["knee"] * FIG_A1_H)
             y_im, h_true = y + dep * k * sc, FIG_ADULT_H - dep
-        im = cut_image("person_" + pose, x, y_im, k, h_m=h_true, layer=layer, facing=facing)
+        pk = pick if pick is not None else int(abs(x * 7.31 + y * 3.17) * 10.0) % 997   # 31 Oct: variety (was
+        im = cut_image("person_" + pose, x, y_im, k, h_m=h_true, layer=layer, facing=facing, pick=pk)   # always no. 1)
         if im:
             return im
     k = k * sc
@@ -10971,16 +10980,6 @@ def sn_bubble(pg, x, y, key, word, colour, pose, seed=0):
     pg.text(word.upper(), x + 14.0, y - size * 0.35, size, mix(colour, SN_DARK, 0.3), bold=True)
 
 
-def sn_cloud(pg, x, y, r, seed):
-    """v32: a soft dotted cloud (senses_ref3's dotted patches): where two or more ways of meeting the water cross"""
-    rnd = random.Random(seed)
-    Q = sn_ring(x, y, r, seed, 0.18, 40)
-    pg.poly([Q], fill=SN_WATER_MID, alpha=0.10)
-    for _ in range(int(r * r * 3.0)):
-        a, d = rnd.uniform(0.0, 2.0 * math.pi), r * 0.92 * math.sqrt(rnd.random())
-        pg.circle(x + math.cos(a) * d, y + math.sin(a) * d, 0.12, fill=SN_WATER_MID, alpha=0.45)
-
-
 def sn_exp_places(G):
     """where each way of meeting the water is strongest (the masterplan's places; design reading)"""
     hub = G["hub"]
@@ -10996,12 +10995,12 @@ def sn_exp_places(G):
 
 
 def sn_encounters(pg, G, cell, warn):
-    """v32 (Aras 31 Oct: "I don't like the encounters", redraw like the references he sent, senses_ref3 flow
-    ribbons): five ribbons, one per way of meeting the water. Each enters from the strip's left edge, runs in its own
-    lane along the stream and, at its places (sn_exp_places), swings onto the stream line and swells, so the ribbons
-    braid and cross where encounters happen; a soft dotted cloud marks where two or more cross. They leave the strip
-    in order to organic, outlined vignette bubbles in the key column. A design reading of the masterplan's places,
-    never a measurement (no numbers)."""
+    """v35 (round 2, Aras 31 Oct: "still overlapping", no overlapping lines left): five ribbons, one per way of
+    meeting the water, each in its OWN lane along the stream (fixed offset, never pulled onto the stream line), so no
+    two ribbons ever touch or cross. At its places (sn_exp_places) a ribbon swells inside its lane. Thickness is
+    measured vertically and lanes are gap apart (> the widest swell), so the bands stay apart on slopes too; the
+    entry and the fan to the vignette bubbles keep the lane order (no crossings). The v32 crossing clouds are gone.
+    A design reading of the masterplan's places, never a measurement (no numbers)."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
     step = 0.5
@@ -11012,26 +11011,11 @@ def sn_encounters(pg, G, cell, warn):
     n = len(ys)                                          # a calmer path: 15 mm moving mean
     ys = [sum(ys[max(0, i - 15):i + 16]) / len(ys[max(0, i - 15):i + 16]) for i in range(n)]
     m = len(SN_EXP)
-    gap, sig, sigp, w0, w1, lead = 4.0, 2.6, 5.0, 0.8, 1.6, 18.0   # mm: lane pitch, swell, pull, width, swell, entry
+    gap, sig, w0, w1, lead = 4.0, 2.6, 0.8, 1.6, 18.0   # mm: lane pitch (> w0 + w1), swell, width, swell, entry
     half = gap * (m - 1) / 2.0 + (w0 + w1) / 2.0 + 1.0   # the bundle stays whole inside the frame
     ys = [min(max(y, y0 + half), y1 - half) for y in ys]
     pl = sn_exp_places(G)
     PX = [[x for x in (T(p)[0] for p in pl.get(key, [])) if x0 - 3.0 <= x <= x1 + 3.0] for key, _w, _c, _p in SN_EXP]
-    allx = sorted(x for px in PX for x in px if x0 + lead <= x <= x1)
-    groups = []                                          # places within 4 mm of each other: one meeting point
-    for x in allx:
-        if groups and x - groups[-1][-1] <= 4.0:
-            groups[-1].append(x)
-        else:
-            groups.append([x])
-    pg.clip([rect(*box)])
-    for gi, g_ in enumerate(groups):                     # the clouds first, under the ribbons
-        gx = sum(g_) / len(g_)
-        who = sum(1 for px in PX if any(abs(q - gx) <= 4.0 for q in px))
-        if who >= 2:
-            j = min(n - 1, max(0, int((gx - x0) / step)))
-            sn_cloud(pg, gx, ys[j], 2.6 + 0.5 * who, 300 + gi)
-    pg.unclip()
     sx, ytop = cell["side"], box[3]
     pitch = 8.8                                          # mm: the vignettes' pitch
     for i, (key, word, colour, pose) in enumerate(SN_EXP):
@@ -11040,9 +11024,8 @@ def sn_encounters(pg, G, cell, warn):
         ys0 = y1 - 5.0 - i * (y1 - y0 - 10.0) / max(1, m - 1)    # where it enters at the strip's left edge
         C_, W_ = [], []
         for x, yb in zip(xs, ys):
-            pull = max([math.exp(-((x - q) / sigp) ** 2) for q in px] or [0.0])
             b = max([math.exp(-((x - q) / sig) ** 2) for q in px] or [0.0])
-            y_ = yb + off * (1.0 - pull)
+            y_ = yb + off                                # v35: its own lane everywhere (no pull)
             t = min(1.0, (x - x0) / lead)
             t = t * t * (3.0 - 2.0 * t)                  # smoothstep: from its entry into its lane
             C_.append((x, ys0 + (y_ - ys0) * t))
@@ -11052,22 +11035,16 @@ def sn_encounters(pg, G, cell, warn):
         fan = [sn_bez((ex, ey), (ex + 6.0, ey), (bx - 6.0, by), (bx, by), k_ / 24.0) for k_ in range(1, 25)]
         P = C_ + fan
         Wl = W_ + [W_[-1] + (w0 - W_[-1]) * k_ / 24.0 for k_ in range(1, 25)]
-        N = sn_normals(P)
-        L_ = [(p[0] + n_[0] * w / 2.0, p[1] + n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)]
-        R_ = [(p[0] - n_[0] * w / 2.0, p[1] - n_[1] * w / 2.0) for p, n_, w in zip(P, N, Wl)]
-        pg.poly([L_ + R_[::-1]], fill=colour, alpha=0.72)
-        pg.line(L_, "FFFFFF", 0.12)                      # a white hairline each side: crossings stay readable
-        pg.line(R_, "FFFFFF", 0.12)
+        L_ = [(p[0], p[1] + w / 2.0) for p, w in zip(P, Wl)]    # v35: vertical thickness (lanes never meet)
+        R_ = [(p[0], p[1] - w / 2.0) for p, w in zip(P, Wl)]
+        pg.poly([L_ + R_[::-1]], fill=colour, alpha=0.85)
         Cs = C_[::6] + C_[-1:]
         cell["segs"].extend(zip(Cs, Cs[1:]))
         sn_bubble(pg, bx, by, key, word, colour, pose, i)
-    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key rows: the swell and the cloud (G1)
+    y = ytop - 8.4 - pitch * (m - 1) - 4.0 - 4.2         # key row: the swell (G1)
     sw = [(sx + 9.0 * t / 30.0, w0 + w1 * math.exp(-((t / 30.0 - 0.5) / 0.16) ** 2)) for t in range(31)]
     pg.poly([[(x, y + w / 2.0) for x, w in sw] + [(x, y - w / 2.0) for x, w in sw][::-1]], fill=SN_INK2, alpha=0.72)
     sn_key_row(pg, sx + 11.0, y, u"Wider: where it happens")
-    y -= 5.2
-    sn_cloud(pg, sx + 4.5, y, 2.2, 7)
-    sn_key_row(pg, sx + 11.0, y, u"Where ways cross")
     return []
 
 
@@ -11464,7 +11441,8 @@ PL23_SIDE_MIN = 80.0         # mm: the side column at least this wide
 PL23_SIDE_GAP = 5.0          # mm between the map and the side column
 PL23_MARKS = {5000.0: (0.0, 50.0, 100.0, 250.0), 10000.0: (0.0, 100.0, 200.0, 500.0)}   # scale bar, m (50 mm)
 PL23_NAME_TS = 3.2           # mm: place names on the 1:5,000 rows (9 pt)
-PL23_TAG_TS = 2.65           # mm (7.5 pt): v34 a move's name tag beside its badge on the map, no box
+PL23_TAG_TS = 2.47           # mm (7 pt = KEY_MIN): a move's name tag beside its badge on the map, no box (v34 2.65; v35 smaller)
+PL23_REPEAT_MM = 45.0        # v35 (round 2 "upper map still crowded"): a move's badge again only this far (row mm) from its others
 PL23_FEW_WORDS = True        # v33 (Aras 31 Oct p21 "less crowded"): the plan rows name only the hubs, no Trajaneum label
 PL23_WALK_COL, PL23_BIKE_COL = "4C2528", "5C7A86"         # palette references (library/examples/palettes)
 PL23_BIKE = True             # the riverside walk carries a bike lane on its land side (Aras 29 Oct 21:04, decision card)
@@ -11472,54 +11450,108 @@ PL23_BIKE = True             # the riverside walk carries a bike lane on its lan
 
 # T7 (revision 30 Oct, PG4 p21): the plan language. G8 / M5: the stream textured with a defined bank (water_plan),
 # the site board's stream polygon (basemap "water") where there is one, else the corridor's bed; no mid-stream line.
-# v33 (Aras 31 Oct critique p22: the trees in top view "so randomised and clustered ... doesnt have logic under it"):
-# the trees stand in ROWS that follow the water's edge, one species per row from wet to dry. The rows run along the
-# lines of equal distance from the water (the corridor's distance field) at the middle of each spacing step of the
-# FOREST band (6-32 m, 9 m apart: 10.5, 19.5, 28.5 m) and the TREES band (32-60 m, 18 m apart: 41, 59 m); a row's
-# species is the one whose niche centre (PLA_NICHE, t = distance / TREES[1]) lies nearest its t: willow, tamarisk,
-# ash, then plane. Along a row the trees stand one crown width apart (at least the band's spacing), every second row
-# offset by half a step; no rows within the band's hub distance (FOREST[2] / TREES[2]: programme at the hubs), none
-# on a building, road or the bed. No noise, no jitter. The same set draws p.21 and p.22.
+# v35 (round 2, Aras 31 Oct p21: rows read "incredibly patterned and regular"; wanted scattered, never one tree type,
+# natural but in a planned, architectural order, G9): the order is the ecology, not a pattern. Two bands from the
+# water: the FOREST band (6-32 m) is one continuous riparian belt, mixed species whose crowns interpenetrate (trees
+# at least PL23_BELT_GAP x their mean crown apart, dart thrown, row-like picks thrown away); the TREES band (32-60 m)
+# is open ground with copses of 2-4 mixed trees (centres PL23_COPSE_M apart), lawns between. Species per tree:
+# weighted by PLA_NICHE at t = distance / TREES[1] (wet to dry: willow, tamarisk, ash, plane), so neighbours mix where
+# niches overlap; t is held inside the four trees' niche centres (0.24-0.52: past 0.52 = the driest of them).
+# Crowns 0.88-1.08 x the sourced crown (_pla_size_var). Off the hubs (FOREST[2] / TREES[2]), only on open cells (no
+# building, road or bed). Seeded: the same set every press. The same set draws p.21 and p.22 (plans and sections).
 PL23_TREE_KEYS = ("willow", "tamarisk", "ash", "plane")   # the corridor's trees (P24_SPECIES wetland + forest)
 PL23_WET_KEYS = ("willow", "tamarisk")                    # legend group "wet edge"
+PL23_BELT_GAP = 0.85         # forest belt: at least this x the two crowns' mean apart (crowns overlap a little)
+PL23_COPSE_M = 42.0          # trees band: copse centres at least this far apart, m (design value)
+PL23_COPSE_N = (2, 4)        # trees per copse
+PL23_SEED = 2310
 
 
-def pl23_tree_rows(C):
-    """[(distance from the water m, species key, along-row spacing m, hub distance m)] of the tree rows (v33)"""
-    out = []
-    for d0, d1, hmin, sp in (FOREST, TREES):
-        d = d0 + sp / 2.0
-        while d <= d1 + 1e-9:
-            t = d / TREES[1]
-            key = min(PL23_TREE_KEYS, key=lambda k_: abs(PLA_NICHE[k_][0] - t))
-            out.append((d, key, max(sp, PLA_SPECIES[key]["crown_m"]), hmin))
-            d += sp
-    return out
+def _pl23_pick(t, rnd):
+    """a corridor tree species for band position t, weighted by its niche (PLA_NICHE), t held inside the centres"""
+    cs = [PLA_NICHE[k_][0] for k_ in PL23_TREE_KEYS]
+    t = min(max(t, min(cs)), max(cs))
+    ws = [(k_, PLA_NICHE[k_][2] * math.exp(-((t - PLA_NICHE[k_][0]) / PLA_NICHE[k_][1]) ** 2)) for k_ in PL23_TREE_KEYS]
+    r = rnd.random() * sum(w for _k, w in ws)
+    for k_, w in ws:
+        r -= w
+        if r <= 0.0:
+            return k_
+    return ws[-1][0]
 
 
 def pl23_tree_set(C):
-    """[(xy survey m, species key, crown m)] of the corridor's trees, once per corridor (C.pl23_trees), v33: rows
-    along the lines of equal distance from the water (pl23_tree_rows), each line traced from the corridor's distance field
-    (C.Dst, cells within the row's distance; C.loops smooths it at the water), the trees one spacing apart on the
-    stretches of the line that lie at that distance (not along a building's or the frame's edge), off the hubs."""
+    """[(xy survey m, species key, crown m)] of the corridor's trees, once per corridor (C.pl23_trees), v35: a mixed
+    riparian belt (FOREST band) and mixed copses (TREES band), see the note above"""
     got = getattr(C, "pl23_trees", None)
     if got is not None:
         return got
-    out, tol = [], 1.5 * C.G.c
-    for r, (d, key, sp, hmin) in enumerate(pl23_tree_rows(C)):
-        cells = [n for n in range(C.N) if C.Dst[n] <= d]
-        cr = PLA_SPECIES[key]["crown_m"]
-        for L in C.loops(cells, True):
-            P = list(L) + [L[0]]
-            s = arclen(P)
-            t = sp / 2.0 if r % 2 else 0.0
-            while t < s[-1]:
-                q = at_len(P, s, t)[0]
-                t += sp
-                n = C.cell(q)
-                if n is None or C.F[n] != 0 or abs(C.Dst[n] - d) > tol or C.dhub(q) < hmin:
-                    continue
-                out.append((q, key, cr))
+    rnd = random.Random(PL23_SEED)
+    c, B = C.G.c, 12.0
+    hsh, out = {}, []
+
+    def near(q, r):
+        i0, j0, m = int(math.floor(q[0] / B)), int(math.floor(q[1] / B)), int(math.ceil(r / B))
+        return [e for i in range(i0 - m, i0 + m + 1) for j in range(j0 - m, j0 + m + 1) for e in hsh.get((i, j), ())]
+
+    def free(q, cr, f):
+        return all(math.hypot(q[0] - e[0][0], q[1] - e[0][1]) >= f * (cr + e[2]) / 2.0 for e in near(q, 16.0))
+
+    def at(q, d0, d1, hmin):
+        n = C.cell(q)
+        if n is None or C.F[n] != 0 or not (d0 <= C.Dst[n] <= d1) or C.dhub(q) < hmin:
+            return None
+        return C.Dst[n]
+
+    def put(q, key):
+        cr = PLA_SPECIES[key]["crown_m"] * (0.88 + 0.20 * rnd.random())
+        return q, key, cr
+
+    def jit(n):
+        u, v = C.G.xy(n)
+        return C.V.xy(u + (rnd.random() - 0.5) * c, v + (rnd.random() - 0.5) * c)
+
+    def add(e):
+        out.append(e)
+        hsh.setdefault((int(math.floor(e[0][0] / B)), int(math.floor(e[0][1] / B))), []).append(e)
+    belt = [n for n in range(C.N) if C.F[n] == 0 and FOREST[0] <= C.Dst[n] < FOREST[1]]
+    rnd.shuffle(belt)
+    for n in belt:                                       # the riparian belt: dart throwing, no rows
+        q = jit(n)
+        d = at(q, FOREST[0], FOREST[1], FOREST[2])
+        if d is None:
+            continue
+        e = put(q, _pl23_pick(d / TREES[1], rnd))
+        if not free(q, e[2], PL23_BELT_GAP):
+            continue
+        if _pla_rowlike(q, [x[0] for x in near(q, 3.0 * e[2])], 3.0 * e[2]):
+            continue
+        add(e)
+    outer = [n for n in range(C.N) if C.F[n] == 0 and FOREST[1] <= C.Dst[n] <= TREES[1]]
+    rnd.shuffle(outer)
+    cen, CB = {}, PL23_COPSE_M                           # copse centres by 42 m bucket (fast on the laptop)
+    for n in outer:                                      # the open band: copses of mixed trees, lawns between
+        q = jit(n)
+        if at(q, FOREST[1], TREES[1], TREES[2]) is None:
+            continue
+        ci, cj = int(math.floor(q[0] / CB)), int(math.floor(q[1] / CB))
+        if any(math.hypot(q[0] - p[0], q[1] - p[1]) < PL23_COPSE_M
+               for i in (ci - 1, ci, ci + 1) for j in (cj - 1, cj, cj + 1) for p in cen.get((i, j), ())):
+            continue
+        cen.setdefault((ci, cj), []).append(q)
+        want, got_ = rnd.randint(*PL23_COPSE_N), 0
+        for _ in range(12 * PL23_COPSE_N[1]):
+            if got_ >= want:
+                break
+            a, r = rnd.uniform(0.0, 2.0 * math.pi), 9.0 * math.sqrt(rnd.random())
+            q2 = (q[0] + r * math.cos(a), q[1] + r * math.sin(a))
+            d = at(q2, FOREST[1], TREES[1], TREES[2])
+            if d is None:
+                continue
+            e = put(q2, _pl23_pick(d / TREES[1], rnd))
+            if free(q2, e[2], 0.75):
+                add(e)
+                got_ += 1
     out.sort(key=lambda e: PLA_SPECIES[e[1]]["h_m"])      # the lower crowns first, the taller over them
     C.pl23_trees = out
     return out
@@ -12124,12 +12156,15 @@ def pl23_labels(sh, C, rws, taken):
         ents.append(ent)
         col = mk[grp]
         kept = nt["key"][0] == "kept"
-        first = True
+        first, seen = True, []
         for p in nt["at"]:                                # v34: first place = badge + short name tag, no box;
             i = row_of(p)                                 # further places = the badge alone (the same move)
             if i is None:
                 continue
             x, y = rws[i][0](p)
+            if not first and any(j == i and math.hypot(x - a, y - b) < PL23_REPEAT_MM for j, a, b in seen):
+                continue                                  # v35: no repeat badge near one of the same move
+            seen.append((i, x, y))
             s = 2 * BADGE_R + 0.5
             tag = first and not kept                      # an edge kept is no intervention: its badge only
             w = s + (0.8 + text_w(nm, PL23_TAG_TS, True) if tag else 0.0)
@@ -12189,10 +12224,13 @@ def pl23_nogo_h(nis, cw):
     return h
 
 
-def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
+def pl23_side(sh, x0, x1, H, used, ents, nis, warn, y_low=None):
     """the side column from x0 to x1: on top the small legend (two columns, only what the page draws), under it the
     moves not named on the map (v34: edges kept and moves with no room; number and name only, no explanation line),
-    at its foot the areas left as they are (letter and area)"""
+    at its foot the areas left as they are (letter and area). v35 (round 2: "the legend on the right is not aligned
+    with the one below"): with two rows the legend sits beside the upper row (its top = the row's top) and the lists
+    beside the lower row (their top = y_low, the lower row's top edge), same left edge and width; when the lists do
+    not fit beside the lower row, the v34 stacking is kept (and a warning)."""
     cw = x1 - x0
     more = [e for e in ents if not e[4]]
     mk = dict((k_, hx) for k_, lab, hx in R28_MARKERS)
@@ -12205,11 +12243,14 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
               (u"PROPOSED", [(nm, f) for key, nm, f in leg_ if key in used and key not in EXISTING])]
     n = sum(len(it) + 1 for _, it in groups if it)
     rows = int(math.ceil(n / 2.0)) + 1
-    room = H - h_nogo - h_more - 4.0
+    split = y_low is not None and h_more + h_nogo + 1.0 <= y_low and rows * 3.0 <= H - y_low - 1.0
+    if y_low is not None and not split:
+        warn.append(u"masterplan page: the side lists do not fit beside the lower row: stacked under the legend")
+    room = (H - y_low - 1.0) if split else (H - h_nogo - h_more - 4.0)
     pitch = max(3.0, min(3.6, room / float(rows)))
     y_leg = H - rows * pitch
     pl28_legend(sh, groups, x0, x1, H, y_leg, 2, warn, pitch=pitch)
-    y = y_leg - 2.0
+    y = y_low if split else y_leg - 2.0
     if more:
         y = pl28_list_head(sh, u"More moves", COL["ink2"], x0, y, cw)
         tx = x0 + 2 * BADGE_R + 2.2
@@ -12224,7 +12265,7 @@ def pl23_side(sh, x0, x1, H, used, ents, nis, warn):
         if y < h_nogo + 1.0:
             warn.append(u"masterplan page: the side column runs {:.1f} mm over (legend, moves, areas left as they "
                         u"are)".format(h_nogo + 1.0 - y))
-        pl28_list_nogo(sh, nis, x0, h_nogo + 1.0, cw)
+        pl28_list_nogo(sh, nis, x0, (y - 1.0 if more else y) if split else h_nogo + 1.0, cw)   # v35: one block when split
 
 
 # v28: the route's legend samples (before the core's LEGEND_V24 rows of the same key); T7: the stream, the wetland
@@ -12288,11 +12329,12 @@ def plan_page(C, warn):
     sh = Page(W, H)
     sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
     pl23_water_groups(C, warn)
-    used, taken, rws, x_side = set(), [], [], 0.0
+    used, taken, rws, x_side, tops = set(), [], [], 0.0, []
     y_top = H
     for i, row in enumerate(rows):
         dw = (row["b"] - row["a"]) * k
         x0, y0 = 0.0, y_top - dh
+        tops.append(y_top)
         T, mine = pl23_row_T(C, row, k)
         tk = []
         pg = Page(dw, dh)
@@ -12333,7 +12375,7 @@ def plan_page(C, warn):
     for nt, grp, nm, line, ok in ents:
         if not ok and nt["key"][0] != "kept":
             warn.append(u"masterplan move {} has no room on the map: named in the side column ({})".format(nt["n"], nm))
-    pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn)
+    pl23_side(sh, x_side + PL23_SIDE_GAP, W, H, used, ents, nis, warn, tops[-1] if len(tops) > 1 else None)
     sh.crop = (0.0, 0.0, W, H)
     sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
     sh.bid = ("mp_plan", "c1_s1", u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower()))
@@ -12791,6 +12833,21 @@ class P24Sec(object):
         self.trees = []                                  # (key, h_m) drawn at layer 0 (G6 check)
         self.zl = []                                     # zone lines: (name, t, z of the ground, beyond)
         self.lv = []                                     # level words: (text, t, z)
+        self.gnd = None                                  # v35 G14: z of the finished ground at t (set by p24_section)
+        self.seated = 0                                  # v35 G14: items lowered onto the ground
+
+    def seat(self, t, z, half=None, count=True):
+        """v35 (G14, nothing floats): z lowered to the lowest finished ground under the item's base (t +- half m)
+        when it stands up to P24_SEAT_MAX above it (a slope); a bigger drop is a wall edge or a deliberate level
+        (wall top, raised garden, water): z kept"""
+        if self.gnd is None:
+            return z
+        half = P24_SEAT_HALF if half is None else half
+        zm = min(self.gnd(t + d) for d in (-half, -half / 2.0, 0.0, half / 2.0, half))
+        if 0.005 < z - zm <= P24_SEAT_MAX:
+            self.seated += 1 if count else 0
+            return zm
+        return z
 
     def X(self, t):
         return (t - self.ta) * self.k
@@ -12803,6 +12860,7 @@ class P24Sec(object):
         self.shapes += list(shapes or [])
 
     def plant(self, key, t, z, layer=0, seed=0, into="vegetation", **kw):
+        z = self.seat(t, z) if not layer else z           # v35 G14 (behind the cut: on the cut ground as before)
         self.put(pla_section(key, self.X(t), self.Y(z), self.k, seed=seed, style=self.style, layer=layer, **kw), into)
         if not layer:
             self.trees.append((key, kw.get("h_m") or PLA_SPECIES[key]["h_m"]))
@@ -12815,14 +12873,20 @@ class P24Sec(object):
         self.trees += [(key, h) for key, x, h, cr in placed]
 
     def fig(self, pose, t, z, facing=1, **kw):
+        z = self.seat(t, z)                              # v35 G14
         self.put(fig_side(pose, self.X(t), self.Y(z), self.k, facing=facing, mm_per_m=self.k, style=self.style, **kw),
                  "figures")
 
     def people(self, zone, t0, t1, z, seed=0, **kw):
-        """people doing what the zone is for (M7 fig_activity), on flat ground z from t0 to t1"""
+        """people doing what the zone is for (M7 fig_activity) from t0 to t1, standing at z; v35 (G14): on dry ground
+        each figure stands on the lowest finished ground under its feet (seat), so none floats on a slope or a terrace
+        step; in the bed ("bed": wading) at z"""
         if t1 - t0 < 1.0:
             return
-        sh, _ = fig_activity(zone, self.X(t0), self.X(t1), self.Y(z), self.k, seed=seed, style=self.style, **kw)
+        gy = self.Y(z)
+        if zone != "bed" and self.gnd is not None:
+            gy = lambda x, z=z: self.Y(self.seat(x / self.k + self.ta, z, 0.25, count=False))
+        sh, _ = fig_activity(zone, self.X(t0), self.X(t1), gy, self.k, seed=seed, style=self.style, **kw)
         self.put(sh, "figures")
 
     def block(self, t0, t1, z0, z1, material):
@@ -12839,6 +12903,8 @@ class P24Sec(object):
         self.wl.put(self.pg)
 
 
+P24_SEAT_HALF = 0.3         # v35 G14: half the base of a plant or person, m (the lowest ground under it carries it)
+P24_SEAT_MAX = 0.6          # v35 G14: lowered at most this much, m (more = a wall edge or a set level: kept)
 P24_BACK_M = (140.0, 60.0)   # T7: ground lines this far behind the cut (view direction), from the survey: the context
 P24_ARM_M = 60.0             # T7: trees of the corridor this far behind the cut stand in depth layer 1, farther in 2
 P24_BACK_GAP = 6.0           # T7: trees behind the cut at least this far apart along it per depth layer, m (legible)
@@ -12940,6 +13006,7 @@ def p24_section(C, w, warn, style="b"):
     S = P24Sec(ta, tb, z0, style)
     X, Y, k = S.X, S.Y, S.k
     zat = lambda t: _p24_zat(prof, t)
+    S.gnd = zat                                           # v35 G14: the finished ground (after cuts, terraces, walks)
     # ---- context: the ground behind the cut (survey heights on lines parallel to it, farthest first), the corridor's
     # trees behind the cut in depth layers 1 and 2 (D9), on the background behind the cut ground
     backs = []
@@ -13146,6 +13213,8 @@ def p24_section(C, w, warn, style="b"):
     bad = sf_assert_g6(k, trees=S.trees, strict=False)   # G6: people 1.75 m, every tree in its sourced height range
     if bad and style == "b":
         warn.append(u"section {}: {}".format(name, u"; ".join(bad)))
+    if style == "a" and S.seated:                         # v35 G14 log (style a = the booklet's)
+        warn.append(u"section {}: G14 {} plants / single figures lowered onto the ground (groups follow the ground per figure)".format(name, S.seated))
     # ---- words: the zone lines and names in rows above everything (R18 idea), the levels by their points
     top = max([_p24_top(S.shapes) or 0.0] + [Y(p[1]) for p in prof] + [Y(q500) + 2.0 * KEY_MIN]) + 2.0
     rows = [[] for _ in range(P24_LAB_ROWS)]

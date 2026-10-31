@@ -449,6 +449,21 @@ class P24Sec(object):
         self.trees = []                                  # (key, h_m) drawn at layer 0 (G6 check)
         self.zl = []                                     # zone lines: (name, t, z of the ground, beyond)
         self.lv = []                                     # level words: (text, t, z)
+        self.gnd = None                                  # v35 G14: z of the finished ground at t (set by p24_section)
+        self.seated = 0                                  # v35 G14: items lowered onto the ground
+
+    def seat(self, t, z, half=None, count=True):
+        """v35 (G14, nothing floats): z lowered to the lowest finished ground under the item's base (t +- half m)
+        when it stands up to P24_SEAT_MAX above it (a slope); a bigger drop is a wall edge or a deliberate level
+        (wall top, raised garden, water): z kept"""
+        if self.gnd is None:
+            return z
+        half = P24_SEAT_HALF if half is None else half
+        zm = min(self.gnd(t + d) for d in (-half, -half / 2.0, 0.0, half / 2.0, half))
+        if 0.005 < z - zm <= P24_SEAT_MAX:
+            self.seated += 1 if count else 0
+            return zm
+        return z
 
     def X(self, t):
         return (t - self.ta) * self.k
@@ -461,6 +476,7 @@ class P24Sec(object):
         self.shapes += list(shapes or [])
 
     def plant(self, key, t, z, layer=0, seed=0, into="vegetation", **kw):
+        z = self.seat(t, z) if not layer else z           # v35 G14 (behind the cut: on the cut ground as before)
         self.put(pla_section(key, self.X(t), self.Y(z), self.k, seed=seed, style=self.style, layer=layer, **kw), into)
         if not layer:
             self.trees.append((key, kw.get("h_m") or PLA_SPECIES[key]["h_m"]))
@@ -473,14 +489,20 @@ class P24Sec(object):
         self.trees += [(key, h) for key, x, h, cr in placed]
 
     def fig(self, pose, t, z, facing=1, **kw):
+        z = self.seat(t, z)                              # v35 G14
         self.put(fig_side(pose, self.X(t), self.Y(z), self.k, facing=facing, mm_per_m=self.k, style=self.style, **kw),
                  "figures")
 
     def people(self, zone, t0, t1, z, seed=0, **kw):
-        """people doing what the zone is for (M7 fig_activity), on flat ground z from t0 to t1"""
+        """people doing what the zone is for (M7 fig_activity) from t0 to t1, standing at z; v35 (G14): on dry ground
+        each figure stands on the lowest finished ground under its feet (seat), so none floats on a slope or a terrace
+        step; in the bed ("bed": wading) at z"""
         if t1 - t0 < 1.0:
             return
-        sh, _ = fig_activity(zone, self.X(t0), self.X(t1), self.Y(z), self.k, seed=seed, style=self.style, **kw)
+        gy = self.Y(z)
+        if zone != "bed" and self.gnd is not None:
+            gy = lambda x, z=z: self.Y(self.seat(x / self.k + self.ta, z, 0.25, count=False))
+        sh, _ = fig_activity(zone, self.X(t0), self.X(t1), gy, self.k, seed=seed, style=self.style, **kw)
         self.put(sh, "figures")
 
     def block(self, t0, t1, z0, z1, material):
@@ -497,6 +519,8 @@ class P24Sec(object):
         self.wl.put(self.pg)
 
 
+P24_SEAT_HALF = 0.3         # v35 G14: half the base of a plant or person, m (the lowest ground under it carries it)
+P24_SEAT_MAX = 0.6          # v35 G14: lowered at most this much, m (more = a wall edge or a set level: kept)
 P24_BACK_M = (140.0, 60.0)   # T7: ground lines this far behind the cut (view direction), from the survey: the context
 P24_ARM_M = 60.0             # T7: trees of the corridor this far behind the cut stand in depth layer 1, farther in 2
 P24_BACK_GAP = 6.0           # T7: trees behind the cut at least this far apart along it per depth layer, m (legible)
@@ -598,6 +622,7 @@ def p24_section(C, w, warn, style="b"):
     S = P24Sec(ta, tb, z0, style)
     X, Y, k = S.X, S.Y, S.k
     zat = lambda t: _p24_zat(prof, t)
+    S.gnd = zat                                           # v35 G14: the finished ground (after cuts, terraces, walks)
     # ---- context: the ground behind the cut (survey heights on lines parallel to it, farthest first), the corridor's
     # trees behind the cut in depth layers 1 and 2 (D9), on the background behind the cut ground
     backs = []
@@ -804,6 +829,8 @@ def p24_section(C, w, warn, style="b"):
     bad = sf_assert_g6(k, trees=S.trees, strict=False)   # G6: people 1.75 m, every tree in its sourced height range
     if bad and style == "b":
         warn.append(u"section {}: {}".format(name, u"; ".join(bad)))
+    if style == "a" and S.seated:                         # v35 G14 log (style a = the booklet's)
+        warn.append(u"section {}: G14 {} plants / single figures lowered onto the ground (groups follow the ground per figure)".format(name, S.seated))
     # ---- words: the zone lines and names in rows above everything (R18 idea), the levels by their points
     top = max([_p24_top(S.shapes) or 0.0] + [Y(p[1]) for p in prof] + [Y(q500) + 2.0 * KEY_MIN]) + 2.0
     rows = [[] for _ in range(P24_LAB_ROWS)]

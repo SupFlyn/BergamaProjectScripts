@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# bergama_agriculture_alternatives_v6.py (v6, 30 Oct: revision T5, pp.18-19 crops) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
+# bergama_agriculture_alternatives_v7.py (v7, 31 Oct: round 2, p19 compact for one page with p18) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
 # all-vector A3 PDF there, one page per alternative:
@@ -14,7 +14,10 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math, re
 
-VERSION = "v6"
+VERSION = "v7"
+# NEW IN v7 (round 2, Aras 31 Oct 11:13: p18 + p19 on one page if legible, PG2 p18-19, M10): ag1_bars compact (rows
+#   14 mm apart, bars 5 mm, grid 165 mm wide: about 239 x 98 mm, was 264 x 113); ag1_reading one strip 252 x 28 mm
+#   (was 244 x 48): the two dry-year bars it repeated from ag1_bars are gone (a fact once), the ratio and the lever stay.
 # Revision 30 Oct (T5, booklet p.19; M10, G4): every fact once in the booklet. Storage (p.10) is no longer printed
 #   here (headline, store legend); the olive area is facts.py "8,705 ha", printed once (the olive bar row; the
 #   cotton tile and the timeline no longer repeat the 2025 areas: "8,700" gone); the olive full-irrigation row prints
@@ -609,6 +612,7 @@ def crop_row(pg, x, top, w, floor):
 
 
 # ------------------------------------------------------------------ v3 (Prompt 6): the stream comes first
+AG_BAR_GW, AG_BAR_RP, AG_BAR_H, AG_BAR_O = 165.0, 14.0, 5.0, 6.0   # v7 (round 2, p18-19 on one page): bars grid width, row pitch, bar, dry offset, mm
 P1_X = 14.0                          # v4 (MIRAQUA 28 Oct, F10): page 1's left column on the 14 mm margin with the title
                                      # (was 26, behind the page number that is gone)
 PRIORITY =[(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
@@ -774,9 +778,9 @@ def page_cubic(L, src):
     rows = [(plant_name("olive") + ", full irrigation", "olive", None), (plant_name("olive") + ", deficit irrigation", "olive", DEFICIT)] + \
            [(plant_name(c) if c in PLANTS else c.capitalize(), c, None) for c in sorted(NET) if c != "olive"] + [("Bergama mix (TÜİK 2025)", "mix", None)]
     stream_first(pg, L, src, 236.0)                 # v3 (Prompt 6): between the headline and the bars
-    x0, y0, gw = 70, 181, 190                       # v3: y0 was 214, the stream-first block sits above
-    RP = 16.5                                       # v3: rows 16.5 mm apart (were 19.5)
-    yb_ = y0 - (len(rows) - 1) * RP - 13.5           # the last row's dry bar bottom (= the grid's foot, as before)
+    x0, y0, gw = 70, 181, AG_BAR_GW                 # v3: y0 was 214, the stream-first block sits above
+    RP, BH, BO = AG_BAR_RP, AG_BAR_H, AG_BAR_O      # v7: rows 14 mm apart (v3 16.5), bars 5 mm (6), dry bar 6 mm under (7.5)
+    yb_ = y0 - (len(rows) - 1) * RP - BO - BH        # the last row's dry bar bottom (= the grid's foot, as before)
     vals = []
     for lab, crop, d in rows:
         for yr in ("normal", "dry"):
@@ -801,13 +805,13 @@ def page_cubic(L, src):
             pg.text("Bergama 2025: %s ha %s" % (area, cite(TUIK)), x0 - 3, yy - 13.6, 7, C["accent"], align="R")
         for j, yr in enumerate(("normal", "dry")):
             v = [q for q in vals if q[0] == lab and q[2] == yr][0]
-            by = yy - j * 7.5
+            by = yy - j * BO
             col = C["green_light"] if yr == "normal" else C["green_deep"]
-            pg.rect(x0, by - 6, gw * v[4] / vmax, 6, fill=col)
+            pg.rect(x0, by - BH, gw * v[4] / vmax, BH, fill=col)
             if v[5] > v[4] * 1.01:
-                pg.rect(x0 + gw * v[4] / vmax, by - 6, gw * (v[5] - v[4]) / vmax, 6, fill=None, stroke=col, lw=0.35)
+                pg.rect(x0 + gw * v[4] / vmax, by - BH, gw * (v[5] - v[4]) / vmax, BH, fill=None, stroke=col, lw=0.35)
             t = "%s-%s ha" % (fmt(v[4]), fmt(v[5])) if fmt(v[4]) != fmt(v[5]) else "%s ha" % fmt(v[4])
-            pg.text(t, x0 + gw * v[5] / vmax + 2, by - 4.4, 8, C["ink"], True)
+            pg.text(t, x0 + gw * v[5] / vmax + 2, by - BH + 1.6, 8, C["ink"], True)
         g_n, g_d = gross_m3_ha(crop, "normal"), gross_m3_ha(crop, "dry")
         if d: g_n, g_d = g_n * (1 - d[1]), g_d * (1 - d[0])
         mk = cite(NET_REF) + (cite(TAGEM) if i == 0 else "") + (cite(KAYA) if d else "") + (cite(MIX) if crop == "mix" else "")
@@ -817,7 +821,7 @@ def page_cubic(L, src):
                 pg.text("%s %s" % (need_t, mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
         else:
             pg.text("%s-%s m³ per ha a season %s" % (fmt(rnd(min(g_n, g_d), 10)), fmt(rnd(max(g_n, g_d), 10)), mk), x0 - 3, yy - 10, 7, C["ink2"], align="R")
-    ag_crop("ag1_bars", 0, 13.0, yb_ - 5.5, 277.0, y0 + 11.0,
+    ag_crop("ag1_bars", 0, 13.0, yb_ - 5.5, x0 + gw + 22.0, y0 + 11.0,
             legend=[{"kind": "fill", "colour": C["green_light"], "label": "normal year"},
                     {"kind": "fill", "colour": C["green_deep"], "label": "1-in-5 dry year"},
                     {"kind": "line", "colour": C["accent"], "label": "farms we feed"}])
@@ -830,25 +834,18 @@ def page_cubic(L, src):
     # reading
     best = [q for q in vals if q[1] == "olive" and q[6] and q[2] == "dry"][0]     # v2: olive with deficit (not by its label)
     worst = max((q for q in vals if q[1] not in ("olive", "mix") and q[2] == "dry"), key=lambda q: q[3])     # the thirstiest field crop
-    pg.rect(14, 14, 250, 59, stroke=C["faint"], lw=0.3)       # v1.6: white page, the box only outlined (v3: 14-73)
-    pg.text("THE READING", 20, 65, 10, C["accent"], True)    # v3: the reading 19 mm lower (was 32-92), as the bars
-    # v1.2: the conclusion as the two dry-year bars (same scale) and the big ratio between them
-    bmax, bx0, bw = best[5] * 1.05, 20, 150
-    for k_, (q, lab) in enumerate(((worst, "%s, 1-in-5 dry year" % (plant_name(worst[1]) if worst[1] in PLANTS else worst[1].capitalize())),
-                                   (best, best[0] + ", 1-in-5 dry year"))):         # v2: names "English (Turkish)"
-        yb = 51 - k_ * 18
-        pg.text(lab, bx0, yb + 1.5, 8, C["ink"], True)
-        pg.rect(bx0, yb - 7, bw * q[4] / bmax, 7, fill=C["green_deep"])
-        if q[5] > q[4] * 1.01:
-            pg.rect(bx0 + bw * q[4] / bmax, yb - 7, bw * (q[5] - q[4]) / bmax, 7, fill=None, stroke=C["green_deep"], lw=0.35)
-        pg.text("%s-%s ha" % (fmt(q[4]), fmt(q[5])), bx0 + bw * q[5] / bmax + 2, yb - 5.2, 9, C["ink"], True)
-    bkx = 192
-    pg.line([(bkx - 2, 47.5), (bkx, 47.5), (bkx, 29.5), (bkx - 2, 29.5)], C["accent"], 0.5)
-    pg.text("%.1f-%.1f x" % (best[4] / worst[4], best[5] / worst[5]), bkx + 3, 36, 24, C["accent"], True)
-    pg.text("as much land, same storage", bkx + 3, 30.5, 7.5, C["ink"])
-    pg.text("lever: crop + irrigation method, more than storage", 20, 21, 8, C["ink"], True)
-    pg.text("same water: more farmland · same farms: less storage", 20, 17, 8, C["ink"])
-    ag_crop("ag1_reading", 0, 18.0, 14.5, 262.0, 62.0)
+    # v7 (round 2, PG2 p18-19 "one page", M10: a fact once): the two dry-year bars of v1.2 repeated two rows of the
+    # bars above (same values); the reading keeps only what is new: the ratio between them and the lever, in one strip
+    rt = "%.1f-%.1f x" % (best[4] / worst[4], best[5] / worst[5])
+    pg.rect(14, 14, 250, 26, stroke=C["faint"], lw=0.3)
+    pg.text("THE READING", 20, 33, 10, C["accent"], True)
+    pg.text(rt, 20, 19, 24, C["accent"], True)
+    lx = 20 + text_w(rt, 24, True) + 6.0
+    wname = plant_name(worst[1]) if worst[1] in PLANTS else worst[1].capitalize()
+    pg.text("as much land, same storage: %s against %s, 1-in-5 dry year" % (best[0], wname), lx, 29, 7.5, C["ink"])
+    pg.text("lever: crop + irrigation method, more than storage", lx, 23.5, 8, C["ink"], True)
+    pg.text("same water: more farmland · same farms: less storage", lx, 19, 8, C["ink"])
+    ag_crop("ag1_reading", 0, 13.0, 13.0, 265.0, 41.0)
     # context column
     cx, cy = 280, 250
     pg.text("WHY CROP CHOICE IS THE LEVER", cx, cy, 11, C["ink"], True)
