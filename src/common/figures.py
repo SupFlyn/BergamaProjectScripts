@@ -839,23 +839,26 @@ FIG_ACTIVITY = {
     "sun_steps": [("sit_step", 4.0, 0.8), ("watch", 0.5, 0.7), ("touch", 0.5, 0.9)],
     "bridge_crossing": [("walk", 3.0, 0.8), ("railing", 1.5, 0.8), ("bike", 0.7, 1.9), ("watch", 1.0, 0.7)],
     "bed": [("wade", 2.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.0, 0.8)],
+    "stepping_stones": [("walk", 2.0, 0.8), ("adult_child", 1.5, 1.0), ("stand", 0.6, 0.6)],   # R2-A: on the stones
+    "lawn": [("child_play", 1.5, 0.8), ("group", 1.0, 1.7), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0)],
 }
 FIG_ZONE_ALIAS = {"bike": "bike_lane", "walk": "walkway", "terrace": "viewing_terrace", "wading": "wading_strip",
                   "market": "market_ground", "steps": "sun_steps", "bridge": "bridge_crossing",
-                  "stream_bed": "bed"}
+                  "stream_bed": "bed", "stones": "stepping_stones", "open_ground": "lawn"}
 
 
 def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, style="b", water=None, max_n=None,
-                 **p):
+                 acts=None, **p):
     """people doing what the zone is for, placed along x0..x1 (page mm) on the ground gy (number or function of x),
     k mm per m: poses drawn from FIG_ACTIVITY[zone] by weight, never the same pose twice in a row (when the zone has
     two or more), irregular gaps (0.6-3.2 m / density), at least two people where two fit. water = the water level
     (page y, or a function of x) for wading figures (their depth). p goes to every figure (seat_h, rail_h, ...).
+    acts: this zone's [(pose, weight, footprint m)] instead of FIG_ACTIVITY's (fig_place_zones filters it).
     Returns (shapes, placed [(pose, x page mm)])."""
     zone = FIG_ZONE_ALIAS.get(zone, zone)
     if zone not in FIG_ACTIVITY:
         raise KeyError("fig_activity: zone %r; known: %s" % (zone, ", ".join(sorted(FIG_ACTIVITY))))
-    acts = FIG_ACTIVITY[zone]
+    acts = acts or FIG_ACTIVITY[zone]
     rnd = _fa_rand(seed * 13 + 7)
     sc = fig_depth(layer)[0]
     K = k * sc
@@ -898,6 +901,51 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
         if max_n and len(placed) >= max_n:
             break
         x += foot * K + (0.6 + 2.6 * (rnd() + 0.5)) / max(0.2, density) * K
+    return sh, placed
+
+
+# ---- G10 + G14 people by zone (R2-A 31 Oct 2026) ------------------------------------------------------------------
+# People stand only where a zone is walkable; in the water only on a wading strip or stepping stones (U26: nobody in
+# the stream for no reason); bikes only on bike lanes; every figure on the lowest ground under its feet (G14).
+FIG_WALKABLE = ("walkway", "bike_lane", "viewing_terrace", "sun_steps", "market_ground", "bridge_crossing",
+                "wading_strip", "stepping_stones", "lawn")
+FIG_FOOT_HALF_M = 0.30       # m, half the ground a standing figure covers (drawing rule for G14 seating)
+_FIG_NPICK = [0]
+
+
+def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water=None, ink=None, max_per_zone=None,
+                    **p):
+    """G10 people in a section, zone by zone: zones = [(kind, x0, x1)] or [(kind, x0, x1, ground)] left to right
+    (page mm; ground = that zone's own walking surface: stone tops, a terrace deck, a bridge deck; else gy). kind =
+    a FIG_ACTIVITY zone (walkway, bike_lane, viewing_terrace, sun_steps, market_ground, bridge_crossing,
+    wading_strip, stepping_stones, lawn, or an alias); any other kind (water, bed, planting, slope, wall ...) gets
+    nobody and is counted in the G14 log line. Groups, adult with child, sitting, walking, trading, children
+    playing by the zone's set; bikes only on bike lanes; wading figures take their depth from water (page y or
+    function of x) on a wading strip only; cutout variants vary across the whole run (a running pick); every figure
+    seated on the lowest ground under its feet (sf_seat_x). p goes to every figure (seat_h, rail_h ...).
+    Returns (shapes, placed [(kind, pose, x)])."""
+    seat = globals().get("sf_seat_x")
+    gfn = globals().get("_sf_fn")
+    sc = fig_depth(layer)[0]
+    sh, placed = [], []
+    for i, z in enumerate(zones):
+        kind, xa, xb = z[0], min(z[1], z[2]), max(z[1], z[2])
+        kz = FIG_ZONE_ALIAS.get(kind, kind)
+        if kz not in FIG_WALKABLE:
+            rf = globals().get("SF_G14", {}).get("refused")
+            if rf is not None:
+                rf[kind] = rf.get(kind, 0) + 1
+            continue
+        g = z[3] if len(z) > 3 and z[3] is not None else gy
+        g = gfn(g) if gfn else g
+        gs = (lambda x, _g=g: seat(_g, x, FIG_FOOT_HALF_M * k * sc)) if seat else g
+        acts = [a for a in FIG_ACTIVITY[kz] if a[0] != "bike" or kz == "bike_lane"]
+        _FIG_NPICK[0] += 1
+        s_, p_ = fig_activity(kz, xa, xb, gs, k, layer=layer, seed=seed * 101 + i * 17 + _FIG_NPICK[0] * 7,
+                              density=density, ink=ink, style=style,
+                              water=water if kz == "wading_strip" else None, max_n=max_per_zone, acts=acts, **p)
+        sh += s_
+        placed += [(kind, pose, x) for pose, x in p_]
     return sh, placed
 
 
