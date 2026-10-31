@@ -190,6 +190,28 @@ def c5_point(S):
     return (cx, cy)
 
 
+P02_OUT_FADE = 0.22       # round 2 (PG1 p2 #8): share mixed toward the paper for buildings outside the study area
+#                           (a drawing choice: "reduce the opacity a little, but not too much")
+
+
+def _p02_fade_col(S):
+    """round 2 (PG1 p2 #8, M3 fade, U20): plan 01's building colour = fabric_col, mixed P02_OUT_FADE toward the paper
+    where the building's first part's centre lies outside every study-area outline (r28_study); unchanged inside, and
+    everywhere when the study area is not in the data"""
+    polys = [(P, bb_pts(P)) for P in (getattr(getattr(S, "site", S), "r28_study", None) or []) if len(P) >= 3]
+
+    def col(u):
+        c_ = fabric_col(u)
+        if not polys or not u.get("parts"):
+            return c_
+        P0 = u["parts"][0]
+        cx, cy = sum(p_[0] for p_ in P0) / len(P0), sum(p_[1] for p_ in P0) / len(P0)
+        if any(bb[0] <= cx <= bb[2] and bb[1] <= cy <= bb[3] and region_contains(cx, cy, [P], []) for P, bb in polys):
+            return c_
+        return mix(c_, PAPER, P02_OUT_FADE)
+    return col
+
+
 def fabric_col(u):
     """v40: a building on plan 01 by its fabric type (the fabric map's rule: sheds and annexes paler)."""
     col = FABRIC_PLAN[u.get("fabric", "regular")]
@@ -230,7 +252,8 @@ def draw_what_is_there(S, B, x, y, w, U):
             B.line([V.p(*a), V.p(*b)], col, L, 2, wd)
     # the site: land use, land cover, ground, streets, trees, buildings (homes by fabric), walls, bridges
     # v40: buildings by urban fabric type; revision 30 Oct (G7, M11): outline per block + roof, no piece lines
-    draw_landuse_map(S, B, V, bcol=fabric_col, den=den_bk, kb=kb)
+    # round 2 (PG1 p2 #8, U20): the town fabric outside the study area a little fainter, "but not too much"
+    draw_landuse_map(S, B, V, bcol=_p02_fade_col(S), den=den_bk, kb=kb)
     # canopy-map crowns (modelled), under the surveyed tree symbols
     crowns = [c for c in site_crowns(S, F) if F.inside(c[0], c[1])]
     for leaf in (0, 1, 2):
@@ -318,6 +341,11 @@ def draw_what_is_there(S, B, x, y, w, U):
     draw_north_at(B, F2, V.X0 + sbl * s + 12.0 * kb, mb - 5.0 * kb, 4.0, kb, L)
     if pkey:                                              # names with no free place: a number, the words under the bar
         mb_crop = draw_label_key(B, pkey, V.X0, mb_crop - 1.0 * kb, mw, hs, L)
+    # round 2 (PG1 p2 #7 + #9, U19 + U21, M2, G2): the list of what C1-C6 and K1-K6 stand for sits right under the
+    # map, beside its scale bar, each entry with the map's own mark (the same disc, rim and size; the same tick), so
+    # every marker leads to its words at a glance and the band under the map is no longer empty (the list moved here
+    # from plan 01's key panel: shown once)
+    mb_crop = min(mb_crop, _p02_mark_list(B, F, cs, V.X0 + sbl * s + 22.0 * kb, mb - 1.5 * kb, V.X0 + mw, kb, L))
     # v51 (WO-T3a-2): no photo strip under plan 01 any more (it was the sheet's crop drw_photos, on no booklet page;
     # the photos stay on p.06, drw_edge_build)
     yy = min(mb - 2.6 * U, mb_crop - 1.0 * U)
@@ -480,10 +508,49 @@ def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0, mm_per_m=None, pick=
     return fig_side(pose, x, y, k, facing, ink=FIG_INK, mm_per_m=mm_per_m, pick=pick)
 
 
+def _p02_mark_list(B, F, cs, x0, ytop, x1, kb, L):
+    """round 2 (PG1 p2 #7, #9): under plan 01, x0..x1 from ytop down (board units; kb per booklet mm): "WHERE STREAM
+    AND TOWN CLASH" = each conflict in the frame as the map draws it (P02_C_R disc in MARK_C, white rim, its name
+    inside in white 7 pt bold) with its words at 8 pt, two columns; "BRIDGES" = each bridge in the frame with the
+    map's tick and its name, two columns. Words fitted to their column. Returns the y below."""
+    rc, hcn = P02_C_R * kb, bk_hk(7.0, kb)
+    h75, h8 = bk_hk(7.5, kb), bk_hk(8.0, kb)
+    pitch = 2.0 * rc + 1.6 * kb
+    cl = [(k_, t_) for k_, cx_, cy_, t_ in sorted(cs) if F.inside(cx_, cy_)]
+    kl = [(k_, nm_) for k_, nm_, bx_, by_ in BRIDGES_K if F.inside(bx_, by_)]
+    if not cl and not kl:
+        return ytop
+    W = x1 - x0
+    wc = 0.62 * W if kl else W
+    groups = [(u"WHERE STREAM AND TOWN CLASH", cl, x0, wc, "c"), (u"BRIDGES", kl, x0 + wc + 3.0 * kb, W - wc - 3.0 * kb,
+                                                                  "k")]
+    low = ytop
+    for head, rows, gx, gw, kind in groups:
+        if not rows or gw <= 10.0 * kb:
+            continue
+        site28_fit(B, u"**{}**".format(head), gx, ytop - h75, h75, gw, INK, L)
+        nr = (len(rows) + 1) // 2
+        cw = (gw - 2.0 * kb) / 2.0
+        for j, (nm_, t_) in enumerate(rows):
+            cx0 = gx + (j // nr) * (cw + 2.0 * kb)
+            cy = ytop - h75 - 1.2 * kb - rc - (j % nr) * pitch
+            if kind == "c":                               # the map's disc, at the map's size
+                B.fill([circle_pts(cx0 + rc + 0.4 * kb, cy, rc + 0.4 * kb, 24)], WHITE, L, 63)
+                B.fill([circle_pts(cx0 + rc + 0.4 * kb, cy, rc, 24)], MARK_C, L, 64)
+                B.text(nm_, cx0 + rc + 0.4 * kb, cy, hcn, WHITE, L, order=65, font=FONT_TITLE, bold=True, align="MC")
+                tx, txt = cx0 + 2.0 * rc + 2.0 * kb, t_
+            else:                                         # the map's bridge tick, then its name
+                B.line([(cx0 + 0.6 * kb, cy - 1.6 * kb), (cx0 + 0.6 * kb, cy + 1.6 * kb)], INK, L, 62, bk_lw(0.35, kb))
+                tx, txt = cx0 + 2.0 * kb, u"**{}** {}".format(nm_, t_)
+            site28_fit(B, txt, tx, cy - 0.5 * h8, h8, cx0 + cw - tx, INK, L)
+            low = min(low, cy - rc - 0.6 * kb)
+    return low
+
+
 def draw_plan01_key(S, B, x, y, w, U):
     """v51 (WO-T3a-2, p.02 flipped): plan 01's explanation as its own panel at the top of p.02's side column (crop
-    drw_plan01_key, P02_SIDE_W mm on the booklet page, three grid columns): what the plan shows, the
-    conflicts C1-C6 drawn as on the plan (disc, name inside, words beside), then the plan's key (the land-use ring
+    drw_plan01_key, P02_SIDE_W mm on the booklet page, three grid columns): what the plan shows, then
+    the plan's key (round 2: the conflicts C1-C6 moved under plan 01, _p02_mark_list) (the land-use ring
     under the edge strip keys the ground colours). Words 7-8 pt. Returns the y below."""
     import re as _re
     L = "LU_BOARD::SiteReadings"
@@ -500,17 +567,8 @@ def draw_plan01_key(S, B, x, y, w, U):
     site28_fit(B, u"**PLAN 01 · WHAT IS THERE TODAY{}**".format(
         u" · {} PLACES WHERE STREAM AND TOWN CLASH".format(len(cs)) if cs else u""), x, y - h8, h8, w, INK, L)
     yy = site28_para(B, _P02.get("text", u""), x, y - h8 - 1.6 * k - h7, w, h7, INK2, L, lead=1.45)
-    # the conflicts as plan 01 draws them
-    nr = (len(cs) + 2) // 3
-    rc, hn = 2.0 * k, bk_hk(6.5, k)
-    for j, (nm_, t_) in enumerate(cs):
-        kx, yk = cols[j // nr], yy - (j % nr) * 5.6 * k
-        cx_, cy_ = kx + rc + 0.4 * k, yk - rc
-        B.fill([circle_pts(cx_, cy_, rc + 0.35 * k, 20)], WHITE, L, 20)
-        B.fill([circle_pts(cx_, cy_, rc, 20)], MARK_C, L, 21)
-        B.text(nm_, cx_, cy_, hn, WHITE, L, order=22, font=FONT_TITLE, bold=True, align="MC")
-        site28_fit(B, t_, kx + 2.0 * rc + 1.8 * k, cy_ - 0.5 * h75, h75, hw - 2.0 * rc - 2.5 * k, INK, L)
-    yy -= nr * 5.6 * k + 1.0 * k
+    # round 2 (PG1 p2 #7): the conflicts C1-C6 are listed under plan 01 itself, beside the map (_p02_mark_list)
+    yy -= 1.0 * k
     # the plan's key in the booklet legend's look (a 4.0 mm sample, the name 5.5 mm in at 7.5 pt, 4.0 mm a row)
     leg = [(kd, c_, _re.sub(r"\s*\[\d+\]", u"", lb).strip()) for kd, c_, lb in _P02["leg"] if kd not in ("cdot", "pdot")]
     nr = (len(leg) + 2) // 3
@@ -781,10 +839,9 @@ def _p02_strip(S, d, den=5000.0):
     (d = site28_edge_bins) per bank the edge types and the bank faces (walled 1, embanked 2, else 0) as stretches
     (_p02_join, P02_ET_MIN), the bank line's distance from the centreline per bin (the bank samples' mean, smoothed
     over 7 bins), and what stands within P02_ET_LAND m beyond the bank line, in (chainage m, m beyond the bank line):
-    the canopy map's crowns, the survey buildings, green ground (parks, woods, grass) and the footpaths. Revision 30
-    Oct (G7, M11): the buildings are bld_plan_items at 1:den (light roof, ridge, hips and fall lines, ONE outline per
-    block of S.blocks: no piece or parcel lines), each item's points carried onto the strip: st["bitems"] =
-    [(bank, "fill", [rings], hex, None) | (bank, "line", pts, hex, width booklet mm)]."""
+    the canopy map's crowns, the survey buildings, green ground (parks, woods, grass) and the footpaths. Round 2 (31
+    Oct, PG1 p2 #6): the buildings are strict blocks st["boxes"] = [(bank, s0, s1, b0, b1)] (_p02_strip_boxes), their
+    roofs drawn on the page; den is no longer used (kept for the callers)."""
     st = getattr(S, "_p02_st", None)
     if st is not None:
         return st
@@ -830,7 +887,7 @@ def _p02_strip(S, d, den=5000.0):
 
     def ctr(P):
         return (sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P))
-    bitems = _p02_strip_blds(S, LX, LY, LC, Lt, reach, beyond, ctr, den)
+    boxes = _p02_strip_boxes(S, LX, LY, LC, Lt, reach, beyond, ctr)
     gr = []
     for z in near([z for z in S.zones if z["kind"] == "green" and z.get("Ps")], lambda z: ctr(z["Ps"][0])):
         gr += [(sd, ring, z.get("sub")) for sd, ring in rings_of(z["Ps"], 400.0)]
@@ -864,67 +921,59 @@ def _p02_strip(S, d, den=5000.0):
     nmin = max(1, int(round(P02_ET_MIN / bm)))
     st = dict(types=[_p02_join([v_[0] if v_ else None for v_ in d["bins"][sd]], nmin) for sd in (0, 1)],
               walls=[_p02_join([v_[1] if v_ else None for v_ in d["bins"][sd]], nmin) for sd in (0, 1)],
-              off=off, crowns=cr, bitems=bitems, greens=gr, paths=pth)
+              off=off, crowns=cr, boxes=boxes, greens=gr, paths=pth)
     S._p02_st = st
-    LOG.append(u"Stream edge strip (drw_edge_types): {} crowns, {} building fills and outlines (M11), {} green areas "
+    LOG.append(u"Stream edge strip (drw_edge_types): {} crowns, {} buildings as roof blocks, {} green areas "
                u"and {} path pieces within {:.0f} m of the banks; stretches under {:.0f} m joined to their "
-               u"neighbour.".format(len(cr), len(bitems), len(gr), len(pth), P02_ET_LAND, P02_ET_MIN))
+               u"neighbour.".format(len(cr), len(boxes), len(gr), len(pth), P02_ET_LAND, P02_ET_MIN))
     return st
 
 
-def _p02_strip_blds(S, LX, LY, LC, Lt, reach, beyond, ctr, den):
-    """revision 30 Oct (G7, M11): the buildings within reach of the stream as bld_plan_items (survey m) at 1:den, in
-    the strip's (chainage m, m beyond the bank line) per bank: a ring or line across the stream, out of the frame's
-    chainage, past P02_ET_LAND or longer than 150 m is left out. Whole blocks: a block with one building in reach
-    comes with all of its buildings, so its one outline is kept. Fills keep their rings together (courtyards open)."""
+def _p02_strip_boxes(S, LX, LY, LC, Lt, reach, beyond, ctr):
+    """round 2 (31 Oct, PG1 p2 #6, U18: "brown boxes meaningless"): each survey building within reach of the stream
+    as ONE strict block on the strip = the extent of its footprint in the strip's (chainage m, m beyond the bank
+    line) on its bank: [(bank, s0, s1, b0, b1)]. The straightening bends every footprint, so the bent outlines and
+    roof lines of the 30 Oct strip tangled; the block keeps where and how big each building is and gets its roof drawn
+    on the page (draw_edge_types). Left out: a building across the stream, out of the frame's chainage, past
+    P02_ET_LAND or longer than 150 m along the stream. All points projected in one go."""
     if not S.bld:
         return []
-    keep = set()
     cen = site28_project(LX, LY, LC, [ctr(u["parts"][0]) if u.get("parts") else (LX[0], LY[0]) for u in S.bld])
-    for i, (u, (s_, o_)) in enumerate(zip(S.bld, cen)):
-        if u.get("parts") and -60.0 <= s_ <= Lt + 60.0 and abs(o_) < reach:
-            keep.add(i)
-    blocks = getattr(S, "blocks", None)
-    if blocks:
-        for b_ in blocks:
-            if any(i in keep for i in b_["units"]):
-                keep.update(b_["units"])
-    idx = sorted(keep)
-    if not idx:
-        return []
-    remap = dict((i, j) for j, i in enumerate(idx))
-    sb = [dict(b_, units=[remap[i] for i in b_["units"]]) for b_ in blocks
-          if any(i in remap for i in b_["units"])] if blocks else None
-    rf, ed = crop_hex(P02_ROOF), crop_hex(INK)            # heritage in the same tones: the strip has no heritage key
-    items = bld_plan_items([S.bld[i] for i in idx], sb, den, roof="hatch", fill=rf, edge=ed,
-                           roof_col=crop_hex(P02_ROOF_L), her_fill=rf, her_edge=ed)
-    pts, segs = [], []                                    # every point projected in one go
-    for n_, it in enumerate(items):
-        if it[0] == "fill":
-            for R in it[1]:
-                if len(R) >= 3:
-                    segs.append((n_, "fill", len(pts), len(R), it[2], None))
-                    pts.extend(R)
-        elif it[0] == "line" and len(it[1]) >= 2:
-            segs.append((n_, "line", len(pts), len(it[1]), it[2], it[3]))
-            pts.extend(it[1])
+    pts, segs = [], []
+    for u, (s_, o_) in zip(S.bld, cen):
+        if not u.get("parts") or not (-60.0 <= s_ <= Lt + 60.0 and abs(o_) < reach):
+            continue
+        P = [p_ for R in u["parts"] for p_ in R]
+        if len(P) >= 3:
+            segs.append((len(pts), len(P)))
+            pts.extend(P)
     q = site28_project(LX, LY, LC, pts)
-    fills, out = {}, []
-    for n_, kind, i0, m_, col, lw in segs:
+    out = []
+    for i0, m_ in segs:
         Q = q[i0:i0 + m_]
         sides = set(0 if o_ > 0.0 else 1 for s_, o_ in Q)
         if len(sides) != 1:
             continue
         sd = sides.pop()
-        ring = [(s_, beyond(s_, o_, sd)) for s_, o_ in Q]
-        ss, dd = [r_[0] for r_ in ring], [r_[1] for r_ in ring]
+        ss = [s_ for s_, o_ in Q]
+        dd = [beyond(s_, o_, sd) for s_, o_ in Q]
         if max(ss) < 0.0 or min(ss) > Lt or min(dd) > P02_ET_LAND or max(dd) < -1.0 or max(ss) - min(ss) > 150.0:
             continue
-        if kind == "fill":
-            fills.setdefault((n_, sd), (col, []))[1].append(ring)
-        else:
-            out.append((sd, "line", ring, col, lw))
-    return [(sd, "fill", rings, col, None) for (n_, sd), (col, rings) in sorted(fills.items())] + out
+        out.append((sd, min(ss), max(ss), max(0.0, min(dd)), min(P02_ET_LAND, max(dd))))
+    return out
+
+
+def _p02_roof_block(B, P, k, L, order):
+    """round 2 (PG1 p2 #6, G7, M11, R01): one building from above on the edge strip: the roof tone, its roof read as
+    a hipped roof (ridge, hips, fall lines every 0.4 booklet mm: bld_roof_lines "hatch"; hipped = the repo's M11
+    drawing convention, roof forms are not surveyed) where it is wide enough to read, its outline firm"""
+    xs, ys = [p_[0] for p_ in P], [p_[1] for p_ in P]
+    dw = min(max(xs) - min(xs), max(ys) - min(ys))
+    B.fill([P], P02_ROOF, L, order)
+    if dw >= 0.6 * k:
+        for a_, b_ in bld_roof_lines(P, "hatch" if dw >= 1.0 * k else "ridge", spacing=0.4 * k):
+            B.line([a_, b_], P02_ROOF_L, L, order, bk_lw(0.05, k))
+    B.line(list(P) + [P[0]], INK, L, order, bk_lw(0.12, k))
 
 
 def _p02_crown(leaf, cx, cy, D, k, seed=0):
@@ -996,16 +1045,9 @@ def _p02_zone(B, t, x0, x1, yw, yl, k, L, order):
         for j in range(int((x1 - x0) / (0.45 * k))):     # bare ground, stippled
             B.fill([circle_pts(x0 + (j + 0.5) * 0.45 * k, ya + ((j * 37) % 10 + 0.5) / 10.0 * hz, 0.1 * k, 6)], dc, L,
                    order + 1)
-    elif t == "building":                                 # revision 30 Oct (G7, M11): a row of roofs, as the
-        B.fill([r_], P02_ROOF, L, order)                  # buildings beyond: roof tone, ridge, party walls
-        ym = 0.5 * (ya + yb)
-        B.line([(x0, ym), (x1, ym)], P02_ROOF_L, L, order + 1, bk_lw(0.07, k))
-        xx, j = x0 + 1.6 * k, 0
-        while xx < x1 - 0.3 * k:                          # party walls between the roofs, a hip on each side
-            B.line([(xx, ya), (xx, yb)], INK, L, order + 1, bk_lw(0.06, k))
-            xx += (1.6 if j % 2 else 2.1) * k
-            j += 1
-        B.line([(x0, yl), (x1, yl)], INK, L, order + 2, bk_lw(0.12, k))
+    elif t == "building":                                 # round 2 (PG1 p2 #6, G7): the row of roofs on the water
+        _p02_roof_block(B, r_, k, L, order)               # as the blocks beyond (ridge, hips, fall lines); no
+        #                                                   party walls at a made-up spacing (not surveyed)
         B.line([(x0, yw), (x1, yw)], INK, L, order + 2, bk_lw(0.45, k))     # the backs on the water
 
 
@@ -1173,22 +1215,14 @@ def draw_edge_types(S, B, x, y, w, U):
                     if len(run_) > 1:
                         for d_ in dashes(list(run_), 0.5 * k, 0.35 * k):
                             B.line(d_, path_c, L, 23, bk_lw(0.12, k))
-            for sd_, kd_, geo, col_, lw_ in st["bitems"]:  # the survey's buildings: roofs and block outlines (M11)
-                if sd_ != sd:
+            # round 2 (PG1 p2 #6, U18): the survey's buildings as strict roof blocks, the farthest first so the
+            # nearer roofs lie over them (no bent outlines, no parcel lines)
+            for sd_, a_, b_, d0, d1 in sorted(st["boxes"], key=lambda q_: -q_[4]):
+                if sd_ != sd or b_ < s0 or a_ > s1:
                     continue
-                if kd_ == "fill":
-                    Ps = []
-                    for ring in geo:
-                        if max(p[0] for p in ring) >= s0 and min(p[0] for p in ring) <= s1:
-                            P = clip_rect_poly([(X(a_), Yd(sd, b_)) for a_, b_ in ring], box)
-                            if len(P) >= 3:
-                                Ps.append(P)
-                    if Ps:
-                        B.fill(Ps, _p02_col(col_), L, 24)
-                elif max(p[0] for p in geo) >= s0 and min(p[0] for p in geo) <= s1:
-                    for run_ in clip_rect_line([(X(a_), Yd(sd, b_)) for a_, b_ in geo], box):
-                        if len(run_) > 1:
-                            B.line(list(run_), _p02_col(col_), L, 25, bk_lw(lw_, k))
+                P = clip_rect_poly(rect(X(a_), Yd(sd, d0), X(b_), Yd(sd, d1)), box)
+                if len(P) >= 3:
+                    _p02_roof_block(B, P, k, L, 24)
             grid_, kept = {}, []                          # trees, the larger first, none hiding another
             for sd_, s_, b_, rr, lf in sorted(st["crowns"], key=lambda c_: -c_[3]):
                 if sd_ != sd or not s0 <= s_ < s1:
@@ -1301,11 +1335,7 @@ def draw_edge_types(S, B, x, y, w, U):
         elif kd == "g":
             B.fill([rect(kx, y0_, x1_, y1_)], mix(GREEN_SUB["park"], PAPER, 0.45), L, 21)
         elif kd == "b":                                   # a building as the strip draws it (M11 roof reading)
-            Pb = rect(kx + 0.4 * k, y0_ + 0.3 * k, x1_ - 0.4 * k, y1_ - 0.3 * k)
-            B.fill([Pb], P02_ROOF, L, 21)
-            for a_, b_ in bld_roof_lines(Pb, "ridge"):
-                B.line([a_, b_], P02_ROOF_L, L, 22, bk_lw(0.07, k))
-            B.line(Pb + [Pb[0]], INK, L, 22, bk_lw(0.18, k))
+            _p02_roof_block(B, rect(kx + 0.4 * k, y0_ + 0.3 * k, x1_ - 0.4 * k, y1_ - 0.3 * k), k, L, 21)
         elif kd == "t":
             for j_, lf in enumerate((0, 2)):
                 _p02_put(B, _p02_crown(lf, kx + (1.5 + 3.0 * j_) * k, 0.5 * (y0_ + y1_), 2.4 * k, k, j_), L, 26, k)
