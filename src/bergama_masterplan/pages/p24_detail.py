@@ -1034,9 +1034,9 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
         if on(Q):
             pg.line(Q, COL["river_mid"], 1.2, [1.6, 0.9], cap=0, alpha=0.7)
             leg(("p24", "hidden"))
-    # ---- vegetation over the ground, water and paths (M5 order; G9): the corridor's tree set as on p.21 (groves
-    # and clearings, species by their band from the water, each at its crown width with its own plan mark; no
-    # identical clusters), the hub squares' planes
+    # ---- vegetation over the ground, water and paths (M5 order; G9): the corridor's tree set as on p.21 (v33: rows
+    # along the water's edge, one species per row from wet to dry, each at its crown width with its own plan mark),
+    # the hub squares' planes
     if pl23_trees_draw(pg, C, T, k, (-8.0, -8.0, dw + 8.0, dh + 8.0)):
         leg(("p24", "tree"))
     for h in C.hubs:
