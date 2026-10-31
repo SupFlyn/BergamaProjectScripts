@@ -3851,7 +3851,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'NAMES': '299db9e3ac017dd598b02184b21f697c', 'CUTS': '34548cb4690d944460505d2cd484311f', 'SPECIES': 'b3a8e35120cba4e926a9a4fad2c63ab1', 'SKETCH_SRC': 'e84f58206f857080352e1723882a3930', 'DETAIL_SRC': '87908363d2a4d472bbfcbd0320614960'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'NAMES': '299db9e3ac017dd598b02184b21f697c', 'CUTS': '6cfa39c57ca76dd552132e25183f7a19', 'SPECIES': 'b3a8e35120cba4e926a9a4fad2c63ab1', 'SKETCH_SRC': 'e84f58206f857080352e1723882a3930', 'DETAIL_SRC': '5a3ecc62b802ccab66a528286dc6a4ac'}.get(name):
         raise RuntimeError("Data file bergama_water_board_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_water_board_data.py:" + name, "exec"), globals())

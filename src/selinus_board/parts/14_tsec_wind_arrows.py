@@ -864,7 +864,7 @@ BRIDGES_K = [(k_, bridge_name(k_), x_, y_) for k_, x_, y_ in (
 # Conflict markers of pr1_drawings v3.1 (survey coordinates); C5 sits at the centre of the larger K5 working area
 CONFLICTS_C = [("C1", 29941.0, 32200.0, u"walls cut the town off"), ("C2", 30204.0, 31975.0,
                                                                        u"heritage over a hidden stream"),
-               ("C3", 29846.0, 32278.0, u"K4: monument and traffic"), ("C4", 30031.6, 32119.5, u"dry bed, bad smell"),
+               ("C3", 29846.0, 32278.0, bridge_name("K4") + u": monument and traffic"), ("C4", 30031.6, 32119.5, u"dry bed, bad smell"),
                ("C6", 30830.0, 31160.0, u"industry at the confluence")]
 C5_TEXT = u"flood against everyday life"
 MARK_C = C("8B3A3F")       # palette accent: conflicts

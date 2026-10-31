@@ -384,7 +384,7 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 
 # ---------------------------------------------------------------- the words (CONTEXT §4, verbatim; nothing else)
 # Keywords cut from the sourced sub-programme labels of CONTEXT §4 (Nil 18:25: "just use keywords"); nothing added
-NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
+ZONE_NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
          ("aras_alan", "WT", None): u"REED BASINS", ("aras_alan", "WD", None): u"SPILLWAY",
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
          ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
@@ -4425,7 +4425,7 @@ def basemap_export(S, log=None):
             if callable(z_at):
                 try:
                     zs = sorted(z_at(p[0], p[1]) for p in P[::max(1, len(P) // 9)])
-                    z = round(zs[len(zs) // 2] / 5.0) * 5.0
+                    z = round(zs[len(zs) // 2], 1)     # round 3 (B2, P11.1 relief): median to 0.1 m (was 5 m steps)
                 except Exception:
                     z = None
             L["contours"].append([bool(major), z, _bm_r(P)])
@@ -9816,7 +9816,7 @@ def fit_inside(TP, spots, lines, taken, pad=0.6, avoid=()):
 
 
 def name_of(z, owner):
-    for (o_, c_, t_), nm in NAMES.items():
+    for (o_, c_, t_), nm in ZONE_NAMES.items():   # closing 31 Oct: renamed, NAMES = the bridge/place table (common/data/NAMES.py)
         if o_ == owner and c_ == z["code"] and t_ in (None, z["tier"]):
             return nm
     return z["label"] or z["code"]
@@ -10255,9 +10255,14 @@ HUBS = [(u"K4", "K4", (29846.0, 32278.0), u"Camikebir Caddesi", (29841.0, 32243.
         (u"Kızıl Avlu", u"İstiklal", (30245.0, 31962.0), u"Kızıl Avlu", (30245.0, 32020.1), False),
         (u"K5", "K5", (30294.0, 31792.0), u"Üç Kemer Köprüsü", (30296.4, 31696.7), True),
         (u"K6", "K6", (30647.0, 31252.0), u"Bergama Sanayi", (30575.0, 31232.4), False)]
+MP_EN_WORDS = {u"bridge", u"road", u"side", u"inlet", u"crossing", u"small", u"and", u"garden", u"demeter's",
+               u"square", u"market", u"terrace", u"walk", u"the", u"of", u"hub", u"wetland", u"basins", u"reed"}
+
+
 def mp_upper(s):
-    """Turkish capitals (i -> İ, ı -> I) for the place names on the plans"""
-    return s.replace(u"i", u"İ").upper()
+    """Turkish capitals (i -> İ, ı -> I) for the place names on the plans; English words (MP_EN_WORDS) in plain
+    capitals (closing 31 Oct: "ROAD BRİDGE" fix)"""
+    return u" ".join(w.upper() if w.lower() in MP_EN_WORDS else w.replace(u"i", u"İ").upper() for w in s.split(u" "))
 
 
 # v37 (round 3, G16 / D9): hub names from common/data/NAMES.py (bridge_name); no K-code is printed. Map words use the

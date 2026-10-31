@@ -1918,7 +1918,7 @@ TREE_STYLES = {
     "context": dict(dark="ADB694", mid="BCC2A6", light="D7DAC7", trunk="A39E90", shadow="B0AC9C", shadow_a=0.16,
                     lobes=1.0),
 }
-TREE_ALPHA = (0.62, 0.68)                # opacity of the leaf clusters behind and in front of the branches
+TREE_ALPHA = (1.0, 1.0)                  # closing 31 Oct (D7): leaf clusters opaque, never see-through
 TREE_MIN_MM = 0.25                       # smallest crown radius drawn on the page, mm
 
 

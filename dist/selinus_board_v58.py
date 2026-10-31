@@ -897,7 +897,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'REF_LABELS': '776d8caf5b5d9ea0061c0f4658ae8184', 'NOISE_KERNEL': '01b8cb14e278f24b14cf38cb3f144eb1', 'NAMES': '299db9e3ac017dd598b02184b21f697c', 'CLIMATE': 'ff5e2a39ea1582fe5835508061f8373a', 'UTCI_COEF': 'f9a042398c5738cdfec070e76c033e89', 'TYPO': '8ce83a96d9e586c6baee1d0de5886e91', 'DIAG_SRC': 'd97f3acddff9360bc8d987fbb8b91d7e', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'SEAM_PACK': '085995a020c4250c1934b10c24b09c1e'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'REF_LABELS': '776d8caf5b5d9ea0061c0f4658ae8184', 'NOISE_KERNEL': '01b8cb14e278f24b14cf38cb3f144eb1', 'NAMES': '299db9e3ac017dd598b02184b21f697c', 'CLIMATE': 'ff5e2a39ea1582fe5835508061f8373a', 'UTCI_COEF': 'f9a042398c5738cdfec070e76c033e89', 'TYPO': '8ce83a96d9e586c6baee1d0de5886e91', 'DIAG_SRC': '5cb09d3c659529f4b0116a094e8d1366', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'SEAM_PACK': '085995a020c4250c1934b10c24b09c1e'}.get(name):
         raise RuntimeError("Data file selinus_board_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "selinus_board_data.py:" + name, "exec"), globals())
@@ -16723,7 +16723,7 @@ BRIDGES_K = [(k_, bridge_name(k_), x_, y_) for k_, x_, y_ in (
 # Conflict markers of pr1_drawings v3.1 (survey coordinates); C5 sits at the centre of the larger K5 working area
 CONFLICTS_C = [("C1", 29941.0, 32200.0, u"walls cut the town off"), ("C2", 30204.0, 31975.0,
                                                                        u"heritage over a hidden stream"),
-               ("C3", 29846.0, 32278.0, u"K4: monument and traffic"), ("C4", 30031.6, 32119.5, u"dry bed, bad smell"),
+               ("C3", 29846.0, 32278.0, bridge_name("K4") + u": monument and traffic"), ("C4", 30031.6, 32119.5, u"dry bed, bad smell"),
                ("C6", 30830.0, 31160.0, u"industry at the confluence")]
 C5_TEXT = u"flood against everyday life"
 MARK_C = C("8B3A3F")       # palette accent: conflicts
@@ -24896,7 +24896,7 @@ def basemap_export(S, log=None):
             if callable(z_at):
                 try:
                     zs = sorted(z_at(p[0], p[1]) for p in P[::max(1, len(P) // 9)])
-                    z = round(zs[len(zs) // 2] / 5.0) * 5.0
+                    z = round(zs[len(zs) // 2], 1)     # round 3 (B2, P11.1 relief): median to 0.1 m (was 5 m steps)
                 except Exception:
                     z = None
             L["contours"].append([bool(major), z, _bm_r(P)])
