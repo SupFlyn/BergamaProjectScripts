@@ -46,9 +46,9 @@ HER_STOPS = [
     dict(key="redhall", name=u"Red Hall · Kızıl Avlu", xy=(30203.92, 31974.82),      # survey label 'Kızıl Avlu'
          txt=u"Hadrian's **temple**, 2nd c. AD, built **over the stream**: the Selinos runs under it in twin Roman "
              u"tunnels"),
-    dict(key="K3", name=u"K3 · Tabakhane Köprüsü", xy=(30037.01, 32121.57),         # BRIDGES_K
+    dict(key="K3", name=bridge_name("K3"), xy=(30037.01, 32121.57),   # BRIDGES_K; v58 (round 3, P20.3 / G16): real name
          txt=u"**Roman bridge** of the 2nd-3rd c., named after the old tanneries; the **stream walk** starts here"),
-    dict(key="K4", name=u"K4 · Ulucami Önü Köprüsü", xy=(29846.40, 32277.71),       # BRIDGES_K
+    dict(key="K4", name=bridge_name("K4"), xy=(29846.40, 32277.71),   # BRIDGES_K; v58 (round 3, P20.3 / G16): real name
          txt=u"the bridge before **Ulu Cami** (1398-99, Bayezid I) and **Tabaklar Hamamı**, the tanners' bath; the "
              u"loop crosses here"),
     dict(key="bazaar", name=u"Bazaar · Arasta", xy=(29926.0, 31855.0),               # Hacı Hekim hamam (Visit İzmir)
@@ -59,9 +59,10 @@ HER_STOPS = [
          txt=u"the **healing sanctuary** of Asclepius, 4th c. BC, rebuilt under Hadrian, reached by a sacred way, "
              u"the Via Tecta"),
 ]
-HER_WALK = dict(frm="K3", to="K4", name=u"Stream walk K3-K4",                       # the loop's spine
-                txt=u"**{:,.0f} m** along the **Selinos** (Bergama Çayı) from the **Roman bridge** K3 to the "
-                    u"Ulucami Önü bridge K4: the spine of the loop")   # v50: K4's date unsure (h01 §5 P06)
+# v58 (round 3, P20.3 / G16): the walk's printed name and text by bridge_name (no K-codes; keys frm / to stay codes)
+HER_WALK = dict(frm="K3", to="K4", name=u"Stream walk " + bridge_name("K3") + u" – " + bridge_name("K4"),
+                txt=u"**{:,.0f} m** along the **Selinos** (Bergama Çayı) from the **Roman bridge** " + bridge_name("K3")
+                    + u" to " + bridge_name("K4") + u": the spine of the loop")   # v50: K4's date unsure (h01 §5 P06)
 HER_BEYOND = [dict(key="acropolis", frm="gondola", name=u"Acropolis · Akropol",    # Trajaneum, OSM way 1410335587;
                    xy=(30209.0, 33177.0))]                                         # off the survey drawing (259 m)
 HER_DOTS = [(u"Ulu Cami", (29844.17, 32313.30)),          # survey label 'Ulu Camii'

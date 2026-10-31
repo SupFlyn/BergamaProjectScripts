@@ -23,6 +23,15 @@ NEW IN v15 (Aras 31 Oct 12:01): W1 redrawn to p.17 F1's layout (path and bike la
   on the NE wall top, reed basins beyond), a way down by sitting steps in three flights with planted landings to a
   railed floor at the water's edge (no straight stair), no blocks in the bed; background houses behind W1-W4; people as
   scenes facing the water.
+NEW IN v16 (round 3, Aras 31 Oct, booklet p12: P12.1-P12.5, G2, G3, G15, G16, G17, DATA-1): the key map shows the
+  whole study area (fitted, 0.25 pt neatline, labels without leaders: numbers + key) with the material legend beside
+  it; cut ends W1 / W1' on the map and under each section (banks by place: Kale side · north bank / bazaar side ·
+  south bank); real bridge names, no K-codes; each section measured before it is placed (hard fit inside its cell,
+  FLAG when shrunk); no cell frames, white block ground; per cut a scenario in its title, zones named under the
+  drawing with a reason (R07), people in front incl. fishing, lying, running, dog walking, trees pushed back and paler,
+  street elements (lamps, bollards, bike racks), a quiet sky per cut with a few birds, a 1:200 zoom inset; the
+  walled beds (W1, W2) from the surveyed sections (water board data/CUTS.py) with the summer strip on the survey low
+  point; log lines FLAG overlap p12, sky variants, plants, fauna, water.
 NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
@@ -94,7 +103,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v15"
+VERSION = "v16"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -240,6 +249,12 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 #@include ../common/levels.py
 
+# v16 (G16, D9): one spelling per bridge and place (bridge_name, place_name, cut_end_labels); DATA-1: the surveyed
+# sections of the four cuts (ground every 1 m), the water board's data part, read as data (no code copied)
+#@include ../common/data/NAMES.py
+#@include ../common/names.py
+#@include ../bergama_water_board/data/CUTS.py
+
 #@include ../common/section_parts.py
 
 #@include ../common/plants.py
@@ -302,6 +317,7 @@ def build_sheet(opt, log, style="b"):
     gy0 = gy1 - GRID_H
     blk, boxes = ps_block(log, style)
     s = 1.0 / BK_S
+    pg.poly([rect(X0, gy0, X0 + GRID_W, gy1)], fill=COL["white"])   # v16 (G17): the crop's ground is the page's white
     pg.items += ps_xform(blk.items, s, X0, gy0)
     sb = SHEET_BOXES.setdefault(style, {})
     for key, b in boxes.items():                      # single crops: one section panel each
@@ -331,6 +347,7 @@ def main():
             lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"),
                                                      time.time() - t1))
     log.append(cut_log_line())
+    log += lp_flag_lines() + sec_look_lines() + wat_flag_lines()   # v16: FLAG overlap p12, sky, plants, fauna, water
     log += [u"PDF images: " + x for x in WP_IMG_LOG[:5]]
     try:                                              # v4: A3 booklet assets; an error here never stops the sheet
         booklet_export(log)

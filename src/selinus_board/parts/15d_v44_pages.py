@@ -203,8 +203,8 @@ def photo_caption(it):
     kw = PHOTO_KEYS.get(stem) or d.split(";")[0].split(":")[0].strip().rstrip(".")[:30]
     if "bridge" in d.lower():
         near = min(((math.hypot(bx - it["x"], by - it["y"]), kk) for kk, nm, bx, by in BRIDGES_K), default=None)
-        if near and near[0] <= 60.0:
-            kw = u"{} {} · {}".format(u"Roman bridge" if near[1] in ROMAN_K else u"bridge", near[1], kw)
+        if near and near[0] <= 60.0:                      # v58 (round 3, G16): the bridge's name, never its K-code
+            kw = u"{}{} · {}".format(bridge_name(near[1]), u" (Roman)" if near[1] in ROMAN_K else u"", kw)
     return kw
 
 

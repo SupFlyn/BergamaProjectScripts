@@ -79,6 +79,21 @@ v11 (Aras 31 Oct 12:01): background houses behind every section (common sf_back_
   13, 14, 17; people as scenes (those who stay look at the water / stall, children and waders in pairs; p.13 a story
   per season); p.17 F1 without blocks in the bed, F4's shallow strip with water actions (wade, bend to the water,
   play). Output: Bergama_water_board_v11_A_cubes.pdf.
+v12 (round 3, 31 Oct, Round3_brief_v2; session B2; a feature change):
+  * p.11 system: relief axonometric from the survey contours inside the frame + Copernicus GLO-30 outside (bias-matched,
+    blended; Data/bergama_dem_glo30.json, survey only when missing; the log names the source), the upstream winter
+    store in its own zoom inset, zones along the stream lettered on the spot with their reasons in the key, textured
+    water without the summer-strip squiggle, simplified fields with one detailed symbol each, no leaders.
+  * p.13 four seasons + p.14 S4 bank: S4 on the survey datum (N1 a: surveyed bed +43.59, season levels from the level
+    module, summer strip full + natural level printed, N2 a), zones named under each cut with reasons, people and
+    street elements in front, trees a layer back in seasonal species colours (bare winter branches), one zoom inset per
+    season (p.13) and on the bank (p.14), a sky per cut, generic birds (fauna pending research).
+  * p.16 plants: thinner planting kept off the water, stepping stones / bridge / terraces / sun steps in plan with
+    reasons, a planting-logic diagram (bands, shares, heights), the giant reed card; no squiggle. p.17 sections: one
+    message, zones named under each cut, survey beds (W1, F2: strip on the low point), one zoom inset per cut, hard fit.
+  * Core: no frame strokes; every crop kept inside its cell (FLAG crop when cut); trees opaque; real bridge names
+    (common/names.py); log lines FLAG overlap per page, water clip + draw order, sky variants, plants, fauna FLAG.
+  Output: Bergama_water_board_v12_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -160,9 +175,9 @@ their keywords are drawn 1.8 x larger (they printed at about 3 pt beside the cub
 
 OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_water_board/).
 
-HOW WE KNOW IT WORKS: after a press, the text under the component reads "v3.2 · HH:MM · N s", the log lists the PDF with
-its time and the lines "p.20 S4 seasons: 1:250", "p.21 S4 north-east bank: 1:250" and "p.22 plants: ... photos 10 of 10";
-the PDF opens as one A0 page.
+HOW WE KNOW IT WORKS: after a press, the text under the component reads "v12 · HH:MM · N s", the log lists the PDF with
+its time, "elevation source: ...", "S4 levels: datum survey ...", one "FLAG overlap <page> n" line for p11, p13, p14,
+p16 and p17, "planting clipped to land: ..." and "crops: every crop inside its cell"; the PDF opens as one A0 page.
 """
 
 import os
@@ -178,8 +193,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v11 (2026-10-31)"
-SHORT = "v11"
+VERSION = "bergama_water_board v12 (2026-10-31)"
+SHORT = "v12"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -188,7 +203,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v11_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v12_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -503,7 +518,7 @@ TREE_STYLES = {
     "context": dict(dark="ADB694", mid="BCC2A6", light="D7DAC7", trunk="A39E90", shadow="B0AC9C", shadow_a=0.16,
                     lobes=1.0),
 }
-TREE_ALPHA = (0.62, 0.68)                # opacity of the leaf clusters behind and in front of the branches
+TREE_ALPHA = (None, None)                # v12 (round 3, D7/G9): leaf clusters opaque (were 0.62 / 0.68 see-through)
 TREE_MIN_MM = 0.25                       # smallest crown radius drawn on the page, mm
 
 
@@ -543,8 +558,8 @@ def _tree_blob(cx, cy, R, rnd, m):
 
 
 def draw_tree(pg, P, k, x, y, r, top, style, layer="trees", alpha=TREE_ALPHA, shadow=True):
-    """Architectural entourage tree: a fine trunk and branch structure inside a crown built from many see-through
-    leaf clusters, lit from the upper left, back clusters behind the branches and front clusters over them."""
+    """Architectural entourage tree: a fine trunk and branch structure inside a crown built from many opaque
+    leaf clusters (v12), lit from the upper left, back clusters behind the branches and front clusters over them."""
     rnd = _tree_rand(x, y)
     st = style
     lo = TREE_CROWN_LO(top)
@@ -557,7 +572,7 @@ def draw_tree(pg, P, k, x, y, r, top, style, layer="trees", alpha=TREE_ALPHA, sh
         R = max(TREE_MIN_MM, A)
         for i in range(2):
             pg.poly([_tree_blob(c[0] + (i - 0.5) * 0.4 * R, c[1] + (0.5 - i) * 0.2 * R, R * (0.95 - 0.2 * i), rnd, 9)],
-                    fill=st["mid"] if i else st["dark"], stroke=None, layer=layer, alpha=0.8)
+                    fill=st["mid"] if i else st["dark"], stroke=None, layer=layer)
         return
     if shadow:
         tree_shadow(pg, P, k, x, y, r, st, layer)
@@ -741,6 +756,8 @@ def hand_arrow(pg, P, kind="water", small=1.0, cols=None):
 #@include ../common/section_frame.py
 #@include ../common/data/FACTS.py
 #@include ../common/facts.py
+#@include ../common/data/NAMES.py
+#@include ../common/names.py
 
 
 SRC_KEY = []                       # v1.6: sources printed as [n] on the drawings; the numbered key is in the footer
@@ -782,7 +799,7 @@ def frame(pg, box, title, sub=None):
     """A drawing's panel on the board: white ground, a coloured rule on top, the title and one line under it.
     Returns the box left for the drawing."""
     x0, y0, x1, y1 = box
-    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
+    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=None)          # v12 (G17): no frame stroke
     pg.poly([rect(x0, y1 - 1.2, x1, y1)], fill=MP["discharge"][1])
     pg.text(title, x0 + 4.0, y1 - 7.6, 4.0, COL["ink_dark"], bold=True)
     y = y1 - 9.0
@@ -900,7 +917,7 @@ def draw_year(opt, W=369.0):
     pg.text(u"strip 0.30 m all year (design)", gx + gw - 1.0, Yd(STRIP_DEPTH) + 0.8, fs, MP["storage"][2],
             bold=True, align="R")
     series = [(u"upstream entry", ("up",), MP["discharge"][1], 0.45, [1.2, 0.6]),
-              (u"K4 · K5 · downstream reach", ("k4", "k5", "down"), "3C5159", 0.45, None),
+              (u"{} · {} · downstream reach".format(bridge_name("K4", short=True), bridge_name("K5", short=True)), ("k4", "k5", "down"), "3C5159", 0.45, None),
               (u"flat downstream end", ("flat",), MP["discharge"][2], 0.8, None)]
     ly = y0 + h
     for lab, keys, colr, lw, dash in series:
@@ -1318,9 +1335,10 @@ def level_ladder(pg, entries, x_line, x_text, fs, boxes=None, lo=None):
             boxes.append((x_text, yl - fs * 0.3, x_text + text_w(t, fs, bold) * BK_GROW, yl + fs * BK_GROW))
 
 
-# v5 (revision 29 Oct, T3b WO-T3b-4): pp.14-15 are drawn whole by pages/p14_15_s4.py from the level module (D4 b) and
-# its own tables (P14_*, P15_*); the core keeps only the seasons, their months and the open months of the gravel bed.
-# The detail engine (detail_engine, s4_profile) stays for p.17 and results.json only.
+# v5 (revision 29 Oct, T3b WO-T3b-4): pp.14-15 are drawn whole by pages/p14_15_s4.py from the level module and its own
+# tables (P14_*, P15_*); the core keeps only the seasons, their months and the open months of the gravel bed.
+# v12 (round 3, N1 a): the detail engine (detail_engine, s4_profile) gives the S4 survey bed to pp.14-15, p.17 and
+# results.json (survey datum, bed +43.59).
 SEAS = ("winter", "spring", "summer", "autumn")
 S4_MONTHS = {"winter": u"Dec-Feb", "spring": u"Mar-May", "summer": u"Jun-Aug", "autumn": u"Sep-Nov"}
 S4_MONTH_IDX = {"winter": (11, 0, 1), "spring": (2, 3, 4), "summer": (5, 6, 7), "autumn": (8, 9, 10)}
@@ -1972,8 +1990,19 @@ def draw_footer(pg, x0, y0, x1, pal_line):
 BK_CROPS = []                        # v1.10: (id, (x0, y0, x1, y1) board mm y up, scale_den, legend, drop) per panel
 
 
-def crop_add(cid, bb, den=None, legend=None, drop=None, pad=1.0):
-    BK_CROPS.append((cid, (bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad), den, legend or [], drop or []))
+BK_CLAMP = []                        # v12: "FLAG crop <id> clamped ..." lines (booklet_export logs them)
+
+
+def crop_add(cid, bb, den=None, legend=None, drop=None, pad=1.0, within=None):
+    """v12 (P17.1, G17): within = the crop's cell (board mm, y up, under the cell's title): the crop never takes the
+    sheet's ground or a neighbour beyond it; a drawing that reached past its cell is cut there and FLAGged."""
+    r = (bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad)
+    if within:
+        over = max(within[0] - r[0], within[1] - r[1], r[2] - within[2], r[3] - within[3]) - pad
+        if over > 0.05:
+            BK_CLAMP.append(u"FLAG crop {} clamped to its cell ({:.1f} mm over)".format(cid, over))
+        r = (max(r[0], within[0]), max(r[1], within[1]), min(r[2], within[2]), min(r[3], within[3]))
+    BK_CROPS.append((cid, r, den, legend or [], drop or []))
 
 
 def drawn(pg, fn):
@@ -1990,10 +2019,8 @@ CONTEXT = {
              u"the bed. So winter water is held, and nothing fixed may **narrow the bed**.",
     "system": u"**One way**, with the stream: cleaned once at the upstream entry, winter water **held** in the ground "   # v5 (T3b): p.12's conclusion
               u"for the dry summer, the stream given back clean to the **farms** downstream. Nothing is pumped back.",
-    "concept": u"The idea in section at the upstream entry and at K4: the **problem** on site and the **one move** that "
+    "concept": u"The idea in section at the upstream entry and at Ulucami Önü Köprüsü: the **problem** on site and the **one move** that "
                u"answers it. Numbers as in the chain.",
-    "farms": u"Where the clean water ends up: **farmland outside** the site, easing an aquifer used far beyond its "
-             u"potential. **Never drinking water**.",
     "seasons": u"One cut, one viewpoint, four seasons: the **water level** decides what the place becomes, which "
                u"**plants** are in leaf or flower, which **animals** are about, and how **people** use it: walking the "
                u"promenade, sitting on the seat steps, wading in the summer strip, the Kermes market.",
@@ -2023,6 +2050,7 @@ def build_board(opt, storage, parts, pal_line, log):
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     del BK_CROPS[:]
+    del BK_CLAMP[:]
     del PHOTOS[:]
     X0, X1, G = M, BOARD_W - M, 6.0
     y_title = BOARD_H - M - 26.0
@@ -2031,10 +2059,13 @@ def build_board(opt, storage, parts, pal_line, log):
     cws = [377.0, 395.0, 377.0]               # the middle column a little wider (v3: the four seasons at 1:250 fill it)
     cws[1] = X1 - X0 - 2 * G - cws[0] - cws[2]
 
+    last = [None]                             # v12: the last cell's box under its title (crop clamp)
+
     def cell(c, r, title, span=None):
         x0 = X0 + sum(cws[:c]) + c * G
         y1 = y_title - G - r * (ch + G)
         b = frame(pg, (x0, y1 - ch, x0 + (span or cws[c]), y1), title)
+        last[0] = (x0, y1 - ch, x0 + (span or cws[c]), y1 - 9.0)
         return (b[0], b[1] + 1.0, b[2], b[3] - 1.0)
 
     def fits(part, w, h):
@@ -2053,47 +2084,47 @@ def build_board(opt, storage, parts, pal_line, log):
         log.append(u"NOTE: the stream-height cuts are printed at {:.0f} % of 1:{:,.0f}".format(100 * s, den))
     log.append(u"p.11: the cuts at 1:{:,.0f}".format(den / s))
     CUTS_DEN[0] = den / s
-    crop_add("wb_water", union(cb, by, bs), den / s)
+    crop_add("wb_water", union(cb, by, bs), den / s, within=last[0])
     # p.12 (v5, revision 29 Oct, T3b): pages/p12_system.py draws the whole panel (the water map and what stays beside
     # it) and returns its crops [(crop id, bbox, scale denominator or None)]
     b = cell(1, 0, P12_TITLE)
     for cid_, bb_, den_ in p12_page(pg, b, opt, storage, log):
-        crop_add(cid_, bb_, den_)
+        crop_add(cid_, bb_, den_, within=last[0])
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
     b = cell(2, 0, u"WHERE THE CLEAN WATER GOES (10, 11) · and what the figures support")
-    cb = context(pg, b[0], b[3], b[2] - b[0], "farms")
-    yf = cb[1] - 3.0
-    split = b[0] + (b[2] - b[0]) * 0.64
-    bt = drawn(pg, lambda: fit_draw(pg, boxed(draw_farms_text), (b[0], yf - 112.0, split, yf)))
-    _, bp = place(pg, parts["farm"], (split + 3.0, yf - 112.0, b[2], yf), 1.4, "C", log, "aquifer")
-    crop_add("wb_farms", union(cb, bt, bp))
-    yd = min(bt[1], bp[1]) - 5.0
+    # round 3 (B4, P18.1): no context line (the booklet intro says it; 7 mm back to the merged p18-19 page); the loop
+    # block draws the farms and the aquifer itself at a fixed 369 x 56 mm (pages/p18_farms.py), so no aquifer part
+    yf = b[3] - 3.0
+    bt = drawn(pg, lambda: fit_draw(pg, boxed(draw_farms_text), (b[0], yf - 112.0, b[2], yf)))
+    crop_add("wb_farms", bt, within=last[0])
+    yd = bt[1] - 5.0
     dw, dh = b[2] - b[0], yd - b[1]
     crop_add("wb_decision", drawn(pg, lambda: draw_decision(pg, b[0], yd, dw, dh,
-                                                              fit(draw_decision, b[0], yd, dw, dh, 1.0, 0.5, 1.2))))
+                                                              fit(draw_decision, b[0], yd, dw, dh, 1.0, 0.5, 1.2))),
+             within=last[0])
     # row 2 -------------------------------------------------------------- pp.14-15, the S4 pair
     # v5 (revision 29 Oct, T3b): pages/p14_15_s4.py draws both panels whole (p.14 in the wider middle cell, p.15 in the
     # left one) and returns their crops [(crop id, bbox, scale denominator or None)]
     for c_, r_, title_, fn_ in ((1, 1, P14_TITLE, p14_page), (0, 1, P15_TITLE, p15_page)):
         b = cell(c_, r_, title_)
         for cid_, bb_, den_ in fn_(pg, b, opt, log):
-            crop_add(cid_, bb_, den_)
+            crop_add(cid_, bb_, den_, within=last[0])
     # p.17 (v6, revision 29 Oct, T4a): pages/p17_planting.py draws page A (the plans, water spaces, catalogue) whole and
     # returns its crops [(crop id, bbox, scale denominator or None)]; page B (the sections) sits in row 3
     b = cell(2, 1, P17_TITLE)
     for cid_, bb_, den_ in p17_page(pg, b, opt, log):
-        crop_add(cid_, bb_, den_)
+        crop_add(cid_, bb_, den_, within=last[0])
     # row 3 -------------------------------------------------------------- the idea in section (not in the booklet), p.17 B
     # v6: the two concept sections take the first two columns; the third holds p.17's page B (the sections at 1:500)
     for j, (key, title) in enumerate((("concept_up", u"THE IDEA IN SECTION · upstream entry"),
-                                      ("concept_k4", u"THE IDEA IN SECTION · K4 bridge"))):
+                                      ("concept_k4", u"THE IDEA IN SECTION · " + bridge_name("K4")))):
         bx = cell(j, 2, title)
         cb = context(pg, bx[0], bx[3], bx[2] - bx[0], "concept") if j == 0 else (bx[0], bx[3], bx[0], bx[3])
         _, bu = place(pg, parts[key], (bx[0], bx[1], bx[2], cb[1] - 3.0), 1.6, "C", log, key)
-        crop_add("wb_" + key, union(cb, bu) if j == 0 else bu)
+        crop_add("wb_" + key, union(cb, bu) if j == 0 else bu, within=last[0])
     b = cell(2, 2, P17B_TITLE)
     for cid_, bb_, den_ in p17b_page(pg, b, opt, log):
-        crop_add(cid_, bb_, den_)
+        crop_add(cid_, bb_, den_, within=last[0])
     draw_footer(pg, X0, 1.5, X1, pal_line)
     return pg
 
@@ -2107,7 +2138,7 @@ def build_board(opt, storage, parts, pal_line, log):
 BK_CAPTIONS = {
     "wb_water": u"How the water behaves: the year, and how high the stream rises",
     "wb_system": u"What we do with it: collect, clean, hold, give back",
-    "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
+    "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": bridge_name("K4") + u": the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
     "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
@@ -2117,6 +2148,7 @@ BK_CAPTIONS = {
 
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
 BK_FIXED += ("wb_plants_b_a",)   # v10: p.17 style a only (as p.11, p.13, p.14 since v9)
+BK_FIXED += ("wb_farms", "wb_decision")   # round 3 (B4, P18.1): the merged p18-19 page, laid out at 1:1
 
 
 def res_s4_cut():
@@ -2244,6 +2276,7 @@ def booklet_export(folder, pdf_path, log):
     bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, k) for i, k in enumerate(SRC_KEY)]}
     bk.save()
     log.append(u"booklet: {} crops of {}, results.json".format(len(BK_CROPS), name))
+    log += BK_CLAMP or [u"crops: every crop inside its cell (FLAG crop 0)"]
 
 
 # ---------------------------------------------------------------- run
@@ -2265,8 +2298,7 @@ def build_all(doc, log):
         os.makedirs(folder)
     files = []
     for opt in OPTIONS:
-        parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt),
-                 "farm": draw_farm_picto(opt)}
+        parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt)}
         for st in STORAGE_STYLES:
             t0 = time.time()
             pg = build_board(opt, st, parts, pal_line, log)
@@ -2286,7 +2318,8 @@ def build_all(doc, log):
             files.append(path)
             log.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"),
                                                    time.time() - t0))
-    return folder, files
+    log += lp_flag_lines() + wat_flag_lines() + sec_look_lines()   # v12 (round 3): FLAG overlap per page, water clip +
+    return folder, files                                            # draw order, sky variants, plants, fauna FLAG
 
 
 #@include pages/p12_system.py

@@ -1105,6 +1105,12 @@ if HAVE_RHINO:
                 booklet_export(SITE, BOARD, RECTS)
             except Exception:
                 LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())
+            for f_ in ("lp_flag_lines", "sec_look_lines", "wat_flag_lines"):   # v58 (round 3): the
+                try:                                                    # FLAG overlap per page, sky variants, plants,
+                    r_ = globals()[f_]() if f_ in globals() else ()     # fauna FLAG and water lines of this run
+                    LOG.extend([r_] if isinstance(r_, str) else list(r_ or ()))
+                except Exception as ex_:
+                    LOG.append("WARNING: {} failed ({}).".format(f_, ex_))
             LOG.extend(bg_tidy_output("selinus_board"))       # v44 (27 Oct): output/ = PDFs only
             T = SITE.T
             names = [nm for nm, r in RECTS]

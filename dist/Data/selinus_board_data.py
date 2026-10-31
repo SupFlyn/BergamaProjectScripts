@@ -505,6 +505,44 @@ def _noise_worker_main(argv):
         pickle.dump(out, f, protocol=4)
 '''
 
+#@@ NAMES
+# ---- Names table (round 3, A2, 31 Oct 2026; G16 / D9 "real names everywhere"): ONE spelling per bridge and place ----
+# Read it through ../common/names.py, never directly: include this file first, then names.py:
+#   #@include ../common/data/NAMES.py
+#   #@include ../common/names.py
+# Plain Python data (exec'd by tools/build.py's bergama_data): no imports, no functions, one assignment.
+# K-codes stay internal keys only: never printed as a main label. Stream order (upstream first) = "order".
+# Spellings (plan_findings/NAMES_SQUIGGLE_TREES.md DATA-3; chosen: the official public name = the bus stop name):
+#   K3 Tabak Köprüsü        Kültür Envanteri "Tabak Köprüsü" (library/research/selinos_site_history_inaccessible_edges_v1.md
+#                           l.62); survey label "Tabakhane Köprüsü" is the same bridge (selinos_bergama_history_context_v1.md l.143)
+#   K4 Ulucami Önü Köprüsü  KGM plaque on site, photo IMG_5804 (inaccessible_edges_v1.md l.217); history_context_v1.md l.141
+#   K5 Üç Kemer Köprüsü     Visit İzmir (İzmir BB), Destinasyon 10228 (history_context_v1.md l.270)
+#   K6 road bridge          Adnan Menderes Caddesi (inaccessible_edges_v1.md l.176, E12); no proper name found
+#   K1, K2                  no source name: descriptive names (G16)
+# Chainage m along the stream: CL code.py:211 (K1 / K2 about 25 m apart upstream; their order unverified).
+# Banks (D6, Aras 31 Oct 20:45: "fine that way"; p20 already prints them): NE = left bank looking downstream = north
+# bank = the Kale side; SW = south bank = the bazaar side.
+NAMES = {
+    "bridges": {
+        "K1": {"name": u"side inlet crossing", "short": u"side inlet crossing", "order": 1, "proper": False},
+        "K2": {"name": u"small crossing", "short": u"small crossing", "order": 2, "proper": False},
+        "K4": {"name": u"Ulucami Önü Köprüsü", "short": u"Ulucami Önü", "order": 3, "proper": True, "chainage_m": 467},
+        "K3": {"name": u"Tabak Köprüsü", "short": u"Tabak", "order": 4, "proper": True, "chainage_m": 709},
+        "K5": {"name": u"Üç Kemer Köprüsü", "short": u"Üç Kemer", "order": 5, "proper": True, "chainage_m": 1126},
+        "K6": {"name": u"Adnan Menderes Caddesi road bridge", "short": u"road bridge", "order": 6, "proper": False,
+               "chainage_m": 1767},
+    },
+    "places": {
+        "stream": u"Selinos stream",
+        "bank_NE": u"Kale side · north bank",
+        "bank_SW": u"bazaar side · south bank",
+        "bank_NE_short": u"north bank",
+        "bank_SW_short": u"south bank",
+        "side_NE": u"Kale side",
+        "side_SW": u"bazaar side",
+    },
+}
+
 #@@ CLIMATE
 CLIMATE = {"source":"PVGIS 5.2 typical meteorological year 2005-2020 at 39.1195 N 27.1838 E (EU JRC): air temperature, humidity and 10 m wind from ERA5, sun from SARAH-2","elevation":60.0,"classes":[0.5,2.0,4.0,6.0,8.0,10.0],"seasons":{"spring":{"hourly":[[12.34,4.44,18.45,79.2,1.66,302.7,0.0,0.0,0.0],[11.82,3.57,18.1,81.2,1.62,301.4,0.0,0.0,0.0],[11.31,3.27,17.58,83.1,1.6,301.0,0.0,0.0,0.0],[10.77,2.82,16.78,84.6,1.56,300.6,0.0,0.0,0.0],[10.41,2.74,16.05,86.0,1.54,301.9,0.0,0.0,0.0],[10.01,2.39,15.61,87.2,1.57,300.4,0.0,0.0,0.0],[9.67,2.51,15.23,87.9,1.59,299.9,0.9,2.8,0.8],[9.61,2.17,15.49,88.3,1.58,298.7,46.6,88.8,28.8],[10.77,2.15,17.61,85.5,1.58,299.0,165.2,231.5,81.7],[13.13,4.4,20.42,76.0,1.83,302.0,327.4,361.2,147.3],[15.08,7.1,22.73,67.0,2.12,307.7,452.9,422.4,177.6],[16.57,9.25,24.13,60.3,2.45,312.3,581.8,483.1,211.6],[17.66,9.64,25.17,55.9,2.76,316.2,621.4,457.9,241.0],[18.41,9.97,26.02,53.2,3.02,320.5,634.3,452.6,244.2],[18.89,10.13,26.34,51.4,3.19,320.8,612.3,431.8,251.1],[19.0,10.46,26.34,50.9,3.3,322.4,577.0,464.8,223.3],[18.9,10.74,26.04,51.1,3.31,322.7,482.7,440.0,202.1],[18.43,9.94,25.35,52.9,3.19,321.1,329.6,373.4,149.4],[17.68,9.28,24.39,56.2,2.85,316.6,209.7,340.4,107.9],[16.54,8.47,23.21,61.8,2.37,312.5,66.1,159.8,42.3],[15.22,6.86,21.75,68.1,2.08,308.3,0.3,0.7,0.3],[14.15,6.29,20.7,72.4,1.89,305.6,0.0,0.0,0.0],[13.57,5.72,20.29,74.5,1.78,304.1,0.0,0.0,0.0],[12.92,5.15,19.33,76.9,1.69,303.3,0.0,0.0,0.0]],"prevailing":[[45.0,2.36,0.228],[45.0,2.19,0.217],[45.0,2.02,0.228],[45.0,2.0,0.239],[45.0,1.96,0.25],[45.0,1.97,0.239],[45.0,1.95,0.25],[45.0,1.98,0.239],[45.0,2.25,0.217],[45.0,2.6,0.196],[45.0,2.86,0.207],[45.0,3.12,0.207],[202.5,2.91,0.207],[225.0,3.64,0.196],[225.0,3.5,0.25],[225.0,3.73,0.228],[225.0,3.84,0.207],[225.0,3.64,0.239],[225.0,3.0,0.185],[22.5,2.67,0.163],[202.5,2.69,0.185],[202.5,2.37,0.185],[45.0,2.63,0.228],[45.0,2.43,0.239]],"rose":[[0.0113,0.0199,0.0009,0.0,0.0,0.0],[0.0358,0.0471,0.0082,0.0005,0.0,0.0],[0.0688,0.0815,0.0217,0.0045,0.0,0.0],[0.0476,0.0095,0.0,0.0,0.0,0.0],[0.0317,0.0018,0.0,0.0,0.0,0.0],[0.0389,0.0009,0.0,0.0,0.0,0.0],[0.0498,0.0054,0.0,0.0,0.0,0.0],[0.0376,0.0068,0.0032,0.0,0.0,0.0],[0.0358,0.0299,0.005,0.0014,0.0,0.0],[0.0376,0.0489,0.0181,0.0005,0.0,0.0],[0.0263,0.0607,0.0159,0.0018,0.0,0.0],[0.0249,0.0326,0.01,0.0,0.0,0.0],[0.0154,0.0127,0.0009,0.0,0.0,0.0],[0.0109,0.01,0.0,0.0,0.0,0.0],[0.0095,0.0072,0.0,0.0,0.0,0.0],[0.0118,0.0091,0.0005,0.0,0.0,0.0]],"calm":0.0294,"mean_ws":2.17,"max_ws":7.2,"gust_p95":4.62},"summer":{"hourly":[[22.93,18.71,26.31,58.9,2.66,340.1,0.0,0.0,0.0],[22.22,18.61,25.58,62.0,2.54,337.3,0.0,0.0,0.0],[21.59,17.75,24.91,64.8,2.44,335.5,0.0,0.0,0.0],[21.03,17.8,24.46,67.3,2.37,334.1,0.0,0.0,0.0],[20.54,17.36,23.85,69.5,2.34,332.1,0.0,0.0,0.0],[20.11,16.91,23.52,71.5,2.34,331.1,0.0,0.0,0.0],[19.74,16.46,23.26,73.5,2.33,330.3,0.6,2.5,0.5],[19.81,16.84,23.14,74.4,2.2,329.3,102.8,224.4,58.9],[21.37,18.31,24.17,68.1,2.58,332.1,291.5,481.8,108.8],[23.65,20.44,26.61,56.5,3.07,336.8,494.9,633.9,140.5],[25.76,21.81,28.83,47.6,3.29,345.7,676.5,739.5,150.0],[27.76,23.56,31.38,40.0,3.58,351.9,822.4,790.2,165.2],[29.3,24.14,33.07,35.1,3.7,358.3,916.3,816.5,174.4],[30.49,25.17,34.28,31.9,3.8,362.8,941.1,810.4,181.6],[31.25,26.04,35.23,30.0,3.92,367.3,929.4,824.6,173.4],[31.58,26.52,35.85,29.2,4.05,369.9,851.0,806.6,167.6],[31.53,26.48,35.77,29.3,4.18,370.1,735.2,784.1,158.8],[31.0,26.11,35.19,30.5,4.26,369.2,564.2,729.9,135.8],[30.08,25.32,34.15,32.9,4.24,366.6,379.4,642.3,114.3],[28.74,24.14,32.68,36.4,3.94,361.4,190.0,505.8,73.9],[27.3,22.94,31.16,41.0,3.44,356.3,34.4,220.5,19.6],[25.84,21.35,29.47,46.2,3.27,350.9,0.0,0.0,0.0],[24.64,20.12,27.95,51.6,3.07,345.8,0.0,0.0,0.0],[23.71,19.25,27.07,55.6,2.82,342.9,0.0,0.0,0.0]],"prevailing":[[45.0,3.42,0.533],[45.0,3.14,0.587],[45.0,3.01,0.554],[45.0,2.97,0.554],[45.0,2.93,0.587],[45.0,2.97,0.587],[45.0,3.0,0.598],[45.0,2.86,0.587],[45.0,3.36,0.63],[45.0,3.91,0.652],[45.0,4.18,0.63],[45.0,4.46,0.587],[45.0,4.52,0.533],[45.0,4.73,0.424],[22.5,4.23,0.348],[22.5,4.37,0.413],[22.5,4.43,0.435],[22.5,4.63,0.489],[22.5,4.65,0.543],[22.5,4.38,0.565],[22.5,4.05,0.598],[22.5,3.75,0.543],[22.5,3.47,0.37],[45.0,3.65,0.478]],"rose":[[0.01,0.0199,0.0032,0.0,0.0,0.0],[0.0249,0.1313,0.13,0.0036,0.0,0.0],[0.0299,0.2142,0.1481,0.0258,0.0,0.0],[0.0131,0.0027,0.0,0.0,0.0,0.0],[0.005,0.0,0.0,0.0,0.0,0.0],[0.0027,0.0,0.0,0.0,0.0,0.0],[0.0045,0.0,0.0,0.0,0.0,0.0],[0.0072,0.0005,0.0,0.0,0.0,0.0],[0.01,0.0005,0.0,0.0,0.0,0.0],[0.0077,0.0027,0.0005,0.0,0.0,0.0],[0.019,0.0113,0.0054,0.0,0.0,0.0],[0.0208,0.0154,0.0,0.0,0.0,0.0],[0.0177,0.0335,0.0,0.0,0.0,0.0],[0.0113,0.0091,0.0,0.0,0.0,0.0],[0.0077,0.0095,0.0,0.0,0.0,0.0],[0.0109,0.0086,0.0,0.0,0.0,0.0]],"calm":0.0217,"mean_ws":3.18,"max_ws":6.8,"gust_p95":5.66},"autumn":{"hourly":[[15.76,9.63,21.26,80.4,2.36,323.4,0.0,0.0,0.0],[15.36,9.33,20.63,82.5,2.3,323.5,0.0,0.0,0.0],[15.02,9.03,20.1,84.0,2.27,323.1,0.0,0.0,0.0],[14.88,9.01,19.86,85.2,2.25,323.7,0.0,0.0,0.0],[14.61,8.41,19.63,86.1,2.25,325.1,0.0,0.0,0.0],[14.38,8.32,19.15,86.8,2.26,326.6,0.0,0.0,0.0],[14.19,8.27,19.02,87.4,2.3,328.9,0.0,0.0,0.0],[14.03,8.07,18.87,87.9,2.3,329.9,4.9,17.0,3.7],[14.24,7.96,19.24,87.3,2.28,330.3,88.8,202.4,46.8],[15.56,8.8,21.42,81.4,2.54,331.1,238.8,396.8,99.4],[17.31,9.92,23.79,72.7,2.78,334.9,382.9,478.0,144.9],[19.05,10.97,26.1,64.1,2.93,335.3,485.0,513.6,169.2],[20.46,12.0,27.37,58.0,3.01,337.2,563.2,568.5,174.3],[21.55,12.82,28.52,53.5,3.08,339.0,577.0,566.4,184.0],[22.21,12.93,29.74,51.0,3.14,341.6,559.7,584.7,174.9],[22.39,13.44,29.83,50.3,3.18,342.7,465.7,538.6,157.9],[22.18,13.21,29.77,51.0,3.21,342.0,348.1,497.4,121.8],[21.54,12.26,29.33,53.4,3.14,339.6,200.2,381.8,80.3],[20.44,11.59,28.32,58.0,2.94,336.3,64.1,162.6,30.6],[19.1,11.48,26.64,64.1,2.76,332.5,3.6,8.9,3.0],[18.03,11.15,25.13,69.0,2.68,329.4,0.0,0.0,0.0],[17.19,10.38,24.05,73.3,2.57,326.6,0.0,0.0,0.0],[16.76,9.78,23.04,75.4,2.53,325.1,0.0,0.0,0.0],[16.24,10.01,22.03,77.9,2.44,324.1,0.0,0.0,0.0]],"prevailing":[[45.0,2.88,0.582],[45.0,2.8,0.582],[45.0,2.68,0.582],[45.0,2.76,0.505],[45.0,2.79,0.495],[45.0,2.82,0.505],[45.0,2.96,0.462],[45.0,2.94,0.451],[45.0,2.88,0.451],[45.0,3.5,0.44],[45.0,3.58,0.516],[45.0,3.82,0.505],[45.0,3.77,0.516],[45.0,3.82,0.484],[45.0,4.03,0.407],[45.0,4.06,0.352],[45.0,4.27,0.308],[45.0,3.93,0.286],[45.0,3.94,0.297],[45.0,3.89,0.319],[45.0,3.67,0.396],[45.0,3.35,0.484],[45.0,3.23,0.549],[45.0,2.95,0.582]],"rose":[[0.0087,0.0165,0.0027,0.0,0.0,0.0],[0.0293,0.0801,0.0188,0.0,0.0,0.0],[0.0614,0.2647,0.1264,0.0082,0.0,0.0],[0.0403,0.0513,0.0,0.0,0.0,0.0],[0.0224,0.0023,0.0,0.0,0.0,0.0],[0.0261,0.0005,0.0,0.0,0.0,0.0],[0.0192,0.0027,0.0,0.0,0.0,0.0],[0.0114,0.0096,0.0,0.0,0.0,0.0],[0.0156,0.0188,0.0069,0.0,0.0,0.0],[0.0128,0.0137,0.0023,0.0009,0.0,0.0],[0.0156,0.0114,0.0032,0.0,0.0,0.0],[0.0137,0.0055,0.0005,0.0,0.0,0.0],[0.0101,0.0037,0.0,0.0,0.0,0.0],[0.0105,0.0073,0.0,0.0,0.0,0.0],[0.0101,0.0018,0.0,0.0,0.0,0.0],[0.0119,0.0014,0.0,0.0,0.0,0.0]],"calm":0.0197,"mean_ws":2.65,"max_ws":6.6,"gust_p95":4.9},"winter":{"hourly":[[4.74,-1.1,10.9,83.8,2.44,274.9,0.0,0.0,0.0],[4.47,-1.25,10.62,84.9,2.43,275.8,0.0,0.0,0.0],[4.24,-1.32,10.57,85.6,2.4,276.2,0.0,0.0,0.0],[4.04,-1.33,10.43,85.8,2.41,277.0,0.0,0.0,0.0],[3.82,-1.55,10.36,86.1,2.42,277.2,0.0,0.0,0.0],[3.6,-1.64,10.69,86.3,2.43,276.2,0.0,0.0,0.0],[3.47,-1.56,10.5,86.4,2.43,277.1,0.0,0.0,0.0],[3.33,-1.7,10.17,86.5,2.41,277.3,0.0,0.0,0.0],[3.19,-1.75,9.66,86.6,2.41,277.0,0.5,0.4,0.4],[3.36,-1.47,9.56,86.5,2.36,277.1,72.7,206.8,44.6],[4.98,0.29,11.61,82.6,2.5,278.3,178.3,287.1,95.6],[6.91,1.03,13.28,74.9,2.74,280.4,279.4,344.4,138.2],[8.3,2.06,14.58,68.5,2.94,282.6,370.5,435.4,158.0],[9.32,2.89,15.48,64.1,3.06,284.2,371.2,396.7,167.9],[9.9,3.41,16.08,61.5,3.14,286.7,348.4,383.2,159.5],[10.11,3.38,16.1,60.9,3.16,287.4,295.0,353.3,144.2],[9.92,3.15,16.14,62.2,3.06,288.9,213.9,330.5,107.8],[9.35,2.67,15.65,65.3,2.83,288.6,103.4,229.3,62.1],[8.34,1.77,14.34,69.9,2.66,283.7,14.1,36.4,10.2],[7.22,1.05,13.41,75.1,2.53,279.8,0.0,0.0,0.0],[6.42,0.6,12.65,78.4,2.47,277.5,0.0,0.0,0.0],[5.78,0.11,11.89,80.9,2.46,276.4,0.0,0.0,0.0],[5.49,-0.26,11.47,81.2,2.49,275.1,0.0,0.0,0.0],[5.07,-0.66,11.11,82.6,2.44,274.5,0.0,0.0,0.0]],"prevailing":[[45.0,2.88,0.244],[45.0,2.82,0.211],[45.0,2.85,0.211],[45.0,2.8,0.211],[45.0,2.79,0.2],[45.0,2.89,0.211],[90.0,1.49,0.211],[45.0,3.19,0.211],[45.0,2.96,0.222],[45.0,2.93,0.233],[45.0,3.46,0.256],[45.0,3.78,0.233],[45.0,4.11,0.211],[45.0,3.86,0.289],[45.0,3.91,0.256],[45.0,3.6,0.244],[45.0,3.59,0.233],[22.5,3.84,0.233],[22.5,3.6,0.222],[45.0,2.84,0.278],[45.0,2.78,0.3],[45.0,2.62,0.311],[45.0,2.85,0.278],[45.0,2.84,0.256]],"rose":[[0.0051,0.006,0.0065,0.0,0.0,0.0],[0.0116,0.0667,0.0477,0.0116,0.0005,0.0],[0.0546,0.1162,0.0593,0.0074,0.0009,0.0],[0.0806,0.0458,0.0,0.0,0.0,0.0],[0.1093,0.0083,0.0,0.0,0.0,0.0],[0.063,0.0065,0.0,0.0,0.0,0.0],[0.0384,0.0079,0.0,0.0,0.0,0.0],[0.0296,0.0153,0.0051,0.0005,0.0,0.0],[0.0153,0.0375,0.0282,0.0056,0.0009,0.0],[0.0097,0.013,0.0125,0.006,0.0,0.0],[0.0093,0.0139,0.0046,0.0,0.0,0.0],[0.0042,0.0028,0.0009,0.0,0.0,0.0],[0.0042,0.0069,0.0,0.0,0.0,0.0],[0.0014,0.0,0.0,0.0,0.0,0.0],[0.0009,0.0,0.0,0.0,0.0,0.0],[0.0014,0.0005,0.0,0.0,0.0,0.0]],"calm":0.0162,"mean_ws":2.61,"max_ws":9.1,"gust_p95":5.66}}}
 
@@ -781,14 +819,10 @@ SCRIPT = "selinus_board_v40.py (axonometric engine from bergama_diagrams v1.8)"
 VERSION = "v1.8 in board v33"
 
 # Bridges over the Selinus, survey coordinates, from the concept record's table (CONCEPT_RECORD.md section 2.1)
-BRIDGES_K = [
-    ("K1", u"Side inlet crossing", 29628.35, 32630.87),
-    ("K2", u"Small crossing", 29604.93, 32622.02),
-    ("K3", u"Tabakhane Köprüsü", 30037.01, 32121.57),
-    ("K4", u"Tarihi Ulucami Önü Köprüsü", 29846.40, 32277.71),
-    ("K5", u"Üçkemer Köprüsü", 30293.63, 31792.25),
-    ("K6", u"Road bridge", 30646.94, 31251.65),
-]
+# v58 (round 3, G16 / D9): names from common/data/NAMES.py (bridge_name, included first in code.py)
+BRIDGES_K = [(k_, bridge_name(k_), x_, y_) for k_, x_, y_ in (
+    ("K1", 29628.35, 32630.87), ("K2", 29604.93, 32622.02), ("K3", 30037.01, 32121.57),
+    ("K4", 29846.40, 32277.71), ("K5", 30293.63, 31792.25), ("K6", 30646.94, 31251.65))]
 # Bergama, for true north (bergama_environment.json "location")
 SITE_LON, SITE_LAT = 27.18381, 39.11952
 
@@ -2494,6 +2528,9 @@ SPECS = {"S1": spec_S1}
 #                 the level every section draws its water at (G8, never a dry bed). "c" on the six surveyed sections
 #                 of research/rain_river_levels (W1-W5, S4), "i" (chainage-interpolated between them) elsewhere
 #   avg_flow_depth  depth of that water above the bed (m)
+#   depth_month   (round 3, A2, DATA-1; S4 only so far) mean water depth above the bed per month, Jan..Dec (m), value =
+#                 {"komurcu": [12], "ilica": [12]} (the two gauge routes of the CSV); read with level_month_depth() /
+#                 level_season_depth() (levels.py), never with level(). Depths, so they hold on either S4 datum (N1)
 #   location      short text: name, stream chainage, walled / unwalled reach (internal, for messages and registry)
 #   booklet_pages booklet page numbers (revision 30 Oct) that draw the cut; "pages" keeps the old sheet numbers
 #   aliases       other names of the same line, accepted by level_cut() and never printed (W1 = F1, S4 = F3: PLAN T1)
@@ -2512,6 +2549,8 @@ SPECS = {"S1": spec_S1}
 # Line status (ends, length_m): "i" = digitised from the p04/p05 key maps (+-3 m), "s" = S4's exact board line,
 # "c" = W1-W5 right-angle cuts computed at their chainage.
 #
+# N1 a (Aras 31 Oct 21:37, round 3) SUPERSEDES D4 b for S4: survey datum everywhere (bed +43.59, average flow +43.83,
+# Q100 +45.84, Q500 +46.19; bank heights from the survey bed). D4 b below still holds for S1, S7, S8.
 # D4 b (Aras 29 Oct): the S4 bed is +42.48 everywhere (the site board's value; the survey's low point +43.58 / table
 # +43.59 is kept only in S4's note). The site board's bed rule also stays for S1 (+67.80), S7 (+58.06), S8 (+55.13)
 # (RESULT.md s.3, "Page" column). Changed for these four (status "a"): the bed; the DSİ wall tops of the walled cuts
@@ -2653,17 +2692,17 @@ LEVELS = [
         'chainage_m': {'value': 7817.6, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
         'angle_deg': {'value': 89.4, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
         'walled': False,
-        'bed': {'value': 42.48, 'status': 'a', 'source': "D4 b (29 Oct): Aras's decision, bed = the site board v50 page value (p04)"},
+        'bed': {'value': 43.59, 'status': 's', 'source': "N1 a (Aras 31 Oct 21:37, round 3): survey datum everywhere for S4: levels.json +43.59 (survey TIN low point, tacheometric point 0.3 m away; the datum the Q100/Q500 and average-flow depths were computed on, rain_river README l.25). Replaces D4 b +42.48"},
         'bed_width_cm': {'value': 2600, 'status': 'i', 'source': 'no pair of survey stream lines at this cut: width of the TIN floor within 0.5 m of the bed on the right-angle section'},
         'NE': {
             'type': 'loose_earth',
             'top': {'value': 45.64, 'status': 'i', 'source': 'survey TIN, res_bank_top crest, 31.0 m out across the stream; nearest survey height 5.9 m away'},
-            'height': {'value': 3.16, 'status': 'a', 'source': 'bank top minus the D4 b bed (D4 b 29 Oct)'},
+            'height': {'value': 2.05, 'status': 'c', 'source': 'bank top 45.64 minus the survey bed 43.59 (N1 a, 31 Oct)'},
         },
         'SW': {
             'type': 'embankment',
             'top': {'value': 47.35, 'status': 's', 'source': 'survey TIN, survey bank-top line SEV_UST (no height on the line: TIN there), 30.3 m out across the stream; nearest survey height 0.9 m away'},
-            'height': {'value': 4.87, 'status': 'a', 'source': 'bank top minus the D4 b bed (D4 b 29 Oct)'},
+            'height': {'value': 3.76, 'status': 'c', 'source': 'bank top 47.35 minus the survey bed 43.59 (N1 a, 31 Oct)'},
             'angle_deg': {'value': 7.0, 'status': 'i', 'source': "between the survey's slope lines SEV_ALT (toe) and SEV_UST (top) on the cut"},
         },
         'terraces': [
@@ -2672,9 +2711,12 @@ LEVELS = [
         ],
         'q100': {'value': 45.84, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 46.19, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
-        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
-        'avg_flow': {'value': 42.72, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
-        'note': 'D4 b (29 Oct): bed +42.48 everywhere. Survey low point +43.58 (levels.json +43.59 s, a tacheometric point 0.3 m away) kept here only as a note, never printed.',
+        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m), its bed +43.59 (N1 a)"},
+        'avg_flow': {'value': 43.83, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m): survey bed +43.59 + 0.24 (N1 a, 31 Oct)"},
+        'depth_month': {'value': {'komurcu': [0.352, 0.345, 0.32, 0.282, 0.212, 0.161, 0.114, 0.073, 0.05, 0.115, 0.143, 0.203],
+                                  'ilica': [0.432, 0.35, 0.304, 0.251, 0.159, 0.125, 0.08, 0.036, 0.068, 0.106, 0.165, 0.199]},
+                        'status': 'c', 'source': "research/rain_river_levels/tables/A3s_monthly_mean_depth_surveyed_sections.csv rows S4_detail_cut Jan-Dec, columns depth_via_Komurcu_m and depth_via_Ilica_m (Manning n 0.050 normal depth on the surveyed S4 detail cut, DSİ gauge flows 2016-2021 area-scaled to the Selinos, 101 km²; rain_river README §2); below ~0.3 m indicative (README l.36)"},
+        'note': 'N1 a (Aras 31 Oct 21:37): survey datum for every S4 level (bed +43.59, avg +43.83, Q100 +45.84, Q500 +46.19); the D4 b bed +42.48 (29 Oct) is retired. Pages draw the bed from the survey profile (water board DETAIL_SRC PROFILE_Z), low point +43.59.',
     },
     # ---- S5-1: Cut S5 crossing 1
     {
