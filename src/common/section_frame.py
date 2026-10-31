@@ -256,13 +256,14 @@ def sf_back_house(xa, xb, gy, h_m, k, layer=1, floors=None, roof="hip", fill=Non
 SF_BACK_BAND = (8.0, 120.0)   # m behind a cut where background houses are taken from (drawing rule, R2-C)
 
 
-def sf_back_buildings(cid, t0, t1, d0=None, d1=None, log=None):
+def sf_back_buildings(cid, t0, t1, d0=None, d1=None, log=None, look=1):
     """R2-C (checklist 7, Aras 31 Oct 12:01 "no background houses"): the basemap buildings standing d0..d1 m behind
     the registry cut cid (the way the section looks: the normal (-u_y, u_x) of its ends, as the page key maps), each
     projected onto the cut: [(t_a, t_b m along the cut, h m, floors or None, d m behind)], farthest first, clipped to
     t0..t1. Height: the building's data height, else the repo's M11 convention floors x BLD_STOREY (buildings.py
     _bld_h, as every cut-through building). Draw with sf_back_house on the depth layer's ground (d < half the band:
-    layer 1, else 2)."""
+    layer 1, else 2). look=-1: the drawing looks the other way (its first end on the right, as the p.12 W cuts and
+    their key map, basemap_cut_ids looks=-1)."""
     import math as _m
     d0 = SF_BACK_BAND[0] if d0 is None else d0
     d1 = SF_BACK_BAND[1] if d1 is None else d1
@@ -271,7 +272,7 @@ def sf_back_buildings(cid, t0, t1, d0=None, d1=None, log=None):
     a, b = level_ends(cid)
     Lc = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
     u = ((b[0] - a[0]) / Lc, (b[1] - a[1]) / Lc)
-    f = (-u[1], u[0])
+    f = (-u[1] * look, u[0] * look)
     out = []
     for bl in L.get("buildings", []):
         h = _bld_h(bl) if globals().get("_bld_h") else float(bl.get("h") or 0.0)

@@ -1139,6 +1139,7 @@ def _p12_zoom_geom(zones, D, max_m, log):
         u", ".join(c_ for c_, _a, _b in els) or u"the stream only", u1 - u0, u", cut at the band" if trimmed else u""))
     return dict(o=o, e=e, u0=u0, u1=u1, wet=(wl, wr), els=els, strip=strip, bed=reg["bed"], avg=reg["avg_flow"],
                 top=sum(tops) / len(tops), walled=bool(reg["walled"]), trimmed=trimmed,
+                reg_t=(o[0] - a[0]) * e[0] + (o[1] - a[1]) * e[1], reg_d=(o[0] - a[0]) * n[0] + (o[1] - a[1]) * n[1],
                 A=(o[0] + e[0] * u0, o[1] + e[1] * u0), B=(o[0] + e[0] * u1, o[1] + e[1] * u1),
                 units=list(L.get("buildings") or []))
 
@@ -1168,6 +1169,7 @@ def _p12_zoom(pg, band, Z, style, log):
     the registry levels of P12_ZOOM_CUT), and each zone as the place it is (G10): the lined reed basins with people
     on the paths between the cells, the stone spillway, the shaded walk with mixed tree groups, a bench and walkers,
     the dry-top terraces with low planting round a lawn where children play. R2 (31 Oct): the designed sky (D8);
+    the basemap houses behind the cut on the depth layers' ground, under that layer's trees (pass 2, checklist 7);
     the back trees stand on a ground that dips into the channel (walls and bed) and none where the water is (G14);
     planting in mixed groups on depth layers (G9, pla_group_section), people by zone (G10, fig_place_zones, nobody
     in the water), every item seated (sf_g14_line logged); numbered callouts "Element: reason", one per planting
@@ -1193,8 +1195,40 @@ def _p12_zoom(pg, band, Z, style, log):
     # the depth layers' ground (G14): the bank tops, down the walls into the bed (walls a hair battered so the
     # profile stays a function of x); with water = the average flow no back tree stands over the channel
     bprof = [(xa_s, gy), (X(wl), gy), (X(wl) + 0.01, bed_y), (X(wr) - 0.01, bed_y), (X(wr), gy), (xb_s, gy)]
-    sf_atmosphere(xa_s, xb_s, gy, y1 - 0.5, k, seed=5, sky="d8", trees=bool(back), birds=False, mix=back or None,
-                  density=0.5, style=style, into=W, back_ground={2: bprof, 1: bprof}, groups=True, water=avg_y)
+    sf_atmosphere(xa_s, xb_s, gy, y1 - 0.5, k, seed=5, sky="d8", trees=False, birds=False, style=style, into=W,
+                  back_ground={2: bprof, 1: bprof}, groups=True, water=avg_y)
+    # R2-C pass 2 (Aras 31 Oct 12:01 "no background houses"): layer by layer, farthest first, the basemap houses
+    # SF_BACK_BAND m behind this cut (sf_back_buildings on the registry cut, shifted to this parallel cut: reg_t
+    # along, reg_d behind) on the layer's own ground at their data height (else floors x BLD_STOREY), then that
+    # layer's trees round them; none over the channel (it runs on behind the cut), none whose roof leaves the band
+    gfn, ch = sf_gy(bprof), (X(wl) - t, X(wr) + t)
+    dm = 0.5 * (SF_BACK_BAND[0] + SF_BACK_BAND[1])
+    hl = sf_back_buildings(P12_ZOOM_CUT, u0 + Z["reg_t"], u1 + Z["reg_t"], SF_BACK_BAND[0] + Z["reg_d"],
+                           SF_BACK_BAND[1] + Z["reg_d"], log=log)
+    nh, nx = 0, 0
+    for layer_ in (2, 1):
+        hs = []
+        for ta, tb, h_m, fl, d in hl:
+            if (1 if d - Z["reg_d"] < dm else 2) != layer_ or tb - ta < 3.0:   # 3.0 m: sf_back_house's one bay
+                continue
+            ha, hb = X(ta - Z["reg_t"]), X(tb - Z["reg_t"])
+            if hb > ch[0] and ha < ch[1]:
+                nx += 1
+                continue
+            hsh = sf_back_house(ha, hb, gfn, h_m, k, layer=layer_, floors=fl)
+            if max(p_[1] for s_ in hsh for p_ in s_[1]) > y1 - 0.5:
+                nx += 1
+                continue
+            W.add("background", hsh)
+            hs.append((ha, hb))
+            nh += 1
+        if back:
+            sh_, _pl, _gr = pla_group_section(xa_s, xb_s, gfn, k, t0=0.45, t1=0.95, mix=back, seed=5 + 31 * layer_,
+                                              layers=(layer_,), style=style, density=0.5, avoid=hs or None,
+                                              hires=False, detail=False, water=avg_y)
+            W.add("background", sh_)
+    log.append(u"p.12 up close: {} background houses drawn ({} left out: over the channel or above the band)".format(
+        nh, nx))
     # the cut ground, the walls, the bed and the water (G8: never dry; Q100 / Q500 wall to wall)
     for surf in ([(xa_s, gy), (X(wl) - t, gy)], [(X(wr) + t, gy), (xb_s, gy)]):
         if surf[1][0] - surf[0][0] > 0.2:
@@ -1239,9 +1273,13 @@ def _p12_zoom(pg, band, Z, style, log):
         groups.extend(gr_)
         return bool(gr_)
 
-    def crowd(zs_, seed_, layer_=0, dens=0.8, mx=None):
+    # R2-C pass 2 (scenes): who stays looks at what the place is for: the reed basins, else the stream
+    looks = [X((wl + wr) / 2.0)] + [(X(ua_) + X(ub_)) / 2.0 for c_, ua_, ub_ in Z["els"] if c_ == "WT"]
+
+    def crowd(zs_, seed_, layer_=0, dens=0.8, mx=None, focus=None):
+        fz = focus or (lambda _k, xa_, xb_: min(looks, key=lambda q: abs(q - (xa_ + xb_) / 2.0)))
         sh_, pl_ = fig_place_zones(zs_, gy, k, seed=seed_, layer=layer_, style=style, density=dens, water=avg_y,
-                                   max_per_zone=mx)
+                                   max_per_zone=mx, focus=fz)
         W.add("figures", sh_)
         people.extend(pl_)
     near = X(wr) + t                                    # the stream's NE wall face: where "toward the stream" points
@@ -1261,8 +1299,10 @@ def _p12_zoom(pg, band, Z, style, log):
                 cells.append((u, ue))
                 u = ue + gap
             # the edge between the cells: people watching the basins (viewing terrace kind, one each)
+            cf = dict((round(X(a_[1]) + 0.1 * k, 3), X((a_[0] + a_[1]) / 2.0)) for a_ in cells)
             crowd([("viewing_terrace", X(a_[1]) + 0.1 * k, X(b_[0]) - 0.1 * k) for a_, b_ in zip(cells, cells[1:])
-                   if X(a_[1]) > near], 41 + i, mx=1)
+                   if X(a_[1]) > near], 41 + i, mx=1,
+                  focus=lambda _k, xa_, xb_: cf.get(round(xa_, 3), (xa_ + xb_) / 2.0))   # the cell beside them
         elif code == "WD":                              # the stone spillway, back to the stream
             W.add("structures", sct_hatch_fill([(xa, gy - 0.4 * k), (xb, gy - 0.4 * k), (xb, gy), (xa, gy)], "stone",
                                                k, SCT["cut"], 0.2))

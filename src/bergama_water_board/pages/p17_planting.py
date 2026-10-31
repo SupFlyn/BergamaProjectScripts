@@ -1432,35 +1432,12 @@ def _p17_rows(items, W, fs, ends=None, size=None):
     return out
 
 
-def _p17_houses(cid, t0, t1, d, log):
-    """the buildings of the basemap (M11, with their data height) that the line d m behind a cut crosses: [(t_a, t_b m
-    along the cut, h m, floors or None)]; a building without a data height is left out (never a guessed height)"""
-    L = (basemap_load(log=log) or {}).get("layers") or {}
-    a, b = level_ends(cid)
-    Lc = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
-    u = ((b[0] - a[0]) / Lc, (b[1] - a[1]) / Lc)
-    f = (-u[1], u[0])
-    A = (a[0] + u[0] * t0 + f[0] * d, a[1] + u[1] * t0 + f[1] * d)
-    B = (a[0] + u[0] * t1 + f[0] * d, a[1] + u[1] * t1 + f[1] * d)
-    bb = (min(A[0], B[0]), min(A[1], B[1]), max(A[0], B[0]), max(A[1], B[1]))
-    out = []
-    for bl in L.get("buildings", []):
-        h = float(bl.get("h") or 0.0)
-        if h <= 0.0:
-            continue
-        for R_ in bl["rings"][:bl.get("np", len(bl["rings"]))]:
-            if len(R_) < 3 or not _p17_hit(R_, bb):
-                continue
-            ss = [s for s in (_p17_seg_t(A, B, p, q) for p, q in zip(R_, list(R_[1:]) + [R_[0]])) if s is not None]
-            if len(ss) >= 2:
-                out.append((t0 + min(ss) * (t1 - t0), t0 + max(ss) * (t1 - t0), h, int(bl.get("floors") or 0) or None))
-    return sorted(out)
-
-
 def _p17_depth(spec, reg, X, P, gyx, zb, top, k, wl_y, style, log):
     """behind the cut (M8, D9; R16, R19 idea), the farthest layer first: its own ground from the survey contours
-    (_p17_topo: layer 2 on the line P17_TOPO_D[0] m behind, layer 1 on P17_TOPO_D[1] m), the houses that line crosses
-    standing on it at their data height (sf_back_house: real profiles, faded by layer, G14 seated), then mixed tree
+    (_p17_topo: layer 2 on the line P17_TOPO_D[0] m behind, layer 1 on P17_TOPO_D[1] m), the basemap houses of the
+    band behind the cut (sf_back_buildings, SF_BACK_BAND: data height, else floors x BLD_STOREY; those nearer than the
+    band's middle on layer 1, the rest on layer 2) standing on that layer's ground (sf_back_house: real profiles, faded
+    by layer, G14 seated; a house whose roof would leave the drawing is left out), then mixed tree
     groups on it (pla_group_section: wet species toward the stream, dry ones outward, none on water, none in a house).
     Layer by layer, so a nearer ground hides what stands behind it. Without contours the trees stand on the cut ground
     (one log line). Returns shapes (page mm of the section)."""
@@ -1472,6 +1449,8 @@ def _p17_depth(spec, reg, X, P, gyx, zb, top, k, wl_y, style, log):
     def tfun(x):                                               # band 0.25 at the stream to 0.85 at the ends
         return 0.25 + 0.60 * min(1.0, abs(x - xb) / half)
     prs = dict(_p17_topo(reg["id"], t0, t1, log)) if spec.get("topo", True) else {}
+    blds = sf_back_buildings(reg["id"], t0, t1, log=log)      # farthest first: [(t_a, t_b, h m, floors, d m behind)]
+    dmid = 0.5 * (SF_BACK_BAND[0] + SF_BACK_BAND[1])
     sh, nh = [], 0
     for layer, d in zip((2, 1), P17_TOPO_D):
         g_, hs = gyx, []
@@ -1480,12 +1459,15 @@ def _p17_depth(spec, reg, X, P, gyx, zb, top, k, wl_y, style, log):
             pts = P([(t, min(z, zb + top / k)) for t, z in pr])
             sh += sf_topo_back([pts], 0.0).shapes()
             g_ = sf_gy(pts)
-            for ta, tb, h, fl in _p17_houses(reg["id"], t0, t1, d, log):
-                if tb - ta < 3.0:                              # a sliver under one bay (sf_back_house's 3.0 m bay)
-                    continue
-                sh += sf_back_house(X(max(ta, t0)), X(min(tb, t1)), g_, h, k, layer=layer, floors=fl)
-                hs.append((X(ta), X(tb)))
-                nh += 1
+        for ta, tb, h, fl, db in blds:                         # this layer's houses, before its trees
+            if (1 if db < dmid else 2) != layer or tb - ta < 3.0:   # a sliver under one bay (sf_back_house's 3.0 m)
+                continue
+            hh = sf_back_house(X(ta), X(tb), g_, h, k, layer=layer, floors=fl)
+            if not hh or _p17_shp_bb(hh)[3] > top:             # the roof would leave the drawing
+                continue
+            sh += hh
+            hs.append((X(ta), X(tb)))
+            nh += 1
         tr, _pl, _gr = pla_group_section(0.0, W, g_, k, t0=tfun, mix=["plane", "ash", "willow", "tamarisk", "olive"],
                                          seed=spec.get("seed", 3) * 7 + layer, layers=(layer,), style=style,
                                          density=0.6, avoid=hs, hires=False, detail=False, water=wl_y)
@@ -1640,14 +1622,17 @@ def _p17_section(spec, style, log):
     bad = sf_assert_g6(k, trees=[(p[0], p[1], p[2], p[3]) for p in trees], strict=False)
     if bad:
         log.append(u"WARNING (G6) p.17 {}: {}".format(name, u"; ".join(bad[:3])))
-    # people doing what each zone is for (G10): fig_place_zones, nobody where the water is deeper than wading
+    # people doing what each zone is for (G10): fig_place_zones, nobody where the water is deeper than wading; as
+    # scenes (Aras 31 Oct 12:01 "they look like they are just put there"): who stays looks at the zone's focus (the
+    # spec's water, or the zone's own: a bridge's stream), people in the water play in pairs, walkers keep their way
+    fx0 = X(spec["focus"]) if spec.get("focus") is not None else X(min(prof, key=lambda q: q[1])[0])
     figs = []
     for j, (zone, a, b, o) in enumerate(spec.get("people", [])):
         o = o or {}
         gr = stone_y if zone == "stepping_stones" else (Y(o["z"]) if o.get("z") is not None else None)
         sh_, _pl = fig_place_zones([(zone, X(a), X(b), gr)], gyx, k, seed=31 * j + 5 + 7 * spec.get("seed", 3),
                                    layer=0, style=style, density=o.get("dens", 1.0), water=wl_y,
-                                   max_per_zone=o.get("n"))
+                                   max_per_zone=o.get("n"), focus=X(o["focus"]) if o.get("focus") is not None else fx0)
         figs += sh_
     wl.add("figures", figs)
     for t_, z_, txt in spec.get("callouts", []):
@@ -1669,7 +1654,7 @@ def _p17_section(spec, style, log):
         wl.add("background", bp)
     for j, (zone, a, b) in enumerate(spec.get("back", [])):
         sh_, _pl = fig_place_zones([(zone, X(a), X(b))], gyx, k, seed=77 + j + spec.get("seed", 3), layer=1,
-                                   style=style, density=0.6, water=wl_y, max_per_zone=2)
+                                   style=style, density=0.6, water=wl_y, max_per_zone=2, focus=fx0)
         wl.add("background", sh_)
     pg = Page(0, 0)
     _p17_put(pg, _p17_clip(wl.shapes(), (0.0, -1e4, W, 1e4)))
@@ -1741,7 +1726,7 @@ def _p17_section(spec, style, log):
            (Y(reg["q500"]), u_level(reg["q500"]) + u" Q500", C["w4"], False)]
     ent += [(Y(z), u_level(z) + u" " + t, COL["ink"], False) for z, t in spec.get("levels", [])]
     level_ladder(pg, ent, W + 0.8, W + 4.0, fs, lo=0.0)
-    log.append(u"p.17 {}: {} planting groups, {} callouts, {} background houses (data heights)".format(
+    log.append(u"p.17 {}: {} planting groups, {} callouts, {} background houses (basemap band)".format(
         name, len(spec.get("groups", [])), len(items), spec.get("n_houses", 0)))
     return pg
 
@@ -1836,6 +1821,7 @@ def _p17_f2(log):
     bn = bl[1] + 0.7                                    # a bench between the bike lane and the walk
     avg = r["avg_flow"]
     return dict(cid="F2", seed=2, rng=(t0, t1), prof=prof, fills=fills, water=water, cells=cells, groups=groups,
+                focus=(st0 + st1) / 2.0,
                 avoid=[wa, bl, wl_, vt, (bn - 0.3, bn + 0.8)],
                 structures=[("lane", wa[0], wa[1], "walk"), ("lane", bl[0], bl[1], "bike"),
                             ("lane", wl_[0], wl_[1], "walk"), ("terrace", vt[0], vt[1], "a", None),
@@ -1910,23 +1896,42 @@ def _p17_f4(log):
               dict(a=121.0, b=bl[0] - 0.3, t=(0.50, 0.55), mix=("plane", "ash"), why=("shade", "noise"), seed=47)]
     bn = br[1] + 1.0                                    # a bench on the bank top, in the trees' shade
     avg = r["avg_flow"]
+    wd = (94.0, 109.5)                                  # the shallow strip people wade and play in
+    # the water's edge NE of it: the first ground above the average flow, and a sitting group there facing the water
+    # if 3.5 m of dry bank fit before the NE bank's trees (else none, one log line)
+    wm = (wd[0] + wd[1]) / 2.0
+    e = next((wm + 0.25 * i for i in range(int((121.0 - wm) / 0.25)) if gz(wm + 0.25 * i) > avg), None)
+    sit = None
+    if e is not None:
+        sit = (max(e, wd[1]) + 0.3, max(e, wd[1]) + 3.8)
+        if sit[1] > 119.0 or any(gz(sit[0] + 0.25 * i) <= avg for i in range(int((sit[1] - sit[0]) / 0.25) + 1)):
+            sit = None
+    if sit is None:
+        log.append(u"p.17 F4: no dry bank by the shallow strip for a sitting group (none drawn)")
+    else:
+        groups[5]["a"] = max(groups[5]["a"], sit[1] + 0.3)
     return dict(cid="F4", seed=4, rng=(t0, t1), prof=prof, fills=fills, water=water, groups=groups,
-                avoid=[pw, br, (rp[0], dk[1]), bl, wl_, (bn - 0.3, bn + 0.8)],
+                focus=(wd[0] + wd[1]) / 2.0,
+                avoid=[pw, br, (rp[0], dk[1]), bl, wl_, (bn - 0.3, bn + 0.8)] + ([sit] if sit else []),
                 structures=[("lane", pw[0], pw[1], "walk"), ("bridge", br[0], br[1], zbr),
                             ("ramp", rp[0], rp[1], zr0, zdk), ("terrace", dk[0], dk[1], "b", zdk),
                             ("lane", bl[0], bl[1], "bike"), ("lane", wl_[0], wl_[1], "walk"),
                             ("stones", st0, st1), ("bench", bn, 1)],
-                people=[("walkway", pw[0], pw[1], None), ("bridge_crossing", br[0] + 0.5, br[1] - 0.5, {"z": zbr}),
+                people=[("walkway", pw[0], pw[1], None),
+                        ("bridge_crossing", br[0] + 0.5, br[1] - 0.5, {"z": zbr, "focus": (a0 + a1) / 2.0}),
                         ("viewing_terrace", dk[0], dk[1], {"z": zdk, "n": 3}),
-                        ("stepping_stones", st0, st1, {"n": 2}), ("wading_strip", 94.0, 109.5, {"n": 3}),
-                        ("bike_lane", bl[0], bl[1], {"n": 1}), ("walkway", wl_[0], wl_[1], None)],
+                        ("stepping_stones", st0, st1, {"n": 2}), ("wading_strip", wd[0], wd[1], {"n": 4})] +
+                       ([("lawn", sit[0], sit[1], {"n": 3, "dens": 1.6})] if sit else [])   # no seat drawn: standing, watching +
+                       [("bike_lane", bl[0], bl[1], {"n": 1}), ("walkway", wl_[0], wl_[1], None)],
                 callouts=[((pw[0] + pw[1]) / 2.0, None, u"Path: walk the SW bank to the footbridge"),
                           ((br[0] + br[1]) / 2.0, zbr, u"Footbridge: cross the side arm dry-shod"),
                           (bn, None, u"Bench: in the trees' shade on the bank top"),
                           ((rp[0] + dk[1]) / 2.0, zdk, u"View terrace: up a ramp, a step-free view"),
                           ((st0 + st1) / 2.0, avg, u"Stepping stones: cross the summer strip dry-shod"),
-                          ((94.0 + 109.5) / 2.0, avg, u"Wading strip: shallow water in the widened bed"),
-                          ((bl[0] + bl[1]) / 2.0, None, u"Bike lane: street side, apart from walkers"),
+                          ((wd[0] + wd[1]) / 2.0, avg, u"Shallow strip: wade, play, cool your feet")] +
+                         ([((sit[0] + sit[1]) / 2.0, None, u"Water's edge: watch the play, cool off")]
+                          if sit else []) +
+                         [((bl[0] + bl[1]) / 2.0, None, u"Bike lane: street side, apart from walkers"),
                           ((wl_[0] + wl_[1]) / 2.0, None, u"Street walk: behind the trees, off the traffic")],
                 back=[("walkway", pw[0], pw[1]), ("walkway", wl_[0], wl_[1])],
                 zones=[(pw[0], pw[1], _p17_lane_txt(u"PATH", wk)), (br[0], br[1], u"BRIDGE"),
@@ -1937,8 +1942,8 @@ def _p17_f4(log):
 
 
 def _p17_f1(log):
-    """W1 at the inflow (cut registry W1, = F1): the bike lane and the walk under the planes on the SW bank, stepping
-    stones in the walled bed (v10: nobody in its water), the viewing terrace on the NE wall top, the reed basins beyond"""
+    """W1 at the inflow (cut registry W1, = F1): the bike lane and the walk under the planes on the SW bank, the walled
+    bed (v10-v11: nobody in its water, no blocks in it), the viewing terrace on the NE wall top, the reed basins beyond"""
     r = _p17_reg("W1")
     bed = r["bed"]
     wsw, wne = _p17_wall(r)
@@ -1968,15 +1973,15 @@ def _p17_f1(log):
     bn = bl[1] + 0.5                                    # a bench between the bike lane and the path
     avg = r["avg_flow"]
     return dict(cid="W1", seed=1, rng=(t0, t1), prof=prof, fills=fills, groups=groups, beyond=beyond,
+                focus=(st0 + st1) / 2.0,
                 avoid=[bl, wl_, (bn - 0.3, bn + 0.8)],
                 structures=[("lane", bl[0], bl[1], "bike"), ("lane", wl_[0], wl_[1], "walk"),
-                            ("terrace", vt[0], vt[1], "a", None), ("stones", st0, st1), ("bench", bn, 1)],
+                            ("terrace", vt[0], vt[1], "a", None), ("bench", bn, 1)],   # v11: no blocks in the bed (Aras 12:01)
                 people=[("bike_lane", bl[0], bl[1], {"n": 1}), ("walkway", wl_[0], wl_[1], None),
-                        ("stepping_stones", st0, st1, {"n": 2}), ("viewing_terrace", vt[0], vt[1], {"n": 2})],
+                        ("viewing_terrace", vt[0], vt[1], {"n": 2})],
                 callouts=[((bl[0] + bl[1]) / 2.0, None, u"Bike lane: through route under the trees"),
                           (bn, None, u"Bench: in the trees' shade, facing the water"),
                           ((wl_[0] + wl_[1]) / 2.0, None, u"Path: shaded by the trees of the SW bank"),
-                          ((st0 + st1) / 2.0, avg, u"Stepping stones: cross the summer strip dry-shod"),
                           ((vt[0] + vt[1]) / 2.0, None, u"View terrace: on the NE wall top, over the bed"),
                           ((bx0 + t1) / 2.0, wne, u"Reed basins beyond: stream water cleaned there")],
                 back=[("walkway", wl_[0], wl_[1])],
@@ -2042,6 +2047,7 @@ def _p17_f3(log):
         seen.add(c_)
     sw = zn["sw_path"]
     return dict(cid="S4", seed=3, rng=(t0, t1), prof=prof, fills=fills, fixed=fixed, groups=groups,
+                focus=(st0 + st1) / 2.0,
                 structures=[("stones", st0, st1)],
                 people=[("walkway", max(t0 + 0.5, sw[0]), sw[1], {"n": 2}), ("stepping_stones", st0, st1, {"n": 2}),
                         ("walkway", w0, w1, {"n": 2}), ("sun_steps", e0, p0, {"n": 3}), ("walkway", p0, p1, None),

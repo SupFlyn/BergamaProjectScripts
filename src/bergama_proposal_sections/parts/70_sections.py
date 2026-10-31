@@ -20,12 +20,17 @@
 # (the cut line incl. the bed, none on the water) under the D8 sky; every item seated (G14, log line); the Q500 wash
 # around people is gone (Q100 / Q500 stay lines); every label is a numbered callout "Element: reason" (SfCallouts)
 # with its key under the drawing; the section triangles are switched off (U22).
+# R2-C pass 2 (Aras 31 Oct 12:01): W1 redrawn to p.17's F1 layout (path and bike lane under the SW trees, view
+# terrace on the NE wall top, reed basins beyond) with sitting steps, landings and planted pockets as the way down (no
+# straight stair, no blocks in the bed); background houses from the basemap on every depth layer (ps_back); people
+# as scenes looking at the water (ps_zones focus).
 PS_SCALE = 500                       # 1:500 on the booklet page (standard scales, SCRIPT_STANDARD §8)
 PS_K = 1000.0 / PS_SCALE              # print mm per m (k of section_parts and plants)
 PS_DEPTH = 1.0                        # m of cut ground drawn under the bed (section_parts drawing rule)
 PS_WALL_T = 0.60                      # m: DSİ wall thickness: no sourced value; the same 0.60 m as p.04-05 (site board P45_WALL_T_M, G2)
 PS_RAIL_H = 1.10                      # m: railing height on the wall and bank tops: drawing value
-PS_KERB_H = 0.15                      # m: basin kerb above the ground: drawing value
+PS_BASIN = dict(kerb_h=0.30, depth=1.10, media=0.80, kerb_t=0.15)   # W1 reed basin cell beyond the NE wall: the
+#                                     same drawing values as p.17's F1 (water board P17_BASIN; no source)
 PS_STRIP = (3.00, 0.40)               # m: the summer strip channel in the bed (proposal): width, depth
 PS_FREEBOARD = 0.30                   # m: a dry proposed floor sits at least this far above Q500 (design rule)
 PS_LBL = BK_MIN_PT * PT               # print mm: the smallest word on the page (7.5 pt)
@@ -36,6 +41,16 @@ PS_TIMBER = SF_LANE["timber"]         # boardwalk timber: the same tone as the M
 PS_STAIR = (0.30, 0.18)               # m: tread, largest rise of the stairs drawn here (design rule)
 PS_RAMP = 1.0 / 12.0                  # rise per run of the W4 ramp (design rule)
 PS_TERRACE_W = 4.0                    # m: the W4 viewing terrace's width across the cut (design rule)
+# W1 = p.17's F1 (Aras 31 Oct 12:01): the SW path and bike lane widths of p.17 (water board P14_PROM_W, same cut)
+# and the way down into the walled bed as sitting steps with landings (design rules, not data)
+PS_W1_LANES = (7.0, 3.0)              # m: SW path, SW bike lane (p.17 F1)
+PS_W1_SIT = (0.80, 0.45)              # m: sitting step tread (sit, feet on the step below), largest riser (seat high)
+PS_W1_FLIGHTS = 3                     # flights of sitting steps, a landing between two flights
+PS_W1_LAND = 2.40                     # m: a landing: the way on at its front, a planted pocket at its back
+PS_W1_POCKET = (1.20, 0.60)           # m: the planted pocket on a landing: width, soil depth
+PS_W1_FLOOR_W = 1.60                  # m: the floor at the water's edge (on the DSİ wall foot, cut down to it)
+PS_W1_FLOOR_UP = 0.25                 # m: that floor at least this far over the average-flow water (stays dry)
+PS_RAIL_DROP = 0.50                   # m: a drop deeper than this gets a railing (design rule)
 PS_STONE_UP = 0.15                    # m: stepping stone tops over the average-flow water (sf_stepping_stones default)
 PS_CALL_UP = 2.6                      # m over a zone's ground where its callout circle sits (over the heads)
 PS_CO = PS_LBL                        # callout circles and key: the page's smallest word size (BK_MIN_PT)
@@ -49,7 +64,7 @@ PS_SHORT = {"plane": u"Plane", "ash": u"Ash", "willow": u"Willow", "olive": u"Ol
 PS_AXIS = {"W1": (29693.022, 32569.176), "W2": (29959.774, 32264.566), "W3": (30354.663, 31689.671),
            "W4": (30991.856, 31039.404)}
 # (sheet key, cut id, number on the page, name, takeaway in the title)
-PS_CUTS = [("up", "W1", 1, u"Upstream entry", u"runoff cleaned in lined reed basins, given back in summer"),
+PS_CUTS = [("up", "W1", 1, u"Upstream entry", u"sitting steps down to the water, reed basins beyond the NE wall"),
            ("k4", "W2", 2, u"K4 walking hub", u"seating steps down to the summer strip, the hub square stays dry"),
            ("k5", "W3", 3, u"K5 Demeter's Garden", u"garden above Q500, stream commons below it"),
            ("down", "W4", 4, u"Downstream reach", u"planting bands and a boardwalk that follow the flood levels")]
@@ -130,6 +145,7 @@ class PsSec(object):
         self.pg = Page(0, 0)
         self.calls = []                                       # (text "Element: reason", u, z where its circle sits)
         self.notes = []                                       # log notes of this section (planting that did not fit)
+        self.info = []                                        # other log lines of this section (background houses)
         self.prof = []                                        # the cut line (u, z), left to right, for the flood
         self.w = (self.u1 - self.u0) * self.k
 
@@ -209,16 +225,20 @@ def ps_fig(S, pose, u, z, facing=1, **p):
     S.put(fig_side(pose, x, y, S.k, facing=facing, style=S.style, **p))
 
 
-def ps_zones(S, zones, seed, layer=0, density=1.0, max_n=None):
+def ps_zones(S, zones, seed, layer=0, density=1.0, max_n=None, focus=0.0, **p):
     """G10 people zone by zone (figures.py fig_place_zones): zones [(kind, ua, ub, ground)] with ground = a level
     (m) or a function of u (m) -> level; kinds walkway, bike_lane, viewing_terrace, sun_steps, stepping_stones, lawn
     take people, "water" none (counted in the G14 line). The average-flow water is passed, so nobody stands where
-    the drawn water covers the ground; layer 1 / 2 = people further from the cut (smaller, paler)."""
+    the drawn water covers the ground; layer 1 / 2 = people further from the cut (smaller, paler). Scenes (R2-C pass
+    2, Aras 31 Oct 12:01 "they look like they are just put there"): focus = u (m) that everyone who stays looks at
+    (default 0.0 = the water's middle on the axis; a stall or a view where the section has one), children playing
+    turn to each other, walkers and riders keep their way; p goes to every figure (seat_h ...)."""
     zz = []
     for kind, ua, ub, g in zones:
         zz.append((kind, S.X(min(ua, ub)), S.X(max(ua, ub)), S.zf(g) if callable(g) else S.Y(g)))
     sh, placed = fig_place_zones(zz, S.Y(S.bed), S.k, seed=seed, layer=layer, style=S.style, density=density,
-                                 water=ps_water_y(S), max_per_zone=max_n)
+                                 water=ps_water_y(S), max_per_zone=max_n,
+                                 focus=None if focus is None else S.X(focus), **p)
     S.put(sh)
     return placed
 
@@ -276,14 +296,50 @@ def ps_group(S, ua, ub, zf, t0, t1, mix, seed, layers=(0,), why=None, avoid=(), 
 
 
 def ps_back(S, seed, mix=("plane", "ash", "chaste", "olive", "tamarisk")):
-    """the D8 sky and the depth behind the cut (R16): faded mixed tree groups in D9 layers 2 and 1, each layer on
-    its own ground = the cut line with the bed (G14), none where that ground lies under the average-flow water"""
+    """the D8 sky and the depth behind the cut (R16): D9 layers 2 and 1, each on its own ground = the cut line with
+    the bed (G14), the farthest first: R2-C pass 2 (Aras 31 Oct 12:01 "no background houses"; checklist 7) the
+    basemap houses SF_BACK_BAND m behind the registry cut (sf_back_buildings: data height, else floors x
+    BLD_STOREY; nearer than the band's middle on layer 1, the rest on layer 2) standing on the layer's ground
+    (sf_back_house: real profiles, faded by layer, seated), then that layer's faded mixed tree groups round them;
+    no house over the channel (it runs on behind the cut) or whose roof leaves the sky, no tree where the ground
+    lies under the average-flow water"""
     pr = ps_gprof(S)
+    gf = sf_gy(pr)
+    wy = ps_water_y(S)
     ht = max(PLA_SPECIES[k_]["h_m"] for k_ in mix) * PLA_GROUP["size"][1]
     y_top = S.Y(max(z for _u, z in S.prof) + ht)
-    wl = sf_atmosphere(0.0, S.w, pr, y_top, S.k, seed=seed, sky="d8", birds=False, mix=list(mix), style=S.style,
-                       back_ground={2: pr, 1: pr}, groups=True, water=ps_water_y(S))
+    wl = sf_atmosphere(0.0, S.w, pr, y_top, S.k, seed=seed, sky="d8", trees=False, birds=False, style=S.style,
+                       back_ground={2: pr, 1: pr})
+    lab = level_end_labels(S.cid)                               # registry m along the cut (t) -> u: the first end's
+    d0, sg = S.d[lab[0]], (-1.0 if lab[0] == "SW" else 1.0)    # distance to the axis; SW positive, NE negative
+    lo = min(S.prof[0][1], S.prof[-1][1]) - 0.5                 # the channel: the cut line under both land levels
+    cu = [u for u, z in S.prof if z < lo]
+    ch = (min(cu), max(cu)) if cu else None
+    blds = sf_back_buildings(S.cid, *sorted((d0 + sg * S.u0, d0 + sg * S.u1)), log=S.info, look=-1)   # the key map's view (SW right)
+    dmid = 0.5 * (SF_BACK_BAND[0] + SF_BACK_BAND[1])
+    nh, nx = 0, 0
+    for layer in (2, 1):
+        hs = []
+        for ta, tb, h_m, fl, db in blds:                       # this layer's houses, before its trees
+            if (1 if db < dmid else 2) != layer or tb - ta < 3.0:   # a sliver under one bay (sf_back_house's 3.0 m)
+                continue
+            ua, ub = sorted((sg * (ta - d0), sg * (tb - d0)))
+            if ch and ub > ch[0] and ua < ch[1]:
+                nx += 1
+                continue
+            hh = sf_back_house(S.X(ua), S.X(ub), pr, h_m, S.k, layer=layer, floors=fl)
+            if not hh or max(p_[1] for s_ in hh for p_ in s_[1]) > y_top:
+                nx += 1
+                continue
+            wl.add("background", hh)
+            hs.append((S.X(ua), S.X(ub)))
+            nh += 1
+        sh, _pl, _gr = pla_group_section(0.0, S.w, gf, S.k, t0=0.45, t1=0.95, mix=list(mix), seed=seed + 31 * layer,
+                                         layers=(layer,), style=S.style, density=0.7, avoid=hs or None, hires=False,
+                                         detail=False, water=wy)
+        wl.add("background", sh)
     wl.put(S.pg)
+    S.info.append(u"%d background houses drawn (%d left out: over the channel or above the sky)" % (nh, nx))
 
 
 def ps_land(S, pts, material="earth"):
@@ -298,10 +354,11 @@ def ps_strip(S):
     return [(-w / 2.0, b), (-w / 2.0 + 0.6, b - dp), (w / 2.0 - 0.6, b - dp), (w / 2.0, b)]
 
 
-def ps_bed(S, uL, uR, call=u"Stepping stones: cross the summer strip dry-shod"):
+def ps_bed(S, uL, uR, call=u"Stepping stones: cross the summer strip dry-shod", stones=True):
     """the gravel bed from uL to uR with the summer strip, then the M5 water (G8): the average yearly flow over the
     wet bed (never dry), Q100 and Q500 wall to wall (lines only), their levels stacked from S.lab_u; stepping stones
-    across the strip. Returns (u from, u to, level) of the stones' tops: the only place in the water people stand."""
+    across the strip (stones=False: none, W1). Returns (u from, u to, level) of the stones' tops: the only place in
+    the water people stand."""
     b = S.bed
     st = ps_strip(S)
     S.put(sct_ground(S.P([(uL, b)] + st + [(uR, b)]), 0.0, S.k, "gravel"))
@@ -315,6 +372,8 @@ def ps_bed(S, uL, uR, call=u"Stepping stones: cross the summer strip dry-shod"):
                        label_x=S.X(S.lab_u))
     wl.put(S.pg)
     ua, ub, ztop = st[0][0] - 0.2, st[-1][0] + 0.2, level_avg_flow(S.cid) + PS_STONE_UP
+    if not stones:
+        return ua, ub, ztop
     S.put(sf_stepping_stones(S.X(ua), S.X(ub), S.Y(st[1][1]), ps_water_y(S), S.k, above_m=PS_STONE_UP,
                              seed=len(S.cid)))
     if call:
@@ -387,69 +446,121 @@ def ps_bank_text(S, side):
 
 
 # ---------------------------------------------------------------- W1 upstream entry
+def ps_pocket(S, ua, ub, z, seed):
+    """a planted pocket on a W1 landing (ua..ub m, soil at z, PS_W1_POCKET deep): a chaste tree with rosemary and
+    lavender round it (G9: mixed, overlapping, sourced sizes PLA_SPECIES), each seated (G14); one callout (the same
+    words on every landing: one number)"""
+    ps_block_ring(S, ua, ub, z - PS_W1_POCKET[1], z, "earth")
+    for i, (key, f) in enumerate((("chaste", 0.62), ("rosemary", 0.28), ("lavender", 0.82))):   # tall one first
+        sp = PLA_SPECIES[key]
+        x = S.X(ua + f * (ub - ua))
+        S.put(pla_section(key, x, sf_seat_x(S.Y(z), x, 0.35 * sp["crown_m"] * S.k), S.k, h_m=sp["h_m"],
+                          crown_m=sp["crown_m"], seed=seed + i, style=S.style))
+        S.trees.append((key, x, sp["h_m"], sp["crown_m"]))
+    t = ps_group_text(["chaste", "rosemary", "lavender"], ("perception",),
+                      {"perception": u"colour and scent by the seats"})
+    S.call(t, (ua + ub) / 2.0, z + PLA_SPECIES["chaste"]["h_m"] + 0.6)
+
+
 def ps_sec_w1(S):
-    c, b, hw = S.cid, S.bed, S.hw
+    """W1 = p.17's F1 (same registry cut; Aras 31 Oct 12:01 "f1 has better surrounding"): the SW bank's path and
+    bike lane under the trees with a bench, the viewing terrace on the NE wall top, the lined reed basins beyond it
+    on the NE side, the walled bed at the registry levels. The way into the bed is no straight stair: sitting steps
+    cut back into the SW bank in PS_W1_FLIGHTS flights (seat-high risers, treads to sit on), landings with a planted
+    pocket between them, a floor at the water's edge on the DSİ wall foot (railed: deeper than PS_RAIL_DROP to the
+    bed). No blocks in the bed and nobody in its water."""
+    c, b, hw, k = S.cid, S.bed, S.hw, S.k
     tN, tS = level(c, "top", "NE"), level(c, "top", "SW")
-    S.prof = [(S.u0, tN), (-hw, tN), (-hw, b), (hw, b), (hw, tS), (S.u1, tS)]
+    fl = math.ceil((level_avg_flow(c) + PS_W1_FLOOR_UP) * 20.0) / 20.0   # the edge floor, dry at the average flow
+    n = int(math.ceil((tS - fl) / PS_W1_SIT[1] - 1e-9))
+    rise = (tS - fl) / n
+    nf = max(1, min(PS_W1_FLIGHTS, n))
+    fls = [n // nf + (1 if i < n % nf else 0) for i in range(nf)]
+    u, z = hw + PS_W1_FLOOR_W, fl
+    steps, blocks, flights, lands = [(hw, fl), (u, fl)], [], [], []
+    for i, m in enumerate(fls):                                 # flight by flight, climbing to the SW (right)
+        uf = u
+        for j in range(m):
+            z += rise
+            steps.append((u, z))
+            if i == nf - 1 and j == m - 1:
+                break
+            w = PS_W1_LAND if j == m - 1 else PS_W1_SIT[0]
+            blocks.append((u, u + (w - PS_W1_POCKET[0] if j == m - 1 else w), z - rise - 0.15, z))
+            if j == m - 1:
+                flights.append((uf, u))
+                lands.append((u, u + w, z))
+            u += w
+            steps.append((u, z))
+    flights.append((uf, u))
+    u_top = u
+    S.prof = [(S.u0, tN), (-hw, tN), (-hw, b), (hw, b)] + steps + [(S.u1, tS)]
+    gstep = lambda u_: ps_z_at(steps + [(S.u1, tS)], u_)
+    # SW bank top (p.17 F1): the path next to the steps' head, a tree strip with the bench, the bike lane outside
+    pa = (u_top + 0.3, u_top + 0.3 + PS_W1_LANES[0])
+    bk = (S.u1 - 0.4 - PS_W1_LANES[1], S.u1 - 0.4)
+    if bk[0] < pa[1] + 1.0:
+        S.notes.append(u"the SW path and bike lane overlap the drawn bank (%.1f m left)" % (bk[0] - pa[1]))
+    bn = pa[1] + 0.6                                            # the bench, its back to the bike lane
+    # NE (p.17 F1): the viewing terrace on the wall top, the reed basins beyond it (behind the cut, faded)
+    vt = (-hw - PS_WALL_T - PS_TERRACE_W, -hw - PS_WALL_T)
+    bx = (S.u0 + 0.3, vt[0] - 0.6)
     ps_back(S, 11)
-    ps_land(S, [(S.u0, tN), (-hw, tN)])                         # NE: the street behind the wall
-    # SW: three lined reed basins sunk into the land (D2 a: lined, root-contained, the flood passes by above Q500),
-    # floors stepping down toward the stream: street runoff in at the far one, cleaned water out through the wall
-    kt = 0.15                                                   # basin kerb / slab (plants module drawing rule)
-    bas = [(23.0, 28.0, 1.10), (29.5, 34.5, 0.90), (36.0, 41.0, 0.70)]   # (u from, u to, floor under the ground m)
-    surf = [(hw, tS)]
-    for u0, u1, dp in bas:
-        f = tS - dp - kt
-        surf += [(u0 - kt, tS), (u0 - kt, f), (u1 + kt, f), (u1 + kt, tS)]
-    surf.append((S.u1, tS))
-    ps_land(S, surf)
-    # NE street, from the wall: a walk along the edge, the bike lane behind it, shade trees at the street side
-    ps_lane(S, -hw - 0.6, -hw - 3.6, tN, "walk", u"Edge walk: looks down into the bed")
-    ps_lane(S, -hw - 4.0, -hw - 6.0, tN, "bike", u"Bike lane: street side, clear of the walk")
-    ps_lane(S, hw + 0.8, hw + 3.8, tS, "walk", u"Basin walk: along the cleaning basins")
-    # the way down: a stone stair from the NE wall top into the bed (it floods), its rail on the open side, and a
-    # line of stepping stones from its foot across the bed and the summer strip: what people do down there
-    n = int(math.ceil((tN - b) / PS_STAIR[1]))
-    rise, tread = (tN - b) / n, PS_STAIR[0]
-    u_bot = -hw + n * tread
-    ua, ub, ztop = ps_bed(S, -hw, hw, call=u"Stepping stones: stair foot across the bed, dry-shod")
-    S.put(sf_stepping_stones(S.X(u_bot + 0.1), S.X(ua - 0.3), S.Y(b), ps_water_y(S), S.k, above_m=PS_STONE_UP,
-                             seed=5))
-    ps_wall(S, -hw, -1, tN, rail=False)                         # the stair's head opens the NE wall
-    ps_wall(S, hw, 1, tS)
-    sh, _ = sf_stairs(S.X(u_bot), S.Y(b), n, rise, tread, S.k, side=-1, material="stone", rail=True)
-    S.put(sh)
-    S.call(u"Stair: the way down into the bed, %d × %d cm" % (n, round(rise * 100)), -hw + n * tread * 0.5,
-           b + (tN - b) * 0.5 + 1.2)
-    # planting (G9 groups): street trees behind the lanes (layer 1) and at the street side, an emergent edge in the
-    # wet bed along the SW wall, shrubs between the SW walk and the basins
-    ps_group(S, S.u0 + 0.3, -hw - 0.8, lambda u: tN, 0.45, 0.9, {"plane": 1.0, "ash": 0.5, "chaste": 0.9,
-                                                                   "rosemary": 0.6}, 12, layers=(1,), call=False)
-    ps_group(S, S.u0 + 0.3, -hw - 6.4, lambda u: tN, 0.45, 0.7, {"plane": 1.0, "chaste": 0.8, "rosemary": 0.6}, 13,
-             why={"shade": u"shade the street walk"})
-    ps_group(S, hw - 7.0, hw - 0.4, lambda u: b, 0.0, 0.16, ["soft_rush", "loosestrife", "rush"], 14,
-             why={"cleaning": u"clean the released water"})
-    ps_group(S, hw + 4.2, bas[0][0] - 0.6, lambda u: tS, 0.5, 0.92, ["chaste", "rosemary", "lavender", "olive"], 15,
-             layers=(1, 0), why={"perception": u"seasonal colour by the walk"})
-    for i, (u0, u1, dp) in enumerate(bas):
-        f = tS - dp
-        S.put(pla_reed_basin(S.X(u0), S.X(u1), S.Y(f), S.Y(tS), S.k, PS_KERB_H, media_m=0.50,
-                             wl_y=S.Y(f + 0.65)))
-    S.call(u"Lined reed basins: clean runoff, above Q500", 32.0, tS + 2.9)
-    f_near, f_far = tS - bas[0][2], tS - bas[2][2]
-    ps_arrow(S, [(S.u1 - 0.2, tS + 2.6), (41.4, tS + 1.4), (39.5, f_far + 0.85)], COL["river_mid"], 0.3)
-    S.call(u"Runoff in: street and roof water to the basins", S.u1 - 0.6, tS + 2.6)
-    ps_arrow(S, [(bas[0][0] - 0.3, f_near + 0.45), (hw + PS_WALL_T, f_near + 0.45), (hw - 0.1, f_near + 0.45),
-                 (hw - 1.4, b + 0.25)], COL["river_dark"], 0.3, dash=[0.8, 0.4])
-    S.call(u"Summer release: cleaned water back to the strip", hw - 0.7, f_near + 0.6)
-    # people by zone: the edge walk and bike lane, down the stair's dry treads, across on the stones, along the
-    # basins; nobody in the water itself; a few more further along the street (layer 1)
-    stair = ps_stair_z(u_bot, b, n, rise, tread, -1)
-    ps_zones(S, [("walkway", -hw - 3.6, -hw - 0.6, tN), ("bike_lane", -hw - 6.0, -hw - 4.0, tN)], 15)
-    ps_zones(S, [("walkway", -hw + 0.3, u_bot - 0.3, stair)], 16, max_n=2)
-    ps_zones(S, [("stepping_stones", u_bot + 0.1, ub, ztop), ("water", ub, hw, b),
-                 ("walkway", hw + 0.8, hw + 3.8, tS)], 17)
-    ps_zones(S, [("walkway", S.u0 + 0.5, -hw - 0.6, tN)], 18, layer=1, density=0.6)
+    bp = pla_reed_basin(S.X(bx[0]), S.X(bx[1]), S.Y(tN - PS_BASIN["depth"]), S.Y(tN), k, PS_BASIN["kerb_h"],
+                        PS_BASIN["kerb_t"], PS_BASIN["media"])
+    S.put(bp)
+    ys = [p_[1] for s_ in bp if s_[0] in ("poly", "line") for p_ in s_[1]]
+    if ys:                                                      # beyond the cut: veiled like p.17 above the ground
+        xa_, xb_, ya_, yb_ = S.X(bx[0] - 0.2), S.X(bx[1] + 0.2), S.Y(tN), max(ys) + 0.2   # (the cut land drawn next
+        S.put([("poly", [(xa_, ya_), (xb_, ya_), (xb_, yb_), (xa_, yb_)], "FFFFFF", None, 0.1, 0.5)])   # hides the rest)
+    ps_land(S, [(S.u0, tN), (-hw, tN)])
+    ps_land(S, steps + [(S.u1, tS)])
+    ps_lane(S, pa[0], pa[1], tS, "walk", u"Path: shaded by the trees of the SW bank")
+    ps_lane(S, bk[0], bk[1], tS, "bike", u"Bike lane: through route under the trees")
+    S.put(sf_bench(S.X(bn), sf_seat_x(S.Y(tS), S.X(bn), 0.25 * k), k, side=-1, back=True))
+    S.call(u"Bench: in the trees' shade, facing the water", bn - 0.2, tS + PS_CALL_UP)
+    ps_bed(S, -hw, hw, call=None, stones=False)                 # no stones, no blocks in the bed (Aras 12:01)
+    ps_wall(S, -hw, -1, tN)
+    S.put(sf_terrace(S.X(vt[1]), S.Y(tN), PS_TERRACE_W, k, side=-1, material="timber", rail=False))
+    S.call(u"View terrace: on the NE wall top, over the bed", sum(vt) / 2.0, tN + PS_CALL_UP)
+    # SW: today's wall (dashed) cut down to the edge floor, the sitting steps seated into the bank behind it
+    S.pg.poly([S.P([(hw, b), (hw + PS_WALL_T, b), (hw + PS_WALL_T, tS), (hw, tS)])], stroke=COL["ink2"], lw=0.18,
+              dash=[0.8, 0.5])
+    ps_block_ring(S, hw, hw + PS_WALL_T, S.z0, fl, "stone")    # the wall foot, kept under the floor
+    ps_block_ring(S, hw + PS_WALL_T, hw + PS_W1_FLOOR_W, fl - 0.25, fl, "concrete")
+    for ua_, ub_, z0, z1 in blocks:
+        ps_block_ring(S, ua_, ub_, z0, z1, "stone")
+    if fl - b > PS_RAIL_DROP:
+        ps_rail(S, hw + 0.15, fl)
+    for i, (ua_, ub_, z_) in enumerate(lands):
+        ps_pocket(S, ub_ - PS_W1_POCKET[0], ub_, z_, 50 + 3 * i)
+    S.call(u"Dashed line: today's DSİ wall, cut back into steps", hw + PS_WALL_T / 2.0, tS + 0.6)
+    S.call(u"Edge floor: at the water, dry at the average flow", hw + 0.9, fl + PS_CALL_UP)
+    S.call(u"Sitting steps: %d × %d cm seats down to the water" % (n, round(rise * 100)), (hw + u_top) / 2.0,
+           (fl + tS) / 2.0 + PS_CALL_UP)
+    if lands:
+        S.call(u"Landings: a rest between the flights", lands[0][0] + 0.6, lands[0][2] + PS_CALL_UP)
+    ps_arrow(S, [(-6.0, b + 0.5), (-hw + 1.2, tN + 2.4), (bx[1] - 0.8, tN + 1.8)], COL["river_mid"], 0.3,
+             dash=[0.9, 0.6])                                   # over the terrace's rail and heads to the basins
+    S.call(u"Reed basins beyond: stream water cleaned there", sum(bx) / 2.0, tN + 4.0)
+    # planting (G9 groups, p.17 F1): the trees of the SW bank round the path and bike lane (their crowns over both),
+    # an emergent edge in the wet bed at each wall foot
+    ps_group(S, u_top + 0.2, S.u1 - 0.2, lambda u_: tS, 0.50, 0.56, {"plane": 1.0, "ash": 0.6, "chaste": 0.8}, 11,
+             layers=(1, 0), avoid=[pa, bk, (bn - 0.6, bn + 0.2)], why={"shade": u"shade the path and bike lane"})
+    ps_group(S, -hw + 0.2, -hw + 5.0, lambda u_: b, 0.02, 0.05, ["soft_rush", "loosestrife"], 18, density=1.2,
+             why={"cleaning": u"clean the water by the wall"})
+    ps_group(S, hw - 5.0, hw - 0.2, lambda u_: b, 0.05, 0.02, ["soft_rush", "loosestrife"], 22, density=1.2,
+             why={"cleaning": u"clean the water by the steps"})
+    # people as scenes, all looking at the water (focus: the bed's middle): at the floor's railing and sitting on
+    # the steps together, one on each landing's way down, on the view terrace; walking the path and riding the bike
+    # lane; more further along the path and the terrace (layer 1); nobody in the bed's water ("water": counted)
+    ps_zones(S, [("water", -hw, hw, b), ("viewing_terrace", hw + 0.3, hw + PS_W1_FLOOR_W - 0.1, fl)] +
+             [("sun_steps", fa + 0.05, fb - 0.05, gstep) for fa, fb in flights], 15, density=1.5, seat_h=rise)
+    ps_zones(S, [("walkway", ua_ + 0.1, ub_ - PS_W1_POCKET[0] - 0.1, z_) for ua_, ub_, z_ in lands], 16, max_n=1)
+    ps_zones(S, [("viewing_terrace", vt[0] + 0.2, vt[1] - 0.2, tN)], 17, density=1.4, max_n=3)
+    ps_zones(S, [("walkway", pa[0], pa[1], tS), ("bike_lane", bk[0], bk[1], tS)], 18)
+    ps_zones(S, [("viewing_terrace", vt[0] + 0.2, vt[1] - 0.2, tN), ("walkway", pa[0], pa[1], tS)], 19, layer=1,
+             density=0.6, max_n=2)
 
 
 # ---------------------------------------------------------------- W2 K4 walking hub
@@ -502,9 +613,10 @@ def ps_sec_w2(S):
     # sub-hub floor, sitting on the steps, walking and standing together in the square; more behind (layer 1)
     ps_zones(S, [("walkway", -hw - 4.1, -hw - 0.6, tN), ("bike_lane", -hw - 6.5, -hw - 4.5, tN),
                  ("water", -hw, ua, b), ("stepping_stones", ua, ub, ztop), ("water", ub, hw, b),
-                 ("lawn", hw + 0.3, u_st - 0.3, plat),
-                 ("sun_steps", u_st + 0.2, u_sq - 0.2, ps_stair_z(u_st, plat, n, rise, tread, 1)),
                  ("walkway", u_sq + 0.5, S.u1 - 1.0, tS)], 24)
+    ps_zones(S, [("lawn", hw + 0.3, u_st - 0.3, plat)], 26, density=1.4)   # children playing together at the water
+    ps_zones(S, [("sun_steps", u_st + 0.2, u_sq - 0.2, ps_stair_z(u_st, plat, n, rise, tread, 1))], 27, density=1.6,
+             seat_h=rise)                                       # sitting together on the steps, facing the water
     ps_zones(S, [("walkway", S.u0 + 0.5, -hw - 0.6, tN), ("walkway", u_sq + 0.5, S.u1 - 1.0, tS)], 25, layer=1,
              density=0.6)
 
@@ -563,8 +675,8 @@ def ps_sec_w3(S):
     # families on the commons; a gardener at the tomato rows and a café guest (dry garden floor, hand-placed)
     ps_zones(S, [("walkway", crest - 3.6, crest - 0.3, tN),
                  ("sun_steps", crest + 1.6, -hw - 0.4, ps_stair_z(-hw, b, n, rise, tread, -1)),
-                 ("water", -hw, ua, b), ("stepping_stones", ua, ub, ztop), ("water", ub, s0, gy),
-                 ("lawn", s0 + 1.0, s1 - 1.0, shelf)], 35)
+                 ("water", -hw, ua, b), ("stepping_stones", ua, ub, ztop), ("water", ub, s0, gy)], 35, seat_h=rise)
+    ps_zones(S, [("lawn", s0 + 1.0, s1 - 1.0, shelf)], 37, density=1.4)    # families on the commons by the water
     ps_zones(S, [("lawn", s0 + 1.0, s1 - 1.0, shelf)], 36, layer=1, density=0.6)
     ps_fig(S, "stand", s1 + 5.2, gf, facing=-1)                # at the tomato rows
     ps_fig(S, "sit_step", s1 + 13.6, gf, facing=-1)            # café under the plane
@@ -642,8 +754,9 @@ def ps_sec_w4(S):
     # boardwalk, across on the stones; more along the crest behind the cut (layer 1); a farmer in the field
     ps_zones(S, [("walkway", cN - 2.8, cN - 0.3, tN), ("bike_lane", cN - 5.2, cN - 3.2, tN),
                  ("walkway", cN + 1.0, uT - 1.0, lambda u: tN - (u - cN) * PS_RAMP),
-                 ("viewing_terrace", uT + 0.3, uW - 0.3, tT), ("walkway", ub - 0.3, ua + 0.3, dk),
+                 ("walkway", ub - 0.3, ua + 0.3, dk),
                  ("water", -hw, sa, b), ("stepping_stones", sa, sb, ztop), ("water", sb, hw, b)], 45)
+    ps_zones(S, [("viewing_terrace", uT + 0.3, uW - 0.3, tT)], 47, density=1.5)   # together at the view over the water
     ps_zones(S, [("walkway", cN - 2.8, cN - 0.3, tN)], 46, layer=1, density=0.6)
     ps_fig(S, "stand", S.u1 - 1.2, tS, facing=-1)
 
@@ -697,6 +810,8 @@ def ps_finish(S, log, room_w=None):
         log.append(u"G6 CHECK section %s (style %s): %s" % (S.cid, S.style, m_))
     for m_ in S.notes:
         log.append(u"NOTE section %s planting: %s" % (S.cid, m_))
+    for m_ in S.info:
+        log.append(u"section %s: %s" % (S.cid, m_))
     S.co = SfCallouts()
     ps_marks(S)
     # under the drawing: the bed width as a dimension, each bank as the level table has it
