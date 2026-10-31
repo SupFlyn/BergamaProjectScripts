@@ -1,7 +1,11 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v20 (revision 29 Oct, WO-T5-1: D1 no p.22 filter page, D8 three movement pages, D9 p.20 out and
+# ---- BOOKLET PLAN v25 (round 3, session C): p.02 side column without the empty drw_plan01_key stub (site board v58
+# draws the key inside drw_plan01, P02.1); intros name bridges by name (G16: "six bridges", "upstream to downstream",
+# Üç Kemer Köprüsü); p.08 intro per city link v6 (one corridor); p18 + p19 = round 3's 1:1 crops (B4 rows, P18.1),
+# ag1_headline gone; "log" = the tag of an or_pages entry's one-page line in the log.
+# ---- v20 (revision 29 Oct, WO-T5-1: D1 no p.22 filter page, D8 three movement pages, D9 p.20 out and
 # p.17 on two pages, key maps inside their crops (D11), sources page public only (D13, Aras 18:56)); v19 (MIRAQUA 28 Oct, revision_2026-10-28/PLAN.md §3: p.02 side + edge types; p.07 notes beside the
 # maps; p.09 index change; S1 senses sheet after the S4 cut; p.20 key map; D1 MERGE_21_22; no spread; N2/F5 sources);
 # v18 (Aras 27 Oct 17:35, Prompt 8 final check: sheet pages titled as the sheets print them; empty
@@ -60,8 +64,8 @@ PAGES = [
     # old p2 + p4 -> one page (v12: plan 01 with the bank readings and the land-use ring beside it)
     # v19 (P02.2): the two banks straightened (edge types in the bars' colours, no scale) under the site readings
     # v20 (revision 29 Oct, WO-T3a-2): side column top down = plan 01's key (its legend), the edge from above, the readings
-    dict(part="A", stage="an", title=u"What is there, grain of the town", intro=u"The whole survey area *as it is today*: buildings by *urban fabric*, ground and green, the *Selinos stream* with its edges and bridges K1-K6, and the places where *stream and town clash*. The *base* the later plans are read on.",
-         rows=[[SB + "drw_plan01"]], side=[SB + "drw_plan01_key", SB + "drw_edge_types", SB + "drw_site_readings"]),
+    dict(part="A", stage="an", title=u"What is there, grain of the town", intro=u"The whole survey area *as it is today*: buildings by *urban fabric*, ground and green, the *Selinos stream* with its edges and *six bridges*, and the places where *stream and town clash*. The *base* the later plans are read on.",
+         rows=[[SB + "drw_plan01"]], side=[SB + "drw_edge_types", SB + "drw_site_readings"]),
     dict(part="A", stage="an", title=u"Heights and enclosure", intro=u"Plan 01 as a parallel axonometric: *heights* are what the plan cannot show; the *sky view* from the stream bed marks its *most enclosed* stretch.", sheet=SB + "Selinus_01_what_is_there_axonometric.pdf"),   # old p3
     # v20 (WO-T3a-3, D11): each crop holds its own key map (only that page's cuts): no key band
     dict(part="A", stage="an", title=u"Sections across the stream", intro=u"Cuts *across the Selinos stream*, each drawn *as it is*: the ground, the *bed and banks*, the buildings, trees and fields it crosses.", rows=[[SB + "sec_sections_1"]], optional=True),
@@ -81,9 +85,11 @@ PAGES = [
     # page 2 whole); the old "Why shops ..." sheet page and "How people will move" (index chart) are gone
     # v24 (round 2, U24 "bottom section cut in half"): the street sections stay on this page only while it holds
     # every row at >= ONE_PAGE_MIN of its size; else the framework page and the street sections page, each whole
-    dict(part="B", stage="got", title=u"The stream joins the town where the shops already are", intro=u"One *framework*: shops, the *hidden stream*, movement today and *what the project changes*; *who* comes when; the *streets* before and after.",
-         rows=[[CLK + "cl_framework"], [CLK + "cl_who"], [SB + "drw_street_sections"]],
-         or_pages=[dict(part="B", stage="got", title=u"The stream joins the town where the shops already are", intro=u"One *framework*: shops, the *hidden stream*, movement today and *what the project changes*; *who* comes when.",
+    # v25 (round 3, B4 P08.1): city link v6 draws one corridor over the whole study area; B1: the street sections
+    # (site board v58, <= 392 x 220 mm) most likely take their own page
+    dict(part="B", stage="got", title=u"The stream joins the town where the shops already are", intro=u"One *corridor*: the shop streets, the *hidden stream* and the project from end to end; *who* comes when; the *streets* before and after.",
+         rows=[[CLK + "cl_framework"], [CLK + "cl_who"], [SB + "drw_street_sections"]], log=u"p08 street sections",
+         or_pages=[dict(part="B", stage="got", title=u"The stream joins the town where the shops already are", intro=u"One *corridor*: the shop streets, the *hidden stream* and the project from end to end; *who* comes when.",
                         rows=[[CLK + "cl_framework"], [CLK + "cl_who"]]),
                    dict(part="B", stage="got", title=u"The streets, before and after", intro=u"Each *street* cut *whole*: *where* it is, the *ground*, *people* and *planting*, today and with the project.",
                         rows=[[SB + "drw_street_sections"]])]),
@@ -100,7 +106,7 @@ PAGES = [
     dict(part="C", stage="do", title=u"Four seasons on one cut", intro=u"*One cut, one viewpoint, four seasons*: the *water level* decides what the place becomes, which plants are in *leaf or flower*, and which animals are about.", rows=[[WB + "wb_s4_seasons"]]),   # old p20
     dict(part="C", stage="do", title=u"The S4 cut, north-east bank", intro=u"The north-east bank of S4: *seat steps* and a *raised promenade* over Q500 stay; the *planting follows the days under water*, the use follows the months.", rows=[[WB + "wb_s4_ne"]]),   # old p21
     # v19 (MIRAQUA 28 Oct, S1 + N1): the new senses page right after the S4 cut, both about life with the water
-    dict(part="C", stage="do", title=u"The senses and the water", intro=u"The *fade-out zones* and the *senses*, zone by zone from *K1·K2 to K6*.", sheet=MP + "Bergama_senses_A3.pdf"),
+    dict(part="C", stage="do", title=u"The senses and the water", intro=u"The *fade-out zones* and the *senses*, zone by zone, *upstream to downstream*.", sheet=MP + "Bergama_senses_A3.pdf"),
     # v20 (D9 a, WO-T4a-2): planting on two pages (plans + water spaces + catalogue; the F1-F4 sections), the July
     # shade now inside wb_plants; the plant ladder page (agriculture sheet page 3) is gone, folded into these and p.14-15
     dict(part="C", stage="do", title=u"Which plant goes where", intro=u"*Wet to dry, low to high*: rushes and loosestrife *at the water*, willow and tamarisk on the *banks that flood*, shade trees and olives on the *dry tops*; reed and water mint only in *lined basins*.", rows=[[WB + "wb_plants"]]),
@@ -109,17 +115,20 @@ PAGES = [
     # page (the agriculture headline dropped there: the page title says it), the side blocks beside the rows they
     # explain; the two compact pages of 30 Oct (T5) only when one page would print a row under ONE_PAGE_MIN (labels
     # below 6 pt), logged
+    # v25 (round 3, P18.1, D8; B4 spec handover/B4_work/spec_p18_merged.md): every crop drawn at 1:1 for this page
+    # ("bk_w"), rows 392 mm wide: loop + farms | decision + the stream first | bars + why crop choice | reading, history,
+    # crops (about 240 of 243 mm with the intro beside the title); the two pages only if one would overrun (logged)
     dict(part="C", stage="do", title=u"Where the clean water goes, and what it grows",
          intro=u"Clean water to *farmland outside the site*, easing an *overused aquifer*, *never drinking water*; *same storage, different crops*: the *hectares* each crop irrigates.",
-         rows=[[WB + "wb_farms"], [WB + "wb_decision"], [AG + "ag1_stream", AG + "ag1_context"],
-               [AG + "ag1_bars", AG + "ag1_crops"], [AG + "ag1_reading", AG + "ag1_history"]],
+         rows=[[WB + "wb_farms"], [WB + "wb_decision", AG + "ag1_stream"], [AG + "ag1_bars", AG + "ag1_context"],
+               [AG + "ag1_reading", AG + "ag1_history", AG + "ag1_crops"]], log=u"p18-19",
          or_pages=[
             dict(part="C", stage="do", title=u"Where the clean water goes",
                  intro=u"Where the clean water ends up: *farmland outside the site*, easing an *overused aquifer*. *Never drinking water*.",
-                 rows=[[WB + "wb_farms"], [WB + "wb_decision"], [AG + "ag1_headline", AG + "ag1_stream"]]),
+                 rows=[[WB + "wb_farms"], [WB + "wb_decision", AG + "ag1_stream"]]),
             dict(part="C", stage="do", title=u"What each cubic metre grows",
                  intro=u"*Same storage, different crops*: the *hectares* each crop irrigates a season.",
-                 rows=[[AG + "ag1_bars"], [AG + "ag1_reading"]], side=[AG + "ag1_context", AG + "ag1_history", AG + "ag1_crops"]),
+                 rows=[[AG + "ag1_bars", AG + "ag1_context"], [AG + "ag1_reading", AG + "ag1_history", AG + "ag1_crops"]]),
          ]),
     # ---- D HISTORY AND HERITAGE (now spread over old p3, p8, p18, p20: collected here as frames)
     dict(part="D", stage="an+got", title=u"Heritage along the stream",
@@ -133,7 +142,7 @@ PAGES = [
     dict(part="E", stage="do", title=u"Masterplan: an ecological corridor", intro=u"The whole project on one plan: *walking hubs*, *reed basins* and terraces that *hold the rain*, *calmed streets*, along the Selinos as an *ecological corridor*.",
          rows=[[MP + "mp_plan"]]),
     # v20 (WO-T4b-3): each crop = the plan with its section under it (D1 on the W1 line, D2 on the W3 line), 1:1,000
-    dict(part="E", stage="do", title=u"The water edge at 1:1,000", intro=u"Two windows, each *plan with its section*: the *upstream entry* (collect, clean, hold) and the *K5 bridge* with Demeter's Garden.", rows=[[MP + "dt_upstream", MP + "dt_k5"]]),
+    dict(part="E", stage="do", title=u"The water edge at 1:1,000", intro=u"Two windows, each *plan with its section*: the *upstream entry* (collect, clean, hold) and *Üç Kemer Köprüsü* with Demeter's Garden.", rows=[[MP + "dt_upstream", MP + "dt_k5"]]),
 ]
 
 # v11: panels left out without a placeholder when their script did not write them (v17: none since the notes page went)
