@@ -1,9 +1,16 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v57)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v58 (round 3 B1, Aras 31 Oct): real bridge and place names everywhere (common/names.py, no K-codes);
+no leader lines (numbers on the spot + keys in reading order) and a FLAG overlap line per booklet page; p2 key under
+plan 01, side column 6 grid columns, edge-strip buildings merged into non-overlapping blocks; p3 numbers + key on the
+axonometric; p4-5 one tag row + use zones under each cut, sky per cut, soil gradient, people by zone, street elements,
+zoom inset per cut; p6 column beside the map at 1:10,000, sites A-F left to right, no frames; p7 maps at 1:10,000 with
+legend, numbered streets and bars beside each; p8 street sections redrawn (icons over their lane, zones named, lamps,
+bollards, racks); p20 loop on top, the stream walk strip, names.
 NEW IN v57 (round 2 closing, Aras 31 Oct 12:01): p8 street sections draw the survey's houses further down the street
 behind each cut (data heights, on the street level, paler with distance, none above the drawing); people who stay on
 pp.4-5 and p8 look at what they are there for (the stream when it is near, else each other), walkers keep their way.
@@ -40,7 +47,7 @@ NEW IN v51 (2026-10-29, revision round 29 Oct, step T3a; a feature change):
   * p.02: C1-C6 legible discs, no photo points, side column map key -> edge strip -> readings, the edge strip as a
     top-view drawing (walls, slopes, trees, walking people); p.03 axonometric with figures.
   * p.04-05: key maps (topographic, this page's cuts only, view triangles) and sections fill the page; levels from the
-    level table (S4 bed +42.48); banks, planting and farm rows per cut; label strips under their parts.
+    level table (S4 on the survey datum since v58: bed +43.59, round 3 N1 a); banks, planting and farm rows per cut; label strips under their parts.
   * p.06: where we can build recounted on one 2 m raster (no double counts), bare ground and grass lots added, sites
     A-F with their m² and what they open to (p.22 folded in: drw_edge_build_e and drw_filter removed).
   * p.07-09: sharper map titles and gradient streets (p.07); before/after street sections per road type
@@ -406,8 +413,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v57 (2026-10-31)"     # v27: the log's first line and the text under the component
-SHORT_V = "v57"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v58 (2026-10-31)"     # v27: the log's first line and the text under the component
+SHORT_V = "v58"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

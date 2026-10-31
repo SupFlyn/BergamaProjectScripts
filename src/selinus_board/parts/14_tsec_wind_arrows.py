@@ -856,9 +856,11 @@ FABRIC_EDGE = mix(INK, PAPER, 0.25)           # hairline round the light types, 
 LEAF_COL = {0: C("8FA05A"), 1: C("8A9478"), 2: C("445A3C")}             # plant analysis LEAF
 LEAF_NAME = {0: "deciduous", 1: "evergreen broadleaf (mostly olive)", 2: "needle-leaved"}
 # Bridges over the Selinus, survey coordinates: concept record table (CONCEPT_RECORD.md 2.1), as diagrams v1.8
-BRIDGES_K = [("K1", u"side inlet crossing", 29628.35, 32630.87), ("K2", u"small crossing", 29604.93, 32622.02),
-             ("K3", u"Tabakhane Köprüsü", 30037.01, 32121.57), ("K4", u"Tarihi Ulucami Önü Köprüsü", 29846.40, 32277.71),
-             ("K5", u"Üçkemer Köprüsü", 30293.63, 31792.25), ("K6", u"road bridge", 30646.94, 31251.65)]
+# v58 (round 3, G16 / D9): the printed name is the one spelling of common/data/NAMES.py (bridge_name); K-codes stay
+# internal keys only, never a main label
+BRIDGES_K = [(k_, bridge_name(k_), x_, y_) for k_, x_, y_ in (
+    ("K1", 29628.35, 32630.87), ("K2", 29604.93, 32622.02), ("K3", 30037.01, 32121.57), ("K4", 29846.40, 32277.71),
+    ("K5", 30293.63, 31792.25), ("K6", 30646.94, 31251.65))]
 # Conflict markers of pr1_drawings v3.1 (survey coordinates); C5 sits at the centre of the larger K5 working area
 CONFLICTS_C = [("C1", 29941.0, 32200.0, u"walls cut the town off"), ("C2", 30204.0, 31975.0,
                                                                        u"heritage over a hidden stream"),

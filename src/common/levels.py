@@ -131,6 +131,25 @@ def level_avg_flow(cid):
     return level(cid, "avg_flow")
 
 
+def level_month_depth(cid, month):
+    """(round 3, A2, DATA-1) the mean water depth above the bed (m) in month 1-12 at a cut with a depth_month row (S4):
+    the higher of the two gauge routes (Kömürcü, Ilıca), as the water board's DEPTH rule; None without the row"""
+    v = _lv_value(cid, "depth_month")
+    if v is None:
+        return None
+    d = v["value"]
+    m = (int(month) - 1) % 12
+    return max(float(d["komurcu"][m]), float(d["ilica"][m]))
+
+
+def level_season_depth(cid, months):
+    """the mean of level_month_depth over months (1-12, e.g. (12, 1, 2) for winter); None without the row"""
+    ds = [level_month_depth(cid, m) for m in months]
+    if not ds or any(d is None for d in ds):
+        return None
+    return sum(ds) / float(len(ds))
+
+
 def level_registry(cid):
     """the registry entry of a cut: dict(id, name, location, chainage_m, walled, bed, avg_flow, avg_flow_depth, q100,
     q500, walls={NE: (type, top), SW: (type, top)}, bed_width_cm, pages (booklet), aliases); levels m a.s.l."""

@@ -1,4 +1,6 @@
 #@include parts/01__gh_inputs.py
+#@include ../common/data/NAMES.py
+#@include ../common/names.py
 #@include parts/02_region_contains.py
 #@include parts/03_street_w.py
 #@include parts/04_river_faces.py

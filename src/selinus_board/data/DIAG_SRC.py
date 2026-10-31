@@ -25,14 +25,10 @@ SCRIPT = "selinus_board_v40.py (axonometric engine from bergama_diagrams v1.8)"
 VERSION = "v1.8 in board v33"
 
 # Bridges over the Selinus, survey coordinates, from the concept record's table (CONCEPT_RECORD.md section 2.1)
-BRIDGES_K = [
-    ("K1", u"Side inlet crossing", 29628.35, 32630.87),
-    ("K2", u"Small crossing", 29604.93, 32622.02),
-    ("K3", u"Tabakhane Köprüsü", 30037.01, 32121.57),
-    ("K4", u"Tarihi Ulucami Önü Köprüsü", 29846.40, 32277.71),
-    ("K5", u"Üçkemer Köprüsü", 30293.63, 31792.25),
-    ("K6", u"Road bridge", 30646.94, 31251.65),
-]
+# v58 (round 3, G16 / D9): names from common/data/NAMES.py (bridge_name, included first in code.py)
+BRIDGES_K = [(k_, bridge_name(k_), x_, y_) for k_, x_, y_ in (
+    ("K1", 29628.35, 32630.87), ("K2", 29604.93, 32622.02), ("K3", 30037.01, 32121.57),
+    ("K4", 29846.40, 32277.71), ("K5", 30293.63, 31792.25), ("K6", 30646.94, 31251.65))]
 # Bergama, for true north (bergama_environment.json "location")
 SITE_LON, SITE_LAT = 27.18381, 39.11952
 

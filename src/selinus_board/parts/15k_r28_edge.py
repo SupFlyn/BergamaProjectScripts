@@ -20,6 +20,8 @@
 #     -> open ground (the masterplan's r28_open_ground.json) -> of which open to change, and why.
 #   * p.16 drw_shade_strip (draw_shade_strip): its rows laid along the frame's axis at 1:10,000, the study area marked.
 # Labels and notes are measured with r28mv_tw and set with r28mv_lines / r28mv_para (parts/15i_r28_movement.py).
+# v58 (round 3, G8): r28e_base (p.06's fallback base) draws the stream by common/water.py water_plan (r28e_water):
+# no squiggle, centre or low-flow line; the plain fill only if water_plan is missing or fails.
 R28E_DEN = B_DEN                 # 1:10,000 on the booklet page (the theme-B maps' scale)
 R28E_SB_M = B_SB_M               # m: the scale bar under each strip, four parts of 100 m
 R28E_GAP = BK_GAP_MM             # mm between a strip and the column beside it
@@ -299,10 +301,11 @@ def r28e_base(S, CB, V, k, L):
         CB.line(V.P(P), R28E_CONTOUR, L, 8, bk_lw(R28E_CONTOUR_W[1 if major else 0], k))
     for rg_ in getattr(S, "road_net", None) or []:
         CB.fill(V.Ps([rg_["P"]] + rg_["H"]), MPL["road"], L, 10)
-    for wt in S.water:
-        CB.fill(V.Ps([wt["P"]] + wt.get("H", [])), MPL["water"], L, 15)
-    for P in getattr(S, "water_outline", []) or []:
-        CB.line(V.P(P), MPL["water_edge"], L, 16, bk_lw(0.18, k))
+    if not r28e_water(S, CB, V, k, L):                   # v58 (round 3, G8): plan water by common/water.py
+        for wt in S.water:
+            CB.fill(V.Ps([wt["P"]] + wt.get("H", [])), MPL["water"], L, 15)
+        for P in getattr(S, "water_outline", []) or []:
+            CB.line(V.P(P), MPL["water_edge"], L, 16, bk_lw(0.18, k))
     for q in getattr(S, "decks", []) or []:               # streets on decks over the water stay above it
         CB.fill([V.P(q)], MPL["road"], L, 17)
     for P in getattr(S, "covered", []) or []:             # the covered course under streets and roofs
@@ -327,3 +330,42 @@ def r28e_base(S, CB, V, k, L):
     draw_r28_study(S, CB, V, k, L)
 
 
+def _r28e_wcol(c):
+    """v58 (round 3, G8): a water.py colour (hex string or RGB) as the board's RGB tuple"""
+    return C(c) if isinstance(c, str) else tuple(int(v) for v in c[:3])
+
+
+def r28e_water(S, CB, V, k, L):
+    """v58 (round 3, G8): the stream in plan as common/water.py draws it (water_plan: calm surface, firm bank line,
+    capped flow streaks; no centre, squiggle or low-flow line), each water polygon with its islands (holes) in booklet
+    mm, scaled back to the board: fills at order 15, bank and streaks at 16 (terrain, bed, water, then structures).
+    Returns False without water_plan or on an error (the caller then draws the plain fill), else True."""
+    wp = globals().get("water_plan")
+    if not callable(wp):
+        return False
+    km = V.s / k                                          # booklet mm per survey m
+
+    def mm(P):
+        return [(p[0] / k, p[1] / k) for p in V.P(P)]
+
+    def up(P):
+        return [(p[0] * k, p[1] * k) for p in P]
+    try:
+        for wt in S.water:
+            if len(wt["P"]) < 3:
+                continue
+            wl = wp(mm(wt["P"]), km, holes=[mm(H) for H in wt.get("H", []) or [] if len(H) >= 3])
+            for s_ in wl.shapes():
+                if s_[0] == "poly" and len(s_[1]) >= 3:
+                    rings = [up(s_[1])] + [up(H) for H in (s_[6] if len(s_) > 6 and s_[6] else ()) if len(H) >= 3]
+                    if s_[2]:
+                        CB.fill(rings, _r28e_wcol(s_[2]), L, 15)      # even-odd: islands stay open
+                    if s_[3]:
+                        CB.line(rings[0] + [rings[0][0]], _r28e_wcol(s_[3]), L, 16, bk_lw(s_[4] or 0.1, k))
+                elif s_[0] == "line" and len(s_[1]) >= 2:
+                    CB.line(up(s_[1]), _r28e_wcol(s_[2]), L, 16, bk_lw(s_[3] or 0.1, k))
+    except Exception:
+        LOG.append(u"WARNING: p.06 fallback base: water_plan failed, the stream drawn as a plain fill:\n" +
+                   traceback.format_exc())
+        return False
+    return True
