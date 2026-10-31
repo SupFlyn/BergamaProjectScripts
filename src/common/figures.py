@@ -596,7 +596,8 @@ def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_mi
         if pose == "wade":                             # the cutout is cut at the water line: it stands on the water
             dep = p.get("depth_m", FIG_DC["knee"] * FIG_A1_H)
             y_im, h_true = y + dep * k * sc, FIG_ADULT_H - dep
-        im = cut_image("person_" + pose, x, y_im, k, h_m=h_true, layer=layer, facing=facing)
+        pk = pick if pick is not None else int(abs(x * 7.31 + y * 3.17) * 10.0) % 997   # 31 Oct: variety (was
+        im = cut_image("person_" + pose, x, y_im, k, h_m=h_true, layer=layer, facing=facing, pick=pk)   # always no. 1)
         if im:
             return im
     k = k * sc
