@@ -491,6 +491,75 @@ def _fa_side(pose, seed=0, **p):
                       w=FIG_A1_PEN * 0.85, hatch=False, coat=0.03)
         an.update(hand=hand, child_h=ch)
         return R, an
+    if pose == "running":                           # round 3 G15: a runner, forward lean, long stride, arms bent
+        A = D["ankle"] * H
+        B = _FaBody(H, lean=0.20)
+        legs = [B.leg((0.30 * H * 0.62, A + 0.02), bend=1), B.leg((-0.34 * H * 0.62, A + 0.16 * H * 0.62), bend=1)]
+        s = B.sho
+        arms = [B.arm((s[0] + 0.20, s[1] - 0.22), bend=-1), B.arm((s[0] - 0.22, s[1] - 0.30), bend=1)]
+        return _fa_draw(B, legs, arms, rnd, coat=0.0, hem=B.hip[1] - 0.04), an
+    if pose == "lying":                             # round 3 G15: lying on the lawn on the back, one knee up, a hand
+        A = D["ankle"] * H                          # under the head; drawn upright, then laid down (head toward +x)
+        B = _FaBody(H)
+        legs = [B.leg((0.06, 0.26 * H), bend=1), B.leg((0.0, A))]
+        arms = [B.arm((B.head[0] - 0.08, B.head[1] + 0.02), bend=-1), B.arm((0.04, D["wrist"] * H))]
+        R = _fa_draw(B, legs, arms, rnd, hatch=False, coat=0.0)
+
+        def lay(r):                                 # (x, y) upright -> (y, x): head to +x, front (x > 0) up
+            q = [(py, px) for px, py in r]
+            return _FaFill(q) if isinstance(r, _FaFill) else q
+        R = [lay(r) for r in R if r]
+        y0 = min(py for r in R for _px, py in r)
+        R = [(_FaFill([(px, py - y0) for px, py in r]) if isinstance(r, _FaFill) else [(px, py - y0) for px, py in r])
+             for r in R]
+        L = max(px for r in R for px, _py in r)
+        R = [(_FaFill([(px - 0.5 * L, py) for px, py in r]) if isinstance(r, _FaFill) else
+              [(px - 0.5 * L, py) for px, py in r]) for r in R]      # centred on x: lies inside its footprint
+        an.update(length=L)
+        return R, an
+    if pose == "fishing":                           # round 3 G15: standing at the edge, rod out over the water, the
+        A = D["ankle"] * H                          # line down to it. water_dy = the water level in m relative to
+        B = _FaBody(H, lean=0.04)                   # the feet (negative = below); rod 3.0 m at 35 deg: drawing rule
+        legs = [B.leg((0.06, A)), B.leg((-0.14, A))]
+        grip = (B.sho[0] + 0.30, D["wrist"] * H + 0.18)
+        arms = [B.arm(grip, bend=-1), B.arm((grip[0] - 0.12, grip[1] - 0.08), bend=-1)]
+        R = _fa_draw(B, legs, arms, rnd, coat=0.05)
+        rod_l, ang = p.get("rod_m", 3.0), _m.radians(p.get("rod_deg", 35.0))
+        butt = (grip[0] - 0.25 * _m.cos(ang), grip[1] - 0.25 * _m.sin(ang))
+        tip = (grip[0] + (rod_l - 0.25) * _m.cos(ang), grip[1] + (rod_l - 0.25) * _m.sin(ang))
+        R.append(_fa_stroke([butt, tip], rnd, FIG_A1_PEN * 0.6, over=0.0, wob=0.002, smooth=False))
+        wy = p.get("water_dy", -0.5)
+        if wy < tip[1]:
+            R.append(_fa_stroke([tip, (tip[0] + 0.05, wy)], rnd, FIG_A1_PEN * 0.3, over=0.0, wob=0.0, smooth=False))
+        an.update(rod_tip=tip, line_end=(tip[0] + 0.05, wy), reach_x=tip[0])
+        return [r for r in R if r], an
+    if pose == "dog_walk":                          # round 3 G15: walking with a dog on a leash ahead of the walker;
+        A = D["ankle"] * H                          # dog 0.55 m at the shoulder, 0.80 m long: drawing rule (a
+        B = _FaBody(H, lean=0.03)                   # medium-sized dog), not data
+        st = 0.30 * H
+        legs = [B.leg((0.5 * st, A)), B.leg((-0.5 * st, A))]
+        hand = (0.30, D["wrist"] * H + 0.08)
+        arms = [B.arm(hand, bend=-1), B.arm((-0.16, D["wrist"] * H))]
+        R = _fa_draw(B, legs, arms, rnd, coat=0.05)
+        dh, dl = p.get("dog_h", 0.55), p.get("dog_l", 0.80)
+        x0 = p.get("dog_ahead", 1.10)               # the dog's hind end, m ahead of the walker's feet
+        back = dh * 0.92
+        body = [(x0, back - 0.02), (x0 + 0.10, back + 0.02), (x0 + 0.62 * dl, back + 0.03), (x0 + 0.80 * dl, back),
+                (x0 + 0.80 * dl, back - 0.20), (x0 + 0.62 * dl, back - 0.26), (x0 + 0.10, back - 0.24), (x0, back - 0.16)]
+        head = [(x0 + 0.78 * dl, back - 0.04), (x0 + 0.86 * dl, dh + 0.12), (x0 + 0.98 * dl, dh + 0.14),
+                (x0 + 1.12 * dl, dh + 0.04), (x0 + 1.10 * dl, dh - 0.02), (x0 + 0.92 * dl, dh - 0.05), (x0 + 0.84 * dl, back - 0.16)]
+        R += [_FaFill(body), _FaFill(head)]
+        R.append(_fa_stroke(body + [body[0]], rnd, FIG_A1_PEN * 0.8, over=0.0, wob=0.003, smooth=False))
+        R.append(_fa_stroke(head, rnd, FIG_A1_PEN * 0.8, over=0.0, wob=0.003, smooth=False))
+        for lx_, sw in ((0.06, -0.06), (0.18, 0.06), (0.66 * dl, 0.06), (0.74 * dl, -0.05)):   # four legs, mid-trot
+            R.append(_fa_stroke([(x0 + lx_, back - 0.20), (x0 + lx_ + 0.5 * sw, 0.25), (x0 + lx_ + sw, 0.02)], rnd,
+                                FIG_A1_PEN * 0.9, over=0.02))
+        R.append(_fa_stroke([(x0 + 0.01, back - 0.03), (x0 - 0.12, back + 0.12)], rnd, FIG_A1_PEN * 0.7, over=0.0))   # tail
+        collar = (x0 + 0.86 * dl, back - 0.02)
+        R.append(_fa_stroke([arms[0][1], ((hand[0] + collar[0]) / 2.0, min(hand[1], collar[1]) - 0.12), collar], rnd,
+                            FIG_A1_PEN * 0.4, over=0.0, wob=0.002))
+        an.update(length=x0 + 1.12 * dl + 0.2, dog_x=x0, dog_h=dh)
+        return [r for r in R if r], an
     return None, an
 
 
@@ -524,8 +593,17 @@ def _fa_top(pose, seed=0, **p):
                                             _fa_stroke([(L - 0.12, -0.24), (L - 0.12, 0.24)], rnd, FIG_A1_PEN * 0.8)]
     elif pose == "child_play":
         R = one(0.0, 0.0, s=p.get("child_h", FIG_CHILD_H) / H, hatch=False)
-    elif pose == "vendor":
+    elif pose in ("vendor", "fishing"):
         R = one(0.0, 0.0)
+        if pose == "fishing":
+            R.append(_fa_stroke([(0.15, 0.05), (2.6, 0.10)], rnd, FIG_A1_PEN * 0.6, over=0.0, smooth=False))
+    elif pose == "running":
+        R = one(0.0, 0.0) + [_fa_stroke([(0.25, 0.08), (0.45, 0.10)], rnd), _fa_stroke([(-0.40, -0.08), (-0.22, -0.08)], rnd)]
+    elif pose == "lying":
+        R = [_fa_oval(0.0, 0.0, 0.85, 0.22, rnd, gap=0.5, a0=2.4), _fa_oval(0.72, 0.0, 0.08, 0.075, rnd, gap=1.0, a0=0.5)]
+    elif pose == "dog_walk":
+        R = one(0.0, 0.0) + [_fa_oval(1.45, 0.0, 0.40, 0.12, rnd, gap=0.6, a0=2.4),
+                             _fa_stroke([(0.10, 0.10), (1.80, 0.02)], rnd, FIG_A1_PEN * 0.4, over=0.0)]
     elif pose == "adult_child":
         ch = p.get("child_h", FIG_CHILD_H) / H
         R = one(0.0, 0.20) + one(0.0, -0.22, s=ch, hatch=False) + [_fa_stroke([(0.02, 0.0), (0.04, -0.06)], rnd, FIG_A1_PEN * 0.8)]
@@ -535,13 +613,16 @@ def _fa_top(pose, seed=0, **p):
 
 
 FIG_DRAWN_SIDE = ("stand", "walk", "watch", "wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child",
-                  "child_play", "vendor")
-FIG_DRAWN_TOP = ("stand", "watch", "walk", "sit", "sit_step", "sit_chair", "bike", "adult_child", "child_play", "vendor")
+                  "child_play", "vendor", "running", "lying", "fishing", "dog_walk")
+FIG_DRAWN_TOP = ("stand", "watch", "walk", "sit", "sit_step", "sit_chair", "bike", "adult_child", "child_play", "vendor",
+                 "running", "lying", "fishing", "dog_walk")
 FIG_POSE_ALIAS = {"sit": "sit_step", "cycle": "bike", "trade": "stall", "buy": "stall", "children": "child_play",
-                  "play": "child_play", "sell": "vendor"}
+                  "play": "child_play", "sell": "vendor", "run": "running", "jog": "running", "lie": "lying",
+                  "fish": "fishing", "dog": "dog_walk"}
 FIG_CUT_ALIAS = dict(watch="stand", lean="stand", railing="stand", touch="stand", olive="stand")   # style a
 FIG_BODY_FILL = "FFFFFF"     # the drawn figures' body, opaque like the cutouts' white interiors
-FIG_DRAWN_ONLY = ("wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child", "child_play", "vendor")
+FIG_DRAWN_ONLY = ("wade", "sit_step", "touch", "stall", "railing", "olive", "bike", "adult_child", "child_play", "vendor",
+                  "running", "lying", "fishing", "dog_walk")   # round 3: style a uses a "person_<pose>" cutout if one exists
 
 
 def _fig_rider_h(top, lean):
@@ -860,21 +941,26 @@ def fig_group(x, gy, k, n=3, seed=0, layer=0, ink=None, style="b"):
 # fig_group. Only poses that fit the zone (G10); "bed" is for the wet bed only (pass water=), never a dry bed (p12).
 FIG_ACTIVITY = {
     "bike_lane": [("bike", 1.0, 1.9)],
-    "walkway": [("walk", 3.0, 0.8), ("adult_child", 1.5, 1.0), ("group", 1.0, 1.7), ("watch", 0.6, 0.6)],
+    "walkway": [("walk", 3.0, 0.8), ("adult_child", 1.5, 1.0), ("group", 1.0, 1.7), ("watch", 0.6, 0.6),
+                ("running", 1.0, 1.2), ("dog_walk", 1.0, 2.4)],                    # round 3 G15: runners, dogs
     "viewing_terrace": [("watch", 2.0, 0.7), ("railing", 2.0, 0.8), ("sit_step", 1.0, 0.8), ("group", 1.0, 1.7)],
     "wading_strip": [("wade", 3.0, 0.8), ("touch_water", 1.5, 0.9), ("child_play", 1.5, 0.8)],   # R2-C: water actions
     "market_ground": [("market", 3.0, 3.2), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0), ("group", 1.0, 1.7)],
     "sun_steps": [("sit_step", 4.0, 0.8), ("watch", 0.5, 0.7), ("touch", 0.5, 0.9)],
-    "bridge_crossing": [("walk", 3.0, 0.8), ("railing", 1.5, 0.8), ("bike", 0.7, 1.9), ("watch", 1.0, 0.7)],
+    "bridge_crossing": [("walk", 3.0, 0.8), ("railing", 1.5, 0.8), ("bike", 0.7, 1.9), ("watch", 1.0, 0.7),
+                        ("dog_walk", 0.6, 2.4), ("running", 0.5, 1.2)],
     "bed": [("wade", 2.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.0, 0.8)],
     "stepping_stones": [("walk", 2.0, 0.8), ("adult_child", 1.5, 1.0), ("stand", 0.6, 0.6)],   # R2-A: on the stones
-    "lawn": [("child_play", 1.5, 0.8), ("group", 1.0, 1.7), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0)],
+    "lawn": [("child_play", 1.5, 0.8), ("group", 1.0, 1.7), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0),
+             ("lying", 1.2, 2.0), ("dog_walk", 0.8, 2.4)],                         # round 3 G15: sunbathing, dogs
+    "water_edge": [("fishing", 2.0, 1.0), ("watch", 1.0, 0.7), ("touch", 0.6, 0.9)],   # round 3: the dry bank edge
 }
-FIG_FOCUS_POSES = ("watch", "railing", "sit_step", "touch", "touch_water", "stand", "adult_child")   # R2-C scenes
+FIG_FOCUS_POSES = ("watch", "railing", "sit_step", "touch", "touch_water", "stand", "adult_child", "fishing")   # R2-C scenes
 FIG_PAIR_POSES = ("wade", "child_play")        # R2-C scenes: playing together in the water or on the lawn
 FIG_ZONE_ALIAS = {"bike": "bike_lane", "walk": "walkway", "terrace": "viewing_terrace", "wading": "wading_strip",
                   "market": "market_ground", "steps": "sun_steps", "bridge": "bridge_crossing",
-                  "stream_bed": "bed", "stones": "stepping_stones", "open_ground": "lawn"}
+                  "stream_bed": "bed", "stones": "stepping_stones", "open_ground": "lawn", "edge": "water_edge",
+                  "fishing": "water_edge", "bank_edge": "water_edge"}
 
 
 def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, style="b", water=None, max_n=None,
@@ -932,6 +1018,9 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
                 wl = water(cx) if callable(water) else water
                 q["depth_m"] = max(0.05, min(globals().get("FIG_WADE_MAX_M", FIG_DC["knee"] * FIG_A1_H * 1.4),
                                              (wl - g) / K))
+            if pose == "fishing" and water is not None:     # the line drops to the water below the bank
+                wl = water(cx) if callable(water) else water
+                q["water_dy"] = (wl - g) / K
             sh += fig_side(pose, cx, g, k, facing=fac, ink=ink, layer=layer, style=style, pick=seed + len(placed), **q)
         placed.append((pose, cx))
         last = pose
@@ -945,7 +1034,7 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
 # People stand only where a zone is walkable; in the water only on a wading strip or stepping stones (U26: nobody in
 # the stream for no reason); bikes only on bike lanes; every figure on the lowest ground under its feet (G14).
 FIG_WALKABLE = ("walkway", "bike_lane", "viewing_terrace", "sun_steps", "market_ground", "bridge_crossing",
-                "wading_strip", "stepping_stones", "lawn")
+                "wading_strip", "stepping_stones", "lawn", "water_edge")
 FIG_FOOT_HALF_M = 0.30       # m, half the ground a standing figure covers (drawing rule for G14 seating)
 _FIG_NPICK = [0]
 FIG_WADE_MAX_M = FIG_DC["knee"] * FIG_ADULT_H   # m: water at most knee deep where people wade (Aras 31 Oct: a
@@ -975,7 +1064,8 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
     """G10 people in a section, zone by zone: zones = [(kind, x0, x1)] or [(kind, x0, x1, ground)] left to right
     (page mm; ground = that zone's own walking surface: stone tops, a terrace deck, a bridge deck; else gy). kind =
     a FIG_ACTIVITY zone (walkway, bike_lane, viewing_terrace, sun_steps, market_ground, bridge_crossing,
-    wading_strip, stepping_stones, lawn, or an alias); any other kind (water, bed, planting, slope, wall ...) gets
+    wading_strip, stepping_stones, lawn, water_edge (round 3: fishing at a dry bank edge; pass water), or an alias);
+    any other kind (water, bed, planting, slope, wall ...) gets
     nobody and is counted in the G14 log line. Groups, adult with child, sitting, walking, trading, children
     playing by the zone's set; bikes only on bike lanes; wading figures take their depth from water (page y or
     function of x) on a wading strip only; cutout variants vary across the whole run (a running pick); every figure
@@ -1012,11 +1102,27 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
             _FIG_NPICK[0] += 1
             s_, p_ = fig_activity(kz, ra, rb, gs, k, layer=layer, seed=seed * 101 + i * 17 + _FIG_NPICK[0] * 7,
                                   density=density, ink=ink, style=style,
-                                  water=water if kz == "wading_strip" else None, max_n=max_per_zone, acts=acts,
+                                  water=water if kz in ("wading_strip", "water_edge") else None, max_n=max_per_zone,
+                                  acts=acts,
                                   focus=fz, **p)
             sh += s_
             placed += [(kind, pose, x) for pose, x in p_]
     return sh, placed
+
+
+# ---- fauna (round 3 G15): only species sourced in research/fauna.md, drawn small where their habitat is. The file
+# does not exist yet (31 Oct 2026): FIG_FAUNA stays empty, birds are generic silhouettes (section_frame.py sf_birds)
+# and every page that draws them logs the FLAG below. Fill FIG_FAUNA {key: (habitat, source)} from the file later.
+FIG_FAUNA = {}
+FIG_FAUNA_DRAWN = [0]        # generic birds / animals drawn this run (sf_birds counts them)
+
+
+def fig_flag_lines():
+    """the figures' FLAG lines for a page log: ["FLAG fauna pending research"] while FIG_FAUNA is empty and any bird
+    or animal was drawn"""
+    if FIG_FAUNA_DRAWN[0] and not FIG_FAUNA:
+        return [u"FLAG fauna pending research (%d generic birds drawn; research/fauna.md missing)" % FIG_FAUNA_DRAWN[0]]
+    return []
 
 
 # ---- speech bubbles (D4 a: p8 street sections, marked "illustrative scenario") -------------------------------------

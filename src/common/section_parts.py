@@ -206,8 +206,10 @@ def _sct_clip(ring, p, q):
     return out
 
 
-def sct_hatch_fill(ring, material, k, outline=None, lw=0.25):
-    """A cut ring (page mm) in its material's fill and standard hatch: stone, concrete, earth, gravel or water."""
+def sct_hatch_fill(ring, material, k, outline=None, lw=0.25, fill=True, hatch_lw=None):
+    """A cut ring (page mm) in its material's fill and standard hatch: stone, concrete, earth, gravel or water.
+    fill=False: the hatch only (sct_ground lays the soil gradient under it); hatch_lw: the earth hatch's line width
+    (page mm; default 0.07)."""
     import math as _m
     if material == "water":
         return sec_water(ring)
@@ -216,7 +218,7 @@ def sct_hatch_fill(ring, material, k, outline=None, lw=0.25):
     g = max(0.7, min(1.4, k / 5.0))           # patterns are page-mm conventions (1:200 size), eased with k; no real sizes
     ln = SCT["line"]
     xs, ys = [p[0] for p in ring], [p[1] for p in ring]
-    sh = [("poly", ring, SCT[material], None, 0.1)]
+    sh = [("poly", ring, SCT[material], None, 0.1)] if fill else []
     if material == "stone":                   # coursed masonry: bed joints and staggered head joints
         c = 1.4 * g
         for p, q in sec_hatch(ring, c, 0.0):
@@ -253,7 +255,8 @@ def sct_hatch_fill(ring, material, k, outline=None, lw=0.25):
             s = 0.0
             while s < L:
                 e = min(L, s + dash)
-                sh.append(("line", [(p[0] + ux * s, p[1] + uy * s), (p[0] + ux * e, p[1] + uy * e)], ln, 0.07))
+                sh.append(("line", [(p[0] + ux * s, p[1] + uy * s), (p[0] + ux * e, p[1] + uy * e)], ln,
+                           hatch_lw or 0.07))
                 s = e + gap
     else:                                     # gravel: small rounded stones, open
         d = 0.9 * g
@@ -268,9 +271,46 @@ def sct_hatch_fill(ring, material, k, outline=None, lw=0.25):
     return sh
 
 
+# G15 soil (round 3, PLAN.md §2 "Soil"): drawing rules, not measured soil data. A topsoil band SCT_SOIL["top_m"]
+# thick (drawn at the section's scale) in the dark brown at the surface, then SCT_SOIL["steps"] bands following the
+# surface down to the cut bottom, lightening step by step to the pale subsoil; the broken earth hatch on top at
+# 0.15 pt (0.053 mm).
+SCT_SOIL = dict(top="5A4632", bottom="C9BBA2", top_m=0.30, steps=5, hatch_lw=0.053)
+
+
+def sct_soil_gradient(surface, bottom_y, k):
+    """G15 soil under a surface polyline (page mm, left to right) down to bottom_y: the topsoil band (SCT_SOIL top_m
+    x k deep under every point of the surface) then SCT_SOIL steps bands, each parallel to the surface, from the
+    topsoil colour to the subsoil colour at bottom_y. Opaque fills only, no strokes. Returns shapes."""
+    S = [(float(x), float(y)) for x, y in surface]
+    if len(S) < 2:
+        return []
+    t = SCT_SOIL["top_m"] * k
+    n = int(SCT_SOIL["steps"])
+    b = float(bottom_y)
+
+    def depth_at(y, f):                       # f = 0 at the topsoil's underside .. 1 at the cut bottom
+        top = max(b, y - t)
+        return top - (top - b) * f
+
+    sh = [("poly", [(x, y) for x, y in S] + [(x, max(b, y - t)) for x, y in reversed(S)], SCT_SOIL["top"], None,
+           0.0)]
+    for i in range(n):
+        fa, fb = i / float(n), (i + 1) / float(n)
+        col = _sec_mix(SCT_SOIL["top"], SCT_SOIL["bottom"], (i + 1) / float(n))
+        ring = [(x, depth_at(y, fa)) for x, y in S] + [(x, depth_at(y, fb)) for x, y in reversed(S)]
+        sh.append(("poly", ring, col, None, 0.0))
+    return sh
+
+
 def sct_ground(surface, bottom_y, k, material="earth", lw=0.35):
-    """Cut ground under a surface polyline (page mm, left to right) down to bottom_y: hatch and the cut line."""
+    """Cut ground under a surface polyline (page mm, left to right) down to bottom_y: hatch and the cut line.
+    material "earth": the G15 soil gradient (sct_soil_gradient) under the broken hatch (round 3, every section)."""
     ring = list(surface) + [(surface[-1][0], bottom_y), (surface[0][0], bottom_y)]
+    if material == "earth":
+        return (sct_soil_gradient(surface, bottom_y, k) +
+                sct_hatch_fill(ring, material, k, fill=False, hatch_lw=SCT_SOIL["hatch_lw"]) +
+                [("line", list(surface), SCT["cut"], lw)])
     return sct_hatch_fill(ring, material, k) + [("line", list(surface), SCT["cut"], lw)]
 
 
