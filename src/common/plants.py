@@ -777,6 +777,130 @@ def pla_scatter_section(x0, x1, gy, k, t0=0.0, t1=1.0, mix=None, seed=0, layer=0
     return sh, placed
 
 
+# ---- G9 mixed groups in section (R2-A 31 Oct 2026) -------------------------------------------------------------------
+# Drawing rules (not data): a group is 5-16 m wide with 2-12 m open gaps between groups (both / density), canopy
+# trees step 35-75 % of a crown apart (crowns overlap), each plant's height = its drawing size x 0.70-1.10 kept
+# inside the sourced range (pla_height_ok); the low layer stands under and around the tree edges.
+PLA_GROUP = dict(group_m=(5.0, 16.0), gap_m=(2.0, 12.0), step=(0.35, 0.75), size=(0.70, 1.10))
+
+
+def _pla_group_size(key, rnd):
+    sp = PLA_SPECIES[key]
+    lo, hi = PLA_GROUP["size"]
+    f = lo + (hi - lo) * rnd()
+    return pla_height_ok(key, sp["h_m"] * f), sp["crown_m"] * f
+
+
+def _pla_other(t, rnd, keys, mix, canopy, not_key):
+    """a species other than not_key for band position t (None if nothing else grows here)"""
+    for _i in range(8):
+        k_ = _pla_pick(t, rnd, keys, mix, canopy)
+        if k_ is not None and k_ != not_key:
+            return k_
+    return None
+
+
+def pla_group_section(x0, x1, gy, k, t0=0.0, t1=1.0, mix=None, seed=0, layers=(2, 1, 0), style="a", density=1.0,
+                      avoid=None, hires=True, detail=True, ground=None, water=None):
+    """G9 planting in section: mixed groups, never rows. Along x0..x1 (page mm), band t0 -> t1 (0 = water's edge,
+    1 = dry upper ground; or t0 = a function of x), each depth layer of `layers` (D9, back first: 2, 1, 0) gets
+    groups at irregular places; in a group the canopy trees overlap their crowns and the low layer (shrubs,
+    emergent, ground) stands under and around them; species interpenetrate by band (wet to dry, low to high: the
+    niche weights of PLA_NICHE) and a group always holds two or more species and three or more plants (never one
+    species standing alone, never an identical cluster: sizes and gaps vary). Each plant: a varied height inside its
+    sourced range, a cutout variant picked by its seed (style a), mirrored on odd seeds, seated on the lowest ground
+    under its base (G14 sf_seat_x). ground = {layer: gy} gives a depth layer its own ground (else gy); water = page
+    y or function of x: where the ground lies under the water only emergent species grow; avoid = [(xa, xb)] page
+    mm kept free (paths, steps, lanes). Returns (shapes back to front, placed [(key, x, h_m, crown_m, layer)],
+    groups [(layer, xa, xb, [keys], purpose tags)]): use groups to say what each group does (G9) and placed for
+    sf_assert_g6."""
+    keys = _pla_keys(mix)
+    rnd = _pla_rng(seed * 11 + 5)
+    seat = globals().get("sf_seat_x")
+    gfn = globals().get("_sf_fn")
+
+    def tt(x):
+        if callable(t0):
+            return t0(x)
+        return t0 + (t1 - t0) * (x - x0) / float(max(1e-9, x1 - x0))
+
+    def blocked(x):
+        return any(a <= x <= b for a, b in (avoid or ()))
+    sh, placed, groups, n = [], [], [], 0
+    for layer in layers:
+        g_ = (ground or {}).get(layer, gy)
+        g_ = gfn(g_) if gfn else g_
+        sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
+        K = k * sc
+
+        def wet(x):
+            if water is None:
+                return False
+            w_ = water(x) if callable(water) else water
+            return (g_(x) if callable(g_) else g_) < w_
+
+        def ok(key, x):
+            return not blocked(x) and (not wet(x) or PLA_SPECIES[key]["layer"] == "emergent")
+        x = x0 + rnd() * PLA_GROUP["gap_m"][1] * 0.5 * K
+        while x < x1:
+            gw = (PLA_GROUP["group_m"][0] + (PLA_GROUP["group_m"][1] - PLA_GROUP["group_m"][0]) * rnd()) * K
+            xa, xb = x, min(x1, x + gw)
+            mem = []
+            xx = xa + 0.1 * rnd() * gw                     # canopy: overlapping crowns
+            while xx < xb:
+                key = _pla_pick(tt(xx), rnd, keys, mix, True)
+                if key is not None and mem and all(m[0] == key for m in mem) and rnd() < 0.6:
+                    key = _pla_other(tt(xx), rnd, keys, mix, True, key) or key
+                if key is None or not ok(key, xx):
+                    xx += (0.6 + rnd()) * K
+                    continue
+                h, w = _pla_group_size(key, rnd)
+                mem.append((key, xx, h, w, True))
+                xx += (PLA_GROUP["step"][0] + (PLA_GROUP["step"][1] - PLA_GROUP["step"][0]) * rnd()) * w * K
+            nl = 2 + int(rnd() * 4.999)                     # low layer: 2-6, under and around the crowns
+            for _i in range(nl):
+                xl = xa - 0.1 * gw + 1.2 * gw * rnd()
+                if xl < x0 or xl > x1:
+                    continue
+                key = _pla_pick(tt(xl), rnd, keys, mix, False)
+                if key is None or not ok(key, xl):
+                    continue
+                h, w = _pla_group_size(key, rnd)
+                mem.append((key, xl, h, w, False))
+            sp = set(m[0] for m in mem)
+            if len(sp) == 1 and mem:                       # one species alone: add another that grows here
+                for _i in range(3):
+                    xl = xa + gw * rnd()
+                    for canopy in (False, True):
+                        key = _pla_other(tt(xl), rnd, keys, mix, canopy, mem[0][0])
+                        if key is not None and ok(key, xl) and xl <= x1:
+                            h, w = _pla_group_size(key, rnd)
+                            mem.append((key, xl, h, w, canopy))
+                            break
+                    if len(set(m[0] for m in mem)) > 1:
+                        break
+            if len(mem) >= 3 and len(set(m[0] for m in mem)) >= 2:
+                mem.sort(key=lambda m: -m[2])              # tall first: the low layer reads in front
+                ks = sorted(set(m[0] for m in mem))
+                tags = sorted(set(t_ for k_ in ks for t_ in pla_purpose(k_, sure_only=True)))
+                groups.append((layer, xa, xb, ks, tags))
+                for key, xp, h, w, canopy in mem:
+                    half = (0.12 if canopy else 0.35) * w * K
+                    gyp = seat(g_, xp, half) if seat else (g_(xp) if callable(g_) else g_)
+                    sh += pla_section(key, xp, gyp, k, h_m=h, crown_m=w, seed=seed * 1000 + n, hires=hires,
+                                      style=style, layer=layer, detail=detail)
+                    placed.append((key, xp, h, w, layer))
+                    n += 1
+            x = xb + (PLA_GROUP["gap_m"][0] + (PLA_GROUP["gap_m"][1] - PLA_GROUP["gap_m"][0]) * rnd()) / \
+                max(0.2, density) * K
+    if not groups:
+        msg = u"Plants: no mixed group fits %s (a group needs two or more species growing in its band)" % (
+            u", ".join(keys))
+        if msg not in PLA_LOG:
+            PLA_LOG.append(msg)
+    return sh, placed, groups
+
+
 def _pla_rng(seed):
     s = [int(seed * 2654435761 + 97) & 0x7fffffff]
 
