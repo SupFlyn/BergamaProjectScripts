@@ -1,4 +1,6 @@
 #@include parts/01_upstream_done.py
+#@include ../common/data/NAMES.py
+#@include ../common/names.py
 #@include ../common/pdf_fonts.py
 #@include ../common/r28_style.py
 #@include ../common/units.py

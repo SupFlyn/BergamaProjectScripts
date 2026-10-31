@@ -137,7 +137,7 @@ def legend_groups(alt, alpha):
             if f is None:
                 def f(pg, x, y, w, h):
                     for i in range(3):
-                        pg.circle(x + w * (i + 0.5) / 3, y + h / 2, h * 0.3, fill=COL["tree"], alpha=0.85)
+                        pg.circle(x + w * (i + 0.5) / 3, y + h / 2, h * 0.3, fill=COL["tree"])   # v37 (D7): opaque
             ctx.append((name, f))
 
     lines = []
@@ -987,6 +987,9 @@ def build_all(doc, warn):
             import traceback
             lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
+    lines.extend(lp_flag_lines())                        # v37 (round 3): FLAG overlap per booklet page (G3)
+    lines.extend(wat_flag_lines())                       # planting clipped to land, draw order (G8)
+    lines.extend(sec_look_lines())                       # sky variants, plants no alpha, fauna FLAG (G15)
     return folder, files, lines, pages, scale
 
 
