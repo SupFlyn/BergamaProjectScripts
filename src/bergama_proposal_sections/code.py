@@ -15,6 +15,7 @@ NEW IN (revision 30 Oct, T6, booklet p12; the version number is set at the end o
     to the boardwalk. Faded trees behind every cut (R16). Key map on the M4 base with the study area.
   * D1: two sheets from one geometry: Bergama_proposal_sections_A.pdf (style b, vector) and ..._A_style_a.pdf (style
     a, cutouts from Downloads/Bergama/Data/cutouts/); crops suffixed _a / _b (unsuffixed = b). Legend inside ps_all.
+    v13 (Aras 31 Oct, booklet p12): style a only, ONE sheet Bergama_proposal_sections_A.pdf, plain crop ids.
 NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
   PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
   colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
@@ -86,12 +87,12 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v12.1"
+VERSION = "v13"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
-STYLES = (("b", "A"), ("a", "A_style_a"))              # revision 30 Oct (D1): style -> the sheet's OUT_NAME part
+STYLES = (("a", "A"),)                                # v13 (Aras 31 Oct): style a only, one sheet ..._A.pdf
 
 #@include ../common/bergama_paths.py
 BERGAMA = BERGAMA_ROOT
@@ -313,7 +314,7 @@ def main():
     for opt in OPTIONS:
         for style, part in STYLES:                    # revision 30 Oct (D1): one sheet per style, same geometry
             t1 = time.time()
-            pg = build_sheet(opt, log if style == "b" else [], style)
+            pg = build_sheet(opt, log, style)
             path = os.path.join(OUT_DIR, OUT_NAME.format(part))
             try:
                 write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))

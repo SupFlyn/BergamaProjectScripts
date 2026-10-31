@@ -60,6 +60,10 @@ v8 (revision 30 Oct, T5-T8): p11 system axonometric + zoom (D1 a/b), pp.13-14 se
   planting (a/b), p18 farms without the axonometric (D2 a); captions for the _a/_b crops. Output: Bergama_water_board_v8_A_cubes.pdf.
 v8.1 (bugfix, Aras 31 Oct run): pp.14-15 and p.17 key maps and p.17 plan base maps no longer stop on the stream
   (M5 water: list - float). Output: Bergama_water_board_v8_1_A_cubes.pdf.
+v9 (Aras 31 Oct critique, booklet pp.11, 13, 14): style a only. p.11: one up-close section band at the bottom (b's
+  layout, a's drawing), buildings as volumes only within 60 m of the stream and heritage, the rest as faint footprints;
+  p.13 seasons: style a, trees lighter (cutout opacity 0.70); p.14 S4 bank: style a. Plain crop ids (no _a/_b) for
+  wb_system, wb_s4_seasons, wb_s4_ne; p.17 keeps its a/b. Output: Bergama_water_board_v9_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -159,8 +163,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v8.1 (2026-10-31)"
-SHORT = "v8.1"
+VERSION = "bergama_water_board v9 (2026-10-31)"
+SHORT = "v9"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -169,7 +173,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v8_1_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v9_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
@@ -2085,8 +2089,6 @@ def build_board(opt, storage, parts, pal_line, log):
 BK_CAPTIONS = {
     "wb_water": u"How the water behaves: the year, and how high the stream rises",
     "wb_system": u"What we do with it: collect, clean, hold, give back",
-    "wb_system_a": u"What we do with it: collect, clean, hold, give back · style a, raster collage",
-    "wb_system_b": u"What we do with it: collect, clean, hold, give back · style b, textured vector",
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
@@ -2096,13 +2098,8 @@ BK_CAPTIONS = {
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 
 
-for _c in ("wb_s4_seasons", "wb_s4_ne"):             # D1: the style a / b copies carry the panel's caption
-    for _s in ("_a", "_b"):
-        BK_CAPTIONS.setdefault(_c + _s, BK_CAPTIONS[_c])
-
-
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
-BK_FIXED += tuple(c + s for c in BK_FIXED if c != "wb_plants" for s in ("_a", "_b"))   # D1: their style a / b copies
+BK_FIXED += ("wb_plants_b_a", "wb_plants_b_b")   # D1: p.17's style a / b copies (v9: p.11, p.13, p.14 style a only)
 
 
 def res_s4_cut():

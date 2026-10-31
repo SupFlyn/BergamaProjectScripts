@@ -452,6 +452,10 @@ def _p14_cell(pg, x0, y0, x1, y1, st, leaf=None):
 P14_HR_BARE = {"plane": "plane_bare"}   # bare-month silhouettes of the high-res library (hires.py)
 
 
+P14_TREE_LIGHT = [None]              # v9 (Aras 31 Oct, p.13): the trees' cutout opacity on p.14 only, set by p14_page
+P14_TREE_ALPHA = 0.70                # drawing value: style a trees lighter, between style a and b (Aras 31 Oct)
+
+
 def _p14_plant(key, x, gy, k, month, h=None, cw=None, seed=0, style="b", layer=0, detail=True):
     """a species in section (plants.py) as it is that month (1-12), ground at (x, gy) page mm, k mm per m as printed
     (true size; a view passes its perspective k): a bare crown see-through, flowers only in its flowering months,
@@ -462,6 +466,8 @@ def _p14_plant(key, x, gy, k, month, h=None, cw=None, seed=0, style="b", layer=0
     if style == "a" and st != "bare":
         im = cut_image(key, x, gy, k / fig_depth(layer)[0], h_m=h or PLA_SPECIES[key]["h_m"], layer=layer,
                        facing=-1 if seed % 2 else 1, pick=seed)
+        if im and P14_TREE_LIGHT[0] and PLA_SPECIES[key].get("layer") == "tree":   # v9: p.14 trees lighter
+            im = [s_[:6] + ((s_[6] if s_[6] is not None else 1.0) * P14_TREE_LIGHT[0],) + tuple(s_[7:]) for s_ in im]
         if im:
             return im
     fol = (c.get("fill"), c.get("lt"))
@@ -1347,13 +1353,15 @@ def _p14_panel(pg, box, log, style):
 
 
 def p14_page(pg, box, opt, log):
-    """p.14, the four seasons of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style b, and its
-    style a copy right of the board (D1). Returns its crops [(crop id, bbox, scale denominator)]: the unsuffixed id and
-    _b = style b, _a = style a."""
-    bb_b = _p14_panel(pg, box, log, "b")
-    bb_a = _p14_panel(pg, _p14_ext_box(pg, box, P14_TITLE), log, "a")
-    ids = _p14_crop_ids("wb_s4_seasons")
-    return [(ids[0], bb_b, P14_DEN), (ids[1], bb_b, P14_DEN), (ids[2], bb_a, P14_DEN)]
+    """p.14, the four seasons of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style a only
+    (v9, Aras 31 Oct: style b dropped), its trees lighter (P14_TREE_ALPHA). Returns its crop [(crop id, bbox, scale
+    denominator)]: the unsuffixed id (both booklet builds take it)."""
+    P14_TREE_LIGHT[0] = P14_TREE_ALPHA
+    try:
+        bb = _p14_panel(pg, box, log, "a")
+    finally:
+        P14_TREE_LIGHT[0] = None
+    return [("wb_s4_seasons", bb, P14_DEN)]
 
 
 # ---------------------------------------------------------------- p.15
@@ -1664,13 +1672,11 @@ def _p15_panel(pg, box, log, style):
 
 
 def p15_page(pg, box, opt, log):
-    """p.15, the north-east bank of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style b, and
-    its style a copy right of the board (D1). Returns its crops: the unsuffixed id and _b = style b, _a = style a."""
-    bb_b = _p15_panel(pg, box, log, "b")
-    bb_a = _p15_panel(pg, _p14_ext_box(pg, box, P15_TITLE), log, "a")
+    """p.15, the north-east bank of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style a only
+    (v9, Aras 31 Oct: style b dropped). Returns its crop: the unsuffixed id (both booklet builds take it)."""
+    bb = _p15_panel(pg, box, log, "a")
     if log is not None:
         for ln in (cut_log_line(),) + tuple(PLA_LOG):
             if ln and ln not in log:
                 log.append(ln)
-    ids = _p14_crop_ids("wb_s4_ne")
-    return [(ids[0], bb_b, P15_DEN), (ids[1], bb_b, P15_DEN), (ids[2], bb_a, P15_DEN)]
+    return [("wb_s4_ne", bb, P15_DEN)]

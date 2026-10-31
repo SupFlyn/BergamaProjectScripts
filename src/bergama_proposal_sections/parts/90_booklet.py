@@ -47,14 +47,13 @@ def booklet_export(log):
               dict(kind="fill", colour=SF_LANE["walk"], label=u"walk paving"),
               dict(kind="fill", colour=SF_LANE["bike"], label=u"bike lane"),
               dict(kind="fill", colour=COL["accent"], label=u"proposal (labels), cut lines on the key map")]
-    for style, part in STYLES:                        # revision 30 Oct (D1): ids _a / _b, the plain id = style b
+    for style, part in STYLES:                        # v13 (Aras 31 Oct): style a only, plain ids
         boxes = SHEET_BOXES.get(style, {})
         for bid, key, cap in BK_CROPS:
             if key not in boxes:
-                log.append(u"booklet %s_%s: section %s not on the sheet" % (bid, style, key))
+                log.append(u"booklet %s: section %s not on the sheet" % (bid, key))
                 continue
             x0, y0, x1, y1 = boxes[key]
-            for b_id in ((bid + "_" + style, bid) if style == "b" else (bid + "_" + style,)):
-                bk.crop(b_id, OUT_NAME.format(part), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
-                        scale_den=PS_SCALE * BK_S, legend=([] if key == "all" else legend), drop=BK_DROP)
+            bk.crop(bid, OUT_NAME.format(part), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
+                    scale_den=PS_SCALE * BK_S, legend=([] if key == "all" else legend), drop=BK_DROP)
     return bk.save()
