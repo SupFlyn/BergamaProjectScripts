@@ -1,4 +1,4 @@
-# bergama_water_balance_v7.py (v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v8.py (v8, 31 Oct: round 3, p10 charts fill the page, sentence-case title; v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,11 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v7"
+VERSION = "v8"
+# NEW IN v8 (round 3, 31 Oct 2026, P10.1 + G2/G3; a feature change, so the next whole number): the white space goes
+#   to the charts: block 1 grows 92 -> 100 mm and its rows follow the block (YEAR_RH from the height, 13.5 -> 15.4 mm); blocks 2-3 move down 8 mm;
+#   block 3's rows follow its height; block 4 is a tighter band (36 -> 32 mm, no empty field under its line); the
+#   title in sentence case like every booklet page ("The water balance"); the log prints "FLAG overlap p10 n".
 # NEW IN v6 (revision 29 Oct 2026, T3b WO-T3b-2, package C items 1-4 and G7; a feature change, so the next whole
 #   number). Pages 11-12 are one story: p.12 (water board) is now one diagrammatic water map, so the analysis it shows
 #   left this sheet, and what stays is drawn per G7 (R31: every user its own row, one common time axis, bars):
@@ -506,7 +510,7 @@ def compute(L):
     crops = list(dict.fromkeys(crops))
     if len(crops) == 1: crops.append("cotton")
     irr = {c: soil_irrigation(c, I) for c in set(crops) | set(CROP_SOIL)}
-    res = dict(script="bergama_water_balance_v7.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+    res = dict(script="bergama_water_balance_v8.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                lands={k: (round(v, 3) if isinstance(v, float) else v) for k, v in L.items()})
     # net irrigation per crop (mm a water year) and the rain the fields hold
     res["net_irrigation_mm"] = {}; res["rain_credit_pct"] = {}
@@ -1308,9 +1312,10 @@ def grid_rect_up(r, page_h=None):
     return (r[0], H - r[3], r[2], H - r[1])
 
 
-def grid_page_counter(n, total):
-    """the page counter, computed: "07/23" (n of total pages)"""
-    return "%02d/%02d" % (int(n), int(total))
+def grid_page_counter(n, total=None):
+    """the page number, bottom right: the current page only, "17" (round 3, G2 / U20: no "NN/total"; total is
+    accepted and ignored so older callers keep working)"""
+    return "%d" % int(n)
 
 
 # ------------------------------------------------------------------------------------------- intro with bold runs
@@ -1406,6 +1411,10 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 # the spots round its point, then farther out on a thin leader (the leader may not cross a placed label), then the
 # same at the smaller sizes in `sizes`; a label still without a spot is dropped if its rank allows it (secondary
 # labels), else it gets the nearest free spot anywhere in bounds, on a leader. Boxes are (x0, y0, x1, y1).
+# Round 3 (A2, 31 Oct 2026, G3): lp_place(leaders=False) is the default: no leader lines; a label without a spot next
+# to its point becomes a number on the spot + a key row (lp_key), numbered in reading order; lp_overlap_flag logs
+# "FLAG overlap <page> n" for every booklet page (lp_flag_lines). label_spot / place_labels_all keep their leaders
+# for the old callers (each B session moves its pages to lp_place).
 def lp_hit(a, b, pad=0.0):
     return a[0] < b[2] + pad and b[0] < a[2] + pad and a[1] < b[3] + pad and b[1] < a[3] + pad
 
@@ -1574,17 +1583,41 @@ def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0
     return out
 
 
-def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8)):
+LP_NEAR_RINGS = (0.8, 2.5)       # round 3 (G3): with no leaders a label sits on or right next to its spot only
+LP_ROW_MM = 8.0                  # reading order: anchors within this many mm of height count as one row
+LP_LOG = []                      # this run's label log lines (lp_overlap_flag); lp_flag_lines() empties it
+
+
+def lp_reading_order(pts, y_down=False, row_mm=LP_ROW_MM):
+    """G3: the indexes of pts [(x, y)] in reading order: rows from the top down (rows row_mm high), left to right in
+    each row. y_down: True when page y grows downward (the booklet grid), False for y-up pages"""
+    import math as _m
+    if not pts:
+        return []
+    top = min(p[1] for p in pts) if y_down else max(p[1] for p in pts)
+    row = (lambda p: int(_m.floor((p[1] - top) / row_mm))) if y_down else \
+        (lambda p: int(_m.floor((top - p[1]) / row_mm)))
+    return sorted(range(len(pts)), key=lambda i: (row(pts[i]), pts[i][0], i))
+
+
+def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8),
+             leaders=False, y_down=False, num_wh=None, row_mm=LP_ROW_MM):
     """M2, the one call a page makes for its labels (G3): features + labels in, placed labels out, none overlapping
-    another label, a symbol (obstacles) or the linework (lines). Page mm, any y direction.
+    another label, a symbol (obstacles) or the linework (lines). Page mm, y up (y_down=True for top-down pages).
       labels    dicts: x, y = the target point; w, h = the label's box at size 1 (or wh = f -> (w, h)); rank 0 = must
-                show, 1 = may be dropped; r = the target's radius in mm (a symbol or a dot; 0 = a point): a leader
-                starts on its edge, so it visibly touches the target
+                show, 1 = may be dropped (only with leaders=True); r = the target's radius in mm (a symbol or a dot)
       obstacles boxes (x0, y0, x1, y1) of symbols, other drawings, legends (they are not changed)
       lines     polylines (page mm) a label may not sit on (streets, banks, cut lines), or an LpSegIndex
-    Returns a list in the labels' order: None (a rank-1 label dropped: list it in the legend) or dict(box, size,
-    leader) with leader = None or ((x, y) on the target's edge, (x, y) on the label box): short (<= max_leader
-    where any spot allows), never crossing another leader or a label."""
+    leaders=False (round 3 default, G3: no leader lines anywhere): a label sits on or right next to its spot
+    (LP_NEAR_RINGS) at one of the sizes; a label that finds no such spot becomes a NUMBER on the spot, explained in
+    the key beside the drawing. Numbers run in reading order (lp_reading_order: top row first, left to right), so the
+    key lists them 1, 2, 3 ... in the same order (lp_key). num_wh(text) -> (w, h) mm sizes a number's box (default:
+    from the label's height h). Every number is placed (on its spot, else just beside it, else on it anyway: the
+    overlap test then counts it).
+    leaders=True: the 28 Oct behaviour (farther spots on a short leader <= max_leader, rank-1 labels may drop).
+    Returns a list in the labels' order: None (leaders=True only: a rank-1 label dropped) or dict(box, size, leader,
+    number): number None = the label text goes in box; number n (int) = draw str(n) in box and list the label in the
+    key; leader is always None when leaders=False, else None or ((x, y) on the target's edge, (x, y) on the box)."""
     import math as _m
     segs = lines if hasattr(lines, "near") else LpSegIndex(polylines=lines)
     taken = list(obstacles)
@@ -1595,8 +1628,40 @@ def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10
         else:
             w0, h0 = L["w"], L["h"]
             its.append(dict(L, wh=(lambda f, w0=w0, h0=h0: (w0 * f, h0 * f))))
-    leaders = []
-    got = place_labels_all(its, taken, bounds, segs, sizes, pad, leaders, max_leader)
+    if not leaders:
+        out = [None] * len(labels)
+        order = sorted(range(len(its)), key=lambda i: its[i].get("rank", 0))
+        fail = []
+        for i in order:
+            it = its[i]
+            for f in sizes:
+                w, h = it["wh"](f)
+                got = label_spot(it["x"], it["y"], w, h, taken, bounds, segs, pad, rings=LP_NEAR_RINGS)
+                if got:
+                    taken.append(got[0])
+                    out[i] = dict(box=got[0], size=f, leader=None, number=None)
+                    break
+            else:
+                fail.append(i)
+        ro = lp_reading_order([(its[i]["x"], its[i]["y"]) for i in fail], y_down, row_mm)
+        for n, j in enumerate(ro, 1):
+            i = fail[j]
+            it = its[i]
+            if num_wh is not None:
+                w, h = num_wh(str(n))
+            else:
+                h = it["wh"](sizes[-1])[1]
+                w = 0.62 * h * len(str(n)) + 0.3 * h
+            b = (it["x"] - w / 2.0, it["y"] - h / 2.0, it["x"] + w / 2.0, it["y"] + h / 2.0)
+            if any(lp_hit(b, t, pad * 0.5) for t in taken):
+                got = label_spot(it["x"], it["y"], w, h, taken, bounds, (), pad * 0.5, rings=LP_NEAR_RINGS)
+                if got:
+                    b = got[0]
+            taken.append(b)
+            out[i] = dict(box=b, size=sizes[-1], leader=None, number=n)
+        return out
+    leaders_ = []
+    got = place_labels_all(its, taken, bounds, segs, sizes, pad, leaders_, max_leader)
     out = []
     for i, L in enumerate(labels):
         g = got.get(i)
@@ -1612,7 +1677,43 @@ def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10
             s0 = (L["x"] + (e[0] - L["x"]) * r / d, L["y"] + (e[1] - L["y"]) * r / d) if r > 0 and d > r else \
                 (L["x"], L["y"])
             lead = (s0, e)
-        out.append(dict(box=box, size=f, leader=lead))
+        out.append(dict(box=box, size=f, leader=lead, number=None))
+    return out
+
+
+def lp_key(labels, placed):
+    """G3: the key beside the drawing for lp_place's numbered labels: [(number, label dict)] sorted by number (the
+    reading order); the page prints "n  <its text>" per row, in this order"""
+    return sorted([(g["number"], L) for L, g in zip(labels, placed) if g and g.get("number")], key=lambda t: t[0])
+
+
+def lp_overlap_flag(page, label_boxes, drawing_boxes=(), bounds=None, pad=0.0, log=None):
+    """G3 done-when: the overlap test of one booklet page's text. label_boxes: every placed text box (labels, numbers,
+    titles, key rows; page mm); drawing_boxes: the boxes no text may touch (other drawings, symbols, legends; a
+    drawing that carries its own labels gives its symbol boxes, not its frame); bounds: the page's (or crop's) printable
+    box. Counts label vs label, label vs drawing box and label outside bounds, each pair once. Logs "FLAG overlap
+    <page> n" into log (a list) or LP_LOG (n = 0 is logged too: the closing check reads it). Returns n."""
+    L = [tuple(b) for b in label_boxes or () if b]
+    D = [tuple(b) for b in drawing_boxes or () if b]
+    n = 0
+    for i in range(len(L)):
+        for j in range(i + 1, len(L)):
+            if lp_hit(L[i], L[j], pad):
+                n += 1
+        for b in D:
+            if lp_hit(L[i], b, pad):
+                n += 1
+        if bounds and not (bounds[0] <= L[i][0] and L[i][2] <= bounds[2] and bounds[1] <= L[i][1] and
+                           L[i][3] <= bounds[3]):
+            n += 1
+    (log if log is not None else LP_LOG).append(u"FLAG overlap %s %d" % (page, n))
+    return n
+
+
+def lp_flag_lines():
+    """this run's label log lines ("FLAG overlap <page> n"), oldest first; the list is emptied"""
+    out = list(LP_LOG)
+    del LP_LOG[:]
     return out
 
 
@@ -2272,7 +2373,7 @@ def panel_answer(pg, R, x, y, w, h):
     top = y + h - 7.0                                           # the light field under the title
     pg.rect(x, y, w, top - y, fill=C["water_tint"])
     lo_, hi_ = d["central_range_m3"]; plo, phi = d["central_range_pct_1in5_dry"]
-    ky, vy, ly = top - 5.5, top - 13.5, top - 19.5               # kicker, headline value, the one line
+    ky, vy, ly = top - 5.0, top - 12.5, top - 18.5               # kicker, headline value, the one line (v8: 3.5 mm above the field's foot)
     vpt, _, _, vcol = grid_style("value"); npt, _, _, ncol = grid_style("note")
     # A: the store, the one headline value (cols 1-5)
     ax, aw = grid_span(1, 5)
@@ -2314,7 +2415,7 @@ QUESTION = u"How much **winter water** can we hold for the farms' **dry summer**
 
 # ------------------------------------------------------------------ v6 (T3b, G7): 1 one year of water, five rows, one month axis
 STORE_COL = ("CBD9F8", "92A3C9", "3E4C6E")       # the masterplan's storage tones (light, mid, dark), as on p.12's map
-YEAR_RH = 13.5                                   # one row of block 1, mm (revision 30 Oct, p10: 16.5 -> 13.5, a secondary scale)
+YEAR_HEAD, YEAR_FOOT = 10.0, 13.0                # block 1: title + keyword line above the rows, months + Jun-Sep line under them, mm
 YEAR_LAB_W, YEAR_TOT_W = 68.0, 40.0              # the label column before the month axis, the year column after it
 
 
@@ -2338,7 +2439,7 @@ def panel_year(pg, R, x, y, w, h):
                 "**one month axis** for every user · each row to its own scale: its peak month and its year are written")
     lx, rx = x + YEAR_LAB_W, x + w - YEAR_TOT_W
     bw = (rx - lx) / 12.0
-    top = y + h - 10.0                                        # the first row's top
+    top = y + h - YEAR_HEAD                                   # the first row's top
     rows = [
         ("stream", "Selinos stream", "natural flow past the site " + cite("flow"), (q,),
          lambda m: C["water_deep"] if m in win else C["water"], "%.1f million m³" % (yr / 1e6),
@@ -2351,6 +2452,7 @@ def panel_year(pg, R, x, y, w, h):
          (R["strip_month_m3"],), lambda m: C["water"], "%s m³" % fmt(R["strip_m3_per_year"]), "a year, May-Oct"),
         ("olive", "Farms", farm_sub,
          (dn, dd), None, "%s m³" % fmt(R["farm_demand_m3"][mix]["dry5"]), "a year, 1 in 5 dry")]
+    YEAR_RH = (h - YEAR_HEAD - YEAR_FOOT) / float(len(rows))   # v8 (P10.1): the rows fill the block (15.4 mm at h 100)
     yb_rows = top - len(rows) * YEAR_RH
     bx0, bx1 = lx + 5 * bw, lx + 9 * bw                      # Jun-Sep: one band behind every row
     pg.rect(bx0, yb_rows - 13.0, bx1 - bx0, top + 1.0 - (yb_rows - 13.0), fill=C["accent_tint"])
@@ -2449,7 +2551,8 @@ def panel_store(pg, R, x, y, w, h):
         if key in na: rows.append((name, lab[key], na[key]["usd_per_m3_low"], na[key]["usd_per_m3_high"]))
     bx = x + 48; bw = w - 50
     lg = lambda v: (math.log10(min(max(v, 0.1), 100.0)) + 1) / 3.0          # 0.1 .. 100 US$ on a log axis
-    top = y + h - 16; rh = 8.5; n = len(rows)
+    n = len(rows); top = y + h - 16
+    rh = min(12.0, max(8.5, (h - 36.0) / max(n, 1)))       # v8 (P10.1): rows follow the block height (8.5 mm before)
     for t in (0.1, 1, 10, 100):
         xx = bx + bw * lg(t)
         pg.line([(xx, top + 3), (xx, top - n * rh + 1)], C["faint"], 0.15)
@@ -2492,9 +2595,12 @@ def _grid_block(c0, n, top, h):
     return (r[0], r[1], r[2] - r[0], r[3] - r[1])
 
 
-BLOCKS = dict(year=_grid_block(1, 12, 36.0, 92.0),
-              curve=_grid_block(1, 7, 144.0, 72.0), store=_grid_block(8, 5, 144.0, 72.0),
-              answer=_grid_block(1, 12, 236.0, 36.0))
+# v8 (round 3, P10.1 "too much empty area"): block 1 36-136 (was 36-128) with taller rows, blocks 2-3 152-224 (were
+# 144-216), block 4 240-272 (was 236-272, 32 mm: its empty field under the one line goes); tops on baselines, heights in
+# whole 4 mm steps (grid_cell rounds up), 16 mm between the rows as before
+BLOCKS = dict(year=_grid_block(1, 12, 36.0, 100.0),
+              curve=_grid_block(1, 7, 152.0, 72.0), store=_grid_block(8, 5, 152.0, 72.0),
+              answer=_grid_block(1, 12, 240.0, 32.0))
 
 
 def build(path, R):
@@ -2504,7 +2610,7 @@ def build(path, R):
     pg = Page(420.0, 297.0)
     pg.rect(0, 0, 420, 297, fill=C["white"])               # v2.7: white sheet (Aras 27 Oct 11:07)
     del SRC_KEY[:]                                        # v2.4: [n] numbers restart on every run
-    pg.text("THE WATER BALANCE", 14, 281.5, 22, C["ink"], True)
+    pg.text("The water balance", 14, 281.5, 22, C["ink"], True)   # v8 (P10.1): sentence case booklet-wide
     rich_para(pg, QUESTION, 14, 273.5, 300, 11, C["ink2"], C["ink"])
     pg.text("lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), 406, 281.5, 7, C["ink2"], align="R")
     panel_year(pg, R, *BLOCKS["year"])                    # 1: the five users of the water on one month axis
@@ -2666,7 +2772,8 @@ def main(g):
         OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], fmt(d["river_take_m3_per_year"]),
         d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
         "\nbooklet ERROR: " + bk_err if bk_err else "") + "\n" + zone_line + (
-        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + "".join(
+        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + (
+        "\nFLAG overlap p10 %d" % len(ov)) + "".join(
         "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
         "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
             k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),

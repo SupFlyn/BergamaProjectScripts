@@ -347,52 +347,194 @@ def sf_wall_mark(x, y, h, fill=None):
     return [("poly", [(x, y + h), (x - 0.6 * h, y), (x + 0.6 * h, y)], fill or SEC["ink2"], None, 0.1)]
 
 
-# ---- D8 designed sky (R2-A 31 Oct 2026) ------------------------------------------------------------------------------
-# D8 answer (PLAN.md): pending, default a = every section and perspective. sky="d8" in sf_atmosphere follows this.
+# ---- D8 designed sky (R2-A 31 Oct 2026; round 3 G15: six quiet variants, architectural clouds, birds) --------------
+# D8 answer (PLAN.md): default a = every section and perspective. sky="d8" in sf_atmosphere follows this.
 SF_SKY_DEFAULT = "designed"
-# drawing rules (not data): the section's water blue toward white, pale at the horizon, a little deeper at the top;
-# the deepest band stays within 25 % of the blue, so ink labels read on it (U25: not the cream paper)
-SF_SKY = dict(top=0.76, horizon=0.95, bands=16, cloud="FFFFFF", cloud_shade=0.88)
+# G15 (U03, U10): the sky is quiet and never in the foreground, different on every section of a page, clouds drawn
+# the architectural way (a thin line contour, no fill, or one soft single-tone wash band), a few birds (D3).
+# Drawing rules (not data): the tint lies in the top SF_SKY["height"] of the drawing's height above the horizon and
+# fades to the paper at its foot (horizon = paper); the top colours are palette tones lightened until CIE L* >= 85,
+# i.e. at most 15 % darker than the white paper (CFDBE4 board pale blue L* 86.8; 7FA4B3 SEC water x 0.6 -> CCDBE1
+# 86.5; A2B6B5 grey-teal x 0.5 -> D0DADA 86.3; 5C7A86 slate x 0.7 -> CED7DB 85.4; 8E8F8A grey x 0.7 -> DDDDDC
+# 88.1; CIE L* calculated from sRGB, D65). Cloud contour 0.18 pt = 0.064 mm in SEC ink2.
+SF_SKY = dict(height=0.35, bands=12, paper="FFFFFF", line_lw=0.064, wash=0.55)
+SF_SKY_VARIANTS = (                 # top colour, clouds: line cumulus n, cirrus groups n, wash bands n
+    dict(top="CFDBE4", cumulus=3, cirrus=0, wash=0),
+    dict(top="CCDBE1", cumulus=0, cirrus=0, wash=1),
+    dict(top="D0DADA", cumulus=0, cirrus=2, wash=0),
+    dict(top="CED7DB", cumulus=2, cirrus=0, wash=1),
+    dict(top="DDDDDC", cumulus=0, cirrus=1, wash=2),
+    dict(top="E3EBEF", cumulus=1, cirrus=0, wash=0),     # CFDBE4 x 0.4 toward white: a clear day
+)
+SF_SKY_USED = {}                    # cut id -> variant (a cut keeps its sky wherever it is drawn)
+SF_SKY_RECENT = []                  # the last variants handed out: neighbours on a page never share one
+SF_LOG = []                         # "sky variant <cid> v<n>" lines (sec_look_lines)
 
 
-def sf_sky(x0, x1, y0, y_top, seed=0, clouds=True, tone=None):
-    """D8 designed sky behind a section or perspective: a calm gradient of SF_SKY["bands"] bands from the horizon
-    y0 (page y, the lowest ground; nearly white) up to y_top (the water blue mixed SF_SKY["top"] toward white) and
-    2-4 soft flat-based clouds in its upper part (white puffs over a pale shade). Draw it first (behind the
-    ground). Returns shapes."""
-    tone = tone or SEC["water"]
-    n = int(SF_SKY["bands"])
+def sf_sky_variant(cid=None):
+    """the sky variant (0-5) of a section: a cut id keeps one variant for the run (hash of the id), moved on while it
+    equals one of the last five handed out, so the sections of one page never share a sky; no cid -> the next in
+    rotation. Logged once per cut as "sky variant <cid> v<n>"."""
+    n = len(SF_SKY_VARIANTS)
+    if cid is not None and cid in SF_SKY_USED:
+        return SF_SKY_USED[cid]
+    if cid is not None:
+        v = sum((i + 1) * ord(ch) for i, ch in enumerate(u"%s" % cid)) % n
+    else:
+        v = (SF_SKY_RECENT[-1] + 1) % n if SF_SKY_RECENT else 0
+    for _i in range(n):
+        if v not in SF_SKY_RECENT[-(n - 1):]:
+            break
+        v = (v + 1) % n
+    SF_SKY_RECENT.append(v)
+    key = cid if cid is not None else u"section %d" % len(SF_SKY_RECENT)
+    SF_SKY_USED[key] = v
+    SF_LOG.append(u"sky variant %s v%d" % (key, v + 1))
+    return v
+
+
+def _sf_cumulus(cx, by, w, rnd, ink, lw):
+    """an architectural cumulus: a flat base line and a run of 3-5 arcs over it (contour only, no fill)"""
+    import math as _m
+    m = 3 + int(rnd() * 2.999)
+    rs = [0.5 + 0.6 * rnd() for _i in range(m)]
+    s = sum(rs)
+    x, pts = cx - 0.5 * w, []
+    for i, r_ in enumerate(rs):
+        d = w * r_ / s
+        r = 0.5 * d
+        lift = (0.15 + 0.35 * _m.sin(_m.pi * (i + 0.5) / m)) * r     # the middle arcs ride higher
+        for j in range(9):
+            a = _m.pi * (1.0 - j / 8.0)
+            pts.append((x + r + r * _m.cos(a), by + lift + r * _m.sin(a) * 0.9))
+        x += d
+    return [("line", [(cx - 0.5 * w, by)] + pts + [(cx + 0.5 * w, by)], ink, lw),
+            ("line", [(cx - 0.55 * w, by), (cx + 0.55 * w, by)], ink, lw)]
+
+
+def _sf_cirrus(cx, cy, w, rnd, ink, lw):
+    """architectural cirrus: 3-5 thin horizontal strokes of varied length, stacked and staggered"""
     sh = []
+    n = 3 + int(rnd() * 2.999)
     for i in range(n):
-        ya = y0 + (y_top - y0) * i / float(n)
-        yb = y0 + (y_top - y0) * (i + 1) / float(n) + (0.05 if i < n - 1 else 0.0)
-        t = SF_SKY["horizon"] + (SF_SKY["top"] - SF_SKY["horizon"]) * (i + 0.5) / n
-        sh.append(("poly", [(x0, ya), (x1, ya), (x1, yb), (x0, yb)], _sec_mix(tone, "FFFFFF", t), None, 0.0))
-    if clouds and x1 - x0 > 1.0 and y_top - y0 > 1.0:
-        rnd = _wat_rng(seed + 211)
-        W, H = x1 - x0, y_top - y0
-        nc = 2 if W < 3.0 * H else (3 if rnd() < 0.5 else 4)
-        shade = _sec_mix(tone, "FFFFFF", SF_SKY["cloud_shade"])
-        for c in range(nc):
-            w = min(W * (0.10 + 0.08 * rnd()), 0.9 * H * 2.5)
-            cx = x0 + W * (c + 0.15 + 0.7 * rnd()) / nc
-            cx = min(max(cx, x0 + 0.5 * w), x1 - 0.5 * w)
-            cy = y0 + H * (0.55 + 0.3 * rnd())
-            ry = min(0.10 * w, 0.12 * H)
-            sh.append(("poly", sec_ellipse(cx, cy, 0.5 * w, ry, 28), shade, None, 0.0))
-            m = 3 + int(rnd() * 2.999)
-            for j in range(m):
-                px = cx - 0.38 * w + 0.76 * w * (j + 0.2 + 0.6 * rnd()) / m
-                r = min(w * (0.10 + 0.08 * rnd()), 0.35 * H)
-                py = cy + 0.15 * ry + 0.55 * r
-                sh.append(("poly", sec_ellipse(px, py, r, 0.8 * r, 24), SF_SKY["cloud"], None, 0.0))
-            sh.append(("poly", [(cx - 0.42 * w, cy - 0.3 * ry), (cx + 0.42 * w, cy - 0.3 * ry), (cx + 0.42 * w, cy + 0.6 * ry),
-                                (cx - 0.42 * w, cy + 0.6 * ry)], SF_SKY["cloud"], None, 0.0))
+        L = w * (0.45 + 0.55 * rnd())
+        x0 = cx - 0.5 * w + (w - L) * rnd()
+        y = cy + (i - 0.5 * (n - 1)) * w * 0.035
+        sh.append(("line", [(x0, y), (x0 + L, y)], ink, lw))
     return sh
 
 
+def _sf_wash(cx, cy, w, h, col):
+    """a soft single-tone wash band: a long flat stadium, no stroke"""
+    import math as _m
+    r = 0.5 * h
+    ring = [(cx + 0.5 * w - r + r * _m.cos(a), cy + r * _m.sin(a)) for a in [(-0.5 + i / 12.0) * _m.pi for i in range(13)]]
+    ring += [(cx - 0.5 * w + r + r * _m.cos(a), cy + r * _m.sin(a)) for a in [(0.5 + i / 12.0) * _m.pi for i in range(13)]]
+    return [("poly", ring, col, None, 0.0)]
+
+
+def sf_sky(x0, x1, y0, y_top, seed=0, clouds=True, tone=None, cid=None, birds=True, variant=None):
+    """D8 designed sky behind a section or perspective (G15 round 3): one of SF_SKY_VARIANTS (variant, else
+    sf_sky_variant(cid): no two sections of a page share one), a gradient from the paper at its foot to the variant's
+    pale top in the top SF_SKY["height"] of y0 (page y, the lowest ground) .. y_top, below it the paper; clouds drawn
+    as thin line contours or a soft wash band; birds (D3: sf_birds, 2-5 generic silhouettes) unless birds=False.
+    tone: a hex colour mixed into the top (kept pale). Draw it first (behind the ground). Returns shapes."""
+    v = SF_SKY_VARIANTS[(variant if variant is not None else sf_sky_variant(cid)) % len(SF_SKY_VARIANTS)]
+    top = v["top"] if not tone else _sec_mix(_sec_mix(tone, SF_SKY["paper"], 0.6), v["top"], 0.5)
+    H = y_top - y0
+    if x1 - x0 <= 1.0 or H <= 1.0:
+        return []
+    ys = y_top - SF_SKY["height"] * H
+    n = int(SF_SKY["bands"])
+    sh = []
+    for i in range(n):
+        ya = ys + (y_top - ys) * i / float(n)
+        yb = ys + (y_top - ys) * (i + 1) / float(n) + (0.05 if i < n - 1 else 0.0)
+        sh.append(("poly", [(x0, ya), (x1, ya), (x1, yb), (x0, yb)], _sec_mix(SF_SKY["paper"], top, (i + 0.5) / n),
+                   None, 0.0))
+    if clouds:
+        rnd = _wat_rng(seed + 211)
+        W, Hs = x1 - x0, y_top - ys
+        ink, lw = SEC["ink2"], SF_SKY["line_lw"]
+        wcol = _sec_mix(top, SF_SKY["paper"], SF_SKY["wash"])
+        slots = [x0 + W * (i + 0.5) / 4.0 for i in range(4)]                  # quarters: clouds never pile up
+        order = sorted(range(4), key=lambda _i: rnd())
+        q = 0
+        for _c in range(v["cumulus"]):
+            w = min(W * (0.10 + 0.06 * rnd()), 2.2 * Hs)
+            cx = min(max(slots[order[q % 4]] + 0.1 * W * (rnd() - 0.5), x0 + 0.55 * w), x1 - 0.55 * w)
+            sh += _sf_cumulus(cx, ys + Hs * (0.25 + 0.35 * rnd()), w, rnd, ink, lw)
+            q += 1
+        for _c in range(v["cirrus"]):
+            w = min(W * (0.14 + 0.08 * rnd()), 4.0 * Hs)
+            cx = min(max(slots[order[q % 4]] + 0.1 * W * (rnd() - 0.5), x0 + 0.5 * w), x1 - 0.5 * w)
+            sh += _sf_cirrus(cx, ys + Hs * (0.45 + 0.35 * rnd()), w, rnd, ink, lw)
+            q += 1
+        for _c in range(v["wash"]):
+            w = W * (0.25 + 0.20 * rnd())
+            cx = min(max(x0 + W * (0.2 + 0.6 * rnd()), x0 + 0.5 * w), x1 - 0.5 * w)
+            sh += _sf_wash(cx, ys + Hs * (0.35 + 0.4 * rnd()), w, min(0.12 * Hs, 0.06 * w), wcol)
+    if birds:
+        sh += sf_birds(x0, x1, y0 + 0.55 * H, y0 + 0.95 * H, seed=seed)
+    return sh
+
+
+# ---- D3 birds (round 3 G15): a few architectural silhouettes, generic until research/fauna.md exists ------------
+# Shapes in units of the bird's wingspan (drawing rules; page size SF_BIRD_MM, a symbol, not to scale): gliding,
+# wings up, wings down; filled in a faded ink, opaque, like R05 / R07. Counted for the fauna FLAG (figures.py).
+SF_BIRD_MM = (1.6, 3.0)             # page mm: wingspan range of the symbols
+SF_BIRD_SHAPES = {
+    "glide": [(-0.50, 0.04), (-0.22, 0.06), (-0.06, 0.02), (0.00, 0.05), (0.06, 0.02), (0.22, 0.06), (0.50, 0.04),
+              (0.20, 0.00), (0.07, -0.03), (0.00, -0.07), (-0.07, -0.03), (-0.20, 0.00)],
+    "up": [(-0.42, 0.30), (-0.20, 0.12), (-0.05, 0.02), (0.00, 0.05), (0.05, 0.02), (0.20, 0.12), (0.42, 0.30),
+           (0.18, 0.02), (0.06, -0.04), (0.00, -0.09), (-0.06, -0.04), (-0.18, 0.02)],
+    "down": [(-0.45, -0.18), (-0.22, -0.02), (-0.06, 0.04), (0.00, 0.07), (0.06, 0.04), (0.22, -0.02), (0.45, -0.18),
+             (0.20, -0.08), (0.07, -0.03), (0.00, -0.06), (-0.07, -0.03), (-0.20, -0.08)],
+}
+
+
+def sf_birds(x0, x1, y0, y1, seed=0, n=None, ink=None, size=None):
+    """2-5 generic bird silhouettes (D3) flying in the box x0..x1, y0..y1 (page mm): varied poses and sizes,
+    loosely grouped (never a row); n fixes the count, size (mm) the wingspan. Fauna stays generic until
+    research/fauna.md exists (figures.py fig_flag_lines logs "FLAG fauna pending research"). Returns shapes."""
+    if x1 - x0 <= 1.0 or y1 - y0 <= 0.5:
+        return []
+    rnd = _wat_rng(seed + 77)
+    ink = ink or _sec_mix(SEC["ink"], SF_SKY["paper"], 0.35)
+    cnt = n if n is not None else 2 + int(rnd() * 3.999)
+    gx = x0 + (0.15 + 0.7 * rnd()) * (x1 - x0)                 # the flock's centre
+    gy = y0 + (0.3 + 0.5 * rnd()) * (y1 - y0)
+    keys = ("glide", "up", "down")
+    sh = []
+    for i in range(cnt):
+        s = size or (SF_BIRD_MM[0] + (SF_BIRD_MM[1] - SF_BIRD_MM[0]) * rnd())
+        bx = min(max(gx + (rnd() - 0.5) * 0.30 * (x1 - x0) + i * 0.9 * s * (1 if rnd() > 0.5 else -1), x0 + s), x1 - s)
+        by = min(max(gy + (rnd() - 0.5) * 0.6 * (y1 - y0), y0), y1)
+        tilt = (rnd() - 0.5) * 0.5
+        shp = SF_BIRD_SHAPES[keys[(i + int(rnd() * 3)) % 3]]
+        sh.append(("poly", [(bx + s * (px - tilt * py), by + s * (py + tilt * px)) for px, py in shp], ink, None, 0.0))
+    if globals().get("FIG_FAUNA_DRAWN") is not None:
+        FIG_FAUNA_DRAWN[0] += cnt
+    return sh
+
+
+def sec_look_lines():
+    """the round 3 section-look log lines for a page's log: sky variants handed out, the plants line (no alpha, bare
+    species), the fauna FLAG while research/fauna.md is missing"""
+    out = []
+    if SF_LOG:
+        out.append(u"; ".join(SF_LOG))
+    for ln in (globals().get("PLA_LOG") or ()):
+        if ln.startswith(u"plants: no alpha"):
+            out.append(ln)
+    f = globals().get("fig_flag_lines")
+    if f:
+        out += f()
+    return out
+
+
 def sf_atmosphere(x0, x1, gy, y_top, k, seed=0, sky=True, trees=True, birds=True, mix=None, t0=0.45, t1=0.95,
-                  density=0.7, style="b", into=None, back_ground=None, groups=True, water=None):
+                  density=0.7, style="b", into=None, back_ground=None, groups=True, water=None, cid=None, month=None):
     """the atmosphere behind a section (p17; R16, R19 idea): a sky from the ground line gy (number, function of x
     or polyline) up to y_top, faded depth trees in D9 layers 2 and 1 (band t0..t1), a few birds. Into "atmosphere"
     (sky, birds) and "background" (trees). sky: "designed" (D8: sf_sky, gradient + soft clouds), "d8" (the D8 answer,
@@ -400,14 +542,16 @@ def sf_atmosphere(x0, x1, gy, y_top, k, seed=0, sky=True, trees=True, birds=True
     profile} gives each depth layer its own ground (drawn with sf_topo_back, farthest first) and the trees stand on
     it, else on gy; every tree is seated on the lowest ground under it (sf_seat_x); groups=True plants mixed groups
     (plants.py pla_group_section) instead of the single scatter; water (page y or function of x): no tree where the
-    ground of its layer lies under it. Returns the WaterLayers."""
+    ground of its layer lies under it. Round 3 (G15): cid = the cut id that picks the sky variant (sf_sky_variant);
+    birds = sf_birds (D3); month (1-12) draws the depth trees in that month's colours / bare (plants.py pla_colour).
+    Returns the WaterLayers."""
     wl = into if into is not None else water_layers()
     gf = _sf_fn(gy)
     g0 = min(gf(x0), gf(x1), sf_ground_min(gf, x0, x1, 24))
     if sky == "d8":
         sky = SF_SKY_DEFAULT
     if sky == "designed":
-        wl.add("atmosphere", sf_sky(x0, x1, g0, y_top, seed=seed))
+        wl.add("atmosphere", sf_sky(x0, x1, g0, y_top, seed=seed, cid=cid, birds=False))
     elif sky:
         for i, t in enumerate((0.93, 0.95, 0.97)):
             ya = g0 + (y_top - g0) * i / 3.0
@@ -424,21 +568,14 @@ def sf_atmosphere(x0, x1, gy, y_top, k, seed=0, sky=True, trees=True, birds=True
             if groups:
                 sh, _pl, _gr = pla_group_section(x0, x1, g_, k, t0=t0, t1=t1, mix=mix, seed=seed + 31 * layer,
                                             layers=(layer,), style=style, density=density, hires=False, detail=False,
-                                            water=water)
+                                            water=water, month=month)
             else:
                 sh, _pl = pla_scatter_section(x0, x1, sf_ground_fn(g_, 0.4 * k), k, t0=t0, t1=t1, mix=mix,
                                               seed=seed + 31 * layer, layer=layer, style=style, density=density,
-                                              hires=False, detail=False)
+                                              hires=False, detail=False, month=month)
             wl.add("background", sh)
     if birds:
-        rnd = _wat_rng(seed + 77)
-        col = _sec_mix(SEC["ink"], SEC["paper"], 0.45)
-        for i in range(3 + int(rnd() * 3)):
-            bx = x0 + (0.1 + 0.8 * rnd()) * (x1 - x0)
-            by = g0 + (0.70 + 0.25 * rnd()) * (y_top - g0)
-            s = (0.8 + 0.6 * rnd())
-            wl.add("atmosphere", [("line", [(bx - s, by + 0.35 * s), (bx - 0.3 * s, by + 0.1 * s), (bx, by - 0.05 * s),
-                                            (bx + 0.3 * s, by + 0.12 * s), (bx + s, by + 0.4 * s)], col, 0.12)])
+        wl.add("atmosphere", sf_birds(x0, x1, g0 + 0.55 * (y_top - g0), g0 + 0.95 * (y_top - g0), seed=seed))
     return wl
 
 
@@ -611,6 +748,190 @@ def sf_bench(x, y, k, side=1, seat_h=SF_SEAT_H, depth_m=0.45, t_m=0.08, back=Fal
     if back:
         bx = xa if side > 0 else xb
         sh.append(("line", [(bx, sy), (bx - side * 0.05 * k, sy + 0.40 * k)], SCT["cut"], 0.25))
+    return sh
+
+
+# ---- street elements (round 3 G15; beside sf_bench). Sizes are DRAWING RULES for a typical element of its kind,
+# not project data: never print them as measured. ----------------------------------------------------------------
+SF_STREET = dict(lamp_h=4.00, lamp_arm=0.45, bollard_h=0.90, bollard_w=0.15, rack_h=0.75, rack_l=0.70)
+
+
+def sf_lamp(x, y, k, side=1, h_m=None, layer=0, ink=None):
+    """a pedestrian street lamp in section at (x, y): a slim mast h_m high (SF_STREET lamp_h 4.00 m, drawing rule),
+    a short arm toward side and a lantern head; ink faded for depth layer (fig_fade). Returns shapes."""
+    sc = fig_depth(layer)[0] if layer else 1.0
+    K = k * sc
+    ink = fig_fade(ink or SEC["ink"], layer) if layer else (ink or SEC["ink"])
+    H, a = (h_m or SF_STREET["lamp_h"]) * K, SF_STREET["lamp_arm"] * K * side
+    w = max(0.12, 0.06 * K)
+    hx, hy = x + a, y + H - 0.05 * K
+    return [("poly", [(x - w, y), (x + w, y), (x + 0.6 * w, y + H), (x - 0.6 * w, y + H)], ink, None, 0.0),
+            ("line", [(x, y + H), (x + 0.6 * a, y + H + 0.06 * K), (hx, hy)], ink, max(0.1, 0.03 * K)),
+            ("poly", [(hx - 0.14 * K, hy), (hx + 0.14 * K, hy), (hx + 0.07 * K, hy - 0.22 * K),
+                      (hx - 0.07 * K, hy - 0.22 * K)], ink, None, 0.0)]
+
+
+def sf_bollard(x, y, k, h_m=None, layer=0, ink=None):
+    """a bollard in section at (x, y): SF_STREET bollard_h 0.90 m x bollard_w 0.15 m (drawing rule), rounded top,
+    one light band. Returns shapes."""
+    sc = fig_depth(layer)[0] if layer else 1.0
+    K = k * sc
+    ink = fig_fade(ink or SEC["ink"], layer) if layer else (ink or SEC["ink"])
+    H, r = (h_m or SF_STREET["bollard_h"]) * K, 0.5 * SF_STREET["bollard_w"] * K
+    ring = [(x - r, y), (x + r, y), (x + r, y + H - r)] + \
+        [(x + r * __import__("math").cos(t), y + H - r + r * __import__("math").sin(t)) for t in
+         [i * 3.14159265 / 8.0 for i in range(1, 8)]] + [(x - r, y + H - r)]
+    return [("poly", ring, ink, None, 0.0),
+            ("poly", [(x - r, y + 0.70 * H), (x + r, y + 0.70 * H), (x + r, y + 0.78 * H), (x - r, y + 0.78 * H)],
+             "FFFFFF", None, 0.0)]
+
+
+def sf_bike_rack(x, y, k, side=1, layer=0, ink=None):
+    """a bike rack (an inverted-U stand) in section at (x, y), seen along its length: SF_STREET rack_l 0.70 m long,
+    rack_h 0.75 m high (drawing rule), running toward side. Returns shapes."""
+    import math as _m
+    sc = fig_depth(layer)[0] if layer else 1.0
+    K = k * sc
+    ink = fig_fade(ink or SEC["ink"], layer) if layer else (ink or SEC["ink"])
+    L, H = SF_STREET["rack_l"] * K * side, SF_STREET["rack_h"] * K
+    r = 0.5 * abs(L)
+    cx = x + 0.5 * L
+    pts = [(x, y), (x, y + H - r)] + [(cx - r * _m.cos(t), y + H - r + r * _m.sin(t)) for t in
+                                       [i * _m.pi / 10.0 for i in range(11)]] + [(x + L, y)]
+    if side < 0:
+        pts = [(x, y), (x, y + H - r)] + [(cx + r * _m.cos(t), y + H - r + r * _m.sin(t)) for t in
+                                           [i * _m.pi / 10.0 for i in range(11)]] + [(x + L, y)]
+    return [("line", pts, ink, max(0.12, 0.05 * K))]
+
+
+# ---- zoom-in inset (round 3 G15, Aras's U29 sketch) --------------------------------------------------------------
+# A use zone narrower than ~15 mm on the page gets an enlarged copy beside the section: a thin rectangle on the
+# spot, the same drawing at the bigger scale in a box (white ground, 0.25 pt neatline like a map: the one frame
+# G17 keeps), the label "ZOOMED IN · <what>" over it and ONE short connector from the spot's corner to the box's
+# nearest corner (a frame link, not a label leader).
+SF_ZOOM = dict(lw_spot=0.064, lw_box=0.088, label_mm=1.8, gap=1.0)
+
+
+def _sf_clip_poly(ring, x0, y0, x1, y1):
+    """Sutherland-Hodgman: ring clipped to the rectangle"""
+    def cut(P, inside, inter):
+        out = []
+        for i in range(len(P)):
+            a, b = P[i - 1], P[i]
+            if inside(b):
+                if not inside(a):
+                    out.append(inter(a, b))
+                out.append(b)
+            elif inside(a):
+                out.append(inter(a, b))
+        return out
+
+    def ix(xv):
+        return lambda a, b: (xv, a[1] + (b[1] - a[1]) * (xv - a[0]) / ((b[0] - a[0]) or 1e-12))
+
+    def iy(yv):
+        return lambda a, b: (a[0] + (b[0] - a[0]) * (yv - a[1]) / ((b[1] - a[1]) or 1e-12), yv)
+    P = list(ring)
+    for inside, inter in ((lambda p: p[0] >= x0, ix(x0)), (lambda p: p[0] <= x1, ix(x1)),
+                          (lambda p: p[1] >= y0, iy(y0)), (lambda p: p[1] <= y1, iy(y1))):
+        if not P:
+            break
+        P = cut(P, inside, inter)
+    return P
+
+
+def _sf_clip_line(pts, x0, y0, x1, y1):
+    """the pieces of a polyline inside the rectangle (Liang-Barsky per segment, joined where they touch)"""
+    out, cur = [], []
+    for a, b in zip(pts[:-1], pts[1:]):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        t0, t1, ok = 0.0, 1.0, True
+        for p, q in ((-dx, a[0] - x0), (dx, x1 - a[0]), (-dy, a[1] - y0), (dy, y1 - a[1])):
+            if abs(p) < 1e-12:
+                if q < 0:
+                    ok = False
+                    break
+                continue
+            r = q / p
+            if p < 0:
+                t0 = max(t0, r)
+            else:
+                t1 = min(t1, r)
+            if t0 > t1:
+                ok = False
+                break
+        if not ok:
+            if len(cur) >= 2:
+                out.append(cur)
+            cur = []
+            continue
+        pa = (a[0] + t0 * dx, a[1] + t0 * dy)
+        pb = (a[0] + t1 * dx, a[1] + t1 * dy)
+        if cur and abs(cur[-1][0] - pa[0]) < 1e-9 and abs(cur[-1][1] - pa[1]) < 1e-9:
+            cur.append(pb)
+        else:
+            if len(cur) >= 2:
+                out.append(cur)
+            cur = [pa, pb]
+        if t1 < 1.0:
+            out.append(cur)
+            cur = []
+    if len(cur) >= 2:
+        out.append(cur)
+    return out
+
+
+def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink=None, connector=True):
+    """G15 zoom-in inset. src_box = (x0, y0, x1, y1) page mm of the spot on the section; dst_box = the inset's box
+    beside the section; k_src, k_dst = page mm per m of the section and of the inset (k_dst > k_src). draw_fn: the
+    shapes of the section (a list, or a WaterLayers, or a callable returning one): every shape is re-drawn at the
+    bigger scale (geometry x k_dst / k_src about the spot's centre -> the box's centre; pen widths and text sizes
+    kept) and clipped to the box; images keep their pixels and get the box as clip. label: what is shown ("ZOOMED
+    IN · <label>" over the box, left aligned). Returns shapes: the spot rectangle, the connector, the box ground,
+    the enlarged copy, the neatline and the label. Size the box so the spot fits: (x1 - x0) x k_dst / k_src."""
+    sh_in = draw_fn() if callable(draw_fn) else draw_fn
+    if hasattr(sh_in, "shapes"):
+        sh_in = sh_in.shapes()
+    ink = ink or SEC["ink"]
+    size = size or SF_ZOOM["label_mm"]
+    sx0, sy0, sx1, sy1 = src_box
+    dx0, dy0, dx1, dy1 = dst_box
+    f = float(k_dst) / float(k_src)
+    scx, scy = 0.5 * (sx0 + sx1), 0.5 * (sy0 + sy1)
+    dcx, dcy = 0.5 * (dx0 + dx1), 0.5 * (dy0 + dy1)
+
+    def T(p):
+        return (dcx + (p[0] - scx) * f, dcy + (p[1] - scy) * f)
+    out = []
+    for s_ in sh_in or ():
+        t = s_[0]
+        if t == "poly":
+            r = _sf_clip_poly([T(p) for p in s_[1]], dx0, dy0, dx1, dy1)
+            if len(r) >= 3:
+                out.append(("poly", r) + tuple(s_[2:]))
+        elif t == "line":
+            for piece in _sf_clip_line([T(p) for p in s_[1]], dx0, dy0, dx1, dy1):
+                out.append(("line", piece) + tuple(s_[2:]))
+        elif t == "text":
+            x, y = T((s_[2], s_[3]))
+            if dx0 <= x <= dx1 and dy0 <= y <= dy1:
+                out.append(("text", s_[1], x, y) + tuple(s_[4:]))
+        elif t == "image":
+            ax, ay = T((s_[1], s_[2]))
+            w, h = s_[3] * f, s_[4] * f
+            if ax < dx1 and ax + w > dx0 and ay < dy1 and ay + h > dy0:
+                rest = tuple(s_[5:8]) + (None,) * (3 - len(s_[5:8]))
+                out.append(("image", ax, ay, w, h) + rest[:3] + ((dx0, dy0, dx1, dy1),))
+    box = [(dx0, dy0), (dx1, dy0), (dx1, dy1), (dx0, dy1)]
+    sh = [("poly", [(sx0, sy0), (sx1, sy0), (sx1, sy1), (sx0, sy1)], None, ink, SF_ZOOM["lw_spot"])]
+    if connector:                                    # spot corner -> the box's nearest corner
+        cs = [(sx0, sy0), (sx1, sy0), (sx1, sy1), (sx0, sy1)]
+        best = min(((a, b) for a in cs for b in box), key=lambda ab: (ab[0][0] - ab[1][0]) ** 2 + (ab[0][1] - ab[1][1]) ** 2)
+        sh.append(("line", [best[0], best[1]], ink, SF_ZOOM["lw_spot"]))
+    sh.append(("poly", box, "FFFFFF", None, 0.0))
+    sh += out
+    sh.append(("poly", box, None, ink, SF_ZOOM["lw_box"]))
+    sh.append(("text", u"ZOOMED IN · %s" % label, dx0, dy1 + 0.6 * size, size, ink, True, "L"))
     return sh
 
 

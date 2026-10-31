@@ -6,10 +6,12 @@
 # no scale bar (SCRIPT_STANDARD §8); the frame axis turned horizontal, upstream on the left, a north arrow. The two
 # bridges (site board data/DIAG_SRC.py BRIDGES_K) name the places; PS_KEY_SELINOS (agriculture data/GEO.py
 # "selinos", survey m) orients the bridge bars and is the stream when no basemap.json exists yet.
-PS_KEY_BRIDGES = [("k4", u"K4 köprüsü", (29846.40, 32277.71)),
-                  ("k5", u"Üç Kemer Köprüsü", (30293.63, 31792.25))]
-PS_KEY_H = 46.0                       # print mm: the strip's height on the booklet page (revision 30 Oct: 46)
-PS_KEY_MARGIN = (60.0, 46.0)          # m around the four cuts in the turned frame (along, across)
+# v16 (round 3, booklet p12: P12.1 the WHOLE study area, P12.2 cut ends W1 / W1', G3 no leaders, G16 real names,
+# G17 a 0.25 pt neatline and no frame): the map window is fitted to the study area (basemap_study) and the four cuts,
+# left in the key row; the right column takes the label key (letters for names that found no room) and the legend.
+PS_KEY_BRIDGES = [("K4", (29846.40, 32277.71)), ("K5", (30293.63, 31792.25))]   # names: bridge_name (NAMES.py)
+PS_KEY_LEG_W = 112.0                  # print mm: the right column (label key + legend) at least
+PS_KEY_PAD = 0.03                     # share of the study area's length added round it in the window
 PS_KEY_SELINOS = [
     (29642.6, 32739.4), (29633.1, 32660.6), (29643.3, 32638.1), (29645.7, 32633.8), (29652.9, 32627.1),
     (29660.7, 32621.7), (29671.3, 32612.4), (29681.0, 32595.6), (29690.4, 32573.6), (29710.7, 32540.0),
@@ -163,17 +165,21 @@ def ps_clip_line(pts, R):
 
 
 def ps_key_strip(pg, area, log):
-    """v10: the key map strip in area (x0, y0, x1, y1), print mm: frame, title row with the north arrow, the
-    topographic basemap cut to the map window, the bridges, page 13's four cuts W1-W4 (triangles point the way each
-    section looks: downstream), each with its section's badge and name. Returns the area."""
+    """the key map row in area (x0, y0, x1, y1), print mm: a coloured rule and the title row with the north arrow,
+    v16 the map window fitted to the WHOLE study area and this page's cuts (P12.1; the frame turned so the stream runs
+    left to right), the topographic basemap cut to it, a 0.25 pt neatline (G17), the bridges by name (G16), the four
+    cuts W1-W4 with their ends named W1 / W1' (P12.2, D6: the NE end = the sections' left = unprimed) and triangles
+    pointing the way each section looks, each cut named with its section's badge and name; labels on or next to
+    their spot, never a leader (G3: lp_place; a cut label with no room keeps its badge only, a name with no room
+    becomes a letter explained in the right column); the right column then holds the legend (ps_legend). Returns
+    the area."""
     x0, y0, x1, y1 = area
     pad, ls, ts = 2.5, PS_LBL, PS_NOTE
-    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
     pg.poly([rect(x0, y1 - 0.8, x1, y1)], fill=MP["discharge"][1])
     yt = y1 - 0.8 - 1.8 - ts * CAP
     ps_rich_para(pg, x0 + pad, yt + ts * 1.28, x1 - x0 - 20.0,
-                 u"**KEY MAP** · the four cuts drawn on this page, upstream to downstream; the triangles point the "
-                 u"way each section looks", ts, COL["ink_dark"])
+                 u"**Key map** · the whole study area and the four cuts of this page; each section runs from its "
+                 u"cut's end W (left) to W' (right), looking the way the triangles point", ts, COL["ink_dark"])
     # north arrow at the title row's right end
     nx, ny = ps_key_turn((0.0, 1.0))
     L = 4.0
@@ -184,30 +190,39 @@ def ps_key_strip(pg, area, log):
     pg.poly([[tip, (tip[0] - nx * hd - ny * hd * 0.45, tip[1] - ny * hd + nx * hd * 0.45),
               (tip[0] - nx * hd + ny * hd * 0.45, tip[1] - ny * hd - nx * hd * 0.45)]], fill=COL["ink"])
     pg.text(u"N", tip[0] - 1.2, tip[1] - ls * CAP / 2.0, ls, COL["ink"], bold=True, align="R")
-    # the map window: the four cuts in the turned frame plus PS_KEY_MARGIN, widened to fill the strip
-    R = (x0 + pad, y0 + pad, x1 - pad, yt - 0.25 * ts - 1.5)
+    # P12.1: the window = the study area + the four cuts (turned frame), PS_KEY_PAD round it, one scale both ways
+    R = (x0 + pad, y0 + pad, x1 - pad - PS_KEY_LEG_W, yt - 0.25 * ts - 1.5)
     ids = [cid for _, cid, _, _, _ in PS_CUTS]
     cuts = basemap_cut_ids(ids, looks=dict((cid, -1) for cid in ids))   # the viewer looks downstream: SW on the right
-    tq = [ps_key_turn(p) for c in cuts for p in c[:2]]
-    wx0, wx1 = min(q[0] for q in tq) - PS_KEY_MARGIN[0], max(q[0] for q in tq) + PS_KEY_MARGIN[0]
-    wy0, wy1 = min(q[1] for q in tq) - PS_KEY_MARGIN[1], max(q[1] for q in tq) + PS_KEY_MARGIN[1]
+    cuts = [(c_[0], c_[1], tuple(cut_end_labels(cid)[0 if nm == "NE" else 1] for nm in level_end_labels(cid)),
+             c_[3]) for c_, cid in zip(cuts, ids)]
+    study = basemap_study()
+    pts = [p for R_ in study for p in R_] + [p for c in cuts for p in c[:2]]
+    if not study:
+        pts += list(PS_KEY_SELINOS)
+        log.append(u"FLAG p12 key map: no study area (basemap.json missing: run the site board once); the window "
+                   u"fits the stream line and the cuts")
+    tq = [ps_key_turn(p) for p in pts]
+    wx0, wx1 = min(q[0] for q in tq), max(q[0] for q in tq)
+    wy0, wy1 = min(q[1] for q in tq), max(q[1] for q in tq)
+    mg = PS_KEY_PAD * max(wx1 - wx0, wy1 - wy0)
+    wx0, wx1, wy0, wy1 = wx0 - mg, wx1 + mg, wy0 - mg, wy1 + mg
     km = min((R[2] - R[0]) / (wx1 - wx0), (R[3] - R[1]) / (wy1 - wy0))      # print mm per m
-    mx, my = (wx0 + wx1) / 2.0, (wy0 + wy1) / 2.0
-    wx0, wx1 = mx - (R[2] - R[0]) / km / 2.0, mx + (R[2] - R[0]) / km / 2.0
-    wy0, wy1 = my - (R[3] - R[1]) / km / 2.0, my + (R[3] - R[1]) / km / 2.0
+    mw, mh = (wx1 - wx0) * km, (wy1 - wy0) * km
+    M = (R[0], R[1] + 0.5 * (R[3] - R[1] - mh), R[0] + mw, R[1] + 0.5 * (R[3] - R[1] + mh))
     frame = [ps_key_unturn(q) for q in ((wx0, wy0), (wx1, wy0), (wx1, wy1), (wx0, wy1))]
 
     def T(p):                                                  # survey m -> print mm
         q = ps_key_turn(p)
-        return (R[0] + (q[0] - wx0) * km, R[1] + (q[1] - wy0) * km)
+        return (M[0] + (q[0] - wx0) * km, M[1] + (q[1] - wy0) * km)
 
     def fill_fn(rings, hx, alpha, nonzero):
-        rr = [r_ for r_ in (ps_clip_ring(r, R) for r in rings) if r_]
+        rr = [r_ for r_ in (ps_clip_ring(r, M) for r in rings) if r_]
         if rr:
             pg.poly(rr, fill=hx, alpha=(alpha if alpha is not None and alpha < 0.975 else None))
 
-    def line_fn(pts, hx, w, dash, alpha):
-        for piece in ps_clip_line(pts, R):
+    def line_fn(pts_, hx, w, dash, alpha):
+        for piece in ps_clip_line(pts_, M):
             pg.line(piece, hx, w, dash=list(dash) if dash else None)
     taken = []
 
@@ -226,48 +241,62 @@ def ps_key_strip(pg, area, log):
     else:                                                      # no basemap.json yet: the stream line only
         log.append(u"NOTE key map: no basemap (run the site board once); the stream line alone is drawn")
         line_fn([T(p) for p in PS_KEY_SELINOS], COL["river"], 0.8, None, 1.0)
-    # the bridges: short bars across the stream, named
+    # the bridges: short bars across the stream, named (G16)
     lab = []
-    for _, nm, p in PS_KEY_BRIDGES:
+    for code, p in PS_KEY_BRIDGES:
         _, (dx, dy) = ps_key_chain(p)
         tx, ty = ps_key_turn((dx, dy))
         c = T(p)
         a_, b_ = (c[0] - ty * 1.6, c[1] + tx * 1.6), (c[0] + ty * 1.6, c[1] - tx * 1.6)
         pg.line([a_, b_], COL["ink"], 0.6, cap=0)
         taken.append((min(a_[0], b_[0]) - 0.3, min(a_[1], b_[1]) - 0.3, max(a_[0], b_[0]) + 0.3, max(a_[1], b_[1]) + 0.3))
-        lab.append((c, nm, False, None))
-    # page 13's cuts only, then each cut's badge and name as in its section title
-    ci = basemap_cut_items(cuts, 1000.0 / km, frame=frame, inset_mm=0.6, tri_mm=1.6, text_mm=ls, col=COL["accent"])
+        lab.append((c, bridge_name(code), False, None))
+    # this page's cuts only, the ends named W1 / W1', then each cut's badge and name as in its section title
+    ci = basemap_cut_items(cuts, 1000.0 / km, frame=frame, inset_mm=0.3, tri_mm=1.4, text_mm=ls, col=COL["accent"])
     basemap_draw(ci, T, fill_fn, line_fn, text_fn)
-    segs = []
-    for it in ci:
-        if it[0] == "line":
-            P = [T(p) for p in it[1]]
-            segs += list(zip(P[:-1], P[1:]))
+    segs = [[T(p) for p in it[1]] for it in ci if it[0] == "line"]
+    if sum(1 for it in ci if it[0] == "line" and len(it[1]) == 2 and it[4]) < len(cuts):
+        log.append(u"FLAG p12 key map: a cut line is too short to draw at 1:{:,.0f}".format(1000.0 / km))
     for (key, cid, n, name, _), c in zip(PS_CUTS, cuts):
         m = ((c[0][0] + c[1][0]) / 2.0, (c[0][1] + c[1][1]) / 2.0)
         lab.append((T(m), u"%s · %s" % (cid, name), True, n))
-    lab.append((T(PS_KEY_SELINOS[int(len(PS_KEY_SELINOS) * 0.8)]), u"Selinos", False, None))
+    lab.append((T(PS_KEY_SELINOS[int(len(PS_KEY_SELINOS) * 0.8)]), place_name("stream"), False, None))
     r = 1.6
-    items_l = []
+    labels = []
     for c, s_, bold, n in lab:
         w = text_w(s_, ls, bold) + (2 * r + 0.8 if n else 0.0)
         hb = 2 * r if n else 0.0
-        items_l.append(dict(x=c[0], y=c[1], rank=0 if n else 1,
-                            wh=lambda f, w_=w, h_=hb: (w_ * f, max(ls * f * (CAP + 0.25), h_))))
-    got = place_labels_all(items_l, taken, R, segs, sizes=(1.0,), pad=0.6)
-    for i, (c, s_, bold, n) in enumerate(lab):
-        if i not in got:
-            log.append(u"NOTE key map: label '{}' left out (no free place)".format(s_))
-            continue
-        b, leader, _ = got[i]
-        if leader:
-            pg.line([c, lp_leader_end(b, c)], COL["ink2"], 0.15)
-        tx_ = b[0]
-        if n:
-            ps_badge(pg, b[0] + r, (b[1] + b[3]) / 2.0, n, r)
-            tx_ += 2 * r + 0.8
-        yb = (b[1] + b[3]) / 2.0 - ls * CAP / 2.0
-        pg.text(s_, tx_, yb, ls, COL["ink_dark"] if bold else COL["ink2"], bold=bold)
-    log.append(u"key map (v10): strip across the top of ps_all, about 1:{:,.0f}; cuts W1-W4 only".format(1000.0 / km))
+        labels.append(dict(x=c[0], y=c[1], s=s_, rank=0,
+                           wh=lambda f, w_=w, h_=hb: (w_ * f, max(ls * f * (CAP + 0.25), h_))))
+    got = lp_place(labels, obstacles=taken, lines=segs, bounds=M, pad=0.6, sizes=(1.0,), leaders=False)
+    keyrows, nl = [], 0
+    for (c, s_, bold, n), g in sorted(zip(lab, got), key=lambda t_: (t_[1]["number"] or 0)):
+        b = g["box"]
+        ym = (b[1] + b[3]) / 2.0
+        if g["number"] is None:
+            tx_ = b[0]
+            if n:
+                ps_badge(pg, b[0] + r, ym, n, r)
+                tx_ += 2 * r + 0.8
+            pg.text(s_, tx_, ym - ls * CAP / 2.0, ls, COL["ink_dark"] if bold else COL["ink2"], bold=bold)
+        elif n:                                                # a cut with no room: its badge = its section title
+            ps_badge(pg, (b[0] + b[2]) / 2.0, ym, n, r)
+        else:                                                  # a name with no room: a letter, explained beside
+            nl += 1
+            t_ = u"%s" % chr(96 + nl)
+            pg.text(t_, (b[0] + b[2]) / 2.0, ym - ls * CAP / 2.0, ls, COL["ink_dark"], bold=True, align="C")
+            keyrows.append((t_, s_))
+    pg.poly([rect(M[0], M[1], M[2], M[3])], stroke=COL["ink"], lw=0.088)   # G17 / D4: the map's thin neatline
+    # the right column: the letters' key, then the legend
+    xr = M[2] + 4.0
+    y = yt - 0.25 * ts - 1.5
+    for t_, s_ in keyrows:
+        y -= PS_ROW
+        pg.text(t_, xr, y, ls, COL["ink_dark"], bold=True)
+        pg.text(s_, xr + text_w(u"m", ls, True) + 1.0, y, ls, COL["ink"])
+    yb = ps_legend(pg, xr, x1 - pad, y - (1.0 if keyrows else 0.0))
+    if yb < y0:
+        log.append(u"FLAG p12 key map: the legend runs %.1f mm under the key row" % (y0 - yb))
+    log.append(u"key map (v16): whole study area, about 1:{:,.0f}, {:.0f} x {:.0f} mm; cuts W1-W4 only, ends W / W'; "
+               u"{} name(s) as letters".format(1000.0 / km, mw, mh, nl))
     return area

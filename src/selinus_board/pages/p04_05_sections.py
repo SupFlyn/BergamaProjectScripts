@@ -18,6 +18,12 @@
 # designed sky behind each cut, people by zone in the one booklet style (fig_place_zones), never in the channel.
 # v57 (Aras 31 Oct 12:01 "they look like they are just put there"; R2-C focus): the people on the crossed streets
 # who stay look at the stream when it is near (P45_FOCUS_WATER_M), else at each other (their zone's middle).
+# v58 (round 3, P04.1 / P04.2 / G15 / G3 / G16 / G2): street names and levels as compact tags in ONE row under each
+# cut's strip, a tag with no room a numbered disc on its spot + the key beside the cut (p45_band; no leaders, no
+# stacked rows); every sky by cut id (sf_sky cid, birds on); the cut ground through sct_ground (soil gradient + hatch);
+# people by zone in front (bank edge fishing/watching over the water level, streets, open ground at the water), trees
+# paler behind them, lamps / bollards / bike racks only on the streets the cut crosses (p45_street_kit); bridge and
+# bank names from names.py (no K-code printed); one FLAG overlap line per page (p04, p05).
 
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S5", "S6")          # cuts that run along the stream: cropped to the part around their crossings
@@ -44,26 +50,50 @@ P45_TREE_KEY = {"olive": "olive", "pine": "stone_pine"}   # the survey's tree sy
 P45_TREE_ANY = "plane"            # a measured tree with no species in the survey: the broadleaf primitive, unnamed
 P45_BANK_WORD = {"dsi_wall": u"a DSİ stone wall", "embankment": u"an embankment", "loose_earth": u"a loose earth bank",
                  "no_crest": u"rising ground"}
+P45_EDGE_M = 3.0                  # m: v58 G15: the bank-top strip where people fish and watch the water (drawing rule)
+P45_LAWN_M = 25.0                 # m: v58 G15: open ground this near a bank is used as a lawn (lying, dogs, play;
+#                                   drawing rule)
+P45_BOLLARD_M = 6.0               # m: v58 G15: a street ending this near a bank top gets a bollard (keeps cars off
+#                                   the bank edge; drawing rule)
+P45_ZOOM_MM = 6.0                 # mm: v58 (G15, PLAN §2 Figures): a 1.75 m person at least this tall in a zoom inset
+P45_ZOOM_TOP_M = 3.2              # m: v58: a zoom spot reaches this far over its highest ground (a person 1.75 m and a
+#                                   fishing rod's tip; drawing rule)
+P45_ZONE_WORD = {"water_edge": u"bank edge", "walkway": u"street", "lawn": u"lawn"}   # v58 (G15, R07): zone names
+P45_POSE_WORD = {"fishing": u"fishing", "watch": u"watching", "touch": u"touching the water", "walk": u"walking",
+                 "running": u"running", "dog_walk": u"walking dogs", "group": u"meeting", "lying": u"resting",
+                 "adult_child": u"walking with children", "child_play": u"playing", "railing": u"watching",
+                 "sit_step": u"sitting", "stand": u"standing", "bike": u"cycling"}   # v58: what the placed people do
+P45_NUM = [0]                     # v58 (G3): the last number handed out on the page being drawn (reading order)
+P45_BOXES = []                    # v58 (G3): text boxes placed on the page being drawn (board units)
+P45_DRAW = []                     # v58 (G3): boxes no text may cover (the stream at each cut, key map triangles)
+P45_COLLECT = [False]             # v58: True while draw_sections_page draws (not the dry measuring runs)
 
 
-def _p45_fig(B, L, pose, x, y, k, facing=1, view="side", col=None, order=34, kb=None):
-    """every human figure of pp.04-05: the M7 pen figures of figures.py (fig_side / fig_top, adult 1.75 m), feet
-    at (x, y) board units, k = board units per metre, kb = board units per booklet mm (pen kept >= 0.10 mm);
-    facing -1 looks left"""
-    c_ = col or mix(INK, PAPER, 0.2)
-    mpm = k / kb if kb else None
-    if view == "top":
-        shs = fig_top(pose, x, y, k, mm_per_m=mpm)
-    else:
-        shs = fig_side(pose, x, y, k, facing, mm_per_m=mpm, style=P45_FIG_STYLE)
-    for sh in shs:
-        if sh and sh[0] == "image":                      # v56: style a cutout (board units already: k = ss)
-            B.image(sh[5], sh[1], sh[2], sh[1] + sh[3], sh[2] + sh[4], L, order=order,
-                    alpha=sh[6] if len(sh) > 6 else None, flip=bool(sh[7]) if len(sh) > 7 else False)
-            continue
-        B.fill([sh[1]], c_, L, order)
-        if kb and sh[4]:
-            B.line(list(sh[1]) + [sh[1][0]], c_, L, order, bk_lw(sh[4], kb))
+def _p45_tb(x0, x1, y, h):
+    """v58 (round 3, G3): note one text line (x0..x1, baseline y, capital height h; board units) for the page's
+    overlap test (only while the page is drawn)"""
+    if P45_COLLECT[0]:
+        P45_BOXES.append((min(x0, x1), y - 0.25 * h, max(x0, x1), y + h))
+
+
+def _p45_para(B, txt, x, y, width, h, col, L, lead=1.45, bcol=None):
+    """v58 (G3): site28_para (txt wrapped to width from baseline y), each line's box noted (_p45_tb); returns the
+    next baseline"""
+    for ln in site28_lines(txt, width, h):
+        site28_draw_line(B, ln, x, y, h, col, L, 40, bcol)
+        _p45_tb(x, x + site28_line_w(ln, h), y, h)
+        y -= lead * h
+    return y
+
+
+def _p45_disc(B, L, n, cx, y, h, order=40):
+    """v58 (G3): number n on its spot: white bold figures on an ink disc centred on cx, baseline y, capital height h;
+    returns the disc's half width"""
+    r = 0.85 * h
+    B.fill([circle_pts(cx, y + 0.5 * h, r, 16)], INK2, L, order)
+    site28_text(B, u"**{}**".format(n), cx, y, 0.8 * h, WHITE, L, order=order + 1, bcol=WHITE, align="C")
+    _p45_tb(cx - r, cx + r, y, h)
+    return r
 
 
 def _p45_c(c):
@@ -162,7 +192,8 @@ def p45_banks(sd_):
     """the cut's stream crossings with a row in the level module (02 §6): [dict(k, rid, a, b, bed, zb, f, along,
     sides)], along = the cut runs along the stream there (its angle under SITE28_CROSS: no bank is cut),
     sides = [left, right] dicts (side, typ, x, dirn, top, zt, h, ang, crest). The bed, the bank and wall tops,
-    their types and angles are the level module's (D4 b: S4 +42.48); the place of the water on the cut is the site
+    their types and angles are the level module's (v58, N1 a: S4 on the survey datum, read from levels.py like every
+    cut; no level is written in this file); the place of the water on the cut is the site
     board's (its run a..b). A row goes to the crossing whose bed is nearest (P45_MATCH_M), across the stream first.
     Memoised on the cut."""
     if "_p45b" in sd_:
@@ -424,8 +455,9 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
     (DSİ walls, embankments, earth, the gravel bed), the 100- and 500-year flood water, the terraces; the cut
     buildings at their floors with their tags; the measured trees at true size (plants, species from the survey's
     symbols), the survey's olive rows where the cut crosses them, figures where people stand; its end names and
-    levels outside it; under it the segmented strip of what it crosses, each segment under its part of the cut; then
-    the callouts, each on its own row (site28_callouts). dry: only what sets the height. Returns the y below."""
+    levels outside it; under it the segmented strip of what it crosses, each segment under its part of the cut.
+    v58: the street names and levels as one row of tags under the strip (p45_band), its numbered words in
+    sd_["_p45key"] for the key beside the cut. dry: only what sets the height. Returns the y below."""
     nm = sd_["name"]
     Lm = sd_["L"]
     off = sd_.get("s_off", 0.0)
@@ -455,6 +487,19 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
     def gy_mm(xm):
         return g_at(xm / km) * km
     tags_ = []
+    zn_ = p45_zones(sd_, crs, Lm)                         # v58 (G15): the use zones (also in the dry run: their tags)
+    zplaced_ = []                                        # v58: [(kind, pose, x mm)] of the people placed
+    zspots_ = []                                         # v58 (G15 zoom inset): [(edge index, (s0, s1, z0, z1) m)]
+    for ei_, (ci_, e0, e1, sd) in enumerate(zn_[0]):
+        s0, s1 = sorted((sd["crest"] - sd["dirn"] * 1.5, sd["crest"] + sd["dirn"] * (0.5 + P45_EDGE_M)))
+        s0, s1 = max(0.0, s0), min(Lm, s1)
+        zs_ = [z for s, z in g if s0 <= s <= s1]
+        av_ = level_avg_flow(crs[ci_]["rid"])
+        if zs_ and s1 - s0 > 1.0:
+            zspots_.append((ei_, (s0, s1, min(zs_ + ([av_ - base] if av_ is not None else [])) - 0.5,
+                                  max(zs_) + P45_ZOOM_TOP_M)))
+    if not dry and P45_COLLECT[0] and zspots_:           # keep a copy of what is drawn on the spots (the insets)
+        B = _P45Rec(B, X0, Y0, kb, [P(q_[0], q_[2]) + P(q_[1], q_[3]) for ei_, q_ in zspots_])
     if not dry:
         # ---- beyond the cut: the buildings as elevations (wall, a hipped roof by convention, outline), the near ones
         # clearly, paler with distance (far first), then the trees beyond
@@ -464,8 +509,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         # floats over the cut; houses as elevations with windows and a hipped roof (sf_back_house, M11 convention)
         y_sky = (ytop - Y0) / kb
         if SF_SKY_DEFAULT and y_sky > min(z for s, z in g) * km + 1.0:
-            _p45_put(B, L, sf_sky(0.0, Lm * km, min(z for s, z in g) * km, y_sky, seed=len(nm) * 7 + int(Lm)),
-                     T, kb, 9)
+            _p45_put(B, L, sf_sky(0.0, Lm * km, min(z for s, z in g) * km, y_sky, seed=len(nm) * 7 + int(Lm),
+                                  cid=nm, birds=True), T, kb, 9)   # v58 (P04.2 / G15): one sky per cut, a few birds
         beyond = sd_.get("beyond") or []
         btrees = sd_.get("btrees") or []
         for li, near in ((2, False), (1, True)):           # far layer first
@@ -492,15 +537,12 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                 _p45_put(B, L, pla_section(key, s * km, sf_ground_fn(gyl, 0.3 * km), km, h_m=hi,
                                            crown_m=max(1.5, 2.0 * tr), beyond=True, seed=i, layer=li),
                          T, kb, 15 - 2 * li)   # v56: paler with depth (Aras 31 Oct 11:24)
-        # ---- the cut ground: poche, then the banks' earth in its hatch near the water
-        B.fill([[P(s, z) for s, z in g] + [P(Lm, zbot), P(0.0, zbot)]], SEC_SOIL, L, 20)
+        # ---- the cut ground: v58 (P04.2 / G15): through sct_ground (the soil gradient, topsoil dark at the surface,
+        # lighter with depth, and the earth hatch over it) along the whole cut; its own cut line left out ([:-1]: the
+        # page draws the cut line below, broken inside the cut buildings). No flat ground fill here.
+        if len(g) >= 2:
+            _p45_put(B, L, sct_ground([(s * km, z * km) for s, z in g], zbot * km, km, "earth")[:-1], T, kb, 20)
         for cr in crs:
-            sl, sr = cr.get("win", (cr["a"], cr["b"]))
-            w0, w1 = max(0.0, sl - 6.0), min(Lm, sr + 6.0)
-            ring = [(s * km, z * km) for s, z in g if w0 <= s <= w1]
-            if len(ring) >= 2 and w1 - w0 < 160.0 and not cr["along"]:
-                ring += [(ring[-1][0], (cr["zb"] - 1.0) * km), (ring[0][0], (cr["zb"] - 1.0) * km)]
-                _p45_put(B, L, sct_hatch_fill(ring, "earth", km), T, kb, 21)
             if not cr["along"]:
                 for sd in cr["sides"]:
                     side = 1.0 if sd["dirn"] > 0 else -1.0
@@ -552,6 +594,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                 if not any(x0_ < qx + hw_ and qx - hw_ < x1_ and abs(y_ - P(0, top_)[1]) < 1.6 * hm
                            for x0_, x1_, y_ in tags_):
                     site28_bld_tag(B, L, P, prof, lab_, hm, wall_c, U, tags_)
+        for x0_, x1_, y_ in tags_:                       # v58 (G3): the tags' boxes (site28_bld_tag: baseline y + 0.12 U)
+            _p45_tb(x0_ + 0.15 * U, x1_ - 0.15 * U, y_ + 0.12 * U, hm)
         # ---- the cut line, broken inside the cut buildings
         spans = sorted((a, b) for a, b, z0, z1, cat, annex, ftype, fl, floors, fsrc in sd_["bld"])
         run = []
@@ -570,7 +614,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         for i, (s, zg, hw, lo, hi) in enumerate(sd_["trees"]):
             key = p45_kind(S, sd_, s, 0.0, hw)
             _p45_put(B, L, pla_section(key, s * km, sf_ground_fn(gy_mm, 0.3 * km), km, h_m=hi,
-                                       crown_m=max(1.5, 2.0 * hw), seed=i), T, kb, 32)   # v56 G14: seated
+                                       crown_m=max(1.5, 2.0 * hw), seed=i, beyond=True), T, kb, 32)
+            # v56 G14: seated; v58 (G15): true size but in the paler tone, so the people in front lead
         for a, b, cat in p45_segments(sd_, 4.0):
             if cat != "agri" or b - a < 10.0:
                 continue
@@ -585,44 +630,53 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         # crosses (the three widest, >= 4 m) people by the walkway set (fig_place_zones: walk, adult with child, a
         # group, watch; varied, seated), at true height (1.75 m), in the booklet's one human style (P45_FIG_STYLE,
         # Aras 31 Oct 11:24: the same style everywhere; cutouts without see-through insides are the module's pick)
-        figs_ = []
-        for cr in crs:
-            for sd in cr["sides"]:
-                if sd["crest"] is None:
-                    continue
-                xm_ = (sd["crest"] + sd["dirn"] * 0.8) * km
-                ym_ = sf_seat_x(gy_mm, xm_, FIG_FOOT_HALF_M * km)
-                fx, fy = T((xm_, ym_))
-                _p45_fig(B, L, "watch", fx, fy, ss, facing=-sd["dirn"], kb=kb)
-                figs_.append([("poly", [(xm_ - 0.2 * km, ym_), (xm_ + 0.2 * km, ym_), (xm_, ym_ + 1.75 * km)],
-                               None, None, 0.0)])
-        st_ = sorted([sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport" and sg[1] - sg[0] >= 4.0
-                      and not any(sg[0] < cr["b"] and cr["a"] < sg[1] for cr in crs)],   # never in the channel (Aras 11:28)
-                     key=lambda q_: q_[0] - q_[1])[:3]
-        zones_ = [("walkway", a * km, b * km) for a, b, cat in sorted(st_)]
+        # v58 (round 3, G15): people lead, in front of the trees (order 34 over 32), by zone (fig_place_zones, every
+        # figure seated on the drawn cut ground): at each bank top across the stream a water_edge strip P45_EDGE_M
+        # wide (fishing, watching, touching; water = that crossing's average-flow level, so the line reaches the
+        # water and nobody stands in it); on the streets the cut crosses walkways (walk, run, dog walk, groups); on
+        # open ground within P45_LAWN_M of a bank a lawn (lying, dogs, play). Street elements only on those streets
+        # (p45_street_kit).
+        gyd = sf_gy([(s * km, z * km) for s, z in g])     # the drawn cut ground (banks and walls as drawn)
+        ink_f = mix(INK, PAPER, 0.2)
+
         def foc_(_k, xa_, xb_):                          # v57 (R2-C focus): the near water, else each other
             m_ = 0.5 * (xa_ + xb_) / km
             w_ = [0.5 * (cr["a"] + cr["b"]) for cr in crs if not cr["along"] and
                   min(abs(cr["a"] - m_), abs(cr["b"] - m_)) <= P45_FOCUS_WATER_M]
             return (min(w_, key=lambda c_: abs(c_ - m_)) if w_ else m_) * km
+        edges_, walks_, lawns_ = zn_
+        for ci, cr in enumerate(crs):
+            av_ = level_avg_flow(cr["rid"])
+            ez_ = [("water_edge", e0 * km, e1 * km, gyd) for c2, e0, e1, sd in edges_ if c2 == ci]
+            if ez_:
+                sh_, placed_ = fig_place_zones(ez_, gyd, km, seed=len(nm) * 13 + ci, style=P45_FIG_STYLE,
+                                               density=0.6, max_per_zone=2, ink=ink_f, focus=foc_,
+                                               water=(av_ - base) * km if av_ is not None else None)
+                _p45_put(B, L, sh_, T, kb, 34)
+                zplaced_ += placed_
+        zones_ = sorted([("walkway", a * km, b * km) for a, b in walks_] +
+                        [("lawn", a * km, b * km) for a, b in lawns_], key=lambda z_: z_[1])
         if zones_:
-            sh_, placed_ = fig_place_zones(zones_, gy_mm, km, seed=len(nm) * 13, style=P45_FIG_STYLE, density=0.6,
-                                           max_per_zone=2, ink=mix(INK, PAPER, 0.2), focus=foc_)
+            sh_, placed_ = fig_place_zones(zones_, gyd, km, seed=len(nm) * 13, style=P45_FIG_STYLE, density=0.6,
+                                           max_per_zone=2, ink=ink_f, focus=foc_)
             _p45_put(B, L, sh_, T, kb, 34)
-        if figs_:
-            for m_ in sf_assert_g14(figs_, gy_mm, strict=False):
-                LOG.append(u"Section {}: {}".format(nm, m_))
+            zplaced_ += placed_
+        _p45_put(B, L, p45_street_kit(walks_, [(e0, e1, sd) for c2, e0, e1, sd in edges_], crs, gyd, km),
+                 T, kb, 33)
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
     co = sd_.get("crop_of")
-    for s_, lab, out in ((0.0, nm, -1.0), (Lm, nm + u"'", 1.0)):
+    e0_, e1_ = cut_end_labels(nm)                        # v58 (D6): "S4" / "S4'"
+    for s_, lab, out in ((0.0, e0_, -1.0), (Lm, e1_, 1.0)):
         real = not co or (s_ == 0.0 and co[1] <= 0.01) or (s_ == Lm and co[1] + Lm >= co[0] - 0.01)
         bx, by = P(s_, g[0][1] if s_ == 0.0 else g[-1][1])
         t_ = u_level(g_at(s_) + base)
         xa = bx + out * 1.0 * kb
-        site28_text(B, t_, xa, by - 0.5 * hm, hm, INK, L, align="L" if out > 0 else "R")
+        _p45_tb(*(site28_text(B, t_, xa, by - 0.5 * hm, hm, INK, L, align="L" if out > 0 else "R") +
+                  (by - 0.5 * hm, hm)))
         if real:
-            site28_text(B, u"**{}**".format(lab), xa, by + 0.9 * hm, hd, INK, L, align="L" if out > 0 else "R")
+            _p45_tb(*(site28_text(B, u"**{}**".format(lab), xa, by + 0.9 * hm, hd, INK, L,
+                                  align="L" if out > 0 else "R") + (by + 0.9 * hm, hd)))
         else:
             B.line([(bx - 0.6 * kb, by - 2.0 * kb), (bx + 0.6 * kb, by - 0.7 * kb), (bx - 0.6 * kb, by + 0.7 * kb),
                     (bx + 0.6 * kb, by + 2.0 * kb)], INK2, L, 36, bk_lw(0.18, kb))
@@ -639,7 +693,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                 continue                                 # v40: never over a building's tag; else the other wall
             B.line([(bx - side * 0.4 * U, by), (bx + side * 0.16 * U, by)], INK, L, 36, 0.04)
             B.fill([[(bx, by), (bx - 0.16 * U, by + 0.28 * U), (bx + 0.16 * U, by + 0.28 * U)]], INK, L, 36)
-            site28_text(B, lev_, bx + 0.25 * U if side > 0 else bx - 0.25 * U - lw_, by + 0.06 * U, hm, INK, L)
+            _p45_tb(*(site28_text(B, lev_, bx + 0.25 * U if side > 0 else bx - 0.25 * U - lw_, by + 0.06 * U, hm,
+                                  INK, L) + (by + 0.06 * U, hm)))
             break
     # ---- the segmented strip (R02): what the cut crosses, each segment exactly under its part of the cut
     ys = P(0.0, zbot)[1] - 0.6 * kb
@@ -654,10 +709,20 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
             dark = sum(col[:3]) < 420
             B.text(w_, 0.5 * (xa_ + xb_), ys - 0.5 * (hb + hst), hst, WHITE if dark else INK, L, order=22,
                    font=FONT_TITLE, align="C")
-    # ---- the callouts, each on its own row (site28_callouts): the water and banks (level module) first, then
-    # terraces and history, then streets and places; levels and heights in m with 2 decimals, widths in cm
+            _p45_tb(0.5 * (xa_ + xb_ - site28_tw(w_, hst)), 0.5 * (xa_ + xb_ + site28_tw(w_, hst)),
+                    ys - 0.5 * (hb + hst), hst)
+    # ---- v58 (round 3, P04.1 / G3 / G4): the street names and levels as compact tags in ONE row under the strip
+    # (p45_band): the water and banks (level module) first, then terraces and history, then streets and places;
+    # a tag with no room is a numbered disc on its spot, its words in the key beside the cut (sd_["_p45key"]).
+    # Levels and heights in m with 2 decimals, widths in cm. The stream at each crossing is the project: no text on it.
     calls = []
     for cr in crs:
+        if P45_COLLECT[0] and not dry:
+            sl, sr = cr.get("win", (cr["a"], cr["b"]))
+            ztop_ = max([cr["zb"] + 0.5] + [sd["zt"] for sd in cr["sides"] if sd["zt"] is not None] +
+                        [q_ - base for q_ in (level(cr["rid"], "q500"), level_avg_flow(cr["rid"])) if q_ is not None])
+            (wx0, wy0), (wx1, wy1) = P(min(cr["a"], sl), cr["zb"]), P(max(cr["b"], sr), ztop_)
+            P45_DRAW.append((wx0, wy0, wx1, wy1))
         bw = level(cr["rid"], "bed_width_cm")
         av = level_avg_flow(cr["rid"])
         if cr["along"]:                                  # along the stream: the flow depth on the surveyed bed
@@ -681,8 +746,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         q1, q5 = level(cr["rid"], "q100"), level(cr["rid"], "q500")
         if q1 is not None:
             calls.append((cr["a"] + 0.3 * (cr["b"] - cr["a"]), q1 - base if not cr["along"] else
-                          g_at(cr["a"] + 0.3 * (cr["b"] - cr["a"])), u"100-year flood {}{}".format(
-                u_level(q1), u" · 500-year {}".format(u_level(q5)) if q5 is not None else u""), 0))
+                          g_at(cr["a"] + 0.3 * (cr["b"] - cr["a"])), u"flood 100-yr {}{}".format(
+                u_level(q1), u" · 500-yr {}".format(u_level(q5)) if q5 is not None else u""), 0))   # v58: compact
         c_ = 0.5 * (cr["a"] + cr["b"])
         for t_ in ([] if cr["along"] else (level_cut(cr["rid"]).get("terraces") or [])):
             lv = (t_.get("level") or {}).get("value")
@@ -697,11 +762,242 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         c2 = site28_road_call(t_)
         calls.append((s_, z_, c2[0], c2[1]))
     calls += [(s_, g_at(s_), t_, 1) for s_, t_ in sec_history_calls(S, sd_) if 0.0 <= s_ <= Lm]
-    low, left_ = site28_callouts(B, L, P, calls, ys - hb - 1.0 * kb, U, hc, x, x + wd)
-    if left_ and not dry:
-        LOG.append(u"Section {}: {} callout(s) left out, no free row under the cut: {}.".format(nm, len(left_),
-                                                                                             u"; ".join(left_)))
-    return min(low, ys - hb) - 0.8 * kb
+    zc_ = [(s_, g_at(s_), t_, 4) for s_, t_ in p45_zone_tags(zn_, crs, None if dry else zplaced_, km)]
+    low, sd_["_p45key"] = p45_band(B, L, P, calls, ys - hb - 0.8 * kb, kb, hst, x, x + wd, zcalls=zc_)
+    # v58 (G15 zoom inset): the bank edge with the most people placed, for draw_sections_page (p45_zoom)
+    sd_["_p45zoom"] = None
+    if not dry and isinstance(B, _P45Rec) and zspots_:
+        def n_on(q_):
+            return sum(1 for k_, pose, xm in zplaced_ if k_ == "water_edge" and q_[0] * km <= xm <= q_[1] * km)
+        ei_, q_ = max(zspots_, key=lambda t_: (n_on(t_[1]), -t_[0]))
+        if n_on(q_):
+            ws_ = []
+            for k_, pose, xm in zplaced_:
+                w_ = P45_POSE_WORD.get(pose, pose.replace(u"_", u" "))
+                if k_ == "water_edge" and q_[0] * km <= xm <= q_[1] * km and w_ not in ws_:
+                    ws_.append(w_)
+            sd_["_p45zoom"] = dict(src=(q_[0] * km, q_[2] * km, q_[1] * km, q_[3] * km), km=km, X0=X0, Y0=Y0,
+                                   shapes=B.shapes(), what=u"{} {} · {}".format(nm, P45_ZONE_WORD["water_edge"],
+                                                                                 u", ".join(ws_)))
+    return min(low - 0.4 * hst, ys - hb) - 0.8 * kb      # v58: under the discs' foot (0.35 x h under the baseline)
+
+
+def p45_free(a, b, taken):
+    """v58 (G15): the parts of a..b (m along the cut) that no interval of taken [(a, b)] covers, left to right"""
+    out = [(a, b)] if b > a else []
+    for t0, t1 in taken:
+        nxt = []
+        for u0, u1 in out:
+            if t1 <= u0 or t0 >= u1:
+                nxt.append((u0, u1))
+                continue
+            if t0 > u0:
+                nxt.append((u0, t0))
+            if t1 < u1:
+                nxt.append((t1, u1))
+        out = nxt
+    return out
+
+
+def p45_street_kit(walks, edges, crs, gy, km):
+    """v58 (round 3, G15): street elements only on the streets the cut crosses (walks [(a, b)] m along the cut, clear
+    of the channel and the bank edges), each for a reason (sizes SF_STREET: drawing rules, never printed as data):
+    a lamp at each street 4 m or wider, at its kerb away from the water (the street is lit); a bollard at a street end
+    within P45_BOLLARD_M of a bank-top edge (edges [(e0, e1, side)] m; keeps cars off the bank edge); one bike rack
+    on the street nearest a crossing, when within P45_FOCUS_WATER_M of it (bikes left where people stop at the
+    water). gy: the drawn ground (mm), km mm per m. Returns shapes (mm from the cut's origin)."""
+    sh = []
+    if not walks:
+        return sh
+
+    def y_(xm):
+        return sf_seat_x(gy, xm, 0.2 * km)
+    cent = [0.5 * (cr["a"] + cr["b"]) for cr in crs if not cr["along"]]
+    for a, b in walks:
+        near_a = any(min(abs(a - e0), abs(a - e1)) <= P45_BOLLARD_M for e0, e1, sd in edges)
+        near_b = any(min(abs(b - e0), abs(b - e1)) <= P45_BOLLARD_M for e0, e1, sd in edges)
+        for end_, inward, hit in ((a, 1.0, near_a), (b, -1.0, near_b)):
+            if hit:
+                xb = (end_ + inward * 0.3) * km
+                sh += sf_bollard(xb, y_(xb), km)
+        if b - a >= 4.0:
+            wa = min([abs(a - c) for c in cent] or [1e9])
+            wb = min([abs(b - c) for c in cent] or [1e9])
+            xl, sl_ = ((b - 0.6) * km, -1) if wa < wb else ((a + 0.6) * km, 1)   # the kerb away from the water
+            sh += sf_lamp(xl, y_(xl), km, side=sl_)
+    if cent:
+        best = min(walks, key=lambda w: min(abs(0.5 * (w[0] + w[1]) - c) for c in cent))
+        c = min(cent, key=lambda c_: abs(0.5 * (best[0] + best[1]) - c_))
+        if best[1] - best[0] >= 3.0 and min(abs(best[0] - c), abs(best[1] - c)) <= P45_FOCUS_WATER_M:
+            xr, sr_ = ((best[1] - 1.0) * km, -1) if abs(best[1] - c) < abs(best[0] - c) else ((best[0] + 1.0) * km, 1)
+            sh += sf_bike_rack(xr, y_(xr), km, side=sr_)
+    return sh
+
+
+class _P45Rec(object):
+    """v58 (G15 zoom inset): a Board that draws as usual and keeps a copy (booklet mm from the cut's origin X0, Y0;
+    kb board units per mm) of every fill ring, line and image touching one of boxes (board units), in drawing order,
+    for the cut's zoom inset; words and everything else go to the Board only"""
+
+    def __init__(self, B, X0, Y0, kb, boxes):
+        self.B, self.X0, self.Y0, self.kb, self.boxes, self.got = B, X0, Y0, kb, boxes, []
+
+    def __getattr__(self, k):
+        return getattr(self.B, k)
+
+    def _hit(self, pts):
+        xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+        return any(min(xs) <= b[2] and b[0] <= max(xs) and min(ys) <= b[3] and b[1] <= max(ys) for b in self.boxes)
+
+    def _mm(self, p):
+        return ((p[0] - self.X0) / self.kb, (p[1] - self.Y0) / self.kb)
+
+    def fill(self, polys, color, layer, order):
+        self.B.fill(polys, color, layer, order)
+        for R in polys or []:
+            if R and len(R) >= 3 and self._hit(R):
+                self.got.append((order, len(self.got), ("poly", [self._mm(p) for p in R], color, None, 0.0)))
+
+    def line(self, P, color, layer, order, w=0.13):
+        self.B.line(P, color, layer, order, w)
+        if P and len(P) >= 2 and self._hit(P):
+            self.got.append((order, len(self.got), ("line", [self._mm(p) for p in P], color, w * 10.0 / self.kb)))
+
+    def image(self, path, x0, y0, x1, y1, layer, order=5, alpha=None, flip=False):
+        self.B.image(path, x0, y0, x1, y1, layer, order=order, alpha=alpha, flip=flip)
+        if self._hit([(x0, y0), (x1, y1)]):
+            a, b = self._mm((x0, y0)), self._mm((x1, y1))
+            self.got.append((order, len(self.got), ("image", a[0], a[1], b[0] - a[0], b[1] - a[1], path, alpha, flip)))
+
+    def shapes(self):
+        return [sh for o_, n_, sh in sorted(self.got, key=lambda t: (t[0], t[1]))]
+
+
+def p45_zones(sd_, crs, Lm):
+    """v58 (round 3, G15): a cut's use zones in m along it: (edges [(crossing index, s0, s1, bank side dict)]: the
+    bank-top strip P45_EDGE_M wide beside each crossing across the stream; walks [(s0, s1)]: the three widest streets
+    (>= 4 m) clear of the channels and the edges; lawns [(s0, s1)]: open or green ground within P45_LAWN_M of a bank,
+    clear of the rest). Nobody in a channel."""
+    taken = [cr.get("win", (cr["a"], cr["b"])) for cr in crs]
+    edges = []
+    for ci, cr in enumerate(crs):
+        if cr["along"]:
+            continue
+        for sd in cr["sides"]:
+            if sd["crest"] is None:
+                continue
+            e0 = sd["crest"] + sd["dirn"] * 0.5
+            e1 = sd["crest"] + sd["dirn"] * (0.5 + P45_EDGE_M)
+            e0, e1 = max(0.0, min(e0, e1)), min(Lm, max(e0, e1))
+            if e1 - e0 >= 1.0:
+                edges.append((ci, e0, e1, sd))
+                taken.append((e0, e1))
+    st_ = sorted([sg for sg in p45_segments(sd_, 2.0) if sg[2] == "transport" and sg[1] - sg[0] >= 4.0
+                  and not any(sg[0] < cr["b"] and cr["a"] < sg[1] for cr in crs)],   # never in the channel (Aras 11:28)
+                 key=lambda q_: q_[0] - q_[1])[:3]
+    walks = [q_ for a, b, cat in sorted(st_) for q_ in p45_free(a, b, taken) if q_[1] - q_[0] >= 2.0]
+    lawns = []
+    for a, b, cat in p45_segments(sd_, 2.0):
+        if cat not in ("void", "green"):
+            continue
+        for cr in crs:
+            if cr["along"]:
+                continue
+            sl, sr = cr.get("win", (cr["a"], cr["b"]))
+            for a2, b2 in ((max(a, sl - P45_LAWN_M), min(b, sl)), (max(a, sr), min(b, sr + P45_LAWN_M))):
+                lawns += [q_ for q_ in p45_free(a2, b2, taken + walks + lawns) if q_[1] - q_[0] >= 3.0]
+    return edges, walks, lawns
+
+
+def p45_zone_words(kind, a, b, placed, km):
+    """v58 (G15, R07): "bank edge · fishing, watching": a zone's name and what the people placed on a..b (m) do
+    (placed [(kind, pose, x mm)]); placed None (the dry run) -> the name alone; None when nobody was placed there"""
+    if placed is None:
+        return P45_ZONE_WORD[kind]
+    ws = []
+    for k_, pose, xm in placed:
+        w_ = P45_POSE_WORD.get(pose, pose.replace(u"_", u" "))
+        if k_ == kind and a * km - 0.5 <= xm <= b * km + 0.5 and w_ not in ws:
+            ws.append(w_)
+    return u"{} · {}".format(P45_ZONE_WORD[kind], u", ".join(ws)) if ws else None
+
+
+def p45_zone_tags(zn, crs, placed, km):
+    """v58 (G15, R07): the cut's zone tags [(s mid m, text)]: one per crossing for its two bank edges (at the
+    crossing's middle), one per street and lawn"""
+    edges, walks, lawns = zn
+    out = []
+    for ci, cr in enumerate(crs):
+        es = [(e0, e1) for c2, e0, e1, sd in edges if c2 == ci]
+        if es:
+            t_ = p45_zone_words("water_edge", min(e[0] for e in es), max(e[1] for e in es), placed, km)
+            if t_:
+                out.append((0.5 * (cr["a"] + cr["b"]), t_))
+    for kind, zs in (("walkway", walks), ("lawn", lawns)):
+        for a, b in zs:
+            t_ = p45_zone_words(kind, a, b, placed, km)
+            if t_:
+                out.append((0.5 * (a + b), t_))
+    return sorted(out)
+
+
+def p45_band(B, L, P, calls, ytop, kb, lh, xlo, xhi, zcalls=()):
+    """v58 (round 3, P04.1 / G3 / G4): a cut's street names and levels as compact tags in ONE row from ytop down,
+    under the strip (no stacked rows, no leaders): calls [(s, z, text, priority)] (0 the water: first; 1 banks'
+    terraces and history; 2 named streets; 3 other streets and places) each centred under its spot (kept between xlo
+    and xhi, its spot inside it) where it clears the tags before it; a tag with no room becomes a numbered disc on its
+    spot (or the nearest free place within 4 mm), numbered in the page's reading order (P45_NUM: left to right, cut
+    after cut) and listed in the key beside the cut (p45_head). Board units; lh = capital height.
+    zcalls (v58, G15 / R07): the use zones' tags [(s, z, text, 4)] ("bank edge · fishing, watching"): a second row
+    under the first (ink2) when every one of them fits there under its spot; else folded into the first row (last
+    priority). Returns (lowest baseline, [(n, text)])."""
+    base_y = ytop - lh
+    gap = 1.5 * kb
+    row2 = []
+    for s, zf, txt, pr in sorted(zcalls, key=lambda q: q[0]):
+        fx = P(s, zf)[0]
+        w_ = site28_line_w(site28_one(txt, lh), lh)
+        half = 0.5 * w_
+        cx = min(max(fx, xlo + half), xhi - half)
+        if w_ > xhi - xlo or not cx - half <= fx <= cx + half or \
+                any(cx - half < r_ + gap and l_ - gap < cx + half for l_, r_, c_, t_ in row2):
+            calls, row2 = list(calls) + list(zcalls), []      # no room: fold the zones into the first row
+            break
+        row2.append((cx - half, cx + half, cx, txt))
+    placed, texts, nums = [], [], []
+    for s, zf, txt, pr in sorted(calls, key=lambda q: (q[3], q[0])):
+        fx = P(s, zf)[0]
+        w_ = site28_line_w(site28_one(txt, lh), lh)
+        half = 0.5 * w_
+        cx = min(max(fx, xlo + half), xhi - half)
+        if w_ <= xhi - xlo and cx - half <= fx <= cx + half and \
+                not any(cx - half < r_ + gap and l_ - gap < cx + half for l_, r_ in placed):
+            placed.append((cx - half, cx + half))
+            texts.append((cx, txt))
+        else:
+            nums.append((fx, txt))
+    r = 0.85 * lh                                        # the disc's radius (_p45_disc)
+    key = []
+    for fx, txt in sorted(nums, key=lambda q: q[0]):
+        P45_NUM[0] += 1
+        cx = None
+        for d in [0.0] + [sg * j * 0.5 * kb for j in range(1, 9) for sg in (1.0, -1.0)]:
+            q = min(max(fx + d, xlo + r), xhi - r)
+            if not any(q - r < r_ + 0.4 * kb and l_ - 0.4 * kb < q + r for l_, r_ in placed):
+                cx = q
+                break
+        if cx is None:                                   # no free place: on its spot anyway (the FLAG counts it)
+            cx = min(max(fx, xlo + r), xhi - r)
+        placed.append((cx - r, cx + r))
+        _p45_disc(B, L, P45_NUM[0], cx, base_y, lh)
+        key.append((P45_NUM[0], txt))
+    for cx, t_ in texts:
+        _p45_tb(*(site28_text(B, t_, cx, base_y, lh, INK, L, align="C") + (base_y, lh)))
+    if row2:                                             # the zones' row, under the discs' foot
+        base_y -= 1.9 * lh
+        for l_, r_, cx, t_ in row2:
+            _p45_tb(*(site28_text(B, t_, cx, base_y, lh, INK2, L, align="C") + (base_y, lh)))
+    return base_y, key
 
 
 def p45_olives(S, sd_, a, b):
@@ -760,8 +1056,9 @@ def sections_context(S, names=None):
                     hs.append(h)
             if hs:
                 d.append(min(hs))
-    txt = u"**{} cuts across the Selinos stream**, each drawn as it is: the ground, the bed and banks, the buildings, " \
-          u"trees and fields it crosses; the strip under each cut names what it crosses".format(len(nms))
+    txt = u"**{} cuts across the {}**, each drawn as it is: the ground, the bed and banks, the buildings, " \
+          u"trees and fields it crosses; the strip under each cut names what it crosses".format(
+              len(nms), place_name("stream"))                 # v58 (G16): the one spelling
     if d:
         txt += u" · the bed **{} below** the lower open bank".format(
             u"{:.2f}-{}".format(min(d), u_height(max(d))) if len(d) > 1 and max(d) - min(d) >= 0.005 else u_height(d[0]))
@@ -794,25 +1091,43 @@ def p45_bar(B, x, y, w, ss, sd_, den, kb, U, L="LU_BOARD::Sections"):
     hm = bk_hk(P45_TXT["minor"], kb)
     sb = nice_floor(max(1.0, min(sd_["L"] / 4.0, 0.5 * w / ss)))
     draw_scalebar(B, x, y, ss, sb, U, L, h=hm / U)
-    site28_text(B, u"1:{:,}".format(crop_scale(ss) or int(den)), x + sb * ss + 0.9 * U + site28_tw(u"m", hm) + 2.0 * kb, y, hm, INK, L)
+    x0_, x1_ = site28_text(B, u"1:{:,}".format(crop_scale(ss) or int(den)), x + sb * ss + 0.9 * U +
+                           site28_tw(u"m", hm) + 2.0 * kb, y, hm, INK, L)
+    if P45_COLLECT[0]:                                   # v58 (G3): the bar with its numbers as one text box
+        P45_BOXES.append((x, y - 0.25 * hm, x1_, y + p45_bar_h(kb, U) - 0.6 * kb))
 
 
 def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
     """the column beside a cut: its name, its key sentence and what on it steers the project (site28_sec_reading),
     the public source of a bed width where there is one (level_public_source; nothing else is credited, D13).
+    v58 (round 3): the ends' banks by place (D6, place_name), then the key of the cut's numbered band tags
+    (sd_["_p45key"], set by p45_strip, which runs first); every line's box noted for the overlap test.
     Returns the y below."""
     hd, hc, hm = bk_hk(P45_TXT["head"], kb), bk_hk(P45_TXT["call"], kb), bk_hk(P45_TXT["minor"], kb)
+    hst = bk_hk(P45_TXT["strip"], kb)
     nm = sd_["name"]
     yy = y - hd
-    site28_text(B, u"**SECTION {0} — {0}'**".format(nm), x, yy, hd, INK, L)
+    e0_, e1_ = cut_end_labels(nm)                        # v58 (D6): the cut's ends "S4" / "S4'"
+    _p45_tb(*(site28_text(B, u"**SECTION {} — {}**".format(e0_, e1_), x, yy, hd, INK, L) + (yy, hd)))
+    crs_ = p45_banks(sd_)
+    if crs_ and not all(c2["along"] for c2 in crs_):     # v58 (D6): the ends' banks by place, not NE / SW
+        l_, r_ = p45_sides(sd_)
+        yy -= 1.5 * hm
+        yy = _p45_para(B, u"{} {} -> {} {}".format(e0_, place_name("bank_" + l_), e1_, place_name("bank_" + r_)),
+                       x, yy, w, hm, INK2, L) + 1.45 * hm
     if sd_.get("crop_of"):
         yy -= 1.5 * hm
-        site28_text(B, u"the part around the stream", x, yy, hm, INK2, L)
+        _p45_tb(*(site28_text(B, u"the part around the stream", x, yy, hm, INK2, L) + (yy, hm)))
     key_, steer_ = site28_sec_reading(S, sd_)
     yy -= 0.5 * hd + 1.3 * hc
     for t_, c_ in ((key_, INK), (steer_, INK2)):
         if t_:
-            yy = site28_para(B, t_, x, yy, w, hc, c_, L, lead=1.45, bcol=INK)
+            yy = _p45_para(B, t_, x, yy, w, hc, c_, L, lead=1.45, bcol=INK)
+    # v58 (P04.1 / G3): the key of the numbered discs in the band under the cut, in their order
+    for n_, t_ in sd_.get("_p45key") or []:
+        r_d = _p45_disc(B, L, n_, x + 0.85 * hst, yy, hst)
+        yy = _p45_para(B, t_, x + 2.0 * r_d + 1.2 * kb, yy, w - 2.0 * r_d - 1.2 * kb, hst, INK, L, lead=1.45)
+        yy -= 0.35 * hst
     srcs = []
     for cr in p45_banks(sd_):
         src = level_public_source(cr["rid"], "bed_width_cm")
@@ -822,8 +1137,48 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
             if t_ not in srcs:
                 srcs.append(t_)
     for t_ in srcs:
-        yy = site28_para(B, t_, x, yy - 0.2 * hc, w, hm, INK2, L, lead=1.4)
+        yy = _p45_para(B, t_, x, yy - 0.2 * hc, w, hm, INK2, L, lead=1.4)   # v58: boxes noted (G3)
     return yy + 0.4 * hc
+
+
+def p45_zoom(B, sd_, x, y_top, y_bot, w, kb, L="LU_BOARD::Sections"):
+    """v58 (round 3, G15, PLAN §2 Figures): the cut's zoom inset (sd_["_p45zoom"], set by p45_strip): its bank edge
+    with the people re-drawn (sf_zoom_inset) at the scale where a 1.75 m person is P45_ZOOM_MM tall, in the column
+    beside the cut between y_top and y_bot (board units, x..x + w), under its label "ZOOMED IN · <cut> bank edge ·
+    <what the people do>"; the spot framed on the cut (no connector: it would cross the cut's drawing; the label names
+    the cut). No room: nothing drawn, "FLAG zoom inset <cut> skipped: no room" logged (the cut is never shrunk for
+    it). Images only where they lie wholly in the box (they cannot be clipped). Returns True when drawn."""
+    zm = sd_.get("_p45zoom")
+    if not zm:
+        return False
+    hm = bk_hk(P45_TXT["minor"], kb)
+    k_dst = P45_ZOOM_MM / FIG_ADULT_H                    # booklet mm per m: a person P45_ZOOM_MM tall
+    sx0, sy0, sx1, sy1 = zm["src"]
+    f = k_dst / zm["km"]
+    bw, bh = (sx1 - sx0) * f * kb, (sy1 - sy0) * f * kb
+    lab = u"**ZOOMED IN** · " + zm["what"]
+    nl = len(site28_lines(lab, w, hm))
+    need = nl * 1.45 * hm + 0.6 * kb + bh
+    if bw > w or need > y_top - y_bot:
+        LOG.append(u"FLAG zoom inset {} skipped: no room".format(sd_["name"]))
+        return False
+    yy = _p45_para(B, lab, x, y_top - hm, w, hm, INK, L, lead=1.45, bcol=INK)
+    by1 = yy + 1.45 * hm - 0.25 * hm - 0.6 * kb
+    X0, Y0 = zm["X0"], zm["Y0"]
+    dst = ((x - X0) / kb, (by1 - bh - Y0) / kb, (x + bw - X0) / kb, (by1 - Y0) / kb)
+
+    def T(q):
+        return (X0 + q[0] * kb, Y0 + q[1] * kb)
+    for sh in sf_zoom_inset(zm["src"], dst, zm["km"], k_dst, zm["shapes"], zm["what"], connector=False):
+        if sh[0] == "text":                              # the label is drawn above (its box noted)
+            continue
+        if sh[0] == "image" and not (dst[0] <= sh[1] and sh[1] + sh[3] <= dst[2] and dst[1] <= sh[2] and
+                                     sh[2] + sh[4] <= dst[3]):
+            continue
+        _p45_put(B, L, [sh], T, kb, 45)
+    if P45_COLLECT[0]:
+        P45_DRAW.append((x, by1 - bh, x + bw, by1))
+    return True
 
 
 def p45_plan(S, sw, U):
@@ -904,6 +1259,12 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     names = pg["names"]
     B.text(u"SECTIONS ACROSS THE STREAM · {} · 1:{:,} ON THE A3 PAGE".format(u", ".join(names), den), x, y, 0.9 * U,
            INK, L, font=FONT_TITLE, bold=True)          # on the sheet only (above the crop)
+    # v58 (round 3, G3): the page's numbers start at 1 (reading order: cut after cut, left to right); every text box
+    # placed from here on is noted for the page's overlap test (P45_BOXES vs P45_DRAW)
+    P45_NUM[0] = 0
+    del P45_BOXES[:]
+    del P45_DRAW[:]
+    P45_COLLECT[0] = True
     top = y - 1.3 * U
     H = P45_H * kb
     gap = P45_GAP * kb
@@ -922,8 +1283,10 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     for c_, h_ in rows:                                  # cut-direction triangles are drawn above and stay)
         c_["_p45"] = dict(k=kb, den=den)
         p45_strip(S, B, c_, x, yy, wd, ss, kb, U)
-        p45_head(S, B, c_, x + wd + gap, yy, wc, kb, U)
+        yh_ = p45_head(S, B, c_, x + wd + gap, yy, wc, kb, U)
         p45_bar(B, x + wd + gap, yy - h_ + 0.6 * kb, wc, ss, c_, den, kb, U)
+        # v58 (G15): the zoom inset in the column's room between its words and its scale bar
+        p45_zoom(B, c_, x + wd + gap, yh_ - 1.0 * kb, yy - h_ + p45_bar_h(kb, U) + 1.5 * kb, wc, kb)
         yy -= h_ + gap + extra
     sf_triangles(**tri_)
     for m_ in sf_assert_g6(ss / kb, strict=False):       # v56 G6: figures print 1.75 m (1.80 m cyclist) at the page scale
@@ -932,6 +1295,8 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     if g14_:
         LOG.append(u"Sections {}: {}".format(u", ".join(names), g14_))
     low = min(top - H, yy + gap + extra)
+    P45_COLLECT[0] = False                               # v58 (G3): FLAG overlap p04 / p05, once per page
+    lp_overlap_flag(("p04", "p05")[k] if k < 2 else "p%02d" % (4 + k), P45_BOXES, P45_DRAW, bounds=(x, low, x + sw, top))
     crop_panel("sections_%d" % (k + 1), x, low, x + sw, top,
                u"Sections across the stream · {} · key map and cuts".format(u", ".join(names)),
                crop_scale(ss))
@@ -940,8 +1305,16 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
 
 
 def site28_title(s):
-    """an upper-case name in title case with its Turkish letters (K4 · ULUCAMİ ÖNÜ -> K4 · Ulucami Önü); words
-    with digits and words not in capitals stay as written"""
+    """an upper-case name in title case with its Turkish letters (MÜSELLA BAYIRI YOLU -> Müsella Bayırı Yolu); words
+    with digits and words not in capitals stay as written. v58 (round 3, G16 / D9): a name led by a bridge code
+    ("K4 · ULUCAMİ ÖNÜ", "K6") is printed as the bridge's one name (bridge_name: "Ulucami Önü Köprüsü"), never
+    the code"""
+    head_ = (s or u"").split(u"·")[0].strip().upper()
+    if len(head_) == 2 and head_[0] == u"K" and head_[1].isdigit():
+        try:
+            return bridge_name(head_)
+        except KeyError:
+            pass
     out = []
     for w_ in (s or u"").split(u" "):
         if not w_ or any(c_.isdigit() for c_ in w_) or not w_.isupper():
@@ -983,57 +1356,12 @@ def site28_road_call(t):
     return nm_ + u" · " + u_dim(m_), 2
 
 
-def site28_callouts(B, L, P, calls, ytop, U, lh, xlo, xhi, tiers=SITE28_SEC_TIERS):
-    """v50 (MIRAQUA 28 Oct, P04.2, G4): a cut's callouts [(s, z, text, priority)] in rows under it from ytop down,
-    by priority (0 the water: always; 1 edges and history; 2 named streets; 3 other streets and places): each on the
-    first row where it clears the words placed before it by two letters, kept between xlo and xhi and over its
-    leader; at most `tiers` rows (priority 0 two more); a word with no free row is left out. A leader from its point
-    to its word, broken where it passes a word of a row above. Returns (lowest baseline, [texts left out])."""
-    step = 1.45 * lh + 0.25 * U                         # revision 30 Oct (PG3 p4-5): rows no longer crowd
-    base_y = ytop - lh
-    gap = max(0.6 * U, 2.2 * lh)
-    placed, out_ = [], []
-    for c_ in sorted(calls, key=lambda q: (q[3], q[0])):
-        s, zf, txt, pr = c_
-        fx = P(s, zf)[0]
-        half = 0.5 * site28_tw(txt, lh)
-        cx = fx
-        if xlo is not None:
-            cx = max(cx, min(fx + half - 0.3 * U, xlo + half))
-        if xhi is not None:
-            cx = min(cx, max(fx - half + 0.3 * U, xhi - half))
-        cap = tiers + (2 if pr == 0 else 0)
-        tier = 0
-        while tier < cap and any(t2 == tier and cx - half < r2 + gap and l2 - gap < cx + half
-                                 for l2, r2, t2, c2 in placed):
-            tier += 1
-        if tier >= cap:
-            out_.append(txt)
-            continue
-        placed.append((cx - half, cx + half, tier, c_))
-    low = base_y
-    for l1, r1, tier, (s, zf, txt, pr) in placed:
-        fx, fy = P(s, zf)
-        ly = base_y - tier * step
-        cuts = sorted((base_y - t2 * step - 0.12 * U, base_y - t2 * step + lh + 0.12 * U)
-                      for l2, r2, t2, c2 in placed if t2 < tier and l2 - 0.15 * U < fx < r2 + 0.15 * U)
-        ytop_ = fy
-        for c0, c1 in reversed(cuts):
-            if c1 < ytop_:
-                B.line([(fx, ytop_), (fx, c1)], INK2, L, 35, 0.035)
-            ytop_ = min(ytop_, c0)
-        if ly + lh + 0.12 * U < ytop_:
-            B.line([(fx, ytop_), (fx, ly + lh + 0.12 * U)], INK2, L, 35, 0.035)
-        B.fill([circle_pts(fx, fy, 0.09 * U, 8)], INK2, L, 35)
-        site28_text(B, txt, 0.5 * (l1 + r1), ly, lh, INK, L, align="C")
-        low = min(low, ly)
-    return low, out_
-
-
 def site28_link(S, px, py, line):
     """what a cut's crossing (px, py) links to in the masterplan (masterplan_results.json "movement", once per run):
     its nearest hub within SITE28_HUB_M, else its nearest crossing within SITE28_XING_M, else a street it changes
-    that the cut crosses; without the masterplan's movement the nearest bridge K1-K6 within SITE28_K_M; u"" when none"""
+    that the cut crosses; without the masterplan's movement the nearest bridge K1-K6 within SITE28_K_M; u"" when none.
+    v58 (round 3, G16 / D9): every bridge printed by its one name (site28_title -> bridge_name; BRIDGES_K's 2nd field
+    is bridge_name(k)), never its K-code"""
     if not hasattr(S, "_s28_mp"):
         S._s28_mp = mp_movement()
     M = S._s28_mp
@@ -1069,7 +1397,7 @@ def site28_link(S, px, py, line):
         d = math.hypot(bx - px, by - py)
         if d <= SITE28_K_M and (best is None or d < best[0]):
             best = (d, kk, nm_)
-    return u"the nearest bridge is **{} {}**".format(best[1], best[2]) if best else u""
+    return u"the nearest bridge is **{}**".format(best[2]) if best else u""   # v58 (G16 / D9): the name, no K-code
 
 
 def site28_sec_reading(S, sd_):
@@ -1113,9 +1441,14 @@ def site28_sec_reading(S, sd_):
         else:
             key = dep[:1].upper() + dep[1:]
         sides = [(t_, wl_) for s_, t_, wl_, gz_ in sd_["labels"] if abs(s_ - a) < 0.3 or abs(s_ - b) < 0.3]
+        sn_ = [p45_sides(sd_)[0 if abs(s_ - a) < 0.3 else 1] for s_, t_, wl_, gz_ in sd_["labels"]
+               if abs(s_ - a) < 0.3 or abs(s_ - b) < 0.3]           # v58 (D6): each bank by its place
         ws = [SITE28_EDGE_WORD.get(t_, t_) + SITE28_WL_WORD.get(wl_, u"") for t_, wl_ in sides]
         if len(ws) >= 2 and ws[0] == ws[1]:
             key += u"; {} on both banks".format(ws[0])
+        elif len(ws) >= 2 and sn_[0] != sn_[1] and cr.get("ang", 90.0) >= SITE28_CROSS:
+            key += u"; {} on the {}, {} on the {}".format(ws[0], place_name("side_" + sn_[0]), ws[1],
+                                                         place_name("side_" + sn_[1]))
         elif len(ws) >= 2:
             key += u"; {} on one bank, {} on the other".format(ws[0], ws[1])
         elif ws:
@@ -1211,28 +1544,32 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     for it in tx_:
         h_ = it[3] * 0.718 * kb
         q = V.p(*it[2])
-        labs.append(dict(x=q[0] / kb, y=q[1] / kb, w=site28_tw(it[1], h_, True) / kb, h=h_ / kb, rank=0, r=0.0))
+        labs.append(dict(x=q[0] / kb, y=q[1] / kb, w=site28_tw(it[1], h_, True) / kb, h=h_ / kb, rank=0, r=0.0,
+                         text=it[1]))
+    # v58 (round 3, G3): lp_place without leaders (y up): a name that finds no free place beside its cut end becomes
+    # a number on the spot, its name in the key rows right of the map (lp_key, reading order)
     got = lp_place(labs, obstacles=obst, lines=lines_, bounds=(r[0] / kb, r[1] / kb, r[2] / kb, r[3] / kb),
-                   max_leader=6.0) if labs else []
+                   leaders=False, y_down=False) if labs else []
     for it, lb, pl in zip(tx_, labs, got):
         if not pl:
             continue
         bx0, by0, bx1, by1 = pl["box"]
         h_ = lb["h"] * pl["size"] * kb
-        CB.text(it[1], 0.5 * (bx0 + bx1) * kb, 0.5 * (by0 + by1) * kb, h_, _p45_c(it[4]), L, order=42,
-                font=FONT_TITLE, bold=True, align="MC")
-        if pl["leader"]:
-            CB.line([(pl["leader"][0][0] * kb, pl["leader"][0][1] * kb), (pl["leader"][1][0] * kb,
-                                                                          pl["leader"][1][1] * kb)],
-                    _p45_c(it[4]), L, 42, bk_lw(0.1, kb))
-    B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.15, kb))
+        CB.text(it[1] if not pl.get("number") else u"%d" % pl["number"], 0.5 * (bx0 + bx1) * kb,
+                0.5 * (by0 + by1) * kb, h_, _p45_c(it[4]), L, order=42, font=FONT_TITLE, bold=True, align="MC")
+        if P45_COLLECT[0]:
+            P45_BOXES.append((bx0 * kb, by0 * kb, bx1 * kb, by1 * kb))
+    if P45_COLLECT[0]:                                    # the cut-direction triangles: no text on them
+        P45_DRAW.extend([(b_[0] * kb, b_[1] * kb, b_[2] * kb, b_[3] * kb) for b_ in obst])
+    B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.088, kb))   # v58 (G17): the map's 0.25 pt neatline
     kx = x                                                # the left column: KEY, the north arrow under it
     B.text(u"KEY", kx, yt - h75, h75, INK, L, font=FONT_TITLE, bold=True)
+    _p45_tb(kx, kx + site28_tw(u"KEY", h75, True), yt - h75, h75)
     draw_north_at(B, F, kx + 4.0 * kb, yt - h75 - 8.0 * kb, 4.0, kb, L)
     # right of the map: the page's reading, then the strip's colours and the key's samples (7 pt)
     tx = r[2] + P45_GAP * kb
     tw_ = x + sw - tx
-    yy = site28_para(B, sections_context(S, names), tx, yt - hcx, tw_, hcx, INK2, L, lead=1.45, bcol=INK)
+    yy = _p45_para(B, sections_context(S, names), tx, yt - hcx, tw_, hcx, INK2, L, lead=1.45, bcol=INK)
     yy -= 0.6 * h7
     lx = tx
     for cat in cats or []:
@@ -1242,17 +1579,23 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
             lx, yy = tx, yy - 1.7 * h7
         col = CAT[cat][1] if cat != "void" else mix(KHAKI, PAPER, 0.55)
         B.fill([rect(lx, yy - 0.15 * h7, lx + 3.0 * kb, yy + 1.0 * h7)], col, L, 40)
-        lx = site28_text(B, w_, lx + 4.0 * kb, yy, h7, INK, L)[1] + 3.0 * kb
+        x0_, x1_ = site28_text(B, w_, lx + 4.0 * kb, yy, h7, INK, L)
+        _p45_tb(x0_, x1_, yy, h7)
+        lx = x1_ + 3.0 * kb
     yy -= 1.9 * h7
     st = R28_STUDY_LINE
     for d_ in r28_pattern([(tx, yy + 0.4 * h7), (tx + 6.0 * kb, yy + 0.4 * h7)], [m_ * kb for m_ in st["dash_mm"]]):
         B.line(d_, C(st["colour"]), L, 40, bk_lw(st["width_mm"], kb))
-    site28_text(B, R28_STUDY_NAME, tx + 7.5 * kb, yy, h7, INK, L)
+    _p45_tb(*(site28_text(B, R28_STUDY_NAME, tx + 7.5 * kb, yy, h7, INK, L) + (yy, h7)))
     yy -= 1.9 * h7
     B.line([(tx, yy + 0.4 * h7), (tx + 6.0 * kb, yy + 0.4 * h7)], INK, L, 40, bk_lw(0.35, kb))
     B.fill([[(tx + 5.3 * kb, yy + 0.4 * h7), (tx + 6.7 * kb, yy + 0.4 * h7), (tx + 6.0 * kb, yy + 1.6 * h7)]], INK, L,
            40)
-    site28_text(B, u"cut line · the triangle: the way the cut looks", tx + 8.0 * kb, yy, h7, INK, L)
+    _p45_tb(*(site28_text(B, u"cut line · the triangle: the way the cut looks", tx + 8.0 * kb, yy, h7, INK, L) +
+              (yy, h7)))
+    for n_, lb in (lp_key(labs, got) if labs else []):   # v58 (G3): the key map's numbered names, in their order
+        yy -= 1.9 * h7
+        _p45_tb(*(site28_text(B, u"**{}**  {}".format(n_, lb["text"]), tx, yy, h7, INK, L) + (yy, h7)))
     if yy - 0.5 * h7 < yt - hk:
         LOG.append(u"Sections key band {}: its words run {:.1f} mm below the map.".format(
             u", ".join(names), (yt - hk - (yy - 0.5 * h7)) / kb))

@@ -11,6 +11,13 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf (one booklet in style a: each crop's _a
   version where its script still writes one, else the crop itself)
+NEW IN v25 (round 3, session C, a feature change): contents in three type levels (theme 9.5 pt accent caps, stage
+  8 pt bold blue-grey small caps, page titles 7.5 pt) with the page numbers right-aligned in one column (P01.1);
+  page numbers are the number only ("17", G2, also on the contents); one minimum type size, grid.py GRID_MIN_PT 6 pt
+  (the log's "TYPE BELOW" line); p18 + p19 on one page from round 3's 1:1 crops (P18.1; two pages only if the
+  page would overrun or print under 6 pt; log line "p18-19: ..."); the sources page lists the p11 relief's height
+  data: the course survey (the one named exception to public-only, N3) and Copernicus GLO-30 with its credit line
+  (P23.1); every booklet page logs "FLAG overlap pNN n (booklet text)"; real names in the page intros (G16).
 NEW IN v24 (round 2, Aras 31 Oct 11:13 + U24/U31, a feature change): p18 + p19 on ONE page ("Where the clean water
   goes, and what it grows"; the side blocks beside the rows they explain), the two compact pages only if one page
   would print labels under 6 pt; p8 street sections whole: they move to their own page "The streets, before and
@@ -124,7 +131,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v24"
+VERSION = "v25"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -431,9 +438,10 @@ def grid_rect_up(r, page_h=None):
     return (r[0], H - r[3], r[2], H - r[1])
 
 
-def grid_page_counter(n, total):
-    """the page counter, computed: "07/23" (n of total pages)"""
-    return "%02d/%02d" % (int(n), int(total))
+def grid_page_counter(n, total=None):
+    """the page number, bottom right: the current page only, "17" (round 3, G2 / U20: no "NN/total"; total is
+    accepted and ignored so older callers keep working)"""
+    return "%d" % int(n)
 
 
 # ------------------------------------------------------------------------------------------- intro with bold runs
@@ -549,10 +557,15 @@ K = 72.0 / 25.4                              # points per mm
 # ---- TYPE (pt; size follows design importance) ----
 T = dict(title=40, part=24, figure=24, sub=14, statement=13, body=9.5, caption=7.5, label=7.5, kicker=8, pageno=14)
 LEAD = dict(title=16.0, part=10.0, statement=6.0, sub=6.0, body=4.0, caption=3.2, label=3.2)   # mm
-MIN_BODY, MIN_CAPTION = 9.0, 7.0
+MIN_BODY, MIN_CAPTION = 9.0, GRID_MIN_PT   # v25 (round 3): ONE minimum, grid.py GRID_MIN_PT (6 pt)
 
 # ---- COLOUR (palette v1.4 core roles; contrast on white checked in design-language.md) ----
 INK, INK2, ACCENT = "4A3F35", "6B645B", "8B3A3F"
+# v25 (round 3, P01.1, PLAN §2 "type levels on contents"): theme > stage > page title, each its own size and colour
+CONT_PT = dict(part=9.5, stage=8.0, title=7.5, no=7.5)   # pt
+CONT_STAGE = "5C7A86"                        # the stage line's colour (palette reference 5C7A86)
+CONT_NO_W = 6.0                              # mm: the page numbers' column, right-aligned at its right edge
+SMALL_CAPS = 0.8                             # small capitals: the lower-case letters as capitals at 0.8 x the size
 RULE, FRAME, PAPER = "B0AC9C", "D8D5CC", "FFFFFF"
 
 def bergama_data(name, _c={}):
@@ -569,7 +582,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '45b232f716c486a449e76048fbee4e71'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '810fa55afe04e1cc0f1a9c13411fbc40'}.get(name):
         raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())
@@ -648,11 +661,11 @@ class Typo(object):
 
     def line(self, page, s, x, y, size, col=INK, bold=False, align="L", angle=0.0, small_ok=False):
         """One line of live text; (x, y) = left (or centre/right) end of the baseline, mm; angle in degrees
-        (counter-clockwise, about the baseline start). small_ok: only the sources page may go below 7 pt."""
+        (counter-clockwise, about the baseline start). small_ok: only the sources page may go below MIN_CAPTION."""
         if not s:
             return
         if size < MIN_CAPTION and not small_ok:
-            self.issues.append("TYPE BELOW 7 pt (%.1f): %s" % (size, s[:40]))
+            self.issues.append("TYPE BELOW %g pt (%.1f): %s" % (MIN_CAPTION, size, s[:40]))
         if align != "L":
             wd = self.width(s, size, bold)
             x -= wd / 2 if align == "C" else wd
@@ -966,10 +979,10 @@ _VARIANT = [None]  # revision 30 Oct (D1, D5): "a" / "b" while that PDF is built
 
 
 def page_no(pno):
-    """revision 30 Oct (G2 [C]): the page counter, computed from the final page list: "07/23" (a text is kept)"""
+    """the page number, bottom right: v25 (round 3, G2) the number only, "7" (grid_page_counter; a text is kept)"""
     if isinstance(pno, str):
         return pno
-    return grid_page_counter(pno, _TOTAL[0]) if _TOTAL[0] else "%02d" % pno
+    return grid_page_counter(pno)
 
 
 def intro_layout(typo, spec):
@@ -1409,8 +1422,9 @@ def panel_item_one(fitz, assets, key):
     return (key, blk, path, clip)
 
 
-def expand(fitz, spec, assets):
-    """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4)."""
+def expand(fitz, spec, assets, typo=None):
+    """One plan entry -> [(spec, rows)]: keys resolved to (key, block, path, clip); each panel whole (v4). typo (v25):
+    measures the page intro, so the one-page test of or_pages knows the room the page really has."""
     def item(key):
         return panel_item(fitz, assets, key)
     rows = [[item(k) for k in r] for r in spec["rows"]]
@@ -1424,12 +1438,20 @@ def expand(fitz, spec, assets):
     if spec.get("alone") and fit(rows) < 0.75 * min(fit([r]) for r in rows):   # v7: together only if both stay big
         return [(dict(spec, title=t), [r]) for t, r in zip(spec["alone"], rows)]
     if spec.get("or_pages"):                         # v24 (round 2): one page while every row keeps ONE_PAGE_MIN
-        s1 = fit(rows, None, AREA[3] - AREA[1] - ONE_PAGE_INTRO)
-        if s1 < ONE_PAGE_MIN:
-            _EXPAND_NOTES.append("'%s' on %d pages: on one page its rows would print at x%.2f (< x%.2f, labels "
-                                 "under 6 pt)" % (spec["title"], len(spec["or_pages"]), s1, ONE_PAGE_MIN))
-            return [pr for sp in spec["or_pages"] for pr in expand(fitz, sp, assets)]
-        _EXPAND_NOTES.append("'%s' on one page at x%.2f" % (spec["title"], s1))
+        # v25 (round 3, P18.1, D8): the room is the drawing area less the intro's (none when it sits beside the title);
+        # crops drawn at 1:1 for the page ("bk_w") are never shrunk, so the page also goes on its or_pages when they
+        # would need more height than it has (they would overrun the footer). Log tag: PLAN "log" (e.g. "p18-19")
+        ah = AREA[3] - AREA[1] - (intro_extra(typo, spec) if typo is not None else ONE_PAGE_INTRO)
+        s1 = fit(rows, None, ah)
+        need = sum(max(wh(it)[1] * scale_of(it, s1) for it in row_items(r)) + CAP_H for r in rows) + \
+            ROW_GAP * (len(rows) - 1)
+        tag = spec.get("log") or "'%s'" % spec["title"]
+        if s1 < ONE_PAGE_MIN or need > ah + 0.5:
+            why = ("on one page its rows would print at x%.2f (< x%.2f, labels under 6 pt)" % (s1, ONE_PAGE_MIN)
+                   if s1 < ONE_PAGE_MIN else "on one page its 1:1 rows would need %.0f of %.0f mm" % (need, ah))
+            _EXPAND_NOTES.append("%s: %d pages, %s" % (tag, len(spec["or_pages"]), why))
+            return [pr for sp in spec["or_pages"] for pr in expand(fitz, sp, assets, typo)]
+        _EXPAND_NOTES.append("%s: one page at x%.2f (rows %.0f of %.0f mm)" % (tag, s1, need, ah))
     return [(spec, rows)]
 
 
@@ -1450,8 +1472,12 @@ def cover(pg, typo, pages):
     for ln in BOOK["names"]:
         typo.line(pg, ln, x, yb, T["body"], INK); yb += LEAD["body"]
     typo.line(pg, BOOK["date"], x, yb + 4, T["caption"], INK2)
-    # contents: parts and page titles, columns 9-12 (a title split over pages listed once)
+    # contents: parts and page titles, columns 9-12 (a title split over pages listed once). v25 (round 3, P01.1):
+    # three levels, each its own size and colour: theme (9.5 pt bold accent capitals), stage (8 pt bold CONT_STAGE
+    # small capitals), page title (7.5 pt ink); the page numbers (7.5 pt bold ink2, "7", G2) right-aligned in one
+    # column, the stages and the titles start in the column after it
     cx, cy = colx(9), 40
+    nx, tx = cx + CONT_NO_W, cx + CONT_NO_W + 3.0
     typo.line(pg, "CONTENTS", cx, cy - 8, T["kicker"], ACCENT, True)
     last, lstage, seen = None, None, set()
     for no, sp in pages:
@@ -1461,14 +1487,33 @@ def cover(pg, typo, pages):
         seen.add(t)
         if sp.get("part") != last:
             last, lstage = sp.get("part"), None
-            cy += 2
-            typo.line(pg, (last + "  " + PARTS.get(last, "")).upper(), cx, cy, T["caption"], ACCENT, True); cy += 4.5
+            cy += 3.0
+            typo.line(pg, (last + "  " + PARTS.get(last, "")).upper(), cx, cy, CONT_PT["part"], ACCENT, True)
+            cy += 5.6
         if sp.get("stage") != lstage:                  # v11: the cycle step, once where it starts
             lstage = sp.get("stage")
-            typo.line(pg, STAGES.get(lstage, "").lower(), cx + 8, cy, T["caption"], INK2); cy += 3.6
-        typo.line(pg, "%02d" % no, cx, cy, T["caption"], INK2, True)
-        typo.line(pg, t, cx + 12, cy, T["caption"], INK); cy += 4.0
+            small_caps(pg, typo, STAGES.get(lstage, ""), tx, cy, CONT_PT["stage"], CONT_STAGE, True); cy += 4.4
+        typo.line(pg, "%d" % no, nx, cy, CONT_PT["no"], INK2, True, "R")
+        typo.line(pg, t, tx, cy, CONT_PT["title"], INK); cy += 4.0
+    if cy > FOOT_RULE - 4.0:
+        typo.issues.append("CONTENTS RUN INTO THE FOOTER (%.0f mm)" % cy)
     pg.draw_line((colx(1) * K, FOOT_RULE * K), ((PW - ML) * K, FOOT_RULE * K), color=hexrgb(RULE), width=0.25)
+
+
+def small_caps(pg, typo, s, x, y, size, col, bold=False):
+    """v25 (round 3, P01.1): s in small capitals from (x, y): capitals at size, lower-case letters as capitals at
+    SMALL_CAPS x size (8 pt -> 6.4 pt, above GRID_MIN_PT)"""
+    runs = []
+    for ch in s or "":
+        sm = ch.islower()
+        if runs and runs[-1][0] == sm:
+            runs[-1][1] += ch
+        else:
+            runs.append([sm, ch])
+    for sm, txt in runs:
+        sz, t_ = size * SMALL_CAPS if sm else size, txt.upper()
+        typo.line(pg, t_, x, y, sz, col, bold)
+        x += typo.width(t_, sz, bold)
 
 
 _F5_RX = []
@@ -1638,6 +1683,36 @@ BK_ASSET_SOURCES = [
     u"https://learnarchitecture.online/products/sketchy-human-figures-2",
     u"Scale figures: studio_articulation, Sketchy Human Figures 3, "
     u"https://learnarchitecture.online/products/sketchy-human-figures-3"]
+
+
+# v25 (round 3, P23.1, N3 a+b, Aras 31 Oct 21:37): the height data of the water board's relief (crop wb_system): the
+# course survey inside the site frame (the ONE named exception to public-only sources, N3 a) and Copernicus GLO-30
+# outside it (its own source and credit lines, read from the Data file the water board reads; this copy if missing)
+ELEV_SURVEY = u"Site survey, Bergama (course file), contours 1-10 m: the ground inside the site frame"
+ELEV_DEM_FILE = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data", "bergama_dem_glo30.json")
+ELEV_DEM = dict(
+    source=u"Copernicus DEM GLO-30, ESA / DLR / Airbus, TanDEM-X 2011-2015; https://dataspace.copernicus.eu/"
+           u"explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    credit=u"© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the "
+           u"European Union and ESA; all rights reserved")
+
+
+def elevation_sources(numbered):
+    """v25 (P23.1, N3): (heading, [survey line, GLO-30 line]) for the sources page when a page shows the water board's
+    wb_system (the relief), else None. Printed as they are: the survey line never goes through public_src (N3 a)."""
+    title = next((sp.get("title", "") for _, sp, rows in numbered or [] if rows and
+                  any(it[0] == WB + "wb_system" for r in rows for it in r)), None)
+    if title is None:
+        return None
+    d = dict(ELEV_DEM)
+    try:
+        with open(ELEV_DEM_FILE, encoding="utf-8") as f_:
+            j_ = json.load(f_)
+        d.update((k, str(j_[k]).strip()) for k in ("source", "credit") if j_.get(k))
+    except Exception:
+        pass
+    return (u"HEIGHT DATA OF THE RELIEF IN ‘%s’" % title.upper(),
+            [ELEV_SURVEY, d["source"].rstrip(" ;") + u": the ground outside the site frame; " + d["credit"]])
 
 
 def cutout_sources():
@@ -1881,6 +1956,9 @@ class Sources(object):
                 extra.append(t)
         if extra:
             out.append((u"PHOTO CREDITS AND DATA NOTES", extra))
+        elev = elevation_sources(self.numbered)       # v25 (P23.1, N3): the relief's height data
+        if elev:
+            out.append(elev)
         codes = plan_codes(self.assets)
         if codes:
             title = next((sp.get("title", "") for _, sp, rows in self.numbered if rows and
@@ -1966,7 +2044,7 @@ def pno_of(numbered, key=None, sheet=None, page=0):
     for pno, sp, rows in numbered:
         if (key and rows and any(it[0] == key for r in rows for it in r)) or \
                 (sheet and rows is None and sp.get("sheet") == sheet and int(sp.get("page", 0)) == page):
-            return "%02d" % pno
+            return "%d" % pno                       # v25 (G2): the number only
     return ""
 
 
@@ -2073,7 +2151,7 @@ def build_variant(variant):
             typo.notes.append("page '%s' left out: its drawings are not made yet (frames only; PLAN FRAME_PAGES)" %
                               spec.get("title", ""))           # v18 (Prompt 8): no empty frame page in the booklet
         else:
-            plan += expand(fitz, spec, assets)
+            plan += expand(fitz, spec, assets, typo)
     typo.notes += _EXPAND_NOTES                     # v24: one page or two (p8 street sections, p18 + p19)
     plan = flex_order(plan, typo)
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
@@ -2138,6 +2216,7 @@ def text_check(fitz, doc, typo, skip=()):
     """The booklet's own text, read back from the PDF (cover, sources page, title and footer bands, captions): none may
     leave the page's margins or overlap another line. The sheets' words are theirs, as the sheets print them."""
     last = len(doc) - 1
+    flags = []
     for i, pg in enumerate(doc):
         if i in skip:
             continue
@@ -2172,6 +2251,9 @@ def text_check(fitz, doc, typo, skip=()):
                                                                                     boxes[b_][1][:25]))
         if n > 3:
             typo.issues.append("TEXT OVERLAPS TEXT p.%d: %d more" % (i + 1, n - 3))
+        flags.append("p%02d %d" % (i + 1, n))          # v25 (round 3, PLAN C log line): every page read, 0 too
+    if flags:
+        typo.notes.append("FLAG overlap (booklet text, per page): " + " · ".join(flags))
 
 
 def chain_fire(v, key):

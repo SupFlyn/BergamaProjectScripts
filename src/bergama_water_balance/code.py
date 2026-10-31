@@ -1,4 +1,4 @@
-# bergama_water_balance_v7.py (v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
+# bergama_water_balance_v8.py (v8, 31 Oct: round 3, p10 charts fill the page, sentence-case title; v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
@@ -19,7 +19,11 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v7"
+VERSION = "v8"
+# NEW IN v8 (round 3, 31 Oct 2026, P10.1 + G2/G3; a feature change, so the next whole number): the white space goes
+#   to the charts: block 1 grows 92 -> 100 mm and its rows follow the block (YEAR_RH from the height, 13.5 -> 15.4 mm); blocks 2-3 move down 8 mm;
+#   block 3's rows follow its height; block 4 is a tighter band (36 -> 32 mm, no empty field under its line); the
+#   title in sentence case like every booklet page ("The water balance"); the log prints "FLAG overlap p10 n".
 # NEW IN v6 (revision 29 Oct 2026, T3b WO-T3b-2, package C items 1-4 and G7; a feature change, so the next whole
 #   number). Pages 11-12 are one story: p.12 (water board) is now one diagrammatic water map, so the analysis it shows
 #   left this sheet, and what stays is drawn per G7 (R31: every user its own row, one common time axis, bars):
@@ -421,7 +425,7 @@ def compute(L):
     crops = list(dict.fromkeys(crops))
     if len(crops) == 1: crops.append("cotton")
     irr = {c: soil_irrigation(c, I) for c in set(crops) | set(CROP_SOIL)}
-    res = dict(script="bergama_water_balance_v7.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+    res = dict(script="bergama_water_balance_v8.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                lands={k: (round(v, 3) if isinstance(v, float) else v) for k, v in L.items()})
     # net irrigation per crop (mm a water year) and the rain the fields hold
     res["net_irrigation_mm"] = {}; res["rain_credit_pct"] = {}
@@ -843,7 +847,7 @@ def panel_answer(pg, R, x, y, w, h):
     top = y + h - 7.0                                           # the light field under the title
     pg.rect(x, y, w, top - y, fill=C["water_tint"])
     lo_, hi_ = d["central_range_m3"]; plo, phi = d["central_range_pct_1in5_dry"]
-    ky, vy, ly = top - 5.5, top - 13.5, top - 19.5               # kicker, headline value, the one line
+    ky, vy, ly = top - 5.0, top - 12.5, top - 18.5               # kicker, headline value, the one line (v8: 3.5 mm above the field's foot)
     vpt, _, _, vcol = grid_style("value"); npt, _, _, ncol = grid_style("note")
     # A: the store, the one headline value (cols 1-5)
     ax, aw = grid_span(1, 5)
@@ -885,7 +889,7 @@ QUESTION = u"How much **winter water** can we hold for the farms' **dry summer**
 
 # ------------------------------------------------------------------ v6 (T3b, G7): 1 one year of water, five rows, one month axis
 STORE_COL = ("CBD9F8", "92A3C9", "3E4C6E")       # the masterplan's storage tones (light, mid, dark), as on p.12's map
-YEAR_RH = 13.5                                   # one row of block 1, mm (revision 30 Oct, p10: 16.5 -> 13.5, a secondary scale)
+YEAR_HEAD, YEAR_FOOT = 10.0, 13.0                # block 1: title + keyword line above the rows, months + Jun-Sep line under them, mm
 YEAR_LAB_W, YEAR_TOT_W = 68.0, 40.0              # the label column before the month axis, the year column after it
 
 
@@ -909,7 +913,7 @@ def panel_year(pg, R, x, y, w, h):
                 "**one month axis** for every user · each row to its own scale: its peak month and its year are written")
     lx, rx = x + YEAR_LAB_W, x + w - YEAR_TOT_W
     bw = (rx - lx) / 12.0
-    top = y + h - 10.0                                        # the first row's top
+    top = y + h - YEAR_HEAD                                   # the first row's top
     rows = [
         ("stream", "Selinos stream", "natural flow past the site " + cite("flow"), (q,),
          lambda m: C["water_deep"] if m in win else C["water"], "%.1f million m³" % (yr / 1e6),
@@ -922,6 +926,7 @@ def panel_year(pg, R, x, y, w, h):
          (R["strip_month_m3"],), lambda m: C["water"], "%s m³" % fmt(R["strip_m3_per_year"]), "a year, May-Oct"),
         ("olive", "Farms", farm_sub,
          (dn, dd), None, "%s m³" % fmt(R["farm_demand_m3"][mix]["dry5"]), "a year, 1 in 5 dry")]
+    YEAR_RH = (h - YEAR_HEAD - YEAR_FOOT) / float(len(rows))   # v8 (P10.1): the rows fill the block (15.4 mm at h 100)
     yb_rows = top - len(rows) * YEAR_RH
     bx0, bx1 = lx + 5 * bw, lx + 9 * bw                      # Jun-Sep: one band behind every row
     pg.rect(bx0, yb_rows - 13.0, bx1 - bx0, top + 1.0 - (yb_rows - 13.0), fill=C["accent_tint"])
@@ -1020,7 +1025,8 @@ def panel_store(pg, R, x, y, w, h):
         if key in na: rows.append((name, lab[key], na[key]["usd_per_m3_low"], na[key]["usd_per_m3_high"]))
     bx = x + 48; bw = w - 50
     lg = lambda v: (math.log10(min(max(v, 0.1), 100.0)) + 1) / 3.0          # 0.1 .. 100 US$ on a log axis
-    top = y + h - 16; rh = 8.5; n = len(rows)
+    n = len(rows); top = y + h - 16
+    rh = min(12.0, max(8.5, (h - 36.0) / max(n, 1)))       # v8 (P10.1): rows follow the block height (8.5 mm before)
     for t in (0.1, 1, 10, 100):
         xx = bx + bw * lg(t)
         pg.line([(xx, top + 3), (xx, top - n * rh + 1)], C["faint"], 0.15)
@@ -1063,9 +1069,12 @@ def _grid_block(c0, n, top, h):
     return (r[0], r[1], r[2] - r[0], r[3] - r[1])
 
 
-BLOCKS = dict(year=_grid_block(1, 12, 36.0, 92.0),
-              curve=_grid_block(1, 7, 144.0, 72.0), store=_grid_block(8, 5, 144.0, 72.0),
-              answer=_grid_block(1, 12, 236.0, 36.0))
+# v8 (round 3, P10.1 "too much empty area"): block 1 36-136 (was 36-128) with taller rows, blocks 2-3 152-224 (were
+# 144-216), block 4 240-272 (was 236-272, 32 mm: its empty field under the one line goes); tops on baselines, heights in
+# whole 4 mm steps (grid_cell rounds up), 16 mm between the rows as before
+BLOCKS = dict(year=_grid_block(1, 12, 36.0, 100.0),
+              curve=_grid_block(1, 7, 152.0, 72.0), store=_grid_block(8, 5, 152.0, 72.0),
+              answer=_grid_block(1, 12, 240.0, 32.0))
 
 
 def build(path, R):
@@ -1075,7 +1084,7 @@ def build(path, R):
     pg = Page(420.0, 297.0)
     pg.rect(0, 0, 420, 297, fill=C["white"])               # v2.7: white sheet (Aras 27 Oct 11:07)
     del SRC_KEY[:]                                        # v2.4: [n] numbers restart on every run
-    pg.text("THE WATER BALANCE", 14, 281.5, 22, C["ink"], True)
+    pg.text("The water balance", 14, 281.5, 22, C["ink"], True)   # v8 (P10.1): sentence case booklet-wide
     rich_para(pg, QUESTION, 14, 273.5, 300, 11, C["ink2"], C["ink"])
     pg.text("lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), 406, 281.5, 7, C["ink2"], align="R")
     panel_year(pg, R, *BLOCKS["year"])                    # 1: the five users of the water on one month axis
@@ -1163,7 +1172,8 @@ def main(g):
         OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], fmt(d["river_take_m3_per_year"]),
         d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
         "\nbooklet ERROR: " + bk_err if bk_err else "") + "\n" + zone_line + (
-        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + "".join(
+        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + (
+        "\nFLAG overlap p10 %d" % len(ov)) + "".join(
         "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
         "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
             k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),

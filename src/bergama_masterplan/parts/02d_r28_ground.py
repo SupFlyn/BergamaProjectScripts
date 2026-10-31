@@ -18,8 +18,9 @@
 PL28_TS, PL28_HEAD_TS = 2.65, 2.82   # booklet label 7.5 pt and kicker 8 pt (PLAN §2), mm
 PL28_MARKS = (0.0, 100.0, 200.0, 500.0)   # the scale bar at 1:10,000, m (50 mm)
 PL28_NI_R = 1.6                  # the letters of the areas left as they are, radius mm
-PL28_HUB = {u"K4": u"K4 · Ulucami Önü", u"K3": u"K3 · Tabak", u"İstiklal": u"İstiklal Meydanı",
-            u"Kızıl Avlu": u"Kızıl Avlu", u"K5": u"K5 · Üç Kemer", u"K6": u"K6"}   # list names (HUB_NAME, sentence case)
+PL28_HUB = {u"K4": bridge_name("K4"), u"K3": bridge_name("K3"), u"İstiklal": u"İstiklal Meydanı",
+            u"Kızıl Avlu": u"Kızıl Avlu", u"K5": bridge_name("K5"),
+            u"K6": bridge_name("K6")}   # list names; v37 (round 3, G16): the full names of common/data/NAMES.py
 PL28_SRC_TAG = re.compile(u"\\s*\\((survey|satellite 2021|satellite check)\\)")   # source tags of the no-go reasons
 PL28_SRC_NAME = {u"survey": u"survey (Bergama_Altlik.3dm)", u"satellite 2021": u"ESA WorldCover 2021",
                  u"satellite check": u"satellite check (OPEN_CHECK)"}
