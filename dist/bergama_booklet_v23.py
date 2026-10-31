@@ -9,8 +9,11 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
   output log   the last run's report: pages, missing drawings, the word size each page prints at
   output done  "done HH:MM:SS.ss · N s" (for the one-click chain: wire the last script's done into run)
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
-Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3_alt_a.pdf and ..._alt_b.pdf (revision 30 Oct:
-  D1/D5 a and b; each crop's _a / _b version where its script wrote one)
+Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf (one booklet in style a: each crop's _a
+  version where its script still writes one, else the crop itself)
+NEW IN v23 (Aras 31 Oct 08:43-08:46, a feature change): ONE booklet in style a (no alt_b): Bergama_booklet_A3.pdf;
+  the old ..._alt_a.pdf / ..._alt_b.pdf in output/bergama_booklet/ are deleted at the run (logged). p6 beige palette,
+  p11 b's layout with the section at the bottom drawn in style a: both come from their scripts' plain crops.
 NEW IN v21 (Aras 30 Oct 06:20, a feature change): the Sources page lists every asset source once under its own
   ASSETS heading (high-res silhouettes from Data/assets_hires.json, the A1 scale figure sets); no source note beside
   a drawing.
@@ -117,7 +120,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v22"
+VERSION = "v23"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -529,8 +532,8 @@ PW, PH = GRID_PAGE
 ML, MT, MB = GRID_ML, GRID_MT, GRID_MB       # left/right margin, top, bottom
 COLS, COL, GUT = GRID_COLS, GRID_COL, GRID_GUT   # 14 + 12 x 29 + 11 x 4 + 14 = 420
 BASE = GRID_BASE                             # baseline grid, from y = 12
-BOOK_VARIANTS = ("a", "b")                   # revision 30 Oct (D1, D5): two PDFs, ..._alt_a.pdf and ..._alt_b.pdf, each
-                                             # crop id taken with the suffix _a / _b where its script wrote one
+BOOK_VARIANTS = ("a",)                       # v23 (Aras 31 Oct 08:46): one PDF in style a, each crop id taken with
+                                             # the suffix _a where its script still writes one
 INTRO_MIN_COLS = 5                           # the intro sits beside the title when this many columns are free
 LEG_ROW, LEG_GAP = 4.0, 4.0                  # a drawing's legend: row pitch, gap between its columns (mm)
 FOOT_RULE, FOOT_B1, FOOT_B2 = 276.0, 280.0, 284.0
@@ -2003,21 +2006,37 @@ def page_checks(doc, numbered, typo):
 
 # ------------------------------------------------------------------ main
 def main():
-    """revision 30 Oct (D1, D5): the booklet built twice, ..._alt_a.pdf and ..._alt_b.pdf (BOOK_VARIANTS), each taking
-    a crop's _a / _b version where its script wrote one (else the crop itself); one log for both"""
+    """v23: one booklet in style a (BOOK_VARIANTS = ("a",)), each crop taken as its _a version where its script still
+    writes one (else the crop itself)"""
     t0 = time.time()
     rows = []
     for v in BOOK_VARIANTS:
         rows += build_variant(v)
+    rows += drop_old_alt()                       # v23: the two-booklet PDFs of v22 go
     rows += bg_tidy_output(OUT_FOLDER, BK_ROOT)  # v10 (27 Oct): output/ = the PDF only, leftovers to cached/booklet/
     rows.append("%s %s, %.1f s" % (GH_LABEL, VERSION, time.time() - t0))
     return "\n".join(rows)
 
 
 def variant_pdf(v):
-    """the PDF name of variant v: Bergama_booklet_A3_alt_a.pdf"""
+    """the PDF name: v23 (one booklet in style a) always Bergama_booklet_A3.pdf"""
+    return PDF_NAME
+
+
+def drop_old_alt():
+    """v23: delete v22's Bergama_booklet_A3_alt_a.pdf / _alt_b.pdf from output/bergama_booklet/ (one log line)"""
     root, ext = os.path.splitext(PDF_NAME)
-    return "%s_alt_%s%s" % (root, v, ext) if v else PDF_NAME
+    gone, kept = [], []
+    for v_ in ("a", "b"):
+        f = os.path.join(OUT_DIR, "%s_alt_%s%s" % (root, v_, ext))
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+                gone.append(os.path.basename(f))
+            except Exception as ex:
+                kept.append("%s (%s, open in a viewer?)" % (os.path.basename(f), type(ex).__name__))
+    return (["old booklets deleted: " + ", ".join(gone)] if gone else []) + \
+           (["OLD BOOKLET NOT DELETED: " + ", ".join(kept)] if kept else [])
 
 
 def build_variant(variant):
