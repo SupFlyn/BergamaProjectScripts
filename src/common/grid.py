@@ -147,9 +147,10 @@ def grid_rect_up(r, page_h=None):
     return (r[0], H - r[3], r[2], H - r[1])
 
 
-def grid_page_counter(n, total):
-    """the page counter, computed: "07/23" (n of total pages)"""
-    return "%02d/%02d" % (int(n), int(total))
+def grid_page_counter(n, total=None):
+    """the page number, bottom right: the current page only, "17" (round 3, G2 / U20: no "NN/total"; total is
+    accepted and ignored so older callers keep working)"""
+    return "%d" % int(n)
 
 
 # ------------------------------------------------------------------------------------------- intro with bold runs
