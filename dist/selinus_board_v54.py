@@ -414,7 +414,7 @@ except Exception:
 # ============================================================ INPUTS
 LOG = []
 SCRIPT_VERSION = "selinus_board v54 (2026-10-30)"     # v27: the log's first line and the text under the component
-SHORT_V = "v53"                                       # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v54"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
