@@ -345,10 +345,31 @@ def plant_photo(key, name, files, keep_old, photo_dir, log, state):
         return fallback(u"offline" if state.get("offline") else u"not loaded ({})".format(type(ex).__name__))
 
 
+PHOTO_PLACED = [0, 0]                # this run: [placed as plain images, asked for] (fitz_add_photos; photo_flag_line)
+
+
+def _photo_crop_pixmap(fitz, data, a):
+    """the JPEG as a PyMuPDF Pixmap cut about its centre to the aspect a (w / h), never stretched"""
+    src = fitz.Pixmap(data)
+    if src.alpha:
+        src = fitz.Pixmap(src, 0)
+    iw, ih = src.width, src.height
+    cw, ch = (int(round(ih * a)), ih) if iw / float(ih) > a else (iw, int(round(iw / a)))
+    x0, y0 = (iw - cw) // 2, (ih - ch) // 2
+    ir = fitz.IRect(x0, y0, x0 + cw, y0 + ch)
+    dst = fitz.Pixmap(src.colorspace, ir, False)
+    dst.copy(src, ir)
+    dst.set_origin(0, 0)
+    return dst
+
+
 def fitz_add_photos(path, photos, page_h=297.0):
     """The photos put into a written PDF with PyMuPDF: photos = [(page index, x0, y0, x1, y1 mm, y up from the page
     foot, jpeg path)]; each JPEG fills its frame, cut to the frame's proportions about its centre (never stretched).
-    The file is saved in place. Returns how many were placed."""
+    Round 3 (A2, DATA-2): each photo goes in as a PLAIN image on the page (insert_image of the cut pixmap), no longer
+    inside a Form XObject (show_pdf_page), which the booklet's crop copy dropped (p19 printed no photos). If the cut
+    fails, the whole JPEG is inserted proportionally inside the frame (still a plain image). The file is saved in
+    place. Returns how many were placed; PHOTO_PLACED / photo_flag_line() give the log line."""
     import fitz
     K = 72.0 / 25.4
     doc = fitz.open(path)
@@ -360,18 +381,17 @@ def fitz_add_photos(path, photos, page_h=297.0):
             info = jpeg_info(data)
             if not info or x1 <= x0 or y1 <= y0:
                 continue
-            iw, ih = float(info[0]), float(info[1])
-            tmp = fitz.open()
-            tp = tmp.new_page(width=iw, height=ih)
-            tp.insert_image(tp.rect, stream=data)
-            a = (x1 - x0) / (y1 - y0)
-            cw, ch = (ih * a, ih) if iw / ih > a else (iw, iw / a)
-            doc[pi].show_pdf_page(fitz.Rect(x0 * K, (page_h - y1) * K, x1 * K, (page_h - y0) * K), tmp, 0,
-                                  clip=fitz.Rect((iw - cw) / 2.0, (ih - ch) / 2.0, (iw + cw) / 2.0, (ih + ch) / 2.0))
-            tmp.close()
+            r = fitz.Rect(x0 * K, (page_h - y1) * K, x1 * K, (page_h - y0) * K)
+            try:
+                doc[pi].insert_image(r, pixmap=_photo_crop_pixmap(fitz, data, (x1 - x0) / (y1 - y0)),
+                                     keep_proportion=False)
+            except Exception:
+                doc[pi].insert_image(r, stream=data, keep_proportion=True)
             n += 1
         except Exception:
             continue
+    PHOTO_PLACED[0] += n
+    PHOTO_PLACED[1] += len(photos)
     if n:
         t_ = path + ".tmp"
         doc.save(t_, garbage=3, deflate=True)
@@ -380,3 +400,11 @@ def fitz_add_photos(path, photos, page_h=297.0):
     else:
         doc.close()
     return n
+
+
+def photo_flag_line(reset=True):
+    """the log line of this run's photos: "photos: n of m placed as images" (+ FLAG when some are missing)"""
+    n, m = PHOTO_PLACED
+    if reset:
+        PHOTO_PLACED[0] = PHOTO_PLACED[1] = 0
+    return u"photos: %d of %d placed as images%s" % (n, m, u" · FLAG %d missing" % (m - n) if n < m else u"")

@@ -3,6 +3,10 @@
 # the spots round its point, then farther out on a thin leader (the leader may not cross a placed label), then the
 # same at the smaller sizes in `sizes`; a label still without a spot is dropped if its rank allows it (secondary
 # labels), else it gets the nearest free spot anywhere in bounds, on a leader. Boxes are (x0, y0, x1, y1).
+# Round 3 (A2, 31 Oct 2026, G3): lp_place(leaders=False) is the default: no leader lines; a label without a spot next
+# to its point becomes a number on the spot + a key row (lp_key), numbered in reading order; lp_overlap_flag logs
+# "FLAG overlap <page> n" for every booklet page (lp_flag_lines). label_spot / place_labels_all keep their leaders
+# for the old callers (each B session moves its pages to lp_place).
 def lp_hit(a, b, pad=0.0):
     return a[0] < b[2] + pad and b[0] < a[2] + pad and a[1] < b[3] + pad and b[1] < a[3] + pad
 
@@ -171,17 +175,41 @@ def place_labels_all(items, taken, bounds=None, segs=(), sizes=(1.0, 0.9), pad=0
     return out
 
 
-def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8)):
+LP_NEAR_RINGS = (0.8, 2.5)       # round 3 (G3): with no leaders a label sits on or right next to its spot only
+LP_ROW_MM = 8.0                  # reading order: anchors within this many mm of height count as one row
+LP_LOG = []                      # this run's label log lines (lp_overlap_flag); lp_flag_lines() empties it
+
+
+def lp_reading_order(pts, y_down=False, row_mm=LP_ROW_MM):
+    """G3: the indexes of pts [(x, y)] in reading order: rows from the top down (rows row_mm high), left to right in
+    each row. y_down: True when page y grows downward (the booklet grid), False for y-up pages"""
+    import math as _m
+    if not pts:
+        return []
+    top = min(p[1] for p in pts) if y_down else max(p[1] for p in pts)
+    row = (lambda p: int(_m.floor((p[1] - top) / row_mm))) if y_down else \
+        (lambda p: int(_m.floor((top - p[1]) / row_mm)))
+    return sorted(range(len(pts)), key=lambda i: (row(pts[i]), pts[i][0], i))
+
+
+def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8),
+             leaders=False, y_down=False, num_wh=None, row_mm=LP_ROW_MM):
     """M2, the one call a page makes for its labels (G3): features + labels in, placed labels out, none overlapping
-    another label, a symbol (obstacles) or the linework (lines). Page mm, any y direction.
+    another label, a symbol (obstacles) or the linework (lines). Page mm, y up (y_down=True for top-down pages).
       labels    dicts: x, y = the target point; w, h = the label's box at size 1 (or wh = f -> (w, h)); rank 0 = must
-                show, 1 = may be dropped; r = the target's radius in mm (a symbol or a dot; 0 = a point): a leader
-                starts on its edge, so it visibly touches the target
+                show, 1 = may be dropped (only with leaders=True); r = the target's radius in mm (a symbol or a dot)
       obstacles boxes (x0, y0, x1, y1) of symbols, other drawings, legends (they are not changed)
       lines     polylines (page mm) a label may not sit on (streets, banks, cut lines), or an LpSegIndex
-    Returns a list in the labels' order: None (a rank-1 label dropped: list it in the legend) or dict(box, size,
-    leader) with leader = None or ((x, y) on the target's edge, (x, y) on the label box): short (<= max_leader
-    where any spot allows), never crossing another leader or a label."""
+    leaders=False (round 3 default, G3: no leader lines anywhere): a label sits on or right next to its spot
+    (LP_NEAR_RINGS) at one of the sizes; a label that finds no such spot becomes a NUMBER on the spot, explained in
+    the key beside the drawing. Numbers run in reading order (lp_reading_order: top row first, left to right), so the
+    key lists them 1, 2, 3 ... in the same order (lp_key). num_wh(text) -> (w, h) mm sizes a number's box (default:
+    from the label's height h). Every number is placed (on its spot, else just beside it, else on it anyway: the
+    overlap test then counts it).
+    leaders=True: the 28 Oct behaviour (farther spots on a short leader <= max_leader, rank-1 labels may drop).
+    Returns a list in the labels' order: None (leaders=True only: a rank-1 label dropped) or dict(box, size, leader,
+    number): number None = the label text goes in box; number n (int) = draw str(n) in box and list the label in the
+    key; leader is always None when leaders=False, else None or ((x, y) on the target's edge, (x, y) on the box)."""
     import math as _m
     segs = lines if hasattr(lines, "near") else LpSegIndex(polylines=lines)
     taken = list(obstacles)
@@ -192,8 +220,40 @@ def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10
         else:
             w0, h0 = L["w"], L["h"]
             its.append(dict(L, wh=(lambda f, w0=w0, h0=h0: (w0 * f, h0 * f))))
-    leaders = []
-    got = place_labels_all(its, taken, bounds, segs, sizes, pad, leaders, max_leader)
+    if not leaders:
+        out = [None] * len(labels)
+        order = sorted(range(len(its)), key=lambda i: its[i].get("rank", 0))
+        fail = []
+        for i in order:
+            it = its[i]
+            for f in sizes:
+                w, h = it["wh"](f)
+                got = label_spot(it["x"], it["y"], w, h, taken, bounds, segs, pad, rings=LP_NEAR_RINGS)
+                if got:
+                    taken.append(got[0])
+                    out[i] = dict(box=got[0], size=f, leader=None, number=None)
+                    break
+            else:
+                fail.append(i)
+        ro = lp_reading_order([(its[i]["x"], its[i]["y"]) for i in fail], y_down, row_mm)
+        for n, j in enumerate(ro, 1):
+            i = fail[j]
+            it = its[i]
+            if num_wh is not None:
+                w, h = num_wh(str(n))
+            else:
+                h = it["wh"](sizes[-1])[1]
+                w = 0.62 * h * len(str(n)) + 0.3 * h
+            b = (it["x"] - w / 2.0, it["y"] - h / 2.0, it["x"] + w / 2.0, it["y"] + h / 2.0)
+            if any(lp_hit(b, t, pad * 0.5) for t in taken):
+                got = label_spot(it["x"], it["y"], w, h, taken, bounds, (), pad * 0.5, rings=LP_NEAR_RINGS)
+                if got:
+                    b = got[0]
+            taken.append(b)
+            out[i] = dict(box=b, size=sizes[-1], leader=None, number=n)
+        return out
+    leaders_ = []
+    got = place_labels_all(its, taken, bounds, segs, sizes, pad, leaders_, max_leader)
     out = []
     for i, L in enumerate(labels):
         g = got.get(i)
@@ -209,7 +269,43 @@ def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10
             s0 = (L["x"] + (e[0] - L["x"]) * r / d, L["y"] + (e[1] - L["y"]) * r / d) if r > 0 and d > r else \
                 (L["x"], L["y"])
             lead = (s0, e)
-        out.append(dict(box=box, size=f, leader=lead))
+        out.append(dict(box=box, size=f, leader=lead, number=None))
+    return out
+
+
+def lp_key(labels, placed):
+    """G3: the key beside the drawing for lp_place's numbered labels: [(number, label dict)] sorted by number (the
+    reading order); the page prints "n  <its text>" per row, in this order"""
+    return sorted([(g["number"], L) for L, g in zip(labels, placed) if g and g.get("number")], key=lambda t: t[0])
+
+
+def lp_overlap_flag(page, label_boxes, drawing_boxes=(), bounds=None, pad=0.0, log=None):
+    """G3 done-when: the overlap test of one booklet page's text. label_boxes: every placed text box (labels, numbers,
+    titles, key rows; page mm); drawing_boxes: the boxes no text may touch (other drawings, symbols, legends; a
+    drawing that carries its own labels gives its symbol boxes, not its frame); bounds: the page's (or crop's) printable
+    box. Counts label vs label, label vs drawing box and label outside bounds, each pair once. Logs "FLAG overlap
+    <page> n" into log (a list) or LP_LOG (n = 0 is logged too: the closing check reads it). Returns n."""
+    L = [tuple(b) for b in label_boxes or () if b]
+    D = [tuple(b) for b in drawing_boxes or () if b]
+    n = 0
+    for i in range(len(L)):
+        for j in range(i + 1, len(L)):
+            if lp_hit(L[i], L[j], pad):
+                n += 1
+        for b in D:
+            if lp_hit(L[i], b, pad):
+                n += 1
+        if bounds and not (bounds[0] <= L[i][0] and L[i][2] <= bounds[2] and bounds[1] <= L[i][1] and
+                           L[i][3] <= bounds[3]):
+            n += 1
+    (log if log is not None else LP_LOG).append(u"FLAG overlap %s %d" % (page, n))
+    return n
+
+
+def lp_flag_lines():
+    """this run's label log lines ("FLAG overlap <page> n"), oldest first; the list is emptied"""
+    out = list(LP_LOG)
+    del LP_LOG[:]
     return out
 
 
