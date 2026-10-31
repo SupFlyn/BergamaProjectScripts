@@ -40,85 +40,85 @@ PLA_SPECIES = {
                   h_range=(None, 30.0), h_m=15.0,            # "up to 30 m" S68, S69
                   crown_m=15.0,                              # "wider than 8 metres" S70: form rule 1.0 x h (>= 8)
                   bloom=[4, 5], leaf=PLA_LEAF_SITE,          # Apr-May S69 (secondary)
-                  colours=_pla_c(SEC["crown"])),             # section_style SEC crown
+                  colours=_pla_c("637F48")),                  # round 3 species colour (D7; ΔE00 >= 12.7 to every species)
     "ash": dict(name="Narrow-leaved ash", turkish="Dişbudak", latin="Fraxinus angustifolia", layer="tree",
                 form="oval", foliage="deciduous (S7)", status="keep",
                 h_range=(None, 40.0), h_m=20.0,              # "40-45m" maximum S7 (lower figure)
                 crown_m=14.0,                                # "dense, irregular and dome shaped" S7: rule 0.7 x h
                 bloom=[], leaf=PLA_LEAF_SITE,                # "early spring or even in autumn" S7: no months
-                colours=_pla_c(_sec_mix("727A4E", SEC["paper"], 0.15))),   # CORE green_mid
+                colours=_pla_c("3E6C5D")),                # round 3: blue-green
     "willow": dict(name="White willow", turkish="Ak söğüt", latin="Salix alba", layer="tree",
                    form="weeping", foliage="deciduous (not quoted)", status="keep",
                    h_range=(None, 30.0), h_m=15.0,           # "up to 30 m" S4
                    crown_m=10.5,                             # crown not found: rule 0.7 x h
                    bloom=[], leaf=PLA_LEAF_SITE,             # "spring" catkins S4: no months
-                   colours=_pla_c(_sec_mix("8C9969", SEC["paper"], 0.3))),  # CORE green_light, silvered
+                   colours=_pla_c("A9B88A")),                   # round 3: silvery light green
     "olive": dict(name="Olive", turkish="Zeytin", latin="Olea europaea", layer="tree",
                   form="gnarled", foliage="evergreen (S72)", status="keep",
                   h_range=(8.0, 15.0), h_m=11.5,             # "8-15 m" S72
                   crown_m=10.35,                             # crown not found: rule 0.9 x h
                   bloom=[4], leaf=PLA_ALL_YEAR,              # full bloom 21-24 Apr, ends 29 Apr-1 May S73 (Ege Univ.)
-                  colours=_pla_c(SEC["olive"])),             # section_style SEC olive
+                  colours=_pla_c("7D8C80")),                  # round 3: grey-green
     "stone_pine": dict(name="Stone pine", turkish="Fıstık çamı", latin="Pinus pinea", layer="tree",
                        form="umbrella", foliage="evergreen conifer (S74)", status="keep (processionary caterpillar)",
                        h_range=(25.0, 30.0), h_m=27.5,       # "25-30 m" S74
                        crown_m=15.1,                         # "umbrella-shaped ... flat and broad" S74: rule 0.55 x h
                        bloom=[], leaf=PLA_ALL_YEAR,          # pollen months not found
-                       colours=_pla_c(SEC["pine"])),         # section_style SEC pine
+                       colours=_pla_c("31432E")),              # round 3: deep green
     "tamarisk": dict(name="Tamarisk", turkish="Ilgın", latin="Tamarix smyrnensis", layer="tree",
                      form="feathery", foliage="deciduous (S9b, genus)", status="keep (replaces oleander)",
                      h_range=(4.0, 15.0), h_m=9.5,           # "4-15 m" S9b (genus)
                      crown_m=7.6,                            # "broad, bushy" S9b: rule 0.8 x h
                      bloom=[], leaf=PLA_LEAF_SITE,           # bloom not found for T. smyrnensis
-                     colours=_pla_c(_sec_mix("8C9969", SEC["paper"], 0.45))),  # CORE green_light, pale
+                     colours=_pla_c("9AA9B3")),                # round 3: glaucous blue-grey
     "chaste": dict(name="Chaste tree", turkish="Hayıt", latin="Vitex agnus-castus", layer="shrub",
                    form="multistem", foliage="deciduous (S58)", status="keep (replaces oleander, fig, citrus)",
                    h_range=(1.0, 3.0), h_m=2.0,              # "1-3 m" S58
                    crown_m=2.0,                              # "1.5-2.5 m" S67 (RHS, UK)
                    bloom=[6, 7, 8, 9], leaf=PLA_LEAF_SITE,   # "(Apr-)Jun-Sep" S58 (Crete); Apr-May occasional
-                   colours=_pla_c(SEC["shrub"], SEC["lav"])),  # flower colour not sourced: section_style lav
+                   colours=_pla_c("928955", SEC["lav"])),       # round 3: khaki; flower colour not sourced: section_style lav
     "rosemary": dict(name="Rosemary", turkish="Biberiye", latin="Salvia rosmarinus", layer="shrub",
                      form="mound", foliage="evergreen (S58, S71)", status="keep",
                      h_range=(0.5, 1.0), h_m=0.75,           # "50-100 cm" S58 (Crete)
                      crown_m=0.75,                           # "1.5-2.5 m" S71 for 1.5-2.5 m plants: scaled to h
                      bloom=[1, 2, 3, 4, 5], leaf=PLA_ALL_YEAR,  # "Jan-May, intermittently to Dec" S58
-                     colours=_pla_c(_sec_mix("495338", SEC["paper"], 0.35))),  # CORE green_deep
+                     colours=_pla_c("5E6356")),                # round 3: dark grey-green
     "lavender": dict(name="French lavender", turkish="Karabaş otu", latin="Lavandula stoechas", layer="ground",
                      form="mound", foliage="evergreen (UNVERIFIED)", status="keep",
                      h_range=(0.3, 0.8), h_m=0.55,           # "30-80 cm" S58
                      crown_m=0.66,                           # crown not found: rule 1.2 x h
                      bloom=[3, 4, 5], leaf=[],               # "Mar-May" S58; evergreen unverified: no leaf months
-                     colours=_pla_c(_sec_mix(SEC["olive"], SEC["paper"], 0.1), SEC["lav"])),  # as sec_lavender
+                     colours=_pla_c("B6AFC3", SEC["lav"])),      # round 3: lilac grey; flowers as sec_lavender
     "loosestrife": dict(name="Purple loosestrife", turkish="Aklar otu", latin="Lythrum salicaria", layer="emergent",
                         form="clump", foliage="herbaceous perennial", status="keep, flower heads cut in Sep (D6)",
                         h_range=(0.3, 2.4), h_m=1.35,        # "0.3-2.4 m" S19
                         crown_m=0.75,                        # "5 feet (1.5 m) wide" mature S19: half the maximum
                         bloom=[6, 7, 8, 9], leaf=[],         # "June ... September" S19; cut Sep (D6)
-                        colours=_pla_c(SEC["grass"], PLA_PURPLE)),
+                        colours=_pla_c("5C9D74", PLA_PURPLE)),     # round 3: fresh blue-green
     "soft_rush": dict(name="Soft rush", turkish="UNVERIFIED", latin="Juncus effusus", layer="emergent",
                       form="clump", foliage="not found", status="new (replaces iris and cattail)",
                       h_range=(0.5, 1.5), h_m=1.0,           # "5-15 dm tall" S59
                       crown_m=0.6,                           # "tufted, cespitose" S59: rule 0.6 x h
                       bloom=[5, 6, 7, 8], leaf=[],           # "late May-Aug, occasionally Sep" S59 (USA)
-                      colours=_pla_c(SEC["reed"])),          # section_style SEC reed
+                      colours=_pla_c("7C9A2E")),               # round 3: rush green
     "rush": dict(name="Sharp rush", turkish="Kofa", latin="Juncus acutus", layer="emergent",
                  form="tussock", foliage="not found", status="keep, away from paths and the wading strip",
                  h_range=(0.6, 1.0), h_m=0.8,                # "(40-)60-100 cm" S65
                  crown_m=0.8,                                # "dense tussock" S60, S65: rule 1.0 x h
                  bloom=[], leaf=[],                          # "summer" S65 (NZ): no months
-                 colours=_pla_c(_sec_mix(SEC["reed"], "495338", 0.3))),   # SEC reed toward CORE green_deep
+                 colours=_pla_c("515B26")),                # round 3: dark olive
     "reed": dict(name="Common reed", turkish="Kamış", latin="Phragmites australis", layer="emergent",
                  form="stand", foliage="deciduous (S2)", status="lined off-line basins only (D2 a): pla_reed_basin",
                  h_range=(None, 6.0), h_m=3.0,               # "may reach 20 feet (6 m)" S2 (booklet drew 1.9-2.2 m)
                  crown_m=None,                               # clonal stand, no crown
                  bloom=[7, 8, 9, 10, 11], leaf=[],           # "July to November" S2 (range-wide); plumes cut before Nov
-                 colours=_pla_c(SEC["reed"], SEC["reed_head"])),
+                 colours=_pla_c("C2A873", SEC["reed_head"])),   # round 3: straw (ΔE00 12.4 to the free-planted species)
     "mint": dict(name="Water mint", turkish="Su nanesi", latin="Mentha aquatica", layer="emergent",
                  form="mound", foliage="deciduous (S57)", status="lined basin cells only (D6): pla_mint_cell",
                  h_range=(0.3, 0.8), h_m=0.55,               # "30-80 cm" S58
                  crown_m=0.75,                               # "spread 0.5-1 m" S57
                  bloom=[5, 6, 7, 8, 9], leaf=[],             # "May-Sep" S58
-                 colours=_pla_c(SEC["grass"])),              # section_style SEC grass
+                 colours=_pla_c("5F9C9E")),                # round 3: blue mint green (ΔE00 12.8)
     "giant_reed": dict(name="Giant reed", turkish="Kargı", latin="Arundo donax", layer="emergent",
                        form="cane", foliage="not found", status="REMOVE (raises flood risk, S36)",
                        h_range=(None, None), h_m=None, crown_m=None,   # not in species_data: pass h_m and crown_m
@@ -140,6 +140,191 @@ def pla_months(key):
     """Sourced months (1-12) of a species: bloom, in leaf and flower-head cut (empty lists where not sourced)."""
     sp = PLA_SPECIES[key]
     return dict(bloom=list(sp["bloom"]), leaf=list(sp["leaf"]), cut=[9] if key == "loosestrife" else [])
+
+
+# ---- round 3 (G9, D7, G15): seasonal colours, bare winter trees, no alpha ---------------------------------------------
+# Species colours (PLA_SPECIES "colours"): every species its own hue, CIEDE2000 >= 12.7 between any two of the
+# twelve free-planted species (reed 12.4, water mint 12.8 to them), calculated from sRGB (D65) in the A1 session;
+# muted toward the palette greens, a drawing rule, not data. Seasons by month: leaf months = the species' sourced
+# "leaf" list (PLA_LEAF_SITE: leaf-out 16 Apr, leaf-fall 14 Nov, site Sentinel-2); a deciduous species out of leaf is
+# drawn bare (pla_bare: the branch structure with the open gaps between branches, D7), never a faded solid; spring
+# (Apr-May) a fresh tint, autumn (Sep-Nov) a warm tint growing to leaf-fall; evergreens keep their colour all year;
+# flower marks (accent) only in the sourced bloom months. Tints are drawing rules. Nothing is ever drawn with alpha.
+PLA_SPRING = "B8C77A"      # fresh leaf tint (drawing rule)
+PLA_AUTUMN = "C29A55"      # autumn tint (drawing rule; palette warm ochre)
+PLA_TINT = {4: ("spring", 0.30), 5: ("spring", 0.15), 9: ("autumn", 0.15), 10: ("autumn", 0.35),
+            11: ("autumn", 0.55)}
+PLA_SEASON = dict(month=None)   # pla_season(m): every plant call without month= draws month m
+PLA_BARE_DRAWN = set()
+
+
+def pla_season(month=None):
+    """sets the month (1-12, None = no season) every pla_section / pla_plan / scatter / group call without its own
+    month= draws in; returns the previous month (pla_season(old) restores it)"""
+    old = PLA_SEASON["month"]
+    PLA_SEASON["month"] = int(month) if month else None
+    return old
+
+
+def _pla_month(month):
+    return int(month) if month else PLA_SEASON["month"]
+
+
+def _pla_deciduous(sp):
+    return sp["foliage"].startswith("deciduous") and bool(sp["leaf"])
+
+
+def pla_colour(key, month=None, beyond=False, layer=0):
+    """the colour set (fill, edge, lt, stem, accent, bare) of species `key` in month (1-12; None = the summer base):
+    bare True when a deciduous species is out of leaf (draw pla_bare); spring / autumn tints for deciduous species in
+    leaf; evergreens unchanged; accent (flowers) only in bloom months (giant reed keeps its 'remove' cross). beyond /
+    layer: paler beyond the cut and with depth (fig_fade). Opaque colours only."""
+    sp = PLA_SPECIES[key]
+    c = dict(sp["colours"])
+    m = _pla_month(month)
+    c["bare"] = False
+    if m:
+        if _pla_deciduous(sp) and m not in sp["leaf"]:
+            c["bare"] = True
+        elif _pla_deciduous(sp) and m in PLA_TINT:
+            kind, t = PLA_TINT[m]
+            c["fill"] = _sec_mix(c["fill"], PLA_SPRING if kind == "spring" else PLA_AUTUMN, t)
+            c["lt"] = _sec_mix(c["fill"], SEC["paper"], 0.35)
+        if key != "giant_reed" and c.get("accent") and m not in sp["bloom"]:
+            c["accent"] = None
+    bare = c.pop("bare")
+    if beyond:
+        c = dict((k_, _sec_mix(v, SEC["paper"], 0.55) if v else v) for k_, v in c.items())
+    c = _pla_layer_cols(c, layer)
+    c["bare"] = bare
+    bark = _sec_mix(sp["colours"]["fill"], sp["colours"]["stem"] or SEC["trunk"], 0.6)   # species-tinted twigs
+    if beyond:
+        bark = _sec_mix(bark, SEC["paper"], 0.55)
+    c["bark"] = _pla_layer_cols(dict(b=bark), layer)["b"]
+    return c
+
+
+def _pla_status(bare_key=None):
+    """keeps the one plants status line in PLA_LOG: "plants: no alpha; bare n species (keys)" """
+    if bare_key:
+        PLA_BARE_DRAWN.add(bare_key)
+    ln = u"plants: no alpha; bare %d species%s" % (len(PLA_BARE_DRAWN), (u" (%s)" % u", ".join(sorted(PLA_BARE_DRAWN)))
+                                                    if PLA_BARE_DRAWN else u"")
+    for i, s_ in enumerate(PLA_LOG):
+        if s_.startswith(u"plants: no alpha"):
+            PLA_LOG[i] = ln
+            return
+    PLA_LOG.append(ln)
+
+
+# bare branch architecture per form (drawing rules): clear stem (fraction of h), main limbs (count, spread deg),
+# upward pull, child count, length ratio, pendulous whips
+PLA_BARE_FORM = dict(
+    dome=dict(lo=0.30, limbs=4, spread=110.0, up=0.15, kids=(2, 3), ratio=(0.62, 0.76), whip=False),
+    oval=dict(lo=0.30, limbs=3, spread=55.0, up=0.45, kids=(2, 3), ratio=(0.64, 0.78), whip=False),
+    weeping=dict(lo=0.28, limbs=3, spread=95.0, up=0.10, kids=(2, 3), ratio=(0.62, 0.74), whip=True),
+    feathery=dict(lo=0.0, limbs=4, spread=45.0, up=0.35, kids=(2, 2), ratio=(0.60, 0.72), whip=False),
+    multistem=dict(lo=0.0, limbs=5, spread=70.0, up=0.40, kids=(2, 2), ratio=(0.55, 0.70), whip=False),
+)
+
+
+def _pla_bare_sec(form, x, gy, h, w, k, c, seed=0):
+    """winter section of a deciduous tree: trunk and recursive branches as tapering lines inside the crown
+    envelope, the open gaps between them showing (D7); weeping forms add long hanging whips"""
+    import math as _m
+    F = PLA_BARE_FORM.get(form, PLA_BARE_FORM["dome"])
+    H, R = h * k, w / 2.0 * k
+    rnd = _pla_rng(seed * 13 + 5)
+    col = c["bark"]
+    tw = max(0.12, h / 60.0 * k)
+    lo = F["lo"] * H
+    ex, ey = x, gy + lo + 0.5 * (H - lo) if lo else gy + 0.55 * H
+    erx, ery = R, (0.5 * (H - lo) if lo else 0.45 * H)
+    D = 3 if H < 8.0 else (4 if H < 20.0 else 5)
+    sh = []
+
+    def inside(px, py):
+        return py <= gy + H and ((px - ex) / erx) ** 2 + ((py - ey) / ery) ** 2 <= 1.0 or py < ey and abs(px - ex) <= erx
+
+    def grow(px, py, ang, L, wd, d):
+        tx, ty = px + L * _m.cos(ang), py + L * _m.sin(ang)
+        n_ = 0
+        while not inside(tx, ty) and n_ < 6:
+            L *= 0.8
+            tx, ty = px + L * _m.cos(ang), py + L * _m.sin(ang)
+            n_ += 1
+        j = 0.08 * L * (rnd() - 0.5)
+        mx, my = px + 0.5 * L * _m.cos(ang) - j * _m.sin(ang), py + 0.5 * L * _m.sin(ang) + j * _m.cos(ang)
+        sh.append(("line", [(px, py), (mx, my), (tx, ty)], col, max(0.05, wd)))
+        if d >= D:
+            if F["whip"]:                            # willow: long thin whips hanging from the twig ends
+                drop = (0.18 + 0.14 * rnd()) * H
+                yb = max(gy + 0.10 * H, ty - drop)
+                sh.append(("line", [(tx, ty), (tx + 0.04 * R * (1 if tx >= x else -1), 0.5 * (ty + yb)),
+                                    (tx + 0.06 * R * (1 if tx >= x else -1), yb)], col, 0.05))
+            return
+        nk = F["kids"][0] + (1 if rnd() < 0.4 and F["kids"][1] > F["kids"][0] else 0)
+        for i in range(nk):
+            off = (i - 0.5 * (nk - 1)) / max(1.0, 0.5 * (nk - 1) + 0.5) * _m.radians(28.0 + 14.0 * rnd())
+            a = ang + off
+            a = a + F["up"] * (_m.pi / 2.0 - a) * 0.5        # pull toward upright
+            r_ = F["ratio"][0] + (F["ratio"][1] - F["ratio"][0]) * rnd()
+            grow(tx, ty, a, L * r_, wd * 0.62, d + 1)
+
+    if lo:                                           # trunk up to the first fork, tapering
+        fy = gy + lo + 0.08 * (H - lo)
+        sh.append(("poly", [(x - tw, gy), (x + tw, gy), (x + 0.6 * tw, fy), (x - 0.6 * tw, fy)], col, None, 0.0))
+        base, L0 = (x, fy), 0.42 * (H - lo)
+    else:                                            # stems from the ground
+        base, L0 = (x, gy), 0.50 * H
+    nl = F["limbs"]
+    for i in range(nl):
+        t = (i / float(nl - 1)) - 0.5 if nl > 1 else 0.0
+        a = _m.pi / 2.0 + _m.radians(F["spread"]) * t + _m.radians(10.0) * (rnd() - 0.5)
+        grow(base[0] + (0.15 * tw * t if lo else 0.12 * R * t), base[1], a, L0 * (0.85 + 0.25 * rnd()),
+             (1.1 * tw if lo else 0.5 * tw), 1)
+    return sh
+
+
+def _pla_bare_plan(cx, cy, r, c, seed=0):
+    """winter plan of a deciduous crown: main branches radiating and forking, open between them, the trunk dot"""
+    import math as _m
+    rnd = _pla_rng(seed * 17 + 3)
+    col = c["bark"]
+    sh = []
+
+    def grow(px, py, ang, L, wd, d):
+        tx, ty = px + L * _m.cos(ang), py + L * _m.sin(ang)
+        if _m.hypot(tx - cx, ty - cy) > r:
+            s_ = r / _m.hypot(tx - cx, ty - cy)
+            tx, ty = cx + (tx - cx) * s_, cy + (ty - cy) * s_
+        sh.append(("line", [(px, py), (tx, ty)], col, max(0.05, wd)))
+        if d < 3:
+            for o in (-0.45, 0.4):
+                grow(tx, ty, ang + o + 0.2 * (rnd() - 0.5), L * 0.62, wd * 0.6, d + 1)
+    n = 5 + int(rnd() * 2.999)
+    for i in range(n):
+        grow(cx, cy, 2 * _m.pi * (i + 0.3 * rnd()) / n, 0.45 * r, max(0.08, 0.05 * r), 1)
+    sh.append(("poly", sec_ellipse(cx, cy, max(0.2, 0.06 * r), max(0.2, 0.06 * r), 10), col, None, 0.0))
+    return sh
+
+
+def pla_bare(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, layer=0, month=None, plan=False):
+    """D7 winter tree: species `key` (deciduous) without leaves as its branch structure with the open gaps between
+    branches, in its species-tinted bark colour, true size (section: ground at (x, gy); plan=True: crown centred on
+    (x, gy) page mm), paler beyond / with depth. Opaque lines and the trunk only, never a faded solid. Counted in the
+    plants log line. Returns shapes."""
+    sp = _pla_get(key)
+    h, w = _pla_size(key, sp, h_m, crown_m)
+    if h_m is not None:
+        h = pla_height_ok(key, h)
+    c = pla_colour(key, month or 1, beyond=beyond, layer=layer)
+    _pla_status(key)
+    if plan:
+        return _pla_bare_plan(x, gy, w / 2.0 * k, c, seed)
+    sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
+    g = gy(x) if callable(gy) else gy
+    return _pla_bare_sec(sp["form"], x, g, h, w, k * sc, c, seed)
 
 
 def _pla_rnd(i, s=0):
@@ -169,14 +354,95 @@ def _pla_cols(sp, beyond):
     return c
 
 
+# ---- white willow (round 3, N4 b, Aras 31 Oct 21:37): drawn anew from the p16 species photo (an old Salix alba with
+# a stout, leaning trunk forking low into spreading limbs) in place of the lobed crown with three lighter blobs and a
+# trapezoid curtain (U11, U27, U30). Section: the leaning trunk, three limbs, six to seven irregular leaf masses
+# along their ends with open gaps between them (no single blob), and the weeping curtain as tapering streamers and
+# fine strands hanging from each mass. Plan: overlapping masses with a fringe of hanging-strand ticks. Opaque; the
+# species colour and its seasonal tint come in c (pla_colour); winter = pla_bare (weeping: hanging whips).
+# Proportions are drawing rules inside the sourced height and the crown rule (PLA_SPECIES willow), not data.
+PLA_WILLOW_MASSES = ((-0.74, 0.50, 0.25, 0.11), (-0.55, 0.66, 0.40, 0.15), (0.05, 0.60, 0.34, 0.12),
+                     (-0.15, 0.83, 0.44, 0.14), (0.30, 0.79, 0.42, 0.15), (0.62, 0.62, 0.36, 0.15),
+                     (0.78, 0.45, 0.22, 0.11))    # (dx / R, centre / H, rx / R, ry / H), back to front
+
+
+def _pla_willow_sec(x, gy, h, w, k, c, seed=0):
+    """the white willow in section, h tall and w wide (m), ground at (x, gy) page mm; mirrored on odd seeds"""
+    H, R = h * k, w / 2.0 * k
+    s = -1.0 if seed % 2 else 1.0
+    rnd = _pla_rng(seed * 7 + 11)
+    f, e, st = c["fill"], c["edge"], c["stem"]
+    dark = _sec_mix(f, e, 0.22)                 # masses farther back and the inner curtain: a shade deeper
+    strand = _sec_mix(f, e, 0.40)
+    tw = max(0.18, h / 45.0 * k)                # willow trunks are stout: 1/22.5 of the height (rule)
+    fx, fy = x + s * 0.10 * R, gy + 0.27 * H    # the low fork, the trunk leaning toward it
+    sh = [("poly", [(x - tw, gy), (x + tw, gy), (fx + 0.75 * tw, fy), (fx - 0.75 * tw, fy)], st, None, 0.0)]
+    limbs = ((-0.55, 0.62), (0.12, 0.80), (0.60, 0.58))
+    for dx, ty in limbs:                        # three limbs spreading from the fork
+        lx, ly = x + s * dx * R, gy + ty * H
+        mx, my = 0.5 * (fx + lx) + s * 0.04 * R * (rnd() - 0.5), 0.5 * (fy + ly) - 0.03 * H
+        sh.append(("line", [(fx, fy), (mx, my), (lx, ly)], st, max(0.10, 0.9 * tw)))
+    n = len(PLA_WILLOW_MASSES)
+    for i, (dx, cy, rx, ry) in enumerate(PLA_WILLOW_MASSES):
+        mx, my = x + s * dx * R, gy + cy * H
+        RX, RY = rx * R * (0.92 + 0.16 * rnd()), ry * H * (0.92 + 0.16 * rnd())
+        col = dark if i in (0, 2) else f
+        # the weeping curtain under this mass: tapering streamers between fine strands, ending at staggered heights
+        m_ = max(3, int(RX / max(0.35, 0.05 * R)))
+        for j in range(m_):
+            t = -0.85 + 1.7 * (j + 0.5 * rnd()) / m_
+            px = mx + t * RX
+            top = my - 0.35 * RY * (1.0 - t * t) ** 0.5
+            drop = (0.16 + 0.16 * rnd()) * H
+            yb = max(gy + 0.12 * H, top - drop)
+            lean = (0.03 + 0.03 * rnd()) * R * (1 if px >= x else -1)
+            if j % 2 == 0:
+                wd = 0.045 * RX + 0.05
+                sh.append(("poly", [(px - wd, top), (px + wd, top), (px + lean + 0.15 * wd, yb), (px + lean - 0.15 * wd, yb)],
+                           dark if i in (0, 2) else _sec_mix(f, e, 0.12), None, 0.0))
+            else:
+                sh.append(("line", [(px, top), (px + 0.5 * lean, 0.5 * (top + yb)), (px + lean, yb)], strand, 0.07))
+        sh.append(("poly", _pla_crown(mx, my, RX, RY, 0.8 * RY, seed + 3 * i, 0.20), col, e, 0.06))
+        if i == n - 1 or i in (3, 4):           # the top of the front masses catches the light: a few hanging tips
+            for j in range(4):
+                px = mx + (-0.6 + 0.4 * j) * RX
+                sh.append(("line", [(px, my - 0.2 * RY), (px + 0.02 * R * s, my - 0.2 * RY - 0.06 * H)], strand, 0.06))
+    return sh
+
+
+def _pla_willow_plan(cx, cy, r, c, seed=0):
+    """the white willow from above: five overlapping irregular masses inside the crown radius r (page mm) and a
+    fringe of hanging-strand ticks round the rim; the trunk dot"""
+    import math as _m
+    rnd = _pla_rng(seed * 5 + 9)
+    f, e, st = c["fill"], c["edge"], c["stem"]
+    dark = _sec_mix(f, e, 0.22)
+    sh = []
+    for i in range(36):                         # the curtain seen from above: short ticks just inside the rim
+        a = 2 * _m.pi * (i + 0.4 * rnd()) / 36.0
+        r0 = (0.80 + 0.08 * rnd()) * r
+        sh.append(("line", [(cx + r0 * _m.cos(a), cy + r0 * _m.sin(a)),
+                            (cx + 0.99 * r * _m.cos(a + 0.03), cy + 0.99 * r * _m.sin(a + 0.03))], dark, 0.08))
+    for i in range(5):
+        a = 2 * _m.pi * (i / 5.0 + 0.1 * rnd())
+        d = 0.38 * r
+        sh.append(("poly", _pla_crown(cx + d * _m.cos(a), cy + d * _m.sin(a), 0.45 * r, 0.45 * r, 0.45 * r,
+                                      seed + i, 0.20), dark if i % 2 else f, e, 0.06))
+    sh.append(("poly", _pla_crown(cx, cy, 0.42 * r, 0.42 * r, 0.42 * r, seed + 7, 0.18), f, e, 0.06))
+    sh.append(("poly", sec_ellipse(cx, cy, max(0.2, 0.05 * r), max(0.2, 0.05 * r), 10), st, None, 0.0))
+    return sh
+
+
 def _pla_sec(form, x, gy, h, w, k, c, seed=0):
     """Section silhouette of one form, h tall and w crown wide (m), ground at (x, gy) page mm."""
     import math as _m
     H, R = h * k, w / 2.0 * k
     f, e, lt, st, ac = c["fill"], c["edge"], c["lt"], c["stem"], c.get("accent")
     sh = []
-    if form in ("dome", "oval", "weeping", "gnarled", "umbrella"):
-        lo = dict(dome=0.3, oval=0.3, weeping=0.25, gnarled=0.3, umbrella=0.65)[form] * H   # clear stem (rule)
+    if form == "weeping":                       # round 3 (N4 b): the white willow drawn anew
+        return _pla_willow_sec(x, gy, h, w, k, c, seed)
+    if form in ("dome", "oval", "gnarled", "umbrella"):
+        lo = dict(dome=0.3, oval=0.3, gnarled=0.3, umbrella=0.65)[form] * H   # clear stem (rule)
         tw = max(0.15, h / 60.0 * k)            # half trunk width: trunk 1/30 of the height (rule)
         yb, yt = gy + lo, gy + H
         Hc = yt - yb
@@ -189,10 +455,6 @@ def _pla_sec(form, x, gy, h, w, k, c, seed=0):
             lean = 0.03 * H if form == "umbrella" else 0.0
             sh.append(("poly", [(x - tw, gy), (x + tw, gy), (x + lean + tw * 0.6, yb + 0.4 * Hc),
                                 (x + lean - tw * 0.6, yb + 0.4 * Hc)], st, None, 0.1))
-        if form == "weeping":                   # the hanging curtain behind the crown
-            c0 = yb + 0.45 * Hc
-            sh.append(("poly", [(x - R, c0), (x - 0.9 * R, gy + 0.2 * H), (x + 0.9 * R, gy + 0.2 * H), (x + R, c0)],
-                       lt, None, 0.1))
         if form == "gnarled":                   # low and wide: three irregular masses
             for cx_, cy_, rx_, up_, i in ((x - 0.5 * R, yb + 0.4 * Hc, 0.5 * R, 0.4 * Hc, 0),
                                           (x + 0.5 * R, yb + 0.45 * Hc, 0.5 * R, 0.4 * Hc, 1),
@@ -200,19 +462,12 @@ def _pla_sec(form, x, gy, h, w, k, c, seed=0):
                 dn_ = cy_ - yb if i < 2 else 0.38 * Hc
                 sh.append(("poly", _pla_crown(cx_, cy_, rx_, up_, dn_, seed + i, 0.18), f, e, 0.08))
         else:
-            fr = dict(dome=(0.3, 0.06), oval=(0.5, 0.08), weeping=(0.45, 0.05), umbrella=(0.35, 0.04))[form]
+            fr = dict(dome=(0.3, 0.06), oval=(0.5, 0.08), umbrella=(0.35, 0.04))[form]
             c0 = yb + fr[0] * Hc
             sh.append(("poly", _pla_crown(x, c0, R, yt - c0, c0 - yb, seed, fr[1]), f, e, 0.08))
             for i, (dx, dy, s_) in enumerate(((-0.4, 0.3, 0.32), (0.35, 0.15, 0.3), (-0.05, 0.6, 0.26))):
                 sh.append(("poly", _pla_crown(x + dx * R, c0 + dy * (yt - c0), s_ * R, s_ * (yt - c0) * 0.8,
                                               s_ * (yt - c0) * 0.6, seed + i + 1, 0.1), lt, None, 0.1))
-        if form == "weeping":                   # strands
-            for i in range(9):
-                xs = x - 0.85 * R + i * 1.7 * R / 8.0
-                s_ = -1 if xs < x else 1
-                yh = gy + (0.2 + 0.08 * _pla_rnd(i, seed)) * H
-                y0 = yb + 0.3 * Hc
-                sh.append(("line", [(xs, y0), (xs + s_ * 0.04 * R, (y0 + yh) / 2.0), (xs + s_ * 0.06 * R, yh)], e, 0.1))
         if form in ("dome", "oval"):            # a few branches
             for s_, a in ((-1, 55.0), (1, 45.0), (1, 75.0)):
                 r_ = _m.radians(a)
@@ -300,13 +555,8 @@ def _pla_plan(form, cx, cy, w, k, c, seed=0):
             sh.append(("poly", _pla_scallop(cx + 0.45 * r * _m.cos(a), cy + 0.45 * r * _m.sin(a), s_ * r, 6, 0.12),
                        lt, None, 0.1))
         return sh + [dot]
-    if form == "weeping":
-        sh.append(("poly", _pla_scallop(cx, cy, r, 24, 0.04), f, e, 0.08))
-        for i in range(20):
-            a = 2 * _m.pi * i / 20.0
-            sh.append(("line", [(cx + 0.25 * r * _m.cos(a), cy + 0.25 * r * _m.sin(a)),
-                                (cx + 0.95 * r * _m.cos(a), cy + 0.95 * r * _m.sin(a))], e, 0.08))
-        return sh + [dot]
+    if form == "weeping":                       # round 3 (N4 b): the white willow drawn anew
+        return _pla_willow_plan(cx, cy, r, c, seed)
     if form == "gnarled":                       # three masses, as in section
         for i in range(3):
             a = 2 * _m.pi * (0.25 + i / 3.0)
@@ -389,6 +639,7 @@ def _pla_hr(key, x, gy, h, w, c, seed):
 
 
 PLA_LOG = []
+PLA_DRAWN_ONLY = ("willow",)   # N4 b (Aras 31 Oct 21:37): the drawn white willow in every style, never a cutout
 
 
 def pla_height_ok(key, h_m):
@@ -415,24 +666,31 @@ def _pla_layer_cols(c, layer):
 
 
 def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hires=True, style="b", layer=0,
-                detail=True):
+                detail=True, month=None):
     """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x). hires: the high-res
     silhouette where the library has one (detailed sections); False for sketchy drawings and diagrams. h_m outside
     the sourced range is moved into it (pla_height_ok). layer: D9 depth layer (0 true size; 1, 2 smaller and paler).
     style "a": the species' cutout (figures.py cut_image, key = the species key) where one exists, else style b.
-    detail (style b): leaf texture and flower marks drawn from the species' form (_pla_detail)."""
+    detail (style b): leaf texture and flower marks drawn from the species' form (_pla_detail). Round 3 (D7, G15):
+    month (1-12, default pla_season's) = the season's colours (pla_colour), a deciduous species out of leaf drawn bare
+    (pla_bare); a seasonal drawing stays vector in every style (the cutouts cannot change with the season). Never
+    alpha."""
     sp = _pla_get(key)
     h, w = _pla_size(key, sp, h_m, crown_m)
     if h_m is not None:
         h = pla_height_ok(key, h)
     g = gy(x) if callable(gy) else gy
-    if style == "a" and globals().get("cut_image"):
+    m = _pla_month(month)
+    _pla_status()
+    if m and pla_colour(key, m)["bare"]:
+        return pla_bare(key, x, g, k, h_m=h, crown_m=w, beyond=beyond, seed=seed, layer=layer, month=m)
+    if style == "a" and not m and key not in PLA_DRAWN_ONLY and globals().get("cut_image"):
         im = cut_image(key, x, g, k, h_m=h, layer=layer, facing=-1 if seed % 2 else 1, pick=seed)
         if im:
             return im
     sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
     k = k * sc
-    c = _pla_layer_cols(_pla_cols(sp, beyond), layer)
+    c = pla_colour(key, m, beyond=beyond, layer=layer) if m else _pla_layer_cols(_pla_cols(sp, beyond), layer)
     sh = _pla_hr(key, x, g, h * k, w * k, c, seed) if hires else None
     if sh:
         return sh
@@ -442,14 +700,20 @@ def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hir
     return sh
 
 
-def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0, distinct=True, style="b"):
+def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0, distinct=True, style="b", month=None):
     """The same species from above: crown crown_m wide (m) centred on (cx, cy) page mm, same form and colour; distinct:
-    the species' own mark on top (no two species share a plan symbol, M6). Plans stay vector in both styles."""
+    the species' own mark on top (no two species share a plan symbol, M6). Plans stay vector in both styles. Round 3:
+    month (default pla_season's) = seasonal colours, deciduous out of leaf = bare branches (pla_bare plan=True);
+    always opaque."""
     sp = _pla_get(key)
     w = crown_m or sp["crown_m"]
     if w is None:
         raise ValueError("plants: %s has no sourced crown: pass crown_m" % key)
-    c = _pla_cols(sp, beyond)
+    m = _pla_month(month)
+    _pla_status()
+    if m and pla_colour(key, m)["bare"]:
+        return pla_bare(key, cx, cy, k, crown_m=w, beyond=beyond, seed=seed, month=m, plan=True)
+    c = pla_colour(key, m, beyond=beyond) if m else _pla_cols(sp, beyond)
     sh = _pla_plan(sp["form"], cx, cy, w, k, c, seed)
     return sh + (_pla_plan_mark(key, cx, cy, w / 2.0 * k, c, seed) if distinct else [])
 
@@ -734,7 +998,7 @@ def _pla_keys(mix):
 
 
 def pla_scatter_section(x0, x1, gy, k, t0=0.0, t1=1.0, mix=None, seed=0, layer=0, style="b", density=1.0,
-                        hires=True, avoid=None, detail=True):
+                        hires=True, avoid=None, detail=True, month=None):
     """a mixed, naturalistic planting along a cut from x0 to x1 (page mm), ground gy (number or function of x): the
     band position runs from t0 at x0 to t1 at x1 (0 = water's edge, 1 = dry upper ground; or pass t0 as a function
     of x). Canopy trees and the low layer are spaced independently (crowns overlap, shrubs stand under tree edges),
@@ -773,7 +1037,7 @@ def pla_scatter_section(x0, x1, gy, k, t0=0.0, t1=1.0, mix=None, seed=0, layer=0
     sh = []
     for i, (key, x, h, w) in enumerate(placed):
         sh += pla_section(key, x, gy, k, h_m=h, crown_m=w, seed=seed + i, hires=hires, style=style, layer=layer,
-                          detail=detail)
+                          detail=detail, month=month)
     return sh, placed
 
 
@@ -801,7 +1065,7 @@ def _pla_other(t, rnd, keys, mix, canopy, not_key):
 
 
 def pla_group_section(x0, x1, gy, k, t0=0.0, t1=1.0, mix=None, seed=0, layers=(2, 1, 0), style="a", density=1.0,
-                      avoid=None, hires=True, detail=True, ground=None, water=None):
+                      avoid=None, hires=True, detail=True, ground=None, water=None, month=None):
     """G9 planting in section: mixed groups, never rows. Along x0..x1 (page mm), band t0 -> t1 (0 = water's edge,
     1 = dry upper ground; or t0 = a function of x), each depth layer of `layers` (D9, back first: 2, 1, 0) gets
     groups at irregular places; in a group the canopy trees overlap their crowns and the low layer (shrubs,
@@ -888,7 +1152,7 @@ def pla_group_section(x0, x1, gy, k, t0=0.0, t1=1.0, mix=None, seed=0, layers=(2
                     half = (0.12 if canopy else 0.35) * w * K
                     gyp = seat(g_, xp, half) if seat else (g_(xp) if callable(g_) else g_)
                     sh += pla_section(key, xp, gyp, k, h_m=h, crown_m=w, seed=seed * 1000 + n, hires=hires,
-                                      style=style, layer=layer, detail=detail)
+                                      style=style, layer=layer, detail=detail, month=month)
                     placed.append((key, xp, h, w, layer))
                     n += 1
             x = xb + (PLA_GROUP["gap_m"][0] + (PLA_GROUP["gap_m"][1] - PLA_GROUP["gap_m"][0]) * rnd()) / \
@@ -951,13 +1215,13 @@ def _pla_rowlike(c, pts, d_lim):
     return False
 
 
-def pla_scatter_plan(ring, k, gradient, mix=None, seed=0, density=1.0, avoid=None, max_n=3000):
+def pla_scatter_plan(ring, k, gradient, mix=None, seed=0, density=1.0, avoid=None, max_n=3000, month=None):
     """a mixed planting in plan inside ring (page mm): Poisson-disc style dart throwing, canopy trees first then the
     low layer, each species picked by its niche at t = gradient(x, y) (a function, or {"wet": polyline, "width_m":
     m}); same-layer plants keep 0.8 x (r1 + r2) apart, shrubs may stand under tree edges (0.3 x), candidates that
     would extend a straight evenly spaced line are thrown away: no rows, grids, axes or repeated clusters. avoid:
-    rings (page mm) left empty. Returns (shapes, placed [(key, x, y, crown_m)]); canopy crowns drawn see-through
-    (alpha 0.8) over the low layer."""
+    rings (page mm) left empty. month: seasonal colours / bare (pla_plan). Returns (shapes, placed [(key, x, y,
+    crown_m)]); canopy crowns drawn opaque over the low layer (round 3 D7: no alpha anywhere)."""
     import math as _m
     keys = _pla_keys(mix)
     rnd = _pla_rng(seed * 11 + 5)
@@ -1028,10 +1292,7 @@ def pla_scatter_plan(ring, k, gradient, mix=None, seed=0, density=1.0, avoid=Non
     sh, out = [], []
     for canopy in (False, True):
         for i, (x, y, r, key) in enumerate(placed[canopy]):
-            part = pla_plan(key, x, y, k, crown_m=2.0 * r / k, seed=seed + i * 3 + (7 if canopy else 0))
-            if canopy:
-                part = [(s_[0], s_[1], s_[2], s_[3], s_[4], 0.8) if s_[0] == "poly" and s_[2] else s_ for s_ in part]
-            sh += part
+            sh += pla_plan(key, x, y, k, crown_m=2.0 * r / k, seed=seed + i * 3 + (7 if canopy else 0), month=month)
             out.append((key, x, y, 2.0 * r / k))
     return sh, out
 
@@ -1134,8 +1395,8 @@ def _pla_detail(key, form, x, gy, h, w, k, c, seed):
                 bx_, by_ = px + t * 1.4 * m * ux, py + t * 1.4 * m * uy
                 sh.append(("line", [(bx_ - 0.35 * m * uy, by_ + 0.35 * m * ux), (bx_ + 0.35 * m * uy, by_ - 0.35 * m * ux)],
                            e, 0.05))
-        elif key == "willow":                       # narrow hanging leaves
-            sh.append(("line", [(px, py), (px + 0.15 * m, py - 1.3 * m)], lt, 0.07))
+        elif key == "willow":                       # round 3: its streamers and strands are the texture (marks
+            pass                                    # spread over the envelope would float in the gaps, G14)
         elif key == "olive":                        # small lance leaves, silver above, dark below
             a = _m.radians(rnd() * 180.0)
             col = lt if i % 3 else e
@@ -1186,8 +1447,10 @@ def _pla_plan_mark(key, cx, cy, r, c, seed):
             sh.append(("poly", sec_ellipse(px, py, 0.12 * m + 0.05, 0.12 * m + 0.05, 6), lt, None, 0.1))
     elif key == "stone_pine":                       # dark ring inside the rim tufts
         sh.append(("poly", sec_ellipse(cx, cy, 0.55 * r, 0.55 * r, 30), None, e, 0.08))
-    elif key == "willow":                           # a pale inner disc behind the strands
-        sh.append(("poly", sec_ellipse(cx, cy, 0.22 * r, 0.22 * r, 16), lt, None, 0.1))
+    elif key == "willow":                           # narrow lance leaves, pale side up
+        for (px, py) in _pla_marks_in(cx, cy, 0.6 * r, 0.6 * r, 8, rnd):
+            a = _m.radians(rnd() * 180.0)
+            sh.append(("line", [(px, py), (px + 0.7 * m * _m.cos(a), py + 0.7 * m * _m.sin(a))], lt, 0.06))
     elif key == "tamarisk":                         # stipple
         for (px, py) in _pla_marks_in(cx, cy, 0.7 * r, 0.7 * r, 14, rnd):
             sh.append(("poly", sec_ellipse(px, py, 0.06 * m + 0.04, 0.06 * m + 0.04, 6), e, None, 0.1))
