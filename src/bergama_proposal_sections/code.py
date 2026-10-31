@@ -86,7 +86,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v12"
+VERSION = "v12.1"
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"

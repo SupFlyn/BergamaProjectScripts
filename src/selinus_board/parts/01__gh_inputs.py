@@ -1,9 +1,11 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v54)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v54.1)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v54.1 (bugfix, Aras 31 Oct run): base maps with the stream (M5 water) no longer stop on the first point
+(list - float in T); the maps on the affected pages are drawn again.
 NEW IN v54 (revision 30 Oct, T4 + T6 + T8): town map pages p2, p3, p6 (D5 a/b), p7, p8 street sections (D1 a/b),
 p15 senses, p20 heritage, pp.4-5 sections redrawn on the shared modules; the PDF writer draws cutout images; heights
 printed in m (no floor counts on p3 and the core sections).
@@ -394,8 +396,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v54 (2026-10-30)"     # v27: the log's first line and the text under the component
-SHORT_V = "v54"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v54.1 (2026-10-31)"     # v27: the log's first line and the text under the component
+SHORT_V = "v54.1"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

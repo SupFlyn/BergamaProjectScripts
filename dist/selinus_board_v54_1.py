@@ -1,9 +1,11 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v54)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v54.1)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v54.1 (bugfix, Aras 31 Oct run): base maps with the stream (M5 water) no longer stop on the first point
+(list - float in T); the maps on the affected pages are drawn again.
 NEW IN v54 (revision 30 Oct, T4 + T6 + T8): town map pages p2, p3, p6 (D5 a/b), p7, p8 street sections (D1 a/b),
 p15 senses, p20 heritage, pp.4-5 sections redrawn on the shared modules; the PDF writer draws cutout images; heights
 printed in m (no floor counts on p3 and the core sections).
@@ -413,8 +415,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v54 (2026-10-30)"     # v27: the log's first line and the text under the component
-SHORT_V = "v54"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v54.1 (2026-10-31)"     # v27: the log's first line and the text under the component
+SHORT_V = "v54.1"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -22830,7 +22832,7 @@ class BkBlocks(object):
 # laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
 # writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
 BK_SCRIPT = "MainBoard"
-BK_VERSION = "v54"
+BK_VERSION = "v54.1"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
 CROP_PANELS = []                                      # v40: dict(slug, bb, caption, scale_den, legend, drop), board units
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
@@ -23833,7 +23835,7 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
         elif it[0] == "text" and text_fn is not None:
             text_fn(it[1], T(it[2]), it[3], it[4], it[5], it[6])
         elif it[0] == "water":
-            p0 = it[1][0][0][0], it[1][0][0][1]
+            p0 = it[1][0][0][0][0], it[1][0][0][0][1]          # first point of the first ring of the first group
             a, b = T(p0), T((p0[0] + 100.0, p0[1]))
             k = _m.hypot(b[0] - a[0], b[1] - a[1]) / 100.0
             try:

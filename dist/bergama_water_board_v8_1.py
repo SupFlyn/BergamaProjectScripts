@@ -58,6 +58,8 @@ v7: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the det
   primitives. Output: Bergama_water_board_v7_A_cubes.pdf.
 v8 (revision 30 Oct, T5-T8): p11 system axonometric + zoom (D1 a/b), pp.13-14 seasons and S4 bank (D1 a/b), p16/p17
   planting (a/b), p18 farms without the axonometric (D2 a); captions for the _a/_b crops. Output: Bergama_water_board_v8_A_cubes.pdf.
+v8.1 (bugfix, Aras 31 Oct run): pp.14-15 and p.17 key maps and p.17 plan base maps no longer stop on the stream
+  (M5 water: list - float). Output: Bergama_water_board_v8_1_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -157,8 +159,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v8 (2026-10-30)"
-SHORT = "v8"
+VERSION = "bergama_water_board v8.1 (2026-10-31)"
+SHORT = "v8.1"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -167,7 +169,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v8_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v8_1_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -3921,7 +3923,7 @@ def basemap_draw(items, T, fill_fn, line_fn, text_fn=None, water_opts=None):
         elif it[0] == "text" and text_fn is not None:
             text_fn(it[1], T(it[2]), it[3], it[4], it[5], it[6])
         elif it[0] == "water":
-            p0 = it[1][0][0][0], it[1][0][0][1]
+            p0 = it[1][0][0][0][0], it[1][0][0][0][1]          # first point of the first ring of the first group
             a, b = T(p0), T((p0[0] + 100.0, p0[1]))
             k = _m.hypot(b[0] - a[0], b[1] - a[1]) / 100.0
             try:
