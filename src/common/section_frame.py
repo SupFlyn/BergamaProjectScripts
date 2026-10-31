@@ -253,6 +253,48 @@ def sf_back_house(xa, xb, gy, h_m, k, layer=1, floors=None, roof="hip", fill=Non
     return sh
 
 
+SF_BACK_BAND = (8.0, 120.0)   # m behind a cut where background houses are taken from (drawing rule, R2-C)
+
+
+def sf_back_buildings(cid, t0, t1, d0=None, d1=None, log=None):
+    """R2-C (checklist 7, Aras 31 Oct 12:01 "no background houses"): the basemap buildings standing d0..d1 m behind
+    the registry cut cid (the way the section looks: the normal (-u_y, u_x) of its ends, as the page key maps), each
+    projected onto the cut: [(t_a, t_b m along the cut, h m, floors or None, d m behind)], farthest first, clipped to
+    t0..t1. Height: the building's data height, else the repo's M11 convention floors x BLD_STOREY (buildings.py
+    _bld_h, as every cut-through building). Draw with sf_back_house on the depth layer's ground (d < half the band:
+    layer 1, else 2)."""
+    import math as _m
+    d0 = SF_BACK_BAND[0] if d0 is None else d0
+    d1 = SF_BACK_BAND[1] if d1 is None else d1
+    D = basemap_load(log=log) if globals().get("basemap_load") else None
+    L = (D or {}).get("layers") or {}
+    a, b = level_ends(cid)
+    Lc = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    u = ((b[0] - a[0]) / Lc, (b[1] - a[1]) / Lc)
+    f = (-u[1], u[0])
+    out = []
+    for bl in L.get("buildings", []):
+        h = _bld_h(bl) if globals().get("_bld_h") else float(bl.get("h") or 0.0)
+        if h <= 0.0:
+            continue
+        P = [p_ for R_ in bl["rings"][:bl.get("np", len(bl["rings"]))] for p_ in R_]
+        if len(P) < 3:
+            continue
+        ts = [(p_[0] - a[0]) * u[0] + (p_[1] - a[1]) * u[1] for p_ in P]
+        ds = [(p_[0] - a[0]) * f[0] + (p_[1] - a[1]) * f[1] for p_ in P]
+        dn = min(ds)
+        if dn < d0 or dn > d1:
+            continue
+        ta, tb = max(t0, min(ts)), min(t1, max(ts))
+        if tb - ta < 2.0:
+            continue
+        out.append((ta, tb, round(h, 2), int(bl.get("floors") or 0) or None, dn))
+    out.sort(key=lambda r: -r[4])
+    if log is not None:
+        log.append(u"background houses {}: {} buildings {:.0f}-{:.0f} m behind the cut".format(cid, len(out), d0, d1))
+    return out
+
+
 def sf_assert_g14(items, gy, tol=0.2, strict=True):
     """G14 check by reasoning: items = [shapes of one item, ...] all on ground gy; an item whose base is more than
     tol mm above the lowest ground under it floats. strict: AssertionError listing them; else the messages."""
