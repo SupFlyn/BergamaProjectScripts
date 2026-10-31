@@ -14,6 +14,8 @@
 # survey heights (M11), the zones' trees in 3D at species heights (M6), a legend (M2); the axo turns to the largest
 # scale. The round plan zoom is replaced by an up-close SECTION of the upstream entry (G10: people, use, materials;
 # D1: style a above the map, style b below it, crops wb_system_a / wb_system_b / wb_system). The logic block went.
+# v9 (Aras 31 Oct, booklet p11): one up-close band at the bottom in style a (crop wb_system); buildings as volumes only
+# near the stream (P12_BLD_NEAR_M) and heritage, the rest as faint footprints, so the city reads.
 
 P12_TITLE = u"CLEANED ONCE, HELD OVER WINTER, GIVEN BACK CLEAN TO THE FARMS · one way, with the stream"
 
@@ -45,7 +47,10 @@ P12_CANOPY_M = 6.0                   # m: the tree-cover texture's cluster spaci
 P12_CANOPY_CAP = 6000                # most clusters drawn (PDF size)
 P12_K5_CHECK_M = 200.0               # m: the base-data check around Üç Kemer (logged; its names drawn)
 P12_K5_NAMES = 6                     # names of the base data drawn around K5 at most
-P12_ZOOM_H = 48.0                    # mm: the up-close section band (style a above the map, style b below it)
+P12_ZOOM_H = 48.0                    # mm: the up-close section band (v9: one band, style a, below the map)
+P12_BLD_NEAR_M = 60.0                # v9 (Aras 31 Oct): buildings drawn as volumes only this close to the Selinos line
+#                                      (m, drawing rule; heritage always); the rest as flat footprints
+P12_BLD_FAR = ("E4E0D9", 0.55)       # the far footprints: fill, opacity (drawing values: faint, no edge)
 P12_ZOOM_GAP = 5.0                   # mm between the band and the map
 P12_ZOOM_KEY_W = 70.0                # mm: the band's key column (title, callouts, water, scale bar)
 P12_ZOOM_DEN = 500                   # the up-close section at 1:500 (D6 standard scale)
@@ -416,6 +421,20 @@ def _p12_base(pg, items, T, K, hook=None):
     return basemap_draw(items, T, fill, line)
 
 
+def _p12_near(R, line, d):
+    """True when any corner of ring R (survey m) lies within d m of the polyline line"""
+    d2 = d * d
+    for (px, py) in R:
+        for (ax, ay), (bx, by) in zip(line, line[1:]):
+            ex, ey = bx - ax, by - ay
+            L2 = ex * ex + ey * ey
+            t = 0.0 if L2 <= 0.0 else max(0.0, min(1.0, ((px - ax) * ex + (py - ay) * ey) / L2))
+            qx, qy = ax + t * ex - px, ay + t * ey - py
+            if qx * qx + qy * qy <= d2:
+                return True
+    return False
+
+
 def _p12_hit(P, box):
     b = _p12_bbox(P)
     return not (b[2] < box[0] or b[0] > box[2] or b[3] < box[1] or b[1] > box[3])
@@ -755,10 +774,24 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
         rr = _p12_cring([T(p) for p in z["ring"]], K)
         if rr:
             pg.poly([rr], fill=tones[0], stroke=tones[1], lw=0.15, alpha=0.9)
-    # the buildings: light volumes at their survey heights (M11), heritage in its rose
+    # the buildings (v9, Aras 31 Oct: the city was too crowded to read): volumes at their survey heights (M11) only
+    # within P12_BLD_NEAR_M of the Selinos line and for heritage (in its rose); the rest as faint flat footprints
+    nfar = 0
     if L:
         units = [b for b in L.get("buildings") or [] if b.get("rings") and _p12_hit(b["rings"][0], sb)]
         her = any(b.get("her") for b in units)
+        near, far = [], []
+        for b in units:
+            (near if b.get("her") or _p12_near(b["rings"][0], P12_SELINOS, P12_BLD_NEAR_M) else far).append(b)
+        for b in far:
+            for R_ in b["rings"][:1]:
+                rr = _p12_cring([T(p) for p in R_], K)
+                if rr:
+                    pg.poly([rr], fill=P12_BLD_FAR[0], alpha=P12_BLD_FAR[1])
+                    nfar += 1
+        log.append(u"p.12 map: {} buildings as volumes (within {:.0f} m of the stream, heritage), {} as flat "
+                   u"footprints".format(len(near), P12_BLD_NEAR_M, len(far)))
+        units = near
         its = bld_axo_items([b for b in units if not b.get("her")], P3, view=view, box=sb)
         if her:
             its += bld_axo_items([b for b in units if b.get("her")], P3, view=view, box=sb, cols=P12_HER_COLS)
@@ -850,8 +883,10 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
         lg.append((u"Stone channel wall, walled town reach", "fill", dict(colour=SCT["stone"])))
     if ch.get("bank"):
         lg.append((u"Earth bank", "fill", dict(colour=SCT["earth"])))
-    if L:
+    if L and units:
         lg.append((u"Building at its survey height", "fill", dict(colour=BLD_COL["wall_lit"], edge=BLD_COL["axo_line"])))
+    if nfar:
+        lg.append((u"Building further from the stream, footprint", "fill", dict(colour=P12_BLD_FAR[0])))
     if her:
         lg.append((u"Heritage building", "fill", dict(colour=P12_HER_COLS["wall_lit"], edge=P12_HER_COLS["axo_line"])))
     if BM_COL["road"] in fills:
@@ -1350,10 +1385,9 @@ def _p12_column(pg, cb):
 
 # ---------------------------------------------------------------- the page
 def p12_page(pg, box, opt, storage, log):
-    """v6 (revision 30 Oct, T7): the whole p.12 panel in box (page mm, y up): the axonometric water map with the
-    column beside it in the middle, the up-close section of the upstream entry in a band above it (style a) and
-    below it (style b), D1: one geometry, two styles. Returns [(crop id, bbox, scale den or None)]: wb_system_a = the
-    a band + the middle, wb_system_b and wb_system = the middle + the b band (without zones: one crop, full height)."""
+    """v9 (Aras 31 Oct): the whole p.12 panel in box (page mm, y up): the axonometric water map with the column beside
+    it on top, the up-close section of the upstream entry in ONE band below it, in style a (b's layout, a's drawing).
+    Returns [(crop id, bbox, scale den or None)]: wb_system = map + band (both booklet builds take it)."""
     x0, y0, x1, y1 = box
     zones, links = _p12_zones(log)
     f = _p12_figures(zones)
@@ -1362,7 +1396,7 @@ def p12_page(pg, box, opt, storage, log):
     D = basemap_load(log=log)
     hz, gp = P12_ZOOM_H, P12_ZOOM_GAP
     Z = _p12_zoom_geom(zones, D, (x1 - x0 - P12_ZOOM_KEY_W - 6.0) * P12_ZOOM_DEN / 1000.0, log)
-    my0, my1 = (y0 + hz + gp, y1 - hz - gp) if Z else (y0, y1)
+    my0, my1 = (y0 + hz + gp, y1) if Z else (y0, y1)   # v9: one band, at the bottom
     xs = x1 - P12_COL_W
     ga = (x0, my0, xs - 7.0, my1)
     n0 = len(pg.items)
@@ -1377,13 +1411,9 @@ def p12_page(pg, box, opt, storage, log):
     bm = items_bbox(pg.items[n0:])
     if not Z:
         return [("wb_system", bm, None)]
-    out = []
-    for style, band in (("a", (x0, y1 - hz, x1, y1)), ("b", (x0, y0, x1, y0 + hz))):
-        n1 = len(pg.items)
-        _p12_zoom(pg, band, Z, style, log)
-        out.append(("wb_system_" + style, union(bm, items_bbox(pg.items[n1:])), None))
+    n1 = len(pg.items)
+    _p12_zoom(pg, (x0, y0, x1, y0 + hz), Z, "a", log)
     cl = cut_log_line()
     if cl:
         log.append(u"p.12: " + cl)
-    out.append(("wb_system", out[-1][1], None))
-    return out
+    return [("wb_system", union(bm, items_bbox(pg.items[n1:])), None)]

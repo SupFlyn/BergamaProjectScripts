@@ -60,6 +60,10 @@ v8 (revision 30 Oct, T5-T8): p11 system axonometric + zoom (D1 a/b), pp.13-14 se
   planting (a/b), p18 farms without the axonometric (D2 a); captions for the _a/_b crops. Output: Bergama_water_board_v8_A_cubes.pdf.
 v8.1 (bugfix, Aras 31 Oct run): pp.14-15 and p.17 key maps and p.17 plan base maps no longer stop on the stream
   (M5 water: list - float). Output: Bergama_water_board_v8_1_A_cubes.pdf.
+v9 (Aras 31 Oct critique, booklet pp.11, 13, 14): style a only. p.11: one up-close section band at the bottom (b's
+  layout, a's drawing), buildings as volumes only within 60 m of the stream and heritage, the rest as faint footprints;
+  p.13 seasons: style a, trees lighter (cutout opacity 0.70); p.14 S4 bank: style a. Plain crop ids (no _a/_b) for
+  wb_system, wb_s4_seasons, wb_s4_ne; p.17 keeps its a/b. Output: Bergama_water_board_v9_A_cubes.pdf.
 v7.1 (bugfix, Aras 30 Oct run): the pp.14-15 and p.17 key maps no longer stop the PDF writer (KeyError 'M'): the
   shared basemap's cut names come as "MC" (middle centre), the pages took its first letter; now the last (C). Output:
   Bergama_water_board_v7_1_A_cubes.pdf.
@@ -159,8 +163,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v8.1 (2026-10-31)"
-SHORT = "v8.1"
+VERSION = "bergama_water_board v9 (2026-10-31)"
+SHORT = "v9"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -169,7 +173,7 @@ STORAGE_STYLES = ("cubes",)          # v1.6: cubes only (Aras 25 Oct 13:12; the 
 CUBE_SCALE = 1000.0                  # the storage cubes' scale, still written to results.json "storage" (v5, T3b: p.12
 #                                      draws no cubes panel any more; the design store is a cube at the water map's scale)
 OUT_FOLDER = "bergama_water_board"
-OUT_NAME = "Bergama_water_board_v8_1_{}_{}.pdf"
+OUT_NAME = "Bergama_water_board_v9_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -9724,8 +9728,6 @@ class BkBlocks(object):
 BK_CAPTIONS = {
     "wb_water": u"How the water behaves: the year, and how high the stream rises",
     "wb_system": u"What we do with it: collect, clean, hold, give back",
-    "wb_system_a": u"What we do with it: collect, clean, hold, give back · style a, raster collage",
-    "wb_system_b": u"What we do with it: collect, clean, hold, give back · style b, textured vector",
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": u"K4: the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
@@ -9735,13 +9737,8 @@ BK_CAPTIONS = {
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 
 
-for _c in ("wb_s4_seasons", "wb_s4_ne"):             # D1: the style a / b copies carry the panel's caption
-    for _s in ("_a", "_b"):
-        BK_CAPTIONS.setdefault(_c + _s, BK_CAPTIONS[_c])
-
-
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
-BK_FIXED += tuple(c + s for c in BK_FIXED if c != "wb_plants" for s in ("_a", "_b"))   # D1: their style a / b copies
+BK_FIXED += ("wb_plants_b_a", "wb_plants_b_b")   # D1: p.17's style a / b copies (v9: p.11, p.13, p.14 style a only)
 
 
 def res_s4_cut():
@@ -9944,6 +9941,8 @@ def build_all(doc, log):
 # survey heights (M11), the zones' trees in 3D at species heights (M6), a legend (M2); the axo turns to the largest
 # scale. The round plan zoom is replaced by an up-close SECTION of the upstream entry (G10: people, use, materials;
 # D1: style a above the map, style b below it, crops wb_system_a / wb_system_b / wb_system). The logic block went.
+# v9 (Aras 31 Oct, booklet p11): one up-close band at the bottom in style a (crop wb_system); buildings as volumes only
+# near the stream (P12_BLD_NEAR_M) and heritage, the rest as faint footprints, so the city reads.
 
 P12_TITLE = u"CLEANED ONCE, HELD OVER WINTER, GIVEN BACK CLEAN TO THE FARMS · one way, with the stream"
 
@@ -9975,7 +9974,10 @@ P12_CANOPY_M = 6.0                   # m: the tree-cover texture's cluster spaci
 P12_CANOPY_CAP = 6000                # most clusters drawn (PDF size)
 P12_K5_CHECK_M = 200.0               # m: the base-data check around Üç Kemer (logged; its names drawn)
 P12_K5_NAMES = 6                     # names of the base data drawn around K5 at most
-P12_ZOOM_H = 48.0                    # mm: the up-close section band (style a above the map, style b below it)
+P12_ZOOM_H = 48.0                    # mm: the up-close section band (v9: one band, style a, below the map)
+P12_BLD_NEAR_M = 60.0                # v9 (Aras 31 Oct): buildings drawn as volumes only this close to the Selinos line
+#                                      (m, drawing rule; heritage always); the rest as flat footprints
+P12_BLD_FAR = ("E4E0D9", 0.55)       # the far footprints: fill, opacity (drawing values: faint, no edge)
 P12_ZOOM_GAP = 5.0                   # mm between the band and the map
 P12_ZOOM_KEY_W = 70.0                # mm: the band's key column (title, callouts, water, scale bar)
 P12_ZOOM_DEN = 500                   # the up-close section at 1:500 (D6 standard scale)
@@ -10346,6 +10348,20 @@ def _p12_base(pg, items, T, K, hook=None):
     return basemap_draw(items, T, fill, line)
 
 
+def _p12_near(R, line, d):
+    """True when any corner of ring R (survey m) lies within d m of the polyline line"""
+    d2 = d * d
+    for (px, py) in R:
+        for (ax, ay), (bx, by) in zip(line, line[1:]):
+            ex, ey = bx - ax, by - ay
+            L2 = ex * ex + ey * ey
+            t = 0.0 if L2 <= 0.0 else max(0.0, min(1.0, ((px - ax) * ex + (py - ay) * ey) / L2))
+            qx, qy = ax + t * ex - px, ay + t * ey - py
+            if qx * qx + qy * qy <= d2:
+                return True
+    return False
+
+
 def _p12_hit(P, box):
     b = _p12_bbox(P)
     return not (b[2] < box[0] or b[0] > box[2] or b[3] < box[1] or b[1] > box[3])
@@ -10685,10 +10701,24 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
         rr = _p12_cring([T(p) for p in z["ring"]], K)
         if rr:
             pg.poly([rr], fill=tones[0], stroke=tones[1], lw=0.15, alpha=0.9)
-    # the buildings: light volumes at their survey heights (M11), heritage in its rose
+    # the buildings (v9, Aras 31 Oct: the city was too crowded to read): volumes at their survey heights (M11) only
+    # within P12_BLD_NEAR_M of the Selinos line and for heritage (in its rose); the rest as faint flat footprints
+    nfar = 0
     if L:
         units = [b for b in L.get("buildings") or [] if b.get("rings") and _p12_hit(b["rings"][0], sb)]
         her = any(b.get("her") for b in units)
+        near, far = [], []
+        for b in units:
+            (near if b.get("her") or _p12_near(b["rings"][0], P12_SELINOS, P12_BLD_NEAR_M) else far).append(b)
+        for b in far:
+            for R_ in b["rings"][:1]:
+                rr = _p12_cring([T(p) for p in R_], K)
+                if rr:
+                    pg.poly([rr], fill=P12_BLD_FAR[0], alpha=P12_BLD_FAR[1])
+                    nfar += 1
+        log.append(u"p.12 map: {} buildings as volumes (within {:.0f} m of the stream, heritage), {} as flat "
+                   u"footprints".format(len(near), P12_BLD_NEAR_M, len(far)))
+        units = near
         its = bld_axo_items([b for b in units if not b.get("her")], P3, view=view, box=sb)
         if her:
             its += bld_axo_items([b for b in units if b.get("her")], P3, view=view, box=sb, cols=P12_HER_COLS)
@@ -10780,8 +10810,10 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
         lg.append((u"Stone channel wall, walled town reach", "fill", dict(colour=SCT["stone"])))
     if ch.get("bank"):
         lg.append((u"Earth bank", "fill", dict(colour=SCT["earth"])))
-    if L:
+    if L and units:
         lg.append((u"Building at its survey height", "fill", dict(colour=BLD_COL["wall_lit"], edge=BLD_COL["axo_line"])))
+    if nfar:
+        lg.append((u"Building further from the stream, footprint", "fill", dict(colour=P12_BLD_FAR[0])))
     if her:
         lg.append((u"Heritage building", "fill", dict(colour=P12_HER_COLS["wall_lit"], edge=P12_HER_COLS["axo_line"])))
     if BM_COL["road"] in fills:
@@ -11280,10 +11312,9 @@ def _p12_column(pg, cb):
 
 # ---------------------------------------------------------------- the page
 def p12_page(pg, box, opt, storage, log):
-    """v6 (revision 30 Oct, T7): the whole p.12 panel in box (page mm, y up): the axonometric water map with the
-    column beside it in the middle, the up-close section of the upstream entry in a band above it (style a) and
-    below it (style b), D1: one geometry, two styles. Returns [(crop id, bbox, scale den or None)]: wb_system_a = the
-    a band + the middle, wb_system_b and wb_system = the middle + the b band (without zones: one crop, full height)."""
+    """v9 (Aras 31 Oct): the whole p.12 panel in box (page mm, y up): the axonometric water map with the column beside
+    it on top, the up-close section of the upstream entry in ONE band below it, in style a (b's layout, a's drawing).
+    Returns [(crop id, bbox, scale den or None)]: wb_system = map + band (both booklet builds take it)."""
     x0, y0, x1, y1 = box
     zones, links = _p12_zones(log)
     f = _p12_figures(zones)
@@ -11292,7 +11323,7 @@ def p12_page(pg, box, opt, storage, log):
     D = basemap_load(log=log)
     hz, gp = P12_ZOOM_H, P12_ZOOM_GAP
     Z = _p12_zoom_geom(zones, D, (x1 - x0 - P12_ZOOM_KEY_W - 6.0) * P12_ZOOM_DEN / 1000.0, log)
-    my0, my1 = (y0 + hz + gp, y1 - hz - gp) if Z else (y0, y1)
+    my0, my1 = (y0 + hz + gp, y1) if Z else (y0, y1)   # v9: one band, at the bottom
     xs = x1 - P12_COL_W
     ga = (x0, my0, xs - 7.0, my1)
     n0 = len(pg.items)
@@ -11307,16 +11338,12 @@ def p12_page(pg, box, opt, storage, log):
     bm = items_bbox(pg.items[n0:])
     if not Z:
         return [("wb_system", bm, None)]
-    out = []
-    for style, band in (("a", (x0, y1 - hz, x1, y1)), ("b", (x0, y0, x1, y0 + hz))):
-        n1 = len(pg.items)
-        _p12_zoom(pg, band, Z, style, log)
-        out.append(("wb_system_" + style, union(bm, items_bbox(pg.items[n1:])), None))
+    n1 = len(pg.items)
+    _p12_zoom(pg, (x0, y0, x1, y0 + hz), Z, "a", log)
     cl = cut_log_line()
     if cl:
         log.append(u"p.12: " + cl)
-    out.append(("wb_system", out[-1][1], None))
-    return out
+    return [("wb_system", union(bm, items_bbox(pg.items[n1:])), None)]
 # p.14-15 the S4 pair (v5, revision 29 Oct 2026, T3b WO-T3b-4, package D; split from code.py and
 # parts/r28_occupancy.py on 29 Oct 2026, rebuilt). ONE S4 for both pages: the existing levels from the level module
 # (D4 b: bed +42.48; bed width, bank tops, the two level shelves, Q100, Q500) with our proposal on them; planting by the
@@ -11771,6 +11798,10 @@ def _p14_cell(pg, x0, y0, x1, y1, st, leaf=None):
 P14_HR_BARE = {"plane": "plane_bare"}   # bare-month silhouettes of the high-res library (hires.py)
 
 
+P14_TREE_LIGHT = [None]              # v9 (Aras 31 Oct, p.13): the trees' cutout opacity on p.14 only, set by p14_page
+P14_TREE_ALPHA = 0.70                # drawing value: style a trees lighter, between style a and b (Aras 31 Oct)
+
+
 def _p14_plant(key, x, gy, k, month, h=None, cw=None, seed=0, style="b", layer=0, detail=True):
     """a species in section (plants.py) as it is that month (1-12), ground at (x, gy) page mm, k mm per m as printed
     (true size; a view passes its perspective k): a bare crown see-through, flowers only in its flowering months,
@@ -11781,6 +11812,8 @@ def _p14_plant(key, x, gy, k, month, h=None, cw=None, seed=0, style="b", layer=0
     if style == "a" and st != "bare":
         im = cut_image(key, x, gy, k / fig_depth(layer)[0], h_m=h or PLA_SPECIES[key]["h_m"], layer=layer,
                        facing=-1 if seed % 2 else 1, pick=seed)
+        if im and P14_TREE_LIGHT[0] and PLA_SPECIES[key].get("layer") == "tree":   # v9: p.14 trees lighter
+            im = [s_[:6] + ((s_[6] if s_[6] is not None else 1.0) * P14_TREE_LIGHT[0],) + tuple(s_[7:]) for s_ in im]
         if im:
             return im
     fol = (c.get("fill"), c.get("lt"))
@@ -12666,13 +12699,15 @@ def _p14_panel(pg, box, log, style):
 
 
 def p14_page(pg, box, opt, log):
-    """p.14, the four seasons of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style b, and its
-    style a copy right of the board (D1). Returns its crops [(crop id, bbox, scale denominator)]: the unsuffixed id and
-    _b = style b, _a = style a."""
-    bb_b = _p14_panel(pg, box, log, "b")
-    bb_a = _p14_panel(pg, _p14_ext_box(pg, box, P14_TITLE), log, "a")
-    ids = _p14_crop_ids("wb_s4_seasons")
-    return [(ids[0], bb_b, P14_DEN), (ids[1], bb_b, P14_DEN), (ids[2], bb_a, P14_DEN)]
+    """p.14, the four seasons of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style a only
+    (v9, Aras 31 Oct: style b dropped), its trees lighter (P14_TREE_ALPHA). Returns its crop [(crop id, bbox, scale
+    denominator)]: the unsuffixed id (both booklet builds take it)."""
+    P14_TREE_LIGHT[0] = P14_TREE_ALPHA
+    try:
+        bb = _p14_panel(pg, box, log, "a")
+    finally:
+        P14_TREE_LIGHT[0] = None
+    return [("wb_s4_seasons", bb, P14_DEN)]
 
 
 # ---------------------------------------------------------------- p.15
@@ -12983,16 +13018,14 @@ def _p15_panel(pg, box, log, style):
 
 
 def p15_page(pg, box, opt, log):
-    """p.15, the north-east bank of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style b, and
-    its style a copy right of the board (D1). Returns its crops: the unsuffixed id and _b = style b, _a = style a."""
-    bb_b = _p15_panel(pg, box, log, "b")
-    bb_a = _p15_panel(pg, _p14_ext_box(pg, box, P15_TITLE), log, "a")
+    """p.15, the north-east bank of S4 (package D), drawn whole into box (x0, y0, x1, y1), page mm, in style a only
+    (v9, Aras 31 Oct: style b dropped). Returns its crop: the unsuffixed id (both booklet builds take it)."""
+    bb = _p15_panel(pg, box, log, "a")
     if log is not None:
         for ln in (cut_log_line(),) + tuple(PLA_LOG):
             if ln and ln not in log:
                 log.append(ln)
-    ids = _p14_crop_ids("wb_s4_ne")
-    return [(ids[0], bb_b, P15_DEN), (ids[1], bb_b, P15_DEN), (ids[2], bb_a, P15_DEN)]
+    return [("wb_s4_ne", bb, P15_DEN)]
 # p.17 planting and water (water board v6; revision 30 Oct 2026, T7: booklet p16 and p17). Two booklet pages:
 #   page A (p17_page, crop wb_plants, booklet p16 "Which plant goes where"): two plan windows at one standard scale on
 #        the shared basemap (M3 "detailed": streets, M11 buildings with roof ridges, M5 water), farms and orchards as one
