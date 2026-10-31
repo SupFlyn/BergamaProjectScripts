@@ -79,8 +79,14 @@ PAGES = [
     # v20 (revision 29 Oct, D3 b, D8 b, WO-T3a-5): three movement pages: how people use it (above), the framework and
     # who the project brings with the before/after street sections, then the spine hub by hub (the city link sheet's
     # page 2 whole); the old "Why shops ..." sheet page and "How people will move" (index chart) are gone
+    # v24 (round 2, U24 "bottom section cut in half"): the street sections stay on this page only while it holds
+    # every row at >= ONE_PAGE_MIN of its size; else the framework page and the street sections page, each whole
     dict(part="B", stage="got", title=u"The stream joins the town where the shops already are", intro=u"One *framework*: shops, the *hidden stream*, movement today and *what the project changes*; *who* comes when; the *streets* before and after.",
-         rows=[[CLK + "cl_framework"], [CLK + "cl_who"], [SB + "drw_street_sections"]]),
+         rows=[[CLK + "cl_framework"], [CLK + "cl_who"], [SB + "drw_street_sections"]],
+         or_pages=[dict(part="B", stage="got", title=u"The stream joins the town where the shops already are", intro=u"One *framework*: shops, the *hidden stream*, movement today and *what the project changes*; *who* comes when.",
+                        rows=[[CLK + "cl_framework"], [CLK + "cl_who"]]),
+                   dict(part="B", stage="got", title=u"The streets, before and after", intro=u"Each *street* cut *whole*: *where* it is, the *ground*, *people* and *planting*, today and with the project.",
+                        rows=[[SB + "drw_street_sections"]])]),
     dict(part="B", stage="do", title=u"The streamside spine, hub by hub", intro=u"*Five bridge places* on existing bus stops, *walking hubs* with a *sub-hub in the bed*, one *transit hub*: the spine along the Selinos, hub by hub.", sheet=CLK + "Bergama_city_link_A3.pdf", page=1),
     # ---- C WATER (one block)
     # old p13 + p12 -> one page (v14, Prompt 4): the water balance sheet v3 opens with "How the stream behaves" (its band
@@ -99,14 +105,22 @@ PAGES = [
     # shade now inside wb_plants; the plant ladder page (agriculture sheet page 3) is gone, folded into these and p.14-15
     dict(part="C", stage="do", title=u"Which plant goes where", intro=u"*Wet to dry, low to high*: rushes and loosestrife *at the water*, willow and tamarisk on the *banks that flood*, shade trees and olives on the *dry tops*; reed and water mint only in *lined basins*.", rows=[[WB + "wb_plants"]]),
     dict(part="C", stage="do", title=u"Which plant goes where, in section", intro=u"Each cut shows the *water*, the *planting band* each species needs, and what surrounds it: *streets, walks, terraces*.", rows=[[WB + "wb_plants_b"]]),
-    # revision 30 Oct (T5, PG2 p18-19): two compact pages, not one: at 1:1 the crops cover ~131,000 mm2 against the
-    # 110,800 mm2 grid area; one page would scale them to ~0.85 and p19's 7 pt labels to 5.95 pt (< 6 pt minimum)
-    dict(part="C", stage="do", title=u"Where the clean water goes",
-         intro=u"Where the clean water ends up: *farmland outside the site*, easing an *overused aquifer*. *Never drinking water*.",
-         rows=[[WB + "wb_farms"], [WB + "wb_decision"], [AG + "ag1_headline", AG + "ag1_stream"]]),
-    dict(part="C", stage="do", title=u"What each cubic metre grows",
-         intro=u"*Same storage, different crops*: the *hectares* each crop irrigates a season.",
-         rows=[[AG + "ag1_bars"], [AG + "ag1_reading"]], side=[AG + "ag1_context", AG + "ag1_history", AG + "ag1_crops"]),
+    # v24 (round 2, U14/U31, Aras 31 Oct 11:13 "it would look beter if they can turn into 1 page"): p18 + p19 on ONE
+    # page (the agriculture headline dropped there: the page title says it), the side blocks beside the rows they
+    # explain; the two compact pages of 30 Oct (T5) only when one page would print a row under ONE_PAGE_MIN (labels
+    # below 6 pt), logged
+    dict(part="C", stage="do", title=u"Where the clean water goes, and what it grows",
+         intro=u"Clean water to *farmland outside the site*, easing an *overused aquifer*, *never drinking water*; *same storage, different crops*: the *hectares* each crop irrigates.",
+         rows=[[WB + "wb_farms"], [WB + "wb_decision"], [AG + "ag1_stream", AG + "ag1_context"],
+               [AG + "ag1_bars", AG + "ag1_crops"], [AG + "ag1_reading", AG + "ag1_history"]],
+         or_pages=[
+            dict(part="C", stage="do", title=u"Where the clean water goes",
+                 intro=u"Where the clean water ends up: *farmland outside the site*, easing an *overused aquifer*. *Never drinking water*.",
+                 rows=[[WB + "wb_farms"], [WB + "wb_decision"], [AG + "ag1_headline", AG + "ag1_stream"]]),
+            dict(part="C", stage="do", title=u"What each cubic metre grows",
+                 intro=u"*Same storage, different crops*: the *hectares* each crop irrigates a season.",
+                 rows=[[AG + "ag1_bars"], [AG + "ag1_reading"]], side=[AG + "ag1_context", AG + "ag1_history", AG + "ag1_crops"]),
+         ]),
     # ---- D HISTORY AND HERITAGE (now spread over old p3, p8, p18, p20: collected here as frames)
     dict(part="D", stage="an+got", title=u"Heritage along the stream",
          rows=[[SLOT(u"Heritage on site: Roman bridges and tunnels, Red Hall, Ulu Cami, tannery quarter (later prompt)", 230.0, 200.0),

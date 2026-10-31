@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v35 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
+"""BERGAMA MASTERPLAN v36 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v36 (round 2 closing, Aras 31 Oct, checklist 5, 7, 8; the water board's callout style): p22 sections D1 and
+    D2: numbered callouts in the cut ground under each designed element and planting group, a numbered key under
+    each section ("Element: reason", <= 55 letters: walk + bike lane, reed cells, terraces, wetland bench, Demeter's
+    Garden, hub square, DSİ walls, sub-hub, crossings, viewing terrace; each group says what it does from the
+    plants' sourced purpose tags); the survey's houses behind the cut on the background ground lines (data heights);
+    people who stay look at the stream, nobody in the sub-hub's water (11:28); the cut ground 6 m deep (was 3 m); the D8 designed sky behind
+    each section (SF_SKY_DEFAULT).
+    The p22 crops grow downward by the key.
+    Output: Bergama_masterplan_v36_A.pdf, Bergama_masterplan_v36_A_detail.pdf, Bergama_senses_A3.pdf.
 NEW IN v35 (round 2, Aras 31 Oct, brief2 PG1 p15 #6, PG4 p21/p22, G9, G14): p15 Encounters: the five ribbons
     each in their own lane along the stream (never pulled onto it), so no two ever touch or cross; crossing clouds
     gone. p21 + p22 trees: a mixed riparian belt (6-32 m from the water, crowns interpenetrating, dart thrown, no
@@ -236,8 +245,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v35 (2026-10-31)"
-SHORT = "v35"
+VERSION = "bergama_masterplan v36 (2026-10-31)"
+SHORT = "v36"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)

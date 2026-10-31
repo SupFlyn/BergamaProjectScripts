@@ -11,6 +11,10 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
 Reads  ~/Downloads/Bergama/output/<script folder>/booklet/blocks.json (the panels of each sheet) + the sheet PDFs
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf (one booklet in style a: each crop's _a
   version where its script still writes one, else the crop itself)
+NEW IN v24 (round 2, Aras 31 Oct 11:13 + U24/U31, a feature change): p18 + p19 on ONE page ("Where the clean water
+  goes, and what it grows"; the side blocks beside the rows they explain), the two compact pages only if one page
+  would print labels under 6 pt; p8 street sections whole: they move to their own page "The streets, before and
+  after" when p8 cannot hold them at that size. Both choices are logged.
 NEW IN v23 (Aras 31 Oct 08:43-08:46, a feature change): ONE booklet in style a (no alt_b): Bergama_booklet_A3.pdf;
   the old ..._alt_a.pdf / ..._alt_b.pdf in output/bergama_booklet/ are deleted at the run (logged). p6 beige palette,
   p11 b's layout with the section at the bottom drawn in style a: both come from their scripts' plain crops.
@@ -120,7 +124,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v23"
+VERSION = "v24"
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -565,7 +569,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': 'b61f0a78329ad458706171ecaa03b11a'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'PLAN': '45b232f716c486a449e76048fbee4e71'}.get(name):
         raise RuntimeError("Data file bergama_booklet_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_booklet_data.py:" + name, "exec"), globals())
@@ -1419,7 +1423,19 @@ def expand(fitz, spec, assets):
         return []
     if spec.get("alone") and fit(rows) < 0.75 * min(fit([r]) for r in rows):   # v7: together only if both stay big
         return [(dict(spec, title=t), [r]) for t, r in zip(spec["alone"], rows)]
+    if spec.get("or_pages"):                         # v24 (round 2): one page while every row keeps ONE_PAGE_MIN
+        s1 = fit(rows, None, AREA[3] - AREA[1] - ONE_PAGE_INTRO)
+        if s1 < ONE_PAGE_MIN:
+            _EXPAND_NOTES.append("'%s' on %d pages: on one page its rows would print at x%.2f (< x%.2f, labels "
+                                 "under 6 pt)" % (spec["title"], len(spec["or_pages"]), s1, ONE_PAGE_MIN))
+            return [pr for sp in spec["or_pages"] for pr in expand(fitz, sp, assets)]
+        _EXPAND_NOTES.append("'%s' on one page at x%.2f" % (spec["title"], s1))
     return [(spec, rows)]
+
+
+ONE_PAGE_MIN = 6.0 / 7.0    # v24: the sheets' smallest labels are 7 pt; the booklet's minimum is 6 pt
+ONE_PAGE_INTRO = 12.0       # v24: room an intro under the title may take (mm), kept free when judging one page
+_EXPAND_NOTES = []          # v24: which or_pages entries went on one page, logged
 
 
 def cover(pg, typo, pages):
@@ -2049,6 +2065,7 @@ def build_variant(variant):
     typo = Typo(fitz)
     doc = fitz.open()
     plan = []
+    del _EXPAND_NOTES[:]
     for spec in PAGES:
         if spec.get("sheet"):
             plan.append((spec, None))
@@ -2057,6 +2074,7 @@ def build_variant(variant):
                               spec.get("title", ""))           # v18 (Prompt 8): no empty frame page in the booklet
         else:
             plan += expand(fitz, spec, assets)
+    typo.notes += _EXPAND_NOTES                     # v24: one page or two (p8 street sections, p18 + p19)
     plan = flex_order(plan, typo)
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
     _TOTAL[0] = len(numbered) + 2                   # revision 30 Oct (G2): cover + pages + sources, the counter's total

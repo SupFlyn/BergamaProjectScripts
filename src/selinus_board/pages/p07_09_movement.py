@@ -812,10 +812,15 @@ def _t3_bld_cut(q, n, front, sg, u):
 def _t3_sec_bld(S, cut):
     """T4: the cut's buildings in section m: each side's fronting building cut (cut["bld"], its back = side "back",
     its drawn eaves against the survey height = side "g6") and the profiles of the other buildings fronting the
-    street T3_SEC_BEYOND m along it, seen behind the cut (cut["beyond"]: rings), all from the survey"""
+    street T3_SEC_BEYOND m along it, seen behind the cut (cut["beyond"]: rings), all from the survey. v57 (Aras 31 Oct
+    12:01 "no background houses"; common sf_back_buildings' rule, here on the street cut, which is no registry cut):
+    cut["back"] = the other survey buildings SF_BACK_BAND m along the street the way the section looks (+t, as the key
+    map's triangles), projected onto the cut: [(x from, x to m across, h m, floors, m behind)], farthest first; data
+    height only (a building without one is left out), none already drawn as cut or as a façade beyond"""
     gb = _t3_sec_grids(S)[1]
     p, t = cut["p"], cut["t"]
     cutb, beyond, houses = [], [], []
+    drawn = set()
     for sg in (-1, 1):
         sd = cut["side"][sg]
         if sd["u"] is not None and sd["h"]:
@@ -827,6 +832,7 @@ def _t3_sec_bld(S, cut):
                 eav = [z for it in its if it[0] == "line" and it[2] == BLD_COL["sec_line"] for _m, z in it[1]]
                 sd["g6"] = (max(eav) if eav else None, sd["h"])
         seen = set([id(sd["u"])])
+        drawn.add(id(sd["u"]))
         for off in T3_SEC_BEYOND:
             q = (p[0] + t[0] * off, p[1] + t[1] * off)
             f_, u = _t3_ray(gb, q[0], q[1], sd["n"][0], sd["n"][1], T3_SEC_REACH)
@@ -839,7 +845,21 @@ def _t3_sec_bld(S, cut):
             xs_ = [q_[0] for R_ in rs_ for q_ in R_]
             if xs_:                                       # R2-B (G7, G14): drawn as an elevation (sf_back_house)
                 houses.append((min(xs_), max(xs_), float(u["h"]), u.get("floors") or None))
-    cut["bld"], cut["beyond"], cut["houses"] = cutb, beyond, houses
+                drawn.add(id(u))
+    back = []
+    for u in S.bld:                                       # v57: the houses further down the street (sf_back_buildings)
+        if id(u) in drawn or not u.get("h"):
+            continue
+        P_ = [q_ for R_ in u["parts"] for q_ in R_]
+        if len(P_) < 3:
+            continue
+        dn = min((q_[0] - p[0]) * t[0] + (q_[1] - p[1]) * t[1] for q_ in P_)
+        if dn < SF_BACK_BAND[0] or dn > SF_BACK_BAND[1]:
+            continue
+        xs_ = [(q_[0] - p[0]) * t[1] - (q_[1] - p[1]) * t[0] for q_ in P_]   # across: the right normal (ty, -tx)
+        back.append((min(xs_), max(xs_), float(u["h"]), u.get("floors") or None, dn))
+    back.sort(key=lambda r_: -r_[4])
+    cut["bld"], cut["beyond"], cut["houses"], cut["back"] = cutb, beyond, houses, back
 
 
 def _t3_sec_extent(cut):
@@ -1128,10 +1148,12 @@ def _t3_sec_make(cut, after, style, k, CO, seed):
             LOG.append(u"Street sections {}: no planting group fits the {:.1f} m strip.".format(cut["name"], p1 - p0))
     # walkers further along the street (D9 layers 2 and 1: smaller, paler; Aras 31 Oct 11:24 colour depth by
     # distance), by what each zone is for (figures.py fig_place_zones, style a cutouts only, seated: G14, G10)
+    # v57 (R2-C focus, Aras 31 Oct 12:01): those who stay look at each other (their zone's middle), walkers keep on
     zk = "market_ground" if var == "pedestrian" else "walkway"
     for lay in (2, 1):
         sh_, _pl = fig_place_zones([(zk, X(a_), X(b_)) for a_, b_ in zones if b_ - a_ >= 1.5], 0.0, k,
-                                   seed=seed + 5 * lay, layer=lay, style="a", density=0.5, max_per_zone=2)
+                                   seed=seed + 5 * lay, layer=lay, style="a", density=0.5, max_per_zone=2,
+                                   focus=lambda _k, xa_, xb_: 0.5 * (xa_ + xb_))
         wl.add("background", sh_)
     # the people at the cut (1.75 m): the street's interactions (G10)
     script = T3_SCRIPT[var]
@@ -1227,6 +1249,28 @@ def _t3_sec_make(cut, after, style, k, CO, seed):
                                                    cut["side"][sg]["g6"][0], cut["side"][sg]["g6"][1])
                                                   for sg in (-1, 1) if cut["side"][sg].get("g6") and
                                                   cut["side"][sg]["g6"][0] is not None], strict=False)
+    # v57 (Aras 31 Oct 12:01 "no background houses"; M8, D9, G14): the houses further down the street (cut["back"]),
+    # farthest first and behind everything else of the background layer, as elevations (sf_back_house: data height,
+    # windows, hipped roof by convention) standing on the street level (the flat back profile, as above), D9 layer 1
+    # nearer than the band's middle, else 2 (paler); a house whose roof would rise over the drawing is left out (R2-C),
+    # so the row height, the icon row and the labels stay where they were
+    top_ = _t3_top(wl.shapes())
+    dmid = 0.5 * (SF_BACK_BAND[0] + SF_BACK_BAND[1])
+    bk_, nb_ = [], 0
+    for xa_, xb_, h_, fl_, d_ in cut.get("back") or []:
+        a_, b_ = max(0.3 * k, X(xa_)), min(W - 0.3 * k, X(xb_))
+        if b_ - a_ < 2.0 * k:
+            continue
+        hh_ = sf_back_house(a_, b_, 0.0, h_, k, layer=1 if d_ < dmid else 2, floors=fl_)
+        if not hh_ or _t3_top(hh_) > top_:
+            continue
+        bk_ += hh_
+        nb_ += 1
+    wl.L["background"][:0] = bk_
+    if not after:
+        LOG.append(u"Street sections {}: {} background houses {:.0f}-{:.0f} m down the street drawn ({} in the band; "
+                   u"higher than the drawing left out).".format(cut["name"], nb_, SF_BACK_BAND[0], SF_BACK_BAND[1],
+                                                                 len(cut.get("back") or [])))
     # D8 (default a: every section): the designed sky behind it, from the street level to the top of the drawing
     if SF_SKY_DEFAULT == "designed":
         wl.add("atmosphere", sf_sky(0.0, W, 0.0, _t3_top(wl.shapes()) + 1.0, seed=seed))

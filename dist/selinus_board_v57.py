@@ -1,9 +1,12 @@
 # r: numpy
 """
-THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v56)
+THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v57)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v57 (round 2 closing, Aras 31 Oct 12:01): p8 street sections draw the survey's houses further down the street
+behind each cut (data heights, on the street level, paler with distance, none above the drawing); people who stay on
+pp.4-5 and p8 look at what they are there for (the stream when it is near, else each other), walkers keep their way.
 NEW IN v56 (round 2, Aras 31 Oct notes): p2 the edge strip's buildings as roof blocks, C1-C6 and K1-K6 listed under
 plan 01 in the map's own marker style, the town outside the study area a little fainter; pp.4-5 houses, trees and
 people beyond the cut stand on their own ground, no wall triangles, a designed sky, one people style; p7 each street
@@ -422,8 +425,8 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v56 (2026-10-31)"     # v27: the log's first line and the text under the component
-SHORT_V = "v55"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v57 (2026-10-31)"     # v27: the log's first line and the text under the component
+SHORT_V = "v57"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -19479,8 +19482,11 @@ def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_mi
     Returns house shapes ("poly", ring, ink, stroke, lw) (style a: an "image" shape)."""
     pose = FIG_POSE_ALIAS.get(pose, pose)
     sc, fade = fig_depth(layer)
-    if style == "a" and pose != "wade":                # one people style (Aras 31 Oct): poses without a cutout of
-        cp = FIG_CUT_ALIAS.get(pose, pose)              # their own take the standing cutouts; wading stays drawn
+    water_act = pose == "touch_water"                  # R2-C (Aras 31 Oct 12:01): in shallow water the action reads:
+    if water_act:                                      # bending to the water stays drawn (no cutout does it)
+        pose = "touch"
+    if style == "a" and pose != "wade" and not water_act:   # one people style (Aras 31 Oct): poses without a cutout
+        cp = FIG_CUT_ALIAS.get(pose, pose)              # of their own take the standing cutouts; wading stays drawn
         h_true = FIG_CYCLIST_H if pose == "bike" else (p.get("child_h", FIG_CHILD_H) if pose == "child_play" else None)
         y_im = y
         pk = pick if pick is not None else int(abs(x * 7.31 + y * 3.17) * 10.0) % 997   # 31 Oct: variety (was
@@ -19730,7 +19736,7 @@ FIG_ACTIVITY = {
     "bike_lane": [("bike", 1.0, 1.9)],
     "walkway": [("walk", 3.0, 0.8), ("adult_child", 1.5, 1.0), ("group", 1.0, 1.7), ("watch", 0.6, 0.6)],
     "viewing_terrace": [("watch", 2.0, 0.7), ("railing", 2.0, 0.8), ("sit_step", 1.0, 0.8), ("group", 1.0, 1.7)],
-    "wading_strip": [("wade", 3.0, 0.8), ("touch", 1.0, 0.9), ("child_play", 1.5, 0.8)],
+    "wading_strip": [("wade", 3.0, 0.8), ("touch_water", 1.5, 0.9), ("child_play", 1.5, 0.8)],   # R2-C: water actions
     "market_ground": [("market", 3.0, 3.2), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0), ("group", 1.0, 1.7)],
     "sun_steps": [("sit_step", 4.0, 0.8), ("watch", 0.5, 0.7), ("touch", 0.5, 0.9)],
     "bridge_crossing": [("walk", 3.0, 0.8), ("railing", 1.5, 0.8), ("bike", 0.7, 1.9), ("watch", 1.0, 0.7)],
@@ -19738,19 +19744,23 @@ FIG_ACTIVITY = {
     "stepping_stones": [("walk", 2.0, 0.8), ("adult_child", 1.5, 1.0), ("stand", 0.6, 0.6)],   # R2-A: on the stones
     "lawn": [("child_play", 1.5, 0.8), ("group", 1.0, 1.7), ("walk", 1.0, 0.8), ("adult_child", 1.0, 1.0)],
 }
+FIG_FOCUS_POSES = ("watch", "railing", "sit_step", "touch", "touch_water", "stand", "adult_child")   # R2-C scenes
+FIG_PAIR_POSES = ("wade", "child_play")        # R2-C scenes: playing together in the water or on the lawn
 FIG_ZONE_ALIAS = {"bike": "bike_lane", "walk": "walkway", "terrace": "viewing_terrace", "wading": "wading_strip",
                   "market": "market_ground", "steps": "sun_steps", "bridge": "bridge_crossing",
                   "stream_bed": "bed", "stones": "stepping_stones", "open_ground": "lawn"}
 
 
 def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, style="b", water=None, max_n=None,
-                 acts=None, **p):
+                 acts=None, focus=None, **p):
     """people doing what the zone is for, placed along x0..x1 (page mm) on the ground gy (number or function of x),
     k mm per m: poses drawn from FIG_ACTIVITY[zone] by weight, never the same pose twice in a row (when the zone has
     two or more), irregular gaps (0.6-3.2 m / density), at least two people where two fit. water = the water level
     (page y, or a function of x) for wading figures (their depth). p goes to every figure (seat_h, rail_h, ...).
     acts: this zone's [(pose, weight, footprint m)] instead of FIG_ACTIVITY's (fig_place_zones filters it).
-    Returns (shapes, placed [(pose, x page mm)])."""
+    focus (page x, R2-C scenes, Aras 31 Oct 12:01 "they look like they are just put there"): people who stay look at
+    it (the water, a stall, a view), people playing in the water turn to each other in pairs, walkers and riders
+    keep their own way. Returns (shapes, placed [(pose, x page mm)])."""
     zone = FIG_ZONE_ALIAS.get(zone, zone)
     if zone not in FIG_ACTIVITY:
         raise KeyError("fig_activity: zone %r; known: %s" % (zone, ", ".join(sorted(FIG_ACTIVITY))))
@@ -19780,6 +19790,10 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
         cx = x + 0.5 * foot * K
         g = gy(cx) if callable(gy) else gy
         fac = 1 if rnd() > 0 else -1
+        if focus is not None and pose in FIG_FOCUS_POSES:
+            fac = 1 if focus >= cx else -1
+        elif focus is not None and pose in FIG_PAIR_POSES:
+            fac = 1 if len(placed) % 2 == 0 else -1    # pairs turned to each other (left looks right, right looks left)
         if pose == "market":
             sh += fig_stall(cx + 0.5 * FIG_STALL["depth_m"] * K, gy, k, facing=fac, layer=layer, seed=seed + len(placed),
                             ink=ink, style=style)
@@ -19831,7 +19845,7 @@ def _fig_dry_runs(xa, xb, g, water, k, limit_m):
 
 
 def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water=None, ink=None, max_per_zone=None,
-                    **p):
+                    focus=None, **p):
     """G10 people in a section, zone by zone: zones = [(kind, x0, x1)] or [(kind, x0, x1, ground)] left to right
     (page mm; ground = that zone's own walking surface: stone tops, a terrace deck, a bridge deck; else gy). kind =
     a FIG_ACTIVITY zone (walkway, bike_lane, viewing_terrace, sun_steps, market_ground, bridge_crossing,
@@ -19842,7 +19856,8 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
     seated on the lowest ground under its feet (sf_seat_x). Pass water whenever a zone reaches the channel: nobody
     stands where the drawn water is deeper than FIG_WADE_MAX_M (knee) on a wading strip, or above the ground at all
     on any other zone (refused parts counted in the G14 log line as "<kind> (too deep)"). p goes to every figure
-    (seat_h, rail_h ...). Returns (shapes, placed [(kind, pose, x)])."""
+    (seat_h, rail_h ...). focus = page x everyone who stays looks at (R2-C scenes: the water; see fig_activity), or
+    a function of (kind, x0, x1) -> page x or None per zone. Returns (shapes, placed [(kind, pose, x)])."""
     seat = globals().get("sf_seat_x")
     gfn = globals().get("_sf_fn")
     sc = fig_depth(layer)[0]
@@ -19866,11 +19881,13 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
                 rf = globals().get("SF_G14", {}).get("refused")
                 if rf is not None:
                     rf[kind + " (too deep)"] = rf.get(kind + " (too deep)", 0) + 1
+        fz = focus(kind, xa, xb) if callable(focus) else focus
         for ra, rb in runs:
             _FIG_NPICK[0] += 1
             s_, p_ = fig_activity(kz, ra, rb, gs, k, layer=layer, seed=seed * 101 + i * 17 + _FIG_NPICK[0] * 7,
                                   density=density, ink=ink, style=style,
-                                  water=water if kz == "wading_strip" else None, max_n=max_per_zone, acts=acts, **p)
+                                  water=water if kz == "wading_strip" else None, max_n=max_per_zone, acts=acts,
+                                  focus=fz, **p)
             sh += s_
             placed += [(kind, pose, x) for pose, x in p_]
     return sh, placed
@@ -28207,6 +28224,49 @@ def sf_back_house(xa, xb, gy, h_m, k, layer=1, floors=None, roof="hip", fill=Non
     return sh
 
 
+SF_BACK_BAND = (8.0, 120.0)   # m behind a cut where background houses are taken from (drawing rule, R2-C)
+
+
+def sf_back_buildings(cid, t0, t1, d0=None, d1=None, log=None, look=1):
+    """R2-C (checklist 7, Aras 31 Oct 12:01 "no background houses"): the basemap buildings standing d0..d1 m behind
+    the registry cut cid (the way the section looks: the normal (-u_y, u_x) of its ends, as the page key maps), each
+    projected onto the cut: [(t_a, t_b m along the cut, h m, floors or None, d m behind)], farthest first, clipped to
+    t0..t1. Height: the building's data height, else the repo's M11 convention floors x BLD_STOREY (buildings.py
+    _bld_h, as every cut-through building). Draw with sf_back_house on the depth layer's ground (d < half the band:
+    layer 1, else 2). look=-1: the drawing looks the other way (its first end on the right, as the p.12 W cuts and
+    their key map, basemap_cut_ids looks=-1)."""
+    import math as _m
+    d0 = SF_BACK_BAND[0] if d0 is None else d0
+    d1 = SF_BACK_BAND[1] if d1 is None else d1
+    D = basemap_load(log=log) if globals().get("basemap_load") else None
+    L = (D or {}).get("layers") or {}
+    a, b = level_ends(cid)
+    Lc = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    u = ((b[0] - a[0]) / Lc, (b[1] - a[1]) / Lc)
+    f = (-u[1] * look, u[0] * look)
+    out = []
+    for bl in L.get("buildings", []):
+        h = _bld_h(bl) if globals().get("_bld_h") else float(bl.get("h") or 0.0)
+        if h <= 0.0:
+            continue
+        P = [p_ for R_ in bl["rings"][:bl.get("np", len(bl["rings"]))] for p_ in R_]
+        if len(P) < 3:
+            continue
+        ts = [(p_[0] - a[0]) * u[0] + (p_[1] - a[1]) * u[1] for p_ in P]
+        ds = [(p_[0] - a[0]) * f[0] + (p_[1] - a[1]) * f[1] for p_ in P]
+        dn = min(ds)
+        if dn < d0 or dn > d1:
+            continue
+        ta, tb = max(t0, min(ts)), min(t1, max(ts))
+        if tb - ta < 2.0:
+            continue
+        out.append((ta, tb, round(h, 2), int(bl.get("floors") or 0) or None, dn))
+    out.sort(key=lambda r: -r[4])
+    if log is not None:
+        log.append(u"background houses {}: {} buildings {:.0f}-{:.0f} m behind the cut".format(cid, len(out), d0, d1))
+    return out
+
+
 def sf_assert_g14(items, gy, tol=0.2, strict=True):
     """G14 check by reasoning: items = [shapes of one item, ...] all on ground gy; an item whose base is more than
     tol mm above the lowest ground under it floats. strict: AssertionError listing them; else the messages."""
@@ -30129,6 +30189,8 @@ def draw_landcover(S, B, V, L, order=2):
 # v56 (round 2, R2-B, G14/U22/D8): houses and trees beyond stand on their own depth layer's ground (sf_back_profile,
 # sf_back_house), every tree and person seated on the cut ground (sf_seat_x), wall triangles off (sf_triangles), the
 # designed sky behind each cut, people by zone in the one booklet style (fig_place_zones), never in the channel.
+# v57 (Aras 31 Oct 12:01 "they look like they are just put there"; R2-C focus): the people on the crossed streets
+# who stay look at the stream when it is near (P45_FOCUS_WATER_M), else at each other (their zone's middle).
 
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S5", "S6")          # cuts that run along the stream: cropped to the part around their crossings
@@ -30141,6 +30203,8 @@ P45_KEY_COL = 14.0                # mm: the key map's left column (KEY, the nort
 P45_KEY_MIN = 34.0                # mm: the key map at least this tall
 P45_KEY_TXT = 78.0                # mm: kept right of the key map for the page's reading and the strip's colours
 P45_FIG_STYLE = "a"               # v56: the one human style of the booklet (D1 a; Aras 31 Oct 11:24)
+P45_FOCUS_WATER_M = 40.0          # m: v57: people on a street this near a crossing look at the water (drawing rule, as
+#                                   P45_NEAR_M), else at each other
 P45_NEAR_M = 40.0                 # m: v56 G14: buildings / trees beyond within this are the near depth layer (drawing rule;
 #                                   the v55 outline limit)
 P45_MATCH_M = 3.0                 # m: a level row is drawn at the crossing whose bed is nearest, within this
@@ -30709,9 +30773,14 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                       and not any(sg[0] < cr["b"] and cr["a"] < sg[1] for cr in crs)],   # never in the channel (Aras 11:28)
                      key=lambda q_: q_[0] - q_[1])[:3]
         zones_ = [("walkway", a * km, b * km) for a, b, cat in sorted(st_)]
+        def foc_(_k, xa_, xb_):                          # v57 (R2-C focus): the near water, else each other
+            m_ = 0.5 * (xa_ + xb_) / km
+            w_ = [0.5 * (cr["a"] + cr["b"]) for cr in crs if not cr["along"] and
+                  min(abs(cr["a"] - m_), abs(cr["b"] - m_)) <= P45_FOCUS_WATER_M]
+            return (min(w_, key=lambda c_: abs(c_ - m_)) if w_ else m_) * km
         if zones_:
             sh_, placed_ = fig_place_zones(zones_, gy_mm, km, seed=len(nm) * 13, style=P45_FIG_STYLE, density=0.6,
-                                           max_per_zone=2, ink=mix(INK, PAPER, 0.2))
+                                           max_per_zone=2, ink=mix(INK, PAPER, 0.2), focus=foc_)
             _p45_put(B, L, sh_, T, kb, 34)
         if figs_:
             for m_ in sf_assert_g14(figs_, gy_mm, strict=False):
@@ -33087,10 +33156,15 @@ def _t3_bld_cut(q, n, front, sg, u):
 def _t3_sec_bld(S, cut):
     """T4: the cut's buildings in section m: each side's fronting building cut (cut["bld"], its back = side "back",
     its drawn eaves against the survey height = side "g6") and the profiles of the other buildings fronting the
-    street T3_SEC_BEYOND m along it, seen behind the cut (cut["beyond"]: rings), all from the survey"""
+    street T3_SEC_BEYOND m along it, seen behind the cut (cut["beyond"]: rings), all from the survey. v57 (Aras 31 Oct
+    12:01 "no background houses"; common sf_back_buildings' rule, here on the street cut, which is no registry cut):
+    cut["back"] = the other survey buildings SF_BACK_BAND m along the street the way the section looks (+t, as the key
+    map's triangles), projected onto the cut: [(x from, x to m across, h m, floors, m behind)], farthest first; data
+    height only (a building without one is left out), none already drawn as cut or as a façade beyond"""
     gb = _t3_sec_grids(S)[1]
     p, t = cut["p"], cut["t"]
     cutb, beyond, houses = [], [], []
+    drawn = set()
     for sg in (-1, 1):
         sd = cut["side"][sg]
         if sd["u"] is not None and sd["h"]:
@@ -33102,6 +33176,7 @@ def _t3_sec_bld(S, cut):
                 eav = [z for it in its if it[0] == "line" and it[2] == BLD_COL["sec_line"] for _m, z in it[1]]
                 sd["g6"] = (max(eav) if eav else None, sd["h"])
         seen = set([id(sd["u"])])
+        drawn.add(id(sd["u"]))
         for off in T3_SEC_BEYOND:
             q = (p[0] + t[0] * off, p[1] + t[1] * off)
             f_, u = _t3_ray(gb, q[0], q[1], sd["n"][0], sd["n"][1], T3_SEC_REACH)
@@ -33114,7 +33189,21 @@ def _t3_sec_bld(S, cut):
             xs_ = [q_[0] for R_ in rs_ for q_ in R_]
             if xs_:                                       # R2-B (G7, G14): drawn as an elevation (sf_back_house)
                 houses.append((min(xs_), max(xs_), float(u["h"]), u.get("floors") or None))
-    cut["bld"], cut["beyond"], cut["houses"] = cutb, beyond, houses
+                drawn.add(id(u))
+    back = []
+    for u in S.bld:                                       # v57: the houses further down the street (sf_back_buildings)
+        if id(u) in drawn or not u.get("h"):
+            continue
+        P_ = [q_ for R_ in u["parts"] for q_ in R_]
+        if len(P_) < 3:
+            continue
+        dn = min((q_[0] - p[0]) * t[0] + (q_[1] - p[1]) * t[1] for q_ in P_)
+        if dn < SF_BACK_BAND[0] or dn > SF_BACK_BAND[1]:
+            continue
+        xs_ = [(q_[0] - p[0]) * t[1] - (q_[1] - p[1]) * t[0] for q_ in P_]   # across: the right normal (ty, -tx)
+        back.append((min(xs_), max(xs_), float(u["h"]), u.get("floors") or None, dn))
+    back.sort(key=lambda r_: -r_[4])
+    cut["bld"], cut["beyond"], cut["houses"], cut["back"] = cutb, beyond, houses, back
 
 
 def _t3_sec_extent(cut):
@@ -33403,10 +33492,12 @@ def _t3_sec_make(cut, after, style, k, CO, seed):
             LOG.append(u"Street sections {}: no planting group fits the {:.1f} m strip.".format(cut["name"], p1 - p0))
     # walkers further along the street (D9 layers 2 and 1: smaller, paler; Aras 31 Oct 11:24 colour depth by
     # distance), by what each zone is for (figures.py fig_place_zones, style a cutouts only, seated: G14, G10)
+    # v57 (R2-C focus, Aras 31 Oct 12:01): those who stay look at each other (their zone's middle), walkers keep on
     zk = "market_ground" if var == "pedestrian" else "walkway"
     for lay in (2, 1):
         sh_, _pl = fig_place_zones([(zk, X(a_), X(b_)) for a_, b_ in zones if b_ - a_ >= 1.5], 0.0, k,
-                                   seed=seed + 5 * lay, layer=lay, style="a", density=0.5, max_per_zone=2)
+                                   seed=seed + 5 * lay, layer=lay, style="a", density=0.5, max_per_zone=2,
+                                   focus=lambda _k, xa_, xb_: 0.5 * (xa_ + xb_))
         wl.add("background", sh_)
     # the people at the cut (1.75 m): the street's interactions (G10)
     script = T3_SCRIPT[var]
@@ -33502,6 +33593,28 @@ def _t3_sec_make(cut, after, style, k, CO, seed):
                                                    cut["side"][sg]["g6"][0], cut["side"][sg]["g6"][1])
                                                   for sg in (-1, 1) if cut["side"][sg].get("g6") and
                                                   cut["side"][sg]["g6"][0] is not None], strict=False)
+    # v57 (Aras 31 Oct 12:01 "no background houses"; M8, D9, G14): the houses further down the street (cut["back"]),
+    # farthest first and behind everything else of the background layer, as elevations (sf_back_house: data height,
+    # windows, hipped roof by convention) standing on the street level (the flat back profile, as above), D9 layer 1
+    # nearer than the band's middle, else 2 (paler); a house whose roof would rise over the drawing is left out (R2-C),
+    # so the row height, the icon row and the labels stay where they were
+    top_ = _t3_top(wl.shapes())
+    dmid = 0.5 * (SF_BACK_BAND[0] + SF_BACK_BAND[1])
+    bk_, nb_ = [], 0
+    for xa_, xb_, h_, fl_, d_ in cut.get("back") or []:
+        a_, b_ = max(0.3 * k, X(xa_)), min(W - 0.3 * k, X(xb_))
+        if b_ - a_ < 2.0 * k:
+            continue
+        hh_ = sf_back_house(a_, b_, 0.0, h_, k, layer=1 if d_ < dmid else 2, floors=fl_)
+        if not hh_ or _t3_top(hh_) > top_:
+            continue
+        bk_ += hh_
+        nb_ += 1
+    wl.L["background"][:0] = bk_
+    if not after:
+        LOG.append(u"Street sections {}: {} background houses {:.0f}-{:.0f} m down the street drawn ({} in the band; "
+                   u"higher than the drawing left out).".format(cut["name"], nb_, SF_BACK_BAND[0], SF_BACK_BAND[1],
+                                                                 len(cut.get("back") or [])))
     # D8 (default a: every section): the designed sky behind it, from the street level to the top of the drawing
     if SF_SKY_DEFAULT == "designed":
         wl.add("atmosphere", sf_sky(0.0, W, 0.0, _t3_top(wl.shapes()) + 1.0, seed=seed))

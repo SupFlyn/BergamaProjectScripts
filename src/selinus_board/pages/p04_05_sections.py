@@ -16,6 +16,8 @@
 # v56 (round 2, R2-B, G14/U22/D8): houses and trees beyond stand on their own depth layer's ground (sf_back_profile,
 # sf_back_house), every tree and person seated on the cut ground (sf_seat_x), wall triangles off (sf_triangles), the
 # designed sky behind each cut, people by zone in the one booklet style (fig_place_zones), never in the channel.
+# v57 (Aras 31 Oct 12:01 "they look like they are just put there"; R2-C focus): the people on the crossed streets
+# who stay look at the stream when it is near (P45_FOCUS_WATER_M), else at each other (their zone's middle).
 
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S5", "S6")          # cuts that run along the stream: cropped to the part around their crossings
@@ -28,6 +30,8 @@ P45_KEY_COL = 14.0                # mm: the key map's left column (KEY, the nort
 P45_KEY_MIN = 34.0                # mm: the key map at least this tall
 P45_KEY_TXT = 78.0                # mm: kept right of the key map for the page's reading and the strip's colours
 P45_FIG_STYLE = "a"               # v56: the one human style of the booklet (D1 a; Aras 31 Oct 11:24)
+P45_FOCUS_WATER_M = 40.0          # m: v57: people on a street this near a crossing look at the water (drawing rule, as
+#                                   P45_NEAR_M), else at each other
 P45_NEAR_M = 40.0                 # m: v56 G14: buildings / trees beyond within this are the near depth layer (drawing rule;
 #                                   the v55 outline limit)
 P45_MATCH_M = 3.0                 # m: a level row is drawn at the crossing whose bed is nearest, within this
@@ -596,9 +600,14 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                       and not any(sg[0] < cr["b"] and cr["a"] < sg[1] for cr in crs)],   # never in the channel (Aras 11:28)
                      key=lambda q_: q_[0] - q_[1])[:3]
         zones_ = [("walkway", a * km, b * km) for a, b, cat in sorted(st_)]
+        def foc_(_k, xa_, xb_):                          # v57 (R2-C focus): the near water, else each other
+            m_ = 0.5 * (xa_ + xb_) / km
+            w_ = [0.5 * (cr["a"] + cr["b"]) for cr in crs if not cr["along"] and
+                  min(abs(cr["a"] - m_), abs(cr["b"] - m_)) <= P45_FOCUS_WATER_M]
+            return (min(w_, key=lambda c_: abs(c_ - m_)) if w_ else m_) * km
         if zones_:
             sh_, placed_ = fig_place_zones(zones_, gy_mm, km, seed=len(nm) * 13, style=P45_FIG_STYLE, density=0.6,
-                                           max_per_zone=2, ink=mix(INK, PAPER, 0.2))
+                                           max_per_zone=2, ink=mix(INK, PAPER, 0.2), focus=foc_)
             _p45_put(B, L, sh_, T, kb, 34)
         if figs_:
             for m_ in sf_assert_g14(figs_, gy_mm, strict=False):
