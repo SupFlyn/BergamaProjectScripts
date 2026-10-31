@@ -32,6 +32,9 @@
 #                 the level every section draws its water at (G8, never a dry bed). "c" on the six surveyed sections
 #                 of research/rain_river_levels (W1-W5, S4), "i" (chainage-interpolated between them) elsewhere
 #   avg_flow_depth  depth of that water above the bed (m)
+#   depth_month   (round 3, A2, DATA-1; S4 only so far) mean water depth above the bed per month, Jan..Dec (m), value =
+#                 {"komurcu": [12], "ilica": [12]} (the two gauge routes of the CSV); read with level_month_depth() /
+#                 level_season_depth() (levels.py), never with level(). Depths, so they hold on either S4 datum (N1)
 #   location      short text: name, stream chainage, walled / unwalled reach (internal, for messages and registry)
 #   booklet_pages booklet page numbers (revision 30 Oct) that draw the cut; "pages" keeps the old sheet numbers
 #   aliases       other names of the same line, accepted by level_cut() and never printed (W1 = F1, S4 = F3: PLAN T1)
@@ -50,6 +53,8 @@
 # Line status (ends, length_m): "i" = digitised from the p04/p05 key maps (+-3 m), "s" = S4's exact board line,
 # "c" = W1-W5 right-angle cuts computed at their chainage.
 #
+# N1 a (Aras 31 Oct 21:37, round 3) SUPERSEDES D4 b for S4: survey datum everywhere (bed +43.59, average flow +43.83,
+# Q100 +45.84, Q500 +46.19; bank heights from the survey bed). D4 b below still holds for S1, S7, S8.
 # D4 b (Aras 29 Oct): the S4 bed is +42.48 everywhere (the site board's value; the survey's low point +43.58 / table
 # +43.59 is kept only in S4's note). The site board's bed rule also stays for S1 (+67.80), S7 (+58.06), S8 (+55.13)
 # (RESULT.md s.3, "Page" column). Changed for these four (status "a"): the bed; the DSİ wall tops of the walled cuts
@@ -191,17 +196,17 @@ LEVELS = [
         'chainage_m': {'value': 7817.6, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
         'angle_deg': {'value': 89.4, 'status': 'c', 'source': 'research stream centreline (research/rain_river_levels/scripts/surveyed_sections/cl.pkl), T1 levels work/sample_cut.py'},
         'walled': False,
-        'bed': {'value': 42.48, 'status': 'a', 'source': "D4 b (29 Oct): Aras's decision, bed = the site board v50 page value (p04)"},
+        'bed': {'value': 43.59, 'status': 's', 'source': "N1 a (Aras 31 Oct 21:37, round 3): survey datum everywhere for S4: levels.json +43.59 (survey TIN low point, tacheometric point 0.3 m away; the datum the Q100/Q500 and average-flow depths were computed on, rain_river README l.25). Replaces D4 b +42.48"},
         'bed_width_cm': {'value': 2600, 'status': 'i', 'source': 'no pair of survey stream lines at this cut: width of the TIN floor within 0.5 m of the bed on the right-angle section'},
         'NE': {
             'type': 'loose_earth',
             'top': {'value': 45.64, 'status': 'i', 'source': 'survey TIN, res_bank_top crest, 31.0 m out across the stream; nearest survey height 5.9 m away'},
-            'height': {'value': 3.16, 'status': 'a', 'source': 'bank top minus the D4 b bed (D4 b 29 Oct)'},
+            'height': {'value': 2.05, 'status': 'c', 'source': 'bank top 45.64 minus the survey bed 43.59 (N1 a, 31 Oct)'},
         },
         'SW': {
             'type': 'embankment',
             'top': {'value': 47.35, 'status': 's', 'source': 'survey TIN, survey bank-top line SEV_UST (no height on the line: TIN there), 30.3 m out across the stream; nearest survey height 0.9 m away'},
-            'height': {'value': 4.87, 'status': 'a', 'source': 'bank top minus the D4 b bed (D4 b 29 Oct)'},
+            'height': {'value': 3.76, 'status': 'c', 'source': 'bank top 47.35 minus the survey bed 43.59 (N1 a, 31 Oct)'},
             'angle_deg': {'value': 7.0, 'status': 'i', 'source': "between the survey's slope lines SEV_ALT (toe) and SEV_UST (top) on the cut"},
         },
         'terraces': [
@@ -210,9 +215,12 @@ LEVELS = [
         ],
         'q100': {'value': 45.84, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q100 205.2 m3/s'},
         'q500': {'value': 46.19, 'status': 'c', 'source': 'Manning n 0.050 on the surveyed right-angle section, DSI Q500 263.33 m3/s'},
-        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
-        'avg_flow': {'value': 42.72, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m); depth added to the D4 b bed +42.48 (the research section's bed is +43.59)"},
-        'note': 'D4 b (29 Oct): bed +42.48 everywhere. Survey low point +43.58 (levels.json +43.59 s, a tacheometric point 0.3 m away) kept here only as a note, never printed.',
+        'avg_flow_depth': {'value': 0.24, 'status': 'c', 'source': "research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m), its bed +43.59 (N1 a)"},
+        'avg_flow': {'value': 43.83, 'status': 'c', 'source': "bed + avg_flow_depth (water level at the mean yearly flow); research/rain_river_levels tables/A3s_monthly_mean_depth_surveyed_sections.csv: Manning n 0.050 normal depth on the surveyed right-angle section, DSİ gauge flows 2016-2021 (Kömürcü D04A063, Ilıca D04A053) area-scaled to the Selinos (101 km²); mean flow ≈ 0.66 m³/s (rain_river README §2); depth read between the two monthly (flow, depth) pairs that bracket it; this cut = the surveyed section S4 detail cut (chainage 7,818 m): survey bed +43.59 + 0.24 (N1 a, 31 Oct)"},
+        'depth_month': {'value': {'komurcu': [0.352, 0.345, 0.32, 0.282, 0.212, 0.161, 0.114, 0.073, 0.05, 0.115, 0.143, 0.203],
+                                  'ilica': [0.432, 0.35, 0.304, 0.251, 0.159, 0.125, 0.08, 0.036, 0.068, 0.106, 0.165, 0.199]},
+                        'status': 'c', 'source': "research/rain_river_levels/tables/A3s_monthly_mean_depth_surveyed_sections.csv rows S4_detail_cut Jan-Dec, columns depth_via_Komurcu_m and depth_via_Ilica_m (Manning n 0.050 normal depth on the surveyed S4 detail cut, DSİ gauge flows 2016-2021 area-scaled to the Selinos, 101 km²; rain_river README §2); below ~0.3 m indicative (README l.36)"},
+        'note': 'N1 a (Aras 31 Oct 21:37): survey datum for every S4 level (bed +43.59, avg +43.83, Q100 +45.84, Q500 +46.19); the D4 b bed +42.48 (29 Oct) is retired. Pages draw the bed from the survey profile (water board DETAIL_SRC PROFILE_Z), low point +43.59.',
     },
     # ---- S5-1: Cut S5 crossing 1
     {
@@ -818,4 +826,82 @@ LEVELS = [
         'zones': [('ARM', 27.0, 33.0)],
         'note': 'T4a: the side arm (masterplan C.arms, not in the zone base) is crossed at 30 m along the cut (its middle, 66 m from the stream axis on the SW side, digitised from booklet p23 +-5 m); recheck against masterplan_results.json "corridor" when the masterplan exports it.',
     },
+]
+
+#@@ NAMES
+# ---- Names table (round 3, A2, 31 Oct 2026; G16 / D9 "real names everywhere"): ONE spelling per bridge and place ----
+# Read it through ../common/names.py, never directly: include this file first, then names.py:
+#   #@include ../common/data/NAMES.py
+#   #@include ../common/names.py
+# Plain Python data (exec'd by tools/build.py's bergama_data): no imports, no functions, one assignment.
+# K-codes stay internal keys only: never printed as a main label. Stream order (upstream first) = "order".
+# Spellings (plan_findings/NAMES_SQUIGGLE_TREES.md DATA-3; chosen: the official public name = the bus stop name):
+#   K3 Tabak Köprüsü        Kültür Envanteri "Tabak Köprüsü" (library/research/selinos_site_history_inaccessible_edges_v1.md
+#                           l.62); survey label "Tabakhane Köprüsü" is the same bridge (selinos_bergama_history_context_v1.md l.143)
+#   K4 Ulucami Önü Köprüsü  KGM plaque on site, photo IMG_5804 (inaccessible_edges_v1.md l.217); history_context_v1.md l.141
+#   K5 Üç Kemer Köprüsü     Visit İzmir (İzmir BB), Destinasyon 10228 (history_context_v1.md l.270)
+#   K6 road bridge          Adnan Menderes Caddesi (inaccessible_edges_v1.md l.176, E12); no proper name found
+#   K1, K2                  no source name: descriptive names (G16)
+# Chainage m along the stream: CL code.py:211 (K1 / K2 about 25 m apart upstream; their order unverified).
+# Banks (D6, Aras 31 Oct 20:45: "fine that way"; p20 already prints them): NE = left bank looking downstream = north
+# bank = the Kale side; SW = south bank = the bazaar side.
+NAMES = {
+    "bridges": {
+        "K1": {"name": u"side inlet crossing", "short": u"side inlet crossing", "order": 1, "proper": False},
+        "K2": {"name": u"small crossing", "short": u"small crossing", "order": 2, "proper": False},
+        "K4": {"name": u"Ulucami Önü Köprüsü", "short": u"Ulucami Önü", "order": 3, "proper": True, "chainage_m": 467},
+        "K3": {"name": u"Tabak Köprüsü", "short": u"Tabak", "order": 4, "proper": True, "chainage_m": 709},
+        "K5": {"name": u"Üç Kemer Köprüsü", "short": u"Üç Kemer", "order": 5, "proper": True, "chainage_m": 1126},
+        "K6": {"name": u"Adnan Menderes Caddesi road bridge", "short": u"road bridge", "order": 6, "proper": False,
+               "chainage_m": 1767},
+    },
+    "places": {
+        "stream": u"Selinos stream",
+        "bank_NE": u"Kale side · north bank",
+        "bank_SW": u"bazaar side · south bank",
+        "bank_NE_short": u"north bank",
+        "bank_SW_short": u"south bank",
+        "side_NE": u"Kale side",
+        "side_SW": u"bazaar side",
+    },
+}
+
+#@@ CUTS
+CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the bed low point), depths of EVENTS (m above the bed),
+          # the width each level covers (from, to; m from the centreline, + = left bank looking downstream), notes
+    dict(key="flat", name=u"5 · FLAT DOWNSTREAM END", bed=41.33, u0=-62,
+         ground=[3.97, 3.92, 3.88, 3.84, 3.80, 3.78, 3.76, 3.74, 3.72, 3.42, 2.79, 2.16, 1.52, 0.95, 0.89, 0.82, 0.76, 0.70, 0.68, 0.66, 0.64, 0.61, 0.59, 0.57, 0.55, 0.52, 0.50, 0.48, 0.46, 0.44, 0.41, 0.39, 0.37, 0.35, 0.33, 0.32, 0.30, 0.29, 0.27, 0.26, 0.24, 0.23, 0.21, 0.20, 0.19, 0.17, 0.16, 0.14, 0.13, 0.11, 0.10, 0.08, 0.07, 0.06, 0.04, 0.03, 0.01, 0.00, 0.00, 0.01, 0.01, 0.02, 0.02, 0.02, 0.03, 0.03, 0.04, 0.04, 0.05, 0.05, 0.06, 0.06, 0.07, 0.07, 0.08, 0.08, 0.08, 0.09, 0.09, 0.10, 0.09, 0.11, 0.13, 0.16, 0.18, 0.21, 0.24, 0.26, 0.29, 0.32, 0.35, 0.38, 0.41, 0.43, 0.46, 0.49, 0.54, 0.59, 0.64, 0.70, 0.75, 0.80, 0.86, 0.91, 0.96, 1.02, 1.07, 1.12, 1.18, 1.23, 1.28, 1.34, 1.46, 1.65, 1.84, 2.03, 2.22, 2.41, 2.61, 2.80, 2.94, 3.06, 3.17, 3.29, 3.40],
+         dep=(0.23, 0.69, 1.14, 1.38, 1.54),
+         ext=[(-20.5, 23.5), (-44.0, 36.5), (-49.0, 45.0), (-49.5, 49.0), (-50.0, 50.0)],
+         tags=[("slope", u"bed 1.09 %"), ("points", u"3 bed points within 25 m · floor interpolated"), ("spread", u"banks 114 m apart · floods wide and thin"),
+               ("road", u"road 3.7 m wide · 52 m off · left bank"), ("pin", u"S4 detail: 280 m upstream")]),
+    dict(key="up", name=u"1 · UPSTREAM ENTRY", bed=70.36, u0=-42,
+         ground=[5.45, 5.24, 5.17, 5.11, 5.05, 4.99, 4.92, 4.86, 4.55, 4.18, 3.82, 3.45, 3.01, 2.57, 2.21, 2.14, 2.07, 2.00, 1.93, 1.86, 1.80, 1.73, 1.66, 1.59, 1.52, 1.45, 1.38, 1.32, 1.25, 1.19, 1.12, 1.06, 0.99, 0.93, 0.87, 0.80, 0.74, 0.67, 0.61, 0.54, 0.48, 0.41, 0.35, 0.29, 0.22, 0.16, 0.09, 0.03, 0.02, 0.39, 0.75, 1.10, 1.46, 1.82, 2.19, 2.54, 2.86, 3.16, 3.46, 3.75, 3.97, 4.05, 4.24, 4.46, 4.70, 4.94, 5.07, 5.08, 5.12, 5.14],
+         dep=(0.64, 1.69, 2.57, 2.99, 3.30),
+         ext=[(-4.0, 7.5), (-20.0, 10.5), (-28.5, 13.0), (-29.5, 14.0), (-30.5, 15.0)],
+         tags=[("slope", u"bed 0.83 %"), ("points", u"73 bed points within 25 m"), ("road", u"road 6.5 m wide · 38 m off · right bank")]),
+    dict(key="k4", name=u"2 · K4 BRIDGE", bed=64.77, u0=-80,
+         ground=[3.06, 3.03, 3.01, 2.99, 2.96, 2.94, 2.92, 2.89, 2.87, 2.85, 2.82, 2.80, 2.78, 2.75, 2.73, 2.71, 2.68, 2.66, 2.64, 2.61, 2.59, 2.56, 2.54, 2.52, 2.49, 2.47, 2.45, 2.42, 2.40, 2.38, 2.35, 2.33, 2.31, 2.28, 2.26, 2.24, 2.21, 2.19, 2.17, 2.14, 2.12, 2.10, 2.07, 2.07, 2.07, 2.07, 2.07, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 1.77, 1.35, 0.93, 0.51, 0.14, 0.14, 0.13, 0.13, 0.12, 0.12, 0.12, 0.11, 0.11, 0.10, 0.10, 0.09, 0.09, 0.08, 0.08, 0.07, 0.07, 0.06, 0.06, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.03, 0.02, 0.02, 0.14, 0.41, 0.68, 0.99, 1.94, 2.89, 3.84, 4.78, 5.73, 6.68, 7.63, 8.58, 9.53, 10.48, 10.87, 11.07, 11.27],
+         dep=(0.28, 0.99, 1.83, 2.56, 2.84),
+         ext=[(-16.0, 12.5), (-18.0, 15.0), (-20.0, 15.5), (-58.5, 16.5), (-70.5, 16.5)],
+         tags=[("slope", u"bed 0.81 %"), ("flag", u"no stream/bank lines: spot heights + contours · 5 bed points"),
+               # v4 (MIRAQUA 28 Oct, bank-depth research REPORT §4.4, Aras 14:12: the survey is the inferior source)
+               ("over", u"right bank 2.1 m (survey, before the DSİ walls): street floods"),   # two chips: they wrap
+               ("over", u"Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
+               ("road", u"road 10-13 m wide · 42-52 m off · right bank")]),
+    dict(key="k5", name=u"3 · K5 BRIDGE", bed=55.96, u0=-57,
+         ground=[3.12, 3.11, 3.09, 3.08, 3.06, 3.05, 3.02, 2.97, 2.93, 2.89, 2.85, 2.80, 2.76, 2.72, 2.68, 2.63, 2.59, 2.55, 2.51, 2.46, 2.42, 2.38, 2.34, 2.29, 2.25, 2.20, 2.16, 2.11, 2.07, 1.99, 1.89, 1.78, 1.67, 1.56, 1.45, 1.36, 1.26, 1.17, 1.07, 0.95, 0.82, 0.69, 0.58, 0.47, 0.33, 0.19, 0.16, 0.13, 0.09, 0.06, 0.02, 0.00, 0.01, 0.02, 0.03, 0.05, 0.06, 0.07, 0.08, 0.09, 0.11, 0.12, 0.13, 0.14, 0.15, 0.17, 0.32, 1.03, 1.73, 2.43, 3.02, 3.60, 4.18, 4.73, 5.26, 5.77, 6.23, 6.66, 7.08, 7.43, 7.80, 8.09],
+         dep=(0.31, 1.09, 1.95, 2.45, 2.79),
+         ext=[(-12.5, 8.5), (-19.0, 10.0), (-27.5, 11.0), (-37.5, 12.0), (-45.5, 12.5)],
+         tags=[("slope", u"bed 1.07 %"), ("points", u"12 bed points within 25 m"), ("spread", u"right bank rises gently: floods widen")]),
+    dict(key="down", name=u"4 · DOWNSTREAM REACH", bed=45.67, u0=-42,
+         ground=[4.61, 4.81, 5.00, 4.97, 4.66, 4.35, 4.05, 3.74, 3.44, 3.13, 2.83, 2.50, 2.15, 1.80, 1.45, 1.11, 0.76, 0.41, 0.06, 0.01, 0.02, 0.03, 0.05, 0.06, 0.08, 0.09, 0.10, 0.11, 0.12, 0.12, 0.13, 0.14, 0.15, 0.15, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.24, 0.43, 0.62, 0.80, 0.86, 0.91, 0.97, 1.02, 1.08, 1.13, 1.19, 1.24, 1.44, 1.81, 2.19, 2.56, 2.93, 3.35, 3.76, 4.06, 4.08, 4.08, 4.05, 4.02, 3.99, 3.95, 3.86],
+         dep=(0.31, 0.96, 1.68, 2.05, 2.33),
+         ext=[(-24.5, 6.0), (-26.5, 11.5), (-28.5, 18.5), (-29.5, 19.5), (-30.5, 20.0)],
+         tags=[("slope", u"bed 0.98 %"), ("points", u"2 bed points within 25 m · bed interpolated"), ("road", u"road 5-9 m wide · 25-30 m off · left bank")]),
+    dict(key="dsi", name=u"DSİ PLANNED CHANNEL 20 x 3 m", bed=None, u0=-16,
+         ground=[3.0] * 7 + [0.0] * 19 + [3.0] * 7,
+         dep=(0.22, 1.07, 2.20, 2.87, 3.39),
+         ext=[(-10.0, 10.0)] * 5,
+         tags=[]),   # v1.14: its size is printed under the cut (draw_cut, DSI_SRC)
 ]

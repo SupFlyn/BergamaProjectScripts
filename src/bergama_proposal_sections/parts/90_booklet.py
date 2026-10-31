@@ -14,8 +14,8 @@ BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becom
 # the single crops are the four panels (unused by the booklet today, kept for other pages)
 BK_CROPS = [("ps_all", "all", u"Proposal sections W1-W4, upstream to downstream, each looking downstream"),
             ("ps_upstream", "up", u"W1 · Upstream entry, looking downstream"),
-            ("ps_k4", "k4", u"W2 · K4 walking hub, looking downstream"),
-            ("ps_k5", "k5", u"W3 · K5 Demeter's Garden, looking downstream"),
+            ("ps_k4", "k4", u"W2 · %s, looking downstream" % PS_CUTS[1][3]),          # v16 (G16): real names
+            ("ps_k5", "k5", u"W3 · %s, looking downstream" % PS_CUTS[2][3]),
             ("ps_downstream", "down", u"W4 · Downstream reach, looking downstream")]
 BK_DROP = [u"^\\[\\d+\\]$"]                           # the sheet's source numbers: the booklet has its own source list
 

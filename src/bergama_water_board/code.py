@@ -2021,8 +2021,6 @@ CONTEXT = {
               u"for the dry summer, the stream given back clean to the **farms** downstream. Nothing is pumped back.",
     "concept": u"The idea in section at the upstream entry and at Ulucami Önü Köprüsü: the **problem** on site and the **one move** that "
                u"answers it. Numbers as in the chain.",
-    "farms": u"Where the clean water ends up: **farmland outside** the site, easing an aquifer used far beyond its "
-             u"potential. **Never drinking water**.",
     "seasons": u"One cut, one viewpoint, four seasons: the **water level** decides what the place becomes, which "
                u"**plants** are in leaf or flower, which **animals** are about, and how **people** use it: walking the "
                u"promenade, sitting on the seat steps, wading in the summer strip, the Kermes market.",
@@ -2094,13 +2092,12 @@ def build_board(opt, storage, parts, pal_line, log):
         crop_add(cid_, bb_, den_, within=last[0])
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
     b = cell(2, 0, u"WHERE THE CLEAN WATER GOES (10, 11) · and what the figures support")
-    cb = context(pg, b[0], b[3], b[2] - b[0], "farms")
-    yf = cb[1] - 3.0
-    split = b[0] + (b[2] - b[0]) * 0.64
-    bt = drawn(pg, lambda: fit_draw(pg, boxed(draw_farms_text), (b[0], yf - 112.0, split, yf)))
-    _, bp = place(pg, parts["farm"], (split + 3.0, yf - 112.0, b[2], yf), 1.4, "C", log, "aquifer")
-    crop_add("wb_farms", union(cb, bt, bp), within=last[0])
-    yd = min(bt[1], bp[1]) - 5.0
+    # round 3 (B4, P18.1): no context line (the booklet intro says it; 7 mm back to the merged p18-19 page); the loop
+    # block draws the farms and the aquifer itself at a fixed 369 x 56 mm (pages/p18_farms.py), so no aquifer part
+    yf = b[3] - 3.0
+    bt = drawn(pg, lambda: fit_draw(pg, boxed(draw_farms_text), (b[0], yf - 112.0, b[2], yf)))
+    crop_add("wb_farms", bt, within=last[0])
+    yd = bt[1] - 5.0
     dw, dh = b[2] - b[0], yd - b[1]
     crop_add("wb_decision", drawn(pg, lambda: draw_decision(pg, b[0], yd, dw, dh,
                                                               fit(draw_decision, b[0], yd, dw, dh, 1.0, 0.5, 1.2))),
@@ -2151,6 +2148,7 @@ BK_CAPTIONS = {
 
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
 BK_FIXED += ("wb_plants_b_a",)   # v10: p.17 style a only (as p.11, p.13, p.14 since v9)
+BK_FIXED += ("wb_farms", "wb_decision")   # round 3 (B4, P18.1): the merged p18-19 page, laid out at 1:1
 
 
 def res_s4_cut():
@@ -2300,8 +2298,7 @@ def build_all(doc, log):
         os.makedirs(folder)
     files = []
     for opt in OPTIONS:
-        parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt),
-                 "farm": draw_farm_picto(opt)}
+        parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt)}
         for st in STORAGE_STYLES:
             t0 = time.time()
             pg = build_board(opt, st, parts, pal_line, log)
