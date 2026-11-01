@@ -298,6 +298,8 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 #@include ../common/block.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
+#@include ../common/data/BRIDGES.py
+#@include ../common/bridges.py
 
 #@include parts/70_sections.py
 

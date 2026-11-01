@@ -12,13 +12,28 @@ SF_INSET_SCALES = (100,) + SF_SCALES
 SF_INSET_MIN_ZOOM = 2.0             # G-R4-5.6: an inset is at least 2 x its parent's scale
 
 
+def _sf_warn(page, kind, msg):
+    """round 5 (S3, G-R5-1): a section-kit hit is a WARNING (common warn.py sink when included: orange + log line),
+    never a stop; without warn.py the line goes to SF_LOG (sec_look_lines prints it)"""
+    if globals().get("wn_warn"):
+        return wn_warn(page, kind, msg)
+    line = u"WARNING " + u" ".join(u"%s" % p_ for p_ in (page, kind) if p_) + u": %s" % msg
+    SF_LOG.append(line)
+    return line
+
+
 def sf_scale_ok(den, inset=False):
-    """asserts den is a standard scale (D6 a); inset=True also allows 1:100 (D11, zoom insets only)"""
+    """den if it is a standard scale (D6 a; inset=True also allows 1:100, D11 zoom insets only). Round 5 (S3): an
+    off-list scale is a WARNING and the next listed scale at or beyond it (smaller drawing, so it still fits) is
+    returned; never a stop"""
     sc = SF_INSET_SCALES if inset else SF_SCALES
-    if int(den) not in sc:
-        raise AssertionError("scale 1:%s is not standard (D6%s): use one of %s"
-                             % (den, ", D11 insets" if inset else "", ", ".join("1:%d" % s for s in sc)))
-    return int(den)
+    d = int(round(float(den)))
+    if d in sc:
+        return d
+    up = [v for v in sc if v >= d] or [sc[-1]]
+    _sf_warn(None, "scale", u"1:%s is not on the scale list (D6%s): 1:%d used" % (den, ", D11 insets" if inset else "",
+                                                                                 up[0]))
+    return up[0]
 
 
 def sf_k(den, print_k=1.0):
@@ -70,7 +85,7 @@ def sf_topo_back(profiles, bottom_y, into=None):
     for i, pr in enumerate(profiles):
         t = 0.75 - 0.35 * (i / float(max(1, n - 1)))   # far = paler
         ring = list(pr) + [(pr[-1][0], bottom_y), (pr[0][0], bottom_y)]
-        wl.add("background", [("poly", ring, _sec_mix(SEC["soil"], SEC["paper"], t), None, 0.1),
+        wl.add("background", [("poly", ring, _sec_mix(SCT_SOIL["layers"][-1], "FFFFFF", t), None, 0.0),
                               ("line", list(pr), _sec_mix(SEC["ink2"], SEC["paper"], t), 0.12)])
     return wl
 
@@ -134,6 +149,109 @@ def sf_ground_fn(gy, half_w):
     """gy as a function that already seats (sf_seat_x): pass it as the ground of fig_side, fig_activity,
     pla_section ... so every item they place stands on the lowest ground under its base"""
     return lambda x: sf_seat_x(gy, x, half_w)
+
+
+# ---- people on the surface (round 5, S3, CHK-3 seat fix, G-R5-4.4 / PLAN §3 People) -------------------------------
+# sf_seat_x seats on the LOWEST ground under a base: right for plants and houses (a trunk or wall foot may go into a
+# slope), wrong for people (U11 "his feet is in the fucking floor", S09 feet sunk in a step). People stand on the
+# HIGHER ground at their two feet: no foot is ever inside the ground or a step; on a step edge the person stands on
+# the tread. Plants keep sf_seat_x.
+SF_PEOPLE = dict(seen=0, grounded=0, tol_mm=0.15)
+
+
+def sf_seat_feet(gy, x, half_w, n=6):
+    """the y a person centred on x stands at: the HIGHER ground at the feet x - half_w and x + half_w (and between
+    them, n samples, so a riser between the feet is stood on, never stepped into). half_w = the foot half span
+    (figures.py FIG_FOOT_HALF_M x k). Counted in sf_people_line."""
+    f = _sf_fn(gy)
+    hw = abs(half_w)
+    ys = [f(x - hw + 2.0 * hw * i / float(n)) for i in range(n + 1)]
+    ys += [y for xx, y in (getattr(f, "sf_pts", None) or ()) if x - hw < xx < x + hw]
+    y = max(ys)
+    SF_PEOPLE["seen"] += 1
+    SF_PEOPLE["grounded"] += 1
+    return y
+
+
+def sf_feet_fn(gy, half_w):
+    """gy as a function that seats people by sf_seat_feet: pass it as the ground of fig_side / fig_activity /
+    fig_place_zones (S4 figures.py) instead of sf_ground_fn"""
+    return lambda x: sf_seat_feet(gy, x, half_w)
+
+
+def sf_people_check(items, gy, half_w=None, page=None, tol=None):
+    """G-R5-4.4 check by reasoning: items = [shapes of one person, ...] standing on ground gy; a person whose feet
+    are more than tol mm above (floating) or below (sunk) the sf_seat_feet ground is a WARNING. Adds to the
+    `people grounded n of n` count (sf_people_line). Returns the number grounded."""
+    tol = SF_PEOPLE["tol_mm"] if tol is None else tol
+    ok = 0
+    for i, sh in enumerate(items or ()):
+        b = _sf_base(sh)
+        if b is None:
+            continue
+        hw = 0.5 * (b[2] - b[1]) if half_w is None else half_w
+        g = max(_sf_fn(gy)(b[1]), _sf_fn(gy)(b[2]), _sf_fn(gy)(0.5 * (b[1] + b[2])))
+        if half_w is not None:
+            g = max(_sf_fn(gy)(0.5 * (b[1] + b[2]) - hw), _sf_fn(gy)(0.5 * (b[1] + b[2]) + hw), g)
+        d = b[0] - g
+        SF_PEOPLE["seen"] += 1
+        if abs(d) <= tol:
+            ok += 1
+            SF_PEOPLE["grounded"] += 1
+        else:
+            _sf_warn(page, "people", u"person %d %s %.2f mm at x %.1f" % (i, u"floats" if d > 0 else u"sunk", abs(d),
+                                                                         0.5 * (b[1] + b[2])))
+    return ok
+
+
+def sf_people_line():
+    """the done-when log line `people grounded n of n` (G-R5-4.8); None when no person was seated or checked"""
+    if not SF_PEOPLE["seen"]:
+        return None
+    return u"people grounded %d of %d" % (SF_PEOPLE["grounded"], SF_PEOPLE["seen"])
+
+
+# ---- activity guards (round 5, S3; G-R5-4.4, PLAN §8 rule for all): fishing and wading only where water is drawn --
+SF_DRY_MONTHS = (7, 8, 9)            # p10: the summer bed "dry or 3 cm Jul-Sep" -> no fishing, no wading Jul-Sep
+SF_WADE_MAX_M = 0.50                 # PLAN §3 People: wading only in water <= 0.50 m (figures.py FIG_WADE_MAX_M)
+
+
+def sf_activity_ok(kind, ground_y=None, water_y=None, k=None, month=None, strip=False, page=None, what=u""):
+    """(ok, reason): may a person do `kind` ("fish", "wade", anything else = True) at a spot whose ground is at page
+    y ground_y with the drawn water surface at water_y (page y, None = no water drawn there), k mm per m, in month
+    (1-12, None = no season shown)? Fishing: water drawn at the spot (the line ends in it) and not a dry month unless
+    `strip` (the summer strip whose water is drawn). Wading: water drawn and its depth <= SF_WADE_MAX_M. A refusal is
+    a WARNING (`<page> activity`) so the page draws a walker or watcher instead (P05.1)."""
+    if kind not in ("fish", "fishing", "wade", "wading"):
+        return True, u""
+    why = None
+    if water_y is None:
+        why = u"no water drawn"
+    elif month is not None and int(month) in SF_DRY_MONTHS and not strip:
+        why = u"month %d: the bed is dry or 3 cm (p10)" % int(month)
+    elif kind in ("wade", "wading") and ground_y is not None and k:
+        dep = (water_y - ground_y) / float(k)
+        if dep > SF_WADE_MAX_M + 1e-6:
+            why = u"water %.2f m deep > %.2f m" % (dep, SF_WADE_MAX_M)
+        elif dep <= 0.0:
+            why = u"ground above the water"
+    if why:
+        _sf_warn(page, "activity", u"%s %s refused: %s" % (kind, what, why))
+        return False, why
+    return True, u""
+
+
+# ---- trees at a middle level (round 5, S3, G-R5-4.5, U37 / U40 / U65) -------------------------------------------
+# Where the drawing is not about plants or seasons, trees stand behind the people and lighter (depth layer 1, r3
+# G15); where it is (p15, p18, p19-20) trees lead (layer 0). Never squeezed or thinned; shrubs in every section.
+SF_TREE_LEAD_PAGES = ("p15", "p18", "p19", "p20")
+
+
+def sf_tree_level(page):
+    """dict(layer, lead) for the trees of a drawing on page (23-page id): layer 0 + lead True on the plant / season
+    pages, else layer 1 (behind the people, paler: figures.py fig_fade / plants.py layer tones)"""
+    lead = (u"%s" % page) in SF_TREE_LEAD_PAGES
+    return dict(layer=0 if lead else 1, lead=lead)
 
 
 def _sf_pts(s):
@@ -505,6 +623,25 @@ def sec_look_lines():
     f = globals().get("fig_flag_lines")
     if f:
         out += f()
+    out += sf_kit_lines()
+    return out
+
+
+def sf_kit_lines():
+    """round 5 (S3) section kit v2 done-when lines (G-R5-4.8): materials solid, `widths 0`, `people grounded n of
+    n`, the bridge lines (bridges.py), once per run (the counters are not reset: the last page's call has them all)"""
+    out = []
+    sl = globals().get("SCT_LOG")
+    if sl:
+        out.append(u"section materials solid: %d cut rings flat colour, %d with inset joints, hatches 0"
+                   % (sl["solid"], sl["detail"]))
+    out.append(sf_widths_line())
+    pl = sf_people_line()
+    if pl:
+        out.append(pl)
+    f = globals().get("br_log_lines")
+    if f:
+        out += f()
     return out
 
 
@@ -604,81 +741,149 @@ class SfCallouts(object):
 
 
 def sf_width_label(x0, x1, y, width_m, size=2.47, ink=None, unit=True):
-    """a lane / element width (R18 idea): a dimension line x0-x1 at y with end ticks and the width in cm above it
-    ("300 cm"; unit=False -> "300" when the drawing states cm once). Round 4 (G-R4-5.4): put it in the MARGIN under
-    or over the section frame, never across the picture; size default 7 pt (2.47 mm; minimum 6 pt, G-R4-1)."""
-    ink = ink or SEC["ink2"]
-    t = 0.5 * size
-    s = u"{:,.0f}".format(width_m * 100.0) + (u" cm" if unit else u"")
-    return [("line", [(x0, y), (x1, y)], ink, 0.1),
-            ("line", [(x0 - 0.5 * t, y - 0.5 * t), (x0 + 0.5 * t, y + 0.5 * t)], ink, 0.15),
-            ("line", [(x1 - 0.5 * t, y - 0.5 * t), (x1 + 0.5 * t, y + 0.5 * t)], ink, 0.15),
-            ("text", s, (x0 + x1) / 2.0, y + 0.35 * size, size, ink, False, "C")]
+    """RETIRED in round 5 (S3, G-R5-4.6, U49 "remove the horizontal dimensions all together ... in all of the
+    drawings"): draws nothing, returns []; every call is counted (sf_widths_line). Kept so old calls still run."""
+    SF_WIDTHS["calls"] += 1
+    return []
 
 
-# ---- level marks outside the frame (round 4 S2, G-R4-5.4, U43 / U44 sketch; PLAN §4.7) ------------------------------
-# An open inverted triangle standing on a tick that touches the section frame at the level's height, the value beside
-# it OUTSIDE the frame ("+43.92 mean"), m with 2 decimals. Sizes: drawing rules from PLAN §4.7; text 7 pt (label).
-SF_LEVEL = dict(tick=4.0, tri=2.0, gap=0.8, size=2.47, lw=0.15, step=2.6)
-SF_LEVEL_NAMES = dict(q500=u"Q500", q100=u"Q100", avg=u"mean", mean=u"mean", bed=u"bed")
+# ---- no widths anywhere (round 5, S3, G-R5-4.6): every text a section or its list prints goes through
+# sf_strip_widths (item_export Ix.text calls it for every exported text, so page code needs no change): a width in
+# cm ("Footway 456 cm", "bed 3,260 cm", "Bike · 300 cm"), a "W x H cm/m" size ("8 x 40 cm seats", "olives 500 x 700
+# cm", "rows 7 x 5 m") and a lone "N cm" go with the separator before them; names, heights in m with 2 decimals
+# ("+43.71", "2.50 m") and scale texts stay. A value in cm is never a height in this project (units rule: heights in m,
+# 2 decimals), so every cm value is a width. Log `widths 0` (none left) or the strips counted.
+SF_WIDTHS = dict(calls=0, stripped=0, examples=[])
+_SF_W_RE = None
 
 
-def sf_level_marks(frame_box, levels, side="R", y_of=None, size=None, cols=None, page=None):
-    """the level marks of one section OUTSIDE its frame (G-R4-5.4). frame_box = (x0, y0, x1, y1) page mm (y up) of
-    the section's frame; levels = [(key or name, level m[, page y])]: key "q500" / "q100" / "avg" / "mean" / "bed" /
-    a season level key, or any short name ("summer strip"); without a page y, y_of(level) gives it (water_section's
-    wl.anchors["levels"] is this list). side "R" (default) or "L". Each mark: a tick SF_LEVEL["tick"] mm long from
-    the frame outward at the level's y, an open inverted triangle (apex on the tick) and "+43.92 Q100" beyond it, in
-    the level's colour (water.py palette: q100 / q500; avg and bed the water hatch ink). Levels closer than a text
-    line step their triangles outward and their texts apart (a hairline leader joins a moved text). cols = {key:
-    hex} overrides. Logs "level marks <page>: n outside the frame" in SF_LOG. Returns shapes."""
-    x0, y0, x1, y1 = frame_box
-    size = size or SF_LEVEL["size"]
-    Pa = _wat_pal() if globals().get("_wat_pal") else {}
+def _sf_w_re():
+    global _SF_W_RE
+    if _SF_W_RE is None:
+        import re as _re
+        num = r"\d[\d,.]*"
+        _SF_W_RE = (
+            # "8 x 40 cm seats", "500 × 700 cm", "rows 7 × 5 m", "400 x 30 cm" (a size pair: always a width)
+            _re.compile(r"\s*(?:[·,:;\-–—]\s*)?(?:\(\s*)?" + num + r"\s*(?:cm|m)?\s*[x×]\s*" + num +
+                        r"\s*(?:cm|m)\b\)?", _re.U),
+            # "1,580 cm", "· 300 cm", "(456 cm)"
+            _re.compile(r"\s*(?:[·,:;\-–—]\s*)?(?:\(\s*)?" + num + r"\s*cm\b\)?", _re.U),
+        )
+    return _SF_W_RE
+
+
+def sf_strip_widths(s, page=None):
+    """s without any horizontal dimension (see the notes above); counted in SF_WIDTHS. Non-strings pass through."""
+    if not isinstance(s, str) or (u"cm" not in s and u"×" not in s and u" x " not in s):
+        return s
+    t = s
+    for rx in _sf_w_re():
+        t = rx.sub(u"", t)
+    if t != s:
+        import re as _re
+        t = _re.sub(r"\s{2,}", u" ", t)
+        t = _re.sub(r"\s*[·,:;\-–—]\s*$", u"", t).strip()
+        t = _re.sub(r"^\s*[·,:;\-–—]\s*", u"", t)
+        SF_WIDTHS["stripped"] += 1
+        if len(SF_WIDTHS["examples"]) < 6:
+            SF_WIDTHS["examples"].append(u"%s -> %s" % (s, t or u"(nothing)"))
+    return t
+
+
+def sf_widths_line():
+    """the done-when log line: `widths 0` when no width was drawn or printed; else what was stripped (they are gone
+    from the page; the line lets the page session find and delete the source strings)"""
+    n = SF_WIDTHS["stripped"] + SF_WIDTHS["calls"]
+    if not n:
+        return u"widths 0"
+    return u"widths 0 (removed this run: %d width texts, %d width chains; e.g. %s)" % (
+        SF_WIDTHS["stripped"], SF_WIDTHS["calls"], u"; ".join(SF_WIDTHS["examples"]))
+
+
+# ---- level markers beside the section (round 5, S3, G-R5-4.3, Aras's sketch refs/U04; replaces G-R4-5.4) ---------
+# PLAN §3 "Level marker": a short horizontal mark beside the section, SF_LEVEL["gap"] >= 3 mm clear of the drawing's
+# outer edge: long dash 3.5 mm, gap 0.8, short dash 0.8, gap 0.8, dash 3.1 mm ending under an open downward triangle
+# (2.2 mm wide, 1.4 mm high, apex on the line at its outer end); the value "+43.71 Q100" (m, 2 decimals, 4.5 pt) beyond
+# the triangle; stacked markers keep their lines at their levels and spread their labels >= 0.8 mm apart (a hairline
+# joins a moved label). In the round 5 booklet the markers are drawn by the composer (pl_levels): a content script
+# exports them with sf_level_items (Ix.levels) and draws nothing; sf_level_marks stays for pages still drawing
+# themselves and draws the same marker.
+SF_LEVEL = dict(gap=3.0, dashes=(3.5, 0.8, 0.8, 0.8, 3.1), tri_w=2.2, tri_h=1.4, size=4.5 * 25.4 / 72.0, lw=0.15,
+                clear=0.8, label_gap=0.6)
+SF_LEVEL_NAMES = dict(q500=u"Q500", q100=u"Q100", avg=u"mean flow", mean=u"mean flow", bed=u"bed")
+
+
+def _sf_level_rows(levels, y_of, y0, y1, page):
+    Pa = _wat_pal_sec() if globals().get("_wat_pal_sec") else {}
     rows = []
     for lv in levels or ():
         key, val = lv[0], float(lv[1])
         y = lv[2] if len(lv) > 2 and lv[2] is not None else (y_of(val) if y_of else None)
         if y is None:
-            raise ValueError("sf_level_marks: level %r needs a page y or y_of" % (key,))
-        if y < y0 - 1e-6 or y > y1 + 1e-6:
-            SF_LOG.append(u"FLAG level marks %s: %s %+.2f lies outside the frame's height: not marked"
-                          % (page or u"", key, val))
+            _sf_warn(page, "levels", u"level %r has no page y and no y_of: not marked" % (key,))
             continue
-        col = (cols or {}).get(key) or Pa.get(key) or SEC["hatch"]
-        rows.append((y, key, val, col))
+        if y0 is not None and (y < y0 - 1e-6 or y > y1 + 1e-6):
+            _sf_warn(page, "levels", u"%s %+.2f lies outside the drawing's height: not marked" % (key, val))
+            continue
+        rows.append((y, key, val, Pa.get(key) or (SCT_WATER["surface"] if "SCT_WATER" in globals() else SEC["ink"])))
     rows.sort(key=lambda r: -r[0])
+    return rows
+
+
+def sf_level_marks(frame_box, levels, side="R", y_of=None, size=None, cols=None, page=None):
+    """the level markers of one section beside its drawing (G-R5-4.3, U04). frame_box = (x0, y0, x1, y1) page mm
+    (y up) of the drawing's outer edge; levels = [(key or name, level m[, page y])] (water_section's
+    wl.anchors["levels"]); keys q500 / q100 / avg / mean / bed are named by SF_LEVEL_NAMES, any other key prints as
+    given. side "R" (default) or "L" (mirrored). cols = {key: hex} overrides the water colours. Logs
+    "levels <page> gap ok ..." in SF_LOG. Returns shapes (lines, open triangles, value texts)."""
+    x0, y0, x1, y1 = frame_box
+    size = size or SF_LEVEL["size"]
+    rows = _sf_level_rows(levels, y_of, y0, y1, page)
     sgn = 1.0 if side == "R" else -1.0
-    xf = x1 if side == "R" else x0
-    t, tri, lw = SF_LEVEL["tick"], SF_LEVEL["tri"], SF_LEVEL["lw"]
-    sh, last_y, col_i, prev_y = [], None, 0, None
-    tx_out = []
+    xs = (x1 if side == "R" else x0) + sgn * SF_LEVEL["gap"]           # the line starts gap mm off the drawing
+    L = sum(SF_LEVEL["dashes"])
+    tw, th, lw = SF_LEVEL["tri_w"], SF_LEVEL["tri_h"], SF_LEVEL["lw"]
+    sh = []
+    xt = xs + sgn * (L + 0.5 * tw + SF_LEVEL["label_gap"])           # labels start beyond the triangle
+    last = None
+    moved = 0
     for y, key, val, col in rows:
-        col_i = col_i + 1 if prev_y is not None and prev_y - y < 0.9 * tri + 0.3 else 0
-        prev_y = y
-        xa = xf + sgn * (t + col_i * SF_LEVEL["step"])            # the tick's outer end
-        sh.append(("line", [(xf, y), (xa, y)], col, lw))
-        cx = xa - sgn * 0.5 * tri
-        sh.append(("poly", [(cx, y), (cx - 0.5 * tri, y + 0.87 * tri), (cx + 0.5 * tri, y + 0.87 * tri)], None, col, lw))
-        tx_out.append((y, key, val, col, xa))
-    xs = [r[4] for r in tx_out]
-    xt = ((max(xs) if side == "R" else min(xs)) if xs else xf) + sgn * SF_LEVEL["gap"]
-    for y, key, val, col, xa in tx_out:
-        ty = y - 0.35 * size                               # the text centred on its tick
-        if last_y is not None and ty > last_y - 1.25 * size:
-            ty = last_y - 1.25 * size
-        if abs(ty - (y - 0.35 * size)) > 0.05 or abs(xt - xa) > SF_LEVEL["gap"] + 1e-6:
-            sh.append(("line", [(xa, y), (xt - sgn * 0.3, ty + 0.35 * size)], col, 0.08))
+        col = (cols or {}).get(key) or col
+        pos = 0.0
+        for i, d in enumerate(SF_LEVEL["dashes"]):                    # dash, gap, dash, gap, dash
+            if i % 2 == 0:
+                sh.append(("line", [(xs + sgn * pos, y), (xs + sgn * (pos + d), y)], col, lw))
+            pos += d
+        ax = xs + sgn * L                                              # apex on the line at its outer end
+        sh.append(("poly", [(ax, y), (ax - 0.5 * tw, y + th), (ax + 0.5 * tw, y + th)], None, col, lw))
+        ty = y - 0.35 * size                                           # baseline: text centred on the line
+        if last is not None and ty > last - (size + SF_LEVEL["clear"]):
+            ty = last - (size + SF_LEVEL["clear"])
+            moved += 1
+            sh.append(("line", [(ax + sgn * 0.5 * tw, y), (xt - sgn * 0.2, ty + 0.35 * size)], col, 0.08))
         nm = SF_LEVEL_NAMES.get(key, u"%s" % key)
         sh.append(("text", u"%+.2f %s" % (val, nm), xt, ty, size, col, False, "L" if side == "R" else "R"))
-        last_y = ty
-    SF_LOG.append(u"level marks %s: %d outside the frame (%s)" % (page or u"", len(tx_out), side))
+        last = ty
+    SF_LOG.append(u"levels %s gap ok: %d markers %.1f mm off the drawing (%s), %d labels spread" % (
+        page or u"", len(rows), SF_LEVEL["gap"], side, moved))
     return sh
 
 
+def sf_level_items(ix, page, drawing, levels, side="R"):
+    """round 5 (G-R5-12): the level markers as an export item: ix.levels(page, drawing id, [(name, z m)], side); the
+    booklet draws them (pl_levels, same U04 marker). levels as for sf_level_marks (keys named by SF_LEVEL_NAMES).
+    Logs "levels <page> gap ok (exported n)". Returns the item id."""
+    rows = []
+    for lv in levels or ():
+        rows.append((SF_LEVEL_NAMES.get(lv[0], u"%s" % lv[0]), float(lv[1])))
+    SF_LOG.append(u"levels %s gap ok: %d markers exported to the booklet" % (page or u"", len(rows)))
+    did = drawing["id"] if isinstance(drawing, dict) else drawing
+    return ix.levels(page, did, rows, side=side)
+
+
 # ---- standard elements (true size; page mm, y up; side +1 = builds to the right of x) ------------------------------
-SF_LANE = dict(bike="C4AE9E", walk="D8D5CC", road="9C9890", gravel="CFCCC5", timber="BFAA8E")   # muted toward the paper (G5);
-# walk / gravel = section_parts SCT concrete / gravel
+SF_LANE = dict(bike="C4AE9E", walk=SCT["concrete"], road="9C9890", gravel=SCT["gravel"], timber=SCT["timber"])
+# round 5 (S3, PLAN §3): walk / gravel / timber = the section kit's solid material colours (section_parts SCT)
 SF_RAIL_H = 1.10        # m, the repo's railing height (figures.py railing rail_h)
 SF_SEAT_H = 0.45        # m, the repo's seat height (figures.py sit_step seat_h)
 
@@ -690,7 +895,7 @@ def sf_lane(x, y, width_m, k, kind="walk", side=1, t_m=0.15, callouts=None, labe
     w, t = width_m * k * side, t_m * k
     xa, xb = min(x, x + w), max(x, x + w)
     sh = [("poly", [(xa, y - t), (xb, y - t), (xb, y), (xa, y)], SF_LANE.get(kind, SCT["concrete"]), SCT["cut"], 0.2)]
-    if kind == "walk":
+    if kind == "walk" and k >= SCT_DETAIL_K:          # round 5 (S3, G-R5-4.1): joints only at inset detail scales
         j = max(0.6 * k, 1.0)
         xx = xa + j
         while xx < xb - 0.2:
@@ -700,7 +905,7 @@ def sf_lane(x, y, width_m, k, kind="walk", side=1, t_m=0.15, callouts=None, labe
         sh.append(("line", [(xa + 0.1 * k, y + 0.02), (xb - 0.1 * k, y + 0.02)], "FFFFFF", 0.12, [0.8, 0.6]))
     elif kind == "gravel":
         sh = sct_hatch_fill([(xa, y - t), (xb, y - t), (xb, y), (xa, y)], "gravel", k, SCT["cut"], 0.2)
-    elif kind == "timber":
+    elif kind == "timber" and k >= SCT_DETAIL_K:
         xx = xa + 0.14 * k
         while xx < xb - 0.05:
             sh.append(("line", [(xx, y - t), (xx, y)], SCT["line"], 0.05))
@@ -964,14 +1169,14 @@ def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink
     FLAG line (no bar). page: the booklet page id for the log line "inset <page> parent 1:<a> inset 1:<b>". The
     caption sits above the box, outside the detail; the bar below it."""
     f_chk = float(k_dst) / float(k_src)
-    if f_chk < SF_INSET_MIN_ZOOM - 1e-6:
-        raise AssertionError(u"inset %s (%s): zoom %.2f x its parent; G-R4-5.6 needs >= %.0f x (D11: a 1:250 parent "
-                             u"takes a 1:100 inset)" % (page or u"", label, f_chk, SF_INSET_MIN_ZOOM))
+    if f_chk < SF_INSET_MIN_ZOOM - 1e-6:                   # round 5 (S3): a WARNING, never a stop
+        _sf_warn(page, "inset", u"(%s): zoom %.2f x its parent; G-R4-5.6 needs >= %.0f x (D11: a 1:250 parent takes a "
+                                u"1:100 inset)" % (label, f_chk, SF_INSET_MIN_ZOOM))
     if scale_den is not None:
-        sf_scale_ok(scale_den, inset=True)
+        scale_den = sf_scale_ok(scale_den, inset=True)
         if parent_den is not None and float(parent_den) / float(scale_den) < SF_INSET_MIN_ZOOM - 1e-6:
-            raise AssertionError(u"inset %s (%s): 1:%s is less than 2 x its parent 1:%s (G-R4-5.6)"
-                                 % (page or u"", label, scale_den, parent_den))
+            _sf_warn(page, "inset", u"(%s): 1:%s is less than 2 x its parent 1:%s (G-R4-5.6)"
+                     % (label, scale_den, parent_den))
         SF_LOG.append(u"inset %s parent 1:%s inset 1:%s" % (page or u"", parent_den if parent_den else u"?",
                                                             int(scale_den)))
     else:
@@ -1026,12 +1231,86 @@ def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink
     return sh
 
 
+# ---- inset frame v2 (round 5, S3, G-R5-5: U12, U13, U14, U16; keep K2) --------------------------------------------
+# Change of approach (round 4's insets were the parent's shapes scaled up: "page 14 zoom ins looks awful"): an inset
+# is its OWN drawing, drawn again at its own scale k = sf_inset_k(den) so the kit's detail switches on (k >= 4, 1:250
+# and larger: stone courses and deck boards at real size, section_parts SCT_DETAIL_K; treads and risers are drawn at
+# true size anyway), and it is FRAMED ON THE ACTION: the window is computed from what the inset is about (the person,
+# rod and line end, the water it shows, the seat or tread), never typed. Export: D_child = ix.drawing(...,
+# scale_pref=[den]); ix.inset(page, parent id, window, child id, factor) (S1 schema); the booklet draws the frame, the
+# link and the scale bar. sf_zoom_inset (scaled copy) stays only for pages not yet moved.
+SF_INSET = dict(margin_m=0.6, min_w_m=3.0)          # clear margin round the action; smallest window (drawing rules)
+
+
+def sf_inset_k(den):
+    """page mm per m of an inset at 1:den (1:100 allowed, D11)"""
+    return 1000.0 / sf_scale_ok(den, inset=True)
+
+
+def sf_inset_frame(focus, parent_den, box_mm=None, margin_m=None, page=None, label=u""):
+    """G-R5-5 framing: focus = the boxes (x0, y0, x1, y1, drawing m: chainage x, level y) of everything the inset is
+    about (person, rod + line end, the water surface it shows, the seat); returns dict(window (m), den, factor, k)
+    or None: the window = their union + margin_m on every side (centred on the action, so nothing it is about is
+    cut), widened to box_mm's aspect (w, h mm) when given; den = the LARGEST scale on SF_INSET_SCALES that is >= 2 x
+    the parent (den <= parent_den / 2) and fits box_mm (when given). WARNING when no listed scale fits."""
+    m = SF_INSET["margin_m"] if margin_m is None else margin_m
+    bx = [b for b in focus or () if b]
+    if not bx:
+        _sf_warn(page, "inset", u"(%s): nothing to frame (no focus boxes)" % label)
+        return None
+    x0 = min(b[0] for b in bx) - m
+    y0 = min(b[1] for b in bx) - m
+    x1 = max(b[2] for b in bx) + m
+    y1 = max(b[3] for b in bx) + m
+    if x1 - x0 < SF_INSET["min_w_m"]:
+        c = 0.5 * (x0 + x1)
+        x0, x1 = c - 0.5 * SF_INSET["min_w_m"], c + 0.5 * SF_INSET["min_w_m"]
+    if box_mm:
+        bw, bh = float(box_mm[0]), float(box_mm[1])
+        w, h = x1 - x0, y1 - y0
+        if w / h < bw / bh:                       # widen to the box's aspect, centred (the action stays centred)
+            d = 0.5 * (h * bw / bh - w)
+            x0, x1 = x0 - d, x1 + d
+        else:
+            d = 0.5 * (w * bh / bw - h)
+            y0, y1 = y0 - d, y1 + d
+    ok = [d_ for d_ in SF_INSET_SCALES if d_ <= float(parent_den) / SF_INSET_MIN_ZOOM + 1e-6]
+    den = None
+    for d_ in ok:                                 # largest scale first (smallest denominator)
+        if not box_mm or ((x1 - x0) * 1000.0 / d_ <= box_mm[0] + 1e-6 and (y1 - y0) * 1000.0 / d_ <= box_mm[1] + 1e-6):
+            den = d_
+            break
+    if den is None:
+        den = ok[-1] if ok else SF_INSET_SCALES[0]
+        _sf_warn(page, "inset", u"(%s): the action (%.1f x %.1f m) does not fit %s mm at any listed inset scale >= 2 x "
+                                u"1:%s; 1:%d used" % (label, x1 - x0, y1 - y0, box_mm, parent_den, den))
+    SF_LOG.append(u"inset %s %s: parent 1:%s inset 1:%d, window %.1f x %.1f m" % (
+        page or u"", label, parent_den, den, x1 - x0, y1 - y0))
+    return dict(window=(x0, y0, x1, y1), den=den, factor=float(parent_den) / den, k=1000.0 / den)
+
+
+def sf_inset_cut_check(window, items, page=None, label=u""):
+    """U16 "nothing cut by the inset frame": items = [(name, (x0, y0, x1, y1) m)] of the people, objects and plants
+    drawn in the inset; one that the window's edge cuts (partly inside) is a WARNING. Returns the names cut."""
+    wx0, wy0, wx1, wy1 = window
+    cut = []
+    for nm, b in items or ():
+        inside = b[0] >= wx0 and b[2] <= wx1 and b[1] >= wy0 and b[3] <= wy1
+        out = b[2] <= wx0 or b[0] >= wx1 or b[3] <= wy0 or b[1] >= wy1
+        if not inside and not out:
+            cut.append(nm)
+    if cut:
+        _sf_warn(page, "inset", u"(%s): cut by the frame: %s" % (label, u", ".join(u"%s" % c for c in cut)))
+    return cut
+
+
 # ---- G6: people 1.75 m vs tree heights vs buildings, at depth layer 0 ----------------------------------------------
-def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
+def sf_assert_g6(k, trees=(), buildings=(), strict=False, layer=0, page=None):
     """the G6 scale check of one drawing at depth layer 0: figures print at their true height for k (figures.py
     fig_check_scale), every tree drawn (key, h_m) or placed (key, x, h_m, crown_m) inside its sourced height range
     (so the tree / person ratio is the real one), every building (name, drawn_h_m, data_h_m) at its data height
-    (+-0.05 m). strict: AssertionError listing every failure; else the messages. Returns [] when all is right."""
+    (+-0.05 m). Round 5 (S3, A13): a true-scale miss is a WARNING line (never a stop); strict=True still raises for
+    an old caller that asks. Returns the messages ([] when all is right)."""
     bad = []
     try:
         fig_check_scale(k, layer=layer)
@@ -1052,4 +1331,6 @@ def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
             bad.append(u"G6: building %s drawn %.2f m, data %.2f m" % (name, drawn, data))
     if bad and strict:
         raise AssertionError(u"; ".join(bad))
+    for m_ in bad:
+        _sf_warn(page, "scale", m_)
     return bad

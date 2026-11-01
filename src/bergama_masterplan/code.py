@@ -22,6 +22,8 @@
 #@include ../common/icons.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
+#@include ../common/data/BRIDGES.py
+#@include ../common/bridges.py
 #@include parts/02_Design.py
 #@include ../common/booklet_assets.py
 #@include parts/02b_detail.py
