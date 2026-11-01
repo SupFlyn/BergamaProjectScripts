@@ -225,6 +225,10 @@ class Ix(object):
                 string = names_fix(string)                                                     # noqa: F821
             except Exception:
                 pass
+        if "sf_strip_widths" in globals():                 # G-R5-4.6 (S3): no width in any exported text
+            string = sf_strip_widths(string, page)                                             # noqa: F821
+            if not (u"%s" % string).strip():
+                return None
         pt0, b0, _ld, c0 = grid_role(role) if "grid_role" in globals() else (5.0, False, 1.3, "4A3F35")
         it = self._item(page, "text", id, role, priority, group, string=u"%s" % string,
                         anchor=None if drawing is None else dict(drawing=drawing,
@@ -249,12 +253,14 @@ class Ix(object):
     def legend(self, page, drawing, entries, title=None, id=None, group=None):
         ents = []
         for sw, t in entries:
-            ents.append(dict(swatch=dict(sw), text=self._tid(page, t, "legend", group)))
+            tid = self._tid(page, t, "legend", group)
+            if tid is not None:                            # a text that was only a width is gone (G-R5-4.6)
+                ents.append(dict(swatch=dict(sw), text=tid))
         return self._item(page, "legend", id, "legend", 3, group, drawing=drawing, entries=ents,
                           title=None if title is None else self._tid(page, title, "heading", group))["id"]
 
     def list(self, page, drawing, texts, numbered=True, anchors=None, id=None, group=None):
-        rows = [self._tid(page, t, "list_item", group) for t in texts]
+        rows = [r for r in (self._tid(page, t, "list_item", group) for t in texts) if r is not None]
         return self._item(page, "list", id, "list", 4, group, drawing=drawing, items=rows, numbered=bool(numbered),
                           anchors=[[_ix_r(a[0]), _ix_r(a[1])] if a else None for a in anchors] if anchors else None)["id"]
 

@@ -695,6 +695,8 @@ def para(pg, x, y, w, text, size, colour, bold=False, lh=1.28):
 #@include ../common/block.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
+#@include ../common/data/BRIDGES.py
+#@include ../common/bridges.py
 #@include ../common/data/FACTS.py
 #@include ../common/facts.py
 #@include ../common/data/NAMES.py
