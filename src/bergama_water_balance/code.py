@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_water_balance_v8_3.py = v8.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_balance_v9.py = v9 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 # bergama_water_balance_v8.py (v8, 31 Oct: round 3, p10 charts fill the page, sentence-case title; v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
@@ -20,7 +20,14 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v8.3"  # v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v9"  # v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v9 (round 4, S7, 1 Nov 2026, PALL.2 on booklet p11, G-R4-1 / G-R4-10; a feature change): every visible text
+#   of the sheet is registered in ONE TextPage ("p11", common/text_place.py) with its real Arial box (font_metrics.py)
+#   before it is drawn; the labels that look for a free place ask it; its check RAISES on any collision, so no sheet
+#   with text on text is written (the log says "overlap p11 checked n, collisions 0"; the old "FLAG overlap p10" line
+#   and the estimated Helvetica widths are gone). No footer or rule is drawn on the sheet (the booklet sets the page
+#   number). Start-up: common/trigger.py (only a Button press or a new done text starts it; "trigger: <why>" in the
+#   log). Computation, results JSON and the sheet's layout unchanged.
 # NEW IN v8 (round 3, 31 Oct 2026, P10.1 + G2/G3; a feature change, so the next whole number): the white space goes
 #   to the charts: block 1 grows 92 -> 100 mm and its rows follow the block (YEAR_RH from the height, 13.5 -> 15.4 mm); blocks 2-3 move down 8 mm;
 #   block 3's rows follow its height; block 4 is a tighter band (36 -> 32 mm, no empty field under its line); the
@@ -570,14 +577,14 @@ CROP_NAME = dict(maize="corn")            # v5 (MIRAQUA 28 Oct, G11): the name p
 
 #@include ../common/rgb.py
 
-# ------------------------------------------------------------------ minimal vector PDF (mm units, Helvetica, whole strings)
-_HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278] + [556] * 10 + \
-      [278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778,
-       667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556,
-       278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334,
-       260, 334, 584]
+# ------------------------------------------------------------------ minimal vector PDF (mm units, Arial embedded)
+# v9 (round 4, G-R4-1): the real font widths (font_metrics.py, Arial) and ONE text placer (text_place.py)
+#@include ../common/font_metrics.py
 
-#@include ../common/text_w.py
+
+def text_w(s, size, bold=False):
+    """v9: the real Arial width (mm) of s at size pt"""
+    return fm_width(s, size, bold)
 
 
 #@include ../common/units.py
@@ -585,7 +592,7 @@ _HW = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278
 
 #@include ../common/icons.py
 #@include ../common/grid.py
-#@include ../common/label_place.py
+#@include ../common/text_place.py
 #@include ../common/data/FACTS.py
 #@include ../common/facts.py
 
@@ -613,10 +620,36 @@ def sup_runs(s):
     return out
 
 
+WB_TP_MARGINS = (8.0, 6.0, 8.0, 6.0)  # v9: mm kept free of text inside the A3 sheet (left, top, right, bottom)
+WB_LOG = []                            # v9: this run's "overlap p11 ..." line
+
+
 class Page:
-    def __init__(self, w, h):
+    """v9 (round 4, G-R4-1): one TextPage per sheet (pg.tp, y up, mm, the booklet page id p11): every visible
+    pg.text is registered there with its real Arial box before it is drawn (the runs of one line or paragraph in one
+    group: pg.group()); pg.check_text() is the collision test, which RAISES TextCollision"""
+    def __init__(self, w, h, name="p11"):
         self.w, self.h, self.ops = w, h, []
-        self.boxes = []          # v2.7: (x0, y0, x1, y1, text) of every visible label, for the overlap check
+        self.tp = TextPage(name, (0.0, 0.0, w, h), y_down=False, pad=0.6, margins=WB_TP_MARGINS)
+        self.tg = None           # the open text group (runs of one line / lines of one paragraph may touch)
+    def group(self, start=True):
+        """v9: open (True) or close (False) one text group; returns whether this call opened it"""
+        if start:
+            if self.tg is not None:
+                return False
+            self.tg = self.tp._group()
+            return True
+        self.tg = None
+        return False
+    def box(self, s, x, y, size, bold=False, align="L"):
+        """v9: the real box (mm) a text would take"""
+        return self.tp._box(s, x, y, size, bold, align, 0.0)
+    def free(self, b):
+        """v9: True when box b is clear of every registered text and inside the margins"""
+        return self.tp._free(b)
+    def check_text(self):
+        """v9: the sheet's collision test; logs "overlap p11 checked n, collisions k" and RAISES on any"""
+        self.tp.check(True, WB_LOG)
     def _c(self, h, stroke=False):
         r, g, b = rgb(h); return "%.3f %.3f %.3f %s" % (r, g, b, "RG" if stroke else "rg")
     def rect(self, x, y, w, h, fill=None, stroke=None, lw=0.2):
@@ -632,16 +665,17 @@ class Page:
         o.append("B" if fill and stroke else ("f" if fill else "S")); o.append("Q")
         self.ops.append(" ".join(o))
     def line(self, P, col, lw=0.25, dash=None): self.poly(P, None, col, lw, False, dash)
-    def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", hidden=False):
+    def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", hidden=False, _reg=True):
+        if not hidden and _reg and s and s.strip():           # v9: registered with its real box first
+            self.tp.put(s, x, y, size, bold, align, 0.0, None, "label", col, (), self.tg, emit=False)
         if not hidden and any(ch in SUP for ch in s):   # v4.1 (Prompt 8): m² / m³ as a raised small digit (see SUP);
             runs = sup_runs(s)                          # the invisible source key keeps the glyph (the booklet reads it)
             ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
-            x0 = x - {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]; xx, n = x0, len(self.boxes)
-            for (t, up), w_ in zip(runs, ws):
-                self.text(t, xx, y + (size * SUP_UP * 0.3528 if up else 0.0), size * (SUP_K if up else 1.0), col, bold)
+            x0 = x - {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]; xx = x0
+            for (t, up), w_ in zip(runs, ws):           # v9: the whole label is registered once (above)
+                self.text(t, xx, y + (size * SUP_UP * 0.3528 if up else 0.0), size * (SUP_K if up else 1.0), col, bold,
+                          _reg=False)
                 xx += w_
-            del self.boxes[n:]                          # one box for the whole label in the overlap check, as before
-            self.boxes.append(tbox(s, x0, y, size, bold) + (s,))
             return
         if align == "C": x -= text_w(s, size, bold) / 2
         elif align == "R": x -= text_w(s, size, bold)
@@ -650,9 +684,9 @@ class Page:
         b = b.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
         self.ops.append("BT /%s %.2f Tf%s %s %.2f %.2f Td (%s) Tj ET" % ("F2" if bold else "F1", size, " 3 Tr" if hidden else "",
                                                                        self._c(col), x * k, y * k, b.decode("latin-1")))
-        if not hidden:           # v2.7: hidden = invisible text (render mode 3): kept in the PDF, not seen, not in the overlap check
-            self.boxes.append(tbox(s, x, y, size, bold) + (s,))
+        # v2.7: hidden = invisible text (render mode 3): kept in the PDF, not seen; v9: never registered
     def para(self, s, x, y, w, size, col="4A3F35", bold=False, lead=1.3, hidden=False):
+        g_ = self.group()                                     # v9: the paragraph's lines are one group
         line, yy = "", y
         for word in s.split(" "):
             t = (line + " " + word).strip()
@@ -660,6 +694,7 @@ class Page:
                 self.text(line, x, yy, size, col, bold, hidden=hidden); yy -= size * 0.3528 * lead; line = word
             else: line = t
         if line: self.text(line, x, yy, size, col, bold, hidden=hidden); yy -= size * 0.3528 * lead
+        if g_: self.group(False)
         return yy
 
 def write_pdf(pg, path):
@@ -703,29 +738,17 @@ def nice(v):
     e = 10 ** math.floor(math.log10(v))
     return next(m * e for m in (1, 2, 2.5, 5, 10) if m * e >= v)
 
-# ------------------------------------------------------------------ v2.7 labels: measured boxes, no label on another
-def tbox(s, x, y, size, bold=False, align="L"):
-    """the box (x0, y0, x1, y1) mm a text line takes: width from text_w, height from the font's descender and caps"""
-    w = text_w(s, size, bold); x0 = x - (w / 2.0 if align == "C" else w if align == "R" else 0.0)
-    return (x0, y - 0.21 * size * 0.3528, x0 + w, y + 0.72 * size * 0.3528)
-
-def hit(a, b, pad=0.25):
-    return a[0] < b[2] - pad and b[0] < a[2] - pad and a[1] < b[3] - pad and b[1] < a[3] - pad
-
+# ------------------------------------------------------------------ v2.7 labels; v9: real boxes from the page's TextPage
 def place(pg, s, cands, size, col, bold=False, halo=False):
-    """v2.7: label s at the first candidate (x, y, align) whose box touches no label set so far; else the last one
-    (overlaps() then names it in the log). halo: a white field under the words, over the lines drawn before."""
+    """v2.7: label s at the first candidate (x, y, align) whose real box (v9: pg.box) is free on the page's TextPage;
+    else the last one (v9: the page's check then RAISES). halo: a white field under the words, over the lines drawn
+    before."""
     for x, y, al in cands:
-        b = tbox(s, x, y, size, bold, al)
-        if not any(hit(b, o) for o in pg.boxes): break
+        b = pg.box(s, x, y, size, bold, al)
+        if pg.free(b): break
     if halo: pg.rect(b[0] - 0.7, b[1] - 0.5, b[2] - b[0] + 1.4, b[3] - b[1] + 1.0, fill=C["white"])
     pg.text(s, x, y, size, col, bold, al)
     return b
-
-def overlaps(pg):
-    """v2.7: every pair of sheet labels whose boxes overlap (the log lists them; none expected)"""
-    B = pg.boxes
-    return ["'%s' / '%s'" % (B[i][4], B[j][4]) for i in range(len(B)) for j in range(i + 1, len(B)) if hit(B[i], B[j])]
 
 def fit_size(s, w, size, bold=False, low=7.0):
     """the largest size <= size (down to low) at which s fits w mm"""
@@ -781,8 +804,10 @@ def rich_para(pg, s, x, y, w, size, col, bcol=None, lead=1.3):
         else:
             ln = trial
     if ln: lines.append(ln)
+    g_ = pg.group()                                       # v9: the paragraph's lines are one group
     for ln in lines:
         inline(pg, x, y, rich_parts(ln, size, col, bcol)); y -= size * 0.3528 * lead
+    if g_: pg.group(False)
     return y
 
 def arrow(pg, x0, x1, y, col, lw=0.6):
@@ -823,9 +848,12 @@ def ico(pg, name, cx, cy, size):
             pg.line(sh[1], sh[2], sh[3])
 
 def inline(pg, x, y, parts):
-    """v2.4: a keyword row: parts = [(text, size, colour, bold)] set one after another; returns the end x."""
+    """v2.4: a keyword row: parts = [(text, size, colour, bold)] set one after another; returns the end x. v9: the
+    runs are one text group (they touch by design)"""
+    g_ = pg.group()
     for s, size, col, bold in parts:
         pg.text(s, x, y, size, col, bold); x += text_w(s, size, bold)
+    if g_: pg.group(False)
     return x
 
 def inline_w(parts):
@@ -1000,8 +1028,8 @@ def panel_curve(pg, R, x, y, w, h):
     place(pg, "today %s m³: the strip only, %.0f %% of the need" % (fmt(STRIP_TODAY), tc), [(xs + 1.2, cy + ch - 3, "L"), (xs + 1.2, cy + ch - 7, "L")], 7, C["ink2"], halo=True)
     s1 = "cost cut-off " + cite("ross"); s2 = "%s m³ = %.0f %%" % (fmt(d["storage_m3"]), d["covered_pct_1in5_dry"])
     for dx, al, dy in ((-2.5, "R", -5.0), (2.5, "L", -5.0), (-2.5, "R", -14.0)):
-        b1 = tbox(s1, xr + dx, yr_ + dy, 8, True, al); b2 = tbox(s2, xr + dx, yr_ + dy - 3.8, 8.5, True, al)
-        if not any(hit(b, o) for b in (b1, b2) for o in pg.boxes) and b1[3] < cy + ch and b2[1] > cy: break
+        b1 = pg.box(s1, xr + dx, yr_ + dy, 8, True, al); b2 = pg.box(s2, xr + dx, yr_ + dy - 3.8, 8.5, True, al)
+        if pg.free(b1) and pg.free(b2) and b1[3] < cy + ch and b2[1] > cy: break
     place(pg, s1, [(xr + dx, yr_ + dy, al)], 8, C["accent_deep"], True, halo=True)
     place(pg, s2, [(xr + dx, yr_ + dy - 3.8, al)], 8.5, C["accent_deep"], True, halo=True)
     for i, (rows, col, colr, dash, lab) in enumerate(series):
@@ -1079,7 +1107,8 @@ BLOCKS = dict(year=_grid_block(1, 12, 36.0, 100.0),
 
 
 def build(path, R):
-    """The A3 sheet; returns the list of overlapping labels (empty = none).
+    """The A3 sheet; v9: returns the TextPage's "overlap p11 ..." line (its check RAISES before the PDF is written when
+    any two texts collide).
     v5 (MIRAQUA 28 Oct, P11.2): the blocks of BLOCKS drawn in reading order 1-7, so the [n] marks count up that way.
     v6 (T3b): four blocks (1 the year, 2 the curve, 3 the cost, 4 the answer); the question under the title."""
     pg = Page(420.0, 297.0)
@@ -1098,8 +1127,10 @@ def build(path, R):
     # sources page (bergama_booklet sheet_sources: "Sources by number:") still lists what the [n] marks refer to
     pg.para("Sources by number: " + "  ".join("[%d] %s" % (i + 1, SOURCES[k]) for i, k in enumerate(SRC_KEY)),
             14, 8, 392, 6, C["ink2"], hidden=True)       # v4.1 (Prompt 8): public sources only, no internal notes file
+    del WB_LOG[:]
+    pg.check_text()                                       # v9 (G-R4-1): RAISES TextCollision; no sheet with a collision
     write_pdf(pg, path)
-    return overlaps(pg)
+    return WB_LOG[-1] if WB_LOG else u"overlap p11: not checked"
 
 # ------------------------------------------------------------------ v2.6: A3 booklet = crops of this sheet (booklet/CROP_SPEC.md)
 #@include ../common/booklet_assets.py
@@ -1156,7 +1187,7 @@ def main(g):
         bk_err = "%s: %s" % (type(ex).__name__, ex)
     path = os.path.join(OUT_DIR, OUT_PDF)
     try:
-        ov = build(path, R)                               # v2.7: labels whose boxes overlap (none expected)
+        ov = build(path, R)                               # v9: "overlap p11 checked n, collisions 0" (a collision raises)
     except PermissionError:
         return "The PDF is open in another program. Close it and press again: " + path
     os.makedirs(RES_DIR, exist_ok=True)
@@ -1173,16 +1204,15 @@ def main(g):
         OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], fmt(d["river_take_m3_per_year"]),
         d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
         "\nbooklet ERROR: " + bk_err if bk_err else "") + "\n" + zone_line + (
-        "\nLABEL OVERLAP (%d): %s" % (len(ov), "; ".join(ov[:6])) if ov else "\nlabels: no overlaps") + (
-        "\nFLAG overlap p10 %d" % len(ov)) + "".join(
+        "\n" + ov + "\ntrigger: " + (TRIG_WHY[0] or "-")) + "".join(
         "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
         "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
             k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
             fmt(v["farm_need_m3"]), fmt(v["released_m3"]), fmt(v["carried_out_m3"]), v["winter_flow_pct_of_median"])
         for k, v in ((yk, d["year_split"][yk]) for yk in ("normal", "dry5")))     # v4 (Prompt 6)
 
-#@include ../common/chain_fire.py
-#@include ../common/gh_in_items.py
+#@include ../common/trigger.py
+TRIG_WHY = [None]                                         # v9: what started this run (trig_should_run), for the log
 
 
 #@include ../common/done_text.py
@@ -1193,8 +1223,8 @@ if _gh:
     import scriptcontext as _sc
     try: _ik = ":" + str(ghenv.Component.InstanceGuid)   # 25 Oct 10:29: each component keeps its own log and done
     except Exception: _ik = ""
-    _pressed = any(v is True for k, v in _gh_in_items() if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
-        any(chain_fire(v, "bergama_water_balance_log_chain") for k, v in _gh_in_items() if not k.startswith("_") and k != "done" and isinstance(v, str))
+    _pressed, _why, _btn = trig_should_run("bergama_water_balance_log_chain")   # v9 (round 4 S1): one trigger file
+    TRIG_WHY[0] = _why
     if _pressed:
         _t0 = time.time()
         try:

@@ -10,9 +10,11 @@ BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becom
               # v9 (MIRAQUA 28 Oct, F5): the public page behind SRC_KEY plane (v10: the hamam is no longer drawn)
               ("icomos_2014", u"ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered Cultural Landscape",
                u"https://whc.unesco.org/document/152724")]
-# v10: ps_all = page 12 (key map strip + the four sections at 1:500, scale_den set so the booklet prints "1:500");
-# the single crops are the four panels (unused by the booklet today, kept for other pages)
-BK_CROPS = [("ps_all", "all", u"Proposal sections W1-W4, upstream to downstream, each looking downstream"),
+# v17 (round 4, D2): booklet p13 becomes two pages at 1:250, ps_p1 = p13a (W1, W2) and ps_p2 = p13b (W3, W4), each
+# a whole page drawn at the booklet scale (BK_S 1: the booklet prints the crop 1:1, so its scale words stay 1:250 and
+# the insets 1:100); ps_all is gone. The single crops are the four rows (unused by the booklet today).
+BK_CROPS = [("ps_p1", "p1", u"Proposal sections W1, W2, upstream, each looking downstream"),
+            ("ps_p2", "p2", u"Proposal sections W3, W4, downstream, each looking downstream"),
             ("ps_upstream", "up", u"W1 · Upstream entry, looking downstream"),
             ("ps_k4", "k4", u"W2 · %s, looking downstream" % PS_CUTS[1][3]),          # v16 (G16): real names
             ("ps_k5", "k5", u"W3 · %s, looking downstream" % PS_CUTS[2][3]),
@@ -21,13 +23,14 @@ BK_DROP = [u"^\\[\\d+\\]$"]                           # the sheet's source numbe
 
 
 def booklet_export(log):
-    """booklet/blocks.json: one crop per section of the sheet + ps_all (rect in mm from the sheet's top-left, y down)."""
+    """booklet/blocks.json: the two pages ps_p1 / ps_p2 + one crop per row (rect in mm from the sheet's top-left, y
+    down)."""
     bk = BkBlocks(OUT_DIR, GH_LABEL, VERSION)
     for k, t, u in BK_SOURCES:
         bk.source(k, t, u)
     bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())]}   # v7: the booklet's sources page
     # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour), for
-    # the single crops; ps_all carries its own legend band (revision 30 Oct, G1), so the booklet adds none under it
+    # the single crops; v17: the pages ps_p1 / ps_p2 carry their own legend, so the booklet adds none under them
     P = _wat_pal()
     legend = [dict(kind="fill", colour=P["sec"], label=u"water at the average yearly flow"),
               dict(kind="dash", colour=P["q100"], label=u"Q100 flood level"),
@@ -48,5 +51,5 @@ def booklet_export(log):
                 continue
             x0, y0, x1, y1 = boxes[key]
             bk.crop(bid, OUT_NAME.format(part), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
-                    scale_den=PS_SCALE * BK_S, legend=([] if key == "all" else legend), drop=BK_DROP)
+                    scale_den=PS_SCALE * BK_S, legend=([] if key in ("p1", "p2") else legend), drop=BK_DROP)
     return bk.save()

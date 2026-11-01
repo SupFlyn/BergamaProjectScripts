@@ -30,7 +30,9 @@
 # per cut id with a few birds (D3), none of the back trees in the channel, one 1:200 zoom inset in the cut's own free
 # sky (U29); cut ends W1 / W1' and the banks by place under the drawing (D6); the walled beds from the surveyed
 # sections (water board data/CUTS.py), the summer strip on the survey low point (B2 finding, Aras ask 1 a).
-PS_SCALE = 500                      # 1:500 on the booklet page (standard scales, SCRIPT_STANDARD §8)
+# v17 (round 4, S7, P13.1 / D2): 1:250 on the booklet page, two cuts per page, one cut per full row (CHK-8); numbers
+# (mk_marker) instead of callout circles, the words in a side column / strip, level marks outside, insets 1:100.
+PS_SCALE = 250                      # 1:250 on the booklet page (standard scales, SCRIPT_STANDARD §8)
 PS_K = 1000.0 / PS_SCALE              # print mm per m (k of section_parts and plants)
 PS_DEPTH = 1.0                        # m of cut ground drawn under the bed (section_parts drawing rule)
 PS_WALL_T = 0.60                      # m: DSİ wall thickness: no sourced value; the same 0.60 m as p.04-05 (site board P45_WALL_T_M, G2)
@@ -39,10 +41,9 @@ PS_BASIN = dict(kerb_h=0.30, depth=1.10, media=0.80, kerb_t=0.15)   # W1 reed ba
 #                                     same drawing values as p.17's F1 (water board P17_BASIN; no source)
 PS_STRIP = (3.00, 0.40)               # m: the summer strip channel in the bed (proposal): width, depth
 PS_FREEBOARD = 0.30                   # m: a dry proposed floor sits at least this far above Q500 (design rule)
-PS_LBL = BK_MIN_PT * PT               # print mm: the smallest word on the page (7.5 pt)
-PS_TTL = 9.5 * PT                     # section titles
-PS_NOTE = 8.0 * PT                    # the key line under a title, the key map title
-PS_ROW = PS_LBL * 1.35                # one label row
+PS_LBL = 7.0 * PT                     # print mm: labels, list, level marks (GRID_TYPE label 7 pt; v17)
+PS_TTL = 10.0 * PT                    # section titles (GRID_TYPE heading 10 pt bold; v17)
+PS_NOTE = 8.0 * PT                    # the scenario after a title
 PS_TIMBER = SF_LANE["timber"]         # boardwalk timber: the same tone as the M8 terraces and lanes
 PS_STAIR = (0.30, 0.18)               # m: tread, largest rise of the stairs drawn here (design rule)
 PS_RAMP = 1.0 / 12.0                  # rise per run of the W4 ramp (design rule)
@@ -58,8 +59,6 @@ PS_W1_FLOOR_W = 1.60                  # m: the floor at the water's edge (on the
 PS_W1_FLOOR_UP = 0.25                 # m: that floor at least this far over the average-flow water (stays dry)
 PS_RAIL_DROP = 0.50                   # m: a drop deeper than this gets a railing (design rule)
 PS_STONE_UP = 0.15                    # m: stepping stone tops over the average-flow water (sf_stepping_stones default)
-PS_CALL_UP = 2.6                      # m over a zone's ground where its callout circle sits (over the heads)
-PS_CO = PS_LBL                        # callout circles and key: the page's smallest word size (BK_MIN_PT)
 PS_WHY = {"shade": u"shade", "cleaning": u"clean the water", "perception": u"seasonal colour",
           "wind": u"cut the wind", "noise": u"cut street noise", "corridor": u"ecological corridor"}
 PS_SHORT = {"plane": u"Plane", "ash": u"Ash", "willow": u"Willow", "olive": u"Olive", "tamarisk": u"Tamarisk",
@@ -81,10 +80,12 @@ PS_CUTS = [("up", "W1", 1, u"Upstream entry",
            ("down", "W4", 4, u"Downstream reach",
             u"the wild edge: planting bands and a boardwalk by flood level, a step-free ramp to a viewing terrace")]
 PS_SKY_OVER = 2.0                     # m of sky over the tallest back crown (drawing rule: room for the birds)
-PS_INSET_SCALE = 200                  # v16 (G15, U29): the zoom inset's scale on the booklet page (standard scale)
+PS_INSET_SCALE = 100                  # v17 (G-R4-5.6, D11): the zoom inset's scale, 2.5 x the 1:250 parent
 PS_INSET_K = 1000.0 / PS_INSET_SCALE  # its print mm per m
 PS_FLAT_TOL = 0.20                    # m: a surveyed floor this level or better is drawn flat (drawing rule)
-PS_BREAK = {"W2": ("SW", 50.0)}
+# v17 (CHK-8, design spec S7): at 1:250 W3 and W4 are cut on their SW side with a break mark like W2 (W3 keeps 10 m of
+# Demeter's Garden with its tomato rows and café; W4 keeps 6 m of the cotton field behind the crest)
+PS_BREAK = {"W2": ("SW", 50.0), "W3": ("SW", 50.0), "W4": ("SW", 38.0)}
 # m of level ground drawn behind an embankment crest (default 3.0): W4 NE 8.0 for the crest walk, bike lane and tree
 # corridor (the level table's survey source reads that crest "50.0 m out", about 8 m behind the angled crest)
 PS_CREST_FLAT = {("W4", "NE"): 8.0}       # W2's SW land (flat street level to the cut end 80 m out) drawn to 50 m, broken
@@ -153,7 +154,6 @@ class PsSec(object):
         self.cid, self.u0, self.u1, self.d = cid, float(u0), float(u1), d
         self.style = style                                    # D1: "b" vector, "a" cutouts, one geometry
         self.trees = []                                       # (key, x, h_m, crown_m) at the cut, for the G6 check
-        self.lab_u = 2.5                                      # m: where the water level labels start (clear of people)
         self.bed = level(cid, "bed")
         self.z0 = self.bed - PS_DEPTH
         self.k = PS_K
@@ -172,14 +172,17 @@ class PsSec(object):
         self.y_top = None                                     # page y of the sky's top (ps_back)
         self.boxes = []                                       # drawn inset boxes (page mm), for the overlap test
         self.inset_busy = None                                # the inset with its label (page mm): callouts keep off
+        self.page = None                                      # v17: the booklet page id ("p13a" / "p13b")
+        self.marks, self.list = [], []                        # v17: numbers (x, y, n, colour), list (n, text, colour)
 
     def gbed(self, u):
         """the bed's level (m) at u: the survey profile, else the registry bed"""
         return self.gb(u) if self.gb else self.bed
 
-    def zone(self, name, reason, ua, ub):
-        """G15 (R07): a use zone named under the drawing, "NAME · reason", over its span ua..ub (m)"""
-        self.zones.append((name, reason, min(ua, ub), max(ua, ub)))
+    def zone(self, name, reason, ua, ub, kind="zone"):
+        """a use zone over its span ua..ub (m); v17: numbered on its ground (ps_marks) and named in the side list,
+        "Name · reason"; kind "zone" (designed) or "water" (bed, stones, wet edge) sets the number's colour"""
+        self.zones.append((name, reason, min(ua, ub), max(ua, ub), kind))
 
     def X(self, u):
         return (u - self.u0) * self.k
@@ -200,9 +203,10 @@ class PsSec(object):
     def put(self, shapes):
         ps_put(self.pg, shapes)
 
-    def call(self, text, u, z):
-        """a numbered callout (R2-C shared style): its circle near (u, z) m, "Element: reason" in the key"""
-        self.calls.append((text, u, z))
+    def call(self, text, u, z, kind="built", key=None):
+        """a numbered element "Element: reason": its number at (u, z) m (v17: mk_marker, ps_marks); kind "built"
+        (street elements, today's wall: ink), "zone" (accent) or "plant" (key = its tallest species: that colour)"""
+        self.calls.append((text, u, z, kind, key))
 
 
 def ps_kind(cid, side):
@@ -254,7 +258,7 @@ def ps_obst(S, x, gy, h_m, crown_m, layer=0):
     free-sky search"""
     sc = fig_depth(layer)[0] if layer else 1.0
     hw_ = 0.55 * crown_m * S.k * sc
-    S.obst.append((x - hw_, gy, x + hw_, gy + h_m * S.k * sc * 1.02))
+    S.obst.append((x - hw_, gy, x + hw_, gy + h_m * S.k * sc * 1.02, int(layer or 0)))   # v17: + its depth layer
 
 
 def ps_survey(S, key, log):
@@ -357,9 +361,9 @@ def ps_street(S, kind, u, z, call, side=1):
     else:
         sh, h = sf_bike_rack(x, y, S.k, side=side), SF_STREET["rack_h"]
     S.put(sh)
-    S.obst.append((x - 0.6 * S.k, y, x + 0.6 * S.k, y + (h + 0.3) * S.k))
+    S.obst.append((x - 0.6 * S.k, y, x + 0.6 * S.k, y + (h + 0.3) * S.k, 0))
     if call:
-        S.call(call, u, z + max(h + 0.6, PS_CALL_UP))
+        S.call(call, u, z + h + 0.6)                          # v17: the number at the element's top
 
 
 def ps_group_text(keys, tags, why=None):
@@ -403,11 +407,12 @@ def ps_group(S, ua, ub, zf, t0, t1, mix, seed, layers=(0,), why=None, avoid=(), 
             continue
         top = max([h for k_, x, h, cr, l_ in placed if l_ == layer and xa - 0.5 * cr * S.k <= x <= xb] or [2.0])
         u = S.U(0.5 * (xa + xb))
-        S.call(t, u, zf(u) + top * (fig_depth(layer)[0] if layer else 1.0) + 0.6)
+        tall = max(ks, key=lambda k_: PLA_SPECIES[k_].get("h_m") or 0.0)
+        S.call(t, u, zf(u) + top * (fig_depth(layer)[0] if layer else 1.0) * 0.8, "plant", tall)   # v17: in the crown
     return groups
 
 
-def ps_back(S, seed, mix=("plane", "ash", "chaste", "olive", "tamarisk")):
+def ps_back(S, seed, mix=("plane", "chaste", "olive", "tamarisk")):
     """the D8 sky and the depth behind the cut (R16): D9 layers 2 and 1, each on its own ground = the cut line with
     the bed (G14), the farthest first: R2-C pass 2 (Aras 31 Oct 12:01 "no background houses"; checklist 7) the
     basemap houses SF_BACK_BAND m behind the registry cut (sf_back_buildings: data height, else floors x
@@ -420,6 +425,8 @@ def ps_back(S, seed, mix=("plane", "ash", "chaste", "olive", "tamarisk")):
     wy = ps_water_y(S)
     # v16 (G15, P12.3): the sky reaches PS_SKY_OVER over the tallest back crown (layer 1, the nearest back layer), so
     # it never dominates and the section stays low enough for its cell; a sky of its own per cut id, birds on (D3)
+    # v17 (1:250, design spec S7): ash left the BACK mix (front groups keep it), so the sky ends 15 m over the
+    # highest ground and two cuts fit one page
     ht = max(PLA_SPECIES[k_]["h_m"] for k_ in mix) * PLA_GROUP["size"][1] * fig_depth(1)[0] + PS_SKY_OVER
     y_top = S.Y(max(z for _u, z in S.prof) + ht)
     S.y_top = y_top
@@ -443,14 +450,14 @@ def ps_back(S, seed, mix=("plane", "ash", "chaste", "olive", "tamarisk")):
             if ch and ub > ch[0] and ua < ch[1]:
                 nx += 1
                 continue
-            hh = sf_back_house(S.X(ua), S.X(ub), pr, h_m, S.k, layer=layer, floors=fl)
+            hh = sf_back_house(S.X(ua), S.X(ub), pr, h_m, S.k, layer=layer, floors=fl, d_m=db)   # v17: windows <= 30 m
             if not hh or max(p_[1] for s_ in hh for p_ in s_[1]) > y_top:
                 nx += 1
                 continue
             wl.add("background", hh)
             hs.append((S.X(ua), S.X(ub)))
             S.obst.append((S.X(ua), min(p_[1] for s_ in hh for p_ in s_[1]), S.X(ub),
-                           max(p_[1] for s_ in hh for p_ in s_[1])))
+                           max(p_[1] for s_ in hh for p_ in s_[1]), layer))
             nh += 1
         sh, pl_, _gr = pla_group_section(0.0, S.w, gf, S.k, t0=0.45, t1=0.95, mix=list(mix), seed=seed + 31 * layer,
                                          layers=(layer,), style=S.style, density=0.7, avoid=(hs + chx) or None,
@@ -498,18 +505,13 @@ def ps_bed_pts(S, uL, uR):
 def ps_bed(S, uL, uR, call=(u"Stepping stones", u"cross the summer strip dry-shod"), stones=True):
     """the gravel bed from uL to uR with the summer strip (v16: the surveyed bed and the strip on its low point are
     in S.prof already, ps_bed_pts), then the M5 water (G8): the average yearly flow filling the bed below it (never
-    dry), Q100 and Q500 wall to wall (lines only), their levels stacked from S.lab_u (v16: beside the strip, on its
-    wider side); stepping stones across the strip (stones=False: none, W1), named as a zone (call = (name, reason)).
+    dry), Q100 and Q500 wall to wall (lines only; v17: their levels are marked outside the drawing, ps_page);
+    stepping stones across the strip (stones=False: none, W1), named as a zone (call = (name, reason)).
     Returns (u from, u to, level) of the stones' tops: the only place in the water people stand."""
     st = ps_strip(S)
     S.put(sct_ground(S.P(ps_bed_pts(S, uL, uR)), 0.0, S.k, "gravel"))
-    labw = text_w(u"average flow +00.00", PS_LBL) / S.k + 0.6    # m: the level labels' width
-    if S.st_c < 0.0:                                           # strip on the NE half: labels on its SW side
-        S.lab_u = min(st[-1][0] + 0.6, uR - labw)
-    else:
-        S.lab_u = max(uL + 0.6, st[0][0] - 0.6 - labw)
-    wl = water_section(S.P(S.prof), S.k, S.Y, cid=S.cid, fill_ground=False, label_size=PS_LBL,
-                       label_x=S.X(S.lab_u))
+    # v17 (G-R4-5.4): no level labels in the picture; the levels are marked outside the frame (ps_page)
+    wl = water_section(S.P(S.prof), S.k, S.Y, cid=S.cid, fill_ground=False, labels=False)
     wl.put(S.pg)
     ua, ub, ztop = st[0][0] - 0.2, st[-1][0] + 0.2, level_avg_flow(S.cid) + PS_STONE_UP
     if not stones:
@@ -517,7 +519,7 @@ def ps_bed(S, uL, uR, call=(u"Stepping stones", u"cross the summer strip dry-sho
     S.put(sf_stepping_stones(S.X(ua), S.X(ub), S.Y(st[1][1]), ps_water_y(S), S.k, above_m=PS_STONE_UP,
                              seed=len(S.cid)))
     if call:
-        S.zone(call[0], call[1], ua, ub)
+        S.zone(call[0], call[1], ua, ub, "water")
     return ua, ub, ztop
 
 
@@ -569,25 +571,29 @@ def ps_arrow(S, pts, col, lw=0.3, dash=None):
                 (bx - ux * h + uy * h * 0.45, by - uy * h - ux * h * 0.45)]], fill=col)
 
 
-def ps_bank_text(S, side):
-    """what the level table says about a bank, as printed under the section"""
-    c = S.cid
-    kind, top = ps_kind(c, side), level(c, "top", side)
-    h = level(c, "height", side) or level_depth(c, side)
-    if kind == "dsi_wall":
-        s = u"DSİ stone wall %.2f m · top %s" % (h, ps_lv(top))
-    elif kind == "embankment":
-        s = u"embankment %.1f° · %.2f m · top %s" % (level(c, "angle_deg", side), h, ps_lv(top))
-    elif kind == "loose_earth":
-        s = u"loose earth bank %.2f m · top %s" % (h, ps_lv(top))
-    else:
-        s = u"no crest: the ground keeps rising"
-    # v16 (D6, P12.2): the bank by its place name, the cut's end name at the drawing's end (NE = left = W1, SW = right
-    # = W1', as on the key map)
-    e0, e1 = cut_end_labels(c)
-    if side == "NE":
-        return u"%s · %s today: %s" % (e0, place_name("bank_NE"), s)
-    return u"%s today: %s · %s" % (place_name("bank_SW"), s, e1)
+def ps_low(S, ua, ub, zf, seed, t0=0.55, t1=0.95, avoid=(), density=1.2):
+    """v17 (G-R4-5.2, D7): the low layer of sourced shrubs and flowers (plants.py pla_low_section: chaste tree,
+    rosemary, French lavender, purple loosestrife, soft rush, mixed by wetness, never in rows) on a soft bank from ua
+    to ub (m) on the ground zf(u), seated (G14); avoid = [(u, u)] spans kept free (lanes, benches)"""
+    a, b = sorted((ua, ub))
+    if b - a < 1.0:
+        return
+    av = [tuple(sorted((S.X(p), S.X(q)))) for p, q in avoid] or None
+    sh, placed = pla_low_section(S.X(a), S.X(b), S.zf(zf), S.k, t0=t0, t1=t1, seed=seed, density=density, avoid=av,
+                                 water=ps_water_y(S))
+    S.put(sh)
+    for key, x, h, cr in placed:
+        S.trees.append((key, x, h, cr))
+        ps_obst(S, x, S.Y(zf(S.U(x))), h, cr, 0)
+
+
+def ps_break(S, z_top):
+    """the break line at the drawing's right end (the land goes on to the cut end; PS_BREAK), from the drawing's
+    bottom to just over the ground at z_top"""
+    xb = S.X(S.u1)
+    yb, yt = S.Y(S.z0), S.Y(z_top)
+    S.pg.line([(xb, yb - 0.6), (xb, yb + 0.35 * (yt - yb)), (xb - 0.7, yb + 0.45 * (yt - yb)),
+               (xb + 0.7, yb + 0.6 * (yt - yb)), (xb, yb + 0.7 * (yt - yb)), (xb, yt + 0.8)], COL["ink"], 0.2)
 
 
 # ---------------------------------------------------------------- W1 upstream entry
@@ -604,7 +610,7 @@ def ps_pocket(S, ua, ub, z, seed):
         S.trees.append((key, x, sp["h_m"], sp["crown_m"]))
     t = ps_group_text(["chaste", "rosemary", "lavender"], ("perception",),
                       {"perception": u"colour and scent by the seats"})
-    S.call(t, (ua + ub) / 2.0, z + PLA_SPECIES["chaste"]["h_m"] + 0.6)
+    S.call(t, (ua + ub) / 2.0, z + 0.8 * PLA_SPECIES["chaste"]["h_m"], "plant", "chaste")
 
 
 def ps_sec_w1(S):
@@ -661,10 +667,10 @@ def ps_sec_w1(S):
     ps_lane(S, pa[0], pa[1], tS, "walk", (u"Path", u"in the shade of the bazaar side trees"))
     ps_lane(S, bk[0], bk[1], tS, "bike", (u"Bike lane", u"through route under the trees"))
     S.put(sf_bench(S.X(bn), sf_seat_x(S.Y(tS), S.X(bn), 0.25 * k), k, side=-1, back=True))
-    S.call(u"Bench: in the trees' shade, facing the water", bn - 0.2, tS + PS_CALL_UP)
+    S.call(u"Bench: in the trees' shade, facing the water", bn - 0.2, tS + 1.4)
     ps_street(S, "lamp", u_top + 0.15, tS, u"Lamp: lights the path and the steps' head after dark", side=1)
     ps_bed(S, -hw, hw, call=None, stones=False)                 # no stones, no blocks in the bed (Aras 12:01)
-    S.zone(u"Walled bed", u"left to the stream, the summer strip on its low point", -hw, hw)
+    S.zone(u"Walled bed", u"left to the stream, summer strip on its low point", -hw, hw, "water")
     ps_wall(S, -hw, -1, tN)
     S.put(sf_terrace(S.X(vt[1]), S.Y(tN), PS_TERRACE_W, k, side=-1, material="timber", rail=False))
     S.zone(u"View terrace", u"on the Kale side wall top, over the water", vt[0], vt[1])
@@ -694,6 +700,7 @@ def ps_sec_w1(S):
              why={"cleaning": u"clean the water by the wall"})
     ps_group(S, hw - 5.0, hw - 0.2, S.gbed, 0.05, 0.02, ["soft_rush", "loosestrife"], 22, density=1.2,
              why={"cleaning": u"clean the water by the steps"})
+    ps_low(S, pa[1] + 0.3, bk[0] - 0.3, lambda u_: tS, 12, avoid=[(bn - 0.8, bn + 0.4)])   # v17: shrubs + flowers
     # people as scenes, all looking at the water (focus: the strip): at the floor's railing and sitting on the steps
     # together, one on each landing's way down, on the view terrace; walking, running, walking a dog on the path
     # (FIG_ACTIVITY walkway) and riding the bike lane; more further along the path and the terrace (layer 1); nobody
@@ -707,7 +714,7 @@ def ps_sec_w1(S):
     ps_zones(S, [("walkway", pa[0], pa[1], tS), ("bike_lane", bk[0], bk[1], tS)], 18)
     ps_zones(S, [("viewing_terrace", vt[0] + 0.2, vt[1] - 0.2, tN), ("walkway", pa[0], pa[1], tS)], 19, layer=1,
              density=0.6, max_n=2)
-    S.inset = (hw - 1.0, hw + PS_W1_FLOOR_W + 4.0, fl - 0.8, fl + 3.2, u"edge floor and sitting steps")
+    S.inset = (hw - 0.5, hw + PS_W1_FLOOR_W + 2.5, fl - 0.6, fl + 2.4, u"edge floor and sitting steps")   # v17: 1:100
 
 
 # ---------------------------------------------------------------- W2 walking hub (Ulucami Önü)
@@ -745,10 +752,7 @@ def ps_sec_w2(S):
     S.zone(u"Hub square", u"dry above Q500, in the planes' shade", u_sq, S.u1)
     ps_street(S, "rack", u_sq + 1.0, tS, u"Bike racks: leave the bike, walk down to the water", side=1)
     ps_street(S, "bollard", S.u1 - 1.0, tS, u"Bollards: the square's street edge, no cars")
-    xb = S.X(S.u1)                                              # break line: the land goes on to the cut end
-    yb, yt = S.Y(S.z0), S.Y(tS)
-    S.pg.line([(xb, yb - 0.6), (xb, yb + 0.35 * (yt - yb)), (xb - 0.7, yb + 0.45 * (yt - yb)),
-               (xb + 0.7, yb + 0.6 * (yt - yb)), (xb, yb + 0.7 * (yt - yb)), (xb, yt + 0.8)], COL["ink"], 0.2)
+    ps_break(S, tS)                                             # break line: the land goes on to the cut end
     # planting (G9 groups; v16 G15: the trees on depth layer 1, behind the people): the square's planes with an
     # understorey (Ottoman squares with plane trees, ICOMOS 2014), the street trees behind the NE lanes, an emergent
     # edge in the bed by the sub-hub floor
@@ -760,6 +764,7 @@ def ps_sec_w2(S):
              why={"shade": u"shade the street walk"})
     ps_group(S, max(ub + 1.0, hw - 5.0), hw - 0.3, S.gbed, 0.0, 0.14, ["soft_rush", "loosestrife", "rush"], 23,
              why={"cleaning": u"clean the water at the steps"})
+    ps_low(S, S.u0 + 0.3, -hw - 6.9, lambda u: tN, 28)          # v17: shrubs + flowers behind the NE lanes
     # people by zone: the NE walk and bike lane (walking, running, a dog), across on the stones, fishing at the
     # floor's water edge, children playing on the dry sub-hub floor, sitting on the steps, walking and standing
     # together in the square; more behind (layer 1)
@@ -772,7 +777,7 @@ def ps_sec_w2(S):
              seat_h=rise, focus=S.st_c)                         # sitting together on the steps, facing the water
     ps_zones(S, [("walkway", S.u0 + 0.5, -hw - 0.6, tN), ("walkway", u_sq + 2.0, S.u1 - 1.6, tS)], 25, layer=1,
              density=0.6)
-    S.inset = (hw - 1.0, u_st + 2.5, plat - 0.8, plat + 3.0, u"sub-hub floor at the water")
+    S.inset = (hw + 0.5, u_st + 1.5, plat - 0.6, plat + 2.4, u"sub-hub floor at the water")      # v17: 1:100
 
 
 # ---------------------------------------------------------------- W3 K5 Demeter's Garden
@@ -814,7 +819,7 @@ def ps_sec_w3(S):
     S.zone(u"Stream commons", u"open ground the floods may cover", s0, s1)
     S.zone(u"Demeter's Garden", u"raised above Q500, stays dry", s1, S.u1)
     gy = lambda u: shelf + (b - shelf) * max(0.0, min(1.0, (s0 - u) / (s0 - hw)))
-    S.zone(u"Wet edge", u"floods at Q100, holds the bank", hw, s0)
+    S.zone(u"Wet edge", u"floods at Q100, holds the bank", hw, s0, "water")
     # planting (G9 groups): a mixed wet edge on the slope up to the commons (wet to drier, emergent only under the
     # water), the garden's trees, shrubs and herbs around the tomato rows, the café's plane a step behind (layer 1)
     ps_group(S, hw + 0.4, s0 - 0.3, gy, 0.0, 0.42, ["soft_rush", "loosestrife", "rush", "willow", "tamarisk"], 33,
@@ -822,11 +827,13 @@ def ps_sec_w3(S):
     rows = (s1 + 2.6, s1 + 7.0)
     S.put(sf_seat(pla_crop_rows("tomato", S.X(rows[0]), S.X(rows[1]), S.Y(gf), k, spacing=1.0, h_m=1.0,
                                 crown_m=0.8), S.Y(gf)))
-    S.call(u"Tomato rows: the garden's crop, above the flood", sum(rows) / 2.0, gf + PS_CALL_UP)
+    S.call(u"Tomato rows: the garden's crop, above the flood", sum(rows) / 2.0, gf + 1.4, "zone")
     ps_group(S, s1 + 0.6, S.u1 - 0.3, lambda u: gf, 0.5, 0.95, {"plane": 0.6, "olive": 1.0, "chaste": 0.8,
                                                                 "rosemary": 0.7, "lavender": 0.7}, 34,
              layers=(1, 0), avoid=[(rows[0] - 0.2, rows[1] + 0.2)],
              why={"shade": u"shade the café", "perception": u"seasonal colour"})
+    ps_low(S, s1 + 0.6, rows[0] - 0.3, lambda u: gf, 38)       # v17: shrubs + flowers round the tomato rows
+    ps_break(S, gf)                                             # v17 (1:250): the garden goes on to the cut end
     # people by zone: on the crest walk, sitting and walking on the bank steps, across on the stones, children and
     # families on the commons; a gardener at the tomato rows and a café guest (dry garden floor, hand-placed)
     ps_zones(S, [("walkway", crest - 3.6, crest - 0.3, tN),
@@ -837,9 +844,9 @@ def ps_sec_w3(S):
              focus=S.st_c)                                      # families playing, lying in the sun on the commons
     ps_zones(S, [("lawn", s0 + 1.0, s1 - 1.0, shelf)], 36, layer=1, density=0.6)
     ps_fig(S, "stand", s1 + 5.2, gf, facing=-1)                # at the tomato rows
-    ps_fig(S, "sit_step", s1 + 13.6, gf, facing=-1)            # café under the plane
-    S.call(u"Café: guests under the plane by the garden", s1 + 13.6, gf + PS_CALL_UP)
-    S.inset = (ua - 1.0, ub + 1.5, b - 0.6, b + 2.8, u"stepping stones over the summer strip")
+    ps_fig(S, "sit_step", s1 + 8.6, gf, facing=-1)             # café in the garden (v17: inside the 50 m break)
+    S.call(u"Café: guests in the garden's shade", s1 + 8.6, gf + 2.2, "zone")
+    S.inset = (ua - 0.5, ub + 0.5, b - 0.5, b + 2.5, u"stepping stones over the summer strip")    # v17: 1:100
 
 
 # ---------------------------------------------------------------- W4 downstream reach
@@ -906,14 +913,18 @@ def ps_sec_w4(S):
     ps_group(S, S.u0 + 0.3, cN - 5.6, lambda u: tN, 0.45, 0.9,
              {"plane": 1.0, "ash": 0.5, "chaste": 1.0, "rosemary": 0.8, "olive": 0.6}, 42, layers=(2, 1),
              why={"shade": u"shade the crest"})
-    S.call(u"Ecological corridor: trees and shrubs along the crest", (S.u0 + cN - 5.6) / 2.0, tN + 0.5)
+    S.call(u"Ecological corridor: trees and shrubs along the crest", (S.u0 + cN - 5.6) / 2.0, tN + 4.0, "plant",
+           "plane")
     ps_group(S, uT + 0.3, -hw - 0.2, zN, 0.0, 0.16, ["soft_rush", "loosestrife", "rush"], 43,
              why={"cleaning": u"clean the water under the deck"})
     ps_group(S, hw + 0.3, cS - 0.6, zS, 0.0, 0.5, ["soft_rush", "loosestrife", "willow", "tamarisk", "chaste"], 44,
              layers=(1, 0), why={"shade": u"shade the slope", "cleaning": u"clean the water"})
+    ps_low(S, S.u0 + 0.3, cN - 5.6, lambda u: tN, 48)            # v17: shrubs + flowers in front of the corridor
+    ps_low(S, hw + 1.0, cS - 0.6, zS, 49, t0=0.3)               # v17: and on the bazaar side slope, wet to dry
     S.put(sf_seat(pla_crop_rows("cotton", S.X(cS + 1.0), S.X(S.u1 - 0.4), S.Y(tS), k, spacing=0.9, h_m=1.0,
                                 crown_m=0.6), S.Y(tS)))
     S.zone(u"Cotton field", u"takes the surplus water", cS, S.u1)
+    ps_break(S, tS)                                             # v17 (1:250): the field goes on to the cut end
     # people by zone: cycling, walking, running, a dog on the crest, down the ramp, sitting and standing on the
     # terrace, on the boardwalk and fishing at its end (water_edge: the line drops to the average-flow water), across
     # on the stones; more along the crest behind the cut (layer 1); a farmer in the field
@@ -925,58 +936,74 @@ def ps_sec_w4(S):
              focus=S.st_c)                                      # together at the view over the water
     ps_zones(S, [("walkway", cN - 2.8, cN - 0.3, tN)], 46, layer=1, density=0.6)
     ps_fig(S, "stand", S.u1 - 1.2, tS, facing=-1)
-    S.inset = (ua - 4.5, ua + 0.8, dk - 1.2, dk + 2.4, u"fishing from the boardwalk's end")
+    S.inset = (ua - 3.5, ua + 0.6, dk - 1.0, dk + 2.2, u"fishing from the boardwalk's end")       # v17: 1:100
 
 
 PS_DRAW = {"W1": ps_sec_w1, "W2": ps_sec_w2, "W3": ps_sec_w3, "W4": ps_sec_w4}
 
 
-# ---------------------------------------------------------------- callouts on the section, data rows and key under it
-def ps_scale_bar(pg, x, y, k):
-    """0-5-10-20 m at k mm per m from (x, y), its numbers over it, the round scale after it: the A0 SHEET's scale
-    (PS_SCALE x BK_S, standard), which the booklet re-sets to the scale it prints (1:500, D6); the scale text only
-    from sf_scale_text"""
-    h, col = 0.9, COL["ink"]
-    marks = (0, 5, 10, 20)
-    for i, (a, b_) in enumerate(zip(marks[:-1], marks[1:])):
-        pg.poly([rect(x + a * k, y, x + b_ * k, y + h)], fill=(col if i % 2 == 0 else COL["white"]), stroke=col,
-                lw=0.15)
-    for m_ in marks:
-        pg.text(str(m_), x + m_ * k, y + h + 0.6, PS_LBL, col, align="C")
-    pg.text(u"m · " + sf_scale_text(round(PS_SCALE * BK_S)), x + 20 * k + text_w(u"20", PS_LBL) / 2.0 + 1.2,
-            y + h + 0.6, PS_LBL, col)
+# ---------------------------------------------------------------- v17: numbers on the section, the zoom inset
+# v17 (round 4, G-R4-5.5, G-R4-7, G-R4-2): every zone and element is ONE marker (marker.py mk_marker) on what it
+# names, numbered in reading order; the side list (or W4's strip) repeats the numbers "*Name* · reason". The old
+# callout key, zone strip, bank rows and bed dimension line under the drawing are gone (the "today" line says it).
+PS_MK_R = 2.2                          # print mm: the room one marker takes (two digits at 7 pt + its rim, marker.py)
+PS_MK_COL = {"zone": "8B3A3F", "water": "5D7F8D", "built": "4A3F35"}   # designed zone, water / bed, street element
 
 
-def ps_level_box(S):
-    """the box (page mm) of the water level labels: from S.lab_u, over the average flow up to Q500"""
-    r = 0.75 * PS_CO
-    lx = S.X(S.lab_u)
-    return (lx - r, S.Y(level_avg_flow(S.cid)) - 2.5 * PS_LBL, lx + text_w(u"average flow +00.00", PS_LBL) + r,
-            S.Y(level(S.cid, "q500")) + 1.5 * PS_LBL)
+def ps_mk_col(kind, key=None):
+    """the marker colour = the colour of what it names (G-R4-7): a planting group takes its tallest species' fill"""
+    if kind == "plant" and key:
+        return pla_colours(key)["fill"]
+    return PS_MK_COL.get(kind, PS_MK_COL["zone"])
 
 
 def ps_marks(S):
-    """the callout circles (SfCallouts): each near its element, moved up until it touches no other circle, none of
-    the water level labels and (v16) no zoom inset; v16 (G3): numbered in reading order (top row first, left to
-    right; lp_reading_order), so the key under the drawing reads 1, 2, 3 ..."""
-    r = 0.75 * PS_CO
-    busy = [ps_level_box(S)] + [(b_[0] - 0.3, b_[1] - 0.3, b_[2] + 0.3, b_[3] + 0.3) for b_ in
-                                ([S.inset_busy] if S.inset_busy else [])]
+    """the numbers of one section (section mm): a zone on its ground at its middle, an element (call) at its point;
+    a number that touches another or the zoom inset moves up (then sideways) until it is clear and stays inside the
+    section's width and height; numbered in reading order (tp_reading_order), one number per distinct text. Fills
+    S.marks [(x, y, n, colour)] and S.list [(n, text, colour)]."""
+    r = PS_MK_R
+    bb = ps_bbox(S.pg.items)
+    top = bb[3] - r
+    busy = [S.inset_busy] if S.inset_busy else []
+    ents = []
+    for name, why, ua, ub, kind in S.zones:
+        a, b = max(ua, S.u0), min(ub, S.u1)
+        u = 0.5 * (a + b)
+        ents.append((u"*%s* · %s" % (name, why), S.X(u), S.Y(ps_z_at(S.prof, u)) + r + 0.3, ps_mk_col(kind)))
+    for t, u, z, kind, key in S.calls:
+        nm, _s, why = t.partition(u": ")
+        ents.append((u"*%s* · %s" % (nm, why) if why else u"*%s*" % nm, S.X(u), S.Y(z) + r, ps_mk_col(kind, key)))
     done, at = [], []
-    for t, u, z in S.calls:
-        x = max(r, min(S.w - r, S.X(u)))
-        y = S.Y(z) + r
-        for _i in range(40):
-            hit = [p for p in done if math.hypot(p[0] - x, p[1] - y) < 2.0 * r + 0.4]
-            box = [q for q in busy if q[0] - r < x < q[2] + r and q[1] - r < y < q[3] + r]
-            if not hit and not box:
+    step = 2.0 * r + 0.6
+
+    def free(x, y):
+        if any(math.hypot(p[0] - x, p[1] - y) < step for p in done):
+            return False
+        return not any(q[0] - r - 0.6 < x < q[2] + r + 0.6 and q[1] - r - 0.6 < y < q[3] + r + 0.6 for q in busy)
+    for txt, x0, y0, col in ents:
+        x0 = max(r, min(S.w - r, x0))
+        spot = None
+        for sx in (0, 1, -1, 2, -2, 3, -3, 4, -4):
+            x = max(r, min(S.w - r, x0 + sx * step))
+            y = y0
+            while y <= top and not free(x, y):
+                y += 0.5
+            if y <= top:
+                spot = (x, y)
                 break
-            y = max([p[1] + 2.0 * r + 0.4 for p in hit] + [q[3] + r + 0.2 for q in box])
-        done.append((x, y))
-        at.append((x, y, t))
-    for j in lp_reading_order([(x, y) for x, y, _t in at], y_down=False, row_mm=3.0 * r):
-        S.co.add(*at[j])
-    S.put(S.co.marks(size=PS_CO))
+        if spot is None:
+            raise ValueError(u"p13 %s: no free spot for the number of %r inside the section" % (S.cid, txt))
+        done.append(spot)
+        at.append((spot[0], spot[1], txt, col))
+    num = {}
+    S.marks, S.list = [], []
+    for j in tp_reading_order([(x, y) for x, y, _t, _c in at], y_down=False, row_mm=3.0 * r):
+        x, y, txt, col = at[j]
+        if txt not in num:
+            num[txt] = len(num) + 1
+            S.list.append((num[txt], txt, col))
+        S.marks.append((x, y, num[txt], col))
 
 
 def ps_inset_shapes(items):
@@ -998,31 +1025,34 @@ def ps_inset_shapes(items):
 
 
 def ps_inset(S, log):
-    """v16 (G15, U29 sketch): the cut's main use spot S.inset (ua, ub, za, zb m, what) drawn again at 1:200
-    (PS_INSET_SCALE) in a box in the section's own free sky: clear of every tall drawn thing (S.obst: plants, back
-    houses, street elements), of the spot and of the level labels, inside the drawing's width and under its sky top,
-    as near the spot as it can be; sf_zoom_inset draws the spot frame, one short frame link, the box (0.25 pt
-    neatline, the one frame G17 keeps) and "ZOOMED IN · what · 1:200". No room: FLAG, no inset."""
+    """v17 (G-R4-5.6, D11): the cut's main use spot S.inset (ua, ub, za, zb m, what) drawn again at 1:100
+    (PS_INSET_SCALE, 2.5 x the 1:250 parent) in a box in the section's own free sky: over the highest ground and its
+    people, clear of every drawn thing of the front layer (S.obst layer 0: plants, street elements; the back layers
+    may go under its white ground) and of the spot, inside the drawing, as near the spot as it can be; sf_zoom_inset
+    draws the spot frame, one frame link, the box, "ZOOMED IN · what · 1:100" above it and its own scale bar under
+    it. No room: FLAG, no inset."""
     if not S.inset:
         return
     ua, ub, za, zb, what = S.inset
     src = (S.X(ua), S.Y(za), S.X(ub), S.Y(zb))
     f = PS_INSET_K / S.k
     dw, dh = (src[2] - src[0]) * f, (src[3] - src[1]) * f
-    sheet_den = int(round(PS_INSET_SCALE * BK_S))               # the sheet scale; the booklet prints it 1:200
-    label = u"%s · 1:%d" % (what, sheet_den)
-    lab_w = text_w(u"ZOOMED IN · " + label, PS_LBL, True)
-    lab_h = 1.6 * PS_LBL
-    lo = S.Y(max(z for _u, z in S.prof) + PS_CALL_UP) + PS_CO
-    hi = (S.y_top if S.y_top is not None else S.Y(max(z for _u, z in S.prof) + 20.0)) - lab_h - 0.5
-    keep = [tuple(o) for o in S.obst] + [(src[0] - 1.0, src[1] - 1.0, src[2] + 1.0, src[3] + 1.0), ps_level_box(S)]
+    lab_w = fm_width(u"ZOOMED IN · %s · 1:%d" % (what, PS_INSET_SCALE), PS_LBL / PT, True)
+    lab_h = 0.6 * PS_LBL + PS_LBL * CAP + 0.6                  # the caption over the box
+    bar_h = SF_ZOOM["gap"] + SF_ZOOM["bar_h"] + 0.9 * 2.12 + 0.6   # its scale bar and figures under the box
+    ww = max(dw, lab_w)
+    bb = ps_bbox(S.pg.items)
+    lo = S.Y(max(z for _u, z in S.prof) + 2.4) + bar_h          # over the highest ground and its people
+    hi = max(S.y_top if S.y_top is not None else bb[3], bb[3]) - lab_h
+    keep = [tuple(o[:4]) for o in S.obst if (o[4] if len(o) > 4 else 0) == 0] + \
+        [(src[0] - 1.0, src[1] - 1.0, src[2] + 1.0, src[3] + 1.0)]
     cx, cy = 0.5 * (src[0] + src[2]), 0.5 * (src[1] + src[3])
     best = None
     y = lo
     while y + dh <= hi:
         x = 0.5
-        while x + max(dw, lab_w) <= S.w - 0.5:
-            b_ = (x - 0.6, y - 0.6, x + max(dw, lab_w) + 0.6, y + dh + lab_h + 0.6)
+        while x + ww <= S.w - 0.5:
+            b_ = (x - 0.6, y - bar_h, x + ww + 0.6, y + dh + lab_h)
             if not any(b_[0] < o[2] and o[0] < b_[2] and b_[1] < o[3] and o[1] < b_[3] for o in keep):
                 d = math.hypot(x + 0.5 * dw - cx, y + 0.5 * dh - cy)
                 if best is None or d < best[0]:
@@ -1030,53 +1060,21 @@ def ps_inset(S, log):
             x += 1.5
         y += 1.5
     if best is None:
-        log.append(u"FLAG p12 %s: no free sky for the zoom inset (%.0f x %.0f mm at 1:%d): not drawn" % (
-            S.cid, dw, dh, PS_INSET_SCALE))
+        log.append(u"FLAG %s %s: no free sky for the zoom inset (%.0f x %.0f mm at 1:%d): not drawn" % (
+            S.page, S.cid, dw, dh, PS_INSET_SCALE))
         return
     _d, x, y = best
     dst = (x, y, x + dw, y + dh)
-    S.put(sf_zoom_inset(src, dst, S.k, PS_INSET_K, ps_inset_shapes(S.pg.items), label, size=PS_LBL))
+    S.put(sf_zoom_inset(src, dst, S.k, PS_INSET_K, ps_inset_shapes(S.pg.items), what, size=PS_LBL,
+                        scale_den=PS_INSET_SCALE, parent_den=PS_SCALE, page=S.page))
     S.boxes.append(dst)
-    S.inset_busy = (x, y, x + max(dw, lab_w), y + dh + lab_h)
-    log.append(u"p12 %s: zoom inset placed at 1:%d (%s), %.0f x %.0f mm, people %.1f mm tall" % (
-        S.cid, PS_INSET_SCALE, what, dw, dh, FIG_ADULT_H * PS_INSET_K))
+    S.inset_busy = (x - 0.3, y - bar_h, x + ww + 0.3, y + dh + lab_h)
+    log.append(u"%s %s: zoom inset at 1:%d (%s), %.0f x %.0f mm, people %.1f mm tall" % (
+        S.page, S.cid, PS_INSET_SCALE, what, dw, dh, FIG_ADULT_H * PS_INSET_K))
 
 
-def ps_zone_strip(S, y):
-    """v16 (G15, R07 idea): the use zones named under the drawing from page y down: per zone a thin span rule with
-    end ticks over its width and "NAME · reason" under it (name bold), centred on the span; a text that would touch
-    another goes one tier down. Returns the y under the last tier."""
-    if not S.zones:
-        return y
-    ink, ink2 = COL["ink"], COL["ink2"]
-    tier_h = PS_LBL * 1.35 + 1.0
-    tiers = []                                                  # (tier, x0, x1)
-    ntier = 0
-    for name, why, ua, ub in sorted(S.zones, key=lambda z_: (0.5 * (z_[2] + z_[3]), z_[0])):
-        xa, xb = S.X(max(ua, S.u0)), S.X(min(ub, S.u1))
-        wn, wr = text_w(name, PS_LBL, True), text_w(u" · " + why, PS_LBL)
-        w = wn + wr
-        x0 = max(0.0, min(S.w - w, 0.5 * (xa + xb) - 0.5 * w))
-        t = 0
-        while any(tt == t and x0 < b_ + 1.5 and a_ < x0 + w + 1.5 for tt, a_, b_ in tiers):
-            t += 1
-        tiers.append((t, x0, x0 + w))
-        ntier = max(ntier, t + 1)
-        yr = y - t * tier_h
-        S.pg.line([(xa, yr), (xb, yr)], ink2, 0.12)
-        for x_ in (xa, xb):
-            S.pg.line([(x_, yr), (x_, yr - 0.6)], ink2, 0.12)
-        yb = yr - 0.8 - PS_LBL * CAP
-        S.pg.text(name, x0, yb, PS_LBL, ink, bold=True)
-        S.pg.text(u" · " + why, x0 + wn, yb, PS_LBL, ink)
-    return y - ntier * tier_h
-
-
-def ps_finish(S, log, room_w=None):
-    """G6 check, (v16) the zoom inset, the callout circles, the bed / bank rows under the drawing (v16: the banks by
-    place, the cut ends W1 / W1'), (v16) the zone strip, the callout key under them (in as many columns as room_w
-    allows: every number explained), the scale bar"""
-    pg = S.pg
+def ps_finish(S, log):
+    """the G6 check, the notes, (v17) the 1:100 zoom inset, then the numbers (ps_marks)"""
     for m_ in sf_assert_g6(S.k, trees=S.trees, strict=False):  # G6: people 1.75 m, trees in their sourced range
         log.append(u"G6 CHECK section %s (style %s): %s" % (S.cid, S.style, m_))
     for m_ in S.notes:
@@ -1084,222 +1082,304 @@ def ps_finish(S, log, room_w=None):
     for m_ in S.info:
         log.append(u"section %s: %s" % (S.cid, m_))
     ps_inset(S, log)
-    S.co = SfCallouts()
     ps_marks(S)
-    # under the drawing: the bed width as a dimension, each bank as the level table has it
-    hw = S.hw
-    y = -1.0
-    xa, xb = S.X(-hw), S.X(hw)
-    pg.line([(xa, y), (xb, y)], COL["ink"], 0.15)
-    for x_ in (xa, xb):
-        pg.line([(x_, y - 0.5), (x_, y + 0.6)], COL["ink"], 0.15)
-    rows = []
-    under = [(u"bed {:,.0f} cm · {}".format(level(S.cid, "bed_width_cm"), ps_lv(S.bed)), "C", (xa + xb) / 2.0),
-             (ps_bank_text(S, "NE"), "L", 0.0), (ps_bank_text(S, "SW"), "R", S.w)]
-    last = 0
-    for t, al, x_ in under:
-        w = text_w(t, PS_LBL)
-        x0 = x_ - (w / 2.0 if al == "C" else (w if al == "R" else 0.0))
-        r = 0
-        while any(x0 < b_ + 2.0 and a_ < x0 + w + 2.0 for rr, a_, b_ in rows if rr == r):
-            r += 1
-        rows.append((r, x0, x0 + w))
-        last = max(last, r)
-        pg.text(t, x0, -1.6 - PS_LBL * CAP - r * PS_ROW, PS_LBL, COL["ink"])
-    yz = ps_zone_strip(S, -1.6 - PS_LBL * CAP - last * PS_ROW - 1.6)
-    # the key: one line per number, "Element: reason", in columns under the zones
-    yk = yz - 1.0
-    items = sorted(set((n, t) for n, _x, _y, t in S.co.items))
-    if items:
-        colw = max(text_w(t, PS_CO) for _n, t in items) + 2.0 * PS_CO + 3.0
-        ncol = max(1, min(len(items), int(((room_w or S.w) + 3.0) // colw)))
-        nrow = int(math.ceil(len(items) / float(ncol)))
-        for c_ in range(ncol):
-            part = items[c_ * nrow:(c_ + 1) * nrow]
-            if not part:
-                continue
-            co = SfCallouts(start=part[0][0])
-            for _n, t in part:
-                co.add(0.0, 0.0, t)
-            S.put(co.key(c_ * colw, yk, size=PS_CO))
-        yk -= nrow * 1.5 * PS_CO
-    ps_scale_bar(pg, 0.0, yk - 3.6, S.k)
 
 
-def ps_section(cid, log, style="b", room_w=None):
-    """one cut as a PsSec (its drawing in S.pg, print mm; see PsSec), in style b (vector) or a (cutouts, D1);
-    room_w = the panel's width for the callout key (print mm). v16: the surveyed bed first (ps_survey, DATA-1)."""
+def ps_section(cid, log, page, style="a"):
+    """one cut as a PsSec (its drawing in S.pg, print mm at 1:250; see PsSec), in style a (D1, the only style);
+    v16: the surveyed bed first (ps_survey, DATA-1); v17: page = the booklet page id (log lines, inset)"""
     u0, u1, d = ps_extent(cid)
     S = PsSec(cid, u0, u1, d, style)
+    S.page = page
     ps_survey(S, next(k_ for k_, c_, _n, _m, _t in PS_CUTS if c_ == cid), log)
     PS_DRAW[cid](S)
-    ps_finish(S, log, room_w)
+    ps_finish(S, log)
     return S
 
 
-# ---------------------------------------------------------------- the page block: key map row + 2 x 2 sections
-# v16 (P12.3, G2, G17): no frame round a cell or the key row, white ground; every section measured BEFORE it is
-# placed: the rows take the heights the sections need, the key row what is left (PS_KEY_H); a section that does not
-# fit at 1:500 shrinks with the others to one common factor and logs a FLAG (the hard fit). The legend sits in the
-# key row beside the map (G1, beside its drawings), so there is no band at the bottom.
-PS_GAP = 4.0                           # print mm between the panels
-PS_PAD = 1.5                           # print mm: a section's margin inside its cell (whitespace, no frame)
-PS_KEY_H = (30.0, 62.0)                # print mm: the key row's least and largest height
+# ---------------------------------------------------------------- v17: the words beside a section
+PS_LIST_PT, PS_TODAY_PT, PS_TITLE_PT, PS_SCEN_PT = 7.0, 6.5, 10.0, 8.0   # pt: list, "today" line, title, scenario
+PS_LEAD = 1.3                          # line spacing / size
+PS_LIST_ROW = 3.7                      # print mm: least step between two list entries (a two-digit marker + 0.6 mm)
 
 
-def ps_badge(pg, x, y, n, r=2.0):
-    """the cut's number on the page (section titles and key map alike)"""
-    pg.circle(x, y, r, fill=COL["accent"])
-    fs = r * 1.15
-    pg.text(str(n), x, y - fs * CAP / 2.0, fs, COL["white"], bold=True, align="C")
+def ps_lead(pt):
+    return pt * PT * PS_LEAD
 
 
-def ps_cell_head_h(w, cid, name, take, note):
-    """v16: the height (print mm) ps_cell's title and note take in a cell w wide"""
-    nt = len(ps_rich_lines(u"**%s · %s** %s" % (cid, name, take), PS_TTL, w - 11.0))
-    nn = len(ps_rich_lines(note, PS_NOTE, w - 11.0))
-    return 0.8 + 2.0 + PS_TTL * CAP + (nt - 1) * PS_TTL * 1.28 + 0.6 + nn * PS_NOTE * 1.28 + PS_NOTE * 0.25 + 2.0
+def ps_bank_short(c, side):
+    """a bank as the level table has it, short"""
+    kind = ps_kind(c, side)
+    h = level(c, "height", side) or level_depth(c, side)
+    if kind == "dsi_wall":
+        return u"DSİ stone wall %.2f m" % h
+    if kind == "embankment":
+        return u"embankment %.1f° · %.2f m" % (level(c, "angle_deg", side), h)
+    if kind == "loose_earth":
+        return u"loose earth bank %.2f m" % h
+    return u"no crest, the ground keeps rising"
 
 
-def ps_cell(pg, box, n, cid, name, take, note):
-    """one section's panel: a coloured rule over it, the badge, the title (cut and name bold, the scenario) and the
-    key line under it; v16 (G17): no frame, no ground of its own. Returns the y the drawing starts under (print mm)."""
-    x0, y0, x1, y1 = box
-    pg.poly([rect(x0, y1 - 0.8, x1, y1)], fill=MP["discharge"][1])
-    yt = y1 - 0.8 - 2.0 - PS_TTL * CAP                         # the title's baseline
-    ps_badge(pg, x0 + 4.5, yt + PS_TTL * CAP / 2.0, n)
-    yb, _ = ps_rich_para(pg, x0 + 8.0, yt + PS_TTL * 1.28, x1 - x0 - 11.0, u"**%s · %s** %s" % (cid, name, take),
-                         PS_TTL, COL["ink_dark"])
-    yb, _ = ps_rich_para(pg, x0 + 8.0, yb - 0.6, x1 - x0 - 11.0, note, PS_NOTE, COL["ink"])
-    return yb - PS_NOTE * 0.25 - 2.0
+def ps_today(S):
+    """v17 (G-R4-2): the one "today" line: both banks and the bed width from the level table, by place name"""
+    c = S.cid
+    return u"*Today* · %s: %s · bed {:,.0f} cm · %s: %s".format(level(c, "bed_width_cm")) % (
+        place_name("side_NE"), ps_bank_short(c, "NE"), place_name("side_SW"), ps_bank_short(c, "SW"))
 
 
 def ps_note(cid):
     """the key line of a section, from the level table"""
     q5 = level(cid, "q500")
     if cid == "W1":
-        return u"Q500 %s stays **%.2f m** under the DSİ walls · reeds only in lined basins the flood passes by" % (
+        return u"Q500 %s stays *%.2f m* under the DSİ walls · reeds only in lined basins the flood passes by" % (
             ps_lv(q5), level(cid, "top", "SW") - q5)
     if cid == "W2":
-        return u"Q500 %s stays **%.2f m** under the hub square · the steps flood, the square stays dry" % (
+        return u"Q500 %s stays *%.2f m* under the hub square · the steps flood, the square stays dry" % (
             ps_lv(q5), level(cid, "top", "SW") - q5)
     if cid == "W3":
-        return u"Q500 %s · garden floor **%s** stays dry: olive and lavender need soil that never waterlogs" % (
+        return u"Q500 %s · garden floor *%s* stays dry: olive and lavender need soil that never waterlogs" % (
             ps_lv(q5), ps_lv(math.ceil((q5 + PS_FREEBOARD) * 20.0) / 20.0))
-    return u"Q500 %s stays **%.2f m** under the %s bank top · wet edge, boardwalk and trees by flood level" % (
+    return u"Q500 %s stays *%.2f m* under the %s bank top · wet edge, boardwalk and trees by flood level" % (
         ps_lv(q5), level(cid, "top", "NE") - q5, place_name("side_NE"))
 
 
-def ps_legend(pg, x0, x1, y1):
-    """G1: the samples of everything the sections draw, in rows from the top y1 across x0-x1 (print mm), next to the
-    drawings inside the block (v16: in the key row, beside the map). Returns the band's bottom y."""
+def ps_para(tp, text, x, y, w, pt, colour, name):
+    """a wrapped paragraph from its first baseline y (tp = None: measured only); returns the next baseline"""
+    lead = ps_lead(pt)
+    if tp is not None:
+        return tp.para(text, x, y, w, pt, lead, name=name, colour=colour, min_last_words=1)
+    return y - len(tp_wrap(text, w, pt, False, 1, True)) * lead
+
+
+def ps_list_col(S, ents, x0, w, y, tp=None, pg=None):
+    """numbered list entries [(n, text, colour)] in a column from x0, w wide, first baseline y: the marker
+    (mk_marker, the same colour as on the drawing), "*Name* · reason" beside it; returns the last baseline"""
+    tx = x0 + 2.0 * PS_MK_R + 1.2
+    last = y + PS_LIST_ROW
+    for n, t, col in ents:
+        if tp is not None:
+            sh, _b, _r = mk_marker(x0 + PS_MK_R, y + 0.5 * PS_LIST_PT * PT * CAP, n, col, PS_LIST_PT)
+            ps_put(pg, mk_put(tp, sh, name=u"%s list %d" % (S.cid, n)))
+        yn = ps_para(tp, t, tx, y, x0 + w - tx, PS_LIST_PT, COL["ink"], u"%s list" % S.cid)
+        last = yn + ps_lead(PS_LIST_PT)
+        y = last - PS_LIST_ROW
+    return last
+
+
+def ps_side(S, x0, w, ytop, tp=None, pg=None):
+    """the side column's words from ytop down (LEFT blocks): the "today" line and the key line (6.5 pt, ink2), then
+    the numbered list; tp = None: measured only. Returns the y under the last line."""
+    y = ytop - PS_TODAY_PT * PT * CAP
+    yn = ps_para(tp, ps_today(S) + u"\n" + ps_note(S.cid), x0, y, w, PS_TODAY_PT, COL["ink2"], u"%s today" % S.cid)
+    yl = yn + ps_lead(PS_TODAY_PT) - PS_LIST_ROW - 1.0
+    return ps_list_col(S, S.list, x0, w, yl, tp, pg) - 1.0
+
+
+def ps_strip_words(S, x0, w, ytop, legend, tp=None, pg=None, ncol=3):
+    """W4's strip (RIGHT block) from ytop down: the "today" and key line across, the list in ncol columns, (legend)
+    the material legend across under it; returns the y under it"""
+    y = ytop - PS_TODAY_PT * PT * CAP
+    yn = ps_para(tp, ps_today(S) + u" · " + ps_note(S.cid), x0, y, w, PS_TODAY_PT, COL["ink2"], u"%s today" % S.cid)
+    yl = yn + ps_lead(PS_TODAY_PT) - PS_LIST_ROW - 1.0
+    gap = 6.0
+    cw = (w - (ncol - 1) * gap) / float(ncol)
+    nrow = int(math.ceil(len(S.list) / float(ncol))) if S.list else 0
+    low = yl + ps_lead(PS_LIST_PT)
+    for c_ in range(ncol):
+        part = S.list[c_ * nrow:(c_ + 1) * nrow]
+        if part:
+            low = min(low, ps_list_col(S, part, x0 + c_ * (cw + gap), cw, yl, tp, pg))
+    low -= 1.0
+    if legend:
+        low = ps_legend(x0, x0 + w, low - 1.5, tp, pg)
+    return low
+
+
+def ps_legend(x0, x1, ytop, tp=None, pg=None):
+    """G1: samples of everything the sections draw, in rows from ytop across x0-x1 (print mm), 7 pt, through the
+    page's TextPage; tp = None: measured only. Returns the band's bottom y."""
     P = _wat_pal()
     rows = [("water", u"water at the average yearly flow"),
             ("q100", u"Q100 flood level"), ("q500", u"Q500 flood level"),
             (SCT["stone"], u"stone: DSİ walls, steps, garden wall"), (SCT["concrete"], u"concrete: stairs, ramp, basins"),
             (SCT["earth"], u"earth"), (SCT["gravel"], u"gravel bed"), (PS_TIMBER, u"timber: terrace, boardwalk"),
-            (SF_LANE["walk"], u"walk paving"), (SF_LANE["bike"], u"bike lane"),
-            ("zone", u"use zone, named under its section")]
-    sw, gap, x, y = 5.0, 4.0, x0, y1 - PS_ROW
+            (SF_LANE["walk"], u"walk paving"), (SF_LANE["bike"], u"bike lane")]
+    sw, gap = 5.0, 4.0
+    x, y = x0, ytop - PS_LIST_PT * PT * CAP
     for kind, lab in rows:
-        w = sw + 1.2 + text_w(lab, PS_LBL)
+        w = sw + 1.2 + fm_width(lab, PS_LIST_PT)
         if x + w > x1 and x > x0:
-            x, y = x0, y - PS_ROW
-        cy = y + PS_LBL * CAP / 2.0
-        if kind in ("q100", "q500"):
-            pg.line([(x, cy), (x + sw, cy)], P[kind], 0.3, dash=[1.2, 0.6] if kind == "q100" else [0.4, 0.5])
-        elif kind == "zone":
-            pg.line([(x, cy + 0.5), (x + sw, cy + 0.5)], COL["ink2"], 0.12)
-            for x_ in (x, x + sw):
-                pg.line([(x_, cy + 0.5), (x_, cy - 0.1)], COL["ink2"], 0.12)
-        else:
-            fill = {"water": P["sec"]}.get(kind, kind)
-            pg.poly([rect(x, cy - 1.0, x + sw, cy + 1.0)], fill=fill, stroke=COL["faint"], lw=0.1)
-            if kind == "water":
-                pg.line([(x, cy + 1.0), (x + sw, cy + 1.0)], SEC["hatch"], 0.3)
-        pg.text(lab, x + sw + 1.2, y, PS_LBL, COL["ink"])
-        x += w + gap
-    return y - 0.25 * PS_LBL
-
-
-def ps_text_boxes(items):
-    """v16 (G3): the box of every text item (print mm), as items_bbox measures it, a hair narrower so two runs set
-    side by side (bold name, regular reason) do not count as touching"""
-    out = []
-    for it in items:
-        if it[0] != "text" or it[8]:
-            continue
-        _, s_, x, y, size, _c, bold, align = it[:8]
-        w = text_w(s_, size, bold)
-        f = {"L": 0.0, "C": -0.5, "R": -1.0}.get(align, 0.0)
-        out.append((x + f * w + 0.05, y - 0.25 * size, x + (f + 1.0) * w - 0.05, y + CAP * size))
-    return out
-
-
-def ps_block(log, style="b"):
-    """page 12: the key map row across the top (it serves all four sections; the legend beside the map), the four
-    sections under it in reading order, all at 1:500, in print mm (0, 0)-(BK_W, BK_H), in style b or a (D1).
-    v16 (P12.3 hard fit): the sections are drawn and measured first, the rows sized to them, the key row given the
-    rest; each section's box is checked inside its cell (log line, FLAG when not); FLAG overlap p12 (G3) over every
-    text of the block against the others, the zoom insets and the block's edge. Returns (Page, {sheet key: cell})."""
-    pg = Page(BK_W, BK_H)
-    tri = sf_triangles(walls=False, aggregate=False)            # U22: no meaningless triangles in the sections
-    cw = (BK_W - PS_GAP) / 2.0
-    room = cw - 2.0 * PS_PAD
-    secs, bbs, heads = [], [], []
-    for key, cid, n, name, take in PS_CUTS:
-        S = ps_section(cid, log, style, room_w=room)
-        secs.append(S)
-        bbs.append(ps_bbox(S.pg.items))
-        heads.append(ps_cell_head_h(cw, cid, name, take, ps_note(cid)))
-
-    def rows_h(f_):
-        return [max(heads[i] + f_ * (bbs[i][3] - bbs[i][1]) for i in (2 * r_, 2 * r_ + 1)) + PS_PAD
-                for r_ in (0, 1)]
-    f = min([1.0] + [room / (b[2] - b[0]) for b in bbs if b[2] - b[0] > room])
-    if sum(rows_h(f)) + 2.0 * PS_GAP + PS_KEY_H[0] > BK_H:     # too tall for the key row's least height
-        lo_, hi_ = 0.2, f
-        for _i in range(40):
-            mid = 0.5 * (lo_ + hi_)
-            if sum(rows_h(mid)) + 2.0 * PS_GAP + PS_KEY_H[0] <= BK_H:
-                lo_ = mid
+            x, y = x0, y - PS_LIST_ROW
+        if tp is not None:
+            cy = y + 0.5 * PS_LIST_PT * PT * CAP
+            if kind in ("q100", "q500"):
+                pg.line([(x, cy), (x + sw, cy)], P[kind], 0.3, dash=[1.2, 0.6] if kind == "q100" else [0.4, 0.5])
             else:
-                hi_ = mid
-        f = lo_
-    rh = rows_h(f)
-    hk = min(PS_KEY_H[1], BK_H - sum(rh) - 2.0 * PS_GAP)
-    spare = BK_H - hk - sum(rh) - 2.0 * PS_GAP                  # more room than the key row takes: to the rows
-    rh = [h_ + 0.5 * spare for h_ in rh]
-    if f < 1.0 - 1e-6:
-        log.append(u"FLAG p12 sections shrunk to %.0f %% to fit their cells and a %.0f mm key row (1:%d drawn "
-                   u"smaller: the scale bars shrink with them, their words still say 1:%d)" % (
-                       100.0 * f, PS_KEY_H[0], PS_SCALE, PS_SCALE))
-    yk = BK_H - hk
-    ps_key_strip(pg, (0.0, yk, BK_W, BK_H), log)
-    boxes, ins = {}, []
-    y1 = yk - PS_GAP
-    for r_ in (0, 1):
-        for c_ in (0, 1):
-            i = 2 * r_ + c_
-            key, cid, n, name, take = PS_CUTS[i]
-            S, b = secs[i], bbs[i]
-            x0 = c_ * (cw + PS_GAP)
-            box = (x0, y1 - rh[r_], x0 + cw, y1)
-            boxes[key] = box
-            top = ps_cell(pg, box, n, cid, name, take, ps_note(cid))
-            dx = x0 + 0.5 * cw - f * 0.5 * (b[0] + b[2])
-            dy = top - f * b[3]
-            pg.items += ps_xform(S.pg.items, f, dx, dy)
-            ins += [(dx + f * q[0], dy + f * q[1], dx + f * q[2], dy + f * q[3]) for q in S.boxes]
-            bb = (dx + f * b[0], dy + f * b[1], dx + f * b[2], dy + f * b[3])
-            ok = box[0] - 0.01 <= bb[0] and bb[2] <= box[2] + 0.01 and box[1] - 0.01 <= bb[1] and bb[3] <= top + 0.01
-            log.append(u"%sp12 %s: section %.0f x %.0f mm %s its cell (%.0f x %.0f mm under the title), 1:%d%s" % (
-                u"" if ok else u"FLAG ", cid, bb[2] - bb[0], bb[3] - bb[1], u"inside" if ok else u"OUT OF",
-                box[2] - box[0], top - box[1], PS_SCALE, u"" if f >= 1.0 - 1e-6 else u" x %.2f" % f))
-        y1 -= rh[r_] + PS_GAP
-    lp_overlap_flag(u"p12", ps_text_boxes(pg.items), ins, (0.0, 0.0, BK_W, BK_H))
+                pg.poly([rect(x, cy - 1.0, x + sw, cy + 1.0)], fill={"water": P["sec"]}.get(kind, kind),
+                        stroke=COL["faint"], lw=0.1)
+                if kind == "water":
+                    pg.line([(x, cy + 1.0), (x + sw, cy + 1.0)], SEC["hatch"], 0.3)
+            tp.put(lab, x + sw + 1.2, y, PS_LIST_PT, name=u"legend", role="legend", colour=COL["ink"])
+        x += w + gap
+    bottom = y - 0.8
+    if tp is not None:
+        tp.block((x0, bottom, x1, ytop), u"legend")
+    return bottom
+
+
+# ---------------------------------------------------------------- v17: the two booklet pages p13a / p13b
+# Design spec: revision_2026-11-01_round4/handover/S7_design_spec.md. Each page = one crop BK_W x BK_H (print mm,
+# y up) drawn at the booklet scale itself (BK_S 1): two cuts, one full row each, at 1:250 (D2), insets 1:100 (D11).
+# W1-W3: blk_section LEFT (title strip, drawing, side column of words); W4: RIGHT (its 353 mm drawing and its level
+# marks leave no room for a column: the words go into a strip under it). One TextPage per page: every text of the
+# crop goes through it and check() RAISES on any collision (G-R4-1); it then draws them (emit).
+PS_PAGES = [("p13a", "p1", ("W1", "W2")), ("p13b", "p2", ("W3", "W4"))]
+PS_RIGHT_WHY = {"W4": u"its 353 mm drawing and the level marks leave no room for a side column"}
+PS_ROW_GAP = 4.0                       # print mm: least gap between two rows (spare height goes into the gaps)
+PS_SIDE_MIN = 60.0                     # print mm: the narrowest side column
+PS_KM_H = (22.0, 40.0)                 # print mm: the key map's least and largest height (in a side column)
+PS_KM_GAP = 3.0                        # print mm under the key map
+
+
+def ps_tp_draw(pg):
+    """the TextPage's drawer: each registered text as a Page text item (sizes back to mm, "MC" to a baseline)"""
+    def draw(it):
+        x, y, al = it["x"], it["y"], it["align"]
+        if str(al).upper() in ("MC", "CM"):
+            ix0, iy0, ix1, iy1 = fm_ink_box(it["text"], it["pt"], it["bold"])
+            y -= 0.5 * (iy0 + iy1)
+            al = "C"
+        ex = it.get("extra") or {}
+        pg.text(it["text"], x, y, it["size_mm"], it["colour"] or COL["ink"], bold=it["bold"], align=al,
+                mat=ex.get("mat"), halo=ex.get("halo"))
+    return draw
+
+
+def ps_place_items(pg, tp, items, dx, dy, name):
+    """a section's items moved by (dx, dy) onto the page; its texts (inset caption, scale figures) registered in tp"""
+    for it in ps_xform(items, 1.0, dx, dy):
+        if it[0] == "text":
+            _, s_, x, y, size, col, bold, al, mat, halo = it
+            ex = dict((k_, v_) for k_, v_ in (("mat", mat), ("halo", halo)) if v_ is not None)
+            tp.put(s_, x, y, size / PT, bold, al or "L", 0.0, name, "drawing", col, **ex)
+        else:
+            pg.items.append(it)
+
+
+def ps_title(tp, b, S):
+    """the title strip: "W1 · Upstream entry" (10 pt bold), the scenario after it (8 pt), the look direction at the
+    page's right edge (8 pt, by place name)"""
+    _key, cid, _n, name, take = next(r_ for r_ in PS_CUTS if r_[1] == S.cid)
+    x, y = b["title_base"]
+    t = u"%s · %s" % (cid, name)
+    tp.put(t, x, y, PS_TITLE_PT, True, name=u"%s title" % cid, role="title", colour=COL["ink_dark"])
+    tp.put(take, x + fm_width(t, PS_TITLE_PT, True) + 2.5, y, PS_SCEN_PT, name=u"%s title" % cid, role="title",
+           colour=COL["ink"])
+    tp.put(u"looking downstream · %s left, %s right" % (place_name("side_NE"), place_name("side_SW")), BK_W, y,
+           PS_SCEN_PT, align="R", name=u"%s title" % cid, role="title", colour=COL["ink2"])
+
+
+def ps_page(page, cids, log, style="a"):
+    """one booklet page (p13a / p13b) in print mm (0, 0)-(BK_W, BK_H), y up: the two cuts drawn and measured first,
+    the key map put in the first side column with room (else the first row grows), the rows sized to what they hold
+    and top-aligned, spare height into the gaps; a page that cannot hold its rows at 1:250 RAISES with the numbers
+    (no shrinking). Returns (Page, {sheet key: block box})."""
+    pg = Page(BK_W, BK_H)
+    tp = TextPage(page, (0.0, 0.0, BK_W, BK_H), y_down=False, pad=0.6)
+    L = []
+    for cid in cids:
+        S = ps_section(cid, log, page, style)
+        bb = ps_bbox(S.pg.items)
+        by0 = min(0.0, bb[1])
+        e = dict(S=S, bb=bb, by0=by0, dx=-min(0.0, bb[0]), sh=bb[3] - by0, km=0.0,
+                 mode="RIGHT" if cid in PS_RIGHT_WHY else "LEFT",
+                 q5=S.Y(level(cid, "q500")) - by0 + 1.8)                 # the level marks' top over the bottom
+        e["dw"] = max(S.w, bb[2]) + e["dx"]
+        if e["mode"] == "LEFT":
+            e["sw"] = BK_W - e["dw"] - GRID_GUT
+            if e["sw"] < PS_SIDE_MIN:
+                raise ValueError(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
+                                 u"(at least %.0f)" % (page, cid, e["dw"], PS_SCALE, e["sw"], PS_SIDE_MIN))
+            e["side0"] = -ps_side(S, 0.0, e["sw"], 0.0)
+        L.append(e)
+    lefts = [e for e in L if e["mode"] == "LEFT"]
+
+    def spare(e):
+        return e["sh"] - (e["side0"] + 1.5 + e["q5"]) - PS_KM_GAP
+    pick = next((e for e in lefts if spare(e) >= PS_KM_H[0]), lefts[0])
+    pick["km"] = max(PS_KM_H[0], min(PS_KM_H[1], spare(pick)))
+    rights = [e for e in L if e["mode"] == "RIGHT"]
+    foot = not rights                                            # p13a: the legend under row 2; p13b: in W4's strip
+
+    def heights(leg):
+        tot = 0.0
+        for e in L:
+            if e["mode"] == "LEFT":
+                e["dh"] = max(e["sh"], (e["km"] + PS_KM_GAP if e["km"] else 0.0) + e["side0"] + 1.5 + e["q5"])
+                e["h"] = BLK_TITLE_H + e["dh"]
+            else:
+                e["dh"] = e["sh"]
+                e["st"] = -ps_strip_words(e["S"], 0.0, BK_W, 0.0, leg)
+                e["h"] = BLK_TITLE_H + e["dh"] + GRID_GUT + e["st"]
+            tot += e["h"]
+        lh = -ps_legend(0.0, BK_W, 0.0) if (leg and foot) else 0.0
+        return tot + PS_ROW_GAP * (len(L) - 1) + ((PS_ROW_GAP + lh) if lh else 0.0), lh
+    legend = True
+    tot, lh = heights(True)
+    if tot > BK_H and rights:
+        legend = False
+        tot, lh = heights(False)
+        log.append(u"NOTE %s: no room for the material legend at 1:%d: it is on p13a only" % (page, PS_SCALE))
+    if tot > BK_H:
+        raise ValueError(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
+            page, tot, PS_SCALE, BK_H, u", ".join(u"%s %.1f" % (e["S"].cid, e["h"]) for e in L)))
+    ngap = len(L) - 1 + (1 if lh else 0)
+    gap = PS_ROW_GAP + (BK_H - tot) / float(max(1, ngap))
+    tri = sf_triangles(walls=False, aggregate=False)            # U22: no meaningless triangles in the sections
+    boxes = {}
+    y = BK_H
+    for e in L:
+        S, c = e["S"], e["S"].cid
+        b = blk_section(0.0, y, BK_W, e["h"], c, side_w=e.get("sw"), mode=e["mode"],
+                        why=PS_RIGHT_WHY.get(c), strip_h=e.get("st"), y_down=False)
+        ps_title(tp, b, S)
+        d = b["drawing"]
+        dxp, dyp = d[0] + e["dx"], d[1] - e["by0"]
+        ps_place_items(pg, tp, S.pg.items, dxp, dyp, u"%s drawing" % c)
+        tp.block(d, u"%s drawing" % c)
+        for i, (x, y_, n, col) in enumerate(S.marks):
+            sh_, _b, _r = mk_marker(dxp + x, dyp + y_, n, col, PS_LIST_PT)
+            ps_put(pg, mk_put(tp, sh_, name=u"%s mark %d" % (c, i)))
+        # the level marks outside the drawing's right edge (G-R4-5.4), the 1:250 scale bar beside (or over) them
+        fr = (dxp, dyp + e["by0"], dxp + max(S.w, e["bb"][2]), dyp + e["bb"][3])
+        lv = [("q500", level(c, "q500")), ("q100", level(c, "q100")), ("avg", level_avg_flow(c)), ("bed", S.bed)]
+        ps_put(pg, tp_shapes(sf_level_marks(fr, lv, side="R", y_of=lambda v, _S=S, _d=dyp: _d + _S.Y(v),
+                                            size=PS_LBL, page=u"%s %s" % (page, c)), tp, name=u"%s levels" % c))
+        lb = [it["box"] for it in tp.items if it["name"] == u"%s levels" % c] or [(fr[2], fr[1], fr[2] + 8.0, fr[1])]
+        if e["mode"] == "LEFT":
+            xb, yb = max(q[2] for q in lb) + 3.0, fr[1] + 3.5
+        else:
+            xb, yb = fr[2] + 2.0, max(q[3] for q in lb) + 4.0
+        ps_put(pg, tp_shapes(sf_scale_bar(xb, yb, S.k, den=PS_SCALE, max_mm=min(24.0, BK_W - xb - 10.0)), tp,
+                             name=u"%s bar" % c))
+        if e["mode"] == "LEFT":
+            sx0, _sy0, sx1, sy1 = b["side"]
+            yt = sy1
+            if e["km"]:
+                ps_key_map(pg, tp, (sx0, sy1 - e["km"], sx1, sy1), cids, page, log)
+                yt = sy1 - e["km"] - PS_KM_GAP
+            ps_side(S, sx0, sx1 - sx0, yt, tp, pg)
+        else:
+            st = b["strip"]
+            ps_strip_words(S, st[0], st[2] - st[0], st[3], legend, tp, pg)
+        key = next(k_ for k_, c_, _n, _m, _t in PS_CUTS if c_ == c)
+        boxes[key] = (0.0, y - e["h"], BK_W, y)
+        log.append(u"%s %s: block %s %.0f x %.0f mm, drawing %.0f x %.0f mm at 1:%d, %d numbers" % (
+            page, c, e["mode"], BK_W, e["h"], e["dw"], e["sh"], PS_SCALE, len(S.list)))
+        y -= e["h"] + gap
+    if lh:
+        ps_legend(0.0, BK_W, lh, tp, pg)
     sf_triangles(**tri)
-    log.append(u"sections (v16 style %s): W1-W4 at 1:%d on the booklet page, looking downstream; key row %.0f mm"
-               % (style, sf_scale_ok(PS_SCALE), hk))
-    log.append(sf_g14_line())                                   # G14: items seated, people refused in the water
+    tp.check(True, log)                                        # G-R4-1: RAISES TextCollision on any collision
+    tp.emit(ps_tp_draw(pg))
     return pg, boxes
