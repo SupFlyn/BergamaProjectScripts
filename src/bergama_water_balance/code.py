@@ -1,12 +1,13 @@
-# CURRENT VERSION: bergama_water_balance_v9.py = v9 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_balance_v10.py = v10 (2 Nov 2026; what changed: the NEW IN / VERSION notes below)
 # bergama_water_balance_v8.py (v8, 31 Oct: round 3, p10 charts fill the page, sentence-case title; v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
 #   2. 34 water years 1991-2025, daily: FAO-56 soil water balance on the farms, river + site catch into storage,
 #      strip first, nothing stored over 365 days, cost ladder; the cost cut-off sets the size and the % covered;
-#   3. writes Downloads/Bergama/output/Bergama_water_balance_analysis/Bergama_water_balance_A3.pdf (one all-vector A3 sheet) and
-#      water_balance_results.json there, which other scripts read instead of fixed numbers (read_results() below).
+#   3. writes Downloads/Bergama/cached/Bergama_water_balance_analysis/water_balance_results.json, which other scripts
+#      read instead of fixed numbers (read_results() below), and v10: cached/booklet/Bergama_water_balance_analysis/
+#      items.json, the p11 drawings and texts the booklet composes (no sheet PDF any more).
 # Built-in inputs (weather, river, Kc) come from research/water_balance/scripts/water_balance_v2.py, 24 Oct 2026;
 # sources and methods: research/water_balance/NOTES.md.
 #
@@ -20,7 +21,23 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v9"  # v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v10"  # v10 (round 5 S5, 2 Nov): items for the booklet, no sheet PDF, warnings never stop (NEW IN v10); v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v10 (round 5, S5, 2 Nov 2026; G-R5-12, G-R5-1, C1, C10, CHK-12; a feature change, so the next whole number):
+#   * CHANGE OF APPROACH for p11's text collisions (round 4 failed on them more than once): this script lays out no page
+#     and writes no sheet PDF (addendum 1 Nov 22:37 point 2). Each of the four blocks is drawn as before into a
+#     recorder (WbRec, same calls as the old Page) and exported as one chart drawing (mm, y up) through common/
+#     item_export.py into cached/booklet/Bergama_water_balance_analysis/items.json: wb_year, wb_curve, wb_store,
+#     wb_answer. Every word is a text item: the page title, the question (intro), each block's number + title
+#     (heading) and keyword line (note), the run line (note), and every word inside a chart as a label anchored where
+#     v9 set it (the booklet places, sizes and checks them: G-R5-12). Source marks are {src:key} (ix.source rows);
+#     the invisible source key and booklet/blocks.json are gone. Figures and the results JSON are unchanged.
+#   * warnings, never stops (C1): common/warn.py is included before text_place.py; the log head is "<n> warnings"
+#     followed by every WARNING line (wn_compose); nothing raises on a text hit (a widow is set one word short).
+#   * CHK-12: build() (a Button word: a Button input named "build" read the function) is now wb_items().
+#   * C10: the riverside walks area from the masterplan's results is read with bg_result and dated with bg_this_run:
+#     the log names the masterplan run it comes from; a value from an EARLIER chain run (or the built-in placeholder)
+#     is a WARNING. One press gives one answer only when this component is wired AFTER the masterplan (RUN_GUIDE).
+#   * C2: no output/ folder is made (nothing is written there any more).
 # NEW IN v9 (round 4, S7, 1 Nov 2026, PALL.2 on booklet p11, G-R4-1 / G-R4-10; a feature change): every visible text
 #   of the sheet is registered in ONE TextPage ("p11", common/text_place.py) with its real Arial box (font_metrics.py)
 #   before it is drawn; the labels that look for a free place ask it; its check RAISES on any collision, so no sheet
@@ -94,6 +111,7 @@ VERSION = "v9"  # v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAIS
 # v2.3 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): option A only; the option input is ignored.
 # v2.2 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_water_balance_log.txt (next to cached/ and output/), overwritten by each press.
 #@include ../common/bergama_paths.py
+#@include ../common/warn.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 
@@ -108,13 +126,13 @@ def write_log(text):
 
 # v2 24 Oct: all files under Downloads/Bergama/ (Aras rule). v2.1 (Thread 5): riverside_walk_m2 read live from the
 # masterplan (v11) results when no GH input or Rhino curve gives it
-OUT_DIR = bg_output("Bergama_water_balance_analysis")        # final PDFs only (27 Oct)
+OUT_DIR = bg_output("Bergama_water_balance_analysis")        # v10: read fallback only (v9 and older wrote here)
 RES_DIR = bg_cache("Bergama_water_balance_analysis")         # 27 Oct: the results JSON other scripts read
 OLD_OUT_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis")   # read fallback only
-OUT_PDF = "Bergama_water_balance_A3.pdf"
+WB_FOLDER = "Bergama_water_balance_analysis"                  # v10: cached/booklet/<this>/items.json (the booklet reads it)
+WB_PAGE = "p11"                                               # v10: the booklet page id (23-page numbering: p11 unchanged)
 OUT_JSON = "water_balance_results.json"
-MP_FILE = bg_first([os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # 27 Oct: cached/
-                    os.path.join(bg_output("bergama_masterplan"), "masterplan_results.json")])    # masterplan v24 and older
+MP_FILE = bg_result("bergama_masterplan", "masterplan_results.json")   # v10 (C10): cached/, from_output/, output/
 
 # ------------------------------------------------------------------ lands: defaults (used when nothing else is given)
 LANDS = dict(
@@ -212,18 +230,20 @@ def rhino_lands(option):
     return out
 
 def masterplan_lands(option):
-    """v2.1: {riverside_walk_m2: ...} and its source from bergama_masterplan v11's masterplan_results.json."""
+    """v2.1: {riverside_walk_m2: ...} and its source from bergama_masterplan v11's masterplan_results.json.
+    v10 (C10): (lands, source note, fresh): fresh = the masterplan wrote it in THIS chain run (bg_this_run)."""
+    fresh, note = bg_this_run(MP_FILE)
     try:
         with open(MP_FILE, "r", encoding="utf-8") as f:
             v = json.load(f)["options"][option]["riverside_walk_m2"]
-        return {"riverside_walk_m2": float(v)}, "masterplan v11 results of " + time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(MP_FILE)))
+        return {"riverside_walk_m2": float(v)}, "masterplan results (" + note + ")", fresh
     except Exception:
-        return {}, None
+        return {}, None, False
 
 def get_lands(g):
     option = "A"                                         # v2.3: option A only, project-wide (Aras 25 Oct 16:43)
     rh = rhino_lands(option)
-    mp, mp_src = masterplan_lands(option)
+    mp, mp_src, mp_fresh = masterplan_lands(option)
     L, src = {}, {}
     for k, v in LANDS.items():
         gv = g.get(k)
@@ -238,6 +258,12 @@ def get_lands(g):
         else:
             L[k] = v; src[k] = "default"
     L["option"] = option
+    if src["riverside_walk_m2"] == "default":            # v10 (C10): a placeholder is never silent
+        wn_warn(WB_PAGE, "stale", u"riverside walks %s m² = the built-in placeholder (no masterplan results at %s); "
+                u"run the masterplan before this component" % (fmt(L["riverside_walk_m2"]), MP_FILE))
+    elif src["riverside_walk_m2"].startswith("masterplan") and not mp_fresh:
+        wn_warn(WB_PAGE, "stale", u"riverside walks %s m² from the masterplan of an EARLIER run (%s): wire this "
+                u"component after the masterplan so one press gives one answer" % (fmt(L["riverside_walk_m2"]), mp_src))
     return L, src
 
 # ------------------------------------------------------------------ v6: the project's zones and links, for p.12's map
@@ -594,6 +620,7 @@ def text_w(s, size, bold=False):
 #@include ../common/icons.py
 #@include ../common/grid.py
 #@include ../common/text_place.py
+#@include ../common/item_export.py
 #@include ../common/data/FACTS.py
 #@include ../common/facts.py
 
@@ -621,20 +648,23 @@ def sup_runs(s):
     return out
 
 
-WB_TP_MARGINS = (8.0, 6.0, 8.0, 6.0)  # v9: mm kept free of text inside the A3 sheet (left, top, right, bottom)
-WB_LOG = []                            # v9: this run's "overlap p11 ..." line
+WB_TP_MARGINS = (0.0, 0.0, 0.0, 0.0)  # v10: the recorder's TextPage only answers "is this spot free" (no margins, no check)
 
 
-class Page:
-    """v9 (round 4, G-R4-1): one TextPage per sheet (pg.tp, y up, mm, the booklet page id p11): every visible
-    pg.text is registered there with its real Arial box before it is drawn (the runs of one line or paragraph in one
-    group: pg.group()); pg.check_text() is the collision test, which RAISES TextCollision"""
-    def __init__(self, w, h, name="p11"):
-        self.w, self.h, self.ops = w, h, []
+class WbRec:
+    """v10 (round 5 S5, G-R5-12; replaces v9's Page and write_pdf): the same drawing calls as the old sheet Page, but
+    nothing is written to a PDF. Everything a block draws is RECORDED as common shape tuples in page mm, y up
+    (poly / line / text), which item_export turns into one chart drawing; every text becomes a label item anchored
+    where v9 set it (first position = that spot, so v9's look is the start; the booklet moves, sizes and checks it).
+    A TextPage still answers place()'s "is this spot free" so the labels start where v9 put them; it is never
+    checked here and nothing raises (the booklet's layout check reports hits as warnings).
+    panel_title() records its number, title and keyword line in .heads (heading + note texts, not drawn)."""
+    def __init__(self, w=420.0, h=297.0, name=WB_PAGE):
+        self.w, self.h, self.shapes, self.heads = w, h, [], []
         self.tp = TextPage(name, (0.0, 0.0, w, h), y_down=False, pad=0.6, margins=WB_TP_MARGINS)
-        self.tg = None           # the open text group (runs of one line / lines of one paragraph may touch)
+        self.tg = None
     def group(self, start=True):
-        """v9: open (True) or close (False) one text group; returns whether this call opened it"""
+        """open (True) or close (False) one text group; returns whether this call opened it"""
         if start:
             if self.tg is not None:
                 return False
@@ -643,104 +673,56 @@ class Page:
         self.tg = None
         return False
     def box(self, s, x, y, size, bold=False, align="L"):
-        """v9: the real box (mm) a text would take"""
         return self.tp._box(s, x, y, size, bold, align, 0.0)
     def free(self, b):
-        """v9: True when box b is clear of every registered text and inside the margins"""
         return self.tp._free(b)
-    def check_text(self):
-        """v9: the sheet's collision test; logs "overlap p11 checked n, collisions k" and RAISES on any"""
-        self.tp.check(True, WB_LOG)
-    def _c(self, h, stroke=False):
-        r, g, b = rgb(h); return "%.3f %.3f %.3f %s" % (r, g, b, "RG" if stroke else "rg")
     def rect(self, x, y, w, h, fill=None, stroke=None, lw=0.2):
         self.poly([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], fill, stroke, lw, True)
     def poly(self, P, fill=None, stroke=None, lw=0.2, closed=False, dash=None):
-        k = 72 / 25.4; o = ["q"]
-        if fill: o.append(self._c(fill))
-        if stroke: o.append(self._c(stroke, True)); o.append("%.3f w 1 J 1 j" % (lw * k))
-        if dash: o.append("[%.2f %.2f] 0 d" % (dash[0] * k, dash[1] * k))
-        o.append("%.2f %.2f m" % (P[0][0] * k, P[0][1] * k))
-        o += ["%.2f %.2f l" % (x * k, y * k) for x, y in P[1:]]
-        if closed: o.append("h")
-        o.append("B" if fill and stroke else ("f" if fill else "S")); o.append("Q")
-        self.ops.append(" ".join(o))
+        P = [(float(x), float(y)) for x, y in P]
+        if len(P) < 2:
+            return
+        if (fill or closed) and len(P) >= 3:
+            self.shapes.append(("poly", P, fill, stroke, lw if stroke else 0.0, None))
+        elif stroke:
+            self.shapes.append(("line", P, stroke, lw, tuple(dash) if dash else None))
     def line(self, P, col, lw=0.25, dash=None): self.poly(P, None, col, lw, False, dash)
     def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", hidden=False, _reg=True):
-        if not hidden and _reg and s and s.strip():           # v9: registered with its real box first
-            self.tp.put(s, x, y, size, bold, align, 0.0, None, "label", col, (), self.tg, emit=False)
-        if not hidden and any(ch in SUP for ch in s):   # v4.1 (Prompt 8): m² / m³ as a raised small digit (see SUP);
-            runs = sup_runs(s)                          # the invisible source key keeps the glyph (the booklet reads it)
-            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
-            x0 = x - {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]; xx = x0
-            for (t, up), w_ in zip(runs, ws):           # v9: the whole label is registered once (above)
-                self.text(t, xx, y + (size * SUP_UP * 0.3528 if up else 0.0), size * (SUP_K if up else 1.0), col, bold,
-                          _reg=False)
-                xx += w_
+        """one label (size pt, baseline y, align L/C/R at x); ² and ³ stay Unicode (the booklet embeds Arial)"""
+        if hidden or not s or not s.strip():
             return
-        if align == "C": x -= text_w(s, size, bold) / 2
-        elif align == "R": x -= text_w(s, size, bold)
-        k = 72 / 25.4
-        b = b"".join(bytes([_ENC_EXTRA[ch]]) if ch in _ENC_EXTRA else ch.encode("cp1252", "replace") for ch in s)   # 25 Oct: ı İ ğ Ğ ş Ş spelt right
-        b = b.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
-        self.ops.append("BT /%s %.2f Tf%s %s %.2f %.2f Td (%s) Tj ET" % ("F2" if bold else "F1", size, " 3 Tr" if hidden else "",
-                                                                       self._c(col), x * k, y * k, b.decode("latin-1")))
-        # v2.7: hidden = invisible text (render mode 3): kept in the PDF, not seen; v9: never registered
+        if _reg:
+            self.tp.put(s, x, y, size, bold, align, 0.0, None, "label", col, (), self.tg, emit=False)
+        self.shapes.append(("text", s, float(x), float(y), size * IX_PT, col, bool(bold), align or "L"))
     def para(self, s, x, y, w, size, col="4A3F35", bold=False, lead=1.3, hidden=False):
-        """s wrapped to w mm from baseline y at size pt; returns the next line's baseline. v9 closing (G-R4-2): visible
-        text is wrapped by the shared tp_wrap (real Arial widths, the last line holds at least two words; when that
-        cannot be done one step 0.25 pt smaller, as TextPage.para, then TpWidow raises). The invisible source key
-        (hidden) keeps the plain word wrap: it is never seen and the booklet reads its spacing as written."""
-        if not (s or "").strip():
+        """s wrapped to w mm from baseline y at size pt (one label per line); returns the next line's baseline.
+        v10: never raises: a widow at this size and 0.25 pt smaller is set without the two-word rule + WARNING"""
+        if hidden or not (s or "").strip():
             return y
-        g_ = self.group()                                     # v9: the paragraph's lines are one group
+        lines = wb_wrap(s, w, size, bold, False)
+        g_ = self.group()
         yy = y
-        if hidden:
-            line = ""
-            for word in s.split(" "):
-                t = (line + " " + word).strip()
-                if text_w(t, size, bold) > w and line:
-                    self.text(line, x, yy, size, col, bold, hidden=True); yy -= size * 0.3528 * lead; line = word
-                else: line = t
-            if line: self.text(line, x, yy, size, col, bold, hidden=True); yy -= size * 0.3528 * lead
-        else:
-            try:
-                lines = tp_wrap(s, w, size, bold, min_last_words=2, bold_marks=False)
-            except TpWidow:
-                size -= 0.25
-                lines = tp_wrap(s, w, size, bold, min_last_words=2, bold_marks=False)
-            for ln in lines:
-                for t, b, xo in ln:
-                    self.text(t, x + xo, yy, size, col, b)
-                yy -= size * 0.3528 * lead
+        for ln in lines:
+            for t, b, xo in ln:
+                self.text(t, x + xo, yy, size, col, b)
+            yy -= size * 0.3528 * lead
         if g_: self.group(False)
         return yy
 
-def write_pdf(pg, path):
-    k = 72 / 25.4
-    content = zlib.compress("\n".join(pg.ops).encode("latin-1"))
-    objs = ["<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>" % (pg.w * k, pg.h * k),
-            "", ""]
-    extra = []                                            # G2/G3 28 Oct: Arial embedded (common/pdf_fonts.py):
 
-    def add(b):                                           # font file + descriptor go after the content (7, 8 ...)
-        extra.append(b.decode("latin-1"))
-        return 6 + len(extra)
-    fid = pdf_fonts(add, ("R", "B"))
-    objs[3], objs[4] = extra[fid[0] - 7], extra[fid[1] - 7]   # the font dicts themselves stay objects 4, 5
-    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"); offs = []
-    for i, o in enumerate(objs):
-        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (i + 1, o)).encode("latin-1")
-    offs.append(len(out))
-    out += ("6 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n" % len(content)).encode("latin-1") + content + b"\nendstream\nendobj\n"
-    for j, o in enumerate(extra):
-        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (7 + j, o)).encode("latin-1")
-    x = len(out)
-    out += ("xref\n0 %d\n0000000000 65535 f \n" % (len(offs) + 1) + "".join("%010d 00000 n \n" % o for o in offs) +
-            "trailer\n<< /Size %d /Root 1 0 R /Info << /Title (Bergama water balance) >> >>\nstartxref\n%d\n%%%%EOF\n" % (len(offs) + 1, x)).encode("latin-1")
-    with open(path, "wb") as f: f.write(out)
+def wb_wrap(s, w, size, bold=False, marks=True):
+    """v10: tp_wrap with its two-word last line; when that fails at size and size - 0.25, the plain wrap + WARNING
+    (round 4 raised TpWidow here)"""
+    for sz in (size, size - 0.25):
+        try:
+            return tp_wrap(s, w, sz, bold, min_last_words=2, bold_marks=marks)
+        except TpWidow:
+            pass
+        except TextError as ex:                           # a word wider than the column: one line + WARNING
+            wn_warn(WB_PAGE, "wrap", u"%r: %s" % (s[:60], ex))
+            return [[(s, bold, 0.0)]]
+    wn_warn(WB_PAGE, "widow", u"%r: last line keeps one word" % s[:60])
+    return tp_wrap(s, w, size, bold, min_last_words=1, bold_marks=marks)
 
 # ------------------------------------------------------------------ helpers on the live results
 MON = "J F M A M J J A S O N D".split()
@@ -761,11 +743,11 @@ def nice(v):
 def place(pg, s, cands, size, col, bold=False, halo=False):
     """v2.7: label s at the first candidate (x, y, align) whose real box (v9: pg.box) is free on the page's TextPage;
     else the last one (v9: the page's check then RAISES). halo: a white field under the words, over the lines drawn
-    before."""
+    before. v10: the spot found is only the label's FIRST position (the booklet may move it), so no halo is drawn: a
+    white field left behind a moved label would cut the curves (halo kept as an argument, ignored)."""
     for x, y, al in cands:
         b = pg.box(s, x, y, size, bold, al)
         if pg.free(b): break
-    if halo: pg.rect(b[0] - 0.7, b[1] - 0.5, b[2] - b[0] + 1.4, b[3] - b[1] + 1.0, fill=C["white"])
     pg.text(s, x, y, size, col, bold, al)
     return b
 
@@ -776,11 +758,10 @@ def fit_size(s, w, size, bold=False, low=7.0):
 
 def panel_title(pg, x, y, w, n, title, sub=None):
     """v2.7: a supporting panel's head: a rule over the panel's width, number, title, keyword line.
-    v5 (MIRAQUA 28 Oct, G5): the keyword line's **...** runs are set bold (rich_parts)"""
-    pg.line([(x, y + 4.5), (x + w, y + 4.5)], C["structure"], 0.3)
-    pg.text(n, x, y, 11, C["accent"], True)
-    pg.text(title, x + 6.5, y, 11, C["ink"], True)
-    if sub: inline(pg, x + 6.5, y - 4.8, rich_parts(sub, 7.5, C["ink2"], C["ink"]))
+    v5 (MIRAQUA 28 Oct, G5): the keyword line's **...** runs are set bold (rich_parts).
+    v10 (G-R5-12): nothing is drawn: the number + title and the keyword line are recorded in pg.heads and exported as
+    a heading and a note text (the booklet sets them over the block; the rule above the title is the booklet's)"""
+    pg.heads.append((n, title, sub))
 
 
 # v5 (MIRAQUA 28 Oct, G5): one or two bold keywords per explanatory line, written "a **key** word"
@@ -806,23 +787,7 @@ def rich_parts(toks, size, col, bcol=None):
     return parts
 
 
-def rich_para(pg, s, x, y, w, size, col, bcol=None, lead=1.3):
-    """a '**' string wrapped to w mm, line by line from baseline y at size pt; returns the next line's baseline.
-    v9 closing (G-R4-2): wrapped by the shared tp_wrap (real Arial widths, '**' runs bold in bcol, the last line
-    holds at least two words; when that cannot be done one step 0.25 pt smaller, as TextPage.para, then TpWidow
-    raises)"""
-    try:
-        lines = tp_wrap(s, w, size, False, min_last_words=2, bold_marks=True)
-    except TpWidow:
-        size -= 0.25
-        lines = tp_wrap(s, w, size, False, min_last_words=2, bold_marks=True)
-    g_ = pg.group()                                       # v9: the paragraph's lines are one group
-    for ln in lines:
-        for t, b, xo in ln:
-            pg.text(t, x + xo, y, size, (bcol or col) if b else col, b)
-        y -= size * 0.3528 * lead
-    if g_: pg.group(False)
-    return y
+# v10: rich_para (the sheet's question paragraph) is gone: the question is the page's intro text item
 
 def arrow(pg, x0, x1, y, col, lw=0.6):
     pg.line([(x0, y), (x1 - 2.2, y)], col, lw)
@@ -846,10 +811,12 @@ SOURCES = dict(    # every source and method sentence of the v2.3 sheet; v2.7: a
 SRC_KEY = []
 
 def cite(*keys):
-    """v2.4: "[n]" (or "[n,m]") for sources in SOURCES; the numbered key is the sheet's hidden source layer (v2.7)."""
+    """v2.4: "[n]" (or "[n,m]") for sources in SOURCES; the numbered key is the sheet's hidden source layer (v2.7).
+    v10 (G-R5-12): "{src:key}" per source (item_export's citation form; the booklet numbers them on its Sources page,
+    where wb_items() registers every SOURCES row with ix.source)."""
     for k in keys:
         if k not in SRC_KEY: SRC_KEY.append(k)
-    return "[" + ",".join(str(SRC_KEY.index(k) + 1) for k in keys) + "]"
+    return " ".join("{src:%s}" % k for k in keys)        # one word per mark: a run of marks never outgrows a column
 
 def ico(pg, name, cx, cy, size):
     """v6 (T3b, 02 §2): an icon of the booklet's one set (common/icons.py) centred on (cx, cy), size mm square; the
@@ -1120,37 +1087,43 @@ BLOCKS = dict(year=_grid_block(1, 12, 36.0, 100.0),
               answer=_grid_block(1, 12, 240.0, 32.0))
 
 
-def build(path, R):
-    """The A3 sheet; v9: returns the TextPage's "overlap p11 ..." line (its check RAISES before the PDF is written when
-    any two texts collide).
-    v5 (MIRAQUA 28 Oct, P11.2): the blocks of BLOCKS drawn in reading order 1-7, so the [n] marks count up that way.
+# v10 (G-R5-12): each block = one chart drawing; its window = v9's booklet crop (the block under its title line)
+WB_PANELS = (("wb_year", "year", 7.5, 1), ("wb_curve", "curve", 7.5, 2), ("wb_store", "store", 7.5, 3),
+             ("wb_answer", "answer", 6.5, 4))          # (drawing id, BLOCKS key, mm cut off the top, reading order)
+
+
+def wb_items(R):
+    """v10 (round 5 S5, G-R5-12; was build(), CHK-12): p11 as items, no sheet PDF. The page title, the question
+    (intro) and the run line (note); per block (BLOCKS, reading order 1-4) one chart drawing in page mm (y up) with
+    every shape the block draws (WbRec) and every word inside it as an anchored label, plus its number + title as a
+    heading and its keyword line as a note (group = the drawing id); every SOURCES row as an ix.source. Writes
+    cached/booklet/Bergama_water_balance_analysis/items.json; returns the Ix (summary for the log).
+    v5 (MIRAQUA 28 Oct, P11.2): the blocks drawn in reading order, so the source marks count up that way.
     v6 (T3b): four blocks (1 the year, 2 the curve, 3 the cost, 4 the answer); the question under the title."""
-    pg = Page(420.0, 297.0)
-    pg.rect(0, 0, 420, 297, fill=C["white"])               # v2.7: white sheet (Aras 27 Oct 11:07)
-    del SRC_KEY[:]                                        # v2.4: [n] numbers restart on every run
-    pg.text("The water balance", 14, 281.5, 22, C["ink"], True)   # v8 (P10.1): sentence case booklet-wide
-    rich_para(pg, QUESTION, 14, 273.5, 300, 11, C["ink2"], C["ink"])
-    pg.text("lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), 406, 281.5, 7, C["ink2"], align="R")
-    panel_year(pg, R, *BLOCKS["year"])                    # 1: the five users of the water on one month axis
-    panel_curve(pg, R, *BLOCKS["curve"])                  # 2
-    panel_store(pg, R, *BLOCKS["store"])                  # 3
-    panel_answer(pg, R, *BLOCKS["answer"])                # 4
-    for k in SOURCES:                                     # v2.4: one numbered source key (no source can drop out)
-        if k not in SRC_KEY: SRC_KEY.append(k)
-    # v2.7: no source footer on the sheet (Aras 27 Oct 11:07); the key stays as INVISIBLE text so the booklet's
-    # sources page (bergama_booklet sheet_sources: "Sources by number:") still lists what the [n] marks refer to
-    pg.para("Sources by number: " + "  ".join("[%d] %s" % (i + 1, SOURCES[k]) for i, k in enumerate(SRC_KEY)),
-            14, 8, 392, 6, C["ink2"], hidden=True)       # v4.1 (Prompt 8): public sources only, no internal notes file
-    del WB_LOG[:]
-    pg.check_text()                                       # v9 (G-R4-1): RAISES TextCollision; no sheet with a collision
-    write_pdf(pg, path)
-    return WB_LOG[-1] if WB_LOG else u"overlap p11: not checked"
+    ix = Ix(WB_FOLDER, "bergama_water_balance", VERSION)
+    del SRC_KEY[:]
+    ix.text(WB_PAGE, "The water balance", "title", id="wb_title", priority=1)
+    ix.text(WB_PAGE, QUESTION, "intro", id="wb_question", priority=2)
+    ix.text(WB_PAGE, "lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), "note", id="wb_run",
+            priority=9)
+    fns = dict(year=panel_year, curve=panel_curve, store=panel_store, answer=panel_answer)
+    for did, key, cut, n in WB_PANELS:
+        x, y, w, h = BLOCKS[key]
+        pg = WbRec()
+        fns[key](pg, R, x, y, w, h)
+        D = ix.drawing(did, WB_PAGE, (x - 0.5, y - 0.5, x + w + 0.5, y + h - cut), units="mm", dkind="chart",
+                       scale_bar=False, priority=n, group=did)
+        for hn, ht, hs in pg.heads:
+            ix.text(WB_PAGE, u"%s %s" % (hn, ht), "heading", group=did, id=did + "_head", priority=n)
+            if hs:
+                ix.text(WB_PAGE, hs, "note", group=did, id=did + "_note", priority=n)
+        ix.layer(D, "chart", pg.shapes)
+    for k in SOURCES:                                     # v2.4: one source list (no source can drop out)
+        ix.source(k, SOURCES[k], None, page=WB_PAGE)
+    ix.save()
+    return ix
 
-# ------------------------------------------------------------------ v2.6: A3 booklet = crops of this sheet (booklet/CROP_SPEC.md)
-#@include ../common/booklet_assets.py
-
-BK_DROP = [r"^\[\d+(,\d+)*\]$"]                      # the sheet's source numbers: the booklet has its own source list
-
+# ------------------------------------------------------------------ v2.6-v9 booklet crops (blocks.json) gone in v10: wb_items()
 
 def booklet_figures(R):
     """v2.5: figures the booklet prints that the sheet only computed inline (results JSON keys, read live)."""
@@ -1160,33 +1133,12 @@ def booklet_figures(R):
     R["site_catch_share_of_need_pct"] = [round(min(sh), 1), round(max(sh), 1)] if sh else [0.0, 0.0]
 
 
-def booklet_export(R):
-    """v2.6 (Aras 25 Oct 21:47): one crop per sheet panel in booklet/blocks.json; the assembler cuts each rect out of
-    the sheet PDF (the booklet v9 places the whole sheet on p10; these crops stay for any re-laid page). v2.7: rects
-    from the new FARMS / PANELS: each panel under its title and keyword line (7.5 mm under the title baseline).
-    v5 (MIRAQUA 28 Oct, P11.2): the same seven crop ids, rects from BLOCKS (the answer = its tint field; the tiles = the
-    column of block 3; the timing chart = block 3 right of the tiles; the stream = block 2 under its title)."""
-    bk = BkBlocks(OUT_DIR, "WaterBalance", VERSION)
-    H = 297.0
-
-    def crop(bid, x0, y0, x1, y1, caption, legend=None):
-        bk.crop(bid, OUT_PDF, (x0, H - y1, x1, H - y0), caption=caption, scale_den=None, legend=legend, drop=BK_DROP)
-    x, y, w, h = BLOCKS["answer"]
-    crop("wb_answer", x - 0.5, y - 0.5, x + w + 0.5, y + h - 6.5, "The answer: storage, what it carries, the cost cut-off")
-    # v6 (T3b): wb_year = block 1 under its title (the five rows, the months, the Jun-Sep line); wb_tiles, wb_timing,
-    # wb_catch and wb_stream are gone with their blocks
-    x, y, w, h = BLOCKS["year"]
-    crop("wb_year", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "One year of water: it comes in winter, it is needed in summer")
-    x, y, w, h = BLOCKS["curve"]
-    crop("wb_curve", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "Storage size against the farm need covered")
-    x, y, w, h = BLOCKS["store"]
-    crop("wb_store", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "Cost per m³ delivered, log scale")
-    return bk.save()
-
 # ------------------------------------------------------------------ run (GH Button on any input, ScriptEditor, or python)
 def main(g):
+    """v10: compute, write the results JSON, export p11's items; the log = "<n> warnings" + every WARNING line on
+    top (wn_compose), then the run's lines. Nothing is written to output/ (C2)."""
     t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
+    wn_reset()                                            # v10: one warning sink per run
     L, src = get_lands(g)
     R = compute(L); R["lands_source"] = src
     try:                                                  # v6 (T3b): the zones for the water board's p.12 map; never
@@ -1194,36 +1146,25 @@ def main(g):
         zone_line = "zones for p.12: %d zones, %d links (%s)" % (len(R["zones"]["zones"]), len(R["zones"]["links"]), R["zones"]["source"])
     except Exception as ex:
         zone_line = "zones for p.12 NOT WRITTEN: %s: %s" % (type(ex).__name__, ex)
-    bk_err = None
-    try:
-        booklet_figures(R)                                # v2.5: new results keys for the booklet
-    except Exception as ex:
-        bk_err = "%s: %s" % (type(ex).__name__, ex)
-    path = os.path.join(OUT_DIR, OUT_PDF)
-    try:
-        ov = build(path, R)                               # v9: "overlap p11 checked n, collisions 0" (a collision raises)
-    except PermissionError:
-        return "The PDF is open in another program. Close it and press again: " + path
+        wn_warn(WB_PAGE, "data", zone_line)
+    booklet_figures(R)                                    # v2.5: results keys the booklet prints
     os.makedirs(RES_DIR, exist_ok=True)
     with open(os.path.join(RES_DIR, OUT_JSON), "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)
-    if bk_err is None:
-        try:
-            booklet_export(R)                             # v2.5: a booklet error never breaks the sheet; it goes in the log
-        except Exception as ex:
-            import traceback as _tb
-            bk_err = "%s: %s %s" % (type(ex).__name__, ex, _tb.format_exc()[-300:])
+    ix = wb_items(R)                                      # v10: p11 items (G-R5-12)
     d = R["design"]; tm = time.strftime("%H:%M:%S")
-    return "%s  %s\n%s  %s\ncut-off %s m3 = %.1f %% (1 in 5 dry)\nstream: %s m3 a year taken = %.1f %% of the water stored; %.1f %% of its winter flow left (driest year %.1f %%)\n%s %s, %.1f s" % (
-        OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], fmt(d["river_take_m3_per_year"]),
-        d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
-        "\nbooklet ERROR: " + bk_err if bk_err else "") + "\n" + zone_line + (
-        "\n" + ov + "\ntrigger: " + (TRIG_WHY[0] or "-")) + "".join(
-        "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
-        "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
-            k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
-            fmt(v["farm_need_m3"]), fmt(v["released_m3"]), fmt(v["carried_out_m3"]), v["winter_flow_pct_of_median"])
-        for k, v in ((yk, d["year_split"][yk]) for yk in ("normal", "dry5")))     # v4 (Prompt 6)
+    lines = ["%s  %s" % (os.path.join(RES_DIR, OUT_JSON), tm), ix.summary(),
+             "cut-off %s m3 = %.1f %% (1 in 5 dry)" % (fmt(d["storage_m3"]), d["covered_pct_1in5_dry"]),
+             "stream: %s m3 a year taken = %.1f %% of the water stored; %.1f %% of its winter flow left (driest year %.1f %%)" % (
+                 fmt(d["river_take_m3_per_year"]), d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0]),
+             "riverside walks %s m2 from %s" % (fmt(L["riverside_walk_m2"]), src["riverside_walk_m2"]),
+             zone_line, "trigger: " + (TRIG_WHY[0] or "-")]
+    lines += ["year %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
+        k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
+        fmt(v["farm_need_m3"]), fmt(v["released_m3"]), fmt(v["carried_out_m3"]), v["winter_flow_pct_of_median"])
+        for k, v in ((yk, d["year_split"][yk]) for yk in ("normal", "dry5"))]     # v4 (Prompt 6)
+    head = ["water balance %s · %s · %.1f s" % (VERSION, time.strftime("%Y-%m-%d %H:%M:%S"), time.time() - t0)]
+    return "\n".join(wn_compose(tp_log_lines() + lines, head))
 
 #@include ../common/trigger.py
 TRIG_WHY = [None]                                         # v9: what started this run (trig_should_run), for the log
@@ -1254,7 +1195,7 @@ if _gh:
         for _s in ("", "_status", "_done"):                                 # shows itself at once, idle, without the old
             _sc.sticky.pop("bergama_water_balance_log" + _s + _ik, None)     # run's time or log
     done = _sc.sticky.get("bergama_water_balance_log_done" + _ik, "idle")   # 25 Oct 10:20: stays after the run; wire into the next script's run (one-click chain)
-    log = _sc.sticky.get("bergama_water_balance_log" + _ik, "Press the Button to compute and export to " + OUT_DIR)
+    log = _sc.sticky.get("bergama_water_balance_log" + _ik, "Press the Button to compute and export to " + RES_DIR + " and " + bg_booklet(WB_FOLDER))
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log
     try: ghenv.Component.Message = "WaterBalance " + VERSION + " · " + _sc.sticky.get("bergama_water_balance_log_status" + _ik, "idle")   # Aras 25 Oct 09:44
     except Exception: pass
