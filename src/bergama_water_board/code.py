@@ -44,7 +44,20 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
-NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole number):
+NEW IN v13 (round 4 S6a, 1 Nov 2026; a feature change, so the next whole number):
+  * Core: one trigger file (common/trigger.py; log "trigger: <why>"); real Arial widths (font_metrics); the p12, p14
+    and p15 cells each open a TextPage: every text in them is measured and a collision STOPS the run naming the
+    page, the text and what it hits; no single-word last lines; names from the names table (Kızıl Avlu, bridge
+    names in the cut titles); the old TREE engine is gone (trees from common/plants.py).
+  * p12: one 3D language (relief lifted and stated "heights ×n", every building a volume, decks as slabs), soft
+    zones over the light proposal tint, clipped to the study area, the store as a ghost volume, trees from the plant
+    module and never on the store or past a frame, the study line in its own style, red A-A', the zoom ×2 or more;
+    the band on the W1 line with level marks outside, numbers on what they name, low planting, inset 1:200.
+  * p14: zone strip under each cut, trees whole in the views, each season its own people, animals and plant
+    states; p15: one section block, key map never over the legend, inset 1:100, calendar fixed, one subtitle.
+  * S6b (p17-p19) keeps v13 and adds its own notes.
+
+ a feature change, so the next whole number):
   * p.12 (pages/p12_system.py): one axonometric water map (collect, clean, hold, give back, to the farms) with volumes
     read live from the water balance, a round plan zoom of the upstream entry, the remaining analysis beside it.
   * pp.14-15 (pages/p14_15_s4.py): the S4 pair rebuilt on the level module (bed +42.48), S4-only key maps, seasonal
