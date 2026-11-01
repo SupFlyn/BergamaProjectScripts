@@ -1106,12 +1106,13 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
     nobody and is counted in the G14 log line. Groups, adult with child, sitting, walking, trading, children
     playing by the zone's set; bikes only on bike lanes; wading figures take their depth from water (page y or
     function of x) on a wading strip only; cutout variants vary across the whole run (a running pick); every figure
-    seated on the lowest ground under its feet (sf_seat_x). Pass water whenever a zone reaches the channel: nobody
+    seated on the higher ground across its feet (sf_seat_feet, S3; sf_seat_x where absent). Pass water whenever a zone reaches the channel: nobody
     stands where the drawn water is deeper than FIG_WADE_MAX_M (knee) on a wading strip, or above the ground at all
     on any other zone (refused parts counted in the G14 log line as "<kind> (too deep)"). p goes to every figure
     (seat_h, rail_h ...). focus = page x everyone who stays looks at (R2-C scenes: the water; see fig_activity), or
     a function of (kind, x0, x1) -> page x or None per zone. Returns (shapes, placed [(kind, pose, x)])."""
-    seat = globals().get("sf_seat_x")
+    seat = globals().get("sf_seat_feet") or globals().get("sf_seat_x")   # round 5 (S3): the HIGHER ground across
+                                                                          # the feet (S3 section_frame); old: lowest
     gfn = globals().get("_sf_fn")
     sc = fig_depth(layer)[0]
     sh, placed = [], []
