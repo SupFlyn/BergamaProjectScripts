@@ -1,10 +1,23 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v16_4.py = v16.4 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v17.py = v17 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v17 (round 4, S7, 1 Nov 2026; booklet p13 -> p13a + p13b: P13.1-P13.5, D2, D11, G-R4-1..11; a feature change):
+  * Two booklet pages at 1:250 (was one at 1:500): crop ps_p1 = p13a (W1, W2), ps_p2 = p13b (W3, W4), one full row
+    per cut; the sheet is drawn at the booklet scale (BK_S 1), so every scale word is the printed one; zoom insets at
+    1:100 (D11, 2.5 x) with their own scale bars. W3's bazaar side broken at 50 m, W4's at 38 m (break lines).
+  * One block per cut (common/block.py): title strip (cut and name, scenario, look direction by place name), the
+    drawing, a side column (W1-W3: key map on one row of each page, the "today" line from the level table, the
+    numbered list) or a strip under it (W4); level marks outside the drawing's right edge with the 1:250 scale bar.
+  * Every zone and element is one marker (common/marker.py) in the colour of what it names, numbered in reading
+    order; the list beside repeats them "Name · reason"; the zone strip, bank rows and callout key are gone.
+  * One TextPage per page (common/text_place.py): every text registered with the real Arial widths, a collision
+    RAISES ("overlap p13a ... collisions 0" in the log). Key map: only the page's two cuts, red R01 symbol, north arrow
+    without a plate. Low planting layer on every soft bank; ash left the back mix (lower sky); one people set
+    (pen_black). Start-up: common/trigger.py (only a Button press or a new done text starts it).
 NEW IN (revision 30 Oct, T6, booklet p12; the version number is set at the end of the revision):
   * D6: the block sits on the A0 sheet at exactly 1:200 (BK_S = 0.4), so the booklet prints it at 1:500 and its scale
     bars read 1:500 (they read 1:1,481: the sheet's words said 1:500 at a non-standard sheet factor).
@@ -83,7 +96,7 @@ WHAT IT DRAWS (v10): one A0 landscape sheet, all vector, whole-string text; the 
   3 W3 K5 DEMETER'S GARDEN  steps seated into the NE loose earth bank; stream commons on the SW shelf; garden raised
                             above Q500 (olive, lavender, tomato, café beds with chaste tree and plane)
   4 W4 DOWNSTREAM REACH     planting bands by flood level on the 8.9° NE embankment, floodable boardwalk, field SW
-  Every section looks downstream (NE left), 1:500 on the booklet page. Not drawn (not in any source): the garden's
+  Every section looks downstream (NE left), 1:250 on the booklet page (v17). Not drawn (not in any source): the garden's
   intake and lift, basin volumes.
 
 COMPONENT: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. Input run (Button), outputs log and done.
@@ -91,8 +104,9 @@ Writes Downloads/Bergama/output/bergama_proposal_sections/Bergama_proposal_secti
 Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
 board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
-HOW WE KNOW IT WORKS: the text under the component reads "ProposalSections v1 · HH:MM · N s" and the log lists the
-two PDFs; each opens as one A0 page with four sections.
+HOW WE KNOW IT WORKS (v17): the text under the component reads "ProposalSections v17 · HH:MM · N s"; the log lists
+the PDF and the lines "overlap p13a checked n, collisions 0" and "overlap p13b ..."; the PDF opens as one A0 page with
+two A3-wide pages side by side (W1 + W2, W3 + W4), each cut on its own row at 1:250.
 """
 import os
 import json
@@ -104,7 +118,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v16.4"  # v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v17"  # v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -187,10 +201,10 @@ PT = 25.4 / 72.0
 CAP = 0.716
 
 def text_w(s, size, bold=False):
-    w = _W[1 if bold else 0]
-    return sum(w.get(c, _WX.get(c, 600 if c.isupper() else 556)) for c in s) / 1000.0 * size
+    """v17 (G-R4-1): the real Arial width (font_metrics.fm_width) of s at size mm"""
+    return fm_width(s, size / PT, bold)
 
-# v9 (MIRAQUA 28 Oct, G5): the notes are wrapped and drawn by ps_rich_para (parts/80_key_map.py), with bold keywords
+# v17: notes are wrapped by the page's TextPage (text_place.py tp.para), bold keywords between *stars*
 
 # ---------------------------------------------------------------- page and PDF writer (v1; see-through fills as bergama_diagrams v1.8)
 class Page(object):
@@ -277,7 +291,11 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 # parts/70_sections.py); data/SKETCH_SRC.py stays in the repo because bergama_agriculture_alternatives includes it.
 #@include ../common/booklet_assets.py
 
-#@include ../common/label_place.py
+# v17 (round 4 S1 modules): the real font widths, ONE text placer (a collision RAISES), ONE marker, ONE block template
+#@include ../common/font_metrics.py
+#@include ../common/text_place.py
+#@include ../common/marker.py
+#@include ../common/block.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
 
@@ -288,45 +306,42 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 #@include parts/90_booklet.py
 
 
-# ================================================================ the sheet (v10: one block = booklet page 13)
-# v7 (Aras 27 Oct 11:07): one block shaped like the booklet's panel area, so the booklet shows it whole (crop ps_all)
-# on ONE A3 page at the factor BK_S. v10 (WO-T3b-3): the block is drawn in booklet print mm (parts/70_sections.py:
-# the key map strip across the top, the four sections W1-W4 at 1:500 in a 2 x 2 under it) and placed here at 1 / BK_S,
-# so ps_all prints every section at exactly 1:500.
+# ================================================================ the sheet (v17: two blocks = booklet pages p13a, p13b)
+# v17 (round 4, D2): two blocks shaped like the booklet's panel area, one per booklet page (crops ps_p1, ps_p2), drawn
+# in booklet print mm by parts/70_sections.py ps_page (two cuts at 1:250 each) and placed here at 1:1.
 SHEET_BOXES = {}                                      # style -> {key -> crop box (x0, y0, x1, y1), mm, y up}; build_sheet
-# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H); revision
-# 30 Oct: a little under it (390 x 234), so 1:500 fits whatever the grid takes, the legend inside the block
-BK_W, BK_H = 390.0, 234.0
-BK_S = 0.4                                            # booklet print factor of ps_all: the sheet at 1:200 prints 1:500
-GRID_W = BK_W / BK_S                                  # the block on the A0 sheet, mm (975 x 585)
-GRID_H = BK_H / BK_S
+# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H); v17: the
+# full 392 mm width (the 1:250 rows need it), 234 mm high
+BK_W, BK_H = 392.0, 234.0
+BK_S = 1.0                                            # v17: the pages are drawn at the booklet scale (1:250 prints 1:250)
+PS_SHEET_GAP = 20.0                                   # mm between the two pages on the A0 sheet
 
 
-def build_sheet(opt, log, style="b"):
-    """v10: the page-12 block (key map strip + the four sections at 1:500 on the booklet, 1:200 here) on one A0
-    landscape sheet, in style b (vector) or a (cutouts, D1)."""
+def build_sheet(opt, log, style="a"):
+    """v17: the two booklet pages p13a (W1, W2) and p13b (W3, W4) side by side on one A0 landscape sheet at 1:1 (each
+    at 1:250, insets 1:100), in style a (D1)."""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     X0, X1 = M, BOARD_W - M
     top = BOARD_H - M
     pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · 1:200 on this sheet",
+    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · sections 1:250, insets 1:100",
             X0, top - 18.0, 3.6, MP["discharge"][2], bold=True)
     y1 = top - 22.0
     pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
     gy1 = y1 - 4.0
-    gy0 = gy1 - GRID_H
-    blk, boxes = ps_block(log, style)
-    s = 1.0 / BK_S
-    pg.poly([rect(X0, gy0, X0 + GRID_W, gy1)], fill=COL["white"])   # v16 (G17): the crop's ground is the page's white
-    pg.items += ps_xform(blk.items, s, X0, gy0)
+    gy0 = gy1 - BK_H
     sb = SHEET_BOXES.setdefault(style, {})
-    for key, b in boxes.items():                      # single crops: one section panel each
-        sb[key] = (X0 + s * b[0], gy0 + s * b[1], X0 + s * b[2], gy0 + s * b[3])
-    sb["all"] = (X0, gy0, X0 + GRID_W, gy1)           # ps_all: the whole block = page 12
+    for i, (page, key, cids) in enumerate(PS_PAGES):
+        x0 = X0 + i * (BK_W + PS_SHEET_GAP)
+        blk, boxes = ps_page(page, cids, log, style)
+        pg.poly([rect(x0, gy0, x0 + BK_W, gy1)], fill=COL["white"])   # v16 (G17): the crop's ground is white
+        pg.items += ps_xform(blk.items, 1.0, x0, gy0)
+        sb[key] = (x0, gy0, x0 + BK_W, gy1)               # ps_p1 / ps_p2: the whole page
+        for k_, b in boxes.items():                       # single crops: one row each
+            sb[k_] = (x0 + b[0], gy0 + b[1], x0 + b[2], gy0 + b[3])
     log.append(u"sources: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())))
     return pg
-
 
 
 def main():
@@ -348,7 +363,9 @@ def main():
             lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"),
                                                      time.time() - t1))
     log.append(cut_log_line())
-    log += lp_flag_lines() + sec_look_lines() + wat_flag_lines()   # v16: FLAG overlap p12, sky, plants, fauna, water
+    log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # v17 (round 4 S1): what started this run
+    log += tp_log_lines() + [fig_set_line(), sf_g14_line()] + pla_log_lines()   # v17: overlap p13a/p13b, figures set,
+    log += sec_look_lines() + wat_flag_lines()            # plants season=, sky, insets, level marks, fauna, water
     log += [u"PDF images: " + x for x in WP_IMG_LOG[:5]]
     try:                                              # v4: A3 booklet assets; an error here never stops the sheet
         booklet_export(log)
@@ -361,59 +378,8 @@ def main():
     return u"\n".join(head + [u"{} {}, {:.1f} s".format(GH_LABEL, VERSION, time.time() - t0)])
 
 
-def chain_fire(v, key):
-    """25 Oct 10:20 (one-click chain): a NEW "done ..." text from the previous script fires this script once."""
-    if isinstance(v, (list, tuple)):                 # several wires (e.g. a Button and a done): take the done text
-        v = next((x for x in v if str(x).startswith("done ")), None)
-    s = str(v) if v is not None else ""
-    try:
-        import scriptcontext as _scx
-        try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
-        except Exception:
-            pass
-        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
-        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
-        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
-        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
-        # script's globals between solves (the chain stopped after ZoneBase).
-        tok = globals().get("_CHAIN_SOLVE")
-        if _scx.sticky.get(key + ":init") is None:
-            _scx.sticky[key + ":init"] = tok
-        first = _scx.sticky.get(key + ":init") is tok
-        if not s.startswith("done "):
-            return False
-        if first or _scx.sticky.get(key) == s:
-            _scx.sticky[key] = s
-            return False
-        _scx.sticky[key] = s
-        return True
-    except Exception:
-        return False
-
-
-def _chain_wiring():
-    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
-    try:
-        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
-                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
-    except Exception:
-        return ""
-
-
-_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
-
-
-def _gh_in_items():
-    """(name, value) of this component's own inputs only. 1 Nov (Aras 08:24): a setting written in the script
-    (PHOTO_ANY_LICENCE = True in agriculture) was taken for a pressed Button, so the script started as soon as it was
-    pasted; Rhino 8 also keeps old globals between solves. All globals only if the inputs cannot be read."""
-    g_ = globals()
-    try:
-        return [(n_, g_.get(n_)) for n_ in (str(p_.NickName or p_.Name) for p_ in ghenv.Component.Params.Input)  # noqa: F821
-                if n_ in g_]
-    except Exception:
-        return list(g_.items())
+#@include ../common/trigger.py
+TRIG_WHY = [None]                                     # v17: what started this run (trig_should_run), for the log
 
 
 def done_text(ran, ok, secs):
@@ -439,9 +405,8 @@ if "ghenv" in globals():
         _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
     except Exception:
         pass
-    _pressed = any(v is True for k, v in _gh_in_items()
-                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "rhino_bake", "done")) or \
-        any(chain_fire(v, _k + "_chain") for k, v in _gh_in_items() if not k.startswith("_") and k != "done" and isinstance(v, str))
+    _pressed, _why, _btn = trig_should_run("bergama_proposal_sections_chain")   # v17 (round 4 S1): one trigger file
+    TRIG_WHY[0] = _why
     if _sc.sticky.get(_k + "_ver") != VERSION:     # v8: a newly pasted version shows itself at once, idle
         for _s in ("_status", "_done"):
             _sc.sticky.pop(_k + _s, None)

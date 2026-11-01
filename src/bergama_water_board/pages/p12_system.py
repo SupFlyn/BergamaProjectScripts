@@ -65,6 +65,17 @@ P12_BLD_COLS = dict(wall_lit="F4F2EE", wall_shade="E3E0DA", roof_lit="EDEBE6", r
                     axo_line="C9C5BC")   # v13 (P12.2, G-R4-4): EVERY survey building a volume, in the light base tones
 #                                      (PLAN §4.3 base houses EDEBE6 / C9C5BC); heritage keeps P12_HER_COLS
 P12_DECK_T_M = 0.8                   # v13 (P12.2): a bridge deck's thickness, m (drawing rule: no deck survey), x lift
+#                                      (K1-K4, K6; Üç Kemer K5 is drawn as its arched masonry face, P12_K5_ARCH)
+# v13 (S6b, ASKS_resolved §1): Üç Kemer (K5) = three round arches on two piers, the middle one larger, solid masonry
+# from the arches up to the deck. Middle arch: span 9.60 m, 10 m from the riverbed to the keystone (Visit İzmir,
+# "Üç Kemer Bridge", visitizmir.org/en/Destinasyon/10228; NOT checked against the survey: the survey has no deck
+# points and its banks there stand only 2.4-5.8 m over the bed). In the axo the bed is taken at the drawn water
+# (the bed under it is not drawn) and the arch heights are true m over it, as the buildings and the sunk water.
+P12_K5_ARCH = (9.60, 10.0)           # m: middle arch span, riverbed to keystone (Visit İzmir)
+P12_K5_SIDE = 0.6                    # side arches = this x the middle arch's span and height (drawing rule: NOT sourced)
+P12_K5_PIER_M = 2.0                  # m: a pier's width between two arches (drawing rule: not sourced)
+P12_K5_CROWN_M = 1.0                 # m: least masonry over the keystone up to the deck top (drawing rule: not sourced)
+P12_K5_STEP_M = 0.25                 # m: the face's outline step along the bridge (drawing rule, arch smoothness)
 P12_SOFT_PASSES = 2                  # v13 (P12.3): Chaikin passes rounding a zone into a soft field (drawing rule)
 P12_ZONE_ALPHA = 0.5                 # v13 (P12.3): a zone's own-colour field over the D9 tint (relief shows through)
 P12_STORE_ALPHA = 0.15               # v13 (P12.3): the winter store as a quiet ghost volume (fill opacity)
@@ -1101,14 +1112,130 @@ def _p12_sarea(R):
     return sum(R[i][0] * R[(i + 1) % len(R)][1] - R[(i + 1) % len(R)][0] * R[i][1] for i in range(len(R))) / 2.0
 
 
-def _p12_stream_top(pg, L, T, R, K, sb):
+def _p12_k5_index(decks):
+    """the index of Üç Kemer's (K5) deck among the survey decks: the deck holding P12_PLACES' K5 point, else the one
+    whose centroid lies nearest it within 40 m (the deck's half length); None when there is none"""
+    k5 = dict(P12_PLACES).get(u"K5")
+    if not k5:
+        return None
+    best = None
+    for i, Rd in enumerate(decks):
+        if len(Rd) < 3:
+            continue
+        if _p12_pip(k5[0], k5[1], Rd):
+            return i
+        c = _p12_cen(Rd)
+        d = math.hypot(c[0] - k5[0], c[1] - k5[1])
+        if d <= 40.0 and (best is None or d < best[0]):
+            best = (d, i)
+    return best[1] if best else None
+
+
+def _p12_k5_bridge(pg, Rd, L, T, R, K, dz, view, side, edge):
+    """v13 (S6b, ASKS_resolved §1): Üç Kemer (K5) in the axo: its deck ring Rd (survey m) drawn as a masonry bridge,
+    one 3D language with the other decks (edge tone faces, road top). The bridge's long axis = the ring's principal
+    axis; on its face toward the viewer three round arches on two piers: the middle one P12_K5_ARCH (span, riverbed
+    to keystone; Visit İzmir), the side ones P12_K5_SIDE x that (drawing rule), centred on the stretch of the face
+    over the surveyed water. The bed is the drawn water there (lift - dz: the bed under it is not drawn); the arch
+    heights are true m over it (as the buildings and the sunk water). The face is solid masonry from the arches up to
+    the deck top = the highest lifted ground of the ring, or the keystone + P12_K5_CROWN_M if higher; on the banks
+    it stands on the ground. Under each arch a shade (the barrel seen through it, the water showing). The end faces
+    turned to the viewer go from the deck top down to the ground. Returns (deck top drawn m, raised over the banks)"""
+    lift = R["lift"]
+    n_ = len(Rd)
+    cx, cy = sum(p[0] for p in Rd) / n_, sum(p[1] for p in Rd) / n_
+    sxx = sum((p[0] - cx) ** 2 for p in Rd)
+    syy = sum((p[1] - cy) ** 2 for p in Rd)
+    sxy = sum((p[0] - cx) * (p[1] - cy) for p in Rd)
+    ang = 0.5 * math.atan2(2.0 * sxy, sxx - syy)
+    u = (math.cos(ang), math.sin(ang))
+    n = (-u[1], u[0])
+    if n[0] * view[0] + n[1] * view[1] < 0:              # n points to the viewer
+        n = (-n[0], -n[1])
+    ss = [(p[0] - cx) * u[0] + (p[1] - cy) * u[1] for p in Rd]
+    s0, s1 = min(ss), max(ss)
+    wf = max((p[0] - cx) * n[0] + (p[1] - cy) * n[1] for p in Rd)   # the face's plane: the ring's near side
+
+    def P(s):
+        return (cx + u[0] * s + n[0] * wf, cy + u[1] * s + n[1] * wf)
+    wr = [g[0] for g in (L.get("water") or []) if g and len(g[0]) >= 3]
+
+    def wet(p):
+        return any(_p12_pip(p[0], p[1], W) for W in wr)
+    nst = max(2, int((s1 - s0) / P12_K5_STEP_M) + 1)
+    S = [s0 + (s1 - s0) * i / float(nst) for i in range(nst + 1)]
+    inw = [s for s in S if wet(P(s))]
+    sm = (min(inw) + max(inw)) / 2.0 if inw else (s0 + s1) / 2.0
+    span, key = P12_K5_ARCH
+    sspan, skey = span * P12_K5_SIDE, key * P12_K5_SIDE
+    half = span / 2.0 + P12_K5_PIER_M + sspan
+    if s1 - s0 >= 2.0 * half:                            # the three arches stay on the face
+        sm = min(max(sm, s0 + half), s1 - half)
+    pm = P(sm)
+    zw = lift(pm[0], pm[1]) - (dz(pm)[0] if dz else 0.0)
+    off = span / 2.0 + P12_K5_PIER_M + sspan / 2.0
+    arches = [(sm - off, sspan / 2.0, skey), (sm, span / 2.0, key), (sm + off, sspan / 2.0, skey)]
+
+    def arch_z(s):
+        """the intrados' drawn height at s (round arch: springing at keystone - radius), None outside an arch"""
+        for a, r, kz in arches:
+            if abs(s - a) <= r:
+                return zw + kz - r + math.sqrt(max(0.0, r * r - (s - a) ** 2))
+        return None
+    hb = max(lift(p[0], p[1]) for p in Rd)
+    H = max(hb, zw + key + P12_K5_CROWN_M)
+
+    def base(s):
+        p = P(s)
+        return zw if wet(p) else min(H, max(zw, lift(p[0], p[1])))
+    S = sorted(set([round(s, 4) for s in S] + [round(a + d, 4) for a, r, _k in arches for d in (-r, 0.0, r)
+                                                if s0 < a + d < s1]))
+    # the end faces turned to the viewer (not the long side the arched face replaces): deck top down to the ground
+    sg = 1.0 if _p12_sarea([T(p, H) for p in Rd]) >= 0 else -1.0
+    for a, b in zip(Rd, Rd[1:] + Rd[:1]):
+        ex, ey = b[0] - a[0], b[1] - a[1]
+        Le = math.hypot(ex, ey)
+        if Le < 1e-6 or abs(ex * u[0] + ey * u[1]) / Le > 0.9:
+            continue
+        q = [T(a, H), T(b, H), T(b, min(H, lift(b[0], b[1]))), T(a, min(H, lift(a[0], a[1])))]
+        if _p12_sarea([T(a, H), T(b, H), T(b, H - 1.0), T(a, H - 1.0)]) * sg < 0:
+            rq = _p12_cring(q, K)
+            if rq:
+                pg.poly([rq], fill=side, stroke=edge, lw=0.1)
+    # the shade under each arch (the barrel seen through the opening; translucent: the water shows)
+    shade = _sec_mix(edge, BM_COL["ink"], 0.35)
+    for a, r, _k in arches:
+        sa = [s for s in S if a - r <= s <= a + r]
+        top_ = [(s, arch_z(s), base(s)) for s in sa]
+        top_ = [(s, zt, zb) for s, zt, zb in top_ if zt is not None and zt > zb]
+        if len(top_) >= 2:
+            ring = [T(P(s), zt) for s, zt, _zb in top_] + [T(P(s), zb) for s, _zt, zb in reversed(top_)]
+            rr = _p12_cring(ring, K)
+            if rr:
+                pg.poly([rr], fill=shade, alpha=0.35)
+    # the masonry face: deck top along the bridge, back along the arches' intrados, the piers and the ground
+    bot = []
+    for s in S:
+        zb, za = base(s), arch_z(s)
+        bot.append(max(zb, za) if za is not None else zb)
+    face = [T(P(s), H) for s in S] + [T(P(s), z) for s, z in reversed(list(zip(S, bot)))]
+    rf = _p12_cring(face, K)
+    if rf:
+        pg.poly([rf], fill=side, stroke=edge, lw=0.1)
+    return H, H > hb + 1e-6
+
+
+def _p12_stream_top(pg, L, T, R, K, sb, dz=None, view=None, log=None):
     """what lies over or beyond the open stream: v13 (P12.2, CHK-4 3) the bridge decks as 3D slabs, the top at the
     highest lifted ground of the deck's ring, P12_DECK_T_M x the lift thick (a drawing rule: no deck survey), its
-    faces that turn to the viewer drawn in the deck's edge tone, then the top; the bridge lines lifted the same way;
+    faces that turn to the viewer drawn in the deck's edge tone, then the top; Üç Kemer (K5) instead as its arched
+    masonry face up to the deck (_p12_k5_bridge, S6b; needs view); the bridge lines lifted the same way;
     the covered course (dashed) and OpenStreetMap's water beyond the survey frame flat as before"""
-    out = dict(bridge=False, covered=False, decks=0)
+    out = dict(bridge=False, covered=False, decks=0, k5=False)
     pal = _wat_pal()
     lift, th = R["lift"], P12_DECK_T_M * R["zx"]
+    k5i = _p12_k5_index(L.get("decks") or []) if view is not None else None
+    k5top = None                                        # (bbox, deck top) of Üç Kemer once drawn: its lines go on it
     for g in L.get("water_out") or []:
         rr = [r for r in (_p12_cring([T(p) for p in Rg], K) for Rg in g if len(Rg) >= 3) if r]
         if rr:
@@ -1117,10 +1244,34 @@ def _p12_stream_top(pg, L, T, R, K, sb):
         for piece in _p12_cline([T(p) for p in P], K):
             pg.line(piece, BM_COL["water"], 0.3)
     side = _sec_mix(BM_MUTED["road"], BM_MUTED["road_edge"], 0.6)
-    for Rd in L.get("decks") or []:
+    for di, Rd in enumerate(L.get("decks") or []):
         if len(Rd) < 3 or not _p12_hit(Rd, sb):
             continue
         h = max(lift(p[0], p[1]) for p in Rd)
+        if di == k5i:                                   # Üç Kemer: arched masonry, not the 0.8 m slab
+            h, raised = _p12_k5_bridge(pg, Rd, L, T, R, K, dz, view, side, BM_MUTED["road_edge"])
+            out["k5"] = True
+            k5top = (_p12_bbox(Rd), h)
+            if log is not None:
+                nm = bridge_name(u"K5")
+                for ln in (u"p12 map: {} drawn with three round arches on two piers, the middle one {:.2f} m span and "
+                           u"{:.2f} m from the riverbed to the keystone (Visit İzmir, not checked against the "
+                           u"survey; bed taken at the drawn water), masonry solid from the arches to the deck "
+                           u"(not the {:.2f} m slab){}".format(nm, P12_K5_ARCH[0], P12_K5_ARCH[1], P12_DECK_T_M,
+                                                               u"; deck top raised over the bank tops to hold the "
+                                                               u"arches" if raised else u""),
+                           u"FLAG Üç Kemer side arches: size not sourced (drawing rule)",
+                           u"p12 map: Üç Kemer drawing rules (not sourced): side arches x{:.2f} of the middle arch, "
+                           u"piers {:.2f} m, masonry over the keystone at least {:.2f} m".format(
+                               P12_K5_SIDE, P12_K5_PIER_M, P12_K5_CROWN_M)):
+                    if ln not in log:
+                        log.append(ln)
+            rr = _p12_cring([T(p, h) for p in Rd], K)
+            if rr:
+                pg.poly([rr], fill=BM_MUTED["road"], stroke=BM_MUTED["road_edge"], lw=0.12)
+                out["bridge"] = True
+                out["decks"] += 1
+            continue
         top = [T(p, h) for p in Rd]
         sg = 1.0 if _p12_sarea(top) >= 0 else -1.0
         for a, b in zip(Rd, Rd[1:] + Rd[:1]):
@@ -1137,6 +1288,9 @@ def _p12_stream_top(pg, L, T, R, K, sb):
     for P in L.get("bridges") or []:
         if len(P) >= 2 and _p12_hit(P, sb):
             h = max(lift(p[0], p[1]) for p in P)
+            if k5top and all(k5top[0][0] - 2.0 <= p[0] <= k5top[0][2] + 2.0 and
+                             k5top[0][1] - 2.0 <= p[1] <= k5top[0][3] + 2.0 for p in P):
+                h = max(h, k5top[1])                    # Üç Kemer's lines on its (raised) deck top
             for piece in _p12_cline([T(p, h) for p in P], K):
                 pg.line(piece, BM_COL["ink"], 0.3)
                 out["bridge"] = True
@@ -1378,7 +1532,7 @@ def _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees):
     # tops (P12.2), then EVERY survey building as a volume with its roof (P12.2, CHK-4 3: no flat footprints), light
     # base tones, standing on the relief at every corner (bld_axo_items, S2); heritage in its rose
     if L:
-        out["top"] = _p12_stream_top(pg, L, T, R, K, sb)
+        out["top"] = _p12_stream_top(pg, L, T, R, K, sb, dz, view, log)
         units = [b for b in L.get("buildings") or [] if b.get("rings") and _p12_hit(b["rings"][0], sb)]
         out["her"] = any(b.get("her") for b in units)
         out["near"], out["far"], out["units"] = len(units), 0, bool(units)
