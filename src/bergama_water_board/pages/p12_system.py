@@ -1520,11 +1520,14 @@ def _p12_fields(pg, L, Tg, K, k, sb, step):
     return out
 
 
-def _p12_legend(pg, ga, rows, avoid, taken):
+def _p12_legend(pg, ga, rows, avoid, taken, log=None):
     """the map's legend (M2 Legend, G1: every symbol it draws) and the key of its letters (G3), in the inside corner
     of the map holding the fewest drawn key points and taken boxes, on a white ground with no edge (v12: G17, no
     alpha); rows = [(label, kind fill / line / dash / tree / ground / orchard / letter, sample)]; returns its box"""
     meas = lambda s_, pt, b_: text_w(s_, pt * GRID_PT_, b_)
+    fb_, cols_ = _P12_MEMO.get("block_cols") or (None, [])
+    if fb_ is not None:                                 # v13.7: the block face by its outline, not its full-width box
+        taken = [t for t in taken if tuple(t) != tuple(fb_)] + cols_
     best = None
     for side in ("inside_bl", "inside_tl", "inside_br", "inside_tr"):
         lg = Legend(ga, side=side, y_down=False)
@@ -1562,7 +1565,13 @@ def _p12_legend(pg, ga, rows, avoid, taken):
                 r["swatch"] = (sx[0] + dx, sx[1] + dy, sx[2] + dx, sx[3] + dy)
                 r["text"] = (r["text"][0] + dx, r["text"][1] + dy)
             b = q
+            if log is not None:
+                log.append(u"p12 legend: moved {:.1f} mm right, {:.1f} mm up from its corner, clear of the markers "
+                           u"and texts".format(dx, dy))
         else:
+            if log is not None:
+                log.append(u"FLAG p12 legend: no clear place on the map ({:.0f} x {:.0f} mm, {} boxes to clear)"
+                           .format(w_, h_, len(taken)))
             try:
                 ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
                                                   u"p12 legend: no clear place on the map")
@@ -1883,6 +1892,13 @@ def _p12_block(pg, ga, T, Ti, R):
                               yf + 0.5 + FS_MIN * CAP)
     fb_ = (ga[0], yf, ga[2], max(p[1] for p in prof))
     _P12_MEMO["block_note"] = (s_, fb_)
+    # v13.7: the face's outline in 5 mm columns (its box fb_ spans the whole map width up to the profile's highest
+    # point, so a legend tested against fb_ found no clear place in any corner or anywhere else)
+    cols_ = []
+    for i in range(0, len(prof) - 1, 5):
+        seg_ = prof[i:i + 6]
+        cols_.append((seg_[0][0], yf, seg_[-1][0], max(p[1] for p in seg_)))
+    _P12_MEMO["block_cols"] = (fb_, cols_)
     return fb_
 
 
@@ -2074,7 +2090,7 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
         lg.append((txt, "letter", dict(letter=ch_, colour=col)))
     if lg:
         avoid = list(M["S"]) + [Tg(p) for z in zones for p in z["ring"][::4]]
-        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"])
+        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"], log)
         M["taken"].append(M["legend"])
     hold = M["hold"]
     nd = (T((hold[0], hold[1] + 100.0))[0] - T(hold)[0], T((hold[0], hold[1] + 100.0))[1] - T(hold)[1])
