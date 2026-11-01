@@ -899,6 +899,13 @@ LEVELS = [
 # Chainage m along the stream: CL code.py:211 (K1 / K2 about 25 m apart upstream; their order unverified).
 # Banks (D6, Aras 31 Oct 20:45: "fine that way"; p20 already prints them): NE = left bank looking downstream = north
 # bank = the Kale side; SW = south bank = the bazaar side.
+# Landmarks (round 4, S1, 1 Nov 2026; G-R4-11 / PALL.3, PLAN §4.6): the TURKISH proper name is printed, never an
+# English translation ("Red Hall" -> Kızıl Avlu, "Acropolis" -> Akropol, "Bazaar" -> Arasta); "descr" is an optional
+# English descriptor that may FOLLOW the name (landmark_name(key, descr=True) -> "Kızıl Avlu · Hadrian's temple").
+# Spellings as the project's sources write them; "src" = where (h01 = library/research/
+# selinos_bergama_history_context_v1.md, table §5 row; survey = a label in the course survey). Descriptors are taken
+# from texts already in the booklet (p20 heritage cards, city link), nothing new. One spelling of Ulucami (the brief's;
+# "Ulu Cami" / "Ulu Camii" drift removed); source TITLES on the Sources page stay as published.
 NAMES = {
     "bridges": {
         "K1": {"name": u"side inlet crossing", "short": u"side inlet crossing", "order": 1, "proper": False},
@@ -917,6 +924,36 @@ NAMES = {
         "bank_SW_short": u"south bank",
         "side_NE": u"Kale side",
         "side_SW": u"bazaar side",
+    },
+    "landmarks": {
+        "kizil_avlu": {"name": u"Kızıl Avlu", "descr": u"Hadrian's temple",
+                       "src": u"survey label 'Kızıl Avlu' (30203.92, 31974.82); h01 §5 P02; Kültür Envanteri 'Kızıl Avlu'"},
+        "akropol": {"name": u"Akropol", "descr": u"the Hellenistic city on the hill",
+                    "src": u"site board HER_BEYOND (OSM way 1410335587, Trajaneum)"},
+        "ulucami": {"name": u"Ulucami", "descr": u"mosque of 1398-99",
+                    "src": u"h01 §5 P05 (survey 'Ulu Camii' (29844.2, 32313.3)); Visit İzmir 'Bergama Ulu (Yıldırım) "
+                           u"Mosque'; spelling = the brief's (G-R4-11) and K4's name"},
+        "tabaklar_hamami": {"name": u"Tabaklar Hamamı", "descr": u"the tanners' bath",
+                            "src": u"h01 §5 P07 (survey 'Hamam' (29890.4, 32243.6))"},
+        "arasta": {"name": u"Arasta", "descr": u"the old bazaar",
+                   "src": u"site board HER_STOPS 'bazaar' (Visit İzmir 'Mevlâna Hacı Hekim Hammam')"},
+        "cizmeciler_arastasi": {"name": u"Çizmeciler Arastası", "descr": None,
+                                "src": u"survey label (29794.31, 31929.85)"},
+        "pabuccular_arastasi": {"name": u"Pabuççular Arastası", "descr": None, "src": u"h02 s32 (city link stop 1)"},
+        "istiklal_meydani": {"name": u"İstiklal Meydanı", "descr": u"square",
+                             "src": u"h01 §5 P16 (survey label (29990.0, 32030.5))"},
+        "adnan_menderes_bulvari": {"name": u"Adnan Menderes Bulvarı", "descr": None,
+                                   "src": u"Aras 1 Nov 07:30 ('it is bulvar'); K6 row above"},
+        "kinik_caddesi": {"name": u"Kınık Caddesi", "descr": None,
+                          "src": u"OpenStreetMap extract of 28 Jul 2026 (common/city_spine.py MAIN_SPINE)"},
+        "bankalar_caddesi": {"name": u"Bankalar Caddesi", "descr": None,
+                             "src": u"OpenStreetMap extract of 28 Jul 2026 (common/city_spine.py MAIN_SPINE)"},
+        "bergama_muzesi": {"name": u"Bergama Müzesi", "descr": u"museum of 1936",
+                           "src": u"Kültür Envanteri KE 3946 'Bergama Müzesi' (h01 s86)"},
+        "teleferik": {"name": u"Teleferik", "descr": u"cable car (2010)",
+                      "src": u"site board HER_STOPS 'gondola' (OSM node 2295928011)"},
+        "asklepion": {"name": u"Asklepion", "descr": u"the healing sanctuary",
+                      "src": u"h01 §5 P28; KTB 'The Archaeological Site of Asklepion' (h01 s114)"},
     },
 }
 
