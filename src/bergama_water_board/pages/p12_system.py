@@ -611,7 +611,9 @@ def _p12_side_names(pg, ga, M, side, log):
         sp, ch = side[ix], letters[j]
         col = sp.get("col") or COL["ink2"]
         bd = sp.get("bounds") or ga                   # the zoom's names stay in the zoom (its box is not in the way)
-        b = _p12_free_spot(sp["x"], sp["y"], d, d, [t for t in taken if t != bd], bd, (0.0, 1.0, 2.0, 3.5))
+        # v13.1 (Aras 1 Nov 17:33: "Dry-top terraces" found no spot within 3.5 mm): the letter may stand up to 7 mm
+        # from its point, tried in 24 directions (was 16), nearest first
+        b = _p12_free_spot(sp["x"], sp["y"], d, d, [t for t in taken if t != bd], bd, (0.0, 1.0, 2.0, 3.5, 5.0, 7.0), 24)
         if not b:
             raise TextCollision(u"p12", dict(text=sp["head"], name=u"p12 map name"),
                                 u"no free spot beside its point, nor for its side-list letter")
