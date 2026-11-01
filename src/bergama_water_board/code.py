@@ -508,140 +508,10 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 #@include ../common/write_pdf.py
 
-# ============================================================ TREES (self-contained: copy this block as it is)
-# Trees in the style of Nil's reference (18 Oct 2026: an isometric water-system diagram with layered, see-through
-# canopies), drawn as architectural entourage (fine branches, translucent leaf clusters), not as cartoon blobs. Needs only `math` and a page object with
-#     poly(rings, fill=hex, stroke=hex or None, lw=mm, layer=str, alpha=0-1 or None)   rings: [[(X, Y), ...], ...]
-#     line(pts, stroke_hex, lw_mm, layer=str)
-# draw_tree(pg, P, k, x, y, r, top, style) draws one tree: P(x, y, z) -> page (X, Y) in mm for a parallel
-# (orthographic) view with z up, k = page mm per model metre. Light comes from the upper left of the page, as on the
-# buildings. Size and height are the data's: crown radius r and top height `top` (m above the ground); the crown starts
-# at TREE_CROWN_LO(top), the analyses' convention in selinus_board (crown_lo: 35 % of the top, at least 1.5 m), so the
-# crown is an upright ellipsoid r wide and top - lo high (a crown never flatter than half its radius), filled with leaf
-# clusters near its surface. Branches and clusters are drawn from (x, y) alone, so the same tree looks the same on every
-# page and run.
-# Draw trees far to near (painter's order). The colours are the group palette's greens (palette v1.3):
-#     tree  (deciduous)             green_mid 727A4E, green_light 8C9969, light = mix(8C9969, road FAF8F1, 0.35)
-#     olive (evergreen broadleaf)   mix(727A4E, ink2 847E75, 0.4), mix(8C9969, structure B0AC9C, 0.45), its light
-#     pine  (needle-leaved)         green_deep 495338, green_mid 727A4E, mix(727A4E, 8C9969, 0.6)
-#     context (pale, not the topic) mix(BCC2A6, 8C9969, 0.3), CONTEXT_3D tree BCC2A6, mix(BCC2A6, FAF8F1, 0.45)
-# (mix = the palette's OKLab mix). Shadows: green_deep (context: structure) at 10-16 %.
-TREE_STYLES = {
-    "tree":    dict(dark="727A4E", mid="8C9969", light="B1BA97", trunk="5B5147", shadow="495338", shadow_a=0.10,
-                    lobes=1.0),
-    "olive":   dict(dark="797C5E", mid="9CA280", light="BCBFA6", trunk="5B5147", shadow="495338", shadow_a=0.10,
-                    lobes=1.0),
-    "pine":    dict(dark="495338", mid="727A4E", light="818C5E", trunk="5B5147", shadow="495338", shadow_a=0.12,
-                    lobes=1.3),                                    # needles: more, finer leaf clusters
-    "context": dict(dark="ADB694", mid="BCC2A6", light="D7DAC7", trunk="A39E90", shadow="B0AC9C", shadow_a=0.16,
-                    lobes=1.0),
-}
-TREE_ALPHA = (None, None)                # v12 (round 3, D7/G9): leaf clusters opaque (were 0.62 / 0.68 see-through)
-TREE_MIN_MM = 0.25                       # smallest crown radius drawn on the page, mm
-
-
-def TREE_CROWN_LO(top):
-    return max(1.5, 0.35 * top)
-
-
+# v13 (round 4, G-R4-6, CHK-6): the water board's own TREE engine (TREE_STYLES, draw_tree, tree_shadow, _tree_blob)
+# is retired: every tree on p12 is the shared plant module's drawing (pla_axo; willow v2), the land cover's canopy a
+# basemap-category texture (pages/p12_system.py). _tree_rand stays: the p12 texture and SKETCH_SRC seed with it.
 #@include ../common/_tree_rand.py
-
-
-def tree_shadow(pg, P, k, x, y, r, style, layer="tree_shadows"):
-    """The crown's footprint on the ground, pushed to the lower right (light from the upper left). Draw all shadows
-    on the ground first (draw_tree(..., shadow=False) then), so no shadow lies over a building."""
-    A = max(TREE_MIN_MM, r * k)
-    if A < 0.45:
-        return
-    sh = [P(x + 0.9 * r * math.cos(t), y + 0.9 * r * math.sin(t), 0.0) for t in [2.0 * math.pi * i / 28 for i in range(28)]]
-    pg.poly([[(p[0] + 0.30 * A, p[1] - 0.08 * A) for p in sh]], fill=style["shadow"], stroke=None, layer=layer,
-            alpha=style["shadow_a"])
-
-
-def _tree_view(P, k):
-    """Rows of the parallel view (page mm per metre / k) and the unit vector pointing away from the viewer."""
-    o = P(0.0, 0.0, 0.0)
-    e = [P(1.0, 0.0, 0.0), P(0.0, 1.0, 0.0), P(0.0, 0.0, 1.0)]
-    u = [(p[0] - o[0]) / k for p in e]
-    v = [(p[1] - o[1]) / k for p in e]
-    c = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
-    return u, v, (-c[0], -c[1], -c[2])
-
-
-def _tree_blob(cx, cy, R, rnd, m):
-    """A leaf cluster: a round patch R mm across with a ragged, leafy edge."""
-    ph = rnd() * 6.283
-    return [(cx + R * (0.80 + 0.28 * rnd()) * math.cos(ph + 6.283 * i / m),
-             cy + R * (0.80 + 0.28 * rnd()) * math.sin(ph + 6.283 * i / m)) for i in range(m)]
-
-
-def draw_tree(pg, P, k, x, y, r, top, style, layer="trees", alpha=TREE_ALPHA, shadow=True):
-    """Architectural entourage tree: a fine trunk and branch structure inside a crown built from many opaque
-    leaf clusters (v12), lit from the upper left, back clusters behind the branches and front clusters over them."""
-    rnd = _tree_rand(x, y)
-    st = style
-    lo = TREE_CROWN_LO(top)
-    a = max(0.5 * r, (top - lo) / 2.0)                     # vertical half-height of the crown
-    zc = top - a
-    A = r * k                                              # crown half-width on the page, mm
-    u, v, d = _tree_view(P, k)
-    if A < 0.45:                                           # a speck on the corridor pages: two small clusters
-        c = P(x, y, zc)
-        R = max(TREE_MIN_MM, A)
-        for i in range(2):
-            pg.poly([_tree_blob(c[0] + (i - 0.5) * 0.4 * R, c[1] + (0.5 - i) * 0.2 * R, R * (0.95 - 0.2 * i), rnd, 9)],
-                    fill=st["mid"] if i else st["dark"], stroke=None, layer=layer)
-        return
-    if shadow:
-        tree_shadow(pg, P, k, x, y, r, st, layer)
-    full = A >= 1.2
-    tw = min(0.30, max(0.06, 0.055 * A))                   # trunk line, mm
-    # ---- branch structure (3D points, projected)
-    lines = [((x, y, 0.0), (x, y, lo + 0.25 * a), tw)]
-    if full:
-        nb = 3 + int(rnd() * 3)
-        for i in range(nb):
-            t = 6.283 * (i + 0.6 * rnd()) / nb
-            fr = 0.55 + 0.3 * rnd()
-            end = (x + fr * r * math.cos(t), y + fr * r * math.sin(t), zc + (0.1 + 0.4 * rnd()) * a)
-            base = (x, y, lo + (0.1 + 0.4 * rnd()) * a)
-            lines.append((base, end, tw * 0.55))
-            mid = tuple(base[j] + 0.55 * (end[j] - base[j]) for j in range(3))
-            for _ in range(2):                             # twigs end inside the crown (70 % of its size at most)
-                t2 = t + (rnd() - 0.5) * 1.6
-                ez = rnd() * 0.6
-                eh = 0.7 * math.sqrt(1.0 - ez * ez)
-                lines.append((mid, (x + eh * r * math.cos(t2), y + eh * r * math.sin(t2), zc + 0.7 * ez * a),
-                              max(0.04, tw * 0.3)))
-    # ---- leaf clusters near the crown's surface, sorted far to near
-    n = int(min(36, max(6, 4 + 3.0 * A)) * st.get("lobes", 1.0))
-    cl = []
-    for _ in range(n):
-        ct, phi_ = 2.0 * rnd() - 1.0, 6.283 * rnd()
-        sq = math.sqrt(max(0.0, 1.0 - ct * ct))
-        f = 0.55 + 0.35 * rnd()
-        q = (x + f * r * sq * math.cos(phi_), y + f * r * sq * math.sin(phi_), zc + f * a * ct)
-        depth = sum(d[j] * (q[j] - (x, y, zc)[j]) for j in range(3))
-        pp = P(*q)
-        du, dv = (pp[0] - P(x, y, zc)[0]) / A, (pp[1] - P(x, y, zc)[1]) / max(1e-9, A)
-        lit = -0.6 * du + 0.8 * dv - 0.5 * depth / max(r, a)
-        cl.append((depth, pp, lit, (0.30 + 0.14 * rnd()) * A * st.get("blob", 1.0)))
-    cl.sort(key=lambda c_: -c_[0])
-    m = 16 if A > 3.0 else (12 if full else 9)
-    back = [c_ for c_ in cl if c_[0] > 0.0]
-    front = [c_ for c_ in cl if c_[0] <= 0.0]
-
-    def blobs(lst, al):
-        for _, pp, lit, R in lst:
-            col = st["light"] if lit > 0.45 else (st["dark"] if lit < -0.25 else st["mid"])
-            pg.poly([_tree_blob(pp[0], pp[1], R, rnd, m)], fill=col, stroke=None, layer=layer, alpha=al)
-    blobs(back, alpha[0])
-    for p0, p1, w in lines:
-        pg.line([P(*p0), P(*p1)], st["trunk"], w, layer=layer)
-    blobs(front, alpha[1])
-
-
-# ============================================================ end of TREES
 
 
 # ---------------------------------------------------------------- composing the board from drawn parts
@@ -1880,7 +1750,7 @@ def icon(pg, kind, x, y, sz):
     elif kind == "tree":
         pg.poly([R(4.5, 0.4, 5.5, 4.4)], fill="5B5147")
         for a, b, r_ in ((3.4, 6.0, 2.6), (6.6, 6.0, 2.6), (5.0, 7.6, 2.6)):
-            pg.circle(x + a * u, y - sz + b * u, r_ * u, fill=TREE_STYLES["tree"]["mid"])
+            pg.circle(x + a * u, y - sz + b * u, r_ * u, fill=pla_colours("plane")["fill"])   # v13 (G-R4-6)
     elif kind == "lav":
         for a in (2.4, 5.0, 7.6):
             pg.line(P([(5.0, 0.6), (a, 6.4)]), "727A4E", lw)

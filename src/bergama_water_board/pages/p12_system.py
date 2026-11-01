@@ -15,7 +15,7 @@
 # scale. The round plan zoom is replaced by an up-close SECTION of the upstream entry (G10: people, use, materials;
 # D1: style a above the map, style b below it, crops wb_system_a / wb_system_b / wb_system). The logic block went.
 # v9 (Aras 31 Oct, booklet p11): one up-close band at the bottom in style a (crop wb_system); buildings as volumes only
-# near the stream (P12_BLD_NEAR_M) and heritage, the rest as faint footprints, so the city reads.
+# (v13: every survey building a volume with its roof, CHK-4 3) and heritage, so the city reads.
 # R2-C (31 Oct, PG4 p11 #6-8): the map keeps only the five numbered step markers (leader-free) and short place names,
 # the steps' texts and figures moved to the column's key (G3: the upstream entry was crowded); the up-close band gets
 # the designed sky (D8), back trees on a ground dipping into the channel (G14), mixed planting groups on depth
@@ -55,15 +55,23 @@ P12_HER_COLS = dict(wall_lit="F7EEED", wall_shade="E6D2D1", roof_lit="EEDCDB", r
                     axo_line="AF7474")   # heritage volumes: buildings.py her_fill / her_edge, lit and shaded
 P12_ZONE_MIX = {"WP": None, "GR": None, "DG": ["olive", "rosemary", "lavender"]}   # zones planted on the map (G9)
 P12_BAND_M = 60.0                    # m: the wet-to-dry band away from the Selinos line (drawing rule, as p.16)
-P12_TREE_STY = {"olive": "olive", "stone_pine": "pine"}   # core TREE_STYLES per species (else "tree")
 P12_CANOPY_M = 6.0                   # m: the tree-cover texture's cluster spacing (drawing rule)
 P12_CANOPY_CAP = 6000                # most clusters drawn (PDF size)
 P12_K5_CHECK_M = 200.0               # m: the base-data check around Üç Kemer (logged; its names drawn)
 P12_K5_NAMES = 3                     # names of the base data drawn around K5 at most (v12: few labels, G3)
-P12_ZOOM_H = 48.0                    # mm: the up-close section band (v9: one band, style a, below the map)
-P12_BLD_NEAR_M = 60.0                # v9 (Aras 31 Oct): buildings drawn as volumes only this close to the Selinos line
-#                                      (m, drawing rule; heritage always); the rest as flat footprints
-P12_BLD_FAR = ("E4E0D9", 0.45)       # the far footprints: fill, mixed this far toward white (v12: opaque, no edge)
+P12_ZOOM_H = 52.0                    # mm: the up-close section band incl. its title strip (v13: LEFT block template)
+P12_ZOOM_TITLE_H = 5.0               # v13 (G-R4-3): the band's title strip on top, mm
+P12_BLD_COLS = dict(wall_lit="F4F2EE", wall_shade="E3E0DA", roof_lit="EDEBE6", roof_shade="DCD8D1",
+                    axo_line="C9C5BC")   # v13 (P12.2, G-R4-4): EVERY survey building a volume, in the light base tones
+#                                      (PLAN §4.3 base houses EDEBE6 / C9C5BC); heritage keeps P12_HER_COLS
+P12_DECK_T_M = 0.8                   # v13 (P12.2): a bridge deck's thickness, m (drawing rule: no deck survey), x lift
+P12_SOFT_PASSES = 2                  # v13 (P12.3): Chaikin passes rounding a zone into a soft field (drawing rule)
+P12_ZONE_ALPHA = 0.5                 # v13 (P12.3): a zone's own-colour field over the D9 tint (relief shows through)
+P12_STORE_ALPHA = 0.15               # v13 (P12.3): the winter store as a quiet ghost volume (fill opacity)
+P12_BLOCK = (6.0, 3.0, 0.5)          # v13 (P12.1): terrain block: z = 0 line this far over the map's foot, plinth under
+#                                      the lowest profile point, least gap to the map's foot (mm; drawing rules)
+P12_ROAD_EDGE = ("CFCBC2", 0.12)     # v13 (PLAN §4.3): streets as closed edges only over the shaded ground
+P12_CONTOUR_RAMP = ("C9D6B0", "3C4733")   # v13 (G-R4-4, U48): contours coloured to the relief, lighter = lower
 P12_ZOOM_GAP = 5.0                   # mm between the band and the map
 P12_ZOOM_KEY_W = 70.0                # mm: the band's key column (title, callouts; R2: water and scale bar right)
 P12_ZOOM_DEN = 500                   # the up-close section at 1:500 (D6 standard scale)
@@ -84,8 +92,10 @@ P12_ZOOM_TEXT = {"WT": u"Reed basins, lined: clean the stream once",      # R2: 
                  "wall": u"Stone walls: the walled town reach, kept",
                  "strip": u"Summer strip: water in the bed all summer"}
 P12_COL_W = 112.0                    # the column beside the map, mm
-P12_ZOOM_LEG_W = 52.0                # R2: mm at the band's right for the water legend and the scale bar (the callout
-#                                      key takes the whole left column: one line per element and planting group)
+P12_ZOOM_LEG_W = 46.0                # R2: mm at the band's right for the water legend and the scale bar
+P12_ZOOM_LEV_W = 24.0                # v13 (G-R4-5.4): mm right of the frame for the level marks (sf_level_marks)
+P12_ZOOM_INSET_DEN = 200             # v13 (G-R4-5.6): the reed basins' inset at 1:200 (parent 1:500, x2.5)
+P12_GROUP_MARK_M = 2.0               # v13 (G-R4-5.5): a planting group's number sits on its trunks this high (m)
 P12_GROUP_DO = {"shade": u"shade", "wind": u"break the wind", "noise": u"soften the noise",
                 "corridor": u"green corridor", "cleaning": u"clean the water", "perception": u"colour and scent"}
 #                                      R2 (G9): what a planting group does, from plants.py's purpose tags (sure only)
@@ -106,12 +116,13 @@ P12_RELIEF_CELL_MM = 1.6             # mm: a ground cell on the page (drawing ru
 P12_RELIEF_CELL_M = (3.0, 40.0)      # m: the ground cell's least and largest size
 P12_RELIEF_PAD_M = 150.0             # m: the ground grid reaches this far beyond the drawn box
 P12_RELIEF_BAND_M = 5.0              # m: the height steps of the ground tone (the stepped relief)
-P12_ZX = (0.5, 2.0, 0.6, 0.12)       # the ground's lift (a diagram: free scale): least and most exaggeration, the
+P12_ZX = (0.5, 4.0, 0.6, 0.25)       # v13 (P12.1, CHK-4: was most x2.0, share 0.12, printed x0.9): the ground's lift (a diagram: free scale): least and most exaggeration, the
 #                                      steepest lifted slope allowed (no fold: < the view's 0.79), the share of the
 #                                      map's height the lift may take
-P12_GROUND = dict(low="EFEDE6", high="B0AC9C", high_t=0.35, lit="FFFFFF", lit_t=0.25, shade="8E8F8A", shade_t=0.30,
-                  steps=5, step=0.06)  # palette paper -> structure by height; lit toward white, shade toward 8E8F8A
-P12_CONTOUR = (("847E75", 0.5, 0.035), ("847E75", 0.0, 0.06))   # the 5 m and 25 m contours: ink, mix to paper, mm
+P12_GROUND = dict(low="EFEDE6", high="B0AC9C", high_t=0.45, lit="FFFFFF", lit_t=0.45, shade="8E8F8A", shade_t=0.50,
+                  steps=8, step=0.04)  # palette paper -> structure by height; lit toward white, shade toward 8E8F8A
+#                                      (v13, P12.1: 8 steps, wider lit / shade range: the relief reads)
+P12_CONTOUR = ((None, 0.5, 0.10), (None, 0.0, 0.15))   # the 5 m and 25 m contours: (ramp colour), mix to paper, mm
 P12_INSET = (92.0, 64.0)             # mm: the map's zoom of the upstream entry (the blue box, P11.2)
 P12_MARK_R = 1.6                     # mm: the radius of a letter marker (P11.3, G18)
 P12_LETTERS = u"BCDEFGHJKLMNPQRSTUVWXYZ"   # the project's letters (P11.3): no A (the section's A-A'), no I/O (1/0)
@@ -122,8 +133,8 @@ P12_DEF = {"WA_bed": u"Amphibious bed: floods with the water level",
            "stream": u"Selinos stream kept as it runs: no work in this reach"}
 #                                      the zones' roles: bergama_zone_base/code.py l.20-36 (GR 2-3 "raised dry top",
 #                                      WA "bed" / "flood terrace"); palette MASTERPLAN "amphibious" (floods with the level)
-P12_ORCHARD = ("8C9969", "727A4E", "B1BA97", "5B5147")   # the generic orchard tree: crown, shade, light, trunk
-#                                      (TREE_STYLES "tree"; the land cover's crop is not sourced: no species)
+P12_ORCHARD_KEY = "olive"            # v13 (G-R4-6): the orchard symbol = the plant module's olive (the water balance's
+#                                      farm mix is "orchard olive + cropland cotton"; no colour set here)
 P12_FIELD_MM = (1.0, 0.08, 30.0, 4.0)   # field rows: spacing mm, pen mm; least patch (mm²) with a symbol; symbol mm
 P12_ZOOM_SPOT = (20.0, 2.5)          # the band's zoom of the reed basins: spot width mm, enlargement (G15)
 _P12_MEMO = {}                       # one run's ground model, drops, trees, tree styles
@@ -375,12 +386,59 @@ def _p12_put(pg, shapes):
     sec_put(pg, shapes)
 
 
+def _p12_mark(pg, s, x, y, col, size=None, style="solid"):
+    """v13 (G-R4-7): one marker through the shared mk_marker (glyph centred on its ink box, white rim, glyph white or
+    ink by contrast), at least size mm across; returns its box"""
+    sh, box, _r = mk_marker(x, y, s, col, size_pt=7.0, r_min=(size / 2.0) if size else None, style=style)
+    _p12_shapes(pg, sh)
+    return box
+
+
 def _p12_step(pg, n, x, y, size=4.2):
-    """the numbered step marker n (icons.py ico_step) centred on (x, y); returns its box"""
-    sh, (ax, ay), th, cap = ico_step(x, y, size, "solid", P12_STEP_COL.get(n))
-    _p12_put(pg, sh)
-    pg.text(str(n), ax, ay - cap / 2.0, cap / CAP, th, bold=True, align="C")
-    return (x - size / 2.0, y - size / 2.0, x + size / 2.0, y + size / 2.0)
+    """the numbered step marker n in its step's colour, centred on (x, y); returns its box (v13: mk_marker)"""
+    return _p12_mark(pg, str(n), x, y, P12_STEP_COL.get(n) or COL["ink"], size)
+
+
+def _p12_items(pg, items):
+    """v13: shared-module items (north_items, ml_* : fill / line / text, page mm) onto the page"""
+    def fill(rings, col, alpha, nonzero):
+        pg.poly([r for r in rings if len(r) >= 3], fill=col, alpha=alpha if alpha is not None and alpha < 0.999
+                else None)
+
+    def line(pts, col, w, dash, alpha):
+        pg.line(pts, col, w, list(dash) if dash else None)
+
+    def text(s_, p_, size, col, bold, align):
+        x_, y_ = p_
+        if align == "MC":
+            ib = fm_ink_box(s_, size / PT, bold)
+            y_ -= (ib[1] + ib[3]) / 2.0
+            align = "C"
+        pg.text(s_, x_, y_, size, col, bold=bold, align=align)
+    return basemap_draw(items, lambda p_: p_, fill, line, text)
+
+
+def _p12_soft(R, passes=None):
+    """v13 (P12.3): a zone's outline as a soft field: Chaikin corner cutting (closed ring), P12_SOFT_PASSES times"""
+    P = [tuple(p[:2]) for p in R]
+    for _ in range(P12_SOFT_PASSES if passes is None else passes):
+        if len(P) < 3:
+            break
+        Q = []
+        for i in range(len(P)):
+            a, b = P[i], P[(i + 1) % len(P)]
+            Q += [(0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]),
+                  (0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1])]
+        P = Q
+    return P
+
+
+def _p12_blob(cx, cy, R, rnd, m=9):
+    """v13 (moved unchanged from the retired TREE engine's _tree_blob): a leaf cluster, a round patch R mm across
+    with a ragged, leafy edge"""
+    ph = rnd() * 6.283
+    return [(cx + R * (0.80 + 0.28 * rnd()) * math.cos(ph + 6.283 * i / m),
+             cy + R * (0.80 + 0.28 * rnd()) * math.sin(ph + 6.283 * i / m)) for i in range(m)]
 
 
 def _p12_arrow(pg, a, b, col, lw=0.45, minlen=6.0, dash=None, head=1.8):
@@ -408,24 +466,42 @@ def _p12_bar(pg, x, y, den, marks=(0, 20, 50, 100)):
 
 
 def _p12_north(pg, x, y, d, L=7.0):
-    """a north arrow at (x, y) pointing along the unit page direction d; returns its box"""
-    tip = (x + d[0] * L, y + d[1] * L)
-    arrow(pg, [(x, y), tip], COL["ink"], 0.3, 2.0)
-    pg.text(u"N", tip[0] + d[0] * 1.6, tip[1] + d[1] * 1.6 - FS_MIN * CAP / 2.0, FS_MIN, COL["ink"], bold=True, align="C")
-    xs, ys = [x, tip[0] + d[0] * 3.5], [y, tip[1] + d[1] * 3.5]
-    return (min(xs) - 2.5, min(ys) - 2.5, max(xs) + 2.5, max(ys) + 2.5)
+    """v13 (G-R4-9): THE north arrow (keymap north_items: arrow + N, no plate) at (x, y) pointing along the unit page
+    direction d; returns its box"""
+    ang = math.atan2(d[1], d[0]) - math.pi / 2.0
+    its = north_items(x, y, ang, L)
+    _p12_items(pg, its)
+    ps = [q for it in its if it[0] != "text" for R_ in ([it[1]] if it[0] == "line" else it[1]) for q in R_]
+    tx = [it[2] for it in its if it[0] == "text"]
+    ps += [(q[0] + dx, q[1] + dy) for q in tx for dx in (-1.5, 1.5) for dy in (-1.5, 1.5)]
+    b = _p12_bbox(ps)
+    return (b[0] - 0.5, b[1] - 0.5, b[2] + 0.5, b[3] + 0.5)
 
 
 # ---------------------------------------------------------------- the data: zones and links, figures
-def _p12_zones(log):
-    """the Option A zones and water links (survey m) from the water balance's results, key "zones" (v6)"""
+def _p12_zones(log, D=None):
+    """the Option A zones and water links (survey m) from the water balance's results, key "zones" (v6); v13 (CHK-7
+    site 13, G-R4-4): each zone ring clipped to the study area (sc_rings_clip on sc_rings(D), page "p12": one zone
+    per part it reaches); the unclipped zones are kept in _P12_MEMO["zones0"] for the figures (_p12_figures: the
+    water balance's numbers, never a clipped area)"""
     z = _p12_get("zones")
     if not z or not z.get("zones"):
         log.append(u"p.12: water_balance_results.json has no zones (run the water balance v6): the map shows the "
                    u"stream, the places and the flows only")
         return [], []
     log.append(u"p.12: zones from the water balance ({})".format(z.get("source", u"?")))
-    zs = [dict(q, ring=[tuple(p) for p in q["ring"]]) for q in z["zones"] if len(q.get("ring") or []) >= 3]
+    st = sc_rings(D)
+    _P12_MEMO["sc"] = st
+    zs, z0 = [], []
+    for q in z["zones"]:
+        if len(q.get("ring") or []) < 3:
+            continue
+        r0 = [tuple(p[:2]) for p in q["ring"]]
+        z0.append(dict(q, ring=r0))
+        zs += [dict(q, ring=[tuple(p) for p in r]) for r in sc_rings_clip(r0, st, "p12") if len(r) >= 3]
+    _P12_MEMO["zones0"] = z0
+    if not st:
+        log.append(u"p.12: FLAG no study area in the base map: zones and zone trees not clipped")
     return zs, [dict(q, P=[tuple(p) for p in q["P"]]) for q in z.get("links") or [] if len(q.get("P") or []) >= 2]
 
 
@@ -827,7 +903,7 @@ def _p12_terrain(pg, R, T, K):
 
 def _p12_contours(pg, L, R, T, K, sb):
     """the survey contours (inside the frame) on the lifted ground at their own heights: every 5 m a fine line,
-    every 25 m a little stronger (P12_CONTOUR); with an old cache (heights rounded to 5 m) only the major ones.
+    every 25 m a little stronger (P12_CONTOUR), v13 coloured by height on P12_CONTOUR_RAMP (lighter = lower); with an old cache (heights rounded to 5 m) only the major ones.
     Returns the number of pieces drawn."""
     cs = [c for c in L.get("contours") or [] if c[1] is not None and len(c[2]) >= 2]
     if not cs:
@@ -842,8 +918,9 @@ def _p12_contours(pg, L, R, T, K, sb):
             continue
         if not _p12_hit(P, sb):
             continue
-        col, t, w = P12_CONTOUR[1 if abs(z - 25.0 * round(z / 25.0)) <= 0.15 else 0]
-        c_ = _sec_mix(col, P12_GROUND["low"], t) if t else col
+        _c, _t, w = P12_CONTOUR[1 if abs(z - 25.0 * round(z / 25.0)) <= 0.15 else 0]
+        tz = min(1.0, max(0.0, (z - R["z0"]) / max(R["zr"], 1e-6)))
+        c_ = _sec_mix(P12_CONTOUR_RAMP[0], P12_CONTOUR_RAMP[1], tz)   # v13 (G-R4-4): coloured to the relief
         lz = R["zx"] * (z - R["z0"])
         for piece in _p12_cline([T(p, lz) for p in P], K):
             pg.line(piece, c_, w)
@@ -1019,27 +1096,48 @@ def _p12_channel(pg, L, T, K, k, view, sb, log, R, dz):
     return out
 
 
-def _p12_stream_top(pg, L, T, K, sb):
-    """what lies over or beyond the open stream, flat on the ground: bridge decks and lines, the covered course
-    (dashed), OpenStreetMap's water beyond the survey frame"""
-    out = dict(bridge=False, covered=False)
+def _p12_sarea(R):
+    """the signed area of a ring (+ counter-clockwise, y up)"""
+    return sum(R[i][0] * R[(i + 1) % len(R)][1] - R[(i + 1) % len(R)][0] * R[i][1] for i in range(len(R))) / 2.0
+
+
+def _p12_stream_top(pg, L, T, R, K, sb):
+    """what lies over or beyond the open stream: v13 (P12.2, CHK-4 3) the bridge decks as 3D slabs, the top at the
+    highest lifted ground of the deck's ring, P12_DECK_T_M x the lift thick (a drawing rule: no deck survey), its
+    faces that turn to the viewer drawn in the deck's edge tone, then the top; the bridge lines lifted the same way;
+    the covered course (dashed) and OpenStreetMap's water beyond the survey frame flat as before"""
+    out = dict(bridge=False, covered=False, decks=0)
     pal = _wat_pal()
+    lift, th = R["lift"], P12_DECK_T_M * R["zx"]
     for g in L.get("water_out") or []:
-        rr = [r for r in (_p12_cring([T(p) for p in R], K) for R in g if len(R) >= 3) if r]
+        rr = [r for r in (_p12_cring([T(p) for p in Rg], K) for Rg in g if len(Rg) >= 3) if r]
         if rr:
             pg.poly(rr, fill=pal["surface"])
     for kind, P in L.get("waterways_out") or []:
         for piece in _p12_cline([T(p) for p in P], K):
             pg.line(piece, BM_COL["water"], 0.3)
-    for R in L.get("decks") or []:
-        if len(R) >= 3 and _p12_hit(R, sb):
-            rr = _p12_cring([T(p) for p in R], K)
-            if rr:
-                pg.poly([rr], fill=BM_COL["road"], stroke=BM_COL["road_edge"], lw=0.1)
-                out["bridge"] = True
+    side = _sec_mix(BM_MUTED["road"], BM_MUTED["road_edge"], 0.6)
+    for Rd in L.get("decks") or []:
+        if len(Rd) < 3 or not _p12_hit(Rd, sb):
+            continue
+        h = max(lift(p[0], p[1]) for p in Rd)
+        top = [T(p, h) for p in Rd]
+        sg = 1.0 if _p12_sarea(top) >= 0 else -1.0
+        for a, b in zip(Rd, Rd[1:] + Rd[:1]):
+            q = [T(a, h), T(b, h), T(b, h - th), T(a, h - th)]
+            if _p12_sarea(q) * sg < 0:              # the face turns to the viewer
+                rq = _p12_cring(q, K)
+                if rq:
+                    pg.poly([rq], fill=side, stroke=BM_MUTED["road_edge"], lw=0.1)
+        rr = _p12_cring(top, K)
+        if rr:
+            pg.poly([rr], fill=BM_MUTED["road"], stroke=BM_MUTED["road_edge"], lw=0.12)
+            out["bridge"] = True
+            out["decks"] += 1
     for P in L.get("bridges") or []:
         if len(P) >= 2 and _p12_hit(P, sb):
-            for piece in _p12_cline([T(p) for p in P], K):
+            h = max(lift(p[0], p[1]) for p in P)
+            for piece in _p12_cline([T(p, h) for p in P], K):
                 pg.line(piece, BM_COL["ink"], 0.3)
                 out["bridge"] = True
     for P in L.get("covered") or []:
@@ -1059,9 +1157,11 @@ def _p12_canopy(pg, rings, k, log):
     """the tree cover (survey / WorldCover, page rings on the lifted ground) as a canopy texture: leaf clusters on a
     jittered P12_CANOPY_M lattice, their shadows first, pushed to the lower right (light from the upper left, as the
     buildings and trees); v12 (G9, D7): every shape opaque, no pale ground under them (the relief shows between the
-    clusters); returns the number of clusters"""
-    st = TREE_STYLES["context"]
-    shadow = _sec_mix(st["shadow"], P12_GROUND["low"], 0.75)
+    clusters); v13 (CHK-6: TREE engine retired) tones of the base map's tree cover BM_COL["tree"] (a land-cover
+    category, no species); returns the number of clusters"""
+    tc = BM_COL["tree"]
+    st = dict(mid=tc, dark=_sec_mix(tc, "3C4733", 0.45), light=_sec_mix(tc, "FFFFFF", 0.3))
+    shadow = _sec_mix(_sec_mix(tc, "3C4733", 0.7), P12_GROUND["low"], 0.75)
     s = max(0.9, P12_CANOPY_M * k)
     pts = []
     for R in rings:
@@ -1084,7 +1184,7 @@ def _p12_canopy(pg, rings, k, log):
     for px, py, r, _c in pts:
         pg.poly([[(q[0] + 0.35 * r, q[1] - 0.22 * r) for q in _p12_circle_pts(px, py, r, 10)]], fill=shadow)
     for px, py, r, c in pts:
-        pg.poly([_tree_blob(px, py, r, _tree_rand(px, py), 9)], fill=(st["mid"], st["dark"], st["light"])[c])
+        pg.poly([_p12_blob(px, py, r, _tree_rand(px, py), 9)], fill=(st["mid"], st["dark"], st["light"])[c])
     return len(pts)
 
 
@@ -1092,7 +1192,8 @@ def _p12_zone_trees(zones, log, water_rings=()):
     """the planted trees of the project's zones (survey m): a mixed, ecologically zoned scatter (plants.py, G9:
     never rows), wet to dry away from the Selinos line, in the streamside planting, the walks and dry tops and
     Demeter's garden; [(key, x, y, crown m, height m)], heights the species' sourced drawing heights. v12 (G8): none
-    whose trunk or half its crown stands over the stream (water_clip_points on water_rings, survey m; logged)"""
+    whose trunk or half its crown stands over the stream (water_clip_points on water_rings, survey m; logged); v13
+    (CHK-7 site 13): none whose trunk stands outside the study area (sc_points, page "p12")"""
     out = []
     for i, z in enumerate(zones):
         if z["code"] not in P12_ZONE_MIX:
@@ -1109,40 +1210,19 @@ def _p12_zone_trees(zones, log, water_rings=()):
                 continue
             out.append((key, x, y, cm, pla_height_ok(key, sp["h_m"] * cm / sp["crown_m"])))
     kept = water_clip_points([(x, y, cm / 2.0, key, cm, h) for key, x, y, cm, h in out], list(water_rings),
-                             page="p11")
+                             page="p12")
+    kept = sc_points(kept, _P12_MEMO.get("sc") or [], get=lambda q: (q[0], q[1], q[2]), r_frac=0.0, page="p12")
     return [(q[3], q[0], q[1], q[4], q[5]) for q in kept]
 
 
-def _p12_tree_style(key):
-    """G9 (D7, v12): the draw_tree colours of one species from the shared plant module (pla_colour: each species its
-    own colour, opaque) on its form's leaf-cluster count (P12_TREE_STY); its shadow opaque, on the ground's tone"""
-    sty = _P12_MEMO.setdefault("sty", {})
-    if key not in sty:
-        base = TREE_STYLES[P12_TREE_STY.get(key, "tree")]
-        try:
-            c = pla_colour(key)
-        except Exception:
-            c = {}
-        fill = c.get("fill") or base["mid"]
-        sty[key] = dict(base, mid=fill, dark=c.get("edge") or _sec_mix(fill, "000000", 0.25),
-                        light=c.get("lt") or _sec_mix(fill, "FFFFFF", 0.35), trunk=c.get("stem") or base["trunk"],
-                        shadow=_sec_mix(base["shadow"], P12_GROUND["low"], 0.82), shadow_a=None)
-    return sty[key]
-
-
 def _p12_orchard_tree(pg, x, y, s):
-    """P11.5: the generic orchard tree (the land cover's crop is not sourced: no species), s mm high, standing on
-    (x, y): an opaque ground shadow, a short trunk, a round crown lit from the upper left"""
-    cr, cs, cl, tk = P12_ORCHARD
-    r = 0.36 * s
-    cy = y + s - r
-    pg.poly([[(x + 0.18 * s + 0.42 * s * math.cos(t), y + 0.1 * s * math.sin(t)) for t in
-              [2.0 * math.pi * i / 20 for i in range(20)]]], fill=_sec_mix("495338", P12_GROUND["low"], 0.8))
-    pg.line([(x, y), (x, cy - 0.4 * r)], tk, max(0.12, 0.05 * s))
-    pg.poly([_p12_circle_pts(x + 0.07 * s, cy - 0.06 * s, r, 28)], fill=cs)
-    pg.poly([_p12_circle_pts(x - 0.03 * s, cy + 0.02 * s, 0.9 * r, 28)], fill=cr)
-    pg.poly([_p12_circle_pts(x - 0.12 * s, cy + 0.11 * s, 0.38 * r, 18)], fill=cl)
-    return (x - r - 0.1 * s, y - 0.1 * s, x + 0.6 * s, y + s)
+    """P11.5, v13 (G-R4-6, CHK-6): the orchard symbol, the plant module's olive (P12_ORCHARD_KEY, one drawing
+    everywhere) s mm high standing on (x, y), through pla_axo at its sourced height; returns its box"""
+    h = PLA_SPECIES[P12_ORCHARD_KEY]["h_m"]
+    _p12_put(pg, pla_axo(P12_ORCHARD_KEY, x, y, s / h, seed=7))
+    cm = PLA_SPECIES[P12_ORCHARD_KEY].get("crown_m") or h
+    r = 0.6 * cm * s / h
+    return (x - r, y - 0.1 * s, x + r, y + 1.05 * s)
 
 
 def _p12_fields(pg, L, Tg, K, k, sb, step):
@@ -1212,14 +1292,14 @@ def _p12_legend(pg, ga, rows, avoid, taken):
             for i, c in enumerate((_sec_mix(G_["low"], G_["lit"], G_["lit_t"]), G_["low"],
                                    _sec_mix(_sec_mix(G_["low"], G_["high"], G_["high_t"]), G_["shade"], G_["shade_t"]))):
                 pg.poly([rect(x0 + i * (x1 - x0) / 3.0, y0, x0 + (i + 1) * (x1 - x0) / 3.0, y1)], fill=c)
-            pg.line([(x0, y0 + 0.3 * (y1 - y0)), (x1, y0 + 0.7 * (y1 - y0))], P12_CONTOUR[1][0], P12_CONTOUR[1][2])
+            pg.line([(x0, y0 + 0.3 * (y1 - y0)), (x1, y0 + 0.7 * (y1 - y0))], P12_CONTOUR_RAMP[1], P12_CONTOUR[1][2])
         elif r["kind"] == "tree":                      # one opaque crown per colour (species colours, G9)
-            cols = r.get("cols") or [TREE_STYLES["tree"]["mid"]]
+            cols = r.get("cols") or [BM_COL["tree"]]
             n_ = len(cols)
             R = min((y1 - y0) * 0.5, (x1 - x0) / (2.0 * n_) + 0.25)
             for i, c in enumerate(cols):
                 cx = x0 + (x1 - x0) * (i + 0.5) / n_
-                pg.poly([_tree_blob(cx, ym, R, _tree_rand(cx, ym), 9)], fill=c)
+                pg.poly([_p12_blob(cx, ym, R, _tree_rand(cx, ym), 9)], fill=c)
         elif r["kind"] == "orchard":
             _p12_orchard_tree(pg, (x0 + x1) / 2.0, y0 - 0.2, (y1 - y0) + 0.6)
         elif r["kind"] == "letter":
@@ -1279,22 +1359,41 @@ def _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees):
             if col == BM_COL["tree"]:
                 canopy.extend(rr)
                 return True
+            if col == BM_COL["road"]:                   # v13 (P12.1, CHK-4 3): streets as closed edges over the
+                for r_ in rr:                           # shaded ground, never an opaque fill hiding the relief
+                    pg.line(r_ + r_[:1], P12_ROAD_EDGE[0], P12_ROAD_EDGE[1])
+                return True
+            if col in (BM_COL["park"], BM_COL["grass"]):  # v13 (CHK-4 3): parks let the relief read through
+                pg.poly(rr, fill=col, alpha=P12_ZONE_ALPHA)
+                return True
             return False
         _p12_base(pg, items, Tg, K, hook, step)
         out["fills"] = set(it[2] for it in items if it[0] == "fill")
         out["fields"] = _p12_fields(pg, L, Tg, K, k, sb, step)
         out["ncan"] = _p12_canopy(pg, canopy, k, log)
-        for Rs in basemap_study(D):
-            if len(Rs) >= 3 and _p12_hit(Rs, sb):
-                for piece in _p12_cline([Tg(p) for p in _p12_dense(list(Rs) + [Rs[0]], step)], K):
-                    pg.line(piece, COL["ink2"], 0.18, [1.2, 0.5])
-                    out["study"] = True
         out["ncont"] = _p12_contours(pg, L, R, T, K, sb)
         # the bed and the water
         out["ch"] = _p12_channel(pg, L, T, K, k, view, sb, log, R, dz)
-    # the zones of the project, flat on the ground (the summer strip: in the section only, D2)
+    # v13 (G-R4-4: base back, project front): the structures of the base first: bridge decks as slabs at the bank
+    # tops (P12.2), then EVERY survey building as a volume with its roof (P12.2, CHK-4 3: no flat footprints), light
+    # base tones, standing on the relief at every corner (bld_axo_items, S2); heritage in its rose
+    if L:
+        out["top"] = _p12_stream_top(pg, L, T, R, K, sb)
+        units = [b for b in L.get("buildings") or [] if b.get("rings") and _p12_hit(b["rings"][0], sb)]
+        out["her"] = any(b.get("her") for b in units)
+        out["near"], out["far"], out["units"] = len(units), 0, bool(units)
+        gfn = lambda x, y: lift(x, y)
+        its = bld_axo_items([b for b in units if not b.get("her")], P3, view=view, box=sb, ground=gfn,
+                            cols=P12_BLD_COLS)
+        if out["her"]:
+            its += bld_axo_items([b for b in units if b.get("her")], P3, view=view, box=sb, cols=P12_HER_COLS,
+                                 ground=gfn)
+        _p12_base(pg, its, lambda p: p, K)
+    # the project: the D9 footprint tint, then the zones as soft, terrain-following fields (P12.3; already clipped to
+    # the study area in _p12_zones) in their own colour over it (the summer strip: in the section only, D2)
     wr = [g[0] for g in ((L or {}).get("water") or []) if g and len(g[0]) >= 3]
     wbb = [_p12_bbox(R_) for R_ in wr]
+    fields = []
     for z in zones:
         if z["code"] == "STRIP":
             continue
@@ -1302,33 +1401,16 @@ def _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees):
         c = _p12_cen(z["ring"])
         wet = any(b_[0] <= c[0] <= b_[2] and b_[1] <= c[1] <= b_[3] and _p12_pip(c[0], c[1], R_)
                   for R_, b_ in zip(wr, wbb))
-        dn = _p12_dense(z["ring"], step, True)
+        dn = _p12_dense(_p12_soft(z["ring"]), step, True)
         rr = _p12_cring([T(p, lift(p[0], p[1]) - dz(p)[0]) for p in dn] if wet else [Tg(p) for p in dn], K)
         if rr:
-            pg.poly([rr], fill=tones[0], stroke=tones[1], lw=0.15)
-    # the structures: over the stream, the buildings (v9: volumes only near the stream and heritage, the rest as
-    # faint footprints; v12: standing on the relief, footprints opaque)
-    if L:
-        out["top"] = _p12_stream_top(pg, L, Tg, K, sb)
-        units = [b for b in L.get("buildings") or [] if b.get("rings") and _p12_hit(b["rings"][0], sb)]
-        out["her"] = any(b.get("her") for b in units)
-        near, far = [], []
-        for b in units:
-            (near if b.get("her") or _p12_near(b["rings"][0], P12_SELINOS, P12_BLD_NEAR_M) else far).append(b)
-        farc = _sec_mix(P12_BLD_FAR[0], COL["white"], P12_BLD_FAR[1])
-        for b in far:
-            for R_ in b["rings"][:1]:
-                rr = _p12_cring([Tg(p) for p in _p12_dense(R_, step, True)], K)
-                if rr:
-                    pg.poly([rr], fill=farc)
-                    out["nfar"] += 1
-        out["near"], out["far"], out["units"] = len(near), len(far), bool(near)
-        gfn = lambda x, y: lift(x, y)
-        its = bld_axo_items([b for b in near if not b.get("her")], P3, view=view, box=sb, ground=gfn)
-        if out["her"]:
-            its += bld_axo_items([b for b in near if b.get("her")], P3, view=view, box=sb, cols=P12_HER_COLS,
-                                 ground=gfn)
-        _p12_base(pg, its, lambda p: p, K)
+            fields.append((rr, tones))
+    for rr, _t in fields:
+        _p12_items(pg, ml_tint([rr]))
+    for rr, tones in fields:
+        pg.poly([rr], fill=tones[0], alpha=P12_ZONE_ALPHA)
+        pg.line(rr + rr[:1], tones[1], 0.25)
+    out["tint"] = bool(fields)
     # HOLD: the design store as a cube at the map's own scale, under the upstream entry's terraces and basins
     # (dashed: in the ground; v12 opaque), an arrow down into it
     up = _p12_pick(zones, "WS", "aras") + _p12_pick(zones, "WT", "aras")
@@ -1339,31 +1421,52 @@ def _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees):
     if e > 0.0:
         lh = lift(hold[0], hold[1])
         P = lambda i, j, l: T((hold[0] + (i - 0.5) * e, hold[1] + (j - 0.5) * e), lh - l * e)
-        rr = _p12_cring(_p12_hull([P(i, j, l) for i in (0, 1) for j in (0, 1) for l in (0, 1)]), K)
+        hull = _p12_hull([P(i, j, l) for i in (0, 1) for j in (0, 1) for l in (0, 1)])
+        out["cube_hull"] = hull
+        rr = _p12_cring(hull, K)
         if rr:
-            pg.poly([rr], fill=MP["storage"][0])
+            pg.poly([rr], fill=MP["storage"][0], alpha=P12_STORE_ALPHA)   # v13 (P12.3): a quiet ghost volume
             for a_, b_ in (((0, 0, 0), (1, 0, 0)), ((1, 0, 0), (1, 1, 0)), ((1, 1, 0), (0, 1, 0)), ((0, 1, 0), (0, 0, 0)),
                            ((0, 0, 1), (1, 0, 1)), ((1, 0, 1), (1, 1, 1)), ((1, 1, 1), (0, 1, 1)), ((0, 1, 1), (0, 0, 1)),
                            ((0, 0, 0), (0, 0, 1)), ((1, 0, 0), (1, 0, 1)), ((1, 1, 0), (1, 1, 1)), ((0, 1, 0), (0, 1, 1))):
                 for piece in _p12_cline([P(*a_), P(*b_)], K):
-                    pg.line(piece, MP["storage"][2], 0.22, [0.9, 0.6])
+                    pg.line(piece, MP["storage"][2], 0.18, [0.9, 0.6])
             out["cube_b"] = _p12_bbox(rr)
             a_, b_ = T(hold, lh), T(hold, lh - 0.55 * e)
             if ins(a_) and ins(b_):
                 arrow(pg, [a_, b_], MP["storage"][2], 0.4, 1.5)
     # the vegetation: the zones' trees in 3D (shadows first, then far to near; each species its colour, opaque)
-    trs = sorted(trees, key=lambda t_: t_[1] * view[0] + t_[2] * view[1])
-    keep = []
+    # v13 (CHK-6, G-R4-6, P12.4): every tree is the plant module's drawing (pla_axo: willow v2 among them) standing
+    # at its point, heights at the buildings' scale (k x cos); far to near; none on the winter store (its ghost hull)
+    # and none reaching past the map or the zoom box (crown and height margins: nothing cut by the frame)
+    trs = sorted(trees, key=lambda t_: -(t_[1] * view[0] + t_[2] * view[1]))
+    kz = k * P12_COS
+    hull = out.get("cube_hull")
+    keep, n_cube = [], 0
     for t_ in trs:
         q = Tg((t_[1], t_[2]))
-        rx, top = t_[3] / 2.0 * k + 0.5, t_[4] * P12_COS * k + 0.5
-        if bb[0] + rx < q[0] < bb[2] - rx and bb[1] + 1.0 < q[1] < bb[3] - top:
-            keep.append(t_)
+        rx, top = 0.6 * t_[3] * k + 0.5, 1.05 * t_[4] * kz + 0.5
+        if not (bb[0] + rx < q[0] < bb[2] - rx and bb[1] + 1.0 < q[1] < bb[3] - top):
+            continue
+        if hull and (_p12_pip(q[0], q[1], hull) or any(math.hypot(q[0] - h_[0], q[1] - h_[1]) < rx for h_ in hull)
+                     or _p12_pip(q[0], q[1] + 0.5 * top, hull)):
+            n_cube += 1
+            continue
+        keep.append(t_)
     for key_, x, y, cm, h in keep:
-        tree_shadow(pg, P3g, k, x, y, cm / 2.0, _p12_tree_style(key_))
-    for key_, x, y, cm, h in keep:
-        draw_tree(pg, P3g, k, x, y, cm / 2.0, h, _p12_tree_style(key_), shadow=False)
+        q = Tg((x, y))
+        _p12_shapes(pg, pla_axo(key_, q[0], q[1], kz, h_m=h, crown_m=cm, seed=int(abs(x * 7.0 + y * 3.0)) % 997))
     out["trees"] = keep
+    if n_cube:
+        log.append(u"p12 map: {} trees left out on the winter store (P12.4)".format(n_cube))
+    # v13 (P12.5, G-R4-4): the study area, ONE style everywhere (BM_STUDY_LINE), after the vegetation, under the marks
+    if L:
+        st_ = BM_STUDY_LINE
+        for Rs in sc_rings(D):
+            if len(Rs) >= 3 and _p12_hit(Rs, sb):
+                for piece in _p12_cline([Tg(p) for p in _p12_dense(list(Rs) + [Rs[0]], step)], K):
+                    pg.line(piece, st_["colour"], st_["width_mm"], list(st_["dash_mm"]))
+                    out["study"] = True
     # the flow: in at the top (hand arrow on the first 16 mm), out to the farms beyond the last point
     S = [Tg(p) for p in P12_SELINOS]
     Ls = _p12_len(S)
@@ -1401,22 +1504,60 @@ def _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees):
             segs.append(r)
             if ln.get("kind") in ("flood", "people"):
                 out["lk"].add(ln["kind"])
-    # the up-close section's line (the band below draws it), its ends A and A' (D6)
+    # the up-close section's line (the band below draws it), v13 (G-R4-9): in the red R01 style: dash-dot line, an
+    # end bar and an open triangle pointing the look direction at each end, A / A' beyond the bars
     if Z:
         za, zb_ = Tg(Z["A"]), Tg(Z["B"])
+        st_ = KM_CUT
         for piece in _p12_cline([za, zb_], K):
-            pg.line(piece, COL["accent"], 0.35, [1.6, 0.6, 0.3, 0.6])
+            pg.line(piece, st_["colour"], st_["lw"], list(st_["dash"]))
         Lz = math.hypot(zb_[0] - za[0], zb_[1] - za[1]) or 1.0
         uz = ((zb_[0] - za[0]) / Lz, (zb_[1] - za[1]) / Lz)
+        o_ = ((Z["A"][0] + Z["B"][0]) / 2.0, (Z["A"][1] + Z["B"][1]) / 2.0)
+        lk_ = Tg((o_[0] - Z["e"][1] * 10.0, o_[1] + Z["e"][0] * 10.0))    # the look: n = e turned +90 deg (A left)
+        lc_ = Tg(o_)
+        ll_ = math.hypot(lk_[0] - lc_[0], lk_[1] - lc_[1]) or 1.0
+        ud = ((lk_[0] - lc_[0]) / ll_, (lk_[1] - lc_[1]) / ll_)
+        pn = (-uz[1], uz[0])
+        hb, th = st_["end_bar"] / 2.0, st_["tri_h"]
         for p_, s_, sg in ((za, u"A", -1.0), (zb_, u"A'", 1.0)):
-            if ins(p_):
-                tx, ty = p_[0] + sg * uz[0] * 1.9, p_[1] + sg * uz[1] * 1.9
-                w_ = text_w(s_, FS_MIN, True)
-                pg.text(s_, tx, ty - FS_MIN * CAP / 2.0, FS_MIN, COL["accent"], bold=True, align="C")
-                out["labels"].append((tx - w_ / 2.0, ty - FS_MIN * CAP / 2.0, tx + w_ / 2.0, ty + FS_MIN * CAP / 2.0))
+            if not ins(p_):
+                continue
+            pg.line([(p_[0] - pn[0] * hb, p_[1] - pn[1] * hb), (p_[0] + pn[0] * hb, p_[1] + pn[1] * hb)],
+                    st_["colour"], st_["bar_lw"])
+            tb_ = (p_[0] + ud[0] * 0.2, p_[1] + ud[1] * 0.2)
+            hw_ = 0.55 * th
+            tri = [(tb_[0] - uz[0] * hw_, tb_[1] - uz[1] * hw_), (tb_[0] + ud[0] * th, tb_[1] + ud[1] * th),
+                   (tb_[0] + uz[0] * hw_, tb_[1] + uz[1] * hw_)]
+            pg.line(tri + tri[:1], st_["colour"], st_["tri_lw"])
+            tx, ty = p_[0] + sg * uz[0] * 2.4, p_[1] + sg * uz[1] * 2.4
+            pg.text(s_, tx, ty - FS_MIN * CAP / 2.0, FS_MIN, st_["colour"], bold=True, align="C")
+            w_ = text_w(s_, FS_MIN, True)
+            out["labels"].append((tx - w_ / 2.0, ty - FS_MIN * CAP / 2.0, tx + w_ / 2.0, ty + FS_MIN * CAP / 2.0))
         segs.append((za, zb_))
     out["S"], out["segs"] = S, segs
     return out
+
+
+def _p12_block(pg, ga, T, Ti, R):
+    """v13 (P12.1, CHK-4 4): the terrain block's front face: the ground cut on the plan line that lies P12_BLOCK[0]
+    over the map's foot at z = 0, white under the lifted profile (what stood in front of the cut is gone), the face
+    from the profile down to a plinth P12_BLOCK[1] under the z = 0 line (never closer than P12_BLOCK[2] to the
+    foot), and "heights x n, diagram, no scale" printed on it. Returns the face's box."""
+    yb = ga[1] + P12_BLOCK[0]
+    yf = max(ga[1] + P12_BLOCK[2], yb - P12_BLOCK[1])
+    n = max(8, int((ga[2] - ga[0]) / 1.0))
+    prof = []
+    for i in range(n + 1):
+        x = ga[0] + (ga[2] - ga[0]) * i / float(n)
+        p = Ti(x, yb)
+        prof.append((x, min(ga[3], T(p, R["lift"](p[0], p[1]))[1])))
+    pg.poly([[(ga[0], ga[1]), (ga[2], ga[1])] + prof[::-1]], fill=COL["white"])
+    face = _sec_mix(P12_GROUND["low"], P12_GROUND["shade"], 0.55)
+    pg.poly([prof + [(ga[2], yf), (ga[0], yf)]], fill=face, stroke=_sec_mix(face, "000000", 0.2), lw=0.12)
+    s_ = u"heights ×{:.1f} · diagram, no scale".format(R["zx"])
+    pg.text(s_, ga[0] + 2.0, yf + 0.5, FS_MIN, COL["ink"])
+    return (ga[0], yf, ga[2], max(p[1] for p in prof))
 
 
 def _p12_map(pg, ga, zones, links, f, Z, D, log):
@@ -1457,13 +1598,16 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     Sc = _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees)
     log.append(u"p11 relief: ground lifted x{:.2f} (a diagram: free scale), {:.2f} to {:.2f} m in view, grid {:.0f} m, "
                u"{} ground faces, {} contour pieces".format(zx, z0, z0 + zr, s, Sc["nground"], Sc["ncont"]))
+    fb = _p12_block(pg, ga, T, Ti, R)
     if L:
         _p12_k5_check(L, D, log)
-        log.append(u"p.12 map: {} buildings as volumes on the ground (within {:.0f} m of the stream, heritage), {} as "
-                   u"flat footprints".format(Sc["near"], P12_BLD_NEAR_M, Sc["far"]))
+        log.append(u"p12 map: {} buildings as volumes on the ground (every survey building, CHK-4 3), {} bridge "
+                   u"decks as slabs".format(Sc["near"], (Sc["top"] or {}).get("decks", 0)))
+    log.append(u"layers base→project ok, n_outside_clipped {} (p12 axo: ground, base, buildings, D9 tint, zones, "
+               u"store, trees, study line, marks)".format(sc_count("p12")))
     Tg = lambda p: T(p, R["lift"](p[0], p[1]))
     M = dict(T=T, Ti=Ti, Tg=Tg, k=k, view=view, R=R, dem=dem, Sc=Sc, S=Sc["S"], segs=list(Sc["segs"]), dz=dz,
-             trees=trees, taken=list(Sc["labels"]), labels=list(Sc["labels"]), hold=Sc["hold"], e=Sc["e"], legend=None)
+             trees=trees, taken=list(Sc["labels"]) + [fb], labels=list(Sc["labels"]) + [fb], hold=Sc["hold"], e=Sc["e"], legend=None)
     I = _p12_inset(pg, ga, M, zones, links, f, Z, D, log)
     M["inset"] = I
     if I:
@@ -1502,7 +1646,7 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     if dem["kind"] != "flat":
         src = {"both": u"survey contours + Copernicus GLO-30", "survey": u"survey contours",
                "glo": u"Copernicus GLO-30"}[dem["kind"]]
-        lg.append((u"Ground: {}, heights ×{:.1f}, 5 m steps".format(src, zx), "ground", {}))
+        lg.append((u"Ground: {}, heights ×{:.1f}, diagram, 5 m contours".format(src, zx), "ground", {}))
     if ch.get("water"):
         lg.append((u"Selinos stream, water at average yearly flow", "fill", dict(colour=pal["surface"], edge=pal["edge"])))
     if ch.get("wall"):
@@ -1510,33 +1654,34 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     if ch.get("bank"):
         lg.append((u"Earth bank", "fill", dict(colour=SCT["earth"])))
     if Sc["units"]:
-        lg.append((u"Building at its survey height", "fill", dict(colour=BLD_COL["wall_lit"], edge=BLD_COL["axo_line"])))
-    if Sc["nfar"]:
-        lg.append((u"Building further from the stream, footprint", "fill",
-                   dict(colour=_sec_mix(P12_BLD_FAR[0], COL["white"], P12_BLD_FAR[1]))))
+        lg.append((u"Building at its survey height", "fill", dict(colour=P12_BLD_COLS["wall_lit"],
+                                                                   edge=P12_BLD_COLS["axo_line"])))
     if Sc["her"]:
         lg.append((u"Heritage building", "fill", dict(colour=P12_HER_COLS["wall_lit"], edge=P12_HER_COLS["axo_line"])))
     if BM_COL["road"] in Sc["fills"]:
-        lg.append((u"Street", "fill", dict(colour=BM_COL["road"], edge=BM_COL["road_edge"])))
+        lg.append((u"Street edge", "line", dict(colour=P12_ROAD_EDGE[0], width=max(0.2, P12_ROAD_EDGE[1]))))
     if BM_COL["park"] in Sc["fills"]:
-        lg.append((u"Park, grass", "fill", dict(colour=BM_COL["park"])))
+        lg.append((u"Park, grass", "fill", dict(colour=_sec_mix(P12_GROUND["low"], BM_COL["park"], P12_ZONE_ALPHA))))
     if Sc["fields"].get("field"):
         lg.append((u"Field: the farms that take the clean water", "fill", dict(colour=BM_COL["field"])))
     if Sc["fields"].get("orchard"):
         lg.append((u"Orchard: one tree for each orchard", "orchard", {}))
     if Sc["ncan"]:
-        lg.append((u"Tree cover", "tree", dict(cols=[TREE_STYLES["context"]["mid"], TREE_STYLES["context"]["dark"]])))
+        lg.append((u"Tree cover", "tree", dict(cols=[BM_COL["tree"], _sec_mix(BM_COL["tree"], "3C4733", 0.45)])))
     tk_ = sorted(set(t_[0] for t_ in Sc["trees"] + (I["Sc"]["trees"] if I else [])))
     if tk_:
         lg.append((u"Planted tree at its species' height, each species its colour", "tree",
-                   dict(cols=[_p12_tree_style(q)["mid"] for q in tk_][:4])))
+                   dict(cols=[pla_colours(q)["fill"] for q in tk_][:4])))
+    if Sc.get("tint"):
+        lg.append((u"What the project changes (light tint), zones over it", "fill",
+                   dict(colour=_sec_mix(COL["white"], ML_TINT, ML_TINT_ALPHA))))
     if top.get("bridge"):
         lg.append((u"Bridge", "line", dict(colour=BM_COL["ink"], width=0.3)))
     if top.get("covered"):
         lg.append((u"Covered stream", "dash", dict(colour=BM_COL["water_edge"], width=0.3, dash=list(BM_COVERED_DASH))))
     if Sc["cube_b"] or (I and I["Sc"]["cube_b"]):
-        lg.append((u"Winter store in the ground, to scale", "dash", dict(colour=MP["storage"][2], width=0.22,
-                                                                          dash=[0.9, 0.6])))
+        lg.append((u"Winter store in the ground, a ghost volume to scale", "fill",
+                   dict(colour=_sec_mix(COL["white"], MP["storage"][0], P12_STORE_ALPHA), edge=MP["storage"][2])))
     if "flood" in lk:
         lg.append((u"High water onto the terraces", "dash", dict(colour=MP["amphibious"][2], width=0.4,
                                                                   dash=[1.0, 0.6])))
@@ -1545,10 +1690,11 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     if "planting" in lk:
         lg.append((u"Clean water to the planting", "line", dict(colour=P12_ZONE["WP"][2], width=0.4)))
     if Z:
-        lg.append((u"Section up close A-A' (band below)", "dash", dict(colour=COL["accent"], width=0.35,
-                                                                      dash=[1.6, 0.6, 0.3, 0.6])))
+        lg.append((u"Section up close A-A' (band below)", "dash", dict(colour=KM_CUT["colour"], width=KM_CUT["lw"],
+                                                                      dash=list(KM_CUT["dash"]))))
     if Sc["study"]:
-        lg.append((u"Study area", "dash", dict(colour=COL["ink2"], width=0.18, dash=[1.2, 0.5])))
+        lg.append((u"Study area", "dash", dict(colour=BM_STUDY_LINE["colour"], width=BM_STUDY_LINE["width_mm"],
+                                               dash=list(BM_STUDY_LINE["dash_mm"]))))
     for ch_, txt, col in lrows:
         lg.append((txt, "letter", dict(letter=ch_, colour=col)))
     if lg:
@@ -1580,7 +1726,9 @@ def _p12_inset(pg, ga, M, zones, links, f, Z, D, log):
     sp = _p12_bbox(pts)
     sp = (sp[0] - 3.0, sp[1] - 3.0, sp[2] + 3.0, sp[3] + 3.0)
     W, H = P12_INSET
-    tl, m = FS_MIN * 1.8, 4.0
+    desc = u"the upstream entry: winter store under the dry-top terraces, reed basins, spillway"
+    dl = wrap(desc, FS_MIN, W)
+    tl, m = (1 + len(dl)) * FS_MIN * 1.28 + 0.6, 4.0   # v13 (P12.6): a two-part title over the box
     corners = lambda b: [(b[0], b[1]), (b[2], b[1]), (b[2], b[3]), (b[0], b[3])]
     cand = [(ga[2] - m - W, ga[3] - m - tl - H), ((ga[0] + ga[2] - W) / 2.0, ga[3] - m - tl - H),
             (ga[0] + m, ga[3] - m - tl - H), (ga[2] - m - W, ga[1] + m), (ga[0] + m, ga[1] + m)]
@@ -1599,10 +1747,12 @@ def _p12_inset(pg, ga, M, zones, links, f, Z, D, log):
         return None
     box = best[1]
     fz = min(W / max(sp[2] - sp[0], 1e-6), H / max(sp[3] - sp[1], 1e-6))
-    if fz < 1.5:
-        log.append(u"FLAG p11 map: the upstream entry is already {:.0f} x {:.0f} mm on the map: no zoom".format(
-            sp[2] - sp[0], sp[3] - sp[1]))
-        return None
+    if fz < 2.0:                                     # v13 (P12.6): a zoom is at least x2: the spot cropped round
+        cx_, cy_ = (sp[0] + sp[2]) / 2.0, (sp[1] + sp[3]) / 2.0     # its centre to W/2 x H/2
+        log.append(u"p12 map: the upstream entry only x{:.1f} in the box: spot cropped to {:.0f} x {:.0f} mm for "
+                   u"x2.0".format(fz, W / 2.0, H / 2.0))
+        sp = (cx_ - W / 4.0, cy_ - H / 4.0, cx_ + W / 4.0, cy_ + H / 4.0)
+        fz = 2.0
     scx, scy = (sp[0] + sp[2]) / 2.0, (sp[1] + sp[3]) / 2.0
     bcx, bcy = (box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0
 
@@ -1625,10 +1775,18 @@ def _p12_inset(pg, ga, M, zones, links, f, Z, D, log):
     pg.poly([rect(box[0], box[1], box[2], box[3])], fill=COL["white"])
     Sci = _p12_scene(pg, Kin, Tin, kin, view, Rin, zones, links, f, Z, D, log, sbin, M["dz"], M["trees"])
     pg.poly([rect(box[0], box[1], box[2], box[3])], stroke=COL["ink"], lw=SF_ZOOM["lw_box"])
-    title = u"ZOOMED IN · the upstream entry: collect, clean, hold"
-    ty = box[3] + 0.6 * FS_MIN
-    pg.text(title, box[0], ty, FS_MIN, COL["ink_dark"], bold=True)
-    tb = (box[0], ty - 0.2, box[0] + text_w(title, FS_MIN, True), ty + FS_MIN * CAP)
+    title = u"ZOOMED IN ×{:.1f} · diagram".format(fz)
+    yt = box[3] + tl
+    old_ = pg.tg
+    pg.tgroup()                                      # the title's two parts: one text group
+    try:
+        pg.text(title, box[0], yt - FS_MIN * 1.28, FS_MIN, COL["ink_dark"], bold=True)
+        for i_, ln_ in enumerate(dl):
+            pg.text(ln_, box[0], yt - (i_ + 2) * FS_MIN * 1.28, FS_MIN, COL["ink_dark"])
+    finally:
+        pg.tg = old_
+    tw_ = max([text_w(title, FS_MIN, True)] + [text_w(q_, FS_MIN) for q_ in dl])
+    tb = (box[0], box[3] + 0.2, box[0] + tw_, yt)
     pg.poly([rect(sp[0], sp[1], sp[2], sp[3])], stroke=COL["ink"], lw=SF_ZOOM["lw_spot"])
     a_, b_ = min(((a, c) for a in corners(sp) for c in C),
                  key=lambda ac: (ac[0][0] - ac[1][0]) ** 2 + (ac[0][1] - ac[1][1]) ** 2)
@@ -1640,11 +1798,8 @@ def _p12_inset(pg, ga, M, zones, links, f, Z, D, log):
 
 
 def _p12_letter(pg, ch, x, y, col, r=None):
-    """a letter marker (P11.3): the letter in white on the element's dark tone, a white rim; returns its box"""
-    r = r or P12_MARK_R
-    pg.poly([_p12_circle_pts(x, y, r, 24)], fill=col, stroke=COL["white"], lw=0.15)
-    pg.text(ch, x, y - FS_MIN * CAP / 2.0, FS_MIN, COL["white"], bold=True, align="C")
-    return (x - r, y - r, x + r, y + r)
+    """a letter marker (P11.3): the letter in white on the element's dark tone; returns its box"""
+    return _p12_mark(pg, ch, x, y, col, 2.0 * (r or P12_MARK_R))   # v13 (G-R4-7): through mk_marker
 
 
 def _p12_letters(pg, ga, M, zones, D, log):
@@ -1910,9 +2065,8 @@ def _p12_free(iv, occ):
 
 
 def _p12_zoom_geom(zones, D, max_m, log):
-    """the up-close section, survey m, from data only: a cut parallel to the registry cut P12_ZOOM_CUT (W1, the
-    upstream entry), moved along the stream to where it crosses the most of the upstream entry's zones (reed
-    basins, spillway, shaded walk, dry-top terraces); from P12_ZOOM_BANK_M beyond the far wall to the last of those
+    """the up-close section, survey m, from data only: v13 (P12.7) the cut ON the registry line P12_ZOOM_CUT (W1, the
+    upstream entry: the same W1 as p13 and p18, offset 0; it crosses whatever zones lie on it, logged); from P12_ZOOM_BANK_M beyond the far wall to the last of those
     zones (cut to max_m, the band's room at 1:P12_ZOOM_DEN). The levels are the cut's registry levels. None (logged)
     when the zones, the registry cut or the stream are missing."""
     up = [z for z in zones if (z.get("study_area") or u"").startswith("aras") and z["code"] in ("WT", "WD", "GR", "WS")]
@@ -1936,20 +2090,7 @@ def _p12_zoom_geom(zones, D, max_m, log):
     e = ((b[0] - a[0]) / Lc, (b[1] - a[1]) / Lc)          # SW -> NE (the registry's end order)
     n = (-e[1], e[0])
     c = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
-    ivs = []
-    for z in up:
-        vs = [(p[0] - c[0]) * n[0] + (p[1] - c[1]) * n[1] for p in z["ring"]]
-        ivs.append((min(vs), max(vs)))
-    ends = sorted(set(v for iv in ivs for v in iv))
-    best = None
-    for i in range(len(ends) - 1):
-        vm = (ends[i] + ends[i + 1]) / 2.0
-        cnt = sum(1 for lo, hi in ivs if lo < vm < hi)
-        if best is None or cnt > best[0]:
-            best = (cnt, vm)
-    if not best:
-        return None
-    o = (c[0] + n[0] * best[1], c[1] + n[1] * best[1])
+    o = c                                                 # v13 (P12.7): on the W1 line itself, no offset
     wet = []
     for g in L.get("water") or []:
         if g and len(g[0]) >= 3:
@@ -1983,7 +2124,7 @@ def _p12_zoom_geom(zones, D, max_m, log):
         u1 = u0 + max_m
     els = sorted([(c_, max(ua, u0), min(ub, u1)) for c_, ua, ub in els if ua < u1 - 1.0 and ub > u0 + 1.0],
                  key=lambda t_: t_[1])
-    log.append(u"p.12: the up-close section crosses {} ({:.0f} m{})".format(
+    log.append(u"p12 band: the up-close section on the W1 line (offset 0 m) crosses {} ({:.0f} m{})".format(
         u", ".join(c_ for c_, _a, _b in els) or u"the stream only", u1 - u0, u", cut at the band" if trimmed else u""))
     return dict(o=o, e=e, u0=u0, u1=u1, wet=(wl, wr), els=els, strip=strip, bed=reg["bed"], avg=reg["avg_flow"],
                 top=sum(tops) / len(tops), walled=bool(reg["walled"]), trimmed=trimmed, q100=reg.get("q100"),
@@ -2026,11 +2167,18 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
     Everything at true size (G6, logged). v12 (round 3, G15): the sky with birds and its own variant (cid), the
     callouts numbered left to right (G3), people fishing and watching at the far wall, a lamp on the shaded walk,
     a zoom of the reed basins (people legible), the cut's levels (m, 2 decimals) and the summer strip's figures
-    (moved off the map, D2) under the scale bar, the cut's ends named (D6). Returns the text boxes it drew."""
-    x0, y0, x1, y1 = band
+    (moved off the map, D2) under the scale bar, the cut's ends named (D6). v13 (G-R4-3 LEFT template, G-R4-5): the
+    title strip on top flush with the drawing's left edge, the drawing from x0, the side column right of it sharing
+    its top and bottom (the level marks outside the frame, sf_level_marks; the numbered key; the water legend, the
+    scale bar and the strip's figures); back houses with their distance (d_m); the low layer (pla_low_section) with
+    every planting group and on the far bank; every number on what it names; the reed basins' inset at
+    1:P12_ZOOM_INSET_DEN (sf_zoom_inset, raises under x2). Every text goes through the page's TextPage (a collision
+    raises), so nothing is returned."""
+    x0, y0, x1, ytop = band
+    y1 = ytop - P12_ZOOM_TITLE_H                         # v13: the drawing's top, under the title strip
     den = P12_ZOOM_DEN
     k = sf_k(den)
-    sx = x0 + P12_ZOOM_KEY_W + 6.0
+    sx = x0
     u0, u1 = Z["u0"], Z["u1"]
     X = lambda u: sx + (u - u0) * k
     yb = y0 + 1.0
@@ -2068,7 +2216,7 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
             if hb > ch[0] and ha < ch[1]:
                 nx += 1
                 continue
-            hsh = sf_back_house(ha, hb, gfn, h_m, k, layer=layer_, floors=fl)
+            hsh = sf_back_house(ha, hb, gfn, h_m, k, layer=layer_, floors=fl, d_m=d - Z["reg_d"])
             if max(p_[1] for s_ in hsh for p_ in s_[1]) > y1 - 0.5:
                 nx += 1
                 continue
@@ -2098,10 +2246,10 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
     prof += [(X(wr), bed_y), (X(wr), gy)]
     water_section(prof, k, y_of, cid=P12_ZOOM_CUT, fill_ground=False, labels=False, into=W)
     W.add("ground", [("line", prof, SCT["cut"], 0.35)])
-    if Z["walled"]:
-        pend.append((X(wr) + t / 2.0, bed_y - 2.2, P12_ZOOM_TEXT["wall"]))   # in the cut, under the water lines
-    for sa, sb_ in Z["strip"][:1]:
-        pend.append((X((sa + sb_) / 2.0), bed_y + 3.4, P12_ZOOM_TEXT["strip"]))   # between average flow and Q100
+    if Z["walled"]:                                      # v13 (G-R4-5.5): on the wall face
+        pend.append((X(wr) + t / 2.0, (gy + max(avg_y, bed_y)) / 2.0, P12_ZOOM_TEXT["wall"]))
+    for sa, sb_ in Z["strip"][:1]:                       # v13: in the strip's water
+        pend.append((X((sa + sb_) / 2.0), (bed_y - STRIP_DEPTH * k + max(avg_y, bed_y)) / 2.0, P12_ZOOM_TEXT["strip"]))
     # the survey's buildings the cut passes through (M11, their own heights; any taller than the band is left out)
     its = bld_section_items(Z["A"], Z["B"], Z["units"], ground=lambda x_, y_: Z["top"])
     for it in its:
@@ -2123,6 +2271,9 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
         sh_, pl_, gr_ = pla_group_section(xa_, xb_, gy, k, t0=t0_, t1=t1_, mix=mix_, seed=seed_, style=style,
                                           density=dens, avoid=avoid_, water=avg_y)
         W.add("vegetation", sh_)
+        lo_, _lp = pla_low_section(xa_, xb_, gy, k, t0=t0_, t1=t1_, seed=seed_ + 101, density=0.8, avoid=avoid_,
+                                   water=avg_y, detail=False)       # v13 (G-R4-6): the shrub and flower layer
+        W.add("vegetation", lo_)
         trees.extend(pl_)
         groups.extend(gr_)
         return bool(gr_)
@@ -2197,17 +2348,14 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
             if plant(xa, xb, 0.05 if code == "WP" else 0.8, 0.4 if code == "WP" else 1.0, mix, 31 + i, 1.0):
                 planted.add(code)
         if code in P12_ZOOM_TEXT and xb - xa > 3.0 and not (code == "WP" and code in planted):   # v10: DG keeps its name (G10)
-            if code == "WT":                            # the mark in the cut ground, under the element
-                ym = gy - (P12_BASIN[2] + 0.4) * k - 1.6
-            elif code == "WD":
-                ym = gy - 0.4 * k - 1.8
-            else:
-                ym = gy - 2.2
-            pend.append((xm, ym, P12_ZOOM_TEXT[code]))
+            pend.append((xa + min(3.0, 0.25 * (xb - xa)), gy, P12_ZOOM_TEXT[code]))   # v13: on its ground line, left part
     # G15 (v12): on the far wall's top people fish and watch the water (water_edge: nobody in it)
     if X(wl) - t - xa_s > 6.0:
-        crowd([("water_edge", max(xa_s + 0.5, X(wl) - t - 8.0), X(wl) - t - 0.3)], 51,
-              focus=lambda _k, xa_, xb_: X((wl + wr) / 2.0))
+        we_ = (max(xa_s + 0.5, X(wl) - t - 8.0), X(wl) - t - 0.3)
+        crowd([("water_edge", we_[0], we_[1])], 51, focus=lambda _k, xa_, xb_: X((wl + wr) / 2.0))
+        lo_, _lp = pla_low_section(xa_s + 0.3, X(wl) - t - 0.3, gy, k, t0=0.3, t1=0.8, seed=61, density=0.8,
+                                   avoid=[we_], water=avg_y, detail=False)   # v13: the far bank's low layer
+        W.add("vegetation", lo_)
     # one callout per planting group (G9): what it does there; the mark in the cut ground under the group, a row
     # below the zones' marks; a group right behind another one's mark shares it
     gm, ng = [], 0
@@ -2226,13 +2374,12 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
         if any(abs(xg - q) < 3.6 for q in gm):
             continue
         gm.append(xg)
-        pend.append((xg, max(yb + 1.9, gy - 5.6), txt))
+        pend.append((xg, gy + P12_GROUP_MARK_M * k, txt))   # v13 (G-R4-5.5): on the group's trunks
         ng += 1
     for x_, y_, t_ in sorted(pend, key=lambda q: (round(q[0], 1), -q[1])):   # G3: numbered left to right
         co.add(x_, y_, t_)
     W.add("labels", co.marks(size=FS_MIN))
     _p12_shapes(pg, W.shapes())
-    boxes = []
     # G15 zoom (v12): the reed basins with the people on their paths at a legible size, in the sky over the channel
     # beside them (one short connector), clear of the houses behind; left out (logged) when there is no such room
     wt_ = [(ua_, ub_) for c_, ua_, ub_ in Z["els"] if c_ == "WT"]
@@ -2246,25 +2393,21 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
         ztop = y1 - 1.0 - FS_MIN * 1.4
         for dx0 in (sx0 - 3.0 - w_, sx1 + 3.0):
             d_ = (dx0, ztop - h_, dx0 + w_, ztop)
-            if d_[0] < xa_s or d_[2] > xb_s or d_[1] < gy + 1.0 or any(lp_hit(d_, hb_) for hb_ in hbx):
+            if d_[0] < xa_s or d_[2] > xb_s or d_[1] - 4.5 < gy + 1.0 or any(lp_hit(d_, hb_) for hb_ in hbx):
                 continue
             zi = d_
             break
         if zi:
-            _p12_shapes(pg, sf_zoom_inset((sx0, sy0, sx1, sy1), zi, k, k * fz_, W, u"reed basins", size=FS_MIN))
-            boxes.append((zi[0], zi[3], zi[0] + text_w(u"ZOOMED IN · reed basins", FS_MIN, True),
-                          zi[3] + 0.6 * FS_MIN + FS_MIN * CAP))
-            log.append(u"p11 up close: the reed basins zoomed x{:.1f} (people {:.1f} mm high)".format(
-                fz_, 1.75 * k * fz_))
+            _p12_shapes(pg, sf_zoom_inset((sx0, sy0, sx1, sy1), zi, k, k * fz_, W, u"reed basins", size=FS_MIN,
+                                          scale_den=P12_ZOOM_INSET_DEN, parent_den=P12_ZOOM_DEN, page="p12"))
+            log.append(u"p12 band: the reed basins inset 1:{} in the 1:{} section (x{:.1f}, people {:.1f} mm high)".format(
+                P12_ZOOM_INSET_DEN, P12_ZOOM_DEN, fz_, 1.75 * k * fz_))
         else:
             log.append(u"p11 up close: no free sky beside the reed basins for their zoom (left out)")
     # the cut's ends (D6): A, A' as on the map, the banks by place
     for s_, x_, al in ((u"A · " + place_name("side_SW"), xa_s + 0.8, "L"),
                        (place_name("side_NE") + u" · A'", xb_s - 0.8, "R")):
         pg.text(s_, x_, yb + 0.6, FS_MIN, COL["ink2"], align=al)
-        w_ = text_w(s_, FS_MIN)
-        boxes.append((x_ - (w_ if al == "R" else 0.0), yb + 0.4, x_ + (0.0 if al == "R" else w_),
-                      yb + 0.6 + FS_MIN * CAP))
     if Z["trimmed"]:
         break_mark(pg, xb_s, yb, gy + 2.0)
     bad = sf_assert_g6(k, trees=[(q[0], q[2]) for q in trees], strict=False)
@@ -2275,36 +2418,29 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
     gl = sf_g14_line()
     if gl:
         log.append(u"p.12 up close: " + gl)
-    # the key column: title, callout key (left); the water legend and the scale bar right of the drawing (R2, G3)
-    yy = y1 - 3.0 * CAP - 0.5
-    tt = u"UP CLOSE · the upstream entry in section A-A'"
-    pg.text(tt, x0, yy, 3.0, COL["ink_dark"], bold=True)
-    boxes.append((x0, yy - 0.2, x0 + text_w(tt, 3.0, True), yy + 3.0 * CAP))
+    # v13 (G-R4-3 LEFT template): the title strip on top, flush with the drawing's left edge
+    tt = u"UP CLOSE · the upstream entry in section A-A' on the W1 line"
+    pg.text(tt, x0, ytop - 3.0 * CAP - 0.5, 3.0, COL["ink_dark"], bold=True)
+    # the side column right of the drawing, sharing its top and bottom: the cut's levels as marks outside the frame
+    # (G-R4-5.4, m with 2 decimals), the numbered key, then the water legend, the scale bar and the strip's figures
+    lev = [("bed", Z["bed"]), ("avg", Z["avg"])] + [(q_, Z[q_]) for q_ in ("q100", "q500") if Z.get(q_) is not None]
+    _p12_shapes(pg, sf_level_marks((xa_s, y0, xb_s, y1), lev, side="R", y_of=y_of, page="p12"))
     sz = FS_MIN                                          # v10: the shared callout size (p.12, p.17), the booklet's least text
-    yk = yy - 2.6
-    _p12_shapes(pg, co.key(x0, yk, size=sz))
-    seen = []
-    for n_, _x, _y, t_ in sorted(co.items):
-        if n_ in seen:
-            continue
-        seen.append(n_)
-        yr = yk - (len(seen) - 1) * 1.5 * sz - 0.76 * sz
-        boxes.append((x0, yr - 0.25 * sz, x0 + 2.0 * sz + text_w(t_, sz), yr + CAP * sz))
-    nk = len(seen)
+    xk = xb_s + P12_ZOOM_LEV_W
+    yk = y1 - 0.5
+    _p12_shapes(pg, co.key(xk, yk, size=sz))
+    nk = len(set(n_ for n_, _x, _y, _t in co.items))
     if yk - nk * 1.5 * sz < y0:
         log.append(u"p.12 up close: the callout key ({} lines) runs {:.1f} mm below the band".format(
             nk, y0 - (yk - nk * 1.5 * sz)))
-    xl = xb_s + 4.0
+    xl = xk + P12_ZOOM_KEY_W
     _p12_shapes(pg, water_legend(xl, y1 - 1.0, size=sz, floods=True))
     yb_ = y1 - 1.0 - 4 * 1.6 * sz - 3.4
     _p12_bar(pg, xl, yb_, den, P12_ZOOM_BAR)
     ys = yb_ - FS_MIN * 1.4
     pg.text(sf_scale_text(den), xl, ys, FS_MIN, COL["ink_dark"], bold=True)
-    # checklist 10 (v12): the cut's levels in m with 2 decimals, then the summer strip's figures (off the map, D2)
-    lines = [(u"{} levels: bed +{:.2f}".format(P12_ZOOM_CUT, Z["bed"]), COL["ink_dark"]),
-             (u"average flow +{:.2f}".format(Z["avg"]), COL["ink_dark"])]
-    if Z.get("q100") is not None and Z.get("q500") is not None:
-        lines.append((u"Q100 +{:.2f} · Q500 +{:.2f}".format(Z["q100"], Z["q500"]), COL["ink_dark"]))
+    # the summer strip's figures (off the map, D2); v13: the level text lines are now the marks above
+    lines = []
     if f and f.get("strip"):
         lines += [(u"Summer strip 400 × {:.0f} cm · {:,.0f} m".format(STRIP_DEPTH * 100.0, f["strip"][0]),
                    MP["discharge"][2]),
@@ -2319,13 +2455,13 @@ def _p12_zoom(pg, band, Z, style, log, f=None):
     for i, (t_, c_) in enumerate(joined):
         yl = ys - (i + 1) * FS_MIN * 1.3
         if yl - 0.25 * FS_MIN < y0:
-            log.append(u"FLAG p11 up close: {} of the level and strip lines do not fit under the scale bar".format(
-                len(joined) - i))
+            log.append(u"FLAG p12 up close: {} of the strip lines do not fit under the scale bar".format(len(joined) - i))
             break
         pg.text(t_, xl, yl, FS_MIN, c_)
-        boxes.append((xl, yl - 0.25 * FS_MIN, xl + text_w(t_, FS_MIN), yl + CAP * FS_MIN))
+    log.append(u"p12 band: up close at 1:{} on W1, levels {} as marks outside the frame".format(
+        den, u", ".join(q_ for q_, _v in lev)))
     log.append(u"p.12: the up-close section (style {}) at {}".format(style, sf_scale_text(den)))
-    return boxes
+    return []
 
 
 # ---------------------------------------------------------------- beside the map (G7): two charts, why
@@ -2479,17 +2615,19 @@ def p12_page(pg, box, opt, storage, log):
     """v9 (Aras 31 Oct): the whole p.12 panel in box (page mm, y up): the axonometric water map with the column beside
     it on top, the up-close section of the upstream entry in ONE band below it, in style a (b's layout, a's drawing).
     Returns [(crop id, bbox, scale den or None)]: wb_system = map + band (both booklet builds take it). v12 (round 3):
-    logs the map's draw order (G8, wat_draw_order_lines) and the page's text overlap test (G3, lp_overlap_flag
-    "p11": the map's names, letters and zoom texts, the band's texts; against the legend, the north arrow, the winter store's cube and the step markers)."""
+    logs the map's draw order (G8, wat_draw_order_lines, page "p12"). v13 (G-R4-1): the text overlap test is the
+    page's TextPage "p12" (build_board opens it before and checks it after: a collision raises); lp_overlap_flag and
+    the old box lists are gone."""
     x0, y0, x1, y1 = box
     _P12_MEMO.clear()                                    # one run's ground model, drops, trees and tree styles
-    zones, links = _p12_zones(log)
-    f = _p12_figures(zones)
+    D = basemap_load(log=log)                            # v13: first, the zones are clipped to its study area
+    zones, links = _p12_zones(log, D)
+    f = _p12_figures(_P12_MEMO.get("zones0") or zones)   # v13: the figures from the whole (unclipped) zones
     if not WB_LIVE:                                      # v6.1
         log.append("p.12: no water_balance_results.json: HOLD volume and strip figures left out (run the water balance first)")
-    D = basemap_load(log=log)
     hz, gp = P12_ZOOM_H, P12_ZOOM_GAP
-    Z = _p12_zoom_geom(zones, D, (x1 - x0 - P12_ZOOM_KEY_W - 6.0 - P12_ZOOM_LEG_W) * P12_ZOOM_DEN / 1000.0, log)
+    Z = _p12_zoom_geom(zones, D, (x1 - x0 - P12_ZOOM_LEV_W - P12_ZOOM_KEY_W - P12_ZOOM_LEG_W - 1.0) *
+                       P12_ZOOM_DEN / 1000.0, log)      # v13: the drawing from x0, the side column right of it
     my0, my1 = (y0 + hz + gp, y1) if Z else (y0, y1)   # v9: one band, at the bottom
     xs = x1 - P12_COL_W
     ga = (x0, my0, xs - 7.0, my1)
@@ -2501,17 +2639,14 @@ def p12_page(pg, box, opt, storage, log):
             break                                     # the map's north arrow in a free corner
     nb_ = _p12_north(pg, nx_, ny_, M["nd"])
     M["taken"].append(nb_)
-    lbl = list(M["labels"]) + _p12_map_labels(pg, ga, M, zones, f, D, log)
+    _p12_map_labels(pg, ga, M, zones, f, D, log)
     _p12_column(pg, (xs, my0, x1, my1), _p12_step_rows(f, M["at"]), log)
-    wat_draw_order_lines(page="p11", steps=["ground", "bed", "water", "structures", "vegetation", "labels"])
-    dbx = [b_ for b_ in [M.get("legend"), nb_, M["Sc"]["cube_b"]] + list(M.get("marks") or []) if b_]
+    wat_draw_order_lines(page="p12", steps=["ground", "bed", "water", "structures", "vegetation", "labels"])
     bm = items_bbox(pg.items[n0:])
     if not Z:
-        lp_overlap_flag("p11", lbl, dbx, box)
         return [("wb_system", bm, None)]
     n1 = len(pg.items)
-    lbl += _p12_zoom(pg, (x0, y0, x1, y0 + hz), Z, "a", log, f)
-    lp_overlap_flag("p11", lbl, dbx, box)
+    _p12_zoom(pg, (x0, y0, x1, y0 + hz), Z, "a", log, f)
     cl = cut_log_line()
     if cl:
         log.append(u"p.12: " + cl)
