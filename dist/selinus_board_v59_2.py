@@ -1,5 +1,5 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v59_1.py = v59.1 (1 Nov 2026 fix: 28 text-check stops of the first kit v2 run cleared; round 4 S4; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: selinus_board_v59_2.py = v59.2 (1 Nov 2026 fix: the last text-check stop (p02 VISIBLE, 0.00 mm) cleared; v59.1: 28 text-check stops of the first kit v2 run cleared; round 4 S4; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
@@ -592,9 +592,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v59.1 (2026-11-01)"  # v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
+SCRIPT_VERSION = "selinus_board v59.2 (2026-11-01)"  # v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v59.1"                                     # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v59.2"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -24834,13 +24834,16 @@ def _sb_tp_hits(tp):
     I = tp.items
     for i, a in enumerate(I):
         b = a["box"]
-        if not (tp.inner[0] - 1e-6 <= b[0] and b[2] <= tp.inner[2] + 1e-6 and
-                tp.inner[1] - 1e-6 <= b[1] and b[3] <= tp.inner[3] + 1e-6):
+        # v59.2: a glyph's ink may reach up to 0.05 mm past the crop edge (invisible in print): Arial Bold's "V" starts
+        # a hair left of its pen point, and "VISIBLE" set on the crop's left edge was reported "left by 0.00 mm"
+        e_ = 0.05 / tp.unit_mm
+        if not (tp.inner[0] - e_ <= b[0] and b[2] <= tp.inner[2] + e_ and
+                tp.inner[1] - e_ <= b[1] and b[3] <= tp.inner[3] + e_):
             # v59.1: which edge and by how much (mm on the sheet), so the next fix needs no guessing
             u_ = tp.unit_mm
             ov_ = [(nm_, d_ * u_) for nm_, d_ in (("left", tp.inner[0] - b[0]), ("right", b[2] - tp.inner[2]),
                                                   ("bottom", tp.inner[1] - b[1]), ("top", b[3] - tp.inner[3]))
-                   if d_ > 1e-6]
+                   if d_ > e_]
             out.append((a, u"the crop edge (%s)" % u", ".join(u"%s by %.2f mm" % q_ for q_ in ov_)))
         for c in I[i + 1:]:
             if c["group"] != a["group"] and tp_hit(b, c["box"], tp.pad):

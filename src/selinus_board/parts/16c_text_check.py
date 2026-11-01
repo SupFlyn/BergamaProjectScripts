@@ -202,13 +202,16 @@ def _sb_tp_hits(tp):
     I = tp.items
     for i, a in enumerate(I):
         b = a["box"]
-        if not (tp.inner[0] - 1e-6 <= b[0] and b[2] <= tp.inner[2] + 1e-6 and
-                tp.inner[1] - 1e-6 <= b[1] and b[3] <= tp.inner[3] + 1e-6):
+        # v59.2: a glyph's ink may reach up to 0.05 mm past the crop edge (invisible in print): Arial Bold's "V" starts
+        # a hair left of its pen point, and "VISIBLE" set on the crop's left edge was reported "left by 0.00 mm"
+        e_ = 0.05 / tp.unit_mm
+        if not (tp.inner[0] - e_ <= b[0] and b[2] <= tp.inner[2] + e_ and
+                tp.inner[1] - e_ <= b[1] and b[3] <= tp.inner[3] + e_):
             # v59.1: which edge and by how much (mm on the sheet), so the next fix needs no guessing
             u_ = tp.unit_mm
             ov_ = [(nm_, d_ * u_) for nm_, d_ in (("left", tp.inner[0] - b[0]), ("right", b[2] - tp.inner[2]),
                                                   ("bottom", tp.inner[1] - b[1]), ("top", b[3] - tp.inner[3]))
-                   if d_ > 1e-6]
+                   if d_ > e_]
             out.append((a, u"the crop edge (%s)" % u", ".join(u"%s by %.2f mm" % q_ for q_ in ov_)))
         for c in I[i + 1:]:
             if c["group"] != a["group"] and tp_hit(b, c["box"], tp.pad):
