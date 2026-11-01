@@ -1847,11 +1847,38 @@ def _p12_block(pg, ga, T, Ti, R):
     face = _sec_mix(P12_GROUND["low"], P12_GROUND["shade"], 0.55)
     pg.poly([prof + [(ga[2], yf), (ga[0], yf)]], fill=face, stroke=_sec_mix(face, "000000", 0.2), lw=0.12)
     s_ = u"heights ×{:.1f} · diagram, no scale".format(R["zx"])
-    pg.text(s_, ga[0] + 2.0, yf + 0.5, FS_MIN, COL["ink"])
-    # v13.1: the note's box, so the zoom box is not put over it (the zoom's neatline crossed it, Aras 1 Nov 17:40)
+    # v13.4 (Aras 1 Nov 18:01): the note is no longer printed here, in a fixed corner the legend, the letters and the
+    # markers later landed on; _p12_block_note prints it last, in a free spot on the face (or the map)
     _P12_MEMO["block_txt"] = (ga[0] + 2.0, yf + 0.5 - 0.3 * FS_MIN * CAP, ga[0] + 2.0 + text_w(s_, FS_MIN),
                               yf + 0.5 + FS_MIN * CAP)
-    return (ga[0], yf, ga[2], max(p[1] for p in prof))
+    fb_ = (ga[0], yf, ga[2], max(p[1] for p in prof))
+    _P12_MEMO["block_note"] = (s_, fb_)
+    return fb_
+
+
+def _p12_block_note(pg, ga, M, log):
+    """v13.4: the relief note ("heights x n · diagram, no scale") printed after every other map text: the free spot
+    nearest its old corner on the terrain block's face, else anywhere on the map, off everything placed (M["taken"]);
+    no room = a FLAG line and an orange warning (the run goes on)"""
+    s_, fb_ = _P12_MEMO.get("block_note") or (None, None)
+    if not s_:
+        return
+    w, h = text_w(s_, FS_MIN) + 0.6, FS_MIN * CAP * 1.4
+    bt = _P12_MEMO.get("block_txt")
+    cx, cy = ((bt[0] + bt[2]) / 2.0, (bt[1] + bt[3]) / 2.0) if bt else (ga[0] + 2.0 + w / 2.0, ga[1] + 2.0)
+    taken = [t for t in M["taken"] if t != fb_]
+    rings = (0.0, 3.0, 6.0, 10.0, 15.0, 20.0, 30.0, 40.0, 60.0, 80.0, 100.0, 130.0, 160.0, 200.0)
+    b = _p12_free_spot(cx, cy, w, h, taken, fb_, rings, 16) or _p12_free_spot(cx, cy, w, h, taken, ga, rings, 24)
+    if not b:
+        log.append(u"FLAG p12 map: the relief note '{}' left out: no free spot".format(s_))
+        try:
+            ghenv.Component.AddRuntimeMessage(                                         # noqa: F821
+                __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, u"p12 map: relief note left out")
+        except Exception:
+            pass
+        return
+    pg.text(s_, b[0] + 0.3, b[1] + (h - FS_MIN * CAP) / 2.0, FS_MIN, COL["ink"])
+    M["taken"].append(b)
 
 
 def _p12_layer_check(orders):
@@ -3112,6 +3139,7 @@ def p12_page(pg, box, opt, storage, log):
     nb_ = _p12_north(pg, nx_, ny_, M["nd"])
     M["taken"].append(nb_)
     _p12_map_labels(pg, ga, M, zones, f, D, log)
+    _p12_block_note(pg, ga, M, log)                      # v13.4: the relief note last, in a free spot
     _p12_column(pg, (xs, my0, x1, my1), _p12_step_rows(f, M["at"]), log)
     pg.block(ga, u"p12 axo map")                         # closing round 4 (G-R4-1): the page's drawing blocks (they
     pg.block((xs, my0, x1, my1), u"p12 column")          # may touch, never overlap; the band's two in _p12_zoom)
