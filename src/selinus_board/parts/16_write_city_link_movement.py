@@ -622,7 +622,7 @@ def bake_hatch(it, li, gi, tech):
     return n
 
 
-def bake(B):
+def sb_bake(B):                                       # v60 (CHK-12): was bake(), a Button word
     BAKE_NOTES.clear()
     if not B.items:
         LOG.append("WARNING: nothing to bake: what an earlier press baked was left as it was.")
