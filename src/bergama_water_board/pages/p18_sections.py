@@ -1483,6 +1483,13 @@ def p18_page(pg, box, page, opt, log):
     # the legend (G1, nothing between it and its drawings): in the named row's column, else the other; a part that
     # finds no room in either RAISES (closing round 4: never left out)
     order = [leg_row, 1 - leg_row]
+    # v13.10 (Aras 1 Nov 18:40, p18a materials found 9.9 mm): the spare height between the two rows, under the first
+    # row's side column, is the third place for a legend part (3 mm off each block)
+    if 0 in cols and 1 in cols:
+        gy0, gy1 = tops[0] - hs[0] - 3.0, tops[1] + 3.0
+        if gy0 - gy1 >= 8.0:
+            cols[2] = dict(x0=cols[0]["x0"], x1=cols[0]["x1"], y=gy0, ybot=gy1, avoid=[])
+            order.append(2)
     for nm, fn in ((u"planting bands", lambda c_, y_, dr: _p18_bands(pg, c_, y_, log, dr)),
                    (u"materials", lambda c_, y_, dr: _p18_materials(pg, c_, y_, dr))):
         done = False
