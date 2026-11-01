@@ -16,18 +16,40 @@
 # of its opacity; fewer feeling veins and dots (they read as trees), fewer smell rings, birds half as dense;
 # Encounters redrawn after senses_ref3: braided ribbons that meet on the stream at their places and run on to
 # organic, outlined vignette bubbles (sn_encounters, sn_bubble).
+# v38 (round 4, S8: P16.1-P16.4, G-R4-1/2/4/7/9/11, G-R4-5.1): bigger strips (P16_ROWS / P16_CH, title in the key
+# column, no statement line); ONE muted base (map_layers ml_base) under all six strips through mp_map_draw (base ->
+# D9 tint -> the panel -> study line -> marks), the P16_BASEMAP per-panel modes are gone; the D9 tint of what the
+# project changes on the five project panels; five distinct Encounters hues (P16_EXP) and bigger marks; every text
+# registered in the sheet's TextPage "p16" (labels placed by pg.tp.place, pg.check_text() before the PDF is written);
+# History numbers by mp_marker in the heritage colour; north arrows by keymap north_items; names from the table;
+# people black (figures.py), the Encounters colour carried by the bubble and the mark.
 
-# D5 / M3: (mode, override) of the basemap per panel, the same base under all six (T4, PG1 p15 "every analysis map
-# sits on the M3 base"); senses_sheet(..., basemap={title: (mode, override)}) changes a panel's choice for one run
-P16_BASEMAP = dict((t_, ("base", {"buildings": "veryfaint"})) for t_ in (u"Zones", u"Feeling", u"Sound", u"Smell", u"Encounters",
-                                                    u"History"))
 P16_WATER_OPTS = {"spacing": 0.6, "seed": 5}  # M5 water_plan at 1:20,000 (the stream is only a few mm wide here)
 # Smell: the species whose flowering months common/plants.py holds (pla_months, sourced there); the other sources
 # have no season data in the repo and get no month bar
 P16_SMELL_SPECIES = {"reeds": "reed", "lavender": "lavender"}
-P16_STRIP_TOP = 13.0                         # mm: the strip's top below its cell's top (title, then the bridge ruler;
-#                                              v37: 10.5 -> 13.0, two rows of bridge names; 13 + 62 = 75 <= SN_CH 76)
-P16_STRIP_H = 62.0                           # mm: every strip's height (1,240 m across at 1:20,000; the cell is 76)
+# v38 (round 4, P16.1, U30 "we need the drawings bigger"): the statement line is gone (G-R4-2: the scale is on every
+# strip's bar, "one base map" in the base key), the panel title moved to the top of its key column (the strip's top
+# band holds only the bridge ruler), so the cells start right under the title band and every strip is 71 mm tall
+# instead of 62 (+15 % map area). The strips stay at 1:20,000: the only standard scale (D6 a, SF_SCALES) at which
+# six strips fit one A3 (the analysis frame is 142 mm wide at 1:20,000, 284 mm at 1:10,000).
+P16_ROWS = (29.0, 111.5, 194.0)              # design value: cell tops, mm from the page top (title band ends at 25;
+#                                              the last cell ends at 272.5, the booklet's footer starts at 276)
+P16_CH = 78.5                                # design value: a cell's height, mm (3 x 78.5 + 2 x 4 gap = 243.5)
+P16_STRIP_TOP = 7.5                          # design value: the strip's top below its cell's top: two ruler rows of
+#                                              7 pt bridge names (row pitch P16_RULER_ROW) above the frame
+P16_STRIP_H = P16_CH - P16_STRIP_TOP         # mm: every strip's height (71 mm; v37: 62)
+P16_RULER_ROW = 3.6                          # design value: ruler row pitch, mm (7 pt ink 2.3 mm + the 0.6 mm text gap)
+P16_TP_MARGINS = (14.0, 8.0, 14.0, 22.0)     # design value: TextPage margins (left, top, right, bottom) mm: the
+#                                              kicker's top at 10 mm; the bottom 22 mm (y > 275) stay free for the
+#                                              booklet's footer and page number (bottom right)
+P16_LAB_R = (0.8, 2.0, 3.5)                  # design value: label distances from their point tried in turn, mm
+P16_MK_STEP = 3.4                            # design value: centre distance of two stacked History markers, mm
+#                                              (7 pt marker radius 1.42 + rim; glyph to the other disc >= 0.6)
+P16_TINT_TERR_M = 4.0                        # design value: half-width (m) of the D9 tint band along a terrace edge
+#                                              (the same band sn_zone_fields gives the terraces)
+P16_TINT_PANELS = (u"Zones", u"Feeling", u"Sound", u"Smell", u"Encounters")   # panels that show the project (D9)
+P16_NORTH_MM = 5.0                           # design value: north arrow height (common/keymap north_items), mm
 P16_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")   # the run kit's photo folder (p.21's contract)
 P16_PHOTO_CSV = "photos.csv"
 P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo at most (4:3, cropped to fill)
@@ -35,14 +57,14 @@ P16_PHOTO_W, P16_PHOTO_H = 22.0, 16.5        # mm: one History photo at most (4:
 # name holds an alias. v29 (Aras 30 Oct "ok to use kermes photos"): Kermes takes the DHA photo. T4 (G12): no credit
 # lines on the sheet; the csv's credit lines go to the Sources page (p23).
 P16_PLACES = (
-    dict(key="hamam", cap=(u"Tabaklar Hamamı",), own=(u"tabaklar_hamami_1.jpg", u"tabaklar_hamami_2.jpg"),
-         alias=(u"tabaklarhamami",)),
+    dict(key="hamam", cap=(landmark_name("tabaklar_hamami"),),     # v38 (G-R4-11): names from the names table
+         own=(u"tabaklar_hamami_1.jpg", u"tabaklar_hamami_2.jpg"), alias=(u"tabaklarhamami",)),
     dict(key="tabakhane", cap=(u"Tabakhane",), own=(u"tabakhane_1.jpg",), alias=(u"tabakhane",),
          notalias=(u"koprusu",)),
     dict(key="k3", cap=(bridge_name("K3"), u"Roman bridge"), own=(u"tabak_koprusu_1.jpg", u"tabak_koprusu_2.jpg"),
          alias=(u"tabakkoprusu",)),
     dict(key="k5", cap=(bridge_name("K5"), u"Roman bridge"), own=(), alias=(u"uckemer",)),
-    dict(key="tunnels", cap=(u"Kızıl Avlu", u"tunnels"), own=(), alias=(u"tunnel",)),
+    dict(key="tunnels", cap=(landmark_name("kizil_avlu"), u"tunnels"), own=(), alias=(u"tunnel",)),
     dict(key="kermes", cap=(u"Kermes",), own=(), alias=(u"kermes",)))      # v29: DHA photo
 P16_KEY_ROW = 4.6                            # mm: one row of every key column
 P16_FADE = 0.65                              # v32: every panel layer's opacity times this (Aras 31 Oct: lighter)
@@ -70,16 +92,6 @@ def sn_y(td):
 
 def sn_mm(pt):
     return pt * SN_PT
-
-
-def sn_rich(pg, x, y, runs, pt, colour):
-    """one line of [(text, bold)] runs (G5: the bold keywords inside a line); its width, mm"""
-    size = sn_mm(pt)
-    w0 = x
-    for t, b in runs:
-        pg.text(t, x, y, size, colour, bold=b)
-        x += text_w(t, size, b)
-    return x - w0
 
 
 def sn_ring(cx, cy, r, seed=0, amp=0.0, n=40, lobes=(2, 3, 5)):
@@ -274,7 +286,9 @@ def sn_data(C, areas, warn):
     ref = [tuple(p) for p in (C.ref or [])]
     G = {"V": C.V, "ref": ref, "sref": arclen(ref) if len(ref) >= 2 else [0.0],
          "covered": [P for P in (C.covered or []) if len(P) >= 2], "bed": list(C.bed_loops or []),
-         "streams": list(C.streams or []), "study": [ring(list(A)) for A in (areas or {}).values()],
+         "streams": list(C.streams or []),
+         "study": [list(R) for R in (getattr(C, "study", None) or []) if len(R) >= 3] or
+         [ring(list(A)) for A in (areas or {}).values()],          # v38: the Corridor's study rings (C.study) first
          "bld": [P for role in ("building", "housing", "heritage", "shed") for P in C.bld.get(role, [])],
          "hubs": list(C.hubs), "hub": dict((h["id"], h) for h in C.hubs), "zones_raw": list(C.D.zones),
          "arms": list(C.arms), "terr": list(C.terr), "widen": list(C.widen), "forest": list(C.forest),
@@ -286,6 +300,12 @@ def sn_data(C, areas, warn):
     G["kermes"] = sn_seg_cross(ref, SN_S4[0], SN_S4[1]) or sn_on_ref(G, sn_vcent(list(SN_S4)))
     _p16_frame(G, C.V)
     _p16_basemap(G, warn)
+    _p16_base(G, warn)                                   # v38 (P16.3): the ONE muted base of all six strips
+    try:                                                 # v38 (P16.4): the D9 footprint of what we change
+        G["tint"] = _p16_tint(C, G)
+    except Exception as ex:
+        G["tint"] = []
+        warn.append(u"FLAG p16: D9 tint not drawn ({}: {})".format(type(ex).__name__, ex))
     G["traffic"] = [(rd["xy"], rd["change"]) for rd in ROADS
                     if u"Cami Kebir" in rd["name"] or u"Adnan Menderes" in rd["name"]]   # K4 and K6 (BRIEF §3)
     G["market"] = []
@@ -327,62 +347,56 @@ def _p16_basemap(G, warn):
     G["bm"] = D or None
 
 
-def _p16_bm_items(G, choice):
-    """the basemap items of one panel: choice = (mode, override) of P16_BASEMAP (memoised by basemap_items)"""
-    if not G.get("bm"):
-        return []
-    mode, ov = choice if choice else ("base", None)
-    try:
-        return basemap_items(mode, ov, G["bm_box"], G["bm"], True, SN_SCALE)
-    except Exception as ex:
-        k = ("bm_err", mode, repr(ov))
-        if k not in _P16_MEMO:
-            _P16_MEMO[k] = 1
-            G.setdefault("warn", []).append(u"senses sheet: basemap {} not drawn ({}: {})".format(
-                mode, type(ex).__name__, ex))
-        return []
+def _p16_base(G, warn):
+    """v38 (round 4, P16.3, G-R4-4): the ONE base of the sheet: map_layers ml_base (basemap mode "muted": the stream
+    by M5, light streets with closed edges, light houses with one closed outline per block, every outline after every
+    fill; no study line, map_draw draws it in its own layer) over the strips' common survey box, at 1:20,000, made
+    once a run and drawn under all six strips (one mode, one tone inside and outside the study area). G["base"] =
+    the items, G["base_kinds"] = what they hold (for the base key)."""
+    its = []
+    if G.get("bm"):
+        try:
+            its = ml_base(G["bm_box"], SN_SCALE, D=G["bm"])
+        except Exception as ex:
+            warn.append(u"senses sheet: muted base not drawn ({}: {})".format(type(ex).__name__, ex))
+            its = []
+    G["base"] = its
+    G["base_kinds"] = _p16_base_kinds(its)
 
 
-def _p16_bm_draw(pg, items, T):
-    """the basemap items through this page's calls (even-odd fills: buildings come split, one fill each); the
-    stream through M5 (water_plan, P16_WATER_OPTS) when the script includes common/water.py"""
-    def fill(rings, hx, a, nz):
-        pg.poly(rings, fill=hx, alpha=a)
-
-    def line(pts, hx, w, dash, a):
-        pg.line(pts, hx, w, list(dash) if dash else None, cap=0 if dash else 1, alpha=a)
-    basemap_draw(items, T, fill, line, None, P16_WATER_OPTS)
-
-
-def _p16_bm_style(items):
-    """T4 (H-A request): what a panel's basemap items draw, for the shared key, only the kinds present: water ("m5"
-    or "fill"; read with basemap_water_rings, so the M5 stream counts), covered (hex, width, dash), street (hex),
-    bld and her (fill hex, edge hex or None), study (True)"""
+def _p16_base_kinds(items):
+    """v38 (replaces _p16_bm_style): what the muted base items draw, for the base key, only the kinds present: water
+    ("m5" or "fill"), covered (hex, width, dash), street (fill hex), bld and her ((fill hex, edge hex))"""
     out = {}
     if basemap_water_rings(items):
         out["water"] = "m5" if any(it[0] == "water" for it in items) else "fill"
     fills = set(it[2] for it in items if it[0] == "fill")
     for it in items:
-        if it[0] == "line" and it[4]:
-            if it[2] == R28_STUDY_LINE["colour"]:
-                out["study"] = True
-            elif it[2] in (BM_COL["water_edge"], BM_COL["water"]):
-                out.setdefault("covered", (it[2], it[3], list(it[4])))
-    for hx in (BM_FAINT["road"], BM_COL["road"]):
-        if hx in fills:
-            out["street"] = hx
-            break
-    bc = globals().get("BLD_COL") or {}
-    for f_, e_ in ((BM_FAINT["bld_veryfaint"], BM_FAINT["road_line"]), (bc.get("fill"), bc.get("edge")),
-                   (BM_FAINT["bld"], None), (BM_COL["bld"], None)):
-        if f_ and f_ in fills:
-            out["bld"] = (f_, e_)
-            break
-    for f_, e_ in (("F1E6E5", "CDAAAA"), (bc.get("her_fill"), bc.get("her_edge")), (BM_COL["her"], BM_COL["her_edge"])):
-        if f_ and f_ in fills:                           # heritage buildings (basemap "plan_faint" tones first)
-            out["her"] = (f_, e_)
-            break
+        if it[0] == "line" and it[4] and list(it[4]) == list(BM_COVERED_DASH):
+            out.setdefault("covered", (it[2], it[3], list(it[4])))
+    if BM_MUTED["road"] in fills:
+        out["street"] = BM_MUTED["road"]
+    if BM_MUTED["bld"] in fills:
+        out["bld"] = (BM_MUTED["bld"], BM_MUTED["bld_edge"])
+    if BM_MUTED["her"] in fills:
+        out["her"] = (BM_MUTED["her"], BM_MUTED["her_edge"])
     return out
+
+
+def _p16_tint(C, G):
+    """v38 (round 4, P16.4, D9, U52 "çok hafif izdüşüm ... transparan çok hafif bir renkle"): the light transparent
+    footprint of what the project changes, as map_layers ml_tint items (ML_TINT 5C7A86 at alpha 0.16), survey m,
+    clipped to the study area once here (page "p16"): the channel setbacks (the widened reaches, C.widen rings), the
+    ponds and reed basins (the zone base's WT zones), the terraces (a band P16_TINT_TERR_M either side of each
+    terrace edge, C.terr) and the hub squares (h["square"]). Drawn in layer proj_tint of the panels P16_TINT_PANELS."""
+    R = [w_.get("ring") or [] for w_ in (C.widen or [])]
+    R += [z["P"] for z in C.D.zones if z.get("code") == "WT"]
+    R += [sn_band(P, P16_TINT_TERR_M) for P in (C.terr or []) if len(P) >= 2]
+    for h in C.hubs:
+        R += list(h.get("square") or [])
+    R = [[tuple(p[:2]) for p in r_] for r_ in R if r_ and len(r_) >= 3]
+    st = G.get("study") or None
+    return ml_tint(R, study=st, page=u"p16") if st else ml_tint(R)
 
 
 def _p16_water_swatch(pg, x, y, kind, w=9.0, h=1.8):
@@ -408,38 +422,24 @@ def _p16_shapes(pg, shapes):
             pg.line(sh[1], sh[2], sh[3] if len(sh) > 3 else 0.1)
 
 
-def sn_cell(pg, G, cx, top, title, choice=None):
-    """one cell: its title, the strip frame (the widened analysis frame at 1:20,000, P16_STRIP_H tall), the shared
-    M3 base of this panel (choice = (mode, override); the stream only from the base, by M5), the study area with
-    the base (under the panel's own layer; drawn here from calisma_alan when the base has none) and the bridge
-    ruler on the frame's top edge. Returns the cell (T, box, label room: labels sit on the drawing, off the stream
-    line)."""
+def sn_cell(pg, G, cx, top, title):
+    """one cell: the strip frame (the widened analysis frame at 1:20,000, P16_STRIP_H tall), the panel title at the
+    top of its key column (v38, P16.1: the strip's top band holds only the bridge ruler) and the bridge ruler on the
+    frame's top edge. v38 (P16.3): the base, the tint and the study line are no longer drawn here: senses_sheet draws
+    them with the panel through mp_map_draw (one draw order). Returns the cell (T, box, label bounds, the lines
+    labels stay off (segs), boxes they stay off (taken), late = mark drawers for layer proj_marks)."""
     V, fr = G["V"], G["fr"]
     sw, sh = (fr[2] - fr[0]) * SN_K, (fr[3] - fr[1]) * SN_K
     x0, y1 = cx, sn_y(top + P16_STRIP_TOP)
     box = (x0, y1 - sh, x0 + sw, y1)
     T = sn_T(V, box[0], box[1], fr[0], fr[1])
-    size = sn_mm(SN_TS["panel"])
-    yt = sn_y(top + 5.0)
-    pg.text(title, cx, yt, size, SN_INK, bold=True)
+    sx = cx + SN_SIDE
+    pg.text(title, sx, sn_y(top + 5.0), sn_mm(SN_TS["panel"]), SN_INK, bold=True, name=u"p16 title " + title,
+            role="heading")
     refp = [T(p) for p in G["ref"]]
-    cell = {"x": cx, "top": top, "box": box, "T": T, "side": cx + SN_SIDE, "title": title,
+    cell = {"x": cx, "top": top, "box": box, "T": T, "side": sx, "title": title,
             "bounds": (box[0] + 0.6, box[1] + 0.6, box[2] - 0.6, box[3] - 0.6),
-            "taken": [(cx, yt - size * 0.25, cx + text_w(title, size, True) + 1.0, yt + size * 0.8),
-                      (cx + SN_SIDE - 2.0, sn_y(top + SN_CH), cx + SN_CW, sn_y(top))],
-            "segs": list(zip(refp, refp[1:]))}
-    items = _p16_bm_items(G, choice)
-    cell["bm_style"] = bs = _p16_bm_style(items)
-    pg.clip([rect(*box)])
-    if items:
-        _p16_bm_draw(pg, items, T)
-    if not bs.get("study"):                              # the study area once, in R28_STUDY_LINE, with the base
-        st = R28_STUDY_LINE
-        for A in G["study"]:
-            Q = [T(p) for p in A]
-            if len(Q) >= 3:
-                pg.line(Q + Q[:1], st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
-    pg.unclip()
+            "taken": [], "segs": list(zip(refp, refp[1:])), "late": []}
     xs = {}
     for nm, xy in BRIDGES_K:                             # the ruler: a tick per bridge, its name above the frame
         x = T(xy)[0]
@@ -448,7 +448,8 @@ def sn_cell(pg, G, cx, top, title, choice=None):
             xs[nm] = x
     # v37 (round 3, G16 / D9): the bridges by their names (common/names.py, short form; the History key and p.21 carry
     # the full names), in stream order; K1 and K2 (about 25 m apart) share one tick label; a name that would touch its
-    # neighbour goes up one row (two rows above the frame, P16_STRIP_TOP)
+    # neighbour goes up one row (two rows above the frame, P16_STRIP_TOP). v38 (G-R4-1): the boxes are the real ink
+    # boxes (fm_box) kept 0.7 mm apart (the TextPage's gap is 0.6), rows P16_RULER_ROW apart
     labs = ([(u"side crossings", (xs["K1"] + xs["K2"]) / 2.0)] if "K1" in xs and "K2" in xs else []) + \
         [(bridge_name(nm, short=True), xs[nm]) for nm in bridges_in_order() if nm in xs and nm not in ("K1", "K2")]
     fs = sn_mm(SN_TS["small"])
@@ -457,10 +458,10 @@ def sn_cell(pg, G, cx, top, title, choice=None):
         w = text_w(s, fs)
         xl = min(max(x - w / 2.0, box[0]), box[2] - w)
         for r_ in (0, 1):
-            yb = box[3] + 1.0 + r_ * fs * 1.15
-            b = (xl - 0.3, yb - 0.4, xl + w + 0.3, yb + fs * 0.8)
-            if not any(lp_hit(b, t) for t in ruler + cell["taken"][:1]):
-                pg.text(s, xl, yb, fs, SN_INK2)
+            yb = box[3] + 1.0 + r_ * P16_RULER_ROW
+            b = fm_box(s, xl, yb, SN_TS["small"], False, "L", 0.0, False)
+            if not any(tp_hit(b, t, 0.7) for t in ruler):
+                pg.text(s, xl, yb, fs, SN_INK2, name=u"p16 ruler " + title, role="ruler")
                 ruler.append(b)
                 break
         else:
@@ -473,42 +474,82 @@ def sn_outline(pg, G, cell):
     pg.poly([rect(*cell["box"])], stroke=SN_FRAME, lw=0.15)
 
 
+def _p16_place(pg, cell, segs, s, at, pt, colour, bold=True, alts=(), name=None):
+    """v38 (round 4, G-R4-1): one label on or right beside its point ON the strip, through the sheet's TextPage:
+    the positions (centre, then E NE N NW W SW S SE at the distances P16_LAB_R) whose real box (fm_box) stays inside
+    the strip, off the stream line and the panel's lines (segs) and off the boxes in cell["taken"] (photos, markers)
+    are handed to pg.tp.place, which takes the first one free of every registered text and obstacle; then the shorter
+    alts. Draws the placed item; returns it, None when no spot is free (the caller reports it)."""
+    bd, taken = cell["bounds"], cell["taken"]
+    for t in (s,) + tuple(alts or ()):
+        ix0, iy0, ix1, iy1 = fm_ink_box(t, pt, bold)
+        mid = -(iy0 + iy1) / 2.0
+        pos = []
+        for j, r in enumerate(P16_LAB_R):
+            k = 0.7071 * r
+            cand = ([(0.0, mid, "C")] if j == 0 else []) + \
+                [(r, mid, "L"), (k, k - iy0, "L"), (0.0, r - iy0, "C"), (-k, k - iy0, "R"), (-r, mid, "R"),
+                 (-k, -k - iy1, "R"), (0.0, -r - iy1, "C"), (k, -k - iy1, "L")]
+            for dx, dy, al in cand:
+                b = fm_box(t, at[0] + dx, at[1] + dy, pt, bold, al, 0.0, False)
+                if not (bd[0] <= b[0] and b[2] <= bd[2] and bd[1] <= b[1] and b[3] <= bd[3]):
+                    continue
+                bb = (b[0] - 0.3, b[1] - 0.3, b[2] + 0.3, b[3] + 0.3)
+                if any(tp_hit(bb, q) for q in taken) or any(tp_seg_box(p, q, bb) for p, q in segs.near(bb)):
+                    continue
+                pos.append((dx, dy, al))
+        if not pos:
+            continue
+        try:
+            it = pg.tp.place(t, at, positions=tuple(pos), pt=pt, bold=bold, colour=colour, name=name, gap=0.0)
+        except TextCollision:
+            continue
+        pg.items.append(("text", it["text"], it["x"], it["y"], it["size_mm"], colour, bold, it["align"], None))
+        taken.append(it["box"])
+        return it
+    return None
+
+
 def sn_place(pg, cell, labs, warn):
-    """v37 (round 3, G3: no leader lines): each word on or right next to its place ON the strip (common/label_place
-    label_spot, LP_NEAR_RINGS), never on the stream line or a panel's own lines (cell["segs"]) or boxes
-    (cell["taken"]), at its size or the small size; "more" = further places of the same word: the word again at
-    each, small (rank 1). A rank-0 word with no room is logged, a rank-1 word is left out. Logs FLAG overlap for the
-    strip (cell["page"]) through lp_overlap_flag."""
-    segs = LpSegIndex(segs=cell.get("segs", ()))
-    small = sn_mm(SN_TS["small"])
+    """v37 (round 3, G3: no leader lines): each word on or right next to its place ON the strip, never on the stream
+    line or a panel's own lines (cell["segs"]) or boxes (cell["taken"]), at its size or the small size; "more" =
+    further places of the same word: the word again at each, small (rank 1). v38 (round 4, G-R4-1): placed through
+    the sheet's TextPage (_p16_place -> pg.tp.place), so no word touches any registered text, marker or keep; the
+    old self-test (lp_overlap_flag on its own boxes) is gone: pg.check_text() tests the whole sheet. A rank-0 word
+    with no free spot is FLAGged in the log (named), rank-1 repeats left out are counted in the log."""
+    segs = TpSegIndex(segs=cell.get("segs", ()))
+    small = SN_TS["small"]
     items = []
     for L_ in labs:
-        items.append((L_.get("rank", 0), L_, L_["at"], sn_mm(L_.get("pt", SN_TS["label"]))))
+        items.append((L_.get("rank", 0), L_, L_["at"], L_.get("pt", SN_TS["label"])))
         for a in L_.get("more", ()):
             items.append((1, L_, a, small))
-    boxes = []
-    for rank, L_, at, size0 in sorted(items, key=lambda it: it[0]):
+    n_more = 0
+    for rank, L_, at, pt0 in sorted(items, key=lambda it: it[0]):
         b_ = L_.get("bold", True)
-        for size in ([size0, small] if size0 > small else [small]):
-            w, h = text_w(L_["s"], size, b_), size * 0.95
-            got = label_spot(at[0], at[1], w, h, cell["taken"], cell["bounds"], segs, 0.6, rings=LP_NEAR_RINGS)
+        got = None
+        for pt in ([pt0, small] if pt0 > small else [small]):
+            got = _p16_place(pg, cell, segs, L_["s"], at, pt, L_.get("col", SN_INK), b_, L_.get("alts", ()),
+                             u"p16 {} {}".format(cell.get("title", u""), L_["s"]))
             if got:
-                bx = got[0]
-                pg.text(L_["s"], bx[0], bx[1] + size * 0.2, size, L_.get("col", SN_INK), bold=b_)
-                cell["taken"].append(bx)
-                boxes.append(bx)
                 break
-        else:
+        if got is None:
             if rank == 0:
-                warn.append(u"senses sheet: no room next to its place for the word '{}'".format(L_["s"]))
-    lp_overlap_flag(u"p15 " + cell.get("title", u""), boxes, (), cell["bounds"])
+                warn.append(u"FLAG p16 {}: no free spot on the strip for the word '{}' (not printed)".format(
+                    cell.get("title", u""), L_["s"]))
+            else:
+                n_more += 1
+    if n_more:
+        warn.append(u"senses sheet {}: {} repeat(s) of a word already on the strip left out (no free spot)".format(
+            cell.get("title", u""), n_more))
 
 
-def _p16_fig(pg, pose, x, y, h, colour, facing=1):
+def _p16_fig(pg, pose, x, y, h, facing=1):
     """p.16's ONE figure point: the figure library's side view (common/figures.py fig_side; adult 1.70 m), h mm
-    tall on this diagram (pictogram size, not to scale), feet at (x, y), one colour. "sit" = sit_chair."""
+    tall on this diagram (pictogram size, not to scale), feet at (x, y). "sit" = sit_chair. v38 (round 4,
+    G-R4-5.1): people are black (figures.py pen_black set); the colour argument (ink=) is gone."""
     k = h / 1.70
-    _p16_shapes(pg, fig_side({"sit": "sit_chair"}.get(pose, pose), x, y, k, facing, ink=colour))
+    _p16_shapes(pg, fig_side({"sit": "sit_chair"}.get(pose, pose), x, y, k, facing))
 
 
 def sn_key_row(pg, x, y, word, pt=None):
@@ -516,20 +557,23 @@ def sn_key_row(pg, x, y, word, pt=None):
     pg.text(word, x, y - size * 0.35, size, SN_INK)
 
 
-def sn_key_title(pg, cell, s):
-    """T4 (G1, one legend logic for all six): the key column starts level with its own strip's top edge, under a
-    bold title; returns the y of its first row's middle"""
+def sn_key_title(pg, cell, s=None):
+    """T4 (G1, one legend logic for all six): the key column starts level with its own strip's top edge; returns the
+    y of its first row's middle. v38 (P16.1, G-R4-2): the panel title sits above it (sn_cell), so a key title is
+    drawn only where it says something the panel title does not (s), else the rows start at the top"""
+    if not s:
+        return cell["box"][3] - 3.0
     fs = sn_mm(SN_TS["small"])
-    yb = cell["box"][3] - fs * 0.8
-    pg.text(s, cell["side"], yb, fs, SN_INK, bold=True)
+    yb = cell["box"][3] - 2.6
+    pg.text(s, cell["side"], yb, fs, SN_INK, bold=True, name=u"p16 key title", role="legend")
     return yb - 3.6
 
 
 def sn_key_foot(pg, G, cell):
     """T4 (G1: every plan its own scale bar and north arrow): the north arrow and the scale bar at the foot of the
-    key column, level with its strip's bottom edge (rows above end 9 mm over it)"""
+    key column, level with its strip's bottom edge (rows above end 19 mm over it)"""
     sx, yb = cell["side"], cell["box"][1] + 2.4
-    sn_north(pg, G["V"], sx + 3.0, yb + 1.4)
+    sn_north(pg, G["V"], sx + 4.0, yb)
     sn_scale_bar(pg, sx + 11.0, yb, (0.0, 100.0, 250.0, 500.0))
 
 
@@ -565,27 +609,33 @@ def sn_zones(pg, G, cell, warn):
         labs.append(dict(s=SN_ZONE_SHORT.get(key, name), at=at, col=mix(hx, SN_DARK, 0.5)))
     pg.unclip()
     sx = cell["side"]                                    # key column: the ONE base all six strips share (T4)
-    st, bs = R28_STUDY_LINE, cell.get("bm_style", {})
+    st, bs = BM_STUDY_LINE, G.get("base_kinds") or {}    # v38 (P16.3): the muted base's kinds (_p16_base_kinds)
     y = sn_key_title(pg, cell, u"Base map · all six strips")
-    rows = [(R28_STUDY_NAME, "study"), (u"Selinos stream", "water"), (u"Hidden (covered) stream", "covered"),
-            (u"Streets", "street"), (u"Buildings", "bld"), (u"Heritage buildings", "her"),
-            (u"Bridge (ticks on top)", "bridge"), (u"Flow direction", "flow")]
+    rows = [(R28_STUDY_NAME, "study"), (u"What we change", "tint"), (place_name("stream"), "water"),
+            (u"Hidden (covered) stream", "covered"), (u"Streets", "street"), (u"Buildings", "bld"),
+            (u"Heritage buildings", "her"), (u"Bridge (ticks on top)", "bridge"), (u"Flow direction", "flow")]
     for word, kind in rows:
         if kind in ("water", "covered", "street", "bld", "her") and kind not in bs:
             continue                                     # the key lists only what the base drew
-        if kind == "study" and not (bs.get("study") or G["study"]):
+        if kind == "study" and not G["study"]:
+            continue
+        if kind == "tint" and not G.get("tint"):
             continue
         if kind == "study":
             pg.line([(sx, y), (sx + 9.0, y)], st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
+        elif kind == "tint":                             # v38 (P16.4, D9): the footprint tint, as the strips draw it
+            pg.poly([rect(sx, y - 1.0, sx + 9.0, y + 1.0)], fill=ML_TINT, alpha=ML_TINT_ALPHA)
+            pg.poly([rect(sx, y - 1.0, sx + 9.0, y + 1.0)], stroke=SN_FRAME, lw=0.1)
         elif kind == "water":
             _p16_water_swatch(pg, sx, y, bs["water"])
         elif kind == "covered":
             pg.line([(sx, y), (sx + 9.0, y)], bs["covered"][0], bs["covered"][1], bs["covered"][2], cap=0)
         elif kind == "street":
-            pg.poly([rect(sx, y - 0.7, sx + 9.0, y + 0.7)], fill=bs["street"])
+            pg.poly([rect(sx, y - 0.7, sx + 9.0, y + 0.7)], fill=bs["street"], stroke=BM_MUTED["road_edge"],
+                    lw=BM_MUTED["lw"])
         elif kind in ("bld", "her"):
             f_, e_ = bs[kind]
-            pg.poly([rect(sx + 1.5, y - 1.0, sx + 7.5, y + 1.0)], fill=f_, stroke=e_, lw=0.18 if e_ else 0.1)
+            pg.poly([rect(sx + 1.5, y - 1.0, sx + 7.5, y + 1.0)], fill=f_, stroke=e_, lw=BM_MUTED["lw"])
         elif kind == "bridge":
             pg.line([(sx + 4.5, y + 0.9), (sx + 4.5, y - 0.9)], SN_INK2, 0.2)
         else:                                            # the water's direction in every strip (left to right)
@@ -597,16 +647,29 @@ def sn_zones(pg, G, cell, warn):
 
 
 def sn_north(pg, V, ax, ay):
-    """north arrow (survey +Y turned with the strips), tip toward north, 'N' beside it"""
+    """v38 (round 4, G-R4-9): THE north arrow of common/keymap.py (north_items: arrow and "N", no plate), its foot at
+    (ax, ay), turned with the strips (survey +Y in the View), P16_NORTH_MM tall; drawn through basemap_draw with the
+    page's own calls ("N" registered in the TextPage like every text)"""
     nu, nv = V.uv((V.cx, V.cy + 1.0))
     L = math.hypot(nu, nv) or 1.0
     nx_, ny_ = nu / L, nv / L
-    tip = (ax + nx_ * 3.5, ay + ny_ * 3.5)
-    pg.poly([[tip, (ax - ny_ * 1.6 - nx_ * 3.0, ay + nx_ * 1.6 - ny_ * 3.0), (ax - nx_ * 1.8, ay - ny_ * 1.8)]],
-            fill=SN_DARK)
-    pg.poly([[tip, (ax - nx_ * 1.8, ay - ny_ * 1.8), (ax + ny_ * 1.6 - nx_ * 3.0, ay - nx_ * 1.6 - ny_ * 3.0)]],
-            fill="FFFFFF", stroke=SN_DARK, lw=0.15)
-    pg.text(u"N", tip[0] + 1.2, tip[1] - 0.6, sn_mm(SN_TS["small"]), SN_DARK, bold=True)
+    its = north_items(ax, ay, math.atan2(-nx_, ny_), P16_NORTH_MM, SN_DARK)
+
+    def fill(rings, hx, a, nz):
+        pg.poly(rings, fill=hx)
+
+    def line(pts, hx, w, dash, a):
+        pg.line(pts, hx, w)
+
+    def text(s_, xy, size, hx, bold, align):
+        y_ = xy[1]
+        if align in ("MC", "CM"):                        # (x, y) = the middle of the ink: to the baseline
+            ix0, iy0, ix1, iy1 = fm_ink_box(s_, size / PT, bool(bold))
+            y_ = xy[1] - (iy0 + iy1) / 2.0
+            align = "C"
+        pg.text(s_, xy[0], y_, size, hx, bold=bool(bold), align=align if align in ("L", "C", "R") else "L",
+                name=u"p16 north", role="north")
+    basemap_draw(its, lambda p: p, fill, line, text)
 
 
 def sn_scale_bar(pg, x, y, marks):
@@ -688,7 +751,7 @@ def sn_feeling(pg, G, cell, warn):
     for p, mood, R, veins, pose in B:                    # pictograms (senses_ref1's black figures), not crowded
         x, y = T(p)
         if pose and sn_in((x, y, x, y), box) and all(math.hypot(x - a, y - b) >= 2.2 for a, b in figs):
-            _p16_fig(pg, pose, x, y - 1.4, 2.8, SN_DARK)
+            _p16_fig(pg, pose, x, y - 1.4, 2.8)
             figs.append((x, y))
     pg.unclip()
     for p, mood, R, veins, pose in sorted(B, key=lambda e: -e[2]):
@@ -697,7 +760,7 @@ def sn_feeling(pg, G, cell, warn):
             seen.add(mood)
             labs.append(dict(s=mood, at=(x, y), col=mix(sn_mood_col(SN_MOOD[mood]), SN_DARK, 0.45)))
     sx = cell["side"]                                    # key column: the feeling wheel, gathers / thins out, people
-    y0 = sn_key_title(pg, cell, u"Mood")
+    y0 = sn_key_title(pg, cell)                          # v38 (G-R4-2): no "Mood" title (the panel title says it)
     cx, cy, r = sx + 23.0, y0 - 12.0, 8.5
     for i in range(72):
         a0, a1 = math.radians(5.0 * i), math.radians(5.0 * (i + 1))
@@ -713,9 +776,9 @@ def sn_feeling(pg, G, cell, warn):
     sn_key_row(pg, sx + 11.0, y1, u"Gathers")
     sn_blot(pg, sx + 4.5, y2, 2.6, sn_mood_col(SN_MOOD["calm"]), 0, 6)
     sn_key_row(pg, sx + 11.0, y2, u"Thins out")
-    _p16_fig(pg, "walk", sx + 2.5, y3 - 1.4, 2.8, SN_DARK)        # the pictograms on the strip (G1)
-    _p16_fig(pg, "sit", sx + 6.5, y3 - 1.4, 2.8, SN_DARK)
-    sn_key_row(pg, sx + 11.0, y3, u"What people do there")
+    _p16_fig(pg, "walk", sx + 2.5, y3 - 1.4, 2.8)        # the pictograms on the strip (G1)
+    _p16_fig(pg, "sit", sx + 6.5, y3 - 1.4, 2.8)
+    sn_key_row(pg, sx + 11.0, y3, u"What people do")         # v38 (G-R4-2): shorter
     return labs
 
 
@@ -804,7 +867,7 @@ def sn_sound(pg, G, cell, warn):
             sn_mark(pg, "wind", x + (j - 1) * 1.2, y + (j - 1) * 1.3, col["wind"], ang)
     pg.unclip()
     sx = cell["side"]                                    # key column: the playful key
-    y = sn_key_title(pg, cell, u"Sound sources")
+    y = sn_key_title(pg, cell)                           # v38 (G-R4-2): the panel title says "Sound"
     for key, word, c in SN_SOUND:
         if key in ("water", "traffic", "wind"):
             for j in range(3 if key != "wind" else 1):
@@ -880,7 +943,7 @@ def sn_smell(pg, G, cell, warn):
         pg.circle(x, y, 0.6, fill=c)
     pg.unclip()
     sx = cell["side"]                                    # key column: source, then its months in flower under it
-    y = sn_key_title(pg, cell, u"Smell sources")
+    y = sn_key_title(pg, cell)                           # v38 (G-R4-2): the panel title says "Smell"
     fs = sn_mm(SN_TS["small"])
     shown = set(k for k, _ in S)
     for key, word, c in SN_SMELL:
@@ -961,7 +1024,7 @@ def sn_bubble(pg, x, y, key, word, colour, pose, seed=0):
         sn_wave(pg, fx - 3.5, fx + 4.5, fy + (0.8 if key == "cross" else 0.0), SN_WATER_MID)
     else:
         pg.line([(fx - 3.5, fy), (fx + 6.0, fy)], SN_INK2, 0.2)
-    _p16_fig(pg, pose, fx, fy, 5.2, colour)
+    _p16_fig(pg, pose, fx, fy, 5.2)                      # v38 (G-R4-5.1): black; the colour is the bubble's and mark's
     if key == "watch":                                   # the line of sight
         pg.line([(fx + 0.5, fy + 4.6), (fx + 5.0, fy + 3.9)], colour, 0.2, [0.6, 0.4], cap=0)
     size = sn_mm(SN_TS["label"])
@@ -1014,38 +1077,66 @@ def sn_enc_mark(pg, key, x, y, colour, ux=1.0, uy=0.0, dirx=None):
     """v37 (P15.1, R02 idea: each mode its own mark where it happens) one encounter mark at page (x, y):
     cross = a bar across the water (perpendicular to the stream tangent ux, uy) with end ticks; watch = a sight wedge
     toward dirx (unit vector); touch = a disc with a wave; walk = (drawn as the walk's own line, here a key sample);
-    remember = a small Roman arch on a white disc"""
+    remember = a small Roman arch on a white disc. v38 (round 4, P16.2): the same marks, larger (SN_ENC_* sizes)"""
     white = COL["white"]
     if key == "cross":
         nx_, ny_ = -uy, ux
         h = SN_ENC_CROSS_MM / 2.0
         a, b = (x - nx_ * h, y - ny_ * h), (x + nx_ * h, y + ny_ * h)
-        pg.line([a, b], white, 1.3, cap=0)
-        pg.line([a, b], colour, 0.7, cap=0)
+        pg.line([a, b], white, SN_ENC_CROSS_LW + 0.6, cap=0)
+        pg.line([a, b], colour, SN_ENC_CROSS_LW, cap=0)
         for e in (a, b):
-            pg.line([(e[0] - ux * 0.7, e[1] - uy * 0.7), (e[0] + ux * 0.7, e[1] + uy * 0.7)], colour, 0.35)
+            pg.line([(e[0] - ux * 0.8, e[1] - uy * 0.8), (e[0] + ux * 0.8, e[1] + uy * 0.8)], colour, 0.4)
     elif key == "watch":
         dx, dy = dirx or (0.0, -1.0)
-        L, s = 4.2, 0.45
+        L, s = SN_ENC_WATCH_MM, 0.45
         tip1 = (x + (dx * math.cos(s) - dy * math.sin(s)) * L, y + (dx * math.sin(s) + dy * math.cos(s)) * L)
         tip2 = (x + (dx * math.cos(-s) - dy * math.sin(-s)) * L, y + (dx * math.sin(-s) + dy * math.cos(-s)) * L)
-        pg.poly([[(x, y), tip1, tip2]], fill=mix(colour, "FFFFFF", 0.55), stroke=colour, lw=0.2)
-        pg.circle(x, y, 0.75, fill=colour, stroke=white, lw=0.2)
+        pg.poly([[(x, y), tip1, tip2]], fill=mix(colour, "FFFFFF", 0.55), stroke=colour, lw=0.25)
+        pg.circle(x, y, SN_ENC_WATCH_DOT, fill=colour, stroke=white, lw=0.25)
     elif key == "touch":
-        pg.circle(x, y, 1.05, fill=colour, stroke=white, lw=0.25)
-        pg.line([(x - 0.6 + 1.2 * i / 8.0, y + 0.18 * math.sin(i * math.pi / 2.0)) for i in range(9)], white, 0.2)
+        r, f = SN_ENC_TOUCH_R, SN_ENC_TOUCH_R / 1.05
+        pg.circle(x, y, r, fill=colour, stroke=white, lw=0.3)
+        pg.line([(x - 0.6 * f + 1.2 * f * i / 8.0, y + 0.18 * f * math.sin(i * math.pi / 2.0)) for i in range(9)],
+                white, 0.25)
     elif key == "walk":
         pg.line([(x - 2.5, y), (x + 2.5, y)], colour, SN_ENC_WALK_LW)
     else:                                                # remember: an arch
-        pg.circle(x, y, 1.25, fill=white, stroke=colour, lw=0.25)
-        pg.line([(x + 0.8 * math.cos(math.radians(a)), y - 0.45 + 0.9 * math.sin(math.radians(a)))
-                 for a in range(0, 181, 20)], colour, 0.35)
-        pg.line([(x - 0.95, y - 0.45), (x + 0.95, y - 0.45)], colour, 0.3)
+        r, f = SN_ENC_REM_R, SN_ENC_REM_R / 1.25
+        pg.circle(x, y, r, fill=white, stroke=colour, lw=0.35)
+        pg.line([(x + 0.8 * f * math.cos(math.radians(a)), y - 0.45 * f + 0.9 * f * math.sin(math.radians(a)))
+                 for a in range(0, 181, 20)], colour, 0.4)
+        pg.line([(x - 0.95 * f, y - 0.45 * f), (x + 0.95 * f, y - 0.45 * f)], colour, 0.35)
 
 
-SN_ENC_CROSS_MM = 5.0        # v37: a cross mark's length across the water, mm (the stream is 1-4 mm wide at 1:20,000)
-SN_ENC_WALK_LW = 0.7         # v37: the walk's line, mm
-SN_ENC_REM_OFF = 2.4         # v37: a remember mark at a bridge sits this far beside its cross mark, along the stream, mm
+# v38 (round 4, P16.2, U52 "dokunmak ve yürümek gibi hisler arka planda kalmış renkler birbirine çok yakın", S21):
+# legible marks at 1:20,000 (v37 sizes in brackets), mm
+SN_ENC_CROSS_MM = 5.5        # design value: a cross bar's length across the water (5.0; the stream is 1-4 mm wide)
+SN_ENC_CROSS_LW = 0.8        # design value: the cross bar's width (0.7), on a white casing 0.6 wider
+SN_ENC_WALK_LW = 1.0         # design value: the walk's line (0.7), on a white casing 0.5 wider
+SN_ENC_WATCH_MM = 5.0        # design value: the sight wedge's length (4.2)
+SN_ENC_WATCH_DOT = 0.9       # design value: the watch point's radius (0.75)
+SN_ENC_TOUCH_R = 1.6         # design value: the touch disc's radius (1.05)
+SN_ENC_REM_R = 1.6           # design value: the remember disc's radius (1.25)
+SN_ENC_REM_OFF = 2.9         # design value: a remember mark at a bridge sits this far beside its cross mark, along
+#                              the stream (2.4): disc 1.6 + cross tick 0.8 + 0.5 clear
+# v38 (P16.2): FIVE distinct hues, one per encounter type (K2: the types, words, poses and marks unchanged), all
+# Bergama palette v1.4 colours (palette.json): WALK and TOUCH as PLAN §4.10 sets them, the other three chosen so
+# WALK and TOUCH are not hue neighbours. Checked offline (OKLCH hue, CIEDE2000, WCAG contrast; 1 Nov 2026):
+#   key       hex     source (palette.json)          OKLCH h  L     on paper / muted house EDEBE6 / D9 tint E4E9EB
+#   touch     8B2D2D  image A brick red (accent)      24.1   0.44   8.36 / 7.02 / 6.83
+#   cross     8C5D05  figure_colours ochre            74.2   0.52   5.70 / 4.79 / 4.66
+#   watch     3C4733  image A dark green (green_deep) 131.4  0.38   9.81 / 8.23 / 8.01
+#   walk      5C7A86  image B slate blue (water_deep) 224.4  0.56   4.58 / 3.85 / 3.74
+#   remember  8C7088  land_use institutional plum     331.0  0.58   4.39 / 3.68 / 3.58
+# hue order round the wheel: touch - cross - watch - walk - remember - touch: WALK's neighbours are watch and
+# remember, TOUCH's are cross and remember; WALK to TOUCH 160 deg, dE00 40.9. Smallest pair: walk / watch dE00 24.6
+# (93 deg); every pair >= 24.6 (v37: watch / walk 16.8). Against the study line 6A4C93: dE00 >= 17.5 (remember).
+# All marks are drawn on a white casing / rim, so the water (91ADB4, contrast 1.85-4.13) never carries them alone.
+# REMEMBER leaves the heritage red (v37 8B3A3F): next to TOUCH's brick red it was the colour pair Aras saw as one.
+P16_EXP = (("watch", u"Watch", "3C4733", "watch"), ("walk", u"Walk", "5C7A86", "walk"),
+           ("touch", u"Touch", "8B2D2D", "touch"), ("cross", u"Cross", "8C5D05", "wade"),
+           ("remember", u"Remember", "8C7088", "stand"))
 
 
 def sn_encounters(pg, G, cell, warn):
@@ -1057,12 +1148,15 @@ def sn_encounters(pg, G, cell, warn):
     open edge of each widened reach toward the water, TOUCH as a disc at the sub-hubs in the bed and the step facing
     Tabaklar Hamamı, REMEMBER as an arch at the heritage places only (R03: attached to the exact stretch, both banks).
     Layer order: walk lines, then cross, watch, touch, remember. The key column keeps the five vignette bubbles, each
-    with its mark sample. A design reading of the masterplan, no numbers."""
+    with its mark sample. A design reading of the masterplan, no numbers.
+    v38 (round 4, P16.2): the five hues of P16_EXP and larger marks (SN_ENC_*); the walk lines are this panel's
+    proj_lines, the cross / watch / touch / remember marks are drawn in layer proj_marks (cell["late"], above the
+    study line); places and counts are worked out here, unchanged (K2)."""
     T, box = cell["T"], cell["box"]
     x0, y0, x1, y1 = box
     refp = [T(p) for p in G["ref"]]
     pl = sn_exp_places(G)
-    col = dict((k_, c_) for k_, _w, c_, _p in SN_EXP)
+    col = dict((k_, c_) for k_, _w, c_, _p in P16_EXP)
     inb = lambda q: x0 + 1.0 <= q[0] <= x1 - 1.0 and y0 + 1.0 <= q[1] <= y1 - 1.0
     n = {}
     pg.clip([rect(*box)])
@@ -1073,13 +1167,14 @@ def sn_encounters(pg, G, cell, warn):
             pg.line(Q, col["walk"], SN_ENC_WALK_LW)
             n["walk"] = n.get("walk", 0) + 1
     pg.unclip()
+    marks = []                                           # (key, x, y, ux, uy, dirx), drawn in layer proj_marks
     cross_at = []
     for p in pl["cross"]:
         q = T(p)
         if not inb(q):
             continue
         (ux, uy), _m = _sn_tangent(refp, q)
-        sn_enc_mark(pg, "cross", q[0], q[1], col["cross"], ux, uy)
+        marks.append(("cross", q[0], q[1], ux, uy, None))
         cross_at.append((q, ux, uy))
         n["cross"] = n.get("cross", 0) + 1
     for i, p in enumerate(pl["watch"]):
@@ -1092,12 +1187,12 @@ def sn_encounters(pg, G, cell, warn):
         else:                                            # an open edge: toward the water
             q2 = _sn_tangent(refp, q)[1]
         L = math.hypot(q2[0] - q[0], q2[1] - q[1]) or 1.0
-        sn_enc_mark(pg, "watch", q[0], q[1], col["watch"], dirx=((q2[0] - q[0]) / L, (q2[1] - q[1]) / L))
+        marks.append(("watch", q[0], q[1], 1.0, 0.0, ((q2[0] - q[0]) / L, (q2[1] - q[1]) / L)))
         n["watch"] = n.get("watch", 0) + 1
     for p in pl["touch"]:
         q = T(p)
         if inb(q):
-            sn_enc_mark(pg, "touch", q[0], q[1], col["touch"])
+            marks.append(("touch", q[0], q[1], 1.0, 0.0, None))
             n["touch"] = n.get("touch", 0) + 1
     for p in pl["remember"]:
         q = T(p)
@@ -1107,15 +1202,20 @@ def sn_encounters(pg, G, cell, warn):
         if near:                                         # a Roman bridge: the arch beside its cross bar
             (cq, ux, uy) = near[0]
             q = (cq[0] + ux * SN_ENC_REM_OFF, cq[1] + uy * SN_ENC_REM_OFF)
-        sn_enc_mark(pg, "remember", q[0], q[1], col["remember"])
+        marks.append(("remember", q[0], q[1], 1.0, 0.0, None))
         n["remember"] = n.get("remember", 0) + 1
-    for k_, _w, _c, _p in SN_EXP:
+
+    def late():                                          # layer order kept: cross, watch, touch, remember
+        for k_, x_, y_, ux_, uy_, d_ in marks:
+            sn_enc_mark(pg, k_, x_, y_, col[k_], ux_, uy_, dirx=d_)
+    cell["late"].append(late)
+    for k_, _w, _c, _p in P16_EXP:
         if not n.get(k_):
             warn.append(u"senses sheet: Encounters: no {} place inside the strip".format(k_))
     sx, ytop = cell["side"], box[3]
-    pitch = 8.8                                          # mm: the vignettes' pitch
-    for i, (key, word, colour, pose) in enumerate(SN_EXP):
-        bx, by = sx + 11.0, ytop - 8.4 - pitch * i
+    pitch = 10.0                                         # mm: the vignettes' pitch (v38: 8.8; the key column is
+    for i, (key, word, colour, pose) in enumerate(P16_EXP):   # 71 mm tall now and has no title)
+        bx, by = sx + 11.0, ytop - 5.0 - pitch * i
         sn_enc_mark(pg, key, sx + 4.5, by, colour, 1.0, 0.0, dirx=(1.0, 0.0))
         sn_bubble(pg, bx, by, key, word, colour, pose, i)
     return []
@@ -1272,10 +1372,10 @@ def _p16_photo_row(keys_at, box, avoid, capm):
 
 
 def sn_num(pg, x, y, n_, colour):
-    """a numbered marker (G3: its number explained by the photo caption of the same number)"""
-    fs = sn_mm(SN_TS["small"])
-    pg.circle(x, y, 1.3, fill=colour, stroke="FFFFFF", lw=0.2)
-    pg.text(u"{}".format(n_), x, y - fs * 0.36, fs, "FFFFFF", bold=True, align="C")
+    """a numbered marker (G3: its number explained by the photo caption of the same number). v38 (round 4, G-R4-7):
+    the ONE marker (mp_marker: glyph centred on its ink box, radius from the glyph, kept in the TextPage), in the
+    colour of the element it names (the heritage fields, SN_HER); returns its box"""
+    return mp_marker(pg, x, y, u"{}".format(n_), colour, size_pt=SN_TS["small"])[0]
 
 
 def sn_history(pg, G, cell, warn):
@@ -1336,7 +1436,8 @@ def sn_history(pg, G, cell, warn):
     rb = [anchors[k] for k in ("k3", "k5") if k in anchors and k not in ph]
     if rb:                                               # places without a photo keep their word on the strip
         labs.append(dict(s=u"Roman bridges", at=rb[0], more=rb[1:], col=txt))
-    for k, s in (("hamam", u"Tabaklar Hamamı"), ("tabakhane", u"Tabakhane"), ("tunnels", u"Kızıl Avlu tunnels"),
+    for k, s in (("hamam", landmark_name("tabaklar_hamami")), ("tabakhane", u"Tabakhane"),   # v38 (G-R4-11)
+                 ("tunnels", u"{} tunnels".format(landmark_name("kizil_avlu"))),
                  ("kermes", u"Kermes")):                 # v29: Kermes keeps its word when it has no photo
         if k in anchors and k not in ph:
             labs.append(dict(s=s, at=anchors[k], col=txt))
@@ -1346,37 +1447,67 @@ def sn_history(pg, G, cell, warn):
     avoid = [(a, 50.0) for a in anchors.values()] + [(p, 1.0) for p in (T(q) for q in G["ref"])] + \
         [(p, 1.0) for A in G["study"] for p in (T(q) for q in A)]
     slots, W, H = _p16_photo_row(with_ph, box, avoid, capm)
-    marks = []
-    for n_, (k, a) in enumerate(sorted(with_ph, key=lambda e: slots[e[0]][0]), 1):
+    # v38 (round 4, G-R4-1, G-R4-7): each caption's number is an mp_marker (centre 1.6 mm in, the caption 4.0 mm in:
+    # disc edge to text >= 0.6 mm); each photo is kept in the TextPage (no text on a picture); the map markers move
+    # off the photo band (away from it, P16_MK_STEP at a time) and apart from each other, and are drawn in layer
+    # proj_marks (above the study line)
+    order = sorted(with_ph, key=lambda e: slots[e[0]][0])
+    capboxes = []
+    for n_, (k, a) in enumerate(order, 1):
         x, y = slots[k]
         path = ph[k][0]                                  # ph[k][1] = the csv credit line: Sources page only (G12)
         cap = names[k]
-        lines = wrap(cap[0], fs, W - 3.2, True)[:2]
+        lines = wrap(cap[0], fs, W - 4.0, True)
+        if len(lines) > 2:
+            warn.append(u"FLAG p16 History: caption '{}' needs {} lines under its photo (2 shown)".format(
+                cap[0], len(lines)))
+            lines = lines[:2]
         nb = len(lines)                                  # the name's lines are bold, a second caption line is not
         if nb == 1 and len(cap) > 1:
-            lines.append(cap[1])
+            if text_w(cap[1], fs) <= W - 4.0:
+                lines.append(cap[1])
+            else:
+                warn.append(u"FLAG p16 History: '{}' does not fit under its photo (left out)".format(cap[1]))
         yb = y - 0.8 - fs * 0.8
-        sn_num(pg, x + 1.3, yb + fs * 0.36, n_, txt)
+        sn_num(pg, x + 1.6, yb + fs * 0.36, n_, SN_HER)
         for j, s in enumerate(lines):
-            pg.text(s, x + 3.2, yb - j * lh, fs, txt if j < nb else SN_INK2, bold=(j < nb))
-        m_ = (a[0], a[1])                                # its place on the map, the same number
-        while any(math.hypot(m_[0] - q[0], m_[1] - q[1]) < 2.7 for q in marks):
-            m_ = (m_[0], m_[1] + 2.7)                    # two places close together: stacked, a short tie
-        if m_ != (a[0], a[1]):
-            pg.line([a, (m_[0], m_[1] - 1.3)], SN_INK2, 0.15)
-        sn_num(pg, m_[0], m_[1], n_, txt)
-        marks.append(m_)
-        cell["taken"] += [(x, y - capm, x + W, y + H), (m_[0] - 1.4, m_[1] - 1.4, m_[0] + 1.4, m_[1] + 1.4)]
+            pg.text(s, x + 4.0, yb - j * lh, fs, txt if j < nb else SN_INK2, bold=(j < nb), name=u"p16 caption",
+                    role="caption")
+        pg.keep((x, y, x + W, y + H), "photo", u"p16 photo {}".format(n_))
+        capboxes.append((x, y - capm, x + W, y + H))
         G.setdefault("imgs", []).append((path, (x, y, W, H)))
+    cell["taken"] += capboxes
+    top_band = bool(order) and slots[order[0][0]][1] > (box[1] + box[3]) / 2.0
+    away = -1.0 if top_band else 1.0                     # markers step away from the photo band
+    rm = 1.8                                             # a marker's half size with its rim, mm (7 pt, <= 1.68)
+    marks, ties = [], []
+    for n_, (k, a) in enumerate(order, 1):
+        m_ = (a[0], a[1])                                # its place on the map, the same number
+        for _i in range(12):
+            mb = (m_[0] - rm, m_[1] - rm, m_[0] + rm, m_[1] + rm)
+            if not (any(math.hypot(m_[0] - q[1], m_[1] - q[2]) < P16_MK_STEP for q in marks) or
+                    any(tp_hit(mb, cb, 0.7) for cb in capboxes)):
+                break
+            m_ = (m_[0], min(max(m_[1] + away * P16_MK_STEP, box[1] + rm + 0.6), box[3] - rm - 0.6))
+        if m_ != (a[0], a[1]):                           # moved: a short tie to its place
+            ties.append([a, (m_[0], m_[1] - away * 1.4)])
+        marks.append((n_, m_[0], m_[1]))
+        cell["taken"].append((m_[0] - rm, m_[1] - rm, m_[0] + rm, m_[1] + rm))
+
+    def late():
+        for P in ties:
+            pg.line(P, SN_INK2, 0.15)
+        for n_, x_, y_ in marks:
+            sn_num(pg, x_, y_, n_, SN_HER)
+    cell["late"].append(late)
     sx = cell["side"]                                    # key column: the heritage field, the numbered places
-    y = sn_key_title(pg, cell, u"Heritage")
+    y = sn_key_title(pg, cell)                           # v38 (G-R4-2): the panel title says "History"
     sn_layers_round(pg, sx + 4.5, y, 2.3, SN_HER, 40)
     sn_key_row(pg, sx + 11.0, y, u"Heritage place")
     if with_ph:
-        y -= P16_KEY_ROW + 0.6
-        sn_num(pg, sx + 4.5, y, 1, txt)
-        sn_key_row(pg, sx + 11.0, y, u"Place of the photo")
-        sn_key_row(pg, sx + 11.0, y - 3.4, u"with the same number")
+        y -= P16_KEY_ROW + 1.0
+        sn_num(pg, sx + 4.5, y, 1, SN_HER)
+        sn_key_row(pg, sx + 11.0, y, u"Photo and its place")   # v38 (G-R4-2): one row (v37: two)
     return labs
 
 
@@ -1454,49 +1585,72 @@ def _p16_save(pg, folder, name, title, imgs):
 def senses_sheet(C, areas, folder, files, warn, basemap=None):
     """S1: writes Bergama_senses_A3.pdf into the masterplan's output folder (the masterplan's PDF writer, Arial
     embedded; with History photos _p16_save, the same writer plus JPEG images); returns the log line. Called once a
-    press by build_all (a failure is only a warning there). basemap = {panel title: (mode, override)} changes
-    P16_BASEMAP's choice (D5) for this run."""
+    press by build_all (a failure is only a warning there). v38 (round 4): basemap is ignored (one muted base for all
+    six strips, P16.3); every text goes through the sheet's TextPage "p16" and pg.check_text() runs before the PDF
+    is written (a collision raises TextCollision: the sheet is not written, the log names page, text and obstacle).
+    Per strip, ONE draw order through mp_map_draw: the muted base -> the D9 tint (P16_TINT_PANELS) -> the panel
+    (proj_lines) -> the study line -> its marks (proj_marks) -> then the words (sn_place)."""
     t0 = time.time()
     _P16_MEMO.clear()                                    # photos are read once a run
-    bm = dict(P16_BASEMAP)
-    bm.update(basemap or {})
     G = sn_data(C, areas, warn)
     G["warn"] = warn
     pg = Page(SN_PW, SN_PH)
+    pg.text_page(u"p16", margins=P16_TP_MARGINS)         # v38 (G-R4-1): every text registered from here on
     pg.poly([rect(0.0, 0.0, SN_PW, SN_PH)], fill="FFFFFF")
-    pg.text(SN_KICKER, SN_ML, sn_y(12.0), sn_mm(SN_TS["kicker"]), SN_ACC, bold=True)   # the booklet's header band
-    pg.text(SN_TITLE, SN_ML, sn_y(22.0), sn_mm(SN_TS["title"]), SN_INK, bold=True)
+    pg.text(SN_KICKER, SN_ML, sn_y(12.0), sn_mm(SN_TS["kicker"]), SN_ACC, bold=True, name=u"p16 kicker",
+            role="heading")                              # the booklet's header band
+    pg.text(SN_TITLE, SN_ML, sn_y(22.0), sn_mm(SN_TS["title"]), SN_INK, bold=True, name=u"p16 title",
+            role="heading")
     pg.line([(SN_ML, sn_y(25.0)), (SN_PW - SN_ML, sn_y(25.0))], SN_RULE, 0.25 * SN_PT)
-    sn_rich(pg, SN_ML, sn_y(30.5), [(u"The fade-out zones and the ", False), (u"senses", True),
-                                    (u" along the Selinos stream: six maps on ", False), (u"one base map", True),
-                                    (u" · every strip ", False), (u"1:20,000", True)], SN_TS["statement"], SN_INK)
-    cells = [(SN_COLX[0], SN_ROWS[0], u"Zones", sn_zones),
-             (SN_COLX[1], SN_ROWS[0], u"Feeling", sn_feeling),
-             (SN_COLX[0], SN_ROWS[1], u"Sound", sn_sound),
-             (SN_COLX[1], SN_ROWS[1], u"Smell", sn_smell),
-             (SN_COLX[0], SN_ROWS[2], u"Encounters", sn_encounters),
-             (SN_COLX[1], SN_ROWS[2], u"History", sn_history)]
+    # v38 (P16.1, G-R4-2): no statement line (its facts are on the sheet once: the scale on every bar, the one base
+    # in the base key); the cells start at P16_ROWS[0]
+    cells = [(SN_COLX[0], P16_ROWS[0], u"Zones", sn_zones),
+             (SN_COLX[1], P16_ROWS[0], u"Feeling", sn_feeling),
+             (SN_COLX[0], P16_ROWS[1], u"Sound", sn_sound),
+             (SN_COLX[1], P16_ROWS[1], u"Smell", sn_smell),
+             (SN_COLX[0], P16_ROWS[2], u"Encounters", sn_encounters),
+             (SN_COLX[1], P16_ROWS[2], u"History", sn_history)]
+    n_ok = 0
     for cx, top, title, layer in cells:
-        cell = sn_cell(pg, G, cx, top, title, bm.get(title))
+        cell = sn_cell(pg, G, cx, top, title)
         for s_ in cell.get("ruler_missing") or []:      # v37: a bridge name with no room on the ruler
             warn.append(u"senses sheet {}: bridge name not on the ruler (no room): {}".format(title, s_))
-        labs, n0 = [], len(pg.items)
+        labs, n0, box = [], len(pg.items), cell["box"]
+
+        def panel(layer=layer, cell=cell, labs=labs, box=box):
+            pg.unclip()                                  # the panel clips its own strip work; its key column is
+            try:                                         # outside the strip
+                labs.extend(layer(pg, G, cell, warn) or [])
+            finally:
+                pg.clip([rect(*box)])
+
+        def marks(cell=cell):
+            for f_ in cell["late"]:
+                f_()
+        pg.clip([rect(*box)])
         try:
-            labs = layer(pg, G, cell, warn) or []
+            mp_map_draw(pg, u"p16", cell["T"], G["base"], steps={"proj_lines": panel, "proj_marks": marks},
+                        tint=G["tint"] if title in P16_TINT_PANELS else (), study=G["study"] or None,
+                        water_opts=P16_WATER_OPTS)
+            n_ok += 1
+        except TextCollision:
+            raise
         except Exception as ex:
             import traceback
             warn.append(u"senses sheet: panel {} not drawn ({}: {})".format(title, type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
-            open_ = sum(1 if it[0] == "clip" else -1 if it[0] == "unclip" else 0 for it in pg.items[n0:])
-            for _ in range(max(0, open_)):               # close a clip the failed panel left open
-                pg.unclip()
+        open_ = sum(1 if it[0] == "clip" else -1 if it[0] == "unclip" else 0 for it in pg.items[n0:])
+        for _ in range(max(0, open_)):                   # close the strip's clip (and any a failed panel left open)
+            pg.unclip()
         sn_outline(pg, G, cell)
         sn_key_foot(pg, G, cell)
         sn_place(pg, cell, labs, warn)
     if callable(globals().get("basemap_warnings")):
         warn.extend(basemap_warnings())                  # e.g. the M5 stream fell back to the plain fill
+    pg.check_text(log=TP_LOG)                            # v38 (G-R4-1): raises TextCollision; logs "overlap p16 ..."
     imgs = G.get("imgs") or []
     path = _p16_save(pg, folder, SN_NAME, SN_TITLE, imgs) if imgs else save(pg, folder, SN_NAME, SN_TITLE)
     files.append(path)
-    return u"{}  {}  {:.1f} s (zones: {})".format(os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"),
-                                                  time.time() - t0, G["fields_src"])
+    return u"{}  {}  {:.1f} s (zones: {}; strips {}/6 on one muted base, D9 tint {} rings)".format(
+        os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0, G["fields_src"],
+        n_ok, len(G.get("tint") or []))

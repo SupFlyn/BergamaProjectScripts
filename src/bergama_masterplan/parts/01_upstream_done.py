@@ -5,6 +5,19 @@ as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. 
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v38 (round 4 S8, 1 Nov; a feature change): one run trigger (common/trigger.py, the masterplan's own copy gone);
+    ROADS + TOWN_LINE shared (common/data/ROADS.py); Turkish proper names from the names table (Kızıl Avlu, never
+    "Red Hall"); real font widths (font_metrics); every text registered in its page's TextPage and checked (a
+    collision RAISES, G-R4-1); every proposal clipped to the study area at its source (CHK-7) and the voids inside
+    it designed (rain meadow, pocket garden, shade grove, shaded lanes, heritage setting); results.json exports
+    corridor + hub_squares (p10 / p17). p16: one muted base, D9 tint, five distinct encounter hues, bigger strips,
+    shared marker and north arrow. p21: one crisp line per element, shared markers in their element's colour, the muted base + D9 tint, a second study clip, hub names placed or numbered (never dropped), designed voids drawn with letters, move reasons printed. p22 redrawn (P22.1-P22.8): plans
+    turned so each cut runs left-right with its section right under it on the same axis, shared muted base + D9
+    tint, red R01 cut line without triangles, km_map key map, Demeter's Garden designed (hedge, olive orchard,
+    mixed beds, café planes, gravel path), the bike lane ends at a street or a rack, a viewing terrace per window,
+    lamps / bollards / racks, levels outside the section frame, zoom inset at 1:250, the low planting layer, one
+    194 x 236 mm column per window with its own legend (the booklet adds none).
+
 NEW IN v37.2 (1 Nov, Aras 07:48): the riverside spine, its bank vote and the stops are built in this script
     (common/city_spine.py, the same code city link uses; the vote from this run's site board or the built-in one);
     city_link_results.json is no longer read, so city link runs once, after the masterplan. Same drawings.
@@ -572,12 +585,19 @@ class Page(object):
     def __init__(self, W, H):
         self.W, self.H, self.items = W, H, []
         self.tp = None
+        self.tg = None                                   # v38: the open text group (tgroup), None = one per text
 
     def text_page(self, name, bounds=None, margins=None, pad=0.6, scale=1.0):
         """v38: start this page's TextPage (y up, page mm); bounds default = the whole page"""
         self.tp = TextPage(name, bounds or (0.0, 0.0, self.W, self.H), y_down=False, pad=pad, margins=margins,
                            scale=scale)
         return self.tp
+
+    def tgroup(self, start=True):
+        """v38: start (or with False end) one text group: the texts of one word block (lines of a title, runs of a
+        row) may touch each other; a group never touches another"""
+        self.tg = self.tp._group() if start and self.tp is not None else None
+        return self.tg
 
     def keep(self, geom, kind="keep", name=None, line=None):
         """v38: an obstacle no text may touch (TextPage.keep); nothing without a TextPage"""
@@ -613,7 +633,7 @@ class Page(object):
         go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc)"""
         tp, g = self.tp, None
         if s and tp is not None:
-            g = tp._group()
+            g = self.tg or tp._group()
         if s and any(ch in SUP for ch in s):             # v26.1: m² / m³ as a raised small digit (see SUP)
             runs = sup_runs(s)
             ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]

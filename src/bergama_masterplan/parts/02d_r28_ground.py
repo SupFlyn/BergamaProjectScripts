@@ -43,7 +43,12 @@ def mp_map_draw(pg, page, T, base, steps=None, tint=(), study=None, log=None, wa
     steps = dict(steps or {})
 
     def fill(rings, hx, a, nz):
-        pg.poly(rings, fill=hx, alpha=None if a is None or a >= 0.995 else a)
+        al = None if a is None or a >= 0.995 else a
+        if nz and len(rings) > 1:                         # the Page fills even-odd: a nonzero item (overlapping
+            for r_ in rings:                              # building rings) one ring at a time, so overlaps never
+                pg.poly([r_], fill=hx, alpha=al)          # open white notches (CHK-3)
+        else:
+            pg.poly(rings, fill=hx, alpha=al)
 
     def line(pts, hx, w, dash, a):
         pg.line(pts, hx, w, list(dash) if dash else None, cap=0 if dash else 1,

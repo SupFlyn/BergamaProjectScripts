@@ -81,34 +81,13 @@ def store_m3(z):
 
 
 def _r28_base(pg, C, T, R, segs, k):
-    """v27 (P24.1, P24.2): the survey as a faint grey underlay: contours, buildings (heritage with a thin outline),
-    street edges; the bridges crisp (the base's only dark lines, kept free of words). T7 (30 Oct, M5 / G8): the
-    stream drawn by M5 over the context (water_plan: surface tone, bank line, flow streaks deeper to the middle; the
-    site board's stream polygon, as p.21), its banks kept free of words; no mid-stream line."""
-    cl = _r28_base_cols()
+    """v27 (P24.1, P24.2): the stream drawn by M5 (water_plan: surface tone, bank line, flow streaks deeper to the
+    middle; the site board's stream polygon, as p.21), its banks kept free of words; the bridges crisp. v38 (round 4,
+    G-R4-4): the houses, streets and contours come from the shared muted base (ml_base, drawn first by mp_map_draw in
+    r28_window_panel); this is the page's "proj_water" step. R = the window's bounding box (survey m)."""
     Rm = (R[0] - 5.0, R[1] - 5.0, R[2] + 5.0, R[3] + 5.0)
     near = lambda Ls: [[T(p) for p in L_] for L_ in Ls if len(L_) >= 2 and hit(bbox(L_), Rm)]
-    dw, dh = (R[2] - R[0]) * k, (R[3] - R[1]) * k
-    for Q in near(C.contours):
-        pg.line(Q, COL["contour10"], 0.12)
-        leg(("r28dt", "contour"))
-    for role in ("building", "housing", "shed"):
-        Ps = near(C.bld.get(role, []))
-        if Ps:
-            pg.poly(Ps, fill=cl["bld"])
-            leg(("r28dt", "bld"))
-    Ps = near(C.bld.get("heritage", []))
-    if Ps:
-        pg.poly(Ps, fill=cl["bld"], stroke=COL["her_edge"], lw=0.15)
-        leg(("r28dt", "her"))
-    Ps = near(C.built_since)
-    if Ps:
-        pg.poly(Ps, fill=cl["bld"], stripes=(COL["ink2"], 0.8, 0.12, 45.0))
-        leg(("r28dt", "since"))
-    for Q in near(C.roads):
-        pg.line(Q, COL["ink2"], 0.15, alpha=0.4)
-        leg(("r28dt", "street"))
-    box = (-2.0, -2.0, dw + 2.0, dh + 2.0)
+    box = (-2.0, -2.0, pg.W + 2.0, pg.H + 2.0)
     rings = pl23_water_draw(pg, C, T, k, lambda Q: hit(bbox(Q), box), 1.3)
     for Q in rings:
         segs += [(a, b) for a, b in zip(Q, Q[1:] + Q[:1]) if hit(bbox([a, b]), box)]
@@ -127,6 +106,7 @@ def _r28_wh(lines):
 
 def _r28_text(pg, lines, b, centre=False):
     y = b[3]
+    pg.tgroup()                                           # v38: one block = one text group
     for s, sz, bd, col in lines:
         y -= sz
         if centre:
@@ -134,6 +114,7 @@ def _r28_text(pg, lines, b, centre=False):
         else:
             pg.text(s, b[0], y, sz, col, bold=bd)
         y -= sz * 0.18
+    pg.tgroup(False)
 
 
 def _r28_free(b, taken, segs, bounds, pad):
@@ -225,7 +206,6 @@ def _r28_route_runs(order, L, a, b):
 # beyond the cut in the view direction; a vertical line names each zone (R18 idea); banks, materials, roots and
 # people from section_parts, plants and figures (R16, R17 idea).
 P24_CUTS = {"dt_upstream": ("W1", u"D1"), "dt_k5": ("W3", u"D2")}
-P24_HALF_M = 97.0            # the section reaches this far either side of the stream axis, m (half the window width)
 P24_WALL_T = 0.60            # DSİ wall thickness, m: no sourced value; the 0.60 m of p.04-05 and p.13 (G2)
 P24_RAIL_H = 1.10            # railing on a wall top, m: drawing value (as p.13)
 P24_KERB_H = 0.15            # reed cell kerb above the ground, m: drawing value (as p.13)
@@ -245,7 +225,6 @@ P24_BIKE = True              # the riverside walk carries a bike lane (Aras 29 O
 P24_BIKE_W = 2.0             # bike lane beside the walk in plan, m: drawing value
 P24_STONE = (0.40, 1.20)     # stepping stone radius and spacing, m: drawing values
 P24_LAB_ROWS = 4             # rows of zone names above a section
-P24_SEC_MAX = 222.0          # mm: a crop (plan + section) taller than this does not fit the booklet page with its legend
 P24_FLOOD, P24_FLOOD_A = "C1D3DB", 0.55   # the reach of Q500 in section (as p.13)
 P24_BIKE_COL = "A9673F"      # the bike lane (palette centre family, darker)
 P24_KEY = {("WT", None): "reed", ("WD", None): "spill", ("WS", None): "terraces", ("DG", None): "demeter",
@@ -389,7 +368,7 @@ def p24_ground(C, c0, cd, ta, tb):
             pts.append((t, z))
     cz = [(P, z) for P, z in getattr(C, "contour_z", []) if abs(z) > 1.0]
     if not cz:
-        cz = [(P, z) for major, z, P in ((basemap_load() or {}).get("contours") or []) if z is not None]
+        cz = [(P, z) for major, z, P in (((basemap_load() or {}).get("layers") or {}).get("contours") or []) if z is not None]
     for P, z in cz:
         pts += [(t, z) for t in _p24_crossings(c0, cd, P, ta - 5.0, tb + 5.0)]
     pts.sort()
@@ -493,6 +472,7 @@ class P24Sec(object):
         self.ta, self.tb, self.z0, self.k = ta, tb, z0, 1000.0 / DT_SCALE
         self.w = (tb - ta) * self.k
         self.pg = Page(self.w, 0.0)
+        self.pg.text_page(u"p22 section", bounds=(-60.0, -150.0, self.w + 60.0, 300.0), pad=P24_TP_PAD)   # v38
         self.wl = water_layers()
         self.style = style
         self.shapes = []                                 # every shape added (for the top)
@@ -668,6 +648,7 @@ def p24_section(C, w, warn, style="b"):
     z0 = min([p[1] for p in prof] + [bed]) - P24_BELOW_M
     S = P24Sec(ta, tb, z0, style)
     S.cid = name                                          # v37: for the zoom inset's log line
+    S.pg.tp.name = u"p22 {} section {}".format(name, style)   # v38 (G-R4-1)
     X, Y, k = S.X, S.Y, S.k
     zat = lambda t: _p24_zat(prof, t)
     S.gnd = zat                                           # v35 G14: the finished ground (after cuts, terraces, walks)
@@ -709,7 +690,8 @@ def p24_section(C, w, warn, style="b"):
                 if hb - ha < 3.0 or (hb > -hw - P24_WALL_T - 1.0 and ha < hw + P24_WALL_T + 1.0):
                     nx += 1                               # under one bay (sf_back_house's 3.0 m) or over the channel
                     continue
-                S.put(sf_back_house(X(ha), X(hb), sf_gy(backs[i]), h_m, k, layer=ly, floors=fl), "background")
+                S.put(sf_back_house(X(ha), X(hb), sf_gy(backs[i]), h_m, k, layer=ly, floors=fl, d_m=dd),   # v38 (G-R4-5.3)
+                      "background")
                 hspan.append((ha, hb, dd))
                 nh += 1
         keys.add("back")
@@ -765,7 +747,7 @@ def p24_section(C, w, warn, style="b"):
             if b_ - a_ > 0.2:
                 S.put([("line", [(X(a_), Y(lev)), (X(b_), Y(lev))], pal[key], 0.25, dash)], "water")
     keys.add("avg")
-    S.lv.append((u"bed " + u_level(bed), 0.0, bed))
+    S.lv.append((u"bed", 0.0, bed))                       # v38: (level mark name, t, level m)
     for side, sg in (("SW", -1.0), ("NE", 1.0)):         # DSİ walls kept (stone, railing) or given way (dashed)
         if kinds[side] != "dsi_wall":
             continue
@@ -777,7 +759,7 @@ def p24_section(C, w, warn, style="b"):
             continue
         S.block(a, b, bed, tops[side], "stone")
         S.put(sct_bank("railing", X((a + b) / 2.0), Y(tops[side]), Y(bed), -sg, k, h_m=P24_RAIL_H)[0])
-        S.lv.append((u_level(tops[side]), b, tops[side] + P24_RAIL_H))
+        S.lv.append((u"railing", b, tops[side] + P24_RAIL_H))
         keys.add("wall")
     railed = False
     for side, sg in (("SW", -1.0), ("NE", 1.0)):         # one figure at a railing, looking into the channel
@@ -820,7 +802,7 @@ def p24_section(C, w, warn, style="b"):
             for j, t in enumerate(hub_t):
                 S.plant("plane", t, zf, seed=70 + j)
             S.people("walkway", t0 + 0.5, t1 - 0.5, zf, seed=21)
-            S.lv.append((u_level(zf), tm, zf))
+            S.lv.append((u"square", tm, zf))
             S.callout(tm, zf, P24_WHY["hub"])             # v36
             if hub_t:
                 S.callout(sum(hub_t) / len(hub_t), zf, _p24_group_text(["plane"]), row=1)
@@ -840,7 +822,7 @@ def p24_section(C, w, warn, style="b"):
                 t_o = min(t0, t1) + 1.5 + ((x1_ - x0_) - n_ * PLA_CROPS["olive"]["row_m"] * k) / 2.0 / k
                 S.fig("olive", t_o + 1.3, gf, facing=-1)
             S.plant("lavender", te - sg * 1.2, gf, seed=81)
-            S.lv.append((u_level(gf), tm, gf))
+            S.lv.append((u"garden", tm, gf))
             S.callout(tm, gf, P24_WHY["demeter"])         # v36
             S.callout(te - sg * P24_WALL_DG / 2.0, gf, P24_WHY["dg_wall"])
             S.callout(tm + sg * 3.0, gf, _p24_group_text((["olive"] if x1_ > x0_ else []) + ["lavender"]), row=1)
@@ -874,7 +856,7 @@ def p24_section(C, w, warn, style="b"):
     if cells:
         a, b, rim = cells[0]
         S.fig("touch", a - 0.7, rim, facing=1)            # the clean-water classroom: a hand into the cell
-        S.lv.append((u_level(cells[0][2]), (cells[0][0] + cells[-1][1]) / 2.0, cells[0][2]))
+        S.lv.append((u"reed cells", (cells[0][0] + cells[-1][1]) / 2.0, cells[0][2]))
         S.callout(a - 0.7, rim, P24_WHY["touch"])         # v36
         tc = (cells[0][0] + cells[-1][1]) / 2.0
         S.callout(tc, zat(tc), P24_WHY["reed"])
@@ -939,8 +921,31 @@ def p24_section(C, w, warn, style="b"):
                 t += P24_STONE[1]
             S.zl.append((P24_NAME["stones"], 0.0, bed, True))
             S.callout(0.0, bed, P24_WHY["stones"])        # v36
-    if C.terrace:
-        t, d = _p24_tz(c0, cd, f, C.terrace["xy"])
+    # v38 (round 4, P22.8): the street elements the plan places, where they stand near the cut (P24_STREET_D): on the
+    # cut ground, layer 0 within 3 m, else faded one layer behind
+    for kind, fn in (("lamp", lambda x, y, ly: sf_lamp(x, y, k, side=1, layer=ly)),
+                     ("bollard", lambda x, y, ly: sf_bollard(x, y, k, layer=ly)),
+                     ("rack", lambda x, y, ly: sf_bike_rack(x, y, k, side=1, layer=ly))):
+        n_ = 0
+        for q in _P24_STREET[kind]:
+            t, d = _p24_tz(c0, cd, f, q)
+            if P24_STREET_D[0] <= d <= P24_STREET_D[1] and ta + 1.0 <= t <= tb - 1.0 and abs(t) > hw + 1.0:
+                S.put(fn(X(t), Y(zat(t)), 0 if abs(d) <= 3.0 else 1), "structures")
+                n_ += 1
+        if n_:
+            keys.add(kind)
+    # v38 (G-R4-5.2, S3 handover): the shrub and flower layer on every planted run (no rows; sourced species only)
+    paths = [(X(min(t - sg * WALK_W / 2.0, t - sg * WALK_W / 2.0 + sg * lane_w)),
+              X(max(t - sg * WALK_W / 2.0, t - sg * WALK_W / 2.0 + sg * lane_w))) for t, zw, sg in walks]
+    for j, (key, t0, t1) in enumerate(runs):
+        if key in P24_LOW_IN and t1 - t0 >= 4.0:
+            sh_, _pl = pla_low_section(X(t0), X(t1), lambda x: Y(zat(x / k + ta)), k, t0=P24_LOW_IN[key][0],
+                                       t1=P24_LOW_IN[key][1], seed=60 + j, avoid=paths, water=Y(avg),
+                                       mix=P24_LOW_MIX.get(key))
+            S.put(sh_, "vegetation")
+            keys.add("low")
+    for xy in ([C.terrace["xy"]] if C.terrace else []) + list(_P24_DECK):   # v38: the window's own deck too
+        t, d = _p24_tz(c0, cd, f, xy)
         if 0.0 < d <= P24_BEYOND_M and ta + 3.0 <= t <= tb - 3.0:
             zz = zat(t)
             S.put([("line", [(X(t - 2.0), Y(zz + 0.3)), (X(t + 2.0), Y(zz + 0.3))], fig_fade(COL["ink2"], 1), 0.5)],
@@ -969,12 +974,6 @@ def p24_section(C, w, warn, style="b"):
         h = max(h, zb[3] + 0.5)
     band_h, bboxes = p24_band(S, runs, walks, sub, hw, missing)
     taken += bboxes
-    an = S.wl.anchors                                     # M5's level words at the right end of Q500 / Q100 / avg
-    if an:
-        xs_, ys_ = [p[0] for p in an.values()], [p[1] for p in an.values()]
-        taken.append((min(xs_), min(ys_) - 3.5 * KEY_MIN, max(xs_) + 1.2 * KEY_MIN + text_w(u"average flow +00.00",
-                                                                                               KEY_MIN) + 1.0,
-                      max(ys_) + 1.2 * KEY_MIN))
     for s_, t, al in ((name, ta, "L"), (name + u"'", tb, "R")):   # the cut's names, as on the plan
         x, y = X(t) + (0.6 if al == "L" else -0.6), Y(zat(t)) + 1.2
         S.pg.text(s_, x, y, 3.4, COL["ink_dark"], bold=True, align=al)
@@ -982,15 +981,15 @@ def p24_section(C, w, warn, style="b"):
         taken.append((x if al == "L" else x - wd, y - 0.3, x + wd if al == "L" else x, y + 3.4))
     co = _p24_marks(S, zat, taken, missing)               # v36: the numbered circles in the cut ground
     shp_put(S.pg, co.marks(size=P24_CO))
-    for s_, t, zz in S.lv:
-        wd = text_w(s_, ts_lab)
-        got = label_spot(X(t), Y(zz) + 1.2, wd, ts_lab * 1.1, taken, (0.0, 0.5, S.w, top - 0.5), (), 0.3)
-        if got is None:
-            missing.append(s_)
-            continue
-        b = got[0]
-        S.pg.text(s_, b[0], b[1] + ts_lab * 0.2, ts_lab, COL["ink"])
-        taken.append(b)
+    # v38 (round 4, G-R4-5.4, U43/U44, S2 handover): every level in the margin right of the section frame (open
+    # triangle on a tick at the level's height, value outside), the water's levels (water_section anchors) first,
+    # then the section's own (bed, railing, square, garden, reed cells), one mark per name; nothing in the picture
+    lvs, seen_ = [], set()
+    for lv in list(S.wl.anchors.get("levels") or []) + [(nm_, zz) for nm_, t, zz in S.lv]:
+        if lv[0] not in seen_:
+            seen_.add(lv[0])
+            lvs.append(lv)
+    shp_put(S.pg, sf_level_marks((0.0, 0.0, S.w, top), lvs, side="R", y_of=Y, size=ts_lab, page=u"p22 " + name))
     keys.add("section")
     # v36: the numbered key under the section (as p.17's: columns across the section's width); kh = its depth under
     # the drawing (y < 0), which the panel adds to the section's block, so the booklet crop reaches down to it
@@ -1012,6 +1011,7 @@ def p24_section(C, w, warn, style="b"):
             warn.append(u"section {}: the callout key ({:.0f} mm) is wider than the section ({:.0f} mm)".format(
                 name, nc * cw - 4.0, S.w))
     kh = max(kh, band_h)
+    TP_LOG.append(S.pg.check_text())                     # v38 (G-R4-1): the section's collision test (raises)
     return S.pg, S.w, h, keys, missing, kh
 
 
@@ -1023,7 +1023,11 @@ P24_BAND = {"reed": u"Reed basins", "spill": u"Spillway", "terraces": u"Rain ter
             "view": u"Viewing terrace"}
 P24_BAND_SHORT = {"demeter": u"Garden", "terraces": u"Terraces", "wetland": u"Wetland", "walk": u"Walk",
                   "subhub": u"Sub-hub", "bed": u"Stream", "forest": u"Forest", "reed": u"Reeds", "hub": u"Square"}
-P24_ZOOM_MM = 6.0            # v37 (G15, PLAN §2 Figures): in the zoom inset a 1.75 m person is this tall, mm
+P24_ZOOM_DEN = 250.0         # v38 (round 4, P22.6, G-R4-5.6): the zoom inset at 1:250 = 4 x its 1:1,000 parent
+#                              (was a 1.75 m person 6 mm tall = 1:292)
+P24_LOW_IN = {"terraces": (0.65, 0.8), "forest": (0.5, 0.7), "wetland": (0.1, 0.3), "demeter": (0.85, 0.9),
+              "trees": (0.4, 0.7)}   # v38: runs with the low layer: band positions wet (0) -> dry (1), drawing rule
+P24_LOW_MIX = {"demeter": ("lavender", "rosemary", "chaste")}   # the garden's beds (as its plan)
 P24_ZOOM_SPOT = (10.0, 4.5, 1.0)   # the inset's spot: m wide, m high, m of it under the walk's surface
 
 
@@ -1089,10 +1093,10 @@ def p24_band(S, runs, walks, sub, hw, missing):
 
 def p24_zoom(S, walks, runs, top, missing):
     """v37 (G15, PLAN §2 Zoom inset): the walk nearest the stream re-drawn in a box above the section at the scale
-    where a 1.75 m person is P24_ZOOM_MM tall (sf_zoom_inset: spot frame on the cut, one connector, "ZOOMED IN · walk
+    P24_ZOOM_DEN (v38: 1:250, 4 x the parent, with its own scale bar; sf_zoom_inset: spot frame on the cut, one connector, "ZOOMED IN · walk
     + bike lane"); no walk on the cut: the hub square; neither: nothing, "FLAG zoom inset <cut> skipped" logged.
     Images only where they lie wholly in the box. Returns the inset's box (with its label) or None."""
-    k_dst = P24_ZOOM_MM / FIG_ADULT_H
+    k_dst = 1000.0 / P24_ZOOM_DEN
     wm, hm_, dn = P24_ZOOM_SPOT
     if walks:
         t, zw, sg = min(walks, key=lambda w_: abs(w_[0]))
@@ -1115,7 +1119,8 @@ def p24_zoom(S, walks, runs, top, missing):
     cx = min(max((src[0] + src[2]) / 2.0, bw / 2.0), S.w - bw / 2.0)
     dst = (cx - bw / 2.0, top + 1.0, cx + bw / 2.0, top + 1.0 + bh)
     k_src = S.k
-    for sh in sf_zoom_inset(src, dst, k_src, k_dst, S.wl, what):
+    for sh in sf_zoom_inset(src, dst, k_src, k_dst, S.wl, what, scale_den=P24_ZOOM_DEN, parent_den=DT_SCALE,
+                            page=u"p22 " + S.cid):
         if sh[0] == "image" and not (dst[0] <= sh[1] and sh[1] + sh[3] <= dst[2] and dst[1] <= sh[2] and
                                      sh[2] + sh[4] <= dst[3]):
             continue
@@ -1157,63 +1162,89 @@ def _p24_marks(S, zat, taken, missing):
 
 
 def p24_cut_on_plan(pg, w, T, taken, segs, bounds):
-    """the section's line on the plan (only this window's cut): dash-dot across the window, a triangle at each end
-    pointing the way the section looks (upstream), its names at the ends (D1, D1')."""
+    """the section's line on the plan (only this window's cut): v38 (round 4, P22.8, G-R4-9): the red R01 dash-dot
+    (KM_CUT) on a white casing, running left -> right in the turned window, its names D1 / D1' just beyond its ends;
+    no triangles (the look direction is shown on the key map only)."""
     sp_ = p24_cut_span(w)
     if sp_ is None:
         return False
     cid, name, c0, cd, f, ta, tb = sp_
     A = T((c0[0] + cd[0] * ta, c0[1] + cd[1] * ta))
     B = T((c0[0] + cd[0] * tb, c0[1] + cd[1] * tb))
-    ink = COL["ink_dark"]
+    col = KM_CUT["colour"]
     pg.line([A, B], COL["white"], 1.0, cap=0)            # v37 (P22.2): a white casing, the line reads over the trees
-    pg.line([A, B], ink, 0.35, [2.4, 0.8, 0.4, 0.8], cap=0)
+    pg.line([A, B], col, KM_CUT["lw"], list(KM_CUT["dash"]), cap=0)
     segs.append((A, B))
-    s = 2.2
-    for (x, y), nm, sg in ((A, name, -1.0), (B, name + u"'", 1.0)):
-        tip = (x + f[0] * s, y + f[1] * s)
-        pg.poly([[tip, (x - cd[0] * s * 0.55, y - cd[1] * s * 0.55), (x + cd[0] * s * 0.55, y + cd[1] * s * 0.55)]],
-                fill=ink)
-        taken.append((x - s, y - s, x + s, y + s))
-        ts_ = R28DT_TS["place"]                          # the name beyond the line's end, inside the window
+    ts_ = R28DT_TS["place"]
+    for (x, y), nm, al in ((A, name, "R"), (B, name + u"'", "L")):
         wd = text_w(nm, ts_, True)
-        cx, cy = x + cd[0] * sg * (s + 0.6 + wd / 2.0), y + cd[1] * sg * (s + 0.6 + ts_ / 2.0)
-        bx = min(max(cx - wd / 2.0, bounds[0]), bounds[2] - wd)
-        by = min(max(cy - ts_ / 2.0, bounds[1]), bounds[3] - ts_)
+        x0 = x - 0.8 - wd if al == "R" else x + 0.8
+        cands = [(x0, y - ts_ * 0.5), (x - wd / 2.0, y + 1.0), (x - wd / 2.0, y - 1.0 - ts_)]   # beside, above, under
+        cands = [(min(max(cx, bounds[0]), bounds[2] - wd), min(max(cy, bounds[1]), bounds[3] - ts_)) for cx, cy in cands]
+        bx, by = next(((cx, cy) for cx, cy in cands if _r28_free((cx, cy, cx + wd, cy + ts_), taken, (), bounds, 0.3)),
+                      cands[0])
         b = (bx, by, bx + wd, by + ts_)
-        pg.text(nm, b[0], b[1] + ts_ * 0.2, ts_, ink, bold=True, halo=COL["white"])
+        pg.text(nm, b[0], b[1] + ts_ * 0.14, ts_, col, bold=True, halo=COL["white"])
         taken.append(b)
         _P24_LAB.append(b)
     return True
 
 
-P24_CUT_INSET_M = 8.0        # v37 (round 3, P22.2): the cut line (and its section) stops this far inside the window, m
-#                              (8 mm at 1:1,000: room for its end triangle and name inside the frame)
+P24_CUT_INSET_M = 8.0        # v37 (round 3, P22.2): the cut line (and its section) starts this far inside the window, m
+#                              (8 mm at 1:1,000: room for its name inside the frame)
+P24_LEVEL_MM = 24.0          # v38 (G-R4-5.4): the cut stops this far (m = mm at 1:1,000) short of the window's right
+#                              edge: the section's level marks stand in that margin, inside the column
+P24_CUT_BAND = (0.30, 0.70)  # v38 (P22.1): the cut line's height in the turned plan, fraction of its height (design)
 
 
-def p24_cut_span(w):
-    """v37: (cid, name, c0, cd, f, ta, tb) of window w's cut, or None: c0 the registry cut's centre (survey m), cd the
-    unit direction SW end -> NE end, f the view (upstream: the SW end on its left), ta..tb the part of the line drawn
-    (P24_HALF_M either side of c0, inside the window less P24_CUT_INSET_M). One span for the plan's cut line and the
-    section, so they always match."""
-    cid, name = P24_CUTS.get(w["id"], (None, None))
-    if not cid:
-        return None
-    R = w["R"]
+def _p24_cut_dir(cid):
+    """v38: (cd, f) of a registry cut: cd the unit direction SW end -> NE end, f the view (upstream: the SW end on
+    its left), f = cd turned 90 degrees counter-clockwise"""
     E = level_ends(cid)
-    c0 = CUT_AT[{"W1": 0, "W3": 2}[cid]][2]
     L = math.hypot(E[1][0] - E[0][0], E[1][1] - E[0][1]) or 1.0
     cd = ((E[1][0] - E[0][0]) / L, (E[1][1] - E[0][1]) / L)
     if level_end_labels(cid)[0] != u"SW":
         cd = (-cd[0], -cd[1])
-    f = (-cd[1], cd[0])
-    m = P24_CUT_INSET_M
-    tin = [-P24_HALF_M, P24_HALF_M]
-    for ax, lo, hi in ((0, R[0] + m, R[2] - m), (1, R[1] + m, R[3] - m)):
-        if abs(cd[ax]) > 1e-9:
-            ts_ = sorted(((lo - c0[ax]) / cd[ax], (hi - c0[ax]) / cd[ax]))
-            tin = [max(tin[0], ts_[0]), min(tin[1], ts_[1])]
-    return cid, name, c0, cd, f, tin[0], tin[1]
+    return cd, (-cd[1], cd[0])
+
+
+def p24_frame(w):
+    """v38 (round 4, P22.1, U46): window w turned so its cut runs left -> right on the page (u = the cut's direction)
+    and the section's view (upstream, v) points up the page: plan and section read the same way and share the cut
+    axis. Same size and centre as detail_windows' north-up window, moved along v only as far as needed to hold the
+    cut between P24_CUT_BAND of its height. Returns dict(o origin (survey m, the page's lower-left), u, v, W, H (m),
+    R (bounding box, survey m), ring (the four corners), north (north's turn from page-up, rad, counter-clockwise))."""
+    R = w["R"]
+    Wm, Hm = R[2] - R[0], R[3] - R[1]
+    c = ((R[0] + R[2]) / 2.0, (R[1] + R[3]) / 2.0)
+    u, v = (1.0, 0.0), (0.0, 1.0)
+    cid = P24_CUTS.get(w["id"], (None, None))[0]
+    if cid:
+        u, v = _p24_cut_dir(cid)
+        c0 = CUT_AT[{"W1": 0, "W3": 2}[cid]][2]
+        dv = (c0[0] - c[0]) * v[0] + (c0[1] - c[1]) * v[1]
+        lo, hi = (P24_CUT_BAND[0] - 0.5) * Hm, (P24_CUT_BAND[1] - 0.5) * Hm
+        sh_ = dv - lo if dv < lo else (dv - hi if dv > hi else 0.0)
+        c = (c[0] + v[0] * sh_, c[1] + v[1] * sh_)
+    o = (c[0] - u[0] * Wm / 2.0 - v[0] * Hm / 2.0, c[1] - u[1] * Wm / 2.0 - v[1] * Hm / 2.0)
+    ring = [(o[0] + u[0] * a + v[0] * b, o[1] + u[1] * a + v[1] * b) for a, b in ((0, 0), (Wm, 0), (Wm, Hm), (0, Hm))]
+    return dict(o=o, u=u, v=v, W=Wm, H=Hm, R=bbox(ring), ring=ring, north=math.atan2(-u[1], v[1]))
+
+
+def p24_cut_span(w):
+    """v37: (cid, name, c0, cd, f, ta, tb) of window w's cut, or None: c0 the registry cut's centre (survey m), cd the
+    unit direction SW end -> NE end, f the view (upstream: the SW end on its left), ta..tb the part of the line drawn.
+    One span for the plan's cut line and the section, so they always match. v38 (P22.1): in the turned window
+    (p24_frame) the cut runs left -> right: from P24_CUT_INSET_M inside its left edge to P24_LEVEL_MM short of its
+    right edge (the section's level marks stand in that margin, G-R4-5.4)."""
+    cid, name = P24_CUTS.get(w["id"], (None, None))
+    if not cid:
+        return None
+    F = p24_frame(w)
+    cd, f, o = F["u"], F["v"], F["o"]
+    c0 = CUT_AT[{"W1": 0, "W3": 2}[cid]][2]
+    u0 = (c0[0] - o[0]) * cd[0] + (c0[1] - o[1]) * cd[1]  # the cut centre's distance from the window's left edge, m
+    return cid, name, c0, cd, f, P24_CUT_INSET_M - u0, F["W"] - P24_LEVEL_MM - u0
 
 
 def _p24_offset(P, d):
@@ -1265,8 +1296,10 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
             soft_fill(pg, [Q], R28_ZONE["forest"][1], 0.15, P24_SOFT_MM)
         elif key == "reed":
             _p24_put(pg, pla_cell_plan("reed", Q, k))         # lined, root-contained cells (D2 a)
-        elif key == "demeter":
-            _p24_put(pg, pla_crop_plan("olive", Q, k, ang_deg=principal_angle(z["P"])))   # 7 x 5 m (Kaya 2017)
+        elif key == "demeter":                            # v38 (P22.5): a designed garden, not a footprint
+            p24_garden(pg, C, z, k, T, segs)
+        if key != "demeter":
+            _P24_SP.update(P24_SPECIES.get(key, ()))
         fields.append((key, Q))
         leg(("p24", key))
     for wd in C.widen:
@@ -1321,6 +1354,7 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
                 taken.append((x - 1.3, y - 1.3, x + 1.3, y + 1.3))
                 t += 60.0 * k
             leg(("p24", "bike"))
+            p24_lane_ends(pg, C, _p24_offset(P, sg * (WALK_W + P24_BIKE_W) / 2.0), T, inP, k, taken, segs)
     # ---- crossings: stepping stones (true size), footbridge decks (the walk's width)
     for c_ in C.cross:
         if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
@@ -1374,11 +1408,13 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
     p24_kit(pg, C, T, inP, k, taken, people=False)        # v37 (P22.3): benches and planters under the crowns
     if pl23_trees_draw(pg, C, T, k, (-8.0, -8.0, dw + 8.0, dh + 8.0)):
         leg(("p24", "tree"))
+        _P24_SP.update(P24_TREE_SET)
     for p, i in pl23_hub_trees(C):                       # v37 (G8, D7): on land, opaque
         if inP(p):
             x, y = T(p)
             _p24_put(pg, pla_plan("plane", x, y, k, seed=i))
             leg(("p24", "tree"))
+            _P24_SP.add("plane")
     p24_kit(pg, C, T, inP, k, taken, people=True)         # v37 (P22.3, G15): the people over everything
     if C.terrace and inP(C.terrace["xy"]):
         x, y = T(C.terrace["xy"])
@@ -1387,6 +1423,8 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
         _p24_put(pg, ico_draw("viewpoint", x, y, 3.2))
         taken.append((x - 1.6, y - 1.6, x + 1.6, y + 1.6))
         leg(("p24", "view"))
+    else:                                                 # v38 (P22.4, U64): this window's own viewing terrace
+        p24_deck(pg, C, T, inP, k, taken, segs)
     for z in C.D.zones:
         if z["code"] in ("GR", "DG") and inP(z["q"]):
             x, y = T(z["q"])
@@ -1394,6 +1432,224 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
             taken.append((x - 1.5, y - 1.5, x + 1.5, y + 1.5))
             leg(("p24", "cafe"))
     return fields
+
+
+# ---- v38 (round 4, P22.4, P22.5, P22.8): the garden, the lane's ends, the viewing terrace (design rules, stated)
+P24_LEG_SP = ("willow", "tamarisk", "loosestrife", "reed", "ash", "plane", "olive", "chaste", "rosemary", "lavender")
+P24_TREE_SET = ("willow", "tamarisk", "ash", "plane")   # the corridor's tree set (pl23_trees_draw, as p.21)
+P24_DG_TOL = 2.0             # m: Demeter's Garden's outline simplified to straight edges (FORM: no curves off the water)
+P24_DG_HEDGE = 1.5           # m: the rosemary hedge on its border (design value)
+P24_DG_PATH = 2.5            # m: the gravel path from the café to the walk (design value)
+P24_DG_PLANE = 8.0           # m: the café's two shade planes stand this far either side of it along the garden's axis
+P24_LAMP_M = 25.0            # m: a lamp every this many m on the lane's land edge (design rule, as the benches)
+P24_BIKE_JOIN_M = 40.0       # m: a lane end joins the nearest street this near (inside the study area), else a rack
+P24_RACK = (4, 1.0, 1.6)     # bike rack: stands, spacing m, length m (design values; sf_bike_rack in section)
+P24_DECK = (8.0, 4.0)        # m: the viewing terrace's timber deck, along x across (design value)
+P24_STREET_D = (-3.0, 25.0)  # m: street elements this far behind / beyond the cut show in its section
+_P24_DECK = []               # survey points of the decks the window draws (its section)
+
+
+def _p24_pin(p, R_):
+    """point p inside ring R_ (even-odd)"""
+    x, y, ins = p[0], p[1], False
+    for (x1, y1), (x2, y2) in zip(R_, R_[1:] + R_[:1]):
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            ins = not ins
+    return ins
+
+
+def _p24_simplify(R_, tol):
+    """ring R_ simplified to straight edges (Douglas-Peucker, tolerance tol in its units)"""
+    def dp(P):
+        if len(P) < 3:
+            return P
+        (x1, y1), (x2, y2) = P[0], P[-1]
+        L = math.hypot(x2 - x1, y2 - y1) or 1e-9
+        ds = [abs((x2 - x1) * (y1 - p[1]) - (x1 - p[0]) * (y2 - y1)) / L for p in P[1:-1]]
+        i = max(range(len(ds)), key=lambda j: ds[j]) + 1
+        return dp(P[:i + 1])[:-1] + dp(P[i:]) if ds[i - 1] > tol else [P[0], P[-1]]
+    if len(R_) < 4:
+        return list(R_)
+    far = max(range(len(R_)), key=lambda j: (R_[j][0] - R_[0][0]) ** 2 + (R_[j][1] - R_[0][1]) ** 2)
+    out = dp(list(R_[:far + 1]))[:-1] + dp(list(R_[far:]) + [R_[0]])[:-1]
+    return out if len(out) >= 3 else list(R_)
+
+
+def _p24_half(R_, a, n):
+    """the part of ring R_ on the side n of the line through a (Sutherland-Hodgman)"""
+    side = lambda p: (p[0] - a[0]) * n[0] + (p[1] - a[1]) * n[1]
+    out = []
+    for p, q in zip(R_, R_[1:] + R_[:1]):
+        sp, sq = side(p), side(q)
+        if sp >= 0.0:
+            out.append(p)
+        if (sp >= 0.0) != (sq >= 0.0):
+            f_ = sp / (sp - sq)
+            out.append((p[0] + (q[0] - p[0]) * f_, p[1] + (q[1] - p[1]) * f_))
+    return out
+
+
+def _p24_near(p, lines):
+    """(distance, point) of the nearest point on polylines lines to p, or (inf, None)"""
+    best = (float("inf"), None)
+    for L_ in lines:
+        for a, b in zip(L_, L_[1:]):
+            dx, dy = b[0] - a[0], b[1] - a[1]
+            l2 = dx * dx + dy * dy
+            t = 0.0 if l2 < 1e-12 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2))
+            q = (a[0] + dx * t, a[1] + dy * t)
+            d = math.hypot(p[0] - q[0], p[1] - q[1])
+            if d < best[0]:
+                best = (d, q)
+    return best
+
+
+def _p24_wet(C, p):
+    """the masterplan's distance from p to the water, m (None off its grid)"""
+    n = C.cell(p)
+    return C.Dst[n] if n is not None and C.Dst[n] < 1e8 else None
+
+
+def p24_garden(pg, C, z, k, T, segs):
+    """v38 (round 4, P22.5, U47(4)): Demeter's Garden as a designed garden: its footprint simplified to straight
+    edges (P24_DG_TOL; FORM rule: organic only at the water), a P24_DG_HEDGE rosemary hedge on its border, cut across
+    its long axis into two planting groups: the half away from the water an olive grove kept as a real orchard (rows
+    7 x 5 m, Kaya 2017; the legend says so), the half by the water mixed beds of lavender, rosemary and chaste tree
+    (sourced shrubs only, D7; no rows), the café shaded by two planes, a P24_DG_PATH gravel path from the café to the
+    walk. Every species from the plant module."""
+    O = _p24_simplify(z["P"], P24_DG_TOL)
+    c = (sum(p[0] for p in O) / len(O), sum(p[1] for p in O) / len(O))
+    a = math.radians(principal_angle(O))
+    n = (math.cos(a), math.sin(a))
+    halves = [h for h in (_p24_half(O, c, n), _p24_half(O, c, (-n[0], -n[1]))) if len(h) >= 3]
+    wet = lambda H_: sum(d for d in (_p24_wet(C, p) for p in H_) if d is not None) / max(1, len(H_))
+    halves.sort(key=wet)                                  # the half nearer the water first
+    Qo = [T(p) for p in O]
+    pg.poly([Qo], fill=PLA_FIELD, alpha=0.35)
+    if len(halves) == 2:
+        Qg = [T(p) for p in halves[1]]
+        _p24_put(pg, pla_crop_plan("olive", Qg, k, ang_deg=principal_angle(Qg)))
+        leg(("p24", "dg_olive"))
+        _P24_SP.add("olive")
+    cafe = z.get("q")
+    walk = [p for P in C.canopy for p in P]
+    path = None
+    if cafe and walk:
+        d, q = _p24_near(cafe, C.canopy)
+        if q is not None and d <= 80.0:
+            path = [T(cafe), T(q)]
+            pg.line(path, COL["ink2"], P24_DG_PATH * k + 0.2, cap=0)
+            pg.line(path, SF_LANE["gravel"], P24_DG_PATH * k, cap=0)
+            segs.append((path[0], path[1]))
+            leg(("p24", "dg_path"))
+    bed = halves[0] if halves else O
+    Qb = [T(p) for p in bed]
+    avoid = []
+    if path:
+        (x1, y1), (x2, y2) = path
+        L = math.hypot(x2 - x1, y2 - y1) or 1.0
+        hx, hy = -(y2 - y1) / L * (P24_DG_PATH * k), (x2 - x1) / L * (P24_DG_PATH * k)
+        avoid.append([(x1 + hx, y1 + hy), (x2 + hx, y2 + hy), (x2 - hx, y2 - hy), (x1 - hx, y1 - hy)])
+    sh_, placed = pla_low_plan(Qb, k, lambda x, y: 0.86, seed=9, avoid=avoid, mix=("lavender", "rosemary", "chaste"))
+    _p24_put(pg, sh_)
+    if placed:
+        leg(("p24", "dg_beds"))
+        _P24_SP.update(key for key, x, y, cr in placed)
+    if cafe:
+        for sg in (-1.0, 1.0):
+            p = (cafe[0] + n[0] * sg * P24_DG_PLANE, cafe[1] + n[1] * sg * P24_DG_PLANE)
+            if _p24_pin(p, O):
+                x, y = T(p)
+                _p24_put(pg, pla_plan("plane", x, y, k, seed=int(sg + 3)))
+                _P24_SP.add("plane")
+    pg.clip([Qo])                                         # the hedge: a band inside the outline
+    pg.line(Qo + Qo[:1], pla_colours("rosemary")["fill"], 2.0 * P24_DG_HEDGE * k, cap=1)
+    pg.unclip()
+    pg.line(Qo + Qo[:1], COL["ink2"], 0.25)
+    segs += list(zip(Qo, Qo[1:] + Qo[:1]))
+    leg(("p24", "dg_hedge"))
+    _P24_SP.add("rosemary")
+
+
+def p24_lane_ends(pg, C, B, T, inP, k, taken, segs):
+    """v38 (round 4, P22.4, U47(3) "bisiklet yolu neden bir anda kesiliyor"): the bike lane B (survey m) never stops in
+    the open: each end inside the window joins the nearest street within P24_BIKE_JOIN_M inside the study area (the
+    lane drawn on to it, bollards across the join), else ends at a bike rack (P24_RACK) drawn at true size."""
+    streets = [L_ for L_ in list(C.roads) + [rd["xy"] for rd in ROADS] if len(L_) >= 2]
+    ins = getattr(C, "in_study", None)
+    white = COL["white"]
+    for e, nb in ((B[0], B[1]), (B[-1], B[-2])):
+        if not inP(e):
+            continue                                      # it runs on beyond the window
+        d, q = _p24_near(e, streets)
+        if q is not None and d <= P24_BIKE_JOIN_M and (ins is None or ins(q, 0.0)):
+            if d > 0.5:
+                J = [T(e), T(q)]
+                pg.line(J, P24_BIKE_COL, P24_BIKE_W * k, cap=0, alpha=0.55)
+                pg.line(J, white, 0.12, [1.0, 1.0], cap=0)
+                segs.append((J[0], J[1]))
+            ux, uy = (q[0] - e[0]) / (d or 1.0), (q[1] - e[1]) / (d or 1.0)
+            if d <= 0.5:
+                L = math.hypot(e[0] - nb[0], e[1] - nb[1]) or 1.0
+                ux, uy = (e[0] - nb[0]) / L, (e[1] - nb[1]) / L
+            for i in (-1, 0, 1):                          # three bollards across the lane at the street
+                b_ = (q[0] - uy * i * 0.8, q[1] + ux * i * 0.8)
+                x, y = T(b_)
+                pg.circle(x, y, 0.3, fill=COL["ink2"])
+                taken.append((x - 0.4, y - 0.4, x + 0.4, y + 0.4))
+            _P24_STREET["bollard"].append(q)
+            leg(("p24", "bollard"))
+        else:
+            L = math.hypot(e[0] - nb[0], e[1] - nb[1]) or 1.0
+            ux, uy = (e[0] - nb[0]) / L, (e[1] - nb[1]) / L
+            n_, sp, ln = P24_RACK
+            for i in range(n_):
+                c_ = (e[0] - ux * i * sp, e[1] - uy * i * sp)
+                A_ = T((c_[0] - uy * ln / 2.0, c_[1] + ux * ln / 2.0))
+                B_ = T((c_[0] + uy * ln / 2.0, c_[1] - ux * ln / 2.0))
+                pg.line([A_, B_], COL["ink_dark"], 0.25, cap=1)
+                taken.append(bbox([A_, B_]))
+            _P24_STREET["rack"].append(e)
+            leg(("p24", "rack"))
+
+
+def p24_deck(pg, C, T, inP, k, taken, segs):
+    """v38 (round 4, P22.4, U64 "izleme terası"): the window's own viewing terrace when the corridor's (C.terrace)
+    lies outside it: a P24_DECK timber deck on the walk's water side where the walk inside the window (and the study
+    area) comes closest to the water, with its viewpoint and a sightline across the water."""
+    ins = getattr(C, "in_study", None)
+    best = None
+    for P in C.canopy:
+        if len(P) < 2:
+            continue
+        s = arclen(P)
+        sg = _p24_land_side(C, P)
+        t = 4.0
+        while t < s[-1] - 4.0:
+            p, u = at_len(P, s, t)
+            dw_ = _p24_wet(C, p)
+            if inP(p) and dw_ is not None and (best is None or dw_ < best[0]):
+                off = -sg * (WALK_W / 2.0 + P24_DECK[1] / 2.0)
+                c_ = (p[0] - u[1] * off, p[1] + u[0] * off)
+                if inP(c_) and (ins is None or ins(c_, 0.0)):
+                    best = (dw_, c_, u, (-u[1] * -sg, u[0] * -sg))
+            t += 5.0
+    if best is None:
+        return False
+    _d, c_, u, wdir = best
+    Q = [T(q) for q in _p24_box_along(c_, u, P24_DECK[0], P24_DECK[1])]
+    pg.poly([Q], fill=SF_LANE["timber"], stroke=COL["ink"], lw=0.2)
+    x, y = T(c_)
+    p2 = (c_[0] + wdir[0] * 30.0, c_[1] + wdir[1] * 30.0)
+    pg.line([(x, y), T(p2)], COL["accent"], 0.3, [1.4, 0.8], cap=0, alpha=0.7)
+    _p24_put(pg, ico_draw("viewpoint", x, y, 3.2))
+    taken.append(bbox(Q))
+    taken.append((x - 1.6, y - 1.6, x + 1.6, y + 1.6))
+    segs += list(zip(Q, Q[1:] + Q[:1]))
+    _P24_DECK.append(c_)
+    leg(("p24", "deck"))
+    leg(("p24", "view"))
+    return True
 
 
 P24_SOFT_MM = 1.2            # v37 (P22.3): the soft edge of a field at 1:1,000, mm (fields fade into each other)
@@ -1455,13 +1711,25 @@ def p24_kit(pg, C, T, inP, k, taken, people=False):
                         n_p += 1
                     taken.append(bbox(Q))
                 t += P24_BENCH_M
+            lamp = _p24_offset(P, sg * (WALK_W / 2.0 + (P24_BIKE_W if P24_BIKE else 0.0) + 0.6))   # v38 (P22.8):
+            sl_ = arclen(lamp)                            # lamps on the lane's land edge every P24_LAMP_M
+            t = P24_LAMP_M / 4.0
+            while t < sl_[-1]:
+                p, u = at_len(lamp, sl_, t)
+                if inP(p) and _p24_dry(C, p):
+                    x, y = T(p)
+                    pg.circle(x, y, 1.0, stroke=COL["ink2"], lw=0.08)
+                    pg.circle(x, y, 0.45, fill=COL["ink_dark"])
+                    _P24_STREET["lamp"].append(p)
+                    taken.append((x - 1.0, y - 1.0, x + 1.0, y + 1.0))
+                t += P24_LAMP_M
             continue
         t = rnd.uniform(2.0, P24_WALKER_M)               # walkers on the walk, both ways, a little off its middle
         while t < s[-1]:
             p, u = at_len(P, s, t)
             q = (p[0] - u[1] * rnd.uniform(-0.7, 0.7), p[1] + u[0] * rnd.uniform(-0.7, 0.7))
             if inP(q) and _p24_dry(C, q):
-                ang = math.atan2(u[1], u[0]) + (math.pi if rnd.random() < 0.5 else 0.0)
+                ang = math.atan2(u[1], u[0]) - _P24_ROT[0] + (math.pi if rnd.random() < 0.5 else 0.0)
                 x, y = T(q)
                 _p24_put(pg, fig_top("walk" if rnd.random() < 0.8 else "adult_child", x, y, k, ang=ang, mm_per_m=k,
                                      pick=rnd.randint(0, 3)))
@@ -1475,7 +1743,7 @@ def p24_kit(pg, C, T, inP, k, taken, people=False):
                 p, u = at_len(B, sb, t)
                 if inP(p) and _p24_dry(C, p):
                     x, y = T(p)
-                    ang = math.atan2(u[1], u[0]) + (math.pi if rnd.random() < 0.5 else 0.0)
+                    ang = math.atan2(u[1], u[0]) - _P24_ROT[0] + (math.pi if rnd.random() < 0.5 else 0.0)
                     _p24_put(pg, fig_top("bike", x, y, k, ang=ang, mm_per_m=k))
                     n_f += 1
                 t += P24_RIDER_M * rnd.uniform(0.7, 1.3)
@@ -1503,6 +1771,8 @@ def p24_kit(pg, C, T, inP, k, taken, people=False):
                                      mm_per_m=k, pick=rnd.randint(0, 3)))
                 got += 1
                 n_f += 1
+    if _P24_STREET["lamp"] and not people:
+        leg(("p24", "lamp"))
     if n_b:
         leg(("p24", "bench"))
     if n_p:
@@ -1514,8 +1784,35 @@ def p24_kit(pg, C, T, inP, k, taken, people=False):
 
 # ---- T7 (30 Oct, booklet p22): a reason for every element (G10) and the page's key map (M4) ---------------------
 P24_KEYMAP_IN = "dt_k5"      # the window whose plan carries the page's key map (drawn last: it knows both windows)
-P24_KM_W, P24_KM_HMAX = 58.0, 36.0   # mm: the key map inset at most this wide / high
-_P24_WINS = {}               # window id -> (section name, window R survey m), filled as the windows are drawn
+P24_KM_W, P24_KM_HMAX = 62.0, 40.0   # mm: the key map inset (v38, P22.3: bigger, 58 x 36 -> 62 x 40)
+_P24_WINS = {}               # window id -> (section name, the turned window's corners, survey m), filled as drawn
+# v38 (round 4, P22.1, G-R4-3): one column per window and style on the booklet page (design values, mm)
+P24_PANEL_H = 236.0          # the column (= the booklet crop): both columns share top and bottom (booklet body 243 mm)
+P24_TITLE_H = 7.0            # its title strip: the window's title, the scale bar, the north arrow
+P24_GAP = 3.0                # between plan and section, and above the legend
+P24_SCALE_ROW = 6.0          # the section's scale bar and title row under its key
+P24_UNIT_GAP = 8.0           # between the style b and style a columns on the sheet (not on the booklet page)
+P24_LEG_PITCH = 3.3          # legend row pitch (7 pt text)
+P24_LEG_COLS = 3
+P24_TP_PAD = 0.2             # the p22 TextPages' clearance between words, mm (below the placers' 0.3-0.6 mm)
+_P24_ROT = [0.0]             # the turned window's page x axis as a survey angle, rad (survey angle - this = page angle)
+_P24_SP = set()              # the plant species the window draws (its planting legend)
+_P24_STREET = {"lamp": [], "rack": [], "bollard": []}   # survey points of the window's street elements (its section)
+
+
+def p24_north(sh, x, y, ang):
+    """v38 (G-R4-9): the shared north arrow (no plate) with its foot at (x, y), turned by ang (rad, CCW from up)"""
+    def fill_fn(rings, hx, al, nonzero=False):
+        sh.poly([R_ for R_ in rings if len(R_) >= 3], fill=hx)
+
+    def line_fn(pts, hx, lw, dash, al):
+        sh.line(pts, hx, lw, list(dash) if dash else None)
+
+    def text_fn(t_, xy, size, hx, bold, align):
+        al = align[-1] if align and align[-1] in "LCR" else "C"
+        dy = -0.36 * size if align and align[0] == "M" else (-size if align and align[0] == "T" else 0.0)
+        sh.text(t_, xy[0], xy[1] + dy, size, hx, bold=bold, align=al)
+    basemap_draw(north_items(x, y, ang, size_mm=3.8, colour=COL["ink_dark"]), lambda p: p, fill_fn, line_fn, text_fn)
 
 
 def p24_reason(C, key, w):
@@ -1551,36 +1848,32 @@ def p24_reason(C, key, w):
 
 
 def p24_keymap(pg, dw, dh, fields, taken, warn):
-    """T7 (M4): the key map inset in the plan's emptiest corner: the study-area outline, both windows (D1, D2) and
-    their registry cuts (W1, W3), labelled; its box joins taken. Returns True when drawn."""
-    zooms = dict((nm, rect(R_[0], R_[1], R_[2], R_[3])) for nm, R_ in _P24_WINS.values())
-    ids = [P24_CUTS[b][0] for b in sorted(_P24_WINS) if b in P24_CUTS]
+    """T7 (M4): the key map inset in the plan's emptiest corner. v38 (round 4, P22.3, G-R4-9): the shared km_map,
+    P24_KM_W x P24_KM_HMAX mm: the muted base, the study area, both turned windows (D1, D2) and their cuts (W1, W3) in
+    the red R01 symbol with its look triangles, the main street names; its texts registered in the plan's TextPage;
+    its box joins taken. Returns True when drawn."""
+    zooms = dict((nm, ring) for nm, ring in _P24_WINS.values())
+    ids = [P24_CUTS[b][0] for b in sorted(_P24_WINS) if b in P24_CUTS] + sorted(zooms)
+    head = KEY_MIN * 1.5
+    iw, ih = P24_KM_W, P24_KM_HMAX
     try:
-        km = keymap_items(ids=ids, zooms=zooms, mode="key", text_mm=KEY_MIN)
+        km = km_map(ids, iw - 2.0, ih - 2.0 - head, zooms=zooms, page=u"p22")
     except Exception as ex:
         warn.append(u"p.22 key map not drawn ({}: {})".format(type(ex).__name__, ex))
         return False
-    box = km.get("box")
-    if not box or not km.get("items"):
+    if not km.get("items"):
         warn.append(u"p.22 key map not drawn: no base map data (run the site board first)")
         return False
     for m_ in km.get("missing") or []:
         warn.append(u"p.22 key map: {} not drawn".format(m_))
-    bw, bh = max(1.0, box[2] - box[0]), max(1.0, box[3] - box[1])
-    s = min((P24_KM_W - 2.0) / bw, (P24_KM_HMAX - 2.0 - KEY_MIN * 1.6) / bh)
-    try:                                                  # again at the inset's own scale (its labels' offsets)
-        km = keymap_items(ids=ids, zooms=zooms, mode="key", text_mm=KEY_MIN, box=box, scale_den=1000.0 / s)
-    except Exception:
-        pass
-    iw, ih = bw * s + 2.0, bh * s + 2.0 + KEY_MIN * 1.6
     cands = [(dw - iw - 1.0, dh - ih - 1.0), (1.0, dh - ih - 1.0), (dw - iw - 1.0, 1.0), (1.0, 1.0)]
     score = lambda c: sum(1 for _, Q in fields for p in Q if c[0] <= p[0] <= c[0] + iw and c[1] <= p[1] <= c[1] + ih)
     x0, y0 = min(cands, key=score)
     pg.poly([rect(x0, y0, x0 + iw, y0 + ih)], fill=COL["white"], stroke=COL["ink2"], lw=0.2)
-    pg.text(u"Key map · D1, D2 in the study area", x0 + 1.0, y0 + ih - KEY_MIN * 1.25, KEY_MIN, COL["ink_dark"],
-            bold=True)
+    pg.keep(rect(x0, y0, x0 + iw, y0 + ih), "keymap", u"p22 key map")
+    pg.text(u"Key map · D1, D2 look upstream", x0 + 1.0, y0 + ih - KEY_MIN * 1.25, KEY_MIN, COL["ink_dark"],
+            bold=True, allow=(u"p22 key map",))
     ox, oy = x0 + 1.0, y0 + 1.0
-    Tk = lambda p: (ox + (p[0] - box[0]) * s, oy + (p[1] - box[1]) * s)
     op = lambda a: a if a is not None and a < 0.995 else None
 
     def fill_fn(rings, hx, al, nonzero=False):
@@ -1592,9 +1885,9 @@ def p24_keymap(pg, dw, dh, fields, taken, warn):
     def text_fn(t_, xy, size, hx, bold, align):
         al = align[-1] if align and align[-1] in "LCR" else "L"
         dy = -0.36 * size if align and align[0] == "M" else (-size if align and align[0] == "T" else 0.0)
-        pg.text(t_, xy[0], xy[1] + dy, size, hx, bold=bold, align=al, halo=COL["white"])
-    pg.clip([rect(ox, oy, ox + bw * s, oy + bh * s)])
-    basemap_draw(km["items"], Tk, fill_fn, line_fn, text_fn)
+        pg.text(t_, xy[0], xy[1] + dy, size, hx, bold=bold, align=al, allow=(u"p22 key map",))
+    pg.clip([rect(x0, y0, x0 + iw, y0 + ih - head)])
+    km_draw(km, lambda q: (ox + q[0], oy + q[1]), fill_fn, line_fn, text_fn, page=u"p22 key map")
     pg.unclip()
     taken.append((x0, y0, x0 + iw, y0 + ih))
     return True
@@ -1607,24 +1900,57 @@ def r28_window_panel(C, w, areas, missing, warn):
     D2) at the same scale. One crop: the plan with its north arrow and scale bar, the section with its own.
     T7 (30 Oct, booklet p22): each field title carries its reason (p24_reason, G10); the K5 window carries the key
     map of both windows (p24_keymap, M4); the section is drawn in both D1 styles and the panel holds both crops
-    (sh.crops_more: <id>_b, <id>_a; <id> itself = style b), on the 4 mm baseline grid (M1)."""
-    R = w["R"]
+    (sh.crops_more: <id>_b, <id>_a; <id> itself = style b), on the 4 mm baseline grid (M1).
+    v38 (round 4, P22.1-P22.8, U46, G-R4-1/3/4): the plan turned so its cut runs left -> right with the view up the
+    page (p24_frame), on the shared muted base (ml_base) with the D9 tint, drawn through mp_map_draw (one draw
+    order); its section right under it on the same cut axis (the section starts and ends under the cut's ends); one
+    column of P24_PANEL_H per style: title strip (title, scale bar, north arrow), plan, section, the column's own
+    legend at its foot (p24_legend; the booklet adds none); every text in the pages' TextPages, checked (raises)."""
+    F = p24_frame(w)
+    R, o_, u_, v_ = F["R"], F["o"], F["u"], F["v"]
     k = 1000.0 / DT_SCALE
-    dw, dh = (R[2] - R[0]) * k, (R[3] - R[1]) * k
-    T = lambda p: ((p[0] - R[0]) * k, (p[1] - R[1]) * k)
-    inP = lambda p: R[0] <= p[0] <= R[2] and R[1] <= p[1] <= R[3]
+    dw, dh = F["W"] * k, F["H"] * k
+    _P24_ROT[0] = math.atan2(u_[1], u_[0])
+
+    def T(p):
+        x, y = p[0] - o_[0], p[1] - o_[1]
+        return ((x * u_[0] + y * u_[1]) * k, (x * v_[0] + y * v_[1]) * k)
+
+    def inP(p):
+        x, y = p[0] - o_[0], p[1] - o_[1]
+        a, b = x * u_[0] + y * u_[1], x * v_[0] + y * v_[1]
+        return 0.0 <= a <= F["W"] and 0.0 <= b <= F["H"]
     on = lambda Q: hit(bbox(Q), (0.0, 0.0, dw, dh))
     _PLEG[0] = {}
     del _P24_LAB[:]
+    _P24_SP.clear()
+    del _P24_DECK[:]
+    for k_ in _P24_STREET:
+        del _P24_STREET[k_][:]
     if w["id"] == DT_WINDOWS[0][0]:                       # a new run: the first window starts the key map's list
         _P24_WINS.clear()
-    _P24_WINS[w["id"]] = (P24_CUTS.get(w["id"], (None, w["id"]))[1], R)
+    cname = P24_CUTS.get(w["id"], (None, w["id"]))[1] or w["id"]
+    _P24_WINS[w["id"]] = (cname, F["ring"])
     pg = Page(dw, dh)
+    pg.text_page(u"p22 " + cname + u" plan", pad=P24_TP_PAD)
     taken, segs, ts = [], [], R28DT_TS
     ink, ink1, ink2, white = COL["ink_dark"], COL["ink"], COL["ink2"], COL["white"]
     bounds = (1.0, 1.0, dw - 1.0, dh - 1.0)
-    _r28_base(pg, C, T, R, segs, k)
-    fields = p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh)
+    study = getattr(C, "study", None) or sc_rings()
+    fields = []
+    foot = [z["P"] for z in C.D.zones if P24_KEY.get((z["code"], z.get("tier") if z["code"] == "WA" else None))
+            and len(z["P"]) >= 3] + [wd["ring"] for wd in C.widen] + \
+        [L_ for h in C.hubs for L_ in (h.get("square") or []) if len(L_) >= 3]
+    base = ml_base(R, DT_SCALE, contours=True, override={"stream": False})   # the masterplan draws its own stream
+    if base:
+        for k_ in ("bld", "street", "contour"):
+            leg(("r28dt", k_))
+    mp_map_draw(pg, u"p22", T, base, steps={
+        "proj_water": lambda: _r28_base(pg, C, T, R, segs, k),
+        "proj_lines": lambda: fields.extend(p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh))},
+        tint=ml_tint(foot, study=study, page=u"p22"), study=study)
+    if foot:
+        leg(("p24", "tint"))
     # ---- the water route (P24.2): the zone base's water links in the route's order, one line language on top
     rc = R28DT_ROUTE
     steps, shapes = [], C.D.zones + C.D.strips
@@ -1660,16 +1986,12 @@ def r28_window_panel(C, w, areas, missing, warn):
                 b = got[0]
         cx, cy = (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0
         _P24_LAB.append(b)
-        pg.circle(cx, cy, r_ + 0.25, fill=white)
-        pg.circle(cx, cy, r_, fill=rc)
-        pg.text(str(n_), cx, cy - ts["small"] * 0.36, ts["small"], white, bold=True, align="C")
+        mp_marker(pg, cx, cy, str(n_), rc, size_pt=ts["small"] / PT, r_min=r_, name=u"route %d" % n_)   # v38 G-R4-7
         taken.append(b)
     # ---- G8: the study area where it crosses the window; the section line (D11: this window's cut only)
-    st = R28_STUDY_LINE
-    for A in (areas or {}).values():
-        Q = [T(p) for p in list(A) + [A[0]]]
+    for A in study or ():                                  # v38: drawn by mp_map_draw ("study" layer); its line
+        Q = [T(p) for p in list(A) + [A[0]]]             # keeps the words off
         if on(Q):
-            pg.line(Q, st["colour"], st["width_mm"], list(st["dash_mm"]), cap=0)
             segs += list(zip(Q, Q[1:]))
             leg(("r28dt", "study"))
     if p24_cut_on_plan(pg, w, T, taken, segs, bounds):
@@ -1729,12 +2051,14 @@ def r28_window_panel(C, w, areas, missing, warn):
             y -= ts["label"] * 0.18 + 0.4
             for n_, runs in key_lines:
                 cy = y - pitch / 2.0
-                pg.circle(b[0] + rr, cy, rr, fill=rc)
-                pg.text(str(n_), b[0] + rr, cy - ts["small"] * 0.36, ts["small"], white, bold=True, align="C")
+                mp_marker(pg, b[0] + rr, cy, str(n_), rc, size_pt=ts["small"] / PT, r_min=rr,
+                          name=u"route key %d" % n_)
                 x = b[0] + 2 * rr + 1.2
+                pg.tgroup()                               # v38: one row's runs = one text group
                 for t_, bd in runs:
                     pg.text(t_, x, cy - ts["label"] * 0.36, ts["label"], ink1, bold=bd)
                     x += text_w(t_, ts["label"], bd)
+                pg.tgroup(False)
                 y -= pitch
         else:
             missing.append(u"water route key")
@@ -1762,10 +2086,11 @@ def r28_window_panel(C, w, areas, missing, warn):
         if inP(xy) and not _r28_label(pg, [(s_, ts["small"], False, ink2)], T(xy), taken, segs, bounds, rank=1):
             missing.append(s_ + u" (no room)")
     lp_overlap_flag(u"p22 " + (P24_CUTS.get(w["id"], (None, w["id"]))[1] or w["id"]), list(_P24_LAB), (), bounds)
-    # ---- the panel (T7, M1): every block a whole number of 4 mm baseline rows, the section left-aligned with its
-    # plan. One unit per style (D1): the plan with its north arrow and scale bar, under it its section with its own
-    # scale bar row; style b on top (crop <id> and <id>_b), style a under it (crop <id>_a: the same geometry with
-    # cutouts). The plan (and its key map) is the same drawing in both.
+    TP_LOG.append(pg.check_text())                       # v38 (G-R4-1): the plan's collision test (raises)
+    # ---- the panel (v38, round 4, P22.1, G-R4-3, U46): one column per style, P24_PANEL_H high, the booklet's crop:
+    # title strip (title left; scale bar and north arrow right), the plan, its section right under it with its left
+    # end under the cut's left end (same 1:1,000: the cut axis shared), the section's scale bar and title under its
+    # key, the column's legend at its foot. Style b on top (crop <id> and <id>_b), style a under it (crop <id>_a).
     M = 12.0
     units = []
     for st in ("b", "a"):
@@ -1778,89 +2103,185 @@ def r28_window_panel(C, w, areas, missing, warn):
         for k_ in sec[3]:
             leg(("p24s", k_))
     units = units or [("b", None)]
-    SCALE_ROW, MARK_ROW, TITLE_ROW, GAP = 2 * GRID_BASE, 3 * GRID_BASE, 3 * GRID_BASE, 4 * GRID_BASE
-    kh_ = lambda sec: sec[5] if len(sec) > 5 else 0.0    # v36: the callout key's depth under the section
-    hs = [((SCALE_ROW + grid_snap_h(sec[2] + kh_(sec))) if sec else 0.0) + MARK_ROW + dh for st, sec in units]
+    pl = dict(_PLEG[0])
+    rows = p24_legend(pl)
+    kh_ = lambda sec: sec[5] if len(sec) > 5 else 0.0
     W = M + dw + M
-    H = 1.0 + sum(hs) + TITLE_ROW * len(units) + GAP * (len(units) - 1)
+    H = 1.0 + (P24_PANEL_H + P24_UNIT_GAP) * len(units)
     sh = Page(W, H)
+    sh.text_page(u"p22 " + cname + u" sheet", pad=P24_TP_PAD)
     sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    cid, nm = P24_CUTS.get(w["id"], (None, None))
-    crops, y = {}, 1.0
+    cid = P24_CUTS.get(w["id"], (None, None))[0]
+    sp_ = p24_cut_span(w)
+    crops, y0 = {}, 1.0
     for st, sec in reversed(units):                       # style a at the bottom, style b on top
-        y0 = y
+        top = y0 + P24_PANEL_H
+        yt = top - P24_TITLE_H                            # the title strip
+        sh.text(w["title"] + u" · 1:1,000" + (u" · style a (cutouts)" if st == "a" else u""), M, yt + 2.0,
+                R28DT_TS["place"], COL["ink_dark"], bold=True)
+        scale_bar(sh, M + dw - 70.0, yt + 1.6, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
+        p24_north(sh, M + dw - 3.0, yt + 0.4, F["north"])
+        yp = yt - dh                                      # the plan
+        sh.clip([rect(M, yp, M + dw, yt)])
+        blit(sh, pg, M, yp)
+        sh.unclip()
+        yb = yp - P24_GAP
         if sec:
             spg, sw_, shh = sec[0], sec[1], sec[2]
-            scale_bar(sh, M, y + 1.5, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
-            sh.text(u"Section {0} {0}' on cut {1} · every zone of the plan above, looking upstream".format(
-                nm, level_name(cid)), M + 72.0, y + 1.7, ts["label"], COL["ink_dark"], bold=True)
-            y += SCALE_ROW
-            blit(sh, spg, M, y + kh_(sec))                # images (style a) stay outside every clip; v36: the key
-            y += grid_snap_h(shh + kh_(sec))              # under the drawing, inside the crop (it reaches down to y0)
-        panel_marks(sh, M, y, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
-        y += MARK_ROW
-        sh.clip([rect(M, y, M + dw, y + dh)])
-        blit(sh, pg, M, y)
-        sh.unclip()
-        y += dh
-        sh.text(w["title"] + u" · 1:1,000" + (u" · style a (cutouts)" if st == "a" else u""), M, y + 5.0, 5.0,
-                COL["ink_dark"], bold=True)
-        crops[st] = (M, y0 - 0.5 if y0 > 1.0 else 0.5, M + dw, y)
-        y += TITLE_ROW + GAP
+            c0_, cd_ = sp_[2], sp_[3]                     # the section's left end = the plan x of the cut's left end
+            xs = M + (sp_[5] + (c0_[0] - F["o"][0]) * cd_[0] + (c0_[1] - F["o"][1]) * cd_[1]) * k
+            ys = yb - shh                                 # the section's ground line frame: y 0 .. shh in its page
+            blit(sh, spg, xs, ys)
+            yb = ys - kh_(sec) - 1.5
+            scale_bar(sh, xs, yb - 2.8, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
+            sh.text(u"Section {0} {0}' on cut {1} · looking upstream · 1:1,000".format(cname, level_name(cid)),
+                    xs + 72.0, yb - 2.6, ts["label"], COL["ink_dark"], bold=True)
+            yb -= P24_SCALE_ROW
+        lh = p24_legend_draw(sh, rows, M, y0, dw)
+        if y0 + lh > yb - P24_GAP + 1e-6:
+            warn.append(u"p.22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the legend "
+                        u"overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))
+        crops[st] = (M, y0, M + dw, top)
+        y0 = top + P24_UNIT_GAP
+    TP_LOG.append(sh.check_text())                       # v38 (G-R4-1): the column's own words (raises)
     sh.crop = crops["b"]
     sh.crops_more = [(w["id"] + u"_" + st, crops[st]) for st in ("b", "a") if st in crops]   # request: the lead's
     # make_board / booklet_crops write these as extra crops (the crop itself = style b, for older readers)
-    hb = crops["b"][3] - crops["b"][1]
-    if hb > P24_SEC_MAX:
-        warn.append(u"detail {}: plan and section are {:.0f} mm high, more than the {:.0f} mm the booklet page holds "
-                    u"with its legend".format(w["id"], hb, P24_SEC_MAX))
     sh.key, sh.world, sh.scale = w["key"], R, DT_SCALE
-    pl = dict(_PLEG[0])
-    sh.pleg, _PLEG[0] = pl, None
-    sh.r28_leg = r28_crop_legend(pl)
+    sh.pleg, _PLEG[0] = {}, None                          # v38 (P22.7): the legend is in the crop; the booklet
+    sh.r28_leg = []                                       # adds none (an empty list and no keys: no legend)
     sh.bid = (w["id"], w["old"], w["caption"])
     return sh
 
 
-def r28_crop_legend(keys):
-    """v28 (WO-T4b-3): a window's booklet legend, only what its plan and section draw: one sample per symbol."""
+def _p24_sp_label(key):
+    sp = PLA_SPECIES.get(key) or {}
+    nm = sp.get("name") or key
+    return nm + (u" · " + sp["turkish"] if sp.get("turkish") else u"")   # D5: the Turkish name beside the species
+
+
+def p24_legend(keys):
+    """v38 (round 4, P22.5, P22.7; replaces r28_crop_legend): the column's legend, only what its plan and section
+    draw, in three groups: Planting (one sample per species in its own colour, D5 Turkish name beside it), Design,
+    Section. Rows: ("head", text) or (kind, colour, label)."""
     cl = _r28_base_cols()
-    rows = ((("p24", "reed"), "fill", PLA_WET, u"Reed basins in lined cells"),
-            (("p24", "terraces"), "fill", R28_ZONE["terraces"][1], u"Rain terraces"),
-            (("p24", "terr"), "line", R28_ZONE["terraces"][1], u"Terrace edge, ticks downhill"),
-            (("p24", "spill"), "fill", COL["river"], u"Spillway"),
-            (("p24", "wetland"), "fill", WET_COL, u"Widened stream · wetland"),
-            (("p24", "arm"), "line", COL["river"], u"Planted side arm"),
-            (("p24", "subhub"), "fill", R28_ZONE["subhub"][1], u"Sub-hub in the bed"),
-            (("p24", "forest"), "fill", R28_ZONE["forest"][1], u"Forest corridor"),
-            (("p24", "tree"), "dot", SEC["crown"], u"Trees at crown width: willow, tamarisk by the water; ash, plane above"),
-            (("p24", "demeter"), "fill", PLA_FIELD, u"Demeter's Garden · olive rows 7 × 5 m"),
-            (("p24", "hub"), "fill", SQ_FILL, u"Hub square, paved"),
-            (("p24", "cafe"), "dot", R28_ZONE["cafe"][1], u"Café"),
-            (("p24", "walk"), "line", COL["ink2"], u"Riverside walk"),
-            (("p24", "bike"), "line", P24_BIKE_COL, u"Bike lane"),
-            (("p24", "stones"), "dot", COL["ink2"], u"Stepping stones"),
-            (("p24", "bench"), "fill", COL["ink2"], u"Bench every 25 m: a seat in the shade"),
-            (("p24", "planter"), "fill", pla_colour("lavender")["fill"], u"Planter, lavender: scent by the seats"),
-            (("p24", "people"), "dot", FIG_A1_INK, u"People: walking, cycling, sitting, watching"),
-            (("p24", "foot"), "line", COL["ink_dark"], u"Footbridge deck"),
-            (("p24", "road_calmed"), "line", ROAD_CHANGE_COL["calmed"], u"Street calmed"),
-            (("p24", "road_pedestrian"), "line", ROAD_CHANGE_COL["pedestrian"], u"Street or bridge for walking"),
-            (("p24", "road_shared"), "line", ROAD_CHANGE_COL["shared"], u"Street shared"),
-            (("p24", "hidden"), "dash", COL["river_mid"], u"Hidden stream line"),
-            (("p24", "view"), "dot", COL["accent"], u"Viewing terrace, sightline"),
-            (("r28dt", "route"), "line", R28DT_ROUTE, u"Water route · step"),
-            (("p24", "cut"), "dashdot", COL["ink_dark"], u"Section line, triangles look upstream"),
-            (("p24s", "avg"), "fill", _wat_pal()["sec"], u"Water at the average yearly flow"),
-            (("p24s", "flood"), "fill", P24_FLOOD, u"Reach of Q500 (lines: Q100, Q500)"),
-            (("p24s", "lane"), "fill", SF_LANE["walk"], u"Walk, bike lane, street in section"),
-            (("p24s", "back"), "fill", _sec_mix(SEC["soil"], SEC["paper"], 0.6), u"Ground behind the cut (survey)"),
-            (("p24s", "bhouse"), "fill", BLD_COL["fill"], u"Buildings behind the cut (survey)"),
-            (("p24s", "wall"), "fill", SCT["stone"], u"DSİ stone wall"),
-            (("r28dt", "bed"), "fill", _wat_pal()["surface"], u"Selinos stream (darker = deeper)"),
-            (("r28dt", "bld"), "fill", cl["bld"], u"Building (survey)"),
-            (("r28dt", "study"), "dashdot", R28_STUDY_LINE["colour"], R28_STUDY_NAME))
-    return [{"kind": kind, "colour": colour, "label": label} for key, kind, colour, label in rows if key in keys]
+    out = []
+    sp = [k_ for k_ in P24_LEG_SP if k_ in _P24_SP]
+    if sp:
+        out.append(("head", u"Planting"))
+        out += [("tree" if PLA_SPECIES.get(k_, {}).get("layer") == "tree" else "dot", pla_colours(k_)["fill"],
+                 _p24_sp_label(k_)) for k_ in sp]
+        if ("p24", "dg_olive") in keys:
+            out.append(("fill", PLA_FIELD, u"Olive grove: a real orchard, rows 7 × 5 m"))
+    design = ((("p24", "tint"), "fill", ML_TINT, u"What we change (light tint)"),
+              (("p24", "reed"), "fill", PLA_WET, u"Reed basins in lined cells"),
+              (("p24", "terraces"), "fill", R28_ZONE["terraces"][1], u"Rain terraces"),
+              (("p24", "terr"), "line", R28_ZONE["terraces"][1], u"Terrace edge, ticks downhill"),
+              (("p24", "spill"), "fill", COL["river"], u"Spillway"),
+              (("p24", "wetland"), "fill", WET_COL, u"Widened stream · wetland"),
+              (("p24", "arm"), "line", COL["river"], u"Planted side arm"),
+              (("p24", "subhub"), "fill", R28_ZONE["subhub"][1], u"Sub-hub in the bed"),
+              (("p24", "forest"), "fill", R28_ZONE["forest"][1], u"Forest corridor"),
+              (("p24", "dg_hedge"), "line", pla_colours("rosemary")["fill"], u"Garden hedge, rosemary"),
+              (("p24", "dg_beds"), "fill", pla_colours("lavender")["fill"], u"Garden beds, mixed shrubs"),
+              (("p24", "dg_path"), "line", SF_LANE["gravel"], u"Gravel path"),
+              (("p24", "hub"), "fill", SQ_FILL, u"Hub square, paved"),
+              (("p24", "cafe"), "dot", R28_ZONE["cafe"][1], u"Café"),
+              (("p24", "walk"), "line", COL["ink2"], u"Riverside walk"),
+              (("p24", "bike"), "line", P24_BIKE_COL, u"Bike lane"),
+              (("p24", "rack"), "line", COL["ink_dark"], u"Bike racks at the lane's end"),
+              (("p24", "lamp"), "dot", COL["ink_dark"], u"Lamp, every 25 m"),
+              (("p24", "bollard"), "dot", COL["ink2"], u"Bollards where the lane meets a street"),
+              (("p24", "deck"), "fill", SF_LANE["timber"], u"Viewing terrace, timber deck"),
+              (("p24", "stones"), "dot", COL["ink2"], u"Stepping stones"),
+              (("p24", "bench"), "fill", COL["ink2"], u"Bench every 25 m"),
+              (("p24", "planter"), "fill", pla_colours("lavender")["fill"], u"Planter, lavender"),
+              (("p24", "people"), "dot", FIG_A1_INK, u"People"),
+              (("p24", "foot"), "line", COL["ink_dark"], u"Footbridge deck"),
+              (("p24", "road_calmed"), "line", ROAD_CHANGE_COL["calmed"], u"Street calmed"),
+              (("p24", "road_pedestrian"), "line", ROAD_CHANGE_COL["pedestrian"], u"Street or bridge for walking"),
+              (("p24", "road_shared"), "line", ROAD_CHANGE_COL["shared"], u"Street shared"),
+              (("p24", "hidden"), "dash", COL["river_mid"], u"Hidden stream line"),
+              (("p24", "view"), "dot", COL["accent"], u"Viewpoint, sightline"),
+              (("r28dt", "route"), "line", R28DT_ROUTE, u"Water route · step"),
+              (("p24", "cut"), "dashdot", KM_CUT["colour"], u"Section line"),
+              (("r28dt", "study"), "dashdot", R28_STUDY_LINE["colour"], R28_STUDY_NAME),
+              (("r28dt", "bed"), "fill", _wat_pal()["surface"], u"Selinos stream"),
+              (("r28dt", "bld"), "fill", cl["bld"], u"Building (survey)"))
+    rows = [(kind, colour, label) for key, kind, colour, label in design if key in keys]
+    if rows:
+        out.append(("head", u"Design"))
+        out += rows
+    section = ((("p24s", "avg"), "fill", _wat_pal()["sec"], u"Water at the average yearly flow"),
+               (("p24s", "flood"), "fill", P24_FLOOD, u"Reach of Q500 (lines: Q100, Q500)"),
+               (("p24s", "lane"), "fill", SF_LANE["walk"], u"Walk, bike lane, street"),
+               (("p24s", "back"), "fill", _sec_mix(SEC["soil"], SEC["paper"], 0.6), u"Ground behind the cut"),
+               (("p24s", "bhouse"), "fill", BLD_COL["fill"], u"Buildings behind the cut"),
+               (("p24s", "wall"), "fill", SCT["stone"], u"DSİ stone wall"))
+    rows = [(kind, colour, label) for key, kind, colour, label in section if key in keys]
+    if rows:
+        out.append(("head", u"Section"))
+        out += rows
+    return out
+
+
+def p24_legend_draw(sh, rows, x, y0, w):
+    """v38 (P22.7): the legend rows in P24_LEG_COLS columns across w from the column's foot y0 up (column-major, a
+    heading never last in a column); a label too long for its column wraps (tp_wrap, real widths). Returns its
+    height, mm."""
+    if not rows:
+        return 0.0
+    ts, pitch = KEY_MIN, P24_LEG_PITCH
+    cw = (w - (P24_LEG_COLS - 1) * 3.0) / P24_LEG_COLS
+    tx = 7.2                                              # sample 6 mm + 1.2 mm
+    sized = []
+    for r_ in rows:
+        if r_[0] == "head":
+            sized.append((r_, [[(r_[1], True, 0.0)]]))
+        else:
+            try:
+                lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 1, False)
+            except Exception:
+                lines = [[(r_[2], False, 0.0)]]
+            sized.append((r_, lines))
+    total = sum(len(ln) for _, ln in sized)
+    per = int(math.ceil(total / float(P24_LEG_COLS)))
+    cols, cur, n = [[]], 0, 0
+    for i, (r_, ln) in enumerate(sized):
+        nxt_head = r_[0] == "head"
+        if cur + len(ln) + (1 if nxt_head else 0) > per and cols[-1] and len(cols) < P24_LEG_COLS:
+            cols.append([])
+            cur = 0
+        cols[-1].append((r_, ln))
+        cur += len(ln)
+    h = max(sum(len(ln) for _, ln in c_) for c_ in cols) * pitch + 0.6
+    for ci, c_ in enumerate(cols):
+        cx = x + ci * (cw + 3.0)
+        y = y0 + h - 0.3
+        for r_, ln in c_:
+            yc = y - pitch / 2.0
+            kind = r_[0]
+            if kind == "head":
+                sh.text(r_[1], cx, yc - ts * 0.36, ts, COL["ink_dark"], bold=True)
+                y -= pitch
+                continue
+            col = r_[1]
+            if kind == "fill":
+                sh.poly([rect(cx, yc - 1.1, cx + 6.0, yc + 1.1)], fill=col, stroke=COL["ink2"], lw=0.1)
+            elif kind == "tree":
+                sh.circle(cx + 3.0, yc, 1.25, fill=col, stroke=COL["ink2"], lw=0.12)
+            elif kind == "dot":
+                sh.circle(cx + 3.0, yc, 0.8, fill=col)
+            else:
+                dash = {"dash": [1.2, 0.6], "dashdot": [2.0, 0.6, 0.4, 0.6]}.get(kind)
+                sh.line([(cx, yc), (cx + 6.0, yc)], col, 0.6, dash, cap=0)
+            sh.tgroup()
+            for li, ln_ in enumerate(ln):
+                for t_, bd, xo in ln_:
+                    sh.text(t_, cx + tx + xo, yc - ts * 0.36 - li * pitch, ts, COL["ink"], bold=bd)
+            sh.tgroup(False)
+            y -= pitch * len(ln)
+    return h
 
 
 def leg(key, val=True):
