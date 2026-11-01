@@ -1,5 +1,5 @@
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_agriculture_alternatives_v9.py = v9 (1 Nov 2026, round 4; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_agriculture_alternatives_v9_1.py = v9.1 (1 Nov 2026 fix: p19 grid value "200 ha" past the edge left out; round 4; what changed: the NEW IN / VERSION notes below)
 # bergama_agriculture_alternatives_v8.py (v8, 31 Oct: round 3, p18 + p19 merged on ONE booklet page) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
@@ -15,7 +15,7 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math, re
 
-VERSION = "v9"  # v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v9.1"  # v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v9 (round 4, 1 Nov, session S6b; P19.1, K4, G-R4-1/2/7/11; spec revision_2026-11-01_round4/handover/
 #   S6b_p19_design_spec.md): booklet p19 "Where the clean water goes, and what it grows" is rebuilt as story groups,
 #   each with ONE heading inside its first crop, the crops of a row sharing their top and bottom edges; every figure,
@@ -957,6 +957,8 @@ def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
     step = 25 if vmax < 160 else (50 if vmax < 400 else 100)
     for t in range(0, int(vmax) + 1, step):
         xx = xb + gw * t / vmax
+        if xx + 0.5 * text_w("%d ha" % t, 7) > x0 + W - 0.5:   # v9.1: a grid line whose centred value would run past
+            break                                    # the crop's edge is left out ("200 ha" hit it, Aras 1 Nov 17:07)
         pg.line([(xx, yb_), (xx, y0 + 0.5)], C["faint"], 0.2)
         pg.text("%d ha" % t, xx, yb_ - 3.5, 7, C["ink2"], align="C")
     xf = xb + gw * fed / vmax
