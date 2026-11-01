@@ -1349,21 +1349,28 @@ def _p18_marks(pg, spec, d, dx, dy, page):
         cy0 = min(max(y + dy + r + 0.4, d[1] + r + 0.4), d[3] - r - 0.4)
         step = 2.0 * r + 0.6
         got = None
-        for j in range(12):
-            for sx in ((0.0,) if j < 6 else (step * (j - 5), -step * (j - 5))):
-                cx = min(max(cx0 + sx, d[0] + r + 0.4), d[2] - r - 0.4)
-                cy = min(cy0 + (j if j < 6 else 0) * step, d[3] - r - 0.4)
-                bx = (cx - r - 0.4, cy - r - 0.4, cx + r + 0.4, cy + r + 0.4)
-                if any(bx[0] < q[2] and bx[2] > q[0] and bx[1] < q[3] and bx[3] > q[1] for q in placed):
-                    continue
-                if ib and bx[0] < ib[2] and bx[2] > ib[0] and bx[1] < ib[3] and bx[3] > ib[1]:
-                    continue
-                got = (cx, cy, bx)
-                break
-            if got:
-                break
-        if got is None:
-            raise TextError(u"{}: no free place on the drawing for number {} ({})".format(page, n, nm))
+        # v13.9 (Aras 1 Nov 18:30, number 6 found no place): up first (6 steps), then sideways, then every offset on
+        # the drawing nearest first (up to 40 steps across, 10 down, 20 up)
+        offs = [(0.0, j * step) for j in range(6)] + [(sg * step * k, 0.0) for k in range(1, 7) for sg in (1, -1)]
+        offs += sorted([(step * i, step * j) for i in range(-40, 41) for j in range(-10, 21)],
+                       key=lambda o_: (abs(o_[0]) + abs(o_[1]) * 0.8))
+        for sx, sy in offs:
+            cx = min(max(cx0 + sx, d[0] + r + 0.4), d[2] - r - 0.4)
+            cy = min(max(cy0 + sy, d[1] + r + 0.4), d[3] - r - 0.4)
+            bx = (cx - r - 0.4, cy - r - 0.4, cx + r + 0.4, cy + r + 0.4)
+            if any(bx[0] < q[2] and bx[2] > q[0] and bx[1] < q[3] and bx[3] > q[1] for q in placed):
+                continue
+            if ib and bx[0] < ib[2] and bx[2] > ib[0] and bx[1] < ib[3] and bx[3] > ib[1]:
+                continue
+            got = (cx, cy, bx)
+            break
+        if got is None:                                 # v13.9: an orange warning, the run goes on (no number drawn)
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"{}: no free place on the drawing for number {} ({})".format(page, n, nm))
+            except Exception:
+                pass
+            continue
         placed.append(got[2])
         old = pg.tg
         pg.tgroup()
