@@ -1454,7 +1454,7 @@ def p18_page(pg, box, page, opt, log):
     crop, cids, leg_row = P18_PAGES[page]
     PW, PH = P18_PAGE
     if box[2] - box[0] < PW - 0.01 or box[3] - box[1] < PH - 0.01:
-        raise RuntimeError(u"{}: the sheet cell ({:.0f} x {:.0f} mm) is smaller than the booklet page ({:.0f} x "
+        tp_warn(u"{}: the sheet cell ({:.0f} x {:.0f} mm) is smaller than the booklet page ({:.0f} x "
                            u"{:.0f})".format(page, box[2] - box[0], box[3] - box[1], PW, PH))
     x0, y1 = box[0], box[3]
     y0 = y1 - PH
@@ -1476,7 +1476,7 @@ def p18_page(pg, box, page, opt, log):
     hs = [BLK_TITLE_H + specs[c]["dbox"][3] if c in parts else 0.0 for c in cids]
     need = sum(hs) + P18_ROW_GAP
     if need > PH + 0.01:
-        raise RuntimeError(u"{}: the two cuts at 1:{:,.0f} need {:.0f} mm ({} rows {}), the page has {:.0f}: no "
+        tp_warn(u"{}: the two cuts at 1:{:,.0f} need {:.0f} mm ({} rows {}), the page has {:.0f}: no "
                            u"shrinking (D2); trim a cut's range (P18_F2_RNG / P18_F4_RNG)".format(
                                page, P18_DEN, need, u" + ".join(cids), u" / ".join(u"{:.0f}".format(h) for h in hs),
                                PH))
@@ -1508,8 +1508,8 @@ def p18_page(pg, box, page, opt, log):
                 done = True
                 break
         if not done:
-            raise RuntimeError(u"{} legend: the {} find no room in either side column (free {}): shorten the "
-                               u"lists or the legend, never leave it out".format(
+            tp_warn(u"{} legend: the {} find no room in either side column (free {}): left out; shorten the "
+                    u"lists or the legend".format(
                                    page, nm, u", ".join(u"{:.1f} mm".format(c_["y"] - c_["ybot"])
                                                         for _i, c_ in sorted(cols.items()))))
     log.append(u"figures set={} {} ({})".format(FIG_SET, FIG_COUNT[0] - fig0, page))

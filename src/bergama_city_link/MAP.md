@@ -100,6 +100,6 @@
 | booklet_assets | ../common/booklet_assets.py | - |
 | booklet_export | code.py | 2354 |
 | build | code.py | 2401 |
-| main | code.py | 2424 |
+| main | code.py | 2425 |
 | trigger | ../common/trigger.py | - |
 | done_text | ../common/done_text.py | - |

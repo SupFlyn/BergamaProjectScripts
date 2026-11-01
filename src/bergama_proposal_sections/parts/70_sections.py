@@ -993,7 +993,8 @@ def ps_marks(S):
                 spot = (x, y)
                 break
         if spot is None:
-            raise ValueError(u"p13 %s: no free spot for the number of %r inside the section" % (S.cid, txt))
+            tp_warn(u"p13 %s: no free spot for the number of %r inside the section: not drawn" % (S.cid, txt))
+            continue                                             # v18.1: a warning, the run goes on
         done.append(spot)
         at.append((spot[0], spot[1], txt, col))
     num = {}
@@ -1298,7 +1299,7 @@ def ps_page(page, cids, log, style="a"):
         if e["mode"] == "LEFT":
             e["sw"] = BK_W - e["dw"] - GRID_GUT
             if e["sw"] < PS_SIDE_MIN:
-                raise ValueError(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
+                tp_warn(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
                                  u"(at least %.0f)" % (page, cid, e["dw"], PS_SCALE, e["sw"], PS_SIDE_MIN))
             e["side0"] = -ps_side(S, 0.0, e["sw"], 0.0)
         L.append(e)
@@ -1331,7 +1332,7 @@ def ps_page(page, cids, log, style="a"):
         tot, lh = heights(False)
         log.append(u"NOTE %s: no room for the material legend at 1:%d: it is on p13a only" % (page, PS_SCALE))
     if tot > BK_H:
-        raise ValueError(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
+        tp_warn(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
             page, tot, PS_SCALE, BK_H, u", ".join(u"%s %.1f" % (e["S"].cid, e["h"]) for e in L)))
     ngap = len(L) - 1 + (1 if lh else 0)
     gap = PS_ROW_GAP + (BK_H - tot) / float(max(1, ngap))

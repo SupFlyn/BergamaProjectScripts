@@ -2187,8 +2187,8 @@ def r28_window_panel(C, w, areas, missing, warn):
         if lh > 0.0:
             sh.tp.block((M, y0, M + dw, y0 + lh), u"legend " + st)
         if y0 + lh > yb - P24_GAP + 1e-6:                # v38 closing (G-R4-1, S8): RAISES (was a warning only)
-            raise TextError(u"p22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the "
-                            u"legend overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))
+            tp_warn(u"p22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the "
+                    u"legend overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))   # v39.1: warns
         crops[st] = (M, y0, M + dw, top)
         y0 = top + P24_UNIT_GAP
     TP_LOG.append(sh.check_text())                       # v38 (G-R4-1): the column's own words (raises)

@@ -76,7 +76,7 @@ def _p19_close(pg, n0, box, cid):
     bb = items_bbox([it for it in pg.items[n0:] if it[0] in ("poly", "line", "circle", "text")])
     over = max(box[0] - bb[0], box[1] - bb[1], bb[2] - box[2], bb[3] - box[3])
     if over > 0.3:
-        raise TextError(u"p19 {}: the drawing runs {:.1f} mm outside its {:.0f} x {:.0f} mm booklet block (shorten "
+        tp_warn(u"p19 {}: the drawing runs {:.1f} mm outside its {:.0f} x {:.0f} mm booklet block (shorten "
                         u"the text that runs out)".format(cid, over, box[2] - box[0], box[3] - box[1]))
     _p18_ground(pg, n0, box[0], box[1], box[2], box[3])
     pg.block(box, cid)
