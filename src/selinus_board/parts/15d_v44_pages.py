@@ -213,19 +213,56 @@ def photo_caption(it):
 
 # ------------------------------------------------------------ p.6 the proposal (masterplan_results.json "movement")
 # v50 (MIRAQUA 28 Oct, P09.1): MP_CHANGE, HUB_C and TRANSIT_C are gone (the map's styles: R28MV_ROAD, R28_MARKERS).
-def mp_movement():
+def mp_static_roads():
+    """v59 (round 4, P09.1; CHK1_2 F1.3): the masterplan's roads from the shared static table common/data/ROADS.py
+    (ROADS, TOWN_LINE), in the form the masterplan writes them (bergama_masterplan Corridor.movement: name, change,
+    note, reason_proof, xy at 0.1 m), so the site board never depends on the masterplan having run first"""
+    r2 = lambda p: [round(float(p[0]), 1), round(float(p[1]), 1)]
+    roads = [{"name": rd["name"], "change": rd["change"], "note": rd.get("note", u""),
+              "reason_proof": rd.get("proof", u""), "xy": [r2(p) for p in rd["xy"]]} for rd in ROADS]
+    routes = [{"name": TOWN_LINE["name"], "note": TOWN_LINE.get("note", u""), "later": True,
+               "change": TOWN_LINE["change"], "reason_proof": TOWN_LINE.get("proof", u""),
+               "xy": [r2(p) for p in TOWN_LINE["xy"]]}]
+    return roads, routes
+
+
+def mp_movement(static_ok=True):
     """v44 (PHASE2_SPEC §4): the masterplan's proposal for movement (roads, truck route, crossings, hubs, routes), from
-    masterplan_results.json key "movement"; None (logged) without the file or the key."""
+    masterplan_results.json key "movement". v59 (round 4, P09.1; CHK1_2 F1.2-F1.3): no run-order dependency: when the
+    file or its "movement" key is missing, or its roads are stale (missing, or not the same (name, change) set as the
+    shared table common/data/ROADS.py), the roads (and the later town line) come from ROADS.py, everything else the
+    json holds (crossings, hubs) is kept when there is a json; the log names the source used. "source" in the result:
+    "masterplan_results.json" or "ROADS.py". static_ok=False: the old behaviour (None without the json's movement)."""
+    M, why = None, None
     try:
         with open(MP_RESULTS_FILE, "r", encoding="utf-8") as fh:
             M = json.load(fh).get("movement")
+        if not isinstance(M, dict):
+            M, why = None, u"masterplan_results.json has no \"movement\" key yet"
     except Exception:
-        LOG.append("Proposal map: no masterplan_results.json ({}), so not drawn.".format(MP_RESULTS_FILE))
+        M, why = None, u"no masterplan_results.json ({})".format(MP_RESULTS_FILE)
+    roads, routes = mp_static_roads()
+    if M is not None:
+        have = set((u"%s" % (r_.get("name") or u""), u"%s" % (r_.get("change") or u"")) for r_ in M.get("roads") or [])
+        want = set((u"%s" % r_["name"], u"%s" % r_["change"]) for r_ in roads)
+        if have == want:
+            M = dict(M)
+            M["source"] = "masterplan_results.json"
+            LOG.append(u"Masterplan movement: roads from masterplan_results.json ({} roads, the same as "
+                       u"common/data/ROADS.py).".format(len(roads)))
+            return M
+        why = u"masterplan_results.json's roads are stale ({} there, {} in ROADS.py, {} differ)".format(
+            len(have), len(want), len(have ^ want))
+    if not static_ok:
+        LOG.append(u"Proposal map: {}, so not drawn.".format(why))
         return None
-    if not isinstance(M, dict):
-        LOG.append("Proposal map: masterplan_results.json has no \"movement\" key yet, so not drawn.")
-        return None
-    return M
+    out = dict(M or {})
+    out["roads"], out["source"] = roads, "ROADS.py"
+    if not out.get("routes"):
+        out["routes"] = routes
+    LOG.append(u"Masterplan movement: roads from common/data/ROADS.py ({} roads; {}){}.".format(
+        len(roads), why, u"; crossings and hubs from the json" if M else u"; no crossings or hubs (masterplan not run)"))
+    return out
 
 
 def _xy_list(v):

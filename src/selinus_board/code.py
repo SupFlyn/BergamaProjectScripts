@@ -1,6 +1,7 @@
 #@include parts/01__gh_inputs.py
 #@include ../common/data/NAMES.py
 #@include ../common/names.py
+#@include ../common/data/ROADS.py
 #@include parts/02_region_contains.py
 #@include parts/03_street_w.py
 #@include parts/04_river_faces.py
@@ -33,11 +34,15 @@
 #@include parts/16_write_city_link_movement.py
 #@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py
+#@include parts/16c_text_check.py
 #@include ../common/pdf_fonts.py
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
 #@include ../common/basemap.py
 #@include ../common/grid.py
+#@include ../common/font_metrics.py
+#@include ../common/marker.py
+#@include ../common/block.py
 #@include ../common/buildings.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py

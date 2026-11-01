@@ -189,17 +189,20 @@ def build_sheet(S, B, X, Y, U, rects):
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
     shade_july_export(S)                                  # v51 (T3a): the shade drawing moved to p.17 (water board)
-    # v44: the masterplan's proposal map (only when masterplan_results.json holds "movement") and the walking-effort
-    # proof (only with terrain heights on the network); each logs why when it is left out
+    # v44: the masterplan's proposal map and the walking-effort proof (only with terrain heights on the network; logs
+    # why when it is left out). v59 (round 4, P09.1): the street sections (07c) are always drawn: mp_movement falls
+    # back to common/data/ROADS.py when masterplan_results.json is missing or stale (no run-order dependency)
     at = [nm_ for nm_, w_, f_ in items].index("07d City heritage loop")
     R_ = movement(S).get("R")
     if R_ and getattr(R_["pieces"], "z", None):
         items.insert(at + 1, ("07e Walking effort", 120.0 * U,
                               lambda x, y: draw_walking_effort(S, B, x, y, 120.0 * U, U)))
     M_ = mp_movement()
-    if M_ is not None:
-        items.insert(at, ("07c Streets before and after", 120.0 * U,
-                          lambda x, y: draw_mv_proposal(S, B, x, y, 120.0 * U, U, M_)))
+    if M_ is None or not M_.get("roads"):                 # v59 (round 4, P09.1): never silently without p.09
+        raise RuntimeError(u"Street sections (p09, drw_street_sections): no masterplan roads, neither in "
+                           u"masterplan_results.json nor in common/data/ROADS.py")
+    items.insert(at, ("07c Streets before and after", 120.0 * U,     # v59 (round 4, P09.1): always drawn
+                      lambda x, y: draw_mv_proposal(S, B, x, y, 120.0 * U, U, M_)))
     n_ = 13
     if S.sections:
         # v42 (Aras 26 Oct 07:06, p.09-11): every cut at ONE round scale, rows of whole cuts, at most two booklet pages
@@ -649,7 +652,7 @@ def bake(B):
                 kind = it[0]
                 layer = it[5] if kind == "text" else it[3]
                 tech = layer.startswith("LU_TECH")
-                group = it[-1]
+                group = it[12] if kind == "text" else it[-1]     # v59: text items end with their text group
                 if layer not in lcache:
                     lcache[layer] = ensure_layer(layer)
                 gi = -1
@@ -1038,7 +1041,7 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             kd = kind_of(font)
             hm = h_ * k                                   # capital height on the page, mm
             size = hm / _PDF_CAP[kd]
-            w_ = tw(txt, h_, kd) * k                      # the width the layout reserved for it
+            w_ = tw(txt, h_, kd, bold) * k                # v59: the real (bold) width the layout reserved for it
             fi = (4 if kd == "mono" else 0) + (1 if bold else 0) + (2 if italic else 0) + 1
             dx = {"L": 0.0, "C": -0.5 * w_, "R": -w_, "MC": -0.5 * w_}.get(align, 0.0)
             dy = -0.5 * hm if align == "MC" else 0.0
