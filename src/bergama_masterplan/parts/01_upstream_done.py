@@ -647,7 +647,7 @@ class Page(object):
         if s:
             if tp is not None and s.strip():
                 tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, color, allow, g, emit=False)
-            self.items.append(("text", s, x, y, size, color, bold, align, halo))
+            self.items.append(("text", s, x, y, size, color, bold, align, halo, role))   # round 5: role kept (04_items)
 
     def clip(self, rings):
         self.items.append(("clip", rings))
@@ -812,7 +812,7 @@ def page_stream(pg):
             A("Q")
             cur.clear()
         elif kind == "text":
-            _, s, x, y, size, color, bold, align, halo = it
+            _, s, x, y, size, color, bold, align, halo = it[:9]
             w = text_w(s, size, bold)
             reps = [(halo, True), (color, False)] if halo else [(color, False)]
             for c_, hal in reps:
