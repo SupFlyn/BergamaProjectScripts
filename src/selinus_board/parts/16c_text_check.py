@@ -11,7 +11,9 @@
 # Text groups: the lines of one paragraph (Board.para) or of one open B.tgroup() are one group; two texts on the same
 # baseline that follow each other within one word space, and lines of one left/centre-aligned stack (same x, same
 # size, line spacing 1.2-2.4 x the capital height) are joined into one group (they are one word block).
-SB_TP_PAGES = {"plan01": "p02", "plan01_key": "p02", "site_readings": "p02", "edge_types": "p02",
+# v59.1: plan01_key left out: an empty 0.5 mm strip the booklet does not print (the edge strip's heading under it
+# reached into it and was reported)
+SB_TP_PAGES = {"plan01": "p02", "site_readings": "p02", "edge_types": "p02",
                "sections_1": "p04", "sections_2": "p05", "edge_build": "p06", "movement": "p07",
                "walking_today": "p07", "driving_today": "p07", "mv_note_1": "p07", "mv_note_2": "p07",
                "mv_note_3": "p07", "street_sections": "p09", "heritage_loop": "p20"}
@@ -202,7 +204,12 @@ def _sb_tp_hits(tp):
         b = a["box"]
         if not (tp.inner[0] - 1e-6 <= b[0] and b[2] <= tp.inner[2] + 1e-6 and
                 tp.inner[1] - 1e-6 <= b[1] and b[3] <= tp.inner[3] + 1e-6):
-            out.append((a, u"the crop edge"))
+            # v59.1: which edge and by how much (mm on the sheet), so the next fix needs no guessing
+            u_ = tp.unit_mm
+            ov_ = [(nm_, d_ * u_) for nm_, d_ in (("left", tp.inner[0] - b[0]), ("right", b[2] - tp.inner[2]),
+                                                  ("bottom", tp.inner[1] - b[1]), ("top", b[3] - tp.inner[3]))
+                   if d_ > 1e-6]
+            out.append((a, u"the crop edge (%s)" % u", ".join(u"%s by %.2f mm" % q_ for q_ in ov_)))
         for c in I[i + 1:]:
             if c["group"] != a["group"] and tp_hit(b, c["box"], tp.pad):
                 out.append((a, repr(c["text"][:40])))

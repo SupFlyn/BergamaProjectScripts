@@ -299,7 +299,14 @@ def r28e_key(B, rows, x, y, ncol, colw, k, L, pal=None):
     for i, (kind, ref, lab) in enumerate(rows):
         lx, ly = x + (i // nrow) * colw, y - (i % nrow) * pitch
         r28e_swatch(B, kind, ref, lx, ly, k, L, pal=pal)
-        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h7, INK, L, font=FONT_TITLE)
+        # v59.1: a label wider than its column is set smaller (down to 6 pt) to fit it; "15  Adnan Menderes Bulvarı
+        # road bridge" ran 3 mm past the crop's right edge
+        h_ = h7
+        av_ = colw - 7.5 * k
+        tw_ = site28_tw(lab, h7)
+        if tw_ > av_ > 0:
+            h_ = max(bk_hk(6.0, k), h7 * av_ / tw_)
+        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h_, INK, L, font=FONT_TITLE)
     return y - nrow * pitch
 
 
@@ -1021,7 +1028,8 @@ def draw_edge_build(S, B, x, y, w, U, with_photos=True):
                           u"A-" + O["sites"][-1]["id"] if O["sites"] else u"none", n_ph or 8))
     top = y                                               # v55 (Aras 31 Oct): the beige palette b only
     low, ss, numbered = p06_page(S, B, x, top, w, k, L, photos, O, P06_PAL["b"])
-    crop_panel("edge_build", x, low - 0.5 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
+    # v59.1: 1.0 mm under the last row of photo captions (was 0.5 mm: their descenders, "(", "g", "y", reached the edge)
+    crop_panel("edge_build", x, low - 1.0 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
     CROP_PANELS[-1]["bk_w"] = BK_AW                       # drawn for the full booklet panel width
     LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm, palette b; {} open to "
                u"change; {} sites (lettered left -> right); {} photos; map labels as numbers in the key (G3, v58): "

@@ -1826,7 +1826,10 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
             PU.put(_t3_shift(ish, cx, yb), 60)            # v58 (P08.2): icons right above their activity, no leaders
             tb.extend((b_[0] + cx, b_[1] + yb, b_[2] + cx, b_[3] + yb) for b_ in ibox)
             tb.extend((b_[0] + cx, b_[1] + gy, b_[2] + cx, b_[3] + gy) for b_ in sec["boxes"])
-            sb = draw_scalebar_bk(B, x + cx * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0, kb, L)
+            # v59.1: the bar 1 mm in from the section's left edge (as on p06 and p20): on the first section its centred
+            # "0" hung half outside the crop
+            sb = draw_scalebar_bk(B, x + cx * kb + 1.0 * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0,
+                                  kb, L)
             # v59 closing (G-R4-1): the section's picture (icon band to its foot, its width): no other text on it
             sb_keep(B, (x + cx * kb, (gy + sec["low"]) * kb, x + (cx + sec["w"]) * kb,
                         max(yb + _bh, gy + top) * kb), u"%s %s section" % (c_["name"], sub), "section", i0_s)

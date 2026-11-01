@@ -456,8 +456,9 @@ def draw_what_is_there(S, B, x, y, w, U):
     # both in the map's first grid column; the bridge list beside them from the second grid column; the key under both
     gstep = (GRID_COL + GRID_GUT) * kb
     sbl = nice_floor(F2.w / 8.0)
-    mb_crop = min(draw_scalebar_bk(B, V.X0, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
-    _sb_north(B, F2, V.X0 + sbl * s + 5.5 * kb, mb - 5.0 * kb, 5.0, kb, L)   # v59 (round 4, G-R4-9): no white half
+    # v59.1: the bar 1 mm in from the crop's left edge (as on p06 and p20): its centred "0" hung half outside the crop
+    mb_crop = min(draw_scalebar_bk(B, V.X0 + 1.0 * kb, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
+    _sb_north(B, F2, V.X0 + 1.0 * kb + sbl * s + 5.5 * kb, mb - 5.0 * kb, 5.0, kb, L)   # v59 (G-R4-9): no white half
     mb_crop = min(mb_crop, _p02_bridge_list(B, F, knum, V.X0 + gstep, mb - 1.5 * kb, V.X0 + mw, kb, L, ovl))
     i0_key = sb_mark(B)                                   # v59 closing (G-R4-1): the key's own texts from here
     low = _p02_key_under(B, leg_bk, _P02["cs"], V.X0, mb_crop - 2.0 * kb, mw, gstep, kb, L, ovl)
@@ -825,7 +826,8 @@ def _p02_key_under(B, leg, cl, x0, ytop, W, gstep, kb, L, ovl=None):
     ncol = 3
     if 2.0 * (2.0 * gstep) + 40.0 * kb <= W:            # the grid: columns 1-2, 3-4, 5-6 of the map's width
         cxs = [x0 + j_ * 2.0 * gstep for j_ in range(ncol)]
-        cws = [min(grid_w(2) * kb, x0 + W - c_) for c_ in cxs]
+        cws = [min(grid_w(2) * kb, x0 + W - c_ - 0.5 * kb) for c_ in cxs]   # v59.1: a text fitted to the last
+        # column ended exactly on the crop's right edge ("Ulucami Önü Köprüsü: monument and traffic" hit it); 0.5 mm in
     else:
         cw_ = (W - (ncol - 1) * P02_GAP * kb) / ncol
         cxs = [x0 + j_ * (cw_ + P02_GAP * kb) for j_ in range(ncol)]

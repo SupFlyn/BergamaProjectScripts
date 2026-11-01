@@ -1070,6 +1070,13 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
     # sentence is cut (its bed, banks and levels are drawn: level marks, bank markers); the column keeps what
     # steers the project, the numbered keywords and the bed width's public source
     yy = y
+    # v59.1 (Aras 1 Nov 16:48 log): the column's lines and runs are ONE text group for the page check: its lines follow
+    # each other at 1.45 x the capital height, so the ink of one line's descenders and the next line's ascenders come
+    # within the 0.6 mm pad and were reported as collisions (28 on p04-05); the column is laid out top-down, so its
+    # own lines never cross. Texts of other blocks are still checked against it.
+    tg_ = getattr(B, "tgroup", None)
+    if tg_:
+        tg_()
     key_, steer_ = site28_sec_reading(S, sd_)
     yy -= 1.0 * hc
     if steer_:
@@ -1089,6 +1096,8 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
                 srcs.append(t_)
     for t_ in srcs:
         yy = _p45_para(B, t_, x, yy - 0.2 * hc, w, hm, INK2, L, lead=1.4)   # v58: boxes noted (G3)
+    if tg_:
+        tg_(False)
     return yy + 0.4 * hc
 
 
@@ -1267,7 +1276,9 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
         p45_strip(S, B, c_, x, yd, wd, ss, kb, U)
         cx_ = x + wd + (P45_LEV_MM + P45_GAP) * kb
         yh_ = p45_head(S, B, c_, cx_, yd, wc, kb, U)
-        p45_bar(B, cx_, yy - h_ + 0.6 * kb, wc, ss, c_, den, kb, U)
+        # v59.1: the bar 2 mm into the column, clear of the level-mark values that end near its edge ("+47.49 mean"
+        # ran into the bar's "0")
+        p45_bar(B, cx_ + 2.0 * kb, yy - h_ + 0.6 * kb, wc - 2.0 * kb, ss, c_, den, kb, U)
         # v58 (G15): the zoom inset in the column's room between its words and its scale bar (v59: 1:500)
         p45_zoom(B, c_, cx_, yh_ - 1.0 * kb, yy - h_ + p45_bar_h(kb, U) + 1.5 * kb, wc, kb)
         yy -= h_ + gap + extra
@@ -1501,7 +1512,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.088, kb))   # the map's 0.25 pt neatline
     # the north arrow beside the map, top right of it, no plate (G-R4-9)
     na = north_items(0.0, 0.0, 0.0, 6.0)
-    nx0, ny0 = r[2] + 2.5 * kb, yt - 8.5 * kb
+    nx0, ny0 = r[2] + 2.5 * kb, yt - 9.5 * kb             # v59.1: was 8.5 mm, which put the "N" 0.3 mm over the crop top
     basemap_draw(na, lambda p_: (nx0 + p_[0] * kb, ny0 + p_[1] * kb),
                  lambda rings, hx, al, nz: B.fill(rings, _p45_c(hx), L, 41),
                  lambda pts, hx, wmm, dash, al: B.line(pts, _p45_c(hx), L, 41, bk_lw(wmm or 0.2, kb)),

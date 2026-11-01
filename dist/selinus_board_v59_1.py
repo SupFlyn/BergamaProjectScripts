@@ -1,5 +1,5 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v59.py = v59 (1 Nov 2026, round 4 S4; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: selinus_board_v59_1.py = v59.1 (1 Nov 2026 fix: 28 text-check stops of the first kit v2 run cleared; round 4 S4; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
@@ -592,9 +592,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v59 (2026-11-01)"  # v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
+SCRIPT_VERSION = "selinus_board v59.1 (2026-11-01)"  # v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v59"                                     # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v59.1"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -24643,7 +24643,9 @@ def bk_photos():
 # Text groups: the lines of one paragraph (Board.para) or of one open B.tgroup() are one group; two texts on the same
 # baseline that follow each other within one word space, and lines of one left/centre-aligned stack (same x, same
 # size, line spacing 1.2-2.4 x the capital height) are joined into one group (they are one word block).
-SB_TP_PAGES = {"plan01": "p02", "plan01_key": "p02", "site_readings": "p02", "edge_types": "p02",
+# v59.1: plan01_key left out: an empty 0.5 mm strip the booklet does not print (the edge strip's heading under it
+# reached into it and was reported)
+SB_TP_PAGES = {"plan01": "p02", "site_readings": "p02", "edge_types": "p02",
                "sections_1": "p04", "sections_2": "p05", "edge_build": "p06", "movement": "p07",
                "walking_today": "p07", "driving_today": "p07", "mv_note_1": "p07", "mv_note_2": "p07",
                "mv_note_3": "p07", "street_sections": "p09", "heritage_loop": "p20"}
@@ -24834,7 +24836,12 @@ def _sb_tp_hits(tp):
         b = a["box"]
         if not (tp.inner[0] - 1e-6 <= b[0] and b[2] <= tp.inner[2] + 1e-6 and
                 tp.inner[1] - 1e-6 <= b[1] and b[3] <= tp.inner[3] + 1e-6):
-            out.append((a, u"the crop edge"))
+            # v59.1: which edge and by how much (mm on the sheet), so the next fix needs no guessing
+            u_ = tp.unit_mm
+            ov_ = [(nm_, d_ * u_) for nm_, d_ in (("left", tp.inner[0] - b[0]), ("right", b[2] - tp.inner[2]),
+                                                  ("bottom", tp.inner[1] - b[1]), ("top", b[3] - tp.inner[3]))
+                   if d_ > 1e-6]
+            out.append((a, u"the crop edge (%s)" % u", ".join(u"%s by %.2f mm" % q_ for q_ in ov_)))
         for c in I[i + 1:]:
             if c["group"] != a["group"] and tp_hit(b, c["box"], tp.pad):
                 out.append((a, repr(c["text"][:40])))
@@ -32808,8 +32815,9 @@ def draw_what_is_there(S, B, x, y, w, U):
     # both in the map's first grid column; the bridge list beside them from the second grid column; the key under both
     gstep = (GRID_COL + GRID_GUT) * kb
     sbl = nice_floor(F2.w / 8.0)
-    mb_crop = min(draw_scalebar_bk(B, V.X0, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
-    _sb_north(B, F2, V.X0 + sbl * s + 5.5 * kb, mb - 5.0 * kb, 5.0, kb, L)   # v59 (round 4, G-R4-9): no white half
+    # v59.1: the bar 1 mm in from the crop's left edge (as on p06 and p20): its centred "0" hung half outside the crop
+    mb_crop = min(draw_scalebar_bk(B, V.X0 + 1.0 * kb, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
+    _sb_north(B, F2, V.X0 + 1.0 * kb + sbl * s + 5.5 * kb, mb - 5.0 * kb, 5.0, kb, L)   # v59 (G-R4-9): no white half
     mb_crop = min(mb_crop, _p02_bridge_list(B, F, knum, V.X0 + gstep, mb - 1.5 * kb, V.X0 + mw, kb, L, ovl))
     i0_key = sb_mark(B)                                   # v59 closing (G-R4-1): the key's own texts from here
     low = _p02_key_under(B, leg_bk, _P02["cs"], V.X0, mb_crop - 2.0 * kb, mw, gstep, kb, L, ovl)
@@ -33177,7 +33185,8 @@ def _p02_key_under(B, leg, cl, x0, ytop, W, gstep, kb, L, ovl=None):
     ncol = 3
     if 2.0 * (2.0 * gstep) + 40.0 * kb <= W:            # the grid: columns 1-2, 3-4, 5-6 of the map's width
         cxs = [x0 + j_ * 2.0 * gstep for j_ in range(ncol)]
-        cws = [min(grid_w(2) * kb, x0 + W - c_) for c_ in cxs]
+        cws = [min(grid_w(2) * kb, x0 + W - c_ - 0.5 * kb) for c_ in cxs]   # v59.1: a text fitted to the last
+        # column ended exactly on the crop's right edge ("Ulucami Önü Köprüsü: monument and traffic" hit it); 0.5 mm in
     else:
         cw_ = (W - (ncol - 1) * P02_GAP * kb) / ncol
         cxs = [x0 + j_ * (cw_ + P02_GAP * kb) for j_ in range(ncol)]
@@ -35669,6 +35678,13 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
     # sentence is cut (its bed, banks and levels are drawn: level marks, bank markers); the column keeps what
     # steers the project, the numbered keywords and the bed width's public source
     yy = y
+    # v59.1 (Aras 1 Nov 16:48 log): the column's lines and runs are ONE text group for the page check: its lines follow
+    # each other at 1.45 x the capital height, so the ink of one line's descenders and the next line's ascenders come
+    # within the 0.6 mm pad and were reported as collisions (28 on p04-05); the column is laid out top-down, so its
+    # own lines never cross. Texts of other blocks are still checked against it.
+    tg_ = getattr(B, "tgroup", None)
+    if tg_:
+        tg_()
     key_, steer_ = site28_sec_reading(S, sd_)
     yy -= 1.0 * hc
     if steer_:
@@ -35688,6 +35704,8 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
                 srcs.append(t_)
     for t_ in srcs:
         yy = _p45_para(B, t_, x, yy - 0.2 * hc, w, hm, INK2, L, lead=1.4)   # v58: boxes noted (G3)
+    if tg_:
+        tg_(False)
     return yy + 0.4 * hc
 
 
@@ -35866,7 +35884,9 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
         p45_strip(S, B, c_, x, yd, wd, ss, kb, U)
         cx_ = x + wd + (P45_LEV_MM + P45_GAP) * kb
         yh_ = p45_head(S, B, c_, cx_, yd, wc, kb, U)
-        p45_bar(B, cx_, yy - h_ + 0.6 * kb, wc, ss, c_, den, kb, U)
+        # v59.1: the bar 2 mm into the column, clear of the level-mark values that end near its edge ("+47.49 mean"
+        # ran into the bar's "0")
+        p45_bar(B, cx_ + 2.0 * kb, yy - h_ + 0.6 * kb, wc - 2.0 * kb, ss, c_, den, kb, U)
         # v58 (G15): the zoom inset in the column's room between its words and its scale bar (v59: 1:500)
         p45_zoom(B, c_, cx_, yh_ - 1.0 * kb, yy - h_ + p45_bar_h(kb, U) + 1.5 * kb, wc, kb)
         yy -= h_ + gap + extra
@@ -36100,7 +36120,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.088, kb))   # the map's 0.25 pt neatline
     # the north arrow beside the map, top right of it, no plate (G-R4-9)
     na = north_items(0.0, 0.0, 0.0, 6.0)
-    nx0, ny0 = r[2] + 2.5 * kb, yt - 8.5 * kb
+    nx0, ny0 = r[2] + 2.5 * kb, yt - 9.5 * kb             # v59.1: was 8.5 mm, which put the "N" 0.3 mm over the crop top
     basemap_draw(na, lambda p_: (nx0 + p_[0] * kb, ny0 + p_[1] * kb),
                  lambda rings, hx, al, nz: B.fill(rings, _p45_c(hx), L, 41),
                  lambda pts, hx, wmm, dash, al: B.line(pts, _p45_c(hx), L, 41, bk_lw(wmm or 0.2, kb)),
@@ -36448,7 +36468,14 @@ def r28e_key(B, rows, x, y, ncol, colw, k, L, pal=None):
     for i, (kind, ref, lab) in enumerate(rows):
         lx, ly = x + (i // nrow) * colw, y - (i % nrow) * pitch
         r28e_swatch(B, kind, ref, lx, ly, k, L, pal=pal)
-        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h7, INK, L, font=FONT_TITLE)
+        # v59.1: a label wider than its column is set smaller (down to 6 pt) to fit it; "15  Adnan Menderes Bulvarı
+        # road bridge" ran 3 mm past the crop's right edge
+        h_ = h7
+        av_ = colw - 7.5 * k
+        tw_ = site28_tw(lab, h7)
+        if tw_ > av_ > 0:
+            h_ = max(bk_hk(6.0, k), h7 * av_ / tw_)
+        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h_, INK, L, font=FONT_TITLE)
     return y - nrow * pitch
 
 
@@ -37170,7 +37197,8 @@ def draw_edge_build(S, B, x, y, w, U, with_photos=True):
                           u"A-" + O["sites"][-1]["id"] if O["sites"] else u"none", n_ph or 8))
     top = y                                               # v55 (Aras 31 Oct): the beige palette b only
     low, ss, numbered = p06_page(S, B, x, top, w, k, L, photos, O, P06_PAL["b"])
-    crop_panel("edge_build", x, low - 0.5 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
+    # v59.1: 1.0 mm under the last row of photo captions (was 0.5 mm: their descenders, "(", "g", "y", reached the edge)
+    crop_panel("edge_build", x, low - 1.0 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
     CROP_PANELS[-1]["bk_w"] = BK_AW                       # drawn for the full booklet panel width
     LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm, palette b; {} open to "
                u"change; {} sites (lettered left -> right); {} photos; map labels as numbers in the key (G3, v58): "
@@ -39051,7 +39079,10 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
             PU.put(_t3_shift(ish, cx, yb), 60)            # v58 (P08.2): icons right above their activity, no leaders
             tb.extend((b_[0] + cx, b_[1] + yb, b_[2] + cx, b_[3] + yb) for b_ in ibox)
             tb.extend((b_[0] + cx, b_[1] + gy, b_[2] + cx, b_[3] + gy) for b_ in sec["boxes"])
-            sb = draw_scalebar_bk(B, x + cx * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0, kb, L)
+            # v59.1: the bar 1 mm in from the section's left edge (as on p06 and p20): on the first section its centred
+            # "0" hung half outside the crop
+            sb = draw_scalebar_bk(B, x + cx * kb + 1.0 * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0,
+                                  kb, L)
             # v59 closing (G-R4-1): the section's picture (icon band to its foot, its width): no other text on it
             sb_keep(B, (x + cx * kb, (gy + sec["low"]) * kb, x + (cx + sec["w"]) * kb,
                         max(yb + _bh, gy + top) * kb), u"%s %s section" % (c_["name"], sub), "section", i0_s)
