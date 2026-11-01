@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_2.py = v13.2 (1 Nov 2026 fix: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13_3.py = v13.3 (1 Nov 2026 fix: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.2 (2026-11-01)"  # v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.2"
+VERSION = "bergama_water_board v13.3 (2026-11-01)"  # v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13.3"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -14151,19 +14151,31 @@ def _p12_side_names(pg, ga, M, side, log):
                                 len(side), len(letters)))
     d = 2.0 * P12_MARK_R
     for j, ix in enumerate(lp_reading_order([(sp["x"], sp["y"]) for sp in side], y_down=False)):
-        sp, ch = side[ix], letters[j]
+        sp, ch = side[ix], letters[len(rows)]           # v13.3: letters stay a, b, c ... when a name is left out
         col = sp.get("col") or COL["ink2"]
         bd = sp.get("bounds") or ga                   # the zoom's names stay in the zoom (its box is not in the way)
         # v13.1 (Aras 1 Nov 17:33: "Dry-top terraces" found no spot within 3.5 mm): the letter may stand up to 7 mm
         # from its point, tried in 24 directions (was 16), nearest first
-        b = _p12_free_spot(sp["x"], sp["y"], d, d, [t for t in taken if t != bd], bd, (0.0, 1.0, 2.0, 3.5, 5.0, 7.0), 24)
+        b = _p12_free_spot(sp["x"], sp["y"], d, d, [t for t in taken if t != bd], bd,
+                           (0.0, 1.0, 2.0, 3.5, 5.0, 7.0, 10.0), 24)
         if not b:
-            raise TextCollision(u"p12", dict(text=sp["head"], name=u"p12 map name"),
-                                u"no free spot beside its point, nor for its side-list letter")
+            # v13.3 (Aras 1 Nov 17:57 + 17:11 "orange warnings ... fix all in a single run"): a name whose letter finds
+            # no spot within 10 mm is left off the map with a FLAG line and an orange warning; the run goes on
+            log.append(u"FLAG p12 map: '{}' left out: no free spot for its side-list letter within 10 mm".format(
+                sp["head"]))
+            try:
+                ghenv.Component.AddRuntimeMessage(                                     # noqa: F821
+                    __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                    u"p12 map: '{}' left out (no room for its letter)".format(sp["head"]))
+            except Exception:
+                pass
+            continue
         mb = _p12_mark(pg, ch, (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, col, d, style="ring", allow=sp["allow"])
         taken.append(mb)
         boxes.append(mb)
         rows.append((ch, sp["head"], col))
+    if not rows:
+        return boxes
     lead = FS_MIN * 1.5
     w = d + 1.0 + max(text_w(h_, FS_MIN) for _c, h_, _k in rows) + 0.8
     h = len(rows) * lead + 0.8

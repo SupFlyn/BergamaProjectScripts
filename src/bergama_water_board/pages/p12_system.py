@@ -608,19 +608,31 @@ def _p12_side_names(pg, ga, M, side, log):
                                 len(side), len(letters)))
     d = 2.0 * P12_MARK_R
     for j, ix in enumerate(lp_reading_order([(sp["x"], sp["y"]) for sp in side], y_down=False)):
-        sp, ch = side[ix], letters[j]
+        sp, ch = side[ix], letters[len(rows)]           # v13.3: letters stay a, b, c ... when a name is left out
         col = sp.get("col") or COL["ink2"]
         bd = sp.get("bounds") or ga                   # the zoom's names stay in the zoom (its box is not in the way)
         # v13.1 (Aras 1 Nov 17:33: "Dry-top terraces" found no spot within 3.5 mm): the letter may stand up to 7 mm
         # from its point, tried in 24 directions (was 16), nearest first
-        b = _p12_free_spot(sp["x"], sp["y"], d, d, [t for t in taken if t != bd], bd, (0.0, 1.0, 2.0, 3.5, 5.0, 7.0), 24)
+        b = _p12_free_spot(sp["x"], sp["y"], d, d, [t for t in taken if t != bd], bd,
+                           (0.0, 1.0, 2.0, 3.5, 5.0, 7.0, 10.0), 24)
         if not b:
-            raise TextCollision(u"p12", dict(text=sp["head"], name=u"p12 map name"),
-                                u"no free spot beside its point, nor for its side-list letter")
+            # v13.3 (Aras 1 Nov 17:57 + 17:11 "orange warnings ... fix all in a single run"): a name whose letter finds
+            # no spot within 10 mm is left off the map with a FLAG line and an orange warning; the run goes on
+            log.append(u"FLAG p12 map: '{}' left out: no free spot for its side-list letter within 10 mm".format(
+                sp["head"]))
+            try:
+                ghenv.Component.AddRuntimeMessage(                                     # noqa: F821
+                    __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                    u"p12 map: '{}' left out (no room for its letter)".format(sp["head"]))
+            except Exception:
+                pass
+            continue
         mb = _p12_mark(pg, ch, (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, col, d, style="ring", allow=sp["allow"])
         taken.append(mb)
         boxes.append(mb)
         rows.append((ch, sp["head"], col))
+    if not rows:
+        return boxes
     lead = FS_MIN * 1.5
     w = d + 1.0 + max(text_w(h_, FS_MIN) for _c, h_, _k in rows) + 0.8
     h = len(rows) * lead + 0.8
