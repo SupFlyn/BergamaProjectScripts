@@ -16,7 +16,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v6.2"
+VERSION = "v6.3"  # v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v6.2 (1 Nov 2026, Aras 07:48): the spine, its bank vote and the stops moved to common/city_spine.py, which
 # the masterplan includes too, so the masterplan no longer reads city_link_results.json; city link runs once, after
 # the masterplan. Same spine, same vote, same pages.

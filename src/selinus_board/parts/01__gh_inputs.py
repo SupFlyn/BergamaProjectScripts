@@ -413,8 +413,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v58.1 (2026-11-01)"     # v27: the log's first line and the text under the component
-SHORT_V = "v58.1"                                     # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v58.2 (2026-11-01)"  # v58.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# (was: v27: the log's first line and the text under the component)
+SHORT_V = "v58.2"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

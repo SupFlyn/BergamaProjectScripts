@@ -103,7 +103,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v16.1"
+VERSION = "v16.2"  # v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -365,20 +365,38 @@ def chain_fire(v, key):
     if isinstance(v, (list, tuple)):                 # several wires (e.g. a Button and a done): take the done text
         v = next((x for x in v if str(x).startswith("done ")), None)
     s = str(v) if v is not None else ""
-    if not s.startswith("done "):
-        return False
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
         except Exception:
             pass
-        if _scx.sticky.get(key) == s:
+        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
+        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
+        # arrives after that fires the script.
+        first = globals().get("_chain_first")
+        if first is None:
+            first = _scx.sticky.get(key + ":init") is None
+            globals()["_chain_first"] = first
+            _scx.sticky[key + ":init"] = True
+        if not s.startswith("done "):
+            return False
+        if first or _scx.sticky.get(key) == s:
+            _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
         return True
     except Exception:
         return False
+
+
+def _chain_wiring():
+    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
+    try:
+        return ",".join(sorted(str(s_.InstanceGuid) for p_ in ghenv.Component.Params.Input       # noqa: F821
+                               for s_ in p_.Sources))
+    except Exception:
+        return ""
 
 
 def done_text(ran, ok, secs):

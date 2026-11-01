@@ -95,5 +95,6 @@
 | build_sheet | code.py | 304 |
 | main | code.py | 331 |
 | chain_fire | code.py | 363 |
-| done_text | code.py | 384 |
-| write_log | code.py | 389 |
+| _chain_wiring | code.py | 393 |
+| done_text | code.py | 402 |
+| write_log | code.py | 407 |

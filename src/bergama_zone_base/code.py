@@ -80,7 +80,7 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v10 (2026-10-27)"
+VERSION = "bergama_zone_base v10.1 (2026-11-01)"  # v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 #@include ../common/bergama_paths.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 

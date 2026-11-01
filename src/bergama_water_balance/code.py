@@ -19,7 +19,7 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v8"
+VERSION = "v8.1"  # v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v8 (round 3, 31 Oct 2026, P10.1 + G2/G3; a feature change, so the next whole number): the white space goes
 #   to the charts: block 1 grows 92 -> 100 mm and its rows follow the block (YEAR_RH from the height, 13.5 -> 15.4 mm); blocks 2-3 move down 8 mm;
 #   block 3's rows follow its height; block 4 is a tighter band (36 -> 32 mm, no empty field under its line); the

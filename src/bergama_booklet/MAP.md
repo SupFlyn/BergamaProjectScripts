@@ -75,5 +75,6 @@
 | build_variant | code.py | 1727 |
 | text_check | code.py | 1806 |
 | chain_fire | code.py | 1850 |
-| done_text | code.py | 1870 |
-| write_log | code.py | 1875 |
+| _chain_wiring | code.py | 1879 |
+| done_text | code.py | 1888 |
+| write_log | code.py | 1893 |
