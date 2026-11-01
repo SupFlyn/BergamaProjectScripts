@@ -39,34 +39,52 @@ def r28_runs(words):
 
 
 def r28_draw_runs(pg, runs, x, y, size, colour, kcol=None, halo=None):
+    """v13 (G-R4-1): the runs of one line are one text group (unless a paragraph's group is open)"""
+    old = getattr(pg, "tg", None)
+    if old is None and hasattr(pg, "tgroup"):
+        pg.tgroup()
     for t, b in runs:
         pg.text(t, x, y, size, (kcol or colour) if b else colour, bold=b, halo=halo)
         x += text_w(t, size, b)
+    if hasattr(pg, "tgroup"):
+        pg.tg = old
     return x
 
 
 def r28_lines(s, size, width, bold=False):
-    """s wrapped to width as lines of runs"""
-    out, cur, cw = [], [], 0.0
+    """s wrapped to width as lines of runs. v13 (round 4, G-R4-2): no single-word last line: the last word of the
+    line before moves down while that line keeps two words or more and the last line still fits"""
+    lines, cur, cw = [], [], 0.0
     sp = text_w(u" ", size)
+    wlen = lambda wd: sum(text_w(t, size, b) for t, b in wd)
     for wd in r28_words(s, bold):
-        ww = sum(text_w(t, size, b) for t, b in wd)
+        ww = wlen(wd)
         if cur and cw + sp + ww > width:
-            out.append(r28_runs(cur))
+            lines.append(cur)
             cur, cw = [wd], ww
         else:
             cw += (sp if cur else 0.0) + ww
             cur.append(wd)
     if cur:
-        out.append(r28_runs(cur))
-    return out
+        lines.append(cur)
+    while len(lines) >= 2 and len(lines[-1]) < 2 and len(lines[-2]) >= 3:
+        nw = [lines[-2][-1]] + lines[-1]
+        if sum(wlen(wd) for wd in nw) + sp * (len(nw) - 1) > width:
+            break
+        lines[-2], lines[-1] = lines[-2][:-1], nw
+    return [r28_runs(ln) for ln in lines]
 
 
 def r28_para(pg, x, y, w, s, size, colour, bold=False, lh=1.28, kcol=None, halo=None):
-    """para() with **bold** keywords (G5): wrapped to w from the top y; returns the bottom y"""
+    """para() with **bold** keywords (G5): wrapped to w from the top y; returns the bottom y. v13: one text group."""
+    old = getattr(pg, "tg", None)
+    if hasattr(pg, "tgroup"):
+        pg.tgroup()
     for runs in r28_lines(s, size, w, bold):
         y -= size * lh
         r28_draw_runs(pg, runs, x, y, size, colour, kcol, halo)
+    if hasattr(pg, "tgroup"):
+        pg.tg = old
     return y
 
 
