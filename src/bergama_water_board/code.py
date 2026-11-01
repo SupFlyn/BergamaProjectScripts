@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_11.py = v13.11 (1 Nov 2026 fix: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v14.py = v14 (1 Nov 2026: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.11 (2026-11-01)"  # v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.11"
+VERSION = "bergama_water_board v14 (2026-11-01)"  # v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v14"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -438,6 +438,15 @@ class Page(object):
         lg = []
         try:
             tp.check(True, lg)
+        except TextCollision as ex:                     # v14 (Aras 1 Nov 17:11 / 18:51): every hit an orange
+            pairs = [(ex.item, ex.other)] + list(ex.more)   # warning, written to the log; the run goes on
+            for a_, b_ in pairs:
+                lg.append(u"WARNING {} text hit: {} against {}".format(ex.page, _tp_desc(a_), _tp_desc(b_)))
+            wb_warn(u"{}: {} text hits (each one in the log, 'WARNING {} text hit')".format(ex.page, len(pairs),
+                                                                                          ex.page))
+        except TextError as ex:
+            lg.append(u"WARNING {} text check: {}".format(tp.name, ex))
+            wb_warn(u"{} text check: {}".format(tp.name, ex))
         finally:
             if log is not None:
                 log.extend(lg)
@@ -1969,6 +1978,31 @@ def union(*bbs):
     return (min(b[0] for b in bbs), min(b[1] for b in bbs), max(b[2] for b in bbs), max(b[3] for b in bbs))
 
 
+WB_WARN = []                                        # v14: this run's orange warnings (shown once at the end)
+
+
+def wb_warn(msg):
+    """v14 (Aras 1 Nov 17:11 / 18:51): an orange warning on the component; the run goes on"""
+    WB_WARN.append(msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
+def wb_safe(page, log, fn, *a):
+    """v14: one booklet page drawn; a page that stops (no room, a missing spec, a bug) becomes an orange warning and
+    a WARNING line with the reason, and the other pages are still drawn. Returns the page's crops ([] if it stopped)"""
+    try:
+        return list(fn(*a))
+    except Exception as ex:
+        import traceback as _tb
+        where = [ln.strip() for ln in _tb.format_exc().splitlines() if ln.strip().startswith(u"File")][-2:]
+        log.append(u"WARNING {} stopped drawing: {}: {} ({})".format(page, type(ex).__name__, ex, u" > ".join(where)))
+        wb_warn(u"{} stopped drawing: {}: {}".format(page, type(ex).__name__, ex))
+        return []
+
+
 def build_board(opt, storage, parts, pal_line, log):
     """v1.14 (Aras 27 Oct 11:07): a 3 x 3 grid of A3-page panels, each one booklet page at about 1:1, drawings at their
     own round scale:
@@ -1976,6 +2010,7 @@ def build_board(opt, storage, parts, pal_line, log):
       row 2  S4 north-east bank (p.15) · four seasons on one cut (p.14, the wider middle cell) · planting and water A (p.17)
       row 3  p.18a (F2, F4 at 1:250) · the idea in section, upstream entry and K4 stacked (not in the booklet) · p.18b
              (W1, S4 at 1:250) (v13, round 4 D2: two whole booklet pages, 392 mm wide each)"""
+    del WB_WARN[:]                                    # v14: a new run starts with no warnings
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     del BK_CROPS[:]
@@ -2018,7 +2053,7 @@ def build_board(opt, storage, parts, pal_line, log):
     # it) and returns its crops [(crop id, bbox, scale denominator or None)]
     b = cell(1, 0, P12_TITLE)
     pg.text_page("p12", last[0])                 # v13 (round 4, G-R4-1): every text of the cell measured, raise on a hit
-    for cid_, bb_, den_ in p12_page(pg, b, opt, storage, log):
+    for cid_, bb_, den_ in wb_safe("p12", log, p12_page, pg, b, opt, storage, log):
         crop_add(cid_, bb_, den_, within=last[0])
     pg.check_text(log)
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
@@ -2031,7 +2066,9 @@ def build_board(opt, storage, parts, pal_line, log):
     y2 = yf - P19_R1_H - 6.0
     for cid_, fn_, x_, y_ in ((u"wb_farms", draw_farms_text, b[0], yf), (u"wb_farms_out", draw_farms_out, b[0], y2),
                               (u"wb_decision", draw_decision, b[0] + P19_SIDE_W + 6.0, y2)):
-        crop_add(cid_, fn_(pg, x_, y_), pad=0.0, within=last[0])
+        bb_ = wb_safe("p19 " + cid_, log, lambda: [fn_(pg, x_, y_)])
+        if bb_:
+            crop_add(cid_, bb_[0], pad=0.0, within=last[0])
     pg.check_text(log)
     # row 2 -------------------------------------------------------------- pp.14-15, the S4 pair
     # v5 (revision 29 Oct, T3b): pages/p14_15_s4.py draws both panels whole (p.14 in the wider middle cell, p.15 in the
@@ -2039,14 +2076,14 @@ def build_board(opt, storage, parts, pal_line, log):
     for c_, r_, title_, fn_, bp_ in ((1, 1, P14_TITLE, p14_page, "p14"), (0, 1, P15_TITLE, p15_page, "p15")):
         b = cell(c_, r_, title_)
         pg.text_page(bp_, last[0])               # v13 (round 4, G-R4-1): one TextPage per booklet page, raise on a hit
-        for cid_, bb_, den_ in fn_(pg, b, opt, log):
+        for cid_, bb_, den_ in wb_safe(bp_, log, fn_, pg, b, opt, log):
             crop_add(cid_, bb_, den_, within=last[0])
         pg.check_text(log)
     # p.17 (v6, revision 29 Oct, T4a): pages/p17_planting.py draws page A (the plans, water spaces, catalogue) whole and
     # returns its crops [(crop id, bbox, scale denominator or None)]; page B (the sections) sits in row 3
     b = cell(2, 1, P17_TITLE)
     pg.text_page("p17", last[0])                 # round 4 (S6b, G-R4-1): every text of the cell measured, raise on a hit
-    for cid_, bb_, den_ in p17_page(pg, b, opt, log):
+    for cid_, bb_, den_ in wb_safe("p17", log, p17_page, pg, b, opt, log):
         crop_add(cid_, bb_, den_, within=last[0])
     pg.check_text(log)
     # row 3 -------------------------------------------------------------- p.18a | the idea in section | p.18b
@@ -2062,7 +2099,7 @@ def build_board(opt, storage, parts, pal_line, log):
     for xa, bp_ in ((X0, "p18a"), (X1 - wp, "p18b")):
         cell_at(xa, y3, wp, ch, P18_TITLES[bp_])
         pg.text_page(bp_, last[0])               # v13 (round 4, G-R4-1): one TextPage per booklet page, raise on a hit
-        for cid_, bb_, den_ in p18_page(pg, last[0], bp_, opt, log):
+        for cid_, bb_, den_ in wb_safe(bp_, log, p18_page, pg, last[0], bp_, opt, log):
             crop_add(cid_, bb_, den_, within=last[0])
         pg.check_text(log)
     hc = (ch - G) / 2.0
@@ -2073,6 +2110,10 @@ def build_board(opt, storage, parts, pal_line, log):
         _, bu = place(pg, parts[key], (bx[0], bx[1], bx[2], cb[1] - 3.0), 1.6, "C", log, key)
         crop_add("wb_" + key, union(cb, bu) if j == 0 else bu, within=last[0])
     draw_footer(pg, X0, 1.5, X1, pal_line)
+    if WB_WARN:
+        log.insert(0, u"WARNINGS: {} (the run finished; fix them all in one go)".format(len(WB_WARN)))
+        for i_, w_ in enumerate(WB_WARN):
+            log.insert(1 + i_, u"  " + w_)
     return pg
 
 
