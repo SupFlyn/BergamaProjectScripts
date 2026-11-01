@@ -193,7 +193,7 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v12 (2026-10-31)"
+VERSION = "bergama_water_board v12.1 (2026-11-01)"
 SHORT = "v12"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm

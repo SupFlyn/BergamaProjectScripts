@@ -1510,7 +1510,12 @@ def _p17_logic(pg, x0, ytop, w, h, geos, log):
         xm = xc + ax + (i + 0.5) * cw
         hi = PLA_SPECIES[key]["h_range"][1]
         crown = min(PLA_SPECIES[key]["crown_m"] or 1.0, 0.95 * cw / ks)   # a crown never wider than its column
-        _p17_put(pg, pla_section(key, xm, gy, ks, h_m=hi, crown_m=crown, seed=i + 3))
+        if key in ("reed", "mint"):                      # v12.1 bugfix: these grow only in lined cells (plants.py
+            cx0, cx1 = xm - 0.4 * cw, xm + 0.4 * cw     # guard): drawn in a small lined cell, 0.50 m deep, rim on the
+            cell = pla_reed_basin if key == "reed" else pla_mint_cell   # ground line; height from the cell floor
+            _p17_put(pg, cell(cx0, cx1, gy - 0.5 * ks, gy, ks, 0.0, h_m=hi))
+        else:
+            _p17_put(pg, pla_section(key, xm, gy, ks, h_m=hi, crown_m=crown, seed=i + 3))
         words(pg, key, xc + ax + i * cw + 0.3, gy - 1.0)
     return (x0, yb, x0 + w, ytop)
 

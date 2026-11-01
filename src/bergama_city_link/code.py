@@ -16,7 +16,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v6"
+VERSION = "v6.1"
 # NEW IN v6 (round 3, 31 Oct 2026, session B4, BRIEF P08.1 P08.3 P09.1-P09.3, D1 D9, G2 G3 G4 G16 G17 G19; a feature
 # change, so the next whole number): p.08's framework is the basic whole-corridor overview (D1): the project is ONE
 # corridor arrow along the stream from the upstream entry to the downstream end of the study area (corridor_line: the
