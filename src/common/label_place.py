@@ -7,76 +7,16 @@
 # to its point becomes a number on the spot + a key row (lp_key), numbered in reading order; lp_overlap_flag logs
 # "FLAG overlap <page> n" for every booklet page (lp_flag_lines). label_spot / place_labels_all keep their leaders
 # for the old callers (each B session moves its pages to lp_place).
-def lp_hit(a, b, pad=0.0):
-    return a[0] < b[2] + pad and b[0] < a[2] + pad and a[1] < b[3] + pad and b[1] < a[3] + pad
-
-
-def _lp_seg_box(p, q, b):
-    """True when the segment p-q passes through box b (Liang-Barsky)"""
-    x0, y0 = p
-    dx, dy = q[0] - x0, q[1] - y0
-    t0, t1 = 0.0, 1.0
-    for pp, qq in ((-dx, x0 - b[0]), (dx, b[2] - x0), (-dy, y0 - b[1]), (dy, b[3] - y0)):
-        if pp == 0:
-            if qq < 0:
-                return False
-        else:
-            t = qq / pp
-            if pp < 0:
-                t0 = max(t0, t)
-            else:
-                t1 = min(t1, t)
-            if t0 > t1:
-                return False
-    return True
-
-
-def lp_seg_cross(p, q, r, s):
-    """True when segments p-q and r-s cross (touching at a shared end point does not count)"""
-    def orient(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-    for a in (p, q):
-        for b in (r, s):
-            if abs(a[0] - b[0]) < 1e-9 and abs(a[1] - b[1]) < 1e-9:
-                return False
-    d1, d2, d3, d4 = orient(r, s, p), orient(r, s, q), orient(p, q, r), orient(p, q, s)
-    return d1 * d2 < 0 and d3 * d4 < 0
-
-
-class LpSegIndex(object):
-    """M2: important linework (polylines, page mm) in buckets, so a label tests only the lines near it; pass it as
-    `segs` to label_spot / place_labels_all instead of a list"""
-    def __init__(self, polylines=(), segs=(), cell=10.0):
-        self.cell, self.b = float(cell), {}
-        for P in polylines:
-            for a, c in zip(P, P[1:]):
-                self.add(a, c)
-        for a, c in segs:
-            self.add(a, c)
-
-    def add(self, a, c):
-        k = self.cell
-        for i in range(int(min(a[0], c[0]) // k), int(max(a[0], c[0]) // k) + 1):
-            for j in range(int(min(a[1], c[1]) // k), int(max(a[1], c[1]) // k) + 1):
-                self.b.setdefault((i, j), []).append((a, c))
-
-    def near(self, box):
-        k, seen, out = self.cell, set(), []
-        for i in range(int(box[0] // k), int(box[2] // k) + 1):
-            for j in range(int(box[1] // k), int(box[3] // k) + 1):
-                for sg in self.b.get((i, j), ()):
-                    if id(sg) not in seen:
-                        seen.add(id(sg))
-                        out.append(sg)
-        return out
-
-    def __iter__(self):
-        seen = set()
-        for lst in self.b.values():
-            for sg in lst:
-                if id(sg) not in seen:
-                    seen.add(id(sg))
-                    yield sg
+# Round 4 (S1, 1 Nov 2026, G-R4-1): text_place.py is the ONE placer now. This file is a SHIM until every caller is
+# converted (page sessions S4-S9); the closing step deletes it when no lp_* / label_spot / place_labels_all / Legend
+# call remains. It brings text_place.py with it, so a script that still calls lp_* includes ONLY this file (plus
+# font_metrics.py for TextPage); a script with no lp_* call left includes text_place.py instead (never both).
+# The geometry below lives in text_place.py; the lp_* names point to it.
+#@include text_place.py
+lp_hit = tp_hit
+_lp_seg_box = tp_seg_box
+lp_seg_cross = tp_seg_cross
+LpSegIndex = TpSegIndex
 
 
 def _lp_near(segs, b):
@@ -180,16 +120,7 @@ LP_ROW_MM = 8.0                  # reading order: anchors within this many mm of
 LP_LOG = []                      # this run's label log lines (lp_overlap_flag); lp_flag_lines() empties it
 
 
-def lp_reading_order(pts, y_down=False, row_mm=LP_ROW_MM):
-    """G3: the indexes of pts [(x, y)] in reading order: rows from the top down (rows row_mm high), left to right in
-    each row. y_down: True when page y grows downward (the booklet grid), False for y-up pages"""
-    import math as _m
-    if not pts:
-        return []
-    top = min(p[1] for p in pts) if y_down else max(p[1] for p in pts)
-    row = (lambda p: int(_m.floor((p[1] - top) / row_mm))) if y_down else \
-        (lambda p: int(_m.floor((top - p[1]) / row_mm)))
-    return sorted(range(len(pts)), key=lambda i: (row(pts[i]), pts[i][0], i))
+lp_reading_order = tp_reading_order        # round 4: text_place.py
 
 
 def lp_place(labels, obstacles=(), lines=(), bounds=None, pad=0.6, max_leader=10.0, sizes=(1.0, 0.9, 0.8),
