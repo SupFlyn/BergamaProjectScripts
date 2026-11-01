@@ -603,8 +603,9 @@ def _t3_cap_fit(cap, w_mm, slug):
             if a_ != alts[0]:
                 LOG.append(u"Caption {}: shortened to fit {:.0f} mm: \"{}\".".format(slug, w_mm, a_))
             return a_
-    raise RuntimeError(u"Caption {}: no form fits its {:.0f} mm crop at {} pt: {}".format(
-        slug, w_mm, T3_CAP_PT, u" | ".join(alts)))
+    wn_warn("p07", "caption", u"{}: no form fits its {:.0f} mm crop at {} pt; the shortest is used: {}".format(
+        slug, w_mm, T3_CAP_PT, u" | ".join(alts)))       # v60 (C1): warns, never stops
+    return alts[-1]
 
 
 def draw_mv_today(S, B, x, y, U, R, MV, key, title, cap):
@@ -1072,9 +1073,10 @@ def _t3_mk_spots(pts, r, W, avoid=()):
                        for q in taken):
                 got = (cx, cy)
                 break
-        if got is None:
-            raise RuntimeError(u"Street sections: no free spot for a numbered callout at x {:.1f} mm of a {:.0f} mm "
-                               u"section".format(x, W))
+        if got is None:                                   # v60 (C1): warns and keeps the first spot
+            wn_warn("p09", "callout", u"no free spot for a numbered callout at x {:.1f} mm of a {:.0f} mm section; "
+                    u"set at its first spot".format(x, W))
+            got = (min(max(x, r + 0.1), W - r - 0.1), y)
         taken.append((got[0] - r, got[1] - r, got[0] + r, got[1] + r))
         out.append(got)
     return out
@@ -1631,9 +1633,11 @@ def _t3_sec_key(S, B, x, yt, wmm, kb, groups, L, boxes=None):
                         LOG.append(u"Street sections key map: the name of cut {} crosses another cut's line (no "
                                    u"clear place).".format(nm[0]))
                     break
-            if got is None:
-                raise RuntimeError(u"Street sections key map: no free place for the name of cut {} (G-R4-1)".format(
-                    nm[0]))
+            if got is None:                               # v60 (C1): warns; set at its first spot (the booklet moves it)
+                wn_warn("p09", "keymap", u"no free place for the name of cut {}; set at its first spot".format(nm[0]))
+                it = ("text", nm[0], (mid[0] - nx * 3.5 * mpm, mid[1] - ny * 3.5 * mpm), KM_CUT["text_mm"],
+                      KM_CUT["colour"], True, "MC")
+                got = (it, tbox_of(it))
             its.append(got[0])
             tx_ = [got[1]]
             cut_its[i][3] = its
@@ -1784,7 +1788,8 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
     Wb = T3_SEC_ROW_W - 1.0                               # v58: the block (and its crop) one booklet row wide
     put_text(u"The same surveyed width, given back to people: each street today and with the project", 0.0,
              ytop - 4.0, 11.0, T3_COL["ink"], True)
-    put_text(u"Speech bubbles: {} · zones named under each street; today with the widths in cm as surveyed, then "
+    # v60 (P09.5): the intro without widths (was "today with the widths in cm as surveyed")
+    put_text(u"Speech bubbles: {} · zones named under each street; today as surveyed, then "
              u"the street from frontage to frontage".format(FIG_BUBBLE_TAG.lower()), 0.0, ytop - 8.5, 7.0,
              T3_COL["ink2"], False)
     yrow = ytop - 13.0
@@ -1813,9 +1818,10 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
                                                 T3_CHANGE_TXT.get(c_["change"], c_["change"])),
                          u"{} · {}".format(_t3_sec_id(gid[id(c_)]), c_["name"])]
                 head_ = next((a_ for a_ in alts_ if fm_width(a_, 8.5, True) <= avail), None)
-                if head_ is None:
-                    raise RuntimeError(u"Street sections: the heading \"{}\" ({:.0f} mm) does not fit over its "
-                                       u"street ({:.0f} mm)".format(alts_[-1], fm_width(alts_[-1], 8.5, True), avail))
+                if head_ is None:                         # v60 (C1): warns and sets the short form
+                    wn_warn("p09", "heading", u"\"{}\" ({:.0f} mm) does not fit over its street ({:.0f} mm)".format(
+                        alts_[-1], fm_width(alts_[-1], 8.5, True), avail))
+                    head_ = alts_[-1]
                 put_text(head_, cx, yrow - 3.0, 8.5, T3_COL["head"], True)
             sub = u"today = with the project" if n == 1 else (u"with the project" if j == 1 else u"today")
             put_text(sub, cx, yrow - 6.5, 7.0, T3_COL["ink2"], False)
@@ -1897,9 +1903,9 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
     half = (len(ent) + 1) // 2 if ncol == 2 else len(ent)
     mkr = _t3_mk_r()                                      # v59 (round 4, G-R4-7): the key's callouts as the section's
     key_dy = max(1.5 * T3_MK, 2.0 * mkr + 0.5)
-    if 2.0 * mkr + 0.3 > 2.0 * T3_MK:
-        raise RuntimeError(u"Street sections: a callout ({:.1f} mm) is wider than the key's number column ({:.1f} "
-                           u"mm)".format(2.0 * mkr, 2.0 * T3_MK))
+    if 2.0 * mkr + 0.3 > 2.0 * T3_MK:                    # v60 (C1): warns, never stops
+        wn_warn("p09", "callout", u"a callout ({:.1f} mm) is wider than the key's number column ({:.1f} mm)".format(
+            2.0 * mkr, 2.0 * T3_MK))
     if side:
         kx, ky = lx0, lay_["box"][1] - 3.0
         cw = lw_
@@ -2013,8 +2019,8 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     out = bot - 8.0 * kb
     n_drawn = sum(1 if c_["change"] == "kept" else 2 for row_ in rows for c_ in row_)
     LOG.append(u"Street sections: drawn {}".format(n_drawn))   # v59 (round 4, P09.1)
-    if n_drawn == 0:
-        raise RuntimeError(u"Street sections: drawn 0 (crop drw_street_sections would be empty)")
+    if n_drawn == 0:                                      # v60 (C1): warns (the booklet reports the missing drawing)
+        wn_warn("p09", "drawing", u"street sections: drawn 0 (sb_street_sections will be empty)")
     LOG.append(u"Street sections: " + fig_set_line(False))     # v59 (round 4, G-R4-5.1): the one people set
     cl = cut_log_line()
     if cl:
