@@ -381,7 +381,7 @@ _GH_IN = _gh_inputs()
 _T_START = __import__("time").time()
 
 
-#@include ../../common/chain_fire.py
+#@include ../../common/trigger.py
 
 
 def done_text(ran, ok, secs):
@@ -627,20 +627,7 @@ def to_float(v, default=None, name=None):
         return default
 
 
-def to_bool(v, default=False):
-    """A switch from a GH input: True/False, numbers, or text such as "false", "0", "no", "yes"."""
-    if v is None:
-        return default
-    if isinstance(v, bool):
-        return v
-    if isinstance(v, (int, float)):
-        return v != 0
-    s = str(v).strip().lower()
-    if s in ("true", "yes", "y", "on", "1", "evet", "1.0"):
-        return True
-    if s in ("false", "no", "n", "off", "0", "0.0", "hayir", "hayır", "none", ""):
-        return False
-    return default
+# v59 (round 4): to_bool comes from common/trigger.py (one rule for every script; was this script's own copy)
 
 
 def clean_path(v, name):
@@ -686,22 +673,7 @@ for _k in TSEC_KEYS:
         TSEC_IN[_k] = [_v]
 TSEC = dict((k, []) for k in TSEC_KEYS)      # the same lines in survey coordinates (set by pipeline)
 KNOWN_INPUTS = set(['spine', 'spine_car', 'bridges', 'car_closed', 'attractors', 'rhino_bake', 'mode', 'channel_depth', 'credit', 'env_path', 'environment', 'focus', 'frame', 'hour', 'hours', 'layout', 'noise_db', 'noise_palette', 'noise_points', 'osm_path', 'pdf', 'places_path', 'section_lines', 'sheet_mm', 'subtitle', 'texture', 'title', 'wall_height', 'water_depth', 'water_levels'])          # v30: this script's named inputs (anything else may be the Button); v50 (MIRAQUA 28 Oct, bank depth 1b): + wall_height
-def _button_value():
-    """The Button, on whatever input name or case it is wired (Aras's rule): "bake" first, then build / button /
-    press / go in any case, then any other input that is not one of this script's named options and holds True or
-    False."""
-    known = KNOWN_INPUTS
-    low = dict((k_.lower(), k_) for k_ in _GH_IN)
-    for nm in ("run", "bake", "build", "button", "press", "go"):   # v37: run first
-        if nm in low:
-            return _GH_IN[low[nm]]
-    for k_, v_ in _GH_IN.items():
-        if k_.lower() not in known and isinstance(v_, bool):
-            return v_
-    return False
-
-
-DO_BAKE = to_bool(_button_value())                     # v30: the Button on any input name
+DO_BAKE = to_bool(trig_get(trig_button(KNOWN_INPUTS)))   # v59 (round 4): the Button found by common/trigger.py
 FRAME_IN = inp("frame", None)
 FRAME_FROM_LAYER = [False]                            # v36: the frame came from layer site_alan (set per press)
 TITLE = str(inp("title", "THE SELINUS SEAM"))

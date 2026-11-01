@@ -649,7 +649,7 @@ def bake(B):
                 kind = it[0]
                 layer = it[5] if kind == "text" else it[3]
                 tech = layer.startswith("LU_TECH")
-                group = it[-1]
+                group = it[12] if kind == "text" else it[-1]     # v59: text items end with their text group
                 if layer not in lcache:
                     lcache[layer] = ensure_layer(layer)
                 gi = -1
@@ -1038,7 +1038,7 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             kd = kind_of(font)
             hm = h_ * k                                   # capital height on the page, mm
             size = hm / _PDF_CAP[kd]
-            w_ = tw(txt, h_, kd) * k                      # the width the layout reserved for it
+            w_ = tw(txt, h_, kd, bold) * k                # v59: the real (bold) width the layout reserved for it
             fi = (4 if kd == "mono" else 0) + (1 if bold else 0) + (2 if italic else 0) + 1
             dx = {"L": 0.0, "C": -0.5 * w_, "R": -w_, "MC": -0.5 * w_}.get(align, 0.0)
             dy = -0.5 * hm if align == "MC" else 0.0

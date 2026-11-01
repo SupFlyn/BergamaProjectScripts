@@ -954,8 +954,7 @@ drawings, names, footprints, floors, uses, cuts = [], [], [], [], [], []
 if HAVE_RHINO:
     doc = Rhino.RhinoDoc.ActiveDoc
     TOL = doc.ModelAbsoluteTolerance if doc else 0.01
-    pressed = (DO_BAKE and not mem_get("lu_bake_prev", False)) or chain_fire(_button_value(), "chain_seen")
-    mem_set("lu_bake_prev", bool(DO_BAKE))
+    pressed, _trig_why, _trig_btn = trig_should_run("chain_seen", KNOWN_INPUTS)   # v59 (round 4): common/trigger.py
     last = mem_get("lu_last")
     if not (isinstance(last, dict) and last.get("ver") == SCRIPT_VERSION):   # v44.1 (Aras 27 Oct 15:35): a newly pasted
         last = None                                                         # version shows itself at once, idle, with
@@ -1085,6 +1084,8 @@ if HAVE_RHINO:
             tsecs = dict((k, read_lines(k, v)) for k, v in TSEC_IN.items())
             _t_pipe = __import__("time").time()
             SITE, BOARD, RECTS = pipeline(RAWu, fpts, secs, OSM_PATH, PLACES_PATH, tsecs)
+            LOG.append("trigger: " + str(_trig_why))          # v59 (round 4): what started this run
+            sb_text_check(BOARD)                              # v59 (G-R4-1): RAISES on any text collision of a booklet crop
             _t_lay = sum(s_ for nm_, s_ in DRAWING_TIMES)
             _t_site = max(0.0, __import__("time").time() - _t_pipe - _t_lay)
             _t_b0 = __import__("time").time()

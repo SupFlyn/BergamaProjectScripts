@@ -990,12 +990,49 @@ def kind_of(font):
     return "mono" if font == FONT_BODY else "sans"
 
 
-def tw(txt, h, kind="mono"):
-    return len(txt) * h * ADV[kind]
+def tw(txt, h, kind="mono", bold=False):
+    """v59 (round 4, G-R4-1): the REAL Arial advance width of txt at capital height h, in the units of h
+    (common/font_metrics.py, the font the sheet PDFs embed; was len x h x 0.92). A character Arial lacks is measured
+    as "?" (the PDF writer cannot show it either); a missing font raises FontMissing."""
+    if not txt:
+        return 0.0
+    pt = h / _PDF_CAP["sans"] / FM_PT
+    try:
+        return fm_width(txt, pt, bold)
+    except ValueError:
+        out = 0.0
+        for ch in txt:
+            try:
+                out += fm_width(ch, pt, bold)
+            except ValueError:
+                out += fm_width(u"?", pt, bold)
+        return out
 
 
-def wrap(txt, width, h, kind="mono"):
-    return textwrap.wrap(txt, max(6, int(width / (h * ADV[kind]))))
+def wrap(txt, width, h, kind="mono", bold=False):
+    """v59 (round 4, G-R4-1/G-R4-2): txt broken into lines no wider than width by the REAL widths (tw); a word wider
+    than width keeps its own line; no single-word last line (widow): the last word of the line above moves down when
+    the two then fit (else the text is left as set, which the page check shows)."""
+    words = u"%s" % (txt or u"")
+    words = words.split()
+    if not words:
+        return []
+    sp = tw(u" ", h, kind, bold)
+    lines, cur, cw = [], [], 0.0
+    for w_ in words:
+        ww = tw(w_, h, kind, bold)
+        if cur and cw + sp + ww > width:
+            lines.append(cur)
+            cur, cw = [w_], ww
+        else:
+            cw = cw + (sp if cur else 0.0) + ww
+            cur.append(w_)
+    lines.append(cur)
+    if len(lines) >= 2 and len(lines[-1]) == 1 and len(lines[-2]) >= 3:
+        cand = [lines[-2][-1]] + lines[-1]
+        if tw(u" ".join(cand), h, kind, bold) <= width:
+            lines[-2], lines[-1] = lines[-2][:-1], cand
+    return [u" ".join(L) for L in lines]
 
 
 def short(label):
@@ -1010,6 +1047,18 @@ class Board(object):
         self.items = []
         self.group = None
         self.root = "LU_BOARD"
+        self.tg = None                                   # v59: the open text group (tgroup); None = one per text
+        self._tgn = 0
+
+    def tgroup(self, start=True):
+        """v59 (round 4, G-R4-1): start (or with False end) one text group: the lines / runs of one word block may
+        touch each other in the page check (sb_text_check); two groups never touch. Returns the group id."""
+        if start:
+            self._tgn += 1
+            self.tg = "t%d" % self._tgn
+        else:
+            self.tg = None
+        return self.tg
 
     def begin(self, group, root):
         self.group, self.root = group, root
@@ -1038,15 +1087,27 @@ class Board(object):
         The PDF writer (_pdf_page) embeds each file once per board."""
         self.items.append(("image", path, (x0, y0, x1, y1), self._lay(layer), order, self.group, alpha, flip))
 
-    def text(self, txt, x, y, h, color, layer, order=40, font=None, bold=False, align="L", angle=0.0, italic=False):
+    def text(self, txt, x, y, h, color, layer, order=40, font=None, bold=False, align="L", angle=0.0, italic=False,
+             tg=None):
+        """one text (h = capital height, board units). v59: item[13] = its text group (tg, else the open tgroup, else
+        its own), read by the page check sb_text_check (every text of a booklet crop is measured there)."""
+        if tg is None:
+            tg = self.tg
+            if tg is None:
+                self._tgn += 1
+                tg = "t%d" % self._tgn
         self.items.append(("text", txt, (x, y), h, color, self._lay(layer), order, font or FONT_BODY, bold, align,
-                           angle, italic, self.group))
+                           angle, italic, self.group, tg))
 
     def para(self, txt, x, y, width, h, color, layer, lead=1.8, font=None, order=40):
-        """Wrapped paragraph; returns the y below it."""
+        """Wrapped paragraph (real widths, no widow); returns the y below it. v59: its lines are one text group."""
         k = kind_of(font or FONT_BODY)
+        g_ = self.tg
+        if g_ is None:
+            self._tgn += 1
+            g_ = "t%d" % self._tgn
         for ln in wrap(txt, width, h, k):
-            self.text(ln, x, y, h, color, layer, order, font)
+            self.text(ln, x, y, h, color, layer, order, font, tg=g_)
             y -= h * lead
         return y
 
