@@ -34,6 +34,7 @@
 #@include parts/02d_r28_ground.py
 #@include parts/02e_r28_detail.py
 #@include parts/02f_r28_senses.py
+#@include parts/02g_demeter.py
 #@include parts/04_items.py
 #@include pages/p16_senses.py
 #@include pages/p23_plan.py
