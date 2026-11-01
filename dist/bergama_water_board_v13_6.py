@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_5.py = v13.5 (1 Nov 2026 fix: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13_6.py = v13.6 (1 Nov 2026 fix: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.5 (2026-11-01)"  # v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.5"
+VERSION = "bergama_water_board v13.6 (2026-11-01)"  # v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13.6"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -15076,34 +15076,41 @@ def _p12_legend(pg, ga, rows, avoid, taken):
         Lo = lg.layout(meas)
         b = Lo["box"]
         n = sum(1 for p in avoid if b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3]) + \
-            sum(20 for t in taken if lp_hit(b, t))
+            sum(20 for t in taken if lp_hit(b, t, 0.8))
         if best is None or n < best[0]:
             best = (n, Lo)
     Lo = best[1]
     b = Lo["box"]
-    # v13.5 (Aras 1 Nov 18:06: the channel letters D and E under the legend): when every corner covers a placed
-    # marker or text, the legend slides along the map's edges from its corner (5 mm steps, up to 80 mm) to the
-    # nearest place that covers none; without one it stays in the best corner (the page check then names the hit)
-    if any(lp_hit(b, t) for t in taken):
+    # v13.6 (Aras 1 Nov 18:10: D and E still under the legend after v13.5): the clearance test uses the page check's
+    # pad (0.8 mm > its 0.6 mm) and the drawn marker boxes (the caller passes M["labels"] too); when the best corner
+    # covers any of them, every place on a 2.5 mm grid inside the map is tried and the clear one holding the fewest
+    # drawn key points, then nearest the corner, wins; with none, a FLAG and an orange warning name it
+    pd_ = 0.8
+    if any(lp_hit(b, t, pd_) for t in taken):
         w_, h_ = b[2] - b[0], b[3] - b[1]
-        tries = []
-        for st in range(1, 17):
-            for dx, dy in ((5.0 * st, 0.0), (-5.0 * st, 0.0), (0.0, 5.0 * st), (0.0, -5.0 * st)):
-                q = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
-                if q[0] < ga[0] or q[1] < ga[1] or q[2] > ga[2] or q[3] > ga[3]:
-                    continue
-                if any(lp_hit(q, t) for t in taken):
-                    continue
-                tries.append((st, sum(1 for p in avoid if q[0] <= p[0] <= q[2] and q[1] <= p[1] <= q[3]), dx, dy))
-            if tries:
-                break
+        cands = []
+        nx_, ny_ = int((ga[2] - ga[0] - w_) / 2.5), int((ga[3] - ga[1] - h_) / 2.5)
+        for i in range(nx_ + 1):
+            for j in range(ny_ + 1):
+                q = (ga[0] + 2.5 * i, ga[1] + 2.5 * j, ga[0] + 2.5 * i + w_, ga[1] + 2.5 * j + h_)
+                if not any(lp_hit(q, t, pd_) for t in taken):
+                    cands.append((math.hypot(q[0] - b[0], q[1] - b[1]), q))
+        cands.sort(key=lambda c_: c_[0])
+        tries = [(sum(1 for p in avoid if q[0] <= p[0] <= q[2] and q[1] <= p[1] <= q[3]), d_, q) for d_, q in cands[:60]]
         if tries:
-            _st, _n, dx, dy = min(tries, key=lambda t_: (t_[1], t_[0]))
+            _n, _d, q = min(tries, key=lambda t_: (t_[0], t_[1]))
+            dx, dy = q[0] - b[0], q[1] - b[1]
             for r in Lo["rows"]:
                 sx = r["swatch"]
                 r["swatch"] = (sx[0] + dx, sx[1] + dy, sx[2] + dx, sx[3] + dy)
                 r["text"] = (r["text"][0] + dx, r["text"][1] + dy)
-            b = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
+            b = q
+        else:
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"p12 legend: no clear place on the map")
+            except Exception:
+                pass
     pg.poly([rect(b[0], b[1], b[2], b[3])], fill=COL["white"])
     G_ = P12_GROUND
     for r in Lo["rows"]:
@@ -15610,7 +15617,7 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
         lg.append((txt, "letter", dict(letter=ch_, colour=col)))
     if lg:
         avoid = list(M["S"]) + [Tg(p) for z in zones for p in z["ring"][::4]]
-        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"])
+        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"])
         M["taken"].append(M["legend"])
     hold = M["hold"]
     nd = (T((hold[0], hold[1] + 100.0))[0] - T(hold)[0], T((hold[0], hold[1] + 100.0))[1] - T(hold)[1])
