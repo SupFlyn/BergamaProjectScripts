@@ -1425,7 +1425,12 @@ def _p18_block(pg, page, cid, spec, part, x0, ytop, first, log):
     col = dict(x0=s[0], x1=s[2], y=s[3], ybot=s[1] + 5.0, avoid=avoid)
     y = s[3]
     if first:
-        y = _p18_keymap(pg, s[0], y, s[2] - s[0], P18_KM_H.get(page, 40.0), P18_PAGES[page][1], page, log) - 3.0
+        kh_, kx_ = P18_KM_H.get(page, 40.0), s[0]
+        # v13.11 (Aras 1 Nov 18:51, p18b W1 43 mm tall: the level marks beside the drawing ran into the key map): a
+        # key map whose height meets the level marks starts 2 mm right of them
+        if xs and max(xs) > s[0] and min(ys) < y and max(ys) > y - kh_:
+            kx_ = max(xs) + 2.0
+        y = _p18_keymap(pg, kx_, y, s[2] - kx_, kh_, P18_PAGES[page][1], page, log) - 3.0
     for n, colour, nm, why in ent:
         y = _p18_entry(pg, col, y, n, colour, nm, why) - P18_ENTRY_GAP
     if y < col["ybot"]:
