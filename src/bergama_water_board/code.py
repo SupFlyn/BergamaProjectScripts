@@ -2036,8 +2036,10 @@ def build_board(opt, storage, parts, pal_line, log):
     # p.17 (v6, revision 29 Oct, T4a): pages/p17_planting.py draws page A (the plans, water spaces, catalogue) whole and
     # returns its crops [(crop id, bbox, scale denominator or None)]; page B (the sections) sits in row 3
     b = cell(2, 1, P17_TITLE)
+    pg.text_page("p17", last[0])                 # round 4 (S6b, G-R4-1): every text of the cell measured, raise on a hit
     for cid_, bb_, den_ in p17_page(pg, b, opt, log):
         crop_add(cid_, bb_, den_, within=last[0])
+    pg.check_text(log)
     # row 3 -------------------------------------------------------------- the idea in section (not in the booklet), p.17 B
     # v6: the two concept sections take the first two columns; the third holds p.17's page B (the sections at 1:500)
     for j, (key, title) in enumerate((("concept_up", u"THE IDEA IN SECTION · upstream entry"),
