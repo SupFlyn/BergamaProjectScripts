@@ -111,6 +111,10 @@ def fig_polys(pose, height=1.75, facing=1):
 
 
 # ---- A1 scale figures (29 Oct 2026, Aras: family A1 "gestural pen", the R20 language) --------------------------------
+# ROUND 5 (S4, 1 Nov 2026): the round 4 note below is superseded where it says "one drawn set pen_black": people now
+# come from the A1 library and the cutouts first, every figure as a solid body in one dark tone (FIG_SET
+# "library_dark"; see "round 5 (S4 ..." above fig_side). The drawn poses below stay as the A1-language drawings the
+# library lacks (wade, fishing, sit_step, ...), turned into the same solid body.
 # ONE figure API for every drawing: fig_side / fig_top / fig_meta. Shapes are house shapes ("poly", ring, fill, stroke,
 # lw) in the caller's units (k units per metre, y up), feet at (x, y).
 # ROUND 4 (S1, 1 Nov 2026; G-R4-5.1, PLAN §4.8, decision N1 a): ONE people set, FIG_SET = "pen_black": the figures
@@ -127,8 +131,10 @@ def fig_polys(pose, height=1.75, facing=1):
 FIG_ADULT_H = 1.75             # m, G6 (brief 00 G6; PLAN D9)
 FIG_A1_H = FIG_ADULT_H         # m, the drawn poses' stature
 FIG_CYCLIST_H = 1.80           # m, G6 "cyclists about 1.8 m": ground to the top of the head of the riding figure
-FIG_SET = "pen_black"          # round 4 (N1 a): the only people set
-FIG_A1_INK = "1F1B18"          # round 4: black pen = black body (was 2B2B2B on a white body)
+FIG_SET = "library_dark"       # round 5 (S4, G-R5-4.4, N1): the A1 library first, then the cutouts, then poses drawn
+                               # in the A1 language; every one a solid body in ONE dark tone (was "pen_black")
+FIG_A1_INK = "3A3A38"          # round 5 (PLAN §3 People): the one dark tone 3A3A38, opaque (was 1F1B18)
+FIG_A1_LIB_H = 1.70            # m, the stature the A1 library JSON is drawn at (its "adult_m"; library/figures_A1/INDEX.md)
 FIG_DARK_FILL = "2E2A27"       # body and pen on dark ground (dark=True), with a white rim
 FIG_DARK_RIM = ("FFFFFF", 0.15)   # (colour, page mm) round the body on dark ground
 FIG_COUNT = [0]                # figures drawn since the last fig_set_line(reset=True)
@@ -272,6 +278,15 @@ class _FaFill(list):
     """a body fill ring (opaque, under the pen strokes): the drawn figures are never see-through (Aras 31 Oct)"""
 
 
+class _FaProp(list):
+    """round 5 (S4): a thin prop ring (fishing rod and line, ripples, bike wheels and frame, bag, leash): drawn as it
+    is in the body colour, never merged into the solid body (sil_body would thicken or lose it)"""
+
+
+def _fa_prop(r):
+    return _FaProp(r) if r else None
+
+
 def _fa_ellipse(cx, cy, rx, ry, n=16):
     import math as _m
     return [(cx + rx * _m.cos(2 * _m.pi * i / n), cy + ry * _m.sin(2 * _m.pi * i / n)) for i in range(n)]
@@ -355,7 +370,7 @@ def _fa_side(pose, seed=0, **p):
         R = _fa_draw(B, legs, arms, rnd, coat=0.05, cut_y=cut)
         if cut is not None:                         # the water closing round the legs: two short ripple strokes
             for lx_ in (-0.5 * st, 0.5 * st):
-                R.append(_fa_stroke([(lx_ - 0.14, cut), (lx_ + 0.16, cut)], rnd, FIG_A1_PEN * 0.7, over=0.1))
+                R.append(_fa_prop(_fa_stroke([(lx_ - 0.14, cut), (lx_ + 0.16, cut)], rnd, FIG_A1_PEN * 0.7, over=0.1)))
         return R, an
     if pose == "sit_step":
         seat = p.get("seat_h", 0.45)                # step riser the figure sits on (m above the tread the feet rest on)
@@ -399,8 +414,8 @@ def _fa_side(pose, seed=0, **p):
             an.update(counter_x=0.30, counter_y=ch)
             R = _fa_draw(B, legs, arms, rnd, coat=0.06)
             bx, by = arms[1][1]                     # a market bag in the other hand
-            R.append(_fa_stroke([(bx - 0.10, by), (bx - 0.12, by - 0.30), (bx + 0.12, by - 0.31), (bx + 0.10, by)], rnd,
-                                FIG_A1_PEN * 0.8, over=0.05))
+            R.append(_fa_prop(_fa_stroke([(bx - 0.10, by), (bx - 0.12, by - 0.30), (bx + 0.12, by - 0.31), (bx + 0.10, by)],
+                                         rnd, FIG_A1_PEN * 0.8, over=0.05)))
             return R, an
         bh = p.get("branch_h", 1.90)                # olive picking: both hands up to the branch (top reach ~1.92 m)
         B = _FaBody(H, lean=-0.06)
@@ -423,8 +438,9 @@ def _fa_side(pose, seed=0, **p):
         hip = (bbp[0] - 0.24, bb - cr + 0.04 + _m.sqrt((0.96 * legl) ** 2 - 0.24 ** 2))
         bar = (front[0] - 0.12, hip[1] + 0.06)
         B = _FaBody(H, hip=hip, lean=lean)
-        out = [_fa_oval(rear[0], rear[1], r, r, rnd, gap=0.5, a0=0.3), _fa_oval(front[0], front[1], r, r, rnd, gap=0.5, a0=3.4)]
-        out += [_fa_stroke(P, rnd, FIG_A1_PEN * 0.75, over=0.04) for P in (
+        out = [_fa_prop(_fa_oval(rear[0], rear[1], r, r, rnd, gap=0.5, a0=0.3)),
+               _fa_prop(_fa_oval(front[0], front[1], r, r, rnd, gap=0.5, a0=3.4))]
+        out += [_fa_prop(_fa_stroke(P, rnd, FIG_A1_PEN * 0.75, over=0.04)) for P in (
             [rear, bbp, (hip[0] + 0.02, hip[1] - 0.08)], [(hip[0] + 0.02, hip[1] - 0.10), (bar[0] - 0.05, bar[1] - 0.10), front],
             [bbp, (bar[0] - 0.05, bar[1] - 0.10)], [rear, (hip[0] + 0.02, hip[1] - 0.10)],
             [(hip[0] - 0.10, hip[1] - 0.04), (hip[0] + 0.10, hip[1] - 0.03)], [(bar[0] - 0.05, bar[1] - 0.10), bar])]
@@ -504,10 +520,11 @@ def _fa_side(pose, seed=0, **p):
         rod_l, ang = p.get("rod_m", 3.0), _m.radians(p.get("rod_deg", 35.0))
         butt = (grip[0] - 0.25 * _m.cos(ang), grip[1] - 0.25 * _m.sin(ang))
         tip = (grip[0] + (rod_l - 0.25) * _m.cos(ang), grip[1] + (rod_l - 0.25) * _m.sin(ang))
-        R.append(_fa_stroke([butt, tip], rnd, FIG_A1_PEN * 0.6, over=0.0, wob=0.002, smooth=False))
+        R.append(_fa_prop(_fa_stroke([butt, tip], rnd, FIG_A1_PEN * 0.6, over=0.0, wob=0.002, smooth=False)))
         wy = p.get("water_dy", -0.5)
         if wy < tip[1]:
-            R.append(_fa_stroke([tip, (tip[0] + 0.05, wy)], rnd, FIG_A1_PEN * 0.3, over=0.0, wob=0.0, smooth=False))
+            R.append(_fa_prop(_fa_stroke([tip, (tip[0] + 0.05, wy)], rnd, FIG_A1_PEN * 0.3, over=0.0, wob=0.0,
+                                         smooth=False)))
         an.update(rod_tip=tip, line_end=(tip[0] + 0.05, wy), reach_x=tip[0])
         return [r for r in R if r], an
     if pose == "dog_walk":                          # round 3 G15: walking with a dog on a leash ahead of the walker;
@@ -533,8 +550,8 @@ def _fa_side(pose, seed=0, **p):
                                 FIG_A1_PEN * 0.9, over=0.02))
         R.append(_fa_stroke([(x0 + 0.01, back - 0.03), (x0 - 0.12, back + 0.12)], rnd, FIG_A1_PEN * 0.7, over=0.0))   # tail
         collar = (x0 + 0.86 * dl, back - 0.02)
-        R.append(_fa_stroke([arms[0][1], ((hand[0] + collar[0]) / 2.0, min(hand[1], collar[1]) - 0.12), collar], rnd,
-                            FIG_A1_PEN * 0.4, over=0.0, wob=0.002))
+        R.append(_fa_prop(_fa_stroke([arms[0][1], ((hand[0] + collar[0]) / 2.0, min(hand[1], collar[1]) - 0.12), collar],
+                                     rnd, FIG_A1_PEN * 0.4, over=0.0, wob=0.002)))
         an.update(length=x0 + 1.12 * dl + 0.2, dog_x=x0, dog_h=dh)
         return [r for r in R if r], an
     return None, an
@@ -600,7 +617,7 @@ FIG_POSE_ALIAS = {"sit": "sit_step", "cycle": "bike", "trade": "stall", "buy": "
                   "play": "child_play", "sell": "vendor", "run": "running", "jog": "running", "lie": "lying",
                   "fish": "fishing", "dog": "dog_walk"}
 FIG_SIDE_ALIAS = {"lean": "watch", "sit_chair": "sit_step"}   # round 4: side poses the drawn set lacks -> nearest drawn
-FIG_BODY_FILL = "1F1B18"     # round 4 (N1 a): the body is black, opaque (was FFFFFF); nothing see-through
+FIG_BODY_FILL = FIG_A1_INK   # round 5: the body = the one dark tone 3A3A38, opaque; nothing see-through
 
 
 def _fig_rider_h(top, lean):
@@ -642,11 +659,14 @@ def _fig_side_pose(pose):
 
 
 def fig_set_line(reset=True):
-    """the log line proving the one people set ran: "figures set=pen_black n" (n = figures drawn since the last reset)"""
-    n = FIG_COUNT[0]
+    """the log line proving the one people set ran (round 5, PLAN §2 N1): "figures source=asset_library n,
+    drawn_A1_style n" (since the last reset; asset_library = A1 library + cutouts, drawn_A1_style = poses neither
+    has, drawn in the A1 language with the same solid body; plan views count as drawn_A1_style)"""
+    a, d = FIG_SRC_COUNT.get("asset_library", 0), FIG_SRC_COUNT.get("drawn_A1_style", 0)
     if reset:
         FIG_COUNT[0] = 0
-    return u"figures set=%s %d" % (FIG_SET, n)
+        FIG_SRC_COUNT.clear()
+    return u"figures source=asset_library %d, drawn_A1_style %d" % (a, d)
 
 
 def _fig_body(layer=0, dark=False):
@@ -656,33 +676,163 @@ def _fig_body(layer=0, dark=False):
     return c, c, (FIG_DARK_RIM[0] if dark else None), (FIG_DARK_RIM[1] if dark else 0.0)
 
 
+# ---- round 5 (S4, G-R5-4.4, N1 answered 1 Nov 22:44, PLAN §2a.1): people from the asset library, solid dark ------
+# Order per pose: (1) the A1 library (Data/figures_A1.json: stand, walk, watch, lean), (2) the cutouts
+# (Data/cutouts: market buyer, vendor, children playing), (3) the poses neither holds (wade, fishing, sit_step, touch,
+# railing, olive, bike, adult_child, running, lying, dog_walk) drawn anew in the A1 language: the A1 pen drawing of
+# the pose (_fa_side, solved to its contact: step, water, rail, counter, branch) given the SAME solid body as the
+# library figures. Every body = sil_body: the drawing's strokes rasterised, closed, holes filled, the outline traced
+# (silhouette.py), so library and drawn people read as one set: one dark tone FIG_BODY_FILL, opaque, no face, no
+# hatch. Thin props (rod, fishing line, wheels, bag, leash, ripples) stay as their pen rings in the same tone.
+# Recovered from be9c3fb (fig_library, _fig_lib_k, _fig_pick, FIG_LOG) and a936d62 (the cutout reader, now
+# silhouette.py sil_cut_library). Sitting on a chair, the A1 sit_chair and the cutouts' step-sitters carry their seat
+# in the drawing (it would turn dark too), so seated people are drawn (sit_step) and sit on the real step/bench.
+FIG_LOG = []
+_FIG_LIB = {}
+FIG_SRC_COUNT = {}
+FIG_LIB_POSES = ("stand", "walk", "watch", "lean")                 # poses the A1 library holds and pages use
+FIG_CUT_POSES = {"stall": "person_stall", "vendor": "person_vendor", "child_play": "person_child_play"}
+FIG_BODY_CLOSE_M = (0.04, 0.08, 0.14)   # m: closing radii tried in turn until the body fills >= FIG_BODY_MIN_FILL of
+FIG_BODY_MIN_FILL = 0.30                # its box (pen drawings with open contours need more; drawing rule)
+FIG_BODY_PX_M = 0.01                    # m per raster cell (1 cm: 0.1 mm at 1:100, below print resolution)
+FIG_FLAGS = {}                          # FLAG counters (fishing refused where no water is drawn ...)
+
+
+def fig_library():
+    """the curated A1 library (dict id -> figure) or {} when Downloads/Bergama/Data/figures_A1.json is missing
+    (recovered from be9c3fb:src/common/figures.py:143-165)"""
+    import os as _o
+    import json as _j
+    if "lib" in _FIG_LIB:
+        return _FIG_LIB["lib"]
+    lib = {}
+    root = _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data")
+    for p in (_o.path.join(root, "figures_A1.json"), _o.path.join(root, "figures", "figures_A1.json")):
+        if _o.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as fh:
+                    js = _j.load(fh)
+                lib = js.get("figures", {})
+                _FIG_LIB["adult_m"] = float(js.get("adult_m") or FIG_A1_LIB_H)
+                FIG_LOG.append(u"Figures: %d A1 figures from %s" % (len(lib), p))
+                break
+            except Exception as ex:
+                FIG_LOG.append(u"FLAG Figures: %s unreadable (%s); drawn A1-style figures used" % (p, type(ex).__name__))
+    if not lib:
+        FIG_LOG.append(u"FLAG Figures: Data/figures_A1.json not found; drawn A1-style figures used for every pose")
+    _FIG_LIB["lib"] = lib
+    return lib
+
+
+def _fig_lib_k():
+    """factor from the library's drawn stature to FIG_ADULT_H (1.75 / 1.70)"""
+    fig_library()
+    return FIG_ADULT_H / float(_FIG_LIB.get("adult_m") or FIG_A1_LIB_H)
+
+
+def _fig_pick(pose, pick):
+    """a library figure of this pose (by id, else the pick-th of the sorted ids with that pose), or None"""
+    lib = fig_library()
+    if pose in lib:
+        return lib[pose]
+    ids = sorted(k_ for k_, f in lib.items() if f.get("pose") == pose)
+    return lib[ids[int(pick) % len(ids)]] if ids else None
+
+
+def _fig_solid(key, rings):
+    """the solid body of pen rings (m): closing radius stepped up until the body fills its box enough"""
+    if key in _SIL_BODY:
+        return _SIL_BODY[key]
+    pts = [q for r in rings for q in r]
+    if not pts:
+        return []
+    bw = (max(q[0] for q in pts) - min(q[0] for q in pts)) * (max(q[1] for q in pts) - min(q[1] for q in pts)) or 1.0
+    out, used = [], None
+    for cm in FIG_BODY_CLOSE_M:
+        out = sil_body(rings, FIG_BODY_PX_M, cm)
+        used = cm
+        if sum(abs(_sil_area(R)) for R in out) >= FIG_BODY_MIN_FILL * bw:
+            break
+    if used != FIG_BODY_CLOSE_M[0]:
+        FIG_LOG.append(u"figures: %s body closed at %.2f m" % (key[1] if isinstance(key, tuple) else key, used))
+    _SIL_BODY[key] = out
+    return out
+
+
+def _fig_side_dark(pose, pick, p):
+    """(source, body rings m, prop rings m, anchors) of one side figure, feet at (0, 0), facing +x"""
+    lib_pose = "lean" if pose == "railing" else pose
+    if lib_pose in FIG_LIB_POSES:
+        f = _fig_pick(lib_pose, pick)
+        ok = f is not None
+        if ok and pose == "railing":                   # the A1 leaner fits only a rail at its ledge height
+            ledge = float((f.get("anchor") or {}).get("ledge_y_m", 0.0)) * _fig_lib_k()
+            ok = abs(p.get("rail_h", 1.10) - ledge) <= 0.10
+        if ok:
+            lk = _fig_lib_k()
+            fl = -1.0 if (f.get("facing") or 0) < 0 else 1.0     # the file's facing -> +x
+            rings = [[(fl * a * lk, b * lk) for a, b in r] for r in f["rings"]]
+            an = dict(_fa_side(_fig_side_pose(pose), pick, **p)[1] or {})
+            if pose == "railing":
+                an.update(rail_y=float(f["anchor"]["ledge_y_m"]) * lk)
+            fid = [k_ for k_, v in fig_library().items() if v is f]
+            return "asset_library", _fig_solid(("a1", fid[0] if fid else lib_pose), rings), [], an
+    ck = FIG_CUT_POSES.get(pose)
+    if ck:
+        lib = sil_cut_library().get(ck)
+        if lib:
+            import os as _o
+            e = lib[int(pick) % len(lib)]
+            body, _w = sil_alpha_body(_o.path.join(sil_cut_dir(), e["file"]), float(e["h_m"]), FIG_BODY_PX_M, 0.02)
+            if body:
+                if (e.get("facing", 1) or 1) < 0:
+                    body = [[(-a, b) for a, b in r][::-1] for r in body]
+                an = dict(_fa_side(_fig_side_pose(pose), pick, **p)[1] or {})
+                return "asset_library", body, [], an
+    dp = _fig_side_pose(pose)
+    p = dict((k_, (round(v / 0.02) * 0.02 if isinstance(v, float) else v)) for k_, v in p.items())   # 2 cm steps:
+    rings, an = _fa_side(dp, pick % 3, **p)                                                         # bodies reused
+    if not rings:
+        rings, an = _fa_side("stand", pick % 3)
+    rings = [r for r in rings if r]
+    props = [r for r in rings if isinstance(r, _FaProp)]
+    key = ("drawn", dp, pick % 3) + tuple(sorted((k_, round(v, 2)) for k_, v in p.items()
+                                                 if isinstance(v, (int, float)) and not isinstance(v, bool)))
+    body = _fig_solid(key, [r for r in rings if not isinstance(r, _FaProp)])
+    return "drawn_A1_style", body, props, dict(an or {})
+
+
 def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, layer=0, style="b",
              dark=False, **p):
-    """side-view figure of the one set (FIG_SET), feet at (x, y), k units per m, facing -1 = mirrored. pose: a drawn
-    pose (FIG_DRAWN_SIDE: stand, walk, watch, wade depth_m, sit_step seat_h, touch reach_y, stall counter_h, railing
-    rail_h, olive branch_h, bike, adult_child child_h = hand in hand, child_play, vendor, running, lying, fishing
-    water_dy, dog_walk) or an alias (FIG_POSE_ALIAS; lean -> watch, sit_chair -> sit_step); touch_water = bending to
-    the water. pick (default: from x, y) varies the pen. mm_per_m: printed page mm per metre (default k, the house
-    convention); where the pen (0.019 m) would print thinner than pen_min_mm, every stroke gets an outline of the
-    difference (lw in page mm). layer: depth layer 0 (cut plane, true size) / 1 / 2 (smaller and paler, opaque:
-    fig_depth). dark=True on dark ground (FIG_DARK_FILL + white rim). ink and style are ignored (round 4: one set,
-    black bodies). Returns house shapes ("poly", ring, fill, stroke, lw), body fills first."""
+    """side-view figure of the one set (FIG_SET "library_dark", round 5), feet at (x, y), k units per m, facing -1 =
+    mirrored. pose: stand, walk, watch, lean (A1 library); stall, vendor, child_play (cutouts); wade depth_m,
+    fishing water_dy, sit_step seat_h, touch reach_y, railing rail_h, olive branch_h, bike, adult_child child_h,
+    running, lying, dog_walk (drawn in the A1 language); aliases FIG_POSE_ALIAS (sit_chair -> sit_step,
+    touch_water -> touch). pick (default: from x, y) picks the variant. layer: depth layer 0 / 1 / 2 (smaller and
+    paler, opaque: fig_depth). dark=True on dark ground (FIG_DARK_FILL + white rim). ink and style are ignored (one
+    set, one dark tone). mm_per_m / pen_min_mm: props (rod, line, wheels) never print thinner than pen_min_mm.
+    Returns house shapes ("poly", ring, fill, stroke, lw): the solid body, then the props."""
     pose = FIG_POSE_ALIAS.get(pose, pose)
-    sc, _fade = fig_depth(layer)
     if pose == "touch_water":                          # R2-C: bending to the water
         pose = "touch"
+    if pose == "sit_chair":
+        pose = "sit_step"
+    if pose == "fishing" and p.get("water_dy") is None:   # round 5 (U36): no water given = no fishing line into soil
+        pose = "watch"
+        FIG_FLAGS["fishing -> watch (no water_dy)"] = FIG_FLAGS.get("fishing -> watch (no water_dy)", 0) + 1
+    sc, _fade = fig_depth(layer)
     k = k * sc
-    body, ink, rim, rim_lw = _fig_body(layer, dark)
+    body, _ink, rim, rim_lw = _fig_body(layer, dark)
     if pick is None:                                   # variety: the place picks the figure, the same every run
         pick = int(abs(x * 7.31 + y * 3.17) * 10.0) % 997
+    src, B, P, _an = _fig_side_dark(pose, pick, p)
     flip = 1.0 if facing >= 0 else -1.0
-    rings = _fa_side(_fig_side_pose(pose), pick, **p)[0] or _fa_side("stand", pick)[0]
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
     FIG_COUNT[0] += 1
-    rings = [r for r in rings if isinstance(r, _FaFill)] + [r for r in rings if not isinstance(r, _FaFill)]
-    return [("poly", [(x + flip * px * k, y + py * k) for px, py in r], body, rim, rim_lw) if isinstance(r, _FaFill)
-            else ("poly", [(x + flip * px * k, y + py * k) for px, py in r], ink, ink if add > 0 else None, add)
-            for r in rings]
+    FIG_SRC_COUNT[src] = FIG_SRC_COUNT.get(src, 0) + 1
+    out = [("poly", [(x + flip * a * k, y + b * k) for a, b in r], body, rim, rim_lw) for r in B]
+    out += [("poly", [(x + flip * a * k, y + b * k) for a, b in r], body, body if add > 0 else None, add) for r in P]
+    return out
 
 
 def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, style="b", dark=False,
@@ -695,6 +845,7 @@ def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=
     body, ink, rim, rim_lw = _fig_body(0, dark)
     rings = _fa_top(FIG_POSE_ALIAS.get(pose, pose), pick, **p) or _fa_top("stand", pick)
     rings = [r for r in rings if isinstance(r, _FaFill)] + [r for r in rings if not isinstance(r, _FaFill)]
+    FIG_SRC_COUNT["drawn_A1_style"] = FIG_SRC_COUNT.get("drawn_A1_style", 0) + 1   # round 5: plan views (no library)
     ca, sa = _m.cos(ang), _m.sin(ang)
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
     FIG_COUNT[0] += 1
@@ -899,9 +1050,14 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
                 wl = water(cx) if callable(water) else water
                 q["depth_m"] = max(0.05, min(globals().get("FIG_WADE_MAX_M", FIG_DC["knee"] * FIG_A1_H * 1.4),
                                              (wl - g) / K))
-            if pose == "fishing" and water is not None:     # the line drops to the water below the bank
-                wl = water(cx) if callable(water) else water
-                q["water_dy"] = (wl - g) / K
+            if pose == "fishing":                           # the line drops to the water below the bank
+                wl = None if water is None else (water(cx) if callable(water) else water)
+                if wl is None or (wl - g) / K > 0.05 or (wl - g) / K < -4.0:
+                    pose = "watch"                          # round 5 (U36, PLAN §3 People): no drawn water within
+                    FIG_FLAGS["fishing -> watch (no water at the edge)"] = FIG_FLAGS.get(   # reach, nobody fishes
+                        "fishing -> watch (no water at the edge)", 0) + 1
+                else:
+                    q["water_dy"] = (wl - g) / K
             sh += fig_side(pose, cx, g, k, facing=fac, ink=ink, layer=layer, style=style, pick=seed + len(placed), **q)
         placed.append((pose, cx))
         last = pose
@@ -950,12 +1106,13 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
     nobody and is counted in the G14 log line. Groups, adult with child, sitting, walking, trading, children
     playing by the zone's set; bikes only on bike lanes; wading figures take their depth from water (page y or
     function of x) on a wading strip only; cutout variants vary across the whole run (a running pick); every figure
-    seated on the lowest ground under its feet (sf_seat_x). Pass water whenever a zone reaches the channel: nobody
+    seated on the higher ground across its feet (sf_seat_feet, S3; sf_seat_x where absent). Pass water whenever a zone reaches the channel: nobody
     stands where the drawn water is deeper than FIG_WADE_MAX_M (knee) on a wading strip, or above the ground at all
     on any other zone (refused parts counted in the G14 log line as "<kind> (too deep)"). p goes to every figure
     (seat_h, rail_h ...). focus = page x everyone who stays looks at (R2-C scenes: the water; see fig_activity), or
     a function of (kind, x0, x1) -> page x or None per zone. Returns (shapes, placed [(kind, pose, x)])."""
-    seat = globals().get("sf_seat_x")
+    seat = globals().get("sf_seat_feet") or globals().get("sf_seat_x")   # round 5 (S3): the HIGHER ground across
+                                                                          # the feet (S3 section_frame); old: lowest
     gfn = globals().get("_sf_fn")
     sc = fig_depth(layer)[0]
     sh, placed = [], []
@@ -1001,9 +1158,11 @@ FIG_FAUNA_DRAWN = [0]        # generic birds / animals drawn this run (sf_birds 
 def fig_flag_lines():
     """the figures' FLAG lines for a page log: ["FLAG fauna pending research"] while FIG_FAUNA is empty and any bird
     or animal was drawn"""
+    out = [u"FLAG figures %s %d" % kv for kv in sorted(FIG_FLAGS.items())]     # round 5: refused scenes
+    out += [ln for ln in FIG_LOG if ln.startswith(u"FLAG")]
     if FIG_FAUNA_DRAWN[0] and not FIG_FAUNA:
-        return [u"FLAG fauna pending research (%d generic birds drawn; research/fauna.md missing)" % FIG_FAUNA_DRAWN[0]]
-    return []
+        out.append(u"FLAG fauna pending research (%d generic birds drawn; research/fauna.md missing)" % FIG_FAUNA_DRAWN[0])
+    return out
 
 
 # ---- speech bubbles (D4 a: p8 street sections, marked "illustrative scenario") -------------------------------------
