@@ -922,6 +922,13 @@ FACTS = {
 # Chainage m along the stream: CL code.py:211 (K1 / K2 about 25 m apart upstream; their order unverified).
 # Banks (D6, Aras 31 Oct 20:45: "fine that way"; p20 already prints them): NE = left bank looking downstream = north
 # bank = the Kale side; SW = south bank = the bazaar side.
+# Landmarks (round 4, S1, 1 Nov 2026; G-R4-11 / PALL.3, PLAN §4.6): the TURKISH proper name is printed, never an
+# English translation ("Red Hall" -> Kızıl Avlu, "Acropolis" -> Akropol, "Bazaar" -> Arasta); "descr" is an optional
+# English descriptor that may FOLLOW the name (landmark_name(key, descr=True) -> "Kızıl Avlu · Hadrian's temple").
+# Spellings as the project's sources write them; "src" = where (h01 = library/research/
+# selinos_bergama_history_context_v1.md, table §5 row; survey = a label in the course survey). Descriptors are taken
+# from texts already in the booklet (p20 heritage cards, city link), nothing new. One spelling of Ulucami (the brief's;
+# "Ulu Cami" / "Ulu Camii" drift removed); source TITLES on the Sources page stay as published.
 NAMES = {
     "bridges": {
         "K1": {"name": u"side inlet crossing", "short": u"side inlet crossing", "order": 1, "proper": False},
@@ -941,9 +948,44 @@ NAMES = {
         "side_NE": u"Kale side",
         "side_SW": u"bazaar side",
     },
+    "landmarks": {
+        "kizil_avlu": {"name": u"Kızıl Avlu", "descr": u"Hadrian's temple",
+                       "src": u"survey label 'Kızıl Avlu' (30203.92, 31974.82); h01 §5 P02; Kültür Envanteri 'Kızıl Avlu'"},
+        "akropol": {"name": u"Akropol", "descr": u"the Hellenistic city on the hill",
+                    "src": u"site board HER_BEYOND (OSM way 1410335587, Trajaneum)"},
+        "ulucami": {"name": u"Ulucami", "descr": u"mosque of 1398-99",
+                    "src": u"h01 §5 P05 (survey 'Ulu Camii' (29844.2, 32313.3)); Visit İzmir 'Bergama Ulu (Yıldırım) "
+                           u"Mosque'; spelling = the brief's (G-R4-11) and K4's name"},
+        "tabaklar_hamami": {"name": u"Tabaklar Hamamı", "descr": u"the tanners' bath",
+                            "src": u"h01 §5 P07 (survey 'Hamam' (29890.4, 32243.6))"},
+        "arasta": {"name": u"Arasta", "descr": u"the old bazaar",
+                   "src": u"site board HER_STOPS 'bazaar' (Visit İzmir 'Mevlâna Hacı Hekim Hammam')"},
+        "cizmeciler_arastasi": {"name": u"Çizmeciler Arastası", "descr": None,
+                                "src": u"survey label (29794.31, 31929.85)"},
+        "pabuccular_arastasi": {"name": u"Pabuççular Arastası", "descr": None, "src": u"h02 s32 (city link stop 1)"},
+        "istiklal_meydani": {"name": u"İstiklal Meydanı", "descr": u"square",
+                             "src": u"h01 §5 P16 (survey label (29990.0, 32030.5))"},
+        "adnan_menderes_bulvari": {"name": u"Adnan Menderes Bulvarı", "descr": None,
+                                   "src": u"Aras 1 Nov 07:30 ('it is bulvar'); K6 row above"},
+        "kinik_caddesi": {"name": u"Kınık Caddesi", "descr": None,
+                          "src": u"OpenStreetMap extract of 28 Jul 2026 (common/city_spine.py MAIN_SPINE)"},
+        "bankalar_caddesi": {"name": u"Bankalar Caddesi", "descr": None,
+                             "src": u"OpenStreetMap extract of 28 Jul 2026 (common/city_spine.py MAIN_SPINE)"},
+        "bergama_muzesi": {"name": u"Bergama Müzesi", "descr": u"museum of 1936",
+                           "src": u"Kültür Envanteri KE 3946 'Bergama Müzesi' (h01 s86)"},
+        "teleferik": {"name": u"Teleferik", "descr": u"cable car (2010)",
+                      "src": u"site board HER_STOPS 'gondola' (OSM node 2295928011)"},
+        "asklepion": {"name": u"Asklepion", "descr": u"the healing sanctuary",
+                      "src": u"h01 §5 P28; KTB 'The Archaeological Site of Asklepion' (h01 s114)"},
+    },
 }
 
 #@@ CUTS
+def _cuts_up(s):
+    """v13 (round 4, G-R4-11): a name from the names table in capitals, Turkish style (i -> İ, ı -> I)"""
+    return s.replace(u"i", u"İ").replace(u"ı", u"I").upper()
+
+
 CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the bed low point), depths of EVENTS (m above the bed),
           # the width each level covers (from, to; m from the centreline, + = left bank looking downstream), notes
     dict(key="flat", name=u"5 · FLAT DOWNSTREAM END", bed=41.33, u0=-62,
@@ -957,7 +999,7 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
          dep=(0.64, 1.69, 2.57, 2.99, 3.30),
          ext=[(-4.0, 7.5), (-20.0, 10.5), (-28.5, 13.0), (-29.5, 14.0), (-30.5, 15.0)],
          tags=[("slope", u"bed 0.83 %"), ("points", u"73 bed points within 25 m"), ("road", u"road 6.5 m wide · 38 m off · right bank")]),
-    dict(key="k4", name=u"2 · ULUCAMİ ÖNÜ KÖPRÜSÜ", bed=64.77, u0=-80,
+    dict(key="k4", name=u"2 · " + _cuts_up(bridge_name("K4")), bed=64.77, u0=-80,
          ground=[3.06, 3.03, 3.01, 2.99, 2.96, 2.94, 2.92, 2.89, 2.87, 2.85, 2.82, 2.80, 2.78, 2.75, 2.73, 2.71, 2.68, 2.66, 2.64, 2.61, 2.59, 2.56, 2.54, 2.52, 2.49, 2.47, 2.45, 2.42, 2.40, 2.38, 2.35, 2.33, 2.31, 2.28, 2.26, 2.24, 2.21, 2.19, 2.17, 2.14, 2.12, 2.10, 2.07, 2.07, 2.07, 2.07, 2.07, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 1.77, 1.35, 0.93, 0.51, 0.14, 0.14, 0.13, 0.13, 0.12, 0.12, 0.12, 0.11, 0.11, 0.10, 0.10, 0.09, 0.09, 0.08, 0.08, 0.07, 0.07, 0.06, 0.06, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.03, 0.02, 0.02, 0.14, 0.41, 0.68, 0.99, 1.94, 2.89, 3.84, 4.78, 5.73, 6.68, 7.63, 8.58, 9.53, 10.48, 10.87, 11.07, 11.27],
          dep=(0.28, 0.99, 1.83, 2.56, 2.84),
          ext=[(-16.0, 12.5), (-18.0, 15.0), (-20.0, 15.5), (-58.5, 16.5), (-70.5, 16.5)],
@@ -966,7 +1008,7 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
                ("over", u"right bank 2.1 m (survey, before the DSİ walls): street floods"),   # two chips: they wrap
                ("over", u"Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
                ("road", u"road 10-13 m wide · 42-52 m off · right bank")]),
-    dict(key="k5", name=u"3 · ÜÇ KEMER KÖPRÜSÜ", bed=55.96, u0=-57,
+    dict(key="k5", name=u"3 · " + _cuts_up(bridge_name("K5")), bed=55.96, u0=-57,
          ground=[3.12, 3.11, 3.09, 3.08, 3.06, 3.05, 3.02, 2.97, 2.93, 2.89, 2.85, 2.80, 2.76, 2.72, 2.68, 2.63, 2.59, 2.55, 2.51, 2.46, 2.42, 2.38, 2.34, 2.29, 2.25, 2.20, 2.16, 2.11, 2.07, 1.99, 1.89, 1.78, 1.67, 1.56, 1.45, 1.36, 1.26, 1.17, 1.07, 0.95, 0.82, 0.69, 0.58, 0.47, 0.33, 0.19, 0.16, 0.13, 0.09, 0.06, 0.02, 0.00, 0.01, 0.02, 0.03, 0.05, 0.06, 0.07, 0.08, 0.09, 0.11, 0.12, 0.13, 0.14, 0.15, 0.17, 0.32, 1.03, 1.73, 2.43, 3.02, 3.60, 4.18, 4.73, 5.26, 5.77, 6.23, 6.66, 7.08, 7.43, 7.80, 8.09],
          dep=(0.31, 1.09, 1.95, 2.45, 2.79),
          ext=[(-12.5, 8.5), (-19.0, 10.0), (-27.5, 11.0), (-37.5, 12.0), (-45.5, 12.5)],

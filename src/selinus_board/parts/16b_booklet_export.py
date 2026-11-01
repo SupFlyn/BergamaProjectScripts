@@ -90,6 +90,9 @@ def crop_rects():
         cx, cy = 0.5 * (bb[0] + bb[2]), 0.5 * (bb[1] + bb[3])
         hit = [s_ for s_ in SHEET_POS if s_[2][0] <= cx <= s_[2][2] and s_[2][1] <= cy <= s_[2][3]]
         if not hit:
+            if p["slug"] == "street_sections":           # v59 (round 4, P09.1): the booklet's p09 needs this crop
+                raise RuntimeError("crop street_sections (booklet p09, drw_street_sections): its drawing is on no "
+                                   "sheet written on this run")
             BK_LOG.append("crop %s: its drawing is on no sheet written on this run" % p["slug"])
             continue
         nm, pdf, r, ox, oy, ph = hit[0]

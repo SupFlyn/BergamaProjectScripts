@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v12_3.py = v12.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13.py = v13 (1 Nov 2026, round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -44,7 +44,20 @@ DATA RULES
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
 
-NEW IN v5 (revision 29 Oct 2026, step T3b; a feature change, so the next whole number):
+NEW IN v13 (round 4 S6a, 1 Nov 2026; a feature change, so the next whole number):
+  * Core: one trigger file (common/trigger.py; log "trigger: <why>"); real Arial widths (font_metrics); the p12, p14
+    and p15 cells each open a TextPage: every text in them is measured and a collision STOPS the run naming the
+    page, the text and what it hits; no single-word last lines; names from the names table (Kızıl Avlu, bridge
+    names in the cut titles); the old TREE engine is gone (trees from common/plants.py).
+  * p12: one 3D language (relief lifted and stated "heights ×n", every building a volume, decks as slabs), soft
+    zones over the light proposal tint, clipped to the study area, the store as a ghost volume, trees from the plant
+    module and never on the store or past a frame, the study line in its own style, red A-A', the zoom ×2 or more;
+    the band on the W1 line with level marks outside, numbers on what they name, low planting, inset 1:200.
+  * p14: zone strip under each cut, trees whole in the views, each season its own people, animals and plant
+    states; p15: one section block, key map never over the legend, inset 1:100, calendar fixed, one subtitle.
+  * S6b (p17-p19) keeps v13 and adds its own notes.
+
+ a feature change, so the next whole number):
   * p.12 (pages/p12_system.py): one axonometric water map (collect, clean, hold, give back, to the farms) with volumes
     read live from the water balance, a round plan zoom of the upstream entry, the remaining analysis beside it.
   * pp.14-15 (pages/p14_15_s4.py): the S4 pair rebuilt on the level module (bed +42.48), S4-only key maps, seasonal
@@ -194,9 +207,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v12.3 (2026-11-01)"  # v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v12.3"
-BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
+VERSION = "bergama_water_board v13 (2026-11-01)"  # v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -285,106 +297,14 @@ VOL_SEALED, VOL_UNSEALED, VOL_FIRST = 26675.0, 83060.0, 3539.0   # m³ (A6_strip
 
 
 # ---------------------------------------------------------------- Grasshopper: Button, kept log
-#@include ../common/_gh_inputs.py
+#@include ../common/trigger.py
 
 
-_GH_IN = _gh_inputs()
+TRIG_WHY = [None]                    # v13 (round 4 S1/S6a): what started this run (trig_should_run), printed in the log
 _T_START = time.time()
 
 
-def upstream_done(name):
-    """v1.6 (as masterplan v16, 25 Oct 12:10): the done text of the script wired into input `name`, read from Rhino's
-    memory (sticky) when the wire brings Null. Keys: "done:<guid>" or "...:<guid>_done" (template scripts)."""
-    try:
-        import scriptcontext as _scx
-        for p_ in ghenv.Component.Params.Input:                          # noqa: F821
-            if str(p_.NickName or p_.Name).lower() != str(name).lower():
-                continue
-            for src_ in p_.Sources:
-                g = str(src_.Attributes.GetTopLevel.DocObject.InstanceGuid)
-                for k_ in ("done:" + g, "lu_done:" + g):
-                    v_ = _scx.sticky.get(k_)
-                    if str(v_).startswith("done "):
-                        return str(v_)
-                for k_, v_ in list(_scx.sticky.items()):
-                    if str(k_).endswith(g + "_done") and str(v_).startswith("done "):
-                        return str(v_)
-    except Exception:
-        pass
-    return None
-
-
-def chain_fire(v, key, name=None):
-    """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
-    after the Button is released; each NEW text fires this script once (the Button still works as before)."""
-    if isinstance(v, (list, tuple)):
-        v = next((x for x in v if str(x).startswith("done ")), None)
-    s = str(v) if v is not None else ""
-    if not s.startswith("done ") and name:
-        s = upstream_done(name) or ""
-    try:
-        import scriptcontext as _scx
-        try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
-        except Exception:
-            pass
-        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
-        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
-        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
-        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
-        # script's globals between solves (the chain stopped after ZoneBase).
-        tok = globals().get("_CHAIN_SOLVE")
-        if _scx.sticky.get(key + ":init") is None:
-            _scx.sticky[key + ":init"] = tok
-        first = _scx.sticky.get(key + ":init") is tok
-        if not s.startswith("done "):
-            return False
-        if first or _scx.sticky.get(key) == s:
-            _scx.sticky[key] = s
-            return False
-        _scx.sticky[key] = s
-        return True
-    except Exception:
-        return False
-
-
-def _chain_wiring():
-    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
-    try:
-        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
-                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
-    except Exception:
-        return ""
-
-
-_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
-
-
 #@include ../common/done_text.py
-
-
-
-#@include ../common/to_bool.py
-
-
-def button_state():
-    """(name, pressed) of the Button input: any input whose name is a button word, else any input fed by a
-    Button, else any input at all."""
-    names = list(_GH_IN)
-    for k_ in names:
-        if "".join(c for c in k_.lower() if c.isalpha()) in BUTTON_WORDS:
-            return k_, to_bool(_GH_IN[k_])
-    try:
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821
-            for src_ in p_.Sources:
-                if "button" in type(src_.Attributes.GetTopLevel.DocObject).__name__.lower():
-                    nm = str(p_.NickName or p_.Name)
-                    return nm, to_bool(_GH_IN.get(nm, False))
-    except Exception:
-        pass
-    if names:
-        return names[0], to_bool(_GH_IN[names[0]])
-    return None, False
 
 
 # 25 Oct (Aras 09:55): remembered for this Rhino session only (sticky); no temp state file. The one copy on disk is
@@ -411,35 +331,104 @@ GH_LABEL = "WaterBoard"                                # Aras 25 Oct 09:44: name
 
 
 # ---------------------------------------------------------------- text metrics, page and PDF writer (water loop v2)
-_MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
-_MW0 = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556,
-        556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278,
-        500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469,
-        556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500,
-        278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584]
-_MW1 = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556,
-        556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278,
-        556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584,
-        556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556,
-        333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
-_W = [dict(zip(_MCH, _MW0)), dict(zip(_MCH, _MW1))]
-_WX = {u"·": 278, u"³": 333, u"²": 333, u"µ": 556, u"§": 556, u"İ": 278, u"ı": 278, u"–": 556, u"°": 400}
 PT = 25.4 / 72.0
 CAP = 0.716
 
 
 def text_w(s, size, bold=False):
-    w = _W[1 if bold else 0]
-    return sum(w.get(c, _WX.get(c, 600 if c.isupper() else 556)) for c in s) / 1000.0 * size
+    """v13 (round 4, G-R4-1): the real Arial advance width (font_metrics.fm_width) of s at size mm, in mm; the
+    Helvetica table and its Turkish-letter estimates are gone (a missing font raises FontMissing)"""
+    return fm_width(s, size / PT, bold)
 
 
 #@include ../common/wrap.py
 
 
+_wrap_greedy = wrap
+
+
+def wrap(s, size, width, bold=False):
+    """v13 (round 4, G-R4-2): the greedy wrap of common/wrap.py with no single-word last line: the last word of the
+    line before moves down while that line keeps two words or more and the last line still fits"""
+    out = _wrap_greedy(s, size, width, bold)
+    while len(out) >= 2 and len(out[-1].split()) < 2 and len(out[-2].split()) >= 3:
+        a = out[-2].split()
+        t = a[-1] + u" " + out[-1]
+        if text_w(t, size, bold) > width:
+            break
+        out[-2], out[-1] = u" ".join(a[:-1]), t
+    return out
+
+
 # ---------------------------------------------------------------- page and PDF writer (v1; see-through fills as bergama_diagrams v1.8)
+_TXT_TAG = {}                        # v13 (G-R4-1): id(text item) -> (item, group, name, allow, role) as Page.text set them
+_TXT_G = [0]                         # v13: text group counter (one word block = one group)
+
+
 class Page(object):
+    """v13 (round 4, G-R4-1): a booklet page drawn on this board (one cell) opens ONE TextPage with
+    pg.text_page(name, bounds) before its drawing; pg.check_text(log) at its end registers EVERY text item drawn
+    onto the page since then (pg.text, shape lists, items copied from scratch pages) with its real Arial box and runs
+    the shared collision test, which RAISES TextCollision (the board is then not written; the log names the page,
+    the text and what it hits). The texts of one word block (lines of a paragraph, runs of one line) share a group
+    (pg.tgroup()): they may touch each other, never another group."""
     def __init__(self, W, H):
         self.W, self.H, self.items = W, H, []
+        self.tp, self.tp_n0, self.tg = None, 0, None
+
+    def text_page(self, name, bounds, margins=None, pad=0.6, scale=1.0):
+        """v13: start the TextPage of booklet page `name` (y up, board mm); bounds = its cell under the cell title"""
+        self.tp = TextPage(name, bounds, y_down=False, pad=pad, margins=margins, scale=scale)
+        self.tp_n0 = len(self.items)
+        self.tg = None
+        return self.tp
+
+    def tgroup(self, start=True):
+        """v13: start (or with False end) one text group; works on scratch pages too (the tag travels with the item)"""
+        if start:
+            _TXT_G[0] += 1
+            self.tg = u"w%d" % _TXT_G[0]
+        else:
+            self.tg = None
+        return self.tg
+
+    def keep(self, geom, kind="keep", name=None, line=None):
+        """v13: an obstacle no text may touch (TextPage.keep); nothing without an open TextPage"""
+        if self.tp is not None:
+            return self.tp.keep(geom, kind, name, line)
+        return None
+
+    def block(self, box, name):
+        """v13: a drawing block of the open TextPage (blocks may touch, never overlap)"""
+        if self.tp is not None:
+            return self.tp.block(box, name)
+        return box
+
+    def check_text(self, log=None):
+        """v13: registers every text item drawn since text_page() and runs the collision test (raises
+        TextCollision); closes the TextPage and returns its log line"""
+        tp = self.tp
+        if tp is None:
+            raise TextError(u"page has no TextPage: call pg.text_page(name, bounds) before drawing its text")
+        for it in self.items[self.tp_n0:]:
+            if it[0] != "text" or not (it[1] or u"").strip():
+                continue
+            tag = _TXT_TAG.get(id(it))
+            if tag is None or tag[0] is not it:
+                _TXT_G[0] += 1
+                tag = (it, u"w%d" % _TXT_G[0], None, (), "label")
+            mat = it[8] if len(it) > 8 else None
+            ang = math.degrees(math.atan2(mat[0][1], mat[0][0])) if mat else 0.0
+            tp.put(it[1], it[2], it[3], it[4] / PT, bool(it[6]), it[7] or "L", ang, tag[2], tag[4], it[5], tag[3],
+                   tag[1], emit=False)
+        lg = []
+        try:
+            tp.check(True, lg)
+        finally:
+            if log is not None:
+                log.extend(lg)
+            self.tp, self.tg = None, None
+        return lg[-1] if lg else u""
 
     def poly(self, rings, fill=None, stroke=None, lw=0.1, dash=None, stripes=None, layer=None, alpha=None):
         """alpha: opacity 0-1 of fill and stroke (steps of 0.05; None = opaque). layer: unused (tree block API)."""
@@ -454,17 +443,35 @@ class Page(object):
     def circle(self, cx, cy, r, fill=None, stroke=None, lw=0.1):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw))
 
-    def text(self, s, x, y, size, color, bold=False, align="L", mat=None, halo=None):
-        if s and mat is None and any(ch in SUP for ch in s):    # v3.1: m² / m³ as a raised small digit (see SUP)
+    def _tag(self, it, g, name, allow, role):
+        _TXT_TAG[id(it)] = (it, g, name, tuple(allow or ()), role)
+
+    def text(self, s, x, y, size, color, bold=False, align="L", mat=None, halo=None, name=None, allow=(),
+             role="label"):
+        """one text (size mm). v13: tagged with its group (the open tgroup, else one group for this call: its m²/m³
+        runs stay together), name, allow (keep names or kinds it may sit on, e.g. its own marker disc) and role;
+        check_text registers it"""
+        if not s:
+            return
+        if self.tg:
+            g = self.tg
+        else:
+            _TXT_G[0] += 1
+            g = u"w%d" % _TXT_G[0]
+        if mat is None and any(ch in SUP for ch in s):    # v3.1: m² / m³ as a raised small digit (see SUP)
             runs = sup_runs(s)
             ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
             x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
             for (t, up), w_ in zip(runs, ws):
-                self.items.append(("text", t, x, y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0), color,
-                                   bold, "L", None, halo))
+                it = ("text", t, x, y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0), color,
+                      bold, "L", None, halo)
+                self.items.append(it)
+                self._tag(it, g, name, allow, role)
                 x += w_
-        elif s:
-            self.items.append(("text", s, x, y, size, color, bold, align, mat, halo))
+        else:
+            it = ("text", s, x, y, size, color, bold, align, mat, halo)
+            self.items.append(it)
+            self._tag(it, g, name, allow, role)
 
 
 # v3.1 (Aras 27 Oct, Prompt 6: "hm³ renders as hm"): ² and ³ are drawn as the digit at 0.6 x the size, raised 0.28 x the
@@ -509,144 +516,15 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 
 #@include ../common/pdf_fonts.py
+#@include ../common/font_metrics.py
 
 
 #@include ../common/write_pdf.py
 
-# ============================================================ TREES (self-contained: copy this block as it is)
-# Trees in the style of Nil's reference (18 Oct 2026: an isometric water-system diagram with layered, see-through
-# canopies), drawn as architectural entourage (fine branches, translucent leaf clusters), not as cartoon blobs. Needs only `math` and a page object with
-#     poly(rings, fill=hex, stroke=hex or None, lw=mm, layer=str, alpha=0-1 or None)   rings: [[(X, Y), ...], ...]
-#     line(pts, stroke_hex, lw_mm, layer=str)
-# draw_tree(pg, P, k, x, y, r, top, style) draws one tree: P(x, y, z) -> page (X, Y) in mm for a parallel
-# (orthographic) view with z up, k = page mm per model metre. Light comes from the upper left of the page, as on the
-# buildings. Size and height are the data's: crown radius r and top height `top` (m above the ground); the crown starts
-# at TREE_CROWN_LO(top), the analyses' convention in selinus_board (crown_lo: 35 % of the top, at least 1.5 m), so the
-# crown is an upright ellipsoid r wide and top - lo high (a crown never flatter than half its radius), filled with leaf
-# clusters near its surface. Branches and clusters are drawn from (x, y) alone, so the same tree looks the same on every
-# page and run.
-# Draw trees far to near (painter's order). The colours are the group palette's greens (palette v1.3):
-#     tree  (deciduous)             green_mid 727A4E, green_light 8C9969, light = mix(8C9969, road FAF8F1, 0.35)
-#     olive (evergreen broadleaf)   mix(727A4E, ink2 847E75, 0.4), mix(8C9969, structure B0AC9C, 0.45), its light
-#     pine  (needle-leaved)         green_deep 495338, green_mid 727A4E, mix(727A4E, 8C9969, 0.6)
-#     context (pale, not the topic) mix(BCC2A6, 8C9969, 0.3), CONTEXT_3D tree BCC2A6, mix(BCC2A6, FAF8F1, 0.45)
-# (mix = the palette's OKLab mix). Shadows: green_deep (context: structure) at 10-16 %.
-TREE_STYLES = {
-    "tree":    dict(dark="727A4E", mid="8C9969", light="B1BA97", trunk="5B5147", shadow="495338", shadow_a=0.10,
-                    lobes=1.0),
-    "olive":   dict(dark="797C5E", mid="9CA280", light="BCBFA6", trunk="5B5147", shadow="495338", shadow_a=0.10,
-                    lobes=1.0),
-    "pine":    dict(dark="495338", mid="727A4E", light="818C5E", trunk="5B5147", shadow="495338", shadow_a=0.12,
-                    lobes=1.3),                                    # needles: more, finer leaf clusters
-    "context": dict(dark="ADB694", mid="BCC2A6", light="D7DAC7", trunk="A39E90", shadow="B0AC9C", shadow_a=0.16,
-                    lobes=1.0),
-}
-TREE_ALPHA = (None, None)                # v12 (round 3, D7/G9): leaf clusters opaque (were 0.62 / 0.68 see-through)
-TREE_MIN_MM = 0.25                       # smallest crown radius drawn on the page, mm
-
-
-def TREE_CROWN_LO(top):
-    return max(1.5, 0.35 * top)
-
-
+# v13 (round 4, G-R4-6, CHK-6): the water board's own TREE engine (TREE_STYLES, draw_tree, tree_shadow, _tree_blob)
+# is retired: every tree on p12 is the shared plant module's drawing (pla_axo; willow v2), the land cover's canopy a
+# basemap-category texture (pages/p12_system.py). _tree_rand stays: the p12 texture and SKETCH_SRC seed with it.
 #@include ../common/_tree_rand.py
-
-
-def tree_shadow(pg, P, k, x, y, r, style, layer="tree_shadows"):
-    """The crown's footprint on the ground, pushed to the lower right (light from the upper left). Draw all shadows
-    on the ground first (draw_tree(..., shadow=False) then), so no shadow lies over a building."""
-    A = max(TREE_MIN_MM, r * k)
-    if A < 0.45:
-        return
-    sh = [P(x + 0.9 * r * math.cos(t), y + 0.9 * r * math.sin(t), 0.0) for t in [2.0 * math.pi * i / 28 for i in range(28)]]
-    pg.poly([[(p[0] + 0.30 * A, p[1] - 0.08 * A) for p in sh]], fill=style["shadow"], stroke=None, layer=layer,
-            alpha=style["shadow_a"])
-
-
-def _tree_view(P, k):
-    """Rows of the parallel view (page mm per metre / k) and the unit vector pointing away from the viewer."""
-    o = P(0.0, 0.0, 0.0)
-    e = [P(1.0, 0.0, 0.0), P(0.0, 1.0, 0.0), P(0.0, 0.0, 1.0)]
-    u = [(p[0] - o[0]) / k for p in e]
-    v = [(p[1] - o[1]) / k for p in e]
-    c = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
-    return u, v, (-c[0], -c[1], -c[2])
-
-
-def _tree_blob(cx, cy, R, rnd, m):
-    """A leaf cluster: a round patch R mm across with a ragged, leafy edge."""
-    ph = rnd() * 6.283
-    return [(cx + R * (0.80 + 0.28 * rnd()) * math.cos(ph + 6.283 * i / m),
-             cy + R * (0.80 + 0.28 * rnd()) * math.sin(ph + 6.283 * i / m)) for i in range(m)]
-
-
-def draw_tree(pg, P, k, x, y, r, top, style, layer="trees", alpha=TREE_ALPHA, shadow=True):
-    """Architectural entourage tree: a fine trunk and branch structure inside a crown built from many opaque
-    leaf clusters (v12), lit from the upper left, back clusters behind the branches and front clusters over them."""
-    rnd = _tree_rand(x, y)
-    st = style
-    lo = TREE_CROWN_LO(top)
-    a = max(0.5 * r, (top - lo) / 2.0)                     # vertical half-height of the crown
-    zc = top - a
-    A = r * k                                              # crown half-width on the page, mm
-    u, v, d = _tree_view(P, k)
-    if A < 0.45:                                           # a speck on the corridor pages: two small clusters
-        c = P(x, y, zc)
-        R = max(TREE_MIN_MM, A)
-        for i in range(2):
-            pg.poly([_tree_blob(c[0] + (i - 0.5) * 0.4 * R, c[1] + (0.5 - i) * 0.2 * R, R * (0.95 - 0.2 * i), rnd, 9)],
-                    fill=st["mid"] if i else st["dark"], stroke=None, layer=layer)
-        return
-    if shadow:
-        tree_shadow(pg, P, k, x, y, r, st, layer)
-    full = A >= 1.2
-    tw = min(0.30, max(0.06, 0.055 * A))                   # trunk line, mm
-    # ---- branch structure (3D points, projected)
-    lines = [((x, y, 0.0), (x, y, lo + 0.25 * a), tw)]
-    if full:
-        nb = 3 + int(rnd() * 3)
-        for i in range(nb):
-            t = 6.283 * (i + 0.6 * rnd()) / nb
-            fr = 0.55 + 0.3 * rnd()
-            end = (x + fr * r * math.cos(t), y + fr * r * math.sin(t), zc + (0.1 + 0.4 * rnd()) * a)
-            base = (x, y, lo + (0.1 + 0.4 * rnd()) * a)
-            lines.append((base, end, tw * 0.55))
-            mid = tuple(base[j] + 0.55 * (end[j] - base[j]) for j in range(3))
-            for _ in range(2):                             # twigs end inside the crown (70 % of its size at most)
-                t2 = t + (rnd() - 0.5) * 1.6
-                ez = rnd() * 0.6
-                eh = 0.7 * math.sqrt(1.0 - ez * ez)
-                lines.append((mid, (x + eh * r * math.cos(t2), y + eh * r * math.sin(t2), zc + 0.7 * ez * a),
-                              max(0.04, tw * 0.3)))
-    # ---- leaf clusters near the crown's surface, sorted far to near
-    n = int(min(36, max(6, 4 + 3.0 * A)) * st.get("lobes", 1.0))
-    cl = []
-    for _ in range(n):
-        ct, phi_ = 2.0 * rnd() - 1.0, 6.283 * rnd()
-        sq = math.sqrt(max(0.0, 1.0 - ct * ct))
-        f = 0.55 + 0.35 * rnd()
-        q = (x + f * r * sq * math.cos(phi_), y + f * r * sq * math.sin(phi_), zc + f * a * ct)
-        depth = sum(d[j] * (q[j] - (x, y, zc)[j]) for j in range(3))
-        pp = P(*q)
-        du, dv = (pp[0] - P(x, y, zc)[0]) / A, (pp[1] - P(x, y, zc)[1]) / max(1e-9, A)
-        lit = -0.6 * du + 0.8 * dv - 0.5 * depth / max(r, a)
-        cl.append((depth, pp, lit, (0.30 + 0.14 * rnd()) * A * st.get("blob", 1.0)))
-    cl.sort(key=lambda c_: -c_[0])
-    m = 16 if A > 3.0 else (12 if full else 9)
-    back = [c_ for c_ in cl if c_[0] > 0.0]
-    front = [c_ for c_ in cl if c_[0] <= 0.0]
-
-    def blobs(lst, al):
-        for _, pp, lit, R in lst:
-            col = st["light"] if lit > 0.45 else (st["dark"] if lit < -0.25 else st["mid"])
-            pg.poly([_tree_blob(pp[0], pp[1], R, rnd, m)], fill=col, stroke=None, layer=layer, alpha=al)
-    blobs(back, alpha[0])
-    for p0, p1, w in lines:
-        pg.line([P(*p0), P(*p1)], st["trunk"], w, layer=layer)
-    blobs(front, alpha[1])
-
-
-# ============================================================ end of TREES
 
 
 # ---------------------------------------------------------------- composing the board from drawn parts
@@ -770,11 +648,26 @@ def hand_arrow(pg, P, kind="water", small=1.0, cols=None):
 
 
 #@include ../common/para.py
+
+
+_para_common = para
+
+
+def para(pg, x, y, w, text, size, colour, bold=False, lh=1.28):
+    """v13 (G-R4-1): common/para.py as one text group (its lines may touch each other, never another text)"""
+    old = pg.tg
+    pg.tgroup()
+    try:
+        return _para_common(pg, x, y, w, text, size, colour, bold, lh)
+    finally:
+        pg.tg = old
 # v4 (MIRAQUA 28 Oct, PLAN §2): the round's shared definitions (styles, units, figures, label placing)
 #@include ../common/r28_style.py
 #@include ../common/units.py
 #@include ../common/figures.py
 #@include ../common/label_place.py
+#@include ../common/marker.py
+#@include ../common/block.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
 #@include ../common/data/FACTS.py
@@ -1152,7 +1045,7 @@ ZONES = [  # v1.14: what each level allows, as three zones (keywords of LEVEL_ME
     ("D", u"DRY TOP · above Q500", (4,), u"pavilions, cafés, kiosks, olive, lavender · storage above Q500 or "
                                          u"flood-proof", (LV_DESIGN, LV_ZONES, LV_STORE)),
 ]
-TUNNEL_SRC = (u"h02 §2.3 (library/research/selinos_site_history_inaccessible_edges_v1.md): Red Hall twin tunnels, "
+TUNNEL_SRC = (u"h02 §2.3 (library/research/selinos_site_history_inaccessible_edges_v1.md): Kızıl Avlu twin tunnels, "
               u"Roman Imperial; capacity 360 m³/s (s24: Wikipedia 'Pergamon Bridge', citing Grewe & Öziş 1994, "
               u"Antike Welt 25(4)) vs 720 m³/s (s67: Öziş 2015, Environmental Processes 2:559-573), marked [U] "
               u"conflicting there, possibly one tube vs both")
@@ -1182,11 +1075,11 @@ def draw_level_key(pg, x, y, w, kx):
 
 
 def draw_tunnels(pg, x, y, w):
-    """v1.14 (history H2, spec §3 p.12): the Roman tunnels under the Red Hall as a precedent: what they carry against
+    """v1.14 (history H2, spec §3 p.12): the Roman tunnels under Kızıl Avlu as a precedent: what they carry against
     today's design flood, on one m³/s scale; both published capacities, as the sources disagree. Returns bottom y."""
     fs = SECT_FS
     icon(pg, "tunnel", x, y, 9.0)
-    para(pg, x + 11.0, y + 0.4, w - 11.0, u"ROMAN TUNNELS UNDER THE RED HALL: THEY ALREADY CARRY THE FLOODS", 3.2,
+    para(pg, x + 11.0, y + 0.4, w - 11.0, u"ROMAN TUNNELS UNDER " + _cuts_up(landmark_name("kizil_avlu")) + u": THEY ALREADY CARRY THE FLOODS", 3.2,
          COL["ink_dark"], bold=True)
     rows = [(u"DSİ Q100 today", 205.20, LEVEL_COL[3], None, DSI_Q_SRC),
             (u"DSİ Q500 today", 263.33, LEVEL_COL[4], None, DSI_Q_SRC),
@@ -1420,10 +1313,14 @@ C_PL = dict(green_deep="495338", green_mid="727A4E", accent="8B3A3F", ink="4A3F3
 
 
 def para_at(pg, s, x, y, size, width, color=None, lead=1.32, bold=False):
-    """Wrapped text from the baseline y downwards (the plant board's para); returns the y below the last line."""
+    """Wrapped text from the baseline y downwards (the plant board's para); returns the y below the last line.
+    v13: one text group (G-R4-1)."""
+    old = pg.tg
+    pg.tgroup()
     for ln in wrap(s, size, width, bold):
         pg.text(ln, x, y, size, color or C_PL["ink"], bold=bold)
         y -= size * lead
+    pg.tg = old
     return y
 
 
@@ -1848,7 +1745,7 @@ def icon(pg, kind, x, y, sz):
                          (8.4, 4.6, 0.8)):
             pg.circle(x + a * u, y - sz + b * u, r_ * u, fill=C["structure"], stroke=ink2, lw=lw * 0.4)
         pg.circle(x + 5.0 * u, y - sz + 7.6 * u, 1.6 * u, fill="E9C9A6")
-    elif kind == "tunnel":                                  # the Red Hall twin vaults, seen from the mouth
+    elif kind == "tunnel":                                  # the Kızıl Avlu twin vaults, seen from the mouth
         for a in (0.4, 5.4):
             pg.poly([P([(a, 0.6)] + [(a + 2.1 + 2.1 * math.cos(math.pi - math.pi * j / 10.0),
                                       5.4 + 2.8 * math.sin(math.pi * j / 10.0)) for j in range(11)] + [(a + 4.2, 0.6)])],
@@ -1866,7 +1763,7 @@ def icon(pg, kind, x, y, sz):
     elif kind == "tree":
         pg.poly([R(4.5, 0.4, 5.5, 4.4)], fill="5B5147")
         for a, b, r_ in ((3.4, 6.0, 2.6), (6.6, 6.0, 2.6), (5.0, 7.6, 2.6)):
-            pg.circle(x + a * u, y - sz + b * u, r_ * u, fill=TREE_STYLES["tree"]["mid"])
+            pg.circle(x + a * u, y - sz + b * u, r_ * u, fill=pla_colours("plane")["fill"])   # v13 (G-R4-6)
     elif kind == "lav":
         for a in (2.4, 5.0, 7.6):
             pg.line(P([(5.0, 0.6), (a, 6.4)]), "727A4E", lw)
@@ -2111,8 +2008,10 @@ def build_board(opt, storage, parts, pal_line, log):
     # p.12 (v5, revision 29 Oct, T3b): pages/p12_system.py draws the whole panel (the water map and what stays beside
     # it) and returns its crops [(crop id, bbox, scale denominator or None)]
     b = cell(1, 0, P12_TITLE)
+    pg.text_page("p12", last[0])                 # v13 (round 4, G-R4-1): every text of the cell measured, raise on a hit
     for cid_, bb_, den_ in p12_page(pg, b, opt, storage, log):
         crop_add(cid_, bb_, den_, within=last[0])
+    pg.check_text(log)
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
     b = cell(2, 0, u"WHERE THE CLEAN WATER GOES (10, 11) · and what the figures support")
     # round 3 (B4, P18.1): no context line (the booklet intro says it; 7 mm back to the merged p18-19 page); the loop
@@ -2128,10 +2027,12 @@ def build_board(opt, storage, parts, pal_line, log):
     # row 2 -------------------------------------------------------------- pp.14-15, the S4 pair
     # v5 (revision 29 Oct, T3b): pages/p14_15_s4.py draws both panels whole (p.14 in the wider middle cell, p.15 in the
     # left one) and returns their crops [(crop id, bbox, scale denominator or None)]
-    for c_, r_, title_, fn_ in ((1, 1, P14_TITLE, p14_page), (0, 1, P15_TITLE, p15_page)):
+    for c_, r_, title_, fn_, bp_ in ((1, 1, P14_TITLE, p14_page, "p14"), (0, 1, P15_TITLE, p15_page, "p15")):
         b = cell(c_, r_, title_)
+        pg.text_page(bp_, last[0])               # v13 (round 4, G-R4-1): one TextPage per booklet page, raise on a hit
         for cid_, bb_, den_ in fn_(pg, b, opt, log):
             crop_add(cid_, bb_, den_, within=last[0])
+        pg.check_text(log)
     # p.17 (v6, revision 29 Oct, T4a): pages/p17_planting.py draws page A (the plans, water spaces, catalogue) whole and
     # returns its crops [(crop id, bbox, scale denominator or None)]; page B (the sections) sits in row 3
     b = cell(2, 1, P17_TITLE)
@@ -2342,6 +2243,7 @@ def build_all(doc, log):
             log.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"),
                                                    time.time() - t0))
     log += lp_flag_lines() + wat_flag_lines() + sec_look_lines()   # v12 (round 3): FLAG overlap per page, water clip +
+    log += [fig_set_line()] + ml_lines_log() + sc_lines_log()     # v13 (round 4): people set, map layers, study clip
     return folder, files                                            # draw order, sky variants, plants, fauna FLAG
 
 
@@ -2351,10 +2253,9 @@ def build_all(doc, log):
 #@include pages/p18_farms.py
 
 def main():
-    btn, on = button_state()
-    pressed = (on and not mem_get("prev", False)) or chain_fire(_GH_IN.get(btn), "chain_seen", btn)
+    pressed, why, _btn = trig_should_run("chain_seen")    # v13 (round 4): the one trigger file (common/trigger.py)
+    TRIG_WHY[0] = why
     globals()["_ran_now"] = pressed
-    mem_set("prev", on)
     if not pressed and mem_get("ver") != SHORT:     # v2 (Aras 27 Oct 15:35): a newly pasted version shows itself at
         for k_, v_ in (("last", ""), ("status", ""), ("files", []), ("done", "idle")):   # once, idle, without the old
             mem_set(k_, v_)                                                              # run's time or log
@@ -2379,7 +2280,8 @@ def main():
             log.append(u"booklet not written: {}: {}".format(type(ex_).__name__, ex_))
     log += bg_tidy_output(OUT_FOLDER)               # 27 Oct: output/ = PDFs only
     secs = time.time() - t0
-    head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
+    head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder),
+            u"trigger: {}".format(TRIG_WHY[0])]
     text = u"\n".join(head + log)
     status = u"{} · {}".format(SHORT, "ERROR" if err else time.strftime("%H:%M") + " · {:.0f} s".format(secs))
     try:
