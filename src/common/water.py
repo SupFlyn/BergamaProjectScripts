@@ -493,8 +493,8 @@ def water_section(profile, k, y_of, cid=None, bed=None, avg=None, q100=None, q50
     sct_profile of two sct_bank surfaces); y_of(level m) -> page y; k mm per m. Levels come from the cut registry
     (cid: bed, avg_flow, q100, q500 via levels.py) unless given. Draws: the ground cut under the profile in the bank
     materials (banks = left, right: stone / concrete / earth / gravel), the bed in gravel (always filled), the water
-    at the AVERAGE YEARLY FLOW (never dry), the Q100 and Q500 lines (dashed, wall to wall), and their level labels
-    (labels=False leaves them to the page: positions in wl.anchors). fill_ground False = the page drew the banks
+    at the AVERAGE YEARLY FLOW (never dry), the Q100 and Q500 lines (dashed, wall to wall). Round 4: no level
+    labels inside; wl.anchors["levels"] = [(key, level m, page y)] for sf_level_marks outside the frame. fill_ground False = the page drew the banks
     (sct_bank): only the bed band is added. Returns the WaterLayers."""
     wl = into if into is not None else water_layers()
     Pa = _wat_pal()
@@ -539,30 +539,9 @@ def water_section(profile, k, y_of, cid=None, bed=None, avg=None, q100=None, q50
         lines.append(("line", [(xl, y), (xr, y)], Pa[key], 0.25, dash))
         wl.anchors[key] = (xr, y)
     wl.add("water", lines)
-    if labels:
-        wl.add("labels", _wat_level_labels(wl.anchors, dict(avg=avg, q100=q100, q500=q500), label_size, label_x))
+    # round 4 (S2, G-R4-5.4, U43/U44): no level label inside the picture any more (_wat_level_labels retired); the
+    # page puts the marks OUTSIDE its frame: sf_level_marks(frame_box, wl.anchors["levels"]) (section_frame.py).
+    # labels / label_size / label_x are kept so old calls still run; they draw nothing.
+    wl.anchors["levels"] = [(key, lev, y_of(lev)) for key, lev in (("q500", q500), ("q100", q100), ("avg", avg),
+                                                                   ("bed", bed)) if lev is not None]
     return wl
-
-
-def _wat_level_labels(an, lev, size, x=None):
-    """the level marks at the right end of each line: a small level triangle on the line and "Q500 +73.66" beside it,
-    stacked so no two overlap (G3)"""
-    Pa = _wat_pal()
-    names = dict(q500=u"Q500", q100=u"Q100", avg=u"average flow")
-    keys = [k_ for k_ in ("q500", "q100", "avg") if k_ in an and lev.get(k_) is not None]
-    keys.sort(key=lambda k_: -an[k_][1])
-    sh, last = [], None
-    for k_ in keys:
-        lx, ly = an[k_]
-        ty = ly + 0.25 * size
-        if last is not None and ty > last - 1.15 * size:
-            ty = last - 1.15 * size
-        tx = (x if x is not None else lx + 1.2 * size)
-        col = Pa.get(k_, SEC["hatch"]) if k_ != "avg" else SEC["hatch"]
-        tri = [(lx + 0.15 * size, ly), (lx + 0.65 * size, ly + 0.55 * size), (lx - 0.35 * size, ly + 0.55 * size)]
-        sh.append(("poly", tri, None, col, 0.15))
-        if abs(ty - (ly + 0.25 * size)) > 0.05:          # moved down to clear a label above: a short leader
-            sh.append(("line", [(lx + 0.65 * size, ly + 0.3 * size), (tx - 0.2 * size, ty + 0.3 * size)], col, 0.1))
-        sh.append(("text", u"%s %+.2f" % (names[k_], lev[k_]), tx, ty, size, col, False, "L"))
-        last = ty
-    return sh

@@ -44,9 +44,12 @@ BM_COL = dict(bld="A7A299", bld_osm_edge="736A62", her="E4CAC9", her_edge="AF747
               water_edge="5D7F8D", tree="C4CCB5", park="DFEBC0", grass="DFEBC0", field="C6C08D", road="CFCCC5",
               road_edge="847E75", ink="2C2219", contour="BDB7B0", cut="2C2219")
 BM_FAINT = dict(bld="D3D0CB", bld_veryfaint="E9E7E3", road="E2E0DB", road_line="B9B4AC")
-# topographic mode: contours coloured by height, very faint (palette references 5C7A86 -> 89986A -> 70754C -> 4C2528,
-# each mixed 55 % towards white; low = blue-grey, high = dark brown)
-BM_HEIGHT_RAMP = ("ADBCC2", "C4CAB1", "B7B9A2", "A39092")
+# round 4 (S2, G-R4-4, PLAN §4.3): the MUTED base under every map page: light houses with a closed block outline,
+# light streets with their edges, every outline after every fill (CHK-3 §1.5-1.6); heritage a pale rose.
+BM_MUTED = dict(bld="EDEBE6", bld_edge="C9C5BC", her="F1E6E5", her_edge="CDAAAA", road="F4F2EE", road_edge="CFCBC2",
+                name="9A948A", lw=0.12)
+# contours coloured to the relief (G-R4-4, U48): green tones, lighter = lower (palette 3C4733 and its 89986A tints)
+BM_HEIGHT_RAMP = ("C9D6B0", "A7B68C", "89986A", "3C4733")
 BM_LW = dict(contour=(0.07, 0.13), contour_topo=(0.08, 0.14), water_edge=0.18, covered=0.30, bridge=0.30,
              road_edge=0.12, osm_edge=0.08, her_edge=0.12, main=0.45, lane=0.22, path=0.10, river_osm=0.6,
              stream_osm=0.35, cut=0.35)
@@ -68,11 +71,17 @@ BASEMAP_MODES = {
                  contours=False, study_area=True, names=False),
     "key": dict(stream=True, streets=("main",), buildings="veryfaint", green=False, trees=False, fields=False,
                 contours=False, study_area=True, names=False),
+    # round 4 (S2, G-R4-4): the muted base of map_layers.ml_base; the study line is drawn by map_draw in its own
+    # layer (above the project fills), so it is off here; contours are switched on by the call ("height")
+    "muted": dict(stream=True, streets="muted", buildings="muted", green=False, trees=False, fields=False,
+                  contours=False, study_area=False, names=False),
 }
 # M3 layer list -> switches: basemap_layers accepts these names too (buildings, streets, water, topography,
 # study_area, names; green, trees, fields as before)
 BM_LAYER_ALIAS = dict(water="stream", topography="contours")
-BM_STUDY_LINE = dict(colour="262626", width_mm=0.45, dash_mm=(3.0, 0.8, 0.4, 0.8))   # = R28_STUDY_LINE
+# round 4 (S2, G-R4-4, U18/U19): ONE study-area line everywhere: violet long-dash-dot, its own hue (never ink, grey
+# or a road colour); r28_style.py R28_STUDY_LINE holds the same values (either file may be included first)
+BM_STUDY_LINE = dict(colour="6A4C93", width_mm=0.35, dash_mm=(3.0, 0.8, 0.6, 0.8))
 BM_NAME_MM = 2.47                  # place names: the M1 label size (7 pt)
 _BM_MEMO = {}
 _BM_WARN = []
@@ -236,11 +245,25 @@ def basemap_names(box=None, D=None):
     return out
 
 
+def basemap_street_names(box=None, D=None, classes=("main",), min_len_m=0.0):
+    """round 4 (S2, G-R4-9 U55): the street names of OpenStreetMap's `name` tags (Turkish as mapped), one per name
+    at the middle of its longest run: [(name, (x, y), angle_deg, class, run_m)] in survey m, longest first; classes
+    = the street classes kept ("main", "lane"); [] when the basemap file predates round 4 (run the site board)"""
+    D = D if D is not None else basemap_load()
+    out = []
+    for n, p, a, cl, ln in ((D or {}).get("layers") or {}).get("street_names") or []:
+        if cl in classes and ln >= min_len_m and (box is None or (box[0] <= p[0] <= box[2] and box[1] <= p[1] <= box[3])):
+            out.append((n, (p[0], p[1]), a, cl, ln))
+    out.sort(key=lambda r: -r[4])
+    return out
+
+
 def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
     """basemap_items without the memo"""
     lay = basemap_layers(mode, override)
     L = D["layers"]
     out = []
+    outl = []          # round 4 (S2, CHK-3 §1.6): outlines (street, building, bridge edges) come after EVERY fill
 
     def fills(groups, col, alpha=1.0, nonzero=True, chunk=300):
         cur = []
@@ -258,10 +281,10 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
         if cur:
             out.append(("fill", cur, col, alpha, nonzero))
 
-    def lines(Ps, col, w, dash=None, alpha=1.0):
+    def lines(Ps, col, w, dash=None, alpha=1.0, outline=False):
         for P in Ps:
             if len(P) >= 2 and _bm_hit(P, box):
-                out.append(("line", P, col, w, list(dash) if dash else None, alpha))
+                (outl if outline else out).append(("line", P, col, w, list(dash) if dash else None, alpha))
 
     # ground: tree cover, fields, parks / grass (satellite first, mapped areas over it)
     if lay["trees"]:
@@ -287,13 +310,22 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
                 lines([P], BM_COL["contour"], BM_LW["contour"][1 if major else 0])
     # streets
     st = lay["streets"]
-    if st is True or st == "faint":
+    if st == "muted":                                     # round 4 (S2): light fill, light closed edges, after fills
+        fills(L["street_areas"], BM_MUTED["road"], nonzero=False)
+        for cl, P in L["streets_out"]:
+            lines([P], BM_MUTED["road_edge"], BM_LW[cl] * (1.6 if cl != "path" else 1.0))
+        for g in L["street_areas"]:                       # every ring of a street area closed (no open survey run)
+            lines([list(R) + [R[0]] for R in g if len(R) >= 3], BM_MUTED["road_edge"], BM_MUTED["lw"], outline=True)
+    elif st is True or st == "faint":
         faint = st == "faint"
         fills(L["street_areas"], BM_FAINT["road"] if faint else BM_COL["road"], nonzero=False)
         for cl, P in L["streets_out"]:                    # beyond the frame: OpenStreetMap centrelines
             lines([P], BM_FAINT["road_line"] if faint else BM_COL["road"], BM_LW[cl] * (1.6 if cl != "path" else 1.0))
-        if not faint:
-            lines(L["street_edges"], BM_COL["road_edge"], BM_LW["road_edge"])
+        if faint:                                         # round 4 (S2, CHK-3 §1.6): faint modes keep their edges
+            for g in L["street_areas"]:
+                lines([list(R) + [R[0]] for R in g if len(R) >= 3], BM_FAINT["road_line"], 0.08, outline=True)
+        else:
+            lines(L["street_edges"], BM_COL["road_edge"], BM_LW["road_edge"], outline=True)
     elif st:
         for cl, P in L["streets_in"] + L["streets_out"]:
             if cl in st:
@@ -309,26 +341,40 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
         else:
             fills(L["water"], BM_COL["water"], nonzero=False)
             lines(L["water_edge"], BM_COL["water_edge"], BM_LW["water_edge"])
-        if st is True or st == "faint":
-            fills([[R] for R in L["decks"]], BM_FAINT["road"] if st == "faint" else BM_COL["road"])
+        if st is True or st in ("faint", "muted"):
+            fills([[R] for R in L["decks"]], BM_MUTED["road"] if st == "muted" else
+                  (BM_FAINT["road"] if st == "faint" else BM_COL["road"]))
         for P in L["covered"]:
-            lines([P], BM_COL["water_edge"], BM_LW["covered"], BM_COVERED_DASH)
+            lines([P], BM_COL["water_edge"], BM_LW["covered"], BM_COVERED_DASH, outline=True)
         fills(L["water_out"], BM_COL["water"], nonzero=False)
         for kind, P in L["waterways_out"]:
             lines([P], BM_COL["water"], BM_LW["river_osm" if kind == "river" else "stream_osm"])
     # buildings
     bl = lay["buildings"]
-    if bl in ("plan", "plan_faint"):                        # M11: outline per block + roof reading, no stripes
+    if bl == "muted" and not callable(globals().get("bld_plan_items")):
+        _BM_WARN.append(u"WARNING: basemap buildings 'muted' need common/buildings.py (M11): drawn as plain light "
+                        u"fills with their outlines instead.")
+        fills([b["rings"] for b in L["buildings"]], BM_MUTED["bld"])
+        for bk in L.get("blocks") or []:
+            lines([list(R) + [R[0]] for R in bk["rings"] if len(R) >= 3], BM_MUTED["bld_edge"], BM_MUTED["lw"],
+                  outline=True)
+    elif bl == "muted":                                   # round 4 (S2, G-R4-4): light houses, ONE closed outline per
+        for it in bld_plan_items(L["buildings"], blocks=L.get("blocks"), scale_den=scale_den or 5000.0, box=box,
+                                 roof="none", fill=BM_MUTED["bld"], edge=BM_MUTED["bld_edge"],   # block, no roof marks
+                                 her_fill=BM_MUTED["her"], her_edge=BM_MUTED["her_edge"], lw=BM_MUTED["lw"]):
+            (outl if it[0] == "line" else out).append(it)
+    elif bl in ("plan", "plan_faint"):                      # M11: outline per block + roof reading, no stripes
         pf = globals().get("bld_plan_items")
         if callable(pf):
             faint = bl == "plan_faint"
             blocks = L.get("blocks")
-            out.extend(pf(L["buildings"], blocks=blocks, scale_den=scale_den or 5000.0, box=box,
-                          fill=BM_FAINT["bld_veryfaint"] if faint else None,
-                          edge=BM_FAINT["road_line"] if faint else None,
-                          roof_col=BM_FAINT["bld"] if faint else None,
-                          her_fill=BM_COL["her"] if not faint else "F1E6E5",
-                          her_edge=BM_COL["her_edge"] if not faint else "CDAAAA"))
+            for it in pf(L["buildings"], blocks=blocks, scale_den=scale_den or 5000.0, box=box,
+                         fill=BM_FAINT["bld_veryfaint"] if faint else None,
+                         edge=BM_FAINT["road_line"] if faint else None,
+                         roof_col=BM_FAINT["bld"] if faint else None,
+                         her_fill=BM_COL["her"] if not faint else "F1E6E5",
+                         her_edge=BM_COL["her_edge"] if not faint else "CDAAAA"):
+                (outl if it[0] == "line" else out).append(it)   # roof marks and outlines after every fill
         else:
             _BM_WARN.append(u"WARNING: basemap buildings '{}' need common/buildings.py (M11): drawn faint "
                             u"instead.".format(bl))
@@ -341,12 +387,19 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
                 if b.get("her") or b.get("osm"):
                     lines([R + R[:1] for R in b["rings"][:b.get("np", len(b["rings"]))]],
                           BM_COL["her_edge"] if b.get("her") else BM_COL["bld_osm_edge"],
-                          BM_LW["her_edge"] if b.get("her") else BM_LW["osm_edge"])
+                          BM_LW["her_edge"] if b.get("her") else BM_LW["osm_edge"], outline=True)
+            for bk in L.get("blocks") or []:                # round 4 (S2, CHK-3 §1.5): survey houses get their edge too
+                if not bk.get("her"):
+                    lines([list(R) + [R[0]] for R in bk["rings"] if len(R) >= 3], BM_COL["bld_osm_edge"],
+                          BM_LW["osm_edge"], outline=True)
         else:
             fills([b["rings"] for b in L["buildings"]],
                   BM_FAINT["bld_veryfaint"] if bl == "veryfaint" else BM_FAINT["bld"])
     if lay["stream"] and (st is True or bl is True or bl == "plan"):
-        lines(L["bridges"], BM_COL["ink"], BM_LW["bridge"])
+        lines(L["bridges"], BM_COL["ink"], BM_LW["bridge"], outline=True)
+    elif lay["stream"] and bl == "muted":                 # round 4: bridges in the muted edge tone, a little heavier
+        lines(L["bridges"], BM_MUTED["bld_edge"], 2.0 * BM_MUTED["lw"], outline=True)
+    out.extend(outl)                                      # round 4 (S2): every outline after every fill
     # M3 (30 Oct): the study area (one outline, one style, on top of the base) and the place names
     if lay.get("study_area"):
         for it in basemap_study_items(D):
@@ -354,7 +407,8 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
                 out.append(it)
     if lay.get("names"):
         for n, p in basemap_names(box, D):
-            out.append(("text", n, p, BM_NAME_MM, BM_COL["ink"], False, "MC"))
+            out.append(("text", n, p, BM_NAME_MM, BM_MUTED["name"] if mode == "muted" else BM_COL["ink"], False,
+                        "MC"))
     return out
 
 
@@ -436,51 +490,6 @@ def _bm_clip_convex(a, b, poly):
     return (a[0] + dx * t0, a[1] + dy * t0), (a[0] + dx * t1, a[1] + dy * t1)
 
 
-def basemap_cut_items(cuts, scale_den, frame=None, inset_mm=3.0, tri_mm=2.6, text_mm=2.4, col=None, D=None):
-    """the section lines of ONE page's key map (D11: only that page's cuts) as items, kept inside the frame: a line
-    per cut, an architectural triangle at each end pointing the way the section looks, the end's name beyond it.
-    cuts = [(end1, end2, (name1, name2)[, look])], survey m, end1 = the section's left end; look = +1 (default:
-    the viewer stands so end1 is on the left, end2 on the right) or -1 (the other way). scale_den: the key map's
-    scale (1:scale_den) for the mm sizes; frame: the polygon to stay in (default the analysis frame), the ends are
-    pulled in by inset_mm so the markers and names stay inside it. With the level module, basemap_cut_ids() makes
-    cuts from cut ids."""
-    frame = frame or basemap_frame(D)
-    col = col or BM_COL["cut"]
-    m = scale_den / 1000.0                               # survey m per print mm
-    out = []
-    for c in cuts:
-        a, b, names = c[0], c[1], c[2]
-        look = c[3] if len(c) > 3 else 1
-        L0 = _bm_math.hypot(b[0] - a[0], b[1] - a[1])
-        if L0 < 1e-6:
-            continue
-        ux, uy = (b[0] - a[0]) / L0, (b[1] - a[1]) / L0
-        if frame:
-            ab = _bm_clip_convex(a, b, frame)
-            if ab is None:
-                continue
-            a, b = ab
-        pull = inset_mm * m + tri_mm * m                    # room for the marker and the name inside the frame
-        L = _bm_math.hypot(b[0] - a[0], b[1] - a[1])
-        if L <= 2.0 * pull:
-            continue
-        a = (a[0] + ux * pull, a[1] + uy * pull)
-        b = (b[0] - ux * pull, b[1] - uy * pull)
-        fx, fy = -uy * look, ux * look                      # the way the section looks (left normal of end1 -> end2)
-        out.append(("line", [a, b], col, BM_LW["cut"], [3.0, 0.8], 1.0))
-        h = tri_mm * m
-        for p, nm, sgn in ((a, names[0], -1.0), (b, names[1], 1.0)):
-            out.append(("fill", [[(p[0] - ux * h * 0.5, p[1] - uy * h * 0.5),     # the triangle stands on the
-                                  (p[0] + ux * h * 0.5, p[1] + uy * h * 0.5),     # line's end, its apex the way
-                                  (p[0] + fx * h, p[1] + fy * h)]], col, 1.0, True))   # the section looks
-            out.append(("line", [(p[0] - ux * h * 0.6, p[1] - uy * h * 0.6), (p[0] + ux * h * 0.6, p[1] + uy * h * 0.6)],
-                        col, BM_LW["cut"] * 1.6, None, 1.0))
-            q = (p[0] + ux * sgn * (h * 0.6 + text_mm * m * 0.9) - fx * text_mm * m * 0.2,
-                 p[1] + uy * sgn * (h * 0.6 + text_mm * m * 0.9) - fy * text_mm * m * 0.2)
-            out.append(("text", nm, q, text_mm, col, True, "MC"))
-    return out
-
-
 def basemap_cut_ids(ids, looks=None):
     """cuts for basemap_cut_items from the level module (common/levels.py, its data included before it): the ends
     and their names of each cut id; looks = {id: -1} to turn a marker round"""
@@ -495,90 +504,7 @@ def basemap_cut_ids(ids, looks=None):
     return out
 
 
-# ------------------------------------------------------------------------------------------- M4 key map
-def keymap_items(ids=(), scale_den=10000.0, box=None, zooms=None, mode="key", override=None, looks=None, D=None,
-                 margin=0.06, text_mm=2.4, col=None, log=None, page=None):
-    """M4: the key map of a page = a small M3 extract that ALWAYS shows the study-area outline and EVERY cut or zoom
-    id passed, each labelled. ids: cut ids of the cut registry (common/levels.py, level_ends / level_end_labels) or
-    zoom ids; a zoom id is looked up in zooms {id: polygon survey m} first, then in the registry's level_window(id)
-    when the level module has it. box (survey m) defaults to the study area + every cut and zoom, widened by margin.
-    page = a booklet page number: with no ids, every cut the registry draws on that page (level_registry_all).
-    Each cut is labelled with its registry name (level_name: F1 -> W1) where its end names do not already say it.
-    Returns dict(items (survey m; draw with basemap_draw and the key map's T, clipped to box), box, drawn=[ids],
-    missing=[ids]); a missing id is logged (WARNING), never left out silently."""
-    import math as _m
-    if not ids and page is not None and callable(globals().get("level_registry_all")):
-        ids = [e["id"] for e in level_registry_all(str(page))]
-    D = D if D is not None else basemap_load()
-    col = col or BM_COL["cut"]
-    log = log if log is not None else _BM_WARN
-    cuts, wins, drawn, missing = [], [], [], []
-    seen_ends = set()
-    win_fn = globals().get("level_window")
-    for cid in ids:
-        if zooms and cid in zooms:
-            wins.append((cid, [tuple(p) for p in zooms[cid]]))
-            drawn.append(cid)
-            continue
-        try:
-            c = basemap_cut_ids([cid], looks)[0]
-            ek = (round(c[0][0], 1), round(c[0][1], 1), round(c[1][0], 1), round(c[1][1], 1))
-            if ek not in seen_ends:                       # the crossings of one cut (S5-1 .. S5-3) share one line
-                seen_ends.add(ek)
-                cuts.append((cid, c))
-            drawn.append(cid)
-            continue
-        except Exception:
-            pass
-        try:
-            if callable(win_fn):
-                w = win_fn(cid)
-                if w:
-                    wins.append((cid, [tuple(p) for p in w]))
-                    drawn.append(cid)
-                    continue
-        except Exception:
-            pass
-        missing.append(cid)
-        log.append(u"WARNING: key map: '{}' is neither a cut of the registry nor a zoom passed in: not drawn.".format(cid))
-    study = basemap_study(D)
-    if box is None:
-        pts = [p for R in study for p in R] + [p for _, c in cuts for p in c[:2]] + [p for _, w in wins for p in w]
-        if not pts:
-            ext = basemap_extent(D) or []
-            pts = list(ext)
-        if pts:
-            x0, y0, x1, y1 = _bm_bb(pts)
-            d = margin * max(x1 - x0, y1 - y0, 1.0)
-            box = (x0 - d, y0 - d, x1 + d, y1 + d)
-    items = basemap_items(mode, override, box=box, D=D, scale_den=scale_den) if D else []
-    if not (D and basemap_layers(mode, override).get("study_area")):
-        items += basemap_study_items(D)                  # the outline is always there, whatever the layers
-    if box is not None:
-        frame = [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])]
-    else:
-        frame = None
-    m = scale_den / 1000.0
-    for cid, c in cuts:
-        its = basemap_cut_items([c], scale_den, frame=frame, text_mm=text_mm, col=col, D=D)
-        items += its
-        nm_fn = globals().get("level_name")
-        try:
-            name = nm_fn(cid) if callable(nm_fn) else cid
-        except Exception:
-            name = cid
-        name = str(name).split("-")[0]                    # a crossing row (S5-2) is labelled by its cut (S5)
-        if name not in c[2][0] and name not in c[2][1]:   # end names that do not say the id ("SW" / "NE"): the id too
-            a, b = c[0], c[1]
-            L0 = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
-            nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
-            q = ((a[0] + b[0]) / 2.0 + nx * text_mm * m * 1.2, (a[1] + b[1]) / 2.0 + ny * text_mm * m * 1.2)
-            items.append(("text", name, q, text_mm, col, True, "MC"))
-    for cid, w in wins:
-        items.append(("line", list(w) + [w[0]], col, BM_LW["cut"], None, 1.0))
-        x0, y0, x1, y1 = _bm_bb(w)
-        items.append(("text", cid, (x0 + text_mm * m * 0.9, y1 + text_mm * m * 0.8), text_mm, col, True, "MC"))
-    return dict(items=items, box=box, drawn=drawn, missing=missing)
+# M4 key map: keymap_items and basemap_cut_items moved to keymap.py (round 4 S2: R01 red symbol, names, muted base)
 
 
 # ------------------------------------------------------------------------------------------- writing (site board)
@@ -705,7 +631,16 @@ def basemap_export(S, log=None):
             return ex[0] <= u <= ex[2] and ex[1] <= v <= ex[3] and not (fr[0] <= u <= fr[2] and fr[1] <= v <= fr[3])
         L = dict(lc={}, zones=[], contours=[], street_areas=[], street_edges=[], streets_in=[], streets_out=[],
                  water=[], water_edge=[], decks=[], covered=[], water_out=[], waterways_out=[], buildings=[],
-                 bridges=[], blocks=[], study=[], names=[])
+                 bridges=[], blocks=[], study=[], names=[], street_names=[])
+        sn_best = {}                                      # round 4 (S2, G-R4-9 U55): street name -> longest run
+
+        def street_name(tags, P, cl):
+            nm_ = ((tags or {}).get("name") or u"").strip()
+            if not nm_ or cl == "path" or len(P) < 2:
+                return
+            Ln = sum(_bm_math.hypot(b_[0] - a_[0], b_[1] - a_[1]) for a_, b_ in zip(P, P[1:]))
+            if nm_ not in sn_best or Ln > sn_best[nm_][0]:
+                sn_best[nm_] = (Ln, cl, P)
         mains = set(globals().get("MAIN_ROADS") or ("motorway", "trunk", "primary", "secondary", "tertiary"))
         peds = set(globals().get("PED") or ("footway", "path", "pedestrian", "steps", "cycleway", "bridleway",
                                              "track", "corridor"))
@@ -738,6 +673,8 @@ def basemap_export(S, log=None):
             [_bm_r(r_["P"]) for r_ in S.roads if not r_.get("w")]
         L["streets_in"] = [[ccls((r_.get("tags") or {}).get("highway")), _bm_r(r_["P"])] for r_ in S.roads] + \
             [["path", _bm_r(r_["P"])] for r_ in getattr(S, "paths", None) or []]
+        for r_ in S.roads:
+            street_name(r_.get("tags"), r_["P"], ccls((r_.get("tags") or {}).get("highway")))
         L["water"] = [[_bm_r(wt["P"])] + [_bm_r(H) for H in wt.get("H", [])] for wt in S.water]
         L["water_edge"] = [_bm_r(P) for P in getattr(S, "water_outline", None) or []]
         L["decks"] = [_bm_r(P) for P in getattr(S, "decks", None) or []]
@@ -801,7 +738,10 @@ def basemap_export(S, log=None):
                     continue
                 hw = tags.get("highway")
                 if hw and hw not in skip and tags.get("area") != "yes":
-                    L["streets_out"].extend([ccls(hw), run] for run in outside_line(P))
+                    runs_ = outside_line(P)
+                    L["streets_out"].extend([ccls(hw), run] for run in runs_)
+                    for run in runs_:
+                        street_name(tags, run, ccls(hw))
                     continue
                 ww = tags.get("waterway")
                 if ww in ("river", "stream", "canal"):
@@ -836,6 +776,18 @@ def basemap_export(S, log=None):
                             L["zones"].append(dict(kind=k[0], sub=k[1], rings=rs))
         else:
             log.append(u"WARNING: shared basemap: no OpenStreetMap in the site model, so it ends at the analysis frame.")
+        for nm_, (Ln, cl, P) in sn_best.items():           # the label point: the run's middle, along its direction
+            half, acc = Ln / 2.0, 0.0
+            for a_, b_ in zip(P, P[1:]):
+                d_ = _bm_math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+                if acc + d_ >= half and d_ > 1e-9:
+                    t_ = (half - acc) / d_
+                    ang = _bm_math.degrees(_bm_math.atan2(b_[1] - a_[1], b_[0] - a_[0]))
+                    L["street_names"].append([nm_, [round(a_[0] + (b_[0] - a_[0]) * t_, 1),
+                                                    round(a_[1] + (b_[1] - a_[1]) * t_, 1)], round(ang, 1), cl,
+                                              round(Ln, 1)])
+                    break
+                acc += d_
         corners = lambda b: [_bm_r([wld(q)])[0] for q in ((b[0], b[1]), (b[2], b[1]), (b[2], b[3]), (b[0], b[3]))]
         out = dict(format=BASEMAP_FORMAT, source=u"{} · {}".format(globals().get("SCRIPT_VERSION", "site board"),
                                                                   _t.strftime("%Y-%m-%d %H:%M")),
@@ -862,3 +814,10 @@ def basemap_export(S, log=None):
         import traceback as _tb
         log.append(u"WARNING: the shared basemap was not written ({}):\n{}".format(ex_, _tb.format_exc()))
         return None
+
+
+# ---- round 4 (S2, 1 Nov 2026): the study clip, the map-layer draw order and the key-map module ride with the basemap,
+# so every script that includes basemap.py has them (never include them a second time)
+#@include study_clip.py
+#@include map_layers.py
+#@include keymap.py

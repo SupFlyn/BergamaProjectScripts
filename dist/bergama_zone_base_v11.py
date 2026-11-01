@@ -1,5 +1,11 @@
-# CURRENT VERSION: bergama_zone_base_v10_2.py = v10.2 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
-"""BERGAMA ZONE BASE v10 (2026-10-27): bakes Group 6's zone layout into the open Rhino file as an editable base.
+# CURRENT VERSION: bergama_zone_base_v11.py = v11 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+"""BERGAMA ZONE BASE v11 (2026-11-01): bakes Group 6's zone layout into the open Rhino file as an editable base.
+
+NEW IN v11 (round 4, S1, 1 Nov 2026): (1) ONE start-up rule shared by all nine scripts (common/trigger.py, round 3
+open row 13): a press of the Button wired into `run` (rising edge), or a NEW done text from the script before it;
+pasting or rewiring never starts it; the log says what started it ("trigger: button run" / "trigger: chain run").
+(2) Names from the project's names table (G-R4-11): the two text dots that read "K4" and "K5" now read the bridges'
+names (Ulucami Önü Köprüsü, Üç Kemer Köprüsü); K-codes are never printed. Zones unchanged.
 
 NEW IN v10 (Aras 27 Oct 11:07, output cleanup): writes nothing under output/ (its log is Downloads/Bergama/logs/
 bergama_zone_base_log.txt); anything older versions left in output/bergama_zone_base/ is moved out (logs to logs/,
@@ -73,7 +79,6 @@ import base64
 import hashlib
 import tempfile
 import datetime
-import types as _types
 
 import Rhino
 import Rhino.Geometry as rg
@@ -81,7 +86,7 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v10.2 (2026-11-01)"  # v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_zone_base v11 (2026-11-01)"  # v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
 #   Downloads/Bergama/logs/                    every log file and log folder
@@ -168,15 +173,14 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'BASE_DATA': 'cf047935732fa0db32aed2866224f6ea'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'BASE_DATA': 'cf047935732fa0db32aed2866224f6ea', 'NAMES': '0972af4b119d556bb810b350fd8e70f4'}.get(name):
         raise RuntimeError("Data file bergama_zone_base_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_zone_base_data.py:" + name, "exec"), globals())
 
 
 bergama_data("BASE_DATA")
-SHORT = "v10.2"
-BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button")
+SHORT = "v11"
 TAG = "bergama_zone_base"                          # user text key on every baked object (value = VERSION)
 STUDY_BBOX = {                                     # the course survey's study areas (survey = file coordinates, m)
     "aras_alan": [(29610.0960, 32247.0612, 29880.6932, 32794.2334)],
@@ -193,48 +197,126 @@ PARENT = {"A": "Option_A", "B": "Option_B"}
 
 
 # ---------------------------------------------------------------- Grasshopper inputs, memory, status
-def _gh_inputs():
-    names = None
-    try:
-        names = set()
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821 (ghenv exists in Grasshopper)
-            for a_ in ("VariableName", "NickName", "Name"):
-                v_ = getattr(p_, a_, None)
-                if v_:
-                    names.add(str(v_))
-    except Exception:
-        names = None
+# v11 (round 4): what starts this component = common/trigger.py (its notes say it for all nine scripts)
+# ---- trigger.py (round 4, S1, 1 Nov 2026; BRIEF §6, round 3 open row 13): ONE start-up / trigger file ----------------
+# Replaces common/chain_fire.py, gh_in_items.py, _gh_inputs.py, to_bool.py and the scripts' own copies of chain_fire,
+# upstream_done, button_state, find_button, _button_value and BUTTON_WORDS (each page session removes its copy and
+# calls trig_should_run; the closing step deletes the four old files once nothing includes them).
+#
+# WHAT STARTS A COMPONENT (the same for all nine scripts; RUN_GUIDE quotes this):
+#   1. A press of its Button: the input named run (or bake / build / go / press / button / start, any case), else the
+#      input a Button is wired into. Only the press starts it (the rising edge: False -> True); holding the Button
+#      or re-solving while it is True does not start it again.
+#   2. A NEW "done ..." text arriving on any of its own inputs from the script before it in the chain (one-click
+#      chain). The first solve after the component is pasted, opened or rewired only NOTES the text already on the
+#      wire, so pasting code or rewiring never starts a run (Aras 1 Nov 08:04); when the wire brings nothing, the done
+#      text the upstream component left in Rhino's memory is read (Null on the wire).
+#   Nothing else starts it: settings written in the script (PHOTO_ANY_LICENCE = True ...) and old globals that
+#   Rhino 8 keeps between solves are never read as a press (Aras 1 Nov 08:24); only the component's own inputs are.
+#
+#   trig_inputs() -> {name: value}         the component's own inputs only (VariableName / NickName / Name), never
+#                                          the script's globals; {} outside Grasshopper
+#   trig_get(name, default=None)           one own input by name in any case; a list gives its first non-None item
+#   to_bool(v, default=False)              True / "true" / "yes" / "1" / "on" / non-zero; a list = any item true
+#   upstream_done(name) -> str | None      the "done ..." text the component wired into input `name` left in memory
+#   chain_fire(v, key, name=None) -> bool  a NEW done text on v (a list gives its first "done ..." item) fires once;
+#                                          the first solve per component + wiring only notes it
+#   trig_button(settings=()) -> name|None  the Button input (see 1. above); never a name in settings (inputs that
+#                                          carry options, e.g. the masterplan's SETTINGS), never one starting with "_"
+#   trig_should_run(key="chain_seen", settings=()) -> (run, why, button)
+#                                          run: bool; why: "button <name>" | "chain <input>" | None; button: its name
+#                                          or None. Each script logs "trigger: <why>" in its run log.
+TRIGGER_BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button", "start")
+
+
+def trig_inputs():
+    """{name: value} of this component's own inputs (globals holding them), nothing else"""
+    g_ = globals()
     out = {}
-    for k_, v_ in list(globals().items()):
-        if k_.startswith("__") or (names is not None and k_ not in names):
-            continue
-        if isinstance(v_, (_types.ModuleType, _types.FunctionType, _types.BuiltinFunctionType, type)):
-            continue
-        out[k_] = v_
+    try:
+        for p_ in ghenv.Component.Params.Input:                            # noqa: F821 (Grasshopper)
+            for a_ in ("VariableName", "NickName", "Name"):
+                n_ = getattr(p_, a_, None)
+                if n_ and str(n_) in g_:
+                    out[str(n_)] = g_[str(n_)]
+                    break
+    except Exception:
+        return {}
     return out
 
 
-_GH_IN = _gh_inputs()
-_T_START = time.time()
+def trig_get(name, default=None):
+    """an own input by name, any case; a list gives its first non-None item; empty text = default"""
+    for k_, v_ in trig_inputs().items():
+        if k_.lower() == str(name).lower():
+            if isinstance(v_, (list, tuple)):
+                v_ = next((x for x in v_ if x is not None), None)
+            return default if v_ is None or (isinstance(v_, str) and not v_.strip()) else v_
+    return default
 
 
-def chain_fire(v, key):
-    """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
-    after the Button is released; each NEW text fires this script once (the Button still works as before)."""
+def to_bool(v, default=False):
+    if v is None:
+        return default
     if isinstance(v, (list, tuple)):
-        v = next((x for x in v if x is not None), None)
+        return any(to_bool(x) for x in v)
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v != 0
+    s = str(v).strip().lower()
+    if not s:
+        return default
+    return s in ("true", "yes", "1", "on")
+
+
+def upstream_done(name):
+    """the done text of the component wired into input `name`, read from Rhino's memory (sticky) when the wire brings
+    Null. Keys: "done:<guid>", "lu_done:<guid>" or "...<guid>_done" (template scripts)."""
+    try:
+        import scriptcontext as _scx
+        for p_ in ghenv.Component.Params.Input:                            # noqa: F821
+            if str(p_.NickName or p_.Name).lower() != str(name).lower():
+                continue
+            for src_ in p_.Sources:
+                g = str(src_.Attributes.GetTopLevel.DocObject.InstanceGuid)
+                for k_ in ("done:" + g, "lu_done:" + g):
+                    v_ = _scx.sticky.get(k_)
+                    if str(v_).startswith("done "):
+                        return str(v_)
+                for k_, v_ in list(_scx.sticky.items()):
+                    if str(k_).endswith(g + "_done") and str(v_).startswith("done "):
+                        return str(v_)
+    except Exception:
+        pass
+    return None
+
+
+def _chain_wiring():
+    """the sources wired into this component (their ids, sorted): rewiring starts a new chain memory"""
+    try:
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
+    except Exception:
+        return ""
+
+
+def chain_fire(v, key, name=None):
+    """True once for each NEW "done ..." text on v (see the module notes)"""
+    if isinstance(v, (list, tuple)):
+        v = next((x for x in v if str(x).startswith("done ")), None)
     s = str(v) if v is not None else ""
+    if not s.startswith("done ") and name:
+        s = upstream_done(name) or ""
     try:
         import scriptcontext as _scx
         try:
             key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
         except Exception:
             pass
-        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
-        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
-        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
-        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
-        # script's globals between solves (the chain stopped after ZoneBase).
+        # the first solve with this wiring (pasted, rewired or newly opened component) only notes what is on the
+        # wire; "first" is tied to this solve's token (_CHAIN_SOLVE, made anew each time the script body runs), not
+        # to a global, because Rhino 8 keeps a script's globals between solves
         tok = globals().get("_CHAIN_SOLVE")
         if _scx.sticky.get(key + ":init") is None:
             _scx.sticky[key + ":init"] = tok
@@ -250,16 +332,122 @@ def chain_fire(v, key):
         return False
 
 
-def _chain_wiring():
-    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
+def trig_button(settings=()):
+    """the Button input's name, or None"""
+    ins = trig_inputs()
+    skip = set(str(n).lower() for n in settings or ())
+
+    def ok(n):
+        return n and not n.startswith("_") and n.lower() not in skip
+    for k_ in ins:
+        if ok(k_) and "".join(c for c in k_.lower() if c.isalpha()) in TRIGGER_BUTTON_WORDS:
+            return k_
     try:
-        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
-                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
+        for p_ in ghenv.Component.Params.Input:                            # noqa: F821
+            nm = str(p_.NickName or p_.Name)
+            if not ok(nm):
+                continue
+            for src_ in p_.Sources:
+                if "button" in type(src_.Attributes.GetTopLevel.DocObject).__name__.lower():
+                    return nm
     except Exception:
-        return ""
+        pass
+    return None
+
+
+def trig_should_run(key="chain_seen", settings=()):
+    """(run, why, button): does this solve start the script? (see the module notes)"""
+    btn = trig_button(settings)
+    ins = trig_inputs()
+    try:
+        import scriptcontext as _scx
+        try:
+            gk = str(ghenv.Component.InstanceGuid)                          # noqa: F821
+        except Exception:
+            gk = ""
+        pk = "trig_prev:" + key + ":" + gk
+        on = to_bool(trig_get(btn)) if btn else False
+        prev = bool(_scx.sticky.get(pk, False))
+        _scx.sticky[pk] = on
+    except Exception:
+        on, prev = (to_bool(trig_get(btn)) if btn else False), False
+    if on and not prev:
+        return True, u"button " + btn, btn
+    # the chain: the button input first (the board family wires the done text there), then every other own input
+    skip = set(str(x).lower() for x in settings or ())
+    names = ([btn] if btn else []) + [n for n in ins if n != btn and not n.startswith("_") and n.lower() not in skip]
+    fired = None
+    for n in names:
+        v = ins.get(n)
+        if v is None or isinstance(v, (bool, int, float)) or (isinstance(v, (list, tuple)) and not any(
+                isinstance(x, str) for x in v)):
+            if n != btn:
+                continue
+        if chain_fire(v, key + ":" + n, n) and fired is None:
+            fired = n
+    if fired:
+        return True, u"chain " + fired, btn
+    return False, None, btn
 
 
 _CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
+
+
+_GH_IN = trig_inputs()
+_T_START = time.time()
+
+bergama_data("NAMES")
+# ---- Names (round 3, A2, 31 Oct 2026; G16 / D9): every printed bridge or place name comes from data/NAMES.py ---------
+#   bridge_name(code, short=False)   "K3" -> "Tabak Köprüsü" (short: "Tabak", only where the full name is in the
+#                                     same drawing's key or title); unknown code -> KeyError (never print a K-code)
+#   bridges_in_order()               the codes upstream first: K1, K2, K4, K3, K5, K6 (lists, keys, rulers)
+#   place_name(key)                  "bank_NE" -> "Kale side · north bank", "stream" -> "Selinos stream"
+#   cut_end_labels(cid)              ("W3", "W3'") the cut id + prime at its ends (D6)
+#   landmark_name(key, descr=None)   round 4 (S1, G-R4-11): "kizil_avlu" -> "Kızıl Avlu"; descr=True adds the table's
+#                                     English descriptor ("Kızıl Avlu · Hadrian's temple"), descr="text" adds that text;
+#                                     unknown key -> KeyError (never type a landmark name locally)
+#   landmark_keys()                  the landmark keys in the table
+# Needs data/NAMES.py included before it.
+
+
+def bridge_name(code, short=False):
+    """the one spelling of a bridge by its internal code (K1-K6, any case)"""
+    row = NAMES["bridges"][str(code).strip().upper()]
+    return row["short"] if short else row["name"]
+
+
+def bridges_in_order():
+    """the bridge codes in stream order, upstream first"""
+    b = NAMES["bridges"]
+    return sorted(b, key=lambda c: b[c]["order"])
+
+
+def place_name(key):
+    """the one spelling of a place (stream, banks, sides)"""
+    return NAMES["places"][key]
+
+
+def cut_end_labels(cid):
+    """D6: the labels at a cut's two ends: the cut id and the id with a prime ("W3", "W3'")"""
+    c = str(cid).strip()
+    return c, c + u"'"
+
+
+def landmark_name(key, descr=None):
+    """the one (Turkish) spelling of a landmark, optionally followed by an English descriptor"""
+    row = NAMES["landmarks"][str(key).strip().lower()]
+    if descr is True:
+        d = row.get("descr")
+        if not d:
+            raise KeyError(u"landmark %s has no descriptor in the names table" % key)
+    else:
+        d = descr or None
+    return row["name"] + (u" · " + d if d else u"")
+
+
+def landmark_keys():
+    """the landmark keys in the names table"""
+    return sorted(NAMES["landmarks"])
 
 
 def done_text(ran, ok, secs):
@@ -277,28 +465,6 @@ def gin(name, default=None):
                 v_ = next((x for x in v_ if x is not None), None)
             return default if v_ is None or (isinstance(v_, str) and not v_.strip()) else v_
     return default
-
-
-def to_bool(v):
-    if isinstance(v, bool):
-        return v
-    if isinstance(v, (int, float)):
-        return v != 0
-    return str(v).strip().lower() in ("true", "yes", "1", "on")
-
-
-def find_button():
-    for k_ in _GH_IN:
-        if "".join(c for c in k_.lower() if c.isalpha()) in BUTTON_WORDS:
-            return k_
-    try:
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821
-            for src_ in p_.Sources:
-                if "button" in type(src_.Attributes.GetTopLevel.DocObject).__name__.lower():
-                    return str(p_.NickName or p_.Name)
-    except Exception:
-        pass
-    return None
 
 
 # 25 Oct (Aras 09:55): remembered for this Rhino session only (sticky); no temp state file. The one copy on disk is
@@ -537,7 +703,10 @@ def bake(doc, which, log):
             gids = []
             if it["kind"] == "LABEL":
                 if it.get("pt") and bid not in kept_ids:
-                    g = rg.TextDot(it.get("text") or it.get("name") or "", rg.Point3d(it["pt"][0], it["pt"][1], 0.0))
+                    txt = it.get("text") or it.get("name") or ""
+                    if txt.strip().upper() in NAMES["bridges"]:  # v11 (G-R4-11): a bridge by its name, never "K4"
+                        txt = bridge_name(txt)
+                    g = rg.TextDot(txt, rg.Point3d(it["pt"][0], it["pt"][1], 0.0))
                     if it.get("font"):                       # v7: the very small "idea: Begum" credit
                         g.FontHeight = int(it["font"])
                     att.SetUserString("base_hash", shape_hash(g))
@@ -580,16 +749,14 @@ def bake(doc, which, log):
 
 
 def run():
-    btn = find_button()
-    if btn is None:
+    pressed, why, btn = trig_should_run("chain_seen")          # v11: common/trigger.py
+    if btn is None and not pressed:
         text = "No button found: wire a Button into an input named run. ({})".format(VERSION)
         gh_status(SHORT + " · no button")
         gh_message("warning", text)
         return text
-    on = to_bool(gin(btn, False))
-    pressed = (on and not mem_get("prev", False)) or chain_fire(gin(btn), "chain_seen")
+    btn = btn or "run"
     globals()["_ran_now"] = pressed
-    mem_set("prev", on)
     if not pressed:
         last = mem_get("last", "")
         gh_status(mem_get("status", "") or SHORT + " · idle")
@@ -597,7 +764,7 @@ def run():
             "Idle. Press {} to bake the zone base into Option_A. ({})".format(btn, VERSION)
     t0 = time.time()
     gh_status(SHORT + " · baking")
-    log, err = [], None
+    log, err = ["trigger: " + why], None
     doc = Rhino.RhinoDoc.ActiveDoc
     which = ("A",)                                     # v9: option A only, project-wide (Aras 25 Oct 16:43)
     # v5 24 Oct: all files under Downloads/Bergama/ (Aras rule); was beside the .3dm

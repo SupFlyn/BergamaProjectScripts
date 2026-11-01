@@ -7,13 +7,17 @@
 # few defaults below are marked as drawing rules (never printed as data).
 
 SF_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)    # D6 a: the only scales on any sheet
+# round 4 (S2, D11, Aras 1 Nov 10:31): 1:100 is allowed for ZOOM INSETS ONLY (nothing on the list is >= 2 x 1:250)
+SF_INSET_SCALES = (100,) + SF_SCALES
+SF_INSET_MIN_ZOOM = 2.0             # G-R4-5.6: an inset is at least 2 x its parent's scale
 
 
-def sf_scale_ok(den):
-    """asserts den is a standard scale (D6 a)"""
-    if int(den) not in SF_SCALES:
-        raise AssertionError("scale 1:%s is not standard (D6): use one of %s" % (den, ", ".join("1:%d" % s for s in
-                                                                                              SF_SCALES)))
+def sf_scale_ok(den, inset=False):
+    """asserts den is a standard scale (D6 a); inset=True also allows 1:100 (D11, zoom insets only)"""
+    sc = SF_INSET_SCALES if inset else SF_SCALES
+    if int(den) not in sc:
+        raise AssertionError("scale 1:%s is not standard (D6%s): use one of %s"
+                             % (den, ", D11 insets" if inset else "", ", ".join("1:%d" % s for s in sc)))
     return int(den)
 
 
@@ -212,27 +216,32 @@ def sf_back_profile(bases, x0, x1):
     return [(x0, pts[0][1])] + pts + [(x1, pts[-1][1])]
 
 
-def sf_back_house(xa, xb, gy, h_m, k, layer=1, floors=None, roof="hip", fill=None, ink=None):
+SF_BACK = dict(fill="E6E3DD", line="CFCBC2", roof="DAD6CE", lw=0.08)   # round 4 (S2, G-R4-5.3): background houses
+SF_BACK_WIN_M = 30.0                # m behind the cut: farther houses get no windows (drawing rule, PLAN §4.7)
+
+
+def sf_back_house(xa, xb, gy, h_m, k, layer=1, floors=None, roof="hip", fill=None, ink=None, d_m=None):
     """G14 + G7 + M8: a background house in elevation (not a rectangle): walls h_m (data height, m) high standing
     on the lowest ground of its layer's profile gy under it, a window per bay and storey (sill 0.90 m, head 2.10 m:
     the repo's bld_section_profile values; bay 3.0 m and window 1.20 m wide: drawing rules), a hipped roof at the
     repo's BLD_PITCH (M11 convention, not surveyed; "flat" = 0.60 m parapet), eaves 0.30 m; true size (an
-    elevation: k is not reduced), paler with the D9 layer. Returns house shapes."""
+    elevation: k is not reduced). Round 4 v2 (S2, G-R4-5.3): ONE pale tone at every depth (SF_BACK: no darker layer),
+    windows only within SF_BACK_WIN_M behind the cut: d_m = the house's distance behind the cut (sf_back_buildings
+    gives it); without d_m only depth layer 1 gets windows. fill / ink override the tones. Returns house shapes."""
     import math as _m
-    fade = fig_depth(layer)[1] if globals().get("fig_depth") else 0.4
-    C = globals().get("BLD_COL") or {}
-    wall = _sec_mix(fill or C.get("fill", "ECE9E3"), SEC["paper"], 0.25 + 0.5 * fade)
-    line = _sec_mix(ink or C.get("edge", "7D756C"), SEC["paper"], 0.25 + 0.5 * fade)
-    rf = _sec_mix(C.get("roof", "A39A90"), SEC["paper"], 0.2 + 0.5 * fade)
+    wall = fill or SF_BACK["fill"]
+    line = ink or SF_BACK["line"]
+    rf = SF_BACK["roof"]
+    win = (d_m <= SF_BACK_WIN_M) if d_m is not None else layer <= 1
     xa, xb = min(xa, xb), max(xa, xb)
     y0 = sf_seat_box(xa, xb, gy)
     yt = y0 + h_m * k
-    sh = [("poly", [(xa, y0), (xb, y0), (xb, yt), (xa, yt)], wall, line, 0.08)]
+    sh = [("poly", [(xa, y0), (xb, y0), (xb, yt), (xa, yt)], wall, line, SF_BACK["lw"])]
     w_m = (xb - xa) / k
     nf = int(floors) if floors else max(1, int(round(h_m / globals().get("BLD_STOREY", 3.0))))
     st = h_m / float(nf)
     nb = max(1, int(w_m // 3.0))
-    if st >= 2.4 and w_m >= 2.4:
+    if win and st >= 2.4 and w_m >= 2.4:
         bw = (xb - xa) / nb
         for i in range(nf):
             for j in range(nb):
@@ -242,14 +251,14 @@ def sf_back_house(xa, xb, gy, h_m, k, layer=1, floors=None, roof="hip", fill=Non
                 sh.append(("poly", [(cx - ww / 2, wy0), (cx + ww / 2, wy0), (cx + ww / 2, wy1), (cx - ww / 2, wy1)],
                            line, None, 0.05))
     if roof == "flat":
-        sh.append(("poly", [(xa, yt), (xb, yt), (xb, yt + 0.6 * k), (xa, yt + 0.6 * k)], wall, line, 0.08))
+        sh.append(("poly", [(xa, yt), (xb, yt), (xb, yt + 0.6 * k), (xa, yt + 0.6 * k)], wall, line, SF_BACK["lw"]))
     else:
         t = _m.tan(_m.radians(globals().get("BLD_PITCH", 30.0)))
         run = min(0.5 * (xb - xa) + 0.3 * k, 4.0 * k)
         rise = t * run
         e = 0.3 * k
         sh.append(("poly", [(xa - e, yt), (xb + e, yt), (xb + e - run, yt + rise), (xa - e + run, yt + rise)], rf, line,
-                   0.08))
+                   SF_BACK["lw"]))
     return sh
 
 
@@ -347,28 +356,28 @@ def sf_wall_mark(x, y, h, fill=None):
     return [("poly", [(x, y + h), (x - 0.6 * h, y), (x + 0.6 * h, y)], fill or SEC["ink2"], None, 0.1)]
 
 
-# ---- D8 designed sky (R2-A 31 Oct 2026; round 3 G15: six quiet variants, architectural clouds, birds) --------------
-# D8 answer (PLAN.md): default a = every section and perspective. sky="d8" in sf_atmosphere follows this.
+# ---- sky v2 (round 4 S2, G-R4-5.3, U06 "background and sky looks weird"; PLAN §4.7) --------------------------------
+# D8 answer (PLAN.md round 2): default a = every section and perspective. sky="d8" / True / "designed" in
+# sf_atmosphere all draw this sky.
 SF_SKY_DEFAULT = "designed"
-# G15 (U03, U10): the sky is quiet and never in the foreground, different on every section of a page, clouds drawn
-# the architectural way (a thin line contour, no fill, or one soft single-tone wash band), a few birds (D3).
-# Drawing rules (not data): the tint lies in the top SF_SKY["height"] of the drawing's height above the horizon and
-# fades to the paper at its foot (horizon = paper); the top colours are palette tones lightened until CIE L* >= 85,
-# i.e. at most 15 % darker than the white paper (CFDBE4 board pale blue L* 86.8; 7FA4B3 SEC water x 0.6 -> CCDBE1
-# 86.5; A2B6B5 grey-teal x 0.5 -> D0DADA 86.3; 5C7A86 slate x 0.7 -> CED7DB 85.4; 8E8F8A grey x 0.7 -> DDDDDC
-# 88.1; CIE L* calculated from sRGB, D65). Cloud contour 0.18 pt = 0.064 mm in SEC ink2.
-SF_SKY = dict(height=0.35, bands=12, paper="FFFFFF", line_lw=0.064, wash=0.55)
-SF_SKY_VARIANTS = (                 # top colour, clouds: line cumulus n, cirrus groups n, wash bands n
-    dict(top="CFDBE4", cumulus=3, cirrus=0, wash=0),
-    dict(top="CCDBE1", cumulus=0, cirrus=0, wash=1),
-    dict(top="D0DADA", cumulus=0, cirrus=2, wash=0),
-    dict(top="CED7DB", cumulus=2, cirrus=0, wash=1),
-    dict(top="DDDDDC", cumulus=0, cirrus=1, wash=2),
-    dict(top="E3EBEF", cumulus=1, cirrus=0, wash=0),     # CFDBE4 x 0.4 toward white: a clear day
+# The sky sits back: the paper stays white; only the top SF_SKY["wash_h"] of the drawing's height above its lowest
+# ground carries one very light vertical wash (wash_top at the top edge -> paper at the wash's foot); 2-3 OPEN cloud
+# contours (a long low top line, no fill, no base line) in a pale cool grey; 2-4 birds in a pale grey. Nothing in the
+# sky is darker than the muted base-map houses (map_layers / basemap BM_MUTED: bld EDEBE6, edge C9C5BC). Drawing rules,
+# not data. Six fixed arrangements; a cut id keeps its arrangement and neighbouring cuts of a page never share one.
+SF_SKY = dict(wash_h=0.30, bands=8, paper="FFFFFF", wash_top="F3F5F6", cloud="C9CFD3", cloud_lw=0.10, bird="C4CACE",
+              cloud_w_max=45.0, cloud_h_max=3.0)
+SF_SKY_VARIANTS = (                 # cloud centres (x as a fraction of the width, y as a fraction of the height above
+    dict(x=(0.18, 0.66), y=(0.86, 0.74), w=(0.24, 0.20), birds=3),          # the lowest ground), widths (fraction of
+    dict(x=(0.10, 0.45, 0.80), y=(0.78, 0.89, 0.72), w=(0.18, 0.22, 0.16), birds=2),   # the width), birds
+    dict(x=(0.30, 0.80), y=(0.72, 0.86), w=(0.26, 0.18), birds=4),
+    dict(x=(0.12, 0.40, 0.72), y=(0.84, 0.70, 0.80), w=(0.16, 0.20, 0.22), birds=3),
+    dict(x=(0.55, 0.88), y=(0.82, 0.71), w=(0.28, 0.16), birds=2),
+    dict(x=(0.14, 0.50), y=(0.70, 0.83), w=(0.22, 0.26), birds=3),
 )
 SF_SKY_USED = {}                    # cut id -> variant (a cut keeps its sky wherever it is drawn)
 SF_SKY_RECENT = []                  # the last variants handed out: neighbours on a page never share one
-SF_LOG = []                         # "sky variant <cid> v<n>" lines (sec_look_lines)
+SF_LOG = []                         # "sky variant <cid> v<n>", inset and level-mark lines (sec_look_lines)
 
 
 def sf_sky_variant(cid=None):
@@ -393,89 +402,52 @@ def sf_sky_variant(cid=None):
     return v
 
 
-def _sf_cumulus(cx, by, w, rnd, ink, lw):
-    """an architectural cumulus: a flat base line and a run of 3-5 arcs over it (contour only, no fill)"""
+def _sf_cloud(cx, cy, w, hb, rnd, col, lw):
+    """sky v2: one OPEN cloud contour: a long low top line of 2-3 shallow swells, its ends easing down to the cloud's
+    foot (no base line, no fill), and a short loose stroke under it"""
     import math as _m
-    m = 3 + int(rnd() * 2.999)
-    rs = [0.5 + 0.6 * rnd() for _i in range(m)]
-    s = sum(rs)
-    x, pts = cx - 0.5 * w, []
-    for i, r_ in enumerate(rs):
-        d = w * r_ / s
-        r = 0.5 * d
-        lift = (0.15 + 0.35 * _m.sin(_m.pi * (i + 0.5) / m)) * r     # the middle arcs ride higher
-        for j in range(9):
-            a = _m.pi * (1.0 - j / 8.0)
-            pts.append((x + r + r * _m.cos(a), by + lift + r * _m.sin(a) * 0.9))
-        x += d
-    return [("line", [(cx - 0.5 * w, by)] + pts + [(cx + 0.5 * w, by)], ink, lw),
-            ("line", [(cx - 0.55 * w, by), (cx + 0.55 * w, by)], ink, lw)]
-
-
-def _sf_cirrus(cx, cy, w, rnd, ink, lw):
-    """architectural cirrus: 3-5 thin horizontal strokes of varied length, stacked and staggered"""
-    sh = []
-    n = 3 + int(rnd() * 2.999)
-    for i in range(n):
-        L = w * (0.45 + 0.55 * rnd())
-        x0 = cx - 0.5 * w + (w - L) * rnd()
-        y = cy + (i - 0.5 * (n - 1)) * w * 0.035
-        sh.append(("line", [(x0, y), (x0 + L, y)], ink, lw))
-    return sh
-
-
-def _sf_wash(cx, cy, w, h, col):
-    """a soft single-tone wash band: a long flat stadium, no stroke"""
-    import math as _m
-    r = 0.5 * h
-    ring = [(cx + 0.5 * w - r + r * _m.cos(a), cy + r * _m.sin(a)) for a in [(-0.5 + i / 12.0) * _m.pi for i in range(13)]]
-    ring += [(cx - 0.5 * w + r + r * _m.cos(a), cy + r * _m.sin(a)) for a in [(0.5 + i / 12.0) * _m.pi for i in range(13)]]
-    return [("poly", ring, col, None, 0.0)]
+    m = 2 + int(rnd() * 1.999)
+    pts = []
+    n = 40
+    ph = [0.6 + 0.8 * rnd() for _i in range(m)]
+    for j in range(n + 1):
+        t = j / float(n)
+        env = _m.sin(_m.pi * t) ** 0.6                       # ends ease down to the foot
+        sw = sum(ph[i] * max(0.0, _m.sin(_m.pi * (t * m - i))) for i in range(m)) / max(ph)
+        pts.append((cx - 0.5 * w + w * t, cy + hb * env * (0.45 + 0.55 * sw)))
+    x0 = cx - 0.5 * w + w * (0.15 + 0.2 * rnd())
+    return [("line", pts, col, lw), ("line", [(x0, cy - 0.35 * hb), (x0 + w * (0.35 + 0.2 * rnd()), cy - 0.35 * hb)],
+                                     col, lw)]
 
 
 def sf_sky(x0, x1, y0, y_top, seed=0, clouds=True, tone=None, cid=None, birds=True, variant=None):
-    """D8 designed sky behind a section or perspective (G15 round 3): one of SF_SKY_VARIANTS (variant, else
-    sf_sky_variant(cid): no two sections of a page share one), a gradient from the paper at its foot to the variant's
-    pale top in the top SF_SKY["height"] of y0 (page y, the lowest ground) .. y_top, below it the paper; clouds drawn
-    as thin line contours or a soft wash band; birds (D3: sf_birds, 2-5 generic silhouettes) unless birds=False.
-    tone: a hex colour mixed into the top (kept pale). Draw it first (behind the ground). Returns shapes."""
+    """sky v2 (round 4 S2, G-R4-5.3) behind a section or perspective: paper white, one very light vertical wash
+    (SF_SKY wash_top -> paper) over the top SF_SKY["wash_h"] of y0 (page y, the lowest ground) .. y_top, 2-3 open
+    cloud contours and 2-4 pale birds after one of SF_SKY_VARIANTS (variant, else sf_sky_variant(cid): no two
+    sections of a page share one). tone: kept for old calls, no effect (the sky never takes a page colour). Draw it
+    first (behind the ground). Returns shapes."""
     v = SF_SKY_VARIANTS[(variant if variant is not None else sf_sky_variant(cid)) % len(SF_SKY_VARIANTS)]
-    top = v["top"] if not tone else _sec_mix(_sec_mix(tone, SF_SKY["paper"], 0.6), v["top"], 0.5)
-    H = y_top - y0
-    if x1 - x0 <= 1.0 or H <= 1.0:
+    H, W = y_top - y0, x1 - x0
+    if W <= 1.0 or H <= 1.0:
         return []
-    ys = y_top - SF_SKY["height"] * H
+    ys = y_top - SF_SKY["wash_h"] * H
     n = int(SF_SKY["bands"])
     sh = []
-    for i in range(n):
+    for i in range(n):                                   # the wash: paper at its foot, wash_top at the top edge
         ya = ys + (y_top - ys) * i / float(n)
         yb = ys + (y_top - ys) * (i + 1) / float(n) + (0.05 if i < n - 1 else 0.0)
-        sh.append(("poly", [(x0, ya), (x1, ya), (x1, yb), (x0, yb)], _sec_mix(SF_SKY["paper"], top, (i + 0.5) / n),
-                   None, 0.0))
+        sh.append(("poly", [(x0, ya), (x1, ya), (x1, yb), (x0, yb)],
+                   _sec_mix(SF_SKY["paper"], SF_SKY["wash_top"], (i + 0.5) / n), None, 0.0))
     if clouds:
         rnd = _wat_rng(seed + 211)
-        W, Hs = x1 - x0, y_top - ys
-        ink, lw = SEC["ink2"], SF_SKY["line_lw"]
-        wcol = _sec_mix(top, SF_SKY["paper"], SF_SKY["wash"])
-        slots = [x0 + W * (i + 0.5) / 4.0 for i in range(4)]                  # quarters: clouds never pile up
-        order = sorted(range(4), key=lambda _i: rnd())
-        q = 0
-        for _c in range(v["cumulus"]):
-            w = min(W * (0.10 + 0.06 * rnd()), 2.2 * Hs)
-            cx = min(max(slots[order[q % 4]] + 0.1 * W * (rnd() - 0.5), x0 + 0.55 * w), x1 - 0.55 * w)
-            sh += _sf_cumulus(cx, ys + Hs * (0.25 + 0.35 * rnd()), w, rnd, ink, lw)
-            q += 1
-        for _c in range(v["cirrus"]):
-            w = min(W * (0.14 + 0.08 * rnd()), 4.0 * Hs)
-            cx = min(max(slots[order[q % 4]] + 0.1 * W * (rnd() - 0.5), x0 + 0.5 * w), x1 - 0.5 * w)
-            sh += _sf_cirrus(cx, ys + Hs * (0.45 + 0.35 * rnd()), w, rnd, ink, lw)
-            q += 1
-        for _c in range(v["wash"]):
-            w = W * (0.25 + 0.20 * rnd())
-            cx = min(max(x0 + W * (0.2 + 0.6 * rnd()), x0 + 0.5 * w), x1 - 0.5 * w)
-            sh += _sf_wash(cx, ys + Hs * (0.35 + 0.4 * rnd()), w, min(0.12 * Hs, 0.06 * w), wcol)
-    if birds:
-        sh += sf_birds(x0, x1, y0 + 0.55 * H, y0 + 0.95 * H, seed=seed)
+        for fx, fy, fw in zip(v["x"], v["y"], v["w"]):
+            w = min(fw * W, SF_SKY["cloud_w_max"])
+            hb = min(0.08 * w, SF_SKY["cloud_h_max"], 0.10 * H)
+            cx = min(max(x0 + fx * W, x0 + 0.55 * w), x1 - 0.55 * w)
+            cy = min(y0 + fy * H, y_top - 1.2 * hb)
+            sh += _sf_cloud(cx, cy, w, hb, rnd, SF_SKY["cloud"], SF_SKY["cloud_lw"])
+    if birds and v["birds"]:
+        sh += sf_birds(x0 + 0.08 * W, x1 - 0.08 * W, y0 + 0.55 * H, y0 + 0.92 * H, seed=seed, n=v["birds"])
     return sh
 
 
@@ -500,7 +472,7 @@ def sf_birds(x0, x1, y0, y1, seed=0, n=None, ink=None, size=None):
     if x1 - x0 <= 1.0 or y1 - y0 <= 0.5:
         return []
     rnd = _wat_rng(seed + 77)
-    ink = ink or _sec_mix(SEC["ink"], SF_SKY["paper"], 0.35)
+    ink = ink or SF_SKY["bird"]                          # round 4 sky v2: pale, never darker than the base houses
     cnt = n if n is not None else 2 + int(rnd() * 3.999)
     gx = x0 + (0.15 + 0.7 * rnd()) * (x1 - x0)                 # the flock's centre
     gy = y0 + (0.3 + 0.5 * rnd()) * (y1 - y0)
@@ -527,6 +499,9 @@ def sec_look_lines():
     for ln in (globals().get("PLA_LOG") or ()):
         if ln.startswith(u"plants: no alpha"):
             out.append(ln)
+    f = globals().get("pla_log_lines")      # round 4 (S3): willow v2 drawn, plants by species / season, colour FLAG
+    if f:
+        out += f()
     f = globals().get("fig_flag_lines")
     if f:
         out += f()
@@ -548,16 +523,10 @@ def sf_atmosphere(x0, x1, gy, y_top, k, seed=0, sky=True, trees=True, birds=True
     wl = into if into is not None else water_layers()
     gf = _sf_fn(gy)
     g0 = min(gf(x0), gf(x1), sf_ground_min(gf, x0, x1, 24))
-    if sky == "d8":
+    if sky is True or sky == "d8":                       # round 4 (S2): every sky is sky v2 (the old bands retired)
         sky = SF_SKY_DEFAULT
     if sky == "designed":
         wl.add("atmosphere", sf_sky(x0, x1, g0, y_top, seed=seed, cid=cid, birds=False))
-    elif sky:
-        for i, t in enumerate((0.93, 0.95, 0.97)):
-            ya = g0 + (y_top - g0) * i / 3.0
-            yb = g0 + (y_top - g0) * (i + 1) / 3.0
-            wl.add("atmosphere", [("poly", [(x0, ya), (x1, ya), (x1, yb), (x0, yb)],
-                                   _sec_mix(SEC["water"], SEC["paper"], t), None, 0.1)])
     if back_ground:
         bot = min(min(p[1] for p in pr) for pr in back_ground.values()) - 1.0
         lays = sorted(back_ground, reverse=True)
@@ -599,7 +568,11 @@ class SfCallouts(object):
     def marks(self, size=1.8, ink=None, fill="FFFFFF"):
         ink = ink or SEC["ink"]
         sh = []
+        mk = globals().get("mk_marker")                  # round 4 (S2, G-R4-7): the one marker function (S1 marker.py)
         for n, x, y, _t in self.items:
+            if callable(mk):
+                sh += list(mk(x, y, u"%d" % n, ink, size_pt=max(7.0, size / 0.3528), style="ring")[0])
+                continue
             r = 0.75 * size
             sh += [("poly", sec_ellipse(x, y, r, r, 20), fill, ink, 0.15),
                    ("text", u"%d" % n, x, y - 0.36 * size, 0.85 * size, ink, True, "C")]
@@ -621,9 +594,10 @@ class SfCallouts(object):
         return sh
 
 
-def sf_width_label(x0, x1, y, width_m, size=1.6, ink=None, unit=True):
+def sf_width_label(x0, x1, y, width_m, size=2.47, ink=None, unit=True):
     """a lane / element width (R18 idea): a dimension line x0-x1 at y with end ticks and the width in cm above it
-    ("300 cm"; unit=False -> "300" when the drawing states cm once)"""
+    ("300 cm"; unit=False -> "300" when the drawing states cm once). Round 4 (G-R4-5.4): put it in the MARGIN under
+    or over the section frame, never across the picture; size default 7 pt (2.47 mm; minimum 6 pt, G-R4-1)."""
     ink = ink or SEC["ink2"]
     t = 0.5 * size
     s = u"{:,.0f}".format(width_m * 100.0) + (u" cm" if unit else u"")
@@ -631,6 +605,66 @@ def sf_width_label(x0, x1, y, width_m, size=1.6, ink=None, unit=True):
             ("line", [(x0 - 0.5 * t, y - 0.5 * t), (x0 + 0.5 * t, y + 0.5 * t)], ink, 0.15),
             ("line", [(x1 - 0.5 * t, y - 0.5 * t), (x1 + 0.5 * t, y + 0.5 * t)], ink, 0.15),
             ("text", s, (x0 + x1) / 2.0, y + 0.35 * size, size, ink, False, "C")]
+
+
+# ---- level marks outside the frame (round 4 S2, G-R4-5.4, U43 / U44 sketch; PLAN §4.7) ------------------------------
+# An open inverted triangle standing on a tick that touches the section frame at the level's height, the value beside
+# it OUTSIDE the frame ("+43.92 mean"), m with 2 decimals. Sizes: drawing rules from PLAN §4.7; text 7 pt (label).
+SF_LEVEL = dict(tick=4.0, tri=2.0, gap=0.8, size=2.47, lw=0.15, step=2.6)
+SF_LEVEL_NAMES = dict(q500=u"Q500", q100=u"Q100", avg=u"mean", mean=u"mean", bed=u"bed")
+
+
+def sf_level_marks(frame_box, levels, side="R", y_of=None, size=None, cols=None, page=None):
+    """the level marks of one section OUTSIDE its frame (G-R4-5.4). frame_box = (x0, y0, x1, y1) page mm (y up) of
+    the section's frame; levels = [(key or name, level m[, page y])]: key "q500" / "q100" / "avg" / "mean" / "bed" /
+    a season level key, or any short name ("summer strip"); without a page y, y_of(level) gives it (water_section's
+    wl.anchors["levels"] is this list). side "R" (default) or "L". Each mark: a tick SF_LEVEL["tick"] mm long from
+    the frame outward at the level's y, an open inverted triangle (apex on the tick) and "+43.92 Q100" beyond it, in
+    the level's colour (water.py palette: q100 / q500; avg and bed the water hatch ink). Levels closer than a text
+    line step their triangles outward and their texts apart (a hairline leader joins a moved text). cols = {key:
+    hex} overrides. Logs "level marks <page>: n outside the frame" in SF_LOG. Returns shapes."""
+    x0, y0, x1, y1 = frame_box
+    size = size or SF_LEVEL["size"]
+    Pa = _wat_pal() if globals().get("_wat_pal") else {}
+    rows = []
+    for lv in levels or ():
+        key, val = lv[0], float(lv[1])
+        y = lv[2] if len(lv) > 2 and lv[2] is not None else (y_of(val) if y_of else None)
+        if y is None:
+            raise ValueError("sf_level_marks: level %r needs a page y or y_of" % (key,))
+        if y < y0 - 1e-6 or y > y1 + 1e-6:
+            SF_LOG.append(u"FLAG level marks %s: %s %+.2f lies outside the frame's height: not marked"
+                          % (page or u"", key, val))
+            continue
+        col = (cols or {}).get(key) or Pa.get(key) or SEC["hatch"]
+        rows.append((y, key, val, col))
+    rows.sort(key=lambda r: -r[0])
+    sgn = 1.0 if side == "R" else -1.0
+    xf = x1 if side == "R" else x0
+    t, tri, lw = SF_LEVEL["tick"], SF_LEVEL["tri"], SF_LEVEL["lw"]
+    sh, last_y, col_i, prev_y = [], None, 0, None
+    tx_out = []
+    for y, key, val, col in rows:
+        col_i = col_i + 1 if prev_y is not None and prev_y - y < 0.9 * tri + 0.3 else 0
+        prev_y = y
+        xa = xf + sgn * (t + col_i * SF_LEVEL["step"])            # the tick's outer end
+        sh.append(("line", [(xf, y), (xa, y)], col, lw))
+        cx = xa - sgn * 0.5 * tri
+        sh.append(("poly", [(cx, y), (cx - 0.5 * tri, y + 0.87 * tri), (cx + 0.5 * tri, y + 0.87 * tri)], None, col, lw))
+        tx_out.append((y, key, val, col, xa))
+    xs = [r[4] for r in tx_out]
+    xt = ((max(xs) if side == "R" else min(xs)) if xs else xf) + sgn * SF_LEVEL["gap"]
+    for y, key, val, col, xa in tx_out:
+        ty = y - 0.35 * size                               # the text centred on its tick
+        if last_y is not None and ty > last_y - 1.25 * size:
+            ty = last_y - 1.25 * size
+        if abs(ty - (y - 0.35 * size)) > 0.05 or abs(xt - xa) > SF_LEVEL["gap"] + 1e-6:
+            sh.append(("line", [(xa, y), (xt - sgn * 0.3, ty + 0.35 * size)], col, 0.08))
+        nm = SF_LEVEL_NAMES.get(key, u"%s" % key)
+        sh.append(("text", u"%+.2f %s" % (val, nm), xt, ty, size, col, False, "L" if side == "R" else "R"))
+        last_y = ty
+    SF_LOG.append(u"level marks %s: %d outside the frame (%s)" % (page or u"", len(tx_out), side))
+    return sh
 
 
 # ---- standard elements (true size; page mm, y up; side +1 = builds to the right of x) ------------------------------
@@ -809,7 +843,32 @@ def sf_bike_rack(x, y, k, side=1, layer=0, ink=None):
 # spot, the same drawing at the bigger scale in a box (white ground, 0.25 pt neatline like a map: the one frame
 # G17 keeps), the label "ZOOMED IN · <what>" over it and ONE short connector from the spot's corner to the box's
 # nearest corner (a frame link, not a label leader).
-SF_ZOOM = dict(lw_spot=0.064, lw_box=0.088, label_mm=1.8, gap=1.0)
+SF_ZOOM = dict(lw_spot=0.064, lw_box=0.088, label_mm=2.47, gap=1.0, bar_h=0.8, bar_lw=0.1)   # round 4: label 7 pt
+
+
+def sf_scale_bar(x, y, k, den=None, max_mm=30.0, size=2.12, ink=None, segs=4):
+    """round 4 (S2, G-R4-5.6): a small scale bar for an inset or section: segs alternating ink / white cells along a
+    round length in m (1, 2, 5, 10, 20, 50, 100 ... the longest that fits max_mm at k page mm per m), left end at
+    (x, y) (page mm, y up: the bar's top edge), "0" and "<L> m" under its ends and "1:<den>" after it when den is
+    given; text 6 pt (minimum). Returns shapes."""
+    ink = ink or SEC["ink"]
+    Lm = 1.0
+    for c in (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000):
+        if c * k <= max_mm:
+            Lm = float(c)
+    L = Lm * k
+    h = SF_ZOOM["bar_h"]
+    sh = []
+    for i in range(segs):
+        a, b = x + L * i / segs, x + L * (i + 1) / segs
+        sh.append(("poly", [(a, y - h), (b, y - h), (b, y), (a, y)], ink if i % 2 == 0 else "FFFFFF", ink,
+                   SF_ZOOM["bar_lw"]))
+    ty = y - h - 0.9 * size
+    sh.append(("text", u"0", x, ty, size, ink, False, "C"))
+    sh.append(("text", u"%g m" % Lm, x + L, ty, size, ink, False, "C"))
+    if den:
+        sh.append(("text", u"1:{:,}".format(int(den)), x + L + 1.2 * size, y - h, size, ink, False, "L"))
+    return sh
 
 
 def _sf_clip_poly(ring, x0, y0, x1, y1):
@@ -881,14 +940,33 @@ def _sf_clip_line(pts, x0, y0, x1, y1):
     return out
 
 
-def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink=None, connector=True):
+def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink=None, connector=True,
+                  scale_den=None, parent_den=None, page=None):
     """G15 zoom-in inset. src_box = (x0, y0, x1, y1) page mm of the spot on the section; dst_box = the inset's box
     beside the section; k_src, k_dst = page mm per m of the section and of the inset (k_dst > k_src). draw_fn: the
     shapes of the section (a list, or a WaterLayers, or a callable returning one): every shape is re-drawn at the
     bigger scale (geometry x k_dst / k_src about the spot's centre -> the box's centre; pen widths and text sizes
     kept) and clipped to the box; images keep their pixels and get the box as clip. label: what is shown ("ZOOMED
     IN · <label>" over the box, left aligned). Returns shapes: the spot rectangle, the connector, the box ground,
-    the enlarged copy, the neatline and the label. Size the box so the spot fits: (x1 - x0) x k_dst / k_src."""
+    the enlarged copy, the neatline and the label. Size the box so the spot fits: (x1 - x0) x k_dst / k_src.
+    Round 4 (S2, G-R4-5.6, D11): RAISES when the inset is less than SF_INSET_MIN_ZOOM (2) x its parent (k_dst / k_src,
+    and parent_den / scale_den when both are given); scale_den = the inset's scale (checked against SF_INSET_SCALES:
+    1:100 allowed for insets only) -> its own scale bar under the box and "1:<den>" in the caption; without it a
+    FLAG line (no bar). page: the booklet page id for the log line "inset <page> parent 1:<a> inset 1:<b>". The
+    caption sits above the box, outside the detail; the bar below it."""
+    f_chk = float(k_dst) / float(k_src)
+    if f_chk < SF_INSET_MIN_ZOOM - 1e-6:
+        raise AssertionError(u"inset %s (%s): zoom %.2f x its parent; G-R4-5.6 needs >= %.0f x (D11: a 1:250 parent "
+                             u"takes a 1:100 inset)" % (page or u"", label, f_chk, SF_INSET_MIN_ZOOM))
+    if scale_den is not None:
+        sf_scale_ok(scale_den, inset=True)
+        if parent_den is not None and float(parent_den) / float(scale_den) < SF_INSET_MIN_ZOOM - 1e-6:
+            raise AssertionError(u"inset %s (%s): 1:%s is less than 2 x its parent 1:%s (G-R4-5.6)"
+                                 % (page or u"", label, scale_den, parent_den))
+        SF_LOG.append(u"inset %s parent 1:%s inset 1:%s" % (page or u"", parent_den if parent_den else u"?",
+                                                            int(scale_den)))
+    else:
+        SF_LOG.append(u"FLAG inset %s (%s): no scale_den passed: no scale bar (G-R4-5.6)" % (page or u"", label))
     sh_in = draw_fn() if callable(draw_fn) else draw_fn
     if hasattr(sh_in, "shapes"):
         sh_in = sh_in.shapes()
@@ -931,7 +1009,11 @@ def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink
     sh.append(("poly", box, "FFFFFF", None, 0.0))
     sh += out
     sh.append(("poly", box, None, ink, SF_ZOOM["lw_box"]))
-    sh.append(("text", u"ZOOMED IN · %s" % label, dx0, dy1 + 0.6 * size, size, ink, True, "L"))
+    cap = u"ZOOMED IN · %s" % label + (u" · 1:{:,}".format(int(scale_den)) if scale_den else u"")
+    sh.append(("text", cap, dx0, dy1 + 0.6 * size, size, ink, True, "L"))
+    if scale_den:
+        sh += sf_scale_bar(dx0, dy0 - SF_ZOOM["gap"], k_dst, None, max_mm=min(30.0, 0.45 * (dx1 - dx0)),
+                           ink=ink)
     return sh
 
 

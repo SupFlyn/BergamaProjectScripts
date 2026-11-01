@@ -187,10 +187,15 @@ def r28_zone_strength(C):
                 base[n] = lv
         if not base:
             continue
+        inS = getattr(C, "inS", None)                   # v38 (round 4, CHK-7 site 11): fields only inside the study
+        if inS is not None:
+            base = dict((n, v) for n, v in base.items() if inS[n])
+            if not base:
+                continue
         if key in R28DT_WET:
-            allow = lambda m: F[m] == 0 or F[m] == 3
+            allow = lambda m: (F[m] == 0 or F[m] == 3) and (inS is None or inS[m])
         else:
-            allow = lambda m: F[m] == 0
+            allow = lambda m: F[m] == 0 and (inS is None or inS[m])
         out[key] = (base, _r28_spread(C, base, allow))
     C._r28_v = out
     return out

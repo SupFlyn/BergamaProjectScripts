@@ -396,10 +396,31 @@ def _ico_grid(name):
     raise ValueError("icons: unknown icon %r (see ICO_NAMES)" % (name,))
 
 
+# round 4 (S2, G-R4-6): plant icons take the species' own general colour from the plant module (plants.py pla_colours,
+# S3) when it is there; the ICO_PAL greens stay only as the fallback until then
+ICO_PLANT_KEY = dict(olive="olive", reeds="reed")     # species icons only; generic tree / planting icons keep ICO_PAL
+
+
+def _ico_plant_colour(name):
+    """the general (no-season) leaf colour of an icon's species from pla_colours(key, None), or None"""
+    f, key = globals().get("pla_colours"), ICO_PLANT_KEY.get(name)
+    if not callable(f) or not key:
+        return None
+    try:
+        c = f(key, None)
+    except Exception:
+        return None
+    if isinstance(c, dict):
+        c = c.get("leaf") or c.get("fill") or c.get("main")
+    elif isinstance(c, (list, tuple)):
+        c = c[0] if c else None
+    return c if isinstance(c, str) and len(c.lstrip("#")) == 6 else None
+
+
 def _ico_colours(name, ink, accent, second):
     """Token -> hex for one icon: ink, c1 (accent overrides), c2 (second overrides; None = c1 mixed to paper)."""
     d1, d2 = ICO_COL[name]
-    c1 = accent or ICO_PAL[d1]
+    c1 = accent or _ico_plant_colour(name) or ICO_PAL[d1]
     c2 = second or (ICO_PAL[d2] if d2 else _ico_mix(c1, ICO_PAL["paper"], 0.6))
     return dict(ink=ink or ICO_PAL["ink"], c1=c1, c2=c2, paper=ICO_PAL["paper"])
 

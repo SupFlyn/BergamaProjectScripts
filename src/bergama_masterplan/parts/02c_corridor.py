@@ -47,6 +47,19 @@ NI_BLOCK, NI_SHARE, NI_MIN_HA, NI_BUILT = 15.0, 0.9, 1.0, 0.4   # v26: no-interv
 NI_MIN_HA_STUDY = 0.25       # v37 (round 3, P21.3 / G18 "no undefined space"): inside the study area (calisma_alan)
 #   untouched regions get a letter and their reason from this size, ha (design rule; NI_MIN_HA elsewhere)
 NI_ROAD_M = 6.0              # v26: a changed road or the hidden-stream line touches this far either side, m
+# v38 (round 4, P21.7): the voids designed. Design readings (Aras: "it needs to be designed"), not data: each name
+# and reason uses only the region's data (survey kind / WorldCover class, distance to the water) and the project's
+# programme words; plants only sourced species (D7: plane and ash in the copses as the forest corridor's drier
+# ground, rosemary and French lavender in the gardens). Kind -> (place name, short reason).
+VOID_RULES = {
+    "meadow": (u"Rain meadow", u"open ground: a meadow with copses holds the rain before the stream"),
+    "garden": (u"Pocket garden", u"open ground off the water: rosemary and lavender, reached from the street"),
+    "grove": (u"Shade grove", u"tree cover kept: paths through it join the forest corridor"),
+    "lanes": (u"Shaded lanes", u"homes stay: trees on the lanes that lead to the water"),
+    "heritage": (u"Heritage setting", u"kept as it is: the setting of the heritage buildings"),
+}
+VOID_LANE_STEP = 12.0        # lane trees every this many m along a surveyed kerb (design value)
+VOID_SHRUB_STEP = 9.0        # pocket-garden shrub groups every this many m (design value)
 # v26 (Prompt 7 task 3): the satellite check of the open ground. No imagery could be opened from the cloud where
 # this version was written (Esri, Google, EOX and Sentinel Hub refused, 27 Oct 2026), so it is still to do: each
 # press writes the open ground's outlines to logs/bergama_masterplan_open_ground_check.kml for Google Earth (and by
@@ -60,8 +73,8 @@ LC_KEYS = ("farmland", "trees", "shrub", "grass", "orchard")        # v26: ESA W
 PLACE_TS = 4.3               # place names on the plans, mm (12.2 pt)
 LAB_TS = 2.6                 # labels on the 1:1,000 windows, mm
 BADGE_R, BADGE_TS = 1.95, 2.5
-DT_PLAN = (194.0, 120.0)     # p.24 windows, mm at 1:1,000: one row, 194 + 4 + 194 = 392 mm (bk_w); v28: 120 mm high so
-#                              each crop holds its plan and its section (D1, D2) under it in the 238 mm panel
+DT_PLAN = (194.0, 118.0)     # p.24 windows, mm at 1:1,000: one row, 194 + 4 + 194 = 392 mm (bk_w); v38 (round 4,
+#                              P22.1): 118 mm high, so title strip + plan + section + legend fill the 236 mm column
 ECO_COL, HUB_COL = "6F8A4E", "D9A35E"        # palette "tree" family darkened / "centre" family (graphic)
 WATER_COL, WET_COL = COL["river"], "B7CFC8"
 SQ_FILL, SQ_EDGE = "F4E6CC", "9C7440"
@@ -94,56 +107,17 @@ def mp_upper(s):
 # v37 (round 3, G16 / D9): hub names from common/data/NAMES.py (bridge_name); no K-code is printed. Map words use the
 # short bridge name (the full name stands in the page's list of moves).
 HUB_NAME = {u"K4": mp_upper(bridge_name("K4", short=True)), u"K3": mp_upper(bridge_name("K3", short=True)),
-            u"İstiklal": u"İSTİKLAL MEYDANI", u"Kızıl Avlu": u"KIZIL AVLU",
+            u"İstiklal": mp_upper(landmark_name("istiklal_meydani")), u"Kızıl Avlu": mp_upper(landmark_name("kizil_avlu")),
             u"K5": mp_upper(bridge_name("K5", short=True)), u"K6": mp_upper(bridge_name("K6", short=True))}
-# Places named on the plans (h01 §5 register; survey labels, m): Ulu Cami P05, Tabaklar Hamamı P07, Tabakhane E07
-PLACES = [(u"ULU CAMİ", (29844.2, 32313.3)), (u"TABAKLAR HAMAMI", (29890.4, 32243.6)),
+# Places named on the plans (h01 §5 register; survey labels, m; v38 G-R4-11: names from NAMES.py): Ulucami P05, Tabaklar Hamamı P07, Tabakhane E07
+PLACES = [(mp_upper(landmark_name("ulucami")), (29844.2, 32313.3)), (mp_upper(landmark_name("tabaklar_hamami")), (29890.4, 32243.6)),
           (u"TABAKHANE", (30062.0, 32106.0)), (u"HARAP CAMİİ", (30435.7, 31584.6))]
 # H5 (h03 Q3): Trajaneum centroid 39.1327803, 27.1832652 (OSM) -> survey by the h01 §0 formula (+-10-30 m)
 TRAJANEUM = (30209.0, 33177.0)
 ROMAN_WALL = (29800.2, 32362.3)      # H6: "Eski Kozak Yolu" label, Roman complex with ~120 m bank wall (P12, E10)
 CRAFT_XY = (30062.0, 32106.0)        # H3: "Eski Tabakhane Sk." label (E07) = city link stop 2 (workshops)
-# Roads (OSM bergama_osm.osm, 28 Jul 2026, highway class and name; survey m by the h01 §0 formula, +-10-30 m). Each
-# change is read from data: the OSM class (site board p6 driving map), the site board mark C3 "K4: monument and
-# traffic" (p5), and the OSM chainages of the car crossings along the stream (calculated). No traffic count exists
-# on these streets (card t01: KGM counts only on 35-04, 35-05, D240): no "relocated" road.
-ROADS = [
-    dict(name=u"Bergama - Kozak Yolu", change="kept", note=u"kept: through road to Kozak",
-         proof=u"OSM secondary (one 11.9 km way)",
-         xy=[[29668.6, 32896.0], [29643.3, 32796.0], [29633.4, 32739.9], [29627.0, 32698.6], [29625.9, 32675.0],
-             [29627.8, 32656.7], [29636.9, 32624.0], [29648.9, 32599.2], [29667.9, 32549.9], [29687.1, 32517.5],
-             [29726.2, 32490.9], [29760.3, 32463.9], [29772.4, 32442.5], [29775.9, 32394.5], [29772.1, 32343.5],
-             [29773.3, 32313.3], [29777.8, 32297.2], [29792.2, 32271.3]]),
-    dict(name=u"Cami Kebir Caddesi + " + bridge_name("K4"), change="calmed",
-         note=u"calmed: monument meets traffic at " + bridge_name("K4"),
-         proof=u"edge plan mark C3; OSM secondary",
-         xy=[[29854.5, 32289.9], [29843.7, 32252.8], [29873.2, 32232.0], [29934.1, 32225.0], [29960.0, 32218.3],
-             [29976.9, 32203.2], [30015.5, 32111.3]]),
-    dict(name=u"Tabak Köprüsü", change="calmed", note=u"calmed: hub square and workshops at " + bridge_name("K3"),
-         proof=u"H1, H3 (h01/h02); OSM secondary", xy=[[30023.7, 32110.3], [30052.5, 32130.6]]),
-    dict(name=u"Kınık Caddesi", change="kept", note=u"kept: main spine, shops",
-         proof=u"city link main spine; OSM secondary",
-         xy=[[29992.8, 32017.4], [30005.0, 32029.4], [30032.5, 32038.3], [30089.7, 32057.7], [30138.7, 32039.0]]),
-    dict(name=u"Kızıl Avlu Çıkmazı", change="pedestrian", note=u"pedestrian: dead end over hidden stream",
-         proof=u"OSM living_street, dead end; H2",
-         xy=[[30144.3, 31986.1], [30123.6, 31988.0], [30099.4, 31997.7]]),
-    dict(name=u"Üç Kemer Köprüsü", change="pedestrian", note=u"pedestrian: car crossings 190-230 m away",
-         proof=u"OSM residential; OSM chainage of Kızıl Avlu Cd / next bridge (calc); H1",
-         xy=[[30277.2, 31777.9], [30314.7, 31804.7]]),
-    dict(name=u"Adnan Menderes Bulvarı", change="kept", note=u"kept: regional road İzmir-Soma at the " + bridge_name("K6"),
-         proof=u"OSM primary; h02 E12", xy=[[30609.3, 31239.0], [30695.5, 31266.2]]),
-    dict(name=u"bank street, lower reach", change="shared", note=u"shared: local bank street, stream widens",
-         proof=u"OSM residential; open ground",
-         xy=[[30713.4, 31260.3], [30730.6, 31243.9], [30800.4, 31198.6], [30862.6, 31166.0], [30923.9, 31135.4],
-             [30975.8, 31095.9], [31012.3, 31057.8], [31062.1, 30994.1], [31143.6, 30884.2], [31192.5, 30817.8],
-             [31216.8, 30791.6]])]
-# Aras 12:05: a town-line extension to K4 as a PROPOSED LATER STEP, on the existing streets İstiklal stop -> Kınık Cd
-# -> Cami Kebir Cd -> K4 stop (OSM ways 370936581, 1222988932, 371130159, as above)
-TOWN_LINE = dict(name=u"town bus line to " + bridge_name("K4"), change=u"proposed later: bus line 651 to " +
-                 bridge_name("K4"), note=u"later step: town line on to " + bridge_name("K4"), proof=u"h03 Q1 (town lines stop at İstiklal); K4 stop 35 m",
-                 xy=[[29995.4, 32019.8], [30005.0, 32029.4], [30032.5, 32038.3], [30084.6, 32056.0], [30089.7, 32057.7],
-                     [30075.0, 32066.0], [30041.0, 32089.8], [30017.4, 32106.8], [30015.5, 32111.3], [29976.9, 32203.2],
-                     [29960.0, 32218.3], [29934.1, 32225.0], [29873.2, 32232.0], [29841.0, 32243.7]])
+# Roads (ROADS) and the later town line (TOWN_LINE): v38 (round 4, S8, CHK1_2 F1): moved to common/data/ROADS.py,
+# which the site board includes too, so its street sections never wait for a masterplan run (included in code.py).
 
 
 class _All(object):
@@ -208,6 +182,7 @@ class Corridor(object):
         self.bridges = [P for P in survey.get("bridge", []) if inF(P)]   # v26: survey bridges (YOL_KOPRU), drawn crisp
         self.lc = landcover_grid(G, uvP, V, warn)                        # v26: ESA WorldCover 2021 per cell
         self.roads = [P for role in ("road", "kerb") for P in survey.get(role, []) if inF(P)]
+        self.kerbs = [P for P in survey.get("kerb", []) if inF(P)]       # v38: the voids' lane trees stand on kerbs
         r = max(1, int(round(ROAD_BUF_M / G.c)))
         nx, ny = G.nx, G.ny
         for P in self.roads:
@@ -238,17 +213,34 @@ class Corridor(object):
         if not self.rows:
             warn.append(u"corridor: no stream edges from the survey (river_walks rows): no bed, widening or moves")
         pl28_frame_stats(self)                          # v27 (MIRAQUA 28 Oct, G10): cells inside the frame, its polygon area
+        # v38 (round 4, CHK-7, U40): every proposal is generated inside the study area only (calisma_alan): the
+        # rings (study_clip.sc_rings) and a mask over this grid (cells whose centre lies in a study part; the grid
+        # is in the frame's u, v, so the rings go through V.uv: sc_cell_mask would read them as u, v)
+        self.study = sc_rings(areas=getattr(V, "study", None) or [])
+        inS = self.inS = bytearray(N)
+        for R_ in self.study:
+            for n in G.poly_cells(uvP(R_)):
+                inS[n] = 1
+        if not self.study:
+            warn.append(u"corridor: no study area (calisma_alan): proposals are NOT clipped to it")
+            for n in range(N):
+                inS[n] = 1
         self.dist_water()
         self.hubs = []
         for hid, br, xy, stop, sxy, sub in HUBS:
             self.hubs.append({"id": hid, "bridge": br, "xy": xy, "stop": stop, "stop_xy": sxy, "sub": sub,
                               "role": "transit" if hid in MAIN_TRANSIT_HUB else "walking",
-                              "stop_m": math.hypot(sxy[0] - xy[0], sxy[1] - xy[1])})
+                              "stop_m": math.hypot(sxy[0] - xy[0], sxy[1] - xy[1]),
+                              "in_study": self.in_study(xy)})   # v38: a hub outside designs nothing (U40)
         self.prog = [h for h in self.hubs if h["id"] != u"K6"]           # K6 = gateway out (D2): no programme ring
         self.notes = []
         self.build()
 
     # ---- grid helpers
+    def in_study(self, p, margin_m=0.0):
+        """v38 (round 4, U40): world point p inside the study area (always True when there is none)"""
+        return sc_inside(p, self.study, margin_m) if self.study else True
+
     def cell(self, p):
         """Grid cell of world point p, or None outside the frame."""
         u, v = self.V.uv(p)
@@ -308,7 +300,12 @@ class Corridor(object):
         return out
 
     def note(self, key, text, why, at):
-        """A numbered note (numbers given after all are made, upstream first); same key = one note, more places."""
+        """A numbered note (numbers given after all are made, upstream first); same key = one note, more places.
+        v38 (round 4, U40, P21.5): only its places inside the study area count; a note with none is not made."""
+        at = sc_points(list(at), self.study, page=u"p21") if self.study else list(at)
+        if not at:
+            self.dropped = getattr(self, "dropped", []) + [text]
+            return None
         for nt in self.notes:
             if nt["key"] == key:
                 nt["at"] += list(at)
@@ -324,11 +321,12 @@ class Corridor(object):
         self.road_loops = self.loops([n for n in range(N) if F[n] == 2], False)
         self.bare_loops = self.loops([n for n in range(N) if F[n] == 0 and self.lc[n] == 0], False)   # v26
         self.bed_loops = self.loops([n for n in range(N) if F[n] == 3], True)
-        self.eco = [(t, self.loops([n for n in range(N) if F[n] == 0 and Dst[n] <= t], t <= ECO_ORGANIC))
+        inS = self.inS                                                   # v38: inside the study area only
+        self.eco = [(t, self.loops([n for n in range(N) if F[n] == 0 and Dst[n] <= t and inS[n]], t <= ECO_ORGANIC))
                     for t in ECO_BANDS]                                  # v26: on open ground only, not the bed
         dh = [1e9] * N
         for n in range(N):
-            if F[n] == 0 and Dst[n] <= HUB_CORRIDOR:
+            if F[n] == 0 and Dst[n] <= HUB_CORRIDOR and inS[n]:
                 dh[n] = self.dhub(self.wxy(n))
         self.dh = dh
         self.rings = [(r, self.loops([n for n in range(N) if dh[n] <= r], False)) for r in HUB_RINGS]
@@ -336,7 +334,7 @@ class Corridor(object):
             h["square"] = []
             if h["id"] in (u"K6", u"Kızıl Avlu"):
                 continue
-            cs = [n for n in self.near_cells(h["xy"], HUB_SQ_M) if F[n] == 0 and Dst[n] >= 4.0]
+            cs = [n for n in self.near_cells(h["xy"], HUB_SQ_M) if F[n] == 0 and Dst[n] >= 4.0 and inS[n]]
             h["square"] = self.loops(cs, False)
             h["trees"] = []
             for L_ in h["square"]:
@@ -346,6 +344,8 @@ class Corridor(object):
                     h["trees"].append(at_len(L_ + L_[:1], s, t)[0])
                     t += 9.0
             h["sub_xy"] = self.sub_hub(h["xy"]) if h["sub"] else None
+            if h["sub_xy"] and not self.in_study(h["sub_xy"]["c"]):   # v38: a sub-hub only inside the study area
+                h["sub_xy"] = None
         self.moves()
         self.terraces()
         self.planting()
@@ -389,6 +389,9 @@ class Corridor(object):
             cls = []
             for i, x in enumerate(st):
                 down = x["ch"] >= ch5 + 20.0
+                if not self.in_study((x["p"][0] + x["n"][0] * x[side]["e"], x["p"][1] + x["n"][1] * x[side]["e"])):
+                    cls.append(None)                     # v38 (U40): the bank point outside the study area: no move
+                    continue
                 cls.append("kept_" + raw[i][1] if fw[i] < KEPT_MAX else
                            ("branch" if down and fw[i] >= BRANCH_MIN else ("widen" if down and fw[i] >= WIDEN_MIN else None)))
 
@@ -415,8 +418,11 @@ class Corridor(object):
                     outer.append(at(x, e + sg * min(WIDEN_K * fw[i], WIDEN_CAP) * tap))
                 ring_ = chaikin(inner + outer[::-1], 2, closed=True)
                 mid = st[ix[L // 2]]
-                self.widen.append({"ring": ring_, "at": at(mid, mid[side]["e"] + sg * 4.0),
-                                   "fw": (min(fw[i] for i in ix), max(fw[i] for i in ix))})
+                for r_ in (sc_rings_clip(ring_, self.study, u"p21") if self.study else [ring_]):   # v38: clipped
+                    if len(r_) >= 3:
+                        self.widen.append({"ring": r_, "at": inner_pt(r_) if not self.in_study(
+                            at(mid, mid[side]["e"] + sg * 4.0)) else at(mid, mid[side]["e"] + sg * 4.0),
+                            "fw": (min(fw[i] for i in ix), max(fw[i] for i in ix))})
             for ix in runs(lambda c_: c_ == "branch"):
                 if len(ix) * WALK_STEP < 2 * MOVE_RUN_M:
                     continue
@@ -426,11 +432,14 @@ class Corridor(object):
                     x, e = st[i], st[i][side]["e"]
                     tap = math.sin(math.pi * min(1.0, (a + 0.5) / 10.0, (L - a - 0.5) / 10.0) / 2.0)
                     arm.append(at(x, e + sg * min(ARM_K * fw[i], ARM_CAP) * tap))
-                self.arms.append({"P": chaikin(arm, 2), "at": arm[L // 2]})
+                for run in (sc_lines(chaikin(arm, 2), self.study, u"p21") if self.study else [chaikin(arm, 2)]):
+                    if len(run) >= 2 and arclen(run)[-1] >= MOVE_RUN_M:   # v38: the arm's runs inside the study
+                        self.arms.append({"P": [tuple(p) for p in run], "at": run[len(run) // 2]})
             for why in ("building", "road", "frame"):
                 for ix in runs(lambda c_, w_=why: c_ == "kept_" + w_):
                     mid = st[ix[len(ix) // 2]]
-                    self.kept.append({"why": why, "at": at(mid, mid[side]["e"] + sg * 2.0)})
+                    if self.in_study(at(mid, mid[side]["e"] + sg * 2.0)):   # v38: only inside the study area
+                        self.kept.append({"why": why, "at": at(mid, mid[side]["e"] + sg * 2.0)})
 
     def terraces(self):
         """Upstream (from the frame's upstream end to K4, where the contours crowd): survey contours on open ground
@@ -444,7 +453,7 @@ class Corridor(object):
         def ok(x, y):
             n = self.cell((x, y))
             return n is not None and self.F[n] == 0 and TERRACE_D[0] <= self.Dst[n] <= TERRACE_D[1] and \
-                V.uv((x, y))[0] < u4
+                V.uv((x, y))[0] < u4 and self.inS[n]           # v38: inside the study area
         for P in self.contours:
             for r_ in cut_runs(P, ok, 2.0):
                 if len(r_) >= 2 and arclen(r_)[-1] >= 15.0:
@@ -480,7 +489,7 @@ class Corridor(object):
                     jit = jit - math.floor(jit)
                     ii = min(G.nx - 1, i + int(jit * s))
                     n = j * G.nx + ii
-                    if F[n] != 0 or not (d0 <= Dst[n] <= d1):
+                    if F[n] != 0 or not (d0 <= Dst[n] <= d1) or not self.inS[n]:   # v38: inside the study
                         continue
                     p = self.wxy(n)
                     if self.dhub(p) >= hmin:
@@ -491,7 +500,8 @@ class Corridor(object):
             other = [y for y in runs if y["bank"] != x["bank"] and min(x["ch1"], y["ch1"]) - max(x["ch0"], y["ch0"]) >
                      0.5 * (x["ch1"] - x["ch0"]) and y["m"] > x["m"]]
             if not other:
-                keep.append(x["F"])
+                keep += [[tuple(p) for p in r_] for r_ in (sc_lines(list(x["F"]), self.study, u"p21") if self.study
+                                                           else [x["F"]]) if len(r_) >= 2]   # v38: inside only
         self.canopy = keep
         walk = [h for h in self.hubs if h["role"] == "walking" and h["id"] != u"K6"]
         self.seats = []
@@ -536,7 +546,8 @@ class Corridor(object):
             k_ = int(math.ceil(gap / FOOT_GAP_M)) - 1
             for q in range(1, k_ + 1):
                 target = a + gap * q / (k_ + 1.0)
-                cand = [x for x in rows if abs(x["ch"] - target) <= gap / (2.0 * (k_ + 1))]
+                cand = [x for x in rows if abs(x["ch"] - target) <= gap / (2.0 * (k_ + 1)) and
+                        self.in_study(x["p"])]           # v38: footbridges only inside the study area
                 cand.sort(key=lambda x: abs(x["ch"] - target))
                 for x in cand:
                     if self.free_out(x, "NE", 1.0)[0] >= 4.0 and self.free_out(x, "SW", -1.0)[0] >= 4.0:
@@ -570,7 +581,7 @@ class Corridor(object):
             bk.setdefault((int(q[0] // 12.0), int(q[1] // 12.0)), []).append(q)
         best = None
         for n in range(0, self.N, 3):
-            if F[n] != 0 or not (4.0 <= Dst[n] <= 40.0):
+            if F[n] != 0 or not (4.0 <= Dst[n] <= 40.0) or not self.inS[n]:   # v38: inside the study area
                 continue
             if G.x0 + (n % G.nx + 0.5) * G.c > u3:
                 continue
@@ -612,7 +623,7 @@ class Corridor(object):
                 txt = u"TRANSIT HUB · {}".format(HUB_NAME[hid])
                 why = [u"town bus lines stop here (h03 Q1)", stop]
                 why += [u"H2 culvert under the square: hidden-stream square", u"D8 plane trees, irrigated from storage"] \
-                    if hid == u"İstiklal" else [u"H2 Red Hall tunnels"]
+                    if hid == u"İstiklal" else [u"H2 " + landmark_name("kizil_avlu") + u" tunnels"]
             elif hid == u"K6":
                 txt, why = u"GATEWAY OUT · " + mp_upper(bridge_name("K6")), [u"OSM primary road kept (h02 E12)", stop]
             else:
@@ -672,8 +683,12 @@ class Corridor(object):
         if ft:
             self.note(("foot",), u"FOOTBRIDGE: {:.0f}+ m WITHOUT A CROSSING".format(FOOT_GAP_M),
                       [u"crossings K1-K6 (edge plan)", u"both landings open (open ground)"], [c_["xy"] for c_ in ft])
-        for rd in ROADS + [TOWN_LINE]:
-            P = rd["xy"]
+        for rd in ROADS + [TOWN_LINE]:                   # v38: the note sits on the road's longest run inside
+            runs = [r_ for r_ in (sc_lines(rd["xy"], self.study) if self.study else [rd["xy"]]) if len(r_) >= 2]
+            if not runs:
+                self.dropped = getattr(self, "dropped", []) + [rd["note"]]
+                continue
+            P = max(runs, key=lambda r_: arclen(r_)[-1])
             mid = at_len(P, arclen(P), arclen(P)[-1] / 2.0)[0]
             self.note(("road", rd["name"]), rd["note"].upper(), [rd["proof"]], [mid])
         self.notes.sort(key=lambda nt: min(V.uv(p)[0] for p in nt["at"]))
@@ -713,6 +728,8 @@ class Corridor(object):
         for b in range(bx * by):
             i0, j0 = (b % bx) * s, (b // bx) * s
             cs = [j * nx + i for j in range(j0, min(ny, j0 + s)) for i in range(i0, min(nx, i0 + s))]
+            if not cs or not self.inS[cs[len(cs) // 2]]:   # v38: only blocks centred in the study area
+                continue
             if sum(1 for n in cs if not touch[n]) >= NI_SHARE * len(cs):
                 blk[b] = "built" if sum(1 for n in cs if F[n] in (1, 2)) >= NI_BUILT * len(cs) else "open"
         nb4 = lambda b: ((b + 1) if b % bx + 1 < bx else -1, (b - 1) if b % bx else -1,
@@ -736,7 +753,7 @@ class Corridor(object):
             cells = [j * nx + i for b in reg for j in range((b // bx) * s, min(ny, (b // bx) * s + s))
                      for i in range((b % bx) * s, min(nx, (b % bx) * s + s))]
             ha = len(cells) * G.c * G.c / 1e4
-            if ha < min(NI_MIN_HA, NI_MIN_HA_STUDY):
+            if ha < NI_MIN_HA_STUDY:                     # v38: every region is inside the study area now
                 continue
             if kind == "built":
                 cnt = {}
@@ -779,11 +796,61 @@ class Corridor(object):
                         q.append(m_)
             spots = sorted(reg, key=lambda b: -dist.get(b, 0))[:24]
             at = [V.xy(G.x0 + ((b % bx) * s + s / 2.0) * G.c, G.y0 + ((b // bx) * s + s / 2.0) * G.c) for b in spots]
-            if ha < NI_MIN_HA and not any(pip(at[0][0], at[0][1], P_) for P_ in (getattr(V, "study", None) or [])
-                                          if len(P_) >= 3):
-                continue                                 # v37 (G18): small regions only inside the study area
-            self.nogo.append({"kind": kind, "why": why, "ha": ha, "at": at})
+            at = [q for q in at if self.in_study(q)] or at
+            reg_ = {"kind": kind, "why": why, "ha": ha, "at": at, "cells": cells,
+                    "top": (top if kind == "built" else (ks[0] if ks else None)), "d": None if kind == "built" else d}
+            reg_.update(self.void_design(reg_))
+            self.nogo.append(reg_)
         self.nogo.sort(key=lambda r_: -r_["ha"])
+
+    def void_design(self, reg):
+        """v38 (round 4, P21.7, open row 2; Aras 1 Nov 07:30 "it needs to be designed"; r3 G18): each untouched
+        region inside the study area becomes a designed place: a name, a short reason (from its data: survey
+        building kind or ESA WorldCover 2021 class and its distance to the water), its outline (faceted, form rule)
+        and what is planted or placed in it. Only sourced species (D7) and the project's own programme words; the
+        design rules (VOID_RULES) are design readings, not data. Returns dict(design, place, reason, rings, trees,
+        shrubs)."""
+        cells = reg["cells"]
+        rings = self.loops(cells, False)
+        F, G = self.F, self.G
+        out = dict(rings=rings, trees=[], shrubs=[])
+        if reg["kind"] == "built":
+            if reg["top"] == 3:                          # heritage: its setting stays as it is (explained, G18)
+                out.update(design="heritage", place=VOID_RULES["heritage"][0], reason=VOID_RULES["heritage"][1])
+                return out
+            out.update(design="lanes", place=VOID_RULES["lanes"][0], reason=VOID_RULES["lanes"][1])
+            box = bbox([p for r_ in rings for p in r_]) if rings else None
+            cs = set(cells)
+            for P in self.kerbs:                         # lane trees on the surveyed kerbs inside the region
+                if box is None or not hit(bbox(P), box):
+                    continue
+                s_ = arclen(P)
+                t = VOID_LANE_STEP / 2.0
+                while t < s_[-1]:
+                    q = at_len(P, s_, t)[0]
+                    n = self.cell(q)
+                    if n is not None and n in cs and F[n] != 1 and self.in_study(q) and \
+                            all(math.hypot(q[0] - o[0], q[1] - o[1]) >= VOID_LANE_STEP * 0.8 for o in out["trees"]):
+                        out["trees"].append(q)
+                    t += VOID_LANE_STEP
+            return out
+        lc, d = reg["top"], reg["d"]
+        if lc == 2:                                      # tree cover: kept, a grove with paths, joined to the corridor
+            out.update(design="grove", place=VOID_RULES["grove"][0], reason=VOID_RULES["grove"][1])
+            return out
+        key = "meadow" if d is not None else "garden"    # an open way to the water: rain meadow; none: pocket garden
+        out.update(design=key, place=VOID_RULES[key][0], reason=VOID_RULES[key][1])
+        s_ = max(1, int(round((TREES[3] if key == "meadow" else VOID_SHRUB_STEP) / G.c)))
+        for n in cells:                                  # copses (meadow) or shrub groups (garden) on open cells
+            i, j = n % G.nx, n // G.nx
+            if i % s_ or j % s_ or F[n] != 0:
+                continue
+            jit = math.sin(i * 12.9898 + j * 78.233) * 43758.5453
+            q = self.wxy(n)
+            if not self.in_study(q):
+                continue
+            (out["trees"] if key == "meadow" and jit - math.floor(jit) < 0.5 else out["shrubs"]).append(q)
+        return out
 
     def movement(self):
         """masterplan_results.json "movement" (spec §4; survey coordinates)."""

@@ -8,18 +8,22 @@
 # named R28_FRAME_NAME.
 R28_STUDY_NAME = u"Study area · çalışma alanı"
 R28_FRAME_NAME = u"Analysis frame"
-R28_STUDY_LINE = dict(colour="262626", width_mm=0.45, dash_mm=(3.0, 0.8, 0.4, 0.8))   # dash-dot, print mm
+# round 4 (S2, G-R4-4, U18/U19): violet long-dash-dot, its own hue, never ink / grey / a road colour; the same values
+# as basemap.py BM_STUDY_LINE (one style everywhere; map_layers draws it in its own layer above the project fills)
+R28_STUDY_LINE = dict(colour="6A4C93", width_mm=0.35, dash_mm=(3.0, 0.8, 0.6, 0.8))   # long dash-dot, print mm
 
-# G7: one strip per map; standard scales only (SCRIPT_STANDARD §8)
+# G7: one strip per map; standard scales only (SCRIPT_STANDARD §8). Round 4 (S2, D11): section_frame.py SF_SCALES is
+# the one list; this copy is read only where section_frame is not included (r28_scale reads SF_SCALES first)
 R28_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)
 
 
 def r28_scale(length_m, avail_mm, height_m=0.0, avail_h_mm=1e9):
     """the largest standard scale (smallest denominator) at which length_m x height_m fits avail_mm x avail_h_mm"""
-    for d in R28_SCALES:
+    sc = globals().get("SF_SCALES") or R28_SCALES
+    for d in sc:
         if length_m * 1000.0 / d <= avail_mm and height_m * 1000.0 / d <= avail_h_mm:
             return d
-    return R28_SCALES[-1]
+    return sc[-1]
 
 
 def r28_axis(frame):
