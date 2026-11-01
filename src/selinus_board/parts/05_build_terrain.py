@@ -626,6 +626,93 @@ def sec_endpoints(ln):
 S4_WB = ((30616.354683, 30540.470648), (31489.513378, 31161.826317))
 
 
+# v59 (round 4, P05.1 / N4 b, Aras 1 Nov 11:42): S5 ran ALONG the stream (1,140.7 m, three crossings, no banks, ~3 m
+# relief: "looks weird"). It is now a cut ACROSS the stream at one of its three crossings: the crossing inside the
+# study area (calisma_alan) with the most bank data in the level table (terraces + banks with a crest; reading taken
+# for "the most designed edge": the shelves and crests the project designs on), ties to the first; at right angles to
+# the stream there (the stream's direction = the old line turned by the level table's angle_deg of that crossing, to
+# the side where the survey's water runs on longer), as long as the mean of the cuts S1-S4, centred on the crossing,
+# trimmed to the frame. The level row of that crossing is the cut's only row (sd_["p45_cross"]); every key map
+# reads the new line (LV_ENDS_OVERRIDE, common/levels.py). Drawing rules, not data: the 1 m water samples, the
+# 5-60 m direction test.
+S5_CROSS = {}                                         # v59: dict(rid, line, why) of this run (empty = S5 unchanged)
+
+
+def s5_cross_line(S, a, b, others):
+    """v59 (P05.1 / N4 b): ((x0, y0), (x1, y1), rid, why) of the cut across the stream that replaces S5 (a -> b,
+    the old line); None when no crossing of the old line matches a level row"""
+    try:
+        rows = [r for r in level_ids() if (level_cut(r).get("cut") == "S5")]
+    except Exception:
+        return None
+    if not rows:
+        return None
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    if L < 5.0:
+        return None
+    ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+
+    def wet(px, py):
+        try:
+            return classify_point(S, px, py)[0] == "water"
+        except Exception:
+            return False
+    runs, cur = [], None
+    for i in range(int(L) + 1):
+        if wet(a[0] + ux * i, a[1] + uy * i):
+            cur = [i, i] if cur is None else [cur[0], i]
+        elif cur is not None:
+            runs.append(cur)
+            cur = None
+    if cur is not None:
+        runs.append(cur)
+    study = getattr(S, "r28_study", None) or [list(P_) for P_ in R28_STUDY_COPY]
+    cands = []
+    for s0, s1 in runs:
+        zs = [S.z_at(a[0] + ux * s_, a[1] + uy * s_) for s_ in range(int(s0), int(s1) + 1)]
+        zs = [z for z in zs if z is not None]
+        if not zs:
+            continue
+        zb = min(zs)
+        rid = min(rows, key=lambda r: abs((level(r, "bed") or 1e9) - zb))
+        if abs((level(rid, "bed") or 1e9) - zb) > 3.0:
+            continue
+        sm = 0.5 * (s0 + s1)
+        c = (a[0] + ux * sm, a[1] + uy * sm)
+        row = level_cut(rid)
+        score = len(row.get("terraces") or []) + sum(1 for sd in ("NE", "SW")
+                                                     if (row.get(sd) or {}).get("type") not in (None, "no_crest"))
+        cands.append((sc_inside(c, study), score, rid, c))
+    if not cands:
+        return None
+    inside = [q for q in cands if q[0]]
+    pick = max(inside or cands, key=lambda q: q[1])
+    _in, score, rid, c = pick
+    th = math.radians(level(rid, "angle_deg") or 90.0)
+    best = None
+    for sg in (1.0, -1.0):                               # the stream's direction: the side with the longer water run
+        dx, dy = ux * math.cos(sg * th) - uy * math.sin(sg * th), ux * math.sin(sg * th) + uy * math.cos(sg * th)
+        n_w = sum(1 for d in range(5, 65, 5) for e in (1.0, -1.0) if wet(c[0] + e * d * dx, c[1] + e * d * dy))
+        if best is None or n_w > best[0]:
+            best = (n_w, dx, dy)
+    _n, dx, dy = best
+    nx, ny = -dy, dx                                     # across the stream
+    if nx * ux + ny * uy < 0:                            # the first end on the old line's first side
+        nx, ny = -nx, -ny
+    lens = [math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1]) for q in others]
+    Lc = sum(lens) / len(lens) if lens else 550.0
+    p0, p1 = (c[0] - nx * 0.5 * Lc, c[1] - ny * 0.5 * Lc), (c[0] + nx * 0.5 * Lc, c[1] + ny * 0.5 * Lc)
+    runs_ = S.F.clip_line([p0, p1]) or []
+    run = next((r_ for r_ in runs_ if min(math.hypot(q[0] - c[0], q[1] - c[1]) for q in r_) < 0.6 * Lc), None)
+    if not run:
+        return None
+    why = (u"S5 is a cut across the stream at crossing {} ({}; {} terrace(s) and crested banks: score {}; {} the "
+           u"study area), {:.0f} m long (mean of S1-S4), at right angles to the stream".format(
+               level_cut(rid).get("crossing"), rid, len(level_cut(rid).get("terraces") or []), score,
+               u"inside" if _in else u"FLAG no crossing inside", Lc))
+    return run[0], run[-1], rid, why
+
+
 def build_sections(S):
     lines_ = []
     for k, ln in enumerate(SEC_IN):
@@ -654,6 +741,21 @@ def build_sections(S):
                 math.hypot(s4[1][0] - s4[0][0], s4[1][1] - s4[0][1])))
     elif len(lines_) >= 3:
         LOG.append("WARNING: the water board's S4 (S4_WB) does not cross the frame; S4 stays the 4th line picked.")
+    S5_CROSS.clear()                                      # v59 (P05.1 / N4 b): S5 across the stream at one crossing
+    LV_ENDS_OVERRIDE.pop("S5", None)
+    if len(lines_) >= 5:
+        try:
+            q_ = s5_cross_line(S, lines_[4][0], lines_[4][1], lines_[:4])
+        except Exception:
+            q_ = None
+            LOG.append("WARNING: S5 could not be turned across the stream (kept as drawn):\n" + traceback.format_exc())
+        if q_:
+            lines_[4] = (q_[0], q_[1])
+            S5_CROSS.update(rid=q_[2], line=(q_[0], q_[1]), why=q_[3])
+            LV_ENDS_OVERRIDE["S5"] = (q_[0], q_[1])
+            LOG.append(q_[3] + ".")
+        else:
+            LOG.append("FLAG S5: no crossing of the S5 line matches a level row: S5 drawn as picked (along the stream).")
     if SEC_IN and not lines_:
         LOG.append("WARNING: none of the {} section lines cross the study area. If they were drawn before you rotated or "
                    "moved the drawing, redraw them across the stream (or rotate them with it).".format(len(SEC_IN)))
@@ -669,6 +771,8 @@ def build_sections(S):
         name = "S{}".format(n_kept)
         S.sec_lines.append((x0, y0, x1, y1, name))
         S.sections.append(section_of_line(S, x0, y0, x1, y1, name, step))
+        if name == "S5" and S5_CROSS:                    # v59: its one level row (p45_banks)
+            S.sections[-1]["p45_cross"] = S5_CROSS["rid"]
 
 
 def section_of_line(S, x0, y0, x1, y1, name, step=0.5):

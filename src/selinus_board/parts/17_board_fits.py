@@ -1100,6 +1100,8 @@ if HAVE_RHINO:
                         LOG.append("PDF: {}  {:.0f} s".format(os.path.basename(p_), s_))
                     if _bad:
                         LOG.append("WARNING: PDF not written for: " + "; ".join(_bad[:6]))
+                except TextError:                         # v59 (G-R4-1): a p03 text collision stops the run
+                    raise
                 except Exception as ex_:
                     LOG.append("WARNING: PDF export failed ({}); the bake is done.".format(ex_))
             try:                                              # v40: the booklet crops of the sheets (CROP_SPEC)
