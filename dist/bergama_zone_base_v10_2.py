@@ -1,3 +1,4 @@
+# CURRENT VERSION: bergama_zone_base_v10_2.py = v10.2 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """BERGAMA ZONE BASE v10 (2026-10-27): bakes Group 6's zone layout into the open Rhino file as an editable base.
 
 NEW IN v10 (Aras 27 Oct 11:07, output cleanup): writes nothing under output/ (its log is Downloads/Bergama/logs/
@@ -80,7 +81,7 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v10.1 (2026-11-01)"  # v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_zone_base v10.2 (2026-11-01)"  # v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
 #   Downloads/Bergama/logs/                    every log file and log folder
@@ -174,7 +175,7 @@ def bergama_data(name, _c={}):
 
 
 bergama_data("BASE_DATA")
-SHORT = "v10"
+SHORT = "v10.2"
 BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button")
 TAG = "bergama_zone_base"                          # user text key on every baked object (value = VERSION)
 STUDY_BBOX = {                                     # the course survey's study areas (survey = file coordinates, m)
@@ -231,12 +232,13 @@ def chain_fire(v, key):
             pass
         # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
         # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
-        # arrives after that fires the script.
-        first = globals().get("_chain_first")
-        if first is None:
-            first = _scx.sticky.get(key + ":init") is None
-            globals()["_chain_first"] = first
-            _scx.sticky[key + ":init"] = True
+        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
+        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
+        # script's globals between solves (the chain stopped after ZoneBase).
+        tok = globals().get("_CHAIN_SOLVE")
+        if _scx.sticky.get(key + ":init") is None:
+            _scx.sticky[key + ":init"] = tok
+        first = _scx.sticky.get(key + ":init") is tok
         if not s.startswith("done "):
             return False
         if first or _scx.sticky.get(key) == s:
@@ -251,10 +253,13 @@ def chain_fire(v, key):
 def _chain_wiring():
     """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
     try:
-        return ",".join(sorted(str(s_.InstanceGuid) for p_ in ghenv.Component.Params.Input       # noqa: F821
-                               for s_ in p_.Sources))
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
     except Exception:
         return ""
+
+
+_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
 def done_text(ran, ok, secs):

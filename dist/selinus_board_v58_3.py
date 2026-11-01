@@ -1,4 +1,5 @@
 # r: numpy
+# CURRENT VERSION: selinus_board_v58_3.py = v58.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
@@ -394,12 +395,13 @@ def chain_fire(v, key):
             pass
         # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
         # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
-        # arrives after that fires the script.
-        first = globals().get("_chain_first")
-        if first is None:
-            first = _scx.sticky.get(key + ":init") is None
-            globals()["_chain_first"] = first
-            _scx.sticky[key + ":init"] = True
+        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
+        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
+        # script's globals between solves (the chain stopped after ZoneBase).
+        tok = globals().get("_CHAIN_SOLVE")
+        if _scx.sticky.get(key + ":init") is None:
+            _scx.sticky[key + ":init"] = tok
+        first = _scx.sticky.get(key + ":init") is tok
         if not s.startswith("done "):
             return False
         if first or _scx.sticky.get(key) == s:
@@ -414,10 +416,13 @@ def chain_fire(v, key):
 def _chain_wiring():
     """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
     try:
-        return ",".join(sorted(str(s_.InstanceGuid) for p_ in ghenv.Component.Params.Input       # noqa: F821
-                               for s_ in p_.Sources))
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
     except Exception:
         return ""
+
+
+_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
 def done_text(ran, ok, secs):
@@ -450,9 +455,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v58.2 (2026-11-01)"  # v58.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SCRIPT_VERSION = "selinus_board v58.3 (2026-11-01)"  # v58.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v58.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v58.2"                                     # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v58.3"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
