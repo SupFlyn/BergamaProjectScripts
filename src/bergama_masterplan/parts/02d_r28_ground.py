@@ -32,7 +32,8 @@ PL28_SRC_NAME = {u"survey": u"survey (Bergama_Altlik.3dm)", u"satellite 2021": u
 
 
 # ---- v38 (round 4, S8, G-R4-4): ONE draw order for the masterplan's maps (p16, p21, p22) ------------------------
-def mp_map_draw(pg, page, T, base, steps=None, tint=(), study=None, log=None, water_opts=None, study_line=True):
+def mp_map_draw(pg, page, T, base, steps=None, tint=(), study=None, log=None, water_opts=None, study_line=True,
+                legend_cols=None, water_ok=None):
     """The masterplan's adapter to common/map_layers.map_draw: the base (ml_base items, survey m) and the D9 tint
     (ml_tint items) go through map_draw as items; the page's own drawing (water, lines, planting, marks), which the
     Page draws directly, is called as steps = {layer: fn()} AT its layer, so map_draw alone decides the order
@@ -68,7 +69,7 @@ def mp_map_draw(pg, page, T, base, steps=None, tint=(), study=None, log=None, wa
         if f_ is not None:
             f_()
     return map_draw(page, T, fill, line, text, base, project, study=study, clip=True, order_fn=order, log=log,
-                    water_opts=water_opts, study_line=study_line)
+                    water_opts=water_opts, study_line=study_line, legend_cols=legend_cols, water_ok=water_ok)
 
 
 def mp_marker(pg, cx, cy, s, colour, size_pt=7.0, style="solid", name=None, r_min=None, rim="FFFFFF", rim_mm=0.25):

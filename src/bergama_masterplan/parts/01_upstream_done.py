@@ -280,8 +280,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v39.2 (2026-11-01)"  # v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v39.2"
+VERSION = "bergama_masterplan v40 (2026-11-02)"  # v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v40"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
 RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: inferred, not a sourced number)
@@ -647,7 +647,7 @@ class Page(object):
         if s:
             if tp is not None and s.strip():
                 tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, color, allow, g, emit=False)
-            self.items.append(("text", s, x, y, size, color, bold, align, halo))
+            self.items.append(("text", s, x, y, size, color, bold, align, halo, role))   # round 5: role kept (04_items)
 
     def clip(self, rings):
         self.items.append(("clip", rings))
@@ -812,7 +812,7 @@ def page_stream(pg):
             A("Q")
             cur.clear()
         elif kind == "text":
-            _, s, x, y, size, color, bold, align, halo = it
+            _, s, x, y, size, color, bold, align, halo = it[:9]
             w = text_w(s, size, bold)
             reps = [(halo, True), (color, False)] if halo else [(color, False)]
             for c_, hal in reps:
