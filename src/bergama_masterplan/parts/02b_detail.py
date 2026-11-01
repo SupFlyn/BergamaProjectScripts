@@ -46,12 +46,12 @@ DT_CUT_ROOM = (70.0, 30.0)           # v28: m from the section's stream axis to 
 
 
 def places(spec, CL, survey):
-    """Named places (world m): K4, K3, the Red Hall and K5 are city link's surveyed spine anchors (K4 = piece A's
-    start, K3 its end, Red Hall = piece C's start, K5 its end), each bridge snapped to the nearest surveyed bridge
+    """Named places (world m): K4, K3, Kızıl Avlu and K5 are city link's surveyed spine anchors (K4 = piece A's
+    start, K3 its end, Kızıl Avlu = piece C's start, K5 its end), each bridge snapped to the nearest surveyed bridge
     (YOL_KOPRU) within 60 m."""
     sp = dict((pc.get("id"), pc) for pc in spec.get("spine", []))
     out = {}
-    for nm, (pid, end) in ((u"K4", ("A", "frm")), (u"K3", ("A", "to")), (u"RED HALL", ("C", "frm")),
+    for nm, (pid, end) in ((u"K4", ("A", "frm")), (u"K3", ("A", "to")), (u"KIZIL AVLU", ("C", "frm")),
                            (u"K5", ("C", "to"))):
         if pid in sp and sp[pid].get(end):
             out[nm] = tuple(sp[pid][end])
@@ -115,7 +115,7 @@ def booklet_crops(folder, sheets, wins, plc, missing):
             os.remove(bk.path(old))
         except OSError:
             pass
-    res = {"script": "bergama_masterplan_v37_4.py", "version": VERSION, "option": "A", "frames": {},
+    res = {"script": "bergama_masterplan_v38.py", "version": VERSION, "option": "A", "frames": {},
            "labels_not_drawn": {}, "places_xy": dict((k_, [round(v[0], 1), round(v[1], 1)])
                                                      for k_, v in sorted(plc.items()))}
     wd = dict((w["id"], w) for w in wins)

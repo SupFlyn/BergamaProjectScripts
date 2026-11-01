@@ -975,7 +975,7 @@ def sn_exp_places(G):
     touch    the sub-hubs in the bed (dry months) and the step to the water facing Tabaklar Hamamı
     walk     the riverside walk as the masterplan runs it (its lines, both banks where it has them)
     remember the heritage places only: the Roman bridges Tabak, Ulucami Önü, Üç Kemer, Tabaklar Hamamı, Tabakhane,
-             the Roman bank wall and the Red Hall (Kızıl Avlu) tunnels"""
+             the Roman bank wall and the Kızıl Avlu tunnels"""
     hub = G["hub"]
     bk = dict(BRIDGES_K)
     edges = []
@@ -1295,7 +1295,7 @@ def sn_history(pg, G, cell, warn):
         x, y = T(q)
         return sn_layers_round(pg, x, y, R, SN_HER, seed)
     pg.clip([rect(*box)])
-    ka = G["hub"].get(u"Kızıl Avlu")                     # the Red Hall tunnels: the covered reach under it (H2)
+    ka = G["hub"].get(u"Kızıl Avlu")                     # the Kızıl Avlu tunnels: the covered reach under it (H2)
     if ka:
         best = None
         for P in G["covered"]:

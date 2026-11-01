@@ -550,7 +550,7 @@ def pl28_note_entry(C, nt):
         nm = PL28_HUB.get(k[1], k[1])
         if h.get("role") == "transit":
             return nm + u" · transit hub", u"town bus lines stop here · " + (
-                u"square over the culvert" if k[1] == u"İstiklal" else u"by the Red Hall tunnels")
+                u"square over the culvert" if k[1] == u"İstiklal" else u"by the " + landmark_name("kizil_avlu") + u" tunnels")
         if k[1] == u"K6":
             return nm + u" · gateway out", u"the primary road is kept · bus stop {} {:.0f} m".format(
                 h.get("stop", u""), h.get("stop_m", 0.0))

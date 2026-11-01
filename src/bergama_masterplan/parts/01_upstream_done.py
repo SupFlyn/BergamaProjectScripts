@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_masterplan_v37_4.py = v37.4 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_masterplan_v38.py = v38 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
@@ -261,9 +261,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v37.4 (2026-11-01)"  # v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v37.4"
-BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
+VERSION = "bergama_masterplan v38 (2026-11-01)"  # v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v38"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
 RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: inferred, not a sourced number)
@@ -292,8 +291,8 @@ SITE_LAYER = "site_alan"                              # v15: analysis range = ex
 SITE_COPY = [(29388.015, 32540.503), (31220.325, 30364.153), (31625.069, 30704.915), (29792.759, 32881.264)]   # v15: site_alan of Bergama_Altlik.3dm (rectangle 2,845 x 529 m, 25 Oct 08:25)
 CLOSE_GAP = 5.0                                   # v12: m, an open outline closer than this counts as closed
 SNAP_M = 15.0                                     # v12: m, a proposal this close to calisma_alan counts as on it
-WALK_CLIP = False                                 # v12: Aras 08:10: the walk outside calisma_alan (207 of 4,211 m in
-                                                  # the copy) is too small to matter: walks drawn continuous
+WALK_CLIP = True                                  # v38 (round 4, U40 "we cant do any adjustments outside the study
+                                                  # area"): the riverside walk is cut to calisma_alan (v12-v37: off)
 CALISMA_COPY = [                                   # v12: calisma_alan of Bergama_Altlik.3dm (25 Oct 08:25: closed, ends snapped onto site_alan), survey m
     [(29696.903, 32800.562), (29872.423, 32572.84), (29880.693, 32496.334), (29818.865, 32475.301), (29825.821, 32398.074), (29923.185, 32344.348), (29904.985, 32311.252), (29997.056, 32290.092), (30053.417, 32139.667), (30004.049, 32108.006), (29954.803, 32210.611), (29792.114, 32247.062), (29761.684, 32302.735), (29754.016, 32451.383), (29678.437, 32447.696), (29632.398, 32496.591), (29665.339, 32526.253), (29612.859, 32696.506), (29600.496, 32719.394)],
     [(30178.18, 31923.887), (30138.072, 31887.655), (30257.694, 31773.217), (30389.686, 31405.252), (30701.152, 30991.252), (30840.053, 31053.865), (31044.852, 30781.877), (31014.2, 30757.409), (31373.442, 30493.066), (31453.175, 30560.194), (31332.978, 30864.179), (31012.679, 31323.349), (30737.856, 31286.66), (30712.87, 31331.891), (30556.09, 31450.103), (30454.629, 31577.301), (30434.156, 31607.332), (30313.613, 31812.92)],
@@ -368,113 +367,16 @@ ROLE_OF = dict([(n, "building") for n in BUILDING_LAYERS] + [("BINA_MESKEN", "ho
 
 
 # ================================================================ Grasshopper inputs, memory, status (v2.3)
-#@include ../../common/_gh_inputs.py
+# v38 (round 4, S8): what starts this component = common/trigger.py (one rule for all nine scripts; its notes)
+#@include ../../common/trigger.py
 
 
-_GH_IN = _gh_inputs()
+_GH_IN = trig_inputs()
 _T_START = time.time()
-
-
-def upstream_done(name):
-    """25 Oct 12:10: the done text of the script wired into input `name`, read from Rhino's memory (sticky) instead of
-    the wire: on Aras's canvas ZoneBase's done reached MasterPlan as Null after a bake. Keys: "done:<guid>" (zone base,
-    masterplan, water board) or "...:<guid>_done" (template scripts)."""
-    try:
-        import scriptcontext as _scx
-        for p_ in ghenv.Component.Params.Input:                          # noqa: F821
-            if str(p_.NickName or p_.Name).lower() != str(name).lower():
-                continue
-            for src_ in p_.Sources:
-                g = str(src_.Attributes.GetTopLevel.DocObject.InstanceGuid)
-                for k_ in ("done:" + g, "lu_done:" + g):
-                    v_ = _scx.sticky.get(k_)
-                    if str(v_).startswith("done "):
-                        return str(v_)
-                for k_, v_ in list(_scx.sticky.items()):
-                    if str(k_).endswith(g + "_done") and str(v_).startswith("done "):
-                        return str(v_)
-    except Exception:
-        pass
-    return None
-
-
-def chain_fire(v, key, name=None):
-    """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
-    after the Button is released; each NEW text fires this script once (the Button still works as before)."""
-    if isinstance(v, (list, tuple)):                 # several wires (e.g. a Button and a done): take the done text
-        v = next((x for x in v if str(x).startswith("done ")), None)
-    s = str(v) if v is not None else ""
-    if not s.startswith("done ") and name:                 # 12:10: Null on the wire: read the done text from memory
-        s = upstream_done(name) or ""
-    try:
-        import scriptcontext as _scx
-        try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
-        except Exception:
-            pass
-        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
-        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
-        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
-        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
-        # script's globals between solves (the chain stopped after ZoneBase).
-        tok = globals().get("_CHAIN_SOLVE")
-        if _scx.sticky.get(key + ":init") is None:
-            _scx.sticky[key + ":init"] = tok
-        first = _scx.sticky.get(key + ":init") is tok
-        if not s.startswith("done "):
-            return False
-        if first or _scx.sticky.get(key) == s:
-            _scx.sticky[key] = s
-            return False
-        _scx.sticky[key] = s
-        return True
-    except Exception:
-        return False
-
-
-def _chain_wiring():
-    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
-    try:
-        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
-                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
-    except Exception:
-        return ""
-
-
-_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
 #@include ../../common/done_text.py
 
-
-
-#@include ../../common/to_bool.py
-
-
-def _letters(s):
-    return "".join(c for c in str(s).lower() if c.isalpha())
-
-
-def button_state():
-    """(name, pressed) of the Button input: an input whose name is a button word, else an input fed by a Button,
-    else any input that is not one of the settings (v10: a settings input is never taken for the Button)."""
-    names = [k_ for k_ in _GH_IN if k_.lower() not in SETTINGS]
-    for k_ in names:
-        if _letters(k_) in BUTTON_WORDS:
-            return k_, to_bool(_GH_IN[k_])
-    try:
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821
-            nm = str(p_.NickName or p_.Name)
-            if nm.lower() in SETTINGS:
-                continue
-            for src_ in p_.Sources:
-                if "button" in type(src_.Attributes.GetTopLevel.DocObject).__name__.lower():
-                    return nm, to_bool(_GH_IN.get(nm, False))
-    except Exception:
-        pass
-    if names:
-        return names[0], to_bool(_GH_IN[names[0]])
-    return None, False
 
 
 def inp(name, default=None):
@@ -648,25 +550,13 @@ def sub_line(P, s, t0, t1):
 
 
 # ================================================================ text metrics (Helvetica = Arial metrics, v2.3)
-_MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
-_MW0 = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556,
-        556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278,
-        500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469,
-        556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500,
-        278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584]
-_MW1 = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556,
-        556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278,
-        556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584,
-        556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556,
-        333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
-_W = [dict(zip(_MCH, _MW0)), dict(zip(_MCH, _MW1))]
-_WX = {u"·": 278, u"³": 333, u"²": 333, u"µ": 556, u"§": 556, u"İ": 278, u"ı": 278, u"–": 556, u"°": 400}
 PT = 25.4 / 72.0
 
 
 def text_w(s, size, bold=False):
-    w = _W[1 if bold else 0]
-    return sum(w.get(c, _WX.get(c, 600 if c.isupper() else 556)) for c in s) / 1000.0 * size
+    """v38 (round 4, G-R4-1): the REAL Arial width (mm) of s at size mm (common/font_metrics.py, the fonts the PDF
+    embeds); the Helvetica estimate tables (_MCH, _MW0, _MW1, _W, _WX) are gone. A missing font raises FontMissing."""
+    return fm_width(s, size / PT, bold) if s else 0.0
 
 
 #@include ../../common/wrap.py
@@ -675,8 +565,35 @@ def text_w(s, size, bold=False):
 # ================================================================ page and PDF writer (v2.3; v10: alpha in 1 %
 # steps on lines and circles too, clipping)
 class Page(object):
+    """v38 (round 4, G-R4-1): a page that is (part of) a booklet page carries ONE TextPage (pg.text_page(...)):
+    every pg.text is then registered in it with its real box (font_metrics) before it is drawn, so no text reaches
+    the PDF unmeasured; pg.check_text() runs the collision test, which RAISES TextCollision (the sheet is then not
+    written and the log names the page, the text and what it hits)."""
     def __init__(self, W, H):
         self.W, self.H, self.items = W, H, []
+        self.tp = None
+
+    def text_page(self, name, bounds=None, margins=None, pad=0.6, scale=1.0):
+        """v38: start this page's TextPage (y up, page mm); bounds default = the whole page"""
+        self.tp = TextPage(name, bounds or (0.0, 0.0, self.W, self.H), y_down=False, pad=pad, margins=margins,
+                           scale=scale)
+        return self.tp
+
+    def keep(self, geom, kind="keep", name=None, line=None):
+        """v38: an obstacle no text may touch (TextPage.keep); nothing without a TextPage"""
+        if self.tp is not None:
+            return self.tp.keep(geom, kind, name, line)
+        return None
+
+    def check_text(self, log=None):
+        """v38: the page's collision test (raises TextCollision); returns the log line"""
+        if self.tp is None:
+            raise TextError(u"page has no TextPage: call pg.text_page(name) before drawing its text")
+        lg = []
+        self.tp.check(True, lg)
+        if log is not None:
+            log.extend(lg)
+        return lg[-1] if lg else u""
 
     def poly(self, rings, fill=None, stroke=None, lw=0.1, dash=None, stripes=None, alpha=None):
         """alpha: opacity 0-1 of fill and stroke (None = opaque). stripes: (colour, spacing, width[, angle, wavy])."""
@@ -691,16 +608,25 @@ class Page(object):
     def circle(self, cx, cy, r, fill=None, stroke=None, lw=0.1, alpha=None):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw, alpha))
 
-    def text(self, s, x, y, size, color, bold=False, align="L", halo=None):
+    def text(self, s, x, y, size, color, bold=False, align="L", halo=None, name=None, allow=(), role="label"):
+        """one text (size mm). v38: registered in the page's TextPage first (when it has one): name / allow / role
+        go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc)"""
+        tp, g = self.tp, None
+        if s and tp is not None:
+            g = tp._group()
         if s and any(ch in SUP for ch in s):             # v26.1: m² / m³ as a raised small digit (see SUP)
             runs = sup_runs(s)
             ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
             x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
             for (t, up), w_ in zip(runs, ws):
-                self.items.append(("text", t, x, y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0),
-                                   color, bold, "L", halo))
+                yy, ss = y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0)
+                if tp is not None and t.strip():
+                    tp.put(t, x, yy, ss / PT, bold, "L", 0.0, name, role, color, allow, g, emit=False)
+                self.items.append(("text", t, x, yy, ss, color, bold, "L", halo))
                 x += w_
         elif s:
+            if tp is not None and s.strip():
+                tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, color, allow, g, emit=False)
             self.items.append(("text", s, x, y, size, color, bold, align, halo))
 
     def clip(self, rings):
@@ -1247,20 +1173,17 @@ def off_work(p, areas):
 
 
 def clip_runs(runs, areas):
-    """v12: the walk runs cut to the working area, at the runs' vertex resolution."""
+    """v12: the walk runs cut to the working area. v38 (round 4, G-R4-4): exact edge crossings (study_clip sc_lines),
+    counted for p21."""
+    rings = sc_rings(areas=areas)
     out = []
     for x in runs:
-        cur = []
-        for p in list(x["P"]) + [None]:
-            if p is not None and in_work(p, areas):
-                cur.append(tuple(p))
-                continue
-            if len(cur) >= 2:
+        for run in sc_lines(list(x["P"]), rings, page=u"p21"):
+            if len(run) >= 2:
                 y = dict(x)
-                y["P"] = cur
-                y["m"] = arclen(cur)[-1]
+                y["P"] = [tuple(p) for p in run]
+                y["m"] = arclen(y["P"])[-1]
                 out.append(y)
-            cur = []
     return out
 
 

@@ -630,7 +630,7 @@ def city_layer(opt, D, areas, survey, warn):
 
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v37_4.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v38.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -862,8 +862,12 @@ def build_all(doc, warn):
                              len(C.kept), len(C.terr), C.steep.get("up", 0.0), C.steep.get("down", 0.0),
                              len(C.cross), u"at {:.0f}, {:.0f}".format(*C.terrace["xy"]) if C.terrace else u"none",
                              len(C.notes), time.time() - t0))
-            lines.append(u"option {}: no intervention: {} areas of {:.0f} ha or more ({})".format(
-                opt, len(C.nogo), NI_MIN_HA, u"; ".join(u"{:.1f} ha {}".format(r_["ha"], r_["why"]) for r_ in C.nogo)))
+            lines.append(u"option {}: voids in the study area designed: {} of {:.2f} ha or more ({})".format(
+                opt, len(C.nogo), NI_MIN_HA_STUDY, u"; ".join(u"{:.1f} ha {} ({})".format(
+                    r_["ha"], r_.get("place", u"-"), r_["why"]) for r_ in C.nogo)))
+            if getattr(C, "dropped", None):              # v38 (U40): notes whose places all lie outside the study area
+                lines.append(u"option {}: moves outside the study area, not drawn: {}".format(
+                    opt, u"; ".join(C.dropped)))
         except Exception as ex:
             import traceback
             warn.append(u"option {}: corridor NOT computed ({}: {})".format(opt, type(ex).__name__, ex))
@@ -886,12 +890,11 @@ def build_all(doc, warn):
                     raise ValueError(u"no corridor computed (see the warnings)")
                 panels = [plan_page(C, warn)]           # v28 (revision 29 Oct, D1 a): p.23 only; the open ground page is gone
                 sc_mp = getattr(panels[0], "scale", MP_SCALE)
-                lines.append(u"masterplan page: {} numbered moves on the plan (1:{:,.0f}); areas left as they are "
-                             u"lettered {} of {}".format(len(C.notes), sc_mp, getattr(C, "ni_placed", 0), len(C.nogo)))
-                for r_ in C.nogo:
+                lines.append(u"masterplan page: {} numbered moves on the plan (1:{:,.0f}); designed voids drawn {} "
+                             u"of {}".format(len(C.notes), sc_mp, getattr(C, "ni_placed", 0), len(C.nogo)))
+                for r_ in C.nogo:                        # v38: p21 sets r_["placed"] when the void's place is drawn
                     if not r_.get("placed"):
-                        warn.append(u"area left as it is not lettered on the plan (no free spot), only in the list: "
-                                    u"{:.1f} ha {}".format(r_["ha"], r_["why"]))
+                        warn.append(u"designed void not drawn on p21: {:.1f} ha {}".format(r_["ha"], r_.get("place")))
                 LEG.clear()                              # v24: the pages carry their own legend
                 pg = make_board(opt, alt, panels)
                 path = save(pg, folder, name, u"Bergama masterplan {} option {} (1:{:,.0f})".format(SHORT, opt,
@@ -948,7 +951,23 @@ def build_all(doc, warn):
                 res_["notes"] = [{"n": nt["n"], "text": nt["text"], "why": nt["why"], "at": [r2(p) for p in nt["at"]]}
                                  for nt in sorted(C_.notes, key=lambda nt: nt["n"])]   # v26: every reason, in full
                 res_["no_intervention"] = [{"kind": r_["kind"], "why": r_["why"], "ha": round(r_["ha"], 2),
-                                            "at": r2(r_["at"][0])} for r_ in C_.nogo]
+                                            "at": r2(r_["at"][0]), "design": r_.get("design"),
+                                            "place": r_.get("place"), "reason": r_.get("reason")} for r_ in C_.nogo]
+                # v38 (round 4, CHK-7 site 14, P10.6): the corridor geometry (clipped to the study area at its
+                # source) for the water board's p17 and the hub squares for city link's p10 (survey m)
+                res_["corridor"] = {
+                    "arms": [{"P": [r2(p) for p in a_["P"]]} for a_ in C_.arms],
+                    "widen": [{"ring": [r2(p) for p in w_["ring"]]} for w_ in C_.widen],
+                    "terraces": [[r2(p) for p in P] for P in C_.terr],
+                    "canopy_walk": [[r2(p) for p in P] for P in C_.canopy],
+                    "study_clipped": bool(C_.study)}
+                res_["hub_squares"] = [{"id": h["id"], "name": HUB_NAME[h["id"]], "bridge": h["bridge"],
+                                        "in_study": bool(h.get("in_study")),
+                                        "rings": [[r2(p) for p in L_] for L_ in (h.get("square") or [])],
+                                        "trees": [r2(p) for p in (h.get("trees") or [])],
+                                        "sub_hub": ({"c": r2(h["sub_xy"]["c"]), "a": r2(h["sub_xy"]["a"]),
+                                                     "b": r2(h["sub_xy"]["b"]), "w_m": round(h["sub_xy"]["w"], 1)}
+                                                    if h.get("sub_xy") else None)} for h in C_.hubs]
                 res_["open_ground_check"] = {"imagery": OPEN_CHECK.get("imagery"), "date": OPEN_CHECK.get("date"),
                                              "built_since": len(C_.built_since),
                                              "kml": getattr(C_, "og_check", None)}
@@ -973,20 +992,20 @@ def build_all(doc, warn):
             lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
     lines.extend(lp_flag_lines())                        # v37 (round 3): FLAG overlap per booklet page (G3)
+    lines.extend(tp_log_lines())                         # v38 (round 4, G-R4-1): "overlap <page> checked n, collisions 0"
+    lines.extend(ml_lines_log())                         # v38 (G-R4-4): "layers base→project ok, n_outside_clipped n"
+    lines.extend(sc_lines_log())                         # v38 (CHK-7): study clip per page
+    lines.append(fig_set_line())                         # v38 (G-R4-5.1): "figures set=pen_black n"
+    if "pla_flag_lines" in globals():                    # S3's plant module log lines, when it exists
+        lines.extend(pla_flag_lines())
     lines.extend(wat_flag_lines())                       # planting clipped to land, draw order (G8)
     lines.extend(sec_look_lines())                       # sky variants, plants no alpha, fauna FLAG (G15)
     return folder, files, lines, pages, scale
 
 
 def run():
-    btn, on = button_state()
-    try:
-        was = bool(sc.sticky.get(_key("prev"), False))
-    except Exception:
-        was = False
-    pressed = (on and not was) or chain_fire(_GH_IN.get(btn), "chain_seen", btn)
+    pressed, why, btn = trig_should_run("chain_seen", SETTINGS)   # v38 (round 4): common/trigger.py, one rule
     globals()["_ran_now"] = pressed
-    mem_set("prev", on, persist=False)
     if not pressed:
         same = mem_get("ver", "") == VERSION        # v24.1 (Aras 27 Oct 15:35): a newly pasted version shows itself
         last = mem_get("last", "") if same else ""   # at once, idle, without the old run's time, log or warnings
@@ -1011,7 +1030,8 @@ def run():
         warn.append(traceback.format_exc()[-480:])
     lines += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
     secs = time.time() - t0
-    head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
+    head = [u"{} · total {:.0f} s".format(VERSION, secs), u"trigger: " + (why or u"-"),
+            err or u"Output: {}".format(folder)]
     text = u"\n".join(head + lines)
     status = u"{} · {}".format(SHORT, "ERROR" if err else time.strftime("%H:%M") + " · {:.0f} s".format(secs))
     try:
