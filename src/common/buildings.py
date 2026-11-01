@@ -22,6 +22,9 @@ BLD_COL = dict(fill="ECE9E3", edge="7D756C", roof="A39A90", her_fill="EEDCDB", h
                text="4A3F35")
 BLD_LW = dict(block=0.18, roof=0.07, hatch=0.05, axo=0.08, sec_cut=0.30, sec_line=0.10, glass=0.08)
 BLD_MIN_ROOF_MM = 1.6               # a roof mark only where the building is at least this wide on the page
+BLD_HIP_MAX_W = 12.0                # m: axo hipped roofs take at most this width's rise; wider parts get a flat top
+                                    # in the middle (drawing rule, round 4 S2: merged blocks never one giant roof)
+BLD_EAVE_MIN_M = 2.0                # m: axo eaves at least this far above a footprint's highest corner (drawing rule)
 
 
 # ------------------------------------------------------------------------------------------- small geometry
@@ -400,13 +403,14 @@ def _bld_roof_mode(u, mode):
 
 # ------------------------------------------------------------------------------------------- plan
 def bld_plan_items(units, blocks=None, scale_den=1000.0, roof="ridge", box=None, fill=None, edge=None,
-                   roof_col=None, her_fill=None, her_edge=None, alpha=1.0, outline=True, hatch_mm=1.2):
+                   roof_col=None, her_fill=None, her_edge=None, alpha=1.0, outline=True, hatch_mm=1.2, lw=None):
     """G7 plan: buildings as items (survey m): a light fill per building, the roof reading (ridge + hips; roof="hatch"
     adds fall lines every hatch_mm on the page; "none" leaves it out) where the building is at least BLD_MIN_ROOF_MM
     wide at 1:scale_den, and ONE outline per block (blocks: bld_blocks(units), made when not given): no line between
     buildings that share a wall. Heritage units (her=True) in their own tone. box (x0, y0, x1, y1): only what touches
-    it."""
+    it. lw: the block outline width in mm (default BLD_LW["block"]; the round 4 muted base uses 0.12)."""
     fill, edge = fill or BLD_COL["fill"], edge or BLD_COL["edge"]
+    lw_b = BLD_LW["block"] if lw is None else lw
     roof_col = roof_col or BLD_COL["roof"]
     her_fill, her_edge = her_fill or BLD_COL["her_fill"], her_edge or BLD_COL["her_edge"]
     mpm = scale_den / 1000.0                             # survey m per page mm
@@ -450,7 +454,7 @@ def bld_plan_items(units, blocks=None, scale_den=1000.0, roof="ridge", box=None,
                 continue
             col = her_edge if bk.get("her") or (bk.get("units") and all(i in her_idx for i in bk["units"])) else edge
             for R in [o] + list(hs or []):
-                out.append(("line", list(R) + [R[0]], col, BLD_LW["block"], None, alpha))
+                out.append(("line", list(R) + [R[0]], col, lw_b, None, alpha))
     return out
 
 
@@ -466,8 +470,10 @@ def bld_axo_items(units, proj, view=(-0.70711, -0.70711), ground=None, pitch=BLD
     """G7 axonometric (idea R09): light volumes with roofs, as page items. proj(x, y, z) -> (X, Y) page mm (the
     caller's axonometric); view = the horizontal direction from the scene TOWARDS the viewer (survey axes), used for
     which walls show and the drawing order (far first); ground(x, y) -> terrain m (else u["z0"] or 0); sun = the
-    horizontal light direction (lit walls and roof planes lighter). Pitched units get a hipped roof on their
-    minimum rectangle when the footprint fills >= 80 % of it, else a flat top; flat units a flat top."""
+    horizontal light direction (lit walls and roof planes lighter). Round 4 (S2): ground(x, y) is read at every
+    corner (walls follow the slope), eaves = lowest corner + h (>= highest + BLD_EAVE_MIN_M); every pitched part gets
+    a hipped roof = the planes of its minimum rectangle clipped to the footprint (pitch of at most BLD_HIP_MAX_W,
+    flat top beyond), the walls rise to the roof at gable ends; flat units and parts with a courtyard a flat top."""
     import math as _m
     C = dict(BLD_COL)
     C.update(cols or {})
@@ -490,60 +496,126 @@ def bld_axo_items(units, proj, view=(-0.70711, -0.70711), ground=None, pitch=BLD
             jobs.append((cx * vx + cy * vy, u, P, cx, cy))
     jobs.sort(key=lambda j: j[0])                         # far first
     out = []
+    t_p = _m.tan(_m.radians(pitch))
     for _, u, P, cx, cy in jobs:
-        z0 = ground(cx, cy) if ground else float(u.get("z0") or 0.0)
+        # round 4 (S2, CHK-4 P12.2): every wall stands on the ground at its own corners (no floating or sunk walls on
+        # a slope); the eaves are h above the lowest corner, at least BLD_EAVE_MIN_M above the highest one
+        zb = [ground(p[0], p[1]) for p in P] if ground else [float(u.get("z0") or 0.0)] * len(P)
         h = _bld_h(u)
-        zt = z0 + h
+        zt = max(min(zb) + h, max(zb) + BLD_EAVE_MIN_M)
+        r = bld_rect(P)
+        H_u = _bld_unit(u)[1]
+        holes = [H for H in H_u if len(H) >= 3 and _bld_pip(H[0][0], H[0][1], P)]
+        # round 4 (S2, CHK-4 P12.2): a hipped roof on EVERY pitched part (was: only where the footprint filled 80 %
+        # of its rectangle): the roof planes of its minimum rectangle clipped to the footprint; a part wider than
+        # BLD_HIP_MAX_W gets the pitch of that width and a flat top in the middle (a block of several houses never
+        # reads as one giant roof); parts with a courtyard keep the flat top
+        pitched = roofs and _bld_roof_mode(u, "ridge") != "flat" and r is not None and not holes
+        planes = []
+        if pitched:
+            rcx, rcy, ux, uy, L, W = r
+            wx, wy = -uy, ux
+            e = min(W / 2.0, BLD_HIP_MAX_W / 2.0)
+
+            def at(su, sv):
+                return (rcx + ux * su + wx * sv, rcy + uy * su + wy * sv)
+            hl, hw = L / 2.0, W / 2.0
+            planes = [([at(-hl, hw), at(hl, hw), at(hl - e, hw - e), at(-hl + e, hw - e)], (wx, wy)),
+                      ([at(hl, -hw), at(-hl, -hw), at(-hl + e, -hw + e), at(hl - e, -hw + e)], (-wx, -wy)),
+                      ([at(hl, hw), at(hl, -hw), at(hl - e, -hw + e), at(hl - e, hw - e)], (ux, uy)),
+                      ([at(-hl, -hw), at(-hl, hw), at(-hl + e, hw - e), at(-hl + e, -hw + e)], (-ux, -uy))]
+            if hw - e > 1e-3:
+                planes.append(([at(-hl + e, -hw + e), at(hl - e, -hw + e), at(hl - e, hw - e), at(-hl + e, hw - e)],
+                               None))
+
+            def zr(x, y, _r=r):
+                dx, dy = x - _r[0], y - _r[1]
+                su, sv = dx * _r[2] + dy * _r[3], -dx * _r[3] + dy * _r[2]
+                d = min(_r[5] / 2.0 - abs(sv), _r[4] / 2.0 - abs(su), e)
+                return zt + t_p * max(0.0, d)
+        else:
+            def zr(x, y):
+                return zt
         walls = []
         n = len(P)
         for i in range(n):
             p, q = P[i], P[(i + 1) % n]
             ex, ey = q[0] - p[0], q[1] - p[1]
-            L = _m.hypot(ex, ey)
-            if L < 1e-6:
+            L_e = _m.hypot(ex, ey)
+            if L_e < 1e-6:
                 continue
-            nx, ny = ey / L, -ex / L                     # outward (ccw outline)
+            nx, ny = ey / L_e, -ex / L_e                 # outward (ccw outline)
             if nx * vx + ny * vy <= 1e-6:
                 continue
             lit = nx * sx + ny * sy
             col = _bld_mix(C["wall_shade"], C["wall_lit"], max(0.0, min(1.0, 0.5 + 0.5 * lit)))
+            ts = set([0.0, 1.0])                         # the wall top follows the roof (gable ends at notches)
+            for pl, _nrm in planes:
+                for sa, sb_ in _bld_clip_seg(p, q, pl):
+                    for pt in (sa, sb_):
+                        ts.add(round(((pt[0] - p[0]) * ex + (pt[1] - p[1]) * ey) / (L_e * L_e), 6))
+            top = []
+            for t_ in sorted(x_ for x_ in ts if -1e-9 <= x_ <= 1.0 + 1e-9):
+                x_, y_ = p[0] + ex * t_, p[1] + ey * t_
+                top.append(proj(x_, y_, zr(x_, y_)))
             mx, my = (p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0
-            walls.append((mx * vx + my * vy, [proj(p[0], p[1], z0), proj(q[0], q[1], z0), proj(q[0], q[1], zt),
-                                              proj(p[0], p[1], zt)], col))
+            ring = [proj(p[0], p[1], zb[i]), proj(q[0], q[1], zb[(i + 1) % n])] + top[::-1]
+            walls.append((mx * vx + my * vy, ring, col))
         walls.sort(key=lambda w: w[0])
         for _, ring, col in walls:
             out.append(("fill", [ring], col, 1.0, True))
             out.append(("line", ring + ring[:1], C["axo_line"], lw, None, 1.0))
-        r = bld_rect(P)
-        pitched = roofs and _bld_roof_mode(u, "ridge") != "flat" and r is not None and \
-            abs(_bld_area(P)) >= 0.8 * r[4] * r[5]
         if pitched:
-            rcx, rcy, ux, uy, L, W = r
-            wx, wy = -uy, ux
-            rise = _m.tan(_m.radians(pitch)) * W / 2.0
-            hh = (L - W) / 2.0
-            c4 = [(rcx + ux * su * L / 2 + wx * sv * W / 2, rcy + uy * su * L / 2 + wy * sv * W / 2)
-                  for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-            r1, r2 = (rcx - ux * hh, rcy - uy * hh), (rcx + ux * hh, rcy + uy * hh)
-            planes = [([c4[0], c4[1], r2, r1], (-wx, -wy)), ([c4[2], c4[3], r1, r2], (wx, wy)),
-                      ([c4[3], c4[0], r1], (-ux, -uy)), ([c4[1], c4[2], r2], (ux, uy))]
             rp = []
-            for pl, (nx, ny) in planes:
-                pts3 = [(x, y, zt if (x, y) in c4 else zt + rise) for x, y in pl]
-                mx = sum(p[0] for p in pl) / len(pl)
-                my = sum(p[1] for p in pl) / len(pl)
-                lit = nx * sx + ny * sy
-                col = _bld_mix(C["roof_shade"], C["roof_lit"], max(0.0, min(1.0, 0.5 + 0.5 * lit)))
-                rp.append((mx * vx + my * vy, [proj(*p3) for p3 in pts3], col))
+            for pl, nrm in planes:
+                piece = _bld_clip_convex(P, pl)
+                if len(piece) < 3 or abs(_bld_area(piece)) < 1e-4:
+                    continue
+                mx = sum(p_[0] for p_ in piece) / len(piece)
+                my = sum(p_[1] for p_ in piece) / len(piece)
+                if nrm is None:
+                    col = C["roof_lit"]
+                else:
+                    lit = nrm[0] * sx + nrm[1] * sy
+                    col = _bld_mix(C["roof_shade"], C["roof_lit"], max(0.0, min(1.0, 0.5 + 0.5 * lit)))
+                rp.append((mx * vx + my * vy, [proj(x_, y_, zr(x_, y_)) for x_, y_ in piece], col))
             rp.sort(key=lambda w: w[0])
             for _, ring, col in rp:
                 out.append(("fill", [ring], col, 1.0, True))
                 out.append(("line", ring + ring[:1], C["axo_line"], lw, None, 1.0))
         else:
             top = [proj(p[0], p[1], zt) for p in P]
-            hs = [[proj(p[0], p[1], zt) for p in H] for H in H_ if len(H) >= 3 and _bld_pip(H[0][0], H[0][1], P)]
+            hs = [[proj(p[0], p[1], zt) for p in H] for H in holes]
             out.append(("fill", [top] + hs, C["roof_lit"], 1.0, False))
             out.append(("line", top + top[:1], C["axo_line"], lw, None, 1.0))
+    return out
+
+
+def _bld_clip_convex(P, C_):
+    """round 4 (S2): polygon P (any shape) clipped to the convex polygon C_ (Sutherland-Hodgman, either turn of C_)"""
+    s_ = _bld_area(C_)
+    sgn = 1.0 if s_ > 0 else -1.0
+    out = list(P)
+    m = len(C_)
+    for i in range(m):
+        a, b = C_[i], C_[(i + 1) % m]
+        if not out:
+            break
+
+        def side(p):
+            return sgn * ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]))
+        inp, out = out, []
+        for j in range(len(inp)):
+            p, q = inp[j - 1], inp[j]
+            sp, sq = side(p), side(q)
+            if sq >= 0:
+                if sp < 0:
+                    t = sp / (sp - sq)
+                    out.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+                out.append(q)
+            elif sp >= 0:
+                t = sp / (sp - sq)
+                out.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
     return out
 
 
