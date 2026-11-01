@@ -50,6 +50,8 @@
 #@include ../common/icons.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
+#@include ../common/data/BRIDGES.py
+#@include ../common/bridges.py
 #@include pages/p02_p03.py
 #@include pages/p04_05_sections.py
 #@include pages/p06_22_build.py
