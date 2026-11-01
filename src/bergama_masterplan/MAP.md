@@ -169,7 +169,7 @@
 | opacity_input | parts/03_make_board.py | 766 |
 | option_input | parts/03_make_board.py | 782 |
 | build_all | parts/03_make_board.py | 786 |
-| run | parts/03_make_board.py | 1006 |
+| main | parts/03_make_board.py | 1006 |
 | ZONE_COPY | data/ZONE_COPY.py | - |
 | STREAM_REF | data/STREAM_REF.py | - |
 | WALK_COPY | data/WALK_COPY.py | - |

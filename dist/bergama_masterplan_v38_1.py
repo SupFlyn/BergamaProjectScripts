@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_masterplan_v38.py = v38 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_masterplan_v38_1.py = v38.1 (1 Nov 2026; fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
 """BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
@@ -280,8 +280,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v38 (2026-11-01)"  # v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v38"
+VERSION = "bergama_masterplan v38.1 (2026-11-01)"  # v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v38.1"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
 RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: inferred, not a sourced number)
@@ -20126,7 +20126,7 @@ def build_all(doc, warn):
     return folder, files, lines, pages, scale
 
 
-def run():
+def main():    # v38.1: was run(), which replaced the Button input `run` (Button did nothing)
     pressed, why, btn = trig_should_run("chain_seen", SETTINGS)   # v38 (round 4): common/trigger.py, one rule
     globals()["_ran_now"] = pressed
     if not pressed:
@@ -20205,7 +20205,7 @@ bergama_data("LC_EMBED")
 
 if Rhino is not None:
     try:
-        _txt, _files = run()
+        _txt, _files = main()
     except Exception as _ex:
         _txt, _files = u"ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION), []
         gh_status(SHORT + " · ERROR")
