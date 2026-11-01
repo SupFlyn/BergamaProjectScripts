@@ -1,3 +1,5 @@
+# SUPERSEDED (round 4, S1, 1 Nov 2026): common/trigger.py is the one start-up file. Kept only while a script still
+# includes this file (each page session moves its script to trig_should_run); the closing step deletes it.
 def chain_fire(v, key):
     """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
     after the Button is released; each NEW text fires this script once (the Button still works as before)."""
