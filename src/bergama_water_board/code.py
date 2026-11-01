@@ -458,7 +458,7 @@ class Page(object):
         else:
             _TXT_G[0] += 1
             g = u"w%d" % _TXT_G[0]
-        if mat is None and any(ch in SUP for ch in s):    # v3.1: m² / m³ as a raised small digit (see SUP)
+        if SUP_RAISE and mat is None and any(ch in SUP for ch in s):    # v3.1: m² / m³ as a raised small digit (see SUP)
             runs = sup_runs(s)
             ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
             x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
@@ -478,6 +478,8 @@ class Page(object):
 # size (the digit is then as wide as the ²/³ glyph, 333/1000): the unembedded Helvetica's ²/³ was missing in some viewers
 SUP = {u"²": u"2", u"³": u"3"}
 SUP_K, SUP_UP = 0.6, 0.28
+SUP_RAISE = False   # v13 (round 4, S6b): off: the 0.6 x digit fell under the 6 pt minimum (check_text raised on
+#                     m²/m³ under 10 pt); Arial is embedded with WinAnsi (pdf_fonts), so the real ²/³ glyph prints
 
 
 def sup_runs(s):
