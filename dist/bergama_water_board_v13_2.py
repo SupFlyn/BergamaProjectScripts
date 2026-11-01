@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_1.py = v13.1 (1 Nov 2026 fix: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13_2.py = v13.2 (1 Nov 2026 fix: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.1 (2026-11-01)"  # v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.1"
+VERSION = "bergama_water_board v13.2 (2026-11-01)"  # v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13.2"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -15347,9 +15347,14 @@ def _p12_scene(pg, K, T, k, view, R, zones, links, f, Z, D, log, sb, dz, trees):
                     u"p12 cut A-A' ends", line=True)
             pg.keep(tri + tri[:1], "cut", u"p12 cut A-A' ends", line=True)
             tx, ty = p_[0] + sg * uz[0] * 2.4, p_[1] + sg * uz[1] * 2.4
-            pg.text(s_, tx, ty - FS_MIN * CAP / 2.0, FS_MIN, st_["colour"], bold=True, align="C",
-                    allow=(u"p12 cut A-A' ends",))
             w_ = text_w(s_, FS_MIN, True)
+            # v13.1 (Aras 1 Nov 17:40): a letter that would cross the drawing's edge (the zoom's neatline) is left
+            # out (the main map carries A / A'); the letters may sit on the winter store, which the cut crosses
+            if (tx - w_ / 2.0 < bb[0] + 0.8 or tx + w_ / 2.0 > bb[2] - 0.8 or
+                    ty - FS_MIN * CAP / 2.0 < bb[1] + 0.8 or ty + FS_MIN * CAP / 2.0 > bb[3] - 0.8):
+                continue
+            pg.text(s_, tx, ty - FS_MIN * CAP / 2.0, FS_MIN, st_["colour"], bold=True, align="C",
+                    allow=(u"p12 cut A-A' ends", "store"))
             out["labels"].append((tx - w_ / 2.0, ty - FS_MIN * CAP / 2.0, tx + w_ / 2.0, ty + FS_MIN * CAP / 2.0))
         segs.append((za, zb_))                          # the cut symbol with its A / A' (as km_cut_items): marks
     out["S"], out["segs"] = S, segs
@@ -15374,6 +15379,9 @@ def _p12_block(pg, ga, T, Ti, R):
     pg.poly([prof + [(ga[2], yf), (ga[0], yf)]], fill=face, stroke=_sec_mix(face, "000000", 0.2), lw=0.12)
     s_ = u"heights ×{:.1f} · diagram, no scale".format(R["zx"])
     pg.text(s_, ga[0] + 2.0, yf + 0.5, FS_MIN, COL["ink"])
+    # v13.1: the note's box, so the zoom box is not put over it (the zoom's neatline crossed it, Aras 1 Nov 17:40)
+    _P12_MEMO["block_txt"] = (ga[0] + 2.0, yf + 0.5 - 0.3 * FS_MIN * CAP, ga[0] + 2.0 + text_w(s_, FS_MIN),
+                              yf + 0.5 + FS_MIN * CAP)
     return (ga[0], yf, ga[2], max(p[1] for p in prof))
 
 
@@ -15580,6 +15588,8 @@ def _p12_inset(pg, ga, M, zones, links, f, Z, D, log):
         if b[0] < ga[0] or b[1] < ga[1] or b[2] > ga[2] or b[3] + tl > ga[3] or lp_hit(b, sp, 2.0):
             continue
         n = sum(1 for p in proj if b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3])
+        # v13.1: a place over the map's own texts (the cut's A / A', the relief note) costs far more than any count
+        n += 1000 * sum(1 for t_ in list(Sc["labels"]) + [_P12_MEMO.get("block_txt")] if t_ and lp_hit(b, t_, 1.0))
         d = min(math.hypot(a[0] - c[0], a[1] - c[1]) for a in corners(sp) for c in corners(b))
         if best is None or n + d / 10.0 < best[0]:
             best = (n + d / 10.0, b)

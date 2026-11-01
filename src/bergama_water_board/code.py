@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_1.py = v13.1 (1 Nov 2026 fix: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13_2.py = v13.2 (1 Nov 2026 fix: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.1 (2026-11-01)"  # v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.1"
+VERSION = "bergama_water_board v13.2 (2026-11-01)"  # v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13.2"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
