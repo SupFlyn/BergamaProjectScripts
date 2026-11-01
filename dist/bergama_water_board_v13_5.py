@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_4.py = v13.4 (1 Nov 2026 fix: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13_5.py = v13.5 (1 Nov 2026 fix: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.4 (2026-11-01)"  # v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.4"
+VERSION = "bergama_water_board v13.5 (2026-11-01)"  # v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13.5"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -15081,6 +15081,29 @@ def _p12_legend(pg, ga, rows, avoid, taken):
             best = (n, Lo)
     Lo = best[1]
     b = Lo["box"]
+    # v13.5 (Aras 1 Nov 18:06: the channel letters D and E under the legend): when every corner covers a placed
+    # marker or text, the legend slides along the map's edges from its corner (5 mm steps, up to 80 mm) to the
+    # nearest place that covers none; without one it stays in the best corner (the page check then names the hit)
+    if any(lp_hit(b, t) for t in taken):
+        w_, h_ = b[2] - b[0], b[3] - b[1]
+        tries = []
+        for st in range(1, 17):
+            for dx, dy in ((5.0 * st, 0.0), (-5.0 * st, 0.0), (0.0, 5.0 * st), (0.0, -5.0 * st)):
+                q = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
+                if q[0] < ga[0] or q[1] < ga[1] or q[2] > ga[2] or q[3] > ga[3]:
+                    continue
+                if any(lp_hit(q, t) for t in taken):
+                    continue
+                tries.append((st, sum(1 for p in avoid if q[0] <= p[0] <= q[2] and q[1] <= p[1] <= q[3]), dx, dy))
+            if tries:
+                break
+        if tries:
+            _st, _n, dx, dy = min(tries, key=lambda t_: (t_[1], t_[0]))
+            for r in Lo["rows"]:
+                sx = r["swatch"]
+                r["swatch"] = (sx[0] + dx, sx[1] + dy, sx[2] + dx, sx[3] + dy)
+                r["text"] = (r["text"][0] + dx, r["text"][1] + dy)
+            b = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
     pg.poly([rect(b[0], b[1], b[2], b[3])], fill=COL["white"])
     G_ = P12_GROUND
     for r in Lo["rows"]:

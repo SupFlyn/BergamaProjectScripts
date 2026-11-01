@@ -1538,6 +1538,29 @@ def _p12_legend(pg, ga, rows, avoid, taken):
             best = (n, Lo)
     Lo = best[1]
     b = Lo["box"]
+    # v13.5 (Aras 1 Nov 18:06: the channel letters D and E under the legend): when every corner covers a placed
+    # marker or text, the legend slides along the map's edges from its corner (5 mm steps, up to 80 mm) to the
+    # nearest place that covers none; without one it stays in the best corner (the page check then names the hit)
+    if any(lp_hit(b, t) for t in taken):
+        w_, h_ = b[2] - b[0], b[3] - b[1]
+        tries = []
+        for st in range(1, 17):
+            for dx, dy in ((5.0 * st, 0.0), (-5.0 * st, 0.0), (0.0, 5.0 * st), (0.0, -5.0 * st)):
+                q = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
+                if q[0] < ga[0] or q[1] < ga[1] or q[2] > ga[2] or q[3] > ga[3]:
+                    continue
+                if any(lp_hit(q, t) for t in taken):
+                    continue
+                tries.append((st, sum(1 for p in avoid if q[0] <= p[0] <= q[2] and q[1] <= p[1] <= q[3]), dx, dy))
+            if tries:
+                break
+        if tries:
+            _st, _n, dx, dy = min(tries, key=lambda t_: (t_[1], t_[0]))
+            for r in Lo["rows"]:
+                sx = r["swatch"]
+                r["swatch"] = (sx[0] + dx, sx[1] + dy, sx[2] + dx, sx[3] + dy)
+                r["text"] = (r["text"][0] + dx, r["text"][1] + dy)
+            b = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
     pg.poly([rect(b[0], b[1], b[2], b[3])], fill=COL["white"])
     G_ = P12_GROUND
     for r in Lo["rows"]:
