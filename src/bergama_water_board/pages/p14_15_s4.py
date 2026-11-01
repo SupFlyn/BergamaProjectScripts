@@ -24,6 +24,14 @@
 # on every cut; plants seasonal and opaque through plants.py (pla_section month=, bare winter trees, species colours,
 # the new willow), the cut's trees a depth layer back (G15); people in front in one drawn style with street elements;
 # zones numbered under each cut with their reasons (R07, G10); zoom insets at 1:200 (U29); no leader labels (G3).
+# Round 4 (1 Nov 2026, S6a; handover/S6a_p14_design_spec.md): every text in the page's TextPage (G-R4-1, a collision
+# raises; word blocks grouped, key maps and markers kept clear); p.14: plant key English · Turkish (D5), the zones
+# as a numbered colour strip under each cut (P14.1, mk_marker), the shared key map (km_map, red R01) and north arrow,
+# level marks outside each cut's frame (sf_level_marks), the low planting layer (pla_low_section), plants in the
+# season's state (plants.py season=), greenery colours from pla_colours (G-R4-6), the one people set (pen_black),
+# the views' trees whole inside their frames (P14.2), insets with their scale (1:200); p.15: one LEFT section block
+# (blk_section), its parts numbered on the surface, its level marks outside the frame, the inset at 1:100 (D11), one
+# subtitle (P15.5), the year's PLANTS rows clear of each other (P15.3).
 # build_board calls P14_TITLE, P15_TITLE, p14_page(pg, box, opt, log), p15_page(pg, box, opt, log).
 
 P14_TITLE = u"S4 THROUGH THE SEASONS · the water level decides what the place becomes"
@@ -72,6 +80,10 @@ P14_PLANT_ZONES = [  # where S4 is planted (D6, D2; G9: mixed species interpenet
 P14_PLANT_RUNS = [("sw_path", "sw_slope", "bed_sw"), ("toe", "terr_b", "terr_c"), ("prom", "fill")]   # G9:
 #                                      the zones planted as one stretch of mixed groups (the open ground between them:
 #                                      the market ground, the lower walk, the bike lane, kept free)
+P14_LOW_ZONES = ("sw_slope", "toe", "terr_b", "terr_c", "fill")   # round 4 (G-R4-5.3): the zones whose ground gets
+#                                      plants.py's low layer (pla_low_section) under the groups: only their own low
+#                                      species of P14_PLANT_ZONES (no species added)
+P14_LOW_DENS = 0.9                   # its density, x the zone's own (drawing rule)
 P14_PLANTS = []                      # (species, m across, height m, crown m), filled once a run by _p14_planting (p.17
 #                                      reads it for F3 after _p14_geo())
 P14_GROUPS = []                      # the mixed groups (m from, m to, species, purpose tags), filled with P14_PLANTS
@@ -101,13 +113,13 @@ P14_USE = {  # who is where, doing what, each season (G10; our programme, as the
                ("bike", "bike_lane", 0.4, 3, 0, None, None, None)],
     "spring": [("sw_path", "walkway", 0.6, 5, 0, None, ("walk", "dog_walk"), None),
                ("wedge", "water_edge", 0.8, 35, 0, "water", ("fishing", "watch"), 2),   # a fisher at the spring water
-               ("market", "lawn", 0.9, 6, 0, "water", ("child_play", "child_play", "adult_child"), None),  # children in
-               ("walk", "walkway", 0.8, 7, 0, "water", ("adult_child", "walk"), None),   # pairs; walkers stop, a child
-               ("steps", "sun_steps", 0.5, 8, 0, "water", None, None),                   # points at the water
+               ("walk", "walkway", 0.8, 7, 0, "water", ("adult_child", "walk"), None),   # walkers on the lower walk
+               ("steps", "sun_steps", 0.7, 8, 0, "water", ("sit_step", "adult_child", "sit_step"), None),   # families
                ("prom", "walkway", 0.8, 9, 0, "water", ("walk", "running", "adult_child"), None),
                ("bike", "bike_lane", 0.6, 10, 0, None, None, None),
-               ("market", "lawn", 0.5, 25, 1, "water", ("child_play", "child_play", "walk"), None),
-               ("prom", "walkway", 0.5, 26, 1, None, None, None)],
+               ("walk", "walkway", 0.5, 25, 1, "water", ("watch", "watch", "adult_child"), 2),   # looking at the wet
+               ("prom", "walkway", 0.5, 26, 1, None, None, None)],   # meadow (round 4, PLAN §5: zone 6 is walked
+               #                                       around in spring, nobody on it)
     "summer": [("sw_path", "walkway", 0.8, 11, 0, None, ("walk", "dog_walk", "walk"), None),
                ("edge", "walkway", 1.5, 33, 0, "water", ("adult_child", "watch", "adult_child"), 3),   # a family at
                ("strip", "wading_strip", 1.4, 12, 0, "water", ("child_play", "child_play", "wade", "touch_water"),
@@ -680,8 +692,8 @@ def _p14_band(pts, w):
 
 
 P14_BARE_EDGE = "B0AC9C"
-P14_BLOOM = "C97FA0"                 # in flower: one colour for every species, as in the calendars
-P14_LEAF = "9DB46F"                  # in leaf, on the key
+P14_KEY_GREY = ("B7B2A6", "8E887C")  # the calendar legend's samples (in leaf, in flower): neutral, each row's bars
+#                                      carry the species' own colours (round 4, G-R4-6: no page-wide greenery colour)
 
 
 def _p14_state(key, month):
@@ -697,27 +709,42 @@ def _p14_state(key, month):
     return None
 
 
-def _p14_cell(pg, x0, y0, x1, y1, st, leaf=None):
-    """one calendar cell of a plant state"""
+def _p14_cell(pg, x0, y0, x1, y1, st, col=None):
+    """one calendar cell of a plant state; col = its colour (the species' own from pla_colours, or a legend grey)"""
     r = rect(x0, y0, x1, y1)
     if st == "leaf":
-        pg.poly([r], fill=leaf or P14_LEAF)
+        pg.poly([r], fill=col or P14_KEY_GREY[0])
     elif st == "bloom":
-        pg.poly([r], fill=P14_BLOOM)
+        pg.poly([r], fill=col or P14_KEY_GREY[1])
     elif st == "bare":
         pg.poly([r], fill=COL["white"], stroke=P14_BARE_EDGE, lw=0.1)
     elif st == "cut":
-        pg.poly([r], fill=COL["white"], stroke=P14_BLOOM, lw=0.1, stripes=(P14_BLOOM, 0.55, 0.1, 45.0))
+        c_ = col or P14_KEY_GREY[1]
+        pg.poly([r], fill=COL["white"], stroke=c_, lw=0.1, stripes=(c_, 0.55, 0.1, 45.0))
 
 
-def _p14_plant(key, x, gy, k, month, h=None, cw=None, seed=0, style="b", layer=0, detail=True):
+def _p14_bloom_col(key):
+    """the flower colour of a species for the calendar bars (G-R4-6): pla_colours' accent in its bloom season, else
+    its light fleck"""
+    for sea in SEAS:
+        c = pla_colours(key, sea)
+        if c.get("accent"):
+            return c["accent"]
+    return pla_colours(key)["lt"]
+
+
+def _p14_plant(key, x, gy, k, month, h=None, cw=None, seed=0, style="b", layer=0, detail=True, season=None):
     """a species in section (plants.py) as it is that month (1-12), ground at (x, gy) page mm, k mm per m AS PRINTED
     (the caller's true scale times its layer's scale; a view passes its perspective k): round 3 (D7, G9, G15) through
     pla_section(month=): the season's species colour, deciduous species out of leaf drawn bare (branches with the open
     gaps between them, pla_bare), flowers only in the bloom months, always vector and opaque, the new willow; layer =
     the D9 depth tone (pla_section scales by it, so k is handed on without that scale). style: kept for the callers
-    (a seasonal plant is vector in every style). Returns house shapes."""
+    (a seasonal plant is vector in every style). Round 4: season (the cuts and views) = plants.py's season state;
+    month (the calendar) its month alias. Returns house shapes."""
     sc = fig_depth(layer)[0] if layer else 1.0
+    if season is not None:
+        return pla_section(key, x, gy, k / sc, h, cw, False, seed, hires=detail, style="b", layer=layer,
+                           detail=detail, season=season)
     return pla_section(key, x, gy, k / sc, h, cw, False, seed, hires=detail, style="b", layer=layer, detail=detail,
                        month=month)
 
@@ -965,87 +992,93 @@ def occ_spans(ms):
     return out
 
 
-# ---------------------------------------------------------------- the key map: S4 only, basemap "topographic"
-P14_KEY = (130.0, 22.0)              # p.14: the key map's room (top right), mm; a key map states no scale, so it fills it
+# ---------------------------------------------------------------- the key map: S4 only (round 4, G-R4-9: keymap.py)
+P14_KEY = (100.0, 30.0)              # p.14: the key map's room (top right), mm; a key map states no scale, so it fills it
+P14_NORTH = 7.0                      # mm left of the key map for the north arrow (north_items, no plate)
 
 
-def _p14_keymap(pg, box, log=None):
-    """the S4 key map at the top right of box (x0, y0, x1, y1): the analysis frame turned along its long side, upstream
-    at the left, the shared basemap in its topographic mode (02 §1), ONLY the S4 cut with its look triangles and end
-    names (D11), a north arrow at its left. Returns the box it took (the box's top edge when there is no basemap)."""
-    x0, y0, x1, y1 = box
-    fr = basemap_frame()
-    if not fr:
-        if log is not None:
-            log.append(u"pp.14-15 key map: no basemap data (run the site board v51+ once); pages drawn without it")
-        return (x1, y1, x1, y1)
-    cx, cy = sum(p[0] for p in fr) / len(fr), sum(p[1] for p in fr) / len(fr)
-    e1 = (fr[1][0] - fr[0][0], fr[1][1] - fr[0][1])
-    e2 = (fr[2][0] - fr[1][0], fr[2][1] - fr[1][1])
-    u = e1 if math.hypot(*e1) >= math.hypot(*e2) else e2
-    L = math.hypot(*u)
-    u = (u[0] / L, u[1] / L)
-    if (fr[0][0] - cx) * u[0] + (fr[0][1] - cy) * u[1] > 0:      # the upstream end at the left
-        u = (-u[0], -u[1])
-    v = (-u[1], u[0])
-    us = [(p[0] - cx) * u[0] + (p[1] - cy) * u[1] for p in fr]
-    vs = [(p[0] - cx) * v[0] + (p[1] - cy) * v[1] for p in fr]
-    na = 9.0                                                      # room for the north arrow
-    den = max((max(us) - min(us)) * 1000.0 / (x1 - x0 - na), (max(vs) - min(vs)) * 1000.0 / (y1 - y0))
-    k = 1000.0 / den
-    ox, oy = x1 - max(us) * k, y1 - max(vs) * k
-
-    def T(p):
-        return (ox + ((p[0] - cx) * u[0] + (p[1] - cy) * u[1]) * k, oy + ((p[0] - cx) * v[0] + (p[1] - cy) * v[1]) * k)
-    R = (ox + min(us) * k, oy + min(vs) * k, ox + max(us) * k, oy + max(vs) * k)
-    sbox = (min(p[0] for p in fr), min(p[1] for p in fr), max(p[0] for p in fr), max(p[1] for p in fr))
-    sp = Page(0, 0)
-
+def _p14_map_fns(pg, allow=()):
+    """fill / line / text functions drawing basemap items onto pg (alpha as a lighter opaque tone; "MC" text as a
+    baseline, its texts may sit on the keeps named in allow)"""
     def fade(hx, alpha):
         return hx if alpha is None or alpha >= 0.999 else r28_mix(hx, "FFFFFF", 1.0 - max(0.0, float(alpha)))
 
-    def fill_fn(rings, hx, alpha, nonzero):
-        sp.poly([r_ for r_ in rings if len(r_) >= 3], fill=fade(hx, alpha))
+    def fill_fn(rings, hx, alpha=None, nonzero=False):
+        pg.poly([r_ for r_ in rings if len(r_) >= 3], fill=fade(hx, alpha))
 
-    def line_fn(pts, hx, w_mm, dash_mm, alpha):
+    def line_fn(pts, hx, w_mm, dash_mm=None, alpha=None):
         d_ = None
         if dash_mm:
             d_ = list(dash_mm) if isinstance(dash_mm, (list, tuple)) else [dash_mm, dash_mm]
-        sp.line(pts, fade(hx, alpha), w_mm, dash=d_)
+        pg.line(pts, fade(hx, alpha), w_mm, dash=d_)
 
     def text_fn(s, xy, size_mm, hx, bold=False, align="L"):
-        sp.text(s, xy[0], xy[1], max(size_mm, FS_MIN), hx, bold=bold, align=(str(align or u"L")[-1:]).upper())   # v7.1: "MC" -> "C"
+        a_ = str(align or u"L").upper()
+        dy = -0.36 * size_mm if a_[:1] == "M" else 0.0
+        pg.text(s, xy[0], xy[1] + dy, max(size_mm, 2.12), hx, bold=bold, align=a_[-1:] if a_[-1:] in "LCR" else "L",
+                allow=allow)
+    return fill_fn, line_fn, text_fn
+
+
+def _p14_keymap(pg, box, log=None, page=u"p14"):
+    """round 4 (G-R4-9): the shared key map (keymap.py km_map) in the right of box (x0, y0, x1, y1), north up: the
+    muted base, the study line, ONLY S4 in the red R01 symbol (look triangle, end names), the main street and place
+    names placed by km_map clear of the cut and of each other, a thin neatline (D4); the north arrow (north_items, no
+    plate) at its left. The map is a keep of the page's TextPage ("keymap <page>"): only its own texts sit on it
+    (one text group: km_map spaced them). Returns the box it took (the box's top-right corner when none is drawn)."""
+    x0, y0, x1, y1 = box
+    name = u"keymap " + page
     try:
-        items = basemap_items("topographic", box=sbox, split_buildings=True)
-        cut = basemap_cut_items(basemap_cut_ids(["S4"]), den, text_mm=FS_MIN)
-        pg.poly([rect(*R)], fill=COL["white"])
-        basemap_draw(list(items) + list(cut), T, fill_fn, line_fn, text_fn)
+        km = km_map(["S4"], x1 - x0 - P14_NORTH, y1 - y0, page=page)
     except Exception as ex:
         if log is not None:
-            log.append(u"pp.14-15 key map not drawn: {}: {}".format(type(ex).__name__, ex))
+            log.append(u"FLAG {} key map not drawn: {}: {}".format(page, type(ex).__name__, ex))
         return (x1, y1, x1, y1)
+    if not km.get("items"):
+        if log is not None:
+            log.append(u"FLAG {} key map not drawn: no basemap data (run the site board once)".format(page))
+        return (x1, y1, x1, y1)
+    R = (x1 - km["w_mm"], y1 - km["h_mm"], x1, y1)
+    sp = Page(0, 0)
+    sp.tgroup()
+    fill_fn, line_fn, text_fn = _p14_map_fns(sp, allow=(name,))
+    pg.poly([rect(*R)], fill=COL["white"])
+    km_draw(km, lambda q: (R[0] + q[0], R[1] + q[1]), fill_fn, line_fn, text_fn, page=page + u" key map", log=log)
+    sp.tgroup(False)
     pg.items += _p14_clip_items(sp.items, R)
     pg.poly([rect(*R)], fill=None, stroke=COL["ink2"], lw=0.088)   # D4: a map keeps a thin 0.25 pt neatline
-    nx, ny = u[1], v[1]                                           # survey north in the page
-    n_ = math.hypot(nx, ny) or 1.0
-    nx, ny = nx / n_, ny / n_
-    ax, ay = R[0] - na / 2.0, R[3] - 6.0
-    px, py = -ny, nx
-    tip, tail = (ax + nx * 3.0, ay + ny * 3.0), (ax - nx * 3.0, ay - ny * 3.0)
-    pg.poly([[tip, (tail[0] + px * 1.4, tail[1] + py * 1.4), (ax - nx * 1.4, ay - ny * 1.4),
-              (tail[0] - px * 1.4, tail[1] - py * 1.4)]], fill=COL["ink_dark"])
-    pg.text(u"N", tip[0] + nx * 2.2, tip[1] + ny * 2.2 - FS_MIN * 0.35, FS_MIN, COL["ink_dark"], bold=True, align="C")
-    return (R[0] - na, R[1], R[2], R[3])
+    pg.keep(R, "map", name)
+    f2, l2, t2 = _p14_map_fns(pg)
+    basemap_draw(north_items(R[0] - P14_NORTH / 2.0, R[3] - 9.5, 0.0, 6.0, COL["ink_dark"]), lambda p: p, f2, l2, t2)
+    if log is not None:
+        for ln in KM_LOG[-1:]:
+            if ln not in log:
+                log.append(ln)
+    return (R[0] - P14_NORTH, R[1], R[2], R[3])
 
 
 # ---------------------------------------------------------------- the cut, drawn (pp.14 and 15)
-P14_LOOK = {  # each season's colours in the views, and its water on the cuts
-    "winter": dict(sky="DCE3E6", far="B3B8AA", grass="A3A98A", gravel="BBB4A2", water="86AEBC"),
-    "spring": dict(sky="E3EDF0", far="B4C497", grass="98B46C", gravel="CEC6B3", water="96BCC8"),
-    "summer": dict(sky="F3EFE2", far="CCC198", grass="CBBD84", gravel="DDD4BE", water="8CBBC8"),
-    "autumn": dict(sky="ECE5D7", far="BFB18A", grass="B7A676", gravel="D5CCB6", water="90B5C1"),
+P14_LOOK = {  # each season's colours in the views, and its water on the cuts (not greenery: the greenery's are
+    # _p14_look's, from plants.py, G-R4-6)
+    "winter": dict(sky="DCE3E6", gravel="BBB4A2", water="86AEBC"),
+    "spring": dict(sky="E3EDF0", gravel="CEC6B3", water="96BCC8"),
+    "summer": dict(sky="F3EFE2", gravel="DDD4BE", water="8CBBC8"),
+    "autumn": dict(sky="ECE5D7", gravel="D5CCB6", water="90B5C1"),
 }
-P14_FIG = "4F453C"                   # the people in the views
+P14_LOOK_KEYS = ("plane", "soft_rush")   # the far tree line's species, the grass's (drawing rule: S4's own planting)
+P14_GRASS_T = 0.35                   # the grass tone taken toward the season's gravel (drawing rule: a ground, not a
+#                                      plant mass)
+
+
+def _p14_look(sea):
+    """round 4 (G-R4-6): the season's view colours, the greenery from pla_colours (the far tree line = the plane at
+    depth layer 2, its bark where bare; the grass = soft rush's mass tone taken toward the gravel), sky, gravel and
+    water from P14_LOOK"""
+    out = dict(P14_LOOK[sea])
+    far = pla_colours(P14_LOOK_KEYS[0], sea, layer=2)
+    out["far"] = far["bark"] if far.get("bare") else far["fill"]
+    out["grass"] = r28_mix(pla_colours(P14_LOOK_KEYS[1], sea)["shade"], out["gravel"], P14_GRASS_T)
+    return out
 
 
 P14_HOUSE_ON = 0.50                  # m: a background house stands only where the cut's ground under all of it lies
@@ -1102,13 +1135,14 @@ def _p14_houses(rng, log=None):
     return out
 
 
-def _p14_back(X, Y, k, rng, month, style="b", zw=None, ytop=None):
+def _p14_back(X, Y, k, rng, month, style="b", zw=None, ytop=None, season=None):
     """the houses and trees beyond the cut (R16: depth through faded background houses and trees): the basemap's
     houses behind S4 (_p14_houses; sf_back_house, D9 layer 1 nearer than the band's middle, else 2), farthest first,
     left out where the roof would leave the drawing (above ytop, page y); then plants.py's pla_group_section of S4's
     own trees and shrubs in D9 layers 2 and 1 (G9 mixed groups; depth tone by layer) in front of them; all seated on
     the lowest ground of the cut's line under them (G14), no tree over the bed nor where the ground lies under the
-    water zw (m), each in the month's state. Returns house shapes."""
+    water zw (m), each in the month's state (round 4: in season's, plants.py; houses with d_m, windows only near the
+    cut, sf_back_house v2). Returns house shapes."""
     G = _p14_geo()
     xa, xb = X(rng[0]), X(rng[1])
 
@@ -1124,7 +1158,7 @@ def _p14_back(X, Y, k, rng, month, style="b", zw=None, ytop=None):
             x_a, x_b = X(sa), X(sb)
             if ytop is not None and sf_ground_min(gy, x_a, x_b) + (h + pitch * min(0.5 * (sb - sa) + 0.3, 4.0)) * k > ytop:
                 continue
-            out += sf_back_house(x_a, x_b, gy, h, k, layer=lay, floors=fl)
+            out += sf_back_house(x_a, x_b, gy, h, k, layer=lay, floors=fl, d_m=d)
         if len(mix) < 2:
             continue
         _sh, placed, _gr = pla_group_section(xa, xb, gy, k, t0=0.40, t1=0.70, mix=mix, seed=40, layers=(lay,), style="b",
@@ -1135,7 +1169,8 @@ def _p14_back(X, Y, k, rng, month, style="b", zw=None, ytop=None):
                 w, h = w * P14_TREE_MAX / h, P14_TREE_MAX
             sc = fig_depth(layer)[0]
             y = sf_seat_x(gy, x, (0.12 if PLA_SPECIES[key]["layer"] == "tree" else 0.35) * w * k * sc)
-            out += _p14_plant(key, x, y, k * sc, month, h, w, 50 * layer + i, style, layer, detail=False)
+            out += _p14_plant(key, x, y, k * sc, month, h, w, 50 * layer + i, style, layer, detail=False,
+                              season=season)
     return out
 
 
@@ -1196,7 +1231,7 @@ def _p14_cut(pg, x0, yb, k, rng, sea, month, people=True, style="b", water="seas
     zw, wet, _wf = _p14_water(sea, mode)
     clip = (X(s0), -1e9, X(s1), 1e9)
     if back:
-        shp_put(pg, _p14_back(X, Y, k, rng, month, style, zw, ytop))
+        shp_put(pg, _p14_back(X, Y, k, rng, month, style, zw, ytop, season=sea))
 
     def put(ring_m, mat):
         r_ = _p14_clip_ring([(X(s), Y(z)) for s, z in ring_m], clip)
@@ -1266,6 +1301,8 @@ def _p14_cut(pg, x0, yb, k, rng, sea, month, people=True, style="b", water="seas
             half = (0.8 if pose == "market" else (0.9 if pose == "group" else FIG_FOOT_HALF_M)) * k * sc
             y = sf_seat_x(gpy, X(s), half)
             under = any(a <= s <= b for a, b in wet) and y < Y(zw) - 0.02 * k
+            if under and not st0 <= s <= st1:
+                continue                                  # round 4 (G-R4-5.2): nobody in the water but the strip's
             shp_put(pg, _p14_person(pose, X(s), y, k * sc, face, seed, style, layer, Y(zw) if under else None,
                                     wcol=wcol))
 
@@ -1279,13 +1316,26 @@ def _p14_cut(pg, x0, yb, k, rng, sea, month, people=True, style="b", water="seas
             y = sf_seat_x(gpy, X(s), (0.12 if tree else 0.35) * cw * k * sc)
             if y < Y(zw) - 0.02 * k and any(a <= s <= b for a, b in wet) and PLA_SPECIES[key]["layer"] != "emergent":
                 continue                                  # G14: no plant in the water unless it grows there
-            shp_put(pg, _p14_plant(key, X(s), y, k * sc, month, h, cw, i, style, layer))
+            shp_put(pg, _p14_plant(key, X(s), y, k * sc, month, h, cw, i, style, layer, season=sea))
+
+    def low():                                            # round 4 (G-R4-5.3): the shrub and flower layer
+        for zone, ta, tb, mix, dens, seed in P14_PLANT_ZONES:
+            low_mix = [k_ for k_ in mix if k_ in PLA_LOW]
+            if zone not in P14_LOW_ZONES or not low_mix:
+                continue
+            a, b = max(zn[zone][0], s0), min(zn[zone][1], s1)
+            if b - a < 0.5:
+                continue
+            sh, _pl = pla_low_section(X(a), X(b), gpy, k, ta, tb, seed=seed + 60, density=P14_LOW_DENS * dens,
+                                      water=Y(zw), season=sea, mix=low_mix, detail=k >= 3.0)
+            shp_put(pg, sh)
     plants(True)                                          # G15: the cut's trees step back, behind the use zones
     if people:
         folk(1)
     if street:
         shp_put(pg, _p14_street(X, k, rng, gpy))
     plants(False)
+    low()
     if people:
         folk(0)
     return X, Y
@@ -1319,6 +1369,8 @@ P14_VIEW_REACH = (150.0, 70.0, 38.0)   # m: the farthest repeat of each
 P14_VIEW_SKIP = 0.30                 # share of the repeats up the stream left out, so no repeat reads as a row (G9)
 P14_VIEW_HOUSE_D = 120.0             # m: the town's houses (S4's own, _p14_houses) as the far edge of the view
 P14_HOUSE_COL = ("DCD5C6", "B4A493")  # wall, roof (drawing rule; faded by depth layer 2)
+P14_VIEW_HW = 0.55                   # a plant's half width in the view, x its crown (drawing rule, P14.2: a crown
+#                                      that would pass the view's edge leaves the plant out; it is never cut)
 
 
 def _p14_rng(seed):
@@ -1344,11 +1396,14 @@ def _p14_view(pg, box, sea, style="b"):
     (G17). Round 2 (Aras 31 Oct, p.13 "more detailed"): the D8
     designed sky (sf_sky), the planting repeated densely up both banks in depth layers (P14_VIEW_STEP), the far tree
     line drawn as S4's own trees, the season's people by use repeated up the stream by how busy it is
-    (P14_VIEW_BUSY), nobody in water deeper than knee (fig_place_zones)."""
+    (P14_VIEW_BUSY), nobody in water deeper than knee (fig_place_zones). Round 4 (P14.2, G-R4-5/6): trees, shrubs and
+    people whole inside the rectangle (one that would pass its edge is left out; only the ground, sky and houses are
+    cut to it), plants in the season's state, the greenery colours from plants.py (_p14_look), the one people set,
+    nobody in the water but knee deep in the strip. Returns the number of sprites left out."""
     x0, y0, x1, y1 = box
     G = _p14_geo()
     month = P14_SEA_MONTH[sea]
-    look = P14_LOOK[sea]
+    look = _p14_look(sea)
     W, H = x1 - x0, y1 - y0
     f = P14_VIEW[0] * W
     vx, vy = x0 + P14_VIEW[1] * W, y0 + P14_VIEW[2] * H
@@ -1455,12 +1510,19 @@ def _p14_view(pg, box, sea, style="b"):
                             (pose, s + (rnd() - 0.5) * 1.2, face if stay or c % 2 else -face, seed + 5 * (c + 1))))
     spr.sort(key=lambda t: -t[0])
     pitch = math.tan(math.radians(globals().get("BLD_PITCH", 30.0)))
+
+    def whole(x, y, h_mm, hw_mm):                                 # round 4 (P14.2): a tree, shrub or person is
+        return x0 <= x - hw_mm and x + hw_mm <= x1 and y0 <= y and y + h_mm <= y1   # drawn whole or not at all
+    n_out = [0]
     for d, kind, data in spr:
         k = f / d
         if kind == "far":
             key, s_, h_, seed = data
             x, y = pr(s_, _p14_surf(s_), d)
-            shp_put(sp, _p14_plant(key, x, y, k, month, h_, h_ * 0.8, seed, style, 2, detail=False))
+            if not whole(x, y, h_ * k, P14_VIEW_HW * h_ * 0.8 * k):
+                n_out[0] += 1
+                continue
+            shp_put(sp, _p14_plant(key, x, y, k, month, h_, h_ * 0.8, seed, style, 2, detail=False, season=sea))
         elif kind == "house":                                     # a wall and a pitched roof, opaque, depth-toned
             sa, sb, h_, fl = data
             zg = _p14_surf(0.5 * (sa + sb))
@@ -1474,25 +1536,39 @@ def _p14_view(pg, box, sea, style="b"):
         elif kind == "plant":
             key, s, h, cw, seed = data
             x, y = pr(s, _p14_surf(s), d)
-            shp_put(sp, _p14_plant(key, x, y, k, month, h, cw, seed, style, lay(d), detail=d < 20.0))
+            if not whole(x, y, h * k, P14_VIEW_HW * cw * k):
+                n_out[0] += 1
+                continue
+            shp_put(sp, _p14_plant(key, x, y, k, month, h, cw, seed, style, lay(d), detail=d < 20.0, season=sea))
         elif kind == "fig":
             pose, s, face, seed = data
             z = _p14_surf(s)
             x, y = pr(s, z, d)
             under = any(a <= s <= b for a, b in wet) and z < zw - 0.02
-            if under and zw - z > FIG_WADE_MAX_M:
-                continue                                          # nobody in water deeper than knee
+            st_ = G["zones"]["strip"]
+            if under and (zw - z > FIG_WADE_MAX_M or not st_[0] <= s <= st_[1]):
+                continue                                          # nobody in water but knee deep in the strip
+            if not whole(x, y, (3.2 if pose == "market" else 1.9) * k,
+                         (1.2 if pose in ("market", "group") else 0.5) * k):
+                n_out[0] += 1
+                continue
             shp_put(sp, _p14_person(pose, x, y, k, face, seed, style, lay(d), pr(s, zw, d)[1] if under else None,
-                                    P14_FIG, look["water"]))
+                                    None, look["water"]))
     pg.items += _p14_clip_items(sp.items, box)
+    return n_out[0]
 
 
 # ---------------------------------------------------------------- p.14
-P14_COLS = (34.0, 30.0, 36.0, 3.0)   # the season column, the levels column, the animals list, the gap, mm
+P14_COLS = (34.0, 31.0, 36.0, 3.0)   # the season column, the level-mark column (the cut's side column), the animals
+#                                      list, the gap, mm
 P14_RAIN_MAX = 110.0                 # rain, mm a month, at the top of the small bars
 P14_DEPTH_MAX = 0.45                 # water, m, that fills the small channel (drawing rule; S4's highest month 0.43 m)
-P14_ZONE_H = 6.6                     # mm under each cut: the zones' numbers, then the season's names (R07)
-P14_ZONE_KEY = [  # the zones under each cut, numbered left to right, and why each is there (G10; our design)
+P14_ZONE_H = 8.6                     # mm under each cut: the zone strip, its numbers, the season's names (P14.1)
+P14_ZONE_BAR = (1.2, 2.8)            # mm under the cut's base: the zone strip's top and bottom (drawing rule)
+P14_MARK_PT, P14_MARK_R = 6.0, 1.7   # the zone numbers: pt (the G-R4-1 minimum), disc radius mm (one size for 1-11)
+P14_ZONE_KEY = [  # the zones under each cut, numbered left to right (G10; our design); the reasons (third entry) are
+    # printed on p.15 for the north-east bank (P15_WHY), on p.14 only the names (round 4, P14.1: the strip replaces the
+    # paragraph)
     ("sw_path", u"shaded path", u"a walk under the planes, dry in every flood"),
     ("sw_slope", u"planted bank", u"roots hold the steep south-west bank"),
     ("open", u"gravel bed", u"the stream's in winter, open to walk {open}"),
@@ -1505,14 +1581,20 @@ P14_ZONE_KEY = [  # the zones under each cut, numbered left to right, and why ea
     ("bike", u"bike lane", u"over Q500, apart from the walkers; bike racks beside it"),
     ("fill", u"planted fill", u"shade between the promenade and the street"),
 ]
+P14_ZONE_COL = {  # the zones' colours on the strips and their markers (a category palette, drawing rule; p.15 reuses it)
+    "sw_path": "8E8F8A", "sw_slope": "70754C", "open": "6B5B2E", "strip": "5C7A86", "toe": "3C4733",
+    "market": "5E4B8B", "walk": "A4A1A3", "steps": "4C2528", "prom": "2D564E", "bike": "B98A74", "fill": "89986A"}
+P14_WET_HATCH = (COL["white"], 0.7, 0.25, 45.0)   # a zone under the season's mean water: white stripes on its colour
 P14_INSET_M = (8.0, 3.2)             # the zoom spot, m across x m high (drawing rule)
 P14_INSET_AT = {  # each season's use spot shown enlarged (U29, P13.6): (zone of _p14_geo, what it shows; short, so
-    # the label fits the open sky over the bed; the scale is in the column head)
+    # the caption fits the open sky over the bed)
     "winter": ("prom_edge", u"high water watch"),
     "spring": ("wedge", u"water's edge"),
     "summer": ("strip", u"wading strip"),
     "autumn": ("steps", u"sun steps"),
 }
+P14_INSET_CAP = 4.2                  # mm over an inset box for its caption (sf_zoom_inset: 0.6 x size + the text)
+P14_INSET_BAR = 4.6                  # mm under it for its scale bar (gap 1.0, bar 0.8, the 6 pt "0" / "L m")
 
 
 def _p14_season_tag(pg, x, ytop, w, h, sea):
@@ -1544,7 +1626,8 @@ def _p14_season_tag(pg, x, ytop, w, h, sea):
 
 
 def _p14_animals(pg, x, ytop, w, h, sea):
-    """the animals on record that season: pictogram and name, one under the other"""
+    """the animals on record that season (exactly the GBIF list of P14_FAUNA, _p14_fauna_for): pictogram and name,
+    one under the other"""
     sel = _p14_fauna_for(sea)
     if not sel:
         return
@@ -1556,56 +1639,121 @@ def _p14_animals(pg, x, ytop, w, h, sea):
         pg.text(fa["name"], x + sz + 1.0, cy - FS_MIN * 0.35, FS_MIN, COL["ink_dark"])
 
 
-def _p14_plant_key(pg, x, ytop, w, h, style="b"):
-    """the species on the cuts, a small drawing (May) and the name each, in one row w wide from x; returns the
-    bottom y"""
-    cw = w / float(len(P15_PLANT_ROWS))
+def _p14_name(key, log=None):
+    """a species' name as printed (D5): "English · Turkish" (plants.py), English alone where the Turkish name is not
+    verified (FLAG once)"""
+    sp = PLA_SPECIES[key]
+    tr = (sp.get("turkish") or u"").strip()
+    if not tr or tr.upper() == u"UNVERIFIED":
+        ln = u"FLAG p14-15 plant names: {} has no verified Turkish name (plants.py): English only".format(key)
+        if log is not None and ln not in log:
+            log.append(ln)
+        return sp["name"]
+    return u"{} · {}".format(sp["name"], tr)
+
+
+def _p14_plant_key(pg, x, ytop, w, h, style="b", log=None, per_row=4):
+    """the species on the cuts (P15_PLANT_ROWS): a small drawing (general state) and "English · Turkish" each, per_row
+    to a row, rows h high from ytop; "PLANTS" in the label column. Returns the bottom y"""
+    fs = FS_MIN
+    lab = P14_LEG_LAB
+    pg.text(u"PLANTS", x, ytop - h / 2.0 - fs * 0.35, fs, COL["ink_dark"], bold=True)
+    cw = (w - lab) / float(per_row)
+    n = len(P15_PLANT_ROWS)
     for i, key in enumerate(P15_PLANT_ROWS):
+        r_, c_ = divmod(i, per_row)
         hh, cr = _p14_size(key)
-        kk = (h - 1.0) / max(hh, cr)
-        xx = x + i * cw
-        shp_put(pg, _p14_plant(key, xx + cr * kk / 2.0 + 0.3, ytop - h + 0.5, kk, 5, hh, cr, 0, style))
-        pg.text(PLA_SPECIES[key]["name"], xx + cr * kk + 1.6, ytop - h / 2.0 - FS_MIN * 0.35, FS_MIN, COL["ink"])
-    return ytop - h
+        kk = (h - 1.2) / max(hh, cr)
+        xx = x + lab + c_ * cw
+        yy = ytop - (r_ + 1) * h
+        shp_put(pg, _p14_plant(key, xx + cr * kk / 2.0 + 0.3, yy + 0.5, kk, None, hh, cr, 0, style))
+        pg.text(_p14_name(key, log), xx + cr * kk + 1.6, yy + h / 2.0 - fs * 0.35, fs, COL["ink"])
+    return ytop - ((n + per_row - 1) // per_row) * h
 
 
-def _p14_crop_ids(cid):
-    """the D1 crop ids of cid: cid, cid_b, cid_a (their BK_FIXED entries and captions are set in code.py)"""
-    return [cid, cid + "_b", cid + "_a"]
+P14_LEG_LAB = 16.0                   # mm, the header legends' label column ("PLANTS", "ZONES")
 
 
-def _p14_g6(k, keys, log, what):
-    """the G6 check of a drawing (section_frame.py): people true size at k, every plant inside its sourced range; one
-    FLAG log line when something is off (M2.7)"""
-    bad = sf_assert_g6(k, trees=[(p[0], p[2]) for p in keys], strict=False)
-    if bad and log is not None:
-        log.append(u"FLAG G6 {}: {}".format(what, u"; ".join(bad)))
+def _p14_mark(pg, cx, cy, s, colour, style="solid", size_pt=None, r_min=None):
+    """one marker (marker.py mk_marker, G-R4-7) on pg: its disc a keep of the page's TextPage, its glyph a text that may
+    sit on that disc only. Returns its box"""
+    sh, box, _r = mk_marker(cx, cy, s, colour, size_pt=size_pt or P14_MARK_PT,
+                            r_min=P14_MARK_R if r_min is None else r_min, style=style)
+    MK_N[0] += 1
+    nm = u"marker p14-15 %d" % MK_N[0]
+    for s_ in sh:
+        if s_[0] == "poly":
+            pg.poly([s_[1]], fill=s_[2], stroke=s_[3], lw=s_[4] or 0.1)
+            pg.keep(s_[1], "marker", nm)
+        elif s_[0] == "text":
+            pg.text(s_[1], s_[2], s_[3], s_[4], s_[5], bold=True, align="L", allow=(nm,))
+    return box
 
 
-def _p14_zone_text():
-    """the zones' key (P14_ZONE_KEY), one paragraph, numbers bold"""
-    return u"**Zones under each cut** · " + u" · ".join(
-        u"**{}** {}: {}".format(n + 1, name, why.format(open=_p15_open()))
-        for n, (_z, name, why) in enumerate(P14_ZONE_KEY))
+def _p14_zone_legend(pg, x, ytop, w):
+    """the zones' key (P14.1): "ZONES", then each zone's number (its strip colour) and name flowing in rows, and the
+    hatch "under water that season"; returns the bottom y"""
+    fs = FS_MIN
+    pitch = 2.0 * P14_MARK_R + 1.2
+    pg.text(u"ZONES", x, ytop - pitch / 2.0 - fs * 0.35, fs, COL["ink_dark"], bold=True)
+    xa, xe = x + P14_LEG_LAB, x + w
+    entries = [(n + 1, P14_ZONE_COL[z_], nm) for n, (z_, nm, _w) in enumerate(P14_ZONE_KEY)] + [(None, None, None)]
+    cx, row = xa, 0
+    for num, col, nm in entries:
+        t = nm if num is not None else u"under water that season"
+        ew = 2.0 * P14_MARK_R + 1.0 + text_w(t, fs) if num is not None else 5.0 + 1.0 + text_w(t, fs)
+        if cx + ew > xe and cx > xa:
+            cx, row = xa, row + 1
+        cy = ytop - pitch * (row + 0.5)
+        if num is not None:
+            _p14_mark(pg, cx + P14_MARK_R, cy, num, col)
+            tx = cx + 2.0 * P14_MARK_R + 1.0
+        else:
+            pg.poly([rect(cx, cy - 1.3, cx + 5.0, cy + 1.3)], fill=COL["ink2"], stripes=P14_WET_HATCH)
+            tx = cx + 6.0
+        pg.text(t, tx, cy - fs * 0.35, fs, COL["ink"])
+        cx += ew + 3.0
+    return ytop - pitch * (row + 1)
 
 
-def _p14_zone_strip(pg, X, y, sea):
-    """R07's idea under a cut (G15, G10, P13.7): a thin rule at y, the zones' edges ticked and numbered as P14_ZONE_KEY
-    (left to right, the key above the rows), under them the season's names of what the place becomes (P14_SPACES),
-    kept apart; nothing written on the drawing"""
-    zn = _p14_geo()["zones"]
+def _p14_zone_strip(pg, X, yb, sea, log=None):
+    """P14.1 (R07's idea, G10, G-R4-5.6): under the cut whose base is at page y yb, a strip of the zones in their
+    colours (P14_ZONE_COL), a zone under the season's mean water (at least half its width, _p14_water) hatched; each
+    zone's number (mk_marker) centred on it, a crowded one a step lower; under them the season's names of what the
+    place becomes (P14_SPACES); nothing written on the drawing"""
+    G = _p14_geo()
+    zn = G["zones"]
     fs = FS_MIN
     r0, r1 = P14_RANGE
-    pg.line([(X(r0), y), (X(r1), y)], COL["faint"], 0.1)
+    wet = _p14_water(sea)[1]
+    ya, yc = yb - P14_ZONE_BAR[0], yb - P14_ZONE_BAR[1]
+    ym = (ya + yc) / 2.0
+    rr = P14_MARK_R + 0.15
+    step = 2.0 * rr + 0.4
+    marks = []
     for n, (zone, _name, _why) in enumerate(P14_ZONE_KEY):
         a, b = max(zn[zone][0], r0), min(zn[zone][1], r1)
         if b <= a:
             continue
-        for e in (a, b):
-            pg.line([(X(e), y + 0.6), (X(e), y - 0.6)], COL["ink2"], 0.1)
-        pg.text(u"{}".format(n + 1), (X(a) + X(b)) / 2.0, y - fs * 0.95, fs, COL["ink2"], align="C")
-    yy = y - fs * 2.25
-    placed = []
+        under = sum(max(0.0, min(b, q) - max(a, p)) for p, q in wet) >= 0.5 * (b - a)
+        pg.poly([rect(X(a), yc, X(b), ya)], fill=P14_ZONE_COL[zone], stroke=COL["white"], lw=0.1,
+                stripes=P14_WET_HATCH if under else None)
+        marks.append(((X(a) + X(b)) / 2.0, n + 1, P14_ZONE_COL[zone]))
+    taken, low = [[], []], []
+    for cx, num, col in marks:
+        lvl = next((l_ for l_ in (0, 1) if all(abs(cx - q) >= 2.0 * rr + 0.7 for q in taken[l_])), None)
+        if lvl is None:
+            if log is not None:
+                log.append(u"FLAG p13 {} zone {}: no room for its number under the cut".format(sea, num))
+            continue
+        taken[lvl].append(cx)
+        cy = ym - lvl * step
+        if lvl:
+            pg.line([(cx, yc), (cx, cy + rr)], col, 0.15)
+            low.append((cx - rr - 0.6, cx + rr + 0.6))
+        _p14_mark(pg, cx, cy, num, col)
+    yy = ym - rr - 0.7 - fs * CAP
+    placed = list(low)
     for zone, name in P14_SPACES[sea]:
         a, b = zn[zone]
         w = text_w(name, fs, True)
@@ -1616,39 +1764,48 @@ def _p14_zone_strip(pg, X, y, sea):
         pg.text(name, xa_, yy, fs, P14_SPACE_COL[zone], bold=True)
 
 
-def _p14_levels_text(pg, x, Y, sea):
-    """the cut's levels beside it (DATA-1: every cut prints its levels, m, 2 decimals, from the level module), no
-    leaders (G3): the floods at their own height (Q100 at its line, Q500 over it), the season's water and the bed under
-    it at the water's height (summer and autumn, N2 a: the natural mean level, the strip full of clean water, its
-    floor)"""
+def _p14_level_rows(sea, avg=False):
+    """the levels a cut marks outside its frame (DATA-1, G-R4-5.4): [(key, m)]: Q500, Q100, the season's mean (avg:
+    the registry's average flow), the bed; with the summer strip full (summer, autumn, avg) its full level and floor"""
     G = _p14_geo()
-    fs = FS_MIN
-    lead = fs * 1.2
-    zw = G["levels"][sea]
-    for j, t in enumerate((u"{:+.2f} Q100".format(G["q100"]), u"{:+.2f} Q500".format(G["q500"]))):
-        pg.text(t, x, Y(G["q100"]) + 0.3 + j * lead, fs, C["w4"], bold=True)
-    full = abs(G["strip_full"] - G["bed"]) < 0.005
-    if sea in ("summer", "autumn"):
-        rows = [(u"{:+.2f} stream, mean".format(zw), C["w4"], True)]
-        if full:
-            rows.append((u"{:+.2f} bed, strip full".format(G["bed"]), COL["ink"], False))
+    zw = level_avg_flow("S4") if avg else G["levels"][sea]
+    rows = [("q500", G["q500"]), ("q100", G["q100"]), (u"average flow" if avg else "mean", zw)]
+    if avg or sea in ("summer", "autumn"):
+        if abs(G["strip_full"] - G["bed"]) < 0.005:
+            rows.append((u"bed, strip full", G["bed"]))
         else:
-            rows += [(u"{:+.2f} strip full".format(G["strip_full"]), C["w4"], False),
-                     (u"{:+.2f} bed".format(G["bed"]), COL["ink"], False)]
-        rows.append((u"{:+.2f} strip floor".format(G["sfl"]), COL["ink"], False))
+            rows += [(u"strip full", G["strip_full"]), ("bed", G["bed"])]
+        rows.append((u"strip floor", G["sfl"]))
     else:
-        rows = [(u"{:+.2f} water, mean".format(zw), C["w4"], True), (u"{:+.2f} bed".format(G["bed"]), COL["ink"], False)]
-    for j, (t, c_, b_) in enumerate(rows):
-        pg.text(t, x, Y(zw) + 0.3 - j * lead, fs, c_, bold=b_)
+        rows.append(("bed", G["bed"]))
+    return rows
 
 
-def _p14_bar(pg, x, y, den):
-    """a small scale bar beside a cut (checklist 10): 0-10 m in two 5 m blocks, "0–10 m" after it"""
-    k = 1000.0 / den
-    for j in range(2):
-        pg.poly([rect(x + j * 5.0 * k, y, x + (j + 1) * 5.0 * k, y + 1.0)], fill=COL["ink"] if j == 0 else COL["white"],
-                stroke=COL["ink"], lw=0.12)
-    pg.text(u"0–10 m", x + 10.0 * k + 1.0, y, FS_MIN, COL["ink"])
+P14_LEVEL_COLS = {"mean": C["w4"], u"average flow": C["w4"], u"strip full": C["w4"], "bed": COL["ink"],
+                  u"bed, strip full": COL["ink"], u"strip floor": COL["ink"]}
+
+
+def _p14_level_marks(pg, fr, Y, rows, page):
+    """sf_level_marks on the right of the frame fr (one text group: the module spaces its own lines); returns the
+    lowest text baseline (page y)"""
+    old = pg.tg
+    pg.tgroup()
+    sh = sf_level_marks(fr, [(key, z, Y(z)) for key, z in rows], side="R", cols=P14_LEVEL_COLS, page=page)
+    shp_put(pg, sh)
+    pg.tg = old
+    ys = [s_[3] for s_ in sh if s_[0] == "text"]
+    return min(ys) if ys else fr[1]
+
+
+def _p14_bar(pg, x, y_hi, y_lo, k, max_mm, alt_top):
+    """the cut's scale bar (sf_scale_bar, no "1:den": the scale is in the head) under the level marks, its top y_hi;
+    where its words would pass y_lo, at alt_top instead. Returns the bar's top"""
+    ytop = y_hi if y_hi - SF_ZOOM["bar_h"] - 0.9 * 2.12 >= y_lo else alt_top
+    old = pg.tg
+    pg.tgroup()
+    shp_put(pg, sf_scale_bar(x, ytop, k, None, max_mm=max_mm))
+    pg.tg = old
+    return ytop
 
 
 def _p14_shapes(items):
@@ -1665,29 +1822,35 @@ def _p14_shapes(items):
     return out
 
 
-def _p14_inset(pg, items, X, Y, k, zone, words, xr, ytop, log=None, tag=u"p13", sm=None):
-    """U29 / G15 / P13.6: the use spot of zone (P14_INSET_M wide and high, centred over its ground) enlarged to
-    1:P14_ZOOM_DEN in a box in the cut's own sky (xr = the cut's page x range, ytop its top), where no crown or roof
-    reaches (skyline of items), as near over its spot as fits; else the clearest place and a FLAG. sf_zoom_inset draws
-    the spot rectangle, one connector, the box and its label. Returns the box, or None where none fits the cut."""
+def _p14_inset(pg, items, X, Y, k, zone, words, xr, ytop, log=None, tag=u"p14", sm=None, size_m=None, den=None,
+               parent_den=None):
+    """U29 / G15 / G-R4-5.7: the use spot of zone (size_m = (m wide, m high), P14_INSET_M by default, centred over its
+    ground) enlarged to 1:den (P14_ZOOM_DEN) in a box in the cut's own sky (xr = the cut's page x range, ytop its top),
+    with room for its caption over it and its scale bar under it, where no crown or roof reaches (skyline of items),
+    as near over its spot as fits; else the clearest place and a FLAG. sf_zoom_inset draws the spot rectangle, one
+    connector, the box, the caption "ZOOMED IN · words · 1:den" and the scale bar (scale_den, parent_den: it raises
+    under 2 x; log "inset <tag> parent 1:<a> inset 1:<b>"), in one text group. Returns the box with its caption and
+    bar, or None where none fits the cut."""
     G = _p14_geo()
     a, b = G["zones"][zone]
     if sm is None:
         sm = (a + b) / 2.0
     zc = _p14_surf(sm) + 0.9
-    w_m, h_m = P14_INSET_M
+    w_m, h_m = size_m or P14_INSET_M
+    den = float(den or P14_ZOOM_DEN)
     src = (X(sm - w_m / 2.0), Y(zc - h_m / 2.0), X(sm + w_m / 2.0), Y(zc + h_m / 2.0))
-    kz = 1000.0 / P14_ZOOM_DEN
-    if kz <= k + 1e-9:
+    kz = 1000.0 / den
+    if kz < 2.0 * k - 1e-9:
+        if log is not None:
+            log.append(u"FLAG {} inset {}: 1:{:,.0f} is not 2 x its cut".format(tag, zone, den))
         return None
     bw, bh = w_m * kz, h_m * kz
-    label = words
-    wl_ = max(bw, text_w(u"ZOOMED IN · " + label, FS_MIN, True))
-    top = ytop - FS_MIN * 1.4
+    wl_ = max(bw, text_w(u"ZOOMED IN · {} · 1:{:,.0f}".format(words, den), FS_MIN, True))
+    top = ytop - P14_INSET_CAP
     sky = skyline(items, xr[0] - 2.0, xr[1] + 2.0)
     best, x_ = None, xr[0] + 1.0
     while x_ + wl_ <= xr[1] - 1.0:
-        clear = top - bh - sky(x_, x_ + wl_)
+        clear = top - bh - P14_INSET_BAR - sky(x_, x_ + wl_)
         dist = abs(x_ + bw / 2.0 - (src[0] + src[2]) / 2.0)
         key = (0, dist) if clear >= 1.0 else (1, -clear)
         if best is None or key < best[0]:
@@ -1701,131 +1864,145 @@ def _p14_inset(pg, items, X, Y, k, zone, words, xr, ytop, log=None, tag=u"p13", 
     if clear < 1.0 and log is not None:
         log.append(u"FLAG {} inset {} lies over the drawing by {:.1f} mm".format(tag, zone, 1.0 - clear))
     dst = (bx, top - bh, bx + bw, top)
-    shp_put(pg, sf_zoom_inset(src, dst, k, kz, _p14_shapes(items), label, size=FS_MIN))
-    return dst
+    old = pg.tg
+    pg.tgroup()
+    shp_put(pg, sf_zoom_inset(src, dst, k, kz, _p14_shapes(items), words, size=FS_MIN, scale_den=den,
+                              parent_den=parent_den, page=tag))
+    pg.tg = old
+    return (bx, dst[1] - P14_INSET_BAR, bx + wl_, top + P14_INSET_CAP)
 
 
-def _p14_text_boxes(items, skip=()):
-    """the boxes of the text items (page mm), for lp_overlap_flag; texts whose middle lies in a skip box (a drawing
-    that carries its own words: a key map) are left out"""
-    out = []
-    for it in items:
-        if it[0] != "text":
-            continue
-        t, x, y, size = it[1], it[2], it[3], it[4]
-        bold = it[6] if len(it) > 6 else False
-        align = it[7] if len(it) > 7 else "L"
-        w = text_w(t, size, bold)
-        xa_ = x - w * {"C": 0.5, "R": 1.0}.get(align, 0.0)
-        bx = (xa_, y - 0.22 * size, xa_ + w, y + 0.72 * size)
-        cx, cy = (bx[0] + bx[2]) / 2.0, (bx[1] + bx[3]) / 2.0
-        if any(q[0] <= cx <= q[2] and q[1] <= cy <= q[3] for q in skip):
-            continue
-        out.append(bx)
-    return out
+def _p14_sf_log(log, *heads):
+    """section_frame.py's log lines that start with one of heads, once each"""
+    if log is None:
+        return
+    for ln in SF_LOG:
+        if any(ln.startswith(h_) or ln.startswith(u"FLAG " + h_) for h_ in heads) and ln not in log:
+            log.append(ln)
+
+
+def _p14_crop_ids(cid):
+    """the D1 crop ids of cid: cid, cid_b, cid_a (their BK_FIXED entries and captions are set in code.py)"""
+    return [cid, cid + "_b", cid + "_a"]
+
+
+def _p14_g6(k, keys, log, what):
+    """the G6 check of a drawing (section_frame.py): people true size at k, every plant inside its sourced range; one
+    FLAG log line when something is off (M2.7)"""
+    bad = sf_assert_g6(k, trees=[(p[0], p[2]) for p in keys], strict=False)
+    if bad and log is not None:
+        log.append(u"FLAG G6 {}: {}".format(what, u"; ".join(bad)))
 
 
 def _p14_panel(pg, box, log, style):
-    """p.14 (booklet p13, round 3 heavy redraw), drawn whole into box: the context line, the species key (each in its
-    own colour), the zones' key, the S4 key map at the top right, the column heads, then a row a season: rain and
-    water; the cut at 1:500 (the surveyed bed, the season's water, Q100 / Q500, the planting in the month's state, the
-    trees a layer back, people and street elements in front, its own sky), its zones numbered and named under it, its
-    levels and a scale bar beside it, a zoom inset at 1:200 in its sky; the view; the animals on record that season (a
-    sourced list; the drawings show generic birds only). No leaders, no frames. Returns its bbox."""
+    """p.14 (booklet p13; round 4, handover/S6a_p14_design_spec.md), drawn whole into box: the header (the species
+    key, English · Turkish; the zones' key; the S4 key map with the north arrow at the top right), the column heads
+    (the title strip of the row matrix), then a row a season: rain and water; the cut at 1:500 (the surveyed bed, the
+    season's water, Q100 / Q500, the planting and its low layer in the season's state, the trees a layer back, the one
+    people set and street elements in front, its own sky), the zone strip under it (P14.1), its level marks outside
+    its frame with the scale bar under them (G-R4-5.4/5.6; the level column is the cut's side column: the four seasons
+    share one set of column heads, so the row matrix keeps them comparable, no LEFT block of its own), a zoom inset
+    at 1:200 in its sky; the view (trees whole, P14.2); the animals on record that season (exactly the GBIF list).
+    No leaders, no frames; every text in the page's TextPage. Returns its bbox."""
     x0, y0, x1, y1 = box
     n0 = len(pg.items)
     fs = FS_MIN
     G = _p14_geo(log)
     k = 1000.0 / P14_DEN
     wa, wl, wd, gap = P14_COLS
-    kb = _p14_keymap(pg, (x1 - P14_KEY[0], y1 - P14_KEY[1], x1, y1), log)
-    cb = context(pg, x0, y1, kb[0] - x0 - 8.0, "seasons")
-    yk = _p14_plant_key(pg, x0, cb[1] - 1.0, kb[0] - x0 - 8.0, 9.0, style)
-    yz = r28_para(pg, x0, yk - 1.5, kb[0] - x0 - 8.0, _p14_zone_text(), fs, COL["ink"]) - fs * 0.3
+    kb = _p14_keymap(pg, (x1 - P14_KEY[0] - P14_NORTH, y1 - P14_KEY[1], x1, y1), log, u"p14")
+    wk = kb[0] - x0 - 6.0
+    yk = _p14_plant_key(pg, x0, y1, wk, 7.6, style, log)
+    yz = _p14_zone_legend(pg, x0, yk - 1.2, wk)
     yh = min(kb[1], yz) - 2.5
     wb = (P14_RANGE[1] - P14_RANGE[0]) * k
     xa, xb = x0, x0 + wa + gap
-    xl = xb + wb + 1.0
+    xl = xb + wb
     xv = xl + wl + gap
     xd = x1 - wd
     wv = xd - gap - xv
     if wv < 50.0 and log is not None:
         log.append(u"FLAG p13 views only {:.0f} mm wide (panel {:.0f} mm)".format(wv, x1 - x0))
-    heads = [(xa, u"RAIN · WATER", u"mm a month " + cite(YEAR_SRC[0][1]) + u" · m deep"),
+    heads = [(xa, u"RAIN · WATER", u"rain mm " + cite(YEAR_SRC[0][1]) + u" · depth m"),
              (xb, u"THE CUT S4–S4', SOUTH-WEST TO NORTH-EAST · 1:500",
-              u"the zones and what they become under it · the inset at 1:200"),
-             (xl, u"LEVELS", u"m, the season's mean"),
+              u"its zones under it, numbered as the key · levels at its right · inset 1:{:,.0f}".format(P14_ZOOM_DEN)),
              (xv, u"VIEW UPSTREAM FROM THE LOWER WALK", u"the same spot in every season"),
              (xd, u"ANIMALS ON RECORD", u"GBIF " + u"".join(cite(s_) for s_ in P14_FAUNA_SRC))]
     for hx, t1, t2 in heads:
+        old = pg.tg
+        pg.tgroup()
         pg.text(t1, hx, yh - fs, fs, COL["ink_dark"], bold=True)
         pg.text(t2, hx, yh - fs * 2.3, fs, COL["ink2"])
+        pg.tg = old
     yt = yh - fs * 2.3 - 2.0
     rh = (yt - y0) / 4.0
     _p14_houses(P14_RANGE, log)                  # checklist 7: the houses behind the cut, logged once
-    drawing, skip = [kb], [kb]
+    n_out = 0
     for i, sea in enumerate(SEAS):
         rt = yt - i * rh
         rbot = rt - rh
         _p14_season_tag(pg, xa, rt - 1.0, wa, rh - 2.0, sea)
-        yb = rbot + P14_ZONE_H + 1.0
-        shp_put(pg, sf_sky(xb, xb + wb, yb, rt - 1.0, seed=i + 1, cid=u"S4-" + sea))   # D8 / G15: its own sky
+        yb = rbot + P14_ZONE_H
+        ytc = rt - 1.0
+        shp_put(pg, sf_sky(xb, xb + wb, yb, ytc, seed=i + 1, cid=u"S4-" + sea))   # D8 / G15: its own sky
         sp = Page(0, 0)
-        X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style, ytop=rt - 1.0)
-        fr = (xb, yb - 1.0, xb + wb, rt - 1.0)
+        X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style, ytop=ytc)
+        fr = (xb, yb, xb + wb, ytc)
         if _p14_bb(sp.items)[3] > fr[3] + 0.05 and log is not None:
             log.append(u"FLAG p13 {} cut reaches {:.1f} mm over its row: cut at the row top".format(
                 sea, _p14_bb(sp.items)[3] - fr[3]))
         pg.items += _p14_clip_items(sp.items, fr)
-        _p14_zone_strip(pg, X, yb - 0.4, sea)
-        _p14_levels_text(pg, xl, Y, sea)
-        _p14_bar(pg, xl, rbot + 0.6, P14_DEN)
+        _p14_zone_strip(pg, X, yb, sea, log)
+        ylo = _p14_level_marks(pg, fr, Y, _p14_level_rows(sea), u"p14 " + sea)
+        _p14_bar(pg, xl + 1.0, ylo - 0.52 - 0.8, rbot - 1.0, k, wl - 4.0, rt - 2.0)
         zone, words = P14_INSET_AT[sea]
-        ins = _p14_inset(pg, sp.items, X, Y, k, zone, words, (xb, xb + wb), rt - 1.0, log, u"p13 " + sea,
-                         sm=G["zones"][zone][0] + 1.5 if zone == "prom_edge" else None)
-        drawing.append((xb, yb, xb + wb, Y(P14_PROM)))
-        if ins:
-            drawing.append(ins)
-        vb = (xv, rbot + 1.2, xv + wv, rt - 1.2)
-        _p14_view(pg, vb, sea, style)
-        drawing.append(vb)
-        skip.append(vb)
+        _p14_inset(pg, sp.items, X, Y, k, zone, words, (xb, xb + wb), ytc, log, u"p14",
+                   sm=G["zones"][zone][0] + 1.5 if zone == "prom_edge" else None, den=P14_ZOOM_DEN,
+                   parent_den=P14_DEN)
+        n_out += _p14_view(pg, (xv, rbot + 1.2, xv + wv, rt - 1.2), sea, style)
         _p14_animals(pg, xd, rt - 1.2, wd, rh - 2.4, sea)
     bb = _p14_bb(pg.items[n0:])
-    lp_overlap_flag(u"p13", _p14_text_boxes(pg.items[n0:], skip), drawing, box)
     if log is not None:
         if G["src"] not in log:
             log.append(G["src"])
         for ln in wat_draw_order_lines(page=u"p13", steps=P14_STEPS_LOG):
             if ln not in log:
                 log.append(ln)
+        _p14_sf_log(log, u"inset p14", u"level marks p14")
         if bb[0] < x0 - 0.5 or bb[1] < y0 - 0.5 or bb[2] > x1 + 0.5 or bb[3] > y1 + 0.5:
             log.append(u"FLAG p13 bbox ({:.1f}, {:.1f}, {:.1f}, {:.1f}) outside its box".format(*bb))
         _p14_g6(k, P14_PLANTS, log, u"p13 cuts")
-        log.append(u"p13 S4 seasons: cuts 1:{:,.0f}, insets 1:{:,.0f}, rows {:.1f} mm, views {:.0f} mm wide, panel "
-                   u"{:.0f} x {:.0f} mm; S4 bed {:+.2f} (surveyed profile), bed floor {:,.0f} cm; {} plants (seasonal, "
-                   u"opaque), people {}".format(
-                       P14_DEN, P14_ZOOM_DEN, rh, wv, bb[2] - bb[0], bb[3] - bb[1], G["bed"], G["width"] * 100.0,
-                       len(P14_PLANTS), u", ".join(u"{} {}".format(s_, len(_p14_people(s_))) for s_ in SEAS)))
+        log.append(u"p13 S4 seasons: cuts 1:{:,.0f}, insets 1:{:,.0f}, rows {:.1f} mm, views {:.0f} mm wide ({} trees, "
+                   u"shrubs or people left out at the views' edges, P14.2), panel {:.0f} x {:.0f} mm; S4 bed {:+.2f} "
+                   u"(surveyed profile), bed floor {:,.0f} cm; {} plants (season states, opaque), people {}".format(
+                       P14_DEN, P14_ZOOM_DEN, rh, wv, n_out, bb[2] - bb[0], bb[3] - bb[1], G["bed"],
+                       G["width"] * 100.0, len(P14_PLANTS),
+                       u", ".join(u"{} {}".format(s_, len(_p14_people(s_))) for s_ in SEAS)))
         log.append(u"p13 planting: {} mixed groups (G9), {}".format(len(P14_GROUPS), u"; ".join(
             u"{:.0f}-{:.0f} m {} ({})".format(a, b, u"+".join(ks), u", ".join(tg)) for a, b, ks, tg in P14_GROUPS)))
     return bb
 
 
 def p14_page(pg, box, opt, log):
-    """p.14 = booklet p13, the four seasons of S4, drawn whole into box (x0, y0, x1, y1), page mm. Round 3: one drawn
-    people style (PLAN §2), plants seasonal and vector, nothing see-through. Returns its crop [(crop id, bbox, scale
-    denominator)]: the unsuffixed id (both booklet builds take it)."""
+    """p.14 = booklet p13, the four seasons of S4, drawn whole into box (x0, y0, x1, y1), page mm. Round 4: the one
+    people set (pen_black), plants in the season's state, nothing see-through, every text checked. Returns its crop
+    [(crop id, bbox, scale denominator)]: the unsuffixed id (both booklet builds take it)."""
     tri = sf_triangles(walls=False, aggregate=False)          # G14 / U22: no meaningless triangles in the cuts
     try:
-        bb = _p14_panel(pg, box, log, "a")   # lead: style a, as p11, p12, p17 (Aras 31 Oct 08:46); new poses without a cutout are drawn
+        bb = _p14_panel(pg, box, log, "a")   # lead: style a, as p11, p12, p17 (Aras 31 Oct 08:46)
     finally:
         sf_triangles(**tri)
     return [("wb_s4_seasons", bb, P14_DEN)]
 
 
 # ---------------------------------------------------------------- p.15
-P15_KEY = (120.0, 30.0)
+P15_KEY = (100.0, 30.0)              # p.15: the key map's room at the drawing's top left (in the inset band), mm
+P15_ZOOM_DEN = 100.0                 # round 4 (G-R4-5.7, D11): p.15's inset at 1:100, over its 1:250 cut (2.5 x)
+P15_INSET_M = (5.0, 2.2)             # its spot over the bike lane, m across x m high (drawing rule): 50 x 22 mm
+P15_BAND_H = 33.0                    # mm over the cut for its inset and key map (the inset 22 mm + caption + bar)
+P15_LEVEL_W = 33.0                   # mm right of the cut for its level marks (inside the block's drawing column)
+P15_SIDE_W = 104.0                   # mm, the block's side column (key lists)
+P15_TITLE_BLK = u"THE BANK AT 1:250 · summer, the stream at its average flow"
 P15_GROUPS = [("locals", u"locals", "CC9A52"), ("tourists", u"tourists", "8B3A3F"), ("students", u"students", "5C7A86"),
               ("kermes", u"Kermes visitors", "5E4B8B")]   # the city link's groups (pp.08, 10) + the Kermes
 P15_GROUP_COL = dict((g_, c_) for g_, _, c_ in P15_GROUPS)
@@ -1845,11 +2022,11 @@ P15_USE = [  # who uses the north-east bank, doing what, how much each month Jan
     ("kermes", "stall", u"Kermes stalls on the terrace", None),
 ]
 P15_PLANT_ROWS = ("plane", "ash", "willow", "tamarisk", "chaste", "loosestrife", "soft_rush")
-P15_SAY = (u"**Winter and spring** give the bed to the stream; **summer and autumn** give it to people: wading, the "
-           u"Kermes market, walking the gravel. The seat steps and the raised promenade are used **all year**.")
 P15_BAND_SRC = (u"Rijkswaterstaat (2023). Hydrologische randvoorwaarden van de ecotopen in PAGW rivieren, memo, "
                 u"pp. 8-16")
 P15_LABEL_W = 78.0                   # the chart's label column, mm
+P15_ROW_MIN = 3.4                    # mm, the least row of THE YEAR: two 7.5 pt labels one over the other stay 0.6 mm
+#                                      apart (G-R4-1)
 
 
 def _p15_days(code):
@@ -1866,8 +2043,9 @@ def _p15_year(pg, x0, ytop, x1, ybot, log=None, style="b"):
     axis; R03 / R05: intensity read from figures): the seasons as p.14 names them, the water (when the stream covers
     the bed, when the strip runs on stored water, when the gravel bed is open), who and when (one to three figures in
     each month = how busy, the group's tint behind; the Kermes week as a stall), the plants (each month a small drawing
-    of the species in that month's state over its leaf and flower bars, plants.py), one short conclusion. Fills x0..x1
-    from ytop down to ybot."""
+    of the species in that month's state over its leaf and flower bars in its own colours, plants.py pla_colours,
+    G-R4-6). Round 4 (P15.3): PLANTS is a title row of its own with its legend (neutral samples) in one text group;
+    rows never under P15_ROW_MIN; no closing paragraph (G-R4-2). Fills x0..x1 from ytop down to ybot."""
     fs = FS_MIN
     xa = x0 + P15_LABEL_W
     mw = (x1 - xa) / 12.0
@@ -1879,14 +2057,14 @@ def _p15_year(pg, x0, ytop, x1, ybot, log=None, style="b"):
     water = [(u"stream covers the bed", "flood", wet, C["w2"]),
              (u"strip runs on stored water", "strip", [m for m in range(12) if m not in wet], "7FAFC0"),
              (u"gravel bed open to people", "hub_open", list(SUBHUB_OPEN), "D9C79A")]
-    say_h = 3.2 * 1.28 * 2 + 2.5
     head_h = fs * 2.6 + 1.2
     blk = fs * 1.6
     nrow = len(water) + len(P15_USE) + len(P15_PLANT_ROWS)
-    rh = (ytop - ybot - head_h - say_h - 3 * blk) / nrow
-    if rh < 3.4 and log is not None:
-        log.append(u"WARNING (D9): p.15 THE YEAR has {:.1f} mm a row, under 3.4: the pair needs more room".format(rh))
-    rh = max(3.0, min(6.5, rh))
+    rh = (ytop - ybot - head_h - 3 * blk) / nrow
+    if rh < P15_ROW_MIN and log is not None:
+        log.append(u"WARNING (D9): p.15 THE YEAR has {:.1f} mm a row, under {:.1f}: the pair needs more room".format(
+            rh, P15_ROW_MIN))
+    rh = max(P15_ROW_MIN, min(6.5, rh))
     yend = ytop - head_h - 3 * blk - nrow * rh
     tint = {"winter": "EDF1F2", "spring": "F0F3E8", "summer": "F7F3E5", "autumn": "F4EEE5"}
     for sea in SEAS:
@@ -1936,7 +2114,7 @@ def _p15_year(pg, x0, ytop, x1, ybot, log=None, style="b"):
                                   vendor=False, buyer=False, ink=COL["white"], fill=col, canopy=COL["white"]))
         else:
             shp_put(pg, fig_side(pose, tx + (rh - 0.6) / 2.0, y[0] - rh + 0.6, (rh - 1.4) / FIG_ADULT_H,
-                                 ink=COL["white"], pen_min_mm=0.0))
+                                 pen_min_mm=0.0))
         label(words)
         if vals is None:
             bar(P15_KERMES[0], P15_KERMES[1], col, 0.9, 0.25)
@@ -1951,51 +2129,57 @@ def _p15_year(pg, x0, ytop, x1, ybot, log=None, style="b"):
                 bar(m, m + 1, col, 0.92, 0.12 + 0.06 * v)
                 for j in range(v):
                     xx = X(m + 0.5) + (j - (v - 1) / 2.0) * max(1.4, 0.75 * FIG_ADULT_H * kf)
-                    shp_put(pg, fig_side(pose, xx, yf, kf, facing=1 if (m + j) % 2 else -1, ink=col, style=style,
-                                         pick=m * 3 + j))   # round 3: one drawn people style (PLAN §2)
+                    shp_put(pg, fig_side(pose, xx, yf, kf, facing=1 if (m + j) % 2 else -1, style=style,
+                                         pick=m * 3 + j))   # round 4: the one people set (pen_black)
         y[0] -= rh
-    pg.text(u"PLANTS", x0, y[0] - fs * 1.15, fs, COL["ink_dark"], bold=True)
+    yl = y[0] - fs * 1.15                                         # P15.3: PLANTS, its own title row, its legend
+    title(u"PLANTS")                                              # one word block on that row
+    old = pg.tg
+    pg.tgroup()
     xx = x0 + text_w(u"PLANTS", fs, True) + 3.0
     for st, word in (("leaf", u"in leaf"), ("bloom", u"in flower"), ("cut", u"heads cut")):
-        _p14_cell(pg, xx, y[0] - fs * 1.15 - 0.2, xx + 3.2, y[0] - fs * 1.15 + fs * 0.75, st)
-        pg.text(word, xx + 4.0, y[0] - fs * 1.15, fs, COL["ink"])
+        _p14_cell(pg, xx, yl - 0.2, xx + 3.2, yl + fs * 0.75, st)
+        pg.text(word, xx + 4.0, yl, fs, COL["ink"])
         xx += 4.0 + text_w(word, fs) + 3.0
-    pg.text(u"each month: the plant as it is then", xx + 2.0, y[0] - fs * 1.15, fs, COL["ink2"])
-    pg.line([(x0, y[0] - blk + 0.2), (x1, y[0] - blk + 0.2)], COL["faint"], 0.15)
-    y[0] -= blk
+    pg.text(u"(bars in each species' own colours) · each month: the plant as it is then", xx + 1.0, yl, fs,
+            COL["ink2"])
+    pg.tg = old
     for key in P15_PLANT_ROWS:
-        sp_ = PLA_SPECIES[key]
         h, cw = _p14_size(key)
         kk = (rh - 0.8) / max(h, cw)
-        shp_put(pg, _p14_plant(key, tx + (rh - 0.6) / 2.0, y[0] - rh + 0.4, kk, 5, h, cw, 0, style))
-        label(sp_["name"])
+        shp_put(pg, _p14_plant(key, tx + (rh - 0.6) / 2.0, y[0] - rh + 0.4, kk, None, h, cw, 0, style))
+        label(_p14_name(key, log))
         mo = pla_months(key)
+        bcol = _p14_bloom_col(key)
         for a_, b_ in occ_spans([m - 1 for m in mo["leaf"]]):
-            bar(a_, b_, sp_["colours"].get("fill") or P14_LEAF, 0.3, 0.45)
+            bar(a_, b_, pla_colours(key)["fill"], 0.3, 0.45)
         for a_, b_ in occ_spans([m - 1 for m in mo["bloom"] if m not in mo["cut"]]):
-            bar(a_, b_, P14_BLOOM, 0.62, 0.45)
+            bar(a_, b_, bcol, 0.62, 0.45)
         for m in mo["cut"]:
             c_ = y[0] - rh / 2.0
-            _p14_cell(pg, X(m - 1) + 0.25, c_ - rh * 0.31, X(m) - 0.25, c_ + rh * 0.31, "cut")
+            _p14_cell(pg, X(m - 1) + 0.25, c_ - rh * 0.31, X(m) - 0.25, c_ + rh * 0.31, "cut", bcol)
         km = (rh - 0.9) / max(h, cw)
         for m in range(12):
             if _p14_state(key, m + 1):
                 shp_put(pg, _p14_plant(key, X(m + 0.5), y[0] - rh + 0.45, km, m + 1, h, cw, m, style))
         y[0] -= rh
-    r28_para(pg, x0, y[0] - 1.5, x1 - x0, P15_SAY, 3.2, COL["ink_dark"])
+    return y[0]
 
 
-P15_WHY = [  # the north-east bank's parts and why each is there (G10; our design), numbered on the cut (R19):
-    # (zone of _p14_geo, words; {open} = the months the gravel bed is open, from SUBHUB_OPEN)
-    ("strip", u"summer strip: holds stored water, wading when the stream is low"),
+P15_WHY = [  # the north-east bank's parts and why each is there (G10; our design), numbered on the cut as p.14's zones
+    # (round 4: the same number and colour, P15_ZONE): (zone of _p14_geo, words; {open} = the months the gravel bed is
+    # open, from SUBHUB_OPEN)
     ("gravel", u"gravel bed: the stream's, open to walk {open}"),
+    ("strip", u"summer strip: holds stored water, wading when the stream is low"),
     ("toe", u"riparian edge: willow, tamarisk and rushes clean the water and hold the bank"),
-    ("market", u"flood terrace: the Kermes market ground (stall counter {counter} cm), under water only in a flood"),
+    ("market", u"flood terrace: the Kermes market ground, under water only in a flood"),
     ("walk", u"lower walk: floodable, closed by a bollard in a flood"),
     ("steps", u"seat steps: sit and watch the water; a flood rises up them"),
     ("prom", u"promenade: over Q500, dry in every flood; a bench and lamps"),
     ("bike", u"bike lane: over Q500, apart from the walkers; a bike rack"),
 ]
+P15_ZONE = {"gravel": "open"}        # a p.15 part shown with the p.14 zone it belongs to (number and colour)
+P15_GROUP_MARK = "3C4733"            # the planting groups' letters: rings in the planting's dark green (drawing rule)
 
 
 def _p15_open():
@@ -2008,15 +2192,74 @@ def _p15_open():
     return u", ".join(MONTHS[m] for m in ms)
 
 
+def _p15_num(zone):
+    """the p.14 number (1-11) and colour of a p.15 part"""
+    z_ = P15_ZONE.get(zone, zone)
+    n = [q[0] for q in P14_ZONE_KEY].index(z_) + 1
+    return n, P14_ZONE_COL[z_]
+
+
+def _p15_list(pg, x, y, w, head, rows, style="solid"):
+    """a numbered or lettered key in the side column from y down: the bold head, then each row's marker (mk_marker,
+    its own colour) and its words wrapped beside it (one text group a row). rows = [(glyph, colour, words)].
+    Returns the bottom y"""
+    fs = FS_MIN
+    old = pg.tg
+    pg.text(head, x, y - fs, fs, COL["ink_dark"], bold=True)
+    y -= fs * 1.6
+    rr = P14_MARK_R + 0.15
+    tx = x + 2.0 * rr + 1.0
+    for g_, col, words in rows:
+        lines = wrap(words, fs, w - (tx - x))
+        cy = y - rr
+        _p14_mark(pg, x + rr, cy, g_, col, style=style)
+        pg.tgroup()
+        for j, ln in enumerate(lines):
+            pg.text(ln, tx, cy - fs * 0.35 - j * fs * 1.25, fs, COL["ink"])
+        pg.tg = old
+        y -= max(2.0 * rr + 0.8, (len(lines) - 1) * fs * 1.25 + rr + fs * 0.35 + fs * 0.3 + 0.8)
+    return y
+
+
+def _p15_bands_key(pg, x, y, w):
+    """the planting bands A-F with their days under water (the p.20 ladder, D9 a), from y down; returns the bottom"""
+    fs = FS_MIN
+    pg.text(u"PLANTING BANDS UNDER THE CUT · days under water " + cite(P15_BAND_SRC), x, y - fs, fs, COL["ink_dark"],
+            bold=True)
+    y -= fs * 1.6
+    bn = dict((b_[0], b_[1]) for b_ in PLANT_BANDS)
+    bn["A"] = u"summer strip"
+    for c_ in ("A", "B", "C", "D", "E", "F"):
+        yl = y - fs
+        pg.poly([rect(x, yl - 0.4, x + 3.2, yl + fs * 0.85)], fill=BAND_COL[c_])
+        old = pg.tg
+        pg.tgroup()
+        pg.text(c_, x + 1.6, yl, fs, COL["ink_dark"], bold=True, align="C")
+        pg.text(u"{} · {}".format(bn[c_], _p15_days(c_)), x + 4.2, yl, fs, COL["ink"])
+        pg.tg = old
+        y -= fs * 1.45
+    return y
+
+
+def _p15_side(pg, x, ytop, w, parts, groups):
+    """the block's side column (G-R4-3 LEFT, G-R4-5.5): the parts in number order, the planting groups by letter, the
+    planting bands; returns the bottom y"""
+    y = _p15_list(pg, x, ytop, w, u"THE BANK, PART BY PART · why each is there", parts)
+    if groups:
+        y = _p15_list(pg, x, y - 3.0, w, u"PLANTING, GROUP BY GROUP · what each does", groups, style="ring")
+    return _p15_bands_key(pg, x, y - 3.0, w)
+
+
 def _p15_panel(pg, box, log, style):
-    """p.15 (booklet p14) in one style, drawn whole into box: the context line, the S4 key map at the top right, the
-    bank at 1:250 in summer with the trees beyond (R16), round 3: the surveyed bed, the stream at the registry's average
-    flow with Q100 / Q500 (M5) and the summer strip full of clean water (N2 a), the cut's trees a layer back (G15), the
-    planting groups lettered on the spot with what each does in the key (G3: no leaders), the summer's people, Kermes
-    stalls and street elements at true size, the surveyed bank today dashed, the parts numbered with their reason
-    (R19, G10), a zoom inset of the promenade and bike lane at 1:200, its widths in cm and planting bands under it, the
-    levels and the bands' days under water at its right (D9 a), the scale bar flush left under it, then the year on one
-    month axis. Returns its bbox."""
+    """p.15 (booklet p14; round 4, handover/S6a_p14_design_spec.md) in one style, drawn whole into box: ONE section
+    block (block.py blk_section, LEFT: the title strip, the drawing, the side column): the drawing column holds the S4
+    key map (km_map) and the zoom inset of the promenade and bike lane at 1:100 over the cut, the bank at 1:250 in
+    summer (the surveyed bed, the stream at the registry's average flow with Q100 / Q500, M5; the summer strip full,
+    N2 a; the trees beyond, R16, and the cut's trees a layer back, G15; the planting and its low layer in summer; the
+    one people set, Kermes stalls and street elements at true size; the surveyed bank today dashed), its parts numbered
+    on their surface as p.14's zones, its planting groups lettered on their crowns (G-R4-7), its level marks outside
+    its frame (G-R4-5.4), its widths in cm, planting bands and scale bar under it; the side column the parts, the
+    groups and the bands with their days under water; then the year on one month axis (P15.3). Returns its bbox."""
     x0, y0, x1, y1 = box
     n0 = len(pg.items)
     fs = FS_MIN
@@ -2024,62 +2267,88 @@ def _p15_panel(pg, box, log, style):
     k = 1000.0 / P15_DEN
     s0, s1 = P15_RANGE
     ws = (s1 - s0) * k
-    kb = _p14_keymap(pg, (x1 - P15_KEY[0], y1 - P15_KEY[1], x1, y1), log)
-    cb = context(pg, x0, y1, min(ws, kb[0] - x0 - 6.0), "ne")
-    ztop = max(_p14_surf(s) + h for _, s, h, _ in P14_PLANTS if s0 <= s <= s1)
-    yb = cb[1] - 10.0 - (ztop - G["base"]) * k
-    shp_put(pg, sf_sky(x0, x0 + ws, yb, cb[1] - 1.0, seed=7, cid=u"S4-ne"))   # D8 / G15: its own sky
-    sp = Page(0, 0)
-    _p14_houses(P15_RANGE, log)                  # checklist 7: the houses behind the cut, logged once
-    X, Y = _p14_cut(sp, x0, yb, k, P15_RANGE, "summer", P14_SEA_MONTH["summer"], style=style, water="avg",
-                    ytop=cb[1] - 1.0)
-    pg.items += _p14_clip_items(sp.items, (x0, yb - 1.0, x0 + ws, cb[1] - 1.0))   # G3: no crown reaches the lists
-    pg.line([(X(s), Y(z)) for s, z in G["today"] if s <= s1], COL["ink2"], 0.2, dash=[1.0, 0.6])
-    groups = []                                   # G9 + G3: each mixed group lettered on its tallest plant, its
-    for a, b, ks, tags in P14_GROUPS:             # species and what it does in the key (no leaders)
+    zn = G["zones"]
+    # what the side column lists (numbers as p.14, groups lettered on their tallest plant)
+    parts = []
+    for zone, words in P15_WHY:
+        a, b = max(zn[zone][0], s0), min(zn[zone][1], s1)
+        if b - a >= 1.4:
+            n, col = _p15_num(zone)
+            parts.append((n, col, words.format(open=_p15_open()), (a + b) / 2.0))
+    parts.sort(key=lambda p_: p_[0])
+    sc1 = fig_depth(1)[0]
+    groups = []
+    for a, b, ks, tags in P14_GROUPS:
         inside = [p_ for p_ in P14_PLANTS if a - 0.01 <= p_[1] <= b + 0.01 and s0 + 0.5 <= p_[1] <= s1 - 0.5]
         if not inside:
             continue
         key, s, h, _cw = max(inside, key=lambda p_: p_[2])
-        sc_ = fig_depth(1)[0] if PLA_SPECIES[key]["layer"] == "tree" else 1.0   # the cut's trees a layer back
-        groups.append((X(s), Y(_p14_surf(s) + h * sc_ * 0.6), u" + ".join(PLA_SPECIES[k_]["name"] for k_ in ks) +
-                       (u": " + u", ".join(P12_GROUP_DO.get(t_, t_) for t_ in tags) if tags else u"")))
-    groups.sort(key=lambda g_: (-round(g_[1] / 8.0), g_[0]))    # reading order: top row first, left to right
-    for j, (gx, gy_, _t) in enumerate(groups):
-        pg.text(u"abcdefghij"[j % 10], gx, gy_ - fs * 0.35, fs, COL["ink_dark"], bold=True, align="C")
-    # the parts, numbered with their reason (R19, G10)
-    co = SfCallouts()
-    for zone, words in P15_WHY:
-        a, b = max(G["zones"][zone][0], s0), min(G["zones"][zone][1], s1)
-        if b - a >= 1.4:
-            sm = (a + b) / 2.0
-            co.add(X(sm), Y(_p14_surf(sm)) - 2.4, words.format(open=_p15_open(),
-                                                                counter=u"{:,.0f}".format(FIG_STALL["counter_h"] * 100.0)))
-    shp_put(pg, co.marks(fs * 1.1))
-    zn = G["zones"]
-    ins = _p14_inset(pg, sp.items, X, Y, k, "bike", u"promenade and bike lane · 1:{:,.0f}".format(P14_ZOOM_DEN),
-                     (x0, x0 + ws), cb[1] - 1.0, log,
-                     u"p14", sm=zn["bike"][0])
-    # widths, cm, with the parts' names
-    dims = [(zn["strip"], u"strip"), ((zn["strip"][1], zn["terrace"][0]), u"gravel bed"),
-            ((zn["terrace"][0], P14_WALK[0]), u"flood terrace"), (zn["walk"], u"lower walk"),
-            ((P14_WALK[1], zn["terrace"][1]), u""), (zn["steps"], u"seat steps"), (zn["prom"], u"promenade"),
-            (zn["bike"], u"bike lane"), (zn["fill"], u"fill")]
+        sc_ = sc1 if PLA_SPECIES[key]["layer"] == "tree" else 1.0   # the cut's trees a layer back
+        do = globals().get("P12_GROUP_DO") or {}
+        groups.append([s, _p14_surf(s) + h * sc_ * 0.6, u" + ".join(_p14_name(k_, log) for k_ in ks) +
+                       (u": " + u", ".join(do.get(t_, t_) for t_ in tags) if tags else u"")])
+    groups.sort(key=lambda g_: (-round(g_[1] / 2.0), g_[0]))    # reading order: top row first, left to right
+    letters = u"abcdefghijklmn"
+    grows = [(letters[j % len(letters)], P15_GROUP_MARK, g_[2]) for j, g_ in enumerate(groups)]
+    # the block: its height = the taller of the drawing column and the side column
+    ztop = max([_p14_surf(s) + h * (sc1 if PLA_SPECIES[key_]["layer"] == "tree" else 1.0)
+                for key_, s, h, _ in P14_PLANTS if s0 <= s <= s1] + [P14_PROM + 2.0])
+    h_cut = (ztop - G["base"]) * k + 2.0
+    under = 3.2 + 1.4 + 3.0 + 1.6 + SF_ZOOM["bar_h"] + 0.9 * 2.12 + 1.0
+    h_draw = BLK_TITLE_H + P15_BAND_H + h_cut + under
+    probe = Page(0, 0)
+    h_side = BLK_TITLE_H + (y1 - _p15_side(probe, 0.0, y1, P15_SIDE_W, [(n, c, t) for n, c, t, _s in parts], grows))
+    blk = blk_section(x0, y1, x1 - x0, max(h_draw, h_side), P15_TITLE_BLK, side_w=P15_SIDE_W, mode="LEFT",
+                      y_down=False)
+    d = blk["drawing"]
+    tb = blk["title_base"]
+    pg.text(P15_TITLE_BLK, tb[0], tb[1], GRID_TYPE["heading"][0] * PT, COL["ink_dark"], bold=True)
+    if d[2] - d[0] < ws + P15_LEVEL_W - 0.5 and log is not None:
+        log.append(u"FLAG p14 the drawing column ({:.0f} mm) is narrower than the cut and its level marks ({:.0f} "
+                   u"mm)".format(d[2] - d[0], ws + P15_LEVEL_W))
+    kb = _p14_keymap(pg, (d[0], d[3] - P15_KEY[1], d[0] + P15_KEY[0] + P14_NORTH, d[3]), log, u"p15")
+    ytc = d[3] - P15_BAND_H
+    yb = ytc - h_cut
+    shp_put(pg, sf_sky(x0, x0 + ws, yb, ytc, seed=7, cid=u"S4-ne"))   # D8 / G15: its own sky
+    sp = Page(0, 0)
+    _p14_houses(P15_RANGE, log)                  # checklist 7: the houses behind the cut, logged once
+    X, Y = _p14_cut(sp, x0, yb, k, P15_RANGE, "summer", P14_SEA_MONTH["summer"], style=style, water="avg", ytop=ytc)
+    fr = (x0, yb, x0 + ws, ytc)
+    pg.items += _p14_clip_items(sp.items, fr)    # G3: no crown reaches the lists
+    pg.line([(X(s), Y(z)) for s, z in G["today"] if s <= s1], COL["ink2"], 0.2, dash=[1.0, 0.6])
+    # the parts' numbers on their surface (G-R4-5.6), the groups' letters on their crowns (G-R4-7)
+    rr = P14_MARK_R + 0.15
+    taken = []
+    for n, col, _t, sm in parts:
+        cx, cy = X(sm), Y(_p14_surf(sm))
+        taken.append((cx, cy))
+        _p14_mark(pg, cx, cy, n, col)
+    for g_, (gl, gc, _t) in zip(groups, grows):
+        cx, cy = X(g_[0]), Y(g_[1])
+        for _i in range(4):
+            if all(math.hypot(cx - qx, cy - qy) >= 2.0 * rr + 0.7 for qx, qy in taken):
+                break
+            cy += 2.0 * rr + 0.7
+        taken.append((cx, cy))
+        _p14_mark(pg, cx, cy, gl, gc, style="ring")
+    ins = _p14_inset(pg, sp.items, X, Y, k, "bike", u"promenade and bike lane", (kb[2] + 3.0, x0 + ws), d[3], log,
+                     u"p15", sm=zn["bike"][0], size_m=P15_INSET_M, den=P15_ZOOM_DEN, parent_den=P15_DEN)
+    # widths, cm (the parts' names are the numbered list's)
+    dims = [zn["strip"], (zn["strip"][1], zn["terrace"][0]), (zn["terrace"][0], P14_WALK[0]), zn["walk"],
+            (P14_WALK[1], zn["terrace"][1]), zn["steps"], zn["prom"], zn["bike"], zn["fill"]]
     yd = yb - 3.2
-    xs_ = [X(a) for (a, b), _ in dims] + [X(dims[-1][0][1])]
+    xs_ = [X(a) for a, b in dims] + [X(dims[-1][1])]
     pg.line([(xs_[0], yd), (xs_[-1], yd)], C["acc"], 0.15)
     for x_ in xs_:
         pg.line([(x_ - 0.6, yd - 0.6), (x_ + 0.6, yd + 0.6)], C["acc"], 0.2)
-    for (a, b), name in dims:
+    for a, b in dims:
         w_ = X(b) - X(a)
         t = u"{:,.0f}".format(round((b - a) * 100.0))
         if text_w(t, fs) < w_ - 0.8:
             pg.text(t, (X(a) + X(b)) / 2.0, yd + 0.7, fs, C["acc"], align="C")
-        if name and text_w(name, fs) < w_ + 2.0:
-            pg.text(name, (X(a) + X(b)) / 2.0, yd - fs * 1.15, fs, COL["ink"], align="C")
-    pg.text(u"cm", xs_[-1] + 1.2, yd - fs * 0.35, fs, C["acc"])
+    pg.text(u"cm", xs_[0] - 1.2, yd - fs * 0.35, fs, C["acc"], align="R")
     # the planting bands along the cut (where water reaches the ground how often)
-    yt_b, hb = yd - fs * 1.15 - 1.6, 3.0
+    yt_b, hb = yd - 1.4, 3.0
     runs, s, step = [], s0, 0.1
     while s < s1 - 1e-9:
         c_ = _p14_band_code(s + step / 2.0, _p14_surf(s + step / 2.0))
@@ -2092,78 +2361,49 @@ def _p15_panel(pg, box, log, style):
         pg.poly([rect(X(a), yt_b - hb, X(min(b, s1)), yt_b)], fill=BAND_COL[c_])
         if X(b) - X(a) > 3.0:
             pg.text(c_, (X(a) + X(b)) / 2.0, yt_b - hb + 0.55, fs, COL["ink_dark"], bold=True, align="C")
-    bar = r28_scale_bar(pg, x0, yt_b - hb - 1.6 - (2.0 + fs * CAP + 0.2), P15_DEN)
-    # at the right: the levels, and the bands with their days under water (the p.20 ladder, D9 a)
-    xr = x0 + ws + 4.0
-    avg = level_avg_flow("S4")
-    bands = [("A", G["sfl"], G["bed"]), ("B", G["bed"], G["bed"] + G["dmax"]),
-             ("C", G["bed"] + G["dmax"], G["shelf"]), ("D", G["shelf"], G["q100"]), ("E", G["q100"], G["q500"]),
-             ("F", G["q500"], P14_PROM)]
-    for c_, lo, hi in bands:
-        pg.poly([rect(xr, Y(lo), xr + 3.0, Y(hi))], fill=BAND_COL[c_], stroke=COL["white"], lw=0.1)
-    full = abs(G["strip_full"] - G["bed"]) < 0.005
-    levels = sorted([(G["sfl"], u"strip floor"), (G["bed"], u"bed, strip full" if full else u"bed"),
-                     (avg, u"average flow"), (G["shelf"], u"flood terrace"), (G["ne_top"], u"bank today"),
-                     (G["q100"], u"Q100"), (G["q500"], u"Q500"), (P14_PROM, u"promenade")] +
-                    ([] if full else [(G["strip_full"], u"strip full")]))
-    ys = spread([Y(z) - fs * 0.35 for z, _ in levels], fs * 1.25)
-    for (z, name), yl in zip(levels, ys):         # G3: a level tick on the band bar, the list in the same order
-        pg.line([(xr - 1.0, Y(z)), (xr + 4.0, Y(z))], COL["ink2"], 0.1)
-        pg.text(u"{:+.2f} {}".format(z, name), xr + 6.6, yl, fs,
-                C["w4"] if name[0] == u"Q" or name.startswith(u"average") else COL["ink"])
-    xc2 = xr + 6.6 + max(text_w(u"{:+.2f} {}".format(z, n_), fs) for z, n_ in levels) + 4.0
-    bn = dict((b_[0], b_[1]) for b_ in PLANT_BANDS)
-    bn["A"] = u"summer strip"
-    ys2 = spread([(Y(lo) + Y(hi)) / 2.0 - fs * 0.35 for _, lo, hi in bands], fs * 1.3)
-    for (c_, lo, hi), yl in zip(bands, ys2):
-        pg.poly([rect(xc2, yl - 0.4, xc2 + 3.2, yl + fs * 0.85)], fill=BAND_COL[c_])
-        pg.text(c_, xc2 + 1.6, yl, fs, COL["ink_dark"], bold=True, align="C")
-        pg.text(u"{} · {}".format(bn[c_], _p15_days(c_)), xc2 + 4.2, yl, fs, COL["ink"])
-    yl_t = max(ys[-1], ys2[-1]) + fs * 2.2
-    pg.text(u"LEVELS · PLANTING BANDS, days under water " + cite(P15_BAND_SRC), xr, yl_t, fs, COL["ink_dark"],
-            bold=True)
-    # the planting groups' key, then the numbered parts' key above it, over the ladder, clear of the key map
-    nk = len(set(n for n, _x, _y, _t in co.items))
-    gap = fs * 1.5
-    yg = yl_t + 3.0 + fs * 1.3 + len(groups) * gap
-    if groups:
-        pg.text(u"PLANTING, GROUP BY GROUP · what each does", xr, yg, fs, COL["ink_dark"], bold=True)
-        for j, (_gx, _gy, t) in enumerate(groups):
-            yy = yg - (j + 1) * gap
-            pg.text(u"abcdefghij"[j % 10], xr + 1.0, yy, fs, COL["ink_dark"], bold=True, align="C")
-            pg.text(t, xr + 3.2, yy, fs, COL["ink"])
-        yg += 3.0 + fs * 1.3
-    ky = yg + nk * gap
-    pg.text(u"THE BANK, PART BY PART · why each is there", xr, ky, fs, COL["ink_dark"], bold=True)
-    shp_put(pg, co.key(xr, ky - fs * 0.6, fs, gap=gap))
-    if ky + fs > kb[1] - 1.0 and log is not None:
-        log.append(u"FLAG p14 the parts' key reaches the key map ({:.1f} mm)".format(ky + fs - kb[1] + 1.0))
-    _p15_year(pg, x0, bar[1] - 3.0, x1, y0, log, style)
+    old = pg.tg
+    pg.tgroup()
+    shp_put(pg, sf_scale_bar(x0, yt_b - hb - 1.6, k, None, max_mm=40.0))
+    pg.tg = old
+    # the levels outside the frame, the side column
+    _p14_level_marks(pg, fr, Y, _p15_level_rows(), u"p15")
+    sd = blk["side"]
+    yside = _p15_side(pg, sd[0], sd[3], sd[2] - sd[0], [(n, c, t) for n, c, t, _s in parts], grows)
+    _p15_year(pg, x0, min(d[1], yside) - 4.0, x1, y0, log, style)
     bb = _p14_bb(pg.items[n0:])
-    drawing = [kb, (x0, yb, x0 + ws, Y(P14_PROM))] + ([ins] if ins else [])
-    lp_overlap_flag(u"p14", _p14_text_boxes(pg.items[n0:], [kb]), drawing, box)
     if log is not None:
         if G["src"] not in log:
             log.append(G["src"])
         for ln in wat_draw_order_lines(page=u"p14", steps=P14_STEPS_LOG):
             if ln not in log:
                 log.append(ln)
+        _p14_sf_log(log, u"inset p15", u"level marks p15")
         _p14_g6(k, [p for p in P14_PLANTS if s0 <= p[1] <= s1], log, u"p14 cut")
-        log.append(u"p14 S4 north-east bank 1:{:,.0f} (inset 1:{:,.0f}) and the year: panel {:.0f} x {:.0f} mm{}".format(
-            P15_DEN, P14_ZOOM_DEN, bb[2] - bb[0], bb[3] - bb[1], u"" if bb[1] >= y0 - 0.5 else
-            u" (FLAG D9: {:.1f} mm below the cell: the pair does not fit two pages)".format(y0 - bb[1])))
+        log.append(u"p14 S4 north-east bank 1:{:,.0f} (inset 1:{:,.0f}{}), block LEFT {:.0f} x {:.0f} mm, side column "
+                   u"{:.0f} mm, and the year: panel {:.0f} x {:.0f} mm{}".format(
+                       P15_DEN, P15_ZOOM_DEN, u"" if ins else u", not drawn", x1 - x0, max(h_draw, h_side),
+                       sd[2] - sd[0], bb[2] - bb[0], bb[3] - bb[1], u"" if bb[1] >= y0 - 0.5 else
+                       u" (FLAG D9: {:.1f} mm below the cell: the pair does not fit two pages)".format(y0 - bb[1])))
         if bb[0] < x0 - 0.5 or bb[2] > x1 + 0.5 or bb[3] > y1 + 0.5:
             log.append(u"FLAG p14 bbox ({:.1f}, {:.1f}, {:.1f}, {:.1f}) outside its box".format(*bb))
     return bb
 
 
+def _p15_level_rows():
+    """p.15's levels (DATA-1, G-R4-5.4), marked outside the cut's frame: the strip floor, the bed (strip full), the
+    average flow, the flood terrace, the bank today, Q100, Q500, the promenade"""
+    G = _p14_geo()
+    rows = _p14_level_rows("summer", avg=True)
+    return rows + [(u"flood terrace", G["shelf"]), (u"bank today", G["ne_top"]), (u"promenade", P14_PROM)]
+
+
 def p15_page(pg, box, opt, log):
-    """p.15 = booklet p14, the north-east bank of S4, drawn whole into box (x0, y0, x1, y1), page mm; round 3: one
-    drawn people style (PLAN §2), plants seasonal and vector. Returns its crop: the unsuffixed id (both booklet builds
-    take it)."""
+    """p.15 = booklet p14, the north-east bank of S4, drawn whole into box (x0, y0, x1, y1), page mm; round 4: one LEFT
+    section block, the one people set, plants in the season's state, every text checked. Returns its crop: the
+    unsuffixed id (both booklet builds take it)."""
     tri = sf_triangles(walls=False, aggregate=False)          # G14 / U22: no meaningless triangles in the cut
     try:
-        bb = _p15_panel(pg, box, log, "a")   # lead: style a, as p11, p12, p17 (Aras 31 Oct 08:46); new poses without a cutout are drawn
+        bb = _p15_panel(pg, box, log, "a")   # lead: style a, as p11, p12, p17 (Aras 31 Oct 08:46)
     finally:
         sf_triangles(**tri)
     if log is not None:
