@@ -1520,17 +1520,18 @@ def _p12_fields(pg, L, Tg, K, k, sb, step):
     return out
 
 
-def _p12_legend(pg, ga, rows, avoid, taken, log=None):
+def _p12_legend(pg, ga, rows, avoid, taken, log=None, side=None, dry=False):
     """the map's legend (M2 Legend, G1: every symbol it draws) and the key of its letters (G3), in the inside corner
     of the map holding the fewest drawn key points and taken boxes, on a white ground with no edge (v12: G17, no
     alpha); rows = [(label, kind fill / line / dash / tree / ground / orchard / letter, sample)]; returns its box"""
     meas = lambda s_, pt, b_: text_w(s_, pt * GRID_PT_, b_)
     fb_, cols_ = _P12_MEMO.get("block_cols") or (None, [])
-    if fb_ is not None:                                 # v13.7: the block face by its outline, not its full-width box
-        taken = [t for t in taken if tuple(t) != tuple(fb_)] + cols_
+    clear_ = list(taken)                                # v13.7: the slide tests the block face by its outline
+    if fb_ is not None:
+        clear_ = [t for t in taken if tuple(t) != tuple(fb_)] + cols_
     best = None
-    for side in ("inside_bl", "inside_tl", "inside_br", "inside_tr"):
-        lg = Legend(ga, side=side, y_down=False)
+    for sd_ in ((side,) if side else ("inside_bl", "inside_tl", "inside_br", "inside_tr")):
+        lg = Legend(ga, side=sd_, y_down=False)
         for lab, kind, smp in rows:
             lg.add(lab, kind, **smp)
         Lo = lg.layout(meas)
@@ -1538,9 +1539,12 @@ def _p12_legend(pg, ga, rows, avoid, taken, log=None):
         n = sum(1 for p in avoid if b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3]) + \
             sum(20 for t in taken if lp_hit(b, t, 0.8))
         if best is None or n < best[0]:
-            best = (n, Lo)
+            best = (n, Lo, sd_)
     Lo = best[1]
     b = Lo["box"]
+    if dry:                                             # v13.8: the corner and box only, nothing drawn
+        return best[2], b
+    taken = clear_
     # v13.6 (Aras 1 Nov 18:10: D and E still under the legend after v13.5): the clearance test uses the page check's
     # pad (0.8 mm > its 0.6 mm) and the drawn marker boxes (the caller passes M["labels"] too); when the best corner
     # covers any of them, every place on a 2.5 mm grid inside the map is tried and the clear one holding the fewest
@@ -2021,14 +2025,6 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     M["at"], M["marks"] = at, marks
     if Sc["cube_b"]:
         M["taken"].append(Sc["cube_b"])
-    lrows = _p12_letters(pg, ga, M, zones, D, log)
-    # closing round 4 (G-R4-4): the draw order as recorded while drawing (each scene's stages, then the markers and
-    # letters as "proj_marks"; the names follow as labels), checked with map_draw's rule, and the clip count of this
-    # page's study clips (zones, zone trees) as study_clip counted them
-    ods = [Sc["order"] + ["proj_marks"]] + ([I["Sc"]["order"]] if I else [])
-    ok, seen = _p12_layer_check(ods)
-    log.append(u"layers base→project {}, n_outside_clipped {} (p12 axo{}: {})".format(
-        u"ok" if ok else u"FLAG out of order", sc_count("p12"), u" and its zoom" if I else u"", u", ".join(seen)))
     # the legend (G1): every symbol of the drawing, nothing else; then the letters' key (G3)
     ch, top = Sc["ch"], Sc["top"]
     pal = _wat_pal()
@@ -2086,11 +2082,28 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     if Sc["study"]:
         lg.append((u"Study area", "dash", dict(colour=BM_STUDY_LINE["colour"], width=BM_STUDY_LINE["width_mm"],
                                                dash=list(BM_STUDY_LINE["dash_mm"]))))
+    # v13.8 (Aras 1 Nov 18:19): the legend's corner is chosen and its box reserved BEFORE the channel letters, so the
+    # letters stand off it (v13.5-v13.7 moved the legend after them; at about 100 x 115 mm it found no clear place)
+    avoid = list(M["S"]) + [Tg(p) for z in zones for p in z["ring"][::4]]
+
+    def _rsv(lt):
+        rows_ = lg + [(t_, "letter", dict(letter=u"W", colour=c_)) for t_, c_ in lt]
+        if not rows_:
+            return None
+        M["legend_side"], b_ = _p12_legend(pg, ga, rows_, avoid, M["taken"], dry=True)
+        return (b_[0] - 1.0, b_[1] - 1.0, b_[2] + 1.0, b_[3] + 1.0)
+    lrows = _p12_letters(pg, ga, M, zones, D, log, _rsv)
+    # closing round 4 (G-R4-4): the draw order as recorded while drawing (each scene's stages, then the markers and
+    # letters as "proj_marks"; the names follow as labels), checked with map_draw's rule, and the clip count of this
+    # page's study clips (zones, zone trees) as study_clip counted them
+    ods = [Sc["order"] + ["proj_marks"]] + ([I["Sc"]["order"]] if I else [])
+    ok, seen = _p12_layer_check(ods)
+    log.append(u"layers base→project {}, n_outside_clipped {} (p12 axo{}: {})".format(
+        u"ok" if ok else u"FLAG out of order", sc_count("p12"), u" and its zoom" if I else u"", u", ".join(seen)))
     for ch_, txt, col in lrows:
         lg.append((txt, "letter", dict(letter=ch_, colour=col)))
     if lg:
-        avoid = list(M["S"]) + [Tg(p) for z in zones for p in z["ring"][::4]]
-        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"], log)
+        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"], log, side=M.get("legend_side"))
         M["taken"].append(M["legend"])
     hold = M["hold"]
     nd = (T((hold[0], hold[1] + 100.0))[0] - T(hold)[0], T((hold[0], hold[1] + 100.0))[1] - T(hold)[1])
@@ -2200,7 +2213,7 @@ def _p12_letter(pg, ch, x, y, col, r=None, allow=()):
     return _p12_mark(pg, ch, x, y, col, 2.0 * (r or P12_MARK_R), allow=allow)   # v13 (G-R4-7): through mk_marker
 
 
-def _p12_letters(pg, ga, M, zones, D, log):
+def _p12_letters(pg, ga, M, zones, D, log, reserve=None):
     """P11.3 + G18 (v12): what the project does along the channel, as LETTERS on the spot (B, C, D ... in reading
     order, left to right then top down; the digits are the five steps), explained in the legend (G3: no names over
     the project): each zone group of the zone base that no step marks (bergama_zone_base/code.py l.20-36), the
@@ -2306,13 +2319,15 @@ def _p12_letters(pg, ga, M, zones, D, log):
             anchors.append((key, ps[0][2]))
     out, r = [], P12_MARK_R
     obst = list(M["taken"])
+    rb_ = reserve([(groups[k_]["text"], groups[k_]["col"]) for k_, _a in anchors]) if reserve else None
+    rsv_ = [rb_] if rb_ else []                         # v13.8: the legend's reserved box, off limits to the letters
     for ix in lp_reading_order([a_[1] for a_ in anchors], y_down=False):
         key = anchors[ix][0]
         g, got = groups[key], []
         for (x, y), in_z, _pm in placed[key]:
             if any(math.hypot(x - a_, y - b_) < 8.0 for a_, b_, _i in got):
                 continue
-            obs = [t for t in obst if not (in_z and t == I["box"])]
+            obs = [t for t in obst if not (in_z and t == I["box"])] + rsv_
             b = _p12_free_spot(x, y, 2.0 * r, 2.0 * r, obs, I["box"] if in_z else ga)
             if b:
                 got.append(((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, b))

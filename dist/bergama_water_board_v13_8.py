@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v13_7.py = v13.7 (1 Nov 2026 fix: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v13_8.py = v13.8 (1 Nov 2026 fix: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v13.7 (2026-11-01)"  # v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v13.7"
+VERSION = "bergama_water_board v13.8 (2026-11-01)"  # v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v13.8"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -15063,17 +15063,18 @@ def _p12_fields(pg, L, Tg, K, k, sb, step):
     return out
 
 
-def _p12_legend(pg, ga, rows, avoid, taken, log=None):
+def _p12_legend(pg, ga, rows, avoid, taken, log=None, side=None, dry=False):
     """the map's legend (M2 Legend, G1: every symbol it draws) and the key of its letters (G3), in the inside corner
     of the map holding the fewest drawn key points and taken boxes, on a white ground with no edge (v12: G17, no
     alpha); rows = [(label, kind fill / line / dash / tree / ground / orchard / letter, sample)]; returns its box"""
     meas = lambda s_, pt, b_: text_w(s_, pt * GRID_PT_, b_)
     fb_, cols_ = _P12_MEMO.get("block_cols") or (None, [])
-    if fb_ is not None:                                 # v13.7: the block face by its outline, not its full-width box
-        taken = [t for t in taken if tuple(t) != tuple(fb_)] + cols_
+    clear_ = list(taken)                                # v13.7: the slide tests the block face by its outline
+    if fb_ is not None:
+        clear_ = [t for t in taken if tuple(t) != tuple(fb_)] + cols_
     best = None
-    for side in ("inside_bl", "inside_tl", "inside_br", "inside_tr"):
-        lg = Legend(ga, side=side, y_down=False)
+    for sd_ in ((side,) if side else ("inside_bl", "inside_tl", "inside_br", "inside_tr")):
+        lg = Legend(ga, side=sd_, y_down=False)
         for lab, kind, smp in rows:
             lg.add(lab, kind, **smp)
         Lo = lg.layout(meas)
@@ -15081,9 +15082,12 @@ def _p12_legend(pg, ga, rows, avoid, taken, log=None):
         n = sum(1 for p in avoid if b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3]) + \
             sum(20 for t in taken if lp_hit(b, t, 0.8))
         if best is None or n < best[0]:
-            best = (n, Lo)
+            best = (n, Lo, sd_)
     Lo = best[1]
     b = Lo["box"]
+    if dry:                                             # v13.8: the corner and box only, nothing drawn
+        return best[2], b
+    taken = clear_
     # v13.6 (Aras 1 Nov 18:10: D and E still under the legend after v13.5): the clearance test uses the page check's
     # pad (0.8 mm > its 0.6 mm) and the drawn marker boxes (the caller passes M["labels"] too); when the best corner
     # covers any of them, every place on a 2.5 mm grid inside the map is tried and the clear one holding the fewest
@@ -15564,14 +15568,6 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     M["at"], M["marks"] = at, marks
     if Sc["cube_b"]:
         M["taken"].append(Sc["cube_b"])
-    lrows = _p12_letters(pg, ga, M, zones, D, log)
-    # closing round 4 (G-R4-4): the draw order as recorded while drawing (each scene's stages, then the markers and
-    # letters as "proj_marks"; the names follow as labels), checked with map_draw's rule, and the clip count of this
-    # page's study clips (zones, zone trees) as study_clip counted them
-    ods = [Sc["order"] + ["proj_marks"]] + ([I["Sc"]["order"]] if I else [])
-    ok, seen = _p12_layer_check(ods)
-    log.append(u"layers base→project {}, n_outside_clipped {} (p12 axo{}: {})".format(
-        u"ok" if ok else u"FLAG out of order", sc_count("p12"), u" and its zoom" if I else u"", u", ".join(seen)))
     # the legend (G1): every symbol of the drawing, nothing else; then the letters' key (G3)
     ch, top = Sc["ch"], Sc["top"]
     pal = _wat_pal()
@@ -15629,11 +15625,28 @@ def _p12_map(pg, ga, zones, links, f, Z, D, log):
     if Sc["study"]:
         lg.append((u"Study area", "dash", dict(colour=BM_STUDY_LINE["colour"], width=BM_STUDY_LINE["width_mm"],
                                                dash=list(BM_STUDY_LINE["dash_mm"]))))
+    # v13.8 (Aras 1 Nov 18:19): the legend's corner is chosen and its box reserved BEFORE the channel letters, so the
+    # letters stand off it (v13.5-v13.7 moved the legend after them; at about 100 x 115 mm it found no clear place)
+    avoid = list(M["S"]) + [Tg(p) for z in zones for p in z["ring"][::4]]
+
+    def _rsv(lt):
+        rows_ = lg + [(t_, "letter", dict(letter=u"W", colour=c_)) for t_, c_ in lt]
+        if not rows_:
+            return None
+        M["legend_side"], b_ = _p12_legend(pg, ga, rows_, avoid, M["taken"], dry=True)
+        return (b_[0] - 1.0, b_[1] - 1.0, b_[2] + 1.0, b_[3] + 1.0)
+    lrows = _p12_letters(pg, ga, M, zones, D, log, _rsv)
+    # closing round 4 (G-R4-4): the draw order as recorded while drawing (each scene's stages, then the markers and
+    # letters as "proj_marks"; the names follow as labels), checked with map_draw's rule, and the clip count of this
+    # page's study clips (zones, zone trees) as study_clip counted them
+    ods = [Sc["order"] + ["proj_marks"]] + ([I["Sc"]["order"]] if I else [])
+    ok, seen = _p12_layer_check(ods)
+    log.append(u"layers base→project {}, n_outside_clipped {} (p12 axo{}: {})".format(
+        u"ok" if ok else u"FLAG out of order", sc_count("p12"), u" and its zoom" if I else u"", u", ".join(seen)))
     for ch_, txt, col in lrows:
         lg.append((txt, "letter", dict(letter=ch_, colour=col)))
     if lg:
-        avoid = list(M["S"]) + [Tg(p) for z in zones for p in z["ring"][::4]]
-        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"], log)
+        M["legend"] = _p12_legend(pg, ga, lg, avoid, M["taken"] + M["labels"], log, side=M.get("legend_side"))
         M["taken"].append(M["legend"])
     hold = M["hold"]
     nd = (T((hold[0], hold[1] + 100.0))[0] - T(hold)[0], T((hold[0], hold[1] + 100.0))[1] - T(hold)[1])
@@ -15743,7 +15756,7 @@ def _p12_letter(pg, ch, x, y, col, r=None, allow=()):
     return _p12_mark(pg, ch, x, y, col, 2.0 * (r or P12_MARK_R), allow=allow)   # v13 (G-R4-7): through mk_marker
 
 
-def _p12_letters(pg, ga, M, zones, D, log):
+def _p12_letters(pg, ga, M, zones, D, log, reserve=None):
     """P11.3 + G18 (v12): what the project does along the channel, as LETTERS on the spot (B, C, D ... in reading
     order, left to right then top down; the digits are the five steps), explained in the legend (G3: no names over
     the project): each zone group of the zone base that no step marks (bergama_zone_base/code.py l.20-36), the
@@ -15849,13 +15862,15 @@ def _p12_letters(pg, ga, M, zones, D, log):
             anchors.append((key, ps[0][2]))
     out, r = [], P12_MARK_R
     obst = list(M["taken"])
+    rb_ = reserve([(groups[k_]["text"], groups[k_]["col"]) for k_, _a in anchors]) if reserve else None
+    rsv_ = [rb_] if rb_ else []                         # v13.8: the legend's reserved box, off limits to the letters
     for ix in lp_reading_order([a_[1] for a_ in anchors], y_down=False):
         key = anchors[ix][0]
         g, got = groups[key], []
         for (x, y), in_z, _pm in placed[key]:
             if any(math.hypot(x - a_, y - b_) < 8.0 for a_, b_, _i in got):
                 continue
-            obs = [t for t in obst if not (in_z and t == I["box"])]
+            obs = [t for t in obst if not (in_z and t == I["box"])] + rsv_
             b = _p12_free_spot(x, y, 2.0 * r, 2.0 * r, obs, I["box"] if in_z else ga)
             if b:
                 got.append(((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, b))
