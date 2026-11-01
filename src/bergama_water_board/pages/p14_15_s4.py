@@ -1744,7 +1744,7 @@ def _p14_zone_strip(pg, X, yb, sea, log=None):
         lvl = next((l_ for l_ in (0, 1) if all(abs(cx - q) >= 2.0 * rr + 0.7 for q in taken[l_])), None)
         if lvl is None:
             if log is not None:
-                log.append(u"FLAG p13 {} zone {}: no room for its number under the cut".format(sea, num))
+                log.append(u"FLAG p14 {} zone {}: no room for its number under the cut".format(sea, num))
             continue
         taken[lvl].append(cx)
         cy = ym - lvl * step
@@ -1922,7 +1922,7 @@ def _p14_panel(pg, box, log, style):
     xd = x1 - wd
     wv = xd - gap - xv
     if wv < 50.0 and log is not None:
-        log.append(u"FLAG p13 views only {:.0f} mm wide (panel {:.0f} mm)".format(wv, x1 - x0))
+        log.append(u"FLAG p14 views only {:.0f} mm wide (panel {:.0f} mm)".format(wv, x1 - x0))
     heads = [(xa, u"RAIN · WATER", u"rain mm " + cite(YEAR_SRC[0][1]) + u" · depth m"),
              (xb, u"THE CUT S4–S4', SOUTH-WEST TO NORTH-EAST · 1:500",
               u"its zones under it, numbered as the key · levels at its right · inset 1:{:,.0f}".format(P14_ZOOM_DEN)),
@@ -1949,7 +1949,7 @@ def _p14_panel(pg, box, log, style):
         X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style, ytop=ytc)
         fr = (xb, yb, xb + wb, ytc)
         if _p14_bb(sp.items)[3] > fr[3] + 0.05 and log is not None:
-            log.append(u"FLAG p13 {} cut reaches {:.1f} mm over its row: cut at the row top".format(
+            log.append(u"FLAG p14 {} cut reaches {:.1f} mm over its row: cut at the row top".format(
                 sea, _p14_bb(sp.items)[3] - fr[3]))
         pg.items += _p14_clip_items(sp.items, fr)
         _p14_zone_strip(pg, X, yb, sea, log)
@@ -1965,20 +1965,20 @@ def _p14_panel(pg, box, log, style):
     if log is not None:
         if G["src"] not in log:
             log.append(G["src"])
-        for ln in wat_draw_order_lines(page=u"p13", steps=P14_STEPS_LOG):
+        for ln in wat_draw_order_lines(page=u"p14", steps=P14_STEPS_LOG):
             if ln not in log:
                 log.append(ln)
         _p14_sf_log(log, u"inset p14", u"level marks p14")
         if bb[0] < x0 - 0.5 or bb[1] < y0 - 0.5 or bb[2] > x1 + 0.5 or bb[3] > y1 + 0.5:
-            log.append(u"FLAG p13 bbox ({:.1f}, {:.1f}, {:.1f}, {:.1f}) outside its box".format(*bb))
-        _p14_g6(k, P14_PLANTS, log, u"p13 cuts")
-        log.append(u"p13 S4 seasons: cuts 1:{:,.0f}, insets 1:{:,.0f}, rows {:.1f} mm, views {:.0f} mm wide ({} trees, "
+            log.append(u"FLAG p14 bbox ({:.1f}, {:.1f}, {:.1f}, {:.1f}) outside its box".format(*bb))
+        _p14_g6(k, P14_PLANTS, log, u"p14 cuts")
+        log.append(u"p14 S4 seasons: cuts 1:{:,.0f}, insets 1:{:,.0f}, rows {:.1f} mm, views {:.0f} mm wide ({} trees, "
                    u"shrubs or people left out at the views' edges, P14.2), panel {:.0f} x {:.0f} mm; S4 bed {:+.2f} "
                    u"(surveyed profile), bed floor {:,.0f} cm; {} plants (season states, opaque), people {}".format(
                        P14_DEN, P14_ZOOM_DEN, rh, wv, n_out, bb[2] - bb[0], bb[3] - bb[1], G["bed"],
                        G["width"] * 100.0, len(P14_PLANTS),
                        u", ".join(u"{} {}".format(s_, len(_p14_people(s_))) for s_ in SEAS)))
-        log.append(u"p13 planting: {} mixed groups (G9), {}".format(len(P14_GROUPS), u"; ".join(
+        log.append(u"p14 planting: {} mixed groups (G9), {}".format(len(P14_GROUPS), u"; ".join(
             u"{:.0f}-{:.0f} m {} ({})".format(a, b, u"+".join(ks), u", ".join(tg)) for a, b, ks, tg in P14_GROUPS)))
     return bb
 
@@ -2304,7 +2304,7 @@ def _p15_panel(pg, box, log, style):
     tb = blk["title_base"]
     pg.text(P15_TITLE_BLK, tb[0], tb[1], GRID_TYPE["heading"][0] * PT, COL["ink_dark"], bold=True)
     if d[2] - d[0] < ws + P15_LEVEL_W - 0.5 and log is not None:
-        log.append(u"FLAG p14 the drawing column ({:.0f} mm) is narrower than the cut and its level marks ({:.0f} "
+        log.append(u"FLAG p15 the drawing column ({:.0f} mm) is narrower than the cut and its level marks ({:.0f} "
                    u"mm)".format(d[2] - d[0], ws + P15_LEVEL_W))
     kb = _p14_keymap(pg, (d[0], d[3] - P15_KEY[1], d[0] + P15_KEY[0] + P14_NORTH, d[3]), log, u"p15")
     ytc = d[3] - P15_BAND_H
@@ -2374,18 +2374,18 @@ def _p15_panel(pg, box, log, style):
     if log is not None:
         if G["src"] not in log:
             log.append(G["src"])
-        for ln in wat_draw_order_lines(page=u"p14", steps=P14_STEPS_LOG):
+        for ln in wat_draw_order_lines(page=u"p15", steps=P14_STEPS_LOG):
             if ln not in log:
                 log.append(ln)
         _p14_sf_log(log, u"inset p15", u"level marks p15")
-        _p14_g6(k, [p for p in P14_PLANTS if s0 <= p[1] <= s1], log, u"p14 cut")
-        log.append(u"p14 S4 north-east bank 1:{:,.0f} (inset 1:{:,.0f}{}), block LEFT {:.0f} x {:.0f} mm, side column "
+        _p14_g6(k, [p for p in P14_PLANTS if s0 <= p[1] <= s1], log, u"p15 cut")
+        log.append(u"p15 S4 north-east bank 1:{:,.0f} (inset 1:{:,.0f}{}), block LEFT {:.0f} x {:.0f} mm, side column "
                    u"{:.0f} mm, and the year: panel {:.0f} x {:.0f} mm{}".format(
                        P15_DEN, P15_ZOOM_DEN, u"" if ins else u", not drawn", x1 - x0, max(h_draw, h_side),
                        sd[2] - sd[0], bb[2] - bb[0], bb[3] - bb[1], u"" if bb[1] >= y0 - 0.5 else
                        u" (FLAG D9: {:.1f} mm below the cell: the pair does not fit two pages)".format(y0 - bb[1])))
         if bb[0] < x0 - 0.5 or bb[2] > x1 + 0.5 or bb[3] > y1 + 0.5:
-            log.append(u"FLAG p14 bbox ({:.1f}, {:.1f}, {:.1f}, {:.1f}) outside its box".format(*bb))
+            log.append(u"FLAG p15 bbox ({:.1f}, {:.1f}, {:.1f}, {:.1f}) outside its box".format(*bb))
     return bb
 
 

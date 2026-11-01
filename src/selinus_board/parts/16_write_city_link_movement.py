@@ -275,6 +275,7 @@ def build_layout(S):
     rects = TimedRects()                                  # v27: each drawing's time for the log
     del DRAWING_TIMES[:]
     del CROP_PANELS[:]                                    # v40: the booklet crops of this layout
+    del SB_KEEPS[:]                                       # v59 (closing, G-R4-1): the drawing areas of this layout
     y = OY
     B_CUR[0] = B
     if RUN_MODE in ("board", "all"):

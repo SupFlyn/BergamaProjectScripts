@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v26.py = v26 (1 Nov 2026, round 4 S9; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_booklet_v29.py = v29 (1 Nov 2026: saved with placeholders (orange warning); booklet words under 6 pt on a scaled crop set at 6 pt; crop marks may lie in the footer band; v28.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v28: a source mark too long for its room is set at 6 pt with a warning, the run goes on; v27: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26: round 4 S9; what changed: the NEW IN / VERSION notes below)
 """Bergama Group 6: A3 BOOKLET ASSEMBLER (26 Oct 2026). Rules: scripts/_template/SCRIPT_STANDARD.md §8.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from the scripts' OWN sheet PDFs.
 
@@ -33,6 +33,9 @@ NEW IN v26 (round 4, session S9, 1 Nov 2026, a feature change; revision_2026-11-
     6 pt (logged, contents name the first). The masterplan's places left as they are carry their place names.
   * One trigger file (common/trigger.py, round 4 S1): the Button press or a new done text from the script before it;
     the log says "trigger: ...". Turkish proper names in the plan's text (G-R4-11).
+  * Round 4 closing (same v26): the words the booklet writes INTO a crop copy (renumbered source marks, rescaled
+    scale words) are registered in the page's TextPage at their printed place and size (copy_words_put); a mark set
+    smaller to fit never goes under 6 pt: one that cannot fit RAISES (was down to 0.75 x, unregistered).
 NEW IN v25 (round 3, session C, a feature change): contents in three type levels (theme 9.5 pt accent caps, stage
   8 pt bold blue-grey small caps, page titles 7.5 pt) with the page numbers right-aligned in one column (P01.1);
   page numbers are the number only ("17", G2, also on the contents); one minimum type size, grid.py GRID_MIN_PT 6 pt
@@ -153,7 +156,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v26"  # v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v29"  # v29 1 Nov 22:10 (Aras 19:49): saved with placeholders (orange warning); booklet words under 6 pt on a scaled crop set at 6 pt; crop marks may lie in the footer band; v28.1 1 Nov 21:40 (Aras 19:33, p05 '1:1,000' at 6.00 pt): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v28 1 Nov 21:15 (Aras 19:08, the source mark [16,20] on the water balance sheet): a renumbered source mark that needs under 6 pt is set at 6 pt with a WARNING line and an orange warning instead of stopping; v27 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -351,6 +354,7 @@ def find_pdf(folder, name):
 
 
 _COPY = {}       # v19 (G9): (sheet path, page index, clip key) -> (doc, page index): one copy per place a page shows
+_COPY_PUT = {}   # v26 closing (G-R4-1): the same key -> the words the booklet wrote into that copy (copy_of)
 _PAGE_TXT = {}   # v19: (sheet path, page index) -> (its lines of words, invisible words, images): read once a run
 _FONTBUF = {}    # v19 (G2): bold -> (font file bytes, fitz.Font): the booklet's Arial, read once a run
 G9_STATS = dict(copies=0, lines=0, chars=0, images=0, failed=[])
@@ -364,10 +368,50 @@ def clip_key(clip):
 def src_page(fitz, path, pno_, clip=None):
     """v18: (doc, page index) the booklet shows of a sheet page. v19 (MIRAQUA 28 Oct, G9): one copy per (sheet, page,
     clip), made once (strip_copy): its marks in the booklet's source numbers and, for a crop, nothing outside it"""
+    return copy_of(fitz, path, pno_, clip, _SRC[0] if _SRC else None)
+
+
+def copy_of(fitz, path, pno_, clip, srcs):
+    """v26 closing (G-R4-1): the cached copy of (sheet, page, clip) (strip_copy), made once, with the words the
+    booklet wrote into it (_COPY_PUT: (x pt, baseline y pt, text, size pt, bold) on the sheet page)"""
     ck = (path, pno_, clip_key(clip))
     if ck not in _COPY:
-        _COPY[ck] = strip_copy(fitz, path, pno_, clip, _SRC[0] if _SRC else None)
+        put = []
+        _COPY[ck] = strip_copy(fitz, path, pno_, clip, srcs, put)
+        _COPY_PUT[ck] = put
     return _COPY[ck]
+
+
+def copy_words(path, pno_, clip=None):
+    """v26 closing: the words the booklet wrote into the copy of (sheet, page, clip) (see copy_of)"""
+    return list(_COPY_PUT.get((path, pno_, clip_key(clip))) or ())
+
+
+def _bk_warn(msg):
+    """v29: a WARNING line in the log and an orange warning; the booklet is still saved"""
+    TP_LOG.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
+def copy_words_put(typo, key, words, clip, x, y, s, allow=None):
+    """v26 closing (G-R4-1, closing part C F): the words the booklet itself writes into a crop copy (renumbered
+    source marks, rescaled scale words; raw insert_text there) registered in the page's TextPage at their printed
+    place and size (sheet pt -> page mm: the clip's corner at (x, y) mm, factor s; clip None = a whole sheet from
+    the page's corner), so a word under the 6 pt minimum RAISES TextError there and the text test sees them. They
+    may sit on their own crop (its keep, or allow); one group per crop (marks side by side may touch)."""
+    if typo.tp is None or not words:
+        return 0
+    nm = key.split("/", 1)[-1] if key else "crop"
+    x0, y0 = (clip.x0, clip.y0) if clip is not None else (0.0, 0.0)
+    g = typo.tp._group()
+    for px, py, t, size, bold in words:
+        typo.tp.put(t, x + (px - x0) / K * s, y + (py - y0) / K * s, size * s, bold, "L", 0.0,
+                    name=u"%s · booklet word %s" % (nm, t), role="crop_word", allow=allow or (nm,), group=g,
+                    emit=False)                        # v29: a word of the crop may lie where the crop does (footer band)
+    return len(words)
 
 
 def own_font(fitz, pg, bold=False):
@@ -403,17 +447,23 @@ def page_text(fitz, path, i):
     return _PAGE_TXT[k]
 
 
-def strip_copy(fitz, path, i, clip, srcs=None):
+def strip_copy(fitz, path, i, clip, srcs=None, out=None):
     """v19 (MIRAQUA 28 Oct, G9 "remove everything that isn't visible on its own page"): (doc, page index) of sheet page
-    i copied for ONE place the booklet shows it; the sheet page itself when nothing changes or the copy fails (logged)"""
+    i copied for ONE place the booklet shows it; the sheet page itself when nothing changes or the copy fails (logged).
+    v26 closing: out (a list) gets the words the copy writes (see _strip_copy); a mark that cannot fit at 6 pt
+    RAISES (TextError is never taken for a failed copy)"""
     try:
-        return _strip_copy(fitz, path, i, clip, srcs)
+        return _strip_copy(fitz, path, i, clip, srcs, out)
+    except TextError:
+        raise
     except Exception as ex:
         G9_STATS["failed"].append("%s page %d (%s: %s)" % (os.path.basename(path), i + 1, type(ex).__name__, ex))
+        if out is not None:
+            del out[:]                                 # the sheet page itself is shown: it holds none of them
         return sheet_doc(fitz, path), i
 
 
-def _strip_copy(fitz, path, i, clip, srcs):
+def _strip_copy(fitz, path, i, clip, srcs, out=None):
     """The copy: its [n] marks in the booklet's numbers (srcs; v18) and, for a crop (clip), what no viewer sees taken out
     (v18 took out only the words outside every crop of the page, 3 mm round them; graphics and images all stayed):
     the words outside the clip + G9_MARGIN (whole lines, else the letters of a line across its edge); the images
@@ -503,13 +553,26 @@ def _strip_copy(fitz, path, i, clip, srcs):
             fonts[bold] = own_font(fitz, pg, bold)
         fn, font = fonts[bold]
         w = font.text_length(new, fontsize=size)
-        if w > room > 0:                              # the words after it stay clear
-            size2 = max(0.75 * size, size * room / w)
+        if w > room > 0:                              # the words after it stay clear: set smaller to fit, never
+            size2 = size * room / w                   # under MIN_CAPTION (6 pt; v26 closing: was down to 0.75 x)
+            if size2 < MIN_CAPTION - 1e-6:            # v28 (Aras 1 Nov 19:08): a WARNING and an orange warning, set
+                msg_ = (u"%s page %d: the source mark %r needs %.2f pt to fit before the next word, under the "
+                        u"%.1f pt minimum: set at %.1f pt (it may touch the next word); give it room in its sheet" %
+                        (os.path.basename(path), i + 1, new, size2, MIN_CAPTION, MIN_CAPTION))
+                TP_LOG.append(u"WARNING " + msg_)     # at the minimum; the run goes on
+                try:
+                    ghenv.Component.AddRuntimeMessage(
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg_)
+                except Exception:
+                    pass
+                size2 = MIN_CAPTION
             if srcs:
-                srcs.n_tight += int(w * size2 / size > room + 0.2)
+                srcs.n_tight += 1
             size = size2
         pg.insert_text(org, new, fontname=fn, fontsize=size,
                        color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+        if out is not None:                           # v26 closing: registered where the copy is shown
+            out.append((org[0], org[1], new, size, bold))
     if clip is not None:
         G9_STATS["copies"] += 1
         G9_STATS["lines"] += n_l
@@ -536,11 +599,15 @@ def resolve(assets, key):
 SCALE_WORD = re.compile(r"1\s?:\s?(\d{1,3}(?:,\d{3})+|\d{2,})")
 
 
-def rescaled(fitz, path, pno_, clip, s, drop=()):
+def rescaled(fitz, path, pno_, clip, s, drop=(), out=None):
     """v4: the sheet page with each scale it states inside clip ("1:400") changed to the scale the booklet prints it
     at (1:400 / s), in the same place, size and colour; the drawing itself untouched. v7: a line of the sheet's words
-    matching one of its crop's "drop" patterns is taken out (source marks "[n]" stay). (doc, page index)"""
+    matching one of its crop's "drop" patterns is taken out (source marks "[n]" stay). (doc, page index).
+    v26 closing (G-R4-1): out (a list) gets every word the booklet wrote into the page it returns (the copy's marks,
+    the new scale words) as (x pt, baseline y pt, text, size pt, bold), for copy_words_put"""
+    pno0 = pno_
     src, pno_ = src_page(fitz, path, pno_, clip)         # v18: the booklet's source numbers; v19 (G9): this crop's copy
+    words = copy_words(path, pno0, clip)
     page = src[pno_]
     pats = [re.compile(d) for d in drop or () if not d.startswith("^\\[")]
     hits, gone = {}, []
@@ -555,7 +622,11 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
                                         "bold" in sp["font"].lower())
     if abs(s - 1.0) < 1e-3:
         hits = {}
-    if not hits and not gone:
+    ms_ = (MIN_CAPTION + 0.01) / s                    # v29 (Aras 1 Nov 19:49, p12 marks at 3.76 pt): the words the
+    small = [w_ for w_ in words if w_[3] < ms_ - 1e-6]   # booklet writes print at 6 pt at least on the page
+    if not hits and not gone and not small:
+        if out is not None:
+            out.extend(words)
         return src, pno_
     tmp = fitz.open()
     tmp.insert_pdf(src, from_page=pno_, to_page=pno_)
@@ -566,7 +637,15 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
     for word, (den, size, col, bold) in hits.items():
         for r in pg.search_for(word, clip=clip):
             pg.add_redact_annot(r, fill=False)
-            put.append((r, "1:{:,.0f}".format(den / s), size, col, bold))
+            put.append((r, "1:{:,.0f}".format(den / s), max(size, ms_), col, bold))
+    big = []                                         # v29: a renumbered mark under 6 pt on the page, set again bigger
+    for w_ in small:
+        wx, wy, wt, wsz, wb = w_
+        fw_ = own_font(fitz, pg, wb)[1].text_length(wt, fontsize=wsz)
+        r = fitz.Rect(wx, wy - 0.95 * wsz, wx + fw_, wy + 0.25 * wsz)
+        pg.add_redact_annot(r, fill=False)
+        big.append((fitz.Rect(wx, wy + 0.22 * ms_ - ms_, wx + fw_, wy + 0.22 * ms_), wt, ms_, 0x4A3F35, wb))
+    put += big
     pg.apply_redactions(images=0, graphics=0, text=0)
     fonts = {}
     for r, txt, size, col, bold in put:              # v19 (MIRAQUA 28 Oct, G2): in the booklet's embedded Arial
@@ -574,6 +653,10 @@ def rescaled(fitz, path, pno_, clip, s, drop=()):
             fonts[bold] = own_font(fitz, pg, bold)[0]
         pg.insert_text((r.x0, r.y1 - 0.22 * size), txt, fontsize=size, fontname=fonts[bold],
                        color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
+    if out is not None:                              # v26 closing: the marks still there, then the new scale words
+        out.extend(w_ for w_ in words if not any(r.contains(fitz.Point(w_[0] + 0.1, w_[1] - 0.3 * w_[3]))
+                                                 for r in gone) and w_ not in small)
+        out.extend((r.x0, r.y1 - 0.22 * size, txt, size, bold) for r, txt, size, col, bold in put)
     return tmp, 0
 
 
@@ -765,6 +848,8 @@ def sheet_page(fitz, doc, typo, pno, spec):
     src = sd[si]
     f = min(PW * K / src.rect.width, PH * K / src.rect.height)
     pg.show_pdf_page(fitz.Rect(0, 0, src.rect.width * f, src.rect.height * f), sd, si)
+    copy_words_put(typo, spec["sheet"], copy_words(path, int(spec.get("page", 0))), None, 0.0, 0.0, f,
+                   allow=("sheet",))                 # v26 closing: its renumbered marks (on the sheet's own words)
     sheet_foot(fitz, pg, typo, pno, spec, src, f)
     return "p.%d %s: sheet %s page %d as it is%s" % (pno, spec["title"], os.path.basename(path),
                                                    int(spec.get("page", 0)) + 1, "" if f > 0.999 else " (x%.2f)" % f)
@@ -879,9 +964,11 @@ def show(fitz, pg, typo, it, x, y, s, rep, missing, cap=True):
                                                                 key.split("/")[1]))
         rep.append("%s MISSING" % key)
         return h * s
-    src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
+    bw = []
+    src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"), bw)
     pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
     crop_block(typo, key, x, y, w * s, h * s)          # v26 (G-R4-1)
+    copy_words_put(typo, key, bw, clip, x, y, s)       # v26 closing: the booklet's own words in the copy
     if cap:
         c = renum(blk.get("caption", ""), key, blk, path)      # v18: its marks in the booklet's source numbers
         if blk.get("scale_den"):
@@ -997,9 +1084,11 @@ def panel_page(fitz, doc, typo, pno, spec, rows, assets, missing):
                                                                         key.split("/")[1]))
                 rep.append("%s MISSING" % key)
             else:
-                src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"))
+                bw = []
+                src, pi = rescaled(fitz, path, int(blk.get("page", 0)), clip, s, blk.get("drop"), bw)
                 pg.show_pdf_page(fitz.Rect(x * K, y * K, (x + w * s) * K, (y + h * s) * K), src, pi, clip=clip)
                 crop_block(typo, key, x, y, w * s, h * s)     # v26 (G-R4-1)
+                copy_words_put(typo, key, bw, clip, x, y, s)  # v26 closing: the booklet's own words in the copy
                 cap_t = renum(blk.get("caption", ""), key, blk, path)   # v18: the booklet's source numbers
                 if blk.get("scale_den"):
                     cap_t = (cap_t + " · " if cap_t else "") + "1:{:,.0f}".format(blk["scale_den"] / s)
@@ -1674,9 +1763,7 @@ class Sources(object):
         """pass 2 (v19, G9): the copy of every place a sheet page is shown (strip_copy), made now, its marks renumbered"""
         for (path, i), (folder, clips) in self.used.items():
             for clip in clips:
-                ck = (path, i, clip_key(clip))
-                if ck not in _COPY:
-                    _COPY[ck] = strip_copy(self.fz, path, i, clip, self)
+                copy_of(self.fz, path, i, clip, self)  # v26 closing: with the words it writes (_COPY_PUT)
 
     def groups(self):
         """[(theme heading, ["[n] text", ...])] in booklet order, for sources_page. v19: public online sources only (F5)
@@ -1934,6 +2021,7 @@ def build_variant(variant):
     numbered = [(i + 2, sp, rows) for i, (sp, rows) in enumerate(plan)]   # page 1 = cover + contents
     _TOTAL[0] = len(numbered) + 2                   # revision 30 Oct (G2): cover + pages + sources, the counter's total
     _COPY.clear()
+    _COPY_PUT.clear()
     _PAGE_TXT.clear()
     G9_STATS.update(copies=0, lines=0, chars=0, images=0, failed=[])
     del _SRC[:]
@@ -1944,8 +2032,11 @@ def build_variant(variant):
         _SRC.append(srcs)
         typo.notes.append(srcs.report())
         typo.issues += srcs.log
+    except TextError:                               # v26 closing: a source mark that cannot fit at 6 pt stops
+        raise                                       # the booklet (never taken for a failed renumbering)
     except Exception as ex:
         _COPY.clear()
+        _COPY_PUT.clear()
         typo.issues.append("SOURCES NOT RENUMBERED (%s: %s): marks and sources page by sheet, as before v18" %
                            (type(ex).__name__, ex))
     del _PLACEHOLDERS[:]
@@ -1974,7 +2065,11 @@ def build_variant(variant):
     # v26 (round 4, P09.1 + G-R4-1): placeholders and text collisions stop the run here, before the PDF is saved
     stop = []
     log_ph = "placeholders %d" % len(_PLACEHOLDERS)
-    if _PLACEHOLDERS:
+    if _PLACEHOLDERS:                               # v29 (Aras 1 Nov 19:49): saved anyway, with an orange warning
+        _bk_warn("booklet saved with %d placeholder frame%s: %s (run the scripts that make them, then the booklet "
+                 "again)" % (len(_PLACEHOLDERS), "" if len(_PLACEHOLDERS) == 1 else "s",
+                             "; ".join("p%02d %s" % (n_, t_) for n_, t_ in _PLACEHOLDERS)))
+    if False:
         stop.append("placeholders %d: %s (run the scripts that make them, then the booklet again)" % (
             len(_PLACEHOLDERS), "; ".join("p%02d %s" % (n_, t_) for n_, t_ in _PLACEHOLDERS)))
     hits = text_test(typo)

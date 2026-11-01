@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_masterplan_v38.py = v38 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_masterplan_v39_2.py = v39.2 (1 Nov 2026: the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1: fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
 """BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
@@ -17,6 +17,12 @@ NEW IN v38 (round 4 S8, 1 Nov; a feature change): one run trigger (common/trigge
     mixed beds, café planes, gravel path), the bike lane ends at a street or a rack, a viewing terrace per window,
     lamps / bollards / racks, levels outside the section frame, zoom inset at 1:250, the low planting layer, one
     194 x 236 mm column per window with its own legend (the booklet adds none).
+  Round 4 closing (same v38): m² / m³ print the embedded Arial's own ² / ³ at full size (the 0.6 x raised digit
+    fell under 6 pt and raised on the p22 route key); p21 logs its "overlap p21" line; p22: no "style a (cutouts)"
+    in the crop title, the pasted plan / section / legend are blocks of the sheet's text test and a legend running
+    into the section RAISES, the zone-base zones clipped to the study area, people on the sub-hub's stepping stones
+    (or wading at most knee deep) where a section shows them, the section keys' numbers are the shared marker;
+    p16 / p22 wraps keep >= 2 words on the last line; the Trajan temple from the names table (Trajan Tapınağı).
 
 NEW IN v37.2 (1 Nov, Aras 07:48): the riverside spine, its bank vote and the stops are built in this script
     (common/city_spine.py, the same code city link uses; the vote from this run's site board or the built-in one);
@@ -274,8 +280,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v38 (2026-11-01)"  # v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v38"
+VERSION = "bergama_masterplan v39.2 (2026-11-01)"  # v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v39.2"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
 RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: inferred, not a sourced number)
@@ -870,18 +876,7 @@ def text_w(s, size, bold=False):
     return fm_width(s, size / PT, bold) if s else 0.0
 
 
-def wrap(s, size, width, bold=False):
-    out, cur = [], ""
-    for wd in s.split():
-        t = (cur + " " + wd).strip()
-        if cur and text_w(t, size, bold) > width:
-            out.append(cur)
-            cur = wd
-        else:
-            cur = t
-    if cur:
-        out.append(cur)
-    return out
+# v38 closing (G-R4-2): common/wrap.py (no widow rule) is no longer included: every wrap is pl23_wrap / tp_wrap
 
 
 # ================================================================ page and PDF writer (v2.3; v10: alpha in 1 %
@@ -922,6 +917,8 @@ class Page(object):
         self.tp.check(True, lg)
         if log is not None:
             log.extend(lg)
+        else:                                           # v39: the hits' WARNING lines (text_place warns, no raise)
+            TP_LOG.extend(lg[:-1])                      # reach the log; the caller logs the "overlap" line
         return lg[-1] if lg else u""
 
     def poly(self, rings, fill=None, stroke=None, lw=0.1, dash=None, stripes=None, alpha=None):
@@ -939,21 +936,13 @@ class Page(object):
 
     def text(self, s, x, y, size, color, bold=False, align="L", halo=None, name=None, allow=(), role="label"):
         """one text (size mm). v38: registered in the page's TextPage first (when it has one): name / allow / role
-        go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc)"""
+        go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc).
+        v38 closing: m² / m³ print the embedded Arial's own ² / ³ glyph at full size (WinAnsi 0xB2 / 0xB3, as water
+        board v13); the v26.1 raised 0.6 x digit is gone (at 7.5 pt it was 4.5 pt, under the 6 pt minimum)"""
         tp, g = self.tp, None
         if s and tp is not None:
             g = self.tg or tp._group()
-        if s and any(ch in SUP for ch in s):             # v26.1: m² / m³ as a raised small digit (see SUP)
-            runs = sup_runs(s)
-            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
-            x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
-            for (t, up), w_ in zip(runs, ws):
-                yy, ss = y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0)
-                if tp is not None and t.strip():
-                    tp.put(t, x, yy, ss / PT, bold, "L", 0.0, name, role, color, allow, g, emit=False)
-                self.items.append(("text", t, x, yy, ss, color, bold, "L", halo))
-                x += w_
-        elif s:
+        if s:
             if tp is not None and s.strip():
                 tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, color, allow, g, emit=False)
             self.items.append(("text", s, x, y, size, color, bold, align, halo))
@@ -968,29 +957,6 @@ class Page(object):
         """A line drawn only inside rings (the verge band inside a zone)."""
         if len(pts) >= 2:
             self.items.append(("clipline", rings, pts, stroke, lw, alpha))
-
-
-# v26.1 (Aras 27 Oct, Prompt 8; water board v3.1's fix for "hm³ renders as hm"): ² and ³ are drawn as the digit at
-# 0.6 x the size, raised 0.28 x the size (the digit is then as wide as the ²/³ glyph, 333/1000): the unembedded
-# Helvetica's ²/³ was missing in some viewers
-SUP = {u"²": u"2", u"³": u"3"}
-SUP_K, SUP_UP = 0.6, 0.28
-
-
-def sup_runs(s):
-    """v26.1: s cut into (text, raised) runs at ² and ³, which become a plain 2 or 3"""
-    out, cur = [], u""
-    for ch in s:
-        if ch in SUP:
-            if cur:
-                out.append((cur, False))
-            out.append((SUP[ch], True))
-            cur = u""
-        else:
-            cur += ch
-    if cur:
-        out.append((cur, False))
-    return out
 
 
 def hex_rgb(h):
@@ -1747,7 +1713,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '0972af4b119d556bb810b350fd8e70f4', 'ROADS': '99bc04d8d0ea09b7336194f59372f73b', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'ROADS': '99bc04d8d0ea09b7336194f59372f73b', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b'}.get(name):
         raise RuntimeError("Data file bergama_masterplan_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_masterplan_data.py:" + name, "exec"), globals())
@@ -2400,6 +2366,21 @@ class TextError(RuntimeError):
     pass
 
 
+TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
+
+
+def tp_warn(msg):
+    """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
+    TP_LOG and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError again)"""
+    if not TP_WARN_ONLY[0]:
+        raise TextError(msg)
+    TP_LOG.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
 class TextCollision(TextError):
     def __init__(self, page, item, other, n=1, more=()):
         self.page, self.item, self.other, self.n, self.more = page, item, other, n, list(more)
@@ -2598,7 +2579,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                raise TextError(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm)" % (
+                tp_warn(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -2690,8 +2671,8 @@ class TextPage(object):
         return "g%d" % self._gid
 
     def _size_ok(self, text, pt):
-        if pt * self.scale < self.min_pt - 1e-6:
-            raise TextError(u"%s: %r would print at %.2f pt, below the %.1f pt minimum" % (
+        if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
+            tp_warn(u"%s: %r prints at %.2f pt, below the %.1f pt minimum" % (
                 self.name, text[:40], pt * self.scale, self.min_pt))
 
     # -- registering
@@ -2746,8 +2727,8 @@ class TextPage(object):
             lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            raise TextError(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                               max_lines))
+            tp_warn(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                       max_lines))
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -2816,7 +2797,7 @@ class TextPage(object):
         """the collision test (see the module notes); returns the number of texts checked"""
         for sl in self.sides:
             if not sl.closed:
-                raise TextError(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
         hits = []
         I = self.items
         for i, a in enumerate(I):
@@ -2824,7 +2805,7 @@ class TextPage(object):
             if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
                     self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
                 hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
                 hits.append((a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
@@ -2843,6 +2824,17 @@ class TextPage(object):
         lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         lg.append(line)
         self.checked = True
+        if hits and raise_ and TP_WARN_ONLY[0]:          # 1 Nov (Aras 17:11 / 18:51): every hit a WARNING line and an
+            k_ = len(lg) - 1                             # orange warning; the run goes on, one run collects them all
+            lg[k_:k_] = [u"WARNING %s text hit: %s against %s" % (self.name, _tp_desc(a_), _tp_desc(b_))
+                         for a_, b_ in hits]             # (before the "overlap ..." line, which stays the last)
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"%s: %d text hits (each one in the log, 'WARNING %s text hit')" %
+                                                  (self.name, len(hits), self.name))
+            except Exception:
+                pass
+            return len(I)
         if hits and raise_:
             raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
         return len(I)
@@ -4117,98 +4109,12 @@ def fig_fade(col, layer=0, paper=None):
 
 
 # ---- D1 style a: raster cutouts (PNG with alpha) -------------------------------------------------------------------
-# Round 4 (S1, N1 a): PEOPLE no longer use cutouts (fig_side / fig_stall never call cut_image); plants.py may still
-# (its style a), until the plant session (S3) decides.
-# Downloads/Bergama/Data/cutouts/cutouts.json: {"cutouts": {key: {"file": "olive_1.png", "h_m": 9.0, "kind": "tree"},
-# ...}} (or the dict alone); a key may hold a list of such entries (variants, picked by seed). h_m = the true height
-# of what the PNG shows from its bottom edge (ground / feet) to its top; the PNG is drawn h_m (or the caller's h_m)
-# x k x the D9 layer scale tall, width by its own proportions, centred on x, bottom on the ground. Keys: plants =
-# the plants.py species key ("olive"), people = "person_<pose>" (fig_side poses), "stall". Spec:
-# revision_2026-10-30/handover/CUTOUTS_SPEC.md. A missing key is drawn in style b and counted (cut_log_line).
-CUT_LOG = []
+# Round 4 (S1, N1 a): PEOPLE no longer use cutouts. Round 4 closing: cut_image and its reader (cut_dir, cut_library,
+# _cut_px, CUT_LOG, _CUT_LIB) deleted: no caller anywhere in src/ (closing part C grep B). cut_log_line stays for its
+# callers (proposal sections, site board p07, water board p12/p14/p18, masterplan): with no cutout drawn it returns
+# None.
 CUT_MISSING = {}
 CUT_USED = {}
-_CUT_LIB = {}
-
-
-def cut_dir():
-    import os as _o
-    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "cutouts")
-
-
-def cut_library():
-    """{key: [entry, ...]} from cutouts.json, {} when the folder or file is missing (read once per run)"""
-    import os as _o
-    import json as _j
-    if "lib" in _CUT_LIB:
-        return _CUT_LIB["lib"]
-    lib = {}
-    p = _o.path.join(cut_dir(), "cutouts.json")
-    try:
-        with open(p, "r", encoding="utf-8") as fh:
-            js = _j.load(fh)
-        js = js.get("cutouts", js) if isinstance(js, dict) else {}
-        for k_, v in js.items():
-            vs = v if isinstance(v, list) else [v]
-            ok = [e for e in vs if isinstance(e, dict) and e.get("file") and e.get("h_m") and
-                  _o.path.isfile(_o.path.join(cut_dir(), e["file"]))]
-            if ok:
-                lib[k_] = ok
-        CUT_LOG.append(u"Cutouts: %d keys from %s" % (len(lib), p))
-    except Exception as ex:
-        CUT_LOG.append(u"Cutouts: %s not read (%s); style a draws style b everywhere" % (p, type(ex).__name__))
-    _CUT_LIB["lib"] = lib
-    return lib
-
-
-def _cut_px(path):
-    """(width, height) in px of a PNG or JPEG, None if unknown"""
-    import struct as _st
-    try:
-        with open(path, "rb") as f:
-            d = f.read(65536)
-        if d[:8] == b"\x89PNG\r\n\x1a\n":
-            return _st.unpack(">II", d[16:24])
-        i = 2
-        while d[:2] == b"\xff\xd8" and i + 9 < len(d):
-            if d[i + 1] in (0xC0, 0xC1, 0xC2):
-                return (d[i + 7] << 8) | d[i + 8], (d[i + 5] << 8) | d[i + 6]
-            i += 2 + ((d[i + 2] << 8) | d[i + 3])
-    except Exception:
-        pass
-    return None
-
-
-def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
-    """style a: [("image", x0, y0, w, h, path, None, flip, None)] of cutout `key` standing on (x, gy) page mm (gy
-    may be a function of x), h_m (default the cutout's own true height) x k x the layer scale tall; w_max (mm)
-    shrinks it uniformly if wider. None (counted as missing) when there is no such cutout. Always opaque (Aras 31
-    Oct: nothing see-through); depth layers 1, 2 take the entry's toned copy (cutouts.json "depth": {"1": file,
-    "2": file}, made by tools/cutouts/depth_tones.py: colours mixed toward the paper by FIG_DEPTH's fade, so nearer
-    = stronger, farther = paler, the section rule), else the full-tone file."""
-    import os as _o
-    lib = cut_library().get(key)
-    if not lib:
-        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
-        return None
-    e = lib[int(pick) % len(lib)]
-    p = _o.path.join(cut_dir(), e["file"])
-    dfile = (e.get("depth") or {}).get(str(int(layer or 0)))   # R2-A 31 Oct: the depth layer's own toned copy
-    if dfile and _o.path.isfile(_o.path.join(cut_dir(), dfile)):
-        p = _o.path.join(cut_dir(), dfile)
-    px = _cut_px(p)
-    if not px or not px[1]:
-        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
-        return None
-    sc, _f_, _al = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
-    h = float(h_m or e["h_m"]) * k * sc
-    w = h * px[0] / float(px[1])
-    if w_max and w > w_max:
-        h, w = h * w_max / w, w_max
-    g = gy(x) if callable(gy) else gy
-    flip = (facing < 0) != (e.get("facing", 1) < 0)
-    CUT_USED[key] = CUT_USED.get(key, 0) + 1
-    return [("image", x - w / 2.0, g, w, h, p, None, flip, None)]   # opaque: never see-through (Aras 31 Oct)
 
 
 def cut_log_line():
@@ -4643,9 +4549,18 @@ def _lv_ends_row(cid):
         return many[0]
 
 
+LV_ENDS_OVERRIDE = {}     # round 4 (S4, N4 b): {cut: ((x1, y1), (x2, y2))} a script that draws a cut on another line
+                          # than the table's (site board: S5 across the stream at one crossing) sets it each run;
+                          # empty in every other script, so nothing changes there
+
+
 def level_ends(cid):
-    """((x1, y1), (x2, y2)): the cut's two ends in survey m, unprimed end first"""
-    (a, b) = _lv_ends_row(cid)["ends"]["value"]
+    """((x1, y1), (x2, y2)): the cut's two ends in survey m, unprimed end first (LV_ENDS_OVERRIDE first)"""
+    r_ = _lv_ends_row(cid)
+    ov = LV_ENDS_OVERRIDE.get(r_.get("cut") or cid) or LV_ENDS_OVERRIDE.get(cid)
+    if ov:
+        return (float(ov[0][0]), float(ov[0][1])), (float(ov[1][0]), float(ov[1][1]))
+    (a, b) = r_["ends"]["value"]
     return (float(a[0]), float(a[1])), (float(b[0]), float(b[1]))
 
 
@@ -10689,7 +10604,7 @@ def sf_seat_x(gy, x, half_w, tol=0.05):
 
 def sf_ground_fn(gy, half_w):
     """gy as a function that already seats (sf_seat_x): pass it as the ground of fig_side, fig_activity,
-    pla_section, cut_image ... so every item they place stands on the lowest ground under its base"""
+    pla_section ... so every item they place stands on the lowest ground under its base"""
     return lambda x: sf_seat_x(gy, x, half_w)
 
 
@@ -11136,17 +11051,26 @@ class SfCallouts(object):
         return sh
 
     def key(self, x, y, size=1.8, ink=None, gap=None):
+        """the numbered list: one row per number from (x, y) down (y up), gap apart; ink = the caller's colour (else
+        SEC ink). Round 4 closing (G-R4-7): each number is the shared marker (marker.py mk_marker, style "ring" as
+        .marks: the glyph centred on its ink box, at least 7 pt), its disc centred 0.4 x size above the row's
+        baseline and at least its radius in from x; the row's words start 2 x size in (further only when the disc
+        is wider). Returns house shapes, as before."""
         ink = ink or SEC["ink"]
         gap = gap or 1.5 * size
+        pt = max(7.0, size / 0.3528)
         seen, sh, yy = set(), [], y
         for n, _x, _y, t in sorted(self.items):
             if n in seen:
                 continue
             seen.add(n)
-            sh += [("poly", sec_ellipse(x + 0.75 * size, yy - 0.4 * size, 0.75 * size, 0.75 * size, 20), "FFFFFF", ink,
-                    0.15),
-                   ("text", u"%d" % n, x + 0.75 * size, yy - 0.76 * size, 0.85 * size, ink, True, "C"),
-                   ("text", t, x + 2.0 * size, yy - 0.76 * size, size, ink, False, "L")]
+            cy = yy - 0.4 * size
+            shp, _box, r = mk_marker(x + 0.75 * size, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            if r > 0.75 * size:                          # a wider disc (two digits) moves in to keep x its left edge
+                shp, _box, r = mk_marker(x + r, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            sh += list(shp)
+            sh.append(("text", t, max(x + 2.0 * size, x + 2.0 * r + 0.4 * size), yy - 0.76 * size, size, ink, False,
+                       "L"))
             yy -= gap
         return sh
 
@@ -12950,11 +12874,12 @@ class Corridor(object):
             self.note(("hub", hid), txt, why, sq)
         self.note(("h4",), u"STEP TO THE WATER FACING TABAKLAR HAMAMI", [u"H4 bath ruin 1.5 m from the stream"],
                   [PLACES[1][1]])
-        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman complex, ~120 m bank wall (h01 P12)"],
+        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman bank wall, ~120 m (h01 P12)"],
                   [ROMAN_WALL])                          # v26.1: h01's place register P12 (it read like a page number)
         if self.terrace:
             z = u", highest clear ground +{:.1f} m".format(self.terrace["z"]) if self.terrace["z"] is not None else u""
-            self.note(("view",), u"VIEWING TERRACE · TRAJANEUM {:,.0f} m".format(self.terrace["d"]),
+            self.note(("view",), u"VIEWING TERRACE · {} {:,.0f} m".format(   # closing G-R4-11: the names table
+                mp_upper(landmark_name("trajan_tapinagi")), self.terrace["d"]),
                       [u"H5 computed sightline: no building on the line (site frame){}".format(z)], [self.terrace["xy"]])
         for z in self.D.zones:
             if z["code"] == "WT":
@@ -15372,7 +15297,7 @@ def sn_history(pg, G, cell, warn):
         x, y = slots[k]
         path = ph[k][0]                                  # ph[k][1] = the csv credit line: Sources page only (G12)
         cap = names[k]
-        lines = wrap(cap[0], fs, W - 4.0, True)
+        lines = pl23_wrap(cap[0], W - 4.0, fs, True, warn, u"p16")   # v38 closing (G-R4-2): no widow
         if len(lines) > 2:
             warn.append(u"FLAG p16 History: caption '{}' needs {} lines under its photo (2 shown)".format(
                 cap[0], len(lines)))
@@ -16150,10 +16075,10 @@ def pl23_text(sh, s, x, y, size, colour, bold=False, align="L", group=None, name
               halo=None):
     """v38 (G-R4-1): one text on the page sh (size mm, baseline point at align), registered in sh's TextPage with
     its real box first (group: the lines of one entry, the runs of one line, may touch each other) and then drawn.
-    Returns its box. Texts with a raised ² / ³ go through sh.text (it splits them)."""
+    Returns its box. (v38 closing: ² / ³ are the font's own glyphs, so they need no split any more.)"""
     if not s or not s.strip():
         return None
-    if sh.tp is None or any(ch in SUP for ch in s):
+    if sh.tp is None:
         sh.text(s, x, y, size, colour, bold=bold, align=align, halo=halo, name=name, allow=allow, role=role)
         return None
     b = sh.tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, colour, allow, group, emit=False)
@@ -16161,9 +16086,10 @@ def pl23_text(sh, s, x, y, size, colour, bold=False, align="L", group=None, name
     return b
 
 
-def pl23_wrap(s, w, size, bold=False, warn=None):
+def pl23_wrap(s, w, size, bold=False, warn=None, page=u"p21"):
     """v38 (G-R4-2): s wrapped to w mm at size mm with real widths (tp_wrap), never one word alone on the last line
-    (min_last_words=2); when the words do not allow it at w, a slightly narrower column is tried. Returns the lines."""
+    (min_last_words=2); when the words do not allow it at w, a slightly narrower column is tried. Returns the lines
+    (strings, as the old common/wrap.py wrap did). v38 closing: p16 and p22 use it too (page = the warning's page)."""
     for f in (1.0, 0.94, 0.88, 0.82):
         try:
             L = tp_wrap(s, w * f, size / PT, bold, min_last_words=2, bold_marks=False)
@@ -16171,7 +16097,7 @@ def pl23_wrap(s, w, size, bold=False, warn=None):
         except TpWidow:
             continue
     if warn is not None:
-        warn.append(u"masterplan p21: one word alone on the last line of: " + s)
+        warn.append(u"masterplan %s: one word alone on the last line of: %s" % (page, s))
     L = tp_wrap(s, w, size / PT, bold, min_last_words=1, bold_marks=False)
     return [u" ".join(r_[0] for r_ in ln) for ln in L if ln]
 
@@ -16284,7 +16210,8 @@ def pl28_note_entry(C, nt):
                 "frame": (u"Nothing placed", u"the edge of the analysis frame, " + less)}.get(
             k[1], (nt["text"][:1] + nt["text"][1:].lower(), less))
     if k[0] == "view" and C.terrace:
-        return u"Viewing terrace", u"a clear sightline to Trajan Tapınağı, {:,.0f} m away".format(C.terrace["d"])
+        return u"Viewing terrace", u"a clear sightline to {}, {:,.0f} m away".format(   # closing G-R4-11: names table
+            landmark_name("trajan_tapinagi"), C.terrace["d"])
     if k[0] == "widen" and C.widen:
         lo, hi = min(w["fw"][0] for w in C.widen), max(w["fw"][1] for w in C.widen)
         return u"Stream widened", u"room for water and a wetland · {:.0f}-{:.0f} m open beside the bank".format(lo, hi)
@@ -16874,7 +16801,7 @@ def plan_page(C, warn):
         pl23_list(sh, x_side + PL23_SIDE_GAP, W - PL23_EDGE_MM, y - 1.6, u"Hub names, by number",
                   [dict(mk=(u"%d" % n, col, "ring"), rows=[(t, True, COL["ink"])]) for n, t, col in nrows],
                   PL23_LIST_COLS, warn)
-    sh.check_text()                                       # G-R4-1: RAISES TextCollision (the sheet is not written)
+    TP_LOG.append(sh.check_text())                        # G-R4-1: RAISES; v38 closing: logs "overlap p21 ..."
     sh.crop = (0.0, 0.0, W, H)
     sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
     sh.bid = ("mp_plan", "c1_s1", u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower()))
@@ -17142,7 +17069,7 @@ P24_WHY = {"walk": (u"Walk + bike lane" if P24_BIKE else u"Riverside walk") + u"
            "subhub": u"Sub-hub: a place in the bed for the dry months",
            "stones": u"Stepping stones: sub-hub crossing, closes in floods",
            "foot": u"Footbridge: {:.0f} m reach without a crossing",
-           "view": u"Viewing terrace: sightline to the Trajaneum"}
+           "view": u"Viewing terrace: sightline to " + landmark_name("trajan_tapinagi")}   # G-R4-11: names table
 
 
 def _p24_group_text(keys):
@@ -17783,13 +17710,15 @@ def p24_section(C, w, warn, style="b"):
         if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
             continue
         ts_ = [_p24_tz(c0, cd, f, p) for p in c_["P"]]
-        if not all(0.0 < d <= P24_BEYOND_M for _, d in ts_):
+        d_lo = P24_STREET_D[0] if c_["kind"] == "stepping stones" else 0.0   # v38 closing: stones at the cut too
+        if not all(d_lo < d <= P24_BEYOND_M for _, d in ts_):
             continue
         t1_, t2_ = sorted(t for t, _ in ts_)
         if t2_ < ta or t1_ > tb:
             continue
         t1_, t2_ = max(ta, t1_), min(tb, t2_)
-        pale = fig_fade(COL["ink2"], 1)
+        ly_ = 0 if all(abs(d) <= 3.0 for _, d in ts_) else 1   # within 3 m of the cut: layer 0 (as the street kit)
+        pale = fig_fade(COL["ink2"], 1 if c_["kind"] == "footbridge" else ly_)
         if c_["kind"] == "footbridge":
             zd = max(zat(t1_), zat(t2_))
             S.put([("line", [(X(t1_), Y(zd)), (X(t2_), Y(zd))], pale, 0.6)], "background")
@@ -17798,12 +17727,15 @@ def p24_section(C, w, warn, style="b"):
                 S.callout((t1_ + t2_) / 2.0, zat((t1_ + t2_) / 2.0), P24_WHY["foot"].format(c_["gap"]))
         elif c_["kind"] == "stepping stones":
             t = max(t1_, -hw) + P24_STONE[1] / 2.0
+            st_t = []
             while t < min(t2_, hw):
                 S.put([("poly", sec_ellipse(X(t), Y(bed) + P24_STONE[0] * k, P24_STONE[0] * k, P24_STONE[0] * k, 12),
                         pale, None, 0.1)], "structures")
+                st_t.append(t)
                 t += P24_STONE[1]
-            S.zl.append((P24_NAME["stones"], 0.0, bed, True))
+            S.zl.append((P24_NAME["stones"], 0.0, bed, ly_ > 0))
             S.callout(0.0, bed, P24_WHY["stones"])        # v36
+            p24_stones_people(S, st_t, bed, avg, ly_, warn if style == "b" else [], name)   # v38 closing G-R4-5.7
     # v38 (round 4, P22.8): the street elements the plan places, where they stand near the cut (P24_STREET_D): on the
     # cut ground, layer 0 within 3 m, else faded one layer behind
     for kind, fn in (("lamp", lambda x, y, ly: sf_lamp(x, y, k, side=1, layer=ly)),
@@ -17896,6 +17828,35 @@ def p24_section(C, w, warn, style="b"):
     kh = max(kh, band_h)
     TP_LOG.append(S.pg.check_text())                     # v38 (G-R4-1): the section's collision test (raises)
     return S.pg, S.w, h, keys, missing, kh
+
+
+def p24_stones_people(S, st_t, bed, avg, ly, warn, name):
+    """v38 closing (G-R4-5.7, S8 "stepping stones + wading"): the way into the bed that the masterplan designs is the
+    sub-hub's stepping stones (Corridor.crossings, P24_STONE); the section's people use them by the figures module's
+    rules (U26: in the water only on stepping stones or wading; FIG_WADE_MAX_M knee deep at most): when a stone's
+    top (bed + its 2 x P24_STONE[0] height) stands above the average yearly flow, two people cross on the stones
+    (poses from FIG_ACTIVITY["stepping_stones"], each on a stone's top); else, when the average flow is no deeper
+    than FIG_WADE_MAX_M, one person wades beside the stones; else nobody (logged). st_t = the stones' t (m),
+    ly = their depth layer (0 at the cut, 1 beyond). Returns the number of people drawn."""
+    if not st_t:
+        return 0
+    X, Y, k = S.X, S.Y, S.k
+    top = bed + 2.0 * P24_STONE[0]
+    if top >= avg:
+        poses = [a[0] for a in FIG_ACTIVITY["stepping_stones"]][:2]
+        at = sorted(set([st_t[len(st_t) // 3], st_t[(2 * len(st_t)) // 3]]))
+        for i, t in enumerate(at):
+            S.put(fig_side(poses[i % len(poses)], X(t), Y(top), k, facing=1 if i % 2 == 0 else -1, mm_per_m=k,
+                           layer=ly, style=S.style), "figures")
+        return len(at)
+    if avg - bed <= FIG_WADE_MAX_M:
+        t = st_t[0] + P24_STONE[1] / 2.0                  # between the first two stones, in the water
+        S.put(fig_side("wade", X(t), Y(bed), k, facing=1, mm_per_m=k, layer=ly, style=S.style, depth_m=avg - bed),
+              "figures")
+        return 1
+    warn.append(u"section {}: nobody on the stepping stones: the average flow ({:.2f} m deep) covers the stones' tops "
+                u"({:.2f} m) and is deeper than knee ({:.2f} m)".format(name, avg - bed, top - bed, FIG_WADE_MAX_M))
+    return 0
 
 
 # v37 (round 3, P22.4, R07 idea): the zones' names in a band under the section, sentence case
@@ -18160,11 +18121,19 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
     ink, ink2, white = COL["ink_dark"], COL["ink2"], COL["white"]
     TP = lambda P: [T(p) for p in P]
     fields = []
-    # ---- fields: wetland (widened stream and flood terraces), terraces, spillway, sub-hub bed, forest walk
+    # ---- fields: wetland (widened stream and flood terraces), terraces, spillway, sub-hub bed, forest walk.
+    # v38 closing (G-R4-4, CHK-7): the zone-base zones are clipped to the study area here, at their source, as p21's
+    # pl23_prep does (sc_rings_clip, page "p22", the id mp_map_draw counts under); each part is its own field
+    st = getattr(C, "study", None) or sc_rings()
+    parts_ = []
     for z in C.D.zones:
         key = P24_KEY.get((z["code"], z.get("tier") if z["code"] == "WA" else None))
-        Q = TP(z["P"]) if key else None
-        if not Q or not on(Q):
+        if key and len(z["P"]) >= 3:
+            parts_ += [(key, dict(z, P=P_)) for P_ in (sc_rings_clip(z["P"], st, u"p22") if st else [list(z["P"])])
+                       if len(P_) >= 3]
+    for key, z in parts_:
+        Q = TP(z["P"])
+        if not on(Q):
             continue
         if key == "wetland":                              # v37 (D2, G8): flat wetland tone, firm edge, no waves
             pg.poly([Q], fill=WET_COL)
@@ -18900,7 +18869,8 @@ def r28_window_panel(C, w, areas, missing, warn):
         nm = R28_ZONE[key][0] if key in R28_ZONE else P24_NAME[key].capitalize()
         title = [(nm, ts["zone"], True, ink)]
         rs = p24_reason(C, key, w)
-        why = [(s_, ts["small"], False, ink1) for s_ in wrap(rs, ts["small"], 56.0)] if rs else []
+        why = [(s_, ts["small"], False, ink1) for s_ in pl23_wrap(rs, 56.0, ts["small"], False, warn, u"p22")] \
+            if rs else []                                # v38 closing (G-R4-2): never one word alone
         sub = [(_p24_sp(s_) + (u" · lined cells" if s_ == "reed" else u""), ts["small"], False, ink2)
                for s_ in P24_SPECIES.get(key, ())]
         vs = ([title + why + sub] if sub else []) + ([title + why] if why else []) + [title]
@@ -18909,8 +18879,8 @@ def r28_window_panel(C, w, areas, missing, warn):
         else:                                             # the forest corridor is trees, not a field: by its middle tree
             fp = sorted(fpts)[len(fpts) // 2]
             ok = None
-            for v_ in vs:
-                ok = _r28_label(pg, v_, fp, taken, segs, bounds, rank=1)
+            for vt_ in vs:                                # v39.2: was v_, which overwrote the window's view axis
+                ok = _r28_label(pg, vt_, fp, taken, segs, bounds, rank=1)   # (inP/T then crashed on D2, K5)
                 if ok:
                     break
         if not ok:
@@ -19000,7 +18970,7 @@ def r28_window_panel(C, w, areas, missing, warn):
     for st, sec in reversed(units):                       # style a at the bottom, style b on top
         top = y0 + P24_PANEL_H
         yt = top - P24_TITLE_H                            # the title strip
-        sh.text(w["title"] + u" · 1:1,000" + (u" · style a (cutouts)" if st == "a" else u""), M, yt + 2.0,
+        sh.text(w["title"] + u" · 1:1,000", M, yt + 2.0,   # v38 closing: no "style a (cutouts)" (one figure set)
                 R28DT_TS["place"], COL["ink_dark"], bold=True)
         scale_bar(sh, M + dw - 70.0, yt + 1.6, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
         p24_north(sh, M + dw - 3.0, yt + 0.4, F["north"])
@@ -19008,6 +18978,7 @@ def r28_window_panel(C, w, areas, missing, warn):
         sh.clip([rect(M, yp, M + dw, yt)])
         blit(sh, pg, M, yp)
         sh.unclip()
+        sh.tp.block((M, yp, M + dw, yt), u"plan " + st)  # v38 closing (G-R4-1): the pasted plan is a block
         yb = yp - P24_GAP
         if sec:
             spg, sw_, shh = sec[0], sec[1], sec[2]
@@ -19020,10 +18991,14 @@ def r28_window_panel(C, w, areas, missing, warn):
             sh.text(u"Section {0} {0}' on cut {1} · looking upstream · 1:1,000".format(cname, level_name(cid)),
                     xs + 72.0, yb - 2.6, ts["label"], COL["ink_dark"], bold=True)
             yb -= P24_SCALE_ROW
+            sh.tp.block((xs, yb, M + dw, ys + shh), u"section " + st)   # v38 closing: the pasted section, its key,
+            #                                              bar and title row (level marks to the column's edge)
         lh = p24_legend_draw(sh, rows, M, y0, dw)
-        if y0 + lh > yb - P24_GAP + 1e-6:
-            warn.append(u"p.22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the legend "
-                        u"overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))
+        if lh > 0.0:
+            sh.tp.block((M, y0, M + dw, y0 + lh), u"legend " + st)
+        if y0 + lh > yb - P24_GAP + 1e-6:                # v38 closing (G-R4-1, S8): RAISES (was a warning only)
+            tp_warn(u"p22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the "
+                    u"legend overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))   # v39.1: warns
         crops[st] = (M, y0, M + dw, top)
         y0 = top + P24_UNIT_GAP
     TP_LOG.append(sh.check_text())                       # v38 (G-R4-1): the column's own words (raises)
@@ -19122,8 +19097,11 @@ def p24_legend_draw(sh, rows, x, y0, w):
         if r_[0] == "head":
             sized.append((r_, [[(r_[1], True, 0.0)]]))
         else:
-            try:
-                lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 1, False)
+            try:                                          # v38 closing (G-R4-2): >= 2 words on the last line; only
+                try:                                      # a label that cannot (2-word lines) keeps its one word
+                    lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 2, False)
+                except TpWidow:
+                    lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 1, False)
             except Exception:
                 lines = [[(r_[2], False, 0.0)]]
             sized.append((r_, lines))
@@ -20176,7 +20154,7 @@ def build_all(doc, warn):
     return folder, files, lines, pages, scale
 
 
-def run():
+def main():    # v38.1: was run(), which replaced the Button input `run` (Button did nothing)
     pressed, why, btn = trig_should_run("chain_seen", SETTINGS)   # v38 (round 4): common/trigger.py, one rule
     globals()["_ran_now"] = pressed
     if not pressed:
@@ -20255,7 +20233,7 @@ bergama_data("LC_EMBED")
 
 if Rhino is not None:
     try:
-        _txt, _files = run()
+        _txt, _files = main()
     except Exception as _ex:
         _txt, _files = u"ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION), []
         gh_status(SHORT + " · ERROR")

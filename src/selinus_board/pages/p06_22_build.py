@@ -299,7 +299,14 @@ def r28e_key(B, rows, x, y, ncol, colw, k, L, pal=None):
     for i, (kind, ref, lab) in enumerate(rows):
         lx, ly = x + (i // nrow) * colw, y - (i % nrow) * pitch
         r28e_swatch(B, kind, ref, lx, ly, k, L, pal=pal)
-        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h7, INK, L, font=FONT_TITLE)
+        # v59.1: a label wider than its column is set smaller (down to 6 pt) to fit it; "15  Adnan Menderes Bulvarı
+        # road bridge" ran 3 mm past the crop's right edge
+        h_ = h7
+        av_ = colw - 7.5 * k
+        tw_ = site28_tw(lab, h7)
+        if tw_ > av_ > 0:
+            h_ = max(bk_hk(6.0, k), h7 * av_ / tw_)
+        B.text(lab, lx + 7.0 * k, ly - 2.4 * k + 0.4 * k, h_, INK, L, font=FONT_TITLE)
     return y - nrow * pitch
 
 
@@ -927,7 +934,9 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
     B = _P06Rec(B)                                        # v58 (G3): keeps every text box for the overlap test
     h7, h75, h9 = bk_hk(7.0, k), bk_hk(7.5, k), bk_hk(9.0, k)
     den = p06_den(S, w, k, pal)
+    i0_map = sb_mark(B)                                   # v59 closing (G-R4-1): the map's own texts from here
     V, ss, r, numbered, syms = r28e_strip(S, B, x, top, k, L, photos, O["sites"], pal, den)
+    sb_keep(B, r, u"p06 edge map", "map", i0_map)         # its names and numbers may sit on it, no other text
     # v58: no site leaders any more: always at the left. v59 (round 4, G-R4-9): b_foot's scale bar, and THE north
     # arrow (_sb_north: keymap.north_items, no white half) in its place
     sbx = x + 1.0 * k
@@ -939,7 +948,9 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
     # v58 (lead, G1): the boxes under the map at its width; the map's key in the column under WHERE WE CAN BUILD,
     # two columns, beside the map and the boxes
     ys = p06_site_boxes(B, O["sites"], x, r[2], foot - 3.0 * k, k, L, pal)
+    i0_key = sb_mark(B)                                   # v59 closing (G-R4-1): the key's own texts from here
     yk = r28e_key(B, r28e_key_rows(bool(photos), numbered), cx0, ycol - 3.0 * k, 2, 0.5 * (x + w - cx0), k, L, pal)
+    sb_keep(B, (cx0, yk, x + w, ycol - 3.0 * k), u"p06 map key", "legend", i0_key)
     low = min(ys, yk)
     bot = top - BK_AH * k
     n_ph = len(photos)
@@ -972,6 +983,7 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
             else:                                         # under the column (a lone photo on its left edge,
                 px = cx0 + (c_ - n_l) * (pw + g_r)        # where the column's words start)
             py = py0 - (j // cols) * (ph + cap_h)
+            i0_ph = sb_mark(B)                            # v59 closing (G-R4-1): the photo's tag and caption
             B.image(p, px, py - ph, px + pw, py, L, order=5)
             B.fill([rect(px, py - bn, px + bn, py)], P06_VIEW_C, L, 64)    # v59 (P06.1): the viewpoints' colour
             B.rec = False                                 # the photo's number tag sits on the photo by design
@@ -979,6 +991,7 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
                    align="MC")
             B.rec = True
             B.text(eb_caption(it, pw, h7), px, py - ph - 1.2 * k - h7, h7, INK, L, font=FONT_TITLE)
+            sb_keep(B, (px, py - ph, px + pw, py), u"p06 photo %d" % (j + 1), "photo", i0_ph)   # no other text on it
         low = py0 - rows_ * (ph + cap_h) + 2.2 * k
         if low < bot + 0.5 * k:
             LOG.append(u"WARNING: the stream edge plan's photos end {:.1f} mm below the booklet page's area "
@@ -1015,7 +1028,8 @@ def draw_edge_build(S, B, x, y, w, U, with_photos=True):
                           u"A-" + O["sites"][-1]["id"] if O["sites"] else u"none", n_ph or 8))
     top = y                                               # v55 (Aras 31 Oct): the beige palette b only
     low, ss, numbered = p06_page(S, B, x, top, w, k, L, photos, O, P06_PAL["b"])
-    crop_panel("edge_build", x, low - 0.5 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
+    # v59.1: 1.0 mm under the last row of photo captions (was 0.5 mm: their descenders, "(", "g", "y", reached the edge)
+    crop_panel("edge_build", x, low - 1.0 * k, x + w, top + 0.5 * k, cap, crop_scale(ss), [])
     CROP_PANELS[-1]["bk_w"] = BK_AW                       # drawn for the full booklet panel width
     LOG.append(u"Stream edge plan (p.06): ONE strip at 1:{:,}, {:.1f} x {:.1f} mm, palette b; {} open to "
                u"change; {} sites (lettered left -> right); {} photos; map labels as numbers in the key (G3, v58): "

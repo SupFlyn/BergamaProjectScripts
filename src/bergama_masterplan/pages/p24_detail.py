@@ -259,7 +259,7 @@ P24_WHY = {"walk": (u"Walk + bike lane" if P24_BIKE else u"Riverside walk") + u"
            "subhub": u"Sub-hub: a place in the bed for the dry months",
            "stones": u"Stepping stones: sub-hub crossing, closes in floods",
            "foot": u"Footbridge: {:.0f} m reach without a crossing",
-           "view": u"Viewing terrace: sightline to the Trajaneum"}
+           "view": u"Viewing terrace: sightline to " + landmark_name("trajan_tapinagi")}   # G-R4-11: names table
 
 
 def _p24_group_text(keys):
@@ -900,13 +900,15 @@ def p24_section(C, w, warn, style="b"):
         if not c_.get("P"):                               # v30.1: kept bridges have only "xy"
             continue
         ts_ = [_p24_tz(c0, cd, f, p) for p in c_["P"]]
-        if not all(0.0 < d <= P24_BEYOND_M for _, d in ts_):
+        d_lo = P24_STREET_D[0] if c_["kind"] == "stepping stones" else 0.0   # v38 closing: stones at the cut too
+        if not all(d_lo < d <= P24_BEYOND_M for _, d in ts_):
             continue
         t1_, t2_ = sorted(t for t, _ in ts_)
         if t2_ < ta or t1_ > tb:
             continue
         t1_, t2_ = max(ta, t1_), min(tb, t2_)
-        pale = fig_fade(COL["ink2"], 1)
+        ly_ = 0 if all(abs(d) <= 3.0 for _, d in ts_) else 1   # within 3 m of the cut: layer 0 (as the street kit)
+        pale = fig_fade(COL["ink2"], 1 if c_["kind"] == "footbridge" else ly_)
         if c_["kind"] == "footbridge":
             zd = max(zat(t1_), zat(t2_))
             S.put([("line", [(X(t1_), Y(zd)), (X(t2_), Y(zd))], pale, 0.6)], "background")
@@ -915,12 +917,15 @@ def p24_section(C, w, warn, style="b"):
                 S.callout((t1_ + t2_) / 2.0, zat((t1_ + t2_) / 2.0), P24_WHY["foot"].format(c_["gap"]))
         elif c_["kind"] == "stepping stones":
             t = max(t1_, -hw) + P24_STONE[1] / 2.0
+            st_t = []
             while t < min(t2_, hw):
                 S.put([("poly", sec_ellipse(X(t), Y(bed) + P24_STONE[0] * k, P24_STONE[0] * k, P24_STONE[0] * k, 12),
                         pale, None, 0.1)], "structures")
+                st_t.append(t)
                 t += P24_STONE[1]
-            S.zl.append((P24_NAME["stones"], 0.0, bed, True))
+            S.zl.append((P24_NAME["stones"], 0.0, bed, ly_ > 0))
             S.callout(0.0, bed, P24_WHY["stones"])        # v36
+            p24_stones_people(S, st_t, bed, avg, ly_, warn if style == "b" else [], name)   # v38 closing G-R4-5.7
     # v38 (round 4, P22.8): the street elements the plan places, where they stand near the cut (P24_STREET_D): on the
     # cut ground, layer 0 within 3 m, else faded one layer behind
     for kind, fn in (("lamp", lambda x, y, ly: sf_lamp(x, y, k, side=1, layer=ly)),
@@ -1013,6 +1018,35 @@ def p24_section(C, w, warn, style="b"):
     kh = max(kh, band_h)
     TP_LOG.append(S.pg.check_text())                     # v38 (G-R4-1): the section's collision test (raises)
     return S.pg, S.w, h, keys, missing, kh
+
+
+def p24_stones_people(S, st_t, bed, avg, ly, warn, name):
+    """v38 closing (G-R4-5.7, S8 "stepping stones + wading"): the way into the bed that the masterplan designs is the
+    sub-hub's stepping stones (Corridor.crossings, P24_STONE); the section's people use them by the figures module's
+    rules (U26: in the water only on stepping stones or wading; FIG_WADE_MAX_M knee deep at most): when a stone's
+    top (bed + its 2 x P24_STONE[0] height) stands above the average yearly flow, two people cross on the stones
+    (poses from FIG_ACTIVITY["stepping_stones"], each on a stone's top); else, when the average flow is no deeper
+    than FIG_WADE_MAX_M, one person wades beside the stones; else nobody (logged). st_t = the stones' t (m),
+    ly = their depth layer (0 at the cut, 1 beyond). Returns the number of people drawn."""
+    if not st_t:
+        return 0
+    X, Y, k = S.X, S.Y, S.k
+    top = bed + 2.0 * P24_STONE[0]
+    if top >= avg:
+        poses = [a[0] for a in FIG_ACTIVITY["stepping_stones"]][:2]
+        at = sorted(set([st_t[len(st_t) // 3], st_t[(2 * len(st_t)) // 3]]))
+        for i, t in enumerate(at):
+            S.put(fig_side(poses[i % len(poses)], X(t), Y(top), k, facing=1 if i % 2 == 0 else -1, mm_per_m=k,
+                           layer=ly, style=S.style), "figures")
+        return len(at)
+    if avg - bed <= FIG_WADE_MAX_M:
+        t = st_t[0] + P24_STONE[1] / 2.0                  # between the first two stones, in the water
+        S.put(fig_side("wade", X(t), Y(bed), k, facing=1, mm_per_m=k, layer=ly, style=S.style, depth_m=avg - bed),
+              "figures")
+        return 1
+    warn.append(u"section {}: nobody on the stepping stones: the average flow ({:.2f} m deep) covers the stones' tops "
+                u"({:.2f} m) and is deeper than knee ({:.2f} m)".format(name, avg - bed, top - bed, FIG_WADE_MAX_M))
+    return 0
 
 
 # v37 (round 3, P22.4, R07 idea): the zones' names in a band under the section, sentence case
@@ -1277,11 +1311,19 @@ def p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh):
     ink, ink2, white = COL["ink_dark"], COL["ink2"], COL["white"]
     TP = lambda P: [T(p) for p in P]
     fields = []
-    # ---- fields: wetland (widened stream and flood terraces), terraces, spillway, sub-hub bed, forest walk
+    # ---- fields: wetland (widened stream and flood terraces), terraces, spillway, sub-hub bed, forest walk.
+    # v38 closing (G-R4-4, CHK-7): the zone-base zones are clipped to the study area here, at their source, as p21's
+    # pl23_prep does (sc_rings_clip, page "p22", the id mp_map_draw counts under); each part is its own field
+    st = getattr(C, "study", None) or sc_rings()
+    parts_ = []
     for z in C.D.zones:
         key = P24_KEY.get((z["code"], z.get("tier") if z["code"] == "WA" else None))
-        Q = TP(z["P"]) if key else None
-        if not Q or not on(Q):
+        if key and len(z["P"]) >= 3:
+            parts_ += [(key, dict(z, P=P_)) for P_ in (sc_rings_clip(z["P"], st, u"p22") if st else [list(z["P"])])
+                       if len(P_) >= 3]
+    for key, z in parts_:
+        Q = TP(z["P"])
+        if not on(Q):
             continue
         if key == "wetland":                              # v37 (D2, G8): flat wetland tone, firm edge, no waves
             pg.poly([Q], fill=WET_COL)
@@ -2017,7 +2059,8 @@ def r28_window_panel(C, w, areas, missing, warn):
         nm = R28_ZONE[key][0] if key in R28_ZONE else P24_NAME[key].capitalize()
         title = [(nm, ts["zone"], True, ink)]
         rs = p24_reason(C, key, w)
-        why = [(s_, ts["small"], False, ink1) for s_ in wrap(rs, ts["small"], 56.0)] if rs else []
+        why = [(s_, ts["small"], False, ink1) for s_ in pl23_wrap(rs, 56.0, ts["small"], False, warn, u"p22")] \
+            if rs else []                                # v38 closing (G-R4-2): never one word alone
         sub = [(_p24_sp(s_) + (u" · lined cells" if s_ == "reed" else u""), ts["small"], False, ink2)
                for s_ in P24_SPECIES.get(key, ())]
         vs = ([title + why + sub] if sub else []) + ([title + why] if why else []) + [title]
@@ -2026,8 +2069,8 @@ def r28_window_panel(C, w, areas, missing, warn):
         else:                                             # the forest corridor is trees, not a field: by its middle tree
             fp = sorted(fpts)[len(fpts) // 2]
             ok = None
-            for v_ in vs:
-                ok = _r28_label(pg, v_, fp, taken, segs, bounds, rank=1)
+            for vt_ in vs:                                # v39.2: was v_, which overwrote the window's view axis
+                ok = _r28_label(pg, vt_, fp, taken, segs, bounds, rank=1)   # (inP/T then crashed on D2, K5)
                 if ok:
                     break
         if not ok:
@@ -2117,7 +2160,7 @@ def r28_window_panel(C, w, areas, missing, warn):
     for st, sec in reversed(units):                       # style a at the bottom, style b on top
         top = y0 + P24_PANEL_H
         yt = top - P24_TITLE_H                            # the title strip
-        sh.text(w["title"] + u" · 1:1,000" + (u" · style a (cutouts)" if st == "a" else u""), M, yt + 2.0,
+        sh.text(w["title"] + u" · 1:1,000", M, yt + 2.0,   # v38 closing: no "style a (cutouts)" (one figure set)
                 R28DT_TS["place"], COL["ink_dark"], bold=True)
         scale_bar(sh, M + dw - 70.0, yt + 1.6, DT_SCALE, (0.0, 10.0, 20.0, 50.0))
         p24_north(sh, M + dw - 3.0, yt + 0.4, F["north"])
@@ -2125,6 +2168,7 @@ def r28_window_panel(C, w, areas, missing, warn):
         sh.clip([rect(M, yp, M + dw, yt)])
         blit(sh, pg, M, yp)
         sh.unclip()
+        sh.tp.block((M, yp, M + dw, yt), u"plan " + st)  # v38 closing (G-R4-1): the pasted plan is a block
         yb = yp - P24_GAP
         if sec:
             spg, sw_, shh = sec[0], sec[1], sec[2]
@@ -2137,10 +2181,14 @@ def r28_window_panel(C, w, areas, missing, warn):
             sh.text(u"Section {0} {0}' on cut {1} · looking upstream · 1:1,000".format(cname, level_name(cid)),
                     xs + 72.0, yb - 2.6, ts["label"], COL["ink_dark"], bold=True)
             yb -= P24_SCALE_ROW
+            sh.tp.block((xs, yb, M + dw, ys + shh), u"section " + st)   # v38 closing: the pasted section, its key,
+            #                                              bar and title row (level marks to the column's edge)
         lh = p24_legend_draw(sh, rows, M, y0, dw)
-        if y0 + lh > yb - P24_GAP + 1e-6:
-            warn.append(u"p.22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the legend "
-                        u"overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))
+        if lh > 0.0:
+            sh.tp.block((M, y0, M + dw, y0 + lh), u"legend " + st)
+        if y0 + lh > yb - P24_GAP + 1e-6:                # v38 closing (G-R4-1, S8): RAISES (was a warning only)
+            tp_warn(u"p22 {}: plan, section and legend need {:.0f} mm more than the {:.0f} mm column: the "
+                    u"legend overlaps the section".format(cname, y0 + lh - (yb - P24_GAP), P24_PANEL_H))   # v39.1: warns
         crops[st] = (M, y0, M + dw, top)
         y0 = top + P24_UNIT_GAP
     TP_LOG.append(sh.check_text())                       # v38 (G-R4-1): the column's own words (raises)
@@ -2239,8 +2287,11 @@ def p24_legend_draw(sh, rows, x, y0, w):
         if r_[0] == "head":
             sized.append((r_, [[(r_[1], True, 0.0)]]))
         else:
-            try:
-                lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 1, False)
+            try:                                          # v38 closing (G-R4-2): >= 2 words on the last line; only
+                try:                                      # a label that cannot (2-word lines) keeps its one word
+                    lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 2, False)
+                except TpWidow:
+                    lines = tp_wrap(r_[2], cw - tx, ts / PT, False, 1, False)
             except Exception:
                 lines = [[(r_[2], False, 0.0)]]
             sized.append((r_, lines))

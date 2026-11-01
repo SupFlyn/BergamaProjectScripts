@@ -35,12 +35,13 @@ def b_foot(B, F, x, yb, ss, k, L, Lm=B_SB_M):
     """v46: under a theme-B map whose bottom edge is at yb: the scale bar (0-Lm m, "m" beside it) and the north
     arrow beside it, both clear of the map and of any caption. Returns the y below them. v49.1 (Prompt 8): the bar
     starts 1 mm in from the map's left edge: its "0" is centred on the bar's end and the crops end 0.5 mm left of
-    the map, so half the "0" was cut off; Lm (v49.1): the heritage loop's strips at 1:5,000 take 200 m."""
+    the map, so half the "0" was cut off; Lm (v49.1): the heritage loop's strips at 1:5,000 take 200 m.
+    v59 (round 4 closing, G-R4-9 p07): the north arrow is THE shared one (_sb_north: keymap.north_items, no white
+    half), as on p06; the old half-white draw_north_at is gone."""
     x += 1.0 * k
     low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, Lm, k, L)
-    ny = yb - 5.5 * k
-    hw = draw_north_at(B, F, x + Lm * ss + 10.0 * k, ny, 4.0, k, L)
-    return min(low, ny - hw)
+    nb_ = _sb_north(B, F, x + Lm * ss + 10.0 * k, yb - 5.5 * k, 5.0, k, L)
+    return min(low, nb_[1])
 
 
 def b_base(S, CB, V, k, L, colfn=None):

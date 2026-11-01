@@ -1,5 +1,5 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v59.py = v59 (1 Nov 2026, round 4 S4; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: selinus_board_v59_2.py = v59.2 (1 Nov 2026 fix: the last text-check stop (p02 VISIBLE, 0.00 mm) cleared; v59.1: 28 text-check stops of the first kit v2 run cleared; round 4 S4; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
@@ -358,37 +358,16 @@ Pictures (technical maps, section drawings) display rendered in every viewport, 
 # v16.7: the component's inputs, taken before anything else runs. Rhino 8 KEEPS the globals of the previous run, so a
 # name this script defines (the function bake, a module) would otherwise stand in for an input that is not connected.
 # Only the component's real input names are taken, and never a module, function or class.
+# v59 (round 4 closing, run trigger): the inputs come from common/trigger.py trig_inputs (the component's own inputs,
+# nothing else; {} outside Grasshopper), the one copy every script uses; the board's own _gh_inputs is gone. Still
+# taken here, before the script defines any global, and still never a module, function or class.
+#@include ../../common/trigger.py
 import types as _types
 
-
-def _gh_inputs():
-    names = None
-    try:
-        names = set()
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821 (ghenv exists in Grasshopper)
-            for a_ in ("VariableName", "NickName", "Name"):
-                v_ = getattr(p_, a_, None)
-                if v_:
-                    names.add(str(v_))
-        if not names:
-            names = None
-    except Exception:
-        names = None
-    out = {}
-    for k_, v_ in list(globals().items()):
-        if k_.startswith("_") or (names is not None and k_ not in names):
-            continue
-        if isinstance(v_, (_types.ModuleType, _types.FunctionType, _types.BuiltinFunctionType, type)):
-            continue
-        out[k_] = v_
-    return out
-
-
-_GH_IN = _gh_inputs()
+_GH_IN = dict((k_, v_) for k_, v_ in trig_inputs().items()
+              if not k_.startswith("_") and not isinstance(v_, (_types.ModuleType, _types.FunctionType,
+                                                                 _types.BuiltinFunctionType, type)))
 _T_START = __import__("time").time()
-
-
-#@include ../../common/trigger.py
 
 
 def done_text(ran, ok, secs):
@@ -421,9 +400,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v59 (2026-11-01)"  # v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
+SCRIPT_VERSION = "selinus_board v59.2 (2026-11-01)"  # v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v59"                                     # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v59.2"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

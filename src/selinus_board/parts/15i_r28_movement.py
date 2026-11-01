@@ -72,6 +72,12 @@ def r28mv_lines(s, width, h):
         line.append((bool(line), word))
     if line:
         lines.append(line)
+    # v59 (round 4 closing, G-R4-2): no single-word last line (text_place.tp_wrap's rule, min_last_words=2, as the
+    # core wrap): the last word of the line above moves down when that line keeps 2 words and the two then fit
+    if len(lines) >= 2 and len(lines[-1]) == 1 and len(lines[-2]) >= 3:
+        cand = [(False, lines[-2][-1][1]), (True, lines[-1][0][1])]
+        if sum(r28mv_tw(t_, h, b_) for sp_, wd in cand for t_, b_ in wd) + sw_ <= width:
+            lines[-2], lines[-1] = lines[-2][:-1], cand
     return lines
 
 

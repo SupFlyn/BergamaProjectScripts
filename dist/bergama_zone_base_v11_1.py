@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_zone_base_v11.py = v11 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_zone_base_v11_1.py = v11.1 (1 Nov 2026; fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
 """BERGAMA ZONE BASE v11 (2026-11-01): bakes Group 6's zone layout into the open Rhino file as an editable base.
 
 NEW IN v11 (round 4, S1, 1 Nov 2026): (1) ONE start-up rule shared by all nine scripts (common/trigger.py, round 3
@@ -86,7 +86,7 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v11 (2026-11-01)"  # v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_zone_base v11.1 (2026-11-01)"  # v11.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
 #   Downloads/Bergama/logs/                    every log file and log folder
@@ -173,14 +173,14 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'BASE_DATA': 'cf047935732fa0db32aed2866224f6ea', 'NAMES': '0972af4b119d556bb810b350fd8e70f4'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'BASE_DATA': 'cf047935732fa0db32aed2866224f6ea', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad'}.get(name):
         raise RuntimeError("Data file bergama_zone_base_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_zone_base_data.py:" + name, "exec"), globals())
 
 
 bergama_data("BASE_DATA")
-SHORT = "v11"
+SHORT = "v11.1"
 TAG = "bergama_zone_base"                          # user text key on every baked object (value = VERSION)
 STUDY_BBOX = {                                     # the course survey's study areas (survey = file coordinates, m)
     "aras_alan": [(29610.0960, 32247.0612, 29880.6932, 32794.2334)],
@@ -748,7 +748,7 @@ def bake(doc, which, log):
     return n_all
 
 
-def run():
+def main():    # v11.1: was run(), which replaced the Button input `run` (Button did nothing)
     pressed, why, btn = trig_should_run("chain_seen")          # v11: common/trigger.py
     if btn is None and not pressed:
         text = "No button found: wire a Button into an input named run. ({})".format(VERSION)
@@ -812,7 +812,7 @@ def run():
 
 
 try:
-    _txt = run()
+    _txt = main()
 except Exception as _ex:
     _txt = "ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION)
     gh_status(SHORT + " · ERROR")

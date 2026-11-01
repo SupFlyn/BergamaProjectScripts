@@ -63,7 +63,10 @@ def site28_ww(word, h):
 
 
 def site28_lines(txt, width, h):
-    """txt (with **bold** runs) broken at its spaces into lines no wider than width at capital height h"""
+    """txt (with **bold** runs) broken at its spaces into lines no wider than width at capital height h. v59 (round 4
+    closing, G-R4-2): no single-word last line (the shared rule of text_place.tp_wrap, min_last_words=2, as the core
+    wrap): the last word of the line above moves down when that line keeps 2 words and the two then fit (else the
+    text is left as set)"""
     sw_ = site28_tw(u" ", h)
     lines, line, lw_ = [], [], 0.0
     for sp, word in site28_words(txt):
@@ -75,6 +78,10 @@ def site28_lines(txt, width, h):
         line.append((bool(line), word))
     if line:
         lines.append(line)
+    if len(lines) >= 2 and len(lines[-1]) == 1 and len(lines[-2]) >= 3:
+        cand = [(False, lines[-2][-1][1]), (True, lines[-1][0][1])]
+        if site28_line_w(cand, h) <= width:
+            lines[-2], lines[-1] = lines[-2][:-1], cand
     return lines
 
 

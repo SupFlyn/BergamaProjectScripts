@@ -70,7 +70,6 @@ P45_POSE_WORD = {"fishing": u"fishing", "watch": u"watching", "touch": u"touchin
                  "sit_step": u"sitting", "stand": u"standing", "bike": u"cycling"}   # v58: what the placed people do
 P45_NUM = [0]                     # v58 (G3): the last number handed out on the page being drawn (reading order)
 P45_BOXES = []                    # v58 (G3): text boxes placed on the page being drawn (board units)
-P45_DRAW = []                     # v58 (G3): boxes no text may cover (the stream at each cut, key map triangles)
 P45_COLLECT = [False]             # v58: True while draw_sections_page draws (not the dry measuring runs)
 
 
@@ -502,6 +501,7 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
 
     def gy_mm(xm):
         return g_at(xm / km) * km
+    i0_pic = sb_mark(B)                                  # v59 closing (G-R4-1): the texts from here on are the cut's own
     tags_ = []
     zn_ = p45_zones(sd_, crs, Lm)                         # v58 (G15): the use zones (also in the dry run: their tags)
     zplaced_ = []                                        # v58: [(kind, pose, x mm)] of the people placed
@@ -694,15 +694,22 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
             _p45_put(B, L, sh_, T, kb, 33)
         # v59 (round 4, G-R4-5.4, U44): bed, mean flow, Q100 and Q500 of the main crossing as marks OUTSIDE the
         # drawing's right edge (sf_level_marks: tick, open inverted triangle, value), nothing across the picture
+        # v59 (round 4 closing, G-R4-5.4 / checklist 2): the tallest cut roof's level is one more of these marks
+        # (was a filled triangle and its value inside the picture at the eaves)
         k_m = site28_main_k(sd_)
         cm_ = next((c2 for c2 in crs if c2["k"] == k_m and not c2["along"]), None) or \
             next((c2 for c2 in crs if not c2["along"]), None)
+        lv_ = []
         if cm_ is not None:
             lv_ = [(kk, level(cm_["rid"], kk)) for kk in ("q500", "q100")] + \
                 [("avg", level_avg_flow(cm_["rid"])), ("bed", cm_["bed"])]
-            lv_ = [(kk, v_) for kk, v_ in lv_ if v_ is not None]
+        if sd_["bld"]:
+            lv_.append(("roof", max(t_[3] for t_ in sd_["bld"]) + base))
+        lv_ = [(kk, v_) for kk, v_ in lv_ if v_ is not None]
+        if lv_:
             fb_ = (0.0, zbot * km, (x + wd - X0) / kb, (ytop - Y0) / kb)
             _p45_put(B, L, sf_level_marks(fb_, lv_, side="R", y_of=lambda lev: (lev - base) * km,
+                                          cols={"roof": crop_hex(INK)},
                                           page=(sd_.get("_p45") or {}).get("page")), T, kb, 37)
     road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
@@ -721,22 +728,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         else:
             B.line([(bx - 0.6 * kb, by - 2.0 * kb), (bx + 0.6 * kb, by - 0.7 * kb), (bx - 0.6 * kb, by + 0.7 * kb),
                     (bx + 0.6 * kb, by + 2.0 * kb)], INK2, L, 36, bk_lw(0.18, kb))
-    # the tallest cut roof: its level, as on an architectural section
-    if sd_["bld"] and not dry:
-        a, b, z0, z1, cat, annex, ftype, fl, floors, fsrc = max(sd_["bld"], key=lambda t: t[3])
-        lev_ = u_level(z1 + base)
-        lw_ = site28_tw(lev_, hm)
-        for side in ((1.0, -1.0) if (b - a) * ss > 0.6 * U else ()):
-            bx, by = P(b if side > 0 else a, z1)         # v16.3: at the eaves beside the wall, clear of the type's tag
-            bx += side * 0.4 * U
-            t0, t1 = (bx - 0.16 * U, bx + 0.25 * U + lw_) if side > 0 else (bx - 0.25 * U - lw_, bx + 0.16 * U)
-            if any(t0 < x1_ and x0_ < t1 and -(hm + 0.2 * U) < y_ - by < hm + 0.2 * U for x0_, x1_, y_ in tags_):
-                continue                                 # v40: never over a building's tag; else the other wall
-            B.line([(bx - side * 0.4 * U, by), (bx + side * 0.16 * U, by)], INK, L, 36, 0.04)
-            B.fill([[(bx, by), (bx - 0.16 * U, by + 0.28 * U), (bx + 0.16 * U, by + 0.28 * U)]], INK, L, 36)
-            _p45_tb(*(site28_text(B, lev_, bx + 0.25 * U if side > 0 else bx - 0.25 * U - lw_, by + 0.06 * U, hm,
-                                  INK, L) + (by + 0.06 * U, hm)))
-            break
+    # v59 (round 4 closing, G-R4-5.4): the tallest cut roof's level is a level mark outside the frame (above); the
+    # filled triangle inside the picture is gone
     # ---- the segmented strip (R02): what the cut crosses, each segment exactly under its part of the cut
     ys = P(0.0, zbot)[1] - 0.6 * kb
     hb = max(1.9 * hst, 2.6 * kb)
@@ -762,8 +755,9 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
             sl, sr = cr.get("win", (cr["a"], cr["b"]))
             ztop_ = max([cr["zb"] + 0.5] + [sd["zt"] for sd in cr["sides"] if sd["zt"] is not None] +
                         [q_ - base for q_ in (level(cr["rid"], "q500"), level_avg_flow(cr["rid"])) if q_ is not None])
-            (wx0, wy0), (wx1, wy1) = P(min(cr["a"], sl), cr["zb"]), P(max(cr["b"], sr), ztop_)
-            P45_DRAW.append((wx0, wy0, wx1, wy1))
+            (wx0, wy0), (wx1, wy1) = P(max(0.0, min(cr["a"], sl)), cr["zb"]), P(min(Lm, max(cr["b"], sr)), ztop_)
+            if wx1 > wx0:                                # v59 closing (G-R4-1): the stream at the crossing is the
+                sb_keep(B, (wx0, wy0, wx1, wy1), u"%s stream" % nm, "water")   # project: NO text on it (none own)
         # v59 (round 4, P04.2 / G-R4-2 / G-R4-5.4): only what matters: the banks at each crossing (one marker),
         # important places, named streets where they fit. The bed, the mean flow and the flood levels are level
         # marks outside the frame now; terraces are drawn (their line) and not numbered; lawns, generic streets and
@@ -785,6 +779,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
             calls.append((s_, z_, c2[0], c2[1]))
     calls += [(s_, g_at(s_), t_, 1) for s_, t_ in sec_history_calls(S, sd_) if 0.0 <= s_ <= Lm]
     low, sd_["_p45key"] = p45_band(B, L, P, calls, ys - hb - 0.8 * kb, kb, hst, x, x + wd)
+    if P45_COLLECT[0] and not dry:                       # v59 closing (G-R4-1): the cut's picture (its frame, as the
+        sb_keep(B, (x, Y0 + zbot * ss, x + wd, ytop), u"%s section" % nm, "section", i0_pic)   # level marks')
     # v58 (G15 zoom inset): the bank edge with the most people placed, for draw_sections_page (p45_zoom)
     sd_["_p45zoom"] = None
     if not dry and isinstance(B, _P45Rec) and zspots_:
@@ -1074,6 +1070,13 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
     # sentence is cut (its bed, banks and levels are drawn: level marks, bank markers); the column keeps what
     # steers the project, the numbered keywords and the bed width's public source
     yy = y
+    # v59.1 (Aras 1 Nov 16:48 log): the column's lines and runs are ONE text group for the page check: its lines follow
+    # each other at 1.45 x the capital height, so the ink of one line's descenders and the next line's ascenders come
+    # within the 0.6 mm pad and were reported as collisions (28 on p04-05); the column is laid out top-down, so its
+    # own lines never cross. Texts of other blocks are still checked against it.
+    tg_ = getattr(B, "tgroup", None)
+    if tg_:
+        tg_()
     key_, steer_ = site28_sec_reading(S, sd_)
     yy -= 1.0 * hc
     if steer_:
@@ -1093,6 +1096,8 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
                 srcs.append(t_)
     for t_ in srcs:
         yy = _p45_para(B, t_, x, yy - 0.2 * hc, w, hm, INK2, L, lead=1.4)   # v58: boxes noted (G3)
+    if tg_:
+        tg_(False)
     return yy + 0.4 * hc
 
 
@@ -1139,6 +1144,7 @@ def p45_zoom(B, sd_, x, y_top, y_bot, w, kb, L="LU_BOARD::Sections"):
     if bw > w or need > y_top - y_bot:
         LOG.append(u"FLAG zoom inset {} skipped: no room".format(sd_["name"]))
         return False
+    i0_z = sb_mark(B)                                    # v59 closing (G-R4-1): the inset's own texts (caption, bar)
     yy = _p45_para(B, lab, x, y_top - hm, w, hm, INK, L, lead=1.45, bcol=INK)
     by1 = yy + 1.45 * hm - 0.25 * hm - 0.6 * kb
     X0, Y0 = zm["X0"], zm["Y0"]
@@ -1155,8 +1161,8 @@ def p45_zoom(B, sd_, x, y_top, y_bot, w, kb, L="LU_BOARD::Sections"):
                                      sh[2] + sh[4] <= dst[3]):
             continue
         _p45_put(B, L, [sh], T, kb, 45)
-    if P45_COLLECT[0]:
-        P45_DRAW.append((x, by1 - bh, x + bw, by1))
+    if P45_COLLECT[0]:                                   # v59 closing (G-R4-1): no other text on the inset
+        sb_keep(B, (x, by1 - bh, x + bw, by1), u"%s zoom inset" % sd_["name"], "inset", i0_z)
     return True
 
 
@@ -1239,10 +1245,10 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     B.text(u"SECTIONS ACROSS THE STREAM · {} · 1:{:,} ON THE A3 PAGE".format(u", ".join(names), den), x, y, 0.9 * U,
            INK, L, font=FONT_TITLE, bold=True)          # on the sheet only (above the crop)
     # v58 (round 3, G3): the page's numbers start at 1 (reading order: cut after cut, left to right); every text box
-    # placed from here on is noted for the page's overlap test (P45_BOXES vs P45_DRAW)
+    # placed from here on is noted (P45_BOXES); v59 closing (G-R4-1): the drawing areas no text may cover (key map,
+    # legend, each cut's picture, the stream at each crossing, the zoom insets) go to the page check (sb_keep)
     P45_NUM[0] = 0
     del P45_BOXES[:]
-    del P45_DRAW[:]
     P45_COLLECT[0] = True
     top = y - 1.3 * U
     H = P45_H * kb
@@ -1270,7 +1276,9 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
         p45_strip(S, B, c_, x, yd, wd, ss, kb, U)
         cx_ = x + wd + (P45_LEV_MM + P45_GAP) * kb
         yh_ = p45_head(S, B, c_, cx_, yd, wc, kb, U)
-        p45_bar(B, cx_, yy - h_ + 0.6 * kb, wc, ss, c_, den, kb, U)
+        # v59.1: the bar 2 mm into the column, clear of the level-mark values that end near its edge ("+47.49 mean"
+        # ran into the bar's "0")
+        p45_bar(B, cx_ + 2.0 * kb, yy - h_ + 0.6 * kb, wc - 2.0 * kb, ss, c_, den, kb, U)
         # v58 (G15): the zoom inset in the column's room between its words and its scale bar (v59: 1:500)
         p45_zoom(B, c_, cx_, yh_ - 1.0 * kb, yy - h_ + p45_bar_h(kb, U) + 1.5 * kb, wc, kb)
         yy -= h_ + gap + extra
@@ -1472,6 +1480,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     h7 = bk_hk(7.0, kb)
     yt = y
     pid = "p04" if names and names[0] in P45_PAGES[0] else "p05"
+    i0_k = sb_mark(B)                                     # v59 closing (G-R4-1): the band's own texts from here on
     km = None
     try:
         km = km_map([(p45_rows_of(nm) or [nm])[0] if nm != "S5" else "S5" for nm in names],
@@ -1503,7 +1512,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.088, kb))   # the map's 0.25 pt neatline
     # the north arrow beside the map, top right of it, no plate (G-R4-9)
     na = north_items(0.0, 0.0, 0.0, 6.0)
-    nx0, ny0 = r[2] + 2.5 * kb, yt - 8.5 * kb
+    nx0, ny0 = r[2] + 2.5 * kb, yt - 9.5 * kb             # v59.1: was 8.5 mm, which put the "N" 0.3 mm over the crop top
     basemap_draw(na, lambda p_: (nx0 + p_[0] * kb, ny0 + p_[1] * kb),
                  lambda rings, hx, al, nz: B.fill(rings, _p45_c(hx), L, 41),
                  lambda pts, hx, wmm, dash, al: B.line(pts, _p45_c(hx), L, 41, bk_lw(wmm or 0.2, kb)),
@@ -1541,7 +1550,11 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     B.line([(tx, yl), (tx + 4.0 * kb, yl)], INK, L, 40, bk_lw(0.18, kb))
     B.line([(tx + 3.0 * kb, yl), (tx + 2.0 * kb, yl + 1.74 * kb), (tx + 4.0 * kb, yl + 1.74 * kb),
             (tx + 3.0 * kb, yl)], INK, L, 40, bk_lw(0.18, kb))
-    site28_text(B, u"level, m above sea · bed, mean flow, 100- and 500-year flood", tx + 10.0 * kb, yy, h7, INK, L)
+    site28_text(B, u"level, m above sea · bed, mean flow, 100- and 500-year flood, tallest roof", tx + 10.0 * kb, yy,
+                h7, INK, L)                               # v59 closing (G-R4-5.4): + the roof level mark
+    # v59 closing (G-R4-1): the key map (with its north arrow) and the legend: no other text on them
+    sb_keep(B, (r[0], r[1], r[2], r[3]), u"%s key map" % pid, "keymap", i0_k)
+    sb_keep(B, (tx, yy - 0.5 * h7, x + sw, yt), u"%s key legend" % pid, "legend", i0_k)
     if yy - 0.5 * h7 < yt - hk:
         LOG.append(u"FLAG sections key band {}: its legend runs {:.1f} mm below the band.".format(
             pid, (yt - hk - (yy - 0.5 * h7)) / kb))

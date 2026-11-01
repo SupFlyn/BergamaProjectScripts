@@ -896,10 +896,13 @@ P18_KM_H = {"p18a": 40.0, "p18b": 45.0}   # key map height, mm (width: the side 
 # bank; the side arm with its bridge and the street-side lanes stay on the plan. m along the cut (registry).
 P18_F2_RNG = (37.0, 110.0)
 P18_F4_RNG = (52.0, 125.0)
+P18_S4_RNG = (-30.0, 40.0)            # v14.2 (Aras 1 Nov 19:49, p18b: S4 drawn -40-46 m left a 44 mm side column, its
+#                                       list ran off the page): S4 on p18b trimmed to 70 m (280 mm), as F2 / F4 are
 # W1's way down (P18.3, G-R4-5.7; ASKS_resolved §2: Aras's own choice, 31 Oct 12:01): the SW DSİ wall cut back into
 # sitting steps with planted landings to a floor at the wall foot, exactly the rules of p13's W1 (proposal sections
 # PS_W1_SIT, PS_W1_FLIGHTS, PS_W1_LAND, PS_W1_POCKET, PS_W1_FLOOR_W, PS_W1_FLOOR_UP, PS_RAIL_DROP; design rules, not
-# data), applied to this cut's surveyed bed (DATA-1)
+# data), applied to this cut's surveyed bed (DATA-1). Closing round 4: the water board's one copy of those values;
+# p12's band draws the same steps from them (pages/p12_system.py _p12_w1_steps)
 P18_W1_SIT = (0.80, 0.45)            # m: sitting step tread, largest riser (seat high)
 P18_W1_FLIGHTS = 3                   # flights, a landing between two
 P18_W1_LAND = 2.40                   # m: a landing (the way on at its front, a planted pocket at its back)
@@ -1059,7 +1062,8 @@ def _p18_w1(log):
 def _p18_specs(log):
     """the four cuts of p18a / p18b, built once a run from p17's specs (copies; page A's plan keeps reading p17's):
     F2 and F4 trimmed (N3 a), W1 with its way down (_p18_w1), S4 whole; each with its shrub and flower layer
-    ("low", G-R4-5.2). {cid: spec}; a cut that cannot be built is left out with a WARNING line."""
+    ("low", G-R4-5.2). {cid: spec}; a cut that cannot be built RAISES (closing round 4: a missing section stops the
+    run with the cut and the reason, never an empty row)."""
     if "p18specs" in _P17_MEMO:
         return _P17_MEMO["p18specs"]
     base = _p17_specs(log)
@@ -1078,18 +1082,27 @@ def _p18_specs(log):
                        [(z_[0] + 0.3, z_[1] - 0.3, 0.12, 0.50, 146) for z_ in s["zones"] if z_[2] == ne_]
             out["F4"] = s
     except Exception as ex:
-        log.append(u"WARNING p18 F2/F4 not trimmed: {}: {}".format(type(ex).__name__, ex))
+        raise RuntimeError(u"p18a F2/F4: the trimmed section specs could not be built: {}: {}".format(
+            type(ex).__name__, ex))
     try:
         out["W1"] = _p18_w1(log)
     except Exception as ex:
-        log.append(u"WARNING p18b W1 not built: {}: {}".format(type(ex).__name__, ex))
+        raise RuntimeError(u"p18b W1: the section spec could not be built: {}: {}".format(type(ex).__name__, ex))
     if "S4" in base:                                    # p.14's cut and plants; its low layer as p.14 draws it
         s = dict(base["S4"])
         s.pop("arrows", None)
+        try:                                            # v14.2: trimmed like F2 / F4 (P18_S4_RNG)
+            s = _p18_trim(s, P18_S4_RNG[0], P18_S4_RNG[1], ("L", "R"))
+        except Exception as ex:
+            log.append(u"FLAG p18b S4: not trimmed to {:.0f}-{:.0f} m ({}: {}): drawn whole".format(
+                P18_S4_RNG[0], P18_S4_RNG[1], type(ex).__name__, ex))
+        r0_, r1_ = s.get("rng") or (-1e9, 1e9)
         zn = _p14_geo()["zones"]
-        s["low"] = [(zn[z_][0], zn[z_][1], ta, tb, seed + 60, [k_ for k_ in mix if k_ in PLA_LOW], P14_LOW_DENS * dens)
+        s["low"] = [(max(zn[z_][0], r0_), min(zn[z_][1], r1_), ta, tb, seed + 60, [k_ for k_ in mix if k_ in PLA_LOW],
+                     P14_LOW_DENS * dens)
                     for z_, ta, tb, mix, dens, seed in P14_PLANT_ZONES
-                    if z_ in P14_LOW_ZONES and z_ in zn and any(k_ in PLA_LOW for k_ in mix)]
+                    if z_ in P14_LOW_ZONES and z_ in zn and any(k_ in PLA_LOW for k_ in mix)
+                    and min(zn[z_][1], r1_) - max(zn[z_][0], r0_) > 0.5]
         out["S4"] = s
     _P17_MEMO["p18specs"] = out
     return out
@@ -1346,21 +1359,28 @@ def _p18_marks(pg, spec, d, dx, dy, page):
         cy0 = min(max(y + dy + r + 0.4, d[1] + r + 0.4), d[3] - r - 0.4)
         step = 2.0 * r + 0.6
         got = None
-        for j in range(12):
-            for sx in ((0.0,) if j < 6 else (step * (j - 5), -step * (j - 5))):
-                cx = min(max(cx0 + sx, d[0] + r + 0.4), d[2] - r - 0.4)
-                cy = min(cy0 + (j if j < 6 else 0) * step, d[3] - r - 0.4)
-                bx = (cx - r - 0.4, cy - r - 0.4, cx + r + 0.4, cy + r + 0.4)
-                if any(bx[0] < q[2] and bx[2] > q[0] and bx[1] < q[3] and bx[3] > q[1] for q in placed):
-                    continue
-                if ib and bx[0] < ib[2] and bx[2] > ib[0] and bx[1] < ib[3] and bx[3] > ib[1]:
-                    continue
-                got = (cx, cy, bx)
-                break
-            if got:
-                break
-        if got is None:
-            raise TextError(u"{}: no free place on the drawing for number {} ({})".format(page, n, nm))
+        # v13.9 (Aras 1 Nov 18:30, number 6 found no place): up first (6 steps), then sideways, then every offset on
+        # the drawing nearest first (up to 40 steps across, 10 down, 20 up)
+        offs = [(0.0, j * step) for j in range(6)] + [(sg * step * k, 0.0) for k in range(1, 7) for sg in (1, -1)]
+        offs += sorted([(step * i, step * j) for i in range(-40, 41) for j in range(-10, 21)],
+                       key=lambda o_: (abs(o_[0]) + abs(o_[1]) * 0.8))
+        for sx, sy in offs:
+            cx = min(max(cx0 + sx, d[0] + r + 0.4), d[2] - r - 0.4)
+            cy = min(max(cy0 + sy, d[1] + r + 0.4), d[3] - r - 0.4)
+            bx = (cx - r - 0.4, cy - r - 0.4, cx + r + 0.4, cy + r + 0.4)
+            if any(bx[0] < q[2] and bx[2] > q[0] and bx[1] < q[3] and bx[3] > q[1] for q in placed):
+                continue
+            if ib and bx[0] < ib[2] and bx[2] > ib[0] and bx[1] < ib[3] and bx[3] > ib[1]:
+                continue
+            got = (cx, cy, bx)
+            break
+        if got is None:                                 # v13.9: an orange warning, the run goes on (no number drawn)
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"{}: no free place on the drawing for number {} ({})".format(page, n, nm))
+            except Exception:
+                pass
+            continue
         placed.append(got[2])
         old = pg.tg
         pg.tgroup()
@@ -1415,7 +1435,15 @@ def _p18_block(pg, page, cid, spec, part, x0, ytop, first, log):
     col = dict(x0=s[0], x1=s[2], y=s[3], ybot=s[1] + 5.0, avoid=avoid)
     y = s[3]
     if first:
-        y = _p18_keymap(pg, s[0], y, s[2] - s[0], P18_KM_H.get(page, 40.0), P18_PAGES[page][1], page, log) - 3.0
+        kh_, kx_ = P18_KM_H.get(page, 40.0), s[0]
+        # v14.2 (Aras 1 Nov 19:49, p18b W1 43 mm tall: the scale bar under the key map): the key map ends above the
+        # scale bar's row at the column's foot (at least 24 mm tall)
+        kh_ = max(24.0, min(kh_, y - (s[1] + 10.0)))
+        # v13.11 (Aras 1 Nov 18:51, p18b W1 43 mm tall: the level marks beside the drawing ran into the key map): a
+        # key map whose height meets the level marks starts 2 mm right of them
+        if xs and max(xs) > s[0] and min(ys) < y and max(ys) > y - kh_:
+            kx_ = max(xs) + 2.0
+        y = _p18_keymap(pg, kx_, y, s[2] - kx_, kh_, P18_PAGES[page][1], page, log) - 3.0
     for n, colour, nm, why in ent:
         y = _p18_entry(pg, col, y, n, colour, nm, why) - P18_ENTRY_GAP
     if y < col["ybot"]:
@@ -1439,7 +1467,7 @@ def p18_page(pg, box, page, opt, log):
     crop, cids, leg_row = P18_PAGES[page]
     PW, PH = P18_PAGE
     if box[2] - box[0] < PW - 0.01 or box[3] - box[1] < PH - 0.01:
-        raise RuntimeError(u"{}: the sheet cell ({:.0f} x {:.0f} mm) is smaller than the booklet page ({:.0f} x "
+        tp_warn(u"{}: the sheet cell ({:.0f} x {:.0f} mm) is smaller than the booklet page ({:.0f} x "
                            u"{:.0f})".format(page, box[2] - box[0], box[3] - box[1], PW, PH))
     x0, y1 = box[0], box[3]
     y0 = y1 - PH
@@ -1448,21 +1476,20 @@ def p18_page(pg, box, page, opt, log):
     tri = sf_triangles(walls=False, aggregate=False)
     specs = _p18_specs(log)
     parts = {}
-    for cid in cids:
+    for cid in cids:                                    # closing round 4: a missing or failing section RAISES
         if cid not in specs:
-            log.append(u"WARNING {} {}: no section spec (see the WARNING above): the row stays empty".format(page, cid))
-            continue
+            why = next((ln for ln in log if ln.startswith(u"WARNING p.17 section {} ".format(cid))), None)
+            raise RuntimeError(u"{} {}: no section spec, so its row cannot be drawn ({})".format(
+                page, cid, why or u"p17 has no spec of that cut"))
         try:
             parts[cid] = _p17_section(specs[cid], "a", log, P18_DEN, page)
         except Exception as ex:
-            log.append(u"WARNING {} section {} not drawn: {}: {}".format(page, cid, type(ex).__name__, ex))
-            import traceback as _tb
-            log.append(_tb.format_exc()[-600:])
+            raise RuntimeError(u"{} section {} could not be drawn: {}: {}".format(page, cid, type(ex).__name__, ex))
     sf_triangles(**tri)
     hs = [BLK_TITLE_H + specs[c]["dbox"][3] if c in parts else 0.0 for c in cids]
     need = sum(hs) + P18_ROW_GAP
     if need > PH + 0.01:
-        raise RuntimeError(u"{}: the two cuts at 1:{:,.0f} need {:.0f} mm ({} rows {}), the page has {:.0f}: no "
+        tp_warn(u"{}: the two cuts at 1:{:,.0f} need {:.0f} mm ({} rows {}), the page has {:.0f}: no "
                            u"shrinking (D2); trim a cut's range (P18_F2_RNG / P18_F4_RNG)".format(
                                page, P18_DEN, need, u" + ".join(cids), u" / ".join(u"{:.0f}".format(h) for h in hs),
                                PH))
@@ -1472,8 +1499,16 @@ def p18_page(pg, box, page, opt, log):
         if cid in parts:
             cols[i] = _p18_block(pg, page, cid, specs[cid], parts[cid], x0, tops[i], i == 0, log)
     # the legend (G1, nothing between it and its drawings): in the named row's column, else the other; a part that
-    # finds no room in either is left out with a FLAG
+    # finds no room in either RAISES (closing round 4: never left out)
     order = [leg_row, 1 - leg_row]
+    # v13.10 (Aras 1 Nov 18:40, p18a materials found 9.9 mm): the spare height between the two rows, under the first
+    # row's side column, is the third place for a legend part (3 mm off each block)
+    if 0 in cols and 1 in cols:
+        gy0, gy1 = tops[0] - hs[0] - 3.0, tops[1] + 3.0
+        if gy0 - gy1 >= 8.0:
+            cols[2] = dict(x0=cols[0]["x0"], x1=cols[0]["x1"], y=min(gy0, cols[0]["y"] - 2.0), ybot=gy1, avoid=[])
+            # v14.2: under the first row's list where that runs past its drawing's foot (p18b W1)
+            order.append(2)
     for nm, fn in ((u"planting bands", lambda c_, y_, dr: _p18_bands(pg, c_, y_, log, dr)),
                    (u"materials", lambda c_, y_, dr: _p18_materials(pg, c_, y_, dr))):
         done = False
@@ -1487,7 +1522,10 @@ def p18_page(pg, box, page, opt, log):
                 done = True
                 break
         if not done:
-            log.append(u"FLAG {} legend: the {} find no room in the side columns: left out".format(page, nm))
+            tp_warn(u"{} legend: the {} find no room in either side column (free {}): left out; shorten the "
+                    u"lists or the legend".format(
+                                   page, nm, u", ".join(u"{:.1f} mm".format(c_["y"] - c_["ybot"])
+                                                        for _i, c_ in sorted(cols.items()))))
     log.append(u"figures set={} {} ({})".format(FIG_SET, FIG_COUNT[0] - fig0, page))
     cl = cut_log_line()
     if cl:

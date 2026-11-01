@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_city_link_v7.py = v7 (1 Nov 2026, round 4 S5; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_city_link_v8_2.py = v8.2 (1 Nov 2026: p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7: round 4 S5; what changed: the NEW IN / VERSION notes below)
 # bergama_city_link_v6.py (v6, 31 Oct: round 3, p08 one corridor arrow over the whole study area + p09 hub plans; v5.1, 31 Oct: bugfix, rebuilt with the shared base map fix of 31 Oct: the stream (M5 water) no longer stops on "list - float"; v5, 30 Oct: revision T5, p8 framework map + who calendar, p9 spine) · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
@@ -17,7 +17,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v7"  # v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v8.2"  # v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v7 (round 4, session S5, 1 Nov 2026; BRIEF P08.1-P08.3, P10.1-P10.6, G-R4-1/2/4/7/9/11; a feature change,
 # so the next whole number; design spec revision_2026-11-01_round4/handover/S5_design_spec.md):
 #   * Text (G-R4-1): every text of both pages is registered in the page's TextPage (common/text_place.py) with its
@@ -257,7 +257,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'SHOPS_XY': '938d12716e4355018e4de86927b3b4ab', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '0972af4b119d556bb810b350fd8e70f4', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'SHOPS_XY': '938d12716e4355018e4de86927b3b4ab', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011'}.get(name):
         raise RuntimeError("Data file bergama_city_link_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_city_link_data.py:" + name, "exec"), globals())
@@ -364,9 +364,18 @@ def _lv_ends_row(cid):
         return many[0]
 
 
+LV_ENDS_OVERRIDE = {}     # round 4 (S4, N4 b): {cut: ((x1, y1), (x2, y2))} a script that draws a cut on another line
+                          # than the table's (site board: S5 across the stream at one crossing) sets it each run;
+                          # empty in every other script, so nothing changes there
+
+
 def level_ends(cid):
-    """((x1, y1), (x2, y2)): the cut's two ends in survey m, unprimed end first"""
-    (a, b) = _lv_ends_row(cid)["ends"]["value"]
+    """((x1, y1), (x2, y2)): the cut's two ends in survey m, unprimed end first (LV_ENDS_OVERRIDE first)"""
+    r_ = _lv_ends_row(cid)
+    ov = LV_ENDS_OVERRIDE.get(r_.get("cut") or cid) or LV_ENDS_OVERRIDE.get(cid)
+    if ov:
+        return (float(ov[0][0]), float(ov[0][1])), (float(ov[1][0]), float(ov[1][1]))
+    (a, b) = r_["ends"]["value"]
     return (float(a[0]), float(a[1])), (float(b[0]), float(b[1]))
 
 
@@ -2863,6 +2872,21 @@ class TextError(RuntimeError):
     pass
 
 
+TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
+
+
+def tp_warn(msg):
+    """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
+    TP_LOG and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError again)"""
+    if not TP_WARN_ONLY[0]:
+        raise TextError(msg)
+    TP_LOG.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
 class TextCollision(TextError):
     def __init__(self, page, item, other, n=1, more=()):
         self.page, self.item, self.other, self.n, self.more = page, item, other, n, list(more)
@@ -3061,7 +3085,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                raise TextError(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm)" % (
+                tp_warn(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -3153,8 +3177,8 @@ class TextPage(object):
         return "g%d" % self._gid
 
     def _size_ok(self, text, pt):
-        if pt * self.scale < self.min_pt - 1e-6:
-            raise TextError(u"%s: %r would print at %.2f pt, below the %.1f pt minimum" % (
+        if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
+            tp_warn(u"%s: %r prints at %.2f pt, below the %.1f pt minimum" % (
                 self.name, text[:40], pt * self.scale, self.min_pt))
 
     # -- registering
@@ -3209,8 +3233,8 @@ class TextPage(object):
             lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            raise TextError(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                               max_lines))
+            tp_warn(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                       max_lines))
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -3279,7 +3303,7 @@ class TextPage(object):
         """the collision test (see the module notes); returns the number of texts checked"""
         for sl in self.sides:
             if not sl.closed:
-                raise TextError(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
         hits = []
         I = self.items
         for i, a in enumerate(I):
@@ -3287,7 +3311,7 @@ class TextPage(object):
             if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
                     self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
                 hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
                 hits.append((a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
@@ -3306,6 +3330,17 @@ class TextPage(object):
         lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         lg.append(line)
         self.checked = True
+        if hits and raise_ and TP_WARN_ONLY[0]:          # 1 Nov (Aras 17:11 / 18:51): every hit a WARNING line and an
+            k_ = len(lg) - 1                             # orange warning; the run goes on, one run collects them all
+            lg[k_:k_] = [u"WARNING %s text hit: %s against %s" % (self.name, _tp_desc(a_), _tp_desc(b_))
+                         for a_, b_ in hits]             # (before the "overlap ..." line, which stays the last)
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"%s: %d text hits (each one in the log, 'WARNING %s text hit')" %
+                                                  (self.name, len(hits), self.name))
+            except Exception:
+                pass
+            return len(I)
         if hits and raise_:
             raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
         return len(I)
@@ -6092,8 +6127,8 @@ def framework_map(pg, L):
         if len(Q) > 1 and cl_place(pg, place_name("stream"), Q[len(Q) // 2], 7.5, C["water_deep"], True, 1.6, frame,
                                    (MAP,)):
             break
-    north_arrow(pg, mx + 2.5, my - 9.0, math.atan2(math.cos(f["ang"]), math.sin(f["ang"])), 5.0)
-    scale_bar(pg, mx + 9.0, my - 6.5, PLAN_DEN)
+    north_arrow(pg, mx + 6.5, my - 9.0, math.atan2(math.cos(f["ang"]), math.sin(f["ang"])), 5.0)   # v8.2: its N
+    scale_bar(pg, mx + 13.0, my - 6.5, PLAN_DEN)          # was on the page margin (Aras 1 Nov 19:49): 4 mm right
     # the legend beside the map, top-aligned with it (G-R4-3)
     rows = []
     if nb:
@@ -6782,7 +6817,19 @@ def hub_keymap(pg, f, wins):
     pg.ops.append("q %.2f %.2f %.2f %.2f re W n" % (kx * KP, ky * KP, kw * KP, kh * KP))
     pg.keep((kx, ky, kx + kw, ky + kh), "map", MAP)
     fill_fn, line_fn, text_fn, order_fn = cl_draw_fns(pg, (MAP,))
-    map_draw("p10 key", T, fill_fn, line_fn, text_fn, km["base"], {"proj_marks": frames, "proj_labels": km["names"]},
+    mk_at = []                                            # v8.2 (Aras 1 Nov 19:49: names under the hub 4 marker):
+    for w, Q in polys:                                    # a name within 5 mm of a hub marker's place is left out
+        cs_ = [T(((Q2[0][0] + Q2[2][0]) / 2.0, (Q2[0][1] + Q2[2][1]) / 2.0)) for w2, Q2 in polys if w2["no"] == w["no"]]
+        mk_at.append((sum(c_[0] for c_ in cs_) / len(cs_), sum(c_[1] for c_ in cs_) / len(cs_)))
+    names_ = []
+    for it in km["names"]:
+        c_ = T(it[2])
+        hw_, hh_ = text_w(it[1], it[3] / 0.3528) / 2.0 + 5.0, it[3] / 2.0 + 5.0
+        if any(abs(c_[0] - m_[0]) < hw_ and abs(c_[1] - m_[1]) < hh_ for m_ in mk_at):
+            BM_NOTE.append(u"key map p10: name '{}' left out (on a hub marker)".format(it[1]))
+            continue
+        names_.append(it)
+    map_draw("p10 key", T, fill_fn, line_fn, text_fn, km["base"], {"proj_marks": frames, "proj_labels": names_},
              study=km.get("study_rings") or study, clip=False, order_fn=order_fn, log=CL_LOG)
     frame = (kx + 0.8, ky + 0.8, kx + kw - 0.8, ky + kh - 0.8)
     done = []
@@ -6927,7 +6974,7 @@ def page_spine(L):
         pg.line([(fx + (i + 1) * sw_ + 0.8, t_), (tx_ - 1.0, t_)], C["ink2"], 0.2, dash=(0.6, 0.5))
         pg.text(lev, tx_, y + 1.2, 8, C["ink"], True)
         for jj, kk in enumerate(wet):
-            fit(pg, (kk + (" " + cite(wsrc) if jj == len(wet) - 1 else "")).strip(), tx_, y - 2.4 - jj * 3.0, 7,
+            fit(pg, (kk + (" " + cite(wsrc) if jj == len(wet) - 1 else "")).strip(), tx_, y - 2.4 - jj * 3.5, 7,
                 rx - tx_ - 3.0, C["ink2"])
         for jj, (ic, kk) in enumerate(rules):
             icon(pg, ic, rx, y + 4.0 - jj * 4.8, 4.2)
@@ -7170,6 +7217,7 @@ def build(dir_):
                       "the old one; press the chain once more." % (prev_src, prev, L["sides"]))
     BM_NOTE[:] = []
     del CL_LOG[:]                                         # v7: this run's overlap / layer lines
+    tp_log_lines()                                        # v8.1: no WARNING lines left from an earlier run
     pages = [page_framework(L), page_spine(L)]            # v4 (D8 b) / v7: booklet p.08 and p.10
     write_pdf(pages, os.path.join(dir_, OUT_PDF))
     os.makedirs(RES_DIR, exist_ok=True)
@@ -7185,7 +7233,7 @@ def main():
     except PermissionError:
         return "The PDF is open in another program. Close it and press again: " + os.path.join(OUT_DIR, OUT_PDF)
     bk = "\ntrigger: " + (TRIG_WHY[0] or "-")                 # v7 (round 4 S1)
-    bk += "".join("\n" + n_ for n_ in CL_LOG)              # v7 (G-R4-1/4): "overlap p08 0 ...", "layers base→project ok ..."
+    bk += "".join("\n" + n_ for n_ in CL_LOG + tp_log_lines())   # v8.1: + the layout WARNING lines
     bk += "".join("\n" + n_ for n_ in [L.get("fw_note"), L.get("mp_note")] + sorted(set(BM_NOTE)) if n_)   # v4
     bk += "\nopen points (not on the sheet): market edge, decks and stall sizes (masterplan); hub plane-tree irrigation " \
           "from storage (water board); ridership at the bus stops (none found, h03); the sub-hub's bed edges and the " \

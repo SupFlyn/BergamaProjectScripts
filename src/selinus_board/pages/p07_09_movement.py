@@ -622,6 +622,7 @@ def draw_mv_today(S, B, x, y, U, R, MV, key, title, cap):
     F = S.F
     V, k, ss, r = b_view(F, x, _t3_map_head(B, x, y, U, title, L), U)
     T3_P07_BOXES.append(_t3_head_box(x, y, U, title))
+    i0_m = sb_mark(B)                                     # v59 closing (G-R4-1): the map's own texts from here
     h = bk_hk(R28MV_LABEL_PT, k)
     CB = ClipB(B, r)
     B.fill([rect(*r)], WHITE, L, 1)
@@ -629,6 +630,7 @@ def draw_mv_today(S, B, x, y, U, R, MV, key, title, cap):
     lens = r28mv_class_streets(CB, V, mv_runs(S, R, key, F), k, L, 14)
     rows, pts, nums, mb = draw_mv_key(S, CB, V, R, MV, key, F, L, h, r, k)
     b_frame(B, r, k, L)
+    sb_keep(B, r, u"p07 %s map" % key, "map", i0_m)       # v59 closing (G-R4-1): its names may, no other text
     low = b_foot(B, F, x, r[1], ss, k, L)
     crop = (x - 0.5 * k, low - 0.5 * k, r[2] + 0.5 * k, y)
     cap = _t3_cap_fit(cap, (crop[2] - crop[0]) / k, CROP_MV.get(key, key))   # v59 (round 4, P07.1): width-limited
@@ -1563,6 +1565,7 @@ def _t3_sec_key(S, B, x, yt, wmm, kb, groups, L, boxes=None):
     import math as _m
     F = S.F
     hh = bk_hk(7.5, kb)
+    i0_k = sb_mark(B)                                     # v59 closing (G-R4-1): the key map's own texts from here
     B.text(u"Where each street is cut", x, yt - hh, hh, INK, L, order=66, font=FONT_TITLE, bold=True)
     y0 = yt - hh - 1.5 * kb
     mw = max(30.0, wmm - T3_KEY_NA) * kb                  # board units
@@ -1714,6 +1717,7 @@ def _t3_sec_key(S, B, x, yt, wmm, kb, groups, L, boxes=None):
                                                                 bold=bool(bold), align=align or "L"))
     LOG.append(u"Street sections key map: {} street cut(s) in red (R01), {} name(s), 1:{:,.0f} (a diagram, no bar); "
                u"north arrow without plate.".format(len(cut_its), len(names), den))
+    sb_keep(B, r, u"p09 key map", "keymap", i0_k)       # v59 closing (G-R4-1): no other text on the key map
     return (yt - r[1]) / kb
 
 
@@ -1815,13 +1819,20 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
                 put_text(head_, cx, yrow - 3.0, 8.5, T3_COL["head"], True)
             sub = u"today = with the project" if n == 1 else (u"with the project" if j == 1 else u"today")
             put_text(sub, cx, yrow - 6.5, 7.0, T3_COL["ink2"], False)
+            i0_s = sb_mark(B)                             # v59 closing (G-R4-1): the section's own texts from here
             for li, lay in enumerate(WAT_LAYERS):
                 PU.put(_t3_shift(sec["wl"].L[lay], cx, gy), 40 + 2 * li)
             ish, _bh, ibox = sec["band"]
             PU.put(_t3_shift(ish, cx, yb), 60)            # v58 (P08.2): icons right above their activity, no leaders
             tb.extend((b_[0] + cx, b_[1] + yb, b_[2] + cx, b_[3] + yb) for b_ in ibox)
             tb.extend((b_[0] + cx, b_[1] + gy, b_[2] + cx, b_[3] + gy) for b_ in sec["boxes"])
-            sb = draw_scalebar_bk(B, x + cx * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0, kb, L)
+            # v59.1: the bar 1 mm in from the section's left edge (as on p06 and p20): on the first section its centred
+            # "0" hung half outside the crop
+            sb = draw_scalebar_bk(B, x + cx * kb + 1.0 * kb, (gy + sec["low"]) * kb, k * kb, 5.0 if den <= 250 else 10.0,
+                                  kb, L)
+            # v59 closing (G-R4-1): the section's picture (icon band to its foot, its width): no other text on it
+            sb_keep(B, (x + cx * kb, (gy + sec["low"]) * kb, x + (cx + sec["w"]) * kb,
+                        max(yb + _bh, gy + top) * kb), u"%s %s section" % (c_["name"], sub), "section", i0_s)
             low = min(low, sb / kb)
             g6 += sec["g6"]
             tree = tree or sec["tree"] or bool(sec.get("low_n"))   # v59: the low layer is street planting too
@@ -1873,11 +1884,14 @@ def _t3_sec_block(S, B, x, y, kb, groups, den, rows, style, L, side=False):
             ((u"Speech bubble: " + FIG_BUBBLE_TAG.lower(), "bubble"),):
         lg.add(lab, kn)
     lay_ = lg.layout(lambda s, pt, b: tw(s, bk_hk(pt, 1.0), kd), size_pt=7.0)
+    i0_l = sb_mark(B)                                     # v59 closing (G-R4-1): the legend's own texts from here
     for e in lay_["rows"]:
         PU.put(_t3_swatch(e["kind"], e["swatch"], k), 62)
         PU.text(e["label"], e["text"][0], e["text"][1], e["size_pt"], T3_COL["ink"], False)
         c_ = bk_hk(e["size_pt"], 1.0)
         tb.append((e["text"][0], e["text"][1] - 0.25 * c_, e["text"][0] + tw(e["label"], c_, kd), e["text"][1] + c_))
+    lb_ = lay_["box"]                                     # mm -> board units (PU: x + mm * kb, mm * kb)
+    sb_keep(B, (x + lb_[0] * kb, lb_[1] * kb, x + lb_[2] * kb, lb_[3] * kb), u"p09 legend", "legend", i0_l)
     # the numbered callouts' key in two columns right of the legend (every number explained, G1); v58: in the side
     # column one column under the legend, a line too long for it set smaller (never under 6 pt)
     half = (len(ent) + 1) // 2 if ncol == 2 else len(ent)
@@ -2061,6 +2075,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     # T4 (30 Oct, p7 G1): the map's own heading inside its crop; the takeaway stays its caption
     V, k, ss, r = b_view(F, x, _t3_map_head(B, x, y, U, u"Shops, services and everyday walks", L), U)   # 1:10,000
     T3_P07_BOXES.append(_t3_head_box(x, y, U, u"Shops, services and everyday walks"))
+    i0_m = sb_mark(B)                                     # v59 closing (G-R4-1): the map's own texts from here
     mw = F.w * ss
     CB = ClipB(B, r)
     try:                                                  # T3a (D8 b): the framework diagram's hand-off (city link v4)
@@ -2153,6 +2168,7 @@ def draw_how_people_use_it(S, B, x, y, w, U):
     draw_map_annotations(S, B, V, U, rh=bk_hk(8.0, k))
     nums_top = _t3_top_marks(S, B, V, R, MV, F, k, r, L, av_)    # v58 (P07.3): the named streets numbered
     b_frame(B, r, k, L)
+    sb_keep(B, r, u"p07 movement map", "map", i0_m)       # v59 closing (G-R4-1): its names may, no other text
     foot = b_foot(B, F, x, r[1], ss, k, L)                # v46: under the map, never on it
     crop_r = (x - 0.5 * k, foot - 0.5 * k, r[2] + 0.5 * k, y)     # the booklet crop of the plan, with its heading
     # v58 (P07.1): drw_mv_note_1 (legend, numbered streets, graphics, note) is drawn once its legend rows exist (below)

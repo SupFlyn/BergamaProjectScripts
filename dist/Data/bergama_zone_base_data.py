@@ -1612,5 +1612,10 @@ NAMES = {
                       "src": u"site board HER_STOPS 'gondola' (OSM node 2295928011)"},
         "asklepion": {"name": u"Asklepion", "descr": u"the healing sanctuary",
                       "src": u"h01 §5 P28; KTB 'The Archaeological Site of Asklepion' (h01 s114)"},
+        "trajan_tapinagi": {"name": u"Trajan Tapınağı",
+                            "src": u"round 4 closing (G-R4-11): the form masterplan p21 already printed (p23_plan.py "
+                                   u"move reason of the viewing terrace); the temple on the Akropol, OSM way 1410335587 "
+                                   u"(masterplan 02c_corridor.py TRAJANEUM, h03 Q3); replaces 'Trajaneum' on p22; no "
+                                   u"descriptor (none in the booklet's texts)"},
     },
 }

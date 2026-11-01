@@ -70,6 +70,21 @@ class TextError(RuntimeError):
     pass
 
 
+TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
+
+
+def tp_warn(msg):
+    """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
+    TP_LOG and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError again)"""
+    if not TP_WARN_ONLY[0]:
+        raise TextError(msg)
+    TP_LOG.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
 class TextCollision(TextError):
     def __init__(self, page, item, other, n=1, more=()):
         self.page, self.item, self.other, self.n, self.more = page, item, other, n, list(more)
@@ -268,7 +283,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                raise TextError(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm)" % (
+                tp_warn(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -360,8 +375,8 @@ class TextPage(object):
         return "g%d" % self._gid
 
     def _size_ok(self, text, pt):
-        if pt * self.scale < self.min_pt - 1e-6:
-            raise TextError(u"%s: %r would print at %.2f pt, below the %.1f pt minimum" % (
+        if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
+            tp_warn(u"%s: %r prints at %.2f pt, below the %.1f pt minimum" % (
                 self.name, text[:40], pt * self.scale, self.min_pt))
 
     # -- registering
@@ -416,8 +431,8 @@ class TextPage(object):
             lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            raise TextError(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                               max_lines))
+            tp_warn(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                       max_lines))
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -486,7 +501,7 @@ class TextPage(object):
         """the collision test (see the module notes); returns the number of texts checked"""
         for sl in self.sides:
             if not sl.closed:
-                raise TextError(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
         hits = []
         I = self.items
         for i, a in enumerate(I):
@@ -494,7 +509,7 @@ class TextPage(object):
             if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
                     self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
                 hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
                 hits.append((a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
@@ -513,6 +528,17 @@ class TextPage(object):
         lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         lg.append(line)
         self.checked = True
+        if hits and raise_ and TP_WARN_ONLY[0]:          # 1 Nov (Aras 17:11 / 18:51): every hit a WARNING line and an
+            k_ = len(lg) - 1                             # orange warning; the run goes on, one run collects them all
+            lg[k_:k_] = [u"WARNING %s text hit: %s against %s" % (self.name, _tp_desc(a_), _tp_desc(b_))
+                         for a_, b_ in hits]             # (before the "overlap ..." line, which stays the last)
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"%s: %d text hits (each one in the log, 'WARNING %s text hit')" %
+                                                  (self.name, len(hits), self.name))
+            except Exception:
+                pass
+            return len(I)
         if hits and raise_:
             raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
         return len(I)

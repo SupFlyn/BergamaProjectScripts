@@ -13,6 +13,11 @@ SHEET_POS = []                                        # v40: (drawing name, pdf,
 CROP_REF = r"^\[\d+\]$"                               # a sheet's lone [n] mark: its source key is not in the crop
 
 
+class BkCropMissing(RuntimeError):
+    """v59 (round 4 closing, P09.1): a crop the booklet needs is on no sheet written on this run. The run step lets it
+    through (17_board_fits.py): it is never logged as a warning only."""
+
+
 def crop_panel(slug, x0, y0, x1, y1, caption="", scale_den=None, legend=None, drop=None):
     """v40: one booklet crop: a panel's rectangle in board units (any two corners), as the layout drew it. A drawing
     that calls this has no default crop (crop_default)."""
@@ -90,9 +95,11 @@ def crop_rects():
         cx, cy = 0.5 * (bb[0] + bb[2]), 0.5 * (bb[1] + bb[3])
         hit = [s_ for s_ in SHEET_POS if s_[2][0] <= cx <= s_[2][2] and s_[2][1] <= cy <= s_[2][3]]
         if not hit:
-            if p["slug"] == "street_sections":           # v59 (round 4, P09.1): the booklet's p09 needs this crop
-                raise RuntimeError("crop street_sections (booklet p09, drw_street_sections): its drawing is on no "
-                                   "sheet written on this run")
+            # v59 (round 4, P09.1): the booklet's p09 needs this crop; closing: raised past the run step's except
+            # (BkCropMissing) whenever sheets were written on this run (pdf = False writes none, so no crop at all)
+            if p["slug"] == "street_sections" and SHEET_POS:
+                raise BkCropMissing("crop street_sections (booklet p09, drw_street_sections): its drawing is on no "
+                                    "sheet written on this run")
             BK_LOG.append("crop %s: its drawing is on no sheet written on this run" % p["slug"])
             continue
         nm, pdf, r, ox, oy, ph = hit[0]

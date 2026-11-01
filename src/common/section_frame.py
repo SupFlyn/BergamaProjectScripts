@@ -132,7 +132,7 @@ def sf_seat_x(gy, x, half_w, tol=0.05):
 
 def sf_ground_fn(gy, half_w):
     """gy as a function that already seats (sf_seat_x): pass it as the ground of fig_side, fig_activity,
-    pla_section, cut_image ... so every item they place stands on the lowest ground under its base"""
+    pla_section ... so every item they place stands on the lowest ground under its base"""
     return lambda x: sf_seat_x(gy, x, half_w)
 
 
@@ -579,17 +579,26 @@ class SfCallouts(object):
         return sh
 
     def key(self, x, y, size=1.8, ink=None, gap=None):
+        """the numbered list: one row per number from (x, y) down (y up), gap apart; ink = the caller's colour (else
+        SEC ink). Round 4 closing (G-R4-7): each number is the shared marker (marker.py mk_marker, style "ring" as
+        .marks: the glyph centred on its ink box, at least 7 pt), its disc centred 0.4 x size above the row's
+        baseline and at least its radius in from x; the row's words start 2 x size in (further only when the disc
+        is wider). Returns house shapes, as before."""
         ink = ink or SEC["ink"]
         gap = gap or 1.5 * size
+        pt = max(7.0, size / 0.3528)
         seen, sh, yy = set(), [], y
         for n, _x, _y, t in sorted(self.items):
             if n in seen:
                 continue
             seen.add(n)
-            sh += [("poly", sec_ellipse(x + 0.75 * size, yy - 0.4 * size, 0.75 * size, 0.75 * size, 20), "FFFFFF", ink,
-                    0.15),
-                   ("text", u"%d" % n, x + 0.75 * size, yy - 0.76 * size, 0.85 * size, ink, True, "C"),
-                   ("text", t, x + 2.0 * size, yy - 0.76 * size, size, ink, False, "L")]
+            cy = yy - 0.4 * size
+            shp, _box, r = mk_marker(x + 0.75 * size, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            if r > 0.75 * size:                          # a wider disc (two digits) moves in to keep x its left edge
+                shp, _box, r = mk_marker(x + r, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            sh += list(shp)
+            sh.append(("text", t, max(x + 2.0 * size, x + 2.0 * r + 0.4 * size), yy - 0.76 * size, size, ink, False,
+                       "L"))
             yy -= gap
         return sh
 

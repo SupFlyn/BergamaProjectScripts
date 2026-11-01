@@ -82,7 +82,7 @@ HER_SRC = (u"Heritage loop, the places and their dates (public sources): Wikiped
 
 
 class HerBox(object):
-    """v50 (P20.1): a north-up map rectangle in survey m, used as a Frame by View and draw_north_at (u = east, v =
+    """v50 (P20.1): a north-up map rectangle in survey m, used as a Frame by View (u = east, v =
     north whatever its proportions: a Frame turns its longest side to u, so a tall box would come out on its side)"""
 
     def __init__(self, x0, y0, x1, y1):

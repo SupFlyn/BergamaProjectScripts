@@ -1106,6 +1106,8 @@ if HAVE_RHINO:
                     LOG.append("WARNING: PDF export failed ({}); the bake is done.".format(ex_))
             try:                                              # v40: the booklet crops of the sheets (CROP_SPEC)
                 booklet_export(SITE, BOARD, RECTS)
+            except BkCropMissing:                             # v59 (closing, P09.1): a missing booklet crop stops the run
+                raise
             except Exception:
                 LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())
             for f_ in ("lp_flag_lines", "sec_look_lines", "wat_flag_lines"):   # v58 (round 3): the

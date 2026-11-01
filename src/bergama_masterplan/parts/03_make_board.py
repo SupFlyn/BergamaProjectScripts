@@ -1003,7 +1003,7 @@ def build_all(doc, warn):
     return folder, files, lines, pages, scale
 
 
-def run():
+def main():    # v38.1: was run(), which replaced the Button input `run` (Button did nothing)
     pressed, why, btn = trig_should_run("chain_seen", SETTINGS)   # v38 (round 4): common/trigger.py, one rule
     globals()["_ran_now"] = pressed
     if not pressed:
@@ -1082,7 +1082,7 @@ def run():
 
 if Rhino is not None:
     try:
-        _txt, _files = run()
+        _txt, _files = main()
     except Exception as _ex:
         _txt, _files = u"ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION), []
         gh_status(SHORT + " · ERROR")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v17.py = v17 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v18_1.py = v18.1 (1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
@@ -118,7 +118,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v17"  # v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v18.1"  # v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -910,7 +910,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '0972af4b119d556bb810b350fd8e70f4', 'CUTS': '6cfa39c57ca76dd552132e25183f7a19'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'CUTS': '5fb9ed44bfa605770a04af08b74b2ac9'}.get(name):
         raise RuntimeError("Data file bergama_proposal_sections_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_proposal_sections_data.py:" + name, "exec"), globals())
@@ -4117,98 +4117,12 @@ def fig_fade(col, layer=0, paper=None):
 
 
 # ---- D1 style a: raster cutouts (PNG with alpha) -------------------------------------------------------------------
-# Round 4 (S1, N1 a): PEOPLE no longer use cutouts (fig_side / fig_stall never call cut_image); plants.py may still
-# (its style a), until the plant session (S3) decides.
-# Downloads/Bergama/Data/cutouts/cutouts.json: {"cutouts": {key: {"file": "olive_1.png", "h_m": 9.0, "kind": "tree"},
-# ...}} (or the dict alone); a key may hold a list of such entries (variants, picked by seed). h_m = the true height
-# of what the PNG shows from its bottom edge (ground / feet) to its top; the PNG is drawn h_m (or the caller's h_m)
-# x k x the D9 layer scale tall, width by its own proportions, centred on x, bottom on the ground. Keys: plants =
-# the plants.py species key ("olive"), people = "person_<pose>" (fig_side poses), "stall". Spec:
-# revision_2026-10-30/handover/CUTOUTS_SPEC.md. A missing key is drawn in style b and counted (cut_log_line).
-CUT_LOG = []
+# Round 4 (S1, N1 a): PEOPLE no longer use cutouts. Round 4 closing: cut_image and its reader (cut_dir, cut_library,
+# _cut_px, CUT_LOG, _CUT_LIB) deleted: no caller anywhere in src/ (closing part C grep B). cut_log_line stays for its
+# callers (proposal sections, site board p07, water board p12/p14/p18, masterplan): with no cutout drawn it returns
+# None.
 CUT_MISSING = {}
 CUT_USED = {}
-_CUT_LIB = {}
-
-
-def cut_dir():
-    import os as _o
-    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "cutouts")
-
-
-def cut_library():
-    """{key: [entry, ...]} from cutouts.json, {} when the folder or file is missing (read once per run)"""
-    import os as _o
-    import json as _j
-    if "lib" in _CUT_LIB:
-        return _CUT_LIB["lib"]
-    lib = {}
-    p = _o.path.join(cut_dir(), "cutouts.json")
-    try:
-        with open(p, "r", encoding="utf-8") as fh:
-            js = _j.load(fh)
-        js = js.get("cutouts", js) if isinstance(js, dict) else {}
-        for k_, v in js.items():
-            vs = v if isinstance(v, list) else [v]
-            ok = [e for e in vs if isinstance(e, dict) and e.get("file") and e.get("h_m") and
-                  _o.path.isfile(_o.path.join(cut_dir(), e["file"]))]
-            if ok:
-                lib[k_] = ok
-        CUT_LOG.append(u"Cutouts: %d keys from %s" % (len(lib), p))
-    except Exception as ex:
-        CUT_LOG.append(u"Cutouts: %s not read (%s); style a draws style b everywhere" % (p, type(ex).__name__))
-    _CUT_LIB["lib"] = lib
-    return lib
-
-
-def _cut_px(path):
-    """(width, height) in px of a PNG or JPEG, None if unknown"""
-    import struct as _st
-    try:
-        with open(path, "rb") as f:
-            d = f.read(65536)
-        if d[:8] == b"\x89PNG\r\n\x1a\n":
-            return _st.unpack(">II", d[16:24])
-        i = 2
-        while d[:2] == b"\xff\xd8" and i + 9 < len(d):
-            if d[i + 1] in (0xC0, 0xC1, 0xC2):
-                return (d[i + 7] << 8) | d[i + 8], (d[i + 5] << 8) | d[i + 6]
-            i += 2 + ((d[i + 2] << 8) | d[i + 3])
-    except Exception:
-        pass
-    return None
-
-
-def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
-    """style a: [("image", x0, y0, w, h, path, None, flip, None)] of cutout `key` standing on (x, gy) page mm (gy
-    may be a function of x), h_m (default the cutout's own true height) x k x the layer scale tall; w_max (mm)
-    shrinks it uniformly if wider. None (counted as missing) when there is no such cutout. Always opaque (Aras 31
-    Oct: nothing see-through); depth layers 1, 2 take the entry's toned copy (cutouts.json "depth": {"1": file,
-    "2": file}, made by tools/cutouts/depth_tones.py: colours mixed toward the paper by FIG_DEPTH's fade, so nearer
-    = stronger, farther = paler, the section rule), else the full-tone file."""
-    import os as _o
-    lib = cut_library().get(key)
-    if not lib:
-        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
-        return None
-    e = lib[int(pick) % len(lib)]
-    p = _o.path.join(cut_dir(), e["file"])
-    dfile = (e.get("depth") or {}).get(str(int(layer or 0)))   # R2-A 31 Oct: the depth layer's own toned copy
-    if dfile and _o.path.isfile(_o.path.join(cut_dir(), dfile)):
-        p = _o.path.join(cut_dir(), dfile)
-    px = _cut_px(p)
-    if not px or not px[1]:
-        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
-        return None
-    sc, _f_, _al = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
-    h = float(h_m or e["h_m"]) * k * sc
-    w = h * px[0] / float(px[1])
-    if w_max and w > w_max:
-        h, w = h * w_max / w, w_max
-    g = gy(x) if callable(gy) else gy
-    flip = (facing < 0) != (e.get("facing", 1) < 0)
-    CUT_USED[key] = CUT_USED.get(key, 0) + 1
-    return [("image", x - w / 2.0, g, w, h, p, None, flip, None)]   # opaque: never see-through (Aras 31 Oct)
 
 
 def cut_log_line():
@@ -7429,6 +7343,21 @@ class TextError(RuntimeError):
     pass
 
 
+TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
+
+
+def tp_warn(msg):
+    """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
+    TP_LOG and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError again)"""
+    if not TP_WARN_ONLY[0]:
+        raise TextError(msg)
+    TP_LOG.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
 class TextCollision(TextError):
     def __init__(self, page, item, other, n=1, more=()):
         self.page, self.item, self.other, self.n, self.more = page, item, other, n, list(more)
@@ -7627,7 +7556,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                raise TextError(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm)" % (
+                tp_warn(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -7719,8 +7648,8 @@ class TextPage(object):
         return "g%d" % self._gid
 
     def _size_ok(self, text, pt):
-        if pt * self.scale < self.min_pt - 1e-6:
-            raise TextError(u"%s: %r would print at %.2f pt, below the %.1f pt minimum" % (
+        if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
+            tp_warn(u"%s: %r prints at %.2f pt, below the %.1f pt minimum" % (
                 self.name, text[:40], pt * self.scale, self.min_pt))
 
     # -- registering
@@ -7775,8 +7704,8 @@ class TextPage(object):
             lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            raise TextError(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                               max_lines))
+            tp_warn(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                       max_lines))
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -7845,7 +7774,7 @@ class TextPage(object):
         """the collision test (see the module notes); returns the number of texts checked"""
         for sl in self.sides:
             if not sl.closed:
-                raise TextError(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
         hits = []
         I = self.items
         for i, a in enumerate(I):
@@ -7872,6 +7801,17 @@ class TextPage(object):
         lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         lg.append(line)
         self.checked = True
+        if hits and raise_ and TP_WARN_ONLY[0]:          # 1 Nov (Aras 17:11 / 18:51): every hit a WARNING line and an
+            k_ = len(lg) - 1                             # orange warning; the run goes on, one run collects them all
+            lg[k_:k_] = [u"WARNING %s text hit: %s against %s" % (self.name, _tp_desc(a_), _tp_desc(b_))
+                         for a_, b_ in hits]             # (before the "overlap ..." line, which stays the last)
+            try:
+                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                                                  u"%s: %d text hits (each one in the log, 'WARNING %s text hit')" %
+                                                  (self.name, len(hits), self.name))
+            except Exception:
+                pass
+            return len(I)
         if hits and raise_:
             raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
         return len(I)
@@ -8764,7 +8704,7 @@ def sf_seat_x(gy, x, half_w, tol=0.05):
 
 def sf_ground_fn(gy, half_w):
     """gy as a function that already seats (sf_seat_x): pass it as the ground of fig_side, fig_activity,
-    pla_section, cut_image ... so every item they place stands on the lowest ground under its base"""
+    pla_section ... so every item they place stands on the lowest ground under its base"""
     return lambda x: sf_seat_x(gy, x, half_w)
 
 
@@ -9211,17 +9151,26 @@ class SfCallouts(object):
         return sh
 
     def key(self, x, y, size=1.8, ink=None, gap=None):
+        """the numbered list: one row per number from (x, y) down (y up), gap apart; ink = the caller's colour (else
+        SEC ink). Round 4 closing (G-R4-7): each number is the shared marker (marker.py mk_marker, style "ring" as
+        .marks: the glyph centred on its ink box, at least 7 pt), its disc centred 0.4 x size above the row's
+        baseline and at least its radius in from x; the row's words start 2 x size in (further only when the disc
+        is wider). Returns house shapes, as before."""
         ink = ink or SEC["ink"]
         gap = gap or 1.5 * size
+        pt = max(7.0, size / 0.3528)
         seen, sh, yy = set(), [], y
         for n, _x, _y, t in sorted(self.items):
             if n in seen:
                 continue
             seen.add(n)
-            sh += [("poly", sec_ellipse(x + 0.75 * size, yy - 0.4 * size, 0.75 * size, 0.75 * size, 20), "FFFFFF", ink,
-                    0.15),
-                   ("text", u"%d" % n, x + 0.75 * size, yy - 0.76 * size, 0.85 * size, ink, True, "C"),
-                   ("text", t, x + 2.0 * size, yy - 0.76 * size, size, ink, False, "L")]
+            cy = yy - 0.4 * size
+            shp, _box, r = mk_marker(x + 0.75 * size, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            if r > 0.75 * size:                          # a wider disc (two digits) moves in to keep x its left edge
+                shp, _box, r = mk_marker(x + r, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            sh += list(shp)
+            sh.append(("text", t, max(x + 2.0 * size, x + 2.0 * r + 0.4 * size), yy - 0.76 * size, size, ink, False,
+                       "L"))
             yy -= gap
         return sh
 
@@ -10672,7 +10621,8 @@ def ps_marks(S):
                 spot = (x, y)
                 break
         if spot is None:
-            raise ValueError(u"p13 %s: no free spot for the number of %r inside the section" % (S.cid, txt))
+            tp_warn(u"p13 %s: no free spot for the number of %r inside the section: not drawn" % (S.cid, txt))
+            continue                                             # v18.1: a warning, the run goes on
         done.append(spot)
         at.append((spot[0], spot[1], txt, col))
     num = {}
@@ -10977,7 +10927,7 @@ def ps_page(page, cids, log, style="a"):
         if e["mode"] == "LEFT":
             e["sw"] = BK_W - e["dw"] - GRID_GUT
             if e["sw"] < PS_SIDE_MIN:
-                raise ValueError(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
+                tp_warn(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
                                  u"(at least %.0f)" % (page, cid, e["dw"], PS_SCALE, e["sw"], PS_SIDE_MIN))
             e["side0"] = -ps_side(S, 0.0, e["sw"], 0.0)
         L.append(e)
@@ -11010,7 +10960,7 @@ def ps_page(page, cids, log, style="a"):
         tot, lh = heights(False)
         log.append(u"NOTE %s: no room for the material legend at 1:%d: it is on p13a only" % (page, PS_SCALE))
     if tot > BK_H:
-        raise ValueError(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
+        tp_warn(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
             page, tot, PS_SCALE, BK_H, u", ".join(u"%s %.1f" % (e["S"].cid, e["h"]) for e in L)))
     ngap = len(L) - 1 + (1 if lh else 0)
     gap = PS_ROW_GAP + (BK_H - tot) / float(max(1, ngap))
