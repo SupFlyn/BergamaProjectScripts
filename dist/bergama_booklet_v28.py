@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v27.py = v27 (1 Nov 2026: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26: round 4 S9; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_booklet_v28.py = v28 (1 Nov 2026: a source mark too long for its room is set at 6 pt with a warning, the run goes on; v27: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26: round 4 S9; what changed: the NEW IN / VERSION notes below)
 """Bergama Group 6: A3 BOOKLET ASSEMBLER (26 Oct 2026). Rules: scripts/_template/SCRIPT_STANDARD.md §8.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from the scripts' OWN sheet PDFs.
 
@@ -156,7 +156,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v27"  # v27 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v28"  # v28 1 Nov 21:15 (Aras 19:08, the source mark [16,20] on the water balance sheet): a renumbered source mark that needs under 6 pt is set at 6 pt with a WARNING line and an orange warning instead of stopping; v27 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -2015,10 +2015,17 @@ def _strip_copy(fitz, path, i, clip, srcs, out=None):
         w = font.text_length(new, fontsize=size)
         if w > room > 0:                              # the words after it stay clear: set smaller to fit, never
             size2 = size * room / w                   # under MIN_CAPTION (6 pt; v26 closing: was down to 0.75 x)
-            if size2 < MIN_CAPTION - 1e-6:
-                raise TextError(u"%s page %d: the source mark %r needs %.2f pt to fit before the next word, under the "
-                                u"%.1f pt minimum: give it room in its sheet" % (os.path.basename(path), i + 1, new,
-                                                                                 size2, MIN_CAPTION))
+            if size2 < MIN_CAPTION - 1e-6:            # v28 (Aras 1 Nov 19:08): a WARNING and an orange warning, set
+                msg_ = (u"%s page %d: the source mark %r needs %.2f pt to fit before the next word, under the "
+                        u"%.1f pt minimum: set at %.1f pt (it may touch the next word); give it room in its sheet" %
+                        (os.path.basename(path), i + 1, new, size2, MIN_CAPTION, MIN_CAPTION))
+                TP_LOG.append(u"WARNING " + msg_)     # at the minimum; the run goes on
+                try:
+                    ghenv.Component.AddRuntimeMessage(
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg_)
+                except Exception:
+                    pass
+                size2 = MIN_CAPTION
             if srcs:
                 srcs.n_tight += 1
             size = size2
