@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# CURRENT VERSION: bergama_water_board_v12_3.py = v12.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -193,8 +194,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v12 (2026-10-31)"
-SHORT = "v12"
+VERSION = "bergama_water_board v12.3 (2026-11-01)"  # v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v12.3"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start")
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -404,20 +405,42 @@ def chain_fire(v, key, name=None):
     s = str(v) if v is not None else ""
     if not s.startswith("done ") and name:
         s = upstream_done(name) or ""
-    if not s.startswith("done "):
-        return False
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
         except Exception:
             pass
-        if _scx.sticky.get(key) == s:
+        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
+        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
+        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
+        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
+        # script's globals between solves (the chain stopped after ZoneBase).
+        tok = globals().get("_CHAIN_SOLVE")
+        if _scx.sticky.get(key + ":init") is None:
+            _scx.sticky[key + ":init"] = tok
+        first = _scx.sticky.get(key + ":init") is tok
+        if not s.startswith("done "):
+            return False
+        if first or _scx.sticky.get(key) == s:
+            _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
         return True
     except Exception:
         return False
+
+
+def _chain_wiring():
+    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
+    try:
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
+    except Exception:
+        return ""
+
+
+_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
 def done_text(ran, ok, secs):
@@ -3851,7 +3874,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'NAMES': '299db9e3ac017dd598b02184b21f697c', 'CUTS': '34548cb4690d944460505d2cd484311f', 'SPECIES': 'b3a8e35120cba4e926a9a4fad2c63ab1', 'SKETCH_SRC': 'e84f58206f857080352e1723882a3930', 'DETAIL_SRC': '87908363d2a4d472bbfcbd0320614960'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'NAMES': '3b7a42d410e1b0f0bf82350fdecdc33e', 'CUTS': '6cfa39c57ca76dd552132e25183f7a19', 'SPECIES': 'b3a8e35120cba4e926a9a4fad2c63ab1', 'SKETCH_SRC': 'e84f58206f857080352e1723882a3930', 'DETAIL_SRC': '5a3ecc62b802ccab66a528286dc6a4ac'}.get(name):
         raise RuntimeError("Data file bergama_water_board_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_water_board_data.py:" + name, "exec"), globals())
@@ -17785,7 +17808,12 @@ def _p17_logic(pg, x0, ytop, w, h, geos, log):
         xm = xc + ax + (i + 0.5) * cw
         hi = PLA_SPECIES[key]["h_range"][1]
         crown = min(PLA_SPECIES[key]["crown_m"] or 1.0, 0.95 * cw / ks)   # a crown never wider than its column
-        _p17_put(pg, pla_section(key, xm, gy, ks, h_m=hi, crown_m=crown, seed=i + 3))
+        if key in ("reed", "mint"):                      # v12.1 bugfix: these grow only in lined cells (plants.py
+            cx0, cx1 = xm - 0.4 * cw, xm + 0.4 * cw     # guard): drawn in a small lined cell, 0.50 m deep, rim on the
+            cell = pla_reed_basin if key == "reed" else pla_mint_cell   # ground line; height from the cell floor
+            _p17_put(pg, cell(cx0, cx1, gy - 0.5 * ks, gy, ks, 0.0, h_m=hi))
+        else:
+            _p17_put(pg, pla_section(key, xm, gy, ks, h_m=hi, crown_m=crown, seed=i + 3))
         words(pg, key, xc + ax + i * cw + 0.3, gy - 1.0)
     return (x0, yb, x0 + w, ytop)
 

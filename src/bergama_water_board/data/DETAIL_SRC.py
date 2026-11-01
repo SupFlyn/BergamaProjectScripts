@@ -1316,7 +1316,7 @@ TREE_STYLES = {
     "context": dict(dark="ADB694", mid="BCC2A6", light="D7DAC7", trunk="A39E90", shadow="B0AC9C", shadow_a=0.16,
                     lobes=1.0),
 }
-TREE_ALPHA = (0.62, 0.68)                # opacity of the leaf clusters behind and in front of the branches
+TREE_ALPHA = (1.0, 1.0)                  # closing 31 Oct (D7): leaf clusters opaque, never see-through
 TREE_MIN_MM = 0.25                       # smallest crown radius drawn on the page, mm
 
 
@@ -2103,7 +2103,7 @@ def veg_shrub(pg, X, Y, h, w, seed, kind=0, layer="planting"):
         lk = 2 if kind == 2 else (1 if r.random() < 0.2 else 0)
         sz = size * (0.7 + 0.6 * r.random())
         pg.poly([_leaf(px, py, sz, r.random() * 6.283, lk, r)], fill=_tone(max(0, min(1, lit - 0.3 * depth)), r, SEA["shrub_tones"]),
-                stroke=LEAF_EDGE if r.random() < 0.25 else None, lw=0.03, layer=layer, alpha=0.9)
+                stroke=LEAF_EDGE if r.random() < 0.25 else None, lw=0.03, layer=layer, alpha=1.0)
 
 
 def veg_blade(pg, X, Y, length, ang, width, curl, col, layer="planting"):

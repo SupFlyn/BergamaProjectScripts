@@ -1,3 +1,4 @@
+# CURRENT VERSION: bergama_city_link_v6_5.py = v6.5 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 # bergama_city_link_v6.py (v6, 31 Oct: round 3, p08 one corridor arrow over the whole study area + p09 hub plans; v5.1, 31 Oct: bugfix, rebuilt with the shared base map fix of 31 Oct: the stream (M5 water) no longer stops on "list - float"; v5, 30 Oct: revision T5, p8 framework map + who calendar, p9 spine) · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
@@ -10,13 +11,16 @@
 #                                                         with its card under it, the flood rule, which bank, the
 #                                                         producers' market
 # city_link_results.json = the spine, the function sites and (v1.11) the hubs in survey coordinates. The site board (selinus_board v34,
-# plan 07) reads it for the movement potential with the spine, and the masterplan (Thread 5) draws it.
+# plan 07) reads it for the movement potential with the spine; the masterplan builds the same spine from common/city_spine.py (v6.2).
 # Read live on every run: the water balance results (farm areas for the producers' market) and the site board's
 # movement result (walking potential on the spine), each with a flagged fallback.
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v6"
+VERSION = "v6.5"  # v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v6.2 (1 Nov 2026, Aras 07:48): the spine, its bank vote and the stops moved to common/city_spine.py, which
+# the masterplan includes too, so the masterplan no longer reads city_link_results.json; city link runs once, after
+# the masterplan. Same spine, same vote, same pages.
 # NEW IN v6 (round 3, 31 Oct 2026, session B4, BRIEF P08.1 P08.3 P09.1-P09.3, D1 D9, G2 G3 G4 G16 G17 G19; a feature
 # change, so the next whole number): p.08's framework is the basic whole-corridor overview (D1): the project is ONE
 # corridor arrow along the stream from the upstream entry to the downstream end of the study area (corridor_line: the
@@ -147,20 +151,6 @@ MP_FILES = [os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.jso
 BD_FILES = [os.path.join(bg_booklet("selinus_board"), "results.json"),                    # v1.8: bed depth (board v40)
             os.path.join(BERGAMA, "output", "selinus_board", "booklet", "results.json")]
 
-# ------------------------------------------------------------------ the spine and the function sites (survey m)
-# Anchors are surveyed points (h01 §0 and §5, source s62): K4 Ulucami Önü (29846,32278), K3 Tabak Köprüsü (30037,32122),
-# P04 Red Hall south rotunda "Müze" (30238.7,31931.2), K5 Üç Kemer (30294,31792). side_ref = a surveyed point on the bank
-# the piece runs on (P05 Ulu Cami; P02 Red Hall); offset_m = distance from the stream centreline (schematic, for the
-# movement network only; Thread 5 draws the real edge). Piece B runs over the covered reach (offset 0), where the main
-# spine (Kınık Caddesi) crosses the stream.
-SPINE = [
-    dict(id="A", name="Ulu Cami to K3 bank walk", frm=[29846.0, 32278.0], to=[30037.0, 32122.0], side_ref=[29844.2, 32313.3], offset_m=15.0, side="auto", catch_m=250.0),
-    dict(id="B", name="Junction over the covered reach", frm=[30037.0, 32122.0], to=[30238.7, 31931.2], side_ref=None, offset_m=0.0),
-    dict(id="C", name="Red Hall to Üç Kemer bank walk", frm=[30238.7, 31931.2], to=[30294.0, 31792.0], side_ref=[30245.0, 31962.0], offset_m=15.0, side="auto", catch_m=250.0),
-]
-# the main spine (Bankalar Caddesi + Kınık Caddesi, OSM "secondary" ways of the same extract, converted with the h01 §0
-# formula, +-10-30 m), from Bankalar's south end east past the junction; the masterplan (v11) draws it (Thread 5)
-MAIN_SPINE = [[29756.1, 31655.4], [29777.7, 31668.2], [29793.7, 31679.4], [29806.4, 31691.6], [29813.1, 31702.3], [29819.3, 31712.8], [29828.2, 31728.8], [29852.9, 31760.3], [29869.5, 31780.3], [29880.9, 31808.0], [29885.0, 31824.8], [29896.2, 31862.5], [29901.7, 31880.7], [29908.9, 31905.2], [29916.1, 31928.8], [29919.2, 31939.1], [29929.8, 31960.8], [29944.8, 31984.6], [29951.9, 31990.3], [29956.3, 31993.2], [29992.8, 32017.4], [29995.4, 32019.8], [29998.6, 32022.6], [30005.0, 32029.4], [30032.5, 32038.3], [30084.6, 32056.0], [30089.7, 32057.7], [30092.6, 32056.5], [30096.2, 32055.0], [30138.7, 32039.0], [30153.1, 32036.3], [30235.7, 32021.9], [30245.0, 32020.1], [30269.2, 32015.6], [30274.2, 32014.5], [30278.7, 32012.8], [30281.9, 32010.3], [30285.0, 32007.1], [30308.8, 31981.0], [30310.4, 31979.3], [30317.5, 31972.1], [30331.6, 31957.6], [30373.7, 31924.2], [30399.9, 31903.0], [30432.4, 31879.5], [30499.5, 31831.0], [30545.8, 31800.5], [30562.8, 31796.3], [30574.8, 31795.5], [30598.1, 31797.7], [30626.3, 31799.4], [30663.0, 31801.6], [30682.2, 31803.0], [30709.6, 31804.9], [30718.5, 31805.5], [30741.5, 31803.1], [30767.5, 31791.6], [30786.2, 31779.9], [30813.0, 31760.8], [30824.8, 31752.4], [30889.1, 31700.8], [30978.8, 31622.0], [30993.4, 31611.0], [31007.0, 31604.5], [31023.2, 31601.7]]
 # v1.9 STREAM_REF: the Selinos reference line of the masterplan (v11, Thread 5, calculated 24 Oct 2026): OpenStreetMap
 # "Selinos Çayı" (extract of 28 Jul 2026) converted with the h01 §0 formula (+-10-30 m), moved onto the middle of the
 # survey channel (HIDRO_DERE_SULU / walls) and thinned to 10 m; a covered flag per segment (OSM tunnel / culvert ways).
@@ -177,6 +167,8 @@ MAIN_SPINE = [[29756.1, 31655.4], [29777.7, 31668.2], [29793.7, 31679.4], [29806
 # v6 (round 3, G16 / D9): every printed bridge or place name from the one names table (bridge_name, place_name)
 #@include ../common/data/NAMES.py
 #@include ../common/names.py
+# 1 Nov (v6.2): the spine, its bank vote and the stops live in common/city_spine.py (the masterplan builds them too)
+#@include ../common/city_spine.py
 
 
 def cl_flood():
@@ -196,35 +188,11 @@ def cl_flood():
 
 
 CL_Q100, CL_Q500, CL_OVER = cl_flood()
-# side="auto": the bank is picked by the data (Aras 24 Oct 09:08: where more people live and modern buildings
-# concentrate). Per bank, within catch_m of the stream along the piece: people = floors of homes (a proxy; footprints
-# not weighted), modern = buildings of 3+ floors. More of both wins; on a split, modern decides when people differ by
-# under 10 %, else people. The site board v34 recomputes it live from its buildings (survey floors + inferred) and
-# writes the vote to city_link_movement.json, which wins over the built-in vote below.
-# Built-in vote: survey floor labels YAZI_KAT_ADEDI (2,894 labels, course DXF of 17 Oct), the same floors as the board's
-# density drawings; stream = OSM Selinos line; chainage and bank on the K4-K3-K5 chord (calculated, about ±30 m).
-BANK_VOTE = {
-    "A": dict(NE=dict(buildings=327, people_floors=425, modern_3plus=3), SW=dict(buildings=326, people_floors=436, modern_3plus=16)),
-    "B": dict(NE=dict(buildings=403, people_floors=592, modern_3plus=4), SW=dict(buildings=263, people_floors=437, modern_3plus=31)),
-    "C": dict(NE=dict(buildings=56, people_floors=73, modern_3plus=1), SW=dict(buildings=187, people_floors=245, modern_3plus=4)),
-}
-
-def bank_of(v):
-    """the vote rule: (bank, why)"""
-    ne, sw = v["NE"], v["SW"]
-    if ne["people_floors"] >= sw["people_floors"] and ne["modern_3plus"] >= sw["modern_3plus"]:
-        return "NE", "more people and more modern buildings"
-    if sw["people_floors"] >= ne["people_floors"] and sw["modern_3plus"] >= ne["modern_3plus"]:
-        return "SW", "more people and more modern buildings"
-    if abs(ne["people_floors"] - sw["people_floors"]) < 0.10 * max(ne["people_floors"], sw["people_floors"], 1):
-        return ("NE" if ne["modern_3plus"] > sw["modern_3plus"] else "SW"), "people within 10 %, more modern buildings"
-    return ("NE" if ne["people_floors"] > sw["people_floors"] else "SW"), "more people (banks split on modern buildings)"
 
 # chainage along the stream from the frame's north-west end: bridges from h02 card (s62): K4 467, K3 709, K5 1,126,
 # K6 1,767 m; other places projected onto the K4-K3-K5-K6 chord here (calculated, about ±30 m)
 CH = dict(K4=467, K3=709, K5=1126, K6=1767, cross=781, cov0=709, cov1=949)
 # v1.6: source texts printed once in each page's numbered key (cite() gives their [n])
-SRC_WET = "Days wet: research/rain_river_levels/README.md §3 (mean of water years 2016-2021)"
 SRC_FLOOD = ("Floods: DSİ Q100/Q500; depth by Manning on the surveyed cross-sections, "
              "research/rain_river_levels/README.md v1.1 correction of 24 Oct (supersedes §3 levels)")
 SRC_RULES = ("Taşkın ve Rüsubat Kontrolü Yönetmeliği Art. 17(1), 4(1)(n), 6(2); Planlı Alanlar İmar Yönetmeliği "
@@ -241,26 +209,6 @@ SRC_TABAK = ("h02 calls Tabaklar Hamamı 'opposite Ulu Cami on the right bank' (
 # v1.9: the page 1 main spine plan
 SRC_MAIN = "OpenStreetMap contributors, extract of 28 Jul 2026: streets, the Selinos stream (covered pieces), bus stops"
 SRC_STREAM = SRC_MAIN                    # v4 (D13): one public source line for the OSM layers
-# who: L locals, T tourists, S students; grows: W water, E stream edge, A agriculture, H heritage
-FUNCS = [
-    dict(n=1, name="Bank bazaar", where="Tabaklar Hamamı", ch=522, bank="NE", xy=[29890.4, 32243.6], who="LT", grows="HE",
-         icon="stall", kw=("Ottoman bazaar on this bank: Pabuççular Arastası", "stalls bring it back"), src="h02 s32"),
-    dict(n=2, name="Parchment and leather workshops", where="Tannery quarter at K3", ch=737, bank="both", xy=[30062.0, 32106.0], who="TSL", grows="H",
-         icon="hide", kw=("tanning named the stream · last master died 2026", "teach and sell the craft"), src="h02 s44 s45"),
-    dict(n=3, name="Junction square", where="Kınık Caddesi over the covered stream", ch=781, bank="over", xy=[30058.0, 32047.0], who="LTS", grows="WEH",
-         icon="slot", kw=("the one place the main road meets the stream", "a slot: view down to the water strip"), src=None),
-    dict(n=4, name="Red Hall water terrace", where="Red Hall, Roman tunnels' outlet", ch=962, bank="NE", xy=[30238.7, 31931.2], who="TL", grows="HW",
-         icon="arch", kw=("Red Hall reopens: target 2026", "its visitors step out onto the stream"), src="h02 s41"),
-    dict(n=5, name="Producers' market", where="Üç Kemer bridge, Wednesdays", ch=1126, bank="spine", xy=[30294.0, 31792.0], who="LT", grows="A",
-         icon="olive", kw=("food from fields on our stored water · olive oil", "Wednesdays · town producers' market: Saturdays"), src="h02 s25"),
-    dict(n=6, name="Study terraces", where="Spine bank between K4 and K3", ch=620, bank="spine", xy=[29941.0, 32200.0], who="SL", grows="EW",
-         icon="bench", kw=("shaded seats by the water strip", "for students · out of the street noise"), src=None),
-    dict(n=7, name="Clean-water classroom", where="Reed basins, upstream entry", ch=200, bank="bed", xy=None, stage="entry", who="SL", grows="W",
-         icon="reed", kw=("the cleaning basins as a lesson", "how the stream works"), src=None),
-]
-EVENTS = dict(n=8, name="Summer bed events", where="Dry bed beside the 4 m water strip", who="LT", grows="WE",
-              icon="calendar", kw=("open-air events · Jul-Sep", "bed 3 cm or less · cleared by October"), src=SRC_WET)
-# v1.6: kw = 2 keyword lines (were one "why" sentence); src = the source number in the page key; icon = the stop's pictogram
 HERITAGE = [  # (chainage, bank, label, source) from h01 §5 (survey coordinates projected, calculated)
     (380, "NE", "Roman complex", "P12"), (444, "NE", "Ulu Cami 1398", "P05"), (522, "NE", "Tabaklar Hamamı", "P07"),
     (737, "NE", "Tannery quarter", "E07"), (752, "SW", "İstiklal Meydanı", "P16"), (887, "SW", "Yabets synagogue", "P14"),
@@ -488,13 +436,7 @@ def live():
     wb_src = ("water balance results of " + t) if d else "FLAG: water balance results not found: p.09's farm areas and p.08's stream row are left out"
     mv, t2 = _load(MV_FILES)
     mv_src = ("site board movement of " + t2) if mv else "run the site board once to compute the walking potential"
-    votes = dict((k, dict(v)) for k, v in BANK_VOTE.items())
-    vote_src = "survey floor labels (built in, 24 Oct)"
-    for v in (mv or {}).get("bank_votes") or []:
-        if v.get("id") in votes:
-            votes[v["id"]] = dict(NE=v["NE"], SW=v["SW"])
-            vote_src = "site board buildings (" + mv_src + ")"
-    sides = dict((pc["id"], bank_of(votes[pc["id"]])[0] if pc.get("side") == "auto" else "over") for pc in SPINE)
+    votes, vote_src, sides = spine_votes(mv, mv_src)     # v6.2: common/city_spine.py (the masterplan votes the same way)
     # v1.8 (FIGURE_CONFLICTS.md §2): the spine length = the masterplan's drawn pieces (edge + deck + over), read live;
     # none printed when the masterplan has not run (was a typed "about 660 m", the K4-K5 chainage)
     mp, t3 = _load(MP_FILES)
@@ -2333,7 +2275,7 @@ def results(L=None):
                  main_transit_hub=hb["transit"], plane_trees=hb["kind"] == "walk", stops=hb["stops"],
                  bus_stops=hb["bus_stops"], trips=hb["trips"], later=hb.get("later"), ch=hb["ch"]) for hb in hub_list()]
     return dict(spine_banks=(L or {}).get("sides"), bank_votes=(L or {}).get("votes"), bank_vote_source=(L or {}).get("vote_src"),
-                script="bergama_city_link_v6.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+                script="bergama_city_link_v6_5.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 spine=SPINE, functions=[dict([(k, f.get(k)) for k in ("n", "name", "where", "xy", "stage", "who", "grows", "ch", "bank")] +
                                              [("hub", "sub-hubs" if f["n"] == 8 else hub_of.get(f["n"]))])
                                         for f in FUNCS + [EVENTS]],
@@ -2395,9 +2337,9 @@ def booklet_export(out_dir):
 
 def build(dir_):
     L = live()
-    # 25 Oct 10:19 (no double runs): the site board and masterplan ran BEFORE this script and drew the spine from the
-    # last city_link_results.json (or their built-in copy). The bank choice comes from survey building counts, so it
-    # only changes when the survey changes; if it did change, say so (one more press of the chain fixes the drawings).
+    # 25 Oct 10:19 (no double runs): the site board ran BEFORE this script and drew the spine from the last
+    # city_link_results.json (or its built-in copy); v6.2: the masterplan builds the spine itself (common/city_spine.py).
+    # The bank choice comes from survey building counts, so it only changes when the survey changes; if it did, say so.
     try:
         with open(bg_first([os.path.join(RES_DIR, OUT_JSON), os.path.join(dir_, OUT_JSON)]), "r", encoding="utf-8") as f:
             prev, prev_src = json.load(f).get("spine_banks"), "the last run"
@@ -2405,7 +2347,7 @@ def build(dir_):
         prev = dict((pc["id"], bank_of(BANK_VOTE[pc["id"]])[0] if pc.get("side") == "auto" else "over") for pc in SPINE)
         prev_src = "the built-in copy"
     L["bank_note"] = ("" if prev == L["sides"] else
-                      "\nWARNING: the spine bank changed from %s (%s -> %s): the site board and masterplan of this run drew "
+                      "\nWARNING: the spine bank changed from %s (%s -> %s): the site board of this run drew "
                       "the old one; press the chain once more." % (prev_src, prev, L["sides"]))
     BM_NOTE[:] = []
     pages = [page_framework(L), page_spine(L)]            # v4 (D8 b): booklet p.08 and p.09
@@ -2440,6 +2382,7 @@ def main():
     return "%s  %s\n%s  %s\nfigures: %s; %s; %s\ncity link %s, %.1f s%s%s" % (OUT_PDF, t, OUT_JSON, t, L["wb_src"], L["mv_src"], L["ctx_note"], VERSION, time.time() - t0, L.get("bank_note", ""), bk)
 
 #@include ../common/chain_fire.py
+#@include ../common/gh_in_items.py
 
 
 #@include ../common/done_text.py
@@ -2450,8 +2393,8 @@ if _gh:
     import scriptcontext as _sc
     try: _ik = ":" + str(ghenv.Component.InstanceGuid)   # 25 Oct 10:29: each component keeps its own log and done
     except Exception: _ik = ""
-    _pressed = any(v is True for k, v in list(globals().items()) if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
-        any(chain_fire(v, "bergama_city_link_log_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    _pressed = any(v is True for k, v in _gh_in_items() if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
+        any(chain_fire(v, "bergama_city_link_log_chain") for k, v in _gh_in_items() if not k.startswith("_") and k != "done" and isinstance(v, str))
     if _pressed:
         _t0 = time.time()
         try:

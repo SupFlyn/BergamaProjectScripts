@@ -350,7 +350,7 @@ def fit_inside(TP, spots, lines, taken, pad=0.6, avoid=()):
 
 
 def name_of(z, owner):
-    for (o_, c_, t_), nm in NAMES.items():
+    for (o_, c_, t_), nm in ZONE_NAMES.items():   # closing 31 Oct: renamed, NAMES = the bridge/place table (common/data/NAMES.py)
         if o_ == owner and c_ == z["code"] and t_ in (None, z["tier"]):
             return nm
     return z["label"] or z["code"]

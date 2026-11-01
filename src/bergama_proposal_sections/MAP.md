@@ -3,9 +3,9 @@
 | function / data | file | line |
 |---|---|---|
 | bergama_paths | ../common/bergama_paths.py | - |
-| ps_sources | code.py | 155 |
-| text_w | code.py | 188 |
-| Page | code.py | 195 |
+| ps_sources | code.py | 156 |
+| text_w | code.py | 189 |
+| Page | code.py | 196 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -92,8 +92,10 @@
 | ps_clip_line | parts/80_key_map.py | 127 |
 | ps_key_strip | parts/80_key_map.py | 167 |
 | booklet_export | parts/90_booklet.py | 23 |
-| build_sheet | code.py | 304 |
-| main | code.py | 331 |
-| chain_fire | code.py | 363 |
-| done_text | code.py | 384 |
-| write_log | code.py | 389 |
+| build_sheet | code.py | 305 |
+| main | code.py | 332 |
+| chain_fire | code.py | 364 |
+| _chain_wiring | code.py | 395 |
+| _gh_in_items | code.py | 407 |
+| done_text | code.py | 419 |
+| write_log | code.py | 424 |

@@ -81,9 +81,14 @@ HUBS = [(u"K4", "K4", (29846.0, 32278.0), u"Camikebir Caddesi", (29841.0, 32243.
         (u"Kızıl Avlu", u"İstiklal", (30245.0, 31962.0), u"Kızıl Avlu", (30245.0, 32020.1), False),
         (u"K5", "K5", (30294.0, 31792.0), u"Üç Kemer Köprüsü", (30296.4, 31696.7), True),
         (u"K6", "K6", (30647.0, 31252.0), u"Bergama Sanayi", (30575.0, 31232.4), False)]
+MP_EN_WORDS = {u"bridge", u"road", u"side", u"inlet", u"crossing", u"small", u"and", u"garden", u"demeter's",
+               u"square", u"market", u"terrace", u"walk", u"the", u"of", u"hub", u"wetland", u"basins", u"reed"}
+
+
 def mp_upper(s):
-    """Turkish capitals (i -> İ, ı -> I) for the place names on the plans"""
-    return s.replace(u"i", u"İ").upper()
+    """Turkish capitals (i -> İ, ı -> I) for the place names on the plans; English words (MP_EN_WORDS) in plain
+    capitals (closing 31 Oct: "ROAD BRİDGE" fix)"""
+    return u" ".join(w.upper() if w.lower() in MP_EN_WORDS else w.replace(u"i", u"İ").upper() for w in s.split(u" "))
 
 
 # v37 (round 3, G16 / D9): hub names from common/data/NAMES.py (bridge_name); no K-code is printed. Map words use the

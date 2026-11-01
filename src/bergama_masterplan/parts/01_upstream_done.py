@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+# CURRENT VERSION: bergama_masterplan_v37_4.py = v37.4 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v37.2 (1 Nov, Aras 07:48): the riverside spine, its bank vote and the stops are built in this script
+    (common/city_spine.py, the same code city link uses; the vote from this run's site board or the built-in one);
+    city_link_results.json is no longer read, so city link runs once, after the masterplan. Same drawings.
 NEW IN v37 (round 3, booklet p15, p21, p22; BRIEF P15.1, P21.1-P21.4, P22.1-P22.4, G3, G8, G9, G10, G15, G16,
     G18, G19): real bridge names everywhere (common/data/NAMES.py), no K-code printed. p21: the tree set clipped to
     land at its source (stream, islands, widened reaches, side arms, reed basins; logged "planting clipped to land"),
@@ -257,8 +261,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v37 (2026-10-31)"
-SHORT = "v37"
+VERSION = "bergama_masterplan v37.4 (2026-11-01)"  # v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v37.4"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -319,7 +323,7 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 
 # ---------------------------------------------------------------- the words (CONTEXT §4, verbatim; nothing else)
 # Keywords cut from the sourced sub-programme labels of CONTEXT §4 (Nil 18:25: "just use keywords"); nothing added
-NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
+ZONE_NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
          ("aras_alan", "WT", None): u"REED BASINS", ("aras_alan", "WD", None): u"SPILLWAY",
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
          ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
@@ -402,20 +406,42 @@ def chain_fire(v, key, name=None):
     s = str(v) if v is not None else ""
     if not s.startswith("done ") and name:                 # 12:10: Null on the wire: read the done text from memory
         s = upstream_done(name) or ""
-    if not s.startswith("done "):
-        return False
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
         except Exception:
             pass
-        if _scx.sticky.get(key) == s:
+        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
+        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
+        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
+        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
+        # script's globals between solves (the chain stopped after ZoneBase).
+        tok = globals().get("_CHAIN_SOLVE")
+        if _scx.sticky.get(key + ":init") is None:
+            _scx.sticky[key + ":init"] = tok
+        first = _scx.sticky.get(key + ":init") is tok
+        if not s.startswith("done "):
+            return False
+        if first or _scx.sticky.get(key) == s:
+            _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
         return True
     except Exception:
         return False
+
+
+def _chain_wiring():
+    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
+    try:
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
+    except Exception:
+        return ""
+
+
+_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
 #@include ../../common/done_text.py
@@ -1348,7 +1374,7 @@ def zone_base_file(doc, warn):
         cands.append(str(v).strip().strip('"'))
     for d in search_dirs(doc):
         for sub in ("", "scripts"):
-            for nm in ("bergama_zone_base_v10.py", "bergama_zone_base_v9.py", "bergama_zone_base_v8.py", "bergama_zone_base_v7.py", "bergama_zone_base_v6.py", "bergama_zone_base_v5.py",
+            for nm in ("bergama_zone_base_v10_2.py", "bergama_zone_base_v10.py", "bergama_zone_base_v9.py", "bergama_zone_base_v8.py", "bergama_zone_base_v7.py", "bergama_zone_base_v6.py", "bergama_zone_base_v5.py",
                        "zone_base_v5_embedded_data.json"):
                 cands.append(os.path.join(d, sub, nm))
     for k, p in enumerate(cands):

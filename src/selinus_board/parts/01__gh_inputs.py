@@ -1,4 +1,5 @@
 # r: numpy
+# CURRENT VERSION: selinus_board_v58_3.py = v58.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
@@ -413,8 +414,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v58 (2026-10-31)"     # v27: the log's first line and the text under the component
-SHORT_V = "v58"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v58.3 (2026-11-01)"  # v58.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v58.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# (was: v27: the log's first line and the text under the component)
+SHORT_V = "v58.3"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 

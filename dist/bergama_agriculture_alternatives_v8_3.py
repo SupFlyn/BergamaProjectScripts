@@ -1,4 +1,5 @@
 # r: pymupdf==1.26.5
+# CURRENT VERSION: bergama_agriculture_alternatives_v8_3.py = v8.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 # bergama_agriculture_alternatives_v8.py (v8, 31 Oct: round 3, p18 + p19 merged on ONE booklet page) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
@@ -14,7 +15,7 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, zlib, math, re
 
-VERSION = "v8"
+VERSION = "v8.3"  # v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v8 (round 3, B4 · P18.1-P18.4, D8, G2, G3, G4, G17; spec revision_2026-10-31_round3/handover/B4_work/
 #   spec_p18_merged.md): page 1's five booklet crops are drawn at 1:1 for ONE merged booklet page and carry "bk_w"
 #   (the booklet keeps them 1:1): ag1_stream 260 x 40 mm (the to-farms headline folded in: ag1_headline is gone),
@@ -3305,20 +3306,52 @@ def chain_fire(v, key):
     if isinstance(v, (list, tuple)):
         v = next((x for x in v if x is not None), None)
     s = str(v) if v is not None else ""
-    if not s.startswith("done "):
-        return False
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
         except Exception:
             pass
-        if _scx.sticky.get(key) == s:
+        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
+        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
+        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
+        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
+        # script's globals between solves (the chain stopped after ZoneBase).
+        tok = globals().get("_CHAIN_SOLVE")
+        if _scx.sticky.get(key + ":init") is None:
+            _scx.sticky[key + ":init"] = tok
+        first = _scx.sticky.get(key + ":init") is tok
+        if not s.startswith("done "):
+            return False
+        if first or _scx.sticky.get(key) == s:
+            _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
         return True
     except Exception:
         return False
+
+
+def _chain_wiring():
+    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
+    try:
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
+    except Exception:
+        return ""
+
+
+_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
+def _gh_in_items():
+    """(name, value) of this component's own inputs only. 1 Nov (Aras 08:24): a setting written in the script
+    (PHOTO_ANY_LICENCE = True in agriculture) was taken for a pressed Button, so the script started as soon as it was
+    pasted; Rhino 8 also keeps old globals between solves. All globals only if the inputs cannot be read."""
+    g_ = globals()
+    try:
+        return [(n_, g_.get(n_)) for n_ in (str(p_.NickName or p_.Name) for p_ in ghenv.Component.Params.Input)  # noqa: F821
+                if n_ in g_]
+    except Exception:
+        return list(g_.items())
 
 
 def done_text(ran, ok, secs):
@@ -3332,8 +3365,8 @@ if _gh:
     import scriptcontext as _sc
     try: _ik = ":" + str(ghenv.Component.InstanceGuid)   # 25 Oct 10:29: each component keeps its own log and done
     except Exception: _ik = ""
-    _pressed = any(v is True for k, v in list(globals().items()) if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
-        any(chain_fire(v, "bergama_agri_alt_log_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    _pressed = any(v is True for k, v in _gh_in_items() if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
+        any(chain_fire(v, "bergama_agri_alt_log_chain") for k, v in _gh_in_items() if not k.startswith("_") and k != "done" and isinstance(v, str))
     if _pressed:
         _t0 = time.time()
         try:

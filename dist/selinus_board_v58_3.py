@@ -1,4 +1,5 @@
 # r: numpy
+# CURRENT VERSION: selinus_board_v58_3.py = v58.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
@@ -386,20 +387,42 @@ def chain_fire(v, key):
     if isinstance(v, (list, tuple)):
         v = next((x for x in v if x is not None), None)
     s = str(v) if v is not None else ""
-    if not s.startswith("done "):
-        return False
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
         except Exception:
             pass
-        if _scx.sticky.get(key) == s:
+        # 1 Nov (Aras 08:04: components ran after only pasting code and rewiring): the first solve with this wiring
+        # (pasted, rewired or newly opened component) only notes what is on the wire; only a done text that
+        # arrives after that fires the script. 1 Nov 08:14 fix: "first" is tied to this solve's token
+        # (_CHAIN_SOLVE, made anew each time the script body runs), not to a global, because Rhino 8 keeps a
+        # script's globals between solves (the chain stopped after ZoneBase).
+        tok = globals().get("_CHAIN_SOLVE")
+        if _scx.sticky.get(key + ":init") is None:
+            _scx.sticky[key + ":init"] = tok
+        first = _scx.sticky.get(key + ":init") is tok
+        if not s.startswith("done "):
+            return False
+        if first or _scx.sticky.get(key) == s:
+            _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
         return True
     except Exception:
         return False
+
+
+def _chain_wiring():
+    """The sources wired into this component (their ids, sorted): rewiring starts a new chain memory."""
+    try:
+        return ",".join(sorted(str(s_.Attributes.GetTopLevel.DocObject.InstanceGuid)          # noqa: F821
+                               for p_ in ghenv.Component.Params.Input for s_ in p_.Sources))   # noqa: F821
+    except Exception:
+        return ""
+
+
+_CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
 def done_text(ran, ok, secs):
@@ -432,8 +455,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v58 (2026-10-31)"     # v27: the log's first line and the text under the component
-SHORT_V = "v58"                                       # v44.1: the version under the component (was a fixed "v40")
+SCRIPT_VERSION = "selinus_board v58.3 (2026-11-01)"  # v58.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v58.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# (was: v27: the log's first line and the text under the component)
+SHORT_V = "v58.3"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -897,7 +921,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'REF_LABELS': '776d8caf5b5d9ea0061c0f4658ae8184', 'NOISE_KERNEL': '01b8cb14e278f24b14cf38cb3f144eb1', 'NAMES': '299db9e3ac017dd598b02184b21f697c', 'CLIMATE': 'ff5e2a39ea1582fe5835508061f8373a', 'UTCI_COEF': 'f9a042398c5738cdfec070e76c033e89', 'TYPO': '8ce83a96d9e586c6baee1d0de5886e91', 'DIAG_SRC': 'd97f3acddff9360bc8d987fbb8b91d7e', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'SEAM_PACK': '085995a020c4250c1934b10c24b09c1e'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'REF_LABELS': '776d8caf5b5d9ea0061c0f4658ae8184', 'NOISE_KERNEL': '01b8cb14e278f24b14cf38cb3f144eb1', 'NAMES': '3b7a42d410e1b0f0bf82350fdecdc33e', 'CLIMATE': 'ff5e2a39ea1582fe5835508061f8373a', 'UTCI_COEF': 'f9a042398c5738cdfec070e76c033e89', 'TYPO': '8ce83a96d9e586c6baee1d0de5886e91', 'DIAG_SRC': '5cb09d3c659529f4b0116a094e8d1366', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'SEAM_PACK': '085995a020c4250c1934b10c24b09c1e'}.get(name):
         raise RuntimeError("Data file selinus_board_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "selinus_board_data.py:" + name, "exec"), globals())
@@ -16723,7 +16747,7 @@ BRIDGES_K = [(k_, bridge_name(k_), x_, y_) for k_, x_, y_ in (
 # Conflict markers of pr1_drawings v3.1 (survey coordinates); C5 sits at the centre of the larger K5 working area
 CONFLICTS_C = [("C1", 29941.0, 32200.0, u"walls cut the town off"), ("C2", 30204.0, 31975.0,
                                                                        u"heritage over a hidden stream"),
-               ("C3", 29846.0, 32278.0, u"K4: monument and traffic"), ("C4", 30031.6, 32119.5, u"dry bed, bad smell"),
+               ("C3", 29846.0, 32278.0, bridge_name("K4") + u": monument and traffic"), ("C4", 30031.6, 32119.5, u"dry bed, bad smell"),
                ("C6", 30830.0, 31160.0, u"industry at the confluence")]
 C5_TEXT = u"flood against everyday life"
 MARK_C = C("8B3A3F")       # palette accent: conflicts
@@ -24896,7 +24920,7 @@ def basemap_export(S, log=None):
             if callable(z_at):
                 try:
                     zs = sorted(z_at(p[0], p[1]) for p in P[::max(1, len(P) // 9)])
-                    z = round(zs[len(zs) // 2] / 5.0) * 5.0
+                    z = round(zs[len(zs) // 2], 1)     # round 3 (B2, P11.1 relief): median to 0.1 m (was 5 m steps)
                 except Exception:
                     z = None
             L["contours"].append([bool(major), z, _bm_r(P)])

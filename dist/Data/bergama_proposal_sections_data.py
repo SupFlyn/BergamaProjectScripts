@@ -840,7 +840,7 @@ LEVELS = [
 #                           l.62); survey label "Tabakhane Köprüsü" is the same bridge (selinos_bergama_history_context_v1.md l.143)
 #   K4 Ulucami Önü Köprüsü  KGM plaque on site, photo IMG_5804 (inaccessible_edges_v1.md l.217); history_context_v1.md l.141
 #   K5 Üç Kemer Köprüsü     Visit İzmir (İzmir BB), Destinasyon 10228 (history_context_v1.md l.270)
-#   K6 road bridge          Adnan Menderes Caddesi (inaccessible_edges_v1.md l.176, E12); no proper name found
+#   K6 road bridge          Adnan Menderes Bulvarı (Aras 1 Nov 07:30: "it is bulvar"; inaccessible_edges_v1.md l.176 has "Cd."); no proper name found
 #   K1, K2                  no source name: descriptive names (G16)
 # Chainage m along the stream: CL code.py:211 (K1 / K2 about 25 m apart upstream; their order unverified).
 # Banks (D6, Aras 31 Oct 20:45: "fine that way"; p20 already prints them): NE = left bank looking downstream = north
@@ -852,7 +852,7 @@ NAMES = {
         "K4": {"name": u"Ulucami Önü Köprüsü", "short": u"Ulucami Önü", "order": 3, "proper": True, "chainage_m": 467},
         "K3": {"name": u"Tabak Köprüsü", "short": u"Tabak", "order": 4, "proper": True, "chainage_m": 709},
         "K5": {"name": u"Üç Kemer Köprüsü", "short": u"Üç Kemer", "order": 5, "proper": True, "chainage_m": 1126},
-        "K6": {"name": u"Adnan Menderes Caddesi road bridge", "short": u"road bridge", "order": 6, "proper": False,
+        "K6": {"name": u"Adnan Menderes Bulvarı road bridge", "short": u"road bridge", "order": 6, "proper": False,
                "chainage_m": 1767},
     },
     "places": {
@@ -880,7 +880,7 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
          dep=(0.64, 1.69, 2.57, 2.99, 3.30),
          ext=[(-4.0, 7.5), (-20.0, 10.5), (-28.5, 13.0), (-29.5, 14.0), (-30.5, 15.0)],
          tags=[("slope", u"bed 0.83 %"), ("points", u"73 bed points within 25 m"), ("road", u"road 6.5 m wide · 38 m off · right bank")]),
-    dict(key="k4", name=u"2 · K4 BRIDGE", bed=64.77, u0=-80,
+    dict(key="k4", name=u"2 · ULUCAMİ ÖNÜ KÖPRÜSÜ", bed=64.77, u0=-80,
          ground=[3.06, 3.03, 3.01, 2.99, 2.96, 2.94, 2.92, 2.89, 2.87, 2.85, 2.82, 2.80, 2.78, 2.75, 2.73, 2.71, 2.68, 2.66, 2.64, 2.61, 2.59, 2.56, 2.54, 2.52, 2.49, 2.47, 2.45, 2.42, 2.40, 2.38, 2.35, 2.33, 2.31, 2.28, 2.26, 2.24, 2.21, 2.19, 2.17, 2.14, 2.12, 2.10, 2.07, 2.07, 2.07, 2.07, 2.07, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 1.77, 1.35, 0.93, 0.51, 0.14, 0.14, 0.13, 0.13, 0.12, 0.12, 0.12, 0.11, 0.11, 0.10, 0.10, 0.09, 0.09, 0.08, 0.08, 0.07, 0.07, 0.06, 0.06, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.03, 0.02, 0.02, 0.14, 0.41, 0.68, 0.99, 1.94, 2.89, 3.84, 4.78, 5.73, 6.68, 7.63, 8.58, 9.53, 10.48, 10.87, 11.07, 11.27],
          dep=(0.28, 0.99, 1.83, 2.56, 2.84),
          ext=[(-16.0, 12.5), (-18.0, 15.0), (-20.0, 15.5), (-58.5, 16.5), (-70.5, 16.5)],
@@ -889,7 +889,7 @@ CUTS = [  # the channel cut on the main survey: ground every 1 m (m above the be
                ("over", u"right bank 2.1 m (survey, before the DSİ walls): street floods"),   # two chips: they wrap
                ("over", u"Q100 0.2-0.4 m · Q500 0.5-0.7 m"),
                ("road", u"road 10-13 m wide · 42-52 m off · right bank")]),
-    dict(key="k5", name=u"3 · K5 BRIDGE", bed=55.96, u0=-57,
+    dict(key="k5", name=u"3 · ÜÇ KEMER KÖPRÜSÜ", bed=55.96, u0=-57,
          ground=[3.12, 3.11, 3.09, 3.08, 3.06, 3.05, 3.02, 2.97, 2.93, 2.89, 2.85, 2.80, 2.76, 2.72, 2.68, 2.63, 2.59, 2.55, 2.51, 2.46, 2.42, 2.38, 2.34, 2.29, 2.25, 2.20, 2.16, 2.11, 2.07, 1.99, 1.89, 1.78, 1.67, 1.56, 1.45, 1.36, 1.26, 1.17, 1.07, 0.95, 0.82, 0.69, 0.58, 0.47, 0.33, 0.19, 0.16, 0.13, 0.09, 0.06, 0.02, 0.00, 0.01, 0.02, 0.03, 0.05, 0.06, 0.07, 0.08, 0.09, 0.11, 0.12, 0.13, 0.14, 0.15, 0.17, 0.32, 1.03, 1.73, 2.43, 3.02, 3.60, 4.18, 4.73, 5.26, 5.77, 6.23, 6.66, 7.08, 7.43, 7.80, 8.09],
          dep=(0.31, 1.09, 1.95, 2.45, 2.79),
          ext=[(-12.5, 8.5), (-19.0, 10.0), (-27.5, 11.0), (-37.5, 12.0), (-45.5, 12.5)],
