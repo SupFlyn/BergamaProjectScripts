@@ -233,6 +233,7 @@ OUT_FOLDER = "bergama_water_board"
 OUT_NAME = "Bergama_water_board_v12_{}_{}.pdf"
 LOG_NAME = "bergama_water_board_log.txt"
 #@include ../common/bergama_paths.py
+#@include ../common/warn.py
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 PHI, PSI = 32.9, 36.2                # axonometric of the storage cubes and the farm pictogram (water loop v2 view)
@@ -379,6 +380,9 @@ _TXT_TAG = {}                        # v13 (G-R4-1): id(text item) -> (item, gro
 _TXT_G = [0]                         # v13: text group counter (one word block = one group)
 
 
+WB_BOARD_CHECK = [False]             # v15: True = the round 4 board text check (WARNING lines only), for tests
+
+
 class Page(object):
     """v13 (round 4, G-R4-1): a booklet page drawn on this board (one cell) opens ONE TextPage with
     pg.text_page(name, bounds) before its drawing; pg.check_text(log) at its end registers EVERY text item drawn
@@ -436,6 +440,9 @@ class Page(object):
             tp.put(it[1], it[2], it[3], it[4] / PT, bool(it[6]), it[7] or "L", ang, tag[2], tag[4], it[5], tag[3],
                    tag[1], emit=False)
         lg = []
+        if WB_BOARD_CHECK[0] is False:                  # v15 (round 5, change of approach): the board is only a
+            self.tp, self.tg = None, None               # recorder; the booklet sets and checks every text (S1
+            return u""                                  # 70_check), so the board's own text test is off
         try:
             tp.check(True, lg)
         except TextCollision as ex:                     # v14 (Aras 1 Nov 17:11 / 18:51): every hit an orange
@@ -591,6 +598,7 @@ def spread(ys, gap, lo=None, hi=None):
 #@include ../common/levels.py
 #@include ../common/basemap.py
 #@include ../common/grid.py
+#@include ../common/item_export.py
 #@include ../common/buildings.py
 
 
@@ -1986,10 +1994,7 @@ WB_WARN = []                                        # v14: this run's orange war
 def wb_warn(msg):
     """v14 (Aras 1 Nov 17:11 / 18:51): an orange warning on the component; the run goes on"""
     WB_WARN.append(msg)
-    try:
-        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
-    except Exception:
-        pass
+    wn_orange(msg)                                      # v15: the one warning sink (common/warn.py), capped per run
 
 
 def wb_safe(page, log, fn, *a):
@@ -2014,6 +2019,12 @@ def build_board(opt, storage, parts, pal_line, log):
              (W1, S4 at 1:250) (v13, round 4 D2: two whole booklet pages, 392 mm wide each)"""
     del WB_WARN[:]                                    # v14: a new run starts with no warnings
     tp_log_lines()                                    # v14.1: and no layout WARNING lines from an earlier run
+    wbx_reset()                                       # v15 (G-R5-12): this run's booklet items
+    for p_, t_ in ((WBX_PG_SYSTEM, P12_TITLE), (WBX_PG_SEASONS, P14_TITLE), (WBX_PG_NE, P15_TITLE),
+                   (WBX_PG_PLANTS, P17_TITLE), (WBX_PG_SECT_A, P18_TITLES["p18a"]),
+                   (WBX_PG_SECT_B, P18_TITLES["p18b"]),
+                   (WBX_PG_FARMS, u"WHERE THE CLEAN WATER GOES · and what the figures support")):
+        wbx_text(p_, wbx_title(t_), "title", priority=1, id=u"wb_title_" + p_)
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     del BK_CROPS[:]
@@ -2113,17 +2124,11 @@ def build_board(opt, storage, parts, pal_line, log):
         _, bu = place(pg, parts[key], (bx[0], bx[1], bx[2], cb[1] - 3.0), 1.6, "C", log, key)
         crop_add("wb_" + key, union(cb, bu) if j == 0 else bu, within=last[0])
     draw_footer(pg, X0, 1.5, X1, pal_line)
-    tw_ = [ln[8:] for ln in tp_log_lines() if ln.startswith(u"WARNING ")]   # v14.1: the layout checks' warnings
-    WB_WARN.extend(tw_)
-    log.extend(u"WARNING " + t_ for t_ in tw_)
-    if WB_WARN:
-        log.insert(0, u"WARNINGS: {} (the run finished; fix them all in one go)".format(len(WB_WARN)))
-        for i_, w_ in enumerate(WB_WARN):
-            log.insert(1 + i_, u"  " + w_)
-    return pg
+    return pg                                         # v15: main() composes the log (wn_compose: count + every WARNING)
 
 
 #@include ../common/booklet_assets.py
+#@include parts/wb_items.py
 
 
 # ---------------------------------------------------------------- A3 booklet (v1.10; booklet/CROP_SPEC.md, Aras 25 Oct 21:47)
@@ -2288,28 +2293,14 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 
 def build_all(doc, log):
     pal_line = load_palette([DATA_DIR] + search_dirs(doc), log) if doc is not None else u"embedded palette v1.4 colours"
-    folder = out_folder(doc)
-    if not os.path.isdir(folder):
-        os.makedirs(folder)
+    folder = bg_booklet(OUT_FOLDER)                 # v15 (addendum 2): no sheet PDF; items.json in cached/booklet/
     files = []
     for opt in OPTIONS:
         parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt)}
         for st in STORAGE_STYLES:
             t0 = time.time()
             pg = build_board(opt, st, parts, pal_line, log)
-            path = os.path.join(folder, OUT_NAME.format(opt, st))
-            try:
-                write_pdf(pg, path, u"Bergama water board {} {} {}".format(SHORT, opt, st))
-            except (IOError, OSError):
-                path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
-                write_pdf(pg, path, u"Bergama water board {} {} {}".format(SHORT, opt, st))
-                log.append(u"(the old PDF was open in another program, so a new name was used)")
-            try:                                    # v1.14: the plant photos; never breaks the board
-                n_ = pdf_add_images(path, PHOTOS)
-                if n_:
-                    log.append(u"plant photos embedded: {}".format(n_))
-            except Exception as ex_:
-                log.append(u"plant photos not embedded: {}: {}".format(type(ex_).__name__, ex_))
+            path = wbx_export(pg, log)              # v15 (G-R5-12, addendum 2): the booklet's items, no sheet PDF
             files.append(path)
             log.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"),
                                                    time.time() - t0))
@@ -2339,22 +2330,19 @@ def main():
         return (last if last else u"Idle. Press the Button to write the water board. ({})".format(VERSION)), \
             mem_get("files", [])
     t0 = time.time()
+    wn_reset()                                      # v15: one warning sink per run (common/warn.py)
     log, err, folder, files = [], None, None, []
     try:
         folder, files = build_all(Rhino.RhinoDoc.ActiveDoc, log)
     except Exception as ex_:
         import traceback
         err = u"ERROR: {}: {}\n{}".format(type(ex_).__name__, ex_, traceback.format_exc())
-    if folder and files and not err:                # v1.10: the booklet's crops of this sheet; never breaks it
-        try:
-            booklet_export(folder, files[0], log)
-        except Exception as ex_:
-            log.append(u"booklet not written: {}: {}".format(type(ex_).__name__, ex_))
-    log += bg_tidy_output(OUT_FOLDER)               # 27 Oct: output/ = PDFs only
+    log += bg_tidy_output(OUT_FOLDER)               # 27 Oct: output/ = PDFs only (v15 writes nothing there)
     secs = time.time() - t0
     head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder),
             u"trigger: {}".format(TRIG_WHY[0])]
-    text = u"\n".join(head + log)
+    seen_ = set(log)
+    text = u"\n".join(wn_compose(log + [ln for ln in tp_log_lines() if ln not in seen_], head))   # v15: C11
     status = u"{} · {}".format(SHORT, "ERROR" if err else time.strftime("%H:%M") + " · {:.0f} s".format(secs))
     try:
         os.makedirs(LOG_DIR, exist_ok=True)
