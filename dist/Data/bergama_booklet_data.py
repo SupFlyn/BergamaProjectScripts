@@ -1,7 +1,14 @@
 # Built-in data of bergama_booklet (made by tools/build.py from src/bergama_booklet/data/; do not edit by hand)
 
 #@@ PLAN
-# ---- BOOKLET PLAN v25 (round 3, session C): p.02 side column without the empty drw_plan01_key stub (site board v58
+# ---- BOOKLET PLAN v26 (round 4, S9, 1 Nov 2026): 25 pages (D2): p13 = two pages (ps_p1 W1 + W2, ps_p2 W3 + W4, proposal
+# sections v17), p18 = two pages (wb_plants_b1 F2 + F4, wb_plants_b2 W1 + S4, water board v13), each crop 392 x 234 mm
+# at 1:250 drawn 1:1 for its page; p19 = four story rows at 1:1 (water board v13 + agriculture v9: R1 wb_farms |
+# wb_farms_out, R2 ag1_stream | wb_decision, R3 ag1_bars | ag1_context, R4 ag1_history | ag1_crops; ag1_reading gone),
+# no caption bands ("cap_h" 0: the headings sit inside the crops), rows flush with the left margin ("flush");
+# Turkish proper names in the frame text (G-R4-11: Kızıl Avlu, Ulucami). Page keys new in v26: "cap_h" (mm of the
+# caption band under each row, default CAP_H) and "flush" (rows start at the left margin, never centred).
+# ---- v25 (round 3, session C): p.02 side column without the empty drw_plan01_key stub (site board v58
 # draws the key inside drw_plan01, P02.1); intros name bridges by name (G16: "six bridges", "upstream to downstream",
 # Üç Kemer Köprüsü); p.08 intro per city link v6 (one corridor); p18 + p19 = round 3's 1:1 crops (B4 rows, P18.1),
 # ag1_headline gone; "log" = the tag of an or_pages entry's one-page line in the log.
@@ -101,7 +108,9 @@ PAGES = [
     dict(part="C", stage="an+got", title=u"The water balance", intro=u"How much *winter water* can we hold for the farms' *dry summer*, and at *what cost*? It *comes in winter*, it is *needed in summer*.",   # v18: the sheet's own title (its band: how the stream behaves)
          sheet=BAL + "Bergama_water_balance_A3.pdf"),
     dict(part="C", stage="do", title=u"Collect, clean, hold", intro=u"*Collect* winter stream water and runoff at the upstream entry, *clean* it once in *lined reed basins*, *hold* it in the ground for the dry summer; the clean stream leaves for the *farms outside*.", rows=[[WB + "wb_system"]]),   # old p14
-    dict(part="C", stage="do", title=u"The proposals in section", intro=u"*Four cuts*, upstream to downstream (W1-W4): each proposal *in section*, with the *Q500* flood line.", rows=[[PS + "ps_all"]]),   # old p19
+    # v26 (round 4 D2): two pages at 1:250, one cut per row (proposal sections v17: ps_all gone)
+    dict(part="C", stage="do", title=u"The proposals in section: W1 and W2", intro=u"The *upstream* pair of the four cuts, each proposal *in section* at *1:250*, with the *Q500* flood line.", rows=[[PS + "ps_p1"]]),
+    dict(part="C", stage="do", title=u"The proposals in section: W3 and W4", intro=u"The *downstream* pair of the four cuts, each proposal *in section* at *1:250*, with the *Q500* flood line.", rows=[[PS + "ps_p2"]]),
     # v20 (revision 29 Oct, WO-T3b-4): the water board draws the S4-only key map inside both crops: no key band
     dict(part="C", stage="do", title=u"Four seasons on one cut", intro=u"*One cut, one viewpoint, four seasons*: the *water level* decides what the place becomes, which plants are in *leaf or flower*, and which animals are about.", rows=[[WB + "wb_s4_seasons"]]),   # old p20
     dict(part="C", stage="do", title=u"The S4 cut, north-east bank", intro=u"The north-east bank of S4: *seat steps* and a *raised promenade* over Q500 stay; the *planting follows the days under water*, the use follows the months.", rows=[[WB + "wb_s4_ne"]]),   # old p21
@@ -110,7 +119,10 @@ PAGES = [
     # v20 (D9 a, WO-T4a-2): planting on two pages (plans + water spaces + catalogue; the F1-F4 sections), the July
     # shade now inside wb_plants; the plant ladder page (agriculture sheet page 3) is gone, folded into these and p.14-15
     dict(part="C", stage="do", title=u"Which plant goes where", intro=u"*Wet to dry, low to high*: rushes and loosestrife *at the water*, willow and tamarisk on the *banks that flood*, shade trees and olives on the *dry tops*; reed and water mint only in *lined basins*.", rows=[[WB + "wb_plants"]]),
-    dict(part="C", stage="do", title=u"Which plant goes where, in section", intro=u"Each cut shows the *water*, the *planting band* each species needs, and what surrounds it: *streets, walks, terraces*.", rows=[[WB + "wb_plants_b"]]),
+    # v26 (round 4 D2, N3 a): two pages at 1:250, one cut per row; F2 and F4 trimmed to their designed banks (water board
+    # v13: wb_plants_b gone)
+    dict(part="C", stage="do", title=u"Which plant goes where, in section: F2 and F4", intro=u"Two cuts at *1:250*, each trimmed to its *designed bank*: the *water*, the *planting band* each species needs, and what surrounds it.", rows=[[WB + "wb_plants_b1"]]),
+    dict(part="C", stage="do", title=u"Which plant goes where, in section: W1 and S4", intro=u"Two cuts at *1:250*: the *water*, the *planting band* each species needs, and what surrounds it: *streets, walks, terraces*.", rows=[[WB + "wb_plants_b2"]]),
     # v24 (round 2, U14/U31, Aras 31 Oct 11:13 "it would look beter if they can turn into 1 page"): p18 + p19 on ONE
     # page (the agriculture headline dropped there: the page title says it), the side blocks beside the rows they
     # explain; the two compact pages of 30 Oct (T5) only when one page would print a row under ONE_PAGE_MIN (labels
@@ -120,19 +132,24 @@ PAGES = [
     # crops (about 240 of 243 mm with the intro beside the title); the two pages only if one would overrun (logged)
     dict(part="C", stage="do", title=u"Where the clean water goes, and what it grows",
          intro=u"Clean water to *farmland outside the site*, easing an *overused aquifer*, *never drinking water*; *same storage, different crops*: the *hectares* each crop irrigates.",
-         rows=[[WB + "wb_farms"], [WB + "wb_decision", AG + "ag1_stream"], [AG + "ag1_bars", AG + "ag1_context"],
-               [AG + "ag1_reading", AG + "ag1_history", AG + "ag1_crops"]], log=u"p18-19",
+         # v26 (round 4 P19.1; handover S6b_p19_design_spec.md): four story rows, each 392 mm wide at 1:1, read left to
+         # right (wb_farms_out new, ag1_reading gone: its reading sits in ag1_context); 203 mm of drawings + 3 row gaps
+         cap_h=0.0, flush=True,
+         rows=[[WB + "wb_farms", WB + "wb_farms_out"], [AG + "ag1_stream", WB + "wb_decision"],
+               [AG + "ag1_bars", AG + "ag1_context"], [AG + "ag1_history", AG + "ag1_crops"]], log=u"p19",
          or_pages=[
             dict(part="C", stage="do", title=u"Where the clean water goes",
                  intro=u"Where the clean water ends up: *farmland outside the site*, easing an *overused aquifer*. *Never drinking water*.",
-                 rows=[[WB + "wb_farms"], [WB + "wb_decision", AG + "ag1_stream"]]),
+                 cap_h=0.0, flush=True,
+                 rows=[[WB + "wb_farms", WB + "wb_farms_out"], [AG + "ag1_stream", WB + "wb_decision"]]),
             dict(part="C", stage="do", title=u"What each cubic metre grows",
                  intro=u"*Same storage, different crops*: the *hectares* each crop irrigates a season.",
-                 rows=[[AG + "ag1_bars", AG + "ag1_context"], [AG + "ag1_reading", AG + "ag1_history", AG + "ag1_crops"]]),
+                 cap_h=0.0, flush=True,
+                 rows=[[AG + "ag1_bars", AG + "ag1_context"], [AG + "ag1_history", AG + "ag1_crops"]]),
          ]),
     # ---- D HISTORY AND HERITAGE (now spread over old p3, p8, p18, p20: collected here as frames)
     dict(part="D", stage="an+got", title=u"Heritage along the stream",
-         rows=[[SLOT(u"Heritage on site: Roman bridges and tunnels, Red Hall, Ulu Cami, tannery quarter (later prompt)", 230.0, 200.0),
+         rows=[[SLOT(u"Heritage on site: Roman bridges and tunnels, Kızıl Avlu, Ulucami, tannery quarter (later prompt)", 230.0, 200.0),
                 SLOT(u"What history asks of the edge (later prompt)", 146.0, 200.0)]]),
     # v19 (P20.1): one map at 1:10,000 holding every stop; v20 (WO-T3a-6): photo cards and the places diagram in the
     # same crop, no key map crop any more
