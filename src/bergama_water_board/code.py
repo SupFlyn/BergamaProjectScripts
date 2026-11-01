@@ -2013,17 +2013,17 @@ def build_board(opt, storage, parts, pal_line, log):
         crop_add(cid_, bb_, den_, within=last[0])
     pg.check_text(log)
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
-    b = cell(2, 0, u"WHERE THE CLEAN WATER GOES (10, 11) · and what the figures support")
-    # round 3 (B4, P18.1): no context line (the booklet intro says it; 7 mm back to the merged p18-19 page); the loop
-    # block draws the farms and the aquifer itself at a fixed 369 x 56 mm (pages/p18_farms.py), so no aquifer part
+    b = cell(2, 0, u"WHERE THE CLEAN WATER GOES · and what the figures support")
+    # round 4 (S6b, P19.1): booklet p19's three water board blocks, each EXACTLY its booklet size (pages/p18_farms.py):
+    # the loop (260 x 57) on top, the farms outside and the four figures (128 x 57, 128 x 40) under it; one TextPage
+    # "p19" for the cell (G-R4-1: every text measured, a collision raises)
+    pg.text_page("p19", last[0])
     yf = b[3] - 3.0
-    bt = drawn(pg, lambda: fit_draw(pg, boxed(draw_farms_text), (b[0], yf - 112.0, b[2], yf)))
-    crop_add("wb_farms", bt, within=last[0])
-    yd = bt[1] - 5.0
-    dw, dh = b[2] - b[0], yd - b[1]
-    crop_add("wb_decision", drawn(pg, lambda: draw_decision(pg, b[0], yd, dw, dh,
-                                                              fit(draw_decision, b[0], yd, dw, dh, 1.0, 0.5, 1.2))),
-             within=last[0])
+    y2 = yf - P19_R1_H - 6.0
+    for cid_, fn_, x_, y_ in ((u"wb_farms", draw_farms_text, b[0], yf), (u"wb_farms_out", draw_farms_out, b[0], y2),
+                              (u"wb_decision", draw_decision, b[0] + P19_SIDE_W + 6.0, y2)):
+        crop_add(cid_, fn_(pg, x_, y_), pad=0.0, within=last[0])
+    pg.check_text(log)
     # row 2 -------------------------------------------------------------- pp.14-15, the S4 pair
     # v5 (revision 29 Oct, T3b): pages/p14_15_s4.py draws both panels whole (p.14 in the wider middle cell, p.15 in the
     # left one) and returns their crops [(crop id, bbox, scale denominator or None)]
@@ -2067,12 +2067,13 @@ BK_CAPTIONS = {
     "wb_plants": u"Planting and water: where each plant goes",
     "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
     "wb_plants_b_a": u"Planting and water in section: four cuts, the species and their year · style a, raster collage",
-    "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
+    "wb_farms": u"", "wb_farms_out": u"", "wb_decision": u""}   # round 4 (P19.1): the group heading inside says it
 
 
 BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
 BK_FIXED += ("wb_plants_b_a",)   # v10: p.17 style a only (as p.11, p.13, p.14 since v9)
 BK_FIXED += ("wb_farms", "wb_decision")   # round 3 (B4, P18.1): the merged p18-19 page, laid out at 1:1
+BK_FIXED += ("wb_farms_out",)             # round 4 (P19.1): the farms outside, its own p19 block, 1:1
 
 
 def res_s4_cut():
