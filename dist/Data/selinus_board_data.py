@@ -522,6 +522,13 @@ def _noise_worker_main(argv):
 # Chainage m along the stream: CL code.py:211 (K1 / K2 about 25 m apart upstream; their order unverified).
 # Banks (D6, Aras 31 Oct 20:45: "fine that way"; p20 already prints them): NE = left bank looking downstream = north
 # bank = the Kale side; SW = south bank = the bazaar side.
+# Landmarks (round 4, S1, 1 Nov 2026; G-R4-11 / PALL.3, PLAN §4.6): the TURKISH proper name is printed, never an
+# English translation ("Red Hall" -> Kızıl Avlu, "Acropolis" -> Akropol, "Bazaar" -> Arasta); "descr" is an optional
+# English descriptor that may FOLLOW the name (landmark_name(key, descr=True) -> "Kızıl Avlu · Hadrian's temple").
+# Spellings as the project's sources write them; "src" = where (h01 = library/research/
+# selinos_bergama_history_context_v1.md, table §5 row; survey = a label in the course survey). Descriptors are taken
+# from texts already in the booklet (p20 heritage cards, city link), nothing new. One spelling of Ulucami (the brief's;
+# "Ulu Cami" / "Ulu Camii" drift removed); source TITLES on the Sources page stay as published.
 NAMES = {
     "bridges": {
         "K1": {"name": u"side inlet crossing", "short": u"side inlet crossing", "order": 1, "proper": False},
@@ -541,7 +548,86 @@ NAMES = {
         "side_NE": u"Kale side",
         "side_SW": u"bazaar side",
     },
+    "landmarks": {
+        "kizil_avlu": {"name": u"Kızıl Avlu", "descr": u"Hadrian's temple",
+                       "src": u"survey label 'Kızıl Avlu' (30203.92, 31974.82); h01 §5 P02; Kültür Envanteri 'Kızıl Avlu'"},
+        "akropol": {"name": u"Akropol", "descr": u"the Hellenistic city on the hill",
+                    "src": u"site board HER_BEYOND (OSM way 1410335587, Trajaneum)"},
+        "ulucami": {"name": u"Ulucami", "descr": u"mosque of 1398-99",
+                    "src": u"h01 §5 P05 (survey 'Ulu Camii' (29844.2, 32313.3)); Visit İzmir 'Bergama Ulu (Yıldırım) "
+                           u"Mosque'; spelling = the brief's (G-R4-11) and K4's name"},
+        "tabaklar_hamami": {"name": u"Tabaklar Hamamı", "descr": u"the tanners' bath",
+                            "src": u"h01 §5 P07 (survey 'Hamam' (29890.4, 32243.6))"},
+        "arasta": {"name": u"Arasta", "descr": u"the old bazaar",
+                   "src": u"site board HER_STOPS 'bazaar' (Visit İzmir 'Mevlâna Hacı Hekim Hammam')"},
+        "cizmeciler_arastasi": {"name": u"Çizmeciler Arastası", "descr": None,
+                                "src": u"survey label (29794.31, 31929.85)"},
+        "pabuccular_arastasi": {"name": u"Pabuççular Arastası", "descr": None, "src": u"h02 s32 (city link stop 1)"},
+        "istiklal_meydani": {"name": u"İstiklal Meydanı", "descr": u"square",
+                             "src": u"h01 §5 P16 (survey label (29990.0, 32030.5))"},
+        "adnan_menderes_bulvari": {"name": u"Adnan Menderes Bulvarı", "descr": None,
+                                   "src": u"Aras 1 Nov 07:30 ('it is bulvar'); K6 row above"},
+        "kinik_caddesi": {"name": u"Kınık Caddesi", "descr": None,
+                          "src": u"OpenStreetMap extract of 28 Jul 2026 (common/city_spine.py MAIN_SPINE)"},
+        "bankalar_caddesi": {"name": u"Bankalar Caddesi", "descr": None,
+                             "src": u"OpenStreetMap extract of 28 Jul 2026 (common/city_spine.py MAIN_SPINE)"},
+        "bergama_muzesi": {"name": u"Bergama Müzesi", "descr": u"museum of 1936",
+                           "src": u"Kültür Envanteri KE 3946 'Bergama Müzesi' (h01 s86)"},
+        "teleferik": {"name": u"Teleferik", "descr": u"cable car (2010)",
+                      "src": u"site board HER_STOPS 'gondola' (OSM node 2295928011)"},
+        "asklepion": {"name": u"Asklepion", "descr": u"the healing sanctuary",
+                      "src": u"h01 §5 P28; KTB 'The Archaeological Site of Asklepion' (h01 s114)"},
+    },
 }
+
+#@@ ROADS
+# ---- ROADS.py (round 4, S8, 1 Nov 2026; CHK1_2 F1, P09.1): the masterplan's road moves, ONE table --------------------
+# Moved from bergama_masterplan/parts/02c_corridor.py (v37.4) unchanged. Included by the masterplan (code.py) and the
+# site board (S4), so the site board's street sections (p09) read the same table with no run-order dependency.
+# Needs common/data/NAMES.py + common/names.py included before it (bridge_name). Each road: name, change (kept /
+# calmed / pedestrian / shared), note, proof (its data source), xy (survey m polyline). TOWN_LINE: the later town
+# bus line to the K4 hub. Readers: masterplan Corridor.make_notes / no_go / movement, p21, p22; site board p09.
+# Roads (OSM bergama_osm.osm, 28 Jul 2026, highway class and name; survey m by the h01 §0 formula, +-10-30 m). Each
+# change is read from data: the OSM class (site board p6 driving map), the site board mark C3 "K4: monument and
+# traffic" (p5), and the OSM chainages of the car crossings along the stream (calculated). No traffic count exists
+# on these streets (card t01: KGM counts only on 35-04, 35-05, D240): no "relocated" road.
+ROADS = [
+    dict(name=u"Bergama - Kozak Yolu", change="kept", note=u"kept: through road to Kozak",
+         proof=u"OSM secondary (one 11.9 km way)",
+         xy=[[29668.6, 32896.0], [29643.3, 32796.0], [29633.4, 32739.9], [29627.0, 32698.6], [29625.9, 32675.0],
+             [29627.8, 32656.7], [29636.9, 32624.0], [29648.9, 32599.2], [29667.9, 32549.9], [29687.1, 32517.5],
+             [29726.2, 32490.9], [29760.3, 32463.9], [29772.4, 32442.5], [29775.9, 32394.5], [29772.1, 32343.5],
+             [29773.3, 32313.3], [29777.8, 32297.2], [29792.2, 32271.3]]),
+    dict(name=u"Cami Kebir Caddesi + " + bridge_name("K4"), change="calmed",
+         note=u"calmed: monument meets traffic at " + bridge_name("K4"),
+         proof=u"edge plan mark C3; OSM secondary",
+         xy=[[29854.5, 32289.9], [29843.7, 32252.8], [29873.2, 32232.0], [29934.1, 32225.0], [29960.0, 32218.3],
+             [29976.9, 32203.2], [30015.5, 32111.3]]),
+    dict(name=u"Tabak Köprüsü", change="calmed", note=u"calmed: hub square and workshops at " + bridge_name("K3"),
+         proof=u"H1, H3 (h01/h02); OSM secondary", xy=[[30023.7, 32110.3], [30052.5, 32130.6]]),
+    dict(name=u"Kınık Caddesi", change="kept", note=u"kept: main spine, shops",
+         proof=u"city link main spine; OSM secondary",
+         xy=[[29992.8, 32017.4], [30005.0, 32029.4], [30032.5, 32038.3], [30089.7, 32057.7], [30138.7, 32039.0]]),
+    dict(name=u"Kızıl Avlu Çıkmazı", change="pedestrian", note=u"pedestrian: dead end over hidden stream",
+         proof=u"OSM living_street, dead end; H2",
+         xy=[[30144.3, 31986.1], [30123.6, 31988.0], [30099.4, 31997.7]]),
+    dict(name=u"Üç Kemer Köprüsü", change="pedestrian", note=u"pedestrian: car crossings 190-230 m away",
+         proof=u"OSM residential; OSM chainage of Kızıl Avlu Cd / next bridge (calc); H1",
+         xy=[[30277.2, 31777.9], [30314.7, 31804.7]]),
+    dict(name=u"Adnan Menderes Bulvarı", change="kept", note=u"kept: regional road İzmir-Soma at the " + bridge_name("K6"),
+         proof=u"OSM primary; h02 E12", xy=[[30609.3, 31239.0], [30695.5, 31266.2]]),
+    dict(name=u"bank street, lower reach", change="shared", note=u"shared: local bank street, stream widens",
+         proof=u"OSM residential; open ground",
+         xy=[[30713.4, 31260.3], [30730.6, 31243.9], [30800.4, 31198.6], [30862.6, 31166.0], [30923.9, 31135.4],
+             [30975.8, 31095.9], [31012.3, 31057.8], [31062.1, 30994.1], [31143.6, 30884.2], [31192.5, 30817.8],
+             [31216.8, 30791.6]])]
+# Aras 12:05: a town-line extension to K4 as a PROPOSED LATER STEP, on the existing streets İstiklal stop -> Kınık Cd
+# -> Cami Kebir Cd -> K4 stop (OSM ways 370936581, 1222988932, 371130159, as above)
+TOWN_LINE = dict(name=u"town bus line to " + bridge_name("K4"), change=u"proposed later: bus line 651 to " +
+                 bridge_name("K4"), note=u"later step: town line on to " + bridge_name("K4"), proof=u"h03 Q1 (town lines stop at İstiklal); K4 stop 35 m",
+                 xy=[[29995.4, 32019.8], [30005.0, 32029.4], [30032.5, 32038.3], [30084.6, 32056.0], [30089.7, 32057.7],
+                     [30075.0, 32066.0], [30041.0, 32089.8], [30017.4, 32106.8], [30015.5, 32111.3], [29976.9, 32203.2],
+                     [29960.0, 32218.3], [29934.1, 32225.0], [29873.2, 32232.0], [29841.0, 32243.7]])
 
 #@@ CLIMATE
 CLIMATE = {"source":"PVGIS 5.2 typical meteorological year 2005-2020 at 39.1195 N 27.1838 E (EU JRC): air temperature, humidity and 10 m wind from ERA5, sun from SARAH-2","elevation":60.0,"classes":[0.5,2.0,4.0,6.0,8.0,10.0],"seasons":{"spring":{"hourly":[[12.34,4.44,18.45,79.2,1.66,302.7,0.0,0.0,0.0],[11.82,3.57,18.1,81.2,1.62,301.4,0.0,0.0,0.0],[11.31,3.27,17.58,83.1,1.6,301.0,0.0,0.0,0.0],[10.77,2.82,16.78,84.6,1.56,300.6,0.0,0.0,0.0],[10.41,2.74,16.05,86.0,1.54,301.9,0.0,0.0,0.0],[10.01,2.39,15.61,87.2,1.57,300.4,0.0,0.0,0.0],[9.67,2.51,15.23,87.9,1.59,299.9,0.9,2.8,0.8],[9.61,2.17,15.49,88.3,1.58,298.7,46.6,88.8,28.8],[10.77,2.15,17.61,85.5,1.58,299.0,165.2,231.5,81.7],[13.13,4.4,20.42,76.0,1.83,302.0,327.4,361.2,147.3],[15.08,7.1,22.73,67.0,2.12,307.7,452.9,422.4,177.6],[16.57,9.25,24.13,60.3,2.45,312.3,581.8,483.1,211.6],[17.66,9.64,25.17,55.9,2.76,316.2,621.4,457.9,241.0],[18.41,9.97,26.02,53.2,3.02,320.5,634.3,452.6,244.2],[18.89,10.13,26.34,51.4,3.19,320.8,612.3,431.8,251.1],[19.0,10.46,26.34,50.9,3.3,322.4,577.0,464.8,223.3],[18.9,10.74,26.04,51.1,3.31,322.7,482.7,440.0,202.1],[18.43,9.94,25.35,52.9,3.19,321.1,329.6,373.4,149.4],[17.68,9.28,24.39,56.2,2.85,316.6,209.7,340.4,107.9],[16.54,8.47,23.21,61.8,2.37,312.5,66.1,159.8,42.3],[15.22,6.86,21.75,68.1,2.08,308.3,0.3,0.7,0.3],[14.15,6.29,20.7,72.4,1.89,305.6,0.0,0.0,0.0],[13.57,5.72,20.29,74.5,1.78,304.1,0.0,0.0,0.0],[12.92,5.15,19.33,76.9,1.69,303.3,0.0,0.0,0.0]],"prevailing":[[45.0,2.36,0.228],[45.0,2.19,0.217],[45.0,2.02,0.228],[45.0,2.0,0.239],[45.0,1.96,0.25],[45.0,1.97,0.239],[45.0,1.95,0.25],[45.0,1.98,0.239],[45.0,2.25,0.217],[45.0,2.6,0.196],[45.0,2.86,0.207],[45.0,3.12,0.207],[202.5,2.91,0.207],[225.0,3.64,0.196],[225.0,3.5,0.25],[225.0,3.73,0.228],[225.0,3.84,0.207],[225.0,3.64,0.239],[225.0,3.0,0.185],[22.5,2.67,0.163],[202.5,2.69,0.185],[202.5,2.37,0.185],[45.0,2.63,0.228],[45.0,2.43,0.239]],"rose":[[0.0113,0.0199,0.0009,0.0,0.0,0.0],[0.0358,0.0471,0.0082,0.0005,0.0,0.0],[0.0688,0.0815,0.0217,0.0045,0.0,0.0],[0.0476,0.0095,0.0,0.0,0.0,0.0],[0.0317,0.0018,0.0,0.0,0.0,0.0],[0.0389,0.0009,0.0,0.0,0.0,0.0],[0.0498,0.0054,0.0,0.0,0.0,0.0],[0.0376,0.0068,0.0032,0.0,0.0,0.0],[0.0358,0.0299,0.005,0.0014,0.0,0.0],[0.0376,0.0489,0.0181,0.0005,0.0,0.0],[0.0263,0.0607,0.0159,0.0018,0.0,0.0],[0.0249,0.0326,0.01,0.0,0.0,0.0],[0.0154,0.0127,0.0009,0.0,0.0,0.0],[0.0109,0.01,0.0,0.0,0.0,0.0],[0.0095,0.0072,0.0,0.0,0.0,0.0],[0.0118,0.0091,0.0005,0.0,0.0,0.0]],"calm":0.0294,"mean_ws":2.17,"max_ws":7.2,"gust_p95":4.62},"summer":{"hourly":[[22.93,18.71,26.31,58.9,2.66,340.1,0.0,0.0,0.0],[22.22,18.61,25.58,62.0,2.54,337.3,0.0,0.0,0.0],[21.59,17.75,24.91,64.8,2.44,335.5,0.0,0.0,0.0],[21.03,17.8,24.46,67.3,2.37,334.1,0.0,0.0,0.0],[20.54,17.36,23.85,69.5,2.34,332.1,0.0,0.0,0.0],[20.11,16.91,23.52,71.5,2.34,331.1,0.0,0.0,0.0],[19.74,16.46,23.26,73.5,2.33,330.3,0.6,2.5,0.5],[19.81,16.84,23.14,74.4,2.2,329.3,102.8,224.4,58.9],[21.37,18.31,24.17,68.1,2.58,332.1,291.5,481.8,108.8],[23.65,20.44,26.61,56.5,3.07,336.8,494.9,633.9,140.5],[25.76,21.81,28.83,47.6,3.29,345.7,676.5,739.5,150.0],[27.76,23.56,31.38,40.0,3.58,351.9,822.4,790.2,165.2],[29.3,24.14,33.07,35.1,3.7,358.3,916.3,816.5,174.4],[30.49,25.17,34.28,31.9,3.8,362.8,941.1,810.4,181.6],[31.25,26.04,35.23,30.0,3.92,367.3,929.4,824.6,173.4],[31.58,26.52,35.85,29.2,4.05,369.9,851.0,806.6,167.6],[31.53,26.48,35.77,29.3,4.18,370.1,735.2,784.1,158.8],[31.0,26.11,35.19,30.5,4.26,369.2,564.2,729.9,135.8],[30.08,25.32,34.15,32.9,4.24,366.6,379.4,642.3,114.3],[28.74,24.14,32.68,36.4,3.94,361.4,190.0,505.8,73.9],[27.3,22.94,31.16,41.0,3.44,356.3,34.4,220.5,19.6],[25.84,21.35,29.47,46.2,3.27,350.9,0.0,0.0,0.0],[24.64,20.12,27.95,51.6,3.07,345.8,0.0,0.0,0.0],[23.71,19.25,27.07,55.6,2.82,342.9,0.0,0.0,0.0]],"prevailing":[[45.0,3.42,0.533],[45.0,3.14,0.587],[45.0,3.01,0.554],[45.0,2.97,0.554],[45.0,2.93,0.587],[45.0,2.97,0.587],[45.0,3.0,0.598],[45.0,2.86,0.587],[45.0,3.36,0.63],[45.0,3.91,0.652],[45.0,4.18,0.63],[45.0,4.46,0.587],[45.0,4.52,0.533],[45.0,4.73,0.424],[22.5,4.23,0.348],[22.5,4.37,0.413],[22.5,4.43,0.435],[22.5,4.63,0.489],[22.5,4.65,0.543],[22.5,4.38,0.565],[22.5,4.05,0.598],[22.5,3.75,0.543],[22.5,3.47,0.37],[45.0,3.65,0.478]],"rose":[[0.01,0.0199,0.0032,0.0,0.0,0.0],[0.0249,0.1313,0.13,0.0036,0.0,0.0],[0.0299,0.2142,0.1481,0.0258,0.0,0.0],[0.0131,0.0027,0.0,0.0,0.0,0.0],[0.005,0.0,0.0,0.0,0.0,0.0],[0.0027,0.0,0.0,0.0,0.0,0.0],[0.0045,0.0,0.0,0.0,0.0,0.0],[0.0072,0.0005,0.0,0.0,0.0,0.0],[0.01,0.0005,0.0,0.0,0.0,0.0],[0.0077,0.0027,0.0005,0.0,0.0,0.0],[0.019,0.0113,0.0054,0.0,0.0,0.0],[0.0208,0.0154,0.0,0.0,0.0,0.0],[0.0177,0.0335,0.0,0.0,0.0,0.0],[0.0113,0.0091,0.0,0.0,0.0,0.0],[0.0077,0.0095,0.0,0.0,0.0,0.0],[0.0109,0.0086,0.0,0.0,0.0,0.0]],"calm":0.0217,"mean_ws":3.18,"max_ws":6.8,"gust_p95":5.66},"autumn":{"hourly":[[15.76,9.63,21.26,80.4,2.36,323.4,0.0,0.0,0.0],[15.36,9.33,20.63,82.5,2.3,323.5,0.0,0.0,0.0],[15.02,9.03,20.1,84.0,2.27,323.1,0.0,0.0,0.0],[14.88,9.01,19.86,85.2,2.25,323.7,0.0,0.0,0.0],[14.61,8.41,19.63,86.1,2.25,325.1,0.0,0.0,0.0],[14.38,8.32,19.15,86.8,2.26,326.6,0.0,0.0,0.0],[14.19,8.27,19.02,87.4,2.3,328.9,0.0,0.0,0.0],[14.03,8.07,18.87,87.9,2.3,329.9,4.9,17.0,3.7],[14.24,7.96,19.24,87.3,2.28,330.3,88.8,202.4,46.8],[15.56,8.8,21.42,81.4,2.54,331.1,238.8,396.8,99.4],[17.31,9.92,23.79,72.7,2.78,334.9,382.9,478.0,144.9],[19.05,10.97,26.1,64.1,2.93,335.3,485.0,513.6,169.2],[20.46,12.0,27.37,58.0,3.01,337.2,563.2,568.5,174.3],[21.55,12.82,28.52,53.5,3.08,339.0,577.0,566.4,184.0],[22.21,12.93,29.74,51.0,3.14,341.6,559.7,584.7,174.9],[22.39,13.44,29.83,50.3,3.18,342.7,465.7,538.6,157.9],[22.18,13.21,29.77,51.0,3.21,342.0,348.1,497.4,121.8],[21.54,12.26,29.33,53.4,3.14,339.6,200.2,381.8,80.3],[20.44,11.59,28.32,58.0,2.94,336.3,64.1,162.6,30.6],[19.1,11.48,26.64,64.1,2.76,332.5,3.6,8.9,3.0],[18.03,11.15,25.13,69.0,2.68,329.4,0.0,0.0,0.0],[17.19,10.38,24.05,73.3,2.57,326.6,0.0,0.0,0.0],[16.76,9.78,23.04,75.4,2.53,325.1,0.0,0.0,0.0],[16.24,10.01,22.03,77.9,2.44,324.1,0.0,0.0,0.0]],"prevailing":[[45.0,2.88,0.582],[45.0,2.8,0.582],[45.0,2.68,0.582],[45.0,2.76,0.505],[45.0,2.79,0.495],[45.0,2.82,0.505],[45.0,2.96,0.462],[45.0,2.94,0.451],[45.0,2.88,0.451],[45.0,3.5,0.44],[45.0,3.58,0.516],[45.0,3.82,0.505],[45.0,3.77,0.516],[45.0,3.82,0.484],[45.0,4.03,0.407],[45.0,4.06,0.352],[45.0,4.27,0.308],[45.0,3.93,0.286],[45.0,3.94,0.297],[45.0,3.89,0.319],[45.0,3.67,0.396],[45.0,3.35,0.484],[45.0,3.23,0.549],[45.0,2.95,0.582]],"rose":[[0.0087,0.0165,0.0027,0.0,0.0,0.0],[0.0293,0.0801,0.0188,0.0,0.0,0.0],[0.0614,0.2647,0.1264,0.0082,0.0,0.0],[0.0403,0.0513,0.0,0.0,0.0,0.0],[0.0224,0.0023,0.0,0.0,0.0,0.0],[0.0261,0.0005,0.0,0.0,0.0,0.0],[0.0192,0.0027,0.0,0.0,0.0,0.0],[0.0114,0.0096,0.0,0.0,0.0,0.0],[0.0156,0.0188,0.0069,0.0,0.0,0.0],[0.0128,0.0137,0.0023,0.0009,0.0,0.0],[0.0156,0.0114,0.0032,0.0,0.0,0.0],[0.0137,0.0055,0.0005,0.0,0.0,0.0],[0.0101,0.0037,0.0,0.0,0.0,0.0],[0.0105,0.0073,0.0,0.0,0.0,0.0],[0.0101,0.0018,0.0,0.0,0.0,0.0],[0.0119,0.0014,0.0,0.0,0.0,0.0]],"calm":0.0197,"mean_ws":2.65,"max_ws":6.6,"gust_p95":4.9},"winter":{"hourly":[[4.74,-1.1,10.9,83.8,2.44,274.9,0.0,0.0,0.0],[4.47,-1.25,10.62,84.9,2.43,275.8,0.0,0.0,0.0],[4.24,-1.32,10.57,85.6,2.4,276.2,0.0,0.0,0.0],[4.04,-1.33,10.43,85.8,2.41,277.0,0.0,0.0,0.0],[3.82,-1.55,10.36,86.1,2.42,277.2,0.0,0.0,0.0],[3.6,-1.64,10.69,86.3,2.43,276.2,0.0,0.0,0.0],[3.47,-1.56,10.5,86.4,2.43,277.1,0.0,0.0,0.0],[3.33,-1.7,10.17,86.5,2.41,277.3,0.0,0.0,0.0],[3.19,-1.75,9.66,86.6,2.41,277.0,0.5,0.4,0.4],[3.36,-1.47,9.56,86.5,2.36,277.1,72.7,206.8,44.6],[4.98,0.29,11.61,82.6,2.5,278.3,178.3,287.1,95.6],[6.91,1.03,13.28,74.9,2.74,280.4,279.4,344.4,138.2],[8.3,2.06,14.58,68.5,2.94,282.6,370.5,435.4,158.0],[9.32,2.89,15.48,64.1,3.06,284.2,371.2,396.7,167.9],[9.9,3.41,16.08,61.5,3.14,286.7,348.4,383.2,159.5],[10.11,3.38,16.1,60.9,3.16,287.4,295.0,353.3,144.2],[9.92,3.15,16.14,62.2,3.06,288.9,213.9,330.5,107.8],[9.35,2.67,15.65,65.3,2.83,288.6,103.4,229.3,62.1],[8.34,1.77,14.34,69.9,2.66,283.7,14.1,36.4,10.2],[7.22,1.05,13.41,75.1,2.53,279.8,0.0,0.0,0.0],[6.42,0.6,12.65,78.4,2.47,277.5,0.0,0.0,0.0],[5.78,0.11,11.89,80.9,2.46,276.4,0.0,0.0,0.0],[5.49,-0.26,11.47,81.2,2.49,275.1,0.0,0.0,0.0],[5.07,-0.66,11.11,82.6,2.44,274.5,0.0,0.0,0.0]],"prevailing":[[45.0,2.88,0.244],[45.0,2.82,0.211],[45.0,2.85,0.211],[45.0,2.8,0.211],[45.0,2.79,0.2],[45.0,2.89,0.211],[90.0,1.49,0.211],[45.0,3.19,0.211],[45.0,2.96,0.222],[45.0,2.93,0.233],[45.0,3.46,0.256],[45.0,3.78,0.233],[45.0,4.11,0.211],[45.0,3.86,0.289],[45.0,3.91,0.256],[45.0,3.6,0.244],[45.0,3.59,0.233],[22.5,3.84,0.233],[22.5,3.6,0.222],[45.0,2.84,0.278],[45.0,2.78,0.3],[45.0,2.62,0.311],[45.0,2.85,0.278],[45.0,2.84,0.256]],"rose":[[0.0051,0.006,0.0065,0.0,0.0,0.0],[0.0116,0.0667,0.0477,0.0116,0.0005,0.0],[0.0546,0.1162,0.0593,0.0074,0.0009,0.0],[0.0806,0.0458,0.0,0.0,0.0,0.0],[0.1093,0.0083,0.0,0.0,0.0,0.0],[0.063,0.0065,0.0,0.0,0.0,0.0],[0.0384,0.0079,0.0,0.0,0.0,0.0],[0.0296,0.0153,0.0051,0.0005,0.0,0.0],[0.0153,0.0375,0.0282,0.0056,0.0009,0.0],[0.0097,0.013,0.0125,0.006,0.0,0.0],[0.0093,0.0139,0.0046,0.0,0.0,0.0],[0.0042,0.0028,0.0009,0.0,0.0,0.0],[0.0042,0.0069,0.0,0.0,0.0,0.0],[0.0014,0.0,0.0,0.0,0.0,0.0],[0.0009,0.0,0.0,0.0,0.0,0.0],[0.0014,0.0005,0.0,0.0,0.0,0.0]],"calm":0.0162,"mean_ws":2.61,"max_ws":9.1,"gust_p95":5.66}}}
@@ -1059,8 +1145,84 @@ class View(object):
 
 # ============================================================ PAGE (vector items in mm, y up)
 class Page(object):
+    """v59 (round 4, PALL.2, G-R4-1; as the masterplan's Page): a page that is a booklet page carries ONE TextPage
+    (pg.text_page(TextPage, name, ...), the class handed in by the board, common/text_place.py): every pg.text is then
+    registered with its real box (Arial metrics) before it is drawn; pg.text_free() tells whether a text would sit
+    clear of every text and keep registered so far; pg.check_text() RAISES TextCollision (the sheet is then not
+    written). Without a TextPage the page draws as before (the engine standalone)."""
     def __init__(self, pid, title):
         self.pid, self.title, self.items = pid, title, []
+        self.tp, self.tg, self._hit = None, None, None    # v59 (round 4, PALL.2)
+
+    def text_page(self, TP, name, bounds=None, footer_zone=None, pad=0.6, scale=1.0, hit=None):
+        """v59 (round 4, PALL.2): start this page's TextPage (y up, page mm); TP = the TextPage class, hit = tp_hit
+        (both from the board); bounds default = the whole sheet"""
+        if TP is None:
+            return None
+        self.tp = TP(name, bounds or (0.0, 0.0, PAGE_W, PAGE_H), y_down=False, pad=pad, footer_zone=footer_zone,
+                     scale=scale)
+        self._hit = hit
+        return self.tp
+
+    def tgroup(self, start=True):
+        """v59 (round 4, PALL.2): start (or with False end) one text group: the lines / runs of one word block may
+        touch each other, never another group"""
+        self.tg = self.tp._group() if start and self.tp is not None else None
+        return self.tg
+
+    def keep(self, geom, kind="keep", name=None, line=None):
+        """v59 (round 4, PALL.2): an obstacle no text may touch (TextPage.keep), e.g. a marker's disc"""
+        return self.tp.keep(geom, kind, name, line) if self.tp is not None else None
+
+    def _tp_runs(self, s, x, y, size, bold, align, mat):
+        """v59 (round 4, PALL.2): the (text, x, y, pt, align, angle) pieces a text is registered as: a straight text
+        whole; a text lying in a drawing plane (mat) as 4-letter chunks along its baseline (its strip, not its
+        bounding box), its em = size x the length of the text x axis"""
+        if mat is None:
+            return [(s, x, y, size / PT, align, 0.0)]
+        (a, b), (c, d) = mat
+        sc = math.hypot(a, b) or 1.0
+        em = size * sc                                    # page mm
+        ang = math.degrees(math.atan2(b, a))
+        ux, uy = a / sc, b / sc
+        w = text_w(s, size, bold) * sc
+        u = {"L": 0.0, "C": -0.5, "R": -1.0}[align] * w
+        out = []
+        for j in range(0, len(s), 4):
+            ch = s[j:j + 4]
+            if ch.strip():
+                out.append((ch, x + u * ux, y + u * uy, em / PT, "L", ang))
+            u += text_w(ch, size, bold) * sc
+        return out
+
+    def text_free(self, s, x, y, size, bold=False, align="L", mat=None):
+        """v59 (round 4, PALL.2): True when the text would sit clear (pad) of every text and keep registered so far
+        and inside the page (always True without a TextPage)"""
+        tp = self.tp
+        if tp is None or self._hit is None:
+            return True
+        for t_, x_, y_, pt_, al_, an_ in self._tp_runs(s, x, y, size, bold, align, mat):
+            if not tp._free(tp._box(t_, x_, y_, pt_, bold, al_, an_)):
+                return False
+        return True
+
+    def box_free(self, box):
+        """v59 (round 4, PALL.2): True when a box (x0, y0, x1, y1) is clear (pad) of every registered text and keep
+        (always True without a TextPage)"""
+        tp = self.tp
+        if tp is None:
+            return True
+        return tp._free(tuple(box))
+
+    def check_text(self, log=None):
+        """v59 (round 4, PALL.2): the page's collision test (raises TextCollision); returns the log line"""
+        if self.tp is None:
+            return u""
+        lg = []
+        self.tp.check(True, lg)
+        if log is not None:
+            log.extend(lg)
+        return lg[-1] if lg else u""
 
     def poly(self, rings, fill=None, stroke=None, lw=0.1, dash=None, layer="drawing", join=1, stripes=None, alpha=None):
         """alpha: opacity 0-1 of fill and stroke (PDF only, in steps of 0.05; None = opaque)."""
@@ -1075,10 +1237,18 @@ class Page(object):
     def circle(self, cx, cy, r, fill=None, stroke=None, lw=0.1, layer="drawing"):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw, layer))
 
-    def text(self, s, x, y, size, color, bold=False, align="L", layer="text", mat=None, halo=None):
+    def text(self, s, x, y, size, color, bold=False, align="L", layer="text", mat=None, halo=None, name=None,
+             allow=()):
         """size = em in mm; align L, C or R on the baseline; mat = 2 x 2 text matrix (columns: text x and y axes per
-        mm of em) for words lying in a drawing plane."""
+        mm of em) for words lying in a drawing plane. v59 (round 4, PALL.2): registered in the page's TextPage first
+        (name / allow to TextPage.put: allow = keep names it may sit on, e.g. its own marker disc); a text under the
+        6 pt minimum RAISES there."""
         if s:
+            tp = self.tp
+            if tp is not None and s.strip():
+                g = self.tg or tp._group()
+                for t_, x_, y_, pt_, al_, an_ in self._tp_runs(s, x, y, size, bold, align, mat):
+                    tp.put(t_, x_, y_, pt_, bold, al_, an_, name, "label", color, allow, g, emit=False)
             self.items.append(("text", s, x, y, size, color, bold, align, layer, mat, halo))
 
 
@@ -1424,7 +1594,8 @@ def river_words(ctx, color=None):
     cl = (getattr(S, "selinus", None) or [None])[0] if getattr(S, "selinus", None) else None
     if not cl:
         return []
-    return [dict(text=u"SELİNOS STREAM", pts=[(p[0], p[1]) for p in cl], size=None, color=color or ctx.BP.CORE["water_deep"],
+    nm = ctx.ns["place_name"]("stream") if ctx.ns.get("place_name") else u"Selinos stream"   # v59 (G-R4-11): table
+    return [dict(text=nm, pts=[(p[0], p[1]) for p in cl], size=None, color=color or ctx.BP.CORE["water_deep"],
                  bold=True)]
 
 
@@ -1736,6 +1907,11 @@ def climb_txt(c):
 
 # ============================================================ COMPOSING A PAGE
 BOX = (14.0, 46.0, 406.0, 262.0)          # drawing area on the page (x0, y0, x1, y1), mm
+TP_PAGE = "p03"                            # v59 (round 4, PALL.2): the booklet page this sheet is (shown as it is)
+TP_FOOTER = (394.0, 11.0, 407.0, 18.2)     # v59: where the booklet prints its page number on a whole-sheet page
+#                                            (bergama_booklet sheet_foot, y up): no sheet text may sit there
+TP_MIN_EM = 2.15                           # v59 (round 4, G-R4-1): mm, the smallest em on the sheet (6.1 pt; the
+#                                            booklet prints the sheet at 1:1, minimum 6 pt)
 CELL = 1.5                                 # callout placement grid, mm
 
 
@@ -2046,6 +2222,8 @@ def compose(ctx, spec, ext, stamp):
     V.zg = GR.z if GR.ok else None
     k = V.k
     pg = Page("{}_{}".format(spec["did"], ext["key"].replace(" ", "")), spec["title"])
+    # v59 (round 4, PALL.2, G-R4-1): the sheet's TextPage (the board hands in the class: ctx.ns is its globals)
+    pg.text_page(ctx.ns.get("TextPage"), TP_PAGE, footer_zone=TP_FOOTER, hit=ctx.ns.get("tp_hit"))
     G = Grid()
     ghost = spec["ghost"]
     ctxs = ctx_style(BP, ghost)
@@ -2195,7 +2373,11 @@ def draw_building(pg, V, b, st, w, G):
 
 
 def place_word(pg, V, R, wd, G, CORE):
-    best = None
+    """a word lying on the ground along its line (street and stream names, as in reference 2). v59 (round 4, PALL.2,
+    G-R4-1): the nearly straight runs tried longest first; a run takes the word when it prints at TP_MIN_EM or more
+    along its baseline and sits clear of every text registered so far (pg.text_free); else the next run; none:
+    logged, not drawn"""
+    runs = []
     for C in R.clip_line(wd["pts"]):
         i = 0
         while i < len(C) - 1:                          # runs of nearly straight segments
@@ -2207,42 +2389,46 @@ def place_word(pg, V, R, wd, G, CORE):
                     break
                 j += 1
             L = math.hypot(C[j][0] - C[i][0], C[j][1] - C[i][1])
-            if best is None or L > best[0]:
-                best = (L, C[i], C[j])
+            if L >= 1.0:
+                runs.append((L, C[i], C[j]))
             i = j
-    if best is None or best[0] < 1.0:
+    for L, a, b in sorted(runs, key=lambda r_: -r_[0]):
+        d = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+        vd = V.vec(d[0], d[1])
+        if vd[0] < 0:
+            d = (-d[0], -d[1])
+            vd = (-vd[0], -vd[1])
+        pdir = (-d[1], d[0])
+        vp = V.vec(pdir[0], pdir[1])
+        if vd[0] * vp[1] - vd[1] * vp[0] < 0:
+            pdir = (-pdir[0], -pdir[1])
+            vp = (-vp[0], -vp[1])
+        sc = math.hypot(vd[0], vd[1]) or 1e-9          # page mm per metre along the word
+        s = wd.get("size") or 2.3 / sc                 # em in metres: v59 2.3 mm on the page along the word
+        tw = text_w(wd["text"], s, wd.get("bold"))
+        if tw > 0.8 * L:
+            s *= 0.8 * L / tw
+            tw = 0.8 * L
+        if s * sc < TP_MIN_EM:                         # v59 (G-R4-1): never under 6 pt
+            continue
+        off = -0.36 * s                                # centre the capitals on the line
+        mx = (a[0] + b[0]) / 2 + pdir[0] * off
+        my = (a[1] + b[1]) / 2 + pdir[1] * off
+        c = V.P(mx, my)
+        if not pg.text_free(wd["text"], c[0], c[1], s, wd.get("bold"), "C", (vd, vp)):
+            continue
+        pg.text(wd["text"], c[0], c[1], s, wd["color"], bold=wd.get("bold"), align="C", layer="words",
+                mat=(vd, vp), halo=None if wd["color"] != "FFFFFF" else wd.get("band"))   # v40: no white halo
         return
-    L, a, b = best
-    d = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
-    vd = V.vec(d[0], d[1])
-    if vd[0] < 0:
-        d = (-d[0], -d[1])
-        vd = (-vd[0], -vd[1])
-    pdir = (-d[1], d[0])
-    vp = V.vec(pdir[0], pdir[1])
-    if vd[0] * vp[1] - vd[1] * vp[0] < 0:
-        pdir = (-pdir[0], -pdir[1])
-        vp = (-vp[0], -vp[1])
-    s = wd.get("size") or 2.3 / V.k                    # em in metres: about 2.3 mm on the page
-    tw = text_w(wd["text"], s, wd.get("bold"))
-    if tw > 0.8 * L:
-        s *= 0.8 * L / tw
-        tw = 0.8 * L
-    if s * V.k < 1.3:
-        return
-    off = -0.36 * s                                    # centre the capitals on the line
-    mx = (a[0] + b[0]) / 2 + pdir[0] * off
-    my = (a[1] + b[1]) / 2 + pdir[1] * off
-    c = V.P(mx, my)
-    pg.text(wd["text"], c[0], c[1], s, wd["color"], bold=wd.get("bold"), align="C", layer="words",
-            mat=(vd, vp), halo=None if wd["color"] != "FFFFFF" else wd.get("band"))   # v40: no white halo
+    LOG.append(u"{}: the word {!r} finds no run long enough at 6 pt, clear of the other words: not drawn".format(
+        pg.pid, wd["text"]))
 
 
 def place_callouts(pg, V, R, calls, G, BP):
     CORE = BP.CORE
     calls = sorted(calls, key=lambda c: -c["prio"])
     seen, placed, dropped = set(), 0, 0
-    T1, T2, RD = 2.5, 2.0, 5.4                          # title em, fact em, roundel diameter (mm)
+    T1, T2, RD = 2.5, TP_MIN_EM, 5.4                    # title em, fact em (v59: 6 pt), roundel diameter (mm)
     mid = (BOX[0] + BOX[2]) / 2
     for c in calls:
         if placed >= MAX_CALLOUTS:
@@ -2351,31 +2537,38 @@ def chrome(pg, ctx, spec, ext, V, stamp):
     notes = [u"[{}] {}".format(i + 1, n) for i, n in enumerate(spec.get("notes", []))] + [   # v38: the numbered key
         u"Drawn by {} on {} from the site model above; colours: group palette "
         u"(palette/). Every figure on this sheet is counted from these files.".format(SCRIPT, stamp)]
+    # v59 (round 4, PALL.2, G-R4-1): the notes at the 6 pt minimum (were 1.75 mm = 5 pt), one text group, six lines
+    # from y 17 (under the legend's last row) down to y 3.25
     lines = []
     for n in notes:
-        lines += wrap(n, 1.75, 270)
-    yy = 15.5
-    for ln in lines[:5]:
-        pg.text(ln, 14, yy, 1.75, ink2, layer="sheet")
-        yy -= 2.45
-    if len(lines) > 5:
-        LOG.append("WARNING: {}: source notes cut to 5 lines.".format(pg.pid))
+        lines += wrap(n, TP_MIN_EM, 270)
+    yy = 17.0
+    pg.tgroup()
+    for ln in lines[:6]:
+        pg.text(ln, 14, yy, TP_MIN_EM, ink2, layer="sheet")
+        yy -= 2.75
+    pg.tgroup(False)
+    if len(lines) > 6:
+        LOG.append("WARNING: {}: source notes cut to 6 lines ({} lines left out).".format(pg.pid, len(lines) - 6))
 
-    # north arrow (true north, lying on the ground plane)
+    # north arrow (true north, lying on the ground plane). v59 (round 4, G-R4-9, PALL.2): THE north arrow of
+    # common/keymap.py north_items (a slim filled head on a short shaft, "N" beyond the tip, no plate, no white half),
+    # its 6 mm along true north as the view shows it, the whole sign centred on (398, 27) so it stays clear of the
+    # booklet's page number (TP_FOOTER) and of the rule; "true north" left out (the N says it, G-R4-2)
     nx, ny = V.vec(ctx.north[0], ctx.north[1])
     d = math.hypot(nx, ny) or 1.0
     ux, uy = nx / d, ny / d
-    cx, cy = 398.0, 22.0
-    L = 9.0
-    tip = (cx + ux * L / 2, cy + uy * L / 2)
-    tail = (cx - ux * L / 2, cy - uy * L / 2)
-    lft = (tail[0] - uy * 2.6, tail[1] + ux * 2.6)
-    rgt = (tail[0] + uy * 2.6, tail[1] - ux * 2.6)
-    mdl = (cx - ux * L * 0.22, cy - uy * L * 0.22)
-    pg.poly([[tip, lft, mdl]], fill=ink, stroke=ink, lw=0.15, layer="north")
-    pg.poly([[tip, mdl, rgt]], fill=CORE["structure"], stroke=ink, lw=0.15, layer="north")
-    pg.text("N", tip[0] + ux * 2.6, tip[1] + uy * 2.6 - 1.2, 3.0, ink, bold=True, align="C", layer="north")
-    pg.text(u"true north", cx, 9.5, 1.8, ink2, align="C", layer="north")
+    h, tm = 6.0, 2.52
+    reach = h + 0.75 * tm + 0.6 * tm                       # foot to the far side of the "N"
+    fx, fy = 398.0 - ux * reach / 2.0, 27.0 - uy * reach / 2.0
+
+    def R_(a_, b_):                                         # a_ across the arrow, b_ along it (mm from the foot)
+        return (fx + a_ * uy + b_ * ux, fy - a_ * ux + b_ * uy)
+    pg.line([R_(0.0, 0.0), R_(0.0, 0.62 * h)], ink, max(0.18, 0.04 * h), layer="north")
+    pg.poly([[R_(0.0, h), R_(-0.22 * h, 0.55 * h), R_(0.0, 0.66 * h), R_(0.22 * h, 0.55 * h)]], fill=ink,
+            stroke=None, layer="north")
+    nc = R_(0.0, h + 0.75 * tm)
+    pg.text("N", nc[0], nc[1] - tm * CAP / 2.0, tm, ink, bold=True, align="C", layer="north")
 
     # scale bars on the ground, along the slab's two directions
     R = ext["rect"]
@@ -2395,11 +2588,11 @@ def chrome(pg, ctx, spec, ext, V, stamp):
             pg.poly([[a, b, (b[0] + pp[0], b[1] + pp[1]), (a[0] + pp[0], a[1] + pp[1])]],
                     fill=ink if s % 2 == 0 else "FFFFFF", stroke=ink, lw=0.12, layer="scale")
         end = (ox + e[0] * seg * 4, oy + e[1] * seg * 4)
-        pg.text(u"{} m".format(fmt_int(Lm)), end[0] + e[0] * 1.5, end[1] + e[1] * 1.5 + 0.8, 2.0, ink,
-                align="L" if e[0] >= 0 else "R", layer="scale")
-    pg.text("0", ox, oy - 3.0, 2.0, ink, align="C", layer="scale")
+        pg.text(u"{} m".format(fmt_int(Lm)), end[0] + e[0] * 1.5, end[1] + e[1] * 1.5 + 0.8, TP_MIN_EM, ink,
+                align="L" if e[0] >= 0 else "R", layer="scale")              # v59 (G-R4-1): 6 pt (was 2.0 mm)
+    pg.text("0", ox, oy - 3.0, TP_MIN_EM, ink, align="C", layer="scale")
     pg.text(u"no single scale · true on 2 ground lines · 10 m up = {:.1f} mm".format(     # v38: keywords
-        10 * V.k * V.cp), 352.0, 4.5, 1.7, ink2, align="C", layer="scale")
+        10 * V.k * V.cp), 352.0, 4.5, TP_MIN_EM, ink2, align="C", layer="scale")    # v59: 6 pt (was 1.7 mm)
 
 
 def legend_glyph(pg, BP, kind, colr, x, y):

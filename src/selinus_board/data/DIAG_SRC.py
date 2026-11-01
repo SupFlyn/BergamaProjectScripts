@@ -265,8 +265,84 @@ class View(object):
 
 # ============================================================ PAGE (vector items in mm, y up)
 class Page(object):
+    """v59 (round 4, PALL.2, G-R4-1; as the masterplan's Page): a page that is a booklet page carries ONE TextPage
+    (pg.text_page(TextPage, name, ...), the class handed in by the board, common/text_place.py): every pg.text is then
+    registered with its real box (Arial metrics) before it is drawn; pg.text_free() tells whether a text would sit
+    clear of every text and keep registered so far; pg.check_text() RAISES TextCollision (the sheet is then not
+    written). Without a TextPage the page draws as before (the engine standalone)."""
     def __init__(self, pid, title):
         self.pid, self.title, self.items = pid, title, []
+        self.tp, self.tg, self._hit = None, None, None    # v59 (round 4, PALL.2)
+
+    def text_page(self, TP, name, bounds=None, footer_zone=None, pad=0.6, scale=1.0, hit=None):
+        """v59 (round 4, PALL.2): start this page's TextPage (y up, page mm); TP = the TextPage class, hit = tp_hit
+        (both from the board); bounds default = the whole sheet"""
+        if TP is None:
+            return None
+        self.tp = TP(name, bounds or (0.0, 0.0, PAGE_W, PAGE_H), y_down=False, pad=pad, footer_zone=footer_zone,
+                     scale=scale)
+        self._hit = hit
+        return self.tp
+
+    def tgroup(self, start=True):
+        """v59 (round 4, PALL.2): start (or with False end) one text group: the lines / runs of one word block may
+        touch each other, never another group"""
+        self.tg = self.tp._group() if start and self.tp is not None else None
+        return self.tg
+
+    def keep(self, geom, kind="keep", name=None, line=None):
+        """v59 (round 4, PALL.2): an obstacle no text may touch (TextPage.keep), e.g. a marker's disc"""
+        return self.tp.keep(geom, kind, name, line) if self.tp is not None else None
+
+    def _tp_runs(self, s, x, y, size, bold, align, mat):
+        """v59 (round 4, PALL.2): the (text, x, y, pt, align, angle) pieces a text is registered as: a straight text
+        whole; a text lying in a drawing plane (mat) as 4-letter chunks along its baseline (its strip, not its
+        bounding box), its em = size x the length of the text x axis"""
+        if mat is None:
+            return [(s, x, y, size / PT, align, 0.0)]
+        (a, b), (c, d) = mat
+        sc = math.hypot(a, b) or 1.0
+        em = size * sc                                    # page mm
+        ang = math.degrees(math.atan2(b, a))
+        ux, uy = a / sc, b / sc
+        w = text_w(s, size, bold) * sc
+        u = {"L": 0.0, "C": -0.5, "R": -1.0}[align] * w
+        out = []
+        for j in range(0, len(s), 4):
+            ch = s[j:j + 4]
+            if ch.strip():
+                out.append((ch, x + u * ux, y + u * uy, em / PT, "L", ang))
+            u += text_w(ch, size, bold) * sc
+        return out
+
+    def text_free(self, s, x, y, size, bold=False, align="L", mat=None):
+        """v59 (round 4, PALL.2): True when the text would sit clear (pad) of every text and keep registered so far
+        and inside the page (always True without a TextPage)"""
+        tp = self.tp
+        if tp is None or self._hit is None:
+            return True
+        for t_, x_, y_, pt_, al_, an_ in self._tp_runs(s, x, y, size, bold, align, mat):
+            if not tp._free(tp._box(t_, x_, y_, pt_, bold, al_, an_)):
+                return False
+        return True
+
+    def box_free(self, box):
+        """v59 (round 4, PALL.2): True when a box (x0, y0, x1, y1) is clear (pad) of every registered text and keep
+        (always True without a TextPage)"""
+        tp = self.tp
+        if tp is None:
+            return True
+        return tp._free(tuple(box))
+
+    def check_text(self, log=None):
+        """v59 (round 4, PALL.2): the page's collision test (raises TextCollision); returns the log line"""
+        if self.tp is None:
+            return u""
+        lg = []
+        self.tp.check(True, lg)
+        if log is not None:
+            log.extend(lg)
+        return lg[-1] if lg else u""
 
     def poly(self, rings, fill=None, stroke=None, lw=0.1, dash=None, layer="drawing", join=1, stripes=None, alpha=None):
         """alpha: opacity 0-1 of fill and stroke (PDF only, in steps of 0.05; None = opaque)."""
@@ -281,10 +357,18 @@ class Page(object):
     def circle(self, cx, cy, r, fill=None, stroke=None, lw=0.1, layer="drawing"):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw, layer))
 
-    def text(self, s, x, y, size, color, bold=False, align="L", layer="text", mat=None, halo=None):
+    def text(self, s, x, y, size, color, bold=False, align="L", layer="text", mat=None, halo=None, name=None,
+             allow=()):
         """size = em in mm; align L, C or R on the baseline; mat = 2 x 2 text matrix (columns: text x and y axes per
-        mm of em) for words lying in a drawing plane."""
+        mm of em) for words lying in a drawing plane. v59 (round 4, PALL.2): registered in the page's TextPage first
+        (name / allow to TextPage.put: allow = keep names it may sit on, e.g. its own marker disc); a text under the
+        6 pt minimum RAISES there."""
         if s:
+            tp = self.tp
+            if tp is not None and s.strip():
+                g = self.tg or tp._group()
+                for t_, x_, y_, pt_, al_, an_ in self._tp_runs(s, x, y, size, bold, align, mat):
+                    tp.put(t_, x_, y_, pt_, bold, al_, an_, name, "label", color, allow, g, emit=False)
             self.items.append(("text", s, x, y, size, color, bold, align, layer, mat, halo))
 
 
@@ -630,7 +714,8 @@ def river_words(ctx, color=None):
     cl = (getattr(S, "selinus", None) or [None])[0] if getattr(S, "selinus", None) else None
     if not cl:
         return []
-    return [dict(text=u"SELİNOS STREAM", pts=[(p[0], p[1]) for p in cl], size=None, color=color or ctx.BP.CORE["water_deep"],
+    nm = ctx.ns["place_name"]("stream") if ctx.ns.get("place_name") else u"Selinos stream"   # v59 (G-R4-11): table
+    return [dict(text=nm, pts=[(p[0], p[1]) for p in cl], size=None, color=color or ctx.BP.CORE["water_deep"],
                  bold=True)]
 
 
@@ -942,6 +1027,11 @@ def climb_txt(c):
 
 # ============================================================ COMPOSING A PAGE
 BOX = (14.0, 46.0, 406.0, 262.0)          # drawing area on the page (x0, y0, x1, y1), mm
+TP_PAGE = "p03"                            # v59 (round 4, PALL.2): the booklet page this sheet is (shown as it is)
+TP_FOOTER = (394.0, 11.0, 407.0, 18.2)     # v59: where the booklet prints its page number on a whole-sheet page
+#                                            (bergama_booklet sheet_foot, y up): no sheet text may sit there
+TP_MIN_EM = 2.15                           # v59 (round 4, G-R4-1): mm, the smallest em on the sheet (6.1 pt; the
+#                                            booklet prints the sheet at 1:1, minimum 6 pt)
 CELL = 1.5                                 # callout placement grid, mm
 
 
@@ -1252,6 +1342,8 @@ def compose(ctx, spec, ext, stamp):
     V.zg = GR.z if GR.ok else None
     k = V.k
     pg = Page("{}_{}".format(spec["did"], ext["key"].replace(" ", "")), spec["title"])
+    # v59 (round 4, PALL.2, G-R4-1): the sheet's TextPage (the board hands in the class: ctx.ns is its globals)
+    pg.text_page(ctx.ns.get("TextPage"), TP_PAGE, footer_zone=TP_FOOTER, hit=ctx.ns.get("tp_hit"))
     G = Grid()
     ghost = spec["ghost"]
     ctxs = ctx_style(BP, ghost)
@@ -1401,7 +1493,11 @@ def draw_building(pg, V, b, st, w, G):
 
 
 def place_word(pg, V, R, wd, G, CORE):
-    best = None
+    """a word lying on the ground along its line (street and stream names, as in reference 2). v59 (round 4, PALL.2,
+    G-R4-1): the nearly straight runs tried longest first; a run takes the word when it prints at TP_MIN_EM or more
+    along its baseline and sits clear of every text registered so far (pg.text_free); else the next run; none:
+    logged, not drawn"""
+    runs = []
     for C in R.clip_line(wd["pts"]):
         i = 0
         while i < len(C) - 1:                          # runs of nearly straight segments
@@ -1413,42 +1509,46 @@ def place_word(pg, V, R, wd, G, CORE):
                     break
                 j += 1
             L = math.hypot(C[j][0] - C[i][0], C[j][1] - C[i][1])
-            if best is None or L > best[0]:
-                best = (L, C[i], C[j])
+            if L >= 1.0:
+                runs.append((L, C[i], C[j]))
             i = j
-    if best is None or best[0] < 1.0:
+    for L, a, b in sorted(runs, key=lambda r_: -r_[0]):
+        d = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+        vd = V.vec(d[0], d[1])
+        if vd[0] < 0:
+            d = (-d[0], -d[1])
+            vd = (-vd[0], -vd[1])
+        pdir = (-d[1], d[0])
+        vp = V.vec(pdir[0], pdir[1])
+        if vd[0] * vp[1] - vd[1] * vp[0] < 0:
+            pdir = (-pdir[0], -pdir[1])
+            vp = (-vp[0], -vp[1])
+        sc = math.hypot(vd[0], vd[1]) or 1e-9          # page mm per metre along the word
+        s = wd.get("size") or 2.3 / sc                 # em in metres: v59 2.3 mm on the page along the word
+        tw = text_w(wd["text"], s, wd.get("bold"))
+        if tw > 0.8 * L:
+            s *= 0.8 * L / tw
+            tw = 0.8 * L
+        if s * sc < TP_MIN_EM:                         # v59 (G-R4-1): never under 6 pt
+            continue
+        off = -0.36 * s                                # centre the capitals on the line
+        mx = (a[0] + b[0]) / 2 + pdir[0] * off
+        my = (a[1] + b[1]) / 2 + pdir[1] * off
+        c = V.P(mx, my)
+        if not pg.text_free(wd["text"], c[0], c[1], s, wd.get("bold"), "C", (vd, vp)):
+            continue
+        pg.text(wd["text"], c[0], c[1], s, wd["color"], bold=wd.get("bold"), align="C", layer="words",
+                mat=(vd, vp), halo=None if wd["color"] != "FFFFFF" else wd.get("band"))   # v40: no white halo
         return
-    L, a, b = best
-    d = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
-    vd = V.vec(d[0], d[1])
-    if vd[0] < 0:
-        d = (-d[0], -d[1])
-        vd = (-vd[0], -vd[1])
-    pdir = (-d[1], d[0])
-    vp = V.vec(pdir[0], pdir[1])
-    if vd[0] * vp[1] - vd[1] * vp[0] < 0:
-        pdir = (-pdir[0], -pdir[1])
-        vp = (-vp[0], -vp[1])
-    s = wd.get("size") or 2.3 / V.k                    # em in metres: about 2.3 mm on the page
-    tw = text_w(wd["text"], s, wd.get("bold"))
-    if tw > 0.8 * L:
-        s *= 0.8 * L / tw
-        tw = 0.8 * L
-    if s * V.k < 1.3:
-        return
-    off = -0.36 * s                                    # centre the capitals on the line
-    mx = (a[0] + b[0]) / 2 + pdir[0] * off
-    my = (a[1] + b[1]) / 2 + pdir[1] * off
-    c = V.P(mx, my)
-    pg.text(wd["text"], c[0], c[1], s, wd["color"], bold=wd.get("bold"), align="C", layer="words",
-            mat=(vd, vp), halo=None if wd["color"] != "FFFFFF" else wd.get("band"))   # v40: no white halo
+    LOG.append(u"{}: the word {!r} finds no run long enough at 6 pt, clear of the other words: not drawn".format(
+        pg.pid, wd["text"]))
 
 
 def place_callouts(pg, V, R, calls, G, BP):
     CORE = BP.CORE
     calls = sorted(calls, key=lambda c: -c["prio"])
     seen, placed, dropped = set(), 0, 0
-    T1, T2, RD = 2.5, 2.0, 5.4                          # title em, fact em, roundel diameter (mm)
+    T1, T2, RD = 2.5, TP_MIN_EM, 5.4                    # title em, fact em (v59: 6 pt), roundel diameter (mm)
     mid = (BOX[0] + BOX[2]) / 2
     for c in calls:
         if placed >= MAX_CALLOUTS:
@@ -1557,31 +1657,38 @@ def chrome(pg, ctx, spec, ext, V, stamp):
     notes = [u"[{}] {}".format(i + 1, n) for i, n in enumerate(spec.get("notes", []))] + [   # v38: the numbered key
         u"Drawn by {} on {} from the site model above; colours: group palette "
         u"(palette/). Every figure on this sheet is counted from these files.".format(SCRIPT, stamp)]
+    # v59 (round 4, PALL.2, G-R4-1): the notes at the 6 pt minimum (were 1.75 mm = 5 pt), one text group, six lines
+    # from y 17 (under the legend's last row) down to y 3.25
     lines = []
     for n in notes:
-        lines += wrap(n, 1.75, 270)
-    yy = 15.5
-    for ln in lines[:5]:
-        pg.text(ln, 14, yy, 1.75, ink2, layer="sheet")
-        yy -= 2.45
-    if len(lines) > 5:
-        LOG.append("WARNING: {}: source notes cut to 5 lines.".format(pg.pid))
+        lines += wrap(n, TP_MIN_EM, 270)
+    yy = 17.0
+    pg.tgroup()
+    for ln in lines[:6]:
+        pg.text(ln, 14, yy, TP_MIN_EM, ink2, layer="sheet")
+        yy -= 2.75
+    pg.tgroup(False)
+    if len(lines) > 6:
+        LOG.append("WARNING: {}: source notes cut to 6 lines ({} lines left out).".format(pg.pid, len(lines) - 6))
 
-    # north arrow (true north, lying on the ground plane)
+    # north arrow (true north, lying on the ground plane). v59 (round 4, G-R4-9, PALL.2): THE north arrow of
+    # common/keymap.py north_items (a slim filled head on a short shaft, "N" beyond the tip, no plate, no white half),
+    # its 6 mm along true north as the view shows it, the whole sign centred on (398, 27) so it stays clear of the
+    # booklet's page number (TP_FOOTER) and of the rule; "true north" left out (the N says it, G-R4-2)
     nx, ny = V.vec(ctx.north[0], ctx.north[1])
     d = math.hypot(nx, ny) or 1.0
     ux, uy = nx / d, ny / d
-    cx, cy = 398.0, 22.0
-    L = 9.0
-    tip = (cx + ux * L / 2, cy + uy * L / 2)
-    tail = (cx - ux * L / 2, cy - uy * L / 2)
-    lft = (tail[0] - uy * 2.6, tail[1] + ux * 2.6)
-    rgt = (tail[0] + uy * 2.6, tail[1] - ux * 2.6)
-    mdl = (cx - ux * L * 0.22, cy - uy * L * 0.22)
-    pg.poly([[tip, lft, mdl]], fill=ink, stroke=ink, lw=0.15, layer="north")
-    pg.poly([[tip, mdl, rgt]], fill=CORE["structure"], stroke=ink, lw=0.15, layer="north")
-    pg.text("N", tip[0] + ux * 2.6, tip[1] + uy * 2.6 - 1.2, 3.0, ink, bold=True, align="C", layer="north")
-    pg.text(u"true north", cx, 9.5, 1.8, ink2, align="C", layer="north")
+    h, tm = 6.0, 2.52
+    reach = h + 0.75 * tm + 0.6 * tm                       # foot to the far side of the "N"
+    fx, fy = 398.0 - ux * reach / 2.0, 27.0 - uy * reach / 2.0
+
+    def R_(a_, b_):                                         # a_ across the arrow, b_ along it (mm from the foot)
+        return (fx + a_ * uy + b_ * ux, fy - a_ * ux + b_ * uy)
+    pg.line([R_(0.0, 0.0), R_(0.0, 0.62 * h)], ink, max(0.18, 0.04 * h), layer="north")
+    pg.poly([[R_(0.0, h), R_(-0.22 * h, 0.55 * h), R_(0.0, 0.66 * h), R_(0.22 * h, 0.55 * h)]], fill=ink,
+            stroke=None, layer="north")
+    nc = R_(0.0, h + 0.75 * tm)
+    pg.text("N", nc[0], nc[1] - tm * CAP / 2.0, tm, ink, bold=True, align="C", layer="north")
 
     # scale bars on the ground, along the slab's two directions
     R = ext["rect"]
@@ -1601,11 +1708,11 @@ def chrome(pg, ctx, spec, ext, V, stamp):
             pg.poly([[a, b, (b[0] + pp[0], b[1] + pp[1]), (a[0] + pp[0], a[1] + pp[1])]],
                     fill=ink if s % 2 == 0 else "FFFFFF", stroke=ink, lw=0.12, layer="scale")
         end = (ox + e[0] * seg * 4, oy + e[1] * seg * 4)
-        pg.text(u"{} m".format(fmt_int(Lm)), end[0] + e[0] * 1.5, end[1] + e[1] * 1.5 + 0.8, 2.0, ink,
-                align="L" if e[0] >= 0 else "R", layer="scale")
-    pg.text("0", ox, oy - 3.0, 2.0, ink, align="C", layer="scale")
+        pg.text(u"{} m".format(fmt_int(Lm)), end[0] + e[0] * 1.5, end[1] + e[1] * 1.5 + 0.8, TP_MIN_EM, ink,
+                align="L" if e[0] >= 0 else "R", layer="scale")              # v59 (G-R4-1): 6 pt (was 2.0 mm)
+    pg.text("0", ox, oy - 3.0, TP_MIN_EM, ink, align="C", layer="scale")
     pg.text(u"no single scale · true on 2 ground lines · 10 m up = {:.1f} mm".format(     # v38: keywords
-        10 * V.k * V.cp), 352.0, 4.5, 1.7, ink2, align="C", layer="scale")
+        10 * V.k * V.cp), 352.0, 4.5, TP_MIN_EM, ink2, align="C", layer="scale")    # v59: 6 pt (was 1.7 mm)
 
 
 def legend_glyph(pg, BP, kind, colr, x, y):

@@ -169,7 +169,7 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=(), pal=None, den=None):
         B.line(q + [q[0]], WHITE, L, 63, bk_lw(0.25, k))
         B.text(st["id"], px, py, bk_hk(8.0, k), WHITE, L, order=64, font=FONT_TITLE, bold=True, align="MC")
         taken.append((px - sq - 0.3 * k, py - sq - 0.3 * k, px + sq + 0.3 * k, py + sq + 0.3 * k))
-    rd = 1.6 * k                                          # a viewpoint's disc; its number 7 pt
+    rd = (P06_VIEW_R + 0.15) * k                          # a viewpoint's marker (v59: mk_marker, rim included); 7 pt
     for j, (p, it) in enumerate(photos):                  # viewpoints: cone from the camera, disc behind it
         if not F.inside(it["x"], it["y"]):
             continue
@@ -185,10 +185,10 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=(), pal=None, den=None):
             ac, R_ = math.atan2(dy, dx), EB_CONE_M * ss
             arc = [(px + R_ * math.cos(ac + fov * (t_ / 12.0 - 0.5)), py + R_ * math.sin(ac + fov * (t_ / 12.0 - 0.5)))
                    for t_ in range(13)]
-            CB.line([arc[-1], (px, py), arc[0]] + arc[1:], INK, L, 50, bk_lw(0.2, k))
+            CB.line([arc[-1], (px, py), arc[0]] + arc[1:], P06_VIEW_C, L, 50, bk_lw(P06_VIEW_LW, k))   # v59 P06.1
             cq = arc + [(px, py)]
             taken.append((min(q[0] for q in cq), min(q[1] for q in cq), max(q[0] for q in cq), max(q[1] for q in cq)))
-        B.fill([circle_pts(px, py, 0.4 * k, 10)], INK, L, 51)
+        B.fill([circle_pts(px, py, 0.45 * k, 10)], P06_VIEW_C, L, 51)        # v59 (round 4, P06.1): the camera
         spot = None
         back = math.atan2(-dy, -dx) if brg is not None else 0.0
         for far in (1.0, 1.4):                            # v58 (round 3, G3): touching its camera point, no line
@@ -212,8 +212,7 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=(), pal=None, den=None):
             LOG.append("Stream edge plan: photo {} has no free place beside its camera point; its number sits on "
                        "it.".format(j + 1))
         cx_, cy_, b = spot
-        B.fill([circle_pts(cx_, cy_, rd, 24)], INK, L, 60)
-        B.text(str(j + 1), cx_, cy_, h7, WHITE, L, order=61, font=FONT_TITLE, bold=True, align="MC")
+        _sb_marker(B, cx_, cy_, str(j + 1), P06_VIEW_C, k, L, order=60, r_min=P06_VIEW_R)   # v59 (P06.1, G-R4-7)
         taken.append(b)
     items += r28e_names(S, V, k)
     for P_ in getattr(S, "selinus", None) or []:          # labels never sit on the stream's centre line ...
@@ -279,9 +278,9 @@ def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20, pal=None):
         dd = (1.0, 0.8) if kind == "walled" else (0.2, 1.0)
         for d in dashes([(x, ym), (x + w, ym)], dd[0] * k, dd[1] * k):
             B.line(d, WHITE, L, order + 1, bk_lw(0.3, k))
-    elif kind == "cone":
-        B.line([(x + w, y), (x + 0.8 * k, ym), (x + w, y - h)], INK, L, order, bk_lw(0.2, k))
-        B.fill([circle_pts(x + 0.8 * k, ym, 0.4 * k, 10)], INK, L, order + 1)
+    elif kind == "cone":                                  # v59 (round 4, P06.1): in the viewpoints' colour
+        B.line([(x + w, y), (x + 0.8 * k, ym), (x + w, y - h)], P06_VIEW_C, L, order, bk_lw(P06_VIEW_LW, k))
+        B.fill([circle_pts(x + 0.8 * k, ym, 0.45 * k, 10)], P06_VIEW_C, L, order + 1)
     elif kind == "frame":
         B.line(sw_ + [sw_[0]], INK, L, order, bk_lw(0.25, k))
     elif kind == "site":                                  # a site's outline and its filled lettered square
@@ -424,6 +423,11 @@ P06_SITE_MM = 0.35              # mm: a site's outline
 P06_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)   # v58: the only booklet scales (Aras 26 Oct)
 P06_BAR_MIN_MM = 22.0           # mm: v58 (round 3, P06.1) the longest of THE EDGE's bars at least (the 62% one)
 P06_OTHER = C("EFEDE6")         # palette v1.4 paper: the frame's other unbuilt ground in the bar
+P06_VIEW_C = C("8B2D2D")        # v59 (round 4, P06.1, PLAN 4.10): the photo viewpoints (dot, view cone, number and the
+#                                 photos' number tags): a saturated palette reference red, a hue the base (warm greys),
+#                                 the four hatches, the edge colours and the study line do not use
+P06_VIEW_LW = 0.3               # v59 (round 4, P06.1): mm, the view cone's outline (was INK 0.2)
+P06_VIEW_R = 1.6                # v59 (round 4, P06.1, G-R4-7): mm, the least radius of a viewpoint's number marker
 P06_SRC = (u"Land cover: ESA WorldCover 10 m 2021 v200 (CC BY 4.0, contains modified Copernicus Sentinel data "
            u"2021). Lots, parking, grass and streets: © OpenStreetMap contributors (ODbL).")
 
@@ -678,8 +682,12 @@ def p06_base(S, CB, V, k, L, den=None):
         r28e_base(S, _P06NoOpen(CB), V, k, L)
         return False
     xs, ys = [p[0] for p in S.F.P], [p[1] for p in S.F.P]
+    # v59 (round 4, G-R4-4, P06): the faint base kept (K1: its tones match the WHERE WE CAN BUILD bar and the key);
+    # its fills at 3 and now its lines at 5, both under the hatches (6): base back, project front; only the study
+    # line (one style, R28_STUDY_LINE) above the project's lines (43), under the marks
     items = basemap_items("base", override=list(P06_BASE_LAYERS), box=(min(xs), min(ys), max(xs), max(ys)), D=D,
                           scale_den=den or R28E_DEN)
+    st_c = crop_hex(R28_STUDY_LINE["colour"])
 
     def col_(hx, alpha):
         c_ = C(hx) if isinstance(hx, str) else tuple(int(v) for v in hx[:3])
@@ -694,12 +702,13 @@ def p06_base(S, CB, V, k, L, den=None):
 
     def line_fn(pts, hx, width_mm, dash_mm, alpha):
         col, lw, P = col_(hx, alpha), bk_lw(width_mm or 0.1, k), up(pts)
+        od = 43 if dash_mm and isinstance(hx, str) and crop_hex(hx) == st_c else 5     # v59 (G-R4-4)
         if dash_mm:
             pat = list(dash_mm) if isinstance(dash_mm, (tuple, list)) else [dash_mm, dash_mm]
             for d in r28_pattern(P, [m_ * k for m_ in (pat if len(pat) >= 2 else pat * 2)]):
-                CB.line(d, col, L, 9, lw)
+                CB.line(d, col, L, od, lw)
         else:
-            CB.line(P, col, L, 9, lw)
+            CB.line(P, col, L, od, lw)
     basemap_draw(items, lambda p: tuple(v / k for v in V.p(p[0], p[1])), fill_fn, line_fn, None)
     LOG.extend(basemap_warnings())
     return True
@@ -919,7 +928,12 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
     h7, h75, h9 = bk_hk(7.0, k), bk_hk(7.5, k), bk_hk(9.0, k)
     den = p06_den(S, w, k, pal)
     V, ss, r, numbered, syms = r28e_strip(S, B, x, top, k, L, photos, O["sites"], pal, den)
-    foot = b_foot(B, F, x, r[1], ss, k, L, R28E_SB_M)    # v58: no site leaders any more: always at the left
+    # v58: no site leaders any more: always at the left. v59 (round 4, G-R4-9): b_foot's scale bar, and THE north
+    # arrow (_sb_north: keymap.north_items, no white half) in its place
+    sbx = x + 1.0 * k
+    low_sb = draw_scalebar_bk(B, sbx, r[1] - 2.5 * k, ss, R28E_SB_M, k, L)
+    nb_ = _sb_north(B, F, sbx + R28E_SB_M * ss + 10.0 * k, r[1] - 5.5 * k, 5.0, k, L)
+    foot = min(low_sb, nb_[1])
     cx0 = r[2] + R28E_GAP * k                             # the column beside the strip
     ycol = p06_column(S, B, cx0, top, x + w - cx0, r[1], k, L, pal)
     # v58 (lead, G1): the boxes under the map at its width; the map's key in the column under WHERE WE CAN BUILD,
@@ -935,17 +949,31 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
                bold=True)
         py0 = hb - 3.0 * k
         cols, g = 4, 3.0 * k
-        cell = (w - (cols - 1) * g) / cols
         rows_ = (n_ph + cols - 1) // cols
         cap_h = 1.2 * k + h7 + 2.2 * k                    # caption under each photo and the row gap
-        ph = max(10.0 * k, min(cell * 0.75, (py0 - bot - 1.0 * k + 2.2 * k) / rows_ - cap_h))
+        # v59 (round 4, P06.2, G-R4-3; Aras U60 "the bottom images do not line up with the top-right description"):
+        # the photos share the edges of the blocks above: n_l of each row under the map (from its left edge x to its
+        # right edge r[2]) and n_r under the column (from its left edge cx0 to the page's right edge x + w), each
+        # group justified edge to edge (first photo on the left edge, last on the right edge); one height for all,
+        # 4:3 as taken, as large as the narrower group and the height left allow
+        W_l, W_r = r[2] - x, x + w - cx0
+        n_r = max(1, min(cols - 1, int(round(cols * W_r / max(1e-9, W_l + W_r)))))
+        n_l = cols - n_r
+        pw_max = min((W_l - (n_l - 1) * g) / n_l, (W_r - (n_r - 1) * g) / n_r)
+        ph = max(10.0 * k, min(pw_max * 0.75, (py0 - bot - 1.0 * k + 2.2 * k) / rows_ - cap_h))
         pw = ph / 0.75                                    # never stretched: 4:3 as taken
+        g_l = (W_l - n_l * pw) / (n_l - 1) if n_l > 1 else 0.0
+        g_r = (W_r - n_r * pw) / (n_r - 1) if n_r > 1 else 0.0
         bn = 4.2 * k
         for j, (p, it) in enumerate(photos):
-            px = x + (j % cols) * (cell + g)
+            c_ = j % cols
+            if c_ < n_l:                                  # under the map
+                px = x + c_ * (pw + g_l) if n_l > 1 else x
+            else:                                         # under the column (a lone photo on its left edge,
+                px = cx0 + (c_ - n_l) * (pw + g_r)        # where the column's words start)
             py = py0 - (j // cols) * (ph + cap_h)
             B.image(p, px, py - ph, px + pw, py, L, order=5)
-            B.fill([rect(px, py - bn, px + bn, py)], INK, L, 64)
+            B.fill([rect(px, py - bn, px + bn, py)], P06_VIEW_C, L, 64)    # v59 (P06.1): the viewpoints' colour
             B.rec = False                                 # the photo's number tag sits on the photo by design
             B.text(str(j + 1), px + 0.5 * bn, py - 0.5 * bn, h9, WHITE, L, order=65, font=FONT_TITLE, bold=True,
                    align="MC")

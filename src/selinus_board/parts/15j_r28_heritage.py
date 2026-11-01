@@ -7,15 +7,15 @@
 #            01's model) as quiet context with the study area inside it, the stops numbered in loop order and one short
 #            text each under the map (crop drw_heritage_loop); beside it a key map of the survey's whole drawn bulk with
 #            the loop map's extent and the study area (NEW crop drw_heritage_key, no scale: a key map). North up, not on
-#            the frame axis: both fit the page, but on the frame axis the leg to the Acropolis would run ~80 mm along the
+#            the frame axis: both fit the page, but on the frame axis the leg to Akropol would run ~80 mm along the
 #            map's top edge; north up it leaves the map ~23 mm from the gondola station.
-#   "survey" the survey's whole drawn bulk at 1:20,000 with the loop core (K3-K4, Red Hall, Ulu Cami) at 1:5,000 beside
+#   "survey" the survey's whole drawn bulk at 1:20,000 with the loop core (K3-K4, Kızıl Avlu, Ulucami) at 1:5,000 beside
 #            it, keyed to it by its frame, each with its own scale bar, the list under the inset (one crop
 #            drw_heritage_loop; no key crop).
-# The Acropolis is the one destination the survey does not cover (3dm_checks §3: nearest survey line 259 m): an arrow at
+# Akropol is the one destination the survey does not cover (3dm_checks §3: nearest survey line 259 m): an arrow at
 # the map's edge with its straight distance, no long line. The legs are soft lines stop to stop (no dashes), the stream
-# walk K3-K4 a broad soft band along the stream's centre line (the spine). Names English · Turkish with their real
-# letters (G3, F13), texts from public online sources only (F5, HER_SRC), keywords bold (G5), names on the maps placed
+# walk K3-K4 a broad soft band along the stream's centre line (the spine). Names Turkish from the names table (v59,
+# round 4, G-R4-11), texts from public online sources only (F5, HER_SRC), keywords bold (G5), names on the maps placed
 # by the shared label_place (G4), base tones as b_base but lighter where they are only context (G6).
 HER_EXTENT = "loop"     # D2: "loop" (B, default) or "survey" (A: whole survey 1:20,000 + loop-core inset 1:5,000)
 HER_DEN, HER_SV_DEN, HER_IN_DEN = 10000, 20000, 5000      # the loop map, the whole survey, the inset (booklet page)
@@ -28,7 +28,7 @@ HER_SV_MAX_MM = (270.0, 205.0)   # mm: the most the whole-survey map may take ("
 HER_IN_BK_H = 100.0     # mm: the inset's height ("survey")
 HER_MARGIN_M = 150.0    # m: at least this much survey round the outermost places of the loop map
 HER_SNAP_M = 30.0       # m: K3 and K4 lie this close to the stream's centre line, else the walk is drawn straight
-HER_CORE = ("redhall", "K3", "K4")             # + Ulu Cami: the loop core of the inset ("survey")
+HER_CORE = ("redhall", "K3", "K4")             # + Ulucami: the loop core of the inset ("survey")
 HER_PT = dict(list=9.0, lab=7.5, dot=7.0)     # booklet pt: stop texts (body minimum), stop names, heritage places
 HER_PITCH, HER_LEAD = 1.75, 1.4               # line pitch of the stop texts / of a map name, x the capital height
 HER_ACC = C(dict((k_, h_) for k_, n_, h_ in R28_MARKERS)["heritage"])     # R28 "heritage and views" (= MARK_C)
@@ -40,22 +40,22 @@ HER_GREEN_T = 0.45                            # mapped parks, woods and fields t
 # Places: bridges BRIDGES_K; survey labels Kızıl Avlu, Ulu Camii, Hamam, Çizmeciler Arastası (REF_LABELS); lat/lon of
 # OpenStreetMap / Visit İzmir -> survey m by the linear fit anchored at K3 (±10-30 m), as v44. Facts: HER_SRC.
 HER_STOPS = [
-    dict(key="gondola", name=u"Gondola · Teleferik", xy=(30720.4, 32370.1),          # OSM node 2295928011
-         txt=u"valley station of the **cable car** (2010) up to the **Acropolis** (Akropol), the Hellenistic city on "
-             u"the hill"),
-    dict(key="redhall", name=u"Red Hall · Kızıl Avlu", xy=(30203.92, 31974.82),      # survey label 'Kızıl Avlu'
+    dict(key="gondola", name=landmark_name("teleferik"), xy=(30720.4, 32370.1),          # OSM node 2295928011
+         txt=u"valley station of the **cable car** (2010) up to **" + landmark_name("akropol") + u"**, the Hellenistic "
+             u"city on the hill"),          # v59 (round 4, G-R4-11): Turkish names from the table, no translations
+    dict(key="redhall", name=landmark_name("kizil_avlu"), xy=(30203.92, 31974.82),      # survey label 'Kızıl Avlu'
          txt=u"Hadrian's **temple**, 2nd c. AD, built **over the stream**: the Selinos runs under it in twin Roman "
              u"tunnels"),
     dict(key="K3", name=bridge_name("K3"), xy=(30037.01, 32121.57),   # BRIDGES_K; v58 (round 3, P20.3 / G16): real name
          txt=u"**Roman bridge** of the 2nd-3rd c., named after the old tanneries; the **stream walk** starts here"),
     dict(key="K4", name=bridge_name("K4"), xy=(29846.40, 32277.71),   # BRIDGES_K; v58 (round 3, P20.3 / G16): real name
-         txt=u"the bridge before **Ulu Cami** (1398-99, Bayezid I) and **Tabaklar Hamamı**, the tanners' bath; the "
-             u"loop crosses here"),
-    dict(key="bazaar", name=u"Bazaar · Arasta", xy=(29926.0, 31855.0),               # Hacı Hekim hamam (Visit İzmir)
+         txt=u"the bridge before **" + landmark_name("ulucami") + u"** (1398-99, Bayezid I) and **"
+             + landmark_name("tabaklar_hamami") + u"**, the tanners' bath; the loop crosses here"),   # v59 (G-R4-11)
+    dict(key="bazaar", name=landmark_name("arasta"), xy=(29926.0, 31855.0),        # Hacı Hekim hamam (Visit İzmir)
          txt=u"Hacı Hekim mosque, **arasta** and hamam of 1513, in the old **bazaar** with Çizmeciler Arastası"),
-    dict(key="museum", name=u"Bergama Museum · Bergama Müzesi", xy=(29560.0, 31358.0),   # as v44
+    dict(key="museum", name=landmark_name("bergama_muzesi"), xy=(29560.0, 31358.0),   # as v44; v59 (G-R4-11)
          txt=u"museum of **1936**: finds from the **excavations** of Pergamon, and the town's carpets"),
-    dict(key="asklepieion", name=u"Asklepieion · Asklepion", xy=(29077.3, 31867.3),  # OSM ticket building
+    dict(key="asklepieion", name=landmark_name("asklepion"), xy=(29077.3, 31867.3),  # OSM ticket building; v59
          txt=u"the **healing sanctuary** of Asclepius, 4th c. BC, rebuilt under Hadrian, reached by a sacred way, "
              u"the Via Tecta"),
 ]
@@ -63,11 +63,12 @@ HER_STOPS = [
 HER_WALK = dict(frm="K3", to="K4", name=u"Stream walk " + bridge_name("K3") + u" – " + bridge_name("K4"),
                 txt=u"**{:,.0f} m** along the **Selinos** (Bergama Çayı) from the **Roman bridge** " + bridge_name("K3")
                     + u" to " + bridge_name("K4") + u": the spine of the loop")   # v50: K4's date unsure (h01 §5 P06)
-HER_BEYOND = [dict(key="acropolis", frm="gondola", name=u"Acropolis · Akropol",    # Trajaneum, OSM way 1410335587;
+HER_BEYOND = [dict(key="acropolis", frm="gondola", name=landmark_name("akropol"),  # Trajaneum, OSM way 1410335587;
                    xy=(30209.0, 33177.0))]                                         # off the survey drawing (259 m)
-HER_DOTS = [(u"Ulu Cami", (29844.17, 32313.30)),          # survey label 'Ulu Camii'
-            (u"Tabaklar Hamamı", (29890.4, 32243.6)),      # survey 'Hamam'
-            (u"Çizmeciler Arastası", (29794.31, 31929.85))]   # survey label
+# v59 (round 4, G-R4-11): the names from the table (p21_heritage.py's HER21_PLACES "dot" keys read the same calls)
+HER_DOTS = [(landmark_name("ulucami"), (29844.17, 32313.30)),          # survey label 'Ulu Camii'
+            (landmark_name("tabaklar_hamami"), (29890.4, 32243.6)),      # survey 'Hamam'
+            (landmark_name("cizmeciler_arastasi"), (29794.31, 31929.85))]   # survey label
 HER_SRC = (u"Heritage loop, the places and their dates (public sources): Wikipedia 'Pergamon' (Acropolis, Trajaneum, "
            u"Asklepieion, Via Tecta) and 'Bergama Acropolis Gondola'; UNESCO World Heritage List 1457 and its ICOMOS "
            u"evaluation (2014, whc.unesco.org/document/152724: the Roman tunnels under Kızıl Avlu); Wikipedia 'Red "
@@ -76,12 +77,8 @@ HER_SRC = (u"Heritage loop, the places and their dates (public sources): Wikiped
            u"(Hamams) in İzmir' (Tabaklar Hamamı, named after the tanneries); KTB Türkiye Müzeleri (turkishmuseums.com) "
            u"'The Archaeological Site of Asklepion'; Wikipedia 'Bergama Museum'; OpenStreetMap (ODbL).")   # v51: public only (D13)
 
-# Arial (= Helvetica) advance widths, 1000 units per em (as DIAG_SRC's text_w): words set run by run (G5) are placed
-# at their printed widths
-HER_MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ\xa0¡¢£¤¥¦§¨©ª«¬\xad®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĞğİıŞş'
-HER_MW0 = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584, 556, 222, 556, 333, 1000, 556, 556, 333, 1000, 667, 333, 1000, 611, 222, 222, 333, 333, 350, 556, 1000, 333, 1000, 500, 333, 944, 500, 667, 278, 333, 556, 556, 556, 556, 260, 556, 333, 737, 370, 556, 584, 333, 737, 552, 400, 549, 333, 333, 333, 576, 537, 333, 333, 333, 365, 556, 834, 834, 834, 611, 667, 667, 667, 667, 667, 667, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 500, 556, 556, 556, 556, 278, 278, 278, 278, 556, 556, 556, 556, 556, 556, 556, 549, 611, 556, 556, 556, 556, 500, 556, 500, 778, 556, 278, 278, 667, 500]
-HER_MW1 = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584, 556, 278, 556, 500, 1000, 556, 556, 333, 1000, 667, 333, 1000, 611, 278, 278, 500, 500, 350, 556, 1000, 333, 1000, 556, 333, 944, 500, 667, 278, 333, 556, 556, 556, 556, 280, 556, 333, 737, 370, 556, 584, 333, 737, 552, 400, 549, 333, 333, 333, 576, 556, 333, 333, 333, 365, 556, 834, 834, 834, 611, 722, 722, 722, 722, 722, 722, 1000, 722, 667, 667, 667, 667, 278, 278, 278, 278, 722, 722, 778, 778, 778, 778, 778, 584, 778, 722, 722, 722, 722, 667, 667, 611, 556, 556, 556, 556, 556, 556, 889, 556, 556, 556, 556, 556, 278, 278, 278, 278, 611, 611, 611, 611, 611, 611, 611, 549, 611, 611, 611, 611, 611, 556, 611, 556, 778, 611, 278, 278, 667, 556]
-HER_W = [dict(zip(HER_MCH, HER_MW0)), dict(zip(HER_MCH, HER_MW1))]
+# v59 (round 4, G-R4-1): the Arial width tables HER_MCH / HER_MW0 / HER_MW1 / HER_W are gone: her_tw (pages/
+# p21_heritage.py) measures with the real font (tw, common/font_metrics.py), as the page check does.
 
 
 class HerBox(object):
