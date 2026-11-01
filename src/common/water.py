@@ -98,6 +98,16 @@ def _wat_pal():
                 low=m(SEC["hatch"], SEC["water"], 0.2))    # "low": the summer strip's tone, SECTIONS only (D2)
 
 
+def _wat_pal_sec():
+    """round 5 (S3, G-R5-4.1, PLAN §3): the section water colours: body, surface, Q100 / Q500 lines (one colour,
+    dashes tell them apart)"""
+    P = dict(_wat_pal())
+    if "SCT_WATER" in globals():
+        P.update(sec=SCT_WATER["body"], sec_line=SCT_WATER["surface"], q100=SCT_WATER["flood"],
+                 q500=SCT_WATER["flood"])
+    return P
+
+
 def _wat_rng(seed):
     s = [int(seed * 69069 + 1013) & 0x7fffffff]
 
@@ -210,8 +220,9 @@ def water_plan(ring, k, depth=None, flow_deg=None, bank=True, seed=0, spacing=1.
 
 def water_legend(x, y, size=1.8, floods=False, gap=None):
     """legend rows for the water drawings (G1: every symbol explained): the stream, the Q100 / Q500 lines and the
-    average-flow water (sections); x, y = top left, page mm. Returns shapes (incl. text)."""
-    P = _wat_pal()
+    average-flow water (sections); x, y = top left, page mm. Returns shapes (incl. text). Round 5 (S3): the
+    section rows in the section colours (_wat_pal_sec)."""
+    P = _wat_pal_sec()
     gap = gap or 1.6 * size
     rows = [("Selinos stream (darker = deeper)", "water")]
     if floods:
@@ -226,7 +237,7 @@ def water_legend(x, y, size=1.8, floods=False, gap=None):
         elif kind == "avg":
             sh += [("poly", [(x, cy - 0.5 * size), (x + 2.5 * size, cy - 0.5 * size), (x + 2.5 * size, cy),
                              (x, cy)], P["sec"], None, 0.1),
-                   ("line", [(x, cy), (x + 2.5 * size, cy)], SEC["hatch"], 0.3)]
+                   ("line", [(x, cy), (x + 2.5 * size, cy)], P["sec_line"], 0.3)]
         else:
             sh.append(("line", [(x, cy), (x + 2.5 * size, cy)], P[kind], 0.3,
                        [1.2, 0.6] if kind == "q100" else [0.4, 0.5]))
@@ -449,17 +460,9 @@ def _wat_runs(profile, wl_y):
 
 
 def _wat_sec_body(ring, spacing):
-    """water in section: the channel tone, fine level lines (not waves), the surface line"""
-    P = _wat_pal()
-    sh = [("poly", ring, P["sec"], None, 0.1)]
-    top = max(p[1] for p in ring)
-    for p, q in sec_hatch(ring, spacing, 0.0):
-        if top - p[1] > 0.4 * spacing:
-            sh.append(("line", [p, q], P["sec_line"], 0.07))
-    xs = [p[0] for p in ring if abs(p[1] - top) < 1e-6]
-    if len(xs) >= 2:
-        sh.append(("line", [(min(xs), top), (max(xs), top)], SEC["hatch"], 0.3))
-    return sh
+    """water in section. Round 5 (S3, G-R5-4.1): one flat colour and the surface line (section_parts sec_water);
+    no level lines, no hatch"""
+    return sec_water(ring, spacing)
 
 
 def _wat_cross(profile, y):
@@ -497,7 +500,7 @@ def water_section(profile, k, y_of, cid=None, bed=None, avg=None, q100=None, q50
     labels inside; wl.anchors["levels"] = [(key, level m, page y)] for sf_level_marks outside the frame. fill_ground False = the page drew the banks
     (sct_bank): only the bed band is added. Returns the WaterLayers."""
     wl = into if into is not None else water_layers()
-    Pa = _wat_pal()
+    Pa = _wat_pal_sec()
     if cid is not None:
         bed = level(cid, "bed") if bed is None else bed
         avg = level_avg_flow(cid) if avg is None else avg
