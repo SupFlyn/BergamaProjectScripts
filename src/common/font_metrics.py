@@ -17,6 +17,12 @@
 #                                              on the baseline, y UP (for centring a glyph in a marker)
 #   fm_asc_desc(pt, bold=False)                -> (ascender, descender) mm of the font (descender negative)
 # Units: pt = font size in points (the em); 1 pt = 25.4 / 72 mm (FM_PT).
+# Round 5 (S1, P04.7 "bazaar side ? Kale side"): a character the font has no glyph for no longer stops a run where the
+# caller checks first:
+#   fm_missing(s, bold=False) -> [ch]          the characters of s the font has no glyph for (blanks never count)
+#   fm_safe(s, bold=False, sub=u"\u2013") -> (s2, missing)
+#                                              s with each missing character replaced by sub ("–", else "-"); the
+#                                              booklet composer runs every text through it at load (one WARNING each)
 FM_PT = 25.4 / 72.0
 _FM_CACHE = {}
 
@@ -113,3 +119,30 @@ def fm_box(s, x, y, pt, bold=False, align="L", angle=0.0, y_down=True, italic=Fa
     P = [(x + u * c - v * s_, y + sg * (u * s_ + v * c)) for u, v in corners]
     xs, ys = [p[0] for p in P], [p[1] for p in P]
     return (min(xs), min(ys), max(xs), max(ys))
+
+
+def fm_missing(s, bold=False, italic=False):
+    """the characters of s the font has no glyph for"""
+    T = fm_load(bold, italic)
+    out = []
+    for ch in u"%s" % s:
+        if ch in u"\r\n\t " or ch in out:
+            continue
+        try:
+            _fm_glyph(T, ch)
+        except ValueError:
+            out.append(ch)
+    return out
+
+
+def fm_safe(s, bold=False, sub=u"\u2013", italic=False):
+    """(s with missing glyphs replaced by sub, the missing characters); sub falls back to "-" when the font lacks it"""
+    miss = fm_missing(s, bold, italic)
+    if not miss:
+        return u"%s" % s, []
+    if fm_missing(sub, bold, italic):
+        sub = u"-"
+    s2 = u"%s" % s
+    for ch in miss:
+        s2 = s2.replace(ch, sub)
+    return s2, miss

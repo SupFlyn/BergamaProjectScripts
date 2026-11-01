@@ -79,8 +79,9 @@ def shade_july_export(S):
                        centreline=dict(x=[round(float(v), 1) for v in sel.get("x", [])],
                                        y=[round(float(v), 1) for v in sel.get("y", [])],
                                        ch=[round(float(v), 1) for v in sel.get("ch", [])])))
-        os.makedirs(SELINUS_OUT_DIR, exist_ok=True)
-        fn = os.path.join(SELINUS_OUT_DIR, "shade_july.json")
+        os.makedirs(SELINUS_RES_DIR, exist_ok=True)       # v60 (C10): cached/selinus_board/, not output/ (the run's
+        fn = os.path.join(SELINUS_RES_DIR, "shade_july.json")    # own bg_tidy_output moved it; the water board
+        #                                                   reads it with bg_result("selinus_board", "shade_july.json")
         with open(fn, "w", encoding="utf-8") as fh:
             json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
         LOG.append("Shade for p.17: {} ({:,} cells of {:g} m).".format(fn, len(cells), c))

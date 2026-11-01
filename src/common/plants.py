@@ -1,3 +1,9 @@
+#@include silhouette.py
+# ---- round 5 (S4, 1 Nov 2026; G-R5-6, D4, D10, N2 a): PLANT MODULE v3. Every pla_section / pla_plan / pla_axo /
+# pla_bare / crop call draws the species from a real image per species x state (see "plant module v3" above
+# pla_section), toned to its colours; the round 4 vector drawing below stays only as the counted, FLAGged fallback
+# where no image exists yet (pla_missing), so the pages never go blank before the asset project delivers
+# Data/plants/. Interfaces unchanged. silhouette.py (included above) holds the PNG reader/writer and the toning.
 # ---- round 4 (S3, 1 Nov 2026; D1, D4, D6 states, D7, G-R4-5.2, G-R4-5.8, G-R4-6): ONE vector drawing per species for
 # every plan, section, view, axo (pla_axo) and the p17 catalogue: white willow v2, print-quality crowns of two-tone
 # leaf masses with gaps, a shrub/flower low layer (pla_low_section / pla_low_plan), season= on every call (None =
@@ -400,11 +406,16 @@ def pla_bare(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, layer=
     s_ = _pla_s(season, month) or "winter"
     c = pla_colours(key, s_, beyond=beyond, layer=layer)
     _pla_count(key, s_)
+    c0 = pla_colours(key, s_)
     if plan:
-        return _pla_bare_draw(key, sp, x, gy, h, w, k, c, seed, plan=True)
+        img = _pla_img_draw(key, s_, "top", x, gy, h, w, k, c0, seed, beyond, 0, True) or \
+            _pla_missing_draw(key, s_, "top", x, gy, w, w, k)
+        return img if img is not None else _pla_bare_draw(key, sp, x, gy, h, w, k, c, seed, plan=True)
     sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
     g = gy(x) if callable(gy) else gy
-    return _pla_bare_draw(key, sp, x, g, h, w, k * sc, c, seed)
+    img = _pla_img_draw(key, s_, "side", x, g, h, w, k * sc, c0, seed, beyond, layer, True) or \
+        _pla_missing_draw(key, s_, "side", x, g, h, w, k * sc)
+    return img if img is not None else _pla_bare_draw(key, sp, x, g, h, w, k * sc, c, seed)
 
 
 def _pla_rnd(i, s=0):
@@ -801,8 +812,22 @@ def pla_log_lines():
     """the plant log lines of this run (sec_look_lines prints them): willow v2 drawn n; plants drawn by species;
     plants season=<season> species n (one per season drawn; 'general' = no season); FLAG plant colours pending
     research (n species: every species and crop, until research/plant_colours.md fills the colours)"""
-    out = [u"willow v2 drawn %d" % PLA_COUNT.get("willow", 0),
+    wf = sorted(set(v for (k_, _s, _v), v in PLA_IMG_FILE.items() if k_ == "willow"))
+    out = [u"willow v3 image=%s (drawn %d)" % (u", ".join(wf) if wf else
+                                               u"none (pending Data/plants/willow_<state>_side.png)",
+                                               PLA_COUNT.get("willow", 0)),
            u"plants drawn by species: " + (u", ".join(u"%s %d" % kv for kv in sorted(PLA_COUNT.items())) or u"none")]
+    by = {}
+    for sk, src in PLA_SRC.items():                       # round 5: species x state (x view) per image source
+        by.setdefault(src or "vector_fallback", set()).add(sk)
+    out.append(u"plants source=" + u", ".join(u"%s %d" % (k_, len(v)) for k_, v in sorted(by.items())) +
+               u" species×state" if by else u"plants source=none drawn")
+    miss = sorted(by.get("vector_fallback", set()) | by.get("placeholder", set()))
+    if miss:
+        out.append(u"FLAG plants without image %d species×state (view): %s" % (
+            len(miss), u", ".join(u"%s %s (%s)" % m for m in miss[:40]) + (u" ..." if len(miss) > 40 else u"")))
+    if PLA_TONE_LOG:
+        out.append(u"plants toned: " + u", ".join(u"%s %d" % kv for kv in sorted(PLA_TONE_LOG.items())))
     for s_ in ("general",) + PLA_SEASONS:
         if s_ in PLA_SEASON_KEYS:
             out.append(u"plants season=%s species %d" % (s_, len(PLA_SEASON_KEYS[s_])))
@@ -834,6 +859,183 @@ def _pla_layer_cols(c, layer):
     return dict((k_, f(v, layer) if v else v) for k_, v in c.items())
 
 
+# ---- round 5 (S4, G-R5-6, D4, D10, N2 a; PLAN §3 Plants): plant module v3, every plant from a real image ---------------
+# One image per species x state (states: general, spring, summer, autumn, winter), cut out and toned to the
+# species' colours (pla_colours: the colours stay "pending research/plant_colours.md" until that file arrives; one
+# data edit then re-tones every image, because the toned copies are cached under a key that holds the colours).
+# Where an image comes from, first found wins (side views; plan views use 1 only):
+#   1. asset_png  Downloads/Bergama/Data/plants/<key>_<state>_<view>.png (view side | top; the asset-library project
+#                 delivers them: handover/ASSET_PROMPT_plants.md; transparent, plant standing on the bottom edge).
+#                 A seasonal state with no own file but a <key>_general_ file uses that one tinted for the season
+#                 (never for a bare winter state).
+#   2. cutout     Data/cutouts/<species key> (watercolour sheet, species assigned by look, in leaf only: CHK-4 §4.2)
+#   3. hires      Data/assets_hires.json PhyloPic silhouettes (plane, plane_bare, ash, olive, stone_pine, maize,
+#                 tomato; plane and ash are stand-in species: CHK-4 §4.1), flat in the species colour
+#   4. none       pla_missing("vector") = the round 4 drawing (default, so no page goes blank; counted and FLAGged),
+#                 pla_missing("placeholder") = a labelled dashed box (the D4 sample sheet shows what is missing)
+# Images keep their own proportions (never stretched): height = the species' drawing height, width from the image.
+# pla_images(False) turns raster images off for pages that cannot place images (CHK-3 §3.5: site board p02/p03,
+# masterplan p17/p24): hires silhouettes and the fallback are used there.
+# Logs (pla_log_lines): "plants source=<image> species×state n" per source, "willow v3 image=<file>|none",
+# "FLAG plants without image ..." while any species x state has none.
+PLA_IMG = dict(on=True, missing="vector")
+PLA_IMG_TONE_KEEP = 0.25          # share of the photo's own colour kept when toning (0.45 in bloom): drawing rule
+PLA_IMG_HIRES = dict(plane=("plane", "plane_bare"), ash=("ash", None), olive=("olive", "olive"),
+                     stone_pine=("stone_pine", "stone_pine"), maize=("maize", None), tomato=("tomato", None))
+PLA_SRC = {}                      # (key, state, view) -> source of the last drawing ("asset_png", "cutout", ...)
+PLA_IMG_FILE = {}                 # (key, state, view) -> file used
+PLA_TONE_LOG = {}                 # "numpy" / "lut" / failure -> count
+
+
+def pla_img_dir():
+    import os as _o
+    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "plants")
+
+
+def pla_images(on=True):
+    """raster plant images on (True) or off (False: hires silhouettes and the fallback only); returns the old value"""
+    old = PLA_IMG["on"]
+    PLA_IMG["on"] = bool(on)
+    return old
+
+
+def pla_missing(mode="vector"):
+    """what is drawn where no image exists: "vector" (round 4 drawing, FLAGged) or "placeholder" (labelled box)"""
+    old = PLA_IMG["missing"]
+    PLA_IMG["missing"] = "placeholder" if mode == "placeholder" else "vector"
+    return old
+
+
+def _pla_img_find(key, state, view, bare):
+    """(source, ref) of the image for key x state x view: ("asset_png", path) / ("cutout", entries) / ("hires", key)
+    / (None, None). state None = general."""
+    import os as _o
+    st = state or "general"
+    if PLA_IMG["on"]:
+        d = pla_img_dir()
+        for s_ in [st] + ([] if (bare or st == "general") else ["general"]):
+            f = _o.path.join(d, "%s_%s_%s.png" % (key, s_, view))
+            if _o.path.isfile(f):
+                return "asset_png", f
+        if view == "side" and not bare:
+            lib = sil_cut_library().get(key)
+            if lib:
+                return "cutout", lib
+    if view == "side":
+        hk = PLA_IMG_HIRES.get(key, (None, None))[1 if bare else 0]
+        hl = globals().get("hr_library")
+        if hk and hl and hk in hl():
+            return "hires", hk
+    return None, None
+
+
+def _pla_toned(path, c, fade, keep):
+    """the toned copy of an image (cached under Downloads/Bergama/cached/plants_toned/), or the image itself"""
+    import os as _o
+    import hashlib as _h
+    try:
+        stt = _o.stat(path)
+        sig = "%s|%d|%d|%s|%s|%s|%.3f|%.2f|v3" % (path, stt.st_size, int(stt.st_mtime), c["shade"], c["fill"], c["lt"],
+                                                 fade, keep)
+        root = bg_cache("plants_toned") if "bg_cache" in globals() else _o.path.join(
+            _o.path.expanduser("~"), "Downloads", "Bergama", "cached", "plants_toned")
+        dst = _o.path.join(root, _h.md5(sig.encode("utf-8")).hexdigest()[:16] + ".png")
+        if _o.path.isfile(dst):
+            return dst
+        ok, how = sil_tone(path, dst, c["shade"], c["fill"], c["lt"], keep, SEC["paper"], fade)
+        PLA_TONE_LOG[how] = PLA_TONE_LOG.get(how, 0) + 1
+        return dst if ok else path
+    except Exception as ex:
+        PLA_TONE_LOG["failed " + type(ex).__name__] = PLA_TONE_LOG.get("failed " + type(ex).__name__, 0) + 1
+        return path
+
+
+def _pla_fade(beyond, layer):
+    f = fig_depth(layer)[1] if layer and globals().get("fig_depth") else 0.0
+    return 1.0 - (1.0 - (0.55 if beyond else 0.0)) * (1.0 - f)
+
+
+def _pla_img_draw(key, state, view, x, g, h, w, k, c0, seed, beyond, layer, bare):
+    """the image drawing of one plant (section: ground at (x, g); plan: crown centred on (x, g)), or None.
+    c0 = the species' colours at layer 0, not beyond (pla_colours); h, w in m; k page mm per m (layer-scaled)."""
+    src, ref = _pla_img_find(key, state, view, bare)
+    sk = (key, state or "general", view)
+    if src is None:
+        PLA_SRC[sk] = PLA_SRC.get(sk) or None
+        return None
+    fade = _pla_fade(beyond, layer)
+    flip = bool(seed % 2)                                 # variety: mirrored every other plant
+    if src == "hires":
+        fill = c0["bark"] if bare else c0["fill"]
+        if fade > 0:
+            fill = _sec_mix(fill, SEC["paper"], fade)
+        sh = hr_side(ref, x, g, k, h, w_m=None, fill=fill, edge=None, lw=0.0, facing=-1 if flip else 1)
+        if sh:
+            PLA_SRC[sk], PLA_IMG_FILE[sk] = src, "assets_hires.json:" + ref
+        return sh
+    if src == "cutout":
+        import os as _o
+        e = ref[int(seed) % len(ref)]
+        path = _o.path.join(sil_cut_dir(), e["file"])
+    else:
+        path = ref
+    px = sil_png_size(path)
+    if not px or not px[1]:
+        return None
+    keep = 0.45 if c0.get("bloom") else PLA_IMG_TONE_KEEP
+    tp = _pla_toned(path, c0, fade, keep)
+    PLA_SRC[sk], PLA_IMG_FILE[sk] = src, _o_base(path)
+    if view == "top":
+        W = w * k
+        H = W * px[1] / float(px[0])
+        return [("image", x - W / 2.0, g - H / 2.0, W, H, tp, None, flip, None)]
+    H = h * k
+    W = H * px[0] / float(px[1])
+    return [("image", x - W / 2.0, g, W, H, tp, None, flip, None)]
+
+
+def _o_base(p):
+    import os as _o
+    return _o.path.basename(p)
+
+
+def _pla_placeholder(key, state, view, x, g, h, w, k):
+    """a labelled dashed box where no image exists (pla_missing("placeholder"); the D4 sample sheet)"""
+    W = max(w * k, 4.0)
+    H = (h * k) if view == "side" else W
+    y0 = g if view == "side" else g - H / 2.0
+    ring = [(x - W / 2.0, y0), (x + W / 2.0, y0), (x + W / 2.0, y0 + H), (x - W / 2.0, y0 + H), (x - W / 2.0, y0)]
+    sz = 1.6
+    return [("line", ring, "8E8F8A", 0.2, [1.0, 0.8]),
+            ("text", u"no image", x, y0 + H / 2.0 + 0.2, sz, "8B2D2D", True, "C"),
+            ("text", u"%s %s" % (key, state or "general"), x, y0 + H / 2.0 - 1.8, sz, "8B2D2D", False, "C")]
+
+
+def _pla_missing_draw(key, state, view, x, g, h, w, k):
+    """None (draw the round 4 vector) or the placeholder; counts the species x state as without image"""
+    sk = (key, state or "general", view)
+    if PLA_IMG["missing"] == "placeholder":
+        PLA_SRC[sk] = "placeholder"
+        return _pla_placeholder(key, state, view, x, g, h, w, k)
+    PLA_SRC[sk] = "vector_fallback"
+    return None
+
+
+
+# round 5 (S4, BRIEF G-R5-6 row A1): every greenery colour of the other scripts' local palettes comes from here (S6-S9
+# replace their own SEC/BM_COL/ICO_PAL/COL/... greenery values by pla_green(role)); pending research like all.
+def pla_green(role):
+    """a greenery colour by role: tree, tree_wet, tree_dry, shrub, flower, grass, meadow, crop, field, row,
+    wetland, reed, trunk (hex, from the species colours of this module)"""
+    f = lambda k_: PLA_SPECIES[k_]["colours"]["fill"]
+    t = dict(tree=f("plane"), tree_wet=f("willow"), tree_dry=f("olive"), shrub=f("chaste"), flower=PLA_LAV,
+             grass=PLA_CROP_LEAF, meadow=_sec_mix(PLA_CROP_LEAF, SEC["paper"], 0.45), crop=PLA_CROP_LEAF,
+             field=PLA_FIELD, row=PLA_ROW, wetland=PLA_WET, reed=PLA_REED_HEAD, trunk=PLA_TRUNK)
+    if role not in t:
+        raise KeyError("pla_green: role %r; known: %s" % (role, ", ".join(sorted(t))))
+    return t[role]
+
+
 def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hires=True, style="b", layer=0,
                 detail=True, month=None, season=None):
     """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x). h_m outside the
@@ -853,6 +1055,11 @@ def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hir
     c = pla_colours(key, s_, beyond=beyond, layer=layer)
     sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
     k = k * sc
+    img = _pla_img_draw(key, s_, "side", x, g, h, w, k, pla_colours(key, s_), seed, beyond, layer, c["bare"])
+    if img is None:                                     # round 5: no image -> placeholder or the round 4 drawing
+        img = _pla_missing_draw(key, s_, "side", x, g, h, w, k)
+    if img is not None:
+        return img
     if c["bare"]:
         return _pla_bare_draw(key, sp, x, g, h, w, k, c, seed)
     sh = _pla_sec(sp["form"], x, g, h, w, k, c, seed)
@@ -873,6 +1080,11 @@ def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0, distinct=True, 
     _pla_status()
     _pla_count(key, s_)
     c = pla_colours(key, s_, beyond=beyond)
+    img = _pla_img_draw(key, s_, "top", cx, cy, sp["h_m"] or w, w, k, pla_colours(key, s_), seed, beyond, 0, c["bare"])
+    if img is None:                                     # round 5: no top-view image -> placeholder or round 4 drawing
+        img = _pla_missing_draw(key, s_, "top", cx, cy, w, w, k)
+    if img is not None:
+        return img
     if c["bare"]:
         return _pla_bare_draw(key, sp, cx, cy, sp["h_m"] or w, w, k, c, seed, plan=True)
     sh = _pla_plan(sp["form"], cx, cy, w, k, c, seed)
@@ -929,10 +1141,21 @@ def _pla_crop_sec(crop, x, gy, h, w, k, i, beyond, state="growing", season=None)
     """One crop plant in section, in its season's state (bare: nothing; harvested: stubble; seedling: young)."""
     if crop == "olive":
         c = pla_colours("olive", season, beyond=beyond)
-        return _pla_sec("gnarled", x, gy, h, w, k, c, i)
+        img = _pla_img_draw("olive", season, "side", x, gy, h, w, k, pla_colours("olive", season), i, beyond, 0, False)
+        if img is None:
+            img = _pla_missing_draw("olive", season, "side", x, gy, h, w, k)
+        return img if img is not None else _pla_sec("gnarled", x, gy, h, w, k, c, i)
     c = _pla_crop_cols(beyond)
     if state == "bare":
         return []
+    if state != "harvested":                     # round 5: crop image (asset png / hires), else placeholder / vector
+        hh, ww = (0.30 * h, 0.40 * w) if state == "seedling" else (h, w)
+        c0 = _pla_crop_cols(False)
+        img = _pla_img_draw(crop, season, "side", x, gy, hh, ww, k, c0, i, beyond, 0, False)
+        if img is None:
+            img = _pla_missing_draw(crop, season, "side", x, gy, hh, ww, k)
+        if img is not None:
+            return img
     if state == "harvested":                    # stubble: short cut stems (rule 12 % of the height)
         return [("line", [(x + d * w * k * 0.3, gy), (x + d * w * k * 0.32, gy + 0.12 * h * k)], PLA_ROW, 0.1)
                 for d in (-0.5, 0.0, 0.5)]

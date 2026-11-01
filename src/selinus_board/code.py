@@ -20,6 +20,7 @@
 #@include parts/15c_review_pages.py
 #@include ../common/r28_style.py
 #@include ../common/units.py
+#@include ../common/warn.py
 #@include ../common/label_place.py
 #@include ../common/figures.py
 #@include parts/15h_r28_shared.py
@@ -32,9 +33,10 @@
 #@include parts/15k_r28_edge.py
 #@include parts/15l_r28_site.py
 #@include parts/16_write_city_link_movement.py
-#@include ../common/booklet_assets.py
 #@include parts/16b_booklet_export.py
 #@include parts/16c_text_check.py
+#@include ../common/item_export.py
+#@include parts/16d_items.py
 #@include ../common/pdf_fonts.py
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
@@ -50,6 +52,8 @@
 #@include ../common/icons.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
+#@include ../common/data/BRIDGES.py
+#@include ../common/bridges.py
 #@include pages/p02_p03.py
 #@include pages/p04_05_sections.py
 #@include pages/p06_22_build.py

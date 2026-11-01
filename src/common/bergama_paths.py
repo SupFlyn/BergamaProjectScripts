@@ -31,6 +31,44 @@ def bg_first(paths):
     return paths[0]
 
 
+def bg_out_dir(name):
+    """round 5 (C2): output/<name>/ made only now, just before a file is written into it (a run that stops early, or a
+    solve that never runs, leaves no empty folder). Returns the path."""
+    p = bg_output(name)
+    os.makedirs(p, exist_ok=True)
+    return p
+
+
+def bg_result(script, fn):
+    """round 5 (C10): where another script's result file `fn` is: cached/<script>/fn, then cached/<script>/from_output/
+    fn (moved there by bg_tidy_output), then output/<script>/fn (older versions); the first that exists, else the
+    first path (shade_july.json was looked for in output/ after the site board had moved it to cached/)."""
+    return bg_first([os.path.join(bg_cache(script), fn), os.path.join(bg_cache(script), "from_output", fn),
+                     os.path.join(bg_output(script), fn)])
+
+
+def bg_this_run(path):
+    """round 5 (C10): (fresh, note) for a result file another script wrote: fresh = written at or after the start of
+    this chain run (the Button press that started the chain, sticky "bergama_chain_t0" from trigger.py); note = a short
+    log text ("this run 23:01" / "from an earlier run 22:40" / "missing" / "no chain start known"). A reader logs the
+    note and, when not fresh, a WARNING (the value is from the run before: one press must give one answer)."""
+    import time as _t
+    if not os.path.isfile(path):
+        return False, u"missing"
+    m = os.path.getmtime(path)
+    hm = _t.strftime("%d %b %H:%M", _t.localtime(m))
+    try:
+        import scriptcontext as _scx
+        t0 = _scx.sticky.get("bergama_chain_t0")
+    except Exception:
+        t0 = None
+    if t0 is None:
+        return True, u"no chain start known (file of %s)" % hm
+    if m + 1.0 >= t0:
+        return True, u"this run %s" % hm
+    return False, u"from an earlier run %s" % hm
+
+
 def bg_tidy_output(name, cache_dir=None):
     """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
     non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
