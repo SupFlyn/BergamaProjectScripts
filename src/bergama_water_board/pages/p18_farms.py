@@ -12,21 +12,33 @@
 #                separate part (draw_farm_picto deleted; code.py places no aquifer part).
 #   wb_decision  draw_decision: the four fact boxes 2 x 2 in P18_DEC_W x P18_DEC_H (126 x 38 mm), no fill, no stroke
 #                (G17); it sits beside the agriculture "stream comes first" block on the booklet page.
-# Each real draw logs "FLAG overlap p18 <crop> n" (label_place.py lp_overlap_flag; code.py build_all appends
-# lp_flag_lines() once).
+# Round 4 (S6b, P19.1, K4; spec revision_2026-11-01_round4/handover/S6b_p19_design_spec.md): booklet p19 is rebuilt
+# as story groups, one heading each, rows sharing their top and bottom edges. The water board draws three of its
+# blocks, each EXACTLY at its booklet size (1:1, BK_FIXED; a white ground sets the crop; a drawing that runs outside
+# its block RAISES):
+#   wb_farms      draw_farms_text   P18_W x P19_R1_H (260 x 57): group 1's heading "WHERE THE CLEAN WATER GOES" and
+#                                   the 7-step loop (markers through marker.py mk_marker, G-R4-7)
+#   wb_farms_out  draw_farms_out    P19_SIDE_W x P19_R1_H (128 x 57): where the loop ends: the farms outside, one
+#                                   olive on drip, groundwater potential against total use, the ratio (was the right
+#                                   part of wb_farms)
+#   wb_decision   draw_decision     P19_SIDE_W x P19_R2_H (128 x 40): the four figures of group 2 (beside the
+#                                   agriculture "stream first" block, which carries the group's heading)
+# Every text goes through the water board's TextPage "p19" (code.py build_board: pg.text_page / pg.check_text, G-R4-1);
+# a word block (a paragraph, a box's lines) is one text group. The heading band P19_HEAD is on top of every block, so
+# the blocks of a booklet row share the content top.
 
-P18_FLOW_W = grid_w(7)                           # the loop: 7 page columns (227 mm)
-P18_COLS = 4                                     # step columns inside it (grid_sub)
-P18_W = 369.0                                    # the whole wb_farms block: code.py's p18 cell (377) less 2 x 4 mm
-P18_FARM_X = P18_W - grid_w(4)                   # the farms + aquifer block: the last 4 page columns (128 mm)
-P18_FLOW_H = 56.0                                # the block's height; = half code.py's box (112): the empty aquifer
-#                                                  part place() puts at the box centre then lands on the block's foot
+P19_HEAD = 6.0                                   # the group heading band on top of every p19 block, mm
+P19_HEAD_PT = grid_style("heading")[0]           # 10 pt bold (GRID_TYPE heading)
+P19_R1_H, P19_R2_H = 57.0, 40.0                  # booklet rows 1 (loop | farms outside) and 2 (stream | figures), mm
+P19_SIDE_W = grid_w(4)                           # wb_farms_out, wb_decision: 4 page columns (128 mm)
+P18_COLS = 4                                     # step columns inside the loop (grid_sub)
+P18_W = grid_w(8)                                # wb_farms: the loop, 8 page columns (260 mm)
 P18_GAP_R = 3.0                                  # the least gap between the loop's two rows
-P18_MK, P18_IC = 6.0, 8.0                        # step marker (icons.py ico_step) and step icon, mm
+P18_MK, P18_IC = 6.0, 8.0                        # step marker (marker.py, at least this across) and step icon, mm
 P18_FV = 4.2                                     # a box's headline value / step 7's value, mm (12 pt)
 P18_BIG = grid_style("value")[0] * GRID_PT       # the aquifer ratio, the block's one headline value
-P18_DEC_W, P18_DEC_H = grid_w(4) - 2.0, 38.0     # wb_decision's ground (the crop adds 1 mm a side: 4 columns)
-P18_VIG_W = 34.0                                 # the farm vignette's width (one olive tree on one field band), mm
+P18_DEC_W, P18_DEC_H = P19_SIDE_W, P19_R2_H      # wb_decision's block
+P18_VIG_W = 34.0                                # the farm vignette's width (one olive tree on one field band), mm
 P18_BAND = 3.0                                   # the field texture band under the tree, mm (a drawing size)
 P18_OLIVE_ROW_M, P18_OLIVE_TREE_M = 7.0, 5.0     # plants.py: olive 5 x 7 m (Kaya 2017 p.821), printed in cm
 P18_PLANT_M3_DAY, P18_PLANT_DAYS = 14304.0, 120  # the town plant's treated water a day (p.12), summer days
@@ -38,8 +50,36 @@ P18_SRC_AS = u"published, Somay & Gemici 2015; " + REG + u" EN-E3"
 
 
 def _p18_put(pg, shapes):
-    """icons.py / plants.py shapes onto the page (the core's sec_put)"""
-    sec_put(pg, shapes)
+    """icons.py / plants.py / marker.py shapes onto the page (water.py shp_put: polys, lines and text; round 4: was
+    sec_put, which knows no text)"""
+    shp_put(pg, shapes)
+
+
+def _p19_text(pg, s, x, y, size, colour, bold=False, align="L"):
+    """one text of a p19 block; m² / m³ keep the font's own ² / ³ glyph (the embedded Arial has them): Page.text
+    raises them as a 0.6 x digit otherwise, which prints below the 6 pt minimum the TextPage enforces (G-R4-1)
+    at these sizes (an identity matrix keeps the text whole)"""
+    mat = ((1.0, 0.0), (0.0, 1.0)) if any(ch in SUP for ch in s) else None
+    pg.text(s, x, y, size, colour, bold=bold, align=align, mat=mat)
+
+
+def _p19_heading(pg, text, x, top):
+    """a p19 story group's ONE heading (GRID_TYPE heading, 10 pt bold, ink) in the block's heading band"""
+    pg.text(text, x, top - 4.0, P19_HEAD_PT * GRID_PT, grid_style("heading")[3], bold=True, name=u"p19 heading")
+
+
+def _p19_close(pg, n0, box, cid):
+    """the block's white ground under everything drawn since item n0 (it sets the crop; no stroke, G17), the block
+    registered in the TextPage (blocks never overlap); a drawing outside the block RAISES (the booklet prints the
+    block at exactly this size, so nothing may be cut). Returns the box."""
+    bb = items_bbox([it for it in pg.items[n0:] if it[0] in ("poly", "line", "circle", "text")])
+    over = max(box[0] - bb[0], box[1] - bb[1], bb[2] - box[2], bb[3] - box[3])
+    if over > 0.3:
+        raise TextError(u"p19 {}: the drawing runs {:.1f} mm outside its {:.0f} x {:.0f} mm booklet block (shorten "
+                        u"the text that runs out)".format(cid, over, box[2] - box[0], box[3] - box[1]))
+    _p18_ground(pg, n0, box[0], box[1], box[2], box[3])
+    pg.block(box, cid)
+    return box
 
 
 def _p18_icon(pg, names, x, y, sz, cross=False):
@@ -55,16 +95,6 @@ def _p18_icon(pg, names, x, y, sz, cross=False):
         _p18_put(pg, ico_cross(x + sz / 2.0, y - sz / 2.0, sz))
 
 
-def _p18_real(pg):
-    """True on the board's page; False on the 1 x 1 trial pages code.py's fit() draws on (no log line from those)"""
-    return getattr(pg, "W", 0) > 1.0
-
-
-def _p18_text_boxes(items):
-    """the boxes (x0, y0, x1, y1) of the text items among items (the overlap test's label boxes)"""
-    return [items_bbox([it]) for it in items if it[0] == "text"]
-
-
 def _p18_ground(pg, n0, x0, y0, x1, y1):
     """the block's white ground under everything drawn since item n0 (it sets the crop's extent; no stroke, G17)"""
     tmp = Page(1, 1)
@@ -73,8 +103,8 @@ def _p18_ground(pg, n0, x0, y0, x1, y1):
 
 
 def _p18_cols(x0):
-    """the 4 step / box columns [(x0, x1)] of the 7-column block from x0"""
-    return [(x0 + a, x0 + b) for a, b in grid_sub(P18_FLOW_W, P18_COLS)]
+    """the 4 step columns [(x0, x1)] of the 8-column loop block from x0"""
+    return [(x0 + a, x0 + b) for a, b in grid_sub(P18_W, P18_COLS)]
 
 
 def _p18_steps():
@@ -100,54 +130,58 @@ def _p18_steps():
 def _p18_step(pg, i, step, x0, top, cw, boxes=None):
     """step i in its column from top: the marker and the icon on one line (the icon's top on top), the heading, the
     value, the line. boxes: the icon's square is added (the overlap test's drawing boxes). Returns (bottom y, the
-    marker's centre y)."""
+    marker's centre y). Round 4 (G-R4-7): the number through marker.py mk_marker (glyph centred on its ink box, in
+    the loop's water colour, at least P18_MK across); the icon's square is a keep of the TextPage (no text on it);
+    heading, value and line are ONE text group (the step's word block)."""
     head, val, line = step
     ym = top - P18_IC / 2.0
-    sh, (ax, ay), th, cap = ico_step(x0 + P18_MK / 2.0, ym, P18_MK, "solid")
+    sh, _mb, _r = mk_marker(x0 + P18_MK / 2.0, ym, str(i + 1), ICO_PAL["water_deep"], size_pt=7.0,
+                            r_min=P18_MK / 2.0)
     _p18_put(pg, sh)
-    pg.text(str(i + 1), ax, ay - cap / 2.0, cap / CAP, th, bold=True, align="C")
     nm, crossed = P18_DEC_ICONS[i]
     ix = x0 + P18_MK + 1.5
     _p18_icon(pg, (nm,), ix, top, P18_IC, crossed)
+    pg.keep((ix, top - P18_IC, ix + P18_IC, top), "icon", u"p19 step icon %d" % (i + 1))
     if boxes is not None:
         boxes.append((ix, top - P18_IC, ix + P18_IC, top))
     tw = cw - 2.0
-    yy = para(pg, x0, top - P18_IC - 0.8, tw, head, FS_MIN, C["dark"], bold=True)
-    if val:
-        yy = para(pg, x0, yy - 0.6, tw, val, P18_FV, C["d3"], bold=True)
-    if line:
-        yy = para(pg, x0, yy - 0.6, tw, line, FS_MIN, C["ink"])
+    old = pg.tg
+    pg.tgroup()
+    try:
+        yy = _para_common(pg, x0, top - P18_IC - 0.8, tw, head, FS_MIN, C["dark"], bold=True)
+        if val:
+            yy = _para_common(pg, x0, yy - 0.6, tw, val, P18_FV, C["d3"], bold=True)
+        if line:
+            yy = _para_common(pg, x0, yy - 0.6, tw, line, FS_MIN, C["ink"])
+    finally:
+        pg.tg = old
     return yy - FS_MIN * 0.3, ym
 
 
-def draw_farms_text(pg, x, y, w, h, s):
-    """p.18 the flow (Aras 26 Oct 07:06 and his sketch: the seven steps clockwise round a ring, 1-4 along the top,
-    5-7 back along the bottom), on the 4 step columns of 7 page columns: markers and icons (icons.py) on one line, a
-    heading and one line under each; the bottom row stands on the block's foot. Round 3 (B4; P18.1, G4): the block
-    is P18_W x P18_FLOW_H at 1:1 (a white ground sets the crop's extent; it grows only if the text needs more); the
-    farms outside and the aquifer under them sit beside the loop in the last 4 page columns (_p18_farms_block). Under
-    the red closing arrow (7 -> 1: the next winter's stream, never a pump), in the empty bottom-left cell: what closes
-    the loop and the one-way rule. boxed() hands x 6 mm left of the panel edge; w, h and s are not used (fixed size).
-    Returns the lowest y drawn."""
-    X0 = x + 6.0
+def draw_farms_text(pg, x, y):
+    """p19 group 1, "WHERE THE CLEAN WATER GOES": the flow (Aras 26 Oct 07:06 and his sketch: the seven steps
+    clockwise round a ring, 1-4 along the top, 5-7 back along the bottom) on the 4 step columns of the 8-column block:
+    markers and icons on one line, a heading and one line under each; the bottom row stands on the block's foot.
+    Under the red closing arrow (7 -> 1: the next winter's stream, never a pump), in the empty bottom-left cell: what
+    closes the loop and the one-way rule. Round 4 (P19.1): the block is EXACTLY P18_W x P19_R1_H from its top-left
+    (x, y) (crop wb_farms, 1:1 on the booklet page), the group heading in its band; the farms outside are their own
+    block now (draw_farms_out, beside it on the booklet page). Returns the block box (x0, y0, x1, y1)."""
     n0 = len(pg.items)
-    cols = _p18_cols(X0)
+    _p19_heading(pg, u"WHERE THE CLEAN WATER GOES", x, y)
+    top = y - P19_HEAD
+    cols = _p18_cols(x)
     cw = cols[0][1] - cols[0][0]
     steps = _p18_steps()
-    lead = FS_MIN * 1.28
     tall = [-_p18_step(Page(1, 1), i, steps[i], 0.0, 0.0, cw)[0] for i in range(4, 7)]   # row 2's heights
-    foot = y - P18_FLOW_H
-    dboxes = []                                      # the overlap test's drawing boxes (icons, the farm drawing)
+    foot = y - P19_R1_H
     bots, ym = [], {}
     for i in range(4):                               # row 1: steps 1-4, left to right
-        b_, ym[i] = _p18_step(pg, i, steps[i], cols[i][0], y, cw, dboxes)
+        b_, ym[i] = _p18_step(pg, i, steps[i], cols[i][0], top, cw)
         bots.append(b_)
     y1b = min(bots)
     y2 = min(foot + max(tall), y1b - P18_GAP_R)      # row 2 on the foot (never closer than the gap to row 1)
-    low = foot
     for i, c in ((4, 3), (5, 2), (6, 1)):            # row 2: steps 5-7, right to left under columns 4, 3, 2
-        b_, ym[i] = _p18_step(pg, i, steps[i], cols[c][0], y2, cw, dboxes)
-        low = min(low, b_)
+        _b, ym[i] = _p18_step(pg, i, steps[i], cols[c][0], y2, cw)
     # the arrows: along the top, down column 4, back along the bottom (water); the red closing arrow up column 1
     ia = P18_MK + 1.5 + P18_IC + 1.5                 # where an arrow leaves a step's marker line
     for i in range(3):
@@ -156,24 +190,15 @@ def draw_farms_text(pg, x, y, w, h, s):
     arrow(pg, [(xd, bots[3] - 1.0), (xd, y2 + 0.3)], C["d2"], 0.45, 2.0)
     for i, (ca, cb) in ((4, (3, 2)), (5, (2, 1))):
         arrow(pg, [(cols[ca][0] - 1.0, ym[i]), (cols[cb][0] + ia, ym[i])], C["d2"], 0.45, 2.0)
-    xl = X0 + P18_MK / 2.0
+    xl = x + P18_MK / 2.0
     arrow(pg, [(cols[1][0] - 1.0, ym[6]), (xl, ym[6]), (xl, bots[0] - 1.0)], C["acc"], 0.45, 2.0)
     # the bottom-left cell, under the red arrow's level: what closes the loop, then the one-way rule
-    yy = para(pg, X0, ym[6] - 2.5, cw - 2.0, LOOP_BACK, FS_MIN, C["acc"], bold=True)
-    yy = para(pg, X0, yy - 1.2, cw - 2.0, u"ONE WAY, WITH THE STREAM", FS_MIN, C["d3"], bold=True)
-    low = min(low, yy - FS_MIN * 0.3)
-    # the farms outside the site and the aquifer under them (the last 4 page columns, level with the loop)
-    _p18_farms_block(pg, X0 + P18_FARM_X, y, grid_w(4), foot, dboxes)
-    _p18_ground(pg, n0, X0, low, X0 + P18_W, y)
-    if _p18_real(pg):
-        if low < foot - 0.05:                        # into the label log, which build_all appends to the run log
-            LP_LOG.append(u"FLAG p18 wb_farms: the loop's text runs {:.1f} mm below the block's {:.0f} mm "
-                          u"(the crop grows; the booklet page has 3 mm to spare)".format(foot - low, P18_FLOW_H))
-        lp_overlap_flag(u"p18 wb_farms", _p18_text_boxes(pg.items[n0:]), dboxes, (X0, low, X0 + P18_W, y))
-    return low
+    yy = para(pg, x, ym[6] - 2.5, cw - 2.0, LOOP_BACK, FS_MIN, C["acc"], bold=True)
+    para(pg, x, yy - 1.2, cw - 2.0, u"ONE WAY, WITH THE STREAM", FS_MIN, C["d3"], bold=True)
+    return _p19_close(pg, n0, (x, foot, x + P18_W, y), u"wb_farms")
 
 
-def _p18_vignette(pg, x0, x1, gy, top, dboxes):
+def _p18_vignette(pg, x0, x1, gy, top):
     """P18.4 (G9 agriculture): the farm drawn simplified, ONE field texture + ONE representative crop: a band of field
     ground (plants.py PLA_FIELD, short furrow marks in PLA_ROW, no rows) under one olive tree at print resolution
     (plants.py pla_section: the high-res silhouette where the library has it, else the vector olive with its leaf
@@ -195,30 +220,38 @@ def _p18_vignette(pg, x0, x1, gy, top, dboxes):
     pg.line([(x0, gy + 0.3), (x1, gy + 0.3)], C["d2"], 0.3)            # the drip line on the ground
     for i in range(int((x1 - x0) / 4.0)):
         pg.circle(x0 + 2.0 + i * 4.0, gy - 0.6, 0.3, fill=C["d2"])     # its drops
-    dboxes.append((x0, gy - P18_BAND, x1, top))
+    pg.keep((x0, gy - P18_BAND, x1, top), "drawing", u"p19 farm vignette")    # round 4: no text on the drawing
 
 
-def _p18_farms_block(pg, x0, top, w, foot, dboxes):
-    """the farms outside the site and the groundwater under them (Lower Bakırçay, AQUIFER), x0..x0 + w, top..foot:
-    the title; left the farm vignette (_p18_vignette) with the olive spacing under it; right the groundwater
-    potential and the total use as two horizontal bars on one scale with their values at the bars, the potential's
-    length dashed across the use bar, then the ratio (facts.py, printed here once) with its two lines."""
-    pg.text(u"THE FARMS OUTSIDE · GROUNDWATER, LOWER BAKIRÇAY", x0, top - CAP * FS_MIN, FS_MIN, C["dark"], bold=True)
+def draw_farms_out(pg, x, y):
+    """p19 group 1, where the loop ends (crop wb_farms_out, EXACTLY P19_SIDE_W x P19_R1_H from its top-left (x, y),
+    beside the loop on the booklet page; its heading band left empty, the group's heading is the loop's): the farms
+    outside the site and the groundwater under them (Lower Bakırçay, AQUIFER): the label on the step headings' line;
+    left the farm vignette (_p18_vignette) with the olive spacing under it; right the groundwater potential and the
+    total use as two horizontal bars on one scale with their values at the bars, the potential's length dashed across
+    the use bar, then the ratio (facts.py, printed here once) with its two lines. Round 4 (P19.1): was
+    _p18_farms_block inside wb_farms. Returns the block box."""
+    n0 = len(pg.items)
+    w, top, foot = P19_SIDE_W, y - P19_HEAD, y - P19_R1_H
     lead = FS_MIN * 1.28
-    vx1 = x0 + P18_VIG_W
+    lb0 = top - 2.4                                  # the label's baseline: its ascender on the content top
+    pg.text(u"THE FARMS OUTSIDE · GROUNDWATER, LOWER BAKIRÇAY", x, lb0, FS_MIN, C["dark"], bold=True)
+    vx1 = x + P18_VIG_W
     cap = wrap(u"olives {:.0f} × {:.0f} cm · drip along every row".format(P18_OLIVE_TREE_M * 100,
                                                                            P18_OLIVE_ROW_M * 100), FS_MIN, P18_VIG_W)
+    pg.tgroup()                                      # the caption's lines: one word block
     for j, ln in enumerate(cap):
-        pg.text(ln, x0, foot + 0.8 + (len(cap) - 1 - j) * lead, FS_MIN, C["ink"])
-    gy = foot + 0.8 + (len(cap) - 1) * lead + CAP * FS_MIN + 1.2 + P18_BAND
-    _p18_vignette(pg, x0, vx1, gy, top - CAP * FS_MIN - 2.5, dboxes)
+        pg.text(ln, x, foot + 0.8 + (len(cap) - 1 - j) * lead, FS_MIN, C["ink"])
+    pg.tgroup(False)
+    gy = foot + 0.8 + (len(cap) - 1) * lead + CAP * FS_MIN + 1.6 + P18_BAND
+    _p18_vignette(pg, x, vx1, gy, lb0 - 0.6 - 1.5)
     # the two bars: label over each bar, the value after the potential's bar and inside the use bar's end
     (pot_lab, pot), (use_lab, use) = AQUIFER
-    ax0, ax1 = vx1 + 6.0, x0 + w
+    ax0, ax1 = vx1 + 6.0, x + w
     k = (ax1 - ax0) / max(pot, use)
     bh = 6.0
     for j, (lab, v, col) in enumerate(((pot_lab, pot, C["w3"]), (use_lab, use, C["agri"]))):
-        lb = top - 11.0 - 13.0 * j                   # the label's baseline; the bar 1.5 mm under it
+        lb = top - 9.0 - 14.0 * j                    # the label's baseline; the bar 1.5 mm under it
         pg.text(lab, ax0, lb, FS_MIN, C["ink"])
         b1 = lb - 1.5
         L = k * v
@@ -226,10 +259,10 @@ def _p18_farms_block(pg, x0, top, w, foot, dboxes):
         t = u"{} hm³ a year".format(v)
         tb = b1 - bh / 2.0 - CAP * FS_MIN / 2.0
         if text_w(t, FS_MIN, True) + 3.0 <= L:       # inside the bar's end, white
-            pg.text(t, ax0 + L - 1.5, tb, FS_MIN, COL["white"], bold=True, align="R")
-        else:                                        # after the bar
-            pg.text(t, ax0 + L + 1.5, tb, FS_MIN, C["ink"], bold=True)
-            dboxes.append((ax0, b1 - bh, ax0 + L, b1))
+            _p19_text(pg, t, ax0 + L - 1.5, tb, FS_MIN, COL["white"], bold=True, align="R")
+        else:                                        # after the bar (the bar is then a keep)
+            _p19_text(pg, t, ax0 + L + 1.5, tb, FS_MIN, C["ink"], bold=True)
+            pg.keep((ax0, b1 - bh, ax0 + L, b1), "drawing", u"p19 aquifer bar %d" % j)
         if j == 0:
             yp0, xp = b1, ax0 + k * pot
         else:
@@ -240,14 +273,20 @@ def _p18_farms_block(pg, x0, top, w, foot, dboxes):
         t = r + u" ×"
         pg.text(t, ax0, yb - lead / 2.0, P18_BIG, C["acc"], bold=True)
         lx = ax0 + text_w(t, P18_BIG, True) + 3.0
+        pg.tgroup()                                  # its two lines: one word block
         pg.text(u"total use against potential", lx, yb, FS_MIN, C["ink"])
         pg.text((u"farm water eases the aquifer " + cite(P18_SRC_AQ)).strip(), lx, yb - lead, FS_MIN, C["ink"])
+        pg.tgroup(False)
+    return _p19_close(pg, n0, (x, foot, x + w, y), u"wb_farms_out")
 
 
-def draw_decision(pg, x, y, w, h, s):
-    """p.18 what the figures support: one box per fact (G4: an icon, one headline value, one line), 2 x 2 in
-    P18_DEC_W x P18_DEC_H from the panel edge x, top y (round 3). The olive figures from facts.py (8,000 m³ per ha, 1.25 ha: printed
-    here once); a missing live value leaves its boxes out. Returns the lowest y drawn."""
+def draw_decision(pg, x, y):
+    """p19 group 2, the figures: one box per fact (G4: an icon, one headline value, one line), 2 x 2, the block
+    EXACTLY P18_DEC_W x P18_DEC_H from its top-left (x, y) (crop wb_decision; round 4, P19.1: beside the agriculture
+    "stream first" block, which carries the group's heading, so this block's heading band stays empty and the boxes
+    start on the shared content top). The olive figures from facts.py (8,000 m³ per ha, 1.25 ha: printed here once);
+    a missing live value leaves its boxes out. Each box's lines are one text group; the icons are keeps. Returns the
+    block box."""
     need = fact("olive_need_m3_ha")
     items = []
     if need:
@@ -260,8 +299,8 @@ def draw_decision(pg, x, y, w, h, s):
                  P18_PLANT_M3_DAY * P18_PLANT_DAYS / 1e6, P18_PLANT_DAYS))]
     items.append(("chart", u"75 % · 29 %", (u"of farm demand met, North Aegean basin: normal year · very severe "
                                             u"drought " + cite(P18_SRC_NA)).strip()))
-    # round 3 (B4; P18.1, G17): 2 x 2 boxes in P18_DEC_W (4 page columns, beside the agriculture "stream comes first"
-    # block on the booklet page), separated by whitespace only: no fill, no stroke; w, h and s are not used
+    # 2 x 2 boxes in P18_DEC_W (4 page columns), separated by whitespace only: no fill, no stroke (G17); round 4:
+    # each box row as tall as its own taller box (was the tallest of all four)
     n0 = len(pg.items)
     cols = [(x + a, x + b) for a, b in grid_sub(P18_DEC_W, 2)]
     ic, gap = 8.0, 3.0
@@ -270,24 +309,22 @@ def draw_decision(pg, x, y, w, h, s):
         c0, c1 = cols[j % 2]
         tw = c1 - c0 - ic - 2.0
         V, L = wrap(val, P18_FV, tw, True), wrap(line, FS_MIN, tw)
-        lay.append((j, nm, c0, V, L, len(V) * P18_FV * 1.18 + 0.8 + len(L) * FS_MIN * 1.28))
-    bh = max([t[5] for t in lay] + [ic])
-    nrow = (len(lay) + 1) // 2
-    tot = max(P18_DEC_H, nrow * bh + (nrow - 1) * gap)
-    pg.poly([rect(x, y - tot, x + P18_DEC_W, y)], fill=COL["white"])    # the white ground sets the crop's extent
-    dboxes = []
+        lay.append((j, nm, c0, V, L, len(V) * P18_FV * 1.18 + 0.8 + len(L) * FS_MIN * 1.28 + 0.6))
+    rh = {}
+    for t in lay:
+        rh[t[0] // 2] = max(rh.get(t[0] // 2, ic), t[5])
     for j, nm, c0, V, L, _ in lay:
-        top = y - (j // 2) * (bh + gap)
+        top = y - P19_HEAD - sum(rh[r] + gap for r in range(j // 2))
         _p18_icon(pg, (nm,), c0, top, ic)
-        dboxes.append((c0, top - ic, c0 + ic, top))
+        pg.keep((c0, top - ic, c0 + ic, top), "icon", u"p19 figure icon %d" % (j + 1))
         lx, ly = c0 + ic + 2.0, top
+        pg.tgroup()                                  # the box's value and line: one word block
         for ln in V:
             ly -= P18_FV * 1.18
-            pg.text(ln, lx, ly, P18_FV, C["d3"], bold=True)
+            _p19_text(pg, ln, lx, ly, P18_FV, C["d3"], bold=True)
         ly -= 0.8
         for ln in L:
             ly -= FS_MIN * 1.28
-            pg.text(ln, lx, ly, FS_MIN, C["ink"])
-    if _p18_real(pg):
-        lp_overlap_flag(u"p18 wb_decision", _p18_text_boxes(pg.items[n0:]), dboxes, (x, y - tot, x + P18_DEC_W, y))
-    return y - tot
+            _p19_text(pg, ln, lx, ly, FS_MIN, C["ink"])
+        pg.tgroup(False)
+    return _p19_close(pg, n0, (x, y - P18_DEC_H, x + P18_DEC_W, y), u"wb_decision")
