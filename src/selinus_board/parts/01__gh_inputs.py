@@ -1,10 +1,17 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v58_3.py = v58.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: selinus_board_v59.py = v59 (1 Nov 2026, round 4 S4; what changed: the NEW IN / VERSION notes below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v59 (round 4 S4, Aras 1 Nov): every text of every booklet crop measured with the real Arial metrics and checked
+(a collision, a text across the crop edge or under 6 pt STOPS the run before any sheet is written: sb_text_check);
+one start rule for all scripts (common/trigger.py, log "trigger: ..."); Turkish place names from the names table;
+the street sections never depend on the masterplan having run (common/data/ROADS.py); pp.4-5 rebuilt: key band with
+the shared key map (red cut symbol, names), each cut in the LEFT block (title strip, drawing, side column), 1:1,000
+first, levels outside the frame, insets at 1:500 with their own bar, only the numbers that matter; S5 is now a cut
+across the stream at one of its crossings (N4 b).
 NEW IN v58 (round 3 B1, Aras 31 Oct): real bridge and place names everywhere (common/names.py, no K-codes);
 no leader lines (numbers on the spot + keys in reading order) and a FLAG overlap line per booklet page; p2 key under
 plan 01, side column 6 grid columns, edge-strip buildings merged into non-overlapping blocks; p3 numbers + key on the
@@ -381,7 +388,7 @@ _GH_IN = _gh_inputs()
 _T_START = __import__("time").time()
 
 
-#@include ../../common/chain_fire.py
+#@include ../../common/trigger.py
 
 
 def done_text(ran, ok, secs):
@@ -414,9 +421,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v58.3 (2026-11-01)"  # v58.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v58.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SCRIPT_VERSION = "selinus_board v59 (2026-11-01)"  # v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v58.3"                                     # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v59"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -627,20 +634,7 @@ def to_float(v, default=None, name=None):
         return default
 
 
-def to_bool(v, default=False):
-    """A switch from a GH input: True/False, numbers, or text such as "false", "0", "no", "yes"."""
-    if v is None:
-        return default
-    if isinstance(v, bool):
-        return v
-    if isinstance(v, (int, float)):
-        return v != 0
-    s = str(v).strip().lower()
-    if s in ("true", "yes", "y", "on", "1", "evet", "1.0"):
-        return True
-    if s in ("false", "no", "n", "off", "0", "0.0", "hayir", "hayır", "none", ""):
-        return False
-    return default
+# v59 (round 4): to_bool comes from common/trigger.py (one rule for every script; was this script's own copy)
 
 
 def clean_path(v, name):
@@ -686,22 +680,7 @@ for _k in TSEC_KEYS:
         TSEC_IN[_k] = [_v]
 TSEC = dict((k, []) for k in TSEC_KEYS)      # the same lines in survey coordinates (set by pipeline)
 KNOWN_INPUTS = set(['spine', 'spine_car', 'bridges', 'car_closed', 'attractors', 'rhino_bake', 'mode', 'channel_depth', 'credit', 'env_path', 'environment', 'focus', 'frame', 'hour', 'hours', 'layout', 'noise_db', 'noise_palette', 'noise_points', 'osm_path', 'pdf', 'places_path', 'section_lines', 'sheet_mm', 'subtitle', 'texture', 'title', 'wall_height', 'water_depth', 'water_levels'])          # v30: this script's named inputs (anything else may be the Button); v50 (MIRAQUA 28 Oct, bank depth 1b): + wall_height
-def _button_value():
-    """The Button, on whatever input name or case it is wired (Aras's rule): "bake" first, then build / button /
-    press / go in any case, then any other input that is not one of this script's named options and holds True or
-    False."""
-    known = KNOWN_INPUTS
-    low = dict((k_.lower(), k_) for k_ in _GH_IN)
-    for nm in ("run", "bake", "build", "button", "press", "go"):   # v37: run first
-        if nm in low:
-            return _GH_IN[low[nm]]
-    for k_, v_ in _GH_IN.items():
-        if k_.lower() not in known and isinstance(v_, bool):
-            return v_
-    return False
-
-
-DO_BAKE = to_bool(_button_value())                     # v30: the Button on any input name
+DO_BAKE = to_bool(trig_get(trig_button(KNOWN_INPUTS)))   # v59 (round 4): the Button found by common/trigger.py
 FRAME_IN = inp("frame", None)
 FRAME_FROM_LAYER = [False]                            # v36: the frame came from layer site_alan (set per press)
 TITLE = str(inp("title", "THE SELINUS SEAM"))

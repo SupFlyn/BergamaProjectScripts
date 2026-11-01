@@ -69,10 +69,11 @@ def river_free_banks(S, step=2.0, near=1.5):
 
 
 # ============================================================ THE LAND-USE MAP
-def draw_landuse_map(S, B, V, bcol=None, den=None, kb=10.0):
+def draw_landuse_map(S, B, V, bcol=None, den=None, kb=10.0, inside=None):
     """bcol (v33): the colour of each building (default: its land-use colour). Revision 30 Oct (G7, M11): the buildings
     through _p02_bld_plan (outline per block + roof reading at 1:den; kb = board units per booklet mm), no piece
-    outlines."""
+    outlines. v59 (round 4, P02.2, G-R4-4): inside = _p02_inside(S): buildings outside the study area are base map
+    (no cast shadow, no roof reading, the light base outline)."""
     L = "LU_BOARD::Map"
     s = V.s
     U = S.U
@@ -120,10 +121,13 @@ def draw_landuse_map(S, B, V, bcol=None, den=None, kb=10.0):
                        mix(TREE_COLS["pine"], PAPER, 0.35), L + "::trees", 12)
         sh = mix(INK, PAPER, 0.6)
         for u in S.bld:
+            if not _p02_u_inside(inside, u):             # v59 (round 4, P02.2): the base houses cast no dark shadow
+                continue
             off = min(3.0, 0.11 * u["h"]) * s
             B.fill([[(x + off, y - off) for x, y in V.P(P)] for P in u["parts"] + (u.get("holes") or [])], sh,
                    L + "::texture", 13)
-    _p02_bld_plan(S, B, V, L + "::buildings", 14, den or crop_scale(V.s) or 1000.0, kb, bcol=bcol)
+    _p02_bld_plan(S, B, V, L + "::buildings", 14, den or crop_scale(V.s) or 1000.0, kb, bcol=bcol,
+                  inside=inside)                          # v59 (round 4, P02.2)
     for P in S.slope_hatch:
         B.line(V.P(P), mix(INK2, PAPER, 0.4), L + "::ground", 16, 0.04)
     for P in S.slopes:
@@ -191,24 +195,51 @@ def c5_point(S):
 
 
 P02_OUT_FADE = 0.22       # round 2 (PG1 p2 #8): share mixed toward the paper for buildings outside the study area
-#                           (a drawing choice: "reduce the opacity a little, but not too much")
+#                           (a drawing choice: "reduce the opacity a little, but not too much"). v59: no longer read
+#                           (outside the study area the houses take the muted base tone, P02_BASE_BLD)
+P02_IN_LIGHT = 0.40       # v59 (round 4, P02.2, G-R4-4): share each urban-fabric colour is mixed toward the paper inside
+#                           the study area (Aras U61 "the dark house mass": the fabric reading stays, lighter)
+P02_BASE_BLD = C(BM_MUTED["bld"]) if "BM_MUTED" in globals() else C("EDEBE6")         # v59 (round 4, P02.2, G-R4-4):
+P02_BASE_EDGE = C(BM_MUTED["bld_edge"]) if "BM_MUTED" in globals() else C("C9C5BC")   # PLAN 4.3 base house tones
+P02_BASE_LW = 0.12        # v59 (round 4, P02.2): mm, the base house outline (PLAN 4.3)
+
+
+def _p02_inside(S):
+    """v59 (round 4, P02.2, G-R4-4): f(x, y) -> True where (x, y) lies inside a study-area outline (r28_study), or
+    None when the study area is not in the data (then every building keeps its fabric tone)"""
+    polys = [(P, bb_pts(P)) for P in (getattr(getattr(S, "site", S), "r28_study", None) or []) if len(P) >= 3]
+    if not polys:
+        return None
+
+    def f(x, y):
+        return any(bb[0] <= x <= bb[2] and bb[1] <= y <= bb[3] and region_contains(x, y, [P], []) for P, bb in polys)
+    return f
+
+
+def _p02_u_inside(inside, u):
+    """v59 (round 4, P02.2): a building counts as inside when its first part's centre is (the round 2 rule)"""
+    if inside is None or not u.get("parts"):
+        return True
+    P0 = u["parts"][0]
+    return inside(sum(p_[0] for p_ in P0) / len(P0), sum(p_[1] for p_ in P0) / len(P0))
+
+
+def _p02_fab_light(c_):
+    """v59 (round 4, P02.2): an urban-fabric colour as plan 01 draws it inside the study area (and its key shows it)"""
+    return mix(c_, PAPER, P02_IN_LIGHT)
 
 
 def _p02_fade_col(S):
-    """round 2 (PG1 p2 #8, M3 fade, U20): plan 01's building colour = fabric_col, mixed P02_OUT_FADE toward the paper
-    where the building's first part's centre lies outside every study-area outline (r28_study); unchanged inside, and
-    everywhere when the study area is not in the data"""
-    polys = [(P, bb_pts(P)) for P in (getattr(getattr(S, "site", S), "r28_study", None) or []) if len(P) >= 3]
+    """round 2 (PG1 p2 #8, M3 fade, U20): plan 01's building colour by urban fabric. v59 (round 4, P02.2, G-R4-4; Aras
+    U61 "gereksiz bir ev kalabalığı koyu renkliliği"): inside the study area the fabric colour mixed P02_IN_LIGHT
+    toward the paper (_p02_fab_light); outside it every building takes the muted base house tone P02_BASE_BLD (base
+    map back, light); everywhere the fabric tone when the study area is not in the data"""
+    inside = _p02_inside(S)
 
     def col(u):
-        c_ = fabric_col(u)
-        if not polys or not u.get("parts"):
-            return c_
-        P0 = u["parts"][0]
-        cx, cy = sum(p_[0] for p_ in P0) / len(P0), sum(p_[1] for p_ in P0) / len(P0)
-        if any(bb[0] <= cx <= bb[2] and bb[1] <= cy <= bb[3] and region_contains(cx, cy, [P], []) for P, bb in polys):
-            return c_
-        return mix(c_, PAPER, P02_OUT_FADE)
+        if _p02_u_inside(inside, u):
+            return _p02_fab_light(fabric_col(u))
+        return P02_BASE_BLD
     return col
 
 
@@ -248,6 +279,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     ymap = y - 0.8 * U
     V, mw, mh = view_fit(F2, x, ymap, w, 10.0 * w)
     s = V.s
+    i_map0 = len(B.items)                                 # v59 (round 4, P02.1): the map's own texts start here
     # quiet context: survey line work around the frame, pale
     B.fill([V.P(F2.P)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
     ctx = getattr(S, "ctx_lines", None) or {}
@@ -258,7 +290,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     # the site: land use, land cover, ground, streets, trees, buildings (homes by fabric), walls, bridges
     # v40: buildings by urban fabric type; revision 30 Oct (G7, M11): outline per block + roof, no piece lines
     # round 2 (PG1 p2 #8, U20): the town fabric outside the study area a little fainter, "but not too much"
-    draw_landuse_map(S, B, V, bcol=_p02_fade_col(S), den=den_bk, kb=kb)
+    draw_landuse_map(S, B, V, bcol=_p02_fade_col(S), den=den_bk, kb=kb, inside=_p02_inside(S))   # v59 (P02.2)
     # canopy-map crowns (modelled), under the surveyed tree symbols
     crowns = [c for c in site_crowns(S, F) if F.inside(c[0], c[1])]
     for leaf in (0, 1, 2):
@@ -294,62 +326,76 @@ def draw_what_is_there(S, B, x, y, w, U):
     c5 = c5_point(S)
     if c5:
         cs.append(("C5", c5[0], c5[1], C5_TEXT))
-    # v45: marks sized for the booklet page. v58 (round 3, G3, G16): each bridge = a tick across the stream and its
-    # number (stream order, _p02_knum) on the spot, clear of every mark, never on a leader; the real names are listed
-    # under the map in the same order (no K-code printed)
-    hn = bk_hk(8.0, kb)
+    # v59 (round 4, P02.1, G-R4-1, G-R4-7, G-R4-9; Aras U61 S31: the C markers "birbiri iç içe girmiş üst üste binmiş"
+    # and on the numbers 1-5). Interpretation: the "cut numbers 1-5" are the bridge marks (plan 01 draws no section
+    # cut since v45), so each bridge is drawn as a BRIDGE (the map symbol: two deck lines across the stream with
+    # flared ends, never a single cut-like stroke) and its number in a ring marker (mk_marker, the ink the bridges are
+    # drawn in); each conflict a solid marker in the conflict colour (mk_marker; its key under the map shows the same
+    # disc). Placed in booklet mm by _p02_spot: bridge numbers first beside their symbol, then the conflicts, each
+    # clear of the bridge symbols, every marker placed before it, the map's own texts and the other conflict points
+    # (pad SB_TP_PAD); a conflict that cannot sit on its point gets a dot on the point and a short leader to its
+    # marker. No marker overlaps another: the page check (sb_text_check) sees the glyphs.
+    mb = ymap - mh
     knum = _p02_knum()
-    taken, ticks, ovl = [], [], []
-    for k, nm, bx, by in BRIDGES_K:                       # a tick across the stream
+    mk_register("bridge", dict((k_, crop_hex(INK)) for k_ in knum))
+    mk_register("conflict", dict((c_[0], crop_hex(MARK_C)) for c_ in cs))
+    pad = P02_MK_PAD
+    bnd = (V.X0 / kb + 0.8, mb / kb + 0.8, (V.X0 + mw) / kb - 0.8, ymap / kb - 0.8)      # booklet mm, inside the crop
+    taken = _p02_text_boxes(B, i_map0, kb)                # the map's texts so far (the stream's name), booklet mm
+    ticks, ovl = [], []
+    cpts = [(k_, cx_, cy_) for k_, cx_, cy_, t_ in sorted(cs) if F.inside(cx_, cy_)]
+    for k, nm, bx, by in BRIDGES_K:                       # the bridge symbol across the stream
         if F.inside(bx, by) and k in knum:
             px, py = V.p(bx, by)
             n = stream_normal(S, bx, by) or (0.0, 1.0)
             a_ = V.p(bx + n[0], by + n[1])
             ln = math.hypot(a_[0] - px, a_[1] - py) or 1.0
-            e = ((a_[0] - px) / ln * 1.6 * kb, (a_[1] - py) / ln * 1.6 * kb)
-            B.line([(px - e[0], py - e[1]), (px + e[0], py + e[1])], INK, L, 62, bk_lw(0.35, kb))
-            taken.append((px - 1.6 * kb, py - 1.6 * kb, px + 1.6 * kb, py + 1.6 * kb))
+            ux, uy = (a_[0] - px) / ln, (a_[1] - py) / ln        # across the stream (page)
+            vx, vy = -uy, ux                                     # along it
+            hl, hg, fl = P02_BR_HALF * kb, P02_BR_GAP * kb, 0.45 * kb
+            for sg in (-1.0, 1.0):                        # the two deck edges, each end flared away from the deck
+                ox, oy = sg * hg * vx, sg * hg * vy
+                e0 = (px + ox - hl * ux, py + oy - hl * uy)
+                e1 = (px + ox + hl * ux, py + oy + hl * uy)
+                B.line([(e0[0] - fl * (ux - sg * vx) * 0.7, e0[1] - fl * (uy - sg * vy) * 0.7), e0, e1,
+                        (e1[0] + fl * (ux + sg * vx) * 0.7, e1[1] + fl * (uy + sg * vy) * 0.7)],
+                       INK, L, 62, bk_lw(0.25, kb))
+            cn_ = [((px + a1 * (hl + fl) * ux + a2 * (hg + 0.35 * kb) * vx) / kb,
+                    (py + a1 * (hl + fl) * uy + a2 * (hg + 0.35 * kb) * vy) / kb) for a1 in (-1, 1) for a2 in (-1, 1)]
+            taken.append((min(c_[0] for c_ in cn_), min(c_[1] for c_ in cn_), max(c_[0] for c_ in cn_),
+                          max(c_[1] for c_ in cn_)))          # the symbol's own box (its turned rectangle's)
             ticks.append((k, px, py))
-    # v51 (WO-T3a-2, "C markers legible at first glance"): each conflict is a disc P02_C_R mm wide in the accent with a
-    # white rim, its name inside in white 7 pt bold, so it reads over any ground colour. v58 (round 3, G3): no leader:
-    # where a bridge mark or another disc sits on the point the disc shifts at most 0.9 of its radius (it still covers
-    # the point), else it sits on the point anyway (the overlap test counts it)
-    rc, hcn = P02_C_R * kb, bk_hk(7.0, kb)
-    for k, cx, cy, t in sorted(cs):
-        if not F.inside(cx, cy):
-            continue
-        px, py = V.p(cx, cy)
-        spot = None
-        for dd in (0.0, 0.5 * rc, 0.9 * rc):
-            for a_ in (range(8) if dd else (0,)):
-                an_ = math.radians(90.0 + 45.0 * a_)
-                qx, qy = px + dd * math.cos(an_), py + dd * math.sin(an_)
-                b_ = (qx - 1.2 * rc, qy - 1.2 * rc, qx + 1.2 * rc, qy + 1.2 * rc)
-                if not any(_p02_hit(b_, t_) for t_ in taken):
-                    spot = (qx, qy, b_)
-                    break
-            if spot:
-                break
-        qx, qy, b_ = spot or (px, py, (px - 1.2 * rc, py - 1.2 * rc, px + 1.2 * rc, py + 1.2 * rc))
-        taken.append(b_)
-        ovl.append((qx - rc, qy - rc, qx + rc, qy + rc))
-        B.fill([circle_pts(qx, qy, rc + 0.4 * kb, 24)], WHITE, L, 63)
-        B.fill([circle_pts(qx, qy, rc, 24)], MARK_C, L, 64)
-        B.text(k, qx, qy, hcn, WHITE, L, order=65, font=FONT_TITLE, bold=True, align="MC")
-    mb = ymap - mh
-    # v58 (round 3, G3): the bridge numbers by lp_place (booklet mm: no leader; a number that finds no free spot
-    # beside its tick still sits at it, the overlap test counts it)
-    if ticks:
-        nlab = [dict(x=px / kb, y=py / kb, w=(tw(str(knum[k_]), hn, "sans") + 0.5 * kb) / kb, h=(hn + 0.5 * kb) / kb,
-                     r=1.6) for k_, px, py in ticks]
-        got = lp_place(nlab, obstacles=[tuple(v_ / kb for v_ in t_) for t_ in taken],
-                       bounds=(V.X0 / kb, mb / kb, (V.X0 + mw) / kb, ymap / kb), sizes=(1.0,))
-        for (k_, px, py), L_, g_ in zip(ticks, nlab, got):
-            bb = g_["box"] if g_ else (L_["x"] - 0.5 * L_["w"], L_["y"] - 0.5 * L_["h"], L_["x"] + 0.5 * L_["w"],
-                                       L_["y"] + 0.5 * L_["h"])
-            B.text(str(knum[k_]), bb[0] * kb + 0.25 * kb, bb[1] * kb + 0.25 * kb, hn, INK, L, order=65,
-                   font=FONT_TITLE, bold=True)
-            ovl.append(tuple(v_ * kb for v_ in bb))
+    cdots = [(V.p(cx_, cy_)[0] / kb, V.p(cx_, cy_)[1] / kb) for k_, cx_, cy_ in cpts]
+    rb = P02_B_R
+    for k_, px, py in ticks:                              # the bridge numbers: a ring marker beside the symbol
+        ob = taken + [(qx - 0.9, qy - 0.9, qx + 0.9, qy + 0.9) for qx, qy in cdots]
+        q = _p02_spot(px / kb, py / kb, rb + 0.2, ob, bnd, [rb + d_ for d_ in (2.1, 2.7, 3.4, 4.2, 5.2, 6.4)], pad)
+        if q is None:
+            q = (px / kb, py / kb + rb + 2.1)
+            LOG.append(u"FLAG p02 plan 01: bridge {} number finds no free spot beside its symbol".format(knum[k_]))
+        bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, str(knum[k_]), mk_colour("bridge", k_), kb, L, order=64,
+                             style="ring", r_min=rb)
+        taken.append(tuple(v_ / kb for v_ in bb_))
+        ovl.append(bb_)
+    rc = P02_C_R
+    for j_, (k, cx, cy) in enumerate(cpts):               # the conflicts: on the point, else beside it with a leader
+        px, py = cdots[j_]
+        ob = taken + [(qx - 0.9, qy - 0.9, qx + 0.9, qy + 0.9) for i_, (qx, qy) in enumerate(cdots) if i_ != j_]
+        q = _p02_spot(px, py, rc + 0.2, ob, bnd, [0.0] + [rc + d_ for d_ in (0.0, 0.8, 1.6, 2.6, 3.8, 5.2, 6.8)],
+                      pad, lead=True)
+        if q is None:
+            q = (px, py)
+            LOG.append(u"FLAG p02 plan 01: conflict {} finds no free spot near its point".format(k))
+        col_ = mk_colour("conflict", k)
+        dd = math.hypot(q[0] - px, q[1] - py)
+        if dd > 1e-6:                                     # the named point, and a leader when the marker left it
+            B.fill([circle_pts(px * kb, py * kb, 0.45 * kb, 12)], C(col_), L, 62)
+            if dd > rc + 0.6:
+                e_ = (q[0] - (q[0] - px) * rc / dd, q[1] - (q[1] - py) * rc / dd)
+                B.line([(px * kb, py * kb), (e_[0] * kb, e_[1] * kb)], C(col_), L, 62, bk_lw(0.25, kb))
+        bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, k, col_, kb, L, order=64, r_min=rc)
+        taken.append(tuple(v_ / kb for v_ in bb_))
+        ovl.append(bb_)
     # legend (v38: drawn samples with short names; explanations as [n] in the Sources key)
     r_home = bcite("Urban fabric: each building's type from its survey layer, names and heritage tags, surveyed floors, "
                    "footprint size and regularity, shared walls and the grain of the 40 m around it; shares of the "
@@ -362,8 +408,10 @@ def draw_what_is_there(S, B, x, y, w, U):
     for fab in FABRIC_ORDER:                              # v40: the fabric map's types; under 0.5 % left out
         v_ = 100.0 * S.fabric_area.get(fab, 0.0) / ftot
         if round(v_) >= 1 or (fab in ("monument", "sacred") and S.fabric_area.get(fab, 0.0) > 0):
-            leg.append(("box", FABRIC_PLAN[fab], u"{} · {}".format(FABRIC_SHORT[fab], "{:.0f}%".format(v_)
-                                                                    if round(v_) >= 1 else "< 1%")))
+            leg.append(("box", _p02_fab_light(FABRIC_PLAN[fab]), u"{} · {}".format(   # v59 (round 4, P02.2): the
+                FABRIC_SHORT[fab], "{:.0f}%".format(v_) if round(v_) >= 1 else "< 1%")))  # plan's lighter tone
+    if _p02_inside(S) is not None:                        # v59 (round 4, P02.2, G-R4-4): the base houses' tone
+        leg.append(("box", P02_BASE_BLD, u"Buildings outside the study area"))
     leg += [("dense", dc, "Densest grain · floor-area ratio {:.2f}+ {}".format(
                 S.int_breaks[2], bcite(u"Densest grain: floor-area ratio on 10 m cells, areas of 2,000 m²+."))
              if getattr(S, "int_breaks", None) else "Densest grain")]      # v49.1 (Prompt 8): m² (was m2)
@@ -407,7 +455,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     gstep = (GRID_COL + GRID_GUT) * kb
     sbl = nice_floor(F2.w / 8.0)
     mb_crop = min(draw_scalebar_bk(B, V.X0, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
-    draw_north_at(B, F2, V.X0 + sbl * s + 5.5 * kb, mb - 5.0 * kb, 4.0, kb, L)
+    _sb_north(B, F2, V.X0 + sbl * s + 5.5 * kb, mb - 5.0 * kb, 5.0, kb, L)   # v59 (round 4, G-R4-9): no white half
     mb_crop = min(mb_crop, _p02_bridge_list(B, F, knum, V.X0 + gstep, mb - 1.5 * kb, V.X0 + mw, kb, L, ovl))
     low = _p02_key_under(B, leg_bk, _P02["cs"], V.X0, mb_crop - 2.0 * kb, mw, gstep, kb, L, ovl)
     top_c = ymap + 0.3 * U
@@ -457,6 +505,11 @@ P02_SIDE_W = grid_w(5)    # ... and p.02's side column beside it (5 columns): th
 #                           v58 (round 3, G2): the fallback only; _p02_side_w() gives the side column the grid columns
 #                           the map leaves (6 when plan 01 prints <= 194 mm wide at its round scale)
 P02_GAP = GRID_GUT        # booklet mm between the side panels' halves / columns (the grid's gutter)
+P02_SIDE_H = 243.0        # v59 (round 4, P02.3): booklet mm of p.02's side column (the booklet AREA, y 30-273) ...
+P02_CAP_H = 5.0           # ... the booklet's caption band under each side panel (bergama_booklet CAP_H) ...
+P02_SIDE_SAFE = 3.0       # ... and a margin left free at its foot
+P02_ET_GAP_MAX = 12.0     # v59 (round 4, P02.3): booklet mm, the most added between two rows of the edge from above
+P02_ET_REACH = {3: (u"UPSTREAM", u"MIDDLE", u"DOWNSTREAM"), 2: (u"UPSTREAM", u"DOWNSTREAM")}   # v59: row headings
 P03_FIG_EDGE = 30.0       # m: one figure watching the water along each walkable bank stretch, every this many m
 P03_FIG_PATH = 80.0       # m: one figure walking a footpath every this many m
 P03_FIG_MAX = 240         # at most this many figures on the axonometric
@@ -466,6 +519,117 @@ FIG_FILL = mix(PAPER, (255, 255, 255), 0.45)
 
 def _p02_hit(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+P02_B_R = 1.6             # v59 (round 4, P02.1): booklet mm, the least radius of a bridge-number ring marker on plan 01
+P02_BR_HALF = 1.6         # v59 (round 4, P02.1): booklet mm, half the length of a bridge symbol across the stream
+P02_BR_GAP = 0.45         # v59 (round 4, P02.1): booklet mm, half the gap between its two deck lines
+P02_MK_PAD = 0.6          # v59 (round 4, P02.1, G-R4-1): mm clear round every marker (= the page check's pad)
+P02_SPOT_DIRS = (0, 4, 8, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15)   # v59: tried directions (x 22.5 deg from up,
+#                                                                          clockwise): the four sides first
+
+
+def _sb_marker(B, x, y, s, colour, k, L, order=64, style="solid", size_pt=7.0, r_min=None):
+    """v59 (round 4, G-R4-7): ONE marker on a board drawing through common/marker.py mk_marker (the glyph centred on
+    its ink box, the circle sized to it, white or ink glyph by contrast): (x, y) its centre in board units, k = board
+    units per booklet mm, colour hex (or rgb) = the colour of what it names, size_pt / r_min (booklet mm) as
+    mk_marker. Draws the disc (order) and the glyph (order + 1, its own text group). Returns (box, r) in board
+    units (box = the outer box, rim included)."""
+    hx = crop_hex(colour)
+    shapes, box, r = mk_marker(x / k, y / k, s, hx, size_pt=size_pt, r_min=r_min, style=style)
+    for sh in shapes:
+        if sh[0] == "poly":
+            ring = [(p_[0] * k, p_[1] * k) for p_ in sh[1]]
+            if sh[2]:
+                B.fill([ring], C(sh[2]), L, order)
+            if sh[3] and sh[4]:
+                B.line(ring + [ring[0]], C(sh[3]), L, order, bk_lw(sh[4], k))
+        elif sh[0] == "text":
+            B.text(sh[1], sh[2] * k, sh[3] * k, sh[4] * _PDF_CAP["sans"] * k, C(sh[5]), L, order=order + 1,
+                   font=FONT_TITLE, bold=True, align="L")
+    return tuple(v_ * k for v_ in box), r * k
+
+
+def _sb_north(B, F, x, y, size_mm, k, L, order=60, ang=None):
+    """v59 (round 4, G-R4-9): THE north arrow on a board map (common/keymap.py north_items: the arrow and "N", no
+    plate or white half) for a map drawn on F's axes (or ang = north's angle on the page, radians from +x), centred
+    on (x, y) board units, size_mm tall on the booklet page (k = board units per booklet mm). Returns its box
+    (board units)."""
+    a = math.atan2(math.cos(F.ang), math.sin(F.ang)) if ang is None else ang      # as draw_north_at
+    its = north_items(0.0, 0.0, a - 0.5 * math.pi, size_mm)
+    tm = max(2.12, 0.42 * size_mm)
+    h_all = size_mm + 1.5 * tm                            # the shaft foot to the top of the "N"
+    ca, sa = math.cos(a - 0.5 * math.pi), math.sin(a - 0.5 * math.pi)
+    fx, fy = x / k + 0.5 * h_all * sa, y / k - 0.5 * h_all * ca       # the foot, so the whole sign is centred on (x, y)
+    pts = []
+    for it in its:
+        if it[0] == "line":
+            P = [((fx + p_[0]) * k, (fy + p_[1]) * k) for p_ in it[1]]
+            B.line(P, C(it[2]), L, order, bk_lw(it[3], k))
+            pts += P
+        elif it[0] == "fill":
+            for R in it[1]:
+                P = [((fx + p_[0]) * k, (fy + p_[1]) * k) for p_ in R]
+                B.fill([P], C(it[2]), L, order)
+                pts += P
+        elif it[0] == "text":
+            tx, ty = (fx + it[2][0]) * k, (fy + it[2][1]) * k
+            B.text(it[1], tx, ty, it[3] * _PDF_CAP["sans"] * k, C(it[4]), L, order=order + 1, font=FONT_TITLE,
+                   bold=bool(it[5]), align="MC")
+            hw = 0.5 * it[3] * k
+            pts += [(tx - hw, ty - hw), (tx + hw, ty + hw)]
+    if not pts:
+        return (x, y, x, y)
+    return (min(p_[0] for p_ in pts), min(p_[1] for p_ in pts), max(p_[0] for p_ in pts), max(p_[1] for p_ in pts))
+
+
+def _p02_text_boxes(B, i0, k):
+    """v59 (round 4, P02.1, G-R4-1): the boxes (booklet mm) of the board texts drawn from item i0 on, measured with
+    the real Arial widths (tw); a turned text as boxes of 4-letter chunks along its baseline (its strip, not its
+    bounding box), as the page check measures it"""
+    out = []
+    for it in B.items[i0:]:
+        if it[0] != "text" or not u"%s" % it[1]:
+            continue
+        txt, (x, y), h, bold, al, ang = u"%s" % it[1], it[2], it[3], bool(it[8]), it[9] or "L", it[10] or 0.0
+        wd = tw(txt, h, "sans", bold)
+        x0 = {"C": -0.5, "MC": -0.5, "R": -1.0}.get(al, 0.0) * wd
+        yb = -0.5 * h if al == "MC" else 0.0              # "MC": (x, y) is the middle of the capitals
+        ca, sa = math.cos(ang), math.sin(ang)
+        step = wd if abs(ang) < 1e-3 else max(1e-9, wd / max(1, (len(txt) + 3) // 4))
+        u_ = x0
+        while u_ < x0 + wd - 1e-9:
+            u1 = min(x0 + wd, u_ + step)
+            cn = [(x + a_ * ca - b_ * sa, y + a_ * sa + b_ * ca) for a_ in (u_, u1)
+                  for b_ in (yb - 0.32 * h, yb + 1.3 * h)]
+            out.append((min(c_[0] for c_ in cn) / k, min(c_[1] for c_ in cn) / k, max(c_[0] for c_ in cn) / k,
+                        max(c_[1] for c_ in cn) / k))
+            u_ = u1
+    return out
+
+
+def _p02_spot(px, py, r, taken, bnd, rings, pad=0.6, lead=False):
+    """v59 (round 4, P02.1, G-R4-1): the first free centre (booklet mm) for a marker of half-size r near (px, py): the
+    distances in rings in turn (0 = on the point), P02_SPOT_DIRS at each, its box clear of every box in taken by
+    pad and inside bnd; lead=True: the leader from (px, py) to the marker's edge must miss taken too (boxes holding
+    the point itself excepted). None when nothing is free."""
+    for d in rings:
+        for j in (P02_SPOT_DIRS if d > 0 else (0,)):
+            an = math.radians(90.0 - 22.5 * j)
+            cx, cy = px + d * math.cos(an), py + d * math.sin(an)
+            b_ = (cx - r - pad, cy - r - pad, cx + r + pad, cy + r + pad)
+            if cx - r < bnd[0] or cy - r < bnd[1] or cx + r > bnd[2] or cy + r > bnd[3]:
+                continue
+            if any(_p02_hit(b_, t_) for t_ in taken):
+                continue
+            if lead and d > r:
+                own = [t_ for t_ in taken if not (t_[0] <= px <= t_[2] and t_[1] <= py <= t_[3])]
+                n_ = max(2, int((d - r) / 0.4))
+                if any(t_[0] <= px + (cx - px) * f_ <= t_[2] and t_[1] <= py + (cy - py) * f_ <= t_[3]
+                       for i_ in range(n_ + 1) for f_ in (i_ / float(n_) * (d - r) / d,) for t_ in own):
+                    continue
+            return (cx, cy)
+    return None
 
 
 def _p02_side_w():
@@ -553,24 +717,42 @@ def _p02_items(B, V, items, L, order, k, lw_f=1.0, fills=True, lines=True):
             B.line(V.P(it[1]), _p02_col(it[2]), L, order + 1, bk_lw(it[3] * lw_f, k))
 
 
-def _p02_bld_plan(S, B, V, L, order, den, kb, bcol=None, lw_f=0.6):
+def _p02_bld_plan(S, B, V, L, order, den, kb, bcol=None, lw_f=0.6, inside=None):
     """revision 30 Oct (G7, M11; Aras "just draw the outlines and hatch the inside"): plan 01's buildings through
     bld_plan_items: per colour (bcol, the urban fabric) the light fill and the roof reading (ridge and hips where a
     building is BLD_MIN_ROOF_MM wide at 1:den), then ONE outline per block (S.blocks, merged in build_site): no line
-    between buildings that share a wall, no piece outlines. lw_f thins the module's pens for the 1:20,000 plan."""
+    between buildings that share a wall, no piece outlines. lw_f thins the module's pens for the 1:20,000 plan.
+    v59 (round 4, P02.2, G-R4-4): inside = _p02_inside(S) (None: all inside): the buildings outside the study area
+    are base map: no roof reading, and their blocks outlined in the base tone P02_BASE_EDGE, P02_BASE_LW mm."""
     groups = {}
     for u in S.bld:
         if not u.get("parts"):
             continue
         col = bcol(u) if bcol is not None else (mix(CAT[u["cat"]][1], PAPER, 0.35) if u["annex"] else CAT[u["cat"]][1])
-        groups.setdefault(crop_hex(col), []).append(u)
+        groups.setdefault((crop_hex(col), _p02_u_inside(inside, u)), []).append(u)
     roof_c = crop_hex(mix(INK, PAPER, 0.45))
-    for h_, us in sorted(groups.items()):
-        _p02_items(B, V, bld_plan_items(us, None, den, fill=h_, her_fill=h_, roof_col=roof_c, outline=False), L,
-                   order, kb, lw_f)
+    for (h_, in_), us in sorted(groups.items()):
+        _p02_items(B, V, bld_plan_items(us, None, den, roof="ridge" if in_ else "none", fill=h_, her_fill=h_,
+                                        roof_col=roof_c, outline=False), L, order, kb, lw_f)
     edge = crop_hex(FABRIC_EDGE)
-    _p02_items(B, V, bld_plan_items(S.bld, getattr(S, "blocks", None), den, roof="none", edge=edge, her_edge=edge), L,
-               order + 2, kb, lw_f, fills=False)
+    blocks = getattr(S, "blocks", None)
+    if inside is None or blocks is None:
+        _p02_items(B, V, bld_plan_items(S.bld, blocks, den, roof="none", edge=edge, her_edge=edge), L,
+                   order + 2, kb, lw_f, fills=False)
+        return
+    b_in, b_out = [], []                                  # v59 (round 4, P02.2): each block by its outline's centre
+    for bk in blocks:
+        o = bk["outer"] if "outer" in bk else (bk.get("rings") or [[]])[0]
+        if len(o) < 3:
+            continue
+        (b_in if inside(sum(p_[0] for p_ in o) / len(o), sum(p_[1] for p_ in o) / len(o)) else b_out).append(bk)
+    if b_in:
+        _p02_items(B, V, bld_plan_items(S.bld, b_in, den, roof="none", edge=edge, her_edge=edge), L,
+                   order + 2, kb, lw_f, fills=False)
+    if b_out:
+        e_out = crop_hex(P02_BASE_EDGE)
+        _p02_items(B, V, bld_plan_items(S.bld, b_out, den, roof="none", edge=e_out, her_edge=e_out,
+                                        lw=P02_BASE_LW / lw_f), L, order + 2, kb, lw_f, fills=False)
 
 
 def _p02_fig(pose, x, y, k, facing=1, view="side", ang=0.0, mm_per_m=None, pick=None):
@@ -604,10 +786,13 @@ def _p02_bridge_list(B, F, knum, x0, ytop, x1, kb, L, ovl=None):
     for j, (n_, k_) in enumerate(rows):
         cx0 = x0 + (j % ncol) * (cw + P02_GAP * kb)
         yb = ytop - h75 - 1.4 * kb - h7 - (j // ncol) * 4.0 * kb
-        B.line([(cx0 + 0.6 * kb, yb - 0.4 * kb), (cx0 + 0.6 * kb, yb + h7 + 0.4 * kb)], INK, L, 62, bk_lw(0.35, kb))
-        txt = u"**{}** {}".format(n_, bridge_name(k_))
-        site28_fit(B, txt, cx0 + 2.0 * kb, yb, h7, cw - 2.0 * kb, INK, L)
-        ovl.append(_p02_tb(txt, cx0 + 2.0 * kb, yb, h7, cw - 2.0 * kb))
+        # v59 (round 4, P02.1, G-R4-7): the number in the map's ring marker (the bridges' ink), then the real name
+        mb_, r_ = _sb_marker(B, cx0 + P02_B_R * kb + 0.15 * kb, yb + 0.5 * h7, str(n_), mk_colour("bridge", k_), kb, L,
+                             order=64, style="ring", r_min=P02_B_R)
+        tx_ = mb_[2] + 1.0 * kb
+        txt = bridge_name(k_)
+        site28_fit(B, txt, tx_, yb, h7, cx0 + cw - tx_, INK, L)
+        ovl.append(_p02_tb(txt, tx_, yb, h7, cx0 + cw - tx_))
         low = min(low, yb - 1.2 * kb)
     return low
 
@@ -669,9 +854,7 @@ def _p02_key_under(B, leg, cl, x0, ytop, W, gstep, kb, L, ovl=None):
                 ovl.append(_p02_tb(lb, cx, yk, h75, cw))
             elif kd == "cdisc":                           # the map's disc, at the map's size
                 dx, dy = cx + rc + 0.4 * kb, yt - rc - 0.4 * kb
-                B.fill([circle_pts(dx, dy, rc + 0.4 * kb, 24)], WHITE, L, 63)
-                B.fill([circle_pts(dx, dy, rc, 24)], MARK_C, L, 64)
-                B.text(c_, dx, dy, hcn, WHITE, L, order=65, font=FONT_TITLE, bold=True, align="MC")
+                _sb_marker(B, dx, dy, c_, mk_colour("conflict", c_), kb, L, order=64, r_min=P02_C_R)   # v59 (G-R4-7)
                 tx = cx + 2.0 * rc + 2.0 * kb
                 site28_fit(B, lb, tx, dy - 0.5 * h75, h75, cx + cw - tx, INK, L)
                 ovl.append(_p02_tb(lb, tx, dy - 0.5 * h75, h75, cx + cw - tx))
@@ -759,6 +942,19 @@ def draw_site_readings(S, B, x, y, w, U):
     y = _p02_readings(S, B, x, y, w, U)
     _p02_flag()                                           # v58 (round 3, G3): FLAG overlap p02, once
     return y
+
+
+def _p02_readings_mm(S):
+    """v59 (round 4, P02.3): the booklet height (mm) of the site readings crop as _p02_readings lays it out (the same
+    steps at 1 board unit per booklet mm; keep the two in step): the bars' column, the ring and the ring's key, the
+    deepest of the three, plus the crop's 0.5 mm top margin"""
+    h7, h8, h9 = (bk_hk(p_, 1.0) for p_ in (7.0, 8.0, 9.0))
+    head = h8 + 1.6 + h7 + 4.0
+    d_bars = head + (len(reading_rows(S)) * (h9 + 1.0 + 2.2 + 1.0 + h7 + 2.0) if sum(S.edge_len.values()) > 0 else 0.0)
+    r1 = 17.0
+    n_sl = len(landuse_slices(S)[0])
+    d_key = head + h7 + max(0, n_sl - 1) * 3.6 + 1.5
+    return 0.5 + max(d_bars, head + 2.0 * r1, d_key)
 
 
 def _p02_readings(S, B, x, y, w, U):
@@ -1334,7 +1530,7 @@ def _p02_deck(B, x0, y0, x1, y1, k, L, order):
         B.line([(xe, y0), (xe, y1)], INK, L, order, bk_lw(0.15, k))
 
 
-def draw_edge_types(S, B, x, y, w, U):
+def draw_edge_types(S, B, x, y, w, U, _gap=None, _pre=None, _measure=False):
     """v51 (WO-T3a-2, Aras: "redraw it in a top-view architectural drawing language ... not an analysis"; the idea of
     R01: each stretch of the corridor in its own drawn language): both banks of the Selinos stream straightened along
     its chainage (no scale: a diagram) and seen from above, in P02_ET_ROWS rows (upstream half over downstream half).
@@ -1348,14 +1544,31 @@ def draw_edge_types(S, B, x, y, w, U):
     (drw_edge_types), _p02_side_w() mm in p.02's side column (v58: at its top, plan 01's key is under the map); words 6.5-8 pt. Returns the y below. Revision 30 Oct (PG1 p2, G7, G8, M2, M5, M11): buildings as
     outline + roof (bld_plan_items, no piece lines), the water through water_plan, decks in planks, paving in slabs, the
     key laid out by M2 Legend under the drawing; the page's finding (walled ... walkable ...) is the booklet intro
-    only (not repeated here)."""
+    only (not repeated here). v59 (round 4, P02.3; Aras U61 "üçünün arasındaki mesafe çok dar birbirinden farklı
+    durmuyor ... sayfanın altındaki boşluk kullanarak"): the three rows spaced apart by the side column's empty band
+    at the page bottom (_gap booklet mm between rows: the free height of the side column, measured by a first pass
+    into a scratch Board (_measure=True returns the crop's booklet height), less the readings crop under it
+    (_p02_readings_mm), shared by the rows, at most P02_ET_GAP_MAX), and each row headed by its reach (upstream /
+    middle / downstream) and chainage, so the three read as three different stretches. _pre = (d, st) of the first
+    pass."""
     L = "LU_BOARD::SiteReadings"
-    d = site28_edge_bins(S)
+    d = _pre[0] if _pre else site28_edge_bins(S)
     if not d:
         LOG.append("Stream edge diagram (drw_edge_types): no bank samples or no centreline in the data pack, so not "
                    "drawn.")
         return y
     k = w / _p02_side_w()                                 # v58 (round 3, G2): the side column's width
+    if _gap is None:                                      # v59 (round 4, P02.3): measure, then share the free band
+        my0 = P02_ET_HB * k / P02_ET_LAND
+        pre = (d, _p02_strip(S, d, den=bk_std(1000.0 * k / my0)))
+        h0 = draw_edge_types(S, Board(), x, y, w, U, _gap=0.0, _pre=pre, _measure=True)
+        h_rd = _p02_readings_mm(S)
+        nr0 = max(1, P02_ET_ROWS)
+        free = P02_SIDE_H - 2.0 * P02_CAP_H - P02_SIDE_SAFE - h_rd - h0
+        _gap = max(0.0, min(P02_ET_GAP_MAX, free / nr0)) if nr0 > 1 else 0.0
+        _pre = pre
+        LOG.append(u"p02 edge from above (P02.3): crop {:.0f} mm + readings {:.0f} mm in the {:.0f} mm side column; "
+                   u"{:.1f} mm added between its {} rows".format(h0 + (nr0 - 1) * _gap, h_rd, P02_SIDE_H, _gap, nr0))
     h65, h7, h8 = bk_hk(6.5, k), bk_hk(7.0, k), bk_hk(8.0, k)
     top = y
     ovl = []                                              # v58 (round 3, G3): its text boxes for _p02_flag
@@ -1378,7 +1591,8 @@ def draw_edge_types(S, B, x, y, w, U):
     sx = (gx1 - gx0) / Lr
     HB, WS, SW = P02_ET_HB * k, 1.5 * k, 4.0 * k         # each bank, each bank face, the stream (booklet mm)
     my = HB / P02_ET_LAND
-    st = _p02_strip(S, d, den=bk_std(1000.0 * k / my))   # M11 roofs read at the strip's scale across the banks
+    st = _pre[1] if _pre else _p02_strip(S, d, den=bk_std(1000.0 * k / my))   # M11 roofs read at the strip's scale
+    #                                                                             across the banks (v59: _pre given)
     bm = d["bm"]
     cov_c = mix(CAT["water"][1], PAPER, 0.55)
     path_c = mix(CAT["green"][1], INK, 0.35)
@@ -1391,11 +1605,19 @@ def draw_edge_types(S, B, x, y, w, U):
     free = (0.0, 0.0, 0.0, 0.0, 0.0)                      # the longest open water, to name the stream
     yy -= 0.6 * k
     low = yy
+    reach = P02_ET_REACH.get(nrow) or tuple(u"PART %d" % (j_ + 1) for j_ in range(nrow))
     for r in range(nrow):
         s0, s1 = r * Lr, (r + 1) * Lr
 
         def X(s_, s0=s0):
             return gx0 + (s_ - s0) * sx
+        # v59 (round 4, P02.3): the free band between the rows, and each row's heading (its reach and chainage)
+        if r > 0:
+            yy -= (_gap or 0.0) * k
+        rh_ = u"**{}** · {:,.0f}-{:,.0f} m".format(reach[r], s0, s1)
+        site28_fit(B, rh_, x, yy - 2.3 * k, h7, w, INK, L)
+        ovl.append(_p02_tb(rh_.replace(u"**", u""), x, yy - 2.3 * k, h7, w))
+        yy -= 4.3 * k
         ya = yy - h65
         v = math.ceil(s0 / 250.0 - 1e-9) * 250.0
         while v <= s1 + 1e-6:                             # the chainage every 250 m, its unit on the row's last number
@@ -1533,7 +1755,7 @@ def draw_edge_types(S, B, x, y, w, U):
         B.fill([rect(tx - 0.4 * k, ty - 0.35 * k, tx + tw_ + 0.4 * k, ty + h65 + 0.35 * k)], WHITE, L, 31)
         B.text(nm_, tx, ty, h65, INK, L, order=32, font=FONT_TITLE)
         ovl.append((tx, ty - 0.25 * h65, tx + tw_, ty + h65))
-    snm = u"Selinos stream"
+    snm = place_name("stream")                            # v59 (round 4, G-R4-11): the names table's one spelling
     if free[0] > site28_tw(snm, h65) + 6.0 * k:
         sxm, sym = 0.5 * (free[1] + free[2]), 0.5 * (free[3] + free[4])
         wn_c = mix(CAT["water"][1], INK, 0.55)            # revision 30 Oct: dark on the calm M5 surface, on a
@@ -1602,6 +1824,8 @@ def draw_edge_types(S, B, x, y, w, U):
                font=FONT_TITLE)
         ovl.append(_p02_tb(row_["label"], row_["text"][0] * k, row_["text"][1] * k, bk_hk(row_["size_pt"], k)))
     low = lay["box"][1] * k - 1.0 * k
+    if _measure:                                          # v59 (round 4, P02.3): the first pass only measures
+        return (top + 0.5 * k - low) / k
     crop_panel("edge_types", x, low, x + w, top + 0.5 * k, u"The stream edge · both banks, straightened, from above")
     sw_ = _p02_side_w()                                   # v58 (round 3, G2): the side column's width
     CROP_PANELS[-1]["bk_w"] = sw_                         # its width on the booklet page (p.02's side column) ...
@@ -1693,6 +1917,25 @@ def _p03_figures(S, pg, V, R):
 
 
 _P03 = {}                 # v58 (round 3, P03.1): the axonometric's callouts taken from the engine (calls), the hook flag
+P03_MK_PT = 7.0           # v59 (round 4, PALL.2, G-R4-7): the numbers' size on the p.03 sheet (printed 1:1)
+P03_MK_R = 1.9            # v59: mm, the least radius of a p.03 marker (so 1-9 and 10-12 read as one set)
+P03_MK_RINGS = (1.0, 2.0, 3.0, 4.0, 5.0)    # v59: mm, how far a marker may leave its spot to find free room
+P03_T_MIN = 2.15          # v59 (round 4, G-R4-1): mm, the smallest em on the p.03 sheet (6.1 pt; DIAG_SRC TP_MIN_EM)
+
+
+def _p03_marker(pg, x, y, s, colour, name):
+    """v59 (round 4, PALL.2, G-R4-7): ONE marker on the p.03 sheet (the engine's Page, page mm y up): common/marker.py
+    mk_marker; its disc drawn and registered as a keep of the sheet's TextPage under name, its glyph registered
+    allowed on that disc only. Returns the marker's box."""
+    shapes, box, r = mk_marker(x, y, s, colour, size_pt=P03_MK_PT, r_min=P03_MK_R)
+    for sh in shapes:
+        if sh[0] == "poly":
+            pg.poly([sh[1]], fill=sh[2], stroke=sh[3], lw=sh[4] or 0.1, layer="callouts")
+            pg.keep(sh[1], "marker", name)
+        elif sh[0] == "text":
+            pg.text(sh[1], sh[2], sh[3], sh[4], sh[5], bold=True, align="L", layer="callouts", name=name,
+                    allow=(name,))
+    return box
 
 
 def _p03_title(t):
@@ -1706,7 +1949,18 @@ def _p03_title(t):
             return bridge_name(m.group(1))
         except Exception:
             return t[m.end():] or t
+    key = P03_LANDMARK_ALIAS.get(_re.sub(r"\s+", u" ", t.strip().lower()))    # v59 (round 4, G-R4-11): a translated
+    if key:                                                                     # or variant landmark name -> the table
+        try:
+            return landmark_name(key)
+        except Exception:
+            return t
     return t
+
+
+P03_LANDMARK_ALIAS = {u"red hall": "kizil_avlu", u"red basilica": "kizil_avlu", u"kizil avlu": "kizil_avlu",
+                      u"acropolis": "akropol", u"ulu cami": "ulucami", u"ulu camii": "ulucami",
+                      u"ulu camı": "ulucami"}       # v59 (round 4, G-R4-11): whole callout titles only (names table)
 
 
 def _p03_marks(pg, V, calls, DG, BP):
@@ -1735,29 +1989,44 @@ def _p03_marks(pg, V, calls, DG, BP):
     if not keep:
         return [], [], box
     ro = lp_reading_order([(ax, ay) for c, ax, ay in keep], y_down=False, row_mm=12.0)
-    RD, TN = 3.6, 2.2                                     # disc diameter, its number's em (mm)
-    labs, discs, dboxes = [], [], []
-    for n, i in enumerate(ro, 1):
+    # v59 (round 4, PALL.2, G-R4-7, G-R4-1): each number in the ONE marker (mk_marker: centred on its ink box, sized
+    # to it, in the deep tone of the kind it names), on its spot or the nearest free place within P03_MK_RINGS mm
+    # (clear of every disc and text registered on the sheet: the ground words), its disc a keep of the sheet's
+    # TextPage (only its own glyph may sit on it); a callout with no free place is left out and logged (G-R4-2:
+    # the lowest priorities go first, they are numbered after the kept ones)
+    RD = 2.0 * (P03_MK_R + 0.15)                          # the key column's disc width (mm)
+    labs, dboxes, n = [], [], 0
+    for i in ro:
         c, ax, ay = keep[i]
         deep = BP.tones_of(c["color"])["outline"] if c.get("color") and c["color"] != "141414" else CORE["ink"]
+        n_ = n + 1
+        sh0, b0, r0 = mk_marker(ax, ay, str(n_), deep, size_pt=P03_MK_PT, r_min=P03_MK_R)
         spot = None
-        for dd in (0.0, 1.0, 2.0):
+        for dd in (0.0,) + P03_MK_RINGS:
             for a_ in (range(8) if dd else (0,)):
                 qx = ax + dd * math.cos(math.radians(45.0 * a_ + 90.0))
                 qy = ay + dd * math.sin(math.radians(45.0 * a_ + 90.0))
-                if all(math.hypot(qx - px_, qy - py_) >= RD + 0.3 for px_, py_ in discs):
+                hb = (b0[2] - b0[0]) / 2.0
+                bq = (qx - hb, qy - hb, qx + hb, qy + hb)
+                if all(not _p02_hit((bq[0] - 0.6, bq[1] - 0.6, bq[2] + 0.6, bq[3] + 0.6), d_) for d_ in dboxes) and \
+                        pg.box_free(bq):
                     spot = (qx, qy)
                     break
             if spot:
                 break
-        qx, qy = spot or (ax, ay)
-        discs.append((qx, qy))
-        dboxes.append((qx - RD / 2.0, qy - RD / 2.0, qx + RD / 2.0, qy + RD / 2.0))
-        pg.circle(qx, qy, RD / 2.0, fill=deep, stroke="FFFFFF", lw=0.3, layer="callouts")
-        pg.text(str(n), qx, qy - TN * cap / 2.0, TN, "FFFFFF", bold=True, align="C", layer="callouts")
+        if spot is None:
+            LOG.append(u"p.03 axonometric: callout {!r} left out: no free place within {:.0f} mm of its spot".format(
+                _p03_title(c.get("title", u"")), P03_MK_RINGS[-1]))
+            continue
+        n = n_
+        _p03_marker(pg, spot[0], spot[1], str(n), deep, u"p03 mark %d" % n)
+        hb = (b0[2] - b0[0]) / 2.0
+        dboxes.append((spot[0] - hb, spot[1] - hb, spot[0] + hb, spot[1] + hb))
         labs.append((n, deep, _p03_title(c.get("title", u"")), c.get("fact", u"")))
-    # the key: n in the same disc, the title bold, its fact after it; rows 4.6 mm
-    T1, T2, ROW = 2.3, 2.0, 4.6
+    if not labs:
+        return dboxes, [], box
+    # the key: n in the same marker, the title bold, its fact after it; rows 4.6 mm. v59: the fact at 6 pt
+    T1, T2, ROW = 2.3, P03_T_MIN, 4.6
     hd = u"NUMBERED ON THE DRAWING"
     rows_w = [RD + 1.6 + tw_(t_, T1, True) + (1.2 + tw_(u"· " + f_, T2) if f_ else 0.0) for n_, d_, t_, f_ in labs]
     Wk = max([tw_(hd, T1, True)] + rows_w)
@@ -1793,6 +2062,9 @@ def _p03_marks(pg, V, calls, DG, BP):
         x0 = box[0] + j0 * step
         if x0 + Wk > box[2]:
             continue
+        # v59 (round 4, PALL.2, G-R4-1): the key's whole box must also be clear of every text and marker on the sheet
+        if not pg.box_free((x0, y_hi - Hk, x0 + Wk, y_hi + 0.3)):
+            continue
         clear = (y_hi - Hk) - (max(top[j0:j0 + jn]) + 3.0)
         if clear >= 0.0:                                  # the first free place from the right
             best = (clear, x0, j0)
@@ -1800,19 +2072,22 @@ def _p03_marks(pg, V, calls, DG, BP):
         if best is None or clear > best[0]:               # else the least overlap (logged)
             best = (clear, x0, j0)
     clear, kx, j0 = best or ((y_hi - Hk) - (max(top) + 3.0), box[0], 0)
+    if best is None:
+        LOG.append(u"FLAG p.03 axonometric: the numbered key finds no place clear of the sheet's texts")
     ky = y_hi - T1
     pg.text(hd, kx, ky, T1, CORE["ink"], bold=True, layer="callouts")
     lab_boxes = dboxes + [(kx, ky - 0.3 * T1, kx + tw_(hd, T1, True), ky + T1)]
     for j_, (n_, d_, t_, f_) in enumerate(labs):
         yc = ky - 2.0 - ROW * j_ - ROW / 2.0
-        pg.circle(kx + RD / 2.0, yc, RD / 2.0, fill=d_, stroke="FFFFFF", lw=0.3, layer="callouts")
-        pg.text(str(n_), kx + RD / 2.0, yc - TN * cap / 2.0, TN, "FFFFFF", bold=True, align="C", layer="callouts")
+        _p03_marker(pg, kx + RD / 2.0, yc, str(n_), d_, u"p03 key %d" % n_)    # v59 (G-R4-7): the same marker
         tx = kx + RD + 1.6
+        pg.tgroup()                                       # v59: the title and its fact are one row (one group)
         pg.text(t_, tx, yc - T1 * cap / 2.0, T1, CORE["ink"], bold=True, layer="callouts")
         x1_ = tx + tw_(t_, T1, True)
         if f_:
             pg.text(u"· " + f_, x1_ + 1.2, yc - T1 * cap / 2.0, T2, CORE["ink2"], layer="callouts")
             x1_ += 1.2 + tw_(u"· " + f_, T2)
+        pg.tgroup(False)
         lab_boxes.append((kx, yc - RD / 2.0, x1_, yc + RD / 2.0))
     # what the key may not touch: the drawing under its columns (none where it found free sky)
     draw_boxes = [(box[0] + j_ * step, box[1], box[0] + (j_ + 1) * step, top[j_] + 3.0) for j_ in range(j0, j0 + jn)
@@ -1846,6 +2121,8 @@ def export_axonometrics(S):
         try:                                              # v58 (round 3, P03.1, G3): numbers on the spot + key
             lb_, db_, bd_ = _p03_marks(pg_, V_, _P03.get("calls") or [], DG, ctx_.BP)
             lp_overlap_flag("p03", lb_, db_, bounds=bd_)
+        except TextError:                                 # v59 (round 4, PALL.2, G-R4-1): never swallowed
+            raise
         except Exception:
             LOG.append("WARNING: the axonometric's numbered places failed (drawn without them):\n" +
                        traceback.format_exc())
@@ -1922,6 +2199,12 @@ def _p03_axo_loop(S, DG, ctx, stamp, out):
             spec["legend"] = lambda leg0=leg0: [(k_, c_, _p03_label(t_)) for k_, c_, t_ in
                                                 (leg0() if callable(leg0) else leg0)]
             pg, st = DG["compose"](ctx, spec, ext, stamp)
+            # v59 (round 4, PALL.2, G-R4-1): the sheet is booklet p03 as it is: its TextPage (started in compose,
+            # every text registered by the engine's Page.text) is checked before the PDF is written; a collision
+            # RAISES (the sheet is not written, the run stops as the board's own check does)
+            if getattr(pg, "tp", None) is None:
+                raise TextError(u"p03: the axonometric sheet has no TextPage (DIAG_SRC compose did not start it)")
+            pg.check_text(LOG)
             p = os.path.join(pdf_folder(), fn)
             DG["write_pdf"]([pg], p)
             out.append((p, time.time() - t0))
@@ -1936,6 +2219,9 @@ def _p03_axo_loop(S, DG, ctx, stamp, out):
                    + (t_,) for k_, c_, t_ in spec["legend"]() if c_ is not None]
             CROP_DIRECT.append(("axo_what_is_there", fn, rm,
                                 u"What is there · heights, heritage, water, green", None, crop_legend(leg), []))
+        except TextError:                                 # v59 (round 4, PALL.2, G-R4-1): a text collision or a text
+            LOG.append(u"FLAG overlap p03: the axonometric sheet has a text collision (not written)")   # under 6 pt
+            raise
         except Exception:
             LOG.append("WARNING: the {} axonometric failed:\n{}".format(did, traceback.format_exc()))
     return out
