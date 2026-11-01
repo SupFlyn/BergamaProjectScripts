@@ -1,3 +1,4 @@
+# booklet p19 (file renamed from pages/p18_farms.py on 1 Nov 2026, round 4 S6b: the file is named after its booklet page)
 # p.18 where the clean water goes (split from code.py on 29 Oct 2026)
 # Revision 30 Oct (T5; D2 a, D7 a, G4, M1, M9, M10): the farmland axonometric is gone; the farms are ONE field tile
 # at step 6 of the flow (round 3: one olive tree on one field band beside the aquifer, see below). Each block is drawn

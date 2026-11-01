@@ -55,7 +55,15 @@ NEW IN v13 (round 4 S6a, 1 Nov 2026; a feature change, so the next whole number)
     the band on the W1 line with level marks outside, numbers on what they name, low planting, inset 1:200.
   * p14: zone strip under each cut, trees whole in the views, each season its own people, animals and plant
     states; p15: one section block, key map never over the legend, inset 1:100, calendar fixed, one subtitle.
-  * S6b (p17-p19) keeps v13 and adds its own notes.
+  * S6b (round 4, 1 Nov 2026, same v13): p17 rebuilt (key map over the legend | plan A | plan B at the largest
+    standard scale that fits, each plan with its own list; muted base, light proposal tint, study clip, red cut lines,
+    north arrows without a box; band map beside its key; shrub groups on open ground; English (Turkish) names);
+    p18 = two booklet pages at 1:250 (p18a F2 + F4 trimmed with break marks, p18b W1 + S4), one cut per row with a
+    side column (key map, numbered keywords, legend), level marks outside, W1's sitting steps, one people set,
+    shrub layer, insets 1:100; p19 blocks per story group (loop | farms outside, the figures), step numbers centred;
+    p12 Üç Kemer drawn with three round arches (middle arch sourced, side arches a drawing rule); m² / m³ printed as
+    the embedded Arial glyph; files split by page: pages/p18_sections.py (from p17_planting.py), pages/p19_farms.py
+    (was p18_farms.py). Every text on p17, p18a, p18b and p19 is measured and a collision stops the run.
 
  a feature change, so the next whole number):
   * p.12 (pages/p12_system.py): one axonometric water map (collect, clean, hold, give back, to the farms) with volumes
@@ -1241,16 +1249,8 @@ def s4_profile(E, log=None):
 BK_GROW = 1.45                       # room kept round each label for the booklet (its words reset at >= 7.5 pt)
 
 
-def level_ladder(pg, entries, x_line, x_text, fs, boxes=None, lo=None):
-    """Water levels at the right of a section: [(page y, text, colour, bold)], texts spread apart, leaders from the
-    level's end at x_line."""
-    entries = sorted(entries, key=lambda e: e[0])
-    ly = spread([e[0] - fs * 0.35 for e in entries], fs * 1.25 * BK_GROW, lo=lo)
-    for (y, t, colour, bold), yl in zip(entries, ly):
-        pg.line([(x_line, y), (x_text - 2.0, yl + fs * 0.35), (x_text - 0.6, yl + fs * 0.35)], colour, 0.12)
-        pg.text(t, x_text, yl, fs, colour, bold=bold)
-        if boxes is not None:
-            boxes.append((x_text, yl - fs * 0.3, x_text + text_w(t, fs, bold) * BK_GROW, yl + fs * BK_GROW))
+# v13 (round 4, S6b, G-R4-5.4): level_ladder is gone; the p18 cuts mark their levels outside the drawing with
+# section_frame.py sf_level_marks (pages/p17_planting.py _p18_block).
 
 
 # v5 (revision 29 Oct, T3b WO-T3b-4): pp.14-15 are drawn whole by pages/p14_15_s4.py from the level module and its own
@@ -1968,7 +1968,8 @@ def build_board(opt, storage, parts, pal_line, log):
     own round scale:
       row 1  how the water behaves (p.11) · what we do with it (p.12) · where the clean water goes (p.23)
       row 2  S4 north-east bank (p.15) · four seasons on one cut (p.14, the wider middle cell) · planting and water A (p.17)
-      row 3  the idea in section, upstream entry and K4 (not in the booklet) · planting and water B, the sections (p.17)"""
+      row 3  p.18a (F2, F4 at 1:250) · the idea in section, upstream entry and K4 stacked (not in the booklet) · p.18b
+             (W1, S4 at 1:250) (v13, round 4 D2: two whole booklet pages, 392 mm wide each)"""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     del BK_CROPS[:]
@@ -2016,7 +2017,7 @@ def build_board(opt, storage, parts, pal_line, log):
     pg.check_text(log)
     # p.23 where the clean water goes, over the seven steps the figures support (no content change in v1.14)
     b = cell(2, 0, u"WHERE THE CLEAN WATER GOES · and what the figures support")
-    # round 4 (S6b, P19.1): booklet p19's three water board blocks, each EXACTLY its booklet size (pages/p18_farms.py):
+    # round 4 (S6b, P19.1): booklet p19's three water board blocks, each EXACTLY its booklet size (pages/p19_farms.py):
     # the loop (260 x 57) on top, the farms outside and the four figures (128 x 57, 128 x 40) under it; one TextPage
     # "p19" for the cell (G-R4-1: every text measured, a collision raises)
     pg.text_page("p19", last[0])
@@ -2042,17 +2043,29 @@ def build_board(opt, storage, parts, pal_line, log):
     for cid_, bb_, den_ in p17_page(pg, b, opt, log):
         crop_add(cid_, bb_, den_, within=last[0])
     pg.check_text(log)
-    # row 3 -------------------------------------------------------------- the idea in section (not in the booklet), p.17 B
-    # v6: the two concept sections take the first two columns; the third holds p.17's page B (the sections at 1:500)
+    # row 3 -------------------------------------------------------------- p.18a | the idea in section | p.18b
+    # v13 (round 4, S6b, D2): booklet p18 is two whole booklet pages at 1:1 (pages/p17_planting.py p18_page, 392 mm
+    # wide each, the sections at 1:250): p18a at the left edge, p18b at the right edge of the sheet; the two concept
+    # sections (not in the booklet) stacked in the cell between them, drawn smaller (place fits them)
+    def cell_at(x0, y1, w, h, title):
+        bb = frame(pg, (x0, y1 - h, x0 + w, y1), title)
+        last[0] = (x0, y1 - h, x0 + w, y1 - 9.0)
+        return (bb[0], bb[1] + 1.0, bb[2], bb[3] - 1.0)
+    y3 = y_title - G - 2 * (ch + G)
+    wp = P18_PAGE[0]
+    for xa, bp_ in ((X0, "p18a"), (X1 - wp, "p18b")):
+        cell_at(xa, y3, wp, ch, P18_TITLES[bp_])
+        pg.text_page(bp_, last[0])               # v13 (round 4, G-R4-1): one TextPage per booklet page, raise on a hit
+        for cid_, bb_, den_ in p18_page(pg, last[0], bp_, opt, log):
+            crop_add(cid_, bb_, den_, within=last[0])
+        pg.check_text(log)
+    hc = (ch - G) / 2.0
     for j, (key, title) in enumerate((("concept_up", u"THE IDEA IN SECTION · upstream entry"),
                                       ("concept_k4", u"THE IDEA IN SECTION · " + bridge_name("K4")))):
-        bx = cell(j, 2, title)
+        bx = cell_at(X0 + wp + G, y3 - j * (hc + G), X1 - X0 - 2.0 * (wp + G), hc, title)
         cb = context(pg, bx[0], bx[3], bx[2] - bx[0], "concept") if j == 0 else (bx[0], bx[3], bx[0], bx[3])
         _, bu = place(pg, parts[key], (bx[0], bx[1], bx[2], cb[1] - 3.0), 1.6, "C", log, key)
         crop_add("wb_" + key, union(cb, bu) if j == 0 else bu, within=last[0])
-    b = cell(2, 2, P17B_TITLE)
-    for cid_, bb_, den_ in p17b_page(pg, b, opt, log):
-        crop_add(cid_, bb_, den_, within=last[0])
     draw_footer(pg, X0, 1.5, X1, pal_line)
     return pg
 
@@ -2069,13 +2082,13 @@ BK_CAPTIONS = {
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": bridge_name("K4") + u": the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
-    "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
-    "wb_plants_b_a": u"Planting and water in section: four cuts, the species and their year · style a, raster collage",
+    "wb_plants_b1": u"Which plant goes where, in section: F2 and F4 at 1:250",
+    "wb_plants_b2": u"Which plant goes where, in section: W1 and S4 at 1:250",
     "wb_farms": u"", "wb_farms_out": u"", "wb_decision": u""}   # round 4 (P19.1): the group heading inside says it
 
 
-BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
-BK_FIXED += ("wb_plants_b_a",)   # v10: p.17 style a only (as p.11, p.13, p.14 since v9)
+BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
+BK_FIXED += ("wb_plants_b1", "wb_plants_b2")   # v13 (round 4, D2): booklet p18a / p18b, each a whole page at 1:1, 1:250
 BK_FIXED += ("wb_farms", "wb_decision")   # round 3 (B4, P18.1): the merged p18-19 page, laid out at 1:1
 BK_FIXED += ("wb_farms_out",)             # round 4 (P19.1): the farms outside, its own p19 block, 1:1
 
@@ -2255,7 +2268,8 @@ def build_all(doc, log):
 #@include pages/p12_system.py
 #@include pages/p14_15_s4.py
 #@include pages/p17_planting.py
-#@include pages/p18_farms.py
+#@include pages/p18_sections.py
+#@include pages/p19_farms.py
 
 def main():
     pressed, why, _btn = trig_should_run("chain_seen")    # v13 (round 4): the one trigger file (common/trigger.py)
