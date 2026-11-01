@@ -96,5 +96,6 @@
 | main | code.py | 332 |
 | chain_fire | code.py | 364 |
 | _chain_wiring | code.py | 395 |
-| done_text | code.py | 407 |
-| write_log | code.py | 412 |
+| _gh_in_items | code.py | 407 |
+| done_text | code.py | 419 |
+| write_log | code.py | 424 |

@@ -76,5 +76,6 @@
 | text_check | code.py | 1807 |
 | chain_fire | code.py | 1851 |
 | _chain_wiring | code.py | 1881 |
-| done_text | code.py | 1893 |
-| write_log | code.py | 1898 |
+| _gh_in_items | code.py | 1893 |
+| done_text | code.py | 1905 |
+| write_log | code.py | 1910 |

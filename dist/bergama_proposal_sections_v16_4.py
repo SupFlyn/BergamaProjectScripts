@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v16_3.py = v16.3 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v16_4.py = v16.4 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
@@ -104,7 +104,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v16.3"  # v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v16.4"  # v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -9906,6 +9906,18 @@ def _chain_wiring():
 _CHAIN_SOLVE = object()     # a new token every time the script body runs (one per solve)
 
 
+def _gh_in_items():
+    """(name, value) of this component's own inputs only. 1 Nov (Aras 08:24): a setting written in the script
+    (PHOTO_ANY_LICENCE = True in agriculture) was taken for a pressed Button, so the script started as soon as it was
+    pasted; Rhino 8 also keeps old globals between solves. All globals only if the inputs cannot be read."""
+    g_ = globals()
+    try:
+        return [(n_, g_.get(n_)) for n_ in (str(p_.NickName or p_.Name) for p_ in ghenv.Component.Params.Input)  # noqa: F821
+                if n_ in g_]
+    except Exception:
+        return list(g_.items())
+
+
 def done_text(ran, ok, secs):
     return ("done " if ok else "ERROR ") + time.strftime("%H:%M:%S") + ".%02d" % int((time.time() % 1) * 100) + \
         " · %.0f s" % secs if ran else None
@@ -9929,9 +9941,9 @@ if "ghenv" in globals():
         _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
     except Exception:
         pass
-    _pressed = any(v is True for k, v in list(globals().items())
+    _pressed = any(v is True for k, v in _gh_in_items()
                    if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "rhino_bake", "done")) or \
-        any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+        any(chain_fire(v, _k + "_chain") for k, v in _gh_in_items() if not k.startswith("_") and k != "done" and isinstance(v, str))
     if _sc.sticky.get(_k + "_ver") != VERSION:     # v8: a newly pasted version shows itself at once, idle
         for _s in ("_status", "_done"):
             _sc.sticky.pop(_k + _s, None)
