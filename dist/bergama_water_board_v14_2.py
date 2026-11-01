@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v14_1.py = v14.1 (1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v14_2.py = v14.2 (1 Nov 2026: p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -221,8 +221,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v14.1 (2026-11-01)"  # v14.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v14.1"
+VERSION = "bergama_water_board v14.2 (2026-11-01)"  # v14.2 1 Nov 22:10 (Aras 19:49, p18b 39 hits): p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v14.2"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -8919,7 +8919,7 @@ class TextPage(object):
             if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
                     self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
                 hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
                 hits.append((a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
@@ -21929,6 +21929,8 @@ P18_KM_H = {"p18a": 40.0, "p18b": 45.0}   # key map height, mm (width: the side 
 # bank; the side arm with its bridge and the street-side lanes stay on the plan. m along the cut (registry).
 P18_F2_RNG = (37.0, 110.0)
 P18_F4_RNG = (52.0, 125.0)
+P18_S4_RNG = (-30.0, 40.0)            # v14.2 (Aras 1 Nov 19:49, p18b: S4 drawn -40-46 m left a 44 mm side column, its
+#                                       list ran off the page): S4 on p18b trimmed to 70 m (280 mm), as F2 / F4 are
 # W1's way down (P18.3, G-R4-5.7; ASKS_resolved §2: Aras's own choice, 31 Oct 12:01): the SW DSİ wall cut back into
 # sitting steps with planted landings to a floor at the wall foot, exactly the rules of p13's W1 (proposal sections
 # PS_W1_SIT, PS_W1_FLIGHTS, PS_W1_LAND, PS_W1_POCKET, PS_W1_FLOOR_W, PS_W1_FLOOR_UP, PS_RAIL_DROP; design rules, not
@@ -22122,10 +22124,18 @@ def _p18_specs(log):
     if "S4" in base:                                    # p.14's cut and plants; its low layer as p.14 draws it
         s = dict(base["S4"])
         s.pop("arrows", None)
+        try:                                            # v14.2: trimmed like F2 / F4 (P18_S4_RNG)
+            s = _p18_trim(s, P18_S4_RNG[0], P18_S4_RNG[1], ("L", "R"))
+        except Exception as ex:
+            log.append(u"FLAG p18b S4: not trimmed to {:.0f}-{:.0f} m ({}: {}): drawn whole".format(
+                P18_S4_RNG[0], P18_S4_RNG[1], type(ex).__name__, ex))
+        r0_, r1_ = s.get("rng") or (-1e9, 1e9)
         zn = _p14_geo()["zones"]
-        s["low"] = [(zn[z_][0], zn[z_][1], ta, tb, seed + 60, [k_ for k_ in mix if k_ in PLA_LOW], P14_LOW_DENS * dens)
+        s["low"] = [(max(zn[z_][0], r0_), min(zn[z_][1], r1_), ta, tb, seed + 60, [k_ for k_ in mix if k_ in PLA_LOW],
+                     P14_LOW_DENS * dens)
                     for z_, ta, tb, mix, dens, seed in P14_PLANT_ZONES
-                    if z_ in P14_LOW_ZONES and z_ in zn and any(k_ in PLA_LOW for k_ in mix)]
+                    if z_ in P14_LOW_ZONES and z_ in zn and any(k_ in PLA_LOW for k_ in mix)
+                    and min(zn[z_][1], r1_) - max(zn[z_][0], r0_) > 0.5]
         out["S4"] = s
     _P17_MEMO["p18specs"] = out
     return out
@@ -22459,6 +22469,9 @@ def _p18_block(pg, page, cid, spec, part, x0, ytop, first, log):
     y = s[3]
     if first:
         kh_, kx_ = P18_KM_H.get(page, 40.0), s[0]
+        # v14.2 (Aras 1 Nov 19:49, p18b W1 43 mm tall: the scale bar under the key map): the key map ends above the
+        # scale bar's row at the column's foot (at least 24 mm tall)
+        kh_ = max(24.0, min(kh_, y - (s[1] + 10.0)))
         # v13.11 (Aras 1 Nov 18:51, p18b W1 43 mm tall: the level marks beside the drawing ran into the key map): a
         # key map whose height meets the level marks starts 2 mm right of them
         if xs and max(xs) > s[0] and min(ys) < y and max(ys) > y - kh_:
@@ -22526,7 +22539,8 @@ def p18_page(pg, box, page, opt, log):
     if 0 in cols and 1 in cols:
         gy0, gy1 = tops[0] - hs[0] - 3.0, tops[1] + 3.0
         if gy0 - gy1 >= 8.0:
-            cols[2] = dict(x0=cols[0]["x0"], x1=cols[0]["x1"], y=gy0, ybot=gy1, avoid=[])
+            cols[2] = dict(x0=cols[0]["x0"], x1=cols[0]["x1"], y=min(gy0, cols[0]["y"] - 2.0), ybot=gy1, avoid=[])
+            # v14.2: under the first row's list where that runs past its drawing's foot (p18b W1)
             order.append(2)
     for nm, fn in ((u"planting bands", lambda c_, y_, dr: _p18_bands(pg, c_, y_, log, dr)),
                    (u"materials", lambda c_, y_, dr: _p18_materials(pg, c_, y_, dr))):

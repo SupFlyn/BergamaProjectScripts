@@ -896,6 +896,8 @@ P18_KM_H = {"p18a": 40.0, "p18b": 45.0}   # key map height, mm (width: the side 
 # bank; the side arm with its bridge and the street-side lanes stay on the plan. m along the cut (registry).
 P18_F2_RNG = (37.0, 110.0)
 P18_F4_RNG = (52.0, 125.0)
+P18_S4_RNG = (-30.0, 40.0)            # v14.2 (Aras 1 Nov 19:49, p18b: S4 drawn -40-46 m left a 44 mm side column, its
+#                                       list ran off the page): S4 on p18b trimmed to 70 m (280 mm), as F2 / F4 are
 # W1's way down (P18.3, G-R4-5.7; ASKS_resolved §2: Aras's own choice, 31 Oct 12:01): the SW DSİ wall cut back into
 # sitting steps with planted landings to a floor at the wall foot, exactly the rules of p13's W1 (proposal sections
 # PS_W1_SIT, PS_W1_FLIGHTS, PS_W1_LAND, PS_W1_POCKET, PS_W1_FLOOR_W, PS_W1_FLOOR_UP, PS_RAIL_DROP; design rules, not
@@ -1089,10 +1091,18 @@ def _p18_specs(log):
     if "S4" in base:                                    # p.14's cut and plants; its low layer as p.14 draws it
         s = dict(base["S4"])
         s.pop("arrows", None)
+        try:                                            # v14.2: trimmed like F2 / F4 (P18_S4_RNG)
+            s = _p18_trim(s, P18_S4_RNG[0], P18_S4_RNG[1], ("L", "R"))
+        except Exception as ex:
+            log.append(u"FLAG p18b S4: not trimmed to {:.0f}-{:.0f} m ({}: {}): drawn whole".format(
+                P18_S4_RNG[0], P18_S4_RNG[1], type(ex).__name__, ex))
+        r0_, r1_ = s.get("rng") or (-1e9, 1e9)
         zn = _p14_geo()["zones"]
-        s["low"] = [(zn[z_][0], zn[z_][1], ta, tb, seed + 60, [k_ for k_ in mix if k_ in PLA_LOW], P14_LOW_DENS * dens)
+        s["low"] = [(max(zn[z_][0], r0_), min(zn[z_][1], r1_), ta, tb, seed + 60, [k_ for k_ in mix if k_ in PLA_LOW],
+                     P14_LOW_DENS * dens)
                     for z_, ta, tb, mix, dens, seed in P14_PLANT_ZONES
-                    if z_ in P14_LOW_ZONES and z_ in zn and any(k_ in PLA_LOW for k_ in mix)]
+                    if z_ in P14_LOW_ZONES and z_ in zn and any(k_ in PLA_LOW for k_ in mix)
+                    and min(zn[z_][1], r1_) - max(zn[z_][0], r0_) > 0.5]
         out["S4"] = s
     _P17_MEMO["p18specs"] = out
     return out
@@ -1426,6 +1436,9 @@ def _p18_block(pg, page, cid, spec, part, x0, ytop, first, log):
     y = s[3]
     if first:
         kh_, kx_ = P18_KM_H.get(page, 40.0), s[0]
+        # v14.2 (Aras 1 Nov 19:49, p18b W1 43 mm tall: the scale bar under the key map): the key map ends above the
+        # scale bar's row at the column's foot (at least 24 mm tall)
+        kh_ = max(24.0, min(kh_, y - (s[1] + 10.0)))
         # v13.11 (Aras 1 Nov 18:51, p18b W1 43 mm tall: the level marks beside the drawing ran into the key map): a
         # key map whose height meets the level marks starts 2 mm right of them
         if xs and max(xs) > s[0] and min(ys) < y and max(ys) > y - kh_:
@@ -1493,7 +1506,8 @@ def p18_page(pg, box, page, opt, log):
     if 0 in cols and 1 in cols:
         gy0, gy1 = tops[0] - hs[0] - 3.0, tops[1] + 3.0
         if gy0 - gy1 >= 8.0:
-            cols[2] = dict(x0=cols[0]["x0"], x1=cols[0]["x1"], y=gy0, ybot=gy1, avoid=[])
+            cols[2] = dict(x0=cols[0]["x0"], x1=cols[0]["x1"], y=min(gy0, cols[0]["y"] - 2.0), ybot=gy1, avoid=[])
+            # v14.2: under the first row's list where that runs past its drawing's foot (p18b W1)
             order.append(2)
     for nm, fn in ((u"planting bands", lambda c_, y_, dr: _p18_bands(pg, c_, y_, log, dr)),
                    (u"materials", lambda c_, y_, dr: _p18_materials(pg, c_, y_, dr))):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v28_1.py = v28.1 (1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v28: a source mark too long for its room is set at 6 pt with a warning, the run goes on; v27: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26: round 4 S9; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_booklet_v29.py = v29 (1 Nov 2026: saved with placeholders (orange warning); booklet words under 6 pt on a scaled crop set at 6 pt; crop marks may lie in the footer band; v28.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v28: a source mark too long for its room is set at 6 pt with a warning, the run goes on; v27: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26: round 4 S9; what changed: the NEW IN / VERSION notes below)
 """Bergama Group 6: A3 BOOKLET ASSEMBLER (26 Oct 2026). Rules: scripts/_template/SCRIPT_STANDARD.md §8.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from the scripts' OWN sheet PDFs.
 
@@ -156,7 +156,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v28.1"  # v28.1 1 Nov 21:40 (Aras 19:33, p05 '1:1,000' at 6.00 pt): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v28 1 Nov 21:15 (Aras 19:08, the source mark [16,20] on the water balance sheet): a renumbered source mark that needs under 6 pt is set at 6 pt with a WARNING line and an orange warning instead of stopping; v27 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v29"  # v29 1 Nov 22:10 (Aras 19:49): saved with placeholders (orange warning); booklet words under 6 pt on a scaled crop set at 6 pt; crop marks may lie in the footer band; v28.1 1 Nov 21:40 (Aras 19:33, p05 '1:1,000' at 6.00 pt): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v28 1 Nov 21:15 (Aras 19:08, the source mark [16,20] on the water balance sheet): a renumbered source mark that needs under 6 pt is set at 6 pt with a WARNING line and an orange warning instead of stopping; v27 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -1352,7 +1352,7 @@ class TextPage(object):
             if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
                     self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
                 hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
                 hits.append((a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
@@ -1869,6 +1869,15 @@ def copy_words(path, pno_, clip=None):
     return list(_COPY_PUT.get((path, pno_, clip_key(clip))) or ())
 
 
+def _bk_warn(msg):
+    """v29: a WARNING line in the log and an orange warning; the booklet is still saved"""
+    TP_LOG.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
+
+
 def copy_words_put(typo, key, words, clip, x, y, s, allow=None):
     """v26 closing (G-R4-1, closing part C F): the words the booklet itself writes into a crop copy (renumbered
     source marks, rescaled scale words; raw insert_text there) registered in the page's TextPage at their printed
@@ -1882,7 +1891,8 @@ def copy_words_put(typo, key, words, clip, x, y, s, allow=None):
     g = typo.tp._group()
     for px, py, t, size, bold in words:
         typo.tp.put(t, x + (px - x0) / K * s, y + (py - y0) / K * s, size * s, bold, "L", 0.0,
-                    name=u"%s · booklet word %s" % (nm, t), role="label", allow=allow or (nm,), group=g, emit=False)
+                    name=u"%s · booklet word %s" % (nm, t), role="crop_word", allow=allow or (nm,), group=g,
+                    emit=False)                        # v29: a word of the crop may lie where the crop does (footer band)
     return len(words)
 
 
@@ -2094,7 +2104,9 @@ def rescaled(fitz, path, pno_, clip, s, drop=(), out=None):
                                         "bold" in sp["font"].lower())
     if abs(s - 1.0) < 1e-3:
         hits = {}
-    if not hits and not gone:
+    ms_ = (MIN_CAPTION + 0.01) / s                    # v29 (Aras 1 Nov 19:49, p12 marks at 3.76 pt): the words the
+    small = [w_ for w_ in words if w_[3] < ms_ - 1e-6]   # booklet writes print at 6 pt at least on the page
+    if not hits and not gone and not small:
         if out is not None:
             out.extend(words)
         return src, pno_
@@ -2107,7 +2119,15 @@ def rescaled(fitz, path, pno_, clip, s, drop=(), out=None):
     for word, (den, size, col, bold) in hits.items():
         for r in pg.search_for(word, clip=clip):
             pg.add_redact_annot(r, fill=False)
-            put.append((r, "1:{:,.0f}".format(den / s), size, col, bold))
+            put.append((r, "1:{:,.0f}".format(den / s), max(size, ms_), col, bold))
+    big = []                                         # v29: a renumbered mark under 6 pt on the page, set again bigger
+    for w_ in small:
+        wx, wy, wt, wsz, wb = w_
+        fw_ = own_font(fitz, pg, wb)[1].text_length(wt, fontsize=wsz)
+        r = fitz.Rect(wx, wy - 0.95 * wsz, wx + fw_, wy + 0.25 * wsz)
+        pg.add_redact_annot(r, fill=False)
+        big.append((fitz.Rect(wx, wy + 0.22 * ms_ - ms_, wx + fw_, wy + 0.22 * ms_), wt, ms_, 0x4A3F35, wb))
+    put += big
     pg.apply_redactions(images=0, graphics=0, text=0)
     fonts = {}
     for r, txt, size, col, bold in put:              # v19 (MIRAQUA 28 Oct, G2): in the booklet's embedded Arial
@@ -2117,7 +2137,7 @@ def rescaled(fitz, path, pno_, clip, s, drop=(), out=None):
                        color=((col >> 16 & 255) / 255.0, (col >> 8 & 255) / 255.0, (col & 255) / 255.0))
     if out is not None:                              # v26 closing: the marks still there, then the new scale words
         out.extend(w_ for w_ in words if not any(r.contains(fitz.Point(w_[0] + 0.1, w_[1] - 0.3 * w_[3]))
-                                                 for r in gone))
+                                                 for r in gone) and w_ not in small)
         out.extend((r.x0, r.y1 - 0.22 * size, txt, size, bold) for r, txt, size, col, bold in put)
     return tmp, 0
 
@@ -3527,7 +3547,11 @@ def build_variant(variant):
     # v26 (round 4, P09.1 + G-R4-1): placeholders and text collisions stop the run here, before the PDF is saved
     stop = []
     log_ph = "placeholders %d" % len(_PLACEHOLDERS)
-    if _PLACEHOLDERS:
+    if _PLACEHOLDERS:                               # v29 (Aras 1 Nov 19:49): saved anyway, with an orange warning
+        _bk_warn("booklet saved with %d placeholder frame%s: %s (run the scripts that make them, then the booklet "
+                 "again)" % (len(_PLACEHOLDERS), "" if len(_PLACEHOLDERS) == 1 else "s",
+                             "; ".join("p%02d %s" % (n_, t_) for n_, t_ in _PLACEHOLDERS)))
+    if False:
         stop.append("placeholders %d: %s (run the scripts that make them, then the booklet again)" % (
             len(_PLACEHOLDERS), "; ".join("p%02d %s" % (n_, t_) for n_, t_ in _PLACEHOLDERS)))
     hits = text_test(typo)

@@ -2069,8 +2069,8 @@ def r28_window_panel(C, w, areas, missing, warn):
         else:                                             # the forest corridor is trees, not a field: by its middle tree
             fp = sorted(fpts)[len(fpts) // 2]
             ok = None
-            for v_ in vs:
-                ok = _r28_label(pg, v_, fp, taken, segs, bounds, rank=1)
+            for vt_ in vs:                                # v39.2: was v_, which overwrote the window's view axis
+                ok = _r28_label(pg, vt_, fp, taken, segs, bounds, rank=1)   # (inP/T then crashed on D2, K5)
                 if ok:
                     break
         if not ok:

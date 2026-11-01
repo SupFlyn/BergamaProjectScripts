@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_city_link_v8_1.py = v8.1 (1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7: round 4 S5; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_city_link_v8_2.py = v8.2 (1 Nov 2026: p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7: round 4 S5; what changed: the NEW IN / VERSION notes below)
 # bergama_city_link_v6.py (v6, 31 Oct: round 3, p08 one corridor arrow over the whole study area + p09 hub plans; v5.1, 31 Oct: bugfix, rebuilt with the shared base map fix of 31 Oct: the stream (M5 water) no longer stops on "list - float"; v5, 30 Oct: revision T5, p8 framework map + who calendar, p9 spine) · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_city_link_analysis by itself and saves
@@ -17,7 +17,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v8.1"  # v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v8.2"  # v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v7 (round 4, session S5, 1 Nov 2026; BRIEF P08.1-P08.3, P10.1-P10.6, G-R4-1/2/4/7/9/11; a feature change,
 # so the next whole number; design spec revision_2026-11-01_round4/handover/S5_design_spec.md):
 #   * Text (G-R4-1): every text of both pages is registered in the page's TextPage (common/text_place.py) with its
@@ -1410,8 +1410,8 @@ def framework_map(pg, L):
         if len(Q) > 1 and cl_place(pg, place_name("stream"), Q[len(Q) // 2], 7.5, C["water_deep"], True, 1.6, frame,
                                    (MAP,)):
             break
-    north_arrow(pg, mx + 2.5, my - 9.0, math.atan2(math.cos(f["ang"]), math.sin(f["ang"])), 5.0)
-    scale_bar(pg, mx + 9.0, my - 6.5, PLAN_DEN)
+    north_arrow(pg, mx + 6.5, my - 9.0, math.atan2(math.cos(f["ang"]), math.sin(f["ang"])), 5.0)   # v8.2: its N
+    scale_bar(pg, mx + 13.0, my - 6.5, PLAN_DEN)          # was on the page margin (Aras 1 Nov 19:49): 4 mm right
     # the legend beside the map, top-aligned with it (G-R4-3)
     rows = []
     if nb:
@@ -2100,7 +2100,19 @@ def hub_keymap(pg, f, wins):
     pg.ops.append("q %.2f %.2f %.2f %.2f re W n" % (kx * KP, ky * KP, kw * KP, kh * KP))
     pg.keep((kx, ky, kx + kw, ky + kh), "map", MAP)
     fill_fn, line_fn, text_fn, order_fn = cl_draw_fns(pg, (MAP,))
-    map_draw("p10 key", T, fill_fn, line_fn, text_fn, km["base"], {"proj_marks": frames, "proj_labels": km["names"]},
+    mk_at = []                                            # v8.2 (Aras 1 Nov 19:49: names under the hub 4 marker):
+    for w, Q in polys:                                    # a name within 5 mm of a hub marker's place is left out
+        cs_ = [T(((Q2[0][0] + Q2[2][0]) / 2.0, (Q2[0][1] + Q2[2][1]) / 2.0)) for w2, Q2 in polys if w2["no"] == w["no"]]
+        mk_at.append((sum(c_[0] for c_ in cs_) / len(cs_), sum(c_[1] for c_ in cs_) / len(cs_)))
+    names_ = []
+    for it in km["names"]:
+        c_ = T(it[2])
+        hw_, hh_ = text_w(it[1], it[3] / 0.3528) / 2.0 + 5.0, it[3] / 2.0 + 5.0
+        if any(abs(c_[0] - m_[0]) < hw_ and abs(c_[1] - m_[1]) < hh_ for m_ in mk_at):
+            BM_NOTE.append(u"key map p10: name '{}' left out (on a hub marker)".format(it[1]))
+            continue
+        names_.append(it)
+    map_draw("p10 key", T, fill_fn, line_fn, text_fn, km["base"], {"proj_marks": frames, "proj_labels": names_},
              study=km.get("study_rings") or study, clip=False, order_fn=order_fn, log=CL_LOG)
     frame = (kx + 0.8, ky + 0.8, kx + kw - 0.8, ky + kh - 0.8)
     done = []
@@ -2245,7 +2257,7 @@ def page_spine(L):
         pg.line([(fx + (i + 1) * sw_ + 0.8, t_), (tx_ - 1.0, t_)], C["ink2"], 0.2, dash=(0.6, 0.5))
         pg.text(lev, tx_, y + 1.2, 8, C["ink"], True)
         for jj, kk in enumerate(wet):
-            fit(pg, (kk + (" " + cite(wsrc) if jj == len(wet) - 1 else "")).strip(), tx_, y - 2.4 - jj * 3.0, 7,
+            fit(pg, (kk + (" " + cite(wsrc) if jj == len(wet) - 1 else "")).strip(), tx_, y - 2.4 - jj * 3.5, 7,
                 rx - tx_ - 3.0, C["ink2"])
         for jj, (ic, kk) in enumerate(rules):
             icon(pg, ic, rx, y + 4.0 - jj * 4.8, 4.2)
