@@ -40,7 +40,8 @@ PL23_LW = dict(arm=0.7, road=0.6, later=0.4, hidden=0.45, walk=0.5, bike=0.22, b
                canopy=0.35, sight=0.3, terrace=0.3, bank=0.25, outline=0.15, square=0.25)
 #                              mm: P21.1 crisp single lines at 1:5,000 (design values)
 PL23_TERR_TINT_M = 4.0       # m either side of a rain terrace line: its D9 footprint band (design value)
-PL23_VOID_COL = {"meadow": "89986A", "garden": "70754C", "grove": "3C4733", "lanes": "8E8F8A", "heritage": "8B2D2D"}
+PL23_VOID_COL = {"meadow": pla_green("meadow"), "garden": pla_green("shrub"), "grove": pla_green("tree"),
+                 "lanes": "8E8F8A", "heritage": "8B2D2D"}   # round 5 (A1): greenery tones from the plant module
 #                              P21.7 the designed voids' outline and marker colour (palette v1.4 references; design value)
 PL23_VOID_LETTERS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZ"   # one letter per kind of designed place, in reading order
 PL23_LANE_CROWN_K = 0.6      # lane trees of the "Shaded lanes" voids: this x the species' sourced crown (design value)
@@ -170,6 +171,66 @@ def pl23_tree_set(C):
     return out
 
 
+# round 5 (S6, P23.7): Demeter's Garden from the shared design (parts/02g_demeter.py dg_design, p24 helper), drawn
+# in solid colours: the gathering place / café in a paving tone, the tomato rows a thin row line (design values)
+PL23_DG_GATHER = "E6DCC8"
+PL23_REED_TONE, PL23_REED_A = pla_green("reed"), 0.35   # round 5: the reed basins' solid tone over the wetland
+PL23_DG_ROW = pla_green("row")
+PL23_DG_ROW_LW = 0.12
+# round 5 (G-R5-7, CHK-5 c): the voids' planting through the planting placer (common/planting.py): the meadows get
+# copses of the drier corridor trees (plane, ash: the species round 4 sourced for them, D7) at a lighter density,
+# the pocket gardens shrub drifts (rosemary, lavender); intensity = the placer's outer level ramping in from each
+# void's edge (no hard edge), nothing on the water, nothing outside the voids (outside_project 0).
+PL23_VOID_MIX = {"meadow": {"plane": 1.0, "ash": 1.0, "rosemary": 0.5, "lavender": 0.5},
+                 "garden": {"rosemary": 1.0, "lavender": 1.0}}
+PL23_VOID_DENSITY = {"meadow": 0.55, "garden": 0.8}   # lower than the corridor (drawing rule)
+
+
+def pl23_dg(C):
+    """the designed Demeter's Garden (dg_design, parts/02g_demeter.py) clipped to the study area, once per
+    corridor; None when the design module is not there or gives nothing (the zone-base DG field is drawn then)"""
+    got = getattr(C, "pl23_dg_", 0)
+    if got != 0:
+        return got
+    out = None
+    if "dg_design" in globals():
+        try:
+            d = dg_design(C)                                                               # noqa: F821
+        except Exception as ex:                          # p23_items warns (no warn list here)
+            d = None
+            C.pl23_dg_err = u"{}: {}".format(type(ex).__name__, ex)
+        if d and d.get("rings"):
+            st = C.study or None
+            out = dict(d)
+            out["rings"] = [Q for R in d["rings"] for Q in (sc_rings_clip(R, st, u"p21") if st else [list(R)])]
+            for key in ("cafe", "gather"):
+                out[key] = [Q for R in d.get(key) or [] for Q in (sc_rings_clip(R, st, u"p21") if st else [list(R)])]
+            for key in ("rows", "paths", "edge"):
+                out[key] = [Q for P in d.get(key) or [] for Q in (sc_lines(P, st, u"p21") if st else [list(P)])]
+    C.pl23_dg_ = out
+    return out
+
+
+def pl23_void_plants(C):
+    """dict(trees, shrubs) [(key, x, y, crown_m, I)] survey m of the meadows and pocket gardens, once per corridor"""
+    got = getattr(C, "pl23_void_", None)
+    if got is not None:
+        return got
+    out = dict(trees=[], shrubs=[])
+    wet = pl23_wet_rings(C)
+    for kind in ("meadow", "garden"):
+        rings = [list(R) for r_ in C.nogo if r_.get("design") == kind for R in (r_.get("rings") or []) if len(R) >= 3]
+        if not rings:
+            continue
+        pl = pln_place(rings, cores=(), outer=rings, water=wet, k=1.0, seed=PL23_SEED + len(kind),
+                       mix=PL23_VOID_MIX[kind], density=PL23_VOID_DENSITY[kind], page=u"p23 " + kind + u"s",
+                       shrubs=True)
+        out["trees"] += [t for t in pl["trees"] if not C.study or sc_inside((t[1], t[2]), C.study)]
+        out["shrubs"] += [t for t in pl["shrubs"] if not C.study or sc_inside((t[1], t[2]), C.study)]
+    C.pl23_void_ = out
+    return out
+
+
 PL23_ARM_HALF_M = 3.0        # v37: half the drawn width of a side arm (draw_corridor: 6 m), m, for the tree clip
 
 
@@ -215,6 +276,9 @@ def pl23_put(pg, shapes, alpha=None):
                     lw=(s_[4] if len(s_) > 4 and s_[4] else 0.1), alpha=a)
         elif s_[0] == "line" and len(s_[1]) >= 2:
             pg.line(list(s_[1]), s_[2], s_[3] if len(s_) > 3 and s_[3] else 0.1, s_[4] if len(s_) > 4 else None)
+        elif s_[0] == "image":                           # round 5 (S4 plant module v3): image plants pass through as
+            it_ = tuple(s_) + (None,) * (9 - len(s_))     # Page image items ("image", x, y, w, h, path, alpha, flip,
+            pg.items.append(it_[:9])                     # clip); blit and the item export (04_items) carry them
 
 
 def pl23_trees_draw(pg, C, T, k, box):
@@ -354,19 +418,9 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
     if base_water:
         used.add("bed")
 
-    def s_tint():                                        # the gradients under the D9 tint (map_draw draws it next)
-        for t, Ls in reversed(C.eco):
-            Ps = TL(Ls)
-            if Ps:
-                pg.poly(Ps, fill=ECO_COL, alpha=ECO_A)
-                used.add("eco")
-        for r_, Ls in reversed(C.rings):
-            Ps = TL(Ls)
-            if Ps:
-                pg.poly(Ps, fill=HUB_COL, alpha=HUB_A)
-                used.add("ring")
-        if tint:
-            used.add("tint")
+    def s_tint():                                        # round 5 (N5 a, G-R5-8): the planting gradient (C.eco) and
+        if tint:                                         # programme rings (C.rings) are distance bands, not zones:
+            used.add("tint")                             # no longer drawn; only the D9 footprint tint (a real extent)
 
     def s_water():
         if not base_water and pl23_water_draw(pg, C, T, k, on, 1.0 if big else 0.8):
@@ -379,7 +433,7 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                 used.add("widen")
         for Q in TL(cl["zones"].get("WT", [])):
             pg.poly([Q], fill=WET_COL)
-            pg.poly([Q], stripes=(COL["river_dark"], 0.9, 0.12, 90.0))
+            pg.poly([Q], fill=PL23_REED_TONE, alpha=PL23_REED_A)   # round 5: a solid reed tone, no stripes
             pg.line(Q + Q[:1], COL["river_dark"], lw["outline"])
             used.add("reed")
         for a in C.arms:
@@ -398,10 +452,26 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
             for Q in TL(h.get("square") or []):
                 pg.line(Q + Q[:1], SQ_EDGE, lw["square"])
                 used.add("square")
-        for Q in TL(cl["zones"].get("DG", [])):
-            pg.poly([Q], fill=MP["agriculture"][2], alpha=0.16)
+        dgd = pl23_dg(C)
+        for Q in TL(dgd["rings"] if dgd else cl["zones"].get("DG", [])):   # round 5 (P23.7): the designed garden's
+            pg.poly([Q], fill=MP["agriculture"][2], alpha=0.16)          # organic outline when dg_design exists
             pg.line(Q + Q[:1], MP["agriculture"][2], lw["outline"])
             used.add("dg")
+        if dgd:
+            for Q in TL(dgd.get("gather") or []):        # the gathering place: paving tone
+                pg.poly([Q], fill=PL23_DG_GATHER)
+                used.add("dg")
+            for Q in TL(dgd.get("cafe") or []):          # the café under shade
+                pg.poly([Q], fill=PL23_DG_GATHER)
+                pg.line(Q + Q[:1], MP["agriculture"][2], lw["outline"])
+            for P in dgd.get("rows") or []:              # the tomato rows: a light row texture (solid lines, no hatch)
+                Q = [T(p) for p in P]
+                if on(Q):
+                    pg.line(Q, PL23_DG_ROW, PL23_DG_ROW_LW)
+            for P in (dgd.get("paths") or []) + (dgd.get("edge") or []):   # paths and the edge down to the stream
+                Q = [T(p) for p in P]
+                if on(Q):
+                    pg.line(Q, PL23_WALK_COL, lw["walk"] * 0.7)
         for P in C.terr:                                 # rain terraces: ticks toward the stream
             Q = [T(p) for p in P]
             if not on(Q):
@@ -478,30 +548,29 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                 pl23_put(pg, pla_plan("plane", x, y, k, crown_m=PLA_SPECIES["plane"]["crown_m"] * 0.8, seed=200 + i,
                                       distinct=k >= 0.5))
                 used.add("tree_plane")
-        for j, r_ in enumerate(C.nogo):                  # P21.7: copses (plane / ash), lane trees, shrub groups
-            lane = r_.get("design") == "lanes"
-            for i, p in enumerate(r_.get("trees") or []):
+        vp = pl23_void_plants(C)                          # round 5 (G-R5-7, CHK-5 c): the voids planted by the placer
+        for i, (key, x_, y_, cr, _I) in enumerate(vp["shrubs"] + sorted(vp["trees"], key=lambda t_: t_[3])):
+            x, y = T((x_, y_))
+            if not inside(x, y, 2.0):
+                continue
+            pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=400 + i, distinct=k >= 0.5))
+            used.add(("tree_" if key in PL23_TREE_KEYS else "shrub_") + key)
+        for j, r_ in enumerate(C.nogo):                  # lane trees on the kerbs (dart thrown, 02c void_design)
+            for i, e in enumerate(r_.get("trees") or []):
+                p, key = (e if isinstance(e, tuple) and len(e) == 2 and isinstance(e[1], str) else (e, "plane"))
                 x, y = T(p)
                 if not inside(x, y, 2.0):
                     continue
-                key = ("plane", "ash")[i % 2]
-                cr = PLA_SPECIES[key]["crown_m"] * (PL23_LANE_CROWN_K if lane else 1.0)
-                pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=400 + 37 * j + i, distinct=k >= 0.5))
+                cr = PLA_SPECIES[key]["crown_m"] * PL23_LANE_CROWN_K
+                pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=900 + 37 * j + i, distinct=k >= 0.5))
                 used.add("tree_" + key)
-            for i, p in enumerate(r_.get("shrubs") or []):
-                x, y = T(p)
-                if not inside(x, y, 1.0):
-                    continue
-                key = ("rosemary", "lavender")[i % 2]
-                pl23_put(pg, pla_plan(key, x, y, k, crown_m=PL23_SHRUB_GROUP_M, seed=700 + 37 * j + i,
+        dgd = pl23_dg(C)
+        for i, (key, xs, ys) in enumerate((dgd or {}).get("shade_trees") or []):   # P23.7: the garden's shade
+            x, y = T((xs, ys))
+            if inside(x, y, 2.0) and key in PLA_SPECIES:
+                pl23_put(pg, pla_plan(key, x, y, k, crown_m=PLA_SPECIES[key]["crown_m"], seed=300 + i,
                                       distinct=k >= 0.5))
-                used.add("shrub_" + key)
-        for j, z in enumerate(z_ for z_ in C.D.zones if z_["code"] == "DG" and ins(z_["q"])):
-            x, y = T(z["q"])                             # v37 (G9): Demeter's Garden = its field + ONE olive
-            if inside(x, y):
-                d_ = PL23_DG_ICON_MM if not big else max(PL23_DG_ICON_MM, PLA_SPECIES["olive"]["crown_m"] * k)
-                pl23_put(pg, pla_plan("olive", x, y, k, crown_m=d_ / k, seed=300 + j, distinct=True))
-                icons.append(((x - d_ / 2.0, y - d_ / 2.0, x + d_ / 2.0, y + d_ / 2.0), u"olive %d" % j))
+                used.add(("tree_" if key in PL23_TREE_KEYS else "dg_tree_") + key)
 
     s_ic = 3.0 if big else (1.8 if fine else 2.2)
 
@@ -540,9 +609,13 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                 icons.append(((x - s_ * 0.55, y - s_ * 0.55, x + s_ * 0.55, y + s_ * 0.55), nm))
                 used.add(kind)
 
+    kw_ = {}                                             # round 5 (G-R5-8): the zones log line reads the legend's
+    if "legend_cols" in mp_map_draw.__code__.co_varnames:   # colours and the fields in the water by design
+        kw_ = dict(legend_cols=[ML_TINT, WET_COL, MP["agriculture"][2], PL23_DG_GATHER] + list(PL23_VOID_COL.values()),
+                   water_ok=[WET_COL])
     mp_map_draw(pg, u"p21", T, base, steps={"proj_tint": s_tint, "proj_water": s_water, "proj_lines": s_lines,
                                             "proj_vegetation": s_veg, "proj_marks": s_marks},
-                tint=tint, study=C.study or None)
+                tint=tint, study=C.study or None, **kw_)
     if C.study:
         used.add("study")
     for h in C.hubs:                                     # the hub names for the page's TextPage (Turkish, G-R4-11)
@@ -586,7 +659,7 @@ def pl23_text(sh, s, x, y, size, colour, bold=False, align="L", group=None, name
         sh.text(s, x, y, size, colour, bold=bold, align=align, halo=halo, name=name, allow=allow, role=role)
         return None
     b = sh.tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, colour, allow, group, emit=False)
-    sh.items.append(("text", s, x, y, size, colour, bold, align, halo))
+    sh.items.append(("text", s, x, y, size, colour, bold, align, halo, role))   # round 5: role kept (04_items)
     return b
 
 
@@ -610,66 +683,6 @@ def pl23_asc_desc(size):
     """(ascender, descender) mm at size mm over both weights (descender negative): the line box every entry keeps"""
     a = [fm_asc_desc(size / PT, b) for b in (False, True)]
     return max(v[0] for v in a), min(v[1] for v in a)
-
-
-def pl23_runs(sh, x, y, runs, size, colour):
-    """v38: one line of text in runs [(text, bold)] (the bold keyword inside a line, G5), one group; returns its end x"""
-    g = sh.tp._group() if sh.tp is not None else None
-    for t, bd in runs:
-        if t:
-            pl23_text(sh, t, x, y, size, colour, bold=bd, group=g)
-            x += text_w(t, size, bd)
-    return x
-
-
-def pl23_legend(sh, groups, x0, x1, y_top, ncols, warn):
-    """v38 (G-R4-1, P21.4): the legend in ncols columns from x0 to x1, top down from y_top: each group a bold head,
-    then its drawn samples with plain names (only what the page draws, 7 pt); a name too long for its column wraps
-    onto a second row (no widow); a head never ends a column. Row pitch = the font's line box + the placer's pad, so
-    no two rows touch. The block is kept (kind "legend") so no label of the page may enter it. Returns the y under it."""
-    sz = KEY_MIN
-    asc, desc = pl23_asc_desc(sz)
-    pitch = asc - desc + 0.75
-    cw = (x1 - x0) / float(ncols)
-    tw = cw - 7.5 - 0.8
-    rows = []                                             # (lines, sample or None for a head)
-    for head, items in groups:
-        if items:
-            rows.append(([head], None))
-            rows += [(pl23_wrap(nm, tw, sz, False, warn), f) for nm, f in items]
-    if not rows:
-        return y_top
-    slots = sum(len(L) for L, _f in rows)
-    cols = []
-    for R in range(int(math.ceil(slots / float(ncols))), slots + 2):
-        cols, cur, n = [], [], 0
-        for r_ in rows:
-            h = len(r_[0])
-            if cur and (n + h > R or (r_[1] is None and n + h >= R)):
-                cols.append(cur)
-                cur, n = [], 0
-            cur.append(r_)
-            n += h
-        cols.append(cur)
-        if len(cols) <= ncols:
-            break
-    y_low = y_top
-    for c, col in enumerate(cols):
-        cx = x0 + c * cw
-        j = 0
-        for L, f in col:
-            base = y_top - asc - j * pitch
-            g_ = sh.tp._group()
-            if f is None:
-                pl23_text(sh, L[0], cx, base, sz, COL["ink_dark"], bold=True, group=g_, allow=("legend",))
-            else:
-                f(sh, cx, base - 0.3, 6.0, 2.2)
-                for i_, t_ in enumerate(L):
-                    pl23_text(sh, t_, cx + 7.5, base - i_ * pitch, sz, COL["ink"], group=g_, allow=("legend",))
-            j += len(L)
-        y_low = min(y_low, y_top - asc - (j - 1) * pitch + desc)
-    sh.keep((x0, y_low, x1, y_top), "legend", u"legend")
-    return y_low
 
 
 # ---------------------------------------------------------------- P23: markers, list, sources
@@ -813,36 +826,6 @@ def pl23_row_T(C, row, k, x0=0.0, y0=0.0):
     return T, mine
 
 
-def pl23_marks(sh, C, x0, y0, scale, runs):
-    """the row under a map row, from (x0, y0) up: v38 (G-R4-9) the north arrow of keymap.north_items (only the arrow
-    and "N", no plate; survey +Y turned with the plan) drawn with basemap_draw and kept as an obstacle, the scale bar
-    beside it (SCRIPT_STANDARD §8) and a short note in runs [(text, bold)]"""
-    V = C.V
-    nu, nv = V.uv((V.cx, V.cy + 1.0))
-    L = math.hypot(nu, nv) or 1.0
-    ang = math.atan2(-nu / L, nv / L)                    # north's turn from page-up, counter-clockwise
-
-    def fill(rings, hx, a, nz):
-        sh.poly(rings, fill=hx)
-        for R in rings:
-            sh.keep(R, "north", u"north arrow")
-
-    def line(pts, hx, w, dash, a):
-        sh.line(pts, hx, w, list(dash) if dash else None)
-        sh.keep(pts, "north", u"north arrow", line=True)
-
-    def text(s_, xy, size, hx, bold, align):            # "MC" = (x, y) the middle of the ink: to a baseline point
-        ix0, iy0, ix1, iy1 = fm_ink_box(s_, size / PT, bool(bold))
-        pl23_text(sh, s_, xy[0] - (ix0 + ix1) / 2.0, xy[1] - (iy0 + iy1) / 2.0, size, hx, bold=bool(bold),
-                  allow=("north",), name=u"north arrow")
-    basemap_draw(north_items(x0 + 8.0, y0 + 0.4, ang, 6.0, COL["ink_dark"]), lambda p: p, fill, line, text)
-    mk = PL23_MARKS.get(scale, PL28_MARKS)
-    xb = x0 + 17.0
-    scale_bar(sh, xb, y0 + 2.0, scale, mk)
-    xs = xb + mk[-1] * 1000.0 / scale + 6.0 + text_w(u"1:{:,.0f}".format(scale), 3.4, True) + 6.0
-    pl23_runs(sh, xs, y0 + 2.0, runs, KEY_MIN, COL["ink2"])
-
-
 # ---------------------------------------------------------------- v38 (round 4, G-R4-7, P21.2): markers
 def pl23_mk_tables(C):
     """v38 (P21.2): the element colours the markers read (mk_register), from the colours the page draws them with:
@@ -902,6 +885,7 @@ def pl23_markers(sh, C, rws, warn):
     letter groups [dict(letter, design, place, reason, colour, regions, n_map)])."""
     tp = sh.tp
     ents, vl = [], []
+    C.pl23_mk_at = {}                                     # glyph -> [(row, x, y page mm)] of its markers
     row_of = lambda p: next((i for i, r_ in enumerate(rws) if r_[1](p)), None)
     for nt in sorted(C.notes, key=lambda nt_: nt_["n"]):
         nm, line = pl28_note_entry(C, nt)
@@ -921,6 +905,7 @@ def pl23_markers(sh, C, rws, warn):
             if spot is None:
                 continue
             mp_marker(sh, spot[0], spot[1], s, col, PL23_MK_PT)
+            C.pl23_mk_at.setdefault(s, []).append((i, spot[0], spot[1]))   # round 5: the lists' anchors
             seen.append((i, x, y))
             ent[4] = True
             if nt["key"][0] == "kept":                    # an edge kept: one badge
@@ -949,180 +934,9 @@ def pl23_markers(sh, C, rws, warn):
                         u"outline is drawn, the side list names the kind".format(v["place"], r_["ha"], v["letter"]))
             continue
         mp_marker(sh, spot[0], spot[1], v["letter"], v["colour"], PL23_MK_PT)
+        C.pl23_mk_at.setdefault(v["letter"], []).append((i, spot[0], spot[1]))
         v["n_map"] += 1
     return ents, vl
-
-
-# ---------------------------------------------------------------- v38 (round 4, P21.6): hub names
-def pl23_fit(tp, text, anchor, pt, bold, d, bounds):
-    """the TextPage positions (E, NE, N … in reading order) of text round anchor at distance d whose box stays
-    inside bounds, as (dx, dy, align) for TextPage.place"""
-    out = []
-    for c in TP_POSITIONS:
-        x, y, al = tp._at(c, text, anchor, pt, bold, d)
-        b = tp._box(text, x, y, pt, bold, al, 0.0)
-        if bounds[0] <= b[0] and b[2] <= bounds[2] and bounds[1] <= b[1] and b[3] <= bounds[3]:
-            out.append((x - anchor[0], y - anchor[1], al))
-    return out
-
-
-def pl23_names(sh, C, rws, warn):
-    """v38 (round 4, P21.6, D10): the hub names placed by the page's TextPage (TextPage.place), never "not placed":
-    each in its row, beside its pictogram (bold, white halo), tried at PL23_NAME_PT[0] on rings PL23_NAME_RINGS
-    further and further out, then at the smaller PL23_NAME_PT[1] on the same rings, then as a number on the hub
-    (ring marker in the hub's colour) with a row in the side list (TpSideList, numbered in reading order). A hub
-    outside the study area has no symbol: its name only as a plain base place name (PL23_BASE_NAME_PT, base tone);
-    with no room it is left out WITH a warning (base names are context). Returns the side-list rows [(n, text,
-    colour)]."""
-    tp = sh.tp
-    sl = TpSideList(u"p21 hub names")
-    drawn, n_alt, n_base = [], 0, 0
-    cols = {}
-    for i, r_ in enumerate(rws):
-        bounds = r_[2]
-        for s in r_[3]:
-            anchor = tuple(s["xy"])
-            if not s["study"]:                            # P21.5: a base place name, no hub
-                it = None
-                for ring in PL23_NAME_RINGS:
-                    pos = pl23_fit(tp, s["text"], anchor, PL23_BASE_NAME_PT, False, ring + 0.8, bounds)
-                    if not pos:
-                        continue
-                    try:
-                        it = tp.place(s["text"], anchor, positions=pos, pt=PL23_BASE_NAME_PT, colour=BM_MUTED["name"],
-                                      name=u"base name " + s["id"], role="base_name")
-                        break
-                    except TextCollision:
-                        continue
-                if it is None:
-                    warn.append(u"masterplan p21: {} lies outside the study area (no hub drawn) and its base name has "
-                                u"no free spot: left out".format(s["text"]))
-                else:
-                    drawn.append((it, BM_MUTED["name"], None))
-                    n_base += 1
-                continue
-            col = mk_colour("hub", s["id"])
-            it = None
-            for j, pt in enumerate(PL23_NAME_PT):
-                for ring in PL23_NAME_RINGS:
-                    pos = pl23_fit(tp, s["text"], anchor, pt, True, s["r"] + ring + 0.8, bounds)
-                    if not pos:
-                        continue
-                    try:
-                        it = tp.place(s["text"], anchor, positions=pos, pt=pt, bold=True, colour=COL["ink_dark"],
-                                      name=u"hub name " + s["id"])
-                        break
-                    except TextCollision:
-                        continue
-                if it is not None:
-                    n_alt += 1 if j else 0
-                    break
-            if it is None:                                # the number + side-list row (TextPage's own fallback), on
-                at = pl23_mk_spot(tp, anchor[0], anchor[1], pl23_mk_r(u"88") + 0.4, bounds) or anchor   # a free spot
-                it = tp.place(s["text"], at, positions=(), pt=PL23_NAME_PT[-1], bold=True, side_list=sl,   # by the hub
-                              colour=col, name=u"hub name " + s["id"], allow=(u"hub_icon " + s["id"],))
-                cols[id(it)] = col
-            drawn.append((it, COL["ink_dark"], COL["white"]))
-    rows = sl.close(tp) if sl.entries else []
-    for it, col, halo in drawn:
-        if it.get("role") == "number":                   # a ring marker round the number, kept, in the hub's colour
-            col = cols.get(id(it), col)
-            b = it["box"]
-            cx, cy = (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0
-            r = 0.5 * math.hypot(b[2] - b[0], b[3] - b[1]) + MK_MARGIN_MM
-            R = [(cx + r * math.cos(math.pi * q / 16.0), cy + r * math.sin(math.pi * q / 16.0)) for q in range(32)]
-            sh.poly([R], fill=COL["white"], stroke=col, lw=0.3)
-            sh.keep(R, "marker", u"hub number " + it["text"])
-            halo = None
-        sh.items.append(("text", it["text"], it["x"], it["y"], it["size_mm"], col, it["bold"], it["align"], halo))
-    TP_LOG.append(u"p21 hub names: {} placed ({} at {:.0f} pt), {} numbered in the side list, {} base names".format(
-        len(drawn) - len(rows) - n_base, n_alt, PL23_NAME_PT[-1], len(rows), n_base))
-    out = []
-    for n, t in rows:
-        e = next(e_ for e_ in sl.entries if e_["n"] == n)
-        out.append((n, t, cols.get(id(e["item"]), COL["ink_dark"])))
-    return out
-
-
-# ---------------------------------------------------------------- v38 (round 4, P21.4, P21.7, P22.8): side column
-PL23_LIST_COLS = 2           # v37: the side lists (moves, designed places) in this many columns
-PL23_LIST_GAP = 3.0          # mm between the list columns
-PL23_LIST_TS = KEY_MIN       # v38 (P21.4): the lists' names and reasons at 7 pt (names were 7.5 pt)
-
-
-def pl23_head(sh, s, x, y_top, w):
-    """a list's head (bold, ink2) over a hairline, from y_top down; returns the y under it"""
-    asc, desc = pl23_asc_desc(PL28_HEAD_TS)
-    b = y_top - asc
-    pl23_text(sh, s, x, b, PL28_HEAD_TS, COL["ink2"], bold=True)
-    yl = b + desc - 0.5
-    sh.line([(x, yl), (x + w, yl)], COL["ink2"], 0.2, alpha=0.5)
-    return yl - 0.8
-
-
-def pl23_list(sh, x0, x1, y_top, head, es, ncol, warn):
-    """v38 (G-R4-1, G-R4-2, P22.8): a list under its head, flowed column by column into ncol columns: each entry its
-    marker (mp_marker, the colour of what it names; "ring" style for the hub numbers) and its rows [(text, bold,
-    colour)] wrapped with no widow, all lines of one entry in one text group; entries PL23_ENTRY_GAP apart beyond the
-    font's line box, so no two entries touch. es = [dict(mk=(glyph, colour[, style]), rows=[...])]. Returns the y
-    under the lowest column."""
-    y = pl23_head(sh, head, x0, y_top, x1 - x0)
-    colw = (x1 - x0 - PL23_LIST_GAP * (ncol - 1)) / float(ncol)
-    R = max(pl23_mk_r(e["mk"][0]) for e in es)
-    tx = 2.0 * R + 1.2
-    sz = PL23_LIST_TS
-    asc, desc = pl23_asc_desc(sz)
-    lead = sz * 1.18
-    items = []
-    for e in es:
-        lines = []
-        for t, bd, cl in e["rows"]:
-            if t:
-                lines += [(s_, bd, cl) for s_ in pl23_wrap(t, colw - tx, sz, bd, warn)]
-        h = max(asc + (len(lines) - 1) * lead - desc, 2.0 * R) + PL23_ENTRY_GAP
-        items.append((e, lines, h))
-    goal = sum(h for _e, _l, h in items) / float(ncol)
-    c, cur, yy, y_low = 0, 0.0, y, y
-    for e, lines, h in items:
-        if cur + h > goal + 0.01 and cur > 0.0 and c < ncol - 1:
-            c, cur, yy = c + 1, 0.0, y
-        x = x0 + c * (colw + PL23_LIST_GAP)
-        mp_marker(sh, x + R, yy - R, e["mk"][0], e["mk"][1], PL23_MK_PT, style=e["mk"][2] if len(e["mk"]) > 2 else
-                  "solid")
-        g = sh.tp._group()
-        by = yy - asc
-        for t, bd, cl in lines:
-            pl23_text(sh, t, x + tx, by, sz, cl, bold=bd, group=g)
-            by -= lead
-        yy -= h
-        cur += h
-        y_low = min(y_low, yy)
-    return y_low
-
-
-def pl23_side(sh, x0, x1, H, used, ents, vl, warn):
-    """v38 (round 4, P21.4, P21.7, P22.8): the side column from x0 to x1, top down: the legend (two columns, only
-    what the page draws, PL23_LEGEND), the moves by number (marker, name, and its reason line under it: P22.8, CHK3_7
-    §7.6), the designed places by letter (marker, place and total ha, its reason once per kind: P21.7). Keywords and
-    short lines, a fact once (G-R4-2). Returns the y under the column (the hub-name side list may follow)."""
-    groups = [(u"BASE MAP", [(nm, f) for key, nm, f in PL23_LEGEND if key in used and key in PL23_BASE_KEYS]),
-              (u"PROPOSED", [(nm, f) for key, nm, f in PL23_LEGEND if key in used and key not in PL23_BASE_KEYS])]
-    y = pl23_legend(sh, groups, x0, x1, H, 2, warn)
-    if ents:
-        es = [dict(mk=(u"%d" % nt["n"], pl23_note_colour(nt)),
-                   rows=[(nm, True, COL["ink"]), (line, False, COL["ink2"])]) for nt, grp, nm, line, ok in ents]
-        y = pl23_list(sh, x0, x1, y - 1.6, u"The moves, by number", es, PL23_LIST_COLS, warn)
-    if vl:
-        es = []
-        for v in vl:
-            ha = u_area(sum(r_["ha"] for r_ in v["regions"]) * 1e4, "ha")
-            es.append(dict(mk=(v["letter"], v["colour"]),
-                           rows=[(u"{} · {}".format(v["place"], ha), True, COL["ink"]), (v["reason"], False, COL["ink2"])]))
-        y = pl23_list(sh, x0, x1, y - 1.6, u"Designed places, by letter", es, PL23_LIST_COLS, warn)
-    if y < 0.0:
-        warn.append(u"masterplan page: the side column runs {:.1f} mm over the crop (legend, moves, designed "
-                    u"places): the text check will name the first text outside".format(-y))
-    return y
 
 
 # v28: the route's legend samples; T7: the stream, the wetland and the trees as the plan draws them (M5 water_plan,
@@ -1154,7 +968,7 @@ def _pl23_sw_reed():
     def f(pg, x, y, w, h):
         R = rect(x, y, x + w, y + h)
         pg.poly([R], fill=WET_COL)
-        pg.poly([R], stripes=(COL["river_dark"], 0.9, 0.12, 90.0))
+        pg.poly([R], fill=PL23_REED_TONE, alpha=PL23_REED_A)   # round 5: solid tone, no stripes (no hatches)
         pg.line(R + R[:1], COL["river_dark"], PL23_LW["outline"])
     return f
 
@@ -1197,8 +1011,6 @@ PL23_LEGEND = [
     ("study", R28_STUDY_NAME, _sw_line(BM_STUDY_LINE["colour"], BM_STUDY_LINE["width_mm"],
                                        list(BM_STUDY_LINE["dash_mm"]))),
     ("tint", u"What we change, footprint", _sw_fill(ML_TINT, alpha=ML_TINT_ALPHA)),
-    ("eco", u"Planting gradient", _sw_grad(ECO_COL)),
-    ("ring", u"Programme at hubs", _sw_grad(HUB_COL)),
     ("widen", u"Widened · wetland, new bank", _pl23_sw_wet()),
     ("reed", u"Reed basins", _pl23_sw_reed()),
     ("arm", u"Planted side arm", _sw_line(COL["river_mid"], PL23_LW["arm"])),   # D2 a: not "reed"
@@ -1229,86 +1041,171 @@ PL23_LEGEND = [
                                            ("view", u"Viewing terrace"), ("deck", u"Deck, archaeology"))]
 
 
-# ---------------------------------------------------------------- the page
-def plan_page(C, warn):
-    """v28 (revision 29 Oct, WO-T4b-2, package H "Page 23"): the masterplan page (crop mp_plan, 392 x 238 mm). The
-    analysis frame in two rows at 1:5,000 (pl23_rows; one 1:10,000 strip when they do not fit), upstream half on top,
-    a dashed match line where the halves meet and its marks row (north arrow, scale bar, flow note). v38 (round 4,
-    S8): one TextPage "p21" for the whole crop (every word registered with its real box; check_text RAISES on any
-    collision, so a page with overlapping text is not written); each row drawn in ONE draw order (draw_corridor ->
-    mp_map_draw: the shared muted base, the D9 tint, the project, the study line); then the markers (pl23_markers),
-    the side column (pl23_side: legend, moves with their reasons, designed places), the hub names (pl23_names, with
-    their numbered side-list rows when a name has no room). Public sources go to the sources page (sh.plan_sources)."""
+# ---------------------------------------------------------------- round 5 (S6, G-R5-12): the page as items
+def _pl23_north_deg(C):
+    """north's turn from the drawing's +y, degrees counter-clockwise (the frame's u, v axes; as pl23_marks drew it)"""
+    V = C.V
+    nu, nv = V.uv((V.cx, V.cy + 1.0))
+    o_u, o_v = V.uv((V.cx, V.cy))
+    nu, nv = nu - o_u, nv - o_v
+    L = math.hypot(nu, nv) or 1.0
+    return round(math.degrees(math.atan2(-nu / L, nv / L)), 2)
+
+
+def _pl23_src_key(t):
+    return u"mp_" + u"".join(c if c.isalnum() else u"_" for c in t.lower())[:40]
+
+
+def p23_items(ix, C, warn):
+    """Round 5 (S6; G-R5-12, addendum 1 Nov 22:37 point 2; BRIEF P23.1-P23.7): the masterplan page (25-page p23, item
+    page MPX_PAGE["p23"]) as items: no sheet, no side column, no scale bar, no north arrow, no burned-in page text.
+    The rows are still drawn by draw_corridor into a recorder Page (rows stacked, PL23_GAP apart) so the markers keep
+    their free-spot search; each row then becomes ONE true-scale drawing (mpx_drawing) in the analysis frame's own
+    metres (x = m from the frame's upstream end, y = m from its foot; north_deg = north's turn from +y,
+    counter-clockwise): "mp_plan_r1" (upstream half) and "mp_plan_r2" (downstream half; one "mp_plan_r1" when only
+    the 1:10,000 strip fits), group "mp_plan". Markers: disc shapes in the drawing, glyph texts role "marker" (badge
+    on its disc). Hub names: labels anchored at the hub (booklet placer). Legend (only what the rows draw), the moves
+    by number and the designed places by letter: ix.legend / ix.list. Public sources: ix.source rows (+ the round 4
+    plan_sources dict under items.json "extra"). Returns log lines."""
+    page = MPX_PAGE["p23"]
+    lines = []
     scale, rows = pl23_rows(C, warn)
     k = 1000.0 / scale
     V = C.V
-    W, H = BK_W, BK_H
     dh = (V.v1 - V.v0) * k
+    rw = [(row["b"] - row["a"]) * k for row in rows]
+    W, H = max(rw), len(rows) * dh + (len(rows) - 1) * PL23_GAP
     sh = Page(W, H)
-    sh.poly([rect(0, 0, W, H)], fill=COL["paper"])
     sh.text_page(u"p21", (0.0, 0.0, W, H), margins=PL23_TP_MARGINS)
     pl23_mk_tables(C)
     pl23_water_groups(C, warn)
     D = basemap_load()
     if not D:
-        warn.append(u"masterplan p21: no base map data (basemap.json of the site board): the plan has no base map "
+        warn.append(u"masterplan p23: no base map data (basemap.json of the site board): the plan has no base map "
                     u"(run the site board once)")
     tint = pl23_tint(C)
-    used, rws, x_side = set(), [], 0.0
+    used, rws, boxes, icon_boxes = set(), [], [], []
     y_top = H
     for i, row in enumerate(rows):
-        dw = (row["b"] - row["a"]) * k
+        dw = rw[i]
         x0, y0 = 0.0, y_top - dh
         T, mine = pl23_row_T(C, row, k)
         base = ml_base(pl23_row_box(C, row), scale, D=D, contours=PL23_CONTOURS) if D else []
         pg = Page(dw, dh)
         u_, specs, icons = draw_corridor(pg, T, k, C, mine, dw, dh, base, tint)
         used |= u_
-        sh.clip([rect(x0, y0, x0 + dw, y0 + dh)])
         blit(sh, pg, x0, y0)
-        sh.unclip()
-        sh.poly([rect(x0, y0, x0 + dw, y0 + dh)], stroke=COL["ink2"], lw=0.25, alpha=0.45)   # the row's edge = the frame
-        sh.tp.block((x0, y0, x0 + dw, y0 + dh), u"map row %d" % (i + 1))
+        ib = []
         for b, nm in icons:                               # the pictograms: no label or marker on them
-            sh.keep((b[0] + x0, b[1] + y0, b[2] + x0, b[3] + y0), "icon", nm)
+            bb = (b[0] + x0, b[1] + y0, b[2] + x0, b[3] + y0)
+            sh.keep(bb, "icon", nm)
+            ib.append(bb)
         Ts, _ = pl23_row_T(C, row, k, x0, y0)
-        if len(rows) > 1:                                 # the match line where the halves meet
+        if len(rows) > 1:                                 # the match line where the halves meet (a label, anchored)
             xm = x0 + ((row["eb"] if i == 0 else row["ea"]) - row["a"]) * k
             sh.line([(xm, y0), (xm, y0 + dh)], COL["ink2"], 0.3, [1.6, 0.8], cap=0)
             t_ = u"match line · continues below" if i == 0 else u"match line · from above"
             tw = text_w(t_, KEY_MIN)
-            tx = xm - 1.2 - tw if i == 0 else xm + 1.2
-            pl23_text(sh, t_, tx, y0 + dh - 3.0, KEY_MIN, COL["ink2"], halo=COL["white"])
-        specs = [dict(s, xy=(s["xy"][0] + x0, s["xy"][1] + y0)) for s in specs]
+            sh.text(t_, xm - 1.2 - tw if i == 0 else xm + 1.2, y0 + dh - 3.0, KEY_MIN, COL["ink2"], role="label")
+        specs = [dict(s_, xy=(s_["xy"][0] + x0, s_["xy"][1] + y0)) for s_ in specs]
         rws.append((Ts, mine, (x0 + PL23_ROW_PAD, y0 + PL23_ROW_PAD, x0 + dw - PL23_ROW_PAD, y0 + dh - PL23_ROW_PAD),
                     specs))
-        if len(rows) > 1:                                 # P21.4: the flow said once
-            runs = [(u"upstream half · flow ", False), (u"left to right", True)] if i == 0 else \
-                [(u"downstream half", True)]
-        else:
-            runs = [(u"flow ", False), (u"left to right", True)]
-        pl23_marks(sh, C, x0, y0 - PL23_MARK_H, scale, runs)
-        x_side = max(x_side, dw)
-        y_top = y0 - PL23_MARK_H - PL23_GAP
-    if y_top + PL23_GAP < -0.5 or x_side > W - PL23_SIDE_MIN:
-        warn.append(u"masterplan page: the map ({:.0f} x {:.0f} mm) runs over the {:.0f} x {:.0f} mm crop".format(
-            x_side, H - y_top - PL23_GAP, W, H))
-    sh.tp.block((x_side + PL23_SIDE_GAP, 0.0, W, H), u"side column")
+        boxes.append((x0, y0, x0 + dw, y0 + dh))
+        icon_boxes.append(ib)
+        y_top = y0 - PL23_GAP
     ents, vl = pl23_markers(sh, C, rws, warn)
     for nt, grp, nm, line, ok in ents:
         if not ok:
             warn.append(u"masterplan move {} has no marker on the map (no free spot on or round its places in the "
-                        u"rows): only in the side list ({})".format(nt["n"], nm))
-    y = pl23_side(sh, x_side + PL23_SIDE_GAP, W - PL23_EDGE_MM, H, used, ents, vl, warn)
-    nrows = pl23_names(sh, C, rws, warn)
-    if nrows:                                             # P21.6: the hub names with no room, by number
-        pl23_list(sh, x_side + PL23_SIDE_GAP, W - PL23_EDGE_MM, y - 1.6, u"Hub names, by number",
-                  [dict(mk=(u"%d" % n, col, "ring"), rows=[(t, True, COL["ink"])]) for n, t, col in nrows],
-                  PL23_LIST_COLS, warn)
-    TP_LOG.append(sh.check_text())                        # G-R4-1: RAISES; v38 closing: logs "overlap p21 ..."
-    sh.crop = (0.0, 0.0, W, H)
-    sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
-    sh.bid = ("mp_plan", "c1_s1", u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower()))
-    sh.plan_sources = pl28_plan_sources(ents, vl)
+                        u"rows): only in the list ({})".format(nt["n"], nm))
+    # ---- the drawings (one per row) and what is anchored on them
+    nd = _pl23_north_deg(C)
+    dids, kk = [], scale / 1000.0                         # kk: drawing m per page mm
+    n_names = 0
+    for i, row in enumerate(rows):
+        b = boxes[i]
+        did = u"mp_plan_r%d" % (i + 1)
+        Dd = mpx_drawing(ix, did, page, sh, b, scale, origin_m=(row["a"], 0.0), dkind="plan", north_deg=nd,
+                         scale_pref=sorted(set([int(scale), int(PL23_SCALE), int(PL23_FALLBACK)])), group=u"mp_plan",
+                         priority=1)
+        dids.append(Dd["id"])
+        to_d = lambda q, b=b, row=row: (row["a"] + (q[0] - b[0]) * kk, (q[1] - b[1]) * kk)
+        for bb in icon_boxes[i]:
+            p0, p1 = to_d(bb[:2]), to_d(bb[2:])
+            ix.keep(Dd, (p0[0], p0[1], p1[0], p1[1]), "icon")
+        for s_ in rws[i][3]:                              # hub names (Turkish, G-R4-11): labels at the hub
+            at = to_d(s_["xy"])
+            if s_["study"]:
+                ix.text(page, s_["text"], "label", drawing=Dd["id"], at=at, size_pt=PL23_NAME_PT[0], bold=True,
+                        colour=COL["ink_dark"], positions=["E", "W", "NE", "NW", "N", "S", "SE", "SW"],
+                        priority=3, group=u"mp_plan")
+            else:                                         # a hub outside the study area: a base place name only
+                ix.text(page, s_["text"], "label", drawing=Dd["id"], at=at, size_pt=PL23_BASE_NAME_PT, bold=False,
+                        colour=BM_MUTED["name"], priority=7, group=u"mp_plan")
+            n_names += 1
+    d1 = dids[0]
+
+    def anchor_of(glyph):
+        for (i, x, y) in C.pl23_mk_at.get(glyph, ()):
+            if i == 0:
+                b = boxes[0]
+                return (rows[0]["a"] + (x - b[0]) * kk, (y - b[1]) * kk)
+        return None
+    # ---- title, caption (P23.1: bigger drawings, less text)
+    ix.text(page, u"Masterplan: an ecological corridor", "title", id=u"mp_plan_title", group=u"mp_plan", priority=1)
+    cap = u"The corridor across the whole {}{}; the stream flows left to right.".format(
+        R28_FRAME_NAME.lower(), u": upstream half on top, downstream half below" if len(rows) > 1 else u"")
+    ix.text(page, cap, "caption", id=u"mp_plan_caption", group=u"mp_plan")
+    # ---- the legend: only what the rows draw (base first), species rows added for any drawn tree not listed
+    keys = [key for key, _nm, _f in PL23_LEGEND]
+    ent = [(mpx_sw(f), nm) for key, nm, f in PL23_LEGEND if key in used and key in PL23_BASE_KEYS]
+    ent += [(mpx_sw(f), nm) for key, nm, f in PL23_LEGEND if key in used and key not in PL23_BASE_KEYS]
+    for key in sorted(used):
+        if key not in keys and (key.startswith("tree_") or key.startswith("dg_tree_") or key.startswith("shrub_")):
+            sp = key.split("_", 1)[1] if not key.startswith("dg_tree_") else key[len("dg_tree_"):]
+            if sp in PLA_SPECIES:
+                ent.append((mpx_sw(_pl23_sw_plant(sp, 1.6 if key.startswith("shrub_") else 2.2)), _PL23_SP(sp)))
+    ix.legend(page, d1, ent, id=u"mp_plan_legend", group=u"mp_plan")
+    # ---- the moves by number (name · its reason line, P22.8) and the designed places by letter (P21.7)
+    if ents:
+        ns = [nt["n"] for nt, _g, _nm, _l, _ok in ents]
+        numbered = ns == list(range(1, len(ns) + 1))
+        texts = [(u"" if numbered else u"%d " % nt["n"]) + nm + (u" · " + line if line else u"")
+                 for nt, _g, nm, line, _ok in ents]
+        ix.text(page, u"The moves, by number", "heading", id=u"mp_plan_moves_head", group=u"mp_plan", priority=3)
+        ix.list(page, d1, texts, numbered=numbered, anchors=[anchor_of(u"%d" % nt["n"]) for nt, _g, _n, _l, _o in ents],
+                id=u"mp_plan_moves", group=u"mp_plan")
+    if vl:
+        texts = [u"{} · {} · {} · {}".format(v["letter"], v["place"], u_area(sum(r_["ha"] for r_ in v["regions"]) * 1e4,
+                                                                           "ha"), v["reason"]) for v in vl]
+        ix.text(page, u"Designed places, by letter", "heading", id=u"mp_plan_places_head", group=u"mp_plan",
+                priority=3)
+        ix.list(page, d1, texts, numbered=False, anchors=[anchor_of(v["letter"]) for v in vl], id=u"mp_plan_places",
+                group=u"mp_plan")
+    # ---- sources (public only, as round 4's plan_sources)
+    ps = pl28_plan_sources(ents, vl)
+    seen = set()
+    for m_ in ps["markers"]:
+        for s_ in m_["sources"]:
+            if s_["text"] not in seen:
+                seen.add(s_["text"])
+                ix.source(_pl23_src_key(s_["text"]), s_["text"], None, page=page)
+    for v in ps["left_as_is"]:
+        for t in v["sources"]:
+            if t not in seen:
+                seen.add(t)
+                ix.source(_pl23_src_key(t), t, None, page=page)
+    ix.d.setdefault("extra", {})["plan_sources"] = ps
+    if getattr(C, "pl23_dg_err", None):
+        warn.append(u"masterplan p23: Demeter's Garden design not drawn ({}): the zone-base field is drawn".format(
+            C.pl23_dg_err))
+    elif pl23_dg(C) is None:
+        lines.append(u"FLAG p23 Demeter's Garden: no dg_design (parts/02g_demeter.py) or no outline: the zone-base "
+                     u"field is drawn")
     C.ni_placed = sum(1 for r_ in C.nogo if r_.get("placed"))
-    return sh
+    MPX_PAGES.append(("A", "p23", sh))
+    n_on = sum(1 for e in ents if e[4])
+    lines.append(u"p23 (items {}): {} row(s) at 1:{:,.0f}; moves {} ({} on the map); designed places {} kinds, {} of "
+                 u"{} drawn; hub names {}; legend rows {}; eco / hub-ring fields 0 (N5)".format(
+                     page, len(rows), scale, len(ents), n_on, len(vl), C.ni_placed, len(C.nogo), n_names, len(ent)))
+    return lines

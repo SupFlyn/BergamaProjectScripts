@@ -3,6 +3,8 @@
 # ground a shade darker than the page with a fine ink line, water hatched in blue from the bed to its surface, the
 # channel above it in a pale wash, whole trees and plants at their stated size. One scale for x and y (Aras 22:02:
 # "not stretch anything ever"). Pure geometry: each helper returns shapes, the script's sec_put() draws them.
+# Round 5 (S3, section kit v2, G-R5-4.1/4.2): every cut material and the water ONE flat colour (SCT, SCT_WATER), the
+# soil in lighter layers going down (SCT_SOIL), no hatch pattern drawn by any function here.
 #   ("poly", ring, fill, stroke, lw)    ("line", pts, colour, lw)          page mm, y up
 
 
@@ -62,14 +64,19 @@ def sec_ellipse(cx, cy, rx, ry, n=28):
 
 
 def sec_water(ring, spacing=0.6, lw=0.1):
-    """A water body (ring, page mm): channel blue, 45-degree blue hatch, the water line on top (as draw_stream)."""
-    sh = [("poly", ring, SEC["channel"], None, 0.1)]
-    sh += [("line", [p, q], SEC["hatch"], lw) for p, q in sec_hatch(ring, spacing)]
+    """A water body (ring, page mm). Round 5 (S3, G-R5-4.1, PLAN §3): ONE flat colour SCT_WATER["body"] and the
+    surface line SCT_WATER["surface"] on top; no hatch (spacing / lw kept so old calls run, unused)."""
+    sh = [("poly", ring, SCT_WATER["body"], None, 0.0)]
     top = max(p[1] for p in ring)
     xs = [p[0] for p in ring if abs(p[1] - top) < 1e-6]
     if len(xs) >= 2:
-        sh.append(("line", [(min(xs), top), (max(xs), top)], SEC["hatch"], 0.3))
+        sh.append(("line", [(min(xs), top), (max(xs), top)], SCT_WATER["surface"], SCT_WATER["surface_lw"]))
     return sh
+
+
+# Round 5 (S3, G-R5-4.1, PLAN §3 "Section materials"): design values, solid colours only. Q100 / Q500 lines in the
+# surface colour, dashed (water.py reads these).
+SCT_WATER = dict(body="A2B6B5", surface="5C7A86", surface_lw=0.25, flood="5C7A86")
 
 
 # ---- section parts (WO-T2b-3, 29 Oct 2026; section_style.py now includes this file): the river bank as it is at the
@@ -79,13 +86,29 @@ def sec_water(ring, spacing=0.6, lw=0.1):
 
 SCT_DSI_WALL_H_M = 5.00   # revision_2026-10-29/T1/levels/RESULT.md line 18: "DSİ stone walls at bed + 5.00 m" (Aras 28 Oct)
 
-# material fills (palette v1.4, palette/bergama_palette.py; lines in the section_style inks)
-SCT = dict(stone=_sec_mix("B0AC9C", "EFEDE6", 0.35),   # CORE structure toward CORE paper
-           concrete="D8D5CC",                         # CORE faint
-           earth=SEC["soil"],                         # section_style cut ground
-           gravel="CFCCC5",                           # CORE street
-           line=SEC["ink2"],                          # VARIANTS 0.0 ink2: hatch lines
-           cut=SEC["ink"])                            # CORE ink: the cut line
+# material fills. Round 5 (S3, G-R5-4.1, U23-U25 "dont have hatches in the sections just give proper colours to the
+# things that we cut"): every cut material ONE flat true colour (PLAN §3 design values); no hatch pattern anywhere.
+# Material key = colour swatches (sct_material_key).
+SCT = dict(stone="A4A1A3",                            # stone / masonry
+           concrete="D5D3CE",                         # concrete / deck
+           earth="C2A383",                            # = SCT_SOIL top layer (G-R5-4.2)
+           gravel="B9B6AC",                           # gravel bed
+           timber="9C8466",                           # timber deck
+           line=SEC["ink2"],                          # joint lines (insets at 1:100-1:250 only, G-R5-5)
+           cut=SEC["ink"])                            # the cut line
+SCT_NAMES = dict(stone=u"Stone, masonry", concrete=u"Concrete", earth=u"Earth", gravel=u"Gravel bed",
+                 timber=u"Timber deck", water=u"Water")
+SCT_LOG = dict(solid=0, detail=0)                     # cut rings drawn flat / with inset joint detail this run
+
+
+def sct_material_key(materials=("earth", "stone", "concrete", "gravel", "timber", "water")):
+    """the material key of a section as colour swatches (G-R5-4.1: the hatch legend becomes a colour key):
+    [(swatch dict for item_export Ix.legend, name)]"""
+    out = []
+    for m in materials:
+        col = SCT_WATER["body"] if m == "water" else SCT[m]
+        out.append((dict(kind="fill", colour=col, stroke=None), SCT_NAMES.get(m, m)))
+    return out
 
 
 def _sct_rnd(i, j):
@@ -133,111 +156,87 @@ def _sct_clip(ring, p, q):
     return out
 
 
+SCT_DETAIL_K = 4.0                    # page mm per m from which a ring gets real joints: 1:250 and larger (G-R5-5 insets)
+SCT_COURSE_M = 0.50                   # stone course height (drawing rule, as water.py water_axo course_m; not surveyed)
+SCT_BOARD_M = 0.14                    # deck board width (drawing rule, as sf_lane timber; not surveyed)
+
+
 def sct_hatch_fill(ring, material, k, outline=None, lw=0.25, fill=True, hatch_lw=None):
-    """A cut ring (page mm) in its material's fill and standard hatch: stone, concrete, earth, gravel or water.
-    fill=False: the hatch only (sct_ground lays the soil gradient under it); hatch_lw: the earth hatch's line width
-    (page mm; default 0.07)."""
-    import math as _m
+    """A cut ring (page mm) in its material: stone, concrete, earth, gravel, timber or water. Round 5 (S3, G-R5-4.1):
+    ONE flat colour (SCT), no hatch pattern; the name stays so every caller gets solid colours unchanged. At
+    1:250 and larger (k >= SCT_DETAIL_K, the zoom insets, G-R5-5) stone shows its courses and timber its boards as
+    real joints at drawing-rule sizes (SCT_COURSE_M, SCT_BOARD_M): construction lines, not a hatch. fill=False:
+    nothing but the outline (the soil gradient under it is the fill). hatch_lw: kept for old calls, unused."""
     if material == "water":
         return sec_water(ring)
-    if material not in ("stone", "concrete", "earth", "gravel"):
+    if material not in SCT or material in ("line", "cut"):
         raise ValueError("sct_hatch_fill: unknown material %r" % material)
-    g = max(0.7, min(1.4, k / 5.0))           # patterns are page-mm conventions (1:200 size), eased with k; no real sizes
-    ln = SCT["line"]
-    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
-    sh = [("poly", ring, SCT[material], None, 0.1)] if fill else []
-    if material == "stone":                   # coursed masonry: bed joints and staggered head joints
-        c = 1.4 * g
-        for p, q in sec_hatch(ring, c, 0.0):
-            sh.append(("line", [p, q], ln, 0.08))
-        j = int(_m.floor(min(ys) / c))
-        while j * c < max(ys):
-            i = int(_m.floor(min(xs) / (2 * c))) - 1
-            while (2 * i + (j % 2)) * c <= max(xs):
-                x = (2 * i + (j % 2)) * c
-                for a, b in _sct_clip(ring, (x, j * c), (x, (j + 1) * c)):
-                    sh.append(("line", [a, b], ln, 0.08))
-                i += 1
-            j += 1
-    elif material == "concrete":              # aggregate: dots and small open triangles
-        d = 1.1 * g
-        for i in range(int(_m.floor(min(xs) / d)), int(_m.floor(max(xs) / d)) + 1):
-            for j in range(int(_m.floor(min(ys) / d)), int(_m.floor(max(ys) / d)) + 1):
-                px, py = (i + _sct_rnd(i, j)) * d, (j + _sct_rnd(j, i + 7)) * d
-                if not _sct_inside(ring, (px, py)):
-                    continue
-                if (i + j) % 3 == 0 and globals().get("SF_TRI", {}).get("aggregate", True):   # R2-A: sf_triangles
-                    s, a = 0.28 * g, _sct_rnd(i + 3, j) * 6.283
-                    tri = [(px + s * _m.cos(a + t * 2.094), py + s * _m.sin(a + t * 2.094)) for t in range(3)]
-                    sh.append(("line", tri + [tri[0]], ln, 0.07))
-                else:
-                    sh.append(("poly", sec_ellipse(px, py, 0.09 * g, 0.09 * g, 6), ln, None, 0.1))
-    elif material == "earth":                 # earth: broken 45-degree hatch
-        dash, gap = 0.9 * g, 0.55 * g
-        for p, q in sec_hatch(ring, 1.3 * g, 45.0):
-            L = _m.hypot(q[0] - p[0], q[1] - p[1])
-            if L < 1e-6:
-                continue
-            ux, uy = (q[0] - p[0]) / L, (q[1] - p[1]) / L
-            s = 0.0
-            while s < L:
-                e = min(L, s + dash)
-                sh.append(("line", [(p[0] + ux * s, p[1] + uy * s), (p[0] + ux * e, p[1] + uy * e)], ln,
-                           hatch_lw or 0.07))
-                s = e + gap
-    else:                                     # gravel: small rounded stones, open
-        d = 0.9 * g
-        for i in range(int(_m.floor(min(xs) / d)), int(_m.floor(max(xs) / d)) + 1):
-            for j in range(int(_m.floor(min(ys) / d)), int(_m.floor(max(ys) / d)) + 1):
-                px, py = (i + 0.2 + 0.6 * _sct_rnd(i, j)) * d, (j + 0.2 + 0.6 * _sct_rnd(j, i + 3)) * d
-                r = (0.14 + 0.16 * _sct_rnd(i + 5, j + 1)) * g
-                if _sct_inside(ring, (px, py)):
-                    sh.append(("poly", sec_ellipse(px, py, r, r * 0.8, 8), None, ln, 0.06))
+    sh = [("poly", ring, SCT[material], None, 0.0)] if fill else []
+    SCT_LOG["solid"] += 1
+    if fill and k >= SCT_DETAIL_K and material in ("stone", "timber"):
+        SCT_LOG["detail"] += 1
+        ln = _sec_mix(SCT[material], SEC["ink"], 0.35)
+        if material == "stone":                   # bed joints every course, head joints staggered (real size)
+            c = SCT_COURSE_M * k
+            for p, q in sec_hatch(ring, c, 0.0):
+                sh.append(("line", [p, q], ln, 0.06))
+            ys = [p[1] for p in ring]
+            xs = [p[0] for p in ring]
+            import math as _m
+            j = int(_m.floor(min(ys) / c))
+            while j * c < max(ys):
+                x = min(xs) + (0.5 * c if j % 2 else 0.0) + 1.6 * c
+                while x < max(xs):
+                    for a_, b_ in _sct_clip(ring, (x, j * c), (x, (j + 1) * c)):
+                        sh.append(("line", [a_, b_], ln, 0.05))
+                    x += 1.6 * c                  # stone length 0.80 m (drawing rule)
+                j += 1
+        else:                                     # deck boards: vertical joints SCT_BOARD_M apart
+            for p, q in sec_hatch(ring, SCT_BOARD_M * k, 90.0):
+                sh.append(("line", [p, q], ln, 0.04))
     if outline:
         sh.append(("poly", ring, None, outline, lw))
     return sh
 
 
-# G15 soil (round 3, PLAN.md §2 "Soil"): drawing rules, not measured soil data. A topsoil band SCT_SOIL["top_m"]
-# thick (drawn at the section's scale) in the dark brown at the surface, then SCT_SOIL["steps"] bands following the
-# surface down to the cut bottom, lightening step by step to the pale subsoil; the broken earth hatch on top at
-# 0.15 pt (0.053 mm).
-SCT_SOIL = dict(top="5A4632", bottom="C9BBA2", top_m=0.30, steps=5, hatch_lw=0.053)
+# Soil v2 (round 5, S3, G-R5-4.2, U34/U36/U40/U56/U61/U65: "the top layer a lighter brown, each deeper layer lighter
+# still; the layering logic stays"): drawing rules, not measured soil data. A topsoil band SCT_SOIL["top_m"] thick
+# in layers[0] at the surface, then the other layers in equal bands following the surface down to the cut bottom,
+# each lighter (PLAN §3 values). No hatch over the soil (G-R5-4.1). top / bottom / steps / hatch_lw kept for old reads.
+SCT_SOIL = dict(layers=("C2A383", "D0B699", "DDC9B0", "E9DDCB"), top="C2A383", bottom="E9DDCB", top_m=0.30, steps=3,
+                hatch_lw=0.053)
 
 
 def sct_soil_gradient(surface, bottom_y, k):
-    """G15 soil under a surface polyline (page mm, left to right) down to bottom_y: the topsoil band (SCT_SOIL top_m
-    x k deep under every point of the surface) then SCT_SOIL steps bands, each parallel to the surface, from the
-    topsoil colour to the subsoil colour at bottom_y. Opaque fills only, no strokes. Returns shapes."""
+    """G-R5-4.2 soil under a surface polyline (page mm, left to right) down to bottom_y: the topsoil band (SCT_SOIL
+    top_m x k deep under every point of the surface) in layers[0], then one band per further layer, each parallel to
+    the surface, lighter going down, the last reaching bottom_y. Opaque fills only, no strokes. Returns shapes."""
     S = [(float(x), float(y)) for x, y in surface]
     if len(S) < 2:
         return []
     t = SCT_SOIL["top_m"] * k
-    n = int(SCT_SOIL["steps"])
+    cols = list(SCT_SOIL["layers"])
+    n = len(cols) - 1
     b = float(bottom_y)
 
     def depth_at(y, f):                       # f = 0 at the topsoil's underside .. 1 at the cut bottom
         top = max(b, y - t)
         return top - (top - b) * f
 
-    sh = [("poly", [(x, y) for x, y in S] + [(x, max(b, y - t)) for x, y in reversed(S)], SCT_SOIL["top"], None,
-           0.0)]
+    sh = [("poly", [(x, y) for x, y in S] + [(x, max(b, y - t)) for x, y in reversed(S)], cols[0], None, 0.0)]
     for i in range(n):
         fa, fb = i / float(n), (i + 1) / float(n)
-        col = _sec_mix(SCT_SOIL["top"], SCT_SOIL["bottom"], (i + 1) / float(n))
         ring = [(x, depth_at(y, fa)) for x, y in S] + [(x, depth_at(y, fb)) for x, y in reversed(S)]
-        sh.append(("poly", ring, col, None, 0.0))
+        sh.append(("poly", ring, cols[i + 1], None, 0.0))
     return sh
 
 
 def sct_ground(surface, bottom_y, k, material="earth", lw=0.35):
-    """Cut ground under a surface polyline (page mm, left to right) down to bottom_y: hatch and the cut line.
-    material "earth": the G15 soil gradient (sct_soil_gradient) under the broken hatch (round 3, every section)."""
+    """Cut ground under a surface polyline (page mm, left to right) down to bottom_y: its solid material and the cut
+    line. material "earth": the soil v2 layers (sct_soil_gradient, G-R5-4.2), no hatch (round 5)."""
     ring = list(surface) + [(surface[-1][0], bottom_y), (surface[0][0], bottom_y)]
     if material == "earth":
-        return (sct_soil_gradient(surface, bottom_y, k) +
-                sct_hatch_fill(ring, material, k, fill=False, hatch_lw=SCT_SOIL["hatch_lw"]) +
-                [("line", list(surface), SCT["cut"], lw)])
+        return sct_soil_gradient(surface, bottom_y, k) + [("line", list(surface), SCT["cut"], lw)]
     return sct_hatch_fill(ring, material, k) + [("line", list(surface), SCT["cut"], lw)]
 
 

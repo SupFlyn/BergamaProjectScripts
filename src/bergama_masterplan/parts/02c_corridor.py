@@ -58,8 +58,7 @@ VOID_RULES = {
     "lanes": (u"Shaded lanes", u"homes stay: trees on the lanes that lead to the water"),
     "heritage": (u"Heritage setting", u"kept as it is: the setting of the heritage buildings"),
 }
-VOID_LANE_STEP = 12.0        # lane trees every this many m along a surveyed kerb (design value)
-VOID_SHRUB_STEP = 9.0        # pocket-garden shrub groups every this many m (design value)
+VOID_LANE_GAP = (9.0, 21.0)  # round 5 (CHK-5 d): lane trees on a kerb this many m apart, drawn at random (design value)
 # v26 (Prompt 7 task 3): the satellite check of the open ground. No imagery could be opened from the cloud where
 # this version was written (Esri, Google, EOX and Sentinel Hub refused, 27 Oct 2026), so it is still to do: each
 # press writes the open ground's outlines to logs/bergama_masterplan_open_ground_check.kml for Google Earth (and by
@@ -75,7 +74,8 @@ LAB_TS = 2.6                 # labels on the 1:1,000 windows, mm
 BADGE_R, BADGE_TS = 1.95, 2.5
 DT_PLAN = (194.0, 118.0)     # p.24 windows, mm at 1:1,000: one row, 194 + 4 + 194 = 392 mm (bk_w); v38 (round 4,
 #                              P22.1): 118 mm high, so title strip + plan + section + legend fill the 236 mm column
-ECO_COL, HUB_COL = "6F8A4E", "D9A35E"        # palette "tree" family darkened / "centre" family (graphic)
+ECO_COL, HUB_COL = pla_green("tree"), "D9A35E"   # round 5 (A1): the greenery tone from the plant module / "centre"
+#   family (graphic). Round 5 (N5 a): p23 no longer draws the eco / hub-ring fields (distance bands, not zones).
 WATER_COL, WET_COL = COL["river"], "B7CFC8"
 SQ_FILL, SQ_EDGE = "F4E6CC", "9C7440"
 ROAD_CHANGE_COL = {"calmed": "B5832F", "pedestrian": "8B3A3F", "shared": "7F5B7B", "kept": "847E75",
@@ -807,13 +807,18 @@ class Corridor(object):
     def void_design(self, reg):
         """v38 (round 4, P21.7, open row 2; Aras 1 Nov 07:30 "it needs to be designed"; r3 G18): each untouched
         region inside the study area becomes a designed place: a name, a short reason (from its data: survey
-        building kind or ESA WorldCover 2021 class and its distance to the water), its outline (faceted, form rule)
-        and what is planted or placed in it. Only sourced species (D7) and the project's own programme words; the
-        design rules (VOID_RULES) are design readings, not data. Returns dict(design, place, reason, rings, trees,
-        shrubs)."""
+        building kind or ESA WorldCover 2021 class and its distance to the water), its outline and what is planted
+        in it. Only sourced species (D7) and the project's own programme words; the design rules (VOID_RULES) are
+        design readings, not data. Returns dict(design, place, reason, rings, trees, shrubs).
+        Round 5 (S6; G-R5-9, G-R5-7, CHK-5 b/d/e): the outline is ORGANIC (loops(..., True): the cell trace
+        smoothed, no stepped blocks, U61/U62: the "B" and "C" shapes of S25); no grid planting any more: the
+        meadows and gardens are planted on the page by the planting placer (pages/p23_plan.py pl23_void_plants,
+        common/planting.py: copses fading from the corridor, never a grid, never two species in turn); the lane
+        trees stand on the surveyed kerbs by dart throwing (uneven gaps VOID_LANE_GAP, row-like picks rejected with
+        _pla_rowlike, plane or ash by a seeded draw, not in turn). trees = [((x, y), species)]."""
         cells = reg["cells"]
-        rings = self.loops(cells, False)
-        F, G = self.F, self.G
+        rings = self.loops(cells, True)
+        F = self.F
         out = dict(rings=rings, trees=[], shrubs=[])
         if reg["kind"] == "built":
             if reg["top"] == 3:                          # heritage: its setting stays as it is (explained, G18)
@@ -822,18 +827,25 @@ class Corridor(object):
             out.update(design="lanes", place=VOID_RULES["lanes"][0], reason=VOID_RULES["lanes"][1])
             box = bbox([p for r_ in rings for p in r_]) if rings else None
             cs = set(cells)
+            rnd = random.Random(int(reg["ha"] * 1000) + len(cells))
+            pts = []
             for P in self.kerbs:                         # lane trees on the surveyed kerbs inside the region
                 if box is None or not hit(bbox(P), box):
                     continue
                 s_ = arclen(P)
-                t = VOID_LANE_STEP / 2.0
+                t = rnd.uniform(*VOID_LANE_GAP) / 2.0
                 while t < s_[-1]:
                     q = at_len(P, s_, t)[0]
+                    t += rnd.uniform(*VOID_LANE_GAP)
                     n = self.cell(q)
-                    if n is not None and n in cs and F[n] != 1 and self.in_study(q) and \
-                            all(math.hypot(q[0] - o[0], q[1] - o[1]) >= VOID_LANE_STEP * 0.8 for o in out["trees"]):
-                        out["trees"].append(q)
-                    t += VOID_LANE_STEP
+                    if n is None or n not in cs or F[n] == 1 or not self.in_study(q):
+                        continue
+                    if any(math.hypot(q[0] - o[0], q[1] - o[1]) < VOID_LANE_GAP[0] * 0.8 for o in pts):
+                        continue
+                    if len(pts) >= 2 and _pla_rowlike(q, pts, 3.0 * VOID_LANE_GAP[1]):
+                        continue
+                    pts.append(q)
+                    out["trees"].append((q, "plane" if rnd.random() < 0.6 else "ash"))
             return out
         lc, d = reg["top"], reg["d"]
         if lc == 2:                                      # tree cover: kept, a grove with paths, joined to the corridor
@@ -841,16 +853,6 @@ class Corridor(object):
             return out
         key = "meadow" if d is not None else "garden"    # an open way to the water: rain meadow; none: pocket garden
         out.update(design=key, place=VOID_RULES[key][0], reason=VOID_RULES[key][1])
-        s_ = max(1, int(round((TREES[3] if key == "meadow" else VOID_SHRUB_STEP) / G.c)))
-        for n in cells:                                  # copses (meadow) or shrub groups (garden) on open cells
-            i, j = n % G.nx, n // G.nx
-            if i % s_ or j % s_ or F[n] != 0:
-                continue
-            jit = math.sin(i * 12.9898 + j * 78.233) * 43758.5453
-            q = self.wxy(n)
-            if not self.in_study(q):
-                continue
-            (out["trees"] if key == "meadow" and jit - math.floor(jit) < 0.5 else out["shrubs"]).append(q)
         return out
 
     def movement(self):

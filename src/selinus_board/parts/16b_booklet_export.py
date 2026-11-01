@@ -1,9 +1,7 @@
 # ============================================================ v40: A3 BOOKLET = CROPS OF THE SHEETS (CROP_SPEC)
-# Aras 25 Oct 21:47: a booklet drawing is never drawn separately. Every panel of every sheet this board writes is one
-# "crop" block in output/selinus_board/booklet/blocks.json: the panel's rectangle on its own sheet PDF, in mm from the
-# page's top-left (y down), taken from the same numbers the layout drew it with (crop_panel, called where the panel is
-# laid out). The assembler cuts it out, scales it and sets the sheet's words again as live labels. The board also keeps
-# writing booklet/results.json (the live figures the booklet's tiles read) and the site photos.
+# v60 (round 5, G-R5-12): the crops are no longer cut out of sheet PDFs: 16d_items.py hands each registered crop
+# (crop_panel) to the booklet as item drawings + anchored labels (items.json). This file keeps the crop registry
+# (crop_panel, crop_default, crop_scale, crop_legend), the live figures (bk_results -> results.json) and the photos.
 BK_SCRIPT = "MainBoard"
 BK_VERSION = "v55"
 BK_LOG = []                                           # notes of the booklet step (booklet/booklet_log.txt)
@@ -11,11 +9,6 @@ CROP_PANELS = []                                      # v40: dict(slug, bb, capt
 CROP_DIRECT = []                                      # v40: crops of pages laid out in mm (the axonometric)
 SHEET_POS = []                                        # v40: (drawing name, pdf, frame, x mm, y mm, page h mm) per drawing
 CROP_REF = r"^\[\d+\]$"                               # a sheet's lone [n] mark: its source key is not in the crop
-
-
-class BkCropMissing(RuntimeError):
-    """v59 (round 4 closing, P09.1): a crop the booklet needs is on no sheet written on this run. The run step lets it
-    through (17_board_fits.py): it is never logged as a warning only."""
 
 
 def crop_panel(slug, x0, y0, x1, y1, caption="", scale_den=None, legend=None, drop=None):
@@ -83,102 +76,6 @@ def crop_sheet_key(pdf):
     if stem.startswith("Selinus_T") and len(stem) > 9 and stem[9].isdigit():
         return "t" + stem[9]
     return stem.lower()
-
-
-def crop_rects():
-    """[(id, pdf, (x0, y0, x1, y1) mm from the page's top-left, panel)] of every registered panel on a sheet PDF
-    written on this run; a panel is cut to its drawing's frame."""
-    k = 1000.0 / PDF_SCALE
-    out, ids = [], set()
-    for p in CROP_PANELS:
-        bb = p["bb"]
-        cx, cy = 0.5 * (bb[0] + bb[2]), 0.5 * (bb[1] + bb[3])
-        hit = [s_ for s_ in SHEET_POS if s_[2][0] <= cx <= s_[2][2] and s_[2][1] <= cy <= s_[2][3]]
-        if not hit:
-            # v59 (round 4, P09.1): the booklet's p09 needs this crop; closing: raised past the run step's except
-            # (BkCropMissing) whenever sheets were written on this run (pdf = False writes none, so no crop at all)
-            if p["slug"] == "street_sections" and SHEET_POS:
-                raise BkCropMissing("crop street_sections (booklet p09, drw_street_sections): its drawing is on no "
-                                    "sheet written on this run")
-            BK_LOG.append("crop %s: its drawing is on no sheet written on this run" % p["slug"])
-            continue
-        nm, pdf, r, ox, oy, ph = hit[0]
-        x0, y0, x1, y1 = max(bb[0], r[0]), max(bb[1], r[1]), min(bb[2], r[2]), min(bb[3], r[3])
-        rect_mm = ((x0 - r[0]) * k + ox, ph - ((y1 - r[1]) * k + oy), (x1 - r[0]) * k + ox, ph - ((y0 - r[1]) * k + oy))
-        bid = crop_sheet_key(pdf) + "_" + p["slug"]
-        n = 2
-        while bid in ids:
-            bid = "%s_%s_%d" % (crop_sheet_key(pdf), p["slug"], n)
-            n += 1
-        ids.add(bid)
-        if p.get("geo"):                                 # v42: survey x, y -> mm from the crop's top-left, y down
-            p["geo_mm"] = [[round(gx, 3), round(gy, 3), round((bx - r[0]) * k + ox - rect_mm[0], 3),
-                            round(ph - ((by - r[1]) * k + oy) - rect_mm[1], 3)] for gx, gy, bx, by in p["geo"]]
-        out.append((bid, pdf, rect_mm, p))
-    return out
-
-
-# ------------------------------------------------------------ the booklet step
-def booklet_export(S, B, rects):
-    """v40: output/selinus_board/booklet/: blocks.json (one crop per panel of every sheet PDF written on this run),
-    results.json, booklet_log.txt; the site photos into Downloads/Bergama/cached/booklet_images/ (v43). Returns the crop lines."""
-    del BK_LOG[:]
-    BK = BkBlocks(out_folder(), BK_SCRIPT, BK_VERSION)
-    done = []
-    for bid, pdf, rmm, p in crop_rects():
-        BK.crop(bid, pdf, rmm, caption=p["caption"], scale_den=p["scale_den"], legend=p["legend"], drop=p["drop"])
-        if p.get("bk_w"):                                # v45: the width (mm) it is drawn for on the booklet page
-            BK.d["blocks"][bid]["bk_w"] = round(p["bk_w"], 3)
-        if p.get("grid"):                                # v45: its column edges at that width (mm), for the legend
-            BK.d["blocks"][bid]["grid"] = list(p["grid"])
-        if p.get("geo_mm"):                              # v42: the plan's georeference (plan 01, for the farms map)
-            BK.d["blocks"][bid]["geo"] = {"points": p["geo_mm"], "note": "survey x, y (m) of the plan frame's corners "
-                                          "-> x, y in mm from the crop's top-left, y down, at 1:1 on the sheet PDF"}
-        done.append("%s  %s  %.0f x %.0f mm  1:%s" % (bid, pdf, rmm[2] - rmm[0], rmm[3] - rmm[1], p["scale_den"]))
-    for bid, pdf, rmm, cap, den, leg, drop in CROP_DIRECT:
-        BK.crop(bid, pdf, rmm, caption=cap, scale_den=den, legend=leg, drop=[CROP_REF] + list(drop or []))
-        done.append("%s  %s  %.0f x %.0f mm  1:%s" % (bid, pdf, rmm[2] - rmm[0], rmm[3] - rmm[1], den))
-    if not done:
-        BK_LOG.append("no crops: no sheet PDF was written on this run (pdf input off?)")
-    BK.d["sheet_sources"] = bk_sheet_sources()           # v44: what the [n] marks of each sheet PDF mean
-    try:                                                  # v51 (D13): p.21's public sources and Commons photo credits
-        BK.source("heritage_loop", HER_SRC, "")
-        for pl_, cr_ in her21_credits():
-            BK.source("photo_" + her21_norm(pl_), cr_, "")
-    except Exception:
-        BK_LOG.append("heritage sources not registered:\n" + traceback.format_exc())
-    try:
-        res = bk_results(S)
-        import json as _j
-        with open(BK.path("results.json"), "w", encoding="utf-8") as f_:
-            _j.dump(res, f_, ensure_ascii=False, indent=1, sort_keys=True)
-    except Exception:
-        BK_LOG.append("results.json failed\n" + traceback.format_exc())
-        LOG.append("WARNING: booklet results.json not written (%s)." % (traceback.format_exc().strip().splitlines()[-1],))
-    try:
-        bk_photos()
-    except Exception:
-        BK_LOG.append("photos not copied\n" + traceback.format_exc())
-    BK.save()
-    os.makedirs(bg_logs("selinus_board"), exist_ok=True)     # v44: logs only in logs/ (was output/.../booklet/)
-    with open(os.path.join(bg_logs("selinus_board"), "booklet_log.txt"), "w", encoding="utf-8") as f_:
-        f_.write(u"%s booklet crops (%d)\n%s\n\n%s\n" % (SCRIPT_VERSION, len(done), "\n".join(done) or "none",
-                                                     "\n".join(BK_LOG)))
-    return done
-
-
-def bk_sheet_sources():
-    """v44 (booklet convention 27 Oct): {"<sheet pdf>#<page index>": ["[1] ...", ...]} for every sheet PDF written on
-    this run: the drawings' and sections' sheets share the board's key (BOARD_KEY), a technical sheet T1-T8 has its
-    own (TECH_KEYS). Every sheet PDF is one page."""
-    out = {}
-    for nm, pdf, r, px, py, ph in SHEET_POS:
-        key = crop_sheet_key(pdf)
-        ents = TECH_KEYS.get("T" + key[1:]) if key[:1] == "t" and key[1:].isdigit() else (
-            BOARD_KEY if key.startswith(("drw", "sec")) else None)
-        if ents and pdf + "#0" not in out:
-            out[pdf + "#0"] = [u"[{}] {}".format(i + 1, (e or u"-").strip()) for i, e in enumerate(ents)]
-    return out
 
 
 def bk_results(S):
