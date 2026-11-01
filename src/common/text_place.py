@@ -1,9 +1,10 @@
-# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer, a collision RAISES -------
+# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer (round 5: hits WARN) ----
 # Replaces label_place.py (its lp_* names stay as shims there until the closing step, see label_place.py).
 # Every printed letter of a page goes through ONE TextPage: it measures with the real font (font_metrics.py), keeps
-# every box, draws everything in .emit(drawer) (no other text path), and .check() RAISES TextCollision when any two
-# texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
-# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs).
+# every box, draws everything in .emit(drawer) (no other text path), and .check() reports (round 5: WARNING lines) any
+# two texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
+# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs); warn.py optional
+# (round 5: the one warning sink; without it tp_warn writes its WARNING line itself).
 #
 #   tp = TextPage(name, bounds, y_down=True, min_pt=None, pad=0.6, margins=None, footer_zone=None, scale=1.0,
 #                 unit_mm=1.0, log=None)
@@ -40,11 +41,13 @@
 #                                                     a label beside its point: positions in reading order (E, NE, N,
 #                                                     NW, W, SW, S, SE, C, or (dx, dy, align) in page units), then the
 #                                                     shorter alts, then a NUMBER on the point + a row in side_list;
-#                                                     never below min_pt, never dropped: no spot and no side_list
-#                                                     raises TextCollision. rank orders nothing here (callers place
-#                                                     rank 0 first); kept for the interface
-#   tp.check(raise_=True, log=None) -> n_items        the collision test; logs "overlap <page> checked n, collisions k"
-#                                                     and raises TextCollision(page, item, other) when k > 0
+#                                                     never below min_pt, never dropped (round 5 order: see below;
+#                                                     rings=TP_RINGS, step=0.5 pt). rank orders nothing here (callers
+#                                                     place rank 0 first); kept for the interface
+#   tp.check(raise_=True, log=None, blocks_in=False) -> n_items
+#                                                     the collision test; one "WARNING <page> overlap|edge: ..." line
+#                                                     per hit, then "overlap <page> checked n, collisions k"; raises
+#                                                     only with TP_WARN_ONLY = [False]; tp.hits = [(kind, a, b)]
 #   tp.emit(drawer) -> n                              drawer(item) for every text in order; item = dict(text, x, y,
 #                                                     pt, size_mm, bold, align, angle, colour, role, name, extra)
 #   tp.export() -> dict                               boxes in mm, y DOWN from the bounds' top-left (crop-local) for
@@ -59,11 +62,25 @@
 #                                                     xform) in tp, which then draws them; returns the non-text shapes
 #                                                     for the caller to draw as before
 # Geometry helpers (moved here from label_place.py): tp_hit, tp_seg_box, tp_seg_cross, TpSegIndex, tp_reading_order.
-TP_LOG = []
+#
+# ROUND 5 (S1, 1 Nov 2026; G-R5-1, G-R5-12, C11; PLAN §3 "Warnings"): nothing here stops a run on a layout hit.
+#   * tp_warn goes to common/warn.py (wn_warn) when it is included, so every hit is ONE "WARNING <page> <kind>: ..."
+#     line in TP_LOG plus an orange message; kinds: overlap, edge, min_text, widow, wrap, side_list, number.
+#   * check() writes one WARNING line per hit whatever raise_ says (C11: raise_=False used to log only the count, so
+#     "collisions 1" and "0 warnings" could both appear); it raises only when TP_WARN_ONLY = [False] and raise_.
+#     check(blocks_in=True) also tests every block against the inner bounds (the booklet composer's edge test).
+#   * place() order (G-R5-12 "prevent, not just detect"): its positions, then nearby free spots on rings round the
+#     anchor (TP_RINGS mm), then the shorter alts the same way, then the side list number, then smaller sizes in
+#     0.5 pt steps down to min_pt; only when all fail: a WARNING and the label at its first position (never dropped).
+#   * para(): a widow that 0.25 pt smaller cannot fix is a WARNING and the paragraph is set without the widow rule.
+#   * emit(): a "0" number whose side list was never closed is a WARNING and is not drawn; export() checks first.
+TP_LOG = WN_LOG if "WN_LOG" in globals() else []   # round 5: with warn.py included, ONE list (the warning sink)
 TP_PT = 25.4 / 72.0
 TP_ROW_MM = 8.0                 # reading order: anchors within this many mm of height count as one row
 TP_POSITIONS = ("E", "NE", "N", "NW", "W", "SW", "S", "SE")
 TP_LINE_KINDS = ("line", "edge", "street", "road", "cut", "stream", "bank", "contour", "leader")
+TP_RINGS = (1.5, 3.0, 4.5, 6.0)  # round 5: mm from the anchor's own positions where place() looks for a free spot
+TP_RING_STEPS = 12               # spots per ring (every 30 degrees, starting east, counter-clockwise on the page)
 
 
 class TextError(RuntimeError):
@@ -73,12 +90,17 @@ class TextError(RuntimeError):
 TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
 
 
-def tp_warn(msg):
+def tp_warn(msg, log=None):
     """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
-    TP_LOG and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError again)"""
+    TP_LOG (or log) and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError
+    again). Round 5: through common/warn.py when it is included (one sink, capped orange messages)."""
     if not TP_WARN_ONLY[0]:
         raise TextError(msg)
-    TP_LOG.append(u"WARNING " + msg)
+    lg = TP_LOG if log is None else log
+    if "wn_warn" in globals():
+        wn_warn(None, None, msg, lg)
+        return
+    lg.append(u"WARNING " + msg)
     try:
         ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
     except Exception:
@@ -283,7 +305,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                tp_warn(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
+                tp_warn(u"wrap: the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -323,7 +345,8 @@ class TpSideList(object):
 
     def add(self, anchor, text, item):
         if self.closed:
-            raise TextError(u"side list %s is closed: place its labels before close()" % self.name)
+            tp_warn(u"side_list: %s is closed: %r gets no number (place its labels before close())" % (
+                self.name, u"%s" % text))
         e = dict(anchor=tuple(anchor), text=text, item=item, n=None)
         self.entries.append(e)
         return e
@@ -363,6 +386,7 @@ class TextPage(object):
         self.log = log
         self.items, self.keeps, self.blocks, self.sides = [], [], [], []
         self._gid, self.checked = 0, False
+        self.hits = []
 
     # -- measuring
     def _box(self, text, x, y, pt, bold=False, align="L", angle=0.0):
@@ -376,8 +400,8 @@ class TextPage(object):
 
     def _size_ok(self, text, pt):
         if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
-            tp_warn(u"%s: %r prints at %.2f pt, below the %.1f pt minimum" % (
-                self.name, text[:40], pt * self.scale, self.min_pt))
+            tp_warn(u"%s min_text: %r prints at %.2f pt, below the %.1f pt minimum" % (
+                self.name, text[:40], pt * self.scale, self.min_pt), self.log)
 
     # -- registering
     def keep(self, geom, kind="keep", name=None, line=None):
@@ -428,11 +452,15 @@ class TextPage(object):
         except TpWidow:
             size = size - 0.25
             self._size_ok(text, size)
-            lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            try:
+                lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            except TpWidow as ex:                       # round 5: a WARNING, set without the widow rule
+                tp_warn(u"%s widow: %r: %s" % (self.name, text[:50], ex), self.log)
+                lines = tp_wrap(text, w * u, size, bold, 1, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            tp_warn(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                       max_lines))
+            tp_warn(u"%s overrun: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                               max_lines), self.log)
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -472,22 +500,62 @@ class TextPage(object):
                 return False
         return True
 
+    def _ring_spots(self, text, anchor, pt, bold, d, rings):
+        """(x, y, align) spots on rings round the anchor (round 5: the nearby free spots of G-R5-12)"""
+        import math as _m
+        ix0, iy0, ix1, iy1 = fm_ink_box(text, pt, bold)
+        u, sg = self.unit_mm, (-1.0 if self.y_down else 1.0)
+        mid = -(iy0 + iy1) / 2.0
+        n = max(4, int(TP_RING_STEPS))
+        for rr in rings or ():
+            R_ = d + float(rr)
+            for k in range(n):
+                a = 2.0 * _m.pi * k / n
+                dx, dv = R_ * _m.cos(a), R_ * _m.sin(a)
+                al = "L" if dx > 0.3 * R_ else ("R" if dx < -0.3 * R_ else "C")
+                if al == "C":                          # above / below: the ink edge, not its middle, at the ring
+                    v = (dv - iy0) if dv > 0 else (dv - iy1)
+                else:
+                    v = dv + mid
+                yield anchor[0] + dx / u, anchor[1] + sg * v / u, al
+
+    def _try(self, t, anchor, positions, pt, bold, d, allow, rings):
+        for code in positions:
+            x, y, al = self._at(code, t, anchor, pt, bold, d)
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        for x, y, al in self._ring_spots(t, anchor, pt, bold, d, rings):
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        return None
+
     def place(self, text, anchor, positions=TP_POSITIONS, alts=(), pt=7.0, rank=0, side_list=None, bold=False,
-              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label"):
-        """a label beside its point (see the module notes); returns the registered item"""
+              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label", rings=TP_RINGS, step=0.5):
+        """a label beside its point (see the module notes); returns the registered item. Order (round 5): positions,
+        rings, alts the same way, the side list number, then pt - step ... down to min_pt (printed), then a WARNING
+        and the first position (the label is never dropped; check() names what it hits)"""
         d = float(r) * self.unit_mm + gap
-        for t in (text,) + tuple(alts or ()):
-            t = u"%s" % t
-            self._size_ok(t, pt)
-            for code in positions:
-                x, y, al = self._at(code, t, anchor, pt, bold, d)
-                b = self._box(t, x, y, pt, bold, al, 0.0)
-                if self._free(b, allow):
-                    self.put(t, x, y, pt, bold, al, 0.0, name, role, colour, allow)
-                    return self.items[-1]
+        texts = [u"%s" % t for t in (text,) + tuple(alts or ())]
+        self._size_ok(texts[0], pt)
+        for t in texts:
+            got = self._try(t, anchor, positions, pt, bold, d, allow, rings)
+            if got:
+                self.put(t, got[0], got[1], pt, bold, got[2], 0.0, name, role, colour, allow)
+                return self.items[-1]
         if side_list is None:
-            raise TextCollision(self.name, dict(text=u"%s" % text, name=name), u"no free spot round its point and no "
-                                u"side list to number it")
+            p_ = float(pt) - step
+            while p_ * self.scale >= self.min_pt - 0.005:
+                for t in texts:
+                    got = self._try(t, anchor, positions, p_, bold, d, allow, rings)
+                    if got:
+                        self.put(t, got[0], got[1], p_, bold, got[2], 0.0, name, role, colour, allow)
+                        return self.items[-1]
+                p_ -= step
+            tp_warn(u"%s overlap: label %r has no free spot round its point down to %.1f pt and no side list: set at "
+                    u"its first position" % (self.name, texts[0], self.min_pt), self.log)
+            x, y, al = self._at(positions[0] if positions else "E", texts[-1], anchor, pt, bold, d)
+            self.put(texts[-1], x, y, pt, bold, al, 0.0, name, role, colour, allow, forced=True)
+            return self.items[-1]
         x, y, al = self._at("C", u"0", anchor, pt, True, 0.0)
         self.put(u"0", x, y, pt, True, "C", 0.0, name, "number", colour, tuple(allow) + ("marker",))
         it = self.items[-1]
@@ -497,50 +565,61 @@ class TextPage(object):
         return it
 
     # -- the test
-    def check(self, raise_=True, log=None):
-        """the collision test (see the module notes); returns the number of texts checked"""
+    def check(self, raise_=True, log=None, blocks_in=False):
+        """the collision test (see the module notes); returns the number of texts checked. Every hit is one
+        "WARNING <page> overlap|edge: ..." line (round 5, C11: also with raise_=False); self.hits keeps them as
+        (kind, a, b) for the caller's own counts"""
+        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         for sl in self.sides:
             if not sl.closed:
-                tp_warn(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s side_list: %s was never closed (its numbers are not set)" % (self.name, sl.name), lg)
         hits = []
         I = self.items
+        inn = self.inner
+
+        def inside(b):
+            return (inn[0] - 1e-6 <= b[0] and b[2] <= inn[2] + 1e-6 and inn[1] - 1e-6 <= b[1] and
+                    b[3] <= inn[3] + 1e-6)
         for i, a in enumerate(I):
             b = a["box"]
-            if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
-                    self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
-                hits.append((a, u"the page edge or its margins"))
+            if not inside(b):
+                hits.append(("edge", a, u"the page edge or its margins"))
             if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
-                hits.append((a, u"the footer zone"))
+                hits.append(("edge", a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
-                    hits.append((a, c))
+                    hits.append(("overlap", a, c))
             for K in self.keeps:
                 if K["name"] in a["allow"] or K["kind"] in a["allow"]:
                     continue
                 if _tp_keep_hits(b, K, self.pad):
-                    hits.append((a, K))
+                    hits.append(("overlap", a, K))
         B = self.blocks
         for i, a in enumerate(B):
+            if blocks_in and not inside(a["box"]):
+                hits.append(("edge", a, u"the page edge or its margins"))
             for c in B[i + 1:]:
                 if tp_hit(a["box"], c["box"], -0.01 / self.unit_mm):
-                    hits.append((a, c))
-        line = u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits))
-        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
-        lg.append(line)
+                    hits.append(("overlap", a, c))
+        self.hits = hits
         self.checked = True
-        if hits and raise_ and TP_WARN_ONLY[0]:          # 1 Nov (Aras 17:11 / 18:51): every hit a WARNING line and an
-            k_ = len(lg) - 1                             # orange warning; the run goes on, one run collects them all
-            lg[k_:k_] = [u"WARNING %s text hit: %s against %s" % (self.name, _tp_desc(a_), _tp_desc(b_))
-                         for a_, b_ in hits]             # (before the "overlap ..." line, which stays the last)
-            try:
-                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
-                                                  u"%s: %d text hits (each one in the log, 'WARNING %s text hit')" %
-                                                  (self.name, len(hits), self.name))
-            except Exception:
-                pass
-            return len(I)
-        if hits and raise_:
-            raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
+        if hits and raise_ and not TP_WARN_ONLY[0]:
+            raise TextCollision(self.name, hits[0][1], hits[0][2], len(hits), [h[1:] for h in hits[1:]])
+        for k_, a_, b_ in hits:                          # one WARNING line each; the run goes on
+            ln_ = u"WARNING %s %s: %s against %s" % (self.name, k_, _tp_desc(a_), _tp_desc(b_))
+            lg.append(ln_)
+        if hits:
+            if "wn_orange" in globals():
+                wn_orange(u"%s: %d text hits (each one in the log, 'WARNING %s ...')" % (self.name, len(hits),
+                                                                                       self.name))
+            else:
+                try:
+                    ghenv.Component.AddRuntimeMessage(                                           # noqa: F821
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                        u"%s: %d text hits (each one in the log)" % (self.name, len(hits)))
+                except Exception:
+                    pass
+        lg.append(u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits)))
         return len(I)
 
     def emit(self, drawer):
@@ -550,7 +629,9 @@ class TextPage(object):
             if not it["emit"]:
                 continue
             if it["role"] == "number" and it["text"] == u"0":
-                raise TextError(u"%s: a numbered label was never given its number (close its side list)" % self.name)
+                tp_warn(u"%s number: a numbered label was never given its number (close its side list): not drawn" %
+                        self.name, self.log)
+                continue
             drawer(it)
             n += 1
         return n
@@ -558,7 +639,7 @@ class TextPage(object):
     def export(self):
         """boxes in mm, y DOWN from the top-left of bounds (crop-local), for the booklet's assembled-page test"""
         if not self.checked:
-            raise TextError(u"%s: export() before check()" % self.name)
+            self.check(False)
         u, b = self.unit_mm, self.bounds
 
         def mm(r):
