@@ -6,8 +6,6 @@
 # reach on foot as crisp classes on the streets (R28_REACH), road categories as line types, crossings and hubs as
 # symbols, numbered callouts without overlaps (label_place); P09.2 the list in three groups under it; P09.3 the walk
 # and car index today and with the proposal (drw_index_change) instead of the commercial spines map.
-import unicodedata
-
 R28MV_CLS = (2.0, 10.0, 25.0, 50.0, 100.0)    # P07.3: index classes 0-2, 2-10, 10-25, 25-50, 50-100 (the top map's steps)
 R28MV_CLS_W = (0.2, 0.32, 0.48, 0.68, 0.95)   # mm on the booklet page: the line weight of each class
 R28MV_CLS_COL = [mv_ramp(SEQ, seq_t(v_, 100.0)) for v_ in R28MV_CLS]   # a class = the top map's ramp at its upper step
@@ -37,35 +35,11 @@ R28MV_GROUPS = (("roads", u"Roads"), ("crossings", u"Bridges and crossings"), ("
 R28MV_CHANGE_ORDER = ("pedestrian", "calmed", "shared", "relocated", "kept", "truck", "bus")   # index chart rows
 
 # ------------------------------------------------------------ text: Arial widths, **bold** runs (G5)
-# Arial has Helvetica's widths (common/pdf_fonts.py): per 1000 em, codes 32-126, plain and bold
-_R28MV_HW = [int(v_) for v_ in (
-    "278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 "
-    "278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 "
-    "722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 "
-    "556 556 333 500 278 556 500 722 500 500 500 334 260 334 584").split()]
-_R28MV_HB = [int(v_) for v_ in (
-    "278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 "
-    "333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 "
-    "722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 "
-    "611 611 389 556 333 611 556 778 556 556 500 389 280 389 584").split()]
-_R28MV_SP = {u"ı": 278, u"·": 278, u"–": 556, u"—": 1000, u"²": 333, u"³": 333, u"°": 400, u"’": 278}
-
-
 def r28mv_tw(txt, h, bold=False):
     """v50 (MIRAQUA 28 Oct, G5): the width (board units) of txt in Arial at capital height h, so that bold and plain
-    runs set side by side on one line meet (tw's 0.92 h per letter is a safe upper bound, too wide for that)"""
-    tab = _R28MV_HB if bold else _R28MV_HW
-    w_ = 0
-    for ch in txt:
-        o = ord(ch)
-        if 32 <= o < 127:
-            w_ += tab[o - 32]
-        elif ch in _R28MV_SP:
-            w_ += _R28MV_SP[ch]
-        else:
-            b_ = unicodedata.normalize("NFD", ch)[:1]
-            w_ += tab[ord(b_) - 32] if b_ and 32 <= ord(b_) < 127 else 556
-    return w_ / 1000.0 * h / R28MV_CAP
+    runs set side by side on one line meet. v59 (round 4, G-R4-1): the REAL Arial widths (tw -> common/
+    font_metrics.py, Turkish letters included); the Helvetica tables _R28MV_HW / _R28MV_HB / _R28MV_SP are gone."""
+    return tw(txt, h, "sans", bold)
 
 
 def r28mv_parse(s):
@@ -113,17 +87,32 @@ def r28mv_draw_line(B, line, x, y, h, col, L, order=66):
             else:
                 runs.append([t2, b_])
     cx = x
-    for t_, b_ in runs:
-        B.text(t_, cx, y, h, col, L, order=order, font=FONT_TITLE, bold=b_)
-        cx += r28mv_tw(t_, h, b_)
+    own = callable(getattr(B, "tgroup", None)) and getattr(B, "tg", None) is None                 # v59 (round 4, G-R4-1): the runs of a line are one text group
+    if own:
+        B.tgroup()
+    try:
+        for t_, b_ in runs:
+            B.text(t_, cx, y, h, col, L, order=order, font=FONT_TITLE, bold=b_)
+            cx += r28mv_tw(t_, h, b_)
+    finally:
+        if own:
+            B.tgroup(False)
     return cx - x
 
 
 def r28mv_para(B, s, x, y, width, h, col, L, order=66):
-    """s wrapped to width from the baseline y; returns the baseline after its last line"""
-    for ln in r28mv_lines(s, width, h):
-        r28mv_draw_line(B, ln, x, y, h, col, L, order)
-        y -= R28MV_LEAD * h
+    """s wrapped to width from the baseline y; returns the baseline after its last line. v59 (round 4, G-R4-1): its
+    lines are one text group (the page check sb_text_check)"""
+    own = callable(getattr(B, "tgroup", None)) and getattr(B, "tg", None) is None
+    if own:
+        B.tgroup()
+    try:
+        for ln in r28mv_lines(s, width, h):
+            r28mv_draw_line(B, ln, x, y, h, col, L, order)
+            y -= R28MV_LEAD * h
+    finally:
+        if own:
+            B.tgroup(False)
     return y
 
 
@@ -189,12 +178,20 @@ def r28mv_tbox(s, x, y, h, bold=False, align="L"):
     return (x0, y - 0.25 * h, x0 + w_, y + h)
 
 
+def r28mv_mk(B, x, y, s, colour, k, L, order=68, size_pt=6.5, r_min=None, style="solid"):
+    """v59 (round 4, G-R4-7): one marker on the board through THE marker function (common/marker.py mk_marker: the
+    glyph centred on its ink box, the circle sized to it, white or ink glyph by contrast) at (x, y) board units, k =
+    board units per booklet mm; colour = the colour of what it names. Returns its box (board units)."""
+    sh, bx, _r = mk_marker(x / k, y / k, s, crop_hex(colour), size_pt=size_pt, r_min=r_min, style=style)
+    _T3Put(B, 0.0, 0.0, k, L).put(sh, order)
+    return tuple(v_ * k for v_ in bx)
+
+
 def r28mv_marker(B, x, y, n, k, L, order=68):
     """a numbered street marker: a dark disc with its white number (6.5 pt) on the street (G3: number on the spot, the
-    name in the list beside the map). Returns its box (board units)."""
-    r = R28MV_MKR * k
-    roundel(B, x, y, r, u"%d" % n, INK, (255, 255, 255), L, order=order, h=bk_hk(6.5, k))
-    return (x - r, y - r, x + r, y + r)
+    name in the list beside the map). Returns its box (board units). v59 (round 4, G-R4-7): drawn by mk_marker
+    (r28mv_mk), at least R28MV_MKR in radius (was roundel)."""
+    return r28mv_mk(B, x, y, u"%d" % n, INK, k, L, order=order, size_pt=6.5, r_min=R28MV_MKR)
 
 
 def r28mv_head(B, s, x, ytop, k, L, draw=True):

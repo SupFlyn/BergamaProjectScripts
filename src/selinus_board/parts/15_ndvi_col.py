@@ -889,6 +889,16 @@ PROPOSAL_INPUTS = ("spine", "spine_car", "bridges", "car_closed", "attractors")
 CITY_LINK_FILE = bg_first([os.path.join(bg_cache("Bergama_city_link_analysis"), "city_link_results.json"),   # v44
                            os.path.join(BERGAMA_DIR, "output", "Bergama_city_link_analysis", "city_link_results.json")])
 CITY_LINK_DEFAULT = json.loads('{"spine":[{"id":"A","name":"Ulu Cami to K3 bank walk","frm":[29846.0,32278.0],"to":[30037.0,32122.0],"side_ref":[29844.2,32313.3],"offset_m":15.0,"side":"auto","catch_m":250.0},{"id":"B","name":"Junction over the covered reach","frm":[30037.0,32122.0],"to":[30238.7,31931.2],"side_ref":null,"offset_m":0.0},{"id":"C","name":"Red Hall to Üç Kemer bank walk","frm":[30238.7,31931.2],"to":[30294.0,31792.0],"side_ref":[30245.0,31962.0],"offset_m":15.0,"side":"auto","catch_m":250.0}],"functions":[{"n":1,"name":"Bank bazaar","xy":[29890.4,32243.6],"stage":null},{"n":2,"name":"Parchment and leather workshops","xy":[30062.0,32106.0],"stage":null},{"n":3,"name":"Junction square","xy":[30058.0,32047.0],"stage":null},{"n":4,"name":"Red Hall water terrace","xy":[30238.7,31931.2],"stage":null},{"n":5,"name":"Producers\' market","xy":[30294.0,31792.0],"stage":null},{"n":6,"name":"Study terraces","xy":[29941.0,32200.0],"stage":null},{"n":7,"name":"Clean-water classroom","xy":null,"stage":"entry"},{"n":8,"name":"Summer bed events","xy":null,"stage":null}]}')
+# v59 (round 4, G-R4-11): the built-in copy's printed names from the names table, as common/city_spine.py prints them
+# (Kızıl Avlu, never "Red Hall"; Ulucami; bridges by name); ids, coordinates and keys unchanged
+for _f in CITY_LINK_DEFAULT.get("spine", []):
+    if _f.get("id") == "A":
+        _f["name"] = landmark_name("ulucami") + u" to " + bridge_name("K3") + u" bank walk"
+    elif _f.get("id") == "C":
+        _f["name"] = landmark_name("kizil_avlu") + u" to " + bridge_name("K5") + u" bank walk"
+for _f in CITY_LINK_DEFAULT.get("functions", []):
+    if u"Red Hall" in (_f.get("name") or u""):
+        _f["name"] = _f["name"].replace(u"Red Hall", landmark_name("kizil_avlu"))
 CITY_LINK_MV = os.path.join(SELINUS_RES_DIR, "city_link_movement.json")      # v44: cached/
 # OSM highway -> line class on the S2 plan (the road classes of bergama_diagrams D3); print mm
 MV_CLASS = {"primary": "main", "trunk": "main", "secondary": "main", "tertiary": "secondary",
