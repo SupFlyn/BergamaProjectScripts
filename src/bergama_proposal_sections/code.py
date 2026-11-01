@@ -1,10 +1,21 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v18_1.py = v18.1 (1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v19.py = v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v19 (round 5, S9, 2 Nov 2026; G-R5-12, D9, N3 a, P13.1-P13.4, G-R5-4.6, G-R5-5, D8, A17, C1; a feature change):
+  * Produce, the booklet composes: no A0 sheet, no PDF, no page layout. W1-W4 go to ONE booklet page "p13" (p13 + p14
+    merged) at 1:500, each cut one true-scale drawing in metres (x across the stream from the cut axis, NE left;
+    y level m a.s.l.) with its numbers as badges, its numbered list "Name · reason", its heading, scenario and water-
+    level note, its level column (the booklet draws the U04 markers), its zoom inset drawn AGAIN at the inset scale
+    (framed on the action by sf_inset_frame) as its own drawing; one key map (key-map module v2: fitted, turned, own
+    north), one material legend (solid colours), title, intro, sources. File: Downloads/Bergama/cached/booklet/
+    bergama_proposal_sections/items.json. No folder is made under output/.
+  * Spans to the cut ends (no 50 m / 38 m breaks at 1:500), never beyond the level table's ends.
+  * Widths gone (P13.4): no "8 × 40 cm" steps, no bed width in cm. Bridges the cut sees (common/bridges.py, D8).
+  * Log head "<n> warnings" = the WARNING lines; plant log lines printed once (A17).
 NEW IN v17 (round 4, S7, 1 Nov 2026; booklet p13 -> p13a + p13b: P13.1-P13.5, D2, D11, G-R4-1..11; a feature change):
   * Two booklet pages at 1:250 (was one at 1:500): crop ps_p1 = p13a (W1, W2), ps_p2 = p13b (W3, W4), one full row
     per cut; the sheet is drawn at the booklet scale (BK_S 1), so every scale word is the printed one; zoom insets at
@@ -100,13 +111,14 @@ WHAT IT DRAWS (v10): one A0 landscape sheet, all vector, whole-string text; the 
   intake and lift, basin volumes.
 
 COMPONENT: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. Input run (Button), outputs log and done.
-Writes Downloads/Bergama/output/bergama_proposal_sections/Bergama_proposal_sections_A.pdf; log in
+Writes Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json (v19; no PDF); log in
 Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
 board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
-HOW WE KNOW IT WORKS (v17): the text under the component reads "ProposalSections v17 · HH:MM · N s"; the log lists
-the PDF and the lines "overlap p13a checked n, collisions 0" and "overlap p13b ..."; the PDF opens as one A0 page with
-two A3-wide pages side by side (W1 + W2, W3 + W4), each cut on its own row at 1:250.
+HOW WE KNOW IT WORKS (v19): the text under the component reads "ProposalSections v19 · HH:MM · N s"; the log starts
+with "ProposalSections v19 · HH:MM", the items path, "<n> warnings" and the WARNING lines, and has the line
+"items bergama_proposal_sections: drawing 9, ... -> ...items.json" (4 cuts + 4 insets + the key map); no PDF is
+written (the booklet v30+ shows p13).
 """
 import os
 import json
@@ -118,7 +130,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v18.1"  # v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v19"  # v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -127,7 +139,7 @@ STYLES = (("a", "A"),)                                # v13 (Aras 31 Oct): style
 
 #@include ../common/bergama_paths.py
 BERGAMA = BERGAMA_ROOT
-OUT_DIR = bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
+OUT_DIR = bg_output(OUT_FOLDER)                    # v19: nothing is written there any more (no sheet PDF; C2)
 LOG_DIR = bg_logs()
 
 
@@ -289,11 +301,12 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 
 # v10: the sketch engine and data/SKETCH_SRC.py are no longer included (the sections are drawn to the level table in
 # parts/70_sections.py); data/SKETCH_SRC.py stays in the repo because bergama_agriculture_alternatives includes it.
-#@include ../common/booklet_assets.py
 
 # v17 (round 4 S1 modules): the real font widths, ONE text placer (a collision RAISES), ONE marker, ONE block template
 #@include ../common/font_metrics.py
+#@include ../common/warn.py
 #@include ../common/text_place.py
+#@include ../common/item_export.py
 #@include ../common/marker.py
 #@include ../common/block.py
 #@include ../common/water.py
@@ -308,76 +321,26 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 #@include parts/90_booklet.py
 
 
-# ================================================================ the sheet (v17: two blocks = booklet pages p13a, p13b)
-# v17 (round 4, D2): two blocks shaped like the booklet's panel area, one per booklet page (crops ps_p1, ps_p2), drawn
-# in booklet print mm by parts/70_sections.py ps_page (two cuts at 1:250 each) and placed here at 1:1.
-SHEET_BOXES = {}                                      # style -> {key -> crop box (x0, y0, x1, y1), mm, y up}; build_sheet
-# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H); v17: the
-# full 392 mm width (the 1:250 rows need it), 234 mm high
-BK_W, BK_H = 392.0, 234.0
-BK_S = 1.0                                            # v17: the pages are drawn at the booklet scale (1:250 prints 1:250)
-PS_SHEET_GAP = 20.0                                   # mm between the two pages on the A0 sheet
-
-
-def build_sheet(opt, log, style="a"):
-    """v17: the two booklet pages p13a (W1, W2) and p13b (W3, W4) side by side on one A0 landscape sheet at 1:1 (each
-    at 1:250, insets 1:100), in style a (D1)."""
-    pg = Page(BOARD_W, BOARD_H)
-    pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
-    X0, X1 = M, BOARD_W - M
-    top = BOARD_H - M
-    pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · sections 1:250, insets 1:100",
-            X0, top - 18.0, 3.6, MP["discharge"][2], bold=True)
-    y1 = top - 22.0
-    pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
-    gy1 = y1 - 4.0
-    gy0 = gy1 - BK_H
-    sb = SHEET_BOXES.setdefault(style, {})
-    for i, (page, key, cids) in enumerate(PS_PAGES):
-        x0 = X0 + i * (BK_W + PS_SHEET_GAP)
-        blk, boxes = ps_page(page, cids, log, style)
-        pg.poly([rect(x0, gy0, x0 + BK_W, gy1)], fill=COL["white"])   # v16 (G17): the crop's ground is white
-        pg.items += ps_xform(blk.items, 1.0, x0, gy0)
-        sb[key] = (x0, gy0, x0 + BK_W, gy1)               # ps_p1 / ps_p2: the whole page
-        for k_, b in boxes.items():                       # single crops: one row each
-            sb[k_] = (x0 + b[0], gy0 + b[1], x0 + b[2], gy0 + b[3])
-    log.append(u"sources: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())))
-    return pg
-
-
+# ================================================================ v19: no sheet; the booklet items (parts/90_booklet.py)
 def main():
     t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
+    wn_reset()                                        # v19 (C1): one warning sink, counted in the log head
     log = []
     pal = load_palette([DATA_DIR], log)
-    lines = []
-    for opt in OPTIONS:
-        for style, part in STYLES:                    # revision 30 Oct (D1): one sheet per style, same geometry
-            t1 = time.time()
-            pg = build_sheet(opt, log, style)
-            path = os.path.join(OUT_DIR, OUT_NAME.format(part))
-            try:
-                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
-            except (IOError, OSError):
-                path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
-                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
-            lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"),
-                                                     time.time() - t1))
+    ix = Ix("bergama_proposal_sections", "bergama_proposal_sections", VERSION)
+    ps_items(ix, log)
+    path = ix.save()
+    log.append(ix.summary())
     log.append(cut_log_line())
-    log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # v17 (round 4 S1): what started this run
-    log += tp_log_lines() + [fig_set_line(), sf_g14_line()] + pla_log_lines()   # v17: overlap p13a/p13b, figures set,
-    log += sec_look_lines() + wat_flag_lines()            # plants season=, sky, insets, level marks, fauna, water
-    log += [u"PDF images: " + x for x in WP_IMG_LOG[:5]]
-    try:                                              # v4: A3 booklet assets; an error here never stops the sheet
-        booklet_export(log)
-    except Exception as ex:
-        log.append(u"booklet assets not written: {}: {}".format(type(ex).__name__, ex))
-    log += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
-    head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
+    log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # what started this run
+    log += [fig_set_line(), sf_g14_line()]                # v19 (A17): the plant lines once (sec_look_lines has them)
+    log += sec_look_lines() + wat_flag_lines()
+    log.append(u"insets: each drawn again at its own scale, so the figure / plant / people counts above include them")
     if pal is None:
-        head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
-    return u"\n".join(head + [u"{} {}, {:.1f} s".format(GH_LABEL, VERSION, time.time() - t0)])
+        log.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
+    head = [u"%s %s · %s · %.1f s" % (GH_LABEL, VERSION, time.strftime("%H:%M"), time.time() - t0),
+            u"Items: %s (no sheet PDF: the booklet composes p13)" % path]
+    return u"\n".join(wn_compose(tp_log_lines() + [x for x in log if x], head=head))
 
 
 #@include ../common/trigger.py
@@ -425,7 +388,7 @@ if "ghenv" in globals():
                                       time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
     done = _sc.sticky.get(_k + "_done", "idle")
-    log = _sc.sticky.get(_k + "_log", "Press the Button to write the proposal sections to " + OUT_DIR)
+    log = _sc.sticky.get(_k + "_log", "Press the Button to export the proposal sections to " + bg_booklet(OUT_FOLDER))
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log
     try:
         ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821
