@@ -1239,16 +1239,8 @@ def s4_profile(E, log=None):
 BK_GROW = 1.45                       # room kept round each label for the booklet (its words reset at >= 7.5 pt)
 
 
-def level_ladder(pg, entries, x_line, x_text, fs, boxes=None, lo=None):
-    """Water levels at the right of a section: [(page y, text, colour, bold)], texts spread apart, leaders from the
-    level's end at x_line."""
-    entries = sorted(entries, key=lambda e: e[0])
-    ly = spread([e[0] - fs * 0.35 for e in entries], fs * 1.25 * BK_GROW, lo=lo)
-    for (y, t, colour, bold), yl in zip(entries, ly):
-        pg.line([(x_line, y), (x_text - 2.0, yl + fs * 0.35), (x_text - 0.6, yl + fs * 0.35)], colour, 0.12)
-        pg.text(t, x_text, yl, fs, colour, bold=bold)
-        if boxes is not None:
-            boxes.append((x_text, yl - fs * 0.3, x_text + text_w(t, fs, bold) * BK_GROW, yl + fs * BK_GROW))
+# v13 (round 4, S6b, G-R4-5.4): level_ladder is gone; the p18 cuts mark their levels outside the drawing with
+# section_frame.py sf_level_marks (pages/p17_planting.py _p18_block).
 
 
 # v5 (revision 29 Oct, T3b WO-T3b-4): pp.14-15 are drawn whole by pages/p14_15_s4.py from the level module and its own
@@ -1966,7 +1958,8 @@ def build_board(opt, storage, parts, pal_line, log):
     own round scale:
       row 1  how the water behaves (p.11) · what we do with it (p.12) · where the clean water goes (p.23)
       row 2  S4 north-east bank (p.15) · four seasons on one cut (p.14, the wider middle cell) · planting and water A (p.17)
-      row 3  the idea in section, upstream entry and K4 (not in the booklet) · planting and water B, the sections (p.17)"""
+      row 3  p.18a (F2, F4 at 1:250) · the idea in section, upstream entry and K4 stacked (not in the booklet) · p.18b
+             (W1, S4 at 1:250) (v13, round 4 D2: two whole booklet pages, 392 mm wide each)"""
     pg = Page(BOARD_W, BOARD_H)
     pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
     del BK_CROPS[:]
@@ -2038,17 +2031,29 @@ def build_board(opt, storage, parts, pal_line, log):
     b = cell(2, 1, P17_TITLE)
     for cid_, bb_, den_ in p17_page(pg, b, opt, log):
         crop_add(cid_, bb_, den_, within=last[0])
-    # row 3 -------------------------------------------------------------- the idea in section (not in the booklet), p.17 B
-    # v6: the two concept sections take the first two columns; the third holds p.17's page B (the sections at 1:500)
+    # row 3 -------------------------------------------------------------- p.18a | the idea in section | p.18b
+    # v13 (round 4, S6b, D2): booklet p18 is two whole booklet pages at 1:1 (pages/p17_planting.py p18_page, 392 mm
+    # wide each, the sections at 1:250): p18a at the left edge, p18b at the right edge of the sheet; the two concept
+    # sections (not in the booklet) stacked in the cell between them, drawn smaller (place fits them)
+    def cell_at(x0, y1, w, h, title):
+        bb = frame(pg, (x0, y1 - h, x0 + w, y1), title)
+        last[0] = (x0, y1 - h, x0 + w, y1 - 9.0)
+        return (bb[0], bb[1] + 1.0, bb[2], bb[3] - 1.0)
+    y3 = y_title - G - 2 * (ch + G)
+    wp = P18_PAGE[0]
+    for xa, bp_ in ((X0, "p18a"), (X1 - wp, "p18b")):
+        cell_at(xa, y3, wp, ch, P18_TITLES[bp_])
+        pg.text_page(bp_, last[0])               # v13 (round 4, G-R4-1): one TextPage per booklet page, raise on a hit
+        for cid_, bb_, den_ in p18_page(pg, last[0], bp_, opt, log):
+            crop_add(cid_, bb_, den_, within=last[0])
+        pg.check_text(log)
+    hc = (ch - G) / 2.0
     for j, (key, title) in enumerate((("concept_up", u"THE IDEA IN SECTION · upstream entry"),
                                       ("concept_k4", u"THE IDEA IN SECTION · " + bridge_name("K4")))):
-        bx = cell(j, 2, title)
+        bx = cell_at(X0 + wp + G, y3 - j * (hc + G), X1 - X0 - 2.0 * (wp + G), hc, title)
         cb = context(pg, bx[0], bx[3], bx[2] - bx[0], "concept") if j == 0 else (bx[0], bx[3], bx[0], bx[3])
         _, bu = place(pg, parts[key], (bx[0], bx[1], bx[2], cb[1] - 3.0), 1.6, "C", log, key)
         crop_add("wb_" + key, union(cb, bu) if j == 0 else bu, within=last[0])
-    b = cell(2, 2, P17B_TITLE)
-    for cid_, bb_, den_ in p17b_page(pg, b, opt, log):
-        crop_add(cid_, bb_, den_, within=last[0])
     draw_footer(pg, X0, 1.5, X1, pal_line)
     return pg
 
@@ -2065,13 +2070,13 @@ BK_CAPTIONS = {
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": bridge_name("K4") + u": the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
-    "wb_plants_b": u"Planting and water in section: four cuts, the species and their year",
-    "wb_plants_b_a": u"Planting and water in section: four cuts, the species and their year · style a, raster collage",
+    "wb_plants_b1": u"Which plant goes where, in section: F2 and F4 at 1:250",
+    "wb_plants_b2": u"Which plant goes where, in section: W1 and S4 at 1:250",
     "wb_farms": u"Where the clean water goes", "wb_decision": u"What the figures support"}
 
 
-BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants", "wb_plants_b")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
-BK_FIXED += ("wb_plants_b_a",)   # v10: p.17 style a only (as p.11, p.13, p.14 since v9)
+BK_FIXED = ("wb_s4_seasons", "wb_s4_ne", "wb_plants")   # v3 (Prompt 5): laid out as their booklet page, at 1:1
+BK_FIXED += ("wb_plants_b1", "wb_plants_b2")   # v13 (round 4, D2): booklet p18a / p18b, each a whole page at 1:1, 1:250
 BK_FIXED += ("wb_farms", "wb_decision")   # round 3 (B4, P18.1): the merged p18-19 page, laid out at 1:1
 
 
