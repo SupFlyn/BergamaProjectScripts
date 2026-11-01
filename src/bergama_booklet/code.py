@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v26.py = v26 (1 Nov 2026, round 4 S9; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_booklet_v27.py = v27 (1 Nov 2026: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26: round 4 S9; what changed: the NEW IN / VERSION notes below)
 """Bergama Group 6: A3 BOOKLET ASSEMBLER (26 Oct 2026). Rules: scripts/_template/SCRIPT_STANDARD.md §8.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from the scripts' OWN sheet PDFs.
 
@@ -156,7 +156,7 @@ A missing drawing leaves a labelled placeholder, so the booklet always builds.
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v26"  # v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v27"  # v27 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v26 (round 4 S9, 1 Nov 2026): 25 pages, cover collage + contents, no footer rule, placeholders and text collisions raise, one trigger file; v25.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v25.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v25.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
