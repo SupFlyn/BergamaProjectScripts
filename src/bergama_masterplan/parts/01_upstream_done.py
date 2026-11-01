@@ -4,6 +4,9 @@ as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. 
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v37.2 (1 Nov, Aras 07:48): the riverside spine, its bank vote and the stops are built in this script
+    (common/city_spine.py, the same code city link uses; the vote from this run's site board or the built-in one);
+    city_link_results.json is no longer read, so city link runs once, after the masterplan. Same drawings.
 NEW IN v37 (round 3, booklet p15, p21, p22; BRIEF P15.1, P21.1-P21.4, P22.1-P22.4, G3, G8, G9, G10, G15, G16,
     G18, G19): real bridge names everywhere (common/data/NAMES.py), no K-code printed. p21: the tree set clipped to
     land at its source (stream, islands, widened reaches, side arms, reed basins; logged "planting clipped to land"),
@@ -257,7 +260,7 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v37.1 (2026-11-01)"
+VERSION = "bergama_masterplan v37.2 (2026-11-01)"
 SHORT = "v37"
 BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
