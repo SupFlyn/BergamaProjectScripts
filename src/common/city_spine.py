@@ -1,7 +1,9 @@
 # city_spine.py (1 Nov 2026, Aras 07:48: "move that part of the city link code into the masterplans script"): the
 # streamside spine, its bank vote and its stops, shared by bergama_city_link and bergama_masterplan, so the masterplan
 # builds the spine itself (spine_spec) and no longer needs city_link_results.json; city link then runs once, after it.
-# Needs bridge_name (common/names.py) and bg_cache (common/bergama_paths.py) included before it.
+# Needs bridge_name, landmark_name (common/names.py) and bg_cache (common/bergama_paths.py) included before it.
+# Round 4 (S1, 1 Nov 2026, G-R4-11): every printed place name comes from the names table (Kızıl Avlu, never "Red Hall";
+# Ulucami; bridges by name, never a K-code); the K-codes below stay internal keys and comments only.
 
 # ------------------------------------------------------------------ the spine and the function sites (survey m)
 # Anchors are surveyed points (h01 §0 and §5, source s62): K4 Ulucami Önü (29846,32278), K3 Tabak Köprüsü (30037,32122),
@@ -10,9 +12,9 @@
 # movement network only; Thread 5 draws the real edge). Piece B runs over the covered reach (offset 0), where the main
 # spine (Kınık Caddesi) crosses the stream.
 SPINE = [
-    dict(id="A", name="Ulu Cami to K3 bank walk", frm=[29846.0, 32278.0], to=[30037.0, 32122.0], side_ref=[29844.2, 32313.3], offset_m=15.0, side="auto", catch_m=250.0),
+    dict(id="A", name=landmark_name("ulucami") + u" to " + bridge_name("K3") + u" bank walk", frm=[29846.0, 32278.0], to=[30037.0, 32122.0], side_ref=[29844.2, 32313.3], offset_m=15.0, side="auto", catch_m=250.0),
     dict(id="B", name="Junction over the covered reach", frm=[30037.0, 32122.0], to=[30238.7, 31931.2], side_ref=None, offset_m=0.0),
-    dict(id="C", name="Red Hall to Üç Kemer bank walk", frm=[30238.7, 31931.2], to=[30294.0, 31792.0], side_ref=[30245.0, 31962.0], offset_m=15.0, side="auto", catch_m=250.0),
+    dict(id="C", name=landmark_name("kizil_avlu") + u" to " + bridge_name("K5") + u" bank walk", frm=[30238.7, 31931.2], to=[30294.0, 31792.0], side_ref=[30245.0, 31962.0], offset_m=15.0, side="auto", catch_m=250.0),
 ]
 # the main spine (Bankalar Caddesi + Kınık Caddesi, OSM "secondary" ways of the same extract, converted with the h01 §0
 # formula, +-10-30 m), from Bankalar's south end east past the junction; the masterplan (v11) draws it (Thread 5)
@@ -45,17 +47,17 @@ def bank_of(v):
 SRC_WET = "Days wet: research/rain_river_levels/README.md §3 (mean of water years 2016-2021)"
 # who: L locals, T tourists, S students; grows: W water, E stream edge, A agriculture, H heritage
 FUNCS = [
-    dict(n=1, name="Bank bazaar", where="Tabaklar Hamamı", ch=522, bank="NE", xy=[29890.4, 32243.6], who="LT", grows="HE",
-         icon="stall", kw=("Ottoman bazaar on this bank: Pabuççular Arastası", "stalls bring it back"), src="h02 s32"),
-    dict(n=2, name="Parchment and leather workshops", where="Tannery quarter at K3", ch=737, bank="both", xy=[30062.0, 32106.0], who="TSL", grows="H",
+    dict(n=1, name="Bank bazaar", where=landmark_name("tabaklar_hamami"), ch=522, bank="NE", xy=[29890.4, 32243.6], who="LT", grows="HE",
+         icon="stall", kw=(u"Ottoman bazaar on this bank: " + landmark_name("pabuccular_arastasi"), "stalls bring it back"), src="h02 s32"),
+    dict(n=2, name="Parchment and leather workshops", where=u"old tanneries by " + bridge_name("K3"), ch=737, bank="both", xy=[30062.0, 32106.0], who="TSL", grows="H",
          icon="hide", kw=("tanning named the stream · last master died 2026", "teach and sell the craft"), src="h02 s44 s45"),
-    dict(n=3, name="Junction square", where="Kınık Caddesi over the covered stream", ch=781, bank="over", xy=[30058.0, 32047.0], who="LTS", grows="WEH",
+    dict(n=3, name="Junction square", where=landmark_name("kinik_caddesi") + u" over the covered stream", ch=781, bank="over", xy=[30058.0, 32047.0], who="LTS", grows="WEH",
          icon="slot", kw=("the one place the main road meets the stream", "a slot: view down to the water strip"), src=None),
-    dict(n=4, name="Red Hall water terrace", where="Red Hall, Roman tunnels' outlet", ch=962, bank="NE", xy=[30238.7, 31931.2], who="TL", grows="HW",
-         icon="arch", kw=("Red Hall reopens: target 2026", "its visitors step out onto the stream"), src="h02 s41"),
+    dict(n=4, name=landmark_name("kizil_avlu") + u" water terrace", where=landmark_name("kizil_avlu") + u", Roman tunnels' outlet", ch=962, bank="NE", xy=[30238.7, 31931.2], who="TL", grows="HW",
+         icon="arch", kw=(landmark_name("kizil_avlu") + u" reopens: target 2026", "its visitors step out onto the stream"), src="h02 s41"),
     dict(n=5, name="Producers' market", where=bridge_name("K5") + ", Wednesdays", ch=1126, bank="spine", xy=[30294.0, 31792.0], who="LT", grows="A",
          icon="olive", kw=("food from fields on our stored water · olive oil", "Wednesdays · town producers' market: Saturdays"), src="h02 s25"),
-    dict(n=6, name="Study terraces", where="Spine bank between K4 and K3", ch=620, bank="spine", xy=[29941.0, 32200.0], who="SL", grows="EW",
+    dict(n=6, name="Study terraces", where=u"Spine bank between " + bridge_name("K4") + u" and " + bridge_name("K3"), ch=620, bank="spine", xy=[29941.0, 32200.0], who="SL", grows="EW",
          icon="bench", kw=("shaded seats by the water strip", "for students · out of the street noise"), src=None),
     dict(n=7, name="Clean-water classroom", where="Reed basins, upstream entry", ch=200, bank="bed", xy=None, stage="entry", who="SL", grows="W",
          icon="reed", kw=("the cleaning basins as a lesson", "how the stream works"), src=None),
