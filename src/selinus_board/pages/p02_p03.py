@@ -396,6 +396,8 @@ def draw_what_is_there(S, B, x, y, w, U):
         bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, k, col_, kb, L, order=64, r_min=rc)
         taken.append(tuple(v_ / kb for v_ in bb_))
         ovl.append(bb_)
+    # v59 closing (G-R4-1): the map: its own names and markers (from i_map0) may sit on it, no other text
+    sb_keep(B, (V.X0, mb, V.X0 + mw, ymap), u"p02 plan 01", "map", i_map0)
     # legend (v38: drawn samples with short names; explanations as [n] in the Sources key)
     r_home = bcite("Urban fabric: each building's type from its survey layer, names and heritage tags, surveyed floors, "
                    "footprint size and regularity, shared walls and the grain of the 40 m around it; shares of the "
@@ -457,7 +459,9 @@ def draw_what_is_there(S, B, x, y, w, U):
     mb_crop = min(draw_scalebar_bk(B, V.X0, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
     _sb_north(B, F2, V.X0 + sbl * s + 5.5 * kb, mb - 5.0 * kb, 5.0, kb, L)   # v59 (round 4, G-R4-9): no white half
     mb_crop = min(mb_crop, _p02_bridge_list(B, F, knum, V.X0 + gstep, mb - 1.5 * kb, V.X0 + mw, kb, L, ovl))
+    i0_key = sb_mark(B)                                   # v59 closing (G-R4-1): the key's own texts from here
     low = _p02_key_under(B, leg_bk, _P02["cs"], V.X0, mb_crop - 2.0 * kb, mw, gstep, kb, L, ovl)
+    sb_keep(B, (V.X0, low, V.X0 + mw, mb_crop - 2.0 * kb), u"p02 plan 01 key", "legend", i0_key)
     top_c = ymap + 0.3 * U
     crop_panel("plan01", V.X0, low - 0.5 * kb, V.X0 + mw, top_c, u"Plan 01 · what is there today",
                crop_scale(s), [])                         # v40; v58: the map, its lists and its key in one crop
@@ -555,7 +559,7 @@ def _sb_north(B, F, x, y, size_mm, k, L, order=60, ang=None):
     plate or white half) for a map drawn on F's axes (or ang = north's angle on the page, radians from +x), centred
     on (x, y) board units, size_mm tall on the booklet page (k = board units per booklet mm). Returns its box
     (board units)."""
-    a = math.atan2(math.cos(F.ang), math.sin(F.ang)) if ang is None else ang      # as draw_north_at
+    a = math.atan2(math.cos(F.ang), math.sin(F.ang)) if ang is None else ang      # north on F's axes
     its = north_items(0.0, 0.0, a - 0.5 * math.pi, size_mm)
     tm = max(2.12, 0.42 * size_mm)
     h_all = size_mm + 1.5 * tm                            # the shaft foot to the top of the "N"
@@ -985,6 +989,7 @@ def _p02_readings(S, B, x, y, w, U):
             site28_text(B, u"**{:.0f}%**".format(pct), x + hw, yy - h9, h9, INK, L, align="R")   # v50: real width
             yb = yy - h9 - 1.0 * k
             B.fill([rect(x, yb - 2.2 * k, x + hw, yb)], FAINT, L, 20)
+            sb_keep(B, (x, yb - 2.2 * k, x + hw, yb), u"p02 bar " + name, "bar")   # v59 closing (G-R4-1): no text
             bx = x
             for v_, c_ in parts:
                 if v_ > 0:
@@ -1009,6 +1014,7 @@ def _p02_readings(S, B, x, y, w, U):
     r1, r0 = 17.0 * k, 10.5 * k
     cx, cy = rx + r1, y - h8 - 1.6 * k - h7 - 4.0 * k - r1
     a0 = math.pi / 2.0
+    i0_ring = sb_mark(B)                                  # v59 closing (G-R4-1): the ring's own texts (its centre)
     for lab, col, a in sl:
         a1 = a0 - 2.0 * math.pi * a / ftot
         B.fill([annulus(cx, cy, r0, r1, a0, a1)], col, L, 20)
@@ -1017,6 +1023,7 @@ def _p02_readings(S, B, x, y, w, U):
         a0 = a1
     site28_text(B, u"**{:,.1f}**".format(ftot / 1e4), cx, cy + 0.6 * k, h12, INK, L, align="C")   # v50: real widths
     site28_text(B, u"ha", cx, cy - 1.4 * k - h7, h7, INK2, L, align="C")
+    sb_keep(B, (cx - r1, cy - r1, cx + r1, cy + r1), u"p02 land-use ring", "ring", i0_ring)
     low = min(low, cy - r1)
     # beside the ring: its key (the plan's ground and green colours, so the plan needs no other key), next to its
     # drawing (G1); each entry as the booklet's legend_item draws one: a 4.0 x 2.8 mm swatch from 0.2 mm under the
@@ -1024,6 +1031,7 @@ def _p02_readings(S, B, x, y, w, U):
     kx = cx + r1 + P02_GAP * k
     kw = rx + hw - kx
     ky = cy + r1 - h7
+    i0_rk = sb_mark(B)                                    # v59 closing (G-R4-1): the ring key's own texts
     for j, (lab, col, a) in enumerate(sl):
         yk = ky - j * 3.6 * k
         B.fill([rect(kx, yk - 0.2 * k, kx + 4.0 * k, yk + 2.6 * k)], col, L, 20)
@@ -1032,6 +1040,9 @@ def _p02_readings(S, B, x, y, w, U):
                    kw - 5.5 * k, INK, L)
         ovl.append(_p02_tb(lab + u" 00%", kx + 5.5 * k, yk, h7, kw - 5.5 * k))
     low = min(low, ky - max(0, len(sl) - 1) * 3.6 * k - 1.5 * k)
+    if sl:
+        sb_keep(B, (kx, ky - (len(sl) - 1) * 3.6 * k - 0.2 * k, rx + hw, ky + 2.6 * k), u"p02 ring key", "legend",
+                i0_rk)
     crop_panel("site_readings", x, low, x + w, top + 0.5 * k, u"Site readings · bank and ground")
     CROP_PANELS[-1]["bk_w"] = _p02_side_w()               # v45: its width on the booklet page (side panel of p.2) ...
     _p02_ovl_add("site_readings", (x, low, x + w, top + 0.5 * k), k, ovl)
@@ -1606,6 +1617,7 @@ def draw_edge_types(S, B, x, y, w, U, _gap=None, _pre=None, _measure=False):
     yy -= 0.6 * k
     low = yy
     reach = P02_ET_REACH.get(nrow) or tuple(u"PART %d" % (j_ + 1) for j_ in range(nrow))
+    i0_et, et_boxes = sb_mark(B), []                      # v59 closing (G-R4-1): the strips' own texts, their boxes
     for r in range(nrow):
         s0, s1 = r * Lr, (r + 1) * Lr
 
@@ -1633,6 +1645,7 @@ def draw_edge_types(S, B, x, y, w, U, _gap=None, _pre=None, _measure=False):
         ysb = yst - SW
         yRw = ysb - WS
         ybot = yRw - HB
+        et_boxes.append((gx0, ybot, gx1, yb0))
         band = {0: (yLw, yb0), 1: (ybot, yRw)}
         face = {0: (yst, yLw), 1: (yRw, ysb)}             # (water y, land y)
 
@@ -1768,6 +1781,9 @@ def draw_edge_types(S, B, x, y, w, U, _gap=None, _pre=None, _measure=False):
         B.line([(ax0, sym), (ax0 + 2.0 * k, sym)], wn_c, L, 31, bk_lw(0.2, k))
         B.fill([[(ax0 + 2.6 * k, sym), (ax0 + 1.8 * k, sym + 0.45 * k), (ax0 + 1.8 * k, sym - 0.45 * k)]], wn_c, L,
                31)
+    for j_, eb_ in enumerate(et_boxes):                   # v59 closing (G-R4-1): each strip: its names may sit on
+        sb_keep(B, eb_, u"p02 edge strip %d" % (j_ + 1), "strip", i0_et)   # it, no other text
+    i0_etk = sb_mark(B)
     # the key: drawn samples of what is drawn (each the drawing's own texture), laid out by M2 Legend under the drawing
     tys = set(v_ for row_ in st["types"] for v_ in row_ if v_)
     wls = set(v_ for row_ in st["walls"] for v_ in row_ if v_ in (1, 2))
@@ -1824,6 +1840,7 @@ def draw_edge_types(S, B, x, y, w, U, _gap=None, _pre=None, _measure=False):
                font=FONT_TITLE)
         ovl.append(_p02_tb(row_["label"], row_["text"][0] * k, row_["text"][1] * k, bk_hk(row_["size_pt"], k)))
     low = lay["box"][1] * k - 1.0 * k
+    sb_keep(B, tuple(c_ * k for c_ in lay["box"]), u"p02 edge key", "legend", i0_etk)   # v59 closing (G-R4-1)
     if _measure:                                          # v59 (round 4, P02.3): the first pass only measures
         return (top + 0.5 * k - low) / k
     crop_panel("edge_types", x, low, x + w, top + 0.5 * k, u"The stream edge · both banks, straightened, from above")
@@ -1949,18 +1966,9 @@ def _p03_title(t):
             return bridge_name(m.group(1))
         except Exception:
             return t[m.end():] or t
-    key = P03_LANDMARK_ALIAS.get(_re.sub(r"\s+", u" ", t.strip().lower()))    # v59 (round 4, G-R4-11): a translated
-    if key:                                                                     # or variant landmark name -> the table
-        try:
-            return landmark_name(key)
-        except Exception:
-            return t
-    return t
-
-
-P03_LANDMARK_ALIAS = {u"red hall": "kizil_avlu", u"red basilica": "kizil_avlu", u"kizil avlu": "kizil_avlu",
-                      u"acropolis": "akropol", u"ulu cami": "ulucami", u"ulu camii": "ulucami",
-                      u"ulu camı": "ulucami"}       # v59 (round 4, G-R4-11): whole callout titles only (names table)
+    # v59 (round 4, G-R4-11): a translated, variant or surveyed landmark name -> the names table (closing: the one
+    # survey-name map SB_LANDMARK_ALIAS of parts/05_build_terrain.py, shared with the p04-05 cut-building tags)
+    return sb_landmark(t)
 
 
 def _p03_marks(pg, V, calls, DG, BP):

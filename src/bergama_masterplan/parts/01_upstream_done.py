@@ -17,6 +17,12 @@ NEW IN v38 (round 4 S8, 1 Nov; a feature change): one run trigger (common/trigge
     mixed beds, café planes, gravel path), the bike lane ends at a street or a rack, a viewing terrace per window,
     lamps / bollards / racks, levels outside the section frame, zoom inset at 1:250, the low planting layer, one
     194 x 236 mm column per window with its own legend (the booklet adds none).
+  Round 4 closing (same v38): m² / m³ print the embedded Arial's own ² / ³ at full size (the 0.6 x raised digit
+    fell under 6 pt and raised on the p22 route key); p21 logs its "overlap p21" line; p22: no "style a (cutouts)"
+    in the crop title, the pasted plan / section / legend are blocks of the sheet's text test and a legend running
+    into the section RAISES, the zone-base zones clipped to the study area, people on the sub-hub's stepping stones
+    (or wading at most knee deep) where a section shows them, the section keys' numbers are the shared marker;
+    p16 / p22 wraps keep >= 2 words on the last line; the Trajan temple from the names table (Trajan Tapınağı).
 
 NEW IN v37.2 (1 Nov, Aras 07:48): the riverside spine, its bank vote and the stops are built in this script
     (common/city_spine.py, the same code city link uses; the vote from this run's site board or the built-in one);
@@ -572,7 +578,7 @@ def text_w(s, size, bold=False):
     return fm_width(s, size / PT, bold) if s else 0.0
 
 
-#@include ../../common/wrap.py
+# v38 closing (G-R4-2): common/wrap.py (no widow rule) is no longer included: every wrap is pl23_wrap / tp_wrap
 
 
 # ================================================================ page and PDF writer (v2.3; v10: alpha in 1 %
@@ -630,21 +636,13 @@ class Page(object):
 
     def text(self, s, x, y, size, color, bold=False, align="L", halo=None, name=None, allow=(), role="label"):
         """one text (size mm). v38: registered in the page's TextPage first (when it has one): name / allow / role
-        go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc)"""
+        go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc).
+        v38 closing: m² / m³ print the embedded Arial's own ² / ³ glyph at full size (WinAnsi 0xB2 / 0xB3, as water
+        board v13); the v26.1 raised 0.6 x digit is gone (at 7.5 pt it was 4.5 pt, under the 6 pt minimum)"""
         tp, g = self.tp, None
         if s and tp is not None:
             g = self.tg or tp._group()
-        if s and any(ch in SUP for ch in s):             # v26.1: m² / m³ as a raised small digit (see SUP)
-            runs = sup_runs(s)
-            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
-            x -= {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]
-            for (t, up), w_ in zip(runs, ws):
-                yy, ss = y + (size * SUP_UP if up else 0.0), size * (SUP_K if up else 1.0)
-                if tp is not None and t.strip():
-                    tp.put(t, x, yy, ss / PT, bold, "L", 0.0, name, role, color, allow, g, emit=False)
-                self.items.append(("text", t, x, yy, ss, color, bold, "L", halo))
-                x += w_
-        elif s:
+        if s:
             if tp is not None and s.strip():
                 tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, color, allow, g, emit=False)
             self.items.append(("text", s, x, y, size, color, bold, align, halo))
@@ -659,29 +657,6 @@ class Page(object):
         """A line drawn only inside rings (the verge band inside a zone)."""
         if len(pts) >= 2:
             self.items.append(("clipline", rings, pts, stroke, lw, alpha))
-
-
-# v26.1 (Aras 27 Oct, Prompt 8; water board v3.1's fix for "hm³ renders as hm"): ² and ³ are drawn as the digit at
-# 0.6 x the size, raised 0.28 x the size (the digit is then as wide as the ²/³ glyph, 333/1000): the unembedded
-# Helvetica's ²/³ was missing in some viewers
-SUP = {u"²": u"2", u"³": u"3"}
-SUP_K, SUP_UP = 0.6, 0.28
-
-
-def sup_runs(s):
-    """v26.1: s cut into (text, raised) runs at ² and ³, which become a plain 2 or 3"""
-    out, cur = [], u""
-    for ch in s:
-        if ch in SUP:
-            if cur:
-                out.append((cur, False))
-            out.append((SUP[ch], True))
-            cur = u""
-        else:
-            cur += ch
-    if cur:
-        out.append((cur, False))
-    return out
 
 
 #@include ../../common/hex_rgb.py

@@ -64,6 +64,12 @@ NEW IN v13 (round 4 S6a, 1 Nov 2026; a feature change, so the next whole number)
     p12 Üç Kemer drawn with three round arches (middle arch sourced, side arches a drawing rule); m² / m³ printed as
     the embedded Arial glyph; files split by page: pages/p18_sections.py (from p17_planting.py), pages/p19_farms.py
     (was p18_farms.py). Every text on p17, p18a, p18b and p19 is measured and a collision stops the run.
+  * Closing (round 4, 1 Nov 2026, same v13): the p12 band's SW wall is cut back into W1's sitting steps as on p13a
+    and p18b (3 flights, planted landings, railed edge floor, people on them); its numbers and key are the shared
+    markers in the colour of what each names; p12's markers, legend, zoom box, winter store and band picture are
+    keeps of its text check (text over them stops the run) and a map name with no room goes to a lettered side
+    list (else the run stops); the p12 draw-order line reports a real order check; a missing p18 section or
+    legend part stops the run; log lines name the booklet pages (p12, p14, p15).
 
  a feature change, so the next whole number):
   * p.12 (pages/p12_system.py): one axonometric water map (collect, clean, hold, give back, to the farms) with volumes

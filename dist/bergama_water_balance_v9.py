@@ -27,7 +27,8 @@ VERSION = "v9"  # v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAIS
 #   with text on text is written (the log says "overlap p11 checked n, collisions 0"; the old "FLAG overlap p10" line
 #   and the estimated Helvetica widths are gone). No footer or rule is drawn on the sheet (the booklet sets the page
 #   number). Start-up: common/trigger.py (only a Button press or a new done text starts it; "trigger: <why>" in the
-#   log). Computation, results JSON and the sheet's layout unchanged.
+#   log). Computation, results JSON and the sheet's layout unchanged. Closing (same v9): Page.para and rich_para wrap
+#   with the shared tp_wrap (no one-word last line, G-R4-2).
 # NEW IN v8 (round 3, 31 Oct 2026, P10.1 + G2/G3; a feature change, so the next whole number): the white space goes
 #   to the charts: block 1 grows 92 -> 100 mm and its rows follow the block (YEAR_RH from the height, 13.5 -> 15.4 mm); blocks 2-3 move down 8 mm;
 #   block 3's rows follow its height; block 4 is a tighter band (36 -> 32 mm, no empty field under its line); the
@@ -2530,14 +2531,32 @@ class Page:
                                                                        self._c(col), x * k, y * k, b.decode("latin-1")))
         # v2.7: hidden = invisible text (render mode 3): kept in the PDF, not seen; v9: never registered
     def para(self, s, x, y, w, size, col="4A3F35", bold=False, lead=1.3, hidden=False):
+        """s wrapped to w mm from baseline y at size pt; returns the next line's baseline. v9 closing (G-R4-2): visible
+        text is wrapped by the shared tp_wrap (real Arial widths, the last line holds at least two words; when that
+        cannot be done one step 0.25 pt smaller, as TextPage.para, then TpWidow raises). The invisible source key
+        (hidden) keeps the plain word wrap: it is never seen and the booklet reads its spacing as written."""
+        if not (s or "").strip():
+            return y
         g_ = self.group()                                     # v9: the paragraph's lines are one group
-        line, yy = "", y
-        for word in s.split(" "):
-            t = (line + " " + word).strip()
-            if text_w(t, size, bold) > w and line:
-                self.text(line, x, yy, size, col, bold, hidden=hidden); yy -= size * 0.3528 * lead; line = word
-            else: line = t
-        if line: self.text(line, x, yy, size, col, bold, hidden=hidden); yy -= size * 0.3528 * lead
+        yy = y
+        if hidden:
+            line = ""
+            for word in s.split(" "):
+                t = (line + " " + word).strip()
+                if text_w(t, size, bold) > w and line:
+                    self.text(line, x, yy, size, col, bold, hidden=True); yy -= size * 0.3528 * lead; line = word
+                else: line = t
+            if line: self.text(line, x, yy, size, col, bold, hidden=True); yy -= size * 0.3528 * lead
+        else:
+            try:
+                lines = tp_wrap(s, w, size, bold, min_last_words=2, bold_marks=False)
+            except TpWidow:
+                size -= 0.25
+                lines = tp_wrap(s, w, size, bold, min_last_words=2, bold_marks=False)
+            for ln in lines:
+                for t, b, xo in ln:
+                    self.text(t, x + xo, yy, size, col, b)
+                yy -= size * 0.3528 * lead
         if g_: self.group(False)
         return yy
 
@@ -2632,25 +2651,20 @@ def rich_parts(toks, size, col, bcol=None):
 
 
 def rich_para(pg, s, x, y, w, size, col, bcol=None, lead=1.3):
-    """a '**' string wrapped to w mm, line by line from baseline y; returns the next line's baseline"""
-    words, cur = [], []
-    for t in rich_tokens(s):
-        if t[0] == " ":
-            if cur: words.append(cur); cur = []
-        else:
-            cur.append(t)
-    if cur: words.append(cur)
-    lines, ln = [], []
-    for wd in words:
-        trial = ln + ([(" ", wd[0][1])] if ln else []) + wd
-        if ln and inline_w(rich_parts(trial, size, col, bcol)) > w:
-            lines.append(ln); ln = list(wd)
-        else:
-            ln = trial
-    if ln: lines.append(ln)
+    """a '**' string wrapped to w mm, line by line from baseline y at size pt; returns the next line's baseline.
+    v9 closing (G-R4-2): wrapped by the shared tp_wrap (real Arial widths, '**' runs bold in bcol, the last line
+    holds at least two words; when that cannot be done one step 0.25 pt smaller, as TextPage.para, then TpWidow
+    raises)"""
+    try:
+        lines = tp_wrap(s, w, size, False, min_last_words=2, bold_marks=True)
+    except TpWidow:
+        size -= 0.25
+        lines = tp_wrap(s, w, size, False, min_last_words=2, bold_marks=True)
     g_ = pg.group()                                       # v9: the paragraph's lines are one group
     for ln in lines:
-        inline(pg, x, y, rich_parts(ln, size, col, bcol)); y -= size * 0.3528 * lead
+        for t, b, xo in ln:
+            pg.text(t, x + xo, y, size, (bcol or col) if b else col, b)
+        y -= size * 0.3528 * lead
     if g_: pg.group(False)
     return y
 

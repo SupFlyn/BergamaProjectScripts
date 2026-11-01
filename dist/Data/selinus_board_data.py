@@ -577,6 +577,11 @@ NAMES = {
                       "src": u"site board HER_STOPS 'gondola' (OSM node 2295928011)"},
         "asklepion": {"name": u"Asklepion", "descr": u"the healing sanctuary",
                       "src": u"h01 §5 P28; KTB 'The Archaeological Site of Asklepion' (h01 s114)"},
+        "trajan_tapinagi": {"name": u"Trajan Tapınağı",
+                            "src": u"round 4 closing (G-R4-11): the form masterplan p21 already printed (p23_plan.py "
+                                   u"move reason of the viewing terrace); the temple on the Akropol, OSM way 1410335587 "
+                                   u"(masterplan 02c_corridor.py TRAJANEUM, h03 Q3); replaces 'Trajaneum' on p22; no "
+                                   u"descriptor (none in the booklet's texts)"},
     },
 }
 
@@ -1648,7 +1653,8 @@ def spec_D2(ctx, ext):
     walls = [dict(pts=list(w), color=T["monument"][1], width=0.45,
                   dash=(1.6, 0.9), layer="historic_wall") for w in getattr(ctx.S, "walls_hist", [])]
     legend = lambda: ([("box", T[k][1], u"{} ({})".format(lab, counts[k])) for k, lab in (
-        ("monument", u"Ancient remains and ruins (survey BINA_HARABE; Red Basilica at its published height)"),
+        ("monument", u"Ancient remains and ruins (survey BINA_HARABE; {} at its published height)".format(
+            ctx.ns["landmark_name"]("kizil_avlu"))),     # v59 closing (G-R4-11): the names table, never "Red Basilica"
         ("sacred", u"Mosques, masjids and tombs (sacred use)"),
         ("historic", u"Historic buildings (survey BINA_TARIHI)")) if counts.get(k)] +
         [("dash", T["monument"][1], u"Historic wall lines (survey SINIR_TARIHI_SUR)")] +
@@ -2491,6 +2497,8 @@ def place_callouts(pg, V, R, calls, G, BP):
 
 
 def wrap(s, size, width):
+    # v59 (round 4 closing, G-R4-2): no single-word last line (text_place.tp_wrap's rule, min_last_words=2, as the
+    # board's core wrap): the last word of the line above moves down when that line keeps 2 words and the two fit
     out, cur = [], ""
     for w in s.split():
         t = (cur + " " + w).strip()
@@ -2501,6 +2509,11 @@ def wrap(s, size, width):
             cur = t
     if cur:
         out.append(cur)
+    if len(out) >= 2 and len(out[-1].split()) == 1 and len(out[-2].split()) >= 3:
+        prev = out[-2].split()
+        cand = prev[-1] + " " + out[-1]
+        if text_w(cand, size) <= width:
+            out[-2], out[-1] = " ".join(prev[:-1]), cand
     return out
 
 

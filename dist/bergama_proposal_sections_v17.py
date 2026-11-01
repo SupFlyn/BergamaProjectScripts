@@ -910,7 +910,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '0972af4b119d556bb810b350fd8e70f4', 'CUTS': '6cfa39c57ca76dd552132e25183f7a19'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'CUTS': '5fb9ed44bfa605770a04af08b74b2ac9'}.get(name):
         raise RuntimeError("Data file bergama_proposal_sections_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_proposal_sections_data.py:" + name, "exec"), globals())
@@ -4117,98 +4117,12 @@ def fig_fade(col, layer=0, paper=None):
 
 
 # ---- D1 style a: raster cutouts (PNG with alpha) -------------------------------------------------------------------
-# Round 4 (S1, N1 a): PEOPLE no longer use cutouts (fig_side / fig_stall never call cut_image); plants.py may still
-# (its style a), until the plant session (S3) decides.
-# Downloads/Bergama/Data/cutouts/cutouts.json: {"cutouts": {key: {"file": "olive_1.png", "h_m": 9.0, "kind": "tree"},
-# ...}} (or the dict alone); a key may hold a list of such entries (variants, picked by seed). h_m = the true height
-# of what the PNG shows from its bottom edge (ground / feet) to its top; the PNG is drawn h_m (or the caller's h_m)
-# x k x the D9 layer scale tall, width by its own proportions, centred on x, bottom on the ground. Keys: plants =
-# the plants.py species key ("olive"), people = "person_<pose>" (fig_side poses), "stall". Spec:
-# revision_2026-10-30/handover/CUTOUTS_SPEC.md. A missing key is drawn in style b and counted (cut_log_line).
-CUT_LOG = []
+# Round 4 (S1, N1 a): PEOPLE no longer use cutouts. Round 4 closing: cut_image and its reader (cut_dir, cut_library,
+# _cut_px, CUT_LOG, _CUT_LIB) deleted: no caller anywhere in src/ (closing part C grep B). cut_log_line stays for its
+# callers (proposal sections, site board p07, water board p12/p14/p18, masterplan): with no cutout drawn it returns
+# None.
 CUT_MISSING = {}
 CUT_USED = {}
-_CUT_LIB = {}
-
-
-def cut_dir():
-    import os as _o
-    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "cutouts")
-
-
-def cut_library():
-    """{key: [entry, ...]} from cutouts.json, {} when the folder or file is missing (read once per run)"""
-    import os as _o
-    import json as _j
-    if "lib" in _CUT_LIB:
-        return _CUT_LIB["lib"]
-    lib = {}
-    p = _o.path.join(cut_dir(), "cutouts.json")
-    try:
-        with open(p, "r", encoding="utf-8") as fh:
-            js = _j.load(fh)
-        js = js.get("cutouts", js) if isinstance(js, dict) else {}
-        for k_, v in js.items():
-            vs = v if isinstance(v, list) else [v]
-            ok = [e for e in vs if isinstance(e, dict) and e.get("file") and e.get("h_m") and
-                  _o.path.isfile(_o.path.join(cut_dir(), e["file"]))]
-            if ok:
-                lib[k_] = ok
-        CUT_LOG.append(u"Cutouts: %d keys from %s" % (len(lib), p))
-    except Exception as ex:
-        CUT_LOG.append(u"Cutouts: %s not read (%s); style a draws style b everywhere" % (p, type(ex).__name__))
-    _CUT_LIB["lib"] = lib
-    return lib
-
-
-def _cut_px(path):
-    """(width, height) in px of a PNG or JPEG, None if unknown"""
-    import struct as _st
-    try:
-        with open(path, "rb") as f:
-            d = f.read(65536)
-        if d[:8] == b"\x89PNG\r\n\x1a\n":
-            return _st.unpack(">II", d[16:24])
-        i = 2
-        while d[:2] == b"\xff\xd8" and i + 9 < len(d):
-            if d[i + 1] in (0xC0, 0xC1, 0xC2):
-                return (d[i + 7] << 8) | d[i + 8], (d[i + 5] << 8) | d[i + 6]
-            i += 2 + ((d[i + 2] << 8) | d[i + 3])
-    except Exception:
-        pass
-    return None
-
-
-def cut_image(key, x, gy, k, h_m=None, layer=0, facing=1, pick=0, w_max=None):
-    """style a: [("image", x0, y0, w, h, path, None, flip, None)] of cutout `key` standing on (x, gy) page mm (gy
-    may be a function of x), h_m (default the cutout's own true height) x k x the layer scale tall; w_max (mm)
-    shrinks it uniformly if wider. None (counted as missing) when there is no such cutout. Always opaque (Aras 31
-    Oct: nothing see-through); depth layers 1, 2 take the entry's toned copy (cutouts.json "depth": {"1": file,
-    "2": file}, made by tools/cutouts/depth_tones.py: colours mixed toward the paper by FIG_DEPTH's fade, so nearer
-    = stronger, farther = paler, the section rule), else the full-tone file."""
-    import os as _o
-    lib = cut_library().get(key)
-    if not lib:
-        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
-        return None
-    e = lib[int(pick) % len(lib)]
-    p = _o.path.join(cut_dir(), e["file"])
-    dfile = (e.get("depth") or {}).get(str(int(layer or 0)))   # R2-A 31 Oct: the depth layer's own toned copy
-    if dfile and _o.path.isfile(_o.path.join(cut_dir(), dfile)):
-        p = _o.path.join(cut_dir(), dfile)
-    px = _cut_px(p)
-    if not px or not px[1]:
-        CUT_MISSING[key] = CUT_MISSING.get(key, 0) + 1
-        return None
-    sc, _f_, _al = FIG_DEPTH.get(int(layer or 0), FIG_DEPTH[0])
-    h = float(h_m or e["h_m"]) * k * sc
-    w = h * px[0] / float(px[1])
-    if w_max and w > w_max:
-        h, w = h * w_max / w, w_max
-    g = gy(x) if callable(gy) else gy
-    flip = (facing < 0) != (e.get("facing", 1) < 0)
-    CUT_USED[key] = CUT_USED.get(key, 0) + 1
-    return [("image", x - w / 2.0, g, w, h, p, None, flip, None)]   # opaque: never see-through (Aras 31 Oct)
 
 
 def cut_log_line():
@@ -8764,7 +8678,7 @@ def sf_seat_x(gy, x, half_w, tol=0.05):
 
 def sf_ground_fn(gy, half_w):
     """gy as a function that already seats (sf_seat_x): pass it as the ground of fig_side, fig_activity,
-    pla_section, cut_image ... so every item they place stands on the lowest ground under its base"""
+    pla_section ... so every item they place stands on the lowest ground under its base"""
     return lambda x: sf_seat_x(gy, x, half_w)
 
 
@@ -9211,17 +9125,26 @@ class SfCallouts(object):
         return sh
 
     def key(self, x, y, size=1.8, ink=None, gap=None):
+        """the numbered list: one row per number from (x, y) down (y up), gap apart; ink = the caller's colour (else
+        SEC ink). Round 4 closing (G-R4-7): each number is the shared marker (marker.py mk_marker, style "ring" as
+        .marks: the glyph centred on its ink box, at least 7 pt), its disc centred 0.4 x size above the row's
+        baseline and at least its radius in from x; the row's words start 2 x size in (further only when the disc
+        is wider). Returns house shapes, as before."""
         ink = ink or SEC["ink"]
         gap = gap or 1.5 * size
+        pt = max(7.0, size / 0.3528)
         seen, sh, yy = set(), [], y
         for n, _x, _y, t in sorted(self.items):
             if n in seen:
                 continue
             seen.add(n)
-            sh += [("poly", sec_ellipse(x + 0.75 * size, yy - 0.4 * size, 0.75 * size, 0.75 * size, 20), "FFFFFF", ink,
-                    0.15),
-                   ("text", u"%d" % n, x + 0.75 * size, yy - 0.76 * size, 0.85 * size, ink, True, "C"),
-                   ("text", t, x + 2.0 * size, yy - 0.76 * size, size, ink, False, "L")]
+            cy = yy - 0.4 * size
+            shp, _box, r = mk_marker(x + 0.75 * size, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            if r > 0.75 * size:                          # a wider disc (two digits) moves in to keep x its left edge
+                shp, _box, r = mk_marker(x + r, cy, u"%d" % n, ink, size_pt=pt, style="ring")
+            sh += list(shp)
+            sh.append(("text", t, max(x + 2.0 * size, x + 2.0 * r + 0.4 * size), yy - 0.76 * size, size, ink, False,
+                       "L"))
             yy -= gap
         return sh
 

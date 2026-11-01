@@ -51,7 +51,9 @@ def her_words(txt):
 
 
 def her_wrap(txt, h, width):
-    """v50 (G5): txt (** = bold) broken into lines of words no wider than width at capital height h"""
+    """v50 (G5): txt (** = bold) broken into lines of words no wider than width at capital height h. v59 (round 4
+    closing, G-R4-2): no single-word last line (text_place.tp_wrap's rule, min_last_words=2, as the core wrap): the
+    last word of the line above moves down when that line keeps 2 words and the two then fit (else left as set)"""
     sp = her_tw(u" ", h)
     lines, cur, cw = [], [], 0.0
     for wd in her_words(txt):
@@ -63,6 +65,10 @@ def her_wrap(txt, h, width):
         cur.append(wd)
     if cur:
         lines.append(cur)
+    if len(lines) >= 2 and len(lines[-1]) == 1 and len(lines[-2]) >= 3:
+        cand = [lines[-2][-1], lines[-1][0]]
+        if sum(her_tw(t_, h, b_) for wd in cand for t_, b_ in wd) + sp <= width:
+            lines[-2], lines[-1] = lines[-2][:-1], cand
     return lines
 
 
@@ -456,6 +462,7 @@ def her21_card(B, pl, ph, g, num, k, L, boxes=None):
     window; the place's name (wrapped to the text column, bold) and its one line (keywords bold) beside it, ONE text
     group. No credits on the page (G12: the Sources page). boxes (list) gets the card's text boxes in booklet mm."""
     q, cy = g["img"], g["cy"]
+    i0_w = sb_mark(B)                                     # v59 closing (G-R4-1): the window's own texts (badge, name)
     if ph:
         B.image(ph[0], q[0], q[1], q[2], q[3], L, order=5)
     else:                                                 # an empty slot: a pale rectangle with the name
@@ -479,6 +486,7 @@ def her21_card(B, pl, ph, g, num, k, L, boxes=None):
         cb = circle_pts(bx, q[3] - R - m_, R, 24)
         B.fill([cb], WHITE, L, 60)
         B.line(cb + [cb[0]], HER21_LOOP_C, L, 61, bk_lw(0.45, k))
+    sb_keep(B, q, u"p20 photo " + pl["name"], "photo", i0_w)   # v59 closing (G-R4-1): no other text on the photo
     hn, h = bk_hk(HER21_PT["name"], k), bk_hk(HER21_PT["txt"], k)
     pt, ptn = HER_PITCH * h, HER_PITCH * hn
     w_ = g["t1"] - g["t0"]
@@ -734,7 +742,9 @@ def her_loop_page(S, SA, B, x, top, k, L):
     V = View(Fm, ss, xm, top)
     r_all = (xm, top - mh, xm + mw, top)
     bot = her21_foot(B, xm, r_all[1], ss, k, L, HER_SB_M.get(HER21_DEN, 400.0))
+    i0_map = sb_mark(B)                                   # v59 closing (G-R4-1): the map's own texts from here
     mres = her21_map(S, B, V, Fm, r_all, k, L, xy, num)   # dict (walk_m, walk, key_bot, labels, pins)
+    sb_keep(B, r_all, u"p20 loop map", "map", i0_map)     # its pins and names may sit on it, no other text
     walk_m = mres["walk_m"]
     if mres["key_bot"] is not None:                       # the letters' key under the map may reach lower
         bot = min(bot, mres["key_bot"])

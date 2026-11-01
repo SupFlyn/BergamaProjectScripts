@@ -1024,8 +1024,26 @@ def label_name(u):
     if not u or not u.get("proper"):
         return ""
     if u.get("fabric") in ("monument", "sacred", "large") or u.get("cat") in ("religious", "institutional"):
-        return u["proper"]
+        return sb_landmark(u["proper"])                  # v59 closing (G-R4-11): a table landmark by its one spelling
     return ""
+
+
+# v59 (round 4 closing, G-R4-11; was p02_p03's P03_LANDMARK_ALIAS): a landmark as the survey or a source spells it
+# (or its English translation) -> its key in common/data/NAMES.py "landmarks". Only forms the names table itself
+# records: survey labels named in its "src" (Ulu Camii, Kızıl Avlu, Çizmeciler Arastası, İstiklal Meydanı) and the
+# variants round 3 / S1 replaced (Red Hall, Red Basilica, Acropolis, Ulu Cami). Whole names only (lower case, single
+# spaces, İ as i). A survey name with no row here prints as surveyed (a Turkish proper name, never translated).
+SB_LANDMARK_ALIAS = {u"ulu camii": "ulucami", u"ulu cami": "ulucami", u"ulu camı": "ulucami",
+                     u"kızıl avlu": "kizil_avlu", u"kizil avlu": "kizil_avlu", u"red hall": "kizil_avlu",
+                     u"red basilica": "kizil_avlu", u"acropolis": "akropol",
+                     u"çizmeciler arastası": "cizmeciler_arastasi", u"istiklal meydanı": "istiklal_meydani"}
+
+
+def sb_landmark(nm):
+    """v59 closing (G-R4-11): nm by the names table's one spelling (landmark_name) when it is a landmark the table
+    records in another form (SB_LANDMARK_ALIAS), else nm as given"""
+    key = SB_LANDMARK_ALIAS.get(u" ".join((nm or u"").split()).lower().replace(u"i\u0307", u"i"))
+    return landmark_name(key) if key else nm
 
 
 def live_unit(S, u):

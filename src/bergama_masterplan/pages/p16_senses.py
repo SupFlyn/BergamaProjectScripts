@@ -1457,7 +1457,7 @@ def sn_history(pg, G, cell, warn):
         x, y = slots[k]
         path = ph[k][0]                                  # ph[k][1] = the csv credit line: Sources page only (G12)
         cap = names[k]
-        lines = wrap(cap[0], fs, W - 4.0, True)
+        lines = pl23_wrap(cap[0], W - 4.0, fs, True, warn, u"p16")   # v38 closing (G-R4-2): no widow
         if len(lines) > 2:
             warn.append(u"FLAG p16 History: caption '{}' needs {} lines under its photo (2 shown)".format(
                 cap[0], len(lines)))

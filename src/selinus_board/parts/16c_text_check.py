@@ -17,10 +17,43 @@ SB_TP_PAGES = {"plan01": "p02", "plan01_key": "p02", "site_readings": "p02", "ed
                "mv_note_3": "p07", "street_sections": "p09", "heritage_loop": "p20"}
 SB_TP_PAD = 0.6                                       # mm clear gap between texts (text_place default)
 SB_TP_LOG = []
+# v59 (round 4 closing, G-R4-1 keeps): the drawing areas no text may cover, registered while the pages draw (sb_keep):
+# key maps, legends, section pictures, the stream at each cut, zoom insets, photos and map frames. Each holds the
+# texts its own drawing set (its names, tags, numbers: items i0..i1 of the board) as allowed on it, so a place name on
+# its map passes and a column text, caption or other block running over the drawing raises like text-text.
+SB_KEEPS = []                                         # dict(lst, geom, kind, name, i0, i1, line); reset per layout
 
 
 class SbTextCollisions(RuntimeError):
     pass
+
+
+def sb_mark(B):
+    """v59 (closing, G-R4-1): the index the next item of board B gets (the i0 of sb_keep); None on a dry run"""
+    it = getattr(B, "items", None)
+    return len(it) if isinstance(it, list) else None
+
+
+def sb_keep(B, geom, name, kind="keep", i0=None, line=None):
+    """v59 (closing, G-R4-1): one drawing area of board B no text may cover, for the page check: geom = a box (x0,
+    y0, x1, y1) or a closed area [(x, y) ...] in board units (line=True: an open line). The texts B drew from item
+    i0 (sb_mark taken before the drawing) up to this call are the drawing's own and may sit on it; i0 None = no text
+    may (the stream at a cut). A dry run (no board items) registers nothing. Returns the keep's name."""
+    it = getattr(B, "items", None)
+    if not isinstance(it, list) or not geom:
+        return None
+    n = len(it)
+    nm = u"%s#%d" % (name, len(SB_KEEPS))
+    SB_KEEPS.append(dict(lst=it, geom=list(geom), kind=kind, name=nm, i0=n if i0 is None else int(i0), i1=n,
+                         line=line))
+    return nm
+
+
+def _sb_keep_box(K):
+    g = K["geom"]
+    if len(g) == 4 and not hasattr(g[0], "__len__"):
+        return tuple(g)
+    return (min(p[0] for p in g), min(p[1] for p in g), max(p[0] for p in g), max(p[1] for p in g))
 
 
 def _sb_tp_pt(it, k):
@@ -30,11 +63,12 @@ def _sb_tp_pt(it, k):
 
 
 def _sb_tp_items(B, bb, k, drop):
-    """[(text, x, y, pt, bold, align, deg, tg, drawing)] of the board's texts that reach into bb (board units)"""
+    """[(text, x, y, pt, bold, align, deg, tg, drawing, index)] of the board's texts that reach into bb (board
+    units); index = the item's place in B.items (closing: the keeps it may sit on, sb_keep)"""
     import re as _re
     pats = [_re.compile(d) for d in drop or ()]
     out = []
-    for it in B.items:
+    for i_, it in enumerate(B.items):
         if it[0] != "text":
             continue
         txt = u"%s" % it[1]
@@ -48,7 +82,7 @@ def _sb_tp_items(B, bb, k, drop):
         pt, kd = _sb_tp_pt(it, k)
         deg = math.degrees(it[10] or 0.0)
         tg = it[13] if len(it) > 13 else None
-        out.append([txt, x, y, pt, bool(it[8]), it[9] or "L", deg, tg, it[12]])
+        out.append([txt, x, y, pt, bool(it[8]), it[9] or "L", deg, tg, it[12], i_])
     return out
 
 
@@ -93,11 +127,12 @@ def _sb_tp_join(T, k):
         t[7] = find(t[7])
 
 
-def _sb_tp_put(tp, t, k):
-    """register one text; a turned text as short chunks along its baseline (its true strip, not its bounding box)"""
-    txt, x, y, pt, bold, align, deg, tg, _d = t
+def _sb_tp_put(tp, t, k, allow=()):
+    """register one text; a turned text as short chunks along its baseline (its true strip, not its bounding box);
+    allow = the keeps it may sit on (closing: those of its own drawing)"""
+    txt, x, y, pt, bold, align, deg, tg, _d = t[:9]
     if abs(deg) < 0.5 or len(txt) <= 4:
-        tp.put(txt, x, y, pt, bold, align, deg, name=txt[:24], group=tg, emit=False)
+        tp.put(txt, x, y, pt, bold, align, deg, name=txt[:24], group=tg, emit=False, allow=allow)
         return
     a = math.radians(deg)
     full = fm_width(txt, pt, bold) / k
@@ -108,7 +143,7 @@ def _sb_tp_put(tp, t, k):
         if ch.strip():
             u = x0 + s0
             tp.put(ch, x + u * math.cos(a), y + u * math.sin(a), pt, bold, "L", deg, name=txt[:24], group=tg,
-                   emit=False)
+                   emit=False, allow=allow)
         s0 += fm_width(ch, pt, bold) / k
 
 
@@ -128,6 +163,10 @@ def sb_text_check(B):
         sc = (p["bk_w"] / w_mm) if p.get("bk_w") else min(BK_AW / w_mm, BK_AH / h_mm)
         tp = TextPage(u"%s %s" % (page, p["slug"]), bb, y_down=False, min_pt=GRID_MIN_PT, pad=SB_TP_PAD,
                       scale=sc, unit_mm=k, log=SB_TP_LOG)
+        # v59 (closing, G-R4-1): the drawing areas of this board that reach into the crop (sb_keep)
+        ks_ = [K for K in SB_KEEPS if K["lst"] is B.items and tp_hit(_sb_keep_box(K), bb, 0.0)]
+        for K in ks_:
+            tp.keep(K["geom"], kind=K["kind"], name=K["name"], line=K["line"])
         T = _sb_tp_items(B, bb, k, p.get("drop"))
         _sb_tp_join(T, k)
         for t in T:
@@ -135,7 +174,7 @@ def sb_text_check(B):
             if not tp_hit(tp._box(t[0], t[1], t[2], t[3], t[4], t[5], t[6]), bb, 0.0):
                 continue
             try:
-                _sb_tp_put(tp, t, k)
+                _sb_tp_put(tp, t, k, tuple(K["name"] for K in ks_ if K["i0"] <= t[9] < K["i1"]))
             except TextError as ex:
                 bad.append(u"%s %s: %s" % (page, p["slug"], ex))
         try:

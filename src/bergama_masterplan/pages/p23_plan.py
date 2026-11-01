@@ -579,10 +579,10 @@ def pl23_text(sh, s, x, y, size, colour, bold=False, align="L", group=None, name
               halo=None):
     """v38 (G-R4-1): one text on the page sh (size mm, baseline point at align), registered in sh's TextPage with
     its real box first (group: the lines of one entry, the runs of one line, may touch each other) and then drawn.
-    Returns its box. Texts with a raised ² / ³ go through sh.text (it splits them)."""
+    Returns its box. (v38 closing: ² / ³ are the font's own glyphs, so they need no split any more.)"""
     if not s or not s.strip():
         return None
-    if sh.tp is None or any(ch in SUP for ch in s):
+    if sh.tp is None:
         sh.text(s, x, y, size, colour, bold=bold, align=align, halo=halo, name=name, allow=allow, role=role)
         return None
     b = sh.tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, colour, allow, group, emit=False)
@@ -590,9 +590,10 @@ def pl23_text(sh, s, x, y, size, colour, bold=False, align="L", group=None, name
     return b
 
 
-def pl23_wrap(s, w, size, bold=False, warn=None):
+def pl23_wrap(s, w, size, bold=False, warn=None, page=u"p21"):
     """v38 (G-R4-2): s wrapped to w mm at size mm with real widths (tp_wrap), never one word alone on the last line
-    (min_last_words=2); when the words do not allow it at w, a slightly narrower column is tried. Returns the lines."""
+    (min_last_words=2); when the words do not allow it at w, a slightly narrower column is tried. Returns the lines
+    (strings, as the old common/wrap.py wrap did). v38 closing: p16 and p22 use it too (page = the warning's page)."""
     for f in (1.0, 0.94, 0.88, 0.82):
         try:
             L = tp_wrap(s, w * f, size / PT, bold, min_last_words=2, bold_marks=False)
@@ -600,7 +601,7 @@ def pl23_wrap(s, w, size, bold=False, warn=None):
         except TpWidow:
             continue
     if warn is not None:
-        warn.append(u"masterplan p21: one word alone on the last line of: " + s)
+        warn.append(u"masterplan %s: one word alone on the last line of: %s" % (page, s))
     L = tp_wrap(s, w, size / PT, bold, min_last_words=1, bold_marks=False)
     return [u" ".join(r_[0] for r_ in ln) for ln in L if ln]
 
@@ -713,7 +714,8 @@ def pl28_note_entry(C, nt):
                 "frame": (u"Nothing placed", u"the edge of the analysis frame, " + less)}.get(
             k[1], (nt["text"][:1] + nt["text"][1:].lower(), less))
     if k[0] == "view" and C.terrace:
-        return u"Viewing terrace", u"a clear sightline to Trajan Tapınağı, {:,.0f} m away".format(C.terrace["d"])
+        return u"Viewing terrace", u"a clear sightline to {}, {:,.0f} m away".format(   # closing G-R4-11: names table
+            landmark_name("trajan_tapinagi"), C.terrace["d"])
     if k[0] == "widen" and C.widen:
         lo, hi = min(w["fw"][0] for w in C.widen), max(w["fw"][1] for w in C.widen)
         return u"Stream widened", u"room for water and a wetland · {:.0f}-{:.0f} m open beside the bank".format(lo, hi)
@@ -1303,7 +1305,7 @@ def plan_page(C, warn):
         pl23_list(sh, x_side + PL23_SIDE_GAP, W - PL23_EDGE_MM, y - 1.6, u"Hub names, by number",
                   [dict(mk=(u"%d" % n, col, "ring"), rows=[(t, True, COL["ink"])]) for n, t, col in nrows],
                   PL23_LIST_COLS, warn)
-    sh.check_text()                                       # G-R4-1: RAISES TextCollision (the sheet is not written)
+    TP_LOG.append(sh.check_text())                        # G-R4-1: RAISES; v38 closing: logs "overlap p21 ..."
     sh.crop = (0.0, 0.0, W, H)
     sh.key, sh.world, sh.scale, sh.pleg = "plan", bbox(C.V.P), scale, None
     sh.bid = ("mp_plan", "c1_s1", u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower()))

@@ -358,37 +358,16 @@ Pictures (technical maps, section drawings) display rendered in every viewport, 
 # v16.7: the component's inputs, taken before anything else runs. Rhino 8 KEEPS the globals of the previous run, so a
 # name this script defines (the function bake, a module) would otherwise stand in for an input that is not connected.
 # Only the component's real input names are taken, and never a module, function or class.
+# v59 (round 4 closing, run trigger): the inputs come from common/trigger.py trig_inputs (the component's own inputs,
+# nothing else; {} outside Grasshopper), the one copy every script uses; the board's own _gh_inputs is gone. Still
+# taken here, before the script defines any global, and still never a module, function or class.
+#@include ../../common/trigger.py
 import types as _types
 
-
-def _gh_inputs():
-    names = None
-    try:
-        names = set()
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821 (ghenv exists in Grasshopper)
-            for a_ in ("VariableName", "NickName", "Name"):
-                v_ = getattr(p_, a_, None)
-                if v_:
-                    names.add(str(v_))
-        if not names:
-            names = None
-    except Exception:
-        names = None
-    out = {}
-    for k_, v_ in list(globals().items()):
-        if k_.startswith("_") or (names is not None and k_ not in names):
-            continue
-        if isinstance(v_, (_types.ModuleType, _types.FunctionType, _types.BuiltinFunctionType, type)):
-            continue
-        out[k_] = v_
-    return out
-
-
-_GH_IN = _gh_inputs()
+_GH_IN = dict((k_, v_) for k_, v_ in trig_inputs().items()
+              if not k_.startswith("_") and not isinstance(v_, (_types.ModuleType, _types.FunctionType,
+                                                                 _types.BuiltinFunctionType, type)))
 _T_START = __import__("time").time()
-
-
-#@include ../../common/trigger.py
 
 
 def done_text(ran, ok, secs):

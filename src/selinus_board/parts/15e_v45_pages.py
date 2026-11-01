@@ -38,22 +38,8 @@ def bk_lw(mm, k):
     return mm * k / 10.0
 
 
-def draw_north_at(B, F, x, y, a_mm, k, L, order=60):
-    """v45: a north arrow a_mm long centred on (x, y), for a map drawn on F's axes (page x = u), set beside its scale
-    bar, never on the map. Returns its half-width (board units)."""
-    a = math.atan2(math.cos(F.ang), math.sin(F.ang))
-    c, s = math.cos(a - math.pi / 2), math.sin(a - math.pi / 2)
-    q = a_mm * k / 1.3
-
-    def R(px, py):
-        return (x + c * px - s * py, y + s * px + c * py)
-    tip, l, m, r = R(0, 0.75 * q), R(-0.38 * q, -0.5 * q), R(0, -0.22 * q), R(0.38 * q, -0.5 * q)
-    B.fill([[tip, l, m]], INK, L, order)
-    B.fill([[tip, m, r]], WHITE, L, order)
-    B.line([tip, l, m, r, tip], INK, L, order + 1, bk_lw(0.15, k))
-    nx, ny = R(0, 1.15 * q)
-    B.text("N", nx, ny, bk_hk(7.0, k), INK, L, order=order + 1, font=FONT_TITLE, bold=True, align="MC")
-    return 1.4 * q
+# v59 (round 4 closing, G-R4-9): draw_north_at (the half-white north arrow) is gone: every board map draws
+# _sb_north (pages/p02_p03.py, common/keymap.py north_items).
 
 
 def draw_scalebar_bk(B, x, y, ss, Lm, k, L, order=60):

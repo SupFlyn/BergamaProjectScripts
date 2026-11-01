@@ -639,11 +639,12 @@ class Corridor(object):
             self.note(("hub", hid), txt, why, sq)
         self.note(("h4",), u"STEP TO THE WATER FACING TABAKLAR HAMAMI", [u"H4 bath ruin 1.5 m from the stream"],
                   [PLACES[1][1]])
-        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman complex, ~120 m bank wall (h01 P12)"],
+        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman bank wall, ~120 m (h01 P12)"],
                   [ROMAN_WALL])                          # v26.1: h01's place register P12 (it read like a page number)
         if self.terrace:
             z = u", highest clear ground +{:.1f} m".format(self.terrace["z"]) if self.terrace["z"] is not None else u""
-            self.note(("view",), u"VIEWING TERRACE · TRAJANEUM {:,.0f} m".format(self.terrace["d"]),
+            self.note(("view",), u"VIEWING TERRACE · {} {:,.0f} m".format(   # closing G-R4-11: the names table
+                mp_upper(landmark_name("trajan_tapinagi")), self.terrace["d"]),
                       [u"H5 computed sightline: no building on the line (site frame){}".format(z)], [self.terrace["xy"]])
         for z in self.D.zones:
             if z["code"] == "WT":

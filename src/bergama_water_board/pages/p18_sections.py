@@ -899,7 +899,8 @@ P18_F4_RNG = (52.0, 125.0)
 # W1's way down (P18.3, G-R4-5.7; ASKS_resolved §2: Aras's own choice, 31 Oct 12:01): the SW DSİ wall cut back into
 # sitting steps with planted landings to a floor at the wall foot, exactly the rules of p13's W1 (proposal sections
 # PS_W1_SIT, PS_W1_FLIGHTS, PS_W1_LAND, PS_W1_POCKET, PS_W1_FLOOR_W, PS_W1_FLOOR_UP, PS_RAIL_DROP; design rules, not
-# data), applied to this cut's surveyed bed (DATA-1)
+# data), applied to this cut's surveyed bed (DATA-1). Closing round 4: the water board's one copy of those values;
+# p12's band draws the same steps from them (pages/p12_system.py _p12_w1_steps)
 P18_W1_SIT = (0.80, 0.45)            # m: sitting step tread, largest riser (seat high)
 P18_W1_FLIGHTS = 3                   # flights, a landing between two
 P18_W1_LAND = 2.40                   # m: a landing (the way on at its front, a planted pocket at its back)
@@ -1059,7 +1060,8 @@ def _p18_w1(log):
 def _p18_specs(log):
     """the four cuts of p18a / p18b, built once a run from p17's specs (copies; page A's plan keeps reading p17's):
     F2 and F4 trimmed (N3 a), W1 with its way down (_p18_w1), S4 whole; each with its shrub and flower layer
-    ("low", G-R4-5.2). {cid: spec}; a cut that cannot be built is left out with a WARNING line."""
+    ("low", G-R4-5.2). {cid: spec}; a cut that cannot be built RAISES (closing round 4: a missing section stops the
+    run with the cut and the reason, never an empty row)."""
     if "p18specs" in _P17_MEMO:
         return _P17_MEMO["p18specs"]
     base = _p17_specs(log)
@@ -1078,11 +1080,12 @@ def _p18_specs(log):
                        [(z_[0] + 0.3, z_[1] - 0.3, 0.12, 0.50, 146) for z_ in s["zones"] if z_[2] == ne_]
             out["F4"] = s
     except Exception as ex:
-        log.append(u"WARNING p18 F2/F4 not trimmed: {}: {}".format(type(ex).__name__, ex))
+        raise RuntimeError(u"p18a F2/F4: the trimmed section specs could not be built: {}: {}".format(
+            type(ex).__name__, ex))
     try:
         out["W1"] = _p18_w1(log)
     except Exception as ex:
-        log.append(u"WARNING p18b W1 not built: {}: {}".format(type(ex).__name__, ex))
+        raise RuntimeError(u"p18b W1: the section spec could not be built: {}: {}".format(type(ex).__name__, ex))
     if "S4" in base:                                    # p.14's cut and plants; its low layer as p.14 draws it
         s = dict(base["S4"])
         s.pop("arrows", None)
@@ -1448,16 +1451,15 @@ def p18_page(pg, box, page, opt, log):
     tri = sf_triangles(walls=False, aggregate=False)
     specs = _p18_specs(log)
     parts = {}
-    for cid in cids:
+    for cid in cids:                                    # closing round 4: a missing or failing section RAISES
         if cid not in specs:
-            log.append(u"WARNING {} {}: no section spec (see the WARNING above): the row stays empty".format(page, cid))
-            continue
+            why = next((ln for ln in log if ln.startswith(u"WARNING p.17 section {} ".format(cid))), None)
+            raise RuntimeError(u"{} {}: no section spec, so its row cannot be drawn ({})".format(
+                page, cid, why or u"p17 has no spec of that cut"))
         try:
             parts[cid] = _p17_section(specs[cid], "a", log, P18_DEN, page)
         except Exception as ex:
-            log.append(u"WARNING {} section {} not drawn: {}: {}".format(page, cid, type(ex).__name__, ex))
-            import traceback as _tb
-            log.append(_tb.format_exc()[-600:])
+            raise RuntimeError(u"{} section {} could not be drawn: {}: {}".format(page, cid, type(ex).__name__, ex))
     sf_triangles(**tri)
     hs = [BLK_TITLE_H + specs[c]["dbox"][3] if c in parts else 0.0 for c in cids]
     need = sum(hs) + P18_ROW_GAP
@@ -1472,7 +1474,7 @@ def p18_page(pg, box, page, opt, log):
         if cid in parts:
             cols[i] = _p18_block(pg, page, cid, specs[cid], parts[cid], x0, tops[i], i == 0, log)
     # the legend (G1, nothing between it and its drawings): in the named row's column, else the other; a part that
-    # finds no room in either is left out with a FLAG
+    # finds no room in either RAISES (closing round 4: never left out)
     order = [leg_row, 1 - leg_row]
     for nm, fn in ((u"planting bands", lambda c_, y_, dr: _p18_bands(pg, c_, y_, log, dr)),
                    (u"materials", lambda c_, y_, dr: _p18_materials(pg, c_, y_, dr))):
@@ -1487,7 +1489,10 @@ def p18_page(pg, box, page, opt, log):
                 done = True
                 break
         if not done:
-            log.append(u"FLAG {} legend: the {} find no room in the side columns: left out".format(page, nm))
+            raise RuntimeError(u"{} legend: the {} find no room in either side column (free {}): shorten the "
+                               u"lists or the legend, never leave it out".format(
+                                   page, nm, u", ".join(u"{:.1f} mm".format(c_["y"] - c_["ybot"])
+                                                        for _i, c_ in sorted(cols.items()))))
     log.append(u"figures set={} {} ({})".format(FIG_SET, FIG_COUNT[0] - fig0, page))
     cl = cut_log_line()
     if cl:

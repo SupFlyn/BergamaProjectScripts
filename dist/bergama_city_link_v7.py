@@ -257,7 +257,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'SHOPS_XY': '938d12716e4355018e4de86927b3b4ab', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '0972af4b119d556bb810b350fd8e70f4', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'SHOPS_XY': '938d12716e4355018e4de86927b3b4ab', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011'}.get(name):
         raise RuntimeError("Data file bergama_city_link_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_city_link_data.py:" + name, "exec"), globals())
@@ -364,9 +364,18 @@ def _lv_ends_row(cid):
         return many[0]
 
 
+LV_ENDS_OVERRIDE = {}     # round 4 (S4, N4 b): {cut: ((x1, y1), (x2, y2))} a script that draws a cut on another line
+                          # than the table's (site board: S5 across the stream at one crossing) sets it each run;
+                          # empty in every other script, so nothing changes there
+
+
 def level_ends(cid):
-    """((x1, y1), (x2, y2)): the cut's two ends in survey m, unprimed end first"""
-    (a, b) = _lv_ends_row(cid)["ends"]["value"]
+    """((x1, y1), (x2, y2)): the cut's two ends in survey m, unprimed end first (LV_ENDS_OVERRIDE first)"""
+    r_ = _lv_ends_row(cid)
+    ov = LV_ENDS_OVERRIDE.get(r_.get("cut") or cid) or LV_ENDS_OVERRIDE.get(cid)
+    if ov:
+        return (float(ov[0][0]), float(ov[0][1])), (float(ov[1][0]), float(ov[1][1]))
+    (a, b) = r_["ends"]["value"]
     return (float(a[0]), float(a[1])), (float(b[0]), float(b[1]))
 
 

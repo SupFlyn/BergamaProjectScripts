@@ -173,7 +173,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'BASE_DATA': 'cf047935732fa0db32aed2866224f6ea', 'NAMES': '0972af4b119d556bb810b350fd8e70f4'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'BASE_DATA': 'cf047935732fa0db32aed2866224f6ea', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad'}.get(name):
         raise RuntimeError("Data file bergama_zone_base_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_zone_base_data.py:" + name, "exec"), globals())

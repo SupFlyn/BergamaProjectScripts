@@ -754,7 +754,8 @@ def height_note(S):
     if n["unlabelled"]:                                  # v50 (MIRAQUA 28 Oct, P06.3)
         s += ", {} house outlines the survey closed without a floor label count as one storey".format(n["unlabelled"])
     if n["published"]:
-        s += "; the Red Basilica hall and rotundas at their published heights (19 m, 18 m)"
+        s += u"; the {} hall and rotundas at their published heights (19 m, 18 m)".format(
+            landmark_name("kizil_avlu"))                  # v59 closing (G-R4-11): the names table, not "Red Basilica"
     return s + "."
 
 
