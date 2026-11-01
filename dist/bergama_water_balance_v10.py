@@ -1,12 +1,13 @@
-# CURRENT VERSION: bergama_water_balance_v9.py = v9 (1 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_balance_v10.py = v10 (2 Nov 2026; what changed: the NEW IN / VERSION notes below)
 # bergama_water_balance_v8.py (v8, 31 Oct: round 3, p10 charts fill the page, sentence-case title; v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
 #   1. lands: optional GH inputs > objects in the open Rhino file > built-in defaults (see LANDS below);
 #   2. 34 water years 1991-2025, daily: FAO-56 soil water balance on the farms, river + site catch into storage,
 #      strip first, nothing stored over 365 days, cost ladder; the cost cut-off sets the size and the % covered;
-#   3. writes Downloads/Bergama/output/Bergama_water_balance_analysis/Bergama_water_balance_A3.pdf (one all-vector A3 sheet) and
-#      water_balance_results.json there, which other scripts read instead of fixed numbers (read_results() below).
+#   3. writes Downloads/Bergama/cached/Bergama_water_balance_analysis/water_balance_results.json, which other scripts
+#      read instead of fixed numbers (read_results() below), and v10: cached/booklet/Bergama_water_balance_analysis/
+#      items.json, the p11 drawings and texts the booklet composes (no sheet PDF any more).
 # Built-in inputs (weather, river, Kc) come from research/water_balance/scripts/water_balance_v2.py, 24 Oct 2026;
 # sources and methods: research/water_balance/NOTES.md.
 #
@@ -20,7 +21,23 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v9"  # v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v10"  # v10 (round 5 S5, 2 Nov): items for the booklet, no sheet PDF, warnings never stop (NEW IN v10); v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v10 (round 5, S5, 2 Nov 2026; G-R5-12, G-R5-1, C1, C10, CHK-12; a feature change, so the next whole number):
+#   * CHANGE OF APPROACH for p11's text collisions (round 4 failed on them more than once): this script lays out no page
+#     and writes no sheet PDF (addendum 1 Nov 22:37 point 2). Each of the four blocks is drawn as before into a
+#     recorder (WbRec, same calls as the old Page) and exported as one chart drawing (mm, y up) through common/
+#     item_export.py into cached/booklet/Bergama_water_balance_analysis/items.json: wb_year, wb_curve, wb_store,
+#     wb_answer. Every word is a text item: the page title, the question (intro), each block's number + title
+#     (heading) and keyword line (note), the run line (note), and every word inside a chart as a label anchored where
+#     v9 set it (the booklet places, sizes and checks them: G-R5-12). Source marks are {src:key} (ix.source rows);
+#     the invisible source key and booklet/blocks.json are gone. Figures and the results JSON are unchanged.
+#   * warnings, never stops (C1): common/warn.py is included before text_place.py; the log head is "<n> warnings"
+#     followed by every WARNING line (wn_compose); nothing raises on a text hit (a widow is set one word short).
+#   * CHK-12: build() (a Button word: a Button input named "build" read the function) is now wb_items().
+#   * C10: the riverside walks area from the masterplan's results is read with bg_result and dated with bg_this_run:
+#     the log names the masterplan run it comes from; a value from an EARLIER chain run (or the built-in placeholder)
+#     is a WARNING. One press gives one answer only when this component is wired AFTER the masterplan (RUN_GUIDE).
+#   * C2: no output/ folder is made (nothing is written there any more).
 # NEW IN v9 (round 4, S7, 1 Nov 2026, PALL.2 on booklet p11, G-R4-1 / G-R4-10; a feature change): every visible text
 #   of the sheet is registered in ONE TextPage ("p11", common/text_place.py) with its real Arial box (font_metrics.py)
 #   before it is drawn; the labels that look for a free place ask it; its check RAISES on any collision, so no sheet
@@ -126,6 +143,44 @@ def bg_first(paths):
     return paths[0]
 
 
+def bg_out_dir(name):
+    """round 5 (C2): output/<name>/ made only now, just before a file is written into it (a run that stops early, or a
+    solve that never runs, leaves no empty folder). Returns the path."""
+    p = bg_output(name)
+    os.makedirs(p, exist_ok=True)
+    return p
+
+
+def bg_result(script, fn):
+    """round 5 (C10): where another script's result file `fn` is: cached/<script>/fn, then cached/<script>/from_output/
+    fn (moved there by bg_tidy_output), then output/<script>/fn (older versions); the first that exists, else the
+    first path (shade_july.json was looked for in output/ after the site board had moved it to cached/)."""
+    return bg_first([os.path.join(bg_cache(script), fn), os.path.join(bg_cache(script), "from_output", fn),
+                     os.path.join(bg_output(script), fn)])
+
+
+def bg_this_run(path):
+    """round 5 (C10): (fresh, note) for a result file another script wrote: fresh = written at or after the start of
+    this chain run (the Button press that started the chain, sticky "bergama_chain_t0" from trigger.py); note = a short
+    log text ("this run 23:01" / "from an earlier run 22:40" / "missing" / "no chain start known"). A reader logs the
+    note and, when not fresh, a WARNING (the value is from the run before: one press must give one answer)."""
+    import time as _t
+    if not os.path.isfile(path):
+        return False, u"missing"
+    m = os.path.getmtime(path)
+    hm = _t.strftime("%d %b %H:%M", _t.localtime(m))
+    try:
+        import scriptcontext as _scx
+        t0 = _scx.sticky.get("bergama_chain_t0")
+    except Exception:
+        t0 = None
+    if t0 is None:
+        return True, u"no chain start known (file of %s)" % hm
+    if m + 1.0 >= t0:
+        return True, u"this run %s" % hm
+    return False, u"from an earlier run %s" % hm
+
+
 def bg_tidy_output(name, cache_dir=None):
     """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
     non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
@@ -159,6 +214,80 @@ def bg_tidy_output(name, cache_dir=None):
                 pass
     return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
             ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+# ---- warn.py (round 5, S1, 1 Nov 2026; G-R5-1, C11; PLAN §3 "Warnings"): ONE warning sink for every script -----------
+# Aras 1 Nov 17:11 / 18:51: a check hit never stops the run; it is an orange Grasshopper warning plus one
+# "WARNING <page> <kind> ..." log line, so one run collects every hit. Hard stops only for missing data, fonts or
+# levels (raise those as before). C11 (round 4: "0 warnings" printed with a hit in the log): the count at the log's
+# head is COUNTED from the finished log's WARNING lines (wn_compose), never kept as a separate number.
+# Needs nothing. Include it BEFORE text_place.py: text_place then uses WN_LOG as its TP_LOG (one list, so a script that
+# prints tp_log_lines() prints every warning) and routes tp_warn here.
+#
+#   wn_warn(page, kind, msg, log=None) -> line   one hit: "WARNING <page> <kind>: <msg>" (page / kind may be None) into
+#                                                 log (default WN_LOG) + one orange message; returns the line
+#   wn_orange(msg)                                the orange Grasshopper message only (no log line); capped at
+#                                                 WN_ORANGE_MAX per solve, the rest summed in one message by wn_compose
+#   wn_is(line) -> bool                           a WARNING line (its text, leading blanks ignored, starts "WARNING")
+#   wn_compose(lines, head=()) -> [str]           the finished log: head lines, then "<n> warnings" with n = the number
+#                                                 of WARNING lines found, then every WARNING line (moved, in order, so
+#                                                 each is in the log ONCE), then the other lines in their order
+#   wn_count(lines) -> n                          WARNING lines in lines
+#   wn_reset()                                    empties WN_LOG and the orange counter (call at the start of a run)
+WN_LOG = []
+WN_ORANGE_MAX = 60
+_WN_N = [0, 0]           # [orange messages shown this run, orange messages held back]
+
+
+def _wn_gh(msg):
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,  # noqa: F821
+                                          u"%s" % msg)
+    except Exception:
+        pass
+
+
+def wn_orange(msg):
+    """one orange (Warning level) runtime message on this component; outside Grasshopper nothing"""
+    if _WN_N[0] >= WN_ORANGE_MAX:
+        _WN_N[1] += 1
+        return
+    _WN_N[0] += 1
+    _wn_gh(msg)
+
+
+def wn_warn(page, kind, msg, log=None):
+    """one hit as a WARNING line + an orange message; the run goes on"""
+    head = u" ".join(u"%s" % p for p in (page, kind) if p not in (None, u"", ""))
+    line = u"WARNING " + (head + u": " if head else u"") + u"%s" % msg
+    (WN_LOG if log is None else log).append(line)
+    wn_orange(line[8:])
+    return line
+
+
+def wn_is(line):
+    return (u"%s" % line).lstrip().startswith(u"WARNING")
+
+
+def wn_count(lines):
+    return sum(1 for ln in lines if wn_is(ln))
+
+
+def wn_compose(lines, head=()):
+    """the log with its warning head (see the module notes); the count equals the WARNING lines by construction"""
+    flat = []
+    for ln in lines:                                   # a list item may hold several lines
+        flat.extend((u"%s" % ln).split(u"\n"))
+    warn = [ln.strip() for ln in flat if wn_is(ln)]
+    rest = [ln for ln in flat if not wn_is(ln)]
+    out = list(head) + [u"%d warnings" % len(warn)] + warn
+    if _WN_N[1]:
+        out.append(u"(orange messages: the first %d shown on the component, %d more only here)" % (_WN_N[0], _WN_N[1]))
+        _wn_gh(u"%d more warnings: see the log's head" % _WN_N[1])
+    return out + [u""] + rest
+
+
+def wn_reset():
+    del WN_LOG[:]
+    _WN_N[0] = _WN_N[1] = 0
 LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 
@@ -173,13 +302,13 @@ def write_log(text):
 
 # v2 24 Oct: all files under Downloads/Bergama/ (Aras rule). v2.1 (Thread 5): riverside_walk_m2 read live from the
 # masterplan (v11) results when no GH input or Rhino curve gives it
-OUT_DIR = bg_output("Bergama_water_balance_analysis")        # final PDFs only (27 Oct)
+OUT_DIR = bg_output("Bergama_water_balance_analysis")        # v10: read fallback only (v9 and older wrote here)
 RES_DIR = bg_cache("Bergama_water_balance_analysis")         # 27 Oct: the results JSON other scripts read
 OLD_OUT_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama_water_balance_analysis")   # read fallback only
-OUT_PDF = "Bergama_water_balance_A3.pdf"
+WB_FOLDER = "Bergama_water_balance_analysis"                  # v10: cached/booklet/<this>/items.json (the booklet reads it)
+WB_PAGE = "p11"                                               # v10: the booklet page id (23-page numbering: p11 unchanged)
 OUT_JSON = "water_balance_results.json"
-MP_FILE = bg_first([os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # 27 Oct: cached/
-                    os.path.join(bg_output("bergama_masterplan"), "masterplan_results.json")])    # masterplan v24 and older
+MP_FILE = bg_result("bergama_masterplan", "masterplan_results.json")   # v10 (C10): cached/, from_output/, output/
 
 # ------------------------------------------------------------------ lands: defaults (used when nothing else is given)
 LANDS = dict(
@@ -297,18 +426,20 @@ def rhino_lands(option):
     return out
 
 def masterplan_lands(option):
-    """v2.1: {riverside_walk_m2: ...} and its source from bergama_masterplan v11's masterplan_results.json."""
+    """v2.1: {riverside_walk_m2: ...} and its source from bergama_masterplan v11's masterplan_results.json.
+    v10 (C10): (lands, source note, fresh): fresh = the masterplan wrote it in THIS chain run (bg_this_run)."""
+    fresh, note = bg_this_run(MP_FILE)
     try:
         with open(MP_FILE, "r", encoding="utf-8") as f:
             v = json.load(f)["options"][option]["riverside_walk_m2"]
-        return {"riverside_walk_m2": float(v)}, "masterplan v11 results of " + time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(MP_FILE)))
+        return {"riverside_walk_m2": float(v)}, "masterplan results (" + note + ")", fresh
     except Exception:
-        return {}, None
+        return {}, None, False
 
 def get_lands(g):
     option = "A"                                         # v2.3: option A only, project-wide (Aras 25 Oct 16:43)
     rh = rhino_lands(option)
-    mp, mp_src = masterplan_lands(option)
+    mp, mp_src, mp_fresh = masterplan_lands(option)
     L, src = {}, {}
     for k, v in LANDS.items():
         gv = g.get(k)
@@ -323,6 +454,12 @@ def get_lands(g):
         else:
             L[k] = v; src[k] = "default"
     L["option"] = option
+    if src["riverside_walk_m2"] == "default":            # v10 (C10): a placeholder is never silent
+        wn_warn(WB_PAGE, "stale", u"riverside walks %s m² = the built-in placeholder (no masterplan results at %s); "
+                u"run the masterplan before this component" % (fmt(L["riverside_walk_m2"]), MP_FILE))
+    elif src["riverside_walk_m2"].startswith("masterplan") and not mp_fresh:
+        wn_warn(WB_PAGE, "stale", u"riverside walks %s m² from the masterplan of an EARLIER run (%s): wire this "
+                u"component after the masterplan so one press gives one answer" % (fmt(L["riverside_walk_m2"]), mp_src))
     return L, src
 
 # ------------------------------------------------------------------ v6: the project's zones and links, for p.12's map
@@ -684,6 +821,12 @@ def rgb(h): return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
 #                                              on the baseline, y UP (for centring a glyph in a marker)
 #   fm_asc_desc(pt, bold=False)                -> (ascender, descender) mm of the font (descender negative)
 # Units: pt = font size in points (the em); 1 pt = 25.4 / 72 mm (FM_PT).
+# Round 5 (S1, P04.7 "bazaar side ? Kale side"): a character the font has no glyph for no longer stops a run where the
+# caller checks first:
+#   fm_missing(s, bold=False) -> [ch]          the characters of s the font has no glyph for (blanks never count)
+#   fm_safe(s, bold=False, sub=u"\u2013") -> (s2, missing)
+#                                              s with each missing character replaced by sub ("–", else "-"); the
+#                                              booklet composer runs every text through it at load (one WARNING each)
 FM_PT = 25.4 / 72.0
 _FM_CACHE = {}
 
@@ -780,6 +923,33 @@ def fm_box(s, x, y, pt, bold=False, align="L", angle=0.0, y_down=True, italic=Fa
     P = [(x + u * c - v * s_, y + sg * (u * s_ + v * c)) for u, v in corners]
     xs, ys = [p[0] for p in P], [p[1] for p in P]
     return (min(xs), min(ys), max(xs), max(ys))
+
+
+def fm_missing(s, bold=False, italic=False):
+    """the characters of s the font has no glyph for"""
+    T = fm_load(bold, italic)
+    out = []
+    for ch in u"%s" % s:
+        if ch in u"\r\n\t " or ch in out:
+            continue
+        try:
+            _fm_glyph(T, ch)
+        except ValueError:
+            out.append(ch)
+    return out
+
+
+def fm_safe(s, bold=False, sub=u"\u2013", italic=False):
+    """(s with missing glyphs replaced by sub, the missing characters); sub falls back to "-" when the font lacks it"""
+    miss = fm_missing(s, bold, italic)
+    if not miss:
+        return u"%s" % s, []
+    if fm_missing(sub, bold, italic):
+        sub = u"-"
+    s2 = u"%s" % s
+    for ch in miss:
+        s2 = s2.replace(ch, sub)
+    return s2, miss
 
 
 def text_w(s, size, bold=False):
@@ -1321,7 +1491,25 @@ GRID_BASE = 4.0                                   # baseline step, from y = GRID
 GRID_TITLE_Y, GRID_RULE_Y = 22.0, 25.0            # title baseline, the rule under the title band
 GRID_AREA = (GRID_ML, 30.0, GRID_PAGE[0] - GRID_MR, 273.0)   # where drawings go (x0, y0, x1, y1)
 GRID_FOOT_RULE = 276.0
-GRID_MIN_PT = 6.0                                 # no text below this size on any page (PLAN p18-19 rule)
+GRID_MIN_PT = 4.0                                 # no text below this size on any page, measured AFTER scaling
+                                                  # (round 5 D1, Aras 1 Nov 21:26: 4 pt floor; was 6.0)
+# round 5 (S1; PLAN §3 "Fonts and sizes", D1): the STARTING size of every text role the booklet composer sets (pt,
+# bold, lead as a multiple of the size, colour role). The composer may step a text down to GRID_MIN_PT, never below.
+# Content scripts put these sizes on their exported text items (common/item_export.py takes them from here).
+GRID_ROLE_PT = dict(
+    title=(16.0, True, 1.15, "ink"),              # the page title
+    heading=(7.0, True, 1.25, "ink"),             # a drawing's heading
+    intro=(6.0, False, 1.3, "ink"),               # the page intro / a short text block
+    caption=(5.0, False, 1.3, "ink2"),            # under a drawing: what, scale
+    legend=(5.0, False, 1.3, "ink"),              # legend entries
+    list_item=(5.0, False, 1.3, "ink"),           # numbered / bulleted list rows
+    note=(5.0, False, 1.3, "ink2"),
+    source=(5.0, False, 1.3, "ink2"),
+    label=(4.5, False, 1.2, "ink"),               # in-drawing labels (place names, element names)
+    badge=(4.5, True, 1.2, "ink"),                # number badges on a drawing
+    level_value=(4.5, False, 1.2, "ink"),         # "+43.71" beside a level marker
+    pageno=(7.0, True, 1.2, "accent"),            # the page number
+)
 
 # colour roles (palette v1.4 core): ink, second ink, accent, rule
 GRID_INK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F", rule="B0AC9C", paper="FFFFFF")
@@ -1342,6 +1530,23 @@ GRID_TYPE = dict(
     pageno=(14.0, True, 6.0, "accent"),
 )
 GRID_PT = 25.4 / 72.0                             # mm per pt
+
+
+def grid_role(role):
+    """(size_pt, bold, lead_mm_per_pt, hex) of a round 5 text role (GRID_ROLE_PT); unknown roles = 'note'"""
+    s, b, ld, c = GRID_ROLE_PT.get(role, GRID_ROLE_PT["note"])
+    return s, b, ld, GRID_INK[c]
+
+
+def _grid_warn(msg):
+    """round 5: a grid misfit is a WARNING line + orange message, never a stop (common/warn.py when included)"""
+    g_ = globals()
+    if "wn_warn" in g_:
+        g_["wn_warn"](None, "grid", msg)
+    elif "tp_warn" in g_:
+        g_["tp_warn"](u"grid: " + msg)
+    else:
+        print(u"WARNING grid: " + msg)
 
 
 def grid_style(name):
@@ -1368,8 +1573,10 @@ def grid_x1(c):
 
 def grid_span(c0, n):
     """(x, w) of the span of n columns from column c0"""
-    if c0 < 1 or c0 + n - 1 > GRID_COLS:
-        raise ValueError("grid span %d+%d is off the %d-column grid" % (c0, n, GRID_COLS))
+    if c0 < 1 or c0 + n - 1 > GRID_COLS:              # round 5: a WARNING, the span is kept on the grid
+        _grid_warn("span %d+%d is off the %d-column grid: clamped" % (c0, n, GRID_COLS))
+        c0 = min(max(1, int(c0)), GRID_COLS)
+        n = max(1, min(int(n), GRID_COLS - c0 + 1))
     return grid_x(c0), grid_w(n)
 
 
@@ -1412,7 +1619,8 @@ def grid_cell(c0, n, y, h, snap=True):
 
 def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
     """blocks of the given heights stacked down one column span from y0 (default the drawing area's top), each on the
-    baseline: [rect]; raises when the stack runs past the drawing area (no block may leave the page)"""
+    baseline: [rect]; a stack that runs past the drawing area is a WARNING (round 5; the composer's layout check
+    reports the edge hit too)"""
     y = GRID_AREA[1] if y0 is None else grid_snap_y(y0, up=False)
     out = []
     for h in heights:
@@ -1420,7 +1628,7 @@ def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
         out.append(r)
         y = r[3] + gap
     if out and out[-1][3] > GRID_AREA[3] + 1e-6:
-        raise ValueError("grid stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
+        _grid_warn("stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
     return out
 
 
@@ -1431,7 +1639,7 @@ def grid_row(widths_cols, y, h, c0=1):
         out.append(grid_cell(c, n, y, h))
         c += n
     if c - 1 > GRID_COLS:
-        raise ValueError("grid row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
+        _grid_warn("row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
     return out
 
 
@@ -1548,12 +1756,13 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
         for s, b, xo in ln:
             out.append((s, x + xo, yy, b))
     return out
-# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer, a collision RAISES -------
+# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer (round 5: hits WARN) ----
 # Replaces label_place.py (its lp_* names stay as shims there until the closing step, see label_place.py).
 # Every printed letter of a page goes through ONE TextPage: it measures with the real font (font_metrics.py), keeps
-# every box, draws everything in .emit(drawer) (no other text path), and .check() RAISES TextCollision when any two
-# texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
-# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs).
+# every box, draws everything in .emit(drawer) (no other text path), and .check() reports (round 5: WARNING lines) any
+# two texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
+# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs); warn.py optional
+# (round 5: the one warning sink; without it tp_warn writes its WARNING line itself).
 #
 #   tp = TextPage(name, bounds, y_down=True, min_pt=None, pad=0.6, margins=None, footer_zone=None, scale=1.0,
 #                 unit_mm=1.0, log=None)
@@ -1590,11 +1799,13 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 #                                                     a label beside its point: positions in reading order (E, NE, N,
 #                                                     NW, W, SW, S, SE, C, or (dx, dy, align) in page units), then the
 #                                                     shorter alts, then a NUMBER on the point + a row in side_list;
-#                                                     never below min_pt, never dropped: no spot and no side_list
-#                                                     raises TextCollision. rank orders nothing here (callers place
-#                                                     rank 0 first); kept for the interface
-#   tp.check(raise_=True, log=None) -> n_items        the collision test; logs "overlap <page> checked n, collisions k"
-#                                                     and raises TextCollision(page, item, other) when k > 0
+#                                                     never below min_pt, never dropped (round 5 order: see below;
+#                                                     rings=TP_RINGS, step=0.5 pt). rank orders nothing here (callers
+#                                                     place rank 0 first); kept for the interface
+#   tp.check(raise_=True, log=None, blocks_in=False) -> n_items
+#                                                     the collision test; one "WARNING <page> overlap|edge: ..." line
+#                                                     per hit, then "overlap <page> checked n, collisions k"; raises
+#                                                     only with TP_WARN_ONLY = [False]; tp.hits = [(kind, a, b)]
 #   tp.emit(drawer) -> n                              drawer(item) for every text in order; item = dict(text, x, y,
 #                                                     pt, size_mm, bold, align, angle, colour, role, name, extra)
 #   tp.export() -> dict                               boxes in mm, y DOWN from the bounds' top-left (crop-local) for
@@ -1609,15 +1820,49 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 #                                                     xform) in tp, which then draws them; returns the non-text shapes
 #                                                     for the caller to draw as before
 # Geometry helpers (moved here from label_place.py): tp_hit, tp_seg_box, tp_seg_cross, TpSegIndex, tp_reading_order.
-TP_LOG = []
+#
+# ROUND 5 (S1, 1 Nov 2026; G-R5-1, G-R5-12, C11; PLAN §3 "Warnings"): nothing here stops a run on a layout hit.
+#   * tp_warn goes to common/warn.py (wn_warn) when it is included, so every hit is ONE "WARNING <page> <kind>: ..."
+#     line in TP_LOG plus an orange message; kinds: overlap, edge, min_text, widow, wrap, side_list, number.
+#   * check() writes one WARNING line per hit whatever raise_ says (C11: raise_=False used to log only the count, so
+#     "collisions 1" and "0 warnings" could both appear); it raises only when TP_WARN_ONLY = [False] and raise_.
+#     check(blocks_in=True) also tests every block against the inner bounds (the booklet composer's edge test).
+#   * place() order (G-R5-12 "prevent, not just detect"): its positions, then nearby free spots on rings round the
+#     anchor (TP_RINGS mm), then the shorter alts the same way, then the side list number, then smaller sizes in
+#     0.5 pt steps down to min_pt; only when all fail: a WARNING and the label at its first position (never dropped).
+#   * para(): a widow that 0.25 pt smaller cannot fix is a WARNING and the paragraph is set without the widow rule.
+#   * emit(): a "0" number whose side list was never closed is a WARNING and is not drawn; export() checks first.
+TP_LOG = WN_LOG if "WN_LOG" in globals() else []   # round 5: with warn.py included, ONE list (the warning sink)
 TP_PT = 25.4 / 72.0
 TP_ROW_MM = 8.0                 # reading order: anchors within this many mm of height count as one row
 TP_POSITIONS = ("E", "NE", "N", "NW", "W", "SW", "S", "SE")
 TP_LINE_KINDS = ("line", "edge", "street", "road", "cut", "stream", "bank", "contour", "leader")
+TP_RINGS = (1.5, 3.0, 4.5, 6.0)  # round 5: mm from the anchor's own positions where place() looks for a free spot
+TP_RING_STEPS = 12               # spots per ring (every 30 degrees, starting east, counter-clockwise on the page)
 
 
 class TextError(RuntimeError):
     pass
+
+
+TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
+
+
+def tp_warn(msg, log=None):
+    """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
+    TP_LOG (or log) and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError
+    again). Round 5: through common/warn.py when it is included (one sink, capped orange messages)."""
+    if not TP_WARN_ONLY[0]:
+        raise TextError(msg)
+    lg = TP_LOG if log is None else log
+    if "wn_warn" in globals():
+        wn_warn(None, None, msg, lg)
+        return
+    lg.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
 
 
 class TextCollision(TextError):
@@ -1818,7 +2063,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                raise TextError(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm)" % (
+                tp_warn(u"wrap: the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -1858,7 +2103,8 @@ class TpSideList(object):
 
     def add(self, anchor, text, item):
         if self.closed:
-            raise TextError(u"side list %s is closed: place its labels before close()" % self.name)
+            tp_warn(u"side_list: %s is closed: %r gets no number (place its labels before close())" % (
+                self.name, u"%s" % text))
         e = dict(anchor=tuple(anchor), text=text, item=item, n=None)
         self.entries.append(e)
         return e
@@ -1898,6 +2144,7 @@ class TextPage(object):
         self.log = log
         self.items, self.keeps, self.blocks, self.sides = [], [], [], []
         self._gid, self.checked = 0, False
+        self.hits = []
 
     # -- measuring
     def _box(self, text, x, y, pt, bold=False, align="L", angle=0.0):
@@ -1910,9 +2157,9 @@ class TextPage(object):
         return "g%d" % self._gid
 
     def _size_ok(self, text, pt):
-        if pt * self.scale < self.min_pt - 1e-6:
-            raise TextError(u"%s: %r would print at %.2f pt, below the %.1f pt minimum" % (
-                self.name, text[:40], pt * self.scale, self.min_pt))
+        if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
+            tp_warn(u"%s min_text: %r prints at %.2f pt, below the %.1f pt minimum" % (
+                self.name, text[:40], pt * self.scale, self.min_pt), self.log)
 
     # -- registering
     def keep(self, geom, kind="keep", name=None, line=None):
@@ -1963,11 +2210,15 @@ class TextPage(object):
         except TpWidow:
             size = size - 0.25
             self._size_ok(text, size)
-            lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            try:
+                lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            except TpWidow as ex:                       # round 5: a WARNING, set without the widow rule
+                tp_warn(u"%s widow: %r: %s" % (self.name, text[:50], ex), self.log)
+                lines = tp_wrap(text, w * u, size, bold, 1, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            raise TextError(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                               max_lines))
+            tp_warn(u"%s overrun: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                               max_lines), self.log)
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -2007,22 +2258,62 @@ class TextPage(object):
                 return False
         return True
 
+    def _ring_spots(self, text, anchor, pt, bold, d, rings):
+        """(x, y, align) spots on rings round the anchor (round 5: the nearby free spots of G-R5-12)"""
+        import math as _m
+        ix0, iy0, ix1, iy1 = fm_ink_box(text, pt, bold)
+        u, sg = self.unit_mm, (-1.0 if self.y_down else 1.0)
+        mid = -(iy0 + iy1) / 2.0
+        n = max(4, int(TP_RING_STEPS))
+        for rr in rings or ():
+            R_ = d + float(rr)
+            for k in range(n):
+                a = 2.0 * _m.pi * k / n
+                dx, dv = R_ * _m.cos(a), R_ * _m.sin(a)
+                al = "L" if dx > 0.3 * R_ else ("R" if dx < -0.3 * R_ else "C")
+                if al == "C":                          # above / below: the ink edge, not its middle, at the ring
+                    v = (dv - iy0) if dv > 0 else (dv - iy1)
+                else:
+                    v = dv + mid
+                yield anchor[0] + dx / u, anchor[1] + sg * v / u, al
+
+    def _try(self, t, anchor, positions, pt, bold, d, allow, rings):
+        for code in positions:
+            x, y, al = self._at(code, t, anchor, pt, bold, d)
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        for x, y, al in self._ring_spots(t, anchor, pt, bold, d, rings):
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        return None
+
     def place(self, text, anchor, positions=TP_POSITIONS, alts=(), pt=7.0, rank=0, side_list=None, bold=False,
-              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label"):
-        """a label beside its point (see the module notes); returns the registered item"""
+              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label", rings=TP_RINGS, step=0.5):
+        """a label beside its point (see the module notes); returns the registered item. Order (round 5): positions,
+        rings, alts the same way, the side list number, then pt - step ... down to min_pt (printed), then a WARNING
+        and the first position (the label is never dropped; check() names what it hits)"""
         d = float(r) * self.unit_mm + gap
-        for t in (text,) + tuple(alts or ()):
-            t = u"%s" % t
-            self._size_ok(t, pt)
-            for code in positions:
-                x, y, al = self._at(code, t, anchor, pt, bold, d)
-                b = self._box(t, x, y, pt, bold, al, 0.0)
-                if self._free(b, allow):
-                    self.put(t, x, y, pt, bold, al, 0.0, name, role, colour, allow)
-                    return self.items[-1]
+        texts = [u"%s" % t for t in (text,) + tuple(alts or ())]
+        self._size_ok(texts[0], pt)
+        for t in texts:
+            got = self._try(t, anchor, positions, pt, bold, d, allow, rings)
+            if got:
+                self.put(t, got[0], got[1], pt, bold, got[2], 0.0, name, role, colour, allow)
+                return self.items[-1]
         if side_list is None:
-            raise TextCollision(self.name, dict(text=u"%s" % text, name=name), u"no free spot round its point and no "
-                                u"side list to number it")
+            p_ = float(pt) - step
+            while p_ * self.scale >= self.min_pt - 0.005:
+                for t in texts:
+                    got = self._try(t, anchor, positions, p_, bold, d, allow, rings)
+                    if got:
+                        self.put(t, got[0], got[1], p_, bold, got[2], 0.0, name, role, colour, allow)
+                        return self.items[-1]
+                p_ -= step
+            tp_warn(u"%s overlap: label %r has no free spot round its point down to %.1f pt and no side list: set at "
+                    u"its first position" % (self.name, texts[0], self.min_pt), self.log)
+            x, y, al = self._at(positions[0] if positions else "E", texts[-1], anchor, pt, bold, d)
+            self.put(texts[-1], x, y, pt, bold, al, 0.0, name, role, colour, allow, forced=True)
+            return self.items[-1]
         x, y, al = self._at("C", u"0", anchor, pt, True, 0.0)
         self.put(u"0", x, y, pt, True, "C", 0.0, name, "number", colour, tuple(allow) + ("marker",))
         it = self.items[-1]
@@ -2032,39 +2323,61 @@ class TextPage(object):
         return it
 
     # -- the test
-    def check(self, raise_=True, log=None):
-        """the collision test (see the module notes); returns the number of texts checked"""
+    def check(self, raise_=True, log=None, blocks_in=False):
+        """the collision test (see the module notes); returns the number of texts checked. Every hit is one
+        "WARNING <page> overlap|edge: ..." line (round 5, C11: also with raise_=False); self.hits keeps them as
+        (kind, a, b) for the caller's own counts"""
+        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         for sl in self.sides:
             if not sl.closed:
-                raise TextError(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s side_list: %s was never closed (its numbers are not set)" % (self.name, sl.name), lg)
         hits = []
         I = self.items
+        inn = self.inner
+
+        def inside(b):
+            return (inn[0] - 1e-6 <= b[0] and b[2] <= inn[2] + 1e-6 and inn[1] - 1e-6 <= b[1] and
+                    b[3] <= inn[3] + 1e-6)
         for i, a in enumerate(I):
             b = a["box"]
-            if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
-                    self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
-                hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
-                hits.append((a, u"the footer zone"))
+            if not inside(b):
+                hits.append(("edge", a, u"the page edge or its margins"))
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
+                hits.append(("edge", a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
-                    hits.append((a, c))
+                    hits.append(("overlap", a, c))
             for K in self.keeps:
                 if K["name"] in a["allow"] or K["kind"] in a["allow"]:
                     continue
                 if _tp_keep_hits(b, K, self.pad):
-                    hits.append((a, K))
+                    hits.append(("overlap", a, K))
         B = self.blocks
         for i, a in enumerate(B):
+            if blocks_in and not inside(a["box"]):
+                hits.append(("edge", a, u"the page edge or its margins"))
             for c in B[i + 1:]:
                 if tp_hit(a["box"], c["box"], -0.01 / self.unit_mm):
-                    hits.append((a, c))
-        line = u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits))
-        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
-        lg.append(line)
+                    hits.append(("overlap", a, c))
+        self.hits = hits
         self.checked = True
-        if hits and raise_:
-            raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
+        if hits and raise_ and not TP_WARN_ONLY[0]:
+            raise TextCollision(self.name, hits[0][1], hits[0][2], len(hits), [h[1:] for h in hits[1:]])
+        for k_, a_, b_ in hits:                          # one WARNING line each; the run goes on
+            ln_ = u"WARNING %s %s: %s against %s" % (self.name, k_, _tp_desc(a_), _tp_desc(b_))
+            lg.append(ln_)
+        if hits:
+            if "wn_orange" in globals():
+                wn_orange(u"%s: %d text hits (each one in the log, 'WARNING %s ...')" % (self.name, len(hits),
+                                                                                       self.name))
+            else:
+                try:
+                    ghenv.Component.AddRuntimeMessage(                                           # noqa: F821
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                        u"%s: %d text hits (each one in the log)" % (self.name, len(hits)))
+                except Exception:
+                    pass
+        lg.append(u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits)))
         return len(I)
 
     def emit(self, drawer):
@@ -2074,7 +2387,9 @@ class TextPage(object):
             if not it["emit"]:
                 continue
             if it["role"] == "number" and it["text"] == u"0":
-                raise TextError(u"%s: a numbered label was never given its number (close its side list)" % self.name)
+                tp_warn(u"%s number: a numbered label was never given its number (close its side list): not drawn" %
+                        self.name, self.log)
+                continue
             drawer(it)
             n += 1
         return n
@@ -2082,7 +2397,7 @@ class TextPage(object):
     def export(self):
         """boxes in mm, y DOWN from the top-left of bounds (crop-local), for the booklet's assembled-page test"""
         if not self.checked:
-            raise TextError(u"%s: export() before check()" % self.name)
+            self.check(False)
         u, b = self.unit_mm, self.bounds
 
         def mm(r):
@@ -2122,6 +2437,313 @@ def tp_shapes(shapes, tp, name=None, allow=(), y_down=None):
             extra["halo"] = tail[5]
         tp.put(s_[1], x, y, size_mm * tp.unit_mm / TP_PT, bold, al, 0.0, name, "shape", col, allow, **extra)
     return rest
+# ---- item_export.py (round 5, S1, 1 Nov 2026; G-R5-12, PLAN §4 schema v1): content scripts EXPORT, the booklet composes
+# Aras 1 Nov 22:00: "produce every text every drawing and everything and in the last run make it place it and align it
+# and booklet it". A content script lays out no page and burns no page text into a drawing: it hands every drawing
+# (true-scale vector geometry in draw order) and every text (role, string, anchor) to one Ix, and Ix.save() writes
+# Downloads/Bergama/cached/booklet/<folder>/items.json. The booklet (bergama_booklet parts 10-70) reads every such
+# file, picks scales, sets and places every text, aligns blocks and checks the page. Successor of booklet_assets.py
+# (blocks.json crops); addendum 1 Nov 22:37: no per-script sheet PDFs or previews (a script may still save its single
+# drawings under output/<folder>/, but the booklet reads only items.json).
+# Needs, included before it: bergama_paths.py (bg_booklet), grid.py (GRID_ROLE_PT, GRID_MIN_PT); warn.py optional (the
+# content checks' WARNING lines go through wn_warn when it is included).
+#
+# items.json = {"schema": "bergama-items/1", "script", "version", "run": "YYYY-MM-DD HH:MM", "units": "m",
+#               "pages": {page_id: [item, ...]}, "sources": {key: {text, url}}, "warnings": [str]}
+# page_id = the round 5 23-page id ("p13", "p19"); an item with page None goes to "any" (the booklet's PLAN.py says
+# where it is shown). Common keys of every item: id (unique in the file), page, kind, role, priority (1 first ... 9),
+# group (items that belong together, e.g. one section's level column, legend and texts).
+#
+#   ix = Ix(folder, script, version)                      folder = the script's cached/booklet/ folder name
+#   D = ix.drawing(id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
+#                  priority=1, group=None, fit=None, title=None)
+#         extent (x0, y0, x1, y1) in drawing units, y UP, the area that must show; scale_pref = allowed 1:den (default
+#         SF_SCALES); units "m" = true scale; "mm" = a scale-free diagram/chart in design mm, fit = (min_f, max_f)
+#   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0))
+#         adds shapes (the common modules' tuples: poly/line/circle/image; text shapes become anchored label items)
+#         to layer `name` (water.py WAT_LAYERS for sections, map_layers ML_LAYERS for maps); coordinates are mapped
+#         x_d = origin_x + k * x (k = drawing units per shape unit: den / 1000 for page-mm shapes drawn at 1:den);
+#         line widths, dashes stay PRINT sizes (mm in the tuples, stored as pt); z defaults to the call order.
+#         Stripes (hatches) are dropped: G-R5-4.1 no hatches (one WARNING per layer)
+#   ix.keep(D, geom, kind="keep", name=None)               an area (drawing units) no label may cover
+#   ix.anchor(D, name, xy)                                 a named point (cut ends, hubs) other items refer to
+#   ix.text(page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None, short_forms=(),
+#           side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None, min_pt=None) -> id
+#         role: title, intro, heading, caption, legend, list_item, note, label, level_value, badge, source;
+#         a label of a drawing: drawing=id, at=(x, y) in drawing units (the booklet sets it beside that point)
+#   ix.legend(page, drawing, entries, title=None, id=None, group=None)
+#         entries: [(swatch, text)], swatch = dict(kind="fill"|"line"|"dash"|"dot"|"image", colour, stroke,
+#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id
+#   ix.list(page, drawing, texts, numbered=True, anchors=None, id=None, group=None)   ordered text rows
+#   ix.levels(page, drawing, levels, side="R", id=None, group=None)
+#         levels = [(name, z_m)] (z on the drawing's y axis, m a.s.l. for sections); the booklet draws the level
+#         markers (PLAN §3, Aras's sketch U04) and their "+43.71" values beside the drawing
+#   ix.inset(page, parent, window, child, factor, id=None)   child = a drawing id of the zoom; window in parent units
+#   ix.keymap(page, cuts, looks=None, names=(), zooms=(), id=None)   the key-map module (S2) draws it in the booklet
+#   ix.photo(page, file, crop=None, caption=None, source=None, id=None)
+#   ix.chart(page, w_mm, h_mm, shapes, id=None)            a vector chart in its own mm box (y up)
+#   ix.source(key, text, url, page=None)                   a Sources page row (texts cite it as {src:key})
+#   ix.warn(page, kind, msg)                               a content check hit: WARNING line + orange + "warnings"
+#   ix.save() -> path                                      writes items.json (UTF-8, 3 decimals), logs nothing itself
+#   ix.summary() -> str                                    "items <script>: drawings n, texts n, ... -> <path>"
+IX_SCHEMA = "bergama-items/1"
+IX_PT = 25.4 / 72.0
+IX_KINDS = ("drawing", "text", "legend", "list", "level_column", "inset", "keymap", "photo", "chart", "source")
+IX_TEXT_ROLES = ("title", "intro", "heading", "caption", "legend", "list_item", "note", "label", "level_value",
+                 "badge", "source")
+
+
+def _ix_r(v, nd=3):
+    try:
+        return round(float(v), nd)
+    except Exception:
+        return v
+
+
+def _ix_is_pt(p):
+    return isinstance(p, (list, tuple)) and len(p) >= 2 and isinstance(p[0], (int, float)) and \
+        isinstance(p[1], (int, float))
+
+
+class Ix(object):
+    def __init__(self, folder, script, version):
+        import time as _t
+        self.folder, self.path = folder, None
+        self.d = {"schema": IX_SCHEMA, "script": script, "version": version,
+                  "run": _t.strftime("%Y-%m-%d %H:%M"), "units": "m", "pages": {}, "sources": {}, "warnings": []}
+        self.ids, self._z, self._n = set(), {}, 0
+
+    # -- bookkeeping
+    def _id(self, want, kind):
+        if want is None:
+            self._n += 1
+            want = "%s_%s_%d" % (self.folder[:12], kind[:3], self._n)
+        want = u"%s" % want
+        if want in self.ids:
+            k = 2
+            while "%s_%d" % (want, k) in self.ids:
+                k += 1
+            self.warn(None, "export", u"item id %r used twice: the second is %s_%d" % (want, want, k))
+            want = "%s_%d" % (want, k)
+        self.ids.add(want)
+        return want
+
+    def _put(self, page, item):
+        self.d["pages"].setdefault(page or "any", []).append(item)
+        return item
+
+    def _item(self, page, kind, id_, role=None, priority=5, group=None, **kw):
+        it = dict(id=self._id(id_, kind), page=page, kind=kind, role=role or kind, priority=int(priority),
+                  group=group)
+        it.update(kw)
+        return self._put(page, it)
+
+    def warn(self, page, kind, msg):
+        line = u"WARNING " + u" ".join(u"%s" % p for p in (page, kind) if p) + u": %s" % msg
+        if "wn_warn" in globals():
+            line = wn_warn(page, kind, msg)
+        self.d["warnings"].append(line)
+        return line
+
+    # -- drawings
+    def drawing(self, id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
+                priority=1, group=None, fit=None, title=None):
+        x0, y0, x1, y1 = [float(v) for v in extent]
+        if x1 <= x0 or y1 <= y0:
+            self.warn(page, "export", u"drawing %s has an empty extent %r" % (id, extent))
+        sp = list(scale_pref) if scale_pref else (list(SF_SCALES) if "SF_SCALES" in globals() else
+                                                   [200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000])
+        D = self._item(page, "drawing", id, "drawing", priority, group, dkind=dkind, units=units,
+                       extent=[_ix_r(x0), _ix_r(y0), _ix_r(x1), _ix_r(y1)],
+                       scale_pref=None if units == "mm" else [int(v) for v in sp],
+                       fit=list(fit) if fit else ([0.5, 2.0] if units == "mm" else None),
+                       north_deg=north_deg, scale_bar=bool(scale_bar and units == "m"), layers=[], keep_areas=[],
+                       anchors={}, title=title)
+        self._z[D["id"]] = 0
+        return D
+
+    def _shape(self, s, k, o):
+        """one common-module shape tuple -> a schema shape dict (None for text and unknown kinds)"""
+        def P(p):
+            return [_ix_r(o[0] + k * p[0]), _ix_r(o[1] + k * p[1])]
+        t = s[0]
+        if t == "poly":
+            if s[1] and not _ix_is_pt(s[1][0]):                       # page item: rings, fill, stroke, lw, dash,
+                rings = [list(r) for r in s[1]]                       # stripes, alpha
+                fill, stroke = s[2], (s[3] if len(s) > 3 else None)
+                lw = s[4] if len(s) > 4 else 0.0
+                dash = s[5] if len(s) > 5 else None
+                stripes = s[6] if len(s) > 6 else None
+                alpha = s[7] if len(s) > 7 else None
+            else:                                                     # shape: ring, fill, stroke, lw, alpha, holes
+                rings = [list(s[1])] + [list(R) for R in (s[6] if len(s) > 6 and s[6] else ()) if len(R) >= 3]
+                fill, stroke = s[2], (s[3] if len(s) > 3 else None)
+                lw = s[4] if len(s) > 4 else 0.0
+                alpha = s[5] if len(s) > 5 else None
+                dash, stripes = None, None
+            rings = [[P(p) for p in r] for r in rings if len(r) >= 3]
+            if not rings:
+                return None
+            return dict(t="poly", rings=rings, fill=fill or None, stroke=stroke or None,
+                        width_pt=_ix_r((lw or 0.0) / IX_PT), dash_pt=[_ix_r(v / IX_PT) for v in dash] if dash else None,
+                        opacity=alpha, _stripes=bool(stripes))
+        if t == "line":
+            if len(s[1]) < 2:
+                return None
+            dash = s[4] if len(s) > 4 else None
+            return dict(t="line", pts=[P(p) for p in s[1]], stroke=s[2], width_pt=_ix_r((s[3] or 0.0) / IX_PT),
+                        dash_pt=[_ix_r(v / IX_PT) for v in dash] if dash else None, cap=s[5] if len(s) > 5 else 1)
+        if t == "circle":
+            return dict(t="circle", c=P((s[1], s[2])), r=_ix_r(k * s[3]), fill=s[4] or None,
+                        stroke=(s[5] if len(s) > 5 else None) or None,
+                        width_pt=_ix_r(((s[6] if len(s) > 6 else 0.0) or 0.0) / IX_PT))
+        if t == "image":
+            x, y, w, h, f = s[1:6]
+            clip = s[8] if len(s) > 8 else None
+            return dict(t="image", box=P((x, y)) + P((x + w, y + h)), file=f, opacity=s[6] if len(s) > 6 else None,
+                        flip=bool(s[7]) if len(s) > 7 else False,
+                        clip=(P(clip[:2]) + P(clip[2:4])) if clip else None)
+        return None
+
+    def layer(self, D, name, shapes, z=None, k=1.0, origin=(0.0, 0.0)):
+        out, texts, hatch = [], 0, 0
+        for s in shapes or ():
+            if not s:
+                continue
+            if s[0] == "text":
+                self._text_shape(D, s, k, origin)
+                texts += 1
+                continue
+            sh = self._shape(s, float(k), origin)
+            if sh is None:
+                continue
+            if sh.pop("_stripes", False):
+                hatch += 1
+            out.append(sh)
+        if hatch:
+            self.warn(D["page"], "hatch", u"%s layer %s: %d hatch fill(s) dropped (G-R5-4.1 solid colours only)" % (
+                D["id"], name, hatch))
+        if z is None:
+            self._z[D["id"]] = self._z.get(D["id"], 0) + 1
+            z = self._z[D["id"]]
+        D["layers"].append(dict(z=z, name=name, shapes=out))
+        return len(out), texts
+
+    def _text_shape(self, D, s, k, o):
+        if isinstance(s[2], (tuple, list)):
+            x, y = s[2][0], s[2][1]
+            tail = list(s[3:])
+        else:
+            x, y = s[2], s[3]
+            tail = list(s[4:])
+        size_mm = float(tail[0]) if tail else 2.0
+        al = tail[3] if len(tail) > 3 and tail[3] else "L"
+        self.text(D["page"], s[1], "label", drawing=D["id"], at=(o[0] + k * x, o[1] + k * y),
+                  size_pt=size_mm / IX_PT, bold=bool(tail[2]) if len(tail) > 2 else False,
+                  colour=tail[1] if len(tail) > 1 and isinstance(tail[1], str) else None,
+                  positions=["=" + str(al)] + ["E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=D.get("group"))
+
+    def keep(self, D, geom, kind="keep", name=None):
+        g = list(geom)
+        if len(g) == 4 and not hasattr(g[0], "__len__"):
+            g = [[g[0], g[1]], [g[2], g[1]], [g[2], g[3]], [g[0], g[3]]]
+        D["keep_areas"].append(dict(kind=kind, name=name, pts=[[_ix_r(p[0]), _ix_r(p[1])] for p in g]))
+
+    def anchor(self, D, name, xy):
+        D["anchors"][name] = [_ix_r(xy[0]), _ix_r(xy[1])]
+
+    # -- texts and the rest
+    def text(self, page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None,
+             short_forms=(), side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None,
+             min_pt=None):
+        if role not in IX_TEXT_ROLES:
+            self.warn(page, "export", u"text role %r unknown (taken as note): %r" % (role, (u"%s" % string)[:80]))
+            role = "note"
+        if "names_fix" in globals():                       # G-R4-11 / G-R5-11: proper names through the names table
+            try:
+                string = names_fix(string)                                                     # noqa: F821
+            except Exception:
+                pass
+        pt0, b0, _ld, c0 = grid_role(role) if "grid_role" in globals() else (5.0, False, 1.3, "4A3F35")
+        it = self._item(page, "text", id, role, priority, group, string=u"%s" % string,
+                        anchor=None if drawing is None else dict(drawing=drawing,
+                                                                 pt=None if at is None else [_ix_r(at[0]),
+                                                                                             _ix_r(at[1])]),
+                        size_pt=_ix_r(size_pt if size_pt is not None else pt0, 2),
+                        min_pt=float(min_pt if min_pt is not None else (GRID_MIN_PT if "GRID_MIN_PT" in globals()
+                                                                       else 4.0)),
+                        bold=b0 if bold is None else bool(bold), colour=colour or c0,
+                        short_forms=[u"%s" % t for t in short_forms or ()], side_list_ok=bool(side_list_ok),
+                        justify=(role in ("intro", "caption", "note", "list_item", "source")) if justify is None
+                        else bool(justify), positions=list(positions) if positions else None)
+        return it["id"]
+
+    def _tid(self, page, t, role, group):
+        if isinstance(t, dict) and "id" in t:
+            return t["id"]
+        if isinstance(t, str) and t in self.ids:
+            return t
+        return self.text(page, t, role, group=group)
+
+    def legend(self, page, drawing, entries, title=None, id=None, group=None):
+        ents = []
+        for sw, t in entries:
+            ents.append(dict(swatch=dict(sw), text=self._tid(page, t, "legend", group)))
+        return self._item(page, "legend", id, "legend", 3, group, drawing=drawing, entries=ents,
+                          title=None if title is None else self._tid(page, title, "heading", group))["id"]
+
+    def list(self, page, drawing, texts, numbered=True, anchors=None, id=None, group=None):
+        rows = [self._tid(page, t, "list_item", group) for t in texts]
+        return self._item(page, "list", id, "list", 4, group, drawing=drawing, items=rows, numbered=bool(numbered),
+                          anchors=[[_ix_r(a[0]), _ix_r(a[1])] if a else None for a in anchors] if anchors else None)["id"]
+
+    def levels(self, page, drawing, levels, side="R", id=None, group=None):
+        lv = [dict(name=u"%s" % n, z=_ix_r(z, 3)) for n, z in levels]
+        return self._item(page, "level_column", id, "level_column", 2, group, drawing=drawing, levels=lv,
+                          side=side)["id"]
+
+    def inset(self, page, parent, window, child, factor, id=None):
+        return self._item(page, "inset", id, "inset", 2, None, parent=parent, window=[_ix_r(v) for v in window],
+                          child=child, factor=float(factor))["id"]
+
+    def keymap(self, page, cuts, looks=None, names=(), zooms=(), id=None):
+        return self._item(page, "keymap", id, "keymap", 3, None, cuts=list(cuts), looks=dict(looks or {}),
+                          names=list(names), zooms=list(zooms))["id"]
+
+    def photo(self, page, file, crop=None, caption=None, source=None, id=None):
+        cap = None if caption is None else self._tid(page, caption, "caption", None)
+        return self._item(page, "photo", id, "photo", 2, None, file=file, crop=list(crop) if crop else None,
+                          caption=cap, source=source)["id"]
+
+    def chart(self, page, w_mm, h_mm, shapes, id=None):
+        D = self.drawing(id, page, (0.0, 0.0, w_mm, h_mm), units="mm", dkind="chart", scale_bar=False,
+                         fit=(0.75, 1.5))
+        self.layer(D, "chart", shapes)
+        D["kind_note"] = "chart"
+        return D["id"]
+
+    def source(self, key, text, url, page=None):
+        self.d["sources"][key] = dict(text=text, url=url)
+        if page:
+            self._item(page, "source", "src_" + key, "source", 9, None, key=key)
+
+    # -- out
+    def save(self):
+        import json as _j
+        d_ = bg_booklet(self.folder)
+        os.makedirs(d_, exist_ok=True)
+        self.path = os.path.join(d_, "items.json")
+        with open(self.path, "w", encoding="utf-8") as f:
+            _j.dump(self.d, f, ensure_ascii=False, separators=(",", ":"))
+        return self.path
+
+    def summary(self):
+        n = {}
+        for its in self.d["pages"].values():
+            for it in its:
+                n[it["kind"]] = n.get(it["kind"], 0) + 1
+        return u"items %s: %s -> %s" % (self.d["script"], u", ".join(u"%s %d" % kv for kv in sorted(n.items())),
+                                         self.path or u"(not saved)")
 bergama_data("FACTS")
 # ---- Shared facts reader (H-B 30 Oct 2026, M10). Include the data first:
 #   #@include ../common/data/FACTS.py
@@ -2465,20 +3087,23 @@ def sup_runs(s):
     return out
 
 
-WB_TP_MARGINS = (8.0, 6.0, 8.0, 6.0)  # v9: mm kept free of text inside the A3 sheet (left, top, right, bottom)
-WB_LOG = []                            # v9: this run's "overlap p11 ..." line
+WB_TP_MARGINS = (0.0, 0.0, 0.0, 0.0)  # v10: the recorder's TextPage only answers "is this spot free" (no margins, no check)
 
 
-class Page:
-    """v9 (round 4, G-R4-1): one TextPage per sheet (pg.tp, y up, mm, the booklet page id p11): every visible
-    pg.text is registered there with its real Arial box before it is drawn (the runs of one line or paragraph in one
-    group: pg.group()); pg.check_text() is the collision test, which RAISES TextCollision"""
-    def __init__(self, w, h, name="p11"):
-        self.w, self.h, self.ops = w, h, []
+class WbRec:
+    """v10 (round 5 S5, G-R5-12; replaces v9's Page and write_pdf): the same drawing calls as the old sheet Page, but
+    nothing is written to a PDF. Everything a block draws is RECORDED as common shape tuples in page mm, y up
+    (poly / line / text), which item_export turns into one chart drawing; every text becomes a label item anchored
+    where v9 set it (first position = that spot, so v9's look is the start; the booklet moves, sizes and checks it).
+    A TextPage still answers place()'s "is this spot free" so the labels start where v9 put them; it is never
+    checked here and nothing raises (the booklet's layout check reports hits as warnings).
+    panel_title() records its number, title and keyword line in .heads (heading + note texts, not drawn)."""
+    def __init__(self, w=420.0, h=297.0, name=WB_PAGE):
+        self.w, self.h, self.shapes, self.heads = w, h, [], []
         self.tp = TextPage(name, (0.0, 0.0, w, h), y_down=False, pad=0.6, margins=WB_TP_MARGINS)
-        self.tg = None           # the open text group (runs of one line / lines of one paragraph may touch)
+        self.tg = None
     def group(self, start=True):
-        """v9: open (True) or close (False) one text group; returns whether this call opened it"""
+        """open (True) or close (False) one text group; returns whether this call opened it"""
         if start:
             if self.tg is not None:
                 return False
@@ -2487,104 +3112,56 @@ class Page:
         self.tg = None
         return False
     def box(self, s, x, y, size, bold=False, align="L"):
-        """v9: the real box (mm) a text would take"""
         return self.tp._box(s, x, y, size, bold, align, 0.0)
     def free(self, b):
-        """v9: True when box b is clear of every registered text and inside the margins"""
         return self.tp._free(b)
-    def check_text(self):
-        """v9: the sheet's collision test; logs "overlap p11 checked n, collisions k" and RAISES on any"""
-        self.tp.check(True, WB_LOG)
-    def _c(self, h, stroke=False):
-        r, g, b = rgb(h); return "%.3f %.3f %.3f %s" % (r, g, b, "RG" if stroke else "rg")
     def rect(self, x, y, w, h, fill=None, stroke=None, lw=0.2):
         self.poly([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], fill, stroke, lw, True)
     def poly(self, P, fill=None, stroke=None, lw=0.2, closed=False, dash=None):
-        k = 72 / 25.4; o = ["q"]
-        if fill: o.append(self._c(fill))
-        if stroke: o.append(self._c(stroke, True)); o.append("%.3f w 1 J 1 j" % (lw * k))
-        if dash: o.append("[%.2f %.2f] 0 d" % (dash[0] * k, dash[1] * k))
-        o.append("%.2f %.2f m" % (P[0][0] * k, P[0][1] * k))
-        o += ["%.2f %.2f l" % (x * k, y * k) for x, y in P[1:]]
-        if closed: o.append("h")
-        o.append("B" if fill and stroke else ("f" if fill else "S")); o.append("Q")
-        self.ops.append(" ".join(o))
+        P = [(float(x), float(y)) for x, y in P]
+        if len(P) < 2:
+            return
+        if (fill or closed) and len(P) >= 3:
+            self.shapes.append(("poly", P, fill, stroke, lw if stroke else 0.0, None))
+        elif stroke:
+            self.shapes.append(("line", P, stroke, lw, tuple(dash) if dash else None))
     def line(self, P, col, lw=0.25, dash=None): self.poly(P, None, col, lw, False, dash)
     def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", hidden=False, _reg=True):
-        if not hidden and _reg and s and s.strip():           # v9: registered with its real box first
-            self.tp.put(s, x, y, size, bold, align, 0.0, None, "label", col, (), self.tg, emit=False)
-        if not hidden and any(ch in SUP for ch in s):   # v4.1 (Prompt 8): m² / m³ as a raised small digit (see SUP);
-            runs = sup_runs(s)                          # the invisible source key keeps the glyph (the booklet reads it)
-            ws = [text_w(t, size * (SUP_K if up else 1.0), bold) for t, up in runs]
-            x0 = x - {"L": 0.0, "C": sum(ws) / 2.0, "R": sum(ws)}[align]; xx = x0
-            for (t, up), w_ in zip(runs, ws):           # v9: the whole label is registered once (above)
-                self.text(t, xx, y + (size * SUP_UP * 0.3528 if up else 0.0), size * (SUP_K if up else 1.0), col, bold,
-                          _reg=False)
-                xx += w_
+        """one label (size pt, baseline y, align L/C/R at x); ² and ³ stay Unicode (the booklet embeds Arial)"""
+        if hidden or not s or not s.strip():
             return
-        if align == "C": x -= text_w(s, size, bold) / 2
-        elif align == "R": x -= text_w(s, size, bold)
-        k = 72 / 25.4
-        b = b"".join(bytes([_ENC_EXTRA[ch]]) if ch in _ENC_EXTRA else ch.encode("cp1252", "replace") for ch in s)   # 25 Oct: ı İ ğ Ğ ş Ş spelt right
-        b = b.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
-        self.ops.append("BT /%s %.2f Tf%s %s %.2f %.2f Td (%s) Tj ET" % ("F2" if bold else "F1", size, " 3 Tr" if hidden else "",
-                                                                       self._c(col), x * k, y * k, b.decode("latin-1")))
-        # v2.7: hidden = invisible text (render mode 3): kept in the PDF, not seen; v9: never registered
+        if _reg:
+            self.tp.put(s, x, y, size, bold, align, 0.0, None, "label", col, (), self.tg, emit=False)
+        self.shapes.append(("text", s, float(x), float(y), size * IX_PT, col, bool(bold), align or "L"))
     def para(self, s, x, y, w, size, col="4A3F35", bold=False, lead=1.3, hidden=False):
-        """s wrapped to w mm from baseline y at size pt; returns the next line's baseline. v9 closing (G-R4-2): visible
-        text is wrapped by the shared tp_wrap (real Arial widths, the last line holds at least two words; when that
-        cannot be done one step 0.25 pt smaller, as TextPage.para, then TpWidow raises). The invisible source key
-        (hidden) keeps the plain word wrap: it is never seen and the booklet reads its spacing as written."""
-        if not (s or "").strip():
+        """s wrapped to w mm from baseline y at size pt (one label per line); returns the next line's baseline.
+        v10: never raises: a widow at this size and 0.25 pt smaller is set without the two-word rule + WARNING"""
+        if hidden or not (s or "").strip():
             return y
-        g_ = self.group()                                     # v9: the paragraph's lines are one group
+        lines = wb_wrap(s, w, size, bold, False)
+        g_ = self.group()
         yy = y
-        if hidden:
-            line = ""
-            for word in s.split(" "):
-                t = (line + " " + word).strip()
-                if text_w(t, size, bold) > w and line:
-                    self.text(line, x, yy, size, col, bold, hidden=True); yy -= size * 0.3528 * lead; line = word
-                else: line = t
-            if line: self.text(line, x, yy, size, col, bold, hidden=True); yy -= size * 0.3528 * lead
-        else:
-            try:
-                lines = tp_wrap(s, w, size, bold, min_last_words=2, bold_marks=False)
-            except TpWidow:
-                size -= 0.25
-                lines = tp_wrap(s, w, size, bold, min_last_words=2, bold_marks=False)
-            for ln in lines:
-                for t, b, xo in ln:
-                    self.text(t, x + xo, yy, size, col, b)
-                yy -= size * 0.3528 * lead
+        for ln in lines:
+            for t, b, xo in ln:
+                self.text(t, x + xo, yy, size, col, b)
+            yy -= size * 0.3528 * lead
         if g_: self.group(False)
         return yy
 
-def write_pdf(pg, path):
-    k = 72 / 25.4
-    content = zlib.compress("\n".join(pg.ops).encode("latin-1"))
-    objs = ["<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>" % (pg.w * k, pg.h * k),
-            "", ""]
-    extra = []                                            # G2/G3 28 Oct: Arial embedded (common/pdf_fonts.py):
 
-    def add(b):                                           # font file + descriptor go after the content (7, 8 ...)
-        extra.append(b.decode("latin-1"))
-        return 6 + len(extra)
-    fid = pdf_fonts(add, ("R", "B"))
-    objs[3], objs[4] = extra[fid[0] - 7], extra[fid[1] - 7]   # the font dicts themselves stay objects 4, 5
-    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"); offs = []
-    for i, o in enumerate(objs):
-        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (i + 1, o)).encode("latin-1")
-    offs.append(len(out))
-    out += ("6 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n" % len(content)).encode("latin-1") + content + b"\nendstream\nendobj\n"
-    for j, o in enumerate(extra):
-        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (7 + j, o)).encode("latin-1")
-    x = len(out)
-    out += ("xref\n0 %d\n0000000000 65535 f \n" % (len(offs) + 1) + "".join("%010d 00000 n \n" % o for o in offs) +
-            "trailer\n<< /Size %d /Root 1 0 R /Info << /Title (Bergama water balance) >> >>\nstartxref\n%d\n%%%%EOF\n" % (len(offs) + 1, x)).encode("latin-1")
-    with open(path, "wb") as f: f.write(out)
+def wb_wrap(s, w, size, bold=False, marks=True):
+    """v10: tp_wrap with its two-word last line; when that fails at size and size - 0.25, the plain wrap + WARNING
+    (round 4 raised TpWidow here)"""
+    for sz in (size, size - 0.25):
+        try:
+            return tp_wrap(s, w, sz, bold, min_last_words=2, bold_marks=marks)
+        except TpWidow:
+            pass
+        except TextError as ex:                           # a word wider than the column: one line + WARNING
+            wn_warn(WB_PAGE, "wrap", u"%r: %s" % (s[:60], ex))
+            return [[(s, bold, 0.0)]]
+    wn_warn(WB_PAGE, "widow", u"%r: last line keeps one word" % s[:60])
+    return tp_wrap(s, w, size, bold, min_last_words=1, bold_marks=marks)
 
 # ------------------------------------------------------------------ helpers on the live results
 MON = "J F M A M J J A S O N D".split()
@@ -2605,11 +3182,11 @@ def nice(v):
 def place(pg, s, cands, size, col, bold=False, halo=False):
     """v2.7: label s at the first candidate (x, y, align) whose real box (v9: pg.box) is free on the page's TextPage;
     else the last one (v9: the page's check then RAISES). halo: a white field under the words, over the lines drawn
-    before."""
+    before. v10: the spot found is only the label's FIRST position (the booklet may move it), so no halo is drawn: a
+    white field left behind a moved label would cut the curves (halo kept as an argument, ignored)."""
     for x, y, al in cands:
         b = pg.box(s, x, y, size, bold, al)
         if pg.free(b): break
-    if halo: pg.rect(b[0] - 0.7, b[1] - 0.5, b[2] - b[0] + 1.4, b[3] - b[1] + 1.0, fill=C["white"])
     pg.text(s, x, y, size, col, bold, al)
     return b
 
@@ -2620,11 +3197,10 @@ def fit_size(s, w, size, bold=False, low=7.0):
 
 def panel_title(pg, x, y, w, n, title, sub=None):
     """v2.7: a supporting panel's head: a rule over the panel's width, number, title, keyword line.
-    v5 (MIRAQUA 28 Oct, G5): the keyword line's **...** runs are set bold (rich_parts)"""
-    pg.line([(x, y + 4.5), (x + w, y + 4.5)], C["structure"], 0.3)
-    pg.text(n, x, y, 11, C["accent"], True)
-    pg.text(title, x + 6.5, y, 11, C["ink"], True)
-    if sub: inline(pg, x + 6.5, y - 4.8, rich_parts(sub, 7.5, C["ink2"], C["ink"]))
+    v5 (MIRAQUA 28 Oct, G5): the keyword line's **...** runs are set bold (rich_parts).
+    v10 (G-R5-12): nothing is drawn: the number + title and the keyword line are recorded in pg.heads and exported as
+    a heading and a note text (the booklet sets them over the block; the rule above the title is the booklet's)"""
+    pg.heads.append((n, title, sub))
 
 
 # v5 (MIRAQUA 28 Oct, G5): one or two bold keywords per explanatory line, written "a **key** word"
@@ -2650,23 +3226,7 @@ def rich_parts(toks, size, col, bcol=None):
     return parts
 
 
-def rich_para(pg, s, x, y, w, size, col, bcol=None, lead=1.3):
-    """a '**' string wrapped to w mm, line by line from baseline y at size pt; returns the next line's baseline.
-    v9 closing (G-R4-2): wrapped by the shared tp_wrap (real Arial widths, '**' runs bold in bcol, the last line
-    holds at least two words; when that cannot be done one step 0.25 pt smaller, as TextPage.para, then TpWidow
-    raises)"""
-    try:
-        lines = tp_wrap(s, w, size, False, min_last_words=2, bold_marks=True)
-    except TpWidow:
-        size -= 0.25
-        lines = tp_wrap(s, w, size, False, min_last_words=2, bold_marks=True)
-    g_ = pg.group()                                       # v9: the paragraph's lines are one group
-    for ln in lines:
-        for t, b, xo in ln:
-            pg.text(t, x + xo, y, size, (bcol or col) if b else col, b)
-        y -= size * 0.3528 * lead
-    if g_: pg.group(False)
-    return y
+# v10: rich_para (the sheet's question paragraph) is gone: the question is the page's intro text item
 
 def arrow(pg, x0, x1, y, col, lw=0.6):
     pg.line([(x0, y), (x1 - 2.2, y)], col, lw)
@@ -2690,10 +3250,12 @@ SOURCES = dict(    # every source and method sentence of the v2.3 sheet; v2.7: a
 SRC_KEY = []
 
 def cite(*keys):
-    """v2.4: "[n]" (or "[n,m]") for sources in SOURCES; the numbered key is the sheet's hidden source layer (v2.7)."""
+    """v2.4: "[n]" (or "[n,m]") for sources in SOURCES; the numbered key is the sheet's hidden source layer (v2.7).
+    v10 (G-R5-12): "{src:key}" per source (item_export's citation form; the booklet numbers them on its Sources page,
+    where wb_items() registers every SOURCES row with ix.source)."""
     for k in keys:
         if k not in SRC_KEY: SRC_KEY.append(k)
-    return "[" + ",".join(str(SRC_KEY.index(k) + 1) for k in keys) + "]"
+    return " ".join("{src:%s}" % k for k in keys)        # one word per mark: a run of marks never outgrows a column
 
 def ico(pg, name, cx, cy, size):
     """v6 (T3b, 02 §2): an icon of the booklet's one set (common/icons.py) centred on (cx, cy), size mm square; the
@@ -2964,111 +3526,43 @@ BLOCKS = dict(year=_grid_block(1, 12, 36.0, 100.0),
               answer=_grid_block(1, 12, 240.0, 32.0))
 
 
-def build(path, R):
-    """The A3 sheet; v9: returns the TextPage's "overlap p11 ..." line (its check RAISES before the PDF is written when
-    any two texts collide).
-    v5 (MIRAQUA 28 Oct, P11.2): the blocks of BLOCKS drawn in reading order 1-7, so the [n] marks count up that way.
+# v10 (G-R5-12): each block = one chart drawing; its window = v9's booklet crop (the block under its title line)
+WB_PANELS = (("wb_year", "year", 7.5, 1), ("wb_curve", "curve", 7.5, 2), ("wb_store", "store", 7.5, 3),
+             ("wb_answer", "answer", 6.5, 4))          # (drawing id, BLOCKS key, mm cut off the top, reading order)
+
+
+def wb_items(R):
+    """v10 (round 5 S5, G-R5-12; was build(), CHK-12): p11 as items, no sheet PDF. The page title, the question
+    (intro) and the run line (note); per block (BLOCKS, reading order 1-4) one chart drawing in page mm (y up) with
+    every shape the block draws (WbRec) and every word inside it as an anchored label, plus its number + title as a
+    heading and its keyword line as a note (group = the drawing id); every SOURCES row as an ix.source. Writes
+    cached/booklet/Bergama_water_balance_analysis/items.json; returns the Ix (summary for the log).
+    v5 (MIRAQUA 28 Oct, P11.2): the blocks drawn in reading order, so the source marks count up that way.
     v6 (T3b): four blocks (1 the year, 2 the curve, 3 the cost, 4 the answer); the question under the title."""
-    pg = Page(420.0, 297.0)
-    pg.rect(0, 0, 420, 297, fill=C["white"])               # v2.7: white sheet (Aras 27 Oct 11:07)
-    del SRC_KEY[:]                                        # v2.4: [n] numbers restart on every run
-    pg.text("The water balance", 14, 281.5, 22, C["ink"], True)   # v8 (P10.1): sentence case booklet-wide
-    rich_para(pg, QUESTION, 14, 273.5, 300, 11, C["ink2"], C["ink"])
-    pg.text("lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), 406, 281.5, 7, C["ink2"], align="R")
-    panel_year(pg, R, *BLOCKS["year"])                    # 1: the five users of the water on one month axis
-    panel_curve(pg, R, *BLOCKS["curve"])                  # 2
-    panel_store(pg, R, *BLOCKS["store"])                  # 3
-    panel_answer(pg, R, *BLOCKS["answer"])                # 4
-    for k in SOURCES:                                     # v2.4: one numbered source key (no source can drop out)
-        if k not in SRC_KEY: SRC_KEY.append(k)
-    # v2.7: no source footer on the sheet (Aras 27 Oct 11:07); the key stays as INVISIBLE text so the booklet's
-    # sources page (bergama_booklet sheet_sources: "Sources by number:") still lists what the [n] marks refer to
-    pg.para("Sources by number: " + "  ".join("[%d] %s" % (i + 1, SOURCES[k]) for i, k in enumerate(SRC_KEY)),
-            14, 8, 392, 6, C["ink2"], hidden=True)       # v4.1 (Prompt 8): public sources only, no internal notes file
-    del WB_LOG[:]
-    pg.check_text()                                       # v9 (G-R4-1): RAISES TextCollision; no sheet with a collision
-    write_pdf(pg, path)
-    return WB_LOG[-1] if WB_LOG else u"overlap p11: not checked"
+    ix = Ix(WB_FOLDER, "bergama_water_balance", VERSION)
+    del SRC_KEY[:]
+    ix.text(WB_PAGE, "The water balance", "title", id="wb_title", priority=1)
+    ix.text(WB_PAGE, QUESTION, "intro", id="wb_question", priority=2)
+    ix.text(WB_PAGE, "lands option %s · run %s" % (R["lands"]["option"], R["run_time"]), "note", id="wb_run",
+            priority=9)
+    fns = dict(year=panel_year, curve=panel_curve, store=panel_store, answer=panel_answer)
+    for did, key, cut, n in WB_PANELS:
+        x, y, w, h = BLOCKS[key]
+        pg = WbRec()
+        fns[key](pg, R, x, y, w, h)
+        D = ix.drawing(did, WB_PAGE, (x - 0.5, y - 0.5, x + w + 0.5, y + h - cut), units="mm", dkind="chart",
+                       scale_bar=False, priority=n, group=did)
+        for hn, ht, hs in pg.heads:
+            ix.text(WB_PAGE, u"%s %s" % (hn, ht), "heading", group=did, id=did + "_head", priority=n)
+            if hs:
+                ix.text(WB_PAGE, hs, "note", group=did, id=did + "_note", priority=n)
+        ix.layer(D, "chart", pg.shapes)
+    for k in SOURCES:                                     # v2.4: one source list (no source can drop out)
+        ix.source(k, SOURCES[k], None, page=WB_PAGE)
+    ix.save()
+    return ix
 
-# ------------------------------------------------------------------ v2.6: A3 booklet = crops of this sheet (booklet/CROP_SPEC.md)
-# ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
-# Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
-# The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
-BK_MIN_PT = 7.5                              # labels and captions on the booklet (brief: 7-8 pt, minimum 7)
-BK_CAPTION_MM = 5.0                          # caption line under every drawing frame
-
-
-def bk_frame(key, w_default, h_default):
-    """(w, h) mm a drawing for asset key "<folder>/<block>" is drawn at: the assembler's booklet_slots.json if it has
-    run once, else the defaults given (the plan's frame size). h excludes the caption line."""
-    try:
-        import json as _j
-        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
-                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
-            s = _j.load(f)[key]
-        return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
-    except Exception:
-        return float(w_default), float(h_default) - BK_CAPTION_MM
-
-
-def bk_take_text(items, H):
-    """Page items (poly/line/circle/text tuples, y up from the bottom, mm) -> (items without text, labels).
-    Labels: x, y in mm from the top-left (y to the baseline), size raised to BK_MIN_PT, colour hex."""
-    keep, labels = [], []
-    for it in items:
-        if it[0] != "text":
-            keep.append(it)
-            continue
-        _, s, x, y, size, color, bold, align = it[:8]
-        labels.append({"x": round(x, 2), "y": round(H - y, 2), "text": s, "size": max(float(size), BK_MIN_PT),
-                       "bold": bool(bold), "anchor": align or "L", "colour": color if isinstance(color, str) else "4A3F35"})
-    return keep, labels
-
-
-class BkBlocks(object):
-    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
-    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
-    def __init__(self, out_dir, script, version):
-        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
-        os.makedirs(self.dir, exist_ok=True)
-        self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
-
-    def path(self, name):
-        return os.path.join(self.dir, name)
-
-    def source(self, key, text, url):
-        """A public source: used in any text as {src:key}; numbered once for the whole booklet."""
-        self.d["sources"][key] = {"text": text, "url": url}
-
-    def drawing(self, bid, pdf_name, labels, caption="", scale_den=None, legend=None):
-        self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
-                                 "scale_den": scale_den, "legend": legend or []}
-
-    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
-        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
-        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
-        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
-        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
-        drop = regexes of sheet texts not to carry."""
-        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
-                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
-                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
-
-    def tiles(self, bid, tiles):
-        self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
-
-    def text(self, bid, heading="", body="", bullets=None):
-        self.d["blocks"][bid] = {"type": "text", "heading": heading, "body": body, "bullets": bullets or []}
-
-    def save(self):
-        import json as _j
-        p = os.path.join(self.dir, "blocks.json")
-        with open(p, "w", encoding="utf-8") as f:
-            _j.dump(self.d, f, ensure_ascii=False, indent=1)
-        return p
-
-BK_DROP = [r"^\[\d+(,\d+)*\]$"]                      # the sheet's source numbers: the booklet has its own source list
-
+# ------------------------------------------------------------------ v2.6-v9 booklet crops (blocks.json) gone in v10: wb_items()
 
 def booklet_figures(R):
     """v2.5: figures the booklet prints that the sheet only computed inline (results JSON keys, read live)."""
@@ -3078,33 +3572,12 @@ def booklet_figures(R):
     R["site_catch_share_of_need_pct"] = [round(min(sh), 1), round(max(sh), 1)] if sh else [0.0, 0.0]
 
 
-def booklet_export(R):
-    """v2.6 (Aras 25 Oct 21:47): one crop per sheet panel in booklet/blocks.json; the assembler cuts each rect out of
-    the sheet PDF (the booklet v9 places the whole sheet on p10; these crops stay for any re-laid page). v2.7: rects
-    from the new FARMS / PANELS: each panel under its title and keyword line (7.5 mm under the title baseline).
-    v5 (MIRAQUA 28 Oct, P11.2): the same seven crop ids, rects from BLOCKS (the answer = its tint field; the tiles = the
-    column of block 3; the timing chart = block 3 right of the tiles; the stream = block 2 under its title)."""
-    bk = BkBlocks(OUT_DIR, "WaterBalance", VERSION)
-    H = 297.0
-
-    def crop(bid, x0, y0, x1, y1, caption, legend=None):
-        bk.crop(bid, OUT_PDF, (x0, H - y1, x1, H - y0), caption=caption, scale_den=None, legend=legend, drop=BK_DROP)
-    x, y, w, h = BLOCKS["answer"]
-    crop("wb_answer", x - 0.5, y - 0.5, x + w + 0.5, y + h - 6.5, "The answer: storage, what it carries, the cost cut-off")
-    # v6 (T3b): wb_year = block 1 under its title (the five rows, the months, the Jun-Sep line); wb_tiles, wb_timing,
-    # wb_catch and wb_stream are gone with their blocks
-    x, y, w, h = BLOCKS["year"]
-    crop("wb_year", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "One year of water: it comes in winter, it is needed in summer")
-    x, y, w, h = BLOCKS["curve"]
-    crop("wb_curve", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "Storage size against the farm need covered")
-    x, y, w, h = BLOCKS["store"]
-    crop("wb_store", x - 0.5, y - 0.5, x + w + 0.5, y + h - 7.5, "Cost per m³ delivered, log scale")
-    return bk.save()
-
 # ------------------------------------------------------------------ run (GH Button on any input, ScriptEditor, or python)
 def main(g):
+    """v10: compute, write the results JSON, export p11's items; the log = "<n> warnings" + every WARNING line on
+    top (wn_compose), then the run's lines. Nothing is written to output/ (C2)."""
     t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
+    wn_reset()                                            # v10: one warning sink per run
     L, src = get_lands(g)
     R = compute(L); R["lands_source"] = src
     try:                                                  # v6 (T3b): the zones for the water board's p.12 map; never
@@ -3112,36 +3585,25 @@ def main(g):
         zone_line = "zones for p.12: %d zones, %d links (%s)" % (len(R["zones"]["zones"]), len(R["zones"]["links"]), R["zones"]["source"])
     except Exception as ex:
         zone_line = "zones for p.12 NOT WRITTEN: %s: %s" % (type(ex).__name__, ex)
-    bk_err = None
-    try:
-        booklet_figures(R)                                # v2.5: new results keys for the booklet
-    except Exception as ex:
-        bk_err = "%s: %s" % (type(ex).__name__, ex)
-    path = os.path.join(OUT_DIR, OUT_PDF)
-    try:
-        ov = build(path, R)                               # v9: "overlap p11 checked n, collisions 0" (a collision raises)
-    except PermissionError:
-        return "The PDF is open in another program. Close it and press again: " + path
+        wn_warn(WB_PAGE, "data", zone_line)
+    booklet_figures(R)                                    # v2.5: results keys the booklet prints
     os.makedirs(RES_DIR, exist_ok=True)
     with open(os.path.join(RES_DIR, OUT_JSON), "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)
-    if bk_err is None:
-        try:
-            booklet_export(R)                             # v2.5: a booklet error never breaks the sheet; it goes in the log
-        except Exception as ex:
-            import traceback as _tb
-            bk_err = "%s: %s %s" % (type(ex).__name__, ex, _tb.format_exc()[-300:])
+    ix = wb_items(R)                                      # v10: p11 items (G-R5-12)
     d = R["design"]; tm = time.strftime("%H:%M:%S")
-    return "%s  %s\n%s  %s\ncut-off %s m3 = %.1f %% (1 in 5 dry)\nstream: %s m3 a year taken = %.1f %% of the water stored; %.1f %% of its winter flow left (driest year %.1f %%)\n%s %s, %.1f s" % (
-        OUT_PDF, tm, OUT_JSON, tm, fmt(d["storage_m3"]), d["covered_pct_1in5_dry"], fmt(d["river_take_m3_per_year"]),
-        d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0], "water balance", VERSION, time.time() - t0) + (
-        "\nbooklet ERROR: " + bk_err if bk_err else "") + "\n" + zone_line + (
-        "\n" + ov + "\ntrigger: " + (TRIG_WHY[0] or "-")) + "".join(
-        "\n" + t for t in bg_tidy_output("Bergama_water_balance_analysis")) + "".join(     # 27 Oct: output/ = PDFs only
-        "\nyear %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
-            k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
-            fmt(v["farm_need_m3"]), fmt(v["released_m3"]), fmt(v["carried_out_m3"]), v["winter_flow_pct_of_median"])
-        for k, v in ((yk, d["year_split"][yk]) for yk in ("normal", "dry5")))     # v4 (Prompt 6)
+    lines = ["%s  %s" % (os.path.join(RES_DIR, OUT_JSON), tm), ix.summary(),
+             "cut-off %s m3 = %.1f %% (1 in 5 dry)" % (fmt(d["storage_m3"]), d["covered_pct_1in5_dry"]),
+             "stream: %s m3 a year taken = %.1f %% of the water stored; %.1f %% of its winter flow left (driest year %.1f %%)" % (
+                 fmt(d["river_take_m3_per_year"]), d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0]),
+             "riverside walks %s m2 from %s" % (fmt(L["riverside_walk_m2"]), src["riverside_walk_m2"]),
+             zone_line, "trigger: " + (TRIG_WHY[0] or "-")]
+    lines += ["year %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
+        k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
+        fmt(v["farm_need_m3"]), fmt(v["released_m3"]), fmt(v["carried_out_m3"]), v["winter_flow_pct_of_median"])
+        for k, v in ((yk, d["year_split"][yk]) for yk in ("normal", "dry5"))]     # v4 (Prompt 6)
+    head = ["water balance %s · %s · %.1f s" % (VERSION, time.strftime("%Y-%m-%d %H:%M:%S"), time.time() - t0)]
+    return "\n".join(wn_compose(tp_log_lines() + lines, head))
 
 # ---- trigger.py (round 4, S1, 1 Nov 2026; BRIEF §6, round 3 open row 13): ONE start-up / trigger file ----------------
 # Replaces common/chain_fire.py, gh_in_items.py, _gh_inputs.py, to_bool.py and the scripts' own copies of chain_fire,
@@ -3171,7 +3633,68 @@ def main(g):
 #   trig_should_run(key="chain_seen", settings=()) -> (run, why, button)
 #                                          run: bool; why: "button <name>" | "chain <input>" | None; button: its name
 #                                          or None. Each script logs "trigger: <why>" in its run log.
+#
+# ROUND 5 (S1, 1 Nov 2026; C2, CHK-13: an output folder appeared when Aras only OPENED the GH file, 16:29): every
+# memory above (the first-solve note, the last done text seen, the Button's last state) is now kept per OPEN
+# DOCUMENT (trig_doc_key: the GH document's runtime id, else its object hash), not per Rhino session. Before, the
+# notes of an earlier opening survived in Rhino's sticky, so the first solve after a reopen was not "first" and a
+# done text still on a wire (or a Toggle left True: prev False -> True) started a run. Now the first solve after any
+# open, paste or rewire only NOTES the wire and the Button state; only a later change starts a run.
+# CHANGED APPROACH (Aras 1 Nov 22:46: "if you struggle with an aspect over and over, change your approach"): the chain
+# no longer trusts memory notes alone. A chain start exists ONLY after a Button press in THIS open document
+# (trig_mark_chain stores (time, document id)); chain_fire fires a component only when such a press exists and its
+# done text is newer than the last one it saw. Opening a file, pasting, rewiring or a Toggle left True can never start
+# a chain: without a press in this load, every done text on a wire is only noted.
+#   trig_doc_key() -> str                  the open GH document's per-load id ("" outside Grasshopper)
+#   trig_mark_chain(why)                   a Button run notes the chain start time (sticky "bergama_chain_t0", read by
+#                                          bergama_paths.bg_this_run); trig_should_run calls it
 TRIGGER_BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button", "start")
+
+
+def trig_doc_key():
+    """the open Grasshopper document's id for THIS load: GH_Document.RuntimeID (new each time a file is opened in a
+    Rhino session), else the document object's hash; "" outside Grasshopper"""
+    try:
+        d_ = ghenv.Component.OnPingDocument()                              # noqa: F821
+    except Exception:
+        return ""
+    if d_ is None:
+        return ""
+    for a_ in ("RuntimeID", "RuntimeId"):
+        try:
+            v_ = getattr(d_, a_)
+            if v_ is not None:
+                return "doc%s" % v_
+        except Exception:
+            pass
+    try:
+        return "doch%s" % d_.GetHashCode()
+    except Exception:
+        return "docp%s" % id(d_)
+
+
+def trig_mark_chain(why):
+    """a run started by a Button press is the start of a chain run: its time goes to sticky "bergama_chain_t0" so
+    readers can tell this run's files from older ones (bergama_paths.bg_this_run)"""
+    if not why or not str(why).startswith("button"):
+        return
+    try:
+        import scriptcontext as _scx
+        import time as _t
+        _scx.sticky["bergama_chain_t0"] = _t.time()
+        _scx.sticky["bergama_chain_doc"] = trig_doc_key()
+    except Exception:
+        pass
+
+
+def trig_chain_live():
+    """True when a Button press started a chain in THIS open document (see CHANGED APPROACH above)"""
+    try:
+        import scriptcontext as _scx
+        return (_scx.sticky.get("bergama_chain_t0") is not None and
+                _scx.sticky.get("bergama_chain_doc") == trig_doc_key())
+    except Exception:
+        return False
 
 
 def trig_inputs():
@@ -3256,7 +3779,7 @@ def chain_fire(v, key, name=None):
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring() + ":" + trig_doc_key()  # noqa
         except Exception:
             pass
         # the first solve with this wiring (pasted, rewired or newly opened component) only notes what is on the
@@ -3268,7 +3791,7 @@ def chain_fire(v, key, name=None):
         first = _scx.sticky.get(key + ":init") is tok
         if not s.startswith("done "):
             return False
-        if first or _scx.sticky.get(key) == s:
+        if first or _scx.sticky.get(key) == s or not trig_chain_live():
             _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
@@ -3310,13 +3833,17 @@ def trig_should_run(key="chain_seen", settings=()):
             gk = str(ghenv.Component.InstanceGuid)                          # noqa: F821
         except Exception:
             gk = ""
-        pk = "trig_prev:" + key + ":" + gk
+        pk = "trig_prev:" + key + ":" + gk + ":" + trig_doc_key()
         on = to_bool(trig_get(btn)) if btn else False
-        prev = bool(_scx.sticky.get(pk, False))
+        prev = _scx.sticky.get(pk)
+        if prev is None:              # round 5 (C2): the first solve of this document only notes the Button's state
+            prev = on
+        prev = bool(prev)
         _scx.sticky[pk] = on
     except Exception:
         on, prev = (to_bool(trig_get(btn)) if btn else False), False
     if on and not prev:
+        trig_mark_chain(u"button")
         return True, u"button " + btn, btn
     # the chain: the button input first (the board family wires the done text there), then every other own input
     skip = set(str(x).lower() for x in settings or ())
@@ -3367,7 +3894,7 @@ if _gh:
         for _s in ("", "_status", "_done"):                                 # shows itself at once, idle, without the old
             _sc.sticky.pop("bergama_water_balance_log" + _s + _ik, None)     # run's time or log
     done = _sc.sticky.get("bergama_water_balance_log_done" + _ik, "idle")   # 25 Oct 10:20: stays after the run; wire into the next script's run (one-click chain)
-    log = _sc.sticky.get("bergama_water_balance_log" + _ik, "Press the Button to compute and export to " + OUT_DIR)
+    log = _sc.sticky.get("bergama_water_balance_log" + _ik, "Press the Button to compute and export to " + RES_DIR + " and " + bg_booklet(WB_FOLDER))
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log
     try: ghenv.Component.Message = "WaterBalance " + VERSION + " · " + _sc.sticky.get("bergama_water_balance_log_status" + _ik, "idle")   # Aras 25 Oct 09:44
     except Exception: pass

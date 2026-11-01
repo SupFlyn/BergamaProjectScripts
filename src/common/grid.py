@@ -56,7 +56,7 @@ GRID_PT = 25.4 / 72.0                             # mm per pt
 
 
 def grid_role(role):
-    """(size_pt, bold, lead_mm_per_pt, hex) of a round 5 text role (GRID_ROLE_PT); unknown roles = "note""""
+    """(size_pt, bold, lead_mm_per_pt, hex) of a round 5 text role (GRID_ROLE_PT); unknown roles = 'note'"""
     s, b, ld, c = GRID_ROLE_PT.get(role, GRID_ROLE_PT["note"])
     return s, b, ld, GRID_INK[c]
 

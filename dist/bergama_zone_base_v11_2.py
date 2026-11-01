@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_zone_base_v11_1.py = v11.1 (1 Nov 2026; fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_zone_base_v11_2.py = v11.2 (2 Nov 2026; fix: bake() renamed zb_bake() so a Button named bake works; what changed: the NEW IN / VERSION notes below)
 """BERGAMA ZONE BASE v11 (2026-11-01): bakes Group 6's zone layout into the open Rhino file as an editable base.
 
 NEW IN v11 (round 4, S1, 1 Nov 2026): (1) ONE start-up rule shared by all nine scripts (common/trigger.py, round 3
@@ -68,7 +68,7 @@ INPUTS (any case; only the button is needed)
 
 OUTPUT
   log: the log. It stays readable after the button is released, and is also written to
-  Downloads/Bergama/output/bergama_zone_base/bergama_zone_base_log.txt.
+  Downloads/Bergama/logs/bergama_zone_base_log.txt (v11.2: this text said output/, the file has been in logs/ since v10).
 """
 
 import os
@@ -86,7 +86,7 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v11.1 (2026-11-01)"  # v11.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_zone_base v11.2 (2026-11-02)"  # v11.2 fix (round 5 S5, CHK-12): the function bake() is now zb_bake(): a Button input named `bake` (offered below) read the function, so a press did nothing, as run() did in v11.1; v11.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
 #   Downloads/Bergama/logs/                    every log file and log folder
@@ -118,6 +118,44 @@ def bg_first(paths):
         if os.path.exists(p):
             return p
     return paths[0]
+
+
+def bg_out_dir(name):
+    """round 5 (C2): output/<name>/ made only now, just before a file is written into it (a run that stops early, or a
+    solve that never runs, leaves no empty folder). Returns the path."""
+    p = bg_output(name)
+    os.makedirs(p, exist_ok=True)
+    return p
+
+
+def bg_result(script, fn):
+    """round 5 (C10): where another script's result file `fn` is: cached/<script>/fn, then cached/<script>/from_output/
+    fn (moved there by bg_tidy_output), then output/<script>/fn (older versions); the first that exists, else the
+    first path (shade_july.json was looked for in output/ after the site board had moved it to cached/)."""
+    return bg_first([os.path.join(bg_cache(script), fn), os.path.join(bg_cache(script), "from_output", fn),
+                     os.path.join(bg_output(script), fn)])
+
+
+def bg_this_run(path):
+    """round 5 (C10): (fresh, note) for a result file another script wrote: fresh = written at or after the start of
+    this chain run (the Button press that started the chain, sticky "bergama_chain_t0" from trigger.py); note = a short
+    log text ("this run 23:01" / "from an earlier run 22:40" / "missing" / "no chain start known"). A reader logs the
+    note and, when not fresh, a WARNING (the value is from the run before: one press must give one answer)."""
+    import time as _t
+    if not os.path.isfile(path):
+        return False, u"missing"
+    m = os.path.getmtime(path)
+    hm = _t.strftime("%d %b %H:%M", _t.localtime(m))
+    try:
+        import scriptcontext as _scx
+        t0 = _scx.sticky.get("bergama_chain_t0")
+    except Exception:
+        t0 = None
+    if t0 is None:
+        return True, u"no chain start known (file of %s)" % hm
+    if m + 1.0 >= t0:
+        return True, u"this run %s" % hm
+    return False, u"from an earlier run %s" % hm
 
 
 def bg_tidy_output(name, cache_dir=None):
@@ -180,7 +218,7 @@ def bergama_data(name, _c={}):
 
 
 bergama_data("BASE_DATA")
-SHORT = "v11.1"
+SHORT = "v11.2"
 TAG = "bergama_zone_base"                          # user text key on every baked object (value = VERSION)
 STUDY_BBOX = {                                     # the course survey's study areas (survey = file coordinates, m)
     "aras_alan": [(29610.0960, 32247.0612, 29880.6932, 32794.2334)],
@@ -226,7 +264,68 @@ PARENT = {"A": "Option_A", "B": "Option_B"}
 #   trig_should_run(key="chain_seen", settings=()) -> (run, why, button)
 #                                          run: bool; why: "button <name>" | "chain <input>" | None; button: its name
 #                                          or None. Each script logs "trigger: <why>" in its run log.
+#
+# ROUND 5 (S1, 1 Nov 2026; C2, CHK-13: an output folder appeared when Aras only OPENED the GH file, 16:29): every
+# memory above (the first-solve note, the last done text seen, the Button's last state) is now kept per OPEN
+# DOCUMENT (trig_doc_key: the GH document's runtime id, else its object hash), not per Rhino session. Before, the
+# notes of an earlier opening survived in Rhino's sticky, so the first solve after a reopen was not "first" and a
+# done text still on a wire (or a Toggle left True: prev False -> True) started a run. Now the first solve after any
+# open, paste or rewire only NOTES the wire and the Button state; only a later change starts a run.
+# CHANGED APPROACH (Aras 1 Nov 22:46: "if you struggle with an aspect over and over, change your approach"): the chain
+# no longer trusts memory notes alone. A chain start exists ONLY after a Button press in THIS open document
+# (trig_mark_chain stores (time, document id)); chain_fire fires a component only when such a press exists and its
+# done text is newer than the last one it saw. Opening a file, pasting, rewiring or a Toggle left True can never start
+# a chain: without a press in this load, every done text on a wire is only noted.
+#   trig_doc_key() -> str                  the open GH document's per-load id ("" outside Grasshopper)
+#   trig_mark_chain(why)                   a Button run notes the chain start time (sticky "bergama_chain_t0", read by
+#                                          bergama_paths.bg_this_run); trig_should_run calls it
 TRIGGER_BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button", "start")
+
+
+def trig_doc_key():
+    """the open Grasshopper document's id for THIS load: GH_Document.RuntimeID (new each time a file is opened in a
+    Rhino session), else the document object's hash; "" outside Grasshopper"""
+    try:
+        d_ = ghenv.Component.OnPingDocument()                              # noqa: F821
+    except Exception:
+        return ""
+    if d_ is None:
+        return ""
+    for a_ in ("RuntimeID", "RuntimeId"):
+        try:
+            v_ = getattr(d_, a_)
+            if v_ is not None:
+                return "doc%s" % v_
+        except Exception:
+            pass
+    try:
+        return "doch%s" % d_.GetHashCode()
+    except Exception:
+        return "docp%s" % id(d_)
+
+
+def trig_mark_chain(why):
+    """a run started by a Button press is the start of a chain run: its time goes to sticky "bergama_chain_t0" so
+    readers can tell this run's files from older ones (bergama_paths.bg_this_run)"""
+    if not why or not str(why).startswith("button"):
+        return
+    try:
+        import scriptcontext as _scx
+        import time as _t
+        _scx.sticky["bergama_chain_t0"] = _t.time()
+        _scx.sticky["bergama_chain_doc"] = trig_doc_key()
+    except Exception:
+        pass
+
+
+def trig_chain_live():
+    """True when a Button press started a chain in THIS open document (see CHANGED APPROACH above)"""
+    try:
+        import scriptcontext as _scx
+        return (_scx.sticky.get("bergama_chain_t0") is not None and
+                _scx.sticky.get("bergama_chain_doc") == trig_doc_key())
+    except Exception:
+        return False
 
 
 def trig_inputs():
@@ -311,7 +410,7 @@ def chain_fire(v, key, name=None):
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring() + ":" + trig_doc_key()  # noqa
         except Exception:
             pass
         # the first solve with this wiring (pasted, rewired or newly opened component) only notes what is on the
@@ -323,7 +422,7 @@ def chain_fire(v, key, name=None):
         first = _scx.sticky.get(key + ":init") is tok
         if not s.startswith("done "):
             return False
-        if first or _scx.sticky.get(key) == s:
+        if first or _scx.sticky.get(key) == s or not trig_chain_live():
             _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
@@ -365,13 +464,17 @@ def trig_should_run(key="chain_seen", settings=()):
             gk = str(ghenv.Component.InstanceGuid)                          # noqa: F821
         except Exception:
             gk = ""
-        pk = "trig_prev:" + key + ":" + gk
+        pk = "trig_prev:" + key + ":" + gk + ":" + trig_doc_key()
         on = to_bool(trig_get(btn)) if btn else False
-        prev = bool(_scx.sticky.get(pk, False))
+        prev = _scx.sticky.get(pk)
+        if prev is None:              # round 5 (C2): the first solve of this document only notes the Button's state
+            prev = on
+        prev = bool(prev)
         _scx.sticky[pk] = on
     except Exception:
         on, prev = (to_bool(trig_get(btn)) if btn else False), False
     if on and not prev:
+        trig_mark_chain(u"button")
         return True, u"button " + btn, btn
     # the chain: the button input first (the board family wires the done text there), then every other own input
     skip = set(str(x).lower() for x in settings or ())
@@ -664,7 +767,7 @@ def near_work(g, areas, tol):
     return False
 
 
-def bake(doc, which, log):
+def zb_bake(doc, which, log):   # v11.2 (CHK-12): was bake(), a Button word
     """Bake the base for options `which` (('A', 'B') by default). Returns the number of objects baked."""
     items = base_items()
     tol = doc.ModelAbsoluteTolerance or 0.001
@@ -781,7 +884,7 @@ def main():    # v11.1: was run(), which replaced the Button input `run` (Button
             raise RuntimeError("this is not the Bergama survey in survey coordinates ({}). The base is in those "
                                "coordinates, so nothing was baked. Open Bergama_Altlik.3dm and press again".format(why))
         log.extend(STUDY_NOTE)
-        n = bake(doc, which, log)
+        n = zb_bake(doc, which, log)
     except Exception as ex_:
         err = "ERROR: {}: {}".format(type(ex_).__name__, ex_)
     secs = time.time() - t0
