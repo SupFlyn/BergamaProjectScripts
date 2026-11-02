@@ -198,6 +198,7 @@ def bk_row_eval(S, cells, W, den, hcap):
             ew, eh = _sc_ext(D)
             rw, rh = _bk_res(S, d)
             lo, hi = (D.get("fit") or (0.5, 2.0))[:2]
+            hi = max(float(hi), BK_MM_MAX)                # v30.3: diagrams grow into the room they have
             fs.append([d, min(float(hi), max(0.0, hc - rh) / eh), ew, eh, rw, rh, float(lo)])
         tw = sum(f[1] * f[2] + f[4] for f in fs)
         if tw > avail:
@@ -220,6 +221,8 @@ def bk_fit(S, rows, W, H, common, pid):
     gaps = BK_GAP * (n - 1)
 
     def allowed(cells):
+        if S.get("scales"):                          # v30.3: the page plan's own scales (p22: 1:1,000 or 1:1,500)
+            return sorted(int(v) for v in S["scales"])
         al = None
         for d in cells:
             D = S["draw"][d]
@@ -424,7 +427,7 @@ def bk_right_drawing(P, S, did, x, y, w, ybot):
     if D.get("units") == "m":
         s = sc_pick(D, w - rw, hmax, page=P.pid)
     else:
-        s = sc_factor(D, w - rw, hmax, P.pid)
+        s = sc_factor(D, w - rw, hmax, P.pid, 2.0)    # v30.3: right-column diagrams keep the old x2 ceiling
     side = TpSideList(u"%s %s" % (P.pid, did))
     placed = bk_place(P, S, did, s, x, y, side)
     yy = placed["rect"][3] + (BK_SCALE_H if placed["T"].den else 0.0) + 1.5
@@ -466,6 +469,7 @@ def bk_content_page(doc, spec, n, lines):
     pid = spec["pid"]
     S = bk_items(pid)
     S["placed"] = {}
+    S["scales"] = spec.get("scales")
     bk_attach(S)
     P = bk_page(doc, pid, n)
     L = lay_page(P, spec.get("share", BK_SHARE), 1)
