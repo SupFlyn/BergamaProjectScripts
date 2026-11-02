@@ -1,21 +1,48 @@
-# r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_agriculture_alternatives_v9_2.py = v9.2 (1 Nov 2026 fix: p19 timeline "1500" inside the crop; v9.1: p19 grid value "200 ha" past the edge left out; round 4; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_agriculture_alternatives_v10.py = v10 (2 Nov 2026, round 5 S9: items for the booklet, no sheet PDF; what changed: the NEW IN / VERSION notes below)
 # bergama_agriculture_alternatives_v8.py (v8, 31 Oct: round 3, p18 + p19 merged on ONE booklet page) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
-# Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
-# (Python 3), or plain Python 3. Makes the folder Downloads/Bergama/output/Bergama_agriculture_alternatives by itself and saves ONE
-# all-vector A3 PDF there, one page per alternative:
-#   1 WHAT EACH CUBIC METRE GROWS   chart: hectares the stored water irrigates, per crop, normal and 1-in-5 dry year
-#   2 THE FARMS WE FEED             the site board's plan 01 "What is there" at a round scale with the fields and orchards fed
-#   3 SOURCES                       the numbered key of the [n] marks on pages 1-2
+# Runs as delivered in: Grasshopper Python 3 component (press a Button wired to an input named run; outputs log and
+# done), Rhino 8 ScriptEditor (Python 3), or plain Python 3. v10 lays out no page and writes no PDF (round 5,
+# G-R5-12): it writes
+#   Downloads/Bergama/cached/booklet/Bergama_agriculture_alternatives/items.json   booklet p21 (25-page numbering):
+#       per story group one chart drawing (mm, y up) with every word in it as an anchored label, its heading and
+#       note as text items (same group id), the crop photos as photo items (files in cached/plant_photos/), the
+#       farms map as its own true-scale plan (metres) on the site board's plan 01 (drawing sb_plan01), every source
+#       as a Sources row ({src:agsrcN} marks in the texts)
+#   Downloads/Bergama/cached/booklet/Bergama_agriculture_alternatives/results.json hectares per crop (keys unchanged)
+#   Downloads/Bergama/logs/bergama_agriculture_alternatives_log.txt                the log
+# Nothing is written to output/ (no output folder is made). The booklet places, sizes and checks every item.
+# How you know it ran: the component's text says "AgriCulture v10 · HH:MM · n s"; the log's first lines are
+# "agriculture alternatives v10 · date time · s", "<n> warnings" (every WARNING line follows it), then
+# "items bergama_agriculture_alternatives: drawing n, legend n, list n, photo n, source n, text n -> .../items.json".
 # T4a (revision 29 Oct, WO-T4a-4): D9 a: the plant ladder page (booklet p20) is gone with everything only it used (its
 #   content lives on the water board's p17 and p14-15); pictograms and step markers from common/icons.py (02 §2); D13:
 #   sources naming our own model run or method and status words never reach the printed key (cite).
 # Storage, water to the farms and the farm areas are read on every run from the water balance script's output
 # (bergama_water_balance), so they follow its cost cut-off; the fallback is the shared key-figures file (flagged).
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
-import os, time, json, zlib, math, re
+import os, time, json, math, re
 
-VERSION = "v9.2"  # v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v10"  # v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v10 (round 5, S9, 2 Nov 2026; G-R5-12, P21.1, C13, C1, C2, CHK-12, G-R5-4.6; a feature change, so the next
+#   whole number). Every figure, source and photo is computed and chosen as in v9.2 (K4); only how it leaves the script
+#   changed:
+#   * G-R5-12 / addendum 2 (no sheet PDFs): the A3 sheet, its PyMuPDF rewrite (put_base, put_photos), the sources page,
+#     blocks.json and booklet_export are gone. Each block is drawn by its v9 function into a recorder (AgRec, the old
+#     Page's calls) and exported through common/item_export.py: drawings ag1_stream, ag1_bars, ag1_context,
+#     ag1_history (units mm, dkind chart, no scale bar) and the photos of ag1_crops (photo items + captions).
+#   * P21.1 (U57, "which group talks about what"): one group id per story group, shared by its heading, drawing,
+#     labels, notes and photos, priority = reading order: ag1_stream 2, ag1_bars 3, ag1_context 4, ag1_history 5
+#     (with the crop photos, which carried no heading of their own in v9), ag2_farms 6.
+#   * C13: the farms map is its own true-scale plan ag2_farms (metres, the farms' own extent + a margin, the listed
+#     scales that fit the booklet's drawing column), its base read from the site board's drawing sb_plan01 (items.json)
+#     and moved onto the farms with sb_plan01's georef; where the farms reach past plan 01 the base simply ends (log
+#     "FLAG p21 farms map: plan 01 covers n % ..."); no base found = a WARNING and the farms alone, never a stop.
+#   * C1: common/warn.py before text_place.py; nothing raises on text: the timeline's own Placer (and its TextError
+#     when a label found no lane) is gone, every label is exported at its v9 first position and placed by the booklet.
+#     The log head counts the WARNING lines (wn_compose).
+#   * C2: no output/ folder is made; cached/booklet/<folder>/ only when items.json / results.json are written.
+#   * CHK-12: build() (a Button word: a Button input named "build" read the function) is now ag_items().
+#   * G-R5-4.6: no width was printed by this script (checked: no cm / m horizontal size in any text); nothing removed.
 # NEW IN v9 (round 4, 1 Nov, session S6b; P19.1, K4, G-R4-1/2/7/11; spec revision_2026-11-01_round4/handover/
 #   S6b_p19_design_spec.md): booklet p19 "Where the clean water goes, and what it grows" is rebuilt as story groups,
 #   each with ONE heading inside its first crop, the crops of a row sharing their top and bottom edges; every figure,
@@ -114,7 +141,7 @@ VERSION = "v9.2"  # v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 m
 # figures beside it and a context line; v1.4's land cover drawing stays only as a flagged fallback. Page 3's ladder is
 # drawn by the proposal sections' sketch engine (the p.23 upstream entry's language): hand ground, washes, winter
 # water and summer strip, the faint design-flood reach, level marks, sketch plants and people, rain and sun marks.
-# The "# r: pymupdf" line installs PyMuPDF in Rhino 8 on the first run (as the booklet).
+# The "# r: pymupdf" line installs PyMuPDF in Rhino 8 on the first run (as the booklet). (v10: no PyMuPDF used, line gone)
 # v1.4 (Aras 25 Oct 21:47-22:02, booklet stage 3): the booklet shows crops of this sheet (booklet/CROP_SPEC.md):
 # blocks.json lists one crop per panel of the three pages and results.json keeps v1.3's keys; the v1.3 booklet redraws
 # are gone. Caveat notes taken off the sheet (labels kept); "stream", never "river". Page 3's ladder drawn in the site
@@ -160,6 +187,44 @@ def bg_first(paths):
     return paths[0]
 
 
+def bg_out_dir(name):
+    """round 5 (C2): output/<name>/ made only now, just before a file is written into it (a run that stops early, or a
+    solve that never runs, leaves no empty folder). Returns the path."""
+    p = bg_output(name)
+    os.makedirs(p, exist_ok=True)
+    return p
+
+
+def bg_result(script, fn):
+    """round 5 (C10): where another script's result file `fn` is: cached/<script>/fn, then cached/<script>/from_output/
+    fn (moved there by bg_tidy_output), then output/<script>/fn (older versions); the first that exists, else the
+    first path (shade_july.json was looked for in output/ after the site board had moved it to cached/)."""
+    return bg_first([os.path.join(bg_cache(script), fn), os.path.join(bg_cache(script), "from_output", fn),
+                     os.path.join(bg_output(script), fn)])
+
+
+def bg_this_run(path):
+    """round 5 (C10): (fresh, note) for a result file another script wrote: fresh = written at or after the start of
+    this chain run (the Button press that started the chain, sticky "bergama_chain_t0" from trigger.py); note = a short
+    log text ("this run 23:01" / "from an earlier run 22:40" / "missing" / "no chain start known"). A reader logs the
+    note and, when not fresh, a WARNING (the value is from the run before: one press must give one answer)."""
+    import time as _t
+    if not os.path.isfile(path):
+        return False, u"missing"
+    m = os.path.getmtime(path)
+    hm = _t.strftime("%d %b %H:%M", _t.localtime(m))
+    try:
+        import scriptcontext as _scx
+        t0 = _scx.sticky.get("bergama_chain_t0")
+    except Exception:
+        t0 = None
+    if t0 is None:
+        return True, u"no chain start known (file of %s)" % hm
+    if m + 1.0 >= t0:
+        return True, u"this run %s" % hm
+    return False, u"from an earlier run %s" % hm
+
+
 def bg_tidy_output(name, cache_dir=None):
     """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
     non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
@@ -193,6 +258,80 @@ def bg_tidy_output(name, cache_dir=None):
                 pass
     return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
             ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
+# ---- warn.py (round 5, S1, 1 Nov 2026; G-R5-1, C11; PLAN §3 "Warnings"): ONE warning sink for every script -----------
+# Aras 1 Nov 17:11 / 18:51: a check hit never stops the run; it is an orange Grasshopper warning plus one
+# "WARNING <page> <kind> ..." log line, so one run collects every hit. Hard stops only for missing data, fonts or
+# levels (raise those as before). C11 (round 4: "0 warnings" printed with a hit in the log): the count at the log's
+# head is COUNTED from the finished log's WARNING lines (wn_compose), never kept as a separate number.
+# Needs nothing. Include it BEFORE text_place.py: text_place then uses WN_LOG as its TP_LOG (one list, so a script that
+# prints tp_log_lines() prints every warning) and routes tp_warn here.
+#
+#   wn_warn(page, kind, msg, log=None) -> line   one hit: "WARNING <page> <kind>: <msg>" (page / kind may be None) into
+#                                                 log (default WN_LOG) + one orange message; returns the line
+#   wn_orange(msg)                                the orange Grasshopper message only (no log line); capped at
+#                                                 WN_ORANGE_MAX per solve, the rest summed in one message by wn_compose
+#   wn_is(line) -> bool                           a WARNING line (its text, leading blanks ignored, starts "WARNING")
+#   wn_compose(lines, head=()) -> [str]           the finished log: head lines, then "<n> warnings" with n = the number
+#                                                 of WARNING lines found, then every WARNING line (moved, in order, so
+#                                                 each is in the log ONCE), then the other lines in their order
+#   wn_count(lines) -> n                          WARNING lines in lines
+#   wn_reset()                                    empties WN_LOG and the orange counter (call at the start of a run)
+WN_LOG = []
+WN_ORANGE_MAX = 60
+_WN_N = [0, 0]           # [orange messages shown this run, orange messages held back]
+
+
+def _wn_gh(msg):
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,  # noqa: F821
+                                          u"%s" % msg)
+    except Exception:
+        pass
+
+
+def wn_orange(msg):
+    """one orange (Warning level) runtime message on this component; outside Grasshopper nothing"""
+    if _WN_N[0] >= WN_ORANGE_MAX:
+        _WN_N[1] += 1
+        return
+    _WN_N[0] += 1
+    _wn_gh(msg)
+
+
+def wn_warn(page, kind, msg, log=None):
+    """one hit as a WARNING line + an orange message; the run goes on"""
+    head = u" ".join(u"%s" % p for p in (page, kind) if p not in (None, u"", ""))
+    line = u"WARNING " + (head + u": " if head else u"") + u"%s" % msg
+    (WN_LOG if log is None else log).append(line)
+    wn_orange(line[8:])
+    return line
+
+
+def wn_is(line):
+    return (u"%s" % line).lstrip().startswith(u"WARNING")
+
+
+def wn_count(lines):
+    return sum(1 for ln in lines if wn_is(ln))
+
+
+def wn_compose(lines, head=()):
+    """the log with its warning head (see the module notes); the count equals the WARNING lines by construction"""
+    flat = []
+    for ln in lines:                                   # a list item may hold several lines
+        flat.extend((u"%s" % ln).split(u"\n"))
+    warn = [ln.strip() for ln in flat if wn_is(ln)]
+    rest = [ln for ln in flat if not wn_is(ln)]
+    out = list(head) + [u"%d warnings" % len(warn)] + warn
+    if _WN_N[1]:
+        out.append(u"(orange messages: the first %d shown on the component, %d more only here)" % (_WN_N[0], _WN_N[1]))
+        _wn_gh(u"%d more warnings: see the log's head" % _WN_N[1])
+    return out + [u""] + rest
+
+
+def wn_reset():
+    del WN_LOG[:]
+    _WN_N[0] = _WN_N[1] = 0
 # ---- plant photos, shared by the water board and the agriculture alternatives (Aras 27 Oct, Prompt 5: "every plant
 # AND every crop in the booklet gets a photo of the plant itself. Use openly licensed photos (e.g. Wikimedia Commons)
 # credited in the sources, never photos from shop or nursery sites. Same crop ratio and size for every photo").
@@ -1095,7 +1234,25 @@ GRID_BASE = 4.0                                   # baseline step, from y = GRID
 GRID_TITLE_Y, GRID_RULE_Y = 22.0, 25.0            # title baseline, the rule under the title band
 GRID_AREA = (GRID_ML, 30.0, GRID_PAGE[0] - GRID_MR, 273.0)   # where drawings go (x0, y0, x1, y1)
 GRID_FOOT_RULE = 276.0
-GRID_MIN_PT = 6.0                                 # no text below this size on any page (PLAN p18-19 rule)
+GRID_MIN_PT = 4.0                                 # no text below this size on any page, measured AFTER scaling
+                                                  # (round 5 D1, Aras 1 Nov 21:26: 4 pt floor; was 6.0)
+# round 5 (S1; PLAN §3 "Fonts and sizes", D1): the STARTING size of every text role the booklet composer sets (pt,
+# bold, lead as a multiple of the size, colour role). The composer may step a text down to GRID_MIN_PT, never below.
+# Content scripts put these sizes on their exported text items (common/item_export.py takes them from here).
+GRID_ROLE_PT = dict(
+    title=(16.0, True, 1.15, "ink"),              # the page title
+    heading=(7.0, True, 1.25, "ink"),             # a drawing's heading
+    intro=(6.0, False, 1.3, "ink"),               # the page intro / a short text block
+    caption=(5.0, False, 1.3, "ink2"),            # under a drawing: what, scale
+    legend=(5.0, False, 1.3, "ink"),              # legend entries
+    list_item=(5.0, False, 1.3, "ink"),           # numbered / bulleted list rows
+    note=(5.0, False, 1.3, "ink2"),
+    source=(5.0, False, 1.3, "ink2"),
+    label=(4.5, False, 1.2, "ink"),               # in-drawing labels (place names, element names)
+    badge=(4.5, True, 1.2, "ink"),                # number badges on a drawing
+    level_value=(4.5, False, 1.2, "ink"),         # "+43.71" beside a level marker
+    pageno=(7.0, True, 1.2, "accent"),            # the page number
+)
 
 # colour roles (palette v1.4 core): ink, second ink, accent, rule
 GRID_INK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F", rule="B0AC9C", paper="FFFFFF")
@@ -1116,6 +1273,23 @@ GRID_TYPE = dict(
     pageno=(14.0, True, 6.0, "accent"),
 )
 GRID_PT = 25.4 / 72.0                             # mm per pt
+
+
+def grid_role(role):
+    """(size_pt, bold, lead_mm_per_pt, hex) of a round 5 text role (GRID_ROLE_PT); unknown roles = 'note'"""
+    s, b, ld, c = GRID_ROLE_PT.get(role, GRID_ROLE_PT["note"])
+    return s, b, ld, GRID_INK[c]
+
+
+def _grid_warn(msg):
+    """round 5: a grid misfit is a WARNING line + orange message, never a stop (common/warn.py when included)"""
+    g_ = globals()
+    if "wn_warn" in g_:
+        g_["wn_warn"](None, "grid", msg)
+    elif "tp_warn" in g_:
+        g_["tp_warn"](u"grid: " + msg)
+    else:
+        print(u"WARNING grid: " + msg)
 
 
 def grid_style(name):
@@ -1142,8 +1316,10 @@ def grid_x1(c):
 
 def grid_span(c0, n):
     """(x, w) of the span of n columns from column c0"""
-    if c0 < 1 or c0 + n - 1 > GRID_COLS:
-        raise ValueError("grid span %d+%d is off the %d-column grid" % (c0, n, GRID_COLS))
+    if c0 < 1 or c0 + n - 1 > GRID_COLS:              # round 5: a WARNING, the span is kept on the grid
+        _grid_warn("span %d+%d is off the %d-column grid: clamped" % (c0, n, GRID_COLS))
+        c0 = min(max(1, int(c0)), GRID_COLS)
+        n = max(1, min(int(n), GRID_COLS - c0 + 1))
     return grid_x(c0), grid_w(n)
 
 
@@ -1186,7 +1362,8 @@ def grid_cell(c0, n, y, h, snap=True):
 
 def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
     """blocks of the given heights stacked down one column span from y0 (default the drawing area's top), each on the
-    baseline: [rect]; raises when the stack runs past the drawing area (no block may leave the page)"""
+    baseline: [rect]; a stack that runs past the drawing area is a WARNING (round 5; the composer's layout check
+    reports the edge hit too)"""
     y = GRID_AREA[1] if y0 is None else grid_snap_y(y0, up=False)
     out = []
     for h in heights:
@@ -1194,7 +1371,7 @@ def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
         out.append(r)
         y = r[3] + gap
     if out and out[-1][3] > GRID_AREA[3] + 1e-6:
-        raise ValueError("grid stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
+        _grid_warn("stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
     return out
 
 
@@ -1205,7 +1382,7 @@ def grid_row(widths_cols, y, h, c0=1):
         out.append(grid_cell(c, n, y, h))
         c += n
     if c - 1 > GRID_COLS:
-        raise ValueError("grid row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
+        _grid_warn("row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
     return out
 
 
@@ -1322,12 +1499,13 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
         for s, b, xo in ln:
             out.append((s, x + xo, yy, b))
     return out
-# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer, a collision RAISES -------
+# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer (round 5: hits WARN) ----
 # Replaces label_place.py (its lp_* names stay as shims there until the closing step, see label_place.py).
 # Every printed letter of a page goes through ONE TextPage: it measures with the real font (font_metrics.py), keeps
-# every box, draws everything in .emit(drawer) (no other text path), and .check() RAISES TextCollision when any two
-# texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
-# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs).
+# every box, draws everything in .emit(drawer) (no other text path), and .check() reports (round 5: WARNING lines) any
+# two texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
+# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs); warn.py optional
+# (round 5: the one warning sink; without it tp_warn writes its WARNING line itself).
 #
 #   tp = TextPage(name, bounds, y_down=True, min_pt=None, pad=0.6, margins=None, footer_zone=None, scale=1.0,
 #                 unit_mm=1.0, log=None)
@@ -1364,11 +1542,13 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 #                                                     a label beside its point: positions in reading order (E, NE, N,
 #                                                     NW, W, SW, S, SE, C, or (dx, dy, align) in page units), then the
 #                                                     shorter alts, then a NUMBER on the point + a row in side_list;
-#                                                     never below min_pt, never dropped: no spot and no side_list
-#                                                     raises TextCollision. rank orders nothing here (callers place
-#                                                     rank 0 first); kept for the interface
-#   tp.check(raise_=True, log=None) -> n_items        the collision test; logs "overlap <page> checked n, collisions k"
-#                                                     and raises TextCollision(page, item, other) when k > 0
+#                                                     never below min_pt, never dropped (round 5 order: see below;
+#                                                     rings=TP_RINGS, step=0.5 pt). rank orders nothing here (callers
+#                                                     place rank 0 first); kept for the interface
+#   tp.check(raise_=True, log=None, blocks_in=False) -> n_items
+#                                                     the collision test; one "WARNING <page> overlap|edge: ..." line
+#                                                     per hit, then "overlap <page> checked n, collisions k"; raises
+#                                                     only with TP_WARN_ONLY = [False]; tp.hits = [(kind, a, b)]
 #   tp.emit(drawer) -> n                              drawer(item) for every text in order; item = dict(text, x, y,
 #                                                     pt, size_mm, bold, align, angle, colour, role, name, extra)
 #   tp.export() -> dict                               boxes in mm, y DOWN from the bounds' top-left (crop-local) for
@@ -1383,15 +1563,49 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 #                                                     xform) in tp, which then draws them; returns the non-text shapes
 #                                                     for the caller to draw as before
 # Geometry helpers (moved here from label_place.py): tp_hit, tp_seg_box, tp_seg_cross, TpSegIndex, tp_reading_order.
-TP_LOG = []
+#
+# ROUND 5 (S1, 1 Nov 2026; G-R5-1, G-R5-12, C11; PLAN §3 "Warnings"): nothing here stops a run on a layout hit.
+#   * tp_warn goes to common/warn.py (wn_warn) when it is included, so every hit is ONE "WARNING <page> <kind>: ..."
+#     line in TP_LOG plus an orange message; kinds: overlap, edge, min_text, widow, wrap, side_list, number.
+#   * check() writes one WARNING line per hit whatever raise_ says (C11: raise_=False used to log only the count, so
+#     "collisions 1" and "0 warnings" could both appear); it raises only when TP_WARN_ONLY = [False] and raise_.
+#     check(blocks_in=True) also tests every block against the inner bounds (the booklet composer's edge test).
+#   * place() order (G-R5-12 "prevent, not just detect"): its positions, then nearby free spots on rings round the
+#     anchor (TP_RINGS mm), then the shorter alts the same way, then the side list number, then smaller sizes in
+#     0.5 pt steps down to min_pt; only when all fail: a WARNING and the label at its first position (never dropped).
+#   * para(): a widow that 0.25 pt smaller cannot fix is a WARNING and the paragraph is set without the widow rule.
+#   * emit(): a "0" number whose side list was never closed is a WARNING and is not drawn; export() checks first.
+TP_LOG = WN_LOG if "WN_LOG" in globals() else []   # round 5: with warn.py included, ONE list (the warning sink)
 TP_PT = 25.4 / 72.0
 TP_ROW_MM = 8.0                 # reading order: anchors within this many mm of height count as one row
 TP_POSITIONS = ("E", "NE", "N", "NW", "W", "SW", "S", "SE")
 TP_LINE_KINDS = ("line", "edge", "street", "road", "cut", "stream", "bank", "contour", "leader")
+TP_RINGS = (1.5, 3.0, 4.5, 6.0)  # round 5: mm from the anchor's own positions where place() looks for a free spot
+TP_RING_STEPS = 12               # spots per ring (every 30 degrees, starting east, counter-clockwise on the page)
 
 
 class TextError(RuntimeError):
     pass
+
+
+TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
+
+
+def tp_warn(msg, log=None):
+    """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
+    TP_LOG (or log) and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError
+    again). Round 5: through common/warn.py when it is included (one sink, capped orange messages)."""
+    if not TP_WARN_ONLY[0]:
+        raise TextError(msg)
+    lg = TP_LOG if log is None else log
+    if "wn_warn" in globals():
+        wn_warn(None, None, msg, lg)
+        return
+    lg.append(u"WARNING " + msg)
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
+    except Exception:
+        pass
 
 
 class TextCollision(TextError):
@@ -1592,7 +1806,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                raise TextError(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm)" % (
+                tp_warn(u"wrap: the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -1632,7 +1846,8 @@ class TpSideList(object):
 
     def add(self, anchor, text, item):
         if self.closed:
-            raise TextError(u"side list %s is closed: place its labels before close()" % self.name)
+            tp_warn(u"side_list: %s is closed: %r gets no number (place its labels before close())" % (
+                self.name, u"%s" % text))
         e = dict(anchor=tuple(anchor), text=text, item=item, n=None)
         self.entries.append(e)
         return e
@@ -1672,6 +1887,7 @@ class TextPage(object):
         self.log = log
         self.items, self.keeps, self.blocks, self.sides = [], [], [], []
         self._gid, self.checked = 0, False
+        self.hits = []
 
     # -- measuring
     def _box(self, text, x, y, pt, bold=False, align="L", angle=0.0):
@@ -1684,9 +1900,9 @@ class TextPage(object):
         return "g%d" % self._gid
 
     def _size_ok(self, text, pt):
-        if pt * self.scale < self.min_pt - 1e-6:
-            raise TextError(u"%s: %r would print at %.2f pt, below the %.1f pt minimum" % (
-                self.name, text[:40], pt * self.scale, self.min_pt))
+        if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
+            tp_warn(u"%s min_text: %r prints at %.2f pt, below the %.1f pt minimum" % (
+                self.name, text[:40], pt * self.scale, self.min_pt), self.log)
 
     # -- registering
     def keep(self, geom, kind="keep", name=None, line=None):
@@ -1737,11 +1953,15 @@ class TextPage(object):
         except TpWidow:
             size = size - 0.25
             self._size_ok(text, size)
-            lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            try:
+                lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            except TpWidow as ex:                       # round 5: a WARNING, set without the widow rule
+                tp_warn(u"%s widow: %r: %s" % (self.name, text[:50], ex), self.log)
+                lines = tp_wrap(text, w * u, size, bold, 1, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            raise TextError(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                               max_lines))
+            tp_warn(u"%s overrun: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                               max_lines), self.log)
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -1781,22 +2001,62 @@ class TextPage(object):
                 return False
         return True
 
+    def _ring_spots(self, text, anchor, pt, bold, d, rings):
+        """(x, y, align) spots on rings round the anchor (round 5: the nearby free spots of G-R5-12)"""
+        import math as _m
+        ix0, iy0, ix1, iy1 = fm_ink_box(text, pt, bold)
+        u, sg = self.unit_mm, (-1.0 if self.y_down else 1.0)
+        mid = -(iy0 + iy1) / 2.0
+        n = max(4, int(TP_RING_STEPS))
+        for rr in rings or ():
+            R_ = d + float(rr)
+            for k in range(n):
+                a = 2.0 * _m.pi * k / n
+                dx, dv = R_ * _m.cos(a), R_ * _m.sin(a)
+                al = "L" if dx > 0.3 * R_ else ("R" if dx < -0.3 * R_ else "C")
+                if al == "C":                          # above / below: the ink edge, not its middle, at the ring
+                    v = (dv - iy0) if dv > 0 else (dv - iy1)
+                else:
+                    v = dv + mid
+                yield anchor[0] + dx / u, anchor[1] + sg * v / u, al
+
+    def _try(self, t, anchor, positions, pt, bold, d, allow, rings):
+        for code in positions:
+            x, y, al = self._at(code, t, anchor, pt, bold, d)
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        for x, y, al in self._ring_spots(t, anchor, pt, bold, d, rings):
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        return None
+
     def place(self, text, anchor, positions=TP_POSITIONS, alts=(), pt=7.0, rank=0, side_list=None, bold=False,
-              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label"):
-        """a label beside its point (see the module notes); returns the registered item"""
+              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label", rings=TP_RINGS, step=0.5):
+        """a label beside its point (see the module notes); returns the registered item. Order (round 5): positions,
+        rings, alts the same way, the side list number, then pt - step ... down to min_pt (printed), then a WARNING
+        and the first position (the label is never dropped; check() names what it hits)"""
         d = float(r) * self.unit_mm + gap
-        for t in (text,) + tuple(alts or ()):
-            t = u"%s" % t
-            self._size_ok(t, pt)
-            for code in positions:
-                x, y, al = self._at(code, t, anchor, pt, bold, d)
-                b = self._box(t, x, y, pt, bold, al, 0.0)
-                if self._free(b, allow):
-                    self.put(t, x, y, pt, bold, al, 0.0, name, role, colour, allow)
-                    return self.items[-1]
+        texts = [u"%s" % t for t in (text,) + tuple(alts or ())]
+        self._size_ok(texts[0], pt)
+        for t in texts:
+            got = self._try(t, anchor, positions, pt, bold, d, allow, rings)
+            if got:
+                self.put(t, got[0], got[1], pt, bold, got[2], 0.0, name, role, colour, allow)
+                return self.items[-1]
         if side_list is None:
-            raise TextCollision(self.name, dict(text=u"%s" % text, name=name), u"no free spot round its point and no "
-                                u"side list to number it")
+            p_ = float(pt) - step
+            while p_ * self.scale >= self.min_pt - 0.005:
+                for t in texts:
+                    got = self._try(t, anchor, positions, p_, bold, d, allow, rings)
+                    if got:
+                        self.put(t, got[0], got[1], p_, bold, got[2], 0.0, name, role, colour, allow)
+                        return self.items[-1]
+                p_ -= step
+            tp_warn(u"%s overlap: label %r has no free spot round its point down to %.1f pt and no side list: set at "
+                    u"its first position" % (self.name, texts[0], self.min_pt), self.log)
+            x, y, al = self._at(positions[0] if positions else "E", texts[-1], anchor, pt, bold, d)
+            self.put(texts[-1], x, y, pt, bold, al, 0.0, name, role, colour, allow, forced=True)
+            return self.items[-1]
         x, y, al = self._at("C", u"0", anchor, pt, True, 0.0)
         self.put(u"0", x, y, pt, True, "C", 0.0, name, "number", colour, tuple(allow) + ("marker",))
         it = self.items[-1]
@@ -1806,39 +2066,61 @@ class TextPage(object):
         return it
 
     # -- the test
-    def check(self, raise_=True, log=None):
-        """the collision test (see the module notes); returns the number of texts checked"""
+    def check(self, raise_=True, log=None, blocks_in=False):
+        """the collision test (see the module notes); returns the number of texts checked. Every hit is one
+        "WARNING <page> overlap|edge: ..." line (round 5, C11: also with raise_=False); self.hits keeps them as
+        (kind, a, b) for the caller's own counts"""
+        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         for sl in self.sides:
             if not sl.closed:
-                raise TextError(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s side_list: %s was never closed (its numbers are not set)" % (self.name, sl.name), lg)
         hits = []
         I = self.items
+        inn = self.inner
+
+        def inside(b):
+            return (inn[0] - 1e-6 <= b[0] and b[2] <= inn[2] + 1e-6 and inn[1] - 1e-6 <= b[1] and
+                    b[3] <= inn[3] + 1e-6)
         for i, a in enumerate(I):
             b = a["box"]
-            if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
-                    self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
-                hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
-                hits.append((a, u"the footer zone"))
+            if not inside(b):
+                hits.append(("edge", a, u"the page edge or its margins"))
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
+                hits.append(("edge", a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
-                    hits.append((a, c))
+                    hits.append(("overlap", a, c))
             for K in self.keeps:
                 if K["name"] in a["allow"] or K["kind"] in a["allow"]:
                     continue
                 if _tp_keep_hits(b, K, self.pad):
-                    hits.append((a, K))
+                    hits.append(("overlap", a, K))
         B = self.blocks
         for i, a in enumerate(B):
+            if blocks_in and not inside(a["box"]):
+                hits.append(("edge", a, u"the page edge or its margins"))
             for c in B[i + 1:]:
                 if tp_hit(a["box"], c["box"], -0.01 / self.unit_mm):
-                    hits.append((a, c))
-        line = u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits))
-        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
-        lg.append(line)
+                    hits.append(("overlap", a, c))
+        self.hits = hits
         self.checked = True
-        if hits and raise_:
-            raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
+        if hits and raise_ and not TP_WARN_ONLY[0]:
+            raise TextCollision(self.name, hits[0][1], hits[0][2], len(hits), [h[1:] for h in hits[1:]])
+        for k_, a_, b_ in hits:                          # one WARNING line each; the run goes on
+            ln_ = u"WARNING %s %s: %s against %s" % (self.name, k_, _tp_desc(a_), _tp_desc(b_))
+            lg.append(ln_)
+        if hits:
+            if "wn_orange" in globals():
+                wn_orange(u"%s: %d text hits (each one in the log, 'WARNING %s ...')" % (self.name, len(hits),
+                                                                                       self.name))
+            else:
+                try:
+                    ghenv.Component.AddRuntimeMessage(                                           # noqa: F821
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                        u"%s: %d text hits (each one in the log)" % (self.name, len(hits)))
+                except Exception:
+                    pass
+        lg.append(u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits)))
         return len(I)
 
     def emit(self, drawer):
@@ -1848,7 +2130,9 @@ class TextPage(object):
             if not it["emit"]:
                 continue
             if it["role"] == "number" and it["text"] == u"0":
-                raise TextError(u"%s: a numbered label was never given its number (close its side list)" % self.name)
+                tp_warn(u"%s number: a numbered label was never given its number (close its side list): not drawn" %
+                        self.name, self.log)
+                continue
             drawer(it)
             n += 1
         return n
@@ -1856,7 +2140,7 @@ class TextPage(object):
     def export(self):
         """boxes in mm, y DOWN from the top-left of bounds (crop-local), for the booklet's assembled-page test"""
         if not self.checked:
-            raise TextError(u"%s: export() before check()" % self.name)
+            self.check(False)
         u, b = self.unit_mm, self.bounds
 
         def mm(r):
@@ -2011,7 +2295,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '0ec3cbab34964fea25289ca36d8bd453', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff'}.get(name):
         raise RuntimeError("Data file bergama_agriculture_alternatives_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_agriculture_alternatives_data.py:" + name, "exec"), globals())
@@ -2028,6 +2312,18 @@ bergama_data("NAMES")
 #                                     English descriptor ("Kızıl Avlu · Hadrian's temple"), descr="text" adds that text;
 #                                     unknown key -> KeyError (never type a landmark name locally)
 #   landmark_keys()                  the landmark keys in the table
+#   name_key(s)                      round 5 (S2): a name as a match key (single spaces, lower case, İ as i)
+#   landmark_match(raw, p=None, r_m=60.0, near_m=150.0)   round 5 (S2, A11): the table key a survey / OSM / typed name
+#                                     stands for, or None: the table name or an "alias" (whole name); a joined survey
+#                                     label that starts with a table name ("Kızıl Avlu Tapınağı Mısır Tanrıları") when
+#                                     p lies within near_m of the row's "at"; an "alias_near" word ("Hamam") only
+#                                     within r_m of "at"
+#   place_label(raw, p=None)         round 5 (S2): the table's one spelling for raw, or None when the table has no row
+#                                     (the caller leaves the name out and logs it: never print an unchecked name)
+#   street_label(raw)                round 5 (S2): an OpenStreetMap street name as printed: the table's spelling when
+#                                     the table has the street (Kınık Caddesi ...), else the OSM tag as mapped
+#   keymap_places(box=None)          round 5 (S2, G-R5-3): [(name, (x, y), key)] the table's key-map places ("at" +
+#                                     "km"), best first, inside box (survey m) when given
 # Needs data/NAMES.py included before it.
 
 
@@ -2069,6 +2365,66 @@ def landmark_name(key, descr=None):
 def landmark_keys():
     """the landmark keys in the names table"""
     return sorted(NAMES["landmarks"])
+
+
+def name_key(s):
+    """round 5 (S2): a name as a match key: single spaces, lower case, Turkish İ / I handled (İ -> i, I -> ı)"""
+    s = u" ".join((s or u"").split()).replace(u"\u0130", u"i").replace(u"I", u"\u0131")
+    return s.lower().replace(u"i\u0307", u"i")
+
+
+def landmark_match(raw, p=None, r_m=60.0, near_m=150.0):
+    """round 5 (S2, A11): the names-table key that raw (a survey label, an OSM tag, a typed literal) stands for, or
+    None. Rules, in order: (1) the table name or one of its "alias" forms, whole name; (2) raw starts with the table
+    name and p (survey m) lies within near_m of the row's "at" (survey labels inside one footprint are joined, e.g.
+    "Kızıl Avlu Tapınağı Mısır Tanrıları"); (3) raw is one of the row's "alias_near" words and p lies within r_m of
+    "at" (survey "Hamam" -> Tabaklar Hamamı)."""
+    k = name_key(raw)
+    if not k:
+        return None
+    rows = NAMES["landmarks"]
+    for key, row in rows.items():
+        if k == name_key(row["name"]) or k in [name_key(a) for a in row.get("alias") or ()]:
+            return key
+
+    def near(row, r):
+        at = row.get("at")
+        return p is not None and at is not None and (p[0] - at[0]) ** 2 + (p[1] - at[1]) ** 2 <= r * r
+    for key, row in rows.items():
+        nk = name_key(row["name"])
+        if k.startswith(nk + u" ") and near(row, near_m):
+            return key
+    for key, row in rows.items():
+        if k in [name_key(a) for a in row.get("alias_near") or ()] and near(row, r_m):
+            return key
+    return None
+
+
+def place_label(raw, p=None):
+    """round 5 (S2, G-R5-11): the table's one spelling for a place name, or None when the table has no row for it"""
+    key = landmark_match(raw, p)
+    return landmark_name(key) if key else None
+
+
+def street_label(raw):
+    """round 5 (S2, G-R4-11): a street name as printed: the table's spelling when the table records the street, else
+    the OpenStreetMap tag as mapped (a public source, Turkish as tagged)"""
+    key = landmark_match(raw)
+    return landmark_name(key) if key else u" ".join((raw or u"").split())
+
+
+def keymap_places(box=None):
+    """round 5 (S2, G-R5-3): the places a key map may name: [(name, (x, y), key)] for every table row with "at" and
+    "km", in "km" order, inside box = (x0, y0, x1, y1) survey m when given"""
+    out = []
+    for key, row in NAMES["landmarks"].items():
+        at, rk = row.get("at"), row.get("km")
+        if at is None or rk is None:
+            continue
+        if box is None or (box[0] <= at[0] <= box[2] and box[1] <= at[1] <= box[3]):
+            out.append((rk, row["name"], (float(at[0]), float(at[1])), key))
+    out.sort(key=lambda r: r[0])
+    return [(n, p, k) for _, n, p, k in out]
 bergama_data("FACTS")
 # ---- Shared facts reader (H-B 30 Oct 2026, M10). Include the data first:
 #   #@include ../common/data/FACTS.py
@@ -2219,6 +2575,319 @@ def fact_owner(key):
 def fact_prints_on(key, page):
     """True when page (a booklet page number) is the one that prints this fact (G4: once in the booklet)"""
     return str(_fact_rows()[key].get("printed_on")) == str(page)
+# ---- item_export.py (round 5, S1, 1 Nov 2026; G-R5-12, PLAN §4 schema v1): content scripts EXPORT, the booklet composes
+# Aras 1 Nov 22:00: "produce every text every drawing and everything and in the last run make it place it and align it
+# and booklet it". A content script lays out no page and burns no page text into a drawing: it hands every drawing
+# (true-scale vector geometry in draw order) and every text (role, string, anchor) to one Ix, and Ix.save() writes
+# Downloads/Bergama/cached/booklet/<folder>/items.json. The booklet (bergama_booklet parts 10-70) reads every such
+# file, picks scales, sets and places every text, aligns blocks and checks the page. Successor of booklet_assets.py
+# (blocks.json crops); addendum 1 Nov 22:37: no per-script sheet PDFs or previews (a script may still save its single
+# drawings under output/<folder>/, but the booklet reads only items.json).
+# Needs, included before it: bergama_paths.py (bg_booklet), grid.py (GRID_ROLE_PT, GRID_MIN_PT); warn.py optional (the
+# content checks' WARNING lines go through wn_warn when it is included).
+#
+# items.json = {"schema": "bergama-items/1", "script", "version", "run": "YYYY-MM-DD HH:MM", "units": "m",
+#               "pages": {page_id: [item, ...]}, "sources": {key: {text, url}}, "warnings": [str]}
+# page_id = the round 5 23-page id ("p13", "p19"); an item with page None goes to "any" (the booklet's PLAN.py says
+# where it is shown). Common keys of every item: id (unique in the file), page, kind, role, priority (1 first ... 9),
+# group (items that belong together, e.g. one section's level column, legend and texts).
+#
+#   ix = Ix(folder, script, version)                      folder = the script's cached/booklet/ folder name
+#   D = ix.drawing(id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
+#                  priority=1, group=None, fit=None, title=None)
+#         extent (x0, y0, x1, y1) in drawing units, y UP, the area that must show; scale_pref = allowed 1:den (default
+#         SF_SCALES); units "m" = true scale; "mm" = a scale-free diagram/chart in design mm, fit = (min_f, max_f)
+#   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0))
+#         adds shapes (the common modules' tuples: poly/line/circle/image; text shapes become anchored label items)
+#         to layer `name` (water.py WAT_LAYERS for sections, map_layers ML_LAYERS for maps); coordinates are mapped
+#         x_d = origin_x + k * x (k = drawing units per shape unit: den / 1000 for page-mm shapes drawn at 1:den);
+#         line widths, dashes stay PRINT sizes (mm in the tuples, stored as pt); z defaults to the call order.
+#         Stripes (hatches) are dropped: G-R5-4.1 no hatches (one WARNING per layer)
+#   ix.keep(D, geom, kind="keep", name=None)               an area (drawing units) no label may cover
+#   ix.anchor(D, name, xy)                                 a named point (cut ends, hubs) other items refer to
+#   ix.text(page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None, short_forms=(),
+#           side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None, min_pt=None) -> id
+#         role: title, intro, heading, caption, legend, list_item, note, label, level_value, badge, source;
+#         a label of a drawing: drawing=id, at=(x, y) in drawing units (the booklet sets it beside that point)
+#   ix.legend(page, drawing, entries, title=None, id=None, group=None)
+#         entries: [(swatch, text)], swatch = dict(kind="fill"|"line"|"dash"|"dot"|"image", colour, stroke,
+#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id
+#   ix.list(page, drawing, texts, numbered=True, anchors=None, id=None, group=None)   ordered text rows
+#   ix.levels(page, drawing, levels, side="R", id=None, group=None)
+#         levels = [(name, z_m)] (z on the drawing's y axis, m a.s.l. for sections); the booklet draws the level
+#         markers (PLAN §3, Aras's sketch U04) and their "+43.71" values beside the drawing
+#   ix.inset(page, parent, window, child, factor, id=None)   child = a drawing id of the zoom; window in parent units
+#   ix.keymap(page, cuts, looks=None, names=(), zooms=(), id=None)   the key-map module (S2) draws it in the booklet
+#   ix.photo(page, file, crop=None, caption=None, source=None, id=None)
+#   ix.chart(page, w_mm, h_mm, shapes, id=None)            a vector chart in its own mm box (y up)
+#   ix.source(key, text, url, page=None)                   a Sources page row (texts cite it as {src:key})
+#   ix.warn(page, kind, msg)                               a content check hit: WARNING line + orange + "warnings"
+#   ix.save() -> path                                      writes items.json (UTF-8, 3 decimals), logs nothing itself
+#   ix.summary() -> str                                    "items <script>: drawings n, texts n, ... -> <path>"
+IX_SCHEMA = "bergama-items/1"
+IX_PT = 25.4 / 72.0
+IX_KINDS = ("drawing", "text", "legend", "list", "level_column", "inset", "keymap", "photo", "chart", "source")
+IX_TEXT_ROLES = ("title", "intro", "heading", "caption", "legend", "list_item", "note", "label", "level_value",
+                 "badge", "source")
+
+
+def _ix_r(v, nd=3):
+    try:
+        return round(float(v), nd)
+    except Exception:
+        return v
+
+
+def _ix_is_pt(p):
+    return isinstance(p, (list, tuple)) and len(p) >= 2 and isinstance(p[0], (int, float)) and \
+        isinstance(p[1], (int, float))
+
+
+class Ix(object):
+    def __init__(self, folder, script, version):
+        import time as _t
+        self.folder, self.path = folder, None
+        self.d = {"schema": IX_SCHEMA, "script": script, "version": version,
+                  "run": _t.strftime("%Y-%m-%d %H:%M"), "units": "m", "pages": {}, "sources": {}, "warnings": []}
+        self.ids, self._z, self._n = set(), {}, 0
+
+    # -- bookkeeping
+    def _id(self, want, kind):
+        if want is None:
+            self._n += 1
+            want = "%s_%s_%d" % (self.folder[:12], kind[:3], self._n)
+        want = u"%s" % want
+        if want in self.ids:
+            k = 2
+            while "%s_%d" % (want, k) in self.ids:
+                k += 1
+            self.warn(None, "export", u"item id %r used twice: the second is %s_%d" % (want, want, k))
+            want = "%s_%d" % (want, k)
+        self.ids.add(want)
+        return want
+
+    def _put(self, page, item):
+        self.d["pages"].setdefault(page or "any", []).append(item)
+        return item
+
+    def _item(self, page, kind, id_, role=None, priority=5, group=None, **kw):
+        it = dict(id=self._id(id_, kind), page=page, kind=kind, role=role or kind, priority=int(priority),
+                  group=group)
+        it.update(kw)
+        return self._put(page, it)
+
+    def warn(self, page, kind, msg):
+        line = u"WARNING " + u" ".join(u"%s" % p for p in (page, kind) if p) + u": %s" % msg
+        if "wn_warn" in globals():
+            line = wn_warn(page, kind, msg)
+        self.d["warnings"].append(line)
+        return line
+
+    # -- drawings
+    def drawing(self, id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
+                priority=1, group=None, fit=None, title=None):
+        x0, y0, x1, y1 = [float(v) for v in extent]
+        if x1 <= x0 or y1 <= y0:
+            self.warn(page, "export", u"drawing %s has an empty extent %r" % (id, extent))
+        sp = list(scale_pref) if scale_pref else (list(SF_SCALES) if "SF_SCALES" in globals() else
+                                                   [200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000])
+        D = self._item(page, "drawing", id, "drawing", priority, group, dkind=dkind, units=units,
+                       extent=[_ix_r(x0), _ix_r(y0), _ix_r(x1), _ix_r(y1)],
+                       scale_pref=None if units == "mm" else [int(v) for v in sp],
+                       fit=list(fit) if fit else ([0.5, 2.0] if units == "mm" else None),
+                       north_deg=north_deg, scale_bar=bool(scale_bar and units == "m"), layers=[], keep_areas=[],
+                       anchors={}, title=title)
+        self._z[D["id"]] = 0
+        return D
+
+    def _shape(self, s, k, o):
+        """one common-module shape tuple -> a schema shape dict (None for text and unknown kinds)"""
+        def P(p):
+            return [_ix_r(o[0] + k * p[0]), _ix_r(o[1] + k * p[1])]
+        t = s[0]
+        if t == "poly":
+            if s[1] and not _ix_is_pt(s[1][0]):                       # page item: rings, fill, stroke, lw, dash,
+                rings = [list(r) for r in s[1]]                       # stripes, alpha
+                fill, stroke = s[2], (s[3] if len(s) > 3 else None)
+                lw = s[4] if len(s) > 4 else 0.0
+                dash = s[5] if len(s) > 5 else None
+                stripes = s[6] if len(s) > 6 else None
+                alpha = s[7] if len(s) > 7 else None
+            else:                                                     # shape: ring, fill, stroke, lw, alpha, holes
+                rings = [list(s[1])] + [list(R) for R in (s[6] if len(s) > 6 and s[6] else ()) if len(R) >= 3]
+                fill, stroke = s[2], (s[3] if len(s) > 3 else None)
+                lw = s[4] if len(s) > 4 else 0.0
+                alpha = s[5] if len(s) > 5 else None
+                dash, stripes = None, None
+            rings = [[P(p) for p in r] for r in rings if len(r) >= 3]
+            if not rings:
+                return None
+            return dict(t="poly", rings=rings, fill=fill or None, stroke=stroke or None,
+                        width_pt=_ix_r((lw or 0.0) / IX_PT), dash_pt=[_ix_r(v / IX_PT) for v in dash] if dash else None,
+                        opacity=alpha, _stripes=bool(stripes))
+        if t == "line":
+            if len(s[1]) < 2:
+                return None
+            dash = s[4] if len(s) > 4 else None
+            return dict(t="line", pts=[P(p) for p in s[1]], stroke=s[2], width_pt=_ix_r((s[3] or 0.0) / IX_PT),
+                        dash_pt=[_ix_r(v / IX_PT) for v in dash] if dash else None, cap=s[5] if len(s) > 5 else 1)
+        if t == "circle":
+            return dict(t="circle", c=P((s[1], s[2])), r=_ix_r(k * s[3]), fill=s[4] or None,
+                        stroke=(s[5] if len(s) > 5 else None) or None,
+                        width_pt=_ix_r(((s[6] if len(s) > 6 else 0.0) or 0.0) / IX_PT))
+        if t == "image":
+            x, y, w, h, f = s[1:6]
+            clip = s[8] if len(s) > 8 else None
+            return dict(t="image", box=P((x, y)) + P((x + w, y + h)), file=f, opacity=s[6] if len(s) > 6 else None,
+                        flip=bool(s[7]) if len(s) > 7 else False,
+                        clip=(P(clip[:2]) + P(clip[2:4])) if clip else None)
+        return None
+
+    def layer(self, D, name, shapes, z=None, k=1.0, origin=(0.0, 0.0)):
+        out, texts, hatch = [], 0, 0
+        for s in shapes or ():
+            if not s:
+                continue
+            if s[0] == "text":
+                self._text_shape(D, s, k, origin)
+                texts += 1
+                continue
+            sh = self._shape(s, float(k), origin)
+            if sh is None:
+                continue
+            if sh.pop("_stripes", False):
+                hatch += 1
+            out.append(sh)
+        if hatch:
+            self.warn(D["page"], "hatch", u"%s layer %s: %d hatch fill(s) dropped (G-R5-4.1 solid colours only)" % (
+                D["id"], name, hatch))
+        if z is None:
+            self._z[D["id"]] = self._z.get(D["id"], 0) + 1
+            z = self._z[D["id"]]
+        D["layers"].append(dict(z=z, name=name, shapes=out))
+        return len(out), texts
+
+    def _text_shape(self, D, s, k, o):
+        if isinstance(s[2], (tuple, list)):
+            x, y = s[2][0], s[2][1]
+            tail = list(s[3:])
+        else:
+            x, y = s[2], s[3]
+            tail = list(s[4:])
+        size_mm = float(tail[0]) if tail else 2.0
+        al = tail[3] if len(tail) > 3 and tail[3] else "L"
+        self.text(D["page"], s[1], "label", drawing=D["id"], at=(o[0] + k * x, o[1] + k * y),
+                  size_pt=size_mm / IX_PT, bold=bool(tail[2]) if len(tail) > 2 else False,
+                  colour=tail[1] if len(tail) > 1 and isinstance(tail[1], str) else None,
+                  positions=["=" + str(al)] + ["E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=D.get("group"))
+
+    def keep(self, D, geom, kind="keep", name=None):
+        g = list(geom)
+        if len(g) == 4 and not hasattr(g[0], "__len__"):
+            g = [[g[0], g[1]], [g[2], g[1]], [g[2], g[3]], [g[0], g[3]]]
+        D["keep_areas"].append(dict(kind=kind, name=name, pts=[[_ix_r(p[0]), _ix_r(p[1])] for p in g]))
+
+    def anchor(self, D, name, xy):
+        D["anchors"][name] = [_ix_r(xy[0]), _ix_r(xy[1])]
+
+    # -- texts and the rest
+    def text(self, page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None,
+             short_forms=(), side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None,
+             min_pt=None):
+        if role not in IX_TEXT_ROLES:
+            self.warn(page, "export", u"text role %r unknown (taken as note): %r" % (role, (u"%s" % string)[:80]))
+            role = "note"
+        if "names_fix" in globals():                       # G-R4-11 / G-R5-11: proper names through the names table
+            try:
+                string = names_fix(string)                                                     # noqa: F821
+            except Exception:
+                pass
+        if "sf_strip_widths" in globals():                 # G-R5-4.6 (S3): no width in any exported text
+            string = sf_strip_widths(string, page)                                             # noqa: F821
+            if not (u"%s" % string).strip():
+                return None
+        pt0, b0, _ld, c0 = grid_role(role) if "grid_role" in globals() else (5.0, False, 1.3, "4A3F35")
+        it = self._item(page, "text", id, role, priority, group, string=u"%s" % string,
+                        anchor=None if drawing is None else dict(drawing=drawing,
+                                                                 pt=None if at is None else [_ix_r(at[0]),
+                                                                                             _ix_r(at[1])]),
+                        size_pt=_ix_r(size_pt if size_pt is not None else pt0, 2),
+                        min_pt=float(min_pt if min_pt is not None else (GRID_MIN_PT if "GRID_MIN_PT" in globals()
+                                                                       else 4.0)),
+                        bold=b0 if bold is None else bool(bold), colour=colour or c0,
+                        short_forms=[u"%s" % t for t in short_forms or ()], side_list_ok=bool(side_list_ok),
+                        justify=(role in ("intro", "caption", "note", "list_item", "source")) if justify is None
+                        else bool(justify), positions=list(positions) if positions else None)
+        return it["id"]
+
+    def _tid(self, page, t, role, group):
+        if isinstance(t, dict) and "id" in t:
+            return t["id"]
+        if isinstance(t, str) and t in self.ids:
+            return t
+        return self.text(page, t, role, group=group)
+
+    def legend(self, page, drawing, entries, title=None, id=None, group=None):
+        ents = []
+        for sw, t in entries:
+            tid = self._tid(page, t, "legend", group)
+            if tid is not None:                            # a text that was only a width is gone (G-R5-4.6)
+                ents.append(dict(swatch=dict(sw), text=tid))
+        return self._item(page, "legend", id, "legend", 3, group, drawing=drawing, entries=ents,
+                          title=None if title is None else self._tid(page, title, "heading", group))["id"]
+
+    def list(self, page, drawing, texts, numbered=True, anchors=None, id=None, group=None):
+        rows = [r for r in (self._tid(page, t, "list_item", group) for t in texts) if r is not None]
+        return self._item(page, "list", id, "list", 4, group, drawing=drawing, items=rows, numbered=bool(numbered),
+                          anchors=[[_ix_r(a[0]), _ix_r(a[1])] if a else None for a in anchors] if anchors else None)["id"]
+
+    def levels(self, page, drawing, levels, side="R", id=None, group=None):
+        lv = [dict(name=u"%s" % n, z=_ix_r(z, 3)) for n, z in levels]
+        return self._item(page, "level_column", id, "level_column", 2, group, drawing=drawing, levels=lv,
+                          side=side)["id"]
+
+    def inset(self, page, parent, window, child, factor, id=None):
+        return self._item(page, "inset", id, "inset", 2, None, parent=parent, window=[_ix_r(v) for v in window],
+                          child=child, factor=float(factor))["id"]
+
+    def keymap(self, page, cuts, looks=None, names=(), zooms=(), id=None):
+        return self._item(page, "keymap", id, "keymap", 3, None, cuts=list(cuts), looks=dict(looks or {}),
+                          names=list(names), zooms=list(zooms))["id"]
+
+    def photo(self, page, file, crop=None, caption=None, source=None, id=None):
+        cap = None if caption is None else self._tid(page, caption, "caption", None)
+        return self._item(page, "photo", id, "photo", 2, None, file=file, crop=list(crop) if crop else None,
+                          caption=cap, source=source)["id"]
+
+    def chart(self, page, w_mm, h_mm, shapes, id=None):
+        D = self.drawing(id, page, (0.0, 0.0, w_mm, h_mm), units="mm", dkind="chart", scale_bar=False,
+                         fit=(0.75, 1.5))
+        self.layer(D, "chart", shapes)
+        D["kind_note"] = "chart"
+        return D["id"]
+
+    def source(self, key, text, url, page=None):
+        self.d["sources"][key] = dict(text=text, url=url)
+        if page:
+            self._item(page, "source", "src_" + key, "source", 9, None, key=key)
+
+    # -- out
+    def save(self):
+        import json as _j
+        d_ = bg_booklet(self.folder)
+        os.makedirs(d_, exist_ok=True)
+        self.path = os.path.join(d_, "items.json")
+        with open(self.path, "w", encoding="utf-8") as f:
+            _j.dump(self.d, f, ensure_ascii=False, separators=(",", ":"))
+        return self.path
+
+    def summary(self):
+        n = {}
+        for its in self.d["pages"].values():
+            for it in its:
+                n[it["kind"]] = n.get(it["kind"], 0) + 1
+        return u"items %s: %s -> %s" % (self.d["script"], u", ".join(u"%s %d" % kv for kv in sorted(n.items())),
+                                         self.path or u"(not saved)")
 LOG_DIR = bg_logs()                       # Aras 25 Oct 09:34-09:35: every script's log here
 
 
@@ -2231,9 +2900,11 @@ def write_log(text):
         pass
     return text
 
-# v1 24 Oct: all files under Downloads/Bergama/ (Aras rule)
-OUT_DIR = bg_output("Bergama_agriculture_alternatives")       # final PDFs only (27 Oct)
-OUT_PDF = "Bergama_agriculture_alternatives_A3.pdf"
+# v1 24 Oct: all files under Downloads/Bergama/ (Aras rule). v10 (round 5, G-R5-12, C2): nothing goes to output/ any
+# more; the items and results go to cached/booklet/<AG_FOLDER>/ (the folder name the booklet and readers already use)
+AG_FOLDER = "Bergama_agriculture_alternatives"
+AG_PAGE = "p21"                    # v10: the booklet page id, 25-page numbering (the site board's numbering; = p19 of
+#                                    the 23-page booklet after D7/D9, where round 4 printed it)
 # built-in geometry and tables (survey coordinates, m): around2 extent, site frame, WorldCover classes clipped to the
 # extent (outside / inside the site), Selinos and other streams, FAO-56 net irrigation per water year (C1), corridor cover
 bergama_data("GEO")
@@ -2282,18 +2953,18 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
 
 def rgb(h): return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
 
-# ------------------------------------------------------------------ minimal vector PDF (mm units, Helvetica, whole strings)
-_ENC_EXTRA = {u"Ğ": 0x81, u"ğ": 0x8D, u"İ": 0x8F, u"ı": 0x90, u"Ş": 0x9D, u"ş": 0x9E}   # Turkish letters in unused WinAnsi slots
-_DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157 /Scedilla 158 /scedilla]"
 # v9 (round 4, G-R4-1): ² and ³ are the embedded Arial's own glyphs again (pdf_fonts.py since 28 Oct): the v3 raised
 # 0.6 x digit printed at 4.2-4.5 pt, under the booklet's 6 pt minimum the text placer enforces; the unembedded
 # Helvetica that lost them in some viewers is gone. (v3's SUP, SUP_K, SUP_UP and sup_runs deleted.)
+# v10: the minimal vector PDF writer (Page, write_pdf, its WinAnsi tables) is gone with the sheet (G-R5-12).
+_AG_MARK = re.compile(r"\{src:agsrc(\d+)\}")
 
 
 def text_w(s, size, bold=False):
     """v9 (round 4, G-R4-1): the REAL Arial advance width (font_metrics.fm_width) of s at size pt, in mm; the
-    Helvetica table (common/text_w.py) is gone (a missing font raises FontMissing, no estimate)"""
-    return fm_width(s, size, bold)
+    Helvetica table (common/text_w.py) is gone (a missing font raises FontMissing, no estimate).
+    v10: a source mark {src:agsrcN} is measured as the "[N]" it prints as, so the blocks keep v9's measures"""
+    return fm_width(_AG_MARK.sub(r"[\1]", u"%s" % s), size, bold)
 
 
 # ---- G2/G3 (MIRAQUA round, 28 Oct 2026): Arial EMBEDDED in every sheet PDF -------------------------------------
@@ -2484,6 +3155,12 @@ def pdf_fonts(add, styles, content=None):
 #                                              on the baseline, y UP (for centring a glyph in a marker)
 #   fm_asc_desc(pt, bold=False)                -> (ascender, descender) mm of the font (descender negative)
 # Units: pt = font size in points (the em); 1 pt = 25.4 / 72 mm (FM_PT).
+# Round 5 (S1, P04.7 "bazaar side ? Kale side"): a character the font has no glyph for no longer stops a run where the
+# caller checks first:
+#   fm_missing(s, bold=False) -> [ch]          the characters of s the font has no glyph for (blanks never count)
+#   fm_safe(s, bold=False, sub=u"\u2013") -> (s2, missing)
+#                                              s with each missing character replaced by sub ("–", else "-"); the
+#                                              booklet composer runs every text through it at load (one WARNING each)
 FM_PT = 25.4 / 72.0
 _FM_CACHE = {}
 
@@ -2581,97 +3258,92 @@ def fm_box(s, x, y, pt, bold=False, align="L", angle=0.0, y_down=True, italic=Fa
     xs, ys = [p[0] for p in P], [p[1] for p in P]
     return (min(xs), min(ys), max(xs), max(ys))
 
-class Page:
-    def __init__(self, w, h):
-        self.w, self.h, self.ops, self.alphas = w, h, [], set()
-        self.tp, self.tg = None, None    # v9 (G-R4-1): the open TextPage (one per booklet crop) and the text group
+
+def fm_missing(s, bold=False, italic=False):
+    """the characters of s the font has no glyph for"""
+    T = fm_load(bold, italic)
+    out = []
+    for ch in u"%s" % s:
+        if ch in u"\r\n\t " or ch in out:
+            continue
+        try:
+            _fm_glyph(T, ch)
+        except ValueError:
+            out.append(ch)
+    return out
+
+
+def fm_safe(s, bold=False, sub=u"\u2013", italic=False):
+    """(s with missing glyphs replaced by sub, the missing characters); sub falls back to "-" when the font lacks it"""
+    miss = fm_missing(s, bold, italic)
+    if not miss:
+        return u"%s" % s, []
+    if fm_missing(sub, bold, italic):
+        sub = u"-"
+    s2 = u"%s" % s
+    for ch in miss:
+        s2 = s2.replace(ch, sub)
+    return s2, miss
+
+AG_COMPASS = ("E", "NE", "N", "NW", "W", "SW", "S", "SE")   # v10: a label's other spots after its first (item_export)
+
+
+class AgRec:
+    """v10 (round 5 S9, G-R5-12; replaces v9's Page and write_pdf, after the water balance's WbRec): the same drawing
+    calls as the old sheet Page, but nothing is written to a PDF. Everything a block draws is RECORDED as common shape
+    tuples in page mm, y up (poly / line / text); ag_export_block turns them into one chart drawing and every text into
+    a label item anchored where v9 set it (first position = that spot; the booklet moves, sizes and checks it).
+    heads / notes: the block's heading and its text line (text items of the block's group, not drawn); keeps: the boxes
+    v9 kept free of text (bars, icons, squares). No TextPage, no check, nothing raises here."""
+    def __init__(self):
+        self.shapes, self.heads, self.notes, self.keeps = [], [], [], []
+
     def tgroup(self, start=True):
-        """v9: start (or with False end) one text group: the lines of one word block may touch each other, never
-        another text (TextPage pad)"""
-        self.tg = ((self.tp._group() if self.tp is not None else "g") if start else None)
-        return self.tg
+        """v9's word blocks: kept as a call (the booklet sets each label on its own; the group id is the block's)"""
+        return None
+
     def keep(self, box, name, kind="drawing"):
-        """v9: a drawing box (x0, y0, x1, y1, page mm y up) no text may touch, in the open TextPage"""
-        if self.tp is not None:
-            self.tp.keep(tuple(box), kind, name)
-    def _c(self, h, stroke=False):
-        r, g, b = rgb(h); return "%.3f %.3f %.3f %s" % (r, g, b, "RG" if stroke else "rg")
+        """a drawing box (x0, y0, x1, y1, page mm y up) no label may cover (exported as a keep area)"""
+        self.keeps.append((tuple(box), kind, name))
+
     def rect(self, x, y, w, h, fill=None, stroke=None, lw=0.2):
         self.poly([(x, y), (x + w, y), (x + w, y + h), (x, y + h)], fill, stroke, lw, True)
+
     def poly(self, P, fill=None, stroke=None, lw=0.2, closed=False, dash=None, alpha=None):
         self.path([P], fill, stroke, lw, closed, dash, alpha)
+
     def path(self, rings, fill=None, stroke=None, lw=0.2, closed=True, dash=None, alpha=None):
-        """several rings in one path; a fill uses even-odd, so holes stay open. v1.5: alpha = opacity 0-1 (sketch washes)"""
-        k = 72 / 25.4; o = ["q"]
-        if alpha is not None and alpha < 0.995:
-            a_ = max(1, int(round(alpha * 100))); self.alphas.add(a_); o.append("/GA%d gs" % a_)
-        if fill: o.append(self._c(fill))
-        if stroke: o.append(self._c(stroke, True)); o.append("%.3f w 1 J 1 j" % (lw * k))
-        if dash: o.append("[%.2f %.2f] 0 d" % (dash[0] * k, dash[1] * k))
-        for P in rings:
-            o.append("%.2f %.2f m" % (P[0][0] * k, P[0][1] * k))
-            o += ["%.2f %.2f l" % (x * k, y * k) for x, y in P[1:]]
-            if closed: o.append("h")
-        o.append("B*" if fill and stroke else ("f*" if fill else "S")); o.append("Q")
-        self.ops.append(" ".join(o))
-    def line(self, P, col, lw=0.25, dash=None): self.path([P], None, col, lw, False, dash)
+        """several rings in one path (a fill keeps its holes, even-odd); alpha = opacity 0-1"""
+        R = [[(float(x), float(y)) for x, y in P] for P in rings if len(P) >= 2]
+        if not R:
+            return
+        if fill:
+            rr = [r for r in R if len(r) >= 3]
+            if rr:
+                self.shapes.append(("poly", rr, fill, stroke, lw if stroke else 0.0,
+                                    tuple(dash) if (dash and stroke) else None, None,
+                                    alpha if (alpha is not None and alpha < 0.995) else None))
+            return
+        if stroke:
+            for r in R:
+                self.shapes.append(("line", r + [r[0]] if (closed and len(r) >= 3) else r, stroke, lw,
+                                    tuple(dash) if dash else None))
+
+    def line(self, P, col, lw=0.25, dash=None):
+        self.path([P], None, col, lw, False, dash)
+
     def circle(self, x, y, r, fill=None, stroke=None, lw=0.2):          # v1.2: for the pictograms
         self.poly([(x + r * math.cos(k * math.pi / 12), y + r * math.sin(k * math.pi / 12)) for k in range(24)], fill, stroke, lw, True)
-    def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", halo=None, allow=()):
-        """one text, size in pt; v9: measured with the real Arial (text_w = fm_width) and, while a booklet crop's
-        TextPage is open, registered in it (collisions raise at its check; allow = keep names / kinds it may sit on);
-        ² / ³ are the font's own glyphs"""
-        if align == "C": x -= text_w(s, size, bold) / 2
-        elif align == "R": x -= text_w(s, size, bold)
-        if self.tp is not None and s.strip():
-            self.tp.put(s, x, y, size, bold, "L", 0.0, group=self.tg, emit=False, allow=allow)
-        k = 72 / 25.4
-        b = b"".join(bytes([_ENC_EXTRA[ch]]) if ch in _ENC_EXTRA else ch.encode("cp1252", "replace") for ch in s)   # 25 Oct: ı İ ğ Ğ ş Ş spelt right
-        b = b.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
-        if halo:                                   # v1.5: the sketches' text mask, a halo in the ground's colour
-            self.ops.append("q %s %.2f w 1 j BT 2 Tr /%s %.2f Tf %s %.2f %.2f Td (%s) Tj ET Q" % (
-                self._c(halo, True), size * 0.35, "F2" if bold else "F1", size, self._c(halo), x * k, y * k, b.decode("latin-1")))
-        self.ops.append("BT /%s %.2f Tf %s %.2f %.2f Td (%s) Tj ET" % ("F2" if bold else "F1", size, self._c(col), x * k, y * k, b.decode("latin-1")))
-    def para(self, s, x, y, w, size, col="4A3F35", bold=False, lead=1.3):
-        """v9: wrapped by the no-widow wrap (G-R4-2), one text group (its lines may touch each other)"""
-        g0 = self.tg
-        self.tgroup()
-        yy = y
-        for ln in wrap(s, size, w, bold):
-            self.text(ln, x, yy, size, col, bold); yy -= size * 0.3528 * lead
-        self.tg = g0
-        return yy
 
-def write_pdf(pages, path):
-    k = 72 / 25.4
-    n = len(pages)
-    objs = ["<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [%s] /Count %d >>" % (" ".join("%d 0 R" % (5 + 2 * i) for i in range(n)), n),
-            "", ""]
-    extra, first = [], 5 + 2 * n                          # G2/G3 28 Oct: Arial embedded (common/pdf_fonts.py):
+    def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", halo=None, allow=(), positions=None):
+        """one label, size in pt, baseline y, align L / C / R at x (v9's spot = its first position). halo and allow
+        (v9's knock-out and the keeps it could sit on) are kept as arguments: the booklet places labels now.
+        positions: the other spots after the first (default AG_COMPASS)"""
+        if not s or not (u"%s" % s).strip():
+            return
+        self.shapes.append(("text", u"%s" % s, float(x), float(y), size * IX_PT, col, bool(bold), align or "L",
+                            tuple(positions) if positions else None))
 
-    def add(b):                                           # font file + descriptor go after the pages
-        extra.append(b.decode("latin-1"))
-        return first + len(extra) - 1
-    fid = pdf_fonts(add, ("R", "B"))
-    objs[2], objs[3] = extra[fid[0] - first], extra[fid[1] - first]   # the font dicts themselves stay objects 3, 4
-    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"); offs = []
-    for i, o in enumerate(objs):
-        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (i + 1, o)).encode("latin-1")
-    for i, pg in enumerate(pages):
-        content = zlib.compress("\n".join(pg.ops).encode("latin-1"))
-        offs.append(len(out))
-        gs = "".join("/GA%d << /Type /ExtGState /ca %.2f /CA %.2f >> " % (a, a / 100.0, a / 100.0) for a in sorted(pg.alphas))
-        out += ("%d 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>%s >> /Contents %d 0 R >>\nendobj\n"
-                % (5 + 2 * i, pg.w * k, pg.h * k, (" /ExtGState << %s>>" % gs) if gs else "", 6 + 2 * i)).encode("latin-1")
-        offs.append(len(out))
-        out += ("%d 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n" % (6 + 2 * i, len(content))).encode("latin-1") + content + b"\nendstream\nendobj\n"
-    for j, o in enumerate(extra):
-        offs.append(len(out)); out += ("%d 0 obj\n%s\nendobj\n" % (first + j, o)).encode("latin-1")
-    x = len(out)
-    out += ("xref\n0 %d\n0000000000 65535 f \n" % (len(offs) + 1) + "".join("%010d 00000 n \n" % o for o in offs) +
-            "trailer\n<< /Size %d /Root 1 0 R /Info << /Title (Bergama agriculture alternatives) >> >>\nstartxref\n%d\n%%%%EOF\n" % (len(offs) + 1, x)).encode("latin-1")
-    with open(path, "wb") as f: f.write(out)
 
 # ------------------------------------------------------------------ shared helpers
 def fmt(v): return "{:,.0f}".format(v)
@@ -2679,7 +3351,7 @@ def fmt1(v): return "{:,.1f}".format(v)
 def rnd(v, step=1000): return int(round(v / step) * step)
 EFF = 0.90          # drip application efficiency, as the water balance (key figures "basis": "drip 90 %")
 
-NET = {}            # net irrigation mm per crop from the water balance results (mean, dry5 = 1-in-5 dry year), set in build()
+NET = {}            # net irrigation mm per crop from the water balance results (mean, dry5 = 1-in-5 dry year), set in ag_items()
 
 def gross_m3_ha(crop, year):
     if crop == "mix":                  # field crops weighted by their 2025 Bergama areas
@@ -2687,18 +3359,20 @@ def gross_m3_ha(crop, year):
         return sum(gross_m3_ha(c, year) * v for c, v in w.items()) / sum(w.values())
     return NET[crop]["mean" if year == "normal" else "dry5"] / EFF * 10.0     # 1 mm on 1 ha = 10 m3
 
-SRC_KEY = []          # v1.6: sources printed as [n] on pages 1-3, numbered once for the sheet; the key is page 4
+SRC_KEY = []          # v1.6: sources printed as [n] on pages 1-3, numbered once for the sheet; v10: Sources rows agsrcN
 LOG_NOTES = []        # v1.6: what the layout left out (log)
 
 def cite(src):
     """v1.2 (water board v1.6 method): the number of a source in the sheet's key (v1.6: page 4), as "[n]".
     v4 (MIRAQUA 28 Oct, F5): "" for a source that is not public online (F5_OFF): no mark, not in the key.
-    v5 (T4a, D13): also "" for a source naming our own model run or method (F5_INTERNAL); status words cut (F5_STATUS)."""
+    v5 (T4a, D13): also "" for a source naming our own model run or method (F5_INTERNAL); status words cut (F5_STATUS).
+    v10 (G-R5-12): the mark is "{src:agsrcN}" (N = v9's number; ag_items writes Sources row agsrcN for it; the booklet
+    prints its own number), measured as "[N]" (text_w)."""
     if not src or src in F5_OFF or any(t in src for t in F5_INTERNAL):
         return ""
     src = F5_STATUS.sub("", src).strip()
     if src not in SRC_KEY: SRC_KEY.append(src)
-    return "[%d]" % (SRC_KEY.index(src) + 1)
+    return u"{src:%s}" % (AG_SRC % (SRC_KEY.index(src) + 1))
 
 
 def cited(s, *srcs):
@@ -2725,14 +3399,12 @@ def wrap(s, size, w, bold=False):
 
 # ------------------------------------------------------------------ v2 (Aras 27 Oct, Prompt 5): plant and crop photos
 # The photos and the "English (Turkish)" names come from src/common/plant_photos.py (one cache folder for every script,
-# every photo PHOTO_W x PHOTO_H mm). This PDF writer draws only the frame (thin, faint; "no photo" inside when there is
-# none); the JPEGs go into the frames after write_pdf (put_photos, PyMuPDF). Each photo's credit is a [n] mark after its
-# name, its key on the sources page.
-PH_GAP = 2.0                         # mm between two photos side by side
+# every photo PHOTO_W x PHOTO_H mm). Each photo's credit is a source mark after its name.
+# v10 (G-R5-12): no frames, no PyMuPDF: each photo is a photo item (its JPEG in cached/plant_photos/, never put into a
+# PDF here) with its name as the caption; the booklet sets it (ag_crops_items).
 PHOTO_GOT = {}                       # key -> (jpeg path or None, credit or None, why not), read once a press
 PHOTO_LOG, PHOTO_STATE = [], {}      # plant_photos' own notes (web fetch) and its offline flag
-PHOTO_FR = []                        # frames with a photo: (page index, x0, y0, x1, y1 mm y up, jpeg path)
-PHOTO_N = [0]                        # frames drawn, with or without a photo
+PHOTO_N = [0, 0]                     # v10: this press [photo items exported, photos asked for]
 
 
 def photo_get(key):
@@ -2749,37 +3421,6 @@ def photo_mark(key):
     """v2: the [n] of a plant photo's credit (its key on the sources page); "" when there is no photo"""
     p, credit, _ = photo_get(key)
     return cite(credit) if p and credit else ""
-
-
-def photo_frame(pg, pi, key, x, top, boxes=None):
-    """v2: the frame of a plant's photo, PHOTO_W x PHOTO_H mm, its top-left at (x, top) on page index pi: the photo
-    recorded for put_photos, or "no photo" inside the frame. boxes: the frame is added (overlap test).
-    v4 (MIRAQUA 28 Oct, G12): an empty frame says why, as the water board's cards: "no photo: " + the loader's reason
-    (common/plant_photos.py: offline, Wikimedia refused (HTTP 429) press again later, file not found, licence ...),
-    7 pt (the booklet's smallest), top left in the frame. v8 (G17): no outline; an empty frame is a pale fill."""
-    p, _cr, why = photo_get(key)
-    PHOTO_N[0] += 1
-    if p:
-        PHOTO_FR.append((pi, x, top - PHOTO_H, x + PHOTO_W, top, p))
-    else:
-        pg.rect(x, top - PHOTO_H, PHOTO_W, PHOTO_H, fill=C["paper"])
-        pg.para(u"no photo: " + (why or u"not loaded"), x + 1.5, top - 4.0, PHOTO_W - 3.0, 7, C["ink2"], lead=1.2)
-    if boxes is not None and p:                  # an empty frame carries its own words: no drawing box then
-        boxes.append((x, top - PHOTO_H, x + PHOTO_W, top))
-    if p:                                        # v9 (G-R4-1): no text on a photo
-        pg.keep((x, top - PHOTO_H, x + PHOTO_W, top), "photo " + key, "photo")
-
-
-def name_lines(key, mark, size, w, bold=True):
-    """v2: a plant's name under its photo: "English (Turkish) [n]" on one line when it fits in w, else the English name
-    and "(Turkish) [n]" on two (each wrapped to w if it is longer still)"""
-    t = plant_name(key) + ((" " + mark) if mark else "")
-    if text_w(t, size, bold) <= w:
-        return [t]
-    en, _, tr = plant_name(key).partition(" (")
-    if not tr:
-        return wrap(t, size, w, bold)
-    return wrap(en, size, w, bold) + wrap("(" + tr + ((" " + mark) if mark else ""), size, w, bold)
 
 
 def name_lc(key):
@@ -2800,44 +3441,15 @@ def crop_word(key):
     return plant_name(key).partition(" (")[0].lower() if key in PLANTS else key
 
 
-def put_photos(path):
-    """v2: the plant and crop photos into their frames on pages 1 and 3 (PyMuPDF, after write_pdf and put_base); a photo
-    error never stops the sheet. Returns the log lines: how many were placed, and why each missing one is missing."""
-    n, err = 0, ""
-    try:
-        if PHOTO_FR:
-            n = fitz_add_photos(path, PHOTO_FR)
-    except Exception as ex:
-        err = " · FLAG not placed: %s: %s" % (type(ex).__name__, ex)
-    if not err and n < len(PHOTO_FR):
-        err = " · %d JPEG(s) could not be read" % (len(PHOTO_FR) - n)
-    # v8 (P18.2, DATA-2): plant_photos.py's line "photos: n of m placed as images" (+ FLAG k missing); the booklet's
-    # crop copy keeps plain images (A2), the photos went missing on p19 while they sat in Form XObjects
-    out = ["%s · %d frame(s) drawn (cached/plant_photos)%s" % (photo_flag_line(), PHOTO_N[0], err)]
+def photo_log():
+    """v2 (v10: was put_photos): the photos' log lines: how many went out as photo items, and why each missing one
+    is missing (never raises)"""
+    out = ["photos: %d of %d exported as photo items (cached/plant_photos)%s" % (
+        PHOTO_N[0], PHOTO_N[1], " · FLAG %d missing" % (PHOTO_N[1] - PHOTO_N[0]) if PHOTO_N[0] < PHOTO_N[1] else "")]
     out += ["  no photo: %s (%s)" % (plant_name(k), v[2] or "not loaded") for k, v in PHOTO_GOT.items() if not v[0]]
     out += ["  " + t for t in PHOTO_LOG]
     return "\n".join(out)
 
-STAGE_TAG = u"C  WATER  ·  WHAT WE DO WITH IT"   # v3 (Prompt 6, rule 7): the booklet's theme and stage of pages 1 and 3
-
-
-HEAD_Y = (285.0, 276.5, 269.5)       # v4 (MIRAQUA 28 Oct, P19.1): baselines of the kicker, the title and the subtitle
-
-
-def header(pg, title, sub, hole=None, tag=None):
-    """v4 (MIRAQUA 28 Oct, F10 decision 3, default remove; P19.1): the sheet's big page number before the title is
-    gone (it read as a booklet page number); the booklet stage tag (pages 1 and 3) is the kicker over the title, top
-    left, where the booklet's own pages carry theirs (8 pt, 12 mm from the top edge); title and subtitle on the 14 mm
-    margin (were at 26 behind the number). G1: no "AGRICULTURE ANALYSIS · GROUP 6" line (page 2 had it)."""
-    if hole:                                       # v1.5: a window left open for a plan placed under the page
-        x0, y0, x1, y1 = hole
-        pg.path([[(0, 0), (420, 0), (420, 297), (0, 297)], [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]], fill=C["white"])
-    else:                                          # v1.6 (Aras 27 Oct): white, the beige paper goes
-        pg.rect(0, 0, 420, 297, fill=C["white"])
-    if tag:                                        # v3: pages 1 and 3 name their booklet stage (accent, as its kicker)
-        pg.text(tag, 14, HEAD_Y[0], 8, C["accent"], True)
-    pg.text(title, 14, HEAD_Y[1], 22, C["ink"], True)
-    pg.text(sub, 14, HEAD_Y[2], 11, C["ink2"])
 
 # ------------------------------------------------------------------ pictograms and tiles
 # v5 (T4a, 29 Oct, 02 §2): every pictogram comes from the shared icon set (common/icons.py); the script's own icon()
@@ -2908,14 +3520,6 @@ def tiles(pg, x, y, w, items, cols=1, s=1.0, boxes=None):
 
 FLAGGED = ("NOT KNOWN", "not designed")         # big figures that say "no data": in the accent colour
 
-def north(pg, x, y, ang_deg, r=7.0):
-    a = math.radians(ang_deg)
-    ux, uy = -math.sin(a), math.cos(a)
-    px, py = -uy, ux
-    tip = (x + ux * r, y + uy * r); bl = (x - ux * r * 0.6 + px * r * 0.45, y - uy * r * 0.6 + py * r * 0.45)
-    br = (x - ux * r * 0.6 - px * r * 0.45, y - uy * r * 0.6 - py * r * 0.45)
-    pg.poly([tip, bl, (x, y), br], fill=C["ink"], closed=True)
-    pg.text("N", tip[0] + ux * 3.0, tip[1] + uy * 3.0 - 1.2, 8, C["ink"], True, "C")
 
 # ------------------------------------------------------------------ page 1: what each cubic metre grows
 # v4 (MIRAQUA 28 Oct, F5: public online sources only): the public sources keep their words, the project's own file
@@ -2962,15 +3566,18 @@ HISTORY = [("cotton", "Tersane cotton (16th c.)", 1500, 1600, COTTON_H),
 
 
 def history_line(pg, x, top, w, h):
-    """a timeline 1500-2030 with the cotton (above) and olive (below) history, labels placed by measured width (no
-    overlaps), inside the box x..x + w, top..top - h. v8 (round 3, G3): no leader lines (a label that takes a higher
-    lane stands there alone, in its line's colour). v9 (round 4, P19.1): booklet p19 group 5's first block (crop
-    ag1_history, AG_HIST_W x AG_HIST_H): the group's heading in the band on top, the line "Bergama's cotton and olive"
-    under it, the timeline AG_HIST_YA under the top (cotton labels one lane above it, olive labels under the years);
-    its old title "WHY THE STORED WATER GOES TO FARMS" is the group heading's job now. Returns its bottom y."""
-    P = Placer()
+    """a timeline 1500-2030 with the cotton (above) and olive (below) history, inside the box x..x + w, top..top - h.
+    v8 (round 3, G3): no leader lines. v9 (round 4, P19.1): booklet p19 group 5's first block (crop ag1_history,
+    AG_HIST_W x AG_HIST_H): the group's heading in the band on top, the line "Bergama's cotton and olive" under it, the
+    timeline AG_HIST_YA under the top (cotton labels over it, olive labels under the years); its old title "WHY THE
+    STORED WATER GOES TO FARMS" is the group heading's job now.
+    v10 (round 5, C1 + G-R5-12): the heading and the line under it are the group's heading and note (text items); the
+    v1.6 Placer is gone (it only chose label positions, and v9 RAISED TextError when a label found no lane): each label
+    is exported at the first spot Placer tried (centred over its span for cotton, under it for olive, 1.2 mm off the
+    line) with the spots on the same side next; the booklet places it (a label with no free spot is its WARNING, never a
+    stop). Returns its bottom y."""
     ag_heading(pg, "THE CROPS, THEN AND NOW", x, top)
-    P.text(pg, "Bergama's %s and %s" % (name_lc("cotton"), name_lc("olive")), x, top - 9.0, 7, C["ink"])   # v2
+    pg.notes.append("Bergama's %s and %s" % (name_lc("cotton"), name_lc("olive")))   # v2
     ya = top - AG_HIST_YA
     # v9.2: the axis starts 3.2 mm in (was 2.0): the centred "1500" under its tick reached 0.75 mm past the crop's left
     # edge (Aras 1 Nov 17:30); the right end stays 2.0 mm in
@@ -2978,8 +3585,7 @@ def history_line(pg, x, top, w, h):
     pg.line([(X(1500), ya), (X(2030), ya)], C["ink"], 0.3)
     for yr in range(1500, 2001, 100):
         pg.line([(X(yr), ya - 0.8), (X(yr), ya + 0.8)], C["ink"], 0.3)
-        P.text(pg, str(yr), X(yr) - text_w(str(yr), 7) / 2.0, ya - 3.4, 7, C["ink2"])
-    reg = (x, top - h + 0.5, x + w, top - 10.4)
+        pg.text(str(yr), X(yr), ya - 3.4, 7, C["ink2"], align="C")
     for lane, lab, a, b, ref in HISTORY:
         col, up = (C["accent"], True) if lane == "cotton" else (C["green_deep"], False)
         yb = ya + (1.0 if up else -1.0)
@@ -2991,37 +3597,37 @@ def history_line(pg, x, top, w, h):
                 pg.line([(X(a), yb), (X(b), yb)], col, 1.0)
         else:
             pg.circle(X(a), yb, 0.8, fill=col)
-        if P.put(pg, cited(lab, ref), X((a + b) / 2.0 if b else a), yb + (0.6 if up else -0.6), 7, col, False, region=reg,
-                 gap=1.2, up=up, lanes=3, leader=False) is None:
-            raise TextError(u"p19 ag1_history: the label %r finds no free place on the timeline (shorten it)" % lab)
+        ax, ay = X((a + b) / 2.0 if b else a), yb + (0.6 if up else -0.6)
+        ty = ay + 1.2 if up else ay - 1.2 - 7 * 0.3528          # v1.6 Placer's first lane (gap 1.2 mm)
+        pg.text(cited(lab, ref), ax, ty, 7, col, align="C",
+                positions=("N", "NE", "NW", "E", "W", "S", "SE", "SW") if up else
+                ("S", "SE", "SW", "E", "W", "N", "NE", "NW"))
     return top - h
 
 
 CROP_ROW = ("olive", "cotton", "maize", "tomato")   # v2 (Aras 27 Oct, Prompt 5): the crops page 1 compares
 
 
-def crop_row(pg, x, top, w, boxes=None):
-    """v2 (Aras 27 Oct, Prompt 5): "THE CROPS": page 1's crops as photos in one row (PHOTO_W x PHOTO_H each, the one
-    photo size of the booklet, spread over w), the name "English (Turkish)" and the photo's credit [n] under each.
-    v9 (round 4, P19.1): booklet p19 group 5's second block (crop ag1_crops, AG_CROPS_W x AG_CROPS_H) beside the
-    timeline, which carries the group's heading: its heading band stays empty, the photos start on the shared content
-    top AG_HEAD under the top; a name of two lines is one text group; the photos are keeps. boxes: the photo frames.
-    Returns its bottom y."""
-    n = len(CROP_ROW)
-    gx = max(PH_GAP, (w - n * PHOTO_W) / (n - 1.0))
-    pt = top - AG_HEAD
-    low = pt - PHOTO_H
-    for i, key in enumerate(CROP_ROW):
-        px = x + i * (PHOTO_W + gx)
-        photo_frame(pg, 0, key, px, pt, boxes)
-        yy = pt - PHOTO_H - 2.6
-        nl = name_lines(key, photo_mark(key), 6.5, PHOTO_W + gx - 1.0)
-        pg.tgroup()
-        for q in nl:
-            pg.text(q, px, yy, 6.5, C["ink"], True)
-            low = min(low, yy - 0.6); yy -= 2.5
-        pg.tgroup(False)
-    return low
+def ag_crops_items(ix, prio, group):
+    """v2 (Aras 27 Oct, Prompt 5): "THE CROPS": page 1's crops as photos (the one photo size of the booklet, PHOTO_W x
+    PHOTO_H, cut to that proportion about the centre), the name "English (Turkish)" and the photo's credit under each.
+    v10 (round 5, G-R5-12; was crop_row): each photo is a photo item (file in cached/plant_photos/) with its name +
+    credit mark as its caption, in the group of the timeline (v9 group 5: one heading "THE CROPS, THEN AND NOW" for
+    both); a crop without a photo is a note "no photo: <name>: <why>" (v4 G12's words) and a WARNING."""
+    for key in CROP_ROW:
+        p, _cr, why = photo_get(key)
+        PHOTO_N[1] += 1
+        mk = photo_mark(key)
+        if p:
+            cap = ix.text(AG_PAGE, plant_name(key) + ((" " + mk) if mk else ""), "caption", bold=True, group=group,
+                          priority=prio, id="ag1_crops_%s_caption" % key)
+            pid = ix.photo(AG_PAGE, p, caption=cap, source=_ag_src_key(mk), id="ag1_crops_%s" % key)
+            _ag_item_set(ix, pid, group=group, priority=prio, aspect=round(PHOTO_W / PHOTO_H, 4))
+            PHOTO_N[0] += 1
+        else:
+            ix.text(AG_PAGE, u"no photo: %s: %s" % (plant_name(key), why or u"not loaded"), "note", group=group,
+                    priority=prio, id="ag1_crops_%s_none" % key)
+            ix.warn(AG_PAGE, "photo", u"no photo for %s: %s" % (plant_name(key), why or u"not loaded"))
 
 
 # ------------------------------------------------------------------ v3 (Prompt 6): the stream comes first
@@ -3034,8 +3640,8 @@ AG_BAR_RP, AG_BAR_H, AG_BAR_O = 9.3, 3.8, 4.4   # v8: bars' largest row pitch, b
 #          IS THE LEVER": the reading (ag1_reading's squares and ratio, no crop of its own now) on top, the 4 tiles under
 #   row 4  ag1_history 260 x 34 (8) "THE CROPS, THEN AND NOW" | ag1_crops 128 x 34 (4), the photos at the one booklet
 #          photo size
-# Each crop has ONE TextPage (common/text_place.py, real Arial widths): every text of the crop is registered, the
-# drawings no text may touch are keeps, and a collision RAISES (log "overlap p19 <crop> checked n, collisions 0").
+# v10 (round 5, G-R5-12): v9's TextPage per crop (a collision RAISED) is gone: each block is recorded (AgRec) and
+# exported as one chart drawing whose words the booklet places (ag_export_block); the sizes below stay the blocks' own.
 AG_HEAD = 6.0                        # v9: the group heading band, mm
 AG_STREAM_W, AG_STREAM_H = grid_w(8), 40.0
 AG_BARS_W, AG_BARS_H = grid_w(6), 72.0
@@ -3052,24 +3658,48 @@ AG_STEP_MM = 4.0                     # the flow-step marker's least size (marker
 
 
 def ag_heading(pg, text, x, top):
-    """v9 (P19.1): a story group's ONE heading (GRID_TYPE heading: 10 pt bold, ink) in the block's heading band"""
-    sz, _b, _ld, col = grid_style("heading")
-    pg.text(text, x, top - 4.0, sz, col, True)
+    """v9 (P19.1): a story group's ONE heading. v10 (P21.1, G-R5-12): recorded as the block's heading text item (same
+    group id as its drawing and texts), not drawn; x and top kept as arguments (the booklet sets it over its block)"""
+    pg.heads.append(text)
 
 
-def ag_open(pg, cid, x0, top, W, H):
-    """v9 (G-R4-1): the TextPage of booklet crop cid (x0..x0 + W, top - H..top, page mm y up): every text drawn until
-    ag_close is registered in it"""
-    pg.tp, pg.tg = TextPage(u"p19 " + cid, (x0, top - H, x0 + W, top), y_down=False), None
-    AG_DBOX[cid] = AG_DBOX.get(cid, [])
+def _ag_src_key(mk):
+    """v10: the source key of a {src:key} mark ("" or None -> None)"""
+    m = re.search(r"\{src:([^}]+)\}", mk or "")
+    return m.group(1) if m else None
 
 
-def ag_close(pg, cid, x0, top, W, H):
-    """v9: the crop's collision test (RAISES TextCollision on any hit; logs "overlap p19 <cid> checked n, collisions
-    0"), then the crop itself (drawn at 1:1 for the booklet page)"""
-    tp, pg.tp, pg.tg = pg.tp, None, None
-    tp.check(True)
-    ag_crop(cid, 0, x0, top - H, x0 + W, top, bk_w=W)
+def _ag_item_set(ix, iid, **kw):
+    """v10: extra keys on an exported item (ix.photo takes no group or priority)"""
+    for its in ix.d["pages"].values():
+        for it in its:
+            if it.get("id") == iid:
+                it.update(kw)
+                return it
+    return None
+
+
+def ag_export_block(ix, pg, did, prio, x0, top, W, H, cut=0.0):
+    """v10 (round 5 S9, G-R5-12, P21.1): one v9 booklet block (x0..x0 + W, top - H..top, page mm y up, as drawn by its
+    v9 function into the recorder pg) -> one chart drawing `did` (units mm, no scale bar, priority = reading order,
+    group = did) with every shape; every text as a label anchored where v9 set it; the heading and note as text items
+    of the same group; the boxes v9 kept free of text as keep areas (not the reading squares, whose crop words sit
+    inside them). cut: mm of the empty heading band left off the top (the heading is its own item now)."""
+    D = ix.drawing(did, AG_PAGE, (x0 - 0.5, top - H - 0.5, x0 + W + 0.5, top - cut), units="mm", dkind="chart",
+                   scale_bar=False, priority=prio, group=did)
+    for i, t in enumerate(pg.heads):
+        ix.text(AG_PAGE, t, "heading", group=did, priority=prio, id=did + "_head" + ("_%d" % (i + 1) if i else ""))
+    for i, t in enumerate(pg.notes):
+        ix.text(AG_PAGE, t, "note", group=did, priority=prio, id=did + "_note" + ("_%d" % (i + 1) if i else ""))
+    for s in pg.shapes:
+        if s[0] == "text":
+            ix.text(AG_PAGE, s[1], "label", drawing=D["id"], at=(s[2], s[3]), size_pt=s[4] / IX_PT, bold=s[6],
+                    colour=s[5], positions=["=" + s[7]] + list(s[8] or AG_COMPASS), group=did, priority=5)
+    ix.layer(D, "chart", [s for s in pg.shapes if s[0] != "text"])
+    for box, kind, name in pg.keeps:
+        if kind != "reading":
+            ix.keep(D, box, kind, name)
+    return D
 
 
 def chip(pg, x, y, n, label, size=7.5):
@@ -3126,11 +3756,10 @@ def ag_stream_block(pg, L, src, x0, top, hl):
     (x0, top): the left column (AG_ST_LW) holds the title, the to-farms headline hl = (value, line) (was its own crop
     ag1_headline) and the bars' key; the right column the steps, the two bars and the squeeze.
     v9 (round 4, P19.1): booklet p19 group 2's first block: the group heading "HOW MUCH WATER REACHES THE FARMS"
-    (was the title "THE STREAM COMES FIRST") on the steps' line; one TextPage for the crop (ag_open / ag_close: a
-    collision raises); the outside values never run under the row labels or into the through-the-store lines."""
+    (was the title "THE STREAM COMES FIRST") on the steps' line; the outside values never run under the row labels or
+    into the through-the-store lines. v10: drawn into an AgRec (ag_p21_items), the heading is a text item, no check."""
     W, H = AG_STREAM_W, AG_STREAM_H
     xl, xr = x0, x0 + AG_ST_LW + 5.0
-    ag_open(pg, "ag1_stream", x0, top, W, H)
     ag_heading(pg, "HOW MUCH WATER REACHES THE FARMS", xl, top)
     pg.text(hl[0], xl, top - 11.5, 16, C["green_deep"], True)
     yk = top - 16.0
@@ -3144,7 +3773,6 @@ def ag_stream_block(pg, L, src, x0, top, hl):
     if not (ys and "normal" in ys and "dry5" in ys):
         LOG_NOTES.append("FLAG p1: the water balance results have no year_split (water balance v4 has not run): the "
                          "normal and dry-year bars and the squeeze line are left out")
-        ag_close(pg, "ag1_stream", x0, top, W, H)
         return
     mix = L.get("design_mix") or "design mix"
     mix_t = " + ".join(name_lc(w.split()[-1]) if w.split() and w.split()[-1] in PLANTS else w for w in mix.split(" + "))
@@ -3220,7 +3848,6 @@ def ag_stream_block(pg, L, src, x0, top, hl):
         t2 = "the hectares hold in this dry year: the store covers it"
     pg.text(t2, xr, top - 35.6, 7.5, C["ink"])
     pg.tgroup(False)
-    ag_close(pg, "ag1_stream", x0, top, W, H)
     if a > 0.0 or b <= 0.0:
         LOG_NOTES.append("MODEL p1: the dry year (%s) leaves the farms %s water after the strip and needs %s per hectare: "
                          "the squeeze is %s" % (ys["dry5"]["water_year"], pc(a), pc(b),
@@ -3235,10 +3862,12 @@ def ag_stream_block(pg, L, src, x0, top, hl):
                                     d_["winter_flow_pct_of_median"]))
 
 
-def page_cubic(L, src):
-    pg = Page(420, 297)
-    header(pg, "WHAT EACH CUBIC METRE GROWS",
-           "Same storage, different crops: hectares irrigated a season", tag=STAGE_TAG)
+def ag_p21_items(ix, L, src):
+    """v10 (round 5 S9, G-R5-12, P21.1; was page_cubic): booklet p21's agriculture blocks as items, in reading order,
+    each drawn by its v9 function at its v9 place (so every first position is v9's) into its own recorder and exported
+    by ag_export_block: ag1_stream (group 2), ag1_bars (3), ag1_context (4), ag1_history (5) + the crop photos (5).
+    v9's sheet title "WHAT EACH CUBIC METRE GROWS", its subtitle and the stage kicker were never in the booklet (its
+    page title is the booklet's own) and are not exported."""
     p_lo, p_hi = span(L["farm_share_dry5_pct"]); n_lo, n_hi = span(L["farm_need_dry5_m3"])
     w_lo, w_hi = n_lo * p_lo / 100.0, n_hi * p_hi / 100.0          # m3 the storage gives the farms in the 1-in-5 dry year
     fed = L["cropland_ha"] + L["orchard_ha"]
@@ -3258,25 +3887,25 @@ def page_cubic(L, src):
             if d: lo, hi = w_lo / (g * (1 - d[0])), w_hi / (g * (1 - d[1]))
             else: lo, hi = w_lo / g, w_hi / g
             vals.append((lab, crop, yr, g, lo, hi, d))
-    # v9 (round 4, P19.1): the sheet holds the five crops as booklet p19 shows them (rows 2-4 of the page; row 1 and
-    # row 2's right block are the water board's), each at its booklet size (1:1, "bk_w"), at their p19 x positions:
-    #   row 2  ag1_stream (14, top 262)
-    #   row 3  ag1_bars (14, top 216) | ag1_context (212, top 216)
-    #   row 4  ag1_history (14, top 138) | ag1_crops (278, top 138)
+    # v9 (round 4, P19.1): the blocks at their v9 booklet places (kept so the first positions stay v9's):
+    #   ag1_stream (14, top 262) · ag1_bars (14, top 216) | ag1_context (212, top 216) · ag1_history (14, top 138)
     AG_DBOX.clear()
+    cut = AG_HEAD - 0.5                            # v10: the heading band is empty now (heading = its own item)
+    pg = AgRec()
     ag_stream_block(pg, L, src, 14.0, 262.0, (hl[0], hl[1].strip()))
+    ag_export_block(ix, pg, "ag1_stream", 2, 14.0, 262.0, AG_STREAM_W, AG_STREAM_H, 0.0)   # its steps sit in the band
+    pg = AgRec()
     ag_bars_block(pg, 14.0, 216.0, rows, vals, fed, MIX)
+    ag_export_block(ix, pg, "ag1_bars", 3, 14.0, 216.0, AG_BARS_W, AG_BARS_H, cut)
     best = [q for q in vals if q[1] == "olive" and q[6] and q[2] == "dry"][0]     # v2: olive with deficit (not by its label)
     worst = max((q for q in vals if q[1] not in ("olive", "mix") and q[2] == "dry"), key=lambda q: q[3])     # the thirstiest field crop
+    pg = AgRec()
     ag_context_block(pg, 14.0 + AG_BARS_W + 4.0, 216.0, best, worst)
-    ag_open(pg, "ag1_history", 14.0, 138.0, AG_HIST_W, AG_HIST_H)
+    ag_export_block(ix, pg, "ag1_context", 4, 14.0 + AG_BARS_W + 4.0, 216.0, AG_CTX_W, AG_CTX_H, cut)
+    pg = AgRec()
     history_line(pg, 14.0, 138.0, AG_HIST_W, AG_HIST_H)       # v1.6: why the stored water goes to farms
-    ag_close(pg, "ag1_history", 14.0, 138.0, AG_HIST_W, AG_HIST_H)
-    cx = 14.0 + AG_HIST_W + 4.0
-    ag_open(pg, "ag1_crops", cx, 138.0, AG_CROPS_W, AG_CROPS_H)
-    crop_row(pg, cx, 138.0, AG_CROPS_W, AG_DBOX["ag1_crops"])   # v2 (Prompt 5): the crops as photos
-    ag_close(pg, "ag1_crops", cx, 138.0, AG_CROPS_W, AG_CROPS_H)
-    return pg
+    ag_export_block(ix, pg, "ag1_history", 5, 14.0, 138.0, AG_HIST_W, AG_HIST_H, cut)
+    ag_crops_items(ix, 5, "ag1_history")                      # v2 (Prompt 5): the crops as photos, group 5
 
 
 def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
@@ -3286,12 +3915,11 @@ def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
     from (x0, top); no key row: the first row's values say "normal year" / "1-in-5 dry year", the open end is said on
     the top line; each row's name, need and Bergama area right-aligned before its bars.
     v9 (round 4, P19.1): booklet p19 group 3 (6 page columns, AG_BARS_W x AG_BARS_H): the group heading "HECTARES ONE
-    STORAGE IRRIGATES, BY CROP" in the band on top, the top line under it; one TextPage (a collision raises); a row's
-    three label lines are one word block, a value and its direct label too; the bars are keeps."""
+    STORAGE IRRIGATES, BY CROP" in the band on top, the top line under it; the bars are keeps. v10: drawn into an
+    AgRec (ag_p21_items): the heading is a text item, every word a label, the bars keep areas; no check here."""
     W, H = AG_BARS_W, AG_BARS_H
     BH, BO = AG_BAR_H, AG_BAR_O
     n = len(rows)
-    ag_open(pg, "ag1_bars", x0, top, W, H)
     ag_heading(pg, "HECTARES ONE STORAGE IRRIGATES, BY CROP", x0, top)
     y0 = top - AG_HEAD - 6.0                         # the first row's top; the top line (farms we feed) above it
     RP = min(AG_BAR_RP, (y0 - (top - H + 4.5) - BO - BH) / max(n - 1, 1))
@@ -3360,19 +3988,17 @@ def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
             if e:
                 pg.text(e, tx + text_w(t, 7.5, True), by - BH + 0.9, 7, C["ink2"])
             pg.tgroup(False)
-    ag_close(pg, "ag1_bars", x0, top, W, H)
 
 
 def ag_context_block(pg, x0, top, best, worst):
     """v9 (round 4, P19.1): booklet p19 group 4 "WHY CROP CHOICE IS THE LEVER" (crop ag1_context, AG_CTX_W x
-    AG_CTX_H at 1:1 from (x0, top), 6 page columns, one TextPage): the lever first, then why.
+    AG_CTX_H at 1:1 from (x0, top), 6 page columns; v10: recorded in an AgRec, no TextPage): the lever first, then why.
       the reading (v1.2 THE READING; v8 its own crop ag1_reading, now the strip AG_READ_H under the heading band): the
         land one storage irrigates in the 1-in-5 dry year as squares by area: the thirstiest field crop = 1 (deep),
         deficit-irrigated olive = the ratio (deep up to its low end, open up to its high end, as the bars' open ends);
         beside them the ratio with what it compares (one word block), then the lever (one word block)
       the four context tiles 2 x 2 under it (v1.2 tiles at 0.9, no frames; each tile one word block, icons keeps)"""
     W, H = AG_CTX_W, AG_CTX_H
-    ag_open(pg, "ag1_context", x0, top, W, H)
     ag_heading(pg, "WHY CROP CHOICE IS THE LEVER", x0, top)
     # the reading
     lo, hi = best[4] / worst[4], best[5] / worst[5]
@@ -3418,150 +4044,260 @@ def ag_context_block(pg, x0, top, best, worst):
     # the four tiles 2 x 2 (v8: tiles at 0.9, no frames)
     AG_DBOX["ag1_context"] = []
     tiles(pg, x0, st - AG_READ_H - 1.5, W, CONTEXT, cols=2, s=0.9, boxes=AG_DBOX["ag1_context"])
-    ag_close(pg, "ag1_context", x0, top, W, H)
 
 
 # ------------------------------------------------------------------ page 2: the farms we feed, on the site board's plan 01
 # v1.5 (Aras 26 Oct 07:06, deck p.33): "build this map from the 'What is there' plan (p.02): same base, same palette and
-# legend". The base is the site board's own plan 01, cut from its sheet PDF and scaled by one factor (never redrawn,
-# never stretched; Aras 25 Oct 22:07); this page draws only the farms layer on it. The board (v42+) writes the plan's
-# georeference into output/selinus_board/booklet/blocks.json. Without it (or without PyMuPDF) the page falls back to
-# v1.4's land cover drawing in the same window, flagged on the page and in the log.
-CLS = [("farmland", "Fields (cropland)", C["field"]), ("orchard", "Orchards", C["orchard"]),
-       ("trees", "Tree cover", C["tree"]), ("shrub", "Shrubland", C["shrub"]), ("grass", "Grassland", C["grass"])]
-BOARD_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "selinus_board")
-ROUND_DENS = (5000, 10000, 20000, 25000, 50000)    # Aras 26 Oct 06:35: round scales only, the largest that fits
-FARM_WIN = (13.0, 20.0, 373.0, 262.0)              # the map window, page mm (x0, y0, x1, y1), y up
-FARM_COL = 377.0                                   # the key column, x from here to 406
-BASE = {}                                          # the plan 01 cut put under page 2 after write_pdf (put_base)
-BASE_OFF = [False]                                 # True: draw the fallback (the base could not be placed)
+# legend". The base is the site board's own plan 01, never redrawn or stretched (Aras 25 Oct 22:07); this map draws only
+# the farms layer on it.
+# v10 (round 5 S9, C13, G-R5-12): the farms lie partly outside plan 01, so the v9 window cut from plan 01 fell back to
+# the land cover drawing. The farms map is now its own true-scale plan ag2_farms (metres, y up): its extent is the
+# farms' own bounding box + AG_FARM_MARGIN, its scales the listed ones at which that extent fits the booklet's drawing
+# column; its base is the site board v60's exported drawing sb_plan01 (cached/booklet/selinus_board/items.json, the
+# plan's shapes in metres from its crop's lower-left, y up, with georef [[survey x, y, drawing x, y]] of its frame
+# corners), moved onto the farms by the similarity those corners give (uniform scale, turn, shift; never stretched),
+# cut to the plan's own frame and to the farms' extent: where the farms reach past plan 01 the base simply ends (log
+# line "FLAG p21 farms map: plan 01 covers n % ..."). No sb_plan01 = a WARNING and the farms layer alone (the v9 land
+# cover fallback and the PDF cut are gone). The map's north arrow, scale bar and scale are the booklet's.
+AG_SB_ITEMS = os.path.join(bg_booklet("selinus_board"), "items.json")   # the site board v60's export (S7)
+AG_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)      # = SF_SCALES (PLAN §3, round 5 shared spec)
+AG_FARM_BOX = (274.4, 243.0)       # mm: the booklet's drawing column (S1 lay_page share 0.70 = 274.4 mm) x the page's
+#                                    drawing height (CHK-9: 392 x 243 mm); the scales whose extent fits it are offered
+AG_FARM_MARGIN = 0.04              # design value: the margin round the farms, a share of the extent's longer side
+AG_FARM_ID = "ag2_farms"
 
 
-def plan01_geo():
-    """(plan dict, note) of the site board's plan 01: its sheet PDF, crop rect (mm from the sheet's top-left) and the
-    survey -> sheet similarity a * w + b (complex, sheet mm with y up, from the four frame corners); (None, why) when
-    it is missing."""
-    if BASE_OFF[0]:
-        return None, "the site board's plan could not be placed under the farms (see the log)"
-    try:
-        import fitz                                 # PyMuPDF (the "# r:" line at the top installs it in Rhino 8)
-    except Exception:
-        return None, "PyMuPDF missing: Rhino installs it from the '# r: pymupdf' line on the first run (needs internet)"
-    try:
-        with open(bg_first([os.path.join(bg_booklet("selinus_board"), "blocks.json"),        # board v44+
-                            os.path.join(BOARD_DIR, "booklet", "blocks.json")]), encoding="utf-8") as f:
-            d = json.load(f)
-    except Exception:
-        return None, "site board output not found (cached/booklet/selinus_board/blocks.json): run the site board first"
-    blk = next((v for k, v in sorted(d.get("blocks", {}).items()) if k.lower().endswith("_plan01") and v.get("geo")), None)
-    if not blk:
-        return None, "the site board output has no plan 01 georeference: run the site board v42 or later"
-    nm, pdf = os.path.basename(blk.get("pdf", "")), None
-    for dd, _, names in sorted(os.walk(BOARD_DIR)):
-        if nm in names:
-            pdf = os.path.join(dd, nm)
+def _ag_cut(p, q, axis, v):
+    t = (v - p[axis]) / (q[axis] - p[axis])
+    return [p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]
+
+
+def _ag_clip_ring(R, bb):
+    """a closed ring cut to the box bb (x0, y0, x1, y1) (Sutherland-Hodgman); [] when nothing is left"""
+    pts = [list(p[:2]) for p in R]
+    for axis, v, ge in ((0, bb[0], True), (0, bb[2], False), (1, bb[1], True), (1, bb[3], False)):
+        if not pts:
             break
-    if not pdf:
-        return None, "the site board sheet %s is not in %s" % (nm, BOARD_DIR)
-    r = [float(v) for v in blk["rect_mm"]]
-    W = [complex(g[0], g[1]) for g in blk["geo"]["points"]]
-    Z = [complex(r[0] + g[2], -(r[1] + g[3])) for g in blk["geo"]["points"]]
-    wm, zm = sum(W) / len(W), sum(Z) / len(Z)
-    a = sum((z - zm) * (w - wm).conjugate() for w, z in zip(W, Z)) / sum(abs(w - wm) ** 2 for w in W)
-    err = max(abs(a * (w - wm) + zm - z) for w, z in zip(W, Z))
-    return (dict(pdf=pdf, page=int(blk.get("page", 0)), rect=r, a=a, b=zm - a * wm, err=err, legend=blk.get("legend") or []),
-            "site board plan 01 of " + time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(pdf))))
+        out = []
+        for i in range(len(pts)):
+            p, q = pts[i - 1], pts[i]
+            pin = p[axis] >= v if ge else p[axis] <= v
+            qin = q[axis] >= v if ge else q[axis] <= v
+            if qin:
+                if not pin:
+                    out.append(_ag_cut(p, q, axis, v))
+                out.append(q)
+            elif pin:
+                out.append(_ag_cut(p, q, axis, v))
+        pts = out
+    return pts if len(pts) >= 3 else []
 
 
-def key_sample(pg, kind, col, x, y):
-    """a legend sample 4 x 2.4 mm, its top-left at (x, y): fill, line, dash, dot or outline"""
-    if kind == "fill": pg.rect(x, y - 2.4, 4.0, 2.4, fill=col)
-    elif kind == "dot": pg.circle(x + 2.0, y - 1.2, 0.8, fill=col)
-    elif kind == "dash": pg.line([(x, y - 1.2), (x + 4.0, y - 1.2)], col, 0.4, (1.0, 0.6))
-    elif kind == "outline": pg.rect(x + 0.2, y - 2.2, 3.6, 2.0, stroke=col, lw=0.35)
-    elif kind == "outline2": pg.rect(x + 0.3, y - 2.1, 3.4, 1.8, stroke=col, lw=0.7)
-    else: pg.line([(x, y - 1.2), (x + 4.0, y - 1.2)], col, 0.5)
+def _ag_clip_seg(p, q, bb):
+    """the part of segment p-q inside bb (Liang-Barsky), or None"""
+    t0, t1 = 0.0, 1.0
+    dx, dy = q[0] - p[0], q[1] - p[1]
+    for pp, qq in ((-dx, p[0] - bb[0]), (dx, bb[2] - p[0]), (-dy, p[1] - bb[1]), (dy, bb[3] - p[1])):
+        if pp == 0:
+            if qq < 0:
+                return None
+        else:
+            r = qq / pp
+            if pp < 0:
+                t0 = max(t0, r)
+            else:
+                t1 = min(t1, r)
+            if t0 > t1:
+                return None
+    return [p[0] + t0 * dx, p[1] + t0 * dy], [p[0] + t1 * dx, p[1] + t1 * dy]
 
 
-def page_farms(L, src):
-    pg = Page(420, 297)
-    BASE.clear()
-    G, gnote = plan01_geo()
+def _ag_clip_line(P, bb):
+    """a polyline cut to bb: the runs inside it"""
+    runs, cur = [], []
+    for i in range(1, len(P)):
+        s = _ag_clip_seg(P[i - 1], P[i], bb)
+        if s is None:
+            if len(cur) >= 2:
+                runs.append(cur)
+            cur = []
+            continue
+        a, b = s
+        if cur and abs(cur[-1][0] - a[0]) < 1e-9 and abs(cur[-1][1] - a[1]) < 1e-9:
+            cur.append(b)
+        else:
+            if len(cur) >= 2:
+                runs.append(cur)
+            cur = [a, b]
+    if len(cur) >= 2:
+        runs.append(cur)
+    return runs
+
+
+def ag_plan01():
+    """v10 (C13): (drawing, key rows, note, fresh) of the site board's plan 01 from its items.json: drawing = the item
+    sb_plan01 (dict, with "georef"), key rows = [(swatch, text)] of its legend item, note = where it comes from and
+    bg_this_run's "this run ... / from an earlier run ..."; (None, [], why, fresh) when it is missing. Never raises."""
+    path = AG_SB_ITEMS
+    if not os.path.isfile(path):
+        return None, [], u"missing: %s (run the site board v60 or later first)" % path, False
+    fresh, note = bg_this_run(path)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            d = json.load(f)
+    except Exception as ex:
+        return None, [], u"unreadable: %s (%s: %s)" % (path, type(ex).__name__, ex), fresh
+    D, leg, texts = None, None, {}
+    for its in (d.get("pages") or {}).values():
+        for it in its:
+            k_ = it.get("kind")
+            if k_ == "drawing" and it.get("id") == "sb_plan01":
+                D = it
+            elif k_ == "text":
+                texts[it.get("id")] = it.get("string") or u""
+            elif k_ == "legend" and it.get("drawing") == "sb_plan01":
+                leg = it
+    src_ = u"site board %s, %s (%s)" % (d.get("version", "?"), path, note)
+    if D is None or len(D.get("georef") or ()) < 2:
+        return None, [], u"no drawing sb_plan01 with a georef in " + src_, fresh
+    rows = [(dict(e.get("swatch") or {}), texts.get(e.get("text"))) for e in (leg or {}).get("entries", ())
+            if texts.get(e.get("text"))]
+    return D, rows, src_, fresh
+
+
+def _ag_base_shapes(B, bb, s, t):
+    """v10 (C13): sb_plan01's schema shapes cut to bb (its own drawing units) and moved by x' = s x + t (s > 0 uniform,
+    t complex): [shape dict] in the farms drawing's metres; texts never come (its labels stay on p02)"""
+    M = lambda p: [round(s * p[0] + t.real, 3), round(s * p[1] + t.imag, 3)]
+    out = []
+    for L_ in B.get("layers") or ():
+        for sh in L_.get("shapes") or ():
+            k_ = sh.get("t") or sh.get("type")
+            if k_ == "poly":
+                rings = [_ag_clip_ring(r, bb) for r in sh.get("rings") or () if len(r) >= 3]
+                rings = [[M(p) for p in r] for r in rings if r]
+                if rings:
+                    n_ = dict(sh)
+                    n_["rings"] = rings
+                    out.append(n_)
+            elif k_ == "line":
+                for run in _ag_clip_line(sh.get("pts") or (), bb):
+                    n_ = dict(sh)
+                    n_["pts"] = [M(p) for p in run]
+                    out.append(n_)
+            elif k_ == "circle":
+                c = sh.get("c") or (0.0, 0.0)
+                if bb[0] <= c[0] <= bb[2] and bb[1] <= c[1] <= bb[3]:
+                    n_ = dict(sh)
+                    n_["c"], n_["r"] = M(c), round(s * float(sh.get("r") or 0.0), 3)
+                    out.append(n_)
+            elif k_ == "image":
+                bx = sh.get("box") or ()
+                if len(bx) < 4:
+                    continue
+                cl = sh.get("clip") or bx
+                q = (max(bx[0], cl[0], bb[0]), max(bx[1], cl[1], bb[1]), min(bx[2], cl[2], bb[2]),
+                     min(bx[3], cl[3], bb[3]))
+                if q[2] > q[0] and q[3] > q[1]:
+                    n_ = dict(sh)
+                    n_["box"] = M(bx[:2]) + M(bx[2:4])
+                    n_["clip"] = M(q[:2]) + M(q[2:4])
+                    out.append(n_)
+    return out
+
+
+def ag_farms_items(ix, L, src):
+    """v10 (round 5 S9, C13, G-R5-12; was page_farms): the farms we feed as the true-scale plan ag2_farms (group
+    ag2_farms, priority 6): base = plan 01 (sb_plan01) where it reaches, the farms' extent dashed, the fields and
+    orchards fed as outlines; heading, intro, the context line (with the base), the farms layer's key with its
+    figures (WE FEED) and plan 01's own key as items. Figures and sources as v9. Returns the log lines."""
+    out, g, pid = [], AG_FARM_ID, AG_PAGE
+    B, key_rows, bnote, fresh = ag_plan01()
     fed = [(key, poly) for key in ("farmland", "orchard") for side in ("out", "in") for poly in GEO["lc"][key][side]]
     F = GEO["frame"]
-    rotu = G["a"] / abs(G["a"]) if G else complex(math.cos(-math.atan2(F[1][1] - F[0][1], F[1][0] - F[0][0])),
-                                                  math.sin(-math.atan2(F[1][1] - F[0][1], F[1][0] - F[0][0])))
+    a = None
+    if B is not None:                              # survey -> sb_plan01 drawing: z = a w + b (complex similarity)
+        W = [complex(q[0], q[1]) for q in B["georef"]]
+        Z = [complex(q[2], q[3]) for q in B["georef"]]
+        wm, zm = sum(W) / len(W), sum(Z) / len(Z)
+        den_ = sum(abs(w - wm) ** 2 for w in W)
+        if den_ > 0:
+            a = sum((z - zm) * (w - wm).conjugate() for w, z in zip(W, Z)) / den_
+        if not a:
+            B, bnote = None, u"sb_plan01's georef has no extent (%s)" % bnote
+    if B is None:
+        ix.warn(pid, "base", u"the site board's plan 01 is not available (%s): the farms map is exported without its "
+                             u"base" % bnote)
+    elif not fresh:
+        ix.warn(pid, "stale", u"plan 01 under the farms map is %s" % bnote)
+    rotu = a / abs(a) if a else complex(math.cos(-math.atan2(F[1][1] - F[0][1], F[1][0] - F[0][0])),
+                                        math.sin(-math.atan2(F[1][1] - F[0][1], F[1][0] - F[0][0])))
     Q = [complex(p[0], p[1]) * rotu for _, poly in fed for ring in poly for p in ring]   # the plan's own turn
     bx0, bx1 = min(q.real for q in Q), max(q.real for q in Q)
     by0, by1 = min(q.imag for q in Q), max(q.imag for q in Q)
-    wx0, wy0, wx1, wy1 = FARM_WIN
-    den = next((d_ for d_ in ROUND_DENS if (bx1 - bx0) * 1000.0 / d_ + 4.0 <= wx1 - wx0 and
-                (by1 - by0) * 1000.0 / d_ + 4.0 <= wy1 - wy0), ROUND_DENS[-1])
-    m = 1000.0 / den                              # page mm per metre
-    c = rotu * m
-    t = complex((wx0 + wx1) / 2.0, (wy0 + wy1) / 2.0) - complex((bx0 + bx1) / 2.0, (by0 + by1) / 2.0) * m
+    mg = AG_FARM_MARGIN * max(bx1 - bx0, by1 - by0)
+    off = complex(bx0 - mg, by0 - mg)
+    EW, EH = bx1 - bx0 + 2 * mg, by1 - by0 + 2 * mg
 
-    def T(p):
-        z = complex(p[0], p[1]) * c + t
+    def T(p):                                      # survey m -> the farms drawing's m (turned as plan 01, y up)
+        z = complex(p[0], p[1]) * rotu - off
         return (z.real, z.imag)
-    hole = (wx0, wy0, wx1, wy1)
-    if G:                                          # the window on the board's sheet, cut to plan 01's own crop
-        kk = abs(G["a"]) / m
-
-        def S(x, y):
-            z = kk * (complex(x, y) - t) + G["b"]
-            return z.real, -z.imag
-        (sx0, sy1), (sx1, sy0) = S(wx0, wy0), S(wx1, wy1)
-        r = G["rect"]
-        cx0, cy0, cx1, cy1 = max(sx0, r[0]), max(sy0, r[1]), min(sx1, r[2]), min(sy1, r[3])
-        if cx1 - cx0 > 20.0 * kk and cy1 - cy0 > 20.0 * kk:
-            hole = (wx0 + (cx0 - sx0) / kk, wy0 + (sy1 - cy1) / kk, wx1 - (sx1 - cx1) / kk, wy1 - (cy0 - sy0) / kk)
-            BASE.update(pdf=G["pdf"], page=G["page"], clip=(cx0, cy0, cx1, cy1), rect=hole, err=G["err"], den=den)
-        else:
-            G, gnote = None, "the farms lie outside the site board's plan 01"
-    BASE["note"] = gnote
-    header(pg, "THE FARMS WE FEED", "Fields and orchards the stored water serves, on the site plan \"What is there\"",
-           hole=hole if G else None)
+    dens = [d_ for d_ in AG_SCALES if EW * 1000.0 / d_ <= AG_FARM_BOX[0] and EH * 1000.0 / d_ <= AG_FARM_BOX[1]]
+    if not dens:
+        dens = [AG_SCALES[-1]]
+        ix.warn(pid, "scale", u"the farms' extent %.0f x %.0f m fits the drawing column at no listed scale; 1:%d "
+                              u"offered" % (EW, EH, dens[0]))
+    north = math.degrees(math.atan2(rotu.imag, rotu.real))
+    D = ix.drawing(AG_FARM_ID, pid, (0.0, 0.0, EW, EH), scale_pref=dens, units="m", dkind="plan", north_deg=north,
+                   scale_bar=True, priority=6, group=g, title=u"The farms we feed")
+    D["north_note"] = u"north_deg = survey north from the drawing's +y axis, counter-clockwise, degrees (v9's arrow)"
+    ext = (0.0, 0.0, EW, EH)
+    if B is not None:                              # plan 01 moved onto the farms: x' = s z + t (s = 1 / |a|, uniform)
+        s = 1.0 / abs(a)
+        t = -((zm - a * wm) / abs(a)) - off        # z = a w + b -> w turned by rotu - off = (z - b) / |a| - off
+        fx = [q[2] for q in B["georef"]]
+        fy = [q[3] for q in B["georef"]]
+        bb = (max(min(fx), (0.0 - t.real) / s), max(min(fy), (0.0 - t.imag) / s),
+              min(max(fx), (EW - t.real) / s), min(max(fy), (EH - t.imag) / s))
+        cov = max(0.0, bb[2] - bb[0]) * max(0.0, bb[3] - bb[1]) * s * s / max(EW * EH, 1e-9)
+        sh = _ag_base_shapes(B, bb, s, t) if cov > 0 else []
+        D["layers"].append(dict(z=0, name="plan01_base", shapes=sh))
+        err = max(abs(a * w + (zm - a * wm) - z) for w, z in zip(W, Z))
+        out.append(u"farms map base: sb_plan01 from %s; similarity scale %.4f, fit %.2f m over %d corners; %d shapes "
+                   u"kept" % (bnote, abs(a), err, len(W), len(sh)))
+        out.append(u"FLAG p21 farms map: plan 01 covers %.0f %% of the farms' extent (%.0f x %.0f m); the base ends "
+                   u"where plan 01 ends" % (100.0 * min(cov, 1.0), EW, EH))
+        if cov <= 0:
+            ix.warn(pid, "base", u"plan 01 does not reach the farms' extent: the farms map has no base")
+        if err > 1.0:
+            out.append(u"FLAG p21 farms map: sb_plan01's georef corners fit a similarity only to %.2f m" % err)
+    else:
+        out.append(u"farms map base: none (%s)" % bnote)
+    sh = []                                        # the farms layer: the extent, the fields and orchards we feed
+    for run in _ag_clip_line([T(p) for p in list(GEO["around2"]) + [GEO["around2"][0]]], ext):
+        sh.append(("line", run, C["ink"], 0.35, (2.0, 1.2)))
+    for key, poly in fed:
+        for r in poly:
+            for run in _ag_clip_line([T(p) for p in list(r) + [r[0]]], ext):
+                sh.append(("line", run, C["accent"] if key == "farmland" else C["accent_deep"],
+                           0.35 if key == "farmland" else 0.7, None))
+    ix.layer(D, "farms", sh, z=1)
+    out.append(u"farms map %s (%s): extent %.0f x %.0f m (farms + %.0f m margin), scales 1:%s, north %.1f deg" % (
+        AG_FARM_ID, pid, EW, EH, mg, u", 1:".join(str(d_) for d_ in dens), north))
+    # texts (v9's words): heading = the old page title, intro = its subtitle, the context line (review global rule 4)
+    ix.text(pid, "THE FARMS WE FEED", "heading", group=g, priority=6, id=AG_FARM_ID + "_head")
+    ix.text(pid, "Fields and orchards the stored water serves" + (", on the site plan \"What is there\"" if B else ""),
+            "intro", group=g, priority=6, id=AG_FARM_ID + "_intro")
     WC = "ESA WorldCover 2021 v200, 10 m (CC BY 4.0)"                # v4 (F5): read from Data/landcover
     NEED2 = "need: FAO-56 soil balance / 0.90 drip, normal and 1-in-5 dry years"
     SRC2 = "farm areas from " + src
     # v4 (MIRAQUA 28 Oct, F5): no [n] for what is not public online: the orchards (course survey symbols
     # SEMBOL_ZEYTINLIK / SEMBOL_MEYVA_BAH), the extent (around2.pdf registered to the survey) and the base (the site
-    # board's own plan 01, cut and scaled, not redrawn) are said on the page without a mark
-    # context line (review global rule 4): what it shows, why it is here, what to take from it; v4: 0.7 mm lower, under
-    # the subtitle's new baseline (header)
-    pg.text(cited("The site plan \"What is there\" with the fields and orchards our stored water serves outlined: the "
-                  "farms read off the same base, colours and key as the site", None if G else WC),
-            14, 264.8, 8.5, C["ink"])
-    hx0, hy0, hx1, hy1 = hole
-    if not G:                                      # fallback: v1.4's land cover drawing in the window, flagged
-        A = GEO["around2"]
-        pg.rect(wx0, wy0, wx1 - wx0, wy1 - wy0, fill=C["paper"])
-        pg.path([[T(p) for p in A]], fill="E8E5DA")
-        pg.path([[T(p) for p in GEO["frame"]]], fill="E8E5DA")
-        for side in ("out", "in"):
-            for key, lab, col in CLS[::-1]:
-                for poly in GEO["lc"][key][side]:
-                    pg.path([[T(p) for p in r] for r in poly], fill=col if (side == "out" or key in ("farmland", "orchard")) else "D9D6C8")
-        for ln in GEO["streams"]: pg.line([T(p) for p in ln], C["water"], 0.5)
-        for ln in GEO["selinos"]: pg.line([T(p) for p in ln], C["water_deep"], 1.1)
-        pg.text("FLAG: " + gnote + " · land cover drawn from WorldCover instead", wx0 + 2, wy0 + 2, 7, C["accent"], True)
-    # the farms layer: the extent, the fields and orchards we feed as outlines over the plan's own colours
-    pg.poly([T(p) for p in GEO["around2"]], stroke=C["ink"], lw=0.35, closed=True, dash=(2.0, 1.2))
-    for key, poly in fed:
-        pg.path([[T(p) for p in r] for r in poly], stroke=C["accent"] if key == "farmland" else C["accent_deep"],
-                lw=0.35 if key == "farmland" else 0.7)
-    pg.rect(hx0, hy0, hx1 - hx0, hy1 - hy0, stroke=C["ink"], lw=0.25)
-    # key column: north, scale, the farms layer with its figures, then plan 01's own key
-    x, y = FARM_COL, 262.0
-    north(pg, x + 6.0, y - 9.0, math.degrees(math.atan2(rotu.imag, rotu.real)), 5.0)
-    bar = max(v for v in (50, 100, 200, 250, 500, 1000) if v * m <= 27.0)
-    pg.rect(x, y - 21.0, bar * m / 2.0, 1.2, fill=C["ink"])
-    pg.rect(x + bar * m / 2.0, y - 21.0, bar * m / 2.0, 1.2, stroke=C["ink"], lw=0.25)
-    pg.text("0", x, y - 24.0, 6, C["ink"], align="C")
-    pg.text("%d m" % bar, x + bar * m, y - 24.0, 6, C["ink"], align="R")
-    pg.text("1:{:,} at A3".format(den), x, y - 27.5, 6.5, C["ink"], True)
-    y -= 34.0
+    # board's own plan 01, not redrawn) are said without a mark
+    if B is not None:
+        ix.text(pid, cited("The site plan \"What is there\" with the fields and orchards our stored water serves "
+                           "outlined: the farms read off the same base, colours and key as the site", None),
+                "caption", group=g, priority=6, id=AG_FARM_ID + "_caption")
     fed_c, fed_o = L["cropland_ha"], L["orchard_ha"]
     o_lo = min(gross_m3_ha("olive", "dry"), gross_m3_ha("olive", "normal"))
     o_hi = max(gross_m3_ha("olive", "dry"), gross_m3_ha("olive", "normal"))
@@ -3569,57 +4305,24 @@ def page_farms(L, src):
     c_lo = min(gross_m3_ha(c_, y_) for c_ in cc for y_ in ("normal", "dry"))
     c_hi = max(gross_m3_ha(c_, y_) for c_ in cc for y_ in ("normal", "dry"))
     f_in, f_out = GEO["area_ha"]["farmland"][1], GEO["area_ha"]["farmland"][0]
-    pg.text("WE FEED", x, y, 8, C["accent"], True)
-    y -= 3.0
-    rows = [("outline", C["accent"], "fields " + cite(SRC2), "%s ha" % fmt1(fed_c),
+    rows = [(dict(kind="line", colour=C["accent"], width_pt=round(0.35 / IX_PT, 2)), "fields " + cite(SRC2),
+             "%s ha" % fmt1(fed_c),
              ["%s-%s m³ a season %s" % (fmt(rnd(fed_c * c_lo)), fmt(rnd(fed_c * c_hi)), cite(NEED2)),
               "as " + " / ".join(crop_word(c_) for c_ in cc) + " " + cite(TUIK),   # v4 (G11): corn, not maize
               "inside the site %s ha · outside %s ha %s" % (fmt1(f_in), fmt1(f_out), cite(WC))]),
-            ("outline2", C["accent_deep"], "orchards", "%s ha" % fmt1(fed_o),             # v4 (F5): survey, no mark
+            (dict(kind="line", colour=C["accent_deep"], width_pt=round(0.7 / IX_PT, 2)), "orchards",   # v4 (F5): survey, no mark
+             "%s ha" % fmt1(fed_o),
              ["%s-%s m³ a season" % (fmt(rnd(fed_o * o_lo, 100)), fmt(rnd(fed_o * o_hi, 100))), "as olive"]),
-            ("dash", C["ink"], "the extent they lie in", "%s ha" % fmt(L.get("extent_ha", 455.0)), [])]
-    for kind, col, lab, big, lines in rows:
-        key_sample(pg, kind, col, x, y)
-        pg.text(lab, x + 5.5, y - 2.1, 6.5, C["ink"], True)
-        y -= 7.0
-        pg.text(big, x, y, 12, C["green_deep"], True)
-        y -= 3.4
-        for ln in lines:
-            y = pg.para(ln, x, y, 29.0, 6, C["ink2"], lead=1.2)
-        y -= 2.0
-    pg.line([(x, y + 0.5), (406.0, y + 0.5)], C["faint"], 0.3)
-    y -= 4.0
-    if G:
-        pg.text("THE SITE PLAN'S KEY", x, y, 7, C["ink"], True)
-        y -= 2.5
-        for it in G["legend"]:
-            key_sample(pg, it.get("kind", "fill"), it.get("colour", "B0AC9C"), x, y)
-            y = min(pg.para(it.get("label", ""), x + 5.5, y - 2.0, 23.5, 5.5, C["ink"], lead=1.15) + 0.3, y - 3.4)
-    else:
-        for key, lab, col in CLS:
-            key_sample(pg, "fill", col, x, y)
-            pg.text(lab, x + 5.5, y - 2.0, 5.5, C["ink"]); y -= 3.6
-    ag_crop("ag2_plan", 1, 13.0, min(y, wy0) - 1.0, 407.0, 267.6, den)   # v4: under the subtitle (269.5 now)
-    return pg
+            (dict(kind="dash", colour=C["ink"], width_pt=round(0.35 / IX_PT, 2)), "the extent they lie in",
+             "%s ha" % fmt(L.get("extent_ha", 455.0)), [])]
+    ix.legend(pid, AG_FARM_ID, [(sw, lab.strip()) for sw, lab, _b, _l in rows], title="WE FEED",
+              id=AG_FARM_ID + "_legend", group=g)
+    ix.list(pid, AG_FARM_ID, [u" · ".join([lab.strip() + ": " + big] + [ln.strip() for ln in lines])
+                              for _sw, lab, big, lines in rows], numbered=False, id=AG_FARM_ID + "_figures", group=g)
+    if B is not None and key_rows:                 # plan 01's own key (its legend item's rows, as the site board wrote)
+        ix.legend(pid, AG_FARM_ID, key_rows, title="THE SITE PLAN'S KEY", id=AG_FARM_ID + "_plan_key", group=g)
+    return out
 
-
-def put_base(path):
-    """v1.5: the site board's plan 01 under page 2's farms layer, as the booklet places sheets (PyMuPDF
-    show_pdf_page): the window cut from its sheet, one scale factor both ways. Returns a log line."""
-    if not BASE.get("pdf"):
-        return "farms map: FLAG fallback drawing, " + BASE.get("note", "")
-    import fitz
-    K = 72 / 25.4
-    hx0, hy0, hx1, hy1 = BASE["rect"]
-    cx0, cy0, cx1, cy1 = BASE["clip"]
-    doc, src = fitz.open(path), fitz.open(BASE["pdf"])
-    doc[1].show_pdf_page(fitz.Rect(hx0 * K, (297.0 - hy1) * K, hx1 * K, (297.0 - hy0) * K), src, BASE["page"],
-                         clip=fitz.Rect(cx0 * K, cy0 * K, cx1 * K, cy1 * K), overlay=False)
-    tmp = path + ".tmp"
-    doc.save(tmp, garbage=3, deflate=True)
-    doc.close(); src.close()
-    os.replace(tmp, path)
-    return "farms map on %s at 1:{:,} (georeference fit {:.2f} mm)".format(BASE["den"], BASE["err"]) % BASE["note"]
 
 # ------------------------------------------------------------------ sources that are not public (F5, D13)
 # v4 (MIRAQUA 28 Oct, F5, Aras 28 Oct 11:38 "remove non-public citations"): the project's own record or internal
@@ -3634,158 +4337,9 @@ F5_STATUS = re.compile(r"\s*\((?:calculated|assumed|estimated|interpolated|indic
                        r"\s*\b(?:calculated|assumed|estimated|interpolated|indicative)\b", re.I)
 
 
-class Placer:
-    """v1.6 (spec §2: no text on another text): every label's box is measured with text_w and kept; a new label takes
-    the first free place over its anchor, lane by lane upwards (or downwards), left-, centre- or right-aligned on the
-    anchor, inside its region; lifted labels get a hair leader down to the anchor. No free place: the label is left
-    out and named in the log (never drawn over another). v8: put(leader=False) for no leaders (G3)."""
-    def __init__(self):
-        self.boxes, self.dropped = [], []
-
-    def free(self, b):
-        return all(b[2] <= q[0] or b[0] >= q[2] or b[3] <= q[1] or b[1] >= q[3] for q in self.boxes)
-
-    def box(self, s, x, y, size, bold):
-        h = size * 0.3528
-        return (x - 0.5, y - 0.28 * h - 0.4, x + text_w(s, size, bold) + 0.5, y + 0.8 * h + 0.4)
-
-    def text(self, pg, s, x, y, size, col, bold=False, halo=None):
-        """a fixed label (titles, columns): drawn and blocked"""
-        self.boxes.append(self.box(s, x, y, size, bold))
-        pg.text(s, x, y, size, col, bold, halo=halo)
-
-    def put(self, pg, s, ax, ay, size, col, bold=False, region=None, gap=1.4, up=True, lanes=9, halo="FFFFFF",
-            lead_col=None, stick=False, leader=True):
-        """v8 (round 3, G3): leader=False draws no hair leader (a lifted label stands in its lane alone)"""
-        w, lane = text_w(s, size, bold), size * 0.3528 * 1.45
-        for k in range(lanes):
-            y = ay + (gap + k * lane if up else -gap - size * 0.3528 - k * lane)
-            for x in (ax - 0.6, ax - w / 2.0, ax - w + 0.6):
-                b = self.box(s, x, y, size, bold)
-                if region and (b[0] < region[0] or b[2] > region[2] or b[1] < region[1] or b[3] > region[3]):
-                    continue
-                if not self.free(b):
-                    continue
-                end = b[1] + 0.3 if up else b[3] - 0.3
-                seg = (ax - 0.25, min(ay, end), ax + 0.25, max(ay, end))
-                lead = (bool(k) or stick) and leader
-                if lead and not self.free(seg):
-                    continue                           # the leader would cross another label
-                self.boxes.append(b)
-                if lead:
-                    pg.line([(ax, ay), (ax, end)], lead_col or C["ink2"], 0.15)
-                    self.boxes.append(seg)
-                pg.text(s, x, y, size, col, bold, halo=halo)
-                return x, y
-        self.dropped.append(s)
-        return None
-
-
-# ------------------------------------------------------------------ v1.6: the sources page (Aras 27 Oct: no source footers)
-def page_sources():
-    """the sheet's one numbered source key, on its own page: the [n] marks on pages 1-3 refer to it, and the
-    booklet's sources page reads it from here ("Sources by number:", as the old page footers)."""
-    pg = Page(420, 297)
-    pg.rect(0, 0, 420, 297, fill=C["white"])
-    pg.text("SOURCES", 14, 279, 22, C["ink"], True)
-    pg.text("Numbered as the [n] marks on pages 1-2", 14, 271.5, 11, C["ink2"])
-    key = "Sources by number: " + "  ".join("[%d] %s" % (i + 1, k) for i, k in enumerate(SRC_KEY))
-    pg.para(key, 14, 260, 392, 8, C["ink"], lead=1.35)
-    return pg
-
-# ------------------------------------------------------------------ v1.4: A3 booklet = crops of this sheet (booklet/CROP_SPEC.md)
-# Aras 25 Oct 21:47: the booklet shows the sheet's own drawings. Each page function records its panels' rects
-# (from the same numbers it lays them out with) in AG_CROPS; booklet_export writes them to blocks.json, with
-# booklet/results.json (hectares per crop, same keys as v1.3). The v1.3 booklet redraws are gone.
-# ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
-# Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
-# The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
-BK_MIN_PT = 7.5                              # labels and captions on the booklet (brief: 7-8 pt, minimum 7)
-BK_CAPTION_MM = 5.0                          # caption line under every drawing frame
-
-
-def bk_frame(key, w_default, h_default):
-    """(w, h) mm a drawing for asset key "<folder>/<block>" is drawn at: the assembler's booklet_slots.json if it has
-    run once, else the defaults given (the plan's frame size). h excludes the caption line."""
-    try:
-        import json as _j
-        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
-                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
-            s = _j.load(f)[key]
-        return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
-    except Exception:
-        return float(w_default), float(h_default) - BK_CAPTION_MM
-
-
-def bk_take_text(items, H):
-    """Page items (poly/line/circle/text tuples, y up from the bottom, mm) -> (items without text, labels).
-    Labels: x, y in mm from the top-left (y to the baseline), size raised to BK_MIN_PT, colour hex."""
-    keep, labels = [], []
-    for it in items:
-        if it[0] != "text":
-            keep.append(it)
-            continue
-        _, s, x, y, size, color, bold, align = it[:8]
-        labels.append({"x": round(x, 2), "y": round(H - y, 2), "text": s, "size": max(float(size), BK_MIN_PT),
-                       "bold": bool(bold), "anchor": align or "L", "colour": color if isinstance(color, str) else "4A3F35"})
-    return keep, labels
-
-
-class BkBlocks(object):
-    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
-    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
-    def __init__(self, out_dir, script, version):
-        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
-        os.makedirs(self.dir, exist_ok=True)
-        self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
-
-    def path(self, name):
-        return os.path.join(self.dir, name)
-
-    def source(self, key, text, url):
-        """A public source: used in any text as {src:key}; numbered once for the whole booklet."""
-        self.d["sources"][key] = {"text": text, "url": url}
-
-    def drawing(self, bid, pdf_name, labels, caption="", scale_den=None, legend=None):
-        self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
-                                 "scale_den": scale_den, "legend": legend or []}
-
-    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
-        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
-        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
-        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
-        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
-        drop = regexes of sheet texts not to carry."""
-        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
-                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
-                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
-
-    def tiles(self, bid, tiles):
-        self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
-
-    def text(self, bid, heading="", body="", bullets=None):
-        self.d["blocks"][bid] = {"type": "text", "heading": heading, "body": body, "bullets": bullets or []}
-
-    def save(self):
-        import json as _j
-        p = os.path.join(self.dir, "blocks.json")
-        with open(p, "w", encoding="utf-8") as f:
-            _j.dump(self.d, f, ensure_ascii=False, indent=1)
-        return p
-AG_CROPS = []                        # (id, page index, (x0, y0, x1, y1) mm from the page's top-left, y down, den, legend, drop,
-#                                      bk_w or None)
-# v8: ag1_headline gone (the to-farms headline is part of ag1_stream)
-# v9 (round 4, P19.1): the p19 crops carry their group heading inside, so their booklet captions are empty;
-# ag1_reading is drawn inside ag1_context and is no crop of its own any more
-AG_CAPTIONS = {"ag1_bars": "", "ag1_context": "", "ag1_crops": "", "ag1_stream": "", "ag1_history": "",
-               "ag2_plan": "The farms we feed, on the site plan"}   # v5 (D9 a): ag3_* gone with the ladder page
-
-
-def ag_crop(cid, page, x0, y0, x1, y1, den=None, legend=None, drop=None, bk_w=None):
-    """a panel of page `page` (0-2), given as the page's own y-up mm (x0, y0)-(x1, y1). v8: bk_w = the width (mm) it is
-    drawn for on the booklet page (the booklet then prints it at that size, 1:1)"""
-    AG_CROPS.append((cid, page, (round(x0, 2), round(297.0 - y1, 2), round(x1, 2), round(297.0 - y0, 2)), den,
-                     legend or [], drop or [], bk_w))
+# ------------------------------------------------------------------ v1.4: results.json (hectares per crop, keys as v1.3)
+# v10 (G-R5-12): the v1.4-v9 crops (AG_CROPS, ag_crop, blocks.json, booklet_export), the v1.6 Placer and the sources
+# page are gone: the drawings and texts are items (ag_items), the sources Sources rows (ix.source).
 
 
 def ha_results(L):
@@ -3817,58 +4371,53 @@ def ha_results(L):
     return R
 
 
-def booklet_export(L):
-    """blocks.json: one crop per panel of the A3 sheet; results.json: hectares per crop. Returns a log line."""
-    bk = BkBlocks(OUT_DIR, "AgriCulture", VERSION)
-    for cid, page, r, den, legend, drop, bk_w in AG_CROPS:
-        bk.crop(cid, OUT_PDF, r, caption=AG_CAPTIONS.get(cid, ""), scale_den=den, legend=legend, page=page, drop=drop)
-        if bk_w:                                   # v8: drawn for the booklet page at 1:1 (as city link, site board)
-            bk.d["blocks"][cid]["bk_w"] = round(bk_w, 3)
-    bk.save()
+def ag_results(L):
+    """v1.4 (v10: was the second half of booklet_export): results.json, hectares per crop, same keys, in
+    cached/booklet/<AG_FOLDER>/ (the folder is made here, just before the write). Returns its path."""
     R = ha_results(L)
     R.update(script="AgriCulture", version=VERSION)
-    with open(bk.path("results.json"), "w", encoding="utf-8") as f:
+    d_ = bg_booklet(AG_FOLDER)
+    os.makedirs(d_, exist_ok=True)
+    p_ = os.path.join(d_, "results.json")
+    with open(p_, "w", encoding="utf-8") as f:
         json.dump(R, f, ensure_ascii=False, indent=1)
-    return "booklet: %d crops, results.json" % len(AG_CROPS)
+    return p_
 
-# ------------------------------------------------------------------ build and run
-def build(path):
-    BASE_OFF[0] = False
+# ------------------------------------------------------------------ items and run
+AG_SRC = "agsrc%d"                   # v10: the source keys of this script's Sources rows ({src:agsrcN} in the texts)
+
+
+def ag_items():
+    """v10 (round 5 S9, G-R5-12; was build(path), CHK-12: a Button input named "build" read the function): reads the
+    water balance results, exports booklet p21's blocks, the crop photos, the farms map and every cited source as items
+    and writes items.json. Returns (ix, L, src, farms log lines)."""
     L, src = live()
     NET.clear(); NET.update(L["net"])
     PHOTO_GOT.clear(); PHOTO_STATE.clear(); del PHOTO_LOG[:]   # v2: the plant photos, read once a press
-    for _ in range(2):
-        del AG_CROPS[:], SRC_KEY[:], LOG_NOTES[:], PHOTO_FR[:]      # v1.6: one source numbering for the whole sheet
-        PHOTO_N[0] = 0
-        tp_log_lines()                             # v9: a second pass logs its own "overlap p19 ..." lines only
-        pages = [page_cubic(L, src), page_farms(L, src)]       # v5 (D9 a): the plant ladder page is gone
-        write_pdf(pages + [page_sources()], path)
-        try:                                       # v1.5: the site board's plan 01 under the farms layer
-            return src, put_base(path) + "\n" + put_photos(path)   # v2: then the photos (never raises)
-        except PermissionError:
-            raise
-        except Exception as ex:                    # never an empty window: once more with the fallback drawing
-            BASE_OFF[0] = True
-            err = "farms map: FLAG the site plan could not be placed (%s: %s), fallback drawing" % (type(ex).__name__, ex)
-    return src, err + "\n" + put_photos(path)
+    PHOTO_N[0] = PHOTO_N[1] = 0
+    del SRC_KEY[:], LOG_NOTES[:]                   # v1.6: one source numbering for the whole script
+    ix = Ix(AG_FOLDER, "bergama_agriculture_alternatives", VERSION)
+    ag_p21_items(ix, L, src)
+    farm_lines = ag_farms_items(ix, L, src)
+    for i, k in enumerate(SRC_KEY):                # v1.6's numbered key, now the booklet's Sources rows
+        ix.source(AG_SRC % (i + 1), k, None, page=AG_PAGE)
+    ix.save()
+    return ix, L, src, farm_lines
+
 
 def main():
+    """v10: export the items and results.json; the log = head, "<n> warnings" + every WARNING line (wn_compose), then
+    the run's lines. Nothing is written to output/ (C2)."""
     t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
-    path = os.path.join(OUT_DIR, OUT_PDF)
-    try:
-        src, base = build(path)
-    except PermissionError:
-        return "The PDF is open in another program. Close it and press again: " + path
-    try:                                           # v1.3: the A3 booklet frames; an error here never breaks the sheet
-        bk = booklet_export(live()[0])
-    except Exception as ex:
-        bk = "booklet ERROR (sheet saved): %s: %s" % (type(ex).__name__, ex)
-    bk = "\n".join([bk] + bg_tidy_output("Bergama_agriculture_alternatives"))   # 27 Oct: output/ = PDFs only
-    flag = "".join("\n" + t for t in LOG_NOTES + tp_log_lines())   # v9 (G-R4-1): "overlap p19 <crop> checked n, collisions 0"
-    flag += "\nFLAG: water balance results file not found in Downloads; its default-lands copy was used" if src == DEFAULT_NOTE else ""
-    return "%s  %s\ntrigger: %s\nfigures: %s%s\n%s\nagriculture alternatives %s, %.1f s\n%s" % (
-        OUT_PDF, time.strftime("%H:%M:%S"), TRIG_WHY[0], src, flag, base, VERSION, time.time() - t0, bk)
+    wn_reset()                                     # v10 (C1): one warning sink per run
+    ix, L, src, farm_lines = ag_items()
+    rp = ag_results(L)
+    lines = [ix.summary(), "results %s  %s" % (rp, time.strftime("%H:%M:%S")), "trigger: %s" % TRIG_WHY[0],
+             "figures: %s" % src] + list(LOG_NOTES) + farm_lines + photo_log().split("\n")
+    if src == DEFAULT_NOTE:
+        lines.append("FLAG: water balance results file not found in Downloads; its default-lands copy was used")
+    head = ["agriculture alternatives %s · %s · %.1f s" % (VERSION, time.strftime("%Y-%m-%d %H:%M:%S"), time.time() - t0)]
+    return "\n".join(wn_compose(tp_log_lines() + lines, head))
 
 # ---- trigger.py (round 4, S1, 1 Nov 2026; BRIEF §6, round 3 open row 13): ONE start-up / trigger file ----------------
 # Replaces common/chain_fire.py, gh_in_items.py, _gh_inputs.py, to_bool.py and the scripts' own copies of chain_fire,
@@ -3898,7 +4447,68 @@ def main():
 #   trig_should_run(key="chain_seen", settings=()) -> (run, why, button)
 #                                          run: bool; why: "button <name>" | "chain <input>" | None; button: its name
 #                                          or None. Each script logs "trigger: <why>" in its run log.
+#
+# ROUND 5 (S1, 1 Nov 2026; C2, CHK-13: an output folder appeared when Aras only OPENED the GH file, 16:29): every
+# memory above (the first-solve note, the last done text seen, the Button's last state) is now kept per OPEN
+# DOCUMENT (trig_doc_key: the GH document's runtime id, else its object hash), not per Rhino session. Before, the
+# notes of an earlier opening survived in Rhino's sticky, so the first solve after a reopen was not "first" and a
+# done text still on a wire (or a Toggle left True: prev False -> True) started a run. Now the first solve after any
+# open, paste or rewire only NOTES the wire and the Button state; only a later change starts a run.
+# CHANGED APPROACH (Aras 1 Nov 22:46: "if you struggle with an aspect over and over, change your approach"): the chain
+# no longer trusts memory notes alone. A chain start exists ONLY after a Button press in THIS open document
+# (trig_mark_chain stores (time, document id)); chain_fire fires a component only when such a press exists and its
+# done text is newer than the last one it saw. Opening a file, pasting, rewiring or a Toggle left True can never start
+# a chain: without a press in this load, every done text on a wire is only noted.
+#   trig_doc_key() -> str                  the open GH document's per-load id ("" outside Grasshopper)
+#   trig_mark_chain(why)                   a Button run notes the chain start time (sticky "bergama_chain_t0", read by
+#                                          bergama_paths.bg_this_run); trig_should_run calls it
 TRIGGER_BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button", "start")
+
+
+def trig_doc_key():
+    """the open Grasshopper document's id for THIS load: GH_Document.RuntimeID (new each time a file is opened in a
+    Rhino session), else the document object's hash; "" outside Grasshopper"""
+    try:
+        d_ = ghenv.Component.OnPingDocument()                              # noqa: F821
+    except Exception:
+        return ""
+    if d_ is None:
+        return ""
+    for a_ in ("RuntimeID", "RuntimeId"):
+        try:
+            v_ = getattr(d_, a_)
+            if v_ is not None:
+                return "doc%s" % v_
+        except Exception:
+            pass
+    try:
+        return "doch%s" % d_.GetHashCode()
+    except Exception:
+        return "docp%s" % id(d_)
+
+
+def trig_mark_chain(why):
+    """a run started by a Button press is the start of a chain run: its time goes to sticky "bergama_chain_t0" so
+    readers can tell this run's files from older ones (bergama_paths.bg_this_run)"""
+    if not why or not str(why).startswith("button"):
+        return
+    try:
+        import scriptcontext as _scx
+        import time as _t
+        _scx.sticky["bergama_chain_t0"] = _t.time()
+        _scx.sticky["bergama_chain_doc"] = trig_doc_key()
+    except Exception:
+        pass
+
+
+def trig_chain_live():
+    """True when a Button press started a chain in THIS open document (see CHANGED APPROACH above)"""
+    try:
+        import scriptcontext as _scx
+        return (_scx.sticky.get("bergama_chain_t0") is not None and
+                _scx.sticky.get("bergama_chain_doc") == trig_doc_key())
+    except Exception:
+        return False
 
 
 def trig_inputs():
@@ -3983,7 +4593,7 @@ def chain_fire(v, key, name=None):
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring() + ":" + trig_doc_key()  # noqa
         except Exception:
             pass
         # the first solve with this wiring (pasted, rewired or newly opened component) only notes what is on the
@@ -3995,7 +4605,7 @@ def chain_fire(v, key, name=None):
         first = _scx.sticky.get(key + ":init") is tok
         if not s.startswith("done "):
             return False
-        if first or _scx.sticky.get(key) == s:
+        if first or _scx.sticky.get(key) == s or not trig_chain_live():
             _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
@@ -4037,13 +4647,17 @@ def trig_should_run(key="chain_seen", settings=()):
             gk = str(ghenv.Component.InstanceGuid)                          # noqa: F821
         except Exception:
             gk = ""
-        pk = "trig_prev:" + key + ":" + gk
+        pk = "trig_prev:" + key + ":" + gk + ":" + trig_doc_key()
         on = to_bool(trig_get(btn)) if btn else False
-        prev = bool(_scx.sticky.get(pk, False))
+        prev = _scx.sticky.get(pk)
+        if prev is None:              # round 5 (C2): the first solve of this document only notes the Button's state
+            prev = on
+        prev = bool(prev)
         _scx.sticky[pk] = on
     except Exception:
         on, prev = (to_bool(trig_get(btn)) if btn else False), False
     if on and not prev:
+        trig_mark_chain(u"button")
         return True, u"button " + btn, btn
     # the chain: the button input first (the board family wires the done text there), then every other own input
     skip = set(str(x).lower() for x in settings or ())
@@ -4096,7 +4710,7 @@ if _gh:
         for _s in ("", "_status", "_done"):                            # shows itself at once, idle, no old time or log
             _sc.sticky.pop("bergama_agri_alt_log" + _s + _ik, None)
     done = _sc.sticky.get("bergama_agri_alt_log_done" + _ik, "idle")   # 25 Oct 10:20: stays after the run; wire into the next script's run (one-click chain)
-    log = _sc.sticky.get("bergama_agri_alt_log" + _ik, "Press the Button to export to " + OUT_DIR)
+    log = _sc.sticky.get("bergama_agri_alt_log" + _ik, "Press the Button to export to " + bg_booklet(AG_FOLDER))
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log
     try: ghenv.Component.Message = "AgriCulture " + VERSION + " · " + _sc.sticky.get("bergama_agri_alt_log_status" + _ik, "idle")   # Aras 25 Oct 09:44
     except Exception: pass

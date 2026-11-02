@@ -396,6 +396,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, k, col_, kb, L, order=64, r_min=rc)
         taken.append(tuple(v_ / kb for v_ in bb_))
         ovl.append(bb_)
+    _p02_drawing_marks(B, V, F2, den_bk, kb, L)           # v60 (round 5, P02.1): where the booklet's cuts are taken
     # v59 closing (G-R4-1): the map: its own names and markers (from i_map0) may sit on it, no other text
     sb_keep(B, (V.X0, mb, V.X0 + mw, ymap), u"p02 plan 01", "map", i_map0)
     # legend (v38: drawn samples with short names; explanations as [n] in the Sources key)
@@ -693,6 +694,54 @@ def _p02_col(c):
     if isinstance(c, list):
         return tuple(c[:3])
     return C(str(c))
+
+
+# v60 (round 5, P02.1, Aras U02 "lets show where we took that drawings from on the map"): every section cut of the
+# booklet that the level table holds, in the key-map cut style (red R01, common/keymap.py km_cut_items), its id at one
+# end and the booklet pages (25-page numbering, BRIEF page map: PDF p13 = W1 + W2, p14 = W3 + W4, p19 = F2 + F4,
+# p20 = W1 + S4; S4 also p15, p16, p18 per LEVELS) at the other. Cuts not in the level table (p09 R1-R4, p12 A-A',
+# p24 D1/D2, plan windows) are not marked here: logged (their owning scripts hold their lines).
+P02_MARK_PAGES = [("S1", "p04"), ("S2", "p04"), ("S3", "p04"), ("S4", "p04, p15, p16, p18, p20"), ("S5", "p05"),
+                  ("S6", "p05"), ("S7", "p05"), ("S8", "p05"), ("W1", "p13, p20"), ("W2", "p13"), ("W3", "p14"),
+                  ("W4", "p14"), ("F2", "p19"), ("F4", "p19")]
+
+
+def _p02_drawing_marks(B, V, F2, den, kb, L, order=66):
+    """v60 (P02.1): the cut marks above on plan 01 (survey m through V; km_cut_items sizes in key-map mm at 1:den,
+    line weights and dashes in booklet mm, kb = board units per booklet mm). Logs the cuts marked and those left out."""
+    if "km_cut_items" not in globals() or "level_ends" not in globals():
+        wn_warn("p02", "marks", u"drawing marks not drawn: the key-map or level module is missing")
+        return
+    cuts, done, miss = [], [], []
+    for cid, pg_ in P02_MARK_PAGES:
+        try:
+            a_, b_ = level_ends(cid if cid not in ("S5", "S6") else cid + "-1")
+            cuts.append((a_, b_, (cid, pg_), 1))
+            done.append(cid)
+        except Exception:
+            miss.append(cid)
+    try:
+        its = km_cut_items(cuts, den, frame=list(F2.P))
+    except Exception as ex_:
+        wn_warn("p02", "marks", u"drawing marks not drawn ({})".format(ex_))
+        return
+    for it in its:
+        if it[0] == "line" and len(it[1]) >= 2:
+            P_ = V.P(it[1])
+            dash = it[4]
+            for d_ in (r28_pattern(P_, [m_ * kb for m_ in dash]) if dash else [P_]):
+                B.line(d_, C(it[2]), L, order, bk_lw(it[3] or 0.3, kb))
+        elif it[0] == "fill":
+            rings = [R_ for R_ in it[1] if len(R_) >= 3]
+            if rings:
+                B.fill(V.Ps(rings), C(it[2]), L, order)
+        elif it[0] == "text":
+            px, py = V.p(*it[2])
+            B.text(it[1], px, py, it[3] * _PDF_CAP["sans"] * kb, C(it[4]), L, order=order + 1, font=FONT_TITLE,
+                   bold=bool(it[5]), align=it[6] or "L")
+    LOG.append(u"p02 drawing marks: {} cut(s) {}{}; not in the level table (not marked): p09 R1-R4, p12 A-A', p24 "
+               u"D1/D2, plan windows".format(len(done), u", ".join(done),
+                                             u"; missing ends: " + u", ".join(miss) if miss else u""))
 
 
 def _p02_put(B, shapes, L, order, k):
@@ -1410,12 +1459,16 @@ def _p02_crown(leaf, cx, cy, D, k, seed=0):
     leaf type (P02_LEAF_SP), scaled to D; a plain crown when the plant module is missing"""
     fn = globals().get("pla_plan")
     if fn is not None:
-        try:
+        old_ = pla_images(False) if "pla_images" in globals() else None   # v60 (S4 interface): this putter takes
+        try:                                                                # vector rings only (no image items)
             cm = 10.0
             sh = fn(P02_LEAF_SP.get(leaf, "plane"), 0.0, 0.0, D / k / cm, crown_m=cm, seed=seed)
             return [(s_[0], [(cx + px * k, cy + py * k) for px, py in s_[1]]) + tuple(s_[2:]) for s_ in sh]
         except Exception:
             pass
+        finally:
+            if old_ is not None:
+                pla_images(old_)
     return [("poly", circle_pts(cx, cy, 0.5 * D, 14), mix(LEAF_COL.get(leaf, LEAF_COL[0]), PAPER, 0.15), INK2, 0.08)]
 
 
@@ -2115,9 +2168,7 @@ def export_axonometrics(S):
     DG, ctx = diagram_ctx(S)
     stamp = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     out = []
-    if not os.path.isdir(pdf_folder()):
-        os.makedirs(pdf_folder())
-    del CROP_DIRECT[:]
+    del CROP_DIRECT[:]                                    # v60: no sheet PDF; the page items go to the booklet items
     # v51 (WO-T3a-2, 02 §3): people on the axonometric. The engine (data/DIAG_SRC.py) is not this page's file: its
     # compose() calls chrome() last with the drawing's view, so the figures go in there (_p03_figures), and the
     # engine's own chrome is put back after the loop
@@ -2130,9 +2181,6 @@ def export_axonometrics(S):
             LOG.append("WARNING: the axonometric's figures failed (drawn without them):\n" + traceback.format_exc())
         try:                                              # v58 (round 3, P03.1, G3): numbers on the spot + key
             lb_, db_, bd_ = _p03_marks(pg_, V_, _P03.get("calls") or [], DG, ctx_.BP)
-            lp_overlap_flag("p03", lb_, db_, bounds=bd_)
-        except TextError:                                 # v59 (round 4, PALL.2, G-R4-1): never swallowed
-            raise
         except Exception:
             LOG.append("WARNING: the axonometric's numbered places failed (drawn without them):\n" +
                        traceback.format_exc())
@@ -2209,15 +2257,9 @@ def _p03_axo_loop(S, DG, ctx, stamp, out):
             spec["legend"] = lambda leg0=leg0: [(k_, c_, _p03_label(t_)) for k_, c_, t_ in
                                                 (leg0() if callable(leg0) else leg0)]
             pg, st = DG["compose"](ctx, spec, ext, stamp)
-            # v59 (round 4, PALL.2, G-R4-1): the sheet is booklet p03 as it is: its TextPage (started in compose,
-            # every text registered by the engine's Page.text) is checked before the PDF is written; a collision
-            # RAISES (the sheet is not written, the run stops as the board's own check does)
-            if getattr(pg, "tp", None) is None:
-                raise TextError(u"p03: the axonometric sheet has no TextPage (DIAG_SRC compose did not start it)")
-            pg.check_text(LOG)
-            p = os.path.join(pdf_folder(), fn)
-            DG["write_pdf"]([pg], p)
-            out.append((p, time.time() - t0))
+            # v60 (round 5, G-R5-12): no sheet PDF and no text check here: the page's items (pg.items, mm, y up)
+            # go to the booklet items (16d_items.py _six_axo); the booklet sets and checks the texts
+            out.append((fn[:-4] + " items", time.time() - t0))
             bx, ph = DG["BOX"], DG["PAGE_H"]                 # v40: the booklet crop: the page between the rules (the
             bx = (0.0, bx[1], DG["PAGE_W"], bx[3])            # callouts may sit beyond the drawing box, left and right)
             rm = (bx[0], ph - bx[3] - 4.0, bx[2], ph - bx[1] + 4.0)    # y down
@@ -2228,10 +2270,8 @@ def _p03_axo_loop(S, DG, ctx, stamp, out):
             leg = [(("dot", DG["TREE_STYLES"].get(c_, DG["TREE_STYLES"]["tree"])["mid"]) if k_ == "tree" else (k_, c_))
                    + (t_,) for k_, c_, t_ in spec["legend"]() if c_ is not None]
             CROP_DIRECT.append(("axo_what_is_there", fn, rm,
-                                u"What is there · heights, heritage, water, green", None, crop_legend(leg), []))
-        except TextError:                                 # v59 (round 4, PALL.2, G-R4-1): a text collision or a text
-            LOG.append(u"FLAG overlap p03: the axonometric sheet has a text collision (not written)")   # under 6 pt
-            raise
+                                u"What is there · heights, heritage, water, green", None, crop_legend(leg), [],
+                                pg, ph))                  # v60: + the page and its height (16d_items)
         except Exception:
             LOG.append("WARNING: the {} axonometric failed:\n{}".format(did, traceback.format_exc()))
     return out

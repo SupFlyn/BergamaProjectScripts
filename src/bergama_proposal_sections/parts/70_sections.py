@@ -6,7 +6,7 @@
 # true size and form; D6: no fig, citrus, iris, oleander, white poplar; D2: common reed only in lined basins the flood
 # passes by). Figures through ps_fig / ps_zones (M7, revision 30 Oct; R2-C). All four sections
 # look downstream: the NE bank (left bank) on the left, the SW bank on the right, as the key map's triangles show.
-# Drawn in booklet print mm (k = PS_K mm per m); build_sheet() places the block on the A0 sheet at 1 / BK_S.
+# Drawn in print mm (k = PS_K mm per m, 1:500 since v19); parts/90_booklet.py exports it in metres (no sheet).
 # Revision 30 Oct (T6, booklet p12): people are the M7 figures at 1.75 m (D9 layer 0 at the cut), plants the M6
 # species at their sourced heights in mixed, wet-to-dry scatters (G9), checked by sf_assert_g6 (G6); the water is the
 # M5 section (average yearly flow, never dry; Q100 / Q500 from the cut registry); every bank is a designed place with
@@ -32,7 +32,7 @@
 # sections (water board data/CUTS.py), the summer strip on the survey low point (B2 finding, Aras ask 1 a).
 # v17 (round 4, S7, P13.1 / D2): 1:250 on the booklet page, two cuts per page, one cut per full row (CHK-8); numbers
 # (mk_marker) instead of callout circles, the words in a side column / strip, level marks outside, insets 1:100.
-PS_SCALE = 250                      # 1:250 on the booklet page (standard scales, SCRIPT_STANDARD §8)
+PS_SCALE = 500                      # v19 (round 5, N3 a, Aras 1 Nov 22:44): W1-W4 merged on one page at 1:500 (was 1:250)
 PS_K = 1000.0 / PS_SCALE              # print mm per m (k of section_parts and plants)
 PS_DEPTH = 1.0                        # m of cut ground drawn under the bed (section_parts drawing rule)
 PS_WALL_T = 0.60                      # m: DSİ wall thickness: no sourced value; the same 0.60 m as p.04-05 (site board P45_WALL_T_M, G2)
@@ -85,7 +85,8 @@ PS_INSET_K = 1000.0 / PS_INSET_SCALE  # its print mm per m
 PS_FLAT_TOL = 0.20                    # m: a surveyed floor this level or better is drawn flat (drawing rule)
 # v17 (CHK-8, design spec S7): at 1:250 W3 and W4 are cut on their SW side with a break mark like W2 (W3 keeps 10 m of
 # Demeter's Garden with its tomato rows and café; W4 keeps 6 m of the cotton field behind the crest)
-PS_BREAK = {"W2": ("SW", 50.0), "W3": ("SW", 50.0), "W4": ("SW", 38.0)}
+PS_BREAK = {}                         # v19 (N3 a "spans widened"): no break at 1:500, each cut drawn to its cut end
+#                                       (level table ends; never beyond them: no ground is invented); was W2/W3 SW 50 m, W4 38 m
 # m of level ground drawn behind an embankment crest (default 3.0): W4 NE 8.0 for the crest walk, bike lane and tree
 # corridor (the level table's survey source reads that crest "50.0 m out", about 8 m behind the angled crest)
 PS_CREST_FLAT = {("W4", "NE"): 8.0}       # W2's SW land (flat street level to the cut end 80 m out) drawn to 50 m, broken
@@ -150,13 +151,15 @@ class PsSec(object):
     """One section: its own page in print mm, (0, 0) = (left end u0, PS_DEPTH under the bed); u = m across the stream
     from the axis (NE negative), z = m a.s.l."""
 
-    def __init__(self, cid, u0, u1, d, style="b"):
+    def __init__(self, cid, u0, u1, d, style="b", k=None):
         self.cid, self.u0, self.u1, self.d = cid, float(u0), float(u1), d
         self.style = style                                    # D1: "b" vector, "a" cutouts, one geometry
         self.trees = []                                       # (key, x, h_m, crown_m) at the cut, for the G6 check
         self.bed = level(cid, "bed")
         self.z0 = self.bed - PS_DEPTH
-        self.k = PS_K
+        self.k = k or PS_K                                    # v19: an inset child is drawn again at its own k (G-R5-5)
+        self.back_at = 0                                      # v19: item index after the sky and back layers (bridges)
+        self.inset_fr = None                                  # v19: sf_inset_frame result (window m, den, k)
         self.hw = level(cid, "bed_width_cm") / 200.0          # half the bed width (m), the bed centred on the axis
         self.pg = Page(0, 0)
         self.calls = []                                       # (text "Element: reason", u, z where its circle sits)
@@ -466,6 +469,7 @@ def ps_back(S, seed, mix=("plane", "chaste", "olive", "tamarisk")):
         for key, x, h, cr, l_ in pl_:
             ps_obst(S, x, gf(x), h, cr, l_)
     wl.put(S.pg)
+    S.back_at = len(S.pg.items)                                 # v19: a bridge beyond the cut goes in here (behind)
     S.info.append(u"%d background houses drawn (%d left out: over the channel or above the sky)" % (nh, nx))
 
 
@@ -687,7 +691,7 @@ def ps_sec_w1(S):
         ps_pocket(S, ub_ - PS_W1_POCKET[0], ub_, z_, 50 + 3 * i)
     S.call(u"Dashed line: today's DSİ wall, cut back into steps", hw + PS_WALL_T / 2.0, tS + 0.6)
     S.zone(u"Edge floor", u"on the dry bed edge at the foot of the steps", hw, hw + PS_W1_FLOOR_W)
-    S.zone(u"Sitting steps", u"%d × %d cm seats, %d flights, planted landings" % (n, round(rise * 100), nf),
+    S.zone(u"Sitting steps", u"%d flights, planted landings" % nf,
            hw + PS_W1_FLOOR_W, u_top)
     ps_arrow(S, [(S.st_c, level_avg_flow(c) + 0.3), (-hw + 1.2, tN + 2.4), (bx[1] - 0.8, tN + 1.8)],
              COL["river_mid"], 0.3, dash=[0.9, 0.6])            # over the terrace's rail and heads to the basins
@@ -748,7 +752,7 @@ def ps_sec_w2(S):
               stroke=COL["ink2"], lw=0.18, dash=[0.8, 0.5])     # today's DSİ wall, replaced by the steps
     S.call(u"Dashed line: today's DSİ wall, opened into steps", hw + PS_WALL_T / 2.0, tS + 0.6)
     S.zone(u"Sub-hub floor", u"at the water, just above the flow", hw, u_st)
-    S.zone(u"Seating steps", u"%d × %d cm, sun and a view of the water" % (n, round(rise * 100)), u_st, u_sq)
+    S.zone(u"Seating steps", u"sun and a view of the water", u_st, u_sq)
     S.zone(u"Hub square", u"dry above Q500, in the planes' shade", u_sq, S.u1)
     ps_street(S, "rack", u_sq + 1.0, tS, u"Bike racks: leave the bike, walk down to the water", side=1)
     ps_street(S, "bollard", S.u1 - 1.0, tS, u"Bollards: the square's street edge, no cars")
@@ -815,7 +819,7 @@ def ps_sec_w3(S):
     ps_street(S, "lamp", crest - 3.8, tN, u"Lamp: lights the crest walk and the steps' head", side=1)
     # SW: the stream commons on the shelf, the garden raised above Q500 behind a stone wall
     ps_block_ring(S, s1, s1 + 0.40, shelf - 0.30, gf + 0.15, "stone")
-    S.zone(u"Bank steps", u"%d × %d cm, sit or walk down to the bed" % (n, round(rise * 100)), crest, -hw)
+    S.zone(u"Bank steps", u"sit or walk down to the bed", crest, -hw)
     S.zone(u"Stream commons", u"open ground the floods may cover", s0, s1)
     S.zone(u"Demeter's Garden", u"raised above Q500, stays dry", s1, S.u1)
     gy = lambda u: shelf + (b - shelf) * max(0.0, min(1.0, (s0 - u) / (s0 - hw)))
@@ -1007,75 +1011,53 @@ def ps_marks(S):
         S.marks.append((x, y, num[txt], col))
 
 
-def ps_inset_shapes(items):
-    """v16: the section's page items as house shapes for sf_zoom_inset (one ring per poly, circles as rings,
-    images kept; no text: the inset shows the drawing, its words stay on the section)"""
-    out = []
-    for it in items:
-        if it[0] == "poly":
-            for R in it[1]:
-                if len(R) >= 3:
-                    out.append(("poly", R, it[2], it[3], it[4], it[7]))
-        elif it[0] == "line":
-            out.append(("line", it[1], it[2], it[3], it[4]))
-        elif it[0] == "circle":
-            out.append(("poly", sec_ellipse(it[1], it[2], it[3], it[3], 16), it[4], it[5], it[6]))
-        elif it[0] == "image":
-            out.append(tuple(it[:8]))
-    return out
-
-
 def ps_inset(S, log):
-    """v17 (G-R4-5.6, D11): the cut's main use spot S.inset (ua, ub, za, zb m, what) drawn again at 1:100
-    (PS_INSET_SCALE, 2.5 x the 1:250 parent) in a box in the section's own free sky: over the highest ground and its
-    people, clear of every drawn thing of the front layer (S.obst layer 0: plants, street elements; the back layers
-    may go under its white ground) and of the spot, inside the drawing, as near the spot as it can be; sf_zoom_inset
-    draws the spot frame, one frame link, the box, "ZOOMED IN · what · 1:100" above it and its own scale bar under
-    it. No room: FLAG, no inset."""
+    """v19 (round 5, G-R5-5, change of approach): the inset is no longer the parent's shapes scaled up into its sky.
+    The cut's main use spot S.inset (ua, ub, za, zb m, what) is framed with the section kit (sf_inset_frame: the
+    action + 0.6 m margin, the largest listed inset scale >= 2 x the 1:500 parent) and kept in S.inset_fr; ps_items
+    draws the section AGAIN at that scale's k (ps_section child=True), so stone courses, treads, boards and people
+    show at their own detail, and exports it as its own drawing + an inset item (the booklet frames and places it)."""
     if not S.inset:
         return
     ua, ub, za, zb, what = S.inset
-    src = (S.X(ua), S.Y(za), S.X(ub), S.Y(zb))
-    f = PS_INSET_K / S.k
-    dw, dh = (src[2] - src[0]) * f, (src[3] - src[1]) * f
-    lab_w = fm_width(u"ZOOMED IN · %s · 1:%d" % (what, PS_INSET_SCALE), PS_LBL / PT, True)
-    lab_h = 0.6 * PS_LBL + PS_LBL * CAP + 0.6                  # the caption over the box
-    bar_h = SF_ZOOM["gap"] + SF_ZOOM["bar_h"] + 0.9 * 2.12 + 0.6   # its scale bar and figures under the box
-    ww = max(dw, lab_w)
-    bb = ps_bbox(S.pg.items)
-    lo = S.Y(max(z for _u, z in S.prof) + 2.4) + bar_h          # over the highest ground and its people
-    hi = max(S.y_top if S.y_top is not None else bb[3], bb[3]) - lab_h
-    keep = [tuple(o[:4]) for o in S.obst if (o[4] if len(o) > 4 else 0) == 0] + \
-        [(src[0] - 1.0, src[1] - 1.0, src[2] + 1.0, src[3] + 1.0)]
-    cx, cy = 0.5 * (src[0] + src[2]), 0.5 * (src[1] + src[3])
-    best = None
-    y = lo
-    while y + dh <= hi:
-        x = 0.5
-        while x + ww <= S.w - 0.5:
-            b_ = (x - 0.6, y - bar_h, x + ww + 0.6, y + dh + lab_h)
-            if not any(b_[0] < o[2] and o[0] < b_[2] and b_[1] < o[3] and o[1] < b_[3] for o in keep):
-                d = math.hypot(x + 0.5 * dw - cx, y + 0.5 * dh - cy)
-                if best is None or d < best[0]:
-                    best = (d, x, y)
-            x += 1.5
-        y += 1.5
-    if best is None:
-        log.append(u"FLAG %s %s: no free sky for the zoom inset (%.0f x %.0f mm at 1:%d): not drawn" % (
-            S.page, S.cid, dw, dh, PS_INSET_SCALE))
+    S.inset_fr = sf_inset_frame([(min(ua, ub), min(za, zb), max(ua, ub), max(za, zb))], PS_SCALE, page=S.page,
+                                label=u"%s %s" % (S.cid, what))
+    if S.inset_fr:
+        log.append(u"%s %s: inset (%s) 1:%d, window %.1f x %.1f m (drawn again at its own scale)" % (
+            S.page, S.cid, what, S.inset_fr["den"], S.inset_fr["window"][2] - S.inset_fr["window"][0],
+            S.inset_fr["window"][3] - S.inset_fr["window"][1]))
+
+
+def ps_bridges(S, page):
+    """v19 (D8, N4 a): the bridges this cut sees (common/bridges.py br_section, look -1: every W cut looks
+    downstream); t = m along the cut from its first end (SW) -> u = d_SW - t. A bridge beyond the cut goes behind the
+    cut land (after the sky and back layers, S.back_at), one cut through it over the water; behind the viewer: not
+    drawn, logged (br_log_lines)."""
+    if "br_section" not in globals():
         return
-    _d, x, y = best
-    dst = (x, y, x + dw, y + dh)
-    S.put(sf_zoom_inset(src, dst, S.k, PS_INSET_K, ps_inset_shapes(S.pg.items), what, size=PS_LBL,
-                        scale_den=PS_INSET_SCALE, parent_den=PS_SCALE, page=S.page))
-    S.boxes.append(dst)
-    S.inset_busy = (x - 0.3, y - bar_h, x + ww + 0.3, y + dh + lab_h)
-    log.append(u"%s %s: zoom inset at 1:%d (%s), %.0f x %.0f mm, people %.1f mm tall" % (
-        S.page, S.cid, PS_INSET_SCALE, what, dw, dh, FIG_ADULT_H * PS_INSET_K))
+    dsw = S.d.get("SW")
+    if dsw is None:
+        return
+    try:
+        br = br_section(S.cid, X=lambda t: S.X(dsw - t), Y=S.Y, look=-1, t0=dsw - S.u1, t1=dsw - S.u0,
+                        ground=lambda t: ps_z_at(S.prof, dsw - t), page=page)
+    except Exception as ex:
+        tp_warn(u"%s %s: bridges not drawn (%s: %s)" % (page, S.cid, type(ex).__name__, ex))
+        return
+    if br.get("background"):
+        tmp = Page(0, 0)
+        ps_put(tmp, br["background"])
+        S.pg.items[S.back_at:S.back_at] = tmp.items
+    if br.get("structures"):
+        S.put(br["structures"])
 
 
-def ps_finish(S, log):
-    """the G6 check, the notes, (v17) the 1:100 zoom inset, then the numbers (ps_marks)"""
+def ps_finish(S, log, child=False):
+    """the G6 check, the notes, (v19) the bridges, the inset frame, then the numbers (ps_marks); a child (inset
+    redraw (a window of a few metres at the water, far from any bridge) gets none of them"""
+    if child:
+        return
+    ps_bridges(S, S.page)
     for m_ in sf_assert_g6(S.k, trees=S.trees, strict=False):  # G6: people 1.75 m, trees in their sourced range
         log.append(u"G6 CHECK section %s (style %s): %s" % (S.cid, S.style, m_))
     for m_ in S.notes:
@@ -1086,15 +1068,16 @@ def ps_finish(S, log):
     ps_marks(S)
 
 
-def ps_section(cid, log, page, style="a"):
-    """one cut as a PsSec (its drawing in S.pg, print mm at 1:250; see PsSec), in style a (D1, the only style);
-    v16: the surveyed bed first (ps_survey, DATA-1); v17: page = the booklet page id (log lines, inset)"""
+def ps_section(cid, log, page, style="a", k=None, child=False):
+    """one cut as a PsSec (its drawing in S.pg, print mm at S.k: 1:500 = PS_K, or an inset's k), in style a (the
+    only style); v16: the surveyed bed first (ps_survey, DATA-1); page = the booklet page id; child=True: the inset
+    redraw (its own log, no numbers, no inset of its own)"""
     u0, u1, d = ps_extent(cid)
-    S = PsSec(cid, u0, u1, d, style)
+    S = PsSec(cid, u0, u1, d, style, k=k)
     S.page = page
     ps_survey(S, next(k_ for k_, c_, _n, _m, _t in PS_CUTS if c_ == cid), log)
     PS_DRAW[cid](S)
-    ps_finish(S, log)
+    ps_finish(S, log, child)
     return S
 
 
@@ -1124,7 +1107,7 @@ def ps_bank_short(c, side):
 def ps_today(S):
     """v17 (G-R4-2): the one "today" line: both banks and the bed width from the level table, by place name"""
     c = S.cid
-    return u"*Today* · %s: %s · bed {:,.0f} cm · %s: %s".format(level(c, "bed_width_cm")) % (
+    return u"*Today* · %s: %s · %s: %s" % (                    # v19 (G-R5-4.6): no bed width
         place_name("side_NE"), ps_bank_short(c, "NE"), place_name("side_SW"), ps_bank_short(c, "SW"))
 
 
@@ -1142,245 +1125,3 @@ def ps_note(cid):
             ps_lv(q5), ps_lv(math.ceil((q5 + PS_FREEBOARD) * 20.0) / 20.0))
     return u"Q500 %s stays *%.2f m* under the %s bank top · wet edge, boardwalk and trees by flood level" % (
         ps_lv(q5), level(cid, "top", "NE") - q5, place_name("side_NE"))
-
-
-def ps_para(tp, text, x, y, w, pt, colour, name):
-    """a wrapped paragraph from its first baseline y (tp = None: measured only); returns the next baseline"""
-    lead = ps_lead(pt)
-    if tp is not None:
-        return tp.para(text, x, y, w, pt, lead, name=name, colour=colour, min_last_words=1)
-    return y - len(tp_wrap(text, w, pt, False, 1, True)) * lead
-
-
-def ps_list_col(S, ents, x0, w, y, tp=None, pg=None):
-    """numbered list entries [(n, text, colour)] in a column from x0, w wide, first baseline y: the marker
-    (mk_marker, the same colour as on the drawing), "*Name* · reason" beside it; returns the last baseline"""
-    tx = x0 + 2.0 * PS_MK_R + 1.2
-    last = y + PS_LIST_ROW
-    for n, t, col in ents:
-        if tp is not None:
-            sh, _b, _r = mk_marker(x0 + PS_MK_R, y + 0.5 * PS_LIST_PT * PT * CAP, n, col, PS_LIST_PT)
-            ps_put(pg, mk_put(tp, sh, name=u"%s list %d" % (S.cid, n)))
-        yn = ps_para(tp, t, tx, y, x0 + w - tx, PS_LIST_PT, COL["ink"], u"%s list" % S.cid)
-        last = yn + ps_lead(PS_LIST_PT)
-        y = last - PS_LIST_ROW
-    return last
-
-
-def ps_side(S, x0, w, ytop, tp=None, pg=None):
-    """the side column's words from ytop down (LEFT blocks): the "today" line and the key line (6.5 pt, ink2), then
-    the numbered list; tp = None: measured only. Returns the y under the last line."""
-    y = ytop - PS_TODAY_PT * PT * CAP
-    yn = ps_para(tp, ps_today(S) + u"\n" + ps_note(S.cid), x0, y, w, PS_TODAY_PT, COL["ink2"], u"%s today" % S.cid)
-    yl = yn + ps_lead(PS_TODAY_PT) - PS_LIST_ROW - 1.0
-    return ps_list_col(S, S.list, x0, w, yl, tp, pg) - 1.0
-
-
-def ps_strip_words(S, x0, w, ytop, legend, tp=None, pg=None, ncol=3):
-    """W4's strip (RIGHT block) from ytop down: the "today" and key line across, the list in ncol columns, (legend)
-    the material legend across under it; returns the y under it"""
-    y = ytop - PS_TODAY_PT * PT * CAP
-    yn = ps_para(tp, ps_today(S) + u" · " + ps_note(S.cid), x0, y, w, PS_TODAY_PT, COL["ink2"], u"%s today" % S.cid)
-    yl = yn + ps_lead(PS_TODAY_PT) - PS_LIST_ROW - 1.0
-    gap = 6.0
-    cw = (w - (ncol - 1) * gap) / float(ncol)
-    nrow = int(math.ceil(len(S.list) / float(ncol))) if S.list else 0
-    low = yl + ps_lead(PS_LIST_PT)
-    for c_ in range(ncol):
-        part = S.list[c_ * nrow:(c_ + 1) * nrow]
-        if part:
-            low = min(low, ps_list_col(S, part, x0 + c_ * (cw + gap), cw, yl, tp, pg))
-    low -= 1.0
-    if legend:
-        low = ps_legend(x0, x0 + w, low - 1.5, tp, pg)
-    return low
-
-
-def ps_legend(x0, x1, ytop, tp=None, pg=None):
-    """G1: samples of everything the sections draw, in rows from ytop across x0-x1 (print mm), 7 pt, through the
-    page's TextPage; tp = None: measured only. Returns the band's bottom y."""
-    P = _wat_pal()
-    rows = [("water", u"water at the average yearly flow"),
-            ("q100", u"Q100 flood level"), ("q500", u"Q500 flood level"),
-            (SCT["stone"], u"stone: DSİ walls, steps, garden wall"), (SCT["concrete"], u"concrete: stairs, ramp, basins"),
-            (SCT["earth"], u"earth"), (SCT["gravel"], u"gravel bed"), (PS_TIMBER, u"timber: terrace, boardwalk"),
-            (SF_LANE["walk"], u"walk paving"), (SF_LANE["bike"], u"bike lane")]
-    sw, gap = 5.0, 4.0
-    x, y = x0, ytop - PS_LIST_PT * PT * CAP
-    for kind, lab in rows:
-        w = sw + 1.2 + fm_width(lab, PS_LIST_PT)
-        if x + w > x1 and x > x0:
-            x, y = x0, y - PS_LIST_ROW
-        if tp is not None:
-            cy = y + 0.5 * PS_LIST_PT * PT * CAP
-            if kind in ("q100", "q500"):
-                pg.line([(x, cy), (x + sw, cy)], P[kind], 0.3, dash=[1.2, 0.6] if kind == "q100" else [0.4, 0.5])
-            else:
-                pg.poly([rect(x, cy - 1.0, x + sw, cy + 1.0)], fill={"water": P["sec"]}.get(kind, kind),
-                        stroke=COL["faint"], lw=0.1)
-                if kind == "water":
-                    pg.line([(x, cy + 1.0), (x + sw, cy + 1.0)], SEC["hatch"], 0.3)
-            tp.put(lab, x + sw + 1.2, y, PS_LIST_PT, name=u"legend", role="legend", colour=COL["ink"])
-        x += w + gap
-    bottom = y - 0.8
-    if tp is not None:
-        tp.block((x0, bottom, x1, ytop), u"legend")
-    return bottom
-
-
-# ---------------------------------------------------------------- v17: the two booklet pages p13a / p13b
-# Design spec: revision_2026-11-01_round4/handover/S7_design_spec.md. Each page = one crop BK_W x BK_H (print mm,
-# y up) drawn at the booklet scale itself (BK_S 1): two cuts, one full row each, at 1:250 (D2), insets 1:100 (D11).
-# W1-W3: blk_section LEFT (title strip, drawing, side column of words); W4: RIGHT (its 353 mm drawing and its level
-# marks leave no room for a column: the words go into a strip under it). One TextPage per page: every text of the
-# crop goes through it and check() RAISES on any collision (G-R4-1); it then draws them (emit).
-PS_PAGES = [("p13a", "p1", ("W1", "W2")), ("p13b", "p2", ("W3", "W4"))]
-PS_RIGHT_WHY = {"W4": u"its 353 mm drawing and the level marks leave no room for a side column"}
-PS_ROW_GAP = 4.0                       # print mm: least gap between two rows (spare height goes into the gaps)
-PS_SIDE_MIN = 60.0                     # print mm: the narrowest side column
-PS_KM_H = (22.0, 40.0)                 # print mm: the key map's least and largest height (in a side column)
-PS_KM_GAP = 3.0                        # print mm under the key map
-
-
-def ps_tp_draw(pg):
-    """the TextPage's drawer: each registered text as a Page text item (sizes back to mm, "MC" to a baseline)"""
-    def draw(it):
-        x, y, al = it["x"], it["y"], it["align"]
-        if str(al).upper() in ("MC", "CM"):
-            ix0, iy0, ix1, iy1 = fm_ink_box(it["text"], it["pt"], it["bold"])
-            y -= 0.5 * (iy0 + iy1)
-            al = "C"
-        ex = it.get("extra") or {}
-        pg.text(it["text"], x, y, it["size_mm"], it["colour"] or COL["ink"], bold=it["bold"], align=al,
-                mat=ex.get("mat"), halo=ex.get("halo"))
-    return draw
-
-
-def ps_place_items(pg, tp, items, dx, dy, name):
-    """a section's items moved by (dx, dy) onto the page; its texts (inset caption, scale figures) registered in tp"""
-    for it in ps_xform(items, 1.0, dx, dy):
-        if it[0] == "text":
-            _, s_, x, y, size, col, bold, al, mat, halo = it
-            ex = dict((k_, v_) for k_, v_ in (("mat", mat), ("halo", halo)) if v_ is not None)
-            tp.put(s_, x, y, size / PT, bold, al or "L", 0.0, name, "drawing", col, **ex)
-        else:
-            pg.items.append(it)
-
-
-def ps_title(tp, b, S):
-    """the title strip: "W1 · Upstream entry" (10 pt bold), the scenario after it (8 pt), the look direction at the
-    page's right edge (8 pt, by place name)"""
-    _key, cid, _n, name, take = next(r_ for r_ in PS_CUTS if r_[1] == S.cid)
-    x, y = b["title_base"]
-    t = u"%s · %s" % (cid, name)
-    tp.put(t, x, y, PS_TITLE_PT, True, name=u"%s title" % cid, role="title", colour=COL["ink_dark"])
-    tp.put(take, x + fm_width(t, PS_TITLE_PT, True) + 2.5, y, PS_SCEN_PT, name=u"%s title" % cid, role="title",
-           colour=COL["ink"])
-    tp.put(u"looking downstream · %s left, %s right" % (place_name("side_NE"), place_name("side_SW")), BK_W, y,
-           PS_SCEN_PT, align="R", name=u"%s title" % cid, role="title", colour=COL["ink2"])
-
-
-def ps_page(page, cids, log, style="a"):
-    """one booklet page (p13a / p13b) in print mm (0, 0)-(BK_W, BK_H), y up: the two cuts drawn and measured first,
-    the key map put in the first side column with room (else the first row grows), the rows sized to what they hold
-    and top-aligned, spare height into the gaps; a page that cannot hold its rows at 1:250 RAISES with the numbers
-    (no shrinking). Returns (Page, {sheet key: block box})."""
-    pg = Page(BK_W, BK_H)
-    tp = TextPage(page, (0.0, 0.0, BK_W, BK_H), y_down=False, pad=0.6)
-    L = []
-    for cid in cids:
-        S = ps_section(cid, log, page, style)
-        bb = ps_bbox(S.pg.items)
-        by0 = min(0.0, bb[1])
-        e = dict(S=S, bb=bb, by0=by0, dx=-min(0.0, bb[0]), sh=bb[3] - by0, km=0.0,
-                 mode="RIGHT" if cid in PS_RIGHT_WHY else "LEFT",
-                 q5=S.Y(level(cid, "q500")) - by0 + 1.8)                 # the level marks' top over the bottom
-        e["dw"] = max(S.w, bb[2]) + e["dx"]
-        if e["mode"] == "LEFT":
-            e["sw"] = BK_W - e["dw"] - GRID_GUT
-            if e["sw"] < PS_SIDE_MIN:
-                tp_warn(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
-                                 u"(at least %.0f)" % (page, cid, e["dw"], PS_SCALE, e["sw"], PS_SIDE_MIN))
-            e["side0"] = -ps_side(S, 0.0, e["sw"], 0.0)
-        L.append(e)
-    lefts = [e for e in L if e["mode"] == "LEFT"]
-
-    def spare(e):
-        return e["sh"] - (e["side0"] + 1.5 + e["q5"]) - PS_KM_GAP
-    pick = next((e for e in lefts if spare(e) >= PS_KM_H[0]), lefts[0])
-    pick["km"] = max(PS_KM_H[0], min(PS_KM_H[1], spare(pick)))
-    rights = [e for e in L if e["mode"] == "RIGHT"]
-    foot = not rights                                            # p13a: the legend under row 2; p13b: in W4's strip
-
-    def heights(leg):
-        tot = 0.0
-        for e in L:
-            if e["mode"] == "LEFT":
-                e["dh"] = max(e["sh"], (e["km"] + PS_KM_GAP if e["km"] else 0.0) + e["side0"] + 1.5 + e["q5"])
-                e["h"] = BLK_TITLE_H + e["dh"]
-            else:
-                e["dh"] = e["sh"]
-                e["st"] = -ps_strip_words(e["S"], 0.0, BK_W, 0.0, leg)
-                e["h"] = BLK_TITLE_H + e["dh"] + GRID_GUT + e["st"]
-            tot += e["h"]
-        lh = -ps_legend(0.0, BK_W, 0.0) if (leg and foot) else 0.0
-        return tot + PS_ROW_GAP * (len(L) - 1) + ((PS_ROW_GAP + lh) if lh else 0.0), lh
-    legend = True
-    tot, lh = heights(True)
-    if tot > BK_H and rights:
-        legend = False
-        tot, lh = heights(False)
-        log.append(u"NOTE %s: no room for the material legend at 1:%d: it is on p13a only" % (page, PS_SCALE))
-    if tot > BK_H:
-        tp_warn(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
-            page, tot, PS_SCALE, BK_H, u", ".join(u"%s %.1f" % (e["S"].cid, e["h"]) for e in L)))
-    ngap = len(L) - 1 + (1 if lh else 0)
-    gap = PS_ROW_GAP + (BK_H - tot) / float(max(1, ngap))
-    tri = sf_triangles(walls=False, aggregate=False)            # U22: no meaningless triangles in the sections
-    boxes = {}
-    y = BK_H
-    for e in L:
-        S, c = e["S"], e["S"].cid
-        b = blk_section(0.0, y, BK_W, e["h"], c, side_w=e.get("sw"), mode=e["mode"],
-                        why=PS_RIGHT_WHY.get(c), strip_h=e.get("st"), y_down=False)
-        ps_title(tp, b, S)
-        d = b["drawing"]
-        dxp, dyp = d[0] + e["dx"], d[1] - e["by0"]
-        ps_place_items(pg, tp, S.pg.items, dxp, dyp, u"%s drawing" % c)
-        tp.block(d, u"%s drawing" % c)
-        for i, (x, y_, n, col) in enumerate(S.marks):
-            sh_, _b, _r = mk_marker(dxp + x, dyp + y_, n, col, PS_LIST_PT)
-            ps_put(pg, mk_put(tp, sh_, name=u"%s mark %d" % (c, i)))
-        # the level marks outside the drawing's right edge (G-R4-5.4), the 1:250 scale bar beside (or over) them
-        fr = (dxp, dyp + e["by0"], dxp + max(S.w, e["bb"][2]), dyp + e["bb"][3])
-        lv = [("q500", level(c, "q500")), ("q100", level(c, "q100")), ("avg", level_avg_flow(c)), ("bed", S.bed)]
-        ps_put(pg, tp_shapes(sf_level_marks(fr, lv, side="R", y_of=lambda v, _S=S, _d=dyp: _d + _S.Y(v),
-                                            size=PS_LBL, page=u"%s %s" % (page, c)), tp, name=u"%s levels" % c))
-        lb = [it["box"] for it in tp.items if it["name"] == u"%s levels" % c] or [(fr[2], fr[1], fr[2] + 8.0, fr[1])]
-        if e["mode"] == "LEFT":
-            xb, yb = max(q[2] for q in lb) + 3.0, fr[1] + 3.5
-        else:
-            xb, yb = fr[2] + 2.0, max(q[3] for q in lb) + 4.0
-        ps_put(pg, tp_shapes(sf_scale_bar(xb, yb, S.k, den=PS_SCALE, max_mm=min(24.0, BK_W - xb - 10.0)), tp,
-                             name=u"%s bar" % c))
-        if e["mode"] == "LEFT":
-            sx0, _sy0, sx1, sy1 = b["side"]
-            yt = sy1
-            if e["km"]:
-                ps_key_map(pg, tp, (sx0, sy1 - e["km"], sx1, sy1), cids, page, log)
-                yt = sy1 - e["km"] - PS_KM_GAP
-            ps_side(S, sx0, sx1 - sx0, yt, tp, pg)
-        else:
-            st = b["strip"]
-            ps_strip_words(S, st[0], st[2] - st[0], st[3], legend, tp, pg)
-        key = next(k_ for k_, c_, _n, _m, _t in PS_CUTS if c_ == c)
-        boxes[key] = (0.0, y - e["h"], BK_W, y)
-        log.append(u"%s %s: block %s %.0f x %.0f mm, drawing %.0f x %.0f mm at 1:%d, %d numbers" % (
-            page, c, e["mode"], BK_W, e["h"], e["dw"], e["sh"], PS_SCALE, len(S.list)))
-        y -= e["h"] + gap
-    if lh:
-        ps_legend(0.0, BK_W, lh, tp, pg)
-    sf_triangles(**tri)
-    tp.check(True, log)                                        # G-R4-1: RAISES TextCollision on any collision
-    tp.emit(ps_tp_draw(pg))
-    return pg, boxes

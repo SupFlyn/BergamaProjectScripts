@@ -14,7 +14,25 @@ GRID_BASE = 4.0                                   # baseline step, from y = GRID
 GRID_TITLE_Y, GRID_RULE_Y = 22.0, 25.0            # title baseline, the rule under the title band
 GRID_AREA = (GRID_ML, 30.0, GRID_PAGE[0] - GRID_MR, 273.0)   # where drawings go (x0, y0, x1, y1)
 GRID_FOOT_RULE = 276.0
-GRID_MIN_PT = 6.0                                 # no text below this size on any page (PLAN p18-19 rule)
+GRID_MIN_PT = 4.0                                 # no text below this size on any page, measured AFTER scaling
+                                                  # (round 5 D1, Aras 1 Nov 21:26: 4 pt floor; was 6.0)
+# round 5 (S1; PLAN §3 "Fonts and sizes", D1): the STARTING size of every text role the booklet composer sets (pt,
+# bold, lead as a multiple of the size, colour role). The composer may step a text down to GRID_MIN_PT, never below.
+# Content scripts put these sizes on their exported text items (common/item_export.py takes them from here).
+GRID_ROLE_PT = dict(
+    title=(16.0, True, 1.15, "ink"),              # the page title
+    heading=(7.0, True, 1.25, "ink"),             # a drawing's heading
+    intro=(6.0, False, 1.3, "ink"),               # the page intro / a short text block
+    caption=(5.0, False, 1.3, "ink2"),            # under a drawing: what, scale
+    legend=(5.0, False, 1.3, "ink"),              # legend entries
+    list_item=(5.0, False, 1.3, "ink"),           # numbered / bulleted list rows
+    note=(5.0, False, 1.3, "ink2"),
+    source=(5.0, False, 1.3, "ink2"),
+    label=(4.5, False, 1.2, "ink"),               # in-drawing labels (place names, element names)
+    badge=(4.5, True, 1.2, "ink"),                # number badges on a drawing
+    level_value=(4.5, False, 1.2, "ink"),         # "+43.71" beside a level marker
+    pageno=(7.0, True, 1.2, "accent"),            # the page number
+)
 
 # colour roles (palette v1.4 core): ink, second ink, accent, rule
 GRID_INK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F", rule="B0AC9C", paper="FFFFFF")
@@ -35,6 +53,23 @@ GRID_TYPE = dict(
     pageno=(14.0, True, 6.0, "accent"),
 )
 GRID_PT = 25.4 / 72.0                             # mm per pt
+
+
+def grid_role(role):
+    """(size_pt, bold, lead_mm_per_pt, hex) of a round 5 text role (GRID_ROLE_PT); unknown roles = 'note'"""
+    s, b, ld, c = GRID_ROLE_PT.get(role, GRID_ROLE_PT["note"])
+    return s, b, ld, GRID_INK[c]
+
+
+def _grid_warn(msg):
+    """round 5: a grid misfit is a WARNING line + orange message, never a stop (common/warn.py when included)"""
+    g_ = globals()
+    if "wn_warn" in g_:
+        g_["wn_warn"](None, "grid", msg)
+    elif "tp_warn" in g_:
+        g_["tp_warn"](u"grid: " + msg)
+    else:
+        print(u"WARNING grid: " + msg)
 
 
 def grid_style(name):
@@ -61,8 +96,10 @@ def grid_x1(c):
 
 def grid_span(c0, n):
     """(x, w) of the span of n columns from column c0"""
-    if c0 < 1 or c0 + n - 1 > GRID_COLS:
-        raise ValueError("grid span %d+%d is off the %d-column grid" % (c0, n, GRID_COLS))
+    if c0 < 1 or c0 + n - 1 > GRID_COLS:              # round 5: a WARNING, the span is kept on the grid
+        _grid_warn("span %d+%d is off the %d-column grid: clamped" % (c0, n, GRID_COLS))
+        c0 = min(max(1, int(c0)), GRID_COLS)
+        n = max(1, min(int(n), GRID_COLS - c0 + 1))
     return grid_x(c0), grid_w(n)
 
 
@@ -105,7 +142,8 @@ def grid_cell(c0, n, y, h, snap=True):
 
 def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
     """blocks of the given heights stacked down one column span from y0 (default the drawing area's top), each on the
-    baseline: [rect]; raises when the stack runs past the drawing area (no block may leave the page)"""
+    baseline: [rect]; a stack that runs past the drawing area is a WARNING (round 5; the composer's layout check
+    reports the edge hit too)"""
     y = GRID_AREA[1] if y0 is None else grid_snap_y(y0, up=False)
     out = []
     for h in heights:
@@ -113,7 +151,7 @@ def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
         out.append(r)
         y = r[3] + gap
     if out and out[-1][3] > GRID_AREA[3] + 1e-6:
-        raise ValueError("grid stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
+        _grid_warn("stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
     return out
 
 
@@ -124,7 +162,7 @@ def grid_row(widths_cols, y, h, c0=1):
         out.append(grid_cell(c, n, y, h))
         c += n
     if c - 1 > GRID_COLS:
-        raise ValueError("grid row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
+        _grid_warn("row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
     return out
 
 

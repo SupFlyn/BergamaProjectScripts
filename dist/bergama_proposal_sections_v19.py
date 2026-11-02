@@ -1,10 +1,21 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v18_1.py = v18.1 (1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v19.py = v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v19 (round 5, S9, 2 Nov 2026; G-R5-12, D9, N3 a, P13.1-P13.4, G-R5-4.6, G-R5-5, D8, A17, C1; a feature change):
+  * Produce, the booklet composes: no A0 sheet, no PDF, no page layout. W1-W4 go to ONE booklet page "p13" (p13 + p14
+    merged) at 1:500, each cut one true-scale drawing in metres (x across the stream from the cut axis, NE left;
+    y level m a.s.l.) with its numbers as badges, its numbered list "Name · reason", its heading, scenario and water-
+    level note, its level column (the booklet draws the U04 markers), its zoom inset drawn AGAIN at the inset scale
+    (framed on the action by sf_inset_frame) as its own drawing; one key map (key-map module v2: fitted, turned, own
+    north), one material legend (solid colours), title, intro, sources. File: Downloads/Bergama/cached/booklet/
+    bergama_proposal_sections/items.json. No folder is made under output/.
+  * Spans to the cut ends (no 50 m / 38 m breaks at 1:500), never beyond the level table's ends.
+  * Widths gone (P13.4): no "8 × 40 cm" steps, no bed width in cm. Bridges the cut sees (common/bridges.py, D8).
+  * Log head "<n> warnings" = the WARNING lines; plant log lines printed once (A17).
 NEW IN v17 (round 4, S7, 1 Nov 2026; booklet p13 -> p13a + p13b: P13.1-P13.5, D2, D11, G-R4-1..11; a feature change):
   * Two booklet pages at 1:250 (was one at 1:500): crop ps_p1 = p13a (W1, W2), ps_p2 = p13b (W3, W4), one full row
     per cut; the sheet is drawn at the booklet scale (BK_S 1), so every scale word is the printed one; zoom insets at
@@ -100,13 +111,14 @@ WHAT IT DRAWS (v10): one A0 landscape sheet, all vector, whole-string text; the 
   intake and lift, basin volumes.
 
 COMPONENT: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. Input run (Button), outputs log and done.
-Writes Downloads/Bergama/output/bergama_proposal_sections/Bergama_proposal_sections_A.pdf; log in
+Writes Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json (v19; no PDF); log in
 Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
 board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
-HOW WE KNOW IT WORKS (v17): the text under the component reads "ProposalSections v17 · HH:MM · N s"; the log lists
-the PDF and the lines "overlap p13a checked n, collisions 0" and "overlap p13b ..."; the PDF opens as one A0 page with
-two A3-wide pages side by side (W1 + W2, W3 + W4), each cut on its own row at 1:250.
+HOW WE KNOW IT WORKS (v19): the text under the component reads "ProposalSections v19 · HH:MM · N s"; the log starts
+with "ProposalSections v19 · HH:MM", the items path, "<n> warnings" and the WARNING lines, and has the line
+"items bergama_proposal_sections: drawing 9, ... -> ...items.json" (4 cuts + 4 insets + the key map); no PDF is
+written (the booklet v30+ shows p13).
 """
 import os
 import json
@@ -118,7 +130,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v18.1"  # v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v19"  # v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -158,6 +170,44 @@ def bg_first(paths):
     return paths[0]
 
 
+def bg_out_dir(name):
+    """round 5 (C2): output/<name>/ made only now, just before a file is written into it (a run that stops early, or a
+    solve that never runs, leaves no empty folder). Returns the path."""
+    p = bg_output(name)
+    os.makedirs(p, exist_ok=True)
+    return p
+
+
+def bg_result(script, fn):
+    """round 5 (C10): where another script's result file `fn` is: cached/<script>/fn, then cached/<script>/from_output/
+    fn (moved there by bg_tidy_output), then output/<script>/fn (older versions); the first that exists, else the
+    first path (shade_july.json was looked for in output/ after the site board had moved it to cached/)."""
+    return bg_first([os.path.join(bg_cache(script), fn), os.path.join(bg_cache(script), "from_output", fn),
+                     os.path.join(bg_output(script), fn)])
+
+
+def bg_this_run(path):
+    """round 5 (C10): (fresh, note) for a result file another script wrote: fresh = written at or after the start of
+    this chain run (the Button press that started the chain, sticky "bergama_chain_t0" from trigger.py); note = a short
+    log text ("this run 23:01" / "from an earlier run 22:40" / "missing" / "no chain start known"). A reader logs the
+    note and, when not fresh, a WARNING (the value is from the run before: one press must give one answer)."""
+    import time as _t
+    if not os.path.isfile(path):
+        return False, u"missing"
+    m = os.path.getmtime(path)
+    hm = _t.strftime("%d %b %H:%M", _t.localtime(m))
+    try:
+        import scriptcontext as _scx
+        t0 = _scx.sticky.get("bergama_chain_t0")
+    except Exception:
+        t0 = None
+    if t0 is None:
+        return True, u"no chain start known (file of %s)" % hm
+    if m + 1.0 >= t0:
+        return True, u"this run %s" % hm
+    return False, u"from an earlier run %s" % hm
+
+
 def bg_tidy_output(name, cache_dir=None):
     """output/<name>/ keeps PDFs only: log files and anything in a log folder move to logs/<name>/, every other
     non-PDF file to cached/<name>/from_output/ (or cache_dir: the booklet uses cached/booklet/; moved, never deleted;
@@ -192,7 +242,7 @@ def bg_tidy_output(name, cache_dir=None):
     return ([u"output/%s: %d non-PDF file(s) moved to %s" % (name, n, d) for d, n in sorted(moved.items())] +
             ([u"output/%s: could not move %s" % (name, ", ".join(fail[:5]))] if fail else []))
 BERGAMA = BERGAMA_ROOT
-OUT_DIR = bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
+OUT_DIR = bg_output(OUT_FOLDER)                    # v19: nothing is written there any more (no sheet PDF; C2)
 LOG_DIR = bg_logs()
 
 
@@ -910,7 +960,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '5106ee0771c09305a6fcf44ed5f835ad', 'CUTS': '5fb9ed44bfa605770a04af08b74b2ac9'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'NAMES': '0ec3cbab34964fea25289ca36d8bd453', 'CUTS': '5fb9ed44bfa605770a04af08b74b2ac9', 'BRIDGES': '75e4c182b7d1f921c16948c690b7dae4'}.get(name):
         raise RuntimeError("Data file bergama_proposal_sections_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_proposal_sections_data.py:" + name, "exec"), globals())
@@ -1110,6 +1160,18 @@ bergama_data("NAMES")
 #                                     English descriptor ("Kızıl Avlu · Hadrian's temple"), descr="text" adds that text;
 #                                     unknown key -> KeyError (never type a landmark name locally)
 #   landmark_keys()                  the landmark keys in the table
+#   name_key(s)                      round 5 (S2): a name as a match key (single spaces, lower case, İ as i)
+#   landmark_match(raw, p=None, r_m=60.0, near_m=150.0)   round 5 (S2, A11): the table key a survey / OSM / typed name
+#                                     stands for, or None: the table name or an "alias" (whole name); a joined survey
+#                                     label that starts with a table name ("Kızıl Avlu Tapınağı Mısır Tanrıları") when
+#                                     p lies within near_m of the row's "at"; an "alias_near" word ("Hamam") only
+#                                     within r_m of "at"
+#   place_label(raw, p=None)         round 5 (S2): the table's one spelling for raw, or None when the table has no row
+#                                     (the caller leaves the name out and logs it: never print an unchecked name)
+#   street_label(raw)                round 5 (S2): an OpenStreetMap street name as printed: the table's spelling when
+#                                     the table has the street (Kınık Caddesi ...), else the OSM tag as mapped
+#   keymap_places(box=None)          round 5 (S2, G-R5-3): [(name, (x, y), key)] the table's key-map places ("at" +
+#                                     "km"), best first, inside box (survey m) when given
 # Needs data/NAMES.py included before it.
 
 
@@ -1151,6 +1213,66 @@ def landmark_name(key, descr=None):
 def landmark_keys():
     """the landmark keys in the names table"""
     return sorted(NAMES["landmarks"])
+
+
+def name_key(s):
+    """round 5 (S2): a name as a match key: single spaces, lower case, Turkish İ / I handled (İ -> i, I -> ı)"""
+    s = u" ".join((s or u"").split()).replace(u"\u0130", u"i").replace(u"I", u"\u0131")
+    return s.lower().replace(u"i\u0307", u"i")
+
+
+def landmark_match(raw, p=None, r_m=60.0, near_m=150.0):
+    """round 5 (S2, A11): the names-table key that raw (a survey label, an OSM tag, a typed literal) stands for, or
+    None. Rules, in order: (1) the table name or one of its "alias" forms, whole name; (2) raw starts with the table
+    name and p (survey m) lies within near_m of the row's "at" (survey labels inside one footprint are joined, e.g.
+    "Kızıl Avlu Tapınağı Mısır Tanrıları"); (3) raw is one of the row's "alias_near" words and p lies within r_m of
+    "at" (survey "Hamam" -> Tabaklar Hamamı)."""
+    k = name_key(raw)
+    if not k:
+        return None
+    rows = NAMES["landmarks"]
+    for key, row in rows.items():
+        if k == name_key(row["name"]) or k in [name_key(a) for a in row.get("alias") or ()]:
+            return key
+
+    def near(row, r):
+        at = row.get("at")
+        return p is not None and at is not None and (p[0] - at[0]) ** 2 + (p[1] - at[1]) ** 2 <= r * r
+    for key, row in rows.items():
+        nk = name_key(row["name"])
+        if k.startswith(nk + u" ") and near(row, near_m):
+            return key
+    for key, row in rows.items():
+        if k in [name_key(a) for a in row.get("alias_near") or ()] and near(row, r_m):
+            return key
+    return None
+
+
+def place_label(raw, p=None):
+    """round 5 (S2, G-R5-11): the table's one spelling for a place name, or None when the table has no row for it"""
+    key = landmark_match(raw, p)
+    return landmark_name(key) if key else None
+
+
+def street_label(raw):
+    """round 5 (S2, G-R4-11): a street name as printed: the table's spelling when the table records the street, else
+    the OpenStreetMap tag as mapped (a public source, Turkish as tagged)"""
+    key = landmark_match(raw)
+    return landmark_name(key) if key else u" ".join((raw or u"").split())
+
+
+def keymap_places(box=None):
+    """round 5 (S2, G-R5-3): the places a key map may name: [(name, (x, y), key)] for every table row with "at" and
+    "km", in "km" order, inside box = (x0, y0, x1, y1) survey m when given"""
+    out = []
+    for key, row in NAMES["landmarks"].items():
+        at, rk = row.get("at"), row.get("km")
+        if at is None or rk is None:
+            continue
+        if box is None or (box[0] <= at[0] <= box[2] and box[1] <= at[1] <= box[3]):
+            out.append((rk, row["name"], (float(at[0]), float(at[1])), key))
+    out.sort(key=lambda r: r[0])
+    return [(n, p, k) for _, n, p, k in out]
 bergama_data("CUTS")
 
 # ---- section language of the main site board (selinus_board draw_section_strip), shared by the water board and the
@@ -1158,6 +1280,8 @@ bergama_data("CUTS")
 # ground a shade darker than the page with a fine ink line, water hatched in blue from the bed to its surface, the
 # channel above it in a pale wash, whole trees and plants at their stated size. One scale for x and y (Aras 22:02:
 # "not stretch anything ever"). Pure geometry: each helper returns shapes, the script's sec_put() draws them.
+# Round 5 (S3, section kit v2, G-R5-4.1/4.2): every cut material and the water ONE flat colour (SCT, SCT_WATER), the
+# soil in lighter layers going down (SCT_SOIL), no hatch pattern drawn by any function here.
 #   ("poly", ring, fill, stroke, lw)    ("line", pts, colour, lw)          page mm, y up
 
 
@@ -1217,14 +1341,19 @@ def sec_ellipse(cx, cy, rx, ry, n=28):
 
 
 def sec_water(ring, spacing=0.6, lw=0.1):
-    """A water body (ring, page mm): channel blue, 45-degree blue hatch, the water line on top (as draw_stream)."""
-    sh = [("poly", ring, SEC["channel"], None, 0.1)]
-    sh += [("line", [p, q], SEC["hatch"], lw) for p, q in sec_hatch(ring, spacing)]
+    """A water body (ring, page mm). Round 5 (S3, G-R5-4.1, PLAN §3): ONE flat colour SCT_WATER["body"] and the
+    surface line SCT_WATER["surface"] on top; no hatch (spacing / lw kept so old calls run, unused)."""
+    sh = [("poly", ring, SCT_WATER["body"], None, 0.0)]
     top = max(p[1] for p in ring)
     xs = [p[0] for p in ring if abs(p[1] - top) < 1e-6]
     if len(xs) >= 2:
-        sh.append(("line", [(min(xs), top), (max(xs), top)], SEC["hatch"], 0.3))
+        sh.append(("line", [(min(xs), top), (max(xs), top)], SCT_WATER["surface"], SCT_WATER["surface_lw"]))
     return sh
+
+
+# Round 5 (S3, G-R5-4.1, PLAN §3 "Section materials"): design values, solid colours only. Q100 / Q500 lines in the
+# surface colour, dashed (water.py reads these).
+SCT_WATER = dict(body="A2B6B5", surface="5C7A86", surface_lw=0.25, flood="5C7A86")
 
 
 # ---- section parts (WO-T2b-3, 29 Oct 2026; section_style.py now includes this file): the river bank as it is at the
@@ -1234,13 +1363,29 @@ def sec_water(ring, spacing=0.6, lw=0.1):
 
 SCT_DSI_WALL_H_M = 5.00   # revision_2026-10-29/T1/levels/RESULT.md line 18: "DSİ stone walls at bed + 5.00 m" (Aras 28 Oct)
 
-# material fills (palette v1.4, palette/bergama_palette.py; lines in the section_style inks)
-SCT = dict(stone=_sec_mix("B0AC9C", "EFEDE6", 0.35),   # CORE structure toward CORE paper
-           concrete="D8D5CC",                         # CORE faint
-           earth=SEC["soil"],                         # section_style cut ground
-           gravel="CFCCC5",                           # CORE street
-           line=SEC["ink2"],                          # VARIANTS 0.0 ink2: hatch lines
-           cut=SEC["ink"])                            # CORE ink: the cut line
+# material fills. Round 5 (S3, G-R5-4.1, U23-U25 "dont have hatches in the sections just give proper colours to the
+# things that we cut"): every cut material ONE flat true colour (PLAN §3 design values); no hatch pattern anywhere.
+# Material key = colour swatches (sct_material_key).
+SCT = dict(stone="A4A1A3",                            # stone / masonry
+           concrete="D5D3CE",                         # concrete / deck
+           earth="C2A383",                            # = SCT_SOIL top layer (G-R5-4.2)
+           gravel="B9B6AC",                           # gravel bed
+           timber="9C8466",                           # timber deck
+           line=SEC["ink2"],                          # joint lines (insets at 1:100-1:250 only, G-R5-5)
+           cut=SEC["ink"])                            # the cut line
+SCT_NAMES = dict(stone=u"Stone, masonry", concrete=u"Concrete", earth=u"Earth", gravel=u"Gravel bed",
+                 timber=u"Timber deck", water=u"Water")
+SCT_LOG = dict(solid=0, detail=0)                     # cut rings drawn flat / with inset joint detail this run
+
+
+def sct_material_key(materials=("earth", "stone", "concrete", "gravel", "timber", "water")):
+    """the material key of a section as colour swatches (G-R5-4.1: the hatch legend becomes a colour key):
+    [(swatch dict for item_export Ix.legend, name)]"""
+    out = []
+    for m in materials:
+        col = SCT_WATER["body"] if m == "water" else SCT[m]
+        out.append((dict(kind="fill", colour=col, stroke=None), SCT_NAMES.get(m, m)))
+    return out
 
 
 def _sct_rnd(i, j):
@@ -1288,111 +1433,87 @@ def _sct_clip(ring, p, q):
     return out
 
 
+SCT_DETAIL_K = 4.0                    # page mm per m from which a ring gets real joints: 1:250 and larger (G-R5-5 insets)
+SCT_COURSE_M = 0.50                   # stone course height (drawing rule, as water.py water_axo course_m; not surveyed)
+SCT_BOARD_M = 0.14                    # deck board width (drawing rule, as sf_lane timber; not surveyed)
+
+
 def sct_hatch_fill(ring, material, k, outline=None, lw=0.25, fill=True, hatch_lw=None):
-    """A cut ring (page mm) in its material's fill and standard hatch: stone, concrete, earth, gravel or water.
-    fill=False: the hatch only (sct_ground lays the soil gradient under it); hatch_lw: the earth hatch's line width
-    (page mm; default 0.07)."""
-    import math as _m
+    """A cut ring (page mm) in its material: stone, concrete, earth, gravel, timber or water. Round 5 (S3, G-R5-4.1):
+    ONE flat colour (SCT), no hatch pattern; the name stays so every caller gets solid colours unchanged. At
+    1:250 and larger (k >= SCT_DETAIL_K, the zoom insets, G-R5-5) stone shows its courses and timber its boards as
+    real joints at drawing-rule sizes (SCT_COURSE_M, SCT_BOARD_M): construction lines, not a hatch. fill=False:
+    nothing but the outline (the soil gradient under it is the fill). hatch_lw: kept for old calls, unused."""
     if material == "water":
         return sec_water(ring)
-    if material not in ("stone", "concrete", "earth", "gravel"):
+    if material not in SCT or material in ("line", "cut"):
         raise ValueError("sct_hatch_fill: unknown material %r" % material)
-    g = max(0.7, min(1.4, k / 5.0))           # patterns are page-mm conventions (1:200 size), eased with k; no real sizes
-    ln = SCT["line"]
-    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
-    sh = [("poly", ring, SCT[material], None, 0.1)] if fill else []
-    if material == "stone":                   # coursed masonry: bed joints and staggered head joints
-        c = 1.4 * g
-        for p, q in sec_hatch(ring, c, 0.0):
-            sh.append(("line", [p, q], ln, 0.08))
-        j = int(_m.floor(min(ys) / c))
-        while j * c < max(ys):
-            i = int(_m.floor(min(xs) / (2 * c))) - 1
-            while (2 * i + (j % 2)) * c <= max(xs):
-                x = (2 * i + (j % 2)) * c
-                for a, b in _sct_clip(ring, (x, j * c), (x, (j + 1) * c)):
-                    sh.append(("line", [a, b], ln, 0.08))
-                i += 1
-            j += 1
-    elif material == "concrete":              # aggregate: dots and small open triangles
-        d = 1.1 * g
-        for i in range(int(_m.floor(min(xs) / d)), int(_m.floor(max(xs) / d)) + 1):
-            for j in range(int(_m.floor(min(ys) / d)), int(_m.floor(max(ys) / d)) + 1):
-                px, py = (i + _sct_rnd(i, j)) * d, (j + _sct_rnd(j, i + 7)) * d
-                if not _sct_inside(ring, (px, py)):
-                    continue
-                if (i + j) % 3 == 0 and globals().get("SF_TRI", {}).get("aggregate", True):   # R2-A: sf_triangles
-                    s, a = 0.28 * g, _sct_rnd(i + 3, j) * 6.283
-                    tri = [(px + s * _m.cos(a + t * 2.094), py + s * _m.sin(a + t * 2.094)) for t in range(3)]
-                    sh.append(("line", tri + [tri[0]], ln, 0.07))
-                else:
-                    sh.append(("poly", sec_ellipse(px, py, 0.09 * g, 0.09 * g, 6), ln, None, 0.1))
-    elif material == "earth":                 # earth: broken 45-degree hatch
-        dash, gap = 0.9 * g, 0.55 * g
-        for p, q in sec_hatch(ring, 1.3 * g, 45.0):
-            L = _m.hypot(q[0] - p[0], q[1] - p[1])
-            if L < 1e-6:
-                continue
-            ux, uy = (q[0] - p[0]) / L, (q[1] - p[1]) / L
-            s = 0.0
-            while s < L:
-                e = min(L, s + dash)
-                sh.append(("line", [(p[0] + ux * s, p[1] + uy * s), (p[0] + ux * e, p[1] + uy * e)], ln,
-                           hatch_lw or 0.07))
-                s = e + gap
-    else:                                     # gravel: small rounded stones, open
-        d = 0.9 * g
-        for i in range(int(_m.floor(min(xs) / d)), int(_m.floor(max(xs) / d)) + 1):
-            for j in range(int(_m.floor(min(ys) / d)), int(_m.floor(max(ys) / d)) + 1):
-                px, py = (i + 0.2 + 0.6 * _sct_rnd(i, j)) * d, (j + 0.2 + 0.6 * _sct_rnd(j, i + 3)) * d
-                r = (0.14 + 0.16 * _sct_rnd(i + 5, j + 1)) * g
-                if _sct_inside(ring, (px, py)):
-                    sh.append(("poly", sec_ellipse(px, py, r, r * 0.8, 8), None, ln, 0.06))
+    sh = [("poly", ring, SCT[material], None, 0.0)] if fill else []
+    SCT_LOG["solid"] += 1
+    if fill and k >= SCT_DETAIL_K and material in ("stone", "timber"):
+        SCT_LOG["detail"] += 1
+        ln = _sec_mix(SCT[material], SEC["ink"], 0.35)
+        if material == "stone":                   # bed joints every course, head joints staggered (real size)
+            c = SCT_COURSE_M * k
+            for p, q in sec_hatch(ring, c, 0.0):
+                sh.append(("line", [p, q], ln, 0.06))
+            ys = [p[1] for p in ring]
+            xs = [p[0] for p in ring]
+            import math as _m
+            j = int(_m.floor(min(ys) / c))
+            while j * c < max(ys):
+                x = min(xs) + (0.5 * c if j % 2 else 0.0) + 1.6 * c
+                while x < max(xs):
+                    for a_, b_ in _sct_clip(ring, (x, j * c), (x, (j + 1) * c)):
+                        sh.append(("line", [a_, b_], ln, 0.05))
+                    x += 1.6 * c                  # stone length 0.80 m (drawing rule)
+                j += 1
+        else:                                     # deck boards: vertical joints SCT_BOARD_M apart
+            for p, q in sec_hatch(ring, SCT_BOARD_M * k, 90.0):
+                sh.append(("line", [p, q], ln, 0.04))
     if outline:
         sh.append(("poly", ring, None, outline, lw))
     return sh
 
 
-# G15 soil (round 3, PLAN.md §2 "Soil"): drawing rules, not measured soil data. A topsoil band SCT_SOIL["top_m"]
-# thick (drawn at the section's scale) in the dark brown at the surface, then SCT_SOIL["steps"] bands following the
-# surface down to the cut bottom, lightening step by step to the pale subsoil; the broken earth hatch on top at
-# 0.15 pt (0.053 mm).
-SCT_SOIL = dict(top="5A4632", bottom="C9BBA2", top_m=0.30, steps=5, hatch_lw=0.053)
+# Soil v2 (round 5, S3, G-R5-4.2, U34/U36/U40/U56/U61/U65: "the top layer a lighter brown, each deeper layer lighter
+# still; the layering logic stays"): drawing rules, not measured soil data. A topsoil band SCT_SOIL["top_m"] thick
+# in layers[0] at the surface, then the other layers in equal bands following the surface down to the cut bottom,
+# each lighter (PLAN §3 values). No hatch over the soil (G-R5-4.1). top / bottom / steps / hatch_lw kept for old reads.
+SCT_SOIL = dict(layers=("C2A383", "D0B699", "DDC9B0", "E9DDCB"), top="C2A383", bottom="E9DDCB", top_m=0.30, steps=3,
+                hatch_lw=0.053)
 
 
 def sct_soil_gradient(surface, bottom_y, k):
-    """G15 soil under a surface polyline (page mm, left to right) down to bottom_y: the topsoil band (SCT_SOIL top_m
-    x k deep under every point of the surface) then SCT_SOIL steps bands, each parallel to the surface, from the
-    topsoil colour to the subsoil colour at bottom_y. Opaque fills only, no strokes. Returns shapes."""
+    """G-R5-4.2 soil under a surface polyline (page mm, left to right) down to bottom_y: the topsoil band (SCT_SOIL
+    top_m x k deep under every point of the surface) in layers[0], then one band per further layer, each parallel to
+    the surface, lighter going down, the last reaching bottom_y. Opaque fills only, no strokes. Returns shapes."""
     S = [(float(x), float(y)) for x, y in surface]
     if len(S) < 2:
         return []
     t = SCT_SOIL["top_m"] * k
-    n = int(SCT_SOIL["steps"])
+    cols = list(SCT_SOIL["layers"])
+    n = len(cols) - 1
     b = float(bottom_y)
 
     def depth_at(y, f):                       # f = 0 at the topsoil's underside .. 1 at the cut bottom
         top = max(b, y - t)
         return top - (top - b) * f
 
-    sh = [("poly", [(x, y) for x, y in S] + [(x, max(b, y - t)) for x, y in reversed(S)], SCT_SOIL["top"], None,
-           0.0)]
+    sh = [("poly", [(x, y) for x, y in S] + [(x, max(b, y - t)) for x, y in reversed(S)], cols[0], None, 0.0)]
     for i in range(n):
         fa, fb = i / float(n), (i + 1) / float(n)
-        col = _sec_mix(SCT_SOIL["top"], SCT_SOIL["bottom"], (i + 1) / float(n))
         ring = [(x, depth_at(y, fa)) for x, y in S] + [(x, depth_at(y, fb)) for x, y in reversed(S)]
-        sh.append(("poly", ring, col, None, 0.0))
+        sh.append(("poly", ring, cols[i + 1], None, 0.0))
     return sh
 
 
 def sct_ground(surface, bottom_y, k, material="earth", lw=0.35):
-    """Cut ground under a surface polyline (page mm, left to right) down to bottom_y: hatch and the cut line.
-    material "earth": the G15 soil gradient (sct_soil_gradient) under the broken hatch (round 3, every section)."""
+    """Cut ground under a surface polyline (page mm, left to right) down to bottom_y: its solid material and the cut
+    line. material "earth": the soil v2 layers (sct_soil_gradient, G-R5-4.2), no hatch (round 5)."""
     ring = list(surface) + [(surface[-1][0], bottom_y), (surface[0][0], bottom_y)]
     if material == "earth":
-        return (sct_soil_gradient(surface, bottom_y, k) +
-                sct_hatch_fill(ring, material, k, fill=False, hatch_lw=SCT_SOIL["hatch_lw"]) +
-                [("line", list(surface), SCT["cut"], lw)])
+        return sct_soil_gradient(surface, bottom_y, k) + [("line", list(surface), SCT["cut"], lw)]
     return sct_hatch_fill(ring, material, k) + [("line", list(surface), SCT["cut"], lw)]
 
 
@@ -1541,6 +1662,503 @@ def sct_channel(profile, wl_y, spacing=0.6):
         sh += sec_water(run, spacing)
     return sh
 
+# ---- silhouette.py (round 5 S4, 1 Nov 2026; G-R5-4.4, G-R5-6, N1, D4): one small raster engine, pure Python 3 ------
+# Used by figures.py (solid dark bodies of the library people) and plants.py (toned plant images). Included by
+# plants.py (#@include), so every script that draws plants or people has it. No Rhino, no PIL; numpy only if present.
+#   sil_png_size(path) -> (w, h) | None             PNG / JPEG pixel size from the header only
+#   sil_png_read(path) -> (w, h, rgb bytes, n colours 1|3, alpha bytes | None) | None   (8/16 bit, not interlaced)
+#   sil_png_write(path, w, h, rgb, alpha)           RGBA (or RGB) 8 bit PNG, filter 0
+#   sil_body(rings_m, px_m, close_m, key) -> [ring m]   the filled outline of a pen drawing: rings rasterised,
+#                                                   closed (dilate + erode close_m), holes filled, traced, smoothed
+#   sil_alpha_body(path, h_m, px_m, close_m, thr) -> ([ring m], w_m)   the same from a PNG's alpha (feet = bottom row)
+#   sil_tone(src, dst, shade, mid, light, keep, paper, fade) -> (ok, how)   a plant image toned to its species
+#                                                   colours (luminance -> shade/mid/light ramp, keep = share of the
+#                                                   photo's own colour kept, then faded toward the paper by fade)
+# Bitmaps are lists of Python ints, one per row (bit i = column i), row 0 at the bottom (y up).
+import os as _sil_os
+import zlib as _sil_zlib
+import struct as _sil_st
+
+SIL_LOG = []
+_SIL_BODY = {}          # key -> rings (m), one run
+_SIL_PNG = {}           # path -> decoded PNG, one run
+
+
+def sil_png_size(path):
+    """(w, h) in pixels of a PNG or JPEG, read from the header; None if unreadable"""
+    try:
+        with open(path, "rb") as f:
+            d = f.read(65536)
+    except Exception:
+        return None
+    if d[:8] == b"\x89PNG\r\n\x1a\n" and d[12:16] == b"IHDR":
+        return _sil_st.unpack(">II", d[16:24])
+    if d[:2] == b"\xff\xd8":
+        i = 2
+        while i + 9 < len(d):
+            if d[i] != 0xFF:
+                return None
+            m = d[i + 1]
+            if m in (0xC0, 0xC1, 0xC2):
+                return (d[i + 7] << 8) | d[i + 8], (d[i + 5] << 8) | d[i + 6]
+            i += 2 + ((d[i + 2] << 8) | d[i + 3])
+    return None
+
+
+def sil_png_read(path):
+    """(w, h, rgb bytes, n colours 1|3, alpha bytes or None) of a PNG (8 or 16 bit, grey/RGB/palette, +alpha,
+    not interlaced), or None. Rows top to bottom as in the file. Kept in memory for the run."""
+    if path in _SIL_PNG:
+        return _SIL_PNG[path]
+    try:
+        with open(path, "rb") as f:
+            d = f.read()
+    except Exception:
+        return None
+    if d[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    pos, idat, plte, trns, hdr = 8, [], None, None, None
+    while pos + 8 <= len(d):
+        n = _sil_st.unpack(">I", d[pos:pos + 4])[0]
+        t, c = d[pos + 4:pos + 8], d[pos + 8:pos + 8 + n]
+        pos += 12 + n
+        if t == b"IHDR":
+            hdr = _sil_st.unpack(">IIBBBBB", c[:13])
+        elif t == b"PLTE":
+            plte = c
+        elif t == b"tRNS":
+            trns = c
+        elif t == b"IDAT":
+            idat.append(c)
+        elif t == b"IEND":
+            break
+    if not hdr:
+        return None
+    w, h, bd, ct, _cm, _fm, il = hdr
+    ch = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+    if ch is None or il or bd not in (8, 16) or (ct == 3 and bd != 8):
+        return None
+    bpp = ch * bd // 8
+    raw = _sil_zlib.decompress(b"".join(idat))
+    stride = w * bpp
+    out = bytearray(h * stride)
+    prev = bytearray(stride)
+    i = 0
+    for y in range(h):
+        ft = raw[i]
+        ln = bytearray(raw[i + 1:i + 1 + stride])
+        i += 1 + stride
+        if ft == 1:
+            for x in range(bpp, stride):
+                ln[x] = (ln[x] + ln[x - bpp]) & 255
+        elif ft == 2:
+            for x in range(stride):
+                ln[x] = (ln[x] + prev[x]) & 255
+        elif ft == 3:
+            for x in range(stride):
+                ln[x] = (ln[x] + (((ln[x - bpp] if x >= bpp else 0) + prev[x]) >> 1)) & 255
+        elif ft == 4:
+            for x in range(stride):
+                a = ln[x - bpp] if x >= bpp else 0
+                b = prev[x]
+                c = prev[x - bpp] if x >= bpp else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                ln[x] = (ln[x] + (a if pa <= pb and pa <= pc else (b if pb <= pc else c))) & 255
+        out[y * stride:(y + 1) * stride] = ln
+        prev = ln
+    if bd == 16:
+        out = out[0::2]
+    n = w * h
+    if ct == 3:
+        pal = bytes(plte or b"") + b"\x00" * (768 - len(plte or b""))
+        rgb = bytearray(n * 3)
+        for k_ in range(3):
+            rgb[k_::3] = bytes(out).translate(bytes(pal[3 * j + k_] for j in range(256)))
+        alpha = bytes(out).translate(bytes(trns or b"") + b"\xff" * (256 - len(trns or b""))) if trns else None
+        r = (w, h, bytes(rgb), 3, alpha)
+    elif ct == 0:
+        r = (w, h, bytes(out), 1, None)
+    elif ct == 4:
+        r = (w, h, bytes(out[0::2]), 1, bytes(out[1::2]))
+    elif ct == 2:
+        r = (w, h, bytes(out), 3, None)
+    else:
+        rgb = bytearray(n * 3)
+        rgb[0::3], rgb[1::3], rgb[2::3] = out[0::4], out[1::4], out[2::4]
+        r = (w, h, bytes(rgb), 3, bytes(out[3::4]))
+    _SIL_PNG[path] = r
+    return r
+
+
+def sil_png_write(path, w, h, rgb, alpha=None):
+    """writes an 8 bit RGB(A) PNG (rows top to bottom, filter 0); the folder is made"""
+    if alpha is not None:
+        px = bytearray(w * h * 4)
+        px[0::4], px[1::4], px[2::4], px[3::4] = rgb[0::3], rgb[1::3], rgb[2::3], alpha
+        bpp, ct = 4, 6
+    else:
+        px, bpp, ct = bytes(rgb), 3, 2
+    stride = w * bpp
+    raw = b"".join(b"\x00" + bytes(px[y * stride:(y + 1) * stride]) for y in range(h))
+
+    def chunk(t, c):
+        return _sil_st.pack(">I", len(c)) + t + c + _sil_st.pack(">I", _sil_zlib.crc32(t + c) & 0xffffffff)
+    d = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", _sil_st.pack(">IIBBBBB", w, h, 8, ct, 0, 0, 0)) +
+         chunk(b"IDAT", _sil_zlib.compress(raw, 6)) + chunk(b"IEND", b""))
+    _sil_os.makedirs(_sil_os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(d)
+
+
+# ---- bitmaps (rows of ints) -------------------------------------------------------------------------------------------
+def _sil_fill_ring(rows, ring, x0, y0, px, W):
+    """ORs the inside of one closed ring (m) into rows (even-odd scanline at each row's centre)"""
+    n = len(ring)
+    if n < 3:
+        return
+    ys = [p[1] for p in ring]
+    r0 = max(0, int((min(ys) - y0) / px) - 1)
+    r1 = min(len(rows) - 1, int((max(ys) - y0) / px) + 1)
+    full = (1 << W) - 1
+    for r in range(r0, r1 + 1):
+        yc = y0 + (r + 0.5) * px
+        xs = []
+        for i in range(n):
+            ax, ay = ring[i]
+            bx, by = ring[(i + 1) % n]
+            if (ay <= yc < by) or (by <= yc < ay):
+                xs.append(ax + (yc - ay) * (bx - ax) / (by - ay))
+        xs.sort()
+        m = 0
+        for a, b in zip(xs[0::2], xs[1::2]):
+            c0 = max(0, int(round((a - x0) / px)))
+            c1 = min(W, int(round((b - x0) / px)))
+            if c1 <= c0 and b - a > 0:                  # a sliver thinner than a pixel still marks one
+                c0 = min(W - 1, max(0, int((0.5 * (a + b) - x0) / px)))
+                c1 = c0 + 1
+            if c1 > c0:
+                m |= ((1 << (c1 - c0)) - 1) << c0
+        rows[r] |= m & full
+
+
+def _sil_dilate(rows, W, r):
+    full = (1 << W) - 1
+    hz = []
+    for v in rows:
+        a = v
+        for i in range(1, r + 1):
+            a |= (v << i) | (v >> i)
+        hz.append(a & full)
+    H = len(rows)
+    out = []
+    for y in range(H):
+        a = 0
+        for yy in range(max(0, y - r), min(H, y + r + 1)):
+            a |= hz[yy]
+        out.append(a)
+    return out
+
+
+def _sil_erode(rows, W, r):
+    full = (1 << W) - 1
+    inv = [(~v) & full for v in rows]
+    # outside the grid counts as empty: pad so the border erodes (the grid has a margin > r, so this never bites)
+    d = _sil_dilate(inv, W, r)
+    return [(~v) & full for v in d]
+
+
+def _sil_fill_holes(rows, W):
+    """every empty region not connected to the grid border becomes filled"""
+    full = (1 << W) - 1
+    H = len(rows)
+    emp = [(~v) & full for v in rows]
+    edge = 1 | (1 << (W - 1))
+    ext = [emp[y] if y in (0, H - 1) else (emp[y] & edge) for y in range(H)]
+    changed = True
+    while changed:
+        changed = False
+        for y in list(range(H)) + list(range(H - 1, -1, -1)):
+            a = ext[y]
+            b = a | (a << 1) | (a >> 1)
+            if y > 0:
+                b |= ext[y - 1]
+            if y < H - 1:
+                b |= ext[y + 1]
+            b &= emp[y]
+            while True:                                 # run along the row at once
+                c = (b | (b << 1) | (b >> 1)) & emp[y]
+                if c == b:
+                    break
+                b = c
+            if b != a:
+                ext[y] = b
+                changed = True
+    return [full & ~e for e in ext]
+
+
+def _sil_bits(v):
+    i = 0
+    while v:
+        if v & 1:
+            yield i
+        v >>= 1
+        i += 1
+
+
+def _sil_trace(rows, W):
+    """outer outlines (lattice points, counter-clockwise) of the filled cells; holes must be filled before"""
+    H = len(rows)
+    full = (1 << W) - 1
+    nxt = {}
+
+    def add(a, b):
+        nxt.setdefault(a, []).append(b)
+    for y in range(H):
+        v = rows[y]
+        if not v:
+            continue
+        below = rows[y - 1] if y > 0 else 0
+        above = rows[y + 1] if y < H - 1 else 0
+        for x in _sil_bits(v & ~below & full):
+            add((x, y), (x + 1, y))
+        for x in _sil_bits(v & ~(v >> 1) & full):           # right neighbour empty
+            add((x + 1, y), (x + 1, y + 1))
+        for x in _sil_bits(v & ~above & full):
+            add((x + 1, y + 1), (x, y + 1))
+        for x in _sil_bits(v & ~(v << 1) & full):           # left neighbour empty
+            add((x, y + 1), (x, y))
+    loops = []
+    while nxt:
+        start = next(iter(nxt))
+        loop, cur, prev_d = [start], start, None
+        while True:
+            outs = nxt.get(cur)
+            if not outs:
+                break
+            if len(outs) > 1 and prev_d is not None:        # a pinch: turn right first (keeps the parts apart)
+                def turn(b, _c=cur, _d=prev_d):
+                    d = (b[0] - _c[0], b[1] - _c[1])
+                    return _d[0] * d[1] - _d[1] * d[0]       # < 0 right, 0 straight, > 0 left
+                outs.sort(key=turn)
+            b = outs.pop(0)
+            if not outs:
+                del nxt[cur]
+            prev_d = (b[0] - cur[0], b[1] - cur[1])
+            cur = b
+            if cur == start:
+                break
+            loop.append(cur)
+        if len(loop) >= 4:
+            loops.append(loop)
+    return loops
+
+
+def _sil_area(P):
+    return 0.5 * sum(P[i][0] * P[(i + 1) % len(P)][1] - P[(i + 1) % len(P)][0] * P[i][1] for i in range(len(P)))
+
+
+def _sil_dp(P, tol):
+    """Douglas-Peucker on a closed ring"""
+    if len(P) < 5:
+        return P
+    i_far = max(range(len(P)), key=lambda i: (P[i][0] - P[0][0]) ** 2 + (P[i][1] - P[0][1]) ** 2)
+
+    def dp(Q):                                          # iterative (long staircases never hit the recursion limit)
+        keep = [False] * len(Q)
+        keep[0] = keep[-1] = True
+        st = [(0, len(Q) - 1)]
+        while st:
+            i0, i1 = st.pop()
+            if i1 - i0 < 2:
+                continue
+            (ax, ay), (bx, by) = Q[i0], Q[i1]
+            L = ((bx - ax) ** 2 + (by - ay) ** 2) ** 0.5 or 1e-9
+            dm, im = -1.0, i0
+            for i in range(i0 + 1, i1):
+                d = abs((bx - ax) * (ay - Q[i][1]) - (ax - Q[i][0]) * (by - ay)) / L
+                if d > dm:
+                    dm, im = d, i
+            if dm > tol:
+                keep[im] = True
+                st += [(i0, im), (im, i1)]
+        return [q for q, k_ in zip(Q, keep) if k_]
+    a = dp(P[:i_far + 1])
+    b = dp(P[i_far:] + [P[0]])
+    return a[:-1] + b[:-1]
+
+
+def _sil_chaikin(P, n=2):
+    for _ in range(n):
+        Q = []
+        for i in range(len(P)):
+            a, b = P[i], P[(i + 1) % len(P)]
+            Q += [(0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]), (0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1])]
+        P = Q
+    return P
+
+
+def _sil_outline(rows, W, x0, y0, px, close_px, min_px=6):
+    """closed, hole-filled, traced and smoothed outlines (m) of a bitmap"""
+    if close_px > 0:
+        rows = _sil_erode(_sil_dilate(rows, W, close_px), W, close_px)
+    rows = _sil_fill_holes(rows, W)
+    out = []
+    for L in _sil_trace(rows, W):
+        if abs(_sil_area(L)) < min_px:
+            continue
+        P = _sil_chaikin(_sil_dp([(float(a), float(b)) for a, b in L], 0.6), 2)
+        out.append([(x0 + a * px, y0 + b * px) for a, b in P])
+    return out
+
+
+def sil_body(rings_m, px_m=0.01, close_m=0.05, key=None):
+    """the solid outline(s) of a drawing made of closed rings (m, y up): rasterised at px_m, closed by close_m
+    (gaps between pen strokes up to about 2 x close_m fill), inner holes filled, outer edge traced and smoothed.
+    Returns [ring (m)]; [] for nothing. key: memo for the run."""
+    if key is not None and key in _SIL_BODY:
+        return _SIL_BODY[key]
+    pts = [p for r in rings_m for p in r]
+    if not pts:
+        return []
+    cp = max(0, int(round(close_m / px_m)))
+    pad = (cp + 3) * px_m
+    x0, y0 = min(p[0] for p in pts) - pad, min(p[1] for p in pts) - pad
+    W = int((max(p[0] for p in pts) + pad - x0) / px_m) + 1
+    H = int((max(p[1] for p in pts) + pad - y0) / px_m) + 1
+    rows = [0] * H
+    for r in rings_m:
+        _sil_fill_ring(rows, r, x0, y0, px_m, W)
+    out = _sil_outline(rows, W, x0, y0, px_m, cp)
+    if key is not None:
+        _SIL_BODY[key] = out
+    return out
+
+
+def sil_alpha_body(path, h_m, px_m=0.01, close_m=0.02, thr=128):
+    """([ring m], w_m): the solid outline of a cutout PNG from its alpha (alpha > thr), scaled so the image is h_m
+    tall, feet = the bottom row at y 0, x centred. ([], 0) if unreadable or with no alpha."""
+    key = ("alpha", path, round(h_m, 3), px_m, close_m, thr)
+    if key in _SIL_BODY:
+        return _SIL_BODY[key]
+    r = sil_png_read(path)
+    if not r or r[4] is None:
+        SIL_LOG.append(u"silhouette: %s has no alpha" % _sil_os.path.basename(path))
+        _SIL_BODY[key] = ([], 0.0)
+        return _SIL_BODY[key]
+    w, h, _rgb, _nc, al = r
+    m_px = h_m / float(h)                                    # m per image pixel
+    step = max(1, int(px_m / m_px))
+    W, H = (w + step - 1) // step + 6, (h + step - 1) // step + 6
+    rows = [0] * H
+    for yy in range(0, h, step):
+        ln = al[yy * w:(yy + 1) * w:step]
+        v = 0
+        for i, a in enumerate(ln):
+            if a > thr:
+                v |= 1 << (i + 3)
+        rows[(h - 1 - yy) // step + 3] = v                   # image top row -> highest bitmap row
+    px = m_px * step
+    cp = max(0, int(round(close_m / px)))
+    out = _sil_outline(rows, W, -(w * m_px) / 2.0 - 3 * px, -3 * px, px, cp)
+    if out:                                                  # feet exactly on y 0
+        y_min = min(p[1] for R in out for p in R)
+        out = [[(a, b - y_min) for a, b in R] for R in out]
+    _SIL_BODY[key] = (out, w * m_px)
+    return _SIL_BODY[key]
+
+
+# ---- the cutout library (Data/cutouts/cutouts.json; recovered from a936d62:src/common/figures.py:747-792, round 5) --------
+# {"cutouts": {key: entry or [entries]}}, entry = {"file", "h_m" (true height of what the PNG shows, bottom edge =
+# ground/feet), "kind", "facing" (-1 = looks left; default +1), "depth": {"1": file, "2": file}, ...}. Keys: plants =
+# the plants.py species key ("olive"), people = "person_<pose>", "stall". Read once per run.
+_SIL_CUT = {}
+
+
+def sil_cut_dir():
+    return _sil_os.path.join(_sil_os.path.expanduser("~"), "Downloads", "Bergama", "Data", "cutouts")
+
+
+def sil_cut_library():
+    """{key: [entry, ...]} from cutouts.json (entries whose file exists), {} when the folder or file is missing"""
+    import json as _j
+    if "lib" in _SIL_CUT:
+        return _SIL_CUT["lib"]
+    lib = {}
+    p = _sil_os.path.join(sil_cut_dir(), "cutouts.json")
+    try:
+        with open(p, "r", encoding="utf-8") as fh:
+            js = _j.load(fh)
+        js = js.get("cutouts", js) if isinstance(js, dict) else {}
+        for k_, v in js.items():
+            vs = v if isinstance(v, list) else [v]
+            ok = [e for e in vs if isinstance(e, dict) and e.get("file") and e.get("h_m") and
+                  _sil_os.path.isfile(_sil_os.path.join(sil_cut_dir(), e["file"]))]
+            if ok:
+                lib[k_] = ok
+        SIL_LOG.append(u"cutouts: %d keys from %s" % (len(lib), p))
+    except Exception as ex:
+        SIL_LOG.append(u"FLAG cutouts: %s not read (%s)" % (p, type(ex).__name__))
+    _SIL_CUT["lib"] = lib
+    return lib
+
+
+# ---- toning (plants) ----------------------------------------------------------------------------------------------------
+def _sil_hex(c):
+    return [int(c[i:i + 2], 16) for i in (0, 2, 4)]
+
+
+def sil_tone(src, dst, shade, mid, light, keep=0.25, paper="F1EDDF", fade=0.0):
+    """writes dst: the PNG src toned to a species' colours. Each pixel's luminance (stretched between the 2nd and
+    98th percentile of the opaque pixels) maps onto the ramp shade -> mid -> light; keep (0-1) of the photo's own
+    colour is mixed back (flowers stay visible); then everything is mixed toward the paper by fade (depth). Alpha
+    unchanged. With numpy: as above; without: the ramp from the green channel only (keep ignored).
+    Returns (True, "numpy"|"lut") or (False, why)."""
+    r = sil_png_read(src)
+    if not r:
+        return False, "unreadable PNG"
+    w, h, rgb, nc, al = r
+    S, M_, L_, P = _sil_hex(shade), _sil_hex(mid), _sil_hex(light), _sil_hex(paper)
+    try:
+        import numpy as _np
+    except Exception:
+        _np = None
+    if _np is not None:
+        a = _np.frombuffer(rgb, dtype=_np.uint8).reshape(-1, nc).astype(_np.float32)
+        if nc == 1:
+            a = _np.repeat(a, 3, axis=1)
+        lum = 0.2126 * a[:, 0] + 0.7152 * a[:, 1] + 0.0722 * a[:, 2]
+        op = lum if al is None else lum[_np.frombuffer(al, dtype=_np.uint8) > 128]
+        if op.size < 10:
+            op = lum
+        lo, hi = _np.percentile(op, 2), _np.percentile(op, 98)
+        t = _np.clip((lum - lo) / max(1.0, hi - lo), 0.0, 1.0)[:, None]
+        S_, M2, L2 = (_np.array(c, dtype=_np.float32)[None, :] for c in (S, M_, L_))
+        duo = _np.where(t < 0.5, S_ + (M2 - S_) * (t / 0.5), M2 + (L2 - M2) * ((t - 0.5) / 0.5))
+        out = duo * (1.0 - keep) + a * keep
+        out = out + (_np.array(P, dtype=_np.float32)[None, :] - out) * fade
+        sil_png_write(dst, w, h, _np.clip(out + 0.5, 0, 255).astype(_np.uint8).tobytes(), al)
+        return True, "numpy"
+    g = rgb[1::3] if nc == 3 else rgb
+    gs = sorted(g[::97]) or [0, 255]
+    lo, hi = gs[int(0.02 * (len(gs) - 1))], gs[int(0.98 * (len(gs) - 1))]
+    lut = [bytearray(256) for _ in range(3)]
+    for v in range(256):
+        t = min(1.0, max(0.0, (v - lo) / float(max(1, hi - lo))))
+        for c in range(3):
+            x = S[c] + (M_[c] - S[c]) * t / 0.5 if t < 0.5 else M_[c] + (L_[c] - M_[c]) * (t - 0.5) / 0.5
+            x = x + (P[c] - x) * fade
+            lut[c][v] = int(max(0, min(255, round(x))))
+    out = bytearray(w * h * 3)
+    for c in range(3):
+        out[c::3] = bytes(g).translate(bytes(lut[c]))
+    sil_png_write(dst, w, h, bytes(out), al)
+    return True, "lut"
+# ---- round 5 (S4, 1 Nov 2026; G-R5-6, D4, D10, N2 a): PLANT MODULE v3. Every pla_section / pla_plan / pla_axo /
+# pla_bare / crop call draws the species from a real image per species x state (see "plant module v3" above
+# pla_section), toned to its colours; the round 4 vector drawing below stays only as the counted, FLAGged fallback
+# where no image exists yet (pla_missing), so the pages never go blank before the asset project delivers
+# Data/plants/. Interfaces unchanged. silhouette.py (included above) holds the PNG reader/writer and the toning.
 # ---- round 4 (S3, 1 Nov 2026; D1, D4, D6 states, D7, G-R4-5.2, G-R4-5.8, G-R4-6): ONE vector drawing per species for
 # every plan, section, view, axo (pla_axo) and the p17 catalogue: white willow v2, print-quality crowns of two-tone
 # leaf masses with gaps, a shrub/flower low layer (pla_low_section / pla_low_plan), season= on every call (None =
@@ -1943,11 +2561,16 @@ def pla_bare(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, layer=
     s_ = _pla_s(season, month) or "winter"
     c = pla_colours(key, s_, beyond=beyond, layer=layer)
     _pla_count(key, s_)
+    c0 = pla_colours(key, s_)
     if plan:
-        return _pla_bare_draw(key, sp, x, gy, h, w, k, c, seed, plan=True)
+        img = _pla_img_draw(key, s_, "top", x, gy, h, w, k, c0, seed, beyond, 0, True) or \
+            _pla_missing_draw(key, s_, "top", x, gy, w, w, k)
+        return img if img is not None else _pla_bare_draw(key, sp, x, gy, h, w, k, c, seed, plan=True)
     sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
     g = gy(x) if callable(gy) else gy
-    return _pla_bare_draw(key, sp, x, g, h, w, k * sc, c, seed)
+    img = _pla_img_draw(key, s_, "side", x, g, h, w, k * sc, c0, seed, beyond, layer, True) or \
+        _pla_missing_draw(key, s_, "side", x, g, h, w, k * sc)
+    return img if img is not None else _pla_bare_draw(key, sp, x, g, h, w, k * sc, c, seed)
 
 
 def _pla_rnd(i, s=0):
@@ -2344,8 +2967,22 @@ def pla_log_lines():
     """the plant log lines of this run (sec_look_lines prints them): willow v2 drawn n; plants drawn by species;
     plants season=<season> species n (one per season drawn; 'general' = no season); FLAG plant colours pending
     research (n species: every species and crop, until research/plant_colours.md fills the colours)"""
-    out = [u"willow v2 drawn %d" % PLA_COUNT.get("willow", 0),
+    wf = sorted(set(v for (k_, _s, _v), v in PLA_IMG_FILE.items() if k_ == "willow"))
+    out = [u"willow v3 image=%s (drawn %d)" % (u", ".join(wf) if wf else
+                                               u"none (pending Data/plants/willow_<state>_side.png)",
+                                               PLA_COUNT.get("willow", 0)),
            u"plants drawn by species: " + (u", ".join(u"%s %d" % kv for kv in sorted(PLA_COUNT.items())) or u"none")]
+    by = {}
+    for sk, src in PLA_SRC.items():                       # round 5: species x state (x view) per image source
+        by.setdefault(src or "vector_fallback", set()).add(sk)
+    out.append(u"plants source=" + u", ".join(u"%s %d" % (k_, len(v)) for k_, v in sorted(by.items())) +
+               u" species×state" if by else u"plants source=none drawn")
+    miss = sorted(by.get("vector_fallback", set()) | by.get("placeholder", set()))
+    if miss:
+        out.append(u"FLAG plants without image %d species×state (view): %s" % (
+            len(miss), u", ".join(u"%s %s (%s)" % m for m in miss[:40]) + (u" ..." if len(miss) > 40 else u"")))
+    if PLA_TONE_LOG:
+        out.append(u"plants toned: " + u", ".join(u"%s %d" % kv for kv in sorted(PLA_TONE_LOG.items())))
     for s_ in ("general",) + PLA_SEASONS:
         if s_ in PLA_SEASON_KEYS:
             out.append(u"plants season=%s species %d" % (s_, len(PLA_SEASON_KEYS[s_])))
@@ -2377,6 +3014,183 @@ def _pla_layer_cols(c, layer):
     return dict((k_, f(v, layer) if v else v) for k_, v in c.items())
 
 
+# ---- round 5 (S4, G-R5-6, D4, D10, N2 a; PLAN §3 Plants): plant module v3, every plant from a real image ---------------
+# One image per species x state (states: general, spring, summer, autumn, winter), cut out and toned to the
+# species' colours (pla_colours: the colours stay "pending research/plant_colours.md" until that file arrives; one
+# data edit then re-tones every image, because the toned copies are cached under a key that holds the colours).
+# Where an image comes from, first found wins (side views; plan views use 1 only):
+#   1. asset_png  Downloads/Bergama/Data/plants/<key>_<state>_<view>.png (view side | top; the asset-library project
+#                 delivers them: handover/ASSET_PROMPT_plants.md; transparent, plant standing on the bottom edge).
+#                 A seasonal state with no own file but a <key>_general_ file uses that one tinted for the season
+#                 (never for a bare winter state).
+#   2. cutout     Data/cutouts/<species key> (watercolour sheet, species assigned by look, in leaf only: CHK-4 §4.2)
+#   3. hires      Data/assets_hires.json PhyloPic silhouettes (plane, plane_bare, ash, olive, stone_pine, maize,
+#                 tomato; plane and ash are stand-in species: CHK-4 §4.1), flat in the species colour
+#   4. none       pla_missing("vector") = the round 4 drawing (default, so no page goes blank; counted and FLAGged),
+#                 pla_missing("placeholder") = a labelled dashed box (the D4 sample sheet shows what is missing)
+# Images keep their own proportions (never stretched): height = the species' drawing height, width from the image.
+# pla_images(False) turns raster images off for pages that cannot place images (CHK-3 §3.5: site board p02/p03,
+# masterplan p17/p24): hires silhouettes and the fallback are used there.
+# Logs (pla_log_lines): "plants source=<image> species×state n" per source, "willow v3 image=<file>|none",
+# "FLAG plants without image ..." while any species x state has none.
+PLA_IMG = dict(on=True, missing="vector")
+PLA_IMG_TONE_KEEP = 0.25          # share of the photo's own colour kept when toning (0.45 in bloom): drawing rule
+PLA_IMG_HIRES = dict(plane=("plane", "plane_bare"), ash=("ash", None), olive=("olive", "olive"),
+                     stone_pine=("stone_pine", "stone_pine"), maize=("maize", None), tomato=("tomato", None))
+PLA_SRC = {}                      # (key, state, view) -> source of the last drawing ("asset_png", "cutout", ...)
+PLA_IMG_FILE = {}                 # (key, state, view) -> file used
+PLA_TONE_LOG = {}                 # "numpy" / "lut" / failure -> count
+
+
+def pla_img_dir():
+    import os as _o
+    return _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data", "plants")
+
+
+def pla_images(on=True):
+    """raster plant images on (True) or off (False: hires silhouettes and the fallback only); returns the old value"""
+    old = PLA_IMG["on"]
+    PLA_IMG["on"] = bool(on)
+    return old
+
+
+def pla_missing(mode="vector"):
+    """what is drawn where no image exists: "vector" (round 4 drawing, FLAGged) or "placeholder" (labelled box)"""
+    old = PLA_IMG["missing"]
+    PLA_IMG["missing"] = "placeholder" if mode == "placeholder" else "vector"
+    return old
+
+
+def _pla_img_find(key, state, view, bare):
+    """(source, ref) of the image for key x state x view: ("asset_png", path) / ("cutout", entries) / ("hires", key)
+    / (None, None). state None = general."""
+    import os as _o
+    st = state or "general"
+    if PLA_IMG["on"]:
+        d = pla_img_dir()
+        for s_ in [st] + ([] if (bare or st == "general") else ["general"]):
+            f = _o.path.join(d, "%s_%s_%s.png" % (key, s_, view))
+            if _o.path.isfile(f):
+                return "asset_png", f
+        if view == "side" and not bare:
+            lib = sil_cut_library().get(key)
+            if lib:
+                return "cutout", lib
+    if view == "side":
+        hk = PLA_IMG_HIRES.get(key, (None, None))[1 if bare else 0]
+        hl = globals().get("hr_library")
+        if hk and hl and hk in hl():
+            return "hires", hk
+    return None, None
+
+
+def _pla_toned(path, c, fade, keep):
+    """the toned copy of an image (cached under Downloads/Bergama/cached/plants_toned/), or the image itself"""
+    import os as _o
+    import hashlib as _h
+    try:
+        stt = _o.stat(path)
+        sig = "%s|%d|%d|%s|%s|%s|%.3f|%.2f|v3" % (path, stt.st_size, int(stt.st_mtime), c["shade"], c["fill"], c["lt"],
+                                                 fade, keep)
+        root = bg_cache("plants_toned") if "bg_cache" in globals() else _o.path.join(
+            _o.path.expanduser("~"), "Downloads", "Bergama", "cached", "plants_toned")
+        dst = _o.path.join(root, _h.md5(sig.encode("utf-8")).hexdigest()[:16] + ".png")
+        if _o.path.isfile(dst):
+            return dst
+        ok, how = sil_tone(path, dst, c["shade"], c["fill"], c["lt"], keep, SEC["paper"], fade)
+        PLA_TONE_LOG[how] = PLA_TONE_LOG.get(how, 0) + 1
+        return dst if ok else path
+    except Exception as ex:
+        PLA_TONE_LOG["failed " + type(ex).__name__] = PLA_TONE_LOG.get("failed " + type(ex).__name__, 0) + 1
+        return path
+
+
+def _pla_fade(beyond, layer):
+    f = fig_depth(layer)[1] if layer and globals().get("fig_depth") else 0.0
+    return 1.0 - (1.0 - (0.55 if beyond else 0.0)) * (1.0 - f)
+
+
+def _pla_img_draw(key, state, view, x, g, h, w, k, c0, seed, beyond, layer, bare):
+    """the image drawing of one plant (section: ground at (x, g); plan: crown centred on (x, g)), or None.
+    c0 = the species' colours at layer 0, not beyond (pla_colours); h, w in m; k page mm per m (layer-scaled)."""
+    src, ref = _pla_img_find(key, state, view, bare)
+    sk = (key, state or "general", view)
+    if src is None:
+        PLA_SRC[sk] = PLA_SRC.get(sk) or None
+        return None
+    fade = _pla_fade(beyond, layer)
+    flip = bool(seed % 2)                                 # variety: mirrored every other plant
+    if src == "hires":
+        fill = c0["bark"] if bare else c0["fill"]
+        if fade > 0:
+            fill = _sec_mix(fill, SEC["paper"], fade)
+        sh = hr_side(ref, x, g, k, h, w_m=None, fill=fill, edge=None, lw=0.0, facing=-1 if flip else 1)
+        if sh:
+            PLA_SRC[sk], PLA_IMG_FILE[sk] = src, "assets_hires.json:" + ref
+        return sh
+    if src == "cutout":
+        import os as _o
+        e = ref[int(seed) % len(ref)]
+        path = _o.path.join(sil_cut_dir(), e["file"])
+    else:
+        path = ref
+    px = sil_png_size(path)
+    if not px or not px[1]:
+        return None
+    keep = 0.45 if c0.get("bloom") else PLA_IMG_TONE_KEEP
+    tp = _pla_toned(path, c0, fade, keep)
+    PLA_SRC[sk], PLA_IMG_FILE[sk] = src, _o_base(path)
+    if view == "top":
+        W = w * k
+        H = W * px[1] / float(px[0])
+        return [("image", x - W / 2.0, g - H / 2.0, W, H, tp, None, flip, None)]
+    H = h * k
+    W = H * px[0] / float(px[1])
+    return [("image", x - W / 2.0, g, W, H, tp, None, flip, None)]
+
+
+def _o_base(p):
+    import os as _o
+    return _o.path.basename(p)
+
+
+def _pla_placeholder(key, state, view, x, g, h, w, k):
+    """a labelled dashed box where no image exists (pla_missing("placeholder"); the D4 sample sheet)"""
+    W = max(w * k, 4.0)
+    H = (h * k) if view == "side" else W
+    y0 = g if view == "side" else g - H / 2.0
+    ring = [(x - W / 2.0, y0), (x + W / 2.0, y0), (x + W / 2.0, y0 + H), (x - W / 2.0, y0 + H), (x - W / 2.0, y0)]
+    sz = 1.6
+    return [("line", ring, "8E8F8A", 0.2, [1.0, 0.8]),
+            ("text", u"no image", x, y0 + H / 2.0 + 0.2, sz, "8B2D2D", True, "C"),
+            ("text", u"%s %s" % (key, state or "general"), x, y0 + H / 2.0 - 1.8, sz, "8B2D2D", False, "C")]
+
+
+def _pla_missing_draw(key, state, view, x, g, h, w, k):
+    """None (draw the round 4 vector) or the placeholder; counts the species x state as without image"""
+    sk = (key, state or "general", view)
+    if PLA_IMG["missing"] == "placeholder":
+        PLA_SRC[sk] = "placeholder"
+        return _pla_placeholder(key, state, view, x, g, h, w, k)
+    PLA_SRC[sk] = "vector_fallback"
+    return None
+
+
+
+# round 5 (S4, BRIEF G-R5-6 row A1): every greenery colour of the other scripts' local palettes comes from here (S6-S9
+# replace their own SEC/BM_COL/ICO_PAL/COL/... greenery values by pla_green(role)); pending research like all.
+def pla_green(role):
+    """a greenery colour by role: tree, tree_wet, tree_dry, shrub, flower, grass, meadow, crop, field, row,
+    wetland, reed, trunk (hex, from the species colours of this module)"""
+    f = lambda k_: PLA_SPECIES[k_]["colours"]["fill"]
+    t = dict(tree=f("plane"), tree_wet=f("willow"), tree_dry=f("olive"), shrub=f("chaste"), flower=PLA_LAV,
+             grass=PLA_CROP_LEAF, meadow=_sec_mix(PLA_CROP_LEAF, SEC["paper"], 0.45), crop=PLA_CROP_LEAF,
+             field=PLA_FIELD, row=PLA_ROW, wetland=PLA_WET, reed=PLA_REED_HEAD, trunk=PLA_TRUNK)
+    if role not in t:
+        raise KeyError("pla_green: role %r; known: %s" % (role, ", ".join(sorted(t))))
+    return t[role]
+
+
 def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hires=True, style="b", layer=0,
                 detail=True, month=None, season=None):
     """A species in section at true size: ground at (x, gy) page mm (gy may be a function of x). h_m outside the
@@ -2396,6 +3210,11 @@ def pla_section(key, x, gy, k, h_m=None, crown_m=None, beyond=False, seed=0, hir
     c = pla_colours(key, s_, beyond=beyond, layer=layer)
     sc = globals()["fig_depth"](layer)[0] if layer and globals().get("fig_depth") else 1.0
     k = k * sc
+    img = _pla_img_draw(key, s_, "side", x, g, h, w, k, pla_colours(key, s_), seed, beyond, layer, c["bare"])
+    if img is None:                                     # round 5: no image -> placeholder or the round 4 drawing
+        img = _pla_missing_draw(key, s_, "side", x, g, h, w, k)
+    if img is not None:
+        return img
     if c["bare"]:
         return _pla_bare_draw(key, sp, x, g, h, w, k, c, seed)
     sh = _pla_sec(sp["form"], x, g, h, w, k, c, seed)
@@ -2416,6 +3235,11 @@ def pla_plan(key, cx, cy, k, crown_m=None, beyond=False, seed=0, distinct=True, 
     _pla_status()
     _pla_count(key, s_)
     c = pla_colours(key, s_, beyond=beyond)
+    img = _pla_img_draw(key, s_, "top", cx, cy, sp["h_m"] or w, w, k, pla_colours(key, s_), seed, beyond, 0, c["bare"])
+    if img is None:                                     # round 5: no top-view image -> placeholder or round 4 drawing
+        img = _pla_missing_draw(key, s_, "top", cx, cy, w, w, k)
+    if img is not None:
+        return img
     if c["bare"]:
         return _pla_bare_draw(key, sp, cx, cy, sp["h_m"] or w, w, k, c, seed, plan=True)
     sh = _pla_plan(sp["form"], cx, cy, w, k, c, seed)
@@ -2472,10 +3296,21 @@ def _pla_crop_sec(crop, x, gy, h, w, k, i, beyond, state="growing", season=None)
     """One crop plant in section, in its season's state (bare: nothing; harvested: stubble; seedling: young)."""
     if crop == "olive":
         c = pla_colours("olive", season, beyond=beyond)
-        return _pla_sec("gnarled", x, gy, h, w, k, c, i)
+        img = _pla_img_draw("olive", season, "side", x, gy, h, w, k, pla_colours("olive", season), i, beyond, 0, False)
+        if img is None:
+            img = _pla_missing_draw("olive", season, "side", x, gy, h, w, k)
+        return img if img is not None else _pla_sec("gnarled", x, gy, h, w, k, c, i)
     c = _pla_crop_cols(beyond)
     if state == "bare":
         return []
+    if state != "harvested":                     # round 5: crop image (asset png / hires), else placeholder / vector
+        hh, ww = (0.30 * h, 0.40 * w) if state == "seedling" else (h, w)
+        c0 = _pla_crop_cols(False)
+        img = _pla_img_draw(crop, season, "side", x, gy, hh, ww, k, c0, i, beyond, 0, False)
+        if img is None:
+            img = _pla_missing_draw(crop, season, "side", x, gy, hh, ww, k)
+        if img is not None:
+            return img
     if state == "harvested":                    # stubble: short cut stems (rule 12 % of the height)
         return [("line", [(x + d * w * k * 0.3, gy), (x + d * w * k * 0.32, gy + 0.12 * h * k)], PLA_ROW, 0.1)
                 for d in (-0.5, 0.0, 0.5)]
@@ -3498,6 +4333,10 @@ def fig_polys(pose, height=1.75, facing=1):
 
 
 # ---- A1 scale figures (29 Oct 2026, Aras: family A1 "gestural pen", the R20 language) --------------------------------
+# ROUND 5 (S4, 1 Nov 2026): the round 4 note below is superseded where it says "one drawn set pen_black": people now
+# come from the A1 library and the cutouts first, every figure as a solid body in one dark tone (FIG_SET
+# "library_dark"; see "round 5 (S4 ..." above fig_side). The drawn poses below stay as the A1-language drawings the
+# library lacks (wade, fishing, sit_step, ...), turned into the same solid body.
 # ONE figure API for every drawing: fig_side / fig_top / fig_meta. Shapes are house shapes ("poly", ring, fill, stroke,
 # lw) in the caller's units (k units per metre, y up), feet at (x, y).
 # ROUND 4 (S1, 1 Nov 2026; G-R4-5.1, PLAN §4.8, decision N1 a): ONE people set, FIG_SET = "pen_black": the figures
@@ -3514,8 +4353,10 @@ def fig_polys(pose, height=1.75, facing=1):
 FIG_ADULT_H = 1.75             # m, G6 (brief 00 G6; PLAN D9)
 FIG_A1_H = FIG_ADULT_H         # m, the drawn poses' stature
 FIG_CYCLIST_H = 1.80           # m, G6 "cyclists about 1.8 m": ground to the top of the head of the riding figure
-FIG_SET = "pen_black"          # round 4 (N1 a): the only people set
-FIG_A1_INK = "1F1B18"          # round 4: black pen = black body (was 2B2B2B on a white body)
+FIG_SET = "library_dark"       # round 5 (S4, G-R5-4.4, N1): the A1 library first, then the cutouts, then poses drawn
+                               # in the A1 language; every one a solid body in ONE dark tone (was "pen_black")
+FIG_A1_INK = "3A3A38"          # round 5 (PLAN §3 People): the one dark tone 3A3A38, opaque (was 1F1B18)
+FIG_A1_LIB_H = 1.70            # m, the stature the A1 library JSON is drawn at (its "adult_m"; library/figures_A1/INDEX.md)
 FIG_DARK_FILL = "2E2A27"       # body and pen on dark ground (dark=True), with a white rim
 FIG_DARK_RIM = ("FFFFFF", 0.15)   # (colour, page mm) round the body on dark ground
 FIG_COUNT = [0]                # figures drawn since the last fig_set_line(reset=True)
@@ -3659,6 +4500,15 @@ class _FaFill(list):
     """a body fill ring (opaque, under the pen strokes): the drawn figures are never see-through (Aras 31 Oct)"""
 
 
+class _FaProp(list):
+    """round 5 (S4): a thin prop ring (fishing rod and line, ripples, bike wheels and frame, bag, leash): drawn as it
+    is in the body colour, never merged into the solid body (sil_body would thicken or lose it)"""
+
+
+def _fa_prop(r):
+    return _FaProp(r) if r else None
+
+
 def _fa_ellipse(cx, cy, rx, ry, n=16):
     import math as _m
     return [(cx + rx * _m.cos(2 * _m.pi * i / n), cy + ry * _m.sin(2 * _m.pi * i / n)) for i in range(n)]
@@ -3742,7 +4592,7 @@ def _fa_side(pose, seed=0, **p):
         R = _fa_draw(B, legs, arms, rnd, coat=0.05, cut_y=cut)
         if cut is not None:                         # the water closing round the legs: two short ripple strokes
             for lx_ in (-0.5 * st, 0.5 * st):
-                R.append(_fa_stroke([(lx_ - 0.14, cut), (lx_ + 0.16, cut)], rnd, FIG_A1_PEN * 0.7, over=0.1))
+                R.append(_fa_prop(_fa_stroke([(lx_ - 0.14, cut), (lx_ + 0.16, cut)], rnd, FIG_A1_PEN * 0.7, over=0.1)))
         return R, an
     if pose == "sit_step":
         seat = p.get("seat_h", 0.45)                # step riser the figure sits on (m above the tread the feet rest on)
@@ -3786,8 +4636,8 @@ def _fa_side(pose, seed=0, **p):
             an.update(counter_x=0.30, counter_y=ch)
             R = _fa_draw(B, legs, arms, rnd, coat=0.06)
             bx, by = arms[1][1]                     # a market bag in the other hand
-            R.append(_fa_stroke([(bx - 0.10, by), (bx - 0.12, by - 0.30), (bx + 0.12, by - 0.31), (bx + 0.10, by)], rnd,
-                                FIG_A1_PEN * 0.8, over=0.05))
+            R.append(_fa_prop(_fa_stroke([(bx - 0.10, by), (bx - 0.12, by - 0.30), (bx + 0.12, by - 0.31), (bx + 0.10, by)],
+                                         rnd, FIG_A1_PEN * 0.8, over=0.05)))
             return R, an
         bh = p.get("branch_h", 1.90)                # olive picking: both hands up to the branch (top reach ~1.92 m)
         B = _FaBody(H, lean=-0.06)
@@ -3810,8 +4660,9 @@ def _fa_side(pose, seed=0, **p):
         hip = (bbp[0] - 0.24, bb - cr + 0.04 + _m.sqrt((0.96 * legl) ** 2 - 0.24 ** 2))
         bar = (front[0] - 0.12, hip[1] + 0.06)
         B = _FaBody(H, hip=hip, lean=lean)
-        out = [_fa_oval(rear[0], rear[1], r, r, rnd, gap=0.5, a0=0.3), _fa_oval(front[0], front[1], r, r, rnd, gap=0.5, a0=3.4)]
-        out += [_fa_stroke(P, rnd, FIG_A1_PEN * 0.75, over=0.04) for P in (
+        out = [_fa_prop(_fa_oval(rear[0], rear[1], r, r, rnd, gap=0.5, a0=0.3)),
+               _fa_prop(_fa_oval(front[0], front[1], r, r, rnd, gap=0.5, a0=3.4))]
+        out += [_fa_prop(_fa_stroke(P, rnd, FIG_A1_PEN * 0.75, over=0.04)) for P in (
             [rear, bbp, (hip[0] + 0.02, hip[1] - 0.08)], [(hip[0] + 0.02, hip[1] - 0.10), (bar[0] - 0.05, bar[1] - 0.10), front],
             [bbp, (bar[0] - 0.05, bar[1] - 0.10)], [rear, (hip[0] + 0.02, hip[1] - 0.10)],
             [(hip[0] - 0.10, hip[1] - 0.04), (hip[0] + 0.10, hip[1] - 0.03)], [(bar[0] - 0.05, bar[1] - 0.10), bar])]
@@ -3891,10 +4742,11 @@ def _fa_side(pose, seed=0, **p):
         rod_l, ang = p.get("rod_m", 3.0), _m.radians(p.get("rod_deg", 35.0))
         butt = (grip[0] - 0.25 * _m.cos(ang), grip[1] - 0.25 * _m.sin(ang))
         tip = (grip[0] + (rod_l - 0.25) * _m.cos(ang), grip[1] + (rod_l - 0.25) * _m.sin(ang))
-        R.append(_fa_stroke([butt, tip], rnd, FIG_A1_PEN * 0.6, over=0.0, wob=0.002, smooth=False))
+        R.append(_fa_prop(_fa_stroke([butt, tip], rnd, FIG_A1_PEN * 0.6, over=0.0, wob=0.002, smooth=False)))
         wy = p.get("water_dy", -0.5)
         if wy < tip[1]:
-            R.append(_fa_stroke([tip, (tip[0] + 0.05, wy)], rnd, FIG_A1_PEN * 0.3, over=0.0, wob=0.0, smooth=False))
+            R.append(_fa_prop(_fa_stroke([tip, (tip[0] + 0.05, wy)], rnd, FIG_A1_PEN * 0.3, over=0.0, wob=0.0,
+                                         smooth=False)))
         an.update(rod_tip=tip, line_end=(tip[0] + 0.05, wy), reach_x=tip[0])
         return [r for r in R if r], an
     if pose == "dog_walk":                          # round 3 G15: walking with a dog on a leash ahead of the walker;
@@ -3920,8 +4772,8 @@ def _fa_side(pose, seed=0, **p):
                                 FIG_A1_PEN * 0.9, over=0.02))
         R.append(_fa_stroke([(x0 + 0.01, back - 0.03), (x0 - 0.12, back + 0.12)], rnd, FIG_A1_PEN * 0.7, over=0.0))   # tail
         collar = (x0 + 0.86 * dl, back - 0.02)
-        R.append(_fa_stroke([arms[0][1], ((hand[0] + collar[0]) / 2.0, min(hand[1], collar[1]) - 0.12), collar], rnd,
-                            FIG_A1_PEN * 0.4, over=0.0, wob=0.002))
+        R.append(_fa_prop(_fa_stroke([arms[0][1], ((hand[0] + collar[0]) / 2.0, min(hand[1], collar[1]) - 0.12), collar],
+                                     rnd, FIG_A1_PEN * 0.4, over=0.0, wob=0.002)))
         an.update(length=x0 + 1.12 * dl + 0.2, dog_x=x0, dog_h=dh)
         return [r for r in R if r], an
     return None, an
@@ -3987,7 +4839,7 @@ FIG_POSE_ALIAS = {"sit": "sit_step", "cycle": "bike", "trade": "stall", "buy": "
                   "play": "child_play", "sell": "vendor", "run": "running", "jog": "running", "lie": "lying",
                   "fish": "fishing", "dog": "dog_walk"}
 FIG_SIDE_ALIAS = {"lean": "watch", "sit_chair": "sit_step"}   # round 4: side poses the drawn set lacks -> nearest drawn
-FIG_BODY_FILL = "1F1B18"     # round 4 (N1 a): the body is black, opaque (was FFFFFF); nothing see-through
+FIG_BODY_FILL = FIG_A1_INK   # round 5: the body = the one dark tone 3A3A38, opaque; nothing see-through
 
 
 def _fig_rider_h(top, lean):
@@ -4029,11 +4881,14 @@ def _fig_side_pose(pose):
 
 
 def fig_set_line(reset=True):
-    """the log line proving the one people set ran: "figures set=pen_black n" (n = figures drawn since the last reset)"""
-    n = FIG_COUNT[0]
+    """the log line proving the one people set ran (round 5, PLAN §2 N1): "figures source=asset_library n,
+    drawn_A1_style n" (since the last reset; asset_library = A1 library + cutouts, drawn_A1_style = poses neither
+    has, drawn in the A1 language with the same solid body; plan views count as drawn_A1_style)"""
+    a, d = FIG_SRC_COUNT.get("asset_library", 0), FIG_SRC_COUNT.get("drawn_A1_style", 0)
     if reset:
         FIG_COUNT[0] = 0
-    return u"figures set=%s %d" % (FIG_SET, n)
+        FIG_SRC_COUNT.clear()
+    return u"figures source=asset_library %d, drawn_A1_style %d" % (a, d)
 
 
 def _fig_body(layer=0, dark=False):
@@ -4043,33 +4898,163 @@ def _fig_body(layer=0, dark=False):
     return c, c, (FIG_DARK_RIM[0] if dark else None), (FIG_DARK_RIM[1] if dark else 0.0)
 
 
+# ---- round 5 (S4, G-R5-4.4, N1 answered 1 Nov 22:44, PLAN §2a.1): people from the asset library, solid dark ------
+# Order per pose: (1) the A1 library (Data/figures_A1.json: stand, walk, watch, lean), (2) the cutouts
+# (Data/cutouts: market buyer, vendor, children playing), (3) the poses neither holds (wade, fishing, sit_step, touch,
+# railing, olive, bike, adult_child, running, lying, dog_walk) drawn anew in the A1 language: the A1 pen drawing of
+# the pose (_fa_side, solved to its contact: step, water, rail, counter, branch) given the SAME solid body as the
+# library figures. Every body = sil_body: the drawing's strokes rasterised, closed, holes filled, the outline traced
+# (silhouette.py), so library and drawn people read as one set: one dark tone FIG_BODY_FILL, opaque, no face, no
+# hatch. Thin props (rod, fishing line, wheels, bag, leash, ripples) stay as their pen rings in the same tone.
+# Recovered from be9c3fb (fig_library, _fig_lib_k, _fig_pick, FIG_LOG) and a936d62 (the cutout reader, now
+# silhouette.py sil_cut_library). Sitting on a chair, the A1 sit_chair and the cutouts' step-sitters carry their seat
+# in the drawing (it would turn dark too), so seated people are drawn (sit_step) and sit on the real step/bench.
+FIG_LOG = []
+_FIG_LIB = {}
+FIG_SRC_COUNT = {}
+FIG_LIB_POSES = ("stand", "walk", "watch", "lean")                 # poses the A1 library holds and pages use
+FIG_CUT_POSES = {"stall": "person_stall", "vendor": "person_vendor", "child_play": "person_child_play"}
+FIG_BODY_CLOSE_M = (0.04, 0.08, 0.14)   # m: closing radii tried in turn until the body fills >= FIG_BODY_MIN_FILL of
+FIG_BODY_MIN_FILL = 0.30                # its box (pen drawings with open contours need more; drawing rule)
+FIG_BODY_PX_M = 0.01                    # m per raster cell (1 cm: 0.1 mm at 1:100, below print resolution)
+FIG_FLAGS = {}                          # FLAG counters (fishing refused where no water is drawn ...)
+
+
+def fig_library():
+    """the curated A1 library (dict id -> figure) or {} when Downloads/Bergama/Data/figures_A1.json is missing
+    (recovered from be9c3fb:src/common/figures.py:143-165)"""
+    import os as _o
+    import json as _j
+    if "lib" in _FIG_LIB:
+        return _FIG_LIB["lib"]
+    lib = {}
+    root = _o.path.join(_o.path.expanduser("~"), "Downloads", "Bergama", "Data")
+    for p in (_o.path.join(root, "figures_A1.json"), _o.path.join(root, "figures", "figures_A1.json")):
+        if _o.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as fh:
+                    js = _j.load(fh)
+                lib = js.get("figures", {})
+                _FIG_LIB["adult_m"] = float(js.get("adult_m") or FIG_A1_LIB_H)
+                FIG_LOG.append(u"Figures: %d A1 figures from %s" % (len(lib), p))
+                break
+            except Exception as ex:
+                FIG_LOG.append(u"FLAG Figures: %s unreadable (%s); drawn A1-style figures used" % (p, type(ex).__name__))
+    if not lib:
+        FIG_LOG.append(u"FLAG Figures: Data/figures_A1.json not found; drawn A1-style figures used for every pose")
+    _FIG_LIB["lib"] = lib
+    return lib
+
+
+def _fig_lib_k():
+    """factor from the library's drawn stature to FIG_ADULT_H (1.75 / 1.70)"""
+    fig_library()
+    return FIG_ADULT_H / float(_FIG_LIB.get("adult_m") or FIG_A1_LIB_H)
+
+
+def _fig_pick(pose, pick):
+    """a library figure of this pose (by id, else the pick-th of the sorted ids with that pose), or None"""
+    lib = fig_library()
+    if pose in lib:
+        return lib[pose]
+    ids = sorted(k_ for k_, f in lib.items() if f.get("pose") == pose)
+    return lib[ids[int(pick) % len(ids)]] if ids else None
+
+
+def _fig_solid(key, rings):
+    """the solid body of pen rings (m): closing radius stepped up until the body fills its box enough"""
+    if key in _SIL_BODY:
+        return _SIL_BODY[key]
+    pts = [q for r in rings for q in r]
+    if not pts:
+        return []
+    bw = (max(q[0] for q in pts) - min(q[0] for q in pts)) * (max(q[1] for q in pts) - min(q[1] for q in pts)) or 1.0
+    out, used = [], None
+    for cm in FIG_BODY_CLOSE_M:
+        out = sil_body(rings, FIG_BODY_PX_M, cm)
+        used = cm
+        if sum(abs(_sil_area(R)) for R in out) >= FIG_BODY_MIN_FILL * bw:
+            break
+    if used != FIG_BODY_CLOSE_M[0]:
+        FIG_LOG.append(u"figures: %s body closed at %.2f m" % (key[1] if isinstance(key, tuple) else key, used))
+    _SIL_BODY[key] = out
+    return out
+
+
+def _fig_side_dark(pose, pick, p):
+    """(source, body rings m, prop rings m, anchors) of one side figure, feet at (0, 0), facing +x"""
+    lib_pose = "lean" if pose == "railing" else pose
+    if lib_pose in FIG_LIB_POSES:
+        f = _fig_pick(lib_pose, pick)
+        ok = f is not None
+        if ok and pose == "railing":                   # the A1 leaner fits only a rail at its ledge height
+            ledge = float((f.get("anchor") or {}).get("ledge_y_m", 0.0)) * _fig_lib_k()
+            ok = abs(p.get("rail_h", 1.10) - ledge) <= 0.10
+        if ok:
+            lk = _fig_lib_k()
+            fl = -1.0 if (f.get("facing") or 0) < 0 else 1.0     # the file's facing -> +x
+            rings = [[(fl * a * lk, b * lk) for a, b in r] for r in f["rings"]]
+            an = dict(_fa_side(_fig_side_pose(pose), pick, **p)[1] or {})
+            if pose == "railing":
+                an.update(rail_y=float(f["anchor"]["ledge_y_m"]) * lk)
+            fid = [k_ for k_, v in fig_library().items() if v is f]
+            return "asset_library", _fig_solid(("a1", fid[0] if fid else lib_pose), rings), [], an
+    ck = FIG_CUT_POSES.get(pose)
+    if ck:
+        lib = sil_cut_library().get(ck)
+        if lib:
+            import os as _o
+            e = lib[int(pick) % len(lib)]
+            body, _w = sil_alpha_body(_o.path.join(sil_cut_dir(), e["file"]), float(e["h_m"]), FIG_BODY_PX_M, 0.02)
+            if body:
+                if (e.get("facing", 1) or 1) < 0:
+                    body = [[(-a, b) for a, b in r][::-1] for r in body]
+                an = dict(_fa_side(_fig_side_pose(pose), pick, **p)[1] or {})
+                return "asset_library", body, [], an
+    dp = _fig_side_pose(pose)
+    p = dict((k_, (round(v / 0.02) * 0.02 if isinstance(v, float) else v)) for k_, v in p.items())   # 2 cm steps:
+    rings, an = _fa_side(dp, pick % 3, **p)                                                         # bodies reused
+    if not rings:
+        rings, an = _fa_side("stand", pick % 3)
+    rings = [r for r in rings if r]
+    props = [r for r in rings if isinstance(r, _FaProp)]
+    key = ("drawn", dp, pick % 3) + tuple(sorted((k_, round(v, 2)) for k_, v in p.items()
+                                                 if isinstance(v, (int, float)) and not isinstance(v, bool)))
+    body = _fig_solid(key, [r for r in rings if not isinstance(r, _FaProp)])
+    return "drawn_A1_style", body, props, dict(an or {})
+
+
 def fig_side(pose, x, y, k, facing=1, ink=None, pick=None, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, layer=0, style="b",
              dark=False, **p):
-    """side-view figure of the one set (FIG_SET), feet at (x, y), k units per m, facing -1 = mirrored. pose: a drawn
-    pose (FIG_DRAWN_SIDE: stand, walk, watch, wade depth_m, sit_step seat_h, touch reach_y, stall counter_h, railing
-    rail_h, olive branch_h, bike, adult_child child_h = hand in hand, child_play, vendor, running, lying, fishing
-    water_dy, dog_walk) or an alias (FIG_POSE_ALIAS; lean -> watch, sit_chair -> sit_step); touch_water = bending to
-    the water. pick (default: from x, y) varies the pen. mm_per_m: printed page mm per metre (default k, the house
-    convention); where the pen (0.019 m) would print thinner than pen_min_mm, every stroke gets an outline of the
-    difference (lw in page mm). layer: depth layer 0 (cut plane, true size) / 1 / 2 (smaller and paler, opaque:
-    fig_depth). dark=True on dark ground (FIG_DARK_FILL + white rim). ink and style are ignored (round 4: one set,
-    black bodies). Returns house shapes ("poly", ring, fill, stroke, lw), body fills first."""
+    """side-view figure of the one set (FIG_SET "library_dark", round 5), feet at (x, y), k units per m, facing -1 =
+    mirrored. pose: stand, walk, watch, lean (A1 library); stall, vendor, child_play (cutouts); wade depth_m,
+    fishing water_dy, sit_step seat_h, touch reach_y, railing rail_h, olive branch_h, bike, adult_child child_h,
+    running, lying, dog_walk (drawn in the A1 language); aliases FIG_POSE_ALIAS (sit_chair -> sit_step,
+    touch_water -> touch). pick (default: from x, y) picks the variant. layer: depth layer 0 / 1 / 2 (smaller and
+    paler, opaque: fig_depth). dark=True on dark ground (FIG_DARK_FILL + white rim). ink and style are ignored (one
+    set, one dark tone). mm_per_m / pen_min_mm: props (rod, line, wheels) never print thinner than pen_min_mm.
+    Returns house shapes ("poly", ring, fill, stroke, lw): the solid body, then the props."""
     pose = FIG_POSE_ALIAS.get(pose, pose)
-    sc, _fade = fig_depth(layer)
     if pose == "touch_water":                          # R2-C: bending to the water
         pose = "touch"
+    if pose == "sit_chair":
+        pose = "sit_step"
+    if pose == "fishing" and p.get("water_dy") is None:   # round 5 (U36): no water given = no fishing line into soil
+        pose = "watch"
+        FIG_FLAGS["fishing -> watch (no water_dy)"] = FIG_FLAGS.get("fishing -> watch (no water_dy)", 0) + 1
+    sc, _fade = fig_depth(layer)
     k = k * sc
-    body, ink, rim, rim_lw = _fig_body(layer, dark)
+    body, _ink, rim, rim_lw = _fig_body(layer, dark)
     if pick is None:                                   # variety: the place picks the figure, the same every run
         pick = int(abs(x * 7.31 + y * 3.17) * 10.0) % 997
+    src, B, P, _an = _fig_side_dark(pose, pick, p)
     flip = 1.0 if facing >= 0 else -1.0
-    rings = _fa_side(_fig_side_pose(pose), pick, **p)[0] or _fa_side("stand", pick)[0]
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
     FIG_COUNT[0] += 1
-    rings = [r for r in rings if isinstance(r, _FaFill)] + [r for r in rings if not isinstance(r, _FaFill)]
-    return [("poly", [(x + flip * px * k, y + py * k) for px, py in r], body, rim, rim_lw) if isinstance(r, _FaFill)
-            else ("poly", [(x + flip * px * k, y + py * k) for px, py in r], ink, ink if add > 0 else None, add)
-            for r in rings]
+    FIG_SRC_COUNT[src] = FIG_SRC_COUNT.get(src, 0) + 1
+    out = [("poly", [(x + flip * a * k, y + b * k) for a, b in r], body, rim, rim_lw) for r in B]
+    out += [("poly", [(x + flip * a * k, y + b * k) for a, b in r], body, body if add > 0 else None, add) for r in P]
+    return out
 
 
 def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=FIG_PEN_MIN_MM, style="b", dark=False,
@@ -4082,6 +5067,7 @@ def fig_top(pose, x, y, k, ang=0.0, ink=None, pick=0, mm_per_m=None, pen_min_mm=
     body, ink, rim, rim_lw = _fig_body(0, dark)
     rings = _fa_top(FIG_POSE_ALIAS.get(pose, pose), pick, **p) or _fa_top("stand", pick)
     rings = [r for r in rings if isinstance(r, _FaFill)] + [r for r in rings if not isinstance(r, _FaFill)]
+    FIG_SRC_COUNT["drawn_A1_style"] = FIG_SRC_COUNT.get("drawn_A1_style", 0) + 1   # round 5: plan views (no library)
     ca, sa = _m.cos(ang), _m.sin(ang)
     add = max(0.0, pen_min_mm - FIG_A1_PEN * (mm_per_m or k))
     FIG_COUNT[0] += 1
@@ -4286,9 +5272,14 @@ def fig_activity(zone, x0, x1, gy, k, layer=0, seed=0, density=1.0, ink=None, st
                 wl = water(cx) if callable(water) else water
                 q["depth_m"] = max(0.05, min(globals().get("FIG_WADE_MAX_M", FIG_DC["knee"] * FIG_A1_H * 1.4),
                                              (wl - g) / K))
-            if pose == "fishing" and water is not None:     # the line drops to the water below the bank
-                wl = water(cx) if callable(water) else water
-                q["water_dy"] = (wl - g) / K
+            if pose == "fishing":                           # the line drops to the water below the bank
+                wl = None if water is None else (water(cx) if callable(water) else water)
+                if wl is None or (wl - g) / K > 0.05 or (wl - g) / K < -4.0:
+                    pose = "watch"                          # round 5 (U36, PLAN §3 People): no drawn water within
+                    FIG_FLAGS["fishing -> watch (no water at the edge)"] = FIG_FLAGS.get(   # reach, nobody fishes
+                        "fishing -> watch (no water at the edge)", 0) + 1
+                else:
+                    q["water_dy"] = (wl - g) / K
             sh += fig_side(pose, cx, g, k, facing=fac, ink=ink, layer=layer, style=style, pick=seed + len(placed), **q)
         placed.append((pose, cx))
         last = pose
@@ -4337,12 +5328,13 @@ def fig_place_zones(zones, gy, k, seed=0, layer=0, style="a", density=1.0, water
     nobody and is counted in the G14 log line. Groups, adult with child, sitting, walking, trading, children
     playing by the zone's set; bikes only on bike lanes; wading figures take their depth from water (page y or
     function of x) on a wading strip only; cutout variants vary across the whole run (a running pick); every figure
-    seated on the lowest ground under its feet (sf_seat_x). Pass water whenever a zone reaches the channel: nobody
+    seated on the higher ground across its feet (sf_seat_feet, S3; sf_seat_x where absent). Pass water whenever a zone reaches the channel: nobody
     stands where the drawn water is deeper than FIG_WADE_MAX_M (knee) on a wading strip, or above the ground at all
     on any other zone (refused parts counted in the G14 log line as "<kind> (too deep)"). p goes to every figure
     (seat_h, rail_h ...). focus = page x everyone who stays looks at (R2-C scenes: the water; see fig_activity), or
     a function of (kind, x0, x1) -> page x or None per zone. Returns (shapes, placed [(kind, pose, x)])."""
-    seat = globals().get("sf_seat_x")
+    seat = globals().get("sf_seat_feet") or globals().get("sf_seat_x")   # round 5 (S3): the HIGHER ground across
+                                                                          # the feet (S3 section_frame); old: lowest
     gfn = globals().get("_sf_fn")
     sc = fig_depth(layer)[0]
     sh, placed = [], []
@@ -4388,9 +5380,11 @@ FIG_FAUNA_DRAWN = [0]        # generic birds / animals drawn this run (sf_birds 
 def fig_flag_lines():
     """the figures' FLAG lines for a page log: ["FLAG fauna pending research"] while FIG_FAUNA is empty and any bird
     or animal was drawn"""
+    out = [u"FLAG figures %s %d" % kv for kv in sorted(FIG_FLAGS.items())]     # round 5: refused scenes
+    out += [ln for ln in FIG_LOG if ln.startswith(u"FLAG")]
     if FIG_FAUNA_DRAWN[0] and not FIG_FAUNA:
-        return [u"FLAG fauna pending research (%d generic birds drawn; research/fauna.md missing)" % FIG_FAUNA_DRAWN[0]]
-    return []
+        out.append(u"FLAG fauna pending research (%d generic birds drawn; research/fauna.md missing)" % FIG_FAUNA_DRAWN[0])
+    return out
 
 
 # ---- speech bubbles (D4 a: p8 street sections, marked "illustrative scenario") -------------------------------------
@@ -4497,7 +5491,9 @@ import math as _bm_math
 
 BASEMAP_FILE = _bm_os.path.join(_bm_os.path.expanduser("~"), "Downloads", "Bergama", "cached", "basemap",
                                 "basemap.json")
-BASEMAP_FORMAT = 1
+BASEMAP_FORMAT = 2               # round 5 (S2): 2 = buildings carry "fabric" and "annex", land cover adds grass / shrub
+BASEMAP_FORMATS_READ = (1, 2)    # a format 1 file (written before round 5) still reads: key maps then draw one house
+#                                  tone and log a FLAG until the site board has written format 2
 BASEMAP_MARGIN = 250.0           # m: the extent reaches this far beyond the farthest REACH place
 # the places the extent must hold (survey m; the heritage loop's positions, selinus_board parts/15j_r28_heritage.py)
 BASEMAP_REACH = ((u"Asklepion", (29077.3, 31867.3)),          # OSM ticket building
@@ -4514,6 +5510,57 @@ BM_FAINT = dict(bld="D3D0CB", bld_veryfaint="E9E7E3", road="E2E0DB", road_line="
 # light streets with their edges, every outline after every fill (CHK-3 §1.5-1.6); heritage a pale rose.
 BM_MUTED = dict(bld="EDEBE6", bld_edge="C9C5BC", her="F1E6E5", her_edge="CDAAAA", road="F4F2EE", road_edge="CFCBC2",
                 name="9A948A", lw=0.12)
+# round 5 (S2, G-R5-3, D3, U69 "just draw it like page 2"): the key-map look = the p02 map (site board plan 01) at
+# small scale. BM_FABRIC is the site board's FABRIC_PLAN (selinus_board/parts/14_tsec_wind_arrows.py v40) moved to
+# common as hex (the site board keeps its own name for it until its round 5 pass reads this table). BM_KEY: the p02
+# ground tones (site board parts/01__gh_inputs.py CAT, GREEN_SUB, TREE_COLS, PAPER, BLUE_D; parts/17_board_fits.py
+# LC_CLASSES), lightened toward the paper by "light" (greens) and "fabric_light" (houses, = p02 P02_IN_LIGHT 0.40)
+# so the red cut symbols lead; design values.
+BM_FABRIC = {"monument": "AF7474", "sacred": "8B3A3F", "traditional": "4A3F35", "block": "7A6E60",
+             "regular": "BCB794", "selfbuilt": "DCD5C2", "large": "FAF8F1", "construction": "E6E0C8"}
+BM_KEY = dict(paper="F1EDDF", grass="ABB287", shrub=("8F9A68", "F1EDDF", 0.3), trees="74804F", farmland="BDB57A",
+              orchard=("98A271", "4A3F35", 0.12), park="8F9A68", wood="74804F", agri="BDB57A", water="7FA4B3",
+              water_edge="5E8494", road="FAF8F1", road_line="DCD5C2", bridge="4A3F35", light=0.35, fabric_light=0.40,
+              annex=0.45, lw=0.12)
+
+
+def _bm_mix(a, b, t):
+    """hex a mixed t of the way toward hex b (the site board's mix on hex)"""
+    return "".join("%02X" % int(round(int(a[j:j + 2], 16) + (int(b[j:j + 2], 16) - int(a[j:j + 2], 16)) * t))
+                   for j in (0, 2, 4))
+
+
+def bm_key_col(name, light=None):
+    """round 5 (S2): a BM_KEY tone as hex ('shrub' / 'orchard' are mixes), mixed light (default BM_KEY['light'] for
+    ground tones, none for paper / water / road / bridge) toward the paper"""
+    v = BM_KEY[name]
+    c = _bm_mix(*v) if isinstance(v, tuple) else v
+    if light is None:
+        light = 0.0 if name in ("paper", "water", "water_edge", "road", "road_line", "bridge") else BM_KEY["light"]
+    return _bm_mix(c, BM_KEY["paper"], light) if light else c
+
+
+def bm_fabric_col(b, light=None):
+    """round 5 (S2): a basemap building's key-map colour by its urban fabric (format 2 "fabric"; "regular" when the
+    file has none), annexes paler (the p02 rule), mixed BM_KEY['fabric_light'] toward the paper"""
+    c = BM_FABRIC.get(b.get("fabric") or "regular", BM_FABRIC["regular"])
+    if b.get("annex"):
+        c = _bm_mix(c, BM_KEY["paper"], BM_KEY["annex"])
+    return _bm_mix(c, BM_KEY["paper"], BM_KEY["fabric_light"] if light is None else light)
+
+
+class _BmIt(tuple):
+    """round 5 (S2, G-R5-8): a basemap item that knows its map layer (.layer, a map_layers ML_LAYERS name): reads as
+    the plain tuple everywhere; map_draw files a flat base list by it, so the stream is drawn above every tint"""
+    pass
+
+
+def _bm_tag(t, layer):
+    o = _BmIt(t)
+    o.layer = layer
+    return o
+
+
 # contours coloured to the relief (G-R4-4, U48): green tones, lighter = lower (palette 3C4733 and its 89986A tints)
 BM_HEIGHT_RAMP = ("C9D6B0", "A7B68C", "89986A", "3C4733")
 BM_LW = dict(contour=(0.07, 0.13), contour_topo=(0.08, 0.14), water_edge=0.18, covered=0.30, bridge=0.30,
@@ -4541,6 +5588,11 @@ BASEMAP_MODES = {
     # layer (above the project fills), so it is off here; contours are switched on by the call ("height")
     "muted": dict(stream=True, streets="muted", buildings="muted", green=False, trees=False, fields=False,
                   contours=False, study_area=False, names=False),
+    # round 5 (S2, G-R5-3): the key map = the p02 look at small scale: land cover and green ground, houses by urban
+    # fabric (fills only, no outlines at key-map scales), the stream blue (a flat fill: legible at 1:50,000+), light
+    # street areas, bridges; the study line and names are the key map's own
+    "keymap": dict(stream=True, streets="key", buildings="fabric", green=True, trees=True, fields=True,
+                   contours=False, study_area=False, names=False),
 }
 # M3 layer list -> switches: basemap_layers accepts these names too (buildings, streets, water, topography,
 # study_area, names; green, trees, fields as before)
@@ -4564,13 +5616,16 @@ def basemap_load(path=None, log=None):
     try:
         with open(p, "r", encoding="utf-8") as fh:
             d = _bm_json.load(fh)
-        if not isinstance(d, dict) or d.get("format") != BASEMAP_FORMAT:
+        if not isinstance(d, dict) or d.get("format") not in BASEMAP_FORMATS_READ:
             if log is not None:
                 log.append(u"WARNING: {} is of another format: the shared basemap is left out (run the site board "
                            u"once).".format(p))
             d = None
         elif log is not None:
             log.append(u"Shared basemap: {} ({}).".format(p, d.get("source", "")))
+            if d.get("format") != BASEMAP_FORMAT:
+                log.append(u"FLAG basemap format {} (no urban fabric per house): key maps draw one house tone until "
+                           u"the site board writes format {}.".format(d.get("format"), BASEMAP_FORMAT))
     except Exception as ex:
         if log is not None:
             log.append(u"WARNING: the shared basemap {} could not be read ({}): maps are drawn without it until the "
@@ -4730,37 +5785,60 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
     L = D["layers"]
     out = []
     outl = []          # round 4 (S2, CHK-3 §1.6): outlines (street, building, bridge edges) come after EVERY fill
+    # round 5 (S2, G-R5-8): every item carries its map layer (_BmIt.layer): ground, houses and streets "base_fills",
+    # contours "base_contours", outlines "base_outlines", the stream "water", decks / covered course / bridges
+    # "structures" (map_draw draws "water" above every project tint, then "structures")
 
-    def fills(groups, col, alpha=1.0, nonzero=True, chunk=300):
+    def fills(groups, col, alpha=1.0, nonzero=True, chunk=300, layer="base_fills"):
         cur = []
         for g in groups:
             g = [R for R in g if len(R) >= 3]
             if not g or not _bm_hit(g[0], box):
                 continue
             if split_buildings:
-                out.append(("fill", g, col, alpha, nonzero))
+                out.append(_bm_tag(("fill", g, col, alpha, nonzero), layer))
                 continue
             cur.extend(g)
             if len(cur) >= chunk:
-                out.append(("fill", cur, col, alpha, nonzero))
+                out.append(_bm_tag(("fill", cur, col, alpha, nonzero), layer))
                 cur = []
         if cur:
-            out.append(("fill", cur, col, alpha, nonzero))
+            out.append(_bm_tag(("fill", cur, col, alpha, nonzero), layer))
 
-    def lines(Ps, col, w, dash=None, alpha=1.0, outline=False):
+    def lines(Ps, col, w, dash=None, alpha=1.0, outline=False, layer=None):
         for P in Ps:
             if len(P) >= 2 and _bm_hit(P, box):
-                (outl if outline else out).append(("line", P, col, w, list(dash) if dash else None, alpha))
+                (outl if outline else out).append(_bm_tag(("line", P, col, w, list(dash) if dash else None, alpha),
+                                                          layer or ("base_outlines" if outline else "base_fills")))
+    key = mode == "keymap"
 
     # ground: tree cover, fields, parks / grass (satellite first, mapped areas over it)
-    if lay["trees"]:
+    if key:                                               # round 5 (S2, G-R5-3): the p02 ground (draw_landuse_map
+        if lay["green"]:                                  # order: satellite classes, then mapped zones)
+            fills(L["lc"].get("grass", []), bm_key_col("grass"))
+            fills(L["lc"].get("shrub", []), bm_key_col("shrub"))
+        if lay["trees"]:
+            fills(L["lc"].get("trees", []), bm_key_col("trees"))
+        if lay["fields"]:
+            fills(L["lc"].get("farmland", []), bm_key_col("farmland"))
+            fills(L["lc"].get("orchard", []), bm_key_col("orchard"))
+            fills([z["rings"] for z in L["zones"] if z["kind"] == "agri"], bm_key_col("agri"))
+        if lay["green"]:
+            fills([z["rings"] for z in L["zones"] if z["kind"] == "green" and z.get("sub") == "grass"],
+                  bm_key_col("grass"))
+            fills([z["rings"] for z in L["zones"] if z["kind"] == "green" and z.get("sub") not in ("grass", "wood")],
+                  bm_key_col("park"))
+        if lay["trees"]:
+            fills([z["rings"] for z in L["zones"] if z["kind"] == "green" and z.get("sub") == "wood"],
+                  bm_key_col("wood"))
+    if not key and lay["trees"]:
         fills(L["lc"].get("trees", []), BM_COL["tree"])
-    if lay["fields"]:
+    if not key and lay["fields"]:
         fills(L["lc"].get("farmland", []) + L["lc"].get("orchard", []), BM_COL["field"])
         fills([z["rings"] for z in L["zones"] if z["kind"] == "agri"], BM_COL["field"])
-    if lay["green"]:
+    if not key and lay["green"]:
         fills([z["rings"] for z in L["zones"] if z["kind"] == "green" and z.get("sub") != "wood"], BM_COL["park"])
-    if lay["trees"]:
+    if not key and lay["trees"]:
         fills([z["rings"] for z in L["zones"] if z["kind"] == "green" and z.get("sub") == "wood"], BM_COL["tree"])
     # contours
     if lay["contours"]:
@@ -4770,13 +5848,18 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
             z0, z1 = (min(zs), max(zs)) if zs else (0.0, 1.0)
             for major, z, P in cs:
                 col = _bm_ramp((z - z0) / max(1.0, z1 - z0)) if z is not None else BM_COL["contour"]
-                lines([P], col, BM_LW["contour_topo"][1 if major else 0])
+                lines([P], col, BM_LW["contour_topo"][1 if major else 0], layer="base_contours")
         else:
             for major, z, P in cs:
-                lines([P], BM_COL["contour"], BM_LW["contour"][1 if major else 0])
+                lines([P], BM_COL["contour"], BM_LW["contour"][1 if major else 0], layer="base_contours")
     # streets
     st = lay["streets"]
-    if st == "muted":                                     # round 4 (S2): light fill, light closed edges, after fills
+    if st == "key":                                       # round 5 (S2): light street areas, no edges; main roads
+        fills(L["street_areas"], bm_key_col("road"), nonzero=False)       # beyond the frame as light centrelines
+        for cl, P in L["streets_out"]:
+            if cl == "main":
+                lines([P], bm_key_col("road_line"), BM_LW["main"])
+    elif st == "muted":                                     # round 4 (S2): light fill, light closed edges, after fills
         fills(L["street_areas"], BM_MUTED["road"], nonzero=False)
         for cl, P in L["streets_out"]:
             lines([P], BM_MUTED["road_edge"], BM_LW[cl] * (1.6 if cl != "path" else 1.0))
@@ -4800,24 +5883,33 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
     # M3 (30 Oct): drawn by M5 (common/water.py water_plan, page mm) when the script includes it: one "water" item
     # that basemap_draw hands to water_plan after the map's T (else the plain fill and edge, as before)
     if lay["stream"]:
-        if callable(globals().get("water_plan")):
+        wc, we = (bm_key_col("water"), bm_key_col("water_edge")) if key else (BM_COL["water"], BM_COL["water_edge"])
+        if callable(globals().get("water_plan")) and not key:
             ws = [g for g in L["water"] if g and len(g[0]) >= 3 and _bm_hit(g[0], box)]
             if ws:
-                out.append(("water", ws, [P for P in L["water_edge"] if len(P) >= 2 and _bm_hit(P, box)], 1.0))
+                out.append(_bm_tag(("water", ws, [P for P in L["water_edge"] if len(P) >= 2 and _bm_hit(P, box)],
+                                    1.0), "water"))
         else:
-            fills(L["water"], BM_COL["water"], nonzero=False)
-            lines(L["water_edge"], BM_COL["water_edge"], BM_LW["water_edge"])
-        if st is True or st in ("faint", "muted"):
+            fills(L["water"], wc, nonzero=False, layer="water")
+            lines(L["water_edge"], we, BM_LW["water_edge"], layer="water")
+        if st is True or st in ("faint", "muted", "key"):
             fills([[R] for R in L["decks"]], BM_MUTED["road"] if st == "muted" else
-                  (BM_FAINT["road"] if st == "faint" else BM_COL["road"]))
+                  (BM_FAINT["road"] if st == "faint" else (bm_key_col("road") if st == "key" else BM_COL["road"])),
+                  layer="structures")
         for P in L["covered"]:
-            lines([P], BM_COL["water_edge"], BM_LW["covered"], BM_COVERED_DASH, outline=True)
-        fills(L["water_out"], BM_COL["water"], nonzero=False)
+            lines([P], we, BM_LW["covered"], BM_COVERED_DASH, outline=True, layer="structures")
+        fills(L["water_out"], wc, nonzero=False, layer="water")
         for kind, P in L["waterways_out"]:
-            lines([P], BM_COL["water"], BM_LW["river_osm" if kind == "river" else "stream_osm"])
+            lines([P], wc, BM_LW["river_osm" if kind == "river" else "stream_osm"], layer="water")
     # buildings
     bl = lay["buildings"]
-    if bl == "muted" and not callable(globals().get("bld_plan_items")):
+    if bl == "fabric":                                    # round 5 (S2, G-R5-3): houses by urban fabric, fills only
+        groups = {}
+        for b in L["buildings"]:
+            groups.setdefault(bm_fabric_col(b), []).append(b["rings"][:b.get("np", len(b["rings"]))])
+        for col in sorted(groups):
+            fills(groups[col], col)
+    elif bl == "muted" and not callable(globals().get("bld_plan_items")):
         _BM_WARN.append(u"WARNING: basemap buildings 'muted' need common/buildings.py (M11): drawn as plain light "
                         u"fills with their outlines instead.")
         fills([b["rings"] for b in L["buildings"]], BM_MUTED["bld"])
@@ -4828,7 +5920,8 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
         for it in bld_plan_items(L["buildings"], blocks=L.get("blocks"), scale_den=scale_den or 5000.0, box=box,
                                  roof="none", fill=BM_MUTED["bld"], edge=BM_MUTED["bld_edge"],   # block, no roof marks
                                  her_fill=BM_MUTED["her"], her_edge=BM_MUTED["her_edge"], lw=BM_MUTED["lw"]):
-            (outl if it[0] == "line" else out).append(it)
+            (outl if it[0] == "line" else out).append(_bm_tag(it, "base_outlines" if it[0] == "line" else
+                                                              "base_fills"))
     elif bl in ("plan", "plan_faint"):                      # M11: outline per block + roof reading, no stripes
         pf = globals().get("bld_plan_items")
         if callable(pf):
@@ -4840,7 +5933,8 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
                          roof_col=BM_FAINT["bld"] if faint else None,
                          her_fill=BM_COL["her"] if not faint else "F1E6E5",
                          her_edge=BM_COL["her_edge"] if not faint else "CDAAAA"):
-                (outl if it[0] == "line" else out).append(it)   # roof marks and outlines after every fill
+                (outl if it[0] == "line" else out).append(_bm_tag(it, "base_outlines" if it[0] == "line" else
+                                                                  "base_fills"))   # roof marks, outlines after fills
         else:
             _BM_WARN.append(u"WARNING: basemap buildings '{}' need common/buildings.py (M11): drawn faint "
                             u"instead.".format(bl))
@@ -4861,20 +5955,22 @@ def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
         else:
             fills([b["rings"] for b in L["buildings"]],
                   BM_FAINT["bld_veryfaint"] if bl == "veryfaint" else BM_FAINT["bld"])
-    if lay["stream"] and (st is True or bl is True or bl == "plan"):
-        lines(L["bridges"], BM_COL["ink"], BM_LW["bridge"], outline=True)
+    if lay["stream"] and key:                             # round 5 (S2): bridges over the blue stream (p02 order 18)
+        lines(L["bridges"], bm_key_col("bridge"), BM_LW["bridge"], outline=True, layer="structures")
+    elif lay["stream"] and (st is True or bl is True or bl == "plan"):
+        lines(L["bridges"], BM_COL["ink"], BM_LW["bridge"], outline=True, layer="structures")
     elif lay["stream"] and bl == "muted":                 # round 4: bridges in the muted edge tone, a little heavier
-        lines(L["bridges"], BM_MUTED["bld_edge"], 2.0 * BM_MUTED["lw"], outline=True)
+        lines(L["bridges"], BM_MUTED["bld_edge"], 2.0 * BM_MUTED["lw"], outline=True, layer="structures")
     out.extend(outl)                                      # round 4 (S2): every outline after every fill
     # M3 (30 Oct): the study area (one outline, one style, on top of the base) and the place names
     if lay.get("study_area"):
         for it in basemap_study_items(D):
             if _bm_hit(it[1], box):
-                out.append(it)
+                out.append(_bm_tag(it, "base_outlines"))
     if lay.get("names"):
         for n, p in basemap_names(box, D):
-            out.append(("text", n, p, BM_NAME_MM, BM_MUTED["name"] if mode == "muted" else BM_COL["ink"], False,
-                        "MC"))
+            out.append(_bm_tag(("text", n, p, BM_NAME_MM, BM_MUTED["name"] if mode == "muted" else BM_COL["ink"],
+                                False, "MC"), "base_names"))
     return out
 
 
@@ -5099,6 +6195,7 @@ def basemap_export(S, log=None):
                  water=[], water_edge=[], decks=[], covered=[], water_out=[], waterways_out=[], buildings=[],
                  bridges=[], blocks=[], study=[], names=[], street_names=[])
         sn_best = {}                                      # round 4 (S2, G-R4-9 U55): street name -> longest run
+        unnamed = []                                      # round 5 (S2, A11): survey names with no names-table row
 
         def street_name(tags, P, cl):
             nm_ = ((tags or {}).get("name") or u"").strip()
@@ -5114,7 +6211,7 @@ def basemap_export(S, log=None):
         ccls = lambda hw: "path" if hw in peds else ("main" if hw in mains else "lane")
         # ---- inside the frame: the site board's layers
         lcf = globals().get("r28e_lc")
-        for key in ("trees", "farmland", "orchard"):
+        for key in ("trees", "farmland", "orchard", "grass", "shrub"):       # round 5 (S2): grass, shrub for key maps
             try:
                 groups = lcf(S, key) if callable(lcf) else [[P] for P in (getattr(S, "lc", None) or {}).get(key) or []]
             except Exception:
@@ -5159,9 +6256,18 @@ def basemap_export(S, log=None):
                     tg.get("amenity") == "place_of_worship"
                 L["buildings"].append(dict(rings=parts + [_bm_r(H) for H in (u.get("holes") or [])], np=len(parts),
                                            her=her, osm=u.get("src") in ("osm", "osm+label"),
-                                           h=round(float(u.get("h") or 0.0), 2), floors=int(u.get("floors") or 0)))
+                                           h=round(float(u.get("h") or 0.0), 2), floors=int(u.get("floors") or 0),
+                                           fabric=u.get("fabric") or "regular", annex=bool(u.get("annex"))))
                 if her and (u.get("name") or "").strip() and in_frame_name(u):
-                    L["names"].append([u["name"].strip(), [round(u["cx"], 1), round(u["cy"], 1)]])
+                    # round 5 (S2, A11): only names the names table records, in its one spelling (place_label);
+                    # a survey name with no table row is left out and listed (never print an unchecked name)
+                    pl = globals().get("place_label")
+                    raw, pc = u["name"].strip(), (u["cx"], u["cy"])
+                    nm_ = pl(raw, pc) if callable(pl) else None
+                    if nm_ and nm_ not in [n_ for n_, _ in L["names"]]:
+                        L["names"].append([nm_, [round(u["cx"], 1), round(u["cy"], 1)]])
+                    elif not nm_ and raw not in unnamed:
+                        unnamed.append(raw)
         blocks = getattr(S, "blocks", None)
         if blocks is None and callable(globals().get("bld_blocks")):
             blocks = bld_blocks(S.bld)
@@ -5170,7 +6276,12 @@ def basemap_export(S, log=None):
             L["blocks"].append(dict(rings=[_bm_r(bk["outer"])] + [_bm_r(H) for H in bk.get("holes") or []],
                                     her=bool(mem) and all(L["buildings"][i]["her"] for i in mem)))
         L["study"] = [_bm_r(P) for P in (getattr(S, "r28_study", None) or globals().get("R28_STUDY_COPY") or [])]
-        L["names"] = [[n, [round(p[0], 1), round(p[1], 1)]] for n, p in BASEMAP_REACH] + L["names"]
+        pl = globals().get("place_label")                 # round 5 (S2, A11): REACH literals by the table's spelling
+        L["names"] = [[(pl(n, p) if callable(pl) else None) or n, [round(p[0], 1), round(p[1], 1)]]
+                      for n, p in BASEMAP_REACH] + L["names"]
+        if unnamed:
+            log.append(u"FLAG basemap names not in the names table, left out ({}): {} [ask Aras for the spelling and a "
+                       u"source]".format(len(unnamed), u", ".join(unnamed[:20])))
         n_in = len(L["buildings"])
         # ---- the ring between frame and extent: OpenStreetMap
         osm = getattr(S, "osm", None)
@@ -5242,6 +6353,7 @@ def basemap_export(S, log=None):
                             L["zones"].append(dict(kind=k[0], sub=k[1], rings=rs))
         else:
             log.append(u"WARNING: shared basemap: no OpenStreetMap in the site model, so it ends at the analysis frame.")
+        stl = globals().get("street_label")               # round 5 (S2): the table's spelling where it has the street
         for nm_, (Ln, cl, P) in sn_best.items():           # the label point: the run's middle, along its direction
             half, acc = Ln / 2.0, 0.0
             for a_, b_ in zip(P, P[1:]):
@@ -5249,7 +6361,7 @@ def basemap_export(S, log=None):
                 if acc + d_ >= half and d_ > 1e-9:
                     t_ = (half - acc) / d_
                     ang = _bm_math.degrees(_bm_math.atan2(b_[1] - a_[1], b_[0] - a_[0]))
-                    L["street_names"].append([nm_, [round(a_[0] + (b_[0] - a_[0]) * t_, 1),
+                    L["street_names"].append([stl(nm_) if callable(stl) else nm_, [round(a_[0] + (b_[0] - a_[0]) * t_, 1),
                                                     round(a_[1] + (b_[1] - a_[1]) * t_, 1)], round(ang, 1), cl,
                                               round(Ln, 1)])
                     break
@@ -5656,17 +6768,32 @@ def sc_lines_log():
 # layer above the project fills; proposals clipped to the study area at draw time too (study_clip.py) and counted.
 # Included by common/basemap.py (its last lines, after study_clip.py); do not include it again.
 # Items: the basemap format (common/basemap.py head), survey m (or already projected, e.g. an axo: then T = identity).
-#   ML_LAYERS                                   the 13 layers, bottom first
-#   ml_base(box, scale_den, D=None, contours=False, names=False, override=None)  the muted base (basemap "muted")
+# Round 5 (S2, 1 Nov 2026; G-R5-8 "water drawn above every zone tint", G-R5-10 "base muted and cropped"): two layers
+# after the project tints, "water" (the base stream) and "structures" (decks, covered course, bridges over it); a flat
+# base list is filed by each item's layer (basemap _BmIt) so the stream lands in "water"; a base dict's "base_water"
+# is drawn as "water" too; map_draw logs `zones <page> over_water_area <m2>, unlabeled_fields <n>`; ml_base crops.
+#   ML_LAYERS                                   the 15 layers, bottom first
+#   ml_base(box, scale_den, D=None, contours=False, names=False, override=None, crop=True)  the muted base (basemap
+#                                               "muted"), cut to box (round 5, G-R5-10)
+#   ml_crop(items, ring)                        round 5: items cut to a convex ring (survey m): fills, lines, water
+#   ml_layer_of(item)                           round 5: the ML layer a base item belongs to
 #   ml_tint(rings, colour=None, alpha=None, study=None, page=None)    D9 footprint tint items (clipped to the study)
 #   ml_study_items(rings=None, D=None)          the study-area line items (BM_STUDY_LINE, one style everywhere)
 #   map_draw(page, T, fill_fn, line_fn, text_fn, base, project, study=None, clip=True, order_fn=None, log=None,
-#            water_opts=None)                    draws base -> project strictly in ML_LAYERS order; logs the done-when
-#                                               line "layers base→project ok, n_outside_clipped <n> (<page>)"
+#            water_opts=None, study_line=True, legend_cols=None, water_ok=None)
+#                                               draws base -> project strictly in ML_LAYERS order; logs the done-when
+#                                               line "layers base→project ok, n_outside_clipped <n> (<page>)" and
+#                                               round 5 "zones <page> over_water_area <m2>, unlabeled_fields <n>"
+# round 5 (S2, G-R5-8; PLAN §3 draw order: base fills -> tints / zone fields -> WATER -> structures over water ->
+# planting -> people -> labels): "water" and "structures" follow "proj_tint"; the old names keep their places so
+# stage lists that check the order (water board p12) still pass
 ML_LAYERS = ("base_ground", "base_contours", "base_fills", "base_water", "base_outlines", "base_names",
-             "proj_tint", "proj_water", "proj_lines", "proj_vegetation", "study", "proj_marks", "proj_labels")
-ML_BASE_LAYERS = ML_LAYERS[:6]
-ML_PROJ_LAYERS = ML_LAYERS[6:]
+             "proj_tint", "water", "structures", "proj_water", "proj_lines", "proj_vegetation", "study", "proj_marks",
+             "proj_labels")
+ML_BASE_LAYERS = ("base_ground", "base_contours", "base_fills", "base_water", "base_outlines", "base_names", "water",
+                  "structures")
+ML_PROJ_LAYERS = ("proj_tint", "proj_water", "proj_lines", "proj_vegetation", "study", "proj_marks", "proj_labels")
+ML_FIELD_LAYERS = ("proj_lines", "proj_vegetation", "proj_marks")   # fills here are drawn above the stream
 # D9 (Aras 1 Nov, U52 "çok hafif izdüşüm ... transparan çok hafif bir renkle"): the proposal footprint tint, very
 # light and transparent, on every plan that shows proposals (p08, p10 plans, p12, p16, p17, p21, p22)
 ML_TINT = "5C7A86"                  # palette reference slate (library/examples/palettes)
@@ -5676,17 +6803,183 @@ ML_NO_CLIP = ("proj_labels",)       # labels are placed by the text placer and m
 ML_LOG = []                         # this run's map_draw lines (a page script appends them to its log)
 
 
-def ml_base(box, scale_den, D=None, contours=False, names=False, override=None):
+def ml_base(box, scale_den, D=None, contours=False, names=False, override=None, crop=True):
     """the muted base of a map (G-R4-4): basemap mode "muted" = the stream (M5 water), light streets with closed
     edges, light houses with ONE closed outline per block, every outline after every fill; contours=True adds the
     contours coloured to the relief (green ramp, lighter = lower, U48); names=True the place names (6 pt, pale).
     The study line is NOT in it (map_draw draws it in its own layer). box = (x0, y0, x1, y1) survey m; scale_den =
-    the map's 1:scale_den. Returns basemap items (bottom first), [] without basemap data."""
+    the map's 1:scale_den. Returns basemap items (bottom first), [] without basemap data. Round 5 (G-R5-10):
+    crop=True cuts every item to box, so nothing of the base runs past the drawing's window."""
     ov = dict(contours="height" if contours else False, names=bool(names))
     ov.update(override or {})
     its = basemap_items("muted", ov, box=box, D=D, scale_den=scale_den)
-    return [("text", it[1], it[2], ML_NAME_MM, BM_MUTED["name"], False, it[6]) if it[0] == "text" else it
-            for it in its]
+    its = [_bm_tag(("text", it[1], it[2], ML_NAME_MM, BM_MUTED["name"], False, it[6]), "base_names")
+           if it[0] == "text" else it for it in its]
+    if crop and box:
+        its = ml_crop(its, [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])])
+    return its
+
+
+def _ml_clip_poly(R, ring):
+    """ring R cut to the convex ring (Sutherland-Hodgman, any turn); [] when nothing is left"""
+    n = len(ring)
+    ccw = sum((ring[(i + 1) % n][0] - ring[i][0]) * (ring[(i + 1) % n][1] + ring[i][1]) for i in range(n)) < 0
+    out = list(R)
+    for i in range(n):
+        a, b = ring[i], ring[(i + 1) % n]
+        ex, ey = b[0] - a[0], b[1] - a[1]
+
+        def side(p):
+            c = ex * (p[1] - a[1]) - ey * (p[0] - a[0])
+            return c if ccw else -c
+        if not out:
+            return []
+        nxt = []
+        for j in range(len(out)):
+            p, q = out[j - 1], out[j]
+            sp, sq = side(p), side(q)
+            if sq >= 0:
+                if sp < 0:
+                    t = sp / (sp - sq)
+                    nxt.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+                nxt.append(q)
+            elif sp >= 0:
+                t = sp / (sp - sq)
+                nxt.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+        out = nxt
+    return out if len(out) >= 3 else []
+
+
+def _ml_inside_convex(P, ring):
+    n = len(ring)
+    ccw = sum((ring[(i + 1) % n][0] - ring[i][0]) * (ring[(i + 1) % n][1] + ring[i][1]) for i in range(n)) < 0
+    for i in range(n):
+        a, b = ring[i], ring[(i + 1) % n]
+        for p in P:
+            c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+            if (c if ccw else -c) < 0:
+                return False
+    return True
+
+
+def _ml_retag(src, t):
+    lay = getattr(src, "layer", None)
+    return _bm_tag(t, lay) if lay else t
+
+
+def ml_crop(items, ring):
+    """round 5 (S2, G-R5-10): basemap items cut to the convex ring (survey m, e.g. a key map's turned frame):
+    fills ring by ring (a ring wholly inside is kept as it is), lines run by run, the "water" item ring by ring,
+    texts kept when their point is inside. Each item keeps its map layer."""
+    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
+    bb = (min(xs), min(ys), max(xs), max(ys))
+
+    def rings_cut(Rs):
+        out = []
+        for R in Rs:
+            if len(R) < 3:
+                continue
+            if _ml_inside_convex(R, ring):
+                out.append(R)
+                continue
+            rx, ry = [p[0] for p in R], [p[1] for p in R]
+            if max(rx) < bb[0] or min(rx) > bb[2] or max(ry) < bb[1] or min(ry) > bb[3]:
+                continue
+            c = _ml_clip_poly(R, ring)
+            if c:
+                out.append(c)
+        return out
+    out = []
+    for it in items:
+        if it[0] == "fill":
+            rs = rings_cut(it[1])
+            if rs:
+                out.append(_ml_retag(it, ("fill", rs) + tuple(it[2:])))
+        elif it[0] == "line":
+            P = it[1]
+            if _ml_inside_convex(P, ring):
+                out.append(it)
+                continue
+            for a, b in zip(P, P[1:]):
+                ab = _bm_clip_convex(a, b, ring)
+                if ab:
+                    out.append(_ml_retag(it, ("line", [ab[0], ab[1]]) + tuple(it[2:])))
+        elif it[0] == "water":
+            gs = []
+            for g in it[1]:
+                c = rings_cut([g[0]])
+                if c:
+                    gs.append(c + rings_cut(g[1:]))
+            if gs:
+                es = []
+                for P in it[2]:
+                    for a, b in zip(P, P[1:]):
+                        ab = _bm_clip_convex(a, b, ring)
+                        if ab:
+                            es.append([ab[0], ab[1]])
+                out.append(_ml_retag(it, ("water", gs, es) + tuple(it[3:])))
+        elif it[0] == "text":
+            if _ml_inside_convex([it[2]], ring):
+                out.append(it)
+        else:
+            out.append(it)
+    return out
+
+
+def ml_layer_of(it):
+    """round 5 (S2, G-R5-8): the map layer of a base item: its own (basemap _BmIt.layer), else by kind (the stream
+    item and the base water tones -> "water", texts -> "base_names", the rest "base_fills")"""
+    lay = getattr(it, "layer", None)
+    if lay in ML_BASE_LAYERS:
+        return "water" if lay == "base_water" else lay
+    if it[0] == "water":
+        return "water"
+    if it[0] == "text":
+        return "base_names"
+    wc = (BM_COL["water"], BM_COL["water_edge"], BM_KEY["water"], BM_KEY["water_edge"])
+    if it[0] in ("fill", "line") and it[2] in wc:
+        return "water"
+    return "base_fills"
+
+
+def _ml_pip(x, y, R):
+    ins = False
+    j = len(R) - 1
+    for i in range(len(R)):
+        xi, yi = R[i]
+        xj, yj = R[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-12) + xi:
+            ins = not ins
+        j = i
+    return ins
+
+
+def _ml_over_water(fills, water, T=None, n=12):
+    """round 5 (S2, G-R5-8): the area (m², or page mm² when the items are already projected) of fills that lie
+    over the water rings, estimated on an n x n grid per fill ring (even-odd inside both)"""
+    if not fills or not water:
+        return 0.0
+    wb = [(R, (min(p[0] for p in R), min(p[1] for p in R), max(p[0] for p in R), max(p[1] for p in R)))
+          for R in water if len(R) >= 3]
+    area = 0.0
+    for it in fills:
+        for R in it[1]:
+            if len(R) < 3:
+                continue
+            x0, y0 = min(p[0] for p in R), min(p[1] for p in R)
+            x1, y1 = max(p[0] for p in R), max(p[1] for p in R)
+            if not any(not (b[2] < x0 or b[0] > x1 or b[3] < y0 or b[1] > y1) for _, b in wb):
+                continue
+            dx, dy = (x1 - x0) / n, (y1 - y0) / n
+            hit = 0
+            for i in range(n):
+                for j in range(n):
+                    x, y = x0 + (i + 0.5) * dx, y0 + (j + 0.5) * dy
+                    if _ml_pip(x, y, R) and any(b[0] <= x <= b[2] and b[1] <= y <= b[3] and _ml_pip(x, y, W)
+                                                for W, b in wb):
+                        hit += 1
+            area += hit * dx * dy
+    return area
 
 
 def ml_tint(rings, colour=None, alpha=None, study=None, page=None):
@@ -5713,7 +7006,7 @@ def ml_study_items(rings=None, D=None):
 
 
 def map_draw(page, T, fill_fn, line_fn, text_fn, base, project, study=None, clip=True, order_fn=None, log=None,
-             water_opts=None, study_line=True):
+             water_opts=None, study_line=True, legend_cols=None, water_ok=None):
     """THE draw order of every map (G-R4-4 done-when). page: the booklet page id ("p21"); T(p) survey m -> page
     point (identity for items already projected); fill_fn / line_fn / text_fn as basemap_draw. base: the base items
     (ml_base, in their own order) or {base layer: items}; project: {layer: items} or [(layer, items)] with layers
@@ -5723,14 +7016,28 @@ def map_draw(page, T, fill_fn, line_fn, text_fn, base, project, study=None, clip
     that draws its own). order_fn(layer): called before each layer is drawn (the site board's page order numbers:
     base 2-28, tint 30-39, project 40-59, marks 60-69). Draws strictly in ML_LAYERS order, whatever order the
     caller listed. Returns dict(n_base, n_project, n_outside_clipped, layers) and logs (ML_LOG and log) "layers
-    base→project ok, n_outside_clipped <n> (<page>)"."""
+    base→project ok, n_outside_clipped <n> (<page>)".
+    Round 5 (S2, G-R5-8): the base stream is drawn in "water", above "proj_tint" (a flat base list is filed by
+    ml_layer_of; a base dict's "base_water" goes to "water"), decks / covered course / bridges in "structures". Logs
+    `zones <page> over_water_area <m2>, unlabeled_fields <n>`: over_water_area = fills in proj_lines /
+    proj_vegetation / proj_marks (drawn above the stream) over the base water, minus fills whose colour is in
+    water_ok (fields in the water by design: widened stream, wetland, sub-hub, spillway, reed arms); unlabeled_fields
+    = tint and field fills whose colour is not in legend_cols (the legend's swatch colours; "n/a" + a FLAG when the
+    page passes none). A count above 0 is a WARNING line (the run goes on)."""
     if isinstance(base, dict):
         bad = [k for k in base if k not in ML_BASE_LAYERS]
         if bad:
             raise ValueError(u"map_draw %s: base layer(s) %s unknown: use %s" % (page, bad, ", ".join(ML_BASE_LAYERS)))
-        base_l = [(k, base[k]) for k in ML_BASE_LAYERS if base.get(k)]
+        bd = {}
+        for k in ML_BASE_LAYERS:
+            if base.get(k):
+                bd.setdefault("water" if k == "base_water" else k, []).extend(base[k])
+        base_l = [(k, bd[k]) for k in ML_BASE_LAYERS if bd.get(k)]
     else:
-        base_l = [("base_fills", list(base or []))]
+        bd = {}
+        for it in base or []:
+            bd.setdefault(ml_layer_of(it), []).append(it)
+        base_l = [(k, bd[k]) for k in ML_BASE_LAYERS if bd.get(k)]
     proj = {}
     for k, its in (project.items() if isinstance(project, dict) else (project or [])):
         if k not in ML_PROJ_LAYERS or k == "study":
@@ -5764,7 +7071,32 @@ def map_draw(page, T, fill_fn, line_fn, text_fn, base, project, study=None, clip
     ML_LOG.append(line)
     if log is not None:
         log.append(line)
-    return dict(n_base=nb, n_project=npj, n_outside_clipped=n_out, layers=drawn)
+    # round 5 (S2, G-R5-8): the zones done-when line
+    wrings = basemap_water_rings(dict(base_l).get("water") or [])
+    wrings += [R for it in dict(base_l).get("water") or [] if it[0] == "fill" and it[2] not in
+               (BM_COL["water"],) for R in it[1] if len(R) >= 3]
+    ok_c = set(str(c).upper() for c in (water_ok or ()))
+    above = [it for k in ML_FIELD_LAYERS for it in proj.get(k) or []
+             if it[0] == "fill" and str(it[2]).upper() not in ok_c]
+    ow = _ml_over_water(above, wrings)
+    tints = [it for k in ("proj_tint",) + ML_FIELD_LAYERS for it in proj.get(k) or [] if it[0] == "fill"]
+    if legend_cols is None:
+        nu = u"n/a"
+    else:
+        lc = set(str(c).upper() for c in legend_cols)
+        nu = sum(1 for it in tints if str(it[2]).upper() not in lc)
+    zl = u"zones %s over_water_area %d, unlabeled_fields %s" % (page, int(round(ow)), nu)
+    extra = []
+    if ow > 0.5 or (nu != u"n/a" and nu > 0):
+        extra.append(u"WARNING %s zones over_water_area %d, unlabeled_fields %s" % (page, int(round(ow)), nu))
+    if nu == u"n/a" and tints:
+        extra.append(u"FLAG zones %s: no legend colours passed, unlabeled fields not counted" % page)
+    for l_ in [zl] + extra:
+        ML_LOG.append(l_)
+        if log is not None:
+            log.append(l_)
+    return dict(n_base=nb, n_project=npj, n_outside_clipped=n_out, layers=drawn, over_water_area=ow,
+                unlabeled_fields=nu)
 
 
 def ml_lines_log():
@@ -5778,11 +7110,20 @@ def ml_lines_log():
 # the main street and place names (so the reader knows where it is), never over its legend; ONE north arrow (the
 # arrow and "N", no plate, U31 U51). Included by common/basemap.py (its last lines, after map_layers.py); do not
 # include it again. The old basemap_cut_items / keymap_items are thin wrappers at the end of this file.
-#   KM_CUT, KM_NAMES                             the cut symbol and the names switches
+# ROUND 5 (S2, 1 Nov 2026; G-R5-3, D3, D6, A11, U33 U36 U45 U67-U69; PLAN §3 "Key map"): v2. Drawn like the p02 map
+# (basemap mode "keymap": green ground, houses by urban fabric, the stream blue, bridges), never the grey blob; the
+# frame cut to the map (fitted, fill logged, >= 0.85); turned so the corridor runs along the frame's long side, the
+# north arrow showing true north in a free corner; names only through the names table (street_label, keymap_places);
+# exported as items for the booklet (km_items: drawing + text labels with anchors + keymap item; G-R5-12, Aras's
+# addendum 1 Nov 22:37 point 3). Every page's key map calls km_map (p04, p05, p09, p10 locator, p13-14, p15, p16,
+# p18, p19-20, p24; their page sessions S6-S10 switch the callers to km_items); scale_den keeps the round 4 contract.
+#   KM_CUT, KM_NAMES, KM_FRAME, KM_CUT_PLAN      the cut symbol, the names switches, the frame line, plan cuts (D6)
 #   km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=2.47)      R01 cut symbols as items (survey m)
-#   km_map(ids, w_mm, h_mm, zooms=None, page=None, names=None, legend_box=None, log=None, looks=None, box=None,
-#          scale_den=None, extra_names=None, D=None, margin=0.06)           a whole key map (survey m + its T)
-#   km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None)   draws it through map_draw
+#   km_map(ids, w_mm=None, h_mm=None, zooms=None, page=None, names=None, legend_box=None, log=None, looks=None,
+#          box=None, scale_den=None, extra_names=None, D=None, margin=None, rotate=None, fit=None, pad_mm=None,
+#          base_mode="keymap", north=True)                                  a whole key map (survey m + its T)
+#   km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=None, frame=True)   draws it
+#   km_items(km, page=None, item_id=None, priority=5)                       round 5: the key map as booklet items
 #   km_texts(km)                                 its texts in key-map mm, for the page's TextPage (.put)
 #   north_items(x, y, ang_rad=0.0, size_mm=6.0, colour="2C2219")           the north arrow (page mm, y up)
 # Items: the basemap format (common/basemap.py head). Key-map mm: origin at the key map's lower-left, y up.
@@ -5796,6 +7137,11 @@ KM_CUT = dict(colour="C0392B", lw=0.5, dash=(3.0, 0.8, 0.6, 0.8), end_bar=2.4, b
 KM_NAMES = dict(streets=("main",), n_streets=4, places=True, n_places=6, size_mm=2.12, colour="6B645B", bold=False,
                 pad_mm=0.6)
 KM_ZOOM = dict(colour="C0392B", lw=0.35)       # zoom / window frames on a key map: the cut red, solid
+KM_FRAME = dict(colour="4A3F35", lw=0.25)      # round 5 (S2, D3): the key map's frame line (site board INK), hairline
+# round 5 (S2, D6 a, U30): cut lines ON PLANS (not key maps): thin and muted, 0.25 pt 8E8F8A dashed (PLAN §3); pass
+# as km_cut_items(..., style=KM_CUT_PLAN); key maps keep the red R01 KM_CUT. Dash, bar and triangle sizes: design values
+KM_CUT_PLAN = dict(colour="8E8F8A", lw=0.0882, dash=(1.6, 0.8), end_bar=1.6, bar_lw=0.0882, tri_h=1.2, tri_lw=0.0882,
+                   text_mm=1.59, gap_mm=0.6)
 KM_LOG = []
 
 
@@ -5863,22 +7209,49 @@ def _km_seg_hit(b, segs, pad):
     return False
 
 
-def km_map(ids, w_mm, h_mm, zooms=None, page=None, names=None, legend_box=None, log=None, looks=None, box=None,
-           scale_den=None, extra_names=None, D=None, margin=0.06):
-    """a whole key map (G-R4-9) fitted to w_mm x h_mm (key-map mm, origin lower-left, y up; north up). ids: the
-    page's cut ids (the cut registry, levels.py) and zoom ids (zooms {id: polygon survey m}, else level_window(id));
-    with no ids and page given, every cut the registry draws on that page. box: survey m (default the study area +
-    every cut and zoom, widened by margin); scale_den: fixed scale (default: the scale that fills w x h; a key map is
-    a diagram, no scale bar); w_mm / h_mm None with scale_den: the box at that scale. Layers: muted base (ml_base) -> study line -> zoom frames -> R01 cuts in red -> names.
-    Names (names = KM_NAMES overrides): the main streets' OpenStreetMap names (basemap_street_names, longest first),
-    the place names of the basemap and extra_names [(name, (x, y))], each placed (font_metrics fm_width, S1) clear
-    of the cuts, their labels, the legend_box (key-map mm) and each other; a name that finds no place is left out
-    and logged (a key map is never crowded). Returns dict(base, study, cuts, names (items, survey m), items (all, in
-    order), box, scale_den, T (survey -> key-map mm), Tinv, drawn, missing, label_boxes (key-map mm), w_mm, h_mm)."""
+def _km_axis_deg(P):
+    """round 5 (S2): the direction (degrees, counter-clockwise from east) of the long axis of points P (principal
+    axis of their spread); 0.0 when P has fewer than 3 points"""
+    if len(P) < 3:
+        return 0.0
+    mx, my = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
+    sxx = sum((p[0] - mx) ** 2 for p in P)
+    syy = sum((p[1] - my) ** 2 for p in P)
+    sxy = sum((p[0] - mx) * (p[1] - my) for p in P)
+    return _km_m.degrees(0.5 * _km_m.atan2(2.0 * sxy, sxx - syy))
+
+
+def km_map(ids, w_mm=None, h_mm=None, zooms=None, page=None, names=None, legend_box=None, log=None, looks=None,
+           box=None, scale_den=None, extra_names=None, D=None, margin=None, rotate=None, fit=None, pad_mm=None,
+           base_mode="keymap", north=True):
+    """THE key map (round 5 S2 v2: G-R5-3, D3, D6, A11; round 4 G-R4-9). Key-map mm: origin at the frame's lower-left,
+    y up. ids: this page's cut ids (cut registry, levels.py) and zoom / window ids (zooms {id: polygon survey m}, else
+    level_window(id)); none + page = every cut the registry draws on that page.
+    Size and frame (D3 "a frame sized to the map"): with scale_den None (the usual call) the map is FITTED: w_mm /
+    h_mm are the most the page offers (either may be None; both None = 80 mm wide), the scale fills that space and the
+    frame is cut to the map plus pad_mm (default 1.0) and a margin (default 2 % of the content), so the map fills its
+    frame; fit=False keeps the caller's w x h (map centred, round 4). scale_den given: the round 4 contract (fixed
+    scale, the caller's frame or box; no turn).
+    Turn (U68): rotate=None turns a fitted map so the corridor (the study area's long axis) runs along the frame's
+    long side (portrait space: upright), north never pointing down; a number = that turn in degrees
+    (counter-clockwise); False = north up. The north arrow shows true north (north=True: arrow only, in the freest
+    corner).
+    Base (U69 "just draw it like page 2"): basemap mode base_mode ("keymap" = the p02 look: green ground, houses by
+    urban fabric, the stream blue, bridges), cut to the frame. Content: the study line, ONLY these cuts (R01 red,
+    look direction), zoom frames, names: main streets (OpenStreetMap names by the names table's spelling,
+    street_label) and the names table's key-map places (keymap_places: "at" + "km"; never a raw survey name), then
+    extra_names; each placed clear of the cuts, their labels, the north arrow, legend_box and each other, else left
+    out and logged. Labels are hints: km_items exports them with their anchors for the booklet to place (G-R5-12).
+    Logs `keymap <page> fill=<x> rotation=<deg> cuts=<ids>` (fill = the content's box / the frame; WARNING below
+    0.85 on a fitted map). Returns dict(base, study, cuts, names, items (survey m, in order), box, scale_den, T, Tinv,
+    drawn, missing, label_boxes, w_mm, h_mm, study_rings, rotation_deg, north_deg, fill, frame (survey ring),
+    frame_items, north (key-map mm items), labels [dict(string, kind, anchor, box, size_mm, colour, bold)], fitted,
+    looks, zoom_ids, page)."""
     D = D if D is not None else basemap_load()
     log = log if log is not None else KM_LOG
     nm_st = dict(KM_NAMES)
     nm_st.update(names or {})
+    pg = u"%s" % (page or u"")
     if not ids and page is not None and callable(globals().get("level_registry_all")):
         ids = [e["id"] for e in level_registry_all(str(page))]
     cuts, wins, drawn, missing, seen = [], [], [], [], set()
@@ -5907,34 +7280,86 @@ def km_map(ids, w_mm, h_mm, zooms=None, page=None, names=None, legend_box=None, 
         except Exception:
             pass
         missing.append(cid)
-        log.append(u"WARNING: key map %s: '%s' is neither a cut of the registry nor a zoom passed in: not drawn."
-                   % (page or u"", cid))
+        log.append(u"WARNING %s keymap '%s' is neither a cut of the registry nor a zoom passed in: not drawn."
+                   % (pg, cid))
     study = basemap_study(D)
+    auto = not scale_den
+    fit = auto if fit is None else (bool(fit) and auto)
+    if margin is None:
+        margin = 0.02 if fit else 0.06
+    pad = 1.0 if pad_mm is None else float(pad_mm)
     if box is None:
-        pts = [p for R in study for p in R] + [p for _, c in cuts for p in c[:2]] + [p for _, w in wins for p in w]
-        if not pts:
-            pts = list(basemap_extent(D) or [])
-        if not pts:
-            raise ValueError(u"key map %s: nothing to frame (no basemap data, no cuts)" % (page or u""))
-        x0, y0, x1, y1 = _bm_bb(pts)
-        d = margin * max(x1 - x0, y1 - y0, 1.0)
-        box = (x0 - d, y0 - d, x1 + d, y1 + d)
-    bw, bh = box[2] - box[0], box[3] - box[1]
-    if scale_den and (w_mm is None or h_mm is None):     # a fixed scale: the key map is the box at that scale
-        w_mm, h_mm = bw * 1000.0 / scale_den, bh * 1000.0 / scale_den
-    den = float(scale_den) if scale_den else max(bw * 1000.0 / w_mm, bh * 1000.0 / h_mm)
+        cont = [p for R in study for p in R] + [p for _, c in cuts for p in c[:2]] + [p for _, w in wins for p in w]
+        if not cont:
+            cont = list(basemap_extent(D) or [])
+        if not cont:
+            raise ValueError(u"key map %s: nothing to frame (no basemap data, no cuts)" % pg)
+    else:
+        cont = [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])]
+    # the turn: the corridor along the frame's long side (U68)
+    if rotate is None:
+        if auto:
+            bx_ = _bm_bb(cont)
+            ax_pts = [p for R in study for p in R if bx_[0] <= p[0] <= bx_[2] and bx_[1] <= p[1] <= bx_[3]]
+            th = _km_axis_deg(ax_pts if len(ax_pts) >= 3 else cont)
+            portrait = bool(w_mm and h_mm and h_mm > w_mm)
+            phi = (90.0 - th) if portrait else -th
+        else:
+            phi = 0.0
+    else:
+        phi = float(rotate or 0.0)
+    if _km_m.cos(_km_m.radians(phi)) < -1e-9:            # north never points down the page
+        phi += 180.0
+    phi = (phi + 180.0) % 360.0 - 180.0
+    cph, sph = _km_m.cos(_km_m.radians(phi)), _km_m.sin(_km_m.radians(phi))
+    bx0 = _bm_bb(cont)
+    c0 = ((bx0[0] + bx0[2]) / 2.0, (bx0[1] + bx0[3]) / 2.0)
+
+    def rot(p):
+        dx, dy = p[0] - c0[0], p[1] - c0[1]
+        return (dx * cph - dy * sph, dx * sph + dy * cph)
+
+    def unrot(q):
+        return (q[0] * cph + q[1] * sph + c0[0], -q[0] * sph + q[1] * cph + c0[1])
+    rc = [rot(p) for p in cont]
+    rx0, ry0, rx1, ry1 = _bm_bb(rc)
+    cw, ch = max(rx1 - rx0, 1.0), max(ry1 - ry0, 1.0)  # the content, m
+    d = margin * max(cw, ch)
+    bw, bh = cw + 2.0 * d, ch + 2.0 * d
+    if fit:
+        if not w_mm and not h_mm:
+            w_mm = 80.0
+        dens = []
+        if w_mm:
+            dens.append(bw * 1000.0 / max(1.0, w_mm - 2.0 * pad))
+        if h_mm:
+            dens.append(bh * 1000.0 / max(1.0, h_mm - 2.0 * pad))
+        den = max(dens)
+        w_mm, h_mm = bw * 1000.0 / den + 2.0 * pad, bh * 1000.0 / den + 2.0 * pad
+    elif scale_den and (w_mm is None or h_mm is None):   # a fixed scale: the key map is the box at that scale
+        den = float(scale_den)
+        w_mm, h_mm = bw * 1000.0 / den, bh * 1000.0 / den
+    else:
+        den = float(scale_den) if scale_den else max(bw * 1000.0 / w_mm, bh * 1000.0 / h_mm)
     s = 1000.0 / den
-    cx, cy = (box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0
+    rcx, rcy = (rx0 + rx1) / 2.0, (ry0 + ry1) / 2.0
 
     def T(p):
-        return ((p[0] - cx) * s + w_mm / 2.0, (p[1] - cy) * s + h_mm / 2.0)
+        r = rot(p)
+        return ((r[0] - rcx) * s + w_mm / 2.0, (r[1] - rcy) * s + h_mm / 2.0)
 
     def Tinv(q):
-        return ((q[0] - w_mm / 2.0) / s + cx, (q[1] - h_mm / 2.0) / s + cy)
-    # the visible box (the key map's own rectangle, survey m) frames the cut symbols
-    vb = (Tinv((0.0, 0.0)), Tinv((w_mm, h_mm)))
-    frame = [(vb[0][0], vb[0][1]), (vb[1][0], vb[0][1]), (vb[1][0], vb[1][1]), (vb[0][0], vb[1][1])]
-    base = ml_base((vb[0][0], vb[0][1], vb[1][0], vb[1][1]), den, D=D) if D else []
+        return unrot(((q[0] - w_mm / 2.0) / s + rcx, (q[1] - h_mm / 2.0) / s + rcy))
+    frame = [Tinv((0.0, 0.0)), Tinv((w_mm, 0.0)), Tinv((w_mm, h_mm)), Tinv((0.0, h_mm))]
+    vb = _bm_bb(frame)
+    if base_mode == "muted":
+        base = ml_base(vb, den, D=D, crop=False) if D else []
+    else:
+        base = basemap_items(base_mode, box=vb, D=D, scale_den=den) if D else []
+    base = ml_crop(base, frame) if base else []
+    if D and D.get("format") != BASEMAP_FORMAT:
+        log.append(u"FLAG keymap %s: basemap format %s has no urban fabric per house: one house tone until the site "
+                   u"board writes format %d" % (pg, D.get("format"), BASEMAP_FORMAT))
     st_items = ml_study_items(study)
     cut_items = []
     for cid, c in cuts:
@@ -5946,7 +7371,9 @@ def km_map(ids, w_mm, h_mm, zooms=None, page=None, names=None, legend_box=None, 
             name = cid
         name = u"%s" % name
         name = name.split("-")[0]                        # a crossing row (S5-2) is labelled by its cut (S5)
-        if name not in c[2][0] and name not in c[2][1]:  # end names that do not say the id ("SW" / "NE"): the id too
+        if not its:
+            log.append(u"WARNING %s keymap cut %s too short inside the frame: not drawn" % (pg, cid))
+        elif name not in c[2][0] and name not in c[2][1]:   # end names that do not say the id: the id too
             a, b = c[0], c[1]
             L0 = _km_m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
             nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
@@ -5956,43 +7383,70 @@ def km_map(ids, w_mm, h_mm, zooms=None, page=None, names=None, legend_box=None, 
         cut_items += its
     for cid, w in wins:
         cut_items.append(("line", list(w) + [w[0]], KM_ZOOM["colour"], KM_ZOOM["lw"], None, 1.0))
-        x0, y0, x1, y1 = _bm_bb(w)
-        cut_items.append(("text", cid, (x0 + KM_CUT["text_mm"] * 0.9 / s, y1 + KM_CUT["text_mm"] * 0.8 / s),
+        x0, y0, x1, y1 = _bm_bb([T(p) for p in w])
+        cut_items.append(("text", cid, Tinv((x0 + KM_CUT["text_mm"] * 0.9, y1 + KM_CUT["text_mm"] * 0.8)),
                           KM_CUT["text_mm"], KM_CUT["colour"], True, "MC"))
-    cand = []
-    if nm_st.get("streets"):
-        for n, p, _a, _cl, _ln in basemap_street_names(None, D, classes=tuple(nm_st["streets"]))[:4 * nm_st["n_streets"]]:
-            cand.append((n, p, "street"))
-    if nm_st.get("places"):
-        for n, p in basemap_names(None, D):
-            cand.append((n, p, "place"))
-    for n, p in extra_names or ():
-        cand.append((n, tuple(p), "extra"))
-    # obstacles in key-map mm: cut lines / bars / triangles, cut and zoom labels, the legend
     fmw = globals().get("fm_width")
-    if cand and not callable(fmw):
-        raise RuntimeError(u"km_map needs common/font_metrics.py (round 4 S1: fm_width) included before it is "
-                           u"called: text widths come from the real font only")
     pt_of = lambda mm: mm / 0.352778
-    segs, boxes, label_boxes = [], [], []
-    for it in cut_items:
+    segs, boxes, label_boxes, labels = [], [], [], []
+    for it in cut_items + st_items:
         if it[0] == "line":
             P = [T(p) for p in it[1]]
             segs += list(zip(P, P[1:]))
-        elif it[0] == "text" and callable(fmw):
+    for it in cut_items:
+        if it[0] == "text":
             x, y = T(it[2])
-            w = fmw(it[1], pt_of(it[3]), bold=it[5])
+            w = fmw(it[1], pt_of(it[3]), bold=it[5]) if callable(fmw) else 0.6 * it[3] * len(it[1])
             b = (x - w / 2.0, y - it[3] / 2.0, x + w / 2.0, y + it[3] / 2.0)
             boxes.append(b)
             label_boxes.append((it[1], b))
+            labels.append(dict(string=it[1], kind="cut", anchor=(x, y), box=b, size_mm=it[3], colour=it[4],
+                               bold=it[5]))
+    # the north arrow: arrow only (G-R4-9), in the first free corner (top right, top left, bottom right, bottom left)
+    north_its, nsz = [], 5.0
+    if north:
+        best = None
+        for fx, fy in ((1, 1), (0, 1), (1, 0), (0, 0)):
+            cxn = (w_mm - pad - 0.9 * nsz) if fx else (pad + 0.9 * nsz)
+            cyn = (h_mm - pad - 0.9 * nsz) if fy else (pad + 0.9 * nsz)
+            nb = (cxn - 0.9 * nsz, cyn - 0.9 * nsz, cxn + 0.9 * nsz, cyn + 0.9 * nsz)
+            if not _km_seg_hit(nb, segs, 0.3) and not _km_box_hit(nb, boxes, 0.3):
+                best = (cxn, cyn, nb)
+                break
+        if best is None:
+            cxn, cyn = w_mm - pad - 0.9 * nsz, h_mm - pad - 0.9 * nsz
+            best = (cxn, cyn, (cxn - 0.9 * nsz, cyn - 0.9 * nsz, cxn + 0.9 * nsz, cyn + 0.9 * nsz))
+            log.append(u"WARNING %s keymap north arrow: no free corner, set top right over the map" % pg)
+        cxn, cyn, nb = best
+        a = _km_m.radians(phi)
+        foot = (cxn + _km_m.sin(a) * 0.5 * nsz, cyn - _km_m.cos(a) * 0.5 * nsz)    # the arrow centred on (cxn, cyn)
+        north_its = north_items(foot[0], foot[1], ang_rad=a, size_mm=nsz * 0.75)
+        boxes.append(nb)
     if legend_box:
         boxes.append(tuple(legend_box))
+    cand = []
+    stl = globals().get("street_label")
+    if nm_st.get("streets"):
+        for n, p, _a, _cl, _ln in basemap_street_names(vb, D, classes=tuple(nm_st["streets"]))[:4 * nm_st["n_streets"]]:
+            cand.append((stl(n) if callable(stl) else n, p, "street"))
+    if nm_st.get("places"):
+        kp = globals().get("keymap_places")
+        if callable(kp):
+            for n, p, _k in kp(vb):
+                cand.append((n, p, "place"))
+        else:
+            log.append(u"FLAG keymap %s: common/names.py not included: no place names (never a raw survey name)" % pg)
+    for n, p in extra_names or ():
+        cand.append((n, tuple(p), "extra"))
+    if cand and not callable(fmw):
+        raise RuntimeError(u"km_map needs common/font_metrics.py (round 4 S1: fm_width) included before it is "
+                           u"called: text widths come from the real font only")
     sz = nm_st["size_mm"]
-    pad = nm_st["pad_mm"]
-    name_items, placed = [], {"street": 0, "place": 0, "extra": 0}
+    pad_n = nm_st["pad_mm"]
+    name_items, placed, seen_n = [], {"street": 0, "place": 0, "extra": 0}, set()
     lim = {"street": nm_st["n_streets"], "place": nm_st["n_places"], "extra": 10 ** 6}
     for n, p, kind in cand:
-        if placed[kind] >= lim[kind]:
+        if placed[kind] >= lim[kind] or n in seen_n:
             continue
         x, y = T(p)
         if not (0.0 <= x <= w_mm and 0.0 <= y <= h_mm):
@@ -6002,37 +7456,121 @@ def km_map(ids, w_mm, h_mm, zooms=None, page=None, names=None, legend_box=None, 
         for dx, dy in ((0.0, 0.0), (0.0, sz * 1.1), (0.0, -sz * 1.1), (w / 2.0 + 1.0, 0.0), (-w / 2.0 - 1.0, 0.0),
                        (0.0, sz * 2.2), (0.0, -sz * 2.2)):
             b = (x + dx - w / 2.0, y + dy - sz / 2.0, x + dx + w / 2.0, y + dy + sz / 2.0)
-            if b[0] < pad or b[1] < pad or b[2] > w_mm - pad or b[3] > h_mm - pad:
+            if b[0] < pad_n or b[1] < pad_n or b[2] > w_mm - pad_n or b[3] > h_mm - pad_n:
                 continue
-            if _km_box_hit(b, boxes, pad) or _km_seg_hit(b, segs, pad):
+            if _km_box_hit(b, boxes, pad_n) or _km_seg_hit(b, segs, pad_n):
                 continue
             ok = b
             break
         if ok is None:
-            log.append(u"key map %s: name '%s' left out (no free place)" % (page or u"", n))
+            log.append(u"keymap %s: name '%s' left out (no free place)" % (pg, n))
             continue
+        seen_n.add(n)
         boxes.append(ok)
         label_boxes.append((n, ok))
         placed[kind] += 1
         name_items.append(("text", n, Tinv(((ok[0] + ok[2]) / 2.0, (ok[1] + ok[3]) / 2.0)), sz, nm_st["colour"],
                            nm_st["bold"], "MC"))
-    KM_LOG.append(u"key map %s: cuts %s, zooms %d, names %d, 1:%d (diagram, no bar)"
-                  % (page or u"", u", ".join(cid for cid, _ in cuts) or u"-", len(wins), len(name_items), int(den)))
+        labels.append(dict(string=n, kind=kind, anchor=(x, y), box=ok, size_mm=sz, colour=nm_st["colour"],
+                           bold=nm_st["bold"]))
+    fill = (cw * s) * (ch * s) / max(1e-9, w_mm * h_mm)
+    fill = min(1.0, fill)
+    rot_out = round(phi, 1)
+    log.append(u"keymap %s fill=%.2f rotation=%.1f cuts=%s" % (pg, fill, rot_out,
+                                                               u",".join(cid for cid, _ in cuts) or u"-"))
+    if fit and fill < 0.85:
+        log.append(u"WARNING %s keymap fill %.2f below 0.85 (frame %.0f x %.0f mm)" % (pg, fill, w_mm, h_mm))
+    if log is not KM_LOG:
+        KM_LOG.append(log[-1])
+    frame_mm = [(0.0, 0.0), (w_mm, 0.0), (w_mm, h_mm), (0.0, h_mm)]
+    frame_items = [("fill", [frame_mm], bm_key_col("paper"), 1.0, True),
+                   ("line", frame_mm + [frame_mm[0]], KM_FRAME["colour"], KM_FRAME["lw"], None, 1.0)]
     return dict(base=base, study=st_items, cuts=cut_items, names=name_items,
-                items=list(base) + st_items + cut_items + name_items, box=box, scale_den=den, T=T, Tinv=Tinv,
-                drawn=drawn, missing=missing, label_boxes=label_boxes, w_mm=w_mm, h_mm=h_mm,
-                study_rings=study)
+                items=list(base) + st_items + cut_items + name_items, box=(vb[0], vb[1], vb[2], vb[3]), scale_den=den,
+                T=T, Tinv=Tinv, drawn=drawn, missing=missing, label_boxes=label_boxes, w_mm=w_mm, h_mm=h_mm,
+                study_rings=study, rotation_deg=rot_out, north_deg=rot_out, fill=fill, frame=frame,
+                frame_items=frame_items, north=north_its, labels=labels, fitted=fit, looks=dict(looks or {}),
+                zoom_ids=[cid for cid, _ in wins], cut_ids=[cid for cid, _ in cuts], page=page)
 
 
-def km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=None):
-    """draws a km_map through map_draw (G-R4-4 order: muted base, then the study line, then the red cuts, then the
-    names): X(q) key-map mm -> page point (e.g. lambda q: (x0 + q[0], y0 + q[1]), or a y-down flip). Returns
-    map_draw's dict."""
+def km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=None, frame=True):
+    """draws a km_map (PLAN §3 order: paper, base, WATER, structures, the study line, the red cuts, names, then the
+    frame line and the north arrow): X(q) key-map mm -> page point (e.g. lambda q: (x0 + q[0], y0 + q[1]), or a
+    y-down flip). frame=False leaves out the paper, the frame line and the arrow (a caller that draws its own).
+    text_fn=None draws no text (the booklet places the labels from km_items). Returns map_draw's dict."""
     T = km["T"]
-    return map_draw(page or u"key", lambda p: X(T(p)), fill_fn, line_fn, text_fn, km["base"],
-                    {"proj_marks": [it for it in km["cuts"] if it[0] != "text"],
-                     "proj_labels": [it for it in km["cuts"] if it[0] == "text"] + km["names"]},
-                    study=km.get("study_rings"), clip=False, log=log, water_opts=water_opts)
+    if frame:
+        basemap_draw(km["frame_items"][:1], X, fill_fn, line_fn, None)
+    r = map_draw(page or u"key", lambda p: X(T(p)), fill_fn, line_fn, text_fn, km["base"],
+                 {"proj_marks": [it for it in km["cuts"] if it[0] != "text"],
+                  "proj_labels": [it for it in km["cuts"] if it[0] == "text"] + km["names"]},
+                 study=km.get("study_rings"), clip=False, log=log, water_opts=water_opts)
+    if frame:
+        basemap_draw(km["frame_items"][1:] + km["north"], X, fill_fn, line_fn, text_fn)
+    return r
+
+
+def km_items(km, page=None, item_id=None, priority=5):
+    """round 5 (S2, G-R5-12; PLAN §4 item schema v1, Aras's addendum 1 Nov 22:37 point 3): the key map as items for
+    the booklet: one "drawing" (layers of shapes in key-map mm, y up, origin lower-left; texts left out), one "text"
+    item per label (names and cut labels, role "label", with its anchor in the drawing and the module's placement as
+    hint_box), one "keymap" item (cut ids, looks, zooms, names, fill, rotation). Shapes: {"type": "poly", "rings",
+    "fill", "opacity", "nonzero"} and {"type": "line", "pts", "stroke", "width_pt", "dash_pt", "opacity"}."""
+    pg = page if page is not None else km.get("page")
+    did = item_id or (u"keymap_%s" % (pg or u"key"))
+    layers, cur = [], {"name": None}
+
+    def layer(name):
+        cur["name"] = name
+        layers.append(dict(z=len(layers), name=name, shapes=[]))
+
+    def fill_fn(rings, col, alpha, nonzero):
+        if cur["name"] is None:
+            layer("base")
+        layers[-1]["shapes"].append(dict(type="poly", rings=[[[round(p[0], 3), round(p[1], 3)] for p in R]
+                                                             for R in rings], fill=col, opacity=alpha,
+                                         nonzero=bool(nonzero)))
+
+    def line_fn(pts, col, w_mm, dash_mm, alpha):
+        if cur["name"] is None:
+            layer("base")
+        layers[-1]["shapes"].append(dict(type="line", pts=[[round(p[0], 3), round(p[1], 3)] for p in pts],
+                                         stroke=col, width_pt=round(w_mm / 0.352778, 3),
+                                         dash_pt=[round(d_ / 0.352778, 3) for d_ in dash_mm] if dash_mm else None,
+                                         opacity=alpha))
+    T = km["T"]
+    layer("paper")
+    basemap_draw(km["frame_items"][:1], lambda q: q, fill_fn, line_fn, None)
+    map_draw(u"%s key map" % (pg or u""), T, fill_fn, line_fn, None, km["base"],
+             {"proj_marks": [it for it in km["cuts"] if it[0] != "text"]}, study=km.get("study_rings"),
+             clip=False, order_fn=layer)
+    layer("frame")
+    basemap_draw(km["frame_items"][1:] + [it for it in km["north"] if it[0] != "text"], lambda q: q, fill_fn,
+                 line_fn, None)
+    layers = [L_ for L_ in layers if L_["shapes"]]
+    for i, L_ in enumerate(layers):
+        L_["z"] = i
+    w, h = km["w_mm"], km["h_mm"]
+    out = [dict(id=did, page=pg, kind="drawing", role="keymap", priority=priority, group=did, units="mm",
+                axes=u"key-map mm, origin lower-left, y up", size_mm=[round(w, 2), round(h, 2)], extent=[0.0, 0.0,
+                                                                                                    round(w, 2),
+                                                                                                    round(h, 2)],
+                scale_pref=None, scale_den=round(km["scale_den"]), scale_bar=False, north_deg=km["north_deg"],
+                layers=layers, keep_areas=[[0.0, 0.0, round(w, 2), round(h, 2)]], anchors={})]
+    texts = [dict(string=t[1], kind="north", anchor=t[2], box=None, size_mm=t[3], colour=t[4], bold=t[5])
+             for t in km["north"] if t[0] == "text"]
+    for i, lb in enumerate(km["labels"] + texts):
+        out.append(dict(id=u"%s.t%d" % (did, i), page=pg, kind="text", role="label", priority=priority, group=did,
+                        string=lb["string"], label_kind=lb["kind"],
+                        anchor=dict(drawing=did, point=[round(lb["anchor"][0], 2), round(lb["anchor"][1], 2)]),
+                        hint_box=[round(v, 2) for v in lb["box"]] if lb["box"] else None,
+                        size_pt=round(lb["size_mm"] / 0.352778, 2), min_pt=4.0, bold=bool(lb["bold"]),
+                        colour=lb["colour"], short_forms=[], side_list_ok=False, justify=False))
+    out.append(dict(id=u"%s.km" % did, page=pg, kind="keymap", role="keymap", priority=priority, group=did,
+                    drawing=did, cuts=[dict(id=c, look=km["looks"].get(c, 1)) for c in km["cut_ids"]],
+                    zooms=list(km["zoom_ids"]), names=[lb["string"] for lb in km["labels"] if lb["kind"] != "cut"],
+                    fill=round(km["fill"], 3), rotation_deg=km["rotation_deg"], missing=list(km["missing"])))
+    return out
 
 
 def km_texts(km):
@@ -6093,7 +7631,25 @@ GRID_BASE = 4.0                                   # baseline step, from y = GRID
 GRID_TITLE_Y, GRID_RULE_Y = 22.0, 25.0            # title baseline, the rule under the title band
 GRID_AREA = (GRID_ML, 30.0, GRID_PAGE[0] - GRID_MR, 273.0)   # where drawings go (x0, y0, x1, y1)
 GRID_FOOT_RULE = 276.0
-GRID_MIN_PT = 6.0                                 # no text below this size on any page (PLAN p18-19 rule)
+GRID_MIN_PT = 4.0                                 # no text below this size on any page, measured AFTER scaling
+                                                  # (round 5 D1, Aras 1 Nov 21:26: 4 pt floor; was 6.0)
+# round 5 (S1; PLAN §3 "Fonts and sizes", D1): the STARTING size of every text role the booklet composer sets (pt,
+# bold, lead as a multiple of the size, colour role). The composer may step a text down to GRID_MIN_PT, never below.
+# Content scripts put these sizes on their exported text items (common/item_export.py takes them from here).
+GRID_ROLE_PT = dict(
+    title=(16.0, True, 1.15, "ink"),              # the page title
+    heading=(7.0, True, 1.25, "ink"),             # a drawing's heading
+    intro=(6.0, False, 1.3, "ink"),               # the page intro / a short text block
+    caption=(5.0, False, 1.3, "ink2"),            # under a drawing: what, scale
+    legend=(5.0, False, 1.3, "ink"),              # legend entries
+    list_item=(5.0, False, 1.3, "ink"),           # numbered / bulleted list rows
+    note=(5.0, False, 1.3, "ink2"),
+    source=(5.0, False, 1.3, "ink2"),
+    label=(4.5, False, 1.2, "ink"),               # in-drawing labels (place names, element names)
+    badge=(4.5, True, 1.2, "ink"),                # number badges on a drawing
+    level_value=(4.5, False, 1.2, "ink"),         # "+43.71" beside a level marker
+    pageno=(7.0, True, 1.2, "accent"),            # the page number
+)
 
 # colour roles (palette v1.4 core): ink, second ink, accent, rule
 GRID_INK = dict(ink="4A3F35", ink2="6B645B", accent="8B3A3F", rule="B0AC9C", paper="FFFFFF")
@@ -6114,6 +7670,23 @@ GRID_TYPE = dict(
     pageno=(14.0, True, 6.0, "accent"),
 )
 GRID_PT = 25.4 / 72.0                             # mm per pt
+
+
+def grid_role(role):
+    """(size_pt, bold, lead_mm_per_pt, hex) of a round 5 text role (GRID_ROLE_PT); unknown roles = 'note'"""
+    s, b, ld, c = GRID_ROLE_PT.get(role, GRID_ROLE_PT["note"])
+    return s, b, ld, GRID_INK[c]
+
+
+def _grid_warn(msg):
+    """round 5: a grid misfit is a WARNING line + orange message, never a stop (common/warn.py when included)"""
+    g_ = globals()
+    if "wn_warn" in g_:
+        g_["wn_warn"](None, "grid", msg)
+    elif "tp_warn" in g_:
+        g_["tp_warn"](u"grid: " + msg)
+    else:
+        print(u"WARNING grid: " + msg)
 
 
 def grid_style(name):
@@ -6140,8 +7713,10 @@ def grid_x1(c):
 
 def grid_span(c0, n):
     """(x, w) of the span of n columns from column c0"""
-    if c0 < 1 or c0 + n - 1 > GRID_COLS:
-        raise ValueError("grid span %d+%d is off the %d-column grid" % (c0, n, GRID_COLS))
+    if c0 < 1 or c0 + n - 1 > GRID_COLS:              # round 5: a WARNING, the span is kept on the grid
+        _grid_warn("span %d+%d is off the %d-column grid: clamped" % (c0, n, GRID_COLS))
+        c0 = min(max(1, int(c0)), GRID_COLS)
+        n = max(1, min(int(n), GRID_COLS - c0 + 1))
     return grid_x(c0), grid_w(n)
 
 
@@ -6184,7 +7759,8 @@ def grid_cell(c0, n, y, h, snap=True):
 
 def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
     """blocks of the given heights stacked down one column span from y0 (default the drawing area's top), each on the
-    baseline: [rect]; raises when the stack runs past the drawing area (no block may leave the page)"""
+    baseline: [rect]; a stack that runs past the drawing area is a WARNING (round 5; the composer's layout check
+    reports the edge hit too)"""
     y = GRID_AREA[1] if y0 is None else grid_snap_y(y0, up=False)
     out = []
     for h in heights:
@@ -6192,7 +7768,7 @@ def grid_stack(heights, c0, n, y0=None, gap=GRID_BASE):
         out.append(r)
         y = r[3] + gap
     if out and out[-1][3] > GRID_AREA[3] + 1e-6:
-        raise ValueError("grid stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
+        _grid_warn("stack runs %.1f mm past the drawing area" % (out[-1][3] - GRID_AREA[3]))
     return out
 
 
@@ -6203,7 +7779,7 @@ def grid_row(widths_cols, y, h, c0=1):
         out.append(grid_cell(c, n, y, h))
         c += n
     if c - 1 > GRID_COLS:
-        raise ValueError("grid row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
+        _grid_warn("row needs %d columns, the grid has %d" % (c - 1, GRID_COLS))
     return out
 
 
@@ -7079,81 +8655,6 @@ DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")
 
 # v10: the sketch engine and data/SKETCH_SRC.py are no longer included (the sections are drawn to the level table in
 # parts/70_sections.py); data/SKETCH_SRC.py stays in the repo because bergama_agriculture_alternatives includes it.
-# ---- A3 booklet assets (SCRIPT_STANDARD §8; booklet/ASSET_SPEC.md) ----
-# Each booklet frame = one text-free vector PDF drawn at the frame's size + its words as labels in blocks.json.
-# The assembler (bergama_booklet) sets every label as live text in the booklet font, never below 7 pt.
-BK_MIN_PT = 7.5                              # labels and captions on the booklet (brief: 7-8 pt, minimum 7)
-BK_CAPTION_MM = 5.0                          # caption line under every drawing frame
-
-
-def bk_frame(key, w_default, h_default):
-    """(w, h) mm a drawing for asset key "<folder>/<block>" is drawn at: the assembler's booklet_slots.json if it has
-    run once, else the defaults given (the plan's frame size). h excludes the caption line."""
-    try:
-        import json as _j
-        with open(bg_first([os.path.join(bg_booklet(""), "booklet_slots.json"),        # 27 Oct: cached/booklet/
-                            os.path.join(bg_output("bergama_booklet"), "booklet_slots.json")]), encoding="utf-8") as f:
-            s = _j.load(f)[key]
-        return float(s["w_mm"]), float(s["h_mm"]) - BK_CAPTION_MM
-    except Exception:
-        return float(w_default), float(h_default) - BK_CAPTION_MM
-
-
-def bk_take_text(items, H):
-    """Page items (poly/line/circle/text tuples, y up from the bottom, mm) -> (items without text, labels).
-    Labels: x, y in mm from the top-left (y to the baseline), size raised to BK_MIN_PT, colour hex."""
-    keep, labels = [], []
-    for it in items:
-        if it[0] != "text":
-            keep.append(it)
-            continue
-        _, s, x, y, size, color, bold, align = it[:8]
-        labels.append({"x": round(x, 2), "y": round(H - y, 2), "text": s, "size": max(float(size), BK_MIN_PT),
-                       "bold": bool(bold), "anchor": align or "L", "colour": color if isinstance(color, str) else "4A3F35"})
-    return keep, labels
-
-
-class BkBlocks(object):
-    """Collects one script's booklet blocks and writes cached/booklet/<folder>/blocks.json (27 Oct, Aras: output/ holds
-    final PDFs only; was output/<folder>/booklet/). out_dir = the script's output folder; its name is the folder key."""
-    def __init__(self, out_dir, script, version):
-        self.dir = bg_booklet(os.path.basename(os.path.normpath(out_dir)))
-        os.makedirs(self.dir, exist_ok=True)
-        self.d = {"script": script, "version": version, "sources": {}, "blocks": {}}
-
-    def path(self, name):
-        return os.path.join(self.dir, name)
-
-    def source(self, key, text, url):
-        """A public source: used in any text as {src:key}; numbered once for the whole booklet."""
-        self.d["sources"][key] = {"text": text, "url": url}
-
-    def drawing(self, bid, pdf_name, labels, caption="", scale_den=None, legend=None):
-        self.d["blocks"][bid] = {"type": "drawing", "pdf": pdf_name, "page": 0, "labels": labels, "caption": caption,
-                                 "scale_den": scale_den, "legend": legend or []}
-
-    def crop(self, bid, pdf_name, rect_mm, caption="", scale_den=None, legend=None, page=0, drop=None):
-        """A booklet drawing taken from this script's own sheet (Aras 25 Oct 21:47: the booklet shows the sheet's
-        drawing, re-laid): pdf_name = the sheet PDF in this script's output folder, rect_mm = (x0, y0, x1, y1) of the
-        panel in mm from the sheet page's top-left (y down), scale_den = the sheet's scale at 1:1 print (None if not to
-        scale). The assembler scales the crop to its frame and resets the sheet's words inside it as live labels;
-        drop = regexes of sheet texts not to carry."""
-        self.d["blocks"][bid] = {"type": "crop", "pdf": pdf_name, "page": page,
-                                 "rect_mm": [round(float(v), 2) for v in rect_mm], "caption": caption,
-                                 "scale_den": scale_den, "legend": legend or [], "drop": drop or []}
-
-    def tiles(self, bid, tiles):
-        self.d["blocks"][bid] = {"type": "tiles", "tiles": tiles}
-
-    def text(self, bid, heading="", body="", bullets=None):
-        self.d["blocks"][bid] = {"type": "text", "heading": heading, "body": body, "bullets": bullets or []}
-
-    def save(self):
-        import json as _j
-        p = os.path.join(self.dir, "blocks.json")
-        with open(p, "w", encoding="utf-8") as f:
-            _j.dump(self.d, f, ensure_ascii=False, indent=1)
-        return p
 
 # v17 (round 4 S1 modules): the real font widths, ONE text placer (a collision RAISES), ONE marker, ONE block template
 # ---- font_metrics.py (round 4, S1, 1 Nov 2026; G-R4-1, PLAN §4.1): REAL Arial widths and glyph boxes, one source -----
@@ -7175,6 +8676,12 @@ class BkBlocks(object):
 #                                              on the baseline, y UP (for centring a glyph in a marker)
 #   fm_asc_desc(pt, bold=False)                -> (ascender, descender) mm of the font (descender negative)
 # Units: pt = font size in points (the em); 1 pt = 25.4 / 72 mm (FM_PT).
+# Round 5 (S1, P04.7 "bazaar side ? Kale side"): a character the font has no glyph for no longer stops a run where the
+# caller checks first:
+#   fm_missing(s, bold=False) -> [ch]          the characters of s the font has no glyph for (blanks never count)
+#   fm_safe(s, bold=False, sub=u"\u2013") -> (s2, missing)
+#                                              s with each missing character replaced by sub ("–", else "-"); the
+#                                              booklet composer runs every text through it at load (one WARNING each)
 FM_PT = 25.4 / 72.0
 _FM_CACHE = {}
 
@@ -7271,12 +8778,114 @@ def fm_box(s, x, y, pt, bold=False, align="L", angle=0.0, y_down=True, italic=Fa
     P = [(x + u * c - v * s_, y + sg * (u * s_ + v * c)) for u, v in corners]
     xs, ys = [p[0] for p in P], [p[1] for p in P]
     return (min(xs), min(ys), max(xs), max(ys))
-# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer, a collision RAISES -------
+
+
+def fm_missing(s, bold=False, italic=False):
+    """the characters of s the font has no glyph for"""
+    T = fm_load(bold, italic)
+    out = []
+    for ch in u"%s" % s:
+        if ch in u"\r\n\t " or ch in out:
+            continue
+        try:
+            _fm_glyph(T, ch)
+        except ValueError:
+            out.append(ch)
+    return out
+
+
+def fm_safe(s, bold=False, sub=u"\u2013", italic=False):
+    """(s with missing glyphs replaced by sub, the missing characters); sub falls back to "-" when the font lacks it"""
+    miss = fm_missing(s, bold, italic)
+    if not miss:
+        return u"%s" % s, []
+    if fm_missing(sub, bold, italic):
+        sub = u"-"
+    s2 = u"%s" % s
+    for ch in miss:
+        s2 = s2.replace(ch, sub)
+    return s2, miss
+# ---- warn.py (round 5, S1, 1 Nov 2026; G-R5-1, C11; PLAN §3 "Warnings"): ONE warning sink for every script -----------
+# Aras 1 Nov 17:11 / 18:51: a check hit never stops the run; it is an orange Grasshopper warning plus one
+# "WARNING <page> <kind> ..." log line, so one run collects every hit. Hard stops only for missing data, fonts or
+# levels (raise those as before). C11 (round 4: "0 warnings" printed with a hit in the log): the count at the log's
+# head is COUNTED from the finished log's WARNING lines (wn_compose), never kept as a separate number.
+# Needs nothing. Include it BEFORE text_place.py: text_place then uses WN_LOG as its TP_LOG (one list, so a script that
+# prints tp_log_lines() prints every warning) and routes tp_warn here.
+#
+#   wn_warn(page, kind, msg, log=None) -> line   one hit: "WARNING <page> <kind>: <msg>" (page / kind may be None) into
+#                                                 log (default WN_LOG) + one orange message; returns the line
+#   wn_orange(msg)                                the orange Grasshopper message only (no log line); capped at
+#                                                 WN_ORANGE_MAX per solve, the rest summed in one message by wn_compose
+#   wn_is(line) -> bool                           a WARNING line (its text, leading blanks ignored, starts "WARNING")
+#   wn_compose(lines, head=()) -> [str]           the finished log: head lines, then "<n> warnings" with n = the number
+#                                                 of WARNING lines found, then every WARNING line (moved, in order, so
+#                                                 each is in the log ONCE), then the other lines in their order
+#   wn_count(lines) -> n                          WARNING lines in lines
+#   wn_reset()                                    empties WN_LOG and the orange counter (call at the start of a run)
+WN_LOG = []
+WN_ORANGE_MAX = 60
+_WN_N = [0, 0]           # [orange messages shown this run, orange messages held back]
+
+
+def _wn_gh(msg):
+    try:
+        ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,  # noqa: F821
+                                          u"%s" % msg)
+    except Exception:
+        pass
+
+
+def wn_orange(msg):
+    """one orange (Warning level) runtime message on this component; outside Grasshopper nothing"""
+    if _WN_N[0] >= WN_ORANGE_MAX:
+        _WN_N[1] += 1
+        return
+    _WN_N[0] += 1
+    _wn_gh(msg)
+
+
+def wn_warn(page, kind, msg, log=None):
+    """one hit as a WARNING line + an orange message; the run goes on"""
+    head = u" ".join(u"%s" % p for p in (page, kind) if p not in (None, u"", ""))
+    line = u"WARNING " + (head + u": " if head else u"") + u"%s" % msg
+    (WN_LOG if log is None else log).append(line)
+    wn_orange(line[8:])
+    return line
+
+
+def wn_is(line):
+    return (u"%s" % line).lstrip().startswith(u"WARNING")
+
+
+def wn_count(lines):
+    return sum(1 for ln in lines if wn_is(ln))
+
+
+def wn_compose(lines, head=()):
+    """the log with its warning head (see the module notes); the count equals the WARNING lines by construction"""
+    flat = []
+    for ln in lines:                                   # a list item may hold several lines
+        flat.extend((u"%s" % ln).split(u"\n"))
+    warn = [ln.strip() for ln in flat if wn_is(ln)]
+    rest = [ln for ln in flat if not wn_is(ln)]
+    out = list(head) + [u"%d warnings" % len(warn)] + warn
+    if _WN_N[1]:
+        out.append(u"(orange messages: the first %d shown on the component, %d more only here)" % (_WN_N[0], _WN_N[1]))
+        _wn_gh(u"%d more warnings: see the log's head" % _WN_N[1])
+    return out + [u""] + rest
+
+
+def wn_reset():
+    del WN_LOG[:]
+    _WN_N[0] = _WN_N[1] = 0
+# ---- text_place.py (round 4, S1, 1 Nov 2026; G-R4-1, G-R4-2, PLAN §4.1): ONE text placer (round 5: hits WARN) ----
 # Replaces label_place.py (its lp_* names stay as shims there until the closing step, see label_place.py).
 # Every printed letter of a page goes through ONE TextPage: it measures with the real font (font_metrics.py), keeps
-# every box, draws everything in .emit(drawer) (no other text path), and .check() RAISES TextCollision when any two
-# texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
-# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs).
+# every box, draws everything in .emit(drawer) (no other text path), and .check() reports (round 5: WARNING lines) any
+# two texts, a text and an obstacle, a text and the page edge / margins / footer zone, or two drawing blocks overlap.
+# Needs, included before it: pdf_fonts.py, font_metrics.py, grid.py (GRID_MIN_PT, grid_marked_runs); warn.py optional
+# (round 5: the one warning sink; without it tp_warn writes its WARNING line itself).
 #
 #   tp = TextPage(name, bounds, y_down=True, min_pt=None, pad=0.6, margins=None, footer_zone=None, scale=1.0,
 #                 unit_mm=1.0, log=None)
@@ -7313,11 +8922,13 @@ def fm_box(s, x, y, pt, bold=False, align="L", angle=0.0, y_down=True, italic=Fa
 #                                                     a label beside its point: positions in reading order (E, NE, N,
 #                                                     NW, W, SW, S, SE, C, or (dx, dy, align) in page units), then the
 #                                                     shorter alts, then a NUMBER on the point + a row in side_list;
-#                                                     never below min_pt, never dropped: no spot and no side_list
-#                                                     raises TextCollision. rank orders nothing here (callers place
-#                                                     rank 0 first); kept for the interface
-#   tp.check(raise_=True, log=None) -> n_items        the collision test; logs "overlap <page> checked n, collisions k"
-#                                                     and raises TextCollision(page, item, other) when k > 0
+#                                                     never below min_pt, never dropped (round 5 order: see below;
+#                                                     rings=TP_RINGS, step=0.5 pt). rank orders nothing here (callers
+#                                                     place rank 0 first); kept for the interface
+#   tp.check(raise_=True, log=None, blocks_in=False) -> n_items
+#                                                     the collision test; one "WARNING <page> overlap|edge: ..." line
+#                                                     per hit, then "overlap <page> checked n, collisions k"; raises
+#                                                     only with TP_WARN_ONLY = [False]; tp.hits = [(kind, a, b)]
 #   tp.emit(drawer) -> n                              drawer(item) for every text in order; item = dict(text, x, y,
 #                                                     pt, size_mm, bold, align, angle, colour, role, name, extra)
 #   tp.export() -> dict                               boxes in mm, y DOWN from the bounds' top-left (crop-local) for
@@ -7332,11 +8943,25 @@ def fm_box(s, x, y, pt, bold=False, align="L", angle=0.0, y_down=True, italic=Fa
 #                                                     xform) in tp, which then draws them; returns the non-text shapes
 #                                                     for the caller to draw as before
 # Geometry helpers (moved here from label_place.py): tp_hit, tp_seg_box, tp_seg_cross, TpSegIndex, tp_reading_order.
-TP_LOG = []
+#
+# ROUND 5 (S1, 1 Nov 2026; G-R5-1, G-R5-12, C11; PLAN §3 "Warnings"): nothing here stops a run on a layout hit.
+#   * tp_warn goes to common/warn.py (wn_warn) when it is included, so every hit is ONE "WARNING <page> <kind>: ..."
+#     line in TP_LOG plus an orange message; kinds: overlap, edge, min_text, widow, wrap, side_list, number.
+#   * check() writes one WARNING line per hit whatever raise_ says (C11: raise_=False used to log only the count, so
+#     "collisions 1" and "0 warnings" could both appear); it raises only when TP_WARN_ONLY = [False] and raise_.
+#     check(blocks_in=True) also tests every block against the inner bounds (the booklet composer's edge test).
+#   * place() order (G-R5-12 "prevent, not just detect"): its positions, then nearby free spots on rings round the
+#     anchor (TP_RINGS mm), then the shorter alts the same way, then the side list number, then smaller sizes in
+#     0.5 pt steps down to min_pt; only when all fail: a WARNING and the label at its first position (never dropped).
+#   * para(): a widow that 0.25 pt smaller cannot fix is a WARNING and the paragraph is set without the widow rule.
+#   * emit(): a "0" number whose side list was never closed is a WARNING and is not drawn; export() checks first.
+TP_LOG = WN_LOG if "WN_LOG" in globals() else []   # round 5: with warn.py included, ONE list (the warning sink)
 TP_PT = 25.4 / 72.0
 TP_ROW_MM = 8.0                 # reading order: anchors within this many mm of height count as one row
 TP_POSITIONS = ("E", "NE", "N", "NW", "W", "SW", "S", "SE")
 TP_LINE_KINDS = ("line", "edge", "street", "road", "cut", "stream", "bank", "contour", "leader")
+TP_RINGS = (1.5, 3.0, 4.5, 6.0)  # round 5: mm from the anchor's own positions where place() looks for a free spot
+TP_RING_STEPS = 12               # spots per ring (every 30 degrees, starting east, counter-clockwise on the page)
 
 
 class TextError(RuntimeError):
@@ -7346,12 +8971,17 @@ class TextError(RuntimeError):
 TP_WARN_ONLY = [True]   # 1 Nov (Aras): check() writes hits as warnings instead of raising; [False] = raise
 
 
-def tp_warn(msg):
+def tp_warn(msg, log=None):
     """1 Nov (Aras 19:33 "get this already"): a layout check that used to stop the run writes "WARNING <msg>" to
-    TP_LOG and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError again)"""
+    TP_LOG (or log) and an orange Grasshopper warning, and the run goes on (TP_WARN_ONLY = [False] raises TextError
+    again). Round 5: through common/warn.py when it is included (one sink, capped orange messages)."""
     if not TP_WARN_ONLY[0]:
         raise TextError(msg)
-    TP_LOG.append(u"WARNING " + msg)
+    lg = TP_LOG if log is None else log
+    if "wn_warn" in globals():
+        wn_warn(None, None, msg, lg)
+        return
+    lg.append(u"WARNING " + msg)
     try:
         ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning, msg)
     except Exception:
@@ -7556,7 +9186,7 @@ def tp_wrap(text, w_mm, pt, bold=False, min_last_words=2, bold_marks=True):
         for u in words:
             w = uw(u)
             if w > w_mm + 1e-6:
-                tp_warn(u"the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
+                tp_warn(u"wrap: the word %r (%.1f mm at %.1f pt) is wider than its column (%.1f mm): it runs over" % (
                     u"".join(s for s, _ in u), w, pt, w_mm))
             if ln and x + sp_w + w > w_mm + 1e-6:
                 lines.append(ln)
@@ -7596,7 +9226,8 @@ class TpSideList(object):
 
     def add(self, anchor, text, item):
         if self.closed:
-            raise TextError(u"side list %s is closed: place its labels before close()" % self.name)
+            tp_warn(u"side_list: %s is closed: %r gets no number (place its labels before close())" % (
+                self.name, u"%s" % text))
         e = dict(anchor=tuple(anchor), text=text, item=item, n=None)
         self.entries.append(e)
         return e
@@ -7636,6 +9267,7 @@ class TextPage(object):
         self.log = log
         self.items, self.keeps, self.blocks, self.sides = [], [], [], []
         self._gid, self.checked = 0, False
+        self.hits = []
 
     # -- measuring
     def _box(self, text, x, y, pt, bold=False, align="L", angle=0.0):
@@ -7649,8 +9281,8 @@ class TextPage(object):
 
     def _size_ok(self, text, pt):
         if pt * self.scale < self.min_pt - 0.005:       # 1 Nov: 6.00 pt is not under 6.0 (rounding)
-            tp_warn(u"%s: %r prints at %.2f pt, below the %.1f pt minimum" % (
-                self.name, text[:40], pt * self.scale, self.min_pt))
+            tp_warn(u"%s min_text: %r prints at %.2f pt, below the %.1f pt minimum" % (
+                self.name, text[:40], pt * self.scale, self.min_pt), self.log)
 
     # -- registering
     def keep(self, geom, kind="keep", name=None, line=None):
@@ -7701,11 +9333,15 @@ class TextPage(object):
         except TpWidow:
             size = size - 0.25
             self._size_ok(text, size)
-            lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            try:
+                lines = tp_wrap(text, w * u, size, bold, min_last_words, bold_marks)
+            except TpWidow as ex:                       # round 5: a WARNING, set without the widow rule
+                tp_warn(u"%s widow: %r: %s" % (self.name, text[:50], ex), self.log)
+                lines = tp_wrap(text, w * u, size, bold, 1, bold_marks)
             lead = lead * size / float(pt)
         if max_lines is not None and len(lines) > max_lines:
-            tp_warn(u"%s: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
-                                                                       max_lines))
+            tp_warn(u"%s overrun: %r needs %d lines, %d allowed: shorten it" % (self.name, text[:50], len(lines),
+                                                                               max_lines), self.log)
         g = self._group()
         sg = 1.0 if self.y_down else -1.0
         yy = float(y)
@@ -7745,22 +9381,62 @@ class TextPage(object):
                 return False
         return True
 
+    def _ring_spots(self, text, anchor, pt, bold, d, rings):
+        """(x, y, align) spots on rings round the anchor (round 5: the nearby free spots of G-R5-12)"""
+        import math as _m
+        ix0, iy0, ix1, iy1 = fm_ink_box(text, pt, bold)
+        u, sg = self.unit_mm, (-1.0 if self.y_down else 1.0)
+        mid = -(iy0 + iy1) / 2.0
+        n = max(4, int(TP_RING_STEPS))
+        for rr in rings or ():
+            R_ = d + float(rr)
+            for k in range(n):
+                a = 2.0 * _m.pi * k / n
+                dx, dv = R_ * _m.cos(a), R_ * _m.sin(a)
+                al = "L" if dx > 0.3 * R_ else ("R" if dx < -0.3 * R_ else "C")
+                if al == "C":                          # above / below: the ink edge, not its middle, at the ring
+                    v = (dv - iy0) if dv > 0 else (dv - iy1)
+                else:
+                    v = dv + mid
+                yield anchor[0] + dx / u, anchor[1] + sg * v / u, al
+
+    def _try(self, t, anchor, positions, pt, bold, d, allow, rings):
+        for code in positions:
+            x, y, al = self._at(code, t, anchor, pt, bold, d)
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        for x, y, al in self._ring_spots(t, anchor, pt, bold, d, rings):
+            if self._free(self._box(t, x, y, pt, bold, al, 0.0), allow):
+                return x, y, al
+        return None
+
     def place(self, text, anchor, positions=TP_POSITIONS, alts=(), pt=7.0, rank=0, side_list=None, bold=False,
-              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label"):
-        """a label beside its point (see the module notes); returns the registered item"""
+              colour=None, name=None, r=0.0, gap=0.8, allow=(), role="label", rings=TP_RINGS, step=0.5):
+        """a label beside its point (see the module notes); returns the registered item. Order (round 5): positions,
+        rings, alts the same way, the side list number, then pt - step ... down to min_pt (printed), then a WARNING
+        and the first position (the label is never dropped; check() names what it hits)"""
         d = float(r) * self.unit_mm + gap
-        for t in (text,) + tuple(alts or ()):
-            t = u"%s" % t
-            self._size_ok(t, pt)
-            for code in positions:
-                x, y, al = self._at(code, t, anchor, pt, bold, d)
-                b = self._box(t, x, y, pt, bold, al, 0.0)
-                if self._free(b, allow):
-                    self.put(t, x, y, pt, bold, al, 0.0, name, role, colour, allow)
-                    return self.items[-1]
+        texts = [u"%s" % t for t in (text,) + tuple(alts or ())]
+        self._size_ok(texts[0], pt)
+        for t in texts:
+            got = self._try(t, anchor, positions, pt, bold, d, allow, rings)
+            if got:
+                self.put(t, got[0], got[1], pt, bold, got[2], 0.0, name, role, colour, allow)
+                return self.items[-1]
         if side_list is None:
-            raise TextCollision(self.name, dict(text=u"%s" % text, name=name), u"no free spot round its point and no "
-                                u"side list to number it")
+            p_ = float(pt) - step
+            while p_ * self.scale >= self.min_pt - 0.005:
+                for t in texts:
+                    got = self._try(t, anchor, positions, p_, bold, d, allow, rings)
+                    if got:
+                        self.put(t, got[0], got[1], p_, bold, got[2], 0.0, name, role, colour, allow)
+                        return self.items[-1]
+                p_ -= step
+            tp_warn(u"%s overlap: label %r has no free spot round its point down to %.1f pt and no side list: set at "
+                    u"its first position" % (self.name, texts[0], self.min_pt), self.log)
+            x, y, al = self._at(positions[0] if positions else "E", texts[-1], anchor, pt, bold, d)
+            self.put(texts[-1], x, y, pt, bold, al, 0.0, name, role, colour, allow, forced=True)
+            return self.items[-1]
         x, y, al = self._at("C", u"0", anchor, pt, True, 0.0)
         self.put(u"0", x, y, pt, True, "C", 0.0, name, "number", colour, tuple(allow) + ("marker",))
         it = self.items[-1]
@@ -7770,50 +9446,61 @@ class TextPage(object):
         return it
 
     # -- the test
-    def check(self, raise_=True, log=None):
-        """the collision test (see the module notes); returns the number of texts checked"""
+    def check(self, raise_=True, log=None, blocks_in=False):
+        """the collision test (see the module notes); returns the number of texts checked. Every hit is one
+        "WARNING <page> overlap|edge: ..." line (round 5, C11: also with raise_=False); self.hits keeps them as
+        (kind, a, b) for the caller's own counts"""
+        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
         for sl in self.sides:
             if not sl.closed:
-                tp_warn(u"%s: side list %s was never closed (its numbers are not set)" % (self.name, sl.name))
+                tp_warn(u"%s side_list: %s was never closed (its numbers are not set)" % (self.name, sl.name), lg)
         hits = []
         I = self.items
+        inn = self.inner
+
+        def inside(b):
+            return (inn[0] - 1e-6 <= b[0] and b[2] <= inn[2] + 1e-6 and inn[1] - 1e-6 <= b[1] and
+                    b[3] <= inn[3] + 1e-6)
         for i, a in enumerate(I):
             b = a["box"]
-            if not (self.inner[0] - 1e-6 <= b[0] and b[2] <= self.inner[2] + 1e-6 and
-                    self.inner[1] - 1e-6 <= b[1] and b[3] <= self.inner[3] + 1e-6):
-                hits.append((a, u"the page edge or its margins"))
-            if self.footer_zone and a["role"] != "footer" and tp_hit(b, self.footer_zone, 0.0):
-                hits.append((a, u"the footer zone"))
+            if not inside(b):
+                hits.append(("edge", a, u"the page edge or its margins"))
+            if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
+                hits.append(("edge", a, u"the footer zone"))
             for c in I[i + 1:]:
                 if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
-                    hits.append((a, c))
+                    hits.append(("overlap", a, c))
             for K in self.keeps:
                 if K["name"] in a["allow"] or K["kind"] in a["allow"]:
                     continue
                 if _tp_keep_hits(b, K, self.pad):
-                    hits.append((a, K))
+                    hits.append(("overlap", a, K))
         B = self.blocks
         for i, a in enumerate(B):
+            if blocks_in and not inside(a["box"]):
+                hits.append(("edge", a, u"the page edge or its margins"))
             for c in B[i + 1:]:
                 if tp_hit(a["box"], c["box"], -0.01 / self.unit_mm):
-                    hits.append((a, c))
-        line = u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits))
-        lg = log if log is not None else (self.log if self.log is not None else TP_LOG)
-        lg.append(line)
+                    hits.append(("overlap", a, c))
+        self.hits = hits
         self.checked = True
-        if hits and raise_ and TP_WARN_ONLY[0]:          # 1 Nov (Aras 17:11 / 18:51): every hit a WARNING line and an
-            k_ = len(lg) - 1                             # orange warning; the run goes on, one run collects them all
-            lg[k_:k_] = [u"WARNING %s text hit: %s against %s" % (self.name, _tp_desc(a_), _tp_desc(b_))
-                         for a_, b_ in hits]             # (before the "overlap ..." line, which stays the last)
-            try:
-                ghenv.Component.AddRuntimeMessage(__import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
-                                                  u"%s: %d text hits (each one in the log, 'WARNING %s text hit')" %
-                                                  (self.name, len(hits), self.name))
-            except Exception:
-                pass
-            return len(I)
-        if hits and raise_:
-            raise TextCollision(self.name, hits[0][0], hits[0][1], len(hits), hits[1:])
+        if hits and raise_ and not TP_WARN_ONLY[0]:
+            raise TextCollision(self.name, hits[0][1], hits[0][2], len(hits), [h[1:] for h in hits[1:]])
+        for k_, a_, b_ in hits:                          # one WARNING line each; the run goes on
+            ln_ = u"WARNING %s %s: %s against %s" % (self.name, k_, _tp_desc(a_), _tp_desc(b_))
+            lg.append(ln_)
+        if hits:
+            if "wn_orange" in globals():
+                wn_orange(u"%s: %d text hits (each one in the log, 'WARNING %s ...')" % (self.name, len(hits),
+                                                                                       self.name))
+            else:
+                try:
+                    ghenv.Component.AddRuntimeMessage(                                           # noqa: F821
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                        u"%s: %d text hits (each one in the log)" % (self.name, len(hits)))
+                except Exception:
+                    pass
+        lg.append(u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits)))
         return len(I)
 
     def emit(self, drawer):
@@ -7823,7 +9510,9 @@ class TextPage(object):
             if not it["emit"]:
                 continue
             if it["role"] == "number" and it["text"] == u"0":
-                raise TextError(u"%s: a numbered label was never given its number (close its side list)" % self.name)
+                tp_warn(u"%s number: a numbered label was never given its number (close its side list): not drawn" %
+                        self.name, self.log)
+                continue
             drawer(it)
             n += 1
         return n
@@ -7831,7 +9520,7 @@ class TextPage(object):
     def export(self):
         """boxes in mm, y DOWN from the top-left of bounds (crop-local), for the booklet's assembled-page test"""
         if not self.checked:
-            raise TextError(u"%s: export() before check()" % self.name)
+            self.check(False)
         u, b = self.unit_mm, self.bounds
 
         def mm(r):
@@ -7871,6 +9560,319 @@ def tp_shapes(shapes, tp, name=None, allow=(), y_down=None):
             extra["halo"] = tail[5]
         tp.put(s_[1], x, y, size_mm * tp.unit_mm / TP_PT, bold, al, 0.0, name, "shape", col, allow, **extra)
     return rest
+# ---- item_export.py (round 5, S1, 1 Nov 2026; G-R5-12, PLAN §4 schema v1): content scripts EXPORT, the booklet composes
+# Aras 1 Nov 22:00: "produce every text every drawing and everything and in the last run make it place it and align it
+# and booklet it". A content script lays out no page and burns no page text into a drawing: it hands every drawing
+# (true-scale vector geometry in draw order) and every text (role, string, anchor) to one Ix, and Ix.save() writes
+# Downloads/Bergama/cached/booklet/<folder>/items.json. The booklet (bergama_booklet parts 10-70) reads every such
+# file, picks scales, sets and places every text, aligns blocks and checks the page. Successor of booklet_assets.py
+# (blocks.json crops); addendum 1 Nov 22:37: no per-script sheet PDFs or previews (a script may still save its single
+# drawings under output/<folder>/, but the booklet reads only items.json).
+# Needs, included before it: bergama_paths.py (bg_booklet), grid.py (GRID_ROLE_PT, GRID_MIN_PT); warn.py optional (the
+# content checks' WARNING lines go through wn_warn when it is included).
+#
+# items.json = {"schema": "bergama-items/1", "script", "version", "run": "YYYY-MM-DD HH:MM", "units": "m",
+#               "pages": {page_id: [item, ...]}, "sources": {key: {text, url}}, "warnings": [str]}
+# page_id = the round 5 23-page id ("p13", "p19"); an item with page None goes to "any" (the booklet's PLAN.py says
+# where it is shown). Common keys of every item: id (unique in the file), page, kind, role, priority (1 first ... 9),
+# group (items that belong together, e.g. one section's level column, legend and texts).
+#
+#   ix = Ix(folder, script, version)                      folder = the script's cached/booklet/ folder name
+#   D = ix.drawing(id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
+#                  priority=1, group=None, fit=None, title=None)
+#         extent (x0, y0, x1, y1) in drawing units, y UP, the area that must show; scale_pref = allowed 1:den (default
+#         SF_SCALES); units "m" = true scale; "mm" = a scale-free diagram/chart in design mm, fit = (min_f, max_f)
+#   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0))
+#         adds shapes (the common modules' tuples: poly/line/circle/image; text shapes become anchored label items)
+#         to layer `name` (water.py WAT_LAYERS for sections, map_layers ML_LAYERS for maps); coordinates are mapped
+#         x_d = origin_x + k * x (k = drawing units per shape unit: den / 1000 for page-mm shapes drawn at 1:den);
+#         line widths, dashes stay PRINT sizes (mm in the tuples, stored as pt); z defaults to the call order.
+#         Stripes (hatches) are dropped: G-R5-4.1 no hatches (one WARNING per layer)
+#   ix.keep(D, geom, kind="keep", name=None)               an area (drawing units) no label may cover
+#   ix.anchor(D, name, xy)                                 a named point (cut ends, hubs) other items refer to
+#   ix.text(page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None, short_forms=(),
+#           side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None, min_pt=None) -> id
+#         role: title, intro, heading, caption, legend, list_item, note, label, level_value, badge, source;
+#         a label of a drawing: drawing=id, at=(x, y) in drawing units (the booklet sets it beside that point)
+#   ix.legend(page, drawing, entries, title=None, id=None, group=None)
+#         entries: [(swatch, text)], swatch = dict(kind="fill"|"line"|"dash"|"dot"|"image", colour, stroke,
+#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id
+#   ix.list(page, drawing, texts, numbered=True, anchors=None, id=None, group=None)   ordered text rows
+#   ix.levels(page, drawing, levels, side="R", id=None, group=None)
+#         levels = [(name, z_m)] (z on the drawing's y axis, m a.s.l. for sections); the booklet draws the level
+#         markers (PLAN §3, Aras's sketch U04) and their "+43.71" values beside the drawing
+#   ix.inset(page, parent, window, child, factor, id=None)   child = a drawing id of the zoom; window in parent units
+#   ix.keymap(page, cuts, looks=None, names=(), zooms=(), id=None)   the key-map module (S2) draws it in the booklet
+#   ix.photo(page, file, crop=None, caption=None, source=None, id=None)
+#   ix.chart(page, w_mm, h_mm, shapes, id=None)            a vector chart in its own mm box (y up)
+#   ix.source(key, text, url, page=None)                   a Sources page row (texts cite it as {src:key})
+#   ix.warn(page, kind, msg)                               a content check hit: WARNING line + orange + "warnings"
+#   ix.save() -> path                                      writes items.json (UTF-8, 3 decimals), logs nothing itself
+#   ix.summary() -> str                                    "items <script>: drawings n, texts n, ... -> <path>"
+IX_SCHEMA = "bergama-items/1"
+IX_PT = 25.4 / 72.0
+IX_KINDS = ("drawing", "text", "legend", "list", "level_column", "inset", "keymap", "photo", "chart", "source")
+IX_TEXT_ROLES = ("title", "intro", "heading", "caption", "legend", "list_item", "note", "label", "level_value",
+                 "badge", "source")
+
+
+def _ix_r(v, nd=3):
+    try:
+        return round(float(v), nd)
+    except Exception:
+        return v
+
+
+def _ix_is_pt(p):
+    return isinstance(p, (list, tuple)) and len(p) >= 2 and isinstance(p[0], (int, float)) and \
+        isinstance(p[1], (int, float))
+
+
+class Ix(object):
+    def __init__(self, folder, script, version):
+        import time as _t
+        self.folder, self.path = folder, None
+        self.d = {"schema": IX_SCHEMA, "script": script, "version": version,
+                  "run": _t.strftime("%Y-%m-%d %H:%M"), "units": "m", "pages": {}, "sources": {}, "warnings": []}
+        self.ids, self._z, self._n = set(), {}, 0
+
+    # -- bookkeeping
+    def _id(self, want, kind):
+        if want is None:
+            self._n += 1
+            want = "%s_%s_%d" % (self.folder[:12], kind[:3], self._n)
+        want = u"%s" % want
+        if want in self.ids:
+            k = 2
+            while "%s_%d" % (want, k) in self.ids:
+                k += 1
+            self.warn(None, "export", u"item id %r used twice: the second is %s_%d" % (want, want, k))
+            want = "%s_%d" % (want, k)
+        self.ids.add(want)
+        return want
+
+    def _put(self, page, item):
+        self.d["pages"].setdefault(page or "any", []).append(item)
+        return item
+
+    def _item(self, page, kind, id_, role=None, priority=5, group=None, **kw):
+        it = dict(id=self._id(id_, kind), page=page, kind=kind, role=role or kind, priority=int(priority),
+                  group=group)
+        it.update(kw)
+        return self._put(page, it)
+
+    def warn(self, page, kind, msg):
+        line = u"WARNING " + u" ".join(u"%s" % p for p in (page, kind) if p) + u": %s" % msg
+        if "wn_warn" in globals():
+            line = wn_warn(page, kind, msg)
+        self.d["warnings"].append(line)
+        return line
+
+    # -- drawings
+    def drawing(self, id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
+                priority=1, group=None, fit=None, title=None):
+        x0, y0, x1, y1 = [float(v) for v in extent]
+        if x1 <= x0 or y1 <= y0:
+            self.warn(page, "export", u"drawing %s has an empty extent %r" % (id, extent))
+        sp = list(scale_pref) if scale_pref else (list(SF_SCALES) if "SF_SCALES" in globals() else
+                                                   [200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000])
+        D = self._item(page, "drawing", id, "drawing", priority, group, dkind=dkind, units=units,
+                       extent=[_ix_r(x0), _ix_r(y0), _ix_r(x1), _ix_r(y1)],
+                       scale_pref=None if units == "mm" else [int(v) for v in sp],
+                       fit=list(fit) if fit else ([0.5, 2.0] if units == "mm" else None),
+                       north_deg=north_deg, scale_bar=bool(scale_bar and units == "m"), layers=[], keep_areas=[],
+                       anchors={}, title=title)
+        self._z[D["id"]] = 0
+        return D
+
+    def _shape(self, s, k, o):
+        """one common-module shape tuple -> a schema shape dict (None for text and unknown kinds)"""
+        def P(p):
+            return [_ix_r(o[0] + k * p[0]), _ix_r(o[1] + k * p[1])]
+        t = s[0]
+        if t == "poly":
+            if s[1] and not _ix_is_pt(s[1][0]):                       # page item: rings, fill, stroke, lw, dash,
+                rings = [list(r) for r in s[1]]                       # stripes, alpha
+                fill, stroke = s[2], (s[3] if len(s) > 3 else None)
+                lw = s[4] if len(s) > 4 else 0.0
+                dash = s[5] if len(s) > 5 else None
+                stripes = s[6] if len(s) > 6 else None
+                alpha = s[7] if len(s) > 7 else None
+            else:                                                     # shape: ring, fill, stroke, lw, alpha, holes
+                rings = [list(s[1])] + [list(R) for R in (s[6] if len(s) > 6 and s[6] else ()) if len(R) >= 3]
+                fill, stroke = s[2], (s[3] if len(s) > 3 else None)
+                lw = s[4] if len(s) > 4 else 0.0
+                alpha = s[5] if len(s) > 5 else None
+                dash, stripes = None, None
+            rings = [[P(p) for p in r] for r in rings if len(r) >= 3]
+            if not rings:
+                return None
+            return dict(t="poly", rings=rings, fill=fill or None, stroke=stroke or None,
+                        width_pt=_ix_r((lw or 0.0) / IX_PT), dash_pt=[_ix_r(v / IX_PT) for v in dash] if dash else None,
+                        opacity=alpha, _stripes=bool(stripes))
+        if t == "line":
+            if len(s[1]) < 2:
+                return None
+            dash = s[4] if len(s) > 4 else None
+            return dict(t="line", pts=[P(p) for p in s[1]], stroke=s[2], width_pt=_ix_r((s[3] or 0.0) / IX_PT),
+                        dash_pt=[_ix_r(v / IX_PT) for v in dash] if dash else None, cap=s[5] if len(s) > 5 else 1)
+        if t == "circle":
+            return dict(t="circle", c=P((s[1], s[2])), r=_ix_r(k * s[3]), fill=s[4] or None,
+                        stroke=(s[5] if len(s) > 5 else None) or None,
+                        width_pt=_ix_r(((s[6] if len(s) > 6 else 0.0) or 0.0) / IX_PT))
+        if t == "image":
+            x, y, w, h, f = s[1:6]
+            clip = s[8] if len(s) > 8 else None
+            return dict(t="image", box=P((x, y)) + P((x + w, y + h)), file=f, opacity=s[6] if len(s) > 6 else None,
+                        flip=bool(s[7]) if len(s) > 7 else False,
+                        clip=(P(clip[:2]) + P(clip[2:4])) if clip else None)
+        return None
+
+    def layer(self, D, name, shapes, z=None, k=1.0, origin=(0.0, 0.0)):
+        out, texts, hatch = [], 0, 0
+        for s in shapes or ():
+            if not s:
+                continue
+            if s[0] == "text":
+                self._text_shape(D, s, k, origin)
+                texts += 1
+                continue
+            sh = self._shape(s, float(k), origin)
+            if sh is None:
+                continue
+            if sh.pop("_stripes", False):
+                hatch += 1
+            out.append(sh)
+        if hatch:
+            self.warn(D["page"], "hatch", u"%s layer %s: %d hatch fill(s) dropped (G-R5-4.1 solid colours only)" % (
+                D["id"], name, hatch))
+        if z is None:
+            self._z[D["id"]] = self._z.get(D["id"], 0) + 1
+            z = self._z[D["id"]]
+        D["layers"].append(dict(z=z, name=name, shapes=out))
+        return len(out), texts
+
+    def _text_shape(self, D, s, k, o):
+        if isinstance(s[2], (tuple, list)):
+            x, y = s[2][0], s[2][1]
+            tail = list(s[3:])
+        else:
+            x, y = s[2], s[3]
+            tail = list(s[4:])
+        size_mm = float(tail[0]) if tail else 2.0
+        al = tail[3] if len(tail) > 3 and tail[3] else "L"
+        self.text(D["page"], s[1], "label", drawing=D["id"], at=(o[0] + k * x, o[1] + k * y),
+                  size_pt=size_mm / IX_PT, bold=bool(tail[2]) if len(tail) > 2 else False,
+                  colour=tail[1] if len(tail) > 1 and isinstance(tail[1], str) else None,
+                  positions=["=" + str(al)] + ["E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=D.get("group"))
+
+    def keep(self, D, geom, kind="keep", name=None):
+        g = list(geom)
+        if len(g) == 4 and not hasattr(g[0], "__len__"):
+            g = [[g[0], g[1]], [g[2], g[1]], [g[2], g[3]], [g[0], g[3]]]
+        D["keep_areas"].append(dict(kind=kind, name=name, pts=[[_ix_r(p[0]), _ix_r(p[1])] for p in g]))
+
+    def anchor(self, D, name, xy):
+        D["anchors"][name] = [_ix_r(xy[0]), _ix_r(xy[1])]
+
+    # -- texts and the rest
+    def text(self, page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None,
+             short_forms=(), side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None,
+             min_pt=None):
+        if role not in IX_TEXT_ROLES:
+            self.warn(page, "export", u"text role %r unknown (taken as note): %r" % (role, (u"%s" % string)[:80]))
+            role = "note"
+        if "names_fix" in globals():                       # G-R4-11 / G-R5-11: proper names through the names table
+            try:
+                string = names_fix(string)                                                     # noqa: F821
+            except Exception:
+                pass
+        if "sf_strip_widths" in globals():                 # G-R5-4.6 (S3): no width in any exported text
+            string = sf_strip_widths(string, page)                                             # noqa: F821
+            if not (u"%s" % string).strip():
+                return None
+        pt0, b0, _ld, c0 = grid_role(role) if "grid_role" in globals() else (5.0, False, 1.3, "4A3F35")
+        it = self._item(page, "text", id, role, priority, group, string=u"%s" % string,
+                        anchor=None if drawing is None else dict(drawing=drawing,
+                                                                 pt=None if at is None else [_ix_r(at[0]),
+                                                                                             _ix_r(at[1])]),
+                        size_pt=_ix_r(size_pt if size_pt is not None else pt0, 2),
+                        min_pt=float(min_pt if min_pt is not None else (GRID_MIN_PT if "GRID_MIN_PT" in globals()
+                                                                       else 4.0)),
+                        bold=b0 if bold is None else bool(bold), colour=colour or c0,
+                        short_forms=[u"%s" % t for t in short_forms or ()], side_list_ok=bool(side_list_ok),
+                        justify=(role in ("intro", "caption", "note", "list_item", "source")) if justify is None
+                        else bool(justify), positions=list(positions) if positions else None)
+        return it["id"]
+
+    def _tid(self, page, t, role, group):
+        if isinstance(t, dict) and "id" in t:
+            return t["id"]
+        if isinstance(t, str) and t in self.ids:
+            return t
+        return self.text(page, t, role, group=group)
+
+    def legend(self, page, drawing, entries, title=None, id=None, group=None):
+        ents = []
+        for sw, t in entries:
+            tid = self._tid(page, t, "legend", group)
+            if tid is not None:                            # a text that was only a width is gone (G-R5-4.6)
+                ents.append(dict(swatch=dict(sw), text=tid))
+        return self._item(page, "legend", id, "legend", 3, group, drawing=drawing, entries=ents,
+                          title=None if title is None else self._tid(page, title, "heading", group))["id"]
+
+    def list(self, page, drawing, texts, numbered=True, anchors=None, id=None, group=None):
+        rows = [r for r in (self._tid(page, t, "list_item", group) for t in texts) if r is not None]
+        return self._item(page, "list", id, "list", 4, group, drawing=drawing, items=rows, numbered=bool(numbered),
+                          anchors=[[_ix_r(a[0]), _ix_r(a[1])] if a else None for a in anchors] if anchors else None)["id"]
+
+    def levels(self, page, drawing, levels, side="R", id=None, group=None):
+        lv = [dict(name=u"%s" % n, z=_ix_r(z, 3)) for n, z in levels]
+        return self._item(page, "level_column", id, "level_column", 2, group, drawing=drawing, levels=lv,
+                          side=side)["id"]
+
+    def inset(self, page, parent, window, child, factor, id=None):
+        return self._item(page, "inset", id, "inset", 2, None, parent=parent, window=[_ix_r(v) for v in window],
+                          child=child, factor=float(factor))["id"]
+
+    def keymap(self, page, cuts, looks=None, names=(), zooms=(), id=None):
+        return self._item(page, "keymap", id, "keymap", 3, None, cuts=list(cuts), looks=dict(looks or {}),
+                          names=list(names), zooms=list(zooms))["id"]
+
+    def photo(self, page, file, crop=None, caption=None, source=None, id=None):
+        cap = None if caption is None else self._tid(page, caption, "caption", None)
+        return self._item(page, "photo", id, "photo", 2, None, file=file, crop=list(crop) if crop else None,
+                          caption=cap, source=source)["id"]
+
+    def chart(self, page, w_mm, h_mm, shapes, id=None):
+        D = self.drawing(id, page, (0.0, 0.0, w_mm, h_mm), units="mm", dkind="chart", scale_bar=False,
+                         fit=(0.75, 1.5))
+        self.layer(D, "chart", shapes)
+        D["kind_note"] = "chart"
+        return D["id"]
+
+    def source(self, key, text, url, page=None):
+        self.d["sources"][key] = dict(text=text, url=url)
+        if page:
+            self._item(page, "source", "src_" + key, "source", 9, None, key=key)
+
+    # -- out
+    def save(self):
+        import json as _j
+        d_ = bg_booklet(self.folder)
+        os.makedirs(d_, exist_ok=True)
+        self.path = os.path.join(d_, "items.json")
+        with open(self.path, "w", encoding="utf-8") as f:
+            _j.dump(self.d, f, ensure_ascii=False, separators=(",", ":"))
+        return self.path
+
+    def summary(self):
+        n = {}
+        for its in self.d["pages"].values():
+            for it in its:
+                n[it["kind"]] = n.get(it["kind"], 0) + 1
+        return u"items %s: %s -> %s" % (self.d["script"], u", ".join(u"%s %d" % kv for kv in sorted(n.items())),
+                                         self.path or u"(not saved)")
 # ---- marker.py (round 4, S1, 1 Nov 2026; G-R4-7, PLAN §4.4): ONE marker (circle + number / letter) everywhere --------
 # The glyph sits on the centre of its VISIBLE ink box (font_metrics.fm_ink_box), so "g", "h", "1" and "12" are all
 # centred (CHK3_7 §4.1: the old cap-height offsets pulled lowercase letters down and let tails hang out). The circle
@@ -8123,6 +10125,16 @@ def _wat_pal():
                 low=m(SEC["hatch"], SEC["water"], 0.2))    # "low": the summer strip's tone, SECTIONS only (D2)
 
 
+def _wat_pal_sec():
+    """round 5 (S3, G-R5-4.1, PLAN §3): the section water colours: body, surface, Q100 / Q500 lines (one colour,
+    dashes tell them apart)"""
+    P = dict(_wat_pal())
+    if "SCT_WATER" in globals():
+        P.update(sec=SCT_WATER["body"], sec_line=SCT_WATER["surface"], q100=SCT_WATER["flood"],
+                 q500=SCT_WATER["flood"])
+    return P
+
+
 def _wat_rng(seed):
     s = [int(seed * 69069 + 1013) & 0x7fffffff]
 
@@ -8235,8 +10247,9 @@ def water_plan(ring, k, depth=None, flow_deg=None, bank=True, seed=0, spacing=1.
 
 def water_legend(x, y, size=1.8, floods=False, gap=None):
     """legend rows for the water drawings (G1: every symbol explained): the stream, the Q100 / Q500 lines and the
-    average-flow water (sections); x, y = top left, page mm. Returns shapes (incl. text)."""
-    P = _wat_pal()
+    average-flow water (sections); x, y = top left, page mm. Returns shapes (incl. text). Round 5 (S3): the
+    section rows in the section colours (_wat_pal_sec)."""
+    P = _wat_pal_sec()
     gap = gap or 1.6 * size
     rows = [("Selinos stream (darker = deeper)", "water")]
     if floods:
@@ -8251,7 +10264,7 @@ def water_legend(x, y, size=1.8, floods=False, gap=None):
         elif kind == "avg":
             sh += [("poly", [(x, cy - 0.5 * size), (x + 2.5 * size, cy - 0.5 * size), (x + 2.5 * size, cy),
                              (x, cy)], P["sec"], None, 0.1),
-                   ("line", [(x, cy), (x + 2.5 * size, cy)], SEC["hatch"], 0.3)]
+                   ("line", [(x, cy), (x + 2.5 * size, cy)], P["sec_line"], 0.3)]
         else:
             sh.append(("line", [(x, cy), (x + 2.5 * size, cy)], P[kind], 0.3,
                        [1.2, 0.6] if kind == "q100" else [0.4, 0.5]))
@@ -8474,17 +10487,9 @@ def _wat_runs(profile, wl_y):
 
 
 def _wat_sec_body(ring, spacing):
-    """water in section: the channel tone, fine level lines (not waves), the surface line"""
-    P = _wat_pal()
-    sh = [("poly", ring, P["sec"], None, 0.1)]
-    top = max(p[1] for p in ring)
-    for p, q in sec_hatch(ring, spacing, 0.0):
-        if top - p[1] > 0.4 * spacing:
-            sh.append(("line", [p, q], P["sec_line"], 0.07))
-    xs = [p[0] for p in ring if abs(p[1] - top) < 1e-6]
-    if len(xs) >= 2:
-        sh.append(("line", [(min(xs), top), (max(xs), top)], SEC["hatch"], 0.3))
-    return sh
+    """water in section. Round 5 (S3, G-R5-4.1): one flat colour and the surface line (section_parts sec_water);
+    no level lines, no hatch"""
+    return sec_water(ring, spacing)
 
 
 def _wat_cross(profile, y):
@@ -8522,7 +10527,7 @@ def water_section(profile, k, y_of, cid=None, bed=None, avg=None, q100=None, q50
     labels inside; wl.anchors["levels"] = [(key, level m, page y)] for sf_level_marks outside the frame. fill_ground False = the page drew the banks
     (sct_bank): only the bed band is added. Returns the WaterLayers."""
     wl = into if into is not None else water_layers()
-    Pa = _wat_pal()
+    Pa = _wat_pal_sec()
     if cid is not None:
         bed = level(cid, "bed") if bed is None else bed
         avg = level_avg_flow(cid) if avg is None else avg
@@ -8584,13 +10589,28 @@ SF_INSET_SCALES = (100,) + SF_SCALES
 SF_INSET_MIN_ZOOM = 2.0             # G-R4-5.6: an inset is at least 2 x its parent's scale
 
 
+def _sf_warn(page, kind, msg):
+    """round 5 (S3, G-R5-1): a section-kit hit is a WARNING (common warn.py sink when included: orange + log line),
+    never a stop; without warn.py the line goes to SF_LOG (sec_look_lines prints it)"""
+    if globals().get("wn_warn"):
+        return wn_warn(page, kind, msg)
+    line = u"WARNING " + u" ".join(u"%s" % p_ for p_ in (page, kind) if p_) + u": %s" % msg
+    SF_LOG.append(line)
+    return line
+
+
 def sf_scale_ok(den, inset=False):
-    """asserts den is a standard scale (D6 a); inset=True also allows 1:100 (D11, zoom insets only)"""
+    """den if it is a standard scale (D6 a; inset=True also allows 1:100, D11 zoom insets only). Round 5 (S3): an
+    off-list scale is a WARNING and the next listed scale at or beyond it (smaller drawing, so it still fits) is
+    returned; never a stop"""
     sc = SF_INSET_SCALES if inset else SF_SCALES
-    if int(den) not in sc:
-        raise AssertionError("scale 1:%s is not standard (D6%s): use one of %s"
-                             % (den, ", D11 insets" if inset else "", ", ".join("1:%d" % s for s in sc)))
-    return int(den)
+    d = int(round(float(den)))
+    if d in sc:
+        return d
+    up = [v for v in sc if v >= d] or [sc[-1]]
+    _sf_warn(None, "scale", u"1:%s is not on the scale list (D6%s): 1:%d used" % (den, ", D11 insets" if inset else "",
+                                                                                 up[0]))
+    return up[0]
 
 
 def sf_k(den, print_k=1.0):
@@ -8642,7 +10662,7 @@ def sf_topo_back(profiles, bottom_y, into=None):
     for i, pr in enumerate(profiles):
         t = 0.75 - 0.35 * (i / float(max(1, n - 1)))   # far = paler
         ring = list(pr) + [(pr[-1][0], bottom_y), (pr[0][0], bottom_y)]
-        wl.add("background", [("poly", ring, _sec_mix(SEC["soil"], SEC["paper"], t), None, 0.1),
+        wl.add("background", [("poly", ring, _sec_mix(SCT_SOIL["layers"][-1], "FFFFFF", t), None, 0.0),
                               ("line", list(pr), _sec_mix(SEC["ink2"], SEC["paper"], t), 0.12)])
     return wl
 
@@ -8706,6 +10726,109 @@ def sf_ground_fn(gy, half_w):
     """gy as a function that already seats (sf_seat_x): pass it as the ground of fig_side, fig_activity,
     pla_section ... so every item they place stands on the lowest ground under its base"""
     return lambda x: sf_seat_x(gy, x, half_w)
+
+
+# ---- people on the surface (round 5, S3, CHK-3 seat fix, G-R5-4.4 / PLAN §3 People) -------------------------------
+# sf_seat_x seats on the LOWEST ground under a base: right for plants and houses (a trunk or wall foot may go into a
+# slope), wrong for people (U11 "his feet is in the fucking floor", S09 feet sunk in a step). People stand on the
+# HIGHER ground at their two feet: no foot is ever inside the ground or a step; on a step edge the person stands on
+# the tread. Plants keep sf_seat_x.
+SF_PEOPLE = dict(seen=0, grounded=0, tol_mm=0.15)
+
+
+def sf_seat_feet(gy, x, half_w, n=6):
+    """the y a person centred on x stands at: the HIGHER ground at the feet x - half_w and x + half_w (and between
+    them, n samples, so a riser between the feet is stood on, never stepped into). half_w = the foot half span
+    (figures.py FIG_FOOT_HALF_M x k). Counted in sf_people_line."""
+    f = _sf_fn(gy)
+    hw = abs(half_w)
+    ys = [f(x - hw + 2.0 * hw * i / float(n)) for i in range(n + 1)]
+    ys += [y for xx, y in (getattr(f, "sf_pts", None) or ()) if x - hw < xx < x + hw]
+    y = max(ys)
+    SF_PEOPLE["seen"] += 1
+    SF_PEOPLE["grounded"] += 1
+    return y
+
+
+def sf_feet_fn(gy, half_w):
+    """gy as a function that seats people by sf_seat_feet: pass it as the ground of fig_side / fig_activity /
+    fig_place_zones (S4 figures.py) instead of sf_ground_fn"""
+    return lambda x: sf_seat_feet(gy, x, half_w)
+
+
+def sf_people_check(items, gy, half_w=None, page=None, tol=None):
+    """G-R5-4.4 check by reasoning: items = [shapes of one person, ...] standing on ground gy; a person whose feet
+    are more than tol mm above (floating) or below (sunk) the sf_seat_feet ground is a WARNING. Adds to the
+    `people grounded n of n` count (sf_people_line). Returns the number grounded."""
+    tol = SF_PEOPLE["tol_mm"] if tol is None else tol
+    ok = 0
+    for i, sh in enumerate(items or ()):
+        b = _sf_base(sh)
+        if b is None:
+            continue
+        hw = 0.5 * (b[2] - b[1]) if half_w is None else half_w
+        g = max(_sf_fn(gy)(b[1]), _sf_fn(gy)(b[2]), _sf_fn(gy)(0.5 * (b[1] + b[2])))
+        if half_w is not None:
+            g = max(_sf_fn(gy)(0.5 * (b[1] + b[2]) - hw), _sf_fn(gy)(0.5 * (b[1] + b[2]) + hw), g)
+        d = b[0] - g
+        SF_PEOPLE["seen"] += 1
+        if abs(d) <= tol:
+            ok += 1
+            SF_PEOPLE["grounded"] += 1
+        else:
+            _sf_warn(page, "people", u"person %d %s %.2f mm at x %.1f" % (i, u"floats" if d > 0 else u"sunk", abs(d),
+                                                                         0.5 * (b[1] + b[2])))
+    return ok
+
+
+def sf_people_line():
+    """the done-when log line `people grounded n of n` (G-R5-4.8); None when no person was seated or checked"""
+    if not SF_PEOPLE["seen"]:
+        return None
+    return u"people grounded %d of %d" % (SF_PEOPLE["grounded"], SF_PEOPLE["seen"])
+
+
+# ---- activity guards (round 5, S3; G-R5-4.4, PLAN §8 rule for all): fishing and wading only where water is drawn --
+SF_DRY_MONTHS = (7, 8, 9)            # p10: the summer bed "dry or 3 cm Jul-Sep" -> no fishing, no wading Jul-Sep
+SF_WADE_MAX_M = 0.50                 # PLAN §3 People: wading only in water <= 0.50 m (figures.py FIG_WADE_MAX_M)
+
+
+def sf_activity_ok(kind, ground_y=None, water_y=None, k=None, month=None, strip=False, page=None, what=u""):
+    """(ok, reason): may a person do `kind` ("fish", "wade", anything else = True) at a spot whose ground is at page
+    y ground_y with the drawn water surface at water_y (page y, None = no water drawn there), k mm per m, in month
+    (1-12, None = no season shown)? Fishing: water drawn at the spot (the line ends in it) and not a dry month unless
+    `strip` (the summer strip whose water is drawn). Wading: water drawn and its depth <= SF_WADE_MAX_M. A refusal is
+    a WARNING (`<page> activity`) so the page draws a walker or watcher instead (P05.1)."""
+    if kind not in ("fish", "fishing", "wade", "wading"):
+        return True, u""
+    why = None
+    if water_y is None:
+        why = u"no water drawn"
+    elif month is not None and int(month) in SF_DRY_MONTHS and not strip:
+        why = u"month %d: the bed is dry or 3 cm (p10)" % int(month)
+    elif kind in ("wade", "wading") and ground_y is not None and k:
+        dep = (water_y - ground_y) / float(k)
+        if dep > SF_WADE_MAX_M + 1e-6:
+            why = u"water %.2f m deep > %.2f m" % (dep, SF_WADE_MAX_M)
+        elif dep <= 0.0:
+            why = u"ground above the water"
+    if why:
+        _sf_warn(page, "activity", u"%s %s refused: %s" % (kind, what, why))
+        return False, why
+    return True, u""
+
+
+# ---- trees at a middle level (round 5, S3, G-R5-4.5, U37 / U40 / U65) -------------------------------------------
+# Where the drawing is not about plants or seasons, trees stand behind the people and lighter (depth layer 1, r3
+# G15); where it is (p15, p18, p19-20) trees lead (layer 0). Never squeezed or thinned; shrubs in every section.
+SF_TREE_LEAD_PAGES = ("p15", "p18", "p19", "p20")
+
+
+def sf_tree_level(page):
+    """dict(layer, lead) for the trees of a drawing on page (23-page id): layer 0 + lead True on the plant / season
+    pages, else layer 1 (behind the people, paler: figures.py fig_fade / plants.py layer tones)"""
+    lead = (u"%s" % page) in SF_TREE_LEAD_PAGES
+    return dict(layer=0 if lead else 1, lead=lead)
 
 
 def _sf_pts(s):
@@ -9077,6 +11200,25 @@ def sec_look_lines():
     f = globals().get("fig_flag_lines")
     if f:
         out += f()
+    out += sf_kit_lines()
+    return out
+
+
+def sf_kit_lines():
+    """round 5 (S3) section kit v2 done-when lines (G-R5-4.8): materials solid, `widths 0`, `people grounded n of
+    n`, the bridge lines (bridges.py), once per run (the counters are not reset: the last page's call has them all)"""
+    out = []
+    sl = globals().get("SCT_LOG")
+    if sl:
+        out.append(u"section materials solid: %d cut rings flat colour, %d with inset joints, hatches 0"
+                   % (sl["solid"], sl["detail"]))
+    out.append(sf_widths_line())
+    pl = sf_people_line()
+    if pl:
+        out.append(pl)
+    f = globals().get("br_log_lines")
+    if f:
+        out += f()
     return out
 
 
@@ -9176,81 +11318,149 @@ class SfCallouts(object):
 
 
 def sf_width_label(x0, x1, y, width_m, size=2.47, ink=None, unit=True):
-    """a lane / element width (R18 idea): a dimension line x0-x1 at y with end ticks and the width in cm above it
-    ("300 cm"; unit=False -> "300" when the drawing states cm once). Round 4 (G-R4-5.4): put it in the MARGIN under
-    or over the section frame, never across the picture; size default 7 pt (2.47 mm; minimum 6 pt, G-R4-1)."""
-    ink = ink or SEC["ink2"]
-    t = 0.5 * size
-    s = u"{:,.0f}".format(width_m * 100.0) + (u" cm" if unit else u"")
-    return [("line", [(x0, y), (x1, y)], ink, 0.1),
-            ("line", [(x0 - 0.5 * t, y - 0.5 * t), (x0 + 0.5 * t, y + 0.5 * t)], ink, 0.15),
-            ("line", [(x1 - 0.5 * t, y - 0.5 * t), (x1 + 0.5 * t, y + 0.5 * t)], ink, 0.15),
-            ("text", s, (x0 + x1) / 2.0, y + 0.35 * size, size, ink, False, "C")]
+    """RETIRED in round 5 (S3, G-R5-4.6, U49 "remove the horizontal dimensions all together ... in all of the
+    drawings"): draws nothing, returns []; every call is counted (sf_widths_line). Kept so old calls still run."""
+    SF_WIDTHS["calls"] += 1
+    return []
 
 
-# ---- level marks outside the frame (round 4 S2, G-R4-5.4, U43 / U44 sketch; PLAN §4.7) ------------------------------
-# An open inverted triangle standing on a tick that touches the section frame at the level's height, the value beside
-# it OUTSIDE the frame ("+43.92 mean"), m with 2 decimals. Sizes: drawing rules from PLAN §4.7; text 7 pt (label).
-SF_LEVEL = dict(tick=4.0, tri=2.0, gap=0.8, size=2.47, lw=0.15, step=2.6)
-SF_LEVEL_NAMES = dict(q500=u"Q500", q100=u"Q100", avg=u"mean", mean=u"mean", bed=u"bed")
+# ---- no widths anywhere (round 5, S3, G-R5-4.6): every text a section or its list prints goes through
+# sf_strip_widths (item_export Ix.text calls it for every exported text, so page code needs no change): a width in
+# cm ("Footway 456 cm", "bed 3,260 cm", "Bike · 300 cm"), a "W x H cm/m" size ("8 x 40 cm seats", "olives 500 x 700
+# cm", "rows 7 x 5 m") and a lone "N cm" go with the separator before them; names, heights in m with 2 decimals
+# ("+43.71", "2.50 m") and scale texts stay. A value in cm is never a height in this project (units rule: heights in m,
+# 2 decimals), so every cm value is a width. Log `widths 0` (none left) or the strips counted.
+SF_WIDTHS = dict(calls=0, stripped=0, examples=[])
+_SF_W_RE = None
 
 
-def sf_level_marks(frame_box, levels, side="R", y_of=None, size=None, cols=None, page=None):
-    """the level marks of one section OUTSIDE its frame (G-R4-5.4). frame_box = (x0, y0, x1, y1) page mm (y up) of
-    the section's frame; levels = [(key or name, level m[, page y])]: key "q500" / "q100" / "avg" / "mean" / "bed" /
-    a season level key, or any short name ("summer strip"); without a page y, y_of(level) gives it (water_section's
-    wl.anchors["levels"] is this list). side "R" (default) or "L". Each mark: a tick SF_LEVEL["tick"] mm long from
-    the frame outward at the level's y, an open inverted triangle (apex on the tick) and "+43.92 Q100" beyond it, in
-    the level's colour (water.py palette: q100 / q500; avg and bed the water hatch ink). Levels closer than a text
-    line step their triangles outward and their texts apart (a hairline leader joins a moved text). cols = {key:
-    hex} overrides. Logs "level marks <page>: n outside the frame" in SF_LOG. Returns shapes."""
-    x0, y0, x1, y1 = frame_box
-    size = size or SF_LEVEL["size"]
-    Pa = _wat_pal() if globals().get("_wat_pal") else {}
+def _sf_w_re():
+    global _SF_W_RE
+    if _SF_W_RE is None:
+        import re as _re
+        num = r"\d[\d,.]*"
+        _SF_W_RE = (
+            # "8 x 40 cm seats", "500 × 700 cm", "rows 7 × 5 m", "400 x 30 cm" (a size pair: always a width)
+            _re.compile(r"\s*(?:[·,:;\-–—]\s*)?(?:\(\s*)?" + num + r"\s*(?:cm|m)?\s*[x×]\s*" + num +
+                        r"\s*(?:cm|m)\b\)?", _re.U),
+            # "1,580 cm", "· 300 cm", "(456 cm)"
+            _re.compile(r"\s*(?:[·,:;\-–—]\s*)?(?:\(\s*)?" + num + r"\s*cm\b\)?", _re.U),
+        )
+    return _SF_W_RE
+
+
+def sf_strip_widths(s, page=None):
+    """s without any horizontal dimension (see the notes above); counted in SF_WIDTHS. Non-strings pass through."""
+    if not isinstance(s, str) or (u"cm" not in s and u"×" not in s and u" x " not in s):
+        return s
+    t = s
+    for rx in _sf_w_re():
+        t = rx.sub(u"", t)
+    if t != s:
+        import re as _re
+        t = _re.sub(r"\s{2,}", u" ", t)
+        t = _re.sub(r"\s*[·,:;\-–—]\s*$", u"", t).strip()
+        t = _re.sub(r"^\s*[·,:;\-–—]\s*", u"", t)
+        SF_WIDTHS["stripped"] += 1
+        if len(SF_WIDTHS["examples"]) < 6:
+            SF_WIDTHS["examples"].append(u"%s -> %s" % (s, t or u"(nothing)"))
+    return t
+
+
+def sf_widths_line():
+    """the done-when log line: `widths 0` when no width was drawn or printed; else what was stripped (they are gone
+    from the page; the line lets the page session find and delete the source strings)"""
+    n = SF_WIDTHS["stripped"] + SF_WIDTHS["calls"]
+    if not n:
+        return u"widths 0"
+    return u"widths 0 (removed this run: %d width texts, %d width chains; e.g. %s)" % (
+        SF_WIDTHS["stripped"], SF_WIDTHS["calls"], u"; ".join(SF_WIDTHS["examples"]))
+
+
+# ---- level markers beside the section (round 5, S3, G-R5-4.3, Aras's sketch refs/U04; replaces G-R4-5.4) ---------
+# PLAN §3 "Level marker": a short horizontal mark beside the section, SF_LEVEL["gap"] >= 3 mm clear of the drawing's
+# outer edge: long dash 3.5 mm, gap 0.8, short dash 0.8, gap 0.8, dash 3.1 mm ending under an open downward triangle
+# (2.2 mm wide, 1.4 mm high, apex on the line at its outer end); the value "+43.71 Q100" (m, 2 decimals, 4.5 pt) beyond
+# the triangle; stacked markers keep their lines at their levels and spread their labels >= 0.8 mm apart (a hairline
+# joins a moved label). In the round 5 booklet the markers are drawn by the composer (pl_levels): a content script
+# exports them with sf_level_items (Ix.levels) and draws nothing; sf_level_marks stays for pages still drawing
+# themselves and draws the same marker.
+SF_LEVEL = dict(gap=3.0, dashes=(3.5, 0.8, 0.8, 0.8, 3.1), tri_w=2.2, tri_h=1.4, size=4.5 * 25.4 / 72.0, lw=0.15,
+                clear=0.8, label_gap=0.6)
+SF_LEVEL_NAMES = dict(q500=u"Q500", q100=u"Q100", avg=u"mean flow", mean=u"mean flow", bed=u"bed")
+
+
+def _sf_level_rows(levels, y_of, y0, y1, page):
+    Pa = _wat_pal_sec() if globals().get("_wat_pal_sec") else {}
     rows = []
     for lv in levels or ():
         key, val = lv[0], float(lv[1])
         y = lv[2] if len(lv) > 2 and lv[2] is not None else (y_of(val) if y_of else None)
         if y is None:
-            raise ValueError("sf_level_marks: level %r needs a page y or y_of" % (key,))
-        if y < y0 - 1e-6 or y > y1 + 1e-6:
-            SF_LOG.append(u"FLAG level marks %s: %s %+.2f lies outside the frame's height: not marked"
-                          % (page or u"", key, val))
+            _sf_warn(page, "levels", u"level %r has no page y and no y_of: not marked" % (key,))
             continue
-        col = (cols or {}).get(key) or Pa.get(key) or SEC["hatch"]
-        rows.append((y, key, val, col))
+        if y0 is not None and (y < y0 - 1e-6 or y > y1 + 1e-6):
+            _sf_warn(page, "levels", u"%s %+.2f lies outside the drawing's height: not marked" % (key, val))
+            continue
+        rows.append((y, key, val, Pa.get(key) or (SCT_WATER["surface"] if "SCT_WATER" in globals() else SEC["ink"])))
     rows.sort(key=lambda r: -r[0])
+    return rows
+
+
+def sf_level_marks(frame_box, levels, side="R", y_of=None, size=None, cols=None, page=None):
+    """the level markers of one section beside its drawing (G-R5-4.3, U04). frame_box = (x0, y0, x1, y1) page mm
+    (y up) of the drawing's outer edge; levels = [(key or name, level m[, page y])] (water_section's
+    wl.anchors["levels"]); keys q500 / q100 / avg / mean / bed are named by SF_LEVEL_NAMES, any other key prints as
+    given. side "R" (default) or "L" (mirrored). cols = {key: hex} overrides the water colours. Logs
+    "levels <page> gap ok ..." in SF_LOG. Returns shapes (lines, open triangles, value texts)."""
+    x0, y0, x1, y1 = frame_box
+    size = size or SF_LEVEL["size"]
+    rows = _sf_level_rows(levels, y_of, y0, y1, page)
     sgn = 1.0 if side == "R" else -1.0
-    xf = x1 if side == "R" else x0
-    t, tri, lw = SF_LEVEL["tick"], SF_LEVEL["tri"], SF_LEVEL["lw"]
-    sh, last_y, col_i, prev_y = [], None, 0, None
-    tx_out = []
+    xs = (x1 if side == "R" else x0) + sgn * SF_LEVEL["gap"]           # the line starts gap mm off the drawing
+    L = sum(SF_LEVEL["dashes"])
+    tw, th, lw = SF_LEVEL["tri_w"], SF_LEVEL["tri_h"], SF_LEVEL["lw"]
+    sh = []
+    xt = xs + sgn * (L + 0.5 * tw + SF_LEVEL["label_gap"])           # labels start beyond the triangle
+    last = None
+    moved = 0
     for y, key, val, col in rows:
-        col_i = col_i + 1 if prev_y is not None and prev_y - y < 0.9 * tri + 0.3 else 0
-        prev_y = y
-        xa = xf + sgn * (t + col_i * SF_LEVEL["step"])            # the tick's outer end
-        sh.append(("line", [(xf, y), (xa, y)], col, lw))
-        cx = xa - sgn * 0.5 * tri
-        sh.append(("poly", [(cx, y), (cx - 0.5 * tri, y + 0.87 * tri), (cx + 0.5 * tri, y + 0.87 * tri)], None, col, lw))
-        tx_out.append((y, key, val, col, xa))
-    xs = [r[4] for r in tx_out]
-    xt = ((max(xs) if side == "R" else min(xs)) if xs else xf) + sgn * SF_LEVEL["gap"]
-    for y, key, val, col, xa in tx_out:
-        ty = y - 0.35 * size                               # the text centred on its tick
-        if last_y is not None and ty > last_y - 1.25 * size:
-            ty = last_y - 1.25 * size
-        if abs(ty - (y - 0.35 * size)) > 0.05 or abs(xt - xa) > SF_LEVEL["gap"] + 1e-6:
-            sh.append(("line", [(xa, y), (xt - sgn * 0.3, ty + 0.35 * size)], col, 0.08))
+        col = (cols or {}).get(key) or col
+        pos = 0.0
+        for i, d in enumerate(SF_LEVEL["dashes"]):                    # dash, gap, dash, gap, dash
+            if i % 2 == 0:
+                sh.append(("line", [(xs + sgn * pos, y), (xs + sgn * (pos + d), y)], col, lw))
+            pos += d
+        ax = xs + sgn * L                                              # apex on the line at its outer end
+        sh.append(("poly", [(ax, y), (ax - 0.5 * tw, y + th), (ax + 0.5 * tw, y + th)], None, col, lw))
+        ty = y - 0.35 * size                                           # baseline: text centred on the line
+        if last is not None and ty > last - (size + SF_LEVEL["clear"]):
+            ty = last - (size + SF_LEVEL["clear"])
+            moved += 1
+            sh.append(("line", [(ax + sgn * 0.5 * tw, y), (xt - sgn * 0.2, ty + 0.35 * size)], col, 0.08))
         nm = SF_LEVEL_NAMES.get(key, u"%s" % key)
         sh.append(("text", u"%+.2f %s" % (val, nm), xt, ty, size, col, False, "L" if side == "R" else "R"))
-        last_y = ty
-    SF_LOG.append(u"level marks %s: %d outside the frame (%s)" % (page or u"", len(tx_out), side))
+        last = ty
+    SF_LOG.append(u"levels %s gap ok: %d markers %.1f mm off the drawing (%s), %d labels spread" % (
+        page or u"", len(rows), SF_LEVEL["gap"], side, moved))
     return sh
 
 
+def sf_level_items(ix, page, drawing, levels, side="R"):
+    """round 5 (G-R5-12): the level markers as an export item: ix.levels(page, drawing id, [(name, z m)], side); the
+    booklet draws them (pl_levels, same U04 marker). levels as for sf_level_marks (keys named by SF_LEVEL_NAMES).
+    Logs "levels <page> gap ok (exported n)". Returns the item id."""
+    rows = []
+    for lv in levels or ():
+        rows.append((SF_LEVEL_NAMES.get(lv[0], u"%s" % lv[0]), float(lv[1])))
+    SF_LOG.append(u"levels %s gap ok: %d markers exported to the booklet" % (page or u"", len(rows)))
+    did = drawing["id"] if isinstance(drawing, dict) else drawing
+    return ix.levels(page, did, rows, side=side)
+
+
 # ---- standard elements (true size; page mm, y up; side +1 = builds to the right of x) ------------------------------
-SF_LANE = dict(bike="C4AE9E", walk="D8D5CC", road="9C9890", gravel="CFCCC5", timber="BFAA8E")   # muted toward the paper (G5);
-# walk / gravel = section_parts SCT concrete / gravel
+SF_LANE = dict(bike="C4AE9E", walk=SCT["concrete"], road="9C9890", gravel=SCT["gravel"], timber=SCT["timber"])
+# round 5 (S3, PLAN §3): walk / gravel / timber = the section kit's solid material colours (section_parts SCT)
 SF_RAIL_H = 1.10        # m, the repo's railing height (figures.py railing rail_h)
 SF_SEAT_H = 0.45        # m, the repo's seat height (figures.py sit_step seat_h)
 
@@ -9262,7 +11472,7 @@ def sf_lane(x, y, width_m, k, kind="walk", side=1, t_m=0.15, callouts=None, labe
     w, t = width_m * k * side, t_m * k
     xa, xb = min(x, x + w), max(x, x + w)
     sh = [("poly", [(xa, y - t), (xb, y - t), (xb, y), (xa, y)], SF_LANE.get(kind, SCT["concrete"]), SCT["cut"], 0.2)]
-    if kind == "walk":
+    if kind == "walk" and k >= SCT_DETAIL_K:          # round 5 (S3, G-R5-4.1): joints only at inset detail scales
         j = max(0.6 * k, 1.0)
         xx = xa + j
         while xx < xb - 0.2:
@@ -9272,7 +11482,7 @@ def sf_lane(x, y, width_m, k, kind="walk", side=1, t_m=0.15, callouts=None, labe
         sh.append(("line", [(xa + 0.1 * k, y + 0.02), (xb - 0.1 * k, y + 0.02)], "FFFFFF", 0.12, [0.8, 0.6]))
     elif kind == "gravel":
         sh = sct_hatch_fill([(xa, y - t), (xb, y - t), (xb, y), (xa, y)], "gravel", k, SCT["cut"], 0.2)
-    elif kind == "timber":
+    elif kind == "timber" and k >= SCT_DETAIL_K:
         xx = xa + 0.14 * k
         while xx < xb - 0.05:
             sh.append(("line", [(xx, y - t), (xx, y)], SCT["line"], 0.05))
@@ -9536,14 +11746,14 @@ def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink
     FLAG line (no bar). page: the booklet page id for the log line "inset <page> parent 1:<a> inset 1:<b>". The
     caption sits above the box, outside the detail; the bar below it."""
     f_chk = float(k_dst) / float(k_src)
-    if f_chk < SF_INSET_MIN_ZOOM - 1e-6:
-        raise AssertionError(u"inset %s (%s): zoom %.2f x its parent; G-R4-5.6 needs >= %.0f x (D11: a 1:250 parent "
-                             u"takes a 1:100 inset)" % (page or u"", label, f_chk, SF_INSET_MIN_ZOOM))
+    if f_chk < SF_INSET_MIN_ZOOM - 1e-6:                   # round 5 (S3): a WARNING, never a stop
+        _sf_warn(page, "inset", u"(%s): zoom %.2f x its parent; G-R4-5.6 needs >= %.0f x (D11: a 1:250 parent takes a "
+                                u"1:100 inset)" % (label, f_chk, SF_INSET_MIN_ZOOM))
     if scale_den is not None:
-        sf_scale_ok(scale_den, inset=True)
+        scale_den = sf_scale_ok(scale_den, inset=True)
         if parent_den is not None and float(parent_den) / float(scale_den) < SF_INSET_MIN_ZOOM - 1e-6:
-            raise AssertionError(u"inset %s (%s): 1:%s is less than 2 x its parent 1:%s (G-R4-5.6)"
-                                 % (page or u"", label, scale_den, parent_den))
+            _sf_warn(page, "inset", u"(%s): 1:%s is less than 2 x its parent 1:%s (G-R4-5.6)"
+                     % (label, scale_den, parent_den))
         SF_LOG.append(u"inset %s parent 1:%s inset 1:%s" % (page or u"", parent_den if parent_den else u"?",
                                                             int(scale_den)))
     else:
@@ -9598,12 +11808,86 @@ def sf_zoom_inset(src_box, dst_box, k_src, k_dst, draw_fn, label, size=None, ink
     return sh
 
 
+# ---- inset frame v2 (round 5, S3, G-R5-5: U12, U13, U14, U16; keep K2) --------------------------------------------
+# Change of approach (round 4's insets were the parent's shapes scaled up: "page 14 zoom ins looks awful"): an inset
+# is its OWN drawing, drawn again at its own scale k = sf_inset_k(den) so the kit's detail switches on (k >= 4, 1:250
+# and larger: stone courses and deck boards at real size, section_parts SCT_DETAIL_K; treads and risers are drawn at
+# true size anyway), and it is FRAMED ON THE ACTION: the window is computed from what the inset is about (the person,
+# rod and line end, the water it shows, the seat or tread), never typed. Export: D_child = ix.drawing(...,
+# scale_pref=[den]); ix.inset(page, parent id, window, child id, factor) (S1 schema); the booklet draws the frame, the
+# link and the scale bar. sf_zoom_inset (scaled copy) stays only for pages not yet moved.
+SF_INSET = dict(margin_m=0.6, min_w_m=3.0)          # clear margin round the action; smallest window (drawing rules)
+
+
+def sf_inset_k(den):
+    """page mm per m of an inset at 1:den (1:100 allowed, D11)"""
+    return 1000.0 / sf_scale_ok(den, inset=True)
+
+
+def sf_inset_frame(focus, parent_den, box_mm=None, margin_m=None, page=None, label=u""):
+    """G-R5-5 framing: focus = the boxes (x0, y0, x1, y1, drawing m: chainage x, level y) of everything the inset is
+    about (person, rod + line end, the water surface it shows, the seat); returns dict(window (m), den, factor, k)
+    or None: the window = their union + margin_m on every side (centred on the action, so nothing it is about is
+    cut), widened to box_mm's aspect (w, h mm) when given; den = the LARGEST scale on SF_INSET_SCALES that is >= 2 x
+    the parent (den <= parent_den / 2) and fits box_mm (when given). WARNING when no listed scale fits."""
+    m = SF_INSET["margin_m"] if margin_m is None else margin_m
+    bx = [b for b in focus or () if b]
+    if not bx:
+        _sf_warn(page, "inset", u"(%s): nothing to frame (no focus boxes)" % label)
+        return None
+    x0 = min(b[0] for b in bx) - m
+    y0 = min(b[1] for b in bx) - m
+    x1 = max(b[2] for b in bx) + m
+    y1 = max(b[3] for b in bx) + m
+    if x1 - x0 < SF_INSET["min_w_m"]:
+        c = 0.5 * (x0 + x1)
+        x0, x1 = c - 0.5 * SF_INSET["min_w_m"], c + 0.5 * SF_INSET["min_w_m"]
+    if box_mm:
+        bw, bh = float(box_mm[0]), float(box_mm[1])
+        w, h = x1 - x0, y1 - y0
+        if w / h < bw / bh:                       # widen to the box's aspect, centred (the action stays centred)
+            d = 0.5 * (h * bw / bh - w)
+            x0, x1 = x0 - d, x1 + d
+        else:
+            d = 0.5 * (w * bh / bw - h)
+            y0, y1 = y0 - d, y1 + d
+    ok = [d_ for d_ in SF_INSET_SCALES if d_ <= float(parent_den) / SF_INSET_MIN_ZOOM + 1e-6]
+    den = None
+    for d_ in ok:                                 # largest scale first (smallest denominator)
+        if not box_mm or ((x1 - x0) * 1000.0 / d_ <= box_mm[0] + 1e-6 and (y1 - y0) * 1000.0 / d_ <= box_mm[1] + 1e-6):
+            den = d_
+            break
+    if den is None:
+        den = ok[-1] if ok else SF_INSET_SCALES[0]
+        _sf_warn(page, "inset", u"(%s): the action (%.1f x %.1f m) does not fit %s mm at any listed inset scale >= 2 x "
+                                u"1:%s; 1:%d used" % (label, x1 - x0, y1 - y0, box_mm, parent_den, den))
+    SF_LOG.append(u"inset %s %s: parent 1:%s inset 1:%d, window %.1f x %.1f m" % (
+        page or u"", label, parent_den, den, x1 - x0, y1 - y0))
+    return dict(window=(x0, y0, x1, y1), den=den, factor=float(parent_den) / den, k=1000.0 / den)
+
+
+def sf_inset_cut_check(window, items, page=None, label=u""):
+    """U16 "nothing cut by the inset frame": items = [(name, (x0, y0, x1, y1) m)] of the people, objects and plants
+    drawn in the inset; one that the window's edge cuts (partly inside) is a WARNING. Returns the names cut."""
+    wx0, wy0, wx1, wy1 = window
+    cut = []
+    for nm, b in items or ():
+        inside = b[0] >= wx0 and b[2] <= wx1 and b[1] >= wy0 and b[3] <= wy1
+        out = b[2] <= wx0 or b[0] >= wx1 or b[3] <= wy0 or b[1] >= wy1
+        if not inside and not out:
+            cut.append(nm)
+    if cut:
+        _sf_warn(page, "inset", u"(%s): cut by the frame: %s" % (label, u", ".join(u"%s" % c for c in cut)))
+    return cut
+
+
 # ---- G6: people 1.75 m vs tree heights vs buildings, at depth layer 0 ----------------------------------------------
-def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
+def sf_assert_g6(k, trees=(), buildings=(), strict=False, layer=0, page=None):
     """the G6 scale check of one drawing at depth layer 0: figures print at their true height for k (figures.py
     fig_check_scale), every tree drawn (key, h_m) or placed (key, x, h_m, crown_m) inside its sourced height range
     (so the tree / person ratio is the real one), every building (name, drawn_h_m, data_h_m) at its data height
-    (+-0.05 m). strict: AssertionError listing every failure; else the messages. Returns [] when all is right."""
+    (+-0.05 m). Round 5 (S3, A13): a true-scale miss is a WARNING line (never a stop); strict=True still raises for
+    an old caller that asks. Returns the messages ([] when all is right)."""
     bad = []
     try:
         fig_check_scale(k, layer=layer)
@@ -9624,7 +11908,338 @@ def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
             bad.append(u"G6: building %s drawn %.2f m, data %.2f m" % (name, drawn, data))
     if bad and strict:
         raise AssertionError(u"; ".join(bad))
+    for m_ in bad:
+        _sf_warn(page, "scale", m_)
     return bad
+bergama_data("BRIDGES")
+# ---- bridges.py (round 5, S3, 1 Nov 2026; D8 "bridges in every section possible", G-R5-4.7, N4 a, A15) -------------
+# ONE module puts the Selinos bridges into any section: which bridge a cut passes, where it stands along the cut, and
+# its shapes, drawn only as far as the sources go. Data: data/BRIDGES.py (positions = the bridge-list points, N4 a;
+# facts with their sources). Include after levels.py (+ data/LEVELS.py), section_parts.py and, when present,
+# basemap.py (deck outlines) and names.py (printed names):
+#   #@include ../common/data/BRIDGES.py
+#   #@include ../common/bridges.py
+#
+#   br_near(cid, look=1, max_m=None, t0=None, t1=None) -> [dict(key, name, t, d, rel, seg_m)]
+#         every bridge the cut cid passes: rel "cut" (the cut line runs through it: S6), "beyond" (in view, d m
+#         beyond the cut plane, within the drawn span t0..t1), "behind" (behind the viewer: NOT drawn, logged).
+#         t = m along the cut from its first end (level_ends), d = m beyond the plane (look: +1 as the site board S
+#         cuts / p18-20 / p24 / p12, -1 as the W cuts on p13-14, sf_back_buildings' rule).
+#   br_section(cid, X=None, Y=None, look=1, t0=None, t1=None, ground=None, top=None, max_m=None, page=None,
+#              into=None) -> {"background": shapes, "structures": shapes, "found": [...]}
+#         X(t m) -> drawing x, Y(z m a.s.l.) -> drawing y (default identity = the item-export section convention:
+#         x = chainage m, y = elevation m, S1 item_export); ground(t) -> the cut's ground z at t (the bed under a
+#         bridge; default the cut's LEVELS bed); top = the road / bank-top level z for bridges with no height source
+#         (default the cut's higher LEVELS bank top). A bridge beyond the plane is drawn in elevation in "background"
+#         (true size, paler with distance; the cut ground in front hides what lies below the banks); a bridge the
+#         cut runs through is drawn cut in "structures" (over the water). into = a WaterLayers: the shapes are added.
+#         Logs one `bridge <cid> <name|none>` line per call (br_log_lines).
+#   br_log_lines() -> the bridge lines and FLAG lines of this run (sec_look_lines prints them)
+#
+# Sourced vs drawing rules (A15): the FLAG lines name every part drawn by a rule. Üç Kemer: middle arch span 9.60 m
+# and bed-to-keystone 10 m, deck 4.50 x 56.40 m, three round arches on two piers (Visit İzmir) are data; side arch
+# size, pier width and masonry over the keystone are the round 4 p12 drawing rules (P12_K5_*, same values). Ulucami
+# Önü: two eyes (one round, one smaller pointed; Visit İzmir) and the parapet 7.4-8.6 m over the bed (photo-scaled,
+# IMG_5814) are data; the eye sizes are drawing rules. Tabak: two openings (data), no height: the deck at the bank
+# top, openings not drawn. K1, K2, K6: no data: the deck at the cut's bank top (the road level), BR_RULE deck_t_m.
+# Bridge bed level: not surveyed at any bridge -> the cut's own bed (or ground(t)), FLAG.
+
+BR_NEAR_M = 250.0          # in-code rule already used for "the nearest bridge" (selinus_board 15l_r28_site.py:317)
+BR_CUT_M = 6.0             # a cut line passing within this of the bridge point runs THROUGH it (cut ends +-3 m, CHK-8)
+BR_DECK_MATCH_M = 40.0     # a survey deck ring (basemap "decks") belongs to a bridge whose point lies this close
+BR_RULE = dict(deck_t_m=0.50,      # deck slab thickness: section_frame sf_bridge drawing rule (not sourced)
+               crown_m=1.0,        # masonry over the keystone to the deck top: p12 P12_K5_CROWN_M (not sourced)
+               pier_m=2.0,         # pier width between two arches: p12 P12_K5_PIER_M (not sourced)
+               side_frac=0.6,      # side arch = this x the middle arch's span and height: p12 P12_K5_SIDE (not sourced)
+               k4_big_frac=0.55,   # Ulucami Önü: the big eye's share of the clear width between its ends (not sourced)
+               k4_small_rise=1.25, # the smaller pointed eye: rise / half span (not sourced)
+               fade_far=0.70)      # tone toward the paper at BR_NEAR_M beyond the plane (drawing rule, as sf_topo_back)
+BR_COL = dict(stone="A4A1A3", deck="D5D3CE", line="7A6E60", paper="FFFFFF")
+BR_LOG = []
+BR_FLAGS = []
+
+
+def _br_flag(msg):
+    if msg not in BR_FLAGS:
+        BR_FLAGS.append(msg)
+
+
+def br_name(key):
+    """the printed name (names.py bridge_name, G16); the key only when names.py is not included"""
+    f = globals().get("bridge_name")
+    return f(key) if f else key
+
+
+def br_fact(key, name):
+    """a sourced value of a bridge (data/BRIDGES.py), None when there is none"""
+    v = BRIDGES[key].get("facts", {}).get(name)
+    return None if v is None else v["value"]
+
+
+def _br_axis(cid, look, ends=None):
+    import math as _m
+    a, b = ends if ends else level_ends(cid)
+    L = _m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    u = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+    f = (-u[1] * look, u[0] * look)                       # beyond the plane = in view (sf_back_buildings rule)
+    return a, u, f, L
+
+
+def br_near(cid, look=1, max_m=None, t0=None, t1=None, ends=None):
+    """the bridges cut cid passes (see the module notes), nearest first; ends = ((x1, y1), (x2, y2)) survey m for a
+    cut that is not a LEVELS row (p09 street cuts, p24 D1 / D2 spans, A-A')"""
+    import math as _m
+    a, u, f, L = _br_axis(cid, look, ends)
+    mx = BR_NEAR_M if max_m is None else max_m
+    t0 = 0.0 if t0 is None else t0
+    t1 = L if t1 is None else t1
+    out = []
+    for key in sorted(BRIDGES):
+        x, y = BRIDGES[key]["xy"]
+        dx, dy = x - a[0], y - a[1]
+        t = dx * u[0] + dy * u[1]
+        d = dx * f[0] + dy * f[1]
+        tc = min(max(t, 0.0), L)
+        seg = _m.hypot(x - (a[0] + u[0] * tc), y - (a[1] + u[1] * tc))
+        if seg <= BR_CUT_M:
+            rel = "cut"
+        elif abs(d) > mx or t < t0 or t > t1:
+            continue
+        else:
+            rel = "beyond" if d > 0 else "behind"
+        out.append(dict(key=key, name=br_name(key), t=t, d=d, rel=rel, seg_m=seg))
+    out.sort(key=lambda r: abs(r["d"]))
+    return out
+
+
+def _br_deck_span(key, a, u):
+    """(ta, tb) m along the cut covered by the bridge's survey deck ring (basemap decks), or None"""
+    import math as _m
+    if not globals().get("basemap_load"):
+        return None
+    try:
+        D = basemap_load()
+    except Exception:
+        return None
+    x, y = BRIDGES[key]["xy"]
+    best = None
+    for R in ((D or {}).get("layers") or {}).get("decks", []) or []:
+        if len(R) < 3:
+            continue
+        cx = sum(p[0] for p in R) / float(len(R))
+        cy = sum(p[1] for p in R) / float(len(R))
+        dd = _m.hypot(cx - x, cy - y)
+        if dd <= BR_DECK_MATCH_M and (best is None or dd < best[0]):
+            best = (dd, R)
+    if best is None:
+        return None
+    ts = [(p[0] - a[0]) * u[0] + (p[1] - a[1]) * u[1] for p in best[1]]
+    return min(ts), max(ts)
+
+
+def _br_cut_levels(cid):
+    """(bed, higher bank top) of the cut from LEVELS; a cut with several crossings (S5, S6) takes the lowest bed and
+    the highest top of its rows"""
+    rows = [cid]
+    try:
+        level_cut(cid)
+    except KeyError:
+        rows = [r["id"] for r in _lv_cut_rows(cid)]
+    if not rows:
+        return None, None
+    beds = [level(r, "bed") for r in rows]
+    tops = [level(r, "top", s) for r in rows for s in ("NE", "SW")]
+    beds = [v for v in beds if v is not None]
+    tops = [v for v in tops if v is not None]
+    return (min(beds) if beds else None), (max(tops) if tops else None)
+
+
+def _br_arch(tc, half, key_z, bed_z, n=16, half_v=None):
+    """an opening: a round arch of half span `half` (m along the cut) with its keystone at key_z, open down to the
+    bed: [(t, z)] (springing = key_z - half_v; half_v = the true half span when the face is seen at an angle and its
+    spans look shorter along the cut)"""
+    import math as _m
+    hv = half if half_v is None else half_v
+    sp = key_z - hv
+    pts = [(tc - half, bed_z), (tc - half, sp)]
+    pts += [(tc - half * _m.cos(_m.pi * i / n), sp + hv * _m.sin(_m.pi * i / n)) for i in range(1, n)]
+    pts += [(tc + half, sp), (tc + half, bed_z)]
+    return pts
+
+
+def _br_pointed(tc, half, rise, bed_z, sp_z, n=10):
+    """a pointed (two-centred) eye: half span `half`, crown `rise` over the springing sp_z"""
+    import math as _m
+    pts = [(tc - half, bed_z), (tc - half, sp_z)]
+    for i in range(1, n):                                  # a simple ogival curve: sine-eased to the crown
+        s = i / float(n)
+        pts.append((tc - half + half * s, sp_z + rise * _m.sin(0.5 * _m.pi * s) ** 0.8))
+    pts.append((tc, sp_z + rise))
+    for i in range(n - 1, 0, -1):
+        s = i / float(n)
+        pts.append((tc + half - half * s, sp_z + rise * _m.sin(0.5 * _m.pi * s) ** 0.8))
+    pts += [(tc + half, sp_z), (tc + half, bed_z)]
+    return pts
+
+
+def _br_mix(a, b, t):
+    pa = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    pb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(pa[i] + (pb[i] - pa[i]) * t)) for i in range(3))
+
+
+def br_section(cid, X=None, Y=None, look=1, t0=None, t1=None, ground=None, top=None, max_m=None, page=None,
+               into=None, ends=None, bed=None):
+    """the bridges of a section (see the module notes); ends as br_near (a cut that is not a LEVELS row then needs
+    ground= or bed= and top=)"""
+    X = X or (lambda t: t)
+    Y = Y or (lambda z: z)
+    a, u, f, L = _br_axis(cid, look, ends)
+    try:
+        bed0, top0 = _br_cut_levels(cid)
+    except KeyError:
+        bed0, top0 = None, None
+    if bed is not None:
+        bed0 = bed
+    out = {"background": [], "structures": [], "found": []}
+    seen = []
+    for r in br_near(cid, look, max_m, t0, t1, ends):
+        key, nm = r["key"], r["name"]
+        if r["rel"] == "behind":
+            seen.append(u"%s behind the viewer %.0f m (not seen)" % (nm, -r["d"]))
+            continue
+        bed = ground(r["t"]) if ground else bed0             # (the `bed` argument was taken into bed0 above)
+        if bed is None:
+            seen.append(u"%s not drawn: no bed level" % nm)
+            continue
+        if not ground:
+            _br_flag(u"FLAG bridge bed: not surveyed at the bridges; the cut's own bed is used (%s)" % cid)
+        B = BRIDGES[key]
+        span = _br_deck_span(key, a, u)
+        dl = br_fact(key, "deck_l_m")
+        dw = br_fact(key, "deck_w_m")
+        tc = 0.5 * (span[0] + span[1]) if span else r["t"]     # the survey deck's middle (over the water), else the point
+        if r["rel"] == "cut":
+            ext = span or ((tc - 0.5 * dw, tc + 0.5 * dw) if dw else None)
+        else:                                             # a sourced length wins over the deck ring (which may be only
+            ext = (tc - 0.5 * dl, tc + 0.5 * dl) if dl else span    # the part over the water)
+        if ext is None:
+            seen.append(u"%s not drawn: no deck outline in the survey layers and no sourced length" % nm)
+            continue
+        ta, tb = ext
+        if t0 is not None:
+            ta = max(ta, t0)
+        if t1 is not None:
+            tb = min(tb, t1)
+        if tb - ta < 0.5:
+            seen.append(u"%s outside the drawn span" % nm)
+            continue
+        if span is None:
+            _br_flag(u"FLAG bridge %s: no survey deck ring found within %.0f m; its sourced length is centred on the "
+                     u"bridge-list point" % (nm, BR_DECK_MATCH_M))
+        # heights: sourced first, else the drawing rules (FLAG)
+        kz = br_fact(key, "keystone_above_bed_m")
+        pp = br_fact(key, "parapet_above_bed_m")
+        if kz is not None:
+            deck_z = bed + kz + BR_RULE["crown_m"]
+            _br_flag(u"FLAG %s: masonry over the keystone %.2f m, side arches %.1f x the middle one, piers %.2f m: "
+                     u"drawing rules (not sourced, A15)" % (nm, BR_RULE["crown_m"], BR_RULE["side_frac"],
+                                                            BR_RULE["pier_m"]))
+        elif pp is not None:
+            lo, hi = pp
+            deck_z = bed + 0.5 * (lo + hi)
+            _br_flag(u"FLAG %s: parapet top %.2f m over the bed = the middle of the photo-scaled %.1f-%.1f m (IMG_5814); "
+                     u"eye sizes drawing rules (not sourced)" % (nm, 0.5 * (lo + hi), lo, hi))
+        else:
+            tz = top if top is not None else top0
+            if tz is None:
+                seen.append(u"%s not drawn: no height source and no bank top" % nm)
+                continue
+            deck_z = tz
+            _br_flag(u"FLAG %s: no height source; deck top drawn at the cut's bank top %+.2f (the road level), slab "
+                     u"%.2f m (drawing rule)%s" % (nm, tz, BR_RULE["deck_t_m"],
+                                                    u"; its openings are not drawn (no sizes)" if B.get("openings")
+                                                    else u""))
+        if r["rel"] == "cut":
+            sh = _br_cut_shapes(key, ta, tb, bed, deck_z, X, Y)
+            out["structures"] += sh
+            seen.append(u"%s cut through (%.0f-%.0f m along the cut)" % (nm, ta, tb))
+        else:
+            fade = BR_RULE["fade_far"] * min(1.0, max(0.0, r["d"] / float(max_m or BR_NEAR_M)))
+            sh = _br_elev_shapes(key, ta, tb, tc, bed, deck_z, X, Y, fade, span, dl)
+            out["background"] += sh
+            seen.append(u"%s %.0f m beyond the cut" % (nm, r["d"]))
+        out["found"].append(dict(r, ta=ta, tb=tb, deck_z=round(deck_z, 2), bed=round(bed, 2)))
+    line = u"bridge %s %s" % (cid, u"; ".join(seen) if seen else u"none")
+    if page:
+        line += u" (%s)" % page
+    BR_LOG.append(line)
+    if into is not None:
+        into.add("background", out["background"])
+        into.add("structures", out["structures"])
+    return out
+
+
+def _br_cut_shapes(key, ta, tb, bed, deck_z, X, Y):
+    """the bridge cut along its width (the cut line runs along the stream through it): solid masonry from the
+    opening's crown up to the deck top for an arched bridge with a sourced keystone, else the deck slab"""
+    kz = br_fact(key, "keystone_above_bed_m")
+    if kz is not None:
+        z0 = bed + kz                                     # the cut passes the middle arch: void up to the keystone
+        col = BR_COL["stone"]
+    else:
+        z0 = deck_z - BR_RULE["deck_t_m"]
+        col = BR_COL["stone"] if BRIDGES[key].get("form") == "arches" else BR_COL["deck"]
+    ring = [(X(ta), Y(z0)), (X(tb), Y(z0)), (X(tb), Y(deck_z)), (X(ta), Y(deck_z))]
+    return [("poly", ring, col, BR_COL["line"], 0.25)]
+
+
+def _br_elev_shapes(key, ta, tb, tc, bed, deck_z, X, Y, fade, span, dl):
+    """the bridge in elevation beyond the cut plane: its face from the bed to the deck top over ta..tb with the
+    openings the sources name (sizes per the module notes), one flat stone tone faded with distance"""
+    B = BRIDGES[key]
+    fill = _br_mix(BR_COL["stone"] if B.get("form") == "arches" else BR_COL["deck"], BR_COL["paper"], fade)
+    ink = _br_mix(BR_COL["line"], BR_COL["paper"], fade)
+    holes = []
+    c = 1.0                                               # the cuts that see a bridge in elevation run nearly parallel
+    if key == "K5" or (B.get("eyes") and br_fact(key, "mid_span_m")):
+        ms, kz = br_fact(key, "mid_span_m"), br_fact(key, "keystone_above_bed_m")
+        sf, pm = BR_RULE["side_frac"], BR_RULE["pier_m"]
+        half = 0.5 * ms
+        off = half + pm + 0.5 * ms * sf
+        for dt, hh, kk in ((-off, half * sf, kz * sf), (0.0, half, kz), (off, half * sf, kz * sf)):
+            pts = _br_arch(tc + dt * c, hh * c, bed + kk, bed - 0.5, half_v=hh)
+            if pts[0][0] > ta and pts[-1][0] < tb:
+                holes.append([(X(t), Y(z)) for t, z in pts])
+    elif key == "K4":
+        w = tb - ta
+        clear = w - 2.0 * BR_RULE["pier_m"]
+        if clear > 4.0:
+            hb = 0.5 * clear * BR_RULE["k4_big_frac"]
+            hs = 0.5 * clear * (1.0 - BR_RULE["k4_big_frac"]) - 0.5 * BR_RULE["pier_m"]
+            cb = ta + BR_RULE["pier_m"] + hb
+            cs = tb - BR_RULE["pier_m"] - hs
+            kb = min(deck_z - BR_RULE["crown_m"], bed + 2.0 * hb)
+            holes.append([(X(t), Y(z)) for t, z in _br_arch(cb, hb, kb, bed - 0.5)])
+            if hs > 0.8:
+                sp = bed + max(0.0, kb - bed - hb)
+                rise = min(hs * BR_RULE["k4_small_rise"], deck_z - BR_RULE["crown_m"] - sp)
+                holes.append([(X(t), Y(z)) for t, z in _br_pointed(cs, hs, rise, bed - 0.5, sp)])
+    body = [(X(ta), Y(bed - 0.5)), (X(tb), Y(bed - 0.5)), (X(tb), Y(deck_z)), (X(ta), Y(deck_z))]
+    if not holes:                                         # no opening is sourced (K1-K3, K6): the deck slab only,
+        body = [(X(ta), Y(deck_z - BR_RULE["deck_t_m"])), (X(tb), Y(deck_z - BR_RULE["deck_t_m"])),   # never a
+                (X(tb), Y(deck_z)), (X(ta), Y(deck_z))]                                              # solid wall
+        return [("poly", body, fill, ink, 0.12)]
+    return [("poly", body, fill, ink, 0.12, None, holes)]
+
+
+def br_log_lines():
+    """the bridge lines (`bridge <cid> <name|none>`) and FLAG lines of this run, each once"""
+    out = []
+    for ln in BR_LOG + BR_FLAGS:
+        if ln not in out:
+            out.append(ln)
+    return out
 
 # ================================================================ v10 the four proposal sections, true to the cut
 # v10 (revision 29 Oct, WO-T3b-3; package C "Page 13", brief 02 §3-§6): the sketches are gone. Each section is drawn
@@ -9634,7 +12249,7 @@ def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
 # true size and form; D6: no fig, citrus, iris, oleander, white poplar; D2: common reed only in lined basins the flood
 # passes by). Figures through ps_fig / ps_zones (M7, revision 30 Oct; R2-C). All four sections
 # look downstream: the NE bank (left bank) on the left, the SW bank on the right, as the key map's triangles show.
-# Drawn in booklet print mm (k = PS_K mm per m); build_sheet() places the block on the A0 sheet at 1 / BK_S.
+# Drawn in print mm (k = PS_K mm per m, 1:500 since v19); parts/90_booklet.py exports it in metres (no sheet).
 # Revision 30 Oct (T6, booklet p12): people are the M7 figures at 1.75 m (D9 layer 0 at the cut), plants the M6
 # species at their sourced heights in mixed, wet-to-dry scatters (G9), checked by sf_assert_g6 (G6); the water is the
 # M5 section (average yearly flow, never dry; Q100 / Q500 from the cut registry); every bank is a designed place with
@@ -9660,7 +12275,7 @@ def sf_assert_g6(k, trees=(), buildings=(), strict=True, layer=0):
 # sections (water board data/CUTS.py), the summer strip on the survey low point (B2 finding, Aras ask 1 a).
 # v17 (round 4, S7, P13.1 / D2): 1:250 on the booklet page, two cuts per page, one cut per full row (CHK-8); numbers
 # (mk_marker) instead of callout circles, the words in a side column / strip, level marks outside, insets 1:100.
-PS_SCALE = 250                      # 1:250 on the booklet page (standard scales, SCRIPT_STANDARD §8)
+PS_SCALE = 500                      # v19 (round 5, N3 a, Aras 1 Nov 22:44): W1-W4 merged on one page at 1:500 (was 1:250)
 PS_K = 1000.0 / PS_SCALE              # print mm per m (k of section_parts and plants)
 PS_DEPTH = 1.0                        # m of cut ground drawn under the bed (section_parts drawing rule)
 PS_WALL_T = 0.60                      # m: DSİ wall thickness: no sourced value; the same 0.60 m as p.04-05 (site board P45_WALL_T_M, G2)
@@ -9713,7 +12328,8 @@ PS_INSET_K = 1000.0 / PS_INSET_SCALE  # its print mm per m
 PS_FLAT_TOL = 0.20                    # m: a surveyed floor this level or better is drawn flat (drawing rule)
 # v17 (CHK-8, design spec S7): at 1:250 W3 and W4 are cut on their SW side with a break mark like W2 (W3 keeps 10 m of
 # Demeter's Garden with its tomato rows and café; W4 keeps 6 m of the cotton field behind the crest)
-PS_BREAK = {"W2": ("SW", 50.0), "W3": ("SW", 50.0), "W4": ("SW", 38.0)}
+PS_BREAK = {}                         # v19 (N3 a "spans widened"): no break at 1:500, each cut drawn to its cut end
+#                                       (level table ends; never beyond them: no ground is invented); was W2/W3 SW 50 m, W4 38 m
 # m of level ground drawn behind an embankment crest (default 3.0): W4 NE 8.0 for the crest walk, bike lane and tree
 # corridor (the level table's survey source reads that crest "50.0 m out", about 8 m behind the angled crest)
 PS_CREST_FLAT = {("W4", "NE"): 8.0}       # W2's SW land (flat street level to the cut end 80 m out) drawn to 50 m, broken
@@ -9778,13 +12394,15 @@ class PsSec(object):
     """One section: its own page in print mm, (0, 0) = (left end u0, PS_DEPTH under the bed); u = m across the stream
     from the axis (NE negative), z = m a.s.l."""
 
-    def __init__(self, cid, u0, u1, d, style="b"):
+    def __init__(self, cid, u0, u1, d, style="b", k=None):
         self.cid, self.u0, self.u1, self.d = cid, float(u0), float(u1), d
         self.style = style                                    # D1: "b" vector, "a" cutouts, one geometry
         self.trees = []                                       # (key, x, h_m, crown_m) at the cut, for the G6 check
         self.bed = level(cid, "bed")
         self.z0 = self.bed - PS_DEPTH
-        self.k = PS_K
+        self.k = k or PS_K                                    # v19: an inset child is drawn again at its own k (G-R5-5)
+        self.back_at = 0                                      # v19: item index after the sky and back layers (bridges)
+        self.inset_fr = None                                  # v19: sf_inset_frame result (window m, den, k)
         self.hw = level(cid, "bed_width_cm") / 200.0          # half the bed width (m), the bed centred on the axis
         self.pg = Page(0, 0)
         self.calls = []                                       # (text "Element: reason", u, z where its circle sits)
@@ -10094,6 +12712,7 @@ def ps_back(S, seed, mix=("plane", "chaste", "olive", "tamarisk")):
         for key, x, h, cr, l_ in pl_:
             ps_obst(S, x, gf(x), h, cr, l_)
     wl.put(S.pg)
+    S.back_at = len(S.pg.items)                                 # v19: a bridge beyond the cut goes in here (behind)
     S.info.append(u"%d background houses drawn (%d left out: over the channel or above the sky)" % (nh, nx))
 
 
@@ -10315,7 +12934,7 @@ def ps_sec_w1(S):
         ps_pocket(S, ub_ - PS_W1_POCKET[0], ub_, z_, 50 + 3 * i)
     S.call(u"Dashed line: today's DSİ wall, cut back into steps", hw + PS_WALL_T / 2.0, tS + 0.6)
     S.zone(u"Edge floor", u"on the dry bed edge at the foot of the steps", hw, hw + PS_W1_FLOOR_W)
-    S.zone(u"Sitting steps", u"%d × %d cm seats, %d flights, planted landings" % (n, round(rise * 100), nf),
+    S.zone(u"Sitting steps", u"%d flights, planted landings" % nf,
            hw + PS_W1_FLOOR_W, u_top)
     ps_arrow(S, [(S.st_c, level_avg_flow(c) + 0.3), (-hw + 1.2, tN + 2.4), (bx[1] - 0.8, tN + 1.8)],
              COL["river_mid"], 0.3, dash=[0.9, 0.6])            # over the terrace's rail and heads to the basins
@@ -10376,7 +12995,7 @@ def ps_sec_w2(S):
               stroke=COL["ink2"], lw=0.18, dash=[0.8, 0.5])     # today's DSİ wall, replaced by the steps
     S.call(u"Dashed line: today's DSİ wall, opened into steps", hw + PS_WALL_T / 2.0, tS + 0.6)
     S.zone(u"Sub-hub floor", u"at the water, just above the flow", hw, u_st)
-    S.zone(u"Seating steps", u"%d × %d cm, sun and a view of the water" % (n, round(rise * 100)), u_st, u_sq)
+    S.zone(u"Seating steps", u"sun and a view of the water", u_st, u_sq)
     S.zone(u"Hub square", u"dry above Q500, in the planes' shade", u_sq, S.u1)
     ps_street(S, "rack", u_sq + 1.0, tS, u"Bike racks: leave the bike, walk down to the water", side=1)
     ps_street(S, "bollard", S.u1 - 1.0, tS, u"Bollards: the square's street edge, no cars")
@@ -10443,7 +13062,7 @@ def ps_sec_w3(S):
     ps_street(S, "lamp", crest - 3.8, tN, u"Lamp: lights the crest walk and the steps' head", side=1)
     # SW: the stream commons on the shelf, the garden raised above Q500 behind a stone wall
     ps_block_ring(S, s1, s1 + 0.40, shelf - 0.30, gf + 0.15, "stone")
-    S.zone(u"Bank steps", u"%d × %d cm, sit or walk down to the bed" % (n, round(rise * 100)), crest, -hw)
+    S.zone(u"Bank steps", u"sit or walk down to the bed", crest, -hw)
     S.zone(u"Stream commons", u"open ground the floods may cover", s0, s1)
     S.zone(u"Demeter's Garden", u"raised above Q500, stays dry", s1, S.u1)
     gy = lambda u: shelf + (b - shelf) * max(0.0, min(1.0, (s0 - u) / (s0 - hw)))
@@ -10635,75 +13254,53 @@ def ps_marks(S):
         S.marks.append((x, y, num[txt], col))
 
 
-def ps_inset_shapes(items):
-    """v16: the section's page items as house shapes for sf_zoom_inset (one ring per poly, circles as rings,
-    images kept; no text: the inset shows the drawing, its words stay on the section)"""
-    out = []
-    for it in items:
-        if it[0] == "poly":
-            for R in it[1]:
-                if len(R) >= 3:
-                    out.append(("poly", R, it[2], it[3], it[4], it[7]))
-        elif it[0] == "line":
-            out.append(("line", it[1], it[2], it[3], it[4]))
-        elif it[0] == "circle":
-            out.append(("poly", sec_ellipse(it[1], it[2], it[3], it[3], 16), it[4], it[5], it[6]))
-        elif it[0] == "image":
-            out.append(tuple(it[:8]))
-    return out
-
-
 def ps_inset(S, log):
-    """v17 (G-R4-5.6, D11): the cut's main use spot S.inset (ua, ub, za, zb m, what) drawn again at 1:100
-    (PS_INSET_SCALE, 2.5 x the 1:250 parent) in a box in the section's own free sky: over the highest ground and its
-    people, clear of every drawn thing of the front layer (S.obst layer 0: plants, street elements; the back layers
-    may go under its white ground) and of the spot, inside the drawing, as near the spot as it can be; sf_zoom_inset
-    draws the spot frame, one frame link, the box, "ZOOMED IN · what · 1:100" above it and its own scale bar under
-    it. No room: FLAG, no inset."""
+    """v19 (round 5, G-R5-5, change of approach): the inset is no longer the parent's shapes scaled up into its sky.
+    The cut's main use spot S.inset (ua, ub, za, zb m, what) is framed with the section kit (sf_inset_frame: the
+    action + 0.6 m margin, the largest listed inset scale >= 2 x the 1:500 parent) and kept in S.inset_fr; ps_items
+    draws the section AGAIN at that scale's k (ps_section child=True), so stone courses, treads, boards and people
+    show at their own detail, and exports it as its own drawing + an inset item (the booklet frames and places it)."""
     if not S.inset:
         return
     ua, ub, za, zb, what = S.inset
-    src = (S.X(ua), S.Y(za), S.X(ub), S.Y(zb))
-    f = PS_INSET_K / S.k
-    dw, dh = (src[2] - src[0]) * f, (src[3] - src[1]) * f
-    lab_w = fm_width(u"ZOOMED IN · %s · 1:%d" % (what, PS_INSET_SCALE), PS_LBL / PT, True)
-    lab_h = 0.6 * PS_LBL + PS_LBL * CAP + 0.6                  # the caption over the box
-    bar_h = SF_ZOOM["gap"] + SF_ZOOM["bar_h"] + 0.9 * 2.12 + 0.6   # its scale bar and figures under the box
-    ww = max(dw, lab_w)
-    bb = ps_bbox(S.pg.items)
-    lo = S.Y(max(z for _u, z in S.prof) + 2.4) + bar_h          # over the highest ground and its people
-    hi = max(S.y_top if S.y_top is not None else bb[3], bb[3]) - lab_h
-    keep = [tuple(o[:4]) for o in S.obst if (o[4] if len(o) > 4 else 0) == 0] + \
-        [(src[0] - 1.0, src[1] - 1.0, src[2] + 1.0, src[3] + 1.0)]
-    cx, cy = 0.5 * (src[0] + src[2]), 0.5 * (src[1] + src[3])
-    best = None
-    y = lo
-    while y + dh <= hi:
-        x = 0.5
-        while x + ww <= S.w - 0.5:
-            b_ = (x - 0.6, y - bar_h, x + ww + 0.6, y + dh + lab_h)
-            if not any(b_[0] < o[2] and o[0] < b_[2] and b_[1] < o[3] and o[1] < b_[3] for o in keep):
-                d = math.hypot(x + 0.5 * dw - cx, y + 0.5 * dh - cy)
-                if best is None or d < best[0]:
-                    best = (d, x, y)
-            x += 1.5
-        y += 1.5
-    if best is None:
-        log.append(u"FLAG %s %s: no free sky for the zoom inset (%.0f x %.0f mm at 1:%d): not drawn" % (
-            S.page, S.cid, dw, dh, PS_INSET_SCALE))
+    S.inset_fr = sf_inset_frame([(min(ua, ub), min(za, zb), max(ua, ub), max(za, zb))], PS_SCALE, page=S.page,
+                                label=u"%s %s" % (S.cid, what))
+    if S.inset_fr:
+        log.append(u"%s %s: inset (%s) 1:%d, window %.1f x %.1f m (drawn again at its own scale)" % (
+            S.page, S.cid, what, S.inset_fr["den"], S.inset_fr["window"][2] - S.inset_fr["window"][0],
+            S.inset_fr["window"][3] - S.inset_fr["window"][1]))
+
+
+def ps_bridges(S, page):
+    """v19 (D8, N4 a): the bridges this cut sees (common/bridges.py br_section, look -1: every W cut looks
+    downstream); t = m along the cut from its first end (SW) -> u = d_SW - t. A bridge beyond the cut goes behind the
+    cut land (after the sky and back layers, S.back_at), one cut through it over the water; behind the viewer: not
+    drawn, logged (br_log_lines)."""
+    if "br_section" not in globals():
         return
-    _d, x, y = best
-    dst = (x, y, x + dw, y + dh)
-    S.put(sf_zoom_inset(src, dst, S.k, PS_INSET_K, ps_inset_shapes(S.pg.items), what, size=PS_LBL,
-                        scale_den=PS_INSET_SCALE, parent_den=PS_SCALE, page=S.page))
-    S.boxes.append(dst)
-    S.inset_busy = (x - 0.3, y - bar_h, x + ww + 0.3, y + dh + lab_h)
-    log.append(u"%s %s: zoom inset at 1:%d (%s), %.0f x %.0f mm, people %.1f mm tall" % (
-        S.page, S.cid, PS_INSET_SCALE, what, dw, dh, FIG_ADULT_H * PS_INSET_K))
+    dsw = S.d.get("SW")
+    if dsw is None:
+        return
+    try:
+        br = br_section(S.cid, X=lambda t: S.X(dsw - t), Y=S.Y, look=-1, t0=dsw - S.u1, t1=dsw - S.u0,
+                        ground=lambda t: ps_z_at(S.prof, dsw - t), page=page)
+    except Exception as ex:
+        tp_warn(u"%s %s: bridges not drawn (%s: %s)" % (page, S.cid, type(ex).__name__, ex))
+        return
+    if br.get("background"):
+        tmp = Page(0, 0)
+        ps_put(tmp, br["background"])
+        S.pg.items[S.back_at:S.back_at] = tmp.items
+    if br.get("structures"):
+        S.put(br["structures"])
 
 
-def ps_finish(S, log):
-    """the G6 check, the notes, (v17) the 1:100 zoom inset, then the numbers (ps_marks)"""
+def ps_finish(S, log, child=False):
+    """the G6 check, the notes, (v19) the bridges, the inset frame, then the numbers (ps_marks); a child (inset
+    redraw (a window of a few metres at the water, far from any bridge) gets none of them"""
+    if child:
+        return
+    ps_bridges(S, S.page)
     for m_ in sf_assert_g6(S.k, trees=S.trees, strict=False):  # G6: people 1.75 m, trees in their sourced range
         log.append(u"G6 CHECK section %s (style %s): %s" % (S.cid, S.style, m_))
     for m_ in S.notes:
@@ -10714,15 +13311,16 @@ def ps_finish(S, log):
     ps_marks(S)
 
 
-def ps_section(cid, log, page, style="a"):
-    """one cut as a PsSec (its drawing in S.pg, print mm at 1:250; see PsSec), in style a (D1, the only style);
-    v16: the surveyed bed first (ps_survey, DATA-1); v17: page = the booklet page id (log lines, inset)"""
+def ps_section(cid, log, page, style="a", k=None, child=False):
+    """one cut as a PsSec (its drawing in S.pg, print mm at S.k: 1:500 = PS_K, or an inset's k), in style a (the
+    only style); v16: the surveyed bed first (ps_survey, DATA-1); page = the booklet page id; child=True: the inset
+    redraw (its own log, no numbers, no inset of its own)"""
     u0, u1, d = ps_extent(cid)
-    S = PsSec(cid, u0, u1, d, style)
+    S = PsSec(cid, u0, u1, d, style, k=k)
     S.page = page
     ps_survey(S, next(k_ for k_, c_, _n, _m, _t in PS_CUTS if c_ == cid), log)
     PS_DRAW[cid](S)
-    ps_finish(S, log)
+    ps_finish(S, log, child)
     return S
 
 
@@ -10752,7 +13350,7 @@ def ps_bank_short(c, side):
 def ps_today(S):
     """v17 (G-R4-2): the one "today" line: both banks and the bed width from the level table, by place name"""
     c = S.cid
-    return u"*Today* · %s: %s · bed {:,.0f} cm · %s: %s".format(level(c, "bed_width_cm")) % (
+    return u"*Today* · %s: %s · %s: %s" % (                    # v19 (G-R5-4.6): no bed width
         place_name("side_NE"), ps_bank_short(c, "NE"), place_name("side_SW"), ps_bank_short(c, "SW"))
 
 
@@ -10771,490 +13369,187 @@ def ps_note(cid):
     return u"Q500 %s stays *%.2f m* under the %s bank top · wet edge, boardwalk and trees by flood level" % (
         ps_lv(q5), level(cid, "top", "NE") - q5, place_name("side_NE"))
 
-
-def ps_para(tp, text, x, y, w, pt, colour, name):
-    """a wrapped paragraph from its first baseline y (tp = None: measured only); returns the next baseline"""
-    lead = ps_lead(pt)
-    if tp is not None:
-        return tp.para(text, x, y, w, pt, lead, name=name, colour=colour, min_last_words=1)
-    return y - len(tp_wrap(text, w, pt, False, 1, True)) * lead
-
-
-def ps_list_col(S, ents, x0, w, y, tp=None, pg=None):
-    """numbered list entries [(n, text, colour)] in a column from x0, w wide, first baseline y: the marker
-    (mk_marker, the same colour as on the drawing), "*Name* · reason" beside it; returns the last baseline"""
-    tx = x0 + 2.0 * PS_MK_R + 1.2
-    last = y + PS_LIST_ROW
-    for n, t, col in ents:
-        if tp is not None:
-            sh, _b, _r = mk_marker(x0 + PS_MK_R, y + 0.5 * PS_LIST_PT * PT * CAP, n, col, PS_LIST_PT)
-            ps_put(pg, mk_put(tp, sh, name=u"%s list %d" % (S.cid, n)))
-        yn = ps_para(tp, t, tx, y, x0 + w - tx, PS_LIST_PT, COL["ink"], u"%s list" % S.cid)
-        last = yn + ps_lead(PS_LIST_PT)
-        y = last - PS_LIST_ROW
-    return last
-
-
-def ps_side(S, x0, w, ytop, tp=None, pg=None):
-    """the side column's words from ytop down (LEFT blocks): the "today" line and the key line (6.5 pt, ink2), then
-    the numbered list; tp = None: measured only. Returns the y under the last line."""
-    y = ytop - PS_TODAY_PT * PT * CAP
-    yn = ps_para(tp, ps_today(S) + u"\n" + ps_note(S.cid), x0, y, w, PS_TODAY_PT, COL["ink2"], u"%s today" % S.cid)
-    yl = yn + ps_lead(PS_TODAY_PT) - PS_LIST_ROW - 1.0
-    return ps_list_col(S, S.list, x0, w, yl, tp, pg) - 1.0
-
-
-def ps_strip_words(S, x0, w, ytop, legend, tp=None, pg=None, ncol=3):
-    """W4's strip (RIGHT block) from ytop down: the "today" and key line across, the list in ncol columns, (legend)
-    the material legend across under it; returns the y under it"""
-    y = ytop - PS_TODAY_PT * PT * CAP
-    yn = ps_para(tp, ps_today(S) + u" · " + ps_note(S.cid), x0, y, w, PS_TODAY_PT, COL["ink2"], u"%s today" % S.cid)
-    yl = yn + ps_lead(PS_TODAY_PT) - PS_LIST_ROW - 1.0
-    gap = 6.0
-    cw = (w - (ncol - 1) * gap) / float(ncol)
-    nrow = int(math.ceil(len(S.list) / float(ncol))) if S.list else 0
-    low = yl + ps_lead(PS_LIST_PT)
-    for c_ in range(ncol):
-        part = S.list[c_ * nrow:(c_ + 1) * nrow]
-        if part:
-            low = min(low, ps_list_col(S, part, x0 + c_ * (cw + gap), cw, yl, tp, pg))
-    low -= 1.0
-    if legend:
-        low = ps_legend(x0, x0 + w, low - 1.5, tp, pg)
-    return low
-
-
-def ps_legend(x0, x1, ytop, tp=None, pg=None):
-    """G1: samples of everything the sections draw, in rows from ytop across x0-x1 (print mm), 7 pt, through the
-    page's TextPage; tp = None: measured only. Returns the band's bottom y."""
-    P = _wat_pal()
-    rows = [("water", u"water at the average yearly flow"),
-            ("q100", u"Q100 flood level"), ("q500", u"Q500 flood level"),
-            (SCT["stone"], u"stone: DSİ walls, steps, garden wall"), (SCT["concrete"], u"concrete: stairs, ramp, basins"),
-            (SCT["earth"], u"earth"), (SCT["gravel"], u"gravel bed"), (PS_TIMBER, u"timber: terrace, boardwalk"),
-            (SF_LANE["walk"], u"walk paving"), (SF_LANE["bike"], u"bike lane")]
-    sw, gap = 5.0, 4.0
-    x, y = x0, ytop - PS_LIST_PT * PT * CAP
-    for kind, lab in rows:
-        w = sw + 1.2 + fm_width(lab, PS_LIST_PT)
-        if x + w > x1 and x > x0:
-            x, y = x0, y - PS_LIST_ROW
-        if tp is not None:
-            cy = y + 0.5 * PS_LIST_PT * PT * CAP
-            if kind in ("q100", "q500"):
-                pg.line([(x, cy), (x + sw, cy)], P[kind], 0.3, dash=[1.2, 0.6] if kind == "q100" else [0.4, 0.5])
-            else:
-                pg.poly([rect(x, cy - 1.0, x + sw, cy + 1.0)], fill={"water": P["sec"]}.get(kind, kind),
-                        stroke=COL["faint"], lw=0.1)
-                if kind == "water":
-                    pg.line([(x, cy + 1.0), (x + sw, cy + 1.0)], SEC["hatch"], 0.3)
-            tp.put(lab, x + sw + 1.2, y, PS_LIST_PT, name=u"legend", role="legend", colour=COL["ink"])
-        x += w + gap
-    bottom = y - 0.8
-    if tp is not None:
-        tp.block((x0, bottom, x1, ytop), u"legend")
-    return bottom
-
-
-# ---------------------------------------------------------------- v17: the two booklet pages p13a / p13b
-# Design spec: revision_2026-11-01_round4/handover/S7_design_spec.md. Each page = one crop BK_W x BK_H (print mm,
-# y up) drawn at the booklet scale itself (BK_S 1): two cuts, one full row each, at 1:250 (D2), insets 1:100 (D11).
-# W1-W3: blk_section LEFT (title strip, drawing, side column of words); W4: RIGHT (its 353 mm drawing and its level
-# marks leave no room for a column: the words go into a strip under it). One TextPage per page: every text of the
-# crop goes through it and check() RAISES on any collision (G-R4-1); it then draws them (emit).
-PS_PAGES = [("p13a", "p1", ("W1", "W2")), ("p13b", "p2", ("W3", "W4"))]
-PS_RIGHT_WHY = {"W4": u"its 353 mm drawing and the level marks leave no room for a side column"}
-PS_ROW_GAP = 4.0                       # print mm: least gap between two rows (spare height goes into the gaps)
-PS_SIDE_MIN = 60.0                     # print mm: the narrowest side column
-PS_KM_H = (22.0, 40.0)                 # print mm: the key map's least and largest height (in a side column)
-PS_KM_GAP = 3.0                        # print mm under the key map
-
-
-def ps_tp_draw(pg):
-    """the TextPage's drawer: each registered text as a Page text item (sizes back to mm, "MC" to a baseline)"""
-    def draw(it):
-        x, y, al = it["x"], it["y"], it["align"]
-        if str(al).upper() in ("MC", "CM"):
-            ix0, iy0, ix1, iy1 = fm_ink_box(it["text"], it["pt"], it["bold"])
-            y -= 0.5 * (iy0 + iy1)
-            al = "C"
-        ex = it.get("extra") or {}
-        pg.text(it["text"], x, y, it["size_mm"], it["colour"] or COL["ink"], bold=it["bold"], align=al,
-                mat=ex.get("mat"), halo=ex.get("halo"))
-    return draw
-
-
-def ps_place_items(pg, tp, items, dx, dy, name):
-    """a section's items moved by (dx, dy) onto the page; its texts (inset caption, scale figures) registered in tp"""
-    for it in ps_xform(items, 1.0, dx, dy):
-        if it[0] == "text":
-            _, s_, x, y, size, col, bold, al, mat, halo = it
-            ex = dict((k_, v_) for k_, v_ in (("mat", mat), ("halo", halo)) if v_ is not None)
-            tp.put(s_, x, y, size / PT, bold, al or "L", 0.0, name, "drawing", col, **ex)
-        else:
-            pg.items.append(it)
-
-
-def ps_title(tp, b, S):
-    """the title strip: "W1 · Upstream entry" (10 pt bold), the scenario after it (8 pt), the look direction at the
-    page's right edge (8 pt, by place name)"""
-    _key, cid, _n, name, take = next(r_ for r_ in PS_CUTS if r_[1] == S.cid)
-    x, y = b["title_base"]
-    t = u"%s · %s" % (cid, name)
-    tp.put(t, x, y, PS_TITLE_PT, True, name=u"%s title" % cid, role="title", colour=COL["ink_dark"])
-    tp.put(take, x + fm_width(t, PS_TITLE_PT, True) + 2.5, y, PS_SCEN_PT, name=u"%s title" % cid, role="title",
-           colour=COL["ink"])
-    tp.put(u"looking downstream · %s left, %s right" % (place_name("side_NE"), place_name("side_SW")), BK_W, y,
-           PS_SCEN_PT, align="R", name=u"%s title" % cid, role="title", colour=COL["ink2"])
-
-
-def ps_page(page, cids, log, style="a"):
-    """one booklet page (p13a / p13b) in print mm (0, 0)-(BK_W, BK_H), y up: the two cuts drawn and measured first,
-    the key map put in the first side column with room (else the first row grows), the rows sized to what they hold
-    and top-aligned, spare height into the gaps; a page that cannot hold its rows at 1:250 RAISES with the numbers
-    (no shrinking). Returns (Page, {sheet key: block box})."""
-    pg = Page(BK_W, BK_H)
-    tp = TextPage(page, (0.0, 0.0, BK_W, BK_H), y_down=False, pad=0.6)
-    L = []
-    for cid in cids:
-        S = ps_section(cid, log, page, style)
-        bb = ps_bbox(S.pg.items)
-        by0 = min(0.0, bb[1])
-        e = dict(S=S, bb=bb, by0=by0, dx=-min(0.0, bb[0]), sh=bb[3] - by0, km=0.0,
-                 mode="RIGHT" if cid in PS_RIGHT_WHY else "LEFT",
-                 q5=S.Y(level(cid, "q500")) - by0 + 1.8)                 # the level marks' top over the bottom
-        e["dw"] = max(S.w, bb[2]) + e["dx"]
-        if e["mode"] == "LEFT":
-            e["sw"] = BK_W - e["dw"] - GRID_GUT
-            if e["sw"] < PS_SIDE_MIN:
-                tp_warn(u"%s %s: the drawing is %.1f mm wide at 1:%d: its side column would be %.1f mm "
-                                 u"(at least %.0f)" % (page, cid, e["dw"], PS_SCALE, e["sw"], PS_SIDE_MIN))
-            e["side0"] = -ps_side(S, 0.0, e["sw"], 0.0)
-        L.append(e)
-    lefts = [e for e in L if e["mode"] == "LEFT"]
-
-    def spare(e):
-        return e["sh"] - (e["side0"] + 1.5 + e["q5"]) - PS_KM_GAP
-    pick = next((e for e in lefts if spare(e) >= PS_KM_H[0]), lefts[0])
-    pick["km"] = max(PS_KM_H[0], min(PS_KM_H[1], spare(pick)))
-    rights = [e for e in L if e["mode"] == "RIGHT"]
-    foot = not rights                                            # p13a: the legend under row 2; p13b: in W4's strip
-
-    def heights(leg):
-        tot = 0.0
-        for e in L:
-            if e["mode"] == "LEFT":
-                e["dh"] = max(e["sh"], (e["km"] + PS_KM_GAP if e["km"] else 0.0) + e["side0"] + 1.5 + e["q5"])
-                e["h"] = BLK_TITLE_H + e["dh"]
-            else:
-                e["dh"] = e["sh"]
-                e["st"] = -ps_strip_words(e["S"], 0.0, BK_W, 0.0, leg)
-                e["h"] = BLK_TITLE_H + e["dh"] + GRID_GUT + e["st"]
-            tot += e["h"]
-        lh = -ps_legend(0.0, BK_W, 0.0) if (leg and foot) else 0.0
-        return tot + PS_ROW_GAP * (len(L) - 1) + ((PS_ROW_GAP + lh) if lh else 0.0), lh
-    legend = True
-    tot, lh = heights(True)
-    if tot > BK_H and rights:
-        legend = False
-        tot, lh = heights(False)
-        log.append(u"NOTE %s: no room for the material legend at 1:%d: it is on p13a only" % (page, PS_SCALE))
-    if tot > BK_H:
-        tp_warn(u"%s: the rows need %.1f mm at 1:%d, the page has %.1f mm (%s): no shrinking (D2)" % (
-            page, tot, PS_SCALE, BK_H, u", ".join(u"%s %.1f" % (e["S"].cid, e["h"]) for e in L)))
-    ngap = len(L) - 1 + (1 if lh else 0)
-    gap = PS_ROW_GAP + (BK_H - tot) / float(max(1, ngap))
-    tri = sf_triangles(walls=False, aggregate=False)            # U22: no meaningless triangles in the sections
-    boxes = {}
-    y = BK_H
-    for e in L:
-        S, c = e["S"], e["S"].cid
-        b = blk_section(0.0, y, BK_W, e["h"], c, side_w=e.get("sw"), mode=e["mode"],
-                        why=PS_RIGHT_WHY.get(c), strip_h=e.get("st"), y_down=False)
-        ps_title(tp, b, S)
-        d = b["drawing"]
-        dxp, dyp = d[0] + e["dx"], d[1] - e["by0"]
-        ps_place_items(pg, tp, S.pg.items, dxp, dyp, u"%s drawing" % c)
-        tp.block(d, u"%s drawing" % c)
-        for i, (x, y_, n, col) in enumerate(S.marks):
-            sh_, _b, _r = mk_marker(dxp + x, dyp + y_, n, col, PS_LIST_PT)
-            ps_put(pg, mk_put(tp, sh_, name=u"%s mark %d" % (c, i)))
-        # the level marks outside the drawing's right edge (G-R4-5.4), the 1:250 scale bar beside (or over) them
-        fr = (dxp, dyp + e["by0"], dxp + max(S.w, e["bb"][2]), dyp + e["bb"][3])
-        lv = [("q500", level(c, "q500")), ("q100", level(c, "q100")), ("avg", level_avg_flow(c)), ("bed", S.bed)]
-        ps_put(pg, tp_shapes(sf_level_marks(fr, lv, side="R", y_of=lambda v, _S=S, _d=dyp: _d + _S.Y(v),
-                                            size=PS_LBL, page=u"%s %s" % (page, c)), tp, name=u"%s levels" % c))
-        lb = [it["box"] for it in tp.items if it["name"] == u"%s levels" % c] or [(fr[2], fr[1], fr[2] + 8.0, fr[1])]
-        if e["mode"] == "LEFT":
-            xb, yb = max(q[2] for q in lb) + 3.0, fr[1] + 3.5
-        else:
-            xb, yb = fr[2] + 2.0, max(q[3] for q in lb) + 4.0
-        ps_put(pg, tp_shapes(sf_scale_bar(xb, yb, S.k, den=PS_SCALE, max_mm=min(24.0, BK_W - xb - 10.0)), tp,
-                             name=u"%s bar" % c))
-        if e["mode"] == "LEFT":
-            sx0, _sy0, sx1, sy1 = b["side"]
-            yt = sy1
-            if e["km"]:
-                ps_key_map(pg, tp, (sx0, sy1 - e["km"], sx1, sy1), cids, page, log)
-                yt = sy1 - e["km"] - PS_KM_GAP
-            ps_side(S, sx0, sx1 - sx0, yt, tp, pg)
-        else:
-            st = b["strip"]
-            ps_strip_words(S, st[0], st[2] - st[0], st[3], legend, tp, pg)
-        key = next(k_ for k_, c_, _n, _m, _t in PS_CUTS if c_ == c)
-        boxes[key] = (0.0, y - e["h"], BK_W, y)
-        log.append(u"%s %s: block %s %.0f x %.0f mm, drawing %.0f x %.0f mm at 1:%d, %d numbers" % (
-            page, c, e["mode"], BK_W, e["h"], e["dw"], e["sh"], PS_SCALE, len(S.list)))
-        y -= e["h"] + gap
-    if lh:
-        ps_legend(0.0, BK_W, lh, tp, pg)
-    sf_triangles(**tri)
-    tp.check(True, log)                                        # G-R4-1: RAISES TextCollision on any collision
-    tp.emit(ps_tp_draw(pg))
-    return pg, boxes
-
-# ================================================================ v17 key map: this page's two cuts (G-R4-9, PLAN §4.5)
-# v17 (round 4, S7): ONE key map per booklet page, in the first side column with room (ps_page): common/keymap.py
-# km_map with only the page's two cuts (red R01 symbol, triangles pointing downstream: the way every section looks),
-# a muted base, the study line, main street and place names (placed with the real font, clear of the cuts and the
-# north arrow), the north arrow (north_items, no plate) in its top-right corner, a hairline neatline. Every text of
-# it goes into the page's TextPage. The v10-v16 strip (turned frame, bridge bars, letter key) is gone.
+# ================================================================ v19 key map: this page's four cuts (G-R5-3, D3, S2 module v2)
+# v19 (round 5): the one merged page p13 (D9) gets ONE key map from common/keymap.py km_map v2: no scale_den, so the
+# module fits its frame to the map, turns it so the corridor runs along the long side and puts its own true-north
+# arrow; only W1-W4 (red R01, triangles pointing downstream: every W section looks downstream); names through the
+# names table. The script draws nothing of it: km_items() hands the drawing, its labels and the keymap item to
+# items.json and the booklet places it in the right column (never over a drawing, no scale bar). The v17 page-drawn
+# map (own clip, own north arrow, neatline, TextPage) is gone.
 PS_KM_PAD = 120.0                     # m round the page's cut ends in the map window (drawing rule: streets around)
-PS_KM_NORTH = 5.0                     # print mm: the north arrow's height
+PS_KM_SPACE = (113.6, 90.0)           # print mm: the MOST room offered (right column 113.6 mm, PLAN §3); the module
+#                                       returns the fitted, smaller frame
 
 
-def ps_clip_ring(ring, R):
-    """a ring cut to the rectangle R (x0, y0, x1, y1) (Sutherland-Hodgman); [] when nothing is left"""
-    x0, y0, x1, y1 = R
-    out = list(ring)
-    for e in range(4):
-        if not out:
-            break
-        inp, out = out, []
-        for i in range(len(inp)):
-            p, q = inp[i - 1], inp[i]
-            ip = (p[0] >= x0, p[0] <= x1, p[1] >= y0, p[1] <= y1)[e]
-            iq = (q[0] >= x0, q[0] <= x1, q[1] >= y0, q[1] <= y1)[e]
-            if ip != iq:
-                if e < 2:
-                    xe = x0 if e == 0 else x1
-                    out.append((xe, p[1] + (q[1] - p[1]) * (xe - p[0]) / (q[0] - p[0])))
-                else:
-                    ye = y0 if e == 2 else y1
-                    out.append((p[0] + (q[0] - p[0]) * (ye - p[1]) / (q[1] - p[1]), ye))
-            if iq:
-                out.append(q)
-    return out if len(out) >= 3 else []
-
-
-def ps_clip_line(pts, R):
-    """a polyline cut to the rectangle R: the pieces inside (Liang-Barsky per segment)"""
-    x0, y0, x1, y1 = R
-    runs, cur = [], []
-    for p, q in zip(pts[:-1], pts[1:]):
-        dx, dy = q[0] - p[0], q[1] - p[1]
-        t0, t1, ok = 0.0, 1.0, True
-        for pp, qq in ((-dx, p[0] - x0), (dx, x1 - p[0]), (-dy, p[1] - y0), (dy, y1 - p[1])):
-            if pp == 0:
-                if qq < 0:
-                    ok = False
-                    break
-                continue
-            t = qq / pp
-            if pp < 0:
-                t0 = max(t0, t)
-            else:
-                t1 = min(t1, t)
-            if t0 > t1:
-                ok = False
-                break
-        if not ok:
-            if cur:
-                runs.append(cur)
-            cur = []
-            continue
-        a, b = (p[0] + dx * t0, p[1] + dy * t0), (p[0] + dx * t1, p[1] + dy * t1)
-        if not cur or t0 > 0.0:
-            if cur:
-                runs.append(cur)
-            cur = [a]
-        cur.append(b)
-        if t1 < 1.0:
-            runs.append(cur)
-            cur = []
-    if cur:
-        runs.append(cur)
-    return [r for r in runs if len(r) >= 2]
-
-
-
-
-def ps_key_map(pg, tp, box, cids, page, log):
-    """the page's key map in box (x0, y0, x1, y1) print mm (y up); its texts registered in tp (key map names may
-    sit on the map: allow = the map); the box is a drawing block of the page"""
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    nm = u"%s key map" % page
+def ps_keymap_items(ix, page, cids, log):
+    """the page's key map as items (S2 km_items) added to ix; returns the drawing id or None (WARNING)"""
     ends = [p for c in cids for p in level_ends(c)]
     bx = (min(p[0] for p in ends) - PS_KM_PAD, min(p[1] for p in ends) - PS_KM_PAD,
           max(p[0] for p in ends) + PS_KM_PAD, max(p[1] for p in ends) + PS_KM_PAD)
-    na_w = 0.44 * PS_KM_NORTH + 2.0                            # the north arrow's corner, kept free of names
     try:
-        km = km_map(list(cids), w, h, page=page, looks=dict((c, -1) for c in cids), box=bx, log=log,
-                    legend_box=(w - na_w - 1.5, h - PS_KM_NORTH - 4.5, w, h))
+        km = km_map(list(cids), PS_KM_SPACE[0], PS_KM_SPACE[1], page=page, looks=dict((c, -1) for c in cids),
+                    box=bx, log=log)
+        its = km_items(km, page, item_id=u"ps_keymap_%s" % page, priority=3)
     except Exception as ex:
-        log.append(u"FLAG %s key map not drawn (%s: %s)" % (page, type(ex).__name__, ex))
-        km = None
-    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"])
+        ix.warn(page, "keymap", u"key map not made (%s: %s)" % (type(ex).__name__, ex))
+        return None
+    for it in its:                                   # the module's schema dicts go in as they are (ids registered)
+        it["id"] = ix._id(it["id"], it.get("kind", "item"))
+        if it.get("anchor") and it["anchor"].get("drawing"):
+            it["anchor"]["drawing"] = its[0]["id"]
+        if it.get("kind") == "keymap":
+            it["drawing"] = its[0]["id"]
+        ix._put(page, it)
+    for m_ in km.get("missing") or []:
+        log.append(u"FLAG %s key map: %s not drawn" % (page, m_))
+    log.append(u"%s key map: %s, frame %.0f x %.0f mm (fitted), turned %s deg" % (
+        page, u" + ".join(cids), km.get("w_mm", 0.0), km.get("h_mm", 0.0), km.get("rotation_deg")))
+    return its[0]["id"]
 
-    def fill_fn(rings, hx, al, nonzero=False):
-        rr = [r_ for r_ in (ps_clip_ring(r, box) for r in rings) if r_]
-        if rr:
-            pg.poly(rr, fill=hx, alpha=(al if al is not None and al < 0.975 else None))
-
-    def line_fn(pts, hx, w_, dash, al=None):
-        for piece in ps_clip_line(pts, box):
-            pg.line(piece, hx, w_ or 0.1, dash=list(dash) if dash else None)
-
-    def text_fn(s_, xy, size, hx, bold, align):
-        tp.put(s_, xy[0], xy[1], size / PT, bold, align or "L", 0.0, nm, "map", hx, (nm,))
-    if km:
-        km_draw(km, lambda q: (x0 + q[0], y0 + q[1]), fill_fn, line_fn, text_fn, page=page)
-        for m_ in km.get("missing") or []:
-            log.append(u"FLAG %s key map: %s not drawn" % (page, m_))
-    basemap_draw(north_items(x1 - 0.5 * na_w - 0.5, y1 - PS_KM_NORTH - 3.2, 0.0, PS_KM_NORTH), lambda p: p,
-                 fill_fn, line_fn, text_fn)
-    pg.poly([rect(x0, y0, x1, y1)], stroke=COL["ink"], lw=0.088)   # the map's 0.25 pt neatline
-    tp.block(box, nm)
-    log.append(u"%s key map: %s, %.0f x %.0f mm, north arrow without plate" % (page, u" + ".join(cids), w, h))
-
-# ================================================================ A3 booklet = crops of this sheet (v5, booklet/CROP_SPEC.md)
-# Aras 25 Oct 21:47: the booklet shows the sheet's own sections (SHEET_BOXES, set by build_sheet).
-# v7 (Aras 27 Oct 11:07: p.18-19 merged into one page): ps_all = the whole 2 x 2 block (titles, notes, the four
-# sections) shaped like the booklet's panel area, for ONE booklet page; the four single crops stay (note + sketch,
-# tight; the title is the booklet caption).
+# ================================================================ v19 booklet items (round 5, G-R5-12: produce, the booklet composes)
+# Aras 1 Nov 22:00 / addendum 22:37: the script lays out no page and writes no sheet PDF. W1-W4 go to ONE booklet page
+# (D9, page id "p13" = p13-14 merged; N3 a: 1:500), each cut = one true-scale drawing in metres (x = u across the
+# stream from the cut axis, NE negative / left, y = level m a.s.l.; PLAN §4), its numbers as badges on what they name,
+# its numbered list, its level column (the booklet draws the U04 markers), its zoom inset as its own drawing drawn
+# again at the inset scale (G-R5-5), plus one key map (S2 module), one material legend, the page title and intro, the
+# sources. Everything lands in Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json.
+PS_PAGE = "p13"                                       # D9: p13 + p14 one page (same id in the 23-page numbering)
 BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter)",
                u"https://www.rhs.org.uk/Advice/profile?pid=127"),
               ("ecocrop_olive", u"FAO Ecocrop, Olea europaea (will not tolerate waterlogged soils)",
                u"https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=1553"),
-              # v9 (MIRAQUA 28 Oct, F5): the public page behind SRC_KEY plane (v10: the hamam is no longer drawn)
               ("icomos_2014", u"ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered Cultural Landscape",
                u"https://whc.unesco.org/document/152724")]
-# v17 (round 4, D2): booklet p13 becomes two pages at 1:250, ps_p1 = p13a (W1, W2) and ps_p2 = p13b (W3, W4), each
-# a whole page drawn at the booklet scale (BK_S 1: the booklet prints the crop 1:1, so its scale words stay 1:250 and
-# the insets 1:100); ps_all is gone. The single crops are the four rows (unused by the booklet today).
-BK_CROPS = [("ps_p1", "p1", u"Proposal sections W1, W2, upstream, each looking downstream"),
-            ("ps_p2", "p2", u"Proposal sections W3, W4, downstream, each looking downstream"),
-            ("ps_upstream", "up", u"W1 · Upstream entry, looking downstream"),
-            ("ps_k4", "k4", u"W2 · %s, looking downstream" % PS_CUTS[1][3]),          # v16 (G16): real names
-            ("ps_k5", "k5", u"W3 · %s, looking downstream" % PS_CUTS[2][3]),
-            ("ps_downstream", "down", u"W4 · Downstream reach, looking downstream")]
-BK_DROP = [u"^\\[\\d+\\]$"]                           # the sheet's source numbers: the booklet has its own source list
 
 
-def booklet_export(log):
-    """booklet/blocks.json: the two pages ps_p1 / ps_p2 + one crop per row (rect in mm from the sheet's top-left, y
-    down)."""
-    bk = BkBlocks(OUT_DIR, GH_LABEL, VERSION)
-    for k, t, u in BK_SOURCES:
-        bk.source(k, t, u)
-    bk.d["sheet_sources"] = {"0": [u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())]}   # v7: the booklet's sources page
-    # v10: drawn samples of what the sections draw (fills as they show on white; hatches by their ground colour), for
-    # the single crops; v17: the pages ps_p1 / ps_p2 carry their own legend, so the booklet adds none under them
+def ps_legend_entries():
+    """the material key (solid colours, G-R5-4.1) of what the sections draw, as Ix legend entries"""
     P = _wat_pal()
-    legend = [dict(kind="fill", colour=P["sec"], label=u"water at the average yearly flow"),
-              dict(kind="dash", colour=P["q100"], label=u"Q100 flood level"),
-              dict(kind="dash", colour=P["q500"], label=u"Q500 flood level"),
-              dict(kind="fill", colour=SCT["stone"], label=u"stone: DSİ walls, steps, garden wall"),
-              dict(kind="fill", colour=SCT["concrete"], label=u"concrete: stairs, ramp, basins"),
-              dict(kind="fill", colour=SCT["earth"], label=u"earth"),
-              dict(kind="fill", colour=SCT["gravel"], label=u"gravel bed"),
-              dict(kind="fill", colour=PS_TIMBER, label=u"timber: terrace, boardwalk"),
-              dict(kind="fill", colour=SF_LANE["walk"], label=u"walk paving"),
-              dict(kind="fill", colour=SF_LANE["bike"], label=u"bike lane"),
-              dict(kind="fill", colour=COL["accent"], label=u"proposal (labels), cut lines on the key map")]
-    for style, part in STYLES:                        # v13 (Aras 31 Oct): style a only, plain ids
-        boxes = SHEET_BOXES.get(style, {})
-        for bid, key, cap in BK_CROPS:
-            if key not in boxes:
-                log.append(u"booklet %s: section %s not on the sheet" % (bid, key))
-                continue
-            x0, y0, x1, y1 = boxes[key]
-            bk.crop(bid, OUT_NAME.format(part), (x0, BOARD_H - y1, x1, BOARD_H - y0), caption=cap,
-                    scale_den=PS_SCALE * BK_S, legend=([] if key in ("p1", "p2") else legend), drop=BK_DROP)
-    return bk.save()
+    return [(dict(kind="fill", colour=P["sec"]), u"water at the average yearly flow"),
+            (dict(kind="dash", colour=P["q100"], width_pt=0.85, dash_pt=[3.4, 1.7]), u"Q100 flood level"),
+            (dict(kind="dash", colour=P["q500"], width_pt=0.85, dash_pt=[1.1, 1.4]), u"Q500 flood level"),
+            (dict(kind="fill", colour=SCT["stone"]), u"stone: DSİ walls, steps, garden wall"),
+            (dict(kind="fill", colour=SCT["concrete"]), u"concrete: stairs, ramp, basins"),
+            (dict(kind="fill", colour=SCT["earth"]), u"earth"),
+            (dict(kind="fill", colour=SCT["gravel"]), u"gravel bed"),
+            (dict(kind="fill", colour=PS_TIMBER), u"timber: terrace, boardwalk"),
+            (dict(kind="fill", colour=SF_LANE["walk"]), u"walk paving"),
+            (dict(kind="fill", colour=SF_LANE["bike"]), u"bike lane")]
 
 
-# ================================================================ the sheet (v17: two blocks = booklet pages p13a, p13b)
-# v17 (round 4, D2): two blocks shaped like the booklet's panel area, one per booklet page (crops ps_p1, ps_p2), drawn
-# in booklet print mm by parts/70_sections.py ps_page (two cuts at 1:250 each) and placed here at 1:1.
-SHEET_BOXES = {}                                      # style -> {key -> crop box (x0, y0, x1, y1), mm, y up}; build_sheet
-# The booklet's panel area (bergama_booklet code.py: AREA = 392 x 243 mm, less the 5 mm caption band CAP_H); v17: the
-# full 392 mm width (the 1:250 rows need it), 234 mm high
-BK_W, BK_H = 392.0, 234.0
-BK_S = 1.0                                            # v17: the pages are drawn at the booklet scale (1:250 prints 1:250)
-PS_SHEET_GAP = 20.0                                   # mm between the two pages on the A0 sheet
+def _ps_ibox(it):
+    """an item's box (print mm) or None"""
+    if it[0] == "image":
+        return (it[1], it[2], it[1] + it[3], it[2] + it[4])
+    if it[0] == "circle":
+        return (it[1] - it[3], it[2] - it[3], it[1] + it[3], it[2] + it[3])
+    if it[0] == "text":
+        return (it[2], it[3], it[2], it[3])
+    pts = [p for R in it[1] for p in R] if it[0] == "poly" else list(it[1])
+    if not pts:
+        return None
+    return (min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts))
 
 
-def build_sheet(opt, log, style="a"):
-    """v17: the two booklet pages p13a (W1, W2) and p13b (W3, W4) side by side on one A0 landscape sheet at 1:1 (each
-    at 1:250, insets 1:100), in style a (D1)."""
-    pg = Page(BOARD_W, BOARD_H)
-    pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
-    X0, X1 = M, BOARD_W - M
-    top = BOARD_H - M
-    pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    pg.text(u"four cuts W1-W4, upstream to downstream, each looking downstream · sections 1:250, insets 1:100",
-            X0, top - 18.0, 3.6, MP["discharge"][2], bold=True)
-    y1 = top - 22.0
-    pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
-    gy1 = y1 - 4.0
-    gy0 = gy1 - BK_H
-    sb = SHEET_BOXES.setdefault(style, {})
-    for i, (page, key, cids) in enumerate(PS_PAGES):
-        x0 = X0 + i * (BK_W + PS_SHEET_GAP)
-        blk, boxes = ps_page(page, cids, log, style)
-        pg.poly([rect(x0, gy0, x0 + BK_W, gy1)], fill=COL["white"])   # v16 (G17): the crop's ground is white
-        pg.items += ps_xform(blk.items, 1.0, x0, gy0)
-        sb[key] = (x0, gy0, x0 + BK_W, gy1)               # ps_p1 / ps_p2: the whole page
-        for k_, b in boxes.items():                       # single crops: one row each
-            sb[k_] = (x0 + b[0], gy0 + b[1], x0 + b[2], gy0 + b[3])
-    log.append(u"sources: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(ps_sources())))
-    return pg
+def ps_drawing(ix, S, did, page, scale_pref, group, priority, window=None, title=None):
+    """S's items (print mm at S.k) as one true-scale drawing in metres: x = S.u0 + x_mm / S.k, y = S.z0 + y_mm / S.k;
+    window (m) = an inset's extent: only items that reach into it go in (the booklet clips at the extent)"""
+    k = 1.0 / S.k
+    if window:
+        ext = window
+        wx = [(v - o) * S.k for v, o in zip(window, (S.u0, S.z0, S.u0, S.z0))]
+        items = []
+        for it in S.pg.items:
+            b = _ps_ibox(it)
+            if b is None or (b[0] <= wx[2] and b[2] >= wx[0] and b[1] <= wx[3] and b[3] >= wx[1]):
+                items.append(it)
+    else:
+        bb = ps_bbox(S.pg.items)
+        ext = (S.u0 + min(0.0, bb[0]) * k, S.z0 + min(0.0, bb[1]) * k, S.u0 + max(S.w, bb[2]) * k, S.z0 + bb[3] * k)
+        items = S.pg.items
+    D = ix.drawing(did, page, ext, scale_pref=scale_pref, dkind="section", group=group, priority=priority,
+                   title=title)
+    ix.layer(D, "section", items, k=k, origin=(S.u0, S.z0))
+    return D
 
 
+def ps_items(ix, log):
+    """v19: the whole p13 export (see the notes above)"""
+    page = PS_PAGE
+    ix.text(page, u"The proposals in section", "title", priority=1, id="ps_title")
+    ix.text(page, u"Four cuts W1-W4, upstream to downstream, each looking downstream · %s left, %s right" % (
+        place_name("side_NE"), place_name("side_SW")), "intro", priority=2, id="ps_intro")
+    cids = []
+    for i, (key, cid, num, name, take) in enumerate(PS_CUTS):
+        S = ps_section(cid, log, page, "a")
+        cids.append(cid)
+        g = u"ps_%s" % cid
+        D = ps_drawing(ix, S, g, page, [PS_SCALE], g, i + 1, title=u"%s · %s" % (cid, name))
+        ix.text(page, u"%s · %s" % (cid, name), "heading", priority=i + 1, group=g, id=g + "_head")
+        ix.text(page, take, "note", priority=i + 1, group=g, id=g + "_scenario")
+        ix.text(page, ps_note(cid), "note", priority=i + 1, group=g, id=g + "_levels_note")   # P13.2 water levels
+        # the numbers on what they name (badges at the marker, G-R4-5.5) and the list beside "Name · reason"
+        disc = []
+        for x, y, n, col in S.marks:
+            sh, _b, _r = mk_marker(x, y, n, col, PS_LIST_PT)
+            disc += [s_ for s_ in sh if s_[0] != "text"]
+            for s_ in sh:
+                if s_[0] == "text":
+                    ix.text(page, s_[1], "badge", drawing=D["id"], at=(S.u0 + s_[2] / S.k, S.z0 + s_[3] / S.k),
+                            size_pt=PS_LIST_PT, bold=True, colour=s_[5], positions=["=L"], side_list_ok=False,
+                            priority=i + 1, group=g)
+        ix.layer(D, "numbers", disc, k=1.0 / S.k, origin=(S.u0, S.z0))
+        if S.list:
+            ix.list(page, D["id"], [t for _n, t, _c in S.list], numbered=True, id=g + "_list", group=g)
+        sf_level_items(ix, page, D, [("q500", level(cid, "q500")), ("q100", level(cid, "q100")),
+                                     ("avg", level_avg_flow(cid)), ("bed", S.bed)])
+        # the zoom inset: the section drawn again at the inset scale (G-R5-5), framed on the action
+        fr = S.inset_fr
+        if fr:
+            C = ps_section(cid, [], page, "a", k=fr["k"], child=True)
+            cd = ps_drawing(ix, C, g + "_inset", page, [fr["den"]], g, i + 1, window=fr["window"],
+                            title=u"%s · %s" % (cid, S.inset[4]))
+            ix.inset(page, D["id"], fr["window"], cd["id"], fr["factor"], id=g + "_inset_item")
+            ix.text(page, S.inset[4], "caption", priority=i + 1, group=g, id=g + "_inset_caption")
+            kk = 1.0 / S.k
+            sf_inset_cut_check(fr["window"], [(u"plant/element %d" % j_, (S.u0 + o[0] * kk, S.z0 + o[1] * kk,
+                                                                          S.u0 + o[2] * kk, S.z0 + o[3] * kk))
+                                              for j_, o in enumerate(S.obst) if (o[4] if len(o) > 4 else 0) == 0],
+                               page=page, label=u"%s %s" % (cid, S.inset[4]))
+        else:
+            ix.warn(page, "inset", u"%s: no inset spot set: no zoom inset (never skipped silently, C5)" % cid)
+        log.append(u"%s %s: drawing %.0f x %.0f m at 1:%d, %d numbers, inset %s" % (
+            page, cid, D["extent"][2] - D["extent"][0], D["extent"][3] - D["extent"][1], PS_SCALE, len(S.list),
+            (u"1:%d" % fr["den"]) if fr else u"none"))
+    ix.legend(page, None, ps_legend_entries(), title=u"Materials", id="ps_legend", group="ps_legend")
+    ps_keymap_items(ix, page, cids, log)
+    for k_, t_, u_ in BK_SOURCES:
+        ix.source(k_, t_, u_, page=page)
+    for k_, t_ in ps_sources():
+        ix.source(k_, t_, None, page=page)
+    return ix
+
+
+# ================================================================ v19: no sheet; the booklet items (parts/90_booklet.py)
 def main():
     t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
+    wn_reset()                                        # v19 (C1): one warning sink, counted in the log head
     log = []
     pal = load_palette([DATA_DIR], log)
-    lines = []
-    for opt in OPTIONS:
-        for style, part in STYLES:                    # revision 30 Oct (D1): one sheet per style, same geometry
-            t1 = time.time()
-            pg = build_sheet(opt, log, style)
-            path = os.path.join(OUT_DIR, OUT_NAME.format(part))
-            try:
-                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
-            except (IOError, OSError):
-                path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
-                write_pdf(pg, path, u"Bergama proposal sections {} {} style {}".format(VERSION, opt, style))
-            lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"),
-                                                     time.time() - t1))
+    ix = Ix("bergama_proposal_sections", "bergama_proposal_sections", VERSION)
+    ps_items(ix, log)
+    path = ix.save()
+    log.append(ix.summary())
     log.append(cut_log_line())
-    log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # v17 (round 4 S1): what started this run
-    log += tp_log_lines() + [fig_set_line(), sf_g14_line()] + pla_log_lines()   # v17: overlap p13a/p13b, figures set,
-    log += sec_look_lines() + wat_flag_lines()            # plants season=, sky, insets, level marks, fauna, water
-    log += [u"PDF images: " + x for x in WP_IMG_LOG[:5]]
-    try:                                              # v4: A3 booklet assets; an error here never stops the sheet
-        booklet_export(log)
-    except Exception as ex:
-        log.append(u"booklet assets not written: {}: {}".format(type(ex).__name__, ex))
-    log += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
-    head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
+    log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # what started this run
+    log += [fig_set_line(), sf_g14_line()]                # v19 (A17): the plant lines once (sec_look_lines has them)
+    log += sec_look_lines() + wat_flag_lines()
+    log.append(u"insets: each drawn again at its own scale, so the figure / plant / people counts above include them")
     if pal is None:
-        head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
-    return u"\n".join(head + [u"{} {}, {:.1f} s".format(GH_LABEL, VERSION, time.time() - t0)])
+        log.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
+    head = [u"%s %s · %s · %.1f s" % (GH_LABEL, VERSION, time.strftime("%H:%M"), time.time() - t0),
+            u"Items: %s (no sheet PDF: the booklet composes p13)" % path]
+    return u"\n".join(wn_compose(tp_log_lines() + [x for x in log if x], head=head))
 
 
 # ---- trigger.py (round 4, S1, 1 Nov 2026; BRIEF §6, round 3 open row 13): ONE start-up / trigger file ----------------
@@ -11285,7 +13580,68 @@ def main():
 #   trig_should_run(key="chain_seen", settings=()) -> (run, why, button)
 #                                          run: bool; why: "button <name>" | "chain <input>" | None; button: its name
 #                                          or None. Each script logs "trigger: <why>" in its run log.
+#
+# ROUND 5 (S1, 1 Nov 2026; C2, CHK-13: an output folder appeared when Aras only OPENED the GH file, 16:29): every
+# memory above (the first-solve note, the last done text seen, the Button's last state) is now kept per OPEN
+# DOCUMENT (trig_doc_key: the GH document's runtime id, else its object hash), not per Rhino session. Before, the
+# notes of an earlier opening survived in Rhino's sticky, so the first solve after a reopen was not "first" and a
+# done text still on a wire (or a Toggle left True: prev False -> True) started a run. Now the first solve after any
+# open, paste or rewire only NOTES the wire and the Button state; only a later change starts a run.
+# CHANGED APPROACH (Aras 1 Nov 22:46: "if you struggle with an aspect over and over, change your approach"): the chain
+# no longer trusts memory notes alone. A chain start exists ONLY after a Button press in THIS open document
+# (trig_mark_chain stores (time, document id)); chain_fire fires a component only when such a press exists and its
+# done text is newer than the last one it saw. Opening a file, pasting, rewiring or a Toggle left True can never start
+# a chain: without a press in this load, every done text on a wire is only noted.
+#   trig_doc_key() -> str                  the open GH document's per-load id ("" outside Grasshopper)
+#   trig_mark_chain(why)                   a Button run notes the chain start time (sticky "bergama_chain_t0", read by
+#                                          bergama_paths.bg_this_run); trig_should_run calls it
 TRIGGER_BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button", "start")
+
+
+def trig_doc_key():
+    """the open Grasshopper document's id for THIS load: GH_Document.RuntimeID (new each time a file is opened in a
+    Rhino session), else the document object's hash; "" outside Grasshopper"""
+    try:
+        d_ = ghenv.Component.OnPingDocument()                              # noqa: F821
+    except Exception:
+        return ""
+    if d_ is None:
+        return ""
+    for a_ in ("RuntimeID", "RuntimeId"):
+        try:
+            v_ = getattr(d_, a_)
+            if v_ is not None:
+                return "doc%s" % v_
+        except Exception:
+            pass
+    try:
+        return "doch%s" % d_.GetHashCode()
+    except Exception:
+        return "docp%s" % id(d_)
+
+
+def trig_mark_chain(why):
+    """a run started by a Button press is the start of a chain run: its time goes to sticky "bergama_chain_t0" so
+    readers can tell this run's files from older ones (bergama_paths.bg_this_run)"""
+    if not why or not str(why).startswith("button"):
+        return
+    try:
+        import scriptcontext as _scx
+        import time as _t
+        _scx.sticky["bergama_chain_t0"] = _t.time()
+        _scx.sticky["bergama_chain_doc"] = trig_doc_key()
+    except Exception:
+        pass
+
+
+def trig_chain_live():
+    """True when a Button press started a chain in THIS open document (see CHANGED APPROACH above)"""
+    try:
+        import scriptcontext as _scx
+        return (_scx.sticky.get("bergama_chain_t0") is not None and
+                _scx.sticky.get("bergama_chain_doc") == trig_doc_key())
+    except Exception:
+        return False
 
 
 def trig_inputs():
@@ -11370,7 +13726,7 @@ def chain_fire(v, key, name=None):
     try:
         import scriptcontext as _scx
         try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring()      # noqa: F821
+            key = key + ":" + str(ghenv.Component.InstanceGuid) + ":" + _chain_wiring() + ":" + trig_doc_key()  # noqa
         except Exception:
             pass
         # the first solve with this wiring (pasted, rewired or newly opened component) only notes what is on the
@@ -11382,7 +13738,7 @@ def chain_fire(v, key, name=None):
         first = _scx.sticky.get(key + ":init") is tok
         if not s.startswith("done "):
             return False
-        if first or _scx.sticky.get(key) == s:
+        if first or _scx.sticky.get(key) == s or not trig_chain_live():
             _scx.sticky[key] = s
             return False
         _scx.sticky[key] = s
@@ -11424,13 +13780,17 @@ def trig_should_run(key="chain_seen", settings=()):
             gk = str(ghenv.Component.InstanceGuid)                          # noqa: F821
         except Exception:
             gk = ""
-        pk = "trig_prev:" + key + ":" + gk
+        pk = "trig_prev:" + key + ":" + gk + ":" + trig_doc_key()
         on = to_bool(trig_get(btn)) if btn else False
-        prev = bool(_scx.sticky.get(pk, False))
+        prev = _scx.sticky.get(pk)
+        if prev is None:              # round 5 (C2): the first solve of this document only notes the Button's state
+            prev = on
+        prev = bool(prev)
         _scx.sticky[pk] = on
     except Exception:
         on, prev = (to_bool(trig_get(btn)) if btn else False), False
     if on and not prev:
+        trig_mark_chain(u"button")
         return True, u"button " + btn, btn
     # the chain: the button input first (the board family wires the done text there), then every other own input
     skip = set(str(x).lower() for x in settings or ())
@@ -11494,7 +13854,7 @@ if "ghenv" in globals():
                                       time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
     done = _sc.sticky.get(_k + "_done", "idle")
-    log = _sc.sticky.get(_k + "_log", "Press the Button to write the proposal sections to " + OUT_DIR)
+    log = _sc.sticky.get(_k + "_log", "Press the Button to export the proposal sections to " + bg_booklet(OUT_FOLDER))
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log
     try:
         ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821

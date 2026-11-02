@@ -1112,7 +1112,8 @@ def p45_title(B, sd_, x, y, w, kb, L="LU_BOARD::Sections"):
     crs_ = p45_banks(sd_)
     if crs_ and not all(c2["along"] for c2 in crs_):
         l_, r_ = p45_sides(sd_)
-        extra.append(u"{} → {}".format(place_name("side_" + l_), place_name("side_" + r_)))
+        extra.append(u"{} – {}".format(place_name("side_" + l_), place_name("side_" + r_)))   # v60 (P04.7): "→"
+        #                                                    printed "?" (cp1252); the en dash is in every writer
     if sd_.get("crop_of"):
         extra.append(u"part around the stream")
     while extra and site28_line_w(site28_one(t_ + u" · " + u" · ".join(extra), hd), hd) > w:
@@ -1509,16 +1510,8 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
                 bold=bold, align=align or "L")
     if km:
         km_draw(km, X, fill_fn, line_fn, text_fn, page=pid)
-    B.line(rect(*r) + [(r[0], r[1])], INK2, L, 40, bk_lw(0.088, kb))   # the map's 0.25 pt neatline
-    # the north arrow beside the map, top right of it, no plate (G-R4-9)
-    na = north_items(0.0, 0.0, 0.0, 6.0)
-    nx0, ny0 = r[2] + 2.5 * kb, yt - 9.5 * kb             # v59.1: was 8.5 mm, which put the "N" 0.3 mm over the crop top
-    basemap_draw(na, lambda p_: (nx0 + p_[0] * kb, ny0 + p_[1] * kb),
-                 lambda rings, hx, al, nz: B.fill(rings, _p45_c(hx), L, 41),
-                 lambda pts, hx, wmm, dash, al: B.line(pts, _p45_c(hx), L, 41, bk_lw(wmm or 0.2, kb)),
-                 lambda s_, p_, size_mm, hx, bold, align: B.text(s_, p_[0], p_[1], size_mm * _PDF_CAP["sans"] * kb,
-                                                                  _p45_c(hx), L, order=42, font=FONT_TITLE,
-                                                                  bold=bold, align=align or "L"))
+    # v60 (round 5, S2 note 1 / P04.1): the key map v2 carries its own fitted frame line and its turned true-north
+    # arrow (km_draw frame=True): the page's own neatline and north arrow are gone
     # the legend on columns 7-12 (7 pt rows)
     tx = x + (P45_KEY_W + P45_GAP) * kb
     yy = yt - h7
