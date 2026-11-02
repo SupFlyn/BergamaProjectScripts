@@ -115,7 +115,8 @@ BK_PAGES = [
                ["ag1_history"]], right=["ag2_farms"]),
     dict(pid="p20", part="D", stage="do", title=u"The heritage loop",
          intro=u"The Selinos is the *seam*: *bridges, crafts and events* tie the *Kale side* to the *bazaar side*.",
-         rows=[["sb_heritage_loop"]], share=0.75),
+         rows=[["sb_heritage_loop"]], share=0.75, below=22.0),
+    # v30.3: the loop at full width (1:10,000), its legend and note in a band underneath
     dict(pid="p21", part="E", stage="do", title=u"Masterplan: an ecological corridor",
          intro=u"The whole project on one plan: *walking hubs*, *reed basins* and terraces that *hold the rain*, "
                u"*calmed streets*, along the Selinos as an *ecological corridor*.",

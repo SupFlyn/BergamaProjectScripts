@@ -504,6 +504,11 @@ def bk_content_page(doc, spec, n, lines):
     if not rows and not right and not S["keymaps"]:
         wn_warn(pid, "missing", u"no items exported for this page: its scripts were not run (page left with its title)")
     dr = L["draw"]
+    if spec.get("below"):                          # v30.3: drawings take the full width; the right column's items
+        b_ = float(spec["below"])                  # (legend, notes) go in a band of this height under them
+        al_ = L["all"]
+        dr = (al_[0], al_[1], al_[2], al_[3] - b_)
+        L["right"] = (al_[0], al_[3] - b_ + BK_GAP, al_[2], al_[3])
     W, H = dr[2] - dr[0], dr[3] - dr[1]
     ev = bk_fit(S, rows, W, H, spec.get("common"), pid)
     used = sum(e["h"] for e in ev) + BK_GAP * max(0, len(ev) - 1)
@@ -522,7 +527,7 @@ def bk_content_page(doc, spec, n, lines):
     # right column
     rx0, ry0, rx1, ry1 = L["right"]
     rw = rx1 - rx0
-    cy = max(ry0, L["intro"][3] + 1.0)
+    cy = ry0 if spec.get("below") else max(ry0, L["intro"][3] + 1.0)
     for km in S["keymaps"]:
         f = sc_factor(km, rw, min(spec.get("km_h", BK_KM_H), max(10.0, ry1 - cy)), pid)
         dh = _sc_ext(km)[1] * f
