@@ -25,6 +25,10 @@
 # paler behind them, lamps / bollards / bike racks only on the streets the cut crosses (p45_street_kit); bridge and
 # bank names from names.py (no K-code printed); one FLAG overlap line per page (p04, p05).
 
+P45_KM = {}                       # v60.2: page id -> the page's key map (km_map result), exported by 16d (km_items)
+P45_LEG = {}                      # v60.2: page id -> the page's legend entries [(swatch, text)], exported by 16d
+P45_KM_EXPORT_W = 68.0            # mm: v60.2: the exported key map's width = the booklet's right column at share 0.82
+                                  # (392 mm inner x 0.82 - 2 = 319.4 mm drawings, 4 mm gutter, 68.6 mm left)
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S6",)               # cuts that run along the stream: cropped to the part around their crossings (v59: S5 is across, N4 b)
 P45_DENS = (1000, 2000, 2500, 5000)   # the round scales tried, largest first (SCRIPT_STANDARD §8); v59 (P04.1): 1:1,000 first
@@ -1091,7 +1095,7 @@ def p45_head(S, B, sd_, x, y, w, kb, U, L="LU_BOARD::Sections"):
         src = level_public_source(cr["rid"], "bed_width_cm")
         bw = level(cr["rid"], "bed_width_cm")
         if src and bw:
-            t_ = u"Bed width {}: {}".format(u_dim(bw / 100.0), src)
+            t_ = u"Bed as drawn: {}".format(src)            # v60.2 (G-R5-4.6): its width is not printed
             if t_ not in srcs:
                 srcs.append(t_)
     for t_ in srcs:
@@ -1282,6 +1286,12 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
         p45_bar(B, cx_ + 2.0 * kb, yy - h_ + 0.6 * kb, wc - 2.0 * kb, ss, c_, den, kb, U)
         # v58 (G15): the zoom inset in the column's room between its words and its scale bar (v59: 1:500)
         p45_zoom(B, c_, cx_, yh_ - 1.0 * kb, yy - h_ + p45_bar_h(kb, U) + 1.5 * kb, wc, kb)
+        # v60.2 (G-R5-12, CLOSING_CHECK §2 row 8; change of approach): each cut is its OWN booklet drawing: the
+        # row (title strip, cut, level marks, side column, inset, scale bar) as one crop at the page scale; the
+        # key map (km_items) and the legend go out separately (draw_sections_key)
+        crop_panel("sec_%s" % c_["name"].lower(), x, yy - h_ - 0.3 * kb, x + sw, yy + 0.3 * kb, u"", crop_scale(ss))
+        CROP_PANELS[-1]["bk_w"] = BK_AW                  # drawn at its booklet width: the booklet keeps it
+        CROP_PANELS[-1]["ix_page"] = pid
         yy -= h_ + gap + extra
     sf_triangles(**tri_)
     for m_ in sf_assert_g6(ss / kb, strict=False):       # v56 G6: figures print 1.75 m (1.80 m cyclist) at the page scale
@@ -1292,10 +1302,9 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
     low = min(top - H, yy + gap + extra)
     P45_COLLECT[0] = False                               # v59 (G-R4-1): the page is checked by sb_text_check (raises)
     LOG.append(fig_set_line())                           # v59 (G-R4-5.1): "figures set=pen_black n"
-    crop_panel("sections_%d" % (k + 1), x, low, x + sw, top,
-               u"Sections across the stream · {} · key map and cuts".format(u", ".join(names)),
-               crop_scale(ss))
-    CROP_PANELS[-1]["bk_w"] = BK_AW                      # drawn at its booklet size: the booklet keeps it
+    # v60.2: no whole-page crop any more (each cut, the key map and the legend are exported on their own)
+    LOG.append(u"Sections {} ({}): split per cut for the booklet: {} drawings + key map + legend".format(
+        u", ".join(names), pid, len(rows)))
     return low
 
 
@@ -1346,9 +1355,9 @@ def site28_road_call(t):
         m_ = float(rest.split(u" m")[0])
     except ValueError:
         return nm_, 3
-    if nm_.lower() == u"street":
-        return u"street · " + u_dim(m_), 3
-    return nm_ + u" · " + u_dim(m_), 2
+    if nm_.lower() == u"street":                         # v60.2 (G-R5-4.6): the name only, no width in cm
+        return u"street", 3
+    return nm_, 2
 
 
 def site28_link(S, px, py, line):
@@ -1510,6 +1519,11 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
                 bold=bold, align=align or "L")
     if km:
         km_draw(km, X, fill_fn, line_fn, text_fn, page=pid)
+        try:                                              # v60.2 (G-R5-12 split): a copy fitted to the booklet's
+            P45_KM[pid] = km_map([(p45_rows_of(nm) or [nm])[0] if nm != "S5" else "S5" for nm in names],
+                                 P45_KM_EXPORT_W, None, page=pid)   # right column, exported as km_items (16d)
+        except Exception as e:
+            LOG.append(u"WARNING: sections key map {} not exported: {}".format(pid, e))
     # v60 (round 5, S2 note 1 / P04.1): the key map v2 carries its own fitted frame line and its turned true-north
     # arrow (km_draw frame=True): the page's own neatline and north arrow are gone
     # the legend on columns 7-12 (7 pt rows)
@@ -1549,6 +1563,15 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     sb_keep(B, (r[0], r[1], r[2], r[3]), u"%s key map" % pid, "keymap", i0_k)
     sb_keep(B, (tx, yy - 0.5 * h7, x + sw, yt), u"%s key legend" % pid, "legend", i0_k)
     if yy - 0.5 * h7 < yt - hk:
-        LOG.append(u"FLAG sections key band {}: its legend runs {:.1f} mm below the band.".format(
+        LOG.append(u"WARNING: sections key band {}: its legend runs {:.1f} mm below the band.".format(
             pid, (yt - hk - (yy - 0.5 * h7)) / kb))
+    # v60.2 (G-R5-12 split, CLOSING_CHECK §2 row 8): the legend goes out as a legend item (P45_LEG) and the key map
+    # through km_items (P45_KM), so the booklet sets both in the right column
+    P45_LEG[pid] = ([(dict(kind="fill", colour=crop_hex(CAT[c_][1] if c_ != "void" else mix(KHAKI, PAPER, 0.55))),
+                      P45_STRIP_WORD.get(c_, c_)) for c_ in cats or []] +
+                    [(dict(kind="dash", colour=crop_hex(st["colour"])),
+                      R28_STUDY_NAME),
+                     (dict(kind="line", colour=crop_hex(cc)), u"cut line · the triangle looks the way the section is drawn"),
+                     (dict(kind="line", colour=crop_hex(INK)),
+                      u"level, m above sea · bed, mean flow, 100- and 500-year flood, tallest roof")])
     return yt - max(hk, mh)

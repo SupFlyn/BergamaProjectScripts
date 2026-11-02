@@ -2018,12 +2018,12 @@ def p24_reason(C, key, w):
     if key == "spill":
         return u"gives the cleaned water back to the stream"
     if key == "forest":
-        return u"shade on the walk between the hubs · {:.0f}-{:.0f} m from the water".format(FOREST[0], FOREST[1])
+        return u"shade on the walk between the hubs"   # v40.2 (G-R5-4.6): band width dropped
     if key == "wetland":
         ws = [x for x in C.widen if any(inR(p) for p in x["ring"])]
         if ws:
             lo, hi = min(x["fw"][0] for x in ws), max(x["fw"][1] for x in ws)
-            return u"{:.0f}-{:.0f} m open beside the bank: room for the water, a wetland".format(lo, hi)
+            return u"open beside the bank: room for the water, a wetland"   # v40.2: width dropped
         return u"it floods first: a terrace {:.2f} m over the bed".format(TERRACE_UP)
     if key == "demeter":
         q = (u"raised over Q500 {}: Q500 stays in the banks here".format(u_level(level_registry(cid)["q500"]))
