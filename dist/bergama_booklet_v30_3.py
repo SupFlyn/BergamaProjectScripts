@@ -31,7 +31,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v30.3"  # v30.3 fix (2 Nov run: drawings small, things on top of each other): booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v30.3"  # v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -2292,7 +2292,7 @@ def ix_text(t, folder=None):
 # for the whole-survey plans that overran A3 at 1:20,000), so a map no longer halves in size between two list steps.
 # Only maps and sections take a list scale and print it; diagrams, charts and the axo take any size (Aras 06:24
 # "diagrams can be at different scales ... dont write scales to diagrams, just maps").
-BK_SCALES = (200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000)
+BK_SCALES = (200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000, 50000)  # 50,000: p19 farms map in the right column
 BK_INSET_SCALES = (100,) + BK_SCALES
 BK_MM_MAX = 6.0            # v30.3: a scale-free drawing may grow to 6 x its exported size (was 2 x), room permitting
 BK_INSET_ZOOM = 2.0
@@ -2824,6 +2824,33 @@ def pl_label(P, it, placed, side=None, window=None):
     return P.tp.items[-1]
 
 
+def pl_rigid(P, placed, s, roles=None):
+    """v30.3 (2 Nov run: diagram texts on top of each other): a scale-free drawing (diagram, chart, key map, axo) keeps
+    its texts exactly where its script set them, scaled WITH the drawing (size x s, offsets x s), never moved to a free
+    spot or numbered into a side list: the script designed them together, so they only collide if the script's own
+    design does. Floor GRID_MIN_PT (D1); below it the layout gives the drawing more room instead."""
+    T = placed["T"]
+    n = 0
+    for it in sorted(ix_texts(placed["D"]), key=lambda t: t.get("priority", 5)):
+        if roles and it.get("role") not in roles:
+            continue
+        a_ = _pl_apt(it)
+        t = it.get("string", u"")
+        if a_ is None or not t:
+            continue
+        anchor = T.pt(a_[0], a_[1])
+        pt0 = float(it.get("size_pt") or grid_role(it.get("role", "label"))[0])
+        pt = max(GRID_MIN_PT, pt0 * s)
+        c = (_pl_codes(it.get("positions")) or ["E"])[0]
+        if not isinstance(c, str):
+            c = (c[0] * s, c[1] * s, c[2])
+        x, y, al = P.tp._at(c, t, anchor, pt, bool(it.get("bold")), 0.8 * s)
+        P.tp.put(t, x, y, pt, bool(it.get("bold")), al, 0.0, it.get("id"), it.get("role", "label"), it.get("colour"),
+                 (placed["id"],), forced=True)
+        n += 1
+    return n
+
+
 def pl_labels(P, placed, side=None, roles=("label", "badge")):
     n = 0
     for it in ix_texts(placed["D"]):
@@ -3049,8 +3076,7 @@ def pl_mm_drawing(P, D, texts, x, y, w, h, align="C"):
     ox = x + ((w - dw) / 2.0 if align == "C" else (0.0 if align == "L" else w - dw))
     T = BkT(D, f, ox, y + (h - dh) / 2.0)
     placed = rd_drawing(P, D, T)
-    for it in sorted(texts or (), key=lambda t: t.get("priority", 5)):
-        pl_label(P, it, placed)
+    pl_rigid(P, placed, f)                  # v30.3: texts stay where the script set them, scaled with the drawing
     return placed
 
 
@@ -3402,7 +3428,8 @@ BK_PAGES = [
     dict(pid="p02", part="A", stage="an", title=u"What is there, grain of the town",
          intro=u"The whole survey area *as it is today*: buildings by *urban fabric*, ground and green, the *Selinos "
                u"stream* with its edges and *six bridges*, and the places where *stream and town clash*.",
-         rows=[["sb_plan01"]], right=["sb_site_readings", "sb_edge_types"]),
+         rows=[["sb_plan01"]], right=["sb_site_readings", "sb_edge_types"], share=0.50),
+    # v30.3: plan 01 at 1:25,000 is 183 mm wide; the half page right gives its two diagrams their full size
     dict(pid="p03", part="A", stage="an", title=u"Heights and enclosure",
          intro=u"Plan 01 as a parallel axonometric: *heights* are what the plan cannot show; the *sky view* from the "
                u"stream bed marks its *most enclosed* stretch.",
@@ -3421,7 +3448,9 @@ BK_PAGES = [
     dict(pid="p07", part="B", stage="an", title=u"How people use it",
          intro=u"*Shops* line Kınık Caddesi and Üç Kemer Caddesi, the *primary commercial spines*; *walking* and "
                u"*driving* today, street by street.",
-         rows=[["sb_movement"], ["sb_walking_today"], ["sb_driving_today"]], share=0.75),
+         rows=[["sb_movement"], ["sb_walking_today"], ["sb_driving_today"], ["sb_mv_note_*"]], share=0.75,
+         common=True),
+    # v30.3 run 3: the three notes as a 4th row (in the right column they were crushed to x0.16)
     # v30.3: three maps stacked (side by side they were 289 mm in 272 mm: overlaps), 1:10,000 instead of 1:20,000
     dict(pid="p08", part="B", stage="got", title=u"The stream joins the town where the shops already are",
          intro=u"One *corridor*: the shop streets, the *hidden stream* and the project from end to end; *who* comes "
@@ -3447,7 +3476,9 @@ BK_PAGES = [
          intro=u"The four cuts *W1 to W4*, upstream to downstream, each proposal *in section* at *1:500* with a "
                u"*1:100* detail and the *Q500* flood line.",                          # D9 merged, N3 a 1:500
          rows=[["ps_W1", "ps_W1_inset"], ["ps_W2", "ps_W2_inset"], ["ps_W3", "ps_W3_inset"],
-               ["ps_W4", "ps_W4_inset"]], common=True),
+               ["ps_W4", "ps_W4_inset"]], common=True, share=0.78, km_h=42.0),
+    # v30.3: wider drawing area so each section + detail fits its row (W2's detail ran into the right column); the
+    # detail takes 1:100 or 1:200, whichever fits; a smaller key map leaves the lists room
     dict(pid="p14", part="C", stage="do", title=u"Four seasons on one cut",
          intro=u"*One cut, one viewpoint, four seasons*: the *water level* decides what the place becomes, which "
                u"plants are in *leaf or flower*, and which animals are about.",
@@ -3772,7 +3803,8 @@ def _bk_res(S, did):
 
 
 def _bk_inset_den(D, parent_den, w, h):
-    al = [d for d in _sc_allowed(D, inset=True) if d * BK_INSET_ZOOM <= parent_den + 1e-6]
+    lo_ = min([int(v) for v in (D.get("scale_pref") or [100])] or [100])   # v30.3: from its own scale up to half the
+    al = [d for d in BK_INSET_SCALES if lo_ <= d and d * BK_INSET_ZOOM <= parent_den + 1e-6]   # parent's (row fits)
     if not al:
         return None
     for den in al:
@@ -3798,7 +3830,7 @@ def bk_row_eval(S, cells, W, den, hcap):
         if par and S["draw"][d].get("units") == "m":
             pden = res.get(par, (den,))[0] or den
             rw, rh = _bk_res(S, d)
-            cd = _bk_inset_den(S["draw"][d], pden or 1000, W * 0.45, (mh or hcap) - rh)
+            cd = _bk_inset_den(S["draw"][d], pden or 1000, max(10.0, W - used_w - BK_GAP - rw), (mh or hcap) - rh)
             if cd:
                 dw, dh = sc_size(S["draw"][d], cd)
                 res[d] = (cd, dw + rw, dh + rh)
@@ -3817,6 +3849,10 @@ def bk_row_eval(S, cells, W, den, hcap):
             lo, hi = (D.get("fit") or (0.5, 2.0))[:2]
             hi = max(float(hi), BK_MM_MAX)                # v30.3: diagrams grow into the room they have
             fs.append([d, min(float(hi), max(0.0, hc - rh) / eh), ew, eh, rw, rh, float(lo)])
+        if fs:                                       # v30.3: one factor per row, so cards of a row match
+            f0 = min(f[1] for f in fs)
+            for f in fs:
+                f[1] = f0
         tw = sum(f[1] * f[2] + f[4] for f in fs)
         if tw > avail:
             k = avail / tw
@@ -3965,6 +4001,13 @@ def bk_badges(P, placed):
                  it.get("colour"), (placed["id"], "marker"))
 
 
+def bk_design_den(D):
+    """the scale a true-scale drawing's texts were designed at: "sheet scale 1:N" in its scale_note, else None"""
+    import re as _re
+    m_ = _re.search(r"sheet scale 1:([0-9][0-9,]*)", u"%s" % (D.get("scale_note") or u""))
+    return int(m_.group(1).replace(",", "")) if m_ else None
+
+
 def bk_place(P, S, did, s, x, y, side):
     """one cell at (x, y) top-left: heading, drawing, north, levels, labels, scale (see step 3) -> placed"""
     D = S["draw"][did]
@@ -3989,8 +4032,14 @@ def bk_place(P, S, did, s, x, y, side):
             wn_warn(P.pid, "scale", u"%s set at x%.2f, below its x%.2f minimum (row too full)" % (did, s, lo))
     for lc in att["levels"]:
         pl_levels(P, lc, placed, "R")
-    bk_badges(P, placed)
-    pl_labels(P, placed, side, roles=("label",))
+    dden = bk_design_den(D)
+    if T.den and dden:                              # v30.3: a board drawing (site board: "sheet scale 1:N") keeps its
+        pl_rigid(P, placed, float(dden) / float(T.den))   # own text layout, scaled from its sheet scale to this one
+    elif T.den:
+        bk_badges(P, placed)
+        pl_labels(P, placed, side, roles=("label",))
+    else:                                           # v30.3: diagrams keep their own text layout, scaled with them
+        pl_rigid(P, placed, s)
     if T.den:
         r = T.rect
         if D.get("scale_bar"):
@@ -4123,7 +4172,7 @@ def bk_content_page(doc, spec, n, lines):
     rw = rx1 - rx0
     cy = max(ry0, L["intro"][3] + 1.0)
     for km in S["keymaps"]:
-        f = sc_factor(km, rw, min(BK_KM_H, max(10.0, ry1 - cy)), pid)
+        f = sc_factor(km, rw, min(spec.get("km_h", BK_KM_H), max(10.0, ry1 - cy)), pid)
         dh = _sc_ext(km)[1] * f
         pl = pl_mm_drawing(P, km, ix_texts(km), rx0, cy, rw, dh, "L")
         cy = pl["rect"][3] + BK_GAP
@@ -4135,8 +4184,9 @@ def bk_content_page(doc, spec, n, lines):
             for it in S["att"][did]["side"]:
                 cy += bk_side_item(P, it, rx0, cy, rw, ry1) + 1.5
         cy += 1.0
-    for did in right:
-        cy += bk_right_drawing(P, S, did, rx0, cy, rw, ry1) + BK_GAP
+    for i_, did in enumerate(right):               # v30.3: the room left is shared evenly by the drawings still to come
+        share_ = (ry1 - cy - BK_GAP * (len(right) - i_ - 1)) / float(len(right) - i_)
+        cy += bk_right_drawing(P, S, did, rx0, cy, rw, cy + max(10.0, share_)) + BK_GAP
     for it in S["page"]:
         cy += bk_side_item(P, it, rx0, cy, rw, ry1) + 1.5
     cy += bk_photos(P, S["photos"], rx0, cy, rw, ry1)

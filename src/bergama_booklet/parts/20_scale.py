@@ -19,7 +19,7 @@
 # for the whole-survey plans that overran A3 at 1:20,000), so a map no longer halves in size between two list steps.
 # Only maps and sections take a list scale and print it; diagrams, charts and the axo take any size (Aras 06:24
 # "diagrams can be at different scales ... dont write scales to diagrams, just maps").
-BK_SCALES = (200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000)
+BK_SCALES = (200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000, 50000)  # 50,000: p19 farms map in the right column
 BK_INSET_SCALES = (100,) + BK_SCALES
 BK_MM_MAX = 6.0            # v30.3: a scale-free drawing may grow to 6 x its exported size (was 2 x), room permitting
 BK_INSET_ZOOM = 2.0

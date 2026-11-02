@@ -155,7 +155,8 @@ def _bk_res(S, did):
 
 
 def _bk_inset_den(D, parent_den, w, h):
-    al = [d for d in _sc_allowed(D, inset=True) if d * BK_INSET_ZOOM <= parent_den + 1e-6]
+    lo_ = min([int(v) for v in (D.get("scale_pref") or [100])] or [100])   # v30.3: from its own scale up to half the
+    al = [d for d in BK_INSET_SCALES if lo_ <= d and d * BK_INSET_ZOOM <= parent_den + 1e-6]   # parent's (row fits)
     if not al:
         return None
     for den in al:
@@ -181,7 +182,7 @@ def bk_row_eval(S, cells, W, den, hcap):
         if par and S["draw"][d].get("units") == "m":
             pden = res.get(par, (den,))[0] or den
             rw, rh = _bk_res(S, d)
-            cd = _bk_inset_den(S["draw"][d], pden or 1000, W * 0.45, (mh or hcap) - rh)
+            cd = _bk_inset_den(S["draw"][d], pden or 1000, max(10.0, W - used_w - BK_GAP - rw), (mh or hcap) - rh)
             if cd:
                 dw, dh = sc_size(S["draw"][d], cd)
                 res[d] = (cd, dw + rw, dh + rh)
@@ -200,6 +201,10 @@ def bk_row_eval(S, cells, W, den, hcap):
             lo, hi = (D.get("fit") or (0.5, 2.0))[:2]
             hi = max(float(hi), BK_MM_MAX)                # v30.3: diagrams grow into the room they have
             fs.append([d, min(float(hi), max(0.0, hc - rh) / eh), ew, eh, rw, rh, float(lo)])
+        if fs:                                       # v30.3: one factor per row, so cards of a row match
+            f0 = min(f[1] for f in fs)
+            for f in fs:
+                f[1] = f0
         tw = sum(f[1] * f[2] + f[4] for f in fs)
         if tw > avail:
             k = avail / tw
@@ -348,6 +353,13 @@ def bk_badges(P, placed):
                  it.get("colour"), (placed["id"], "marker"))
 
 
+def bk_design_den(D):
+    """the scale a true-scale drawing's texts were designed at: "sheet scale 1:N" in its scale_note, else None"""
+    import re as _re
+    m_ = _re.search(r"sheet scale 1:([0-9][0-9,]*)", u"%s" % (D.get("scale_note") or u""))
+    return int(m_.group(1).replace(",", "")) if m_ else None
+
+
 def bk_place(P, S, did, s, x, y, side):
     """one cell at (x, y) top-left: heading, drawing, north, levels, labels, scale (see step 3) -> placed"""
     D = S["draw"][did]
@@ -372,8 +384,14 @@ def bk_place(P, S, did, s, x, y, side):
             wn_warn(P.pid, "scale", u"%s set at x%.2f, below its x%.2f minimum (row too full)" % (did, s, lo))
     for lc in att["levels"]:
         pl_levels(P, lc, placed, "R")
-    bk_badges(P, placed)
-    pl_labels(P, placed, side, roles=("label",))
+    dden = bk_design_den(D)
+    if T.den and dden:                              # v30.3: a board drawing (site board: "sheet scale 1:N") keeps its
+        pl_rigid(P, placed, float(dden) / float(T.den))   # own text layout, scaled from its sheet scale to this one
+    elif T.den:
+        bk_badges(P, placed)
+        pl_labels(P, placed, side, roles=("label",))
+    else:                                           # v30.3: diagrams keep their own text layout, scaled with them
+        pl_rigid(P, placed, s)
     if T.den:
         r = T.rect
         if D.get("scale_bar"):
@@ -506,7 +524,7 @@ def bk_content_page(doc, spec, n, lines):
     rw = rx1 - rx0
     cy = max(ry0, L["intro"][3] + 1.0)
     for km in S["keymaps"]:
-        f = sc_factor(km, rw, min(BK_KM_H, max(10.0, ry1 - cy)), pid)
+        f = sc_factor(km, rw, min(spec.get("km_h", BK_KM_H), max(10.0, ry1 - cy)), pid)
         dh = _sc_ext(km)[1] * f
         pl = pl_mm_drawing(P, km, ix_texts(km), rx0, cy, rw, dh, "L")
         cy = pl["rect"][3] + BK_GAP
@@ -518,8 +536,9 @@ def bk_content_page(doc, spec, n, lines):
             for it in S["att"][did]["side"]:
                 cy += bk_side_item(P, it, rx0, cy, rw, ry1) + 1.5
         cy += 1.0
-    for did in right:
-        cy += bk_right_drawing(P, S, did, rx0, cy, rw, ry1) + BK_GAP
+    for i_, did in enumerate(right):               # v30.3: the room left is shared evenly by the drawings still to come
+        share_ = (ry1 - cy - BK_GAP * (len(right) - i_ - 1)) / float(len(right) - i_)
+        cy += bk_right_drawing(P, S, did, rx0, cy, rw, cy + max(10.0, share_)) + BK_GAP
     for it in S["page"]:
         cy += bk_side_item(P, it, rx0, cy, rw, ry1) + 1.5
     cy += bk_photos(P, S["photos"], rx0, cy, rw, ry1)

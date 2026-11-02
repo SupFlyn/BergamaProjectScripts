@@ -32,7 +32,8 @@ BK_PAGES = [
     dict(pid="p02", part="A", stage="an", title=u"What is there, grain of the town",
          intro=u"The whole survey area *as it is today*: buildings by *urban fabric*, ground and green, the *Selinos "
                u"stream* with its edges and *six bridges*, and the places where *stream and town clash*.",
-         rows=[["sb_plan01"]], right=["sb_site_readings", "sb_edge_types"]),
+         rows=[["sb_plan01"]], right=["sb_site_readings", "sb_edge_types"], share=0.50),
+    # v30.3: plan 01 at 1:25,000 is 183 mm wide; the half page right gives its two diagrams their full size
     dict(pid="p03", part="A", stage="an", title=u"Heights and enclosure",
          intro=u"Plan 01 as a parallel axonometric: *heights* are what the plan cannot show; the *sky view* from the "
                u"stream bed marks its *most enclosed* stretch.",
@@ -51,7 +52,9 @@ BK_PAGES = [
     dict(pid="p07", part="B", stage="an", title=u"How people use it",
          intro=u"*Shops* line Kınık Caddesi and Üç Kemer Caddesi, the *primary commercial spines*; *walking* and "
                u"*driving* today, street by street.",
-         rows=[["sb_movement"], ["sb_walking_today"], ["sb_driving_today"]], share=0.75),
+         rows=[["sb_movement"], ["sb_walking_today"], ["sb_driving_today"], ["sb_mv_note_*"]], share=0.75,
+         common=True),
+    # v30.3 run 3: the three notes as a 4th row (in the right column they were crushed to x0.16)
     # v30.3: three maps stacked (side by side they were 289 mm in 272 mm: overlaps), 1:10,000 instead of 1:20,000
     dict(pid="p08", part="B", stage="got", title=u"The stream joins the town where the shops already are",
          intro=u"One *corridor*: the shop streets, the *hidden stream* and the project from end to end; *who* comes "
@@ -77,7 +80,9 @@ BK_PAGES = [
          intro=u"The four cuts *W1 to W4*, upstream to downstream, each proposal *in section* at *1:500* with a "
                u"*1:100* detail and the *Q500* flood line.",                          # D9 merged, N3 a 1:500
          rows=[["ps_W1", "ps_W1_inset"], ["ps_W2", "ps_W2_inset"], ["ps_W3", "ps_W3_inset"],
-               ["ps_W4", "ps_W4_inset"]], common=True),
+               ["ps_W4", "ps_W4_inset"]], common=True, share=0.78, km_h=42.0),
+    # v30.3: wider drawing area so each section + detail fits its row (W2's detail ran into the right column); the
+    # detail takes 1:100 or 1:200, whichever fits; a smaller key map leaves the lists room
     dict(pid="p14", part="C", stage="do", title=u"Four seasons on one cut",
          intro=u"*One cut, one viewpoint, four seasons*: the *water level* decides what the place becomes, which "
                u"plants are in *leaf or flower*, and which animals are about.",
