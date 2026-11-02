@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v30.py = v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
+# CURRENT VERSION: bergama_booklet_v30_1.py = v30.1 (closing fix 2 Nov: Sources lists the masterplan places properly); v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
 # scripts' exported items (G-R5-12): 23 pages, one page numbering, no sheet crops; see NEW IN v30)
 """Bergama Group 6: A3 BOOKLET COMPOSER (round 5). Rules: scripts/_template/SCRIPT_STANDARD.md §9.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from every content script's booklet items.
@@ -31,7 +31,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v30"  # v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v30.1"  # v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"

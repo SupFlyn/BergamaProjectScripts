@@ -701,9 +701,11 @@ def _p02_col(c):
 # end and the booklet pages (25-page numbering, BRIEF page map: PDF p13 = W1 + W2, p14 = W3 + W4, p19 = F2 + F4,
 # p20 = W1 + S4; S4 also p15, p16, p18 per LEVELS) at the other. Cuts not in the level table (p09 R1-R4, p12 A-A',
 # p24 D1/D2, plan windows) are not marked here: logged (their owning scripts hold their lines).
-P02_MARK_PAGES = [("S1", "p04"), ("S2", "p04"), ("S3", "p04"), ("S4", "p04, p15, p16, p18, p20"), ("S5", "p05"),
-                  ("S6", "p05"), ("S7", "p05"), ("S8", "p05"), ("W1", "p13, p20"), ("W2", "p13"), ("W3", "p14"),
-                  ("W4", "p14"), ("F2", "p19"), ("F4", "p19")]
+# v60.1 (round 5 closing): the printed pages are the 23-page booklet's (D7, D9: W1-W4 all on p13; F2, F4, W1, S4 on
+# p18; S4 also on p14 four seasons, p15 S4 cut, p17 plans), not the 25-page numbers v60 printed.
+P02_MARK_PAGES = [("S1", "p04"), ("S2", "p04"), ("S3", "p04"), ("S4", "p04, p14, p15, p17, p18"), ("S5", "p05"),
+                  ("S6", "p05"), ("S7", "p05"), ("S8", "p05"), ("W1", "p13, p18"), ("W2", "p13"), ("W3", "p13"),
+                  ("W4", "p13"), ("F2", "p18"), ("F4", "p18")]
 
 
 def _p02_drawing_marks(B, V, F2, den, kb, L, order=66):
