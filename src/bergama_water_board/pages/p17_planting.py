@@ -380,13 +380,10 @@ def _p17_mp(log):
             d = {}
         if d and not fresh:
             msg = u"masterplan_results.json is {}: the plans' hubs and corridor are from that run".format(note)
-            log.append(u"WARNING p17: " + msg)
             wbx_warn(WBX_PG_PLANTS, "stale", msg)
         if not d:
             wbx_warn(WBX_PG_PLANTS, "data", u"no masterplan_results.json: hubs from the chain places, side arm from "
                                             u"its p.23 line")
-            log.append(u"WARNING p17: no masterplan_results.json: hubs from the four chain places, side arm from its p.23 "
-                       u"line")
         _P17_MEMO["mp"] = d
     return _P17_MEMO["mp"]
 
@@ -435,7 +432,6 @@ def _p17_shade(log):
         log.append(u"p17: shade_july.json {} ({})".format(note, fn))
         if os.path.isfile(fn) and not fresh:
             msg = u"shade_july.json is {}: the July shade is from that run".format(note)
-            log.append(u"WARNING p17: " + msg)
             wbx_warn(WBX_PG_PLANTS, "stale", msg)
         try:
             with open(fn, "r", encoding="utf-8") as f:
@@ -1109,7 +1105,7 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
             wbx_warn(WBX_PG_PLANTS, "planting", u"plan {}: {} plants outside the project".format(
                 key, pl_["counts"]["outside"]))
     except Exception as ex:
-        log.append(u"WARNING p17 plan {}: the planting beyond the bands not placed: {}: {}".format(
+        log.append(u"p17 plan {}: the planting beyond the bands not placed: {}: {}".format(   # v15.1: one WARNING
             key, type(ex).__name__, ex))
         wbx_warn(WBX_PG_PLANTS, "planting", u"plan {}: the planting beyond the bands not placed ({})".format(
             key, type(ex).__name__))
@@ -1213,6 +1209,7 @@ def _p17_specs(log):
                 out[nm] = fn(log)
             except Exception as ex:
                 log.append(u"WARNING p.17 section {} not built: {}: {}".format(nm, type(ex).__name__, ex))
+                wn_orange(log[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
         _P17_MEMO["specs"] = out
     return _P17_MEMO["specs"]
 
@@ -1799,6 +1796,7 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
     ks = (top - gy) / hgrid                              # mm per m, the same for every species
     if ks <= 0:
         log.append(u"WARNING p17 logic: no room for the height chart ({:.0f} mm)".format(top - gy))
+        wn_orange(log[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
         ks = 0.1
     marks = [0.0] + ([5.0] if 5.0 * ks >= fs * 1.5 and step > 5.0 else []) + \
         [step * i for i in range(1, int(hgrid / step) + 1) if step * i * ks >= fs * 1.5]
@@ -1900,6 +1898,7 @@ def p17_page(pg, box, opt, log):
         lay = _p17_layout(P17_DENS[-1], pa, pb, W, H1, leg_h, log, force=True)
         log.append(u"WARNING p17: the plans do not fit at any standard scale; drawn at 1:{:,.0f} (the page may "
                    u"overflow)".format(lay["den"]))
+        wn_orange(log[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
     den, fa, fb = lay["den"], lay["fa"], lay["fb"]
     xa = x0 + P17_LW + G
     xb = xa + fa[0] + G
@@ -1941,6 +1940,7 @@ def p17_page(pg, box, opt, log):
     drawn_ = set(k_ for ks in placed.values() for k_ in ks)
     if drawn_ - set(P17_CAT):
         log.append(u"WARNING p17: drawn but not in the catalogue: {}".format(u", ".join(sorted(drawn_ - set(P17_CAT)))))
+        wn_orange(log[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
     share = (fa[0] * fa[1] + fb[0] * fb[1]) / max(1.0, W * (ytop - y0))
     log.append(u"p17 page: plans 1:{:,.0f} (A {:.0f} x {:.0f}, B {:.0f} x {:.0f} mm, {:.0f} % of the page), species "
                u"planted {}, catalogue {} species, photos {}".format(

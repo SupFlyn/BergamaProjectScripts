@@ -124,9 +124,20 @@ def bk_source_groups(lines):
     mp = BK_IX.get("bergama_masterplan", {}).get("extra", {}).get("plan_sources")
     if mp:
         rows = []
-        for r in (mp if isinstance(mp, list) else (mp.items() if isinstance(mp, dict) else [])):
-            rows.append(u" · ".join(u"%s" % v for v in r) if isinstance(r, (list, tuple)) else u"%s" % r)
-        groups.append((u"SOURCES OF THE NUMBERED PLACES ON THE MASTERPLAN", rows))
+        if isinstance(mp, dict):                           # v30.1 (closing): masterplan plan_sources dict
+            for m_ in mp.get("markers") or ():             # (p23_plan.py: crop, heading, markers, left_as_is)
+                if not isinstance(m_, dict):
+                    continue
+                ts = [(u"%s" % ((s_ or {}).get("text") or u"")).strip() for s_ in m_.get("sources") or ()
+                      if isinstance(s_, dict)]
+                ts = [t for t in ts if t]
+                if ts:
+                    rows.append(u"%s %s: %s" % (m_.get("n", u""), m_.get("name") or u"", u"; ".join(ts)))
+        else:
+            for r in (mp if isinstance(mp, list) else []):
+                rows.append(u" · ".join(u"%s" % v for v in r) if isinstance(r, (list, tuple)) else u"%s" % r)
+        if rows:
+            groups.append((u"SOURCES OF THE NUMBERED PLACES ON THE MASTERPLAN", rows))
     groups.append((u"HEIGHT DATA", list(ELEV_SOURCES)))
     hr = []
     if "hr_sources" in globals():

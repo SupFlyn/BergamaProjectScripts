@@ -378,6 +378,7 @@ def _wbx_sw(ix, sw):
         sw(p_, 0.0, 0.0, W, H)
     except Exception as ex:
         WBX_LOG.append(u"WARNING legend swatch not drawn (%s)" % type(ex).__name__)
+        wn_orange(WBX_LOG[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
         return dict(kind="fill", colour=None)
     sh, _n = _wbx_shapes(p_.items, (0.0, 0.0, W, H))
     fills = [s_ for s_ in sh if s_[0] == "poly" and s_[2]]

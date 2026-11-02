@@ -362,6 +362,7 @@ def _p17_section(spec, style, log, den=None, page=u"p19", inset=False):
     bad = sf_assert_g6(k, trees=[(p[0], p[1], p[2], p[3]) for p in trees], strict=False)
     if bad:
         log.append(u"WARNING (G6) {} {}: {}".format(page, name, u"; ".join(bad[:3])))
+        wn_orange(log[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
     # people doing what each zone is for (G10, G15), in front of the planting: who stays looks at the zone's focus
     fx0 = X(spec["focus"]) if spec.get("focus") is not None else X(min(prof, key=lambda q: q[1])[0])
     # round 5 (S3 sf_activity_ok, PLAN §8): wading and fishing only where the drawn water allows it (depth <= 0.50 m,

@@ -2060,8 +2060,6 @@ def _p14_panel(pg, box, log, style):
             msg = u"{} cut reaches {:.1f} mm over its row ({:.1f} m at 1:{:,.0f}): cut at the row top".format(
                 sea, top - fr[3], (top - fr[3]) / k, P14_DEN)
             wbx_warn(page, "clipped", msg)
-            if log is not None:
-                log.append(u"WARNING p15 " + msg)
         pg.items += _p14_clip_items(sp.items, fr)
         _p14_zone_strip(pg, X, yb, sea, log)
         did = u"p15_cut_" + sea
@@ -2217,6 +2215,7 @@ def _p15_year(pg, x0, ytop, x1, ybot, log=None, style="b", page=None, did=None):
     if rh < P15_ROW_MIN and log is not None:
         log.append(u"WARNING (D9): p.15 THE YEAR has {:.1f} mm a row, under {:.1f}: the pair needs more room".format(
             rh, P15_ROW_MIN))
+        wn_orange(log[-1][8:])  # v15.1 (closing): this WARNING line also orange (one sink)
     rh = max(P15_ROW_MIN, min(6.5, rh))
     yend = ytop - head_h - 3 * blk - nrow * rh
     tint = {"winter": "EDF1F2", "spring": "F0F3E8", "summer": "F7F3E5", "autumn": "F4EEE5"}
@@ -2469,8 +2468,6 @@ def _p15_panel(pg, box, log, style):
     if top > fr[3] + 0.05:                       # A14: a crown cut at the drawing's top is a WARNING, never silent
         msg = u"the cut reaches {:.1f} mm over its frame: cut at the frame's top".format(top - fr[3])
         wbx_warn(page, "clipped", msg)
-        if log is not None:
-            log.append(u"WARNING p16 " + msg)
     pg.items += _p14_clip_items(sp.items, fr)    # G3: no crown reaches the lists
     pg.line([(X(s), Y(z)) for s, z in G["today"] if s <= s1], COL["ink2"], 0.2, dash=[1.0, 0.6])
     # the parts' numbers on their surface (G-R4-5.6), the groups' letters on their crowns (G-R4-7)

@@ -1485,7 +1485,7 @@ def draw_sections_key(S, B, x, y, sw, hk, names, kb, cats=None):
     km = None
     try:
         km = km_map([(p45_rows_of(nm) or [nm])[0] if nm != "S5" else "S5" for nm in names],
-                    P45_KEY_W, hk / kb, page=pid)
+                    P45_KEY_W, hk / kb, page=pid, log=LOG)    # v60.1: its keymap/fill lines reach the log
     except Exception as e:
         LOG.append(u"FLAG sections key map {}: not drawn ({}).".format(pid, e))
     mw = (km["w_mm"] if km else P45_KEY_W) * kb

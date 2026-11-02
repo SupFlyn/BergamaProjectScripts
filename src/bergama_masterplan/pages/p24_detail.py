@@ -2284,7 +2284,7 @@ def p24_items(ix, C, wins, areas, missing, warn):
     zooms = dict((nm, ring) for nm, ring in _P24_WINS.values())
     ids = [P24_CUTS[b][0] for b in sorted(_P24_WINS) if b in P24_CUTS] + sorted(zooms)
     try:
-        km = km_map(ids, P24_KM_BOX[0], P24_KM_BOX[1], zooms=zooms, page=page)
+        km = km_map(ids, P24_KM_BOX[0], P24_KM_BOX[1], zooms=zooms, page=page, log=out)  # v40.1: lines logged
         if km.get("items"):
             mpx_keymap(ix, page, km, item_id=u"mp_dt_keymap")
             out.append(u"p24 key map: cuts {}, windows {}".format(u", ".join(ids[:2]), len(zooms)))
