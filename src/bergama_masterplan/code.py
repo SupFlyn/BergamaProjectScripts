@@ -5,6 +5,7 @@
 #@include ../common/city_spine.py
 #@include ../common/pdf_fonts.py
 #@include ../common/font_metrics.py
+#@include ../common/warn.py
 #@include ../common/r28_style.py
 #@include ../common/units.py
 #@include ../common/label_place.py
@@ -15,13 +16,17 @@
 #@include ../common/levels.py
 #@include ../common/basemap.py
 #@include ../common/grid.py
+#@include ../common/item_export.py
 #@include ../common/buildings.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py
+#@include ../common/planting.py
 #@include ../common/hires.py
 #@include ../common/icons.py
 #@include ../common/water.py
 #@include ../common/section_frame.py
+#@include ../common/data/BRIDGES.py
+#@include ../common/bridges.py
 #@include parts/02_Design.py
 #@include ../common/booklet_assets.py
 #@include parts/02b_detail.py
@@ -29,6 +34,8 @@
 #@include parts/02d_r28_ground.py
 #@include parts/02e_r28_detail.py
 #@include parts/02f_r28_senses.py
+#@include parts/02g_demeter.py
+#@include parts/04_items.py
 #@include pages/p16_senses.py
 #@include pages/p23_plan.py
 #@include pages/p24_detail.py

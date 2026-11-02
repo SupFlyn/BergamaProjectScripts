@@ -821,8 +821,8 @@ def run_head(secs_, n_draw, ok, t_site=None, t_bake=None, n_obj=None):
     head = ["Run at {} | {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), SCRIPT_VERSION),
             "RESULT: {} | {} warning{}, {} error{}".format(res_, n_warn, "" if n_warn == 1 else "s", n_err,
                                                          "" if n_err == 1 else "s"),
-            "OUTPUT FOLDER: {} (PDF boards in selinus_board_pdf); log: {}"
-            .format(out_folder(), log_file_path())]
+            "ITEMS: {} (items.json, results.json, images; no sheet PDFs, v60); log: {}"
+            .format(bg_booklet("selinus_board"), log_file_path())]
     if ok:
         head.append("CREATED (each with the time it took):")
         if t_site is not None:
@@ -985,6 +985,7 @@ if HAVE_RHINO:
                     gh_message("warning", ln[9:])
     else:
         try:
+            wn_reset()                                    # v60 (round 5): one warning sink (common/warn.py) per run
             fpts = None
             FRAME_C = as_curve(FRAME_IN)
             _SITE_FALLBACK.clear()
@@ -1085,31 +1086,22 @@ if HAVE_RHINO:
             _t_pipe = __import__("time").time()
             SITE, BOARD, RECTS = pipeline(RAWu, fpts, secs, OSM_PATH, PLACES_PATH, tsecs)
             LOG.append("trigger: " + str(_trig_why))          # v59 (round 4): what started this run
-            sb_text_check(BOARD)                              # v59 (G-R4-1): RAISES on any text collision of a booklet crop
+            # v60 (round 5, G-R5-12): no text check here and no sheet PDFs: the booklet sets and checks every text
             _t_lay = sum(s_ for nm_, s_ in DRAWING_TIMES)
             _t_site = max(0.0, __import__("time").time() - _t_pipe - _t_lay)
             _t_b0 = __import__("time").time()
-            n = bake(BOARD) if BAKE_RHINO else 0               # v29: no Rhino bake unless bake = True
+            n = sb_bake(BOARD) if BAKE_RHINO else 0            # v29: no Rhino bake unless bake = True
             _t_bake = (__import__("time").time() - _t_b0) if BAKE_RHINO else None
-            if PDF_EXPORT:                                    # v28: vector PDFs; v29: one single-page board per group
-                try:
-                    _np, _bad = export_pdfs(BOARD, RECTS)
-                    LOG.append("PDF: {} drawings on {} boards (one page each), vector, 1:{:,}, in {}.".format(
-                        len(RECTS), _np, int(PDF_SCALE), pdf_folder()))
-                    for p_, s_ in export_axonometrics(SITE):      # v33: S1 as an axonometric
-                        LOG.append("PDF: {}  {:.0f} s".format(os.path.basename(p_), s_))
-                    if _bad:
-                        LOG.append("WARNING: PDF not written for: " + "; ".join(_bad[:6]))
-                except TextError:                         # v59 (G-R4-1): a p03 text collision stops the run
-                    raise
-                except Exception as ex_:
-                    LOG.append("WARNING: PDF export failed ({}); the bake is done.".format(ex_))
-            try:                                              # v40: the booklet crops of the sheets (CROP_SPEC)
-                booklet_export(SITE, BOARD, RECTS)
-            except BkCropMissing:                             # v59 (closing, P09.1): a missing booklet crop stops the run
-                raise
+            try:                                              # v33: S1 as an axonometric; v60: composed, kept as items
+                for p_, s_ in export_axonometrics(SITE):
+                    LOG.append("p03 axonometric composed ({}), {:.0f} s".format(p_, s_))
             except Exception:
-                LOG.append("WARNING: the booklet assets were not written (the board is done):\n" + traceback.format_exc())
+                wn_warn("p03", "export", "the axonometric failed (not in the items):\n" + traceback.format_exc())
+            try:                                              # v60: the booklet items (16d_items.py)
+                LOG.extend(sb_items_export(SITE, BOARD))
+            except Exception:
+                wn_warn(None, "export", "the booklet items were not written (the board is done):\n" +
+                        traceback.format_exc())
             for f_ in ("lp_flag_lines", "sec_look_lines", "wat_flag_lines"):   # v58 (round 3): the
                 try:                                                    # FLAG overlap per page, sky variants, plants,
                     r_ = globals()[f_]() if f_ in globals() else ()     # fauna FLAG and water lines of this run
@@ -1135,13 +1127,18 @@ if HAVE_RHINO:
                 info += "\nNo osm_path: streets, paths, green areas and the stream come from the survey only."
             if not PLACES_PATH:
                 info += "\nNo places_path: shops are read from OSM points only."
+            # v60 (round 5, C1/C11): the sink's lines (wn_warn, text_place) join the log; wn_compose puts "<n> warnings"
+            # (counted from the WARNING lines) and every WARNING line at the top, each once
+            _wn_own = set(WN_LOG)
+            LOG[:] = wn_compose(list(LOG) + [l_ for l_ in WN_LOG if l_ not in LOG])
             if LOG:
                 info += "\n\n" + "\n".join(LOG)
             for msg in LOG:
-                if msg.startswith("WARNING"):
+                if msg.startswith("WARNING") and msg not in _wn_own:   # the sink's own lines are orange already
                     gh_message("warning", msg[9:])
             gh_message("remark", "Baked {} objects. Zoom Extents: the pages sit right of the drawing.".format(n)
-                       if BAKE_RHINO else "PDFs written to {} (nothing baked into Rhino).".format(pdf_folder()))
+                       if BAKE_RHINO else "Booklet items written to {} (nothing baked into Rhino).".format(
+                           bg_booklet("selinus_board")))
             _secs = __import__("time").time() - _t_build
             info = run_head(_secs, len(RECTS), True, _t_site, _t_bake, n) + "\n" + info     # v27
             save_last(info, (drawings, names, footprints, floors, uses, cuts), _secs)

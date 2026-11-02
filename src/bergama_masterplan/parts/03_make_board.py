@@ -706,7 +706,7 @@ def bake_page(rs, pg, layer, x0, y0, s):
             elif c:
                 rs.DeleteObject(c)
         elif kd == "text":
-            _, t, x, y, size, colour, bold, align, halo = it
+            _, t, x, y, size, colour, bold, align, halo = it[:9]
             keep(rs.AddText(t, P3((x, y)), size * s, "Arial", 1 if bold else 0, {"L": 1, "C": 2, "R": 4}[align]),
                  colour)
     if ids:
@@ -785,9 +785,10 @@ def option_input():
 
 def build_all(doc, warn):
     """Read, draw and write. Returns (folder, files, log lines, pages)."""
-    folder = out_folder(doc)
-    if not os.path.isdir(folder):
-        os.makedirs(folder)
+    folder = bg_booklet(OUT_FOLDER)                       # round 5 (C2, addendum): no output/ folder; items in cached/booklet/
+    wn_reset()
+    ix = mpx_start()
+    del MPX_PAGES[:]
     scale = inp_num("scale", BOARD_SCALE, warn)
     _SCALE[0] = scale                                    # v16: for the scale bar on every sheet
     ring_m = inp_num("zoom_m", None, warn)                      # v15: margin of the zoomed pages (alternatives 1-2)
@@ -815,8 +816,8 @@ def build_all(doc, warn):
     if not survey.get("building") and not survey.get("housing"):
         warn.append(u"no survey buildings (BINA_*) in the open file: the zones are drawn on plain paper")
     # ---- per option: the zones (file, else zone base file, else the embedded copy), the corridor, the sheets
-    files, lines, pages = [], [], []
-    sheets, wins, plc, missing = [], [], {}, {}           # v21: sheets for the booklet crops
+    files, lines, pages = [], [], MPX_PAGES               # pages = the recorder Pages (for the Rhino bake only)
+    wins, plc, missing = [], {}, {}
     CLs, Cs = {}, {}
     zb = None
     for opt in option_input():
@@ -882,64 +883,44 @@ def build_all(doc, warn):
                              u"first  {}".format(OG_KML, n_, OG_MIN_HA, f_, datetime.datetime.now().strftime("%H:%M:%S")))
             except Exception as ex:
                 lines.append(u"logs/{}  NOT WRITTEN ({}: {})".format(OG_KML, type(ex).__name__, ex))
-        for alt in (1,):                                 # v19: the one sheet
-            name = OUT_NAME.format(opt, alt)
+        # round 5 S6 (G-R5-12, addendum 1 Nov 22:37 point 2): NO sheet PDF and no crops any more; each booklet page's
+        # drawings and texts are exported as items (parts/04_items.py) into cached/booklet/bergama_masterplan/items.json
+        if opt == "A" and C is not None:                 # p21 (25-page p23): the masterplan
             t0 = time.time()
             try:
-                if C is None:
-                    raise ValueError(u"no corridor computed (see the warnings)")
-                panels = [plan_page(C, warn)]           # v28 (revision 29 Oct, D1 a): p.23 only; the open ground page is gone
-                sc_mp = getattr(panels[0], "scale", MP_SCALE)
-                lines.append(u"masterplan page: {} numbered moves on the plan (1:{:,.0f}); designed voids drawn {} "
-                             u"of {}".format(len(C.notes), sc_mp, getattr(C, "ni_placed", 0), len(C.nogo)))
-                for r_ in C.nogo:                        # v38: p21 sets r_["placed"] when the void's place is drawn
+                lines.extend(p23_items(ix, C, warn))
+                for r_ in C.nogo:                        # v38: the page sets r_["placed"] when the void's place is drawn
                     if not r_.get("placed"):
-                        warn.append(u"designed void not drawn on p21: {:.1f} ha {}".format(r_["ha"], r_.get("place")))
-                LEG.clear()                              # v24: the pages carry their own legend
-                pg = make_board(opt, alt, panels)
-                path = save(pg, folder, name, u"Bergama masterplan {} option {} (1:{:,.0f})".format(SHORT, opt,
-                                                                                                    sc_mp))
-                files.append(path)
-                pages.append((opt, alt, pg))
-                sheets.append((path, pg, sc_mp))
-                lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
-                                                       datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
+                        warn.append(u"designed void not drawn on p23: {:.1f} ha {}".format(r_["ha"], r_.get("place")))
+                lines.append(u"p23 masterplan items  {:.1f} s".format(time.time() - t0))
             except Exception as ex:
                 import traceback
-                lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
+                lines.append(u"p23 masterplan  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
-        if opt == "A" and CL is not None and C is not None:   # v21: the 1:1,000 detail sheet (option A)
-            name = DETAIL_NAME.format(opt)
+        if opt == "A" and CL is not None and C is not None:   # p22 (25-page p24): the water edge at 1:1,000
             t0 = time.time()
-            LEG.clear()
             _SCALE[0] = DT_SCALE
             try:
                 plc = places(city_link()[0], CL, survey)
-                wins = detail_windows(D, plc, DT_PLAN)    # v24: no text block under the plan
-                dpanels = []                              # v27 (MIRAQUA 28 Oct, P24.1-P24.5): the fade-out windows
-                for w in wins:                            # (02e); no survey spot heights, so no second survey read
-                    missing[w["id"]] = []
-                    dpanels.append(r28_window_panel(C, w, areas, missing[w["id"]], warn))
-                    for m_ in missing[w["id"]]:
-                        warn.append(u"detail {}: label not placed: {}".format(w["id"], m_))
-                pg = make_board(opt, 1, dpanels, title=u"MASTERPLAN · DETAIL 1:1,000")
-                path = save(pg, folder, name, u"Bergama masterplan {} detail option {} (1:1,000)".format(SHORT, opt))
-                files.append(path)
-                pages.append((opt, "detail", pg))
-                sheets.append((path, pg, DT_SCALE))
-                lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
-                                                       datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
+                wins = detail_windows(D, plc, DT_PLAN)
+                lines.extend(p24_items(ix, C, wins, areas, missing, warn))
+                for w_id, ms_ in sorted(missing.items()):
+                    for m_ in ms_:
+                        warn.append(u"detail {}: label not placed: {}".format(w_id, m_))
+                lines.append(u"p24 water edge items  {:.1f} s".format(time.time() - t0))
             except Exception as ex:
                 import traceback
-                lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
+                lines.append(u"p24 water edge  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
             _SCALE[0] = scale
-    if Cs.get("A") is not None:                          # v27 (MIRAQUA 28 Oct, S1): the senses sheet; a failure only warns
+    if Cs.get("A") is not None:                          # p16 (25-page p17): the senses; a failure only warns
+        t0 = time.time()
         try:
-            lines.append(senses_sheet(Cs["A"], areas, folder, files, warn))
+            lines.extend(p17_items(ix, Cs["A"], areas, warn))
+            lines.append(u"p17 senses items  {:.1f} s".format(time.time() - t0))
         except Exception as ex:
             import traceback
-            warn.append(u"{}  NOT WRITTEN ({}: {})".format(SN_NAME, type(ex).__name__, ex))
+            lines.append(u"p17 senses  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
     if CLs:                                              # v11: what the other scripts read
         try:
@@ -977,29 +958,23 @@ def build_all(doc, warn):
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))
-    if sheets:                                           # v21: the booklet's crops of the sheets; never breaks them
-        try:
-            booklet_crops(folder, sheets, wins, plc, missing)
-            lines.append(u"cached/booklet/{}/blocks.json  {} crops (+{} style copies)".format(
-                OUT_FOLDER, sum(len(sh_.panels) for _, sh_, _ in sheets),
-                sum(len(getattr(sh_, "panels_more", ())) for _, sh_, _ in sheets)))
-            cl_ = cut_log_line()                         # T7: the style a cutouts and the images (write_pdf)
-            if cl_:
-                lines.append(cl_)
-            lines.extend(MP_IMG_LOG)
-        except Exception as ex:
-            import traceback
-            lines.append(u"booklet  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
-            warn.append(traceback.format_exc()[-480:])
-    lines.extend(lp_flag_lines())                        # v37 (round 3): FLAG overlap per booklet page (G3)
-    lines.extend(tp_log_lines())                         # v38 (round 4, G-R4-1): "overlap <page> checked n, collisions 0"
+    try:                                                 # round 5: the one export file the booklet reads
+        ix.save()
+    except Exception as ex:
+        lines.append(u"items.json  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
+    lines.extend(mpx_lines())
+    cl_ = cut_log_line()                                 # T7: the style a cutouts and the images
+    if cl_:
+        lines.append(cl_)
     lines.extend(ml_lines_log())                         # v38 (G-R4-4): "layers base→project ok, n_outside_clipped n"
     lines.extend(sc_lines_log())                         # v38 (CHK-7): study clip per page
-    lines.append(fig_set_line())                         # v38 (G-R4-5.1): "figures set=pen_black n"
-    if "pla_flag_lines" in globals():                    # S3's plant module log lines, when it exists
-        lines.extend(pla_flag_lines())
+    lines.append(fig_set_line())                         # S4: "figures source=asset_library n, drawn_A1_style n"
+    lines.extend(fig_flag_lines())
+    lines.extend(pla_log_lines())                        # S4: plants source=..., willow v3 image=..., FLAG colours
+    lines.extend(pln_log_lines())                        # S4 placer: planting <page> core/edge/outside, outside_project
     lines.extend(wat_flag_lines())                       # planting clipped to land, draw order (G8)
     lines.extend(sec_look_lines())                       # sky variants, plants no alpha, fauna FLAG (G15)
+    files.append(ix.path or u"")
     return folder, files, lines, pages, scale
 
 
@@ -1028,11 +1003,13 @@ def main():    # v38.1: was run(), which replaced the Button input `run` (Button
         import traceback
         err = u"ERROR: {}: {}".format(type(ex_).__name__, ex_)
         warn.append(traceback.format_exc()[-480:])
-    lines += bg_tidy_output(OUT_FOLDER)              # 27 Oct: output/ = PDFs only
     secs = time.time() - t0
     head = [u"{} · total {:.0f} s".format(VERSION, secs), u"trigger: " + (why or u"-"),
-            err or u"Output: {}".format(folder)]
-    text = u"\n".join(head + lines)
+            err or u"Items: {}".format(folder)]
+    for w_ in warn:                                      # round 5 (C11): every warning is a WARNING line of the log
+        if not wn_is(w_):
+            lines.append(u"WARNING masterplan: " + u" ".join((u"%s" % w_).split()))
+    text = u"\n".join(wn_compose(tp_log_lines() + lines, head=head))   # head, "<n> warnings", WARNING lines, rest
     status = u"{} · {}".format(SHORT, "ERROR" if err else time.strftime("%H:%M") + " · {:.0f} s".format(secs))
     try:
         os.makedirs(LOG_DIR, exist_ok=True)
