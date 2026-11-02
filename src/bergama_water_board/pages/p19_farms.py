@@ -27,6 +27,14 @@
 # Every text goes through the water board's TextPage "p19" (code.py build_board: pg.text_page / pg.check_text, G-R4-1);
 # a word block (a paragraph, a box's lines) is one text group. The heading band P19_HEAD is on top of every block, so
 # the blocks of a booklet row share the content top.
+# Round 5 (S8, v15; P21.1 "each group = one block (heading, diagram, its text), separated by clear gutters, in reading
+# order"; G-R5-12): each block is exported as ONE diagram drawing (mm, scale free) of booklet page p21 (WBX_PG_FARMS),
+# its words as anchored labels; the group heading is a heading TEXT item of the group (not drawn); the drawings carry
+# their group: P19_GROUPS. Group 2's heading is the agriculture "stream comes first" block's (S9 gives its items the
+# same group id). No widths (addendum 5): the olive spacing line goes.
+P19_GROUPS = {u"wb_farms": u"p21_g1_where_water_goes", u"wb_farms_out": u"p21_g1_where_water_goes",
+              u"wb_decision": u"p21_g2_figures"}
+P19_ORDER = {u"wb_farms": 1, u"wb_farms_out": 2, u"wb_decision": 4}   # reading order (priority) on the page
 
 P19_HEAD = 6.0                                   # the group heading band on top of every p19 block, mm
 P19_HEAD_PT = grid_style("heading")[0]           # 10 pt bold (GRID_TYPE heading)
@@ -64,9 +72,11 @@ def _p19_text(pg, s, x, y, size, colour, bold=False, align="L"):
     pg.text(s, x, y, size, colour, bold=bold, align=align, mat=mat)
 
 
-def _p19_heading(pg, text, x, top):
-    """a p19 story group's ONE heading (GRID_TYPE heading, 10 pt bold, ink) in the block's heading band"""
-    pg.text(text, x, top - 4.0, P19_HEAD_PT * GRID_PT, grid_style("heading")[3], bold=True, name=u"p19 heading")
+def _p19_heading(pg, text, x, top, cid=u"wb_farms"):
+    """a p19 story group's ONE heading: v15 a heading text item of the block's group (the booklet sets it over the
+    group's blocks); nothing drawn in the heading band"""
+    wbx_text(WBX_PG_FARMS, text, "heading", priority=P19_ORDER.get(cid, 1), id=u"wb_p21_head_" + cid,
+             group=P19_GROUPS.get(cid))
 
 
 def _p19_close(pg, n0, box, cid):
@@ -76,10 +86,13 @@ def _p19_close(pg, n0, box, cid):
     bb = items_bbox([it for it in pg.items[n0:] if it[0] in ("poly", "line", "circle", "text")])
     over = max(box[0] - bb[0], box[1] - bb[1], bb[2] - box[2], bb[3] - box[3])
     if over > 0.3:
-        tp_warn(u"p19 {}: the drawing runs {:.1f} mm outside its {:.0f} x {:.0f} mm booklet block (shorten "
-                        u"the text that runs out)".format(cid, over, box[2] - box[0], box[3] - box[1]))
-    _p18_ground(pg, n0, box[0], box[1], box[2], box[3])
+        wbx_warn(WBX_PG_FARMS, "overrun", u"{}: the drawing runs {:.1f} mm outside its {:.0f} x {:.0f} mm block "
+                 u"(the export keeps the whole drawing)".format(cid, over, box[2] - box[0], box[3] - box[1]))
     pg.block(box, cid)
+    # v15 (G-R5-12, P21.1): the block = one diagram drawing of p21 (the empty heading band left out), in its group
+    dbb = (min(box[0], bb[0]), min(box[1], bb[1]), max(box[2], bb[2]), max(box[3] - P19_HEAD, bb[3]))
+    wbx_drawing(cid, WBX_PG_FARMS, pg, dbb, n0=n0, den=None, dkind="diagram", group=P19_GROUPS.get(cid),
+                priority=P19_ORDER.get(cid, 1), crop=cid)
     return box
 
 
@@ -168,7 +181,7 @@ def draw_farms_text(pg, x, y):
     (x, y) (crop wb_farms, 1:1 on the booklet page), the group heading in its band; the farms outside are their own
     block now (draw_farms_out, beside it on the booklet page). Returns the block box (x0, y0, x1, y1)."""
     n0 = len(pg.items)
-    _p19_heading(pg, u"WHERE THE CLEAN WATER GOES", x, y)
+    _p19_heading(pg, u"WHERE THE CLEAN WATER GOES", x, y, u"wb_farms")
     top = y - P19_HEAD
     cols = _p18_cols(x)
     cw = cols[0][1] - cols[0][0]
@@ -238,8 +251,7 @@ def draw_farms_out(pg, x, y):
     lb0 = top - 2.4                                  # the label's baseline: its ascender on the content top
     pg.text(u"THE FARMS OUTSIDE · GROUNDWATER, LOWER BAKIRÇAY", x, lb0, FS_MIN, C["dark"], bold=True)
     vx1 = x + P18_VIG_W
-    cap = wrap(u"olives {:.0f} × {:.0f} cm · drip along every row".format(P18_OLIVE_TREE_M * 100,
-                                                                           P18_OLIVE_ROW_M * 100), FS_MIN, P18_VIG_W)
+    cap = wrap(u"olives on drip along every row", FS_MIN, P18_VIG_W)   # v15: no widths (addendum 5)
     pg.tgroup()                                      # the caption's lines: one word block
     for j, ln in enumerate(cap):
         pg.text(ln, x, foot + 0.8 + (len(cap) - 1 - j) * lead, FS_MIN, C["ink"])
