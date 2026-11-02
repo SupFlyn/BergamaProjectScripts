@@ -106,6 +106,33 @@ def pl_label(P, it, placed, side=None, window=None):
     return P.tp.items[-1]
 
 
+def pl_rigid(P, placed, s, roles=None):
+    """v30.3 (2 Nov run: diagram texts on top of each other): a scale-free drawing (diagram, chart, key map, axo) keeps
+    its texts exactly where its script set them, scaled WITH the drawing (size x s, offsets x s), never moved to a free
+    spot or numbered into a side list: the script designed them together, so they only collide if the script's own
+    design does. Floor GRID_MIN_PT (D1); below it the layout gives the drawing more room instead."""
+    T = placed["T"]
+    n = 0
+    for it in sorted(ix_texts(placed["D"]), key=lambda t: t.get("priority", 5)):
+        if roles and it.get("role") not in roles:
+            continue
+        a_ = _pl_apt(it)
+        t = it.get("string", u"")
+        if a_ is None or not t:
+            continue
+        anchor = T.pt(a_[0], a_[1])
+        pt0 = float(it.get("size_pt") or grid_role(it.get("role", "label"))[0])
+        pt = max(GRID_MIN_PT, pt0 * s)
+        c = (_pl_codes(it.get("positions")) or ["E"])[0]
+        if not isinstance(c, str):
+            c = (c[0] * s, c[1] * s, c[2])
+        x, y, al = P.tp._at(c, t, anchor, pt, bool(it.get("bold")), 0.8 * s)
+        P.tp.put(t, x, y, pt, bool(it.get("bold")), al, 0.0, it.get("id"), it.get("role", "label"), it.get("colour"),
+                 (placed["id"],), forced=True)
+        n += 1
+    return n
+
+
 def pl_labels(P, placed, side=None, roles=("label", "badge")):
     n = 0
     for it in ix_texts(placed["D"]):
@@ -331,8 +358,7 @@ def pl_mm_drawing(P, D, texts, x, y, w, h, align="C"):
     ox = x + ((w - dw) / 2.0 if align == "C" else (0.0 if align == "L" else w - dw))
     T = BkT(D, f, ox, y + (h - dh) / 2.0)
     placed = rd_drawing(P, D, T)
-    for it in sorted(texts or (), key=lambda t: t.get("priority", 5)):
-        pl_label(P, it, placed)
+    pl_rigid(P, placed, f)                  # v30.3: texts stay where the script set them, scaled with the drawing
     return placed
 
 

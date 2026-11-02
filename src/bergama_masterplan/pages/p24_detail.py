@@ -2303,6 +2303,10 @@ def _p24_sp_label(key):
     return nm + (u" · " + sp["turkish"] if sp.get("turkish") else u"")   # D5: the Turkish name beside the species
 
 
+# v40.3 (2 Nov run: NameError stopped the K5 window): legend row kind -> booklet swatch kind
+P24_LEG_KIND = {"fill": "fill", "tree": "dot", "dot": "dot", "line": "line", "dash": "dash", "dashdot": "dash"}
+
+
 def p24_legend(keys):
     """v38 (round 4, P22.5, P22.7; replaces r28_crop_legend): the column's legend, only what its plan and section
     draw, in three groups: Planting (one sample per species in its own colour, D5 Turkish name beside it), Design,

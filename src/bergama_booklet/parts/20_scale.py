@@ -15,8 +15,13 @@
 #   BkT(D, s, x, y)                              the drawing's transform onto the page: s = den ("m") or f ("mm");
 #                                               (x, y) = the page mm (y DOWN) of the extent's top-left corner;
 #                                               .k (page mm per drawing unit), .pt(x, y), .rect, .den (None for "mm")
-BK_SCALES = tuple(SF_SCALES) if "SF_SCALES" in globals() else (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)
-BK_INSET_SCALES = tuple(SF_INSET_SCALES) if "SF_INSET_SCALES" in globals() else (100,) + BK_SCALES
+# v30.3 (Aras 2 Nov 06:20, decision card): the booklet's own round list adds 1:1,500, 1:7,500, 1:15,000 (and 1:25,000
+# for the whole-survey plans that overran A3 at 1:20,000), so a map no longer halves in size between two list steps.
+# Only maps and sections take a list scale and print it; diagrams, charts and the axo take any size (Aras 06:24
+# "diagrams can be at different scales ... dont write scales to diagrams, just maps").
+BK_SCALES = (200, 250, 500, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000, 50000)  # 50,000: p19 farms map in the right column
+BK_INSET_SCALES = (100,) + BK_SCALES
+BK_MM_MAX = 6.0            # v30.3: a scale-free drawing may grow to 6 x its exported size (was 2 x), room permitting
 BK_INSET_ZOOM = 2.0
 
 
@@ -34,7 +39,14 @@ def sc_size(D, s):
 def _sc_allowed(D, allowed=None, inset=False):
     lst = BK_INSET_SCALES if inset else BK_SCALES
     want = allowed or D.get("scale_pref") or lst
-    out = sorted(int(v) for v in want if int(v) in lst)
+    want = [int(v) for v in want]
+    if not allowed and want:                 # v30.3: a script's scale_pref is a RANGE on the booklet's list, so the
+        lo, hi = min(want), max(want)        # in-between round scales are open to it; 1:20,000 maps may go 1:25,000
+        if hi >= 20000:
+            hi = max(lst)
+        out = sorted(v for v in lst if lo <= v <= hi)
+    else:
+        out = sorted(v for v in want if v in lst)
     return out or list(lst)
 
 
@@ -69,10 +81,11 @@ def sc_pick_common(Ds, w, h, gap=4.0, stack=True, page=None):
     return al[-1]
 
 
-def sc_factor(D, w, h, page=None):
+def sc_factor(D, w, h, page=None, hi_max=None):
     ew, eh = _sc_ext(D)
     f = min(w / ew, h / eh)
     lo, hi = (D.get("fit") or (0.5, 2.0))[:2]
+    hi = max(float(hi), BK_MM_MAX if hi_max is None else float(hi_max))
     if f > hi:
         return float(hi)
     if f < lo:
