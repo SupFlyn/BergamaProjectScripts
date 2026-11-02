@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v14_2.py = v14.2 (1 Nov 2026: p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v15.py = v15 (2 Nov 2026, round 5 S8: booklet items instead of the A0 sheet; see NEW IN v15) · before: v14.2 (1 Nov 2026: p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -43,6 +43,17 @@ DATA RULES
   Settled 24 Oct (CONFLICTS.md, this account wins): one-way loop, nothing pumped back; a continuous regulated strip
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
+
+NEW IN v15 (round 5 S8, 2 Nov 2026; a feature change):
+  * G-R5-12 + addendum 1 Nov 22:37: the board writes NO sheet PDF any more. The pages still draw onto the board's Page
+    (a recorder); parts/wb_items.py hands every booklet drawing, text, legend, list, level column, key map and inset
+    to the booklet as items: Downloads/Bergama/cached/booklet/bergama_water_board/items.json (+ results.json beside
+    it). The booklet places, sizes and sets every text; the board's own text check is off (it stopped round 4 runs).
+  * One warning sink (common/warn.py): the log opens with "<n> warnings" and every WARNING line; nothing stops a run.
+  * C10: the water balance result and the masterplan / site board files are dated against this chain's Button press
+    (WARNING "stale" when they come from an earlier run).
+  * Pages: see the round 5 notes at the top of each pages/ file (p12, p15 + p16, p18, p19-20, p21).
+  * Output folder Downloads/Bergama/output/bergama_water_board/ is no longer written (an old sheet there is left).
 
 NEW IN v13 (round 4 S6a, 1 Nov 2026; a feature change, so the next whole number):
   * Core: one trigger file (common/trigger.py; log "trigger: <why>"); real Arial widths (font_metrics); the p12, p14
@@ -221,8 +232,8 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v14.2 (2026-11-01)"  # v14.2 1 Nov 22:10 (Aras 19:49, p18b 39 hits): p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v14.2"
+VERSION = "bergama_water_board v15 (2026-11-02)"  # v15 2 Nov (round 5 S8, feature): the board exports booklet items (cached/booklet/bergama_water_board/items.json), no sheet PDF; pages p12, p15, p16, p18, p19-20, p21 per the round 5 plan; v14.2 v14.2 1 Nov 22:10 (Aras 19:49, p18b 39 hits): p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v15"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 OPTIONS = ("A",)                     # v1.7: option A only (organic only where the project meets the water), Aras 16:43
@@ -592,6 +603,7 @@ def spread(ys, gap, lo=None, hi=None):
 # v5 (revision 29 Oct, T3b): the shared modules the pages call (T2a levels + basemap, T2b plants + icons); plants after
 # section_style (it includes section_parts)
 #@include ../common/plants.py
+#@include ../common/planting.py
 #@include ../common/hires.py
 #@include ../common/icons.py
 #@include ../common/data/LEVELS.py
@@ -1489,11 +1501,16 @@ WB_DEFAULT = dict(design=dict(central_range_m3=[350000, 375000], central_range_p
 DRIP_EFF = 0.90                 # water balance v2 (FAO Training Manual 4 ch.3)
 
 
+WB_PATH = [None]                # v15 (C10): the results file read (its freshness is logged by build_all)
+
+
 def wb_results():
     for p in WB_FILES:
         try:
             with open(p, "r", encoding="utf-8") as f:
-                return json.load(f), u"water balance results of " + time.strftime(
+                d_ = json.load(f)
+            WB_PATH[0] = p
+            return d_, u"water balance results of " + time.strftime(
                     "%d %b %H:%M", time.localtime(os.path.getmtime(p)))
         except Exception:
             pass
@@ -2140,8 +2157,8 @@ BK_CAPTIONS = {
     "wb_concept_up": u"Upstream entry: the idea in section", "wb_concept_k4": bridge_name("K4") + u": the idea in section",
     "wb_s4_seasons": u"S4 through the seasons", "wb_s4_ne": u"S4 north-east bank and the year",
     "wb_plants": u"Planting and water: where each plant goes",
-    "wb_plants_b1": u"Which plant goes where, in section: F2 and F4 at 1:250",
-    "wb_plants_b2": u"Which plant goes where, in section: W1 and S4 at 1:250",
+    "wb_plants_b1": u"Which plant goes where, in section: F2 and F4",
+    "wb_plants_b2": u"Which plant goes where, in section: W1 and S4",
     "wb_farms": u"", "wb_farms_out": u"", "wb_decision": u""}   # round 4 (P19.1): the group heading inside says it
 
 
@@ -2295,6 +2312,15 @@ def build_all(doc, log):
     pal_line = load_palette([DATA_DIR] + search_dirs(doc), log) if doc is not None else u"embedded palette v1.4 colours"
     folder = bg_booklet(OUT_FOLDER)                 # v15 (addendum 2): no sheet PDF; items.json in cached/booklet/
     files = []
+    if WB_PATH[0]:                                  # v15 (C10): one press, one answer: the water balance of THIS run
+        fresh_, note_ = bg_this_run(WB_PATH[0])
+        log.append(u"water balance results: {} ({})".format(WB_PATH[0], note_))
+        if not fresh_:
+            wbx_warn(WBX_PG_SYSTEM, "stale", u"water_balance_results.json is {} (run the water balance before the "
+                                             u"water board in the chain)".format(note_))
+    else:
+        wbx_warn(WBX_PG_SYSTEM, "stale", u"no water_balance_results.json: built-in default lands used (p12 prints "
+                                         u"no storage figures)")
     for opt in OPTIONS:
         parts = {"year": draw_year(opt), "concept_up": draw_concept("up", opt), "concept_k4": draw_concept("k4", opt)}
         for st in STORAGE_STYLES:

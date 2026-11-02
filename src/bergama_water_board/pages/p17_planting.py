@@ -20,6 +20,18 @@
 #        word through the page's TextPage (G-R4-1).
 # build_board calls P17_TITLE, p17_page(pg, box, opt, log) and P18_TITLES[page], p18_page(pg, box, page, opt, log);
 # each returns [(crop id, bbox, scale denominator)].
+#   Round 5 (S8, booklet p18 "Which plant goes where (plans A, B)", 25-page numbering; WBX_PG_PLANTS): the board only
+#        records; p17_page hands its drawings to the booklet (parts/wb_items.py): the key map (km_map v2, no scale_den,
+#        wbx_keymap; not drawn here), plan A and plan B (1:den, metres, north_deg from the window's turn; no scale bar,
+#        north arrow, neatline or heading drawn), each plan's numbered list (wbx_list, anchored at the markers), the
+#        plans' legend (wbx_legend), the band map (P18.3: the same band colours as the plans and the same water-space
+#        numbers), the band and foliage share bars with their keys, the height chart, one drawing per catalogue card;
+#        crop "wb_plants" on each. P18.2 (G-R5-7): the planned wet-to-dry bands are the cores; the rest of the
+#        project (the study area) is planted by the ONE placer (common/planting.py pln_place: fading from the cores,
+#        nothing outside the project); the base map's farms and orchards keep their symbol only inside the study area
+#        (flat tint outside). G-R5-8: the zone fields are drawn under the stream. A1: greenery colours from pla_green.
+#        C10: masterplan_results.json and shade_july.json by bg_result + bg_this_run.
+# The S4 placer is not included by code.py yet: included here (a second include elsewhere is harmless).
 
 P17_TITLE = u"PLANTING AND WATER · where each plant goes around the water spaces"
 P17_W = 377.0                        # the most a page takes, mm (the booklet's A3 panel at 1:1)
@@ -30,9 +42,12 @@ P17_BAR = {1000.0: (0, 10, 20, 50), 2000.0: (0, 20, 50, 100), 2500.0: (0, 20, 50
            10000.0: (0, 50, 100, 200), 20000.0: (0, 200, 500)}   # labels at least 2 mm apart
 P17_FS, P17_HEAD = FS_MIN, 3.4       # label and heading sizes, mm
 # round 3 (D2, P16.4): the summer strip is no longer drawn in plan (no squiggle); it is shown in the sections only
+# round 5 (A1): WP (the wetland: planting) from the plant module (pla_green meadow / grass, lightened: design mix);
+# the water (WT lined cells, WD spillway, ARM, WIDEN) and ground (GR, WS) colours stay
 P17_ZONE = {"WT": ("CBEDE5", "8DB8AF"), "WD": ("C1D3DB", "889EA8"), "GR": ("EEEADD", "C9C3B0"),
-            "WS": ("EEE8D6", "C9BFA6"), "WP": ("E6EEDD", "B9C6A2"), "ARM": ("B9D7DE", "5D7F8D"),
-            "WIDEN": ("D3E4E8", "889EA8")}
+            "WS": ("EEE8D6", "C9BFA6"), "WP": (_sec_mix(pla_green("meadow"), "FFFFFF", 0.55),
+                                               _sec_mix(pla_green("grass"), "FFFFFF", 0.25)),
+            "ARM": ("B9D7DE", "5D7F8D"), "WIDEN": ("D3E4E8", "889EA8")}
 # July shade: (hours under, colour, label, hatch spacing mm): drawn as an opaque fine hatch (G9: no alpha), so the
 # water texture under it stays visible
 P17_SHADE = ((2.0, "E6DCC6", u"under 2 h", 2.0), (5.0, "CDBF9F", u"2-5 h", 1.2), (99.0, "A99A78", u"over 5 h", 0.7))
@@ -42,7 +57,13 @@ P17_CLEAR_M = 10.0                   # P16.2: an open clearing this far round ea
 # the four wet-to-dry bands (P17_BANDS) by the words of the page intro; one colour each (PLAN §2 palette), the same on
 # p16 (plans, shares) and p17 (the band row under each section)
 P17_BAND_NAME = (u"at the water", u"banks that flood", u"moist ground", u"dry tops")
-P17_BAND_COL = ("5C7A86", "A2B6B5", "89986A", "8E8F8A")
+# round 5 (A1, P18.3): the band colours from the plant module (pla_green by the band's plants: rushes, willow /
+# tamarisk, plane / ash, olive); the plans' band areas and the band map both fill with _p17_band_fill (one colour
+# per band on both, so each band is found on both)
+P17_BAND_COL = (pla_green("reed"), pla_green("tree_wet"), pla_green("tree"), pla_green("tree_dry"))
+P17_BAND_MIX = 0.5                   # a band area's fill: its colour this far to the paper (design value)
+P17_OUTER_DENS = 0.5                 # P18.2: the placer's density beyond the bands (design value; was P17_SHRUB_DENS)
+P17_OUTER_MAX = 1500                 # P18.2: the most plants the placer puts in one plan (design value)
 P17_BASIN = dict(kerb_h=0.30, depth=1.10, media=0.80, kerb_t=0.15)   # lined basin cell: drawing values (no source)
 P17_ARM_W = 3.0                      # the side arm, m either side of its line (masterplan R28DT_ARM_M)
 # the side arm the F4 cut crosses, survey m, while the masterplan writes no corridor geometry: its middle part read off
@@ -94,6 +115,16 @@ P17_SHORT = {"plane": u"plane", "ash": u"ash", "willow": u"willow", "tamarisk": 
 def _p17_put(pg, shapes):
     """house shapes (alpha, text and the style a cutout images) on a Page (water.py shp_put)"""
     shp_put(pg, shapes)
+
+
+def _p17_band_fill(b):
+    """round 5 (P18.3): the fill of planting band b on the plans, the band map and the band key: one colour"""
+    return _sec_mix(P17_BAND_COL[b], SEC["paper"], P17_BAND_MIX)
+
+
+def _p17_ndeg(nd):
+    """north_deg for wbx_drawing: true north's page direction nd as degrees counter-clockwise from +y"""
+    return round(math.degrees(math.atan2(-nd[0], nd[1])), 2) if nd else None
 
 
 def _p17_size(key):
@@ -335,19 +366,27 @@ def _p17_zones():
 
 
 def _p17_mp(log):
-    """masterplan_results.json (the masterplan's cache folder), read once; {} when missing (logged)"""
+    """masterplan_results.json, read once; {} when missing (logged). Round 5 (C10): found by bg_result (cached/, then
+    cached/from_output/, then output/), its age by bg_this_run (logged; a WARNING when it is not from this run)"""
     if "mp" not in _P17_MEMO:
         d = {}
-        for fn in (os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),
-                   os.path.join(bg_output("bergama_masterplan"), "masterplan_results.json")):
-            try:
-                with open(fn, "r", encoding="utf-8") as f:
-                    d = json.load(f)
-                break
-            except Exception:
-                continue
+        fn = bg_result("bergama_masterplan", "masterplan_results.json")
+        fresh, note = bg_this_run(fn)
+        log.append(u"p17: masterplan_results.json {} ({})".format(note, fn))
+        try:
+            with open(fn, "r", encoding="utf-8") as f:
+                d = json.load(f)
+        except Exception:
+            d = {}
+        if d and not fresh:
+            msg = u"masterplan_results.json is {}: the plans' hubs and corridor are from that run".format(note)
+            log.append(u"WARNING p17: " + msg)
+            wbx_warn(WBX_PG_PLANTS, "stale", msg)
         if not d:
-            log.append(u"p.17: no masterplan_results.json: hubs from the four chain places, side arm from its p.23 line")
+            wbx_warn(WBX_PG_PLANTS, "data", u"no masterplan_results.json: hubs from the chain places, side arm from "
+                                            u"its p.23 line")
+            log.append(u"WARNING p17: no masterplan_results.json: hubs from the four chain places, side arm from its p.23 "
+                       u"line")
         _P17_MEMO["mp"] = d
     return _P17_MEMO["mp"]
 
@@ -388,10 +427,16 @@ def _p17_widen(log):
 
 def _p17_shade(log):
     """(cells [(x, y, hours)], daylight h, cell m) from the site board's shade_july.json, read once; None (one log
-    line)"""
+    line). Round 5 (C10): found by bg_result (the site board moved it to cached/), its age by bg_this_run"""
     if "shade" not in _P17_MEMO:
         r = None
-        fn = os.path.join(bg_output("selinus_board"), "shade_july.json")
+        fn = bg_result("selinus_board", "shade_july.json")
+        fresh, note = bg_this_run(fn)
+        log.append(u"p17: shade_july.json {} ({})".format(note, fn))
+        if os.path.isfile(fn) and not fresh:
+            msg = u"shade_july.json is {}: the July shade is from that run".format(note)
+            log.append(u"WARNING p17: " + msg)
+            wbx_warn(WBX_PG_PLANTS, "stale", msg)
         try:
             with open(fn, "r", encoding="utf-8") as f:
                 d = json.load(f)
@@ -556,8 +601,9 @@ def _p17_drift_plan(ring, k, tf, mix, seed, density=1.0, avoid=None, max_n=3000,
     group_m, a drawing rule), each drift led by one species with a second mixed in and, at its edges, the species of
     the neighbouring band whose niche reaches there (plants.py _pla_pick): interpenetrating, never rows. Crowns
     overlap (trunks 35-75 % of the two crowns apart: PLA_GROUP step), sizes vary (PLA_GROUP size inside the sourced
-    range), no straight evenly spaced line (plants.py _pla_rowlike). Each drift is drawn as its area first (the lead
-    species' tone, a fine edge: the band edges follow the water), then the low layer, then the crowns, tall on top.
+    range), no straight evenly spaced line (plants.py _pla_rowlike). Each drift is drawn as its area first (the
+    band's colour _p17_band_fill (round 5, P18.3: as on the band map), a fine edge: the band edges follow the
+    water), then the low layer, then the crowns, tall on top.
     ring and avoid: page mm. Round 3: water = the water rings (page mm): no area and no plant in them, and every
     placed plant goes through water.py water_clip_points (G8, logged for page); clear = [(x, y, r mm)] open
     clearings round the places people use (P16.2): crowns are left out there, the drift's ground tint stays.
@@ -641,9 +687,8 @@ def _p17_drift_plan(ring, k, tf, mix, seed, density=1.0, avoid=None, max_n=3000,
                         else:
                             hi = m
                 pts.append((d_[0] + u[0] * lo, d_[1] + u[1] * lo))
-            if _p17_area(pts) > 0.5:
-                fc = PLA_SPECIES[d_[3]]["colours"]["fill"]
-                sh.append(("poly", pts, _sec_mix(fc, SEC["paper"], 0.72), _sec_mix(fc, SEC["paper"], 0.35), 0.1))
+            if _p17_area(pts) > 0.5:                    # round 5 (P18.3): the band's colour, as on the band map
+                sh.append(("poly", pts, _p17_band_fill(b), _sec_mix(P17_BAND_COL[b], SEC["paper"], 0.2), 0.1))
                 info.append((b, d_[3], pts, _p17_area(pts)))
     # the plants: dart throwing per layer, each species from its drift (lead 62 %, second 24 %, the band's niche rest)
     lo_s, hi_s = PLA_GROUP["step"]
@@ -817,7 +862,10 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
     proposal clipped to the study area at its source (sc_*, page "p17"). Over that: the section lines of p18 in the
     R01 red symbol (km_cut_items), the north arrow (north_items, no plate) in a free corner, the hubs and the
     numbered markers (mk_marker, the space's colour), placed clear of each other. Under the frame: the scale bar.
-    Returns (bbox, rows [(n, code, name, species)], {code: species}, geo, hubs drawn)."""
+    Round 5 (S8): no north arrow, neatline or scale bar drawn (the booklet draws them; geo "nd" = true north on the
+    page); the zone fields under the stream (G-R5-8); the farms' symbols only inside the study area; beyond the
+    planned bands the ONE placer (pln_place, P18.2) instead of the shrub scatter; geo "marks" = [(n, code, at)].
+    Returns (window box R, rows [(n, code, name, species)], {code: species}, geo, hubs drawn)."""
     w, h, u, v, c, den = fit
     k = 1000.0 / den
     R = (x0, ytop - h, x0 + w, ytop)
@@ -844,8 +892,11 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
     out.poly([rect(*R)], fill=COL["white"])
     D = basemap_load(log=log)
     L = (D or {}).get("layers") or {}
-    # farms and orchards (D7 a, P17.4): one field texture and one crop symbol per area, under the base's houses
+    # farms and orchards (D7 a, P17.4): one field texture and one crop symbol per area, under the base's houses.
+    # Round 5 (P18.2, G-R5-7, CHK-5 :848-863): the texture and the symbol only on the part inside the study area (the
+    # project); outside it the field is a flat tint (existing land use, no planting symbol)
     fields = []
+    n_flat = 0
     lc = L.get("lc") or {}
     farm = list(lc.get("farmland", [])) + [z_["rings"] for z_ in L.get("zones", []) if z_.get("kind") == "agri"]
     for crop, groups in (("olive", lc.get("orchard", [])), ("maize", farm)):
@@ -856,10 +907,17 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
             if not Pc or _p17_area(Pc) < 4.0:
                 continue
             fields.append(Pc)
-            sh = pla_field_tile(Pc, k, crop=crop, seed=len(fields))
-            if _p17_area(Pc) < 140.0:                    # too small for its symbol: the texture alone
-                sh = [sh[0]] + [s_ for s_ in sh[1:] if s_[0] == "line" and s_[2] == PLA_ROW]
-            _p17_put(out, sh)
+            _p17_put(out, pla_field_tile(Pc, k, crop=crop, seed=len(fields), texture=False)[:1])   # the flat tint
+            ins = [r_ for r_ in (sc_rings_clip(Pc, st_pg, P17_PAGE) if st_pg else []) if len(r_) >= 3]
+            if not ins:
+                n_flat += 1
+            for r_ in ins:
+                if _p17_area(r_) < 4.0:
+                    continue
+                sh = pla_field_tile(r_, k, crop=crop, seed=len(fields))
+                if _p17_area(r_) < 140.0:                # too small for its symbol: the texture alone
+                    sh = [sh[0]] + [s_ for s_ in sh[1:] if s_[0] == "line" and s_[2] == PLA_ROW]
+                _p17_put(out, sh)
     base = []
     if D:
         try:
@@ -874,12 +932,13 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
     arms = [a for a in _p17_arms_st(log) if any(inR(p) for p in a)]
     widen = [r for r in _p17_widen_st(log) if any(inR(p) for p in r)]
     sp = Page(0, 0)                                      # the project, drawn by map_draw's order hook
+    sz = Page(0, 0)                                      # round 5 (G-R5-8): the zone fields, drawn UNDER the stream
     for r in widen:
         sp.poly([[T(p) for p in r]], fill=P17_ZONE["WIDEN"][0], stroke=P17_ZONE["WIDEN"][1], lw=0.1)
     for z in zs:                                         # the water spaces, flat (planting comes after the shade)
         if z["code"] in P17_ZONE and z["code"] != "WT":
             f_, s_ = P17_ZONE[z["code"]]
-            sp.poly([[T(p) for p in z["ring"]]], fill=f_, stroke=s_, lw=0.12)
+            sz.poly([[T(p) for p in z["ring"]]], fill=f_, stroke=s_, lw=0.12)
     arm_bands = []
     for a in arms:
         P = [T(p) for p in a]
@@ -1016,16 +1075,6 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
         d_ = _wat_near_edge(widx, cell, p_, band)[0]
         return d_ / band if d_ < band - 1e-9 else 9.0
 
-    def t_open(x_, y_):                                  # P17.6: beyond the bank band, moist to dry
-        p_ = (x_, y_)
-        if _p17_in(wet_in, cell, p_) or _p17_in(blk, cell, p_) or \
-                any(math.hypot(x_ - c_[0], y_ - c_[1]) < c_[2] for c_ in clear):
-            return 9.0
-        d_ = _wat_near_edge(widx, cell, p_, 2.0 * band)[0]
-        if d_ < band:
-            return 9.0
-        return 0.5 + 0.4 * min(1.0, (d_ - band) / band)
-    n_open = 0
     for j, rg in enumerate(parts):
         try:
             shp, pl, inf = _p17_drift_plan(rg, k, t_bank, list(P17_MIX["BANK"]), (7 if key == "A" else 8) + 11 * j,
@@ -1034,25 +1083,58 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
             note("BANK", pl, inf)
         except Exception as ex:
             log.append(u"p17 plan {}: stream banks not planted: {}: {}".format(key, type(ex).__name__, ex))
-        try:
-            shp, pl = pla_low_plan(rg, k, t_open, seed=(17 if key == "A" else 19) + 13 * j, density=P17_SHRUB_DENS,
-                                   avoid=foot, mix=P17_SHRUB, max_n=900)
-            _p17_put(sp, shp)
-            note("OPEN", pl)
-            n_open += len(pl)
-        except Exception as ex:
-            log.append(u"p17 plan {}: shrub groups not drawn: {}: {}".format(key, type(ex).__name__, ex))
-    # map_draw: base -> D9 tint -> project (the hook) -> study line, strictly in ML_LAYERS order
-    done = [False]
+    # round 5 (P18.2, G-R5-7, U53-U55): the whole project designed, fading. The cores (S23 red) = the planned bands
+    # drawn above (the water spaces, the side arm, the bank band: their drift areas and zone rings); the rest of the
+    # project = the study area in this window (the plans' project, as p24_tree_set) planted by the ONE placer
+    # (common/planting.py pln_place): copses and shrub drifts whose density fades from the cores' edges (no hard
+    # edge), species by the wet-to-dry niche from the water, never on water, buildings, streets, fields, the cores
+    # or the places people use; nothing outside the project. Replaces round 4's shrub scatter (t_open, pla_low_plan:
+    # no outer limit, lavender everywhere far from the water: the purple dots of S23).
+    n_open = 0
+    cores = [list(r_) for _b, _l, r_, _a in geo if len(r_) >= 3] + [list(r_) for r_ in taken_z if len(r_) >= 3]
+    pj_ix = _p17_ring_index(parts, cell)                 # only what reaches the project is passed (speed)
+    near = [r_ for r_ in bld + streets + fields if any(_p17_in(pj_ix, cell, p_) for p_ in r_)]
+    avoid = cores + list(foot) + near + [[T(p) for p in r_] for r_ in widen] + \
+        [sec_ellipse(c_[0], c_[1], c_[2], c_[2], 16) for c_ in clear]
+    pkey = u"p18 plan " + key
+    try:
+        pl_ = pln_place(parts, cores=cores, outer=(), water=wet, k=k, seed=(17 if key == "A" else 19),
+                        mix=list(P17_MIX["BANK"]), density=P17_OUTER_DENS, avoid=avoid, max_n=P17_OUTER_MAX,
+                        page=pkey, shrubs=True)
+        _p17_put(sp, pln_draw(pl_, k))
+        note("OPEN", [(q[0],) for q in pl_["trees"] + pl_["shrubs"]])
+        n_open = len(pl_["trees"]) + len(pl_["shrubs"])
+        log.extend(pln_log_lines(pkey))
+        if pl_["counts"].get("outside"):
+            wbx_warn(WBX_PG_PLANTS, "planting", u"plan {}: {} plants outside the project".format(
+                key, pl_["counts"]["outside"]))
+    except Exception as ex:
+        log.append(u"WARNING p17 plan {}: the planting beyond the bands not placed: {}: {}".format(
+            key, type(ex).__name__, ex))
+        wbx_warn(WBX_PG_PLANTS, "planting", u"plan {}: the planting beyond the bands not placed ({})".format(
+            key, type(ex).__name__))
+    # map_draw: base -> D9 tint -> the zone fields -> the base stream ("water") -> project (the hook) -> study line,
+    # strictly in ML_LAYERS order. Round 5 (G-R5-8): the zone fields go in just before the stream, so the water lies
+    # over them; legend_cols / water_ok for the zones log line (S2)
+    done, zdone = [False], [False]
 
     def hook(layer):
-        if not done[0] and layer not in ML_BASE_LAYERS and layer != "proj_tint":
+        late = layer not in ML_BASE_LAYERS and layer != "proj_tint"
+        if not zdone[0] and (layer == "water" or late):
+            out.items.extend(sz.items)
+            zdone[0] = True
+        if not done[0] and late:
             out.items.extend(sp.items)
             done[0] = True
     f_, l_, t_ = _p17_map_fns(out)
     tint = [z["ring"] for z in zs] + widen + [_p14_band(a, 2.0 * P17_ARM_W) for a in arms]
+    leg_cols = [ML_TINT, PLA_FIELD] + [v_[0] for v_ in P17_ZONE.values()] + \
+        [_p17_band_fill(b_) for b_ in range(len(P17_BANDS))]
+    w_ok = [P17_ZONE[c_][0] for c_ in ("WIDEN", "ARM", "WD", "WT", "WP")]
     map_draw(P17_PAGE, T, f_, l_, t_, base, {"proj_tint": ml_tint(tint, study=st or None, page=P17_PAGE)},
-             study=st or None, clip=True, order_fn=hook, log=log)
+             study=st or None, clip=True, order_fn=hook, log=log, legend_cols=leg_cols, water_ok=w_ok)
+    if not zdone[0]:
+        out.items.extend(sz.items)
     if not done[0]:
         out.items.extend(sp.items)
     # the section lines of p18 (cut registry W1, F2, S4, F4) in the R01 red symbol, kept inside the frame
@@ -1069,15 +1151,15 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
     taken += [(min(q[0] for q in it[1]), min(q[1] for q in it[1]), max(q[0] for q in it[1]), max(q[1] for q in it[1]))
               for it in out.items if it[0] == "line" and it[2] == KM_CUT["colour"] and len(it[1]) <= 4 and
               max(abs(it[1][-1][0] - it[1][0][0]), abs(it[1][-1][1] - it[1][0][1])) < 6.0]
-    # the north arrow, the hubs, the markers
+    # the hubs, the markers. Round 5: no north arrow drawn (the booklet draws it from north_deg: nd = true north's
+    # direction on the page)
     nd = (T((0.0, 100.0))[0] - T((0.0, 0.0))[0], T((0.0, 100.0))[1] - T((0.0, 0.0))[1])
     nl = math.hypot(*nd) or 1.0
     nd = (nd[0] / nl, nd[1] / nl)
-    _p17_north_in(out, R, nd, 6.0, taken)
     for _nm, (X, Y) in hubs:
         _p17_put(out, ico_badge("hub", X, Y, 4.0))
         taken.append((X - 2.0, Y - 2.0, X + 2.0, Y + 2.0))
-    rows = []
+    rows, marks = [], []
     pts = [(T(at), code, name) for code, name, at in _p17_spaces(fit, log)]
     n_next = 1 + max([0] + list(seen.values()))
     for j in tp_reading_order([q[0] for q in pts], y_down=False):
@@ -1101,6 +1183,7 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
             log.append(u"FLAG p17 plan {}: marker {} has no free spot: drawn on its space".format(key, num))
             at = (X, Y)
         taken.append(_p17_mark(out, num, at[0], at[1], code, keep_pg=pg))
+        marks.append((num, code, at))
     for name, (X, Y) in hubs:                            # hub names (G-R4-11: real names), beside the icon or left out
         for x_, y_, al in ((X + 2.8, Y - fs * 0.35, "L"), (X - 2.8, Y - fs * 0.35, "R"), (X, Y + 2.8, "C"),
                            (X, Y - 2.8 - fs * 0.75, "C")):
@@ -1112,14 +1195,12 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
         else:
             log.append(u"p17 plan {}: hub name '{}' left out (no free place)".format(key, name))
     pg.items += _p17_clip_items(out.items, R)
-    pg.poly([rect(*R)], fill=None, stroke=COL["ink2"], lw=P17_NEAT)      # a map keeps a thin neatline (D4)
-    bb = _p12_bar(pg, R[0], R[1] - 4.0, den, P17_BAR.get(den, (0, 20, 50, 100)))
+    # round 5: no neatline and no scale bar on the board (the booklet frames the drawing and draws its bar)
     wat_draw_order_lines(page=u"p17 plan " + key, steps=["ground", "water", "structures", "vegetation", "labels"])
     log.append(u"p17 plan {}: 1:{:,.0f}, {:.0f} x {:.0f} mm, {} places drawn in plan ({} outside the study area left "
-               u"out), {} markers, {} hubs, shrub groups {} plants".format(key, den, w, h, st_n, st_out, len(pts),
-                                                                         len(hubs), n_open))
-    return (min(R[0], bb[0]), bb[1], R[2], R[3]), rows, placed, \
-        dict(drifts=geo, water=wet, R=R, den=den, nd=nd), len(hubs)
+               u"out), {} markers, {} hubs, planting beyond the bands {} plants (placer), fields outside the study "
+               u"area flat {}".format(key, den, w, h, st_n, st_out, len(pts), len(hubs), n_open, n_flat))
+    return R, rows, placed, dict(drifts=geo, water=wet, R=R, den=den, nd=nd, marks=marks), len(hubs)
 
 
 def _p17_specs(log):
@@ -1213,6 +1294,10 @@ def _p17_clip_items(items, r):
         elif it[0] == "text":
             if r[0] <= it[2] <= r[2] and r[1] <= it[3] <= r[3]:
                 out.append(it)
+        elif it[0] == "image":                           # round 5 (S4 plants may be images): kept, clipped at r
+            x_, y_, w_, h_ = it[1:5]
+            if x_ < r[2] and x_ + w_ > r[0] and y_ < r[3] and y_ + h_ > r[1]:
+                out.append(tuple(it[:8]) + ((max(r[0], x_), max(r[1], y_), min(r[2], x_ + w_), min(r[3], y_ + h_)),))
     return out
 
 
@@ -1251,118 +1336,132 @@ def _p17_win_corners(fit):
 # ---------------------------------------------------------------- key maps (M4 keymap_items: the study-area outline)
 # ---------------------------------------------------------------- page A: key map, legend, numbered list, catalogue
 def _p17_keymap(pg, box, zooms, log):
-    """round 4 (G-R4-9, P17.3): the key map of p17 in box (x0, y0, x1, y1), north up: keymap.py km_map with both plan
-    windows as red frames ("A", "B"), the muted base, the study line, the main street and place names (placed clear
-    of each other and of the north corner), a thin neatline (D4); the north arrow (north_items, no plate) in its top
-    right corner. The map is a keep of the page's TextPage: only its own texts sit on it. Returns its box, or None
-    (logged) without basemap data."""
+    """round 5 (P18.1, G-R5-3): the key map of p18: keymap.py km_map v2 (no scale_den: the fitted frame, the auto
+    turn, its own north arrow) with both plan windows as red frames ("A", "B"), handed to the booklet with
+    wbx_keymap; nothing is drawn on the board (no north arrow, no neatline). box = the most room offered (x0, y0, x1,
+    y1). Returns the fitted frame's box at the box's top-left, or None (logged) without basemap data."""
     x0, y0, x1, y1 = box
-    name = u"keymap p17"
-    nc = 11.0                                            # the north arrow's corner, mm
     try:
-        km = km_map([u"A", u"B"], x1 - x0, y1 - y0, zooms=zooms, page=P17_PAGE,
-                    legend_box=(x1 - x0 - 8.0, y1 - y0 - nc, x1 - x0, y1 - y0), log=log)
+        km = km_map([u"A", u"B"], x1 - x0, y1 - y0, zooms=zooms, page=P17_PAGE, log=log)
     except Exception as ex:
-        log.append(u"FLAG p17 key map not drawn: {}: {}".format(type(ex).__name__, ex))
+        log.append(u"FLAG p17 key map not made: {}: {}".format(type(ex).__name__, ex))
+        wbx_warn(WBX_PG_PLANTS, "keymap", u"key map not made ({})".format(type(ex).__name__))
         return None
     if not km.get("items"):
-        log.append(u"FLAG p17 key map not drawn: no basemap data (run the site board once)")
+        log.append(u"FLAG p17 key map not made: no basemap data (run the site board once)")
+        wbx_warn(WBX_PG_PLANTS, "keymap", u"key map not made: no basemap data")
         return None
-    R = (x0, y1 - km["h_mm"], x0 + km["w_mm"], y1)
-    sp = Page(0, 0)
-    sp.tgroup()
-    f_, l_, t_ = _p17_map_fns(sp, allow=(name,))
-    pg.poly([rect(*R)], fill=COL["white"])
-    km_draw(km, lambda q: (R[0] + q[0], R[1] + q[1]), f_, l_, t_, page=P17_PAGE + u" key map", log=log)
-    its, _b = _p17_north_items(R[2] - 4.0, R[3] - nc / 2.0, (0.0, 1.0), 6.0)
-    basemap_draw(its, lambda p: p, f_, l_, t_)
-    sp.tgroup(False)
-    pg.items += _p17_clip_items(sp.items, R)
-    pg.poly([rect(*R)], fill=None, stroke=COL["ink2"], lw=P17_NEAT)
-    pg.keep(R, "map", name)
-    return R
+    wbx_keymap(WBX_PG_PLANTS, km, item_id=u"p18_keymap")
+    fill = km.get("fill")
+    log.append(u"keymap {} fill={} rotation={} cuts={} zooms=A,B".format(
+        WBX_PG_PLANTS, u"{:.2f}".format(fill) if isinstance(fill, (int, float)) else fill, km.get("rotation_deg"),
+        u",".join(km.get("cut_ids") or []) or u"none"))
+    return (x0, y1 - km["h_mm"], x0 + km["w_mm"], y1)
 
 
-def _p17_legend(pg, x, ytop, w, log, hubs=True):
-    """the legend of the two plans (G1, G-R4-2 keywords): a drawn sample and a short name for every symbol they
-    draw, one column; returns the bottom y of its last text"""
-    fs = P17_FS
-    pg.text(u"ON THE PLANS", x, ytop - fs, fs, COL["ink_dark"], bold=True)
-    y = ytop - fs * 2.45                                 # the first row's baseline
+def _p17_legend_rows(log, hubs=True):
+    """the legend rows of the two plans [(kind, text)] (G1, G-R4-2 keywords). Round 5 (P18.3): one row per planting
+    band in the band's colour (the band map's key uses the same colours and names); P18.2: the placer's lighter
+    planting; farms flat outside the study area"""
     rows = [("water", place_name("stream") + u", darker = deeper"),
             ("tint", u"what the project changes"),
             ("study", u"study area"),
             ("space", u"water space: number in the list"),
-            ("cell", u"lined basin: reed, water mint"),
-            ("plant", u"planting, wet to dry"),
-            ("shrub", u"shrubs on open ground"),
-            ("stones", u"stepping stones"),
-            ("bridge", u"footbridge"),
-            ("terrace", u"viewing terrace"),
-            ("steps", u"sun steps"),
-            ("maize", u"farmland: one crop symbol"),
-            ("olive", u"orchard: one olive symbol"),
-            ("bld", u"building"),
-            ("cut", u"section line (p18), the way it looks")]
+            ("cell", u"lined basin: reed, water mint")]
+    rows += [("band%d" % i, u"planting band: " + P17_BAND_NAME[i]) for i in range(len(P17_BANDS))]
+    rows += [("outer", u"designed planting, lighter away from the bands"),
+             ("stones", u"stepping stones"),
+             ("bridge", u"footbridge"),
+             ("terrace", u"viewing terrace"),
+             ("steps", u"sun steps"),
+             ("maize", u"farmland: one crop symbol, flat outside the study area"),
+             ("olive", u"orchard: one olive symbol, flat outside the study area"),
+             ("bld", u"building"),
+             ("cut", u"section line, the way it looks")]
     if hubs:
         rows.append(("hub", u"hub"))
     if _p17_shade(log):
         rows.append(("shade", u"July shade on the water: " + u", ".join(l_ for _, _, l_, _h in P17_SHADE)))
+    return rows
+
+
+def _p17_sw_draw(pg, kind, x, y0, w=6.0, h=3.2):
+    """the drawn sample of one legend row in the box (x, y0, x + w, y0 + h) (round 4's samples, w = 6, h = 3.2)"""
+    yy = y0 + 1.0
+    sm = (x, y0, x + w, y0 + h)
     pa = _wat_pal()
+    if kind == "water":
+        pg.poly([rect(*sm)], fill=pa["surface"], stroke=pa["edge"], lw=0.25)
+        pg.line([(x + 1.2, yy + 0.6), (x + 4.8, yy + 0.6)], pa["deep"], 0.2)
+    elif kind == "tint":
+        pg.poly([rect(*sm)], fill=ML_TINT, alpha=ML_TINT_ALPHA)
+    elif kind == "study":
+        st_ = BM_STUDY_LINE
+        pg.line([(x, yy + 0.6), (x + 6.0, yy + 0.6)], st_["colour"], st_["width_mm"], dash=list(st_["dash_mm"]))
+    elif kind == "cell":
+        _p17_put(pg, pla_cell_plan("reed", sm, 2.0, 0.15))
+    elif kind.startswith("band"):
+        b_ = int(kind[4:])
+        pg.poly([rect(*sm)], fill=_p17_band_fill(b_), stroke=_sec_mix(P17_BAND_COL[b_], SEC["paper"], 0.2), lw=0.1)
+        ks_ = [k_ for k_ in P17_BANDS[b_] if k_ in PLA_SPECIES]
+        if ks_:
+            _p17_put(pg, pla_plan(ks_[0], x + 3.0, yy + 0.6, 0.45, crown_m=min(5.0, PLA_SPECIES[ks_[0]]["crown_m"]
+                                                                              or 2.0)))
+    elif kind == "outer":
+        _p17_put(pg, pla_plan("ash", x + 1.6, yy + 0.7, 0.45, crown_m=5.0))
+        _p17_put(pg, pla_plan("rosemary", x + 4.4, yy + 0.3, 1.2, crown_m=1.2))
+    elif kind in ("maize", "olive"):
+        _p17_put(pg, pla_field_tile(sm, 1.0, crop=kind, symbol_mm=2.6))
+    elif kind == "bld":
+        pg.poly([rect(*sm)], fill=BLD_COL["fill"], stroke=BLD_COL["edge"], lw=BLD_LW["block"])
+    elif kind == "cut":
+        cs = KM_CUT
+        pg.line([(x + 1.6, yy + 0.6), (x + 6.0, yy + 0.6)], cs["colour"], cs["lw"], dash=list(cs["dash"]))
+        pg.line([(x, yy + 0.6), (x + 1.6, yy + 0.6)], cs["colour"], cs["bar_lw"])
+        pg.line([(x, yy + 0.6), (x + 1.6, yy + 0.6), (x + 0.8, yy + 2.4), (x, yy + 0.6)], cs["colour"], cs["tri_lw"])
+    elif kind == "hub":
+        _p17_put(pg, ico_badge("hub", x + 3.0, yy + 0.6, 3.6))
+    elif kind in ("stones", "bridge", "terrace", "steps"):
+        if kind in ("stones", "bridge"):
+            pg.poly([rect(*sm)], fill=pa["surface"], stroke=pa["edge"], lw=0.25)
+        _p17_put(pg, _p17_struct_plan(kind, (x + 1.2, yy + 0.6), (x + 4.8, yy + 0.6), "a")[0])
+    elif kind == "shade":                                # the opaque hatch the plans draw, light to dense
+        pg.poly([rect(*sm)], fill=pa["surface"], stroke=pa["edge"], lw=0.25)
+        for j_, (_l, col, _t, hs_) in enumerate(P17_SHADE):
+            xa_ = sm[0] + j_ * 2.0
+            for p_, q_ in sec_hatch([(xa_, sm[1]), (xa_ + 2.0, sm[1]), (xa_ + 2.0, sm[3]), (xa_, sm[3])],
+                                    hs_ * 0.5, 45.0):
+                pg.line([p_, q_], col, 0.12)
+    elif kind == "space":
+        f_, s_ = P17_ZONE["WP"]
+        pg.poly([rect(*sm)], fill=f_, stroke=s_, lw=0.12)
+        _p17_mark(pg, 1, x + 3.0, yy + 0.6, "WP", r_min=1.5)
+
+
+def _p17_legend(pg, x, ytop, w, log, hubs=True):
+    """the legend of the two plans: a drawn sample and a short name for every symbol they draw, one column; returns
+    the bottom y of its last text. Round 5: drawn only on a scratch page (to measure the layout); the booklet gets
+    the same rows through _p17_legend_export"""
+    fs = P17_FS
+    pg.text(u"ON THE PLANS", x, ytop - fs, fs, COL["ink_dark"], bold=True)
+    y = ytop - fs * 2.45                                 # the first row's baseline
     low = y
-    for kind, lab in rows:
+    for kind, lab in _p17_legend_rows(log, hubs):
         yy = y - fs * 0.15
-        sm = (x, yy - 1.0, x + 6.0, yy + 2.2)
-        if kind == "water":
-            pg.poly([rect(*sm)], fill=pa["surface"], stroke=pa["edge"], lw=0.25)
-            pg.line([(x + 1.2, yy + 0.6), (x + 4.8, yy + 0.6)], pa["deep"], 0.2)
-        elif kind == "tint":
-            pg.poly([rect(*sm)], fill=ML_TINT, alpha=ML_TINT_ALPHA)
-        elif kind == "study":
-            st_ = BM_STUDY_LINE
-            pg.line([(x, yy + 0.6), (x + 6.0, yy + 0.6)], st_["colour"], st_["width_mm"], dash=list(st_["dash_mm"]))
-        elif kind == "cell":
-            _p17_put(pg, pla_cell_plan("reed", sm, 2.0, 0.15))
-        elif kind == "plant":
-            fc = PLA_SPECIES["willow"]["colours"]["fill"]
-            pg.poly([rect(*sm)], fill=_sec_mix(fc, SEC["paper"], 0.72), stroke=_sec_mix(fc, SEC["paper"], 0.35), lw=0.1)
-            _p17_put(pg, pla_plan("willow", x + 1.7, yy + 0.6, 0.45, crown_m=7.0))
-            _p17_put(pg, pla_plan("soft_rush", x + 4.6, yy + 0.3, 2.0))
-        elif kind == "shrub":
-            _p17_put(pg, pla_plan("chaste", x + 1.5, yy + 0.6, 0.8, crown_m=3.0))
-            _p17_put(pg, pla_plan("rosemary", x + 3.6, yy + 0.4, 1.2, crown_m=1.2))
-            _p17_put(pg, pla_plan("lavender", x + 5.2, yy + 0.9, 1.2, crown_m=0.9))
-        elif kind in ("maize", "olive"):
-            _p17_put(pg, pla_field_tile(sm, 1.0, crop=kind, symbol_mm=2.6))
-        elif kind == "bld":
-            pg.poly([rect(*sm)], fill=BLD_COL["fill"], stroke=BLD_COL["edge"], lw=BLD_LW["block"])
-        elif kind == "cut":
-            cs = KM_CUT
-            pg.line([(x + 1.6, yy + 0.6), (x + 6.0, yy + 0.6)], cs["colour"], cs["lw"], dash=list(cs["dash"]))
-            pg.line([(x, yy + 0.6), (x + 1.6, yy + 0.6)], cs["colour"], cs["bar_lw"])
-            pg.line([(x, yy + 0.6), (x + 1.6, yy + 0.6), (x + 0.8, yy + 2.4), (x, yy + 0.6)], cs["colour"],
-                    cs["tri_lw"])
-        elif kind == "hub":
-            _p17_put(pg, ico_badge("hub", x + 3.0, yy + 0.6, 3.6))
-        elif kind in ("stones", "bridge", "terrace", "steps"):
-            if kind in ("stones", "bridge"):
-                pg.poly([rect(*sm)], fill=pa["surface"], stroke=pa["edge"], lw=0.25)
-            _p17_put(pg, _p17_struct_plan(kind, (x + 1.2, yy + 0.6), (x + 4.8, yy + 0.6), "a")[0])
-        elif kind == "shade":                            # the opaque hatch the plans draw, light to dense
-            pg.poly([rect(*sm)], fill=pa["surface"], stroke=pa["edge"], lw=0.25)
-            for j_, (_l, col, _t, hs_) in enumerate(P17_SHADE):
-                xa_ = sm[0] + j_ * 2.0
-                for p_, q_ in sec_hatch([(xa_, sm[1]), (xa_ + 2.0, sm[1]), (xa_ + 2.0, sm[3]), (xa_, sm[3])],
-                                        hs_ * 0.5, 45.0):
-                    pg.line([p_, q_], col, 0.12)
-        elif kind == "space":
-            f_, s_ = P17_ZONE["WP"]
-            pg.poly([rect(*sm)], fill=f_, stroke=s_, lw=0.12)
-            _p17_mark(pg, 1, x + 3.0, yy + 0.6, "WP", r_min=1.5)
+        _p17_sw_draw(pg, kind, x, yy - 1.0)
         ly = r28_para(pg, x + 7.5, y + fs * 1.28, w - 7.5, lab, fs, COL["ink"])
         low = ly
         y = min(y, ly) - fs * 1.45
     return low - fs * 0.35
+
+
+def _p17_legend_export(did, log, hubs=True):
+    """round 5: the plans' legend for the booklet (wbx_legend): every row with its drawn sample as a swatch function"""
+    ents = []
+    for kind, lab in _p17_legend_rows(log, hubs):
+        ents.append(((lambda pg_, x_, y_, w_, h_, kind=kind: _p17_sw_draw(pg_, kind, x_, y_, w_, h_)), lab))
+    wbx_legend(WBX_PG_PLANTS, did, ents, title=u"On the plans", id=u"p18_plans_legend")
+    return len(ents)
 
 
 def _p17_list(pg, x, ytop, w, rows):
@@ -1386,6 +1485,25 @@ def _p17_list(pg, x, ytop, w, rows):
 def _p17_list_h(rows, w):
     """the height a list takes (measured on a scratch page)"""
     return -_p17_list(Page(0, 0), 0.0, 0.0, w, rows) if rows else 0.0
+
+
+def _p17_list_export(did, rows, marks):
+    """round 5: a plan's numbered water spaces for the booklet (wbx_list), each row anchored at its marker on the
+    plan (board mm): "space: species English (Turkish), ..." (P17.7). Plan B's numbers go on from plan A's, so a list
+    that does not start at 1 carries its numbers in the text (numbered=False), as the masterplan's p23 lists do"""
+    if not rows:
+        return 0
+    at = dict((n_, p_) for n_, _c, p_ in marks)
+    texts = []
+    for n, code, name, keys in rows:
+        nms = [_p17_name(k_) for k_ in keys]
+        nms = [s_ if i_ == 0 else s_[:1].lower() + s_[1:] for i_, s_ in enumerate(nms)]
+        texts.append((u"{}: {}".format(name, u", ".join(nms)) if nms else u"{}".format(name), n))
+    ns = [n_ for _t, n_ in texts]
+    numbered = ns == list(range(1, len(ns) + 1))
+    wbx_list(WBX_PG_PLANTS, did, [(u"" if numbered else u"%d " % n_) + t_ for t_, n_ in texts], numbered=numbered,
+             anchors_board=[at.get(n_) for n_ in ns], id=did + u"_list")
+    return len(texts)
 
 
 def _p17_foliage(key):
@@ -1496,9 +1614,16 @@ def _p17_catalogue(pg, x0, ybot, x1, log, measure=False):
     if measure:
         return (x0, ybot, xr + w, ybot + hmax)
     ytop = ybot + hmax
-    for i, (s_, p_) in enumerate(zip(sps, photos)):
-        _p17_card(pg, x0 + i * (w + gap), ytop, w, s_, p_, PHOTOS)
-    _p17_card_remove(pg, xr, ytop, w, log)
+    for i, (s_, p_) in enumerate(zip(sps, photos)):      # round 5: one booklet drawing per card (photo included)
+        n0_ = wbx_mark(pg)
+        xc_ = x0 + i * (w + gap)
+        yl_ = _p17_card(pg, xc_, ytop, w, s_, p_, PHOTOS)
+        wbx_drawing(u"p18_card_" + s_["key"], WBX_PG_PLANTS, pg, (xc_, min(yl_, ytop - PHOTO_H) - 0.5, xc_ + w, ytop),
+                    n0=n0_, den=None, dkind="diagram", group=u"p18_catalogue", scale_bar=False, crop=u"wb_plants")
+    n0_ = wbx_mark(pg)
+    yl_ = _p17_card_remove(pg, xr, ytop, w, log)
+    wbx_drawing(u"p18_card_remove", WBX_PG_PLANTS, pg, (xr, min(yl_, ytop - PHOTO_H) - 0.5, xr + w, ytop), n0=n0_,
+                den=None, dkind="diagram", group=u"p18_catalogue", scale_bar=False, crop=u"wb_plants")
     return (x0, ybot, xr + w, ytop)
 
 
@@ -1522,7 +1647,10 @@ def _p17_card_remove(pg, x, ytop, w, log, measure=False):
     return r28_para(pg, x, y, w, words, fs, COL["accent"])
 
 
-P17_FOL_COL = (("evergreen", "3C4733"), ("deciduous", "89986A"), ("herbaceous", "A2B6B5"), (u"not sourced", "DCD9D2"))
+# round 5 (A1): the foliage classes' colours from the plant module (pla_green; roles chosen apart from the four band
+# colours so the two keys never share a colour: design choice); "not sourced" stays a neutral grey
+P17_FOL_COL = (("evergreen", pla_green("row")), ("deciduous", pla_green("field")), ("herbaceous", pla_green("meadow")),
+               (u"not sourced", "DCD9D2"))
 
 
 def _p17_fol_class(key):
@@ -1553,7 +1681,7 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
         for b, lead, _ring, a in g_.get("drifts") or []:
             bands[b] += a / (kk * kk)
             fol[_p17_fol_class(lead)] += a / (kk * kk)
-    rows_b = [(P17_BAND_NAME[i], P17_BAND_COL[i], bands[i]) for i in range(len(P17_BANDS))]
+    rows_b = [(P17_BAND_NAME[i], _p17_band_fill(i), bands[i]) for i in range(len(P17_BANDS))]   # P18.3: as on the plans
     rows_f = [(c_, col, fol[c_]) for c_, col in P17_FOL_COL]
     log.append(u"p17 logic: bands {} m², foliage {}".format(
         u" / ".join(u"{:,.0f}".format(a) for a in bands),
@@ -1568,22 +1696,30 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
         return max([3.2 + w_ for w_ in ws] + [text_w(title, fs, True) if title else 0.0, 24.0])
     mtop = ytop - fs * 1.5 - 1.0                         # the top edge the blocks share under their titles
 
-    def shares(x, w, rows):
+    def shares(x, w, rows, did, title):
+        """round 5: the 100 % bar as a chart drawing (did) and its rows as the booklet legend of that drawing (chip,
+        name, m², %); returns the y the rows would reach (the board layout)"""
         tot = sum(r_[2] for r_ in rows)
         y = mtop - 3.6
         xx = x
+        n0_ = wbx_mark(pg)
         for nm, col, a in rows:                          # the 100 % bar
             if tot > 0 and a > 0:
                 ww = w * a / tot
                 pg.poly([rect(xx, y, xx + ww, y + 3.6)], fill=col)
                 xx += ww
+        if tot > 0:
+            wbx_drawing(did, WBX_PG_PLANTS, pg, (x, y, x + w, y + 3.6), n0=n0_, den=None, dkind="chart",
+                        title=title, group=u"p18_logic", scale_bar=False, crop=u"wb_plants")
         y -= 1.0
+        ents = []
         for nm, col, a in rows:                          # its key: chip, name, m², %
             if a <= 0 or tot <= 0:
                 continue
             y -= fs * 1.3
-            pg.poly([rect(x, y - 0.1, x + 2.4, y + fs * 0.75)], fill=col)
-            pg.text(row_txt(nm, a, tot), x + 3.2, y, fs, COL["ink"])
+            ents.append((wbx_sw("fill", col), row_txt(nm, a, tot)))
+        if ents:
+            wbx_legend(WBX_PG_PLANTS, did, ents, title=title, id=did + u"_key")
         return y
     # block 1: the band map and its key
     xm = x0 + 1.0                                        # 1 mm in: the scale bar's "0" stays on the page
@@ -1599,6 +1735,7 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
 
         def M(p):
             return (Rm[0] + (p[0] - R[0]) * f, Rm[1] + (p[1] - R[1]) * f)
+        n0_ = wbx_mark(pg)
         pg.poly([rect(*Rm)], fill=COL["white"])
         pa = _wat_pal()
         for r_ in gB.get("water") or []:
@@ -1608,21 +1745,30 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
         for b, _lead, ring, _a in gB["drifts"]:
             c_ = _p14_clip_ring(list(ring), R)
             if c_:
-                pg.poly([[M(p) for p in c_]], fill=_sec_mix(P17_BAND_COL[b], SEC["paper"], 0.25))
-        pg.poly([rect(*Rm)], fill=None, stroke=COL["ink2"], lw=P17_NEAT)
-        _p12_bar(pg, Rm[0], Rm[1] - 4.0, den_m, P17_BAR.get(den_m, (0, 50, 100, 200)))
-        _p17_north_in(pg, Rm, gB.get("nd") or (0.0, 1.0), 4.0, [])
+                pg.poly([[M(p) for p in c_]], fill=_p17_band_fill(b))     # P18.3: the plans' band colour
+        n_mk = 0
+        for num, code, at in gB.get("marks") or []:      # P18.3: plan B's water-space numbers at the same spots
+            if R[0] <= at[0] <= R[2] and R[1] <= at[1] <= R[3]:
+                X_, Y_ = M(at)
+                _p17_mark(pg, num, X_, Y_, code, r_min=1.2)
+                n_mk += 1
+        # round 5: no neatline, scale bar or north arrow drawn: the booklet draws them (north_deg as plan B's)
+        wbx_drawing(u"p18_bands", WBX_PG_PLANTS, pg, Rm, n0=n0_, den=den_m, origin=(0.0, 0.0), dkind="plan",
+                    title=u"Planting bands, plan B", group=u"p18_logic", north_deg=_p17_ndeg(gB.get("nd")),
+                    crop=u"wb_plants")
+        log.append(u"p17 band map: 1:{:,.0f}, {} water-space numbers as on plan B, band colours as on the plans"
+                   .format(den_m, n_mk))
         xl = Rm[2] + 3.0
-    t1 = u"PLANTING BANDS · plan B" + (u" · 1:{:,.0f}".format(den_m) if den_m else u"") + u" · m², plans A + B"
-    pg.text(t1, xm, ytop - fs, fs, COL["ink_dark"], bold=True)
+    t1 = u"PLANTING BANDS · plan B · m², plans A + B"     # the board's layout only (not drawn)
+    wbx_text(WBX_PG_PLANTS, u"Planting bands, wet to dry: plan B; areas of plans A and B", "heading",
+             did=u"p18_bands" if den_m else None, group=u"p18_logic", id=u"p18_bands_head")
     wb_ = col_w(rows_b)
-    shares(xl, wb_, rows_b)
+    shares(xl, wb_, rows_b, u"p18_band_shares", u"Planting bands, plans A and B")
     # block 2: foliage, beside block 1 (its title clear of block 1's)
     tf = u"FOLIAGE · by the lead species' area"
     xf = max(xl + wb_ + 4.0, xm + text_w(t1, fs, True) + 4.0)
     wf_ = col_w(rows_f, tf)
-    pg.text(tf, xf, ytop - fs, fs, COL["ink_dark"], bold=True)
-    shares(xf, wf_, rows_f)
+    shares(xf, wf_, rows_f, u"p18_foliage_shares", u"Foliage, by the lead species' area")
     # block 3: the height ranking
     xc = max(xb, xf + wf_ + G)
     if xc > xb + 0.01:
@@ -1631,8 +1777,8 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
     wc = x1 - xc
     sps = sorted([k_ for k_ in P17_CAT if (PLA_SPECIES[k_].get("h_range") or (None, None))[1]],
                  key=lambda k_: -PLA_SPECIES[k_]["h_range"][1])
-    title = u"HEIGHT · each species' sourced maximum, one scale"
-    pg.text(title, xc, ytop - fs, fs, COL["ink_dark"], bold=True)
+    title = u"Height: each species' sourced maximum, one scale"
+    n0h = wbx_mark(pg)
     ax = 9.0                                             # the axis labels' column
     cw = (wc - ax) / max(1, len(sps))
     src_of = dict((s_["key"], s_["src"]) for s_ in SPECIES)
@@ -1671,6 +1817,9 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
         else:
             _p17_put(pg, pla_section(key, xm_, gy, ks, h_m=hi, crown_m=crown, seed=i + 3))
         words(pg, key, xc + ax + i * cw + 0.3, gy - 1.0)
+    # round 5: the height chart as one chart drawing (scale free in the booklet: its own metre axis)
+    wbx_drawing(u"p18_heights", WBX_PG_PLANTS, pg, (xc, yb, x1, mtop), n0=n0h, den=None, dkind="chart", title=title,
+                group=u"p18_logic", scale_bar=False, crop=u"wb_plants")
     return (x0, yb, x1, ytop)
 
 
@@ -1717,7 +1866,12 @@ def p17_page(pg, box, opt, log):
     band (_p17_logic: the band map grouped with its key, the foliage shares, the height chart). Row 3, the species
     catalogue along the foot. The box is widened to the cell (3.5 mm each side, 3 mm down: the catalogue's 13 photos
     of 28 mm need it). Every text goes through the cell's TextPage (build_board: text_page / check_text). Returns
-    [(crop id, bbox, scale denominator)]."""
+    [(crop id, bbox, scale denominator)].
+    Round 5 (S8, booklet p18, WBX_PG_PLANTS): the board only records; the drawings go to the booklet (wb_items.py),
+    each with crop "wb_plants": p18_plan_A, p18_plan_B (1:den, metres, north_deg), their lists (wbx_list at the
+    markers), the plans' legend (wbx_legend on p18_plan_A), the key map (wbx_keymap, km_map v2), p18_bands (the band
+    map, 1:den_m), p18_band_shares / p18_foliage_shares (bars + legend keys), p18_heights, p18_card_<key> and
+    p18_card_remove. The layout below still sizes the plan windows (same scale, more context)."""
     if _P17_MEMO.get("run") != id(pg):                  # a new run reads its data afresh
         _P17_MEMO.clear()
         _P17_MEMO["run"] = id(pg)
@@ -1750,31 +1904,37 @@ def p17_page(pg, box, opt, log):
     xa = x0 + P17_LW + G
     xb = xa + fa[0] + G
     yt = ytop - P17_HEADH                                # the plans' top edge (shared with the key map)
-    for key, xk in (("A", xa), ("B", xb)):               # the heading strips: letter, name, scale
-        pg.text(u"{} · {} · plan 1:{:,.0f}".format(key, P17_WIN_NAME[key], den), xk, ytop - 3.2, fs,
-                COL["ink_dark"], bold=True)
+    # round 5: no heading strips drawn (the booklet sets each drawing's title and prints its 1:den itself)
     seen = {}
-    ba, ra, sa, ga, hn_a = _p17_window(pg, xa, yt, "A", fa, log, seen)
-    bb_, rb, sb_, gb, hn_b = _p17_window(pg, xb, yt, "B", fb, log, seen)
-    la = _p17_list(pg, xa, yt - fa[1] - P17_BARH, fa[0], ra)
-    lb = _p17_list(pg, xb, yt - fb[1] - P17_BARH, fb[0], rb)
-    # the left column: the key map (both windows) over the legend, the legend's foot on row 1's bottom
+    out_ = {}
+    for key, xk, fk in (("A", xa, fa), ("B", xb, fb)):
+        n0_ = wbx_mark(pg)
+        out_[key] = _p17_window(pg, xk, yt, key, fk, log, seen)
+        g_ = out_[key][3]
+        wbx_drawing(u"p18_plan_" + key, WBX_PG_PLANTS, pg, out_[key][0], n0=n0_, den=den, origin=(0.0, 0.0),
+                    dkind="plan", title=u"{} · {}".format(key, P17_WIN_NAME[key]), group=u"p18_plans",
+                    north_deg=_p17_ndeg(g_.get("nd")), crop=u"wb_plants")
+        _p17_list_export(u"p18_plan_" + key, out_[key][1], g_.get("marks") or [])
+    ba, ra, sa, ga, hn_a = out_["A"]
+    bb_, rb, sb_, gb, hn_b = out_["B"]
+    la = yt - fa[1] - P17_BARH - _p17_list_h(ra, fa[0])    # the board layout only (lists go to the booklet)
+    lb = yt - fb[1] - P17_BARH - _p17_list_h(rb, fb[0])
+    # the left column: the key map (both windows) over the legend; round 5: both go to the booklet, not drawn here
     kb = None
     if yt - (yrow + leg_h + G) >= 15.0:
         kb = _p17_keymap(pg, (x0, yrow + leg_h + G, x0 + P17_LW, yt),
                          {u"A": _p17_win_corners(fa), u"B": _p17_win_corners(fb)}, log)
     else:
         log.append(u"FLAG p17: no room for the key map over the legend ({:.0f} mm)".format(yt - yrow - leg_h - G))
-    ly0 = (kb[1] - G) if kb else yt
-    ly = _p17_legend(pg, x0, ly0, P17_LW, log, hn_a + hn_b > 0)
-    if min(la, lb, ly) < yrow - 0.5:
-        log.append(u"WARNING p17: row 1 runs {:.0f} mm into the logic band".format(yrow - min(la, lb, ly)))
+    n_leg = _p17_legend_export(u"p18_plan_A", log, hn_a + hn_b > 0)
     lgb = _p17_logic(pg, x0, ylog, x1, P17_LOGIC_H, {"A": ga, "B": gb}, xb, log)
     cat = _p17_catalogue(pg, x0, y0, x1, log)            # the species strip at the foot of the box
     for b_, nm in ((ba, u"plan A"), (bb_, u"plan B"), (cat, u"catalogue"), (lgb, u"logic band")):
         pg.block(b_, u"p17 " + nm)
-    if kb:
-        pg.block((x0, ly, x0 + P17_LW, kb[3]), u"p17 key map and legend")
+    log.append(u"p17 export: plans A, B 1:{:,.0f} (north_deg {}, {}), key map {}, legend {} rows, lists {} + {} rows "
+               u"(lowest at {:.0f} / {:.0f} mm on the board)".format(
+                   den, _p17_ndeg(ga.get("nd")), _p17_ndeg(gb.get("nd")), u"made" if kb else u"none", n_leg, len(ra),
+                   len(rb), la, lb))
     placed = dict(sa)
     for c_, ks in sb_.items():
         placed[c_] = list(placed.get(c_, [])) + [k_ for k_ in ks if k_ not in placed.get(c_, [])]

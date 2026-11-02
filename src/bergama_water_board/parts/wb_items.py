@@ -27,8 +27,8 @@
 #   wbx_levels(page, did, levels, side="R")                   levels [(name, z)] on the drawing's y (m a.s.l.)
 #   wbx_keymap(page, km, item_id=None)                        km = km_map(...) v2 result: S2 km_items go in as they
 #                                                             are (the booklet places the frame in the right column)
-#   wbx_inset(page, parent, window_bb, child)                 window = board mm in the PARENT's drawing; factor from
-#                                                             the two dens
+#   wbx_inset(page, parent, window_bb, child, factor=None)    window = board mm in the PARENT's drawing; factor from
+#                                                             the two dens, else `factor` (scale-free zooms, e.g. x3.1)
 #   wbx_photo(page, file, caption=None, source=None, id=None)
 #   wbx_keep(did, bb)                                         an area (board mm) no label of the page may cover
 #   wbx_warn(page, kind, msg)                                 a content check hit (WARNING line + orange)
@@ -121,8 +121,8 @@ def wbx_keymap(page, km, item_id=None):
     WBX["keymap"].append(dict(page=page, km=km, id=item_id))
 
 
-def wbx_inset(page, parent, window_bb, child):
-    WBX["inset"].append(dict(page=page, parent=parent, window=tuple(window_bb), child=child))
+def wbx_inset(page, parent, window_bb, child, factor=None):
+    WBX["inset"].append(dict(page=page, parent=parent, window=tuple(window_bb), child=child, factor=factor))
 
 
 def wbx_photo(page, file, caption=None, source=None, id=None):
@@ -480,7 +480,7 @@ def wbx_export(pg, log):
             a, b = mp(I["parent"], I["window"][:2]), mp(I["parent"], I["window"][2:])
             dp, dc = maps[I["parent"]][0].get("board_den"), maps[I["child"]][0].get("board_den")
             ix.inset(wbx_p(I["page"]), I["parent"], (a[0], a[1], b[0], b[1]), I["child"],
-                     float(dp) / float(dc) if dp and dc else 1.0)
+                     float(dp) / float(dc) if dp and dc else float(I.get("factor") or 1.0))
         else:
             ix.warn(wbx_p(I["page"]), "export", u"inset %s -> %s: a drawing is missing" % (I["parent"], I["child"]))
     for P in WBX["photo"]:
