@@ -275,6 +275,8 @@ def build_layout(S):
     rects = TimedRects()                                  # v27: each drawing's time for the log
     del DRAWING_TIMES[:]
     del CROP_PANELS[:]                                    # v40: the booklet crops of this layout
+    P45_KM.clear()                                        # v60.2: the p04/p05 key maps of this layout (km_items)
+    P45_LEG.clear()
     del SB_KEEPS[:]                                       # v59 (closing, G-R4-1): the drawing areas of this layout
     y = OY
     B_CUR[0] = B

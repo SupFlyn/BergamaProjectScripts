@@ -700,7 +700,7 @@ def pl28_note_entry(C, nt):
     """P23.2: (name, one short line) of a numbered note for the list, in plain words from the note's own data. No
     source codes: they go to the sources page with every reason, whole (pl28_plan_sources)."""
     k = nt["key"]
-    less = u"less than {:.0f} m open".format(KEPT_MAX)
+    less = u"no room to open it"                            # v40.2 (G-R5-4.6): no width in any list
     if k[0] == "hub":
         h = next((h_ for h_ in C.hubs if h_["id"] == k[1]), {})
         nm = PL28_HUB.get(k[1], k[1])
@@ -731,7 +731,7 @@ def pl28_note_entry(C, nt):
             landmark_name("trajan_tapinagi"), C.terrace["d"])
     if k[0] == "widen" and C.widen:
         lo, hi = min(w["fw"][0] for w in C.widen), max(w["fw"][1] for w in C.widen)
-        return u"Stream widened", u"room for water and a wetland · {:.0f}-{:.0f} m open beside the bank".format(lo, hi)
+        return u"Stream widened", u"room for water and a wetland beside the bank"   # v40.2: width dropped
     if k[0] == "foot":
         return u"Footbridge" + (u"s" if len(nt["at"]) > 1 else u""), \
             u"{:.0f}+ m of stream without a crossing".format(FOOT_GAP_M)   # v38 (P21.4): shorter

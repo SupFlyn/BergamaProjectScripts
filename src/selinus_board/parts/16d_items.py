@@ -16,7 +16,7 @@
 #   sb_items_export(S, B) -> [log lines]   writes Downloads/Bergama/cached/booklet/selinus_board/items.json
 # Page ids: 25-page numbering (PLAN §0 "until closing"); the heritage loop is "p22" (booklet p20 after D7/D9).
 SB_IX_PAGES = {"plan01": "p02", "site_readings": "p02", "edge_types": "p02", "axo_what_is_there": "p03",
-               "sections_1": "p04", "sections_2": "p05", "edge_build": "p06", "movement": "p07",
+               "edge_build": "p06", "movement": "p07",
                "walking_today": "p07", "driving_today": "p07", "mv_note_1": "p07", "mv_note_2": "p07",
                "mv_note_3": "p07", "street_sections": "p09", "heritage_loop": "p22"}
 SB_IX_SCALES = {"plan01": [2500, 5000, 10000, 20000]}     # P02.2: p02 at 1:20,000 or larger (listed scales only)
@@ -311,6 +311,26 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
                 u"upright)%s" % (len(shapes), len(texts), n_plane, u", %d stripes solid" % n_h if n_h else u""))
 
 
+def _six_keymap(ix, km, page, item_id, note):
+    """v60.2 (G-R5-12, as the city link's cl_keymap): a key map (km_map result) exported with km_items: its drawing
+    (key-map mm), label texts anchored on it and the keymap item, ids registered in ix"""
+    its = km_items(km, page, item_id=item_id, priority=2)
+    did = None
+    for it in its:
+        it = dict(it)
+        it["id"] = ix._id(it.get("id"), it.get("kind", "item"))
+        it["page"] = page
+        if it.get("kind") == "drawing" and did is None:
+            did = it["id"]
+        elif it.get("anchor") and did is not None:
+            it["anchor"] = dict(it["anchor"], drawing=did)
+        elif it.get("kind") == "keymap" and did is not None:
+            it["drawing"] = did
+        ix.d["pages"].setdefault(page, []).append(it)
+    note.append(u"items %s key map %s: %d items, frame %.0f x %.0f mm" % (page, did, len(its), km["w_mm"], km["h_mm"]))
+    return did
+
+
 def sb_items_export(S, B):
     """v60: every booklet crop of this run as items (module notes), plus the board's results.json, sources and site
     photos; returns the log lines"""
@@ -318,7 +338,7 @@ def sb_items_export(S, B):
     ix = Ix("selinus_board", "selinus_board", SCRIPT_VERSION)
     note, seen = [], set()
     for p in CROP_PANELS:
-        page = SB_IX_PAGES.get(p["slug"])
+        page = SB_IX_PAGES.get(p["slug"]) or p.get("ix_page")   # v60.2: p04/p05 per-cut crops carry their page
         if page is None:
             continue
         if p["slug"] in seen:
@@ -330,6 +350,14 @@ def sb_items_export(S, B):
         except Exception:
             ix.warn(page, "export", u"crop %s not exported: %s" % (
                 p["slug"], traceback.format_exc().strip().splitlines()[-1]))
+    for pid_, km_ in sorted(P45_KM.items()):              # v60.2 (G-R5-12 split): the p04/p05 key maps as items
+        try:
+            _six_keymap(ix, km_, pid_, u"sb_sec_keymap_%s" % pid_, note)
+        except Exception:
+            ix.warn(pid_, "keymap", u"key map not exported: %s" % traceback.format_exc().strip().splitlines()[-1])
+    for pid_, ents_ in sorted(P45_LEG.items()):           # v60.2: the p04/p05 legends (strip colours, lines)
+        if ents_:
+            ix.legend(pid_, None, ents_, id=u"sb_sec_legend_%s" % pid_)
     for row in CROP_DIRECT:
         if len(row) < 9 or row[0] != "axo_what_is_there":
             continue

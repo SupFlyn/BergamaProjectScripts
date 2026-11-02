@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_city_link_v9.py = v9 (round 5, session S9, 2 Nov 2026: "produce then compose" (G-R5-12): no sheet PDF, no crops; p08 and p10 exported as items for the booklet; P08.1-P08.3, P10.1-P10.4, C1, C2, C10, CHK-12; what changed: NEW IN v9 below; v8.2: p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 / v8: layout checks and text collisions are WARNING lines, the run goes on; v7: round 4 S5)
+# CURRENT VERSION: bergama_city_link_v9_1.py = v9.1 (fix 2 Nov: p10 hub-square trees drawn by the plant module, pla_plan "plane"); v9 (round 5, session S9, 2 Nov 2026: "produce then compose" (G-R5-12): no sheet PDF, no crops; p08 and p10 exported as items for the booklet; P08.1-P08.3, P10.1-P10.4, C1, C2, C10, CHK-12; what changed: NEW IN v9 below; v8.2: p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 / v8: layout checks and text collisions are WARNING lines, the run goes on; v7: round 4 S5)
 # bergama_city_link_v6.py (v6, 31 Oct: round 3, p08 one corridor arrow over the whole study area + p09 hub plans; v5.1, 31 Oct: bugfix, rebuilt with the shared base map fix of 31 Oct: the stream (M5 water) no longer stops on "list - float"; v5, 30 Oct: revision T5, p8 framework map + who calendar, p9 spine) · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (a Button wired into the input `run`; outputs `log`, `done`),
 # Rhino 8 ScriptEditor (Python 3), or plain Python 3. v9 lays out no page and writes NO PDF (round 5, G-R5-12 and
@@ -13,8 +13,8 @@
 #            (grouped with its window), the plans' legend, the flood rule, which bank, the producers' market
 #   Downloads/Bergama/cached/Bergama_city_link_analysis/city_link_results.json   (same keys as before)
 #   Downloads/Bergama/logs/bergama_city_link_log.txt
-# Nothing is written to output/ (C2). How we know it ran: the component text reads "CityLink v9 · HH:MM · n s"; the
-# log's head is "city link v9 · <time> · <s> s", then "<n> warnings" (= the WARNING lines listed right under it),
+# Nothing is written to output/ (C2). How we know it ran: the component text reads "CityLink v9.1 · HH:MM · n s"; the
+# log's head is "city link v9.1 · <time> · <s> s", then "<n> warnings" (= the WARNING lines listed right under it),
 # and the run lines include "items bergama_city_link: … -> …/items.json".
 # NEW IN v9 (round 5 S9, 2 Nov 2026; BRIEF P08.1-P08.3, P10.1-P10.4, G-R5-1/3/8/12, C1, C2, C10, CHK-12):
 #   * G-R5-12: the page functions draw into a recorder (Page: page mm, y up, nothing written); cl_drawing() makes
@@ -41,7 +41,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v9"  # v9 2 Nov (round 5 S9): items for the booklet, no sheet PDF (NEW IN v9 above); v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v9.1"  # v9.1 fix 2 Nov (round 5 open rows, G-R5-6): the p10 hub-square planes come from common/plants.py (pla_plan) instead of 16-gon discs in the local green; v9 2 Nov (round 5 S9): items for the booklet, no sheet PDF (NEW IN v9 above); v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v7 (round 4, session S5, 1 Nov 2026; BRIEF P08.1-P08.3, P10.1-P10.6, G-R4-1/2/4/7/9/11; a feature change,
 # so the next whole number; design spec revision_2026-11-01_round4/handover/S5_design_spec.md):
 #   * Text (G-R4-1): every text of both pages is registered in the page's TextPage (common/text_place.py) with its
@@ -328,6 +328,9 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
 #@include ../common/marker.py
 #@include ../common/buildings.py
 #@include ../common/icons.py
+#@include ../common/section_parts.py
+#@include ../common/hires.py
+#@include ../common/plants.py
 #@include ../common/data/FACTS.py
 #@include ../common/facts.py
 # v9 (round 5, G-R5-12): the item export (needs bergama_paths, grid, warn above)
@@ -2141,10 +2144,8 @@ def hub_plan(pg, L, f, w):
         proj["proj_tint"] += ml_tint(rings)
         proj["proj_lines"] += [("line", R_ + [R_[0]], SQ_EDGE, 0.35, None, 1.0) for R_ in rings]
         tr_ = max(1.2 * m_mm, 3.5)                        # a crown >= 1.2 mm across on the page (drawing rule)
-        for q in sq.get("trees") or []:
-            proj["proj_vegetation"].append(("fill", [[(q[0] + tr_ * math.cos(a_ * math.pi / 8.0),
-                                                       q[1] + tr_ * math.sin(a_ * math.pi / 8.0)) for a_ in range(16)]],
-                                            C["green_mid"], 1.0, True))
+        for i_, q in enumerate(sq.get("trees") or []):    # v9.1 (G-R5-6): the plant module's plane, not a 16-gon
+            proj["proj_vegetation"] += cl_plane_plan(q, 2.0 * tr_, i_)
         seen.add("square")
         if sq.get("trees"):
             seen.add("trees")
@@ -2197,7 +2198,8 @@ def hub_plan(pg, L, f, w):
             proj["proj_marks"] += [("line", list(sp), C["white"], 1.4, None, 1.0), ("line", list(sp), C["ink"], 0.8, None, 1.0)]
             seen.add("footbridge")
     nb, _st = cl_map(pg, "p10", T, sbox, den, proj, base_extra=covered, clip=True,   # v9: cut to the window on export
-                     legend_cols=[ML_TINT, C["green_mid"], C["ink"]], water_ok=[C["ink"]])   # stones: in the bed
+                     legend_cols=[ML_TINT, C["green_mid"], C["ink"]] + sorted(CL_TREE_COLS),
+                     water_ok=[C["ink"]])                 # stones: in the bed; v9.1: + the plane's own colours
 
     if nb:
         seen.add("base")
@@ -2257,7 +2259,7 @@ def p10_legend_rows(seen):
         ent.append((lambda p_, b: p_.rect(b[0], b[1], b[2] - b[0], b[3] - b[1], fill=tint_hex(ML_TINT, 1.0 - ML_TINT_ALPHA),
                                           stroke=SQ_EDGE, lw=0.35), "dry hub square (masterplan)"))
     if "trees" in seen:
-        ent.append((sw_mark(lambda p_, x, y: disc(p_, x, y, 1.0, C["green_mid"])),
+        ent.append((sw_mark(lambda p_, x, y: disc(p_, x, y, 1.0, pla_colours("plane")["fill"])),   # v9.1
                     (u"its trees: " + PLANE_NAME + u", watered from storage " + cite(SRC_PLANE)).strip()))
     for ch in ("pedestrian", "calmed", "shared", "relocated"):
         if "road_" + ch in seen:
@@ -2435,6 +2437,34 @@ def cl_keymap(ix, page, f, wins):
     return did
 
 
+CL_TREE_COLS = set()                     # v9.1: the colours the hub-square planes were drawn in (legend check)
+
+
+def cl_plane_plan(q, crown_m, seed):
+    """v9.1 (round 5 fix, G-R5-6, CLOSING_CHECK §2 row 10): one hub-square tree (the masterplan's planes) from the
+    plant module: pla_plan("plane") at (q) survey m with k = 1 (the module's mm = metres here), its masses, colours
+    and plan mark as on every other drawing; vector only (an image or placeholder answer falls back to the module's
+    own vector drawing). Returns map items ("fill", rings, hex, alpha, nonzero) / ("line", pts, hex, w mm, dash, a)."""
+    sh = pla_plan("plane", q[0], q[1], 1.0, crown_m=crown_m, seed=seed)
+    if not any(s_[0] == "poly" for s_ in sh):
+        c_ = pla_colours("plane")
+        sh = _pla_plan(PLA_SPECIES["plane"]["form"], q[0], q[1], crown_m, 1.0, c_, seed) + \
+            _pla_plan_mark("plane", q[0], q[1], crown_m / 2.0, c_, seed)
+    out = []
+    for s_ in sh:
+        if s_[0] == "poly" and s_[1]:
+            rings = [list(s_[1])] if isinstance(s_[1][0][0], (int, float)) else [list(R_) for R_ in s_[1]]
+            if s_[2]:
+                out.append(("fill", rings, s_[2], 1.0, True))
+                CL_TREE_COLS.add(u"%s" % s_[2])
+            if len(s_) > 3 and s_[3]:
+                out += [("line", R_ + [R_[0]], s_[3], (s_[4] if len(s_) > 4 and s_[4] else 0.08), None, 1.0)
+                        for R_ in rings]
+        elif s_[0] == "line" and len(s_[1]) >= 2:
+            out.append(("line", list(s_[1]), s_[2], (s_[3] if len(s_) > 3 and s_[3] else 0.08), None, 1.0))
+    return out
+
+
 CL_KM_W = 113.6                          # v9: mm the p10 key map may take at most: the right column (PLAN §3)
 
 
@@ -2533,7 +2563,7 @@ def results(L=None):
                  main_transit_hub=hb["transit"], plane_trees=hb["kind"] == "walk", stops=hb["stops"],
                  bus_stops=hb["bus_stops"], trips=hb["trips"], later=hb.get("later"), ch=hb["ch"]) for hb in hub_list()]
     return dict(spine_banks=(L or {}).get("sides"), bank_votes=(L or {}).get("votes"), bank_vote_source=(L or {}).get("vote_src"),
-                script="bergama_city_link_v9.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
+                script="bergama_city_link_v9_1.py", version=VERSION, run_time=time.strftime("%Y-%m-%d %H:%M:%S"),
                 spine=SPINE, functions=[dict([(k, f.get(k)) for k in ("n", "name", "where", "xy", "stage", "who", "grows", "ch", "bank")] +
                                              [("hub", "sub-hubs" if f["n"] == 8 else hub_of.get(f["n"]))])
                                         for f in FUNCS + [EVENTS]],

@@ -550,7 +550,7 @@ def r28mv_col_today(S, B, crop, k, L, R, MV, key, rows, pts, lens, nums):
                    vtext=u"{:.0f}".format(em[0]), colour=mv_ramp(SEQ, seq_t(em[0], 100.0))),
               dict(label=u"all streets", value=em[1], vtext=u"{:.0f}".format(em[1]),
                    colour=mv_ramp(SEQ, seq_t(em[1], 100.0)))]
-        blocks.append((_t3_blk(u"Average index · {:.0f} m band".format(R28MV_EDGE_M),
+        blocks.append((_t3_blk(u"Average index · stream-edge band",   # v60.2: no width
                                lambda B_, x_, y_, w_, d_: r28mv_bars(B_, eb, x_, y_, w_, k, L,
                                                                     max(1.0, em[0], em[1]), d_), k, L), 0.5))
     tot = sum(lens)
@@ -1138,9 +1138,10 @@ def _t3_zone_band(zones, X, k, y0, W, today):
     xs = sorted(set([min(max(X(a_), 0.0), W) for _n, a_, _b in zones] + [min(max(X(b_), 0.0), W)
                                                                        for _n, _a, b_ in zones]))
     sh = [("line", [(xs[0], y0), (xs[-1], y0)], ink2, 0.15)] if xs else []
-    for x_ in xs:
-        sh.append(("line", [(x_, y0 + 0.6), (x_, y0 - 0.6)], ink2, 0.15))
-    nl = 2 if today else 1
+    # v60.2 (G-R5-4.6, CLOSING_CHECK §2 rows 8/13): no tick at each zone edge and no surveyed width in cm (they read
+    # as a width chain); the zones keep their names only
+    today = False
+    nl = 1
     right, boxes, low = [-1e9, -1e9], [], y0
     for nm, a_, b_ in zones:
         xa, xb = min(max(X(a_), 0.0), W), min(max(X(b_), 0.0), W)
@@ -1316,7 +1317,8 @@ def _t3_sec_make(cut, after, style, k, CO, seed, cid=None):
         p0, p1 = za_ + 0.25, zb_ - 0.25
         sh_, placed, grp = pla_group_section(X(p0), X(p1), 0.0, k, t0=0.50, t1=0.85,
                                              mix={"plane": 1.0, "chaste": 1.0, "rosemary": 0.8,    # v58: no 20 m ash
-                                                  "lavender": 0.8}, seed=seed, layers=(0,), style=style,
+                                                  "lavender": 0.8}, seed=seed,
+                                             layers=(sf_tree_level("p09")["layer"],), style=style,   # v60.2 P09.4
                                              density=0.8, avoid=[(X(c_ - 1.1), X(c_ + 1.1)) for c_ in cars] +
                                              [(X(ex_ - 0.5), X(ex_ + 0.5)) for _kn, ex_ in els])   # v58: + the lamp
         if placed:

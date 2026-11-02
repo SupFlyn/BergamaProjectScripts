@@ -679,7 +679,7 @@ class Corridor(object):
                 if k["why"] == why and all(math.hypot(k["at"][0] - q[0], k["at"][1] - q[1]) >= KEPT_SPACE_M for q in at):
                     at.append(k["at"])
             if at:
-                self.note(("kept", why), txt, [u"less than {:.0f} m open (open ground)".format(KEPT_MAX)], at)
+                self.note(("kept", why), txt, [u"no room to open it (open ground)"], at)
         ft = [c_ for c_ in self.cross if c_["kind"] == "footbridge"]
         if ft:
             self.note(("foot",), u"FOOTBRIDGE: {:.0f}+ m WITHOUT A CROSSING".format(FOOT_GAP_M),

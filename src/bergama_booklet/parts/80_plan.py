@@ -39,10 +39,12 @@ BK_PAGES = [
          rows=[["sb_axo_what_is_there"]], share=0.78),
     dict(pid="p04", part="A", stage="an", title=u"Sections across the stream",
          intro=u"Cuts *across the Selinos stream*, each drawn *as it is*: the ground, the *bed and banks*, the "
-               u"buildings, trees and fields it crosses.", rows=[["sb_sections_1"]], share=0.82),
+               u"buildings, trees and fields it crosses.", rows=[["sb_sec_s1"], ["sb_sec_s2"], ["sb_sec_s3"], ["sb_sec_s4"]],
+         common=True, share=0.82),   # v30.2: one drawing per cut (site board v60.2); key map (role keymap) and legend go right by themselves
     dict(pid="p05", part="A", stage="an", title=u"Sections across the stream",
          intro=u"Cuts *across the Selinos stream*, each drawn *as it is*: the ground, the *bed and banks*, the "
-               u"buildings, trees and fields it crosses.", rows=[["sb_sections_2"]], share=0.82),
+               u"buildings, trees and fields it crosses.", rows=[["sb_sec_s5"], ["sb_sec_s6"], ["sb_sec_s7"], ["sb_sec_s8"]],
+         common=True, share=0.82),   # v30.2: one drawing per cut (site board v60.2); key map (role keymap) and legend go right by themselves
     dict(pid="p06", part="A", stage="got", title=u"The stream edge and where we can build",
          intro=u"Both banks *every 4 m*, and the ground *open to change*: where the project *can build*.",
          rows=[["sb_edge_build"]], share=0.82),
