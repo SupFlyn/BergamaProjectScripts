@@ -1502,6 +1502,8 @@ class Ctx(object):
             except Exception as ex:
                 LOG.append("WARNING: tree crowns could not be read from env_path ({}).".format(ex))
         self.leaf = {}                                     # (x, y) of a crown -> tree, olive or pine
+        self.leaf_raw = {}                                 # v61 (G6-10): (x, y) -> (CLC+ leaf code, leaf_src)
+        self.species = {}                                  # v61 (G6-10): (x, y) -> species glyph key or None
         if self.crowns:
             try:
                 E = (getattr(S, "env", None) or {}).get("E")
@@ -1509,8 +1511,9 @@ class Ctx(object):
                     E, _ = ns["load_env"](ns["ENV_PATH"])
                 LK = ns.get("LEAF_KIND") or {0: "tree", 1: "olive", 2: "pine"}
                 for row in (E or {}).get("trees", []):
-                    if len(row) > 5:                        # environment data v2: leaf code in row[4]
-                        self.leaf[(row[0], row[1])] = LK.get(int(row[4]), "tree")
+                    if len(row) > 5:                        # environment data v2: leaf code in row[4], its source
+                        self.leaf[(row[0], row[1])] = LK.get(int(row[4]), "tree")     # (1-3) in row[5]
+                        self.leaf_raw[(row[0], row[1])] = (int(row[4]), row[5])
             except Exception as ex:
                 LOG.append("WARNING: leaf types could not be read from env_path ({}); trees drawn as one kind.".format(ex))
             if not self.leaf:
@@ -1527,6 +1530,23 @@ class Ctx(object):
         self.pools = [ring(p) for p in getattr(S, "pools", []) if len(p) >= 3]
         self.streets = [ring(p) for p in getattr(S, "road_polys", []) if len(p) >= 3]
         self.extents = self.make_extents()
+
+    def tree_sp(self, x, y, r=None, h=None):
+        """v61 (round 6, G6-10): the species glyph key (plane / olive / stone_pine) of the tree drawn at (x, y), or
+        None = generic, never named: the board's sb_tree_species (common/trees.py tree_species with the site model's
+        zones and stream; it counts the tree for `trees p03`), once per tree; None without it"""
+        k_ = (x, y)
+        if k_ not in self.species:
+            sp, f = None, self.ns.get("sb_tree_species")
+            if f is not None:
+                lf, src = self.leaf_raw.get(k_, (None, None))
+                try:
+                    sp = f(self.S, x, y, lf, src, r, h, page="p03")[0]
+                except Exception as ex:
+                    LOG.append("WARNING: tree species at ({:.1f}, {:.1f}) not found ({}); drawn generic.".format(
+                        x, y, ex))
+            self.species[k_] = sp
+        return self.species[k_]
 
     def make_extents(self):
         E = []
@@ -1689,11 +1709,24 @@ ROAD_CLASS = {"primary": "main", "trunk": "main", "secondary": "main", "tertiary
               "unclassified": "secondary", "residential": "lane", "living_street": "lane", "service": "lane"}
 
 
-TREE_KIND_WORDS = [("tree", u"deciduous"), ("olive", u"evergreen broadleaf (olive)"), ("pine", u"needle-leaved (pine)")]
+TREE_KIND_WORDS = [("tree", u"deciduous"), ("olive", u"evergreen broadleaf"), ("pine", u"needle-leaved")]   # v61
+#                  (G6-10): the leaf types only, no species named by leaf type alone (were "(olive)", "(pine)")
+TREE_SP_STYLE = {"plane": "tree", "olive": "olive", "stone_pine": "pine"}   # v61 (G6-10): species glyph -> style
+TREE_SP_ORDER = ("plane", "olive", "stone_pine")
 
 
 def tree_legend(ctx, c):
-    """D4 legend rows for the trees: one row per leaf type drawn, with its count."""
+    """D4 legend rows for the trees: one row per leaf type drawn, with its count. v61 (round 6, G6-10): where the
+    board names species (ctx.species filled by sb_tree_species), one row per species drawn (its name from
+    common/trees.py TREE_SPECIES) and one "species unspecified" row, each with its count."""
+    if ctx.species and any(c.get("sp_" + k) for k in TREE_SP_ORDER):
+        TS = ctx.ns.get("TREE_SPECIES") or {}
+        L = [("tree", TREE_SP_STYLE[k], u"Trees: {} ({})".format((TS.get(k) or {}).get("name") or k.replace("_", " "),
+                                                               c["sp_" + k]))
+             for k in TREE_SP_ORDER if c.get("sp_" + k)]
+        if c.get("sp_"):
+            L.append(("tree", "tree", u"Trees: species unspecified ({})".format(c["sp_"])))
+        return L
     if not ctx.crowns:
         return [("tree", "tree", u"Surveyed tree symbols, drawn at a fixed size: no size in the survey ({})".format(
             c.get("trees", 0)))]
@@ -1931,7 +1964,11 @@ def climb_txt(c):
 
 
 # ============================================================ COMPOSING A PAGE
-BOX = (14.0, 46.0, 406.0, 262.0)          # drawing area on the page (x0, y0, x1, y1), mm
+BOX = (14.0, 61.0, 406.0, 262.0)          # drawing area on the page (x0, y0, x1, y1), mm. v61 (round 6, G6-8, SON
+#                                            page3 "0" / notes x footer): the bottom block (legend, notes, scale bars,
+#                                            north) moved up so nothing sits in the booklet's footer band (y < TP_FOOT_Y)
+TP_FOOT_Y = 19.0                           # v61: mm from the sheet's foot: the footer band is the bottom 6 % (17.8 mm,
+#                                            SON page3 footer y 94.5 %), plus 1.2 mm clear
 TP_PAGE = "p03"                            # v59 (round 4, PALL.2): the booklet page this sheet is (shown as it is)
 TP_FOOTER = (394.0, 11.0, 407.0, 18.2)     # v59: where the booklet prints its page number on a whole-sheet page
 #                                            (bergama_booklet sheet_foot, y up): no sheet text may sit there
@@ -2292,17 +2329,21 @@ def compose(ctx, spec, ext, stamp):
     tree_col = spec.get("trees")
     trees = []
     if tree_col:
+        # v61 (round 6, G6-10): each tree with its species (ctx.tree_sp; None = generic): (x, y, r, h, leaf style,
+        # species glyph key); its counts per species (sp_<key>, sp_ = unspecified) give the legend rows
         if ctx.crowns:
-            trees = [(x, y, r, h, ctx.leaf.get((x, y))) for x, y, r, h in ctx.crowns if R.inside(x, y)]
+            trees = [(x, y, r, h, ctx.leaf.get((x, y)), ctx.tree_sp(x, y, r, h)) for x, y, r, h in ctx.crowns
+                     if R.inside(x, y)]
         else:
-            trees = [(x, y, 2.5, 6.0, None) for x, y in ctx.survey_trees if R.inside(x, y)]
+            trees = [(x, y, 2.5, 6.0, None, ctx.tree_sp(x, y)) for x, y in ctx.survey_trees if R.inside(x, y)]
         cnt["trees"] = len(trees)
         for t in trees:
             cnt["trees_" + (t[4] or "unknown")] = cnt.get("trees_" + (t[4] or "unknown"), 0) + 1
+            cnt["sp_" + (t[5] or "")] = cnt.get("sp_" + (t[5] or ""), 0) + 1
     green = tree_col is not None and (tree_col != "context" or TREES_GREEN_EVERYWHERE)
 
-    def tstyle(t):
-        return TREE_STYLES[(t[4] or "tree") if green else "context"]
+    def tstyle(t):                     # v61 (G6-10): the species' style, else the leaf type's (generic)
+        return TREE_STYLES[(TREE_SP_STYLE.get(t[5]) or t[4] or "tree") if green else "context"]
     for t in trees:
         tree_shadow(pg, V.P, k, t[0], t[1], t[2], tstyle(t))
 
@@ -2547,16 +2588,16 @@ def chrome(pg, ctx, spec, ext, V, stamp):
     pg.text(u"Selinus corridor · axonometric · camera {:.1f}° down · view {:.0f}°".format(     # v38: keywords
         PHI, V.theta % 360), 406, 270.6, 2.3, ink2, align="R", layer="sheet")
     pg.line([(14, 266.5), (406, 266.5)], ink, 0.25, layer="sheet")
-    pg.line([(14, 40.5), (406, 40.5)], ink, 0.25, layer="sheet")
+    pg.line([(14, 55.6), (406, 55.6)], ink, 0.25, layer="sheet")     # v61: was 40.5 (bottom block moved up)
 
     # legend
     items = spec["legend"]() if callable(spec["legend"]) else spec["legend"]
     size = 2.2
-    x, y, row, colw = 14.0, 36.0, 0, 0.0
+    x, y, row, colw = 14.0, 51.6, 0, 0.0           # v61: rows 51.6 / 47.0 / 42.4 / 37.8 (were from 36.0)
     for kind, colr, label in items:
         if row == 4:
             x += colw + 6.0
-            y, row, colw = 36.0, 0, 0.0
+            y, row, colw = 51.6, 0, 0.0
         legend_glyph(pg, BP, kind, colr, x, y)
         pg.text(label, x + 9.0, y - size * CAP / 2, size, ink, layer="legend")
         colw = max(colw, 9.0 + text_w(label, size))
@@ -2570,15 +2611,16 @@ def chrome(pg, ctx, spec, ext, V, stamp):
         u"Drawn by {} on {} from the site model above; colours: group palette "
         u"(palette/). Every figure on this sheet is counted from these files.".format(SCRIPT, stamp)]
     # v59 (round 4, PALL.2, G-R4-1): the notes at the 6 pt minimum (were 1.75 mm = 5 pt), one text group, six lines
-    # from y 17 (under the legend's last row) down to y 3.25
+    # from y 17 (under the legend's last row) down to y 3.25. v61 (G6-8): six lines 2.6 mm apart from y 32.2 down to
+    # TP_FOOT_Y + 0.2 (were 17.0 down to 3.25, under the booklet's footer line)
     lines = []
     for n in notes:
         lines += wrap(n, TP_MIN_EM, 270)
-    yy = 17.0
+    yy = TP_FOOT_Y + 0.2 + 5 * 2.6
     pg.tgroup()
     for ln in lines[:6]:
         pg.text(ln, 14, yy, TP_MIN_EM, ink2, layer="sheet")
-        yy -= 2.75
+        yy -= 2.6
     pg.tgroup(False)
     if len(lines) > 6:
         LOG.append("WARNING: {}: source notes cut to 6 lines ({} lines left out).".format(pg.pid, len(lines) - 6))
@@ -2592,7 +2634,8 @@ def chrome(pg, ctx, spec, ext, V, stamp):
     ux, uy = nx / d, ny / d
     h, tm = 6.0, 2.52
     reach = h + 0.75 * tm + 0.6 * tm                       # foot to the far side of the "N"
-    fx, fy = 398.0 - ux * reach / 2.0, 27.0 - uy * reach / 2.0
+    fx, fy = 398.0 - ux * reach / 2.0, 31.0 - uy * reach / 2.0       # v61: centred at y 31 (was 27): clear of the
+    #                                                                     footer band (TP_FOOT_Y) whatever its turn
 
     def R_(a_, b_):                                         # a_ across the arrow, b_ along it (mm from the foot)
         return (fx + a_ * uy + b_ * ux, fy - a_ * ux + b_ * uy)
@@ -2604,7 +2647,8 @@ def chrome(pg, ctx, spec, ext, V, stamp):
 
     # scale bars on the ground, along the slab's two directions
     R = ext["rect"]
-    ox, oy = 352.0, 13.0
+    ox, oy = 352.0, TP_FOOT_Y + 7.5                 # v61 (G6-8): the "0" 4.5 mm and the note 0.5 mm over the band
+    #                                                 (were oy 13, note at 4.5: under the booklet footer)
     for ax_ in (R.a, R.b):
         va = V.vec(ax_[0], ax_[1])
         mm_per_m = math.hypot(*va)
@@ -2624,7 +2668,7 @@ def chrome(pg, ctx, spec, ext, V, stamp):
                 align="L" if e[0] >= 0 else "R", layer="scale")              # v59 (G-R4-1): 6 pt (was 2.0 mm)
     pg.text("0", ox, oy - 3.0, TP_MIN_EM, ink, align="C", layer="scale")
     pg.text(u"no single scale · true on 2 ground lines · 10 m up = {:.1f} mm".format(     # v38: keywords
-        10 * V.k * V.cp), 352.0, 4.5, TP_MIN_EM, ink2, align="C", layer="scale")    # v59: 6 pt (was 1.7 mm)
+        10 * V.k * V.cp), 352.0, TP_FOOT_Y + 0.5, TP_MIN_EM, ink2, align="C", layer="scale")    # v61 (was y 4.5)
 
 
 def legend_glyph(pg, BP, kind, colr, x, y):
@@ -2662,17 +2706,87 @@ def legend_glyph(pg, BP, kind, colr, x, y):
 SHORT = {}              # working-area key -> short place name on the walks (set by selinus_board)
 
 
+# v61 (round 6, G6-6, PLAN §2.6; hues_and_proposals.md H1 p03, H2 note 1, H3): the sheet's keyed colours as (category,
+# rank) of the board's hue table: uses commerce MOV r1, mixed MOV r2, residential MOV r3, civic PUB r2, worship PUB r1
+# (a use; heritage buildings take HER), workshops CTX r2; heritage: ruins HER r2 ("nearly all" lands registered as
+# archaeological sites, H3), historic buildings / sacred HER r3 (no sourced status), a building named in HER_RANK as
+# r1 (Akropol, Kızıl Avlu) HER r1; water WAT (channel r2, stream r3, still r4); existing parks GRN r4 (as p.02);
+# trees keep their drawn colours (P-3). Without the board's hue() the palette's colours stay.
+S1_HUE = {"D1": {"residential": ("MOV", 3), "mixed": ("MOV", 2), "commercial": ("MOV", 1),
+                 "institutional": ("PUB", 2), "religious": ("PUB", 1), "industrial": ("CTX", 2)},
+          "D2": {"monument": ("HER", 2), "sacred": ("HER", 3), "historic": ("HER", 3), "zone": ("HER", 4)},
+          "D4": {"channel": ("WAT", 2), "water": ("WAT", 3), "still": ("WAT", 4), "park": ("GRN", 4),
+                 "agri": ("AGR", 3)},
+          "HER1": {"her1": ("HER", 1)}}
+
+
+def s1_hue(ctx, did, key, old):
+    """v61 (G6-6): the hex of a topic colour from the board's hue table (S1_HUE), else the old one"""
+    cr, f = S1_HUE.get(did, {}).get(key), ctx.ns.get("hue")
+    if cr is None or f is None:
+        return old
+    try:
+        return f(cr[0], cr[1]).lstrip("#").upper()
+    except Exception:
+        return old
+
+
+def s1_her1(ctx, u):
+    """v61 (H3): True when the building's own name is a place the hue table ranks r1 (her_rank)"""
+    nm, f = u.get("proper") or u.get("name") or u"", ctx.ns.get("her_rank")
+    if not nm or f is None or ctx.ns.get("hue") is None:
+        return False
+    try:
+        return f(nm) == 1
+    except Exception:
+        return False
+
+
+def s1_sort(ctx, rows):
+    """v61 (G6-6): legend rows [(row, (category, rank))] in the table's order (the board's legend_group), as rows"""
+    ents = [dict(cat=(cr or ("CTX", 9))[0], rank=(cr or ("CTX", 9))[1], row=r) for r, cr in rows]
+    f = ctx.ns.get("legend_group")
+    if f is not None:
+        try:
+            got = list(f(ents))
+            if len(got) == len(ents) and all("row" in e for e in got):
+                ents = got
+        except Exception:
+            pass
+    return [e["row"] for e in ents]
+
+
 def spec_S1(ctx, ext):
     """What is there: use and height (D1), heritage (D2), water and green (D4) on one page."""
     BP = ctx.BP
     T1, T2, T4 = topic_map(BP, "D1"), topic_map(BP, "D2"), topic_map(BP, "D4")
     s2, s4 = spec_D2(ctx, ext), spec_D4(ctx, ext)
+    # v61 (round 6, G6-6): every colour this sheet keys from the board's hue table (common/hues.py hue, subtle set;
+    # S1_HUE): the topic maps recoloured, and what D2 / D4 already coloured (callouts, wall lines, banks, ground)
+    # remapped from the old hex to the new one, so the drawing and its legend agree
+    remap = {}
+    for T_, key_ in ((T1, "D1"), (T2, "D2"), (T4, "D4")):
+        for k_ in list(T_):
+            nh = s1_hue(ctx, key_, k_, T_[k_][1])
+            remap.setdefault(T_[k_][1], nh)
+            T_[k_] = (T_[k_][0], nh)
+    for c_ in s2["calls"]:
+        c_["color"] = remap.get(c_.get("color"), c_.get("color"))
+    for o_ in s2["overlays"] + s4["overlays"]:
+        o_["color"] = remap.get(o_.get("color"), o_.get("color"))
+    for g_ in s4["ground"]:
+        g_["fill"] = remap.get(g_.get("fill"), g_.get("fill"))
+        g_["stroke"] = remap.get(g_.get("stroke"), g_.get("stroke"))
+    her1 = s1_hue(ctx, "HER1", "her1", T2["monument"][1])
     counts = {}
 
     def bstyle(b):
         u = b["u"]
         k = heritage_kind(u)
         if k in ("monument", "historic"):
+            if s1_her1(ctx, u):                            # v61 (H3): a place the table ranks r1 (WH listing)
+                counts["her1"] = counts.get("her1", 0) + 1
+                return topic_style(BP, her1, key="her1")
             counts[k] = counts.get(k, 0) + 1
             return topic_style(BP, T2[k][1], key=k)
         c = u.get("cat")
@@ -2681,9 +2795,12 @@ def spec_S1(ctx, ext):
         counts[c] = counts.get(c, 0) + 1
         return topic_style(BP, T1[c][1], key=c)
 
-    def legend():
+    def legend():                       # v61 (G6-6): in the table's category order, darker = more important
         c = ext.get("_counts", {})
-        L = [("box", T1[k][1], u"{} ({})".format(T1[k][0], counts[k])) for k in T1 if counts.get(k)]
+        L = s1_sort(ctx, [(("box", T1[k][1], u"{} ({})".format(T1[k][0], counts[k])), S1_HUE["D1"].get(k))
+                          for k in T1 if counts.get(k)])
+        L += [("box", her1, u"Inside the World Heritage listing ({})".format(counts["her1"]))] if counts.get("her1") \
+            else []
         L += [("box", T2[k][1], u"{} ({})".format(lab, counts[k])) for k, lab in (
             ("monument", u"Ruins and ancient remains"), ("historic", u"Historic buildings")) if counts.get(k)]
         L += [("dash", T2["monument"][1], u"Historic wall lines (survey)"),

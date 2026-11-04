@@ -13781,7 +13781,7 @@ def water_section(profile, k, y_of, cid=None, bed=None, avg=None, q100=None, q50
 # types a level. Every element is drawn at true size; sizes the project has no source for are parameters, and the
 # few defaults below are marked as drawing rules (never printed as data).
 
-SF_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)    # D6 a: the only scales on any sheet
+SF_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 7500, 10000, 15000, 20000, 25000)    # D6 a: the only scales on any sheet (v15.2: + 7500, 15000, 25000 from the booklet list)
 # round 4 (S2, D11, Aras 1 Nov 10:31): 1:100 is allowed for ZOOM INSETS ONLY (nothing on the list is >= 2 x 1:250)
 SF_INSET_SCALES = (100,) + SF_SCALES
 SF_INSET_MIN_ZOOM = 2.0             # G-R4-5.6: an inset is at least 2 x its parent's scale
@@ -13991,12 +13991,14 @@ SF_DRY_MONTHS = (7, 8, 9)            # p10: the summer bed "dry or 3 cm Jul-Sep"
 SF_WADE_MAX_M = 0.50                 # PLAN §3 People: wading only in water <= 0.50 m (figures.py FIG_WADE_MAX_M)
 
 
-def sf_activity_ok(kind, ground_y=None, water_y=None, k=None, month=None, strip=False, page=None, what=u""):
+def sf_activity_ok(kind, ground_y=None, water_y=None, k=None, month=None, strip=False, page=None, what=u"",
+                   quiet=False):
     """(ok, reason): may a person do `kind` ("fish", "wade", anything else = True) at a spot whose ground is at page
     y ground_y with the drawn water surface at water_y (page y, None = no water drawn there), k mm per m, in month
     (1-12, None = no season shown)? Fishing: water drawn at the spot (the line ends in it) and not a dry month unless
     `strip` (the summer strip whose water is drawn). Wading: water drawn and its depth <= SF_WADE_MAX_M. A refusal is
-    a WARNING (`<page> activity`) so the page draws a walker or watcher instead (P05.1)."""
+    a WARNING (`<page> activity`) so the page draws a walker or watcher instead (P05.1). v15.2: quiet=True writes
+    nothing (the caller logs the refusal itself)."""
     if kind not in ("fish", "fishing", "wade", "wading"):
         return True, u""
     why = None
@@ -14011,7 +14013,8 @@ def sf_activity_ok(kind, ground_y=None, water_y=None, k=None, month=None, strip=
         elif dep <= 0.0:
             why = u"ground above the water"
     if why:
-        _sf_warn(page, "activity", u"%s %s refused: %s" % (kind, what, why))
+        if not quiet:
+            _sf_warn(page, "activity", u"%s %s refused: %s" % (kind, what, why))
         return False, why
     return True, u""
 

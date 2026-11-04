@@ -1908,12 +1908,16 @@ def write_pdf(pg, path, title):
     def add(b):
         objs.append(b)
         return len(objs)
+    add.objs = objs                                       # G6-9: _wp_set_obj fills a reserved object later
     font = pdf_fonts(add, ("R", "B"))                     # G2/G3 28 Oct: Arial embedded (common/pdf_fonts.py)
     gs = [add("<< /Type /ExtGState /ca {0} /CA {0} >>".format(_f(i / 20.0)).encode("latin-1")) for i in range(1, 20)]
     gs_res = " ".join("/A{:02d} {} 0 R".format(i + 1, o_) for i, o_ in enumerate(gs))
     pages_id = add(b"")
     xo_res = ""
-    if any(it[0] == "image" for it in pg.items):          # D1 a (30 Oct): raster cutouts between the vector items
+    if getattr(pg, "grouped", False) or getattr(pg, "grp", None) is not None or any(it[0] == "grp" for it in pg.items):   # G6-9 (round 6): nested groups
+        stream, xo = _wp_group_stream(pg, add, font, gs_res, title)
+        xo_res = " /XObject << {} >>".format(" ".join("/{} {} 0 R".format(n_, o_) for n_, o_ in xo)) if xo else ""
+    elif any(it[0] == "image" for it in pg.items):        # D1 a (30 Oct): raster cutouts between the vector items
         stream, xo = _wp_image_stream(pg, add)
         xo_res = " /XObject << {} >>".format(" ".join("/{} {} 0 R".format(n_, o_) for n_, o_ in xo)) if xo else ""
     else:
@@ -2088,17 +2092,26 @@ def _wp_image_obj(path, add):
 def _wp_image_stream(pg, add):
     """(content stream, [(name, id)]): runs of vector items through page_stream (each in q ... Q), the images
     between them in their order; one XObject per file"""
+    names, xo = {}, []
+    return _wp_run(pg.items, pg.W, pg.H, add, names, xo), xo
+
+
+def _wp_run(items, W, H, add, names, xo):
+    """the content stream of items in their order: vector runs through page_stream (each in q ... Q), images as
+    XObjects (names: file -> name or None, shared by the whole PDF; xo collects [(name, id)]); "grp" markers skipped"""
     class _Run(object):
         pass
-    parts, run, names, xo = [], [], {}, []
+    parts, run = [], []
 
     def flush():
         if run:
             r = _Run()
-            r.W, r.H, r.items = pg.W, pg.H, list(run)
+            r.W, r.H, r.items = W, H, list(run)
             parts.append(b"q\n" + page_stream(r) + b"\nQ")
             del run[:]
-    for it in pg.items:
+    for it in items:
+        if it[0] == "grp":
+            continue
         if it[0] != "image":
             run.append(it)
             continue
@@ -2123,7 +2136,140 @@ def _wp_image_stream(pg, add):
                                                        names[p]))
         parts.append(" ".join(ops).encode("latin-1"))
     flush()
-    return b"\n".join(parts), xo
+    return b"\n".join(parts)
+
+
+# ---- G6-9 nested groups (round 6, S2, 4 Nov 2026; Aras 17:50-17:51: "every tree its own group inside one Trees
+# group ... apply this to everything") -------------------------------------------------------------------------------
+# A page item ("grp", "<kind>/<element id>") opens a group for the items after it; ("grp", None) closes it (made by
+# item_export.py ix_grp / ix_tag; page_stream and xform pass over them). When pg.items holds such markers, or the caller
+# sets pg.grouped = True (the booklet's drawings, 30_render), write_pdf writes every element as its own Form XObject
+# inside one Form XObject of its kind, in draw order. Illustrator opens a Form XObject as a group (UNVERIFIED here:
+# never run; Aras checks "groups in Illustrator"), so a booklet drawing (itself one Form XObject via show_pdf_page)
+# opens as Drawing > Trees > tree. Each group's name is also written as marked content (/G69 <</Name (...)>> BDC ...
+# EMC) for readers that list it. Draw order is never changed: a kind that comes back after another kind starts a
+# second group of that kind (counted as repeats in the log). Items under no open group go to kind "other" (one element
+# per run) + one WARNING per drawing.
+#   wp_grp_of(shape) -> "<kind>/<id>" or None   the group of an items.json shape dict (Ix stamps "grp" on every
+#                                               shape at export, item_export.py)
+#   wp_groups_log(page) -> "groups <page> kinds=n elements=n untagged=n"   one line per page (after its drawings)
+# Two ways to tag, same result: markers in pg.items, or pg.grp = a list parallel to pg.items ("<kind>/<id>" or None
+# each; the booklet's form, S9) with pg.grp_root = the drawing id (its name, marked content round the kinds).
+# Stats key: pg.page if set, else the PDF title.
+WP_GRP_STATS = {}           # page -> dict(kinds=set, elements=n, untagged=n, repeats=n, drawings=n)
+
+
+def wp_grp_of(shape):
+    return (shape.get("grp") or None) if isinstance(shape, dict) else None
+
+
+def wp_groups_log(page):
+    st = WP_GRP_STATS.get(page)
+    if not st:
+        return u"groups %s kinds=0 elements=0 untagged=0" % page
+    return u"groups %s kinds=%d elements=%d untagged=%d%s" % (
+        page, len(st["kinds"]), st["elements"], st["untagged"],
+        u" repeats=%d" % st["repeats"] if st["repeats"] else u"")
+
+
+def _wp_split_grp(g, n):
+    g = u"%s" % g
+    if "/" in g:
+        k, e = g.split("/", 1)
+        return (k.strip() or "other"), (e.strip() or u"%s %d" % (k, n))
+    return g, u"%s %d" % (g, n)
+
+
+def _wp_set_obj(add, oid, b):
+    add.objs[oid - 1] = b
+
+
+def _wp_group_stream(pg, add, font, gs_res, title=None):
+    """(page content stream, [(name, id)] for the page's /XObject): kinds and elements as nested Form XObjects"""
+    seq = pg.items
+    pgrp = getattr(pg, "grp", None)
+    if pgrp is not None:                                  # S9 form: pg.grp parallel to pg.items (str or None each)
+        seq = []
+        for i_, it in enumerate(pg.items):
+            seq.append(("grp", pgrp[i_] if i_ < len(pgrp) else None))
+            seq.append(it)
+    runs, cur, buf, untagged = [], None, [], 0
+    for it in seq:
+        if it[0] == "grp":
+            g = it[1] if len(it) > 1 and it[1] else None
+            if g != cur:
+                if buf:
+                    runs.append((cur, buf))
+                    buf = []
+                cur = g
+            continue
+        buf.append(it)
+        if cur is None:
+            untagged += 1
+    if buf:
+        runs.append((cur, buf))
+    kinds, n_other = [], 0                                # [[kind, [(element name, items)]]] consecutive by kind
+    for g, its in runs:
+        if g is None:
+            n_other += 1
+            k, e = "other", u"other %d" % n_other
+        else:
+            k, e = _wp_split_grp(g, len(runs))
+        if kinds and kinds[-1][0] == k:
+            kinds[-1][1].append((e, its))
+        else:
+            kinds.append([k, [(e, its)]])
+    bbox = "[0 0 {} {}]".format(_f(pg.W / PT), _f(pg.H / PT))
+    base_id = add(b"")
+    names, img = {}, []
+
+    def form(stream, res_id):
+        data = zlib.compress(stream, 6)
+        return add(("<< /Type /XObject /Subtype /Form /BBox {} /Resources {} 0 R /Length {} /Filter /FlateDecode >>"
+                    "\nstream\n".format(bbox, res_id, len(data))).encode("latin-1") + data + b"\nendstream")
+
+    def mc(name, xname):
+        return b"/G69 << /Name " + pdf_str(name) + b" >> BDC /" + xname.encode("latin-1") + b" Do EMC"
+    el_ids = []                                           # per kind: [(E name, id, element name)]
+    n_el = 0
+    for k, els in kinds:
+        row = []
+        for e, its in els:
+            n_el += 1
+            row.append(("E%d" % n_el, form(_wp_run(its, pg.W, pg.H, add, names, img), base_id), e))
+        el_ids.append(row)
+    base = "/Font << /F1 {} 0 R /F2 {} 0 R >> /ExtGState << {} >>".format(font[0], font[1], gs_res)
+    img_res = " ".join("/{} {} 0 R".format(n_, o_) for n_, o_ in img)
+    objs_base = "<< {}{} >>".format(base, " /XObject << {} >>".format(img_res) if img_res else "")
+    _wp_set_obj(add, base_id, objs_base.encode("latin-1"))
+    page_xo, parts, seen = list(img), [], {}
+    for i, (k, els) in enumerate(kinds):
+        row = el_ids[i]
+        res = add("<< {} /XObject << {} {} >> >>".format(base, img_res, " ".join(
+            "/{} {} 0 R".format(n_, o_) for n_, o_, _e in row)).encode("latin-1"))
+        kid = form(b"\n".join(mc(e, n_) for n_, _o, e in row), res)
+        kn = "K%d" % (i + 1)
+        page_xo.append((kn, kid))
+        seen[k] = seen.get(k, 0) + 1
+        parts.append(mc(k, kn))
+    key = getattr(pg, "page", None) or (u"%s" % title if title else "page")
+    st = WP_GRP_STATS.setdefault(key, dict(kinds=set(), elements=0, untagged=0, repeats=0, drawings=0))
+    st["kinds"].update(seen)
+    st["elements"] += n_el
+    st["untagged"] += untagged
+    st["repeats"] += sum(v - 1 for v in seen.values())
+    st["drawings"] += 1
+    if untagged:
+        msg = u"%s: %d item(s) with no group went to kind \"other\" (G6-9: tag them with ix_grp at the point of " \
+              u"drawing)" % (title or key, untagged)
+        if "wn_warn" in globals():
+            wn_warn(key, "groups", msg)                                                         # noqa: F821
+        else:
+            WP_IMG_LOG.append(msg)
+    root = getattr(pg, "grp_root", None)
+    if root:                                              # the drawing's own name round its kinds (no extra form:
+        parts = [b"/G69 << /Name " + pdf_str(u"%s" % root) + b" >> BDC"] + parts + [b"EMC"]   # show_pdf_page's
+    return b"\n".join(parts), page_xo                    # Form XObject is the drawing group)
 # ---- 10_load (composer core, round 5 S1; G-R5-12, P04.7): read every content script's items.json -------------------
 #   ix_load_all(need=(), root=None, log=None) -> {folder: export}
 #         reads Downloads/Bergama/cached/booklet/<folder>/items.json for every folder; a folder in `need` without a
