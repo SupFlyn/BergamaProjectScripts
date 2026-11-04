@@ -22,9 +22,14 @@
 #   mpx_text_role(pg, role) / Page.text(..., role=...)   (role stays in the recorded item, index 9)
 #   mpx_sw(sample) -> Ix legend swatch dict from a round 4 legend sample (_sw_fill/_sw_line/_sw_icon ...)
 #   mpx_lines() -> [str]               "items bergama_masterplan: ..." + the page lines
-# Page ids: the round 5 23-page ids (PLAN §4): MPX_PAGE maps the brief's 25-page ids (P17, P23, P24) to them.
+# Page ids: round 6 (G6-2, PLAN §2.1): the final 22-page ids; MPX_PAGE maps the code's old page names to them.
+# Round 6 (G6-9): Page.group(kind, eid) / Page.endgroup() (or `with mpx_grp(pg, kind, eid):`) mark the element
+# groups; mpx_drawing hands each run of shapes to Ix.layer inside ix_group(kind, eid) (common/item_export.py, S2),
+# so the booklet writes drawing › kind › element. mpx_X(pg) = the drawing object the round 6 modules draw on:
+# it unpacks as (fill_fn, line_fn, text_fn) (S1 annot.py an_*, basemap_draw callbacks: fill(rings, hx, al, nonzero),
+# line(pts, hx, lw, dash, al), text(t, xy, size_mm, hx, bold, align)) and has those as methods too.
 MPX = [None]
-MPX_PAGE = {"p17": "p16", "p23": "p21", "p24": "p22"}     # 25-page id (BRIEF) -> 23-page id (PLAN §4 schema)
+MPX_PAGE = {"p17": "p15", "p23": "p20", "p24": "p21"}     # code page name -> round 6 page id (PLAN §2.1)
 MPX_LOG = []
 MPX_PAGES = []           # (option, tag, recorder Page) of this run: only for the Rhino bake (rhino_bake input)
 MPX_DROP = ("ruler",)    # recorded roles dropped on export: scale-bar figures (the booklet draws every scale bar)
@@ -281,9 +286,18 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
         org = (-x0, -y0)
     flat = mpx_flat(pg.items if items is None else items, box)
     shapes, n_lab, n_txt = [], 0, 0
+    runs, gst = [[None, shapes]], []                      # round 6 (G6-9): runs of shapes by element group
     for s in flat:
+        if s[0] == "grp":
+            if s[1] is None:
+                if gst:
+                    gst.pop()
+            else:
+                gst.append((s[1], s[2]))
+            runs.append([gst[-1] if gst else None, []])
+            continue
         if s[0] != "text":
-            shapes.append(s)
+            runs[-1][1].append(s)
             continue
         if not (u"%s" % s[1]).strip():
             continue
@@ -305,10 +319,86 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
             ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", size_pt=size_mm / IX_PT, bold=bool(s[6]),
                     colour=col, group=D["group"], priority=3 if role in ("title", "heading") else 6)
             n_txt += 1
-    ix.layer(D, layer, shapes, k=k, origin=org)
+    ixg = globals().get("ix_group")                      # S2 (common/item_export.py): element group context
+    n_sh, kinds, elems, untagged = 0, set(), set(), 0
+    for g_, sh_ in runs:
+        if not sh_:
+            continue
+        n_sh += len(sh_)
+        if g_ is None or ixg is None:
+            untagged += len(sh_) if g_ is None else 0
+            ix.layer(D, layer, sh_, k=k, origin=org)
+            continue
+        kinds.add(g_[0])
+        elems.add(g_)
+        cm = ixg(g_[0], g_[1])
+        if hasattr(cm, "__enter__"):
+            with cm:
+                ix.layer(D, layer, sh_, k=k, origin=org)
+        else:                                             # ix_group as a plain setter: tag, draw, reset
+            ix.layer(D, layer, sh_, k=k, origin=org)
+            ixg(None, None)
     MPX_LOG.append(u"items %s %s: %d shapes, %d labels, %d texts%s" % (
-        page, did, len(shapes), n_lab, n_txt, u" · 1:%s" % u"{:,.0f}".format(den) if den else u" · mm"))
+        page, did, n_sh, n_lab, n_txt, u" · 1:%s" % u"{:,.0f}".format(den) if den else u" · mm"))
+    MPX_LOG.append(u"groups %s %s kinds=%d elements=%d untagged=%d" % (page, did, len(kinds), len(elems), untagged))
+    if ixg is None:
+        MPX_LOG.append(u"FLAG groups %s %s: ix_group missing (common/item_export.py of round 6 not in this build)" %
+                       (page, did))
     return D
+
+
+class mpx_grp(object):
+    """round 6 (G6-9): `with mpx_grp(pg, "trees", "plane 12"):` = Page.group / Page.endgroup around a block"""
+    def __init__(self, pg, kind, eid=None):
+        self.pg, self.kind, self.eid = pg, kind, eid
+
+    def __enter__(self):
+        self.pg.group(self.kind, self.eid)
+        return self.pg
+
+    def __exit__(self, *a):
+        self.pg.endgroup()
+        return False
+
+
+class mpx_X(object):
+    """round 6: Page pg as the drawing object of the shared modules (annot.py, keymap.py km_draw_to): fill / line /
+    text with the km_draw_to callback signatures; `grp` = (kind, eid) wraps every call in that element group"""
+    def __init__(self, pg, grp=None):
+        self.pg, self.grp = pg, grp
+
+    def __iter__(self):                                 # S1 annot.py takes X = (fill_fn, line_fn, text_fn)
+        return iter((self.fill, self.line, self.text))
+
+    def __getitem__(self, i):
+        return (self.fill, self.line, self.text)[i]
+
+    def __len__(self):
+        return 3
+
+    def _g(self, on):
+        if self.grp:
+            if on:
+                self.pg.group(self.grp[0], self.grp[1])
+            else:
+                self.pg.endgroup()
+
+    def fill(self, rings, hx, al=None, nonzero=False):
+        self._g(True)
+        self.pg.poly([R_ for R_ in rings if len(R_) >= 3], fill=hx, alpha=al)
+        self._g(False)
+
+    def line(self, pts, hx, lw, dash=None, al=None):
+        self._g(True)
+        self.pg.line(pts, hx, lw, list(dash) if dash else None, cap=0 if dash else 1, alpha=al)
+        self._g(False)
+
+    def text(self, t_, xy, size, hx, bold=False, align="BL"):
+        al = align[-1] if align and align[-1] in "LCR" else "L"
+        dy = -0.36 * size if align and align[0] == "M" else (-size if align and align[0] == "T" else 0.0)
+        self._g(True)
+        self.pg.text(t_, xy[0], xy[1] + dy, size, hx, bold=bold, align=al, role="label")
+        self._g(False)
 
 
 MPX_SW_BOX = (4.0, 2.4)          # mm: the booklet's legend swatch (50_place PL_SW)
