@@ -1,122 +1,336 @@
-# ================================================================ v19 booklet items (round 5, G-R5-12: produce, the booklet composes)
-# Aras 1 Nov 22:00 / addendum 22:37: the script lays out no page and writes no sheet PDF. W1-W4 go to ONE booklet page
-# (D9, page id "p13" = p13-14 merged; N3 a: 1:500), each cut = one true-scale drawing in metres (x = u across the
-# stream from the cut axis, NE negative / left, y = level m a.s.l.; PLAN §4), its numbers as badges on what they name,
-# its numbered list, its level column (the booklet draws the U04 markers), its zoom inset as its own drawing drawn
-# again at the inset scale (G-R5-5), plus one key map (S2 module), one material legend, the page title and intro, the
-# sources. Everything lands in Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json.
-PS_PAGE = "p13"                                       # D9: p13 + p14 one page (same id in the 23-page numbering)
+# ================================================================ v20 booklet items: p12 "The proposals in section" (round 6, S6)
+# BRIEF row 12, Q9, P-12, P-1: ONE page = refs/targets/r06_S02 (the 28 Oct 4-in-1 page). Language: SKETCH (BRIEF §3:
+# not to scale, thick black ground line, flat beige soil, flat blue water bands, numbered circles on the element they
+# name, short captions, few small figures, simple tree blobs). Restored from commit f93d84b (proposal sections v8.1:
+# draw_concept, declutter, sections, the 2 x 2 sheet) and data/SKETCH_SRC.py, now exported as booklet items:
+#   ps_panel_1 ... ps_panel_4   one scale-free drawing each (units "mm", all four the SAME extent PS_PANEL_MM and the
+#                               same factor, so the booklet prints them at one size), its title (heading) + purpose (note)
+#   ps_legend_strip             one shared legend, hue table categories (G6-6)
+#   ps_keymap_p12               W1-W4 key map, small, side column (P-1), common/keymap.py
+#   ps_title, ps_caption        page title; caption "... 1-11 as in Collect, clean, hold" (P7)
+# Numbers 1-11 = the 28 Oct element numbers (f93d84b water board CHAIN), which CCH_STEPS must equal (S1).
+PS_PAGE = "p12"                                       # round 6 page id (PLAN §2.1)
+PS_PANEL_MM = (190.0, 100.0)                          # design box of each panel drawing, mm (frames_p09-13 page 12:
+#                                                       panel 46 % x 38-40 % of A3 less title + purpose rows)
+PS_LBL_PT = 7.0                                       # smallest word at that size (the 28 Oct page's 7 pt; G6-7 floor 4)
+PS_FIT = (0.9, 1.6)                                   # the booklet may scale the panels within this range
 BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter)",
                u"https://www.rhs.org.uk/Advice/profile?pid=127"),
               ("ecocrop_olive", u"FAO Ecocrop, Olea europaea (will not tolerate waterlogged soils)",
                u"https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=1553"),
               ("icomos_2014", u"ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered Cultural Landscape",
                u"https://whc.unesco.org/document/152724")]
+# the sketches' CITE keys -> Sources keys; None = an internal source (course survey, concept record, cards, zone base):
+# no mark (booklet rule: public sources only). The [n] the 28 Oct page printed become {src:key} (BRIEF §0 DATA).
+PS_CITE = {"levels": "levels", "plane": "icomos_2014", "plants": "rhs_lavender", "rain": "ps_rain",
+           "gauges": "ps_gauges", "survey": None, "concept": None, "hubs": None, "hamam": None, "garden": None,
+           "zones": None}
+PS_SRC_EXTRA = [("ps_rain", u"MGM 17742 Bergama, monthly rain, climate normals 1991-2020 (WMO)"),
+                ("ps_gauges", u"DSİ stream gauges D04A053 and D04A063, yearbooks 2016-2021")]
+
+
+def _tr_up(s):
+    """Turkish-aware capitals for titles (i -> İ, ı -> I)"""
+    return s.replace(u"i", u"İ").replace(u"ı", u"I").upper()
+
+
+def ps_panels():
+    """the four panels: (key, sketch level cut, title, purpose). Titles as BRIEF row 12, bridges by their names"""
+    k4, k5 = bridge_name("K4", short=True), bridge_name("K5", short=True)
+    return [("up", "W1", u"1 · UPSTREAM ENTRY",
+             u"Winter runoff: cleaned in reed basins, held in the terrace basins, given back in summer as the strip"),
+            ("k4", "W2", u"2 · K4 BRIDGE (%s) · WALKING HUB" % _tr_up(k4),
+             u"Q500 tops today's bank: dry hub square above it, floodable sub-hub in the bed, steps between"),
+            ("k5", "W3", u"3 · K5 BRIDGE (%s) · DEMETER'S GARDEN + WALKING HUB" % _tr_up(k5),
+             u"Bank tops stay dry: garden and hub square · bed: stream commons = sub-hub, floods in winter"),
+            ("down", "W4", u"4 · DOWNSTREAM REACH",
+             u"Clean water arrives from upstream: floodable planting + boardwalk, surplus to farmland")]
+
+
+SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
+             "down": "concept_nil_sketch"}
+
+
+def _ps_hx(code, rank):
+    """a hue table colour (common/hues.py, G6-6) as the engine's (r, g, b)"""
+    h = hue(code, rank).lstrip("#")
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+
+
+def ps_engine_colours(E):
+    """v20 (G6-6, P-3, P-5): every colour the legend keys comes from the hue table; red leaves the page"""
+    E["W_EXT"] = _ps_hx("WAT", 1)                     # summer strip, Q500 line and words
+    E["W_WIN"] = _ps_hx("WAT", 2)                     # winter water
+    E["W_SUM"] = _ps_hx("WAT", 3)
+    E["SITE_WATER_D"] = _ps_hx("WAT", 2)              # flow arrows, rain strokes
+    E["SITE_FLOOD"] = _ps_hx("WAT", 4)                # the winter pictogram's cloud
+    E["FLOOD_WASH"], E["FLOOD_ALPHA"] = _ps_hx("WAT", 4), None     # reach of the design flood: the WAT tint, solid
+    E["REED"] = _ps_hx("GRN", 3)                      # reeds and planting bands
+    E["REED_HEAD"] = _ps_hx("GRN", 2)
+    E["SITE_TREE"] = (_ps_hx("GRN", 4), _ps_hx("GRN", 3), _ps_hx("GRN", 2))   # tree blobs: light, mid, shadow
+    E["SITE_TRUNK"] = _ps_hx("CTX", 2)
+    E["DRY_WW"] = _ps_hx("WW", 3)                     # dry-top terraces over the basins (P-15 name)
+    E["SPILL"] = _ps_hx("WW", 2)                      # a full basin spills to the next
+    E["FAILSAFE_C"] = _ps_hx("WW", 1)
+    E["DRY_PUB"] = _ps_hx("PUB", 3)                   # hub square + steps
+    E["SUBHUB_C"] = _ps_hx("PUB", 2)                  # the sub-hub floor in the bed
+    E["DRY_AGR"] = _ps_hx("AGR", 3)                   # Demeter's Garden
+    E["FARM_C"] = _ps_hx("AGR", 1)                    # garden plants, surplus to farmland
+    E["CAFE_C"] = _ps_hx("AGR", 4)
+    E["ROUTE"] = _ps_hx("MOV", 2)                     # walk hub square -> sub-hub
+    E["BOARD_C"] = _ps_hx("MOV", 3)                   # boardwalk
+    E["ROAD"] = _ps_hx("CTX", 1)
+    E["WALL_C"] = _ps_hx("CTX", 3)                    # channel wall kept
+    E["STONE_HATCH"] = _ps_hx("CTX", 2)               # bridges behind (dashed)
+    E["HOUSE_WALL"], E["HOUSE_ROOF"] = _ps_hx("CTX", 4), _ps_hx("CTX", 3)
+    E["HER_C"] = _ps_hx("HER", her_rank(u"Tabaklar Hamamı"))   # Q5: no sourced status -> rank 3
+    E["HERITAGE"] = E["HER_C"]
+    E["ACCENT"] = _ps_hx("MOV", 2)
 
 
 def ps_legend_entries():
-    """the material key (solid colours, G-R5-4.1) of what the sections draw, as Ix legend entries"""
-    P = _wat_pal()
-    return [(dict(kind="fill", colour=P["sec"]), u"water at the average yearly flow"),
-            (dict(kind="dash", colour=P["q100"], width_pt=0.85, dash_pt=[3.4, 1.7]), u"Q100 flood level"),
-            (dict(kind="dash", colour=P["q500"], width_pt=0.85, dash_pt=[1.1, 1.4]), u"Q500 flood level"),
-            (dict(kind="fill", colour=SCT["stone"]), u"stone: DSİ walls, steps, garden wall"),
-            (dict(kind="fill", colour=SCT["concrete"]), u"concrete: stairs, ramp, basins"),
-            (dict(kind="fill", colour=SCT["earth"]), u"earth"),
-            (dict(kind="fill", colour=SCT["gravel"]), u"gravel bed"),
-            (dict(kind="fill", colour=PS_TIMBER), u"timber: terrace, boardwalk"),
-            (dict(kind="fill", colour=SF_LANE["walk"]), u"walk paving"),
-            (dict(kind="fill", colour=SF_LANE["bike"]), u"bike lane")]
+    """G6-6: the strip's entries, category hue + rank, sorted by category (legend_group); each keys a drawn colour"""
+    ent = [("WAT", 2, dict(kind="fill", colour=hue("WAT", 2)), u"winter water"),
+           ("WAT", 1, dict(kind="fill", colour=hue("WAT", 1)), u"summer strip"),
+           ("WAT", 4, dict(kind="fill", colour=hue("WAT", 4), stroke=hue("WAT", 2)),      # P-4: tint outlined
+            u"reach of the design flood (Q500)"),
+           ("WW", 3, dict(kind="fill", colour=hue("WW", 3)), u"dry-top terraces over the basins"),
+           ("GRN", 3, dict(kind="fill", colour=hue("GRN", 3)), u"reeds and planting"),
+           ("AGR", 3, dict(kind="fill", colour=hue("AGR", 3)), u"Demeter's Garden"),
+           ("MOV", 2, dict(kind="dash", colour=hue("MOV", 2), width_pt=1.1, dash_pt=[3.0, 1.5]),
+            u"walk from the hub square to the sub-hub"),
+           ("MOV", 3, dict(kind="fill", colour=hue("MOV", 3)), u"boardwalk"),
+           ("PUB", 2, dict(kind="fill", colour=hue("PUB", 2)), u"sub-hub floor"),
+           ("PUB", 3, dict(kind="fill", colour=hue("PUB", 3)), u"hub square and steps")]
+    return [(e[2], e[3]) for e in legend_group(ent)]
 
 
-def _ps_ibox(it):
-    """an item's box (print mm) or None"""
-    if it[0] == "image":
-        return (it[1], it[2], it[1] + it[3], it[2] + it[4])
-    if it[0] == "circle":
-        return (it[1] - it[3], it[2] - it[3], it[1] + it[3], it[2] + it[3])
-    if it[0] == "text":
-        return (it[2], it[3], it[2], it[3])
-    pts = [p for R in it[1] for p in R] if it[0] == "poly" else list(it[1])
-    if not pts:
-        return None
-    return (min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts))
+def ps_q_text(log):
+    """the Q500 words of each panel, read live from the level table (BRIEF §0 DATA: never the 28 Oct numbers).
+    up / k5 / down: "Q500 +<level> m · <depth over the bed> m" + whether it stays inside the banks (both bank tops);
+    k4: the sketch's words (the K4 panel is drawn at the bridge; W2 lies downstream of it), checked against W2."""
+    out = {}
+    for key, cid in (("up", "W1"), ("k5", "W3"), ("down", "W4"), ("k4", "W2")):
+        q, d = level(cid, "q500"), level_flood_depth(cid, "q500")
+        tops = [t for t in (level(cid, "top", "NE"), level(cid, "top", "SW")) if t is not None]
+        inside = bool(tops) and q is not None and q <= min(tops)
+        mk = u" {src:levels}"
+        if key == "k4":
+            out[key] = u"Q500 over today's bank" + mk + u"\nhub square above it"
+            if inside:
+                log.append(u"FLAG %s k4 panel: the level table puts W2's Q500 (+%.2f) under both bank tops %s; the "
+                           u"sketch says it tops today's bank (drawn at the K4 bridge, upstream of W2)" % (
+                               PS_PAGE, q, tops))
+            continue
+        if q is None or d is None:
+            out[key] = u"Q500" + mk
+            log.append(u"FLAG %s %s: no Q500 / bed in the level table: level words left out" % (PS_PAGE, cid))
+            continue
+        out[key] = u"Q500 +%.2f m · %.2f m over the bed%s\n%s" % (
+            q, d, mk, u"inside the banks" if inside else u"over the lower bank top")
+        log.append(u"%s %s Q500 words from LEVELS %s: q500 %.2f, bed depth %.2f, bank tops %s -> %s" % (
+            PS_PAGE, key, cid, q, d, tops, u"inside" if inside else u"over"))
+    return out
 
 
-def ps_drawing(ix, S, did, page, scale_pref, group, priority, window=None, title=None):
-    """S's items (print mm at S.k) as one true-scale drawing in metres: x = S.u0 + x_mm / S.k, y = S.z0 + y_mm / S.k;
-    window (m) = an inset's extent: only items that reach into it go in (the booklet clips at the extent)"""
-    k = 1.0 / S.k
-    if window:
-        ext = window
-        wx = [(v - o) * S.k for v, o in zip(window, (S.u0, S.z0, S.u0, S.z0))]
-        items = []
-        for it in S.pg.items:
-            b = _ps_ibox(it)
-            if b is None or (b[0] <= wx[2] and b[2] >= wx[0] and b[1] <= wx[3] and b[3] >= wx[1]):
-                items.append(it)
-    else:
-        bb = ps_bbox(S.pg.items)
-        ext = (S.u0 + min(0.0, bb[0]) * k, S.z0 + min(0.0, bb[1]) * k, S.u0 + max(S.w, bb[2]) * k, S.z0 + bb[3] * k)
-        items = S.pg.items
-    D = ix.drawing(did, page, ext, scale_pref=scale_pref, dkind="section", group=group, priority=priority,
-                   title=title)
-    ix.layer(D, "section", items, k=k, origin=(S.u0, S.z0))
-    return D
+def ps_cite(key):
+    k = PS_CITE.get(key)
+    return u"{src:%s}" % k if k else u""
+
+
+def draw_concept(which, log):
+    """v8.1 draw_concept (f93d84b), form A. Returns (Page, kinds) where kinds[i] = (sub, element) of item i"""
+    E = sketch_engine()
+    E["FORM"] = "A"
+    del E["ZP"][:]
+    E["KINDS"].clear()
+    E["ORDER"][0] = 0
+    E["GROUP"][0] = 0
+    E["NEXT_G"][0] = 0
+    E["NEXT_E"][0] = 0
+    E["ELEM"][0] = None
+    k = E["TXT_K"][0]
+
+    def NODE(o, x, y, n):
+        tmp = Page(0, 0)
+        node(tmp, o[0] + x, o[1] + y, n, "A", 2.6 * k)
+        E["NEXT_G"][0] += 1
+        E["GROUP"][0] = -E["NEXT_G"][0]                # an element number never moves; labels keep off it
+        pe = E["elem_open"]("annotations", u"number %d" % n)
+        for it in tmp.items:
+            E["SUB"][0] = "numbers"
+            E["_put"](it, E["Z_TEXT"])
+        E["elem_close"](pe)
+        E["GROUP"][0] = 0
+    E["NODE"] = NODE
+    E["CITE"] = ps_cite
+    E[SKETCH_FN[which]]()
+    srt = sorted(E["ZP"], key=lambda e: (e[0], e[1]))
+    ent = [(it, g) for _, _, it, g in srt]
+    kinds = [E["KINDS"].get(o_, ("other", None)) for _, o_, _, _ in srt]
+    keep = declutter(ent, log, which)
+    pg = Page(0, 0)
+    pg.items = [ent[i][0] if keep[i] is True else keep[i] for i in range(len(ent)) if keep[i] is not None]
+    kd = [kinds[i] for i in range(len(ent)) if keep[i] is not None]
+    return pg, kd
+
+
+DECLUTTER_R = 18                                      # sketch units: how far a label may move to find a free place
+
+
+def declutter(entries, log, name):
+    """v7 (f93d84b): no text over another, measured. Label groups (> 0) are set in drawing order; one that would
+    touch a label already set or an element number (< 0) moves to the nearest free place (1-unit steps, sideways
+    counted 1.5 x, at most DECLUTTER_R away, inside the drawing's reach); with no free place it is left out and logged.
+    v20: returns one entry per item: True (unchanged), the moved item, or None (left out), so kinds stay aligned."""
+    groups, order = {}, []
+    for i, (it, g) in enumerate(entries):
+        if g:
+            if g not in groups:
+                groups[g] = []
+                order.append(g)
+            groups[g].append(i)
+    items = [it for it, _ in entries]
+    out = [True] * len(items)
+
+    def box(ix, pad):
+        b = items_bbox([items[i] for i in ix])
+        return (b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad)
+
+    def hit(b, others):
+        return any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in others)
+    art = items_bbox([it for it, g in entries if not g])
+    lim = (art[0] - 8.0, art[1] - 8.0, art[2] + 8.0, art[3] + 8.0)
+    placed = [box(groups[g], 0.0) for g in order if g < 0]
+    R = DECLUTTER_R
+    cand = sorted(((dx, dy) for dx in range(-R, R + 1) for dy in range(-R, R + 1) if dx or dy),
+                  key=lambda d: (abs(d[0]) * 1.5 + abs(d[1]), abs(d[0])))
+    for g in order:
+        if g < 0:
+            continue
+        ix = groups[g]
+        txt = [items[i] for i in ix if items[i][0] == "text"]
+        b = box(ix, 0.2 * max([t[4] for t in txt] or [1.0]))
+        if not hit(b, placed):
+            placed.append(b)
+            continue
+        for dx, dy in cand:
+            nb = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
+            if lim[0] <= nb[0] and nb[2] <= lim[2] and lim[1] <= nb[1] and nb[3] <= lim[3] and not hit(nb, placed):
+                for i in ix:
+                    out[i] = xform([items[i]], 1.0, float(dx), float(dy))[0]
+                placed.append(nb)
+                break
+        else:
+            for i in ix:
+                out[i] = None
+            wn_warn(PS_PAGE, "label", u"panel %s: label '%s' left out (no free place near it)" % (
+                name, txt[0][1] if txt else g))
+    return out
+
+
+def ps_sections(log):
+    """v8.1 sections(): the four sketches at ONE common factor s (the largest at which each fits PS_PANEL_MM); their
+    words raised (TXT_K, up to 4 tries) until the smallest prints >= PS_LBL_PT at the design size.
+    Returns ({key: (Page, kinds)}, s)."""
+    E = sketch_engine()
+    E["TXT_K"][0] = 1.0
+    W, H = PS_PANEL_MM
+    for _ in range(4):
+        parts = dict((k, draw_concept(k, log)) for k in SKETCH_FN)
+        s = min(min(W / max(b[2] - b[0], 1e-6), H / max(b[3] - b[1], 1e-6))
+                for b in (items_bbox(p[0].items) for p in parts.values()))
+        small = min(it[4] for p in parts.values() for it in p[0].items
+                    if it[0] == "text" and it[5] != COL["white"])        # white = digits inside the numbers
+        pt = small * s / PT
+        if pt >= PS_LBL_PT - 0.05:
+            break
+        E["TXT_K"][0] *= PS_LBL_PT / pt * 1.02
+    log.append(u"%s sections: one factor %.3f mm per sketch unit; words x%.2f; smallest word %.1f pt at the design "
+               u"size %.0f x %.0f mm" % (PS_PAGE, s, E["TXT_K"][0], pt, W, H))
+    return parts, s
+
+
+PS_SUB_KIND = {"ground": "ground", "ground lines": "ground", "tiers": "ground", "terraces": "ground", "wall": "other",
+               "wall lines": "other", "water": "water", "water lines": "water", "rain": "water", "flood": "water",
+               "flood lines": "levels", "planting": "plants", "people": "people", "context": "buildings",
+               "garden": "buildings", "road": "roads", "hub route": "paths", "boardwalk": "paths", "sub-hub": "hubs",
+               "arrows": "annotations", "sun": "annotations", "season": "annotations", "fail-safe": "annotations",
+               "dimensions": "annotations", "zones": "annotations", "numbers": "annotations", "labels": "labels",
+               "text": "labels", "idea": "labels", "K4 bridge (existing)": "other", "K5 bridge (existing)": "other"}
+
+
+def _ps_layers(ix, D, items, kinds):
+    """G6-9: consecutive items of one element = one layer tagged grp "<kind>/<element>" (S2 Ix.layer grp=); draw order
+    kept. Returns {kind: elements} for the log."""
+    runs, cnt = [], {}
+    for it, (sub, el) in zip(items, kinds):
+        if el:                                        # a named element (tree, person, text, number, house)
+            key = (el[0], el[1])
+            if runs and runs[-1][0] == key and runs[-1][2]:
+                runs[-1][1].append(it)
+                continue
+        else:                                         # unnamed: consecutive items of one kind = one element
+            kind = PS_SUB_KIND.get(sub, "other")
+            if runs and not runs[-1][2] and runs[-1][0][0] == kind:
+                runs[-1][1].append(it)
+                continue
+            key = (kind, u"%s %d" % (sub, len(runs) + 1))
+        runs.append([key, [it], bool(el)])
+    for (kind, eid), its, _ in runs:
+        cnt.setdefault(kind, set()).add(eid)
+        nm = u"%s/%s" % (kind, eid)
+        try:
+            ix.layer(D, nm, its, grp=nm)
+        except TypeError:                             # item_export without S2's grp (before the round 6 merge)
+            ix.layer(D, nm, its)
+    return dict((k, len(v)) for k, v in cnt.items())
 
 
 def ps_items(ix, log):
-    """v19: the whole p13 export (see the notes above)"""
+    """v20: the whole p12 export (see the notes above)"""
     page = PS_PAGE
+    E = sketch_engine()
+    ps_engine_colours(E)
+    E["BRIDGE"] = lambda c: bridge_name(c)
+    E["Q_TEXT"].clear()
+    E["Q_TEXT"].update(ps_q_text(log))
     ix.text(page, u"The proposals in section", "title", priority=1, id="ps_title")
-    ix.text(page, u"Four cuts W1-W4, upstream to downstream, each looking downstream · %s left, %s right" % (
-        place_name("side_NE"), place_name("side_SW")), "intro", priority=2, id="ps_intro")
-    cids = []
-    for i, (key, cid, num, name, take) in enumerate(PS_CUTS):
-        S = ps_section(cid, log, page, "a")
-        cids.append(cid)
-        g = u"ps_%s" % cid
-        D = ps_drawing(ix, S, g, page, [PS_SCALE], g, i + 1, title=u"%s · %s" % (cid, name))
-        ix.text(page, u"%s · %s" % (cid, name), "heading", priority=i + 1, group=g, id=g + "_head")
-        ix.text(page, take, "note", priority=i + 1, group=g, id=g + "_scenario")
-        ix.text(page, ps_note(cid), "note", priority=i + 1, group=g, id=g + "_levels_note")   # P13.2 water levels
-        # the numbers on what they name (badges at the marker, G-R4-5.5) and the list beside "Name · reason"
-        disc = []
-        for x, y, n, col in S.marks:
-            sh, _b, _r = mk_marker(x, y, n, col, PS_LIST_PT)
-            disc += [s_ for s_ in sh if s_[0] != "text"]
-            for s_ in sh:
-                if s_[0] == "text":
-                    ix.text(page, s_[1], "badge", drawing=D["id"], at=(S.u0 + s_[2] / S.k, S.z0 + s_[3] / S.k),
-                            size_pt=PS_LIST_PT, bold=True, colour=s_[5], positions=["=L"], side_list_ok=False,
-                            priority=i + 1, group=g)
-        ix.layer(D, "numbers", disc, k=1.0 / S.k, origin=(S.u0, S.z0))
-        if S.list:
-            ix.list(page, D["id"], [t for _n, t, _c in S.list], numbered=True, id=g + "_list", group=g)
-        sf_level_items(ix, page, D, [("q500", level(cid, "q500")), ("q100", level(cid, "q100")),
-                                     ("avg", level_avg_flow(cid)), ("bed", S.bed)])
-        # the zoom inset: the section drawn again at the inset scale (G-R5-5), framed on the action
-        fr = S.inset_fr
-        if fr:
-            C = ps_section(cid, [], page, "a", k=fr["k"], child=True)
-            cd = ps_drawing(ix, C, g + "_inset", page, [fr["den"]], g, i + 1, window=fr["window"],
-                            title=u"%s · %s" % (cid, S.inset[4]))
-            ix.inset(page, D["id"], fr["window"], cd["id"], fr["factor"], id=g + "_inset_item")
-            ix.text(page, S.inset[4], "caption", priority=i + 1, group=g, id=g + "_inset_caption")
-            kk = 1.0 / S.k
-            sf_inset_cut_check(fr["window"], [(u"plant/element %d" % j_, (S.u0 + o[0] * kk, S.z0 + o[1] * kk,
-                                                                          S.u0 + o[2] * kk, S.z0 + o[3] * kk))
-                                              for j_, o in enumerate(S.obst) if (o[4] if len(o) > 4 else 0) == 0],
-                               page=page, label=u"%s %s" % (cid, S.inset[4]))
-        else:
-            ix.warn(page, "inset", u"%s: no inset spot set: no zoom inset (never skipped silently, C5)" % cid)
-        log.append(u"%s %s: drawing %.0f x %.0f m at 1:%d, %d numbers, inset %s" % (
-            page, cid, D["extent"][2] - D["extent"][0], D["extent"][3] - D["extent"][1], PS_SCALE, len(S.list),
-            (u"1:%d" % fr["den"]) if fr else u"none"))
-    ix.legend(page, None, ps_legend_entries(), title=u"Materials", id="ps_legend", group="ps_legend")
-    ps_keymap_items(ix, page, cids, log)
+    parts, s = ps_sections(log)
+    W, H = PS_PANEL_MM
+    trees = {}
+    for i, (key, cid, ttl, purpose) in enumerate(ps_panels()):
+        pg, kinds = parts[key]
+        b = items_bbox(pg.items)
+        dx = W / 2.0 - s * (b[0] + b[2]) / 2.0        # centred across, at the top of the box (as the 28 Oct sheet)
+        dy = H - s * b[3]
+        its = xform(pg.items, s, dx, dy)
+        did = u"ps_panel_%d" % (i + 1)
+        # SKETCH language (BRIEF §3): a scale-free diagram, no scale bar; same extent for all four = one print size
+        D = ix.drawing(did, page, (0.0, 0.0, W, H), units="mm", dkind="diagram", scale_bar=False, priority=i + 1,
+                       group=did, fit=PS_FIT, title=ttl)
+        kc = _ps_layers(ix, D, its, kinds)
+        ix.text(page, ttl, "heading", priority=i + 1, group=did, id=did + "_title")
+        ix.text(page, purpose, "note", priority=i + 1, group=did, id=did + "_purpose")
+        for el in set(k_[1] for k_ in kinds if k_[1] and k_[1][0] == "trees"):
+            sp = el[1] if not el[1].startswith(u"trees ") else None
+            trees[sp] = trees.get(sp, 0) + 1
+        log.append(u"section %s P%d %s SKETCH (panel %s at %s; not to scale)" % (page, i + 1, cid, key, ttl))
+        log.append(u"%s %s: %d items, groups %s" % (page, did, len(its), u", ".join(
+            u"%s %d" % (k_, n_) for k_, n_ in sorted(kc.items()))))
+    ix.text(page, u"Proposal sections, upstream to downstream · relative levels · 1-11 as in Collect, clean, hold",
+            "caption", priority=5, id="ps_caption")
+    ix.legend(page, None, ps_legend_entries(), title=None, id="ps_legend_strip", group="ps_legend_strip")
+    hue_log(page, log)
+    gen = trees.pop(None, 0)
+    log.append(u"trees %s species=%d generic=%d (%s; sketch trees: species as the sketch names them)" % (
+        page, sum(trees.values()), gen, u", ".join(u"%s %d" % kv for kv in sorted(trees.items()))))
+    ps_keymap_items(ix, page, [c for _, c, _, _ in ps_panels()], log)
     for k_, t_, u_ in BK_SOURCES:
         ix.source(k_, t_, u_, page=page)
-    for k_, t_ in ps_sources():
+    for k_, t_ in ps_sources() + PS_SRC_EXTRA:
         ix.source(k_, t_, None, page=page)
+    # P7: the circles carry the 28 Oct numbers, which CCH_STEPS takes over (S1); logged so the run shows the names
+    log.append(u"%s numbers 1-11 as CCH_STEPS: %s" % (page, u"; ".join(
+        u"%d %s" % (n_, cch_name(n_)) for n_ in range(1, 12))))
     return ix
