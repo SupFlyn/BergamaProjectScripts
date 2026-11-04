@@ -64,12 +64,30 @@ def mp_map_draw(pg, page, T, base, steps=None, tint=(), study=None, log=None, wa
     for k_ in steps:
         project.setdefault(k_, []).append(("step",))     # basemap_draw skips unknown kinds; order_fn draws it
 
+    opened = [False]
+
     def order(layer):
+        # v42 (L3, G6-9): every map layer is an outer element group (kind by layer); groups the steps open inside
+        # it win (they nest), so no shape of the map is left untagged
+        if opened[0]:
+            pg.endgroup()
+        pg.group(MP_LAYER_GRP.get(layer, "other"), u"map " + layer.replace(u"_", u" "))
+        opened[0] = True
         f_ = steps.get(layer)
         if f_ is not None:
             f_()
-    return map_draw(page, T, fill, line, text, base, project, study=study, clip=True, order_fn=order, log=log,
-                    water_opts=water_opts, study_line=study_line, legend_cols=legend_cols, water_ok=water_ok)
+    try:
+        return map_draw(page, T, fill, line, text, base, project, study=study, clip=True, order_fn=order, log=log,
+                        water_opts=water_opts, study_line=study_line, legend_cols=legend_cols, water_ok=water_ok)
+    finally:
+        if opened[0]:
+            pg.endgroup()
+
+
+MP_LAYER_GRP = dict(base_ground="ground", base_contours="ground", base_fills="ground", base_outlines="ground",
+                    base_water="water", base_names="labels", proj_tint="fields", water="water", structures="paths",
+                    proj_water="water", proj_lines="paths", proj_vegetation="plants", study="annotations",
+                    proj_marks="annotations", proj_labels="labels")   # v42: map layer -> G6-9 kind (outer group)
 
 
 def mp_marker(pg, cx, cy, s, colour, size_pt=7.0, style="solid", name=None, r_min=None, rim="FFFFFF", rim_mm=0.25):

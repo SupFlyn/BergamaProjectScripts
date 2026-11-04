@@ -31,6 +31,7 @@
 MPX = [None]
 MPX_PAGE = {"p17": "p15", "p23": "p20", "p24": "p21"}     # code page name -> round 6 page id (PLAN §2.1)
 MPX_LOG = []
+MPX_CLIPPED = []         # v42: texts an inner clip region removed in the last mpx_flat (named in the log)
 MPX_PAGES = []           # (option, tag, recorder Page) of this run: only for the Rhino bake (rhino_bake input)
 MPX_DROP = ("ruler",)    # recorded roles dropped on export: scale-bar figures (the booklet draws every scale bar)
 MPX_PAPER = "FFFFFF"
@@ -252,11 +253,13 @@ def mpx_flat(items, box=None):
                 its = [j for i_ in its for j in _mpx_clip_one(i_, reg)]
         else:
             its = [it]
-        for reg in stack:
+        for ri_, reg in enumerate(stack):
             if reg is None:
                 continue
             its = [j for i_ in its for j in _mpx_clip_one(i_, reg)]
             if not its:
+                if kd == "text" and (box is None or ri_ > 0) and (u"%s" % it[1]).strip():
+                    MPX_CLIPPED.append(u"%s" % it[1])     # v42 (L3): a text cut by an inner clip is named in the log
                 break
         for j in its:
             if j[0] == "line" and len(j) > 6 and j[6] is not None and j[6] < 0.995:
@@ -284,7 +287,11 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
         D = ix.drawing(did, page, (0.0, 0.0, x1 - x0, y1 - y0), units="mm", dkind=dkind, north_deg=north_deg,
                        scale_bar=False, priority=priority, group=group or did, title=title)
         org = (-x0, -y0)
+    del MPX_CLIPPED[:]
     flat = mpx_flat(pg.items if items is None else items, box)
+    if MPX_CLIPPED:
+        MPX_LOG.append(u"items %s %s: %d text(s) outside the drawing's clip, not exported: %s" % (
+            page, did, len(MPX_CLIPPED), u", ".join(sorted(set(MPX_CLIPPED))[:12])))
     shapes, n_lab, n_txt = [], 0, 0
     runs, gst = [[None, shapes]], []                      # round 6 (G6-9): runs of shapes by element group
     for s in flat:
@@ -316,7 +323,8 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
                     bold=bool(s[6]), colour=col, positions=pos, group=D["group"], priority=2 if r5 == "badge" else 5)
             n_lab += 1
         else:
-            ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", size_pt=size_mm / IX_PT, bold=bool(s[6]),
+            ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", drawing=D["id"],   # v42: in its box
+                    size_pt=size_mm / IX_PT, bold=bool(s[6]),
                     colour=col, group=D["group"], priority=3 if role in ("title", "heading") else 6)
             n_txt += 1
     ixg = globals().get("ix_group")                      # S2 (common/item_export.py): element group context

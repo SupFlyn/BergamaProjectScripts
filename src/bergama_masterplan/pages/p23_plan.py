@@ -982,8 +982,11 @@ def pl23_markers(sh, C, rws, warn):
             if any(j == i and math.hypot(x - a, y - b) < PL23_REPEAT_MM for j, a, b in seen):
                 continue                                  # v35: no repeat badge near one of the same move
             spot = pl23_mk_spot(tp, x, y, r, rws[i][2])
-            if spot is None:
-                continue
+            if spot is None:                              # v42 (L3): a move is never only in the list: its first
+                if ent[4]:                                # place gets the marker on the place itself (the booklet's
+                    continue                              # collision test sees it); repeats still need a free spot
+                spot = (x, y)
+                MPX_LOG.append(u"info p20 move %s: marker on its place (no free spot round it)" % s)
             mp_marker(sh, spot[0], spot[1], s, col, PL23_MK_PT)
             C.pl23_mk_at.setdefault(s, []).append((i, spot[0], spot[1]))   # round 5: the lists' anchors
             seen.append((i, x, y))
@@ -1007,11 +1010,11 @@ def pl23_markers(sh, C, rws, warn):
         i = row_of(p)
         x, y = rws[i][0](p)
         spot = pl23_mk_spot(tp, x, y, pl23_mk_r(lt), rws[i][2])
-        if spot is None:
-            warn.append(u"masterplan p20: area left as it is {} ({:.1f} ha) has no free spot for its letter: only in "
-                        u"the list".format(lt, r_["ha"]))
-            continue
+        if spot is None:                                  # v42 (L3): on its place, never only in the list
+            spot = (x, y)
+            MPX_LOG.append(u"info p20 left-as-it-is %s: letter on its place (no free spot round it)" % lt)
         mp_marker(sh, spot[0], spot[1], lt, v["colour"], PL23_MK_PT, style="ring", name=u"left " + lt)
+        r_["letter_on_map"] = lt                          # v42: the area is shown (letter ring + list row)
         C.pl23_mk_at.setdefault(lt, []).append((i, spot[0], spot[1]))
         v["n_map"] += 1
     cc = pl23_cch(C)                                      # the collect-clean-hold numbers 1-11 (pages 11, 12): a ring
@@ -1023,9 +1026,9 @@ def pl23_markers(sh, C, rws, warn):
         x, y = rws[i][0](xy)
         s_ = u"%d" % n_
         spot = pl23_mk_spot(tp, x, y, pl23_mk_r(s_), rws[i][2])
-        if spot is None:
-            warn.append(u"masterplan p20: collect-clean-hold {} ({}) has no free spot on the map".format(n_, nm))
-            continue
+        if spot is None:                                  # v42 (L3): on its place, never left off the map
+            spot = (x, y)
+            MPX_LOG.append(u"info p20 collect-clean-hold %d: number on its place (no free spot round it)" % n_)
         mp_marker(sh, spot[0], spot[1], s_, pl23_h("cch"), PL23_MK_PT, style="ring", name=u"cch %d" % n_)
         C.pl23_cch_on.append((n_, nm, i, spot))
     return ents, vl
@@ -1252,7 +1255,7 @@ def p23_items(ix, C, warn):
     ix.text(page, u"Masterplan: an ecological corridor", "title", id=u"mp_plan_title", group=u"mp_plan", priority=1)
     cap = u"The corridor across the whole {}{}; the stream flows left to right.".format(
         R28_FRAME_NAME.lower(), u": upstream half on top, downstream half below" if len(rows) > 1 else u"")
-    ix.text(page, cap, "caption", id=u"mp_plan_caption", group=u"mp_plan")
+    ix.text(page, cap, "caption", drawing=d1, id=u"mp_plan_caption", group=u"mp_plan", priority=1)   # v42 box
     # ---- round 6 (S8): the street cuts R1-R4 of page 8 and the producers' market at K5, labels at their place
     cuts, cerr = pl23_street_cuts()
     if cerr:
@@ -1305,7 +1308,8 @@ def p23_items(ix, C, warn):
         numbered = ns == list(range(1, len(ns) + 1))
         texts = [(u"" if numbered else u"%d " % nt["n"]) + nm + (u" · " + line if line else u"")
                  for nt, _g, nm, line, _ok in ents]
-        ix.text(page, u"The moves, by number", "heading", id=u"mp_plan_moves_head", group=u"mp_plan", priority=3)
+        ix.text(page, u"The moves, by number", "heading", drawing=d1, id=u"mp_plan_moves_head", group=u"mp_plan",
+                priority=3)
         ix.list(page, d1, texts, numbered=numbered, anchors=[anchor_of(u"%d" % nt["n"]) for nt, _g, _n, _l, _o in ents],
                 id=u"mp_plan_moves", group=u"mp_plan")
     cc = pl23_cch(C)
@@ -1317,8 +1321,8 @@ def p23_items(ix, C, warn):
         for n_, nm, i, spot in sorted(on_):
             if n_ not in seen_:
                 seen_.append(n_)
-        ix.text(page, u"Collect, clean, hold · the numbers of page 11", "heading", id=u"mp_plan_cch_head",
-                group=u"mp_plan", priority=3)
+        ix.text(page, u"Collect, clean, hold · the numbers of page 11", "heading", drawing=d1,
+                id=u"mp_plan_cch_head", group=u"mp_plan", priority=3)
         ix.list(page, d1, [u"%d %s" % (n_, cch_name(n_)) for n_ in seen_], numbered=False,      # noqa: F821
                 anchors=[anchor_of(u"%d" % n_) for n_ in seen_], id=u"mp_plan_cch", group=u"mp_plan")
     if cc["missing"]:
@@ -1327,8 +1331,8 @@ def p23_items(ix, C, warn):
     if vl:
         texts = [u"{} · {} · {}".format(v["letter"], u_area(v["regions"][0]["ha"] * 1e4, "ha"), v["reason"])
                  for v in vl]
-        ix.text(page, u"Left as it is · no intervention, because", "heading", id=u"mp_plan_left_head",
-                group=u"mp_plan", priority=3)
+        ix.text(page, u"Left as it is · no intervention, because", "heading", drawing=d1,
+                id=u"mp_plan_left_head", group=u"mp_plan", priority=3)
         ix.list(page, d1, texts, numbered=False, anchors=[anchor_of(v["letter"]) for v in vl], id=u"mp_plan_left",
                 group=u"mp_plan")
     # ---- sources (public only, as round 4's plan_sources)

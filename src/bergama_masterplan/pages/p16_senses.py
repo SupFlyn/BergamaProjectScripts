@@ -593,14 +593,12 @@ def sn_place(pg, cell, labs, warn):
                         break
                 if got:
                     break
-        if got is None:
-            if rank == 0:
-                warn.append(u"FLAG p15 {}: no free spot on the strip for the word '{}' (not printed)".format(
-                    cell.get("title", u""), L_["s"]))
-            else:
-                n_more += 1
+        if got is None:                                  # v42 (L3): never left out: recorded on its place as an
+            pg.items.append(("text", L_["s"], at[0], at[1], sn_mm(pt0 if rank == 0 else small),   # anchored label;
+                             L_.get("col", SN_INK), b_, "C", None))                   # the booklet places it
+            n_more += 1
     if n_more:
-        warn.append(u"senses sheet {}: {} repeat(s) of a word already on the strip left out (no free spot)".format(
+        MPX_LOG.append(u"info p15 {}: {} word(s) with no free spot on the strip handed to the booklet's placer".format(
             cell.get("title", u""), n_more))
 
 
@@ -1628,10 +1626,12 @@ def _p16_wheel(ix, page):
     W = 30.0
     wp = Page(W, W)
     cx, cy, r = W / 2.0, W / 2.0, 8.5
+    wp.group("legend", u"mood wheel")                      # v42 (G6-9): the 72 segments are one element
     for i in range(72):
         a0, a1 = math.radians(5.0 * i), math.radians(5.0 * (i + 1))
         wp.line([(cx + r * math.cos(a0 + (a1 - a0) * t / 3.0), cy + r * math.sin(a0 + (a1 - a0) * t / 3.0))
                  for t in range(4)], sn_mood_col(5.0 * i + 2.5), 1.5, cap=0)
+    wp.endgroup()
     fs = sn_mm(SN_TS["small"])
     wp.text(u"active", cx, cy + r + 1.6, fs, SN_INK, align="C")
     wp.text(u"passive", cx, cy - r - 1.6 - fs * 0.75, fs, SN_INK, align="C")
@@ -1648,8 +1648,9 @@ def _p16_enc_key(ix, page):
     ep = Page(W, H)
     for i, (key, word, colour, pose) in enumerate(P16_EXP):
         by = H - pitch / 2.0 - pitch * i
-        sn_enc_mark(ep, key, 4.5, by, colour, 1.0, 0.0, dirx=(1.0, 0.0))
-        sn_bubble(ep, 11.0, by, key, word, colour, pose, i)
+        with mpx_grp(ep, "legend", u"encounter %s" % word):   # v42 (G6-9): mark + bubble = one element
+            sn_enc_mark(ep, key, 4.5, by, colour, 1.0, 0.0, dirx=(1.0, 0.0))
+            sn_bubble(ep, 11.0, by, key, word, colour, pose, i)
     return mpx_drawing(ix, "mp_sn_encounters_key", page, ep, (0.0, 0.0, W, H), None, dkind="diagram",
                        group="mp_senses", priority=4)
 
@@ -1722,7 +1723,7 @@ def p17_items(ix, C, areas, warn):
         did = u"mp_sn_" + key
         D = mpx_drawing(ix, did, page, pg, box, SN_SCALE, origin_m=(fr[0], fr[1]), dkind="plan", north_deg=nd,
                         group="mp_senses", priority=1, items=pg.items[n0:])
-        ix.text(page, title, "heading", group="mp_senses", id=did + u"_head", priority=3)
+        ix.text(page, title, "heading", drawing=did, group="mp_senses", id=did + u"_head", priority=3)   # v42 box
         for nm, xy in BRIDGES_K:                         # the bridge names at their ticks on the top edge (labels)
             x = cell["T"](xy)[0]
             if box[0] <= x <= box[2] and nm not in ("K1", "K2"):
