@@ -1,8 +1,11 @@
-# ---- 83_cover_sources (round 5, S10, 2 Nov 2026; P01.1, P01.2, Sources): the two pages the booklet draws itself -----
+# ---- 83_cover_sources (round 5 S10; round 6 S9 v31: G6-2 contents, G6-3 Sources last): the two pages the booklet draws
+# v31: contents list the 22 pages of PLAN §2.1 from BK_PAGES (Sources = page 22, the last row of part E); the Sources
+# page has the v31 title band, four text columns (five when four would need < 4.5 pt), entries "[n] text" numbered in
+# page order with a hanging indent, left-aligned (lists, not justified), 4.5-5 pt (frames_p14-22 "new page 22").
 # Cover (P01.1): the cover photo (Data/COVER_IMG) fills the WHOLE page behind everything (full bleed, proportions kept,
 # the overflow cut by the page edge) under a white veil of COVER_VEIL opacity, so the photo shows very light and the
 # text stays readable. Left: course, MIRAQUA, title, subtitle, the approved text, names, date. Right (P01.2): contents
-# of the 23 pages (theme, stage, page title with its number), merged pages listed once (D7, D9).
+# of the 22 pages (theme, stage, page title with its number).
 # Sources: every source cited on a page ({src:key} marks and the scripts' page source rows), numbered in page order as
 # the pages print them (81_ids bk_src_number), then the masterplan's numbered places, the relief's height data and the
 # assets (scale figures, silhouettes, cutouts) once each, under their headings (round 4 rules kept).
@@ -61,15 +64,14 @@ def bk_cover(doc, n, lines):
         st_line(P, nm, x, yb, 9.5, False, ink, role="intro")
         yb += 4.4
     st_line(P, BOOK["date"], x, 272.0, 7.5, False, GRID_INK["ink2"], role="caption")
-    # contents (P01.2): from column 9 (x = 14 + 8 x 33), 23 pages
+    # contents (P01.2, G6-2): from column 9 (x = 14 + 8 x 33 = 66.2 % as SON), 22 pages
     cx = GRID_ML + 8 * 33.0
     st_line(P, u"CONTENTS", cx, 18.0, 8.0, True, acc, role="title")
     rows, last, lst = [], None, None
     for i, sp in enumerate(BK_PAGES, 1):
         if i == 1:
             continue
-        if sp.get("kind") == "sources":
-            rows.append(("gap", None, None))
+        if sp.get("kind") == "sources":          # v31: the last row of part E (frames_p01-08 page 1 target)
             rows.append(("title", sp["title"], i))
             continue
         if sp.get("part") != last:
@@ -156,23 +158,46 @@ def bk_source_groups(lines):
     return [(h, r) for h, r in groups if r]
 
 
-def bk_sources(doc, n, lines):
-    """the Sources page(s): 3 columns, one size for all rows (5 pt, down to 4 pt), a second page only if needed"""
+BK_SRC_COLS = {4: [(3.0, 22.0), (26.0, 22.0), (50.0, 22.0), (73.0, 24.0)],          # % of the page (x, w)
+               5: [(3.0, 17.6), (22.0, 17.6), (41.0, 17.6), (60.0, 17.6), (79.0, 18.0)]}
+BK_SRC_Y = (10.0, 92.0)            # % of the page: columns top / foot
+BK_SRC_PT = (5.0, 4.5)             # largest / smallest size before a fifth column (then down to GRID_MIN_PT)
+BK_SRC_IND = 4.6                   # mm: the hanging indent of an entry ("[142] " at 5 pt is about 4.2 mm)
+_BK_SRC_NUM = re.compile(r"^(\[\d+\])\s+")
+
+
+def _bk_src_h(k, t, cw, s):
+    if k == "heading":
+        return st_fit(t, cw, None, "heading", 6.0, justify=False, page="sources")[3] + 1.4
+    m_ = _BK_SRC_NUM.match(t)
+    body = t[m_.end():] if m_ else t
+    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=False, page="sources")[3] + 0.9
+
+
+def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
+    """the Sources page(s), see the part notes; a second page only if even five columns at 4 pt do not hold them"""
     groups = bk_source_groups(lines)
-    x0, y0, x1, y1 = GRID_AREA
-    ncol = 3
-    cw = (x1 - x0 - BK_GAP * (ncol - 1)) / float(ncol)
     flat = []
     for h, rows in groups:
         flat.append(("heading", h))
         flat += [("source", r) for r in rows]
-    s = 5.0
-    while True:
-        hs = [st_fit(t, cw, None, k, s if k == "source" else 6.0, justify=(k == "source"), page="p23")[3] + 1.0
-              for k, t in flat]
-        if sum(hs) <= ncol * (y1 - y0) * 0.97 or s <= GRID_MIN_PT + 1e-6:
+    y0, y1 = BK_SRC_Y[0] * BK_PCT[1], BK_SRC_Y[1] * BK_PCT[1]
+    colh = y1 - y0
+    pick = None
+    for ncol, lo in ((4, BK_SRC_PT[1]), (5, GRID_MIN_PT)):
+        cw = BK_SRC_COLS[ncol][-2][1] * BK_PCT[0]
+        s = BK_SRC_PT[0]
+        while True:
+            hs = [_bk_src_h(k, t, cw, s) for k, t in flat]
+            if sum(hs) <= ncol * colh * 0.96 or s - 0.25 < lo - 1e-6:
+                break
+            s -= 0.25
+        pick = (ncol, s, hs)
+        if sum(hs) <= ncol * colh * 0.96:
             break
-        s -= 0.25
+    ncol, s, hs = pick
+    cols = [(x * BK_PCT[0], w * BK_PCT[0]) for x, w in BK_SRC_COLS[ncol]]
+    label = (u"%s  %s" % (part, PARTS.get(part, u""))).upper() if part else None
     pages, P, col, y = [], None, 0, y0
     for (k, t), hh in zip(flat, hs):
         if P is None or y + hh > y1 + 1e-6:
@@ -184,20 +209,29 @@ def bk_sources(doc, n, lines):
                     bk_pageno(P, n + len(pages) - 1)
                     ck_page(P)
                     bk_finish(P)
-                P = bk_page(doc, "p23", n + len(pages))
-                L = lay_page(P, 1.0, 1)
-                bk_title(P, L, u"Sources" if not pages else u"Sources (continued)")
+                P = bk_page(doc, pid, n + len(pages))
+                bk_band(P, label, title if not pages else title + u" (continued)")
                 pages.append(P)
                 col, y = 0, y0
-        st_para(P, t, x0 + col * (cw + BK_GAP), y, cw, None, k, s if k == "source" else 6.0,
-                justify=(k == "source"), page="p23")
+        cx, cw = cols[col]
+        if k == "heading":
+            st_para(P, t, cx, y, cw, None, "heading", 6.0, justify=False, page=pid)
+        else:
+            m_ = _BK_SRC_NUM.match(t)
+            if m_:                                  # hanging indent: the number, then the text block beside it
+                a_, _d = fm_asc_desc(s)
+                P.tp.put(m_.group(1), cx, y + a_, s, False, "L", 0.0, None, "source", GRID_INK["ink2"], ())
+                st_para(P, t[m_.end():], cx + BK_SRC_IND, y, cw - BK_SRC_IND, None, "source", s, justify=False,
+                        page=pid)
+            else:
+                st_para(P, t, cx, y, cw, None, "source", s, justify=False, page=pid)
         y += hh
     if P is not None:
         bk_pageno(P, n + len(pages) - 1)
         ck_page(P)
         bk_finish(P)
     if len(pages) > 1:
-        wn_warn("p23", "overrun", u"the sources need %d pages at %.2f pt (the booklet has 23 + %d)" % (
-            len(pages), s, len(pages) - 1))
-    lines.append(u"sources page: %d rows at %.2f pt, %d page(s)" % (len(flat), s, len(pages)))
+        wn_warn(pid, "overrun", u"the sources need %d pages at %.2f pt in %d columns (the booklet has %d + %d)" % (
+            len(pages), s, ncol, n, len(pages) - 1))
+    lines.append(u"sources page: %d rows at %.2f pt, %d columns, %d page(s)" % (len(flat), s, ncol, len(pages)))
     return len(pages)

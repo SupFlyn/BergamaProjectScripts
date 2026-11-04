@@ -1,19 +1,7 @@
-# ---- 81_ids (round 5, S10, 2 Nov 2026): ONE page numbering, group aliases, text clean-up, {src:key} numbers -----------
-# Page ids (S6/S8/S9 handovers: "S10 settles one numbering"): the booklet uses the 23-page ids of PLAN §4. Content
-# scripts that export 25-page ids are listed in BK_PAGE_IDS and mapped here, once, right after loading (every item's
-# "page" and the file's "pages" keys), so nothing else in the booklet knows the old numbers. A folder not listed counts
-# as 23-page (a page id over p23 from it = WARNING). Change a line here when a script moves to 23-page ids.
-BK_PAGE_IDS = {
-    "selinus_board": 25,                       # S7: 16d_items SB_IX_PAGES (heritage loop "p22" = 23-page p20)
-    "bergama_proposal_sections": 25,           # S9: "p13" (same in both)
-    "Bergama_agriculture_alternatives": 25,    # S9: "p21" = 23-page p19
-    "Bergama_city_link_analysis": 25,          # S9: "p08", "p10" (same in both)
-    "Bergama_water_balance_analysis": 23,      # S5: "p11" (same in both)
-    "bergama_water_board": 23,                 # S8: WBX_PAGE
-    "bergama_masterplan": 23,                  # S6: MPX_PAGE
-}
-BK_25_TO_23 = {"p13": "p13", "p14": "p13", "p15": "p14", "p16": "p15", "p17": "p16", "p18": "p17", "p19": "p18",
-               "p20": "p18", "p21": "p19", "p22": "p20", "p23": "p21", "p24": "p22", "p25": "p23"}   # D9, D7
+# ---- 81_ids (round 5 S10; round 6 S9 v31, G6-2): ONE page numbering, group aliases, text clean-up, {src:key} numbers ---
+# Round 6 (PLAN §2.1, G6-2): every content script exports the 22-page ids p01 ... p22 itself; the old 25 -> 23 map
+# (BK_PAGE_IDS, BK_25_TO_23) is gone. An item exported for a page id outside p01-p22 = WARNING and is not shown.
+BK_NPAGES = 22
 # Group aliases ("folder/group" -> group): S8 asked agriculture's "stream comes first" block to join the water board's
 # group p21_g2_figures (heading + both blocks); agriculture exports it as group "ag1_stream" (S9). Set here, once.
 BK_GROUP_ALIAS = {"Bergama_agriculture_alternatives/ag1_stream": "p21_g2_figures"}
@@ -24,36 +12,24 @@ BK_FALSE_LABELS = (re.compile(r"\s*·\s*style a(?: \(cutouts\))?", re.I),      #
                    re.compile(r"\s*·\s*1:[\d,]+\s*$"))                       # a scale tail the composer now prints
 
 
-def bk_pid(folder, pid):
-    if pid in (None, "any"):
-        return "any"
-    if BK_PAGE_IDS.get(folder, 23) == 25:
-        return BK_25_TO_23.get(pid, pid)
-    return pid
-
-
 def bk_remap(log):
-    """every loaded file to 23-page ids, group aliases, text clean-up; one log line per file"""
+    """every loaded file: page ids checked (p01-p22, G6-2), group aliases, text clean-up; one log line per file"""
     for folder, d in BK_IX.items():
-        new, moved = {}, []
+        bad = []
         for pid, its in (d.get("pages") or {}).items():
-            np_ = bk_pid(folder, pid)
-            if np_ != pid:
-                moved.append(u"%s->%s" % (pid, np_))
-            if np_ not in ("any",) and (not re.match(r"^p\d\d$", np_) or int(np_[1:]) > 23):
-                wn_warn(np_, "page", u"%s exports items for page %s, not in the 23-page booklet: not shown" % (
-                    folder, pid))
+            if pid != "any" and (not re.match(r"^p\d\d$", u"%s" % pid) or not 1 <= int(pid[1:]) <= BK_NPAGES):
+                bad.append(pid)
+                wn_warn(pid, "page", u"%s exports %d items for page %s, not in the 22-page booklet (G6-2): not shown"
+                        % (folder, len(its), pid))
             for it in its:
-                it["page"] = np_
+                it["page"] = pid
                 g = BK_GROUP_ALIAS.get(u"%s/%s" % (folder, it.get("group")))
                 if g:
                     it["group"] = g
                 if it.get("kind") == "text":
                     bk_clean_text(it)
-            new.setdefault(np_, []).extend(its)
-        d["pages"] = new
-        log.append(u"pages %s: %s-page ids%s" % (folder, BK_PAGE_IDS.get(folder, 23),
-                                                 (u", mapped " + u" ".join(sorted(set(moved)))) if moved else u""))
+        log.append(u"pages %s: %s%s" % (folder, u" ".join(sorted(k for k in (d.get("pages") or {}))),
+                                        (u"; not shown " + u" ".join(sorted(bad))) if bad else u""))
 
 
 def bk_clean_text(it):
@@ -86,8 +62,9 @@ def bk_src_number(pids):
         its = ix_page(pid)
         keys = []
         for it in its:
-            if it.get("kind") == "text":
-                keys += BK_SRC_ONE.findall(it.get("string") or u"")
+            for t_ in _bk_src_strings(it):
+                keys += BK_SRC_ONE.findall(t_)
+            keys += [k_ for k_ in it.get("src_keys") or () if isinstance(k_, str)]   # v31: a drawing's own sources
         keys += [it.get("key") for it in its if it.get("kind") == "source" and it.get("key")]   # page source rows
         for k in keys:
             if True:
@@ -113,8 +90,44 @@ def bk_src_number(pids):
     for d in BK_IX.values():
         for its in d.get("pages", {}).values():
             for it in its:
-                if it.get("kind") == "text" and u"{src:" in (it.get("string") or u""):
+                k = it.get("kind")
+                if k == "text" and u"{src:" in (it.get("string") or u""):
                     it["string"] = BK_SRC_RE.sub(rep, it["string"]).lstrip()
                     it["short_forms"] = [BK_SRC_RE.sub(rep, t).lstrip() for t in it.get("short_forms") or []]
                     n += 1
+                elif k == "legend":                  # v31 (G6-3): plain-string legend texts and titles carry marks too
+                    for e in it.get("entries") or ():
+                        if isinstance(e.get("text"), str) and u"{src:" in e["text"]:
+                            e["text"] = BK_SRC_RE.sub(rep, e["text"]).lstrip()
+                            n += 1
+                    if isinstance(it.get("title"), str) and u"{src:" in it["title"]:
+                        it["title"] = BK_SRC_RE.sub(rep, it["title"]).lstrip()
+                        n += 1
+                elif k == "list":
+                    its_ = it.get("items") or []
+                    for i_, t_ in enumerate(its_):
+                        if isinstance(t_, str) and u"{src:" in t_:
+                            its_[i_] = BK_SRC_RE.sub(rep, t_).lstrip()
+                            n += 1
+                elif k == "photo" and isinstance(it.get("caption"), str) and u"{src:" in it["caption"]:
+                    it["caption"] = BK_SRC_RE.sub(rep, it["caption"]).lstrip()
+                    n += 1
     return n
+
+
+def _bk_src_strings(it):
+    """the strings of an item that may carry {src:key} marks, in reading order (text, legend title + entries, list
+    rows, photo caption)"""
+    k = it.get("kind")
+    if k == "text":
+        return [it.get("string") or u""]
+    out = []
+    if k == "legend":
+        if isinstance(it.get("title"), str):
+            out.append(it["title"])
+        out += [e.get("text") for e in it.get("entries") or () if isinstance(e.get("text"), str)]
+    elif k == "list":
+        out += [t for t in it.get("items") or () if isinstance(t, str)]
+    elif k == "photo" and isinstance(it.get("caption"), str):
+        out.append(it["caption"])
+    return out

@@ -1,21 +1,19 @@
-# ---- 60_layout (composer core, round 5 S1; G-R5-2, D2, PLAN §3 "Page"): one page = one grid ---------------------------
-# A3 landscape 420 x 297 mm, margins 14 / 12 (grid.py); content area GRID_AREA (14, 30, 406, 273); title strip on top
-# (12 .. 25: title left, intro right of it); drawings take the left share (default 70 % of the 392 mm inner width,
-# ~274 mm, PLAN §3 / refs/U29 Aras's p23 redesign), a 4 mm gutter, the right column (~114 mm) in sub-columns for legend,
-# lists, key map and short text; caption bottom-left under the drawings; page number only, bottom right (G-R4-10).
-# Every block shares edges with the grid lines named here, so blocks align across a page (U21).
+# ---- 60_layout (composer core, round 5 S1; round 6 S9 v31: G6-1 page frames): one page = one grid ------------------
+# A3 landscape 420 x 297 mm, margins 14 / 12 (grid.py; = SON page2 margins x 3.3-96.7 %, PLAN P-6: one set for every
+# page). Round 6 (v31): every block of a page sits in a FRAME of the page plan (80_plan, PLAN §3 "Target frames"),
+# given in % of the page ([x, y, w, h], 0,0 top left; 1 % x = 4.2 mm, 1 % y = 2.97 mm). Title band (PLAN §3, frames
+# files "common SON frame"): section label y 3-4 %, title y 5-8 %, the intro right of the title, a thin rule at 8.8 %;
+# content from y 10 %; the page number alone, bottom right (PLAN §2.1: no "NN/23", no theme footer).
 #   P = bk_page(doc, pid, n=None)            a new page: P.page (PyMuPDF), P.tp (TextPage over the whole sheet with the
 #                                            14/12 mm margins, the edge test of 70_check), P.placed, P.ink, P.boxes
-#   lay_page(P, share=0.70, sub=2, title_h=13.0, caption_h=0.0) -> dict
-#         grid boxes (x0, y0, x1, y1) mm: title, intro, draw, right, subs [right sub-columns], caption, all
+#   bk_pct(box) -> (x0, y0, x1, y1) mm       a frame [x, y, w, h] in % of the page -> page mm
 #   lay_split(box, n, gap=4.0, vertical=True, weights=None) -> [box]   a box cut into n parts (rows or columns)
-#   lay_stack(box, heights, gap=4.0, page=None) -> [box]              blocks stacked from the box top; past its foot
-#                                                                     = WARNING "overrun" (never a stop)
-#   bk_title(P, L, title, intro=None)        the page title (16 pt bold) and its intro (6 pt, justified) in the strip
+#   bk_band(P, label, title, intro=None) -> y_mm   v31 title band: section label, title (16 pt bold), intro (6 pt,
+#                                            justified) right of the title, rule; returns the rule's y
 #   bk_caption(P, text, box)                 a caption (5 pt, justified, last line left) in its box
-#   bk_pageno(P, n)                          the page number, bottom right (7 pt bold accent), role "footer"
+#   bk_pageno(P, n)                          the page number, bottom right (7 pt bold accent), role "footer"; log
+#                                            line "pagenum <n>"
 #   bk_finish(P) -> n texts                  draws every text (40_set bk_emit) after the drawings
-BK_SHARE = 0.70
 BK_GUT = 4.0
 BK_PAGENO_Y = 283.5                 # baseline of the page number: inside the 12 mm bottom margin line (285)
 
@@ -34,21 +32,40 @@ def bk_page(doc, pid, n=None):
     return BkPage(doc, pid, n)
 
 
-def lay_page(P, share=BK_SHARE, sub=2, title_h=13.0, caption_h=0.0):
+BK_PCT = (GRID_PAGE[0] / 100.0, GRID_PAGE[1] / 100.0)      # mm per % (x 4.2, y 2.97)
+BK_BAND = dict(label_y=4.05, title_y=5.1, rule_y=8.8, intro_gap=8.0)   # % of the page (PLAN §3; label on the 12 mm margin)
+BK_PAGENO_LOG = []                  # "pagenum <n>" lines (code.py adds them to the log)
+
+
+def bk_pct(b):
+    """[x, y, w, h] in % of the page -> (x0, y0, x1, y1) page mm"""
+    x, y, w, h = [float(v) for v in b]
+    return (x * BK_PCT[0], y * BK_PCT[1], (x + w) * BK_PCT[0], (y + h) * BK_PCT[1])
+
+
+def bk_band(P, label, title, intro=None):
+    """v31 title band (see the part notes): label line, title, intro beside it, rule; returns the rule's y (mm)"""
     x0, x1 = GRID_ML, GRID_PAGE[0] - GRID_MR
-    W = x1 - x0
-    a = GRID_AREA
-    dw = round(share * W - BK_GUT / 2.0, 1)
-    draw = (x0, a[1], x0 + dw, a[3] - caption_h)
-    right = (x0 + dw + BK_GUT, a[1], x1, a[3])
-    subs = lay_split(right, max(1, int(sub)), BK_GUT, vertical=False)
-    title = (x0, GRID_MT, x0 + dw, GRID_MT + title_h)
-    intro = (right[0], GRID_MT, x1, GRID_MT + title_h + 4.0)
-    cap = (x0, a[3] - caption_h + 1.0, x0 + dw, a[3]) if caption_h > 0 else None
-    L = dict(title=title, intro=intro, draw=draw, right=right, subs=subs, caption=cap, all=(x0, a[1], x1, a[3]),
-             share=share)
-    P.layout = L
-    return L
+    acc, ink = GRID_INK["accent"], GRID_INK["ink"]
+    if label:
+        pt = 6.0
+        a_, _d = fm_asc_desc(pt, True)
+        P.tp.put(label, x0, BK_BAND["label_y"] * BK_PCT[1] + a_, pt, True, "L", 0.0, "label", "title", acc)
+    pt = grid_role("title")[0]
+    tw_max = 0.55 * (x1 - x0)                       # the title takes at most 55 % of the width; the intro the rest
+    w = fm_width(title, pt, True)
+    if w > tw_max:
+        pt = max(GRID_MIN_PT, pt * tw_max / w)
+        w = fm_width(title, pt, True)
+    a_, _d = fm_asc_desc(pt, True)
+    ty = BK_BAND["title_y"] * BK_PCT[1]
+    P.tp.put(title, x0, ty + a_, pt, True, "L", 0.0, "title", "title", ink)
+    ry = BK_BAND["rule_y"] * BK_PCT[1]
+    if intro:
+        ix = x0 + w + BK_BAND["intro_gap"]
+        st_para(P, intro, ix, ty, max(30.0, x1 - ix), ry - ty - 0.8, "intro", page=P.pid)
+    bk_line(P, [(x0, ry), (x1, ry)], GRID_INK["rule"], 0.4)
+    return ry
 
 
 def lay_split(box, n, gap=BK_GUT, vertical=True, weights=None):
@@ -65,31 +82,6 @@ def lay_split(box, n, gap=BK_GUT, vertical=True, weights=None):
     return out
 
 
-def lay_stack(box, heights, gap=BK_GUT, page=None):
-    out, y = [], box[1]
-    for h in heights:
-        out.append((box[0], y, box[2], y + h))
-        y += h + gap
-    if out and out[-1][3] > box[3] + 1e-6:
-        wn_warn(page, "overrun", u"blocks stacked %.1f mm past their area's foot (y %.1f)" % (out[-1][3] - box[3],
-                                                                                            box[3]))
-    return out
-
-
-def bk_title(P, L, title, intro=None):
-    t = L["title"]
-    pt = grid_role("title")[0]
-    a_, _d = fm_asc_desc(pt, True)
-    w = fm_width(title, pt, True)
-    if w > t[2] - t[0]:                       # a long title steps down (never below the floor)
-        pt = max(GRID_MIN_PT, pt * (t[2] - t[0]) / w)
-        a_, _d = fm_asc_desc(pt, True)
-    P.tp.put(title, t[0], t[1] + a_, pt, True, "L", 0.0, "title", "title", GRID_INK["ink"])
-    if intro:
-        i = L["intro"]
-        st_para(P, intro, i[0], i[1], i[2] - i[0], i[3] - i[1], "intro", page=P.pid)
-
-
 def bk_caption(P, text, box):
     return st_para(P, text, box[0], box[1], box[2] - box[0], box[3] - box[1], "caption", page=P.pid)
 
@@ -98,6 +90,7 @@ def bk_pageno(P, n):
     pt, b, _l, col = grid_role("pageno")
     P.tp.put(u"%d" % int(n), GRID_PAGE[0] - GRID_MR, BK_PAGENO_Y, pt, b, "R", 0.0, "pageno", "footer", col,
              ("footer",))
+    BK_PAGENO_LOG.append(u"pagenum %d" % int(n))
 
 
 def bk_finish(P):
