@@ -227,7 +227,7 @@ def bk_place(P, S, did, s, x, y, side):
         r = T.rect
         if D.get("scale_bar"):
             pl_scalebar(P, placed, r[0], r[3] + 1.2)
-        else:                                       # the drawing carries its own bar (S7 crops): the scale only
+        elif did not in S.get("noscale", ()):        # the drawing carries its own bar (S7 crops): the scale only
             pt = grid_role("caption")[0]
             a_, _d = fm_asc_desc(pt)
             P.tp.put(u"1:{:,}".format(int(T.den)), r[0], r[3] + 1.2 + a_, pt, False, "L", 0.0, None, "scale",
@@ -332,16 +332,23 @@ def _bk_fit(S, did, w, h, pid):
     return sc_factor(D, max(1.0, w - rw), max(1.0, h - rh), pid)
 
 
-def _bk_boxes(F, n):
+def _bk_boxes(F, n, items=None):
     """a frame's box (less its "foot") cut into n cells: side by side (split "row") or stacked ("col"); default along
-    its longer side"""
+    its longer side; cells sized by the drawings' extents along the split (so one-scale cuts of different lengths each
+    get their share), gap = the frame's "gap" in mm (default BK_GAP)"""
     b = F["mm"]
     if F.get("foot"):                              # room kept under the drawings for their notes (% of the page)
         b = (b[0], b[1], b[2], max(b[1] + 5.0, b[3] - float(F["foot"]) * BK_PCT[1]))
     if n <= 1:
         return [b]
     sp = F.get("split") or ("row" if (b[2] - b[0]) >= (b[3] - b[1]) else "col")
-    return lay_split(b, n, BK_GAP, vertical=(sp == "col"))
+    wts = None
+    if items and len(items) == n:
+        try:
+            wts = [max(1e-6, _sc_ext(it)[0 if sp == "row" else 1]) for _i, _k, it in items]
+        except Exception:
+            wts = None
+    return lay_split(b, n, float(F.get("gap", BK_GAP)), vertical=(sp == "col"), weights=wts)
 
 
 def _bk_same(S, frames, pid):
@@ -351,8 +358,8 @@ def _bk_same(S, frames, pid):
         k = F.get("same")
         if not k:
             continue
-        ds = [(iid, kk) for iid, kk, _it in F["items"] if kk in ("drawing", "keymap")]
-        for (did, kk), b in zip(ds, _bk_boxes(F, len(ds))):     # the same cells as _bk_frame_draw
+        ds = [(iid, kk, it) for iid, kk, it in F["items"] if kk in ("drawing", "keymap")]
+        for (did, kk, _it), b in zip(ds, _bk_boxes(F, len(ds), ds)):     # the same cells as _bk_frame_draw
             if kk != "drawing" or _bk_parent(S, did):
                 continue
             s = _bk_fit(S, did, b[2] - b[0], b[3] - b[1], pid)
@@ -420,7 +427,7 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
     ds = [(iid, kk, it) for iid, kk, it in F["items"] if kk in ("drawing", "keymap")]
     out, bottom = [], F["mm"][1]
     al = (F.get("al") or "TL").upper()
-    for (did, kk, it), b in zip(ds, _bk_boxes(F, len(ds))):
+    for (did, kk, it), b in zip(ds, _bk_boxes(F, len(ds), ds)):
         w, h = b[2] - b[0], b[3] - b[1]
         if kk == "keymap":
             f = sc_factor(it, w, h, pid)
@@ -451,6 +458,8 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
         ox = b[0] + {"C": (w - tw) / 2.0, "R": w - tw}.get(al[1:2], 0.0)
         oy = b[1] + {"M": (h - th) / 2.0, "B": h - th}.get(al[:1], 0.0)
         side = TpSideList(u"%s %s" % (pid, did))
+        if F.get("noscale"):                       # the drawing's own bar is its scale (p19: no orphan "1:n")
+            S.setdefault("noscale", set()).add(did)
         pl = bk_place(P, S, did, s, ox, oy, side)
         yb = pl["rect"][3] + (BK_SCALE_H if (pl["T"].den or D.get("north_deg") is not None) else 0.0)
         bottom = max(bottom, yb)

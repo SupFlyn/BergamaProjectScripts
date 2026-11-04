@@ -74,7 +74,7 @@
 | ck_finish | parts/70_check.py | 74 |
 | ck_reset | parts/70_check.py | 101 |
 | hires | ../common/hires.py | - |
-| F | parts/80_plan.py | 15 |
+| F | parts/80_plan.py | 16 |
 | bk_remap | parts/81_ids.py | 15 |
 | bk_clean_text | parts/81_ids.py | 35 |
 | bk_sources_collect | parts/81_ids.py | 43 |
@@ -96,12 +96,12 @@
 | _bk_match | parts/82_compose.py | 309 |
 | _bk_fit | parts/82_compose.py | 325 |
 | _bk_boxes | parts/82_compose.py | 335 |
-| _bk_same | parts/82_compose.py | 347 |
-| _BkTgt | parts/82_compose.py | 370 |
-| _bk_put | parts/82_compose.py | 376 |
-| _bk_photo_grid | parts/82_compose.py | 390 |
-| _bk_frame_draw | parts/82_compose.py | 418 |
-| bk_content_page | parts/82_compose.py | 465 |
+| _bk_same | parts/82_compose.py | 354 |
+| _BkTgt | parts/82_compose.py | 377 |
+| _bk_put | parts/82_compose.py | 383 |
+| _bk_photo_grid | parts/82_compose.py | 397 |
+| _bk_frame_draw | parts/82_compose.py | 425 |
+| bk_content_page | parts/82_compose.py | 474 |
 | bk_cover | parts/83_cover_sources.py | 25 |
 | _bk_cutout_sources | parts/83_cover_sources.py | 107 |
 | bk_source_groups | parts/83_cover_sources.py | 123 |

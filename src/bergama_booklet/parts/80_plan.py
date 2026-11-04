@@ -8,7 +8,8 @@
 # frames", est. +-1 %). Options: key (name; default the first pattern), same (frames with one key share one scale /
 # factor), note (the frame key where this frame's drawings' attached notes go), foot (% of the page kept under the
 # drawings for their notes), split ("row" | "col" for several drawings in one frame), al ("TL" default, "MC", "BL"
-# ...), over (may sit on another frame), opt (an empty frame is no WARNING).
+# ...), over (may sit on another frame), opt (an empty frame is no WARNING), gap (mm between split cells),
+# noscale (no "1:n" printed under a drawing that carries its own scale bar).
 # Every frame is inside the one margin set x 3.3-96.7 % (P-6) and above the page number (y <= 94 %).
 
 
@@ -111,9 +112,9 @@ BK_PAGES = [
                  F("cl_p08_shops", 72.0, 33.8, 24.7, 2.7, key="shops"),
                  F("cl_p08_who", 3.3, 37.0, 93.4, 31.0, note="who_notes"),
                  F(("cl_p08_who_legend", "cl_p08_who_note"), 3.3, 68.5, 93.4, 4.5, key="who_notes"),
-                 F("sb_street_legend*", 3.3, 73.5, 93.4, 3.5, key="street_legend"),
+                 F(("sb_street_title_n1", "sb_street_legend*"), 3.3, 73.5, 93.4, 3.5, key="street_legend"),
                  F(("sb_street_R*", "sb_street_sections"), 3.3, 77.5, 93.4, 16.5, key="streets", same="streets",
-                   split="row", foot=1.5)],
+                   split="row", gap=8.0, foot=1.5)],     # S3: four cuts 8 mm apart at one shared scale
          side="who_notes"),
     # 9 · SON page9 + page10 (P-10, U16, U17): spine x0.69, windows above their cards, bottom band enlarged
     dict(pid="p09", part="B", stage="do", title=u"The streamside spine, hub by hub",
@@ -269,7 +270,7 @@ BK_PAGES = [
     # 19 · SON page20 (heritage symbols in the brown ramp, S3); legends in one row under the board
     dict(pid="p19", part="D", stage="do", title=u"The heritage loop",
          intro=u"The Selinos is the *seam*: *bridges, crafts and events* tie the *Kale side* to the *bazaar side*.",
-         frames=[F("sb_heritage_loop", 3.3, 10.0, 93.4, 76.0, key="loop"),
+         frames=[F("sb_heritage_loop", 3.3, 10.0, 93.4, 76.0, key="loop", noscale=True),
                  F(("sb_heritage_loop_legend", "sb_heritage_legend"), 3.3, 87.0, 93.4, 4.5, key="legend"),
                  F(("sb_heritage_loop_caption", "sb_heritage_*"), 3.3, 92.0, 50.0, 1.8, key="caption")],
          side="legend"),
