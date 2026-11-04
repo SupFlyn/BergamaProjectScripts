@@ -335,9 +335,8 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
 #@include ../common/facts.py
 # v9 (round 5, G-R5-12): the item export (needs bergama_paths, grid, warn above)
 #@include ../common/item_export.py
-# v10 (round 6, S1 modules): the category -> hue table (G6-6, PLAN §2.6) and the plan annotations (G6-4, PLAN §2.4)
-#@include ../common/hues.py
-#@include ../common/annot.py
+# v10 (round 6): common/hues.py (G6-6) and common/annot.py (G6-4) come in through basemap.py above (S1_done.md:
+# "never include them again")
 
 # v9: the Arial files font_metrics measures with (no PDF is written any more)
 #@include ../common/pdf_fonts.py
