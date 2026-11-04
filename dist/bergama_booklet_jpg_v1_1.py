@@ -3,7 +3,7 @@
 """Bergama Group 6: BOOKLET JPG v1.1 (4 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Turns the newest booklet PDF into one JPG per page (page1.jpg, page2.jpg, ...) plus pages.txt (each page's text) and
 zips them, so the booklet can be uploaded to Claude cheaply (Aras 4 Nov 08:06-08:07).
-Why it is cheap to read: Claude scales any image down to MAX_PX on its long edge, so pixels above that cost upload
+Why it is cheap to read: Claude scales any image down to 1568 px on its long edge, so pixels above that cost upload
 size and buy nothing; pages.txt gives the words as text, which costs far fewer tokens than reading them off a picture.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The first run installs PyMuPDF (the "# r:"
