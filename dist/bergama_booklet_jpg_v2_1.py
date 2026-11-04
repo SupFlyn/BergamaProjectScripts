@@ -20,7 +20,7 @@ Writes ~/Downloads/Bergama/cached/bergama_booklet_jpg/<pdf name>/page1.jpg ... p
 import os, time, zipfile, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.1"  # v2.1 (Aras 4 Nov 08:57): pages.txt decodes shifted text (fonts with no character map) and the booklet's Turkish look-alike letters, marks pages with no text layer, each text block with its box in % of the page; the log prints the dpi really used; v2 (Aras 4 Nov 08:29-08:30): every PDF in the folder, one zip per PDF named after it; folder input, zips go back into a pointed folder; v1.1 (Aras 4 Nov 08:26): long edge cap 1565 px (3 px under the 1568 px read limit)
+VERSION = "v2.1"  # v2.1 (Aras 4 Nov 08:57): pages.txt decodes shifted text (fonts with no character map) and the booklet's Turkish look-alike letters, marks pages with no text layer, each text block and raster image with its box in % of the page, overlapping text listed first; the log prints the dpi really used; v2 (Aras 4 Nov 08:29-08:30): every PDF in the folder, one zip per PDF named after it; folder input, zips go back into a pointed folder; v1.1 (Aras 4 Nov 08:26): long edge cap 1565 px (3 px under the 1568 px read limit)
 GH_LABEL = "BookletJpg"
 OUT_FOLDER = "bergama_booklet_jpg"
 LOG_NAME = "bergama_booklet_jpg_log.txt"
@@ -348,15 +348,28 @@ def bj_blocks(page):
     by its box in % of the page: [x,y wxh] = left, top, width, height (0,0 = top left), so a text can be matched to its
     place on pageN.jpg (and two texts on top of each other show as overlapping boxes) without opening the image"""
     W, H = page.rect.width or 1.0, page.rect.height or 1.0
-    rows = []
+    rows, boxes = [], []
     for b_ in page.get_text("blocks"):
-        if len(b_) > 6 and b_[6] != 0:                  # 1 = an image block, not text
-            continue
-        s = u" / ".join(x.strip() for x in b_[4].split(u"\n") if x.strip())
+        img = len(b_) > 6 and b_[6] == 1                # a raster image (photo, collage); vector drawings have no block
+        s = u"(image)" if img else u" / ".join(x.strip() for x in b_[4].split(u"\n") if x.strip())
         if s:
             rows.append((round(b_[1] / H * 100), round(b_[0] / W * 100), u"[%d,%d %dx%d] %s" % (
                 b_[0] / W * 100, b_[1] / H * 100, (b_[2] - b_[0]) / W * 100, (b_[3] - b_[1]) / H * 100, s)))
-    return u"\n".join(r[2] for r in sorted(rows))
+            if not img:
+                boxes.append((b_[0], b_[1], b_[2], b_[3], s[:30]))
+    # text blocks lying on top of each other (shared area over 20 % of the smaller box): the likely collisions
+    hits = []
+    for i_ in range(len(boxes)):
+        a0 = boxes[i_]
+        for b0 in boxes[i_ + 1:]:
+            w_ = min(a0[2], b0[2]) - max(a0[0], b0[0])
+            h_ = min(a0[3], b0[3]) - max(a0[1], b0[1])
+            if w_ > 0 and h_ > 0 and w_ * h_ > 0.2 * min((a0[2] - a0[0]) * (a0[3] - a0[1]),
+                                                         (b0[2] - b0[0]) * (b0[3] - b0[1])):
+                hits.append(u"  \"%s\" x \"%s\" at [%d,%d]" % (a0[4], b0[4], max(a0[0], b0[0]) / W * 100,
+                                                              max(a0[1], b0[1]) / H * 100))
+    head = (u"OVERLAPPING TEXT: %d\n%s\n" % (len(hits), u"\n".join(hits[:15]))) if hits else u""
+    return head + u"\n".join(r[2] for r in sorted(rows))
 
 
 def bj_one(fz, src, dpi, zip_dir):
