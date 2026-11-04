@@ -473,9 +473,11 @@ def km_street_names(D, T, obstacles, vb=None, frame_mm=None, segs=(), Tinv=None,
                 continue
             ok = b
             break
-        if ok is None:
-            log.append(u"keymap %s: name '%s' left out (no free place)" % (pg, n))
-            continue
+        if ok is None:                                    # 4 Nov (Aras 19:17 "not drawing ... is not a solution"):
+            ok = (x - w / 2.0, y - sz / 2.0, x + w / 2.0, y + sz / 2.0)   # set on its point, handed to the booklet,
+            ok = (max(pad_n, min(ok[0], w_mm - pad_n - w)), max(pad_n, min(ok[1], h_mm - pad_n - sz)))   # which
+            ok = (ok[0], ok[1], ok[0] + w, ok[1] + sz)                     # moves it off whatever it hits
+            log.append(u"keymap %s: name '%s' set on its point (no free place here; the booklet places it)" % (pg, n))
         seen_n.add(n)
         boxes.append(ok)
         label_boxes.append((n, ok))
@@ -751,8 +753,8 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
                                    % (pg, nm[0]))
                     break
             if got is None:
-                log.append(u"WARNING %s keymap: no free place for the name of cut %s; set at its first spot"
-                           % (pg, nm[0]))
+                log.append(u"keymap %s: the name of cut %s set at its first spot (no free place here; the booklet "
+                           u"places it)" % (pg, nm[0]))
                 it = ("text", nm[0], (mid[0] - nx * 3.5 * m, mid[1] - ny * 3.5 * m), KM_CUT["text_mm"],
                       KM_CUT["colour"], True, "MC")
                 got = (it, tbox(it))

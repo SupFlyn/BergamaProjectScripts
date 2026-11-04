@@ -346,8 +346,18 @@ def _t3_marks(named, k, r, avoid=()):
                 sc = min(d, 12.0 * k) - 0.05 * abs(i - 5) * k + 1e-6 * Lq
                 if best is None or sc > best[0]:
                     best = (sc, p)
+        if best is None:                                  # v62.1: any point of the street on the map (the booklet
+            for Q in Qs:                                  # moves what it hits); none = the street is off this map
+                Lq = pl_length(Q)
+                for i in range(0, 41) if Lq > 0 else ():
+                    p = pl_point_at(Q, Lq * i / 40.0)[0]
+                    if r[0] <= p[0] <= r[2] and r[1] <= p[1] <= r[3]:
+                        best = (0.0, (min(max(p[0], inner[0]), inner[2]), min(max(p[1], inner[1]), inner[3])))
+                        break
+                if best:
+                    break
         if best is None:
-            LOG.append(u"p.07: no spot on the map for the street marker of {}.".format(key))
+            LOG.append(u"p.07: street {} does not run through this map: no marker.".format(key))
             continue
         spots[key] = best[1]
         placed.append(best[1])
@@ -1534,8 +1544,7 @@ def _t3_sec_make(cut, after, style, k, seed, tid0=0):
                 boxes.append(_t3_bb(sh_[0][1]))
                 n_bub += 1
                 ad("labels", sh_, "labels", u"bubble %d" % tid0)
-            else:
-                n_drop += 1
+    n_drop = 0 if n_bub or not any(T3_BUBBLES.get((var, b_[0])) for b_ in bub) else 1   # v62.1: one bubble a section
     g6 = sf_assert_g6(k, trees=trees, buildings=[(u"{} side {}".format(cut["name"], sg),
                                                    cut["side"][sg]["g6"][0], cut["side"][sg]["g6"][1])
                                                   for sg in (-1, 1) if cut["side"][sg].get("g6") and
@@ -1730,8 +1739,8 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     if not ab_all:
         LOG.append(u"WARNING p08 levels: no survey terrain on this run: the street cuts' levels are given above the "
                    u"street (+0.00), not above sea.")
-    LOG.append(u"Street sections: speech bubbles {} set, {} left out (no place clear of figures, trees and plants; "
-               u"frames page8 §4).".format(n_bub, n_drop))
+    LOG.append(u"Street sections: speech bubbles {} set (one per section, D4 a); sections without one: {}.".format(
+        n_bub, n_drop))
     LOG.append(u"Street sections: drawn {}".format(len(alls)))
     LOG.append(u"Street sections: " + fig_set_line(False))
     cl = cut_log_line()
