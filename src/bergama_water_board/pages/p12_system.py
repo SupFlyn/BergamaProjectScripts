@@ -2620,6 +2620,19 @@ def _p12_sketch(pg, band, Z, f, opt, log):
         if pt >= P12_SK_PT - 0.05 or "TXT_K" not in E:
             break
         tk *= P12_SK_PT / pt * 1.02
+    if pt < P12_SK_PT - 0.05 and "TXT_K" not in E and pt > 0.0:   # v17.2: this engine has no TXT_K: every word of
+        f_ = P12_SK_PT / pt                                         # the sketch raised here so the smallest prints at
+        new_ = []                                                   # P12_SK_PT; the booklet moves any word that hits
+        for it in part.items:
+            if it[0] == "text" and len(it) > 4:
+                nt_ = tuple(it[:4]) + (it[4] * f_,) + tuple(it[5:])
+                if id(it) in _GRP:                                  # keep its G6-9 group tag
+                    _GRP[id(nt_)] = (nt_, _GRP[id(it)][1])
+                it = nt_
+            new_.append(it)
+        part.items = new_
+        log.append(u"p.12 sketch: words raised x{:.2f} (the engine has no TXT_K): smallest {:.1f} pt".format(f_, P12_SK_PT))
+        pt = P12_SK_PT
     if pt < 4.0:
         _p12_warn(log, "text", u"A-A' sketch: smallest word {:.1f} pt on the board (< 4 pt; the engine has no "
                                u"TXT_K: handover data change)".format(pt))
