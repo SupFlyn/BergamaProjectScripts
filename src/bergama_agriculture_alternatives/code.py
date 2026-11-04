@@ -22,7 +22,7 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, math, re
 
-VERSION = "v11"  # v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v12"  # v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks) (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v11 (round 6, S7, 4 Nov 2026; BRIEF §6 rows 17-18, Q9, G6-1, G6-6, G6-8, G6-9, G6-10; PLAN §2.2-§2.3; a
 #   feature change, so the next whole number):
 #   * p17 (NEW, r06_S01, SKETCH): the 28 Oct "One plant ladder, streambed to field" (f93d84b v3.1 page_ladder,
@@ -1031,8 +1031,8 @@ def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
     step = 25 if vmax < 160 else (50 if vmax < 400 else 100)
     for t in range(0, int(vmax) + 1, step):
         xx = xb + gw * t / vmax
-        if xx + 0.5 * text_w("%d ha" % t, 7) > x0 + W - 0.5:   # v9.1: a grid line whose centred value would run past
-            break                                    # the crop's edge is left out ("200 ha" hit it, Aras 1 Nov 17:07)
+        if xx > x0 + W - 0.5:                        # v12 (L6): only a grid line past the block's edge stops; its value
+            break                                    # is exported like every label (v9.1 left out "200 ha"; the booklet places it)
         pg.line([(xx, yb_), (xx, y0 + 0.5)], C["faint"], 0.2)
         pg.text("%d ha" % t, xx, yb_ - 3.5, 7, C["ink2"], align="C")
     xf = xb + gw * fed / vmax
@@ -1040,10 +1040,7 @@ def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
     pg.line([(xf, yb_), (xf, y0 + 2.0)], C["accent"], 0.5, (1.5, 1.0))
     ff = "farms we feed: %s ha" % fmt1(fed)
     pg.text(ff, xf + 1.2, top - 3.5, 7.5, C["accent"], True)
-    rng = "open bar end: range (storage span; deficit 44-72 % saving)"
-    if x0 + W - 1.0 - text_w(rng, 7) < xf + 1.2 + text_w(ff, 7.5, True) + 3.0:
-        ix_w = "ag1_bars: the range note meets 'farms we feed' on the top line"
-        LOG_NOTES.append("WARNING p18 layout: " + ix_w)
+    rng = "open bar end: range (storage span; deficit 44-72 % saving)"   # v12 (L6): no layout check here (booklet)
     pg.tag("labels", "range_note")
     pg.text(rng, x0 + W - 1.0, top - 3.5, 7, C["ink2"], align="R")
     boxes = AG_DBOX.setdefault("ag1_bars", [])
@@ -1085,9 +1082,7 @@ def ag_context_block(pg, x0, top):
     ag_heading(pg, "WHY CROP CHOICE IS THE LEVER", x0, top)
     pg.tag("annotations", "context_tiles")
     AG_DBOX["ag1_context"] = []
-    yb_ = tiles(pg, x0, top - AG_HEAD - 1.5, W, CONTEXT, cols=2, s=0.9, boxes=AG_DBOX["ag1_context"])
-    if yb_ < top - H + 0.5:
-        LOG_NOTES.append("WARNING p18 layout: ag1_context tiles run %.1f mm below the block" % (top - H + 0.5 - yb_))
+    tiles(pg, x0, top - AG_HEAD - 1.5, W, CONTEXT, cols=2, s=0.9, boxes=AG_DBOX["ag1_context"])   # v12 (L6): no layout check
 
 
 def ag_reading_block(pg, x0, top, best, worst):
@@ -1116,28 +1111,22 @@ def ag_reading_block(pg, x0, top, best, worst):
     pg.tag("labels", "reading")
     for cx_, side, key in ((xs, a, worst[1]), (xo, s_lo, best[1])):      # the crop's word in its deep square
         w_ = crop_word(key)
-        sz = 6.5 if text_w(w_, 6.5, True) + 1.0 <= side else 6.0
-        if text_w(w_, sz, True) + 1.0 <= side:
-            pg.text(w_, cx_ + side / 2.0, gy + side / 2.0 - 0.8, sz, C["white"], True, "C", allow=("reading",))
-        else:
-            LOG_NOTES.append("FLAG p18 ag1_reading: '%s' does not fit its %.1f mm square; the line beside the squares "
-                             "names both crops" % (w_, side))
+        sz = 6.5 if text_w(w_, 6.5, True) + 1.0 <= side else 6.0   # v12 (L6): always exported (was left out when
+        pg.text(w_, cx_ + side / 2.0, gy + side / 2.0 - 0.8, sz, C["white"], True, "C", allow=("reading",))   # too wide)
     tx = xo + max(s_hi, s_lo) + 5.0
     tw = x0 + W - 1.0 - tx
     wname = plant_name(worst[1]) if worst[1] in PLANTS else worst[1].capitalize()
     pg.text(rt, tx, st - 6.0, 18, C["accent"], True)
     pg.text("as much land, same storage", tx, st - 9.6, 7, C["ink"])
     yy = st - 12.6
-    for ln in wrap("%s against %s, 1-in-5 dry year" % (best[0], wname), 6.5, tw)[:2]:
+    for ln in wrap("%s against %s, 1-in-5 dry year" % (best[0], wname), 6.5, tw):   # v12 (L6): every line (was [:2])
         pg.text(ln, tx, yy, 6.5, C["ink2"])
         yy -= 2.7
     yy -= 0.9
     for ln, b in [(q, True) for q in wrap("lever: crop + irrigation method, more than storage", 7, tw, True)] + \
                  [(q, False) for q in wrap("same water: more farmland · same farms: less storage", 7, tw)]:
         pg.text(ln, tx, yy, 7, C["ink"], b)
-        yy -= 3.2
-    if yy + 3.2 - 0.6 < top - H:
-        LOG_NOTES.append("WARNING p18 layout: ag1_reading text runs %.1f mm below the block" % (top - H - yy - 2.6))
+        yy -= 3.2                                    # v12 (L6): no "runs below the block" check (the booklet sizes it)
 
 
 # ------------------------------------------------------------------ page 2: the farms we feed, on the site board's plan 01
