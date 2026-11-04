@@ -2898,7 +2898,7 @@ def p09_items(ix, L):
     c493fac page_spine; cl_p09_spine) and ONE merged legend (p09_legend_rows; cl_p09_legend, side column); the
     plans' heading and one plan per bridge place (hub_plan; ids cl_p10_win_<key>, 3a/3b kept), all at one scale,
     each widened to its hub column (hub_plan_layout) and headed by the hub's code and real name; one card per hub
-    (hub_card; cl_p09_card_<code>) under its plan(s), one column width P9_COL_W; (2) the flood rule (SKETCH), (3)
+    (hub_card; cl_p09_card_<1-5>, the booklet's frame ids) under its plan(s), one column width P9_COL_W; (2) the flood rule (SKETCH), (3)
     which bank and the producers' market. No key map (PLAN §2.5 P-2: the spine map locates every hub; windows are
     not cuts). Every drawing's elements grouped (G6-9)."""
     page = "p09"
@@ -2944,7 +2944,7 @@ def p09_items(ix, L):
         pg = Page(420, 297, "p09 card")
         with pg.group("hubs", u"card " + hub_code(hb)):
             hub_card(pg, hb, 14.0, 250.0, P9_COL_W)
-        cl_drawing(ix, u"cl_p09_card_%s" % hub_code(hb), page, pg, cl_bbox(pg), dkind="diagram",
+        cl_drawing(ix, u"cl_p09_card_%d" % hub_no(hb), page, pg, cl_bbox(pg), dkind="diagram",   # S9 frame ids 1-5
                    group=grp.get(hub_no(hb)), priority=4, layer="diagram")
     for fn, did, pr in ((p10_flood, u"cl_p10_flood", 6), (p10_bank, u"cl_p10_bank", 7),
                         (p10_market, u"cl_p10_market", 8)):
