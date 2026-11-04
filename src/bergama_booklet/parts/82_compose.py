@@ -606,6 +606,8 @@ def bk_fix(P, rounds=3):
     """v32: the texts that hit something run the chain again (pl_chain; the later / movable one of each pair moves);
     returns the hits left"""
     for _r in range(rounds):
+        if bk_late():                                     # v32.4: past the page budget, no more fix rounds
+            break
         hits = P.tp.hits_now(True)
         movers, seen = [], set()
         for _k, a, b in hits:
@@ -642,6 +644,9 @@ def bk_content_page(doc, spec, n, lines):
                  u"smaller 0, hits left %d (frames grown %d)" % (
                      pid, len(S["placed"]), st["labels"], st["moved"], st["short"], st["leader"], st["numbered"],
                      len(R["left"]), R["grown"]))
+    if BK_PG["late"]:
+        wn_warn(pid, "time", u"page past its %.0f s budget: %d texts set at their own spot without the search "
+                u"(%.0f s)" % (BK_PAGE_BUDGET, BK_PG["late"], time.time() - BK_PG["t0"]))
     if "wp_groups_log" in globals():                # S2's writer counts what it actually wrote
         lines.append(wp_groups_log(pid))
     else:

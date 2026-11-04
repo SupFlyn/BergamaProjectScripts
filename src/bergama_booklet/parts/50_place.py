@@ -79,8 +79,13 @@ def pl_stat(P):
 
 
 def _pl_seg_clear(P, p, q):
-    """True when the leader p-q crosses no text already on the page"""
-    return not any(tp_seg_box(p, q, it["box"]) for it in P.tp.items)
+    """True when the leader p-q crosses no text already on the page (v32.4: only the texts in the grid cells of the
+    leader's box are tested; a text outside that box cannot touch it, so the answer is the same)"""
+    tp = P.tp
+    _s, gi, _gk = _bk_index(tp)
+    bb = (min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1]))
+    I = tp.items
+    return not any(tp_seg_box(p, q, I[n]["box"]) for n in _bk_near(gi, bb, 0.0))
 
 
 def _pl_leader(P, fx, t):
@@ -141,6 +146,7 @@ def pl_chain(P, fx, side=None, first=True):
     tp = P.tp
     anchor, texts, codes = fx["anchor"], fx["texts"], fx["codes"]
     pt0, bold, win, d = fx["pt"], fx["bold"], fx.get("win"), fx.get("d", 0.8)
+    late = bk_progress(fx.get("name"))                    # v32.4: progress line; past the page budget: no search
 
     def put(t, x, y, al, kind, allow=None, **kw):
         tp.put(t, x, y, pt0, bold, al, 0.0, fx.get("name"), fx.get("role", "label"), fx.get("colour"),
@@ -156,10 +162,12 @@ def pl_chain(P, fx, side=None, first=True):
             b = tp._box(t, x, y, pt0, bold, al, 0.0)
             if _pl_inside(b, win) and tp._free(b, fx["allow"]):
                 return put(t, x, y, al, None)
+        if late:
+            break
         got = _pl_try(P, t, anchor, codes, pt0, bold, fx["allow"], win, d)
         if got:
             return put(t, got[0], got[1], got[2], "moved" if i == 0 else "short")
-    for t in texts:
+    for t in ([] if late else texts):
         got = _pl_leader(P, fx, t)
         if got:
             nm = u"leader %s %d" % (fx.get("name"), id(fx))
@@ -178,7 +186,40 @@ def pl_chain(P, fx, side=None, first=True):
         st["numbered"] += 1
         return num
     x, y, al = tp._at(codes[0] if codes else "E", texts[0], anchor, pt0, bold, d)
+    if late:
+        BK_PG["late"] += 1
     return put(texts[0], x, y, al, "forced", forced=True)
+
+
+# ---- v32.4 (Aras 4 Nov 21:50, p02 ran 10+ min): progress in the log file during a page, and a time budget per page.
+# Past BK_PAGE_BUDGET s a page's remaining texts skip the ring / leader search and are set at their own first spot
+# (never dropped, never smaller; the final check names every hit left as a WARNING), so the booklet always finishes.
+BK_PAGE_BUDGET = 150.0
+BK_PG = dict(t0=0.0, pid=None, n=0, last=0.0, late=0, head=u"", tail=u"")
+
+
+def bk_page_start(pid, head=u"", tail=u""):
+    BK_PG.update(t0=time.time(), pid=pid, n=0, last=time.time(), late=0, head=head, tail=tail)
+
+
+def bk_late():
+    return bool(BK_PG["t0"]) and time.time() - BK_PG["t0"] > BK_PAGE_BUDGET
+
+
+def bk_progress(name=None):
+    """counts the page's texts; every 5 s writes the progress line to the log file; True once past the budget"""
+    BK_PG["n"] += 1
+    now = time.time()
+    if now - BK_PG["last"] >= 5.0 and "write_log" in globals():
+        BK_PG["last"] = now
+        try:
+            write_log(u"%s\n  page %s: %.0f s, text %d (%s)%s\n%s\n" % (
+                BK_PG["head"], BK_PG["pid"], now - BK_PG["t0"], BK_PG["n"], name,
+                u", past the %.0f s budget: texts set at their own spot" % BK_PAGE_BUDGET if bk_late() else u"",
+                BK_PG["tail"]))
+        except Exception:
+            pass
+    return bk_late()
 
 
 # ---- the label band of a section (v32, Aras 4 Nov 19:26 W1 box: labels above the section, vertical leaders) -------
@@ -352,9 +393,10 @@ def _pl_rigid_group(P, placed, s, its):
     import math as _m
     off = None
     st = pl_stat(P)
+    late = bk_progress(its[0].get("id") if its else None)
     if ok(boxes(0.0, 0.0)):
         off = (0.0, 0.0)
-    else:
+    elif not late:
         for R_ in TP_RINGS + (8.0, 10.0, 12.0):
             for k in range(TP_RING_STEPS):
                 a = 2.0 * _m.pi * k / TP_RING_STEPS
@@ -365,7 +407,7 @@ def _pl_rigid_group(P, placed, s, its):
             if off:
                 st["moved"] += 1
                 break
-    if off is None:
+    if off is None and not late:
         r = placed["rect"]
         y0 = min(y for _i, _x, y, _a, _p in spots)
         x0 = min(b[0] for b in boxes(0.0, 0.0))
@@ -386,6 +428,8 @@ def _pl_rigid_group(P, placed, s, its):
     off = off or (0.0, 0.0)
     if forced:
         st["forced"] += 1
+        if late:
+            BK_PG["late"] += 1
     g = tp._group()
     for it, x, y, al, pt in spots:
         tp.put(it["string"], x + off[0], y + off[1], pt, bool(it.get("bold")), al, 0.0, it.get("id"),
@@ -706,13 +750,21 @@ def _bk_index(tp):
     if ix is not None and ix[0] == sig:
         return ix
     gi, gk = {}, {}
-    for g, objs in ((gi, tp.items), (gk, tp.keeps)):
-        for n, o in enumerate(objs):
-            xs, ys = _bk_cells(o["box"], 0.0)
+    starts = (0, 0)
+    if ix is not None and len(ix) > 3:                    # v32.4: texts / obstacles only ADDED since: index just those
+        old, (ni, nk, li, lk, mut) = ix, ix[3]
+        if (mut == getattr(tp, "_bk_mut", 0) and len(tp.items) >= ni and len(tp.keeps) >= nk and
+                (ni == 0 or tp.items[ni - 1] is li) and (nk == 0 or tp.keeps[nk - 1] is lk)):
+            gi, gk, starts = old[1], old[2], (ni, nk)
+    for g, objs, n0 in ((gi, tp.items, starts[0]), (gk, tp.keeps, starts[1])):
+        for n in range(n0, len(objs)):
+            xs, ys = _bk_cells(objs[n]["box"], 0.0)
             for cx in xs:
                 for cy in ys:
                     g.setdefault((cx, cy), []).append(n)
-    ix = (sig, gi, gk)
+    ni, nk = len(tp.items), len(tp.keeps)
+    ix = (sig, gi, gk, (ni, nk, tp.items[ni - 1] if ni else None, tp.keeps[nk - 1] if nk else None,
+                        getattr(tp, "_bk_mut", 0)))
     tp._bk_ix = ix
     return ix
 
