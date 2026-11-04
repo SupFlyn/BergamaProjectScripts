@@ -3,9 +3,9 @@
 | function / data | file | line |
 |---|---|---|
 | bergama_paths | ../common/bergama_paths.py | - |
-| ps_sources | code.py | 195 |
-| text_w | code.py | 222 |
-| Page | code.py | 229 |
+| ps_sources | code.py | 204 |
+| text_w | code.py | 231 |
+| Page | code.py | 238 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -41,11 +41,11 @@
 | ps_q_text | parts/90_booklet.py | 108 |
 | ps_cite | parts/90_booklet.py | 136 |
 | draw_concept | parts/90_booklet.py | 141 |
-| declutter | parts/90_booklet.py | 181 |
-| ps_sections | parts/90_booklet.py | 232 |
-| _ps_layers | parts/90_booklet.py | 263 |
-| ps_items | parts/90_booklet.py | 290 |
-| main | code.py | 324 |
+| ps_sections | parts/90_booklet.py | 178 |
+| _ps_layers | parts/90_booklet.py | 209 |
+| ps_label_items | parts/90_booklet.py | 236 |
+| ps_items | parts/90_booklet.py | 255 |
+| main | code.py | 333 |
 | trigger | ../common/trigger.py | - |
-| done_text | code.py | 345 |
-| write_log | code.py | 350 |
+| done_text | code.py | 354 |
+| write_log | code.py | 359 |

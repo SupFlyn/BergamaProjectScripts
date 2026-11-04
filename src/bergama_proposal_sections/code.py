@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v20.py = v20 (4 Nov 2026, round 6 S6: page p12 = the 28 Oct 4-in-1 SKETCH page restored as booklet items, see NEW IN v20); v19.1 fix 2 Nov: key map run warnings; v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v21.py = v21 (4 Nov 2026, layout rework L5: every sketch label goes to the booklet as an item, nothing left out, see NEW IN v21); v20 (4 Nov 2026, round 6 S6: page p12 = the 28 Oct 4-in-1 SKETCH page restored as booklet items, see NEW IN v20); v19.1 fix 2 Nov: key map run warnings; v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v21 (layout rework L5, 4 Nov 2026; Aras 19:17-19:18 "make all the scripts just produce the drawings and
+  booklet script ... places them"; LAYOUT_PLAN_booklet_places_all.md §3.1; a feature change):
+  * declutter() is gone: the script no longer moves a label or leaves one out ("label ... left out (no free place
+    near it)" warnings end). Every line of every sketch label is a label item of its panel (role "label", anchor = its
+    drawn point in the panel's mm, drawn alignment first), ids ps_panel_<n>_lbl_<g>_<line>; the booklet places them and
+    fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11) stay drawn.
+  * Log per panel: "p12 ps_panel_<n>: labels L (N lines) exported at their drawn points; the booklet places them".
+  * SKETCH_SRC.py (shared with agriculture) unchanged.
 NEW IN v20 (round 6, S6, 4 Nov 2026; BRIEF row 12, Q9, G6-1..G6-10, P-1, P-7, P-12; a feature change):
   * Booklet page p12 "The proposals in section" = refs/targets/r06_S02: four SKETCH panels (1 upstream entry, 2 K4
     bridge · walking hub, 3 K5 bridge · Demeter's Garden + walking hub, 4 downstream reach) restored from the 28 Oct
@@ -128,7 +136,8 @@ Writes Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json (v1
 Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
 board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
-HOW WE KNOW IT WORKS (v20): the text under the component reads "ProposalSections v20 · HH:MM · N s"; the log has
+HOW WE KNOW IT WORKS (v21): the text under the component reads "ProposalSections v21 · HH:MM · N s"; the log has
+"p12 ps_panel_1: labels ... none left out" for each panel and no "left out (no free place" warning; it also has
 "section p12 P1 W1 SKETCH" ... "P4", "keymap p12 module cuts=W1,W2,W3,W4 study_closed=1", "legend p12 hues=table",
 "trees p12 species=...", "p12 numbers 1-11 as CCH_STEPS: ..." and "items bergama_proposal_sections: drawing 5, ...";
 the booklet v31 shows p12.
@@ -143,7 +152,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v20"  # v20 4 Nov (round 6 S6): p12 = the 28 Oct 4-in-1 SKETCH page (f93d84b) as booklet items, hue table, key map v3, groups; v19.1 2 Nov: key map run warnings; v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v21"  # v21 4 Nov (layout L5): sketch labels exported as label items, none moved or left out (booklet places them); v20 4 Nov (round 6 S6): p12 = the 28 Oct 4-in-1 SKETCH page (f93d84b) as booklet items, hue table, key map v3, groups; v19.1 2 Nov: key map run warnings; v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
