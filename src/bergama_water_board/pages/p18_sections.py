@@ -378,15 +378,46 @@ def _p17_section(spec, style, log, den=None, page=u"p19", inset=False):
                 kd_ = "wade" if zone == "wading_strip" else "fish"
                 gmin = min(gyx(X(a + (b - a) * i_ / 10.0)) for i_ in range(11))
                 wy_ = wl_y if (kd_ == "fish" or wl_y > gmin + 1e-6) else None
+                ab_ = (a, b)
+                if kd_ == "wade" and wy_ is not None and (wy_ - gmin) / float(k) > SF_WADE_MAX_M + 1e-6:
+                    # v15.2 (2 Nov run): the strip is deeper than 0.50 m somewhere: wade on its longest stretch where
+                    # the drawn water is 0 < depth <= SF_WADE_MAX_M at every 0.1 m (at least a wader's footprint)
+                    n_ = max(1, int((b - a) / 0.1))
+                    ts_ = [a + (b - a) * i_ / float(n_) for i_ in range(n_ + 1)]
+                    okp = [0.0 < (wy_ - gyx(X(t_))) / float(k) <= SF_WADE_MAX_M + 1e-6 for t_ in ts_]
+                    run_, best_ = None, None
+                    for t_, q_ in zip(ts_ + [None], okp + [False]):
+                        if q_:
+                            run_ = (run_[0] if run_ else t_, t_)
+                        else:
+                            if run_ and (best_ is None or run_[1] - run_[0] > best_[1] - best_[0]):
+                                best_ = run_
+                            run_ = None
+                    if best_ and best_[1] - best_[0] >= fp.get("wade", 0.8) - 1e-6:
+                        ab_ = best_
+                        gmin = min(gyx(X(ab_[0] + (ab_[1] - ab_[0]) * i_ / 10.0)) for i_ in range(11))
                 ok_, why_ = sf_activity_ok(kd_, ground_y=gmin if kd_ == "wade" else None, water_y=wy_, k=k,
                                            month=spec.get("month"), strip=bool(spec.get("strip_water")), page=pid,
-                                           what=u"{} {} {:.1f}-{:.1f} m".format(spec["cid"], zone, a, b))
-                acts[j] = ok_
+                                           what=u"{} {} {:.1f}-{:.1f} m".format(spec["cid"], zone, ab_[0], ab_[1]),
+                                           quiet=(kd_ == "wade"))
+                acts[j] = ab_ if ok_ else False
+                if ok_ and ab_ != (a, b):
+                    log.append(u"NOTE {} {}: wading moved to {:.1f}-{:.1f} m of the strip {:.1f}-{:.1f} m (water <= "
+                               u"{:.2f} m there)".format(pid, spec["cid"], ab_[0], ab_[1], a, b, SF_WADE_MAX_M))
                 if not ok_:
+                    if kd_ == "wade" and why_.startswith(u"water "):
+                        # v15.2: no stretch of the strip is shallow enough: the refusal is the rule working (FLAG)
+                        log.append(u"FLAG {} activity: wade {} {} {:.1f}-{:.1f} m refused: {} (no stretch <= {:.2f} "
+                                   u"m)".format(pid, spec["cid"], zone, a, b, why_, SF_WADE_MAX_M))
+                    elif kd_ == "wade":
+                        _sf_warn(pid, "activity", u"wade {} {} {:.1f}-{:.1f} m refused: {}".format(
+                            spec["cid"], zone, a, b, why_))
                     log.append(u"NOTE {} {}: {} {:.1f}-{:.1f} m left empty ({})".format(pid, spec["cid"], zone, a, b,
                                                                                          why_))
             if not acts[j]:
                 continue
+            if isinstance(acts[j], tuple):
+                a, b = acts[j]
         gr = stone_y if zone == "stepping_stones" else (Y(o["z"]) if o.get("z") is not None else None)
         sh_, pl_ = fig_place_zones([(zone, X(a), X(b), gr)], gyx, k, seed=31 * j + 5 + 7 * spec.get("seed", 3),
                                    layer=0, style=style, density=o.get("dens", 1.0), water=wl_y,
