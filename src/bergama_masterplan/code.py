@@ -15,11 +15,15 @@
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
 #@include ../common/basemap.py
+#@include ../common/hues.py
+#@include ../common/annot.py
+#@include ../common/cch_points.py
 #@include ../common/grid.py
 #@include ../common/item_export.py
 #@include ../common/buildings.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py
+#@include ../common/trees.py
 #@include ../common/planting.py
 #@include ../common/hires.py
 #@include ../common/icons.py

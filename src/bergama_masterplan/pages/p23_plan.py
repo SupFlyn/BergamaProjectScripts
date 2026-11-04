@@ -1,3 +1,8 @@
+# Round 6 (S8, 4 Nov 2026; BRIEF §6 row 20, PLAN §4-§5): booklet page 20. The SUBMISSION_SON page 21 drawing is
+# restored (round 3 ee52805 draw_corridor layers: own survey base, planting gradient, programme at the hubs), then
+# the legend recoloured by category (PL23_HUE -> common/hues.py, G6-6), the proposals of the other pages added with
+# transparent fills (dry-top terraces, spillway, floodable planting, collect-clean-hold 1-11, R1-R4, market), the
+# areas left as they are lettered a-z as SON, every element in its G6-9 group. Older notes below.
 # p.23 the plan (booklet p21): plan_page, the pl28_* / pl23_* functions and draw_corridor (split from parts/02_Design.py, parts/02b_detail.py, parts/02c_corridor.py, parts/02d_r28_ground.py on 29 Oct 2026; T7 30 Oct: layer order, trees, stream, labels)
 # v28 (revision 29 Oct, WO-T4b-2, package H "Page 23"): the map is the page. The analysis frame at 1:5,000 in two rows
 # (upstream half on top, downstream half below; PL23_OVL m either side of the match line drawn in both), every layer
@@ -40,10 +45,7 @@ PL23_LW = dict(arm=0.7, road=0.6, later=0.4, hidden=0.45, walk=0.5, bike=0.22, b
                canopy=0.35, sight=0.3, terrace=0.3, bank=0.25, outline=0.15, square=0.25)
 #                              mm: P21.1 crisp single lines at 1:5,000 (design values)
 PL23_TERR_TINT_M = 4.0       # m either side of a rain terrace line: its D9 footprint band (design value)
-PL23_VOID_COL = {"meadow": pla_green("meadow"), "garden": pla_green("shrub"), "grove": pla_green("tree"),
-                 "lanes": "8E8F8A", "heritage": "8B2D2D"}   # round 5 (A1): greenery tones from the plant module
-#                              P21.7 the designed voids' outline and marker colour (palette v1.4 references; design value)
-PL23_VOID_LETTERS = u"ABCDEFGHIJKLMNOPQRSTUVWXYZ"   # one letter per kind of designed place, in reading order
+PL23_LEFT_LETTERS = u"abcdefghijklmnopqrstuvwxyz"   # round 6: one letter per area left as it is (SON page 21 a-q)
 PL23_LANE_CROWN_K = 0.6      # lane trees of the "Shaded lanes" voids: this x the species' sourced crown (design value)
 PL23_SHRUB_GROUP_M = 6.0     # a rosemary / lavender group of a pocket garden drawn as ONE mound this wide, m (design
 #                              value: one plant, 0.66-0.75 m, would print 0.15 mm at 1:5,000)
@@ -164,9 +166,9 @@ def pl23_tree_set(C):
     out.sort(key=lambda e: PLA_SPECIES[e[1]]["h_m"])      # the lower crowns first, the taller over them
     # v37 (round 3, P21.2 / G8): clipped to land at the source, so p.21 and p.22 (plans and sections) inherit it
     out = water_clip_points(out, [], pl23_wet_rings(C), crown_frac=0.5, get=lambda e: (e[0][0], e[0][1], e[2] / 2.0),
-                            page=u"p21 + p22 tree set")
+                            page=u"p20 + p22 tree set")
     if getattr(C, "study", None):                        # v38 (round 4, P21.5, CHK-7 site 9): a second filter, the
-        out = sc_points(out, C.study, get=lambda e: (e[0][0], e[0][1]), page=u"p21")   # study area (crown centre)
+        out = sc_points(out, C.study, get=lambda e: (e[0][0], e[0][1]), page=u"p20")   # study area (crown centre)
     C.pl23_trees = out
     return out
 
@@ -177,15 +179,6 @@ PL23_DG_GATHER = "E6DCC8"
 PL23_REED_TONE, PL23_REED_A = pla_green("reed"), 0.35   # round 5: the reed basins' solid tone over the wetland
 PL23_DG_ROW = pla_green("row")
 PL23_DG_ROW_LW = 0.12
-# round 5 (G-R5-7, CHK-5 c): the voids' planting through the planting placer (common/planting.py): the meadows get
-# copses of the drier corridor trees (plane, ash: the species round 4 sourced for them, D7) at a lighter density,
-# the pocket gardens shrub drifts (rosemary, lavender); intensity = the placer's outer level ramping in from each
-# void's edge (no hard edge), nothing on the water, nothing outside the voids (outside_project 0).
-PL23_VOID_MIX = {"meadow": {"plane": 1.0, "ash": 1.0, "rosemary": 0.5, "lavender": 0.5},
-                 "garden": {"rosemary": 1.0, "lavender": 1.0}}
-PL23_VOID_DENSITY = {"meadow": 0.55, "garden": 0.8}   # lower than the corridor (drawing rule)
-
-
 def pl23_dg(C):
     """the designed Demeter's Garden (dg_design, parts/02g_demeter.py) clipped to the study area, once per
     corridor; None when the design module is not there or gives nothing (the zone-base DG field is drawn then)"""
@@ -202,32 +195,12 @@ def pl23_dg(C):
         if d and d.get("rings"):
             st = C.study or None
             out = dict(d)
-            out["rings"] = [Q for R in d["rings"] for Q in (sc_rings_clip(R, st, u"p21") if st else [list(R)])]
+            out["rings"] = [Q for R in d["rings"] for Q in (sc_rings_clip(R, st, u"p20") if st else [list(R)])]
             for key in ("cafe", "gather"):
-                out[key] = [Q for R in d.get(key) or [] for Q in (sc_rings_clip(R, st, u"p21") if st else [list(R)])]
+                out[key] = [Q for R in d.get(key) or [] for Q in (sc_rings_clip(R, st, u"p20") if st else [list(R)])]
             for key in ("rows", "paths", "edge"):
-                out[key] = [Q for P in d.get(key) or [] for Q in (sc_lines(P, st, u"p21") if st else [list(P)])]
+                out[key] = [Q for P in d.get(key) or [] for Q in (sc_lines(P, st, u"p20") if st else [list(P)])]
     C.pl23_dg_ = out
-    return out
-
-
-def pl23_void_plants(C):
-    """dict(trees, shrubs) [(key, x, y, crown_m, I)] survey m of the meadows and pocket gardens, once per corridor"""
-    got = getattr(C, "pl23_void_", None)
-    if got is not None:
-        return got
-    out = dict(trees=[], shrubs=[])
-    wet = pl23_wet_rings(C)
-    for kind in ("meadow", "garden"):
-        rings = [list(R) for r_ in C.nogo if r_.get("design") == kind for R in (r_.get("rings") or []) if len(R) >= 3]
-        if not rings:
-            continue
-        pl = pln_place(rings, cores=(), outer=rings, water=wet, k=1.0, seed=PL23_SEED + len(kind),
-                       mix=PL23_VOID_MIX[kind], density=PL23_VOID_DENSITY[kind], page=u"p23 " + kind + u"s",
-                       shrubs=True)
-        out["trees"] += [t for t in pl["trees"] if not C.study or sc_inside((t[1], t[2]), C.study)]
-        out["shrubs"] += [t for t in pl["shrubs"] if not C.study or sc_inside((t[1], t[2]), C.study)]
-    C.pl23_void_ = out
     return out
 
 
@@ -260,9 +233,9 @@ def pl23_hub_trees(C):
     cr = PLA_SPECIES["plane"]["crown_m"] * 0.8
     pts = [(p, i) for h in C.hubs for i, p in enumerate(h.get("trees") or [])]
     C.pl23_hub_trees_ = water_clip_points(pts, [], pl23_wet_rings(C), crown_frac=0.5,
-                                          get=lambda e: (e[0][0], e[0][1], cr / 2.0), page=u"p21 + p22 hub squares")
+                                          get=lambda e: (e[0][0], e[0][1], cr / 2.0), page=u"p20 + p22 hub squares")
     if getattr(C, "study", None):                        # v38 (round 4, P21.5): and inside the study area
-        C.pl23_hub_trees_ = sc_points(C.pl23_hub_trees_, C.study, get=lambda e: (e[0][0], e[0][1]), page=u"p21")
+        C.pl23_hub_trees_ = sc_points(C.pl23_hub_trees_, C.study, get=lambda e: (e[0][0], e[0][1]), page=u"p20")
     return C.pl23_hub_trees_
 
 
@@ -281,6 +254,9 @@ def pl23_put(pg, shapes, alpha=None):
             pg.items.append(it_[:9])                     # clip); blit and the item export (04_items) carry them
 
 
+PL23_TREE_N = {}            # round 6: trees drawn per species this run (trees log line)
+
+
 def pl23_trees_draw(pg, C, T, k, box):
     """the tree set (pl23_tree_set) inside box (page mm) at its crown width; the species' own plan mark only at
     1:1,000 and larger (at 1:5,000 the crown forms tell them apart, M6: fewer symbols). Returns the legend keys
@@ -291,8 +267,10 @@ def pl23_trees_draw(pg, C, T, k, box):
         r = cr * k / 2.0
         if x + r < box[0] or x - r > box[2] or y + r < box[1] or y - r > box[3]:
             continue
-        pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=i, distinct=k >= 0.5))   # v37 (D7): opaque
+        with mpx_grp(pg, "trees", u"%s %d" % (PLA_SPECIES[key]["name"], i + 1)):   # round 6 (G6-9, G6-10)
+            pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=i, distinct=k >= 0.5))   # v37 (D7): opaque
         used.add("tree_" + key)
+        PL23_TREE_N[key] = PL23_TREE_N.get(key, 0) + 1
     return used
 
 
@@ -345,43 +323,24 @@ def pl23_prep(C):
     out = dict(zones={}, roads=[], cov=[], walk=[], sight=[])
     for z in C.D.zones:
         if z["code"] in ("DG", "WT") and len(z["P"]) >= 3:
-            out["zones"].setdefault(z["code"], []).extend(sc_rings_clip(z["P"], st, u"p21") if st else [list(z["P"])])
+            out["zones"].setdefault(z["code"], []).extend(sc_rings_clip(z["P"], st, u"p20") if st else [list(z["P"])])
     for rd in ROADS + [TOWN_LINE]:
         ch = rd["change"] if rd["change"] in ROAD_CHANGE_COL else "later"
-        runs = sc_lines(rd["xy"], st, u"p21") if st else [list(rd["xy"])]
+        runs = sc_lines(rd["xy"], st, u"p20") if st else [list(rd["xy"])]
         if runs:
             out["roads"].append((rd, ch, runs))
     for P in C.covered:
-        out["cov"] += sc_lines(P, st, u"p21") if st else [list(P)]
+        out["cov"] += sc_lines(P, st, u"p20") if st else [list(P)]
     for x in (C.CL.get("W") or {}).get("runs") or []:
         P = x.get("P") or []
         if len(P) >= 2:
-            for run in (sc_lines(P, st, u"p21") if st else [list(P)]):
+            for run in (sc_lines(P, st, u"p20") if st else [list(P)]):
                 out["walk"].append((run, x.get("cls") == "bed", x.get("bank")))
     if C.terrace:                                         # the sightline toward the Trajaneum (off the plan)
         p2 = (C.terrace["xy"][0] + C.terrace["dir"][0] * 400.0, C.terrace["xy"][1] + C.terrace["dir"][1] * 400.0)
-        out["sight"] = sc_lines([C.terrace["xy"], p2], st, u"p21") if st else [[C.terrace["xy"], p2]]
+        out["sight"] = sc_lines([C.terrace["xy"], p2], st, u"p20") if st else [[C.terrace["xy"], p2]]
     C.pl23_clip = out
     return out
-
-
-def pl23_tint(C):
-    """v38 (round 4, G-R4-4, D9): the light transparent footprint of what we change, as ml_tint items (clipped to the
-    study area): the widened stream, the reed basins (zone WT), a band PL23_TERR_TINT_M either side of each rain
-    terrace, the hub squares and the designed voids (not the heritage settings: they are kept as they are)."""
-    cl = pl23_prep(C)
-    rings = [list(w["ring"]) for w in C.widen if len(w["ring"]) >= 3]
-    rings += [list(R) for R in cl["zones"].get("WT", [])]
-    for P in C.terr:
-        P = [tuple(p[:2]) for p in P]
-        if len(P) >= 2:
-            rings.append(pl23_offset(P, PL23_TERR_TINT_M) + list(reversed(pl23_offset(P, -PL23_TERR_TINT_M))))
-    for h in C.hubs:
-        rings += [list(L_) for L_ in (h.get("square") or []) if len(L_) >= 3]
-    for r_ in C.nogo:
-        if r_.get("design") != "heritage":
-            rings += [list(L_) for L_ in (r_.get("rings") or []) if len(L_) >= 3]
-    return ml_tint(rings, study=C.study or None, page=u"p21")
 
 
 def pl23_row_box(C, row, pad=30.0):
@@ -391,19 +350,107 @@ def pl23_row_box(C, row, pad=30.0):
     return (b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad)
 
 
+# round 6 (S8, BRIEF §6 row 20, G6-6, PLAN §2.6 / §5): every colour of the masterplan page from the category -> hue
+# table (common/hues.py; r1 darkest = most important); the drawn item and its legend row read the same entry.
+# Proposal fills transparent (alpha <= PL23_FILL_A, U28) so streets and buildings stay visible under them.
+PL23_FILL_A = 0.35
+PL23_HUE = {                 # legend key -> (category, rank) of PLAN §2.6
+    "bld": ("CTX", 4), "bld_edge": ("CTX", 3), "her": ("HER", 4), "her_edge": ("HER", 3), "since": ("CTX", 3),
+    "street": ("CTX", 3), "bridge": ("CTX", 1), "road_kept": ("CTX", 2),
+    "eco": ("GRN", 3), "ring": ("PUB", 3), "flood_plant": ("GRN", 3),
+    "widen": ("WW", 4), "widen_edge": ("WW", 2), "reed": ("WW", 2), "reed_edge": ("WW", 1), "arm": ("WW", 2),
+    "terrace": ("WW", 1), "drytop": ("WW", 3), "drytop_edge": ("WW", 2), "spill": ("WW", 2), "spill_edge": ("WW", 1),
+    "store": ("WW", 1), "cch": ("WW", 1), "hidden": ("WAT", 2),
+    "dg": ("AGR", 2), "dg_edge": ("AGR", 1), "dg_gather": ("AGR", 4), "dg_row": ("AGR", 3),
+    "walk": ("MOV", 1), "walk_bed": ("MOV", 1), "bike": ("MOV", 3), "foot": ("MOV", 1), "stones": ("MOV", 2),
+    "canopy": ("MOV", 2), "road_pedestrian": ("MOV", 1), "road_calmed": ("MOV", 2), "road_shared": ("MOV", 3),
+    "road_relocated": ("MOV", 2), "road_later": ("MOV", 1), "street_cut": ("MOV", 1),
+    "square": ("PUB", 4), "square_edge": ("PUB", 2), "market": ("PUB", 1),
+    "walkhub": ("PUB", 1), "transit": ("PUB", 1), "gate": ("PUB", 2), "sub": ("PUB", 2), "seat": ("PUB", 3),
+    "cafe": ("PUB", 2), "edu": ("PUB", 2), "view": ("PUB", 2), "deck": ("HER", 2), "sight": ("HER", 2),
+    "left": ("CTX", 2)}
+
+
+def pl23_h(key):
+    """the hue of a masterplan legend key (PL23_HUE -> hue(code, rank))"""
+    c_, r_ = PL23_HUE[key]
+    return hue(c_, r_)                                                                    # noqa: F821 (hues.py)
+
+
+def pl23_cch(C):
+    """round 6 (PLAN §5): the collect-clean-hold chain on the plan, once per corridor (C.pl23_cch_): the numbers 1-11
+    of pages 11 and 12 (CCH_STEPS) at the places cch_points gives them (common/cch_points.py, S1: zone centroids of
+    Aras's zones, 4 = the winter store, 1 / 10 the chain's entry and exit); a number with no place (6 summer strip,
+    11 farmland outside, a missing zone) is left out and named in the log. dict(nums=[(n, name, xy)],
+    missing=[(n, name)], store=xy|None, err=str|None)"""
+    got = getattr(C, "pl23_cch_", None)
+    if got is not None:
+        return got
+    out = dict(nums=[], missing=[], store=None, err=None)
+    try:
+        zs = [dict(code=z["code"], ring=list(z["P"]), study_area=z.get("own") or u"") for z in C.D.zones
+              if len(z["P"]) >= 3]
+        pts = cch_points(zs, log=C.pl23_log if hasattr(C, "pl23_log") else None)          # noqa: F821
+        for n_ in sorted(CCH_STEPS):                                                       # noqa: F821
+            xy = pts.get(n_)
+            if xy is not None and C.in_study(xy):
+                out["nums"].append((n_, cch_name(n_), tuple(xy[:2])))                     # noqa: F821
+            else:
+                out["missing"].append((n_, cch_name(n_)))                                 # noqa: F821
+        out["store"] = tuple(pts["store"][:2]) if pts.get("store") else None
+    except Exception as ex:                              # S1 module missing or another zone format: p23_items warns
+        out["err"] = u"cch_points: {}: {}".format(type(ex).__name__, ex)
+    C.pl23_cch_ = out
+    return out
+
+
+def pl23_street_cuts():
+    """round 6 (PLAN §5): the street cuts R1-R4 of page 8, as the site board wrote them
+    (cached/selinus_board/street_cuts.json {"R1": {"a": [x, y], "b": [x, y], "change": ..., "street": ...}}, survey
+    m). Returns (dict, error text or None); never invented: a missing file leaves the marks out (WARNING)."""
+    p_ = os.path.join(bg_cache("selinus_board"), "street_cuts.json")
+    if not os.path.isfile(p_):
+        return {}, u"no {} (run the site board first)".format(p_)
+    try:
+        with open(p_, encoding="utf-8") as f_:
+            d = json.load(f_)
+        return dict((k_, v) for k_, v in d.items() if isinstance(v, dict) and v.get("a") and v.get("b")), None
+    except Exception as ex:
+        return {}, u"{} unreadable ({}: {})".format(p_, type(ex).__name__, ex)
+
+
+def pl23_bld_groups(Qs):
+    """round 6 (G6-9): survey building faces (page mm) -> [[outer, courtyard, ...]] one list per building: a face
+    lying inside a bigger face is its courtyard (the even-odd fill cuts it out, as round 3's one poly did)"""
+    Qs = sorted(Qs, key=lambda Q: -abs(area2(Q)))
+    bbs = [bbox(Q) for Q in Qs]
+    out, slot = [], {}                                   # slot: index of an outer face -> its list in out
+    for i, Q in enumerate(Qs):
+        b = bbs[i]
+        x0, y0 = inner_pt(Q)[:2]
+        host = next((j for j in slot if bbs[j][0] <= b[0] and bbs[j][1] <= b[1] and bbs[j][2] >= b[2] and
+                     bbs[j][3] >= b[3] and pip(x0, y0, Qs[j])), None)
+        if host is None:
+            slot[i] = len(out)
+            out.append([Q])
+        else:
+            out[slot[host]].append(Q)
+    return out
+
+
 def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
     """Every layer of the corridor on plan page pg (T: world -> page mm, k: mm per m; inP: world point on this
-    plan's own part). v38 (round 4, S8, G-R4-4): ONE draw order, map_layers' (mp_map_draw): base (the shared muted
-    base, ml_base items) -> proj_tint (planting gradient, programme rings, then the D9 footprint tint) -> proj_water
-    (the stream only when the base has none, the widened stream as a wetland inside its new bank, reed basins, side
-    arms, the hidden-stream line) -> proj_lines (hub squares, Demeter's Garden, rain terraces, changed roads, bridges
-    only without a base, crossings, the walk and its bike lane, the canopy, the sightline, the designed voids'
-    outlines) -> proj_vegetation (trees, hub planes, the voids' copses, lane trees and shrub groups, Demeter's
-    Garden's olive) -> study (map_draw's violet line) -> proj_marks (pictograms). Crisp single lines (P21.1), only
-    inside the study area (P21.5). No text is drawn here (the page's TextPage places every word). Returns (legend
-    keys used, name specs [dict(id, text, xy page mm, r, study)], pictogram boxes [(box page mm, keep name)])."""
+    plan's own part). Round 6 (S8, BRIEF row 20, PLAN §4): the SUBMISSION_SON page 21 drawing restored (ee52805
+    draw_corridor, round 3): the masterplan's OWN survey base (buildings with heritage marked, street edges, built
+    since the survey) over the soft ground tints (planting gradient C.eco, programme round the hubs C.rings), then the
+    ground proposals, the water, the structures, the trees, the pictograms; base / tint (the shared muted base and
+    the D9 footprint tint of round 4-5) are no longer drawn (kept as parameters for the callers). Every colour from
+    the hue table (PL23_HUE, G6-6), proposal fills transparent (U28), the designed voids of round 4-5 not drawn (the
+    page lists them "left as it is", as SON). Added (row 20 (c), PLAN §5): dry-top terraces (WS), spillway (WD),
+    floodable planting (WP), the winter store and the card numbers 1-11 of Collect, clean, hold (pl23_cch), the
+    street cuts R1-R4 (pl23_street_cuts), the producers' market at K5. Every element in its G6-9 group. Returns
+    (legend keys used, name specs [dict(id, text, xy, r, study)], pictogram boxes [(box, keep name)])."""
     used, specs, icons = set(), [], []
-    ink, ink2 = COL["ink_dark"], COL["ink2"]
     on = lambda Q: len(Q) >= 2 and hit(bbox(Q), (-2.0, -2.0, dw + 2.0, dh + 2.0))
     TL = lambda Ls: [Q for Q in ([T(p) for p in L_] for L_ in Ls) if len(Q) >= 3 and on(Q)]
     inside = lambda x, y, m=0.0: -m <= x <= dw + m and -m <= y <= dh + m
@@ -412,67 +459,76 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
     lw = PL23_LW
     cl = pl23_prep(C)
     ins = C.in_study
-    base_water = bool(basemap_water_rings(base)) if base else False
-    if base:
-        used.add("houses")
-    if base_water:
-        used.add("bed")
+    H = pl23_h
+    st = C.study or None
+    zc = lambda code: [Q for z in C.D.zones if z["code"] == code and len(z["P"]) >= 3
+                       for Q in (sc_rings_clip(z["P"], st, u"p20") if st else [list(z["P"])])]
 
-    def s_tint():                                        # round 5 (N5 a, G-R5-8): the planting gradient (C.eco) and
-        if tint:                                         # programme rings (C.rings) are distance bands, not zones:
-            used.add("tint")                             # no longer drawn; only the D9 footprint tint (a real extent)
-
-    def s_water():
-        if not base_water and pl23_water_draw(pg, C, T, k, on, 1.0 if big else 0.8):
-            used.add("bed")                              # no base map: the corridor's own stream
-        for w in C.widen:
-            Q = [T(p) for p in w["ring"]]
-            if len(Q) >= 3 and on(Q):
-                pg.poly([Q], fill=WET_COL)               # v37 (D2, G8): flat wetland tone
-                pg.line(Q + Q[:1], _wat_pal()["edge"], lw["bank"])   # the new bank, firm
-                used.add("widen")
-        for Q in TL(cl["zones"].get("WT", [])):
-            pg.poly([Q], fill=WET_COL)
-            pg.poly([Q], fill=PL23_REED_TONE, alpha=PL23_REED_A)   # round 5: a solid reed tone, no stripes
-            pg.line(Q + Q[:1], COL["river_dark"], lw["outline"])
-            used.add("reed")
-        for a in C.arms:
-            Q = [T(p) for p in a["P"]]
-            if on(Q):
-                pg.line(Q, COL["river_mid"], lw["arm"])   # v38 (P21.1): one crisp line, no soft band
-                used.add("arm")
-        for P in cl["cov"]:
-            Q = [T(p) for p in P]
-            if on(Q):
-                pg.line(Q, COL["river_mid"], lw["hidden"], [1.6, 0.9], cap=0)
-                used.add("hidden")
-
-    def s_lines():
-        for h in C.hubs:                                 # the hub squares: their D9 tint + a firm edge
-            for Q in TL(h.get("square") or []):
-                pg.line(Q + Q[:1], SQ_EDGE, lw["square"])
+    def s_tint():
+        with mpx_grp(pg, "ground", u"planting gradient"):  # the soft tints first (SON): planting from the water,
+            for t, Ls in reversed(C.eco):                 # programme round the hubs; steps add up, each faint
+                Ps = TL(Ls)
+                if Ps:
+                    pg.poly(Ps, fill=H("eco"), alpha=ECO_A)
+                    used.add("eco")
+        with mpx_grp(pg, "hubs", u"programme at the hubs"):
+            for r_, Ls in reversed(C.rings):
+                Ps = TL(Ls)
+                if Ps:
+                    pg.poly(Ps, fill=H("ring"), alpha=HUB_A)
+                    used.add("ring")
+        n_b = 0                                           # the survey base over the tints: every building readable,
+        for role in ("building", "housing", "shed", "heritage"):   # one group each, its courtyards cut out
+            her = role == "heritage"
+            for Rs in pl23_bld_groups(TL(C.bld.get(role, []))):
+                n_b += 1
+                with mpx_grp(pg, "heritage" if her else "buildings", u"%s %d" % (role, n_b)):
+                    pg.poly(Rs, fill=H("her" if her else "bld"), stroke=H("her_edge" if her else "bld_edge"),
+                            lw=0.1)
+                used.add("her" if her else "bld")
+        for i, Q in enumerate(TL(C.built_since)):
+            with mpx_grp(pg, "buildings", u"built since the survey %d" % (i + 1)):
+                pg.poly([Q], fill=H("since"))
+            used.add("since")
+        with mpx_grp(pg, "roads", u"street edges"):
+            for P in C.roads:
+                Q = [T(p) for p in P]
+                if on(Q):
+                    pg.line(Q, H("street"), 0.3 if big else (0.1 if fine else 0.18))
+                    used.add("street")
+        for i, Q in enumerate(TL([R_ for R_ in zc("WP")])):   # floodable planting (WP: banks that flood)
+            with mpx_grp(pg, "plants", u"floodable planting %d" % (i + 1)):
+                pg.poly([Q], fill=H("flood_plant"), alpha=0.3)
+            used.add("flood_plant")
+        for i, Q in enumerate(TL(zc("WS"))):              # dry-top terraces (WS, P-15 name as on page 11)
+            with mpx_grp(pg, "fields", u"dry-top terraces %d" % (i + 1)):
+                pg.poly([Q], fill=H("drytop"), alpha=PL23_FILL_A)
+                pg.line(Q + Q[:1], H("drytop_edge"), lw["outline"])
+            used.add("drytop")
+        for h in C.hubs:                                 # hub squares: light fill, firm edge
+            for j, Q in enumerate(TL(h.get("square") or [])):
+                with mpx_grp(pg, "hubs", u"hub square %s %d" % (h["id"], j + 1)):
+                    pg.poly([Q], fill=H("square"), alpha=PL23_FILL_A)
+                    pg.line(Q + Q[:1], H("square_edge"), lw["square"])
                 used.add("square")
         dgd = pl23_dg(C)
-        for Q in TL(dgd["rings"] if dgd else cl["zones"].get("DG", [])):   # round 5 (P23.7): the designed garden's
-            pg.poly([Q], fill=MP["agriculture"][2], alpha=0.16)          # organic outline when dg_design exists
-            pg.line(Q + Q[:1], MP["agriculture"][2], lw["outline"])
-            used.add("dg")
-        if dgd:
-            for Q in TL(dgd.get("gather") or []):        # the gathering place: paving tone
-                pg.poly([Q], fill=PL23_DG_GATHER)
+        with mpx_grp(pg, "fields", u"Demeter's Garden"):
+            for Q in TL(dgd["rings"] if dgd else cl["zones"].get("DG", [])):
+                pg.poly([Q], fill=H("dg"), alpha=0.25)
+                pg.line(Q + Q[:1], H("dg_edge"), lw["outline"])
                 used.add("dg")
-            for Q in TL(dgd.get("cafe") or []):          # the café under shade
-                pg.poly([Q], fill=PL23_DG_GATHER)
-                pg.line(Q + Q[:1], MP["agriculture"][2], lw["outline"])
-            for P in dgd.get("rows") or []:              # the tomato rows: a light row texture (solid lines, no hatch)
-                Q = [T(p) for p in P]
-                if on(Q):
-                    pg.line(Q, PL23_DG_ROW, PL23_DG_ROW_LW)
-            for P in (dgd.get("paths") or []) + (dgd.get("edge") or []):   # paths and the edge down to the stream
-                Q = [T(p) for p in P]
-                if on(Q):
-                    pg.line(Q, PL23_WALK_COL, lw["walk"] * 0.7)
-        for P in C.terr:                                 # rain terraces: ticks toward the stream
+            if dgd:
+                for Q in TL((dgd.get("gather") or []) + (dgd.get("cafe") or [])):
+                    pg.poly([Q], fill=H("dg_gather"), alpha=0.6)
+                for P in dgd.get("rows") or []:
+                    Q = [T(p) for p in P]
+                    if on(Q):
+                        pg.line(Q, H("dg_row"), PL23_DG_ROW_LW)
+                for P in (dgd.get("paths") or []) + (dgd.get("edge") or []):
+                    Q = [T(p) for p in P]
+                    if on(Q):
+                        pg.line(Q, H("walk"), lw["walk"] * 0.7)
+        for i, P in enumerate(C.terr):                   # rain terraces on the contours: ticks toward the stream
             Q = [T(p) for p in P]
             if not on(Q):
                 continue
@@ -483,139 +539,164 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
             (x, y), (ux, uy) = at_len(Q, s, s[-1] / 2.0)
             qx, qy = T(q)
             side = 1.0 if (-uy) * (qx - x) + ux * (qy - y) > 0 else -1.0
-            ticks_line(pg, Q, MP["storage"][2], lw["terrace"], 2.4 if big else 1.6, 0.9 if big else 0.6, side)
+            with mpx_grp(pg, "fields", u"rain terrace %d" % (i + 1)):
+                ticks_line(pg, Q, H("terrace"), lw["terrace"], 2.4 if big else 1.6, 0.9 if big else 0.6, side)
             used.add("terrace")
-        for rd, ch, runs in cl["roads"]:                 # v38 (P21.1): one crisp line per changed road
+
+    def s_water():
+        with mpx_grp(pg, "water", u"Selinos"):
+            if pl23_water_draw(pg, C, T, k, on, 1.0 if big else 0.8):
+                used.add("bed")
+        for i, w in enumerate(C.widen):
+            Q = [T(p) for p in w["ring"]]
+            if len(Q) >= 3 and on(Q):
+                with mpx_grp(pg, "water", u"widened stream %d" % (i + 1)):
+                    pg.poly([Q], fill=H("widen"))
+                    pg.line(Q + Q[:1], H("widen_edge"), lw["bank"])
+                used.add("widen")
+        for i, Q in enumerate(TL(cl["zones"].get("WT", []))):
+            with mpx_grp(pg, "water", u"reed basins %d" % (i + 1)):
+                pg.poly([Q], fill=H("reed"), alpha=PL23_FILL_A)
+                pg.line(Q + Q[:1], H("reed_edge"), lw["outline"])
+            used.add("reed")
+        for i, Q in enumerate(TL(zc("WD"))):              # spillway: clean water back to the stream (page 11)
+            with mpx_grp(pg, "water", u"spillway %d" % (i + 1)):
+                pg.poly([Q], fill=H("spill"), alpha=PL23_FILL_A)
+                pg.line(Q + Q[:1], H("spill_edge"), lw["outline"])
+            used.add("spill")
+        for i, a in enumerate(C.arms):
+            Q = [T(p) for p in a["P"]]
+            if on(Q):
+                with mpx_grp(pg, "water", u"side arm %d" % (i + 1)):
+                    pg.line(Q, H("arm"), lw["arm"])
+                used.add("arm")
+        for i, P in enumerate(cl["cov"]):
+            Q = [T(p) for p in P]
+            if on(Q):
+                with mpx_grp(pg, "water", u"hidden stream %d" % (i + 1)):
+                    pg.line(Q, H("hidden"), lw["hidden"], [1.6, 0.9], cap=0)
+                used.add("hidden")
+
+    def s_lines():
+        for rd, ch, runs in cl["roads"]:                 # changed roads, one crisp line each (kept = context tone)
             for P in runs:
                 Q = [T(p) for p in P]
                 if not on(Q):
                     continue
-                if ch == "later":
-                    pg.line(Q, ROAD_CHANGE_COL["later"], lw["later"], [2.0, 1.0], cap=0)
-                else:
-                    pg.line(Q, ROAD_CHANGE_COL[ch], lw["road"])
+                with mpx_grp(pg, "roads", u"%s · %s" % (rd.get("name", u"road"), ch)):
+                    if ch == "later":
+                        pg.line(Q, H("road_later"), lw["later"], [2.0, 1.0], cap=0)
+                    elif ch == "relocated":
+                        pg.line(Q, H("road_relocated"), lw["road"], [1.6, 0.6], cap=0)
+                    else:
+                        pg.line(Q, H("road_" + ch) if ("road_" + ch) in PL23_HUE else H("road_kept"), lw["road"])
                 used.add("road_" + ch)
-        if not base:                                     # the base map draws the bridges (muted); without it, these
-            for P in C.bridges:
-                Q = [T(p) for p in P]
-                if on(Q):
-                    pg.line(Q, ink, 0.5 if big else 0.3)
-                    used.add("bridge")
+        for i, P in enumerate(C.bridges):
+            Q = [T(p) for p in P]
+            if on(Q):
+                with mpx_grp(pg, "roads", u"bridge %d" % (i + 1)):
+                    pg.line(Q, H("bridge"), 0.5 if big else 0.3)
+                used.add("bridge")
         for c_ in C.cross:
             if not c_.get("P"):                          # v30.1: kept bridges have only "xy"
                 continue
             A_, B_ = T(c_["P"][0]), T(c_["P"][1])
             if c_["kind"] == "footbridge":
-                pg.line([A_, B_], ink, lw["foot"])
+                with mpx_grp(pg, "paths", u"footbridge"):
+                    pg.line([A_, B_], H("foot"), lw["foot"])
                 used.add("foot")
             elif c_["kind"] == "stepping stones":
-                for i in range(5):
-                    f = (i + 0.5) / 5.0
-                    pg.circle(A_[0] + (B_[0] - A_[0]) * f, A_[1] + (B_[1] - A_[1]) * f, 0.9 if big else lw["stones"],
-                              fill=ink2)
+                with mpx_grp(pg, "paths", u"stepping stones"):
+                    for i in range(5):
+                        f = (i + 0.5) / 5.0
+                        pg.circle(A_[0] + (B_[0] - A_[0]) * f, A_[1] + (B_[1] - A_[1]) * f,
+                                  0.9 if big else lw["stones"], fill=H("stones"))
                 used.add("stones")
-        for P, bed, bank in cl["walk"]:                  # the riverside walk, its bike lane one thin line beside it
+        for i, (P, bed, bank) in enumerate(cl["walk"]):  # the riverside walk, its bike lane one thin line beside it
             Q = [T(p) for p in P]
             if len(Q) < 2 or not on(Q):
                 continue
-            pg.line(Q, PL23_WALK_COL, lw["walk"], [1.6, 0.6] if bed else None, cap=0 if bed else 1)
+            with mpx_grp(pg, "paths", u"%s %d" % (u"bed walk" if bed else u"riverside walk", i + 1)):
+                pg.line(Q, H("walk"), lw["walk"], [1.6, 0.6] if bed else None, cap=0 if bed else 1)
+                if PL23_BIKE and not bed:
+                    pg.line(pl23_offset(Q, lw["bike_off"] * (1.0 if bank == "NE" else -1.0)), H("bike"), lw["bike"])
+                    used.add("bike")
             used.add("walk_bed" if bed else "walk")
-            if PL23_BIKE and not bed:
-                pg.line(pl23_offset(Q, lw["bike_off"] * (1.0 if bank == "NE" else -1.0)), PL23_BIKE_COL, lw["bike"])
-                used.add("bike")
-        for P in C.canopy:
+        for i, P in enumerate(C.canopy):
             Q = [T(p) for p in P]
             if on(Q):
-                pg.line(Q, MP["centre"][2], lw["canopy"], [0.8, 0.5], cap=0)
+                with mpx_grp(pg, "paths", u"canopied walkway %d" % (i + 1)):
+                    pg.line(Q, H("canopy"), lw["canopy"], [0.8, 0.5], cap=0)
                 used.add("canopy")
         for P in cl["sight"]:
             Q = [T(p) for p in P]
             if on(Q):
-                pg.line(Q, COL["accent"], lw["sight"], [1.4, 0.8], cap=0)
+                with mpx_grp(pg, "annotations", u"sightline"):
+                    pg.line(Q, H("sight"), lw["sight"], [1.4, 0.8], cap=0)
                 used.add("sight")
-        for r_ in C.nogo:                                # P21.7: the designed voids, a hairline round their tint
-            col = PL23_VOID_COL.get(r_.get("design"), ink2)
-            for Q in TL(r_.get("rings") or []):
-                pg.line(Q + Q[:1], col, lw["outline"])
-                r_["placed"] = True
-                used.add("void")
 
     def s_veg():
         used.update(pl23_trees_draw(pg, C, T, k, (-2.0, -2.0, dw + 2.0, dh + 2.0)))
         for p, i in pl23_hub_trees(C):                   # v37 (G8, D7): kept on land, opaque
             x, y = T(p)
             if inside(x, y, 2.0):
-                pl23_put(pg, pla_plan("plane", x, y, k, crown_m=PLA_SPECIES["plane"]["crown_m"] * 0.8, seed=200 + i,
-                                      distinct=k >= 0.5))
+                with mpx_grp(pg, "trees", u"Oriental plane %d" % (200 + i)):
+                    pl23_put(pg, pla_plan("plane", x, y, k, crown_m=PLA_SPECIES["plane"]["crown_m"] * 0.8,
+                                          seed=200 + i, distinct=k >= 0.5))
                 used.add("tree_plane")
-        vp = pl23_void_plants(C)                          # round 5 (G-R5-7, CHK-5 c): the voids planted by the placer
-        for i, (key, x_, y_, cr, _I) in enumerate(vp["shrubs"] + sorted(vp["trees"], key=lambda t_: t_[3])):
-            x, y = T((x_, y_))
-            if not inside(x, y, 2.0):
-                continue
-            pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=400 + i, distinct=k >= 0.5))
-            used.add(("tree_" if key in PL23_TREE_KEYS else "shrub_") + key)
-        for j, r_ in enumerate(C.nogo):                  # lane trees on the kerbs (dart thrown, 02c void_design)
-            for i, e in enumerate(r_.get("trees") or []):
-                p, key = (e if isinstance(e, tuple) and len(e) == 2 and isinstance(e[1], str) else (e, "plane"))
-                x, y = T(p)
-                if not inside(x, y, 2.0):
-                    continue
-                cr = PLA_SPECIES[key]["crown_m"] * PL23_LANE_CROWN_K
-                pl23_put(pg, pla_plan(key, x, y, k, crown_m=cr, seed=900 + 37 * j + i, distinct=k >= 0.5))
-                used.add("tree_" + key)
         dgd = pl23_dg(C)
         for i, (key, xs, ys) in enumerate((dgd or {}).get("shade_trees") or []):   # P23.7: the garden's shade
             x, y = T((xs, ys))
             if inside(x, y, 2.0) and key in PLA_SPECIES:
-                pl23_put(pg, pla_plan(key, x, y, k, crown_m=PLA_SPECIES[key]["crown_m"], seed=300 + i,
-                                      distinct=k >= 0.5))
+                with mpx_grp(pg, "trees", u"%s %d" % (PLA_SPECIES[key]["name"], 300 + i)):
+                    pl23_put(pg, pla_plan(key, x, y, k, crown_m=PLA_SPECIES[key]["crown_m"], seed=300 + i,
+                                          distinct=k >= 0.5))
                 used.add(("tree_" if key in PL23_TREE_KEYS else "dg_tree_") + key)
 
     s_ic = 3.0 if big else (1.8 if fine else 2.2)
 
+    def put_icon(kind, p, nm, f=1.0):
+        x, y = T(p)
+        if not (inside(x, y) and ins(p)):
+            return False
+        s_ = s_ic * f
+        with mpx_grp(pg, "hubs" if kind in ("walkhub", "transit", "gate", "sub") else "annotations",
+                     u"%s %s" % (kind, nm)):
+            icon(pg, kind, x, y, s_)
+        icons.append(((x - s_ * 0.55, y - s_ * 0.55, x + s_ * 0.55, y + s_ * 0.55), nm))
+        used.add(kind)
+        return True
+
     def s_marks():                                       # pictograms, only inside the study area (P21.5)
-        for p in C.seats:
-            x, y = T(p)
-            if inside(x, y) and ins(p):
-                icon(pg, "seat", x, y, s_ic * 0.8)
-                used.add("seat")
-        ic = []
+        for i, p in enumerate(C.seats):
+            put_icon("seat", p, u"seat %d" % (i + 1), 0.8)
         for h in C.hubs:
             if not h.get("in_study"):                    # v38 (U40): a hub outside designs nothing: no symbol
                 continue
-            ic.append(("transit" if h["role"] == "transit" else ("gate" if h["id"] == u"K6" else "walkhub"), h["xy"],
-                       u"hub_icon " + h["id"]))
+            put_icon("transit" if h["role"] == "transit" else ("gate" if h["id"] == u"K6" else "walkhub"), h["xy"],
+                     u"hub_icon " + h["id"], 1.25)
             if h.get("sub_xy"):
-                ic.append(("sub", h["sub_xy"]["c"], u"icon"))
+                put_icon("sub", h["sub_xy"]["c"], u"icon sub-hub " + h["id"])
         for z in C.D.zones:
             if z["code"] in ("GR", "DG"):
-                ic.append(("cafe", z["q"], u"icon"))
+                put_icon("cafe", z["q"], u"icon")
             if z["code"] == "WT":
-                ic.append(("edu", z["q"], u"icon"))
+                put_icon("edu", z["q"], u"icon")
             if z["code"] == "WS" or (z["code"] == "WA" and z["tier"] == "F"):
-                ic.append(("seat", z["q"], u"icon"))
-        ic += [("edu", CRAFT_XY, u"icon"), ("deck", ROMAN_WALL, u"icon")]
+                put_icon("seat", z["q"], u"icon")
+        put_icon("edu", CRAFT_XY, u"icon")
+        put_icon("deck", ROMAN_WALL, u"icon")
         if C.terrace:
-            ic.append(("view", C.terrace["xy"], u"icon"))
-        for kind, p, nm in ic:
-            if not ins(p):
-                continue
-            x, y = T(p)
-            if inside(x, y):
-                big_ = kind in ("transit", "walkhub", "gate")
-                s_ = s_ic * (1.25 if big_ else 1.0)
-                icon(pg, kind, x, y, s_)
-                icons.append(((x - s_ * 0.55, y - s_ * 0.55, x + s_ * 0.55, y + s_ * 0.55), nm))
-                used.add(kind)
+            put_icon("view", C.terrace["xy"], u"icon")
 
     kw_ = {}                                             # round 5 (G-R5-8): the zones log line reads the legend's
     if "legend_cols" in mp_map_draw.__code__.co_varnames:   # colours and the fields in the water by design
-        kw_ = dict(legend_cols=[ML_TINT, WET_COL, MP["agriculture"][2], PL23_DG_GATHER] + list(PL23_VOID_COL.values()),
-                   water_ok=[WET_COL])
-    mp_map_draw(pg, u"p21", T, base, steps={"proj_tint": s_tint, "proj_water": s_water, "proj_lines": s_lines,
-                                            "proj_vegetation": s_veg, "proj_marks": s_marks},
-                tint=tint, study=C.study or None, **kw_)
+        kw_ = dict(legend_cols=[H(k_) for k_ in ("widen", "reed", "spill", "drytop", "dg", "dg_gather", "square",
+                                                  "flood_plant", "eco", "ring")],
+                   water_ok=[H("widen"), H("reed"), H("spill")])
+    mp_map_draw(pg, u"p20", T, [], steps={"proj_tint": s_tint, "proj_water": s_water, "proj_lines": s_lines,
+                                          "proj_vegetation": s_veg, "proj_marks": s_marks},
+                tint=[], study=C.study or None, **kw_)
     if C.study:
         used.add("study")
     for h in C.hubs:                                     # the hub names for the page's TextPage (Turkish, G-R4-11)
@@ -663,7 +744,7 @@ def pl23_text(sh, s, x, y, size, colour, bold=False, align="L", group=None, name
     return b
 
 
-def pl23_wrap(s, w, size, bold=False, warn=None, page=u"p21"):
+def pl23_wrap(s, w, size, bold=False, warn=None, page=u"p20"):
     """v38 (G-R4-2): s wrapped to w mm at size mm with real widths (tp_wrap), never one word alone on the last line
     (min_last_words=2); when the words do not allow it at w, a slightly narrower column is tried. Returns the lines
     (strings, as the old common/wrap.py wrap did). v38 closing: p16 and p22 use it too (page = the warning's page)."""
@@ -828,17 +909,16 @@ def pl23_row_T(C, row, k, x0=0.0, y0=0.0):
 
 # ---------------------------------------------------------------- v38 (round 4, G-R4-7, P21.2): markers
 def pl23_mk_tables(C):
-    """v38 (P21.2): the element colours the markers read (mk_register), from the colours the page draws them with:
-    roads (ROAD_CHANGE_COL, as drawn), hubs (their pictogram), the other moves (the line / fill that draws them),
-    the edges kept (the base tones of what stands at the bank), the designed voids (their outline)."""
-    mk_register("road", ROAD_CHANGE_COL)
-    mk_register("hub", dict((h["id"], COL["accent_dark"] if h["role"] == "transit" else
-                             (COL["ink_dark"] if h["id"] == u"K6" else SQ_EDGE)) for h in C.hubs))
-    mk_register("move", {"widen": _wat_pal()["edge"], "arm": COL["river_mid"], "wt": COL["river_dark"],
-                         "cov": COL["river_mid"], "terr": MP["storage"][2], "foot": COL["ink_dark"],
-                         "view": COL["accent"], "h4": COL["histwall"], "h6": COL["histwall"]})
-    mk_register("kept", {"building": BM_MUTED["bld_edge"], "road": BM_MUTED["road_edge"], "frame": COL["ink2"]})
-    mk_register("void", PL23_VOID_COL)
+    """round 6 (G6-6): the marker colours = the category of what a move names, r1 (PLAN §2.6): changed roads in
+    their movement shade (a kept road in the context tone), hubs public life, the water works, the hidden stream
+    water, crossings movement, heritage and views heritage, the edges kept context (mk_register tables, P21.2)"""
+    mk_register("road", dict((ch, pl23_h("road_" + ch)) for ch in ("calmed", "pedestrian", "shared", "kept",
+                                                                    "relocated", "later")))
+    mk_register("hub", dict((h["id"], hue("PUB", 1)) for h in C.hubs))                # noqa: F821
+    mk_register("move", {"widen": hue("WW", 1), "arm": hue("WW", 1), "wt": hue("WW", 1), "terr": hue("WW", 1),
+                         "cov": hue("WAT", 1), "foot": hue("MOV", 2), "view": hue("HER", 2), "h4": hue("HER", 2),
+                         "h6": hue("HER", 2)})                                         # noqa: F821
+    mk_register("kept", {"building": hue("CTX", 2), "road": hue("CTX", 2), "frame": hue("CTX", 2)})   # noqa: F821
 
 
 def pl23_note_colour(nt):
@@ -910,32 +990,44 @@ def pl23_markers(sh, C, rws, warn):
             ent[4] = True
             if nt["key"][0] == "kept":                    # an edge kept: one badge
                 break
-    by = {}
-    V = C.V
-    order = sorted(C.nogo, key=lambda r_: min([V.uv(q)[0] for q in r_["at"]] or [0.0]))
-    for r_ in order:                                      # P21.7: the designed places, a letter per kind
-        dz = r_.get("design") or u"place"
-        if dz not in by:
-            if len(by) >= len(PL23_VOID_LETTERS):
-                raise ValueError(u"masterplan p21: more kinds of designed place than letters")
-            by[dz] = dict(letter=PL23_VOID_LETTERS[len(by)], design=dz, place=r_.get("place") or dz,
-                          reason=r_.get("reason") or u"", colour=mk_colour("void", dz), regions=[], n_map=0)
-            vl.append(by[dz])
-        v = by[dz]
-        v["regions"].append(r_)
+    V = C.V                                               # round 6 (S8, SON page 21): every area left as it is,
+    order = sorted(C.nogo, key=lambda r_: -r_["ha"])      # one lowercase letter each (largest first, as SON a-q),
+    for i_, r_ in enumerate(order):                       # a grey ring on its first free spot
+        lt = PL23_LEFT_LETTERS[i_] if i_ < len(PL23_LEFT_LETTERS) else None
+        if lt is None:
+            warn.append(u"masterplan p20: more areas left as they are than letters: {:.1f} ha not lettered".format(
+                r_["ha"]))
+            continue
+        v = dict(letter=lt, design=u"left", place=u"left as it is", reason=PL28_SRC_TAG.sub(u"", r_["why"]).strip(),
+                 colour=pl23_h("left"), regions=[r_], n_map=0)
+        vl.append(v)
         p = next((q for q in r_["at"] if row_of(q) is not None), None)
         if p is None:
             continue
         i = row_of(p)
         x, y = rws[i][0](p)
-        spot = pl23_mk_spot(tp, x, y, pl23_mk_r(v["letter"]), rws[i][2])
+        spot = pl23_mk_spot(tp, x, y, pl23_mk_r(lt), rws[i][2])
         if spot is None:
-            warn.append(u"masterplan p21: designed place {} ({:.1f} ha) has no free spot for its letter {}: its "
-                        u"outline is drawn, the side list names the kind".format(v["place"], r_["ha"], v["letter"]))
+            warn.append(u"masterplan p20: area left as it is {} ({:.1f} ha) has no free spot for its letter: only in "
+                        u"the list".format(lt, r_["ha"]))
             continue
-        mp_marker(sh, spot[0], spot[1], v["letter"], v["colour"], PL23_MK_PT)
-        C.pl23_mk_at.setdefault(v["letter"], []).append((i, spot[0], spot[1]))
+        mp_marker(sh, spot[0], spot[1], lt, v["colour"], PL23_MK_PT, style="ring", name=u"left " + lt)
+        C.pl23_mk_at.setdefault(lt, []).append((i, spot[0], spot[1]))
         v["n_map"] += 1
+    cc = pl23_cch(C)                                      # the collect-clean-hold numbers 1-11 (pages 11, 12): a ring
+    C.pl23_cch_on = []                                    # in the water works hue, apart from the solid move discs
+    for n_, nm, xy in cc["nums"]:
+        i = row_of(xy)
+        if i is None:
+            continue
+        x, y = rws[i][0](xy)
+        s_ = u"%d" % n_
+        spot = pl23_mk_spot(tp, x, y, pl23_mk_r(s_), rws[i][2])
+        if spot is None:
+            warn.append(u"masterplan p20: collect-clean-hold {} ({}) has no free spot on the map".format(n_, nm))
+            continue
+        mp_marker(sh, spot[0], spot[1], s_, pl23_h("cch"), PL23_MK_PT, style="ring", name=u"cch %d" % n_)
+        C.pl23_cch_on.append((n_, nm, i, spot))
     return ents, vl
 
 
@@ -944,8 +1036,8 @@ def pl23_markers(sh, C, rws, warn):
 # designed places, one row per species with its Turkish name (D5).
 def _pl23_sw_bike():
     def f(pg, x, y, w, h):
-        pg.line([(x, y + h * 0.35), (x + w, y + h * 0.35)], PL23_WALK_COL, PL23_LW["walk"])
-        pg.line([(x, y + h * 0.35 + PL23_LW["bike_off"]), (x + w, y + h * 0.35 + PL23_LW["bike_off"])], PL23_BIKE_COL,
+        pg.line([(x, y + h * 0.35), (x + w, y + h * 0.35)], pl23_h("walk"), PL23_LW["walk"])
+        pg.line([(x, y + h * 0.35 + PL23_LW["bike_off"]), (x + w, y + h * 0.35 + PL23_LW["bike_off"])], pl23_h("bike"),
                 PL23_LW["bike"])
     return f
 
@@ -956,42 +1048,31 @@ def _pl23_sw_water():
     return f
 
 
-def _pl23_sw_wet():
-    def f(pg, x, y, w, h):
-        R = rect(x, y, x + w, y + h)
-        pg.poly([R], fill=WET_COL)                       # v37: as the plan draws it (flat, firm bank, no waves)
-        pg.line(R + R[:1], _wat_pal()["edge"], PL23_LW["bank"])
-    return f
-
-
-def _pl23_sw_reed():
-    def f(pg, x, y, w, h):
-        R = rect(x, y, x + w, y + h)
-        pg.poly([R], fill=WET_COL)
-        pg.poly([R], fill=PL23_REED_TONE, alpha=PL23_REED_A)   # round 5: solid tone, no stripes (no hatches)
-        pg.line(R + R[:1], COL["river_dark"], PL23_LW["outline"])
-    return f
-
-
-def _pl23_sw_house():
-    def f(pg, x, y, w, h):
-        R = rect(x + 0.4, y, x + w - 0.4, y + h)
-        pg.poly([R], fill=BM_MUTED["bld"], stroke=BM_MUTED["bld_edge"], lw=BM_MUTED["lw"])
-    return f
-
-
-def _pl23_sw_outline(col, lw, fill=None, alpha=None):
+def _pl23_sw_box(fill_key, edge_key=None, alpha=None, lw=None):
+    """round 6: a fill swatch exactly as the plan draws the key (fill hue, alpha, edge hue)"""
     def f(pg, x, y, w, h):
         R = rect(x + 0.3, y, x + w - 0.3, y + h)
-        if fill:
-            pg.poly([R], fill=fill, alpha=alpha)
-        pg.line(R + R[:1], col, lw)
+        pg.poly([R], fill=pl23_h(fill_key), alpha=alpha)
+        if edge_key:
+            pg.line(R + R[:1], pl23_h(edge_key), lw or PL23_LW["outline"])
+    return f
+
+
+def _pl23_sw_ln(key, lw, dash=None):
+    def f(pg, x, y, w, h):
+        pg.line([(x, y + h / 2), (x + w, y + h / 2)], pl23_h(key), lw, dash, cap=0 if dash else 1)
     return f
 
 
 def _pl23_sw_terr():
     def f(pg, x, y, w, h):
-        ticks_line(pg, [(x, y + h * 0.6), (x + w, y + h * 0.6)], MP["storage"][2], PL23_LW["terrace"], 1.6, 0.6, -1.0)
+        ticks_line(pg, [(x, y + h * 0.6), (x + w, y + h * 0.6)], pl23_h("terrace"), PL23_LW["terrace"], 1.6, 0.6, -1.0)
+    return f
+
+
+def _pl23_sw_ring(key, glyph):
+    def f(pg, x, y, w, h):
+        mp_marker(pg, x + w / 2.0, y + h / 2.0, glyph, pl23_h(key), PL23_MK_PT * 0.8, style="ring")
     return f
 
 
@@ -1003,42 +1084,57 @@ def _pl23_sw_plant(key, d_mm=2.2):
 
 
 _PL23_SP = lambda key: u"{} ({})".format(PLA_SPECIES[key]["name"], PLA_SPECIES[key]["turkish"])
-PL23_BASE_KEYS = ("houses", "bed", "bridge", "study")
+# round 6 (G6-6): the legend by category (PLAN §2.6, HUE_CATS order, darker = more important inside a category);
+# rows (key, category, rank, name, swatch); only what the rows draw appears. Planting species keep their own seasonal
+# colours (P-3) under "Planting". Study area and the moves' / letters' markers are annotations (ANN, last).
 PL23_LEGEND = [
-    ("houses", u"Houses and streets, survey", _pl23_sw_house()),
-    ("bed", u"Selinos, darker = deeper", _pl23_sw_water()),
-    ("bridge", u"Bridge", _sw_line(COL["ink_dark"], 0.3)),
-    ("study", R28_STUDY_NAME, _sw_line(BM_STUDY_LINE["colour"], BM_STUDY_LINE["width_mm"],
-                                       list(BM_STUDY_LINE["dash_mm"]))),
-    ("tint", u"What we change, footprint", _sw_fill(ML_TINT, alpha=ML_TINT_ALPHA)),
-    ("widen", u"Widened · wetland, new bank", _pl23_sw_wet()),
-    ("reed", u"Reed basins", _pl23_sw_reed()),
-    ("arm", u"Planted side arm", _sw_line(COL["river_mid"], PL23_LW["arm"])),   # D2 a: not "reed"
-    ("hidden", u"Hidden stream line", _sw_line(COL["river_mid"], PL23_LW["hidden"], [1.6, 0.9])),
-    ("terrace", u"Rain terrace", _pl23_sw_terr()),
-    ("square", u"Hub square", _pl23_sw_outline(SQ_EDGE, PL23_LW["square"], ML_TINT, ML_TINT_ALPHA)),
-    ("dg", u"Demeter's Garden", _pl23_sw_outline(MP["agriculture"][2], PL23_LW["outline"], MP["agriculture"][2], 0.16)),
-    ("void", u"Designed place, by letter", _pl23_sw_outline(PL23_VOID_COL["meadow"], PL23_LW["outline"], ML_TINT,
-                                                            ML_TINT_ALPHA)),
-    ("walk", u"Riverside walk", _sw_line(PL23_WALK_COL, PL23_LW["walk"])),
-    ("walk_bed", u"Bed walk, shut in floods", _sw_line(PL23_WALK_COL, PL23_LW["walk"], [1.6, 0.6])),
-    ("bike", u"Bike lane beside the walk", _pl23_sw_bike()),
-    ("foot", u"New footbridge", _sw_line(COL["ink_dark"], PL23_LW["foot"])),
-    ("stones", u"Stepping stones", _sw_dots(COL["ink2"], PL23_LW["stones"], None)),
-    ("canopy", u"Canopied walkway", _sw_line(MP["centre"][2], PL23_LW["canopy"], [0.8, 0.5])),
-    ("sight", u"Sightline", _sw_line(COL["accent"], PL23_LW["sight"], [1.4, 0.8])),
-    ("road_calmed", u"Road calmed", _sw_line(ROAD_CHANGE_COL["calmed"], PL23_LW["road"])),
-    ("road_pedestrian", u"Road pedestrian", _sw_line(ROAD_CHANGE_COL["pedestrian"], PL23_LW["road"])),
-    ("road_shared", u"Road shared", _sw_line(ROAD_CHANGE_COL["shared"], PL23_LW["road"])),
-    ("road_kept", u"Road kept", _sw_line(ROAD_CHANGE_COL["kept"], PL23_LW["road"])),
-    ("road_relocated", u"Road relocated", _sw_line(ROAD_CHANGE_COL["relocated"], PL23_LW["road"])),
-    ("road_later", u"Bus line, later", _sw_line(ROAD_CHANGE_COL["later"], PL23_LW["later"], [2.0, 1.0]))] + \
-    [("tree_" + k_, _PL23_SP(k_), _pl23_sw_plant(k_)) for k_ in PL23_TREE_KEYS] + \
-    [("shrub_" + k_, _PL23_SP(k_), _pl23_sw_plant(k_, 1.6)) for k_ in ("rosemary", "lavender")] + \
-    [(k_, nm, _sw_icon(k_)) for k_, nm in (("walkhub", u"Walking hub"), ("transit", u"Transit hub"),
-                                           ("gate", u"Gateway out"), ("sub", u"Sub-hub in the bed"),
-                                           ("seat", u"Seats"), ("cafe", u"Cafe"), ("edu", u"Education"),
-                                           ("view", u"Viewing terrace"), ("deck", u"Deck, archaeology"))]
+    ("bld", "CTX", 4, u"Building (survey)", _pl23_sw_box("bld", "bld_edge")),
+    ("street", "CTX", 3, u"Street edge (survey)", _pl23_sw_ln("street", 0.18)),
+    ("since", "CTX", 3, u"Built since the survey", _pl23_sw_box("since")),
+    ("bridge", "CTX", 1, u"Bridge", _pl23_sw_ln("bridge", 0.3)),
+    ("road_kept", "CTX", 2, u"Road kept", _pl23_sw_ln("road_kept", PL23_LW["road"])),
+    ("her", "HER", 4, u"Heritage building (survey)", _pl23_sw_box("her", "her_edge")),
+    ("deck", "HER", 2, u"Deck, archaeology", _sw_icon("deck")),
+    ("sight", "HER", 2, u"Sightline", _pl23_sw_ln("sight", PL23_LW["sight"], [1.4, 0.8])),
+    ("bed", "WAT", 3, u"Selinos stream, darker = deeper", _pl23_sw_water()),
+    ("hidden", "WAT", 2, u"Hidden stream line", _pl23_sw_ln("hidden", PL23_LW["hidden"], [1.6, 0.9])),
+    ("terrace", "WW", 1, u"Rain terraces on the contours", _pl23_sw_terr()),
+    ("reed", "WW", 2, u"Reed basins", _pl23_sw_box("reed", "reed_edge", PL23_FILL_A)),
+    ("spill", "WW", 2, u"Spillway: clean water back to the stream", _pl23_sw_box("spill", "spill_edge", PL23_FILL_A)),
+    ("arm", "WW", 2, u"Planted side arm", _pl23_sw_ln("arm", PL23_LW["arm"])),
+    ("drytop", "WW", 3, u"Dry-top terraces", _pl23_sw_box("drytop", "drytop_edge", PL23_FILL_A)),
+    ("widen", "WW", 4, u"Widened · wetland, new bank", _pl23_sw_box("widen", "widen_edge", None, PL23_LW["bank"])),
+    ("cch", "WW", 1, u"1-11 Collect, clean, hold (as on page 11)", _pl23_sw_ring("cch", u"4")),
+    ("eco", "GRN", 3, u"Planting gradient from the water", _pl23_sw_box("eco", None, 0.3)),
+    ("flood_plant", "GRN", 3, u"Floodable planting, banks that flood", _pl23_sw_box("flood_plant", None, 0.3)),
+    ("dg", "AGR", 2, u"Demeter's Garden", _pl23_sw_box("dg", "dg_edge", 0.25)),
+    ("walk", "MOV", 1, u"Riverside walk", _pl23_sw_ln("walk", PL23_LW["walk"])),
+    ("walk_bed", "MOV", 1, u"Bed walk, shut in floods", _pl23_sw_ln("walk_bed", PL23_LW["walk"], [1.6, 0.6])),
+    ("road_pedestrian", "MOV", 1, u"Road pedestrian", _pl23_sw_ln("road_pedestrian", PL23_LW["road"])),
+    ("road_later", "MOV", 1, u"Bus line, later", _pl23_sw_ln("road_later", PL23_LW["later"], [2.0, 1.0])),
+    ("foot", "MOV", 1, u"New footbridge", _pl23_sw_ln("foot", PL23_LW["foot"])),
+    ("street_cut", "MOV", 1, u"R1-R4 street cut (page 8)", _pl23_sw_ln("street_cut", 0.5)),
+    ("road_calmed", "MOV", 2, u"Road calmed", _pl23_sw_ln("road_calmed", PL23_LW["road"])),
+    ("road_relocated", "MOV", 2, u"Road relocated", _pl23_sw_ln("road_relocated", PL23_LW["road"], [1.6, 0.6])),
+    ("stones", "MOV", 2, u"Stepping stones", _sw_dots(pl23_h("stones"), PL23_LW["stones"], None)),
+    ("canopy", "MOV", 2, u"Canopied walkway", _pl23_sw_ln("canopy", PL23_LW["canopy"], [0.8, 0.5])),
+    ("bike", "MOV", 3, u"Bike lane beside the walk", _pl23_sw_bike()),
+    ("road_shared", "MOV", 3, u"Road shared", _pl23_sw_ln("road_shared", PL23_LW["road"])),
+    ("walkhub", "PUB", 1, u"Walking hub", _sw_icon("walkhub")),
+    ("transit", "PUB", 1, u"Transit hub", _sw_icon("transit")),
+    ("market", "PUB", 1, u"Producers' market", _sw_dots(pl23_h("market"), 0.5, None)),
+    ("gate", "PUB", 2, u"Gateway out", _sw_icon("gate")),
+    ("sub", "PUB", 2, u"Sub-hub in the bed", _sw_icon("sub")),
+    ("cafe", "PUB", 2, u"Café", _sw_icon("cafe")),
+    ("edu", "PUB", 2, u"Education", _sw_icon("edu")),
+    ("view", "PUB", 2, u"Viewing terrace", _sw_icon("view")),
+    ("ring", "PUB", 3, u"Programme at the hubs", _pl23_sw_box("ring", None, 0.3)),
+    ("seat", "PUB", 3, u"Seats", _sw_icon("seat")),
+    ("square", "PUB", 4, u"Hub square", _pl23_sw_box("square", "square_edge", PL23_FILL_A, PL23_LW["square"])),
+    ("study", "ANN", 0, R28_STUDY_NAME, _sw_line(BM_STUDY_LINE["colour"], BM_STUDY_LINE["width_mm"],
+                                                 list(BM_STUDY_LINE["dash_mm"]))),
+    ("left", "ANN", 0, u"a-z Left as it is (list)", _pl23_sw_ring("left", u"a"))] + \
+    [("tree_" + k_, "GRN", 1, _PL23_SP(k_), _pl23_sw_plant(k_)) for k_ in PL23_TREE_KEYS]
 
 
 # ---------------------------------------------------------------- round 5 (S6, G-R5-12): the page as items
@@ -1065,7 +1161,12 @@ def p23_items(ix, C, warn):
     counter-clockwise): "mp_plan_r1" (upstream half) and "mp_plan_r2" (downstream half; one "mp_plan_r1" when only
     the 1:10,000 strip fits), group "mp_plan". Markers: disc shapes in the drawing, glyph texts role "marker" (badge
     on its disc). Hub names: labels anchored at the hub (booklet placer). Legend (only what the rows draw), the moves
-    by number and the designed places by letter: ix.legend / ix.list. Public sources: ix.source rows (+ the round 4
+    by number and the designed places by letter: ix.legend / ix.list.
+    Round 6 (S8, BRIEF row 20): page id p20 (MPX_PAGE); the SON page 21 drawing (draw_corridor, own survey base, no
+    D9 tint); legends one per category from the hue table (G6-6, hue_log line); lists: the moves by number, the
+    collect-clean-hold numbers 1-11 on the map (pl23_cch, rings in the water works hue), the areas left as they are
+    a-z (SON); labels: street cuts R1-R4 (pl23_street_cuts), producers' market at K5; log lines "proposals <name>
+    drawn|missing", "trees p20 ...", "groups p20 ..." (mpx_drawing). Public sources: ix.source rows (+ the round 4
     plan_sources dict under items.json "extra"). Returns log lines."""
     page = MPX_PAGE["p23"]
     lines = []
@@ -1076,21 +1177,16 @@ def p23_items(ix, C, warn):
     rw = [(row["b"] - row["a"]) * k for row in rows]
     W, H = max(rw), len(rows) * dh + (len(rows) - 1) * PL23_GAP
     sh = Page(W, H)
-    sh.text_page(u"p21", (0.0, 0.0, W, H), margins=PL23_TP_MARGINS)
+    sh.text_page(u"p20", (0.0, 0.0, W, H), margins=PL23_TP_MARGINS)
     pl23_mk_tables(C)
     pl23_water_groups(C, warn)
-    D = basemap_load()
-    if not D:
-        warn.append(u"masterplan p23: no base map data (basemap.json of the site board): the plan has no base map "
-                    u"(run the site board once)")
-    tint = pl23_tint(C)
+    base, tint = [], []                                   # round 6 (S8): SON page 21's own survey base, no D9 tint
     used, rws, boxes, icon_boxes = set(), [], [], []
     y_top = H
     for i, row in enumerate(rows):
         dw = rw[i]
         x0, y0 = 0.0, y_top - dh
         T, mine = pl23_row_T(C, row, k)
-        base = ml_base(pl23_row_box(C, row), scale, D=D, contours=PL23_CONTOURS) if D else []
         pg = Page(dw, dh)
         u_, specs, icons = draw_corridor(pg, T, k, C, mine, dw, dh, base, tint)
         used |= u_
@@ -1103,7 +1199,8 @@ def p23_items(ix, C, warn):
         Ts, _ = pl23_row_T(C, row, k, x0, y0)
         if len(rows) > 1:                                 # the match line where the halves meet (a label, anchored)
             xm = x0 + ((row["eb"] if i == 0 else row["ea"]) - row["a"]) * k
-            sh.line([(xm, y0), (xm, y0 + dh)], COL["ink2"], 0.3, [1.6, 0.8], cap=0)
+            with mpx_grp(sh, "annotations", u"match line"):
+                sh.line([(xm, y0), (xm, y0 + dh)], hue("CTX", 2), 0.3, [1.6, 0.8], cap=0)          # noqa: F821
             t_ = u"match line · continues below" if i == 0 else u"match line · from above"
             tw = text_w(t_, KEY_MIN)
             sh.text(t_, xm - 1.2 - tw if i == 0 else xm + 1.2, y0 + dh - 3.0, KEY_MIN, COL["ink2"], role="label")
@@ -1156,17 +1253,53 @@ def p23_items(ix, C, warn):
     cap = u"The corridor across the whole {}{}; the stream flows left to right.".format(
         R28_FRAME_NAME.lower(), u": upstream half on top, downstream half below" if len(rows) > 1 else u"")
     ix.text(page, cap, "caption", id=u"mp_plan_caption", group=u"mp_plan")
-    # ---- the legend: only what the rows draw (base first), species rows added for any drawn tree not listed
-    keys = [key for key, _nm, _f in PL23_LEGEND]
-    ent = [(mpx_sw(f), nm) for key, nm, f in PL23_LEGEND if key in used and key in PL23_BASE_KEYS]
-    ent += [(mpx_sw(f), nm) for key, nm, f in PL23_LEGEND if key in used and key not in PL23_BASE_KEYS]
-    for key in sorted(used):
-        if key not in keys and (key.startswith("tree_") or key.startswith("dg_tree_") or key.startswith("shrub_")):
-            sp = key.split("_", 1)[1] if not key.startswith("dg_tree_") else key[len("dg_tree_"):]
-            if sp in PLA_SPECIES:
-                ent.append((mpx_sw(_pl23_sw_plant(sp, 1.6 if key.startswith("shrub_") else 2.2)), _PL23_SP(sp)))
-    ix.legend(page, d1, ent, id=u"mp_plan_legend", group=u"mp_plan")
-    # ---- the moves by number (name · its reason line, P22.8) and the designed places by letter (P21.7)
+    # ---- round 6 (S8): the street cuts R1-R4 of page 8 and the producers' market at K5, labels at their place
+    cuts, cerr = pl23_street_cuts()
+    if cerr:
+        warn.append(u"masterplan p20: street cuts R1-R4 not marked: " + cerr)
+    n_cut = 0
+    for rid in sorted(cuts):
+        c_ = cuts[rid]
+        mid = ((c_["a"][0] + c_["b"][0]) / 2.0, (c_["a"][1] + c_["b"][1]) / 2.0)
+        for i, row in enumerate(rows):
+            if rws[i][1](mid):
+                b = boxes[i]
+                x, y = rws[i][0](mid)
+                ix.text(page, rid + (u" · " + c_["change"] if c_.get("change") else u""), "label", drawing=dids[i],
+                        at=(row["a"] + (x - b[0]) * kk, (y - b[1]) * kk), size_pt=PL23_MK_PT, bold=True,
+                        colour=pl23_h("street_cut"), priority=4, group=u"mp_plan")
+                used.add("street_cut")
+                n_cut += 1
+                break
+    k5 = next((h for h in C.hubs if h["id"] == u"K5"), None)
+    if k5 is not None:
+        for i, row in enumerate(rows):
+            if rws[i][1](k5["xy"]):
+                b = boxes[i]
+                x, y = rws[i][0](k5["xy"])
+                ix.text(page, u"producers' market", "label", drawing=dids[i], at=(row["a"] + (x - b[0]) * kk,
+                        (y - b[1]) * kk), size_pt=PL23_BASE_NAME_PT, colour=pl23_h("market"),
+                        positions=["S", "SE", "SW", "E", "W"], priority=5, group=u"mp_plan")
+                used.add("market")
+                break
+    if getattr(C, "pl23_cch_on", None):
+        used.add("cch")
+    if vl:
+        used.add("left")
+    # ---- the legend by category (G6-6): one ix.legend per category, its rows darkest first
+    cats = list(HUE_CATS) + ["ANN"]                                                       # noqa: F821
+    ent = 0
+    for cat in cats:
+        rows_ = sorted([(rk, nm, f) for key, c_, rk, nm, f in PL23_LEGEND if c_ == cat and key in used],
+                       key=lambda r_: r_[0])
+        if not rows_:
+            continue
+        ix.legend(page, d1, [(mpx_sw(f), nm) for _rk, nm, f in rows_],
+                  title=HUE_NAMES.get(cat, u"Marks") if cat != "ANN" else u"Marks",          # noqa: F821
+                  id=u"mp_plan_legend_" + cat.lower(), group=u"mp_plan")
+        ent += len(rows_)
+    lines.append(hue_log(page) if "hue_log" in globals() else u"legend %s hues=table" % page)   # noqa: F821
+    # ---- the moves by number (name · its reason line, P22.8), collect-clean-hold 1-11, the areas left as they are
     if ents:
         ns = [nt["n"] for nt, _g, _nm, _l, _ok in ents]
         numbered = ns == list(range(1, len(ns) + 1))
@@ -1175,12 +1308,28 @@ def p23_items(ix, C, warn):
         ix.text(page, u"The moves, by number", "heading", id=u"mp_plan_moves_head", group=u"mp_plan", priority=3)
         ix.list(page, d1, texts, numbered=numbered, anchors=[anchor_of(u"%d" % nt["n"]) for nt, _g, _n, _l, _o in ents],
                 id=u"mp_plan_moves", group=u"mp_plan")
+    cc = pl23_cch(C)
+    if cc["err"]:
+        warn.append(u"masterplan p20: collect-clean-hold numbers not drawn ({})".format(cc["err"]))
+    on_ = getattr(C, "pl23_cch_on", None) or []
+    if on_:
+        seen_ = []
+        for n_, nm, i, spot in sorted(on_):
+            if n_ not in seen_:
+                seen_.append(n_)
+        ix.text(page, u"Collect, clean, hold · the numbers of page 11", "heading", id=u"mp_plan_cch_head",
+                group=u"mp_plan", priority=3)
+        ix.list(page, d1, [u"%d %s" % (n_, cch_name(n_)) for n_ in seen_], numbered=False,      # noqa: F821
+                anchors=[anchor_of(u"%d" % n_) for n_ in seen_], id=u"mp_plan_cch", group=u"mp_plan")
+    if cc["missing"]:
+        lines.append(u"FLAG p20 collect-clean-hold numbers with no place on the plan (left out): {}".format(
+            u", ".join(u"%d %s" % (n_, nm) for n_, nm in cc["missing"])))
     if vl:
-        texts = [u"{} · {} · {} · {}".format(v["letter"], v["place"], u_area(sum(r_["ha"] for r_ in v["regions"]) * 1e4,
-                                                                           "ha"), v["reason"]) for v in vl]
-        ix.text(page, u"Designed places, by letter", "heading", id=u"mp_plan_places_head", group=u"mp_plan",
-                priority=3)
-        ix.list(page, d1, texts, numbered=False, anchors=[anchor_of(v["letter"]) for v in vl], id=u"mp_plan_places",
+        texts = [u"{} · {} · {}".format(v["letter"], u_area(v["regions"][0]["ha"] * 1e4, "ha"), v["reason"])
+                 for v in vl]
+        ix.text(page, u"Left as it is · no intervention, because", "heading", id=u"mp_plan_left_head",
+                group=u"mp_plan", priority=3)
+        ix.list(page, d1, texts, numbered=False, anchors=[anchor_of(v["letter"]) for v in vl], id=u"mp_plan_left",
                 group=u"mp_plan")
     # ---- sources (public only, as round 4's plan_sources)
     ps = pl28_plan_sources(ents, vl)
@@ -1197,15 +1346,38 @@ def p23_items(ix, C, warn):
                 ix.source(_pl23_src_key(t), t, None, page=page)
     ix.d.setdefault("extra", {})["plan_sources"] = ps
     if getattr(C, "pl23_dg_err", None):
-        warn.append(u"masterplan p23: Demeter's Garden design not drawn ({}): the zone-base field is drawn".format(
+        warn.append(u"masterplan p20: Demeter's Garden design not drawn ({}): the zone-base field is drawn".format(
             C.pl23_dg_err))
     elif pl23_dg(C) is None:
-        lines.append(u"FLAG p23 Demeter's Garden: no dg_design (parts/02g_demeter.py) or no outline: the zone-base "
+        lines.append(u"FLAG p20 Demeter's Garden: no dg_design (parts/02g_demeter.py) or no outline: the zone-base "
                      u"field is drawn")
     C.ni_placed = sum(1 for r_ in C.nogo if r_.get("placed"))
     MPX_PAGES.append(("A", "p23", sh))
     n_on = sum(1 for e in ents if e[4])
-    lines.append(u"p23 (items {}): {} row(s) at 1:{:,.0f}; moves {} ({} on the map); designed places {} kinds, {} of "
-                 u"{} drawn; hub names {}; legend rows {}; eco / hub-ring fields 0 (N5)".format(
-                     page, len(rows), scale, len(ents), n_on, len(vl), C.ni_placed, len(C.nogo), n_names, len(ent)))
+    lines.append(u"p20 (items {}): {} row(s) at 1:{:,.0f}; moves {} ({} on the map); left as it is {} ({} lettered "
+                 u"on the map); collect-clean-hold numbers {} on the map, {} left out; street cuts {}; hub names {}; "
+                 u"legend rows {}".format(page, len(rows), scale, len(ents), n_on, len(vl),
+                                          sum(v["n_map"] for v in vl), len(on_), len(cc["missing"]), n_cut, n_names,
+                                          ent))
+    for nm_ in (u"walking hubs", u"transit hub", u"gateway K6", u"sub-hubs in the bed", u"reed basins", u"side arm",
+                u"widened wetland", u"footbridge", u"stepping stones", u"Demeter's Garden", u"riverside walk",
+                u"bed walk", u"bike lane", u"forest corridor", u"viewing terrace", u"canopied walkway",
+                u"bus line later", u"spillway", u"winter store", u"dry-top terraces", u"floodable planting",
+                u"steps 1-11", u"street changes R1-R4", u"producers' market"):
+        key_ = {u"walking hubs": "walkhub", u"transit hub": "transit", u"gateway K6": "gate",
+                u"sub-hubs in the bed": "sub", u"reed basins": "reed", u"side arm": "arm", u"widened wetland": "widen",
+                u"footbridge": "foot", u"stepping stones": "stones", u"Demeter's Garden": "dg",
+                u"riverside walk": "walk", u"bed walk": "walk_bed", u"bike lane": "bike",
+                u"forest corridor": "tree_plane", u"viewing terrace": "view", u"canopied walkway": "canopy",
+                u"bus line later": "road_later", u"spillway": "spill", u"dry-top terraces": "drytop",
+                u"floodable planting": "flood_plant", u"street changes R1-R4": "street_cut",
+                u"producers' market": "market"}.get(nm_)
+        ok_ = (any(n_ == 4 for n_, _nm, _i, _s in on_) if nm_ == u"winter store" else
+               (bool(on_) if nm_ == u"steps 1-11" else
+                (any(k_.startswith("tree_") for k_ in used) if key_ == "tree_plane" else key_ in used)))
+        lines.append(u"proposals {} {}".format(nm_, u"drawn" if ok_ else u"missing"))
+    lines.append(u"trees {} species={} generic=0 (proposed planting, species from the planting rule; no survey "
+                 u"trees on this plan)".format(page, sum(PL23_TREE_N.values())))
+    PL23_TREE_N.clear()
+    lines.append(u"proposals boardwalk missing (no plan geometry: section W4 only; left out, PLAN §5)")
     return lines
