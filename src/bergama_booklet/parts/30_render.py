@@ -11,8 +11,14 @@
 #                                                 frame = None | (colour, width_pt): a thin frame round the rect (insets)
 #   rd_close()                                    closes the temporary PDFs (after the booklet is saved)
 # Temporary files: Downloads/Bergama/cached/booklet/_render/<page>_<id>.pdf (overwritten each run).
+# v31 (round 6 S9, G6-9 "every element its own group inside its kind group inside its drawing group"): each shape's
+# "grp" ("<kind>/<element id>", common/item_export.py §2.8) is handed to write_pdf as pg.grp, a list parallel to
+# pg.items (None = untagged), with pg.grp_root = the drawing id; write_pdf (S2) writes drawing > kind > element as
+# nested groups. The drawing PDF is then set on the page as one Form XObject (show_pdf_page) = the drawing's group.
+# Counts per page go to BK_GRP (log "groups <page> kinds=<n> elements=<n> untagged=<n>", 82_compose).
 BK_K = 72.0 / 25.4          # pt per mm
 RD_DOCS = []
+BK_GRP = {}                 # page -> dict(kinds=set, elements=set, untagged=n)    (G6-9 log line)
 
 
 class _RdPg(object):
@@ -31,8 +37,9 @@ def _rd_img_path(f):
     return f
 
 
-def rd_items(D, T, page=None):
-    """D's shapes as write_pdf page items in mm, y up from the drawing's lower-left corner"""
+def rd_items(D, T, page=None, grp=None):
+    """D's shapes as write_pdf page items in mm, y up from the drawing's lower-left corner; grp (a list) gets each
+    item's "grp" tag (G6-9), parallel to the items"""
     e, k = T.e, T.k
     mm = 25.4 / 72.0
 
@@ -41,6 +48,7 @@ def rd_items(D, T, page=None):
     out, skipped = [], 0
     for L in sorted(D.get("layers") or [], key=lambda L: L.get("z", 0)):
         for s in L.get("shapes") or []:
+            n0 = len(out)
             t = s.get("t") or s.get("type")         # Ix writes "t", the key-map module (S2) "type"
             if t == "poly":
                 rings = [[P(p) for p in r] for r in s.get("rings") or [] if len(r) >= 3]
@@ -71,6 +79,8 @@ def rd_items(D, T, page=None):
                             s.get("opacity"), bool(s.get("flip")), clip))
             elif t == "text":
                 skipped += 1
+            if grp is not None and len(out) > n0:
+                grp.append(wp_grp_of(s) if "wp_grp_of" in globals() else (s.get("grp") or L.get("grp")))
     if skipped:
         wn_warn(page or D.get("page"), "text", u"%s: %d text shape(s) inside its layers not drawn (texts are items: "
                 u"Ix.layer turns them into labels)" % (D.get("id"), skipped))
@@ -81,8 +91,18 @@ def rd_drawing(P, D, T, frame=None):
     import fitz as _fz
     pg = _RdPg()
     pg.W, pg.H = T.w, T.h
-    pg.items = rd_items(D, T, P.pid)
     did = u"%s" % D.get("id")
+    pg.grp = []
+    pg.items = rd_items(D, T, P.pid, pg.grp)
+    pg.grp_root = did
+    pg.page = P.pid                                 # write_pdf's per-page group counts (wp_groups_log, S2)
+    st_ = BK_GRP.setdefault(P.pid, dict(kinds=set(), elements=set(), untagged=0))
+    for g_ in pg.grp:
+        if g_:
+            st_["kinds"].add(u"%s" % g_.split(u"/")[0])
+            st_["elements"].add(u"%s|%s" % (did, g_))
+        else:
+            st_["untagged"] += 1
     d_ = bg_booklet("_render")
     os.makedirs(d_, exist_ok=True)
     fn = os.path.join(d_, u"%s_%s.pdf" % (P.pid, "".join(c if c.isalnum() or c in "-_" else "_" for c in did)))
