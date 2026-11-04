@@ -891,7 +891,8 @@ def build_all(doc, warn):
                 lines.extend(p23_items(ix, C, warn))
                 for r_ in C.nogo:                        # v38: the page sets r_["placed"] when the void's place is drawn
                     if not r_.get("placed"):
-                        warn.append(u"designed void not drawn on p23: {:.1f} ha {}".format(r_["ha"], r_.get("place")))
+                        lines.append(u"info p20 void in the 'Left as it is' list, not drawn as a designed void: "
+                                     u"{:.1f} ha {}".format(r_["ha"], r_.get("place")))   # v42: S8 reading, not a hit
                 lines.append(u"p23 masterplan items  {:.1f} s".format(time.time() - t0))
             except Exception as ex:
                 import traceback

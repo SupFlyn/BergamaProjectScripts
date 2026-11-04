@@ -1007,6 +1007,7 @@ def p24_section(C, w, warn, style="b", den=None, ex=None):
     for s_, t, al in ((name, ta, "R"), (name + u"\u2032", tb, "L")):
         S.pg.text(s_, X(t) + (-1.0 if al == "R" else 1.0), Y(zat(t)) + 0.6, 3.4, COL["ink_dark"], bold=True,
                   align=al)
+    S.co_free = []
     co = _p24_marks(S, zat, taken, missing)
     n0 = len(S.pg.items)
     shp_put(S.pg, co.marks(size=P24_CO))
@@ -1022,6 +1023,7 @@ def p24_section(C, w, warn, style="b", den=None, ex=None):
             zones.append((nm[:1] + nm[1:].lower() + u" (beyond)", t, zz, True))
     ex.update(pg=S.pg, w=S.w, top=top, ta=ta, tb=tb, z0=z0, k=k, levels=lvs, keys=keys, missing=missing,
               callouts=[(n_, ta + x_ / k, z0 + y_ / k, t_) for n_, x_, y_, t_ in co.items], zones=zones,
+              callouts_free=list(S.co_free),
               walks=walks, runs=runs, cid=cid, name=name, hw=hw, gf=gf, bed=bed, avg=avg, S=S,
               trees=dict(S.n_tree))
     return ex
@@ -1091,8 +1093,9 @@ def _p24_marks(S, zat, taken, missing):
                 break
             if got:
                 break
-        if got is None:
-            missing.append(u"callout: " + txt)
+        if got is None:                                   # v42 (L3): never dropped: handed to the booklet as a label
+            if not any(f_[2] == txt for f_ in S.co_free):     # anchored on its element (the placer moves, shortens
+                S.co_free.append((t, z, txt))                 # or numbers it with a key row)
             continue
         co.add(got[0], got[1], txt)
         done.append((got[0], got[1]))
@@ -2031,11 +2034,8 @@ def p24_window(ix, page, C, w, missing, warn):
     for nm, xy in names:
         if inP(xy):
             x, y = T(xy)
-            if fr_in((x, y), text_w(nm, ts["label"], True), ts["label"]):
-                with mpx_grp(pg, "labels", nm):
-                    pg.text(nm, x, y, ts["label"], ink1, bold=True, align="C")
-            else:
-                missing.append(nm + u" (at the frame)")
+            with mpx_grp(pg, "labels", nm):                  # v42 (L3): always exported; the booklet places it
+                pg.text(nm, x, y, ts["label"], ink1, bold=True, align="C")
     best = {}
     for key, Q in fields:
         vis = clip_ring(Q, frame)
@@ -2052,11 +2052,12 @@ def p24_window(ix, page, C, w, missing, warn):
         else:
             cand = sorted(fpts, key=lambda p: -min(p[0], dw - p[0], p[1], dh - p[1]))
             at = next((p for p in cand if fr_in(p, text_w(nm, ts["place"], True), ts["place"])), None)
-        if at is None:
-            ix.warn(page, "edge", u"%s %s: no spot %.0f mm inside the frame for its title: left out" % (
-                cname, nm, P24_TITLE_IN))
-            missing.append(nm)
-            continue
+        if at is None:                                    # v42 (L3): never left out: anchored on the field itself
+            if key in best:
+                Q_ = best[key]
+                at = (sum(p[0] for p in Q_) / len(Q_), sum(p[1] for p in Q_) / len(Q_))
+            else:
+                at = fpts[len(fpts) // 2]
         with mpx_grp(pg, "labels", nm):
             pg.text(nm, at[0], at[1], ts["place"], ink, bold=True, align="C")
         rs = p24_reason(C, key, w)
@@ -2084,11 +2085,8 @@ def p24_window(ix, page, C, w, missing, warn):
     for s_, xy in words:
         if inP(xy):
             x, y = T(xy)
-            if fr_in((x, y), text_w(s_, ts["small"]), ts["small"]):
-                with mpx_grp(pg, "labels", s_):
-                    pg.text(s_, x, y, ts["small"], ink2, align="C")
-            else:
-                missing.append(s_ + u" (at the frame)")
+            with mpx_grp(pg, "labels", s_):                  # v42 (L3): always exported; the booklet places it
+                pg.text(s_, x, y, ts["small"], ink2, align="C")
     # ---- the plan as a drawing: survey m from the window's lower-left corner; the export box carries the
     # P24_PLAN_M margin with the cut marks (G6-4: outside the frame)
     did = u"mp_dt_" + w["id"]
@@ -2141,23 +2139,20 @@ def p24_window(ix, page, C, w, missing, warn):
                 "heading", priority=3, group=did)
         sf_level_items(ix, page, Ds, sec["levels"])     # the ▽ column at the right edge, spread by the booklet
         zpt = 6.0                                         # the zone names, pt (G6-7 >= 4 pt)
-        zw = lambda nm: text_w(nm, zpt * PT, False) * DT_SCALE / float(den) / 1000.0 * (den / DT_SCALE) * 1000.0 / ks
-        placed_, drop = [], []
-        for beyond in (False, True):                      # the cut's own zones first, then those beyond, in the gaps
+        # v42 (L3, booklet-places-all): every zone name is exported, anchored at the zone's middle on the
+        # section's top line; the booklet's placer moves / shortens / numbers it on a collision (nothing dropped here)
+        n_zn = 0
+        for beyond in (False, True):                      # the cut's own zones first (higher priority), then beyond
             for nm, t, zz, by in sorted(sec["zones"], key=lambda z_: z_[1]):
                 if by != beyond:
                     continue
-                hw_ = zw(nm) / 2.0 + 0.8 / ks             # half its width + 0.8 mm clearance, m along the cut
-                if t - hw_ < sec["ta"] - P24_SEC_M / ks or t + hw_ > sec["tb"] + P24_SEC_M / ks or \
-                        any(abs(t - t2) < hw_ + h2 for t2, h2 in placed_):
-                    drop.append(nm)
-                    continue
-                placed_.append((t, hw_))
-                ix.text(page, nm, "label", drawing=sid, at=(t, z_row), size_pt=zpt, positions=["=C"],
-                        colour=COL["ink2"] if beyond else COL["ink_dark"], bold=not beyond, group=did, priority=4)
-        if drop:
-            ix.warn(page, "overlap", u"section %s: zone names with no room in the one row: %s" % (
-                sec["name"], u", ".join(drop)))
+                sf_ = [nm.replace(u" (beyond)", u"")] if u" (beyond)" in nm else []
+                ix.text(page, nm, "label", drawing=sid, at=(t, z_row), size_pt=zpt,
+                        positions=["=C", "N", "NE", "NW", "S"], short_forms=sf_,
+                        colour=COL["ink2"] if beyond else COL["ink_dark"], bold=not beyond, group=did,
+                        priority=5 if beyond else 4)
+                n_zn += 1
+        out.append(u"section p21 {} zone names exported {} (placed by the booklet)".format(sec["name"], n_zn))
         rows, seen_ = [], set()
         for n_, t, zz, t_ in sorted(sec["callouts"]):
             if n_ not in seen_:
@@ -2166,6 +2161,13 @@ def p24_window(ix, page, C, w, missing, warn):
         if rows:
             ix.list(page, sid, [t_ for t_, _a in rows], numbered=True, anchors=[a_ for _t, a_ in rows],
                     id=sid + u"_key", group=did)
+        for t, zz, t_ in sec.get("callouts_free") or ():   # v42 (L3): callouts with no free circle spot, as labels
+            ix.text(page, t_, "label", drawing=sid, at=(t, zz), size_pt=zpt, short_forms=[t_.split(u":")[0]],
+                    positions=["N", "NE", "NW", "E", "W", "S", "SE", "SW"], group=did, priority=5)
+        if sec.get("callouts_free"):
+            out.append(u"section p21 {} callouts as booklet labels {}: {}".format(
+                sec["name"], len(sec["callouts_free"]), u", ".join(t_.split(u":")[0] for _t, _z, t_ in
+                                                                   sec["callouts_free"])))
         for key, n_ in (sec.get("trees") or {}).items():
             _P24_TREE_N[u"section " + key] = _P24_TREE_N.get(u"section " + key, 0) + n_
     # ---- the legend by category (G6-6: the hue table; only what this window's plan and section draw)
@@ -2207,7 +2209,8 @@ def p24_items(ix, C, wins, areas, missing, warn):
         if sp_ is not None:
             cid, name, c0, cd, f, ta, tb = sp_
             cuts.append(((c0[0] + cd[0] * ta, c0[1] + cd[1] * ta), (c0[0] + cd[0] * tb, c0[1] + cd[1] * tb),
-                         (name, name + u"′"), "cut"))
+                         (name, name + u"′"), 1 if (f[0] * -cd[1] + f[1] * cd[0]) > 0 else -1))
+            # v42 (L3): the look as keymap.py km_cut_items wants it (+1/-1, the sign br_section gets), not "cut"
     for nm, ring in _P24_WINS.values():
         zooms[nm] = ring
     try:

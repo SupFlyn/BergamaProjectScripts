@@ -982,8 +982,11 @@ def pl23_markers(sh, C, rws, warn):
             if any(j == i and math.hypot(x - a, y - b) < PL23_REPEAT_MM for j, a, b in seen):
                 continue                                  # v35: no repeat badge near one of the same move
             spot = pl23_mk_spot(tp, x, y, r, rws[i][2])
-            if spot is None:
-                continue
+            if spot is None:                              # v42 (L3): a move is never only in the list: its first
+                if ent[4]:                                # place gets the marker on the place itself (the booklet's
+                    continue                              # collision test sees it); repeats still need a free spot
+                spot = (x, y)
+                MPX_LOG.append(u"info p20 move %s: marker on its place (no free spot round it)" % s)
             mp_marker(sh, spot[0], spot[1], s, col, PL23_MK_PT)
             C.pl23_mk_at.setdefault(s, []).append((i, spot[0], spot[1]))   # round 5: the lists' anchors
             seen.append((i, x, y))
@@ -1007,10 +1010,9 @@ def pl23_markers(sh, C, rws, warn):
         i = row_of(p)
         x, y = rws[i][0](p)
         spot = pl23_mk_spot(tp, x, y, pl23_mk_r(lt), rws[i][2])
-        if spot is None:
-            warn.append(u"masterplan p20: area left as it is {} ({:.1f} ha) has no free spot for its letter: only in "
-                        u"the list".format(lt, r_["ha"]))
-            continue
+        if spot is None:                                  # v42 (L3): on its place, never only in the list
+            spot = (x, y)
+            MPX_LOG.append(u"info p20 left-as-it-is %s: letter on its place (no free spot round it)" % lt)
         mp_marker(sh, spot[0], spot[1], lt, v["colour"], PL23_MK_PT, style="ring", name=u"left " + lt)
         C.pl23_mk_at.setdefault(lt, []).append((i, spot[0], spot[1]))
         v["n_map"] += 1
@@ -1023,9 +1025,9 @@ def pl23_markers(sh, C, rws, warn):
         x, y = rws[i][0](xy)
         s_ = u"%d" % n_
         spot = pl23_mk_spot(tp, x, y, pl23_mk_r(s_), rws[i][2])
-        if spot is None:
-            warn.append(u"masterplan p20: collect-clean-hold {} ({}) has no free spot on the map".format(n_, nm))
-            continue
+        if spot is None:                                  # v42 (L3): on its place, never left off the map
+            spot = (x, y)
+            MPX_LOG.append(u"info p20 collect-clean-hold %d: number on its place (no free spot round it)" % n_)
         mp_marker(sh, spot[0], spot[1], s_, pl23_h("cch"), PL23_MK_PT, style="ring", name=u"cch %d" % n_)
         C.pl23_cch_on.append((n_, nm, i, spot))
     return ents, vl
