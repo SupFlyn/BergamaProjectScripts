@@ -236,11 +236,22 @@ def _ps_layers(ix, D, items, kinds):
 def ps_label_items(ix, D, did, lbl):
     """v21 (LAYOUT PLAN §3.1-2): every line of a sketch label = one label item of panel D at its drawn point (units
     mm), drawn alignment first, then the ring. Lines of one label share the id stem "<did>_lbl_<g>_" (n = line,
-    from 1, top down) so the booklet can keep them together. Returns (labels, lines)."""
+    from 1, top down) so the booklet can keep them together. An element number's digit (group < 0) = role "badge"
+    (booklet bk_badges: stays on its disc, never moved), id "<did>_num_<digit>". Returns (labels, lines)."""
     n_line, seen = {}, []
     for t, g in lbl:
         _, txt, x, y, size, colour, bold, al = t[:8]
         if not (u"%s" % txt).strip():
+            continue
+        if g < 0:
+            nid = u"%s_num_%s" % (did, txt)
+            k_ = 2
+            while nid in ix.ids:                      # the same number twice in one panel: _2, _3 (no export warning)
+                nid = u"%s_num_%s_%d" % (did, txt, k_)
+                k_ += 1
+            ix.text(D["page"], txt, "badge", drawing=D["id"], at=(x, y), size_pt=size / PT, bold=bool(bold),
+                    colour=colour if isinstance(colour, str) else None, positions=["=" + str(al or "C")],
+                    side_list_ok=False, group=did, id=nid)
             continue
         n_line[g] = n_line.get(g, 0) + 1
         if g not in seen:
@@ -275,7 +286,7 @@ def ps_items(ix, log):
             t_ = xform([it], s, dx, dy)
             if not t_:
                 continue
-            if t_[0][0] == "text" and g > 0:          # a label's line -> a label item (below), never drawn here
+            if t_[0][0] == "text" and g:              # a label's line / a number's digit -> an item (below)
                 lbl.append((t_[0], g))
             else:
                 its.append(t_[0])

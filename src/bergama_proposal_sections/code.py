@@ -10,7 +10,8 @@ NEW IN v21 (layout rework L5, 4 Nov 2026; Aras 19:17-19:18 "make all the scripts
   * declutter() is gone: the script no longer moves a label or leaves one out ("label ... left out (no free place
     near it)" warnings end). Every line of every sketch label is a label item of its panel (role "label", anchor = its
     drawn point in the panel's mm, drawn alignment first), ids ps_panel_<n>_lbl_<g>_<line>; the booklet places them and
-    fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11) stay drawn.
+    fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11): circle drawn,
+    digit = role "badge" (ps_panel_<n>_num_<digit>, the booklet keeps it on its circle).
   * Log per panel: "p12 ps_panel_<n>: labels L (N lines) exported at their drawn points; the booklet places them".
   * SKETCH_SRC.py (shared with agriculture) unchanged.
 NEW IN v20 (round 6, S6, 4 Nov 2026; BRIEF row 12, Q9, G6-1..G6-10, P-1, P-7, P-12; a feature change):

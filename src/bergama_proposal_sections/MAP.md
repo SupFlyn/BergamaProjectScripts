@@ -3,9 +3,9 @@
 | function / data | file | line |
 |---|---|---|
 | bergama_paths | ../common/bergama_paths.py | - |
-| ps_sources | code.py | 204 |
-| text_w | code.py | 231 |
-| Page | code.py | 238 |
+| ps_sources | code.py | 205 |
+| text_w | code.py | 232 |
+| Page | code.py | 239 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -44,8 +44,8 @@
 | ps_sections | parts/90_booklet.py | 178 |
 | _ps_layers | parts/90_booklet.py | 209 |
 | ps_label_items | parts/90_booklet.py | 236 |
-| ps_items | parts/90_booklet.py | 255 |
-| main | code.py | 333 |
+| ps_items | parts/90_booklet.py | 266 |
+| main | code.py | 334 |
 | trigger | ../common/trigger.py | - |
-| done_text | code.py | 354 |
-| write_log | code.py | 359 |
+| done_text | code.py | 355 |
+| write_log | code.py | 360 |
