@@ -193,8 +193,11 @@ def _sc_next_orig(v):
     return v
 
 
-def _sc_gh(S, C):
-    """S ∩ C as rings, or None when a vertex lies on the other's edge (the caller perturbs and retries)"""
+def _sc_gh(S, C, union=False):
+    """S ∩ C as rings, or None when a vertex lies on the other's edge (the caller perturbs and retries). round 6 (S1,
+    G6-5): union=True gives S ∪ C instead (the same walk with every entry flag flipped; the key map's one study
+    outline, keymap.km_study_ring); parts that never cross come back as they are (the outer one when one holds the
+    other)"""
     sl, cl = _sc_list(S), _sc_list(C)
     hits = []
     for i, s0 in enumerate(sl):
@@ -212,6 +215,12 @@ def _sc_gh(S, C):
                 if a < 1e-7 or a > 1.0 - 1e-7 or b < 1e-7 or b > 1.0 - 1e-7:
                     return None                           # degenerate (vertex on an edge)
                 hits.append((i, a, j, b, s0.x + dx * a, s0.y + dy * a))
+    if not hits and union:
+        if _sc_pip(S[0][0], S[0][1], C):
+            return [list(C)]
+        if _sc_pip(C[0][0], C[0][1], S):
+            return [list(S)]
+        return [list(S), list(C)]
     if not hits:
         if _sc_pip(S[0][0], S[0][1], C):
             return [list(S)]
@@ -238,6 +247,8 @@ def _sc_gh(S, C):
     # entry / exit flags
     for start, other in ((sl[0], C), (cl[0], S)):
         status = not _sc_pip(start.x, start.y, other)    # True: the next intersection is an entry
+        if union:
+            status = not status                          # round 6: flipped flags walk the outside (S ∪ C)
         v = start
         while True:
             if v.inter:
