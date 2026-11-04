@@ -3583,11 +3583,12 @@ BK_PAGES = [
                  F(("wb_p12_conclusion", "p12_conclusion"), 69.5, 68.0, 27.2, 5.0, key="conclusion"),
                  F(("p12_section_head*", "p12_section_list*", "wb_p12_section_key", "p12_section_key*"), 3.3, 74.5,
                    17.0, 18.5, key="aa_list"),
-                 F(("p12_section_sketch", "p12_section"), 21.4, 74.5, 42.0, 18.5, key="aa", note="aa_list"),
-                 F("p12_section_reeds", 64.0, 74.5, 20.0, 18.5),
+                 F(("p12_section_sketch", "p12_section"), 21.4, 74.5, 35.0, 18.5, key="aa", note="aa_notes"),
+                 # S5: the sketch is ~2.7:1, so the cut takes 35 % and its levels / caption / strip note sit beside it
+                 F(("wb_p12_section_levels", "wb_p12_section_caption", "wb_p12_strip_note"), 57.5, 74.5, 26.5, 18.5,
+                   key="aa_notes"),
                  F(("p12_keymap", "*keymap*"), 84.8, 74.5, 11.9, 7.0, key="km"),
-                 F(("wb_p12_section_legend", "p12_section_legend*", "wb_p12_strip_note"), 84.8, 82.0, 11.9, 11.0,
-                   key="aa_legend")],
+                 F(("wb_p12_section_legend", "p12_section_legend*"), 84.8, 82.0, 11.9, 11.0, key="aa_legend")],
          side="aa_legend"),
     # 12 · SON page13 + page14 = r06_S02 (P-12, P-1): four SKETCH panels, legend strip above the footer
     dict(pid="p12", part="C", stage="do", title=u"The proposals in section",
@@ -3660,7 +3661,8 @@ BK_PAGES = [
                  F("p18_band_shares", 21.0, 53.0, 10.5, 14.0, foot=4.0),
                  F("p18_foliage_shares", 32.0, 53.0, 10.5, 14.0, foot=4.0),
                  F("p18_heights", 43.0, 53.0, 53.7, 14.0),
-                 F("p18_card_*", 3.3, 68.0, 93.4, 25.0, key="cards", split="row", same="cards")],
+                 F("p18_card_*", 3.3, 68.0, 93.4, 23.5, key="cards", split="row", same="cards"),
+                 F("p18_catalogue_sources", 3.3, 92.0, 70.0, 1.8, key="cat_src")],      # S5: the cards' source marks
          side="legend"),
     # 17 · NEW = r06_S01 (SKETCH plant ladder)
     dict(pid="p17", part="C", stage="do", title=u"One plant ladder, streambed to field",
@@ -3677,9 +3679,9 @@ BK_PAGES = [
     dict(pid="p18", part="C", stage="do", title=u"Where the clean water goes, and what it grows",
          intro=u"Clean water to *farmland outside the site*, easing an *overused aquifer*, *never drinking water*; "
                u"*same storage, different crops*: the *hectares* each crop irrigates.",
-         frames=[F("wb_farms", 3.3, 10.0, 55.0, 20.5),
+         frames=[F("wb_farms", 3.3, 10.0, 55.0, 20.5, foot=2.5),
                  F("wb_farms_out", 60.0, 10.0, 36.7, 20.5),
-                 F("wb_decision", 3.3, 32.0, 30.0, 15.5),
+                 F("wb_decision", 3.3, 32.0, 30.0, 15.5, foot=2.5),
                  F("ag1_stream", 35.0, 32.0, 61.7, 15.5),
                  F("ag1_bars", 3.3, 49.0, 55.0, 25.0),
                  F("ag1_context", 60.0, 49.0, 36.7, 25.0),
