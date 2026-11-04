@@ -323,7 +323,8 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
                     bold=bool(s[6]), colour=col, positions=pos, group=D["group"], priority=2 if r5 == "badge" else 5)
             n_lab += 1
         else:
-            ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", size_pt=size_mm / IX_PT, bold=bool(s[6]),
+            ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", drawing=D["id"],   # v42: in its box
+                    size_pt=size_mm / IX_PT, bold=bool(s[6]),
                     colour=col, group=D["group"], priority=3 if role in ("title", "heading") else 6)
             n_txt += 1
     ixg = globals().get("ix_group")                      # S2 (common/item_export.py): element group context

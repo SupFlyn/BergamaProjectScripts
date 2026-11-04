@@ -18313,7 +18313,8 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
                     bold=bool(s[6]), colour=col, positions=pos, group=D["group"], priority=2 if r5 == "badge" else 5)
             n_lab += 1
         else:
-            ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", size_pt=size_mm / IX_PT, bold=bool(s[6]),
+            ix.text(page, s[1], role if role in IX_TEXT_ROLES else "note", drawing=D["id"],   # v42: in its box
+                    size_pt=size_mm / IX_PT, bold=bool(s[6]),
                     colour=col, group=D["group"], priority=3 if role in ("title", "heading") else 6)
             n_txt += 1
     ixg = globals().get("ix_group")                      # S2 (common/item_export.py): element group context
@@ -20201,7 +20202,7 @@ def p17_items(ix, C, areas, warn):
         did = u"mp_sn_" + key
         D = mpx_drawing(ix, did, page, pg, box, SN_SCALE, origin_m=(fr[0], fr[1]), dkind="plan", north_deg=nd,
                         group="mp_senses", priority=1, items=pg.items[n0:])
-        ix.text(page, title, "heading", group="mp_senses", id=did + u"_head", priority=3)
+        ix.text(page, title, "heading", drawing=did, group="mp_senses", id=did + u"_head", priority=3)   # v42 box
         for nm, xy in BRIDGES_K:                         # the bridge names at their ticks on the top edge (labels)
             x = cell["T"](xy)[0]
             if box[0] <= x <= box[2] and nm not in ("K1", "K2"):
@@ -21486,7 +21487,7 @@ def p23_items(ix, C, warn):
     ix.text(page, u"Masterplan: an ecological corridor", "title", id=u"mp_plan_title", group=u"mp_plan", priority=1)
     cap = u"The corridor across the whole {}{}; the stream flows left to right.".format(
         R28_FRAME_NAME.lower(), u": upstream half on top, downstream half below" if len(rows) > 1 else u"")
-    ix.text(page, cap, "caption", id=u"mp_plan_caption", group=u"mp_plan")
+    ix.text(page, cap, "caption", drawing=d1, id=u"mp_plan_caption", group=u"mp_plan", priority=1)   # v42 box
     # ---- round 6 (S8): the street cuts R1-R4 of page 8 and the producers' market at K5, labels at their place
     cuts, cerr = pl23_street_cuts()
     if cerr:
@@ -21539,7 +21540,8 @@ def p23_items(ix, C, warn):
         numbered = ns == list(range(1, len(ns) + 1))
         texts = [(u"" if numbered else u"%d " % nt["n"]) + nm + (u" · " + line if line else u"")
                  for nt, _g, nm, line, _ok in ents]
-        ix.text(page, u"The moves, by number", "heading", id=u"mp_plan_moves_head", group=u"mp_plan", priority=3)
+        ix.text(page, u"The moves, by number", "heading", drawing=d1, id=u"mp_plan_moves_head", group=u"mp_plan",
+                priority=3)
         ix.list(page, d1, texts, numbered=numbered, anchors=[anchor_of(u"%d" % nt["n"]) for nt, _g, _n, _l, _o in ents],
                 id=u"mp_plan_moves", group=u"mp_plan")
     cc = pl23_cch(C)
@@ -21551,8 +21553,8 @@ def p23_items(ix, C, warn):
         for n_, nm, i, spot in sorted(on_):
             if n_ not in seen_:
                 seen_.append(n_)
-        ix.text(page, u"Collect, clean, hold · the numbers of page 11", "heading", id=u"mp_plan_cch_head",
-                group=u"mp_plan", priority=3)
+        ix.text(page, u"Collect, clean, hold · the numbers of page 11", "heading", drawing=d1,
+                id=u"mp_plan_cch_head", group=u"mp_plan", priority=3)
         ix.list(page, d1, [u"%d %s" % (n_, cch_name(n_)) for n_ in seen_], numbered=False,      # noqa: F821
                 anchors=[anchor_of(u"%d" % n_) for n_ in seen_], id=u"mp_plan_cch", group=u"mp_plan")
     if cc["missing"]:
@@ -21561,8 +21563,8 @@ def p23_items(ix, C, warn):
     if vl:
         texts = [u"{} · {} · {}".format(v["letter"], u_area(v["regions"][0]["ha"] * 1e4, "ha"), v["reason"])
                  for v in vl]
-        ix.text(page, u"Left as it is · no intervention, because", "heading", id=u"mp_plan_left_head",
-                group=u"mp_plan", priority=3)
+        ix.text(page, u"Left as it is · no intervention, because", "heading", drawing=d1,
+                id=u"mp_plan_left_head", group=u"mp_plan", priority=3)
         ix.list(page, d1, texts, numbered=False, anchors=[anchor_of(v["letter"]) for v in vl], id=u"mp_plan_left",
                 group=u"mp_plan")
     # ---- sources (public only, as round 4's plan_sources)
@@ -23712,12 +23714,12 @@ def p24_window(ix, page, C, w, missing, warn):
                     dkind="plan", north_deg=round(math.degrees(F["north"]), 2), scale_pref=[int(DT_SCALE)],
                     priority=1, group=did, title=w["title"])
     MPX_PAGES.append(("A", u"p21 " + w["id"], pg))
-    ix.text(page, w["title"], "heading", priority=3, group=did)
+    ix.text(page, w["title"], "heading", drawing=did, priority=3, group=did)   # v42: one box per drawing (L1 19:30)
     if A_ is not None:
         ix.anchor(D, name, (A_[0] / k, A_[1] / k))
         ix.anchor(D, name + u"′", (B_[0] / k, B_[1] / k))
     if route_rows:
-        ix.text(page, u"Water route · collect, clean, give back", "heading", priority=4, group=did)
+        ix.text(page, u"Water route · collect, clean, give back", "heading", drawing=did, priority=4, group=did)
         ix.list(page, did, [t_ for t_, _p in route_rows], numbered=True, anchors=[(p_[0] / k, p_[1] / k)
                                                                                   for _t, p_ in route_rows],
                 id=did + u"_route", group=did)
@@ -23753,7 +23755,7 @@ def p24_window(ix, page, C, w, missing, warn):
                          priority=1, group=did, title=u"Section {0}-{0}′".format(sec["name"]))
         MPX_PAGES.append(("A", u"p21 " + w["id"] + u" section", sec["pg"]))
         ix.text(page, u"Section {0}-{0}′ · on cut {1} · looking upstream".format(sec["name"], level_name(sec["cid"])),
-                "heading", priority=3, group=did)
+                "heading", drawing=sid, priority=3, group=did)
         sf_level_items(ix, page, Ds, sec["levels"])     # the ▽ column at the right edge, spread by the booklet
         zpt = 6.0                                         # the zone names, pt (G6-7 >= 4 pt)
         # v42 (L3, booklet-places-all): every zone name is exported, anchored at the zone's middle on the

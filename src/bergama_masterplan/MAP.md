@@ -163,11 +163,11 @@
 | _mpx_region | parts/04_items.py | 221 |
 | mpx_flat | parts/04_items.py | 233 |
 | mpx_drawing | parts/04_items.py | 273 |
-| mpx_grp | parts/04_items.py | 357 |
-| mpx_X | parts/04_items.py | 371 |
-| mpx_sw | parts/04_items.py | 414 |
-| mpx_keymap | parts/04_items.py | 466 |
-| mpx_lines | parts/04_items.py | 486 |
+| mpx_grp | parts/04_items.py | 358 |
+| mpx_X | parts/04_items.py | 372 |
+| mpx_sw | parts/04_items.py | 415 |
+| mpx_keymap | parts/04_items.py | 467 |
+| mpx_lines | parts/04_items.py | 487 |
 | p16_senses | pages/p16_senses.py | - |
 | p23_plan | pages/p23_plan.py | - |
 | p24_detail | pages/p24_detail.py | - |

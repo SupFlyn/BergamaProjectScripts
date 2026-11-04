@@ -2095,12 +2095,12 @@ def p24_window(ix, page, C, w, missing, warn):
                     dkind="plan", north_deg=round(math.degrees(F["north"]), 2), scale_pref=[int(DT_SCALE)],
                     priority=1, group=did, title=w["title"])
     MPX_PAGES.append(("A", u"p21 " + w["id"], pg))
-    ix.text(page, w["title"], "heading", priority=3, group=did)
+    ix.text(page, w["title"], "heading", drawing=did, priority=3, group=did)   # v42: one box per drawing (L1 19:30)
     if A_ is not None:
         ix.anchor(D, name, (A_[0] / k, A_[1] / k))
         ix.anchor(D, name + u"′", (B_[0] / k, B_[1] / k))
     if route_rows:
-        ix.text(page, u"Water route · collect, clean, give back", "heading", priority=4, group=did)
+        ix.text(page, u"Water route · collect, clean, give back", "heading", drawing=did, priority=4, group=did)
         ix.list(page, did, [t_ for t_, _p in route_rows], numbered=True, anchors=[(p_[0] / k, p_[1] / k)
                                                                                   for _t, p_ in route_rows],
                 id=did + u"_route", group=did)
@@ -2136,7 +2136,7 @@ def p24_window(ix, page, C, w, missing, warn):
                          priority=1, group=did, title=u"Section {0}-{0}′".format(sec["name"]))
         MPX_PAGES.append(("A", u"p21 " + w["id"] + u" section", sec["pg"]))
         ix.text(page, u"Section {0}-{0}′ · on cut {1} · looking upstream".format(sec["name"], level_name(sec["cid"])),
-                "heading", priority=3, group=did)
+                "heading", drawing=sid, priority=3, group=did)
         sf_level_items(ix, page, Ds, sec["levels"])     # the ▽ column at the right edge, spread by the booklet
         zpt = 6.0                                         # the zone names, pt (G6-7 >= 4 pt)
         # v42 (L3, booklet-places-all): every zone name is exported, anchored at the zone's middle on the

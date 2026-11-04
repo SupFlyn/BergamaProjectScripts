@@ -1723,7 +1723,7 @@ def p17_items(ix, C, areas, warn):
         did = u"mp_sn_" + key
         D = mpx_drawing(ix, did, page, pg, box, SN_SCALE, origin_m=(fr[0], fr[1]), dkind="plan", north_deg=nd,
                         group="mp_senses", priority=1, items=pg.items[n0:])
-        ix.text(page, title, "heading", group="mp_senses", id=did + u"_head", priority=3)
+        ix.text(page, title, "heading", drawing=did, group="mp_senses", id=did + u"_head", priority=3)   # v42 box
         for nm, xy in BRIDGES_K:                         # the bridge names at their ticks on the top edge (labels)
             x = cell["T"](xy)[0]
             if box[0] <= x <= box[2] and nm not in ("K1", "K2"):
