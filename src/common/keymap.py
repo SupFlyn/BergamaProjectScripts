@@ -76,7 +76,7 @@ def km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=None):
     out = []
     for c in cuts:
         a, b, names = c[0], c[1], c[2]
-        look = c[3] if len(c) > 3 else 1
+        look = c[3] if len(c) > 3 and isinstance(c[3], (int, float)) else 1   # v32 (L1): a look given as text = +1
         L0 = _km_m.hypot(b[0] - a[0], b[1] - a[1])
         if L0 < 1e-6:
             continue
@@ -706,13 +706,13 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
     done, done_segs, tboxes = [], [], []
     for c in cuts:
         a, b, nm = tuple(c[0]), tuple(c[1]), tuple(c[2])
-        look = c[3] if len(c) > 3 else 1
+        look = c[3] if len(c) > 3 and isinstance(c[3], (int, float)) else 1
         L0 = _km_m.hypot(b[0] - a[0], b[1] - a[1]) or 1e-6
         ux, uy = (b[0] - a[0]) / L0, (b[1] - a[1]) / L0
         if L0 < min_l:
             cx_, cy_ = 0.5 * (a[0] + b[0]), 0.5 * (a[1] + b[1])
             a, b = (cx_ - 0.5 * min_l * ux, cy_ - 0.5 * min_l * uy), (cx_ + 0.5 * min_l * ux, cy_ + 0.5 * min_l * uy)
-        its, sg = None, None
+        its, sg, crowd = None, None, False
         for k in KM_SHRINK:
             st = dict(end_bar=KM_CUT["end_bar"] * k, tri_h=KM_CUT["tri_h"] * k)
             its = km_cut_items([(a, b, nm, look)], den, frame=frame, style=st)
@@ -721,18 +721,20 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
                 if k != 1.0:
                     log.append(u"keymap %s cut %s drawn at %.0f %% size (gap to its neighbour)" % (pg, nm[0], k * 100))
                 break
-        else:
-            log.append(u"WARNING %s keymap cut %s touches a neighbouring cut (gap under %.1f mm)" % (pg, nm[0], gap))
+        else:                                        # v32 (L1, LAYOUT_PLAN §3.2-5): marks closer than the gap keep
+            crowd = True                             # their smallest size and their NAMES are pushed apart (no WARNING)
+            log.append(u"keymap %s cut %s closer than %.1f mm to a neighbour: drawn at %.0f %% size, its name pushed "
+                       u"clear of the neighbour" % (pg, nm[0], gap, KM_SHRINK[-1] * 100))
         others = list(done_segs)
         tx = [tbox(it) for it in its if it[0] == "text"]
-        if tx and not all(inside(bb) and not _km_box_hit(bb, tboxes, 0.6) and not _km_seg_hit(bb, others, 0.6)
-                          for bb in tx):
+        if tx and (crowd or not all(inside(bb) and not _km_box_hit(bb, tboxes, 0.6) and not _km_seg_hit(bb, others, 0.6)
+                          for bb in tx)):
             its = [it for it in its if it[0] != "text"]
             nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
             mid = (0.5 * (a[0] + b[0]), 0.5 * (a[1] + b[1]))
             got = None
             for strict in (True, False):                 # clear of every cut line first, else of the texts only
-                for off in (3.5, 5.0, 6.5, 8.0, 10.0, 12.0):
+                for off in (3.5, 5.0, 6.5, 8.0, 10.0, 12.0, 15.0, 18.0, 22.0):   # v32: further out before giving up
                     for sgn in (-1.0, 1.0):
                         it = ("text", nm[0], (mid[0] + sgn * nx * off * m, mid[1] + sgn * ny * off * m),
                               KM_CUT["text_mm"], KM_CUT["colour"], True, "MC")

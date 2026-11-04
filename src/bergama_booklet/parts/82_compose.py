@@ -77,7 +77,7 @@ def bk_attach(S):
     groups = {}
     for d in sorted(S["draw"].values(), key=lambda d: (d.get("priority", 5), d["id"])):
         groups.setdefault(d.get("group"), []).append(d["id"])
-    att = dict((d, dict(head=[], side=[], levels=[])) for d in S["draw"])
+    att = dict((d, dict(head=[], side=[], levels=[], badge=None, sub=None)) for d in S["draw"])
     S["page"], S["intro"] = [], None
 
     def owner(it):
@@ -101,10 +101,19 @@ def bk_attach(S):
                 continue
         if d is None:
             S["page"].append(t)
+        elif t.get("role") == "badge" and att[d]["badge"] is None:     # v32 box: the drawing's number disc
+            att[d]["badge"] = t
+        elif t.get("role") == "caption" and t.get("priority", 5) <= 1 and att[d]["sub"] is None:
+            att[d]["sub"] = t                                           # v32 box: the subtitle under the title
         elif t.get("role") == "heading" and not att[d]["head"]:
             att[d]["head"].append(t)
         else:
             att[d]["side"].append(t)
+    strs = set(u"%s" % t.get("string", u"") for t in S["items"] if t.get("kind") == "text")
+    for d, a in att.items():                         # v32 box: a title given only as ix.drawing(title=) heads its box
+        tt = S["draw"][d].get("title")
+        if not a["head"] and isinstance(tt, str) and tt.strip() and tt not in strs:
+            a["head"].append(dict(kind="text", role="heading", string=tt, id=u"%s_title" % d, priority=1))
     for it in S["legends"] + S["lists"]:
         d = owner(it)
         (att[d]["side"] if d else S["page"]).append(it)
@@ -131,14 +140,52 @@ def _bk_parent(S, did):
     return None
 
 
-def _bk_res(S, did):
-    """(extra width, extra height) round a drawing: level column, heading, scale band"""
+def _bk_k(D, s):
+    """page mm per drawing unit at s (den for "m" drawings, factor for "mm")"""
+    return (1000.0 / float(s)) if D.get("units", "m") == "m" else float(s)
+
+
+def _bk_res(S, did, s=None):
+    """(extra width, extra height) round a drawing: level column (v32: measured at s, both columns), heading, scale
+    band"""
     D = S["draw"][did]
     att = S["att"].get(did, {})
-    rw = BK_LEVEL_W if att.get("levels") else 0.0
+    rw = 0.0
+    if att.get("levels"):
+        if s is None:
+            rw = BK_LEVEL_W
+        else:
+            k = _bk_k(D, s)
+            rw = max(pl_levels_w(lc, k, float(D["extent"][3])) for lc in att["levels"])
     band = D.get("units") == "m" or (D.get("north_deg") is not None and D.get("role") != "keymap")
-    rh = (BK_HEAD_H if att.get("head") else 0.0) + (BK_SCALE_H if band else 0.0)
+    rh = (BK_SCALE_H if band else 0.0)
+    if s is not None:
+        dw = sc_size(D, s)[0]
+        rh += _bk_head_h(att, dw + rw) + (pl_band_need(D, _bk_k(D, s)) if _bk_is_band(D) else 0.0)
+    else:
+        rh += (BK_HEAD_H if att.get("head") or att.get("badge") else 0.0)
     return rw, rh
+
+
+def _bk_is_band(D):
+    """v32: a true-scale section sets its labels in a band above it (Aras's W1 box)"""
+    return D.get("dkind") == "section" and D.get("units", "m") == "m" and not bk_design_den(D)
+
+
+def _bk_head_h(att, w):
+    """v32 box head: number disc + title row, then the subtitle (wrapped to the box width)"""
+    h = BK_HEAD_H if (att.get("head") or att.get("badge")) else 0.0
+    if att.get("sub"):
+        h += st_fit(att["sub"].get("string", u""), max(20.0, w), None, "caption")[3] + 1.0
+    return h
+
+
+def bk_disc(P, cx, cy, r, fill):
+    import fitz as _fz
+    sh = P.page.new_shape()
+    sh.draw_circle(_fz.Point(cx * BK_K, cy * BK_K), r * BK_K)
+    sh.finish(color=None, fill=hex_rgb(fill), width=0)
+    sh.commit()
 
 
 # ---- drawing ------------------------------------------------------------------------------------------------------
@@ -195,13 +242,29 @@ def bk_place(P, S, did, s, x, y, side):
     """one cell at (x, y) top-left: heading, drawing, north, levels, labels, scale (see step 3) -> placed"""
     D = S["draw"][did]
     att = S["att"].get(did, dict(head=[], side=[], levels=[]))
-    rw, rh = _bk_res(S, did)
+    rw, rh = _bk_res(S, did, s)
     dw, dh = sc_size(D, s)
     yy = y
-    if att["head"]:
-        st_para(P, att["head"][0].get("string", u""), x, y, max(dw + rw, 30.0), BK_HEAD_H - 0.6, "heading",
-                justify=False, page=P.pid)
+    W = max(dw + rw, 30.0)
+    if att["head"] or att.get("badge"):                # v32 box head (Aras's W1 box): disc, title
+        hx = x
+        if att.get("badge"):
+            r_ = 1.8
+            bk_disc(P, x + r_, y + r_ + 0.2, r_, GRID_INK["accent"])
+            P.tp.keep((x, y, x + 2 * r_, y + 2 * r_ + 0.4), "marker", u"disc %s" % did)
+            bpt = 5.0
+            P.tp.put(att["badge"].get("string", u""), x + r_, y + r_ + 0.2, bpt, True, "MC", 0.0,
+                     att["badge"].get("id"), "badge", "FFFFFF", ("marker",))
+            hx += 2 * r_ + 1.2
+        if att["head"]:
+            st_para(P, att["head"][0].get("string", u""), hx, y, W - (hx - x), BK_HEAD_H - 0.6, "heading",
+                    justify=False, page=P.pid)
         yy += BK_HEAD_H
+    if att.get("sub"):
+        hh, _s2 = st_para(P, att["sub"].get("string", u""), x, yy, W, None, "caption", page=P.pid)
+        yy += hh + 1.0
+    if _bk_is_band(D):                                 # the label band sits between the head and the drawing
+        yy += pl_band_need(D, _bk_k(D, s))
     T = BkT(D, s, x, yy)
     placed = rd_drawing(P, D, T)
     S["placed"][did] = placed
@@ -220,7 +283,10 @@ def bk_place(P, S, did, s, x, y, side):
         pl_rigid(P, placed, float(dden) / float(T.den))   # own text layout, scaled from its sheet scale to this one
     elif T.den:
         bk_badges(P, placed)
-        pl_labels(P, placed, side, roles=("label",))
+        if _bk_is_band(D):
+            pl_band(P, placed)
+        else:
+            pl_labels(P, placed, side, roles=("label",))
     else:                                           # v30.3: diagrams keep their own text layout, scaled with them
         pl_rigid(P, placed, s)
     if T.den:
@@ -300,7 +366,7 @@ def _bk_pool(S):
     list | photo"""
     out = [(d, "drawing", S["draw"][d]) for d in sorted(S["draw"], key=lambda d: (S["draw"][d].get("priority", 5), d))]
     out += [(k.get("id"), "keymap", k) for k in S["keymaps"]]
-    heads = set(id(h) for a in S["att"].values() for h in a["head"])      # set over their drawing by bk_place
+    heads = set(id(h) for a in S["att"].values() for h in a["head"] + [a.get("badge"), a.get("sub")] if h)
     out += [(t.get("id"), "text", t) for t in S["texts"] if t is not S.get("intro") and id(t) not in heads]
     out += [(it.get("id"), k, it) for k in ("legend", "list", "photo") for it in S[k + "s"]]
     return out
@@ -324,12 +390,30 @@ def _bk_match(S, frames):
 
 def _bk_fit(S, did, w, h, pid):
     """the uniform size of drawing did in a w x h mm box: den (maps, sections: the largest list scale that fits) or
-    factor (diagrams, charts, key maps: the largest that fits, <= BK_MM_MAX); reserves its heading / levels / band"""
+    factor (diagrams, charts, key maps: the largest that fits, <= BK_MM_MAX); reserves its heading / band and (v32)
+    its level column MEASURED at each scale tried (a crowded column takes two value columns)"""
     D = S["draw"].get(did) or ix_get(did)
-    rw, rh = _bk_res(S, did) if did in S["draw"] else (0.0, 0.0)
+    inn = did in S["draw"]
     if D.get("units") == "m" and D.get("role") != "keymap":
-        return sc_pick(D, max(1.0, w - rw), max(1.0, h - rh), page=pid)
-    return sc_factor(D, max(1.0, w - rw), max(1.0, h - rh), pid)
+        al = _sc_allowed(D)
+        for den in al:
+            rw, rh = _bk_res(S, did, den) if inn else (0.0, 0.0)
+            dw, dh = sc_size(D, den)
+            if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                return den
+        rw, rh = _bk_res(S, did, al[-1]) if inn else (0.0, 0.0)
+        return sc_pick(D, max(1.0, w - rw), max(1.0, h - rh), page=pid)       # its WARNING "scale" line
+    rw, rh = _bk_res(S, did) if inn else (0.0, 0.0)
+    f = sc_factor(D, max(1.0, w - rw), max(1.0, h - rh), pid)
+    if inn:                                          # v32: the head (subtitle wraps to the width) measured at f
+        for _i in range(2):
+            rw, rh = _bk_res(S, did, f)
+            dw, dh = sc_size(D, f)
+            if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                break
+            ew, eh = _sc_ext(D)
+            f = max(1e-3, min((w - rw) / ew, (h - rh) / eh))
+    return f
 
 
 def _bk_boxes(F, n, items=None):
@@ -426,7 +510,7 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
     """the drawings of one frame (see steps 3-4); returns [did]"""
     ds = [(iid, kk, it) for iid, kk, it in F["items"] if kk in ("drawing", "keymap")]
     out, bottom = [], F["mm"][1]
-    al = (F.get("al") or "TL").upper()
+    al = (F.get("al") or F.get("_al") or "TL").upper()
     for (did, kk, it), b in zip(ds, _bk_boxes(F, len(ds), ds)):
         w, h = b[2] - b[0], b[3] - b[1]
         if kk == "keymap":
@@ -453,6 +537,7 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
             s = same[F["same"]][1]
         else:
             s = _bk_fit(S, did, w, h, pid)
+        rw, rh = _bk_res(S, did, s)
         dw, dh = sc_size(D, s)
         tw, th = dw + rw, dh + rh
         ox = b[0] + {"C": (w - tw) / 2.0, "R": w - tw}.get(al[1:2], 0.0)
@@ -471,18 +556,118 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
     return out, bottom
 
 
+# ---- v32 (L1, LAYOUT_PLAN_booklet_places_all.md §3.2; Aras 4 Nov 19:17-19:25) -------------------------------------
+# "scripts just produce the drawings and booklet script ... detects the size needed for each drawing and where they
+# needs to go and places them": (1) the page is JUSTIFIED (Aras 19:23 "pages needs to be aligned like justified",
+# "the drawings etc. needs to fill the pages"): every frame with content grows into the free page space beside and
+# under it, to the margins or to its neighbour's gutter, so the blocks run flush from margin to margin (the
+# SUBMISSION_SON arrangement kept: frames only grow, never move or swap); a frame flush with the right margin only
+# sets its drawing right; (2) each drawing takes the largest list scale at which it AND its measured level column,
+# heading and scale band fit its grown frame; (3) after placing, the collision test runs and every text that hits
+# something is placed again by the chain (bk_fix -> pl_chain: free spot round its point, short form, OUTSIDE the
+# drawing with a leader line, number + key row). Aras 19:25: making things smaller is a band-aid, so NO drawing is
+# scaled down and NO text is shrunk to clear a hit; (4) only hits left after that are WARNINGs, the texts printed.
+BK_PNO_CLEAR = 16.0        # mm: frames reaching the bottom-right corner stop above the page number
+
+
+def _bk_justify(frames, pid, side_key=None):
+    """grows every frame that holds items into the free space round it (see the note above); returns n frames grown.
+    Frames that receive notes (another frame's "note") and the page's side frame count as taken even when empty."""
+    inn = (GRID_ML, BK_BAND["rule_y"] * BK_PCT[1] + BK_GAP, GRID_PAGE[0] - GRID_MR, GRID_PAGE[1] - GRID_MB)
+    tgt = set(F.get("note") for F in frames if F.get("note")) | set([side_key])
+    live = [F for F in frames if (F.get("items") or F["key"] in tgt) and not F.get("over")]
+    n = 0
+
+    def ov(a0, a1, b0, b1):
+        return min(a1, b1) - max(a0, b0) > 0.5
+    for axis in (0, 1):                                  # widths first, then heights against the new widths
+        for F in live:
+            x0, y0, x1, y1 = F["mm"]
+            if axis == 0:
+                others = [G["mm"] for G in live if G is not F and ov(y0, y1, G["mm"][1], G["mm"][3])]
+                lo = max([g[2] + BK_GAP for g in others if g[2] <= x0 + 0.5] + [inn[0]])
+                hi = min([g[0] - BK_GAP for g in others if g[0] >= x1 - 0.5] + [inn[2]])
+                nb = (min(x0, lo), y0, max(x1, hi), y1)
+            else:
+                others = [G["mm"] for G in live if G is not F and ov(x0, x1, G["mm"][0], G["mm"][2])]
+                lo = max([g[3] + BK_GAP for g in others if g[3] <= y0 + 0.5] + [inn[1]])
+                bot = inn[3] - (BK_PNO_CLEAR * 0.5 if x1 > inn[2] - BK_PNO_CLEAR else 0.0)
+                hi = min([g[1] - BK_GAP for g in others if g[1] >= y1 - 0.5] + [bot])
+                nb = (x0, min(y0, lo), x1, max(y1, hi))
+            if any(abs(a - b) > 0.5 for a, b in zip(nb, F["mm"])):
+                F["mm"] = nb
+                n += 1
+            if not F.get("al") and nb[2] >= inn[2] - 0.5 and nb[0] > inn[0] + 0.5:
+                F["_al"] = "TR"                          # flush with the right margin
+    return n
+
+
+def bk_fix(P, rounds=3):
+    """v32: the texts that hit something run the chain again (pl_chain; the later / movable one of each pair moves);
+    returns the hits left"""
+    for _r in range(rounds):
+        hits = P.tp.hits_now(True)
+        movers, seen = [], set()
+        for _k, a, b in hits:
+            for t in ((b, a) if isinstance(b, dict) and "text" in b else (a,)):
+                if isinstance(t, dict) and "text" in t and (t.get("extra") or {}).get("fx") and id(t) not in seen:
+                    seen.add(id(t))
+                    movers.append(t)
+                    break
+        if not movers:
+            return hits
+        for t in movers:
+            fx = t["extra"]["fx"]
+            if fx.get("tries", 0) >= 3:
+                continue
+            fx["tries"] = fx.get("tries", 0) + 1
+            if P.tp.unput(t):
+                pl_unleader(P, fx)
+                pl_chain(P, fx, P.fx_side, first=False)
+    return P.tp.hits_now(True)
+
+
 def bk_content_page(doc, spec, n, lines):
-    """one content page from its frames (see the part notes)"""
+    """one content page from its frames (see the part notes): compose, fix every hit by moving texts, check"""
+    pid = spec["pid"]
+    R = _bk_compose(doc, spec, n)
+    P, S = R["P"], R["S"]
+    st = pl_stat(P)
+    ck_page(P)                                            # the final test: every hit left = one WARNING line
+    bk_finish(P)
+    g = BK_GRP.get(pid, dict(kinds=set(), elements=set(), untagged=0))
+    lines.append(u"page %s frames=%d placed=%d unlisted=%d (attached notes %d)" % (pid, len(R["frames"]),
+                                                                                R["placed"], R["unl"], R["att"]))
+    lines.append(u"layout %s drawings %d, labels %d (moved %d, short %d, leader %d, numbered %d), drawings made "
+                 u"smaller 0, hits left %d (frames grown %d)" % (
+                     pid, len(S["placed"]), st["labels"], st["moved"], st["short"], st["leader"], st["numbered"],
+                     len(R["left"]), R["grown"]))
+    if "wp_groups_log" in globals():                # S2's writer counts what it actually wrote
+        lines.append(wp_groups_log(pid))
+    else:
+        lines.append(u"groups %s kinds=%d elements=%d untagged=%d" % (pid, len(g["kinds"]), len(g["elements"]),
+                                                                    g["untagged"]))
+    lines.append(u"page %d %s: drawings %s" % (
+        n, pid, u", ".join(u"%s %s" % (d, (u"1:%d" % p_["T"].den) if p_["T"].den else (u"x%.2f" % p_["T"].k))
+                           for d, p_ in S["placed"].items())))
+    return P
+
+
+def _bk_compose(doc, spec, n):
+    """one content page (see the part notes); returns dict(P, S, frames, left hits, counts)"""
     pid = spec["pid"]
     S = bk_items(pid)
     S["placed"] = {}
     bk_attach(S)
     P = bk_page(doc, pid, n)
+    P.fx_side = TpSideList(u"%s page key" % pid)
+    pl_stat(P)
     intro = S["intro"].get("string") if S["intro"] else spec.get("intro")
     part = spec.get("part")
     bk_band(P, (u"%s  %s" % (part, PARTS.get(part, u""))).upper() if part else None, spec["title"], intro)
     frames = _bk_frames(spec, pid)
     framed = _bk_match(S, frames)
+    grown = _bk_justify(frames, pid, spec.get("side"))
     same = _bk_same(S, frames, pid)
     tg = {}
     for F in frames:
@@ -549,17 +734,10 @@ def bk_content_page(doc, spec, n, lines):
         else:
             _bk_put(P, t, it)
     bk_pageno(P, n)
-    ck_page(P)
-    bk_finish(P)
-    g = BK_GRP.get(pid, dict(kinds=set(), elements=set(), untagged=0))
-    lines.append(u"page %s frames=%d placed=%d unlisted=%d (attached notes %d)" % (pid, len(frames), n_placed,
-                                                                                len(unl), n_att))
-    if "wp_groups_log" in globals():                # S2's writer counts what it actually wrote
-        lines.append(wp_groups_log(pid))
-    else:
-        lines.append(u"groups %s kinds=%d elements=%d untagged=%d" % (pid, len(g["kinds"]), len(g["elements"]),
-                                                                    g["untagged"]))
-    lines.append(u"page %d %s: drawings %s" % (
-        n, pid, u", ".join(u"%s %s" % (d, (u"1:%d" % p_["T"].den) if p_["T"].den else (u"x%.2f" % p_["T"].k))
-                           for d, p_ in S["placed"].items())))
-    return P
+    left = bk_fix(P)
+    if P.fx_side.entries:                                 # texts the fix pass numbered: their key rows in the side frame
+        t = tg[side_key]
+        t.y += pl_side_rows(P, P.fx_side, t.box[0], t.y, t.box[2] - t.box[0], max(4.0, t.box[3] - t.y)) + BK_NOTE_GAP
+        left = P.tp.hits_now(True)
+    pl_draw_leaders(P)
+    return dict(P=P, S=S, frames=frames, left=left, placed=n_placed, unl=len(unl), att=n_att, grown=grown)
