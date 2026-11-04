@@ -293,12 +293,15 @@ def ps_items(ix, log):
                 kd.append(kn)
         kinds = kd
         # SKETCH language (BRIEF §3): a scale-free diagram, no scale bar; same extent for all four = one print size
+        num, _, head = ttl.partition(u" · ")          # v21 (L1 box per drawing): number -> disc, rest -> title
         D = ix.drawing(did, page, (0.0, 0.0, W, H), units="mm", dkind="diagram", scale_bar=False, priority=i + 1,
-                       group=did, fit=PS_FIT, title=ttl)
+                       group=did, fit=PS_FIT, title=head)
         kc = _ps_layers(ix, D, its, kinds)
         nl = ps_label_items(ix, D, did, lbl)
-        ix.text(page, ttl, "heading", priority=i + 1, group=did, id=did + "_title")
-        ix.text(page, purpose, "note", priority=i + 1, group=did, id=did + "_purpose")
+        # v21 (L1_engine "ONE BOX PER DRAWING"): every part attached with drawing=D; disc number without `at`
+        ix.text(page, num, "badge", drawing=did, priority=1, group=did, id=did + "_num")
+        ix.text(page, head, "heading", drawing=did, priority=1, group=did, id=did + "_title")
+        ix.text(page, purpose, "caption", drawing=did, priority=1, group=did, id=did + "_purpose")
         for el in set(k_[1] for k_ in kinds if k_[1] and k_[1][0] == "trees"):
             sp = el[1] if not el[1].startswith(u"trees ") else None
             trees[sp] = trees.get(sp, 0) + 1

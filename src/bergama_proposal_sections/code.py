@@ -13,6 +13,8 @@ NEW IN v21 (layout rework L5, 4 Nov 2026; Aras 19:17-19:18 "make all the scripts
     fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11): circle drawn,
     digit = role "badge" (ps_panel_<n>_num_<digit>, the booklet keeps it on its circle).
   * Log per panel: "p12 ps_panel_<n>: labels L (N lines) exported at their drawn points; the booklet places them".
+  * One box per drawing (L1, Aras 19:26): panel number = badge "n" (ps_panel_<n>_num, no `at`), title without the
+    number = heading, purpose line = caption priority 1, all with drawing=ps_panel_<n>.
   * SKETCH_SRC.py (shared with agriculture) unchanged.
 NEW IN v20 (round 6, S6, 4 Nov 2026; BRIEF row 12, Q9, G6-1..G6-10, P-1, P-7, P-12; a feature change):
   * Booklet page p12 "The proposals in section" = refs/targets/r06_S02: four SKETCH panels (1 upstream entry, 2 K4

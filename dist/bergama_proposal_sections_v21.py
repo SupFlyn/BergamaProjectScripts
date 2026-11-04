@@ -13,6 +13,8 @@ NEW IN v21 (layout rework L5, 4 Nov 2026; Aras 19:17-19:18 "make all the scripts
     fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11): circle drawn,
     digit = role "badge" (ps_panel_<n>_num_<digit>, the booklet keeps it on its circle).
   * Log per panel: "p12 ps_panel_<n>: labels L (N lines) exported at their drawn points; the booklet places them".
+  * One box per drawing (L1, Aras 19:26): panel number = badge "n" (ps_panel_<n>_num, no `at`), title without the
+    number = heading, purpose line = caption priority 1, all with drawing=ps_panel_<n>.
   * SKETCH_SRC.py (shared with agriculture) unchanged.
 NEW IN v20 (round 6, S6, 4 Nov 2026; BRIEF row 12, Q9, G6-1..G6-10, P-1, P-7, P-12; a feature change):
   * Booklet page p12 "The proposals in section" = refs/targets/r06_S02: four SKETCH panels (1 upstream entry, 2 K4
@@ -6958,12 +6960,15 @@ def ps_items(ix, log):
                 kd.append(kn)
         kinds = kd
         # SKETCH language (BRIEF §3): a scale-free diagram, no scale bar; same extent for all four = one print size
+        num, _, head = ttl.partition(u" · ")          # v21 (L1 box per drawing): number -> disc, rest -> title
         D = ix.drawing(did, page, (0.0, 0.0, W, H), units="mm", dkind="diagram", scale_bar=False, priority=i + 1,
-                       group=did, fit=PS_FIT, title=ttl)
+                       group=did, fit=PS_FIT, title=head)
         kc = _ps_layers(ix, D, its, kinds)
         nl = ps_label_items(ix, D, did, lbl)
-        ix.text(page, ttl, "heading", priority=i + 1, group=did, id=did + "_title")
-        ix.text(page, purpose, "note", priority=i + 1, group=did, id=did + "_purpose")
+        # v21 (L1_engine "ONE BOX PER DRAWING"): every part attached with drawing=D; disc number without `at`
+        ix.text(page, num, "badge", drawing=did, priority=1, group=did, id=did + "_num")
+        ix.text(page, head, "heading", drawing=did, priority=1, group=did, id=did + "_title")
+        ix.text(page, purpose, "caption", drawing=did, priority=1, group=did, id=did + "_purpose")
         for el in set(k_[1] for k_ in kinds if k_[1] and k_[1][0] == "trees"):
             sp = el[1] if not el[1].startswith(u"trees ") else None
             trees[sp] = trees.get(sp, 0) + 1
