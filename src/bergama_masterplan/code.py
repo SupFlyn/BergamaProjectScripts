@@ -15,9 +15,6 @@
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
 #@include ../common/basemap.py
-#@include ../common/hues.py
-#@include ../common/annot.py
-#@include ../common/cch_points.py
 #@include ../common/grid.py
 #@include ../common/item_export.py
 #@include ../common/buildings.py

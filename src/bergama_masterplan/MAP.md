@@ -78,9 +78,6 @@
 | LEVELS | ../common/data/LEVELS.py | - |
 | levels | ../common/levels.py | - |
 | basemap | ../common/basemap.py | - |
-| hues | ../common/hues.py | - |
-| annot | ../common/annot.py | - |
-| cch_points | ../common/cch_points.py | - |
 | grid | ../common/grid.py | - |
 | item_export | ../common/item_export.py | - |
 | buildings | ../common/buildings.py | - |
