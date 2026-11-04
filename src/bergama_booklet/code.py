@@ -61,7 +61,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v32.2"  # v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v32.3"  # v32.3 fix 4 Nov (Aras 21:38, no log again): the log file shows the page being composed while the booklet runs, and every page's time at the end; v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -92,6 +92,7 @@ def main():
     BK_GRP.clear()
     del BK_PAGENO_LOG[:]
     lines = []
+    write_log(u"RUNNING %s since %s: reading the items.json files\n" % (VERSION, time.strftime("%H:%M:%S")))
     ix_load_all(need=())
     for f in BK_EXPECT:
         if f not in BK_IX:
@@ -101,6 +102,8 @@ def main():
     lines.append(u"glyph U+0131 dotless i: %s in the booklet font (Arial, %s)" % (
         u"mapped" if not fm_safe(u"\u0131", False)[1] and not fm_safe(u"\u0131", True)[1] else u"MISSING",
         bk_font_files()[0]))
+    write_log(u"RUNNING %s since %s: sources and page numbers (%s)\n" % (
+        VERSION, time.strftime("%H:%M:%S", time.localtime(t0)), time.strftime("%H:%M:%S")))
     bk_sources_collect()
     pids = [sp["pid"] for sp in BK_PAGES if not sp.get("kind")]
     n_marks = bk_src_number(pids)
@@ -108,7 +111,12 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     doc = fitz.open()
     n_src = 0
+    prog = []                                     # v32.3: progress in the log file while it runs (a hang shows its page)
     for n, sp in enumerate(BK_PAGES, 1):
+        t_pg = time.time()
+        write_log(u"RUNNING %s since %s: page %d of %d (%s) started %s\n%s\n" % (
+            VERSION, time.strftime("%H:%M:%S", time.localtime(t0)), n, len(BK_PAGES), sp.get("pid", sp.get("kind")),
+            time.strftime("%H:%M:%S"), u"\n".join(prog)))
         try:
             if sp.get("kind") == "cover":
                 bk_cover(doc, n, lines)
@@ -122,13 +130,16 @@ def main():
                 n, type(ex).__name__, ex, _tb.format_exc().strip().splitlines()[-3:]))
             if doc.page_count < n:
                 doc.new_page(width=GRID_PAGE[0] * BK_K, height=GRID_PAGE[1] * BK_K)
+        prog.append(u"page %d (%s) %.1f s" % (n, sp.get("pid", sp.get("kind")), time.time() - t_pg))
     lines.extend(BK_PAGENO_LOG)
+    lines.append(u"page times: " + u"; ".join(prog))
     ck_finish(BK_REF_PAGE)
     try:
         doc.subset_fonts()
     except Exception:
         pass
     out = os.path.join(OUT_DIR, PDF_NAME)
+    write_log(u"RUNNING %s: saving the PDF (%s)\n%s\n" % (VERSION, time.strftime("%H:%M:%S"), u"\n".join(prog)))
     doc.save(out, garbage=3, deflate=True)
     npg = doc.page_count
     doc.close()

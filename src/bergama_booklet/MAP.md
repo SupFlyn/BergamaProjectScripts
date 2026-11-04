@@ -136,5 +136,5 @@
 | _bk_src_h | parts/83_cover_sources.py | 169 |
 | bk_sources | parts/83_cover_sources.py | 177 |
 | main | code.py | 84 |
-| done_text | code.py | 142 |
-| write_log | code.py | 147 |
+| done_text | code.py | 153 |
+| write_log | code.py | 158 |
