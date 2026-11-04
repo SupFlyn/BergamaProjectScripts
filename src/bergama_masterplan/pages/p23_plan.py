@@ -1014,6 +1014,7 @@ def pl23_markers(sh, C, rws, warn):
             spot = (x, y)
             MPX_LOG.append(u"info p20 left-as-it-is %s: letter on its place (no free spot round it)" % lt)
         mp_marker(sh, spot[0], spot[1], lt, v["colour"], PL23_MK_PT, style="ring", name=u"left " + lt)
+        r_["letter_on_map"] = lt                          # v42: the area is shown (letter ring + list row)
         C.pl23_mk_at.setdefault(lt, []).append((i, spot[0], spot[1]))
         v["n_map"] += 1
     cc = pl23_cch(C)                                      # the collect-clean-hold numbers 1-11 (pages 11, 12): a ring

@@ -891,8 +891,13 @@ def build_all(doc, warn):
                 lines.extend(p23_items(ix, C, warn))
                 for r_ in C.nogo:                        # v38: the page sets r_["placed"] when the void's place is drawn
                     if not r_.get("placed"):
-                        lines.append(u"info p20 void in the 'Left as it is' list, not drawn as a designed void: "
-                                     u"{:.1f} ha {}".format(r_["ha"], r_.get("place")))   # v42: S8 reading, not a hit
+                        lt_ = r_.get("letter_on_map")       # v42: S8 reading (SON list), not a hit
+                        if lt_:
+                            lines.append(u"info p20 area left as it is {:.1f} ha {}: letter {} on the map + list row "
+                                         u"(no round 4-5 void planting, SON)".format(r_["ha"], r_.get("place"), lt_))
+                        else:
+                            warn.append(u"p20 area left as it is {:.1f} ha {}: no letter on the map (outside every "
+                                        u"plan row)".format(r_["ha"], r_.get("place")))
                 lines.append(u"p23 masterplan items  {:.1f} s".format(time.time() - t0))
             except Exception as ex:
                 import traceback
