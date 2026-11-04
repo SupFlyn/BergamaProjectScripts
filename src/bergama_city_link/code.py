@@ -1748,7 +1748,7 @@ def framework_map(pg, L):
                                                          ("gateway" if hb["kind"] == "gateway" else "hub"))
         rows.append((sw_mark(lambda p_, x, y, hb=hb: cl_marker(p_, x, y, hub_code(hb), hub_col(hb), 7.0,
                                                                name="legend hub %d" % hub_no(hb))),
-                     u"%s · %s" % (hb["title"], kd)))
+                     u"%s = %s · %s" % (hub_code(hb), hb["title"], kd)))   # v10: the code explained
     # the shops figure: one headline value and one line (G4), as one note with its value bold
     sf = shop_figures()
     shops = (u"**%d of %d shops** by the stream sit on the covered %d m, where the main road meets it" % (
@@ -2661,14 +2661,13 @@ def p09_legend_rows(seen):
     if "stones" in seen:
         ent.append((sw_mark(lambda p_, x, y: [disc(p_, x + d_, y, 0.45, C["ink"]) for d_ in (-1.6, 0.0, 1.6)]),
                     "sub-hub crossing: stepping stones", "MOV", 2))
-    hb_ = dict((hb["kind"] if not hb["transit"] else "transit", hb) for hb in hub_list())
-    for kd, word in (("transit", "main transit hub, code as on its card"),
-                     ("walk", "walking hub at a bridge, code as on its card"),
-                     ("gateway", "gateway out of town")):
-        if kd in hb_:
-            ent.append((sw_mark(lambda p_, x, y, hb=hb_[kd]: cl_marker(p_, x, y, hub_code(hb), hub_col(hb), 7.0,
-                                                                         name="legend hub " + hub_code(hb))),
-                        word, "PUB" if kd != "gateway" else "CTX", 1 if kd == "transit" else 2))
+    for hb in hub_list():                                 # v10 (Aras 4 Nov 18:28 "explain those hub codes"): one
+        kd = "transit" if hb["transit"] else hb["kind"]  # row per hub: its code = its bridge / place (names table)
+        word = {"transit": u"main transit hub", "walk": u"walking hub", "gateway": u"gateway out of town"}.get(kd, u"hub")
+        ent.append((sw_mark(lambda p_, x, y, hb=hb: cl_marker(p_, x, y, hub_code(hb), hub_col(hb), 7.0,
+                                                               name="legend hub " + hub_code(hb))),
+                    u"%s = %s · %s" % (hub_code(hb), hb["title"], word),
+                    "PUB" if kd != "gateway" else "CTX", 1 if kd == "transit" else 2))
     if "square" in seen:
         ent.append((lambda p_, b: p_.rect(b[0], b[1], b[2] - b[0], b[3] - b[1], fill=tint_hex(SQ_FILL, 1.0 - SQ_ALPHA),
                                           stroke=SQ_EDGE, lw=0.35), "dry hub square (masterplan)", "PUB", 3))
