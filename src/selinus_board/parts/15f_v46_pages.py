@@ -37,11 +37,19 @@ def b_foot(B, F, x, yb, ss, k, L, Lm=B_SB_M):
     starts 1 mm in from the map's left edge: its "0" is centred on the bar's end and the crops end 0.5 mm left of
     the map, so half the "0" was cut off; Lm (v49.1): the heritage loop's strips at 1:5,000 take 200 m.
     v59 (round 4 closing, G-R4-9 p07): the north arrow is THE shared one (_sb_north: keymap.north_items, no white
-    half), as on p06; the old half-white draw_north_at is gone."""
+    half), as on p06; the old half-white draw_north_at is gone. v61 (round 6, G6-4, G6-9): the north arrow is THE
+    plain arrow of common/annot.py (an_north through SbX(...).cb(), page mm), outside the map beside its bar, centred
+    where _sb_north centred it; bar and arrow tagged "annotations". Only the p07 maps call it."""
     x += 1.0 * k
-    low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, Lm, k, L)
-    nb_ = _sb_north(B, F, x + Lm * ss + 10.0 * k, yb - 5.5 * k, 5.0, k, L)
-    return min(low, nb_[1])
+    with B.kind("annotations", "scale bar"):
+        low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, Lm, k, L)
+    size = 5.0
+    rot = math.atan2(math.cos(F.ang), math.sin(F.ang)) - 0.5 * math.pi   # north's turn from page-up, ccw (as _sb_north)
+    h_all = size + 1.5 * max(2.12, 0.42 * size)          # the shaft foot to the top of the "N"
+    cx, cy = (x + Lm * ss) / k + 10.0, yb / k - 5.5       # the sign's centre, page mm
+    foot = (cx + 0.5 * h_all * math.sin(rot), cy - 0.5 * h_all * math.cos(rot))
+    an_north(SbX(B, L, 60, k, kind="annotations").cb(), foot, math.degrees(rot), size_mm=size)
+    return min(low, (cy - 0.5 * h_all - 0.5) * k)
 
 
 def b_base(S, CB, V, k, L, colfn=None):
