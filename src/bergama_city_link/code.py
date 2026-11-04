@@ -2063,7 +2063,7 @@ def hub_glyph(pg, kind, x, y, w, h):
         pg.poly(P([(7.0, 1.6), (10, 3.5), (7.0, 5.4)]), fill=C["accent"], closed=True)
 
 
-def hub_card(pg, hb, x, ytop, w):
+def hub_card(pg, hb, x, ytop, w, head=True):
     """v1.11 / v5 / v6 / v7 (round 4, P10.3 P10.4, G-R4-1/7/11): one bridge place in its column under the plans'
     legend, no frame: its locator marker (the number on the key map and over its plan(s)) and real name, its role,
     its existing bus stops (metres to the hub), the later step, the trips, its levels (the dry hub over the sub-hub in
@@ -2074,16 +2074,19 @@ def hub_card(pg, hb, x, ytop, w):
     v9 (round 5 S9, P10.3 "one per hub, same structure"): every hub's diagram has the same rows in the same order,
     in the same width (p09_items): code + name, role, bus stop(s) with metres, (later step), trips, the levels glyph
     with its keys (v9: the gateway too: its road-out glyph, "GATEWAY OUT" / "no hub square"), then its places (none at
-    the gateway). Recorded on its own recorder; exported as one diagram grouped with its plan window."""
+    the gateway). Recorded on its own recorder; exported as one diagram grouped with its plan window.
+    v11 (L7, one box per drawing): head=False draws no code disc and no name; p09_items exports them as the card's
+    badge + heading (drawing = the card), so the booklet sets them in the box's head row."""
     tr = hb["transit"]
     y = ytop - 3.6
-    _b, r_ = cl_marker(pg, x + 2.0, y + 1.1, hub_code(hb), hub_col(hb), 7.5, name="card hub %d" % hub_no(hb))
-    tx = x + 2.0 + r_ + 1.4
-    pg.tgroup()
-    for ln in cl_wrap(hb["title"], 10.5, x + w - tx, True):
-        pg.text(ln, tx, y, 10.5, C["ink"], True)
-        y -= 4.6
-    pg.tgroup(False)
+    if head:
+        _b, r_ = cl_marker(pg, x + 2.0, y + 1.1, hub_code(hb), hub_col(hb), 7.5, name="card hub %d" % hub_no(hb))
+        tx = x + 2.0 + r_ + 1.4
+        pg.tgroup()
+        for ln in cl_wrap(hb["title"], 10.5, x + w - tx, True):
+            pg.text(ln, tx, y, 10.5, C["ink"], True)
+            y -= 4.6
+        pg.tgroup(False)
     role = ("MAIN TRANSIT HUB · " if tr else ("walking hub · " if hb["kind"] == "walk" else "")) + hb["role"]
     y = cl_para(pg, role, x, y - 0.3, 8, w, C["accent"] if tr else C["ink2"], tr) - 0.8
     for st in hb["bus_stops"]:
@@ -2894,17 +2897,17 @@ def p08_items(ix, L):
     f = fm["f"]
     D = cl_drawing(ix, "cl_p08_corridor", page, pg, fm["box"], den=PLAN_DEN, origin_m=(f["u0"], f["v0"]),
                    dkind="plan", north_deg=cl_north_deg(f), group="cl_p08_corridor", priority=2, layer="map")
-    ix.text(page, fm["head"], "heading", id="cl_p08_corridor_head", group=D["group"], priority=2)
+    ix.text(page, fm["head"], "heading", drawing=D["id"], id="cl_p08_corridor_head", group=D["group"], priority=2)
     ix.legend(page, D["id"], [(cl_sw(dr), wd) for dr, wd in fm["rows"]], id="cl_p08_corridor_legend",
               group=D["group"])
-    ix.text(page, fm["shops"], "note", id="cl_p08_shops", group=D["group"], priority=3)
+    ix.text(page, fm["shops"], "note", drawing=D["id"], id="cl_p08_shops", group=D["group"], priority=3)
     pw = Page(420, 297, "p08 who")
     wp = who_panel(pw, L)
     D2 = cl_drawing(ix, "cl_p08_who", page, pw, cl_bbox(pw), dkind="chart", group="cl_p08_who", priority=4,
                     layer="chart")
-    ix.text(page, wp["head"], "heading", id="cl_p08_who_head", group=D2["group"], priority=4)
+    ix.text(page, wp["head"], "heading", drawing=D2["id"], id="cl_p08_who_head", group=D2["group"], priority=4)
     if wp.get("note"):
-        ix.text(page, wp["note"], "note", id="cl_p08_who_note", group=D2["group"], priority=5)
+        ix.text(page, wp["note"], "note", drawing=D2["id"], id="cl_p08_who_note", group=D2["group"], priority=5)
     ix.legend(page, D2["id"], [(cl_sw(dr), wd) for dr, wd in wp["rows"]], id="cl_p08_who_legend", group=D2["group"])
     try:                                                  # v10: G6-6 / G6-4 log lines (PLAN §2.4, §2.6)
         hue_log(page, log=CL_LOG)
@@ -2936,7 +2939,7 @@ def p09_items(ix, L):
     D = cl_drawing(ix, u"cl_p09_spine", page, pm, sm["box"], den=sm["den"], origin_m=(sm["u0"], sm["v0"]),
                    dkind="plan", north_deg=cl_north_deg(f), group=u"cl_p09_spine", priority=2, layer="map")
     ix.text(page, (u"The spine across the study area, hub by hub " + cite(SRC_BUS)).strip(), "heading",
-            id=u"cl_p09_spine_head", group=D["group"], priority=2)
+            drawing=D["id"], id=u"cl_p09_spine_head", group=D["group"], priority=2)
     # the plans
     wins = hub_windows(L, hubs)
     for w in wins:                                        # the window's key: the hub number, a / b when it has two
@@ -2956,8 +2959,8 @@ def p09_items(ix, L):
         D["window_m"] = [round(w["size_m"][0], 1), round(w["size_m"][1], 1)]
         D["rec_den"] = w["den"]
         D["column"] = hubs.index(w["hub"]) + 1            # v10 (P-10): the hub column it sits above (1-5)
-        ix.text(page, u"%s %s" % (hub_code(w["hub"]), w["name"] or w["hub"]["title"]), "heading", id=wid + u"_head",
-                group=g_, priority=3)
+        ix.text(page, u"%s %s" % (hub_code(w["hub"]), w["name"] or w["hub"]["title"]), "heading", drawing=D["id"],
+                id=wid + u"_head", group=g_, priority=3)
     BM_NOTE.append("p09 hub plans: %d windows recorded at 1:%s in stream order (%s); streamside walks not drawn "
                    "(P10.5)" % (len(wins), fmt(den), ", ".join(w["name"] or w["hub"]["title"] for w in wins)))
     with cl_ix_group("legend", u"p09 legend"):
@@ -2965,16 +2968,21 @@ def p09_items(ix, L):
     for hb in hubs:                                       # one card per hub, the column width (P-10)
         pg = Page(420, 297, "p09 card")
         with pg.group("hubs", u"card " + hub_code(hb)):
-            hub_card(pg, hb, 14.0, 250.0, P9_COL_W)
-        cl_drawing(ix, u"cl_p09_card_%d" % hub_no(hb), page, pg, cl_bbox(pg), dkind="diagram",   # S9 frame ids 1-5
-                   group=grp.get(hub_no(hb)), priority=4, layer="diagram")
+            hub_card(pg, hb, 14.0, 250.0, P9_COL_W, head=False)
+        cid = u"cl_p09_card_%d" % hub_no(hb)
+        Dc = cl_drawing(ix, cid, page, pg, cl_bbox(pg), dkind="diagram",   # S9 frame ids 1-5
+                        group=grp.get(hub_no(hb)), priority=4, layer="diagram")
+        with cl_ix_group("hubs", u"card " + hub_code(hb)):   # v11 (L7): the card's head row = booklet's
+            ix.text(page, hub_code(hb), "badge", drawing=Dc["id"], id=cid + u"_no", colour=hub_col(hb),
+                    group=Dc["group"], priority=1)
+            ix.text(page, hb["title"], "heading", drawing=Dc["id"], id=cid + u"_head", group=Dc["group"], priority=1)
     for fn, did, pr in ((p10_flood, u"cl_p10_flood", 6), (p10_bank, u"cl_p10_bank", 7),
                         (p10_market, u"cl_p10_market", 8)):
         pg = Page(420, 297, "p09 " + did)
         with pg.group("other", did):
             head = fn(pg, L)
-        cl_drawing(ix, did, page, pg, cl_bbox(pg), dkind="diagram", group=did, priority=pr, layer="diagram")
-        ix.text(page, head, "heading", id=did + u"_head", group=did, priority=pr)
+        Db = cl_drawing(ix, did, page, pg, cl_bbox(pg), dkind="diagram", group=did, priority=pr, layer="diagram")
+        ix.text(page, head, "heading", drawing=Db["id"], id=did + u"_head", group=did, priority=pr)
     try:
         an_log(page, 0, 0, log=CL_LOG)                    # G6-4: no cuts or levels on these plans
     except Exception as ex_:
