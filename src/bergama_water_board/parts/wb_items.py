@@ -365,8 +365,8 @@ def _wbx_texts(ix, r, items, M, pats, tail):
                             break
             n_lab += 1
         else:
-            anch = role in ("badge", "level_value")
-            ix.text(page, s_, role, drawing=did if anch else None, at=M((it0[2], it0[3])) if anch else None,
+            anch = role in ("badge", "level_value")      # v17 (L4, L1 "one box per drawing"): every text of the
+            ix.text(page, s_, role, drawing=did, at=M((it0[2], it0[3])) if anch else None,   # span is attached to D
                     size_pt=pt, bold=bold, colour=col, group=r["group"], priority=4)
             n_oth += 1
     return n_lab, n_oth
@@ -489,7 +489,8 @@ def wbx_export(pg, log):
         return maps[did][1](q) if did in maps and q is not None else None
     for t in WBX["text"]:
         try:
-            ix.text(wbx_p(t["page"]), _wbx_src(u"%s" % t["s"]), t["role"], drawing=t["did"] if t["at"] else None,
+            ix.text(wbx_p(t["page"]), _wbx_src(u"%s" % t["s"]), t["role"],   # v17 (L4): attached to its drawing
+                    drawing=t["did"] if t["did"] in maps else None,
                     at=mp(t["did"], t["at"]), size_pt=t["size_pt"], bold=t["bold"], colour=t["colour"],
                     priority=t["priority"], id=t["id"], short_forms=t["short_forms"],
                     side_list_ok=t["side_list_ok"], group=t["group"] or t["did"])

@@ -158,9 +158,6 @@ def _p13_monthbar(pg, gx, y, gw, page):
                      (gx + b_ * cw - 0.5, yb)], hc, 0.35)
         _p13_icon(pg, "tunnel", gx, yb - 2.0, 4.6)
         pg.text(tt, gx + 5.6, yb - 5.6, fs, hc, bold=True)
-    if gx + 5.6 + text_w(tt, fs, True) + 1.0 > xk - 2.0 and xk + 3.4 + text_w(tk, fs, True) > gx + 5.6:
-        if abs((yc - 10.3) - (yb - 5.6)) < fs * 1.2:
-            wbx_warn(page, "overlap", u"p15_monthbar: \"high water ...\" and \"Kermes\" meet under the month bar")
     return min(yb - 8.0, y - 10.5)
 
 
@@ -218,22 +215,18 @@ def _p13_animals(pg, x, ytop, w, h, sea, page):
         return
     pitch = min(5.6, h / float(len(sel)))
     sz = min(4.4, pitch - 0.6)
-    if pitch < FS_MIN * 1.1:
-        wbx_warn(page, "overlap", u"p15_animals %s: %d animals in %.1f mm, names closer than their height" % (
-            sea, len(sel), h))
     for i, fa in enumerate(sel):
         cy = ytop - pitch * (i + 0.5)
         with pg.g("legend", u"%s · %s" % (sea, fa["name"])):
             _p14_fauna(pg, fa["key"], x + sz / 2.0, cy, sz)
             pg.text(fa["name"], x + sz + 1.0, cy - FS_MIN * 0.35, FS_MIN, COL["ink_dark"])
-        if text_w(fa["name"], FS_MIN) + sz + 1.0 > w + 0.05:
-            wbx_warn(page, "edge", u"p15_animals %s: \"%s\" passes the column's edge" % (sea, fa["name"]))
 
 
 def _p13_words(pg, X, Y, sea, fr, page, log=None):
     """the season's activities named on the cut (r06_S03: short words over the place, no leader lines, G3): each over
     the highest ground of its zone, P13_LABEL_UP m up, a second label that would touch one already set lifted by
-    1.35 x its height (twice at most); one that still finds no room or leaves the frame = WARNING, left out"""
+    v17 (L4): every word is exported as an anchored label over its zone (inside the frame); the booklet's collision
+    passes move, shorten or number the ones that meet; none is left out"""
     G = _p14_geo()
     zn = G["zones"]
     fs = FS_MIN
@@ -250,17 +243,8 @@ def _p13_words(pg, X, Y, sea, fr, page, log=None):
         w = text_w(t, fs, True)
         xa = min(max((X(a) + X(b)) / 2.0 - w / 2.0, fr[0] + 0.5), fr[2] - w - 0.5)
         y = Y(zt + P13_LABEL_UP)
-        for _try in range(3):
-            if not any(xa < q[2] + 1.0 and q[0] < xa + w + 1.0 and y < q[3] + 0.6 and q[1] < y + fs + 0.6
-                       for q in placed):
-                break
-            y += 1.35 * fs
-        else:
-            wbx_warn(page, "overlap", u"p15_season_%s: \"%s\" finds no room clear of the other words" % (sea, t))
-            continue
-        if y + fs > fr[3] or xa < fr[0]:
-            wbx_warn(page, "edge", u"p15_season_%s: \"%s\" would pass the drawing's frame" % (sea, t))
-            continue
+        y = min(y, fr[3] - fs - 0.3)            # v17 (L4, Aras 4 Nov 19:17): anchored over its zone inside the
+        xa = max(xa, fr[0] + 0.5)               # drawing, never left out; the booklet moves what meets (pl_label)
         placed.append((xa, y - 0.3 * fs, xa + w, y + fs))
         with pg.g("labels", t):
             pg.text(t, xa, y, fs, COL["ink_dark"], bold=True)
@@ -298,9 +282,6 @@ def _p13_panel(pg, box, log, style):
     xl = xb + wb
     xf = xl + P13_LEVEL_W                        # FEEL · HEAR · TOUCH
     xn = xf + P13_FEEL_W + P13_GAP               # the animals
-    if xn + P13_ANIM_W > x1 + 0.05:
-        wbx_warn(page, "edge", u"the four seasons need {:.0f} mm, the cell gives {:.0f} mm".format(
-            xn + P13_ANIM_W - x0, x1 - x0))
     yt = y1 - 2.0
     yh = yt - P13_HEAD_H                         # the season rows start here
     rh = (yh - y0) / 4.0
@@ -320,8 +301,6 @@ def _p13_panel(pg, box, log, style):
         rbot = rt - rh
         ns = wbx_mark(pg)
         yc = _p13_tag(pg, xa, rt - 1.0, sea)
-        if yc < rbot:
-            wbx_warn(page, "edge", u"p15_season_%s: the season's column runs %.1f mm under its row" % (sea, rbot - yc))
         yb = rbot + 1.5
         ytc = rt - 1.0
         # ACCURATE (BRIEF §3, PLAN §2.3; target r06_S03): the S4 cut at true scale 1:500 on the surveyed bed, the
@@ -335,15 +314,13 @@ def _p13_panel(pg, box, log, style):
         X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style, ytop=ytc, page=page,
                         qlines=(sea == "winter"))
         fr = (xb, yb, xl, ytc)
-        top = _p14_bb(sp.items)[3]
-        if top > fr[3] + 0.05:                   # a crown taller than its row is cut at the row's top: a WARNING
-            wbx_warn(page, "clipped", u"{} cut reaches {:.1f} mm over its row ({:.1f} m at 1:{:,.0f}): cut at the row "
-                                      u"top".format(sea, top - fr[3], (top - fr[3]) / k, P14_DEN))
-        pg.items += _p14_clip_items(sp.items, fr)
+        top = max(_p14_bb(sp.items)[3], fr[3])   # v17 (L4): a crown taller than its row is drawn whole (the box
+        pg.items += _p14_clip_items(sp.items, (fr[0], fr[1], fr[2], top + 0.05))   # grows; the booklet sizes it)
         _p13_words(pg, X, Y, sea, fr, page, log)
         did = u"p15_season_" + sea
-        bbs = (xa, rbot, xl, rt)
-        wbx_drawing(did, page, pg, bbs, n0=ns, den=P14_DEN, origin=(s0 - (xb - xa) / k, G["base"] + (rbot - yb) / k),
+        ybb = min(rbot, yc - 0.5)                # v17 (L4): a season column taller than its row is exported whole
+        bbs = (xa, ybb, xl, max(rt, top + 0.3))
+        wbx_drawing(did, page, pg, bbs, n0=ns, den=P14_DEN, origin=(s0 - (xb - xa) / k, G["base"] + (ybb - yb) / k),
                     dkind="section", scale_pref=[int(P14_DEN)], title=sea.upper(), group=did, crop=crop)
         rows = _p13_level_rows(sea)
         _p14_levels_out(page, did, rows, S4_MONTHS[sea])
@@ -353,12 +330,12 @@ def _p13_panel(pg, box, log, style):
     # FEEL · HEAR · TOUCH and the animals: one column each, every season's part at its row's top
     nf = wbx_mark(pg)
     na = None
+    ylo = yh - 4.0 * rh
     for i, sea in enumerate(SEAS):
         rt = yh - i * rh
         yy = _p13_senses(pg, xf, rt - 1.0, sea, P13_FEEL_W)
-        if yy < rt - rh:
-            wbx_warn(page, "edge", u"p15_feel %s runs %.1f mm under its row" % (sea, rt - rh - yy))
-    wbx_drawing(u"p15_feel", page, pg, (xf - 0.5, yh - 4.0 * rh, xf + P13_FEEL_W + 0.5, yh), n0=nf, dkind="diagram",
+        ylo = min(ylo, yy - 0.5)                 # v17 (L4): the column's box holds every word (none cut off)
+    wbx_drawing(u"p15_feel", page, pg, (xf - 0.5, ylo, xf + P13_FEEL_W + 0.5, yh), n0=nf, dkind="diagram",
                 group=u"p15_feel", crop=crop)
     na = wbx_mark(pg)
     for i, sea in enumerate(SEAS):

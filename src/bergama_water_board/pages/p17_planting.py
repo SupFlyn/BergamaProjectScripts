@@ -1240,8 +1240,11 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
                     out.text(name, x_, y_, fs, COL["ink_dark"], bold=True, align=al)
                 taken.append(b)
                 break
-        else:
-            log.append(u"p17 plan {}: hub name '{}' left out (no free place)".format(key, name))
+        else:                                            # v17 (L4, Aras 4 Nov 19:17): never left out: anchored
+            with out.g("labels", u"hub name · " + name):  # beside the icon; the booklet moves it (pl_label)
+                out.text(name, X + 2.8, Y - fs * 0.35, fs, COL["ink_dark"], bold=True, align="L")
+            log.append(u"p17 plan {}: hub name '{}' has no free place: set beside its icon (the booklet places "
+                       u"it)".format(key, name))
     pg.items += _p17_clip_items(out.items, R)
     # v16 (round 6, S5; G6-4): the section cuts W1, F2, S4, F4 as an_cut end marks just outside the frame R (filled
     # triangle + letter, short dashed stub, no line across), then the plain north arrow (an_north) under the plan's
@@ -1271,8 +1274,8 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
         nb = _p17_items_bb(its)
         if nb and not any(m_ and tp_hit(nb, m_, 0.8) for m_ in mk_b):
             break
-    else:
-        wbx_warn(WBX_PG_PLANTS, "overlap", u"plan {}: the north arrow meets a cut mark at every place tried".format(key))
+    else:                                                # v17 (L4): info only (the booklet's check tests it)
+        log.append(u"p17 plan {}: the north arrow meets a cut mark at every place tried (last place kept)".format(key))
     with pg.g("annotations", u"north arrow"):
         basemap_draw(its, lambda q_: q_, *fns)
     Rx = R
@@ -2084,12 +2087,10 @@ def p17_page(pg, box, opt, log):
     la = yt - fa[1] - P17_BARH - _p17_list_h(ra, fa[0])    # the board layout only (lists go to the booklet)
     lb = yt - fb[1] - P17_BARH - _p17_list_h(rb, fb[0])
     # the left column: the key map (both windows) over the legend; round 5: both go to the booklet, not drawn here
-    kb = None
-    if yt - (yrow + leg_h + G) >= 15.0:
-        kb = _p17_keymap(pg, (x0, yrow + leg_h + G, x0 + P17_LW, yt),
-                         {u"A": _p17_win_corners(fa), u"B": _p17_win_corners(fb)}, log)
-    else:
-        log.append(u"FLAG p17: no room for the key map over the legend ({:.0f} mm)".format(yt - yrow - leg_h - G))
+    # v17 (L4): the key map is always exported (nothing is drawn here; the box only offers the module its size):
+    # with less than 15 mm over the legend it is offered a square of the column's width, the booklet sizes it
+    ky0 = yrow + leg_h + G if yt - (yrow + leg_h + G) >= 15.0 else yt - P17_LW
+    kb = _p17_keymap(pg, (x0, ky0, x0 + P17_LW, yt), {u"A": _p17_win_corners(fa), u"B": _p17_win_corners(fb)}, log)
     n_leg = _p17_legend_export(u"p18_plan_A", log, hn_a + hn_b > 0)
     an_log(u"p16", log=log)                              # v16 (G6-4): `annot p16 cuts=n levels=0`
     hue_log(u"p16", log=log)                             # v16 (G6-6): `legend p16 hues=table`

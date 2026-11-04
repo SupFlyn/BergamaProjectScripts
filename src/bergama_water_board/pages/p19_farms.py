@@ -106,9 +106,8 @@ def _p19_close(pg, n0, box, cid):
     block at exactly this size, so nothing may be cut). Returns the box."""
     bb = items_bbox([it for it in pg.items[n0:] if it[0] in ("poly", "line", "circle", "text")])
     over = max(box[0] - bb[0], box[1] - bb[1], bb[2] - box[2], bb[3] - box[3])
-    if over > 0.3:
-        wbx_warn(WBX_PG_FARMS, "overrun", u"{}: the drawing runs {:.1f} mm outside its {:.0f} x {:.0f} mm block "
-                 u"(the export keeps the whole drawing)".format(cid, over, box[2] - box[0], box[3] - box[1]))
+    # v17 (L4): no layout warning for a drawing past its board block: the export keeps the whole drawing (dbb) and
+    # the booklet sizes it (LAYOUT_PLAN 3.1-3)
     pg.block(box, cid)
     # v15 (G-R5-12, P21.1): the block = one diagram drawing of p21 (the empty heading band left out), in its group
     dbb = (min(box[0], bb[0]), min(box[1], bb[1]), max(box[2], bb[2]), max(box[3] - P19_HEAD, bb[3]))
@@ -290,11 +289,8 @@ def _p19_hits(cid, boxes):
     """v16 (round 6, G6-7 / G6-8): the word blocks of one p18 block [(name, (x0, y0, x1, y1))] tested pairwise; each
     overlap = an orange warning + WARNING line (never a stop). The TextPage check (pg.check_text) still runs over
     the whole cell."""
-    for a in range(len(boxes)):
-        for b in range(a + 1, len(boxes)):
-            (na, A), (nb, B) = boxes[a], boxes[b]
-            if A[0] < B[2] and B[0] < A[2] and A[1] < B[3] and B[1] < A[3]:
-                wbx_warn(WBX_PG_FARMS, "overlap", u"{}: \"{}\" overlaps \"{}\"".format(cid, na, nb))
+    return None                                  # v17 (L4, LAYOUT_PLAN 3.1-3): no producer-side overlap test; the
+                                                 # booklet's bounding-box passes (70_check) test and fix every hit
 
 
 def draw_farms_out(pg, x, y):
@@ -351,8 +347,6 @@ def draw_farms_out(pg, x, y):
             else:                                    # after the bar (the bar is then a keep)
                 _p19_text(pg, t, ax0 + L + 1.5, tb, FS_MIN, C["ink"], bold=True)
                 pg.keep((ax0, b1 - bh, ax0 + L, b1), "drawing", u"p19 aquifer bar %d" % j)
-                if ax0 + L + 1.5 + text_w(t, FS_MIN, True) > x + w + 0.3:
-                    wbx_warn(WBX_PG_FARMS, "edge", u"wb_farms_out: \"{}\" runs past the block's edge".format(t))
         if j == 0:
             yp0, xp = b1, ax0 + k * pot
         else:
@@ -374,9 +368,6 @@ def draw_farms_out(pg, x, y):
         rbox = (ax0, yb - lead - 0.25 * FS_MIN, lx + max(text_w(ln, FS_MIN) for ln in lines), yb + CAP * FS_MIN)
         hits.append((t + u" " + lines[0], rbox))
         hits.append((u"bars", (ax0, low_bar, ax1, top - 11.0 + CAP * FS_MIN)))
-        if rbox[2] > x + w + 0.3:
-            wbx_warn(WBX_PG_FARMS, "edge", u"wb_farms_out: the ratio's lines run {:.1f} mm past the block's edge"
-                     .format(rbox[2] - x - w))
     _p19_hits(u"wb_farms_out", hits)
     return _p19_close(pg, n0, (x, foot, x + w, y), u"wb_farms_out")
 
