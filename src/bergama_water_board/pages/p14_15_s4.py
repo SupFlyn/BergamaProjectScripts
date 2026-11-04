@@ -1095,10 +1095,9 @@ def _p14_level_spread(page, did, rows, Y, ytop, log=None, fs=None):
             moved += 1
         prev = yy
         top = (key, z, yy)
-    if top is not None and top[2] + fs > ytop + 1e-6:
-        wbx_warn(page, "levels", u"{}: {} level values {:.1f} mm apart need {:.1f} mm over the drawing's top "
-                                 u"(highest {} {:+.2f})".format(did, len(rows), gap, top[2] + fs - ytop,
-                                                                P14_LEVEL_NAMES.get(top[0], top[0]), top[1]))
+    if top is not None and top[2] + fs > ytop + 1e-6 and log is not None:   # v17 (L4): info only; the values
+        log.append(u"levels {} {}: the spread reaches {:.1f} mm over the top (the booklet staggers them)".format(
+            wbx_p(page), did, top[2] + fs - ytop))  # are wbx_levels items, the booklet staggers (LAYOUT_PLAN 3.2-4)
     if log is not None:
         log.append(u"levels {} {}: {} values at the right edge, {} spread off their line (gap {:.1f} mm)".format(
             wbx_p(page), did, len(rows), moved, gap))
@@ -2035,11 +2034,8 @@ def _p15_panel(pg, box, log, style):
     X, Y = _p14_cut(sp, x0, yb, k, P15_RANGE, "summer", P14_SEA_MONTH["summer"], style=style, water="avg", ytop=ytc,
                     page=page)
     fr = (x0, yb, x0 + ws, ytc)
-    top = _p14_bb(sp.items)[3]
-    if top > fr[3] + 0.05:                       # A14: a crown cut at the drawing's top is a WARNING, never silent
-        msg = u"the cut reaches {:.1f} mm over its frame: cut at the frame's top".format(top - fr[3])
-        wbx_warn(page, "clipped", msg)
-    pg.items += _p14_clip_items(sp.items, fr)    # G3: no crown reaches the lists
+    top = max(_p14_bb(sp.items)[3], fr[3])       # v17 (L4, Aras 4 Nov 19:17): a crown over the frame is drawn
+    pg.items += _p14_clip_items(sp.items, (fr[0], fr[1], fr[2], top + 0.05))   # whole; the drawing's box grows
     _p14_grp(pg, "ground", u"S4 bank today (surveyed)")
     pg.line([(X(s), Y(z)) for s, z in G["today"] if s <= s1], COL["ink2"], 0.2, dash=[1.0, 0.6])
     _p14_grp(pg, "annotations", u"parts and planting groups")
@@ -2079,7 +2075,7 @@ def _p15_panel(pg, box, log, style):
             pg.text(c_, (X(a) + X(b)) / 2.0, yt_b - hb + 0.55, fs, ic_, bold=True, align="C")
     _p14_grp(pg)
     did = u"p16_section"
-    bbs = (x0, yt_b - hb - 0.5, x0 + ws, ytc)
+    bbs = (x0, yt_b - hb - 0.5, x0 + ws, max(ytc, top + 0.3))   # v17 (L4): holds the whole cut
     wbx_drawing(did, page, pg, bbs, n0=nc, den=P15_DEN, origin=(s0, G["base"] + (bbs[1] - yb) / k),
                 dkind="section", scale_pref=[d_ for d_ in SF_SCALES if d_ <= P14_DEN], group=did, crop=crop)
     wbx_text(page, P15_TITLE_BLK, "heading", did=did, group=did)

@@ -2158,10 +2158,13 @@ def _p12_letters(pg, ga, M, zones, D, log):
             if b:
                 got.append(((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, b, in_z, pm_))
                 obst.append(b)
-        if not got:
-            _p12_warn(log, "label", u"map letter for '{}' left out: no free spot for its marker near its "
-                                    u"place".format(g["text"]))
-            continue
+        if not got:                                     # v17 (L4, Aras 4 Nov 19:17): never left out: the
+            (x, y), in_z, pm_ = placed[key][0]          # letter stands on its first point; the booklet's
+            b = (x - r, y - r, x + r, y + r)            # collision passes move what it meets
+            got.append((x, y, b, in_z, pm_))
+            obst.append(b)
+            log.append(u"p12 letters: '{}' has no free spot near its place: set on its point "
+                       u"(the booklet places it)".format(g["text"]))
         ch_ = P12_LETTERS[len(out)] if len(out) < len(P12_LETTERS) else P12_LETTERS[-1]
         for x, y, b, _z, _p in got:
             M["labels"].append(_p12_letter(pg, ch_, x, y, g["col"]))
@@ -2243,6 +2246,7 @@ def _p12_map_labels(pg, ga, M, zones, f, D, log):
     pl = [(_p12_place_nm(nm), Tg(p)) for nm, p in P12_PLACES]
     q = _p12_along(M["S"], 0.55 * _p12_len(M["S"]))[0]
     pl.append((place_name("stream"), q))
+    pl_low = []
     k5 = dict(P12_PLACES).get(u"K5")
     if k5 and D:
         R = P12_K5_CHECK_M
@@ -2258,13 +2262,13 @@ def _p12_map_labels(pg, ga, M, zones, f, D, log):
             if n_ in seen:
                 continue
             seen.add(n_)
-            if got >= P12_K5_NAMES:
-                _p12_warn(log, "names", u"'{}' (within {:.0f} m of Üç Kemer) left out: the map names only the {} "
-                                        u"nearest base-data names there (G3: few labels)".format(n_, R, P12_K5_NAMES))
+            if got >= P12_K5_NAMES:                     # v17 (L4): past the nearest few, still exported
+                pl_low.append((n_, Tg(p)))              # (lower priority: the booklet numbers them first)
+                got += 1
                 continue
             pl.append((n_, Tg(p)))
             got += 1
-    for n_, p in pl:
+    for n_, p in pl + pl_low:
         if not n_:
             continue
         if inb(p, ga):
@@ -2798,21 +2802,15 @@ def _p12_column(pg, cb, rows, log):
     w = x1 - x
     end = r28_para(Page(1, 1), x, 0.0, w, CONTEXT["system"], 3.2, COL["ink"], kcol=COL["ink_dark"])
     hc = -end + 1.0
-    for small in (True, False):
-        blocks = ((lambda pg_, x_, y_, w_: _p12_steps(pg_, x_, y_, w_, rows, small)),
-                  _p12_coliforms, _p12_plants, _p12_why)
-        dry = Page(1, 1)
-        hs = []
-        yy = y1
-        for fn in blocks:
-            yn = fn(dry, x, yy, w)
-            hs.append(yy - yn)
-            yy = yn
-        if y1 - y0 - sum(hs) - hc >= 3.0 * len(blocks):
-            break
-        log.append(u"p.12 column: {} the column{}".format(
-            u"the steps' keyword lines do not fit" if small else u"the blocks still overflow",
-            u": the keywords left out" if small else u" (shorten a block)"))
+    blocks = ((lambda pg_, x_, y_, w_: _p12_steps(pg_, x_, y_, w_, rows, True)),   # v17 (L4): the keyword
+              _p12_coliforms, _p12_plants, _p12_why)    # lines always stay; each block is its own booklet diagram,
+    dry = Page(1, 1)                                    # the booklet sizes and sets them (no board-room test)
+    hs = []
+    yy = y1
+    for fn in blocks:
+        yn = fn(dry, x, yy, w)
+        hs.append(yy - yn)
+        yy = yn
     gap = max(3.0, min(14.0, (y1 - y0 - sum(hs) - hc) / float(len(blocks))))
     y = y1
     # v15 (P12.1, G-R5-12): each block is its own booklet diagram (the booklet sizes and sets them in the column);
