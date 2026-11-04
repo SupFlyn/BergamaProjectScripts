@@ -62,7 +62,7 @@
 | _grid_block | code.py | 1123 |
 | _wb_grp | code.py | 1142 |
 | wb_items | code.py | 1154 |
-| booklet_figures | code.py | 1199 |
-| main | code.py | 1208 |
+| booklet_figures | code.py | 1200 |
+| main | code.py | 1209 |
 | trigger | ../common/trigger.py | - |
 | done_text | ../common/done_text.py | - |

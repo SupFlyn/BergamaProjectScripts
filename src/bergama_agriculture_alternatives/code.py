@@ -22,7 +22,7 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, math, re
 
-VERSION = "v12"  # v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks) (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v12"  # v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v11 (round 6, S7, 4 Nov 2026; BRIEF §6 rows 17-18, Q9, G6-1, G6-6, G6-8, G6-9, G6-10; PLAN §2.2-§2.3; a
 #   feature change, so the next whole number):
 #   * p17 (NEW, r06_S01, SKETCH): the 28 Oct "One plant ladder, streambed to field" (f93d84b v3.1 page_ladder,
@@ -346,14 +346,14 @@ class AgRec:
     def circle(self, x, y, r, fill=None, stroke=None, lw=0.2):          # v1.2: for the pictograms
         self.poly([(x + r * math.cos(k * math.pi / 12), y + r * math.sin(k * math.pi / 12)) for k in range(24)], fill, stroke, lw, True)
 
-    def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", halo=None, allow=(), positions=None):
+    def text(self, s, x, y, size, col="4A3F35", bold=False, align="L", halo=None, allow=(), positions=None, role=None):
         """one label, size in pt, baseline y, align L / C / R at x (v9's spot = its first position). halo and allow
         (v9's knock-out and the keeps it could sit on) are kept as arguments: the booklet places labels now.
         positions: the other spots after the first (default AG_COMPASS)"""
         if not s or not (u"%s" % s).strip():
             return
         self._add(("text", u"%s" % s, float(x), float(y), size * IX_PT, col, bool(bold), align or "L",
-                   tuple(positions) if positions else None))
+                   tuple(positions) if positions else None, role))   # v12 (L6): role "badge" for marker digits
 
 
 # ------------------------------------------------------------------ shared helpers
@@ -470,7 +470,7 @@ AG_ICONS = {"nowater": ("drought", False), "cotton": ("field", False), "olive": 
             "drip": ("drip", False)}
 
 
-def _ag_put(pg, shapes):
+def _ag_put(pg, shapes, role=None):
     """icons.py / marker.py house shapes ("poly", ring, fill, stroke, lw) / ("line", pts, colour, lw) / ("text", s, x,
     baseline y, size mm, colour, bold, align), page mm y up, on this Page (v9: text for the markers' glyphs)"""
     for sh in shapes:
@@ -478,7 +478,7 @@ def _ag_put(pg, shapes):
             pg.poly(sh[1], fill=sh[2], stroke=sh[3], lw=sh[4] or 0.2, closed=True)
         elif sh[0] == "text":
             pg.text(sh[1], sh[2], sh[3], sh[4] / 0.3528, sh[5], sh[6] if len(sh) > 6 else False,
-                    sh[7] if len(sh) > 7 else "L")
+                    sh[7] if len(sh) > 7 else "L", role=role)
         else:
             pg.line(sh[1], sh[2], sh[3])
 
@@ -730,14 +730,18 @@ def ag_export_block(ix, pg, did, prio, x0, top, W, H, cut=0.0, page=None):
     pid = page or AG_PAGE
     D = ix.drawing(did, pid, (x0 - 0.5, top - H - 0.5, x0 + W + 0.5, top - cut), units="mm", dkind="chart",
                    scale_bar=False, priority=prio, group=did)
-    for i, t in enumerate(pg.heads):
-        ix.text(pid, t, "heading", group=did, priority=prio, id=did + "_head" + ("_%d" % (i + 1) if i else ""))
-    for i, t in enumerate(pg.notes):
-        ix.text(pid, t, "note", group=did, priority=prio, id=did + "_note" + ("_%d" % (i + 1) if i else ""))
+    for i, t in enumerate(pg.heads):              # v12 (L6, one box per drawing): heading + subtitle carry drawing=D
+        ix.text(pid, t, "heading", drawing=D["id"], group=did, priority=prio,
+                id=did + "_head" + ("_%d" % (i + 1) if i else ""))
+    for i, t in enumerate(pg.notes):              # the one line under the heading = the box's subtitle (caption, 1)
+        ix.text(pid, t, "caption", drawing=D["id"], group=did, priority=1,
+                id=did + "_note" + ("_%d" % (i + 1) if i else ""))
     for s in pg.shapes:
         if s[0] == "text":
-            ix.text(pid, s[1], "label", drawing=D["id"], at=(s[2], s[3]), size_pt=s[4] / IX_PT, bold=s[6],
-                    colour=s[5], positions=["=" + s[7]] + list(s[8] or AG_COMPASS), group=did, priority=5)
+            bg = len(s) > 9 and s[9] == "badge"   # v12 (L6): a marker digit stays on its disc (role badge)
+            ix.text(pid, s[1], "badge" if bg else "label", drawing=D["id"], at=(s[2], s[3]), size_pt=s[4] / IX_PT,
+                    bold=s[6], colour=s[5], positions=["=" + s[7]] + ([] if bg else list(s[8] or AG_COMPASS)),
+                    group=did, priority=5)
     runs = []                                      # [(kind, element, [shapes])], draw order kept
     for sh, tg in zip(pg.shapes, pg.gs):
         if sh[0] == "text":
@@ -764,7 +768,7 @@ def chip(pg, x, y, n, label, size=7.5):
     the shared marker.py mk_marker (glyph centred on its ink box, 7 pt, at least AG_STEP_MM across, accent)."""
     s = AG_STEP_MM
     sh, _box, r = mk_marker(x + s / 2.0, y + 1.1, str(n), C["accent"], size_pt=7.0, r_min=s / 2.0)
-    _ag_put(pg, sh)
+    _ag_put(pg, sh, "badge")                    # v12 (L6): the digit is a badge item (never moved off its disc)
     lx = x + s / 2.0 + r + 1.2
     pg.text(label, lx, y, size, C["ink"])
     return lx + text_w(label, size)
@@ -965,8 +969,8 @@ def ag_p18_items(ix, L, src):
     pg = AgRec()
     ag_bars_block(pg, 14.0, 212.0, rows, vals, fed, MIX)
     ag_export_block(ix, pg, "ag1_bars", 3, 14.0, 212.0, AG_BARS_W, AG_BARS_H, 0.0)
-    ix.text(AG_PAGE, "Hectares one storage irrigates, by crop", "caption", group="ag1_bars", priority=3,
-            id="ag1_bars_caption")                 # v8.3 AG_CAPTIONS (the block has no heading)
+    ix.text(AG_PAGE, "Hectares one storage irrigates, by crop", "heading", drawing="ag1_bars", group="ag1_bars",
+            priority=3, id="ag1_bars_caption")   # v12 (L6): the box's title (heading, drawing=D); id unchanged                 # v8.3 AG_CAPTIONS (the block has no heading)
     best = [q for q in vals if q[1] == "olive" and q[6] and q[2] == "dry"][0]     # v2: olive with deficit (not by its label)
     worst = max((q for q in vals if q[1] not in ("olive", "mix") and q[2] == "dry"), key=lambda q: q[3])     # the thirstiest field crop
     pg = AgRec()
@@ -975,8 +979,8 @@ def ag_p18_items(ix, L, src):
     pg = AgRec()
     ag_reading_block(pg, 14.0, 136.0, best, worst)
     ag_export_block(ix, pg, "ag1_reading", 5, 14.0, 136.0, AG_READ_W, AG_READ_H, cut)
-    ix.text(AG_PAGE, "Same storage: how much more land", "caption", group="ag1_reading", priority=5,
-            id="ag1_reading_caption")              # v8.3 AG_CAPTIONS
+    ix.text(AG_PAGE, "Same storage: how much more land", "heading", drawing="ag1_reading", group="ag1_reading",
+            priority=5, id="ag1_reading_caption")   # v12 (L6): the box's title; id unchanged              # v8.3 AG_CAPTIONS
     pg = AgRec()
     history_line(pg, 146.0, 136.0, AG_HIST_W, AG_HIST_H)      # v1.6: why the stored water goes to farms
     ag_export_block(ix, pg, "ag1_history", 6, 146.0, 136.0, AG_HIST_W, AG_HIST_H, cut)
@@ -1368,9 +1372,9 @@ def ag_farms_items(ix, L, src):
     out.append(u"farms map %s (%s): extent %.0f x %.0f m (farms + %.0f m margin), scales 1:%s, north %.1f deg" % (
         AG_FARM_ID, pid, EW, EH, mg, u", 1:".join(str(d_) for d_ in dens), north))
     # texts (v9's words): heading = the old page title, intro = its subtitle, the context line (review global rule 4)
-    ix.text(pid, "THE FARMS WE FEED", "heading", group=g, priority=6, id=AG_FARM_ID + "_head")
+    ix.text(pid, "THE FARMS WE FEED", "heading", drawing=AG_FARM_ID, group=g, priority=6, id=AG_FARM_ID + "_head")
     ix.text(pid, "Fields and orchards the stored water serves" + (", on the site plan \"What is there\"" if B else ""),
-            "intro", group=g, priority=6, id=AG_FARM_ID + "_intro")
+            "caption", drawing=AG_FARM_ID, group=g, priority=1, id=AG_FARM_ID + "_intro")   # v12 (L6): box subtitle
     WC = "ESA WorldCover 2021 v200, 10 m (CC BY 4.0)"                # v4 (F5): read from Data/landcover
     NEED2 = "need: FAO-56 soil balance / 0.90 drip, normal and 1-in-5 dry years"
     SRC2 = "farm areas from " + src
@@ -1380,7 +1384,7 @@ def ag_farms_items(ix, L, src):
     if B is not None:
         ix.text(pid, cited("The site plan \"What is there\" with the fields and orchards our stored water serves "
                            "outlined: the farms read off the same base, colours and key as the site", None),
-                "caption", group=g, priority=6, id=AG_FARM_ID + "_caption")
+                "note", drawing=AG_FARM_ID, group=g, priority=6, id=AG_FARM_ID + "_caption")   # v12 (L6): note under the box
     fed_c, fed_o = L["cropland_ha"], L["orchard_ha"]
     o_lo = min(gross_m3_ha("olive", "dry"), gross_m3_ha("olive", "normal"))
     o_hi = max(gross_m3_ha("olive", "dry"), gross_m3_ha("olive", "normal"))
