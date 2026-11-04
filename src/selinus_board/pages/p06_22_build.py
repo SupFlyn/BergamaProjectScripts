@@ -223,8 +223,8 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=(), pal=None, den=None):
             if nbox is None:
                 cx_, cy_ = cands[0]
                 nbox = (cx_ - hw, cy_ - hh, cx_ + hw, cy_ + hh)
-                wn_warn("p06", "overlap", u"photo viewpoint {}: no free spot for its number round the camera; set "
-                        u"behind its mark".format(j + 1), log=LOG)
+                LOG.append(u"photo viewpoint {}: number exported behind its mark (no free spot round the camera; "
+                           u"the booklet places it)".format(j + 1))     # v62 (L2): no producer-side warning
             its[ti[0]] = (t_[0], t_[1], (0.5 * (nbox[0] + nbox[2]) / k, 0.5 * (nbox[1] + nbox[3]) / k)) + tuple(t_[3:])
         basemap_draw(its, lambda q: q, xcb[0], xcb[1], xcb[2])
         taken.append(tbox)
@@ -377,7 +377,7 @@ def r28e_edge_panel(S, B, x, y, w, k, L, pal=None, right=0.0):
     ybars = y
     for k_ in EDGE_ORDER:
         v_ = sh_.get(k_, 0.0)
-        with B.kind("other", u"edge bar " + k_):         # v61 (G6-9): one bar = one element
+        with B.kind("legend", u"edge bar " + k_):        # v62 (L2, G6-9): a chart bar = legend (was untagged)
             B.text(EB_EDGE_LAB[k_], x, y - h7, h7, INK, L, font=FONT_TITLE)
             bx_ = x + lw_
             if v_ > 0:
@@ -415,7 +415,7 @@ def r28e_rings(B, x, y, wl_, em_, k, L):
     yw = y
     for j, (pct, kind) in enumerate(((wl_, "walled"), (em_, "embanked"))):
         rx, ry = x + rr + j * pitch, y - rr
-        with B.kind("other", u"ring " + kind):
+        with B.kind("legend", u"ring " + kind):
             vis_ring(B, rx, ry, rr, pct, C(hue("CTX", 2)), C(hue("CTX", 4)), L)
             B.text(u"{:.0f}%".format(pct), rx, ry, h8, INK, L, order=40, font=FONT_TITLE, bold=True, align="MC")
             sx, sy = rx - rr, ry - rr - 2.8 * k
@@ -844,7 +844,7 @@ def p06_build_panel(S, B, x, y, w, k, L, pal=None):
         if sw > 0.0:
             q = rect(cx_, y - bh, cx_ + sw, y)
             lab, col, ang = p06_hatch_spec(hk, pal)
-            with B.kind("other", u"build bar " + part):  # v61 (G6-9): the bar's parts, one element each
+            with B.kind("legend", u"build bar " + part):  # v62 (L2, G6-9): the bar's parts, one element each
                 B.fill([q], mix(col, WHITE, pal["tint"]), L, 20)
                 B.hatch([q], col, L, 21, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
             cx_ += sw
@@ -858,12 +858,12 @@ def p06_build_panel(S, B, x, y, w, k, L, pal=None):
         sw = w * O["bar"][key] / fr
         if sw <= 0.0:
             continue
-        with B.kind("other", u"build bar " + key):
+        with B.kind("legend", u"build bar " + key):
             B.fill([rect(cx_, y - bh, cx_ + sw, y)], col, L, 20)
-            if r28mv_tw(nm_, h65) + 1.2 * k <= sw:
-                B.text(nm_, cx_ + 0.6 * k, y - 0.5 * (bh + h65), h65, tc, L, order=24, font=FONT_TITLE)
+            # v62 (L2): the name always (was: only where it fitted the bar); the booklet moves it off a narrow bar
+            B.text(nm_, cx_ + 0.6 * k, y - 0.5 * (bh + h65), h65, tc, L, order=24, font=FONT_TITLE)
         cx_ += sw
-    with B.kind("other", u"build bar outline"):
+    with B.kind("legend", u"build bar outline"):
         B.line(rect(x, y - bh, x + w, y) + [(x, y - bh)], INK, L, 22, bk_lw(0.15, k))
     yb = y - bh - 1.0 * k                                 # a bracket under the open part
     if x_open - x > 1.0 * k:
@@ -1086,7 +1086,7 @@ def p06_page(S, B, x, top, w, k, L, photos, O, pal):
                 px = cx0 + (c_ - n_l) * (pw + g_r)        # where the column's words start)
             py = py0 - (j // cols) * (ph + cap_h)
             i0_ph = sb_mark(B)                            # v59 closing (G-R4-1): the photo's tag and caption
-            with B.kind("other", u"photo %d" % (j + 1)):
+            with B.kind("annotations", u"photo %d" % (j + 1)):   # v62 (L2): was "other"
                 B.image(p, px, py - ph, px + pw, py, L, order=5)
             with B.kind("labels", u"photo tag %d" % (j + 1)):    # v61 (P-5): the tag in ANN ink, not red
                 B.fill([rect(px, py - bn, px + bn, py)], pal["ann"], L, 64)

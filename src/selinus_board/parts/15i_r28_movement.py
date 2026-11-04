@@ -228,8 +228,8 @@ def _r28mv_fit_h(s, h, avail, k, bold=False, warn=True):
     if not (w_ > avail > 0):
         return h
     h_ = max(bk_hk(R28MV_MIN_PT, k), h * avail / w_)
-    if warn and r28mv_tw(s, h_, bold) > avail * 1.001:
-        wn_warn("p07", "text", u"\"{}\" is {:.1f} mm wider than its {:.1f} mm column at {} pt".format(
+    if warn and r28mv_tw(s, h_, bold) > avail * 1.001:  # v62 (L2): a note; the booklet's check places it
+        LOG.append(u"p07 text \"{}\" {:.1f} mm wider than its {:.1f} mm column at {} pt (booklet check)".format(
             s, (r28mv_tw(s, h_, bold) - avail) / k, avail / k, R28MV_MIN_PT))
     return h_
 
@@ -376,11 +376,11 @@ def r28mv_stack(B, parts, x, ytop, w, k, L, draw=True):
                 b_ = (x, b_[1], x + b_[2] - b_[0], b_[3])
             if b_[2] > x + bw:
                 b_ = (x + bw - (b_[2] - b_[0]), b_[1], x + bw, b_[3])
-            if b_[0] >= last + 0.8 * k:
-                if draw:
-                    B.text(lab, b_[0], yt, h, INK, L, order=66, font=FONT_TITLE)
-                boxes.append(b_)
-                last = b_[2]
+            # v62 (L2): every label is drawn (was: left out when it touched the one before); the booklet moves it
+            if draw:
+                B.text(lab, b_[0], yt, h, INK, L, order=66, font=FONT_TITLE)
+            boxes.append(b_)
+            last = b_[2]
         x_ += dx
     return (ytop - yt) / k + 0.8, boxes
 
@@ -422,17 +422,12 @@ def r28mv_column(B, crop, k, L, num, rows, items, head=u"Why these streets matte
             if hr + ht <= hmax:
                 fit = (h, lines)
                 break
-        if fit is None:
-            if items:
-                LOG.append(u"Column {} beside the p.07 map: \"{}\" left out (no room).".format(num, items[-1]))
-                items = items[:-1]
-            elif any(not r_[0] for r_ in rows):
-                j = max(i for i, r_ in enumerate(rows) if not r_[0])
-                LOG.append(u"Column {} beside the p.07 map: a graphic left out (no room).".format(num))
-                rows = rows[:j] + rows[j + 1:]
-            else:
-                wn_warn("p07", "layout", u"column {} beside the map is taller than its map".format(num))
-                fit = (bk_hk(R28MV_NOTE_PT[-1], k), [])
+        if fit is None:                                  # v62 (L2, Aras 4 Nov 19:18): nothing left out: the
+            h = bk_hk(R28MV_NOTE_PT[-1], k)              # smallest note size, every item and graphic; the booklet
+            fit = (h, [r28mv_lines(it, nw * k, h) for it in items])   # sizes the column's frame
+            LOG.append(u"Column {} beside the p.07 map: {:.0f} mm tall with every item (its map {:.0f} mm): "
+                       u"the booklet sizes it.".format(num, hr + (1.75 * bk_hk(R28MV_HEAD_PT, k) / k if items else 0.0)
+                                                       + sum(len(l_) for l_ in fit[1]) * R28MV_LEAD * h / k, hmax))
     h, lines = fit
     boxes = []
     y = crop[3] - 0.5 * k

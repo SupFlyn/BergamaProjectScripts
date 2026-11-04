@@ -500,7 +500,8 @@ def draw_what_is_there(S, B, x, y, w, U):
                                                                              8.4, 10.0)], pad)
         if q is None:
             q = (px, py)
-            wn_warn("p02", "overlap", u"plan 01: conflict {} finds no free spot near its point (drawn on it)".format(k))
+            LOG.append(u"plan 01: conflict {} set on its point (no free spot near it; the booklet check moves the "
+                       u"texts round it)".format(k))     # v62 (L2): a layout note, not a warning
         col_ = mk_colour("conflict", k)
         with B.kind("annotations", u"conflict %s" % k):   # v61 (G6-4): no dot, no leader line
             bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, k, col_, kb, L, order=64, r_min=rc)
@@ -2372,10 +2373,10 @@ def _p03_marks(pg, V, calls, DG, BP):
                     break
             if spot:
                 break
-        if spot is None:
-            LOG.append(u"p.03 axonometric: callout {!r} left out: no free place within {:.0f} mm of its spot".format(
+        if spot is None:                                  # v62 (L2, Aras 4 Nov 19:17): never left out: set on its own
+            spot = (ax, ay)                               # spot; its number and key row go to the booklet's check
+            LOG.append(u"p.03 axonometric: callout {!r} set on its spot (no free place within {:.0f} mm)".format(
                 _p03_title(c.get("title", u"")), P03_MK_RINGS[-1]))
-            continue
         n = n_
         _p03_marker(pg, spot[0], spot[1], str(n), deep, u"p03 mark %d" % n)
         hb = (b0[2] - b0[0]) / 2.0

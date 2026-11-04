@@ -645,9 +645,11 @@ def _t3_cap_fit(cap, w_mm, slug):
             if a_ != alts[0]:
                 LOG.append(u"Caption {}: shortened to fit {:.0f} mm: \"{}\".".format(slug, w_mm, a_))
             return a_
-    wn_warn("p07", "caption", u"{}: no form fits its {:.0f} mm crop at {} pt; the shortest is used: {}".format(
-        slug, w_mm, T3_CAP_PT, u" | ".join(alts)))       # v60 (C1): warns, never stops
-    return alts[-1]
+    # v62 (L2): no form fits the crop as drawn: the full caption with every shorter form, the booklet picks
+    SB_SHORT[alts[0]] = alts[1:]
+    LOG.append(u"Caption {}: no form fits {:.0f} mm at {} pt; all {} forms handed to the booklet.".format(
+        slug, w_mm, T3_CAP_PT, len(alts)))
+    return alts[0]
 
 
 def draw_mv_today(S, B, x, y, U, R, MV, key, title, cap):
@@ -1112,8 +1114,7 @@ def _t3_label_band(uses, W):
         if row is None:
             row = min(range(T3_TITLE_ROWS), key=lambda r_: right[r_])
             x0 = right[row] + 0.8
-            if x0 + w_ > W:
-                wn_warn("p08", "label", u"\"{}\" runs {:.1f} mm past its section".format(lab, x0 + w_ - W))
+            # v62 (L2): a label past the section is placed by the booklet (its spot here is only the first try)
         right[row] = x0 + w_
         used = max(used, row + 1)
         yb = yt0 + row * T3_TITLE_ROW
@@ -1527,8 +1528,14 @@ def _t3_sec_make(cut, after, style, k, seed, tid0=0):
             ad("labels", sh_, "labels", u"bubble %d" % tid0)
             got = True
             break
-        if not got:
-            n_drop += 1
+        if not got:                                      # v62 (L2): never left out once a section has none: the
+            if n_bub == 0 and act == bub[-1][0]:         # last actor's bubble on its own side; the booklet moves
+                sh_ = fig_bubble(t_, hx, hy + 0.25 * k, size=T3_FS, side=fac, width_fn=wfn)   # its words
+                boxes.append(_t3_bb(sh_[0][1]))
+                n_bub += 1
+                ad("labels", sh_, "labels", u"bubble %d" % tid0)
+            else:
+                n_drop += 1
     g6 = sf_assert_g6(k, trees=trees, buildings=[(u"{} side {}".format(cut["name"], sg),
                                                    cut["side"][sg]["g6"][0], cut["side"][sg]["g6"][1])
                                                   for sg in (-1, 1) if cut["side"][sg].get("g6") and
@@ -1621,8 +1628,8 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     den = next((d_ for d_ in T3_SEC_DENS if row_w(d_) <= T3_SEC_ROW_W), None)
     if den is None:
         den = T3_SEC_DENS[-1]
-        wn_warn("p08", "layout", u"street cuts: one row needs {:.0f} mm at 1:{:,} (the booklet row is {:.0f} mm)".format(
-            row_w(den), den, T3_SEC_ROW_W))
+        LOG.append(u"street cuts: one row needs {:.0f} mm at 1:{:,} (the booklet row is {:.0f} mm; the booklet "
+                   u"sizes the frames)".format(row_w(den), den, T3_SEC_ROW_W))     # v62 (L2): note, not warning
     k = 1000.0 / den                                      # mm per m on the booklet page
     LOG.append(u"Street sections at 1:{:,} (one scale for all {} streets, one row {:.0f} mm): ".format(
         den, len(groups), row_w(den)) + u"; ".join(
@@ -1691,13 +1698,10 @@ def _t3_street_sections(S, B, x, y, w, U, M):
         avail = right - x0p
         alts_ = [u"{} · {} · {}".format(rid, c_["name"], T3_CHANGE_TXT.get(c_["change"], c_["change"])),
                  u"{} · {}".format(rid, c_["name"]), rid]
-        head_ = next((a_ for a_ in alts_ if fm_width(a_, 8.5, True) <= avail), None)
-        if head_ is None:                                 # warns and sets the shortest form
-            wn_warn("p08", "heading", u"\"{}\" ({:.0f} mm) does not fit over its street ({:.0f} mm)".format(
-                alts_[-1], fm_width(alts_[-1], 8.5, True), avail))
-            head_ = alts_[-1]
-        elif head_ != alts_[0]:
-            LOG.append(u"Street sections {}: heading shortened to fit {:.0f} mm: \"{}\".".format(rid, avail, head_))
+        # v62 (L2): the full heading; its shorter forms go to the booklet (SB_SHORT), which picks the one that fits
+        head_ = alts_[0]
+        SB_SHORT[head_] = alts_[1:]
+        SB_ROLE[head_] = "heading"                        # v62 (L2): the pair box's title
         with B.kind("labels", u"%s heading" % rid):
             PU.text(head_, x0p, yrow - 3.0, 8.5, T3_COL["ink"], True)
         with B.kind("annotations", u"%s change" % rid):
@@ -1710,6 +1714,7 @@ def _t3_street_sections(S, B, x, y, w, U, M):
         crop_panel("street_" + rid, x + (x0p - 0.5) * kb, sb - 0.5 * kb, x + (right + 0.5) * kb, (yrow + 0.5) * kb,
                    u"", den, ix_page="p08")
         CROP_PANELS[-1]["bk_w"] = right - x0p + 1.0
+        CROP_PANELS[-1]["dkind"] = "section"             # v62 (L2): street cuts are section boxes
         LOG.append(u"section p08 {} ACCURATE · {} ({}) · crop street_{} {:.0f} x {:.0f} mm at 1:{:,}; levels {}; "
                    u"existing trees {} ({} by species)".format(
                        rid, c_["name"], c_["change"], rid, right - x0p + 1.0, yrow + 0.5 - sb / kb + 0.5, den,
@@ -1720,7 +1725,7 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     if g6:
         wn_warn("p08", "g6", u"street sections: " + u"; ".join(sorted(set(g6))))
     if cx - T3_SEC_PAIR_GAP > T3_SEC_ROW_W + 0.5:
-        wn_warn("p08", "layout", u"street cuts: the row runs {:.0f} mm past the booklet width".format(
+        LOG.append(u"street cuts: the row runs {:.0f} mm past the booklet width (the booklet places the pairs)".format(
             cx - T3_SEC_PAIR_GAP - T3_SEC_ROW_W))
     if not ab_all:
         LOG.append(u"WARNING p08 levels: no survey terrain on this run: the street cuts' levels are given above the "
