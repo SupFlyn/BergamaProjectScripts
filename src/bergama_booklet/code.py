@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v30_3.py = v30.3 (fix 2 Nov 06:40: maps larger: round scales 1:1,500, 1:7,500, 1:15,000, 1:25,000 added, a script's scale range open to them; diagrams free-size up to 6 x; p07, p10, p16, p22 re-planned so rows fit; p11, p21 wider); v30.2 (fix 2 Nov: p04/p05 one row per cut, one scale, from site board v60.2); v30.1 (closing fix 2 Nov: Sources lists the masterplan places properly); v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
+# CURRENT VERSION: bergama_booklet_v31.py = v31 (round 6 S9, 4 Nov 2026: 22 pages p01-p22 in the PLAN §2.1 order, each page
+# laid out in its FRAMES (G6-1: the SUBMISSION_SON arrangement, drawings enlarged uniformly into their frames), title
+# band + bare page number, Sources last with every source numbered in page order (G6-3), G6-9 group tags handed to the
+# PDF writer, every overlap / edge / empty band / < 4 pt = WARNING (G6-7, G6-8)); v30.3 (fix 2 Nov 06:40: maps larger: round scales 1:1,500, 1:7,500, 1:15,000, 1:25,000 added, a script's scale range open to them; diagrams free-size up to 6 x; p07, p10, p16, p22 re-planned so rows fit; p11, p21 wider); v30.2 (fix 2 Nov: p04/p05 one row per cut, one scale, from site board v60.2); v30.1 (closing fix 2 Nov: Sources lists the masterplan places properly); v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
 # scripts' exported items (G-R5-12): 23 pages, one page numbering, no sheet crops; see NEW IN v30)
-"""Bergama Group 6: A3 BOOKLET COMPOSER (round 5). Rules: scripts/_template/SCRIPT_STANDARD.md §9.
+"""Bergama Group 6: A3 BOOKLET COMPOSER (round 5; round 6 v31 page frames). Rules: scripts/_template/SCRIPT_STANDARD.md §9.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from every content script's booklet items.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The first run installs PyMuPDF 1.26.5 (the
@@ -14,6 +17,17 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
 Reads  ~/Downloads/Bergama/cached/booklet/<script folder>/items.json (every content script, round 5)
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf; temporary drawing PDFs in
        ~/Downloads/Bergama/cached/booklet/_render/
+NEW IN v31 (round 6, session S9, 4 Nov 2026; revision_2026-11-04_round6/PLAN.md §2.1, §2.2, §3, §7 S9; a feature):
+  * G6-1: the page plan (parts/80_plan.py) is a list of FRAMES per page ([x, y, w, h] in % of A3, from
+    plan_findings/frames_*.md "Target frames"); each frame takes the exported items whose ids match its patterns;
+    maps and sections take the largest round scale that fits their frame (frames with one "same" key share one scale),
+    diagrams the largest factor; an item no frame names goes to the page's side frame with a WARNING (never lost).
+  * G6-2: 22 pages, the content scripts export the new ids p01-p22 directly (the 25 -> 23 map is gone); contents on the
+    cover from the same list; the page number alone, bottom right; log "pagenum <n>".
+  * G6-3: Sources = page 22, four (or five) columns, "[n] text" in page order, hanging indent; {src:key} marks are
+    numbered in texts, legend entries, list rows and photo captions, plus a drawing's "src_keys" list.
+  * G6-4 north arrow outside the drawing (scale band, right end). G6-9: each shape's "grp" tag goes to write_pdf as
+    pg.grp (log "groups <page> kinds=<n> elements=<n> untagged=<n>"). Log "page <pid> frames=<n> placed=<n> unlisted=<n>".
 Run it LAST in the chain (zone base -> site board -> masterplan -> water balance -> agriculture -> water board ->
 proposal sections -> city link -> booklet).
 NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md §10 S10; a feature change):
@@ -31,7 +45,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v30.3"  # v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v31"  # v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -59,6 +73,8 @@ def main():
     ck_reset()
     tp_log_lines()                                # no text log lines left from an earlier run
     BK_STAT.update(drawings=0, scales=[], pages=[])
+    BK_GRP.clear()
+    del BK_PAGENO_LOG[:]
     lines = []
     ix_load_all(need=())
     for f in BK_EXPECT:
@@ -66,6 +82,9 @@ def main():
             wn_warn(None, "missing", u"no items.json from %s (cached/booklet/%s/): run that script first; its pages "
                     u"stay empty" % (f, f))
     bk_remap(lines)
+    lines.append(u"glyph U+0131 dotless i: %s in the booklet font (Arial, %s)" % (
+        u"mapped" if not fm_safe(u"\u0131", False)[1] and not fm_safe(u"\u0131", True)[1] else u"MISSING",
+        bk_font_files()[0]))
     bk_sources_collect()
     pids = [sp["pid"] for sp in BK_PAGES if not sp.get("kind")]
     n_marks = bk_src_number(pids)
@@ -78,7 +97,7 @@ def main():
             if sp.get("kind") == "cover":
                 bk_cover(doc, n, lines)
             elif sp.get("kind") == "sources":
-                n_src = bk_sources(doc, n, lines)
+                n_src = bk_sources(doc, n, lines, sp["pid"], sp.get("title", u"Sources"), sp.get("part"))
             else:
                 bk_content_page(doc, sp, n, lines)
         except Exception as ex:                   # a page that fails is a WARNING; the others still build
@@ -87,6 +106,7 @@ def main():
                 n, type(ex).__name__, ex, _tb.format_exc().strip().splitlines()[-3:]))
             if doc.page_count < n:
                 doc.new_page(width=GRID_PAGE[0] * BK_K, height=GRID_PAGE[1] * BK_K)
+    lines.extend(BK_PAGENO_LOG)
     ck_finish(BK_REF_PAGE)
     try:
         doc.subset_fonts()
