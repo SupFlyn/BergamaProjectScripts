@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_city_link_v10.py = v10 (round 6, session S4, 4 Nov 2026: p08 + p09 for the 22-page booklet: G6-6 category hues (common/hues.py), G6-9 element groups, G6-4 no leader lines, hub codes K4/K3/T/K5/K6 on every map and card; p09 = SON page9 + page10 merged (spine map restored from c493fac page_spine, plans widened to the hub columns at one scale, no key map, flood rule SKETCH, bottom band enlarged); p08 who-chart source marks clear of their blocks; v9.2 hunks ported into src); v9.2 (fix 2 Nov: run warnings, p10 zones off the water + key map); v9.1 (fix 2 Nov: p10 hub-square trees by the plant module); v9 (round 5 S9: items, no sheet PDF); v8.x / v7 (round 4)
+# CURRENT VERSION: bergama_city_link_v11.py = v11 (4 Nov 2026, layout plan L7: every map name (landmarks, streets, the stream) is handed to the booklet as a label anchored on its point; no name is left out by this script, the booklet places them); v10 (round 6, session S4, 4 Nov 2026: p08 + p09 for the 22-page booklet: G6-6 category hues (common/hues.py), G6-9 element groups, G6-4 no leader lines, hub codes K4/K3/T/K5/K6 on every map and card; p09 = SON page9 + page10 merged (spine map restored from c493fac page_spine, plans widened to the hub columns at one scale, no key map, flood rule SKETCH, bottom band enlarged); p08 who-chart source marks clear of their blocks; v9.2 hunks ported into src); v9.2 (fix 2 Nov: run warnings, p10 zones off the water + key map); v9.1 (fix 2 Nov: p10 hub-square trees by the plant module); v9 (round 5 S9: items, no sheet PDF); v8.x / v7 (round 4)
 # bergama_city_link_v6.py (v6, 31 Oct: round 3, p08 one corridor arrow over the whole study area + p09 hub plans; v5.1, 31 Oct: bugfix, rebuilt with the shared base map fix of 31 Oct: the stream (M5 water) no longer stops on "list - float"; v5, 30 Oct: revision T5, p8 framework map + who calendar, p9 spine) · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (a Button wired into the input `run`; outputs `log`, `done`),
 # Rhino 8 ScriptEditor (Python 3), or plain Python 3. v9 lays out no page and writes NO PDF (round 5, G-R5-12 and
@@ -41,7 +41,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v10"  # v10 4 Nov (round 6 S4, see line 1); v9.2 2 Nov (run warnings, port in src); v9.1 fix 2 Nov (round 5 open rows, G-R5-6): the p10 hub-square planes come from common/plants.py (pla_plan) instead of 16-gon discs in the local green; v9 2 Nov (round 5 S9): items for the booklet, no sheet PDF (NEW IN v9 above); v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v11"  # v11 4 Nov (L7: names anchored for the booklet, none left out); v10 4 Nov (round 6 S4, see line 1); v9.2 2 Nov (run warnings, port in src); v9.1 fix 2 Nov (round 5 open rows, G-R5-6): the p10 hub-square planes come from common/plants.py (pla_plan) instead of 16-gon discs in the local green; v9 2 Nov (round 5 S9): items for the booklet, no sheet PDF (NEW IN v9 above); v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v7 (round 4, session S5, 1 Nov 2026; BRIEF P08.1-P08.3, P10.1-P10.6, G-R4-1/2/4/7/9/11; a feature change,
 # so the next whole number; design spec revision_2026-11-01_round4/handover/S5_design_spec.md):
 #   * Text (G-R4-1): every text of both pages is registered in the page's TextPage (common/text_place.py) with its
@@ -370,6 +370,7 @@ class Page:
         self.grp = None                           # v10 (G6-9): the open element group (kind, element id)
         self.grps = []                            # v10: the group of each recorded shape (same index as shapes)
         self.grp_n = {}                           # v10: element counter per kind (auto ids "<kind> <n>")
+        self.anc = {}                             # v11 (L7): shape index -> (ax, ay, positions) of an anchored name
     def group(self, kind, eid=None):
         """v10 (round 6, G6-9, PLAN §2.9): `with pg.group(kind, eid):` every shape recorded inside is one element
         of that kind (kinds as common/item_export.py: trees, buildings, people, plants, water, ground, roads,
@@ -502,8 +503,12 @@ def cl_drawing(ix, did, page, pg, box, den=None, origin_m=(0.0, 0.0), dkind="dia
     = exactly where it was recorded, then the 8 compass spots), a marker glyph a badge (only its own spot); texts
     outside the box are left out and counted. Returns the drawing dict."""
     x0, y0, x1, y1 = [float(v) for v in box]
-    texts = [s_ for s_ in pg.shapes if s_[0] == "text" and x0 - 0.01 <= s_[2] <= x1 + 0.01 and
-             y0 - 0.01 <= s_[3] <= y1 + 0.01]
+    anc = getattr(pg, "anc", None) or {}
+    aid = dict((id(pg.shapes[i_]), a_) for i_, a_ in anc.items() if i_ < len(pg.shapes))
+    inb = lambda x_, y_: x0 - 0.01 <= x_ <= x1 + 0.01 and y0 - 0.01 <= y_ <= y1 + 0.01
+    # v11 (L7): an anchored name belongs to the drawing its ANCHOR is in (wherever it was recorded)
+    texts = [s_ for s_ in pg.shapes if s_[0] == "text" and
+             (inb(*aid[id(s_)][:2]) if id(s_) in aid else inb(s_[2], s_[3]))]
     n_out = sum(1 for s_ in pg.shapes if s_[0] == "text") - len(texts)
     if den:
         k = float(den) / 1000.0
@@ -548,10 +553,15 @@ def cl_drawing(ix, did, page, pg, box, den=None, origin_m=(0.0, 0.0), dkind="dia
         al = s_[7] if s_[7] in ("L", "C", "R") else "L"
         badge = s_[8] == "marker"
         g_ = tg.get(id(s_)) or ("labels", None)
+        a_ = aid.get(id(s_))
+        if a_ and not badge:                              # v11 (L7): anchored on its point, the booklet picks the spot
+            at_, pos_ = (org[0] + k * a_[0], org[1] + k * a_[1]), list(a_[2]) or CL_COMPASS
+        else:
+            at_, pos_ = (org[0] + k * s_[2], org[1] + k * s_[3]), ["=" + al] + ([] if badge else CL_COMPASS)
         with cl_ix_group(g_[0], g_[1]):
             ix.text(page, s_[1], "badge" if badge else "label", drawing=D["id"],
-                    at=(org[0] + k * s_[2], org[1] + k * s_[3]), size_pt=s_[4] / IX_PT, bold=s_[6], colour=s_[5],
-                    positions=["=" + al] + ([] if badge else CL_COMPASS), group=D["group"], priority=2 if badge else 5)
+                    at=at_, size_pt=s_[4] / IX_PT, bold=s_[6], colour=s_[5],
+                    positions=pos_, group=D["group"], priority=2 if badge else 5)
     kinds = set(g_[0] for g_, _s in runs) | set((tg.get(id(s_)) or ("labels",))[0] for s_ in texts)
     CL_GROUPS.setdefault(page, [0, set(), 0])
     CL_GROUPS[page][0] += len(runs) + len(texts)
@@ -560,7 +570,7 @@ def cl_drawing(ix, did, page, pg, box, den=None, origin_m=(0.0, 0.0), dkind="dia
     CL_ITEMS_LOG.append(u"items %s %s: %d shapes, %d labels%s%s" % (
         page, D["id"], len(shapes), len(texts), (u" · drawn at 1:%s, %.0f x %.0f m" % (fmt(den), ext[2] - ext[0],
                                                                                    ext[3] - ext[1])) if den else
-        u" · mm %.0f x %.0f" % (x1 - x0, y1 - y0), (u" · %d text(s) outside the box left out" % n_out) if n_out else u""))
+        u" · mm %.0f x %.0f" % (x1 - x0, y1 - y0), (u" · %d text(s) of other boxes" % n_out) if n_out else u""))
     return D
 
 
@@ -830,20 +840,31 @@ def cl_marker_free(pg, cx, cy, s, col, size_pt=7.0, frame=None, allow=(), name=N
 
 
 def cl_place(pg, s, at, size, col, bold=False, r=0.8, frame=None, allow=(), positions=TP_POSITIONS):
-    """v7 (round 4, G-R4-1; replaces lp_place / place_marks): a name beside its point at (at) on a map: the compass
-    positions in reading order round it (r mm + 0.8 mm gap), the first one clear of every text and keep (bar allow)
-    and inside frame; drawn there through pg.text. Returns its box, or None when no spot is free (the caller keeps
-    the name in its legend or logs it; nothing is drawn over anything)."""
+    """v11 (L7, Aras 4 Nov 19:18 "scripts just produce ... booklet ... places them"): a name of a point or line at
+    (at) on a map, handed to the booklet as an ANCHORED label: anchor = at, positions = the compass codes round it;
+    the booklet's pl_label finds the spot (move, short form, number + side list, smaller), so no name is ever left
+    out here and no free-spot test is made. Recorded at the first compass spot inside frame (else the first one),
+    only so the item has a size. Returns its box (always)."""
     tp = pg.tp
+    got = None
     for code in positions:
         x, y, al = tp._at(code, s, at, size, bold, r + 0.8)
         b = tp._box(s, x, y, size, bold, al, 0.0)
-        if frame and not (frame[0] <= b[0] and b[2] <= frame[2] and frame[1] <= b[1] and b[3] <= frame[3]):
-            continue
-        if tp._free(b, allow):
-            pg.text(s, x, y, size, col, bold, al, allow=allow)
-            return b
-    return None
+        if got is None:
+            got = (x, y, al, b)
+        if not frame or (frame[0] <= b[0] and b[2] <= frame[2] and frame[1] <= b[1] and b[3] <= frame[3]):
+            got = (x, y, al, b)
+            break
+    x, y, al, b = got
+    n0 = len(pg.shapes)
+    pg.text(s, x, y, size, col, bold, al, allow=allow)
+    if len(pg.shapes) > n0:
+        pg.anc[len(pg.shapes) - 1] = (float(at[0]), float(at[1]), list(positions))
+        CL_HANDED[0] += 1
+    return b
+
+
+CL_HANDED = [0]                          # v11 (L7): names handed to the booklet as anchored labels
 
 
 def sw_fill(col, edge=None):
@@ -1722,11 +1743,13 @@ def framework_map(pg, L):
             continue
         Q = [q for q in (T(p) for p in max(g["runs"], key=len)) if inside(q)]
         if len(Q) > 1:
-            cl_place(pg, street_label(g["label"]), Q[len(Q) // 2], 7.5, C["ink"], True, 1.2, frame, (MAP,))
+            with pg.group("labels", u"name " + street_label(g["label"])):
+                cl_place(pg, street_label(g["label"]), Q[len(Q) // 2], 7.5, C["ink"], True, 1.2, frame, (MAP,))
     for c_, R_ in sorted([r_ for r_ in clip_runs(P, sbox, cov) if not r_[0]], key=lambda r_: -len(r_[1])):
         Q = [q for q in (T(p) for p in R_) if inside(q)]
-        if len(Q) > 1 and cl_place(pg, place_name("stream"), Q[len(Q) // 2], 7.5, C["water_deep"], True, 1.6, frame,
-                                   (MAP,)):
+        if len(Q) > 1:                                    # v11 (L7): once, on the longest open run, anchored
+            with pg.group("labels", u"name Selinos stream"):
+                cl_place(pg, place_name("stream"), Q[len(Q) // 2], 7.5, C["water_deep"], True, 1.6, frame, (MAP,))
             break
     # the legend rows (an Ix legend beside the map: the booklet places it)
     rows = []
@@ -2527,8 +2550,8 @@ def hub_plan(pg, L, f, w):
     for nm_, q in names:                                  # landmarks inside the plan, where a spot is free
         px, py = T(q)
         if inside((px, py)) and not any(s_ in nm_.lower() for s_ in skip):
-            if not cl_place(pg, nm_, (px, py), 7, C["ink2"], False, 0.6, frame, (MAP,)):
-                BM_NOTE.append(u"p09 plan %s: landmark name '%s' left out (no free spot)" % (w["no"], nm_))
+            with pg.group("labels", u"name " + nm_):     # v11 (L7): every landmark name handed to the booklet
+                cl_place(pg, nm_, (px, py), 7, C["ink2"], False, 0.6, frame, (MAP,))
     return seen
 
 
@@ -3015,12 +3038,14 @@ def main():
     del CL_LOG[:]                                         # v7: this run's map_draw / key-map lines
     CL_GROUPS.clear()                                     # v10 (G6-9)
     CL_TREES[0] = 0                                       # v10 (G6-10)
+    CL_HANDED[0] = 0                                      # v11 (L7)
     L = live()
     ix = cl_items(L)
     lines = [u"%s  %s" % (os.path.join(RES_DIR, OUT_JSON), time.strftime("%H:%M:%S")), ix.summary(),
              u"figures: %s; %s; %s" % (L["wb_src"], L["mv_src"], L["ctx_note"]), L["mp_when"], L["mv_when"],
              u"trigger: " + (TRIG_WHY[0] or "-")]
     lines += CL_ITEMS_LOG + CL_LOG + cl_groups_log()
+    lines.append(u"names handed to the booklet: %d (anchored on their points; left out here: 0)" % CL_HANDED[0])
     lines += [n_ for n_ in [L.get("fw_note"), L.get("mp_note")] + sorted(set(BM_NOTE)) if n_]
     lines.append(u"open points (not drawn): market edge, decks and stall sizes (masterplan); hub plane-tree irrigation "
                  u"from storage (water board); ridership at the bus stops (none found, h03); the sub-hub's bed edges and "
