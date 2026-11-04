@@ -171,7 +171,7 @@ def _bk_src_h(k, t, cw, s):
         return st_fit(t, cw, None, "heading", 6.0, justify=False, page="sources")[3] + 1.4
     m_ = _BK_SRC_NUM.match(t)
     body = t[m_.end():] if m_ else t
-    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=False, page="sources")[3] + 0.9
+    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=True, page="sources")   # v32: justified, last line left (Aras 4 Nov 19:22)[3] + 0.9
 
 
 def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
@@ -221,10 +221,10 @@ def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
             if m_:                                  # hanging indent: the number, then the text block beside it
                 a_, _d = fm_asc_desc(s)
                 P.tp.put(m_.group(1), cx, y + a_, s, False, "L", 0.0, None, "source", GRID_INK["ink2"], ())
-                st_para(P, t[m_.end():], cx + BK_SRC_IND, y, cw - BK_SRC_IND, None, "source", s, justify=False,
+                st_para(P, t[m_.end():], cx + BK_SRC_IND, y, cw - BK_SRC_IND, None, "source", s, justify=True,
                         page=pid)
             else:
-                st_para(P, t, cx, y, cw, None, "source", s, justify=False, page=pid)
+                st_para(P, t, cx, y, cw, None, "source", s, justify=True, page=pid)
         y += hh
     if P is not None:
         bk_pageno(P, n + len(pages) - 1)
