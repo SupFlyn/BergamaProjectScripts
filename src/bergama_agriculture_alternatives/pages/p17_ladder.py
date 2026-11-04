@@ -359,8 +359,8 @@ def _ag3_photo(pg, key, x, top):
 def ag3_bands(pg, top, pn=None):
     """the plant bands under the three rows (one column under each step) and, left, what goes, the odour and how to
     read the steps (28 Oct page_ladder part 3). Every plant of a step with its photo PHOTO_W x PHOTO_H, two side by
-    side, its name "English (Turkish)" + the photo's credit mark under it; the species' reasons only when there is room
-    (28 Oct rule). v11: a species whose photo did not load is never an empty box: it is named in one line "also:" under
+    side, its name "English (Turkish)" + the photo's credit mark under it, then the species' reason (v12, L6: always
+    exported; the booklet places it; the 28 Oct "only when there is room" rule is the booklet's). v11: a species whose photo did not load is never an empty box: it is named in one line "also:" under
     its band's photos and logged (BRIEF §6 row 17). v11: the left column goes into pn (its own drawing ag3_notes,
     booklet frame "ag3_note*"), the bands + photos stay in pg. Returns (lowest y of pg, lowest y of pn)."""
     pn = pn or pg
@@ -395,7 +395,7 @@ def ag3_bands(pg, top, pn=None):
         miss = [key for key, _ in st["plant"] if not photo_get(key)[0]]
         low = y
         for r0 in range(0, len(got), per):
-            n_ = 1
+            yl = y - PHOTO_H - 2.5                   # v12 (L6): the lowest baseline of this row's name + reason lines
             for c_, (key, why) in enumerate(got[r0:r0 + per]):
                 px = xa + c_ * (PHOTO_W + PH_GAP)
                 pg.tag("plants", "%s_%s" % (el, key))
@@ -405,8 +405,10 @@ def ag3_bands(pg, top, pn=None):
                 nl = name_lines(key, photo_mark(key), 7, PHOTO_W)
                 for q in nl:
                     pg.text(q, px, yy, 7, C["ink"], True); yy -= 2.6
-                n_ = max(n_, len(nl))
-            low = y - PHOTO_H - 2.5 - 2.6 * (n_ - 1) - 0.6
+                for q in (wrap(why, 6.5, PHOTO_W) if why else []):   # v12 (L6): the species' reason always exported
+                    pg.text(q, px, yy, 6.5, C["ink2"]); yy -= 2.4  # (28 Oct rule "only when there is room" = booklet's job)
+                yl = min(yl, yy + (2.4 if why else 2.6))
+            low = yl - 0.6
             y = low - 1.1
         for key in miss:                             # no empty box: the name in one line, logged
             AG3_NOPHOTO.append((key, photo_get(key)[2] or "not loaded"))

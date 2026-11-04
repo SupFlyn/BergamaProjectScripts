@@ -21,7 +21,7 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v11"  # v11 (round 6 S7, 4 Nov): page id p10, run stamp dropped, hue table, G6-9 groups (NEW IN v11); v10 (round 5 S5, 2 Nov): items for the booklet, no sheet PDF, warnings never stop (NEW IN v10); v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v12"  # v12 (L6 layout plan, 4 Nov): producer keeps only data warnings (the "wrap" / "widow" layout warnings gone; every text was already an anchored label, nothing left out; one box per drawing: number badge, heading and subtitle caption carry drawing=D) (NEW IN v12); v11 (round 6 S7, 4 Nov): page id p10, run stamp dropped, hue table, G6-9 groups (NEW IN v11); v10 (round 5 S5, 2 Nov): items for the booklet, no sheet PDF, warnings never stop (NEW IN v10); v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v11 (round 6 S7, 4 Nov 2026; BRIEF §6 row 10, G6-1, G6-6, G6-9):
 #   * page id p10 (round 6 22-page numbering; was p11): WB_PAGE and the log; the water board's page is now p11 (the
 #     "zones for p11" log line).
@@ -743,10 +743,8 @@ def wb_wrap(s, w, size, bold=False, marks=True):
             return tp_wrap(s, w, sz, bold, min_last_words=2, bold_marks=marks)
         except TpWidow:
             pass
-        except TextError as ex:                           # a word wider than the column: one line + WARNING
-            wn_warn(WB_PAGE, "wrap", u"%r: %s" % (s[:60], ex))
-            return [[(s, bold, 0.0)]]
-    wn_warn(WB_PAGE, "widow", u"%r: last line keeps one word" % s[:60])
+        except TextError:                                 # a word wider than the column: one line (v12, L6: no
+            return [[(s, bold, 0.0)]]                     # layout WARNING here; the booklet sizes and checks it)
     return tp_wrap(s, w, size, bold, min_last_words=1, bold_marks=marks)
 
 # ------------------------------------------------------------------ helpers on the live results
@@ -1175,10 +1173,11 @@ def wb_items(R):
         fns[key](pg, R, x, y, w, h)
         D = ix.drawing(did, WB_PAGE, (x - 0.5, y - 0.5, x + w + 0.5, y + h - cut), units="mm", dkind="chart",
                        scale_bar=False, priority=n, group=did)
-        for hn, ht, hs in pg.heads:
-            ix.text(WB_PAGE, u"%s %s" % (hn, ht), "heading", group=did, id=did + "_head", priority=n)
+        for hn, ht, hs in pg.heads:                       # v12 (L6, one box per drawing): disc + title + subtitle
+            ix.text(WB_PAGE, hn, "badge", drawing=did, group=did, id=did + "_num", priority=n)
+            ix.text(WB_PAGE, ht, "heading", drawing=did, group=did, id=did + "_head", priority=n)
             if hs:
-                ix.text(WB_PAGE, hs, "note", group=did, id=did + "_note", priority=n)
+                ix.text(WB_PAGE, hs, "caption", drawing=did, group=did, id=did + "_note", priority=1)
         runs = []                                         # v11 (G6-9): consecutive runs of one tag
         for sh, tg in zip(pg.shapes, pg.gs):
             if runs and runs[-1][0] == tg:
