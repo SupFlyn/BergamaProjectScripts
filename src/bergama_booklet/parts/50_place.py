@@ -683,3 +683,114 @@ def pl_photo(P, ph, x, y, w, h):
     P.tp.keep(box, "photo", ph.get("id"))
     P.ink.append(("photo", box, ph.get("id")))
     return box
+
+
+# ---- v32.2 speed (Aras 4 Nov 21:14 "cant we squeeze in some performance boost"): a grid index for the page's texts and
+# obstacles. TextPage._free and TextPage.hits_now looked at EVERY text and obstacle of the page for every spot tried
+# (rings, short forms, fix passes); now only those in the grid cells the box touches. Same tests, same order of hits,
+# same result: only the search is shorter. The index is rebuilt when a text or obstacle is added or taken off, and
+# when a side list renumbers its boxes.
+_BK_CELL = 8.0                                            # grid cell, page mm
+
+
+def _bk_cells(b, pad):
+    c = _BK_CELL
+    return (range(int((b[0] - pad) // c), int((b[2] + pad) // c) + 1),
+            range(int((b[1] - pad) // c), int((b[3] + pad) // c) + 1))
+
+
+def _bk_index(tp):
+    sig = (len(tp.items), id(tp.items[-1]) if tp.items else 0, len(tp.keeps), id(tp.keeps[-1]) if tp.keeps else 0,
+           getattr(tp, "_bk_mut", 0))
+    ix = getattr(tp, "_bk_ix", None)
+    if ix is not None and ix[0] == sig:
+        return ix
+    gi, gk = {}, {}
+    for g, objs in ((gi, tp.items), (gk, tp.keeps)):
+        for n, o in enumerate(objs):
+            xs, ys = _bk_cells(o["box"], 0.0)
+            for cx in xs:
+                for cy in ys:
+                    g.setdefault((cx, cy), []).append(n)
+    ix = (sig, gi, gk)
+    tp._bk_ix = ix
+    return ix
+
+
+def _bk_near(g, b, pad):
+    xs, ys = _bk_cells(b, pad)
+    out = set()
+    for cx in xs:
+        for cy in ys:
+            out.update(g.get((cx, cy), ()))
+    return out
+
+
+def _bk_free(self, b, allow=(), group=None):
+    if not (self.inner[0] <= b[0] and b[2] <= self.inner[2] and self.inner[1] <= b[1] and b[3] <= self.inner[3]):
+        return False
+    if self.footer_zone and tp_hit(b, self.footer_zone, 0.0):
+        return False
+    _s, gi, gk = _bk_index(self)
+    for n in _bk_near(gi, b, self.pad):
+        it = self.items[n]
+        if it["group"] != group and tp_hit(b, it["box"], self.pad):
+            return False
+    for n in _bk_near(gk, b, self.pad):
+        K = self.keeps[n]
+        if K["name"] in allow or K["kind"] in allow:
+            continue
+        if _tp_keep_hits(b, K, self.pad):
+            return False
+    return True
+
+
+def _bk_hits_now(self, blocks_in=False):
+    hits = []
+    I = self.items
+    inn = self.inner
+    _s, gi, gk = _bk_index(self)
+
+    def inside(b):
+        return (inn[0] - 1e-6 <= b[0] and b[2] <= inn[2] + 1e-6 and inn[1] - 1e-6 <= b[1] and
+                b[3] <= inn[3] + 1e-6)
+    for i, a in enumerate(I):
+        b = a["box"]
+        if not inside(b):
+            hits.append(("edge", a, u"the page edge or its margins"))
+        if self.footer_zone and a["role"] not in ("footer", "crop_word") and tp_hit(b, self.footer_zone, 0.0):
+            hits.append(("edge", a, u"the footer zone"))
+        for n in sorted(j for j in _bk_near(gi, b, self.pad) if j > i):
+            c = I[n]
+            if c["group"] != a["group"] and tp_hit(b, c["box"], self.pad):
+                hits.append(("overlap", a, c))
+        for n in sorted(_bk_near(gk, b, self.pad)):
+            K = self.keeps[n]
+            if K["name"] in a["allow"] or K["kind"] in a["allow"]:
+                continue
+            if _tp_keep_hits(b, K, self.pad):
+                hits.append(("overlap", a, K))
+    B = self.blocks
+    for i, a in enumerate(B):
+        if blocks_in and not inside(a["box"]):
+            hits.append(("edge", a, u"the page edge or its margins"))
+        for c in B[i + 1:]:
+            if tp_hit(a["box"], c["box"], -0.01 / self.unit_mm):
+                hits.append(("overlap", a, c))
+    return hits
+
+
+_bk_close0 = TpSideList.close
+
+
+def _bk_close(self, tp):
+    tp._bk_mut = getattr(tp, "_bk_mut", 0) + 1            # its number boxes change: the index is rebuilt
+    try:
+        return _bk_close0(self, tp)
+    finally:
+        tp._bk_mut = getattr(tp, "_bk_mut", 0) + 1
+
+
+TextPage._free = _bk_free
+TextPage.hits_now = _bk_hits_now
+TpSideList.close = _bk_close

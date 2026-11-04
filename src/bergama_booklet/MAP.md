@@ -75,6 +75,12 @@
 | pl_inset | parts/50_place.py | 633 |
 | pl_mm_drawing | parts/50_place.py | 652 |
 | pl_photo | parts/50_place.py | 663 |
+| _bk_cells | parts/50_place.py | 696 |
+| _bk_index | parts/50_place.py | 702 |
+| _bk_near | parts/50_place.py | 720 |
+| _bk_free | parts/50_place.py | 729 |
+| _bk_hits_now | parts/50_place.py | 748 |
+| _bk_close | parts/50_place.py | 786 |
 | BkPage | parts/60_layout.py | 21 |
 | bk_page | parts/60_layout.py | 31 |
 | bk_pct | parts/60_layout.py | 40 |
