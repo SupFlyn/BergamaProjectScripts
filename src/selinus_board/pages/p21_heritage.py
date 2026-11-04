@@ -245,7 +245,7 @@ HER21_NOT_HER = ("teleferik",)  # v61 (Q5, H3): places that are context, not her
 HER21_HALO_MM = 0.3            # v61 (G6-8): mm, the white halo shape round a map name
 HER21_LAYER_KIND = {"base_ground": "ground", "base_contours": "ground", "base_fills": "buildings",
                     "base_water": "water", "base_outlines": "buildings", "base_names": "labels", "water": "water",
-                    "structures": "roads", "proj_tint": "other", "proj_water": "water", "proj_lines": "paths",
+                    "structures": "roads", "proj_tint": "annotations", "proj_water": "water", "proj_lines": "paths",
                     "proj_vegetation": "plants", "study": "annotations", "proj_marks": "annotations",
                     "proj_labels": "labels"}  # v61 (G6-9): map_draw's layers -> kinds
 HER21_LOOP_MM = 1.2            # v59 (P20.1, PLAN §4.10): the loop's legs, mm on the booklet page
@@ -550,7 +550,7 @@ def her21_card(B, pl, ph, g, num, k, L, boxes=None):
     q, cy = g["img"], g["cy"]
     i0_w = sb_mark(B)                                     # v59 closing (G-R4-1): the window's own texts (badge, name)
     if ph:
-        with B.kind("other", u"photo " + pl["key"]):      # v61 (G6-9)
+        with B.kind("annotations", u"photo " + pl["key"]):   # v62 (L2, G6-9): was "other" (untagged)
             B.image(ph[0], q[0], q[1], q[2], q[3], L, order=5)
     else:                                                 # an empty slot: a pale rectangle with the name
         B.fill([rect(q[0], q[1], q[2], q[3])], mix(INK2, WHITE, 0.88), L, 5)
@@ -844,8 +844,8 @@ def her21_diagram(B, x0, ytop, w, h, k, L, walk_m, num, boxes=None):
     5: no horizontal dimensions); a too-small cell is a wn_warn, not a LOG line. walk_m is kept for the caller."""
     fx = w / (HER21_DIA_MM[0] * k)
     if fx < 0.99 or h < 77.0 * k:                       # the cell is 94.5 mm (crop edges): 0.5 % is fine
-        wn_warn("p19", "diagram_cell", u"heritage loop diagram: its cell is {:.0f} x {:.0f} mm, under the 95 x 77 mm "
-                u"it is laid out for: names may touch.".format(w / k, h / k))
+        LOG.append(u"heritage loop diagram: its cell is {:.0f} x {:.0f} mm, under the 95 x 77 mm it is laid out for "
+                   u"(the booklet's check places the names).".format(w / k, h / k))   # v62 (L2): note, not warning
     P = lambda a, b: (x0 + a * fx * k, ytop - b * k)
     hd, ht = bk_hk(HER21_PT["dia"], k), bk_hk(HER21_PT["title"], k)
     acc, rr = C(her21_hex("walk")), 1.3 * k              # v61 (G6-6): the stream walk MOV r1 (was the loop's red)
@@ -864,9 +864,9 @@ def her21_diagram(B, x0, ytop, w, h, k, L, walk_m, num, boxes=None):
         hh = hd
         if need > room > 0:
             hh = max(bk_hk(5.0, k), hd * room / need)
-            if her_tw(s, hh, bold) > room:
-                wn_warn("p19", "overlap", u"heritage loop diagram: \"{}\" does not fit its {:.1f} mm at 5 pt".format(
-                    s, room / k), log=LOG)
+            if her_tw(s, hh, bold) > room:               # v62 (L2): printed whole; the booklet's check moves it
+                LOG.append(u"heritage loop diagram: \"{}\" wider than its {:.1f} mm at 5 pt (booklet check)".format(
+                    s, room / k))
         tx(s, a0, b, "L", col, bold, hh=hh)
 
     def node(a, b, key):                                  # a loop stop numbered as on the map, else a ring
@@ -1022,10 +1022,13 @@ def her21_walk_strip(B, x0, ytop, w, k, L, walk_m, offers, num, boxes=None):
                 tx(nm, l0, yr, "L")
                 used[j].append((l0, l0 + ww))
                 break
-        else:
+        else:                                             # v62 (L2): never left out: the last row, the booklet's
+            tx(nm, l0, rows_y[-1], "L")                   # check moves it off its neighbour
+            used[-1].append((l0, l0 + ww))
             left.append(nm)
     if left:
-        wn_warn("p19", "strip_row", u"heritage loop strip: no row for {}.".format(u", ".join(left)))
+        LOG.append(u"heritage loop strip: {} set in the last row over a neighbour (booklet check).".format(
+            u", ".join(left)))
     if not offers:
         LOG.append(u"Heritage loop strip: no city-link place lies on the stream walk; the strip shows the walk only.")
     yk = max([rows_y[j] for j in range(len(rows_y)) if used[j]] + [rows_y[0]]) + 4.5
@@ -1115,9 +1118,9 @@ def her_loop_page(S, SA, B, x, top, k, L):
     # top, the stream-walk strip under it; their texts are ordinary Board texts (booklet label items), no box list
     dd = HER21_DIA_MM[1] * k                              # the diagram's own cell: left column, top
     dh = dd + HER21_STRIP_MM * k                          # v58 (P20.2): + the stream-walk strip under it
-    with B.kind("other", u"places diagram"):              # v61 (G6-9)
+    with B.kind("heritage", u"places diagram"):           # v62 (L2, G6-9): was "other" (untagged)
         her21_diagram(B, x, top, cwl, dd, k, L, walk_m, num)
-    with B.kind("other", u"walk strip"):
+    with B.kind("paths", u"walk strip"):
         her21_walk_strip(B, x, top - dd, cwl, k, L, walk_m, her21_offers(mres["walk"]), num)
     xr = xm + mw + gap
     ph = her21_photos()

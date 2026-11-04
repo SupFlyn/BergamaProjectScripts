@@ -29,7 +29,16 @@ SB_AXO_KIND = {"trees": "trees", "tree_shadows": "trees", "base": "buildings", "
                "services": "buildings", "historic_wall": "heritage", "stream": "water", "ground_stream": "water",
                "pools": "water", "banks": "water", "parks": "plants", "ground_streets": "roads", "legend": "legend",
                "callouts": "labels", "words": "labels", "text": "labels", "scale": "annotations",
-               "north": "annotations", "arrows": "annotations", "sheet": "frame", "drawing": "other"}
+               "north": "annotations", "arrows": "annotations", "sheet": "frame", "drawing": "other",
+               # v62 (L2, 4 Nov run: p03 21049 untagged): the layers draw_building / the ground / overlays / figures use
+               "topic": "buildings", "context": "buildings", "ground": "ground", "overlay": "annotations",
+               "figures": "people"}
+# v62 (L2): an untagged board shape takes its kind from its layer's last part (LU_BOARD::Map::water ...); else "other"
+SB_LAYER_KIND = {"water": "water", "ground": "ground", "paper": "ground", "landcover": "ground", "texture": "ground",
+                 "trees": "trees", "streets": "roads", "walls": "buildings", "buildings": "buildings",
+                 "annotation": "annotations", "legend": "legend"}
+SB_ROLE = {}         # v62 (L2, L1_engine "ONE BOX PER DRAWING"): full text -> its box role ("heading"; no `at`)
+SB_SHORT = {}        # v62 (L2): full text -> its short forms (the booklet tries them before numbering / shrinking)
 SB_GRP_N = {}        # page -> [kinds set, elements set, untagged n]
 SB_IX_SCALES = {"plan01": [2500, 5000, 10000, 20000]}     # P02.2: p02 at 1:20,000 or larger (listed scales only)
 SB_IX_MUL_ALPHA = 0.55       # design value: a multiplying Tint (15f) has no blend mode in the booklet's writer; drawn
@@ -184,9 +193,12 @@ def _six_board_crop(ix, B, p, page, note):
     pats = [_re.compile(d_) for d_ in (p.get("drop") or ())] + [_re.compile(SB_IX_SCALE_TXT)]
     tail = _re.compile(SB_IX_SCALE_TAIL)
     did = u"sb_" + p["slug"]
+    yoff = 0.0                                           # v62 (L2): a section's y = m a.s.l. (its level column's datum)
+    if units == "m" and p.get("datum"):
+        yoff = p["datum"][1] - (p["datum"][0] - bb[1]) * ku
 
     def M(q):
-        return ((q[0] - bb[0]) * ku, (q[1] - bb[1]) * ku)
+        return ((q[0] - bb[0]) * ku, (q[1] - bb[1]) * ku + yoff)
     pad = 0.01 * max(bb[2] - bb[0], bb[3] - bb[1])
     cb = (bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad)
     order = []
@@ -206,7 +218,10 @@ def _six_board_crop(ix, B, p, page, note):
     tags = getattr(B, "tags", None) or {}
     for _o, _n, it in order:
         kd = it[0]
-        g_ = tags.get(_n) or u"other/%d" % _n
+        g_ = tags.get(_n)
+        if not g_:                                       # v62 (L2): untagged: the layer's kind, else "other"
+            lk_ = SB_LAYER_KIND.get((u"%s" % it[3]).split("::")[-1].lower())
+            g_ = u"%s/%s %d" % (lk_, (u"%s" % it[3]).split("::")[-1], _n) if lk_ else u"other/%d" % _n
         n0_ = len(shapes)
         if kd in ("fill", "hatch"):
             col_ = it[2]
@@ -266,12 +281,13 @@ def _six_board_crop(ix, B, p, page, note):
         for i_, g_ in enumerate(seen):
             ts = groups[g_]
             ix.text(page, u" ".join(t_[0] for t_ in ts), "note", size_pt=ts[0][2], bold=ts[0][3] or None,
-                    priority=5, group=did, id=u"%s_n%d" % (did, i_ + 1))
+                    priority=5, group=p.get("note_of") or did, id=u"%s_n%d" % (did, i_ + 1),
+                    drawing=p.get("note_of"))            # v62 (L2): a cut's note is attached to its drawing
         note.append(u"items %s %s: notes %d (text only)" % (page, p["slug"], len(seen)))
         return
-    ext = (0.0, 0.0, (bb[2] - bb[0]) * ku, (bb[3] - bb[1]) * ku)
+    ext = (0.0, yoff, (bb[2] - bb[0]) * ku, (bb[3] - bb[1]) * ku + yoff)
     D = ix.drawing(did, page, ext, scale_pref=SB_IX_SCALES.get(p["slug"]), units=units,
-                   dkind="plan" if units == "m" else "diagram", scale_bar=False, priority=1, group=did,
+                   dkind=p.get("dkind") or ("plan" if units == "m" else "diagram"), scale_bar=False, priority=1, group=did,
                    title=p.get("caption") or None)
     if units == "m":
         D["scale_note"] = (u"own scale bar drawn as geometry (true at any print scale); sheet scale 1:%d, round 4 "
@@ -279,8 +295,14 @@ def _six_board_crop(ix, B, p, page, note):
     _six_layer_grp(ix, D, "drawing", shapes, grps)
     _six_grp_count(page, did, grps + [t_[8] for t_ in texts], note)
     for t_ in texts:
+        if SB_ROLE.get(t_[0]):                           # v62 (L2): a box part (heading): the booklet sets it, no `at`
+            tid = ix.text(page, t_[0], SB_ROLE[t_[0]], drawing=did, size_pt=t_[2], bold=t_[3], colour=t_[4],
+                          group=did, priority=1, short_forms=SB_SHORT.get(t_[0]) or ())
+            _six_text_grp(ix, page, tid, t_[8])
+            continue
         tid = ix.text(page, t_[0], "label", drawing=did, at=t_[1], size_pt=t_[2], bold=t_[3], colour=t_[4],
-                      positions=["=" + t_[5], "E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=did, priority=5)
+                      positions=["=" + t_[5], "E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=did, priority=5,
+                      short_forms=SB_SHORT.get(t_[0]) or ())
         _six_text_grp(ix, page, tid, t_[8])
         if tid and abs(t_[6]) >= 0.5:                    # a turned label (street names): its angle for the booklet
             for it_ in reversed(ix.d["pages"].get(page) or []):
@@ -289,13 +311,19 @@ def _six_board_crop(ix, B, p, page, note):
                     break
     # sb_keep areas are NOT exported: they hold the drawing's own texts (a key map's names, a map's tags), which the
     # booklet would then push off; the whole drawing is already a keep that only its own labels may enter (30_render)
+    if p.get("levels"):                                  # v62 (L2): the cut's level values; the booklet sets them
+        sf_level_items(ix, page, D, p["levels"], side="R")
+        note.append(u"items %s %s: %d level values exported (%s)" % (page, p["slug"], len(p["levels"]), u", ".join(
+            u"%s %+.2f" % (k_, v_) for k_, v_ in p["levels"])))
     if p.get("legend"):
         ents = [(dict(kind={"dashdot": "dash"}.get(e_["kind"], e_["kind"]), colour=e_["colour"]), e_["label"])
                 for e_ in p["legend"] if e_.get("label")]
         if ents:
             ix.legend(page, did, ents, group=did, id=did + "_legend")
     if p.get("caption"):
-        ix.text(page, tail.sub(u"", p["caption"]).strip(), "caption", group=did, priority=6, id=did + "_caption")
+        cap_ = tail.sub(u"", p["caption"]).strip()
+        ix.text(page, cap_, "caption", group=did, priority=6, id=did + "_caption",
+                short_forms=SB_SHORT.get(p["caption"]) or SB_SHORT.get(cap_) or ())
     if p.get("geo"):                                     # plan 01's georeference (agriculture's farms layer)
         D["georef"] = [[round(gx, 3), round(gy, 3), round((bx - bb[0]) * ku, 3), round((by - bb[1]) * ku, 3)]
                        for gx, gy, bx, by in p["geo"]]

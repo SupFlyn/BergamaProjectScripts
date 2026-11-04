@@ -29,7 +29,7 @@
 # cut, strip, tags, level marks, its scale bar under its left end; the booklet prints the one scale value under it)
 # and its note as text-only items (sb_sec_note_sN_n1.., placed level with the cut); key map from keymap.py v3
 # (km_keymap, exported, never drawn here); legend in the hue table (G6-6); no zoom insets (not in SON); level values
-# spread at the right edge (p45_level_marks); trees by species (G6-10); every element tagged (G6-9); a bridge only
+# exported as the cut's level column (v62, ix.levels); trees by species (G6-10); every element tagged (G6-9); a bridge only
 # where the cut crosses one.
 
 P45_KM = {}                       # v60.2: page id -> the page's key map (v61: km_keymap v3 dict), exported by 16d
@@ -444,65 +444,7 @@ def p45_bank_word(sd):
     return None
 
 
-def p45_level_marks(frame_box, levels, y_of, cols=None, page=None, nm=u"", xmax=None):
-    """v61 (frames §4 page5, PLAN §2.3 "▽ level values at the right edge, never stacked"): the level marks of one cut
-    beside its drawing's right edge (sf_level_marks' marker: dashed line, open ▽, value; booklet mm from the cut's
-    origin, y up). The marks stay at their levels; their values are spread vertically so two labels are always at
-    least a text height + SF_LEVEL["clear"] apart (pushed apart both ways, kept inside the drawing's height), a thin
-    joining line where a value moved. A value that cannot fit (the drawing too low for all of them, or wider than
-    xmax) = wn_warn and left out, never piled. Returns shapes."""
-    x0, y0, x1, y1 = frame_box
-    size = SF_LEVEL["size"]
-    rows = _sf_level_rows(levels, y_of, y0, y1, page)                 # (y, key, value, colour), top first
-    if not rows:
-        return []
-    d = size + SF_LEVEL["clear"]                                     # text height + clear: the least gap
-    xs = x1 + SF_LEVEL["gap"]
-    Ld = sum(SF_LEVEL["dashes"])
-    tw_, th_, lw_ = SF_LEVEL["tri_w"], SF_LEVEL["tri_h"], SF_LEVEL["lw"]
-    ax = xs + Ld
-    xt = ax + 0.5 * tw_ + SF_LEVEL["label_gap"]
-    lo_, hi_ = y0 - 0.35 * size, y1 - 1.0 * size                      # label baselines inside the drawing's height
-    while rows and len(rows) > 1 and (len(rows) - 1) * d > hi_ - lo_:
-        drop = next((r_ for r_ in rows if r_[1] == "roof"), rows[-1])
-        wn_warn(page, "levels", u"%s: no room for the value %+.2f %s at the right edge: left out" % (
-            nm, drop[2], SF_LEVEL_NAMES.get(drop[1], drop[1])))
-        rows = [r_ for r_ in rows if r_ is not drop]
-    want = [y - 0.35 * size for y, k_, v_, c_ in rows]               # baselines centred on each mark
-    ty = [min(hi_, max(lo_, w_)) for w_ in want]
-    for _it in range(60):                                            # push neighbours apart, both ways
-        moved_ = False
-        for i in range(1, len(ty)):
-            gap_ = ty[i - 1] - ty[i]
-            if gap_ < d - 1e-6:
-                m_ = 0.5 * (d - gap_)
-                ty[i - 1] = min(hi_, ty[i - 1] + m_)
-                ty[i] = max(lo_, ty[i] - m_)
-                moved_ = True
-        if not moved_:
-            break
-    for i in range(1, len(ty)):                                      # exact: the least gap from the top down
-        ty[i] = min(ty[i], ty[i - 1] - d)
-    sh, n_mv = [], 0
-    for (y, key, val, col), t_ in zip(rows, ty):
-        col = (cols or {}).get(key) or col
-        txt = u"%+.2f %s" % (val, SF_LEVEL_NAMES.get(key, u"%s" % key))
-        if t_ < lo_ - 1e-6 or (xmax is not None and xt + site28_tw(txt, size * _PDF_CAP["sans"]) > xmax + 1e-6):
-            wn_warn(page, "levels", u"%s: the value %s does not fit at the right edge: left out" % (nm, txt))
-            continue
-        pos = 0.0
-        for i, dd in enumerate(SF_LEVEL["dashes"]):                  # dash, gap, dash, gap, dash
-            if i % 2 == 0:
-                sh.append(("line", [(xs + pos, y), (xs + pos + dd, y)], col, lw_))
-            pos += dd
-        sh.append(("poly", [(ax, y), (ax - 0.5 * tw_, y + th_), (ax + 0.5 * tw_, y + th_)], None, col, lw_))
-        if abs(t_ - (y - 0.35 * size)) > 0.2:
-            n_mv += 1
-            sh.append(("line", [(ax + 0.5 * tw_, y), (xt - 0.2, t_ + 0.35 * size)], col, 0.08))
-        sh.append(("text", txt, xt, t_, size, col, False, "L"))
-    SF_LOG.append(u"levels %s gap ok: %s %d markers at the right edge, %d values spread (gap >= %.1f mm)" % (
-        page or u"", nm, len(rows), n_mv, d))
-    return sh
+# v62 (L2): p45_level_marks removed: the level values are exported (ix.levels) and set by the booklet
 
 
 def p45_symbols(S, sd_):
@@ -676,7 +618,7 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         # floats over the cut; houses as elevations with windows and a hipped roof (sf_back_house, M11 convention)
         y_sky = (ytop - Y0) / kb
         if SF_SKY_DEFAULT and y_sky > min(z for s, z in g) * km + 1.0:
-            with B.kind("other", u"sky %s" % nm):          # v61 (G6-9)
+            with B.kind("frame", u"sky %s" % nm):          # v62 (L2, G6-9): the backdrop (was "other" = untagged)
                 _p45_put(B, L, sf_sky(0.0, Lm * km, min(z for s, z in g) * km, y_sky, seed=len(nm) * 7 + int(Lm),
                                       cid=nm, birds=True), T, kb, 9)   # v58 (P04.2 / G15): one sky per cut, birds
         beyond = sd_.get("beyond") or []
@@ -784,10 +726,8 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
                 if lab_:
                     top_ = max(z for s_, z in (prof["roof"] or prof["body"]))
                     qx = P(0.5 * (a + b), top_)[0]
-                    hw_ = 0.5 * site28_tw(lab_, hm) + 1.2 * kb      # a clear gap of over 2 mm between two tags
-                    if not any(x0_ < qx + hw_ and qx - hw_ < x1_ and abs(y_ - P(0, top_)[1]) < 1.6 * hm
-                               for x0_, x1_, y_ in tags_):
-                        site28_bld_tag(B, L, P, prof, lab_, hm, wall_c, U, tags_)
+                    # v62 (L2): every tag is drawn (was: skipped when it touched another); the booklet moves it
+                    site28_bld_tag(B, L, P, prof, lab_, hm, wall_c, U, tags_)
             finally:
                 kd_.__exit__()
         for x0_, x1_, y_ in tags_:                       # v58 (G3): the tags' boxes (site28_bld_tag: baseline y + 0.12 U)
@@ -897,13 +837,10 @@ def p45_strip(S, B, sd_, x, ytop, wd, ss, kb, U, dry=False, L="LU_BOARD::Section
         if sd_["bld"]:
             lv_.append(("roof", max(t_[3] for t_ in sd_["bld"]) + base))
         lv_ = [(kk, v_) for kk, v_ in lv_ if v_ is not None]
-        if lv_:
-            # v61 (frames §4 page5: S5 / S7 / S8 piles): every value at the right edge, spread, never stacked
-            fb_ = (0.0, zbot * km, (x + wd - X0) / kb, (ytop - Y0) / kb)
-            with B.kind("levels", u"levels %s" % nm):
-                _p45_put(B, L, p45_level_marks(fb_, lv_, y_of=lambda lev: (lev - base) * km,
-                                               cols={"roof": crop_hex(INK)}, page=pid_, nm=nm,
-                                               xmax=(x + P45_DRAW_MM * kb - X0) / kb), T, kb, 37)
+        # v62 (L2, Aras 4 Nov 19:18 "booklet ... places them"): every value is exported as the cut's level column
+        # (ix.levels, the drawing's y = m a.s.l.: sd_["_p45_lv"] -> crop "levels" + "datum", 16d_items); the booklet
+        # sets the markers and staggers crowded values. Nothing drawn here, nothing left out.
+        sd_["_p45_lv"] = (lv_, Y0, base)
     with B.kind("roads", u"streets %s" % nm):           # v61 (G6-9): the streets the cut crosses
         road_calls = draw_sec_roads(S, B, L, P, g_at, sd_["line"], Lm, U, off=off)   # v25: the streets crossed
     # ---- the ends: name over its level, outside the cut (a cropped end: a break, its level only)
@@ -1109,10 +1046,8 @@ def p45_band(B, L, P, calls, ytop, kb, lh, xlo, xhi, zcalls=()):
                 not any(cx - half < r_ + gap and l_ - gap < cx + half for l_, r_ in placed):
             placed.append((cx - half, cx + half))
             texts.append((cx, txt))
-        elif pr <= 1:                                    # v59 (P04.2): a number only for what matters
-            nums.append((fx, txt))
-        else:
-            LOG.append(u"Sections: tag '{}' left out (no room; named streets are tags only)".format(txt))
+        else:                                            # v62 (L2): never left out: a number + key row (was:
+            nums.append((fx, txt))                       # only pr <= 1; named streets were dropped)
     r = 1.15 * lh                                        # v59: the shared marker's radius (two digits), board units
     key = []
     for fx, txt in sorted(nums, key=lambda q: q[0]):
@@ -1123,9 +1058,9 @@ def p45_band(B, L, P, calls, ytop, kb, lh, xlo, xhi, zcalls=()):
                 #                               stray disc after "loose earth bank · top +49.74"): a tag's gap clear
                 cx = q
                 break
-        if cx is None:                                   # v59: never piled on another (P04.2): left out, logged
-            LOG.append(u"FLAG sections: marker '{}' left out (no free place within 20 mm of its spot)".format(txt))
-            continue
+        if cx is None:                                   # v62 (L2): never left out: set on its spot, the booklet's
+            cx = min(max(fx, xlo + r), xhi - r)          # collision pass moves the texts round it
+            LOG.append(u"sections: marker '{}' set on its spot (no free place within 20 mm; booklet check)".format(txt))
         P45_NUM[0] += 1
         placed.append((cx - r, cx + r))
         _p45_disc(B, L, P45_NUM[0], cx, base_y, lh)
@@ -1269,10 +1204,11 @@ def p45_title(B, sd_, x, y, w, kb, L="LU_BOARD::Sections"):
         #                                                    printed "?" (cp1252); the en dash is in every writer
     if sd_.get("crop_of"):
         extra.append(u"part around the stream")
-    while extra and site28_line_w(site28_one(u"**%s · %s**" % (t_, u" · ".join(extra)), hd), hd) > w:
-        extra.pop()
-    if extra:
-        t_ += u" · " + u" · ".join(extra)
+    # v62 (L2): the full title always; the shorter forms (parts dropped from the end) go to the booklet as short forms
+    forms = [u" · ".join([t_] + extra[:n_]) for n_ in range(len(extra), -1, -1)]
+    t_ = forms[0]
+    SB_SHORT[t_] = forms[1:]
+    SB_ROLE[t_] = "heading"                              # v62 (L2): the box's title (L1_engine, one box per drawing)
     # v61 (frames §4 page4: the S4 subtitle ran into the "S4" tag): ONE bold run, so the booklet keeps it one line
     # (two runs were placed apart and the second wrapped under the first, onto the end tag)
     with B.kind("labels", u"title %s" % sd_["name"]):
@@ -1393,10 +1329,16 @@ def draw_sections_page(S, B, x, y, sw, U, plan, k):
         yh_ = p45_head(S, B, c_, cx_, yd, wc, kb, U)
         ybot = min(yy - h_, yb_, yh_) - 0.3 * kb
         nm_ = c_["name"].lower()
-        crop_panel("sec_%s" % nm_, x, ybot, x + P45_DRAW_MM * kb, yy + 0.3 * kb, u"", crop_scale(ss), ix_page=pid)
-        CROP_PANELS[-1]["bk_w"] = P45_DRAW_MM            # drawn at its booklet width (text sizes as designed)
+        # v62 (L2): the crop ends at the drawing column (wd); the level values are the booklet's column right of it
+        crop_panel("sec_%s" % nm_, x, ybot, x + wd + 0.3 * kb, yy + 0.3 * kb, u"", crop_scale(ss), ix_page=pid)
+        CROP_PANELS[-1]["bk_w"] = wd / kb + 0.3          # drawn at its booklet width (text sizes as designed)
+        CROP_PANELS[-1]["dkind"] = "section"             # v62 (L2): the booklet's section box (label band above)
+        if c_.get("_p45_lv"):
+            CROP_PANELS[-1]["levels"] = c_["_p45_lv"][0]
+            CROP_PANELS[-1]["datum"] = (c_["_p45_lv"][1], c_["_p45_lv"][2])   # board y of `base`, base m a.s.l.
         crop_panel("sec_note_%s" % nm_, cx_ - 0.5 * kb, ybot, x + sw, yy + 0.3 * kb, u"", ix_page=pid)
         CROP_PANELS[-1]["bk_w"] = (x + sw - cx_ + 0.5 * kb) / kb   # text-only: note items (U20)
+        CROP_PANELS[-1]["note_of"] = u"sb_sec_%s" % nm_  # v62 (L2): the notes attach to the cut's drawing
         LOG.append(u"section %s %s SITE" % (pid, c_["name"]))
         yy = min(yy - h_, ybot) - gap - extra
     sf_triangles(**tri_)
