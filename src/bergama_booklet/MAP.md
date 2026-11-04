@@ -38,6 +38,8 @@
 | bk_line | parts/30_render.py | 152 |
 | bk_poly | parts/30_render.py | 162 |
 | rd_close | parts/30_render.py | 172 |
+| _bk_res_shallow | parts/30_render.py | 187 |
+| bk_shallow_res | parts/30_render.py | 200 |
 | st_lines | parts/40_set.py | 25 |
 | st_fit | parts/40_set.py | 66 |
 | _st_height | parts/40_set.py | 99 |
@@ -137,7 +139,7 @@
 | _bk_cutout_sources | parts/83_cover_sources.py | 107 |
 | bk_source_groups | parts/83_cover_sources.py | 123 |
 | _bk_src_h | parts/83_cover_sources.py | 169 |
-| bk_sources | parts/83_cover_sources.py | 177 |
+| bk_sources | parts/83_cover_sources.py | 178 |
 | main | code.py | 84 |
 | done_text | code.py | 157 |
 | write_log | code.py | 162 |

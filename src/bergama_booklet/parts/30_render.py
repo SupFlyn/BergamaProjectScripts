@@ -176,3 +176,41 @@ def rd_close():
         except Exception:
             pass
     del RD_DOCS[:]
+
+
+# ---- v32.4 (p02 ran 10+ min in Aras's 4 Nov 21:49 run): PyMuPDF picks a fresh resource name for each drawing, photo
+# and font it adds by listing EVERY xobject, image and font of the page, recursing into each drawing already placed
+# (each one holds thousands of nested group xobjects, G6-9), with a list as its "seen" set: the time grows with the
+# square of the drawing's groups. A new name only has to differ from the names in the page's OWN resource
+# dictionaries, so the booklet's document lists those (shallow); the picture is the same. full=True (font
+# subsetting at the end) still gets the original deep lists.
+def _bk_res_shallow(doc, pno, key):
+    try:
+        x_ = doc[pno].xref
+        t_, v_ = doc.xref_get_key(x_, "Resources/" + key)
+        if t_ == "xref":
+            v_ = doc.xref_object(int(v_.split()[0]), compressed=True)
+        elif t_ != "dict":
+            return []
+        return [(int(m_.group(2)), m_.group(1)) for m_ in re.finditer(r"/([^\s/<>\[\]()]+)\s*(\d+)\s+\d+\s+R", v_)]
+    except Exception:
+        return []
+
+
+def bk_shallow_res(doc):
+    f0, i0, x0 = doc.get_page_fonts, doc.get_page_images, doc.get_page_xobjects
+
+    def fonts(pno, full=False):
+        if full:
+            return f0(pno, full=True)
+        return [(xr, u"", u"", u"", nm, u"") for xr, nm in _bk_res_shallow(doc, pno, "Font")]
+
+    def images(pno, full=False):
+        if full:
+            return i0(pno, full=True)
+        return []                                   # image names are in the XObject dictionary: listed below
+
+    def xobjects(pno):
+        return [(xr, nm, 0, None) for xr, nm in _bk_res_shallow(doc, pno, "XObject")]
+    doc.get_page_fonts, doc.get_page_images, doc.get_page_xobjects = fonts, images, xobjects
+    return doc

@@ -171,7 +171,8 @@ def _bk_src_h(k, t, cw, s):
         return st_fit(t, cw, None, "heading", 6.0, justify=False, page="sources")[3] + 1.4
     m_ = _BK_SRC_NUM.match(t)
     body = t[m_.end():] if m_ else t
-    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=True, page="sources")   # v32: justified, last line left (Aras 4 Nov 19:22)[3] + 0.9
+    # v32: justified, last line left (Aras 4 Nov 19:22); v32.4: the "[3] + 0.9" had slipped into this comment
+    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=True, page="sources")[3] + 0.9
 
 
 def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):

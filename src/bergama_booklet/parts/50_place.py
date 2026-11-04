@@ -748,7 +748,7 @@ def _bk_index(tp):
            getattr(tp, "_bk_mut", 0))
     ix = getattr(tp, "_bk_ix", None)
     if ix is not None and ix[0] == sig:
-        return ix
+        return ix[:3]
     gi, gk = {}, {}
     starts = (0, 0)
     if ix is not None and len(ix) > 3:                    # v32.4: texts / obstacles only ADDED since: index just those
@@ -766,7 +766,7 @@ def _bk_index(tp):
     ix = (sig, gi, gk, (ni, nk, tp.items[ni - 1] if ni else None, tp.keeps[nk - 1] if nk else None,
                         getattr(tp, "_bk_mut", 0)))
     tp._bk_ix = ix
-    return ix
+    return ix[:3]                                         # (sig, texts grid, obstacles grid)
 
 
 def _bk_near(g, b, pad):

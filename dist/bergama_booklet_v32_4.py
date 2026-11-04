@@ -61,7 +61,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v32.4"  # v32.4 fix 4 Nov (p02 ran 10+ min in the 21:49 run): faster leader and collision tests (grid), the log shows the page and text count every 5 s, and a page past 150 s sets its remaining texts at their own spot without the search, so the booklet always finishes (hits named as WARNINGs); v32.3 fix 4 Nov (Aras 21:38, no log again): the log file shows the page being composed while the booklet runs, and every page's time at the end; v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v32.4"  # v32.4 fix 4 Nov (p02 ran 10+ min in the 21:49 run): faster leader and collision tests (grid), the log shows the page and text count every 5 s, and a page past 150 s sets its remaining texts at their own spot without the search, so the booklet always finishes (hits named as WARNINGs); the PDF is saved without the duplicate merge (16+ min, now seconds); the Sources page composes again (its row height had slipped into a comment); v32.3 fix 4 Nov (Aras 21:38, no log again): the log file shows the page being composed while the booklet runs, and every page's time at the end; v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -2770,6 +2770,44 @@ def rd_close():
         except Exception:
             pass
     del RD_DOCS[:]
+
+
+# ---- v32.4 (p02 ran 10+ min in Aras's 4 Nov 21:49 run): PyMuPDF picks a fresh resource name for each drawing, photo
+# and font it adds by listing EVERY xobject, image and font of the page, recursing into each drawing already placed
+# (each one holds thousands of nested group xobjects, G6-9), with a list as its "seen" set: the time grows with the
+# square of the drawing's groups. A new name only has to differ from the names in the page's OWN resource
+# dictionaries, so the booklet's document lists those (shallow); the picture is the same. full=True (font
+# subsetting at the end) still gets the original deep lists.
+def _bk_res_shallow(doc, pno, key):
+    try:
+        x_ = doc[pno].xref
+        t_, v_ = doc.xref_get_key(x_, "Resources/" + key)
+        if t_ == "xref":
+            v_ = doc.xref_object(int(v_.split()[0]), compressed=True)
+        elif t_ != "dict":
+            return []
+        return [(int(m_.group(2)), m_.group(1)) for m_ in re.finditer(r"/([^\s/<>\[\]()]+)\s*(\d+)\s+\d+\s+R", v_)]
+    except Exception:
+        return []
+
+
+def bk_shallow_res(doc):
+    f0, i0, x0 = doc.get_page_fonts, doc.get_page_images, doc.get_page_xobjects
+
+    def fonts(pno, full=False):
+        if full:
+            return f0(pno, full=True)
+        return [(xr, u"", u"", u"", nm, u"") for xr, nm in _bk_res_shallow(doc, pno, "Font")]
+
+    def images(pno, full=False):
+        if full:
+            return i0(pno, full=True)
+        return []                                   # image names are in the XObject dictionary: listed below
+
+    def xobjects(pno):
+        return [(xr, nm, 0, None) for xr, nm in _bk_res_shallow(doc, pno, "XObject")]
+    doc.get_page_fonts, doc.get_page_images, doc.get_page_xobjects = fonts, images, xobjects
+    return doc
 # ---- 40_set (composer core, round 5 S1; G-R5-2, D1, C8, C12): the text setter -----------------------------------------
 # Every paragraph, list text and caption is JUSTIFIED with its LAST line LEFT (refs/U29 sketch); single lines stay left.
 # Widths are real Arial (font_metrics, the same files the page embeds: 10_load bk_font_files). Sizes start at the
@@ -2904,8 +2942,16 @@ def bk_emit(P):
     import fitz as _fz
     if not getattr(P, "_fonts", False):
         r, b = bk_font_files()
-        P.page.insert_font(fontname="BKR", fontfile=r)
-        P.page.insert_font(fontname="BKB", fontfile=b)
+        xr = {"BKR": P.page.insert_font(fontname="BKR", fontfile=r),
+              "BKB": P.page.insert_font(fontname="BKB", fontfile=b)}
+        _ins0 = P.page.insert_font
+
+        def _ins(fontname="helv", fontfile=None, **kw):       # v32.4: PyMuPDF looked the font up again for EVERY
+            k = fontname[1:] if fontname.startswith("/") else fontname   # text by scanning all the page's
+            if k not in xr:                                   # resources, inside each embedded drawing too (p02:
+                xr[k] = _ins0(fontname=fontname, fontfile=fontfile, **kw)   # 10+ min); the xref is the same each
+            return xr[k]                                      # time, so it is kept after the first look-up
+        P.page.insert_font = _ins
         P._fonts = True
 
     def draw(it):
@@ -3680,7 +3726,7 @@ def _bk_index(tp):
            getattr(tp, "_bk_mut", 0))
     ix = getattr(tp, "_bk_ix", None)
     if ix is not None and ix[0] == sig:
-        return ix
+        return ix[:3]
     gi, gk = {}, {}
     starts = (0, 0)
     if ix is not None and len(ix) > 3:                    # v32.4: texts / obstacles only ADDED since: index just those
@@ -3698,7 +3744,7 @@ def _bk_index(tp):
     ix = (sig, gi, gk, (ni, nk, tp.items[ni - 1] if ni else None, tp.keeps[nk - 1] if nk else None,
                         getattr(tp, "_bk_mut", 0)))
     tp._bk_ix = ix
-    return ix
+    return ix[:3]                                         # (sig, texts grid, obstacles grid)
 
 
 def _bk_near(g, b, pad):
@@ -5421,7 +5467,8 @@ def _bk_src_h(k, t, cw, s):
         return st_fit(t, cw, None, "heading", 6.0, justify=False, page="sources")[3] + 1.4
     m_ = _BK_SRC_NUM.match(t)
     body = t[m_.end():] if m_ else t
-    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=True, page="sources")   # v32: justified, last line left (Aras 4 Nov 19:22)[3] + 0.9
+    # v32: justified, last line left (Aras 4 Nov 19:22); v32.4: the "[3] + 0.9" had slipped into this comment
+    return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=True, page="sources")[3] + 0.9
 
 
 def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
@@ -5520,7 +5567,7 @@ def main():
     n_marks = bk_src_number(pids)
     lines.append(u"source marks rewritten in %d texts; %d sources numbered" % (n_marks, len(BK_SRC["order"])))
     os.makedirs(OUT_DIR, exist_ok=True)
-    doc = fitz.open()
+    doc = bk_shallow_res(fitz.open())           # v32.4: resource names listed per page, not through every drawing
     n_src = 0
     prog = []                                     # v32.3: progress in the log file while it runs (a hang shows its page)
     for n, sp in enumerate(BK_PAGES, 1):
@@ -5555,7 +5602,7 @@ def main():
         pass
     out = os.path.join(OUT_DIR, PDF_NAME)
     write_log(u"RUNNING %s: saving the PDF (%s)\n%s\n" % (VERSION, time.strftime("%H:%M:%S"), u"\n".join(prog)))
-    doc.save(out, garbage=3, deflate=True)
+    doc.save(out, garbage=1, deflate=True)          # v32.4: garbage=3 (merge duplicates) ran 16+ min on the 100 MB booklet
     npg = doc.page_count
     doc.close()
     rd_close()

@@ -132,8 +132,16 @@ def bk_emit(P):
     import fitz as _fz
     if not getattr(P, "_fonts", False):
         r, b = bk_font_files()
-        P.page.insert_font(fontname="BKR", fontfile=r)
-        P.page.insert_font(fontname="BKB", fontfile=b)
+        xr = {"BKR": P.page.insert_font(fontname="BKR", fontfile=r),
+              "BKB": P.page.insert_font(fontname="BKB", fontfile=b)}
+        _ins0 = P.page.insert_font
+
+        def _ins(fontname="helv", fontfile=None, **kw):       # v32.4: PyMuPDF looked the font up again for EVERY
+            k = fontname[1:] if fontname.startswith("/") else fontname   # text by scanning all the page's
+            if k not in xr:                                   # resources, inside each embedded drawing too (p02:
+                xr[k] = _ins0(fontname=fontname, fontfile=fontfile, **kw)   # 10+ min); the xref is the same each
+            return xr[k]                                      # time, so it is kept after the first look-up
+        P.page.insert_font = _ins
         P._fonts = True
 
     def draw(it):
