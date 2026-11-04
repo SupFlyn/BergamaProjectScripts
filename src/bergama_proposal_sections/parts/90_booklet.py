@@ -1,4 +1,4 @@
-# ================================================================ v20 booklet items: p12 "The proposals in section" (round 6, S6)
+# ================================================================ v21 booklet items (v21: labels as items, no declutter): p12 "The proposals in section" (round 6, S6)
 # BRIEF row 12, Q9, P-12, P-1: ONE page = refs/targets/r06_S02 (the 28 Oct 4-in-1 page). Language: SKETCH (BRIEF §3:
 # not to scale, thick black ground line, flat beige soil, flat blue water bands, numbered circles on the element they
 # name, short captions, few small figures, simple tree blobs). Restored from commit f93d84b (proposal sections v8.1:
@@ -139,7 +139,8 @@ def ps_cite(key):
 
 
 def draw_concept(which, log):
-    """v8.1 draw_concept (f93d84b), form A. Returns (Page, kinds) where kinds[i] = (sub, element) of item i"""
+    """v8.1 draw_concept (f93d84b), form A. Returns (Page, kinds, groups): kinds[i] = (sub, element) of item i,
+    groups[i] = its label group (v21: no declutter, every item kept)"""
     E = sketch_engine()
     E["FORM"] = "A"
     del E["ZP"][:]
@@ -166,67 +167,12 @@ def draw_concept(which, log):
     E["CITE"] = ps_cite
     E[SKETCH_FN[which]]()
     srt = sorted(E["ZP"], key=lambda e: (e[0], e[1]))
-    ent = [(it, g) for _, _, it, g in srt]
     kinds = [E["KINDS"].get(o_, ("other", None)) for _, o_, _, _ in srt]
-    keep = declutter(ent, log, which)
     pg = Page(0, 0)
-    pg.items = [ent[i][0] if keep[i] is True else keep[i] for i in range(len(ent)) if keep[i] is not None]
-    kd = [kinds[i] for i in range(len(ent)) if keep[i] is not None]
-    return pg, kd
-
-
-DECLUTTER_R = 18                                      # sketch units: how far a label may move to find a free place
-
-
-def declutter(entries, log, name):
-    """v7 (f93d84b): no text over another, measured. Label groups (> 0) are set in drawing order; one that would
-    touch a label already set or an element number (< 0) moves to the nearest free place (1-unit steps, sideways
-    counted 1.5 x, at most DECLUTTER_R away, inside the drawing's reach); with no free place it is left out and logged.
-    v20: returns one entry per item: True (unchanged), the moved item, or None (left out), so kinds stay aligned."""
-    groups, order = {}, []
-    for i, (it, g) in enumerate(entries):
-        if g:
-            if g not in groups:
-                groups[g] = []
-                order.append(g)
-            groups[g].append(i)
-    items = [it for it, _ in entries]
-    out = [True] * len(items)
-
-    def box(ix, pad):
-        b = items_bbox([items[i] for i in ix])
-        return (b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad)
-
-    def hit(b, others):
-        return any(b[0] < o[2] and o[0] < b[2] and b[1] < o[3] and o[1] < b[3] for o in others)
-    art = items_bbox([it for it, g in entries if not g])
-    lim = (art[0] - 8.0, art[1] - 8.0, art[2] + 8.0, art[3] + 8.0)
-    placed = [box(groups[g], 0.0) for g in order if g < 0]
-    R = DECLUTTER_R
-    cand = sorted(((dx, dy) for dx in range(-R, R + 1) for dy in range(-R, R + 1) if dx or dy),
-                  key=lambda d: (abs(d[0]) * 1.5 + abs(d[1]), abs(d[0])))
-    for g in order:
-        if g < 0:
-            continue
-        ix = groups[g]
-        txt = [items[i] for i in ix if items[i][0] == "text"]
-        b = box(ix, 0.2 * max([t[4] for t in txt] or [1.0]))
-        if not hit(b, placed):
-            placed.append(b)
-            continue
-        for dx, dy in cand:
-            nb = (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy)
-            if lim[0] <= nb[0] and nb[2] <= lim[2] and lim[1] <= nb[1] and nb[3] <= lim[3] and not hit(nb, placed):
-                for i in ix:
-                    out[i] = xform([items[i]], 1.0, float(dx), float(dy))[0]
-                placed.append(nb)
-                break
-        else:
-            for i in ix:
-                out[i] = None
-            wn_warn(PS_PAGE, "label", u"panel %s: label '%s' left out (no free place near it)" % (
-                name, txt[0][1] if txt else g))
-    return out
+    pg.items = [it for _, _, it, _ in srt]
+    # v21 (LAYOUT PLAN §3.1, Aras 4 Nov 19:18): nothing is moved or left out here; every word goes to the booklet
+    # at its drawn point (label group kept: g > 0 = one label's lines, < 0 = an element number, never moved)
+    return pg, kinds, [g for _, _, _, g in srt]
 
 
 def ps_sections(log):
@@ -287,6 +233,36 @@ def _ps_layers(ix, D, items, kinds):
     return dict((k, len(v)) for k, v in cnt.items())
 
 
+def ps_label_items(ix, D, did, lbl):
+    """v21 (LAYOUT PLAN §3.1-2): every line of a sketch label = one label item of panel D at its drawn point (units
+    mm), drawn alignment first, then the ring. Lines of one label share the id stem "<did>_lbl_<g>_" (n = line,
+    from 1, top down) so the booklet can keep them together. An element number's digit (group < 0) = role "badge"
+    (booklet bk_badges: stays on its disc, never moved), id "<did>_num_<digit>". Returns (labels, lines)."""
+    n_line, seen = {}, []
+    for t, g in lbl:
+        _, txt, x, y, size, colour, bold, al = t[:8]
+        if not (u"%s" % txt).strip():
+            continue
+        if g < 0:
+            nid = u"%s_num_%s" % (did, txt)
+            k_ = 2
+            while nid in ix.ids:                      # the same number twice in one panel: _2, _3 (no export warning)
+                nid = u"%s_num_%s_%d" % (did, txt, k_)
+                k_ += 1
+            ix.text(D["page"], txt, "badge", drawing=D["id"], at=(x, y), size_pt=size / PT, bold=bool(bold),
+                    colour=colour if isinstance(colour, str) else None, positions=["=" + str(al or "C")],
+                    side_list_ok=False, group=did, id=nid)
+            continue
+        n_line[g] = n_line.get(g, 0) + 1
+        if g not in seen:
+            seen.append(g)
+        ix.text(D["page"], txt, "label", drawing=D["id"], at=(x, y), size_pt=size / PT, bold=bool(bold),
+                colour=colour if isinstance(colour, str) else None,
+                positions=["=" + str(al or "L")] + ["E", "NE", "N", "NW", "W", "SW", "S", "SE"],
+                group=did, id=u"%s_lbl_%d_%d" % (did, g, n_line[g]))
+    return len(seen), sum(n_line.values())
+
+
 def ps_items(ix, log):
     """v20: the whole p12 export (see the notes above)"""
     page = PS_PAGE
@@ -300,24 +276,40 @@ def ps_items(ix, log):
     W, H = PS_PANEL_MM
     trees = {}
     for i, (key, cid, ttl, purpose) in enumerate(ps_panels()):
-        pg, kinds = parts[key]
+        pg, kinds, grps = parts[key]
         b = items_bbox(pg.items)
         dx = W / 2.0 - s * (b[0] + b[2]) / 2.0        # centred across, at the top of the box (as the 28 Oct sheet)
         dy = H - s * b[3]
-        its = xform(pg.items, s, dx, dy)
         did = u"ps_panel_%d" % (i + 1)
+        its, kd, lbl = [], [], []
+        for it, kn, g in zip(pg.items, kinds, grps):  # item by item: kinds and groups stay aligned
+            t_ = xform([it], s, dx, dy)
+            if not t_:
+                continue
+            if t_[0][0] == "text" and g:              # a label's line / a number's digit -> an item (below)
+                lbl.append((t_[0], g))
+            else:
+                its.append(t_[0])
+                kd.append(kn)
+        kinds = kd
         # SKETCH language (BRIEF §3): a scale-free diagram, no scale bar; same extent for all four = one print size
+        num, _, head = ttl.partition(u" · ")          # v21 (L1 box per drawing): number -> disc, rest -> title
         D = ix.drawing(did, page, (0.0, 0.0, W, H), units="mm", dkind="diagram", scale_bar=False, priority=i + 1,
-                       group=did, fit=PS_FIT, title=ttl)
+                       group=did, fit=PS_FIT, title=head)
         kc = _ps_layers(ix, D, its, kinds)
-        ix.text(page, ttl, "heading", priority=i + 1, group=did, id=did + "_title")
-        ix.text(page, purpose, "note", priority=i + 1, group=did, id=did + "_purpose")
+        nl = ps_label_items(ix, D, did, lbl)
+        # v21 (L1_engine "ONE BOX PER DRAWING"): every part attached with drawing=D; disc number without `at`
+        ix.text(page, num, "badge", drawing=did, priority=1, group=did, id=did + "_num")
+        ix.text(page, head, "heading", drawing=did, priority=1, group=did, id=did + "_title")
+        ix.text(page, purpose, "caption", drawing=did, priority=1, group=did, id=did + "_purpose")
         for el in set(k_[1] for k_ in kinds if k_[1] and k_[1][0] == "trees"):
             sp = el[1] if not el[1].startswith(u"trees ") else None
             trees[sp] = trees.get(sp, 0) + 1
         log.append(u"section %s P%d %s SKETCH (panel %s at %s; not to scale)" % (page, i + 1, cid, key, ttl))
         log.append(u"%s %s: %d items, groups %s" % (page, did, len(its), u", ".join(
             u"%s %d" % (k_, n_) for k_, n_ in sorted(kc.items()))))
+        log.append(u"%s %s: labels %d (%d lines) exported at their drawn points; the booklet places them, none left "
+                   u"out" % (page, did, nl[0], nl[1]))
     ix.text(page, u"Proposal sections, upstream to downstream · relative levels · 1-11 as in Collect, clean, hold",
             "caption", priority=5, id="ps_caption")
     ix.legend(page, None, ps_legend_entries(), title=None, id="ps_legend_strip", group="ps_legend_strip")
