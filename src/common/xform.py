@@ -19,4 +19,6 @@ def xform(items, s, dx, dy):
         elif k == "text":
             _, t, x, y, size, color, bold, align, mat, halo = it
             out.append(("text", t, dx + s * x, dy + s * y, size * s, color, bold, align, mat, halo))
+        elif k == "grp":                                  # G6-9 group marker (item_export ix_grp): kept as it is
+            out.append(it)
     return out

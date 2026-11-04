@@ -20,6 +20,7 @@
 #@include ../common/buildings.py
 #@include ../common/section_parts.py
 #@include ../common/plants.py
+#@include ../common/trees.py
 #@include ../common/planting.py
 #@include ../common/hires.py
 #@include ../common/icons.py

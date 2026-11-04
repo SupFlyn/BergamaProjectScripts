@@ -39,23 +39,24 @@ SN_ZONE_SHORT = {"reed": u"Reed basins", "terraces": u"Terraces", "hub": u"Hub s
 # Feeling (senses_ref1's circular scale): four poles, active / passive up and down, positive / negative right and
 # left; a mood's colour is its angle on the wheel (design readings). New colours for a new meaning, apart from each
 # other (dE00 >= 26) and from the base map (>= 16)
-SN_FEEL = ((0.0, "C7A43A"), (90.0, "D0663E"), (180.0, "8C68A6"), (270.0, "4C8DB8"))   # positive, active, negative, passive
+# round 6 (G6-6, PLAN §2.6): moods are one category (PUB, public life): one hue, darker = more active / positive
+SN_FEEL = ((0.0, hue("PUB", 2)), (90.0, hue("PUB", 1)), (180.0, hue("PUB", 3)), (270.0, hue("PUB", 4)))   # positive, active, negative, passive
 SN_MOOD = {"lively": 45.0, "busy": 80.0, "play": 10.0, "calm": 305.0, "tense": 140.0, "hidden": 220.0}
-# Sound (senses_ref5): one mark and colour per source, all palette v1.4 tones
-SN_SOUND = (("water", u"Running water", "5D7F8D"), ("reeds", u"Reeds", R28_ZONE["reed"][1]),
-            ("birds", u"Birds", COL["tree_mid"]), ("children", u"Children", "7F5B7B"),
-            ("voices", u"Market · Kermes", "C2603A"), ("traffic", u"Traffic", SN_DARK), ("wind", u"Wind", SN_RULE))
-# Smell (senses_ref4): each source in the colour of the zone it grows in where it is one, else palette v1.4
+# Sound (senses_ref5): one mark per source; round 6 (G6-6): each source in its category's hue (PLAN §2.6), the
+# same hue as that category on every map of the page (reeds = the reed basins' WW r1)
+SN_SOUND = (("traffic", u"Traffic", hue("CTX", 1)), ("wind", u"Wind", hue("CTX", 3)),     # legend order = the
+            ("water", u"Running water", hue("WAT", 2)), ("reeds", u"Reeds", hue("WW", 1)),   # table's category
+            ("birds", u"Birds", hue("GRN", 2)), ("voices", u"Market · Kermes", hue("PUB", 1)),   # order, then
+            ("children", u"Children", hue("PUB", 2)))                                       # darker first
+# Smell (senses_ref4): every source draws the same rings, so only the colour tells them apart: each source in the
+# hue of the category it grows in (round 6, G6-6): reed beds = WW r1 (the reed basins), lavender = the terraces'
+# planting GRN r2, Demeter's Garden AGR r2, olive harvest AGR r1, café PUB r3 (as the Zones map)
 # v28.1 (D2, D6): reed beds = the lined basins only; water mint left out (it grows only in lined cells, not drawn here)
-SN_SMELL = (("reeds", u"Reed beds", R28_ZONE["reed"][1]),
-            ("lavender", u"French lavender", R28_ZONE["terraces"][1]),   # p.16's plant list (no rosemary there)
-            ("demeter", u"Demeter's Garden", R28_ZONE["demeter"][1]), ("cafe", u"Café", R28_ZONE["cafe"][1]),
-            ("olive", u"Olive harvest", MP["agriculture"][2]))
-# Encounters (senses_ref3): (key, word, colour, figure pose); walk = reach on foot, touch = water, cross = crossings,
-# remember = heritage (R28_REACH / R28_MARKERS), watch a deep blue apart from them (dE00 >= 16.8)
-_SN_MK = dict((k, h) for k, _, h in R28_MARKERS)
-SN_EXP = (("watch", u"Watch", "2F5F9E", "watch"), ("walk", u"Walk", R28_REACH[1][2], "walk"),
-          ("touch", u"Touch", _SN_MK["water"], "touch"), ("cross", u"Cross", _SN_MK["crossings"], "wade"),
-          ("remember", u"Remember", _SN_MK["heritage"], "stand"))
-SN_HER = _SN_MK["heritage"]                  # History: the heritage colour (same meaning as p.23's markers)
+SN_SMELL = (("reeds", u"Reed beds", hue("WW", 1)),                 # legend order = category, then rank
+            ("lavender", u"French lavender", hue("GRN", 2)),   # p.16's plant list (no rosemary there)
+            ("olive", u"Olive harvest", hue("AGR", 1)), ("demeter", u"Demeter's Garden", hue("AGR", 2)),
+            ("cafe", u"Café", hue("PUB", 3)))
+# Encounters: their marks and colours are P16_EXP (pages/p16_senses.py); round 6: the unused SN_EXP / _SN_MK gone
+SN_HER = hue("HER", 3)                       # History: round 6 (G6-6, Q5): heritage browns; the light shade unless
+                                             # the place has a sourced status (p16 _p16_her_col, HER_RANK)
 
