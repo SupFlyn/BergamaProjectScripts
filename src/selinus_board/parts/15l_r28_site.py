@@ -1,7 +1,7 @@
 # ---- MIRAQUA round 28 Oct 2026 (site board v50): p.02 legend grid + stream-edge diagram, pp.04-05 sections, key maps (worker SB-site). Shared pieces: parts/15h_r28_shared.py,
 # common/r28_style.py, common/units.py, common/label_place.py, common/figures.py (revision_2026-10-28/PLAN.md).
 # P02.2 the stream edge alone, both banks straightened along the stream (crop drw_edge_types, under the site
-# readings); P04.1 / P14.1 the sections pages' key maps at their booklet size (crops sec_sections_key_1 / _2 / _s4);
+# readings); P04.1 / P14.1 the sections pages' key maps (v61: keymap.py v3, drawn by the module, not here);
 # P04.2 + F12 the cuts' words (key sentence, what steers the project, callouts by priority, larger by steps); bank
 # depth (research/bank_depth_2026-10-28/REPORT.md §4 item 1, Aras 28 Oct 14:12): the bank top = the bank crest, the
 # DSİ walls of the town reach at wall_height (photos), the bed width only where a cut crosses the stream.
@@ -166,7 +166,8 @@ SITE28_CREST_M = 60     # m: the crest is searched this far out from the bed on 
 SITE28_RCH = (5849.4, 6559.6)       # chainage of K4 and Üç Kemer (K5) on the survey centreline (v51: K4 from the level table, T1 levels gap 3)
 SITE28_WALLED = (5290.0, 6560.0)    # the DSİ walled town reach in that chainage: the frame's upstream end to Üç Kemer
 SITE28_NOBED = ((5790.0, 5940.0), (6065.0, 6390.0))   # no survey heights in the channel: "bed not surveyed"
-SITE28_CROSS = 60.0     # degrees: a cut crossing the stream at this angle or more prints its bed width (REPORT 1c)
+SITE28_CROSS = 60.0     # degrees: a cut crossing the stream at this angle or more is "across" it (REPORT 1c); v61: no
+#                         bed width (a horizontal dimension) is printed anywhere (BRIEF §6 rows 4-5)
 SITE28_NEAR_M = 80.0    # m: a point farther than this from the stream's main line has no reach chainage
 
 
@@ -367,19 +368,14 @@ def site28_page_of(pages, nm):
     return None
 
 
-# ============================================================ P04.1 / P14.1 the sections pages' key maps
-SITE28_KEY_W = 190.0    # mm: a sections page's key map on the booklet page (drawn at that size, placed at scale 1.0)
-SITE28_KEY_H = 42.0     # mm: at most this tall
-SITE28_KEY_COL = 14.0   # mm: its left column (KEY, the north arrow)
-
+# v61 (round 6, G6-5): the sections pages' key maps come from keymap.py v3 (km_keymap, p04_05_sections.p45_keymap);
+# the board-drawn key map and its sizes (SITE28_KEY_W / _H / _COL) are gone.
 
 # ============================================================ P02.2 the stream edge alone, both banks straightened
 SITE28_ET_BIN = 8.0     # m: a bin of the diagram (two of the bars' 4 m samples)
 SITE28_ET_NEAR = 60.0   # m: an edge sample farther than this from the centreline is not on the Selinos's banks
 SITE28_K_NEAR = 150.0   # m: a bridge K1-K6 this near the centreline is ticked on it (K1 crosses a side inlet)
-SITE28_ET_COL = dict((t_, INK if t_ == "building" else EDGE[t_][1]) for t_ in EDGE)   # the bars' colours
-SITE28_ET_WL = {1: INK2, 2: mix(INK2, PAPER, 0.5)}    # walled / embanked, as the DISCONNECTED bar
-SITE28_ET_KEY = (("pedestrian", u"walkable"), ("street", u"street"), ("green", u"planted"), ("building", u"built"),
-                 ("parking", u"parking"), ("open", u"loose"))
+# v61 (round 6): SITE28_ET_COL / SITE28_ET_WL (unread since v51) and SITE28_ET_KEY (the strip's on-drawing type names,
+# dropped for G6-8) are gone; the strip's and bars' colours are the hue table's (pages/p02_p03.py P02_HUE)
 
 

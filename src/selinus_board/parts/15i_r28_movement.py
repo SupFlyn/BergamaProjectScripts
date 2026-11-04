@@ -8,10 +8,11 @@
 # and car index today and with the proposal (drw_index_change) instead of the commercial spines map.
 R28MV_CLS = (2.0, 10.0, 25.0, 50.0, 100.0)    # P07.3: index classes 0-2, 2-10, 10-25, 25-50, 50-100 (the top map's steps)
 R28MV_CLS_W = (0.2, 0.32, 0.48, 0.68, 0.95)   # mm on the booklet page: the line weight of each class
-R28MV_CLS_COL = [mv_ramp(SEQ, seq_t(v_, 100.0)) for v_ in R28MV_CLS]   # a class = the top map's ramp at its upper step
 R28MV_LABEL_PT = 7.0     # P07.4: street names on the walking / driving maps (were 8 pt)
 R28MV_NOTE_OF = {"walk_b": 2, "car_b": 3}      # P07.2: the maps' notes, crops drw_mv_note_2 / _3 (_1: the top map)
-R28MV_NOTE_W = 100.0     # mm: a note's text width at most; map + gutter + note stay within the booklet width BK_AW
+R28MV_NOTE_W = 70.0      # mm: a note's text width at most; v61 (U19, P-8): the right column x 79.7-96.6 % = 71 mm
+#                          (was 100; crop bk_w = this + 1), map + gutter + note stay within the booklet width BK_AW
+R28MV_COL_ENL = 10000.0 / 9000.0   # v61 (P-8): the booklet sets the p07 maps x1.11 (1:9,000): a column may be as tall
 R28MV_GUT = 4.0          # mm between two panels of a booklet row (bergama_booklet GUT)
 R28MV_LEAD = 1.75        # baseline to baseline / capital height, notes and lists
 R28MV_NEAR_M = 100.0     # m: "comes within ... of the stream" (notes)
@@ -33,6 +34,15 @@ R28MV_SYM = 2.0          # mm: half-length of a crossing symbol across the strea
 R28MV_HUB_R = 2.1        # mm: hub ring radius
 R28MV_GROUPS = (("roads", u"Roads"), ("crossings", u"Bridges and crossings"), ("hubs", u"Hubs"))
 R28MV_CHANGE_ORDER = ("pedestrian", "calmed", "shared", "relocated", "kept", "truck", "bus")   # index chart rows
+
+def r28mv_seq():
+    """v61 (round 6, G6-6, H1 p07): THE street index ramp of the p07 maps, low -> high, in ONE hue of the table
+    (MOV: streets, movement): MOV r4 mixed half-way to paper (the 5th, lowest class: no table rank below r4), r4, r3,
+    r2, r1 (the busiest, darkest). Replaces SEQ (an amber-red-purple ramp) on p07; mv_ramp(r28mv_seq(), t)."""
+    lo = C(hue("MOV", 4))
+    return (tuple(mix(lo, PAPER, 0.5)[:3]), tuple(lo[:3]), tuple(C(hue("MOV", 3))[:3]), tuple(C(hue("MOV", 2))[:3]),
+            tuple(C(hue("MOV", 1))[:3]))
+
 
 # ------------------------------------------------------------ text: Arial widths, **bold** runs (G5)
 def r28mv_tw(txt, h, bold=False):
@@ -170,11 +180,13 @@ class R28Pale(object):
 # services per function, the network length per class), then a compact "Why these streets matter". Every helper
 # draws from the top y down at x (board units), w mm wide, k board units per booklet mm, and returns (height mm,
 # text boxes in board units); draw=False only measures.
-R28MV_PT = 7.0           # pt: the columns' rows and notes
-R28MV_HEAD_PT = 8.0      # pt: a column's block headings
-R28MV_ROW = 3.3          # mm: one legend / list row at 7 pt
+R28MV_PT = 6.0           # pt: the columns' rows and notes (v61, U19 "more compact": was 7)
+R28MV_HEAD_PT = 7.0      # pt: a column's block headings (v61: was 8)
+R28MV_ROW = 2.8          # mm: one legend / list row at 6 pt (v61: was 3.3 at 7 pt)
 R28MV_MKR = 1.4          # mm: radius of a numbered street marker (on the map and in the list)
-R28MV_SW = 4.0           # mm: a legend swatch's length
+R28MV_SW = 3.5           # mm: a legend swatch's length (v61: was 4)
+R28MV_MIN_PT = 5.0       # pt: v61: a row set smaller to fit its width never goes under this (G6-7 floor 4 pt)
+R28MV_NOTE_PT = (6.5, 6.0, 5.5)   # pt: v61: the note's sizes tried (were 7.5, 7)
 
 
 def r28mv_tbox(s, x, y, h, bold=False, align="L"):
@@ -209,10 +221,17 @@ def r28mv_head(B, s, x, ytop, k, L, draw=True):
     return 1.75 * hh / k, [r28mv_tbox(s, x, y, hh, True)]
 
 
-def _r28mv_fit_h(s, h, avail, k, bold=False):
-    """capital height for s: h, made smaller (never under 6 pt) until it fits avail (board units)"""
+def _r28mv_fit_h(s, h, avail, k, bold=False, warn=True):
+    """capital height for s: h, made smaller (never under R28MV_MIN_PT) until it fits avail (board units); v61: a text
+    that still does not fit warns (G6-8: it would run into its neighbour)"""
     w_ = r28mv_tw(s, h, bold)
-    return max(bk_hk(6.0, k), h * avail / w_) if w_ > avail > 0 else h
+    if not (w_ > avail > 0):
+        return h
+    h_ = max(bk_hk(R28MV_MIN_PT, k), h * avail / w_)
+    if warn and r28mv_tw(s, h_, bold) > avail * 1.001:
+        wn_warn("p07", "text", u"\"{}\" is {:.1f} mm wider than its {:.1f} mm column at {} pt".format(
+            s, (r28mv_tw(s, h_, bold) - avail) / k, avail / k, R28MV_MIN_PT))
+    return h_
 
 
 def r28mv_swatch(B, kind, col, x, ym, k, L, wmm=None):
@@ -241,9 +260,10 @@ def r28mv_swatch(B, kind, col, x, ym, k, L, wmm=None):
         r28mv_marker(B, x + 0.5 * sw, ym, 1, k, L, order=66)
 
 
-def r28mv_legend(B, rows, x, ytop, w, k, L, ncol=2, draw=True):
-    """legend rows [(kind, colour, label[, line mm])] in ncol columns (the order runs along each row), 7 pt; a label
-    too long for its column set smaller (never under 6 pt)"""
+def r28mv_legend(B, rows, x, ytop, w, k, L, ncol=1, draw=True):
+    """legend rows [(kind, colour, label[, line mm])] in ncol columns (the order runs along each row), R28MV_PT; a
+    label too long for its column set smaller (never under R28MV_MIN_PT). v61 (U19, frames page7 §4: "Busiest named
+    street, number" was cut by the next column's swatch): one column by default (legends stacked)"""
     h, rh, cw = bk_hk(R28MV_PT, k), R28MV_ROW * k, w * k / max(1, ncol)
     boxes = []
     for i, row in enumerate(rows):
@@ -251,7 +271,7 @@ def r28mv_legend(B, rows, x, ytop, w, k, L, ncol=2, draw=True):
         cx = x + (i % ncol) * cw
         yb = ytop - (i // ncol + 1) * rh + 0.3 * rh
         tx = cx + (R28MV_SW + 1.2) * k
-        h_ = _r28mv_fit_h(lab, h, cx + cw - 1.0 * k - tx, k)
+        h_ = _r28mv_fit_h(lab, h, cx + cw - 1.0 * k - tx, k, warn=draw)
         if draw:
             r28mv_swatch(B, kind, col, cx, yb + 0.4 * h, k, L, row[3] if len(row) > 3 else None)
             B.text(lab, tx, yb, h_, INK, L, order=66, font=FONT_TITLE)
@@ -260,20 +280,23 @@ def r28mv_legend(B, rows, x, ytop, w, k, L, ncol=2, draw=True):
 
 
 def r28mv_ramp(B, x, ytop, w, k, L, draw=True, txt=None, by_value=True):
-    """P07.4: the street index as ONE graphic (was five legend rows): the maps' colour (mv_ramp SEQ at seq_t) and line
-    weight (_t3_grad_w; by_value=False: one weight, the top map's width tells the street class) of every value 0-100
-    along a bar, the class tops ticked and numbered under it, what it means beside it (txt, **bold** runs)"""
+    """P07.4: the street index as ONE graphic (was five legend rows): the maps' colour (mv_ramp r28mv_seq at seq_t)
+    and line weight (_t3_grad_w; by_value=False: one weight, the top map's width tells the street class) of every value
+    0-100 along a bar, the class tops ticked and numbered under it, what it means (txt, **bold** runs). v61 (U19,
+    frames page7 §4: "100" touched "Street colour…"): stacked for the narrower column: the bar over the column's width
+    (less half a "100" at its end), its numbers under it, the text under the numbers, full width"""
     h = bk_hk(R28MV_PT - 0.5, k)
-    bw = 0.45 * w * k
+    bw = max(10.0 * k, w * k - 0.5 * r28mv_tw(u"100", h) - 0.3 * k)
     ym = ytop - 1.6 * k
     boxes = []
     n = 40
+    seq = r28mv_seq()
     if draw:
         for i in range(n):
             t0, t1 = i / float(n), (i + 1) / float(n)
             v = 100.0 * (0.5 * (t0 + t1)) ** 2            # seq_t is a square root: t = sqrt(v / 100)
             hw = 0.5 * (_t3_grad_w(v) if by_value else 0.6) * k
-            B.fill([rect(x + t0 * bw, ym - hw, x + t1 * bw + 0.02 * k, ym + hw)], mv_ramp(SEQ, seq_t(v, 100.0)), L, 66)
+            B.fill([rect(x + t0 * bw, ym - hw, x + t1 * bw + 0.02 * k, ym + hw)], mv_ramp(seq, seq_t(v, 100.0)), L, 66)
     yt = ym - 1.2 * k - h
     for v in R28MV_CLS:
         tx = x + seq_t(v, 100.0) * bw
@@ -282,17 +305,16 @@ def r28mv_ramp(B, x, ytop, w, k, L, draw=True, txt=None, by_value=True):
             B.line([(tx, ym - 0.75 * k), (tx, ym - 1.05 * k)], INK2, L, 66, bk_lw(0.15, k))
             B.text(s, tx, yt, h, INK2, L, order=66, font=FONT_TITLE, align="C")
         boxes.append(r28mv_tbox(s, tx, yt, h, align="C"))
-    tx0 = x + bw + 2.5 * k
-    y = ytop - 0.2 * k - h
+    y = yt - 0.25 * h - 1.0 * k - h                       # the text's first baseline, clear under the numbers
     txt = txt or (u"**Street colour and width**: the share of everyday routes using the street (100 = the busiest "
                   u"street piece)")
-    for ln in r28mv_lines(txt, (x + w * k) - tx0, h):
+    for ln in r28mv_lines(txt, w * k, h):
         if draw:
-            r28mv_draw_line(B, ln, tx0, y, h, INK, L)
-        boxes.append((tx0, y - 0.25 * h, tx0 + sum(r28mv_tw(t_, h, b_) for _sp, wd in ln for t_, b_ in wd) +
+            r28mv_draw_line(B, ln, x, y, h, INK, L)
+        boxes.append((x, y - 0.25 * h, x + sum(r28mv_tw(t_, h, b_) for _sp, wd in ln for t_, b_ in wd) +
                       r28mv_tw(u" ", h) * (len(ln) - 1), y + h))
         y -= R28MV_LEAD * h
-    return max((ytop - yt) / k + 0.6, (ytop - y) / k - R28MV_LEAD * h / k + 0.8), boxes
+    return (ytop - (y + R28MV_LEAD * h - 0.25 * h)) / k + 0.6, boxes
 
 
 def r28mv_bars(B, rows, x, ytop, w, k, L, vmax, draw=True):
@@ -304,7 +326,7 @@ def r28mv_bars(B, rows, x, ytop, w, k, L, vmax, draw=True):
     lead = 0.0
     if any(r_.get("n") is not None or r_.get("dot") is not None for r_ in rows):
         lead = (2.0 * R28MV_MKR + 1.0) * k
-    lw_ = min(0.5 * w * k, max([r28mv_tw(r_["label"], h) for r_ in rows] or [0.0]))
+    lw_ = min(0.6 * w * k, max([r28mv_tw(r_["label"], h) for r_ in rows] or [0.0]))   # v61: 0.5 -> 0.6 (narrower)
     vw = max([r28mv_tw(r_.get("vtext") or u"", h) for r_ in rows if r_.get("value") is not None] or [0.0])
     bx0 = x + lead + lw_ + 1.5 * k
     blen = max(2.0 * k, x + w * k - bx0 - vw - 1.5 * k)
@@ -315,13 +337,13 @@ def r28mv_bars(B, rows, x, ytop, w, k, L, vmax, draw=True):
             r28mv_marker(B, x + R28MV_MKR * k, ym, r_["n"], k, L, order=66)
         elif draw and r_.get("dot") is not None:
             B.fill([circle_pts(x + R28MV_MKR * k, ym, 0.8 * k, 12)], r_["dot"], L, 66)
-        h_ = _r28mv_fit_h(r_["label"], h, lw_, k)
+        h_ = _r28mv_fit_h(r_["label"], h, lw_, k, warn=draw)
         v = r_.get("value")
         hv = h
         if v is None:                                     # no bar: the text runs from the bars' baseline
             xe = bx0
             if r_.get("vtext"):
-                hv = _r28mv_fit_h(r_["vtext"], h, x + w * k - bx0 - 0.8 * k, k)
+                hv = _r28mv_fit_h(r_["vtext"], h, x + w * k - bx0 - 0.8 * k, k, warn=draw)
         else:
             xe = bx0 + blen * max(0.0, min(1.0, v / float(vmax or 1.0)))
         if draw:
@@ -369,13 +391,16 @@ def r28mv_column(B, crop, k, L, num, rows, items, head=u"Why these streets matte
     share the width with 3 mm between them), then head and the note items (**bold** keywords) at 7.5 pt (7 where the
     map's height asks for it). Nothing taller than the map's crop: the last items, then the last optional rows, are
     left out (logged). Crop drw_mv_note_<num>, drawn for its width on the booklet page (bk_w): the map + 4 mm +
-    column stay within BK_AW, so the map keeps 1:10,000. Returns the text boxes (board units)."""
+    column stay within BK_AW, so the map keeps 1:10,000. Returns the text boxes (board units). v61 (round 6, U19,
+    P-8): the column R28MV_NOTE_W (71 mm) wide, every block in its own row (stacked), smaller type (R28MV_PT, the
+    note R28MV_NOTE_PT), as tall as its map once the booklet enlarges it (R28MV_COL_ENL); every shape and text of the
+    column in one G6-9 legend group per block."""
     wmax = BK_AW - R28MV_GUT - (crop[2] - crop[0]) / k - 0.5
     nw = min(R28MV_NOTE_W, wmax - 1.0)
     if nw < 30.0:
         LOG.append("Column {} beside the p.07 map not drawn (no width).".format(num))
         return []
-    hmax = (crop[3] - crop[1]) / k - 1.0                 # mm: no taller than its map's crop
+    hmax = (crop[3] - crop[1]) / k * R28MV_COL_ENL - 1.0  # mm: no taller than its map's crop as the booklet sets it
     x0 = crop[2] + R28MV_GUT * k
     tx = x0 + 0.5 * k
     gap = 1.2
@@ -387,7 +412,7 @@ def r28mv_column(B, crop, k, L, num, rows, items, head=u"Why these streets matte
     fit = None
     while fit is None:
         hr = sum(row_h(r_) for r_ in rows)
-        for pt in (7.5, 7.0):
+        for pt in R28MV_NOTE_PT:
             h = bk_hk(pt, k)
             lines = [r28mv_lines(it, nw * k, h) for it in items]
             ht = 0.0
@@ -406,31 +431,33 @@ def r28mv_column(B, crop, k, L, num, rows, items, head=u"Why these streets matte
                 LOG.append(u"Column {} beside the p.07 map: a graphic left out (no room).".format(num))
                 rows = rows[:j] + rows[j + 1:]
             else:
-                LOG.append(u"WARNING: column {} beside the p.07 map is taller than its map.".format(num))
-                fit = (bk_hk(7.0, k), [])
+                wn_warn("p07", "layout", u"column {} beside the map is taller than its map".format(num))
+                fit = (bk_hk(R28MV_NOTE_PT[-1], k), [])
     h, lines = fit
     boxes = []
     y = crop[3] - 0.5 * k
-    for r_ in rows:
+    for ri_, r_ in enumerate(rows):
         ws = _r28mv_widths(r_[1], nw)
         xx, hh_ = tx, 0.0
-        for (fn, _s), w_ in zip(r_[1], ws):
-            hb, bx = fn(B, xx, y, w_, True)
+        for bi_, ((fn, _s), w_) in enumerate(zip(r_[1], ws)):
+            with B.kind("legend", u"column %d block %d" % (num, 10 * ri_ + bi_)):   # v61 (G6-9)
+                hb, bx = fn(B, xx, y, w_, True)
             boxes += bx
             hh_ = max(hh_, hb)
             xx += (w_ + 3.0) * k
         y -= (hh_ + gap) * k
     if lines:
-        hb, bx = r28mv_head(B, head, tx, y, k, L)
-        boxes += bx
-        y -= hb * k
-        y -= h
-        for item in lines:
-            for ln in item:
-                w_ = r28mv_draw_line(B, ln, tx, y, h, INK, L)
-                boxes.append((tx, y - 0.25 * h, tx + w_, y + h))
-                y -= R28MV_LEAD * h
-            y -= 0.4 * h
+        with B.kind("labels", u"column %d note" % num):  # v61 (G6-9)
+            hb, bx = r28mv_head(B, head, tx, y, k, L)
+            boxes += bx
+            y -= hb * k
+            y -= h
+            for item in lines:
+                for ln in item:
+                    w_ = r28mv_draw_line(B, ln, tx, y, h, INK, L)
+                    boxes.append((tx, y - 0.25 * h, tx + w_, y + h))
+                    y -= R28MV_LEAD * h
+                y -= 0.4 * h
         y += R28MV_LEAD * h + 0.4 * h - 0.25 * h
     bot = min(y, crop[3] - 1.0 * k)
     crop_panel("mv_note_{}".format(num), x0, bot - 0.5 * k, x0 + (nw + 1.0) * k, crop[3], u"")
