@@ -187,18 +187,22 @@ def pl_band_rows(texts, xs, wmax, pt, bold=False):
     it touches no neighbour and no lower-row label covers its leader; left-aligned at its x (right-aligned at its x
     when it would run past wmax). -> ([(i, x0, row, align)], n_rows)"""
     rows, out = [], []
-    for i in sorted(range(len(texts)), key=lambda j: xs[j]):
+    # v32.1 fix (kit v4.1 run: the booklet never finished): right to left, so a label's leader passes the labels set
+    # before it; a label whose leader is covered by a lower label in every row used to loop for ever: on a NEW row it
+    # is now set anyway (its leader crosses that label; the page check reports it)
+    for i in sorted(range(len(texts)), key=lambda j: -xs[j]):
         w = fm_width(texts[i], pt, bold)
         x = xs[i]
         al = "L" if x + w <= wmax + 0.5 else "R"
         iv = (x, x + w) if al == "L" else (x - w, x)
         r = 0
         while True:
-            if r == len(rows):
+            fresh = r == len(rows)
+            if fresh:
                 rows.append([])
             ok = all(not (iv[0] < b_ + 1.2 and a_ < iv[1] + 1.2) for a_, b_ in rows[r])
             ok = ok and all(not (a_ - 0.4 <= x <= b_ + 0.4) for rr in rows[:r] for a_, b_ in rr)
-            if ok:
+            if ok or fresh:
                 rows[r].append(iv)
                 out.append((i, x, r, al))
                 break
