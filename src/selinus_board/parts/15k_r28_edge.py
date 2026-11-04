@@ -312,16 +312,22 @@ def r28e_base(S, CB, V, k, L):
         for d in dashes(V.P(P), 1.6 * k, 0.9 * k):
             CB.line(d, MPL["water_edge"], L, 18, bk_lw(0.3, k))
     her = lambda u: u.get("fabric") in ("monument", "sacred")
-    mini_buildings(S, CB, V, L, lambda u: MPL["her"] if her(u) else R28E_BLD, order=20)
+    # v61 (round 6, G6-6): buildings CTX r3, heritage HER r4 fill / r3 edge, bridges CTX r1 (hue table; as p.06's
+    # key, pages/p06_22_build.py p06_pal)
+    c_bld, c_her, c_her_e, c_br = C(hue("CTX", 3)), C(hue("HER", 4)), C(hue("HER", 3)), C(hue("CTX", 1))
+    with CB.kind("buildings"):
+        mini_buildings(S, CB, V, L, lambda u: c_her if her(u) else c_bld, order=20)
     for u in S.bld:
         if her(u):
-            for P in u["parts"]:
-                CB.line(V.P(list(P) + [P[0]]), MPL["her_edge"], L, 21, bk_lw(0.12, k))
+            with CB.kind("heritage"):
+                for P in u["parts"]:
+                    CB.line(V.P(list(P) + [P[0]]), c_her_e, L, 21, bk_lw(0.12, k))
         elif u.get("src") in ("osm", "osm+label"):        # P06.3: a footprint the survey does not have
             for P in u["parts"]:
                 CB.line(V.P(list(P) + [P[0]]), R28E_OSM_EDGE, L, 21, bk_lw(0.08, k))
     for P in getattr(S, "bridges", []) or []:
-        CB.line(V.P(P), MPL["ink_dark"], L, 25, bk_lw(0.3, k))
+        with CB.kind("roads"):
+            CB.line(V.P(P), c_br, L, 25, bk_lw(0.3, k))
     for P in getattr(S, "road_lines_net", []) or []:
         CB.line(V.P(P), MPL["road_edge"], L, 30, bk_lw(0.12, k))
     for r_ in S.roads:
@@ -369,3 +375,27 @@ def r28e_water(S, CB, V, k, L):
                    traceback.format_exc())
         return False
     return True
+
+
+def sb_an_north(B, ang, x, y, size_mm, k, L, order=60):
+    """v61 (round 6, G6-4): THE plain north arrow on a board map through annot.py an_north (common/annot.py:
+    keymap.north_items, a solid arrowhead on a shaft and "N", no plate or box), north at ang (radians from page +x),
+    the whole sign centred on (x, y) board units, size_mm tall on the booklet page (k = board units per booklet mm),
+    tagged G6-9 "annotations". Placed by the caller outside the drawing (p.06, p.19). Returns its box (board units)."""
+    its = an_north(None, (0.0, 0.0), math.degrees(ang) - 90.0, size_mm)    # north_deg: ccw from page-up
+    pts = []
+    for it in its:
+        if it[0] == "line":
+            pts += list(it[1])
+        elif it[0] == "fill":
+            pts += [p_ for R in it[1] for p_ in R]
+        elif it[0] == "text":
+            hw = 0.5 * it[3]
+            pts += [(it[2][0] - hw, it[2][1] - hw), (it[2][0] + hw, it[2][1] + hw)]
+    if not pts:
+        return (x, y, x, y)
+    bx = (min(p_[0] for p_ in pts), min(p_[1] for p_ in pts), max(p_[0] for p_ in pts), max(p_[1] for p_ in pts))
+    dx, dy = x / k - 0.5 * (bx[0] + bx[2]), y / k - 0.5 * (bx[1] + bx[3])
+    cb = SbX(B, L, order, k, kind="annotations").cb()
+    basemap_draw(its, lambda p_: (p_[0] + dx, p_[1] + dy), cb[0], cb[1], cb[2])
+    return ((bx[0] + dx) * k, (bx[1] + dy) * k, (bx[2] + dx) * k, (bx[3] + dy) * k)

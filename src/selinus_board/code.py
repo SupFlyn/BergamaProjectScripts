@@ -41,6 +41,7 @@
 #@include ../common/data/LEVELS.py
 #@include ../common/levels.py
 #@include ../common/basemap.py
+#@include ../common/trees.py
 #@include ../common/grid.py
 #@include ../common/font_metrics.py
 #@include ../common/marker.py

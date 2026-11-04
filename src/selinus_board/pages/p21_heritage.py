@@ -1,4 +1,7 @@
 # p.21 the heritage loop (split from parts/15f_v46_pages.py, parts/15j_r28_heritage.py on 29 Oct 2026; v51 rebuilt for package G, WO-T3a-6)
+# v61 (round 6, S3, 4 Nov 2026): booklet page p19 (ids p20 / p22 -> p19). Heritage in the brown ramp by status (G6-6,
+# Q5: HER_RANK of common/hues.py), the loop HER r2 (P-5), the stream walk MOV r1, Teleferik CTX; legend by category;
+# north by annot.py an_north; one halo shape per map name; card lines one text each; G6-9 kinds on every element.
 
 
 def her21_tg(B):
@@ -11,14 +14,17 @@ def her21_tg(B):
 
 
 def her21_halo(B, s, x, y, h, col, L, order, k, tg=None, **kw):
-    """v58 (round 3, P20.1): a word with a white halo (eight white copies 0.3 mm round it, one order under), so it
-    stays legible where it sits on a line, the water or a building. v59 (round 4, P20.1 / G-R4-1): the word and its
-    copies are ONE text group (tg, else a new one), so the page check does not read the halo as text on text."""
+    """v58 (round 3, P20.1): a word kept legible where it sits on a line, the water or a building. v61 (round 6,
+    G6-8, SON page20: every map name printed 9 times): the halo is ONE white shape (the word's box, HER21_HALO_MM
+    round it, descenders included, one order under), no longer eight white copies of the text; the word is one
+    text. tg: the word block's text group (else a new one)."""
     tg = tg or her21_tg(B)
-    d = 0.3 * k
-    for dx, dy in ((1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0), (0.7, 0.7), (-0.7, 0.7), (0.7, -0.7),
-                   (-0.7, -0.7)):
-        B.text(s, x + dx * d, y + dy * d, h, WHITE, L, order=order - 1, tg=tg, **kw)
+    al = (kw.get("align") or "L").upper()
+    w_ = her_tw(s, h, bool(kw.get("bold")))
+    x0 = x - (w_ if al[-1] == "R" else 0.5 * w_ if al[-1] == "C" else 0.0)
+    y0 = y - 0.5 * h if len(al) == 2 and al[0] == "M" else y
+    d = HER21_HALO_MM * k
+    B.fill([rect(x0 - d, y0 - 0.25 * h - d, x0 + w_ + d, y0 + h + d)], WHITE, L, order - 1)
     B.text(s, x, y, h, col, L, order=order, tg=tg, **kw)
 
 
@@ -73,8 +79,10 @@ def her_wrap(txt, h, width):
 
 
 def her_line(B, words, x, y, h, col, L, order=40, tg=None):
-    """v50 (G5): one line of her_wrap, its plain and bold runs each one live text at its measured width; returns the
-    x after it. v59 (round 4, G-R4-1): tg = the text group of the block the line belongs to"""
+    """v50 (G5): one line of her_wrap; returns the x after it (measured width). v59 (round 4, G-R4-1): tg = the text
+    group of the block the line belongs to. v61 (round 6, G6-8, SON page20 "cable car      (2010)"): the line is ONE
+    text, its bold runs marked **...** (the booklet's setter prints them bold, bk_clean_text), so no gap opens
+    between runs set as separate texts; a line all bold is one bold text without marks."""
     runs = []
     for i, wd in enumerate(words):
         for j, (t_, b_) in enumerate(wd):
@@ -83,12 +91,18 @@ def her_line(B, words, x, y, h, col, L, order=40, tg=None):
                 runs[-1][0] += t_
             else:
                 runs.append([t_, b_])
-    cx = x
+    cx = x + sum(her_tw(t_, h, b_) for t_, b_ in runs)
+    if all(b_ for t_, b_ in runs):
+        B.text(u"".join(t_ for t_, b_ in runs), x, y, h, col, L, order=order, font=FONT_TITLE, bold=True, tg=tg)
+        return cx
+    st_ = u""
     for t_, b_ in runs:
-        s_ = t_.lstrip()
-        cx += her_tw(t_[:len(t_) - len(s_)], h, b_)      # a space that starts a run: its width, no text
-        B.text(s_, cx, y, h, col, L, order=order, font=FONT_TITLE, bold=b_, tg=tg)
-        cx += her_tw(s_, h, b_)
+        if b_:
+            s_ = t_.lstrip()
+            st_ += t_[:len(t_) - len(s_)] + u"**" + s_ + u"**"
+        else:
+            st_ += t_
+    B.text(st_, x, y, h, col, L, order=order, font=FONT_TITLE, bold=False, tg=tg)
     return cx
 
 
@@ -133,15 +147,25 @@ def her_labels(B, items, taken, bounds, k, L, segs=(), order=66):
     hl = bk_hk(HER21_PT["lab"], k)                        # a letter's capital height (board units)
     got = lp_place(pl, tk, ln, bd, pad=0.5, num_wh=lambda s_: (1.1 * hl / k + 2.0 * pad, hl / k + 2.0 * pad))
     key, boxes = [], []
+    # v61 (round 6, G6-8, SON page20: stop 4 / "Ulucami" / "a" / "b" / stop 3 at the Ulucami Önü bend): a numbered
+    # loop stop (it["stop"]) with no free spot gets NO letter: its number badge already names it (the same number on
+    # its card); the letters a, b ... go only to the places without a number, in reading order
+    nl_ = sorted([(got[i]["number"], i) for i, it in enumerate(items) if got[i] is not None and got[i].get("number")
+                  and not it.get("stop")])
+    let_ = dict((i, HER21_LETTERS[j % len(HER21_LETTERS)]) for j, (n_, i) in enumerate(nl_))
     for i, it in enumerate(items):
         g = got[i]
         if g is None:                                     # leaders=False never drops a label; kept as a guard
             continue
         b = g["box"]
         bx = (b[0] * k, b[1] * k, b[2] * k, b[3] * k)
+        if g.get("number") and it.get("stop"):            # v61: the stop's badge carries it (logged)
+            LOG.append(u"Heritage loop (p19): no free spot for the name of loop stop {} ({}): its number badge and its "
+                       u"card name it; no letter.".format(it["stop"], u" ".join(it["lines"])))
+            continue
         boxes.append(tuple(b))
         if g.get("number"):                               # no spot: its letter on the spot, its name in the key
-            c_ = HER21_LETTERS[(g["number"] - 1) % len(HER21_LETTERS)]
+            c_ = let_[i]
             her21_halo(B, c_, 0.5 * (bx[0] + bx[2]), 0.5 * (bx[1] + bx[3]), hl, it["col"], L, order, k,
                        font=FONT_TITLE, bold=True, align="MC")
             key.append((g["number"], c_, u" ".join(it["lines"])))
@@ -205,8 +229,25 @@ HER21_STRIP_MM = 34.0          # mm: P20.2 the stream-walk strip under the diagr
 HER21_OFFER_M = 40.0           # m: a city-link place this close to the stream walk is drawn on the strip
 # v58 (round 3): drawing rules of the map (not data)
 HER21_LETTERS = u"abcdefghijklmnopqrstuvwxyz"   # G3: map names with no free spot -> a letter on the spot + the key
-HER21_LOOP_HEX = "8B2D2D"      # v59 (round 4, P20.1, PLAN §4.10): the heritage loop's colour (palette reference)
-HER21_LOOP_C = C(HER21_LOOP_HEX)
+# v61 (round 6, G6-6, Q5, PLAN §2.6 and P-5): every colour of the page from the hue table (common/hues.py, read at
+# run time by her21_hex / her21_place_hex: hues.py comes in with basemap.py): the heritage loop HER r2 (was 8B2D2D);
+# the stream walk (project) MOV r1; the Teleferik's cable and its stop CTX r1 (context, not heritage); each heritage
+# place, its pin, card badge and diagram node in HER by its status (HER_RANK: r1 inside the UNESCO World Heritage
+# listing, r2 registered monument, r3 other historic building / no sourced status; a name HER_RANK lacks = r3);
+# the muted base's houses CTX r5 / r4 edge, heritage houses HER r4 / r3 edge, contours CTX r2-r4 by height, the
+# stream WAT r3.
+HER21_ROLE = {"loop": ("HER", 2), "walk": ("MOV", 1), "cable": ("CTX", 1), "water": ("WAT", 3),
+              "water_edge": ("WAT", 2), "bld": ("CTX", 5), "bld_edge": ("CTX", 4), "her_bld": ("HER", 4),
+              "her_edge": ("HER", 3), "contour": ("CTX", 3)}
+HER21_RANK_WORDS = {1: u"Inside the UNESCO World Heritage listing", 2: u"Registered monument",
+                    3: u"Other historic building, no sourced status"}
+HER21_NOT_HER = ("teleferik",)  # v61 (Q5, H3): places that are context, not heritage (CTX r1)
+HER21_HALO_MM = 0.3            # v61 (G6-8): mm, the white halo shape round a map name
+HER21_LAYER_KIND = {"base_ground": "ground", "base_contours": "ground", "base_fills": "buildings",
+                    "base_water": "water", "base_outlines": "buildings", "base_names": "labels", "water": "water",
+                    "structures": "roads", "proj_tint": "other", "proj_water": "water", "proj_lines": "paths",
+                    "proj_vegetation": "plants", "study": "annotations", "proj_marks": "annotations",
+                    "proj_labels": "labels"}  # v61 (G6-9): map_draw's layers -> kinds
 HER21_LOOP_MM = 1.2            # v59 (P20.1, PLAN §4.10): the loop's legs, mm on the booklet page
 HER21_WALK_MM = 1.5            # mm: the stream walk (the loop's spine), white dashes on it as v58
 HER21_CASE_MM = 0.5            # mm: a white casing this much wider than a loop line (separates it from the base)
@@ -221,8 +262,6 @@ HER21_PHOTO_DIR = os.path.join(DATA_DIR, "heritage_photos")
 HER21_PHOTO_CSV = "photos.csv"
 HER21_GONDOLA_TOP = (30460.0, 33003.0)     # Teleferik top station, OSM node 2295928363 (h03 Q3), h01 §0 lat/lon fit
 HER21_K5 = (30294.0, 31792.0)              # Üç Kemer Köprüsü (K5), h01 §0 survey frame / §5 P09
-HER21_WATER, HER21_BLD = C("91ADB4"), C(BM_MUTED["bld"])   # legend samples: basemap BM_COL water; v59 (P20.2):
-                                                           # the muted base's light house tone (was BM_FAINT D3D0CB)
 # The places (map pins and cards). stop = HER_STOPS key (its loop number), dot = HER_DOTS name; name = the map's
 # Turkish name, title = the card's. txt (v52, PG1 p20): ONE line under the card's name, key words bold (G4); the
 # v51 Why / Use / Now / Project texts are cut to it (their facts stay in the cards h01-h03 noted per place). Sources (library cards h01 = selinos_bergama_history_context_v1, h02 = selinos_site_history_inaccessible_
@@ -286,6 +325,45 @@ HER21_PLACES = [
 HER21_FOLD = {u"ı": u"i", u"ş": u"s", u"ğ": u"g", u"ü": u"u", u"ö": u"o", u"ç": u"c", u"â": u"a", u"î": u"i",
               u"û": u"u"}
 _HER21_PH = {}                 # once per run: the photo of each place, the photos' pixel sizes
+
+
+def her21_hex(role):
+    """v61 (round 6, G6-6): a page colour (hex) from the hue table by its role (HER21_ROLE)"""
+    return hue(*HER21_ROLE[role])
+
+
+def her21_rank(key):
+    """v61 (round 6, Q5, H3): the heritage rank (1-3) of a place of HER21_PLACES by its printed name (HER_RANK via
+    her_rank, no sourced status = 3); None for context (the Teleferik)"""
+    if key in HER21_NOT_HER:
+        return None
+    pl = [q for q in HER21_PLACES if q["key"] == key]
+    return her_rank(pl[0]["name"] if pl else u"", 3)
+
+
+def her21_place_hex(key):
+    """v61 (round 6, G6-6, Q5): the colour of a place's pin, badge and node: HER by its rank, CTX r1 for context"""
+    r_ = her21_rank(key)
+    return hue("CTX", 1) if r_ is None else hue("HER", r_)
+
+
+def her21_base_hex(hx, layer):
+    """v61 (round 6, G6-6): the muted base's own tones -> the table's (houses, heritage houses, contours by height:
+    CTX r4 at the lowest .. CTX r2 at the highest, the halfway shades mixed in the CTX hue); others as they are"""
+    if not isinstance(hx, str):
+        return hx
+    h_ = crop_hex(hx)
+    m_ = {crop_hex(BM_MUTED["bld"]): her21_hex("bld"), crop_hex(BM_MUTED["bld_edge"]): her21_hex("bld_edge"),
+          crop_hex(BM_MUTED["her"]): her21_hex("her_bld"), crop_hex(BM_MUTED["her_edge"]): her21_hex("her_edge")}
+    if h_ in m_:
+        return m_[h_]
+    if layer == "base_contours":                          # lighter = lower, as the relief ramp it replaces
+        lum = lambda c_: 0.299 * int(c_[0:2], 16) + 0.587 * int(c_[2:4], 16) + 0.114 * int(c_[4:6], 16)
+        ramp = [crop_hex(c_) for c_ in BM_HEIGHT_RAMP]
+        lo, hi = min(lum(c_) for c_ in ramp), max(lum(c_) for c_ in ramp)
+        t_ = min(1.0, max(0.0, (lum(h_) - lo) / max(1e-6, hi - lo)))
+        return crop_hex(mix(C(hue("CTX", 2)), C(hue("CTX", 4)), t_))
+    return hx
 
 
 class Her21Clip(object):
@@ -410,12 +488,13 @@ def her21_credits():
             if pl["key"] in ph and ph[pl["key"]][1]]
 
 
-def her21_mk(B, cx, cy, s, k, L, order=60):
+def her21_mk(B, cx, cy, s, k, L, order=60, key=None):
     """v59 (round 4, G-R4-7): one numbered marker by the shared mk_marker (common/marker.py): the glyph centred on
-    its ink box, the circle sized to the glyph, in the colour of the thing it names (the loop: mk_colour("p20",
-    "loop"), registered by her_loop_page). (cx, cy) board units, k = board units per booklet mm. The disc at order,
-    the glyph at order + 1 (its own text group). Returns the marker's outer radius (board units)."""
-    sh, box, r = mk_marker(cx / k, cy / k, s, mk_colour("p20", "loop"), size_pt=HER21_PT["num"])
+    its ink box, the circle sized to the glyph, in the colour of the thing it names. v61 (round 6, G6-6, Q5): the
+    colour of its place (mk_colour("p19", key): HER by rank, CTX r1 for the Teleferik; registered by her_loop_page).
+    (cx, cy) board units, k = board units per booklet mm. The disc at order, the glyph at order + 1 (its own text
+    group). Returns the marker's outer radius (board units)."""
+    sh, box, r = mk_marker(cx / k, cy / k, s, mk_colour("p19", key), size_pt=HER21_PT["num"])
     for s_ in sh:
         if s_[0] == "poly":
             ring = [(p[0] * k, p[1] * k) for p in s_[1]]
@@ -429,9 +508,9 @@ def her21_mk(B, cx, cy, s, k, L, order=60):
     return 0.5 * (box[2] - box[0]) * k
 
 
-def her21_mk_r(s, k):
+def her21_mk_r(s, k, key=None):
     """v59 (round 4, G-R4-7): the outer radius (board units) her21_mk gives the glyph s, before it is placed"""
-    b = mk_marker(0.0, 0.0, s, mk_colour("p20", "loop"), size_pt=HER21_PT["num"])[1]
+    b = mk_marker(0.0, 0.0, s, mk_colour("p19", key), size_pt=HER21_PT["num"])[1]
     return 0.5 * (b[2] - b[0]) * k
 
 
@@ -471,7 +550,8 @@ def her21_card(B, pl, ph, g, num, k, L, boxes=None):
     q, cy = g["img"], g["cy"]
     i0_w = sb_mark(B)                                     # v59 closing (G-R4-1): the window's own texts (badge, name)
     if ph:
-        B.image(ph[0], q[0], q[1], q[2], q[3], L, order=5)
+        with B.kind("other", u"photo " + pl["key"]):      # v61 (G6-9)
+            B.image(ph[0], q[0], q[1], q[2], q[3], L, order=5)
     else:                                                 # an empty slot: a pale rectangle with the name
         B.fill([rect(q[0], q[1], q[2], q[3])], mix(INK2, WHITE, 0.88), L, 5)
         h = bk_hk(HER21_PT["txt"], k)
@@ -484,16 +564,16 @@ def her21_card(B, pl, ph, g, num, k, L, boxes=None):
             B.text(s_, cx, y0 - j * HER_LEAD * h, h, INK2, L, order=40, font=FONT_TITLE, align="C", tg=tg0)
     m_ = 0.6 * k                                          # the badge: inside the window's top corner, map side
     if num:
-        R = her21_mk_r(str(num), k)
+        R = her21_mk_r(str(num), k, pl["key"])
         bx = q[2] - R - m_ if g["side"] == "L" else q[0] + R + m_
-        her21_mk(B, bx, q[3] - R - m_, str(num), k, L, order=60)
-    else:                                                 # a heritage place: the ring of its pin
+        her21_mk(B, bx, q[3] - R - m_, str(num), k, L, order=60, key=pl["key"])
+    else:                                                 # a heritage place: the ring of its pin (its rank's colour)
         R = 1.6 * k
         bx = q[2] - R - m_ if g["side"] == "L" else q[0] + R + m_
         cb = circle_pts(bx, q[3] - R - m_, R, 24)
         B.fill([cb], WHITE, L, 60)
-        B.line(cb + [cb[0]], HER21_LOOP_C, L, 61, bk_lw(0.45, k))
-    sb_keep(B, q, u"p20 photo " + pl["name"], "photo", i0_w)   # v59 closing (G-R4-1): no other text on the photo
+        B.line(cb + [cb[0]], C(her21_place_hex(pl["key"])), L, 61, bk_lw(0.45, k))
+    sb_keep(B, q, u"p19 photo " + pl["name"], "photo", i0_w)   # v59 closing (G-R4-1): no other text on the photo
     hn, h = bk_hk(HER21_PT["name"], k), bk_hk(HER21_PT["txt"], k)
     pt, ptn = HER_PITCH * h, HER_PITCH * hn
     w_ = g["t1"] - g["t0"]
@@ -532,16 +612,18 @@ def her21_map(S, B, V, Fm, r_all, k, L, xy, num):
     <n> (p20: ...)". Returns dict(walk_m, walk (survey m, K3 -> K4), key_bot (y under the key, or None), labels
     (booklet mm boxes of the names, letters and key rows), pins (booklet mm boxes of the pins))."""
     CB = Her21Clip(B, [r_all])
-    B.fill([rect(*r_all)], WHITE, L, 1)
+    with B.kind("frame", u"map ground"):
+        B.fill([rect(*r_all)], WHITE, L, 1)
     base = ml_base(Fm.bb, HER21_DEN, contours=True)       # memoised (common/basemap.py, mode "muted")
     if not base:
         LOG.append(u"WARNING: heritage loop: no basemap data (cached/basemap/basemap.json missing): the map shows the "
                    u"loop on white.")
     study = [list(P) for P in (getattr(S, "r28_study", None) or [])] or sc_rings()
     if callable(globals().get("wat_draw_order_lines")):  # v58 (round 3, G8): the map's draw order in the log
-        wat_draw_order_lines(page="p20", steps=["ground", "water", "structures", "labels"])
-    acc, white = HER21_LOOP_HEX, "FFFFFF"
-    ink = "%02X%02X%02X" % tuple(INK)
+        wat_draw_order_lines(page="p19", steps=["ground", "water", "structures", "labels"])
+    acc, white = her21_hex("loop"), "FFFFFF"              # v61 (P-5): the loop HER r2, no longer 8B2D2D
+    ink = her21_hex("cable")                              # v61: the Teleferik's cable CTX r1 (context)
+    wlk = her21_hex("walk")                               # v61: the stream walk (project) MOV r1
     ins = lambda p: r_all[0] <= p[0] <= r_all[2] and r_all[1] <= p[1] <= r_all[3]
     segs, taken, labs = [], [], []
 
@@ -572,9 +654,9 @@ def her21_map(S, B, V, Fm, r_all, k, L, xy, num):
         cab.append(("line", [(c[0] - dy / dl * 0.7 * mpm, c[1] + dx / dl * 0.7 * mpm),
                              (c[0] + dy / dl * 0.7 * mpm, c[1] - dx / dl * 0.7 * mpm)], ink, 0.2, None, 1.0))
     keep([V.p(*ga), V.p(*gb)])
-    runs = sc_lines(walk, study, page="p20")              # the stream walk: a designed change, inside the study area
+    runs = sc_lines(walk, study, page="p19")              # the stream walk: a designed change, inside the study area
     wk = ([("line", R_, white, HER21_WALK_MM + HER21_CASE_MM, None, 1.0) for R_ in runs] +
-          [("line", R_, acc, HER21_WALK_MM, None, 1.0) for R_ in runs] +
+          [("line", R_, wlk, HER21_WALK_MM, None, 1.0) for R_ in runs] +
           [("line", R_, white, 0.3, [1.2, 0.9], 1.0) for R_ in runs])
     for R_ in runs:
         Pw = V.P(R_)
@@ -592,24 +674,39 @@ def her21_map(S, B, V, Fm, r_all, k, L, xy, num):
         return lay_od.get(st["layer"], 40)
 
     def colr(hx, a):
+        hx = her21_base_hex(hx, st["layer"])              # v61 (G6-6): the base's tones -> the hue table's
         c = C(hx) if hasattr(hx, "lstrip") else hx
         return c if a is None or a >= 0.999 else mix(c, WHITE, 1.0 - a)
+    her_hx = (crop_hex(BM_MUTED["her"]), crop_hex(BM_MUTED["her_edge"]))
+    proj_eid = {crop_hex(acc): ("paths", u"heritage loop"), crop_hex(wlk): ("paths", u"stream walk"),
+                crop_hex(ink): ("roads", u"teleferik cable"), white: ("paths", u"casing")}
+
+    def kd(hx):                                           # v61 (G6-9): each layer's kind, a heritage house apart
+        lay_ = st["layer"]
+        h_ = crop_hex(hx) if isinstance(hx, str) else None
+        if lay_ in ("base_fills", "base_outlines") and h_ in her_hx:
+            return B.kind("heritage")
+        if lay_ == "proj_lines" and h_ in proj_eid:
+            return B.kind(*proj_eid[h_])
+        return B.kind(HER21_LAYER_KIND.get(lay_, "other"))
 
     def fill_fn(rings, hx, a, nz):
         c = colr(hx, a)
-        CB.fill(rings, r28_nz(c) if nz else c, L, od())
+        with kd(hx):
+            CB.fill(rings, r28_nz(c) if nz else c, L, od())
 
     def line_fn(P, hx, w, dash, a):
         o = od()
-        if dash:                                          # any on/off pattern (the study line's dash-dot too)
-            for d_ in r28_pattern(P, [m * k for m in dash]):
-                CB.line(d_, colr(hx, a), L, o, bk_lw(w, k))
-        else:
-            CB.line(P, colr(hx, a), L, o, bk_lw(w, k))
+        with kd(hx):
+            if dash:                                      # any on/off pattern (the study line's dash-dot too)
+                for d_ in r28_pattern(P, [m * k for m in dash]):
+                    CB.line(d_, colr(hx, a), L, o, bk_lw(w, k))
+            else:
+                CB.line(P, colr(hx, a), L, o, bk_lw(w, k))
 
     def order_fn(layer):
         st["layer"] = layer
-    map_draw("p20", lambda p: V.p(p[0], p[1]), fill_fn, line_fn, None, base, {"proj_lines": case + legs + cab + wk},
+    map_draw("p19", lambda p: V.p(p[0], p[1]), fill_fn, line_fn, None, base, {"proj_lines": case + legs + cab + wk},
              study=study, clip=False, order_fn=order_fn, log=LOG)
     rr = 1.3 * k
     hl = bk_hk(HER21_PT["lab"], k)
@@ -620,16 +717,20 @@ def her21_map(S, B, V, Fm, r_all, k, L, xy, num):
             LOG.append(u"WARNING: heritage loop: {} lies outside the map.".format(pl["name"]))
             continue
         n_ = num.get(pl["key"])
-        if n_:
-            r0 = her21_mk(B, p[0], p[1], str(n_), k, L, order=60)
-        else:
-            c_ = circle_pts(p[0], p[1], rr, 24)
-            B.fill([c_], WHITE, L, 60)
-            B.line(c_ + [c_[0]], HER21_LOOP_C, L, 61, bk_lw(0.45, k))
-            r0 = rr + 0.25 * k
+        with B.kind("heritage" if her21_rank(pl["key"]) else "annotations", u"pin " + pl["key"]):   # v61 (G6-9)
+            if n_:
+                r0 = her21_mk(B, p[0], p[1], str(n_), k, L, order=60, key=pl["key"])
+            else:                                         # v61 (G6-6, Q5): the ring in its place's rank colour
+                c_ = circle_pts(p[0], p[1], rr, 24)
+                B.fill([c_], WHITE, L, 60)
+                B.line(c_ + [c_[0]], C(her21_place_hex(pl["key"])), L, 61, bk_lw(0.45, k))
+                r0 = rr + 0.25 * k
         taken.append((p[0] - r0, p[1] - r0, p[0] + r0, p[1] + r0))
         pins.append(((p[0] - r0) / k, (p[1] - r0) / k, (p[0] + r0) / k, (p[1] + r0) / k))
-        labs.append(dict(lines=[pl["name"]], x=p[0], y=p[1], h=hl, col=INK, bold=True, rank=0, r0=r0))
+        # v61 (G6-8): the places without a number are named first (rank 0); a numbered stop's name (rank 1) may
+        # find no spot and then stays off the map (its badge and card name it: her_labels, no letter)
+        labs.append(dict(lines=[pl["name"]], x=p[0], y=p[1], h=hl, col=INK, bold=True, rank=1 if n_ else 0, r0=r0,
+                         stop=n_ or None))
     sel = [P_ for P_ in (getattr(S, "selinus", None) or []) if len(P_) >= 2]
     if sel:                                               # the stream's Turkish name, clear of the pins
         marks = [V.p(*q) for q in xy.values()]
@@ -642,9 +743,10 @@ def her21_map(S, B, V, Fm, r_all, k, L, xy, num):
             if best is None or d > best[0] + 1e-9:
                 best = (d, p)
         if best:
-            labs.append(dict(lines=[place_name("stream")], x=best[1][0], y=best[1][1], h=hl, col=MPL["water_edge"],
-                             italic=True, rank=1))
-    key, lab_boxes = her_labels(B, labs, taken, r_all, k, L, segs)
+            labs.append(dict(lines=[place_name("stream")], x=best[1][0], y=best[1][1], h=hl,
+                             col=C(her21_hex("water_edge")), italic=True, rank=2))
+    with B.kind("labels"):
+        key, lab_boxes = her_labels(B, labs, taken, r_all, k, L, segs)
     key_bot = None
     if key:                                               # G3: the letters' key under the map, beside the north arrow
         ss = V.s
@@ -659,37 +761,29 @@ def her21_map(S, B, V, Fm, r_all, k, L, xy, num):
         for i, (c_, t_, w_) in enumerate(rows):           # reading order: left to right, then down
             cx, cy = kx0 + (i % nc) * cw_, y_top - (i // nc) * pt - hk_
             tg = her21_tg(B)                              # v59 (G-R4-1): a key row = one word block
-            B.text(c_, cx, cy, hk_, INK, L, order=66, font=FONT_TITLE, bold=True, tg=tg)
-            B.text(t_, cx + her_tw(c_, hk_, True) + 1.2 * k, cy, hk_, INK, L, order=66, font=FONT_TITLE, tg=tg)
+            with B.kind("legend", u"letter " + c_):
+                B.text(c_, cx, cy, hk_, INK, L, order=66, font=FONT_TITLE, bold=True, tg=tg)
+                B.text(t_, cx + her_tw(c_, hk_, True) + 1.2 * k, cy, hk_, INK, L, order=66, font=FONT_TITLE, tg=tg)
             lab_boxes.append((cx / k, cy / k, (cx + w_) / k, (cy + hk_) / k))
         key_bot = y_top - ((len(rows) - 1) // nc + 1) * pt - 0.8 * k
     o = [(r_all[0], r_all[1]), (r_all[2], r_all[1]), (r_all[2], r_all[3]), (r_all[0], r_all[3])]
-    B.line(o + [o[0]], INK, L, 70, bk_lw(HER21_NEAT_MM, k))   # v58 (round 3, G17): the neatline 0.25 pt
+    with B.kind("frame", u"neatline"):
+        B.line(o + [o[0]], INK, L, 70, bk_lw(HER21_NEAT_MM, k))   # v58 (round 3, G17): the neatline 0.25 pt
     return dict(walk_m=walk_m, walk=walk, key_bot=key_bot, labels=lab_boxes, pins=pins)
 
 
 def her21_foot(B, x, yb, ss, k, L, Lm):
     """v59 (round 4, G-R4-9; replaces b_foot on this page): under the map whose bottom edge is at yb, from its left
-    edge x: the scale bar as b_foot drew it (draw_scalebar_bk, 1 mm in) and beside it the shared north arrow
-    north_items (common/keymap.py: the arrow and "N" only, no plate), north up, HER21_NORTH_MM tall, its "N" 2.5 mm
-    under the map. Returns the y below them."""
+    edge x: the scale bar as b_foot drew it (draw_scalebar_bk, 1 mm in) and beside it the plain north arrow, north
+    up, HER21_NORTH_MM tall, its top 2.5 mm under the map. v61 (round 6, G6-4): the arrow by annot.py an_north
+    (sb_an_north, parts/15k_r28_edge.py), tagged "annotations" with the scale bar. Returns the y below them."""
     x += 1.0 * k
-    low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, Lm, k, L)
+    with B.kind("annotations", u"scale bar"):
+        low = draw_scalebar_bk(B, x, yb - 2.5 * k, ss, Lm, k, L)
     nx = x + Lm * ss + 10.0 * k
-    foot = yb - (2.5 + HER21_NORTH_MM + 2.5) * k
-
-    def fill_fn(rings, hx, a, nz):
-        B.fill(rings, C(hx), L, 60)
-
-    def line_fn(P, hx, w, dash, a):
-        B.line(P, C(hx), L, 60, bk_lw(w, k))
-
-    def text_fn(s_, p, size_mm, hx, bold, align):        # size_mm = the font size: the Board takes the capital height
-        B.text(s_, p[0], p[1], size_mm * _PDF_CAP["sans"] * k, C(hx), L, order=61, font=FONT_TITLE, bold=bold,
-               align=align)
-    basemap_draw(north_items(nx / k, foot / k, 0.0, HER21_NORTH_MM), lambda p: (p[0] * k, p[1] * k), fill_fn,
-                 line_fn, text_fn)
-    return min(low, foot)
+    h_all = HER21_NORTH_MM + 1.5 * max(2.12, 0.42 * HER21_NORTH_MM)      # the shaft's foot to the top of the "N"
+    nb_ = sb_an_north(B, 0.5 * math.pi, nx, yb - (2.5 + 0.5 * h_all) * k, HER21_NORTH_MM, k, L)
+    return min(low, nb_[1])
 
 
 # v60 (round 5, D5): restored from 5249425 (removed in d16192e)
@@ -745,16 +839,16 @@ def her21_diagram(B, x0, ytop, w, h, k, L, walk_m, num, boxes=None):
     (round 3, G16, G19): the bridges by their names (bridge_name; the short forms of the two walk bridges, whose full
     names stand in the strip under it, her21_walk_strip). boxes (list) gets every word's box in booklet mm.
     v60 (round 5, D5): restored from 5249425 (removed in d16192e) with the round 4 rules: every printed name from
-    the names table (landmark_name, place_name, G-R4-11), the loop's colour HER21_LOOP_C (PLAN §4.10), numbered
+    the names table (landmark_name, place_name, G-R4-11), the loop's colours (v61: hue table, her21_hex), numbered
     stops by the shared marker (her21_mk, G-R4-7), each word block its own text group; no length in the texts (round
     5: no horizontal dimensions); a too-small cell is a wn_warn, not a LOG line. walk_m is kept for the caller."""
     fx = w / (HER21_DIA_MM[0] * k)
     if fx < 0.99 or h < 77.0 * k:                       # the cell is 94.5 mm (crop edges): 0.5 % is fine
-        wn_warn("p22", "diagram_cell", u"heritage loop diagram: its cell is {:.0f} x {:.0f} mm, under the 95 x 77 mm "
+        wn_warn("p19", "diagram_cell", u"heritage loop diagram: its cell is {:.0f} x {:.0f} mm, under the 95 x 77 mm "
                 u"it is laid out for: names may touch.".format(w / k, h / k))
     P = lambda a, b: (x0 + a * fx * k, ytop - b * k)
     hd, ht = bk_hk(HER21_PT["dia"], k), bk_hk(HER21_PT["title"], k)
-    acc, rr = HER21_LOOP_C, 1.3 * k
+    acc, rr = C(her21_hex("walk")), 1.3 * k              # v61 (G6-6): the stream walk MOV r1 (was the loop's red)
 
     def tx(s, a, b, align="L", col=INK, bold=False, italic=False, hh=None):
         p = P(a, b)
@@ -765,14 +859,24 @@ def her21_diagram(B, x0, ytop, w, h, k, L, walk_m, num, boxes=None):
             xl = p[0] - {"C": 0.5 * tw_, "R": tw_}.get(align, 0.0)
             boxes.append((xl / k, p[1] / k, (xl + tw_) / k, (p[1] + (hh or hd)) / k))
 
+    def tx_fit(s, a0, b, a1, col, bold):                   # v61 (G6-8): left-set from a0, never past a1 (design mm)
+        room, need = (a1 - a0) * fx * k, her_tw(s, hd, bold)
+        hh = hd
+        if need > room > 0:
+            hh = max(bk_hk(5.0, k), hd * room / need)
+            if her_tw(s, hh, bold) > room:
+                wn_warn("p19", "overlap", u"heritage loop diagram: \"{}\" does not fit its {:.1f} mm at 5 pt".format(
+                    s, room / k), log=LOG)
+        tx(s, a0, b, "L", col, bold, hh=hh)
+
     def node(a, b, key):                                  # a loop stop numbered as on the map, else a ring
         p, n_ = P(a, b), num.get(key)
         if n_:
-            her21_mk(B, p[0], p[1], str(n_), k, L, order=64)
-        else:
+            her21_mk(B, p[0], p[1], str(n_), k, L, order=64, key=key)
+        else:                                             # v61 (Q5): the ring in its place's rank colour
             c_ = circle_pts(p[0], p[1], rr, 24)
             B.fill([c_], WHITE, L, 64)
-            B.line(c_ + [c_[0]], acc, L, 65, bk_lw(0.45, k))
+            B.line(c_ + [c_[0]], C(her21_place_hex(key)), L, 65, bk_lw(0.45, k))
 
     def link(pts, head=False, dash=False, col=INK, r0=0.0, r1=0.0):   # r0 / r1 (mm): stop at a node's rim
         Q = [P(*q) for q in pts]
@@ -792,8 +896,11 @@ def her21_diagram(B, x0, ytop, w, h, k, L, walk_m, num, boxes=None):
     tx(place_name("side_NE").upper() + u" · " + place_name("bank_NE_short"), 0, 9.5, col=INK2, bold=True)
     # the stream, downstream to the right; the bridges across it, Kızıl Avlu over it, the stream walk along it
     a, b = P(0, 31), P(95, 37)
-    B.fill([rect(a[0], b[1], b[0], a[1])], HER21_WATER, L, 60)
-    tx(place_name("stream"), 1.5, 35.0, col=WHITE, bold=True)
+    B.fill([rect(a[0], b[1], b[0], a[1])], C(her21_hex("water")), L, 60)
+    # v61 (round 6, G6-8, SON page20 "Selinos stream / Kızıl Avlu" x "4 / 3"): the stream's name fitted into the
+    # band left of stop 4's marker (1 mm clear; set smaller down to 5 pt, else a WARNING)
+    r4_ = her21_mk_r(str(num.get("k4") or 4), k, "k4") / (fx * k) if num.get("k4") else rr / (fx * k)
+    tx_fit(place_name("stream"), 1.5, 35.0, 30.0 - r4_ - 1.0 / fx, WHITE, True)
     her21_head(B, P(89.5, 34), P(93.5, 34), k, WHITE, L, order=61, mm=2.2)
     a, b = P(30, 34), P(52, 34)
     B.line([a, b], acc, L, 61, bk_lw(1.5, k))
@@ -803,8 +910,8 @@ def her21_diagram(B, x0, ytop, w, h, k, L, walk_m, num, boxes=None):
         a, b = P(bx - 0.8, 30), P(bx + 0.8, 38)
         B.fill([rect(a[0], b[1], b[0], a[1])], INK, L, 62)
     a, b = P(62, 29.5), P(76, 38.5)
-    B.fill([rect(a[0], b[1], b[0], a[1])], acc, L, 62)
-    tx(landmark_name("kizil_avlu"), 69, 34.95, "C", WHITE, True)
+    B.fill([rect(a[0], b[1], b[0], a[1])], C(her21_place_hex("kizilavlu")), L, 62)   # v61: Kızıl Avlu's HER rank
+    tx_fit(landmark_name("kizil_avlu"), 62.6, 34.95, 75.4, WHITE, True)              # v61 (G6-8): inside its box
     node(62, 29.5, "kizilavlu")
     node(30, 34, "k4")
     node(52, 34, "k3")
@@ -859,12 +966,12 @@ def her21_walk_strip(B, x0, ytop, w, k, L, walk_m, offers, num, boxes=None):
     loop numbers and full names, and the project's places on the walk (offers: [(t, name)], her21_offers) as squares
     at their place along it, each name under its square (a second row where the first is taken). boxes (list) gets
     every word's box in booklet mm. v60 (round 5, D5): restored from 5249425 (removed in d16192e) with the loop's
-    colour HER21_LOOP_C, the shared markers (her21_mk), a text group per word and no length in the texts (round 5:
+    colours (v61: the hue table), the shared markers (her21_mk), a text group per word and no length in the texts (round 5:
     no horizontal dimensions); its warnings by wn_warn. walk_m is kept for the caller."""
     fx = w / (HER21_DIA_MM[0] * k)
     P = lambda a, b: (x0 + a * fx * k, ytop - b * k)
     hd, ht = bk_hk(HER21_PT["dia"], k), bk_hk(HER21_PT["title"], k)
-    acc = HER21_LOOP_C
+    acc = C(her21_hex("walk"))                            # v61 (G6-6): the stream walk MOV r1
 
     def tx(s_, a, b, align="L", col=INK, bold=False, italic=False, hh=None):
         p = P(a, b)
@@ -877,7 +984,7 @@ def her21_walk_strip(B, x0, ytop, w, k, L, walk_m, offers, num, boxes=None):
     tx(u"Where the loop meets the channel", 0, 4.0, bold=True, hh=ht)
     xa, xb, yc = 6.0, 89.0, 13.5                          # the walk's ends (K4, K3) and the band's centre line
     a, b = P(0, 11), P(95, 16)                            # the Selinos, downstream to the right (as above)
-    B.fill([rect(a[0], b[1], b[0], a[1])], HER21_WATER, L, 60)
+    B.fill([rect(a[0], b[1], b[0], a[1])], C(her21_hex("water")), L, 60)
     her21_head(B, P(91.0, yc), P(94.5, yc), k, WHITE, L, order=61, mm=2.0)
     a, b = P(xa, yc), P(xb, yc)                           # the stream walk on it
     B.line([a, b], acc, L, 61, bk_lw(1.5, k))
@@ -890,7 +997,7 @@ def her21_walk_strip(B, x0, ytop, w, k, L, walk_m, offers, num, boxes=None):
         n_ = num.get(key)
         if n_:
             p = P(bx, yc)
-            her21_mk(B, p[0], p[1], str(n_), k, L, order=64)
+            her21_mk(B, p[0], p[1], str(n_), k, L, order=64, key=key)
     sq = 1.1                                              # mm: half a project place's square
     for t_, nm in offers:
         p = P(xa + (xb - xa) * t_, yc)
@@ -918,7 +1025,7 @@ def her21_walk_strip(B, x0, ytop, w, k, L, walk_m, offers, num, boxes=None):
         else:
             left.append(nm)
     if left:
-        wn_warn("p22", "strip_row", u"heritage loop strip: no row for {}.".format(u", ".join(left)))
+        wn_warn("p19", "strip_row", u"heritage loop strip: no row for {}.".format(u", ".join(left)))
     if not offers:
         LOG.append(u"Heritage loop strip: no city-link place lies on the stream walk; the strip shows the walk only.")
     yk = max([rows_y[j] for j in range(len(rows_y)) if used[j]] + [rows_y[0]]) + 4.5
@@ -928,18 +1035,27 @@ def her21_walk_strip(B, x0, ytop, w, k, L, walk_m, offers, num, boxes=None):
 
 
 def her_leg():
-    """v51: the page's legend rows (drawn samples, plain names): the loop, the stream walk, the Teleferik, the pins,
-    the base, the study area. v59 (round 4, P20.1, P20.2): the loop's colour 8B2D2D, the contours' green ramp, the
-    muted base's house tone; the Teleferik's name from the table."""
-    return [("line", HER21_LOOP_C, u"Heritage loop, stop to stop"),
-            ("thick", HER21_LOOP_C, u"Stream walk {} – {} along the Selinos: the loop's spine (project)".format(
-                bridge_name("K4"), bridge_name("K3"))),           # v58 (round 3, G16): names, not codes
-            ("line", INK, landmark_name("teleferik") + u" (cable car)"),
-            ("dot", HER21_LOOP_C, u"Loop stop, numbered in loop order"),
-            ("dot", mix(HER21_LOOP_C, WHITE, 0.6), u"Heritage place"),
-            ("line", C(BM_HEIGHT_RAMP[2]), u"Contour, coloured by height: lighter = lower"),
-            ("box", HER21_WATER, place_name("stream")), ("box", HER21_BLD, u"Building"),
-            R28_STUDY_LEG]
+    """v51: the page's legend rows (drawn samples, plain names). v61 (round 6, G6-6, Q5, PLAN P-5): grouped by
+    category in the order heritage HER (the loop HER r2; the places by status, one row per rank that occurs: r1
+    inside the UNESCO World Heritage listing, r2 registered monument, r3 other historic building / no sourced status;
+    the base's heritage houses HER r4), the stream walk MOV r1, context CTX (the Teleferik's cable and its stop r1,
+    contours r2-r4 by height, houses r5), the stream WAT r3, then the annotations (the stop / place marks, the study
+    area); every colour from the hue table."""
+    ranks = sorted(set(r_ for r_ in (her21_rank(pl["key"]) for pl in HER21_PLACES) if r_))
+    rows = [("line", C(her21_hex("loop")), u"Heritage loop, stop to stop")]
+    rows += [("dot", C(hue("HER", r_)), HER21_RANK_WORDS[r_]) for r_ in ranks]
+    rows += [("box", C(her21_hex("her_bld")), u"Historic building in the town plan (no status per building)"),
+             ("thick", C(her21_hex("walk")), u"Stream walk {} – {} along the Selinos: the loop's spine (project)".format(
+                 bridge_name("K4"), bridge_name("K3"))),          # v58 (round 3, G16): names, not codes
+             ("line", C(her21_hex("cable")), landmark_name("teleferik") + u" (cable car)"),
+             ("dot", C(her21_place_hex("teleferik")), landmark_name("teleferik") + u" station: a loop stop, not "
+                                                                                    u"heritage"),
+             ("line", C(her21_hex("contour")), u"Contour, coloured by height: darker = higher"),
+             ("box", C(her21_hex("bld")), u"Building"),
+             ("box", C(her21_hex("water")), place_name("stream")),
+             ("dot", C(hue("ANN", "ink")), u"Numbered disc: loop stop in loop order; ring: heritage place"),
+             R28_STUDY_LEG]
+    return rows
 
 
 def her_loop_page(S, SA, B, x, top, k, L):
@@ -958,7 +1074,8 @@ def her_loop_page(S, SA, B, x, top, k, L):
     crop's bottom down. Returns the y below."""
     ss = 1000.0 * k / HER21_DEN
     gap = GRID_GUT * k
-    mk_register("p20", {"loop": HER21_LOOP_HEX})         # G-R4-7: the markers take the loop's colour
+    # G-R4-7: the markers take their place's colour; v61 (round 6, G6-6, Q5): HER by rank, CTX r1 for the Teleferik
+    mk_register("p19", dict((pl["key"], her21_place_hex(pl["key"])) for pl in HER21_PLACES))
     xy = dict((pl["key"], her21_xy(pl)) for pl in HER21_PLACES)
     num = {}
     for pl in HER21_PLACES:
@@ -989,7 +1106,7 @@ def her_loop_page(S, SA, B, x, top, k, L):
     bot = her21_foot(B, xm, r_all[1], ss, k, L, HER_SB_M.get(HER21_DEN, 400.0))
     i0_map = sb_mark(B)                                   # v59 closing (G-R4-1): the map's own texts from here
     mres = her21_map(S, B, V, Fm, r_all, k, L, xy, num)   # dict (walk_m, walk, key_bot, labels, pins)
-    sb_keep(B, r_all, u"p20 loop map", "map", i0_map)     # its pins and names may sit on it, no other text
+    sb_keep(B, r_all, u"p19 loop map", "map", i0_map)     # its pins and names may sit on it, no other text
     walk_m = mres["walk_m"]
     if mres["key_bot"] is not None:                       # the letters' key under the map may reach lower
         bot = min(bot, mres["key_bot"])
@@ -998,8 +1115,10 @@ def her_loop_page(S, SA, B, x, top, k, L):
     # top, the stream-walk strip under it; their texts are ordinary Board texts (booklet label items), no box list
     dd = HER21_DIA_MM[1] * k                              # the diagram's own cell: left column, top
     dh = dd + HER21_STRIP_MM * k                          # v58 (P20.2): + the stream-walk strip under it
-    her21_diagram(B, x, top, cwl, dd, k, L, walk_m, num)
-    her21_walk_strip(B, x, top - dd, cwl, k, L, walk_m, her21_offers(mres["walk"]), num)
+    with B.kind("other", u"places diagram"):              # v61 (G6-9)
+        her21_diagram(B, x, top, cwl, dd, k, L, walk_m, num)
+    with B.kind("other", u"walk strip"):
+        her21_walk_strip(B, x, top - dd, cwl, k, L, walk_m, her21_offers(mres["walk"]), num)
     xr = xm + mw + gap
     ph = her21_photos()
     stops = sorted([pl for pl in HER21_PLACES if pl["key"] in num], key=lambda pl: num[pl["key"]])
@@ -1013,20 +1132,24 @@ def her_loop_page(S, SA, B, x, top, k, L):
         pitches.append(pitch / k)
         for i, pl in enumerate(pls):
             g = her21_geom(pl, ph.get(pl["key"]), c0, c1, ct - (i + 0.5) * pitch, pitch, side, k)
-            her21_card(B, pl, ph.get(pl["key"]), g, num.get(pl["key"]), k, L, tb)
+            with B.kind("labels", u"card " + pl["key"]):  # v61 (G6-9): a card = one element (its photo apart)
+                her21_card(B, pl, ph.get(pl["key"]), g, num.get(pl["key"]), k, L, tb)
     right = xr + cw
     crop_panel("heritage_loop", x - 0.5 * k, bot - 0.5 * k, right + 0.5 * k, top + 0.5 * k,
                u"The heritage loop: eleven places on both banks of the Selinos, joined by the stream walk {} – {}"
                u"".format(bridge_name("K4"), bridge_name("K3")),        # v58 (round 3, G16): names, not codes
                crop_scale(ss), crop_legend(her_leg()))
-    lp_overlap_flag("p20", tb + mres["labels"], drawing_boxes=mres["pins"],      # v58 (round 3, G3): once per page
+    hue_log("p19", log=LOG)                               # v61 (G6-6): `legend p19 hues=table`
+    an_log("p19", log=LOG)                                # v61 (G6-4): `annot p19 cuts=0 levels=0` (no cuts, no levels)
+    LOG.append(sb_tree_log("p19"))                        # v61 (G6-10): the muted base draws no trees (trees=False)
+    lp_overlap_flag("p19", tb + mres["labels"], drawing_boxes=mres["pins"],      # v58 (round 3, G3): once per page
                     bounds=((x - 0.5 * k) / k, (bot - 0.5 * k) / k, (right + 0.5 * k) / k, (top + 0.5 * k) / k))
     CROP_PANELS[-1]["bk_w"] = (right - x) / k + 1.0       # its width on the booklet page, mm (the map prints 1:10,000)
-    LOG.append(u"Heritage loop (p20, v59): map 1:10,000, {:,.0f} x {:,.0f} m ({:.0f} x {:.0f} mm, {} grid columns; "
-               u"v60: the places diagram and the stream-walk strip restored, D5), muted base with coloured contours, loop "
-               u"{} {:.1f} mm in front; {} + {} cards in rectangular windows ({} mm slots); stream walk {} – {} "
+    LOG.append(u"Heritage loop (p19, v61): map 1:10,000, {:,.0f} x {:,.0f} m ({:.0f} x {:.0f} mm, {} grid columns; "
+               u"v60: the places diagram and the stream-walk strip restored, D5), muted base, contours CTX by height, loop "
+               u"HER r2 {} {:.1f} mm in front; {} + {} cards in rectangular windows ({} mm slots); stream walk {} – {} "
                u"{:,.0f} m; no photo credits on the page ({} Commons credit line(s) for the Sources page)."
-               u"".format(Fm.w, Fm.h, mw / k, mh / k, GRID_COLS - nl - ns, HER21_LOOP_HEX, HER21_LOOP_MM, len(rest),
+               u"".format(Fm.w, Fm.h, mw / k, mh / k, GRID_COLS - nl - ns, her21_hex("loop"), HER21_LOOP_MM, len(rest),
                           len(stops), u" / ".join(u"{:.0f}".format(p_) for p_ in pitches), bridge_name("K4"),
                           bridge_name("K3"), walk_m, len(her21_credits())))
     return bot
