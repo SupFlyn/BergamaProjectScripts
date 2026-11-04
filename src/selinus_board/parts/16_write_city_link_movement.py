@@ -25,39 +25,13 @@ def write_city_link_movement(S, R):
                edge_walk_with=mean(edge, "walk_a"), slope=bool(getattr(pieces, "z", None)),
                bank_votes=getattr(S, "city_link_votes", None) or [],
                note="computed movement potential (routes between buildings and everyday destinations), not counts")
-    os.makedirs(SELINUS_OUT_DIR, exist_ok=True)
+    os.makedirs(SELINUS_RES_DIR, exist_ok=True)
     with open(CITY_LINK_MV, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1)
     LOG.append("city_link_movement.json: spine {} m index {}, stream-edge streets {} m: {} today -> {} with it.".format(
         out["spine_m"], None if out["spine_walk_index"] is None else round(out["spine_walk_index"]), out["edge_m"],
         None if out["edge_walk_today"] is None else round(out["edge_walk_today"]),
         None if out["edge_walk_with"] is None else round(out["edge_walk_with"])))
-
-
-def mv_runs(S, R, key, F):
-    """[(points, (class, value))] of map `key` along the walking (or driving) network, clipped to F."""
-    pieces, IDX = R["pieces"], R["IDX"]
-    if key.endswith("_d"):
-        a_, b_ = IDX[key[:-2] + "_a"], IDX[key[:-2] + "_b"]
-        vals = dict((i, a_.get(i, 0.0) - b_.get(i, 0.0)) for i in R["inside"])
-    else:
-        vals = IDX[key]
-    net = ("car" if key.startswith("car") else "walk") + ("_a" if key.endswith(("_a", "_d")) else "_b")
-
-    def val(pi):
-        return (MV_CLASS.get(pieces[pi]["tags"].get("highway"), "lane"), round(vals.get(pi, 0.0), 1))
-    return _runs(R["chains"][net], pieces, R["xy"], val, set(R["inside"]), F)
-
-
-def draw_mv_streets(B, V, runs, L, order, scale=1.0, div=False, dmax=1.0):
-    for P, (cls, v) in sorted(runs, key=lambda r: abs(r[1][1])):
-        if div:
-            if abs(v) < 0.05:
-                continue
-            col = mv_ramp(DIV, div_t(v, dmax))
-        else:
-            col = mv_ramp(SEQ, seq_t(v, 100.0))
-        B.line(V.P(P), col, L, order, MV_W[cls] * scale)
 
 
 def stage_areas(S):
@@ -86,6 +60,8 @@ def diagrams_engine():
     """The axonometric engine (bergama_diagrams v1.8, cut down), executed once."""
     if not _DG:
         _DG["__name__"] = "bergama_diagrams_engine"
+        _DG["pdf_fonts"] = pdf_fonts                   # G2/G3 28 Oct: the engine's PDF embeds Arial too
+        _DG["bridge_name"] = bridge_name               # v58 (G16): the engine's BRIDGES_K takes the one spelling
         exec(compile(DIAG_SRC, "bergama_diagrams_engine", "exec"), _DG)    # its functions read and see _DG itself
     return _DG
 
@@ -99,6 +75,8 @@ def diagram_ctx(S):
         return S.dg
     DG = diagrams_engine()
     DG["CREDIT"] = CREDIT
+    # v49.1 (Aras 27 Oct, Prompt 8): the sheet's "Drawn by" line names this version (the engine's own said v40)
+    DG["SCRIPT"] = SCRIPT_VERSION.split(" (")[0] + " (axonometric engine from bergama_diagrams v1.8)"
     del DG["LOG"][:]
     dirs = []
     try:
@@ -168,303 +146,81 @@ def stream_sky(S, step=10.0, run=60.0, gap=300.0, n_low=3):
     return S._sky_bed
 
 
-def export_axonometrics(S):
-    """v33 (Aras Q8; Step 4, 07:05-07:09): S1 as a parallel axonometric, one A3 vector PDF beside the board's PDFs
-    (S2 has none: its walk table gives each walk's climb). Returns the paths written."""
-    import datetime as _dt
-    DG, ctx = diagram_ctx(S)
-    stamp = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
-    out = []
-    if not os.path.isdir(pdf_folder()):
-        os.makedirs(pdf_folder())
-    for did, fn in (("S1", "Selinus_01_what_is_there_axonometric.pdf"),):
-        t0 = time.time()
-        ext = ctx.extents[0]
-        try:
-            pg, st = DG["compose"](ctx, DG["SPECS"][did](ctx, ext), ext, stamp)
-            p = os.path.join(pdf_folder(), fn)
-            DG["write_pdf"]([pg], p)
-            out.append((p, time.time() - t0))
-        except Exception:
-            LOG.append("WARNING: the {} axonometric failed:\n{}".format(did, traceback.format_exc()))
-    LOG.extend(u"Axonometric engine: " + m for m in DG["LOG"])
-    return out
-
-
-def draw_how_people_use_it(S, B, x, y, w, U):
-    """S2: how people move and what they reach, on one plan of the frame and CONTEXT_M around it (was 07 commercial
-    spines, 09 civic constellations, diagrams D3, D5, D7 and the movement script's panels). Returns the y below."""
-    L = "LU_BOARD::HowPeopleUseIt"
-    F = S.F
-    F2 = context_frame(F)
-    B.text("HOW PEOPLE USE IT · STREETS · SHOPS · SERVICES · WALKS", x, y, 1.05 * U, INK, L,
-           font=FONT_TITLE, bold=True)                    # v38: keywords
-    V, mw, mh = view_fit(F2, x, y - 1.2 * U, w, 10.0 * w)
-    MV = movement(S)
-    R = MV.get("R")
-    try:
-        DG, ctx = diagram_ctx(S)
-        D7 = DG["d7_links"](ctx) if ctx.areas else None
-    except Exception:
-        LOG.append("WARNING: services and walks not drawn:\n" + traceback.format_exc())
-        DG, ctx, D7 = None, None, None
-    # quiet ground and context
-    B.fill([V.P(F2.P)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
-    for key, col, wd in (("water", mix(BLUE_D, PAPER, 0.5), 0.06), ("road", mix(INK2, PAPER, 0.62), 0.04),
-                         ("bld", mix(INK2, PAPER, 0.45), 0.04)):
-        for a, b in (getattr(S, "ctx_lines", None) or {}).get(key, []):
-            B.line([V.p(*a), V.p(*b)], col, L, 2, wd)
-    mini_base(S, B, V, L, water_col=mix(CAT["water"][1], PAPER, 0.3))
-    quiet = mix(INK2, PAPER, 0.72)
-    use_cats = ("commercial", "mixed", "institutional", "religious")
-    mini_buildings(S, B, V, L, lambda u: CAT[u["cat"]][1] if u["cat"] in use_cats else quiet, order=12)
-    # commerce spines: a broad pale band under the street
-    cc = CAT["commercial"][1]
-    for g in S.corr_primary:
-        for P in g["Ps"]:
-            B.line(V.P(P), mix(cc, PAPER, 0.45), L, 9, 2.6)
-    for g in S.corr_secondary:
-        for P in g["Ps"]:
-            for d in dashes(V.P(P), 0.6 * U, 0.35 * U):
-                B.line(d, mix(cc, PAPER, 0.45), L, 9, 1.6)
-    # streets: line width = OSM class, colour = combined movement potential today
-    if R:
-        draw_mv_streets(B, V, mv_runs(S, R, "comb_b", F), L, 14)
-    else:
-        road_lines(S, B, V, L, 14, casing=mix(INK, PAPER, 0.55), surface=(255, 255, 255))
-    # v34: the proposed riverside spine (wired curves or bergama_city_link) and its stops, over the streets
-    sp_c = mix(cc, INK, 0.35)
-    sp_props = [P for k_, P, c_ in (MV.get("props") or []) if k_ in ("spine", "spine_car")]
-    for P in sp_props:
-        for run in F2.clip_line(P):
-            B.line(V.P(run), (255, 255, 255), L, 20, 2.2)
-            B.line(V.P(run), sp_c, L, 21, 1.3)
-    for ax, ay in (MV.get("attr") or []):
-        if F2.inside(ax, ay):
-            px, py = V.p(ax, ay)
-            B.fill([circle_pts(px, py, 0.2 * U, 12)], sp_c, L, 22)
-    # civic constellations
-    hc = mix(CAT["institutional"][1], INK, 0.2)
-    for cl in S.clusters:
-        for run in F.clip_line(cl["P"] + [cl["P"][0]]):
-            for d in dashes(V.P(run), 0.4 * U, 0.28 * U):
-                B.line(d, hc, L, 16, 0.25)
-    # services (Overture places, as D5) and the walks to the nearest of each function (as D7)
-    fcol = dict((f, hexrgb(c)) for f, let, c, lab in WALK_FUN)
-    n_pl = {}
-    if ctx is not None:
-        for px_, py_, f, nm, conf, cat in [p[:6] for p in ctx.places]:
-            if F.inside(px_, py_):
-                n_pl[f] = n_pl.get(f, 0) + 1
-                cx, cy = V.p(px_, py_)
-                B.fill([circle_pts(cx, cy, 0.11 * U, 8)], fcol.get(f, INK2), L, 30)
-    walk_c = mix(INK, PAPER, 0.15)
-    dest = {}
-    if D7:
-        for k, best in D7["res"].items():
-            for f, r in best.items():
-                if r["pts"]:
-                    for run in F2.clip_line(r["pts"]):
-                        for d in dashes(V.P(run), 0.12 * U, 0.12 * U):
-                            B.line(d, walk_c, L, 32, 0.22)
-                dest[(f, round(r["x"]), round(r["y"]))] = r
-        rr = 0.38 * U
-        let_of = dict((f, let) for f, let, c, lab in WALK_FUN)
-        for (f, _, _), r in dest.items():
-            if F2.inside(r["x"], r["y"]):
-                px, py = V.p(r["x"], r["y"])
-                roundel(B, px, py, rr, let_of.get(f, "?"), fcol.get(f, INK), (255, 255, 255), L, order=62)
-        for nm, sh, a in stage_areas(S):                    # where each walk starts: a name, never an outline
-            cx, cy = shoelace(a["P"])[1:]
-            px, py = V.p(cx, cy)
-            B.fill([rect(px - tw(nm, 0.42 * U) / 2 - 0.2 * U, py - 0.3 * U, px + tw(nm, 0.42 * U) / 2 + 0.2 * U,
-                         py + 0.45 * U)], (255, 255, 255), L, 63)
-            B.text(nm, px, py, 0.42 * U, INK, L, order=64, font=FONT_TITLE, bold=True, align="C")
-    draw_map_annotations(S, B, V, U)
-    B.line(V.P(F.P + [F.P[0]]), INK, L, 26, 0.25)
-    draw_north_small(B, V, mw, mh, U, L, size=0.7)
-    mb = y - 1.2 * U - mh
-    draw_scalebar(B, V.X0, mb - 1.4 * U, V.s, nice_floor(F2.w / 8.0), U, L, h=0.32)
-    yy = mb - 2.8 * U
-    # insets: walking and driving today (and the change with the proposal, when one is wired)
-    if R:
-        keys = [("walk_b", "WALKING TODAY"), ("car_b", "DRIVING TODAY")]
-        if R["has_prop"] or MV.get("attr"):
-            keys += [("walk_d", "WALKING: CHANGE WITH THE PROPOSAL"), ("car_d", "DRIVING: CHANGE WITH THE PROPOSAL"),
-                     ("comb_d", "COMBINED: CHANGE WITH THE PROPOSAL")]
-        n = 2
-        g = 1.2 * U
-        iw = (mw - (n - 1) * g) / n
-        low = yy
-        for j, (k, title) in enumerate(keys):
-            ix = V.X0 + (j % n) * (iw + g)
-            if j and j % n == 0:
-                yy = low - 1.0 * U
-            iy = yy
-            B.text(title, ix, iy, 0.5 * U, INK, L, font=FONT_TITLE, bold=True)
-            Vi, iw_, ih_ = view_fit(F, ix, iy - 0.8 * U, iw, 10.0 * iw)
-            mini_base(S, B, Vi, L, water_col=mix(CAT["water"][1], PAPER, 0.3))
-            mini_buildings(S, B, Vi, L, lambda u: quiet, order=12)
-            runs = mv_runs(S, R, k, F)
-            dmax = max([abs(v) for P, (c_, v) in runs] or [1.0]) or 1.0
-            draw_mv_streets(B, Vi, runs, L, 14, scale=0.45, div=k.endswith("_d"), dmax=dmax)
-            B.line(Vi.P(F.P + [F.P[0]]), INK2, L, 26, 0.1)
-            low = min(low, iy - 0.8 * U - ih_ - 0.4 * U)
-        yy = low - 0.6 * U
-    # walking lengths from each working area (D7), as a small table
-    if D7:
-        st = [(nm, sh) for nm, sh, a in stage_areas(S) if nm in D7["res"]]
-        cw0, cw = 9.0 * U, (mw - 9.0 * U) / max(1, len(st))
-        h = 0.36 * U
-        r_walk = bcite("Commerce: shopfronts within 30 m of a street (survey, OSM, Overture). Services: Overture/Meta "
-                       "places. Walks: the shortest along OSM streets and footways from the edge of each working area, "
-                       "rounded to 10 m.")
-        B.text("WALK TO THE NEAREST · m along OSM streets and footways " + r_walk, V.X0, yy, 0.42 * U, INK, L,
-               font=FONT_TITLE, bold=True)
-        yy -= 1.0 * U
-        for j, (nm, sh) in enumerate(st):
-            B.text("from the " + nm, V.X0 + cw0 + j * cw, yy, h, INK2, L, bold=True)
-        yy -= 0.85 * U
-        # v33 (Step 4): the climb of every walk on the survey terrain, instead of an axonometric of S2
-        walks = [D7["res"].get(nm, {}).get(f) for f, let, c, lab in WALK_FUN for nm, sh in st]
-        lines_ = [r["pts"] if r and r["pts"] and not r["inside"] else [] for r in walks]
-        ups = DG["walk_climbs"](ctx, lines_ + [p["pts"] for p in D7["pairs"]])
-        climb = dict((id(r), u_) for r, u_ in zip(walks, ups) if r)
-        for f, let, c, lab in WALK_FUN:
-            roundel(B, V.X0 + 0.3 * U, yy + 0.15 * U, 0.3 * U, let, fcol[f], (255, 255, 255), L, order=62)
-            B.text(lab, V.X0 + 0.9 * U, yy, h, INK, L)
-            for j, (nm, sh) in enumerate(st):
-                r = D7["res"].get(nm, {}).get(f)
-                up = climb.get(id(r)) if r else None
-                t_ = "none in reach" if not r else ("inside" if r["inside"] else DG["m10"](r["L"]) + (
-                    ", {} m up".format(up) if up and up >= 5 else ""))
-                B.text(t_, V.X0 + cw0 + j * cw, yy, h, INK, L)
-            yy -= 0.75 * U
-        ups = [u_ for u_, ln in zip(ups, lines_ + [p["pts"] for p in D7["pairs"]]) if u_ is not None and ln]
-        yy -= 0.4 * U
-    # legend (v38: short names; the method sentences are entries of the Sources key, cited [n])
-    r_mv = bcite("Movement potential = the number of shortest routes between every building and every everyday "
-                 "destination within {:.0f} m on foot or {:.0f} min by car that use the street (OSM network, Overture "
-                 "places, the method of bergama_movement v1); index 100 = the busiest street piece in the frame. A count "
-                 "of routes, not of people or vehicles: no count exists for these streets.".format(
-                     MV_OPT["r_walk"], MV_OPT["t_car"] / 60.0)) if R else ""
-    r_com = bcite("Commerce: shopfronts within 30 m of a street (survey, OSM, Overture). Services: Overture/Meta "
-                  "places. Walks: the shortest along OSM streets and footways from the edge of each working area, "
-                  "rounded to 10 m.")
-    r_sp = bcite("Proposed riverside spine: {}; the change maps add it to the walking network (joined to every street it "
-                 "crosses) and its stops as new destinations. Walking cost follows the slope (Tobler 1993) on the survey "
-                 "terrain.".format(getattr(S, "city_link", None) and S.city_link["src"] or "curves wired into the board")
-                 ) if sp_props else ""
-    leg = [("hdr", None, "STREETS · COLOUR = MOVEMENT POTENTIAL · WIDTH = OSM CLASS " + r_mv)]
-    if R:
-        for v in (2, 10, 25, 50, 100):
-            leg.append(("thick", mv_ramp(SEQ, seq_t(v, 100.0)), "Index {}".format(v)))
-    leg += [("hdr", None, "SHOPS AND CIVIC LIFE " + r_com),
-            ("thick", mix(cc, PAPER, 0.45), "Primary commercial spine"),
-            ("dash", mix(cc, PAPER, 0.45), "Secondary spine")]
-    if sp_props:                                          # v34
-        leg += [("thick", sp_c, "Proposed riverside spine" + (" (bergama_city_link)" if getattr(S, "city_link", None)
-                                                             else "") + " " + r_sp), ("dot", sp_c, "New stop on the spine")]
-    leg += [("box", CAT["commercial"][1], "Commerce"), ("box", CAT["mixed"][1], "Mixed use"),
-            ("box", CAT["institutional"][1], "Civic"), ("box", CAT["religious"][1], "Sacred"),
-            ("dash", hc, "Constellation · 3+ in 100 m")]
-    if ctx is not None:
-        leg += [("hdr", None, "SERVICES AND WALKS " + r_com)]
-        for f, let, c, lab in WALK_FUN:
-            if n_pl.get(f):
-                leg.append(("dot", fcol[f], "{} · {} places".format(lab, n_pl[f])))
-        leg.append(("dash", walk_c, "Walk to the nearest (letter at the place)"))
-    ly = draw_legend_items(B, leg, x, yy - 0.4 * U, mw, U, L, h=0.4)
-    # v38 (visual first): what the numbers say as a tile and two mini-charts (were caption sentences); computed above,
-    # nothing measured on the street
-    cy0 = ly - 0.4 * U
-    low = cy0
-    cx = x
-    gw, gh = min(30.0 * U, (mw - 4.0 * U) / 3.0), 7.0 * U
-    tfill = mix(PAPER, (255, 255, 255), 0.5)
-    if R and MV.get("rows"):
-        top = MV["rows"][0]
-        low = min(low, vis_tiles(B, cx, cy0, gw, [
-            ("road", "BUSIEST STREET · WALK + DRIVE", "{} · index {:.0f}".format(top["name"], top["comb_b"]), r_mv)],
-            U, L, h=1.3, ink=INK, grey=INK2, fill=tfill, rule=FAINT))
-        cx += gw + 2.0 * U
-        rw = MV["rho"].get("walk_b")
-        big = [r_ for r_ in (MV.get("big") or []) if r_.get("walk_b") is not None]
-        if rw is not None and big:                        # scatter: shops per street against walking potential
-            B.text("SHOPS vs WALKING POTENTIAL · Spearman {:.2f} {}".format(rw, r_com), cx, cy0 - 0.4 * U, 0.4 * U,
-                   INK, L, font=FONT_TITLE, bold=True)
-            px0, py0 = cx + 1.4 * U, cy0 - 1.0 * U - gh
-            pw_ = gw - 1.4 * U
-            xm = max(100.0, max(r_["walk_b"] for r_ in big))
-            ym = max(1.0, max(r_["shops"] for r_ in big))
-            B.fill([rect(px0, py0, px0 + pw_, py0 + gh)], tfill, L, 20)
-            B.line(rect(px0, py0, px0 + pw_, py0 + gh) + [(px0, py0)], FAINT, L, 21, 0.04)
-            for r_ in big:
-                B.fill([circle_pts(px0 + pw_ * r_["walk_b"] / xm, py0 + gh * r_["shops"] / ym, 0.12 * U, 8)],
-                       mix(CAT["commercial"][1], INK, 0.2), L, 22)
-            B.text("0", px0, py0 - 0.45 * U, 0.28 * U, INK2, L, align="C")
-            B.text("{:.0f}".format(xm), px0 + pw_, py0 - 0.45 * U, 0.28 * U, INK2, L, align="C")
-            B.text("{:.0f}".format(ym), px0 - 0.2 * U, py0 + gh - 0.28 * U, 0.28 * U, INK2, L, align="R")
-            B.text("walking index · {} streets of 50 m+".format(len(MV["big"])), px0 + pw_ / 2.0, py0 - 0.95 * U,
-                   0.28 * U, INK2, L, align="C")
-            B.text("shops", px0 - 0.2 * U, py0 + 0.1 * U, 0.28 * U, INK2, L, align="R")
-            low = min(low, py0 - 1.4 * U)
-            cx += gw + 2.0 * U
-    if D7 and ups:                                        # the climb of every walk, as bars
-        mx = max(ups)
-        r_cl = bcite("Climb on the survey terrain: rises summed every {:.0f} m, rounded to 5 m; calculated. The table "
-                     "carries the heights that matter for these walks, so S2 has no axonometric.".format(DG["CLIMB_STEP"]))
-        B.text("CLIMB OF THE WALKS · " + ("none 5 m or more" if mx < 5 else "most {} m up".format(mx)) + " " + r_cl,
-               cx, cy0 - 0.4 * U, 0.4 * U, INK, L, font=FONT_TITLE, bold=True)
-        vv = sorted(ups, reverse=True)
-        bx0, by0 = cx + 1.4 * U, cy0 - 1.0 * U - gh
-        bw_ = (gw - 1.4 * U) / float(len(vv))
-        ym = max(5.0, float(mx))
-        for i, u_ in enumerate(vv):
-            B.fill([rect(bx0 + i * bw_ + 0.1 * bw_, by0, bx0 + (i + 0.9) * bw_, by0 + gh * u_ / ym)],
-                   INK2 if u_ >= 5 else FAINT, L, 21)
-        for dd in dashes([(bx0, by0 + gh * 5.0 / ym), (bx0 + gw - 1.4 * U, by0 + gh * 5.0 / ym)], 0.3 * U, 0.2 * U):
-            B.line(dd, MARK_C, L, 22, 0.06)
-        B.text("5 m", bx0 - 0.2 * U, by0 + gh * 5.0 / ym - 0.12 * U, 0.28 * U, MARK_C, L, align="R")
-        B.line([(bx0, by0), (bx0 + gw - 1.4 * U, by0)], INK2, L, 22, 0.05)
-        B.text("walks, steepest first · m up", bx0 + (gw - 1.4 * U) / 2.0, by0 - 0.55 * U, 0.28 * U, INK2, L, align="C")
-        low = min(low, by0 - 1.0 * U)
-    return low - 0.4 * U
+CROP_MV = {"walk_b": "walking_today", "car_b": "driving_today", "walk_d": "walking_change", "car_d": "driving_change",
+           "comb_d": "combined_change"}                  # v40: crop slugs of plan 07's insets
 
 
 # ============================================================ v33 AXONOMETRIC ENGINE (bergama_diagrams v1.8, cut down)
 #@include ../data/DIAG_SRC.py
 
 
+CROP_DEFAULT = {"The stream's tree cover": ("tree_cover", u"Tree crown cover along the banks, every 25 m", "riparian"),  # v47
+                "Section along the spine": ("spine", u"Long section along the spine", "spine_section")}
+# v40: drawings cropped whole below their title when they register no crop themselves (and every section)
+
+
 def build_sheet(S, B, X, Y, U, rects):
     F = S.F
     del BOARD_KEY[:]                                   # v38: the drawings' numbered sources start at [1] on every run
+    try:                                               # v46: the city link's shops plan reads its context from here
+        write_city_context(S)
+    except Exception:
+        LOG.append("WARNING: city_context.json not written (the city link's p.9 plan draws without its context):\n" +
+                   traceback.format_exc())
     gap, pad, maxw = 6.0 * U, 1.6 * U, 150.0 * U
     # v33: one plan for what is there (was 01, 05, 06, 08, 10 and the fabric_green map), its tables beside it
     SA = getattr(S, "whole", None) or S                  # v36: plan 01 over the whole file
     if SA is not S:
         SA.sec_lines, SA.sections = S.sec_lines, S.sections
+        SA.site = S                                      # v45: plan 01's booklet legend leaves out the ring's colours
     w01 = 120.0 * U * (SA.F.w / context_frame(F).w if SA is not S else 1.0)    # v36: same print scale as the site
     items = [("01 What is there", w01, lambda x, y: draw_what_is_there(SA, B, x, y, w01, U)),
              ("02 Land-use legend", 30.8 * U, lambda x, y: draw_legend(S, B, x, y, 30.8 * U, U)),
              ("03 Distribution", 12.4 * U, lambda x, y: draw_distribution(S, B, x, y, U)),
              ("04 Green, farmland and orchards", 30.8 * U, lambda x, y: draw_green_table(S, B, x, y, 30.8 * U, U)),
              ("05 Readings", 24.0 * U, lambda x, y: draw_readings(S, B, x, y, 24.0 * U, None, U)),
-             ("06 The stream's tree cover", 120.0 * U, lambda x, y: draw_riparian(S, B, x, y, 120.0 * U, U)),
+             ("05c Site readings", 40.0 * U, lambda x, y: draw_site_readings(S, B, x, y, 40.0 * U, U)),   # v45
+             ("06b The stream edge and where we can build", 120.0 * U,                          # v45
+              lambda x, y: draw_edge_build(S, B, x, y, 120.0 * U, U)),
              ("07 How people use it", 120.0 * U, lambda x, y: draw_how_people_use_it(S, B, x, y, 120.0 * U, U)),
+             # v50 (MIRAQUA 28 Oct, P09.3): "07b Commercial spines" is gone (drw_index_change under the proposal)
+             ("07d City heritage loop", 120.0 * U, lambda x, y: draw_heritage_loop(S, B, x, y, 120.0 * U, U)),   # v46
              ("11b Section key", 30.8 * U, lambda x, y: draw_section_key(B, x, y, 30.8 * U, U)),
              ("11c Building types in the sections", 61.4 * U, lambda x, y: draw_typology_key(S, B, x, y, 61.4 * U, U)),
              ("11 Key question", 30.8 * U, lambda x, y: draw_key_question(S, B, x, y, 30.8 * U, U, cols=1))]
+    shade_july_export(S)                                  # v51 (T3a): the shade drawing moved to p.17 (water board)
+    # v44: the masterplan's proposal map and the walking-effort proof (only with terrain heights on the network; logs
+    # why when it is left out). v59 (round 4, P09.1): the street sections (07c) are always drawn: mp_movement falls
+    # back to common/data/ROADS.py when masterplan_results.json is missing or stale (no run-order dependency)
+    at = [nm_ for nm_, w_, f_ in items].index("07d City heritage loop")
+    R_ = movement(S).get("R")
+    if R_ and getattr(R_["pieces"], "z", None):
+        items.insert(at + 1, ("07e Walking effort", 120.0 * U,
+                              lambda x, y: draw_walking_effort(S, B, x, y, 120.0 * U, U)))
+    M_ = mp_movement()
+    if M_ is None or not M_.get("roads"):                 # v59 (round 4, P09.1): never silently without p.09
+        raise RuntimeError(u"Street sections (p09, drw_street_sections): no masterplan roads, neither in "
+                           u"masterplan_results.json nor in common/data/ROADS.py")
+    items.insert(at, ("07c Streets before and after", 120.0 * U,     # v59 (round 4, P09.1): always drawn
+                      lambda x, y: draw_mv_proposal(S, B, x, y, 120.0 * U, U, M_)))
+    n_ = 13
     if S.sections:
+        # v42 (Aras 26 Oct 07:06, p.09-11): every cut at ONE round scale, rows of whole cuts, at most two booklet pages
         sw = 140.0 * U
-        for i, sd_ in enumerate(S.sections):
-            ss_k = strip_fit(S, sd_, sw, 30.0 * U, U)         # each drawing at the largest scale its frame allows
-            items.append(("{:02d} Section {}".format(12 + i, sd_["name"]), sw,
-                          (lambda s_, k_: (lambda x, y: draw_section_strip(S, B, s_, x, y, sw, k_, U, tag="drawing")))(sd_, ss_k)))
-    else:
-        items.append(("12 Section placeholder", 94.8 * U,
-                      lambda x, y: draw_section_placeholder(S, B, x, y, 94.8 * U, 14.0 * U, U, 1)))
-    items.append(("{:02d} Sources".format(12 + max(1, len(S.sections))), 94.8 * U,
+        plan_ = p45_plan(S, sw, U)                   # v51: p.04 S1-S4, p.05 S5-S8
+        for k_, pg_ in enumerate(plan_[2]):
+            nms = [c_["name"] for r_ in pg_ for c_, w_ in r_ if not c_.get("_types")]
+            items.append(("{:02d} Sections across the stream {}".format(12 + k_, nms[0] + (
+                "" if len(nms) == 1 else "-" + nms[-1])), sw,
+                (lambda k2: (lambda x, y: draw_sections_page(S, B, x, y, sw, U, plan_, k2)))(k_)))
+        n_ = 12 + len(plan_[2])
+    else:                                                 # v44: no placeholder on the sheet, the log says why
+        LOG.append("Sections: the survey has no section lines (layer sec_lines), so no cuts are drawn.")
+    if spine_section(S) is not None:                     # v40: the long section along the streamside spine
+        items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
+                      lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))
+        n_ += 1
+    items.append(("{:02d} Sources".format(n_), 94.8 * U,
                   lambda x, y: draw_footer(S, B, x, y, 94.8 * U, U, h=0.3)))
     B.begin("DRAWINGS · sheet title", "LU_DRAWINGS")
     B.text("SEPARATE DRAWINGS · grouped · framed with a cutting margin", X, Y + 2.2 * U, 0.9 * U, INK,
@@ -475,8 +231,12 @@ def build_sheet(S, B, X, Y, U, rects):
             x, y = X, row_bottom - gap
             row_bottom = y
         B.begin("DRAWING · " + name, "LU_DRAWINGS")
+        n0 = len(CROP_PANELS)
         bot = fn(x, y)
         box = (x - pad, bot - pad, x + w + pad, y + 1.4 * U + pad)
+        dc = CROP_DEFAULT.get(name.split(" ", 1)[-1])
+        if dc or (" Section " in name and "key" not in name.lower() and "placeholder" not in name.lower()):   # v40
+            crop_default(name, x, bot, x + w, y - 0.45 * U, n0, *(dc or ()))
         B.line(rect(box[0], box[1], box[2], box[3]) + [(box[0], box[1])], INK2, "LU_BOARD::Crop frames", 50, 0.05)
         B.text(name.upper(), box[0], box[3] + 0.35 * U, 0.4 * U, INK2, "LU_BOARD::Crop frames")
         rects.append((name, box))
@@ -514,6 +274,10 @@ def build_layout(S):
     OX, OY = 0.0, 0.0
     rects = TimedRects()                                  # v27: each drawing's time for the log
     del DRAWING_TIMES[:]
+    del CROP_PANELS[:]                                    # v40: the booklet crops of this layout
+    P45_KM.clear()                                        # v60.2: the p04/p05 key maps of this layout (km_items)
+    P45_LEG.clear()
+    del SB_KEEPS[:]                                       # v59 (closing, G-R4-1): the drawing areas of this layout
     y = OY
     B_CUR[0] = B
     if RUN_MODE in ("board", "all"):
@@ -860,7 +624,7 @@ def bake_hatch(it, li, gi, tech):
     return n
 
 
-def bake(B):
+def sb_bake(B):                                       # v60 (CHK-12): was bake(), a Button word
     BAKE_NOTES.clear()
     if not B.items:
         LOG.append("WARNING: nothing to bake: what an earlier press baked was left as it was.")
@@ -891,7 +655,7 @@ def bake(B):
                 kind = it[0]
                 layer = it[5] if kind == "text" else it[3]
                 tech = layer.startswith("LU_TECH")
-                group = it[-1]
+                group = it[12] if kind == "text" else it[-1]     # v59: text items end with their text group
                 if layer not in lcache:
                     lcache[layer] = ensure_layer(layer)
                 gi = -1
@@ -984,13 +748,13 @@ def bake(B):
 
 # ============================================================ v28: ONE VECTOR PDF PER DRAWING (no libraries)
 # Written like bergama_diagrams_v1_7.py's writer: every label is one whole string (Tj), so Illustrator keeps it as
-# one editable text object. Fonts are the PDF standard fonts (no embedding): Helvetica stands in for Josefin Sans,
-# Courier for Courier New. WinAnsi encoding with the Turkish letters put in unused slots.
+# one editable text object. v50 (G2/G3): every slot is Arial, embedded by common/pdf_fonts.py (write_board_pdf);
+# _PDF_FONTS are the standard fonts a slot falls back to. WinAnsi encoding with the Turkish letters in unused slots.
 _PDF_ENC_EXTRA = {u"Ğ": 0x81, u"ğ": 0x8D, u"İ": 0x8F, u"ı": 0x90, u"Ş": 0x9D, u"ş": 0x9E}
 _PDF_DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157 /Scedilla 158 /scedilla]"
 _PDF_FONTS = ("Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
               "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique")
-_PDF_CAP = {"sans": 0.718, "mono": 0.571}             # capital height / font size (Rhino's text height is the capital)
+_PDF_CAP = {"sans": 0.718, "mono": 0.718}             # capital height / font size; v50 (G2): "mono" prints Arial too
 _PT = 72.0 / 25.4
 
 
@@ -1009,6 +773,29 @@ def pdf_str(s_):
         out += b
     s2 = bytes(out).replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)")
     return b"(" + s2.replace(b"\r", b"").replace(b"\n", b" ") + b")"
+
+
+# v49.1 (Aras 27 Oct, Prompt 8; as bergama_water_board v3.1 for "hm³ renders as hm"): ² and ³ are shown as the digit at
+# 0.6 x the size, raised 0.28 x the size (in Helvetica as wide as the ²/³ glyph, so nothing moves): the unembedded
+# standard font's ²/³ was missing in some viewers
+PDF_SUP = {u"²": u"2", u"³": u"3"}
+
+
+def pdf_shows(s_, fi):
+    """v49.1: the text-showing operators of s_ in font /F<fi> at size 1 (the text matrix carries the size): plain runs
+    as one string each (Tj), ² and ³ as a raised small digit (PDF_SUP)."""
+    out, cur = [], u""
+    for ch in s_:
+        if ch in PDF_SUP:
+            if cur:
+                out.append(pdf_str(cur).decode("latin-1") + " Tj")
+                cur = u""
+            out.append("/F%d 0.6 Tf 0.28 Ts (%s) Tj /F%d 1 Tf 0 Ts" % (fi, PDF_SUP[ch], fi))
+        else:
+            cur += ch
+    if cur:
+        out.append(pdf_str(cur).decode("latin-1") + " Tj")
+    return " ".join(out)
 
 
 def _pf(v):
@@ -1039,6 +826,90 @@ def _png_rgb(path):
                 break
             i_ += 12 + n_
         return (w_, h_, b"".join(idat)) if w_ and idat else None
+    except Exception:
+        return None
+
+
+def _png_rgba(path):
+    """T4 30 Oct (D1 a cutouts): (w, h, zlib RGB, "RAW", zlib alpha or None) of an 8/16-bit non-interlaced PNG of any
+    colour type (grey, grey+alpha, RGB, RGBA, palette + tRNS), else None. Pure Python: slow on very large files."""
+    try:
+        with open(path, "rb") as f_:
+            d_ = f_.read()
+        if d_[:8] != b"\x89PNG\r\n\x1a\n":
+            return None
+        i_, idat, hdr, plte, trns = 8, [], None, b"", None
+        while i_ + 8 <= len(d_):
+            n_ = _struct.unpack(">I", d_[i_:i_ + 4])[0]
+            t_, c_ = d_[i_ + 4:i_ + 8], d_[i_ + 8:i_ + 8 + n_]
+            i_ += 12 + n_
+            if t_ == b"IHDR":
+                hdr = _struct.unpack(">IIBBBBB", c_[:13])
+            elif t_ == b"PLTE":
+                plte = c_
+            elif t_ == b"tRNS":
+                trns = c_
+            elif t_ == b"IDAT":
+                idat.append(c_)
+            elif t_ == b"IEND":
+                break
+        if not hdr:
+            return None
+        w_, h_, bd, ct, _cm, _fm, il = hdr
+        ch = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+        if ch is None or il or bd not in (8, 16) or (ct == 3 and bd != 8):
+            return None
+        import zlib as _zl
+        bpp = ch * bd // 8
+        raw = _zl.decompress(b"".join(idat))
+        st = w_ * bpp
+        out, prev, j_ = bytearray(h_ * st), bytearray(st), 0
+        for y_ in range(h_):
+            ft, ln = raw[j_], bytearray(raw[j_ + 1:j_ + 1 + st])
+            j_ += 1 + st
+            if ft == 1:
+                for x_ in range(bpp, st):
+                    ln[x_] = (ln[x_] + ln[x_ - bpp]) & 255
+            elif ft == 2:
+                for x_ in range(st):
+                    ln[x_] = (ln[x_] + prev[x_]) & 255
+            elif ft == 3:
+                for x_ in range(st):
+                    ln[x_] = (ln[x_] + (((ln[x_ - bpp] if x_ >= bpp else 0) + prev[x_]) >> 1)) & 255
+            elif ft == 4:
+                for x_ in range(st):
+                    a, b = (ln[x_ - bpp] if x_ >= bpp else 0), prev[x_]
+                    c = prev[x_ - bpp] if x_ >= bpp else 0
+                    p = a + b - c
+                    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                    ln[x_] = (ln[x_] + (a if pa <= pb and pa <= pc else (b if pb <= pc else c))) & 255
+            out[y_ * st:(y_ + 1) * st] = ln
+            prev = ln
+        if bd == 16:
+            out = out[0::2]
+        out, n = bytes(out), w_ * h_
+        alpha = None
+        if ct == 3:
+            pal = bytes(plte) + b"\x00" * (768 - len(plte))
+            rgb = bytearray(n * 3)
+            for c_ in range(3):
+                rgb[c_::3] = out.translate(bytes(pal[3 * q + c_] for q in range(256)))
+            if trns:
+                alpha = out.translate(bytes(trns) + b"\xff" * (256 - len(trns)))
+        elif ct in (0, 4):
+            g_ = out if ct == 0 else out[0::2]
+            alpha = None if ct == 0 else out[1::2]
+            rgb = bytearray(n * 3)
+            rgb[0::3], rgb[1::3], rgb[2::3] = g_, g_, g_
+        elif ct == 2:
+            rgb = out
+        else:
+            rgb = bytearray(n * 3)
+            rgb[0::3], rgb[1::3], rgb[2::3] = out[0::4], out[1::4], out[2::4]
+            alpha = out[3::4]
+        if alpha is not None and alpha.count(b"\xff") == n:
+            alpha = None
+        return (w_, h_, _zl.compress(bytes(rgb), 6), "RAW", None if alpha is None else _zl.compress(bytes(alpha), 6))
     except Exception:
         return None
 
@@ -1092,7 +963,13 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
     A("q %.2f %.2f %.2f %.2f re W n" % (ox, oy, (r[2] - r[0]) * k, (r[3] - r[1]) * k))
     cur = {}
 
+    def blend(bm):                                    # v46: /GM multiplies (a Tint), /GN is normal (write_board_pdf)
+        if cur.get("bm", "/GN") != bm:
+            cur["bm"] = bm
+            A(bm + " gs")
+
     def col(c_, stroke):
+        blend("/GM" if getattr(c_, "mul", False) else "/GN")
         key = "S" if stroke else "f"
         if cur.get(key) == c_:
             return
@@ -1121,7 +998,7 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             col(it[2], False)
             for P in rings:
                 path(P, True)
-            A("f*")
+            A("f" if getattr(it[2], "nz", False) else "f*")   # v50 (MIRAQUA 28 Oct, P06.3): R28NZ fills nonzero
         elif kind == "line":
             if len(it[1]) < 2:
                 continue
@@ -1140,13 +1017,25 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
                 A("%.2f %.2f m %.2f %.2f l" % ((p[0] - x0) * k, (p[1] - y0) * k, (q[0] - x0) * k, (q[1] - y0) * k))
             A("S")
         elif kind == "image":
-            png = _png_rgb(it[1]) or _jpg_rgb(it[1])          # v33: JPEG photos too
-            if png is None:
-                continue
+            # T4 30 Oct (D1 a): each file once per board (imgs entry: w, h, data, kind, alpha, path); PNG alpha kept
+            # (SMask); it[6] opacity 0-1, it[7] mirrored
+            n_ = next((j_ + 1 for j_, e_ in enumerate(imgs) if len(e_) > 5 and e_[5] == it[1]), 0)
+            if not n_:
+                png = _png_rgb(it[1]) or _jpg_rgb(it[1]) or _png_rgba(it[1])   # v33: JPEG photos too
+                if png is None:
+                    continue
+                png = tuple(png) + (None,) * (5 - len(png)) + (it[1],)
+                imgs.append(png)
+                n_ = len(imgs)
             ix0, iy0, ix1, iy1 = it[2]
-            imgs.append(png)
-            A("q %s 0 0 %s %s %s cm /Im%d Do Q" % (_pf((ix1 - ix0) * k), _pf((iy1 - iy0) * k), _pf((ix0 - x0) * k),
-                                                   _pf((iy0 - y0) * k), len(imgs)))
+            a_ = it[6] if len(it) > 6 else None
+            fl_ = bool(it[7]) if len(it) > 7 else False
+            blend("/GN")
+            iw_ = (ix1 - ix0) * k
+            A("q %s%s 0 0 %s %s %s cm /Im%d Do Q" % (
+                "/A%02d gs " % max(1, min(19, int(round(a_ * 20)))) if a_ is not None and a_ < 0.975 else "",
+                _pf(-iw_ if fl_ else iw_), _pf((iy1 - iy0) * k), _pf((ix0 - x0) * k + (iw_ if fl_ else 0.0)),
+                _pf((iy0 - y0) * k), n_))
         else:
             _, txt, (x_, y_), h_, c_, _l, _o, font, bold, align, ang, italic = it[:12]
             txt = str(txt)
@@ -1155,7 +1044,7 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             kd = kind_of(font)
             hm = h_ * k                                   # capital height on the page, mm
             size = hm / _PDF_CAP[kd]
-            w_ = tw(txt, h_, kd) * k                      # the width the layout reserved for it
+            w_ = tw(txt, h_, kd, bold) * k                # v59: the real (bold) width the layout reserved for it
             fi = (4 if kd == "mono" else 0) + (1 if bold else 0) + (2 if italic else 0) + 1
             dx = {"L": 0.0, "C": -0.5 * w_, "R": -w_, "MC": -0.5 * w_}.get(align, 0.0)
             dy = -0.5 * hm if align == "MC" else 0.0
@@ -1163,9 +1052,9 @@ def _pdf_page(items, r, k, ox=0.0, oy=0.0, o=None, imgs=None):
             px = (x_ - x0) * k + ca * dx - sa * dy
             py = (y_ - y0) * k + sa * dx + ca * dy
             col(c_, False)
-            A("BT /F%d 1 Tf %s %s %s %s %s %s Tm %s Tj ET" % (fi, _pf(ca * size), _pf(sa * size), _pf(-sa * size),
-                                                             _pf(ca * size), _pf(px), _pf(py),
-                                                             pdf_str(txt).decode("latin-1")))
+            A("BT /F%d 1 Tf %s %s %s %s %s %s Tm %s ET" % (fi, _pf(ca * size), _pf(sa * size), _pf(-sa * size),
+                                                          _pf(ca * size), _pf(px), _pf(py),
+                                                          pdf_shows(txt, fi)))     # v49.1: ² ³ raised (pdf_shows)
     A("Q")
     return "\n".join(o).encode("latin-1") if own else None, imgs
 

@@ -39,86 +39,6 @@ def draw_legend_items(B, items, x, y, width, U, L, h=0.5):
     return y
 
 
-# ============================================================ THE LAND-USE MAP
-def draw_landuse_map(S, B, V, bcol=None):
-    """bcol (v33): the colour of each building (default: its land-use colour)."""
-    L = "LU_BOARD::Map"
-    s = V.s
-    U = S.U
-    B.fill([V.P(S.F.P)], PAPER, L + "::paper", 2)
-    draw_landcover(S, B, V, L + "::landcover", 3)       # v31: under the surveyed / OSM ground (4)
-    for z in S.zones:
-        if z["kind"] == "green":
-            col = GREEN_SUB.get(z["sub"], CAT["green"][1])
-        elif z["kind"] == "transport":
-            col = mix(CAT["transport"][1], PAPER, 0.3)
-        else:
-            col = CAT[z["kind"]][1]
-        B.fill(V.Ps(z["Ps"] + z["Hs"]), col, L + "::" + z["kind"], 4)
-        if z["kind"] == "vacant" and TEXTURE:
-            for ln in hatch_lines(z["Ps"], z["Hs"], z["bb"], 5.0, math.radians(45)):
-                B.line(V.P(ln), mix(INK, PAPER, 0.55), L + "::texture", 5, 0.06)
-        if z["kind"] == "agri" and z["sub"] == "field" and TEXTURE:
-            ang = (_zlib_crc(repr([round(v_, 2) for v_ in z["bb"]]).encode("utf-8")) % 180) * math.pi / 180.0
-            for ln in hatch_lines(z["Ps"], z["Hs"], z["bb"], 7.0, ang):
-                B.line(V.P(ln), mix(CAT["agri"][1], INK, 0.22), L + "::texture", 5, 0.04)
-    for w in S.water:
-        B.fill(V.Ps([w["P"]] + w.get("H", [])), CAT["water"][1], L + "::water", 6)
-    for q in getattr(S, "decks", []):
-        B.fill([V.P(q)], ROADC, L + "::streets", 7)
-    for P in getattr(S, "covered", []):              # the covered course: a hidden line over the streets and roofs
-        for d in dashes(V.P(P), 0.35 * U, 0.25 * U):
-            B.line(d, BLUE_D, L + "::water", 19, 0.12)
-    for P in S.water_outline:                         # the river edge: one continuous line per stretch (under decks)
-        B.line(V.P(P), BLUE_D, L + "::water", 6, 0.13)
-    for P in river_free_banks(S):                     # other surveyed streams and ditches, thinner
-        B.line(V.P(P), BLUE_D, L + "::water", 7, 0.07)
-    for P in S.pools:
-        B.line(V.P(P), BLUE_D, L + "::water", 7, 0.08)
-    road_lines(S, B, V, L + "::streets", 8, casing=ROAD_EDGE, surface=ROADC, min_w=0.04, fill=ROAD_FILL)
-    for p in S.paths:                                 # paths whose width the survey does not show: a thin line
-        if not p.get("w"):
-            B.line(V.P(p["P"]), ROADC, L + "::streets", 9, 0.04)
-    if TEXTURE:
-        for x, y, r, kind in S.trees:
-            bx, by = V.p(x, y)
-            B.fill([circle_pts(bx + 0.35 * r * s, by - 0.35 * r * s, r * s, 14)], TREE_SHADOW, L + "::trees", 10)
-            B.fill([circle_pts(bx, by, r * s, 14)], TREE_COLS.get(kind, TREE_COLS["tree"]), L + "::trees", 11)
-            if kind == "pine":
-                B.fill([circle_pts(bx - 0.25 * r * s, by + 0.25 * r * s, 0.45 * r * s, 10)],
-                       mix(TREE_COLS["pine"], PAPER, 0.35), L + "::trees", 12)
-        sh = mix(INK, PAPER, 0.6)
-        for u in S.bld:
-            off = min(3.0, 0.11 * u["h"]) * s
-            B.fill([[(x + off, y - off) for x, y in V.P(P)] for P in u["parts"] + (u.get("holes") or [])], sh,
-                   L + "::texture", 13)
-    for u in S.bld:
-        col = CAT[u["cat"]][1]
-        if u["annex"]:
-            col = mix(col, PAPER, 0.35)
-        if bcol is not None:
-            col = bcol(u)
-        B.fill(V.Ps(u["parts"] + (u.get("holes") or [])), col, L + "::" + u["cat"], 14)
-        if TEXTURE:
-            for P in u["parts"] + (u.get("holes") or []):
-                B.line(V.P(P + [P[0]]), PAPER, L + "::texture", 15, 0.04)
-    for P in S.slope_hatch:
-        B.line(V.P(P), mix(INK2, PAPER, 0.4), L + "::ground", 16, 0.04)
-    for P in S.slopes:
-        B.line(V.P(P), INK2, L + "::ground", 16, 0.08)
-    for P in S.stairs:
-        B.line(V.P(P), INK2, L + "::ground", 16, 0.05)
-    for P in S.fences:
-        B.line(V.P(P), mix(INK2, PAPER, 0.3), L + "::ground", 16, 0.04)
-    for P in S.park_lines:
-        for d in dashes(V.P(P), 0.4 * U, 0.28 * U):
-            B.line(d, mix(CAT["green"][1], INK, 0.3), L + "::ground", 16, 0.08)
-    for P in S.walls:
-        B.line(V.P(P), INK, L + "::walls", 17, 0.16)
-    for P in S.bridges:
-        B.line(V.P(P), INK, L + "::walls", 18, 0.24)
-
-
 def study_areas_from(R, I):
     """v19: the closed curves on STUDY_LAYERS in survey coordinates: [dict(name, layer, P, area)]. Read only."""
     out = []
@@ -217,7 +137,15 @@ def draw_sec_roads(S, B, L, P, g_at, line, Lm, U, off=0.0, order=36, w=0.5):
         return []
     ux, uy = (x1 - x0) / Ll, (y1 - y0) / Ll
     out = []
-    for s0, s1, nm, src in sec_road_spans(S, x0, y0, ux, uy, Ll):
+    # v50 (MIRAQUA 28 Oct, laptop speed): the spans of a line once (sections_plan draws each cut dry at every step
+    # of its words; the streets' point-in-polygon search was repeated each time)
+    memo = getattr(S, "_s28_spans", None)
+    if memo is None:
+        memo = S._s28_spans = {}
+    kk_ = (x0, y0, x1, y1)
+    if kk_ not in memo:
+        memo[kk_] = sec_road_spans(S, x0, y0, ux, uy, Ll)
+    for s0, s1, nm, src in memo[kk_]:
         a0, a1 = s0 - off, s1 - off
         if a1 < -1e-6 or a0 > Lm + 1e-6:
             continue
@@ -236,7 +164,9 @@ def draw_sec_roads(S, B, L, P, g_at, line, Lm, U, off=0.0, order=36, w=0.5):
     return out
 
 
-def draw_map_annotations(S, B, V, U):
+def draw_map_annotations(S, B, V, U, rh=None):
+    """The stream's name and the frame line. v45 (Prompt 2: "no section lines on any map"): the cuts S1-S8 are no
+    longer marked here (each sections page has its own key map); rh = the name's height (default 0.5 U)."""
     L = "LU_BOARD::Map::annotation"
     s = V.s
     if S.river_label and S.selinus:                     # river name on the stretch farthest from the section marks
@@ -252,24 +182,10 @@ def draw_map_annotations(S, B, V, U):
         _, p, t = best
         ang = V.angle(t[0], t[1])
         bx, by = V.p(p[0], p[1])
-        off = 1.4 * U
-        B.text(S.river_label[3], bx - math.sin(ang) * off, by + math.cos(ang) * off, 0.5 * U, BLUE_D, L,
+        rh = rh or 0.5 * U
+        off = 2.8 * rh
+        B.text(S.river_label[3], bx - math.sin(ang) * off, by + math.cos(ang) * off, rh, BLUE_D, L,
                align="MC", angle=ang, italic=True)
-    for x0, y0, x1, y1, nm in S.sec_lines:              # light section marks, labels inside the map
-        a, b = V.p(x0, y0), V.p(x1, y1)
-        Lb = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
-        d = ((b[0] - a[0]) / Lb, (b[1] - a[1]) / Lb)
-        nrm = (-d[1], d[0])
-        for seg in dashes([a, b], 0.55 * U, 0.3 * U):
-            B.line(seg, INK2, L, 20, 0.08)
-        for p, inward, lab in ((a, d, nm), (b, (-d[0], -d[1]), nm + "'")):
-            base = (p[0] + inward[0] * 0.35 * U, p[1] + inward[1] * 0.35 * U)
-            tri = [(base[0] + nrm[0] * 0.45 * U, base[1] + nrm[1] * 0.45 * U),
-                   (base[0] - d[0] * 0.18 * U, base[1] - d[1] * 0.18 * U),
-                   (base[0] + d[0] * 0.18 * U, base[1] + d[1] * 0.18 * U)]
-            B.fill([tri], INK, L, 21)
-            lp = (p[0] + inward[0] * 1.1 * U - nrm[0] * 0.35 * U, p[1] + inward[1] * 1.1 * U - nrm[1] * 0.35 * U)
-            B.text(lab, lp[0], lp[1], 0.36 * U, INK, L, font=FONT_TITLE, bold=True, align="MC")
     B.line(V.P(S.F.P + [S.F.P[0]]), INK, L, 21, 0.25)
 
 
@@ -336,8 +252,8 @@ def draw_legend(S, B, x, y, w, U):
     if rest:
         r2 = bcite("Unmapped ground: the ground the survey and OSM leave unmapped is split by ESA WorldCover 2021 (10 m "
                    "satellite classes, CC BY 4.0) on a {:g} m raster; orchards inferred from the survey's olive and "
-                   "fruit-tree symbols. Satellite rows: approximate.".format(REST_CELL))
-        B.fit("satellite rows · approximate " + r2, x, ry, 0.38 * U, w, INK2, L)
+                   "fruit-tree symbols.".format(REST_CELL))
+        B.fit("satellite rows · ESA WorldCover 2021 " + r2, x, ry, 0.38 * U, w, INK2, L)     # v40: no caveat
         ry -= 0.7 * U
     return ry
 
@@ -394,6 +310,8 @@ def draw_distribution(S, B, x, y, U):
         a0 = a1
     B.text("{:.1f}".format(tot / 1e4), cx, cy + 0.1 * U, 0.95 * U, INK, L, font=FONT_TITLE, align="C")
     B.text("ha site frame" if getattr(S, "rest", None) else "ha mapped", cx, cy - 0.8 * U, 0.36 * U, INK2, L, align="C")
+    crop_panel("ground_cover", x - 0.2 * U, cy - r1 - 1.5 * U, cx + r1 + 1.6 * U, cy + r1 + 1.5 * U,
+               u"Ground cover in the frame")              # v40: the booklet crop of the ring
     return cy - r1 - 1.6 * U
 
 
@@ -490,7 +408,7 @@ def mini_buildings(S, B, V, L, colfn, order=12):
         if col is not None:
             by_col.setdefault(col, []).append(u["parts"] + (u.get("holes") or []))
     for col, groups in by_col.items():
-        fill_units(B, V, groups, col, L, order)
+        fill_units(B, V, groups, r28_nz(col), L, order)   # v50 (MIRAQUA 28 Oct, P06.3): nonzero, overlaps stay filled
 
 
 MAIN_ROADS = ("motorway", "trunk", "primary", "secondary", "tertiary")
@@ -520,9 +438,11 @@ MAIN_ROADS = ("motorway", "trunk", "primary", "secondary", "tertiary")
 #                  each season
 ENV_PATH = clean_path(inp("env_path", None), "env_path") or data_file("bergama_environment.json") or ""
 # v33 24 Oct: all files under Downloads/Bergama/ (Aras rule): cache in cached/selinus_cache, the rest in output/selinus_board
-BERGAMA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+#@include ../../common/bergama_paths.py
+BERGAMA_DIR = BERGAMA_ROOT
 SELINUS_CACHE_DIR = os.path.join(BERGAMA_DIR, "cached", "selinus_cache")
-SELINUS_OUT_DIR = os.path.join(BERGAMA_DIR, "output", "selinus_board")
+SELINUS_OUT_DIR = bg_output("selinus_board")          # v44 (27 Oct): final PDFs only (in selinus_board_pdf)
+SELINUS_RES_DIR = bg_cache("selinus_board")           # v44: results other scripts read, maps, photos (working files)
 ENVIRONMENT = bool(inp("environment", False))
 NOISE_PALETTE = str(inp("noise_palette", "") or "").strip().lower()     # "" = the graded bands (v16.4)
 NOISE_PTS_IN = inp("noise_points", [])
@@ -594,9 +514,11 @@ import hashlib as _hashlib
 import pickle as _pickle
 import zlib as _zlib_store
 # Version of each computation. A change to a method gets a new number, so results computed the old way are never reused.
-MV = dict(solids=4, sky=2, shade=4, faces=1, ground=4, noise=6, comfort=5, shelter=3, season=3, core=2, relief=2,
+MV = dict(solids=4, sky=2, shade=5, faces=1, ground=4, noise=6, comfort=5, shelter=3, season=3, core=2, relief=2,
           render=2, blocks=1, sec_geom=6, sec_field=8)     # v24: shade, ground, comfort, sec_field +1 (olive 15 %);
-#                                                            v33: comfort +1 (the year's comfortable hours, T8)
+#                                                            v33: comfort +1 (the year's comfortable hours, T8);
+#                                                            v47: shade +1 (the July mean day, so a stored shade
+#                                                            without it is computed again once)
 _MEMSTORE = {}
 
 

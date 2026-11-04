@@ -38,12 +38,25 @@ def write_board_pdf(path, title, members):
     def add(b):
         objs.append(b)
         return len(objs)
-    fonts = [add(("<< /Type /Font /Subtype /Type1 /BaseFont /%s /Encoding << /Type /Encoding /BaseEncoding "
-                  "/WinAnsiEncoding %s >> >>" % (nm, _PDF_DIFF)).encode("latin-1")) for nm in _PDF_FONTS]
+    # G2/G3 28 Oct: Arial embedded in every slot (common/pdf_fonts.py); the four Courier slots are Arial too (G2:
+    # no monospace captions), only the slots this page uses carry the font file
+    fonts = pdf_fonts(add, ("R", "B", "I", "BI", "R", "B", "I", "BI"), stream)
     xo = []
     for im_ in imgs:
         w_, h_, data = im_[:3]
-        if len(im_) > 3:                                  # v33: a JPEG, embedded as it is
+        kd_ = im_[3] if len(im_) > 3 else None
+        if kd_ == "RAW":                                  # T4 30 Oct (D1 a): any PNG, alpha as SMask (_png_rgba)
+            sm_ = ""
+            if im_[4] is not None:
+                sm_ = " /SMask %d 0 R" % add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace "
+                                              "/DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\n"
+                                              "stream\n" % (w_, h_, len(im_[4]))).encode("latin-1") + im_[4] +
+                                             b"\nendstream")
+            xo.append(add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB "
+                           "/BitsPerComponent 8%s /Filter /FlateDecode /Length %d >>\nstream\n" % (w_, h_, sm_, len(data))
+                           ).encode("latin-1") + data + b"\nendstream"))
+            continue
+        if kd_ == "DCT":                                  # v33: a JPEG, embedded as it is
             xo.append(add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB "
                            "/BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n" % (w_, h_, len(data))
                            ).encode("latin-1") + data + b"\nendstream"))
@@ -56,6 +69,9 @@ def write_board_pdf(path, title, members):
     cid = add(b"<< /Length " + str(len(data)).encode() + b" /Filter /FlateDecode >>\nstream\n" + data + b"\nendstream")
     pages_id = len(objs) + 2
     res = "/Font << %s >>" % " ".join("/F%d %d 0 R" % (i + 1, f_) for i, f_ in enumerate(fonts))
+    res += (" /ExtGState << /GM << /Type /ExtGState /BM /Multiply >> /GN << /Type /ExtGState /BM /Normal >> %s >>" %
+            " ".join("/A%02d << /Type /ExtGState /ca %s /CA %s >>" % (i_, _pf(i_ / 20.0), _pf(i_ / 20.0))
+                     for i_ in range(1, 20)))           # v46; T4 30 Oct: /A01-/A19 image opacity (D1 a)
     if xo:
         res += " /XObject << %s >>" % " ".join("/Im%d %d 0 R" % (i + 1, x_) for i, x_ in enumerate(xo))
     pw, ph = (r[2] - r[0]) * k * _PT, (r[3] - r[1]) * k * _PT
@@ -78,6 +94,7 @@ def write_board_pdf(path, title, members):
         len(objs) + 1, cat, info, x_)).encode()
     with open(path, "wb") as fh:
         fh.write(bytes(out))
+    return [(mg + px, mg + py) for px, py in pos], bh + 2 * mg + 3.0 * th     # v40: drawings' corners, page height (mm)
 
 
 def pdf_folder():
@@ -125,22 +142,29 @@ def export_pdfs(B, rects):
         for i_, (nm, r) in enumerate(rects):
             if bb[2] >= r[0] and bb[0] <= r[2] and bb[3] >= r[1] and bb[1] <= r[3]:
                 per[i_].append((o_, n_, it))
-    boards, order = {}, []
+    boards, order, names = {}, [], {}
     for i_, (nm, r) in enumerate(rects):
         key = board_of(nm)
         if key not in boards:
             boards[key] = []
+            names[key] = []
             order.append(key)
         boards[key].append((sorted(per[i_], key=lambda t_: (t_[0], t_[1])), r))
+        names[key].append(nm)
     done, bad = 0, []
+    del SHEET_POS[:]
     for key in order:
         stem, title = key
         try:
             parts = board_chunks([([t_[2] for t_ in its], r) for its, r in boards[key]])
+            n_ = 0
             for j_, part in enumerate(parts):                 # more than one only if a board would pass 400 x 400 cm
                 sfx = "" if len(parts) == 1 else "_%d" % (j_ + 1)
-                write_board_pdf(os.path.join(d_, stem + sfx + ".pdf"), title + ("" if len(parts) == 1 else
-                                                                                 " · %d of %d" % (j_ + 1, len(parts))), part)
+                pos_, ph_ = write_board_pdf(os.path.join(d_, stem + sfx + ".pdf"), title + (
+                    "" if len(parts) == 1 else " · %d of %d" % (j_ + 1, len(parts))), part)
+                for (px_, py_), (its_, r_) in zip(pos_, part):    # v40: where each drawing sits, for the booklet crops
+                    SHEET_POS.append((names[key][n_], stem + sfx + ".pdf", r_, px_, py_, ph_))
+                    n_ += 1
                 done += 1
         except Exception as ex:
             bad.append("%s (%s)" % (stem, ex))
@@ -280,12 +304,14 @@ def frame_rest(S):
             wr = mask_of(F, [w_["P"]], cell, nx, ny, holes=w_.get("H") or None)
             mrows = [a | b for a, b in zip(mrows, wr)]
     free = [a & ~b for a, b in zip(free, mrows)]
-    cnt = []
+    S.rest_rows = {}                                      # v50 (MIRAQUA 28 Oct, P06.2): the counted cells by class,
+    cnt = []                                              # traced into the stream edge plan's loose ground (15k)
     for k, lab, col in reversed(LC_CLASSES):
         rings = getattr(S, "lc", {}).get(k) or []
         if not rings:
             continue
         m = [a & b for a, b in zip(free, _loop_rows(F, rings, cell, nx, ny))]
+        S.rest_rows[k] = m
         free = [a & ~b for a, b in zip(free, m)]
         cnt.append((k, lab, col, sum(bin(r).count("1") for r in m)))
     cnt.append(("rest", "Other unmapped ground · yards, streets without a measured width, bare or built", REST_C,
@@ -297,18 +323,6 @@ def frame_rest(S):
     LOG.append("Unmapped ground of the frame ({:.2f} of {:.2f} ha; raster {:.2f} ha): ".format(
         gap / 1e4, S.frame_area / 1e4, n * cell * cell / 1e4) + "; ".join(
         "{} {:.2f} ha".format(k, a / 1e4) for k, _l, _c, a in S.rest))
-
-
-def draw_landcover(S, B, V, L, order=2):
-    """v31: the land-cover classes, each one fill (even-odd over all its rings), order 2 after the paper."""
-    leg = []
-    for k, lab, col in LC_CLASSES:
-        rings = getattr(S, "lc", {}).get(k)
-        if rings:
-            for i in range(0, len(rings), 400):
-                B.fill(V.Ps(rings[i:i + 400]), col, L, order)
-            leg.append(("box", col, lab))
-    return leg
 
 
 # ============================================================ REPORT + RUN (only when the button is pressed)
@@ -340,7 +354,7 @@ def report(S):
         tot_ = float(sum(re_.values()))
         out.append("River edges found on: " + ", ".join("{} {:.0f}%".format(k, 100.0 * v / tot_)
                                                          for k, v in sorted(re_.items(), key=lambda kv: -kv[1])))
-    out.append("Sections: {}".format(len(S.sections) if S.sections else "none (placeholders drawn)"))
+    out.append("Sections: {}".format(len(S.sections) if S.sections else "none (no section lines)"))
     return "\n".join(out)
 
 
@@ -361,6 +375,11 @@ def place_board(B, rects, OX, OY, sc):
         else:
             items.append(("text", it[1], P(*it[2]), it[3] * sc) + it[4:])
     B.items = items
+    for p_ in CROP_PANELS:                                # v40: the booklet crops move (and scale) with the layout
+        b_ = p_["bb"]
+        p_["bb"] = (OX + sc * b_[0], OY + sc * b_[1], OX + sc * b_[2], OY + sc * b_[3])
+        if p_["scale_den"] and sc:
+            p_["scale_den"] = int(round(p_["scale_den"] / sc))
     return [(n, (OX + sc * r[0], OY + sc * r[1], OX + sc * r[2], OY + sc * r[3])) for n, r in rects]
 
 
@@ -376,6 +395,93 @@ def pipeline(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, te
         finally:
             pool_stop()
             pool_allow(False)
+
+
+def _plain_repr(v):
+    """repr with sets in sorted order (their order changes between Rhino sessions)."""
+    if isinstance(v, (set, frozenset)):
+        return "{" + ",".join(sorted(_plain_repr(x) for x in v)) + "}"
+    if isinstance(v, dict):
+        return "{" + ",".join(_plain_repr(k) + ":" + _plain_repr(x) for k, x in v.items()) + "}"
+    if isinstance(v, (list, tuple)):
+        return ("[%s]" if isinstance(v, list) else "(%s)") % ",".join(_plain_repr(x) for x in v)
+    if type(v).__name__ == "function":                  # by name and bytecode, not by its address in memory
+        return "fn:%s:%s" % (v.__qualname__, _hashlib.sha1(v.__code__.co_code).hexdigest())
+    return repr(v)
+
+
+def build_site_key(R, osm, places, F):
+    """Fingerprint of everything build_site reads: the survey, the frame, OSM and places, the bytecode of build_site
+    and of every function and class it reaches, and the settings those read (LOG, the run's own messages, left out).
+    An edit to any of them gives a new key, so an old site model is never reused."""
+    g = globals()
+    code = _code_print()
+    seen, parts, todo = set(), [], ["build_site"]
+    while todo:
+        nm = todo.pop()
+        if nm in seen or nm == "LOG" or nm not in g:
+            continue
+        seen.add(nm)
+        v = g[nm]
+        if type(v).__name__ == "function":
+            cos = [v.__code__]
+            parts.append((nm, code.get(nm), _plain_repr(v.__defaults__)))
+        elif isinstance(v, type):
+            fs = [f for a, f in sorted(vars(v).items()) if type(f).__name__ == "function"]
+            cos = [f.__code__ for f in fs]
+            parts.append((nm, sorted((k, h) for k, h in code.items() if k.startswith(nm + ".")),
+                          [_plain_repr(f.__defaults__) for f in fs]))
+        elif isinstance(v, _types.ModuleType):
+            continue
+        else:
+            parts.append((nm, _plain_repr(v)))
+            continue
+        while cos:
+            c = cos.pop()
+            todo.extend(c.co_names)
+            cos.extend(k for k in c.co_consts if hasattr(k, "co_code"))
+    return fp("site", sorted(parts), _plain_repr(R), _plain_repr(osm), _plain_repr(places), F.P)
+
+
+def build_site_once(R, osm, places, F):
+    """build_site, worked out once and kept (Aras 25 Oct 21:29: "you check once and cache it"): in Rhino's memory for
+    this session and in cached/selinus_cache, found again only by build_site_key. Kept as pickled bytes, so later
+    changes to the model in a run never reach the kept copy; its log lines are replayed."""
+    key = ST = None
+    try:
+        key = build_site_key(R, osm, places, F)
+        ST = Store()
+        blob = ST.get("site", key)
+    except Exception:
+        key = blob = None
+    if blob is not None:
+        try:
+            _ns_register()                                   # the classes are pickled under module selinus_ns
+            S, msgs = _pickle.loads(blob)
+            LOG.extend(msgs)
+            S.F = F
+            S.site_key = key                                 # v51: the shared basemap is kept while this is unchanged
+            if hasattr(S, "terrain_smp"):
+                S.z_at = terrain_z_at(S, S.terrain_smp)      # a function: made again from its samples, as the workers do
+            return S
+        except Exception:
+            pass
+    n0 = len(LOG)
+    S = build_site(R, osm, places, F)
+    S.site_key = key
+    if key is not None:
+        try:
+            _ns_register()
+            z_at = S.__dict__.pop("z_at", None)
+            try:
+                blob = _pickle.dumps((S, LOG[n0:]), protocol=4)
+            finally:
+                if z_at is not None:
+                    S.z_at = z_at
+            ST.put("site", key, blob)
+        except Exception:
+            pass
+    return S
 
 
 def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, tech_secs_user=None):
@@ -426,13 +532,15 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
             TSEC[k] = list(SECTION_LINES_LK)
     OSM = parse_osm(osm_path) if osm_path else None
     PLACES = parse_places(places_path) if places_path else []
-    S = build_site(RAW, OSM, PLACES, FR)
+    S = build_site_once(RAW, OSM, PLACES, FR)
     S.osm = OSM                                            # v33: the movement potential reuses it
     try:
         load_landcover(S)                                 # v31: satellite land cover (farmland, orchards, ...)
     except Exception:
         LOG.append("WARNING: land-cover file could not be read:\n" + traceback.format_exc())
         S.lc, S.lc_area = {}, {}
+    S.r28_study = r28_study_from(R28_STUDY_RAW, I)        # v50 (G8): calisma_alan; revision 30 Oct: before the
+    basemap_export(S, LOG)                                # basemap, which carries it as its study-area layer (M3)
     try:
         frame_rest(S)                                     # v35: the unmapped ground of the frame, by satellite class
     except Exception:
@@ -713,8 +821,8 @@ def run_head(secs_, n_draw, ok, t_site=None, t_bake=None, n_obj=None):
     head = ["Run at {} | {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), SCRIPT_VERSION),
             "RESULT: {} | {} warning{}, {} error{}".format(res_, n_warn, "" if n_warn == 1 else "s", n_err,
                                                          "" if n_err == 1 else "s"),
-            "OUTPUT FOLDER: {} (PDF boards in selinus_board_pdf); log: {}"
-            .format(out_folder(), log_file_path())]
+            "ITEMS: {} (items.json, results.json, images; no sheet PDFs, v60); log: {}"
+            .format(bg_booklet("selinus_board"), log_file_path())]
     if ok:
         head.append("CREATED (each with the time it took):")
         if t_site is not None:
@@ -744,9 +852,9 @@ def save_last(info_, out_, secs_):
     import datetime
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mem_set("lu_last_out", out_, disk=False)
-    mem_set("lu_last", dict(info=info_, when=stamp, secs=round(secs_, 1)))
-    st_ = "v38 · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
-        "v38 · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
+    mem_set("lu_last", dict(info=info_, when=stamp, secs=round(secs_, 1), ver=SCRIPT_VERSION))
+    st_ = SHORT_V + " · ERROR" if info_.startswith("ERROR") or "RESULT: FAILED" in info_[:400] else \
+        SHORT_V + " · {} · {:.0f} s".format(__import__("time").strftime("%H:%M"), secs_)
     mem_set("lu_status", st_)
     gh_status(st_)
     try:
@@ -846,9 +954,11 @@ drawings, names, footprints, floors, uses, cuts = [], [], [], [], [], []
 if HAVE_RHINO:
     doc = Rhino.RhinoDoc.ActiveDoc
     TOL = doc.ModelAbsoluteTolerance if doc else 0.01
-    pressed = (DO_BAKE and not mem_get("lu_bake_prev", False)) or chain_fire(_button_value(), "chain_seen")
-    mem_set("lu_bake_prev", bool(DO_BAKE))
+    pressed, _trig_why, _trig_btn = trig_should_run("chain_seen", KNOWN_INPUTS)   # v59 (round 4): common/trigger.py
     last = mem_get("lu_last")
+    if not (isinstance(last, dict) and last.get("ver") == SCRIPT_VERSION):   # v44.1 (Aras 27 Oct 15:35): a newly pasted
+        last = None                                                         # version shows itself at once, idle, with
+        mem_set("lu_status", None)                                          # no old time or report
     _t_build = __import__("time").time()
     changing, partial = component_setup()
     setup_done = sc.sticky.pop(skey("lu_setup_done"), None)
@@ -860,7 +970,7 @@ if HAVE_RHINO:
         gh_message("warning", info)
     elif not pressed:
         info = "Idle. Nothing is read or computed until you press the button."
-        gh_status(mem_get("lu_status") or "v38 · idle")              # v27: version and last total time stay shown
+        gh_status(mem_get("lu_status") or SHORT_V + " · idle")       # v27: version and last total time stay shown
         if changing:
             info += "\nSetting the component up: " + ", ".join(changing) + "."
         if last:
@@ -875,6 +985,7 @@ if HAVE_RHINO:
                     gh_message("warning", ln[9:])
     else:
         try:
+            wn_reset()                                    # v60 (round 5): one warning sink (common/warn.py) per run
             fpts = None
             FRAME_C = as_curve(FRAME_IN)
             _SITE_FALLBACK.clear()
@@ -916,6 +1027,8 @@ if HAVE_RHINO:
             RAWu = read_rhino(None)                       # the whole file: alignment and fallbacks need it
             STUDY_RAW.clear()
             STUDY_RAW.update(read_rhino(None, STUDY_LAYERS))   # v19: the group's study areas, read only
+            R28_STUDY_RAW.clear()
+            R28_STUDY_RAW.update(read_rhino(None, [R28_STUDY_LAYER]))   # v50 (G8): the study area, drawn on every map
             del FOCUS_PTS_USER[:]
             fc = as_curve(FOCUS_IN)
             if fc is not None:
@@ -972,22 +1085,30 @@ if HAVE_RHINO:
             tsecs = dict((k, read_lines(k, v)) for k, v in TSEC_IN.items())
             _t_pipe = __import__("time").time()
             SITE, BOARD, RECTS = pipeline(RAWu, fpts, secs, OSM_PATH, PLACES_PATH, tsecs)
+            LOG.append("trigger: " + str(_trig_why))          # v59 (round 4): what started this run
+            # v60 (round 5, G-R5-12): no text check here and no sheet PDFs: the booklet sets and checks every text
             _t_lay = sum(s_ for nm_, s_ in DRAWING_TIMES)
             _t_site = max(0.0, __import__("time").time() - _t_pipe - _t_lay)
             _t_b0 = __import__("time").time()
-            n = bake(BOARD) if BAKE_RHINO else 0               # v29: no Rhino bake unless bake = True
+            n = sb_bake(BOARD) if BAKE_RHINO else 0            # v29: no Rhino bake unless bake = True
             _t_bake = (__import__("time").time() - _t_b0) if BAKE_RHINO else None
-            if PDF_EXPORT:                                    # v28: vector PDFs; v29: one single-page board per group
-                try:
-                    _np, _bad = export_pdfs(BOARD, RECTS)
-                    LOG.append("PDF: {} drawings on {} boards (one page each), vector, 1:{:,}, in {}.".format(
-                        len(RECTS), _np, int(PDF_SCALE), pdf_folder()))
-                    for p_, s_ in export_axonometrics(SITE):      # v33: S1 as an axonometric
-                        LOG.append("PDF: {}  {:.0f} s".format(os.path.basename(p_), s_))
-                    if _bad:
-                        LOG.append("WARNING: PDF not written for: " + "; ".join(_bad[:6]))
+            try:                                              # v33: S1 as an axonometric; v60: composed, kept as items
+                for p_, s_ in export_axonometrics(SITE):
+                    LOG.append("p03 axonometric composed ({}), {:.0f} s".format(p_, s_))
+            except Exception:
+                wn_warn("p03", "export", "the axonometric failed (not in the items):\n" + traceback.format_exc())
+            try:                                              # v60: the booklet items (16d_items.py)
+                LOG.extend(sb_items_export(SITE, BOARD))
+            except Exception:
+                wn_warn(None, "export", "the booklet items were not written (the board is done):\n" +
+                        traceback.format_exc())
+            for f_ in ("lp_flag_lines", "sec_look_lines", "wat_flag_lines"):   # v58 (round 3): the
+                try:                                                    # FLAG overlap per page, sky variants, plants,
+                    r_ = globals()[f_]() if f_ in globals() else ()     # fauna FLAG and water lines of this run
+                    LOG.extend([r_] if isinstance(r_, str) else list(r_ or ()))
                 except Exception as ex_:
-                    LOG.append("WARNING: PDF export failed ({}); the bake is done.".format(ex_))
+                    LOG.append("WARNING: {} failed ({}).".format(f_, ex_))
+            LOG.extend(bg_tidy_output("selinus_board"))       # v44 (27 Oct): output/ = PDFs only
             T = SITE.T
             names = [nm for nm, r in RECTS]
             drawings = [_crv(rect(r[0], r[1], r[2], r[3]), True) for nm, r in RECTS]
@@ -1006,13 +1127,18 @@ if HAVE_RHINO:
                 info += "\nNo osm_path: streets, paths, green areas and the stream come from the survey only."
             if not PLACES_PATH:
                 info += "\nNo places_path: shops are read from OSM points only."
+            # v60 (round 5, C1/C11): the sink's lines (wn_warn, text_place) join the log; wn_compose puts "<n> warnings"
+            # (counted from the WARNING lines) and every WARNING line at the top, each once
+            _wn_own = set(WN_LOG)
+            LOG[:] = wn_compose(list(LOG) + [l_ for l_ in WN_LOG if l_ not in LOG])
             if LOG:
                 info += "\n\n" + "\n".join(LOG)
             for msg in LOG:
-                if msg.startswith("WARNING"):
+                if msg.startswith("WARNING") and msg not in _wn_own:   # the sink's own lines are orange already
                     gh_message("warning", msg[9:])
             gh_message("remark", "Baked {} objects. Zoom Extents: the pages sit right of the drawing.".format(n)
-                       if BAKE_RHINO else "PDFs written to {} (nothing baked into Rhino).".format(pdf_folder()))
+                       if BAKE_RHINO else "Booklet items written to {} (nothing baked into Rhino).".format(
+                           bg_booklet("selinus_board")))
             _secs = __import__("time").time() - _t_build
             info = run_head(_secs, len(RECTS), True, _t_site, _t_bake, n) + "\n" + info     # v27
             save_last(info, (drawings, names, footprints, floors, uses, cuts), _secs)

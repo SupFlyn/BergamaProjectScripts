@@ -1,0 +1,1192 @@
+# ================================================================ v24: the ecological corridor (p15 + p16 redo)
+# Aras 27 Oct 11:07 (revision_2026-10-27/PHASE2_SPEC.md §6 "p15", "p16"; history decisions D1-D12, H1-H7):
+#   * the uses blend like a GRADIENT and read as an ECOLOGICAL CORRIDOR: stepped translucent rings of planting from the
+#     water outward (denser at the water), and stepped translucent programme rings round the bridge hubs (densest at
+#     the hubs, thinning between them: H1). No zone-by-zone fills.
+#   * the empty surroundings are developed inside the MAXIMUM POTENTIAL AREA (spec §5 q1 default): the open ground of
+#     the site frame (site_alan) with no survey building (BINA_*) and no survey road (YOL_SOSE / YOL_BORDUR, ROAD_BUF_M
+#     either side of an edge line, as the v2.3 puzzle grows a street), on a CELL_M grid; shown as its own proof panel
+#     (crop mp_max_area).
+#   * every design move is computed from the survey / data, never placed by hand, and carries its stacked reasons
+#     (D11) naming only analyses that are in the booklet (D12): max area panel, survey contours, water board cuts
+#     (Q100 / Q500, p12) and chain (p13), the site board's edge plan (p5, bridges K1-K6, marks C1-C6), OSM road classes
+#     (site board p6), history cards h01-h03 (H1-H7).
+#   * notes on the map are numbered badges (measured, collision-checked, leader when moved) with the short notes and
+#     their reasons in the key column beside the plan: no text overlaps another. v27 (MIRAQUA 28 Oct, P23.1-P23.2): the
+#     badges in their group's colour, the list by group under the strip, the reasons on the sources page (02d).
+# The proposal's movement (roads, truck route, crossings, hubs) is written to masterplan_results.json key "movement"
+# (spec §4) for the site board's p6 proposal map.
+MP_SCALE = 10000.0           # v27 (MIRAQUA 28 Oct, G7): the whole frame as ONE strip, 284.5 x 52.9 mm (1:5,000: 569 mm)
+CELL_M = 3.0                 # grid of the max potential area, m
+ROAD_BUF_M = 4.5             # a surveyed carriageway edge marks road this far either side (= STREET_M), m
+DMAX_M = 200.0               # distance from the water computed this far, m
+# v26 (Prompt 7 rule 1, proposals soft): ten fainter steps instead of five, so the gradient fades out with no edge
+ECO_BANDS = (4.0, 8.0, 13.0, 18.0, 25.0, 32.0, 41.0, 50.0, 62.0, 75.0)   # m from the water (graphic, design reading)
+ECO_ORGANIC = 18.0           # rings up to this far from the water are organic, further out faceted (form rule)
+HUB_RINGS = (25.0, 45.0, 65.0, 85.0, 105.0, 125.0, 150.0, 175.0)        # m round a hub (H1; graphic, design reading)
+ECO_A, HUB_A = 0.075, 0.085  # v26: opacity of one step (the steps add up: densest at the water / at the hubs)
+HUB_CORRIDOR = 120.0         # programme rings stay within this far of the water, m
+HUB_SQ_M = 28.0              # a hub square = open ground within this far of the bridge anchor, m (design value)
+FOREST = (6.0, 32.0, 110.0, 9.0)     # forest corridor: from, to m from the water, at least m from a hub, spacing m
+TREES = (32.0, 60.0, 70.0, 18.0)     # tree-planted area: the same (design values)
+SEAT_STEP = ((100.0, 25.0), (220.0, 50.0))   # streamside seats: within m of a walking hub, one every m of walkway
+FOOT_GAP_M = 300.0           # a reach this long without a crossing gets a footbridge (design value)
+WIDEN_MIN, BRANCH_MIN, KEPT_MAX, FREE_MAX = 20.0, 55.0, 5.0, 90.0   # open ground beside the bank, m (design rules)
+WIDEN_K, WIDEN_CAP, ARM_K, ARM_CAP = 0.4, 20.0, 0.7, 45.0          # widened edge / side arm: share of it, cap m
+MOVE_RUN_M = 30.0            # shorter runs of one move are dropped, m
+KEPT_SPACE_M = 150.0         # "kept" badges at least this far apart, m (graphic)
+TERRACE_D = (4.0, 70.0)      # upstream terraces: contours this far from the water, m
+# v26 (Prompt 7 tasks 2 and 4): the masterplan and the open ground are each ONE crop drawn for the booklet page at
+# 1:1 (bergama_booklet panel area 392 x 238 mm); v27 (MIRAQUA 28 Oct, G7): each ONE strip at the top-left, the legend
+# beside it from COL_X, the scale bar under it, the list / figures under them (parts/02d_r28_ground.py).
+BK_W, BK_H = 392.0, 238.0    # mm: the booklet's panel area (A3 less margins and the caption line)
+COL_X = 297.0                # mm from the panel's left edge: booklet grid column 10 (14 + 9 x 33 mm on the page)
+KEY_MIN = 2.47               # key text floor, mm (7 pt); v27: KEY_TS (2.6) unused, removed
+NI_BLOCK, NI_SHARE, NI_MIN_HA, NI_BUILT = 15.0, 0.9, 1.0, 0.4   # v26: no-intervention regions: block m, share of a
+#   block the plan leaves untouched, smallest region ha, built share (buildings + streets) that makes it "built"
+NI_MIN_HA_STUDY = 0.25       # v37 (round 3, P21.3 / G18 "no undefined space"): inside the study area (calisma_alan)
+#   untouched regions get a letter and their reason from this size, ha (design rule; NI_MIN_HA elsewhere)
+NI_ROAD_M = 6.0              # v26: a changed road or the hidden-stream line touches this far either side, m
+# v38 (round 4, P21.7): the voids designed. Design readings (Aras: "it needs to be designed"), not data: each name
+# and reason uses only the region's data (survey kind / WorldCover class, distance to the water) and the project's
+# programme words; plants only sourced species (D7: plane and ash in the copses as the forest corridor's drier
+# ground, rosemary and French lavender in the gardens). Kind -> (place name, short reason).
+VOID_RULES = {
+    "meadow": (u"Rain meadow", u"open ground: a meadow with copses holds the rain before the stream"),
+    "garden": (u"Pocket garden", u"open ground off the water: rosemary and lavender, reached from the street"),
+    "grove": (u"Shade grove", u"tree cover kept: paths through it join the forest corridor"),
+    "lanes": (u"Shaded lanes", u"homes stay: trees on the lanes that lead to the water"),
+    "heritage": (u"Heritage setting", u"kept as it is: the setting of the heritage buildings"),
+}
+VOID_LANE_GAP = (9.0, 21.0)  # round 5 (CHK-5 d): lane trees on a kerb this many m apart, drawn at random (design value)
+# v26 (Prompt 7 task 3): the satellite check of the open ground. No imagery could be opened from the cloud where
+# this version was written (Esri, Google, EOX and Sentinel Hub refused, 27 Oct 2026), so it is still to do: each
+# press writes the open ground's outlines to logs/bergama_masterplan_open_ground_check.kml for Google Earth (and by
+# number, in survey m, to cached/bergama_masterplan/open_ground_check.json). When Aras has checked them, fill in the
+# imagery's name and date and the outlines of ground built on since the survey (survey m: the JSON's rings of the
+# areas he names): they leave the open ground everywhere (the design moves with them) and show hatched on both
+# maps; the caption then names the imagery and its date.
+OPEN_CHECK = dict(imagery=None, date=None, built=[])
+BT_CODE = {"housing": 1, "building": 2, "heritage": 3, "shed": 4}   # v26: building kind per cell; 5 = built since
+LC_KEYS = ("farmland", "trees", "shrub", "grass", "orchard")        # v26: ESA WorldCover 2021 as the site board keys it
+PLACE_TS = 4.3               # place names on the plans, mm (12.2 pt)
+LAB_TS = 2.6                 # labels on the 1:1,000 windows, mm
+BADGE_R, BADGE_TS = 1.95, 2.5
+DT_PLAN = (194.0, 118.0)     # p.24 windows, mm at 1:1,000: one row, 194 + 4 + 194 = 392 mm (bk_w); v38 (round 4,
+#                              P22.1): 118 mm high, so title strip + plan + section + legend fill the 236 mm column
+ECO_COL, HUB_COL = pla_green("tree"), "D9A35E"   # round 5 (A1): the greenery tone from the plant module / "centre"
+#   family (graphic). Round 5 (N5 a): p23 no longer draws the eco / hub-ring fields (distance bands, not zones).
+WATER_COL, WET_COL = COL["river"], "B7CFC8"
+SQ_FILL, SQ_EDGE = "F4E6CC", "9C7440"
+ROAD_CHANGE_COL = {"calmed": "B5832F", "pedestrian": "8B3A3F", "shared": "7F5B7B", "kept": "847E75",
+                   "relocated": "C2603A", "later": "633131"}
+
+# Bridges over the Selinos (site board BRIDGES_K = CONCEPT_RECORD 2.1, survey m)
+BRIDGES_K = [("K1", (29628.35, 32630.87)), ("K2", (29604.93, 32622.02)), ("K3", (30037.01, 32121.57)),
+             ("K4", (29846.40, 32277.71)), ("K5", (30293.63, 31792.25)), ("K6", (30646.94, 31251.65))]
+# Hubs (D2, D3, D10; h03 Q1 + Aras 27 Oct 12:05 "Both"): id, bridge key (spec §4), anchor (survey m: H1 bridge
+# anchors h01 §5 P06 P08 P09 P30; İstiklal = P16 label; Kızıl Avlu = P02), its OSM bus stop (name, survey m by the
+# h01 §0 formula from bergama_osm.osm of 28 Jul 2026, +-10-30 m), river sub-hub in the bed (D10).
+MAIN_TRANSIT_HUB = (u"İstiklal", u"Kızıl Avlu")   # Aras 12:05: the town lines stop here; switch: hub ids
+HUBS = [(u"K4", "K4", (29846.0, 32278.0), u"Camikebir Caddesi", (29841.0, 32243.7), True),
+        (u"K3", "K3", (30037.0, 32122.0), u"Tabak Köprüsü", (30017.4, 32106.8), True),
+        (u"İstiklal", u"İstiklal", (29990.0, 32030.5), u"İstiklal Meydanı", (29995.4, 32019.8), False),
+        (u"Kızıl Avlu", u"İstiklal", (30245.0, 31962.0), u"Kızıl Avlu", (30245.0, 32020.1), False),
+        (u"K5", "K5", (30294.0, 31792.0), u"Üç Kemer Köprüsü", (30296.4, 31696.7), True),
+        (u"K6", "K6", (30647.0, 31252.0), u"Bergama Sanayi", (30575.0, 31232.4), False)]
+MP_EN_WORDS = {u"bridge", u"road", u"side", u"inlet", u"crossing", u"small", u"and", u"garden", u"demeter's",
+               u"square", u"market", u"terrace", u"walk", u"the", u"of", u"hub", u"wetland", u"basins", u"reed"}
+
+
+def mp_upper(s):
+    """Turkish capitals (i -> İ, ı -> I) for the place names on the plans; English words (MP_EN_WORDS) in plain
+    capitals (closing 31 Oct: "ROAD BRİDGE" fix)"""
+    return u" ".join(w.upper() if w.lower() in MP_EN_WORDS else w.replace(u"i", u"İ").upper() for w in s.split(u" "))
+
+
+# v37 (round 3, G16 / D9): hub names from common/data/NAMES.py (bridge_name); no K-code is printed. Map words use the
+# short bridge name (the full name stands in the page's list of moves).
+HUB_NAME = {u"K4": mp_upper(bridge_name("K4", short=True)), u"K3": mp_upper(bridge_name("K3", short=True)),
+            u"İstiklal": mp_upper(landmark_name("istiklal_meydani")), u"Kızıl Avlu": mp_upper(landmark_name("kizil_avlu")),
+            u"K5": mp_upper(bridge_name("K5", short=True)), u"K6": mp_upper(bridge_name("K6", short=True))}
+# Places named on the plans (h01 §5 register; survey labels, m; v38 G-R4-11: names from NAMES.py): Ulucami P05, Tabaklar Hamamı P07, Tabakhane E07
+PLACES = [(mp_upper(landmark_name("ulucami")), (29844.2, 32313.3)), (mp_upper(landmark_name("tabaklar_hamami")), (29890.4, 32243.6)),
+          (u"TABAKHANE", (30062.0, 32106.0)), (u"HARAP CAMİİ", (30435.7, 31584.6))]
+# H5 (h03 Q3): Trajaneum centroid 39.1327803, 27.1832652 (OSM) -> survey by the h01 §0 formula (+-10-30 m)
+TRAJANEUM = (30209.0, 33177.0)
+ROMAN_WALL = (29800.2, 32362.3)      # H6: "Eski Kozak Yolu" label, Roman complex with ~120 m bank wall (P12, E10)
+CRAFT_XY = (30062.0, 32106.0)        # H3: "Eski Tabakhane Sk." label (E07) = city link stop 2 (workshops)
+# Roads (ROADS) and the later town line (TOWN_LINE): v38 (round 4, S8, CHK1_2 F1): moved to common/data/ROADS.py,
+# which the site board includes too, so its street sections never wait for a masterplan run (included in code.py).
+
+
+class _All(object):
+    """v24: every cell of the corridor grid is valid (Grid's 'near' test)."""
+
+    def within(self, x, y):
+        return True
+
+    inside = within
+
+
+def landcover_grid(G, uvP, V, warn):
+    """v26: ESA WorldCover 2021 per grid cell: 1 + the index of its class in LC_KEYS, 0 = none of them (built-up,
+    bare ground or water on the satellite). From the site board's built-in copy (LC_EMBED, survey m), each class
+    filled even-odd (its rings keep the pixel boundaries, holes included)."""
+    lc = bytearray(G.nx * G.ny)
+    try:
+        d = json.loads(zlib.decompress(base64.b64decode("".join(LC_EMBED))).decode("utf-8"))
+    except Exception as ex:
+        warn.append(u"land cover (ESA WorldCover 2021) not read ({}): no satellite reasons".format(ex))
+        return lc
+    for code, key in enumerate(LC_KEYS, 1):
+        tog = bytearray(G.nx * G.ny)
+        for r_ in d.get("rings", {}).get(key, []):
+            if len(r_) >= 3 and hit(bbox(r_), V.bb):
+                for n in G.poly_cells(uvP(r_)):
+                    tog[n] ^= 1
+        for n in range(len(tog)):
+            if tog[n]:
+                lc[n] = code
+    return lc
+
+
+class Corridor(object):
+    """v24: the survey and the design of the whole site frame, computed once a press, in world (survey) m.
+    F per grid cell: 0 open, 1 building, 2 road, 3 stream bed / water line. Dst: distance from the water through open
+    ground (m). Everything the panels draw: bands, hub rings and squares, moves, terraces, trees, seats, crossings,
+    roads, notes (numbered) and the movement record."""
+
+    def __init__(self, V, survey, CL, D, spots, warn):
+        self.V, self.D, self.CL, self.warn, self.spots = V, D, CL or {}, warn, spots or []
+        G = self.G = Grid((V.u0, V.v0, V.u1, V.v1), _All(),
+                          int((V.u1 - V.u0) * (V.v1 - V.v0) / (CELL_M * CELL_M)) + 1)
+        N = self.N = G.nx * G.ny
+        F = self.F = bytearray(N)
+        uvP = lambda P: [V.uv(p) for p in P]
+        inF = lambda P: any(V.inside(p[0], p[1]) for p in P)
+        self.bld = {}
+        bt = self.bt = bytearray(N)                                      # v26: building kind per cell (BT_CODE)
+        for role in ("building", "housing", "heritage", "shed"):          # buildings: whole footprints (faces)
+            polys = [P for P in survey.get(role, []) if inF(P)]
+            self.bld[role] = faces(polys, max_area=30000.0) if polys else []
+            for Fc in self.bld[role]:
+                for n in G.poly_cells(uvP(Fc)):
+                    F[n] = 1
+                    bt[n] = BT_CODE[role]
+        self.built_since = [ring(P) for P in OPEN_CHECK.get("built") or [] if len(P) >= 3]   # v26: satellite check
+        for P in self.built_since:
+            for n in G.poly_cells(uvP(P)):
+                F[n] = 1
+                bt[n] = 5
+        self.bridges = [P for P in survey.get("bridge", []) if inF(P)]   # v26: survey bridges (YOL_KOPRU), drawn crisp
+        self.lc = landcover_grid(G, uvP, V, warn)                        # v26: ESA WorldCover 2021 per cell
+        self.roads = [P for role in ("road", "kerb") for P in survey.get(role, []) if inF(P)]
+        self.kerbs = [P for P in survey.get("kerb", []) if inF(P)]       # v38: the voids' lane trees stand on kerbs
+        r = max(1, int(round(ROAD_BUF_M / G.c)))
+        nx, ny = G.nx, G.ny
+        for P in self.roads:
+            for n in G.line_cells(uvP(P)):
+                i, j = n % nx, n // nx
+                for dj in range(-r, r + 1):
+                    for di in range(-r, r + 1):
+                        ii, jj = i + di, j + dj
+                        if di * di + dj * dj <= r * r + 1 and 0 <= ii < nx and 0 <= jj < ny and F[jj * nx + ii] == 0:
+                            F[jj * nx + ii] = 2
+        self.ref = self.CL.get("W", {}).get("ref") or stream_ref()[0]
+        self.rows = [x for x in (self.CL.get("W", {}).get("rows") or [])
+                     if not x["cov"] and x.get("NE") and x.get("SW") and V.inside(x["p"][0], x["p"][1])]
+        for x in self.rows:                                              # the bed between the edges river_walks found
+            t = x["SW"]["e"]
+            while t <= x["NE"]["e"]:
+                n = self.cell((x["p"][0] + x["n"][0] * t, x["p"][1] + x["n"][1] * t))
+                if n is not None and F[n] != 1:
+                    F[n] = 3
+                t += G.c * 0.5
+        self.streams = [P for P in survey.get("stream", []) if inF(P)]
+        self.contours = [P for role in ("contour", "contour10") for P in survey.get(role, []) if inF(P)]
+        self.contour_z = [(P, z) for P, z in survey.get("contour_z", []) if inF(P)]   # v28: p.24 section ground
+        for P in self.streams:
+            for n in G.line_cells(uvP(P)):
+                if F[n] == 0:
+                    F[n] = 3
+        if not self.rows:
+            warn.append(u"corridor: no stream edges from the survey (river_walks rows): no bed, widening or moves")
+        pl28_frame_stats(self)                          # v27 (MIRAQUA 28 Oct, G10): cells inside the frame, its polygon area
+        # v38 (round 4, CHK-7, U40): every proposal is generated inside the study area only (calisma_alan): the
+        # rings (study_clip.sc_rings) and a mask over this grid (cells whose centre lies in a study part; the grid
+        # is in the frame's u, v, so the rings go through V.uv: sc_cell_mask would read them as u, v)
+        self.study = sc_rings(areas=getattr(V, "study", None) or [])
+        inS = self.inS = bytearray(N)
+        for R_ in self.study:
+            for n in G.poly_cells(uvP(R_)):
+                inS[n] = 1
+        if not self.study:
+            warn.append(u"corridor: no study area (calisma_alan): proposals are NOT clipped to it")
+            for n in range(N):
+                inS[n] = 1
+        self.dist_water()
+        self.hubs = []
+        for hid, br, xy, stop, sxy, sub in HUBS:
+            self.hubs.append({"id": hid, "bridge": br, "xy": xy, "stop": stop, "stop_xy": sxy, "sub": sub,
+                              "role": "transit" if hid in MAIN_TRANSIT_HUB else "walking",
+                              "stop_m": math.hypot(sxy[0] - xy[0], sxy[1] - xy[1]),
+                              "in_study": self.in_study(xy)})   # v38: a hub outside designs nothing (U40)
+        self.prog = [h for h in self.hubs if h["id"] != u"K6"]           # K6 = gateway out (D2): no programme ring
+        self.notes = []
+        self.build()
+
+    # ---- grid helpers
+    def in_study(self, p, margin_m=0.0):
+        """v38 (round 4, U40): world point p inside the study area (always True when there is none)"""
+        return sc_inside(p, self.study, margin_m) if self.study else True
+
+    def cell(self, p):
+        """Grid cell of world point p, or None outside the frame."""
+        u, v = self.V.uv(p)
+        G = self.G
+        i, j = int((u - G.x0) / G.c), int((v - G.y0) / G.c)
+        if 0 <= i < G.nx and 0 <= j < G.ny:
+            return j * G.nx + i
+        return None
+
+    def near_cells(self, xy, r):
+        """Cells whose centre lies within r m of world point xy."""
+        G = self.G
+        u, v = self.V.uv(xy)
+        out = []
+        for j in range(max(0, int((v - r - G.y0) / G.c)), min(G.ny, int((v + r - G.y0) / G.c) + 1)):
+            for i in range(max(0, int((u - r - G.x0) / G.c)), min(G.nx, int((u + r - G.x0) / G.c) + 1)):
+                if math.hypot(G.x0 + (i + 0.5) * G.c - u, G.y0 + (j + 0.5) * G.c - v) <= r:
+                    out.append(j * G.nx + i)
+        return out
+
+    def wxy(self, n):
+        return self.V.xy(*self.G.xy(n))
+
+    def dist_water(self):
+        G, F = self.G, self.F
+        nx, ny, c = G.nx, G.ny, G.c
+        Dst = self.Dst = [1e9] * self.N
+        hp = [(0.0, n) for n in range(self.N) if F[n] == 3]
+        for _, n in hp:
+            Dst[n] = 0.0
+        heapq.heapify(hp)
+        nb = [(1, 0, c), (-1, 0, c), (0, 1, c), (0, -1, c), (1, 1, c * 1.4142), (-1, 1, c * 1.4142),
+              (1, -1, c * 1.4142), (-1, -1, c * 1.4142)]
+        while hp:
+            d, n = heapq.heappop(hp)
+            if d > Dst[n] or d > DMAX_M:
+                continue
+            i, j = n % nx, n // nx
+            for di, dj, w in nb:
+                ii, jj = i + di, j + dj
+                if 0 <= ii < nx and 0 <= jj < ny:
+                    m = jj * nx + ii
+                    if (F[m] == 0 or F[m] == 3) and d + w < Dst[m]:
+                        Dst[m] = d + w
+                        heapq.heappush(hp, (d + w, m))
+
+    def dhub(self, p, hubs=None):
+        return min([math.hypot(p[0] - h["xy"][0], p[1] - h["xy"][1]) for h in (hubs or self.prog)] or [1e9])
+
+    def loops(self, cells, organic):
+        """World loops of a cell set: organic (smoothed) at the water, faceted elsewhere (form rule)."""
+        out = []
+        for Lp in trace(self.G, set(cells)):
+            Q = smooth(Lp, self.G.c * 0.9, 2 if organic else 0)
+            if len(Q) >= 3 and abs(area2(Q)) > 6.0 * self.G.c * self.G.c:
+                out.append([self.V.xy(u, v) for u, v in Q])
+        return out
+
+    def note(self, key, text, why, at):
+        """A numbered note (numbers given after all are made, upstream first); same key = one note, more places.
+        v38 (round 4, U40, P21.5): only its places inside the study area count; a note with none is not made."""
+        at = sc_points(list(at), self.study, page=u"p21") if self.study else list(at)
+        if not at:
+            self.dropped = getattr(self, "dropped", []) + [text]
+            return None
+        for nt in self.notes:
+            if nt["key"] == key:
+                nt["at"] += list(at)
+                return nt
+        self.notes.append({"key": key, "text": text, "why": list(why), "at": list(at)})
+        return self.notes[-1]
+
+    # ---- the design
+    def build(self):
+        F, Dst, N = self.F, self.Dst, self.N
+        open_ = lambda n: F[n] == 0 or F[n] == 3
+        self.max_loops = self.loops([n for n in range(N) if open_(n)], False)
+        self.road_loops = self.loops([n for n in range(N) if F[n] == 2], False)
+        self.bare_loops = self.loops([n for n in range(N) if F[n] == 0 and self.lc[n] == 0], False)   # v26
+        self.bed_loops = self.loops([n for n in range(N) if F[n] == 3], True)
+        inS = self.inS                                                   # v38: inside the study area only
+        self.eco = [(t, self.loops([n for n in range(N) if F[n] == 0 and Dst[n] <= t and inS[n]], t <= ECO_ORGANIC))
+                    for t in ECO_BANDS]                                  # v26: on open ground only, not the bed
+        dh = [1e9] * N
+        for n in range(N):
+            if F[n] == 0 and Dst[n] <= HUB_CORRIDOR and inS[n]:
+                dh[n] = self.dhub(self.wxy(n))
+        self.dh = dh
+        self.rings = [(r, self.loops([n for n in range(N) if dh[n] <= r], False)) for r in HUB_RINGS]
+        for h in self.hubs:                                              # the dry hub squares (faceted)
+            h["square"] = []
+            if h["id"] in (u"K6", u"Kızıl Avlu"):
+                continue
+            cs = [n for n in self.near_cells(h["xy"], HUB_SQ_M) if F[n] == 0 and Dst[n] >= 4.0 and inS[n]]
+            h["square"] = self.loops(cs, False)
+            h["trees"] = []
+            for L_ in h["square"]:
+                s = arclen(L_ + L_[:1])
+                t = 0.0
+                while t < s[-1]:
+                    h["trees"].append(at_len(L_ + L_[:1], s, t)[0])
+                    t += 9.0
+            h["sub_xy"] = self.sub_hub(h["xy"]) if h["sub"] else None
+            if h["sub_xy"] and not self.in_study(h["sub_xy"]["c"]):   # v38: a sub-hub only inside the study area
+                h["sub_xy"] = None
+        self.moves()
+        self.terraces()
+        self.planting()
+        self.crossings()
+        self.view_terrace()
+        self.make_notes()
+        self.no_go()
+
+    def sub_hub(self, xy):
+        """The bed station nearest a bridge anchor (within 60 m): its centre and both edges (D10 sub-hub)."""
+        best = min(self.rows, key=lambda x: (x["p"][0] - xy[0]) ** 2 + (x["p"][1] - xy[1]) ** 2) if self.rows else None
+        if best is None or math.hypot(best["p"][0] - xy[0], best["p"][1] - xy[1]) > 60.0:
+            return None
+        at = lambda t: (best["p"][0] + best["n"][0] * t, best["p"][1] + best["n"][1] * t)
+        e0, e1 = best["SW"]["e"], best["NE"]["e"]
+        return {"c": at((e0 + e1) / 2.0), "a": at(e0), "b": at(e1), "w": e1 - e0}
+
+    def free_out(self, x, side, sg):
+        """Open ground beyond a bank edge along the station's normal (m) and what stops it."""
+        e, t = x[side]["e"], 1.0
+        while t < FREE_MAX:
+            n = self.cell((x["p"][0] + x["n"][0] * (e + sg * t), x["p"][1] + x["n"][1] * (e + sg * t)))
+            if n is None:
+                return t, "frame"
+            if self.F[n] == 1:
+                return t, "building"
+            if self.F[n] == 2:
+                return t, "road"
+            t += self.G.c * 0.5
+        return FREE_MAX, "open"
+
+    def moves(self):
+        """Widen, side arm (branch), kept: per bank station, from the open ground beside the edge (open ground). Widening
+        and arms only from K5 downstream (spec: 'downstream'); kept everywhere (where we could not expand)."""
+        self.widen, self.arms, self.kept = [], [], []
+        ch5 = chain_at(self.ref, BRIDGES_K[4][1])[0] if self.ref else 0.0
+        st = self.rows
+        for side, sg in (("NE", 1.0), ("SW", -1.0)):
+            raw = [self.free_out(x, side, sg) for x in st]
+            fw = [_median([v[0] for v in raw[max(0, i - 4):i + 5]]) for i in range(len(raw))]
+            cls = []
+            for i, x in enumerate(st):
+                down = x["ch"] >= ch5 + 20.0
+                if not self.in_study((x["p"][0] + x["n"][0] * x[side]["e"], x["p"][1] + x["n"][1] * x[side]["e"])):
+                    cls.append(None)                     # v38 (U40): the bank point outside the study area: no move
+                    continue
+                cls.append("kept_" + raw[i][1] if fw[i] < KEPT_MAX else
+                           ("branch" if down and fw[i] >= BRANCH_MIN else ("widen" if down and fw[i] >= WIDEN_MIN else None)))
+
+            def runs(pred):
+                out, cur = [], []
+                for i, x in enumerate(st):
+                    if pred(cls[i]) and (not cur or x["ch"] - st[cur[-1]]["ch"] <= 3 * WALK_STEP):
+                        cur.append(i)
+                        continue
+                    if len(cur) * WALK_STEP >= MOVE_RUN_M:
+                        out.append(cur)
+                    cur = [i] if pred(cls[i]) else []
+                if len(cur) * WALK_STEP >= MOVE_RUN_M:
+                    out.append(cur)
+                return out
+            at = lambda x, t: (x["p"][0] + x["n"][0] * t, x["p"][1] + x["n"][1] * t)
+            for ix in runs(lambda c_: c_ in ("widen", "branch")):
+                L = len(ix)
+                inner, outer = [], []
+                for a, i in enumerate(ix):
+                    x, e = st[i], st[i][side]["e"]
+                    tap = min(1.0, (a + 1) / 6.0, (L - a) / 6.0)
+                    inner.append(at(x, e))
+                    outer.append(at(x, e + sg * min(WIDEN_K * fw[i], WIDEN_CAP) * tap))
+                ring_ = chaikin(inner + outer[::-1], 2, closed=True)
+                mid = st[ix[L // 2]]
+                for r_ in (sc_rings_clip(ring_, self.study, u"p21") if self.study else [ring_]):   # v38: clipped
+                    if len(r_) >= 3:
+                        self.widen.append({"ring": r_, "at": inner_pt(r_) if not self.in_study(
+                            at(mid, mid[side]["e"] + sg * 4.0)) else at(mid, mid[side]["e"] + sg * 4.0),
+                            "fw": (min(fw[i] for i in ix), max(fw[i] for i in ix))})
+            for ix in runs(lambda c_: c_ == "branch"):
+                if len(ix) * WALK_STEP < 2 * MOVE_RUN_M:
+                    continue
+                L = len(ix)
+                arm = []
+                for a, i in enumerate(ix):
+                    x, e = st[i], st[i][side]["e"]
+                    tap = math.sin(math.pi * min(1.0, (a + 0.5) / 10.0, (L - a - 0.5) / 10.0) / 2.0)
+                    arm.append(at(x, e + sg * min(ARM_K * fw[i], ARM_CAP) * tap))
+                for run in (sc_lines(chaikin(arm, 2), self.study, u"p21") if self.study else [chaikin(arm, 2)]):
+                    if len(run) >= 2 and arclen(run)[-1] >= MOVE_RUN_M:   # v38: the arm's runs inside the study
+                        self.arms.append({"P": [tuple(p) for p in run], "at": run[len(run) // 2]})
+            for why in ("building", "road", "frame"):
+                for ix in runs(lambda c_, w_=why: c_ == "kept_" + w_):
+                    mid = st[ix[len(ix) // 2]]
+                    if self.in_study(at(mid, mid[side]["e"] + sg * 2.0)):   # v38: only inside the study area
+                        self.kept.append({"why": why, "at": at(mid, mid[side]["e"] + sg * 2.0)})
+
+    def terraces(self):
+        """Upstream (from the frame's upstream end to K4, where the contours crowd): survey contours on open ground
+        TERRACE_D from the water become terrace edges; each holds the rain that runs down to it (ticks toward the
+        stream = down the valley side). Steepness = contour length per open hectare, upstream vs from K5 down."""
+        V = self.V
+        u4 = V.uv(BRIDGES_K[3][1])[0]
+        u5 = V.uv(BRIDGES_K[4][1])[0]
+        self.terr, per = [], {"up": [0.0, 0.0], "down": [0.0, 0.0]}
+
+        def ok(x, y):
+            n = self.cell((x, y))
+            return n is not None and self.F[n] == 0 and TERRACE_D[0] <= self.Dst[n] <= TERRACE_D[1] and \
+                V.uv((x, y))[0] < u4 and self.inS[n]           # v38: inside the study area
+        for P in self.contours:
+            for r_ in cut_runs(P, ok, 2.0):
+                if len(r_) >= 2 and arclen(r_)[-1] >= 15.0:
+                    self.terr.append(r_)
+            for a, b in zip(P, P[1:]):
+                q = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+                n = self.cell(q)
+                if n is None or self.F[n] != 0:
+                    continue
+                u = V.uv(q)[0]
+                k_ = "up" if u < u4 else ("down" if u > u5 else None)
+                if k_:
+                    per[k_][0] += math.hypot(b[0] - a[0], b[1] - a[1])
+        G = self.G
+        for n in range(self.N):
+            if self.F[n] == 0:
+                u = G.x0 + (n % G.nx + 0.5) * G.c
+                k_ = "up" if u < u4 else ("down" if u > u5 else None)
+                if k_:
+                    per[k_][1] += G.c * G.c / 10000.0
+        self.steep = dict((k_, v[0] / v[1] if v[1] > 0 else 0.0) for k_, v in per.items())
+
+    def planting(self):
+        """Forest corridor (dense) and tree-planted area (sparse) on open ground by distance from the water, away
+        from the hubs (H1: programme at the hubs, planting between); jittered grid (deterministic)."""
+        G, F, Dst = self.G, self.F, self.Dst
+        self.forest, self.trees = [], []
+        for (d0, d1, hmin, sp), out in ((FOREST, self.forest), (TREES, self.trees)):
+            s = max(1, int(round(sp / G.c)))
+            for j in range(0, G.ny, s):
+                for i in range(0, G.nx, s):
+                    jit = math.sin(i * 12.9898 + j * 78.233) * 43758.5453
+                    jit = jit - math.floor(jit)
+                    ii = min(G.nx - 1, i + int(jit * s))
+                    n = j * G.nx + ii
+                    if F[n] != 0 or not (d0 <= Dst[n] <= d1) or not self.inS[n]:   # v38: inside the study
+                        continue
+                    p = self.wxy(n)
+                    if self.dhub(p) >= hmin:
+                        out.append(p)
+        runs = [x for x in self.CL.get("W", {}).get("runs", []) if x.get("cls") == "bank" and len(x.get("F") or []) > 1]
+        keep = []
+        for x in runs:                                   # one canopied walkway per reach: the longer of two banks
+            other = [y for y in runs if y["bank"] != x["bank"] and min(x["ch1"], y["ch1"]) - max(x["ch0"], y["ch0"]) >
+                     0.5 * (x["ch1"] - x["ch0"]) and y["m"] > x["m"]]
+            if not other:
+                keep += [[tuple(p) for p in r_] for r_ in (sc_lines(list(x["F"]), self.study, u"p21") if self.study
+                                                           else [x["F"]]) if len(r_) >= 2]   # v38: inside only
+        self.canopy = keep
+        walk = [h for h in self.hubs if h["role"] == "walking" and h["id"] != u"K6"]
+        self.seats = []
+        for P in keep:
+            s = arclen(P)
+            t = 0.0
+            while t < s[-1]:
+                q = at_len(P, s, t)[0]
+                d = self.dhub(q, walk)
+                step = next((st_ for lim, st_ in SEAT_STEP if d <= lim), None)
+                if step is None:
+                    t += SEAT_STEP[-1][1]
+                    continue
+                self.seats.append(q)
+                t += step
+
+    def crossings(self):
+        """Bridges kept (K1-K6 within 40 m of the stream line), footbridges where a reach without a
+        crossing is longer than FOOT_GAP_M (at the open-ground station nearest the gap's middle, both landings open),
+        stepping stones at each sub-hub."""
+        ref = self.ref
+        if not ref:
+            self.cross, self.covered = [], []
+            return
+        s_ref = arclen(ref)
+        ch = []
+        for nm, xy in BRIDGES_K:
+            c_, d_ = chain_at(ref, xy)
+            if d_ <= 40.0:
+                ch.append((c_, nm, xy))
+        self.cross = [{"name": nm + u" bridge", "kind": "bridge kept", "xy": xy} for c_, nm, xy in ch]
+        lo = min((chain_at(ref, p)[0] for p in self.V.P), default=0.0)
+        hi = max((chain_at(ref, p)[0] for p in self.V.P), default=s_ref[-1])
+        cov = stream_ref()[1]
+        cs = sorted([lo] + [c_ for c_, _, _ in ch] + [min(hi, s_ref[-1])])
+        rows = self.rows
+        n_ft = 0
+        for a, b in zip(cs, cs[1:]):
+            gap = b - a
+            if gap <= FOOT_GAP_M:
+                continue
+            k_ = int(math.ceil(gap / FOOT_GAP_M)) - 1
+            for q in range(1, k_ + 1):
+                target = a + gap * q / (k_ + 1.0)
+                cand = [x for x in rows if abs(x["ch"] - target) <= gap / (2.0 * (k_ + 1)) and
+                        self.in_study(x["p"])]           # v38: footbridges only inside the study area
+                cand.sort(key=lambda x: abs(x["ch"] - target))
+                for x in cand:
+                    if self.free_out(x, "NE", 1.0)[0] >= 4.0 and self.free_out(x, "SW", -1.0)[0] >= 4.0:
+                        at = lambda t: (x["p"][0] + x["n"][0] * t, x["p"][1] + x["n"][1] * t)
+                        A_, B_ = at(x["SW"]["e"] - 3.0), at(x["NE"]["e"] + 3.0)
+                        n_ft += 1
+                        self.cross.append({"name": u"footbridge {}".format(n_ft), "kind": "footbridge",
+                                           "xy": ((A_[0] + B_[0]) / 2.0, (A_[1] + B_[1]) / 2.0), "P": [A_, B_],
+                                           "gap": gap})
+                        break
+        for h in self.hubs:
+            if h.get("sub_xy"):
+                self.cross.append({"name": u"stepping stones " + h["id"], "kind": "stepping stones",
+                                   "xy": h["sub_xy"]["c"], "P": [h["sub_xy"]["a"], h["sub_xy"]["b"]]})
+        self.covered = [P for P in self.CL.get("W", {}).get("covered", [])] or \
+            [[ref[i], ref[i + 1]] for i in range(len(ref) - 1) if i < len(cov) and cov[i]]
+
+    def view_terrace(self):
+        """H5 (D5; h03 Q3): the viewing terrace, sited by a computed sightline to the Trajaneum (TRAJANEUM). Method:
+        candidates = open ground (no building, no road, not the bed) 4-40 m from the water between the frame's
+        upstream end and K3; a candidate is clear when the straight line from it toward the Trajaneum crosses no
+        survey building inside the site frame (plan check, 2D: no surveyed summit point, the acropolis height is
+        uncertain 300/335/336 m, so no height-based visibility is computed); of the clear ones the terrace takes the
+        highest ground (survey spot heights NOKTA_TAKEOMETRI within 12 m), else the one nearest K4. Beyond the frame
+        the line is not checked."""
+        self.terrace = None
+        F, Dst, G = self.F, self.Dst, self.G
+        u3 = self.V.uv(BRIDGES_K[2][1])[0]
+        bk = {}
+        for q in self.spots:                                  # spot heights bucketed in 12 m cells
+            bk.setdefault((int(q[0] // 12.0), int(q[1] // 12.0)), []).append(q)
+        best = None
+        for n in range(0, self.N, 3):
+            if F[n] != 0 or not (4.0 <= Dst[n] <= 40.0) or not self.inS[n]:   # v38: inside the study area
+                continue
+            if G.x0 + (n % G.nx + 0.5) * G.c > u3:
+                continue
+            p = self.wxy(n)
+            dx, dy = TRAJANEUM[0] - p[0], TRAJANEUM[1] - p[1]
+            L = math.hypot(dx, dy) or 1.0
+            t, clear = G.c, True
+            while t < 600.0:
+                m = self.cell((p[0] + dx / L * t, p[1] + dy / L * t))
+                if m is None:
+                    break
+                if F[m] == 1:
+                    clear = False
+                    break
+                t += G.c
+            if not clear:
+                continue
+            gx, gy = int(p[0] // 12.0), int(p[1] // 12.0)
+            zs = [q[2] for di in (-1, 0, 1) for dj in (-1, 0, 1) for q in bk.get((gx + di, gy + dj), ())
+                  if abs(q[0] - p[0]) <= 12.0 and abs(q[1] - p[1]) <= 12.0]
+            k4 = math.hypot(p[0] - BRIDGES_K[3][1][0], p[1] - BRIDGES_K[3][1][1])
+            score = (max(zs) if zs else -1e9, -k4)
+            if best is None or score > best[0]:
+                best = (score, p, max(zs) if zs else None, L)
+        if best is not None:
+            self.terrace = {"xy": best[1], "z": best[2], "d": best[3],
+                            "dir": ((TRAJANEUM[0] - best[1][0]) / best[3], (TRAJANEUM[1] - best[1][1]) / best[3])}
+        else:
+            self.warn.append(u"viewing terrace: no open ground with a clear line to the Trajaneum (upstream of K3)")
+
+    def make_notes(self):
+        """The numbered notes: short note + stacked reasons (D11), each reason an analysis in the booklet (D12)."""
+        V = self.V
+        for h in self.hubs:
+            hid = h["id"]
+            sq = [inner_pt(max(h["square"], key=lambda L_: abs(area2(L_))))] if h.get("square") else [h["xy"]]
+            stop = u"bus stop {} {:.0f} m".format(h["stop"], h["stop_m"])
+            if h["role"] == "transit":
+                txt = u"TRANSIT HUB · {}".format(HUB_NAME[hid])
+                why = [u"town bus lines stop here (h03 Q1)", stop]
+                why += [u"H2 culvert under the square: hidden-stream square", u"D8 plane trees, irrigated from storage"] \
+                    if hid == u"İstiklal" else [u"H2 " + landmark_name("kizil_avlu") + u" tunnels"]
+            elif hid == u"K6":
+                txt, why = u"GATEWAY OUT · " + mp_upper(bridge_name("K6")), [u"OSM primary road kept (h02 E12)", stop]
+            else:
+                txt = u"WALKING HUB · {} · DRY SQUARE{}".format(mp_upper(bridge_name(hid)), u" + BED SUB-HUB" if h.get("sub_xy") else u"")
+                # v26.1 (Prompt 8): the reason is the analysis' own name ("open ground (open ground)" read twice)
+                why = [u"H1 Roman bridge", u"open ground", stop, u"D8 plane trees, irrigated from storage"]
+                if h.get("sub_xy"):
+                    why.append(u"sub-hub closes in floods (Q100/Q500 cuts)")
+                if hid == u"K3":
+                    why.insert(1, u"H3 tanning reach: workshops, education")
+                if hid == u"K5":
+                    why.insert(1, u"Demeter's Garden: Q500 stays in the banks at the K5 cut")
+            self.note(("hub", hid), txt, why, sq)
+        self.note(("h4",), u"STEP TO THE WATER FACING TABAKLAR HAMAMI", [u"H4 bath ruin 1.5 m from the stream"],
+                  [PLACES[1][1]])
+        self.note(("h6",), u"DECK OVER THE ROMAN BANK WALL", [u"H6 Roman bank wall, ~120 m (h01 P12)"],
+                  [ROMAN_WALL])                          # v26.1: h01's place register P12 (it read like a page number)
+        if self.terrace:
+            z = u", highest clear ground +{:.1f} m".format(self.terrace["z"]) if self.terrace["z"] is not None else u""
+            self.note(("view",), u"VIEWING TERRACE · {} {:,.0f} m".format(   # closing G-R4-11: the names table
+                mp_upper(landmark_name("trajan_tapinagi")), self.terrace["d"]),
+                      [u"H5 computed sightline: no building on the line (site frame){}".format(z)], [self.terrace["xy"]])
+        for z in self.D.zones:
+            if z["code"] == "WT":
+                self.note(("wt",), u"WATER CLEANED ONCE · REED BASINS",
+                          [u"collect, clean, hold chain (water board)", u"clean-water classroom (city link stop 7)"],
+                          [z["q"]])
+        if self.terr:
+            st = self.steep
+            self.note(("terr",), u"TERRACES ON THE CONTOURS HOLD THE RAIN",
+                      [u"survey contours: {:.0f} m/ha upstream, {:.0f} m/ha below K5".format(st.get("up", 0.0),
+                                                                                        st.get("down", 0.0)),
+                       u"overflow to the reed basins (collect, clean, hold)"],
+                      [self.terr[len(self.terr) // 2][len(self.terr[len(self.terr) // 2]) // 2]])
+        if self.covered:
+            P = max(self.covered, key=lambda P: arclen(P)[-1])
+            self.note(("cov",), u"NOTHING OPENED · WATER LINE IN THE PAVING",
+                      [u"H2 covered reach, ~240 m without stream lines (h02 E01)"],
+                      [at_len(P, arclen(P), arclen(P)[-1] / 2.0)[0]])
+        if self.widen:
+            lo, hi = min(w["fw"][0] for w in self.widen), max(w["fw"][1] for w in self.widen)
+            self.note(("widen",), u"STREAM WIDENED: ROOM FOR WATER, WETLAND",
+                      [u"open ground {:.0f}-{:.0f} m beside the bank (open ground)".format(lo, hi)],
+                      [w["at"] for w in self.widen])
+        if self.arms:
+            self.note(("arm",), u"SIDE ARM: REED CHANNEL CLEANS THE RETURN",
+                      [u"open ground >= {:.0f} m (open ground)".format(BRANCH_MIN), u"H7 downstream working edge (h02 E11)"],
+                      [a["at"] for a in self.arms])
+        for why, txt in (("building", u"KEPT: BUILDINGS STAND AT THE BANK"), ("road", u"KEPT: A ROAD RUNS AT THE BANK"),
+                         ("frame", u"NOTHING PLACED: EDGE OF THE SITE FRAME")):
+            at = []
+            for k in self.kept:                          # one badge per KEPT_SPACE_M at most (legible plan)
+                if k["why"] == why and all(math.hypot(k["at"][0] - q[0], k["at"][1] - q[1]) >= KEPT_SPACE_M for q in at):
+                    at.append(k["at"])
+            if at:
+                self.note(("kept", why), txt, [u"no room to open it (open ground)"], at)
+        ft = [c_ for c_ in self.cross if c_["kind"] == "footbridge"]
+        if ft:
+            self.note(("foot",), u"FOOTBRIDGE: {:.0f}+ m WITHOUT A CROSSING".format(FOOT_GAP_M),
+                      [u"crossings K1-K6 (edge plan)", u"both landings open (open ground)"], [c_["xy"] for c_ in ft])
+        for rd in ROADS + [TOWN_LINE]:                   # v38: the note sits on the road's longest run inside
+            runs = [r_ for r_ in (sc_lines(rd["xy"], self.study) if self.study else [rd["xy"]]) if len(r_) >= 2]
+            if not runs:
+                self.dropped = getattr(self, "dropped", []) + [rd["note"]]
+                continue
+            P = max(runs, key=lambda r_: arclen(r_)[-1])
+            mid = at_len(P, arclen(P), arclen(P)[-1] / 2.0)[0]
+            self.note(("road", rd["name"]), rd["note"].upper(), [rd["proof"]], [mid])
+        self.notes.sort(key=lambda nt: min(V.uv(p)[0] for p in nt["at"]))
+        for i, nt in enumerate(self.notes, 1):
+            nt["n"] = i
+
+    def no_go(self):
+        """v26 (Prompt 7 task 1): the areas the plan leaves untouched, each with why, from the data only. Touched =
+        the bed, the planting gradient (open ground up to ECO_BANDS[-1] m from the water), the programme rings, the
+        reed basins and Demeter's Garden, and NI_ROAD_M either side of a changed road or the hidden-stream line. On
+        NI_BLOCK m blocks: a block is untouched when NI_SHARE of its cells are; untouched blocks join (4-connected)
+        into built ones (buildings and streets >= NI_BUILT of the block) and open ones; regions of NI_MIN_HA or more
+        get a note. Why: built = the survey's building kinds (homes BINA_MESKEN, heritage, other) or built since the
+        survey (satellite check); open = the ESA WorldCover 2021 classes of its open cells and how far it lies from
+        the water through open ground (or that no open path reaches the water within DMAX_M m). No data maps private
+        plots, the heritage protection zone or the Q100 flood extent as areas: those reasons are not used."""
+        F, Dst, G, N, V = self.F, self.Dst, self.G, self.N, self.V
+        nx, ny = G.nx, G.ny
+        touch = bytearray(N)
+        for n in range(N):
+            if F[n] == 3 or (F[n] == 0 and (Dst[n] <= ECO_BANDS[-1] or self.dh[n] <= HUB_RINGS[-1])):
+                touch[n] = 1
+        for z in self.D.zones:
+            if z["code"] in ("WT", "DG"):
+                for n in G.poly_cells([V.uv(p) for p in z["P"]]):
+                    touch[n] = 1
+        r = max(1, int(round(NI_ROAD_M / G.c)))
+        for P in [rd["xy"] for rd in ROADS + [TOWN_LINE] if rd["change"] != "kept"] + list(self.covered):
+            for n in G.line_cells([V.uv(p) for p in P]):
+                i, j = n % nx, n // nx
+                for jj in range(max(0, j - r), min(ny, j + r + 1)):
+                    for ii in range(max(0, i - r), min(nx, i + r + 1)):
+                        touch[jj * nx + ii] = 1
+        s = max(1, int(round(NI_BLOCK / G.c)))
+        bx, by = (nx + s - 1) // s, (ny + s - 1) // s
+        blk = {}
+        for b in range(bx * by):
+            i0, j0 = (b % bx) * s, (b // bx) * s
+            cs = [j * nx + i for j in range(j0, min(ny, j0 + s)) for i in range(i0, min(nx, i0 + s))]
+            if not cs or not self.inS[cs[len(cs) // 2]]:   # v38: only blocks centred in the study area
+                continue
+            if sum(1 for n in cs if not touch[n]) >= NI_SHARE * len(cs):
+                blk[b] = "built" if sum(1 for n in cs if F[n] in (1, 2)) >= NI_BUILT * len(cs) else "open"
+        nb4 = lambda b: ((b + 1) if b % bx + 1 < bx else -1, (b - 1) if b % bx else -1,
+                         (b + bx) if b // bx + 1 < by else -1, (b - bx) if b // bx else -1)   # -1 = off the grid
+        self.nogo, seen = [], set()
+        what = {1: u"homes", 2: u"buildings", 3: u"heritage buildings", 4: u"sheds", 5: u"built since the survey"}
+        lc_nm = {0: u"no plant cover", 1: u"cropland", 2: u"tree cover", 3: u"scrub", 4: u"grassland",
+                 5: u"orchards"}                         # LC_KEYS order
+        for b0 in sorted(blk):
+            if b0 in seen:
+                continue
+            kind, reg, q = blk[b0], [], [b0]
+            seen.add(b0)
+            while q:                                     # the region: 4-connected blocks of the same kind
+                b = q.pop()
+                reg.append(b)
+                for m in nb4(b):
+                    if m >= 0 and m not in seen and blk.get(m) == kind:
+                        seen.add(m)
+                        q.append(m)
+            cells = [j * nx + i for b in reg for j in range((b // bx) * s, min(ny, (b // bx) * s + s))
+                     for i in range((b % bx) * s, min(nx, (b % bx) * s + s))]
+            ha = len(cells) * G.c * G.c / 1e4
+            if ha < NI_MIN_HA_STUDY:                     # v38: every region is inside the study area now
+                continue
+            if kind == "built":
+                cnt = {}
+                for n in cells:
+                    if F[n] == 1:
+                        cnt[self.bt[n]] = cnt.get(self.bt[n], 0) + 1
+                tot = sum(cnt.values())
+                top = max(cnt, key=cnt.get) if cnt else None
+                if top is None:
+                    why = u"streets (survey)"
+                elif top == 5:
+                    why = u"built since the survey (satellite check)"
+                elif cnt[top] >= 0.5 * tot:
+                    why = u"{} (survey)".format(what[top])
+                else:
+                    why = u"buildings and streets (survey)"
+            else:
+                cnt = {}
+                op = [n for n in cells if F[n] == 0]
+                for n in op:
+                    cnt[self.lc[n]] = cnt.get(self.lc[n], 0) + 1
+                ks = sorted(cnt, key=lambda k_: -cnt[k_])
+                nm = lc_nm[ks[0]] if ks else u"open ground"
+                if len(ks) > 1 and cnt[ks[0]] < 0.6 * len(op):
+                    nm += u" and " + lc_nm[ks[1]]
+                d = min([Dst[n] for n in op if Dst[n] < 1e8] or [None]) if op else None
+                far = u"{:.0f} m from the water".format(10.0 * math.ceil(d / 10.0)) if d is not None else \
+                    u"no open way to the water within {:.0f} m".format(DMAX_M)
+                why = u"{} (satellite 2021), {}".format(nm, far)
+            inreg = set(reg)                              # label spots: the blocks farthest inside, first
+            dist, q = {}, []
+            for b in reg:
+                if any(m_ not in inreg for m_ in nb4(b)):
+                    dist[b] = 0
+                    q.append(b)
+            for b in q:                                   # breadth first inward (q grows while it is walked)
+                for m_ in nb4(b):
+                    if m_ in inreg and m_ not in dist:
+                        dist[m_] = dist[b] + 1
+                        q.append(m_)
+            spots = sorted(reg, key=lambda b: -dist.get(b, 0))[:24]
+            at = [V.xy(G.x0 + ((b % bx) * s + s / 2.0) * G.c, G.y0 + ((b // bx) * s + s / 2.0) * G.c) for b in spots]
+            at = [q for q in at if self.in_study(q)] or at
+            reg_ = {"kind": kind, "why": why, "ha": ha, "at": at, "cells": cells,
+                    "top": (top if kind == "built" else (ks[0] if ks else None)), "d": None if kind == "built" else d}
+            reg_.update(self.void_design(reg_))
+            self.nogo.append(reg_)
+        self.nogo.sort(key=lambda r_: -r_["ha"])
+
+    def void_design(self, reg):
+        """v38 (round 4, P21.7, open row 2; Aras 1 Nov 07:30 "it needs to be designed"; r3 G18): each untouched
+        region inside the study area becomes a designed place: a name, a short reason (from its data: survey
+        building kind or ESA WorldCover 2021 class and its distance to the water), its outline and what is planted
+        in it. Only sourced species (D7) and the project's own programme words; the design rules (VOID_RULES) are
+        design readings, not data. Returns dict(design, place, reason, rings, trees, shrubs).
+        Round 5 (S6; G-R5-9, G-R5-7, CHK-5 b/d/e): the outline is ORGANIC (loops(..., True): the cell trace
+        smoothed, no stepped blocks, U61/U62: the "B" and "C" shapes of S25); no grid planting any more: the
+        meadows and gardens are planted on the page by the planting placer (pages/p23_plan.py pl23_void_plants,
+        common/planting.py: copses fading from the corridor, never a grid, never two species in turn); the lane
+        trees stand on the surveyed kerbs by dart throwing (uneven gaps VOID_LANE_GAP, row-like picks rejected with
+        _pla_rowlike, plane or ash by a seeded draw, not in turn). trees = [((x, y), species)]."""
+        cells = reg["cells"]
+        rings = self.loops(cells, True)
+        F = self.F
+        out = dict(rings=rings, trees=[], shrubs=[])
+        if reg["kind"] == "built":
+            if reg["top"] == 3:                          # heritage: its setting stays as it is (explained, G18)
+                out.update(design="heritage", place=VOID_RULES["heritage"][0], reason=VOID_RULES["heritage"][1])
+                return out
+            out.update(design="lanes", place=VOID_RULES["lanes"][0], reason=VOID_RULES["lanes"][1])
+            box = bbox([p for r_ in rings for p in r_]) if rings else None
+            cs = set(cells)
+            rnd = random.Random(int(reg["ha"] * 1000) + len(cells))
+            pts = []
+            for P in self.kerbs:                         # lane trees on the surveyed kerbs inside the region
+                if box is None or not hit(bbox(P), box):
+                    continue
+                s_ = arclen(P)
+                t = rnd.uniform(*VOID_LANE_GAP) / 2.0
+                while t < s_[-1]:
+                    q = at_len(P, s_, t)[0]
+                    t += rnd.uniform(*VOID_LANE_GAP)
+                    n = self.cell(q)
+                    if n is None or n not in cs or F[n] == 1 or not self.in_study(q):
+                        continue
+                    if any(math.hypot(q[0] - o[0], q[1] - o[1]) < VOID_LANE_GAP[0] * 0.8 for o in pts):
+                        continue
+                    if len(pts) >= 2 and _pla_rowlike(q, pts, 3.0 * VOID_LANE_GAP[1]):
+                        continue
+                    pts.append(q)
+                    out["trees"].append((q, "plane" if rnd.random() < 0.6 else "ash"))
+            return out
+        lc, d = reg["top"], reg["d"]
+        if lc == 2:                                      # tree cover: kept, a grove with paths, joined to the corridor
+            out.update(design="grove", place=VOID_RULES["grove"][0], reason=VOID_RULES["grove"][1])
+            return out
+        key = "meadow" if d is not None else "garden"    # an open way to the water: rain meadow; none: pocket garden
+        out.update(design=key, place=VOID_RULES[key][0], reason=VOID_RULES[key][1])
+        return out
+
+    def movement(self):
+        """masterplan_results.json "movement" (spec §4; survey coordinates)."""
+        r2 = lambda p: [round(p[0], 1), round(p[1], 1)]
+        roads = [{"name": rd["name"], "change": rd["change"], "note": rd["note"], "reason_proof": rd["proof"],
+                  "xy": [r2(p) for p in rd["xy"]]} for rd in ROADS]
+        routes = [{"name": TOWN_LINE["name"], "note": TOWN_LINE["note"], "later": True, "change": TOWN_LINE["change"],
+                   "reason_proof": TOWN_LINE["proof"], "xy": [r2(p) for p in TOWN_LINE["xy"]]}]   # site board v44
+        cross = []
+        for c_ in self.cross:
+            note = {"bridge kept": u"existing bridge kept", "stepping stones": u"sub-hub crossing, closes in floods",
+                    "footbridge": u"{:.0f} m reach without a crossing".format(c_.get("gap", 0.0))}[c_["kind"]]
+            cross.append({"name": c_["name"], "kind": c_["kind"], "note": note, "xy": r2(c_["xy"])})
+        hubs = [{"name": HUB_NAME[h["id"]], "bridge": h["bridge"], "xy": r2(h["xy"]), "bus_stop": h["stop"],
+                 "bus_stop_m": round(h["stop_m"], 0), "sub_hub": bool(h.get("sub_xy")), "role": h["role"]}
+                for h in self.hubs]
+        return {"roads": roads, "routes": routes, "truck_route": None, "crossings": cross, "hubs": hubs,
+                "pending": [u"truck_route: no data names the truck route (no HGV tags in OSM, no KGM count on the "
+                            u"streets by the stream, card t01)", u"bus line numbers per hub (only the later town line "
+                            u"to K4 is named)"]}
+
+
+# ================================================================ v24: drawing the corridor on a plan
+def ticks_line(pg, P, colour, lw, every, size, side=1.0, alpha=None):
+    """A line with short ticks every `every` mm to one side (terrace edges, pergola). v26: alpha (proposals)."""
+    if len(P) < 2:
+        return
+    pg.line(P, colour, lw, alpha=alpha)
+    s = arclen(P)
+    t = every / 2.0
+    while t < s[-1]:
+        (x, y), (ux, uy) = at_len(P, s, t)
+        pg.line([(x, y), (x - uy * size * side, y + ux * size * side)], colour, lw * 0.8, alpha=alpha)
+        t += every
+
+
+def soft_fill(pg, rings, colour, a, halo=0.6):
+    """v26 (Prompt 7 rule 1): a proposed area as a fading field: a translucent fill and, outside its edge only
+    (even-odd clip), a halo of translucent strokes thinning outward. No outline."""
+    rings = [r_ for r_ in rings if len(r_) >= 3]
+    if not rings:
+        return
+    pg.poly(rings, fill=colour, alpha=a)
+    b = bbox([p for r_ in rings for p in r_])
+    pg.clip([rect(b[0] - halo - 1.0, b[1] - halo - 1.0, b[2] + halo + 1.0, b[3] + halo + 1.0)] + rings)
+    for f in (1.0, 0.66, 0.33):
+        for r_ in rings:
+            pg.line(r_ + r_[:1], colour, 2.0 * halo * f, alpha=a * 0.35)
+    pg.unclip()
+
+
+def soft_line(pg, P, colour, w, a):
+    """v26 (Prompt 7 rule 1): a proposed line as a band densest along its middle, fading to its sides."""
+    for f in (1.0, 0.62, 0.3):
+        pg.line(P, colour, w * f, alpha=a * 0.4)
+
+
+def icon(pg, kind, x, y, s):
+    """Pictograms (page mm, centre x, y, size s)."""
+    W_, ink = COL["white"], COL["ink_dark"]
+    if kind == "cafe":
+        pg.poly([rect(x - s * 0.35, y - s * 0.35, x + s * 0.25, y + s * 0.25)], fill=MP["centre"][2])
+        pg.circle(x + s * 0.33, y - s * 0.05, s * 0.14, stroke=MP["centre"][2], lw=0.25)
+    elif kind == "edu":
+        pg.poly([[(x, y - s * 0.3), (x - s * 0.45, y - s * 0.15), (x - s * 0.45, y + s * 0.35), (x, y + s * 0.2)],
+                 [(x, y - s * 0.3), (x + s * 0.45, y - s * 0.15), (x + s * 0.45, y + s * 0.35), (x, y + s * 0.2)]],
+                fill=COL["accent_dark"])
+    elif kind == "seat":
+        pg.poly([rect(x - s * 0.4, y - s * 0.1, x + s * 0.4, y + s * 0.1)], fill=ink)
+    elif kind == "transit":
+        pg.poly([rect(x - s * 0.5, y - s * 0.5, x + s * 0.5, y + s * 0.5)], fill=COL["accent_dark"], stroke=W_, lw=0.3)
+        pg.poly([rect(x - s * 0.28, y - s * 0.05, x + s * 0.28, y + s * 0.28)], fill=W_)
+        pg.circle(x - s * 0.18, y - s * 0.25, s * 0.09, fill=W_)
+        pg.circle(x + s * 0.18, y - s * 0.25, s * 0.09, fill=W_)
+    elif kind == "walkhub":
+        pg.poly([rect(x - s * 0.5, y - s * 0.5, x + s * 0.5, y + s * 0.5)], fill=SQ_EDGE, stroke=W_, lw=0.3)
+        pg.circle(x, y + s * 0.22, s * 0.12, fill=W_)
+        pg.line([(x, y + s * 0.08), (x, y - s * 0.3)], W_, 0.35)
+    elif kind == "sub":
+        pg.poly([[(x, y + s * 0.5), (x + s * 0.5, y), (x, y - s * 0.5), (x - s * 0.5, y)]], fill=COL["river_dark"],
+                stroke=W_, lw=0.25)
+    elif kind == "gate":
+        pg.poly([[(x - s * 0.5, y + s * 0.45), (x + s * 0.5, y), (x - s * 0.5, y - s * 0.45), (x - s * 0.2, y)]],
+                fill=COL["ink_dark"])
+    elif kind == "view":
+        pg.poly([[(x - s * 0.5, y - s * 0.3), (x + s * 0.5, y - s * 0.3), (x, y + s * 0.5)]], fill=COL["accent"])
+    elif kind == "deck":
+        pg.poly([rect(x - s * 0.5, y - s * 0.3, x + s * 0.5, y + s * 0.3)], fill=COL["histwall"], stroke=W_, lw=0.25)
+
+
+# ================================================================ v24: the legend (rebuilt for the corridor)
+def _sw_fill(fill, stroke=None, alpha=None, stripes=None):
+    def f(pg, x, y, w, h):
+        pg.poly([rect(x, y, x + w, y + h)], fill=fill, alpha=alpha, stripes=stripes)
+        if stroke:
+            pg.poly([rect(x, y, x + w, y + h)], stroke=stroke, lw=0.25)
+    return f
+
+
+def _sw_line(colour, lw, dash=None, alpha=None):
+    def f(pg, x, y, w, h):
+        pg.line([(x, y + h / 2), (x + w, y + h / 2)], colour, lw, dash, cap=0 if dash else 1, alpha=alpha)
+    return f
+
+
+def _sw_grad(colour):
+    def f(pg, x, y, w, h):
+        for i in range(4):
+            pg.poly([rect(x + w * i / 8.0, y, x + w - w * i / 8.0, y + h)], fill=colour, alpha=0.18)
+    return f
+
+
+def _sw_soft(colour, a, stripes=None):
+    """v26: a proposed area: fading field, no outline (as soft_fill)."""
+    def f(pg, x, y, w, h):
+        R = rect(x + 0.5, y + 0.4, x + w - 0.5, y + h - 0.4)
+        soft_fill(pg, [R], colour, a, 0.4)
+        if stripes:
+            pg.poly([R], stripes=stripes, alpha=0.35)
+    return f
+
+
+def _sw_softline(colour, lw, a):
+    """v26: a proposed line: band fading to its sides (as soft_line)."""
+    def f(pg, x, y, w, h):
+        soft_line(pg, [(x + 0.6, y + h / 2), (x + w - 0.6, y + h / 2)], colour, lw, a)
+    return f
+
+
+def _sw_icon(kind, s=2.4):
+    def f(pg, x, y, w, h):
+        icon(pg, kind, x + w / 2, y + h / 2, s)
+    return f
+
+
+def _sw_dots(colour, r, alpha):
+    def f(pg, x, y, w, h):
+        for i in range(4):
+            pg.circle(x + w * (i + 0.5) / 4, y + h / 2, r, fill=colour, alpha=alpha)
+    return f
+
+
+def _sw_ticks(colour, lw, alpha=None):
+    def f(pg, x, y, w, h):
+        ticks_line(pg, [(x, y + h * 0.6), (x + w, y + h * 0.6)], colour, lw, 1.4, 0.7, -1.0, alpha=alpha)
+    return f
+
+
+# v26: short names (the legend runs in columns under the plan); EXISTING = the survey (crisp), the rest proposed (soft)
+EXISTING = ("bed", "bld", "her", "since", "bridge", "street", "study")   # v27 (G8): the study area, not the frame
+LEGEND_V24 = [
+    ("bed", u"Stream bed", _sw_fill(WATER_COL)),
+    ("bld", u"Building", _sw_fill(COL["bld"])),
+    ("her", u"Heritage building", _sw_fill(COL["her"], COL["her_edge"])),
+    ("since", u"Built since survey", _sw_fill(COL["bld"], stripes=(COL["ink_dark"], 0.8, 0.15, 45.0))),
+    ("bridge", u"Bridge", _sw_line(COL["ink_dark"], 0.3)),
+    ("street", u"Street edge", _sw_line(ROAD_TONE[1], 0.3)),
+    ("study", R28_STUDY_NAME, _sw_line(R28_STUDY_LINE["colour"], R28_STUDY_LINE["width_mm"],
+                                       list(R28_STUDY_LINE["dash_mm"]))),   # v27 (MIRAQUA 28 Oct, G8)
+    ("eco", u"Planting gradient", _sw_grad(ECO_COL)),
+    ("ring", u"Programme at hubs", _sw_grad(HUB_COL)),
+    ("widen", u"Stream widened", _sw_soft(WET_COL, 0.85)),
+    ("arm", u"Reed side arm", _sw_softline(COL["river_mid"], 1.6, 0.6)),
+    ("reed", u"Reed basins", _sw_soft(WET_COL, 0.8, (COL["river_dark"], 0.9, 0.15, 90.0))),
+    ("dg", u"Demeter's Garden", _sw_soft(MP["agriculture"][2], 0.16)),
+    ("hidden", u"Hidden stream line", _sw_line(COL["river_mid"], 0.8, [1.6, 0.9], alpha=0.7)),
+    ("terrace", u"Rain terrace", _sw_ticks(MP["storage"][2], 0.3, 0.7)),
+    ("forest", u"Forest corridor", _sw_dots(COL["tree_mid"], 0.6, 0.6)),
+    ("trees", u"Tree-planted area", _sw_dots(COL["tree"], 0.6, 0.4)),
+    ("square", u"Hub square, trees", _sw_soft(SQ_EDGE, 0.22)),
+    ("canopy", u"Canopied walkway", _sw_ticks(MP["centre"][2], 0.45, 0.6)),
+    ("walkhub", u"Walking hub", _sw_icon("walkhub")),
+    ("transit", u"Transit hub", _sw_icon("transit")),
+    ("gate", u"Gateway out", _sw_icon("gate")),
+    ("sub", u"Sub-hub in the bed", _sw_icon("sub")),
+    ("stones", u"Stepping stones", _sw_dots(COL["ink2"], 0.45, 0.7)),
+    ("foot", u"New footbridge", _sw_softline(COL["ink_dark"], 0.8, 0.8)),
+    ("seat", u"Seats", _sw_icon("seat")),
+    ("cafe", u"Cafe", _sw_icon("cafe")),
+    ("edu", u"Education", _sw_icon("edu")),
+    ("view", u"Viewing terrace", _sw_icon("view")),
+    ("sight", u"Sightline", _sw_line(COL["accent"], 0.35, [1.4, 0.8], alpha=0.7)),
+    ("deck", u"Deck, archaeology", _sw_icon("deck")),
+    ("road_calmed", u"Road calmed", _sw_softline(ROAD_CHANGE_COL["calmed"], 1.6, 0.75)),
+    ("road_pedestrian", u"Road pedestrian", _sw_softline(ROAD_CHANGE_COL["pedestrian"], 1.6, 0.75)),
+    ("road_shared", u"Road shared", _sw_softline(ROAD_CHANGE_COL["shared"], 1.6, 0.75)),
+    ("road_kept", u"Road kept", _sw_softline(ROAD_CHANGE_COL["kept"], 1.6, 0.75)),
+    ("road_later", u"Bus line, later", _sw_line(ROAD_CHANGE_COL["later"], 0.6, [2.0, 1.0], alpha=0.6))]
+# the same as booklet footer entries (fill / line / dot + plain name) for the 1:1,000 crops
+LEG_BOOK = {"eco": ("fill", mix(COL["white"], ECO_COL, 0.4)), "ring": ("fill", mix(COL["white"], HUB_COL, 0.45)),
+            "bed": ("fill", WATER_COL), "widen": ("fill", WET_COL), "reed": ("fill", WET_COL),
+            "hidden": ("line", COL["river_mid"]), "terrace": ("line", MP["storage"][2]), "forest": ("dot", COL["tree_mid"]),
+            "trees": ("dot", COL["tree"]), "square": ("fill", mix(COL["white"], SQ_EDGE, 0.22)),
+            "sub": ("dot", COL["river_dark"]), "stones": ("dot", COL["ink2"]), "foot": ("line", COL["ink_dark"]),
+            "canopy": ("line", MP["centre"][2]), "seat": ("line", COL["ink_dark"]), "cafe": ("fill", MP["centre"][2]),
+            "edu": ("fill", COL["accent_dark"]), "view": ("dot", COL["accent"]), "deck": ("fill", COL["histwall"]),
+            "transit": ("fill", COL["accent_dark"]), "walkhub": ("fill", SQ_EDGE),
+            "road_calmed": ("line", ROAD_CHANGE_COL["calmed"]), "road_pedestrian": ("line", ROAD_CHANGE_COL["pedestrian"]),
+            "road_shared": ("line", ROAD_CHANGE_COL["shared"]), "road_kept": ("line", ROAD_CHANGE_COL["kept"]),
+            "road_later": ("line", ROAD_CHANGE_COL["later"]), "bld": ("fill", COL["bld"]), "her": ("fill", COL["her"]),
+            "bridge": ("line", COL["ink_dark"]), "dg": ("fill", mix(COL["white"], MP["agriculture"][2], 0.16)),
+            "sight": ("line", COL["accent"])}
+
+
+def legend_v24_groups():
+    """v24: the sheet band's legend group of the 1:1,000 detail sheet (what it draws)."""
+    return [(u"CORRIDOR", [(nm, f) for key, nm, f in LEGEND_V24 if ("v24", key) in LEG])]
+
+
+# v28 (revision 29 Oct): the booklet's p.23 is plan_page (pages/p23_plan.py); ground_page (p.21/22) is gone (D1 a).
+
+
+# ================================================================ v26: the open ground for Google Earth (task 3)
+OG_KML = u"bergama_masterplan_open_ground_check.kml"
+OG_MIN_HA = 0.25                 # open areas this large or larger go on the check list
+# the site board's lon/lat -> survey transform (selinus_board GEO of v29 and its tm27; exact per vertex)
+SV_GEO = dict(s=1.0001121171177874, th=-0.0015904735313230483, tx=-492593.7399912414, ty=-4299748.4497664515)
+
+
+def _sv_xy(lon, lat):
+    a_, f_ = 6378137.0, 1 / 298.257222101
+    e2 = f_ * (2 - f_)
+    ep2 = e2 / (1 - e2)
+    phi, lam = math.radians(lat), math.radians(lon - 27.0)
+    s, c, t = math.sin(phi), math.cos(phi), math.tan(phi)
+    Nn = a_ / math.sqrt(1 - e2 * s * s)
+    T_, Cc, Aa = t * t, ep2 * c * c, c * lam
+    e4, e6 = e2 * e2, e2 ** 3
+    M = a_ * ((1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * phi
+              - (3 * e2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * math.sin(2 * phi)
+              + (15 * e4 / 256 + 45 * e6 / 1024) * math.sin(4 * phi) - (35 * e6 / 3072) * math.sin(6 * phi))
+    E = Nn * (Aa + (1 - T_ + Cc) * Aa ** 3 / 6 + (5 - 18 * T_ + T_ * T_ + 72 * Cc - 58 * ep2) * Aa ** 5 / 120) + 500000.0
+    Nr = M + Nn * t * (Aa * Aa / 2 + (5 - T_ + 9 * Cc + 4 * Cc * Cc) * Aa ** 4 / 24
+                       + (61 - 58 * T_ + T_ * T_ + 600 * Cc - 330 * ep2) * Aa ** 6 / 720)
+    cs, sn = math.cos(SV_GEO["th"]), math.sin(SV_GEO["th"])
+    return (SV_GEO["s"] * (cs * E - sn * Nr) + SV_GEO["tx"], SV_GEO["s"] * (sn * E + cs * Nr) + SV_GEO["ty"])
+
+
+def lonlat(p, start):
+    """v26: survey m -> (lon, lat), _sv_xy inverted by Newton steps from start (the previous point)."""
+    lon, lat = start
+    for _ in range(10):
+        fx, fy = _sv_xy(lon, lat)
+        ex, ey = p[0] - fx, p[1] - fy
+        if abs(ex) < 1e-3 and abs(ey) < 1e-3:
+            break
+        ax, ay = _sv_xy(lon + 1e-5, lat)
+        bx, by = _sv_xy(lon, lat + 1e-5)
+        j11, j21, j12, j22 = (ax - fx) / 1e-5, (ay - fy) / 1e-5, (bx - fx) / 1e-5, (by - fy) / 1e-5
+        det = j11 * j22 - j12 * j21
+        lon += (j22 * ex - j12 * ey) / det
+        lat += (-j21 * ex + j11 * ey) / det
+    return lon, lat
+
+
+def open_ground_kml(C, path, json_path):
+    """v26 (Prompt 7 task 3): every open area (4-connected open cells) of OG_MIN_HA or more as a numbered polygon
+    (OG n) for Google Earth, the ones whose open cells have no plant cover on ESA WorldCover 2021 for half or more
+    first (most likely built on), then by size; json_path keeps the same areas in survey m by number (what goes
+    into OPEN_CHECK["built"] once Aras has named the ones built on). Returns (areas, flagged)."""
+    F, G, N, V = C.F, C.G, C.N, C.V
+    nx, ny = G.nx, G.ny
+    seen = bytearray(N)
+    comps = []
+    for n0 in range(N):
+        if F[n0] != 0 or seen[n0]:
+            continue
+        comp, q = [], [n0]
+        seen[n0] = 1
+        while q:
+            n = q.pop()
+            comp.append(n)
+            i, j = n % nx, n // nx
+            for m in ((n + 1) if i + 1 < nx else -1, (n - 1) if i else -1, (n + nx) if j + 1 < ny else -1,
+                      (n - nx) if j else -1):
+                if m >= 0 and not seen[m] and F[m] == 0:
+                    seen[m] = 1
+                    q.append(m)
+        ha = len(comp) * G.c * G.c / 1e4
+        if ha >= OG_MIN_HA:
+            bare = sum(1 for n in comp if C.lc[n] == 0) / float(len(comp))
+            comps.append((bare >= 0.5, ha, bare, comp))
+    comps.sort(key=lambda c_: (not c_[0], -c_[1]))
+    pm, pts, ll, og = [], [], (27.18127, 39.123302), {}
+    for i, (flag, ha, bare, comp) in enumerate(comps, 1):
+        rings_ = []
+        for Lp in trace(G, set(comp)):
+            Q = smooth(Lp, G.c * 0.5, 0)
+            if len(Q) >= 3:
+                rings_.append([V.xy(u, v) for u, v in Q])
+        if not rings_:
+            continue
+        outer = max(rings_, key=lambda R_: area2(R_))
+        og[u"OG {}".format(i)] = {"ha": round(ha, 2), "no_plant_cover_pct": round(100.0 * bare),
+                                 "rings_survey_m": [[[round(p[0], 2), round(p[1], 2)] for p in R_]
+                                                    for R_ in [outer] + [R_ for R_ in rings_ if area2(R_) < 0]]}
+        co = []
+        for R_ in [outer] + [R_ for R_ in rings_ if area2(R_) < 0]:
+            cs = []
+            for p in R_ + R_[:1]:
+                ll = lonlat(p, ll)
+                cs.append(u"{:.7f},{:.7f},0".format(ll[0], ll[1]))
+            co.append(u" ".join(cs))
+        body = u"<outerBoundaryIs><LinearRing><coordinates>{}</coordinates></LinearRing></outerBoundaryIs>".format(co[0])
+        body += u"".join(u"<innerBoundaryIs><LinearRing><coordinates>{}</coordinates></LinearRing></innerBoundaryIs>"
+                         .format(c_) for c_ in co[1:])
+        desc = u"{:.2f} ha open in the survey (no building, no road, not the stream bed); no plant cover on {:.0f} % " \
+               u"of it on ESA WorldCover 2021. Built on, paved or fenced since? Note OG {} and what is there now, " \
+               u"with the imagery date.".format(ha, 100.0 * bare, i)
+        pm.append(u"<Placemark><name>OG {}</name><description>{}</description><styleUrl>#{}</styleUrl><Polygon>{}"
+                  u"</Polygon></Placemark>".format(i, desc, u"flag" if flag else u"open", body))
+        c_ = lonlat(inner_pt(outer), ll)
+        pts.append(u"<Placemark><name>OG {}</name><styleUrl>#lab</styleUrl><Point><coordinates>{:.7f},{:.7f},0"
+                   u"</coordinates></Point></Placemark>".format(i, c_[0], c_[1]))
+    nflag = sum(1 for c_ in comps if c_[0])
+    kml = (u'<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+           u"<name>Bergama open ground: satellite check ({})</name><description>Open ground of the site frame "
+           u"from the survey, {} areas of {:.2f} ha or more; red first = no plant cover on ESA WorldCover 2021 on half "
+           u"or more of the area. Check each against the newest Google Earth imagery (History slider) and send back "
+           u"the numbers built on since, with the imagery date.</description>"
+           u'<Style id="flag"><LineStyle><color>ff2a2ad6</color><width>2.5</width></LineStyle><PolyStyle>'
+           u"<color>402a2ad6</color></PolyStyle></Style>"
+           u'<Style id="open"><LineStyle><color>ff2ad6d6</color><width>1.5</width></LineStyle><PolyStyle>'
+           u"<fill>0</fill></PolyStyle></Style>"
+           u'<Style id="lab"><IconStyle><scale>0.5</scale></IconStyle><LabelStyle><scale>0.9</scale></LabelStyle></Style>'
+           u"<Folder><name>Open areas</name>{}</Folder><Folder><name>Numbers</name>{}</Folder></Document></kml>\n"
+           ).format(SHORT, len(comps), OG_MIN_HA, u"".join(pm), u"".join(pts))
+    with open(path, "w", encoding="utf-8") as f_:
+        f_.write(kml)
+    with open(json_path, "w", encoding="utf-8") as f_:
+        json.dump(og, f_, ensure_ascii=False)
+    C.og_check = {"n": len(comps), "flag": nflag, "file": OG_KML}
+    return len(comps), nflag
+
+
+# v27 (MIRAQUA 28 Oct, P24.1-P24.5): window_panel gone: the 1:1,000 windows are r28_window_panel (02e_r28_detail.py)

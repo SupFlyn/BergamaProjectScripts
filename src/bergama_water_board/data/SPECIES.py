@@ -1,34 +1,40 @@
-SPECIES = [  # v1.8: band, latin, local name, evidence as pictogram chips (figures as in the files), its source, flag
-    ("B", u"Typha angustifolia", u"narrow-leaf cattail", [("flood", u"70 cm water: 72 % biomass kept")], u"Song 2021", "", "C"),
-    ("B", u"Phragmites australis", u"kamış / saz", [("flood", u"70 cm continuous: 100 % die"), ("clean", u"TN 41–44 %")],
-     u"Song 2021; Turkish VF pilot, Korkusuz et al. 2004", u"spreads aggressively", "C+R"),
-    ("B", u"Iris pseudacorus", u"sarı süsen", [("flood", u"flooded up to 6 months")], u"FEIS", u"POISONOUS", "R"),
-    ("B", u"Juncus acutus", u"sharp rush", [("clean", u"Fe2+ 62 %")],
-     u"Turkish HSSF wetland Kızılcaören, Aydın Temel et al. 2017", "", "R"),
-    ("B", u"Mentha aquatica", u"su nanesi", [("clean", u"COD 71.3–91.4 % · BOD5 75.3–91.0 %")], u"HSSF wetland, Avelar 2012",
-     u"aromatic (chemistry not verified)", "R"),
-    ("C", u"Salix alba", u"ak söğüt", [("flood", u"inundation-tolerant"), ("days", u"50–150 d/yr")],
-     u"JRC Atlas 'noticeably tolerant to inundation'; RWS 2023", "", "C+R"),
-    ("C", u"Tamarix smyrnensis", u"ılgın", [("flood", u"long inundation (genus)"), ("native", u"native · İzmir")],
-     u"JRC Atlas 'can survive prolonged periods of inundation'", "", "R"),
-    ("C", u"Vitex agnus-castus", u"hayıt", [("dry", u"intermittent streams · 92D0")], u"Salinas & Cueto 2009",
-     u"aromatic (not verified)", "R"),
-    ("C", u"Nerium oleander", u"zakkum", [("dry", u"streams dry most of the year")], u"Salinas & Cueto 2009",
-     u"HIGHLY TOXIC: not near play", "C+R"),
-    ("D", u"Lythrum salicaria", u"aklar otu", [("flood", u"quite flood-tolerant"), ("clean", u"TN > 60 %")],
-     u"FEIS 'quite flood tolerant'; Xie et al. 2021", "", "R"),
-    ("D", u"Carex pendula, Juncus effusus", u"sedge, soft rush", [("flood", u"shallow-water banks (general)")],
-     u"USDA NRCS TN-38", "", "R"),
-    ("E", u"Fraxinus angustifolia", u"dişbudak", [("flood", u"temporary flooded lowlands")],
-     u"JRC Atlas 'grows well ... in temporary flooded lowlands'", "", "R"),
-    ("E", u"Populus alba", u"ak kavak", [("flood", u"waterlogged"), ("dry", u"to drought")],
-     u"JRC Atlas 'tolerating from waterlogged to drought habitats'", u"root suckers", "R"),
-    ("E", u"Platanus orientalis", u"çınar", [("dry", u"torrent gravels · drought-sensitive")],
-     u"EUNIS G1.381; Velikova et al. 2018", "", "C+R"),
-    ("E", u"Quercus robur, Ulmus laevis", u"oak, elm", [("days", u"oak 96 d/yr · elm ≤ 119 d/yr")],
-     u"hardwood floodplain, Schindler et al. 2022", "", "C"),
-    ("F", u"Lavandula stoechas", u"karabaş otu", [("flood", u"17 days flooded: survived"), ("dry", u"xerophyte")],
-     u"RHS trial; RHS", u"scent layer", "R"),
-    ("-", u"Arundo donax", u"kargı", [("warn", u"flood risk up · blocks watercourses, bridges")],
-     u"Bruno et al. 2019 'increased flooding risk'", u"REMOVE, do not plant", "R"),
+SPECIES = [  # p.17 (water board v6, revision 29 Oct 2026, T4a WO-T4a-2): the species of the catalogue, from
+    # revision_2026-10-29/T1/ecology/species.json "species_data" (water, role; their words shortened, nothing added)
+    # with the public sources of their values (T1/ecology/RESULT.md §D, S-numbers in the comments). Foliage, height
+    # and months are read from plants.py (PLA_SPECIES, pla_months) at the press. D2: common reed only in lined
+    # basins; D6: no yellow flag iris (purple loosestrife + soft rush), water mint only in lined cells.
+    # key: plants.py species key; water: (class wet | moist | dry, keywords); role: species.json roles; src: printed
+    # through cite() (public sources only)
+    dict(key="reed", water=("wet", u"wet ground: lined basins only"), role=["clean"],
+         src=u"Gucker 2008, Phragmites australis, FEIS, USDA Forest Service; Robinson 2002, Common Reed: An Invasive "
+             u"Wetland Plant, Massachusetts DCR; Korkusuz, Beklioğlu & Demirer 2004, Turkish J. Eng. Env. Sci. 28"),   # S2, S11, S20
+    dict(key="mint", water=("wet", u"permanently wet ground"), role=["clean", "scent"],
+         src=u"Walker, Mentha aquatica, BSBI Plant Atlas 2020; RHS, Mentha aquatica 'Mandeliensis'; Cretan Flora "
+             u"(S. Lenton), Mentha aquatica"),                                                    # S56, S57, S58
+    dict(key="soft_rush", water=("wet", u"flooded or fluctuating soils"), role=["clean", "hold the bank"],
+         src=u"Stevens 2000, Soft Rush Plant Guide, USDA NRCS"),                                  # S59
+    dict(key="loosestrife", water=("wet", u"quite flood tolerant"), role=["clean", "flower"],
+         src=u"Munger 2002, Lythrum salicaria, FEIS, USDA Forest Service; Xie et al. 2021, Water 13(21) 2957"),   # S19, S23
+    dict(key="willow", water=("wet", u"tolerant to inundation"), role=["hold the bank", "shade", "clean"],
+         src=u"Houston Durrant, de Rigo & Caudullo 2016, Salix alba in Europe, European Atlas of Forest Tree Species"),   # S4
+    dict(key="tamarisk", water=("moist", u"survives long inundation, drought tolerant"), role=["hold the bank", "shade"],
+         src=u"Guerrero Maldonado, López & Caudullo 2016, Tamarix in Europe, European Atlas of Forest Tree Species"),   # S9b
+    dict(key="chaste", water=("moist", u"streams that flow in winter only"), role=["scent", "hold the bank"],
+         src=u"Cretan Flora (S. Lenton), Vitex agnus-castus; Livne, Vitex agnus-castus, Flowers in Israel; RHS, "
+             u"Vitex agnus-castus"),                                                              # S58, S66, S67
+    dict(key="ash", water=("moist", u"moist soils, temporary flooding"), role=["shade", "hold the bank"],
+         src=u"Caudullo & Houston Durrant 2016, Fraxinus angustifolia in Europe, European Atlas of Forest Tree "
+             u"Species"),                                                                         # S7
+    dict(key="plane", water=("moist", u"drought-sensitive: watered from storage"), role=["shade"],
+         src=u"EUFORGEN, Platanus orientalis; Velikova et al. 2018, Conservation Physiology 6(1); Herbari Virtual del "
+             u"Mediterrani Occidental, Platanus orientalis; Mahmiyat, Oriental plane tree; RHS, Platanus orientalis"),   # S26, S27, S68-S70
+    dict(key="olive", water=("dry", u"well adapted to drought"), role=["harvest", "shade"],
+         src=u"Guerrero Maldonado et al. 2016, Olea europaea in Europe, European Atlas of Forest Tree Species; "
+             u"Gültekinoğlu, Acarsoy Bilgin & İsfendiyaroğlu 2025, Bahçe 54(2)"),                  # S72, S73
+    dict(key="rosemary", water=("dry", u"well-drained soil"), role=["scent"],
+         src=u"Cretan Flora (S. Lenton), Rosmarinus officinalis; RHS, Rosmarinus officinalis"),   # S58, S71
+    dict(key="lavender", water=("dry", u"dry ground, survived 17 days flooded"), role=["scent"],
+         src=u"Cretan Flora (S. Lenton), Lavandula stoechas; RHS, Waterlogging and Mediterranean plant species"),   # S58, S38
 ]
+SPECIES_REMOVE = (u"giant_reed", u"**remove**: raises **flood risk**, blocks the channel",   # (plant key, words, source)
+                  u"Bruno et al. 2019, Water (Segura basin, Arundo donax)")                   # S36

@@ -657,34 +657,6 @@ def river_union(S, cell=RIVER_CELL, close_m=RIVER_CLOSE, min_body=25.0, min_hole
     S.stats["river_outlines"] = (len(water), sum(len(w["H"]) for w in water), nv, fallback)
 
 
-def river_free_banks(S, step=2.0, near=1.5):
-    """Pieces of the surveyed stream lines lying clear of the merged river."""
-    M = getattr(S, "water_mask", None)
-    if M is None:
-        return []
-    r = max(1, int(round(near / M["cell"])))
-    out = []
-    for P in S.banks:
-        run = []
-        for x, y in resample(P, step):
-            u, v = S.F.local(x, y)
-            i, j = int(math.floor((u - S.F.u0) / M["cell"])), int(math.floor((v - S.F.v0) / M["cell"]))
-            hit = False
-            for jj in range(j - r, j + r + 1):
-                if 0 <= jj < M["ny"] and (M["rows"][jj] >> max(0, i - r)) & ((1 << (2 * r + 1)) - 1):
-                    hit = True
-                    break
-            if hit:
-                if len(run) >= 2:
-                    out.append(run)
-                run = []
-            else:
-                run.append((x, y))
-        if len(run) >= 2:
-            out.append(run)
-    return out
-
-
 def water_at(S, x, y):
     """Is the point in the river? (raster lookup: fast and consistent with the drawn outline)"""
     M = getattr(S, "water_mask", None)

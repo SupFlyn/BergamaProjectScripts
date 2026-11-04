@@ -1,8 +1,167 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA MASTERPLAN v19 (2026-10-25): Group 6's proposal (the zones, their programme and the water links) drawn
+# CURRENT VERSION: bergama_masterplan_v40_3.py = v40.3 (fix 2 Nov 06:30: the K5 detail window is exported again, P24_LEG_KIND was missing); v40.2 (fix 2 Nov: no widths in the p23/p24 lists and notes: "N m open", forest band); v40.1 (closing fix 2 Nov: p24 key map lines logged); older header: v39.2 (1 Nov 2026: the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1: fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
+"""BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
+
+NEW IN v38 (round 4 S8, 1 Nov; a feature change): one run trigger (common/trigger.py, the masterplan's own copy gone);
+    ROADS + TOWN_LINE shared (common/data/ROADS.py); Turkish proper names from the names table (Kızıl Avlu, never
+    "Red Hall"); real font widths (font_metrics); every text registered in its page's TextPage and checked (a
+    collision RAISES, G-R4-1); every proposal clipped to the study area at its source (CHK-7) and the voids inside
+    it designed (rain meadow, pocket garden, shade grove, shaded lanes, heritage setting); results.json exports
+    corridor + hub_squares (p10 / p17). p16: one muted base, D9 tint, five distinct encounter hues, bigger strips,
+    shared marker and north arrow. p21: one crisp line per element, shared markers in their element's colour, the muted base + D9 tint, a second study clip, hub names placed or numbered (never dropped), designed voids drawn with letters, move reasons printed. p22 redrawn (P22.1-P22.8): plans
+    turned so each cut runs left-right with its section right under it on the same axis, shared muted base + D9
+    tint, red R01 cut line without triangles, km_map key map, Demeter's Garden designed (hedge, olive orchard,
+    mixed beds, café planes, gravel path), the bike lane ends at a street or a rack, a viewing terrace per window,
+    lamps / bollards / racks, levels outside the section frame, zoom inset at 1:250, the low planting layer, one
+    194 x 236 mm column per window with its own legend (the booklet adds none).
+  Round 4 closing (same v38): m² / m³ print the embedded Arial's own ² / ³ at full size (the 0.6 x raised digit
+    fell under 6 pt and raised on the p22 route key); p21 logs its "overlap p21" line; p22: no "style a (cutouts)"
+    in the crop title, the pasted plan / section / legend are blocks of the sheet's text test and a legend running
+    into the section RAISES, the zone-base zones clipped to the study area, people on the sub-hub's stepping stones
+    (or wading at most knee deep) where a section shows them, the section keys' numbers are the shared marker;
+    p16 / p22 wraps keep >= 2 words on the last line; the Trajan temple from the names table (Trajan Tapınağı).
+
+NEW IN v37.2 (1 Nov, Aras 07:48): the riverside spine, its bank vote and the stops are built in this script
+    (common/city_spine.py, the same code city link uses; the vote from this run's site board or the built-in one);
+    city_link_results.json is no longer read, so city link runs once, after the masterplan. Same drawings.
+NEW IN v37 (round 3, booklet p15, p21, p22; BRIEF P15.1, P21.1-P21.4, P22.1-P22.4, G3, G8, G9, G10, G15, G16,
+    G18, G19): real bridge names everywhere (common/data/NAMES.py), no K-code printed. p21: the tree set clipped to
+    land at its source (stream, islands, widened reaches, side arms, reed basins; logged "planting clipped to land"),
+    islands left open (no paper patch), the widened wetland flat with a firm bank (no wavy stripes), trees opaque;
+    move badges on their places with no tags or leaders, every move listed by number beside the lower row; areas
+    left as they are lettered from 0.25 ha inside the study area, each with its reason from the data; one olive
+    symbol for Demeter's Garden. p22: cut lines 8 m inside the windows (casing; plan and section share the span), no
+    leaders, soft fields, benches, planters and people in plan, zones named in a band under each section, a ZOOMED
+    IN inset of the walk, the sky per cut. p15 Encounters drawn only where the project makes each happen (walk on
+    the walk lines, cross bars at the crossings, watch at the terrace and open edges, touch at sub-hubs and the step,
+    remember at heritage places). Log: FLAG overlap per page, draw order, sky variants, fauna FLAG.
+    Output: Bergama_masterplan_v37_A.pdf, Bergama_masterplan_v37_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v36 (round 2 closing, Aras 31 Oct, checklist 5, 7, 8; the water board's callout style): p22 sections D1 and
+    D2: numbered callouts in the cut ground under each designed element and planting group, a numbered key under
+    each section ("Element: reason", <= 55 letters: walk + bike lane, reed cells, terraces, wetland bench, Demeter's
+    Garden, hub square, DSİ walls, sub-hub, crossings, viewing terrace; each group says what it does from the
+    plants' sourced purpose tags); the survey's houses behind the cut on the background ground lines (data heights);
+    people who stay look at the stream, nobody in the sub-hub's water (11:28); the cut ground 6 m deep (was 3 m); the D8 designed sky behind
+    each section (SF_SKY_DEFAULT).
+    The p22 crops grow downward by the key.
+    Output: Bergama_masterplan_v36_A.pdf, Bergama_masterplan_v36_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v35 (round 2, Aras 31 Oct, brief2 PG1 p15 #6, PG4 p21/p22, G9, G14): p15 Encounters: the five ribbons
+    each in their own lane along the stream (never pulled onto it), so no two ever touch or cross; crossing clouds
+    gone. p21 + p22 trees: a mixed riparian belt (6-32 m from the water, crowns interpenetrating, dart thrown, no
+    rows) and mixed copses of 2-4 trees in the open band (32-60 m), species by niche wet to dry. p21: name tags 7 pt,
+    a move's badge repeated only 45 mm from its others; the side column's legend beside the upper row and its lists
+    beside the lower row (aligned tops). p22 sections: plants and people stand on the lowest finished ground under
+    them (G14), the count logged. Output: Bergama_masterplan_v35_A.pdf, Bergama_masterplan_v35_A_detail.pdf,
+    Bergama_senses_A3.pdf.
+NEW IN v34 (Aras 31 Oct 09:01, p21: text in front of the map; "somewhere between too empty and too crowded"): one
+    level of words on the map: each move once as its number badge + short name tag (7.5 pt, halo, no box, no
+    explanation line), its further places the badge alone; an edge kept its badge only; the side column names only
+    the moves without a tag. Output: Bergama_masterplan_v34_A.pdf, Bergama_masterplan_v34_A_detail.pdf,
+    Bergama_senses_A3.pdf.
+NEW IN v33 (Aras 31 Oct critique, booklet p21 and p22): p21 masterplan far less crowded: on the map only the hub
+    names and each move's number badge once (no callout boxes, no water-form reason boxes, no hub-to-hub distances,
+    no bridge or place names, no Trajaneum label); the side column keys every move by number and name only, the areas
+    left as they are by letter and area only (reasons stay on the sources page). p21 + p22 trees in plan: rows along
+    the water's edge at set distances, one species per row from wet to dry (willow, tamarisk, ash, plane by their
+    niche), one crown apart, every second row offset; no noise or jitter. Output: Bergama_masterplan_v33_A.pdf,
+    Bergama_masterplan_v33_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v32 (Aras 31 Oct critique, booklet p15 senses sheet): the six maps lighter and less dense (buildings very
+    faint, every layer more transparent, fewer veins, dots, rings and birds); Encounters redrawn after the flow-ribbon
+    reference: ribbons that braid and cross on the stream at their places, dotted clouds where they cross, organic
+    vignette bubbles. Output: Bergama_masterplan_v32_A.pdf, Bergama_masterplan_v32_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v31.1 (bugfix, Aras 31 Oct run): base maps with the stream (M5 water) no longer stop on the first point.
+NEW IN v31 (revision 30 Oct, T7 + T8): p.21 masterplan and p.22 1:1,000 windows redrawn on the shared modules;
+    D1 style a / b copies of the windows written as extra booklet crops (dt_upstream_a/_b, dt_k5_a/_b); the PDF
+    writer draws images. Output: Bergama_masterplan_v31_A.pdf, Bergama_masterplan_v31_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v30.2 (bugfix, Aras 30 Oct 13:05 run): p.23 side column: the "More moves" list is sized as it is drawn
+    (each move at least its badge's height), so the legend pitch leaves room for it (was 0.7 mm over). Output:
+    Bergama_masterplan_v30_2_A.pdf, Bergama_masterplan_v30_2_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v30.1 (bugfix, Aras 30 Oct 12:21 run): p.23 and p.24 no longer stop on the kept bridges (KeyError 'P'):
+    a kept bridge has only a point, so the callout boxes and the p.24 crossings skip it. Output:
+    Bergama_masterplan_v30_1_A.pdf, Bergama_masterplan_v30_1_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v30: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
+  PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
+  colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). p.24
+  sections D1 / D2.
+    Bergama_masterplan_v30_A.pdf, Bergama_masterplan_v30_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v29 (Aras 30 Oct "ok to use kermes photos"; a feature change): p.16 History shows a Kermes photo (DHA, 29 Jun
+    2026, from Data/heritage_photos/photos.csv) with its credit line, like the other Commons photos. Output:
+    Bergama_masterplan_v29_A.pdf, Bergama_masterplan_v29_A_detail.pdf, Bergama_senses_A3.pdf.
+NEW IN v28.1 (bugfix, revision 29 Oct T5 fix pass, Aras 22:08): p.16 Sound and Smell no longer put reeds on the
+    open side arms (D2: reed only in the lined basins) or water mint on the open bed (D6: mint only in lined cells);
+    "Water mint" left the Smell key. Output: Bergama_masterplan_v28_1_A.pdf, Bergama_masterplan_v28_1_A_detail.pdf.
+NEW IN v28 (revision 29 Oct, T4b: WO-T4b-1..3; a feature change, so the next whole number):
+  * p.23: the analysis frame in two rows at 1:5,000, every numbered move as a short box on the map with an arrow,
+    the riverside walk with its bike lane (Aras 29 Oct 21:04), a small legend in the side column; public sources only.
+  * p.24: the 1:1,000 plans in an architectural plan language (lined reed cells, olive rows, paved squares, crowns at
+    true width, walk + bike lane, stepping stones, footbridge decks, changed roads) and under each its section, D1 on
+    the W1 line and D2 on the W3 line, from the level table and the survey's heights, zone lines above, people.
+  * The open ground page (mp_max_area) and r28_open_ground.json are gone (p.22 merged into p.06, D1 a). The shared
+    modules (levels, basemap, section parts, plants, icons) are included. Output: Bergama_masterplan_v28_A.pdf,
+    Bergama_masterplan_v28_A_detail.pdf, Bergama_senses_A3.pdf.
+
+NEW IN v27 (MIRAQUA 28 Oct, booklet revision v4; a feature change, so the next whole number):
+  * p.23 masterplan: one strip of the whole analysis frame at 1:10,000 (G7), with the study-area outline (G8);
+    markers coloured by group, a list under the strip by group (number, name, one line); the reasons and sources go
+    to the booklet's sources page (plan_sources); the areas left as they are get a letter (P23.1-P23.3, G4).
+  * p.21 open ground: the same strip and scale, its own colours, the study outline; one frame figure (150.52 ha,
+    cells inside the frame only, G10), and the split adds up to it. Writes cached/bergama_masterplan/
+    r28_open_ground.json for the site board's filter sheet (D1; the site board runs after the masterplan).
+  * p.24 1:1,000 plans redrawn in the programme-diagram language: soft fade-out fields in the shared zone colours,
+    one bold title per field with p.16's plants in small grey, a dot-and-colour legend, a faint grey survey, the study
+    outline; the water route 1-4 as one line with arrowheads and numbered dots and a route key; levels only at the
+    channel cuts (bed, Q100, Q500); plant codes, band letters, flood bands, spot heights, step sketches and the ochre
+    rings and icons removed (P24.1-P24.5, F11).
+  * NEW sheet Bergama_senses_A3.pdf "The senses and the water" (S1): six strips of the analysis frame at 1:20,000:
+    zones, feeling, sound, smell, encounters and history, each with the study outline and the zone fields of p.24.
+  * Speed: the frame figures take one pass over the grid, the plan is drawn once (no two halves), the detail windows
+    need no second survey pass. Output: Bergama_masterplan_v27_A.pdf, Bergama_masterplan_v27_A_detail.pdf,
+    Bergama_senses_A3.pdf.
+
+NEW IN v26.2 (bugfix, Aras 28 Oct run: "no-intervention note not placed (no free spot in its area): 2.9 ha tree
+  cover ..."): a no-intervention note that finds no free spot on two lines tries again with its reason on two lines
+  (split at its comma), about half as wide. Output: Bergama_masterplan_v26_2_A.pdf, Bergama_masterplan_v26_2_A_detail.pdf.
+NEW IN v26.1 (bugfix, Aras 27 Oct, booklet Prompt 8: final fault check of p.23, p.25, p.26):
+  * m² and m³ are written as a raised small 2 or 3 (0.6 x the size, as wide as the ²/³ glyph, so nothing moves), as
+    water board v3.1 does: the unembedded Helvetica's ²/³ glyph was dropped in some viewers ("hm³" read "hm").
+  * The 1:1,000 windows (crops dt_upstream, dt_k5) are drawn for the booklet page at 1:1 (bk_w): both fit one row
+    at 1:1,000 (194 + 4 + 194 mm = the page's 392 mm); their species are named "English (Turkish)" as the water
+    board names them, no Latin (cattail, oak and elm: English only, no Turkish name in the project's sources); a
+    species code goes into the legend only when its label is on the window; legend names in sentence case; the
+    route's rough volumes (~ m³) say how they are made in the caption; ramps have no outline (proposals soft);
+    spot levels, route numbers and the smaller planting labels at 7 pt (they printed at 6.3-6.8 pt at 1:1).
+  * Scale bar numbers at 7 pt on p.23, p.25 and p.26 (were 5.7 pt), as the site board's on p.24.
+  * The hidden-stream line is drawn with the water, under the buildings and bridges (water never over them), and is
+    in a window's legend only when it runs through that window.
+  * Callouts: "(h01 P12)" for the place register entry (it read like a page number); "open ground" no longer
+    repeated in brackets.
+  Output: Bergama_masterplan_v26_1_A.pdf, Bergama_masterplan_v26_1_A_detail.pdf, logs/ KML.
+
+NEW IN v26 (Aras 27 Oct 17:35, booklet Prompt 7: masterplan, old p.15-17):
+  * Layer order on every plan: water -> buildings -> bridges -> roads -> proposal -> labels. The stream no longer
+    covers trees, bridges or the note numbers; survey bridges (YOL_KOPRU) are drawn. What exists is crisp, what
+    we propose is soft (Prompt 7 rule 1): fading fields with haloes, translucent bands, no outlines, no fixed widths;
+    the planting gradient in ten fainter steps, on open ground only.
+  * The site frame (site_alan) as a very faint line along its edges.
+  * Every area the plan leaves untouched (1 ha or more) says why, inside it: "NO INTERVENTION" + homes / heritage
+    buildings / buildings and streets (survey building kinds), or the satellite's land cover (ESA WorldCover 2021,
+    the site board's copy) and how far it lies from the water through open ground, or that no open way reaches the
+    water within 200 m (Corridor.no_go). No data maps private plots, the heritage protection zone or the Q100 extent.
+  * The old p.16 "Why each place" is gone: all numbered notes are callouts in the column beside the plan (badge, note,
+    its reasons; reasons cut only when the column is full, logged; all in masterplan_results.json "notes").
+  * Booklet pages drawn at 1:1 for the A3 page (crops mp_plan and mp_max_area, 392 x 238 mm, scale 1:5,000): both
+    halves stacked at the top-left, the legend under them (existing / proposed), the column on the 12-column grid
+    from 297 mm, scale bar and north arrow at its foot. The open ground is now at 1:5,000 too, with its figures as
+    bars (frame split, by distance from the water, by satellite land cover).
+  * Satellite check of the open ground (task 3): no imagery could be opened from the cloud (27 Oct 2026), so each
+    press writes logs/bergama_masterplan_open_ground_check.kml: every open area of 0.25 ha or more, numbered OG n,
+    those with no plant cover on the satellite first. Areas Aras finds built on go into OPEN_CHECK (02c_corridor.py)
+    with the imagery and its date: they leave the open ground and the design, hatched on both maps.
+  * Labels: no arrow glyphs (they printed as "?").
+  Output: Bergama_masterplan_v26_A.pdf, Bergama_masterplan_v26_A_detail.pdf, logs/ KML.
 
 WHAT IT DRAWS (one page per alternative and zone-base option: 3 x 2 = six PDFs per press)
   Alternative 1  the programme puzzle of v2.3: every space of each working area (zones, river, streets, housing,
@@ -31,12 +190,13 @@ HOW TO USE
      Option_A::INT_* and Option_B::INT_*) and edit them as you like.
   2. Grasshopper > "Python 3 Script" component: paste this file and wire a plain Button into any input (build, out,
      run ...). Every other input is optional.
-  3. Press the Button. One press writes all six PDFs and masterplan_results.json into the folder
+  3. Press the Button. One press writes the sheet, the 1:1,000 detail sheet (v21), masterplan_results.json and
+     booklet/ (blocks.json, results.json) into the folder
      Downloads/Bergama/output/bergama_masterplan (24 Oct, Aras rule); a second press writes them again. With a Boolean Toggle on rhino_bake set to True,
      the press also bakes the six sheets into Rhino under layer MP11, beside everything else in the file and beside
      each other, never on top of each other or of the survey (a press replaces the last bake).
   INPUTS (any name case; text, number or panel)
-    run          Button (v19; any input name works; a plain Button)
+    run          Button (v21; any input name works; a plain Button)
     rhino_bake   Boolean Toggle: bake the sheets into Rhino as well (default False)
     opacity      opacity of the lower-opacity pieces, 0-1 or 1-100 % (default OPACITY = 0.5, Aras's example value)
     scale        print scale 1:scale of all three alternatives (default 1000 since v16: studio brief of 26 Oct)
@@ -62,95 +222,33 @@ DATA RULES
     survey grid's +Y (no true north without selinus_board); alternative 2 names the commons where most pieces
     overlap.
 
-NEW IN v19 (Aras 25 Oct 16:41-16:42: "get rid of alternative 3. And do the changes to alternative one"; "that script
-  gonna be producing just a single alternative"; "with the curvy selection ... it should be A"). ONE sheet per press:
-  the masterplan, option A (Aras 16:43: option A project-wide, B dropped; the option input is ignored). Alternatives 2 and 3 are gone (draw_masterplan and the
-  functions only it used removed); the sections WHAT IT DRAWS above describe the older alternatives.
-  The one sheet = alternative 1 with v18's changes: the zones are alternative 2's freely grown pieces (overlaps
-  darken) in alternative 1's tones with alternative 1's darker commons on top; the main and riverside spines are
-  broad zones; the river band is named PROMENADE (Aras: "find a proper catchy singleword name"), its functions
-  scattered on it as keywords (his words of 16:39). Without alternative 3 there are no link arrows and no stop
-  roundels on any sheet (the programme diagram rule: no arrows). masterplan_results.json is written for option A.
-NEW IN v18 (Aras 25 Oct 16:35-16:36: "combine both alt1 and alt2 on masterplan ... seeable on top of eachother";
-  "alternative2s zoning is really really good"; "roads should become zones"; "river zoning is really good i want
-  something like that with volume however on a different colour and sits on top of river and goes inline with
-  river"). Alternative 3 only; alternatives 1 and 2 are unchanged.
-  * The zones are alternative 2's freely grown pieces (growth unchanged), overlapping so the colour darkens where
-    they meet, in the same light tones as alternative 1, with alternative 1's darker commons on top. The hand
-    outline, verge band and code patterns of the zones are gone (zone_pattern, hand_outline removed).
-  * The main spine and the riverside spine are no longer lines: each is one broad zone grown SPINE_ZONE_M either
-    side of the same route (city link's data, unchanged), its edge wandering like alternative 2's pieces; the
-    deck reaches are part of the zone. Names on the fills.
-  * RIVERSIDE FUNCTION AND CIRCULATION (Aras 16:39: "it a function/circulation area. There'll be viewpoints,
-    terraces, walkpaths, ramps etc. ... cafes etc. will be located"; his words are its keywords): one broad zone grown RIVER_BAND_M beyond the stream and bank
-    lines and the water strip, along the whole corridor, in sage (palette reference 89986A), drawn over the river
-    with a soft shadow and an outline for volume. Option A liquid edge, option B faceted (form rule).
-  * Widths are graphic defaults, not data. Walks unchanged (to be reworked with Aras). Legend: the new zones added.
-NEW IN v17 (Aras 25 Oct 14:40: "we want it as a legend in the diagram itself ... i wanted a graphical explanation"):
-  every sheet gets a legend band under the drawing: drawn samples (zone swatches with their pattern and outline,
-  context and survey fills, walk and spine lines, the link arrows, a stop roundel) with plain names, and only what
-  that sheet draws (collected while drawing, LEG). No hex codes. This replaces the 18 Oct "no legend" rule for the
-  masterplan sheets. Alternative 3's old one-line key of arrows, walks and spines (top right) is folded into it;
-  the north arrow stays. Nothing else changed.
-NEW IN v16 (Aras 25 Oct 11:28, studio brief for 26.10.2026: "a 1/1000 scale master plan covering the Selinos
-  Corridor"): the default scale is 1:1,000 (was 1:2,000), so alternative 3 (all of site_alan, 2,845 x 529 m) prints
-  about 2.87 x 0.58 m. Every sheet now carries its scale: a 0-50-100-200 m bar and "1:1,000" right of the option
-  line (this replaces "no scale" of 18 Oct 19:36 for the masterplan sheets, because the brief asks for the scale).
-  Nothing else changed.
-NEW IN v15 (Aras 25 Oct 10:07: "Every plan and analysis and drawing we do is to be in site_alan and for indivual proposals we can
-  zoom in."): alternative 3 (the whole masterplan) covers exactly the analysis range, layer site_alan (built-in copy
-  SITE_COPY when the file has none), turned so its long side runs left to right; the survey is drawn over all of it.
-  Alternatives 1 and 2 are the zoomed pages, one per part of calisma_alan; their margin is the input zoom_m (was
-  ring_m, which still works).
-NEW IN v14 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_masterplan_log.txt (next to cached/ and output/), overwritten by each press.
+NEW IN v24 (Aras 27 Oct 11:07, booklet v9 p15-16; revision_2026-10-27/PHASE2_SPEC.md; history D1-D12, H1-H7):
+  * p15 redone as an ECOLOGICAL CORRIDOR (parts/02c_corridor.py): the whole site frame turned so the water runs left
+    to right, two halves at 1:5,000 (crops mp_upstream, mp_downstream), each with a key column. The uses blend as a
+    gradient (stepped translucent planting rings from the water, programme rings densest at the hubs: H1), no zone
+    fills. Everything is placed by computation on the survey: maximum potential area (open ground, no building, no
+    road; own proof panel, crop mp_max_area at 1:10,000), widened stream / reed side arms / kept reaches downstream
+    from the open ground beside the bank, terraces on the survey contours upstream, forest corridor and tree-planted
+    areas, hub squares (K3, K4, K5 walking hubs with bed sub-hubs and stepping stones; transit hub İstiklal Meydanı +
+    Kızıl Avlu, switch MAIN_TRANSIT_HUB), canopied walkway with streamside seats, footbridges where a reach has no
+    crossing for 300 m, viewing terrace by a computed sightline to the Trajaneum (H5), H2 hidden-stream line, H4, H6.
+    Roads changed or kept from OSM classes and the site board's mark C3, each with its reason; truck route: no data
+    (pending). Numbered notes on the map, short notes + stacked reasons (D11, D12) in the key; legend rebuilt.
+  * masterplan_results.json gains "movement" (spec §4: roads, routes, truck_route, crossings, hubs with role).
+  * p16: the 1:1,000 windows draw the same corridor with every element and species code named; no text block under
+    the plan. No personal names on the sheets.
+  Output: Bergama_masterplan_v25_A.pdf, Bergama_masterplan_v25_A_detail.pdf.
 
-NEW IN v13 (2026-10-25, Aras 08:03-08:18): DEMETER'S GARDEN, Begum's idea alone (card i01). Zone base v7's zones DG 1
-and DG 2 (layer INT_ZONE_DG, south-west bank either side of K5) are named DEMETER'S GARDEN on the fill, with the
-keywords of her PDF (olives, stone pine, aromatics, seasonal beds, cafe, water collection basin) and, under the name,
-a very small "idea: Begum" credit. Tones: the agriculture family. Reads bergama_zone_base_v7.py first. Nothing else
-changed.
-
-NEW IN v12 (2026-10-25, Aras 07:59-08:05: one file, Bergama_Altlik.3dm; "we are working the whole calisma_alan
-together now"; "Make sure our proposals stays inside of calisma_alan")
-  * Working areas = the curves on layer calisma_alan of the open file (an open outline with ends under 5 m apart counts
-    as closed), else the copy CALISMA_COPY (Bergama_Altlik.3dm, 25 Oct). One shared area in two parts: north (UPSTREAM
-    ENTRY TO K4 BRIDGE) and south (K5 BRIDGE TO DOWNSTREAM END); no split by person. Alternatives 1 and 2 show the two
-    parts side by side; each part has one commons (HUB: the two old commons readings of that part merged, a design
-    reading, edit freely). A zone keeps its sourced keywords (NAMES, SUBS, SIG) through its user text study_area.
-  * Nothing is cut (Aras 08:10-08:11: small differences do not matter; lines that nearly match count as overlapping,
-    the larger area is the true one). Walks, spine and strip are drawn continuous (207 of 4,211 m of walk lie just
-    outside; WALK_CLIP = True would cut them); a zone more than SNAP_M (15 m) outside calisma_alan is listed in the log. A zone with corners
-    outside calisma_alan is listed in the log (zone base v6 bakes them clipped; this flags later edits).
-
-NEW IN v11 (Thread 5 of the 22 Oct batch, "Masterplan: detail and unity"; notes batch_2026-10-22/thread5_masterplan/)
-  * Riverside walks on both banks wherever the survey leaves room, recomputed from the open file on every press
-    (river_walks below: the channel edge, then the ground free of buildings behind it; buildings the zone base
-    clears do not block). Three kinds: BANK WALK (car-free), STREET WALK (the footway of a surveyed street on the
-    edge), BED WALK (no room on the bank, bed at least BED_MIN_W wide: a +1 m terrace in the bed, closed in floods;
-    Thread 4 flood rule). Form rule: option A follows the edge, option B is straight facets.
-  * The riverside spine of bergama_city_link (Thread 4), read live from
-    Downloads/Bergama/output/Bergama_city_link_analysis/city_link_results.json (fallback: the embedded copy), drawn
-    on the real edge, on the bank city link chose by data (spine_banks): on the bank walk where there is one, dashed where the bank has no room (a deck is needed),
-    and on the street over the covered reach, where it meets the MAIN SPINE (Bankalar - Kınık Caddesi, OpenStreetMap,
-    converted with the h01 formula, +-10-30 m). The eight stops as numbered roundels (alternative 3).
-  * More detail on alternative 3: the survey's single trees (SEMBOL_TEK_AGAC), channel tops (SEV_SEVUST) and bank
-    tops (SEV_UST) with the bank lines; walks and both spines on alternatives 1 and 2 as well.
-  * Unity: masterplan_results.json (walks, spine, stops, riverside_walk_m2 per option) for the other scripts; the
-    water balance (v2.1) reads riverside_walk_m2 from it instead of its 17,694 m2 placeholder.
-
-NEW IN v10 (Aras 24 Oct 05:48-05:52; MERGE_PLAN.md sections 3, 5, 6 Q14 / Q16, 7)
-  * One script, one press, three alternatives per option (above), each its own single-page PDF; the opacity is a
-    setting (input opacity); a 100 % opaque white base under every lower-opacity piece in all three alternatives,
-    so the site, land cover and context never mix with the zones: only the zones overlap each other.
-  * Owner names replaced by stage and place names; working-area outlines and owner colours removed everywhere.
-  * v2.3's four per-person sheets and its board are folded into alternatives 1 and 2 (one page each with the four
-    working areas): the per-person sheets showed the same pieces and words again, only zoomed.
-  * v9's raster sheet (PNG, Photoshop layers, area register, manifest, sheet band) is replaced by the vector page;
-    its zones, link rules (link_check, WATER_STEPS), arrow snapping and bold v1.2 arrows are kept in vector.
-  * Fixed: the zone base fallback looked for ZONE_DATA, which zone base v5 does not have (it is BASE_DATA), so the
-    fallback never worked; the palette file's tones (under "masterplan" > "colours") were never read; a settings
-    input could be taken for the Button; the boardwalk's word (PATH_WORDS) was never written.
-  * Optional Rhino bake behind the rhino_bake toggle (off by default).
+OLDER: v23 (Aras 26 Oct 07:06, deck review p.18-20; library/_index/revision_2026-10-26.md, R4):
+  * No walk lines on any plan (p.19: "We work with zones only"): the bank / street / bed walks are no longer drawn
+    on the sheet or the detail windows. They are still computed: masterplan_results.json and the water balance's
+    riverside walk area are unchanged.
+  * A context line under the scale bar of every panel, inside its booklet crop (global rule 4): upstream (p.18:
+    why this plan, what the zones show), downstream (p.19), the upstream detail (the water route) and the K5 detail
+    (p.20 right: why the amphibious stream commons sits with Demeter's Garden: what the two do together, why at K5,
+    with the K5 cut's Q500 level from CUT_AT). Texts in MP_NOTE / dt_note (02b_detail.py). The detail windows give
+    up the lines' height so each crop keeps the booklet frame's size and 1:1,000.
+OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_masterplan/).
 
 HOW WE KNOW IT WORKS: after a press the text under the component reads "v11 · done N s" and the log lists the six
 PDFs with their times; each opens as one page. Before delivery (24 Oct): py_compile and pyflakes clean, and a mock
@@ -182,9 +280,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v19 (2026-10-25)"
-SHORT = "v19"
-BUTTON_WORDS = ("build", "bake", "run", "go", "press", "button", "start", "out")
+VERSION = "bergama_masterplan v40.3 (2026-11-02)"  # v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v40.3"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
 RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: inferred, not a sourced number)
@@ -194,29 +291,27 @@ _ALPHA = [OPACITY]                   # v17: the opacity of this press, for the l
 BOARD_MAX_W = 4000.0                  # a board of the four working areas wider than this goes into two rows (mm)
 LINE_STEP_M = 1.0                     # survey lines are cut at the ring to this step
 OUT_FOLDER = "bergama_masterplan"
-OUT_NAME = "Bergama_masterplan_v19_{}.pdf"     # v19: one sheet per option
+OUT_NAME = "Bergama_masterplan_v37_{}.pdf"     # v19: one sheet per option (v37: name follows the version)
+DETAIL_NAME = "Bergama_masterplan_v37_{}_detail.pdf"   # v21: the 1:1,000 detail sheet
 LOG_NAME = "bergama_masterplan_log.txt"
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+#@include ../../common/bergama_paths.py
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 RESULTS_NAME = "masterplan_results.json"   # v11: read by the water balance (riverside_walk_m2)
 BAKE_ROOT = "MP11"                    # Rhino layer of the bake (rhino_bake = True)
 BAKE_GAP = 0.10                       # gap between baked sheets and to the rest of the file (x the sheet's width)
-CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
 OPTION_TEXT = {"A": u"OPTION A · organic only where the project meets the water",
                "B": u"OPTION B · no organic forms"}
 ALT_TEXT = {1: u"MASTERPLAN · PROGRAMME"}   # v19: the one sheet
 
 # working area key (survey layer, data key only), stage / place name on the drawing (Q16), idea (CONTEXT §4)
-AREAS = [("calisma_alan[0]", u"UPSTREAM ENTRY TO K4 BRIDGE", u""),          # v12: one shared working area, north part
-         ("calisma_alan[1]", u"K5 BRIDGE TO DOWNSTREAM END", u"")]          # south part (Aras 25 Oct 08:05)
 CALISMA_LAYER = "calisma_alan"
 SITE_LAYER = "site_alan"                              # v15: analysis range = extent of alternative 3
 SITE_COPY = [(29388.015, 32540.503), (31220.325, 30364.153), (31625.069, 30704.915), (29792.759, 32881.264)]   # v15: site_alan of Bergama_Altlik.3dm (rectangle 2,845 x 529 m, 25 Oct 08:25)
 CLOSE_GAP = 5.0                                   # v12: m, an open outline closer than this counts as closed
-SPINE_OUTSIDE_OK = True                           # v12: the riverside spine (city link) may leave calisma_alan
 SNAP_M = 15.0                                     # v12: m, a proposal this close to calisma_alan counts as on it
-WALK_CLIP = False                                 # v12: Aras 08:10: the walk outside calisma_alan (207 of 4,211 m in
-                                                  # the copy) is too small to matter: walks drawn continuous
+WALK_CLIP = True                                  # v38 (round 4, U40 "we cant do any adjustments outside the study
+                                                  # area"): the riverside walk is cut to calisma_alan (v12-v37: off)
 CALISMA_COPY = [                                   # v12: calisma_alan of Bergama_Altlik.3dm (25 Oct 08:25: closed, ends snapped onto site_alan), survey m
     [(29696.903, 32800.562), (29872.423, 32572.84), (29880.693, 32496.334), (29818.865, 32475.301), (29825.821, 32398.074), (29923.185, 32344.348), (29904.985, 32311.252), (29997.056, 32290.092), (30053.417, 32139.667), (30004.049, 32108.006), (29954.803, 32210.611), (29792.114, 32247.062), (29761.684, 32302.735), (29754.016, 32451.383), (29678.437, 32447.696), (29632.398, 32496.591), (29665.339, 32526.253), (29612.859, 32696.506), (29600.496, 32719.394)],
     [(30178.18, 31923.887), (30138.072, 31887.655), (30257.694, 31773.217), (30389.686, 31405.252), (30701.152, 30991.252), (30840.053, 31053.865), (31044.852, 30781.877), (31014.2, 30757.409), (31373.442, 30493.066), (31453.175, 30560.194), (31332.978, 30864.179), (31012.679, 31323.349), (30737.856, 31286.66), (30712.87, 31331.891), (30556.09, 31450.103), (30454.629, 31577.301), (30434.156, 31607.332), (30313.613, 31812.92)],
@@ -246,46 +341,20 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 
 # ---------------------------------------------------------------- the words (CONTEXT §4, verbatim; nothing else)
 # Keywords cut from the sourced sub-programme labels of CONTEXT §4 (Nil 18:25: "just use keywords"); nothing added
-NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
+ZONE_NAMES = {("aras_alan", "WS", None): u"RETENTION TERRACES", ("aras_alan", "GR", None): u"SHADED WALK",
          ("aras_alan", "WT", None): u"REED BASINS", ("aras_alan", "WD", None): u"SPILLWAY",
          ("begum_alan", "WA", "W"): u"BED", ("begum_alan", "WA", "F"): u"FLOOD TERRACE",
-         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"RIVERSIDE PLANTING",
+         ("begum_alan", "GR", None): u"DRY TOP", ("nil_alan", "WP", None): u"STREAMSIDE PLANTING",
          ("calisma_alan", "DG", None): u"DEMETER'S GARDEN"}   # v13: Begum's idea (card i01)
-SUBS = [  # (working-area layer, code, tier, only for: None / "A" / "B" / a working-area key, keywords)
-    ("aras_alan", "WS", "D", None, [u"WINTER RAIN", u"STEPPED", u"SEATING"]),
-    ("aras_alan", "GR", "D", None, [u"SHADE", u"WALK", u"CAFE"]),
-    ("aras_alan", "WT", "F", None, [u"CLEANING", u"DE-ODOUR", u"RUNOFF"]),
-    ("aras_alan", "WD", "W", None, [u"OVERFLOW", u"RETURN"]),
-    ("begum_alan", "WA", "W", None, [u"WATER STRIP", u"STEPPING STONES", u"WEIRS", u"PLAZA", u"REED"]),
-    ("begum_alan", "WA", "F", None, [u"WATER STEPS", u"SEATING", u"TAMARIX"]),
-    ("begum_alan", "GR", "D", None, [u"BRIDGE VIEW", u"KIOSK", u"SHADE", u"LAVENDER"]),
-    ("nil_alan", "WP", "F", None, [u"CLEAN RIVER", u"FLOOD-PROOF", u"ODOUR-FREE", u"WILLOW"]),
-    ("calisma_alan", "DG", "D", None, [u"OLIVES", u"STONE PINE", u"AROMATICS", u"SEASONAL BEDS", u"CAFE",
-                                       u"WATER COLLECTION BASIN"]),   # v13: Begum's PDF, verbatim words
-]
-REMOVE_WORDS = [u"CLEARED"]
 # the common piece where the functions of a working area meet: name + what it gathers. A design reading of the
 # sourced words above (Aras 19:27, campus reference), not data; edit freely.
 HUB = {"calisma_alan[0]": (u"WATER AND HERITAGE COMMONS", [u"COLLECT", u"CLEAN", u"HOLD", u"K4 BRIDGE", u"PLAZA"]),
-       "calisma_alan[1]": (u"AMPHIBIOUS RIVER COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
+       "calisma_alan[1]": (u"AMPHIBIOUS STREAM COMMONS", [u"K5 BRIDGE", u"WATER", u"GIVE BACK", u"WALK", u"GREEN"])}
 # v12: v11's four commons merged per part (WATER + HERITAGE; AMPHIBIOUS + RIVER), their words joined
 # word-size factor per zone = how much it carries the working area's idea (three_ideas.md); a design reading.
 # Upstream entry "Collect, clean and hold": the reed basins clean and the terraces hold; the spillway returns; the
 # walk serves. K4 / K5 "Amphibious heritage threshold": the bed is the amphibious core, the terrace its edge, the dry
 # top the view. Downstream end "Give back": the riverside planting is the idea.
-SIG = {("aras_alan", "WT", None): 1.0, ("aras_alan", "WS", None): 1.0, ("aras_alan", "WD", None): 0.7,
-       ("aras_alan", "GR", None): 0.55,
-       ("begum_alan", "WA", "W"): 1.0, ("begum_alan", "WA", "F"): 0.75, ("begum_alan", "GR", None): 0.6,
-       ("nil_alan", "WP", None): 1.0, ("calisma_alan", "DG", None): 0.9}
-HUB_SIG = 1.25                 # the commons: above every zone
-STEPS = (1.0, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35)   # sizes tried, largest first, when a word does not fit
-HUB_R_M = (24.0, 16.0, 10.0)   # meeting distance tried, m (graphic)
-HUB_MAX = 0.35                 # the common piece takes at most this share of the programme pieces
-HUB_MIN_M2 = 150.0             # smaller common fragments are dropped
-KIND_WORD = {"river": u"RIVER", "housing": u"RESIDENTIAL", "park": u"PARK", "heritage": u"HERITAGE"}
-PATH_WORDS = {"nil_alan": [u"FLOODABLE DECK"]}
-ROUND_M = 9.0                  # corner rounding of the cleared-building outlines, m (graphic)
-CREDIT_DG = u"idea: Beg\u00fcm"                 # v13: Demeter's Garden is Begum's idea alone (Aras 25 Oct 08:03)
 DROPPED = ("FARM CHANNEL", "ORCHARD", "FARMLAND")   # no farmland or farm channel inside the site (CONTEXT §2)
 
 # ---------------------------------------------------------------- links (masterplan v9, from ideas.txt)
@@ -299,31 +368,6 @@ LINK_TYPES = {
                   src="ideas.txt lines 8, 18, 26"),
 }
 # The water route's allowed steps (from code -> to code) and the brief's reason for each; any other step is a warning
-WATER_STEPS = {
-    (None, "WS"): "the river's extra water is stored (line 6)",
-    (None, "WT"): "river water is treated when needed (line 6)",
-    (None, "WP"): "plants feed and regulate the river (line 7)",
-    ("WP", None): "plants feed and regulate the river (line 7)",
-    ("WS", "WI"): "extra water is first spent on agriculture (line 26; drainage feeds orchards, line 12)",
-    ("WS", "WT"): "then the excess goes to treatment (line 26)",
-    ("WS", "WD"): "storage discharges (line 6)",
-    ("WS", None): "storage raises the river when needed (line 6)",
-    ("WT", "HO"): "treated water to the city mains or drinking water (line 26)",
-    ("WT", "MC"): "treated water to the city mains or drinking water (line 26)",
-    ("WT", "CV"): "treated water to the city mains or drinking water (line 26)",
-    ("WT", "PA"): "treated water to the city mains (line 26)",
-    ("WT", "WD"): "treated water is discharged (line 6)",
-    ("WT", None): "treated water back to the river (line 6)",
-    ("WD", None): "discharge back to the river (line 6)",
-    ("WD", "WI"): "the drainage channel feeds orchards and farmland (line 12)",
-    (None, "WD"): "the river feeds a channel by gravity, downstream, for the farms (lines 12, 26)",
-}
-FLOOD_TO = ("WA", "WS", "WD", "WT")                  # zones meant to take high water (ideas.txt lines 8, 18 and 26)
-CITY_CODES = ("CH", "MC", "HO", "CV", "GR", "SR", "PA")
-WATER_SIDE = ("WS", "WD", "WT", "WP", "WA", "WI")
-SNAP_IN_M = 2.0                # masterplan v7: an arrow starts / ends this far inside the zones it joins (m)
-MIN_LINK_MM = 7.0              # masterplan v7: shortest arrow on the sheet (mm)
-SHORT_LINK_M = 60.0            # masterplan v6: water / flood links up to this long also get a water band (m)
 # The masterplan's bold hand-drawn arrow (v8 / v9 G, as water loop v1.2 and the water board draw it; the standard
 # since 24 Oct): marker shaft 2.0 mm, barbs 5.84 mm at 38 deg and 1.6 mm, serifs 2.79 mm at 0.4 mm, barb overshoot
 # 0.64 mm, shaft wobble 0.175 mm over 15.2 mm; paper mm.
@@ -342,91 +386,16 @@ ROLE_OF = dict([(n, "building") for n in BUILDING_LAYERS] + [("BINA_MESKEN", "ho
 
 
 # ================================================================ Grasshopper inputs, memory, status (v2.3)
-#@include ../../common/_gh_inputs.py
+# v38 (round 4, S8): what starts this component = common/trigger.py (one rule for all nine scripts; its notes)
+#@include ../../common/trigger.py
 
 
-_GH_IN = _gh_inputs()
+_GH_IN = trig_inputs()
 _T_START = time.time()
-
-
-def upstream_done(name):
-    """25 Oct 12:10: the done text of the script wired into input `name`, read from Rhino's memory (sticky) instead of
-    the wire: on Aras's canvas ZoneBase's done reached MasterPlan as Null after a bake. Keys: "done:<guid>" (zone base,
-    masterplan, water board) or "...:<guid>_done" (template scripts)."""
-    try:
-        import scriptcontext as _scx
-        for p_ in ghenv.Component.Params.Input:                          # noqa: F821
-            if str(p_.NickName or p_.Name).lower() != str(name).lower():
-                continue
-            for src_ in p_.Sources:
-                g = str(src_.Attributes.GetTopLevel.DocObject.InstanceGuid)
-                for k_ in ("done:" + g, "lu_done:" + g):
-                    v_ = _scx.sticky.get(k_)
-                    if str(v_).startswith("done "):
-                        return str(v_)
-                for k_, v_ in list(_scx.sticky.items()):
-                    if str(k_).endswith(g + "_done") and str(v_).startswith("done "):
-                        return str(v_)
-    except Exception:
-        pass
-    return None
-
-
-def chain_fire(v, key, name=None):
-    """25 Oct 10:20 (one-click chain): the previous script's done output is a text "done HH:MM:SS.ss ..." that stays
-    after the Button is released; each NEW text fires this script once (the Button still works as before)."""
-    if isinstance(v, (list, tuple)):                 # several wires (e.g. a Button and a done): take the done text
-        v = next((x for x in v if str(x).startswith("done ")), None)
-    s = str(v) if v is not None else ""
-    if not s.startswith("done ") and name:                 # 12:10: Null on the wire: read the done text from memory
-        s = upstream_done(name) or ""
-    if not s.startswith("done "):
-        return False
-    try:
-        import scriptcontext as _scx
-        try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
-        except Exception:
-            pass
-        if _scx.sticky.get(key) == s:
-            return False
-        _scx.sticky[key] = s
-        return True
-    except Exception:
-        return False
 
 
 #@include ../../common/done_text.py
 
-
-
-#@include ../../common/to_bool.py
-
-
-def _letters(s):
-    return "".join(c for c in str(s).lower() if c.isalpha())
-
-
-def button_state():
-    """(name, pressed) of the Button input: an input whose name is a button word, else an input fed by a Button,
-    else any input that is not one of the settings (v10: a settings input is never taken for the Button)."""
-    names = [k_ for k_ in _GH_IN if k_.lower() not in SETTINGS]
-    for k_ in names:
-        if _letters(k_) in BUTTON_WORDS:
-            return k_, to_bool(_GH_IN[k_])
-    try:
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821
-            nm = str(p_.NickName or p_.Name)
-            if nm.lower() in SETTINGS:
-                continue
-            for src_ in p_.Sources:
-                if "button" in type(src_.Attributes.GetTopLevel.DocObject).__name__.lower():
-                    return nm, to_bool(_GH_IN.get(nm, False))
-    except Exception:
-        pass
-    if names:
-        return names[0], to_bool(_GH_IN[names[0]])
-    return None, False
 
 
 def inp(name, default=None):
@@ -557,28 +526,6 @@ def thin(P, n=120):
     return P[::max(1, len(P) // n)]
 
 
-def seg_closest(p, a, b):
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / max(dx * dx + dy * dy, 1e-12)
-    t = max(0.0, min(1.0, t))
-    return (a[0] + t * dx, a[1] + t * dy)
-
-
-def closest_pair(A, B):
-    """Closest points between two rings (or a point and a ring); returns (point on A, point on B, distance)."""
-    best = (A[0], B[0], 1e18)
-    for X, Y, flip in ((A, B, False), (B, A, True)):
-        if len(Y) < 2:
-            continue
-        for p in X:
-            for i in range(len(Y)):
-                q = seg_closest(p, Y[i], Y[(i + 1) % len(Y)])
-                d = math.hypot(q[0] - p[0], q[1] - p[1])
-                if d < best[2]:
-                    best = (q, p, d) if flip else (p, q, d)
-    return best
-
-
 def mix(c1, c2, t):
     a, b = hex_rgb(c1), hex_rgb(c2)
     return "".join("{:02X}".format(int(round(255 * (a[i] + (b[i] - a[i]) * t)))) for i in range(3))
@@ -622,35 +569,59 @@ def sub_line(P, s, t0, t1):
 
 
 # ================================================================ text metrics (Helvetica = Arial metrics, v2.3)
-_MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
-_MW0 = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556,
-        556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278,
-        500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469,
-        556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500,
-        278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584]
-_MW1 = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556,
-        556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278,
-        556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584,
-        556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556,
-        333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
-_W = [dict(zip(_MCH, _MW0)), dict(zip(_MCH, _MW1))]
-_WX = {u"·": 278, u"³": 333, u"²": 333, u"µ": 556, u"§": 556, u"İ": 278, u"ı": 278, u"–": 556, u"°": 400}
 PT = 25.4 / 72.0
 
 
 def text_w(s, size, bold=False):
-    w = _W[1 if bold else 0]
-    return sum(w.get(c, _WX.get(c, 600 if c.isupper() else 556)) for c in s) / 1000.0 * size
+    """v38 (round 4, G-R4-1): the REAL Arial width (mm) of s at size mm (common/font_metrics.py, the fonts the PDF
+    embeds); the Helvetica estimate tables (_MCH, _MW0, _MW1, _W, _WX) are gone. A missing font raises FontMissing."""
+    return fm_width(s, size / PT, bold) if s else 0.0
 
 
-#@include ../../common/wrap.py
+# v38 closing (G-R4-2): common/wrap.py (no widow rule) is no longer included: every wrap is pl23_wrap / tp_wrap
 
 
 # ================================================================ page and PDF writer (v2.3; v10: alpha in 1 %
 # steps on lines and circles too, clipping)
 class Page(object):
+    """v38 (round 4, G-R4-1): a page that is (part of) a booklet page carries ONE TextPage (pg.text_page(...)):
+    every pg.text is then registered in it with its real box (font_metrics) before it is drawn, so no text reaches
+    the PDF unmeasured; pg.check_text() runs the collision test, which RAISES TextCollision (the sheet is then not
+    written and the log names the page, the text and what it hits)."""
     def __init__(self, W, H):
         self.W, self.H, self.items = W, H, []
+        self.tp = None
+        self.tg = None                                   # v38: the open text group (tgroup), None = one per text
+
+    def text_page(self, name, bounds=None, margins=None, pad=0.6, scale=1.0):
+        """v38: start this page's TextPage (y up, page mm); bounds default = the whole page"""
+        self.tp = TextPage(name, bounds or (0.0, 0.0, self.W, self.H), y_down=False, pad=pad, margins=margins,
+                           scale=scale)
+        return self.tp
+
+    def tgroup(self, start=True):
+        """v38: start (or with False end) one text group: the texts of one word block (lines of a title, runs of a
+        row) may touch each other; a group never touches another"""
+        self.tg = self.tp._group() if start and self.tp is not None else None
+        return self.tg
+
+    def keep(self, geom, kind="keep", name=None, line=None):
+        """v38: an obstacle no text may touch (TextPage.keep); nothing without a TextPage"""
+        if self.tp is not None:
+            return self.tp.keep(geom, kind, name, line)
+        return None
+
+    def check_text(self, log=None):
+        """v38: the page's collision test (raises TextCollision); returns the log line"""
+        if self.tp is None:
+            raise TextError(u"page has no TextPage: call pg.text_page(name) before drawing its text")
+        lg = []
+        self.tp.check(True, lg)
+        if log is not None:
+            log.extend(lg)
+        else:                                           # v39: the hits' WARNING lines (text_place warns, no raise)
+            TP_LOG.extend(lg[:-1])                      # reach the log; the caller logs the "overlap" line
+        return lg[-1] if lg else u""
 
     def poly(self, rings, fill=None, stroke=None, lw=0.1, dash=None, stripes=None, alpha=None):
         """alpha: opacity 0-1 of fill and stroke (None = opaque). stripes: (colour, spacing, width[, angle, wavy])."""
@@ -665,9 +636,18 @@ class Page(object):
     def circle(self, cx, cy, r, fill=None, stroke=None, lw=0.1, alpha=None):
         self.items.append(("circle", cx, cy, r, fill, stroke, lw, alpha))
 
-    def text(self, s, x, y, size, color, bold=False, align="L", halo=None):
+    def text(self, s, x, y, size, color, bold=False, align="L", halo=None, name=None, allow=(), role="label"):
+        """one text (size mm). v38: registered in the page's TextPage first (when it has one): name / allow / role
+        go to TextPage.put (allow = keep names or kinds it may sit on, e.g. its own marker disc).
+        v38 closing: m² / m³ print the embedded Arial's own ² / ³ glyph at full size (WinAnsi 0xB2 / 0xB3, as water
+        board v13); the v26.1 raised 0.6 x digit is gone (at 7.5 pt it was 4.5 pt, under the 6 pt minimum)"""
+        tp, g = self.tp, None
+        if s and tp is not None:
+            g = self.tg or tp._group()
         if s:
-            self.items.append(("text", s, x, y, size, color, bold, align, halo))
+            if tp is not None and s.strip():
+                tp.put(s, x, y, size / PT, bold, align, 0.0, name, role, color, allow, g, emit=False)
+            self.items.append(("text", s, x, y, size, color, bold, align, halo, role))   # round 5: role kept (04_items)
 
     def clip(self, rings):
         self.items.append(("clip", rings))
@@ -832,7 +812,7 @@ def page_stream(pg):
             A("Q")
             cur.clear()
         elif kind == "text":
-            _, s, x, y, size, color, bold, align, halo = it
+            _, s, x, y, size, color, bold, align, halo = it[:9]
             w = text_w(s, size, bold)
             reps = [(halo, True), (color, False)] if halo else [(color, False)]
             for c_, hal in reps:
@@ -857,19 +837,23 @@ def write_pdf(pg, path, title):
     def add(b):
         objs.append(b)
         return len(objs)
-    font = []
-    for nm in ("Helvetica", "Helvetica-Bold"):
-        font.append(add("<< /Type /Font /Subtype /Type1 /BaseFont /{} /Encoding << /Type /Encoding /BaseEncoding "
-                        "/WinAnsiEncoding {} >> >>".format(nm, _DIFF).encode("latin-1")))
+    font = pdf_fonts(add, ("R", "B"))                     # G2/G3 28 Oct: Arial embedded (common/pdf_fonts.py)
     gs = [add("<< /Type /ExtGState /ca {0} /CA {0} >>".format(_f(i / 100.0)).encode("latin-1")) for i in range(1, 100)]
     gs_res = " ".join("/A{:02d} {} 0 R".format(i + 1, o_) for i, o_ in enumerate(gs))
     pages_id = add(b"")
-    data = zlib.compress(page_stream(pg), 6)
+    xo_res = ""
+    if any(it[0] == "image" for it in pg.items):          # T7 30 Oct (D1 a): raster cutouts between the vector items
+        stream, xo = _mp_image_stream(pg, add)
+        xo_res = " /XObject << {} >>".format(" ".join("/{} {} 0 R".format(n_, o_) for n_, o_ in xo)) if xo else ""
+    else:
+        stream = page_stream(pg)
+    data = zlib.compress(stream, 6)
     cid = add(b"<< /Length " + str(len(data)).encode() + b" /Filter /FlateDecode >>\nstream\n" + data +
               b"\nendstream")
     kid = add("<< /Type /Page /Parent {} 0 R /MediaBox [0 0 {} {}] /Contents {} 0 R /Resources << /Font "
-              "<< /F1 {} 0 R /F2 {} 0 R >> /ExtGState << {} >> >> >>".format(pages_id, _f(pg.W / PT), _f(pg.H / PT), cid,
-                                                                                    font[0], font[1], gs_res).encode("latin-1"))
+              "<< /F1 {} 0 R /F2 {} 0 R >> /ExtGState << {} >>{} >> >>".format(pages_id, _f(pg.W / PT), _f(pg.H / PT),
+                                                                                cid, font[0], font[1], gs_res,
+                                                                                xo_res).encode("latin-1"))
     objs[pages_id - 1] = "<< /Type /Pages /Kids [{} 0 R] /Count 1 >>".format(kid).encode("latin-1")
     cat = add("<< /Type /Catalog /Pages {} 0 R >>".format(pages_id).encode("latin-1"))
     info = add(b"<< /Title " + pdf_str(title) + b" /Producer " + pdf_str(VERSION) + b" >>")
@@ -886,6 +870,190 @@ def write_pdf(pg, path, title):
         len(objs) + 1, cat, info, x).encode()
     with open(path, "wb") as fh:
         fh.write(bytes(out))
+
+
+# ---- images in the page (T7 30 Oct 2026; D1 a: layered raster collage). The logic of common/write_pdf.py
+# (_wp_png, _wp_jpeg, _wp_image_obj, _wp_image_stream), with this writer's ExtGState names (/A01../A99 = 1 % steps):
+# an item ("image", x, y, w, h, path, alpha, flip, clip) puts a PNG (alpha as an SMask) or a JPEG at x, y (lower left,
+# page mm, y up), w x h mm, alpha 0-1 or None, flip True = mirrored, clip None or (x0, y0, x1, y1) mm, in its place
+# among the vector items (pg.items order = the layer order); each file is embedded once. Pages without an image are
+# written exactly as before; page_stream skips image items; an unreadable image is skipped and logged (MP_IMG_LOG).
+MP_IMG_LOG = []
+
+
+def _mp_png(path):
+    """(w, h, colour bytes, n colours 1|3, alpha bytes or None) of a PNG (8 / 16 bit, not interlaced), or None"""
+    import struct as _st
+    with open(path, "rb") as f:
+        d = f.read()
+    if d[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    pos, idat, plte, trns, hdr = 8, [], None, None, None
+    while pos + 8 <= len(d):
+        n = _st.unpack(">I", d[pos:pos + 4])[0]
+        t, c = d[pos + 4:pos + 8], d[pos + 8:pos + 8 + n]
+        pos += 12 + n
+        if t == b"IHDR":
+            hdr = _st.unpack(">IIBBBBB", c[:13])
+        elif t == b"PLTE":
+            plte = c
+        elif t == b"tRNS":
+            trns = c
+        elif t == b"IDAT":
+            idat.append(c)
+        elif t == b"IEND":
+            break
+    if not hdr:
+        return None
+    w, h, bd, ct, _cm, _fm, il = hdr
+    ch = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+    if ch is None or il or bd not in (8, 16) or (ct == 3 and bd != 8):
+        return None
+    bpp = ch * bd // 8
+    raw = zlib.decompress(b"".join(idat))
+    stride = w * bpp
+    out = bytearray(h * stride)
+    prev = bytearray(stride)
+    i = 0
+    for y in range(h):
+        ft = raw[i]
+        ln = bytearray(raw[i + 1:i + 1 + stride])
+        i += 1 + stride
+        if ft == 1:
+            for x in range(bpp, stride):
+                ln[x] = (ln[x] + ln[x - bpp]) & 255
+        elif ft == 2:
+            for x in range(stride):
+                ln[x] = (ln[x] + prev[x]) & 255
+        elif ft == 3:
+            for x in range(stride):
+                ln[x] = (ln[x] + (((ln[x - bpp] if x >= bpp else 0) + prev[x]) >> 1)) & 255
+        elif ft == 4:
+            for x in range(stride):
+                a = ln[x - bpp] if x >= bpp else 0
+                b = prev[x]
+                c = prev[x - bpp] if x >= bpp else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                ln[x] = (ln[x] + (a if pa <= pb and pa <= pc else (b if pb <= pc else c))) & 255
+        out[y * stride:(y + 1) * stride] = ln
+        prev = ln
+    if bd == 16:                                          # keep the high byte of every sample
+        out = out[0::2]
+    n = w * h
+    if ct == 3:
+        pal = bytes(plte or b"") + b"\x00" * (768 - len(plte or b""))
+        rgb = bytearray(n * 3)
+        for k_ in range(3):
+            rgb[k_::3] = bytes(out).translate(bytes(pal[3 * j + k_] for j in range(256)))
+        alpha = bytes(out).translate(bytes(trns or b"") + b"\xff" * (256 - len(trns or b""))) if trns else None
+        return w, h, bytes(rgb), 3, alpha
+    if ct == 0:
+        return w, h, bytes(out), 1, None
+    if ct == 4:
+        return w, h, bytes(out[0::2]), 1, bytes(out[1::2])
+    if ct == 2:
+        return w, h, bytes(out), 3, None
+    rgb = bytearray(n * 3)
+    rgb[0::3], rgb[1::3], rgb[2::3] = out[0::4], out[1::4], out[2::4]
+    alpha = bytes(out[3::4])
+    return w, h, bytes(rgb), 3, (None if alpha.count(b"\xff") == n else alpha)
+
+
+def _mp_jpeg(d):
+    """(w, h, n colours) of a baseline / progressive JPEG, or None"""
+    if d[:2] != b"\xff\xd8":
+        return None
+    i = 2
+    while i + 9 < len(d):
+        if d[i] != 0xFF:
+            return None
+        m = d[i + 1]
+        if m in (0xC0, 0xC1, 0xC2):
+            return (d[i + 7] << 8) | d[i + 8], (d[i + 5] << 8) | d[i + 6], d[i + 9]
+        i += 2 + ((d[i + 2] << 8) | d[i + 3])
+    return None
+
+
+def _mp_image_obj(path, add):
+    """the XObject id of one image file (PNG with its SMask, or JPEG), or None (logged)"""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(4)
+        if head == b"\x89PNG":
+            r = _mp_png(path)
+            if not r:
+                MP_IMG_LOG.append(u"image %s: PNG type not supported (interlaced or < 8 bit)" % path)
+                return None
+            w, h, col, nc, alpha = r
+            sm = ""
+            if alpha is not None:
+                a = zlib.compress(alpha, 6)
+                sid = add(("<< /Type /XObject /Subtype /Image /Width {} /Height {} /ColorSpace /DeviceGray "
+                           "/BitsPerComponent 8 /Filter /FlateDecode /Length {} >>\nstream\n".format(w, h, len(a))
+                           ).encode("latin-1") + a + b"\nendstream")
+                sm = " /SMask {} 0 R".format(sid)
+            c = zlib.compress(col, 6)
+            return add(("<< /Type /XObject /Subtype /Image /Width {} /Height {} /ColorSpace /{} /BitsPerComponent 8"
+                        "{} /Filter /FlateDecode /Length {} >>\nstream\n".format(
+                            w, h, "DeviceRGB" if nc == 3 else "DeviceGray", sm, len(c))).encode("latin-1") + c +
+                       b"\nendstream")
+        with open(path, "rb") as f:
+            d = f.read()
+        info = _mp_jpeg(d)
+        if not info:
+            MP_IMG_LOG.append(u"image %s: neither PNG nor JPEG" % path)
+            return None
+        w, h, nc = info
+        return add(("<< /Type /XObject /Subtype /Image /Width {} /Height {} /ColorSpace /{} /BitsPerComponent 8 "
+                    "/Filter /DCTDecode /Length {} >>\nstream\n".format(
+                        w, h, {1: "DeviceGray", 4: "DeviceCMYK"}.get(nc, "DeviceRGB"), len(d))).encode("latin-1") + d +
+                   b"\nendstream")
+    except Exception as ex:
+        MP_IMG_LOG.append(u"image %s: %s" % (path, type(ex).__name__))
+        return None
+
+
+def _mp_image_stream(pg, add):
+    """(content stream, [(name, id)]): runs of vector items through page_stream (each in q ... Q), the images
+    between them in their order; one XObject per file (embedded once)"""
+    class _Run(object):
+        pass
+    parts, run, names, xo = [], [], {}, []
+
+    def flush():
+        if run:
+            r = _Run()
+            r.W, r.H, r.items = pg.W, pg.H, list(run)
+            parts.append(b"q\n" + page_stream(r) + b"\nQ")
+            del run[:]
+    for it in pg.items:
+        if it[0] != "image":
+            run.append(it)
+            continue
+        flush()
+        x, y, w, h, p = it[1:6]
+        alpha = it[6] if len(it) > 6 else None
+        flip = it[7] if len(it) > 7 else False
+        clip = it[8] if len(it) > 8 else None
+        if p not in names:
+            oid = _mp_image_obj(p, add)
+            names[p] = None if oid is None else "Im%d" % (len(xo) + 1)
+            if oid is not None:
+                xo.append((names[p], oid))
+        if names[p] is None or w <= 0 or h <= 0:
+            continue
+        ops = ["q 2.834646 0 0 2.834646 0 0 cm"]
+        g = _gs(alpha)                                    # this writer's /A01../A99 (1 % steps)
+        if g:
+            ops.append("{} gs".format(g))
+        if clip:
+            ops.append("{} {} {} {} re W n".format(_f(clip[0]), _f(clip[1]), _f(clip[2] - clip[0]), _f(clip[3] - clip[1])))
+        ops.append("{} 0 0 {} {} {} cm /{} Do Q".format(_f(-w if flip else w), _f(h), _f(x + w if flip else x), _f(y),
+                                                       names[p]))
+        parts.append(" ".join(ops).encode("latin-1"))
+    flush()
+    return b"\n".join(parts), xo
 
 
 def _move(pts, dx, dy):
@@ -910,6 +1078,11 @@ def blit(dst, src, dx, dy):
             dst.items.append(it)
         elif kd == "clipline":
             dst.items.append((kd, [_move(r_, dx, dy) for r_ in it[1]], _move(it[2], dx, dy)) + tuple(it[3:]))
+        elif kd == "image":                               # T7 30 Oct: ("image", x, y, w, h, path, alpha, flip, clip)
+            it = tuple(it) + (None,) * (9 - len(it))
+            c_ = it[8]
+            dst.items.append((kd, it[1] + dx, it[2] + dy) + tuple(it[3:8]) +
+                             ((c_[0] + dx, c_[1] + dy, c_[2] + dx, c_[3] + dy) if c_ else None,))
 
 
 #@include ../../common/rect.py
@@ -997,20 +1170,17 @@ def off_work(p, areas):
 
 
 def clip_runs(runs, areas):
-    """v12: the walk runs cut to the working area, at the runs' vertex resolution."""
+    """v12: the walk runs cut to the working area. v38 (round 4, G-R4-4): exact edge crossings (study_clip sc_lines),
+    counted for p21."""
+    rings = sc_rings(areas=areas)
     out = []
     for x in runs:
-        cur = []
-        for p in list(x["P"]) + [None]:
-            if p is not None and in_work(p, areas):
-                cur.append(tuple(p))
-                continue
-            if len(cur) >= 2:
+        for run in sc_lines(list(x["P"]), rings, page=u"p21"):
+            if len(run) >= 2:
                 y = dict(x)
-                y["P"] = cur
-                y["m"] = arclen(cur)[-1]
+                y["P"] = [tuple(p) for p in run]
+                y["m"] = arclen(y["P"])[-1]
                 out.append(y)
-            cur = []
     return out
 
 
@@ -1026,7 +1196,26 @@ def read_survey(doc, R):
             continue
         P = curve_pts(g)
         if len(P) >= 2:
-            out.setdefault(ROLE_OF[path.split("::")[-1]], []).append(P)
+            role = ROLE_OF[path.split("::")[-1]]
+            out.setdefault(role, []).append(P)
+            if role in ("contour", "contour10"):          # v28: its height, for the p.24 sections' ground
+                out.setdefault("contour_z", []).append((P, g.PointAtStart.Z))
+    return out
+
+
+SPOT_LAYER = "NOKTA_TAKEOMETRI"       # v21: the survey's spot heights (tacheometry points, m)
+
+
+def read_spots(doc, rects):
+    """v21: [(x, y, z)] of the survey's spot heights (SPOT_LAYER points) inside any of the rectangles."""
+    out = []
+    for path, o in objects_on(doc, lambda p: p.split("::")[-1] == SPOT_LAYER):
+        g = o.Geometry
+        q = getattr(g, "Location", None)
+        if q is None or abs(q.Z) < 1e-6:
+            continue
+        if any(R[0] <= q.X <= R[2] and R[1] <= q.Y <= R[3] for R in rects):
+            out.append((q.X, q.Y, q.Z))
     return out
 
 
@@ -1105,7 +1294,7 @@ def zone_base_file(doc, warn):
         cands.append(str(v).strip().strip('"'))
     for d in search_dirs(doc):
         for sub in ("", "scripts"):
-            for nm in ("bergama_zone_base_v9.py", "bergama_zone_base_v8.py", "bergama_zone_base_v7.py", "bergama_zone_base_v6.py", "bergama_zone_base_v5.py",
+            for nm in ("bergama_zone_base_v10_2.py", "bergama_zone_base_v10.py", "bergama_zone_base_v9.py", "bergama_zone_base_v8.py", "bergama_zone_base_v7.py", "bergama_zone_base_v6.py", "bergama_zone_base_v5.py",
                        "zone_base_v5_embedded_data.json"):
                 cands.append(os.path.join(d, sub, nm))
     for k, p in enumerate(cands):
@@ -1161,7 +1350,7 @@ def load_palette(dirs, warn):
 
 def out_folder(doc):
     # v10 24 Oct: all files under Downloads/Bergama/ (Aras rule); was next to the .3dm / .gh, else Documents
-    return os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", OUT_FOLDER)
+    return bg_output(OUT_FOLDER)                    # final PDFs only (27 Oct)
 
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here
@@ -1178,28 +1367,4 @@ def link_type(tag):
         if tw & set(d_["words"]):
             return k_
     return None
-
-
-def link_check(kind, a, b):
-    """'' when an arrow of `kind` from zone code a to zone code b (None = the river or no zone) follows the brief's
-    logic, else what is wrong (masterplan v9)."""
-    nm = lambda c_: c_ or "the river (no zone)"
-    if kind == "water":
-        if (a, b) in WATER_STEPS:
-            return ""
-        return ("{} -> {} is not a step of the water route (river -> WS storage -> WI agriculture / WT treatment -> "
-                "city or back to the river, ideas.txt lines 6, 12 and 26)").format(nm(a), nm(b))
-    if kind == "flood":
-        if a in (None, "WA") and b in FLOOD_TO:
-            return ""
-        return ("a high-water arrow runs from the river (no zone, or an amphibious bed WA) into a zone that takes "
-                "water ({}); this one runs {} -> {}").format("/".join(FLOOD_TO), nm(a), nm(b))
-    if kind == "people":
-        w_ = lambda c_: c_ is None or c_ in WATER_SIDE
-        if (w_(a) and b in CITY_CODES) or (w_(b) and a in CITY_CODES):
-            return ""
-        return ("a river-city link joins the water side (a W zone or the river) with a city zone ({}); this one "
-                "runs {} -> {}").format("/".join(CITY_CODES), nm(a), nm(b))
-    return ""
-
 

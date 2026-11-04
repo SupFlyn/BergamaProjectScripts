@@ -1027,7 +1027,7 @@ T_BG = (255, 255, 255)
 
 
 def tech_dir():
-    base = SELINUS_OUT_DIR                                   # v33 24 Oct (Aras rule); was beside env_path
+    base = SELINUS_RES_DIR                                   # v44: working files in cached/ (v33-v43: output/)
     d = os.path.join(base, "selinus_technical_maps")
     try:
         if not os.path.isdir(d):

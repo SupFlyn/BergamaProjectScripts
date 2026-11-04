@@ -8,8 +8,9 @@
 export PYTHONHASHSEED=0   # same set/dict order in every run
 export BERGAMA_SURVEY=${BERGAMA_SURVEY:-/home/claude/survey.pkl}
 T=$(dirname $(realpath $0)); D=$(realpath $1); H=$(realpath -m $2); DATA=${BERGAMA_DATA:-/home/claude/kit/Data}
-STEPS=${STEPS:-"zone_base masterplan water_balance board city_link agriculture_alternatives water_board proposal_sections"}
+STEPS=${STEPS:-"zone_base masterplan water_balance board city_link agriculture_alternatives water_board proposal_sections booklet"}
 [ -z "$KEEP" ] && rm -rf $H; mkdir -p $H/Downloads/Bergama/Data; cp $DATA/* $H/Downloads/Bergama/Data/
+[ -d $D/Data ] && cp $D/Data/* $H/Downloads/Bergama/Data/    # the scripts' own data files (tools/build.py)
 [ -n "$SEED_CACHE" ] && cp -r $(realpath $SEED_CACHE)/Downloads/Bergama/cached $H/Downloads/Bergama/
 for s in $STEPS; do
   f=$(ls $D/bergama_${s}_v*.py $D/selinus_${s}_v*.py 2>/dev/null | head -1)

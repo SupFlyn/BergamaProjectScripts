@@ -13,6 +13,7 @@ Aras still gets ONE self-contained `.py` per script (in `dist/`), the same file 
 | `src/common/*.py` | helpers whose text is the same in 2+ scripts. Editing one changes every script that includes it (see the `#@include ../common/` lines) |
 | `dist/` | built scripts = what goes into `scripts/` and the run kit |
 | `tools/` | split, build, check, offline test runs |
+| `tools/script_map.py` | refreshes the line numbers in the project's `library/SCRIPT_MAP.md` (which function draws which booklet page / drawing); `tools/build.py` runs it after every build (path: `$BERGAMA_SCRIPT_MAP`, default `/mnt/project-files/library/SCRIPT_MAP.md`) |
 
 ## Edit steps (every change)
 1. `python3 tools/split.py <latest delivered scripts>` only when a script came from outside the repo (the round trip must give the same bytes, or nothing is written).

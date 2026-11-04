@@ -18,9 +18,21 @@ def inv(path):
             except Exception: pass
     return fns, dups, version
 
+def data_names(path):
+    """Names the script's Data file defines (Data/<name>_data.py beside the script, read by bergama_data())."""
+    import os, re
+    m = re.search(r'"Data", "(\w+_data\.py)"', open(path, encoding="utf-8").read())
+    if not m: return set()
+    f = os.path.join(os.path.dirname(os.path.abspath(path)), "Data", m.group(1))
+    if not os.path.isfile(f):
+        print("BROKEN? its data file is not beside it:", f); return set()
+    t = ast.parse(open(f, encoding="utf-8").read())
+    return {x.id for n in t.body if isinstance(n, ast.Assign) for x in n.targets if isinstance(x, ast.Name)}
+
 def undefined(path):
     r = subprocess.run([sys.executable, "-m", "pyflakes", path], capture_output=True, text=True)
-    return {ln.split(": ", 1)[1] for ln in r.stdout.splitlines() if "undefined name" in ln and "'ghenv'" not in ln}
+    skip = {"'ghenv'"} | {"'%s'" % n for n in data_names(path)}
+    return {ln.split(": ", 1)[1] for ln in r.stdout.splitlines() if "undefined name" in ln and ln.rsplit(" ", 1)[-1] not in skip}
 
 old, new = sys.argv[1], sys.argv[2]
 bad = False
