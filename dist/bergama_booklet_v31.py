@@ -3671,8 +3671,7 @@ BK_PAGES = [
                  F("ag3_ladder_low", 3.3, 36.0, 93.4, 15.0, same="ladder"),
                  F("ag3_ladder_harvest", 3.3, 52.0, 93.4, 15.0, same="ladder"),
                  F(("ag3_note*", "ag3_remove*", "ag3_odour*"), 3.3, 69.0, 18.0, 24.5, key="notes"),
-                 F("ag3_bands", 23.0, 69.0, 73.7, 5.0),
-                 F(("ag3_photos", "ag3_photo_*"), 23.0, 74.5, 73.7, 19.0, key="photos")],
+                 F("ag3_bands", 23.0, 69.0, 73.7, 24.5)],          # S7: the photos sit inside ag3_bands
          side="notes"),
     # 18 · SON page19 (G6-1 + 16 overlaps): four rows, one right line at x 60
     dict(pid="p18", part="C", stage="do", title=u"Where the clean water goes, and what it grows",
