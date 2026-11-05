@@ -593,7 +593,7 @@ def _bm_clip_convex(a, b, poly):
 
 
 def basemap_cut_ids(ids, looks=None):
-    """cuts for basemap_cut_items from the level module (common/levels.py, its data included before it): the ends
+    """cuts for km_keymap / km_cut_items from the level module (common/levels.py, its data included before it): the ends
     and their names of each cut id; looks = {id: -1} to turn a marker round"""
     ends, labs = globals().get("level_ends"), globals().get("level_end_labels")
     if not callable(ends) or not callable(labs):
@@ -606,7 +606,7 @@ def basemap_cut_ids(ids, looks=None):
     return out
 
 
-# M4 key map: keymap_items and basemap_cut_items moved to keymap.py (round 4 S2: R01 red symbol, names, muted base)
+# M4 key map: in keymap.py (round 7 v4: km_keymap = SON page8 key map; the round 3 wrappers are gone)
 
 
 # ------------------------------------------------------------------------------------------- writing (site board)

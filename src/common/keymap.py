@@ -1,41 +1,29 @@
-# ---- Key maps, cut symbol, north arrow (round 4 S2, 1 Nov 2026; G-R4-9, R01, U02 U31 U50 U51 U55 U60; PLAN §4.5) -----
-# ONE key-map module: every cut line drawn with the R01 symbol in red (an end bar with an open triangle standing on it
-# pointing the way the section looks, a dash-dot line between), in front of a muted base, with ONLY the page's cuts,
-# the main street and place names (so the reader knows where it is), never over its legend; ONE north arrow (the
+# ---- Key maps, cut symbol, north arrow (round 4 S2, 1 Nov 2026; G-R4-9, R01, U02 U31 U50 U51 U55 U60) -----------------
+# ONE key-map module: the page's cuts in the R01 symbol in red (an end bar with an open triangle standing on it
+# pointing the way the section looks, a dash-dot line between), the main street and place names, ONE north arrow (the
 # arrow and "N", no plate, U31 U51). Included by common/basemap.py (its last lines, after map_layers.py); do not
-# include it again. The old basemap_cut_items / keymap_items are thin wrappers at the end of this file.
-# ROUND 5 (S2, 1 Nov 2026; G-R5-3, D3, D6, A11, U33 U36 U45 U67-U69; PLAN §3 "Key map"): v2. Drawn like the p02 map
-# (basemap mode "keymap": green ground, houses by urban fabric, the stream blue, bridges), never the grey blob; the
-# frame cut to the map (fitted, fill logged, >= 0.85); turned so the corridor runs along the frame's long side, the
-# north arrow showing true north in a free corner; names only through the names table (street_label, keymap_places);
-# exported as items for the booklet (km_items: drawing + text labels with anchors + keymap item; G-R5-12, Aras's
-# addendum 1 Nov 22:37 point 3). Every page's key map calls km_map (p04, p05, p09, p10 locator, p13-14, p15, p16,
-# p18, p19-20, p24; their page sessions S6-S10 switch the callers to km_items); scale_den keeps the round 4 contract.
-#   KM_CUT, KM_NAMES, KM_FRAME, KM_CUT_PLAN      the cut symbol, the names switches, the frame line, plan cuts (D6)
-#   km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=2.47)      R01 cut symbols as items (survey m)
-#   km_map(ids, w_mm=None, h_mm=None, zooms=None, page=None, names=None, legend_box=None, log=None, looks=None,
-#          box=None, scale_den=None, extra_names=None, D=None, margin=None, rotate=None, fit=None, pad_mm=None,
-#          base_mode="keymap", north=True)                                  a whole key map (survey m + its T)
-#   km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=None, frame=True)   draws it
-#   km_items(km, page=None, item_id=None, priority=5)                       round 5: the key map as booklet items
-#   km_texts(km)                                 its texts in key-map mm, for the page's TextPage (.put)
-#   north_items(x, y, ang_rad=0.0, size_mm=6.0, colour="2C2219")           the north arrow (page mm, y up)
-# Items: the basemap format (common/basemap.py head). Key-map mm: origin at the key map's lower-left, y up.
-# ROUND 6 (S1, 4 Nov 2026; G6-5, Q7; PLAN.md §2.5, §2.8): v3, THE only key-map drawer, built from the site board's
-# p08 "Where each street is cut" key map (_t3_sec_key, Aras: "almost exceptional ... colourful and all"), so the
-# target and the module are one drawing: the strong set (common/hues.py HUE_KEY: fabric, heritage browns, green, blue
-# stream, roads kept); street names very subtle (A4A1A3, exactly 4 pt); the page's cuts bold red across with end
-# marks and labels, gaps between neighbouring marks (km_cut_marks); the study area drawn WHOLE: the calisma_alan parts
-# unioned where they meet (km_study_ring), the frame sized to hold every ring, each ring one closed dashed path, never
-# clipped (the p08 outline broke where the frame cut it). The 2 Nov dist fixes (2eb070b: short cuts drawn without end
-# names, margin per axis, north arrow along the edges at 5 / 4 / 3.2 mm, fill inside the pad) are in this source now.
-#   km_keymap(page, cuts=None, cut_ids=None, zooms=None, w_mm=None, h_mm=None, box=None, scale_den=None,
-#             rotate=None, names=("streets", "places"), log=None, **more)   THE call (more: km_map's other options)
+# include it again. History: round 4 v1 (R01 red), round 5 v2 (base mode "keymap", items for the booklet), round 6 v3
+# (closed study rings, gaps between cut marks), round 7 v4 below. Items: the basemap format (common/basemap.py head).
+# Key-map mm: origin at the key map's lower-left, y up.
+# ROUND 7 (S1, 5 Nov 2026; G7-3, BRIEF D2 exception; PLAN §4.3): v4 = SON page8's key map REUSED (Aras 08:59 "AND
+# REPLACE THE KEYMAPS", 09:00 "no reuse the old keymap"): _t3_sec_key (1d6f866 p07_09_movement.py:1556-1727) on keymap
+# v2, made callable with (page, cuts, frame w x h). Where round 6's v3 differed, SON page8 wins: the map on the site
+# frame's own axes (no turn to the corridor), names 6B645B 6 pt (4 pt floor), frame line INK2 0.15 mm on white, the
+# north arrow 4 mm OUTSIDE the frame in a 9 mm column, a heading above, base "keymap" as is (round 6's strong recolour
+# gone). Its only fix: the study outline = closed rings, never clipped (the frame's content holds every ring).
+# The frame is the page's SON key-map frame EXACTLY (no fitting of the frame; one uniform scale fills it). Removed:
+# km_map, km_texts, _km_strong, _km_axis_deg, KM_CUT_PLAN, the round 3 wrappers basemap_cut_items / keymap_items.
+#   km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, log=None, cut_ids=None, looks=None,
+#             north_side="right", extra_names=None, D=None)       THE call (cuts: registry ids and / or explicit cuts)
 #   km_draw_to(km, X, fill_fn, line_fn, text_fn)    draw on a board / page;  km_export_items(km, page, item_id)
-#   km_log(page)                                     `keymap <page> module cuts=<ids> study_closed=1`
-#   km_study_ring(D=None, rings=None)                the study outline: closed rings, overlapping parts unioned
+#   km_log(page)                                     `keymap <page> module cuts=<ids> study_closed=1 parts=<n>`
+#   km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=None)    R01 cut symbols as items (survey m)
 #   km_cut_marks(cuts, den, frame=None, gap_mm=1.5, T=None, box_mm=None, page=None, log=None, per_cut=False)
-#   km_street_names(D, T, obstacles, vb=..., ...)    the subtle street / place names, placed clear of obstacles
+#   km_study_ring(D=None, rings=None)                the study outline: closed rings, overlapping parts unioned
+#   km_street_names(D, T, obstacles, vb=..., ...)    the street / place names, placed clear of obstacles
+#   km_draw(km, X, ...) / km_items(km, page, item_id, priority)   the drawing and export behind km_draw_to /
+#                                                    km_export_items
+#   north_items(x, y, ang_rad=0.0, size_mm=6.0, colour="2C2219")   THE north arrow (page mm, y up)
 # Also includes the round 6 shared tables and marks (one include for every script that has basemap.py):
 #@include hues.py
 #@include annot.py
@@ -47,18 +35,21 @@ import math as _km_m
 # of PLAN §4.5 (the triangle's base is the bar so it never overhangs it).
 KM_CUT = dict(colour="C0392B", lw=0.5, dash=(3.0, 0.8, 0.6, 0.8), end_bar=2.4, bar_lw=0.6, tri_h=2.1, tri_lw=0.35,
               text_mm=2.47, gap_mm=0.8)
-KM_NAMES = dict(streets=("main",), n_streets=4, places=True, n_places=6, size_mm=4.0 * 0.352778, colour="A4A1A3",
-                bold=False, pad_mm=0.6)     # round 6 (G6-5): very subtle, exactly the 4 pt floor ("squint a little")
+KM_NAMES = dict(streets=("main",), n_streets=4, places=True, n_places=6, size_mm=2.12, colour="6B645B",
+                bold=False, pad_mm=0.6)     # round 7 (G7-3): SON page8's names (keymap v2 KM_NAMES: 6 pt, 6B645B)
+KM_NAMES_MIN = 4.0 * 0.352778    # round 7: a name with no room at 6 pt tries 4 pt (the floor), never smaller
 KM_MIN_L = 1.0           # mm: round 6 (from the site board's T3_KEY_MIN_L): a cut's line between its end bars at least
 #                          this long on the key map (a street is 10-20 m wide, under 2 mm at a key map's scale)
 KM_GAP = 1.5             # mm: round 6 (G6-5 "gaps"): neighbouring cut marks keep at least this apart
 KM_SHRINK = (1.0, 0.75, 0.55)      # round 6: symbol sizes tried when two marks would touch
 KM_ZOOM = dict(colour="C0392B", lw=0.35)       # zoom / window frames on a key map: the cut red, solid
-KM_FRAME = dict(colour="4A3F35", lw=0.25)      # round 5 (S2, D3): the key map's frame line (site board INK), hairline
-# round 5 (S2, D6 a, U30): cut lines ON PLANS (not key maps): thin and muted, 0.25 pt 8E8F8A dashed (PLAN §3); pass
-# as km_cut_items(..., style=KM_CUT_PLAN); key maps keep the red R01 KM_CUT. Dash, bar and triangle sizes: design values
-KM_CUT_PLAN = dict(colour="8E8F8A", lw=0.0882, dash=(1.6, 0.8), end_bar=1.6, bar_lw=0.0882, tri_h=1.2, tri_lw=0.0882,
-                   text_mm=1.59, gap_mm=0.6)
+KM_FRAME = dict(colour="7A6E60", lw=0.15)      # round 7 (G7-3): SON page8's frame line (site board INK2 0.15 mm)
+KM_PAPER = "FFFFFF"      # round 7: SON page8 fills the map's rectangle white under the base
+KM_NA = 9.0              # mm: round 7: SON page8's north column beside the map (T3_KEY_NA), outside the frame
+KM_NORTH_MM = 4.0        # mm: SON page8's north arrow height (na_h)
+KM_HEAD = dict(size_mm=7.5 * 0.352778, colour="4A3F35", gap_mm=1.5)   # SON page8 heading: 7.5 pt bold INK, 1.5 mm gap
+KM_PAD = 1.0             # mm: inner pad between the frame and the content (round 6 fitted map's pad)
+KM_MARGIN = 0.02         # share of the content added on each side (round 6 fitted map's margin)
 KM_LOG = []
 
 
@@ -90,7 +81,7 @@ def km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=None):
             L = _km_m.hypot(b[0] - a[0], b[1] - a[1])
             if L <= 2.0 * pull + 2.0 * st["end_bar"] * m:   # 2 Nov fix: too short for its end names: no longer
                 n0 = names[0]                                 # dropped; drawn without them, its first name beside
-                names = (u"", u"")                            # the middle (km_map's id label goes on the other side)
+                names = (u"", u"")                            # the middle (km_keymap's id label goes on the other side)
                 pull = st["gap_mm"] * m
                 mx_, my_ = (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0
                 if L <= 2.0 * pull + 2.0 * st["end_bar"] * m:   # shorter than the symbol: its least length, centred
@@ -136,296 +127,16 @@ def _km_seg_hit(b, segs, pad):
     return False
 
 
-def _km_axis_deg(P):
-    """round 5 (S2): the direction (degrees, counter-clockwise from east) of the long axis of points P (principal
-    axis of their spread); 0.0 when P has fewer than 3 points"""
-    if len(P) < 3:
-        return 0.0
-    mx, my = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
-    sxx = sum((p[0] - mx) ** 2 for p in P)
-    syy = sum((p[1] - my) ** 2 for p in P)
-    sxy = sum((p[0] - mx) * (p[1] - my) for p in P)
-    return _km_m.degrees(0.5 * _km_m.atan2(2.0 * sxy, sxx - syy))
-
-
-def km_map(ids, w_mm=None, h_mm=None, zooms=None, page=None, names=None, legend_box=None, log=None, looks=None,
-           box=None, scale_den=None, extra_names=None, D=None, margin=None, rotate=None, fit=None, pad_mm=None,
-           base_mode="keymap", north=True, cuts=None, study=None, strong=True):
-    """THE key map (round 5 S2 v2: G-R5-3, D3, D6, A11; round 4 G-R4-9). Key-map mm: origin at the frame's lower-left,
-    y up. ids: this page's cut ids (cut registry, levels.py) and zoom / window ids (zooms {id: polygon survey m}, else
-    level_window(id)); none + page = every cut the registry draws on that page.
-    Size and frame (D3 "a frame sized to the map"): with scale_den None (the usual call) the map is FITTED: w_mm /
-    h_mm are the most the page offers (either may be None; both None = 80 mm wide), the scale fills that space and the
-    frame is cut to the map plus pad_mm (default 1.0) and a margin (default 2 % of the content), so the map fills its
-    frame; fit=False keeps the caller's w x h (map centred, round 4). scale_den given: the round 4 contract (fixed
-    scale, the caller's frame or box; no turn).
-    Turn (U68): rotate=None turns a fitted map so the corridor (the study area's long axis) runs along the frame's
-    long side (portrait space: upright), north never pointing down; a number = that turn in degrees
-    (counter-clockwise); False = north up. The north arrow shows true north (north=True: arrow only, in the freest
-    corner).
-    Base (U69 "just draw it like page 2"): basemap mode base_mode ("keymap" = the p02 look: green ground, houses by
-    urban fabric, the stream blue, bridges), cut to the frame. Content: the study line, ONLY these cuts (R01 red,
-    look direction), zoom frames, names: main streets (OpenStreetMap names by the names table's spelling,
-    street_label) and the names table's key-map places (keymap_places: "at" + "km"; never a raw survey name), then
-    extra_names; each placed clear of the cuts, their labels, the north arrow, legend_box and each other, else left
-    out and logged. Labels are hints: km_items exports them with their anchors for the booklet to place (G-R5-12).
-    Logs `keymap <page> fill=<x> rotation=<deg> cuts=<ids>` (fill = the content's box / the frame; WARNING below
-    0.85 on a fitted map). Returns dict(base, study, cuts, names, items (survey m, in order), box, scale_den, T, Tinv,
-    drawn, missing, label_boxes, w_mm, h_mm, study_rings, rotation_deg, north_deg, fill, frame (survey ring),
-    frame_items, north (key-map mm items), labels [dict(string, kind, anchor, box, size_mm, colour, bold)], fitted,
-    looks, zoom_ids, page).
-    Round 6 (S1, G6-5): cuts = explicit cuts [(end1, end2, (name1, name2), look[, id])] survey m (street cuts R1-R4,
-    anything not in the registry), drawn with the registry ids; study = the study rings to draw (default
-    km_study_ring(D): overlapping parts unioned, each ring whole); the content always holds every study ring, so the
-    frame never cuts it (a caller's box is widened to it); strong=True = the key-map colours of hues.HUE_KEY (heritage
-    in the fabric in browns); cuts by km_cut_marks (gaps between neighbours); names by km_street_names."""
-    D = D if D is not None else basemap_load()
-    log = log if log is not None else KM_LOG
-    xcuts = cuts
-    nm_st = dict(KM_NAMES)
-    nm_st.update(names or {})
-    pg = u"%s" % (page or u"")
-    if not ids and page is not None and callable(globals().get("level_registry_all")):
-        ids = [e["id"] for e in level_registry_all(str(page))]
-    cuts, wins, drawn, missing, seen = [], [], [], [], set()
-    win_fn = globals().get("level_window")
-    for cid in ids or ():
-        if zooms and cid in zooms:
-            wins.append((cid, [tuple(p) for p in zooms[cid]]))
-            drawn.append(cid)
-            continue
-        try:
-            c = basemap_cut_ids([cid], looks)[0]
-            ek = (round(c[0][0], 1), round(c[0][1], 1), round(c[1][0], 1), round(c[1][1], 1))
-            if ek not in seen:                           # the crossings of one cut share one line
-                seen.add(ek)
-                cuts.append((cid, c))
-            drawn.append(cid)
-            continue
-        except Exception:
-            pass
-        try:
-            w = win_fn(cid) if callable(win_fn) else None
-            if w:
-                wins.append((cid, [tuple(p) for p in w]))
-                drawn.append(cid)
-                continue
-        except Exception:
-            pass
-        missing.append(cid)
-        log.append(u"WARNING %s keymap '%s' is neither a cut of the registry nor a zoom passed in: not drawn."
-                   % (pg, cid))
-    for c in xcuts or ():                                # round 6: explicit cuts (street cuts R1-R4 ...)
-        cid = c[4] if len(c) > 4 and c[4] else c[2][0]
-        cuts.append((cid, (tuple(c[0]), tuple(c[1]), tuple(c[2]), c[3] if len(c) > 3 else 1)))
-        drawn.append(cid)
-    study = km_study_ring(D) if study is None else [[tuple(p) for p in R] for R in study]
-    auto = not scale_den
-    fit = auto if fit is None else (bool(fit) and auto)
-    if margin is None:
-        margin = 0.02 if fit else 0.06
-    pad = 1.0 if pad_mm is None else float(pad_mm)
-    if box is None:
-        cont = [p for R in study for p in R] + [p for _, c in cuts for p in c[:2]] + [p for _, w in wins for p in w]
-        if not cont:
-            cont = list(basemap_extent(D) or [])
-        if not cont:
-            raise ValueError(u"key map %s: nothing to frame (no basemap data, no cuts)" % pg)
-    else:
-        bx_ = _bm_bb([(box[0], box[1]), (box[2], box[3])] + [p for R in study for p in R])   # round 6: ring whole
-        if tuple(bx_) != (box[0], box[1], box[2], box[3]):
-            log.append(u"keymap %s: box widened to hold the whole study outline" % pg)
-        cont = [(bx_[0], bx_[1]), (bx_[2], bx_[1]), (bx_[2], bx_[3]), (bx_[0], bx_[3])]
-    # the turn: the corridor along the frame's long side (U68)
-    if rotate is None:
-        if auto:
-            bx_ = _bm_bb(cont)
-            ax_pts = [p for R in study for p in R if bx_[0] <= p[0] <= bx_[2] and bx_[1] <= p[1] <= bx_[3]]
-            th = _km_axis_deg(ax_pts if len(ax_pts) >= 3 else cont)
-            portrait = bool(w_mm and h_mm and h_mm > w_mm)
-            phi = (90.0 - th) if portrait else -th
-        else:
-            phi = 0.0
-    else:
-        phi = float(rotate or 0.0)
-    if _km_m.cos(_km_m.radians(phi)) < -1e-9:            # north never points down the page
-        phi += 180.0
-    phi = (phi + 180.0) % 360.0 - 180.0
-    cph, sph = _km_m.cos(_km_m.radians(phi)), _km_m.sin(_km_m.radians(phi))
-    bx0 = _bm_bb(cont)
-    c0 = ((bx0[0] + bx0[2]) / 2.0, (bx0[1] + bx0[3]) / 2.0)
-
-    def rot(p):
-        dx, dy = p[0] - c0[0], p[1] - c0[1]
-        return (dx * cph - dy * sph, dx * sph + dy * cph)
-
-    def unrot(q):
-        return (q[0] * cph + q[1] * sph + c0[0], -q[0] * sph + q[1] * cph + c0[1])
-    rc = [rot(p) for p in cont]
-    rx0, ry0, rx1, ry1 = _bm_bb(rc)
-    cw, ch = max(rx1 - rx0, 1.0), max(ry1 - ry0, 1.0)  # the content, m
-    d = margin * max(cw, ch)
-    if fit:     # 2 Nov fix (fill warnings): margin per axis, so a long strip is not padded by its length across
-        bw, bh = cw * (1.0 + 2.0 * margin), ch * (1.0 + 2.0 * margin)
-    else:
-        bw, bh = cw + 2.0 * d, ch + 2.0 * d
-    if fit:
-        if not w_mm and not h_mm:
-            w_mm = 80.0
-        dens = []
-        if w_mm:
-            dens.append(bw * 1000.0 / max(1.0, w_mm - 2.0 * pad))
-        if h_mm:
-            dens.append(bh * 1000.0 / max(1.0, h_mm - 2.0 * pad))
-        den = max(dens)
-        w_mm, h_mm = bw * 1000.0 / den + 2.0 * pad, bh * 1000.0 / den + 2.0 * pad
-    elif scale_den and (w_mm is None or h_mm is None):   # a fixed scale: the key map is the box at that scale
-        den = float(scale_den)
-        w_mm, h_mm = bw * 1000.0 / den, bh * 1000.0 / den
-    else:
-        den = float(scale_den) if scale_den else max(bw * 1000.0 / w_mm, bh * 1000.0 / h_mm)
-    s = 1000.0 / den
-    rcx, rcy = (rx0 + rx1) / 2.0, (ry0 + ry1) / 2.0
-
-    def T(p):
-        r = rot(p)
-        return ((r[0] - rcx) * s + w_mm / 2.0, (r[1] - rcy) * s + h_mm / 2.0)
-
-    def Tinv(q):
-        return unrot(((q[0] - w_mm / 2.0) / s + rcx, (q[1] - h_mm / 2.0) / s + rcy))
-    frame = [Tinv((0.0, 0.0)), Tinv((w_mm, 0.0)), Tinv((w_mm, h_mm)), Tinv((0.0, h_mm))]
-    vb = _bm_bb(frame)
-    if base_mode == "muted":
-        base = ml_base(vb, den, D=D, crop=False) if D else []
-    else:
-        base = basemap_items(base_mode, box=vb, D=D, scale_den=den) if D else []
-    base = ml_crop(base, frame) if base else []
-    if strong and base:
-        base = _km_strong(base)
-    if D and D.get("format") != BASEMAP_FORMAT:
-        log.append(u"FLAG keymap %s: basemap format %s has no urban fabric per house: one house tone until the site "
-                   u"board writes format %d" % (pg, D.get("format"), BASEMAP_FORMAT))
-    st_items = ml_study_items(study)
-    cut_items = []
-    marks = km_cut_marks([c for _, c in cuts], den, frame=frame, T=T, box_mm=(w_mm, h_mm), page=pg, log=log,
-                         per_cut=True)
-    for (cid, c), its in zip(cuts, marks):
-        nm_fn = globals().get("level_name")
-        try:
-            name = nm_fn(cid) if callable(nm_fn) else cid
-        except Exception:
-            name = cid
-        name = u"%s" % name
-        name = name.split("-")[0]                        # a crossing row (S5-2) is labelled by its cut (S5)
-        if not its:
-            log.append(u"WARNING %s keymap cut %s too short inside the frame: not drawn" % (pg, cid))
-        elif name not in c[2][0] and name not in c[2][1]:   # end names that do not say the id: the id too
-            a, b = c[0], c[1]
-            L0 = _km_m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
-            nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
-            q = ((a[0] + b[0]) / 2.0 + nx * KM_CUT["text_mm"] * 1.2 / s, (a[1] + b[1]) / 2.0 + ny * KM_CUT["text_mm"]
-                 * 1.2 / s)
-            its.append(("text", name, q, KM_CUT["text_mm"], KM_CUT["colour"], True, "MC"))
-        cut_items += its
-    for cid, w in wins:
-        cut_items.append(("line", list(w) + [w[0]], KM_ZOOM["colour"], KM_ZOOM["lw"], None, 1.0))
-        x0, y0, x1, y1 = _bm_bb([T(p) for p in w])
-        cut_items.append(("text", cid, Tinv((x0 + KM_CUT["text_mm"] * 0.9, y1 + KM_CUT["text_mm"] * 0.8)),
-                          KM_CUT["text_mm"], KM_CUT["colour"], True, "MC"))
-    fmw = globals().get("fm_width")
-    pt_of = lambda mm: mm / 0.352778
-    segs, boxes, label_boxes, labels = [], [], [], []
-    for it in cut_items + st_items:
-        if it[0] == "line":
-            P = [T(p) for p in it[1]]
-            segs += list(zip(P, P[1:]))
-    for it in cut_items:
-        if it[0] == "text":
-            x, y = T(it[2])
-            w = fmw(it[1], pt_of(it[3]), bold=it[5]) if callable(fmw) else 0.6 * it[3] * len(it[1])
-            b = (x - w / 2.0, y - it[3] / 2.0, x + w / 2.0, y + it[3] / 2.0)
-            boxes.append(b)
-            label_boxes.append((it[1], b))
-            labels.append(dict(string=it[1], kind="cut", anchor=(x, y), box=b, size_mm=it[3], colour=it[4],
-                               bold=it[5]))
-    # the north arrow: arrow only (G-R4-9), in the first free corner (top right, top left, bottom right, bottom left)
-    north_its, nsz = [], 5.0
-    if north:
-        best = None
-        # 2 Nov fix (no free corner): the corners, then along the edges (2 mm steps), at 5 / 4 / 3.2 mm; first clear
-        # of every line, then clear of the cuts and labels only (the study line may pass under the arrow)
-        cut_segs = []
-        for it in cut_items:
-            if it[0] == "line":
-                P = [T(p) for p in it[1]]
-                cut_segs += list(zip(P, P[1:]))
-        for sg_ in (segs, cut_segs):
-            for nsz_ in (5.0, 4.0, 3.2):
-                h_ = 0.9 * nsz_
-                xr, xl, yt, yb = w_mm - pad - h_, pad + h_, h_mm - pad - h_, pad + h_
-                if xr < xl or yt < yb:
-                    continue
-                nx_, ny_ = int((xr - xl) / 2.0), int((yt - yb) / 2.0)
-                cands = [(xr, yt), (xl, yt), (xr, yb), (xl, yb)]
-                cands += [(xr - 2.0 * k, yt) for k in range(1, nx_ + 1)] + [(xr - 2.0 * k, yb) for k in range(1, nx_ + 1)]
-                cands += [(xr, yt - 2.0 * k) for k in range(1, ny_ + 1)] + [(xl, yt - 2.0 * k) for k in range(1, ny_ + 1)]
-                for cxn, cyn in cands:
-                    nb = (cxn - h_, cyn - h_, cxn + h_, cyn + h_)
-                    if not _km_seg_hit(nb, sg_, 0.3) and not _km_box_hit(nb, boxes, 0.3):
-                        best = (cxn, cyn, nb)
-                        break
-                if best is not None:
-                    if nsz_ != nsz:
-                        log.append(u"keymap %s north arrow at %.1f mm (no room at %.1f mm)" % (pg, nsz_, nsz))
-                    nsz = nsz_
-                    break
-            if best is not None:
-                break
-        if best is None:
-            cxn, cyn = w_mm - pad - 0.9 * nsz, h_mm - pad - 0.9 * nsz
-            best = (cxn, cyn, (cxn - 0.9 * nsz, cyn - 0.9 * nsz, cxn + 0.9 * nsz, cyn + 0.9 * nsz))
-            log.append(u"WARNING %s keymap north arrow: no free corner, set top right over the map" % pg)
-        cxn, cyn, nb = best
-        a = _km_m.radians(phi)
-        foot = (cxn + _km_m.sin(a) * 0.5 * nsz, cyn - _km_m.cos(a) * 0.5 * nsz)    # the arrow centred on (cxn, cyn)
-        north_its = north_items(foot[0], foot[1], ang_rad=a, size_mm=nsz * 0.75)
-        boxes.append(nb)
-    if legend_box:
-        boxes.append(tuple(legend_box))
-    nr = km_street_names(D, T, boxes, vb=vb, frame_mm=(w_mm, h_mm), segs=segs, Tinv=Tinv, names=nm_st,
-                         extra_names=extra_names, page=pg, log=log)
-    name_items = nr["items"]
-    labels += nr["labels"]
-    label_boxes += nr["label_boxes"]
-    fill = (cw * s) * (ch * s) / max(1e-9, (w_mm - 2.0 * pad) * (h_mm - 2.0 * pad) if fit else w_mm * h_mm)
-    fill = min(1.0, fill)
-    rot_out = round(phi, 1)
-    log.append(u"keymap %s fill=%.2f rotation=%.1f cuts=%s" % (pg, fill, rot_out,
-                                                               u",".join(cid for cid, _ in cuts) or u"-"))
-    if fit and fill < 0.85:
-        log.append(u"WARNING %s keymap fill %.2f below 0.85 (frame %.0f x %.0f mm)" % (pg, fill, w_mm, h_mm))
-    if log is not KM_LOG:
-        KM_LOG.append(log[-1])
-    frame_mm = [(0.0, 0.0), (w_mm, 0.0), (w_mm, h_mm), (0.0, h_mm)]
-    frame_items = [("fill", [frame_mm], bm_key_col("paper"), 1.0, True),
-                   ("line", frame_mm + [frame_mm[0]], KM_FRAME["colour"], KM_FRAME["lw"], None, 1.0)]
-    return dict(base=base, study=st_items, cuts=cut_items, names=name_items,
-                items=list(base) + st_items + cut_items + name_items, box=(vb[0], vb[1], vb[2], vb[3]), scale_den=den,
-                T=T, Tinv=Tinv, drawn=drawn, missing=missing, label_boxes=label_boxes, w_mm=w_mm, h_mm=h_mm,
-                study_rings=study, rotation_deg=rot_out, north_deg=rot_out, fill=fill, frame=frame,
-                frame_items=frame_items, north=north_its, labels=labels, fitted=fit, looks=dict(looks or {}),
-                zoom_ids=[cid for cid, _ in wins], cut_ids=[cid for cid, _ in cuts], page=page)
-
-
 def km_street_names(D, T, obstacles, vb=None, frame_mm=None, segs=(), Tinv=None, names=None, extra_names=None,
                     page=None, log=None):
-    """round 6 (S1, G6-5; moved out of km_map unchanged in its rule): the key map's names, very subtle (KM_NAMES:
-    A4A1A3, 4 pt): the main streets (OpenStreetMap names by the names table's spelling, street_label), the names
+    """round 6 (S1, G6-5), round 7 (G7-3: SON page8's names, KM_NAMES 6B645B 6 pt, else KM_NAMES_MIN 4 pt): the
+    key map's names: the main streets (OpenStreetMap names by the names table's spelling, street_label), the names
     table's key-map places (keymap_places), then extra_names [(name, xy)]; each placed at its point or the nearest
     of six spots clear of obstacles (key-map mm boxes; the placed names are added to it), segs (key-map mm
-    segments) and the frame (frame_mm = (w, h)); a name with no free place is left out and logged. T / Tinv: survey
+    segments) and the frame (frame_mm = (w, h)); a name with no free place is set on its point at 4 pt and logged
+    (the booklet moves it; never left out). T / Tinv: survey
     m <-> key-map mm; vb: the survey box the names are taken from. Returns dict(items (survey m text items), labels
-    (dicts as km_map's), label_boxes)."""
+    (dicts as km_keymap's), label_boxes)."""
     log = log if log is not None else KM_LOG
     nm_st = dict(KM_NAMES)
     nm_st.update(names or {})
@@ -450,7 +161,7 @@ def km_street_names(D, T, obstacles, vb=None, frame_mm=None, segs=(), Tinv=None,
     for n, p in extra_names or ():
         cand.append((n, tuple(p), "extra"))
     if cand and not callable(fmw):
-        raise RuntimeError(u"km_map needs common/font_metrics.py (round 4 S1: fm_width) included before it is "
+        raise RuntimeError(u"km_keymap needs common/font_metrics.py (round 4 S1: fm_width) included before it is "
                            u"called: text widths come from the real font only")
     sz = nm_st["size_mm"]
     pad_n = nm_st["pad_mm"]
@@ -462,36 +173,39 @@ def km_street_names(D, T, obstacles, vb=None, frame_mm=None, segs=(), Tinv=None,
         x, y = T(p)
         if not (0.0 <= x <= w_mm and 0.0 <= y <= h_mm):
             continue
-        w = fmw(n, pt_of(sz), bold=nm_st["bold"])
         ok = None
-        for dx, dy in ((0.0, 0.0), (0.0, sz * 1.1), (0.0, -sz * 1.1), (w / 2.0 + 1.0, 0.0), (-w / 2.0 - 1.0, 0.0),
-                       (0.0, sz * 2.2), (0.0, -sz * 2.2)):
-            b = (x + dx - w / 2.0, y + dy - sz / 2.0, x + dx + w / 2.0, y + dy + sz / 2.0)
-            if b[0] < pad_n or b[1] < pad_n or b[2] > w_mm - pad_n or b[3] > h_mm - pad_n:
-                continue
-            if _km_box_hit(b, boxes, pad_n) or _km_seg_hit(b, segs, pad_n):
-                continue
-            ok = b
-            break
+        for sz_ in [sz] + ([KM_NAMES_MIN] if sz > KM_NAMES_MIN + 1e-6 else []):   # round 7: 6 pt, else the 4 pt floor
+            w = fmw(n, pt_of(sz_), bold=nm_st["bold"])
+            for dx, dy in ((0.0, 0.0), (0.0, sz_ * 1.1), (0.0, -sz_ * 1.1), (w / 2.0 + 1.0, 0.0),
+                           (-w / 2.0 - 1.0, 0.0), (0.0, sz_ * 2.2), (0.0, -sz_ * 2.2)):
+                b = (x + dx - w / 2.0, y + dy - sz_ / 2.0, x + dx + w / 2.0, y + dy + sz_ / 2.0)
+                if b[0] < pad_n or b[1] < pad_n or b[2] > w_mm - pad_n or b[3] > h_mm - pad_n:
+                    continue
+                if _km_box_hit(b, boxes, pad_n) or _km_seg_hit(b, segs, pad_n):
+                    continue
+                ok = b
+                break
+            if ok is not None:
+                break
         if ok is None:                                    # 4 Nov (Aras 19:17 "not drawing ... is not a solution"):
-            ok = (x - w / 2.0, y - sz / 2.0, x + w / 2.0, y + sz / 2.0)   # set on its point, handed to the booklet,
-            ok = (max(pad_n, min(ok[0], w_mm - pad_n - w)), max(pad_n, min(ok[1], h_mm - pad_n - sz)))   # which
-            ok = (ok[0], ok[1], ok[0] + w, ok[1] + sz)                     # moves it off whatever it hits
+            ok = (x - w / 2.0, y - sz_ / 2.0, x + w / 2.0, y + sz_ / 2.0)   # set on its point (4 pt), handed to the
+            ok = (max(pad_n, min(ok[0], w_mm - pad_n - w)), max(pad_n, min(ok[1], h_mm - pad_n - sz_)))   # booklet,
+            ok = (ok[0], ok[1], ok[0] + w, ok[1] + sz_)                     # which moves it off whatever it hits
             log.append(u"keymap %s: name '%s' set on its point (no free place here; the booklet places it)" % (pg, n))
         seen_n.add(n)
         boxes.append(ok)
         label_boxes.append((n, ok))
         placed[kind] += 1
-        name_items.append(("text", n, Tinv(((ok[0] + ok[2]) / 2.0, (ok[1] + ok[3]) / 2.0)), sz, nm_st["colour"],
+        name_items.append(("text", n, Tinv(((ok[0] + ok[2]) / 2.0, (ok[1] + ok[3]) / 2.0)), sz_, nm_st["colour"],
                            nm_st["bold"], "MC"))
-        labels.append(dict(string=n, kind=kind, anchor=(x, y), box=ok, size_mm=sz, colour=nm_st["colour"],
+        labels.append(dict(string=n, kind=kind, anchor=(x, y), box=ok, size_mm=sz_, colour=nm_st["colour"],
                            bold=nm_st["bold"]))
     return dict(items=name_items, labels=labels, label_boxes=label_boxes)
 
 
 def km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=None, frame=True):
-    """draws a km_map (PLAN §3 order: paper, base, WATER, structures, the study line, the red cuts, names, then the
-    frame line and the north arrow): X(q) key-map mm -> page point (e.g. lambda q: (x0 + q[0], y0 + q[1]), or a
+    """draws a km_keymap (PLAN §3 order: paper, base, WATER, structures, the study line, the red cuts, names, then the
+    frame line, the north arrow and the heading, both outside the frame): X(q) key-map mm -> page point (e.g. lambda q: (x0 + q[0], y0 + q[1]), or a
     y-down flip). frame=False leaves out the paper, the frame line and the arrow (a caller that draws its own).
     text_fn=None draws no text (the booklet places the labels from km_items). Returns map_draw's dict."""
     T = km["T"]
@@ -502,7 +216,8 @@ def km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=No
                   "proj_labels": [it for it in km["cuts"] if it[0] == "text"] + km["names"]},
                  study=km.get("study_rings"), clip=False, log=log, water_opts=water_opts)
     if frame:
-        basemap_draw(km["frame_items"][1:] + km["north"], X, fill_fn, line_fn, text_fn)
+        basemap_draw(km["frame_items"][1:] + km["north"] + list(km.get("heading_items") or ()), X, fill_fn, line_fn,
+                     text_fn)
     return r
 
 
@@ -510,7 +225,10 @@ def km_items(km, page=None, item_id=None, priority=5):
     """round 5 (S2, G-R5-12; PLAN §4 item schema v1, Aras's addendum 1 Nov 22:37 point 3): the key map as items for
     the booklet: one "drawing" (layers of shapes in key-map mm, y up, origin lower-left; texts left out), one "text"
     item per label (names and cut labels, role "label", with its anchor in the drawing and the module's placement as
-    hint_box), one "keymap" item (cut ids, looks, zooms, names, fill, rotation). Shapes: {"type": "poly", "rings",
+    hint_box), one "keymap" item (cut ids, looks, zooms, names, fill, rotation). Round 7 (G7-3): the drawing is the
+    frame EXACTLY (w_mm x h_mm); the north arrow is its own "drawing" item "<id>.north" (role "north", outside=True,
+    anchor = its lower-left in the key map's mm, outside the frame) and the heading a "text" item "<id>.head" (role
+    "heading", anchor = its left middle above the frame); the "N" is a label of kind "north" anchored outside too. Shapes: {"type": "poly", "rings",
     "fill", "opacity", "nonzero"} and {"type": "line", "pts", "stroke", "width_pt", "dash_pt", "opacity"}."""
     pg = page if page is not None else km.get("page")
     did = item_id or (u"keymap_%s" % (pg or u"key"))
@@ -541,8 +259,13 @@ def km_items(km, page=None, item_id=None, priority=5):
              {"proj_marks": [it for it in km["cuts"] if it[0] != "text"]}, study=km.get("study_rings"),
              clip=False, order_fn=layer)
     layer("frame")
-    basemap_draw(km["frame_items"][1:] + [it for it in km["north"] if it[0] != "text"], lambda q: q, fill_fn,
+    basemap_draw(km["frame_items"][1:], lambda q: q, fill_fn, line_fn, None)
+    nb = km.get("north_box") or (km["w_mm"], 0.0, km["w_mm"] + KM_NA, KM_NA)
+    layer("north")                                       # round 7: the north arrow outside the frame, its own item
+    basemap_draw([it for it in km["north"] if it[0] != "text"], lambda q: (q[0] - nb[0], q[1] - nb[1]), fill_fn,
                  line_fn, None)
+    nlay = layers.pop()
+    nlay["z"] = 0
     layers = [L_ for L_ in layers if L_["shapes"]]
     for i, L_ in enumerate(layers):
         L_["z"] = i
@@ -553,6 +276,19 @@ def km_items(km, page=None, item_id=None, priority=5):
                                                                                                     round(h, 2)],
                 scale_pref=None, scale_den=round(km["scale_den"]), scale_bar=False, north_deg=km["north_deg"],
                 layers=layers, keep_areas=[[0.0, 0.0, round(w, 2), round(h, 2)]], anchors={})]
+    nw, nh = nb[2] - nb[0], nb[3] - nb[1]
+    out.append(dict(id=u"%s.north" % did, page=pg, kind="drawing", role="north", priority=priority, group=did,
+                    units="mm", axes=u"mm, origin lower-left, y up", size_mm=[round(nw, 2), round(nh, 2)],
+                    extent=[0.0, 0.0, round(nw, 2), round(nh, 2)], scale_pref=None, scale_den=None, scale_bar=False,
+                    north_deg=None, layers=[nlay], keep_areas=[[0.0, 0.0, round(nw, 2), round(nh, 2)]], anchors={},
+                    anchor=dict(drawing=did, point=[round(nb[0], 2), round(nb[1], 2)]), outside=True))
+    for t in km.get("heading_items") or ():               # round 7: the heading above the frame (SON page8)
+        hb = km.get("heading_box")
+        out.append(dict(id=u"%s.head" % did, page=pg, kind="text", role="heading", priority=priority, group=did,
+                        string=t[1], label_kind="heading",
+                        anchor=dict(drawing=did, point=[round(t[2][0], 2), round(t[2][1], 2)]),
+                        hint_box=[round(v, 2) for v in hb] if hb else None, size_pt=round(t[3] / 0.352778, 2),
+                        min_pt=4.0, bold=True, colour=t[4], short_forms=[], side_list_ok=False, justify=False))
     texts = [dict(string=t[1], kind="north", anchor=t[2], box=None, size_mm=t[3], colour=t[4], bold=t[5])
              for t in km["north"] if t[0] == "text"]
     for i, lb in enumerate(km["labels"] + texts):
@@ -566,17 +302,6 @@ def km_items(km, page=None, item_id=None, priority=5):
                     drawing=did, cuts=[dict(id=c, look=km["looks"].get(c, 1)) for c in km["cut_ids"]],
                     zooms=list(km["zoom_ids"]), names=[lb["string"] for lb in km["labels"] if lb["kind"] != "cut"],
                     fill=round(km["fill"], 3), rotation_deg=km["rotation_deg"], missing=list(km["missing"])))
-    return out
-
-
-def km_texts(km):
-    """the key map's texts in key-map mm for the page's TextPage: [(text, (x, y) centre, size_mm, bold, box)]"""
-    out = []
-    for it in km["cuts"] + km["names"]:
-        if it[0] == "text":
-            x, y = km["T"](it[2])
-            box = next((b for t, b in km["label_boxes"] if t == it[1]), None)
-            out.append((it[1], (x, y), it[3], it[5], box))
     return out
 
 
@@ -632,25 +357,6 @@ def km_study_ring(D=None, rings=None):
                 continue
             cur = max(got, key=lambda G: abs(_sc_area(G)))      # the outer ring; holes left out
         out = rest + [cur]
-    return out
-
-
-def _km_strong(items):
-    """round 6 (Q7, Q5): the base in the key-map strong set: houses of fabric monument / sacred (heritage in the
-    fabric, no sourced per-building status = HER r3, plan_findings H3 last row) take HUE_KEY her3 (annexes paler by
-    BM_KEY annex, the p02 rule); every other tone is already the strong set's (BM_KEY: fabric mixed 0.40, greens
-    mixed 0.35, stream, roads)"""
-    her3 = HUE_KEY["her3"]
-    remap = {}
-    for fab in ("monument", "sacred"):
-        remap[bm_fabric_col({"fabric": fab})] = her3
-        remap[bm_fabric_col({"fabric": fab, "annex": True})] = _bm_mix(her3, BM_KEY["paper"], BM_KEY["annex"])
-    out = []
-    for it in items:
-        if it[0] in ("fill", "line") and isinstance(it[2], str) and it[2].upper() in remap:
-            t = tuple(it[:2]) + (remap[it[2].upper()],) + tuple(it[3:])
-            it = _bm_tag(t, it.layer) if hasattr(it, "layer") else t
-        out.append(it)
     return out
 
 
@@ -767,27 +473,224 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
     return done if per_cut else [it for its in done for it in its]
 
 
-def km_keymap(page, cuts=None, cut_ids=None, zooms=None, w_mm=None, h_mm=None, box=None, scale_den=None,
-              rotate=None, names=("streets", "places"), log=None, **more):
-    """round 6 (S1, G6-5; PLAN §2.5, §2.8): THE key map of a page, the p08 "Where each street is cut" look. page:
-    the booklet page id ("p08"); cuts: explicit cuts [(end1, end2, (name1, name2), look[, id])] survey m; cut_ids:
-    cut registry ids (levels.py) and zoom / window ids; zooms {id: polygon survey m}; w_mm / h_mm: the most the page
-    frame offers (fitted map, km_map's rule) or, with scale_den, a fixed scale; box: survey box to show (widened to
-    hold the whole study outline); rotate: None = corridor along the long side, a number = degrees, False = north
-    up; names: which name kinds ("streets", "places"; () = none). more: km_map's other options (legend_box,
-    extra_names, looks, D, margin, fit, pad_mm, north). Returns km_map's dict plus study_ring (the closed rings),
-    study_closed (1), rotation, page; logs `keymap <page> module cuts=<ids> study_closed=1`."""
-    nm = dict(streets=("main",) if "streets" in (names or ()) else (), places="places" in (names or ()))
-    D = more.pop("D", None)
+def _km_frame_deg(P):
+    """round 7 (S1, G7-3): the site frame's own axis as SON page8 drew it (selinus_board Frame: the direction of the
+    frame polygon's longest edge, degrees counter-clockwise from east, turned into (-90, 90]); 0.0 without a frame"""
+    if not P or len(P) < 2:
+        return 0.0
+    best, ang = -1.0, 0.0
+    for i in range(len(P)):
+        q0, q1 = P[i], P[(i + 1) % len(P)]
+        L = _km_m.hypot(q1[0] - q0[0], q1[1] - q0[1])
+        if L > best:
+            best, ang = L, _km_m.atan2(q1[1] - q0[1], q1[0] - q0[0])
+    while ang > _km_m.pi / 2:
+        ang -= _km_m.pi
+    while ang <= -_km_m.pi / 2:
+        ang += _km_m.pi
+    return _km_m.degrees(ang)
+
+
+def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, log=None, cut_ids=None, looks=None,
+              north_side="right", extra_names=None, D=None, **legacy):
+    """round 7 (S1, G7-3; PLAN §4.3): THE key map of every page = SON page8's "Where each street is cut" (_t3_sec_key,
+    1d6f866 src/selinus_board/pages/p07_09_movement.py:1556-1727, on keymap v2 89097ee), callable with a page's cuts
+    and its SON key-map frame. As SON page8: the map on the site frame's own axes (basemap_frame = site_alan, the
+    longest edge along the page, no other turn); base mode "keymap" (green ground, houses by urban fabric, the stream
+    blue, roads); the cuts in red R01 (km_cut_marks: end bars, triangles, end names or one name beside the middle,
+    gaps between neighbours); main street and place names in 6B645B at SON's 6 pt, 4 pt where 6 pt finds no room
+    (never smaller, never left out: a name with no free place is set on its point for the booklet); frame line INK2
+    0.15 mm on white; the north arrow (4 mm, no plate) OUTSIDE the frame in a KM_NA column at the right (north_side
+    "left": at the left); the heading 7.5 pt bold above the frame. Only fix (G7-3): the study area = closed rings
+    (km_study_ring), never clipped: the map's content is every study ring plus the cuts and zooms, one uniform scale
+    so that content fills w_mm x h_mm (pad KM_PAD, margin 2 %), the base cut to the frame.
+    page: booklet page id ("p08"); cuts: a list of cut registry ids / zoom ids (strings, levels.py) and explicit cuts
+    [(end1, end2, (name1, name2), look[, id])] survey m, mixed as needed (cut_ids: the same ids, round 6 name);
+    w_mm x h_mm: the SON key-map frame of the page (PLAN §3, H4 §3) = the map's frame EXACTLY (one missing: from the
+    content's aspect; both missing: 80 mm wide, WARNING); heading: the text above the frame (None = none); zooms {id:
+    polygon survey m}: window frames in red; looks {id: +1/-1} for registry cuts; extra_names [(name, xy)].
+    legacy options of round 6 (box, scale_den, rotate, names, fit, margin, pad_mm, legend_box, north ...) are ignored
+    with a log line. Returns dict(base, study, cuts, names, items, box, scale_den, T, Tinv (survey m <-> key-map mm,
+    origin lower-left, y up), drawn, missing, label_boxes, labels, w_mm, h_mm, study_rings, study_ring,
+    study_closed, rotation_deg, rotation, north_deg, fill, frame, frame_items, north (key-map mm items, outside the
+    frame), north_box, heading_items, heading_box, looks, zoom_ids, cut_ids, cuts_all, page). Logs
+    `keymap <page> 1:<den> axes=<deg> frame=<w>x<h> fill=<f> cuts=<ids>` and km_log's `keymap <page> module ...`."""
+    log = log if log is not None else KM_LOG
+    pg = u"%s" % (page or u"")
+    for k in sorted(legacy):
+        log.append(u"keymap %s: option %s ignored (round 7: SON page8 look, frame = w x h)" % (pg, k))
     D = D if D is not None else basemap_load()
-    ring = km_study_ring(D)
-    km = km_map(list(cut_ids or ()), w_mm, h_mm, zooms=zooms, page=page, names=nm, log=log, box=box,
-                scale_den=scale_den, rotate=rotate, D=D, cuts=cuts, study=ring, strong=True, **more)
-    km["study_ring"] = ring
-    km["study_closed"] = 1 if ring else 0
-    km["rotation"] = km["rotation_deg"]
+    ids, xcuts = list(cut_ids or ()), []
+    for c in cuts or ():
+        (ids if isinstance(c, str) else xcuts).append(c)
+    if not ids and not xcuts and page is not None and callable(globals().get("level_registry_all")):
+        ids = [e["id"] for e in level_registry_all(str(page))]
+    cut_l, wins, drawn, missing, seen = [], [], [], [], set()
+    win_fn = globals().get("level_window")
+    for cid in ids:
+        if zooms and cid in zooms:
+            wins.append((cid, [tuple(p) for p in zooms[cid]]))
+            drawn.append(cid)
+            continue
+        try:
+            c = basemap_cut_ids([cid], looks)[0]
+            ek = (round(c[0][0], 1), round(c[0][1], 1), round(c[1][0], 1), round(c[1][1], 1))
+            if ek not in seen:                           # the crossings of one cut share one line
+                seen.add(ek)
+                cut_l.append((cid, c))
+            drawn.append(cid)
+            continue
+        except Exception:
+            pass
+        try:
+            w = win_fn(cid) if callable(win_fn) else None
+            if w:
+                wins.append((cid, [tuple(p) for p in w]))
+                drawn.append(cid)
+                continue
+        except Exception:
+            pass
+        missing.append(cid)
+        log.append(u"WARNING %s keymap '%s' is neither a cut of the registry nor a zoom passed in: not drawn."
+                   % (pg, cid))
+    for zid, w in (zooms or {}).items():                 # zooms passed in but not named in cuts: drawn too
+        if zid not in drawn:
+            wins.append((zid, [tuple(p) for p in w]))
+            drawn.append(zid)
+    for c in xcuts:                                      # explicit cuts (street cuts R1-R4 ...)
+        cid = c[4] if len(c) > 4 and c[4] else c[2][0]
+        cut_l.append((cid, (tuple(c[0]), tuple(c[1]), tuple(c[2]), c[3] if len(c) > 3 else 1)))
+        drawn.append(cid)
+    study = km_study_ring(D)
+    cont = [p for R in study for p in R] + [p for _, c in cut_l for p in c[:2]] + [p for _, w in wins for p in w]
+    if not cont:
+        cont = list(basemap_extent(D) or [])
+    if not cont:
+        raise ValueError(u"key map %s: nothing to frame (no basemap data, no cuts)" % pg)
+    # SON page8: the site frame's own axes (the p07 maps' View), north turned to match
+    fr = basemap_frame(D) if D else None
+    if not fr:
+        log.append(u"WARNING %s keymap: no site frame in the basemap data: drawn north up" % pg)
+    phi = -_km_frame_deg(fr)
+    cph, sph = _km_m.cos(_km_m.radians(phi)), _km_m.sin(_km_m.radians(phi))
+    bx0 = _bm_bb(cont)
+    c0 = ((bx0[0] + bx0[2]) / 2.0, (bx0[1] + bx0[3]) / 2.0)
+
+    def rot(p):
+        dx, dy = p[0] - c0[0], p[1] - c0[1]
+        return (dx * cph - dy * sph, dx * sph + dy * cph)
+
+    def unrot(q):
+        return (q[0] * cph + q[1] * sph + c0[0], -q[0] * sph + q[1] * cph + c0[1])
+    rx0, ry0, rx1, ry1 = _bm_bb([rot(p) for p in cont])
+    cw, ch = max(rx1 - rx0, 1.0), max(ry1 - ry0, 1.0)  # the content, m
+    bw, bh = cw * (1.0 + 2.0 * KM_MARGIN), ch * (1.0 + 2.0 * KM_MARGIN)
+    pad = KM_PAD
+    if not w_mm and not h_mm:
+        w_mm = 80.0
+        log.append(u"WARNING %s keymap frame: no w x h given, drawn 80 mm wide" % pg)
+    if not h_mm:
+        h_mm = bh * (w_mm - 2.0 * pad) / bw + 2.0 * pad
+    if not w_mm:
+        w_mm = bw * (h_mm - 2.0 * pad) / bh + 2.0 * pad
+    w_mm, h_mm = float(w_mm), float(h_mm)
+    den = max(bw * 1000.0 / max(1.0, w_mm - 2.0 * pad), bh * 1000.0 / max(1.0, h_mm - 2.0 * pad))
+    s = 1000.0 / den
+    rcx, rcy = (rx0 + rx1) / 2.0, (ry0 + ry1) / 2.0
+
+    def T(p):
+        r = rot(p)
+        return ((r[0] - rcx) * s + w_mm / 2.0, (r[1] - rcy) * s + h_mm / 2.0)
+
+    def Tinv(q):
+        return unrot(((q[0] - w_mm / 2.0) / s + rcx, (q[1] - h_mm / 2.0) / s + rcy))
+    frame = [Tinv((0.0, 0.0)), Tinv((w_mm, 0.0)), Tinv((w_mm, h_mm)), Tinv((0.0, h_mm))]
+    vb = _bm_bb(frame)
+    base = basemap_items("keymap", box=vb, D=D, scale_den=den) if D else []
+    base = ml_crop(base, frame) if base else []
+    if D and D.get("format") != BASEMAP_FORMAT:
+        log.append(u"FLAG keymap %s: basemap format %s has no urban fabric per house: one house tone until the site "
+                   u"board writes format %d" % (pg, D.get("format"), BASEMAP_FORMAT))
+    st_items = ml_study_items(study)
+    cut_items = []
+    marks = km_cut_marks([c for _, c in cut_l], den, frame=frame, T=T, box_mm=(w_mm, h_mm), page=pg, log=log,
+                         per_cut=True)
+    nm_fn = globals().get("level_name")
+    for (cid, c), its in zip(cut_l, marks):
+        try:
+            name = nm_fn(cid) if callable(nm_fn) else cid
+        except Exception:
+            name = cid
+        name = (u"%s" % name).split("-")[0]              # a crossing row (S5-2) is labelled by its cut (S5)
+        if not its:
+            log.append(u"WARNING %s keymap cut %s too short inside the frame: not drawn" % (pg, cid))
+        elif name not in c[2][0] and name not in c[2][1]:   # end names that do not say the id: the id too
+            a, b = c[0], c[1]
+            L0 = _km_m.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+            nx, ny = -(b[1] - a[1]) / L0, (b[0] - a[0]) / L0
+            q = ((a[0] + b[0]) / 2.0 + nx * KM_CUT["text_mm"] * 1.2 / s, (a[1] + b[1]) / 2.0 + ny * KM_CUT["text_mm"]
+                 * 1.2 / s)
+            its.append(("text", name, q, KM_CUT["text_mm"], KM_CUT["colour"], True, "MC"))
+        cut_items += its
+    for cid, w in wins:
+        cut_items.append(("line", list(w) + [w[0]], KM_ZOOM["colour"], KM_ZOOM["lw"], None, 1.0))
+        x0, y0, x1, y1 = _bm_bb([T(p) for p in w])
+        cut_items.append(("text", cid, Tinv((x0 + KM_CUT["text_mm"] * 0.9, y1 + KM_CUT["text_mm"] * 0.8)),
+                          KM_CUT["text_mm"], KM_CUT["colour"], True, "MC"))
+    fmw = globals().get("fm_width")
+    pt_of = lambda mm: mm / 0.352778
+    segs, boxes, label_boxes, labels = [], [], [], []
+    for it in cut_items + st_items:
+        if it[0] == "line":
+            P = [T(p) for p in it[1]]
+            segs += list(zip(P, P[1:]))
+    for it in cut_items:
+        if it[0] == "text":
+            x, y = T(it[2])
+            w = fmw(it[1], pt_of(it[3]), bold=it[5]) if callable(fmw) else 0.6 * it[3] * len(it[1])
+            b = (x - w / 2.0, y - it[3] / 2.0, x + w / 2.0, y + it[3] / 2.0)
+            boxes.append(b)
+            label_boxes.append((it[1], b))
+            labels.append(dict(string=it[1], kind="cut", anchor=(x, y), box=b, size_mm=it[3], colour=it[4],
+                               bold=it[5]))
+    # SON page8: the north arrow beside the map in its own column, turned to north on these axes, no plate
+    a = _km_m.radians(phi)
+    ncx = -0.5 * KM_NA if north_side == "left" else w_mm + 0.5 * KM_NA
+    ncy = h_mm - 0.5 * KM_NA if h_mm >= KM_NA else 0.5 * h_mm
+    half = 0.5 * (KM_NORTH_MM + 0.75 * max(2.12, 0.42 * KM_NORTH_MM))
+    north_its = north_items(ncx + half * _km_m.sin(a), ncy - half * _km_m.cos(a), ang_rad=a, size_mm=KM_NORTH_MM,
+                            colour=KM_HEAD["colour"])
+    north_box = (ncx - 0.5 * KM_NA, ncy - 0.5 * KM_NA, ncx + 0.5 * KM_NA, ncy + 0.5 * KM_NA)
+    heading_items, heading_box = [], None
+    if heading:
+        hs = KM_HEAD["size_mm"]
+        yh = h_mm + KM_HEAD["gap_mm"] + 0.5 * hs
+        heading_items = [("text", u"%s" % heading, (0.0, yh), hs, KM_HEAD["colour"], True, "ML")]
+        hw = fmw(u"%s" % heading, pt_of(hs), bold=True) if callable(fmw) else 0.6 * hs * len(heading)
+        heading_box = (0.0, yh - 0.5 * hs, hw, yh + 0.5 * hs)
+    nr = km_street_names(D, T, boxes, vb=vb, frame_mm=(w_mm, h_mm), segs=segs, Tinv=Tinv, names=None,
+                         extra_names=extra_names, page=pg, log=log)
+    labels += nr["labels"]
+    label_boxes += nr["label_boxes"]
+    fill = min(1.0, (cw * s) * (ch * s) / max(1e-9, (w_mm - 2.0 * pad) * (h_mm - 2.0 * pad)))
+    rot_out = round(phi, 1)
+    log.append(u"keymap %s 1:%.0f axes=%.1f frame=%.1fx%.1f fill=%.2f cuts=%s"
+               % (pg, den, rot_out, w_mm, h_mm, fill, u",".join(cid for cid, _ in cut_l) or u"-"))
+    if log is not KM_LOG:
+        KM_LOG.append(log[-1])
+    frame_mm = [(0.0, 0.0), (w_mm, 0.0), (w_mm, h_mm), (0.0, h_mm)]
+    frame_items = [("fill", [frame_mm], KM_PAPER, 1.0, True),
+                   ("line", frame_mm + [frame_mm[0]], KM_FRAME["colour"], KM_FRAME["lw"], None, 1.0)]
+    KM_STUDY_LOG[page] = (len(study), 1 if study else 0)
+    km = dict(base=base, study=st_items, cuts=cut_items, names=nr["items"],
+              items=list(base) + st_items + cut_items + nr["items"], box=(vb[0], vb[1], vb[2], vb[3]),
+              scale_den=den, T=T, Tinv=Tinv, drawn=drawn, missing=missing, label_boxes=label_boxes, labels=labels,
+              w_mm=w_mm, h_mm=h_mm, study_rings=study, study_ring=study, study_closed=1 if study else 0,
+              rotation_deg=rot_out, rotation=rot_out, north_deg=rot_out, fill=fill, frame=frame,
+              frame_items=frame_items, north=north_its, north_box=north_box, heading_items=heading_items,
+              heading_box=heading_box, looks=dict(looks or {}), zoom_ids=[cid for cid, _ in wins],
+              cut_ids=[cid for cid, _ in cut_l], page=page)
     km["cuts_all"] = list(km["cut_ids"])
-    KM_STUDY_LOG[page] = (len(ring), km["study_closed"])
     km_log(page, km, log)
     return km
 
@@ -817,19 +720,3 @@ def km_log(page, km=None, log=None):
         KM_LOG.append(ln)
     return ln
 
-
-
-# ---- old names (round 3 callers; page sessions move to km_map / km_cut_items) -------------------------------------
-def basemap_cut_items(cuts, scale_den, frame=None, inset_mm=3.0, tri_mm=2.6, text_mm=2.4, col=None, D=None):
-    """round 3 name, now the R01 red symbol (G-R4-9): km_cut_items(cuts, scale_den, frame or the analysis frame).
-    inset_mm, tri_mm and col are ignored (one symbol, one colour everywhere)."""
-    return km_cut_items(cuts, scale_den, frame=frame or basemap_frame(D), text_mm=max(text_mm, 2.12))
-
-
-def keymap_items(ids=(), scale_den=10000.0, box=None, zooms=None, mode="key", override=None, looks=None, D=None,
-                 margin=0.06, text_mm=2.4, col=None, log=None, page=None):
-    """round 3 name, now km_map at the caller's scale and box (mode, override, text_mm and col are ignored: the base is
-    the muted one, the cuts R01 red): dict(items (survey m, in order), box, drawn, missing) as before"""
-    km = km_map(ids, None, None, zooms=zooms, page=page, log=log, looks=looks, box=box, scale_den=scale_den, D=D,
-                margin=margin, names=dict(streets=(), places=False))     # round 3 key maps had no names
-    return dict(items=km["items"], box=km["box"], drawn=km["drawn"], missing=km["missing"])

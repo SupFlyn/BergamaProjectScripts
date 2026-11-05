@@ -1,8 +1,8 @@
 # ---- Plan annotations (round 6 S1, 4 Nov 2026; G6-4; PLAN.md §2.4, §2.8) -------------------------------------------
 # The marks on every PLAN except key maps (Aras 4 Nov 09:32, refs/targets/r06_R01 poster: "much cleaner and keeps the
 # drawings clean"): a section cut = a small filled triangle (2.0 mm) + its letter at each end, just outside the
-# drawing's frame, with a short dashed stub (4 mm) on the cut's line and NO line across the plan; a level = a quartered
-# circle 1.6 mm + "+0.00" at 5 pt; a view mark = a small open triangle + a short name; the north arrow plain and
+# drawing's frame, with a short dashed stub (4 mm) on the cut's line and NO line across the plan; a level = a tiny
+# crosshair 1.6 mm + "+0.00" at 5 pt (round 7); a view mark = a small open triangle + a short name; the north arrow plain and
 # solid, no box. Replaces the red / grey cut lines across plans of rounds 3-5 (KM_CUT_PLAN, km_cut_items on plans).
 # Included by common/keymap.py (every script that includes basemap.py has it). Page mm, y up. Every function returns
 # its items (the basemap format: "fill" / "line" / "text") and, when X is given, draws them through it:
@@ -12,13 +12,20 @@
 #   an_level(X, xy, value_m, T)                                    one level mark (value in m, 2 decimals)
 #   an_view(X, xy, dir_deg, name, frame, T)                        one view mark
 #   an_north(X, xy, north_deg, size_mm=6)                          the north arrow
-#   an_log(page, n_cuts=None, n_levels=None, log=None)             `annot <page> cuts=<n> levels=<n>`
+#   an_name(X, xy, text, T=None, page=None)                        a small name inside its area (round 7)
+#   an_list(X, frame, rows, page=None)                             a list in the side column (round 7)
+#   an_log(page, n_cuts=None, n_levels=None, log=None)             `annot <page> <kind> <n>` per kind
+# ROUND 7 (S1, 5 Nov 2026; G7-2, PLAN §4.4; target refs/targets/r06_R01 poster): an_level is now a tiny crosshair +
+# "+0.00" (was a quartered circle); an_name and an_list added (names small inside their area, lists in the side
+# column); an_cut, an_view, an_north unchanged. Every plan except key maps and the masterplan page uses these only.
 import math as _an_m
 
 AN_CUT = dict(tri_mm=2.0, stub_mm=4.0, gap_mm=1.0, stub_lw=0.18, dash=(0.8, 0.5), text_mm=2.12)   # 6 pt letters
-AN_LEVEL = dict(d_mm=1.6, lw=0.12, text_mm=1.764, gap_mm=0.6)                                     # "+0.00" 5 pt
+AN_LEVEL = dict(d_mm=1.6, lw=0.12, text_mm=1.764, gap_mm=0.6)          # round 7: crosshair 1.6 mm, "+0.00" 5 pt
+AN_NAME = dict(text_mm=1.764, colour="2C2219")                         # round 7: names inside their area, 5 pt
+AN_LIST = dict(text_mm=1.764, lead=1.35, key_gap_mm=1.0, colour="2C2219")   # round 7: side-column list, 5 pt
 AN_VIEW = dict(tri_mm=2.0, lw=0.18, text_mm=1.764, gap_mm=0.8)
-AN_COUNT = {}                          # page -> {"cuts": n, "levels": n, "views": n} drawn this run
+AN_COUNT = {}                          # page -> {"cuts": n, "levels": n, "views": n, "names": n, "lists": n}
 AN_LOG = []
 
 
@@ -36,7 +43,7 @@ def _an_out(items, X):
 
 def _an_add(page, kind):
     if page is not None:
-        c = AN_COUNT.setdefault(page, {"cuts": 0, "levels": 0, "views": 0})
+        c = AN_COUNT.setdefault(page, {"cuts": 0, "levels": 0, "views": 0, "names": 0, "lists": 0})
         c[kind] += 1
 
 
@@ -103,21 +110,14 @@ def an_cut(X, a_xy, b_xy, letter, frame, T=None, look=1, names=None, page=None):
 
 
 def an_level(X, xy, value_m, T=None, page=None):
-    """the G6-4 level mark: a quartered circle (two opposite quarters filled) AN_LEVEL d_mm across at xy, its value
-    "+0.00" (m, 2 decimals, signed) at 5 pt to the right. Returns the items (page mm)."""
+    """the G7-2 level mark (round 7; poster r06_R01): a tiny crosshair AN_LEVEL d_mm across at xy (two hairlines,
+    no circle, no fill), its value "+0.00" (m, 2 decimals, signed) at 5 pt to the right. Returns the items (page
+    mm)."""
     c = T(xy) if T else tuple(xy)
     st, ink = AN_LEVEL, _an_col("ink")
     r = st["d_mm"] / 2.0
-    circ = [(c[0] + r * _an_m.cos(2 * _an_m.pi * i / 24.0), c[1] + r * _an_m.sin(2 * _an_m.pi * i / 24.0))
-            for i in range(25)]
-    out = []
-    for q0 in (0, 2):                                    # the first and third quarters filled
-        pts = [c] + [(c[0] + r * _an_m.cos(_an_m.pi / 2.0 * (q0 + i / 6.0)),
-                      c[1] + r * _an_m.sin(_an_m.pi / 2.0 * (q0 + i / 6.0))) for i in range(7)]
-        out.append(("fill", [pts], ink, 1.0, True))
-    out.append(("line", circ, ink, st["lw"], None, 1.0))
-    out.append(("line", [(c[0] - r, c[1]), (c[0] + r, c[1])], ink, st["lw"], None, 1.0))
-    out.append(("line", [(c[0], c[1] - r), (c[0], c[1] + r)], ink, st["lw"], None, 1.0))
+    out = [("line", [(c[0] - r, c[1]), (c[0] + r, c[1])], ink, st["lw"], None, 1.0),
+           ("line", [(c[0], c[1] - r), (c[0], c[1] + r)], ink, st["lw"], None, 1.0)]
     v = u"%+.2f" % float(value_m)
     out.append(("text", v, (c[0] + r + st["gap_mm"], c[1]), st["text_mm"], ink, False, "ML"))
     _an_add(page, "levels")
@@ -155,10 +155,52 @@ def an_north(X, xy, north_deg, size_mm=6.0):
                                colour=_an_col("ink")), X)
 
 
+def an_name(X, xy, text, T=None, page=None):
+    """the G7-2 name (round 7): a small name (AN_NAME, 5 pt, regular) centred at xy inside its area (the caller
+    gives a point inside the area it names). Returns the items (page mm); the booklet moves it if it hits."""
+    c = T(xy) if T else tuple(xy)
+    out = [("text", u"%s" % text, c, AN_NAME["text_mm"], AN_NAME["colour"], False, "MC")]
+    _an_add(page, "names")
+    return _an_out(out, X)
+
+
+def an_list(X, frame, rows, page=None):
+    """the G7-2 side-column list (round 7): rows top-down from the top-left of frame (x0, y0, x1, y1) page mm, y up;
+    a row = "text" or (key, text): the key bold (a number or letter matching a mark on the plan), the text after it
+    (AN_LIST, 5 pt, line pitch 1.35). Every row is drawn: rows below the frame's bottom stay (never dropped) with a
+    WARNING in AN_LOG. Returns the items (page mm)."""
+    st = AN_LIST
+    x0, y0, x1, y1 = frame
+    pitch = st["text_mm"] * st["lead"]
+    fmw = globals().get("fm_width")
+    out = []
+    y = y1 - 0.5 * st["text_mm"]
+    for r in rows:
+        key, txt = (r[0], r[1]) if isinstance(r, (tuple, list)) else (None, r)
+        x = x0
+        if key is not None and u"%s" % key:
+            k = u"%s" % key
+            out.append(("text", k, (x, y), st["text_mm"], st["colour"], True, "ML"))
+            kw = fmw(k, st["text_mm"] / 0.352778, bold=True) if callable(fmw) else 0.6 * st["text_mm"] * len(k)
+            x += kw + st["key_gap_mm"]
+        out.append(("text", u"%s" % txt, (x, y), st["text_mm"], st["colour"], False, "ML"))
+        y -= pitch
+    if y + pitch - 0.5 * st["text_mm"] < y0:
+        AN_LOG.append(u"WARNING %s annot list: %d rows reach %.1f mm below the frame bottom (all drawn)"
+                      % (page or u"", len(rows), y0 - (y + pitch - 0.5 * st["text_mm"])))
+    _an_add(page, "lists")
+    return _an_out(out, X)
+
+
 def an_log(page, n_cuts=None, n_levels=None, log=None):
-    """`annot <page> cuts=<n> levels=<n>` (counts default to what an_cut / an_level drew for page this run)"""
-    c = AN_COUNT.get(page) or {}
-    ln = u"annot %s cuts=%d levels=%d" % (page, c.get("cuts", 0) if n_cuts is None else n_cuts,
-                                          c.get("levels", 0) if n_levels is None else n_levels)
-    (log if log is not None else AN_LOG).append(ln)
-    return ln
+    """round 7: one line per kind, `annot <page> <kind> <n>` (cut, level, view, name, list); counts default to what
+    the an_* functions drew for page this run (n_cuts / n_levels override). Returns the lines joined by newlines."""
+    c = dict(AN_COUNT.get(page) or {})
+    if n_cuts is not None:
+        c["cuts"] = n_cuts
+    if n_levels is not None:
+        c["levels"] = n_levels
+    lns = [u"annot %s %s %d" % (page, k[:-1], c.get(k, 0)) for k in ("cuts", "levels", "views", "names", "lists")]
+    lg = log if log is not None else AN_LOG
+    lg.extend(lns)
+    return u"\n".join(lns)

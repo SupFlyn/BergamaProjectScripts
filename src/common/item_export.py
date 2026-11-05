@@ -40,7 +40,7 @@
 #         levels = [(name, z_m)] (z on the drawing's y axis, m a.s.l. for sections); the booklet draws the level
 #         markers (PLAN §3, Aras's sketch U04) and their "+43.71" values beside the drawing
 #   ix.inset(page, parent, window, child, factor, id=None)   child = a drawing id of the zoom; window in parent units
-#   ix.keymap(page, cuts, looks=None, names=(), zooms=(), id=None)   the key-map module (S2) draws it in the booklet
+#   (round 7 S1: ix.keymap removed, no callers; key maps come from common/keymap.py km_keymap + km_export_items)
 #   ix.photo(page, file, crop=None, caption=None, source=None, id=None)
 #   ix.chart(page, w_mm, h_mm, shapes, id=None)            a vector chart in its own mm box (y up)
 #   ix.source(key, text, url, page=None)                   a Sources page row (texts cite it as {src:key})
@@ -349,10 +349,6 @@ class Ix(object):
     def inset(self, page, parent, window, child, factor, id=None):
         return self._item(page, "inset", id, "inset", 2, None, parent=parent, window=[_ix_r(v) for v in window],
                           child=child, factor=float(factor))["id"]
-
-    def keymap(self, page, cuts, looks=None, names=(), zooms=(), id=None):
-        return self._item(page, "keymap", id, "keymap", 3, None, cuts=list(cuts), looks=dict(looks or {}),
-                          names=list(names), zooms=list(zooms))["id"]
 
     def photo(self, page, file, crop=None, caption=None, source=None, id=None):
         cap = None if caption is None else self._tid(page, caption, "caption", None)
