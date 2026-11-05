@@ -1843,7 +1843,11 @@ def p24_kit(pg, C, T, inP, k, taken, people=False):
 
 
 # ---- T7 (30 Oct, booklet p22): a reason for every element (G10) and the page's key map (M4) ---------------------
-P24_KM_W, P24_KM_HMAX = 62.0, 40.0   # mm: the key map's frame (v38, P22.3); round 6: keymap.py km_keymap draws it
+P24_KM_W, P24_KM_HMAX = 26.9, 35.9   # mm: v43 (round 7 S6, G7-3; PLAN §3 / H4 §3): SON page22's measured key-map
+                                     # frame [378.1,30.9 26.9x35.9] exactly (v38-v42: 62 x 40); keymap.py km_keymap draws it
+P24_KM_HEAD = u"Key map · D1, D2"    # v43: the heading above it (SON's line is cut at the page edge: only its sure words)
+P24_NAME_CLEAR = 0.6                 # v43 (L6, H4 §4 p21 "4 / D1" x "Spillway"): a field name keeps this clear of the
+                                     # route numbers and place names already on the plan, mm (moved inside its field)
 _P24_WINS = {}               # window id -> (section name, the window's corners, survey m), filled as drawn
 P24_TP_PAD = 0.2             # the p21 TextPages' clearance between words, mm (below the placers' 0.3-0.6 mm)
 _P24_ROT = [0.0]             # the window's page x axis as a survey angle, rad (round 6: north-up, always 0)
@@ -1897,14 +1901,19 @@ def _p24_inside(b, frame, pad):
     return b[0] >= frame[0] + pad and b[1] >= frame[1] + pad and b[2] <= frame[2] - pad and b[3] <= frame[3] - pad
 
 
-def _p24_title_at(Q, txt, size, frame):
+def _p24_title_at(Q, txt, size, frame, avoid=(), bold=True):
     """round 6 (S8, U15 "Sub-hub in the bed on the frame edge"): a point inside ring Q (page mm) where the centred
     title txt sits whole at least P24_TITLE_IN mm inside the plan's frame: the ring's inner point first, then a grid of
-    points inside the ring, the farthest from the frame first; None when no such point exists"""
-    wd, ht = text_w(txt, size, True), size
-    box = lambda p: (p[0] - wd / 2.0, p[1] - 0.2 * ht, p[0] + wd / 2.0, p[1] + 0.8 * ht)
+    points inside the ring, the farthest from the frame first; None when no such point exists. v43 (round 7 S6, L6):
+    avoid = boxes (page mm) already taken on the plan (route numbers, place names): a point whose box clears them
+    by P24_NAME_CLEAR wins; when none clears them, the round 6 choice (the label only moves inside its own field)"""
+    wd, ht = text_w(txt, size, bold), size
+    box = lambda p: (p[0] - wd / 2.0, p[1] - 0.5 * ht, p[0] + wd / 2.0, p[1] + 0.5 * ht)
+    m = P24_NAME_CLEAR
+    free = lambda b: not any(b[0] < a[2] + m and a[0] - m < b[2] and b[1] < a[3] + m and a[1] - m < b[3]
+                             for a in avoid)
     p0 = inner_pt(Q)
-    if _p24_inside(box(p0), frame, P24_TITLE_IN):
+    if _p24_inside(box(p0), frame, P24_TITLE_IN) and free(box(p0)):
         return p0
     xs, ys = [p[0] for p in Q], [p[1] for p in Q]
     c = []
@@ -1913,8 +1922,11 @@ def _p24_title_at(Q, txt, size, frame):
             x = min(xs) + (i + 0.5) / 14.0 * (max(xs) - min(xs))
             y = min(ys) + (j + 0.5) / 14.0 * (max(ys) - min(ys))
             if pip(x, y, Q) and _p24_inside(box((x, y)), frame, P24_TITLE_IN):
-                c.append((-min(x - frame[0], frame[2] - x, y - frame[1], frame[3] - y), (x, y)))
-    return sorted(c)[0][1] if c else None
+                c.append((0 if free(box((x, y))) else 1, -min(x - frame[0], frame[2] - x, y - frame[1], frame[3] - y),
+                          (x, y)))
+    if not c and _p24_inside(box(p0), frame, P24_TITLE_IN):
+        return p0
+    return sorted(c)[0][2] if c else None
 
 
 def _p24_sw_cut(pg, x, y, w, h):
@@ -1986,7 +1998,7 @@ def p24_window(ix, page, C, w, missing, warn):
         ab = (a["code"] if a and a in C.D.zones else None, b["code"] if b and b in C.D.zones else None)
         steps.append((next((i for i, st in enumerate(ROUTE) if st[0] == ab), len(ROUTE)), L, a, b))
     steps.sort(key=lambda s_: s_[0])
-    route_rows = []
+    route_rows, taken_nm = [], []
     for n_, (order, L, a, b) in enumerate(steps, 1):
         P = [T(p) for p in L["P"]]
         s = arclen(P)
@@ -2001,6 +2013,7 @@ def p24_window(ix, page, C, w, missing, warn):
                 fill=rc)
         mp_marker(pg, P[0][0], P[0][1], str(n_), rc, size_pt=ts["small"] / PT, r_min=1.9, name=u"route %d" % n_)
         pg.endgroup()
+        taken_nm.append((P[0][0] - 1.9, P[0][1] - 1.9, P[0][0] + 1.9, P[0][1] + 1.9))   # v43 (L6): field names clear it
         route_rows.append((u"".join(t_ for t_, _bd in _r28_route_runs(order, L, a, b)), P[0]))
         leg(("r28dt", "route"))
     pg.unclip()
@@ -2031,11 +2044,13 @@ def p24_window(ix, page, C, w, missing, warn):
          xy[1] + 0.8 * ht), frame, P24_TITLE_IN)
     names = [(HUB_NAME[h["id"]], h["xy"]) for h in C.hubs] + \
         [(bridge_name(nm), xy) for nm, xy in BRIDGES_K if nm in (u"K1", u"K2")] + PLACES
+    nsz = AN_NAME["text_mm"]                              # v43 (round 7 S6, G7-2): names small, inside their area
     for nm, xy in names:
         if inP(xy):
             x, y = T(xy)
-            with mpx_grp(pg, "labels", nm):                  # v42 (L3): always exported; the booklet places it
-                pg.text(nm, x, y, ts["label"], ink1, bold=True, align="C")
+            an_name(mpx_X(pg, ("labels", nm)), (x, y), nm, page=page)   # v42 (L3): always exported; the booklet places it
+            wn_ = text_w(nm, nsz, False)
+            taken_nm.append((x - wn_ / 2.0, y - 0.5 * nsz, x + wn_ / 2.0, y + 0.5 * nsz))
     best = {}
     for key, Q in fields:
         vis = clip_ring(Q, frame)
@@ -2048,18 +2063,19 @@ def p24_window(ix, page, C, w, missing, warn):
             continue
         nm = R28_ZONE[key][0] if key in R28_ZONE else P24_NAME[key].capitalize()
         if key in best:
-            at = _p24_title_at(best[key], nm, ts["place"], frame)
+            at = _p24_title_at(best[key], nm, nsz, frame, avoid=taken_nm, bold=False)
         else:
             cand = sorted(fpts, key=lambda p: -min(p[0], dw - p[0], p[1], dh - p[1]))
-            at = next((p for p in cand if fr_in(p, text_w(nm, ts["place"], True), ts["place"])), None)
+            at = next((p for p in cand if fr_in(p, text_w(nm, nsz, False), nsz)), None)
         if at is None:                                    # v42 (L3): never left out: anchored on the field itself
             if key in best:
                 Q_ = best[key]
                 at = (sum(p[0] for p in Q_) / len(Q_), sum(p[1] for p in Q_) / len(Q_))
             else:
                 at = fpts[len(fpts) // 2]
-        with mpx_grp(pg, "labels", nm):
-            pg.text(nm, at[0], at[1], ts["place"], ink, bold=True, align="C")
+        an_name(mpx_X(pg, ("labels", nm)), at, nm, page=page)   # v43 (G7-2): the field's name, small, inside it
+        wn_ = text_w(nm, nsz, False)
+        taken_nm.append((at[0] - wn_ / 2.0, at[1] - 0.5 * nsz, at[0] + wn_ / 2.0, at[1] + 0.5 * nsz))
         rs = p24_reason(C, key, w)
         if rs:
             why_rows.append((nm[:1].upper() + nm[1:].lower() + u": " + rs, at))
@@ -2091,6 +2107,7 @@ def p24_window(ix, page, C, w, missing, warn):
     # P24_PLAN_M margin with the cut marks (G6-4: outside the frame)
     did = u"mp_dt_" + w["id"]
     M, mk = P24_PLAN_M, DT_SCALE / 1000.0
+    out.append(u"scale p21 {} 1:{:.0f}".format(did, DT_SCALE))   # v43 (round 7 S6): SON's printed scale, fixed
     D = mpx_drawing(ix, did, page, pg, (-M, -M, dw + M, dh + M), DT_SCALE, origin_m=(-M * mk, -M * mk),
                     dkind="plan", north_deg=round(math.degrees(F["north"]), 2), scale_pref=[int(DT_SCALE)],
                     priority=1, group=did, title=w["title"])
@@ -2117,18 +2134,15 @@ def p24_window(ix, page, C, w, missing, warn):
         sid = did + u"_sec"
         ks = sec["k"]
         sw_mm = sec["w"]                                  # printed width at 1:DT_SCALE (mm)
-        den = None                                        # P-13: the round scale whose print fills the plan's width
-        for d_ in sorted(SF_SCALES):
-            wd_ = sw_mm * DT_SCALE / float(d_)
-            if wd_ <= dw + 2.0:
-                den = d_
-                break
-        den = den or DT_SCALE
-        pct = 100.0 * sw_mm * DT_SCALE / float(den) / dw
-        if pct < 95.0:
-            ix.warn(page, "layout", u"section %s at 1:%s fills only %.0f %% of its plan's width" % (
-                sec["name"], u"{:,.0f}".format(den), pct))
-        out.append(u"section p21 {} ACCURATE 1:{:,.0f} width {:.0f} % of plan".format(sec["name"], den, pct))
+        # v43 (round 7 S6, BRIEF §3 / PLAN §3 row 21): ACCURATE section at SON's printed 1:1,000, fixed; the round 6
+        # SF_SCALES pick (the round scale that filled the plan's width) is gone: no code picks a scale
+        den = DT_SCALE
+        pct = 100.0 * sw_mm / dw
+        if sw_mm > dw + 2.0:
+            ix.warn(page, "frame", u"section %s at 1:%s is %.1f mm wider than its plan (%.1f mm): scale kept" % (
+                sec["name"], u"{:,.0f}".format(den), sw_mm - dw, dw))
+        out.append(u"section p21 {} ACCURATE".format(sec["name"]))
+        out.append(u"scale p21 {} 1:{:.0f} (width {:.0f} % of plan)".format(sid, den, pct))
         top = sec["top"]
         z_row = sec["z0"] + (top + P24_ROW_MM * 0.3) / ks   # the zone-name row, m (drawing units)
         Ds = mpx_drawing(ix, sid, page, sec["pg"], (-P24_SEC_M, 0.0, sec["w"] + P24_SEC_M, top + P24_ROW_MM), den,
@@ -2214,14 +2228,17 @@ def p24_items(ix, C, wins, areas, missing, warn):
     for nm, ring in _P24_WINS.values():
         zooms[nm] = ring
     try:
-        an_log(page, n_cuts, 0)
+        an_log(page, n_cuts, 0, log=out)        # v43: the annot lines into this page's log
     except Exception as ex_:
         ix.warn(page, "annot", u"annot log not written (%s: %s)" % (type(ex_).__name__, ex_))
     try:                                                  # G6-5: the one key-map module (never stops the run)
-        km = km_keymap(page, cuts=cuts, zooms=zooms, w_mm=P24_KM_W, h_mm=P24_KM_HMAX, log=out)
+        # v43 (round 7 S6, G7-3): SON page22's frame 26.9 x 35.9 mm; north at the LEFT so the key map and its arrow
+        # stay inside the 406 mm margin (SON's frame ends at x 405, a right-hand north column would cross it)
+        km = km_keymap(page, cuts=cuts, zooms=zooms, w_mm=P24_KM_W, h_mm=P24_KM_HMAX, heading=P24_KM_HEAD,
+                       north_side="left", log=out)
         its = km_export_items(km, page, u"mp_dt_keymap") or []
         did_ = None
-        for it in its:                                    # as mpx_keymap: ids made unique, anchors on the drawing
+        for it in its:                                    # v43 (mpx_keymap removed): ids made unique, anchors on the drawing
             it = dict(it)
             it["id"] = ix._id(it.get("id"), it.get("kind", "item"))
             it["page"] = page
