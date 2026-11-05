@@ -4465,8 +4465,8 @@ BK_PAGES = [
                  # v32.6: the farms map has its own frame (sharing it left the reading diagram 4 mm, x0.03); the
                  # reading and the history (each 129 x 27 mm) stacked in the middle column
                  F("ag2_farms", 3.3, 76.0, 30.0, 17.5, key="farms"),
-                 F("ag1_reading*", 35.0, 76.0, 30.0, 8.6, key="reading"),
-                 F("ag1_history", 35.0, 85.0, 30.0, 8.6),
+                 F("ag1_reading*", 35.0, 76.0, 30.0, 10.6, key="reading", foot=2.2),
+                 F("ag1_history", 35.0, 87.0, 30.0, 6.5),
                  F("ag1_crops_*", 67.0, 76.0, 29.7, 17.5, key="crops")],
          side="ag1_context"),
     # 19 · SON page20 (heritage symbols in the brown ramp, S3); legends in one row under the board

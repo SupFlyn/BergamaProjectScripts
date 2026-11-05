@@ -347,6 +347,21 @@ def _wbx_texts(ix, r, items, M, pats, tail):
         if not s_:
             continue
         it0, role = rows[0]
+        if len([l_ for l_ in lines if l_.strip()]) > 1 and role in (None, "label"):
+            # v17.3 (booklet JPG check, p18 "8,000 m³ per ha ... [87]" as one 12 pt line across the page): a block
+            # of several lines is handed over line run by line run, each at its own spot, size and weight (the
+            # booklet sets runs of one line one after the other); was one paragraph at the first line's size
+            for it, _r in rows:
+                p_ = tail.sub(u"", _wbx_src(u"%s" % it[1])).strip()
+                if not p_:
+                    continue
+                al_ = it[7] or "L"
+                ix.text(page, p_, "label", drawing=did, at=M((it[2], it[3])), size_pt=it[4] / IX_PT,
+                        bold=bool(it[6]), colour=it[5] if isinstance(it[5], str) else None,
+                        positions=["=" + al_, "E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=r["group"],
+                        priority=5)
+                n_lab += 1
+            continue
         pt = it0[4] / IX_PT
         bold = bool(it0[6])
         col = it0[5] if isinstance(it0[5], str) else None
