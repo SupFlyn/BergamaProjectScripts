@@ -3,9 +3,9 @@
 | function / data | file | line |
 |---|---|---|
 | bergama_paths | ../common/bergama_paths.py | - |
-| ps_sources | code.py | 207 |
-| text_w | code.py | 234 |
-| Page | code.py | 241 |
+| ps_sources | code.py | 219 |
+| text_w | code.py | 246 |
+| Page | code.py | 253 |
 | hex_rgb | ../common/hex_rgb.py | - |
 | pdf_str | ../common/pdf_str.py | - |
 | _f | ../common/_f.py | - |
@@ -33,19 +33,19 @@
 | text_place | ../common/text_place.py | - |
 | item_export | ../common/item_export.py | - |
 | ps_keymap_items | parts/80_key_map.py | 10 |
-| _tr_up | parts/90_booklet.py | 32 |
-| ps_panels | parts/90_booklet.py | 37 |
-| _ps_hx | parts/90_booklet.py | 54 |
-| ps_engine_colours | parts/90_booklet.py | 60 |
-| ps_legend_entries | parts/90_booklet.py | 91 |
-| ps_q_text | parts/90_booklet.py | 108 |
-| ps_cite | parts/90_booklet.py | 136 |
-| draw_concept | parts/90_booklet.py | 141 |
-| ps_sections | parts/90_booklet.py | 178 |
-| _ps_layers | parts/90_booklet.py | 209 |
-| ps_label_items | parts/90_booklet.py | 236 |
-| ps_items | parts/90_booklet.py | 266 |
-| main | code.py | 336 |
+| _tr_up | parts/90_booklet.py | 34 |
+| ps_panels | parts/90_booklet.py | 39 |
+| _ps_hx | parts/90_booklet.py | 56 |
+| ps_engine_colours | parts/90_booklet.py | 62 |
+| ps_legend_entries | parts/90_booklet.py | 93 |
+| ps_q_text | parts/90_booklet.py | 110 |
+| ps_cite | parts/90_booklet.py | 138 |
+| draw_concept | parts/90_booklet.py | 143 |
+| ps_sections | parts/90_booklet.py | 180 |
+| _ps_layers | parts/90_booklet.py | 211 |
+| ps_label_items | parts/90_booklet.py | 238 |
+| ps_items | parts/90_booklet.py | 268 |
+| main | code.py | 348 |
 | trigger | ../common/trigger.py | - |
-| done_text | code.py | 357 |
-| write_log | code.py | 362 |
+| done_text | code.py | 369 |
+| write_log | code.py | 374 |

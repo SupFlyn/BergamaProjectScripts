@@ -1738,7 +1738,7 @@ def _concept_begum_sketch():
     # v7: the sub-hub floor in the bed at the strip level, up to the channel edge (the water-touching step)
     fill(o, [(101, 14), (117.6, 14), (117.6, 15.0), (101, 15.0)], "sub-hub", SUBHUB_C)
     reeds(o, 133, 148, 14, 4.5)
-    road(o, 0, 16, 62, "ROAD\nbridge deck: traffic", ly=54.5, mask=SOIL)
+    road(o, 0, 16, 62, "ROAD\nbridge deck:\ntraffic", ly=56.5, mask=SOIL)   # v22 (L6, R6 p12 pairs 1-2): short lines over the deck, clear of "steps +"
     sketch_tree(o, 22, 62, 10, "Oriental plane (Doğu çınarı)"); sketch_tree(o, 35, 62, 10, "Oriental plane (Doğu çınarı)")   # D8
     sketch_person(o, 28, 62, kind=1); sketch_person(o, 30.5, 62, kind=2, flip=True); sketch_person(o, 195, 62)
     sketch_person(o, 108, 15.0, kind=0)                                         # sub-hub at low water
@@ -1754,7 +1754,7 @@ def _concept_begum_sketch():
     # v20: "Oriental plane (Doğu çınarı)" on a line of its own (the 28 Oct line broke in the font); internal sources
     # (hub decisions, bank card) carry no mark (public sources only, booklet rule)
     label2(o, "WALKING HUB SQUARE", "street level · step-free\nOriental plane (Doğu çınarı) " + CITE("plane") +
-           "\nirrigated from storage", 1, 84, 5.6, SKINK)
+           "\nirrigated from storage", 1, 88, 5.6, SKINK)   # v22 (L6): raised clear of number 9
     label2(o, "TABAKLAR HAMAMI ruin", "~56 m downstream · terrace faces it", 58, 69, 5.6, HER_C)
     # v20: the 28 Oct label ran over the riser at x 62 (target overlap): short lines that end before it
     hd_ = 5.6 * 0.353 * TXT_K[0] * 1.35
@@ -1831,7 +1831,7 @@ def _concept_k5_sketch():
     text(o, "basin", 57, 45, 5.2, INK2); text(o, "cafe", 75, 50, 5.2, INK2)
     # v20: the body in two short lines so it ends before the basin at x 56 (the 28 Oct head ran into it); card i01 is
     # internal: no mark
-    label2(o, "DEMETER'S GARDEN", "dry bank top\nall year · DG 1-2", 20, 36.5, 5.6, mask=SOIL)
+    label2(o, "DEMETER'S GARDEN", "dry bank top\nall year · DG 1-2", 24, 36.5, 5.6, mask=SOIL)   # v22 (L6): clear of "STREET"
     text(o, "Olive (Zeytin), French lavender (Karabaş otu):\nno waterlogged soil " + CITE("plants"), 4, 24.5, 5.2,
          FARM_C, mask=SOIL)
     hand_arrow(o, (128, 17), (66, 38.6), SITE_WATER_D, bend=0.15)

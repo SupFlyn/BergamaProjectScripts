@@ -166,7 +166,7 @@
 | mpx_grp | parts/04_items.py | 358 |
 | mpx_X | parts/04_items.py | 372 |
 | mpx_sw | parts/04_items.py | 415 |
-| mpx_lines | parts/04_items.py | 487 |
+| mpx_lines | parts/04_items.py | 467 |
 | p16_senses | pages/p16_senses.py | - |
 | p23_plan | pages/p23_plan.py | - |
 | p24_detail | pages/p24_detail.py | - |
