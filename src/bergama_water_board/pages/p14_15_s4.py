@@ -1043,7 +1043,7 @@ def occ_spans(ms):
 # ---------------------------------------------------------------- the key map: S4 only (v16: keymap.py v3 km_keymap)
 
 
-def _p14_keymap(page, size, item_id, log=None):
+def _p14_keymap(page, size, item_id, log=None, north_side="left"):
     """v16 (round 6, S5, G6-5): the key map of S4 from the one module (common/keymap.py v3 km_keymap: S4 as a bold red
     cut with its end triangles, the study area closed, street names subtle), size = (w, h) mm the most room the page
     frame offers (fitted inside), handed to the booklet whole (wbx_keymap); nothing drawn on the board. page = the
@@ -1051,7 +1051,8 @@ def _p14_keymap(page, size, item_id, log=None):
     `keymap <page> module ...` log line. Returns the key map dict, or None (a WARNING, never a stop)."""
     w, h = size
     try:
-        km = km_keymap(wbx_p(page), cut_ids=["S4"], w_mm=w, h_mm=h, log=log)
+        km = km_keymap(wbx_p(page), cuts=["S4"], w_mm=w, h_mm=h, north_side=north_side, log=log)   # v18 (G7-3,
+        #     S1 keymap v4: the SON page8 key map at the page's SON key-map frame exactly; N left on SON p13 / p14)
     except Exception as ex:
         if log is not None:
             log.append(u"FLAG {} key map not made: {}: {}".format(page, type(ex).__name__, ex))
@@ -1586,6 +1587,11 @@ def _p14_inset2(pg, page, parent, X, Y, parent_den, sea, zone, words, at, water=
     if not fr:
         return None
     den, kc = fr["den"], fr["k"]
+    if parent_den == P15_DEN and den != P15_ZOOM_DEN:     # v18 (L1): the zoom keeps SON page16's printed 1:100; no
+        if log is not None:                               # scale picked (sf_inset_frame's pick is overridden)
+            log.append(u"inset {} {}: 1:{:,.0f} picked by sf_inset_frame -> 1:{:,.0f} (SON)".format(
+                page, words, den, P15_ZOOM_DEN))
+        den, kc = P15_ZOOM_DEN, 1000.0 / P15_ZOOM_DEN
     stb = _p14_street_boxes()
 
     def _chk(w0, z0, w1, z1):
@@ -1654,6 +1660,7 @@ def _p14_inset2(pg, page, parent, X, Y, parent_den, sea, zone, words, at, water=
                 title=u"Zoomed in · " + words, group=group or parent, crop=crop)
     wbx_inset(page, parent, (X(w0), Y(z0), X(w1), Y(z1)), did)
     if log is not None:
+        log.append(u"scale {} {} 1:{:.0f}".format(wbx_p(page), did, den))
         log.append(u"inset {} {}: {} -> {} at 1:{:,.0f} (cut 1:{:,.0f}), window {:.1f}-{:.1f} m x {:+.2f}-{:+.2f}, "
                    u"about {} people + {} street elements, cut by the frame: {}".format(
                        page, words, parent, did, den, parent_den, w0, w1, z0, z1, len(near[:P14_INSET_N]),
@@ -1698,8 +1705,8 @@ def _p14_bridge_log(page, log):
 
 
 # ---------------------------------------------------------------- p.15
-P15_KEY = (126.0, 36.0)              # v16 (G6-5, frames_p14-22 "SON page16 -> new page 14": key map x1.25 at
-#                                      [3,11 30x12]): the most room km_keymap is offered, mm; nothing drawn on the board
+P15_KEY = (99.9, 30.0)               # v18 (G7-3, PLAN §3 row 14): SON page16's key-map frame (top left), mm,
+#                                      exactly; north left; nothing drawn on the board
 P15_BAND_HUE = {"A": ("WAT", 3), "B": ("GRN", 1), "C": ("GRN", 2), "D": ("GRN", 3), "E": ("GRN", 4),
                 "F": ("CTX", 4)}     # v16 (G6-6, hues H1 "The S4 cut, north-east bank"): the planting bands A-F from
 #                                      the hue table (A the summer strip WAT r3; B-E wet -> dry GRN r1-r4; F CTX r4),
@@ -2077,13 +2084,14 @@ def _p15_panel(pg, box, log, style):
     did = u"p16_section"
     bbs = (x0, yt_b - hb - 0.5, x0 + ws, max(ytc, top + 0.3))   # v17 (L4): holds the whole cut
     wbx_drawing(did, page, pg, bbs, n0=nc, den=P15_DEN, origin=(s0, G["base"] + (bbs[1] - yb) / k),
-                dkind="section", scale_pref=[d_ for d_ in SF_SCALES if d_ <= P14_DEN], group=did, crop=crop)
+                dkind="section", scale_pref=[int(P15_DEN)], group=did, crop=crop)   # v18 (L1): SON 1:250 only
     wbx_text(page, P15_TITLE_BLK, "heading", did=did, group=did)
     _p14_levels_out(page, did, _p15_level_rows())
     _p14_level_spread(page, did, _p15_level_rows(), Y, ytc, log)
     if log is not None:
         log.append(u"section {} S4 ACCURATE (north-east bank, 1:{:,.0f}, zoom {})".format(wbx_p(page), P15_DEN,
                                                                                          did + u"_inset"))
+        log.append(u"scale {} {} 1:{:.0f}".format(wbx_p(page), did, P15_DEN))
     # the lists beside it: booklet lists anchored on their marks, the bands a legend (nothing drawn on the board)
     wbx_text(page, u"THE BANK, PART BY PART · why each is there", "heading", did=did, group=did)
     wbx_list(page, did, [u"{} {}".format(n, t) for n, _c, t, _s in parts], numbered=False, anchors_board=part_at,

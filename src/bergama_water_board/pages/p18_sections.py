@@ -922,8 +922,6 @@ P18_INSET_BOX = (100.0, 60.0)        # mm: the most an inset may take on the pag
 #                                      the largest listed inset scale >= 2 x 1:500 that fits it: 1:100, 1:200 or 1:250)
 P18_INSET_UNDER, P18_INSET_OVER = 0.30, 0.20   # m under the lowest ground / over a person's head kept in an inset's
 #                                      focus (design values: the bed and water it shows, the head room)
-P18_KM_MM = (110.0, 70.0)            # mm: the most space offered to a key map (km_map v2 fits its frame inside it;
-#                                      the right column ~114 mm, CHK-9; design value)
 P18_MK_ZONE, P18_MK_WATER = "8B3A3F", "5D7F8D"   # a designed use zone (accent) / a water or bed zone (p12 reads ZONE)
 P18_WATER_ZONES = (u"STONES", u"WADING", u"SUMMER STRIP", u"SPILLWAY", u"WATER'S EDGE")
 P18_BK_PAGE = {"p18a": WBX_PG_SECT_A, "p18b": WBX_PG_SECT_B}   # round 4 tag -> booklet page id (25-page, wb_items)
@@ -1194,26 +1192,6 @@ def _p18_materials():
     return out
 
 
-def _p18_keymap(page, cids, log):
-    """the page's key map (G-R5-3, S2 km_map v2): only the page's cuts, whole, with their own cut labels and look
-    arrows; called WITHOUT scale_den (fitted frame, auto turn, its own north arrow, no scale bar), not drawn on the
-    board: exported (wbx_keymap), the booklet places it in the right column. A key map that cannot be made is a
-    WARNING (the page goes on)."""
-    try:
-        km = km_map(list(cids), P18_KM_MM[0], P18_KM_MM[1], page=wbx_p(page), log=log)
-    except Exception as ex:
-        wbx_warn(page, "keymap", u"key map of {} not made: {}: {}".format(u" + ".join(cids), type(ex).__name__, ex))
-        return None
-    if not km.get("items"):
-        wbx_warn(page, "keymap", u"key map of {}: no basemap data (run the site board once)".format(u" + ".join(cids)))
-        return None
-    wbx_keymap(page, km, item_id=u"wb_km_" + page)
-    for ln in KM_LOG[-1:]:
-        if ln not in log:
-            log.append(ln)
-    return km
-
-
 def _p18_list(page, did, spec, dx, dy, bb):
     """the numbered list of a cut (G-R4-5.5, C4): one row per distinct "Name · reason" in reading order (left to
     right), anchored at the point it names (use zones on their ground, planting groups in their crown; board mm,
@@ -1376,7 +1354,8 @@ def p18_page(pg, box, page, opt, log):
         ybot = min(ybot, dy)
     sf_triangles(**tri)
     if dids:
-        _p18_keymap(bpg, [c_ for c_ in cids if c_ in specs], log)
+        # v18 (round 7, S4, G7-3): _p18_keymap deleted (called the removed km_map; these board pages p19/p20 are
+        # not booklet pages, WBX_PAGE None)
         if page == "p18a":                              # once for the merged p19-20 page (the four cuts share them)
             wbx_legend(bpg, dids[0], _p18_bands(log), title=u"Planting bands · wet to dry", id=u"wb_p19_bands")
             wbx_legend(bpg, dids[0], _p18_materials(), title=u"Materials and water", id=u"wb_p19_materials")

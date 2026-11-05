@@ -1,28 +1,24 @@
-# booklet p13 "Four seasons on one cut" (v16, round 6, S5 helper, 4 Nov 2026; BRIEF §6 row 13, Q2 b, PLAN P-11).
-# The 28 Oct four seasons (f93d84b:src/bergama_water_board/code.py draw_seasons_panel 1550-1590, draw_s4_season
-# 1436-1476, senses 1479-1488, season_tag 1491-1516, month_strip 1519-1547, subhub_words 1426, S4_SEASON, SEASON_USE,
-# ACT / KERMES / TOUCH_SRC, the people pictograms of icon 2585-2606) restored on today's S4: the cut is
-# p14_15_s4.py's _p14_cut (the surveyed bed, the level module's levels, the planting and people of the current
-# programme), not the 28 Oct detail engine (engine_section, sky_labels, level_ladder are gone). Target =
-# refs/targets/r06_S03_four_seasons_one_cut_accurate_BEST.png fitted to the frames of plan_findings/frames_p09-13.md
-# "SON page15 -> new page 13": the in-bed sub-hub key and the month bar on top; per season a left column (months,
-# water state, people, the in-bed hub open / closed, the season's story) and the S4 cut at 1:500 with its activities
-# named on it and its levels as ▽ values at the right edge (booklet levels); FEEL · HEAR · TOUCH at the right; the
-# animals on record (GBIF) as one compact column (Q2 b). Leaves the page (P-11): the upstream renders, the PLANTS /
-# ZONES legends, the rain bars, the zone strips, the four 1:200 insets, the LEVELS · PLANTING BANDS block.
-# Every printed value is read live: SUBHUB_OPEN (RAIN, EVAP), P15_KERMES, the level module through _p14_geo /
-# _p14_level_rows, P14_PROM, STRIP_DEPTH. Values of the 28 Oct drawing with no current source are left out (handover).
+# booklet p13 "Four seasons on one cut" (v18, round 7, S4, 5 Nov 2026; BRIEF §6 row 13, PLAN §3 row 13).
+# v18 (G7-1 ACCURATE, target refs/targets/r06_S03_four_seasons_one_cut_accurate_BEST.png): the cut is again the
+# 28 Oct one: the detail engine's S4 south-west bank (DETAIL_SRC SECTIONS[0], s 538-598) drawn by the ported
+# f93d84b engine_section / draw_s4_season / sky_labels / level_ladder (f93d84b:src/bergama_water_board/code.py
+# 1260-1366, 1436-1478) at 1:500 (P14_DEN, fixed, L1), four rows stacked so the bank lines up. Every level it draws is
+# today's: bed, Q100, Q500 and each season's mean from the level module (_p14_geo), the promenade P14_PROM, the strip
+# depth STRIP_DEPTH; none copied from the 28 Oct drawing (BRIEF §5). Kept from v16: the left column, month bar, hub
+# key, FEEL · HEAR · TOUCH, the animal column (GBIF, compact, right). Key map: km_keymap S4 at the SON page15 frame
+# 94.5 x 28.4 mm, north left (G7-3). Language: ACCURATE (log `section p13 S4 ACCURATE <season>`).
+# Earlier (v16, round 6): the 28 Oct column restored on p14's whole cut _p14_cut (P14_RANGE): replaced by v18.
 # build_board: p13_page(pg, box, opt, log) in place of p14_page (same arguments, same returned crop).
 # Included after pages/p14_15_s4.py (uses its _p14_* functions and P14_* / P15_* tables).
 
 P13_TAG_W = 40.0                     # the season column at the left, mm (f93d84b TAG_W)
 P13_GAP = 2.5                        # between the columns, mm (f93d84b SEASON_GAP)
-P13_LEVEL_W = 24.0                   # room right of the cut for the booklet's ▽ values, mm (frames: x 61-70 of A3)
 P13_FEEL_W = 42.0                    # FEEL · HEAR · TOUCH, mm (f93d84b SENSE_MIN 40)
 P13_ANIM_W = 38.0                    # the animals on record, mm (frames: x 87-96.7 of A3 = 41 mm)
 P13_HEAD_H = 19.0                    # the top row: sub-hub key and month bar, mm
-P13_KEY = (55.0, 40.0)               # the key map's most room, mm (P-1: small, side column)
-P13_LABEL_UP = 2.4                   # m over the highest ground of a zone: an activity's words (over a standing person)
+P13_KEY = (94.5, 28.4)               # v18 (G7-3, PLAN §3 row 13): the SON page15 key-map frame, mm (exactly)
+P13_POCHE = 0.6                      # soil drawn under the strip, m (f93d84b S4_POCHE, drawing value)
+P13_DROP = ("title", "callouts", "dimensions", "band", "survey", "text")   # engine layers left out (f93d84b)
 P13_BAND_HUE = {"winter": ("WAT", 3), "spring": ("WAT", 2), "summer": ("WAT", 1), "autumn": ("WAT", 2)}   # G6-6:
 #                                      the rule over each season's column (was BAND_BLUE)
 P13_MONTH_HUE = dict(open=("PUB", 4), closed=("WAT", 2), kermes=("PUB", 1), high=("WAT", 1))   # G6-6: the month bar
@@ -30,19 +26,17 @@ P13_MONTH_HUE = dict(open=("PUB", 4), closed=("WAT", 2), kermes=("PUB", 1), high
 P13_HEAD = {  # the season's state of the water store (f93d84b S4_SEASON head; design, ours)
     "winter": u"storage fills", "spring": u"storage full by end of April", "summer": u"strip runs on stored water",
     "autumn": u"storage low until the rains"}
-P13_WORDS = {  # what people do, named on the cut over its zone of _p14_geo (f93d84b S4_SEASON words, our design /
-    # concept v1 §10.1), moved onto today's zones; {prom} = P14_PROM over Q500, {strip} = STRIP_DEPTH, live.
-    # v16 changes: "boardwalk open" -> "lower walk open" (S4 has no boardwalk now, its floodable lower walk is
-    # P14_WALK); "Kermes stalls in the bed" -> "on the flood terrace" (the market ground of P14_ZONE_KEY); autumn's
-    # "loosestrife heads cut" from P14_USE autumn (PLAN §8 harvest)
-    "winter": [("prom_edge", u"sit at the edge · watch the floods"), ("terrace", u"terraces open between storms"),
-               ("toe", u"marsh flooded · birds"), ("prom_in", u"raised walk {prom} m over Q500")],
-    "spring": [("walk", u"lower walk open"), ("wade_s", u"children at the water's edge")],
-    "summer": [("open_w", u"walk in the dry stream bed"), ("market", u"Kermes stalls on the flood terrace"),
-               ("strip", u"feet in the strip · {strip} m")],
-    "autumn": [("open_w", u"walk the gravel bed to the water"), ("strip", u"first-flush cleaning"),
-               ("toe", u"loosestrife heads cut")],
+P13_WORDS = {  # what people do, set over the place on the south-west bank (f93d84b S4_SEASON words, our design /
+    # concept v1 §10.1): (s along S4 m, text) on the engine's section; {prom} = P14_PROM over Q500, {strip} =
+    # STRIP_DEPTH, both live (v18: back to the 28 Oct places, the cut is the 28 Oct bank again)
+    "winter": [(553.0, u"sit at the edge · watch the floods"), (563.0, u"terraces open between storms"),
+               (586.0, u"marsh flooded · birds")],
+    "spring": [(563.0, u"boardwalk open"), (586.5, u"children at the water's edge")],
+    "summer": [(577.0, u"walk in the dry stream bed"), (583.0, u"Kermes stalls in the bed"),
+               (589.85, u"feet in the strip · {strip} m")],
+    "autumn": [(579.0, u"walk the gravel bed to the water"), (592.0, u"first-flush cleaning")],
 }
+P13_PROM_WORD = (552.5, u"raised walk {prom} m over Q500")   # winter only, at the promenade level (f93d84b)
 P13_ACT_SRC = (u"concept/Selinos_riverfront_design_concept_v1.md §10.1 (design: life on the bands by season); detail "
                u"section v2 season texts")
 P13_KERMES_SRC = (u"h01 §2.8: Bergama Kermesi since 1937, 90th edition 29 Jun-5 Jul 2026 (s60, s100); h03 Q5: 2024 "
@@ -61,12 +55,11 @@ P13_USE = {
     "summer": dict(water=("strip", u"low water, strip"), acts=("walk", "wade", "stall"),
                    feel=("joy", u"play, cool shade"), hear=("snd1", u"trickle and voices"),
                    touch=("foot", u"feet in UV-clean water", P13_TOUCH_SRC),
-                   extra=("stall", u"Kermes on the flood terrace", P13_KERMES_SRC)),
+                   extra=("stall", u"Kermes in the dry bed", P13_KERMES_SRC)),
     "autumn": dict(water=("dry", u"low water"), acts=("walk", "sit"),
                    feel=("calm", u"calm, waiting for rain"), hear=("snd1", u"reeds rustle, first rain"),
                    touch=("gravel", u"gravel underfoot")),
 }
-P13_DROPPED = [u"p15_rain_%s", u"p15_cut_%s", u"p15_cut_%s_inset", u"p15_view_%s", u"p15_animals_%s"]   # round 5 ids
 
 
 def _p13_icon(pg, kind, x, y, sz):
@@ -222,51 +215,197 @@ def _p13_animals(pg, x, ytop, w, h, sea, page):
             pg.text(fa["name"], x + sz + 1.0, cy - FS_MIN * 0.35, FS_MIN, COL["ink_dark"])
 
 
-def _p13_words(pg, X, Y, sea, fr, page, log=None):
-    """the season's activities named on the cut (r06_S03: short words over the place, no leader lines, G3): each over
-    the highest ground of its zone, P13_LABEL_UP m up, a second label that would touch one already set lifted by
-    v17 (L4): every word is exported as an anchored label over its zone (inside the frame); the booklet's collision
-    passes move, shorten or number the ones that meet; none is left out"""
-    G = _p14_geo()
-    zn = G["zones"]
-    fs = FS_MIN
-    s0, s1 = P14_RANGE
-    fmt = dict(prom=u"{:.2f}".format(P14_PROM - G["q500"]), strip=u"{:.2f}".format(STRIP_DEPTH))
-    placed, n = [], 0
-    for zone, words in P13_WORDS[sea]:
-        if zone not in zn:
-            wbx_warn(page, "label", u"p15_season_%s: no zone %s on S4 for \"%s\"" % (sea, zone, words))
-            continue
-        t = words.format(**fmt)
-        a, b = max(zn[zone][0], s0), min(zn[zone][1], s1)
-        zt = max(_p14_surf(a + (b - a) * j / 8.0) for j in range(9))
-        w = text_w(t, fs, True)
-        xa = min(max((X(a) + X(b)) / 2.0 - w / 2.0, fr[0] + 0.5), fr[2] - w - 0.5)
-        y = Y(zt + P13_LABEL_UP)
-        y = min(y, fr[3] - fs - 0.3)            # v17 (L4, Aras 4 Nov 19:17): anchored over its zone inside the
-        xa = max(xa, fr[0] + 0.5)               # drawing, never left out; the booklet moves what meets (pl_label)
-        placed.append((xa, y - 0.3 * fs, xa + w, y + fs))
+def _p13_from_engine(items, sea):
+    """the detail engine's Page items in this board's form (f93d84b from_engine), each tagged as one element of its
+    engine layer (G6-9: trees, plants, people, water, section)"""
+    kind = {"trees": "trees", "tree_shadows": "trees", "planting": "plants", "entourage": "people",
+            "people": "people", "handrail": "structures", "concrete": "structures", "levels": "water",
+            "water": "water"}
+    out = []
+    for it in items:
+        k = it[0]
+        if k == "poly":
+            _, rings, fill, stroke, lw, dash, layer, join, stripes, alpha = it
+            o = ("poly", rings, fill, stroke, lw, dash, stripes, alpha)
+        elif k == "line":
+            _, pts, stroke, lw, dash, layer, cap = it
+            o = ("line", pts, stroke, lw, dash, cap)
+        elif k == "circle":
+            _, cx, cy, r, fill, stroke, lw, layer = it
+            o = ("circle", cx, cy, r, fill, stroke, lw)
+        else:
+            continue                                  # engine texts: none kept (P13_DROP takes its text layers)
+        out.append(o)
+        _GRP[id(o)] = (o, u"%s/S4 %s · %s" % (kind.get(layer, "section"), sea, layer))
+    return out
+
+
+def _p13_engine_cut(sea, log=None):
+    """one season of the S4 south-west bank by the detail engine at 1:P14_DEN (f93d84b engine_section +
+    draw_s4_season), its levels set from today's data for this draw only (bed, Q100, Q500 = _p14_geo; DRY = P14_PROM;
+    strip depth = STRIP_DEPTH; the season's water = its mean from the level module) and set back after.
+    Returns (items at the engine's origin, S, G, E)."""
+    E = detail_engine()
+    prof = s4_profile(E, log)
+    G = _p14_geo(log)
+    d0 = E["SECTIONS"][0]
+    old_dry = E["DRY"]
+    d = dict(d0)                                          # the promenade surfaces on today's promenade level
+    d["surfaces"] = [tuple(P14_PROM if (j_ == 2 and isinstance(v_, float) and abs(v_ - old_dry) < 1e-6) else v_
+                           for j_, v_ in enumerate(srf)) if srf[0] != "steps" else srf for srf in d0["surfaces"]]
+    sea0 = [x_ for x_ in E["SEASONS"] if x_["key"] == sea][0]
+    sd = dict(sea0)
+    sd["water"] = [(G["levels"][sea], True, u"%s mean %%+.2f" % S4_MONTHS[sea], None)]   # engine does lab % z
+    keys = ("SCALE", "K", "level_line", "Q100", "Q500", "THALWEG", "DRY", "STRIP")
+    keep = dict((k_, E[k_]) for k_ in keys)
+    keep_sea = dict(E["SEA"])
+    skip = () if sea == "winter" else (G["q100"], G["q500"])
+    orig = E["level_line"]
+
+    def ll(pg_, S_, z, label, dash, colour=E["FLOOD"]):
+        if any(abs(z - q) < 1e-6 for q in skip):
+            return
+        orig(pg_, S_, z, label, dash, colour)
+    try:
+        E["SCALE"], E["K"] = P14_DEN, 1000.0 / P14_DEN
+        E["level_line"] = ll
+        E["Q100"], E["Q500"] = G["q100"], G["q500"]
+        E["THALWEG"] = (keep["THALWEG"][0], G["bed"])
+        E["DRY"] = P14_PROM
+        E["STRIP"] = (keep["STRIP"][0], keep["STRIP"][1], STRIP_DEPTH)
+        E["SEA"].clear()
+        E["SEA"].update(E["SEASON_LOOK"][sea])
+        epg = E["Page"]("s4", sea)
+        S = E["Sec"](d, prof)
+        S.zb = G["bed"] - STRIP_DEPTH - P13_POCHE
+        E["draw_section"](epg, S, 0.0, 0.0, [], sd)
+    finally:
+        for k_ in keys:
+            E[k_] = keep[k_]
+        E["SEA"].clear()
+        E["SEA"].update(keep_sea)
+    k = 1000.0 / P14_DEN
+    S.X = lambda s_: S.X0 + (s_ - d["s_from"]) * S.dir * k
+    S.Y = lambda z_: S.Y0 + (z_ - S.zb) * k
+    S.P = lambda s_, z_: (S.X(s_), S.Y(z_))
+    lay = {"poly": 6, "line": 5, "circle": 7, "text": 8}
+    its = [it for it in epg.items if it[lay[it[0]]] not in P13_DROP]
+    return _p13_from_engine(its, sea), S, G, E
+
+
+def _p13_thalweg_s():
+    """s along S4 of the bed's low point in the engine (DETAIL_SRC THALWEG[0], survey), m"""
+    return detail_engine()["THALWEG"][0]
+
+
+def _p13_skyline(items, x0, x1, step=1.0):
+    """highest drawn point (board y) in every step-wide column from x0 to x1 (f93d84b skyline; p14 has its own)"""
+    n = int((x1 - x0) / step) + 2
+    top = [-1e9] * n
+
+    def put(x, y):
+        i = int((x - x0) / step)
+        if 0 <= i < n and y > top[i]:
+            top[i] = y
+
+    def seg(p, q):
+        m = max(1, int(abs(q[0] - p[0]) / step) + 1)
+        for j in range(m + 1):
+            t = j / float(m)
+            put(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t)
+    for it in items:
+        if it[0] == "poly":
+            for r in it[1]:
+                for i in range(len(r)):
+                    seg(r[i], r[(i + 1) % len(r)])
+        elif it[0] == "line":
+            for i in range(len(it[1]) - 1):
+                seg(it[1][i], it[1][i + 1])
+        elif it[0] == "circle":
+            put(it[1], it[2] + it[3])
+    return lambda a, b: max(top[max(0, int((a - x0) / step)):max(1, int((b - x0) / step) + 1)] or [-1e9])
+
+
+def _p13_sky_labels(pg, labs, items, x_lo, x_hi, y_cap, fs, boxes=None):
+    """short labels in the open sky over the cut, each as low as it fits over what is drawn under it and clear of
+    the others, a thin leader to its anchor (f93d84b sky_labels). labs = [(ax, ay, text, colour)]"""
+    sky = _p13_skyline(items, x_lo - 60.0, x_hi + 60.0)
+    boxes = boxes if boxes is not None else []
+    h = fs * 1.25 * BK_GROW
+    for ax, ay, t, colour in sorted(labs, key=lambda t_: t_[0]):
+        w = text_w(t, fs, True) * BK_GROW + 0.8
+        best = None
+        for x0 in (ax - 1.0, ax - w + 1.0, ax - w / 2.0):
+            x0 = max(x_lo, min(x0, x_hi - w))
+            y = max(sky(x0, x0 + w) + 1.2, ay + 1.5)
+            while y + h < y_cap + 30.0:
+                if not any(x0 < b[2] and b[0] < x0 + w and y < b[3] and b[1] < y + h for b in boxes):
+                    break
+                y += 0.5
+            if best is None or y < best[1]:
+                best = (x0, y)
+        x0, y = best
+        boxes.append((x0, y, x0 + w, y + h))
         with pg.g("labels", t):
-            pg.text(t, xa, y, fs, COL["ink_dark"], bold=True)
-        n += 1
+            pg.text(t, x0 + 0.4, y + h - BK_GROW * fs * 1.25 * 0.8, fs, colour, bold=True)
+            lx = min(max(ax, x0 + 0.6), x0 + w - 0.6)
+            pg.line([(ax, ay), (lx, y - 0.3)], COL["ink2"], 0.1)
+            pg.circle(ax, ay, 0.35, fill=COL["ink"])
+    return boxes
+
+
+def _p13_ladder(pg, entries, x_line, x_text, fs, boxes=None, lo=None):
+    """the levels at the cut's right end (f93d84b level_ladder): [(board y, text, colour, bold)], texts spread
+    apart, leaders from the level's end at x_line"""
+    entries = sorted(entries, key=lambda e: e[0])
+    ly = spread([e[0] - fs * 0.35 for e in entries], fs * 1.25 * BK_GROW, lo=lo)
+    for (y, t, colour, bold), yl in zip(entries, ly):
+        with pg.g("levels", t):
+            pg.line([(x_line, y), (x_text - 2.0, yl + fs * 0.35), (x_text - 0.6, yl + fs * 0.35)], colour, 0.12)
+            pg.text(t, x_text, yl, fs, colour, bold=bold)
+        if boxes is not None:
+            boxes.append((x_text, yl - fs * 0.3, x_text + text_w(t, fs, bold) * BK_GROW, yl + fs * BK_GROW))
+
+
+def _p13_season_cut(sea, log=None):
+    """one season row's cut (f93d84b draw_s4_season, ACCURATE): the engine's bank and the season's water, its levels
+    as values with ▽ at the right end (bed, the season's mean, the strip in summer / autumn, Q100 / Q500 in winter;
+    all today's values), the season's activities set in the sky with leaders. Returns (Page, S, G)"""
+    items, S, G, E = _p13_engine_cut(sea, log)
+    d = S.d
+    bed = G["bed"]
+    fs = FS_MIN
+    pg = Page(0, 0)
+    pg.items = items
+    xr = S.X(d["s_to"])
+    bb = items_bbox(items)
+    boxes = []
+    fl = E["FLOOD"]
+    lv = [(S.Y(bed), u"{:+.2f} bed".format(bed), COL["ink"], False),
+          (S.Y(G["levels"][sea]), u"{:.2f} m {} mean".format(G["levels"][sea] - bed, S4_MONTHS[sea]), fl, True)]
+    if sea in ("summer", "autumn"):
+        a_, b_ = E["STRIP"][0], E["STRIP"][1]
+        lv.append((S.Y(bed) + 0.01, u"strip {:.1f} x {:.2f} m".format(abs(b_ - a_), STRIP_DEPTH), fl, True))
+    if sea == "winter":
+        lv += [(S.Y(G["q100"]), u"{:.2f} m Q100".format(G["q100"] - bed), fl, True),
+               (S.Y(G["q500"]), u"{:.2f} m Q500".format(G["q500"] - bed), fl, True)]
+    _p13_ladder(pg, lv, xr + 0.5, xr + 6.0, fs, boxes, lo=bb[1] + 1.0)
+    fmt = dict(prom=u"{:.2f}".format(P14_PROM - G["q500"]), strip=u"{:.2f}".format(STRIP_DEPTH))
+    labs = [(S.X(s_), S.Y(S.surf(s_) + 0.05), t.format(**fmt), COL["ink_dark"]) for s_, t in P13_WORDS[sea]]
+    if sea == "winter":
+        labs.append((S.X(P13_PROM_WORD[0]), S.Y(P14_PROM), P13_PROM_WORD[1].format(**fmt), fl))
+    _p13_sky_labels(pg, labs, items, S.X(d["s_from"]), xr + 24.0, bb[3], fs, boxes)
     if log is not None:
-        log.append(u"p13 {}: {} activities named on the cut".format(sea, n))
-
-
-def _p13_level_rows(sea):
-    """the season's ▽ values (r06_S03: Q100 and Q500 only on the winter cut; each season its mean level and the bed;
-    the summer strip where it is full): _p14_level_rows' [(key, m)]"""
-    rows = _p14_level_rows(sea)
-    if sea != "winter":
-        rows = [r_ for r_ in rows if r_[0] not in ("q500", "q100")]
-    return rows
+        log.append(u"p13 {}: {} activities named on the cut, {} levels at its right end".format(
+            sea, len(labs), len(lv)))
+    return pg, S, G
 
 
 def _p13_panel(pg, box, log, style):
     """booklet p13 (board page WBX_PG_SEASONS, round 6 id p13) drawn into box on the board as a recorder, every part
     handed to the booklet as its own item (crop "wb_s4_seasons"): p15_hubkey, p15_monthbar (diagrams, mm), per season
     p15_season_<season> (one row: the left column and the S4 cut at 1:500; x = m across S4 from the bed's low point,
-    y = m a.s.l.; its levels as booklet levels), p15_feel and p15_animals (one column each over the four rows),
+    y = m a.s.l.; v18: the 28 Oct engine's south-west bank, its levels drawn at its right end), p15_feel and p15_animals (one column each over the four rows),
     p15_keymap (km_keymap). Returns its bbox."""
     x0, y0, x1, y1 = box
     n0 = len(pg.items)
@@ -275,17 +414,18 @@ def _p13_panel(pg, box, log, style):
     crop = "wb_s4_seasons"
     G = _p14_geo(log)
     k = 1000.0 / P14_DEN
-    s0, s1 = P14_RANGE
-    wb = (s1 - s0) * k
+    cuts = dict((sea, _p13_season_cut(sea, log)) for sea in SEAS)   # v18: the 28 Oct engine cut, today's levels
+    bbs_ = [items_bbox(cuts[sea][0].items) for sea in SEAS]
+    cx0, foot = min(b_[0] for b_ in bbs_), min(b_[1] for b_ in bbs_)
+    wb = max(b_[2] for b_ in bbs_) - cx0         # the cut with its level values, the same for all four
     xa = x0
     xb = xa + P13_TAG_W + P13_GAP                # the cuts' band: the same x for all four (the bank lines up)
     xl = xb + wb
-    xf = xl + P13_LEVEL_W                        # FEEL · HEAR · TOUCH
+    xf = xl + P13_GAP                            # FEEL · HEAR · TOUCH
     xn = xf + P13_FEEL_W + P13_GAP               # the animals
     yt = y1 - 2.0
     yh = yt - P13_HEAD_H                         # the season rows start here
     rh = (yh - y0) / 4.0
-    _P14_TREES.pop(page, None)
     _p14_keymap(page, P13_KEY, u"p15_keymap", log)
     # the top row: the in-bed sub-hub key over the left column, the month bar over the cuts
     nh = wbx_mark(pg)
@@ -295,38 +435,30 @@ def _p13_panel(pg, box, log, style):
     _p13_monthbar(pg, xb, yt, wb, page)
     wbx_drawing(u"p15_monthbar", page, pg, _p13_bb(pg, nm), n0=nm, dkind="diagram", group=u"p15_monthbar",
                 crop=crop)
-    _p14_houses(P14_RANGE, log)                  # the houses behind the cut, logged once
     for i, sea in enumerate(SEAS):
         rt = yh - i * rh
         rbot = rt - rh
         ns = wbx_mark(pg)
         yc = _p13_tag(pg, xa, rt - 1.0, sea)
         yb = rbot + 1.5
-        ytc = rt - 1.0
-        # ACCURATE (BRIEF §3, PLAN §2.3; target r06_S03): the S4 cut at true scale 1:500 on the surveyed bed, the
-        # season's water from the level module, library people of the season's programme and the planting in the
-        # season's state (plants.py images), light soil without hatch, activities named over their zones, the ▽
-        # values at the right edge (booklet levels, spread); Q100 / Q500 on the winter cut only
-        _p14_grp(pg, "other", u"sky · " + sea)
-        shp_put(pg, sf_sky(xb, xl, yb, ytc, seed=i + 1, cid=u"S4-" + sea))
-        _p14_grp(pg)
-        sp = Page(0, 0)
-        X, Y = _p14_cut(sp, xb, yb, k, P14_RANGE, sea, P14_SEA_MONTH[sea], style=style, ytop=ytc, page=page,
-                        qlines=(sea == "winter"))
-        fr = (xb, yb, xl, ytc)
-        top = max(_p14_bb(sp.items)[3], fr[3])   # v17 (L4): a crown taller than its row is drawn whole (the box
-        pg.items += _p14_clip_items(sp.items, (fr[0], fr[1], fr[2], top + 0.05))   # grows; the booklet sizes it)
-        _p13_words(pg, X, Y, sea, fr, page, log)
+        # ACCURATE (G7-1, target r06_S03): the 28 Oct S4 south-west bank at true scale 1:500 (P14_DEN, fixed),
+        # thin cut, light soil without hatch, library people (r28_people), the season's plants and water, levels as
+        # values with ▽ at the right end, short activity words over their place; Q100 / Q500 on the winter cut only
+        cpg, S, _G = cuts[sea]
+        dx, dy = xb - cx0, yb - foot             # the cut stands on its row (all four on one x)
+        pg.items += xform(cpg.items, 1.0, dx, dy)
+        top = items_bbox(cpg.items)[3] + dy
         did = u"p15_season_" + sea
         ybb = min(rbot, yc - 0.5)                # v17 (L4): a season column taller than its row is exported whole
         bbs = (xa, ybb, xl, max(rt, top + 0.3))
-        wbx_drawing(did, page, pg, bbs, n0=ns, den=P14_DEN, origin=(s0 - (xb - xa) / k, G["base"] + (ybb - yb) / k),
+        # origin: x = m across S4 from the bed's low point (THALWEG s), y = m a.s.l. at the box's lower left
+        s_at = S.d["s_from"] + (xa - (S.X(S.d["s_from"]) + dx)) / k
+        z_at = S.zb + (ybb - (S.Y0 + dy)) / k
+        wbx_drawing(did, page, pg, bbs, n0=ns, den=P14_DEN, origin=(s_at - _p13_thalweg_s(), z_at),
                     dkind="section", scale_pref=[int(P14_DEN)], title=sea.upper(), group=did, crop=crop)
-        rows = _p13_level_rows(sea)
-        _p14_levels_out(page, did, rows, S4_MONTHS[sea])
-        _p14_level_spread(page, did, rows, Y, ytc, log)
         if log is not None:
-            log.append(u"section {} S4 ACCURATE {} (1:{:,.0f}, r06_S03)".format(npg, sea, P14_DEN))
+            log.append(u"section {} S4 ACCURATE {}".format(npg, sea))
+            log.append(u"scale {} {} 1:{:.0f}".format(npg, did, P14_DEN))
     # FEEL · HEAR · TOUCH and the animals: one column each, every season's part at its row's top
     nf = wbx_mark(pg)
     na = None
@@ -351,29 +483,18 @@ def _p13_panel(pg, box, log, style):
     wbx_text(page, u"ANIMALS ON RECORD · GBIF", "heading", did=u"p15_animals", group=u"p15_animals")
     wbx_text(page, u"Animals on record: GBIF " + u"".join(cite(s_) for s_ in P14_FAUNA_SRC), "source",
              did=u"p15_animals", group=u"p15_animals")
-    wbx_text(page, u"S4–S4′, south-west to north-east: what the seasons change", "caption",
+    wbx_text(page, u"S4, south-west bank: what the seasons change · 1:500", "caption",
              did=u"p15_season_autumn", group=u"p15_season_autumn")
     bb = _p14_bb(pg.items[n0:])
     if log is not None:
         if G["src"] not in log:
             log.append(G["src"])
-        for ln in wat_draw_order_lines(page=npg, steps=P14_STEPS_LOG):
-            if ln not in log:
-                log.append(ln)
-        for sea in SEAS:
-            for d_ in P13_DROPPED:
-                log.append(u"dropped {} {} (P-11: r06_S03 layout)".format(npg, d_ % sea))
-        for d_ in (u"p15_plants", u"p15_zones"):
-            log.append(u"dropped {} {} (P-11: the PLANTS / ZONES legends leave the page)".format(npg, d_))
         _p14_hue_log(page, log)
-        log.append(u"trees {} species={} generic=0 (proposed planting, designed species; no survey tree on the "
-                   u"cut)".format(npg, _P14_TREES.get(page, 0)))
-        _p14_sf_log(log, u"levels " + page)
-        _p14_g6(k, P14_PLANTS, log, u"p13 cuts")
-        log.append(u"p13 four seasons (r06_S03): cuts 1:{:,.0f}, rows {:.1f} mm, cut band {:.0f} mm; S4 bed {:+.2f}; "
-                   u"bed open {} (SUBHUB_OPEN); people {}".format(
-                       P14_DEN, rh, wb, G["bed"], _p15_open(),
-                       u", ".join(u"{} {}".format(s_, len(_p14_people(s_))) for s_ in SEAS)))
+        log.append(u"p13 four seasons (r06_S03, 28 Oct engine): S4 south-west bank s {:.0f}-{:.0f} m at 1:{:,.0f}, "
+                   u"rows {:.1f} mm, cut band {:.0f} mm; bed {:+.2f}, Q100 {:+.2f}, Q500 {:+.2f}, promenade {:+.2f}; "
+                   u"bed open {} (SUBHUB_OPEN)".format(
+                       detail_engine()["SECTIONS"][0]["s_from"], detail_engine()["SECTIONS"][0]["s_to"], P14_DEN,
+                       rh, wb, G["bed"], G["q100"], G["q500"], P14_PROM, _p15_open()))
     return bb
 
 
@@ -386,5 +507,4 @@ def p13_page(pg, box, opt, log):
         bb = _p13_panel(pg, box, log, "a")   # lead: style a, as p11, p12, p17 (Aras 31 Oct 08:46)
     finally:
         sf_triangles(**tri)
-    _p14_bridge_log(WBX_PG_SEASONS, log)
     return [("wb_s4_seasons", bb, P14_DEN)]

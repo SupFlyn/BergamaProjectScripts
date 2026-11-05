@@ -2905,22 +2905,9 @@ def p12_page(pg, box, opt, storage, log):
         return [("wb_system", bm, None)]
     n2 = len(pg.items)
     _p12_sketch(pg, (x0, y0, x1, y0 + hz), Z, f, opt, log)   # v16 (round 6, BRIEF §6 row 11): A-A' in SKETCH
-    _p12_keymap(Z, log)
+    # v18 (round 7, S4, PLAN §3 row 11): no key map on p11 (SON page12 has none): _p12_keymap deleted
     an_log(P12_NEW_PAGE, n_levels=0, log=log)              # v16 (G6-4): the A-A' end marks (map + zoom), no levels
     cl = cut_log_line()
     if cl:
         log.append(u"p.12: " + cl)
     return [("wb_system", union(bm, items_bbox(pg.items[n2:])), None)]
-
-
-def _p12_keymap(Z, log):
-    """v16 (round 6, S5, G6-5; PLAN §2.5): the page's key map, the one module's (common/keymap.py km_keymap, the p08
-    "Where each street is cut" look), with only this page's cut: A-A' on the W1 line (its ends from _p12_zoom_geom,
-    A on the left, look +1). The booklet places it in the side column (P-1: small); km_keymap writes the
-    `keymap p11 module ...` line itself. Nothing is drawn on the board"""
-    if not Z:
-        _p12_warn(log, "keymap", u"no A-A' cut (no upstream-entry zones): no key map")
-        return None
-    km = km_keymap(P12_NEW_PAGE, cuts=[(Z["A"], Z["B"], (u"A", u"A'"), 1)], log=log)
-    wbx_keymap(WBX_PG_SYSTEM, km, item_id=P12_DID["keymap"])
-    return km
