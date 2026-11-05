@@ -63,6 +63,11 @@ AG3_NOPHOTO = []                     # species whose photo did not load this pre
 
 
 PH_GAP = 2.0                         # mm between two photos side by side (28 Oct)
+# v13 (round 7 S2, L6 + BRIEF row 17): the bands' photos are 28 x 13 mm (cover-cropped by the clip, never stretched;
+# was PHOTO_W x PHOTO_H 28 x 21). The r06_S01 bands frame [106.5,205.6 298.9x80.2] held names only; v12 prints every
+# species' reason too (nothing dropped), which at 21 mm photos ran ~7 mm a row past the frame and, scaled down in R6,
+# made the 19 caption overlaps. 8 mm less photo a row = room for the reasons inside the frame at SON size.
+AG3_PH_H = 13.0
 
 
 def name_lines(key, mark, size, w, bold=True):
@@ -101,7 +106,7 @@ def seasons():
              acts=[(1, 10.5, g0, False, "walk in the bed", PROG, "C"),
                    (0, 19.0, g0 - 2.0, False, "wade the strip", None, "C"),
                    (2, SUBHUB[0] + 3.0, g0 + 0.7, False, "sub-hub open", PROG, "C"),
-                   (None, 6.0, g0 + 6.0, False, "Kermes (since 1937) in the dry bed", KERMES, "L"),
+                   (None, 6.0, g0 + 8.5, False, "Kermes (since 1937) in the dry bed", KERMES, "L"),   # v13 (L6): was g0 + 6.0, 1.65 mm over "walk in the bed" (R6 overlap); r06_S01 puts it a line above
                    (1, 2 * LAD_S + 20.0, g2, False, "shade under the trees", None, "C"),
                    (0, HUB[0] + 4.0, g3, False, "hub square: %s shade" % name_lc("plane"), PROG, "C"),
                    (None, 3 * LAD_S + 25.0, g3 + 2.0, False, "at K5: Demeter's Garden · café, summer beds", GARDEN, "R"),
@@ -328,7 +333,7 @@ WE_DO = [(1, "clean once, at the upstream end"), (2, "hold winter water"), (3, "
          (4, "plant each step for the water it gets"), (5, "surplus to the farms outside, never drinking")]
 
 
-def _ag3_photo(pg, key, x, top):
+def _ag3_photo(pg, key, x, top, h=None):
     """v11: a plant's photo as an image shape (x, top - PHOTO_H)..(x + PHOTO_W, top), cover-cropped to the box by a
     clip (never stretched), with a keep area. False (nothing drawn) when the photo did not load."""
     p, _cr, why = photo_get(key)
@@ -342,7 +347,7 @@ def _ag3_photo(pg, key, x, top):
             px = jpeg_info(fh.read())
     except Exception:
         px = None
-    W, H = PHOTO_W, PHOTO_H
+    W, H = PHOTO_W, (h or PHOTO_H)                     # v13: h = the bands' AG3_PH_H; the notes photo keeps PHOTO_H
     y0 = top - H
     if px and px[0] > 0 and px[1] > 0:
         s = max(W / float(px[0]), H / float(px[1]))
@@ -358,7 +363,7 @@ def _ag3_photo(pg, key, x, top):
 
 def ag3_bands(pg, top, pn=None):
     """the plant bands under the three rows (one column under each step) and, left, what goes, the odour and how to
-    read the steps (28 Oct page_ladder part 3). Every plant of a step with its photo PHOTO_W x PHOTO_H, two side by
+    read the steps (28 Oct page_ladder part 3). Every plant of a step with its photo PHOTO_W x AG3_PH_H (v13), two side by
     side, its name "English (Turkish)" + the photo's credit mark under it, then the species' reason (v12, L6: always
     exported; the booklet places it; the 28 Oct "only when there is room" rule is the booklet's). v11: a species whose photo did not load is never an empty box: it is named in one line "also:" under
     its band's photos and logged (BRIEF §6 row 17). v11: the left column goes into pn (its own drawing ag3_notes,
@@ -394,22 +399,31 @@ def ag3_bands(pg, top, pn=None):
         got = [(key, why) for key, why in st["plant"] if photo_get(key)[0]]
         miss = [key for key, _ in st["plant"] if not photo_get(key)[0]]
         low = y
+        rs = [why for _k, why in got if why]       # v13 (L6): a reason shared by 2+ plants of a step prints once,
+        shared = [r for i_, r in enumerate(rs) if rs.count(r) > 1 and rs.index(r) == i_]   # under the photos
         for r0 in range(0, len(got), per):
-            yl = y - PHOTO_H - 2.5                   # v12 (L6): the lowest baseline of this row's name + reason lines
+            yl = y - AG3_PH_H - 2.5                   # v12 (L6): the lowest baseline of this row's name + reason lines
             for c_, (key, why) in enumerate(got[r0:r0 + per]):
                 px = xa + c_ * (PHOTO_W + PH_GAP)
                 pg.tag("plants", "%s_%s" % (el, key))
-                _ag3_photo(pg, key, px, y)
+                _ag3_photo(pg, key, px, y, AG3_PH_H)
                 pg.tag("labels", "%s_%s" % (el, key))
-                yy = y - PHOTO_H - 2.5
+                yy = y - AG3_PH_H - 2.5
                 nl = name_lines(key, photo_mark(key), 7, PHOTO_W)
                 for q in nl:
                     pg.text(q, px, yy, 7, C["ink"], True); yy -= 2.6
+                why = None if why in shared else why    # v13: shared reasons print once below
                 for q in (wrap(why, 6.5, PHOTO_W) if why else []):   # v12 (L6): the species' reason always exported
                     pg.text(q, px, yy, 6.5, C["ink2"]); yy -= 2.4  # (28 Oct rule "only when there is room" = booklet's job)
                 yl = min(yl, yy + (2.4 if why else 2.6))
             low = yl - 0.6
             y = low - 1.1
+        for r in shared:                             # v13: "cotton, corn, tomato: <reason>" once, full column width
+            pg.tag("labels", el + "_shared")
+            nm = ", ".join(name_lc(k) for k, why in got if why == r)
+            for q in wrap(nm + ": " + r, 6.5, w - 4.0):
+                pg.text(q, xa, y - 1.4, 6.5, C["ink2"]); y -= 2.4
+            low = y - 0.6
         for key in miss:                             # no empty box: the name in one line, logged
             AG3_NOPHOTO.append((key, photo_get(key)[2] or "not loaded"))
             PHOTO_N[1] += 1
@@ -473,7 +487,7 @@ def ag_p17_items(ix):
         (dict(kind="dash", colour=_hu("WAT", 3), width_pt=4.5, dash_pt=[4.5, 3.1]), "covered reach"),
         (dict(kind="line", colour=_hu("WAT", 3), width_pt=4.5), "one way, with the stream")],
         id=AG3_ID["legend"], group=AG3_ID["chain"])
-    LOG_NOTES.append("legend p17 hues=table")
+    hue_log(AG3_PAGE, LOG_NOTES)                     # v13 (G7-4): the table's own log call (was the line by hand)
     pg = AgRec()
     y_chain = chain_strip(pg, 264.0)
     ag_export_block(ix, pg, AG3_ID["chain"], 1, 13.0, 270.0, 394.0, 270.0 - (y_chain - 1.0), 0.0, page=AG3_PAGE)

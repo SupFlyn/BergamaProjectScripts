@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_agriculture_alternatives_v11.py = v11 (4 Nov 2026, round 6 S7: booklet p17 plant ladder restored, p18 back to the SON arrangement; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_agriculture_alternatives_v13.py = v13 (5 Nov 2026, round 7 S2: p17 bands photos 28 x 13 so every reason fits, shared reasons once, Kermes label moved, hue_log; what changed: the NEW IN / VERSION notes below)
 # bergama_agriculture_alternatives_v8.py (v8, 31 Oct: round 3, p18 + p19 merged on ONE booklet page) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to an input named run; outputs log and
 # done), Rhino 8 ScriptEditor (Python 3), or plain Python 3. v10 lays out no page and writes no PDF (round 5,
@@ -22,7 +22,17 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, math, re
 
-VERSION = "v12"  # v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v13"  # v13 (round 7 S2, 5 Nov): p17 bands photos 28 x 13 so every reason fits the r06_S01 frame at SON size, a reason shared by several crops printed once, Kermes label a line above "walk in the bed", legends log through hue_log (NEW IN v13); v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v13 (round 7, S2, 5 Nov 2026; BRIEF §6 rows 17-18, L6, G7-1, G7-4; round 7 PLAN §3, §6 S2):
+#   * p17 SKETCH (G7-1; unchanged drawing): the bands' photos 28 x 13 mm (AG3_PH_H, cover-cropped, never stretched;
+#     were 28 x 21) so each species' name AND reason sit under its photo inside the r06_S01 bands frame at SON size
+#     (the 19 R6 caption overlaps came from the bands scaled into a 240 mm frame with text kept at its size). A reason
+#     shared by 2+ plants of one step (the farms' TÜİK line) prints once under the photos, with the plants' names.
+#     "Kermes (since 1937) in the dry bed" moved a line up (sketch y g0 + 8.5, was g0 + 6.0): it sat 1.65 mm over "walk
+#     in the bed" (R6 pair 1), r06_S01 has it above.
+#   * G7-4: the p17 and p18 legend lines come from hue_log(page) (common/hues.py), not written by hand. Colours unchanged.
+#   * p18: nothing moved (SON page19's 16 listed pairs are text-extract merges; the JPG shows no collision in the
+#     agriculture blocks). Item ids unchanged.
 # NEW IN v11 (round 6, S7, 4 Nov 2026; BRIEF §6 rows 17-18, Q9, G6-1, G6-6, G6-8, G6-9, G6-10; PLAN §2.2-§2.3; a
 #   feature change, so the next whole number):
 #   * p17 (NEW, r06_S01, SKETCH): the 28 Oct "One plant ladder, streambed to field" (f93d84b v3.1 page_ladder,
@@ -986,7 +996,7 @@ def ag_p18_items(ix, L, src):
     ag_export_block(ix, pg, "ag1_history", 6, 146.0, 136.0, AG_HIST_W, AG_HIST_H, cut)
     ix.text(AG_PAGE, "THE CROPS", "heading", group="ag1_crops", priority=7, id="ag1_crops_head")   # v8.3 crop_row title
     ag_crops_items(ix, 7, "ag1_crops")                        # v2 (Prompt 5): the crops as photos
-    LOG_NOTES.append("legend p18 hues=table")
+    hue_log(AG_PAGE, LOG_NOTES)                              # v13 (G7-4): the table's own log call (was the line by hand)
 
 
 def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):

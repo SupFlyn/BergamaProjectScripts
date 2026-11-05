@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_water_balance_v11.py = v11 (4 Nov 2026; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_balance_v13.py = v13 (5 Nov 2026, round 7 S2: drawing tones read from the hue table, legend line via hue_log; what changed: the NEW IN / VERSION notes below)
 # bergama_water_balance_v8.py (v8, 31 Oct: round 3, p10 charts fill the page, sentence-case title; v7, 30 Oct: revision T5, p10 answer box, carries and cost cut-off as small diagrams; v6, 29 Oct: revision T3b, the year as one G7 chart, the zones for p.12; v5, 28 Oct: MIRAQUA revision, the sheet in reading order; v4.1, 27 Oct: m² / m³ / hm³ drawn as raised digits; v4: the design store's normal and dry year in the results; v3 sheet kept) · Thread 2 of the 22 Oct batch: water balance (demand, collection, storage, cost cut-off)
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to any input), Rhino 8 ScriptEditor
 # (Python 3), or plain Python 3. Every press RECOMPUTES the balance from the current lands (Aras 24 Oct 08:13):
@@ -21,7 +21,14 @@
 import os, time, json, zlib, base64, math, datetime as dt
 from collections import deque, defaultdict
 
-VERSION = "v12"  # v12 (L6 layout plan, 4 Nov): producer keeps only data warnings (the "wrap" / "widow" layout warnings gone; every text was already an anchored label, nothing left out; one box per drawing: number badge, heading and subtitle caption carry drawing=D) (NEW IN v12); v11 (round 6 S7, 4 Nov): page id p10, run stamp dropped, hue table, G6-9 groups (NEW IN v11); v10 (round 5 S5, 2 Nov): items for the booklet, no sheet PDF, warnings never stop (NEW IN v10); v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v13"  # v13 (round 7 S2, 5 Nov): the drawings' water, ground and ink tones read from the hue table (same values), the legend line through hue_log (NEW IN v13); v12 (L6 layout plan, 4 Nov): producer keeps only data warnings (the "wrap" / "widow" layout warnings gone; every text was already an anchored label, nothing left out; one box per drawing: number badge, heading and subtitle caption carry drawing=D) (NEW IN v12); v11 (round 6 S7, 4 Nov): page id p10, run stamp dropped, hue table, G6-9 groups (NEW IN v11); v10 (round 5 S5, 2 Nov): items for the booklet, no sheet PDF, warnings never stop (NEW IN v10); v9 (round 4 S7, PALL.2 p11): one text placer (a collision RAISES), real Arial widths, one trigger file; v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v13 (round 7, S2, 5 Nov 2026; BRIEF §6 row 10, G7-4; round 7 PLAN §3, §6 S2):
+#   * G7-4: the palette roles the charts still took from C (water_deep / water / water_light = WAT r2 / r3 / r4,
+#     ink / ink2 / structure / faint / paper = CTX r1 / r2 / r3 / r4 / r5) now read the hue table (C.update after _hu);
+#     the values are the same, so nothing on the page changes colour. water_tint is recomputed from the table's WAT r4.
+#     The log line "legend p10 hues=table" comes from hue_log("p10") (was written by hand).
+#   * Layout: BLOCKS unchanged = the b2 (40747b2) blocks SON page11 shows; frames are the booklet's (PLAN §3, S7).
+#     SON page11 has no text layer: no overlap pair to clear.
 # NEW IN v11 (round 6 S7, 4 Nov 2026; BRIEF §6 row 10, G6-1, G6-6, G6-9):
 #   * page id p10 (round 6 22-page numbering; was p11): WB_PAGE and the log; the water board's page is now p11 (the
 #     "zones for p11" log line).
@@ -622,6 +629,12 @@ CROP_NAME = dict(maize="corn")            # v5 (MIRAQUA 28 Oct, G11): the name p
 def _hu(code, rank):
     """v11 (G6-6): one colour of the shared hue table (common/hues.py) as the 6-hex string the drawings use"""
     return str(hue(code, rank)).lstrip("#").upper()
+
+
+# v13 (round 7 S2, G7-4): the chart roles read from the hue table (values identical to the v1.4 palette above)
+C.update(water_deep=_hu("WAT", 2), water=_hu("WAT", 3), water_light=_hu("WAT", 4), ink=_hu("CTX", 1),
+         ink2=_hu("CTX", 2), structure=_hu("CTX", 3), faint=_hu("CTX", 4), paper=_hu("CTX", 5))
+C["water_tint"] = "".join("%02X" % int(round(255 - 0.15 * (255 - int(C["water_light"][i:i + 2], 16)))) for i in (0, 2, 4))
 
 # ------------------------------------------------------------------ minimal vector PDF (mm units, Arial embedded)
 # v9 (round 4, G-R4-1): the real font widths (font_metrics.py, Arial) and ONE text placer (text_place.py)
@@ -1230,7 +1243,7 @@ def main(g):
              "stream: %s m3 a year taken = %.1f %% of the water stored; %.1f %% of its winter flow left (driest year %.1f %%)" % (
                  fmt(d["river_take_m3_per_year"]), d["river_take_share_pct"], d["river_left_pct"][1], d["river_left_pct"][0]),
              "riverside walks %s m2 from %s" % (fmt(L["riverside_walk_m2"]), src["riverside_walk_m2"]),
-             zone_line, "trigger: " + (TRIG_WHY[0] or "-"), "legend p10 hues=table",
+             zone_line, "trigger: " + (TRIG_WHY[0] or "-"), hue_log(WB_PAGE, []),   # v13 (G7-4)
              "groups p10 kinds=%d elements=%d untagged=%d" % getattr(ix, "grp_counts", (0, 0, 0))]
     lines += ["year %s (%s): in %s + %s m3, strip %s, farms %s of %s, released %s, out %s; winter flow %.0f %% of median" % (
         k, v["water_year"], fmt(v["carried_in_m3"]), fmt(v["filled_m3"]), fmt(v["strip_m3"]), fmt(v["farms_m3"]),
