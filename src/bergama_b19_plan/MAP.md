@@ -207,5 +207,12 @@
 | icon | parts/b19_plan.py | 68 |
 | pl23_water_draw | parts/b19_plan.py | 74 |
 | pla_plan | parts/b19_plan.py | 88 |
-| b19_page | parts/b19_plan.py | 100 |
-| build_all | parts/b19_plan.py | 178 |
+| b2_band | parts/b19_plan.py | 122 |
+| b2_joints | parts/b19_plan.py | 138 |
+| b2_seg_x | parts/b19_plan.py | 150 |
+| b2_rh_pts | parts/b19_plan.py | 162 |
+| b2_rh_curve | parts/b19_plan.py | 167 |
+| b2_union | parts/b19_plan.py | 171 |
+| b2_offset_out | parts/b19_plan.py | 211 |
+| b19_page | parts/b19_plan.py | 229 |
+| build_all | parts/b19_plan.py | 477 |
