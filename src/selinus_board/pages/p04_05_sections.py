@@ -34,13 +34,17 @@
 
 P45_KM = {}                       # v60.2: page id -> the page's key map (v61: km_keymap v3 dict), exported by 16d
 P45_LEG = {}                      # v60.2: page id -> the page's legend entries [(swatch, text)], exported by 16d
-P45_KM_MM = {"p04": (302.0, 53.0), "p05": (311.0, 56.0)}   # mm: v61 (frames_p01-08 §3): the key map's frame
-#                                   [7,12 72x18] on p04, [5,9 74x19] on p05 (1 % x = 4.2 mm, 1 % y = 2.97 mm)
+P45_KM_MM = {"p04": (290.5, 54.0), "p05": (306.5, 57.5)}   # mm: v63 (round 7, G7-3, H4 §3 measured SON frames):
+#                                   p04 [29.0,34.5 290.5x54.0], p05 [21.0,27.0 306.5x57.5]
 P45_DRAW_MM = 300.0               # mm: v61 (frames §3, P-7): a cut's drawing incl. its level marks (zone x 7.0-78.6 %
 #                                   = 300.7 mm); the note column right of it is exported apart
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S6",)               # cuts that run along the stream: cropped to the part around their crossings (v59: S5 is across, N4 b)
-P45_DENS = (1000, 2000, 2500, 5000)   # the round scales tried, largest first (SCRIPT_STANDARD §8); v59 (P04.1): 1:1,000 first
+P45_DEN = {"p04": 2500, "p05": 1500}   # v63 (round 7, L1, N1 Aras 5 Nov 09:36): SON's printed scale under each cut,
+#                                   fixed; the P45_DENS pick (1:1,000-1:5,000, "largest that fills") is deleted
+P45_SON_W = {"p04": 234.0, "p05": 225.0}   # mm: v63 (L2, H4 §5 measured): the widest SON cut frame of the page
+#                                   (p04 S3 [29,201.5 234x42], p05 S5/S7 225 wide): a cut longer is cropped around its
+#                                   stream (P45_ALONG / P45_KEEP) or kept whole with a WARNING frame (scale kept)
 P45_KEEP = 0.5                    # v59 (P04.1, drawing rule): a cut may be cropped to the part around its stream if at
                                   # least this share stays (bigger sections; was SEC_KEEP 0.7, which ruled 1:1,000 out)
 P45_H = BK_AH - 2.0               # mm: the drawing's height on the booklet page (the panel, a 2 mm margin kept)
@@ -1217,8 +1221,8 @@ def p45_title(B, sd_, x, y, w, kb, L="LU_BOARD::Sections"):
 
 def p45_plan(S, sw, U):
     """v51 (WO-T3a-3, package A "fill the page"): the two sections pages (P45_PAGES: p04 S1-S4, p05 S5-S8), each at
-    the largest round scale P45_DENS at which its cuts, the columns beside them and a key map at least P45_KEY_MIN
-    tall fit the booklet panel (sw board units = BK_AW mm); a cut longer than the drawing column is cropped to the
+    SON's printed scale P45_DEN (v63, round 7 L1: fixed, no pick; was the largest round scale P45_DENS that fit the
+    booklet panel (sw board units = BK_AW mm); a cut longer than the drawing column is cropped to the
     part around the stream (S5, S6 always may be; the others keep >= SEC_KEEP). Returns (dens, sss, pages, P):
     pages as sections_plan's ([[row of (cut, width)]]: the core's page count and names), P the pages' plans
     dict(den, ss, wd, wc, rows=[(cut, height)], need, names). Memoised per run."""
@@ -1232,45 +1236,41 @@ def p45_plan(S, sw, U):
         secs = [sd_ for nm in names for sd_ in S.sections if sd_["name"] == nm]
         if not secs:
             continue
-        pick = None
-        for den in P45_DENS:
-            ss = kb * 1000.0 / den
-            wd = (P45_DRAW_MM - P45_LEV_MM) * kb         # v61 (P-7): the drawing column (its level marks right of it
-            #                                              fill P45_DRAW_MM: the cut's export at the frames' width)
-            Lmax = (wd - 2.0 * end) / ss
-            cuts, ok = [], True
-            for sd_ in secs:
-                if sd_["L"] <= Lmax:
-                    cuts.append(sd_)
-                elif sd_["name"] in P45_ALONG or sd_["L"] * P45_KEEP <= Lmax:
-                    cuts.append(p45_crop(S, sd_, Lmax))
-                else:
-                    ok = False
-                    break
-            if not ok:
-                continue
-            wc = P45_COL_MIN * kb
-            rows = []
-            n0 = len(LOG)
-            for c_ in cuts:
-                c_["_p45"] = dict(k=kb, den=den, page=("p04", "p05")[len(out)] if len(out) < 2 else "p%02d" % (4 + len(out)))
-                hs_ = -p45_strip(S, Board(), c_, 0.0, 0.0, wd, ss, kb, U, dry=True) + p45_bar_h(kb, U) + 1.0 * kb
-                hh_ = -p45_head(S, Board(), c_, 0.0, 0.0, wc, kb, U)     # v61: the bar under the cut's left end
-                rows.append((c_, max(hs_, hh_) + P45_TITLE_MM * kb))     # v59: + the title strip
-            del LOG[n0:]
-            need = sum(h_ for c_, h_ in rows) + len(rows) * P45_GAP * kb + P45_KEY_MIN * kb
-            pick = dict(den=den, ss=ss, wd=wd, wc=wc, rows=rows, need=need, names=[c_["name"] for c_ in cuts])
-            if need <= P45_H * kb:
-                break
-        if pick is None:
-            LOG.append(u"WARNING: sections {}: no cut fits the page at 1:{:,}; page left out.".format(
-                u", ".join(names), P45_DENS[-1]))
+        pid_ = ("p04", "p05")[len(out)] if len(out) < 2 else "p%02d" % (4 + len(out))
+        den = P45_DEN.get(pid_, P45_DEN["p04"])           # v63 (round 7, L1 / N1): SON's printed scale, fixed (no pick)
+        ss = kb * 1000.0 / den
+        wd = P45_SON_W.get(pid_, P45_SON_W["p04"]) * kb  # v63 (L2): the drawing column = SON's widest cut frame
+        Lmax = (wd - 2.0 * end) / ss
+        cuts = []
+        for sd_ in secs:
+            if sd_["L"] <= Lmax:
+                cuts.append(sd_)
+            elif sd_["name"] in P45_ALONG or sd_["L"] * P45_KEEP <= Lmax:
+                cuts.append(p45_crop(S, sd_, Lmax))
+            else:                                        # v63 (L3): kept whole at SON's scale, never rescaled
+                cuts.append(sd_)
+                wn_warn(pid_, "sb_sec_%s" % sd_["name"].lower(), u"frame: %s is %.0f mm long at 1:%d, SON frame %.0f "
+                        u"mm (scale kept)" % (sd_["name"], sd_["L"] * ss / kb + 2.0 * end / kb, den, wd / kb))  # noqa: F821
+        wc = P45_COL_MIN * kb
+        rows = []
+        n0 = len(LOG)
+        for c_ in cuts:
+            c_["_p45"] = dict(k=kb, den=den, page=pid_)
+            hs_ = -p45_strip(S, Board(), c_, 0.0, 0.0, wd, ss, kb, U, dry=True) + p45_bar_h(kb, U) + 1.0 * kb
+            hh_ = -p45_head(S, Board(), c_, 0.0, 0.0, wc, kb, U)     # v61: the bar under the cut's left end
+            rows.append((c_, max(hs_, hh_) + P45_TITLE_MM * kb))     # v59: + the title strip
+        del LOG[n0:]
+        need = sum(h_ for c_, h_ in rows) + len(rows) * P45_GAP * kb + P45_KEY_MIN * kb
+        pick = dict(den=den, ss=ss, wd=wd, wc=wc, rows=rows, need=need, names=[c_["name"] for c_ in cuts])
+        if not cuts:
+            LOG.append(u"WARNING: sections {}: no cut on this run; page left out.".format(u", ".join(names)))
             continue
         if pick["need"] > P45_H * kb:
-            LOG.append(u"WARNING: sections {}: {:.0f} mm tall at 1:{:,} (the panel holds {:.0f} mm).".format(
-                u", ".join(pick["names"]), pick["need"] / kb, pick["den"], P45_H))
-        LOG.append(u"Sections {} at 1:{:,} (WO-T3a-3: the largest round scale that fills the page).".format(
-            u", ".join(pick["names"]), pick["den"]))
+            LOG.append(u"sections {}: {:.0f} mm tall on the board sheet at 1:{:,} (sheet panel {:.0f} mm; each cut "
+                       u"is its own crop, the booklet sets it at its SON frame)".format(
+                           u", ".join(pick["names"]), pick["need"] / kb, den, P45_H))
+        for nm_ in pick["names"]:
+            LOG.append(u"scale %s %s 1:%d" % (pid_, nm_, den))
         out.append(pick)
     res = ([p["den"] for p in out], [p["ss"] for p in out], [[[(c_, sw)] for c_, h_ in p["rows"]] for p in out], out)
     S._p45_plan = (sw, res)
@@ -1374,9 +1374,8 @@ def p45_keymap(S, pid, names):
         x0, y0, x1, y1 = sd_["line"][:4]
         cuts.append(((x0, y0), (x1, y1), cut_end_labels(nm), 1))
     w_, h_ = P45_KM_MM.get(pid, P45_KM_MM["p04"])
-    try:
-        P45_KM[pid] = km_keymap(pid, cuts=cuts, w_mm=w_, h_mm=h_, names=("streets", "places"),    # noqa: F821
-                                log=LOG)
+    try:                                                 # v63 (round 7, G7-3): the reused SON page8 key map (S1 v4),
+        P45_KM[pid] = km_keymap(pid, cuts=cuts, w_mm=w_, h_mm=h_, north_side="left", log=LOG)   # noqa: F821
     except Exception as e:
         P45_KM.pop(pid, None)
         wn_warn(pid, "keymap", u"sections key map not made: %s" % e)

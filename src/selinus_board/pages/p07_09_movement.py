@@ -725,12 +725,12 @@ def draw_mv_proposal(S, B, x, y, w, U, M):
 # (sf_level_marks); the existing trees the cut sees by species (_t3_trees_seen, G6-10; replaces the illustrative
 # _t3_trees_behind); the key map through km_keymap (SB_KM), the legend as an item (SB_LEG); street_cuts.json.
 T3_SEC_ORDER = ("kept", "calmed", "pedestrian", "shared")   # the masterplan's road changes, one section pair each
-T3_SEC_DENS = (200, 250, 300, 400, 500, 600)   # v61: the scales tried, largest first: ONE row on the booklet width
-T3_SEC_ROW_W = 392.0     # mm: one booklet row (BK_AW; P-9 strip x 2.3-96.5 % = 395.6 mm)
+T3_SEC_DEN = 500        # v63 (round 7, L1): SON page8's printed street-cut scale 1:500, fixed (the T3_SEC_DENS pick
+#                          200-600 "largest whose row fits" is deleted)
+T3_SEC_ROW_W = 292.5     # mm: v63 (L2, H4 §5 page 8): SON's street-cut row x 13 -> 305.5 (R1+R2, R3, R4); wider = WARNING
 T3_SEC_GAP = 8.0         # mm between today and with the project; v61: = T3_SEC_PAIR_GAP (P-9: even gaps)
 T3_SEC_PAIR_GAP = 8.0    # mm between two road types (the booklet sets the crops this far apart for even gaps)
 T3_TREE_SEEN_M = 40.0    # m: v61 (G6-10): existing crowns drawn from the cut to this far along the street (drawing rule)
-T3_KM_W, T3_KM_H = 102.9, 17.8   # mm: v61 (P-9 option A): the key map's frame [72,27 25x6] % of the A3 page
 T3_CUTS_FILE = os.path.join(SELINUS_RES_DIR, "street_cuts.json")   # v61 (PLAN §5): read by the masterplan (S9)
 T3_LV_INK = "2C2219"     # v61: level marks in the hue table's annotation ink (ANN)
 T3_EL_WORD = dict(bollard=u"Bollards", lamp=u"Lamp", rack=u"Bike rack")   # v61: short labels of the street elements
@@ -1593,8 +1593,7 @@ def _t3_street_sections(S, B, x, y, w, U, M):
     """T3a (D3 b, Aras 29 Oct 18:53): before / after cross-sections of one street per road change of the masterplan
     (kept, calmed, pedestrian, shared), each cut where the survey measured the street (_t3_sec_cut). A kept road is
     drawn once (no change). v61 (round 6, U18 "alttaki bunlar buyutulcek", P-9 option A; LANGUAGE: ACCURATE, r06_S03
-    traits): ONE row, the four streets at ONE scale (T3_SEC_DENS: the largest whose row fills at most the booklet
-    width), R label rows level, every drawing on ONE ground line, one scale bar per pair on one line, the levels at
+    traits): ONE row, the four streets at ONE scale (v63: SON's 1:500, T3_SEC_DEN, fixed), R label rows level, every drawing on ONE ground line, one scale bar per pair on one line, the levels at
     each pair's right edge; each pair its own crop street_R1..R4 (items sb_street_R1..R4, page p08), the strip's
     title a note (sb_street_title_n1); the legend a stand-alone item (SB_LEG sb_street_legend), the key map "Where
     each street is cut" through common/keymap.py km_keymap (SB_KM sb_street_keymap; the board drawing _t3_sec_key is
@@ -1634,11 +1633,13 @@ def _t3_street_sections(S, B, x, y, w, U, M):
             n = 1 if c_["change"] == "kept" else 2
             tot += n * (ext[id(c_)][1] - ext[id(c_)][0]) * k_ + (n - 1) * T3_SEC_GAP + lvw[id(c_)]
         return tot + (len(groups) - 1) * T3_SEC_PAIR_GAP
-    den = next((d_ for d_ in T3_SEC_DENS if row_w(d_) <= T3_SEC_ROW_W), None)
-    if den is None:
-        den = T3_SEC_DENS[-1]
-        LOG.append(u"street cuts: one row needs {:.0f} mm at 1:{:,} (the booklet row is {:.0f} mm; the booklet "
-                   u"sizes the frames)".format(row_w(den), den, T3_SEC_ROW_W))     # v62 (L2): note, not warning
+    den = T3_SEC_DEN                                      # v63 (L1): fixed, never picked
+    if row_w(den) > T3_SEC_ROW_W:                         # v63 (L3): scale kept, the frame overflow is a warning
+        wn_warn("p08", "street cuts", u"frame: one row needs {:.0f} mm at 1:{:,} (SON row {:.0f} mm; scale "
+                u"kept)".format(row_w(den), den, T3_SEC_ROW_W))
+    for i_, c_ in enumerate(groups):
+        LOG.append(u"scale p08 %s 1:%d" % (_t3_sec_id(i_), den))
+        LOG.append(u"section p08 %s ACCURATE" % _t3_sec_id(i_))
     k = 1000.0 / den                                      # mm per m on the booklet page
     LOG.append(u"Street sections at 1:{:,} (one scale for all {} streets, one row {:.0f} mm): ".format(
         den, len(groups), row_w(den)) + u"; ".join(
@@ -1770,7 +1771,8 @@ def _t3_street_sections(S, B, x, y, w, U, M):
         for i, c_ in enumerate(groups):
             a_, b_ = _t3_sec_ends(c_)
             cuts_.append((a_, b_, (_t3_sec_id(i), _t3_sec_id(i) + u"'"), 1))
-        SB_KM["sb_street_keymap"] = ("p08", km_keymap("p08", cuts=cuts_, w_mm=T3_KM_W, h_mm=T3_KM_H, log=LOG))
+        SB_KM["sb_street_keymap"] = ("p08", km_keymap(      # v63 (G7-3): SON page8 frame [318.3,217.3 65.6x12.4]
+            "p08", cuts=cuts_, w_mm=65.6, h_mm=12.4, heading=u"Where each street is cut", log=LOG))
     except Exception:
         wn_warn("p08", "keymap", u"street cuts key map not built: " + traceback.format_exc().strip().splitlines()[-1])
     # v61 (G6-6, H1 p08 / H2 note 2): the strip's legend as a stand-alone item, hue table colours only

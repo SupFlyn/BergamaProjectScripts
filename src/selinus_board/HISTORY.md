@@ -1,5 +1,14 @@
 # selinus_board: notes of older versions (moved out of the script header)
 
+NEW IN v63 (2026-11-05, round 7 S3; BRIEF §3 L1-L3, G7-1, G7-3): layout = SON as numbers. p04/p05 cuts at SON's printed
+scale (P45_DEN p04 1:2,500, p05 1:1,500, N1 Aras 09:36), drawing column = SON's widest cut frame (P45_SON_W 234 / 225
+mm), a longer cut cropped round its stream as before or kept whole with `WARNING <page> sb_sec_sN frame` (scale kept);
+the P45_DENS pick is gone. p08 street cuts R1-R4 at 1:500 (T3_SEC_DEN), row wider than SON's 292.5 mm = WARNING; the
+T3_SEC_DENS pick and T3_KM_W/H are gone. Key maps p04 290.5x54.0, p05 306.5x57.5 (north left), p08 65.6x12.4 with the
+heading "Where each street is cut", all through km_keymap v4 (S1); 16d _six_keymap only km_export_items (km_items
+fallback deleted). SB_IX_SCALES = one SON scale per plan (plan01 1:25,000; edge_build, movement x3, heritage_loop
+1:10,000). Log lines `scale <page> <drawing> 1:<n>`, `section p08 Rn ACCURATE`.
+
 NEW IN v62 (2026-11-04, layout rework L2; Aras 19:17-19:18 "scripts just produce ... booklet places them", 19:26 one box
 per drawing): no producer-side drops or layout warnings for text. p04/p05: level values exported as ix.levels (the
 section drawing's y = m a.s.l., crop "datum"), the crop ends at the drawing column; titles = box headings with their
