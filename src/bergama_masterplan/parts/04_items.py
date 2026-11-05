@@ -464,26 +464,6 @@ def mpx_sw(sample):
     return out
 
 
-def mpx_keymap(ix, page, km, item_id=None):
-    """the key-map module's items (S2 km_items: drawing in key-map mm + label texts + keymap item) added to the
-    export as they are (ids made unique); the booklet places the frame in the right column. Returns the drawing id."""
-    its = km_items(km, page, item_id=item_id)
-    did = None
-    for it in its:
-        it = dict(it)
-        it["id"] = ix._id(it.get("id"), it.get("kind", "item"))
-        it["page"] = page
-        if it.get("kind") == "drawing" and did is None:
-            did = it["id"]
-        elif it.get("anchor") and did is not None:
-            it["anchor"] = dict(it["anchor"], drawing=did)
-        elif it.get("kind") == "keymap" and did is not None:
-            it["drawing"] = did
-        ix._put(page, it)
-    MPX_LOG.append(u"items %s key map %s: %d items" % (page, did, len(its)))
-    return did
-
-
 def mpx_lines():
     ix = MPX[0]
     return list(MPX_LOG) + ([ix.summary()] if ix is not None else [])

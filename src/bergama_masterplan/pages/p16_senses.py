@@ -90,6 +90,10 @@ P16_ZONE_KIND = {"reed": "water", "wetland": "water", "terraces": "water", "hub"
 P16_WET_FIELDS = ("subhub", "wetland")       # round 5 (G-R5-8): zone fields IN the water by design (drawn above it);
 #                                              every other field and the feeling blots go under the water
 _P16_MEMO = {}
+# v43 (round 7 S6, G7-4): the muted base's streets and buildings in the hue table's context ramp (CTX; buildings the
+# darker rank, streets the lighter one), so the Zones key reads only table hues; heritage houses stay HER r4 / r3 (v41)
+P16_CTX = {BM_MUTED["bld"]: hue("CTX", 4), BM_MUTED["bld_edge"]: hue("CTX", 3),
+           BM_MUTED["road"]: hue("CTX", 5), BM_MUTED["road_edge"]: hue("CTX", 4)}
 
 
 def r28_zone_fields(C):
@@ -1501,7 +1505,8 @@ def _p16_map_draw(pg, T, base, steps, tint, study, legend_cols, water_ok):
     def fade(hx):
         if hx in her_c and (cur["layer"] or "").startswith("base_"):
             return her_c[hx]                             # v41: base heritage houses in the heritage browns, unfaded
-        return mix(hx, "FFFFFF", P16_BASE_FADE) if hx and (cur["layer"] or "").startswith("base_") else hx
+        return mix(P16_CTX.get(hx, hx), "FFFFFF", P16_BASE_FADE) if hx and (cur["layer"] or "").startswith("base_") \
+            else hx                                      # v43 (G7-4): streets / buildings from the CTX ramp
 
     def kind(hx):
         """v41 (G6-9): the element kind of a base / project call by its layer and colour"""
@@ -1587,10 +1592,11 @@ def _p16_legend(key, G, cell):
         if "covered" in bs:
             out.append((_sw_line(bs["covered"][0], bs["covered"][1], bs["covered"][2]), u"Hidden (covered) stream"))
         if "street" in bs:
-            out.append((_sw_fill(mix(bs["street"], "FFFFFF", P16_BASE_FADE)), u"Streets"))
+            out.append((_sw_fill(mix(P16_CTX.get(bs["street"], bs["street"]), "FFFFFF", P16_BASE_FADE)), u"Streets"))
         if "bld" in bs:
-            out.append((_sw_fill(mix(bs["bld"][0], "FFFFFF", P16_BASE_FADE), mix(bs["bld"][1], "FFFFFF",
-                                                                                 P16_BASE_FADE)), u"Buildings"))
+            out.append((_sw_fill(mix(P16_CTX.get(bs["bld"][0], bs["bld"][0]), "FFFFFF", P16_BASE_FADE),
+                                 mix(P16_CTX.get(bs["bld"][1], bs["bld"][1]), "FFFFFF", P16_BASE_FADE)),
+                        u"Buildings"))                   # v43 (G7-4): as the strips draw them (CTX r4 / r3)
         if "her" in bs:                                  # v41 (Q5): as the strips draw them (HER r4 / r3)
             out.append((_sw_fill(hue("HER", 4), hue("HER", 3)), u"Heritage buildings"))
     elif key == "feeling":
@@ -1721,6 +1727,7 @@ def p17_items(ix, C, areas, warn):
         sn_outline(pg, G, cell)
         sn_place(pg, cell, labs, warn)
         did = u"mp_sn_" + key
+        out.append(u"scale p15 {} 1:{:.0f}".format(did, SN_SCALE))   # v43 (round 7 S6): SON's printed 1:20,000, fixed
         D = mpx_drawing(ix, did, page, pg, box, SN_SCALE, origin_m=(fr[0], fr[1]), dkind="plan", north_deg=nd,
                         group="mp_senses", priority=1, items=pg.items[n0:])
         ix.text(page, title, "heading", drawing=did, group="mp_senses", id=did + u"_head", priority=3)   # v42 box
@@ -1745,7 +1752,7 @@ def p17_items(ix, C, areas, warn):
     if callable(globals().get("basemap_warnings")):
         warn.extend(basemap_warnings())
     MPX_PAGES.append(("A", "p15", pg))
-    out.append(u"legend p15 hues=table")                 # v41 (G6-6): every key above reads common/hues.py
+    hue_log(u"p15", out)                                 # v43 (G7-4): `legend p15 hues=table` (common/hues.py)
     out.append(u"trees p15 species=0 generic=0 (no tree symbols on this page: the forest is a zone field)")
     out.append(u"p15 senses: strips {}/6 exported (1:{:,.0f} as drawn, zones: {}), D9 tint {} rings, photos {}, "
                u"base faded {:.0%}, {:.1f} s".format(n_ok, SN_SCALE, G["fields_src"], len(G.get("tint") or []),
