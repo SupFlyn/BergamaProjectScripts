@@ -501,7 +501,10 @@ def _bk_put(P, tg, it):
     so a stack of legends no longer runs past the page foot while the frame's width stays empty (p21)"""
     x0, _y0, x1, y1 = tg.box
     nc = int((x1 - x0 + 4.0) // BK_FLOW_COL) if it.get("kind") != "photo" else 1
-    if nc >= 2:
+    if it.get("kind") == "legend" and not getattr(tg, "col", 0) and (x1 - x0) > 4.0 * max(1.0, y1 - _y0):
+        nc = 1                                     # v32.6: a legend in a band frame (4 x wider than tall) takes the
+    if nc >= 2:                                    # frame's width in its own columns (in one 64 mm column it ran
+        #                                            28 mm past the p19 foot)
         cw = (x1 - x0 - 4.0 * (nc - 1)) / float(nc)
         c = getattr(tg, "col", 0)
         top = getattr(tg, "ctop", tg.y)

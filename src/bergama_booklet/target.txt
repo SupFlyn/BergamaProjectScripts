@@ -1,1 +1,1 @@
-bergama_booklet_v32_5.py
+bergama_booklet_v32_6.py

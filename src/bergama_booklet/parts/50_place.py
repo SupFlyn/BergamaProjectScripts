@@ -160,6 +160,13 @@ def pl_chain(P, fx, side=None, first=True):
         if first and i == 0 and codes:                    # its own exported spot first
             x, y, al = tp._at(codes[0], t, anchor, pt0, bold, d)
             b = tp._box(t, x, y, pt0, bold, al, 0.0)
+            if fx.get("no_leader"):                       # v32.5: a script's spot past the page margins moves in
+                inn = tp.inner                            # just far enough (p04/p05 level words left of a section)
+                dx = max(0.0, inn[0] - b[0]) - max(0.0, b[2] - inn[2])
+                dy = max(0.0, inn[1] - b[1]) - max(0.0, b[3] - inn[3])
+                if dx or dy:
+                    x, y = x + dx, y + dy
+                    b = tp._box(t, x, y, pt0, bold, al, 0.0)
             if (_pl_inside(b, win) or fx.get("no_leader")) and tp._free(b, fx["allow"], fx.get("group")):
                 return put(t, x, y, al, None)                 # (a script's own spot may lie outside its drawing)
         if late:
@@ -333,6 +340,10 @@ def pl_rigid(P, placed, s, roles=None):
         if len(its) > 1:
             n += _pl_rigid_group(P, placed, s, its)
             done.update(id(i_) for i_ in its)
+    adj = _pl_runs(placed, s)
+    # v32.6: a text-only note crop (sb_sec_note_*, sb_mv_note_*) keeps its script's lines as set (their leading is
+    # tighter than the booklet's test pad, so each line was pushed off its spot): its texts do not push each other;
+    # they still keep clear of everything else, and any pair truly on top of each other is named ("own" WARNING)
     for it in sorted(ix_texts(placed["D"]), key=lambda t: t.get("priority", 5)):
         if roles and it.get("role") not in roles:
             continue
@@ -354,14 +365,50 @@ def pl_rigid(P, placed, s, roles=None):
             n += 1
             continue
         texts = [x_ for x_ in [t] + list(it.get("short_forms") or []) if x_]
-        fx = dict(anchor=T.pt(a_[0], a_[1]), texts=texts, codes=[c], pt=pt,
+        fx = dict(anchor=adj.get(id(it)) or T.pt(a_[0], a_[1]), texts=texts, codes=[c], pt=pt,
                   lo=max(float(it.get("min_pt") or GRID_MIN_PT), GRID_MIN_PT), bold=bool(it.get("bold")),
                   colour=it.get("colour"), role=it.get("role", "label"), name=it.get("id"), allow=(placed["id"],),
                   win=_pl_dwin(placed), rect=placed["rect"], d=0.8 * s, side_ok=False,
-                  owner=placed["id"], no_leader=True, dgrp=_pl_dgrp(placed))
+                  owner=placed["id"], no_leader=True, dgrp=_pl_dgrp(placed),
+                  group=(u"note:%s" % placed["id"]) if u"_note" in u"%s" % placed["id"] else adj.get(("g", id(it))))
         pl_chain(P, fx, getattr(P, "fx_side", None))
         n += 1
     return n
+
+
+def _pl_runs(placed, s):
+    """v32.5: the runs of one line (a bold keyword, then the plain rest; texts on one baseline set "=L" one after the
+    other) are re-spaced with the booklet's own font widths: a run that would start inside the run before it moves
+    right to follow it (the scripts measured the runs a little narrower: "Street colour" / ": the share ...", p04,
+    p05, p07 notes). Same size, same line. -> {id(item): page anchor}"""
+    T = placed["T"]
+    rows = {}
+    for it in ix_texts(placed["D"]):
+        a_ = _pl_apt(it)
+        pos = it.get("positions") or []
+        if a_ is None or not it.get("string") or not pos or pos[0] != "=L" or abs(float(it.get("angle") or 0)) > 0.01:
+            continue
+        rows.setdefault(round(float(a_[1]), 2), []).append(it)
+    adj = {}
+    for rk, its in rows.items():
+        if len(its) < 2:
+            continue
+        end = None
+        for it in sorted(its, key=lambda i_: float(_pl_apt(i_)[0])):
+            a_ = _pl_apt(it)
+            pt = max(GRID_MIN_PT, float(it.get("size_pt") or grid_role(it.get("role", "label"))[0]) * s)
+            x, y = T.pt(a_[0], a_[1])
+            st_ = u"%s" % it["string"]
+            gap = 0.15 if st_[:1] in u",.;:)·%" else fm_width(u" ", pt, bool(it.get("bold")))
+            # v32.6: a run that follows the one before within 4 mm is set right after it (one space; the scripts'
+            # widths left gaps or overlaps); runs of one line are one group, so they never push each other off
+            if end is not None and x < end + max(gap, 4.0):
+                x = end + gap
+                adj[id(it)] = (x, y)
+            if end is None or id(it) in adj or x < end + 4.0:
+                adj[("g", id(it))] = u"run:%s:%s" % (placed["id"], rk)
+            end = x + fm_width(u"%s" % it["string"], pt, bool(it.get("bold")))
+    return adj
 
 
 def _pl_dgrp(placed):
@@ -593,6 +640,23 @@ def _pl_level_rows(lc, ry, pt):
             b = last[col] + need
         last[col] = b
         out.append((y, lv, b, col))
+    # v32.6 (booklet JPG check, p04 "+72.51 Q500" struck): a column-1 value's line runs out through column 0, so a
+    # column-0 value never sits on that line: it moves just above it (or below, when the value above is in the way)
+    g = 0.25
+    lines = [y for y, _lv, _b, c in out if c == 1]
+    prev = -1e9
+    for i, (y, lv, b, col) in enumerate(out):
+        if col:
+            continue
+        for _k in range(len(lines) + 1):
+            hit = [yl for yl in lines if b - a_ - g < yl < b - d_ + g]
+            if not hit:
+                break
+            yl = hit[0]
+            up = yl - g + d_
+            b = up if up - a_ >= prev + L["clear"] else yl + g + a_
+        out[i] = (y, lv, b, col)
+        prev = b - d_
     return out
 
 

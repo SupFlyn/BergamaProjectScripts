@@ -380,6 +380,8 @@ def place_board(B, rects, OX, OY, sc):
         p_["bb"] = (OX + sc * b_[0], OY + sc * b_[1], OX + sc * b_[2], OY + sc * b_[3])
         if p_["scale_den"] and sc:
             p_["scale_den"] = int(round(p_["scale_den"] / sc))
+        if p_.get("datum"):                               # v62.3: a section's datum (board y, m a.s.l.) moves with it
+            p_["datum"] = (OY + sc * p_["datum"][0], p_["datum"][1])
     return [(n, (OX + sc * r[0], OY + sc * r[1], OX + sc * r[2], OY + sc * r[3])) for n, r in rects]
 
 
