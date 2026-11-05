@@ -11,7 +11,8 @@
 #   st_lines(text, w, pt, bold=False, justify=True) -> [line]   line = dict(words=[(s, bold, x_mm)], width, last)
 #         paragraphs split at "\n"; "*word*" bold; x_mm already justified (last line of each paragraph left)
 #   st_fit(text, w, h, role="intro", pt=None, bold=None, lead=None, justify=True, min_pt=None) ->
-#         (lines, pt, lead_mm, height_mm)      the largest size <= pt at which the text fits w x h mm (h None = any)
+#         (lines, pt, lead_mm, height_mm)      v33: set at pt (no stepping down unless min_pt is given); past h =
+#                                              WARNING "overrun" (L2: text keeps its point size)
 #   st_para(P, text, x, y, w, h=None, role="intro", pt=None, bold=None, colour=None, justify=True, name=None,
 #           allow=(), group=None, page=None) -> (height_mm, pt)
 #         sets a paragraph block with its TOP at y (page mm, y down) into P's TextPage (drawn by bk_emit at the end)
@@ -67,7 +68,7 @@ def st_fit(text, w, h, role="intro", pt=None, bold=None, lead=None, justify=True
     p0, b0, ld0, _c = grid_role(role)
     pt = float(pt or p0)
     bold = b0 if bold is None else bool(bold)
-    lo = float(min_pt or GRID_MIN_PT)
+    lo = float(min_pt or pt)          # v33 (L2): text keeps its point size unless a caller names a floor; overrun = WARNING
     lines, used = None, pt
     s = pt
     while True:

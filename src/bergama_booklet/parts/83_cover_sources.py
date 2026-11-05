@@ -85,7 +85,7 @@ def bk_cover(doc, n, lines):
         rows.append(("title", sp["title"], i))
     step = dict(part=5.2, stage=4.4, title=4.4, gap=3.0)
     need = sum(step[k] for k, _t, _n in rows)
-    f = max(1.0, min(1.35, (272.0 - 30.0) / need)) if need else 1.0
+    f = BK_CONTENTS_F                     # v33 (L3): a fixed row step (was fitted to the column)
     cy = 30.0
     for k, t, no in rows:
         if k == "part":
@@ -175,6 +175,10 @@ def _bk_src_h(k, t, cw, s):
     return st_fit(body, cw - (BK_SRC_IND if m_ else 0.0), None, "source", s, justify=True, page="sources")[3] + 0.9
 
 
+BK_CONTENTS_F = 1.25        # v33: contents row step x this (SON page1: CONTENTS y 15 -> "Sources" y 262.7 mm, H4 §5;
+#                             22 rows at the steps below = ~1.25); past y 276 = WARNING "overrun"
+
+
 def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
     """the Sources page(s), see the part notes; a second page only if even five columns at 4 pt do not hold them"""
     groups = bk_source_groups(lines)
@@ -202,7 +206,8 @@ def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
             break
     ncol, s, hs = pick
     cols = _cols(ncol)
-    label = (u"%s  %s" % (part, PARTS.get(part, u""))).upper() if part else None
+    sp_ = next((x_ for x_ in BK_PAGES if x_.get("pid") == pid), dict(part=part, stage="do"))
+    label, foot = bk_kicker(sp_), bk_footer(sp_)          # v33 (L4): kicker "· PART" and the footer label
     pages, P, col, y = [], None, 0, y0
     for (k, t), hh in zip(flat, hs):
         if P is None or y + hh > y1 + 1e-6:
@@ -211,7 +216,7 @@ def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
                 y = y0
             if P is None or col >= ncol:
                 if P is not None:
-                    bk_pageno(P, n + len(pages) - 1)
+                    bk_pageno(P, n + len(pages) - 1, foot)
                     ck_page(P)
                     bk_finish(P)
                 P = bk_page(doc, pid, n + len(pages))
@@ -232,7 +237,7 @@ def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
                 st_para(P, t, cx, y, cw, None, "source", s, justify=True, page=pid)
         y += hh
     if P is not None:
-        bk_pageno(P, n + len(pages) - 1)
+        bk_pageno(P, n + len(pages) - 1, foot)
         ck_page(P)
         bk_finish(P)
     if len(pages) > 1:
