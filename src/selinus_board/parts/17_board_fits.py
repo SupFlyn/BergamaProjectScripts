@@ -526,6 +526,15 @@ def site_model(RAW_user, frame_pts_user, sec_lines_user, osm_path, places_path, 
     if FR is None:
         FR = frame_from_survey(RAW)
     SEC_IN = [(T_apply(I, a[0], a[1]), T_apply(I, b[0], b[1])) for a, b in sec_lines_user]
+    if not SEC_IN:                                           # v63.1 (5 Nov run: section_lines empty, no layer
+        try:                                                 # sec_lines -> p04/p05 had no cuts at all): the eight
+            SEC_IN = [tuple(level_ends(c_ if c_ not in ("S5", "S6") else c_ + "-1"))   # noqa: F821 (levels module)
+                      for c_ in ("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8")]      # cuts S1-S8 of the level
+            LOG.append("WARNING: no section lines picked and no layer 'sec_lines' in this file: the eight cuts S1-S8 "
+                       "were taken from the level module (common/data/LEVELS.py 'ends', digitised from the booklet "
+                       "key maps). Pick your own lines into section_lines to use them instead.")
+        except Exception:
+            SEC_IN = []
     if not SEC_IN and _SITE_FALLBACK.get("section_lines"):
         SEC_IN = list(SECTION_LINES_LK)                         # v20: recorded lines, survey coordinates
     for k in TSEC_KEYS:

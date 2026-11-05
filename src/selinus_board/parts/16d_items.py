@@ -233,7 +233,9 @@ def _six_board_crop(ix, B, p, page, note):
         g_ = tags.get(_n)
         if not g_:                                       # v62 (L2): untagged: the layer's kind, else "other"
             lk_ = SB_LAYER_KIND.get((u"%s" % it[3]).split("::")[-1].lower())
-            g_ = u"%s/%s %d" % (lk_, (u"%s" % it[3]).split("::")[-1], _n) if lk_ else u"other/%d" % _n
+            g_ = u"%s/%s %d" % (lk_, (u"%s" % it[3]).split("::")[-1], _n) if lk_ else \
+                (u"annotations/%d" % _n if kd == "line" else u"other/%d" % _n)   # v63.1: an untagged line (5 Nov run:
+            #                                    p02 2 hairlines 7A6E60, p06 1 line 4A3F35) is an annotation, not "other"
         n0_ = len(shapes)
         if kd in ("fill", "hatch"):
             col_ = it[2]
