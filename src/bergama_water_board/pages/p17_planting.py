@@ -45,7 +45,7 @@ P17_TITLE = u"PLANTING AND WATER · where each plant goes around the water space
 P17_W = 377.0                        # the most a page takes, mm (the booklet's A3 panel at 1:1)
 P17_CAT = ("reed", "mint", "soft_rush", "loosestrife", "willow", "tamarisk", "chaste", "ash", "plane", "olive",
            "rosemary", "lavender")   # the catalogue, wet to dry: every species the two pages draw
-P17_DENS = (1000.0, 2000.0, 2500.0, 5000.0, 7500.0, 10000.0, 15000.0, 25000.0)   # v15.2: + booklet 7500-25000; the plan windows: the first standard scale at which both fit
+P17_PLAN_DEN = 2500.0                # v18 (L1): plans A, B at SON page18's printed 1:2,500 (was the P17_DENS pick)
 P17_BAR = {1000.0: (0, 10, 20, 50), 2000.0: (0, 20, 50, 100), 2500.0: (0, 20, 50, 100), 5000.0: (0, 50, 100, 200),
            7500.0: (0, 50, 100, 200), 10000.0: (0, 50, 100, 200), 15000.0: (0, 100, 200, 500), 20000.0: (0, 200, 500),
            25000.0: (0, 200, 500)}   # labels at least 2 mm apart
@@ -94,7 +94,7 @@ P17_HEADH = 5.0                      # the heading strip over each plan (letter,
 P17_BARH = 6.0                       # the scale-bar row under each plan, mm
 P17_LOGIC_H = 40.0                   # the logic band (band map + key, foliage, height chart), mm
 P17_KM_MIN = 26.0                    # the key map's least height, mm
-P17_BAND_DENS = (5000.0, 10000.0, 20000.0)   # the band map: booklet scales only (the old 2x / 4x gave 1:4,000 / 1:8,000)
+P17_BAND_DEN = 10000.0               # v18 (L1): the band map at SON page18's printed 1:10,000 (was a pick)
 P17_BAND_W = 60.0                    # the band map's most width, mm
 P17_SHRUB = ("chaste", "rosemary", "lavender")   # P17.6 (D7): open planted ground beyond the bank band, moist to dry
 P17_SHRUB_DENS = 0.5                 # their density (plants.py pla_low_plan)
@@ -1437,26 +1437,32 @@ def _p17_win_corners(fit):
 
 # ---------------------------------------------------------------- key maps (M4 keymap_items: the study-area outline)
 # ---------------------------------------------------------------- page A: key map, legend, numbered list, catalogue
+P17_KM = ((u"p18_keymap", (63.0, 12.9), False), (u"p18_keymap_s4", (63.0, 14.8), True))   # v18 (G7-3, PLAN §3
+#     row 16): SON page18's two stacked key maps, frames exactly (w, h mm): 1 = plan windows A, B (no cut marks),
+#     2 = S4 / S4' red marks
+
+
 def _p17_keymap(pg, box, zooms, log):
-    """v16 (round 6, S5; G6-5, PLAN §2.5): the key map of new page 16 by THE module (common/keymap.py v3 km_keymap:
-    the p08 strong look, the study area as closed rings, the page's own cuts W1, F2, S4, F4 bold red across with end
-    marks, both plan windows A, B as zooms); handed to the booklet with wbx_keymap (item p18_keymap); nothing drawn on
-    the board. km_keymap writes the `keymap p16 module ...` line itself. box = the most room offered (x0, y0, x1, y1).
-    Returns the fitted frame's box at the box's top-left, or None (logged + warning) without basemap data."""
-    x0, y0, x1, y1 = box
-    try:
-        km = km_keymap(u"p16", cut_ids=list(P17_CUTS) + [u"A", u"B"], zooms=zooms, w_mm=x1 - x0, h_mm=y1 - y0,
-                       log=log)
-    except Exception as ex:
-        log.append(u"FLAG p17 key map not made: {}: {}".format(type(ex).__name__, ex))
-        wbx_warn(WBX_PG_PLANTS, "keymap", u"key map not made ({})".format(type(ex).__name__))
-        return None
-    if not km.get("items"):
-        log.append(u"FLAG p17 key map not made: no basemap data (run the site board once)")
-        wbx_warn(WBX_PG_PLANTS, "keymap", u"key map not made: no basemap data")
-        return None
-    wbx_keymap(WBX_PG_PLANTS, km, item_id=u"p18_keymap")
-    return (x0, y1 - km["h_mm"], x0 + km["w_mm"], y1)
+    """v18 (round 7, S4; G7-3): new page 16's two key maps by THE module (common/keymap.py v4 km_keymap = SON page8's
+    key map): "p18_keymap" with the plan windows A, B as zooms and no cuts, "p18_keymap_s4" with S4 as a red cut;
+    each at its SON frame (P17_KM), handed to the booklet with wbx_keymap; nothing drawn on the board. km_keymap
+    writes the `keymap p16 ...` lines itself. box is unused (kept for the caller). Returns the number made."""
+    n = 0
+    for item_id, (w, h), with_cut in P17_KM:
+        try:
+            km = km_keymap(u"p16", cuts=[u"S4"] if with_cut else None, zooms=None if with_cut else zooms,
+                           w_mm=w, h_mm=h, log=log)
+        except Exception as ex:
+            log.append(u"FLAG p16 key map {} not made: {}: {}".format(item_id, type(ex).__name__, ex))
+            wbx_warn(WBX_PG_PLANTS, "keymap", u"key map {} not made ({})".format(item_id, type(ex).__name__))
+            continue
+        if not km.get("items"):
+            log.append(u"FLAG p16 key map {} not made: no basemap data (run the site board once)".format(item_id))
+            wbx_warn(WBX_PG_PLANTS, "keymap", u"key map {} not made: no basemap data".format(item_id))
+            continue
+        wbx_keymap(WBX_PG_PLANTS, km, item_id=item_id)
+        n += 1
+    return n
 
 
 def _p17_legend_rows(log, hubs=True):
@@ -1865,8 +1871,9 @@ def _p17_logic(pg, x0, ytop, x1, h, geos, xb, log):
     if gB.get("drifts"):
         R = gB["R"]
         mh = mtop - (yb + 6.0)                           # room under the title, over the scale bar
-        den_m = next((d_ for d_ in P17_BAND_DENS if (R[2] - R[0]) * gB["den"] / d_ <= P17_BAND_W and
-                      (R[3] - R[1]) * gB["den"] / d_ <= mh), P17_BAND_DENS[-1])
+        den_m = P17_BAND_DEN                             # v18 (L1): SON page18's 1:10,000, fixed (no pick)
+        if log is not None:
+            log.append(u"scale p16 p18_bands 1:{:.0f}".format(den_m))
         f = gB["den"] / den_m
         Rm = (xm, mtop - (R[3] - R[1]) * f, xm + (R[2] - R[0]) * f, mtop)
 
@@ -2023,7 +2030,7 @@ def _p17_frame_fits(pa, pb, den, log):
 
 def p17_page(pg, box, opt, log):
     """round 4 (S6b, P17.1-P17.7; booklet p17 "Which plant goes where", crop wb_plants): three rows filling the box.
-    Row 1, the plans: the key map (km_map) over the legend at the left, plan A, plan B, at the largest standard
+    Row 1, the plans: the key maps (km_keymap) over the legend at the left, plan A, plan B, at the largest standard
     scale at which the row fits (P17_DENS, one scale for both); each plan with its heading strip (letter, name,
     scale), its scale bar and its own numbered list under it; both plan columns end on one line. Row 2, the logic
     band (_p17_logic: the band map grouped with its key, the foliage shares, the height chart). Row 3, the species
@@ -2032,7 +2039,7 @@ def p17_page(pg, box, opt, log):
     [(crop id, bbox, scale denominator)].
     Round 5 (S8, booklet p18, WBX_PG_PLANTS): the board only records; the drawings go to the booklet (wb_items.py),
     each with crop "wb_plants": p18_plan_A, p18_plan_B (1:den, metres, north_deg), their lists (wbx_list at the
-    markers), the plans' legend (wbx_legend on p18_plan_A), the key map (wbx_keymap, km_map v2), p18_bands (the band
+    markers), the plans' legend (wbx_legend on p18_plan_A), the key map (wbx_keymap, km_keymap v4), p18_bands (the band
     map, 1:den_m), p18_band_shares / p18_foliage_shares (bars + legend keys), p18_heights, p18_card_<key> and
     p18_card_remove. The layout below still sizes the plan windows (same scale, more context)."""
     if _P17_MEMO.get("run") != id(pg):                  # a new run reads its data afresh
@@ -2054,17 +2061,11 @@ def p17_page(pg, box, opt, log):
     hubs_any = bool(_p17_hubs(log))
     leg_h = -_p17_legend(Page(0, 0), 0.0, 0.0, P17_LW, log, hubs_any)
     pa, pb = _p17_win_pts("A", log), _p17_win_pts("B", log)
-    lay = None
-    for den in P17_DENS:
-        lay = _p17_layout(den, pa, pb, W, H1, leg_h, log)
-        if lay:
-            break
-    if lay is None:
-        lay = _p17_layout(5000, pa, pb, W, H1, leg_h, log, force=True)   # v15.2: the v15.1 fallback scale kept
-        # v15.2 (2 Nov run warnings): round 5 prints no board page; the booklet sets p18_plan_A/B at its own scale,
-        # so a board row that does not fit is a note, not a page overflow
-        log.append(u"FLAG p17: the board row (not printed since round 5) does not fit at any standard scale; plan "
-                   u"windows sized at 1:{:,.0f}".format(lay["den"]))
+    # v18 (L1, PLAN §3 row 16): plans A, B at SON page18's printed 1:2,500, fixed (the P17_DENS pick is gone); a
+    # board row that does not fit is a log line (the board is not printed; the booklet places at SON frames)
+    lay = _p17_layout(P17_PLAN_DEN, pa, pb, W, H1, leg_h, log, force=True)
+    log.append(u"scale p16 p18_plan_A 1:{:.0f}".format(P17_PLAN_DEN))
+    log.append(u"scale p16 p18_plan_B 1:{:.0f}".format(P17_PLAN_DEN))
     den, fa, fb = lay["den"], lay["fa"], lay["fb"]
     fa, fb = _p17_frame_fits(pa, pb, den, log)          # v16 (G6-1): the SON target frames' shapes at 1:den
     xa = x0 + P17_LW + G

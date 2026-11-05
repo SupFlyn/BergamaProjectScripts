@@ -402,8 +402,7 @@ def _wbx_one(ix, r, photos):
     units = "m" if r["den"] else "mm"
     sp = r["scale_pref"]
     if units == "m" and sp is None:
-        sp = [int(r["den"])] if "SF_SCALES" not in globals() else [d_ for d_ in SF_SCALES if d_ >= r["den"]] or \
-            [int(r["den"])]
+        sp = [int(r["den"])]                             # v18 (L1): the drawing's own scale only (no coarser allowance)
     D = ix.drawing(r["id"], page, ext, scale_pref=sp, units=units, dkind=r["dkind"], north_deg=r["north_deg"],
                    scale_bar=bool(r["scale_bar"]), priority=r["priority"], group=r["group"], fit=r["fit"],
                    title=r["title"])
