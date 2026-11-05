@@ -15,10 +15,9 @@
 #   pl_levels_w(lc, k, e_top) -> mm                                     v32: the level column's measured width
 #   pl_chain(P, fx, side=None, first=True) -> item                      v32: the one chain for every movable text
 #   pl_scalebar(P, placed, x=None, y=None, max_mm=30.0) -> box           beside its drawing (default under its left end)
-#   pl_inset(P, ins, parent, x, y, w, h) -> placed                      the zoom at >= 2 x the parent, framed; the
-#                                                                       window drawn on the parent
-#   pl_mm_drawing(P, D, texts, x, y, w, h, align="C") -> placed         a scale-free drawing (key map from the S2
-#                                                                       module, diagram, chart) fitted into a box + its texts
+#   (pl_inset deleted in v33: an inset takes its frame's den from the page table)
+#   pl_mm_drawing(P, D, T) -> placed                                    v33: a scale-free drawing (key map) at T, never
+#                                                                       fitted, + its texts at their own size
 #   pl_photo(P, ph, x, y, w, h) -> box                                  a photo kept rectangular, never stretched
 # Every placed thing is a TextPage text, block or keep, so 70_check sees it.
 PL_LEVEL = dict(gap=3.0, dash=(3.5, 0.8, 0.8, 0.8, 3.1), tri_w=2.2, tri_h=1.4, lw=0.5, label_gap=0.8, clear=0.8,
@@ -571,12 +570,10 @@ def pl_legend(P, lg, x, y, w, h=None, max_cols=2):
         need = th + (max(colh) if colh else 0.0)
         if h is None or need <= h + 1e-6:
             break
-        if cols < cap and cols < len(hs):                # v32.4: more columns first (same size), smaller last
+        if cols < cap and cols < len(hs):                # v32.4: more columns first (same size); v33: never smaller
             cols += 1
             continue
-        if s - 0.25 < GRID_MIN_PT - 1e-6:
-            break
-        s -= 0.25
+        break
     if h is not None and need > h + 1e-6:
         wn_warn(P.pid, "overrun", u"legend %s needs %.1f mm at %.1f pt, %.1f mm free" % (lg.get("id"), need, s, h))
     yy = y
@@ -603,9 +600,7 @@ def pl_list(P, ls, x, y, w, h=None):
     s = grid_role("list_item")[0]
     while True:
         hs = [st_fit(t, w - ind, None, "list_item", s, page=P.pid)[3] + 0.8 for t in rows]
-        if h is None or sum(hs) <= h + 1e-6 or s - 0.25 < GRID_MIN_PT - 1e-6:
-            break
-        s -= 0.25
+        break                                          # v33: one size (L2), overrun = WARNING below
     if h is not None and sum(hs) > h + 1e-6:
         wn_warn(P.pid, "overrun", u"list %s needs %.1f mm at %.1f pt, %.1f mm free" % (ls.get("id"), sum(hs), s, h))
     yy = y
@@ -761,33 +756,11 @@ def pl_scalebar(P, placed, x=None, y=None, max_mm=30.0):
     return box
 
 
-def pl_inset(P, ins, parent, x, y, w, h):
-    """the zoom (child drawing) inside (x, y, w, h), centred, at its own scale (>= 2 x the parent's), framed; the
-    parent shows the window it zooms into (thin dark frame)"""
-    D = ix_get(ins.get("child"), ins.get("_folder"))
-    if D is None:
-        wn_warn(P.pid, "inset", u"inset %s: child drawing %r not exported" % (ins.get("id"), ins.get("child")))
-        return None
-    den = sc_inset_den(parent["den"] or 1000, D, w, h, P.pid)
-    dw, dh = sc_size(D, den)
-    T = BkT(D, den, x + (w - dw) / 2.0, y + (h - dh) / 2.0)
-    placed = rd_drawing(P, D, T, frame=(GRID_INK["ink"], 0.5))
-    wi = ins.get("window")
-    if wi:
-        a = parent["T"].pt(wi[0], wi[3])
-        b = parent["T"].pt(wi[2], wi[1])
-        bk_rect(P, (a[0], a[1], b[0], b[1]), None, GRID_INK["ink"], 0.5)
-    return placed
-
-
-def pl_mm_drawing(P, D, texts, x, y, w, h, align="C"):
-    """a scale-free drawing fitted into the box (factor within its fit range), its texts placed round their anchors"""
-    f = sc_factor(D, w, h, P.pid)
-    dw, dh = sc_size(D, f)
-    ox = x + ((w - dw) / 2.0 if align == "C" else (0.0 if align == "L" else w - dw))
-    T = BkT(D, f, ox, y + (h - dh) / 2.0)
+def pl_mm_drawing(P, D, T):
+    """v33: a scale-free drawing (key map) at the transform T it is given (size 1 = its exported mm, never fitted), its
+    texts placed round their anchors at their own size"""
     placed = rd_drawing(P, D, T)
-    pl_rigid(P, placed, f)                  # v30.3: texts stay where the script set them, scaled with the drawing
+    pl_rigid(P, placed, T.k)                # texts stay where the script set them (T.k = 1: their own point size)
     return placed
 
 
