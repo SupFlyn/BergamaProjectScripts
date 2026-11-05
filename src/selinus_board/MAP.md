@@ -738,9 +738,9 @@
 | _six_layer_grp | parts/16d_items.py | 156 |
 | _six_text_grp | parts/16d_items.py | 168 |
 | _six_board_crop | parts/16d_items.py | 178 |
-| _six_axo | parts/16d_items.py | 343 |
-| _six_keymap | parts/16d_items.py | 412 |
-| sb_items_export | parts/16d_items.py | 441 |
+| _six_axo | parts/16d_items.py | 352 |
+| _six_keymap | parts/16d_items.py | 421 |
+| sb_items_export | parts/16d_items.py | 450 |
 | pdf_fonts | ../common/pdf_fonts.py | - |
 | LEVELS | ../common/data/LEVELS.py | - |
 | levels | ../common/levels.py | - |

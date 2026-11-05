@@ -202,8 +202,18 @@ def _six_board_crop(ix, B, p, page, note):
     pad = 0.01 * max(bb[2] - bb[0], bb[3] - bb[1])
     cb = (bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad)
     order = []
+    tags = getattr(B, "tags", None) or {}
+    m_col = _re.match(r"mv_note_(\d+)$", u"%s" % p["slug"])   # v62.2: a p07 column's crop runs past its map once
+    col_re = _re.compile(r"column (\d+) ")                    # nothing is left out (L2) and reaches the next
+    #                                                          # column: it keeps only its own column's shapes/texts
+
+    def other_col(n_):
+        if not m_col:
+            return False
+        c_ = col_re.search(u"%s " % (tags.get(n_) or u""))
+        return bool(c_) and c_.group(1) != m_col.group(1)
     for n_, it in enumerate(B.items):
-        if it[0] == "text":
+        if it[0] == "text" or other_col(n_):
             continue
         o_ = it[4]
         try:
@@ -215,7 +225,6 @@ def _six_board_crop(ix, B, p, page, note):
     order.sort(key=lambda t_: (t_[0], t_[1]))
     shapes, n_mul, n_hatch, n_nz = [], 0, 0, 0
     grps = []                                            # v61 (G6-9): one grp per shape
-    tags = getattr(B, "tags", None) or {}
     for _o, _n, it in order:
         kd = it[0]
         g_ = tags.get(_n)
@@ -251,7 +260,7 @@ def _six_board_crop(ix, B, p, page, note):
         grps.extend([g_] * (len(shapes) - n0_))
     texts = []
     for n_, it in enumerate(B.items):                    # texts: anchor inside the crop
-        if it[0] != "text":
+        if it[0] != "text" or other_col(n_):
             continue
         txt = (u"%s" % it[1]).strip()
         if not txt or any(q_.search(txt) for q_ in pats):
