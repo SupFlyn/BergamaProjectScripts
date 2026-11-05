@@ -1,20 +1,17 @@
-# ================================================================ v20 key map: p12's four cuts W1-W4 (G6-5, P-1)
-# Round 6: the one key-map module (common/keymap.py v3, S1) draws it, the p08 "Where each street is cut" look: strong
-# base, bold red cuts across with end marks, subtle street names, the study area as one closed dash-dot line. P-1:
-# kept small in the side column (the r06_S02 target has none; G6-5 says every page with cuts). Only W1-W4, each looking
-# downstream (looks -1). The booklet places it; the script draws nothing of it.
-PS_KM_PAD = 120.0                     # m round the page's cut ends in the map window (streets around)
-PS_KM_SPACE = (60.0, 45.0)            # print mm: the most room offered (small, side column, P-1); fitted smaller
+# ================================================================ v22 key map: p12's four cuts W1-W4 (G7-3, round 7 S5)
+# Round 7: THE key map module (common/keymap.py v4 km_keymap = SON page8 "Where each street is cut", S1) at the page's
+# SON key-map frame PS_KM_MM = SON page13's key-map size (PLAN §3 row 12: 109.2 x 22.0 mm at [296.8, 27.0], top right).
+# Map window = the module's own (study rings + cuts fill the frame); no box, no fitting. North on the LEFT (outside the
+# frame, in the free room above the panel grid: at the right it would pass the 406 mm margin). No heading (SON13 none).
+# Only W1-W4, each looking downstream (looks -1). The booklet places it at 1:1; the script draws nothing of it.
+PS_KM_MM = (109.2, 22.0)              # SON page13 key-map frame, mm (PLAN §3 row 12, H4 §5 page 12)
 
 
 def ps_keymap_items(ix, page, cids, log):
     """the page's key map as items added to ix; returns the drawing id or None (WARNING, never a stop)"""
-    ends = [p for c in cids for p in level_ends(c)]
-    bx = (min(p[0] for p in ends) - PS_KM_PAD, min(p[1] for p in ends) - PS_KM_PAD,
-          max(p[0] for p in ends) + PS_KM_PAD, max(p[1] for p in ends) + PS_KM_PAD)
     try:
-        km = km_keymap(page, cut_ids=list(cids), w_mm=PS_KM_SPACE[0], h_mm=PS_KM_SPACE[1], box=bx, log=log,
-                       looks=dict((c, -1) for c in cids))
+        km = km_keymap(page, cuts=list(cids), w_mm=PS_KM_MM[0], h_mm=PS_KM_MM[1], heading=None, log=log,
+                       looks=dict((c, -1) for c in cids), north_side="left")
         its = km_export_items(km, page, item_id=u"ps_keymap_%s" % page, priority=6)
     except Exception as ex:
         ix.warn(page, "keymap", u"key map not made (%s: %s)" % (type(ex).__name__, ex))

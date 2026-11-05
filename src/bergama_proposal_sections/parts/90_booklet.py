@@ -6,14 +6,16 @@
 #   ps_panel_1 ... ps_panel_4   one scale-free drawing each (units "mm", all four the SAME extent PS_PANEL_MM and the
 #                               same factor, so the booklet prints them at one size), its title (heading) + purpose (note)
 #   ps_legend_strip             one shared legend, hue table categories (G6-6)
-#   ps_keymap_p12               W1-W4 key map, small, side column (P-1), common/keymap.py
+#   ps_keymap_p12               W1-W4 key map, km_keymap at SON13's frame 109.2 x 22.0 (v22, G7-3), top right
 #   ps_title, ps_caption        page title; caption "... 1-11 as in Collect, clean, hold" (P7)
 # Numbers 1-11 = the 28 Oct element numbers (f93d84b water board CHAIN), which CCH_STEPS must equal (S1).
 PS_PAGE = "p12"                                       # round 6 page id (PLAN §2.1)
-PS_PANEL_MM = (190.0, 100.0)                          # design box of each panel drawing, mm (frames_p09-13 page 12:
-#                                                       panel 46 % x 38-40 % of A3 less title + purpose rows)
+PS_PANEL_MM = (194.8, 92.0)                           # v22 (round 7, layout r06_S02, PLAN §3 row 12): each panel's
+#   drawing at its print size, mm. Width = r06_S02 panel width 194.8 (2 columns 13.7-208.5 / 211.2-406.0, gap 2.7).
+#   Height: grid y 51 (under the key map, PLAN §3) to 262 (caption + legend strip under it, r06_S02 y 264.5-274.2)
+#   = 211 mm, less one row gap 2.3 = 2 rows of 104.3; less the title row (~6.5) and purpose row (~5.5) = 92.0
 PS_LBL_PT = 7.0                                       # smallest word at that size (the 28 Oct page's 7 pt; G6-7 floor 4)
-PS_FIT = (0.9, 1.6)                                   # the booklet may scale the panels within this range
+PS_FIT = (1.0, 1.0)                                   # v22 (BRIEF §3 L1): printed at exactly PS_PANEL_MM, never fitted
 BK_SOURCES = [("rhs_lavender", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter)",
                u"https://www.rhs.org.uk/Advice/profile?pid=127"),
               ("ecocrop_olive", u"FAO Ecocrop, Olea europaea (will not tolerate waterlogged soils)",
