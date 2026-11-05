@@ -359,18 +359,7 @@ def _bk_frames(spec, pid):
         out.append(F_)
         BK_PAGENO_LOG.append(u"frame %s %s %.1f,%.1f,%.1f,%.1f" % (pid, F_["key"], m_[0], m_[1], m_[2] - m_[0],
                                                                     m_[3] - m_[1]))
-        if m_[0] < ml - 0.6 or m_[1] < mt - 0.6 or m_[2] > mr + 0.6 or m_[3] > mb + 0.6:
-            wn_warn(pid, u"%s edge" % F_["key"], u"SON frame %.1f,%.1f-%.1f,%.1f mm passes the 14 / 12 mm margins "
-                    u"(kept as SON)" % m_)
-    for i, a in enumerate(out):
-        for b in out[i + 1:]:
-            if a.get("over") or b.get("over"):
-                continue
-            ox = min(a["mm"][2], b["mm"][2]) - max(a["mm"][0], b["mm"][0])
-            oy = min(a["mm"][3], b["mm"][3]) - max(a["mm"][1], b["mm"][1])
-            if ox > 0.5 and oy > 0.5:
-                wn_warn(pid, "frames", u"frames %s and %s overlap %.0f x %.0f mm (page plan)" % (a["key"], b["key"],
-                                                                                              ox, oy))
+    # v34: SON frames give order and arrangement only (bk_pack); the v33 edge / overlap warnings on them are gone
     return out
 
 
@@ -410,7 +399,7 @@ BK_FIT_TOL = 1.5          # mm: SON frames are ink boxes measured ±0.5-2 mm (H4
 #                           than this = WARNING "<did> frame" (scale kept, never refitted)
 
 
-def _bk_den(S, F, did, D, pid):
+def _bk_den(S, F, did, D, pid, quiet=False):
     """v33 (L1): the ONE scale of a drawing, read, never picked: "m" drawings -> the frame's den (int, or dict id ->
     den), else the producer's single fixed scale (scale_pref of one value, then its "sheet scale 1:N", then board_den /
     scale_den), each logged with its source; "mm" drawings -> the frame's factor f (1.0 = the exported size)"""
@@ -427,6 +416,8 @@ def _bk_den(S, F, did, D, pid):
     for k_, v_ in ((u"sheet", bk_design_den(D)), (u"board", D.get("board_den")), (u"script", D.get("scale_den"))):
         if v_:
             return int(v_), k_
+    if quiet:
+        return 1000, u"none"
     wn_warn(pid, u"%s scale" % did, u"no SON scale in the page table and no fixed scale from its script%s: set at "
             u"1:1,000 (put its SON scale in 80_plan)" % ((u" (it offers 1:%s)" % u", 1:".join(str(v) for v in sp))
                                                        if sp else u""))
@@ -567,9 +558,6 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
             _bk_anchored(P, S, did, T)
             BK_STAT["drawings"] += 1
             BK_PAGENO_LOG.append(u"keymap %s module %s %.1fx%.1f mm at %.1f,%.1f" % (pid, did, dw, dh, cx, cy))
-            if abs(dw - (x1 - x0)) > BK_FIT_TOL or abs(dh - (y1 - y0)) > BK_FIT_TOL:
-                wn_warn(pid, u"%s frame" % did, u"key map %.1f x %.1f mm, its SON frame %.1f x %.1f mm (S1 module "
-                        u"size differs)" % (dw, dh, x1 - x0, y1 - y0))
             bottom = max(bottom, pl["rect"][3])
             out.append(did)
             if sp == "col":
@@ -579,6 +567,8 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
             continue
         D = S["draw"][did]
         s, src = _bk_den(S, F, did, D, pid)
+        if F.get("k", 1.0) < 0.999:                  # v34: the page's one factor (bk_pack)
+            s, src = _bk_ks(D, s, F["k"]), u"%s x%.2f page" % (src, F["k"])
         rw, rh = _bk_res(S, did, s)
         dw, dh = sc_size(D, s)
         tw, th = dw + rw, dh + rh
@@ -595,7 +585,7 @@ def _bk_frame_draw(P, S, F, same, tg_of, pid):
             BK_PAGENO_LOG.append(u"scale %s %s 1:%d (%s)" % (pid, did, pl["T"].den, src))
         else:
             BK_PAGENO_LOG.append(u"size %s %s x%.2f %.1fx%.1f mm" % (pid, did, pl["T"].k, dw, dh))
-        S.setdefault("rec", {})[did] = dict(F=F, mm=F.get("mm0", F["mm"]), s=s, rect=tuple(pl["rect"]))
+        S.setdefault("rec", {})[did] = dict(F=F, mm=F["mm"], s=s, rect=tuple(pl["rect"]))
         _bk_misfit(pid, did, F, (ox, oy, ox + tw, oy + th + (BK_SCALE_H if pl["T"].den else 0.0)))
         yb = pl["rect"][3] + (BK_SCALE_H if (pl["T"].den or D.get("north_deg") is not None) else 0.0)
         bottom = max(bottom, yb)
@@ -619,10 +609,13 @@ def bk_check_page(P, S, frames, pid, before):
         n += 1
         F = r["F"]
         want = F.get("den")
-        want = (want.get(did) if isinstance(want, dict) else want) or r["s"]
+        want = (want.get(did) if isinstance(want, dict) else want)
+        if want and F.get("k", 1.0) < 0.999:          # v34: packed page, the table's scale times the page factor
+            want = _bk_ks(S["draw"].get(did, {}), want, F["k"])
+        want = want or r["s"]
         if S["draw"].get(did, {}).get("units", "m") != "m":
-            want = float(F.get("f") or 1.0)
-        if want == r["s"]:
+            want = float(F.get("f") or 1.0) * F.get("k", 1.0)
+        if abs(want - r["s"]) < 1e-6 or want == r["s"]:
             ok_s += 1
         else:
             wn_warn(pid, u"%s scale" % did, u"printed %s, table %s" % (r["s"], want))
@@ -723,6 +716,198 @@ def bk_content_page(doc, spec, n, lines):
     return P
 
 
+# ---- v34 MEASURE, THEN PACK (Aras 5 Nov 11:42 "change your approach"; decision card: measure first, then pack).
+# v33 put every drawing at SON's printed scale into SON's measured frame and never shrank it: a drawing bigger than its
+# frame ran onto its neighbours (p08 street cuts 394 mm in a 292 mm row). Now SON's frames give only the ORDER and the
+# ARRANGEMENT (which blocks sit side by side, which stack): the frames are split into rows / columns where SON has a
+# clear gap (guillotine cuts), each block is MEASURED at its scale (drawings + level columns + headings + scale band,
+# then its texts at that width), and the page is laid out from those real sizes, so two blocks cannot overlap. If the
+# page does not fit the area, every drawing on it gets the same factor k (< 1, the printed 1:n is the true one, e.g.
+# 1:500 / 0.8 = 1:625); texts keep their size. Key maps keep size 1. Log "pack <pid> k=<k> blocks=<n> w x h mm".
+BK_PACK_TOL = 3.0          # mm: SON frames are ink boxes ±2 mm; a cut between two groups may overlap this much
+
+
+def _bk_ks(D, s, k):
+    """the scale of a drawing on a page packed with factor k (den grows, mm factor shrinks)"""
+    if D.get("units", "m") == "m":
+        return int(round(float(s) / k))
+    return float(s) * k
+
+
+def _bk_leaf(P, S, F, pid, k):
+    """(w, h) mm of one frame's content at page factor k: its drawings (split row / col, gap) then its texts"""
+    sp = F.get("split") or "row"
+    gap = float(F.get("gap", BK_GAP))
+    ws, hs = [], []
+    for did, kk, it in F["items"]:
+        if kk == "keymap":
+            w_, h_ = sc_size(it, 1.0)
+        elif kk == "drawing":
+            D = S["draw"][did]
+            s = _bk_ks(D, _bk_den(S, F, did, D, pid, quiet=True)[0], k)
+            rw, rh = _bk_res(S, did, s)
+            dw, dh = sc_size(D, s)
+            w_, h_ = dw + rw, dh + rh + (BK_SCALE_H if D.get("units", "m") == "m" else 0.0)
+        else:
+            continue
+        ws.append(w_)
+        hs.append(h_)
+    if ws:
+        dw_ = max(ws) if sp == "col" else sum(ws) + gap * (len(ws) - 1)
+        dh_ = sum(hs) + gap * (len(hs) - 1) if sp == "col" else max(hs)
+    else:
+        dw_ = dh_ = 0.0
+    son = F.get("mm0", F["mm"])
+    texts = [it for _i, kk, it in F["items"] if kk in ("text", "legend", "list")]
+    for did, kk, it in F["items"]:                   # a drawing's own notes go with it unless a note frame takes them
+        if kk == "drawing" and not F.get("note"):
+            texts += [x for x in S["att"].get(did, {}).get("side", [])]
+    texts += F.get("_notes_in", [])                  # notes of drawings whose frame sends them here
+    photos = [it for _i, kk, it in F["items"] if kk == "photo"]
+    if ws:
+        w = max(dw_, 50.0 if texts else 0.0)
+    else:
+        w = min(son[2] - son[0], GRID_AREA[2] - GRID_AREA[0])
+    h = dh_
+    if photos:
+        h += (son[3] - son[1]) * (k if ws else 1.0)
+    for it in texts:
+        h += _bk_est_h(P, it, w) + BK_NOTE_GAP
+    return w, max(h, 0.0 if (ws or texts or photos) else 12.0)     # an empty side frame keeps 12 mm for unlisted items
+
+
+def _bk_cut(groups, ax):
+    """split groups (lists of frames) where SON leaves a gap along axis ax (0 = x: side by side, 1 = y: stacked)"""
+    bx = lambda g: (min(f["mm0"][ax] for f in g), max(f["mm0"][ax + 2] for f in g))
+    gs = sorted(groups, key=lambda g: bx(g)[0])
+    out, cur, end = [], [gs[0]], bx(gs[0])[1]
+    for g in gs[1:]:
+        a, b = bx(g)
+        if a >= end - BK_PACK_TOL:
+            out.append(cur)
+            cur, end = [g], b
+        else:
+            cur.append(g)
+            end = max(end, b)
+    out.append(cur)
+    return out
+
+
+def _bk_tree(groups):
+    """guillotine tree of SON's arrangement: ("v", [..]) stacked, ("h", [..]) side by side, or a leaf = [frames]"""
+    if len(groups) == 1:
+        return groups[0]
+    for ax, kind in ((1, "v"), (0, "h")):
+        parts = _bk_cut(groups, ax)
+        if len(parts) > 1:
+            return (kind, [_bk_tree(p) for p in parts])
+    return ("v", sorted(groups, key=lambda g: min(f["mm0"][1] for f in g)))     # no clean cut: stack in SON order
+
+
+def _bk_size(P, S, node, pid, k, sizes):
+    if isinstance(node, list):                       # a leaf: its frames stacked (a frame SON sets "over" another)
+        ws, h = [], 0.0
+        for F in node:
+            w_, h_ = _bk_leaf(P, S, F, pid, k)
+            sizes[id(F)] = (w_, h_)
+            ws.append(w_)
+            h += h_ + (BK_GAP if h else 0.0)
+        return max(ws), h
+    kind, ch = node
+    wh = [_bk_size(P, S, c, pid, k, sizes) for c in ch]
+    g = BK_GAP * (len(wh) - 1)
+    if kind == "h":
+        return sum(w for w, _h in wh) + g, max(h for _w, h in wh)
+    return max(w for w, _h in wh), sum(h for _w, h in wh) + g
+
+
+def _bk_lay(node, x, y, sizes, wh_of):
+    if isinstance(node, list):
+        for F in node:
+            w_, h_ = sizes[id(F)]
+            F["mm"] = (x, y, x + w_, y + h_)
+            y += h_ + BK_GAP
+        return
+    kind, ch = node
+    for c in ch:
+        _bk_lay(c, x, y, sizes, wh_of)
+        w_, h_ = wh_of[id(c)]
+        if kind == "h":
+            x += w_ + BK_GAP
+        else:
+            y += h_ + BK_GAP
+
+
+def spec_side(frames):
+    """the page's side frame key, set by _bk_compose before packing (unlisted items land there)"""
+    return BK_PACK_SIDE[0]
+
+
+BK_PACK_SIDE = [None]
+
+
+def bk_pack(P, S, frames, pid, top):
+    """v34: lay the page out from measured sizes (see the notes above); sets every frame's mm and F["k"]"""
+    byk = dict((F["key"], F) for F in frames)
+    for F in frames:
+        F["_notes_in"] = []
+    for F in frames:
+        if F.get("note") in byk:
+            for did, kk, it in F["items"]:
+                if kk == "drawing":
+                    byk[F["note"]]["_notes_in"] += list(S["att"].get(did, {}).get("side", []))
+    live = [F for F in frames if F["items"] or F["_notes_in"] or F.get("key") == spec_side(frames)]
+    if not live:
+        return 1.0
+    over = [F for F in live if F.get("over")]
+    groups = [[F] for F in live if not F.get("over")]
+    for F in over:                                   # an "over" frame stacks under the frame it covers most
+        def ov(g):
+            a, b = F["mm0"], g[0]["mm0"]
+            return max(0.0, min(a[2], b[2]) - max(a[0], b[0])) * max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+        (max(groups, key=ov) if groups else groups.append([]) or groups[-1]).append(F)
+    tree = _bk_tree(groups)
+    x0, x1, y1 = GRID_AREA[0], GRID_AREA[2], GRID_AREA[3]
+    aw, ah = x1 - x0, y1 - top
+    k = 1.0
+    for _i in range(8):
+        sizes = {}
+        W, H = _bk_size(P, S, tree, pid, k, sizes)
+        r = min(aw / W if W else 1.0, ah / H if H else 1.0)
+        if r >= 0.999:
+            break
+        k = max(0.25, k * r * 0.99)
+    wh_of = {}
+
+    def rec(n):
+        if isinstance(n, list):
+            wh_of[id(n)] = (max(sizes[id(F)][0] for F in n),
+                            sum(sizes[id(F)][1] for F in n) + BK_GAP * (len(n) - 1))
+        else:
+            for c in n[1]:
+                rec(c)
+            ws_ = [wh_of[id(c)] for c in n[1]]
+            g = BK_GAP * (len(ws_) - 1)
+            wh_of[id(n)] = ((sum(w for w, _h in ws_) + g, max(h for _w, h in ws_)) if n[0] == "h" else
+                            (max(w for w, _h in ws_), sum(h for _w, h in ws_) + g))
+    rec(tree)
+    W, H = wh_of[id(tree)]
+    if W > aw + 0.5 or H > ah + 0.5:
+        wn_warn(pid, "pack", u"the page needs %.0f x %.0f mm at the smallest factor %.2f (area %.0f x %.0f mm)"
+                % (W, H, k, aw, ah))
+    _bk_lay(tree, x0, top, sizes, wh_of)
+    for F in live:
+        F["k"] = k
+        m_ = F["mm"]
+        BK_PAGENO_LOG.append(u"frame %s %s %.1f,%.1f,%.1f,%.1f (packed)" % (pid, F["key"], m_[0], m_[1],
+                                                                          m_[2] - m_[0], m_[3] - m_[1]))
+    BK_PAGENO_LOG.append(u"pack %s k=%.3f blocks=%d %.0fx%.0f mm" % (pid, k, len(live), W, H))
+    if k < 0.999:
+        wn_warn(pid, "pack", u"every drawing on the page at x%.2f of its SON scale so the page fits (true 1:n printed)"
+                % k)
+    return k
+
+
 def _bk_compose(doc, spec, n):
     """one content page (see the part notes); returns dict(P, S, frames, left hits, counts)"""
     pid = spec["pid"]
@@ -734,10 +919,12 @@ def _bk_compose(doc, spec, n):
     pl_stat(P)
     intro = S["intro"].get("string") if S["intro"] else spec.get("intro")
     part = spec.get("part")
-    bk_band(P, bk_kicker(spec), spec["title"], intro)
+    rule_y = bk_band(P, bk_kicker(spec), spec["title"], intro)
     frames = _bk_frames(spec, pid)
     S["done_anch"] = set()                                # a key map's north is placed with its key map
     framed = _bk_match(S, frames, spec.get("skip") or ())
+    BK_PACK_SIDE[0] = spec.get("side")
+    bk_pack(P, S, frames, pid, max(GRID_AREA[1], float(rule_y or 0.0) + 4.0))   # v34: measure, then pack
     grown = 0                                             # v33: frames never grow (L3)
     same = {}
     tg = {}
