@@ -29,12 +29,9 @@ HER_IN_BK_H = 100.0     # mm: the inset's height ("survey")
 HER_MARGIN_M = 150.0    # m: at least this much survey round the outermost places of the loop map
 HER_SNAP_M = 30.0       # m: K3 and K4 lie this close to the stream's centre line, else the walk is drawn straight
 HER_CORE = ("redhall", "K3", "K4")             # + Ulucami: the loop core of the inset ("survey")
-HER_PT = dict(list=9.0, lab=7.5, dot=7.0)     # booklet pt: stop texts (body minimum), stop names, heritage places
 HER_PITCH, HER_LEAD = 1.75, 1.4               # line pitch of the stop texts / of a map name, x the capital height
-HER_ACC = C(dict((k_, h_) for k_, n_, h_ in R28_MARKERS)["heritage"])     # R28 "heritage and views" (= MARK_C)
-HER_ROAD = mix(MPL["road"], WHITE, 0.4)       # G6: street surfaces and edges lighter than b_base's (context only)
-HER_ROAD_EDGE = mix(MPL["road_edge"], WHITE, 0.45)
-HER_GREEN_T = 0.45                            # mapped parks, woods and fields this far to white; no satellite cover
+# v61 (round 6, G6-6): HER_PT, HER_ACC (R28 heritage red), HER_ROAD, HER_ROAD_EDGE, HER_GREEN_T removed (unused; the
+# page's colours come from the hue table, pages/p21_heritage.py her21_hex / her21_place_hex)
 
 # The loop in its order (P20.2): key, name (English · Turkish, G3), survey m, one short text (P20.3; ** = bold, G5).
 # Places: bridges BRIDGES_K; survey labels Kızıl Avlu, Ulu Camii, Hamam, Çizmeciler Arastası (REF_LABELS); lat/lon of

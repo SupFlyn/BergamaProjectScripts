@@ -48,6 +48,8 @@
 #                                                     the collision test; one "WARNING <page> overlap|edge: ..." line
 #                                                     per hit, then "overlap <page> checked n, collisions k"; raises
 #                                                     only with TP_WARN_ONLY = [False]; tp.hits = [(kind, a, b)]
+#   tp.hits_now(blocks_in=False) -> [(kind, a, b)]   v32: check()'s hits, silent (no log, no message)
+#   tp.unput(item) -> bool                            v32: a registered text taken off again (to be placed anew)
 #   tp.emit(drawer) -> n                              drawer(item) for every text in order; item = dict(text, x, y,
 #                                                     pt, size_mm, bold, align, angle, colour, role, name, extra)
 #   tp.export() -> dict                               boxes in mm, y DOWN from the bounds' top-left (crop-local) for
@@ -573,6 +575,41 @@ class TextPage(object):
         for sl in self.sides:
             if not sl.closed:
                 tp_warn(u"%s side_list: %s was never closed (its numbers are not set)" % (self.name, sl.name), lg)
+        hits = self.hits_now(blocks_in)
+        I = self.items
+        self.hits = hits
+        self.checked = True
+        if hits and raise_ and not TP_WARN_ONLY[0]:
+            raise TextCollision(self.name, hits[0][1], hits[0][2], len(hits), [h[1:] for h in hits[1:]])
+        for k_, a_, b_ in hits:                          # one WARNING line each; the run goes on
+            ln_ = u"WARNING %s %s: %s against %s" % (self.name, k_, _tp_desc(a_), _tp_desc(b_))
+            lg.append(ln_)
+        if hits:
+            if "wn_orange" in globals():
+                wn_orange(u"%s: %d text hits (each one in the log, 'WARNING %s ...')" % (self.name, len(hits),
+                                                                                       self.name))
+            else:
+                try:
+                    ghenv.Component.AddRuntimeMessage(                                           # noqa: F821
+                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
+                        u"%s: %d text hits (each one in the log)" % (self.name, len(hits)))
+                except Exception:
+                    pass
+        lg.append(u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits)))
+        return len(I)
+
+    def unput(self, it):
+        """v32 (L1): takes a registered text off the page again (the booklet's collision fix places it anew)"""
+        for i, c in enumerate(self.items):
+            if c is it:
+                del self.items[i]
+                self.checked = False
+                return True
+        return False
+
+    def hits_now(self, blocks_in=False):
+        """v32 (L1): the hits of check() as [(kind, a, b)], with no log line and no message (the booklet's fix
+        passes look before the final check)"""
         hits = []
         I = self.items
         inn = self.inner
@@ -601,26 +638,7 @@ class TextPage(object):
             for c in B[i + 1:]:
                 if tp_hit(a["box"], c["box"], -0.01 / self.unit_mm):
                     hits.append(("overlap", a, c))
-        self.hits = hits
-        self.checked = True
-        if hits and raise_ and not TP_WARN_ONLY[0]:
-            raise TextCollision(self.name, hits[0][1], hits[0][2], len(hits), [h[1:] for h in hits[1:]])
-        for k_, a_, b_ in hits:                          # one WARNING line each; the run goes on
-            ln_ = u"WARNING %s %s: %s against %s" % (self.name, k_, _tp_desc(a_), _tp_desc(b_))
-            lg.append(ln_)
-        if hits:
-            if "wn_orange" in globals():
-                wn_orange(u"%s: %d text hits (each one in the log, 'WARNING %s ...')" % (self.name, len(hits),
-                                                                                       self.name))
-            else:
-                try:
-                    ghenv.Component.AddRuntimeMessage(                                           # noqa: F821
-                        __import__("Grasshopper").Kernel.GH_RuntimeMessageLevel.Warning,
-                        u"%s: %d text hits (each one in the log)" % (self.name, len(hits)))
-                except Exception:
-                    pass
-        lg.append(u"overlap %s checked %d, collisions %d" % (self.name, len(I), len(hits)))
-        return len(I)
+        return hits
 
     def emit(self, drawer):
         """draws every registered text through drawer(item); returns how many"""

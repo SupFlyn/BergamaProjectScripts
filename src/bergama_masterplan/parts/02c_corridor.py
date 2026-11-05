@@ -302,7 +302,7 @@ class Corridor(object):
     def note(self, key, text, why, at):
         """A numbered note (numbers given after all are made, upstream first); same key = one note, more places.
         v38 (round 4, U40, P21.5): only its places inside the study area count; a note with none is not made."""
-        at = sc_points(list(at), self.study, page=u"p21") if self.study else list(at)
+        at = sc_points(list(at), self.study, page=u"p20") if self.study else list(at)
         if not at:
             self.dropped = getattr(self, "dropped", []) + [text]
             return None
@@ -418,7 +418,7 @@ class Corridor(object):
                     outer.append(at(x, e + sg * min(WIDEN_K * fw[i], WIDEN_CAP) * tap))
                 ring_ = chaikin(inner + outer[::-1], 2, closed=True)
                 mid = st[ix[L // 2]]
-                for r_ in (sc_rings_clip(ring_, self.study, u"p21") if self.study else [ring_]):   # v38: clipped
+                for r_ in (sc_rings_clip(ring_, self.study, u"p20") if self.study else [ring_]):   # v38: clipped
                     if len(r_) >= 3:
                         self.widen.append({"ring": r_, "at": inner_pt(r_) if not self.in_study(
                             at(mid, mid[side]["e"] + sg * 4.0)) else at(mid, mid[side]["e"] + sg * 4.0),
@@ -432,7 +432,7 @@ class Corridor(object):
                     x, e = st[i], st[i][side]["e"]
                     tap = math.sin(math.pi * min(1.0, (a + 0.5) / 10.0, (L - a - 0.5) / 10.0) / 2.0)
                     arm.append(at(x, e + sg * min(ARM_K * fw[i], ARM_CAP) * tap))
-                for run in (sc_lines(chaikin(arm, 2), self.study, u"p21") if self.study else [chaikin(arm, 2)]):
+                for run in (sc_lines(chaikin(arm, 2), self.study, u"p20") if self.study else [chaikin(arm, 2)]):
                     if len(run) >= 2 and arclen(run)[-1] >= MOVE_RUN_M:   # v38: the arm's runs inside the study
                         self.arms.append({"P": [tuple(p) for p in run], "at": run[len(run) // 2]})
             for why in ("building", "road", "frame"):
@@ -500,7 +500,7 @@ class Corridor(object):
             other = [y for y in runs if y["bank"] != x["bank"] and min(x["ch1"], y["ch1"]) - max(x["ch0"], y["ch0"]) >
                      0.5 * (x["ch1"] - x["ch0"]) and y["m"] > x["m"]]
             if not other:
-                keep += [[tuple(p) for p in r_] for r_ in (sc_lines(list(x["F"]), self.study, u"p21") if self.study
+                keep += [[tuple(p) for p in r_] for r_ in (sc_lines(list(x["F"]), self.study, u"p20") if self.study
                                                            else [x["F"]]) if len(r_) >= 2]   # v38: inside only
         self.canopy = keep
         walk = [h for h in self.hubs if h["role"] == "walking" and h["id"] != u"K6"]
@@ -912,36 +912,39 @@ def soft_line(pg, P, colour, w, a):
 
 
 def icon(pg, kind, x, y, s):
-    """Pictograms (page mm, centre x, y, size s)."""
-    W_, ink = COL["white"], COL["ink_dark"]
+    """Pictograms (page mm, centre x, y, size s). Round 6 (G6-6): colours from the hue table (common/hues.py),
+    public life PUB by rank (hubs r1, café / education / sub-hub / gateway / viewing terrace r2, seats r3), the
+    archaeology deck heritage HER r2; the shapes tell items of one shade apart."""
+    W_ = COL["white"]
+    P1, P2, P3 = hue("PUB", 1), hue("PUB", 2), hue("PUB", 3)                              # noqa: F821
     if kind == "cafe":
-        pg.poly([rect(x - s * 0.35, y - s * 0.35, x + s * 0.25, y + s * 0.25)], fill=MP["centre"][2])
-        pg.circle(x + s * 0.33, y - s * 0.05, s * 0.14, stroke=MP["centre"][2], lw=0.25)
+        pg.poly([rect(x - s * 0.35, y - s * 0.35, x + s * 0.25, y + s * 0.25)], fill=P2)
+        pg.circle(x + s * 0.33, y - s * 0.05, s * 0.14, stroke=P2, lw=0.25)
     elif kind == "edu":
         pg.poly([[(x, y - s * 0.3), (x - s * 0.45, y - s * 0.15), (x - s * 0.45, y + s * 0.35), (x, y + s * 0.2)],
                  [(x, y - s * 0.3), (x + s * 0.45, y - s * 0.15), (x + s * 0.45, y + s * 0.35), (x, y + s * 0.2)]],
-                fill=COL["accent_dark"])
+                fill=P2)
     elif kind == "seat":
-        pg.poly([rect(x - s * 0.4, y - s * 0.1, x + s * 0.4, y + s * 0.1)], fill=ink)
+        pg.poly([rect(x - s * 0.4, y - s * 0.1, x + s * 0.4, y + s * 0.1)], fill=P3)
     elif kind == "transit":
-        pg.poly([rect(x - s * 0.5, y - s * 0.5, x + s * 0.5, y + s * 0.5)], fill=COL["accent_dark"], stroke=W_, lw=0.3)
+        pg.poly([rect(x - s * 0.5, y - s * 0.5, x + s * 0.5, y + s * 0.5)], fill=P1, stroke=W_, lw=0.3)
         pg.poly([rect(x - s * 0.28, y - s * 0.05, x + s * 0.28, y + s * 0.28)], fill=W_)
         pg.circle(x - s * 0.18, y - s * 0.25, s * 0.09, fill=W_)
         pg.circle(x + s * 0.18, y - s * 0.25, s * 0.09, fill=W_)
     elif kind == "walkhub":
-        pg.poly([rect(x - s * 0.5, y - s * 0.5, x + s * 0.5, y + s * 0.5)], fill=SQ_EDGE, stroke=W_, lw=0.3)
+        pg.poly([rect(x - s * 0.5, y - s * 0.5, x + s * 0.5, y + s * 0.5)], fill=P1, stroke=W_, lw=0.3)
         pg.circle(x, y + s * 0.22, s * 0.12, fill=W_)
         pg.line([(x, y + s * 0.08), (x, y - s * 0.3)], W_, 0.35)
     elif kind == "sub":
-        pg.poly([[(x, y + s * 0.5), (x + s * 0.5, y), (x, y - s * 0.5), (x - s * 0.5, y)]], fill=COL["river_dark"],
+        pg.poly([[(x, y + s * 0.5), (x + s * 0.5, y), (x, y - s * 0.5), (x - s * 0.5, y)]], fill=P2,
                 stroke=W_, lw=0.25)
     elif kind == "gate":
         pg.poly([[(x - s * 0.5, y + s * 0.45), (x + s * 0.5, y), (x - s * 0.5, y - s * 0.45), (x - s * 0.2, y)]],
-                fill=COL["ink_dark"])
+                fill=P2)
     elif kind == "view":
-        pg.poly([[(x - s * 0.5, y - s * 0.3), (x + s * 0.5, y - s * 0.3), (x, y + s * 0.5)]], fill=COL["accent"])
+        pg.poly([[(x - s * 0.5, y - s * 0.3), (x + s * 0.5, y - s * 0.3), (x, y + s * 0.5)]], fill=P2)
     elif kind == "deck":
-        pg.poly([rect(x - s * 0.5, y - s * 0.3, x + s * 0.5, y + s * 0.3)], fill=COL["histwall"], stroke=W_, lw=0.25)
+        pg.poly([rect(x - s * 0.5, y - s * 0.3, x + s * 0.5, y + s * 0.3)], fill=hue("HER", 2), stroke=W_, lw=0.25)   # noqa: F821
 
 
 # ================================================================ v24: the legend (rebuilt for the corridor)

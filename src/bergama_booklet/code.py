@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v30_3.py = v30.3 (fix 2 Nov 06:40: maps larger: round scales 1:1,500, 1:7,500, 1:15,000, 1:25,000 added, a script's scale range open to them; diagrams free-size up to 6 x; p07, p10, p16, p22 re-planned so rows fit; p11, p21 wider); v30.2 (fix 2 Nov: p04/p05 one row per cut, one scale, from site board v60.2); v30.1 (closing fix 2 Nov: Sources lists the masterplan places properly); v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
+# CURRENT VERSION: bergama_booklet_v32.py = v32 (L1, 4 Nov 2026: the booklet PLACES everything: one box per drawing, labels moved / led out never shrunk, pages justified; see NEW IN v32); v31 (round 6 S9, 4 Nov 2026: 22 pages p01-p22 in the PLAN §2.1 order, each page
+# laid out in its FRAMES (G6-1: the SUBMISSION_SON arrangement, drawings enlarged uniformly into their frames), title
+# band + bare page number, Sources last with every source numbered in page order (G6-3), G6-9 group tags handed to the
+# PDF writer, every overlap / edge / empty band / < 4 pt = WARNING (G6-7, G6-8)); v30.3 (fix 2 Nov 06:40: maps larger: round scales 1:1,500, 1:7,500, 1:15,000, 1:25,000 added, a script's scale range open to them; diagrams free-size up to 6 x; p07, p10, p16, p22 re-planned so rows fit; p11, p21 wider); v30.2 (fix 2 Nov: p04/p05 one row per cut, one scale, from site board v60.2); v30.1 (closing fix 2 Nov: Sources lists the masterplan places properly); v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
 # scripts' exported items (G-R5-12): 23 pages, one page numbering, no sheet crops; see NEW IN v30)
-"""Bergama Group 6: A3 BOOKLET COMPOSER (round 5). Rules: scripts/_template/SCRIPT_STANDARD.md §9.
+"""Bergama Group 6: A3 BOOKLET COMPOSER (round 5; round 6 v31 page frames). Rules: scripts/_template/SCRIPT_STANDARD.md §9.
 Builds ONE multi-page landscape A3 PDF (420 x 297 mm) from every content script's booklet items.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The first run installs PyMuPDF 1.26.5 (the
@@ -14,6 +17,33 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. The fi
 Reads  ~/Downloads/Bergama/cached/booklet/<script folder>/items.json (every content script, round 5)
 Writes ~/Downloads/Bergama/output/bergama_booklet/Bergama_booklet_A3.pdf; temporary drawing PDFs in
        ~/Downloads/Bergama/cached/booklet/_render/
+NEW IN v32 (L1, 4 Nov 2026; revision_2026-11-04_round6/LAYOUT_PLAN_booklet_places_all.md §3.2, handover/L1_engine.md;
+Aras 19:17-19:30 "scripts just produce the drawings ... booklet ... detects the size needed for each drawing and where
+they needs to go and places them", "making it smaller ... is a band-aid", the W1 box and WINTER row images; a feature):
+  * ONE BOX PER DRAWING, built here at print size: number disc + title, subtitle, (sections) a label band above the
+    drawing with vertical leaders (rows when two would touch), the drawing, its level column (2nd column / joining
+    line when values crowd, every value printed), notes + scale under. Each box is measured at every allowed scale;
+    the largest scale at which the whole box fits its frame is taken.
+  * Pages JUSTIFIED: every frame with content grows into the free page space to the margins / its neighbour's gutter
+    (the SON arrangement kept); a frame flush with the right margin sets its drawing right.
+  * Collisions: after placing, every text that hits something runs the chain again: free spot round its point, short
+    form, OUTSIDE the drawing with a leader line, number + key row. No drawing is scaled down and no text shrunk to
+    clear a hit. Multi-line labels move as one. Diagram / board texts no longer set blind (they take the chain too).
+  * Paragraphs justified, last line left, the Sources page included (Aras 19:22). Key-map cuts closer than 1.5 mm:
+    names pushed apart (no WARNING); a cut "look" given as text no longer breaks the key map (common/keymap.py).
+  * Log per page: "layout <page> drawings n, labels n (moved n, short n, leader n, numbered n), drawings made smaller
+    0, hits left n (frames grown n)". WARNING only for hits left after all that (texts still printed).
+NEW IN v31 (round 6, session S9, 4 Nov 2026; revision_2026-11-04_round6/PLAN.md §2.1, §2.2, §3, §7 S9; a feature):
+  * G6-1: the page plan (parts/80_plan.py) is a list of FRAMES per page ([x, y, w, h] in % of A3, from
+    plan_findings/frames_*.md "Target frames"); each frame takes the exported items whose ids match its patterns;
+    maps and sections take the largest round scale that fits their frame (frames with one "same" key share one scale),
+    diagrams the largest factor; an item no frame names goes to the page's side frame with a WARNING (never lost).
+  * G6-2: 22 pages, the content scripts export the new ids p01-p22 directly (the 25 -> 23 map is gone); contents on the
+    cover from the same list; the page number alone, bottom right; log "pagenum <n>".
+  * G6-3: Sources = page 22, four (or five) columns, "[n] text" in page order, hanging indent; {src:key} marks are
+    numbered in texts, legend entries, list rows and photo captions, plus a drawing's "src_keys" list.
+  * G6-4 north arrow outside the drawing (scale band, right end). G6-9: each shape's "grp" tag goes to write_pdf as
+    pg.grp (log "groups <page> kinds=<n> elements=<n> untagged=<n>"). Log "page <pid> frames=<n> placed=<n> unlisted=<n>".
 Run it LAST in the chain (zone base -> site board -> masterplan -> water balance -> agriculture -> water board ->
 proposal sections -> city link -> booklet).
 NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md §10 S10; a feature change):
@@ -31,7 +61,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v30.3"  # v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v32.6"  # v32.6 fix 5 Nov (offline run on Aras's items, page images checked): a level value never sits on the line of the value beside it; text-only note columns (p04, p05, p07) keep their script's lines (they were pushed onto each other) and the runs of one line follow each other; p04/p05 note frames as wide as the notes; p18 farms map in its own frame (the reading diagram had 4 mm, x0.03); a legend in a band frame uses the frame's width (p19 ran 28 mm past the foot); script texts with no leader kept inside the page margins; v32.5 fix 4-5 Nov (offline runs on the scripts' outputs, page images checked): a script's texts move only inside their own drawing (no leader lines across other drawings), frames inside the 14 mm margins, wide note frames in columns, legends take more columns before a smaller size, a detail that fits none of its scales takes the next coarser one, the Sources columns inside the margins, p21 rows re-set, texts a script set on top of each other are named per drawing and script; v32.4 fix 4 Nov (p02 ran 10+ min in the 21:49 run): faster leader and collision tests (grid), the log shows the page and text count every 5 s, and a page past 150 s sets its remaining texts at their own spot without the search, so the booklet always finishes (hits named as WARNINGs); the PDF is saved without the duplicate merge (16+ min, now seconds); the Sources page composes again (its row height had slipped into a comment); v32.3 fix 4 Nov (Aras 21:38, no log again): the log file shows the page being composed while the booklet runs, and every page's time at the end; v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -59,26 +89,41 @@ def main():
     ck_reset()
     tp_log_lines()                                # no text log lines left from an earlier run
     BK_STAT.update(drawings=0, scales=[], pages=[])
+    BK_GRP.clear()
+    del BK_PAGENO_LOG[:]
     lines = []
+    write_log(u"RUNNING %s since %s: reading the items.json files\n" % (VERSION, time.strftime("%H:%M:%S")))
     ix_load_all(need=())
     for f in BK_EXPECT:
         if f not in BK_IX:
             wn_warn(None, "missing", u"no items.json from %s (cached/booklet/%s/): run that script first; its pages "
                     u"stay empty" % (f, f))
     bk_remap(lines)
+    lines.append(u"glyph U+0131 dotless i: %s in the booklet font (Arial, %s)" % (
+        u"mapped" if not fm_safe(u"\u0131", False)[1] and not fm_safe(u"\u0131", True)[1] else u"MISSING",
+        bk_font_files()[0]))
+    write_log(u"RUNNING %s since %s: sources and page numbers (%s)\n" % (
+        VERSION, time.strftime("%H:%M:%S", time.localtime(t0)), time.strftime("%H:%M:%S")))
     bk_sources_collect()
     pids = [sp["pid"] for sp in BK_PAGES if not sp.get("kind")]
     n_marks = bk_src_number(pids)
     lines.append(u"source marks rewritten in %d texts; %d sources numbered" % (n_marks, len(BK_SRC["order"])))
     os.makedirs(OUT_DIR, exist_ok=True)
-    doc = fitz.open()
+    doc = bk_shallow_res(fitz.open())           # v32.4: resource names listed per page, not through every drawing
     n_src = 0
+    prog = []                                     # v32.3: progress in the log file while it runs (a hang shows its page)
     for n, sp in enumerate(BK_PAGES, 1):
+        t_pg = time.time()
+        _head = u"RUNNING %s since %s: page %d of %d (%s) started %s" % (
+            VERSION, time.strftime("%H:%M:%S", time.localtime(t0)), n, len(BK_PAGES), sp.get("pid", sp.get("kind")),
+            time.strftime("%H:%M:%S"))
+        write_log(_head + u"\n" + u"\n".join(prog) + u"\n")
+        bk_page_start(sp.get("pid", sp.get("kind")), _head, u"\n".join(prog))
         try:
             if sp.get("kind") == "cover":
                 bk_cover(doc, n, lines)
             elif sp.get("kind") == "sources":
-                n_src = bk_sources(doc, n, lines)
+                n_src = bk_sources(doc, n, lines, sp["pid"], sp.get("title", u"Sources"), sp.get("part"))
             else:
                 bk_content_page(doc, sp, n, lines)
         except Exception as ex:                   # a page that fails is a WARNING; the others still build
@@ -87,13 +132,19 @@ def main():
                 n, type(ex).__name__, ex, _tb.format_exc().strip().splitlines()[-3:]))
             if doc.page_count < n:
                 doc.new_page(width=GRID_PAGE[0] * BK_K, height=GRID_PAGE[1] * BK_K)
+        prog.append(u"page %d (%s) %.1f s%s" % (n, sp.get("pid", sp.get("kind")), time.time() - t_pg,
+                                                (u", %d texts past the budget" % BK_PG["late"]) if BK_PG["late"] else u""))
+        BK_PG["t0"] = 0.0
+    lines.extend(BK_PAGENO_LOG)
+    lines.append(u"page times: " + u"; ".join(prog))
     ck_finish(BK_REF_PAGE)
     try:
         doc.subset_fonts()
     except Exception:
         pass
     out = os.path.join(OUT_DIR, PDF_NAME)
-    doc.save(out, garbage=3, deflate=True)
+    write_log(u"RUNNING %s: saving the PDF (%s)\n%s\n" % (VERSION, time.strftime("%H:%M:%S"), u"\n".join(prog)))
+    doc.save(out, garbage=1, deflate=True)          # v32.4: garbage=3 (merge duplicates) ran 16+ min on the 100 MB booklet
     npg = doc.page_count
     doc.close()
     rd_close()

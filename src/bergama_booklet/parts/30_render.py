@@ -11,8 +11,14 @@
 #                                                 frame = None | (colour, width_pt): a thin frame round the rect (insets)
 #   rd_close()                                    closes the temporary PDFs (after the booklet is saved)
 # Temporary files: Downloads/Bergama/cached/booklet/_render/<page>_<id>.pdf (overwritten each run).
+# v31 (round 6 S9, G6-9 "every element its own group inside its kind group inside its drawing group"): each shape's
+# "grp" ("<kind>/<element id>", common/item_export.py §2.8) is handed to write_pdf as pg.grp, a list parallel to
+# pg.items (None = untagged), with pg.grp_root = the drawing id; write_pdf (S2) writes drawing > kind > element as
+# nested groups. The drawing PDF is then set on the page as one Form XObject (show_pdf_page) = the drawing's group.
+# Counts per page go to BK_GRP (log "groups <page> kinds=<n> elements=<n> untagged=<n>", 82_compose).
 BK_K = 72.0 / 25.4          # pt per mm
 RD_DOCS = []
+BK_GRP = {}                 # page -> dict(kinds=set, elements=set, untagged=n)    (G6-9 log line)
 
 
 class _RdPg(object):
@@ -31,8 +37,9 @@ def _rd_img_path(f):
     return f
 
 
-def rd_items(D, T, page=None):
-    """D's shapes as write_pdf page items in mm, y up from the drawing's lower-left corner"""
+def rd_items(D, T, page=None, grp=None):
+    """D's shapes as write_pdf page items in mm, y up from the drawing's lower-left corner; grp (a list) gets each
+    item's "grp" tag (G6-9), parallel to the items"""
     e, k = T.e, T.k
     mm = 25.4 / 72.0
 
@@ -41,6 +48,7 @@ def rd_items(D, T, page=None):
     out, skipped = [], 0
     for L in sorted(D.get("layers") or [], key=lambda L: L.get("z", 0)):
         for s in L.get("shapes") or []:
+            n0 = len(out)
             t = s.get("t") or s.get("type")         # Ix writes "t", the key-map module (S2) "type"
             if t == "poly":
                 rings = [[P(p) for p in r] for r in s.get("rings") or [] if len(r) >= 3]
@@ -71,6 +79,8 @@ def rd_items(D, T, page=None):
                             s.get("opacity"), bool(s.get("flip")), clip))
             elif t == "text":
                 skipped += 1
+            if grp is not None and len(out) > n0:
+                grp.append(wp_grp_of(s) if "wp_grp_of" in globals() else (s.get("grp") or L.get("grp")))
     if skipped:
         wn_warn(page or D.get("page"), "text", u"%s: %d text shape(s) inside its layers not drawn (texts are items: "
                 u"Ix.layer turns them into labels)" % (D.get("id"), skipped))
@@ -81,8 +91,18 @@ def rd_drawing(P, D, T, frame=None):
     import fitz as _fz
     pg = _RdPg()
     pg.W, pg.H = T.w, T.h
-    pg.items = rd_items(D, T, P.pid)
     did = u"%s" % D.get("id")
+    pg.grp = []
+    pg.items = rd_items(D, T, P.pid, pg.grp)
+    pg.grp_root = did
+    pg.page = P.pid                                 # write_pdf's per-page group counts (wp_groups_log, S2)
+    st_ = BK_GRP.setdefault(P.pid, dict(kinds=set(), elements=set(), untagged=0))
+    for g_ in pg.grp:
+        if g_:
+            st_["kinds"].add(u"%s" % g_.split(u"/")[0])
+            st_["elements"].add(u"%s|%s" % (did, g_))
+        else:
+            st_["untagged"] += 1
     d_ = bg_booklet("_render")
     os.makedirs(d_, exist_ok=True)
     fn = os.path.join(d_, u"%s_%s.pdf" % (P.pid, "".join(c if c.isalnum() or c in "-_" else "_" for c in did)))
@@ -156,3 +176,41 @@ def rd_close():
         except Exception:
             pass
     del RD_DOCS[:]
+
+
+# ---- v32.4 (p02 ran 10+ min in Aras's 4 Nov 21:49 run): PyMuPDF picks a fresh resource name for each drawing, photo
+# and font it adds by listing EVERY xobject, image and font of the page, recursing into each drawing already placed
+# (each one holds thousands of nested group xobjects, G6-9), with a list as its "seen" set: the time grows with the
+# square of the drawing's groups. A new name only has to differ from the names in the page's OWN resource
+# dictionaries, so the booklet's document lists those (shallow); the picture is the same. full=True (font
+# subsetting at the end) still gets the original deep lists.
+def _bk_res_shallow(doc, pno, key):
+    try:
+        x_ = doc[pno].xref
+        t_, v_ = doc.xref_get_key(x_, "Resources/" + key)
+        if t_ == "xref":
+            v_ = doc.xref_object(int(v_.split()[0]), compressed=True)
+        elif t_ != "dict":
+            return []
+        return [(int(m_.group(2)), m_.group(1)) for m_ in re.finditer(r"/([^\s/<>\[\]()]+)\s*(\d+)\s+\d+\s+R", v_)]
+    except Exception:
+        return []
+
+
+def bk_shallow_res(doc):
+    f0, i0, x0 = doc.get_page_fonts, doc.get_page_images, doc.get_page_xobjects
+
+    def fonts(pno, full=False):
+        if full:
+            return f0(pno, full=True)
+        return [(xr, u"", u"", u"", nm, u"") for xr, nm in _bk_res_shallow(doc, pno, "Font")]
+
+    def images(pno, full=False):
+        if full:
+            return i0(pno, full=True)
+        return []                                   # image names are in the XObject dictionary: listed below
+
+    def xobjects(pno):
+        return [(xr, nm, 0, None) for xr, nm in _bk_res_shallow(doc, pno, "XObject")]
+    doc.get_page_fonts, doc.get_page_images, doc.get_page_xobjects = fonts, images, xobjects
+    return doc

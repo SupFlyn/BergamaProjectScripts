@@ -20,7 +20,7 @@
 #                  priority=1, group=None, fit=None, title=None)
 #         extent (x0, y0, x1, y1) in drawing units, y UP, the area that must show; scale_pref = allowed 1:den (default
 #         SF_SCALES); units "m" = true scale; "mm" = a scale-free diagram/chart in design mm, fit = (min_f, max_f)
-#   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0))
+#   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0), grp=None)   grp: G6-9 group (see "G6-9 groups" below)
 #         adds shapes (the common modules' tuples: poly/line/circle/image; text shapes become anchored label items)
 #         to layer `name` (water.py WAT_LAYERS for sections, map_layers ML_LAYERS for maps); coordinates are mapped
 #         x_d = origin_x + k * x (k = drawing units per shape unit: den / 1000 for page-mm shapes drawn at 1:den);
@@ -47,6 +47,60 @@
 #   ix.warn(page, kind, msg)                               a content check hit: WARNING line + orange + "warnings"
 #   ix.save() -> path                                      writes items.json (UTF-8, 3 decimals), logs nothing itself
 #   ix.summary() -> str                                    "items <script>: drawings n, texts n, ... -> <path>"
+#
+# ---- G6-9 groups (round 6, S2, 4 Nov 2026; Aras 17:50-17:51 "apply this to everything"): every exported shape dict
+# carries "grp" = "<kind>/<element id>" (kind from IX_GRP_KINDS); the booklet passes it to write_pdf, which writes
+# Drawing > kind > element as nested groups. Tag at the point of drawing, first match wins per shape:
+#   1. markers in the shape list: ix_grp(kind, eid) -> ("grp", "kind/eid") opens, ix_grp_end() -> ("grp", None)
+#      closes; ix_tag(kind, eid, shapes) -> [open] + shapes + [close]. Converters that rebuild tuples must pass
+#      ("grp", ...) items through (xform.py does; page_stream ignores them, so sheets draw as before).
+#   2. with ix_group(kind, eid): ...            every ix.layer call inside it (context manager)
+#   3. ix.layer(D, name, shapes, grp="kind/eid")   the whole layer as one element
+#   4. the layer name (IX_LAYER_KIND, e.g. "water", "figures", "proj_labels"): each shape its own element
+#   5. none: the shape has no grp; the booklet's write_pdf puts it in "other" + one WARNING per drawing.
+# Element ids: anything unique in the drawing, with the species/name first where there is one, e.g.
+#   shapes += ix_tag("trees", u"%s %d" % (TREE_SPECIES[sp]["name"], i), pla_plan(sp, x, y, r))   (trees.py tree_grp)
+IX_GRP_KINDS = ("trees", "buildings", "people", "plants", "water", "ground", "roads", "paths", "fields", "heritage",
+                "hubs", "annotations", "cuts", "levels", "labels", "legend", "keymap", "frame", "other")
+IX_LAYER_KIND = dict(ground="ground", bed="water", water="water", vegetation="plants", figures="people",
+                     labels="labels", base_ground="ground", base_contours="ground", base_water="water",
+                     base_names="labels", proj_water="water", proj_vegetation="plants", study="annotations",
+                     proj_marks="annotations", proj_labels="labels", farms="fields", numbers="labels", chart="other")
+IX_CUR_GRP = []             # the open ix_group contexts (innermost last)
+
+
+def ix_grp(kind, eid=None):
+    """the marker that opens a group for the shapes after it"""
+    return ("grp", u"%s/%s" % (kind, eid if eid is not None else kind))
+
+
+def ix_grp_end():
+    return ("grp", None)
+
+
+def ix_tag(kind, eid, shapes):
+    return [ix_grp(kind, eid)] + list(shapes or ()) + [ix_grp_end()]
+
+
+def ix_layer_kind(name):
+    return IX_LAYER_KIND.get(u"%s" % name) if name else None
+
+
+class ix_group(object):
+    """with ix_group("legend", "p04"): ix.layer(...)  -> every shape of those layers in that one element"""
+    def __init__(self, kind, eid=None):
+        self.g = ix_grp(kind, eid)[1]
+
+    def __enter__(self):
+        IX_CUR_GRP.append(self.g)
+        return self.g
+
+    def __exit__(self, *a):
+        if IX_CUR_GRP:
+            IX_CUR_GRP.pop()
+        return False
+
+
 IX_SCHEMA = "bergama-items/1"
 IX_PT = 25.4 / 72.0
 IX_KINDS = ("drawing", "text", "legend", "list", "level_column", "inset", "keymap", "photo", "chart", "source")
@@ -166,10 +220,30 @@ class Ix(object):
                         clip=(P(clip[:2]) + P(clip[2:4])) if clip else None)
         return None
 
-    def layer(self, D, name, shapes, z=None, k=1.0, origin=(0.0, 0.0)):
+    def _grp_ok(self, D, g):
+        """g with a known kind (an unknown kind becomes "other", one WARNING per kind and drawing)"""
+        if not g:
+            return None
+        k_, _s, e_ = (u"%s" % g).partition("/")
+        if k_ in IX_GRP_KINDS:
+            return g
+        seen = D.setdefault("_grp_bad", [])
+        if k_ not in seen:
+            seen.append(k_)
+            self.warn(D["page"], "groups", u"%s: group kind %r unknown, written as other (kinds: %s)" % (
+                D["id"], k_, u", ".join(IX_GRP_KINDS)))
+        return u"other/%s" % (e_ or k_)
+
+    def layer(self, D, name, shapes, z=None, k=1.0, origin=(0.0, 0.0), grp=None):
         out, texts, hatch = [], 0, 0
+        mark = None                                       # G6-9: the open ("grp", ...) marker in this list
+        ctx = IX_CUR_GRP[-1] if IX_CUR_GRP else None
+        lk = ix_layer_kind(name)
         for s in shapes or ():
             if not s:
+                continue
+            if s[0] == "grp":
+                mark = s[1] if len(s) > 1 else None
                 continue
             if s[0] == "text":
                 self._text_shape(D, s, k, origin)
@@ -180,6 +254,9 @@ class Ix(object):
                 continue
             if sh.pop("_stripes", False):
                 hatch += 1
+            g = mark or ctx or grp or (u"%s/%s %d" % (lk, name, len(out) + 1) if lk else None)
+            if g:
+                sh["grp"] = self._grp_ok(D, g)
             out.append(sh)
         if hatch:
             self.warn(D["page"], "hatch", u"%s layer %s: %d hatch fill(s) dropped (G-R5-4.1 solid colours only)" % (
@@ -297,6 +374,9 @@ class Ix(object):
     # -- out
     def save(self):
         import json as _j
+        for its in self.d["pages"].values():               # G6-9 bookkeeping key, not part of the schema
+            for it in its:
+                it.pop("_grp_bad", None)
         d_ = bg_booklet(self.folder)
         os.makedirs(d_, exist_ok=True)
         self.path = os.path.join(d_, "items.json")

@@ -875,8 +875,9 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
         return ground[max(0, min(len(ground) - 1, int(round(s / step))))][1]
     # ---- tree crowns as measured on the canopy height map: cut by the line, and those seen beyond it
     nx, ny = -uy, ux
-    btrees = []
-    for (tx, ty, tr, th) in crowns_near(S, (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80, max(y0, y1) + 80)):
+    btrees, trees_sp, btrees_sp = [], [], []          # v61 (G6-10): *_sp = (species, source, inferred) per tree
+    for (tx, ty, tr, th, lf_, ls_) in crowns_near_full(S, (min(x0, x1) - 80, min(y0, y1) - 80, max(x0, x1) + 80,
+                                                           max(y0, y1) + 80)):
         d = (tx - x0) * nx + (ty - y0) * ny
         s = (tx - x0) * ux + (ty - y0) * uy
         if not (-tr < s < L + tr):
@@ -885,10 +886,13 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
         if abs(d) < tr:
             hw = math.sqrt(tr * tr - d * d)
             trees.append((s, S.z_at(tx, ty) - base, hw, lo, hi))
+            trees_sp.append(sb_tree_species(S, tx, ty, lf_, ls_, tr, th))
             zmax = max(zmax, S.z_at(tx, ty) - base + hi)
         elif tr <= d < 60.0:
             btrees.append((s, S.z_at(tx, ty) - base, tr, lo, hi, d))
-    btrees.sort(key=lambda t: -t[5])
+            btrees_sp.append(sb_tree_species(S, tx, ty, lf_, ls_, tr, th))
+    o_ = sorted(range(len(btrees)), key=lambda i_: -btrees[i_][5])
+    btrees, btrees_sp = [btrees[i_] for i_ in o_], [btrees_sp[i_] for i_ in o_]
     # ---- surveyed walls crossing the line: their place only (the survey gives no wall heights)
     walls, chwalls = [], []
     sbb = (min(x0, x1) - 5, min(y0, y1) - 5, max(x0, x1) + 5, max(y0, y1) + 5)
@@ -964,7 +968,7 @@ def section_of_line(S, x0, y0, x1, y1, name, step=0.5):
                 chwalls=chwalls, water=[(a, b, bed - base, lvl - base) for (a, b, bed, lvl, bank, src) in wat],
                 bed_src=[src for (a, b, bed, lvl, bank, src) in wat], water_src=wsrcs,
                 labels=labels, levels=levels, strip=strip, comp=comp, zmax=zmax, base=base,
-                beyond=beyond, btrees=btrees, bridges=bridges, places=places,
+                beyond=beyond, btrees=btrees, bridges=bridges, places=places, trees_sp=trees_sp, btrees_sp=btrees_sp,
                 banks=crs)                                # v50: per crossing, its bank top (site28_bank_rule)
 
 
@@ -993,6 +997,83 @@ def crowns_near(S, bb):
             g.add((x, y, r, h), (x, y, x, y))
         S.g_crown = g
     return g.query(bb)
+
+
+def crowns_near_full(S, bb):
+    """v61 (G6-10): as crowns_near, each crown as (x, y, radius, top height, leaf, leaf_src) from the same env rows
+    (leaf: CLC+ 0 deciduous / 1 evergreen broadleaf / 2 needle-leaved; leaf_src 1-3, 3 = nearest pixel, the weakest);
+    None where the row has no such field."""
+    g = getattr(S, "g_crown_full", None)
+    if g is None:
+        E = (getattr(S, "env", None) or {}).get("E")
+        if E is None and ENV_PATH:
+            E, _ = load_env(ENV_PATH)
+        fb = S.F.bb
+        g = Grid(20.0)
+        for row in (E or {}).get("trees", []):
+            x, y, r, h = row[:4]
+            if h < 3.0 or not (fb[0] - 80 <= x <= fb[2] + 80 and fb[1] - 80 <= y <= fb[3] + 80):
+                continue
+            if any(in_unit(x, y, u) for u in S.g_bld.query((x, y, x, y))):
+                continue
+            lf = row[4] if len(row) > 4 else None
+            ls = row[5] if len(row) > 5 else None
+            g.add((x, y, r, h, lf, ls), (x, y, x, y))
+        S.g_crown_full = g
+    return g.query(bb)
+
+
+SB_TREE_N = {}       # v61 (G6-10): page -> {species key: n}; "generic" = no supported species
+
+
+def sb_tree_species(S, x, y, leaf=None, leaf_src=None, r=None, h=None, page=None):
+    """v61 (G6-10, Aras 4 Nov 17:54): the species of one existing tree from common/trees.py tree_species() (the rule
+    of revision_2026-11-04_round6/plan_findings/tree_species.md: named trees, leaf type, place); returns
+    (species_key or None, source_key or None, inferred). None = generic (no invented species). The crown dict
+    carries what the rule keys on: position, leaf, leaf_src, zone kind/sub, near the stream."""
+    zk, zs = None, None
+    try:
+        for z in S.zones:
+            if bb_hit(z["bb"], (x, y, x, y)) and region_contains(x, y, z["Ps"], z.get("Hs") or []):
+                zk, zs = z.get("kind"), z.get("sub")
+                break
+    except Exception:
+        pass
+    try:
+        ns = bool(near_stream(S, x, y, globals().get("TREE_BANK_M", 15.0)))
+    except Exception:
+        ns = None
+    try:
+        ub = any(in_unit(x, y, u) for u in S.g_bld.query((x - 30, y - 30, x + 30, y + 30)))
+    except Exception:
+        ub = None
+    res, key = (None, None, False), None
+    if "tree_species" in globals():
+        try:                                             # S2 trees.py: tree_species(crown, bank, farm) -> (key, src, inf)
+            key, src_, inf_ = tree_species(dict(x=x, y=y, r=r, h=h, leaf=leaf, leaf_src=leaf_src),   # noqa: F821
+                                           bank=ns, farm=(zk == "agri" or zs == "orchard"))
+            gl_ = None
+            if key not in TREE_GENERIC:                                                      # noqa: F821
+                gl_ = (TREE_SPECIES.get(key) or {}).get("glyph")                             # noqa: F821
+            res = (gl_, src_, inf_)                      # drawable species key, else None = generic primitive
+        except Exception:
+            res, key = (None, None, False), None
+    if page:
+        c_ = SB_TREE_N.setdefault(page, {})
+        k_ = key or "tree"
+        c_[k_] = c_.get(k_, 0) + 1
+    return res
+
+
+def sb_tree_log(page):
+    """v61 (G6-10) log line `trees <page> species=<n> generic=<n>` (tree_log of common/trees.py when present)"""
+    c_ = SB_TREE_N.get(page) or {}
+    if "tree_log" in globals():                          # S2: counts by species key, generic keys counted apart
+        try:
+            return tree_log(page, dict(c_))                                                  # noqa: F821
+        except Exception:
+            pass
+    return u"trees %s species=0 generic=%d (FLAG: common/trees.py not in this build)" % (page, sum(c_.values()))
 
 
 NAME_GENERIC = {"cami", "camii", "mescit", "mescid", "trafo", "w.c", "wc", "w.c.", "depo", "baraka", "okul", "park",
@@ -1171,6 +1252,38 @@ class Board(object):
         self.root = "LU_BOARD"
         self.tg = None                                   # v59: the open text group (tgroup); None = one per text
         self._tgn = 0
+        self.tags = {}                                   # v61 (G6-9): item index -> "<kind>/<element id>"
+        self._kind = None                                # the open element kind (B.kind), None = untagged
+        self._eid = None
+        self._eidn = {}
+
+    def kind(self, kind, eid=None):
+        """v61 (round 6, G6-9, Aras 4 Nov 17:50-17:51): `with B.kind("trees", "0412"):` tags every item drawn inside
+        as one element of that kind (eid None = each item its own element, numbered per kind). Kinds: trees, buildings,
+        people, plants, water, ground, roads, paths, fields, heritage, hubs, annotations, cuts, levels, labels, legend,
+        keymap, frame, other. The booklet export turns the tags into nested groups (drawing > kind > element)."""
+        B_ = self
+
+        class _K(object):
+            def __enter__(self_):
+                self_.prev = (B_._kind, B_._eid)
+                B_._kind, B_._eid = kind, (None if eid is None else u"%s" % eid)
+                return B_
+
+            def __exit__(self_, *a):
+                B_._kind, B_._eid = self_.prev
+                return False
+        return _K()
+
+    def _tag(self):
+        if self._kind is None:
+            return
+        e_ = self._eid
+        if e_ is None:
+            n_ = self._eidn.get(self._kind, 0) + 1
+            self._eidn[self._kind] = n_
+            e_ = u"%04d" % n_
+        self.tags[len(self.items) - 1] = u"%s/%s" % (self._kind, e_)
 
     def tgroup(self, start=True):
         """v59 (round 4, G-R4-1): start (or with False end) one text group: the lines / runs of one word block may
@@ -1192,10 +1305,12 @@ class Board(object):
         polys = [P for P in polys if P and len(P) >= 3]
         if polys:
             self.items.append(("fill", polys, color, self._lay(layer), order, self.group))
+            self._tag()
 
     def line(self, P, color, layer, order, w=0.13):
         if P and len(P) >= 2:
             self.items.append(("line", P, color, self._lay(layer), order, w, self.group))
+            self._tag()
 
     def hatch(self, polys, color, layer, order, spacing, ang=math.radians(45.0), w=0.03):
         """v16.5: parallel hatch lines over the area of polys (outer rings and holes, even-odd), spacing apart in page
@@ -1203,11 +1318,13 @@ class Board(object):
         polys = [P for P in polys if P and len(P) >= 3]
         if polys and spacing > 0:
             self.items.append(("hatch", polys, color, self._lay(layer), order, spacing, ang, w, self.group))
+            self._tag()
 
     def image(self, path, x0, y0, x1, y1, layer, order=5, alpha=None, flip=False):
         """T4 30 Oct (D1 a): a PNG (alpha kept) or JPEG over (x0, y0)-(x1, y1); alpha 0-1 = opacity, flip = mirrored.
         The PDF writer (_pdf_page) embeds each file once per board."""
         self.items.append(("image", path, (x0, y0, x1, y1), self._lay(layer), order, self.group, alpha, flip))
+        self._tag()
 
     def text(self, txt, x, y, h, color, layer, order=40, font=None, bold=False, align="L", angle=0.0, italic=False,
              tg=None):
@@ -1220,6 +1337,7 @@ class Board(object):
                 tg = "t%d" % self._tgn
         self.items.append(("text", txt, (x, y), h, color, self._lay(layer), order, font or FONT_BODY, bold, align,
                            angle, italic, self.group, tg))
+        self._tag()
 
     def para(self, txt, x, y, width, h, color, layer, lead=1.8, font=None, order=40):
         """Wrapped paragraph (real widths, no widow); returns the y below it. v59: its lines are one text group."""
@@ -1250,6 +1368,66 @@ class Board(object):
             h *= width / need
         self.text(txt, x, y, h, color, layer, **kw)
         return h
+
+
+class SbX(object):
+    """v61 (round 6): the board as the drawing object X the round 6 common modules draw through (annot.py an_cut /
+    an_level / an_view / an_north, keymap.py km_draw_to): page-mm sizes in, board units out (k = board units per mm).
+      X = SbX(B, layer, order, k, kind=None)
+      X.fill(rings, hx, alpha=None, nz=False) · X.line(pts, hx, width_mm=0.13, dash_mm=None, alpha=None)
+      X.text(s, xy, size_mm, hx, bold=False, align="L")    size_mm = font size (the Board takes the capital height)
+      X.fill_fn / X.line_fn / X.text_fn                  the same, in basemap_draw's argument order
+    kind: every item drawn through X is tagged with that G6-9 kind (each call its own element)."""
+
+    def __init__(self, B, layer, order, k, kind=None):
+        self.B, self.L, self.o, self.k, self.kd = B, layer, order, k, kind
+        self.fill_fn = lambda rings, hx, a=None, nz=False: self.fill(rings, hx, a, nz)
+        self.line_fn = lambda P, hx, w=0.13, dash=None, a=None: self.line(P, hx, w, dash, a)
+        self.text_fn = lambda s_, p, size_mm, hx, bold=False, align="L": self.text(s_, p, size_mm, hx, bold, align)
+
+    def cb(self):
+        """S1's an_* / km_draw_to X = (fill_fn, line_fn, text_fn) in PAGE MM: these take mm points (board / k) and
+        draw them on the board. Pair it with T_mm = lambda p: (Tb(p)[0] / k, Tb(p)[1] / k) and a frame in mm."""
+        k_ = self.k
+
+        def P(pts):
+            return [(q[0] * k_, q[1] * k_) for q in pts]
+        return (lambda rings, hx, a=None, nz=False: self.fill([P(R) for R in rings], hx, a, nz),
+                lambda pts, hx, w=0.13, dash=None, a=None: self.line(P(pts), hx, w, dash, a),
+                lambda s_, p, size_mm, hx, bold=False, align="L": self.text(s_, (p[0] * k_, p[1] * k_), size_mm, hx,
+                                                                             bold, align))
+
+    def _c(self, hx, a):
+        c = C(hx) if hasattr(hx, "lstrip") else hx
+        return c if a is None or a >= 0.999 else mix(c, WHITE, 1.0 - a)
+
+    def _k(self):
+        return self.B.kind(self.kd) if self.kd else _SbNoKind()
+
+    def fill(self, rings, hx, alpha=None, nz=False):
+        with self._k():
+            self.B.fill(rings, self._c(hx, alpha), self.L, self.o)
+
+    def line(self, pts, hx, width_mm=0.13, dash_mm=None, alpha=None):
+        with self._k():
+            if dash_mm:
+                for d_ in r28_pattern(pts, [m * self.k for m in dash_mm]):
+                    self.B.line(d_, self._c(hx, alpha), self.L, self.o, bk_lw(width_mm, self.k))
+            else:
+                self.B.line(pts, self._c(hx, alpha), self.L, self.o, bk_lw(width_mm, self.k))
+
+    def text(self, s_, xy, size_mm, hx, bold=False, align="L"):
+        with self._k():
+            self.B.text(s_, xy[0], xy[1], size_mm * _PDF_CAP["sans"] * self.k, self._c(hx, None), self.L,
+                        order=self.o + 1, font=FONT_TITLE, bold=bold, align=align)
+
+
+class _SbNoKind(object):
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *a):
+        return False
 
 
 class View(object):

@@ -1,5 +1,15 @@
 # selinus_board: notes of older versions (moved out of the script header)
 
+NEW IN v62 (2026-11-04, layout rework L2; Aras 19:17-19:18 "scripts just produce ... booklet places them", 19:26 one box
+per drawing): no producer-side drops or layout warnings for text. p04/p05: level values exported as ix.levels (the
+section drawing's y = m a.s.l., crop "datum"), the crop ends at the drawing column; titles = box headings with their
+shorter forms; notes attached to their cut (drawing=sb_sec_sN); dkind "section" (also p08). p03 callouts with no free
+place set on their spot; p06 viewpoint numbers, p07 column items/graphics and bar labels, p08 labels, headings
+(short forms), captions and bubbles, p19 strip names, p04/p05 band markers and building tags are all kept. Untagged
+groups: axonometric layers topic/context/ground/overlay/figures mapped; "other" kinds renamed (sky = frame, charts =
+legend, photos = annotations, places diagram = heritage, walk strip = paths); untagged board shapes take their layer's
+kind.
+
 NEW IN v39 (2026-10-25, SCRIPT_STANDARD 8, booklet/ASSET_SPEC.md: the A3 booklet):
   * After the board's PDFs: output/selinus_board/booklet/ holds one text-free vector PDF per booklet frame of pages
     A1-A7 (drawn at the frame's size from booklet_slots.json, words as labels in blocks.json), results.json (the

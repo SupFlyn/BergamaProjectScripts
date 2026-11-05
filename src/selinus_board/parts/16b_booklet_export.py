@@ -11,11 +11,14 @@ SHEET_POS = []                                        # v40: (drawing name, pdf,
 CROP_REF = r"^\[\d+\]$"                               # a sheet's lone [n] mark: its source key is not in the crop
 
 
-def crop_panel(slug, x0, y0, x1, y1, caption="", scale_den=None, legend=None, drop=None):
+def crop_panel(slug, x0, y0, x1, y1, caption="", scale_den=None, legend=None, drop=None, ix_page=None):
     """v40: one booklet crop: a panel's rectangle in board units (any two corners), as the layout drew it. A drawing
-    that calls this has no default crop (crop_default)."""
+    that calls this has no default crop (crop_default). v61: ix_page = its booklet page id when the slug is not in
+    SB_IX_PAGES (p04/p05 per-cut crops and notes, p08 street pairs)."""
     CROP_PANELS.append(dict(slug=slug, bb=(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)), caption=caption,
                             scale_den=scale_den, legend=legend or [], drop=[CROP_REF] + list(drop or [])))
+    if ix_page:
+        CROP_PANELS[-1]["ix_page"] = ix_page
 
 
 def crop_default(name, x0, y0, x1, y1, n0, slug=None, caption="", panel=None):

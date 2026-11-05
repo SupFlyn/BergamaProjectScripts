@@ -1,29 +1,29 @@
-# ---- 82_compose (round 5, S10, 2 Nov 2026; G-R5-1, G-R5-2, G-R5-12, D2, D7, D9, N3): one content page from its items --
-# Change of approach (round 4 failed on text collisions and sheet crops): no sheet crop anywhere. A page = its plan row
-# (80_plan) + every item its scripts exported for it. Steps per page:
-#   1. sort the page's items: drawings (the left area's rows, the right column, key maps), texts, legends, lists, level
-#      columns, insets, photos; every unanchored text, legend, list and photo is ATTACHED to one drawing (its "drawing"
-#      key, else the longest drawing id its own id starts with, else the one drawing of its group) or stays page-level
-#   2. scales (bk_fit): rows of the left area get the LARGEST Bergama-list scale at which the rows still fit (each row
-#      its own scale, or one scale for the page with "common": merged pages N3 1:500); then the leftover height goes to
-#      the scale-free diagrams (charts, key maps), and what is still left is spread evenly between the rows (no empty
-#      band at the foot, D2); insets take >= 2 x their parent's scale
-#   3. draw: each cell = heading over the drawing, the drawing (30_render), its north arrow (plans: from north_deg,
-#      counter-clockwise from page-up, the key-map module's convention), its level markers (beside it, U04), its
-#      in-drawing labels (50_place: anchor, rings, side list, smaller), its scale bar or "1:den" under it (the scale the
-#      booklet picked: S7 stripped the old printed scales); the window of an inset drawn on its parent
-#   4. right column (G-R5-2: legend, lists, key map, short text beside the drawings): key maps on top, then each row's
-#      attached texts / legends / lists / side-list rows starting level with the row's top (U35: belongs to its
-#      drawing), then the right-column drawings, then page-level texts, then photos in a strip
-#   5. page number; layout check (70_check); every text drawn last (40_set)
+# ---- 82_compose (round 5 S10; round 6 S9 v31: G6-1 page frames, G6-7/G6-8, G6-9 log): one content page from its items -
+# Round 6 (PLAN §3, G6-1): a page is its FRAMES (80_plan, the SUBMISSION_SON arrangement with the drawings enlarged)
+# + every item its scripts exported for it. The v30 rows / right column / share are gone. Steps per page:
+#   1. sort the page's items (bk_items) and attach every unanchored text, legend and list to one drawing (bk_attach:
+#      its "drawing" key, else the longest drawing id its own id starts with, else the one drawing of its group)
+#   2. match: each frame takes the items whose id matches one of its fnmatch patterns (first frame wins; drawings,
+#      key maps, texts, legends, lists, photos alike)
+#   3. scale: every drawing is scaled UNIFORMLY into its frame (never stretched): maps and sections at the largest
+#      Bergama-list scale that fits (frames with the same "same" key share one scale = the smallest of their fits, so
+#      p04/p05 cuts and p13 seasons print one scale), diagrams / charts / key maps at the largest factor that fits
+#      (<= BK_MM_MAX); an inset at >= 2 x its parent's scale. Heading, level column and the scale band (bar or
+#      "1:den" + north arrow, outside the drawing, G6-4) are reserved inside the frame
+#   4. draw: heading, drawing (30_render), north, level markers, labels (50_place), scale; then the drawing's attached
+#      texts / legends / lists / side-list rows go to the frame's "note" frame, else under the drawing in its own frame,
+#      else the page's "side" frame
+#   5. every item no frame names and no drawing owns = WARNING "unlisted" and goes to the page's side frame (PLAN §2.2:
+#      never lost); frames of one page that overlap = WARNING "frames"; an empty frame = WARNING "missing"
+#   6. page number; layout check (70_check: overlaps, edges, empty bands, < 4 pt = one WARNING each, G6-7/G6-8); log
+#      "page <pid> frames=<n> placed=<n> unlisted=<n>" and "groups <pid> kinds=<n> elements=<n> untagged=<n>" (G6-9)
 # Nothing here raises on layout: every misfit is a WARNING (one run collects all; Aras 1 Nov 17:11).
 BK_GAP = 4.0               # mm between cells / rows / right-column blocks (grid gutter)
 BK_HEAD_H = 4.5            # heading band over a drawing
 BK_SCALE_H = 5.5           # scale bar / "1:den" band under a true-scale drawing
 BK_LEVEL_W = 24.0          # level markers + "+43.71 Q500" beside a section (3 gap + 9 marker + 12 label)
-BK_KM_H = 72.0             # the most height a key map takes at the top of the right column
-BK_PHOTO_H = 30.0          # photo strip height in the right column
-BK_NORTH_MM = 7.0
+BK_NORTH_MM = 4.6          # v31: the north arrow sits in the scale band under the plan, right end (outside, G6-4)
+BK_NOTE_GAP = 1.5          # mm between stacked notes / legends / lists
 
 
 def _bk_pat(p):
@@ -77,7 +77,7 @@ def bk_attach(S):
     groups = {}
     for d in sorted(S["draw"].values(), key=lambda d: (d.get("priority", 5), d["id"])):
         groups.setdefault(d.get("group"), []).append(d["id"])
-    att = dict((d, dict(head=[], side=[], levels=[])) for d in S["draw"])
+    att = dict((d, dict(head=[], side=[], levels=[], badge=None, sub=None)) for d in S["draw"])
     S["page"], S["intro"] = [], None
 
     def owner(it):
@@ -101,10 +101,19 @@ def bk_attach(S):
                 continue
         if d is None:
             S["page"].append(t)
+        elif t.get("role") == "badge" and att[d]["badge"] is None:     # v32 box: the drawing's number disc
+            att[d]["badge"] = t
+        elif t.get("role") == "caption" and t.get("priority", 5) <= 1 and att[d]["sub"] is None:
+            att[d]["sub"] = t                                           # v32 box: the subtitle under the title
         elif t.get("role") == "heading" and not att[d]["head"]:
             att[d]["head"].append(t)
         else:
             att[d]["side"].append(t)
+    strs = set(u"%s" % t.get("string", u"") for t in S["items"] if t.get("kind") == "text")
+    for d, a in att.items():                         # v32 box: a title given only as ix.drawing(title=) heads its box
+        tt = S["draw"][d].get("title")
+        if not a["head"] and isinstance(tt, str) and tt.strip() and tt not in strs:
+            a["head"].append(dict(kind="text", role="heading", string=tt, id=u"%s_title" % d, priority=1))
     for it in S["legends"] + S["lists"]:
         d = owner(it)
         (att[d]["side"] if d else S["page"]).append(it)
@@ -123,20 +132,6 @@ def bk_attach(S):
     return att
 
 
-def bk_cells(S, row, pid):
-    out = []
-    names = sorted(S["draw"], key=lambda d: (S["draw"][d].get("priority", 5), d))
-    for p in row:
-        hit = [d for d in names if fnmatch.fnmatchcase(d, p) and d not in S["used"]] if _bk_pat(p) else \
-            ([p] if p in S["draw"] and p not in S["used"] else [])
-        if not hit and not _bk_pat(p):
-            wn_warn(pid, "missing", u"drawing %s not exported (its script not run, or failed): left out" % p)
-        for d in hit:
-            S["used"].add(d)
-            out.append(d)
-    return out
-
-
 # ---- sizes --------------------------------------------------------------------------------------------------------
 def _bk_parent(S, did):
     for ins in S["insets"]:
@@ -145,194 +140,77 @@ def _bk_parent(S, did):
     return None
 
 
-def _bk_res(S, did):
-    """(extra width, extra height) round a drawing: level column, heading, scale band"""
+def _bk_k(D, s):
+    """page mm per drawing unit at s (den for "m" drawings, factor for "mm")"""
+    return (1000.0 / float(s)) if D.get("units", "m") == "m" else float(s)
+
+
+def _bk_res(S, did, s=None):
+    """(extra width, extra height) round a drawing: level column (v32: measured at s, both columns), heading, scale
+    band"""
     D = S["draw"][did]
     att = S["att"].get(did, {})
-    rw = BK_LEVEL_W if att.get("levels") else 0.0
-    rh = (BK_HEAD_H if att.get("head") else 0.0) + (BK_SCALE_H if D.get("units") == "m" else 0.0)
+    rw = 0.0
+    if att.get("levels"):
+        if s is None:
+            rw = BK_LEVEL_W
+        else:
+            k = _bk_k(D, s)
+            rw = max(pl_levels_w(lc, k, float(D["extent"][3])) for lc in att["levels"])
+    band = D.get("units") == "m" or (D.get("north_deg") is not None and D.get("role") != "keymap")
+    rh = (BK_SCALE_H if band else 0.0)
+    if s is not None:
+        dw = sc_size(D, s)[0]
+        rh += _bk_head_h(att, dw + rw) + (pl_band_need(D, _bk_k(D, s)) if _bk_is_band(D) else 0.0)
+    else:
+        rh += (BK_HEAD_H if att.get("head") or att.get("badge") else 0.0)
     return rw, rh
 
 
-def _bk_inset_den(D, parent_den, w, h):
-    lo_ = min([int(v) for v in (D.get("scale_pref") or [100])] or [100])   # v30.3: from its own scale up to half the
-    al = [d for d in BK_INSET_SCALES if lo_ <= d and d * BK_INSET_ZOOM <= parent_den + 1e-6]   # parent's (row fits)
-    if not al:
-        return None
-    for den in al:
-        dw, dh = sc_size(D, den)
-        if dw <= w + 1e-6 and dh <= h + 1e-6:
-            return den
-    return al[-1]
+def _bk_is_band(D):
+    """v32: a true-scale section sets its labels in a band above it (Aras's W1 box)"""
+    return D.get("dkind") == "section" and D.get("units", "m") == "m" and not bk_design_den(D)
 
 
-def bk_row_eval(S, cells, W, den, hcap):
-    """the row's cells at den (true-scale cells) and fitted factors (scale-free cells, not taller than the true-scale
-    part, or hcap when the row has none): dict(fit, w, h, cells=[(did, s, w, h)])"""
-    res, used_w, mh = {}, 0.0, 0.0
-    m = [d for d in cells if S["draw"][d].get("units") == "m" and not _bk_parent(S, d)]
-    for d in m:
-        rw, rh = _bk_res(S, d)
-        dw, dh = sc_size(S["draw"][d], den)
-        res[d] = (den, dw + rw, dh + rh)
-        used_w += dw + rw
-        mh = max(mh, dh + rh)
-    for d in cells:
-        par = _bk_parent(S, d)
-        if par and S["draw"][d].get("units") == "m":
-            pden = res.get(par, (den,))[0] or den
-            rw, rh = _bk_res(S, d)
-            cd = _bk_inset_den(S["draw"][d], pden or 1000, max(10.0, W - used_w - BK_GAP - rw), (mh or hcap) - rh)
-            if cd:
-                dw, dh = sc_size(S["draw"][d], cd)
-                res[d] = (cd, dw + rw, dh + rh)
-                used_w += dw + rw
-                mh = max(mh, dh + rh)
-    mm = [d for d in cells if d not in res]
-    gaps = BK_GAP * (len(cells) - 1)
-    hc = mh if (m and mh > 0) else hcap
-    if mm:
-        avail = max(1.0, W - used_w - gaps)
-        fs = []
-        for d in mm:
-            D = S["draw"][d]
-            ew, eh = _sc_ext(D)
-            rw, rh = _bk_res(S, d)
-            lo, hi = (D.get("fit") or (0.5, 2.0))[:2]
-            hi = max(float(hi), BK_MM_MAX)                # v30.3: diagrams grow into the room they have
-            fs.append([d, min(float(hi), max(0.0, hc - rh) / eh), ew, eh, rw, rh, float(lo)])
-        if fs:                                       # v30.3: one factor per row, so cards of a row match
-            f0 = min(f[1] for f in fs)
-            for f in fs:
-                f[1] = f0
-        tw = sum(f[1] * f[2] + f[4] for f in fs)
-        if tw > avail:
-            k = avail / tw
-            for f in fs:
-                f[1] *= k
-        for d, f, ew, eh, rw, rh, lo in fs:
-            res[d] = (f, f * ew + rw, f * eh + rh)
-    w = sum(res[d][1] for d in cells) + gaps
-    h = max([res[d][2] for d in cells] or [0.0])
-    fit = w <= W + 1e-6
-    return dict(fit=fit, w=w, h=h, den=den, cells=[(d,) + res[d] for d in cells], mm_only=not m)
+def _bk_head_h(att, w):
+    """v32 box head: number disc + title row, then the subtitle (wrapped to the box width)"""
+    h = BK_HEAD_H if (att.get("head") or att.get("badge")) else 0.0
+    if att.get("sub"):
+        h += st_fit(att["sub"].get("string", u""), max(20.0, w), None, "caption")[3] + 1.0
+    return h
 
 
-def bk_fit(S, rows, W, H, common, pid):
-    """rows -> [eval] (see step 2)"""
-    n = len(rows)
-    if not n:
-        return []
-    gaps = BK_GAP * (n - 1)
-
-    def allowed(cells):
-        if S.get("scales"):                          # v30.3: the page plan's own scales (p22: 1:1,000 or 1:1,500)
-            return sorted(int(v) for v in S["scales"])
-        al = None
-        for d in cells:
-            D = S["draw"][d]
-            if D.get("units") == "m" and not _bk_parent(S, d):
-                a_ = set(_sc_allowed(D))
-                al = a_ if al is None else (al & a_)
-        return sorted(al) if al is not None else [None]
-    mm_min = {}
-    for i, r in enumerate(rows):
-        if allowed(r) == [None]:
-            e = bk_row_eval(S, r, W, None, H)
-            lo = min([(S["draw"][d].get("fit") or (0.5, 2.0))[0] for d in r] or [0.5])
-            mm_min[i] = min(e["h"], max(12.0, e["h"] * lo))
-    if common:
-        al = None
-        for r in rows:
-            a_ = allowed(r)
-            if a_ != [None]:
-                al = set(a_) if al is None else (al & set(a_))
-        al = [None] if al is None else sorted(al)
-        if not al:
-            wn_warn(pid, "scale", u"the page's drawings share no scale: each row takes its own")
-            common = False
-        else:
-            pick = None
-            for den in al:
-                ev = [bk_row_eval(S, r, W, den, H) if i not in mm_min else None for i, r in enumerate(rows)]
-                tot = sum(e["h"] for e in ev if e) + sum(mm_min.values()) + gaps
-                if all(e["fit"] for e in ev if e) and tot <= H + 1e-6:
-                    pick = den
-                    break
-            if pick is None:
-                pick = al[-1]
-                wn_warn(pid, "scale", u"rows do not fit %.0f x %.0f mm at any common scale; set at 1:%s" % (
-                    W, H, pick))
-            cur = [bk_row_eval(S, r, W, pick, H) if i not in mm_min else None for i, r in enumerate(rows)]
-    if not common:
-        cand = [allowed(r) for r in rows]
-        idx = [len(c) - 1 for c in cand]
-        cur = [bk_row_eval(S, r, W, cand[i][idx[i]], H) if i not in mm_min else None for i, r in enumerate(rows)]
-        for i, e in enumerate(cur):
-            if e and not e["fit"]:
-                wn_warn(pid, "scale", u"row %d (%s) is %.0f mm wide at its smallest scale 1:%s, %.0f mm free" % (
-                    i + 1, u", ".join(rows[i]), e["w"], e["den"], W))
-        while True:
-            tot = sum(e["h"] for e in cur if e) + sum(mm_min.values()) + gaps
-            best = None
-            for i, r in enumerate(rows):
-                if cur[i] is None or idx[i] == 0:
-                    continue
-                e2 = bk_row_eval(S, r, W, cand[i][idx[i] - 1], H)
-                if e2["fit"] and tot - cur[i]["h"] + e2["h"] <= H + 1e-6:
-                    gain = e2["w"] * e2["h"] - cur[i]["w"] * cur[i]["h"]
-                    if best is None or gain > best[0]:
-                        best = (gain, i, e2)
-            if best is None:
-                break
-            idx[best[1]] -= 1
-            cur[best[1]] = best[2]
-    tot_m = sum(e["h"] for e in cur if e)
-    if tot_m + sum(mm_min.values()) + gaps > H + 1e-6:
-        wn_warn(pid, "overrun", u"the drawing rows need %.0f mm, %.0f mm free: smallest scales used" % (
-            tot_m + sum(mm_min.values()) + gaps, H))
-    left = max(0.0, H - tot_m - gaps)
-    mm_rows = [i for i in range(n) if cur[i] is None]
-    while mm_rows:
-        share = left / len(mm_rows)
-        done = []
-        for i in mm_rows:
-            e = bk_row_eval(S, rows[i], W, None, share)
-            if e["h"] < share - 0.5:
-                cur[i] = e
-                done.append(i)
-        if not done:
-            for i in mm_rows:
-                cur[i] = bk_row_eval(S, rows[i], W, None, share)
-            break
-        for i in done:
-            left -= cur[i]["h"]
-            mm_rows.remove(i)
-    return cur
+def bk_disc(P, cx, cy, r, fill):
+    import fitz as _fz
+    sh = P.page.new_shape()
+    sh.draw_circle(_fz.Point(cx * BK_K, cy * BK_K), r * BK_K)
+    sh.finish(color=None, fill=hex_rgb(fill), width=0)
+    sh.commit()
 
 
 # ---- drawing ------------------------------------------------------------------------------------------------------
 def bk_north(P, rect, deg, did):
-    """true-north arrow (arrow + N, no box, G-R4-9) inside the drawing's top-right corner; deg = north's turn from
-    page-up, counter-clockwise (keymap.py north_items convention; UNVERIFIED against each script's own sign)"""
+    """true-north arrow (plain solid arrow + N, no box) OUTSIDE the drawing (G6-4): in the scale band under it, at its
+    right end; deg = north's turn from page-up, counter-clockwise (keymap.py north_items convention; UNVERIFIED
+    against each script's own sign)"""
     import math as _m
     h = BK_NORTH_MM
     t = _m.radians(float(deg))
     ux, uy = -_m.sin(t), -_m.cos(t)               # page y down
     px, py = -uy, ux
-    cx, cy = rect[2] - 6.0, rect[1] + 6.0 + h / 2.0
+    cx, cy = rect[2] - h / 2.0 - 0.5, rect[3] + BK_SCALE_H / 2.0 + 0.3
     fx, fy = cx - ux * h / 2.0, cy - uy * h / 2.0
 
     def R(a, b):
         return (fx + ux * b + px * a, fy + uy * b + py * a)
     ink = "2C2219"
     bk_line(P, [R(0.0, 0.0), R(0.0, 0.62 * h)], ink, 0.6)
-    hw = 0.22 * h
-    bk_poly(P, [R(0.0, h), R(-hw, 0.55 * h), R(0.0, 0.66 * h), R(hw, 0.55 * h)], ink, None, 0.1)
-    tx, ty = R(0.0, h + 2.4)
-    pt = 6.0
-    P.tp.put(u"N", tx, ty, pt, True, "MC", 0.0, "north", "label", ink, (did,))
-    P.tp.keep((cx - h / 2.0 - 1.0, cy - h / 2.0 - 4.0, cx + h / 2.0 + 1.0, cy + h / 2.0 + 1.0), "north", did)
+    hw = 0.24 * h
+    bk_poly(P, [R(0.0, h), R(-hw, 0.52 * h), R(hw, 0.52 * h)], ink, None, 0.1)
+    pt = 5.0
+    P.tp.put(u"N", cx - h / 2.0 - 0.8, cy + fm_asc_desc(pt, True)[0] / 2.0, pt, True, "R", 0.0, "north", "label", ink,
+             (did,))
+    P.tp.keep((cx - h / 2.0 - 0.3, cy - h / 2.0 - 0.3, cx + h / 2.0 + 0.3, cy + h / 2.0 + 0.3), "north", did)
 
 
 def bk_badges(P, placed):
@@ -364,19 +242,35 @@ def bk_place(P, S, did, s, x, y, side):
     """one cell at (x, y) top-left: heading, drawing, north, levels, labels, scale (see step 3) -> placed"""
     D = S["draw"][did]
     att = S["att"].get(did, dict(head=[], side=[], levels=[]))
-    rw, rh = _bk_res(S, did)
+    rw, rh = _bk_res(S, did, s)
     dw, dh = sc_size(D, s)
     yy = y
-    if att["head"]:
-        st_para(P, att["head"][0].get("string", u""), x, y, max(dw + rw, 30.0), BK_HEAD_H - 0.6, "heading",
-                justify=False, page=P.pid)
+    W = max(dw + rw, 30.0)
+    if att["head"] or att.get("badge"):                # v32 box head (Aras's W1 box): disc, title
+        hx = x
+        if att.get("badge"):
+            r_ = 1.8
+            bk_disc(P, x + r_, y + r_ + 0.2, r_, GRID_INK["accent"])
+            P.tp.keep((x, y, x + 2 * r_, y + 2 * r_ + 0.4), "marker", u"disc %s" % did)
+            bpt = 5.0
+            P.tp.put(att["badge"].get("string", u""), x + r_, y + r_ + 0.2, bpt, True, "MC", 0.0,
+                     att["badge"].get("id"), "badge", "FFFFFF", ("marker",))
+            hx += 2 * r_ + 1.2
+        if att["head"]:
+            st_para(P, att["head"][0].get("string", u""), hx, y, W - (hx - x), BK_HEAD_H - 0.6, "heading",
+                    justify=False, page=P.pid)
         yy += BK_HEAD_H
+    if att.get("sub"):
+        hh, _s2 = st_para(P, att["sub"].get("string", u""), x, yy, W, None, "caption", page=P.pid)
+        yy += hh + 1.0
+    if _bk_is_band(D):                                 # the label band sits between the head and the drawing
+        yy += pl_band_need(D, _bk_k(D, s))
     T = BkT(D, s, x, yy)
     placed = rd_drawing(P, D, T)
     S["placed"][did] = placed
-    if D.get("north_deg") is not None and (T.den or D.get("dkind") in ("plan", "diagram")):
+    if D.get("north_deg") is not None and D.get("role") != "keymap":
         bk_north(P, T.rect, D["north_deg"], did)
-    if D.get("window_m"):                            # p10 windows: one size, framed (S9 §5: no frame in the drawing)
+    if D.get("window_m"):                            # p09 windows: one size, framed (no frame in the drawing)
         bk_rect(P, T.rect, None, GRID_INK["ink"], 0.5)
     if not T.den:
         lo = (D.get("fit") or (0.5, 2.0))[0]
@@ -389,14 +283,17 @@ def bk_place(P, S, did, s, x, y, side):
         pl_rigid(P, placed, float(dden) / float(T.den))   # own text layout, scaled from its sheet scale to this one
     elif T.den:
         bk_badges(P, placed)
-        pl_labels(P, placed, side, roles=("label",))
+        if _bk_is_band(D):
+            pl_band(P, placed)
+        else:
+            pl_labels(P, placed, side, roles=("label",))
     else:                                           # v30.3: diagrams keep their own text layout, scaled with them
         pl_rigid(P, placed, s)
     if T.den:
         r = T.rect
         if D.get("scale_bar"):
             pl_scalebar(P, placed, r[0], r[3] + 1.2)
-        else:                                       # the drawing carries its own bar (S7 crops): the scale only
+        elif did not in S.get("noscale", ()):        # the drawing carries its own bar (S7 crops): the scale only
             pt = grid_role("caption")[0]
             a_, _d = fm_asc_desc(pt)
             P.tp.put(u"1:{:,}".format(int(T.den)), r[0], r[3] + 1.2 + a_, pt, False, "L", 0.0, None, "scale",
@@ -438,123 +335,486 @@ def bk_side_item(P, it, x, y, w, ybot):
     return 0.0
 
 
-def bk_right_drawing(P, S, did, x, y, w, ybot):
-    D = S["draw"][did]
-    rw, rh = _bk_res(S, did)
-    hmax = max(10.0, min(ybot - y, 110.0)) - rh
-    if D.get("units") == "m":
-        s = sc_pick(D, w - rw, hmax, page=P.pid)
-    else:
-        s = sc_factor(D, w - rw, hmax, P.pid, 2.0)    # v30.3: right-column diagrams keep the old x2 ceiling
-    side = TpSideList(u"%s %s" % (P.pid, did))
-    placed = bk_place(P, S, did, s, x, y, side)
-    yy = placed["rect"][3] + (BK_SCALE_H if placed["T"].den else 0.0) + 1.5
-    if side.entries:
-        yy += pl_side_rows(P, side, x, yy, w, max(4.0, ybot - yy)) + 1.5
-    for it in S["att"][did]["side"]:
-        yy += bk_side_item(P, it, x, yy, w, ybot) + 1.5
-    return yy - y
-
-
-def bk_photos(P, photos, x, y, w, ybot):
-    if not photos:
-        return 0.0
-    n = min(3, len(photos))
-    cw = (w - BK_GAP * (n - 1)) / float(n)
-    yy, hmax = y, 0.0
-    for i, ph in enumerate(photos):
-        c = i % n
-        if c == 0 and i:
-            yy += hmax + 1.5
-            hmax = 0.0
-        box = pl_photo(P, ph, x + c * (cw + BK_GAP), yy, cw, min(BK_PHOTO_H, max(8.0, ybot - yy - 6.0)))
-        hh = (box[3] - yy) if box else 0.0
-        cap = ph.get("caption")
-        if cap:
-            t = ix_text(cap, ph.get("_folder"))
-            if t and t != cap:
-                h2, _s = st_para(P, t, x + c * (cw + BK_GAP), yy + hh + 0.8, cw, 6.0, "caption", page=P.pid)
-                hh += h2 + 0.8
-        hmax = max(hmax, hh)
-    return yy + hmax - y
-
-
 # ---- the page -----------------------------------------------------------------------------------------------------
 BK_STAT = dict(drawings=0, scales=[], pages=[])
 
 
+
+
+# ---- frames (v31, G6-1) -------------------------------------------------------------------------------------------
+def _bk_frames(spec, pid):
+    """the page plan's frames -> [dict(key, pats, mm box, opts)]; overlapping frames = WARNING "frames" (a plan error;
+    a frame marked over=True may sit on another, e.g. p03's list over the axo's empty corner)"""
+    out = []
+    for f in spec.get("frames") or []:
+        pats = [f["ids"]] if isinstance(f["ids"], str) else list(f["ids"])
+        m_ = bk_pct(f["box"])                      # v32.4: clamped to the 14 / 12 mm margins (3.3 % = 13.86 mm put
+        m_ = (max(m_[0], GRID_ML), max(m_[1], GRID_MT),   # every left-column heading 0.14 mm into the margin)
+              min(m_[2], GRID_PAGE[0] - GRID_MR), min(m_[3], GRID_PAGE[1] - GRID_MB))
+        out.append(dict(f, pats=pats, key=f.get("key") or pats[0], mm=m_))
+    for i, a in enumerate(out):
+        for b in out[i + 1:]:
+            if a.get("over") or b.get("over"):
+                continue
+            ox = min(a["mm"][2], b["mm"][2]) - max(a["mm"][0], b["mm"][0])
+            oy = min(a["mm"][3], b["mm"][3]) - max(a["mm"][1], b["mm"][1])
+            if ox > 0.5 and oy > 0.5:
+                wn_warn(pid, "frames", u"frames %s and %s overlap %.0f x %.0f mm (page plan)" % (a["key"], b["key"],
+                                                                                              ox, oy))
+    return out
+
+
+def _bk_pool(S):
+    """every placeable item of the page, in export order: (id, kind, item); kind drawing | keymap | text | legend |
+    list | photo"""
+    out = [(d, "drawing", S["draw"][d]) for d in sorted(S["draw"], key=lambda d: (S["draw"][d].get("priority", 5), d))]
+    out += [(k.get("id"), "keymap", k) for k in S["keymaps"]]
+    heads = set(id(h) for a in S["att"].values() for h in a["head"] + [a.get("badge"), a.get("sub")] if h)
+    out += [(t.get("id"), "text", t) for t in S["texts"] if t is not S.get("intro") and id(t) not in heads]
+    out += [(it.get("id"), k, it) for k in ("legend", "list", "photo") for it in S[k + "s"]]
+    return out
+
+
+def _bk_match(S, frames):
+    """each frame's items in pattern order (first frame wins); returns the set of matched item object ids"""
+    pool = _bk_pool(S)
+    got = set()
+    for F in frames:
+        F["items"] = []
+        for p in F["pats"]:
+            for iid, k, it in pool:
+                if id(it) in got or iid is None:
+                    continue
+                if (fnmatch.fnmatchcase(iid, p) if _bk_pat(p) else iid == p):
+                    got.add(id(it))
+                    F["items"].append((iid, k, it))
+    return got
+
+
+def _bk_fit(S, did, w, h, pid):
+    """the uniform size of drawing did in a w x h mm box: den (maps, sections: the largest list scale that fits) or
+    factor (diagrams, charts, key maps: the largest that fits, <= BK_MM_MAX); reserves its heading / band and (v32)
+    its level column MEASURED at each scale tried (a crowded column takes two value columns)"""
+    D = S["draw"].get(did) or ix_get(did)
+    inn = did in S["draw"]
+    if D.get("units") == "m" and D.get("role") != "keymap":
+        al = _sc_allowed(D)
+        for den in al:
+            rw, rh = _bk_res(S, did, den) if inn else (0.0, 0.0)
+            dw, dh = sc_size(D, den)
+            if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                return den
+        for den in [v for v in BK_SCALES if v > al[-1]]:  # v32.4 (LAYOUT_PLAN §3.2-2): no scale of its range fits:
+            rw, rh = _bk_res(S, did, den) if inn else (0.0, 0.0)   # the next coarser booklet scale that does, so
+            dw, dh = sc_size(D, den)                     # the drawing stays inside its frame and the page
+            if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                BK_PAGENO_LOG.append(u"scale %s %s: 1:%d (its range 1:%d-1:%d does not fit %.0f x %.0f mm)" % (
+                    pid, did, den, al[0], al[-1], w, h))
+                return den
+        rw, rh = _bk_res(S, did, al[-1]) if inn else (0.0, 0.0)
+        return sc_pick(D, max(1.0, w - rw), max(1.0, h - rh), page=pid)       # its WARNING "scale" line
+    rw, rh = _bk_res(S, did) if inn else (0.0, 0.0)
+    f = sc_factor(D, max(1.0, w - rw), max(1.0, h - rh), pid)
+    if inn:                                          # v32: the head (subtitle wraps to the width) measured at f
+        for _i in range(2):
+            rw, rh = _bk_res(S, did, f)
+            dw, dh = sc_size(D, f)
+            if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                break
+            ew, eh = _sc_ext(D)
+            f = max(1e-3, min((w - rw) / ew, (h - rh) / eh))
+    return f
+
+
+def _bk_boxes(F, n, items=None):
+    """a frame's box (less its "foot") cut into n cells: side by side (split "row") or stacked ("col"); default along
+    its longer side; cells sized by the drawings' extents along the split (so one-scale cuts of different lengths each
+    get their share), gap = the frame's "gap" in mm (default BK_GAP)"""
+    b = F["mm"]
+    if F.get("foot"):                              # room kept under the drawings for their notes (% of the page)
+        b = (b[0], b[1], b[2], max(b[1] + 5.0, b[3] - float(F["foot"]) * BK_PCT[1]))
+    if n <= 1:
+        return [b]
+    sp = F.get("split") or ("row" if (b[2] - b[0]) >= (b[3] - b[1]) else "col")
+    wts = None
+    if items and len(items) == n:
+        try:
+            wts = [max(1e-6, _sc_ext(it)[0 if sp == "row" else 1]) for _i, _k, it in items]
+        except Exception:
+            wts = None
+    return lay_split(b, n, float(F.get("gap", BK_GAP)), vertical=(sp == "col"), weights=wts)
+
+
+def _bk_same(S, frames, pid):
+    """frames sharing a "same" key: one scale (the smallest print of their fits) / one factor (the smallest)"""
+    val = {}
+    for F in frames:
+        k = F.get("same")
+        if not k:
+            continue
+        ds = [(iid, kk, it) for iid, kk, it in F["items"] if kk in ("drawing", "keymap")]
+        for (did, kk, _it), b in zip(ds, _bk_boxes(F, len(ds), ds)):     # the same cells as _bk_frame_draw
+            if kk != "drawing" or _bk_parent(S, did):
+                continue
+            s = _bk_fit(S, did, b[2] - b[0], b[3] - b[1], pid)
+            m = S["draw"][did].get("units") == "m"
+            cur = val.get(k)
+            if cur is None:
+                val[k] = (m, s)
+            elif cur[0] != m:
+                wn_warn(pid, "scale", u"frames \"%s\" mix maps and diagrams: %s keeps its own size" % (k, did))
+            else:
+                val[k] = (m, max(cur[1], s) if m else min(cur[1], s))
+    return val
+
+
+class _BkTgt(object):
+    """a place where notes stack: a box and its running y"""
+    def __init__(self, key, box, y=None):
+        self.key, self.box, self.y, self.over = key, box, box[1] if y is None else y, False
+
+
+BK_FLOW_COL = 64.0                 # v32.4: a notes frame at least 2 x this wide flows its notes in columns
+
+
+def _bk_est_h(P, it, w):
+    """a quick height estimate of one note at width w (only to choose where a column breaks)"""
+    k = it.get("kind")
+    if k == "legend":
+        n_ = len(it.get("entries") or [])
+        cols = max(1, min(2, int((w + 4.0) // 40.0) or 1))
+        return 1.3 * (PL_SW["h"] + PL_SW["row_gap"] + 0.6) * (-(-n_ // cols)) + (5.0 if it.get("title") else 0.0)
+    if k == "list":
+        return 3.4 * len(it.get("items") or [])
+    if k == "text":
+        role = it.get("role") or "note"
+        try:
+            return st_fit(it.get("string", u""), w, None, role if role in GRID_ROLE_PT else "note", page=P.pid)[3]
+        except Exception:
+            return 6.0
+    return 0.0
+
+
+def _bk_put(P, tg, it):
+    """one text / legend / list at the target's running y; past the box foot = one WARNING "overrun" per target.
+    v32.4: in a frame at least 2 x BK_FLOW_COL wide the notes flow in columns (top to bottom, then the next column),
+    so a stack of legends no longer runs past the page foot while the frame's width stays empty (p21)"""
+    x0, _y0, x1, y1 = tg.box
+    nc = int((x1 - x0 + 4.0) // BK_FLOW_COL) if it.get("kind") != "photo" else 1
+    if it.get("kind") == "legend" and not getattr(tg, "col", 0) and (x1 - x0) > 4.0 * max(1.0, y1 - _y0):
+        nc = 1                                     # v32.6: a legend in a band frame (4 x wider than tall) takes the
+    if nc >= 2:                                    # frame's width in its own columns (in one 64 mm column it ran
+        #                                            28 mm past the p19 foot)
+        cw = (x1 - x0 - 4.0 * (nc - 1)) / float(nc)
+        c = getattr(tg, "col", 0)
+        top = getattr(tg, "ctop", tg.y)
+        tg.ctop = top
+        if c < nc - 1 and tg.y > top + 1e-6 and tg.y + _bk_est_h(P, it, cw) > y1 + 0.5:
+            c += 1
+            tg.y = top
+        tg.col = c
+        x0 = x0 + c * (cw + 4.0)
+        x1 = x0 + cw
+    if it.get("kind") == "photo":
+        hh = _bk_photo_grid(P, [it], (x0, tg.y, x1, y1))
+    else:
+        hh = bk_side_item(P, it, x0, tg.y, x1 - x0, y1)
+    tg.y += hh + BK_NOTE_GAP
+    if tg.y > y1 + 0.5 and not tg.over:
+        tg.over = True
+        wn_warn(P.pid, "overrun", u"frame %s: its texts run %.0f mm past its foot (y %.0f mm)" % (tg.key, tg.y - y1, y1))
+    return hh
+
+
+def _bk_photo_grid(P, photos, box):
+    """photos in a grid filling the box (proportions kept, never stretched); captions under each; -> height used"""
+    if not photos:
+        return 0.0
+    import math as _m
+    x0, y0, x1, y1 = box
+    w, h = x1 - x0, max(8.0, y1 - y0)
+    n = len(photos)
+    cols = max(1, min(n, int(round(_m.sqrt(n * w / h))) or 1))
+    rows = -(-n // cols)
+    cw = (w - BK_GAP * (cols - 1)) / float(cols)
+    ch = (h - BK_GAP * (rows - 1)) / float(rows)
+    ybot = y0
+    for i, ph in enumerate(photos):
+        c, r = i % cols, i // cols
+        cx, cy = x0 + c * (cw + BK_GAP), y0 + r * (ch + BK_GAP)
+        cap = ph.get("caption")
+        t = ix_text(cap, ph.get("_folder")) if cap else u""
+        ch_img = ch - (6.0 if t else 0.0)
+        bx = pl_photo(P, ph, cx, cy, cw, max(4.0, ch_img))
+        yb = bx[3] if bx else cy
+        if t:
+            h2, _s = st_para(P, t, cx, yb + 0.8, cw, 5.2, "caption", page=P.pid)
+            yb += h2 + 0.8
+        ybot = max(ybot, yb)
+    return ybot - y0
+
+
+def _bk_frame_draw(P, S, F, same, tg_of, pid):
+    """the drawings of one frame (see steps 3-4); returns [did]"""
+    ds = [(iid, kk, it) for iid, kk, it in F["items"] if kk in ("drawing", "keymap")]
+    out, bottom = [], F["mm"][1]
+    al = (F.get("al") or F.get("_al") or "TL").upper()
+    for (did, kk, it), b in zip(ds, _bk_boxes(F, len(ds), ds)):
+        w, h = b[2] - b[0], b[3] - b[1]
+        if kk == "keymap":
+            f = sc_factor(it, w, h, pid)
+            dw, dh = sc_size(it, f)
+            ox = b[0] + {"C": (w - dw) / 2.0, "R": w - dw}.get(al[1:2], 0.0)
+            oy = b[1] + {"M": (h - dh) / 2.0, "B": h - dh}.get(al[:1], 0.0)
+            pl = pl_mm_drawing(P, it, ix_texts(it), ox, oy, dw, dh, "L")
+            BK_STAT["drawings"] += 1
+            bottom = max(bottom, pl["rect"][3])
+            out.append(did)
+            continue
+        D = S["draw"][did]
+        rw, rh = _bk_res(S, did)
+        par = _bk_parent(S, did)
+        if par and D.get("units") == "m":
+            pp = S["placed"].get(par)
+            if pp and pp["T"].den:
+                s = sc_inset_den(pp["T"].den, D, max(1.0, w - rw), max(1.0, h - rh), pid)
+            else:
+                wn_warn(pid, "scale", u"inset %s placed before its parent %s (page plan order): own fit" % (did, par))
+                s = _bk_fit(S, did, w, h, pid)
+        elif F.get("same") in same and same[F["same"]][0] == (D.get("units") == "m"):
+            s = same[F["same"]][1]
+        else:
+            s = _bk_fit(S, did, w, h, pid)
+        rw, rh = _bk_res(S, did, s)
+        dw, dh = sc_size(D, s)
+        tw, th = dw + rw, dh + rh
+        ox = b[0] + {"C": (w - tw) / 2.0, "R": w - tw}.get(al[1:2], 0.0)
+        oy = b[1] + {"M": (h - th) / 2.0, "B": h - th}.get(al[:1], 0.0)
+        side = TpSideList(u"%s %s" % (pid, did))
+        if F.get("noscale"):                       # the drawing's own bar is its scale (p19: no orphan "1:n")
+            S.setdefault("noscale", set()).add(did)
+        pl = bk_place(P, S, did, s, ox, oy, side)
+        yb = pl["rect"][3] + (BK_SCALE_H if (pl["T"].den or D.get("north_deg") is not None) else 0.0)
+        bottom = max(bottom, yb)
+        out.append(did)
+        if side.entries:                           # labels that fell back to numbers: their rows with the notes
+            tg = tg_of(F, did)
+            tg.y += pl_side_rows(P, side, tg.box[0], tg.y, tg.box[2] - tg.box[0], max(4.0, tg.box[3] - tg.y)) + \
+                BK_NOTE_GAP
+    return out, bottom
+
+
+# ---- v32 (L1, LAYOUT_PLAN_booklet_places_all.md §3.2; Aras 4 Nov 19:17-19:25) -------------------------------------
+# "scripts just produce the drawings and booklet script ... detects the size needed for each drawing and where they
+# needs to go and places them": (1) the page is JUSTIFIED (Aras 19:23 "pages needs to be aligned like justified",
+# "the drawings etc. needs to fill the pages"): every frame with content grows into the free page space beside and
+# under it, to the margins or to its neighbour's gutter, so the blocks run flush from margin to margin (the
+# SUBMISSION_SON arrangement kept: frames only grow, never move or swap); a frame flush with the right margin only
+# sets its drawing right; (2) each drawing takes the largest list scale at which it AND its measured level column,
+# heading and scale band fit its grown frame; (3) after placing, the collision test runs and every text that hits
+# something is placed again by the chain (bk_fix -> pl_chain: free spot round its point, short form, OUTSIDE the
+# drawing with a leader line, number + key row). Aras 19:25: making things smaller is a band-aid, so NO drawing is
+# scaled down and NO text is shrunk to clear a hit; (4) only hits left after that are WARNINGs, the texts printed.
+BK_PNO_CLEAR = 16.0        # mm: frames reaching the bottom-right corner stop above the page number
+
+
+def _bk_justify(frames, pid, side_key=None):
+    """grows every frame that holds items into the free space round it (see the note above); returns n frames grown.
+    Frames that receive notes (another frame's "note") and the page's side frame count as taken even when empty."""
+    inn = (GRID_ML, BK_BAND["rule_y"] * BK_PCT[1] + BK_GAP, GRID_PAGE[0] - GRID_MR, GRID_PAGE[1] - GRID_MB)
+    tgt = set(F.get("note") for F in frames if F.get("note")) | set([side_key])
+    live = [F for F in frames if (F.get("items") or F["key"] in tgt) and not F.get("over")]
+    n = 0
+
+    def ov(a0, a1, b0, b1):
+        return min(a1, b1) - max(a0, b0) > 0.5
+    for axis in (0, 1):                                  # widths first, then heights against the new widths
+        for F in live:
+            x0, y0, x1, y1 = F["mm"]
+            if axis == 0:
+                others = [G["mm"] for G in live if G is not F and ov(y0, y1, G["mm"][1], G["mm"][3])]
+                lo = max([g[2] + BK_GAP for g in others if g[2] <= x0 + 0.5] + [inn[0]])
+                hi = min([g[0] - BK_GAP for g in others if g[0] >= x1 - 0.5] + [inn[2]])
+                nb = (min(x0, lo), y0, max(x1, hi), y1)
+            else:
+                others = [G["mm"] for G in live if G is not F and ov(x0, x1, G["mm"][0], G["mm"][2])]
+                lo = max([g[3] + BK_GAP for g in others if g[3] <= y0 + 0.5] + [inn[1]])
+                bot = inn[3] - (BK_PNO_CLEAR * 0.5 if x1 > inn[2] - BK_PNO_CLEAR else 0.0)
+                hi = min([g[1] - BK_GAP for g in others if g[1] >= y1 - 0.5] + [bot])
+                nb = (x0, min(y0, lo), x1, max(y1, hi))
+            if any(abs(a - b) > 0.5 for a, b in zip(nb, F["mm"])):
+                F["mm"] = nb
+                n += 1
+            if not F.get("al") and nb[2] >= inn[2] - 0.5 and nb[0] > inn[0] + 0.5:
+                F["_al"] = "TR"                          # flush with the right margin
+    return n
+
+
+def bk_fix(P, rounds=3):
+    """v32: the texts that hit something run the chain again (pl_chain; the later / movable one of each pair moves);
+    returns the hits left"""
+    for _r in range(rounds):
+        if bk_late():                                     # v32.4: past the page budget, no more fix rounds
+            break
+        hits = P.tp.hits_now(True)
+        movers, seen = [], set()
+        for _k, a, b in hits:
+            for t in ((b, a) if isinstance(b, dict) and "text" in b else (a,)):
+                if isinstance(t, dict) and "text" in t and (t.get("extra") or {}).get("fx") and id(t) not in seen:
+                    seen.add(id(t))
+                    movers.append(t)
+                    break
+        if not movers:
+            return hits
+        for t in movers:
+            fx = t["extra"]["fx"]
+            if fx.get("tries", 0) >= 3:
+                continue
+            fx["tries"] = fx.get("tries", 0) + 1
+            if P.tp.unput(t):
+                pl_unleader(P, fx)
+                pl_chain(P, fx, P.fx_side, first=False)
+    return P.tp.hits_now(True)
+
+
+def bk_own_hits(P):
+    """v32.4: overlaps left INSIDE one drawing after the booklet moved what it could within that drawing (texts its
+    script exported on top of each other): one WARNING per drawing naming the script, with the first pairs, so the
+    rest is fixed where it is made (the page test also lists each pair)"""
+    tp = P.tp
+    by = {}
+    for n, it in enumerate(tp.items):
+        ex = it.get("extra") or {}
+        g = u"%s" % (ex.get("dgrp") or (ex.get("fx") or {}).get("dgrp") or u"")
+        if g.startswith(u"drw:"):
+            by.setdefault(g[4:], []).append(it)
+    for did, its in by.items():
+        pairs = []
+        for i, a in enumerate(its):
+            for c in its[i + 1:]:
+                if tp_hit(a["box"], c["box"], 0.0) and a.get("text") != c.get("text"):
+                    pairs.append((a["text"], c["text"]))
+        if pairs:
+            sc_ = (BK_IX_OWNER.get(did) if "BK_IX_OWNER" in globals() else None) or did.split(u"_")[0]
+            wn_warn(P.pid, "own", u"%s: %d text pairs still on top of each other inside it (its script %s set them so), e.g. %s"
+                    % (did, len(pairs), sc_, u"; ".join(u"%r / %r" % (a[:30], b[:30]) for a, b in pairs[:3])))
+
+
 def bk_content_page(doc, spec, n, lines):
+    """one content page from its frames (see the part notes): compose, fix every hit by moving texts, check"""
+    pid = spec["pid"]
+    R = _bk_compose(doc, spec, n)
+    P, S = R["P"], R["S"]
+    st = pl_stat(P)
+    bk_own_hits(P)                                        # v32.4: texts a script set on top of each other
+    ck_page(P)                                            # the final test: every hit left = one WARNING line
+    bk_finish(P)
+    g = BK_GRP.get(pid, dict(kinds=set(), elements=set(), untagged=0))
+    lines.append(u"page %s frames=%d placed=%d unlisted=%d (attached notes %d)" % (pid, len(R["frames"]),
+                                                                                R["placed"], R["unl"], R["att"]))
+    lines.append(u"layout %s drawings %d, labels %d (moved %d, short %d, leader %d, numbered %d), drawings made "
+                 u"smaller 0, hits left %d (frames grown %d)" % (
+                     pid, len(S["placed"]), st["labels"], st["moved"], st["short"], st["leader"], st["numbered"],
+                     len(R["left"]), R["grown"]))
+    if BK_PG["late"]:
+        wn_warn(pid, "time", u"page past its %.0f s budget: %d texts set at their own spot without the search "
+                u"(%.0f s)" % (BK_PAGE_BUDGET, BK_PG["late"], time.time() - BK_PG["t0"]))
+    if "wp_groups_log" in globals():                # S2's writer counts what it actually wrote
+        lines.append(wp_groups_log(pid))
+    else:
+        lines.append(u"groups %s kinds=%d elements=%d untagged=%d" % (pid, len(g["kinds"]), len(g["elements"]),
+                                                                    g["untagged"]))
+    lines.append(u"page %d %s: drawings %s" % (
+        n, pid, u", ".join(u"%s %s" % (d, (u"1:%d" % p_["T"].den) if p_["T"].den else (u"x%.2f" % p_["T"].k))
+                           for d, p_ in S["placed"].items())))
+    return P
+
+
+def _bk_compose(doc, spec, n):
+    """one content page (see the part notes); returns dict(P, S, frames, left hits, counts)"""
     pid = spec["pid"]
     S = bk_items(pid)
     S["placed"] = {}
-    S["scales"] = spec.get("scales")
     bk_attach(S)
     P = bk_page(doc, pid, n)
-    L = lay_page(P, spec.get("share", BK_SHARE), 1)
+    P.fx_side = TpSideList(u"%s page key" % pid)
+    pl_stat(P)
     intro = S["intro"].get("string") if S["intro"] else spec.get("intro")
-    bk_title(P, L, spec["title"], intro)
-    rows = [c for c in (bk_cells(S, r, pid) for r in spec.get("rows") or []) if c]
-    right = []
-    for p in spec.get("right") or []:
-        right += bk_cells(S, [p], pid)
-    left_over = [d for d in sorted(S["draw"], key=lambda d: (S["draw"][d].get("priority", 5), d)) if d not in S["used"]]
-    if left_over:
-        lines.append(u"%s: not in the page plan, set in the right column: %s" % (pid, u", ".join(left_over)))
-        right += left_over
-    if not rows and not right and not S["keymaps"]:
-        wn_warn(pid, "missing", u"no items exported for this page: its scripts were not run (page left with its title)")
-    dr = L["draw"]
-    if spec.get("below"):                          # v30.3: drawings take the full width; the right column's items
-        b_ = float(spec["below"])                  # (legend, notes) go in a band of this height under them
-        al_ = L["all"]
-        dr = (al_[0], al_[1], al_[2], al_[3] - b_)
-        L["right"] = (al_[0], al_[3] - b_ + BK_GAP, al_[2], al_[3])
-    W, H = dr[2] - dr[0], dr[3] - dr[1]
-    ev = bk_fit(S, rows, W, H, spec.get("common"), pid)
-    used = sum(e["h"] for e in ev) + BK_GAP * max(0, len(ev) - 1)
-    extra = max(0.0, H - used) / float(len(ev) + 1) if ev else 0.0
-    y = dr[1] + extra
-    row_tops = []
-    for i, (r, e) in enumerate(zip(rows, ev)):
-        side = TpSideList(u"%s row %d" % (pid, i + 1))
-        x = dr[0]
-        row_tops.append((y, r, side))
-        for did, s, cw, ch in e["cells"]:
-            bk_place(P, S, did, s, x, y, side)
-            x += cw + BK_GAP
-        y += e["h"] + BK_GAP + extra
+    part = spec.get("part")
+    bk_band(P, (u"%s  %s" % (part, PARTS.get(part, u""))).upper() if part else None, spec["title"], intro)
+    frames = _bk_frames(spec, pid)
+    framed = _bk_match(S, frames)
+    grown = _bk_justify(frames, pid, spec.get("side"))
+    same = _bk_same(S, frames, pid)
+    tg = {}
+    for F in frames:
+        tg[F["key"]] = _BkTgt(F["key"], F["mm"])
+    side_key = spec.get("side")
+    if side_key not in tg:
+        wn_warn(pid, "frames", u"the page plan names no side frame (%r): unlisted items go under the last frame"
+                % side_key)
+        side_key = frames[-1]["key"] if frames else None
+    if side_key is None:
+        tg[None] = _BkTgt(None, GRID_AREA)
+
+    def tg_of(F, did=None):
+        """where a drawing's notes go: its frame's "note" frame, else under it in its own frame, else the side"""
+        k = F.get("note")
+        if k in tg:
+            return tg[k]
+        t = tg[F["key"]]
+        if t.box[3] - t.y >= 8.0:
+            return t
+        return tg[side_key]
+    owner_f = {}
+    n_placed = 0
+    for F in frames:
+        if not F["items"]:
+            if not F.get("opt"):
+                wn_warn(pid, "missing", u"frame %s: nothing exported for %s (its script not run, or the id changed)"
+                        % (F["key"], u", ".join(F["pats"])))
+            continue
+        ds, bottom = _bk_frame_draw(P, S, F, same, tg_of, pid)
+        for d in ds:
+            owner_f[d] = F
+        if ds:
+            tg[F["key"]].y = bottom + BK_NOTE_GAP
+        photos = [it for _i, kk, it in F["items"] if kk == "photo"]
+        if photos:
+            t = tg[F["key"]]
+            t.y += _bk_photo_grid(P, photos, (t.box[0], t.y, t.box[2], t.box[3])) + BK_NOTE_GAP
+        for _i, kk, it in F["items"]:
+            if kk in ("text", "legend", "list"):
+                _bk_put(P, tg[F["key"]], it)
+        n_placed += len(F["items"])
     bk_insets(P, S)
-    # right column
-    rx0, ry0, rx1, ry1 = L["right"]
-    rw = rx1 - rx0
-    cy = ry0 if spec.get("below") else max(ry0, L["intro"][3] + 1.0)
-    for km in S["keymaps"]:
-        f = sc_factor(km, rw, min(spec.get("km_h", BK_KM_H), max(10.0, ry1 - cy)), pid)
-        dh = _sc_ext(km)[1] * f
-        pl = pl_mm_drawing(P, km, ix_texts(km), rx0, cy, rw, dh, "L")
-        cy = pl["rect"][3] + BK_GAP
-    for top, r, side in row_tops:
-        cy = max(cy, top)
-        if side.entries:
-            cy += pl_side_rows(P, side, rx0, cy, rw, max(4.0, ry1 - cy)) + 1.5
-        for did in r:
-            for it in S["att"][did]["side"]:
-                cy += bk_side_item(P, it, rx0, cy, rw, ry1) + 1.5
-        cy += 1.0
-    for i_, did in enumerate(right):               # v30.3: the room left is shared evenly by the drawings still to come
-        share_ = (ry1 - cy - BK_GAP * (len(right) - i_ - 1)) / float(len(right) - i_)
-        cy += bk_right_drawing(P, S, did, rx0, cy, rw, cy + max(10.0, share_)) + BK_GAP
-    for it in S["page"]:
-        cy += bk_side_item(P, it, rx0, cy, rw, ry1) + 1.5
-    cy += bk_photos(P, S["photos"], rx0, cy, rw, ry1)
-    if cy > ry1 + 0.5:
-        wn_warn(pid, "overrun", u"the right column runs %.0f mm past the foot: cut text or widen the column (share)"
-                % (cy - ry1))
+    # a placed drawing's attached items that no frame names: with their drawing
+    n_att = 0
+    for did, F in owner_f.items():
+        for it in S["att"].get(did, {}).get("side", []):
+            if id(it) not in framed:
+                framed.add(id(it))
+                _bk_put(P, tg_of(F, did), it)
+                n_att += 1
+    # everything else: unlisted -> the side frame, WARNING (never lost)
+    unl = [(iid, kk, it) for iid, kk, it in _bk_pool(S) if id(it) not in framed]
+    for iid, kk, it in sorted(unl, key=lambda r: u"%s" % r[0]):
+        wn_warn(pid, "unlisted", u"%s %s is in no frame of the page plan: set in the side frame %s" % (kk, iid, side_key))
+        t = tg[side_key]
+        if kk in ("drawing", "keymap"):
+            Fx = dict(key=u"side %s" % iid, mm=(t.box[0], t.y, t.box[2], max(t.y + 10.0, t.box[3])),
+                      items=[(iid, kk, it)])
+            _ds, bottom = _bk_frame_draw(P, S, Fx, {}, lambda F_, d_=None: t, pid)
+            t.y = bottom + BK_NOTE_GAP
+            if t.y > t.box[3] + 0.5:
+                wn_warn(pid, "overrun", u"side frame %s: %s runs past its foot" % (side_key, iid))
+        else:
+            _bk_put(P, t, it)
     bk_pageno(P, n)
-    ck_page(P)
-    bk_finish(P)
-    lines.append(u"page %d %s: rows %d, right %d, key maps %d, drawings %s" % (
-        n, pid, len(rows), len(right), len(S["keymaps"]),
-        u", ".join(u"%s %s" % (d, (u"1:%d" % p_["T"].den) if p_["T"].den else (u"x%.2f" % p_["T"].k))
-                   for d, p_ in S["placed"].items())))
-    return P
+    left = bk_fix(P)
+    if P.fx_side.entries:                                 # texts the fix pass numbered: their key rows in the side frame
+        t = tg[side_key]
+        t.y += pl_side_rows(P, P.fx_side, t.box[0], t.y, t.box[2] - t.box[0], max(4.0, t.box[3] - t.y)) + BK_NOTE_GAP
+        left = P.tp.hits_now(True)
+    pl_draw_leaders(P)
+    return dict(P=P, S=S, frames=frames, left=left, placed=n_placed, unl=len(unl), att=n_att, grown=grown)

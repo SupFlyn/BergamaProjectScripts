@@ -1,10 +1,33 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_proposal_sections_v19.py = v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_proposal_sections_v21.py = v21 (4 Nov 2026, layout rework L5: every sketch label goes to the booklet as an item, nothing left out, see NEW IN v21); v20 (4 Nov 2026, round 6 S6: page p12 = the 28 Oct 4-in-1 SKETCH page restored as booklet items, see NEW IN v20); v19.1 fix 2 Nov: key map run warnings; v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
 """BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
+NEW IN v21 (layout rework L5, 4 Nov 2026; Aras 19:17-19:18 "make all the scripts just produce the drawings and
+  booklet script ... places them"; LAYOUT_PLAN_booklet_places_all.md §3.1; a feature change):
+  * declutter() is gone: the script no longer moves a label or leaves one out ("label ... left out (no free place
+    near it)" warnings end). Every line of every sketch label is a label item of its panel (role "label", anchor = its
+    drawn point in the panel's mm, drawn alignment first), ids ps_panel_<n>_lbl_<g>_<line>; the booklet places them and
+    fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11): circle drawn,
+    digit = role "badge" (ps_panel_<n>_num_<digit>, the booklet keeps it on its circle).
+  * Log per panel: "p12 ps_panel_<n>: labels L (N lines) exported at their drawn points; the booklet places them".
+  * One box per drawing (L1, Aras 19:26): panel number = badge "n" (ps_panel_<n>_num, no `at`), title without the
+    number = heading, purpose line = caption priority 1, all with drawing=ps_panel_<n>.
+  * SKETCH_SRC.py (shared with agriculture) unchanged.
+NEW IN v20 (round 6, S6, 4 Nov 2026; BRIEF row 12, Q9, G6-1..G6-10, P-1, P-7, P-12; a feature change):
+  * Booklet page p12 "The proposals in section" = refs/targets/r06_S02: four SKETCH panels (1 upstream entry, 2 K4
+    bridge · walking hub, 3 K5 bridge · Demeter's Garden + walking hub, 4 downstream reach) restored from the 28 Oct
+    code (commit f93d84b, v8.1: draw_concept, declutter, sections + data/SKETCH_SRC.py), exported as items ps_panel_1-4
+    (scale-free drawings, one common factor, same extent), titles + purpose lines, one legend strip (hue table, G6-6),
+    a small W1-W4 key map (keymap.py v3, P-1), caption "1-11 as in Collect, clean, hold" (CCH_STEPS numbers).
+  * 28 Oct values replaced: Q500 words read live from the level table (W1, W3, W4); the rain shares (59.1 %, 7.4 %)
+    left out (no shared data file holds the MGM monthly rain); "[n]" -> {src:key} for public sources only.
+  * The target's overlaps moved apart (SUB-HUB caption under the cut, steps label short lines, Q500 words over the
+    line, panel 3 number 9, panel 4 labels); no hatches (flat water, flat soil, flat tier bands); trees named by species
+    in their groups (G6-9, G6-10); every element its own group inside its kind (S2 grp tags).
+  * Gone: the true-scale W1-W4 sections, insets, lists and material legend of v17-v19 (parts/70_sections.py).
 NEW IN v19 (round 5, S9, 2 Nov 2026; G-R5-12, D9, N3 a, P13.1-P13.4, G-R5-4.6, G-R5-5, D8, A17, C1; a feature change):
   * Produce, the booklet composes: no A0 sheet, no PDF, no page layout. W1-W4 go to ONE booklet page "p13" (p13 + p14
     merged) at 1:500, each cut one true-scale drawing in metres (x across the stream from the cut axis, NE left;
@@ -111,14 +134,16 @@ WHAT IT DRAWS (v10): one A0 landscape sheet, all vector, whole-string text; the 
   intake and lift, basin volumes.
 
 COMPONENT: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. Input run (Button), outputs log and done.
+v20 NEEDS the new Data file: copy bergama_proposal_sections_data.py (holds SKETCH_SRC) to Downloads/Bergama/Data/.
 Writes Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json (v19; no PDF); log in
 Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
 board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
-HOW WE KNOW IT WORKS (v19): the text under the component reads "ProposalSections v19 · HH:MM · N s"; the log starts
-with "ProposalSections v19 · HH:MM", the items path, "<n> warnings" and the WARNING lines, and has the line
-"items bergama_proposal_sections: drawing 9, ... -> ...items.json" (4 cuts + 4 insets + the key map); no PDF is
-written (the booklet v30+ shows p13).
+HOW WE KNOW IT WORKS (v21): the text under the component reads "ProposalSections v21 · HH:MM · N s"; the log has
+"p12 ps_panel_1: labels ... none left out" for each panel and no "left out (no free place" warning; it also has
+"section p12 P1 W1 SKETCH" ... "P4", "keymap p12 module cuts=W1,W2,W3,W4 study_closed=1", "legend p12 hues=table",
+"trees p12 species=...", "p12 numbers 1-11 as CCH_STEPS: ..." and "items bergama_proposal_sections: drawing 5, ...";
+the booklet v31 shows p12.
 """
 import os
 import json
@@ -130,7 +155,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v19"  # v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v21.1"  # v21.1 fix: common key map names never left out (the booklet places them); v21 4 Nov (layout L5): sketch labels exported as label items, none moved or left out (booklet places them); v20 4 Nov (round 6 S6): p12 = the 28 Oct 4-in-1 SKETCH page (f93d84b) as booklet items, hue table, key map v3, groups; v19.1 2 Nov: key map run warnings; v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
@@ -170,7 +195,7 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
 # only their public sources; levels read as the water balance's (method + the DSİ design flow). In reading order.
 # v10: no [n] marks on the drawings any more (cite() removed); the key goes to the booklet's sources page and the log.
 # Rain, hamam and gauges went with the sketches; the bed width's public source comes from the level module.
-SRC_KEY = [
+SRC_KEY = [   # v20: public sources only; the sketches cite them as {src:key} (PS_CITE, parts/90_booklet.py)
     ("levels", u"Q100, Q500: DSİ design flows, Q500 263.3 m³/s (Danıştay 6. D. 2021/9521 E.)"),
     ("plane", u"Ottoman squares with plane trees: ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered "
               u"Cultural Landscape, p. 281"),
@@ -180,14 +205,8 @@ SRC_KEY = [
 
 
 def ps_sources():
-    """SRC_KEY plus the public sources the level module gives for the four cuts (today: the DSİ bed width, SYGM)"""
-    out, seen = list(SRC_KEY), set()
-    for _, cid, _, _, _ in PS_CUTS:
-        s = level_public_source(cid, "bed_width_cm")
-        if s and s not in seen:
-            seen.add(s)
-            out.append(("bed_" + cid, u"DSİ bed width: " + s))
-    return out
+    """v20: SRC_KEY (the sketch page prints no bed width, so the DSİ bed-width rows of v19 are gone)"""
+    return list(SRC_KEY)
 
 # ---------------------------------------------------------------- text metrics, page and PDF writer (water loop v2)
 _MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
@@ -259,6 +278,8 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 #@include ../common/write_pdf.py
 
+#@include ../common/_tree_rand.py
+
 # ---------------------------------------------------------------- composing the board from drawn parts
 # v10: the page block is drawn in booklet print mm and placed on the board at 1 / BK_S (xform). Text, lines and
 # dashes scale with it, as a reduced print does.
@@ -268,6 +289,8 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 # ---------------------------------------------------------------- drawing helpers (page mm, y up)
 #@include ../common/rect.py
+
+#@include ../common/node.py
 
 # ---------------------------------------------------------------- shared modules (revision 29 Oct, T2a / T2b)
 # v10: the level table (data first), the section parts before the plants, the figures (M7, through ps_fig
@@ -280,15 +303,8 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 # sections of the four cuts (ground every 1 m), the water board's data part, read as data (no code copied)
 #@include ../common/data/NAMES.py
 #@include ../common/names.py
-#@include ../bergama_water_board/data/CUTS.py
 
-#@include ../common/section_parts.py
-
-#@include ../common/plants.py
-#@include ../common/hires.py
-
-#@include ../common/figures.py
-
+# v20: basemap.py brings keymap.py v3 with hues.py, annot.py, cch_points.py (round 6, S1): never included again here
 #@include ../common/basemap.py
 #@include ../common/grid.py
 #@include ../common/buildings.py
@@ -299,22 +315,17 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here
 
-# v10: the sketch engine and data/SKETCH_SRC.py are no longer included (the sections are drawn to the level table in
-# parts/70_sections.py); data/SKETCH_SRC.py stays in the repo because bergama_agriculture_alternatives includes it.
+# v20 (round 6, Q9): the sketch engine and data/SKETCH_SRC.py are back (restored from f93d84b); the agriculture
+# script's p17 plant ladder includes the same SKETCH_SRC read-only.
+_SK = []
+#@include ../common/sketch_engine.py
+#@include data/SKETCH_SRC.py
 
 # v17 (round 4 S1 modules): the real font widths, ONE text placer (a collision RAISES), ONE marker, ONE block template
 #@include ../common/font_metrics.py
 #@include ../common/warn.py
 #@include ../common/text_place.py
 #@include ../common/item_export.py
-#@include ../common/marker.py
-#@include ../common/block.py
-#@include ../common/water.py
-#@include ../common/section_frame.py
-#@include ../common/data/BRIDGES.py
-#@include ../common/bridges.py
-
-#@include parts/70_sections.py
 
 #@include parts/80_key_map.py
 
@@ -331,15 +342,11 @@ def main():
     ps_items(ix, log)
     path = ix.save()
     log.append(ix.summary())
-    log.append(cut_log_line())
     log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # what started this run
-    log += [fig_set_line(), sf_g14_line()]                # v19 (A17): the plant lines once (sec_look_lines has them)
-    log += sec_look_lines() + wat_flag_lines()
-    log.append(u"insets: each drawn again at its own scale, so the figure / plant / people counts above include them")
     if pal is None:
         log.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
     head = [u"%s %s · %s · %.1f s" % (GH_LABEL, VERSION, time.strftime("%H:%M"), time.time() - t0),
-            u"Items: %s (no sheet PDF: the booklet composes p13)" % path]
+            u"Items: %s (no sheet PDF: the booklet composes p12)" % path]
     return u"\n".join(wn_compose(tp_log_lines() + [x for x in log if x], head=head))
 
 

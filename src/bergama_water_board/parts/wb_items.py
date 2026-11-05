@@ -25,8 +25,11 @@
 #   wbx_sw(kind="fill", colour=None, stroke=None, width_pt=None, dash_pt=None, file=None) -> swatch dict
 #   wbx_list(page, did, texts, numbered=True, anchors_board=None, id=None)   ordered rows (anchors board mm)
 #   wbx_levels(page, did, levels, side="R")                   levels [(name, z)] on the drawing's y (m a.s.l.)
-#   wbx_keymap(page, km, item_id=None)                        km = km_map(...) v2 result: S2 km_items go in as they
-#                                                             are (the booklet places the frame in the right column)
+#   wbx_keymap(page, km, item_id=None)                        v16: km = km_keymap(...) result (common/keymap.py v3,
+#                                                             G6-5); km_export_items makes the booklet items, km_log
+#                                                             the log line (the booklet places it in the side column)
+# v16 (G6-9): every shape keeps the Page.g() tag it was drawn under: one layer per element "<kind>/<element id>",
+#   untagged shapes -> no grp ("other" in the booklet); log `groups <page> <drawing> kinds= elements= untagged=`
 #   wbx_inset(page, parent, window_bb, child, factor=None)    window = board mm in the PARENT's drawing; factor from
 #                                                             the two dens, else `factor` (scale-free zooms, e.g. x3.1)
 #   wbx_photo(page, file, caption=None, source=None, id=None)
@@ -40,7 +43,11 @@
 # Page ids = PLAN §4 23-page ids (one line: WBX_PAGE). S7 (site board) wrote 25-page ids: S10 settles one numbering.
 WBX_PG_SYSTEM, WBX_PG_SEASONS, WBX_PG_NE, WBX_PG_PLANTS = "p12", "p15", "p16", "p18"     # the booklet pages, as the
 WBX_PG_SECT_A, WBX_PG_SECT_B, WBX_PG_FARMS = "p19", "p20", "p21"   # pages pass them (25-page numbering, SCRIPT_MAP)
-WBX_PAGE = {"p12": "p12", "p15": "p14", "p16": "p15", "p18": "p17", "p19": "p18", "p20": "p18", "p21": "p19"}
+WBX_PAGE = {"p12": "p11", "p15": "p13", "p16": "p14", "p18": "p16", "p19": None, "p20": None, "p21": "p18"}
+# v16 (round 6, PLAN §2.1, G6-2): the board pages as the round 6 booklet pages p01-p22: Collect clean hold -> p11, Four
+# seasons -> p13, S4 north-east -> p14, Which plant goes where -> p16, Where the clean water goes -> p18. The two
+# "Which plant goes where, in section" pages (board p19/p20, r5 p18a/b) are no booklet pages any more (None): their
+# items are not exported, one log line per dropped item (PLAN §2.1 last row)
 WBX_CROP_PAGE = {"wb_system": "p12", "wb_s4_seasons": "p15", "wb_s4_ne": "p16", "wb_plants": "p18",
                  "wb_plants_b1": "p19", "wb_plants_b2": "p20", "wb_farms": "p21", "wb_farms_out": "p21",
                  "wb_decision": "p21"}           # 25-page numbering of the round 4 crops (SCRIPT_MAP); wb_water and the
@@ -54,7 +61,7 @@ WBX_LOG = []
 
 
 def wbx_p(page):
-    """a page id as the pages know it (25-page "p18") -> the export id (PLAN §4 23-page "p17")"""
+    """a page id as the pages know it (board "p18") -> the round 6 export id ("p16"); None = not a booklet page"""
     return WBX_PAGE.get(page, page)
 
 
@@ -69,6 +76,7 @@ def wbx_reset():
     for v in WBX.values():
         del v[:]
     del WBX_LOG[:]
+    _GRP.clear()                     # v16 (G6-9): group tags of the last run's items
 
 
 def wbx_mark(pg):
@@ -219,11 +227,13 @@ def _wbx_mix(c, t):
         return c
 
 
-def _wbx_shapes(items, bb):
-    """the non-text page items cut to bb (board mm); stripes -> solid light fill (G-R5-4.1). -> (shapes, n_stripes)"""
+def _wbx_shapes(items, bb, grps=None):
+    """the non-text page items cut to bb (board mm); stripes -> solid light fill (G-R5-4.1). -> (shapes, n_stripes).
+    v16 (G6-9): with a list `grps`, the group tag of each output shape is appended to it (same order)"""
     out, n_h = [], 0
     for it in items:
         kd = it[0]
+        n_out = len(out)
         if kd == "poly":
             rings = [r_ for r_ in (_wbx_clip_ring(R0, bb) for R0 in it[1] if len(R0) >= 3) if r_]
             if not rings:
@@ -251,7 +261,32 @@ def _wbx_shapes(items, bb):
                 clip = (max(x_, bb[0]), max(y_, bb[1]), min(x_ + w_, bb[2]), min(y_ + h_, bb[3]))
                 out.append(("image", x_, y_, w_, h_, it[5], it[6] if len(it) > 6 else None,
                             it[7] if len(it) > 7 else False, clip))
+        if grps is not None:
+            grps += [wb_grp_of(it)] * (len(out) - n_out)
     return out, n_h
+
+
+def _wbx_layers(ix, D, shapes, grps, k_, org):
+    """v16 (G6-9, Aras 4 Nov 17:50-17:51): one layer per element, named "<kind>/<element id>" (Page.g tags), in drawing
+    order (a run of shapes of one element = one layer, z keeps the order), passed as Ix.layer(..., grp=) (S2 handover
+    §1 route 3); untagged runs stay layer "drawing" (no grp: the booklet writes them under "other" + WARNING).
+    -> (kinds, elements, untagged shapes)"""
+    runs = []
+    for sh, g_ in zip(shapes, grps):
+        if runs and runs[-1][0] == g_:
+            runs[-1][1].append(sh)
+        else:
+            runs.append((g_, [sh]))
+    kinds, elems, n_un = set(), set(), 0
+    for z_, (g_, shs) in enumerate(runs):
+        if not g_:
+            n_un += len(shs)
+            ix.layer(D, "drawing", shs, z=z_, k=k_, origin=org)   # no tag: the booklet writes it under "other"
+            continue
+        kinds.add(g_.split(u"/", 1)[0])
+        elems.add(g_)
+        ix.layer(D, g_, shs, z=z_, k=k_, origin=org, grp=g_)      # S2 item_export: grp stamped on each shape
+    return len(kinds), len(elems), n_un
 
 
 def _wbx_src(s):
@@ -312,6 +347,21 @@ def _wbx_texts(ix, r, items, M, pats, tail):
         if not s_:
             continue
         it0, role = rows[0]
+        if len([l_ for l_ in lines if l_.strip()]) > 1 and role in (None, "label"):
+            # v17.3 (booklet JPG check, p18 "8,000 m³ per ha ... [87]" as one 12 pt line across the page): a block
+            # of several lines is handed over line run by line run, each at its own spot, size and weight (the
+            # booklet sets runs of one line one after the other); was one paragraph at the first line's size
+            for it, _r in rows:
+                p_ = tail.sub(u"", _wbx_src(u"%s" % it[1])).strip()
+                if not p_:
+                    continue
+                al_ = it[7] or "L"
+                ix.text(page, p_, "label", drawing=did, at=M((it[2], it[3])), size_pt=it[4] / IX_PT,
+                        bold=bool(it[6]), colour=it[5] if isinstance(it[5], str) else None,
+                        positions=["=" + al_, "E", "NE", "N", "NW", "W", "SW", "S", "SE"], group=r["group"],
+                        priority=5)
+                n_lab += 1
+            continue
         pt = it0[4] / IX_PT
         bold = bool(it0[6])
         col = it0[5] if isinstance(it0[5], str) else None
@@ -330,8 +380,8 @@ def _wbx_texts(ix, r, items, M, pats, tail):
                             break
             n_lab += 1
         else:
-            anch = role in ("badge", "level_value")
-            ix.text(page, s_, role, drawing=did if anch else None, at=M((it0[2], it0[3])) if anch else None,
+            anch = role in ("badge", "level_value")      # v17 (L4, L1 "one box per drawing"): every text of the
+            ix.text(page, s_, role, drawing=did, at=M((it0[2], it0[3])) if anch else None,   # span is attached to D
                     size_pt=pt, bold=bold, colour=col, group=r["group"], priority=4)
             n_oth += 1
     return n_lab, n_oth
@@ -342,10 +392,12 @@ def _wbx_one(ix, r, photos):
     pg, bb, page = r["pg"], r["bb"], wbx_p(r["page"])
     span = pg.items[(r["n0"] or 0):r["n1"]]
     M = _WbxMap(r)
-    shapes, n_h = _wbx_shapes([it for it in span if it[0] != "text"], bb)
+    grps = []
+    shapes, n_h = _wbx_shapes([it for it in span if it[0] != "text"], bb, grps)
     for (x0, y0, x1, y1, path) in photos:                # plant photos the board embedded after its PDF
         if x0 >= bb[0] - 0.5 and y0 >= bb[1] - 0.5 and x1 <= bb[2] + 0.5 and y1 <= bb[3] + 0.5:
             shapes.append(("image", x0, y0, x1 - x0, y1 - y0, path, None, False, None))
+            grps.append(u"plants/photo %s" % os.path.basename(u"%s" % path))
     ext = M((bb[0], bb[1])) + M((bb[2], bb[3]))
     units = "m" if r["den"] else "mm"
     sp = r["scale_pref"]
@@ -358,7 +410,8 @@ def _wbx_one(ix, r, photos):
     if units == "m":
         D["board_den"] = int(r["den"])
     k_ = M.k
-    ix.layer(D, "drawing", shapes, k=k_, origin=(M.o[0] - bb[0] * k_, M.o[1] - bb[1] * k_))
+    nk, ne, nu = _wbx_layers(ix, D, shapes, grps, k_, (M.o[0] - bb[0] * k_, M.o[1] - bb[1] * k_))
+    WBX_LOG.append(u"groups %s %s kinds=%d elements=%d untagged=%d" % (page, r["id"], nk, ne, nu))
     pats = [_re.compile(WBX_SCALE_TXT)]
     nl, no = _wbx_texts(ix, r, span, M, pats, _re.compile(WBX_SCALE_TAIL))
     WBX_LOG.append(u"items %s %s: %s, %d shapes, %d labels, %d texts%s" % (
@@ -404,6 +457,20 @@ def wbx_export(pg, log):
     import traceback as _tb
     ix = Ix("bergama_water_board", "bergama_water_board", VERSION)
     maps, done_crops = {}, set()
+    # v16 (PLAN §2.1): registrations of board pages that are no booklet page any more are dropped, one line each
+    for key_, L_ in WBX.items():
+        if key_ == "warn":
+            continue
+        keep_ = []
+        for r_ in L_:
+            pg_id = r_[0] if isinstance(r_, tuple) else r_.get("page")
+            if isinstance(r_, dict) and pg_id is not None and wbx_p(pg_id) is None:
+                WBX_LOG.append(u"items dropped (board page %s is no round 6 booklet page): %s %s" % (
+                    pg_id, key_, r_.get("id") or r_.get("did") or u"%s" % (r_.get("s") or u"")[:40]))
+            else:
+                keep_.append(r_)
+        L_[:] = keep_
+    WBX["warn"][:] = [w_ for w_ in WBX["warn"] if not (w_[0] and wbx_p(w_[0]) is None)]
     photos = list(globals().get("PHOTOS") or ())
     for r in WBX["draw"]:
         try:
@@ -417,6 +484,9 @@ def wbx_export(pg, log):
     for cid, rr, den, legend, drop in BK_CROPS:          # a booklet crop no registration replaced: exported whole
         page = WBX_CROP_PAGE.get(cid)
         if page is None or cid in done_crops:
+            continue
+        if wbx_p(page) is None:                          # v16: a crop of a dropped page
+            WBX_LOG.append(u"items dropped (board page %s is no round 6 booklet page): crop %s" % (page, cid))
             continue
         r = dict(id=cid, page=page, pg=pg, bb=tuple(rr), n0=None, n1=len(pg.items), den=den, origin=(0.0, 0.0),
                  dkind="section" if den else "diagram", scale_pref=None, title=BK_CAPTIONS.get(cid) or None,
@@ -434,7 +504,8 @@ def wbx_export(pg, log):
         return maps[did][1](q) if did in maps and q is not None else None
     for t in WBX["text"]:
         try:
-            ix.text(wbx_p(t["page"]), _wbx_src(u"%s" % t["s"]), t["role"], drawing=t["did"] if t["at"] else None,
+            ix.text(wbx_p(t["page"]), _wbx_src(u"%s" % t["s"]), t["role"],   # v17 (L4): attached to its drawing
+                    drawing=t["did"] if t["did"] in maps else None,
                     at=mp(t["did"], t["at"]), size_pt=t["size_pt"], bold=t["bold"], colour=t["colour"],
                     priority=t["priority"], id=t["id"], short_forms=t["short_forms"],
                     side_list_ok=t["side_list_ok"], group=t["group"] or t["did"])
@@ -460,7 +531,8 @@ def wbx_export(pg, log):
     for K in WBX["keymap"]:
         try:
             page = wbx_p(K["page"])
-            its = km_items(K["km"], page, item_id=K["id"])
+            # v16 (G6-5): the one key-map module (common/keymap.py v3, S1): km_keymap(...) result -> booklet items
+            its = km_export_items(K["km"], page, K["id"] or u"%s_keymap" % page)
             kd = None
             for it in its:
                 it = dict(it)
@@ -495,7 +567,7 @@ def wbx_export(pg, log):
         pass
     seen = set(r_["page"] for r_ in WBX["draw"]) | set(WBX_CROP_PAGE.get(c_[0]) for c_ in BK_CROPS)
     for p25 in sorted(set(WBX_CROP_PAGE.values())):
-        if p25 not in seen:
+        if p25 not in seen and wbx_p(p25) is not None:
             ix.warn(wbx_p(p25), "export", u"page %s drew nothing this run (see its 'stopped drawing' line)" % p25)
     path = ix.save()
     try:
