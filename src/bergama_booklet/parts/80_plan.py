@@ -287,18 +287,20 @@ BK_PAGES = [
                  F("mp_plan_caption", 3.3, 90.5, 50.0, 1.8, key="caption")],
          side="places"),
     # 21 · SON page22 (P-13, U15): plans, each section as wide as its plan at its own round scale, key map in the band
-    dict(pid="p21", part="E", stage="do", title=u"The water edge at 1:1,000",
+    # v32.4: the two plans do not fit 1:1,000 side by side (206 x 130 mm each, 192 mm frames): they take the next
+    # scale, so the rows are re-set (plans 34 %, sections 17 %, legends 29 % in columns) and the title names no scale
+    dict(pid="p21", part="E", stage="do", title=u"The water edge, plan and section",
          intro=u"Two windows, each *plan with its section*: the *upstream entry* (collect, clean, hold) and *Üç Kemer "
                u"Köprüsü* with Demeter's Garden.",
-         frames=[F("mp_dt_*upstream", 3.3, 10.0, 45.7, 43.0, key="d1", same="dplans"),
-                 F("mp_dt_*k5", 50.0, 10.0, 46.7, 43.0, key="d2", same="dplans"),
-                 F("mp_dt_*upstream_sec", 3.3, 54.0, 45.7, 20.0, key="s1", foot=2.5,
+         frames=[F("mp_dt_*upstream", 3.3, 10.0, 45.7, 34.0, key="d1", same="dplans"),
+                 F("mp_dt_*k5", 50.0, 10.0, 46.7, 34.0, key="d2", same="dplans"),
+                 F("mp_dt_*upstream_sec", 3.3, 45.0, 45.7, 17.0, key="s1", foot=2.5,
                    note="leg1"),
-                 F("mp_dt_*k5_sec", 50.0, 54.0, 46.7, 25.0, key="s2", foot=2.5, note="leg2"),
-                 F(("mp_dt_keymap", "*keymap*"), 38.0, 75.0, 11.0, 13.0, key="km"),
-                 F(("mp_dt_*upstream_leg*", "mp_dt_*upstream_route", "mp_dt_*upstream_why"), 3.3, 75.0, 34.0, 18.0,
+                 F("mp_dt_*k5_sec", 50.0, 45.0, 46.7, 17.0, key="s2", foot=2.5, note="leg2"),
+                 F(("mp_dt_keymap", "*keymap*"), 38.0, 63.0, 11.0, 13.0, key="km"),
+                 F(("mp_dt_*upstream_leg*", "mp_dt_*upstream_route", "mp_dt_*upstream_why"), 3.3, 63.0, 34.0, 30.0,
                    key="leg1"),
-                 F(("mp_dt_*k5_leg*", "mp_dt_*k5_route", "mp_dt_*k5_why"), 50.0, 79.5, 46.7, 14.0, key="leg2")],
+                 F(("mp_dt_*k5_leg*", "mp_dt_*k5_route", "mp_dt_*k5_why"), 50.0, 63.0, 46.7, 30.0, key="leg2")],
          side="leg2"),
     dict(pid="p22", kind="sources", part="E", title=u"Sources"),
 ]

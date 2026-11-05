@@ -185,8 +185,12 @@ def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
     y0, y1 = BK_SRC_Y[0] * BK_PCT[1], BK_SRC_Y[1] * BK_PCT[1]
     colh = y1 - y0
     pick = None
+    def _cols(nc):                              # v32.4: the columns span the page's own margins (14 mm, grid.py);
+        g_ = 4.0                                # the fixed % columns began at 12.6 mm, inside the left margin
+        w_ = (GRID_PAGE[0] - GRID_ML - GRID_MR - g_ * (nc - 1)) / float(nc)
+        return [(GRID_ML + i_ * (w_ + g_), w_) for i_ in range(nc)]
     for ncol, lo in ((4, BK_SRC_PT[1]), (5, GRID_MIN_PT)):
-        cw = BK_SRC_COLS[ncol][-2][1] * BK_PCT[0]
+        cw = _cols(ncol)[0][1]
         s = BK_SRC_PT[0]
         while True:
             hs = [_bk_src_h(k, t, cw, s) for k, t in flat]
@@ -197,7 +201,7 @@ def bk_sources(doc, n, lines, pid="p22", title=u"Sources", part=None):
         if sum(hs) <= ncol * colh * 0.96:
             break
     ncol, s, hs = pick
-    cols = [(x * BK_PCT[0], w * BK_PCT[0]) for x, w in BK_SRC_COLS[ncol]]
+    cols = _cols(ncol)
     label = (u"%s  %s" % (part, PARTS.get(part, u""))).upper() if part else None
     pages, P, col, y = [], None, 0, y0
     for (k, t), hh in zip(flat, hs):

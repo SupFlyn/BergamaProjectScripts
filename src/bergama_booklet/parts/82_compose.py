@@ -348,7 +348,10 @@ def _bk_frames(spec, pid):
     out = []
     for f in spec.get("frames") or []:
         pats = [f["ids"]] if isinstance(f["ids"], str) else list(f["ids"])
-        out.append(dict(f, pats=pats, key=f.get("key") or pats[0], mm=bk_pct(f["box"])))
+        m_ = bk_pct(f["box"])                      # v32.4: clamped to the 14 / 12 mm margins (3.3 % = 13.86 mm put
+        m_ = (max(m_[0], GRID_ML), max(m_[1], GRID_MT),   # every left-column heading 0.14 mm into the margin)
+              min(m_[2], GRID_PAGE[0] - GRID_MR), min(m_[3], GRID_PAGE[1] - GRID_MB))
+        out.append(dict(f, pats=pats, key=f.get("key") or pats[0], mm=m_))
     for i, a in enumerate(out):
         for b in out[i + 1:]:
             if a.get("over") or b.get("over"):
@@ -400,6 +403,13 @@ def _bk_fit(S, did, w, h, pid):
             rw, rh = _bk_res(S, did, den) if inn else (0.0, 0.0)
             dw, dh = sc_size(D, den)
             if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                return den
+        for den in [v for v in BK_SCALES if v > al[-1]]:  # v32.4 (LAYOUT_PLAN §3.2-2): no scale of its range fits:
+            rw, rh = _bk_res(S, did, den) if inn else (0.0, 0.0)   # the next coarser booklet scale that does, so
+            dw, dh = sc_size(D, den)                     # the drawing stays inside its frame and the page
+            if dw + rw <= w + 1e-6 and dh + rh <= h + 1e-6:
+                BK_PAGENO_LOG.append(u"scale %s %s: 1:%d (its range 1:%d-1:%d does not fit %.0f x %.0f mm)" % (
+                    pid, did, den, al[0], al[-1], w, h))
                 return den
         rw, rh = _bk_res(S, did, al[-1]) if inn else (0.0, 0.0)
         return sc_pick(D, max(1.0, w - rw), max(1.0, h - rh), page=pid)       # its WARNING "scale" line
@@ -464,9 +474,44 @@ class _BkTgt(object):
         self.key, self.box, self.y, self.over = key, box, box[1] if y is None else y, False
 
 
+BK_FLOW_COL = 64.0                 # v32.4: a notes frame at least 2 x this wide flows its notes in columns
+
+
+def _bk_est_h(P, it, w):
+    """a quick height estimate of one note at width w (only to choose where a column breaks)"""
+    k = it.get("kind")
+    if k == "legend":
+        n_ = len(it.get("entries") or [])
+        cols = max(1, min(2, int((w + 4.0) // 40.0) or 1))
+        return 1.3 * (PL_SW["h"] + PL_SW["row_gap"] + 0.6) * (-(-n_ // cols)) + (5.0 if it.get("title") else 0.0)
+    if k == "list":
+        return 3.4 * len(it.get("items") or [])
+    if k == "text":
+        role = it.get("role") or "note"
+        try:
+            return st_fit(it.get("string", u""), w, None, role if role in GRID_ROLE_PT else "note", page=P.pid)[3]
+        except Exception:
+            return 6.0
+    return 0.0
+
+
 def _bk_put(P, tg, it):
-    """one text / legend / list at the target's running y; past the box foot = one WARNING "overrun" per target"""
+    """one text / legend / list at the target's running y; past the box foot = one WARNING "overrun" per target.
+    v32.4: in a frame at least 2 x BK_FLOW_COL wide the notes flow in columns (top to bottom, then the next column),
+    so a stack of legends no longer runs past the page foot while the frame's width stays empty (p21)"""
     x0, _y0, x1, y1 = tg.box
+    nc = int((x1 - x0 + 4.0) // BK_FLOW_COL) if it.get("kind") != "photo" else 1
+    if nc >= 2:
+        cw = (x1 - x0 - 4.0 * (nc - 1)) / float(nc)
+        c = getattr(tg, "col", 0)
+        top = getattr(tg, "ctop", tg.y)
+        tg.ctop = top
+        if c < nc - 1 and tg.y > top + 1e-6 and tg.y + _bk_est_h(P, it, cw) > y1 + 0.5:
+            c += 1
+            tg.y = top
+        tg.col = c
+        x0 = x0 + c * (cw + 4.0)
+        x1 = x0 + cw
     if it.get("kind") == "photo":
         hh = _bk_photo_grid(P, [it], (x0, tg.y, x1, y1))
     else:
@@ -629,12 +674,36 @@ def bk_fix(P, rounds=3):
     return P.tp.hits_now(True)
 
 
+def bk_own_hits(P):
+    """v32.4: overlaps left INSIDE one drawing after the booklet moved what it could within that drawing (texts its
+    script exported on top of each other): one WARNING per drawing naming the script, with the first pairs, so the
+    rest is fixed where it is made (the page test also lists each pair)"""
+    tp = P.tp
+    by = {}
+    for n, it in enumerate(tp.items):
+        ex = it.get("extra") or {}
+        g = u"%s" % (ex.get("dgrp") or (ex.get("fx") or {}).get("dgrp") or u"")
+        if g.startswith(u"drw:"):
+            by.setdefault(g[4:], []).append(it)
+    for did, its in by.items():
+        pairs = []
+        for i, a in enumerate(its):
+            for c in its[i + 1:]:
+                if tp_hit(a["box"], c["box"], 0.0) and a.get("text") != c.get("text"):
+                    pairs.append((a["text"], c["text"]))
+        if pairs:
+            sc_ = (BK_IX_OWNER.get(did) if "BK_IX_OWNER" in globals() else None) or did.split(u"_")[0]
+            wn_warn(P.pid, "own", u"%s: %d text pairs still on top of each other inside it (its script %s set them so), e.g. %s"
+                    % (did, len(pairs), sc_, u"; ".join(u"%r / %r" % (a[:30], b[:30]) for a, b in pairs[:3])))
+
+
 def bk_content_page(doc, spec, n, lines):
     """one content page from its frames (see the part notes): compose, fix every hit by moving texts, check"""
     pid = spec["pid"]
     R = _bk_compose(doc, spec, n)
     P, S = R["P"], R["S"]
     st = pl_stat(P)
+    bk_own_hits(P)                                        # v32.4: texts a script set on top of each other
     ck_page(P)                                            # the final test: every hit left = one WARNING line
     bk_finish(P)
     g = BK_GRP.get(pid, dict(kinds=set(), elements=set(), untagged=0))

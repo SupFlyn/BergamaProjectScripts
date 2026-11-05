@@ -52,16 +52,16 @@ def _pl_inside(b, win):
                            b[3] <= win[3] + 1e-6)
 
 
-def _pl_try(P, t, anchor, codes, pt, bold, allow, win, d=0.8):
+def _pl_try(P, t, anchor, codes, pt, bold, allow, win, d=0.8, group=None):
     tp = P.tp
     for code in codes:
         x, y, al = tp._at(code, t, anchor, pt, bold, d)
         b = tp._box(t, x, y, pt, bold, al, 0.0)
-        if _pl_inside(b, win) and tp._free(b, allow):
+        if _pl_inside(b, win) and tp._free(b, allow, group):
             return x, y, al
     for x, y, al in tp._ring_spots(t, anchor, pt, bold, d, TP_RINGS):
         b = tp._box(t, x, y, pt, bold, al, 0.0)
-        if _pl_inside(b, win) and tp._free(b, allow):
+        if _pl_inside(b, win) and tp._free(b, allow, group):
             return x, y, al
     return None
 
@@ -111,7 +111,7 @@ def _pl_leader(P, fx, t):
                 base = yc + (a_ + d_) / 2.0
                 b = tp._box(t, x, base, pt, bold, al, 0.0)
                 q = (x - 0.4, yc) if sd == "R" else (x + 0.4, yc)
-                if tp._free(b, fx["allow"]) and _pl_seg_clear(P, (ax, ay), q):
+                if tp._free(b, fx["allow"], fx.get("group")) and _pl_seg_clear(P, (ax, ay), q):
                     return x, base, al, ((ax, ay), q)
     return None
 
@@ -150,7 +150,7 @@ def pl_chain(P, fx, side=None, first=True):
 
     def put(t, x, y, al, kind, allow=None, **kw):
         tp.put(t, x, y, pt0, bold, al, 0.0, fx.get("name"), fx.get("role", "label"), fx.get("colour"),
-               allow or fx["allow"], fx=fx, **kw)
+               allow or fx["allow"], fx.get("group"), fx=fx, **kw)
         if kind:
             st[kind] += 1
         return tp.items[-1]
@@ -160,14 +160,14 @@ def pl_chain(P, fx, side=None, first=True):
         if first and i == 0 and codes:                    # its own exported spot first
             x, y, al = tp._at(codes[0], t, anchor, pt0, bold, d)
             b = tp._box(t, x, y, pt0, bold, al, 0.0)
-            if _pl_inside(b, win) and tp._free(b, fx["allow"]):
-                return put(t, x, y, al, None)
+            if (_pl_inside(b, win) or fx.get("no_leader")) and tp._free(b, fx["allow"], fx.get("group")):
+                return put(t, x, y, al, None)                 # (a script's own spot may lie outside its drawing)
         if late:
             break
-        got = _pl_try(P, t, anchor, codes, pt0, bold, fx["allow"], win, d)
+        got = _pl_try(P, t, anchor, codes, pt0, bold, fx["allow"], win, d, fx.get("group"))
         if got:
             return put(t, got[0], got[1], got[2], "moved" if i == 0 else "short")
-    for t in ([] if late else texts):
+    for t in ([] if late or fx.get("no_leader") else texts):
         got = _pl_leader(P, fx, t)
         if got:
             nm = u"leader %s %d" % (fx.get("name"), id(fx))
@@ -357,10 +357,25 @@ def pl_rigid(P, placed, s, roles=None):
         fx = dict(anchor=T.pt(a_[0], a_[1]), texts=texts, codes=[c], pt=pt,
                   lo=max(float(it.get("min_pt") or GRID_MIN_PT), GRID_MIN_PT), bold=bool(it.get("bold")),
                   colour=it.get("colour"), role=it.get("role", "label"), name=it.get("id"), allow=(placed["id"],),
-                  win=None, rect=placed["rect"], d=0.8 * s, side_ok=it.get("side_list_ok", True), owner=placed["id"])
+                  win=_pl_dwin(placed), rect=placed["rect"], d=0.8 * s, side_ok=False,
+                  owner=placed["id"], no_leader=True, dgrp=_pl_dgrp(placed))
         pl_chain(P, fx, getattr(P, "fx_side", None))
         n += 1
     return n
+
+
+def _pl_dgrp(placed):
+    """v32.4: the drawing a text belongs to (the log's per-drawing count of texts its script set on top of each
+    other)"""
+    return u"drw:%s" % placed["id"]
+
+
+def _pl_dwin(placed, pad=1.5):
+    """v32.4: a text its script set inside a drawing moves only WITHIN that drawing (its box + 1.5 mm): rings round
+    its point, then its short forms; no leader line out of the drawing (they crossed other drawings, p07/p18); if
+    nothing is free it stays at its own spot and the final check names the hit. Same size, never dropped."""
+    r = placed["rect"]
+    return (r[0] - pad, r[1] - pad, r[2] + pad, r[3] + pad)
 
 
 def _pl_rigid_group(P, placed, s, its):
@@ -381,10 +396,12 @@ def _pl_rigid_group(P, placed, s, its):
     def boxes(dx, dy):
         return [tp._box(it["string"], x + dx, y + dy, pt, bool(it.get("bold")), al, 0.0) for it, x, y, al, pt in spots]
 
-    def ok(bs):
+    win, dg = _pl_dwin(placed), None
+
+    def ok(bs, own=False):
         g_ = []
         for b in bs:
-            if not tp._free(b, allow):
+            if (not own and not _pl_inside(b, win)) or not tp._free(b, allow, dg):
                 return False
             if any(tp_hit(b, c_, tp.pad) for c_ in g_):
                 return False
@@ -394,7 +411,7 @@ def _pl_rigid_group(P, placed, s, its):
     off = None
     st = pl_stat(P)
     late = bk_progress(its[0].get("id") if its else None)
-    if ok(boxes(0.0, 0.0)):
+    if ok(boxes(0.0, 0.0), True):
         off = (0.0, 0.0)
     elif not late:
         for R_ in TP_RINGS + (8.0, 10.0, 12.0):
@@ -407,7 +424,7 @@ def _pl_rigid_group(P, placed, s, its):
             if off:
                 st["moved"] += 1
                 break
-    if off is None and not late:
+    if off is None and False:                           # v32.4: no column + leader out of the drawing (see _pl_dwin)
         r = placed["rect"]
         y0 = min(y for _i, _x, y, _a, _p in spots)
         x0 = min(b[0] for b in boxes(0.0, 0.0))
@@ -433,7 +450,7 @@ def _pl_rigid_group(P, placed, s, its):
     g = tp._group()
     for it, x, y, al, pt in spots:
         tp.put(it["string"], x + off[0], y + off[1], pt, bool(it.get("bold")), al, 0.0, it.get("id"),
-               it.get("role", "label"), it.get("colour"), allow, g, forced=forced)
+               it.get("role", "label"), it.get("colour"), allow, g, forced=forced, dgrp=_pl_dgrp(placed))
     st["labels"] += 1
     return len(spots)
 
@@ -492,19 +509,25 @@ def pl_legend(P, lg, x, y, w, h=None, max_cols=2):
     """the legend in columns (filled top to bottom), one size for every entry (stepped down together)"""
     ents = [(e.get("swatch") or {}, ix_text(e.get("text"), lg.get("_folder"))) for e in lg.get("entries") or []]
     title = ix_text(lg.get("title"), lg.get("_folder")) if lg.get("title") else None
-    cols = max(1, min(int(max_cols), int((w + 4.0) // 40.0) or 1))
-    cw = (w - 4.0 * (cols - 1)) / float(cols)
-    tw = cw - PL_SW["w"] - PL_SW["gap"]
+    cap = max(1, int((w + 4.0) // 40.0) or 1)
+    cols = max(1, min(int(max_cols), cap))
     pt0 = grid_role("legend")[0]
     s = pt0
     while True:
+        cw = (w - 4.0 * (cols - 1)) / float(cols)
+        tw = cw - PL_SW["w"] - PL_SW["gap"]
         hs = [st_fit(t, tw, None, "legend", s, justify=True, page=P.pid)[3] for _sw, t in ents]
         hs = [max(hh, PL_SW["h"]) + PL_SW["row_gap"] for hh in hs]
         th = (st_fit(title, w, None, "heading", page=P.pid)[3] + 1.2) if title else 0.0
         per = -(-len(hs) // cols) if hs else 0
         colh = [sum(hs[i * per:(i + 1) * per]) for i in range(cols)]
         need = th + (max(colh) if colh else 0.0)
-        if h is None or need <= h + 1e-6 or s - 0.25 < GRID_MIN_PT - 1e-6:
+        if h is None or need <= h + 1e-6:
+            break
+        if cols < cap and cols < len(hs):                # v32.4: more columns first (same size), smaller last
+            cols += 1
+            continue
+        if s - 0.25 < GRID_MIN_PT - 1e-6:
             break
         s -= 0.25
     if h is not None and need > h + 1e-6:
