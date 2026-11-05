@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_city_link_v11.py = v11 (4 Nov 2026, layout plan L7: every map name (landmarks, streets, the stream) is handed to the booklet as a label anchored on its point; no name is left out by this script, the booklet places them); v10 (round 6, session S4, 4 Nov 2026: p08 + p09 for the 22-page booklet: G6-6 category hues (common/hues.py), G6-9 element groups, G6-4 no leader lines, hub codes K4/K3/T/K5/K6 on every map and card; p09 = SON page9 + page10 merged (spine map restored from c493fac page_spine, plans widened to the hub columns at one scale, no key map, flood rule SKETCH, bottom band enlarged); p08 who-chart source marks clear of their blocks; v9.2 hunks ported into src); v9.2 (fix 2 Nov: run warnings, p10 zones off the water + key map); v9.1 (fix 2 Nov: p10 hub-square trees by the plant module); v9 (round 5 S9: items, no sheet PDF); v8.x / v7 (round 4)
+# CURRENT VERSION: bergama_city_link_v12.py = v12 (5 Nov 2026, round 7 S5: spine fixed at SON's 1:10,000 (no pick, WARNING if over its SON frame), map names small (G7-2, 5 pt), who-chart source marks after the line as set (L6), scale log lines); v11 (4 Nov 2026, layout plan L7: every map name (landmarks, streets, the stream) is handed to the booklet as a label anchored on its point; no name is left out by this script, the booklet places them); v10 (round 6, session S4, 4 Nov 2026: p08 + p09 for the 22-page booklet: G6-6 category hues (common/hues.py), G6-9 element groups, G6-4 no leader lines, hub codes K4/K3/T/K5/K6 on every map and card; p09 = SON page9 + page10 merged (spine map restored from c493fac page_spine, plans widened to the hub columns at one scale, no key map, flood rule SKETCH, bottom band enlarged); p08 who-chart source marks clear of their blocks; v9.2 hunks ported into src); v9.2 (fix 2 Nov: run warnings, p10 zones off the water + key map); v9.1 (fix 2 Nov: p10 hub-square trees by the plant module); v9 (round 5 S9: items, no sheet PDF); v8.x / v7 (round 4)
 # bergama_city_link_v6.py (v6, 31 Oct: round 3, p08 one corridor arrow over the whole study area + p09 hub plans; v5.1, 31 Oct: bugfix, rebuilt with the shared base map fix of 31 Oct: the stream (M5 water) no longer stops on "list - float"; v5, 30 Oct: revision T5, p8 framework map + who calendar, p9 spine) · Thread 4 of the 22 Oct batch: connection to the city (the streamside spine and what it adds)
 # Runs as delivered in: Grasshopper Python 3 component (a Button wired into the input `run`; outputs `log`, `done`),
 # Rhino 8 ScriptEditor (Python 3), or plain Python 3. v9 lays out no page and writes NO PDF (round 5, G-R5-12 and
@@ -41,7 +41,7 @@
 # Notes for Aras: batch_2026-10-22/thread4_city_link/NOTES.md (every figure with its source).
 import os, time, json, zlib, math, base64
 
-VERSION = "v11.2"  # v11.2 fix: common key map names never left out (the booklet places them); v11.1 fix 4 Nov (kit v4.1 run): p09 legend rows passed as swatch dicts (cl_sw), was TypeError 'function' object is not iterable; v11 4 Nov (L7: names anchored for the booklet, none left out); v10 4 Nov (round 6 S4, see line 1); v9.2 2 Nov (run warnings, port in src); v9.1 fix 2 Nov (round 5 open rows, G-R5-6): the p10 hub-square planes come from common/plants.py (pla_plan) instead of 16-gon discs in the local green; v9 2 Nov (round 5 S9): items for the booklet, no sheet PDF (NEW IN v9 above); v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v12"  # v12 5 Nov (round 7 S5): spine 1:10,000 fixed, names 5 pt (G7-2), who marks after the set line (L6), scale lines; v11.2 fix: common key map names never left out (the booklet places them); v11.1 fix 4 Nov (kit v4.1 run): p09 legend rows passed as swatch dicts (cl_sw), was TypeError 'function' object is not iterable; v11 4 Nov (L7: names anchored for the booklet, none left out); v10 4 Nov (round 6 S4, see line 1); v9.2 2 Nov (run warnings, port in src); v9.1 fix 2 Nov (round 5 open rows, G-R5-6): the p10 hub-square planes come from common/plants.py (pla_plan) instead of 16-gon discs in the local green; v9 2 Nov (round 5 S9): items for the booklet, no sheet PDF (NEW IN v9 above); v8.2 1 Nov 22:10 (Aras 19:49): p08 north arrow off the margin, p10 key names off the hub markers, flood lines 3.5 mm apart; v8.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v8 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v7 (round 4, S5, 1 Nov 2026): p08 and p10 redrawn on the shared round 4 modules (see NEW IN v7); v6.5 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v6.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v6.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # NEW IN v7 (round 4, session S5, 1 Nov 2026; BRIEF P08.1-P08.3, P10.1-P10.6, G-R4-1/2/4/7/9/11; a feature change,
 # so the next whole number; design spec revision_2026-11-01_round4/handover/S5_design_spec.md):
 #   * Text (G-R4-1): every text of both pages is registered in the page's TextPage (common/text_place.py) with its
@@ -1098,6 +1098,8 @@ P2_PLAN_MARGIN = 20.0                    # m round a window's points (a drawing 
 # columns x 3.3 / 22.0 / 40.8 / 59.6 / 78.4), plans 15.8 % high; the bottom band y 74-92.5: flood rule [3,76 46x17],
 # which bank [51,74 29x18], market [82,74 15x18]. Drawing rules for the recorders; the booklet places by frame.
 P9_MAP = (201.6, 35.6)                   # mm: the spine map's frame (w, h)
+P9_SPINE_DEN = 10000                     # v12 (round 7 L1): SON page9 prints the spine at 1:10,000 (H4 page 9)
+P9_SPINE_FRAME = (290.7, 51.3)           # v12: SON page9's measured spine-map frame, mm (H4 §5 page 9); overflow = WARNING
 P9_COL_W = 76.4                          # mm: one hub column (card and its plan(s))
 P9_COL_GAP = 2.0                         # mm: between two columns, and between the transit hub's two plans
 P9_PLAN_H = 46.9                         # mm: the plans' height
@@ -1744,12 +1746,14 @@ def framework_map(pg, L):
         Q = [q for q in (T(p) for p in max(g["runs"], key=len)) if inside(q)]
         if len(Q) > 1:
             with pg.group("labels", u"name " + street_label(g["label"])):
-                cl_place(pg, street_label(g["label"]), Q[len(Q) // 2], 7.5, C["ink"], True, 1.2, frame, (MAP,))
+                cl_place(pg, street_label(g["label"]), Q[len(Q) // 2], CL_AN_PT, AN_NAME["colour"], False, 1.2,
+                         frame, (MAP,))           # v12 (G7-2): names small, annotation set (common/annot.py AN_NAME)
     for c_, R_ in sorted([r_ for r_ in clip_runs(P, sbox, cov) if not r_[0]], key=lambda r_: -len(r_[1])):
         Q = [q for q in (T(p) for p in R_) if inside(q)]
         if len(Q) > 1:                                    # v11 (L7): once, on the longest open run, anchored
             with pg.group("labels", u"name Selinos stream"):
-                cl_place(pg, place_name("stream"), Q[len(Q) // 2], 7.5, C["water_deep"], True, 1.6, frame, (MAP,))
+                cl_place(pg, place_name("stream"), Q[len(Q) // 2], CL_AN_PT, C["water_deep"], False, 1.6, frame,
+                         (MAP,))                  # v12 (G7-2): small, in its own water blue
             break
     # the legend rows (an Ix legend beside the map: the booklet places it)
     rows = []
@@ -1860,7 +1864,7 @@ def who_panel(pg, L):
         cs_ = " ".join(c_ for c_ in (cite(s_) for s_ in srcs) if c_)
         fit(pg, what, x0 + 7.5, top - 7.2, 7, 84.0, C["ink2"])
         if cs_:
-            bw_ = max(text_w(name, 9, True) + 2.0 + text_w(big, 9, True), min(84.0, text_w(what, 7)))
+            bw_ = max(text_w(name, 9, True) + 2.0 + text_w(big, 9, True), text_w(what, 7))   # v12 (L6): the line as set (fit never < 7 pt)
             pg.text(cs_, x0 + 7.5 + bw_ + 1.5, top - 7.2, 7, C["ink2"])
         # the strip: how many places are open to the group each month; a figure on each run of the year (R05)
         n_m = [sum(1 for a in mine if m in act_months(a)) for m in range(1, 13)]
@@ -2576,8 +2580,11 @@ def spine_map(pg, L, hubs, f):
     uv = [frame_uv(f, p) for R in study for p in R] + [frame_uv(f, hb["xy"]) for hb in hubs]
     u0w, u1w = min(q[0] for q in uv) - 30.0, max(q[0] for q in uv) + 30.0
     v0w, v1w = min(q[1] for q in uv) - 30.0, max(q[1] for q in uv) + 30.0
-    den = r28_scale(u1w - u0w, P9_MAP[0], v1w - v0w, P9_MAP[1])
+    den = P9_SPINE_DEN                                    # v12 (round 7 L1): SON page9's printed 1:10,000, never picked
     k = 1000.0 / den
+    if (u1w - u0w) * k > P9_SPINE_FRAME[0] + 0.05 or (v1w - v0w) * k > P9_SPINE_FRAME[1] + 0.05:
+        wn_warn("p09", "cl_p09_spine frame", u"spine %.1f x %.1f mm at 1:%d > SON frame %.1f x %.1f (scale kept)" % (
+            (u1w - u0w) * k, (v1w - v0w) * k, den, P9_SPINE_FRAME[0], P9_SPINE_FRAME[1]), log=CL_LOG)
     x0, y0 = 14.0, 150.0
     mw_, mh_ = (u1w - u0w) * k, (v1w - v0w) * k
     T = frame_T(f, x0, y0, den, u0w, v0w)
@@ -2648,8 +2655,8 @@ def spine_map(pg, L, hubs, f):
         Q = [q for q in (T(p) for p in R_) if inside(q)]
         if len(Q) > 1:
             with pg.group("labels", u"name Selinos stream"):
-                ok_ = cl_place(pg, place_name("stream"), Q[len(Q) // 2], 7.0, C["water_deep"], True, 1.4, frame,
-                               (MAP,))
+                ok_ = cl_place(pg, place_name("stream"), Q[len(Q) // 2], CL_AN_PT, C["water_deep"], False, 1.4,
+                               frame, (MAP,))     # v12 (G7-2): small, in its own water blue
             if ok_:
                 break
     BM_NOTE.append(u"p09 spine map: study area + hubs at 1:%s, %.0f x %.0f mm (frame %.0f x %.0f mm)" % (
@@ -2850,6 +2857,7 @@ def p10_market(pg, L):
     return u"Producers' market"
 
 
+CL_AN_PT = 5.0                           # v12 (G7-2, round 7): map names = the annotation set's 5 pt (annot.py AN_NAME)
 CL_TREES = [0]                           # v10 (G6-10): hub-square trees drawn this run (all one species: planes)
 CL_TREE_COLS = set()                     # v9.1: the colours the hub-square planes were drawn in (legend check)
 
@@ -2909,6 +2917,7 @@ def p08_items(ix, L):
     if wp.get("note"):
         ix.text(page, wp["note"], "note", drawing=D2["id"], id="cl_p08_who_note", group=D2["group"], priority=5)
     ix.legend(page, D2["id"], [(cl_sw(dr), wd) for dr, wd in wp["rows"]], id="cl_p08_who_legend", group=D2["group"])
+    CL_LOG.append(u"scale p08 cl_p08_corridor 1:%d" % PLAN_DEN)   # v12 (round 7): SON page8's printed scale
     try:                                                  # v10: G6-6 / G6-4 log lines (PLAN §2.4, §2.6)
         hue_log(page, log=CL_LOG)
         an_log(page, 0, 0, log=CL_LOG)
@@ -2938,6 +2947,7 @@ def p09_items(ix, L):
     sm = spine_map(pm, L, hubs, f)
     D = cl_drawing(ix, u"cl_p09_spine", page, pm, sm["box"], den=sm["den"], origin_m=(sm["u0"], sm["v0"]),
                    dkind="plan", north_deg=cl_north_deg(f), group=u"cl_p09_spine", priority=2, layer="map")
+    CL_LOG.append(u"scale p09 cl_p09_spine 1:%d" % sm["den"])   # v12 (round 7)
     ix.text(page, (u"The spine across the study area, hub by hub " + cite(SRC_BUS)).strip(), "heading",
             drawing=D["id"], id=u"cl_p09_spine_head", group=D["group"], priority=2)
     # the plans
