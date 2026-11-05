@@ -924,7 +924,7 @@ def _bk_compose(doc, spec, n):
     S["done_anch"] = set()                                # a key map's north is placed with its key map
     framed = _bk_match(S, frames, spec.get("skip") or ())
     BK_PACK_SIDE[0] = spec.get("side")
-    bk_pack(P, S, frames, pid, max(GRID_AREA[1], float(rule_y or 0.0) + 4.0))   # v34: measure, then pack
+    bk_flow(P, S, frames, pid, max(GRID_AREA[1], float(rule_y or 0.0) + 4.0))   # v35: table place, grow, shift (84_flow)
     grown = 0                                             # v33: frames never grow (L3)
     same = {}
     tg = {}
