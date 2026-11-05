@@ -40,7 +40,10 @@ SB_LAYER_KIND = {"water": "water", "ground": "ground", "paper": "ground", "landc
 SB_ROLE = {}         # v62 (L2, L1_engine "ONE BOX PER DRAWING"): full text -> its box role ("heading"; no `at`)
 SB_SHORT = {}        # v62 (L2): full text -> its short forms (the booklet tries them before numbering / shrinking)
 SB_GRP_N = {}        # page -> [kinds set, elements set, untagged n]
-SB_IX_SCALES = {"plan01": [2500, 5000, 10000, 20000]}     # P02.2: p02 at 1:20,000 or larger (listed scales only)
+SB_IX_SCALES = {"plan01": [25000], "edge_build": [10000], "movement": [10000], "walking_today": [10000],
+                "driving_today": [10000], "heritage_loop": [10000]}
+#                v63 (round 7, L1): each plan's ONE SON printed scale (SON page2 1:25,000; page6, page7 x3, page20
+#                1:10,000), no list to pick from (was plan01 [2500..20000], which lacked 1:25,000)
 SB_IX_MUL_ALPHA = 0.55       # design value: a multiplying Tint (15f) has no blend mode in the booklet's writer; drawn
                              # see-through instead so the base keeps showing (FLAG in the log)
 SB_IX_HATCH_MIX = 0.72       # design value: a hatch becomes its colour mixed this far to white, as one solid fill
@@ -298,6 +301,8 @@ def _six_board_crop(ix, B, p, page, note):
     D = ix.drawing(did, page, ext, scale_pref=SB_IX_SCALES.get(p["slug"]), units=units,
                    dkind=p.get("dkind") or ("plan" if units == "m" else "diagram"), scale_bar=False, priority=1, group=did,
                    title=p.get("caption") or None)
+    if SB_IX_SCALES.get(p["slug"]):                     # v63 (round 7, L1): the plan's one SON printed scale
+        note.append(u"scale %s %s 1:%d" % (page, p["slug"], SB_IX_SCALES[p["slug"]][0]))
     if units == "m":
         D["scale_note"] = (u"own scale bar drawn as geometry (true at any print scale); sheet scale 1:%d, round 4 "
                            u"booklet print about 1:%d" % (int(den), int(round(den / sc))))
@@ -419,12 +424,11 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
 
 
 def _six_keymap(ix, km, page, item_id, note):
-    """v60.2 (G-R5-12, as the city link's cl_keymap): a key map (km_map result) exported with km_items: its drawing
-    (key-map mm), label texts anchored on it and the keymap item, ids registered in ix"""
-    if "study_ring" in km and "km_export_items" in globals():      # v61: the round 6 key-map module (G6-5)
-        its = km_export_items(km, page, item_id)                                              # noqa: F821
-    else:
-        its = km_items(km, page, item_id=item_id, priority=2)
+    """v60.2 (G-R5-12): a key map exported as items: its drawing (key-map mm = the SON frame), label texts anchored
+    on it and the keymap item, ids registered in ix. v63 (round 7, G7-3): only the one module (km_keymap ->
+    km_export_items, which also gives <id>.north and <id>.head anchored outside the frame); the km_items fallback
+    (old km_map dicts) is deleted"""
+    its = km_export_items(km, page, item_id)                                                  # noqa: F821
     did = None
     for it in its:
         it = dict(it)
