@@ -15,7 +15,7 @@ Rhino = _B19_RHINO                                   # b19_pre.py: given back af
 # v8.2: Rhino draws the sheet on layer B19_PLAN and writes output/bergama_b19_plan/<name>_rhino.pdf; rhino_bake
 # False (default) = the drawing deleted from the .3dm after the export, True = kept there; the script's own PDF
 # only if Rhino's fails. It writes nothing another script reads (no masterplan_results.json, no booklet items).
-VERSION = "bergama_b19_plan v8.3 (2026-11-06)"  # v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
+VERSION = "bergama_b19_plan v8.4 (2026-11-06)"  # v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
 SHORT = "v7"
 GH_LABEL = "B19Plan"
 SETTINGS = ("rhino_bake", "scale")
@@ -4124,11 +4124,72 @@ def b7_bake_world(doc, sh, warn):
         return a
 
     def pcurve(pts, closed):
-        Q = [P3(p) for p in pts]
+        Q = []
+        for p in pts:                                     # v8.4: repeated points dropped (Rhino refuses them)
+            q = P3(p)
+            if not Q or Q[-1].DistanceTo(q) > tol:
+                Q.append(q)
         if closed:
+            if len(Q) > 1 and Q[-1].DistanceTo(Q[0]) <= tol:
+                Q.pop()
+            if len(Q) < 3:
+                return None
             Q.append(Q[0])
+        elif len(Q) < 2:
+            return None
         c = rg.PolylineCurve(Q)
         return c if c.IsValid else None
+    lost = [0, 0]                                         # v8.4: fills Rhino could not hatch (pieces, rings)
+
+    def hatches(cs, pix, sc_):
+        """v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): Rhino's Hatch.Create returns
+        nothing, silently, for a set of rings that overlap or nest oddly (the PDF fills them anyway). Fallbacks:
+        each outer ring with the rings directly inside it as holes, then each ring alone."""
+        hs = list(rg.Hatch.Create(cs, pix, 0.0, sc_, tol) or []) if cs else []
+        if hs or not cs:
+            return hs
+        if len(cs) > 200:                                 # v8.4: too many rings to sort: ring by ring
+            for c_ in cs:
+                got = list(rg.Hatch.Create(c_, pix, 0.0, sc_, tol) or [])
+                if not got:
+                    lost[1] += 1
+                hs += got
+        elif len(cs) > 1:
+            pl_ = rg.Plane.WorldXY
+            inside = {}
+            for i_, a_ in enumerate(cs):                  # the smallest ring holding ring i_
+                best = None
+                for j_, b_ in enumerate(cs):
+                    if i_ == j_:
+                        continue
+                    try:
+                        rel = rg.Curve.PlanarClosedCurveRelationship(a_, b_, pl_, tol)
+                    except Exception:
+                        rel = None
+                    if rel == rg.RegionContainment.AInsideB:
+                        if best is None or rg.AreaMassProperties.Compute(b_).Area < \
+                                rg.AreaMassProperties.Compute(cs[best]).Area:
+                            best = j_
+                inside[i_] = best
+            depth = {}
+            for i_ in range(len(cs)):
+                d_, k_ = 0, inside[i_]
+                while k_ is not None and d_ < 50:
+                    d_, k_ = d_ + 1, inside[k_]
+                depth[i_] = d_
+            for i_ in range(len(cs)):
+                if depth[i_] % 2:
+                    continue                              # a hole: drawn with its outer ring
+                holes = [cs[j_] for j_ in range(len(cs)) if inside[j_] == i_ and depth[j_] % 2]
+                got = list(rg.Hatch.Create([cs[i_]] + holes, pix, 0.0, sc_, tol) or [])
+                if not got and holes:
+                    got = list(rg.Hatch.Create(cs[i_], pix, 0.0, sc_, tol) or [])
+                if not got:
+                    lost[1] += 1
+                hs += got
+        if not hs:
+            lost[0] += 1
+        return hs
     clips, grps, fails = [], [], [0]
     rgrp, cur_gi, blk = {}, [None], {}
     cprep_ = {}
@@ -4264,12 +4325,12 @@ def b7_bake_world(doc, sh, warn):
             if fill and fill.upper() != "FFFFFF":
                 col = _flat(fill, alpha)
                 try:
-                    for h in rg.Hatch.Create(cs, pats.get("Solid", 0), 0.0, 1.0, tol) or []:
+                    for h in hatches(cs, pats.get("Solid", 0), 1.0):
                         doc.Objects.AddHatch(h, attr(lix, col))
                         n[0] += 1
                     pat = B7_PATTERN.get(fill.upper())
                     if pat and pats.get(pat[0], -1) >= 0:
-                        for h in rg.Hatch.Create(cs, pats[pat[0]], 0.0, pat[1] * u, tol) or []:
+                        for h in hatches(cs, pats[pat[0]], pat[1] * u):
                             doc.Objects.AddHatch(h, attr(lix, mix(col, "000000", 0.18), 0.05))
                             n[0] += 1
                 except Exception:
@@ -4299,7 +4360,7 @@ def b7_bake_world(doc, sh, warn):
                 continue
             if fill and fill.upper() != "FFFFFF":
                 try:
-                    for h in rg.Hatch.Create(c, pats.get("Solid", 0), 0.0, 1.0, tol) or []:
+                    for h in hatches([c], pats.get("Solid", 0), 1.0):
                         doc.Objects.AddHatch(h, attr(lix, _flat(fill, alpha)))
                         n[0] += 1
                 except Exception:
@@ -4344,6 +4405,9 @@ def b7_bake_world(doc, sh, warn):
                 fails[0] += 1
     if fails[0]:
         warn.append(u"B19 Rhino drawing: {} piece(s) could not be cut / hatched (left out)".format(fails[0]))
+    if lost[0] or lost[1]:                                # v8.4: FLAG, so a missing fill is never silent
+        warn.append(u"FLAG B19 Rhino drawing: {} fill(s) lost whole, {} ring(s) lost (Rhino could not hatch them; "
+                    u"likely self-crossing outlines)".format(lost[0], lost[1]))
     return n[0], (rg.Point3d(X0, Y0, 0.0), rg.Point3d(X0 + sh["W"] * s, Y0 + sh["H"] * s, 0.0))
 
 
