@@ -15,7 +15,7 @@ Rhino = _B19_RHINO                                   # b19_pre.py: given back af
 # v8.2: Rhino draws the sheet on layer B19_PLAN and writes output/bergama_b19_plan/<name>_rhino.pdf; rhino_bake
 # False (default) = the drawing deleted from the .3dm after the export, True = kept there; the script's own PDF
 # only if Rhino's fails. It writes nothing another script reads (no masterplan_results.json, no booklet items).
-VERSION = "bergama_b19_plan v9 (2026-11-06)"  # v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
+VERSION = "bergama_b19_plan v9.1 (2026-11-06)"  # v9.1 (Aras 15:47 TR, Illustrator: white blocks over the drawing, callout boxes empty): Rhino stacked every text under the fills (now each text stacked in sheet order) and draws see-through pieces last, on top (now nothing see-through: the edge fade lightens the pieces under it, other see-through colours pre-mixed on what lies under them, as in 8-0); no white page background in Rhino; v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
 SHORT = "v7"
 GH_LABEL = "B19Plan"
 SETTINGS = ("rhino_bake", "scale")
@@ -23,7 +23,7 @@ OUT_FOLDER = "bergama_b19_plan"
 LOG_NAME = "bergama_b19_plan_log.txt"
 BAKE_ROOT = "B19"
 B19_SCALE = 1000.0           # v8 (Aras 6 Nov 10:06 TR): 1:1,000 on one free-size sheet (was 1:4,000); input `scale` overrides
-B19_NAME = "Bergama_B19_plan_v9.pdf"
+B19_NAME = "Bergama_B19_plan_v9_1.pdf"
 B19_M = 15.0                 # mm paper margin (design value)
 B19_HEAD = 20.0              # mm band under the plan: title, scale bar, north arrow (design value)
 B19_A1 = (841.0, 594.0)      # ISO 216 A1, mm: the log says whether the sheet fits it
@@ -4233,6 +4233,9 @@ def b7_clip_line(pts, rings, cq=None):
     return out
 
 
+_B91_FLAT = [] if os.environ.get("BERGAMA_TEST_FLAT") else None
+
+
 def b7_bake_world(doc, sh, warn):
     """v7: the whole sheet drawn into the open .3dm under B7_BAKE_ROOT (sub-layers by element group), the plan at
     its true survey coordinates; clips applied (lines cut at the clip edge, fills intersected with Rhino's curve
@@ -4444,9 +4447,100 @@ def b7_bake_world(doc, sh, warn):
             why_[0] = why_[0] or u"block %s: %s: %s" % (nm, type(ex_b).__name__, ex_b)
             blk[sid] = None
         return blk[sid]
+    # v9.1 (Aras 15:47 TR: white blocks over the drawing in Illustrator): Rhino draws see-through objects after all
+    # the solid ones, so the white edge fade + veil ended on top of everything. Nothing see-through is drawn now:
+    # each piece under the fade is lightened by the fade at its centre; other see-through pieces are mixed with the
+    # solid fill under their centre (the look of the script's own PDF, 8-0).
+    fades, gstk = [], []
+    for j_, it in enumerate(pg.items):
+        if it[0] == "grp":
+            if it[1] is None:
+                if gstk:
+                    gstk.pop()
+            else:
+                gstk.append(u"%s" % (it[2] or u""))
+        elif it[0] == "poly" and gstk and gstk[-1] == u"edge fade" and it[7] is not None and \
+                u"%s" % (it[2] or u"") in (u"FFFFFF", u"ffffff"):
+            fades.append((j_, B82Clip(it[1]), float(it[7])))
+    fade_ix = set(f_[0] for f_ in fades)
+    W_s, H_s = sh["W"], sh["H"]
+    under, ucell, uprep = [], {}, {}                      # solid fills so far: (rings, colour), grid of 25 mm cells
+    UC = 25.0
+
+    def mixc(a, b, f):
+        A, B = _rgb(a), _rgb(b)
+        return u"".join(u"%02X" % int(round(x + (y - x) * f)) for x, y in zip(A, B))
+
+    def centre(pts):
+        Q = pts[::max(1, len(pts) // 24)]
+        return (sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q)) if Q else (0.0, 0.0)
+
+    def faded(col, j_, c_):
+        if not col or not fades:
+            return col
+        keep = 1.0
+        for jf, cf, af in fades:
+            if jf > j_ and cf.odd_in(c_):
+                keep *= 1.0 - af
+        return col if keep >= 0.999 else mixc(col, u"FFFFFF", 1.0 - keep)
+
+    def back(c_):
+        for i2 in reversed(ucell.get((int(c_[0] // UC), int(c_[1] // UC)), ())):
+            if i2 not in uprep:
+                uprep[i2] = B82Clip(under[i2][0])
+            if uprep[i2].odd_in(c_):
+                return under[i2][1]
+        return u"FFFFFF"
+
+    def solid(rings, col):
+        bb_ = bbox([p for r_ in rings for p in r_])
+        under.append((rings, col))
+        for cx_ in range(int(bb_[0] // UC), int(bb_[2] // UC) + 1):
+            for cy_ in range(int(bb_[1] // UC), int(bb_[3] // UC) + 1):
+                ucell.setdefault((cx_, cy_), []).append(len(under) - 1)
     n_all, t_b, i_it = len(pg.items), time.time(), 0
     for it in pg.items:
         i_it += 1
+        if (i_it - 1) in fade_ix:
+            continue
+        if it[0] == "poly" and it[7] is None and len(it[1]) == 1 and u"%s" % (it[2] or u"") in (u"FFFFFF", u"ffffff") \
+                and not it[3]:
+            bb0 = bbox(it[1][0])
+            if bb0[0] <= 0.01 and bb0[1] <= 0.01 and bb0[2] >= W_s - 0.01 and bb0[3] >= H_s - 0.01:
+                continue                                  # v9.1: the white page background: paper is white
+        if it[0] in ("poly", "line", "circle", "text"):   # v9.1: fade + see-through flattened (see above)
+            j_ = i_it - 1
+            if it[0] == "poly":
+                c_ = centre(it[1][0]) if it[1] and it[1][0] else (0.0, 0.0)
+                fl_, st_, al_ = it[2], it[3], it[7]
+                if al_ is not None:
+                    b_c = back(c_)
+                    fl_ = mixc(b_c, fl_, al_) if fl_ else fl_
+                    st_ = mixc(b_c, st_, al_) if st_ else st_
+                fl_, st_ = faded(fl_, j_, c_), faded(st_, j_, c_)
+                it = ("poly", it[1], fl_, st_, it[4], it[5], it[6], None)
+                if fl_ and it[1]:
+                    solid(it[1], fl_)
+            elif it[0] == "line":
+                c_ = centre(it[1]) if it[1] else (0.0, 0.0)
+                st_ = it[2]
+                al_ = it[6] if len(it) > 6 else None
+                if st_ and al_ is not None:
+                    st_ = mixc(back(c_), st_, al_)
+                it = ("line", it[1], faded(st_, j_, c_), it[3], it[4]) + tuple(it[5:6]) + (None,)
+            elif it[0] == "circle":
+                _, cx, cy, r, fill, stroke, lw, alpha = (tuple(it) + (None,) * 8)[:8]
+                c_ = (cx, cy)
+                if alpha is not None:
+                    b_c = back(c_)
+                    fill = mixc(b_c, fill, alpha) if fill else fill
+                    stroke = mixc(b_c, stroke, alpha) if stroke else stroke
+                fill, stroke = faded(fill, j_, c_), faded(stroke, j_, c_)
+                it = ("circle", cx, cy, r, fill, stroke, lw, None)
+            else:
+                it = tuple(it[:5]) + (faded(it[5], j_, (it[2], it[3])),) + tuple(it[6:])
+        if _B91_FLAT is not None:                         # offline test only: what Rhino is given, kept
+            _B91_FLAT.append(it)
         if i_it % 5000 == 0:                              # v8.2: progress in the live log
             b82_live(u"Rhino drawing: piece {:,} of {:,}, {} objects, {:.0f} s".format(i_it, n_all, n[0], time.time() - t_b))
         kd = it[0]
@@ -4607,9 +4701,16 @@ def b7_bake_world(doc, sh, warn):
                 i_ = rs.AddText(t, (P3((x, y)).X, P3((x, y)).Y, 0.0), size * s, "Arial", 1 if bold else 0,
                                 {"L": 1, "C": 2, "R": 4}[align])
                 if i_:
-                    rs.ObjectLayer(i_, doc.Layers[lix].FullPath)
-                    rs.ObjectColor(i_, _rgb(colour))
-                    rs.ObjectPrintColor(i_, _rgb(colour))
+                    o_t = doc.Objects.FindId(i_)            # v9.1: text stacked in sheet order (it sat under every fill)
+                    if o_t is not None:
+                        a_t = attr(lix, colour)
+                        a_t.PlotWeightSource = o_t.Attributes.PlotWeightSource
+                        o_t.Attributes = a_t
+                        o_t.CommitChanges()
+                    else:
+                        rs.ObjectLayer(i_, doc.Layers[lix].FullPath)
+                        rs.ObjectColor(i_, _rgb(colour))
+                        rs.ObjectPrintColor(i_, _rgb(colour))
                     n[0] += 1
             except Exception:
                 fails[0] += 1
