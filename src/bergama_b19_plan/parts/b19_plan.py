@@ -12,9 +12,10 @@ Rhino = _B19_RHINO                                   # b19_pre.py: given back af
 # outlines, lawns and greens in light sage washes, trees as transparent sage crowns of mixed tones with a soft
 # shadow, light grey paving, mauve movement lines, red facility marks, small black names beside their places,
 # everything outside the project zone veiled whitish, the zone in a thin dark red line.
-# Writes output/bergama_b19_plan/Bergama_B19_plan_v1.pdf (true size at 1:scale); rhino_bake = True bakes it on
-# layer B19. It writes nothing another script reads (no masterplan_results.json, no booklet items).
-VERSION = "bergama_b19_plan v8.1 (2026-11-06)"  # v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
+# v8.2: Rhino draws the sheet on layer B19_PLAN and writes output/bergama_b19_plan/<name>_rhino.pdf; rhino_bake
+# False (default) = the drawing deleted from the .3dm after the export, True = kept there; the script's own PDF
+# only if Rhino's fails. It writes nothing another script reads (no masterplan_results.json, no booklet items).
+VERSION = "bergama_b19_plan v8.2 (2026-11-06)"  # v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
 SHORT = "v7"
 GH_LABEL = "B19Plan"
 SETTINGS = ("rhino_bake", "scale")
@@ -976,10 +977,14 @@ def b8_remove_bake(doc, warn):
         lays = [l for l in doc.Layers if not l.IsDeleted and (l.FullPath == B7_BAKE_ROOT or
                                                                l.FullPath.startswith(B7_BAKE_ROOT + "::"))]
         lays.sort(key=lambda l: -l.FullPath.count("::"))
-        for l in lays:
-            for o in list(doc.Objects.FindByLayer(l) or []):
-                if doc.Objects.Delete(o, True):
-                    n += 1
+        lix_ = set(l.Index for l in lays)                 # v8.2: one pass over the file, not one search per layer
+        es = Rhino.DocObjects.ObjectEnumeratorSettings()
+        es.HiddenObjects = True
+        es.LockedObjects = True
+        ids = [o.Id for o in doc.Objects.GetObjectList(es) if o.Attributes.LayerIndex in lix_]
+        for id_ in ids:
+            if doc.Objects.Delete(id_, True):
+                n += 1
         for d_ in list(doc.InstanceDefinitions):         # v8: the tree blocks
             try:
                 if d_ is not None and not d_.IsDeleted and d_.Name.startswith(u"B19_tree_"):
@@ -3965,10 +3970,61 @@ def b7_pip_any(p, rings):
     return any(pip(p[0], p[1], R) for R in rings)
 
 
-def b7_clip_line(pts, rings):
-    """the pieces of polyline pts (page mm) inside the clip rings (even-odd), cut at the ring edges"""
+class B82Ring(object):
+    """v8.2: one clip ring with its edges sorted into horizontal bands, so a point test reads only the edges of its
+    band (same answer as pip(), far fewer edges per test)"""
+    def __init__(self, R):
+        self.bb = bbox(R)
+        n = len(R)
+        self.nb = max(1, min(512, n // 4))
+        self.y0, h = self.bb[1], (self.bb[3] - self.bb[1]) or 1e-9
+        self.bh = h / self.nb
+        self.bands = [[] for _ in range(self.nb)]
+        for i in range(n):
+            a, b = R[i - 1], R[i]
+            lo, hi = min(a[1], b[1]), max(a[1], b[1])
+            for j in range(self._band(lo), self._band(hi) + 1):
+                self.bands[j].append((b[0], b[1], a[0], a[1]))
+
+    def _band(self, y):
+        return min(self.nb - 1, max(0, int((y - self.y0) / self.bh)))
+
+    def inside(self, x, y):
+        b = self.bb
+        if x < b[0] or x > b[2] or y < b[1] or y > b[3]:
+            return False
+        ins = False
+        for xi, yi, xj, yj in self.bands[self._band(y)]:
+            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-12) + xi:
+                ins = not ins
+        return ins
+
+
+class B82Clip(object):
+    """v8.2: a clip (list of rings, page mm) prepared once: band-grid rings, overall bbox, edge list, Rhino curves"""
+    def __init__(self, rings):
+        self.rings = [B82Ring(R) for R in rings if len(R) >= 3]
+        bbs = [r.bb for r in self.rings] or [(0.0, 0.0, 0.0, 0.0)]
+        self.bb = (min(b[0] for b in bbs), min(b[1] for b in bbs), max(b[2] for b in bbs), max(b[3] for b in bbs))
+        self.segs = [(a, b) for R in rings for a, b in zip(R, R[1:] + R[:1])]
+        self.curves = None
+
+    def any_in(self, p):
+        return any(r.inside(p[0], p[1]) for r in self.rings)
+
+    def odd_in(self, p):
+        return sum(1 for r in self.rings if r.inside(p[0], p[1])) % 2 == 1
+
+    def overlaps(self, bb_):
+        b = self.bb
+        return not (bb_[2] < b[0] or bb_[0] > b[2] or bb_[3] < b[1] or bb_[1] > b[3])
+
+
+def b7_clip_line(pts, rings, cq=None):
+    """the pieces of polyline pts (page mm) inside the clip rings (even-odd), cut at the ring edges;
+    v8.2: cq = the B82Clip of rings (edges and point tests prepared once)"""
     out, cur = [], []
-    segs = [(a, b) for R in rings for a, b in zip(R, R[1:] + R[:1])]
+    segs = cq.segs if cq is not None else [(a, b) for R in rings for a, b in zip(R, R[1:] + R[:1])]
     for a, b in zip(pts[:-1], pts[1:]):
         xs = [0.0, 1.0]
         bb_ = (min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
@@ -3985,7 +4041,7 @@ def b7_clip_line(pts, rings):
             m = (a[0] + (b[0] - a[0]) * (t0 + t1) / 2.0, a[1] + (b[1] - a[1]) * (t0 + t1) / 2.0)
             p0 = (a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0)
             p1 = (a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1)
-            if sum(1 for R in rings if pip(m[0], m[1], R)) % 2 == 1:
+            if (cq.odd_in(m) if cq is not None else sum(1 for R in rings if pip(m[0], m[1], R)) % 2 == 1):
                 if not cur:
                     cur = [p0]
                 cur.append(p1)
@@ -4013,11 +4069,8 @@ def b7_bake_world(doc, sh, warn):
     X0, Y0 = sh["X0"] * u, sh["Y0"] * u
     P3 = lambda p: rg.Point3d(X0 + p[0] * s, Y0 + p[1] * s, 0.0)
     tol = doc.ModelAbsoluteTolerance
-    for lay in list(rs.LayerNames() or []):
-        if lay == B7_BAKE_ROOT or lay.startswith(B7_BAKE_ROOT + "::"):
-            old = rs.ObjectsByLayer(lay)
-            if old:
-                rs.DeleteObjects(old)
+    if doc.Layers.FindByFullPath(B7_BAKE_ROOT, -1) >= 0:   # v8.2: a kept earlier drawing removed in one pass
+        b8_remove_bake(doc, warn)
     if not rs.IsLayer(B7_BAKE_ROOT):
         rs.AddLayer(B7_BAKE_ROOT)
     lay_ix = {}
@@ -4078,6 +4131,13 @@ def b7_bake_world(doc, sh, warn):
         return c if c.IsValid else None
     clips, grps, fails = [], [], [0]
     rgrp, cur_gi, blk = {}, [None], {}
+    cprep_ = {}
+
+    def cprep(clip):                                      # v8.2: each clip prepared once (kept alive in pg.items)
+        k_ = id(clip)
+        if k_ not in cprep_:
+            cprep_[k_] = B82Clip(clip)
+        return cprep_[k_]
     lib = b8_sym_lib()
 
     def grp_add(g_):
@@ -4179,8 +4239,13 @@ def b7_bake_world(doc, sh, warn):
             cs = [c for c in cs if c]
             if not cs:
                 continue
-            if clip is not None and not all(b7_pip_any(p, clip) for r_ in rings for p in r_[::max(1, len(r_) // 12)]):
-                ccs = [c for c in (pcurve(r_, True) for r_ in clip) if c]
+            cq = cprep(clip) if clip is not None else None
+            if cq is not None and not cq.overlaps(bbox([p for r_ in rings for p in r_])):
+                continue                                  # v8.2: wholly outside its clip: nothing to cut
+            if cq is not None and not all(cq.any_in(p) for r_ in rings for p in r_[::max(1, len(r_) // 12)]):
+                if cq.curves is None:                     # v8.2: the clip's Rhino curves made once, not per piece
+                    cq.curves = [c for c in (pcurve(r_, True) for r_ in clip) if c]
+                ccs = cq.curves
                 cut = []
                 for c in cs:
                     for cc in ccs:
@@ -4213,7 +4278,10 @@ def b7_bake_world(doc, sh, warn):
             pts, stroke, lw, dash = it[1], it[2], it[3], it[4]
             if not stroke or stroke.upper() == "FFFFFF":
                 continue
-            pieces = [pts] if clip is None or all(b7_pip_any(p, clip) for p in pts) else b7_clip_line(pts, clip)
+            cq = cprep(clip) if clip is not None else None
+            if cq is not None and not cq.overlaps(bbox(pts)):
+                continue                                  # v8.2: wholly outside its clip
+            pieces = [pts] if cq is None or all(cq.any_in(p) for p in pts) else b7_clip_line(pts, clip, cq)
             for P in pieces:
                 c = pcurve(P, False)
                 if c:
@@ -4333,6 +4401,12 @@ def _b8_lmod(doc, l, i_):
         pass
 
 
+def bake_pages(doc, pages, scale):
+    """v8.2: the masterplan's MP11 bake (main() calls it when rhino_bake is True) is not used here: build_all already
+    drew the sheet in Rhino on B7_BAKE_ROOT; this stops a second, never-deleted copy"""
+    return u"Rhino: one drawing only (layer {}); the masterplan's MP11 copy is not made".format(B7_BAKE_ROOT)
+
+
 def build_all(doc, warn):
     """Read the open file, compute the proposal (masterplan code, option A), draw and write the B19 sheet.
     Returns (folder, files, log lines, pages, scale) as main() expects."""
@@ -4381,17 +4455,12 @@ def build_all(doc, warn):
     pg, notes = b19_page(C, site, C.study or V.study, scale, warn)
     lines += notes
     lines.append(u"drawing built: {:.0f} s".format(time.time() - t_pg))
-    t_pdf = time.time()
-    path = b8_save(pg, folder, B19_NAME, u"MIRAQUA masterplan, B19 drawing language", lines)   # v8: grouped
-    lines.append(u"{}  {}  (PDF written in {:.0f} s)".format(os.path.basename(path),
-                                                         datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t_pdf))
-    files = [path]
+    files = []
     sh = globals().get("_B7_SHEET")
     rb_ = inp("rhino_bake", False)
-    rb_ = rb_ is True or u"%s" % rb_ in (u"True", u"true", u"1")
-    if not rb_:                                           # v8.1: the slow Rhino copy only when asked for
-        lines.append(u"Rhino copy skipped (rhino_bake is False): only the script's PDF, nothing drawn in the .3dm")
-    if rb_ and doc is not None and Rhino is not None and sh:      # v7 (Aras 05:46): Rhino draws it in the .3dm + exports
+    keep_ = rb_ is True or u"%s" % rb_ in (u"True", u"true", u"1")      # v8.2: True = keep the drawing in the .3dm
+    rhino_ok = False
+    if doc is not None and Rhino is not None and sh:      # v8.2 (Aras 12:07 TR): Rhino always draws + writes the PDF
         t1 = time.time()
         try:
             undo0 = doc.UndoRecordingEnabled
@@ -4404,18 +4473,30 @@ def build_all(doc, warn):
                 doc.Views.RedrawEnabled = True
             lines.append(u"Rhino: {} objects drawn under layer {} at the survey's own coordinates, {:.0f} s".format(
                 n_, B7_BAKE_ROOT, time.time() - t1))
+            t2 = time.time()
             rpath = os.path.join(folder, B19_NAME.replace(".pdf", "_rhino.pdf"))
             if b7_rhino_pdf(doc, corners, sh["W"], sh["H"], rpath, warn):
-                files.insert(0, rpath)
-                lines.append(u"{}  (written by Rhino)".format(os.path.basename(rpath)))
+                files.append(rpath)
+                rhino_ok = True
+                lines.append(u"{}  (written by Rhino in {:.0f} s)".format(os.path.basename(rpath), time.time() - t2))
         except Exception as ex_:
             import traceback
-            warn.append(u"B19 Rhino drawing NOT DONE ({}: {}); the script's own PDF is the result. {}".format(
+            warn.append(u"B19 Rhino drawing NOT DONE ({}: {}); the script's own PDF is written instead. {}".format(
                 type(ex_).__name__, ex_, traceback.format_exc()[-300:]))
-        finally:                                          # v8 (Aras 09:16 TR): drawn, exported, then deleted
-            n_del = b8_remove_bake(doc, warn)
-            lines.append(u"Rhino: the temporary drawing removed from the .3dm ({} objects, layer {} deleted)".format(
-                n_del, B7_BAKE_ROOT))
+        finally:
+            if keep_:
+                lines.append(u"Rhino: the drawing kept in the .3dm on layer {} (rhino_bake is True)".format(B7_BAKE_ROOT))
+            else:                                         # v8 (Aras 09:16 TR): drawn, exported, then deleted
+                t3 = time.time()
+                n_del = b8_remove_bake(doc, warn)
+                lines.append(u"Rhino: the drawing removed from the .3dm ({} objects, layer {} deleted, {:.0f} s)".format(
+                    n_del, B7_BAKE_ROOT, time.time() - t3))
+    if not rhino_ok:                                      # v8.2: the script's own PDF only as the fallback
+        t_pdf = time.time()
+        path = b8_save(pg, folder, B19_NAME, u"MIRAQUA masterplan, B19 drawing language", lines)   # v8: grouped
+        lines.append(u"{}  {}  (script's own PDF, fallback, written in {:.0f} s)".format(
+            os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t_pdf))
+        files.append(path)
     return folder, files, lines, [("A", 1, pg)], scale
 
 
