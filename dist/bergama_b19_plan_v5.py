@@ -33026,7 +33026,7 @@ def b19_page(C, site, study, scale, warn):
     cross_ = lambda R: any(not ins(q) for q in R)          # v5: a building the zone line crosses = outside
     ulu = lambda R: math.hypot(inner_pt(R)[0] - B3_ULU_XY[0], inner_pt(R)[1] - B3_ULU_XY[1]) < B3_ULU_R
     out_ = lambda R: not ins(inner_pt(R)) or cross_(R)
-    b_rm = [R for R in blds if not out_(R) and (gone(R) or (ulu(R) and not is_her(R)))]
+    b_rm = [R for R in blds if not out_(R) and (gone(R) or ulu(R)) and not is_her(R)]   # heritage never taken out (Aras 23:41)
     b_in = [R for R in blds if not out_(R) and R not in b_rm]
     b_out = [R for R in blds if out_(R)]
     edges = [P for role in ("road", "kerb") for P in sv.get(role, []) if hit(bbox(P), box)]
