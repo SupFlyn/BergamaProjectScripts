@@ -4182,7 +4182,11 @@ def b7_bake_world(doc, sh, warn):
         except Exception:
             blk[sid] = None
         return blk[sid]
+    n_all, t_b, i_it = len(pg.items), time.time(), 0
     for it in pg.items:
+        i_it += 1
+        if i_it % 5000 == 0:                              # v8.2: progress in the live log
+            b82_live(u"Rhino drawing: piece {:,} of {:,}, {} objects, {:.0f} s".format(i_it, n_all, n[0], time.time() - t_b))
         kd = it[0]
         if kd == "grp":
             if it[1] is None:
@@ -4401,6 +4405,21 @@ def _b8_lmod(doc, l, i_):
         pass
 
 
+_B82_LIVE = []                # v8.2: this run's log lines so far (written to the log file after every step)
+
+
+def b82_live(step=None):
+    """v8.2 (Aras 12:26 TR "it logs in every step right?"): the log file rewritten after every step, so a long or
+    stuck run shows how far it got; the full log replaces it at the end of the run"""
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        head = [u"{} · RUNNING · {}".format(VERSION, datetime.datetime.now().strftime("%H:%M:%S"))]
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f_:
+            f_.write(u"\n".join(head + list(_B82_LIVE) + ([u"now: " + step] if step else [])))
+    except Exception:
+        pass
+
+
 def bake_pages(doc, pages, scale):
     """v8.2: the masterplan's MP11 bake (main() calls it when rhino_bake is True) is not used here: build_all already
     drew the sheet in Rhino on B7_BAKE_ROOT; this stops a second, never-deleted copy"""
@@ -4449,12 +4468,15 @@ def build_all(doc, warn):
     C = Corridor(V, survey, CL, D, spots, warn)
     lines = [u"proposal computed (masterplan code, option A): zones {}, hubs {}, {:.1f} s".format(
         len(D.zones), len(C.hubs), time.time() - t0)]
+    globals()["_B82_LIVE"] = lines                        # v8.2: live log
+    b82_live(u"drawing the sheet")
     C.survey = survey
     globals()["_B19_LAST"] = dict(C=C, CL=CL, D=D, site=site, survey=survey, study=C.study or V.study)
     t_pg = time.time()
     pg, notes = b19_page(C, site, C.study or V.study, scale, warn)
     lines += notes
     lines.append(u"drawing built: {:.0f} s".format(time.time() - t_pg))
+    b82_live(u"Rhino drawing")
     files = []
     sh = globals().get("_B7_SHEET")
     rb_ = inp("rhino_bake", False)
@@ -4490,6 +4512,7 @@ def build_all(doc, warn):
                 doc.Views.RedrawEnabled = True
             lines.append(u"Rhino: {} objects drawn under layer {} at the survey's own coordinates, {:.0f} s".format(
                 n_, B7_BAKE_ROOT, time.time() - t1))
+            b82_live(u"Rhino writing the PDF")
             t2 = time.time()
             rpath = os.path.join(folder, B19_NAME.replace(".pdf", "_rhino.pdf"))
             if b7_rhino_pdf(doc, corners, sh["W"], sh["H"], rpath, warn):
@@ -4510,11 +4533,13 @@ def build_all(doc, warn):
             if keep_:
                 lines.append(u"Rhino: the drawing kept in the .3dm on layer {} (rhino_bake is True)".format(B7_BAKE_ROOT))
             else:                                         # v8 (Aras 09:16 TR): drawn, exported, then deleted
+                b82_live(u"removing the drawing from the .3dm")
                 t3 = time.time()
                 n_del = b8_remove_bake(doc, warn)
                 lines.append(u"Rhino: the drawing removed from the .3dm ({} objects, layer {} deleted, {:.0f} s)".format(
                     n_del, B7_BAKE_ROOT, time.time() - t3))
     if not rhino_ok:                                      # v8.2: the script's own PDF only as the fallback
+        b82_live(u"writing the script's own PDF (fallback)")
         t_pdf = time.time()
         path = b8_save(pg, folder, B19_NAME, u"MIRAQUA masterplan, B19 drawing language", lines)   # v8: grouped
         lines.append(u"{}  {}  (script's own PDF, fallback, written in {:.0f} s)".format(

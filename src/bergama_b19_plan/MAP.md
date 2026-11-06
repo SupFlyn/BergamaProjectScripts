@@ -319,7 +319,8 @@
 | B82Clip | parts/b19_plan.py | 4003 |
 | b7_clip_line | parts/b19_plan.py | 4023 |
 | b7_bake_world | parts/b19_plan.py | 4056 |
-| b7_rhino_pdf | parts/b19_plan.py | 4346 |
-| _b8_lmod | parts/b19_plan.py | 4396 |
-| bake_pages | parts/b19_plan.py | 4404 |
-| build_all | parts/b19_plan.py | 4410 |
+| b7_rhino_pdf | parts/b19_plan.py | 4350 |
+| _b8_lmod | parts/b19_plan.py | 4400 |
+| b82_live | parts/b19_plan.py | 4411 |
+| bake_pages | parts/b19_plan.py | 4423 |
+| build_all | parts/b19_plan.py | 4429 |
