@@ -42,4 +42,7 @@
 #@include ../bergama_masterplan/pages/p24_detail.py
 #@include parts/b19_pre.py
 #@include ../bergama_masterplan/parts/03_make_board.py
+#@include data/VEG_EMBED.py
+#@include data/TREE_EMBED.py
+#@include data/BUSH_EMBED.py
 #@include parts/b19_plan.py
