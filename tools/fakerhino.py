@@ -359,6 +359,9 @@ def _geo(r):
 
 
 class Layers(list):
+    CurrentLayerIndex = 0
+    def SetCurrentLayerIndex(self, i, quiet=True):
+        self.CurrentLayerIndex = i; return True
     def FindByFullPath(self, path, default=-1):
         for l in self:
             if l.FullPath == path and not l.IsDeleted: return l.Index
