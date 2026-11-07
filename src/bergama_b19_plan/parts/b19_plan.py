@@ -15,7 +15,7 @@ Rhino = _B19_RHINO                                   # b19_pre.py: given back af
 # v8.2: Rhino draws the sheet on layer B19_PLAN and writes output/bergama_b19_plan/<name>_rhino.pdf; rhino_bake
 # False (default) = the drawing deleted from the .3dm after the export, True = kept there; the script's own PDF
 # only if Rhino's fails. It writes nothing another script reads (no masterplan_results.json, no booklet items).
-VERSION = "bergama_b19_plan v10.1 (2026-11-07)"  # v10.1 (Aras 7 Nov 07:51-07:56 TR): his urbanasset.svg cut into 25 pieces and placed on the places (picnic lawns, half-round steps, courts, deck, round plaza, play lawn, stone terrace, mown paths, people), turned to the walk and scaled evenly; places a road or path runs through left out + named; streets and links kept off the wetland; wetland as green reed clumps; walk pieces of one bank joined (west start); light red gradient round historic house clusters outside the zone; v10 (Aras 15:47 TR, previews/V10_CHANGES.md): text 14-36 pt; wetland drawn as light water + reed tufts and named; no land fingers/islands in the stream (bank spikes evened, self-crossing edges cut); road bridge = carriageway + pavements (no white deck); footbridges land straight on both walks (any angle, no extra end paths); wider edge fade; places drawn in the urbanasset.svg look (picnic tables + blankets, half-round seating steps, lined courts, café deck, round classroom, play forms, people); water terraces (seating steps into the water); shade rows on each place's south-west side, no contour grove within 12 m of a place; a "why here" line in each place name; steep banks over 20 % and stepped / raised dry tops explained in callouts; street ends at the water joined to a walk; callout lines never cross another line or box (Aras 16:13 TR); v9.1 (Aras 15:47 TR, Illustrator: white blocks over the drawing, callout boxes empty): Rhino stacked every text under the fills (now each text stacked in sheet order) and draws see-through pieces last, on top (now nothing see-through: the edge fade lightens the pieces under it, other see-through colours pre-mixed on what lies under them, as in 8-0); no white page background in Rhino; v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
+VERSION = "bergama_b19_plan v10.2 (2026-11-07)"  # v10.2 (Aras 7 Nov 09:21-09:27 TR, his Rhino PDF): Rhino draws the same flat pieces as the test (no blocks: trees and assets drawn as filled shapes, not dots/outlines); Rhino text at the sheet height (cap height), Arial, bottom-anchored, no mask; no number without its callout box; the walk cut where it runs on a car road and joins never cross one; one light red gradient over the old settlement round Kizil Avlu (radius assumed); v10.1 (Aras 7 Nov 07:51-07:56 TR): his urbanasset.svg cut into 25 pieces and placed on the places (picnic lawns, half-round steps, courts, deck, round plaza, play lawn, stone terrace, mown paths, people), turned to the walk and scaled evenly; places a road or path runs through left out + named; streets and links kept off the wetland; wetland as green reed clumps; walk pieces of one bank joined (west start); light red gradient round historic house clusters outside the zone; v10 (Aras 15:47 TR, previews/V10_CHANGES.md): text 14-36 pt; wetland drawn as light water + reed tufts and named; no land fingers/islands in the stream (bank spikes evened, self-crossing edges cut); road bridge = carriageway + pavements (no white deck); footbridges land straight on both walks (any angle, no extra end paths); wider edge fade; places drawn in the urbanasset.svg look (picnic tables + blankets, half-round seating steps, lined courts, café deck, round classroom, play forms, people); water terraces (seating steps into the water); shade rows on each place's south-west side, no contour grove within 12 m of a place; a "why here" line in each place name; steep banks over 20 % and stepped / raised dry tops explained in callouts; street ends at the water joined to a walk; callout lines never cross another line or box (Aras 16:13 TR); v9.1 (Aras 15:47 TR, Illustrator: white blocks over the drawing, callout boxes empty): Rhino stacked every text under the fills (now each text stacked in sheet order) and draws see-through pieces last, on top (now nothing see-through: the edge fade lightens the pieces under it, other see-through colours pre-mixed on what lies under them, as in 8-0); no white page background in Rhino; v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
 SHORT = "v7"
 GH_LABEL = "B19Plan"
 SETTINGS = ("rhino_bake", "scale")
@@ -23,7 +23,7 @@ OUT_FOLDER = "bergama_b19_plan"
 LOG_NAME = "bergama_b19_plan_log.txt"
 BAKE_ROOT = "B19"
 B19_SCALE = 1000.0           # v8 (Aras 6 Nov 10:06 TR): 1:1,000 on one free-size sheet (was 1:4,000); input `scale` overrides
-B19_NAME = "Bergama_B19_plan_v10_1.pdf"
+B19_NAME = "Bergama_B19_plan_v10_2.pdf"
 B19_M = 15.0                 # mm paper margin (design value)
 B19_HEAD = 20.0              # mm band under the plan: title, scale bar, north arrow (design value)
 B19_A1 = (841.0, 594.0)      # ISO 216 A1, mm: the log says whether the sheet fits it
@@ -1748,38 +1748,19 @@ def b19_page(C, site, study, scale, warn):
         Ps = b8_ctx_rings([TL(b3_chaikin_closed(R, 2)) for bb_, R in lc_box if len(R) >= 3])   # v8: rounded, lean
         if Ps:
             sub.poly(Ps, fill=b3_mix(B3_COL["tree1"], "FFFFFF", 0.72))
-    # v10.1 (Aras 7 Nov 07:54 TR): the historic house clusters outside the zone (survey BINA_TARIHI + BINA_HARABE) under a light red
-    # gradient: three soft rings round each cluster (houses within 35 m of each other), lightest outside
-    her_out = [R for R in her if not touch(R)]
-    grp_, used_ = [], set()
-    for i_, R in enumerate(her_out):
-        if i_ in used_:
-            continue
-        cl_, st_ = [], [i_]
-        used_.add(i_)
-        while st_:
-            j_ = st_.pop()
-            cl_.append(her_out[j_])
-            cj = inner_pt(her_out[j_])
-            for m_, R2 in enumerate(her_out):
-                if m_ not in used_:
-                    c2 = inner_pt(R2)
-                    if math.hypot(c2[0] - cj[0], c2[1] - cj[1]) < 35.0:
-                        used_.add(m_)
-                        st_.append(m_)
-        grp_.append(cl_)
-    n_hc = 0
-    for cl_ in grp_:
-        if len(cl_) < 2:
-            continue
-        Hc = b3_hull([q for R in cl_ for q in R])
-        if len(Hc) < 3 or not hit(bbox(Hc), box):
-            continue
-        with mpx_grp(sub, "heritage", u"historic house cluster outside the zone %d" % n_hc):
-            for d_, col_ in B10_HER_HALO:
-                sub.poly([TL(b7_grow(Hc, d_))], fill=col_)
-        n_hc += 1
-    cnt("historic house clusters outside, red gradient (v10.1)", n_hc)
+    # v10.2 (Aras 7 Nov 09:21 TR "the heritage (eski yerlesim) should be around Kizil Avlu"): ONE light red gradient over the old
+    # settlement: every survey historic / ruin building (BINA_TARIHI + BINA_HARABE) within B10_OLD_R of the Kizil Avlu label
+    # (survey label point, see B10_KIZIL), each grown by the three rings and drawn ring by ring so they merge into one area.
+    # ASSUMED extent: the survey has no old-town boundary layer, so the radius is a stated assumption, not a survey line.
+    her_ka = [b3_hull(R) for R in her if math.hypot(inner_pt(R)[0] - B10_KIZIL[0], inner_pt(R)[1] - B10_KIZIL[1]) < B10_OLD_R]
+    her_ka = [H for H in her_ka if len(H) >= 3 and hit(bbox(b7_grow(H, B10_HER_HALO[0][0])), box)]
+    if her_ka:
+        with mpx_grp(sub, "heritage", u"old settlement round Kizil Avlu (eski yerlesim), light red gradient"):
+            Hk = b3_hull([q for H in her_ka for q in H])    # one area, not one blob per house
+            sc_ = lambda f: [(B10_KIZIL[0] + (q[0] - B10_KIZIL[0]) * f, B10_KIZIL[1] + (q[1] - B10_KIZIL[1]) * f) for q in Hk]
+            for R_, col_ in ((b7_grow(Hk, 24.0), "F8E8E4"), (Hk, "F2D6CF"), (sc_(0.6), "EDC6BD"), (sc_(0.3), "E8B6AB")):
+                sub.poly([TL(R_)], fill=col_)                 # lightest at the edge, deepest at Kizil Avlu
+    cnt("old settlement round Kizil Avlu: historic buildings under the red gradient (v10.2, radius %d m assumed)" % B10_OLD_R, len(her_ka))
     # ================================================================ 1 ground: gradient, height steps, contours
     sub.clip(st)
     with mpx_grp(sub, "ground", u"open meadow"):
@@ -2005,7 +1986,14 @@ def b19_page(C, site, study, scale, warn):
                   if not in_chan(q)]
     # ================================================================ 5 walks + bike lane, continuous (F4)
     walks = b6_walks(C, cl, in_chan)                      # [(P, bank)] one continuous line per stretch and bank
-    walks, n_wj = b10_join_walks(walks, in_chan, lambda q: in_bld(q, 1.0))     # v10.1 (Aras 7 Nov 07:53 TR: the walk cuts off at the west)
+    car_sg = [(a_, b_, x_["w"] / 2.0 + B6_PAVEMENT + B3_WALK_W / 2.0) for x_ in vis if x_["car"] and not x_["br"]
+              for a_, b_ in zip(x_["P"][:-1], x_["P"][1:])]  # v10.2 (Aras 7 Nov 09:21 TR: walk on the car road at
+    on_car = lambda q: any(seg_dist(q[0], q[1], a_, b_) < r_ for a_, b_, r_ in car_sg   # Ulucami): no walk there
+                           if min(a_[0], b_[0]) - r_ <= q[0] <= max(a_[0], b_[0]) + r_ and
+                           min(a_[1], b_[1]) - r_ <= q[1] <= max(a_[1], b_[1]) + r_)
+    walks = [(Q, bank) for P, bank in walks for Q in b6_split(b3_dense(P, 2.0), on_car) if arclen(Q)[-1] >= 10.0]
+    walks, n_wj = b10_join_walks(walks, in_chan, lambda q: in_bld(q, 1.0) or on_car(q))     # v10.1 (Aras 7 Nov 07:53 TR: the walk cuts off at the west)
+    walks = [(b10_ease(P, lambda q: in_chan(q) or in_bld(q, 1.0) or on_car(q)), bank) for P, bank in walks]   # v10.2: no V-dips
     walks3 = [(P, bank, [chain_at(C.ref, q)[0] for q in P]) for P, bank in walks]
     beds = [b3_chaikin_open(b3_dense(P, 6.0), 1) for P, bed, bank in cl["walk"] if bed and len(P) >= 2]
     canopy = []
@@ -2141,9 +2129,11 @@ def b19_page(C, site, study, scale, warn):
         if c_["kind"] == "footbridge":
             br_bands.append(([a_, b_], B3_FOOT_W, B3_COL["deck"], u"new footbridge"))
             el_names.append((u"New footbridge", ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)))
-        else:
-            stones.append((a_, b_))
+        elif b10_in_wl(a_, b_, widen):                    # v10.2 (V10_CHANGES 7 + Aras 09:21 TR circle): stones only
+            stones.append((a_, b_))                       # across the shallow wetland, never the main channel
             el_names.append((u"Stepping stones", ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)))
+        else:
+            flags.append(u"FLAG B19 v10.2: stepping stones %s cross the main channel (floods): left out" % (c_.get("name") or u""))
     for P, w, col, nm in br_bands:
         add_hard(P, w / 2.0 + B3_TREE_CLEAR)
     # v7 R6 (00:56): stepping stones where a bed walk ends at shallow water (crossing <= 14 m)
@@ -2164,7 +2154,7 @@ def b19_page(C, site, study, scale, warn):
                     b_ = q_
                     break
                 t_ += 0.5
-            if a_ and b_ and math.hypot(b_[0] - a_[0], b_[1] - a_[1]) <= 14.0 and \
+            if a_ and b_ and math.hypot(b_[0] - a_[0], b_[1] - a_[1]) <= 14.0 and b10_in_wl(a_, b_, widen) and \
                     all(math.hypot(a_[0] - s0[0], a_[1] - s0[1]) > 40.0 for s0, s1 in stones):
                 stones.append((a_, b_))
                 el_names.append((u"Stepping stones", a_))
@@ -2875,17 +2865,7 @@ def b19_page(C, site, study, scale, warn):
                 if math.hypot(tx - x, ty - y) > 1.0:
                     sub.line([(x, y), (tx, ty)], B3_COL["ink"], 0.08)
                 return True
-        if not keyable:
-            return False
-        n_ = len(keyed) + 1                               # a numbered dot on the element, the name in the key
-        b = (x - B9_DOT_R, y - B9_DOT_R, x + B9_DOT_R, y + B9_DOT_R)
-        if any(hit(b, o, 0.2) for o in labels):
-            return False
-        labels.append(b)
-        keyed.append(s_)
-        sub.poly([b3_circle((x, y), B9_DOT_R, 20)], fill="FFFFFF", stroke=B3_COL["ink"], lw=0.15)
-        sub.text(u"%d" % n_, x, y - B9_DOT_T * 0.36, B9_DOT_T, B3_COL["ink"], bold=True, align="C")
-        return True
+        return False                                      # v10.2 (Aras 09:27 TR): no numbered dots; no room = left out, logged
     zt_ = max(q[1] for Q in st for q in Q)                # v9: reach names 28 pt above the zone, centred on
     for a_c, b_c, th in reaches:                          # their reach (the larger size never fits inside)
         s_r = arclen(C.ref)
@@ -2953,6 +2933,10 @@ def b19_page(C, site, study, scale, warn):
                     best = (sc, b)
             if best is not None and best[0] <= rr:
                 break
+        if best is None:                                  # v10.2 (Aras 7 Nov 09:27 TR "numbers without an explanation,
+            left.append(title)                            # don't do that"): no room for its box = no number either
+            continue
+        n_ = n_box + 1                                    # numbered in route order, only the boxed ones
         sub.group("annotations", u"%d %s" % (n_, title))
         if best is not None:
             b = best[1]
@@ -2970,8 +2954,7 @@ def b19_page(C, site, study, scale, warn):
         else:
             keyed.append(u"%d %s" % (n_, title))         # no room: the number on the drawing, the name in the key
         labels.append((x - B9_DOT_R, y - B9_DOT_R, x + B9_DOT_R, y + B9_DOT_R))
-        sub.poly([b3_circle((x, y), B9_DOT_R, 24)], fill=col, stroke="FFFFFF", lw=0.25)
-        sub.text(u"%d" % n_, x, y - B9_DOT_T * 0.36, B9_DOT_T, "FFFFFF", bold=True, align="C")
+        sub.poly([b3_circle((x, y), B9_DOT_R * 0.6, 24)], fill=col, stroke="FFFFFF", lw=0.25)   # v10.2: plain dot, no number
         sub.endgroup()
     cnt("place callouts (boxed)", n_box)
     cnt("place numbers in the key", len(calls) - n_box)
@@ -3283,7 +3266,7 @@ B6_CAR_ROADS = (u"Bergama - Kozak Yolu", u"Adnan Menderes Bulvarı")
 B6_PAVEMENT = 2.0            # pavement each side of a kept car road
 B6_ENTRY_R = 9.0             # entrance square radius where a street meets the zone
 B6_ROAD_GAP = 1.0            # the stream edge stops this short of a car road's pavement
-B6_SMOOTH_M = 0.0            # v7 (Aras 05:42 "1:1"): each station keeps its own survey width
+B6_SMOOTH_M = 20.0           # v10.2 (Aras 7 Nov 09:21 TR "no unnecessary topography moves"): bank widths averaged over 20 m of stream (was 0: every station its own survey width, which left notches)
 B6_STEP_Z = 2.0              # ground darkens with every 2 m above the stream bed (F8)
 B6_CELL = 8.0                # height cell size
 B6_TERR_W = 6.0              # rain terrace level band (F7)
@@ -4078,6 +4061,30 @@ B7_WHY = dict(heritage=u"Ulucami + kept heritage: café, craft, seats", wetland=
               active=u"largest open ground: sport, events", everyday=u"housing edge: play, picnic, fitness")
 
 
+def b10_ease(P, bad, win=8, passes=3):
+    """v10.2 (Aras 7 Nov 09:21 TR "no unnecessary topography moves"): a walk line evened out (moving average of about
+    +-16 m on 2 m spacing, 3 passes); a point that would land in the water, a building or a car road keeps its place;
+    the two ends never move"""
+    Q = b3_dense(P, 2.0)
+    if len(Q) < 2 * win + 3:
+        return P
+    for _ in range(passes):
+        R = list(Q)
+        for i in range(1, len(Q) - 1):
+            j0, j1 = max(0, i - win), min(len(Q), i + win + 1)
+            m_ = (sum(q[0] for q in Q[j0:j1]) / (j1 - j0), sum(q[1] for q in Q[j0:j1]) / (j1 - j0))
+            if not bad(m_):
+                R[i] = m_
+        Q = R
+    return Q
+
+
+def b10_in_wl(a, b, widen):
+    """v10.2: True when the line a-b runs over the wetland (widened shallow stream) at its middle and quarter points"""
+    pts = [(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t) for t in (0.25, 0.5, 0.75)]
+    return all(any(pip(q[0], q[1], R) for R in widen) for q in pts)
+
+
 def b7_grow(R, d):
     """ring R moved d m outward along its vertex normals, rounded (pure Python: works offline and in Rhino)"""
     N = b6_inward(R)
@@ -4293,7 +4300,10 @@ def b7_merge_bridges(br_ways):
 
 
 # ================================================================ v10 (6 Nov 2026, Aras 15:47 TR, previews/V10_CHANGES.md)
+B10_CAP = 0.716              # Arial capital height / font size (Rhino sizes text by capitals)
 B10_HER_HALO = ((24.0, "F2D3CC"), (14.0, "EBBCB2"), (6.0, "E3A698"))   # v10.1: light red gradient, outer ring first
+B10_KIZIL = (30203.92, 31974.82)   # v10.2: Kizil Avlu label point in the survey (same point as selinus_board 15j_r28_heritage.py)
+B10_OLD_R = 300                   # v10.2: m round Kizil Avlu counted as the old settlement (ASSUMED, no boundary layer in the survey)
 B10_WET = "A9C4C2"           # wetland: shallow water, lighter and greener than the stream (was water_lt + light ticks)
 B10_REED = "4F6B55"          # reed tufts
 
@@ -4757,7 +4767,7 @@ B6_LEGEND = ((u"Riverside walk", B3_COL["paving"]), (u"Bike lane", B3_COL["bike"
               B3_TREE_TONE["plane"]),
              (u"Hedge screen (roads, building backs)", B3_COL["tree2"]),
              (u"Heritage, kept + trail", B3_COL["heritage"]),
-             (u"Historic house clusters outside the zone (survey BINA_TARIHI, BINA_HARABE)", "EBBCB2"),
+             (u"Old settlement round Kizil Avlu (eski yerlesim)", "EBBCB2"),
              (u"Ground +2 m steps above the bed", b3_mix(B3_COL["meadow"], B3_COL["contour_dk"], 0.3)))
 
 
@@ -5043,6 +5053,7 @@ def b7_bake_world(doc, sh, warn):
         return cprep_[k_]
     lib = b8_sym_lib()
     run_tag = datetime.datetime.now().strftime("%H%M%S")
+    why_t = [None]                                        # v10.2: first reason the matched text failed
     why_ = [None]                                         # v8.6: the first reason a tree failed, for the log
 
     def grp_add(g_):
@@ -5226,15 +5237,19 @@ def b7_bake_world(doc, sh, warn):
         if kd == "sym":                                   # v8: Aras's traced tree = one Rhino block, placed here
             sid, x, y, r = it[1], it[2], it[3], it[4]
             an_ = it[6] if len(it) > 6 and it[6] else 0.0   # v10.1
-            bi = block(sid)
-            if bi is None:                                # v9: no block -> the symbol's tone bands drawn in place
+            bi = None                                     # v10.2 (Aras 7 Nov 09:23-09:27 TR: trees only grey dots,
+            if bi is None:                                # assets only outlines): no blocks; each piece's tone bands
+                                                          # drawn flat, in sheet order, colours pre-mixed on white                                # v9: no block -> the symbol's tone bands drawn in place
                 n0_ = n[0]
                 for b_ in lib.get(sid) or []:
                     cs_ = [c for c in (pcurve([(x + r * (q[0] * math.cos(an_) - q[1] * math.sin(an_)),
                                                  y + r * (q[0] * math.sin(an_) + q[1] * math.cos(an_))) for q in R], True)
                                        for R in b_["rings"] if len(R) >= 3) if c]
+                    fl_ = b_["fill"].lstrip("#")
+                    if b_.get("alpha") is not None:
+                        fl_ = mixc(u"FFFFFF", fl_, float(b_["alpha"]))
                     for h in hatches(cs_, pats.get("Solid", 0), 1.0):
-                        doc.Objects.AddHatch(h, attr(lix, b_["fill"].lstrip("#"), alpha=b_.get("alpha")))
+                        doc.Objects.AddHatch(h, attr(lix, fl_))
                         n[0] += 1
                 if n[0] == n0_:
                     fails[0] += 1
@@ -5346,6 +5361,36 @@ def b7_bake_world(doc, sh, warn):
                 fails[0] += 1
         elif kd == "text":
             _, t, x, y, size, colour, bold, align = it[:8]
+            try:                                          # v10.2 (Aras 7 Nov 09:23 TR: texts slid out of their boxes,
+                te_ = rg.TextEntity.Create(u"%s" % t, rg.Plane(P3((x, y)), rg.Vector3d.ZAxis),   # wrong style):
+                                           doc.DimStyles.Current, False, 0.0, 0.0)               # Rhino's text height
+                te_.TextHeight = size * s * B10_CAP       # is the capital height, the sheet's is the font size
+                try:
+                    te_.DimensionScale = 1.0              # no model-space annotation scaling
+                except Exception:
+                    pass
+                try:
+                    te_.Font = Rhino.DocObjects.Font.FromQuartetProperties("Arial", bool(bold), False)
+                except Exception as ex_f:
+                    why_t[0] = why_t[0] or u"font: %s" % ex_f
+                try:
+                    te_.TextHorizontalAlignment = {"L": Rhino.DocObjects.TextHorizontalAlignment.Left,
+                                                   "C": Rhino.DocObjects.TextHorizontalAlignment.Center,
+                                                   "R": Rhino.DocObjects.TextHorizontalAlignment.Right}[align]
+                    te_.TextVerticalAlignment = Rhino.DocObjects.TextVerticalAlignment.Bottom   # baseline, as the sheet
+                except Exception as ex_a:
+                    why_t[0] = why_t[0] or u"alignment: %s" % ex_a
+                try:
+                    te_.MaskEnabled = False
+                except Exception:
+                    pass
+                g_t = doc.Objects.AddText(te_, attr(lix, colour))
+                if g_t != System.Guid.Empty:
+                    n[0] += 1
+                    continue
+                why_t[0] = why_t[0] or u"AddText refused"
+            except Exception as ex_t:
+                why_t[0] = why_t[0] or u"%s: %s" % (type(ex_t).__name__, ex_t)
             try:
                 i_ = rs.AddText(t, (P3((x, y)).X, P3((x, y)).Y, 0.0), size * s, "Arial", 1 if bold else 0,
                                 {"L": 1, "C": 2, "R": 4}[align])
@@ -5363,6 +5408,8 @@ def b7_bake_world(doc, sh, warn):
                     n[0] += 1
             except Exception:
                 fails[0] += 1
+    if why_t[0]:
+        warn.append(u"FLAG B19 Rhino text: fell back to the old text call for some texts ({})".format(why_t[0]))
     if fails[0]:
         warn.append(u"B19 Rhino drawing: {} piece(s) could not be cut / hatched (left out){}".format(
             fails[0], u"; first reason: " + why_[0] if why_[0] else u""))
