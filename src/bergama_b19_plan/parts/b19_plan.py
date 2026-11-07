@@ -12,9 +12,10 @@ Rhino = _B19_RHINO                                   # b19_pre.py: given back af
 # outlines, lawns and greens in light sage washes, trees as transparent sage crowns of mixed tones with a soft
 # shadow, light grey paving, mauve movement lines, red facility marks, small black names beside their places,
 # everything outside the project zone veiled whitish, the zone in a thin dark red line.
-# Writes output/bergama_b19_plan/Bergama_B19_plan_v1.pdf (true size at 1:scale); rhino_bake = True bakes it on
-# layer B19. It writes nothing another script reads (no masterplan_results.json, no booklet items).
-VERSION = "bergama_b19_plan v8.1 (2026-11-06)"  # v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
+# v8.2: Rhino draws the sheet on layer B19_PLAN and writes output/bergama_b19_plan/<name>_rhino.pdf; rhino_bake
+# False (default) = the drawing deleted from the .3dm after the export, True = kept there; the script's own PDF
+# only if Rhino's fails. It writes nothing another script reads (no masterplan_results.json, no booklet items).
+VERSION = "bergama_b19_plan v11 (2026-11-07)"  # v11 (Aras 7 Nov 10:37-10:52 TR, previews/v10/V11_PLAN.md): no empty outlines (an edge only with its fill; self-crossing shapes split into regions and filled; failures counted by kind in the log); no dead-end paths (joined to the nearest path within 40/60 m or removed), walks and paths at the zone edge run on to the nearest context street; walk gaps closed along the water edge; the road stays a road straight across a road bridge; zebra crossings where a walk crosses a car road; walks pass under road bridges (bridge drawn over them); footbridges only where they land on both walks; stray bridge/road/hidden-stream pieces in the water left out; similar places clustered (active, lawn, garden); every place drawn at its true size with its ground, a piece of his urbanasset.svg (12 more pieces cut) and people doing what it is for (1.7 m), cyclists and runners on the bike lanes and walks; places moved off path bands; contours only outside the zone, no hedge stubs; route textures (walk joints, green paths, red-brown bike lane, gravel bed walk) in the legend; v10.3 (Aras 7 Nov 10:03 TR: red lines and dots outside the zone): Rhino cannot hide the current layer, so his current survey layer printed into the PDF; the B19 root is made current while Rhino writes the PDF, his layer restored after, and any layer that stays visible is named in the log; v10.2 (Aras 7 Nov 09:21-09:27 TR, his Rhino PDF): Rhino draws the same flat pieces as the test (no blocks: trees and assets drawn as filled shapes, not dots/outlines); Rhino text at the sheet height (cap height), Arial, bottom-anchored, no mask; no number without its callout box; the walk cut where it runs on a car road and joins never cross one; one light red gradient over the old settlement round Kizil Avlu (radius assumed); v10.1 (Aras 7 Nov 07:51-07:56 TR): his urbanasset.svg cut into 25 pieces and placed on the places (picnic lawns, half-round steps, courts, deck, round plaza, play lawn, stone terrace, mown paths, people), turned to the walk and scaled evenly; places a road or path runs through left out + named; streets and links kept off the wetland; wetland as green reed clumps; walk pieces of one bank joined (west start); light red gradient round historic house clusters outside the zone; v10 (Aras 15:47 TR, previews/V10_CHANGES.md): text 14-36 pt; wetland drawn as light water + reed tufts and named; no land fingers/islands in the stream (bank spikes evened, self-crossing edges cut); road bridge = carriageway + pavements (no white deck); footbridges land straight on both walks (any angle, no extra end paths); wider edge fade; places drawn in the urbanasset.svg look (picnic tables + blankets, half-round seating steps, lined courts, café deck, round classroom, play forms, people); water terraces (seating steps into the water); shade rows on each place's south-west side, no contour grove within 12 m of a place; a "why here" line in each place name; steep banks over 20 % and stepped / raised dry tops explained in callouts; street ends at the water joined to a walk; callout lines never cross another line or box (Aras 16:13 TR); v9.1 (Aras 15:47 TR, Illustrator: white blocks over the drawing, callout boxes empty): Rhino stacked every text under the fills (now each text stacked in sheet order) and draws see-through pieces last, on top (now nothing see-through: the edge fade lightens the pieces under it, other see-through colours pre-mixed on what lies under them, as in 8-0); no white page background in Rhino; v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
 SHORT = "v7"
 GH_LABEL = "B19Plan"
 SETTINGS = ("rhino_bake", "scale")
@@ -22,13 +23,25 @@ OUT_FOLDER = "bergama_b19_plan"
 LOG_NAME = "bergama_b19_plan_log.txt"
 BAKE_ROOT = "B19"
 B19_SCALE = 1000.0           # v8 (Aras 6 Nov 10:06 TR): 1:1,000 on one free-size sheet (was 1:4,000); input `scale` overrides
-B19_NAME = "Bergama_B19_plan_v8.pdf"
+B19_NAME = "Bergama_B19_plan_v11.pdf"
 B19_M = 15.0                 # mm paper margin (design value)
 B19_HEAD = 20.0              # mm band under the plan: title, scale bar, north arrow (design value)
 B19_A1 = (841.0, 594.0)      # ISO 216 A1, mm: the log says whether the sheet fits it
 B19_VEIL = 0.6               # opacity of the whitish veil outside the project zone (design value)
 B19_BORDER_MM = 0.35         # project zone line, mm (design value)
 B19_NAME_MM = 2.12           # place names 6 pt (booklet minimum)
+B9_LEG = 4.94                # mm (14 pt) legend text (v10, Aras 15:47 TR "text a bit bigger"; v9 12 pt)
+B9_DOT_R, B9_DOT_T = 2.6, 3.53   # mm: numbered dot radius, its number (10 pt) (v9)
+B9_PATH_MERGE = 6.0          # m: a new path this close to an earlier one (side by side) is merged into it (v9)
+B9_FILL_MIN = 2000.0         # m2: free open ground this large gets a designed programme (v9)
+B9_FILL = dict(               # v9: programme per reach for open ground (kind, name); allotments stay in Demeter's Garden
+    active=(("court", u"Courts"), ("skate", u"Skate + pump track"), ("fitness", u"Fitness corner"),
+            ("play", u"Play, sand"), ("event", u"Event lawn, amphitheatre steps"), ("picnic", u"Picnic lawn")),
+    wetland=(("classroom", u"Outdoor classroom"), ("picnic", u"Picnic lawn"), ("meadow", u"Pollinator meadow, mown paths")),
+    heritage=(("picnic", u"Shaded lawn"), ("cafe", u"Café terrace"), ("classroom", u"Craft yard")),
+    everyday=(("play", u"Play, sand"), ("picnic", u"Picnic lawn"), ("fitness", u"Fitness corner"), ("dog", u"Dog run")))
+B9_FILL_CAP = dict(skate=1, event=1, court=2, cafe=1)   # v9: most of one kind per reach (others 2)
+B9_ENTR_MAX = 70.0           # m: longest entrance path (was 160 m: long straight paths across the lawns)
 B19_ZONE_MM = 1.76           # zone names 5 pt
 # Colours SAMPLED from B19 page 5 (B/liked-B/B19-masterplan/B19_board01_ark-kili_5-2020_Viinikanlahti_lowres_page05.png,
 # 3308 x 2339 px), 5 Nov 2026: k-means 16 colours of the project area (water, white, greens, greys) and medians of
@@ -268,6 +281,7 @@ ROLE_OF.update({"BINA_DINITESIS": "heritage", "BINA_DINI_TESIS": "heritage", "EG
                 "EGRI_2M": "contour2", "BINA_MERDIVEN": "stairs", "BINA_KAPI": "door", "BINA_TARAMA": "bhatch",
                 "SEMBOL_CAMI_MESCID": "mosque_sym", "SEV_SEV": "slope"})
 # v4 (Aras 22:55): the project's own elements, widths are design values (m)
+B11_MAIN_RD = ("trunk", "trunk_link", "primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link")   # v11: the classes a road bridge passes its car road on to
 B3_DROP_IN = ("track", "path", "footway", "service", "cycleway", "bridleway", "steps", "unclassified")  # not drawn in the zone
 B3_WALK_W = 4.0              # riverside walk paving
 B3_BED_W = 2.5               # bed walk (gravel, shut in floods)
@@ -976,14 +990,31 @@ def b8_remove_bake(doc, warn):
         lays = [l for l in doc.Layers if not l.IsDeleted and (l.FullPath == B7_BAKE_ROOT or
                                                                l.FullPath.startswith(B7_BAKE_ROOT + "::"))]
         lays.sort(key=lambda l: -l.FullPath.count("::"))
-        for l in lays:
-            for o in list(doc.Objects.FindByLayer(l) or []):
-                if doc.Objects.Delete(o, True):
+        lix_ = set(l.Index for l in lays)                 # v8.2: one pass over the file, not one search per layer
+        es = Rhino.DocObjects.ObjectEnumeratorSettings()
+        es.HiddenObjects = True
+        es.LockedObjects = True
+        ids = [o.Id for o in doc.Objects.GetObjectList(es) if o.Attributes.LayerIndex in lix_]
+        try:                                              # v8.5: one call for all (65 s one by one on Aras's run)
+            import System
+            from System.Collections.Generic import List as _NList
+            gl_ = _NList[System.Guid]()
+            for id_ in ids:
+                gl_.Add(id_)
+            n = int(doc.Objects.Delete(gl_, True))
+        except Exception:
+            for id_ in ids:
+                if doc.Objects.Delete(id_, True):
                     n += 1
         for d_ in list(doc.InstanceDefinitions):         # v8: the tree blocks
             try:
-                if d_ is not None and not d_.IsDeleted and d_.Name.startswith(u"B19_tree_"):
-                    doc.InstanceDefinitions.Delete(d_.Index, True, True)
+                if d_ is not None and d_.Name.startswith(u"B19_tree_"):
+                    if not d_.IsDeleted:
+                        doc.InstanceDefinitions.Delete(d_.Index, True, True)
+                    try:
+                        doc.InstanceDefinitions.Purge(d_.Index)   # v8.5: gone for good, name freed
+                    except Exception:
+                        pass
             except Exception:
                 pass
         for gi in _B8_RGRP:
@@ -1029,7 +1060,17 @@ def b8_sym_lib():
                 _B8_SYMS["_"][s_["id"]] = s_["bands"]
         except Exception:
             pass
+        try:                                              # v10.1: Aras's urban asset sheet pieces (A_...)
+            d = json.loads(zlib.decompress(base64.b64decode("".join(globals()["ASSET_EMBED"]))).decode("utf-8"))
+            for s_ in d.get("symbols", []):
+                _B8_SYMS["_"][s_["id"]] = s_["bands"]
+                _B10_EXT[s_["id"]] = tuple(s_.get("ext") or (1.0, 1.0))
+        except Exception:
+            pass
     return _B8_SYMS["_"]
+
+
+_B10_EXT = {}                 # v10.1: asset piece half size per axis (unit -1..1)
 
 
 def b8_sym_for(key, seed=0):
@@ -1176,7 +1217,8 @@ B8_ICON_WORDS = (("cafe", (u"café", u"cafe")), ("viewpoint", (u"hide", u"view")
                  ("walk", (u"walk", u"steps", u"stepping", u"footbridge", u"boardwalk")),
                  ("hub", (u"square", u"hub", u"plaza")), ("plants", (u"garden", u"allot", u"meadow")),
                  ("seating", (u"picnic", u"event", u"amphi")))
-B8_CALL_T, B8_CALL_S, B8_CALL_I = 2.3, 1.95, 4.4     # mm: box title, second line, icon plate
+B8_CALL_T, B8_CALL_S, B8_CALL_I = 6.35, 4.23, 8.5   # v10: 18 pt, 12 pt, icon 8.5 mm (Aras 15:47 TR)
+B8_CALL_V9 = (4.94, 3.53, 7.0)    # mm: box title 14 pt, second line 10 pt, icon (v9, Aras 14:16 TR "text are small")
 
 
 def b8_cat(nm):
@@ -1447,9 +1489,11 @@ def b8_write_pdf(pg, path, title):
                 if it[1] not in lib:
                     continue
                 g = _gs(it[5] if len(it) > 5 else None)
-                parts.append(("q {0} 0 0 {0} 0 0 cm {1}{2} 0 0 {2} {3} {4} cm /{5} Do Q".format(
-                    "2.834646", (g + " gs ") if g else "", _f(it[4]), _f(it[2]), _f(it[3]), sym_name(it[1]))
-                              ).encode("latin-1"))
+                an_ = it[6] if len(it) > 6 and it[6] else 0.0    # v10.1: asset pieces turned to the walk
+                ca_, sa_ = math.cos(an_) * it[4], math.sin(an_) * it[4]
+                parts.append(("q {0} 0 0 {0} 0 0 cm {1}{2} {3} {4} {2} {5} {6} cm /{7} Do Q".format(
+                    "2.834646", (g + " gs ") if g else "", _f(ca_), _f(sa_), _f(-sa_), _f(it[2]), _f(it[3]),
+                    sym_name(it[1]))).encode("latin-1"))
             elif kd == "pat":
                 flush()
                 if it[1] not in tiles:
@@ -1654,6 +1698,30 @@ def b19_page(C, site, study, scale, warn):
         m = rd_of(P) if inz else None
         car = bool(m and m[1]["name"] in B6_CAR_ROADS) or (br and h in B3_VEHICLE)
         vis.append(dict(h=h, br=br, nm=nm, P=P, w=w, inz=inz, car=car, rd=m[1]["name"] if m else None, sn=sn))
+    # v11 (Aras 7 Nov 10:42 TR "the road suddenly turns into a path, it has to continue as a road"): a vehicle street
+    # (OSM class in B3_VEHICLE) whose end meets a car road or a road bridge within 8 m stays a car road, passed on
+    # along its chain (3 rounds); the walks cross it on zebra crossings
+    seed_ = [x for x in vis if x["br"] and x["h"] in B3_VEHICLE]   # only past a road bridge (v6 rule: the other
+    for _r in range(3):
+        ends_ = []                                        # (end point, direction pointing out of the way)
+        for x in seed_:
+            P_ = x["P"]
+            ends_ += [(P_[0], b11_dir(P_[1], P_[0])), (P_[-1], b11_dir(P_[-2], P_[-1]))]
+        for x in vis:
+            if x["car"] or x["br"] or not x["inz"] or x["h"] not in B11_MAIN_RD:
+                continue
+            P_ = x["P"]
+            for q, d_in in ((P_[0], b11_dir(P_[0], P_[1])), (P_[-1], b11_dir(P_[-1], P_[-2]))):
+                # only the straight continuation (within 30 deg) of the road across the bridge
+                if any(math.hypot(e[0] - q[0], e[1] - q[1]) < 8.0 and d_[0] * d_in[0] + d_[1] * d_in[1] > 0.866
+                       for e, d_ in ends_):
+                    seed_.append(x)
+                    x["car2"] = True
+                    break
+            if x.get("car2"):
+                x["car"] = True
+                x["rd"] = x["rd"] or x["nm"] or u"road"
+                cnt("streets kept as car roads past a bridge or car road (v11)")
     car_ways = [x for x in vis if x["car"]]
     # ================================================================ water (F3)
     chan_raw = b6_channel(C, car_ways)
@@ -1705,17 +1773,40 @@ def b19_page(C, site, study, scale, warn):
         Ps = b8_ctx_rings([TL(b3_chaikin_closed(R, 2)) for bb_, R in lc_box if len(R) >= 3])   # v8: rounded, lean
         if Ps:
             sub.poly(Ps, fill=b3_mix(B3_COL["tree1"], "FFFFFF", 0.72))
+    # v10.2 (Aras 7 Nov 09:21 TR "the heritage (eski yerlesim) should be around Kizil Avlu"): ONE light red gradient over the old
+    # settlement: every survey historic / ruin building (BINA_TARIHI + BINA_HARABE) within B10_OLD_R of the Kizil Avlu label
+    # (survey label point, see B10_KIZIL), each grown by the three rings and drawn ring by ring so they merge into one area.
+    # ASSUMED extent: the survey has no old-town boundary layer, so the radius is a stated assumption, not a survey line.
+    her_ka = [b3_hull(R) for R in her if math.hypot(inner_pt(R)[0] - B10_KIZIL[0], inner_pt(R)[1] - B10_KIZIL[1]) < B10_OLD_R]
+    her_ka = [H for H in her_ka if len(H) >= 3 and hit(bbox(b7_grow(H, B10_HER_HALO[0][0])), box)]
+    if her_ka:
+        with mpx_grp(sub, "heritage", u"old settlement round Kizil Avlu (eski yerlesim), light red gradient"):
+            Hk = b3_hull([q for H in her_ka for q in H])    # one area, not one blob per house
+            sc_ = lambda f: [(B10_KIZIL[0] + (q[0] - B10_KIZIL[0]) * f, B10_KIZIL[1] + (q[1] - B10_KIZIL[1]) * f) for q in Hk]
+            for R_, col_ in ((b7_grow(Hk, 24.0), "F8E8E4"), (Hk, "F2D6CF"), (sc_(0.6), "EDC6BD"), (sc_(0.3), "E8B6AB")):
+                sub.poly([TL(R_)], fill=col_)                 # lightest at the edge, deepest at Kizil Avlu
+    cnt("old settlement round Kizil Avlu: historic buildings under the red gradient (v10.2, radius %d m assumed)" % B10_OLD_R, len(her_ka))
     # ================================================================ 1 ground: gradient, height steps, contours
     sub.clip(st)
     with mpx_grp(sub, "ground", u"open meadow"):
         sub.poly([rect(0.0, 0.0, dw, dh)], fill=B3_COL["meadow"])
         b3_dots(sub, (0.0, 0.0, dw, dh), 7.0 * k, B3_COL["lawn_dk"], st)
+    steep_q = []
     for i_, rings_ in b8_slope_rings(sv, box):           # v8: ground greens by slope (was: by distance to water)
         Ps = [TL(R) for R in rings_ if len(R) >= 3]
         if Ps:
             with mpx_grp(sub, "ground", u"ground slope over %g %%" % B8_SLOPE[i_]):
                 sub.poly(Ps, fill=b8_slope_tone(i_))
             cnt("slope areas over %g %%" % B8_SLOPE[i_], len(Ps))
+        if B8_SLOPE[i_] >= 20.0:                          # v10 (Aras 15:47 TR "steep terraces: show and explain"):
+            for R in sorted(rings_, key=lambda R: -abs(area2(R))):   # the larger steep banks get a callout
+                c_ = inner_pt(R) if len(R) >= 3 else None
+                if c_ is None or abs(area2(R)) < 300.0 or not ins(c_) or \
+                        any(math.hypot(c_[0] - q[0], c_[1] - q[1]) < 150.0 for q in steep_q) or len(steep_q) >= 5:
+                    continue
+                steep_q.append(c_)
+                el_names.append((u"Steep bank, over %g %% · planted steps hold the soil, seats look over the water"
+                                 % B8_SLOPE[i_], c_))
     for t_, Ls in C.eco:                                  # v7 R1: the green corridor, one band both banks
         if abs(t_ - B7_CORRIDOR_T) < 0.5:
             Ps = [TL(R) for R in Ls if len(R) >= 3]
@@ -1726,14 +1817,19 @@ def b19_page(C, site, study, scale, warn):
     with mpx_grp(sub, "ground", u"survey contours 2 m / 5 m / 10 m (EGRI_2M, EGRI_5M, EGRI_10M), shaded on the low side"):
         for role, lw_, col_ in (("contour2", 0.05, B3_COL["contour"]), ("contour", 0.07, B3_COL["contour"]),
                                 ("contour10", 0.09, B3_COL["contour_dk"])):   # v8: v6 look; 1 m lines left out
-            for P in sv.get(role, []):                    # (0.25 mm apart at 1:4,000: they read as a dark tone)
-                if len(P) >= 2 and hit(bbox(P), box):
-                    sub.line(TL(P), col_, lw_)
-                    sub.line(b3_off(TL(P), 0.12), B3_COL["contour_dk"], 0.05, alpha=0.4)
-                    cnt("survey contour lines")
-        for P in sv.get("slope", []):                     # SEV_SEV: surveyed slope lines, light (v8)
-            if len(P) >= 2 and hit(bbox(P), box):
-                sub.line(TL(P), B3_COL["contour"], 0.05, [0.5, 0.4], cap=0)
+            for P0 in sv.get(role, []):                   # (0.25 mm apart at 1:4,000: they read as a dark tone)
+                if len(P0) < 2 or not hit(bbox(P0), box):
+                    continue
+                for P in b6_split(b3_dense(P0, 3.0), ins):  # v11 (Aras 10:42 TR "green lines distributed"): inside
+                    if len(P) >= 2 and arclen(P)[-1] >= 25.0:   # the zone the ground is shown by its slope tones
+                        sub.line(TL(P), col_, lw_)              # and terraces; contours only outside, no short bits
+                        sub.line(b3_off(TL(P), 0.12), B3_COL["contour_dk"], 0.05, alpha=0.4)
+                        cnt("survey contour lines")
+        for P0 in sv.get("slope", []):                    # SEV_SEV: surveyed slope lines, light (v8)
+            if len(P0) >= 2 and hit(bbox(P0), box):
+                for P in b6_split(b3_dense(P0, 3.0), ins):
+                    if len(P) >= 2:
+                        sub.line(TL(P), B3_COL["contour"], 0.05, [0.5, 0.4], cap=0)
     sub.unclip()
     with mpx_grp(sub, "buildings", u"buildings taken out (dashed)"):   # under everything designed after
         for R in b_rm:
@@ -1763,6 +1859,9 @@ def b19_page(C, site, study, scale, warn):
             with mpx_grp(sub, "fields", u"%s terraces" % (u"dry-top" if c_ == "WS" else u"raised dry top")):
                 b6_steps(sub, z["P"], T, k)
             cnt("stepped terraces")
+            if z.get("q") and ins(z["q"]):                # v10: explained (Aras 15:47 TR)
+                el_names.append((u"%s · ground stepped up from the bed: dry in floods, steps to sit on"
+                                 % (u"Stepped dry top" if c_ == "WS" else u"Raised dry top"), z["q"]))
         elif c_ == "WD":
             with mpx_grp(sub, "water", u"spillway"):
                 sub.poly([Q], fill=B3_COL["water_lt"], stroke=B3_COL["wall"], lw=0.15)
@@ -1783,10 +1882,12 @@ def b19_page(C, site, study, scale, warn):
     with mpx_grp(sub, "water", u"Selinos"):
         for R in chan:
             sub.poly([TL(R)], fill=B3_COL["water"])
-    for R in widen:
-        with mpx_grp(sub, "water", u"widened stream, wetland"):
-            sub.poly([TL(R)], fill=B3_COL["water_lt"])
-            b3_ticks_fill(sub, TL(R), B3_COL["reed"], 1.2)
+    for R in widen:                                       # v10 (Aras 15:47 TR "didn't understand the blue white dashed
+        with mpx_grp(sub, "water", u"wetland: shallow water + reeds"):   # hatch"): wetland = light water + reed tufts
+            sub.poly([TL(R)], fill=B10_WET)
+            b10_reeds(sub, TL(R), B10_REED, 3.2 * k)
+        if abs(area2(R)) >= 800.0:
+            el_names.append((u"Wetland: shallow water + reeds, cleans the stream", inner_pt(R)))
         cnt("widened wetland")
     for a_ in C.arms:
         P = a_.get("P") or []
@@ -1798,8 +1899,10 @@ def b19_page(C, site, study, scale, warn):
             cnt("side arm")
     sub.unclip()
     with mpx_grp(sub, "water", u"hidden stream line + grilles"):
-        for P in cl["cov"]:
-            if len(P) >= 2:
+        for P0 in cl["cov"]:                              # v11: only where it really runs under ground (not
+            for P in (b6_split(b3_dense(P0, 2.0), in_chan) if len(P0) >= 2 else []):   # over the open channel)
+                if len(P) < 2 or arclen(P)[-1] < 15.0:
+                    continue
                 sub.poly([TL(b3_band(P, [3.4] * len(P)))], fill=B3_COL["water_lt"], stroke=B3_COL["wall"], lw=0.08)
                 sub.line(TL(P), B3_COL["water"], 0.25, [1.6, 0.9], cap=0)
                 for q in b3_dense(P, 30.0)[1:-1]:
@@ -1808,13 +1911,13 @@ def b19_page(C, site, study, scale, warn):
                              stroke=B3_COL["wall"], lw=0.06)
                 cnt("hidden stream")
     # ================================================================ 4 streets (F2)
-    n_rd = {}
+    n_rd, dead_ends, st_lines = {}, [], []
     for x in vis:
         P, w, h = x["P"], x["w"], x["h"]
-        if not x["br"] and not x["car"] and any(in_chan(q) for q in P):   # nothing over the water but bridges
-            pieces, cur = [], []
+        if not x["br"] and (not x["car"] or x.get("car2")) and any(in_wet(q) for q in P):   # nothing over the water but bridges
+            pieces, cur = [], []                          # (v10.1: nor over the wetland, Aras 7 Nov 07:51 TR)
             for q in b3_dense(P, 4.0):
-                if in_chan(q):
+                if in_wet(q):
                     if len(cur) >= 2:
                         pieces.append(cur)
                     cur = []
@@ -1824,6 +1927,12 @@ def b19_page(C, site, study, scale, warn):
                 pieces.append(cur)
         else:
             pieces = [P]
+        if x["inz"] and not x["car"] and not x["br"]:      # v10 (Aras 15:47 TR "the paths are dead"): street ends
+            for P_ in pieces:                             # stopped at the water, joined to a walk further on
+                for e_ in (P_[0], P_[-1]):
+                    if any(in_wet((e_[0] + 5.0 * math.cos(a_), e_[1] + 5.0 * math.sin(a_))) for a_ in
+                           [i_ * math.pi / 4.0 for i_ in range(8)]):
+                        dead_ends.append((e_, max(2.4, min(w, 4.0))))
         for P in pieces:
             if x["car"] and x["inz"]:
                 kind = "car"
@@ -1847,6 +1956,14 @@ def b19_page(C, site, study, scale, warn):
                 n_rd["street at OSM width (no survey edge pair)"] = n_rd.get("street at OSM width (no survey edge pair)", 0) + 1
             if x["br"]:
                 continue                                  # v7 R10: drawn below, two carriageways as one deck
+            if kind == "car" and x.get("car2") and (arclen(P)[-1] < 20.0 or
+                                                     sum(1 for q in b3_dense(P, 3.0) if in_wet(q)) > 0):
+                continue                                  # v11: no stray car-road stub over or by the water
+            if kind == "car":
+                Pd_ = b3_dense(P, 3.0)
+                if sum(1 for q in Pd_ if in_chan(q)) > 0.5 * len(Pd_):
+                    cnt("car-road pieces lying in the water left out (v11)")
+                    continue                              # v11: a carriageway piece in the water (not a bridge)
             if kind == "car":                              # carriageway + pavements both sides + direction arrows
                 ww = w + 2.0 * B6_PAVEMENT
                 with mpx_grp(sub, "roads", u"car road %s: carriageway + pavements" % x["rd"]):
@@ -1863,6 +1980,7 @@ def b19_page(C, site, study, scale, warn):
                         for Q_ in b6_split(E_, lambda q: not wet_near(q)):
                             sub.line(TL(Q_), B3_COL["wall"], 0.25)
                 add_hard(P, ww / 2.0 + B3_TREE_CLEAR)
+                st_lines.append((P, ww))
                 n_rd["car (carriageway + pavements)"] = n_rd.get("car (carriageway + pavements)", 0) + 1
                 road_names.append((x["rd"] + u" · cars + pedestrians", P[len(P) // 2]))
             else:
@@ -1871,13 +1989,28 @@ def b19_page(C, site, study, scale, warn):
                     sub.poly([TL(b3_band(P, [w] * len(P)))], fill=B3_COL["paving"])
                     b2_joints(sub, TL(P), [w * k] * len(P), 3.0 * k, B3_COL["joint"])
                 add_hard(P, w / 2.0 + B3_TREE_CLEAR)
+                st_lines.append((P, w))
                 n_rd["shared / pedestrian"] = n_rd.get("shared / pedestrian", 0) + 1
-    for P, w in b7_merge_bridges([x for x in vis if x["br"]]):
-        with mpx_grp(sub, "roads", u"road bridge"):
-            sub.poly([TL(b3_band(P, [w + 1.2] * len(P)))], fill=B3_COL["deck_edge"])
-            sub.poly([TL(b3_band(P, [w] * len(P)))], fill=B3_COL["deck"])
-            sub.line(TL(P), B3_COL["joint"], 0.08, [1.2, 1.2], cap=0)
+    st_i_ = b3_grid(b3_segs([x["P"] for x in vis if not x["br"]]), 20.0)
+    road_brs = [(P, w, wc) for P, w, wc in b10_merge_bridges([x for x in vis if x["br"]])   # v11: a deck piece that
+                if not (in_chan(P[0]) and in_chan(P[-1])) and                                   # lies in the water or
+                b3_dist(st_i_, P[0], 12.0) < 10.0 and b3_dist(st_i_, P[-1], 12.0) < 10.0]       # meets no street at
+    cnt("road bridges kept (meet a street at both ends, v11)", len(road_brs))                  # both ends is no bridge
+
+    def draw_road_bridges(tag):
+        for P, w, wc in road_brs:
+            ww = wc + 2.0 * B6_PAVEMENT
+            with mpx_grp(sub, "roads", u"road bridge: carriageway + pavements%s" % tag):
+                sub.poly([TL(b3_band(P, [ww + 0.6] * len(P)))], fill=B3_COL["kerb"])
+                sub.poly([TL(b3_band(P, [ww] * len(P)))], fill=B3_COL["paving"])
+                sub.poly([TL(b3_band(P, [wc] * len(P)))], fill=B3_COL["asphalt"], stroke=B3_COL["kerb"], lw=0.08)
+                sub.line(TL(P), "FFFFFF", 0.1, [1.2, 1.2], cap=0)
+    draw_road_bridges(u"")
+    for P, w, wc in road_brs:                             # v10 (Aras 15:47 TR "Ulucami: fully deck"):
+        ww = wc + 2.0 * B6_PAVEMENT                        # the road bridge = its carriageway + pavements, no deck
+        w = ww
         add_hard(P, w / 2.0 + B3_TREE_CLEAR)
+        st_lines.append((P, w))
         cnt("road bridge")
     her_c = [inner_pt(H) for H in her]
     near_her = lambda P: any(math.hypot(q[0] - c_[0], q[1] - c_[1]) < 40.0 for q in P[::max(1, len(P) // 6)]
@@ -1903,6 +2036,40 @@ def b19_page(C, site, study, scale, warn):
                   if not in_chan(q)]
     # ================================================================ 5 walks + bike lane, continuous (F4)
     walks = b6_walks(C, cl, in_chan)                      # [(P, bank)] one continuous line per stretch and bank
+    car_sg = [(a_, b_, x_["w"] / 2.0 + B6_PAVEMENT + B3_WALK_W / 2.0) for x_ in vis if x_["car"] and not x_["br"]
+              for a_, b_ in zip(x_["P"][:-1], x_["P"][1:])]  # v10.2 (Aras 7 Nov 09:21 TR: walk on the car road at
+    brd_sg = [(a_, b_, x_["w"] / 2.0 + B6_PAVEMENT) for x_ in vis if x_["br"] and x_["h"] in B3_VEHICLE
+              for a_, b_ in zip(x_["P"][:-1], x_["P"][1:])]
+    on_brd = lambda q: any(seg_dist(q[0], q[1], a_, b_) < r_ for a_, b_, r_ in brd_sg)   # v11: under a road bridge
+    on_car = lambda q: any(seg_dist(q[0], q[1], a_, b_) < r_ for a_, b_, r_ in car_sg   # Ulucami): no walk there
+                           if min(a_[0], b_[0]) - r_ <= q[0] <= max(a_[0], b_[0]) + r_ and
+                           min(a_[1], b_[1]) - r_ <= q[1] <= max(a_[1], b_[1]) + r_)
+    under_br = []                                         # v11: walk passing under a road bridge deck
+    cross_z = []                                          # v11 (Aras 10:42 TR "paths and roads overlap, it has to be
+
+    def split_car(P):                                     # a crossing there"): where a walk crosses a car road in
+        Pd = b3_dense(P, 2.0)                             # <= 40 m it is cut at the pavements and a zebra crossing
+        ub = [on_brd(q) for q in Pd]                      # joins the two ends; a longer run along the road is cut;
+        bad = [on_car(q) or u_ for q, u_ in zip(Pd, ub)]  # under a road bridge: hidden, the two sides joined
+        i = 0
+        while i < len(Pd):
+            if bad[i]:
+                j = i
+                while j + 1 < len(Pd) and bad[j + 1]:
+                    j += 1
+                if i > 0 and j + 1 < len(Pd) and all(ub[i:j + 1]):
+                    under_br.append((Pd[i - 1], Pd[j + 1]))
+                elif i > 0 and j + 1 < len(Pd) and (j - i + 1) * 2.0 <= 40.0:
+                    cross_z.append((Pd[i - 1], Pd[j + 1]))
+                i = j + 1
+            else:
+                i += 1
+        return b6_split(Pd, on_car)
+    walks = [(Q, bank) for P, bank in walks for Q in split_car(P) if arclen(Q)[-1] >= 10.0]
+    walks, n_wj = b10_join_walks(walks, in_chan, lambda q: in_bld(q, 1.0) or on_car(q) or on_brd(q))     # v10.1 (Aras 7 Nov 07:53 TR: the walk cuts off at the west)
+    walks = [(b10_ease(P, lambda q: in_chan(q) or in_bld(q, 1.0) or on_car(q) or on_brd(q)), bank) for P, bank in walks]   # v10.2: no V-dips
+    walks, n_bj = b11_bank_join(walks, C.ref, in_chan, lambda q: in_bld(q, 1.0) or on_car(q) or on_brd(q) or not ins(q))
+    cnt("walk gaps closed along the bank (v11)", n_bj)
     walks3 = [(P, bank, [chain_at(C.ref, q)[0] for q in P]) for P, bank in walks]
     beds = [b3_chaikin_open(b3_dense(P, 6.0), 1) for P, bed, bank in cl["walk"] if bed and len(P) >= 2]
     canopy = []
@@ -1929,6 +2096,52 @@ def b19_page(C, site, study, scale, warn):
             if len(piece) >= 2 and arclen(piece)[-1] >= 25.0:
                 canopy.append(piece)
             piece = []
+    acc_idx = {}                                          # v9 (Aras 14:16 TR "overlapped paths"): every accepted path
+
+    def acc_add(P, dense=True):                           # line, 2 m points on a 6 m grid
+        for q in (b3_dense(P, 2.0) if dense and len(P) >= 2 else P):
+            acc_idx.setdefault((int(q[0] // B9_PATH_MERGE), int(q[1] // B9_PATH_MERGE)), []).append(q)
+
+    def acc_near(q):
+        gi, gj = int(q[0] // B9_PATH_MERGE), int(q[1] // B9_PATH_MERGE)
+        for i in (gi - 1, gi, gi + 1):
+            for j in (gj - 1, gj, gj + 1):
+                for u in acc_idx.get((i, j), ()):
+                    if (u[0] - q[0]) ** 2 + (u[1] - q[1]) ** 2 < B9_PATH_MERGE ** 2:
+                        return True
+        return False
+
+    def path_keep(P, min_len=8.0):
+        """v9: the parts of path P not running beside an earlier path (closer than B9_PATH_MERGE): those parts
+        are merged into the earlier one; each kept piece keeps one point into the near part so it still joins.
+        The kept pieces are registered for the next path."""
+        if len(P) < 2:
+            return []
+        Pd = b3_dense(P, 2.0)
+        s_ = arclen(Pd)
+        L_ = s_[-1]
+        near = [acc_near(q) and min(t, L_ - t) > B9_PATH_MERGE for q, t in zip(Pd, s_)]
+        out, cur = [], []
+        for i, q in enumerate(Pd):
+            if not near[i]:
+                if not cur and i > 0:
+                    cur.append(Pd[i - 1])
+                cur.append(q)
+            elif cur:
+                cur.append(q)
+                out.append(cur)
+                cur = []
+        if cur:
+            out.append(cur)
+        out = [Q for Q in out if len(Q) >= 2 and arclen(Q)[-1] >= min_len]
+        for Q in out:
+            acc_add(Q)
+        return out
+    for P, bank in walks:
+        acc_add(P)
+    acc_add(street_pts, dense=False)                     # street points (6 m apart already)
+    beds = [Q for P in beds for Q in path_keep(P, 20.0)]
+    canopy = [Q for P in canopy for Q in path_keep(P, 25.0)]
     bands = [(P, B3_WALK_W, B3_COL["paving"], u"riverside walk") for P, bank in walks]
     bands += [(P, B3_BED_W, B3_COL["gravel"], u"bed walk") for P in beds]
     bands += [(P, B3_CANOPY_W, B3_COL["paving"], u"canopied walkway") for P in canopy]
@@ -1941,21 +2154,48 @@ def b19_page(C, site, study, scale, warn):
             continue
         for e in (P[0], P[-1]):
             nb = near_pt(e, B3_JOIN_MAX, wp_idx) or near_pt(e, B3_JOIN_MAX, st_idx)
-            if nb and nb[0] > 0.5 and not any(in_chan(q) for q in b3_dense([e, nb[1]], 2.0)):
+            if nb and nb[0] > 0.5 and not any(in_wet(q) for q in b3_dense([e, nb[1]], 2.0)):
                 links.append(([e, nb[1]], w, col))
+    n_dead = [0, 0]
+    for e_, w_ in dead_ends:                              # v10: a street end at the water joins the nearest walk
+        if near_pt(e_, B3_WALK_W + 1.5, wp_idx):
+            continue
+        nb = near_pt(e_, 45.0, wp_idx)
+        if nb and not any(in_wet(q) for q in b3_dense([e_, nb[1]], 2.0)):
+            links.append(([e_, nb[1]], w_, B3_COL["paving"]))
+            n_dead[0] += 1
+        else:
+            n_dead[1] += 1
+    cnt("dead street ends joined to a walk (v10)", n_dead[0])
+    if n_dead[1]:
+        flags.append(u"FLAG B19 v10: %d street end(s) at the water with no walk within 45 m (left as they are)" % n_dead[1])
     for P, w, col in links:
-        bands.append((P, w, col, u"link"))
+        for Q in path_keep(P, 3.0):                        # v9: no link beside another path
+            bands.append((Q, w, col, u"link"))
     for P, w, col, nm in bands:
         add_hard(P, w / 2.0 + (B3_BIKE_W + 0.3 if nm == u"riverside walk" else 0.0) + B3_TREE_CLEAR)
     cnt("riverside walk lines", len(walks))
+    cnt("walk gaps closed (v10.1)", n_wj)
     cnt("walk length m", int(sum(arclen(P)[-1] for P, bank in walks)))
     # ================================================================ 6 bridges (F5)
-    br_bands, n_end = [], 0
+    br_bands, n_end, n_br10 = [], 0, [0]
     for c_ in C.cross:
         if not c_.get("P") or c_.get("kind") not in ("footbridge", "stepping stones"):
             continue
         a_, b_ = b6_to_land(c_["P"][0], c_["P"][1], in_chan), b6_to_land(c_["P"][1], c_["P"][0], in_chan)
         if not (ins(a_) or ins(b_)):
+            continue
+        sn_ = b10_bridge_on_walks(a_, b_, walks, in_chan) if c_["kind"] == "footbridge" else None
+        if sn_:                                           # v10 (Aras 15:47 TR "bridges: two separate roads, paths
+            a_, b_ = sn_                                  # overlapping; axes need not be 90 deg"): the deck lands on
+            n_end += 2                                    # both walks, shortest crossing, no extra end paths
+            br_bands.append(([a_, b_], B3_FOOT_W, B3_COL["deck"], u"new footbridge"))
+            el_names.append((u"New footbridge", ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)))
+            n_br10[0] += 1
+            continue
+        if c_["kind"] == "footbridge":                    # v11 (Aras 10:37 TR: a footbridge landing in the water):
+            flags.append(u"FLAG B19 v11: footbridge %s does not land on a walk on both banks: left out" %
+                         (c_.get("name") or u""))         # only bridges that land on both walks are drawn
             continue
         for e in (a_, b_):
             nb = near_pt(e, B3_END_MAX, wp_idx) or near_pt(e, B3_END_MAX, st_idx)
@@ -1969,9 +2209,11 @@ def b19_page(C, site, study, scale, warn):
         if c_["kind"] == "footbridge":
             br_bands.append(([a_, b_], B3_FOOT_W, B3_COL["deck"], u"new footbridge"))
             el_names.append((u"New footbridge", ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)))
-        else:
-            stones.append((a_, b_))
+        elif b10_in_wl(a_, b_, widen):                    # v10.2 (V10_CHANGES 7 + Aras 09:21 TR circle): stones only
+            stones.append((a_, b_))                       # across the shallow wetland, never the main channel
             el_names.append((u"Stepping stones", ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)))
+        else:
+            flags.append(u"FLAG B19 v10.2: stepping stones %s cross the main channel (floods): left out" % (c_.get("name") or u""))
     for P, w, col, nm in br_bands:
         add_hard(P, w / 2.0 + B3_TREE_CLEAR)
     # v7 R6 (00:56): stepping stones where a bed walk ends at shallow water (crossing <= 14 m)
@@ -1992,7 +2234,7 @@ def b19_page(C, site, study, scale, warn):
                     b_ = q_
                     break
                 t_ += 0.5
-            if a_ and b_ and math.hypot(b_[0] - a_[0], b_[1] - a_[1]) <= 14.0 and \
+            if a_ and b_ and math.hypot(b_[0] - a_[0], b_[1] - a_[1]) <= 14.0 and b10_in_wl(a_, b_, widen) and \
                     all(math.hypot(a_[0] - s0[0], a_[1] - s0[1]) > 40.0 for s0, s1 in stones):
                 stones.append((a_, b_))
                 el_names.append((u"Stepping stones", a_))
@@ -2030,6 +2272,12 @@ def b19_page(C, site, study, scale, warn):
             pad_trees.append((q_, "plane", 9.0, u"square shade"))
         el_names.append((u"Ulucami Önü square", inner_pt(max(fr, key=lambda H: abs(area2(H))))))
         cnt("freed square pieces", len(fr))
+    zp_ = [(bbox(z["P"]), z["P"]) for z in C.D.zones if len(z["P"]) >= 3 and z["code"] in
+           ("WT", "WP", "WA", "WS", "GR", "WD", "DG")]       # v9: designed zones (terraces, basins, garden ...)
+    zp_ += [(bbox(b3_band(P, [B6_TERR_W + 2.0] * len(P))), b3_band(P, [B6_TERR_W + 2.0] * len(P)))
+            for P in C.terr if len(P) >= 2]
+    in_zp = lambda p: any(bb[0] <= p[0] <= bb[2] and bb[1] <= p[1] <= bb[3] and pip(p[0], p[1], R) for bb, R in zp_)
+    free_pad = lambda p, r=0.0: free(p, r) and not in_zp(p)   # v9: no pad on a terrace / basin / garden
     prog = [x for x in b6_programme(C, ins) if x[0] != "seats"]
     placed_pads, reach_kinds = [], {}
     reaches = b7_reaches(C, ins, [inner_pt(R) for R in b_her], widen, free)
@@ -2039,7 +2287,7 @@ def b19_page(C, site, study, scale, warn):
             q = b6_free_spot(p, lambda u, r: ins(u) and not in_chan(u) and not in_bld(u, r) and not on_hard(u, r),
                              45.0, 3.0)
         else:
-            q = b6_free_spot(p, free, 40.0, 6.0)
+            q = b6_free_spot(p, free_pad, 40.0, 6.0)
         if q is None:
             flags.append(u"programme %s: no free ground within 40 m of its place" % nm_)
             continue
@@ -2057,11 +2305,12 @@ def b19_page(C, site, study, scale, warn):
     box_ok = lambda R: True
     for i_, (a_c, b_c, th) in enumerate(reaches):        # R2 + R3: each reach's theme, lined up along the walk
         items = [it for it in B7_THEMES[th][1] if it[0] not in reach_kinds.get(i_, set())]
-        for kind, nm_, R, link in b7_strip(walks3, (a_c, b_c), items, free, ins, box_ok):
+        for kind, nm_, R, link in b7_strip(walks3, (a_c, b_c), items, free_pad, ins, box_ok):
             pads.append((kind, nm_, R))
             add_hard(R + R[:1], 1.5)
-            bands.append((link, 2.4, B3_COL["paving"], u"link"))
-            add_hard(link, 1.2 + B3_TREE_CLEAR)
+            for Q in path_keep(link, 2.0):                 # v9
+                bands.append((Q, 2.4, B11_GREEN, u"link"))
+                add_hard(Q, 1.2 + B3_TREE_CLEAR)
             c_ = (sum(q[0] for q in R) / 4.0, sum(q[1] for q in R) / 4.0)
             el_names.append((u"%s · %d m²" % (nm_, int(round(abs(area2(R)), -1))), c_))   # real size shown
             cnt(kind)
@@ -2079,12 +2328,219 @@ def b19_page(C, site, study, scale, warn):
         pads.append((kind, nm_, R))
         el_names.append((nm_, q))
         cnt(kind)
+    # v9 (Aras 14:16 TR "so many empty gaps ... no features at all just greenery"): every free open area of at least
+    # B9_FILL_MIN m2 gets a programme of its reach (rectangle parallel to the nearest walk, tied to it by a path)
+    G_ = 10.0
+    zb_ = bbox([q for R in study for q in R])
+    cells = set()
+    for i in range(int(zb_[0] // G_), int(zb_[2] // G_) + 1):
+        for j in range(int(zb_[1] // G_), int(zb_[3] // G_) + 1):
+            if free_pad(((i + 0.5) * G_, (j + 0.5) * G_), 3.0):
+                cells.add((i, j))
+    cells_all = sorted(cells)                             # v10: the repeat pass reads the same grid
+    fill_ix, n_fill, nb_c, kind_n, fill_q = {}, 0, {}, {}, [q for q, kd in placed_pads]
+    for it_ in range(80):
+        seen_, comps = set(), []
+        for c0 in cells:
+            if c0 in seen_:
+                continue
+            stack, cm = [c0], []
+            seen_.add(c0)
+            while stack:
+                c1 = stack.pop()
+                cm.append(c1)
+                for d_ in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    c2 = (c1[0] + d_[0], c1[1] + d_[1])
+                    if c2 in cells and c2 not in seen_:
+                        seen_.add(c2)
+                        stack.append(c2)
+            if len(cm) * G_ * G_ >= B9_FILL_MIN:
+                comps.append(cm)
+        if not comps:
+            break
+        cm = max(comps, key=len)
+        cx_ = sum((c[0] + 0.5) * G_ for c in cm) / len(cm)
+        cy_ = sum((c[1] + 0.5) * G_ for c in cm) / len(cm)
+        th = reaches[r_of((cx_, cy_))][2] if reaches else "active"
+        kinds = B9_FILL.get(th) or B9_FILL["active"]
+        i0 = fill_ix.get(th, 0)
+        cands = sorted(cm, key=lambda c: ((c[0] + 0.5) * G_ - cx_) ** 2 + ((c[1] + 0.5) * G_ - cy_) ** 2)[:60]
+        got = None
+        for kk in range(len(kinds)):
+            kind, nm_ = kinds[(i0 + kk) % len(kinds)]
+            if kind_n.get((th, kind), 0) >= B9_FILL_CAP.get(kind, 2):
+                continue                                  # v9: no kind repeated more than its cap in one reach
+            L_, W_ = B6_PAD.get(kind) or (20.0, 14.0)
+            for c in cands:
+                q = ((c[0] + 0.5) * G_, (c[1] + 0.5) * G_)
+                if c not in nb_c:
+                    nb_c[c] = near_pt(q, 150.0, wp_idx)
+                nb = nb_c[c]
+                if not nb or any(math.hypot(q[0] - u[0], q[1] - u[1]) < B6_PAD_SPACING for u in fill_q):
+                    continue                              # v9: within 150 m of the walk, 60 m from other new pads
+                if nb[0] > 0.5:
+                    vx_, vy_ = (q[0] - nb[1][0]) / nb[0], (q[1] - nb[1][1]) / nb[0]
+                else:
+                    vx_, vy_ = 0.0, 1.0
+                R = b7_rect(q, (-vy_, vx_), L_, W_)
+                mids = [((R[i][0] + R[(i + 1) % 4][0]) / 2.0, (R[i][1] + R[(i + 1) % 4][1]) / 2.0) for i in range(4)]
+                if free_pad(q, 2.0) and all(free_pad(v, 0.5) for v in R + mids):
+                    got = (kind, nm_, R, q, nb, kk)
+                    break
+            if got:
+                break
+        if got is None:
+            cells -= set(cm)                              # nothing fits here: leave this area as it is
+            continue
+        kind, nm_, R, q, nb, kk = got
+        fill_ix[th] = i0 + kk + 1
+        kind_n[(th, kind)] = kind_n.get((th, kind), 0) + 1
+        fill_q.append(q)
+        pads.append((kind, nm_, R))
+        add_hard(R + R[:1], 1.5)
+        el_names.append((u"%s · %d m²" % (nm_, int(round(abs(area2(R)), -1))), q))
+        cnt(kind)
+        n_fill += 1
+        if nb and nb[0] < 150.0:                          # tied to the walk by a path (merged if one runs there)
+            e_ = min(R, key=lambda v: (v[0] - nb[1][0]) ** 2 + (v[1] - nb[1][1]) ** 2)
+            e_ = ((e_[0] + q[0]) / 2.0, (e_[1] + q[1]) / 2.0)
+            if not any(in_wet(u) or in_bld(u, 0.5) for u in b3_dense([e_, nb[1]], 3.0)):
+                for Q in path_keep([e_, nb[1]], 4.0):
+                    bands.append((Q, 2.4, B11_GREEN, u"link"))
+                    add_hard(Q, 1.2 + B3_TREE_CLEAR)
+        r_c = max(B6_PAD.get(kind) or (20.0, 14.0)) / 2.0 + 25.0
+        cells = set(c for c in cells if ((c[0] + 0.5) * G_ - q[0]) ** 2 + ((c[1] + 0.5) * G_ - q[1]) ** 2 > r_c ** 2)
+    cnt("programme added in open ground (v9)", n_fill)
+    # v10 (Aras 15:47 TR): repeat each everyday place 2-3 times along the stream (continuity), water terraces where
+    # the walk meets open water, shade trees on each lawn's south-west side, a "why here" line in every pad name
+    pc_ = lambda R: (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+    n_rep = 0
+    for kind, nm_ in B10_REPEAT:
+        have = [pc_(R) for kd, nmx, R in pads if kd == kind]
+        while len(have) < B10_REPEAT_N:
+            best = None
+            for c in cells_all:
+                q = ((c[0] + 0.5) * G_, (c[1] + 0.5) * G_)
+                if not free_pad(q, 3.0):
+                    continue
+                nb = near_pt(q, 60.0, wp_idx)
+                if not nb or nb[0] < 8.0:
+                    continue
+                if any(math.hypot(q[0] - u[0], q[1] - u[1]) < B6_PAD_SPACING for u in [pc_(R) for kd, nmx, R in pads]):
+                    continue
+                sc_ = min([math.hypot(q[0] - h[0], q[1] - h[1]) for h in have] or [1e9])
+                if best is None or sc_ > best[0]:
+                    vx_, vy_ = (q[0] - nb[1][0]) / nb[0], (q[1] - nb[1][1]) / nb[0]
+                    L_, W_ = B6_PAD.get(kind) or (20.0, 14.0)
+                    R = b7_rect(q, (-vy_, vx_), L_, W_)
+                    mids = [((R[i][0] + R[(i + 1) % 4][0]) / 2.0, (R[i][1] + R[(i + 1) % 4][1]) / 2.0) for i in range(4)]
+                    if all(free_pad(v, 0.5) for v in R + mids):
+                        best = (sc_, q, R, nb)
+            if best is None or best[0] < 120.0:           # none left at least 120 m from its kin: stop
+                break
+            sc_, q, R, nb = best
+            pads.append((kind, nm_, R))
+            add_hard(R + R[:1], 1.5)
+            el_names.append((u"%s · %d m²" % (nm_, int(round(abs(area2(R)), -1))), q))
+            have.append(q)
+            cnt(kind)
+            n_rep += 1
+            e_ = min(R, key=lambda v: (v[0] - nb[1][0]) ** 2 + (v[1] - nb[1][1]) ** 2)
+            if not any(in_wet(u) or in_bld(u, 0.5) for u in b3_dense([e_, nb[1]], 3.0)):
+                for Q in path_keep([e_, nb[1]], 4.0):
+                    bands.append((Q, 2.4, B11_GREEN, u"link"))
+                    add_hard(Q, 1.2 + B3_TREE_CLEAR)
+    cnt("places repeated for continuity (v10)", n_rep)
+    n_wt, wt_q = 0, []
+    for P, bank in walks:                                 # water terraces: seating steps from the walk to the water
+        Ld = b3_dense(P, 4.0)
+        for i in range(2, len(Ld) - 2):
+            if sum(1 for kd, nmx, R in pads if kd == "wterrace") >= B10_WTERR_MAX:
+                break
+            p0 = Ld[i]
+            if not ins(p0) or any(math.hypot(p0[0] - w[0], p0[1] - w[1]) < B10_WTERR_GAP for w in wt_q):
+                continue
+            if any(min(seg_dist(p0[0], p0[1], a_, b_) for a_, b_ in zip(Pb_[:-1], Pb_[1:])) < 25.0
+                   for Pb_, wb_, wcb_ in road_brs):
+                continue                                  # v11: no water terrace at a road bridge
+            ux_, uy_ = Ld[i + 1][0] - Ld[i - 1][0], Ld[i + 1][1] - Ld[i - 1][1]
+            Lu = math.hypot(ux_, uy_) or 1.0
+            ux_, uy_ = ux_ / Lu, uy_ / Lu
+            for sg in (1.0, -1.0):
+                nx_, ny_ = -uy_ * sg, ux_ * sg
+                off = B3_WALK_W / 2.0 + 0.3 + ((B3_BIKE_W + 0.3) if sg == (1.0 if bank == "NE" else -1.0) else 0.0)
+                d_ = off                                  # (the bike lane lies on the walk's left on the NE bank)
+                while d_ < off + 8.0 and not in_chan((p0[0] + nx_ * d_, p0[1] + ny_ * d_)):
+                    d_ += 0.5
+                if d_ >= off + 8.0:
+                    continue
+                ok_ = True
+                for f in (-9.0, 0.0, 9.0):                # the whole terrace length meets water
+                    q_ = (p0[0] + ux_ * f + nx_ * (d_ + 1.5), p0[1] + uy_ * f + ny_ * (d_ + 1.5))
+                    q2 = (p0[0] + ux_ * f + nx_ * (off + 0.2), p0[1] + uy_ * f + ny_ * (off + 0.2))
+                    if not in_chan(q_) or in_chan(q2) or in_bld(q2, 0.5) or not ins(q2):
+                        ok_ = False
+                if not ok_ or any(math.hypot(p0[0] - pc_(R)[0], p0[1] - pc_(R)[1]) < 30.0 for kd, nmx, R in pads):
+                    continue
+                d_ += 3.0                                 # steps go 3 m down into the water
+                a0 = (p0[0] - ux_ * 9.0 + nx_ * off, p0[1] - uy_ * 9.0 + ny_ * off)
+                R = [a0, (a0[0] + ux_ * 18.0, a0[1] + uy_ * 18.0),
+                     (a0[0] + ux_ * 18.0 + nx_ * (d_ - off), a0[1] + uy_ * 18.0 + ny_ * (d_ - off)),
+                     (a0[0] + nx_ * (d_ - off), a0[1] + ny_ * (d_ - off))]
+                pads.append(("wterrace", u"Water terrace: sit, watch, step down to the water", R))
+                add_hard(R + R[:1], 0.5)
+                el_names.append((u"Water terrace · sit, watch, step down to the water", pc_(R)))
+                wt_q.append(p0)
+                n_wt += 1
+                break
+    cnt("water terraces (v10)", n_wt)
+    fb_ = [((P[0][0] + P[-1][0]) / 2.0, (P[0][1] + P[-1][1]) / 2.0) for P, w, col, nm in br_bands if nm == u"new footbridge"]
+    for kind, nmx, R in pads:                             # shade trees: a row on the lawn's south-west side, 8 m
+        if kind not in B10_SHADE or len(R) != 4:
+            continue
+        c_ = pc_(R)
+        best = None
+        for i in range(4):
+            a_, b_ = R[i], R[(i + 1) % 4]
+            m_ = ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)
+            ox, oy = m_[0] - c_[0], m_[1] - c_[1]
+            Lo = math.hypot(ox, oy) or 1.0
+            dsw = (-ox - oy) / Lo / math.sqrt(2.0)
+            if best is None or dsw > best[0]:
+                best = (dsw, a_, b_, ox / Lo, oy / Lo)
+        dsw, a_, b_, ox, oy = best
+        Le = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+        n_ = max(2, int(Le // 8.0) + 1)
+        for j in range(n_):
+            f = (j + 0.5) / n_
+            pad_trees.append(((a_[0] + (b_[0] - a_[0]) * f + ox * 4.0, a_[1] + (b_[1] - a_[1]) * f + oy * 4.0), "plane", 7.0,
+                              u"square shade"))
+    pad_box = [bbox(R) for kd, nmx, R in pads]
+    for i, (nm_, p) in enumerate(el_names):               # "why here": design reason + measured distances
+        if u"m²" not in nm_:
+            continue
+        hit_ = [(kd, R) for kd, nmx, R in pads if math.hypot(pc_(R)[0] - p[0], pc_(R)[1] - p[1]) < 4.0]
+        if not hit_:
+            continue
+        kd = hit_[0][0]
+        nb = near_pt(p, 200.0, wp_idx)
+        db = min([math.hypot(p[0] - f_[0], p[1] - f_[1]) for f_ in fb_] or [1e9])
+        why = B10_WHY.get(kd, u"")
+        if nb and nb[0] > 12.0:
+            why += u"%s%d m from the walk" % (u", " if why else u"", int(round(nb[0], -1)))
+        if db < 90.0:
+            why += u"%s%d m from a bridge" % (u", " if why else u"", int(round(db, -1)))
+        if why:
+            el_names[i] = (u"%s · %s" % (nm_, why), p)
     # heritage trail (Q3, 00:25): the kept heritage buildings in stream order, joined along the walks, numbered
     trail = []
     for p in sorted([inner_pt(R) for R in b_her], key=lambda p: chain_at(C.ref, p)[0]):
         if all(math.hypot(p[0] - q[0], p[1] - q[1]) > 50.0 for q in trail):   # one stop per 50 m
             trail.append(p)
     # ================================================================ 8 edge threshold (F10)
+    pad_rg = [(bbox(R), b7_grow(R, 1.5) if len(R) >= 3 else R) for kd, nmx, R in pads]   # v10.1: no path over a place
+    on_pad = lambda u: any(b_[0] - 2.0 <= u[0] <= b_[2] + 2.0 and b_[1] - 2.0 <= u[1] <= b_[3] + 2.0 and
+                           pip(u[0], u[1], G_r) for b_, G_r in pad_rg)
     entr = b6_entrances(study, vis, ins)
     hedge, edge_trees = b6_edge(study, ins, entr)
     car_idx = b3_grid(b3_segs([x["P"] for x in vis if x["car"] and not x["inz"]]), 20.0)
@@ -2094,11 +2550,12 @@ def b19_page(C, site, study, scale, warn):
     screen = [p for p in edge_trees if need(p)]
     n_ent = 0
     for e in entr:                                        # R4: each street entering the zone goes on as a path
-        nb = near_pt(e, 160.0, wp_idx)
-        if nb and nb[0] > 3.0 and not any(in_chan(u) or in_bld(u, 1.0) for u in b3_dense([e, nb[1]], 3.0)):
-            bands.append(([e, nb[1]], 3.0, B3_COL["paving"], u"entrance path"))
-            add_hard([e, nb[1]], 1.5 + B3_TREE_CLEAR)
-            n_ent += 1
+        nb = near_pt(e, B9_ENTR_MAX, wp_idx)              # v9: 70 m (was 160 m), merged with nearby paths
+        if nb and nb[0] > 3.0 and not any(in_wet(u) or in_bld(u, 1.0) or in_trees(u) or on_pad(u) for u in b3_dense([e, nb[1]], 3.0)):
+            for Q in path_keep([e, nb[1]], 8.0):
+                bands.append((Q, 3.0, B11_GREEN, u"entrance path"))
+                add_hard(Q, 1.5 + B3_TREE_CLEAR)
+                n_ent += 1
     cnt("entrance paths", n_ent)
     her_box = [(bbox(R), R) for R in b_her]
     near_her = lambda q, r: any(bb[0] - r <= q[0] <= bb[2] + r and bb[1] - r <= q[1] <= bb[3] + r and
@@ -2112,10 +2569,11 @@ def b19_page(C, site, study, scale, warn):
         if not near_her(m_, 2.0) or not ins(m_):
             continue
         nb = near_pt(m_, 90.0, wp_idx)
-        if nb and nb[0] > 4.0 and not any(in_chan(u) or in_bld(u, 0.5) for u in b3_dense([m_, nb[1]], 2.0)[2:]):
-            bands.append(([m_, nb[1]], 2.4, B3_COL["stone"], u"heritage door path"))
-            add_hard([m_, nb[1]], 1.2 + B3_TREE_CLEAR)
-            n_door += 1
+        if nb and nb[0] > 4.0 and not any(in_wet(u) or in_bld(u, 0.5) or on_pad(u) for u in b3_dense([m_, nb[1]], 2.0)[2:]):
+            for Q in path_keep([m_, nb[1]], 3.0):         # v9
+                bands.append((Q, 2.4, B3_COL["stone"], u"heritage door path"))
+                add_hard(Q, 1.2 + B3_TREE_CLEAR)
+                n_door += 1
     cnt("heritage door paths", n_door)
     for P, bank, chs in walks3:                           # R4: benches in a rhythm on the land edge of the walk
         sg = 1.0 if bank == "NE" else -1.0
@@ -2130,6 +2588,9 @@ def b19_page(C, site, study, scale, warn):
         el_names.append((u"Bed walk, shut in floods", P[len(P) // 2]))
     for P in canopy:
         el_names.append((u"Canopied walkway", P[len(P) // 2]))
+    # ================================================================ 8b v11: no dead ends, paths run on into the context
+    bands, br_bands = b11_no_dead_ends(bands, br_bands, st_lines, cross_z + under_br, [R for k_, n_, R in pads if isinstance(R, list)],
+                                       study, [x for x in vis if not x["inz"]], in_wet, in_bld, on_car, cnt, flags)
     # ================================================================ 9 draw the circulation (two passes, merged)
     allb = bands + br_bands
     with mpx_grp(sub, "paths", u"paths: edges (one merged outline, Rhino boolean union)"):
@@ -2139,6 +2600,10 @@ def b19_page(C, site, study, scale, warn):
         for col in sorted(set(c for P, w, c, nm in allb)):
             rings_ = [b3_band(P, [w] * len(P)) for P, w, c, nm in allb if c == col and len(P) >= 2]
             sub.poly([TL(R) for R in b2_union(rings_, flags)], fill=col)
+    with mpx_grp(sub, "roads", u"zebra crossings where a walk crosses a car road (v11)"):
+        for a_, b_ in cross_z:
+            b11_zebra(sub, TL([a_, b_]), k)
+        cnt("zebra crossings (v11)", len(cross_z))
     with mpx_grp(sub, "paths", u"bike lane beside the walk"):
         for P, bank in walks:
             sg = 1.0 if bank == "NE" else -1.0
@@ -2146,8 +2611,32 @@ def b19_page(C, site, study, scale, warn):
             if len(Pb) >= 2:
                 sub.poly([TL(b3_band(Pb, [B3_BIKE_W] * len(Pb)))], fill=B3_COL["bike"])
                 b6_bike_marks(sub, Pb, T, k)
+    draw_road_bridges(u" (over the walks: they pass under it, v11)")
+    with mpx_grp(sub, "people", u"people on the walk and the bike lane (v11)"):
+        n_pw = 0                                          # v11 (Aras 10:52 TR "action humans"): a cyclist on the
+        for P, bank in walks:                             # bike lane and a runner / walker on the walk every 90 m,
+            sg = 1.0 if bank == "NE" else -1.0            # facing the way they go, 1.7 m (cyclist 1.8 m) long
+            Pb = b6_clean_offset(P, sg * (B3_WALK_W / 2.0 + 0.3 + B3_BIKE_W / 2.0))
+            for Q, sid, d0, size in ((Pb, "A_CYC", 30.0, 1.8), (P, "A_RUN", 75.0, 1.7)):
+                if len(Q) < 2:
+                    continue
+                sq = arclen(Q)
+                d_ = d0
+                while d_ < sq[-1] - 10.0:
+                    (qx, qy), (ux, uy) = at_len(Q, sq, d_)
+                    if b11_put_at(sub, sid, (qx, qy), math.atan2(uy, ux) - math.pi / 2.0 * (1 if sid == "A_CYC" else 1), size, T, k):
+                        n_pw += 1
+                    d_ += 90.0
+        cnt("people on the walks and bike lanes (v11)", n_pw)
     with mpx_grp(sub, "paths", u"joints, canopy posts, deck planks, ramps"):
-        for P, w, col, nm in allb:
+        for P, w, col, nm in allb:                        # v11 (Aras 10:52 TR "each one a different texture"):
+            if nm == u"riverside walk":                   # walk = paving with cross joints every 2.5 m
+                b2_joints(sub, TL(P), [w * k] * len(P), 2.5 * k, B3_COL["joint"])
+            elif nm == u"bed walk":                       # bed walk = loose gravel dots
+                b3_dots(sub, bbox(TL(P)), 0.7, B3_COL["paving_edge"], [TL(b3_band(P, [w] * len(P)))])
+            elif nm in B11_GREEN_NM:                      # green path = mown grass, dashed soft edges
+                for sg in (1.0, -1.0):
+                    sub.line(b3_off(TL(P), sg * w * k / 2.0), B3_COL["lawn_dk"], 0.12, [0.6, 0.5], cap=0)
             if nm == u"canopied walkway":
                 for sg in (1.0, -1.0):
                     sub.line(b3_off(TL(P), sg * w * k / 2.0), B3_COL["deck_edge"], 0.1, [0.3, 0.9], cap=0)
@@ -2174,6 +2663,40 @@ def b19_page(C, site, study, scale, warn):
                 if len(run) >= 2:
                     sub.line(TL(run), B3_COL["wall"], 0.22)
                 run = []
+    n_px, px_names = 0, []                                # v10.1 (Aras 7 Nov 07:51 TR "roads / paths overlap
+    lines_all = st_lines + [(P, w) for P, w, col, nm in allb]   # features"): a place a road or path runs through
+    for kind, nm_, R in list(pads):                       # (not its own link) is left out and named in the log
+        if len(R) < 3 or kind == "wterrace" or kind not in B10_PAD_KINDS + ("skate",):
+            continue                                      # squares, hides, decks meet their paths on purpose
+        bb_ = bbox(R)
+        Rs = b7_grow(R, -1.0) if len(R) >= 3 else R
+        crossed = False
+        for P, w in lines_all:
+            if len(P) < 2 or pip(P[0][0], P[0][1], R) or pip(P[-1][0], P[-1][1], R):
+                continue
+            pb = bbox(P)
+            if pb[2] < bb_[0] or pb[0] > bb_[2] or pb[3] < bb_[1] or pb[1] > bb_[3]:
+                continue
+            if any(pip(q[0], q[1], Rs) for q in b3_dense(P, 1.5)):
+                crossed = True
+                break
+        if not crossed:                                   # v11 (Aras 10:42 TR "overlapped assets"): a place whose
+            R2 = b11_clear_pad(R, lines_all)              # edge lies on a path is moved up to 8 m off it, or out
+            if R2 is None:
+                crossed = True
+            elif R2 is not R:
+                pads[pads.index((kind, nm_, R))] = (kind, nm_, R2)
+                add_hard(R2 + R2[:1], 1.5)                # trees keep off its new place
+                cnt("places moved off a path (v11)")
+        if crossed:
+            pads.remove((kind, nm_, R)) if (kind, nm_, R) in pads else None
+            c_ = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+            el_names[:] = [(n2, p2) for n2, p2 in el_names if math.hypot(p2[0] - c_[0], p2[1] - c_[1]) > 4.0]
+            n_px += 1
+            px_names.append(u"%s" % (nm_ or kind))
+    cnt("places left out: a road or path ran through them (v10.1)", n_px)
+    if px_names:
+        notes.append(u"places left out because a road or path crosses them: " + u", ".join(px_names))
     for kind, nm_, R in pads:
         b7_draw_pad(sub, kind, R, T, k)
     with mpx_grp(sub, "paths", u"benches along the walk"):
@@ -2254,7 +2777,11 @@ def b19_page(C, site, study, scale, warn):
     cnt("heritage trail stops", len(trail))
     # ================================================================ 10 planting by function (F9)
     dwat = lambda p: chain_at(C.ref, p)[1]
-    plants = pad_trees + b7_planting(C, chan, widen, walks3, free, sv, ins, dwat, lambda p: False, screen)
+    plants = pad_trees + [x for x in b7_planting(C, chan, widen, walks3, free, sv, ins, dwat, lambda p: False, screen)
+                          if x[3] != u"contour grove" or not any(b_[0] - 12.0 < x[0][0] < b_[2] + 12.0 and
+                                                                 b_[1] - 12.0 < x[0][1] < b_[3] + 12.0 for b_ in pad_box)]
+    # v10 (Aras 15:47 TR "trees around the mown paths look random"): no contour grove within 12 m of a place;
+    # each place has its own shade row (above)
     for bb_, R in [(bb_, R) for bb_, R in lc_box if area2(R) > 0]:   # v8 (outer rings; holes via in_trees):
         y_ = bb_[1] + 3.5                                 # tree crowns (asset library), not as dark patches;
         row = 0                                           # species not surveyed: willow near the water, ash beyond
@@ -2269,7 +2796,7 @@ def b19_page(C, site, study, scale, warn):
             y_ += 6.1
             row += 1
     hedge_d = [Q for P in hedge for Q in b6_split(b3_dense(P, 3.0), lambda q: on_hard(q, 1.0) or in_wet(q) or
-                                                     in_bld(q, 1.0) or not ins(q)) if arclen(Q)[-1] >= 6.0]
+                                                     in_bld(q, 1.0) or not ins(q)) if arclen(Q)[-1] >= 20.0]   # v11: no stray stubs (Aras 10:42 TR)
     with mpx_grp(sub, "plants", u"edge hedge: screen to car roads and building backs only"):
         for P in hedge_d:
             hb_ = TL(b3_band(P, [2.2 + 0.5 * math.sin(i_ * 0.9 + len(P)) for i_ in range(len(P))]))
@@ -2328,8 +2855,8 @@ def b19_page(C, site, study, scale, warn):
                 continue
             x_, y_ = T(p)
             sub.group("trees", u"%s %d" % (key, n_t))     # v8: every tree its own sub-group (Aras 10:10 TR)
-            sub.poly([b3_circle((x_ + 0.2 * cr * k, y_ - 0.2 * cr * k), cr * k / 2.0, 14)], fill=B3_COL["tree_sh"],
-                     alpha=0.3)
+            sub.poly([b3_circle((x_ + 0.3 * cr * k, y_ - 0.3 * cr * k), cr * k / 2.0, 14)], fill=B3_COL["tree_sh"],
+                     alpha=0.45)                          # v9: stronger tree shadow
             sid_ = b8_sym_for(key, n_t)
             if sid_:                                      # v8: Aras's traced tree, stored once, placed here
                 sub.items.append(("sym", sid_, x_, y_, cr * k / 2.0, None))
@@ -2397,18 +2924,18 @@ def b19_page(C, site, study, scale, warn):
             if len(P) < 2:
                 continue
             Q = TL(P if (bank == "NE") == (chs[-1] >= chs[0]) else P[::-1])   # one loop: NE downstream, SW up
-            sub.line(Q, B8_ROUTE, 0.45, cap=1, alpha=0.85)
+            sub.line(Q, B8_ROUTE, 0.8, cap=1, alpha=0.9)        # v9: stronger route
             sQ = arclen(Q)
             t_ = 30.0
             while t_ < sQ[-1] - 10.0:                    # direction arrows every 60 mm on paper
                 q_, u_ = at_len(Q, sQ, t_)
                 ux_, uy_ = u_ if isinstance(u_, tuple) else (1.0, 0.0)
-                sub.poly([[(q_[0] + ux_ * 1.3, q_[1] + uy_ * 1.3), (q_[0] - ux_ * 0.9 - uy_ * 0.9, q_[1] - uy_ * 0.9 + ux_ * 0.9),
-                           (q_[0] - ux_ * 0.9 + uy_ * 0.9, q_[1] - uy_ * 0.9 - ux_ * 0.9)]], fill=B8_ROUTE)
+                sub.poly([[(q_[0] + ux_ * 2.2, q_[1] + uy_ * 2.2), (q_[0] - ux_ * 1.5 - uy_ * 1.5, q_[1] - uy_ * 1.5 + ux_ * 1.5),
+                           (q_[0] - ux_ * 1.5 + uy_ * 1.5, q_[1] - uy_ * 1.5 - ux_ * 1.5)]], fill=B8_ROUTE)
                 t_ += 60.0
         for P, w, col, nm in br_bands:
             if nm == u"new footbridge":
-                sub.line(TL(P), B8_ROUTE, 0.45, cap=1, alpha=0.85)
+                sub.line(TL(P), B8_ROUTE, 0.8, cap=1, alpha=0.9)
     # ================================================================ 12 names (beside what they name)
     taken = [b6_pbox(TL(R)) for R in keep_b if b6_pbox(TL(R))[2] - b6_pbox(TL(R))[0] > 0.6]
     labels, left = [], []
@@ -2436,7 +2963,7 @@ def b19_page(C, site, study, scale, warn):
         w_ = text_w(s_, size, bold)
         spots = [(-w_ / 2.0, -size / 2.0), (1.0, 0.6), (-1.0 - w_, 0.6), (1.0, -size - 0.6), (-1.0 - w_, -size - 0.6),
                  (-w_ / 2.0, 1.5), (-w_ / 2.0, -size - 1.5)]
-        for rr in (3.0, 4.5, B7_LEADER_MAX):
+        for rr in (5.0, 7.5, B7_LEADER_MAX):
             for ia in range(12):
                 ang = ia * math.pi / 6.0
                 cx_, cy_ = rr * math.cos(ang), rr * math.sin(ang)
@@ -2460,21 +2987,18 @@ def b19_page(C, site, study, scale, warn):
                 if math.hypot(tx - x, ty - y) > 1.0:
                     sub.line([(x, y), (tx, ty)], B3_COL["ink"], 0.08)
                 return True
-        if not keyable:
-            return False
-        n_ = len(keyed) + 1                               # a numbered dot on the element, the name in the key
-        b = (x - 1.3, y - 1.3, x + 1.3, y + 1.3)
-        if any(hit(b, o, 0.2) for o in labels):
-            return False
-        labels.append(b)
-        keyed.append(s_)
-        sub.poly([b3_circle((x, y), 1.25, 16)], fill="FFFFFF", stroke=B3_COL["ink"], lw=0.1)
-        sub.text(u"%d" % n_, x, y - 0.75, 1.76, B3_COL["ink"], bold=True, align="C")
-        return True
-    for a_c, b_c, th in reaches:                          # R2: reach names large along the stream
+        return False                                      # v10.2 (Aras 09:27 TR): no numbered dots; no room = left out, logged
+    zt_ = max(q[1] for Q in st for q in Q)                # v9: reach names 28 pt above the zone, centred on
+    for a_c, b_c, th in reaches:                          # their reach (the larger size never fits inside)
         s_r = arclen(C.ref)
         m_ = at_len(C.ref, s_r, max(0.0, min(s_r[-1], (a_c + b_c) / 2.0)))[0]
-        name(B7_THEMES[th][0].upper(), m_, B7_REACH, True, keyable=False, inside=True)
+        mx_ = T(m_)[0]
+        s_ = B7_THEMES[th][0].upper()
+        w_ = text_w(s_, B7_REACH, True)
+        bx_ = min(max(2.0, mx_ - w_ / 2.0), dw - w_ - 2.0)
+        by_ = min(zt_ + 6.0, dh - B7_REACH - 3.0)
+        labels.append((bx_, by_, bx_ + w_, by_ + B7_REACH))
+        sub.text(s_, bx_, by_, B7_REACH, B3_COL["ink"], bold=True)
     # v8 callouts: every place = a numbered dot + a boxed name with its category colour and icon (Aras 07:42 UTC)
     calls, cseen = [], {}
 
@@ -2498,7 +3022,7 @@ def b19_page(C, site, study, scale, warn):
         call_add(t_, s2, p, b8_cat(t_))
     calls.sort(key=lambda c: c[0])                        # numbered in route order, upstream to downstream
     dots = [T(c[3]) for c in calls]
-    n_box = 0
+    n_box, leads = 0, []
     for n_, ((ch, title, subt, p, cat), (x, y)) in enumerate(zip(calls, dots), 1):
         col = B8_CAT[cat][1]
         if not (0 <= x <= dw and 0 <= y <= dh):
@@ -2507,7 +3031,7 @@ def b19_page(C, site, study, scale, warn):
         tw_ = max(text_w(title, TS, True), text_w(subt, SS) if subt else 0.0)
         bw, bh = IC + tw_ + 3.0, max(IC + 1.4, TS + (SS + 0.8 if subt else 0.0) + 1.8)
         best = None
-        for rr in (7.0, 10.0, 14.0, 19.0, 25.0, 33.0, 44.0, 58.0):
+        for rr in (10.0, 14.0, 19.0, 25.0, 33.0, 44.0, 58.0, 75.0, 95.0):
             for ia in range(16):
                 ang = ia * math.pi / 8.0
                 cx_, cy_ = x + rr * math.cos(ang), y + rr * math.sin(ang)
@@ -2515,23 +3039,34 @@ def b19_page(C, site, study, scale, warn):
                 if not (1.0 <= b[0] and b[2] <= dw - 1.0 and 1.0 <= b[1] and b[3] <= dh - 1.0):
                     continue
                 if any(hit(b, o, 0.8) for o in labels) or \
-                        any(b[0] - 2.0 < dx_ < b[2] + 2.0 and b[1] - 2.0 < dy_ < b[3] + 2.0 for dx_, dy_ in dots):
+                        any(b[0] - B9_DOT_R - 1.0 < dx_ < b[2] + B9_DOT_R + 1.0 and
+                            b[1] - B9_DOT_R - 1.0 < dy_ < b[3] + B9_DOT_R + 1.0 for dx_, dy_ in dots):
                     continue
                 out_ = not any(zin(bx, by) for bx in (b[0], (b[0] + b[2]) / 2.0, b[2]) for by in (b[1], b[3]))
                 if not out_ and not clear(b):
+                    continue
+                lt_ = (min(max(x, b[0]), b[2]), min(max(y, b[1]), b[3]))   # v10 (Aras 16:13 TR): name lines never
+                if any(b2_seg_x((x, y), lt_, la, lb) for la, lb in leads) or \
+                        any(b10_seg_box((x, y), lt_, o) for o in labels) or \
+                        any(b10_seg_box(la, lb, b) for la, lb in leads):   # cross another line or box
                     continue
                 sc = rr + (0.0 if out_ else 30.0)
                 if best is None or sc < best[0]:
                     best = (sc, b)
             if best is not None and best[0] <= rr:
                 break
+        if best is None:                                  # v10.2 (Aras 7 Nov 09:27 TR "numbers without an explanation,
+            left.append(title)                            # don't do that"): no room for its box = no number either
+            continue
+        n_ = n_box + 1                                    # numbered in route order, only the boxed ones
         sub.group("annotations", u"%d %s" % (n_, title))
         if best is not None:
             b = best[1]
             labels.append(b)
             tx, ty = min(max(x, b[0]), b[2]), min(max(y, b[1]), b[3])
-            sub.line([(x, y), (tx, ty)], col, 0.18)
-            sub.poly([rect(b[0], b[1], b[2], b[3])], fill="FFFFFF", stroke=col, lw=0.2)
+            sub.line([(x, y), (tx, ty)], col, 0.3)
+            leads.append(((x, y), (tx, ty)))
+            sub.poly([rect(b[0], b[1], b[2], b[3])], fill="FFFFFF", stroke=col, lw=0.35)
             _p24_put(sub, ico_badge(b8_icon(title, cat), b[0] + 0.7 + IC / 2.0, (b[1] + b[3]) / 2.0, IC,
                                     fill="FFFFFF", edge=col, ink=col, accent=col))
             sub.text(title, b[0] + IC + 1.6, b[3] - 0.9 - TS * 0.8, TS, col, bold=True)
@@ -2540,24 +3075,23 @@ def b19_page(C, site, study, scale, warn):
             n_box += 1
         else:
             keyed.append(u"%d %s" % (n_, title))         # no room: the number on the drawing, the name in the key
-        labels.append((x - 1.5, y - 1.5, x + 1.5, y + 1.5))
-        sub.poly([b3_circle((x, y), 1.5, 20)], fill=col, stroke="FFFFFF", lw=0.15)
-        sub.text(u"%d" % n_, x, y - 0.68, 1.9, "FFFFFF", bold=True, align="C")
+        labels.append((x - B9_DOT_R, y - B9_DOT_R, x + B9_DOT_R, y + B9_DOT_R))
+        sub.poly([b3_circle((x, y), B9_DOT_R * 0.6, 24)], fill=col, stroke="FFFFFF", lw=0.25)   # v10.2: plain dot, no number
         sub.endgroup()
     cnt("place callouts (boxed)", n_box)
     cnt("place numbers in the key", len(calls) - n_box)
     for nm_, p in road_names:
         name(nm_, p, B7_NAME, keyable=False)
     for z in C.D.zones:
-        if z.get("label") and z.get("q") and ins(z["q"]) and z["code"] in ("WT", "WS", "GR", "WP", "DG", "WD"):
+        if z.get("label") and z.get("q") and ins(z["q"]) and z["code"] in ("WT", "WP", "DG", "WD"):   # v10: WS/GR now callouts
             if not name(b3_title(z["label"], first_only=True), z["q"], B7_NAME, keyable=False):
                 left.append(z["label"])
     # ================================================================ sheet
     key_items = [(u"%s: %s" % (B7_THEMES[th][0], B7_WHY[th]), None) for th in
                  sorted(set(th for a_c, b_c, th in reaches))] + [(s_, None) for s_ in keyed]
-    n_rows = 2 + int(sum(text_w(nm, 2.12) + 16.0 for nm, c in b8_cat_key() + list(B6_LEGEND) + b8_slope_key() + key_items) //
+    n_rows = 2 + int(sum(text_w(nm, B9_LEG) + 24.0 for nm, c in b8_cat_key() + list(B6_LEGEND) + b8_slope_key() + key_items) //
                      max(dw - 20.0, 50.0))
-    head_x = 8.0 + 6.0 * n_rows
+    head_x = 14.0 + 10.0 * n_rows                         # v9: 12 pt legend rows
     W, H = dw + 2 * B19_M, dh + 2 * B19_M + B19_HEAD + head_x
     pg = Page(W, H)
     pg.poly([rect(0.0, 0.0, W, H)], fill="FFFFFF")
@@ -2565,32 +3099,33 @@ def b19_page(C, site, study, scale, warn):
     pg.clip([rect(B19_M, oy, B19_M + dw, oy + dh)])
     blit(pg, sub, B19_M, oy)
     pg.unclip()
-    lx, ly = B19_M, oy - 8.0
+    lx, ly = B19_M, oy - 13.0
     for nm, col in b8_cat_key() + list(B6_LEGEND) + b8_slope_key() + key_items:
-        tw = text_w(nm, 2.12)
-        if lx + 10.0 + tw > W - B19_M:
-            lx, ly = B19_M, ly - 6.0
+        tw = text_w(nm, B9_LEG)
+        if lx + 16.0 + tw > W - B19_M:
+            lx, ly = B19_M, ly - 10.0
         if col:
-            pg.poly([rect(lx, ly, lx + 8.0, ly + 4.0)], fill=col, stroke=B3_COL["kerb"], lw=0.1)
-            pg.text(nm, lx + 10.0, ly + 0.8, 2.12, B3_COL["ink"])
-            lx += 16.0 + tw
+            pg.poly([rect(lx, ly, lx + 12.0, ly + 6.0)], fill=col, stroke=B3_COL["kerb"], lw=0.15)
+            pg.text(nm, lx + 15.0, ly + 1.2, B9_LEG, B3_COL["ink"])
+            lx += 24.0 + tw
         else:
-            pg.text(nm, lx, ly + 0.8, 2.12, B3_COL["ink"])
-            lx += 8.0 + tw
-    pg.text(u"MIRAQUA · MASTERPLAN", B19_M, B19_M + 8.0, 4.2, B3_COL["ink"], bold=True)
-    pg.text(u"drawing language after Greenikka (Arkkitehdit MY, 2020)", B19_M, B19_M + 3.0, 2.12, B3_COL["ink"])
-    scale_bar(pg, B19_M + 120.0, B19_M + 3.0, scale, marks=(0.0, 50.0, 100.0, 200.0))
-    nx, ny, h_ = W - B19_M - 10.0, B19_M + 8.0, 12.0     # v8: arrow turned with the sheet, centred on (nx, ny)
+            pg.text(nm, lx, ly + 1.2, B9_LEG, B3_COL["ink"])
+            lx += 12.0 + tw
+    pg.text(u"MIRAQUA · MASTERPLAN", B19_M, B19_M + 9.0, 9.0, B3_COL["ink"], bold=True)
+    pg.text(u"drawing language after Greenikka (Arkkitehdit MY, 2020)", B19_M, B19_M + 3.0, B9_LEG, B3_COL["ink"])
+    scale_bar(pg, B19_M + 200.0, B19_M + 3.0, scale, marks=(0.0, 50.0, 100.0, 200.0))
+    nx, ny, h_ = W - B19_M - 14.0, B19_M + 12.0, 20.0     # v8: arrow turned with the sheet, centred on (nx, ny)
     NR = lambda u, v: (nx + ca_ * u - sa_ * v, ny + sa_ * u + ca_ * v)
     pg.poly([[NR(0.0, h_ / 2.0), NR(-2.6, -0.05 * h_), NR(0.0, 0.1 * h_), NR(2.6, -0.05 * h_)]], fill=B3_COL["ink"])
     pg.line([NR(0.0, -h_ / 2.0), NR(0.0, 0.1 * h_)], B3_COL["ink"], 0.25)
     tx_, ty_ = NR(0.0, h_ / 2.0 + 2.2)
-    pg.text(u"N", tx_, ty_ - 1.0, 3.0, B3_COL["ink"], bold=True, align="C")
+    pg.text(u"N", tx_, ty_ - 1.5, 5.0, B3_COL["ink"], bold=True, align="C")
     notes += [u"elements: " + u", ".join(u"%s %d" % kv for kv in sorted(n_el.items())),
               u"streets in the zone: " + u", ".join(u"%s %d" % kv for kv in sorted(n_rd.items())),
               u"planting by function: " + u", ".join(u"%s %d" % kv for kv in sorted(n_sp.items())) +
               u" ({} not placed: ".format(n_skip) + u", ".join(u"%s %d" % kv for kv in sorted(n_sk.items())) + u")",
               u"bridge ends on a walk or street: {}".format(n_end),
+              u"footbridges landed straight on both walks (v10): {}".format(n_br10[0]),
               u"buildings: {} heritage kept, {} taken out, {} context".format(len(b_her), len(b_rm), len(b_out)),
               u"reaches: " + u"; ".join(u"%s %.0f-%.0f m" % (B7_THEMES[th][0], a_c, b_c) for a_c, b_c, th in reaches),
               u"names in the numbered key: %d" % len(keyed),
@@ -2853,7 +3388,7 @@ B6_CAR_ROADS = (u"Bergama - Kozak Yolu", u"Adnan Menderes Bulvarı")
 B6_PAVEMENT = 2.0            # pavement each side of a kept car road
 B6_ENTRY_R = 9.0             # entrance square radius where a street meets the zone
 B6_ROAD_GAP = 1.0            # the stream edge stops this short of a car road's pavement
-B6_SMOOTH_M = 0.0            # v7 (Aras 05:42 "1:1"): each station keeps its own survey width
+B6_SMOOTH_M = 20.0           # v10.2 (Aras 7 Nov 09:21 TR "no unnecessary topography moves"): bank widths averaged over 20 m of stream (was 0: every station its own survey width, which left notches)
 B6_STEP_Z = 2.0              # ground darkens with every 2 m above the stream bed (F8)
 B6_CELL = 8.0                # height cell size
 B6_TERR_W = 6.0              # rain terrace level band (F7)
@@ -2870,6 +3405,10 @@ B6_ACTIVITIES = (("court", u"Courts", 3, 20.0, 140.0), ("fitness", u"Fitness cor
                  ("play", u"Play, sand", 4, 6.0, 45.0), ("event", u"Event lawn", 1, 15.0, 140.0),
                  ("picnic", u"Picnic lawn", 3, 8.0, 70.0), ("allot", u"Community allotments", 2, 15.0, 160.0),
                  ("meadow", u"Pollinator meadow, mown paths", 3, 20.0, 220.0))
+B11_GREEN = "C9D3B2"         # v11: green path (mown grass) colour
+B11_GREEN_NM = (u"link", u"entrance path", u"path on to the street")
+B11_GROUP = dict(court="active", fitness="active", play="active", skate="active", picnic="lawn", event="lawn",
+                 meadow="lawn", orchard="lawn", allot="garden")   # v11: kinds that cluster together
 B6_PAD_SPACING = 60.0        # two pads at least this far apart
 
 
@@ -2952,6 +3491,7 @@ def b6_channel(C, car_ways):
     for run in runs:
         if len(run) < 3:
             continue
+        run = b10_despike(run)                            # v10 (Aras 15:47 TR "take out the island-ish area")
         chs = [c for c, p, n, a, b in run]
         A, B = [], []
         for i, (c, p, n, a, b) in enumerate(run):
@@ -2965,7 +3505,7 @@ def b6_channel(C, car_ways):
                     f -= 0.1
                     q = (p[0] + n[0] * e * f, p[1] + n[1] * e * f)
                 (A if side == 0 else B).append(q)
-        out.append(A + B[::-1])
+        out.append(b10_unloop(A) + b10_unloop(B)[::-1])   # v10: no land fingers / islands from crossing normals
     return out
 
 
@@ -3234,6 +3774,7 @@ def b6_activity_spots(C, free, wp, widen, placed_pads, ins):
     free; bird hides at each widened wetland, where it comes nearest the walk. Returns [(q, kind, name)]."""
     out = []
     taken = [q for q, kd in placed_pads]
+    takenk = [(q, kd) for q, kd in placed_pads]           # v11: kinds, for clusters
     wps = wp[::2]
     widx = {}
     for q in wps:
@@ -3274,10 +3815,22 @@ def b6_activity_spots(C, free, wp, widen, placed_pads, ins):
             for q, dw_ in cand:
                 if not dmin <= dw_ <= dmax:
                     continue
-                dmin_t = min([math.hypot(q[0] - t[0], q[1] - t[1]) for t in taken] or [1e9])
-                if dmin_t < B6_PAD_SPACING + r_:
-                    continue
-                pool.append((-dmin_t, q))
+                # v11 (Aras 10:52 TR "every feature with a similar idea close to each other"): a kind whose group
+                # (B11_GROUP) already has a place takes the free spot nearest to it (a cluster, places 12 m apart
+                # edge to edge); the first of a group still takes the spot farthest from every place
+                grp_ = B11_GROUP.get(kind)
+                same_ = [t for t, kd in takenk if grp_ and B11_GROUP.get(kd) == grp_]
+                d_all = min([math.hypot(q[0] - t[0], q[1] - t[1]) for t in taken] or [1e9])
+                d_oth = min([math.hypot(q[0] - t[0], q[1] - t[1]) for t, kd in takenk
+                             if not (grp_ and B11_GROUP.get(kd) == grp_)] or [1e9])
+                if same_:
+                    if d_all < 12.0 + 2.0 * r_ or d_oth < B6_PAD_SPACING + r_:
+                        continue
+                    pool.append((min(math.hypot(q[0] - t[0], q[1] - t[1]) for t in same_), q))
+                else:
+                    if d_all < B6_PAD_SPACING + r_:
+                        continue
+                    pool.append((-d_all, q))
             pool.sort()
             hit_ = None
             for _s, q in pool[:60]:
@@ -3288,6 +3841,7 @@ def b6_activity_spots(C, free, wp, widen, placed_pads, ins):
             if hit_ is None:
                 break
             taken.append(hit_)
+            takenk.append((hit_, kind))
             out.append((hit_, kind, nm))
     return out
 
@@ -3362,8 +3916,8 @@ def b6_clean_offset(P, d):
 
 
 def b6_bike_marks(sub, Pb, T, k):
-    """bike lane: a fine white centre dash"""
-    sub.line([T(p) for p in Pb], "FFFFFF", 0.05, [0.8, 1.2], cap=0)
+    """bike lane: a white centre dash (v11: stronger, so the lane reads apart from the walk)"""
+    sub.line([T(p) for p in Pb], "FFFFFF", 0.12, [1.5, 1.5], cap=0)
 
 
 def b6_rect_axes(R):
@@ -3625,11 +4179,11 @@ B7_BENCH_EVERY = 45.0        # m: benches along the walk
 B7_GROVE_STEP = 9.0          # m between grove trees on a contour
 B7_GROVE_RHYTHM = (3, 5)     # trees in a grove, then gap positions (along the contour)
 B7_SCREEN_D = 12.0           # m: the edge gets a hedge screen only where a car road / building back is this close
-B7_LEADER_MAX = 6.0          # mm: longest leader; farther = numbered key
-B7_NAME = 2.12               # mm (6 pt) element names
+B7_LEADER_MAX = 10.0         # mm: longest leader; farther = numbered key (v9: text larger)
+B7_NAME = 4.23               # mm (12 pt, v10) (v9 10 pt) element names (v9; was 6 pt)
 B7_PLACE = 2.47              # mm (7 pt) place / hub names, bold
-B7_REACH = 3.6               # mm reach names, bold
-B7_FADE = ((10.0, 0.22), (22.0, 0.22), (38.0, 0.22))   # m beyond the zone line, white veil added (the edge fades)
+B7_REACH = 12.7              # mm (36 pt, v10) (v9 28 pt) reach names, bold (v9)
+B7_FADE = ((15.0, 0.22), (35.0, 0.22), (60.0, 0.22))   # v10 (Aras 15:47 TR "edges cut, make smooth transition"; v9 10/22/38 m)   # m beyond the zone line, white veil added (the edge fades)
 B7_THEMES = dict(            # theme -> (title, programme in row order: kind, name, row); R12 new features
     heritage=(u"Heritage reach", (("cafe", u"Café terrace", 1), ("classroom", u"Craft yard", 1),
                                   ("picnic", u"Shaded lawn", 2))),
@@ -3645,6 +4199,173 @@ B7_THEMES = dict(            # theme -> (title, programme in row order: kind, na
 # Demeter's Garden)
 B7_WHY = dict(heritage=u"Ulucami + kept heritage: café, craft, seats", wetland=u"widened stream: learning, quiet lawns",
               active=u"largest open ground: sport, events", everyday=u"housing edge: play, picnic, fitness")
+
+
+def b11_dir(a, b):
+    """unit vector a -> b"""
+    L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    return ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+
+
+def b11_bank_join(walks, ref, in_chan, blocked, maxgap=420.0, off=6.0):
+    """v11 (Aras 10:37 TR: the south walk stops near the skate park and starts again further on): two walk pieces of one
+    bank with a gap up to maxgap m along the stream are joined by a walk that follows the water's edge (traced every
+    4 m from the stream line outward to dry land, then off m inland), smoothed; not where it would meet a building, a
+    car road, a bridge or leave the zone"""
+    s_r = arclen(ref)
+    W = [(list(P), bank) for P, bank in walks if len(P) >= 2]
+    n, failed = 0, set()
+    for _ in range(30):
+        ends = []
+        for i, (P, bank) in enumerate(W):
+            for e_i, e in ((0, P[0]), (1, P[-1])):
+                ends.append((chain_at(ref, e)[0], i, e_i, e, bank))
+        best = None
+        for ca, i, ei, ea, bank in ends:
+            for cb, j, ej, eb, bank2 in ends:
+                if j == i or bank2 != bank or not (0.0 < cb - ca <= maxgap) or (round(ca, 1), round(cb, 1)) in failed:
+                    continue
+                covered = any(k not in (i, j) and W[k][1] == bank and
+                              any(ca < chain_at(ref, q)[0] < cb for q in W[k][0][::max(1, len(W[k][0]) // 10)])
+                              for k in range(len(W)))
+                if covered:
+                    continue
+                if best is None or cb - ca < best[0]:
+                    best = (cb - ca, i, ei, ea, j, ej, eb, ca, cb)
+        if best is None:
+            break
+        _, i, ei, ea, j, ej, eb, ca, cb = best
+        (rx, ry), (ux, uy) = at_len(ref, s_r, max(0.0, min(s_r[-1], ca)))
+        sg = 1.0 if (ux * (ea[1] - ry) - uy * (ea[0] - rx)) > 0 else -1.0
+        pts, ok_ = [ea], True
+        c_ = ca + 4.0
+        while c_ < cb - 2.0:
+            (rx, ry), (ux, uy) = at_len(ref, s_r, max(0.0, min(s_r[-1], c_)))
+            nx, ny = -uy * sg, ux * sg
+            t = 0.0
+            while t < 250.0 and in_chan((rx + nx * t, ry + ny * t)):
+                t += 1.0
+            q = (rx + nx * (t + off), ry + ny * (t + off))
+            if t >= 250.0 or blocked(q):
+                ok_ = False
+                break
+            pts.append(q)
+            c_ += 4.0
+        if not ok_:
+            failed.add((round(ca, 1), round(cb, 1)))      # this pair can't be joined: try the others
+            continue
+        pts.append(eb)
+        J = b3_chaikin_open(pts, 2)
+        A = W[i][0] if ei == 1 else W[i][0][::-1]
+        B = W[j][0] if ej == 0 else W[j][0][::-1]
+        Wn = [w_ for k, w_ in enumerate(W) if k not in (i, j)]
+        Wn.append((A + J[1:-1] + B, W[i][1]))
+        W = Wn
+        n += 1
+    return W, n
+
+
+def b11_zebra(sub, ab, k):
+    """v11: a zebra crossing from a to b (sheet mm): white bars 0.5 m wide and 3 m long, parallel to the road, 1 m apart"""
+    (ax, ay), (bx, by) = ab
+    L = math.hypot(bx - ax, by - ay)
+    if L < 1e-6:
+        return
+    dx, dy = (bx - ax) / L, (by - ay) / L
+    px, py = -dy, dx
+    h, t = 1.5 * k, 0.25 * k
+    m = 0.5 * k
+    while m < L - 0.25 * k:
+        cx, cy = ax + dx * m, ay + dy * m
+        sub.poly([[(cx - dx * t - px * h, cy - dy * t - py * h), (cx + dx * t - px * h, cy + dy * t - py * h),
+                   (cx + dx * t + px * h, cy + dy * t + py * h), (cx - dx * t + px * h, cy - dy * t + py * h)]], fill="FFFFFF")
+        m += 1.0 * k
+
+
+def b11_no_dead_ends(bands, br_bands, st_lines, cross_z, pad_rings, study, ctx_ways, in_wet, in_bld, on_car, cnt, flags):
+    """v11 (Aras 7 Nov 10:38-10:42 TR "so many unnecessary dead-end paths", "the project area ends suddenly and paths
+    are not continuing"): every path end must meet another path, a street, a zebra crossing, a place or the zone edge.
+    A walk (or bed walk / canopy) end that meets nothing is joined straight to the nearest path or street within 40 m
+    (over dry ground, no building, no car road); a short path (link, entrance, bridge end, door path) that still ends
+    on nothing is removed. A walk or path end at the zone edge runs on to the nearest context street within 80 m."""
+    MAIN = (u"riverside walk", u"bed walk", u"canopied walkway")
+    clear = lambda a, b: all(not in_wet(q) and not in_bld(q, 0.5) and not on_car(q)
+                             for q in b3_dense([a, b], 2.0)[1:-1])
+    edge_i = b3_grid(b3_segs(study, True), 20.0)
+    ctx_i = b3_grid(b3_segs([x["P"] for x in ctx_ways]), 20.0)
+    pad_i = b3_grid(b3_segs(pad_rings, True), 20.0)
+    added, removed, still, n_ctx = [], 0, 0, 0
+    for _r in range(2):
+        allb = bands + br_bands + added
+        out = []
+        for i_, (P, w, col, nm) in enumerate(bands):
+            others = [Q for j_, (Q, w2, c2, n2) in enumerate(allb) if j_ != i_] + [Q for Q, ww in st_lines] + \
+                     [[a, b] for a, b in cross_z]
+            oi = b3_grid(b3_segs(others), 20.0)
+            ok_ = True
+            for e in (P[0], P[-1]):
+                if b3_dist(oi, e, 6.0) < w / 2.0 + 2.0 or b3_dist(pad_i, e, 6.0) < 3.0:
+                    continue
+                if b3_dist(edge_i, e, 16.0) < 15.0:      # at the zone edge: on to the nearest context street
+                    best = None
+                    for Q in [x["P"] for x in ctx_ways]:
+                        for q in b3_dense(Q, 4.0):
+                            d_ = math.hypot(q[0] - e[0], q[1] - e[1])
+                            if d_ < 80.0 and (best is None or d_ < best[0]) and clear(e, q):
+                                best = (d_, q)
+                    if best is not None and _r == 0:
+                        added.append(([e, best[1]], min(w, 3.0), B11_GREEN, u"path on to the street"))
+                        n_ctx += 1
+                    continue
+                if nm in MAIN or _r == 0:
+                    best = None
+                    for Q in others:
+                        for q in b3_dense(Q, 3.0):
+                            d_ = math.hypot(q[0] - e[0], q[1] - e[1])
+                            if 1.0 < d_ < (60.0 if nm in MAIN else 40.0) and (best is None or d_ < best[0]) and clear(e, q):
+                                best = (d_, q)
+                    if best is not None and _r == 0:
+                        added.append(([e, best[1]], min(w, 3.0), col, u"link"))
+                        continue
+                if nm in MAIN:
+                    still += 1
+                    continue
+                ok_ = False
+            if ok_:
+                out.append((P, w, col, nm))
+            else:
+                removed += 1
+        bands = out
+    cnt("dead ends joined to the nearest path (v11)", sum(1 for a in added if a[3] == u"link"))
+    cnt("paths run on to a context street (v11)", n_ctx)
+    cnt("dead-end paths removed (v11)", removed)
+    if still:
+        flags.append(u"FLAG B19 v11: %d walk end(s) meet nothing within 60 m (left, see the plan)" % still)
+    return bands + added, br_bands
+
+
+def b10_ease(P, bad, win=8, passes=3):
+    """v10.2 (Aras 7 Nov 09:21 TR "no unnecessary topography moves"): a walk line evened out (moving average of about
+    +-16 m on 2 m spacing, 3 passes); a point that would land in the water, a building or a car road keeps its place;
+    the two ends never move"""
+    Q = b3_dense(P, 2.0)
+    if len(Q) < 2 * win + 3:
+        return P
+    for _ in range(passes):
+        R = list(Q)
+        for i in range(1, len(Q) - 1):
+            j0, j1 = max(0, i - win), min(len(Q), i + win + 1)
+            m_ = (sum(q[0] for q in Q[j0:j1]) / (j1 - j0), sum(q[1] for q in Q[j0:j1]) / (j1 - j0))
+            if not bad(m_):
+                R[i] = m_
+        Q = R
+    return Q
+
+
+def b10_in_wl(a, b, widen):
+    """v10.2: True when the line a-b runs over the wetland (widened shallow stream) at its middle and quarter points"""
+    pts = [(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t) for t in (0.25, 0.5, 0.75)]
+    return all(any(pip(q[0], q[1], R) for R in widen) for q in pts)
 
 
 def b7_grow(R, d):
@@ -3861,11 +4582,348 @@ def b7_merge_bridges(br_ways):
     return out
 
 
+# ================================================================ v10 (6 Nov 2026, Aras 15:47 TR, previews/V10_CHANGES.md)
+B10_CAP = 0.716              # Arial capital height / font size (Rhino sizes text by capitals)
+B10_HER_HALO = ((24.0, "F2D3CC"), (14.0, "EBBCB2"), (6.0, "E3A698"))   # v10.1: light red gradient, outer ring first
+B10_KIZIL = (30203.92, 31974.82)   # v10.2: Kizil Avlu label point in the survey (same point as selinus_board 15j_r28_heritage.py)
+B10_OLD_R = 300                   # v10.2: m round Kizil Avlu counted as the old settlement (ASSUMED, no boundary layer in the survey)
+B10_WET = "A9C4C2"           # wetland: shallow water, lighter and greener than the stream (was water_lt + light ticks)
+B10_REED = "4F6B55"          # reed tufts
+
+
+def b10_join_walks(walks, in_chan, blocked, maxd=120.0):
+    """v10.1: two walk pieces of the same bank whose ends lie within maxd m, joined by a straight piece that stays on
+    dry ground, become one continuous walk (the route no longer breaks)"""
+    W = [(list(P), bank) for P, bank in walks if len(P) >= 2]
+    n = 0
+    while True:
+        best = None
+        for i in range(len(W)):
+            for j in range(len(W)):
+                if i >= j or W[i][1] != W[j][1]:
+                    continue
+                A, B = W[i][0], W[j][0]
+                for ra, ea in ((False, A[-1]), (True, A[0])):
+                    for rb, eb in ((False, B[0]), (True, B[-1])):
+                        d = math.hypot(ea[0] - eb[0], ea[1] - eb[1])
+                        if d < 0.5 or d > maxd or (best is not None and d >= best[0]):
+                            continue
+                        nx, ny = -(eb[1] - ea[1]) / d, (eb[0] - ea[0]) / d
+                        via = None
+                        for off in (0.0, 5.0, -5.0, 10.0, -10.0, 15.0, -15.0, 22.0, -22.0, 30.0, -30.0):
+                            m_ = ((ea[0] + eb[0]) / 2.0 + nx * off, (ea[1] + eb[1]) / 2.0 + ny * off)
+                            pts_ = b3_dense([ea, m_, eb], 2.0)[1:-1]
+                            if not any(in_chan(q) or blocked(q) for q in pts_):   # dry, no building (may leave
+                                                                                  # the zone line: the route goes on)
+                                via = m_
+                                break
+                        if via is None:
+                            continue
+                        best = (d, i, j, ra, rb, via)
+        if best is None:
+            break
+        d, i, j, ra, rb, via = best
+        A = W[i][0][::-1] if ra else W[i][0]
+        B = W[j][0][::-1] if rb else W[j][0]
+        bend = [] if math.hypot(via[0] - (A[-1][0] + B[0][0]) / 2.0, via[1] - (A[-1][1] + B[0][1]) / 2.0) < 0.5 else \
+            b3_chaikin_open([A[-1], via, B[0]], 2)[1:-1]  # a soft bend round the water's edge
+        W[i] = (A + bend + B, W[i][1])
+        del W[j]
+        n += 1
+    return W, n
+
+
+def b10_seg_box(a, b, box, pad=0.3):
+    """v10: True if segment ab (page mm) runs through box (x0, y0, x1, y1), shrunk by pad, away from its ends"""
+    x0, y0, x1, y1 = box[0] + pad, box[1] + pad, box[2] - pad, box[3] - pad
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    n = max(2, int(L / 0.5))
+    for i in range(1, n):
+        f = i / float(n)
+        x, y = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
+        if x0 < x < x1 and y0 < y < y1:
+            return True
+    return False
+
+
+B10_REPEAT = (("picnic", u"Picnic lawn"), ("play", u"Play, sand"), ("fitness", u"Fitness corner"),
+              ("cafe", u"Café terrace"), ("classroom", u"Outdoor classroom"))
+B10_REPEAT_N = 3             # each at least this often along the stream, 120 m+ from its kin (v10 continuity)
+B10_WTERR_MAX, B10_WTERR_GAP = 8, 180.0   # water terraces: at most 8, 180 m+ apart
+B10_SHADE = ("picnic", "play", "event", "classroom", "cafe", "dog", "fitness")
+B10_WHY = dict(picnic=u"open lawn, shade row on its south-west side", play=u"seen from the walk", fitness=u"on the bike route",
+               cafe=u"on the walk, people pass", classroom=u"by the water, a quiet place to learn",
+               event=u"wide flat lawn for a crowd", court=u"open flat ground", skate=u"loud use on open ground",
+               meadow=u"low-use ground left to pollinators", dog=u"fenced, at the park edge", orchard=u"rows on open lawn")
+
+
+def b10_reeds(pg, Q, col, step):
+    """v10.1 (Aras 7 Nov 07:55 TR: the wetland still read as a blue-white dashed hatch): reed beds drawn as soft green
+    clumps of different sizes on the shallow water (about half covered), not as a repeated tick pattern"""
+    b = bbox(Q)
+    y, row = b[1] + step * 0.6, 0
+    while y < b[3]:
+        x = b[0] + (step * 0.5 if row % 2 else 0.0)
+        while x < b[2]:
+            j_ = ((int(x * 13.7) ^ int(y * 7.3)) % 101) / 101.0
+            px, py = x + (j_ - 0.5) * step * 0.6, y + (0.5 - j_) * step * 0.4
+            if pip(px, py, Q) and j_ > 0.25:
+                r_ = step * (0.28 + 0.3 * j_)
+                ring_ = [(px + r_ * (1.0 + 0.18 * math.sin(3 * t_ + j_ * 6.0)) * math.cos(t_),
+                          py + r_ * (1.0 + 0.18 * math.sin(3 * t_ + j_ * 6.0)) * math.sin(t_))
+                         for t_ in [2 * math.pi * i_ / 14.0 for i_ in range(14)]]
+                pg.poly([ring_], fill=("8DA77A", "7F9B6C", "9DB488")[int(j_ * 30) % 3])
+            x += step
+        y += step * 0.85
+        row += 1
+
+
+def b10_despike(run):
+    """v10: a station whose bank edge jumps away from both neighbours (more than 35 % off the median of the 2 stations
+    each side) takes that median; every other station keeps its survey width"""
+    out = list(run)
+    for side in (3, 4):
+        for i in range(len(run)):
+            nb = [abs(run[j][side]) for j in range(max(0, i - 2), min(len(run), i + 3)) if j != i]
+            if len(nb) < 2:
+                continue
+            nb.sort()
+            med = (nb[len(nb) // 2] + nb[(len(nb) - 1) // 2]) / 2.0
+            e = run[i][side]
+            if med > 0.5 and abs(abs(e) - med) > 0.35 * med:
+                r_ = list(out[i])
+                r_[side] = math.copysign(med, e)
+                out[i] = tuple(r_)
+    return out
+
+
+def b10_unloop(P, win=80):
+    """v10: an edge line that crosses itself (bank normals fanning on a bend made land fingers and islands inside the
+    water) cut at the crossing, the loop between dropped"""
+    P = list(P)
+    i = 0
+    while i < len(P) - 3:
+        a, b = P[i], P[i + 1]
+        bx0, bx1, by0, by1 = min(a[0], b[0]), max(a[0], b[0]), min(a[1], b[1]), max(a[1], b[1])
+        hit = None
+        for j in range(min(len(P) - 2, i + win), i + 1, -1):
+            c, d = P[j], P[j + 1]
+            if max(c[0], d[0]) < bx0 or min(c[0], d[0]) > bx1 or max(c[1], d[1]) < by0 or min(c[1], d[1]) > by1:
+                continue
+            q = b2_seg_x(a, b, c, d)
+            if q:
+                hit = (j, q)
+                break
+        if hit:
+            P = P[:i + 1] + [hit[1]] + P[hit[0] + 1:]
+        i += 1
+    return P
+
+
+def b10_merge_bridges(br_ways):
+    """v10: as b7_merge_bridges, with the carriageway width = the merged ways' own widths (OSM's two carriageways
+    side by side), not the gap between them: [(centreline, deck width, carriageway width)]"""
+    out = []
+    for P, w in b7_merge_bridges(br_ways):
+        ws = [x["w"] for x in br_ways if math.hypot(x["P"][len(x["P"]) // 2][0] - P[len(P) // 2][0],
+                                                   x["P"][len(x["P"]) // 2][1] - P[len(P) // 2][1]) < 30.0]
+        wc = min(w, sum(ws) if ws else w)
+        out.append((P, w, wc))
+    return out
+
+
+def b10_bridge_on_walks(a, b, walks, in_chan, r=45.0):
+    """v10: footbridge = the shortest straight crossing between a point of the NE walk and a point of the SW walk,
+    both within r m of the bridge's own middle, its middle part over water (any angle). None if no such pair."""
+    m = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+    side = {"NE": [], "SW": []}
+    for P, bank in walks:
+        if bank in side:
+            side[bank] += [q for q in b3_dense(P, 2.0) if math.hypot(q[0] - m[0], q[1] - m[1]) <= r]
+    if not side["NE"] or not side["SW"]:
+        return None
+    L0 = math.hypot(b[0] - a[0], b[1] - a[1])
+    best = None
+    for p in side["NE"]:
+        for q in side["SW"]:
+            L = math.hypot(q[0] - p[0], q[1] - p[1])
+            if best is not None and L >= best[0]:
+                continue
+            if L > max(1.6 * L0, L0 + 20.0) or L < 4.0:
+                continue
+            wet = sum(1 for f in (0.3, 0.4, 0.5, 0.6, 0.7) if in_chan((p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)))
+            if wet >= 3:
+                best = (L, p, q)
+    return (best[1], best[2]) if best else None
+
+
 B6_PAD.update(skate=(30.0, 18.0), orchard=(42.0, 22.0), dog=(30.0, 20.0), event=(46.0, 30.0), meadow=(54.0, 30.0),
               picnic=(26.0, 16.0), play=(20.0, 14.0))
 
 
+B10_ASSET = dict(picnic=("A_PICNIC", "A_PICNIC2"), event=("A_EVENT",), court=("A_COURT", "A_COURT2"), cafe=("A_CAFE",),
+                 classroom=("A_CLASS",), play=("A_PLAY",), wterrace=("A_WTERR",), meadow=("A_MOWN", "A_MOWN2"))
+B10_PEOPLE = ("A_P1", "A_P2", "A_P3", "A_P4", "A_P5", "A_P6", "A_P7")
+
+
+def b10_put_asset(sub, sid, R, T, k, fill=0.96):
+    """v10.1 (Aras 7 Nov 07:51 TR "why haven't you used the SVG assets"): one piece of his asset sheet placed on pad
+    R (4 corners, survey m): turned to the pad's long side, scaled evenly to fit inside (never stretched)"""
+    if sid not in b8_sym_lib():
+        return False
+    a, u, v, L, W = b6_rect_axes(R)
+    ex, ey = _B10_EXT.get(sid, (1.0, 1.0))
+    ang = math.atan2(u[1], u[0])
+    if (ex >= ey) != (L >= W):
+        ang += math.pi / 2.0
+        ex, ey = ey, ex
+    r_m = fill * min(L / (2.0 * ex), W / (2.0 * ey))
+    c = b6_pt(a, u, v, L / 2.0, W / 2.0)
+    x, y = T(c)
+    p2 = T((c[0] + math.cos(ang), c[1] + math.sin(ang)))
+    ang_p = math.atan2(p2[1] - y, p2[0] - x)          # the angle on the page (T may turn the survey)
+    sub.items.append(("sym", sid, x, y, r_m * k, None, ang_p))
+    return True
+
+
+B11_GROUND = dict(picnic="lawn", event="lawn", meadow="lawn", classroom="lawn", play="sand", wterrace=None)
+# v11 (Aras 10:52 TR "add those action humans to increase the scenario telling in the right scale"): people from his
+# urbanasset.svg on each kind of place, at true size (1.7 m tall), doing what the place is for
+B11_ACT = dict(picnic=("A_P4", "A_P1"), event=("A_P5", "A_P6", "A_SIT1"), court=("A_TEN", "A_TEN2"),
+               cafe=("A_SIT2", "A_WHEEL"), classroom=("A_SIT1", "A_SIT2"), play=("A_P6", "A_RUN"), meadow=("A_RUN",),
+               fitness=("A_P2", "A_P3"), dog=("A_P5",), wterrace=("A_SIT1",), view=("A_SIT2",), hide=("A_SIT1",),
+               arch=("A_P5",), hub_sq=("A_SIT2", "A_WHEEL"), subhub=("A_SIT1",), skate=("A_RUN",))
+B11_SPOTS = ((0.22, 0.3), (0.74, 0.7), (0.5, 0.18))
+# v11 (Aras 10:52 TR "everything has to have an asset image"): places without their own sheet piece get the nearest one
+B11_EXTRA = dict(view=(("A_LOUNGE", 2.2), ("A_UMB", 2.6)), arch=(("A_BENCH", 3.0),), subhub=(("A_TABLES", 6.0),),
+                 hub_sq=(("A_FOUNT", 5.0), ("A_UMB", 3.0)), hide=(("A_BENCH", 2.4),), orchard=(("A_PTABLE", 2.4),),
+                 skate=(("A_BENCH", 3.0),), dog=(("A_BENCH", 3.0),), fitness=(("A_BENCH", 2.6),))
+
+
+def b11_clear_pad(R, lines_all):
+    """v11: R if no path band (centre line, width) touches it; else R moved 2-8 m away from that band; else None"""
+    bb_ = bbox(R)
+    Rg = b7_grow(R, 4.0)
+    own = lambda P: pip(P[0][0], P[0][1], Rg) or pip(P[-1][0], P[-1][1], Rg)   # its own link / entrance path
+    segs = [(a, b, w / 2.0 + 0.5) for P, w in lines_all if len(P) >= 2 and not own(P) for a, b in zip(P[:-1], P[1:])
+            if not (max(a[0], b[0]) < bb_[0] - 20 or min(a[0], b[0]) > bb_[2] + 20 or
+                    max(a[1], b[1]) < bb_[1] - 20 or min(a[1], b[1]) > bb_[3] + 20)]
+
+    def hit_(Q):
+        pts = b3_dense(Q + Q[:1], 1.5)
+        for a, b, r in segs:
+            for q in pts:
+                if seg_dist(q[0], q[1], a, b) < r:
+                    return (a, b)
+        return None
+    h = hit_(R)
+    if h is None:
+        return R
+    c = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+    a, b = h
+    L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    nx, ny = -(b[1] - a[1]) / L, (b[0] - a[0]) / L
+    if (c[0] - a[0]) * nx + (c[1] - a[1]) * ny < 0:
+        nx, ny = -nx, -ny
+    for d in (2.0, 4.0, 6.0, 8.0):
+        Q = [(q[0] + nx * d, q[1] + ny * d) for q in R]
+        if hit_(Q) is None:
+            return Q
+    return None
+
+
+def b11_rect_of(R):
+    """v11: the pad's rectangle (4 corners): itself, or the box of an ellipse pad (28 points, axes at 0 and 7)"""
+    if len(R) == 4:
+        return R
+    if len(R) < 8:
+        return None
+    c = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+    a = (R[0][0] - c[0], R[0][1] - c[1])
+    b = (R[len(R) // 4][0] - c[0], R[len(R) // 4][1] - c[1])
+    return [(c[0] - a[0] * sx - b[0] * sy, c[1] - a[1] * sx - b[1] * sy) for sx, sy in ((1, 1), (-1, 1), (-1, -1), (1, -1))]
+
+
+def b11_put_at(sub, sid, c, ang, size, T, k):
+    """v11: one sheet piece at survey point c, turned by ang (survey), its longest side = size m (true scale)"""
+    if sid not in b8_sym_lib():
+        return False
+    ex, ey = _B10_EXT.get(sid, (1.0, 1.0))
+    r_m = size / 2.0 / max(ex, ey)
+    x, y = T(c)
+    p2 = T((c[0] + math.cos(ang), c[1] + math.sin(ang)))
+    sub.items.append(("sym", sid, x, y, r_m * k, None, math.atan2(p2[1] - y, p2[0] - x)))
+    return True
+
+
+def b11_people(sub, kind, R, T, k):
+    """v11: people doing what the place is for, inside its rectangle, 1.7 m tall"""
+    Rr = b11_rect_of(R)
+    acts = B11_ACT.get(kind)
+    if not Rr or not acts:
+        return 0
+    a, u, v, L, W = b6_rect_axes(Rr)
+    ang = math.atan2(u[1], u[0])
+    n = 0
+    with mpx_grp(sub, "people", u"people: %s" % kind):
+        for i, sid in enumerate(acts[:max(1, min(len(acts), int(L * W // 120) + 1))]):
+            s_, t_ = B11_SPOTS[i % len(B11_SPOTS)]
+            if b11_put_at(sub, sid, b6_pt(a, u, v, L * s_, W * t_), ang + (0.6 if i % 2 else -0.4), 1.7, T, k):
+                n += 1
+    return n
+
+
 def b7_draw_pad(sub, kind, R, T, k):
+    """v11: the place's ground at its true size, then Aras's sheet piece, then people; v10.1 / v10 drawing otherwise"""
+    Rr = b11_rect_of(R)
+    if Rr and kind in B10_ASSET:
+        gr_ = B11_GROUND.get(kind)
+        with mpx_grp(sub, "hubs", u"programme: %s (Aras's asset)" % kind):
+            if gr_:                                       # the true size reads (Aras 10:37 TR: picnic lawn a dot)
+                sub.poly([[T(q) for q in (b3_chaikin_closed(R, 2) if len(R) == 4 else R)]], fill=B3_COL[gr_])
+            sd = int(abs(R[0][0] * 3.0 + R[0][1] * 7.0))
+            opts = B10_ASSET[kind]
+            ok_ = b10_put_asset(sub, opts[sd % len(opts)], Rr, T, k)
+        if ok_:
+            b11_people(sub, kind, R, T, k)
+            return None
+    r_ = b11_draw_pad_v10(sub, kind, R, T, k)
+    ex_ = B11_EXTRA.get(kind)
+    if ex_ and len(R) >= 3:
+        c = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+        a0 = math.atan2(R[1][1] - R[0][1], R[1][0] - R[0][0])
+        with mpx_grp(sub, "hubs", u"programme: %s (Aras's asset)" % kind):
+            for i, (sid, size) in enumerate(ex_):
+                off = (i - (len(ex_) - 1) / 2.0) * (size + 1.0)
+                b11_put_at(sub, sid, (c[0] + math.cos(a0) * off, c[1] + math.sin(a0) * off), a0, size, T, k)
+    if kind not in ("fitness", "dog"):
+        b11_people(sub, kind, R, T, k)
+    return r_
+
+
+def b11_draw_pad_v10(sub, kind, R, T, k):
+    """v10.1: Aras's own asset pieces where one fits the place; v10 asset-look drawing otherwise"""
+    if len(R) == 4 and kind in B10_ASSET:
+        sd = int(abs(R[0][0] * 3.0 + R[0][1] * 7.0))
+        opts = B10_ASSET[kind]
+        with mpx_grp(sub, "hubs", u"programme: %s (Aras's asset)" % kind):
+            if b10_put_asset(sub, opts[sd % len(opts)], R, T, k):
+                return None
+    if kind in ("fitness", "dog") and len(R) == 4:     # drawn pad + one of his people on it
+        b10_draw_pad(sub, kind, R, T, k)
+        a, u, v, L, W = b6_rect_axes(R)
+        q = b6_pt(a, u, v, L * 0.4, W * 0.5)
+        Rp = [b6_pt(a, u, v, L * 0.4 - 1.0, W * 0.5 - 1.0), b6_pt(a, u, v, L * 0.4 + 1.0, W * 0.5 - 1.0),
+              b6_pt(a, u, v, L * 0.4 + 1.0, W * 0.5 + 1.0), b6_pt(a, u, v, L * 0.4 - 1.0, W * 0.5 + 1.0)]
+        with mpx_grp(sub, "hubs", u"people"):
+            b10_put_asset(sub, B10_PEOPLE[int(abs(q[0] + q[1])) % len(B10_PEOPLE)], Rp, T, k, 1.0)
+        return None
+    if len(R) == 4 and kind in B10_PAD_KINDS:
+        return b10_draw_pad(sub, kind, R, T, k)
+    return b7_draw_pad_v9(sub, kind, R, T, k)
+
+
+def b7_draw_pad_v9(sub, kind, R, T, k):
     """R10/R12: pads on the strip are rectangles parallel to the walk; each type drawn as what it is"""
     if len(R) != 4 or kind not in ("play", "event", "picnic", "meadow", "skate", "orchard", "dog"):
         return b6_draw_pad(sub, kind, R, T, k)
@@ -3924,10 +4982,182 @@ def b7_draw_pad(sub, kind, R, T, k):
             sub.poly([b3_circle(P_(L * 0.75, W * 0.5), 2.2 * k, 14)], fill=B3_COL["lawn_dk"])
 
 
-B6_LEGEND = ((u"Riverside walk", B3_COL["paving"]), (u"Bike lane", B3_COL["bike"]),
-             (u"Bed walk, shut in floods", B3_COL["gravel"]), (u"Car road + pavements", B3_COL["asphalt"]),
+# v10 (Aras 15:47 TR: "rectangle definitions (picnic lawn, mown paths, fitness corner) should have visualisation from
+# this asset library", urbanasset.svg): each pad drawn in that sheet's look, as vector at true size, colours sampled
+# from the asset sheet's rendered pixels (deck, steps, plaza, lawn, court); soft outlines, no hard grey boxes
+B10_A = dict(deck="B6A087", plank="9E8A70", bench="936F57", step="DFD5CB", step_edge="B89A80", floor="C6AE96",
+             plaza="CA9D7F", ring="B2846C", path="E6D7BA", lawn="D5DCB8", lawn_edge="A9B79C", court="9AB4A7",
+             court_dk="7E9888", hex="D0B7A5", hex_edge="B39C8A", table="C9A27E", red="C77B68", blue="82989E",
+             ochre="D9B44A", sand="EDE3CC", rubber="C7A69B")
+
+
+def b10_rr(s0, t0, s1, t1, r, wob=0.0, seed=0):
+    """rounded rectangle in pad coordinates (s along the walk, t across), optional soft wobble (lawns)"""
+    r = max(0.0, min(r, (s1 - s0) / 2.0, (t1 - t0) / 2.0))
+    out = []
+    for cs, ct, a0 in ((s1 - r, t0 + r, -90), (s1 - r, t1 - r, 0), (s0 + r, t1 - r, 90), (s0 + r, t0 + r, 180)):
+        for i in range(7):
+            a = math.radians(a0 + 15 * i)
+            out.append((cs + r * math.cos(a), ct + r * math.sin(a)))
+    if wob > 0.0:
+        cs_, ct_ = (s0 + s1) / 2.0, (t0 + t1) / 2.0
+        o2 = []
+        for i, (x, y) in enumerate(out):
+            f = 1.0 + wob * math.sin(i * 1.7 + seed) * 0.5
+            o2.append((cs_ + (x - cs_) * f, ct_ + (y - ct_) * f))
+        out = o2
+    return out
+
+
+def b10_person(sub, P_, s, t, col, k):
+    sub.poly([b3_circle(P_(s, t), 0.32 * k, 8)], fill=col)
+    sub.poly([b3_circle(P_(s, t), 0.13 * k, 6)], fill="3B3430")
+
+
+def b10_draw_pad(sub, kind, R, T, k):
+    """v10: one programme pad in the asset sheet's look (see B10_A)"""
+    a, u, v, L, W = b6_rect_axes(R)
+    P_ = lambda s, t: T(b6_pt(a, u, v, s, t))
+    poly_ = lambda pts: [P_(s_, t_) for s_, t_ in pts]
+    A = B10_A
+    sd = int(abs(a[0] * 7.0 + a[1] * 3.0)) % 97
+    with mpx_grp(sub, "hubs", u"programme: %s" % kind):
+        if kind in ("picnic", "dog", "orchard", "meadow", "event"):
+            base = dict(meadow=B8_POLLI, dog=A["lawn"]).get(kind, A["lawn"])
+            sub.poly([poly_(b10_rr(0.0, 0.0, L, W, min(L, W) * 0.3, 0.12, sd))], fill=base, stroke=A["lawn_edge"], lw=0.08)
+        if kind == "picnic":
+            ring = [(L / 2.0 + L * 0.33 * math.cos(2 * math.pi * i / 40.0), W / 2.0 + W * 0.3 * math.sin(2 * math.pi * i / 40.0))
+                    for i in range(41)]
+            sub.line(poly_(ring), A["lawn_edge"], 0.1, [0.5, 0.5], cap=0)          # mown path loop
+            n_t = 0
+            for s in [L * f for f in (0.28, 0.5, 0.72)]:
+                for t in (W * 0.35, W * 0.65):
+                    if (n_t + sd) % 3 == 2:
+                        sub.poly([poly_([(s - 1.1, t - 1.1), (s + 1.1, t - 0.9), (s + 0.9, t + 1.1), (s - 1.1, t + 0.9)])],
+                                 fill=(A["red"], A["blue"])[n_t % 2])         # blanket
+                        b10_person(sub, P_, s + 0.3, t + 0.2, A["ochre"], k)
+                    else:
+                        sub.poly([poly_([(s - 0.9, t - 0.4), (s + 0.9, t - 0.4), (s + 0.9, t + 0.4), (s - 0.9, t + 0.4)])],
+                                 fill=A["table"], stroke=A["bench"], lw=0.04)
+                        for d_ in (-0.75, 0.75):
+                            sub.poly([poly_([(s - 0.9, t + d_ - 0.15), (s + 0.9, t + d_ - 0.15), (s + 0.9, t + d_ + 0.15),
+                                             (s - 0.9, t + d_ + 0.15)])], fill=A["bench"])
+                    n_t += 1
+        elif kind == "event":                             # half-round seating steps facing a stage (asset 2)
+            cs, ct = L / 2.0, W * 0.12
+            R0 = min(L * 0.18, W * 0.2)
+            Rm = min(L / 2.0 - 1.0, W * 0.85)
+            arc = lambda r: [(cs + r * math.cos(math.radians(a_)), ct + r * math.sin(math.radians(a_))) for a_ in range(0, 181, 10)]
+            sub.poly([poly_(arc(R0) + [(cs - R0, ct)])], fill=A["floor"], stroke=A["step_edge"], lw=0.06)
+            r = R0 + 1.0
+            n_s = 0
+            while r + 0.9 <= Rm and n_s < 6:
+                band = arc(r + 0.9) + arc(r)[::-1]
+                sub.poly([poly_(band)], fill=A["step"], stroke=A["step_edge"], lw=0.05)
+                r += 1.6
+                n_s += 1
+            sub.poly([poly_([(cs - R0 - 1.0, ct - 0.8), (cs + R0 + 1.0, ct - 0.8), (cs + R0 + 1.0, ct), (cs - R0 - 1.0, ct)])],
+                     fill=A["ring"])
+            for i in range(5):
+                b10_person(sub, P_, cs + (i - 2) * R0 * 0.9, ct + R0 + 2.0 + (i % 2) * 1.6, (A["red"], A["blue"], A["ochre"])[i % 3], k)
+        elif kind == "court":                             # court with lines (asset 4)
+            sub.poly([poly_(b10_rr(0.0, 0.0, L, W, 2.0))], fill=A["path"], stroke=A["step_edge"], lw=0.06)
+            s0, t0, s1, t1 = 1.5, 1.5, L - 1.5, W - 1.5
+            sub.poly([poly_([(s0, t0), (s1, t0), (s1, t1), (s0, t1)])], fill=A["court"], stroke=A["court_dk"], lw=0.08)
+            sub.line(poly_([(s0 + 0.6, t0 + 0.6), (s1 - 0.6, t0 + 0.6), (s1 - 0.6, t1 - 0.6), (s0 + 0.6, t1 - 0.6),
+                            (s0 + 0.6, t0 + 0.6)]), "FFFFFF", 0.07)
+            sub.line(poly_([(L / 2.0, t0 + 0.6), (L / 2.0, t1 - 0.6)]), "FFFFFF", 0.07)
+            cc = [(L / 2.0 + 1.8 * math.cos(2 * math.pi * i / 20.0), W / 2.0 + 1.8 * math.sin(2 * math.pi * i / 20.0)) for i in range(21)]
+            sub.line(poly_(cc), "FFFFFF", 0.07)
+            for se in (s0 + 0.6, s1 - 0.6):
+                d_ = 2.5 if se < L / 2.0 else -2.5
+                sub.line(poly_([(se, W / 2.0 - 2.5), (se + d_, W / 2.0 - 2.5), (se + d_, W / 2.0 + 2.5), (se, W / 2.0 + 2.5)]),
+                         "FFFFFF", 0.07)
+            b10_person(sub, P_, L * 0.35, W * 0.45, A["red"], k)
+            b10_person(sub, P_, L * 0.62, W * 0.58, A["ochre"], k)
+        elif kind == "cafe":                              # timber deck, benches along two sides, tables (asset 1)
+            sub.poly([poly_(b10_rr(0.0, 0.0, L, W, 0.8))], fill=A["deck"], stroke=A["bench"], lw=0.08)
+            s = 1.0
+            while s < L - 0.5:
+                sub.line(poly_([(s, 0.4), (s, W - 0.4)]), A["plank"], 0.04)
+                s += 1.0
+            sub.poly([poly_([(0.4, 0.4), (L - 0.4, 0.4), (L - 0.4, 1.0), (0.4, 1.0)])], fill=A["bench"])
+            sub.poly([poly_([(0.4, 0.4), (1.0, 0.4), (1.0, W - 0.4), (0.4, W - 0.4)])], fill=A["bench"])
+            n_ = 0
+            for s in [L * f for f in (0.35, 0.65)]:
+                for t in [W * f for f in (0.4, 0.75)]:
+                    sub.poly([b3_circle(P_(s, t), 0.55 * k, 12)], fill=A["table"], stroke=A["bench"], lw=0.04)
+                    b10_person(sub, P_, s + 0.9, t, (A["blue"], A["red"])[n_ % 2], k)
+                    n_ += 1
+        elif kind == "classroom":                         # round plaza with ring benches (asset 6)
+            r = min(L, W) / 2.0 - 0.5
+            cs, ct = L / 2.0, W / 2.0
+            sub.poly([poly_(b10_rr(0.0, ct - 1.2, L, ct + 1.2, 1.0))], fill=A["path"])
+            sub.poly([[P_(cs + r * math.cos(2 * math.pi * i / 36.0), ct + r * math.sin(2 * math.pi * i / 36.0)) for i in range(36)]],
+                     fill=A["plaza"], stroke=A["ring"], lw=0.08)
+            for g in range(4):
+                a0 = g * 90 + 12
+                band = [(cs + r * 0.62 * math.cos(math.radians(a_)), ct + r * 0.62 * math.sin(math.radians(a_))) for a_ in range(a0, a0 + 67, 6)]
+                band += [(cs + r * 0.5 * math.cos(math.radians(a_)), ct + r * 0.5 * math.sin(math.radians(a_))) for a_ in range(a0 + 66, a0 - 1, -6)]
+                sub.poly([poly_(band)], fill=A["ring"])
+            sub.poly([[P_(cs + r * 0.22 * math.cos(2 * math.pi * i / 20.0), ct + r * 0.22 * math.sin(2 * math.pi * i / 20.0)) for i in range(20)]],
+                     fill=A["floor"], stroke=A["ring"], lw=0.05)
+            for i in range(3):
+                b10_person(sub, P_, cs + r * 0.56 * math.cos(i * 2.1 + 0.4), ct + r * 0.56 * math.sin(i * 2.1 + 0.4),
+                           (A["blue"], A["red"], A["ochre"])[i], k)
+        elif kind == "play":                              # sand with round play forms
+            sub.poly([poly_(b10_rr(0.0, 0.0, L, W, min(L, W) * 0.45, 0.08, sd))], fill=A["sand"], stroke=A["step_edge"], lw=0.08)
+            for (fs, ft, fr, col) in ((0.3, 0.45, 0.16, A["red"]), (0.66, 0.6, 0.12, A["blue"]), (0.55, 0.28, 0.08, A["ochre"])):
+                rr_ = fr * min(L, W)
+                sub.poly([[P_(L * fs + rr_ * math.cos(2 * math.pi * i / 20.0), W * ft + rr_ * math.sin(2 * math.pi * i / 20.0))
+                           for i in range(20)]], fill=col, stroke=A["bench"], lw=0.04)
+            b10_person(sub, P_, L * 0.45, W * 0.7, A["blue"], k)
+            b10_person(sub, P_, L * 0.8, W * 0.35, A["red"], k)
+        elif kind == "fitness":
+            sub.poly([poly_(b10_rr(0.0, 0.0, L, W, 1.5))], fill=A["rubber"], stroke=A["bench"], lw=0.08)
+            s = 2.5
+            while s < L - 1.5:
+                for t in (2.2, W - 2.2):
+                    sub.poly([poly_([(s - 0.8, t - 0.3), (s + 0.8, t - 0.3), (s + 0.8, t + 0.3), (s - 0.8, t + 0.3)])],
+                             fill=A["bench"])
+                s += 3.0
+            b10_person(sub, P_, L * 0.4, W / 2.0, A["blue"], k)
+        elif kind == "dog":
+            sub.line(poly_(b10_rr(0.6, 0.6, L - 0.6, W - 0.6, min(L, W) * 0.25) + [b10_rr(0.6, 0.6, L - 0.6, W - 0.6, min(L, W) * 0.25)[0]]),
+                     A["bench"], 0.1, [0.5, 0.3], cap=0)  # fence
+            b10_person(sub, P_, L * 0.3, W * 0.5, A["ochre"], k)
+        elif kind == "meadow":                            # mown paths curving through the meadow
+            b3_dots(sub, bbox([P_(0, 0), P_(L, W)]), 0.8, B3_COL["culture"], [poly_(b10_rr(0.0, 0.0, L, W, min(L, W) * 0.3))])
+            pth = [(L * i / 30.0, W / 2.0 + W * 0.22 * math.sin(i / 30.0 * 2 * math.pi)) for i in range(31)]
+            sub.line(poly_(pth), A["lawn"], 1.8 * k, cap=1)
+        elif kind == "orchard":
+            t = 4.0
+            while t < W - 2.0:
+                sub.line(poly_([(2.0, t), (L - 2.0, t)]), A["lawn_edge"], 0.25)
+                t += 7.0
+        elif kind == "wterrace":                          # v10: stone seating steps down to the water (asset 5)
+            sub.poly([poly_([(0.0, 0.0), (L, 0.0), (L, W), (0.0, W)])], fill=A["hex"], stroke=A["hex_edge"], lw=0.06)
+            t, n_ = 1.2, 0
+            while t < W - 0.3:
+                sub.line(poly_([(0.3, t), (L - 0.3, t)]), A["hex_edge"], 0.1)
+                t += 1.2
+                n_ += 1
+            for s_ in (L * 0.12, L * 0.88):               # two ramps / handrails at the ends
+                sub.line(poly_([(s_, 0.2), (s_, W - 0.2)]), A["bench"], 0.12)
+            for i in range(4):
+                b10_person(sub, P_, L * (0.25 + 0.17 * i), min(W - 0.6, 1.8 + 1.2 * (i % 3)),
+                           (A["blue"], A["red"], A["ochre"])[i % 3], k)
+
+
+B10_PAD_KINDS = ("picnic", "event", "court", "cafe", "classroom", "play", "fitness", "dog", "meadow", "orchard", "wterrace")
+
+
+B3_COL["bike"] = "A8705C"     # v11 (Aras 10:52 TR): bike lane red-brown, apart from the walk
+B6_LEGEND = ((u"Riverside walk: paving with joints", B3_COL["paving"]), (u"Bike lane: red-brown, white centre dash", B3_COL["bike"]),
+             (u"Green path: mown grass, soft edges", B11_GREEN), (u"Canopy path: paving under a roof of posts", B3_COL["paving"]),
+             (u"Bed walk: gravel, shut in floods", B3_COL["gravel"]), (u"Car road: asphalt, kerbs, lane marks, zebra crossings", B3_COL["asphalt"]),
              (u"Decks, footbridges, boardwalk", B3_COL["deck"]), (u"Selinos", B3_COL["water"]),
-             (u"Widened stream, wetland", B3_COL["water_lt"]), (u"Green corridor (within 25 m of the water)",
+             (u"Wetland: shallow water + reeds, cleans the stream", B10_WET), (u"Green corridor (within 25 m of the water)",
                                                                 B3_COL["corridor"]),
              (u"Reed basins", B3_COL["reed"]), (u"Stepped dry tops, rain terraces", B3_COL["lawn_dk"]),
              (u"Allotments", B3_COL["garden"]), (u"Courts", B3_COL["court"]), (u"Fitness", B3_COL["rubber"]),
@@ -3937,6 +5167,7 @@ B6_LEGEND = ((u"Riverside walk", B3_COL["paving"]), (u"Bike lane", B3_COL["bike"
               B3_TREE_TONE["plane"]),
              (u"Hedge screen (roads, building backs)", B3_COL["tree2"]),
              (u"Heritage, kept + trail", B3_COL["heritage"]),
+             (u"Old settlement round Kizil Avlu (eski yerlesim)", "EBBCB2"),
              (u"Ground +2 m steps above the bed", b3_mix(B3_COL["meadow"], B3_COL["contour_dk"], 0.3)))
 
 
@@ -3965,10 +5196,70 @@ def b7_pip_any(p, rings):
     return any(pip(p[0], p[1], R) for R in rings)
 
 
-def b7_clip_line(pts, rings):
-    """the pieces of polyline pts (page mm) inside the clip rings (even-odd), cut at the ring edges"""
+def _rgb(c):
+    """v9: '#RRGGBB', 'RRGGBB' or '#RGB' -> (r, g, b); the traced tree bands carry a '#', which made every tree
+    block fail in Rhino (ValueError in int(..., 16): all 1416 trees lost in Aras's 13:55 / 14:05 TR runs)"""
+    c = (u"%s" % c).strip().lstrip("#")
+    if len(c) == 3:
+        c = u"".join(ch * 2 for ch in c)
+    return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+
+
+class B82Ring(object):
+    """v8.2: one clip ring with its edges sorted into horizontal bands, so a point test reads only the edges of its
+    band (same answer as pip(), far fewer edges per test)"""
+    def __init__(self, R):
+        self.bb = bbox(R)
+        n = len(R)
+        self.nb = max(1, min(512, n // 4))
+        self.y0, h = self.bb[1], (self.bb[3] - self.bb[1]) or 1e-9
+        self.bh = h / self.nb
+        self.bands = [[] for _ in range(self.nb)]
+        for i in range(n):
+            a, b = R[i - 1], R[i]
+            lo, hi = min(a[1], b[1]), max(a[1], b[1])
+            for j in range(self._band(lo), self._band(hi) + 1):
+                self.bands[j].append((b[0], b[1], a[0], a[1]))
+
+    def _band(self, y):
+        return min(self.nb - 1, max(0, int((y - self.y0) / self.bh)))
+
+    def inside(self, x, y):
+        b = self.bb
+        if x < b[0] or x > b[2] or y < b[1] or y > b[3]:
+            return False
+        ins = False
+        for xi, yi, xj, yj in self.bands[self._band(y)]:
+            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-12) + xi:
+                ins = not ins
+        return ins
+
+
+class B82Clip(object):
+    """v8.2: a clip (list of rings, page mm) prepared once: band-grid rings, overall bbox, edge list, Rhino curves"""
+    def __init__(self, rings):
+        self.rings = [B82Ring(R) for R in rings if len(R) >= 3]
+        bbs = [r.bb for r in self.rings] or [(0.0, 0.0, 0.0, 0.0)]
+        self.bb = (min(b[0] for b in bbs), min(b[1] for b in bbs), max(b[2] for b in bbs), max(b[3] for b in bbs))
+        self.segs = [(a, b) for R in rings for a, b in zip(R, R[1:] + R[:1])]
+        self.curves = None
+
+    def any_in(self, p):
+        return any(r.inside(p[0], p[1]) for r in self.rings)
+
+    def odd_in(self, p):
+        return sum(1 for r in self.rings if r.inside(p[0], p[1])) % 2 == 1
+
+    def overlaps(self, bb_):
+        b = self.bb
+        return not (bb_[2] < b[0] or bb_[0] > b[2] or bb_[3] < b[1] or bb_[1] > b[3])
+
+
+def b7_clip_line(pts, rings, cq=None):
+    """the pieces of polyline pts (page mm) inside the clip rings (even-odd), cut at the ring edges;
+    v8.2: cq = the B82Clip of rings (edges and point tests prepared once)"""
     out, cur = [], []
-    segs = [(a, b) for R in rings for a, b in zip(R, R[1:] + R[:1])]
+    segs = cq.segs if cq is not None else [(a, b) for R in rings for a, b in zip(R, R[1:] + R[:1])]
     for a, b in zip(pts[:-1], pts[1:]):
         xs = [0.0, 1.0]
         bb_ = (min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
@@ -3985,7 +5276,7 @@ def b7_clip_line(pts, rings):
             m = (a[0] + (b[0] - a[0]) * (t0 + t1) / 2.0, a[1] + (b[1] - a[1]) * (t0 + t1) / 2.0)
             p0 = (a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0)
             p1 = (a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1)
-            if sum(1 for R in rings if pip(m[0], m[1], R)) % 2 == 1:
+            if (cq.odd_in(m) if cq is not None else sum(1 for R in rings if pip(m[0], m[1], R)) % 2 == 1):
                 if not cur:
                     cur = [p0]
                 cur.append(p1)
@@ -3995,6 +5286,9 @@ def b7_clip_line(pts, rings):
     if len(cur) >= 2:
         out.append(cur)
     return out
+
+
+_B91_FLAT = [] if os.environ.get("BERGAMA_TEST_FLAT") else None
 
 
 def b7_bake_world(doc, sh, warn):
@@ -4013,11 +5307,8 @@ def b7_bake_world(doc, sh, warn):
     X0, Y0 = sh["X0"] * u, sh["Y0"] * u
     P3 = lambda p: rg.Point3d(X0 + p[0] * s, Y0 + p[1] * s, 0.0)
     tol = doc.ModelAbsoluteTolerance
-    for lay in list(rs.LayerNames() or []):
-        if lay == B7_BAKE_ROOT or lay.startswith(B7_BAKE_ROOT + "::"):
-            old = rs.ObjectsByLayer(lay)
-            if old:
-                rs.DeleteObjects(old)
+    if doc.Layers.FindByFullPath(B7_BAKE_ROOT, -1) >= 0:   # v8.2: a kept earlier drawing removed in one pass
+        b8_remove_bake(doc, warn)
     if not rs.IsLayer(B7_BAKE_ROOT):
         rs.AddLayer(B7_BAKE_ROOT)
     lay_ix = {}
@@ -4040,6 +5331,19 @@ def b7_bake_world(doc, sh, warn):
             pats[nm_] = int(hp.Index) if hp is not None else -1
         except Exception:
             pats[nm_] = -1
+    if pats.get("Solid", -1) < 0:                         # v9 (Aras's v8.5 Rhino PDF had no fill at all): a file
+        for mk_ in (lambda: doc.HatchPatterns.Add(Rhino.DocObjects.HatchPattern.Defaults.Solid),   # from DWG may
+                    lambda: doc.HatchPatterns.Add(Rhino.DocObjects.HatchPattern.Defaults.Solid()),  # lack "Solid":
+                    lambda: doc.HatchPatterns.FindName("SOLID").Index):                          # added here
+            try:
+                i_ = int(mk_())
+                if i_ >= 0:
+                    pats["Solid"] = i_
+                    break
+            except Exception:
+                pass
+    if pats.get("Solid", -1) < 0:
+        warn.append(u"FLAG B19 Rhino drawing: no Solid hatch pattern in this file, fills cannot be drawn")
     dash_lt = -1
     try:
         lt = doc.Linetypes.FindName("Dashed")
@@ -4048,7 +5352,7 @@ def b7_bake_world(doc, sh, warn):
         pass
     n = [0]
 
-    def attr(lix, colour, lw=None, dash=None):
+    def attr(lix, colour, lw=None, dash=None, alpha=None):
         a = Rhino.DocObjects.ObjectAttributes()
         a.LayerIndex = lix
         try:
@@ -4058,10 +5362,11 @@ def b7_bake_world(doc, sh, warn):
         if cur_gi[0] is not None:                         # v8: each element one Rhino group
             a.AddToGroup(cur_gi[0])
         r_, g_, b_ = _rgb(colour)
-        a.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject
-        a.ObjectColor = System.Drawing.Color.FromArgb(r_, g_, b_)
+        a_ = 255 if alpha is None else max(1, min(255, int(round(255.0 * alpha))))   # v9: see-through as in 8-0
+        a.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject       # (Rhino prints solid hatches
+        a.ObjectColor = System.Drawing.Color.FromArgb(a_, r_, g_, b_)            # with transparency, McNeel)
         a.PlotColorSource = Rhino.DocObjects.ObjectPlotColorSource.PlotColorFromObject
-        a.PlotColor = System.Drawing.Color.FromArgb(r_, g_, b_)
+        a.PlotColor = System.Drawing.Color.FromArgb(a_, r_, g_, b_)
         if lw is not None:
             a.PlotWeightSource = Rhino.DocObjects.ObjectPlotWeightSource.PlotWeightFromObject
             a.PlotWeight = float(lw)
@@ -4071,14 +5376,94 @@ def b7_bake_world(doc, sh, warn):
         return a
 
     def pcurve(pts, closed):
-        Q = [P3(p) for p in pts]
+        Q = []
+        for p in pts:                                     # v8.4: repeated points dropped (Rhino refuses them)
+            q = P3(p)
+            if not Q or Q[-1].DistanceTo(q) > tol:
+                Q.append(q)
         if closed:
+            if len(Q) > 1 and Q[-1].DistanceTo(Q[0]) <= tol:
+                Q.pop()
+            if len(Q) < 3:
+                return None
             Q.append(Q[0])
+        elif len(Q) < 2:
+            return None
         c = rg.PolylineCurve(Q)
         return c if c.IsValid else None
+    lost = [0, 0]                                         # v8.4: fills Rhino could not hatch (pieces, rings)
+
+    def hatches(cs, pix, sc_):
+        """v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): Rhino's Hatch.Create returns
+        nothing, silently, for a set of rings that overlap or nest oddly (the PDF fills them anyway). Fallbacks:
+        each outer ring with the rings directly inside it as holes, then each ring alone."""
+        hs = list(rg.Hatch.Create(cs, pix, 0.0, sc_, tol) or []) if cs else []
+        if hs or not cs:
+            return hs
+        if len(cs) > 200:                                 # v8.4: too many rings to sort: ring by ring
+            for c_ in cs:
+                got = list(rg.Hatch.Create(c_, pix, 0.0, sc_, tol) or [])
+                if not got:
+                    lost[1] += 1
+                hs += got
+        elif len(cs) > 1:
+            pl_ = rg.Plane.WorldXY
+            inside = {}
+            for i_, a_ in enumerate(cs):                  # the smallest ring holding ring i_
+                best = None
+                for j_, b_ in enumerate(cs):
+                    if i_ == j_:
+                        continue
+                    try:
+                        rel = rg.Curve.PlanarClosedCurveRelationship(a_, b_, pl_, tol)
+                    except Exception:
+                        rel = None
+                    if rel == rg.RegionContainment.AInsideB:
+                        if best is None or rg.AreaMassProperties.Compute(b_).Area < \
+                                rg.AreaMassProperties.Compute(cs[best]).Area:
+                            best = j_
+                inside[i_] = best
+            depth = {}
+            for i_ in range(len(cs)):
+                d_, k_ = 0, inside[i_]
+                while k_ is not None and d_ < 50:
+                    d_, k_ = d_ + 1, inside[k_]
+                depth[i_] = d_
+            for i_ in range(len(cs)):
+                if depth[i_] % 2:
+                    continue                              # a hole: drawn with its outer ring
+                holes = [cs[j_] for j_ in range(len(cs)) if inside[j_] == i_ and depth[j_] % 2]
+                got = list(rg.Hatch.Create([cs[i_]] + holes, pix, 0.0, sc_, tol) or [])
+                if not got and holes:
+                    got = list(rg.Hatch.Create(cs[i_], pix, 0.0, sc_, tol) or [])
+                if not got:
+                    lost[1] += 1
+                hs += got
+        if not hs:                                        # v11 (Aras 10:37 TR "outlines with nothing inside"): a
+            for c_ in cs:                                 # self-crossing ring split into its regions, each filled
+                try:
+                    rg_ = rg.Curve.CreateBooleanRegions([c_], rg.Plane.WorldXY, True, tol)
+                    for k_ in range(rg_.RegionCount):
+                        hs += list(rg.Hatch.Create(list(rg_.RegionCurves(k_)), pix, 0.0, sc_, tol) or [])
+                except Exception:
+                    pass
+        if not hs:
+            lost[0] += 1
+        return hs
     clips, grps, fails = [], [], [0]
+    fby = {}                                              # v11: failures counted by kind (log names the cause)
     rgrp, cur_gi, blk = {}, [None], {}
+    cprep_ = {}
+
+    def cprep(clip):                                      # v8.2: each clip prepared once (kept alive in pg.items)
+        k_ = id(clip)
+        if k_ not in cprep_:
+            cprep_[k_] = B82Clip(clip)
+        return cprep_[k_]
     lib = b8_sym_lib()
+    run_tag = datetime.datetime.now().strftime("%H%M%S")
+    why_t = [None]                                        # v10.2: first reason the matched text failed
+    why_ = [None]                                         # v8.6: the first reason a tree failed, for the log
 
     def grp_add(g_):
         if cur_gi[0] is not None and g_ is not None:
@@ -4094,9 +5479,9 @@ def b7_bake_world(doc, sh, warn):
         bands = lib.get(sid)
         if not bands:
             return None
-        nm = u"B19_tree_%s" % sid
-        try:
-            old = doc.InstanceDefinitions.Find(nm)
+        nm = u"B19_tree_%s_%s" % (sid, run_tag)           # v8.5 (Aras run 13:55 TR: all 1416 trees lost): a deleted
+        try:                                              # block keeps its name in the file, so a new one with the
+            old = doc.InstanceDefinitions.Find(nm)        # same name was refused; each run now names its own
             if old is not None:
                 doc.InstanceDefinitions.Delete(old.Index, True, True)
             geos, atts = [], []
@@ -4109,7 +5494,8 @@ def b7_bake_world(doc, sh, warn):
                             cs.append(c)
                 for h in (rg.Hatch.Create(cs, pats.get("Solid", 0), 0.0, 1.0, 0.0005) or []) if cs else []:
                     a = Rhino.DocObjects.ObjectAttributes()
-                    r_, g2, b2 = _rgb(b_["fill"])
+                    r_, g2, b2 = _rgb(b_["fill"] if b_.get("alpha") is None else          # v10.1: no see-through
+                                      mixc(u"FFFFFF", b_["fill"], float(b_["alpha"])))   # in Rhino (on white)
                     a.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject
                     a.ObjectColor = System.Drawing.Color.FromArgb(r_, g2, b2)
                     a.PlotColorSource = Rhino.DocObjects.ObjectPlotColorSource.PlotColorFromObject
@@ -4119,10 +5505,110 @@ def b7_bake_world(doc, sh, warn):
             if geos:
                 i_ = doc.InstanceDefinitions.Add(nm, u"Aras tree set, traced (v8)", rg.Point3d.Origin, geos, atts)
                 blk[sid] = i_ if i_ >= 0 else None
-        except Exception:
+                if i_ < 0:
+                    why_[0] = why_[0] or u"InstanceDefinitions.Add refused block %s" % nm
+            else:
+                why_[0] = why_[0] or u"symbol %s: Rhino made no fill from its %d band(s)" % (sid, len(bands))
+        except Exception as ex_b:
+            why_[0] = why_[0] or u"block %s: %s: %s" % (nm, type(ex_b).__name__, ex_b)
             blk[sid] = None
         return blk[sid]
+    # v9.1 (Aras 15:47 TR: white blocks over the drawing in Illustrator): Rhino draws see-through objects after all
+    # the solid ones, so the white edge fade + veil ended on top of everything. Nothing see-through is drawn now:
+    # each piece under the fade is lightened by the fade at its centre; other see-through pieces are mixed with the
+    # solid fill under their centre (the look of the script's own PDF, 8-0).
+    fades, gstk = [], []
+    for j_, it in enumerate(pg.items):
+        if it[0] == "grp":
+            if it[1] is None:
+                if gstk:
+                    gstk.pop()
+            else:
+                gstk.append(u"%s" % (it[2] or u""))
+        elif it[0] == "poly" and gstk and gstk[-1] == u"edge fade" and it[7] is not None and \
+                u"%s" % (it[2] or u"") in (u"FFFFFF", u"ffffff"):
+            fades.append((j_, B82Clip(it[1]), float(it[7])))
+    fade_ix = set(f_[0] for f_ in fades)
+    W_s, H_s = sh["W"], sh["H"]
+    under, ucell, uprep = [], {}, {}                      # solid fills so far: (rings, colour), grid of 25 mm cells
+    UC = 25.0
+
+    def mixc(a, b, f):
+        A, B = _rgb(a), _rgb(b)
+        return u"".join(u"%02X" % int(round(x + (y - x) * f)) for x, y in zip(A, B))
+
+    def centre(pts):
+        Q = pts[::max(1, len(pts) // 24)]
+        return (sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q)) if Q else (0.0, 0.0)
+
+    def faded(col, j_, c_):
+        if not col or not fades:
+            return col
+        keep = 1.0
+        for jf, cf, af in fades:
+            if jf > j_ and cf.odd_in(c_):
+                keep *= 1.0 - af
+        return col if keep >= 0.999 else mixc(col, u"FFFFFF", 1.0 - keep)
+
+    def back(c_):
+        for i2 in reversed(ucell.get((int(c_[0] // UC), int(c_[1] // UC)), ())):
+            if i2 not in uprep:
+                uprep[i2] = B82Clip(under[i2][0])
+            if uprep[i2].odd_in(c_):
+                return under[i2][1]
+        return u"FFFFFF"
+
+    def solid(rings, col):
+        bb_ = bbox([p for r_ in rings for p in r_])
+        under.append((rings, col))
+        for cx_ in range(int(bb_[0] // UC), int(bb_[2] // UC) + 1):
+            for cy_ in range(int(bb_[1] // UC), int(bb_[3] // UC) + 1):
+                ucell.setdefault((cx_, cy_), []).append(len(under) - 1)
+    n_all, t_b, i_it = len(pg.items), time.time(), 0
     for it in pg.items:
+        i_it += 1
+        if (i_it - 1) in fade_ix:
+            continue
+        if it[0] == "poly" and it[7] is None and len(it[1]) == 1 and u"%s" % (it[2] or u"") in (u"FFFFFF", u"ffffff") \
+                and not it[3]:
+            bb0 = bbox(it[1][0])
+            if bb0[0] <= 0.01 and bb0[1] <= 0.01 and bb0[2] >= W_s - 0.01 and bb0[3] >= H_s - 0.01:
+                continue                                  # v9.1: the white page background: paper is white
+        if it[0] in ("poly", "line", "circle", "text"):   # v9.1: fade + see-through flattened (see above)
+            j_ = i_it - 1
+            if it[0] == "poly":
+                c_ = centre(it[1][0]) if it[1] and it[1][0] else (0.0, 0.0)
+                fl_, st_, al_ = it[2], it[3], it[7]
+                if al_ is not None:
+                    b_c = back(c_)
+                    fl_ = mixc(b_c, fl_, al_) if fl_ else fl_
+                    st_ = mixc(b_c, st_, al_) if st_ else st_
+                fl_, st_ = faded(fl_, j_, c_), faded(st_, j_, c_)
+                it = ("poly", it[1], fl_, st_, it[4], it[5], it[6], None)
+                if fl_ and it[1]:
+                    solid(it[1], fl_)
+            elif it[0] == "line":
+                c_ = centre(it[1]) if it[1] else (0.0, 0.0)
+                st_ = it[2]
+                al_ = it[6] if len(it) > 6 else None
+                if st_ and al_ is not None:
+                    st_ = mixc(back(c_), st_, al_)
+                it = ("line", it[1], faded(st_, j_, c_), it[3], it[4]) + tuple(it[5:6]) + (None,)
+            elif it[0] == "circle":
+                _, cx, cy, r, fill, stroke, lw, alpha = (tuple(it) + (None,) * 8)[:8]
+                c_ = (cx, cy)
+                if alpha is not None:
+                    b_c = back(c_)
+                    fill = mixc(b_c, fill, alpha) if fill else fill
+                    stroke = mixc(b_c, stroke, alpha) if stroke else stroke
+                fill, stroke = faded(fill, j_, c_), faded(stroke, j_, c_)
+                it = ("circle", cx, cy, r, fill, stroke, lw, None)
+            else:
+                it = tuple(it[:5]) + (faded(it[5], j_, (it[2], it[3])),) + tuple(it[6:])
+        if _B91_FLAT is not None:                         # offline test only: what Rhino is given, kept
+            _B91_FLAT.append(it)
+        if i_it % 5000 == 0:                              # v8.2: progress in the live log
+            b82_live(u"Rhino drawing: piece {:,} of {:,}, {} objects, {:.0f} s".format(i_it, n_all, n[0], time.time() - t_b))
         kd = it[0]
         if kd == "grp":
             if it[1] is None:
@@ -4159,18 +5645,34 @@ def b7_bake_world(doc, sh, warn):
             cur_gi[0] = rgrp[gkey] if isinstance(rgrp[gkey], int) and rgrp[gkey] >= 0 else None
         if kd == "sym":                                   # v8: Aras's traced tree = one Rhino block, placed here
             sid, x, y, r = it[1], it[2], it[3], it[4]
-            bi = block(sid)
-            if bi is None:
-                fails[0] += 1
+            an_ = it[6] if len(it) > 6 and it[6] else 0.0   # v10.1
+            bi = None                                     # v10.2 (Aras 7 Nov 09:23-09:27 TR: trees only grey dots,
+            if bi is None:                                # assets only outlines): no blocks; each piece's tone bands
+                                                          # drawn flat, in sheet order, colours pre-mixed on white                                # v9: no block -> the symbol's tone bands drawn in place
+                n0_ = n[0]
+                for b_ in lib.get(sid) or []:
+                    cs_ = [c for c in (pcurve([(x + r * (q[0] * math.cos(an_) - q[1] * math.sin(an_)),
+                                                 y + r * (q[0] * math.sin(an_) + q[1] * math.cos(an_))) for q in R], True)
+                                       for R in b_["rings"] if len(R) >= 3) if c]
+                    fl_ = b_["fill"].lstrip("#")
+                    if b_.get("alpha") is not None:
+                        fl_ = mixc(u"FFFFFF", fl_, float(b_["alpha"]))
+                    for h in hatches(cs_, pats.get("Solid", 0), 1.0):
+                        doc.Objects.AddHatch(h, attr(lix, fl_))
+                        n[0] += 1
+                if n[0] == n0_:
+                    fails[0] += 1; fby['symbol'] = fby.get('symbol', 0) + 1
                 continue
             try:
                 xf = rg.Transform.Multiply(rg.Transform.Translation(rg.Vector3d(P3((x, y)))),
-                                           rg.Transform.Scale(rg.Point3d.Origin, r * s))
+                                           rg.Transform.Multiply(rg.Transform.Rotation(an_, rg.Point3d.Origin),
+                                                                 rg.Transform.Scale(rg.Point3d.Origin, r * s)))
                 g_ = doc.Objects.AddInstanceObject(bi, xf, attr(lix, "000000"))
                 n[0] += 1
                 grp_add(g_)
-            except Exception:
-                fails[0] += 1
+            except Exception as ex_i:
+                why_[0] = why_[0] or u"placing tree %s: %s: %s" % (sid, type(ex_i).__name__, ex_i)
+                fails[0] += 1; fby['symbol place'] = fby.get('symbol place', 0) + 1
             continue
         clip = clips[-1] if clips else None
         if kd == "poly":
@@ -4179,8 +5681,13 @@ def b7_bake_world(doc, sh, warn):
             cs = [c for c in cs if c]
             if not cs:
                 continue
-            if clip is not None and not all(b7_pip_any(p, clip) for r_ in rings for p in r_[::max(1, len(r_) // 12)]):
-                ccs = [c for c in (pcurve(r_, True) for r_ in clip) if c]
+            cq = cprep(clip) if clip is not None else None
+            if cq is not None and not cq.overlaps(bbox([p for r_ in rings for p in r_])):
+                continue                                  # v8.2: wholly outside its clip: nothing to cut
+            if cq is not None and not all(cq.any_in(p) for r_ in rings for p in r_[::max(1, len(r_) // 12)]):
+                if cq.curves is None:                     # v8.2: the clip's Rhino curves made once, not per piece
+                    cq.curves = [c for c in (pcurve(r_, True) for r_ in clip) if c]
+                ccs = cq.curves
                 cut = []
                 for c in cs:
                     for cc in ccs:
@@ -4188,36 +5695,44 @@ def b7_bake_world(doc, sh, warn):
                             res = rg.Curve.CreateBooleanIntersection(c, cc, tol)
                             cut += list(res or [])
                         except Exception:
-                            fails[0] += 1
+                            fails[0] += 1; fby['clip cut'] = fby.get('clip cut', 0) + 1
                 cs = cut
                 if not cs:
                     continue
-            if fill and fill.upper() != "FFFFFF":
-                col = _flat(fill, alpha)
+            got_fill = True
+            if fill:                                      # v9: white fills too (callout boxes, veil, fade)
+                col = fill
                 try:
-                    for h in rg.Hatch.Create(cs, pats.get("Solid", 0), 0.0, 1.0, tol) or []:
-                        doc.Objects.AddHatch(h, attr(lix, col))
+                    hs_ = hatches(cs, pats.get("Solid", 0), 1.0)
+                    got_fill = bool(hs_)
+                    for h in hs_:
+                        doc.Objects.AddHatch(h, attr(lix, col, alpha=alpha))
                         n[0] += 1
                     pat = B7_PATTERN.get(fill.upper())
                     if pat and pats.get(pat[0], -1) >= 0:
-                        for h in rg.Hatch.Create(cs, pats[pat[0]], 0.0, pat[1] * u, tol) or []:
+                        for h in hatches(cs, pats[pat[0]], pat[1] * u):
                             doc.Objects.AddHatch(h, attr(lix, mix(col, "000000", 0.18), 0.05))
                             n[0] += 1
                 except Exception:
-                    fails[0] += 1
-            if stroke and stroke.upper() != "FFFFFF":
+                    fails[0] += 1; fby['fill'] = fby.get('fill', 0) + 1
+            if stroke and got_fill:                       # v11: no edge without its fill (no empty outlines)
                 for c in cs:
-                    doc.Objects.AddCurve(c, attr(lix, _flat(stroke, alpha), lw, dash))
+                    doc.Objects.AddCurve(c, attr(lix, stroke, lw, dash, alpha=alpha))
                     n[0] += 1
+            elif stroke:
+                fails[0] += 1; fby["fill refused, edge left out"] = fby.get("fill refused, edge left out", 0) + 1
         elif kd == "line":
             pts, stroke, lw, dash = it[1], it[2], it[3], it[4]
-            if not stroke or stroke.upper() == "FFFFFF":
+            if not stroke:                                # v9: white lines too (road centre dashes)
                 continue
-            pieces = [pts] if clip is None or all(b7_pip_any(p, clip) for p in pts) else b7_clip_line(pts, clip)
+            cq = cprep(clip) if clip is not None else None
+            if cq is not None and not cq.overlaps(bbox(pts)):
+                continue                                  # v8.2: wholly outside its clip
+            pieces = [pts] if cq is None or all(cq.any_in(p) for p in pts) else b7_clip_line(pts, clip, cq)
             for P in pieces:
                 c = pcurve(P, False)
                 if c:
-                    doc.Objects.AddCurve(c, attr(lix, _flat(stroke, it[6] if len(it) > 6 else None), lw, dash))
+                    doc.Objects.AddCurve(c, attr(lix, stroke, lw, dash, alpha=it[6] if len(it) > 6 else None))
                     n[0] += 1
         elif kd == "circle":                              # v8: circles as closed curves (seats, dots, symbols)
             _, cx, cy, r, fill, stroke, lw, alpha = (tuple(it) + (None,) * 8)[:8]
@@ -4225,21 +5740,21 @@ def b7_bake_world(doc, sh, warn):
                         for a_ in range(24)], True)
             if c is None:
                 continue
-            if fill and fill.upper() != "FFFFFF":
+            if fill:
                 try:
-                    for h in rg.Hatch.Create(c, pats.get("Solid", 0), 0.0, 1.0, tol) or []:
-                        doc.Objects.AddHatch(h, attr(lix, _flat(fill, alpha)))
+                    for h in hatches([c], pats.get("Solid", 0), 1.0):
+                        doc.Objects.AddHatch(h, attr(lix, fill, alpha=alpha))
                         n[0] += 1
                 except Exception:
-                    fails[0] += 1
-            if stroke and stroke.upper() != "FFFFFF":
-                doc.Objects.AddCurve(c, attr(lix, _flat(stroke, alpha), lw))
+                    fails[0] += 1; fby['circle'] = fby.get('circle', 0) + 1
+            if stroke:
+                doc.Objects.AddCurve(c, attr(lix, stroke, lw, alpha=alpha))
                 n[0] += 1
         elif kd == "image":                               # v8: the asset-library images (trees, plants, figures)
             _, x, y, w, h, path_, alpha, flip = (tuple(it) + (None,) * 9)[:8]
             try:
                 if not path_ or not os.path.isfile(path_):
-                    fails[0] += 1
+                    fails[0] += 1; fby['image'] = fby.get('image', 0) + 1
                     continue
                 o_ = P3((x + w, y) if flip else (x, y))
                 pl = rg.Plane(o_, rg.Vector3d(-1.0 if flip else 1.0, 0.0, 0.0), rg.Vector3d(0.0, 1.0, 0.0))
@@ -4255,23 +5770,67 @@ def b7_bake_world(doc, sh, warn):
                         o2.CommitChanges()
                     n[0] += 1
                 else:
-                    fails[0] += 1
+                    fails[0] += 1; fby['image'] = fby.get('image', 0) + 1
             except Exception:
-                fails[0] += 1
+                fails[0] += 1; fby['image'] = fby.get('image', 0) + 1
         elif kd == "text":
             _, t, x, y, size, colour, bold, align = it[:8]
+            try:                                          # v10.2 (Aras 7 Nov 09:23 TR: texts slid out of their boxes,
+                te_ = rg.TextEntity.Create(u"%s" % t, rg.Plane(P3((x, y)), rg.Vector3d.ZAxis),   # wrong style):
+                                           doc.DimStyles.Current, False, 0.0, 0.0)               # Rhino's text height
+                te_.TextHeight = size * s * B10_CAP       # is the capital height, the sheet's is the font size
+                try:
+                    te_.DimensionScale = 1.0              # no model-space annotation scaling
+                except Exception:
+                    pass
+                try:
+                    te_.Font = Rhino.DocObjects.Font.FromQuartetProperties("Arial", bool(bold), False)
+                except Exception as ex_f:
+                    why_t[0] = why_t[0] or u"font: %s" % ex_f
+                try:
+                    te_.TextHorizontalAlignment = {"L": Rhino.DocObjects.TextHorizontalAlignment.Left,
+                                                   "C": Rhino.DocObjects.TextHorizontalAlignment.Center,
+                                                   "R": Rhino.DocObjects.TextHorizontalAlignment.Right}[align]
+                    te_.TextVerticalAlignment = Rhino.DocObjects.TextVerticalAlignment.Bottom   # baseline, as the sheet
+                except Exception as ex_a:
+                    why_t[0] = why_t[0] or u"alignment: %s" % ex_a
+                try:
+                    te_.MaskEnabled = False
+                except Exception:
+                    pass
+                g_t = doc.Objects.AddText(te_, attr(lix, colour))
+                if g_t != System.Guid.Empty:
+                    n[0] += 1
+                    continue
+                why_t[0] = why_t[0] or u"AddText refused"
+            except Exception as ex_t:
+                why_t[0] = why_t[0] or u"%s: %s" % (type(ex_t).__name__, ex_t)
             try:
                 i_ = rs.AddText(t, (P3((x, y)).X, P3((x, y)).Y, 0.0), size * s, "Arial", 1 if bold else 0,
                                 {"L": 1, "C": 2, "R": 4}[align])
                 if i_:
-                    rs.ObjectLayer(i_, doc.Layers[lix].FullPath)
-                    rs.ObjectColor(i_, _rgb(colour))
-                    rs.ObjectPrintColor(i_, _rgb(colour))
+                    o_t = doc.Objects.FindId(i_)            # v9.1: text stacked in sheet order (it sat under every fill)
+                    if o_t is not None:
+                        a_t = attr(lix, colour)
+                        a_t.PlotWeightSource = o_t.Attributes.PlotWeightSource
+                        o_t.Attributes = a_t
+                        o_t.CommitChanges()
+                    else:
+                        rs.ObjectLayer(i_, doc.Layers[lix].FullPath)
+                        rs.ObjectColor(i_, _rgb(colour))
+                        rs.ObjectPrintColor(i_, _rgb(colour))
                     n[0] += 1
             except Exception:
-                fails[0] += 1
+                fails[0] += 1; fby['text'] = fby.get('text', 0) + 1
+    if why_t[0]:
+        warn.append(u"FLAG B19 Rhino text: fell back to the old text call for some texts ({})".format(why_t[0]))
     if fails[0]:
-        warn.append(u"B19 Rhino drawing: {} piece(s) could not be cut / hatched (left out)".format(fails[0]))
+        warn.append(u"B19 Rhino drawing: {} piece(s) could not be cut / hatched (left out){}".format(
+            fails[0], u"; first reason: " + why_[0] if why_[0] else u"") + u"; by kind: " +
+            u", ".join(u"%s %d" % kv for kv in sorted(fby.items())))
+    if lost[0] or lost[1]:                                # v8.4: FLAG, so a missing fill is never silent
+        warn.append(u"FLAG B19 Rhino drawing: {} fill(s) lost whole, {} ring(s) lost (Rhino could not hatch them; "
+                    u"likely self-crossing outlines)".format(lost[0], lost[1]))
     return n[0], (rg.Point3d(X0, Y0, 0.0), rg.Point3d(X0 + sh["W"] * s, Y0 + sh["H"] * s, 0.0))
 
 
@@ -4287,6 +5846,15 @@ def b7_rhino_pdf(doc, corners, W_mm, H_mm, path, warn):
     view = view or doc.Views.ActiveView
     vis = [(l.Index, l.IsVisible) for l in doc.Layers if not l.IsDeleted]
     try:
+        cur0 = doc.Layers.CurrentLayerIndex
+    except Exception:
+        cur0 = None
+    try:
+        # v10.2 (Aras 7 Nov 10:03 TR: red lines + dots outside the zone): Rhino never hides the CURRENT layer, so a survey
+        # layer that was current printed into the PDF. The B19 root becomes current while Rhino writes, then it is restored.
+        root_ = [l.Index for l in doc.Layers if not l.IsDeleted and l.FullPath == B7_BAKE_ROOT]
+        if root_ and cur0 is not None:
+            doc.Layers.SetCurrentLayerIndex(root_[0], True)
         for l in doc.Layers:
             if l.IsDeleted:
                 continue
@@ -4294,6 +5862,10 @@ def b7_rhino_pdf(doc, corners, W_mm, H_mm, path, warn):
             if l.IsVisible != on:
                 l.IsVisible = on
                 _b8_lmod(doc, l, l.Index)
+        left_ = [l.FullPath for l in doc.Layers if not l.IsDeleted and l.IsVisible and not
+                 (l.FullPath == B7_BAKE_ROOT or l.FullPath.startswith(B7_BAKE_ROOT + "::"))]
+        if left_:
+            warn.append(u"B19 Rhino PDF: these layers could not be hidden and may print: " + u", ".join(left_[:8]))
         dpi = 300.0 if max(W_mm, H_mm) < 1200.0 else 150.0   # v8: 1:1,000 sheet ~2.3 x 2.8 m: images at 150 dpi (lines stay vector)
         size = System.Drawing.Size(int(W_mm / 25.4 * dpi), int(H_mm / 25.4 * dpi))
         st = Rhino.Display.ViewCaptureSettings(view, size, dpi)
@@ -4322,6 +5894,11 @@ def b7_rhino_pdf(doc, corners, W_mm, H_mm, path, warn):
             if l.IsVisible != was:
                 l.IsVisible = was
                 _b8_lmod(doc, l, i_)
+        try:
+            if cur0 is not None:
+                doc.Layers.SetCurrentLayerIndex(cur0, True)     # v10.2: his current layer back, after its visibility
+        except Exception:
+            pass
         doc.Views.Redraw()
 
 
@@ -4331,6 +5908,27 @@ def _b8_lmod(doc, l, i_):
         doc.Layers.Modify(l, i_, True)
     except Exception:
         pass
+
+
+_B82_LIVE = []                # v8.2: this run's log lines so far (written to the log file after every step)
+
+
+def b82_live(step=None):
+    """v8.2 (Aras 12:26 TR "it logs in every step right?"): the log file rewritten after every step, so a long or
+    stuck run shows how far it got; the full log replaces it at the end of the run"""
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        head = [u"{} · RUNNING · {}".format(VERSION, datetime.datetime.now().strftime("%H:%M:%S"))]
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f_:
+            f_.write(u"\n".join(head + list(_B82_LIVE) + ([u"now: " + step] if step else [])))
+    except Exception:
+        pass
+
+
+def bake_pages(doc, pages, scale):
+    """v8.2: the masterplan's MP11 bake (main() calls it when rhino_bake is True) is not used here: build_all already
+    drew the sheet in Rhino on B7_BAKE_ROOT; this stops a second, never-deleted copy"""
+    return u"Rhino: one drawing only (layer {}); the masterplan's MP11 copy is not made".format(B7_BAKE_ROOT)
 
 
 def build_all(doc, warn):
@@ -4375,25 +5973,47 @@ def build_all(doc, warn):
     C = Corridor(V, survey, CL, D, spots, warn)
     lines = [u"proposal computed (masterplan code, option A): zones {}, hubs {}, {:.1f} s".format(
         len(D.zones), len(C.hubs), time.time() - t0)]
+    globals()["_B82_LIVE"] = lines                        # v8.2: live log
+    b82_live(u"drawing the sheet")
     C.survey = survey
     globals()["_B19_LAST"] = dict(C=C, CL=CL, D=D, site=site, survey=survey, study=C.study or V.study)
     t_pg = time.time()
     pg, notes = b19_page(C, site, C.study or V.study, scale, warn)
     lines += notes
     lines.append(u"drawing built: {:.0f} s".format(time.time() - t_pg))
-    t_pdf = time.time()
-    path = b8_save(pg, folder, B19_NAME, u"MIRAQUA masterplan, B19 drawing language", lines)   # v8: grouped
-    lines.append(u"{}  {}  (PDF written in {:.0f} s)".format(os.path.basename(path),
-                                                         datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t_pdf))
-    files = [path]
+    b82_live(u"Rhino drawing")
+    files = []
     sh = globals().get("_B7_SHEET")
     rb_ = inp("rhino_bake", False)
-    rb_ = rb_ is True or u"%s" % rb_ in (u"True", u"true", u"1")
-    if not rb_:                                           # v8.1: the slow Rhino copy only when asked for
-        lines.append(u"Rhino copy skipped (rhino_bake is False): only the script's PDF, nothing drawn in the .3dm")
-    if rb_ and doc is not None and Rhino is not None and sh:      # v7 (Aras 05:46): Rhino draws it in the .3dm + exports
+    keep_ = rb_ is True or u"%s" % rb_ in (u"True", u"true", u"1")      # v8.2: True = keep the drawing in the .3dm
+    rhino_ok = False
+    rkey, rkey_f = None, None
+    if doc is not None and Rhino is not None and sh and not keep_:   # v8.2 (Aras 12:11 TR "copy pasting"): the
+        try:                                              # same sheet as last run -> Rhino's last PDF reused as is
+            import hashlib
+            rkey = hashlib.md5((u"%s|%r|%r" % (VERSION, [sh[k_] for k_ in ("X0", "Y0", "k", "W", "H")],
+                                               pg.items)).encode("utf-8", "replace")).hexdigest()
+            cdir = bg_cache("bergama_b19_plan")
+            os.makedirs(cdir, exist_ok=True)
+            rkey_f = os.path.join(cdir, "rhino_pdf_key.txt")
+            rpath = os.path.join(folder, B19_NAME.replace(".pdf", "_rhino.pdf"))
+            if os.path.isfile(rkey_f) and os.path.isfile(rpath) and open(rkey_f).read().strip() == rkey:
+                files.append(rpath)
+                rhino_ok = True
+                lines.append(u"{}  unchanged since the last run: Rhino's PDF reused, nothing redrawn".format(
+                    os.path.basename(rpath)))
+        except Exception:
+            rkey = None
+    if not rhino_ok and doc is not None and Rhino is not None and sh:   # v8.2 (Aras 12:07 TR): Rhino draws + writes the PDF
         t1 = time.time()
+        sc_doc = None
         try:
+            try:                                          # v8.3 (Aras run 13:03 TR, NotSupportedInGHException):
+                import scriptcontext as sc_               # rhinoscriptsyntax must point at the Rhino file, not at
+                sc_doc = sc_.doc                          # Grasshopper's own document; restored below
+                sc_.doc = doc
+            except Exception:
+                sc_doc = None
             undo0 = doc.UndoRecordingEnabled
             try:
                 doc.Views.RedrawEnabled = False
@@ -4404,18 +6024,46 @@ def build_all(doc, warn):
                 doc.Views.RedrawEnabled = True
             lines.append(u"Rhino: {} objects drawn under layer {} at the survey's own coordinates, {:.0f} s".format(
                 n_, B7_BAKE_ROOT, time.time() - t1))
+            b82_live(u"Rhino writing the PDF")
+            t2 = time.time()
             rpath = os.path.join(folder, B19_NAME.replace(".pdf", "_rhino.pdf"))
             if b7_rhino_pdf(doc, corners, sh["W"], sh["H"], rpath, warn):
-                files.insert(0, rpath)
-                lines.append(u"{}  (written by Rhino)".format(os.path.basename(rpath)))
+                files.append(rpath)
+                rhino_ok = True
+                lines.append(u"{}  (written by Rhino in {:.0f} s)".format(os.path.basename(rpath), time.time() - t2))
+                if rkey and rkey_f:
+                    try:
+                        with open(rkey_f, "w") as f_:
+                            f_.write(rkey)
+                    except Exception:
+                        pass
         except Exception as ex_:
             import traceback
-            warn.append(u"B19 Rhino drawing NOT DONE ({}: {}); the script's own PDF is the result. {}".format(
+            warn.append(u"B19 Rhino drawing NOT DONE ({}: {}); the script's own PDF is written instead. {}".format(
                 type(ex_).__name__, ex_, traceback.format_exc()[-300:]))
-        finally:                                          # v8 (Aras 09:16 TR): drawn, exported, then deleted
-            n_del = b8_remove_bake(doc, warn)
-            lines.append(u"Rhino: the temporary drawing removed from the .3dm ({} objects, layer {} deleted)".format(
-                n_del, B7_BAKE_ROOT))
+        finally:
+            if sc_doc is not None:
+                try:
+                    import scriptcontext as sc_
+                    sc_.doc = sc_doc                      # v8.3: Grasshopper's document back
+                except Exception:
+                    pass
+            if keep_:
+                lines.append(u"Rhino: the drawing kept in the .3dm on layer {} (rhino_bake is True)".format(B7_BAKE_ROOT))
+            else:                                         # v8 (Aras 09:16 TR): drawn, exported, then deleted
+                b82_live(u"removing the drawing from the .3dm")
+                t3 = time.time()
+                n_del = b8_remove_bake(doc, warn)
+                lines.append(u"Rhino: the drawing removed from the .3dm ({} objects, layer {} deleted, {:.0f} s)".format(
+                    n_del, B7_BAKE_ROOT, time.time() - t3))
+    if not rhino_ok or os.environ.get("BERGAMA_TEST_PDF"):   # v8.2: the script's own PDF only as the fallback
+                                                          # (v9: also in offline test runs, to look at)
+        b82_live(u"writing the script's own PDF (fallback)")
+        t_pdf = time.time()
+        path = b8_save(pg, folder, B19_NAME, u"MIRAQUA masterplan, B19 drawing language", lines)   # v8: grouped
+        lines.append(u"{}  {}  (script's own PDF, fallback, written in {:.0f} s)".format(
+            os.path.basename(path), datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t_pdf))
+        files.append(path)
     return folder, files, lines, [("A", 1, pg)], scale
 
 
