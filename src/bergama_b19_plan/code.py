@@ -45,4 +45,5 @@
 #@include data/VEG_EMBED.py
 #@include data/TREE_EMBED.py
 #@include data/BUSH_EMBED.py
+#@include parts/b19_asset_embed.py
 #@include parts/b19_plan.py
