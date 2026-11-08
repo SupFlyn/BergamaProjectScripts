@@ -665,7 +665,7 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v63.1 (2026-11-05)"  # v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
+SCRIPT_VERSION = "selinus_board v64 (2026-11-08)"  # v64 (8 Nov, Aras): no backward reads: the spine and stops from the built-in table (= city link and masterplan common/city_spine.py), roads from common/data/ROADS.py, no masterplan_results.json / city_link_results.json read; the section notes' masterplan link is written by the masterplan (section_link_points.json); the unplaced "Section along the spine" drawing is left out; v63.1 fix (5 Nov run): v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
 SHORT_V = "v62.3"                                     # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
@@ -18443,8 +18443,9 @@ MV_OPT = dict(r_walk=800.0, t_car=600.0, buffer=1000.0, snap=150.0, snap_end=25.
 PROPOSAL_INPUTS = ("spine", "spine_car", "bridges", "car_closed", "attractors")
 # v34: the riverside spine of bergama_city_link (Thread 4), used when no proposal curves are wired. The file wins; the
 # built-in copy (city link v1.1, 24 Oct; pieces A and C side "auto" = the bank the data picks) is the fallback. Survey coordinates; offsets are schematic for the network.
-CITY_LINK_FILE = bg_first([os.path.join(bg_cache("Bergama_city_link_analysis"), "city_link_results.json"),   # v44
-                           os.path.join(BERGAMA_DIR, "output", "Bergama_city_link_analysis", "city_link_results.json")])
+# v64 (8 Nov, Aras: no script reads a later script's results): city_link_results.json is no longer read. Its spine and
+# stops are the constant tables of common/city_spine.py (SPINE, FUNCS, EVENTS), the same as this built-in copy for every
+# key read here (id, frm, to, side_ref, offset_m, side, catch_m; n, name, xy, stage); the bank is this run's own vote.
 CITY_LINK_DEFAULT = json.loads('{"spine":[{"id":"A","name":"Ulu Cami to K3 bank walk","frm":[29846.0,32278.0],"to":[30037.0,32122.0],"side_ref":[29844.2,32313.3],"offset_m":15.0,"side":"auto","catch_m":250.0},{"id":"B","name":"Junction over the covered reach","frm":[30037.0,32122.0],"to":[30238.7,31931.2],"side_ref":null,"offset_m":0.0},{"id":"C","name":"Red Hall to Üç Kemer bank walk","frm":[30238.7,31931.2],"to":[30294.0,31792.0],"side_ref":[30245.0,31962.0],"offset_m":15.0,"side":"auto","catch_m":250.0}],"functions":[{"n":1,"name":"Bank bazaar","xy":[29890.4,32243.6],"stage":null},{"n":2,"name":"Parchment and leather workshops","xy":[30062.0,32106.0],"stage":null},{"n":3,"name":"Junction square","xy":[30058.0,32047.0],"stage":null},{"n":4,"name":"Red Hall water terrace","xy":[30238.7,31931.2],"stage":null},{"n":5,"name":"Producers\' market","xy":[30294.0,31792.0],"stage":null},{"n":6,"name":"Study terraces","xy":[29941.0,32200.0],"stage":null},{"n":7,"name":"Clean-water classroom","xy":null,"stage":"entry"},{"n":8,"name":"Summer bed events","xy":null,"stage":null}]}')
 # v59 (round 4, G-R4-11): the built-in copy's printed names from the names table, as common/city_spine.py prints them
 # (Kızıl Avlu, never "Red Hall"; Ulucami; bridges by name); ids, coordinates and keys unchanged
@@ -18493,13 +18494,7 @@ def city_link_spine(S):
     """v34: the riverside spine and its stops from bergama_city_link: (props, attractors, source). Each spine piece
     follows the main Selinus line between the chainages of its two anchors, offset_m to the side of side_ref
     (0 = on the line, over the covered reach); a piece whose anchors lie over 80 m from the line is a straight line."""
-    spec, src = None, "built-in copy of 24 Oct (city link file not found)"
-    try:
-        with open(CITY_LINK_FILE, "r", encoding="utf-8") as fh:
-            spec = json.load(fh)
-        src = "city link file of " + time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(CITY_LINK_FILE)))
-    except Exception:
-        spec = CITY_LINK_DEFAULT
+    spec, src = CITY_LINK_DEFAULT, "built-in spine table (the same as city link's and the masterplan's)"   # v64
     streams = [P for P in (getattr(S, "selinus", None) or []) if len(P) >= 2]
     main = max(streams, key=pl_length) if streams else None
     props, attr, votes = [], [], []
@@ -18656,8 +18651,6 @@ def movement(S):
 # pieces laid end to end at ONE scale for length and height (never stretched), the picture beyond each piece, the
 # stops above it by number and short name. Without the masterplan file: the city link spine the board already uses
 # (city_link_spine); without either, no panel (logged).
-MP_RESULTS_FILE = bg_first([os.path.join(bg_cache("bergama_masterplan"), "masterplan_results.json"),      # v44
-                            os.path.join(BERGAMA_DIR, "output", "bergama_masterplan", "masterplan_results.json")])
 SPINE_TOL = 2.0          # m: the spine's line simplified to straight pieces within this distance (Douglas-Peucker)
 SPINE_ROW_M = 360.0      # m: the developed section is laid out in rows of at most about this length
 SPINE_STOP_NEAR = 60.0   # m: a stop farther than this from the spine is marked at the spine's end, with its distance
@@ -18690,23 +18683,9 @@ def spine_short(name):
 
 
 def spine_source(S):
-    """(polyline, stops [(n, name, (x, y))], source words) of the streamside spine, or None."""
-    try:
-        with open(MP_RESULTS_FILE, "r", encoding="utf-8") as fh:
-            A = json.load(fh)["options"]["A"]
-        P = []
-        for pc in A.get("spine", []):
-            for p in pc.get("P", []):
-                q = (float(p[0]), float(p[1]))
-                if not P or math.hypot(q[0] - P[-1][0], q[1] - P[-1][1]) > 0.05:
-                    P.append(q)
-        stops = [(int(s_["n"]), s_.get("name", ""), (float(s_["xy"][0]), float(s_["xy"][1])))
-                 for s_ in A.get("stops", []) if s_.get("xy")]
-        if len(P) >= 2:
-            return P, stops, "masterplan results of " + time.strftime(
-                "%d %b %H:%M", time.localtime(os.path.getmtime(MP_RESULTS_FILE)))
-    except Exception:
-        pass
+    """(polyline, stops [(n, name, (x, y))], source words) of the streamside spine, or None. v64 (8 Nov, Aras: no
+    backward reads; Q2 default): the spine of the built-in table (city_link_spine), never the masterplan's option A
+    line from masterplan_results.json (the masterplan runs after this script)."""
     try:
         props, attr, src = city_link_spine(S)
         P = []
@@ -18714,14 +18693,8 @@ def spine_source(S):
             for q in Q:
                 if not P or math.hypot(q[0] - P[-1][0], q[1] - P[-1][1]) > 0.05:
                     P.append((float(q[0]), float(q[1])))
-        spec = CITY_LINK_DEFAULT
-        try:
-            with open(CITY_LINK_FILE, "r", encoding="utf-8") as fh:
-                spec = json.load(fh)
-        except Exception:
-            pass
         stops = [(int(f["n"]), f.get("name", ""), (float(f["xy"][0]), float(f["xy"][1])))
-                 for f in spec.get("functions", []) if f.get("xy")]
+                 for f in CITY_LINK_DEFAULT.get("functions", []) if f.get("xy")]
         if len(P) >= 2:
             return P, stops, src
     except Exception:
@@ -21968,14 +21941,9 @@ def mp_movement(static_ok=True):
     shared table common/data/ROADS.py), the roads (and the later town line) come from ROADS.py, everything else the
     json holds (crossings, hubs) is kept when there is a json; the log names the source used. "source" in the result:
     "masterplan_results.json" or "ROADS.py". static_ok=False: the old behaviour (None without the json's movement)."""
-    M, why = None, None
-    try:
-        with open(MP_RESULTS_FILE, "r", encoding="utf-8") as fh:
-            M = json.load(fh).get("movement")
-        if not isinstance(M, dict):
-            M, why = None, u"masterplan_results.json has no \"movement\" key yet"
-    except Exception:
-        M, why = None, u"no masterplan_results.json ({})".format(MP_RESULTS_FILE)
+    # v64 (8 Nov, Aras: no backward reads): masterplan_results.json is never read (the masterplan runs after this
+    # script); the roads are ROADS.py's, which the json only ever repeated (the check below used it only when equal)
+    M, why = None, u"v64: no masterplan read"
     roads, routes = mp_static_roads()
     if M is not None:
         have = set((u"%s" % (r_.get("name") or u""), u"%s" % (r_.get("change") or u"")) for r_ in M.get("roads") or [])
@@ -24108,10 +24076,8 @@ def build_sheet(S, B, X, Y, U, rects):
         n_ = 12 + len(plan_[2])
     else:                                                 # v44: no placeholder on the sheet, the log says why
         LOG.append("Sections: the survey has no section lines (layer sec_lines), so no cuts are drawn.")
-    if spine_section(S) is not None:                     # v40: the long section along the streamside spine
-        items.append(("{:02d} Section along the spine".format(n_), 140.0 * U,
-                      lambda x, y: draw_spine_section(S, B, x, y, 140.0 * U, U)))
-        n_ += 1
+    # v64 (8 Nov, Aras Q2 default): "Section along the spine" (v40) is left out: no booklet page places it (8 Nov test
+    # run: no item exported for it) and its option A line came from the masterplan, which runs after this script
     items.append(("{:02d} Sources".format(n_), 94.8 * U,
                   lambda x, y: draw_footer(S, B, x, y, 94.8 * U, U, h=0.3)))
     B.begin("DRAWINGS · sheet title", "LU_DRAWINGS")
@@ -40497,6 +40463,25 @@ def site28_link(S, px, py, line):
     return u"the nearest bridge is **{}**".format(best[2]) if best else u""   # v58 (G16 / D9): the name, no K-code
 
 
+SEC_LINK_FILE = os.path.join(SELINUS_RES_DIR, "section_link_points.json")   # v64: read by the masterplan
+SEC_LINK_PTS = {}
+
+
+def sec_link_point(sd_, px, py):
+    """v64 (8 Nov, Aras: no backward reads, Q1 default): the point of a cut where its masterplan link is measured (the
+    crossing's middle, else the cut's middle) and the cut line, written to cached/selinus_board/section_link_points.json
+    for the masterplan, which writes the "Masterplan link" note line for the booklet (page p04/p05 note frame)."""
+    try:
+        nm_ = u"%s" % sd_.get("name")
+        SEC_LINK_PTS[nm_] = {"page": (sd_.get("_p45") or {}).get("page"), "xy": [round(px, 2), round(py, 2)],
+                             "line": [round(float(v_), 2) for v_ in sd_["line"][:4]]}
+        os.makedirs(SELINUS_RES_DIR, exist_ok=True)
+        with open(SEC_LINK_FILE, "w", encoding="utf-8") as fh:
+            json.dump({"script": SCRIPT_VERSION, "cuts": SEC_LINK_PTS}, fh, ensure_ascii=False, indent=1, sort_keys=True)
+    except Exception as ex:
+        LOG.append(u"WARNING: section_link_points.json not written ({}: {})".format(type(ex).__name__, ex))
+
+
 def site28_sec_reading(S, sd_):
     """v50 (MIRAQUA 28 Oct, P04.2): (key sentence, what steers the project) of a cut, from its own data only, with
     **bold** keywords: whether it crosses or runs along the stream, the bed's depth below the lower bank crest or
@@ -40565,7 +40550,8 @@ def site28_sec_reading(S, sd_):
             cons = next((t2 for t1, t2 in SITE28_STEER if t1 in tys), u"")
         sm = 0.5 * (a + b)
         px, py = x0 + ux * sm, y0 + uy * sm
-    link = site28_link(S, px, py, sd_["line"])
+    link = u""                                           # v64: the masterplan writes the link (section_link_points.json)
+    sec_link_point(sd_, px, py)
     steer = u""
     if cons or link:
         steer = u"Steers the project: " + cons + ((u" -> " if cons else u"") + link if link else u"") + u"."
@@ -44661,12 +44647,7 @@ def her21_offers(walk):
     the stream walk (walk: survey m, K3 -> K4). Returns [(t, name)] in stream order, t = 0 at K4 (upstream) .. 1 at
     K3, measured along the walk. v60 (round 5, D5): a results file's "Red Hall" printed as the names table's
     Kızıl Avlu (G-R4-11, as the built-in copy)."""
-    spec = CITY_LINK_DEFAULT
-    try:
-        with open(CITY_LINK_FILE, "r", encoding="utf-8") as fh:
-            spec = json.load(fh)
-    except Exception:
-        pass
+    spec = CITY_LINK_DEFAULT                              # v64: the built-in table only (no city link file read)
     lw = pl_length(walk) or 1.0
     out = []
     for f in spec.get("functions", []):

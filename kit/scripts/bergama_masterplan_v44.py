@@ -280,7 +280,7 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v43 (2026-11-05)"  # v43 round 7 S6 (BRIEF rows 15, 21; N2: only pages/p16_senses.py + pages/p24_detail.py): p15 legends all from the hue table, scale lines; p21 D1/D2 ACCURATE at a fixed 1:1,000, key map 26.9 x 35.9 mm (SON page22) with north left inside the margin, plan names 5 pt inside their area (G7-2), field names clear route numbers (L6); dead mpx_keymap gone; p20 untouched (D6); v42.1 fix: common key map names never left out (set on their point, the booklet places them); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 round 6 S8 (G6-1..G6-10, BRIEF rows 15, 20, 21); v40.4 run-warning fixes (2 Nov); v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_masterplan v44 (2026-11-08)"  # v44 (8 Nov, Aras: no backward reads, Q1 default): the "Masterplan link" line of each p04/p05 section note (was written by the site board from last run's masterplan_results.json; site board v64 no longer reads it) is exported here as a note item sb_sec_note_<cut>_mp from this run's movement and the site board's cached/selinus_board/section_link_points.json; v43 v43 round 7 S6 (BRIEF rows 15, 21; N2: only pages/p16_senses.py + pages/p24_detail.py): p15 legends all from the hue table, scale lines; p21 D1/D2 ACCURATE at a fixed 1:1,000, key map 26.9 x 35.9 mm (SON page22) with north left inside the margin, plan names 5 pt inside their area (G7-2), field names clear route numbers (L6); dead mpx_keymap gone; p20 untouched (D6); v42.1 fix: common key map names never left out (set on their point, the booklet places them); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 round 6 S8 (G6-1..G6-10, BRIEF rows 15, 20, 21); v40.4 run-warning fixes (2 Nov); v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 SHORT = "v43"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
@@ -24697,6 +24697,113 @@ def option_input():
     return ("A",)                                        # v19: option A only, project-wide (Aras 25 Oct 16:43)
 
 
+# v44 (8 Nov 2026, Aras: no script reads a later script's results; Q1 default): the "links to" part of the site board's
+# section notes (p04 / p05, sb_sec_note_<cut>_n*) moved here. Same rule as the site board's site28_link (v58-v63): the
+# masterplan hub within MSL_HUB_M of the cut's point, else its crossing within MSL_XING_M, else a changed street the cut
+# crosses. The point and cut line come from the site board (runs before this script): section_link_points.json.
+MSL_HUB_M = 300.0        # m (site board SITE28_HUB_M)
+MSL_XING_M = 200.0       # m (site board SITE28_XING_M)
+MSL_FILE = os.path.join(bg_cache("selinus_board"), "section_link_points.json")
+
+
+def msl_title(s):
+    """the site board's site28_title: an upper-case name in title case with its Turkish letters; a bridge code -> the
+    bridge's one name"""
+    head_ = (s or u"").split(u"·")[0].strip().upper()
+    if len(head_) == 2 and head_[0] == u"K" and head_[1].isdigit():
+        try:
+            return bridge_name(head_)
+        except KeyError:
+            pass
+    out = []
+    for w_ in (s or u"").split(u" "):
+        if not w_ or any(c_.isdigit() for c_ in w_) or not w_.isupper():
+            out.append(w_)
+            continue
+        lo = w_.replace(u"I", u"ı").replace(u"İ", u"i").lower()
+        out.append({u"i": u"İ", u"ı": u"I"}.get(lo[0], lo[0].upper()) + lo[1:])
+    return u" ".join(out)
+
+
+def msl_seg_x(p, r, q, s):
+    rxs = r[0] * s[1] - r[1] * s[0]
+    if abs(rxs) < 1e-12:
+        return None
+    qx, qy = q[0] - p[0], q[1] - p[1]
+    t = (qx * s[1] - qy * s[0]) / rxs
+    u = (qx * r[1] - qy * r[0]) / rxs
+    return (t, u) if 0.0 <= t <= 1.0 and 0.0 <= u <= 1.0 else None
+
+
+def msl_link(M, px, py, line):
+    """the link words of one cut (the site board's site28_link with the masterplan's movement), u"" when none"""
+    def xy1(v):
+        try:
+            return (float(v[0]), float(v[1]))
+        except Exception:
+            return None
+    best = None
+    for h in M.get("hubs") or []:
+        q = xy1(h.get("xy"))
+        d = math.hypot(q[0] - px, q[1] - py) if q else 1e12
+        if d <= MSL_HUB_M and (best is None or d < best[0]):
+            best = (d, h)
+    if best:
+        h = best[1]
+        return u"**{}**, {} hub{}".format(msl_title(h.get("name") or u""), u"transit" if h.get("role") == "transit"
+                                          else u"walking", u" · sub-hub in the bed" if h.get("sub_hub") else u"")
+    for c_ in M.get("crossings") or []:
+        q = xy1(c_.get("xy"))
+        d = math.hypot(q[0] - px, q[1] - py) if q else 1e12
+        if d <= MSL_XING_M and (best is None or d < best[0]):
+            best = (d, c_)
+    if best:
+        return u"**{}**, {}".format(msl_title(best[1].get("name") or u""), best[1].get("kind") or u"crossing")
+    x0, y0, x1, y1 = line[:4]
+    for r_ in M.get("roads") or []:
+        if r_.get("change") in (None, "", "kept"):
+            continue
+        P_ = [xy1(p) for p in (r_.get("xy") or [])]
+        P_ = [p for p in P_ if p]
+        if any(msl_seg_x((x0, y0), (x1 - x0, y1 - y0), a_, (b_[0] - a_[0], b_[1] - a_[1])) for a_, b_ in zip(P_, P_[1:])):
+            return u"**{}**, {}".format(r_.get("name") or u"street", r_.get("change"))
+    return u""
+
+
+def msl_items(ix, M):
+    """v44: one note item per cut, id sb_sec_note_<cut>_mp (the booklet's note frame pattern sb_sec_note_<cut>*),
+    on the cut's page, at the size of the site board's note items of that cut (its items.json), else the note role's
+    size. Returns log lines."""
+    try:
+        with open(MSL_FILE, "r", encoding="utf-8") as fh:
+            cuts = json.load(fh).get("cuts") or {}
+    except Exception as ex:
+        ix.warn(None, "export", u"section links: no %s (%s): run the site board first" % (MSL_FILE, type(ex).__name__))
+        return [u"section links  none (no section_link_points.json)"]
+    pts = {}
+    try:
+        with open(os.path.join(bg_booklet("selinus_board"), "items.json"), "r", encoding="utf-8") as fh:
+            for its in (json.load(fh).get("pages") or {}).values():
+                for it in its:
+                    iid = str(it.get("id", ""))
+                    if it.get("kind") == "text" and iid.startswith("sb_sec_note_") and it.get("size_pt"):
+                        k_ = iid.rsplit("_n", 1)[0]       # the note body's size (the smallest; the heading is larger)
+                        pts[k_] = min(pts.get(k_, 99.0), float(it["size_pt"]))
+    except Exception:
+        pass
+    n_ = 0
+    for nm_ in sorted(cuts):
+        c_ = cuts[nm_]
+        link = msl_link(M, float(c_["xy"][0]), float(c_["xy"][1]), c_["line"])
+        if not link or not c_.get("page"):
+            continue
+        key = u"sb_sec_note_%s" % nm_.lower()
+        ix.text(c_["page"], u"Masterplan link: " + link + u".", "note", size_pt=pts.get(key), priority=5,
+                group=u"sb_sec_%s" % nm_.lower(), id=key + u"_mp")
+        n_ += 1
+    return [u"section links  %d of %d cuts (sb_sec_note_<cut>_mp)" % (n_, len(cuts))]
+
+
 def build_all(doc, warn):
     """Read, draw and write. Returns (folder, files, log lines, pages)."""
     folder = bg_booklet(OUT_FOLDER)                       # round 5 (C2, addendum): no output/ folder; items in cached/booklet/
@@ -24878,6 +24985,11 @@ def build_all(doc, warn):
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))
+    if Cs.get("A") is not None:                          # v44: the section notes' masterplan link (site board v64)
+        try:
+            lines.extend(msl_items(ix, Cs["A"].movement()))
+        except Exception as ex:
+            lines.append(u"section links  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
     try:                                                 # round 5: the one export file the booklet reads
         ix.save()
     except Exception as ex:
