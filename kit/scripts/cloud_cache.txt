@@ -1,0 +1,6 @@
+# Speed caches backed up in the cloud by the board builder (GitHub Release "bergama-cache"), so a cold PC starts warm.
+# One folder per line, under Downloads/Bergama. Every file in them is mirrored (newest set wins).
+cached/selinus_cache/
+cached/selinus_board/selinus_technical_maps/
+cached/basemap/
+cached/plants_toned/
