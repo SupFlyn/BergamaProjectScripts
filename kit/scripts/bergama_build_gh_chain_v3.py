@@ -34,7 +34,7 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
 board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain order) or "solo: <file prefix> = <name>"
 (left column only); "= <name>" is optional (else the script's GH_LABEL); "#" starts a comment.
 """
-import os, re, ast, json, time, hashlib, urllib.request, urllib.parse
+import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
 VERSION = "v3"
@@ -146,6 +146,11 @@ def download(log):
     lp = local_path(lst["path"])
     if not (os.path.isfile(lp) and blob_sha(lp) == lst["sha"]):
         fetch(lst, lp, token)
+    cc = cloud.get("scripts/" + CACHE_LIST)              # the speed-cache folder list: always taken, not a checklist line
+    if cc is not None:
+        cp = local_path(cc["path"])
+        if not (os.path.isfile(cp) and blob_sha(cp) == cc["sha"]):
+            fetch(cc, cp, token)
     need = []
     for ln in open(lp, encoding="utf-8"):
         ln = ln.split("#", 1)[0].strip().replace("\\", "/")
@@ -965,6 +970,178 @@ def run_needed(doc, me, queue, force, log, finish):
     schedule(doc, guarded(step(0)))
 
 
+# ---------------------------------------------------------------- speed caches in the cloud
+# Aras 15:45 UTC: the scripts' speed caches backed up in the cloud so a cold PC starts warm. Folders (under
+# Downloads/Bergama) listed in kit/scripts/cloud_cache.txt; stored as assets of the GitHub Release "bergama-cache"
+# (one asset per file: name = short path hash + file name, label = "<content hash>|<path under Downloads/Bergama>"). Before the build: assets missing here are
+# downloaded. At the end of the press: new or changed files uploaded, assets whose file is gone here deleted.
+CACHE_LIST = "cloud_cache.txt"
+CACHE_TAG = "bergama-cache"
+CACHE_HASHES = os.path.join(CACHE_DIR, "cache_hashes.json")
+
+
+def asset_name(rel):
+    base = re.sub(r"[^A-Za-z0-9._-]", "_", rel.split("/")[-1])[-80:]
+    return hashlib.blake2b(rel.encode("utf-8"), digest_size=5).hexdigest() + "_" + base
+
+
+def label_parts(a):
+    """(content hash, path) from an asset's label"""
+    h, _, rel = (a.get("label") or "").partition("|")
+    return h, rel
+
+
+def cache_folders():
+    p = os.path.join(SCRIPTS_DIR, CACHE_LIST)
+    out = []
+    if os.path.isfile(p):
+        for ln in open(p, encoding="utf-8"):
+            ln = ln.split("#", 1)[0].strip().replace("\\", "/").strip("/")
+            if ln:
+                out.append(ln)
+    return out
+
+
+def api(method, url, token, body=None, ctype="application/json"):
+    hdr = {"Accept": "application/vnd.github+json", "User-Agent": "bergama-board-builder"}
+    if token:
+        hdr["Authorization"] = "Bearer " + token
+    data = None
+    if body is not None:
+        data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
+        hdr["Content-Type"] = ctype
+    req = urllib.request.Request(url, data=data, headers=hdr, method=method)
+    with urllib.request.urlopen(req, timeout=600) as r:
+        raw = r.read()
+    return json.loads(raw.decode("utf-8")) if raw else None
+
+
+def cache_release(token, make):
+    base = "https://api.github.com/repos/%s/releases" % REPO
+    try:
+        return api("GET", base + "/tags/" + CACHE_TAG, token)
+    except urllib.error.HTTPError as e:
+        if e.code != 404 or not make:
+            raise
+    return api("POST", base, token, {"tag_name": CACHE_TAG, "name": "Bergama speed caches (made by the board builder)",
+                                     "body": "Machine-made: the scripts' speed caches. Do not edit by hand.",
+                                     "target_commitish": BRANCH})
+
+
+def cache_assets(rel, token):
+    out, page = {}, 1
+    while True:
+        lst = api("GET", "https://api.github.com/repos/%s/releases/%d/assets?per_page=100&page=%d"
+                  % (REPO, rel["id"], page), token)
+        for a in lst or []:
+            out[a["name"]] = a
+        if not lst or len(lst) < 100:
+            return out
+        page += 1
+
+
+def cache_local():
+    """{path under Downloads/Bergama: abs path} of every file in the listed cache folders"""
+    out = {}
+    for fo in cache_folders():
+        top = os.path.join(BASE, *fo.split("/"))
+        for root, dirs, files in os.walk(top):
+            for f in files:
+                if f.endswith(".part"):
+                    continue
+                ap = os.path.join(root, f)
+                out[os.path.relpath(ap, BASE).replace(os.sep, "/")] = ap
+    return out
+
+
+_CACHE_OK = [False]                               # cache_down saw the cloud this press: only then may cache_up delete
+
+
+def cache_down(log):
+    """assets this PC lacks -> downloaded (before anything runs)"""
+    _CACHE_OK[0] = False
+    if not cache_folders():
+        return
+    try:
+        rel = cache_release(gh_token(), False)
+    except Exception as e:
+        if getattr(e, "code", None) == 404:
+            _CACHE_OK[0] = True
+        log.append("cache: no cloud copy yet (%s)" % getattr(e, "code", e))
+        return
+    have = cache_local()
+    assets = cache_assets(rel, gh_token())
+    get = [a for a in assets.values() if label_parts(a)[1] and label_parts(a)[1] not in have
+           and label_parts(a)[1].split("/")[0] in ("cached", "output")]
+    if get:
+        from concurrent.futures import ThreadPoolExecutor
+
+        def one(a):
+            dst = os.path.join(BASE, *label_parts(a)[1].split("/"))
+            data = http(a["browser_download_url"], "application/octet-stream", None)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            with open(dst + ".part", "wb") as f:
+                f.write(data)
+            os.replace(dst + ".part", dst)
+            return len(data)
+        with ThreadPoolExecutor(8) as ex:
+            mb = sum(ex.map(one, get)) / 1e6
+        log.append("cache: %d downloaded (%.0f MB) from the cloud" % (len(get), mb))
+    else:
+        log.append("cache: nothing to download (%d files in the cloud)" % len(assets))
+    _CACHE_OK[0] = True
+
+
+def cache_up(log):
+    """new or changed cache files -> uploaded; assets whose file is gone here -> deleted"""
+    if not cache_folders():
+        return
+    token = gh_token()
+    if not token:
+        log.append("FLAG cache: no token in %s: the caches were not backed up" % SETTINGS_FILE)
+        return
+    try:
+        rel = cache_release(token, True)
+        assets = {label_parts(a)[1]: a for a in cache_assets(rel, token).values()}
+        have = cache_local()
+        try:
+            hc = json.load(open(CACHE_HASHES, encoding="utf-8"))
+        except Exception:
+            hc = {}
+        up, gone, mb = 0, 0, 0.0
+        for rp, ap in sorted(have.items()):
+            st = os.stat(ap)
+            c = hc.get(ap)
+            if c and c[0] == st.st_size and c[1] == st.st_mtime_ns:
+                h = c[2]
+            else:
+                h = _hash_file(ap)
+                hc[ap] = [st.st_size, st.st_mtime_ns, h]
+            a = assets.get(rp)
+            if a is not None and label_parts(a)[0] == h:
+                continue
+            if a is not None:
+                api("DELETE", "https://api.github.com/repos/%s/releases/assets/%d" % (REPO, a["id"]), token)
+            with open(ap, "rb") as f:
+                data = f.read()
+            api("POST", "https://uploads.github.com/repos/%s/releases/%d/assets?name=%s&label=%s"
+                % (REPO, rel["id"], urllib.parse.quote(asset_name(rp)), urllib.parse.quote(h + "|" + rp)),
+                token, data, "application/octet-stream")
+            up += 1
+            mb += len(data) / 1e6
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(CACHE_HASHES, "w", encoding="utf-8") as f:
+            json.dump(hc, f)
+        for rp, a in assets.items():
+            if rp not in have and _CACHE_OK[0]:
+                api("DELETE", "https://api.github.com/repos/%s/releases/assets/%d" % (REPO, a["id"]), token)
+                gone += 1
+        log.append("cache: %d uploaded (%.0f MB), %d removed from the cloud, %d files backed up"
+                   % (up, mb, gone, len(have)))
+    except Exception as e:
+        log.append("FLAG cache backup failed (%s): the scripts are not affected" % e)
+
+
 # ---------------------------------------------------------------- main
 _T0 = [0.0]
 
@@ -980,6 +1157,10 @@ def main(me, run_after=False, force=False):
     except Exception:
         pass
     cloud = download(log)
+    try:
+        cache_down(log)
+    except Exception as e:
+        log.append("FLAG cache download failed (%s): the scripts make their caches themselves" % e)
     order = read_order(cloud)
     if not order:
         raise RuntimeError("no %s in %s and nothing downloaded: nothing to build" % (ORDER_FILE, SCRIPTS_DIR))
@@ -1027,9 +1208,11 @@ def main(me, run_after=False, force=False):
                 if force:                             # Aras 15:25 UTC: both on = every script from the beginning
                     import scriptcontext as sc
                     sc.sticky["bergama_force_run"] = time.time()
-                run_needed(d, me, queue, force, log, lambda: (log.append("done in %.1f s" % (time.time() - t0)),
+                run_needed(d, me, queue, force, log, lambda: (cache_up(log),
+                                                              log.append("done in %.1f s" % (time.time() - t0)),
                                                               _finish(me, log)))
                 return
+            cache_up(log)
             log.append("done in %.1f s" % (time.time() - t0))
         except Exception as e:
             import traceback
