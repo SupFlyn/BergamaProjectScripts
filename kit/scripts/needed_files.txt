@@ -1,0 +1,50 @@
+# Bergama: every file the scripts need. The board builder downloads exactly these from the cloud (repo kit/)
+# to Downloads/Bergama/<same path>. A line ending in / = that whole folder. Update this list with EVERY script update.
+
+# scripts + chain order
+scripts/bergama_agriculture_alternatives_v13.py
+scripts/bergama_b19_plan_v12.py
+scripts/bergama_booklet_jpg_v2_3.py
+scripts/bergama_booklet_v35.py
+scripts/bergama_build_gh_chain_v3.py
+scripts/bergama_city_link_v12.py
+scripts/bergama_masterplan_v43.py
+scripts/bergama_plan_to_rhino_v2.py
+scripts/bergama_plant_sheet_v1_2.py
+scripts/bergama_planting_analysis_v1.py
+scripts/bergama_proposal_sections_v22.py
+scripts/bergama_shared_sync_v1.py
+scripts/bergama_trace_assets_v1_1.py
+scripts/bergama_water_balance_v13.py
+scripts/bergama_water_board_v18.py
+scripts/bergama_zone_base_v11_2.py
+scripts/board_order.txt
+scripts/selinus_board_v63_1.py
+scripts/needed_files.txt
+
+# Data
+Data/W01_cover_collage.jpg
+Data/assets_hires.json
+Data/bergama_agriculture_alternatives_data.py
+Data/bergama_b19_plan_data.py
+Data/bergama_booklet_data.py
+Data/bergama_city_link_data.py
+Data/bergama_dem_glo30.json
+Data/bergama_environment.json
+Data/bergama_landcover_worldcover2021.json
+Data/bergama_masterplan_data.py
+Data/bergama_osm.osm
+Data/bergama_palette.py
+Data/bergama_places.geojson
+Data/bergama_plan_to_rhino_data.py
+Data/bergama_proposal_sections_data.py
+Data/bergama_water_balance_data.py
+Data/bergama_water_board_data.py
+Data/bergama_zone_base_data.py
+Data/figures_A1.json
+Data/palette.json
+Data/selinus_board_data.py
+Data/assets/agaclar.svg
+Data/assets/planting_areas_seed.svg
+Data/cutouts/
+Data/heritage_photos/

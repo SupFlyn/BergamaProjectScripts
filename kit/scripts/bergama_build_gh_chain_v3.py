@@ -2,10 +2,12 @@
 """Bergama Group 6: BOARD BUILDER = build_gh_chain v3 (8 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
-  1 DOWNLOAD the latest files from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only:
-      kit/scripts/*         -> Downloads/Bergama/scripts/   (newest version of every script + board_order.txt)
-      kit/Data/**           -> Downloads/Bergama/Data/      (the Data files those scripts need)
-    only files that differ are downloaded; nothing is uploaded; local files that are not in kit/ are never touched
+  1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
+    kit/scripts/needed_files.txt (every file the scripts need, Aras 15:13 UTC), then exactly the files on it:
+      kit/scripts/<file>    -> Downloads/Bergama/scripts/<file>   (newest scripts + board_order.txt)
+      kit/Data/<path>       -> Downloads/Bergama/Data/<path>      (Data files, assets, photos ...)
+    only files that differ are downloaded; nothing is uploaded; local files not on the checklist are never touched;
+    a checklist line missing in the cloud or on this PC is a FLAG line in the log
   2 READ every script named in board_order.txt (and any other script in kit/scripts/): its inputs, optional ones
     included, and their defaults are read from the script's own code (nothing about any script is written here)
   3 BUILD on THIS canvas (the Grasshopper file open now; nothing is saved):
@@ -41,6 +43,7 @@ LOG_DIR = os.path.join(BASE, "logs")
 LOG_NAME = "bergama_build_gh_chain_log.txt"
 STATE = os.path.join(CACHE_DIR, "state.json")
 ORDER_FILE = "board_order.txt"
+NEEDED_FILE = "needed_files.txt"                  # the cloud checklist of every file the scripts need
 SELF_PREFIX = "bergama_build_gh_chain"
 SETTINGS_FILE = os.path.join(DATA_DIR, "shared_settings.txt")      # token= line used if present (repo is public)
 # layout (canvas units, measured from this builder component)
@@ -88,7 +91,19 @@ def local_path(rel):
     return None
 
 
+def fetch(it, dst, token):
+    url = "https://raw.githubusercontent.com/%s/%s/%s" % (REPO, BRANCH, "/".join(
+        urllib.parse.quote(p) for p in it["path"].split("/")))
+    data = http(url, "*/*", token)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    tmp = dst + ".part"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.replace(tmp, dst)
+
+
 def download(log):
+    """the cloud checklist kit/scripts/needed_files.txt first, then exactly the files on it"""
     token = gh_token()
     try:
         tree = json.loads(http("https://api.github.com/repos/%s/git/trees/%s?recursive=1" % (REPO, BRANCH),
@@ -96,32 +111,45 @@ def download(log):
     except Exception as e:
         log.append("FLAG no download (offline or GitHub refused: %s): the local files are used as they are" % e)
         return None
-    cloud_scripts, got, same = [], 0, 0
-    for it in tree.get("tree", []):
-        if it.get("type") != "blob":
-            continue
-        dst = local_path(it["path"])
-        if not dst:
-            continue
-        if os.path.dirname(dst) == SCRIPTS_DIR:
-            cloud_scripts.append(os.path.basename(dst))
+    cloud = {it["path"][len(KIT) + 1:]: it for it in tree.get("tree", [])
+             if it.get("type") == "blob" and it["path"].startswith(KIT + "/") and local_path(it["path"])}
+    lst = cloud.get("scripts/" + NEEDED_FILE)
+    if lst is None:
+        log.append("FLAG no %s in the cloud: nothing downloaded" % NEEDED_FILE)
+        return None
+    lp = local_path(lst["path"])
+    if not (os.path.isfile(lp) and blob_sha(lp) == lst["sha"]):
+        fetch(lst, lp, token)
+    need = []
+    for ln in open(lp, encoding="utf-8"):
+        ln = ln.split("#", 1)[0].strip().replace("\\", "/")
+        if ln:
+            need.append(ln)
+    got, same, missing, todo = 0, 0, [], {}
+    for n in need:
+        hits = [r for r in cloud if (r.startswith(n) if n.endswith("/") else r == n)]
+        if not hits:
+            missing.append(n)
+        for r in hits:
+            todo[r] = cloud[r]
+    for r in sorted(todo):
+        it, dst = todo[r], local_path(todo[r]["path"])
         if os.path.isfile(dst) and blob_sha(dst) == it["sha"]:
             same += 1
             continue
-        url = "https://raw.githubusercontent.com/%s/%s/%s" % (REPO, BRANCH, "/".join(
-            urllib.parse.quote(p) for p in it["path"].split("/")))
-        data = http(url, "*/*", token)
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        tmp = dst + ".part"
-        with open(tmp, "wb") as f:
-            f.write(data)
-        os.replace(tmp, dst)
+        fetch(it, dst, token)
         got += 1
-        log.append("  downloaded " + os.path.relpath(dst, BASE))
+        log.append("  downloaded " + r)
+    for n in missing:
+        log.append("FLAG on the checklist but not in the cloud: " + n)
+    for n in need:
+        if not n.endswith("/") and not os.path.isfile(os.path.join(BASE, *n.split("/"))):
+            log.append("FLAG still missing on this PC: " + n)
     if tree.get("truncated"):
         log.append("FLAG GitHub cut the file list short: some files may be missing")
-    log.append("download: %d new or changed, %d already current" % (got, same))
-    return cloud_scripts
+    log.append("download (checklist %s, %d lines): %d new or changed, %d already current"
+               % (NEEDED_FILE, len(need), got, same))
+    return [r.split("/", 1)[1] for r in todo if r.startswith("scripts/")]
 
 
 # ---------------------------------------------------------------- 2 read the scripts

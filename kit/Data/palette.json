@@ -1,0 +1,5996 @@
+{
+ "name": "Group 6 Bergama shared palette",
+ "version": "1.4",
+ "date": "2026-10-18",
+ "default_t": 0.5,
+ "made_by": "palette/make_palette.py",
+ "sources": {
+  "board": {
+   "file": "scripts/selinus_board_v20.py",
+   "same_values_in": "scripts/selinus_board_v19.py",
+   "constants": {
+    "BG": {
+     "hex": "E6E0C8",
+     "line": 697
+    },
+    "BLUE_D": {
+     "hex": "5E8494",
+     "line": 704
+    },
+    "BLUE_L": {
+     "hex": "B4CBD2",
+     "line": 705
+    },
+    "CAT.agri": {
+     "hex": "BDB57A",
+     "line": 718
+    },
+    "CAT.commercial": {
+     "hex": "BC6F45",
+     "line": 712
+    },
+    "CAT.green": {
+     "hex": "8F9A68",
+     "line": 717
+    },
+    "CAT.industrial": {
+     "hex": "6F6A62",
+     "line": 715
+    },
+    "CAT.institutional": {
+     "hex": "8C7088",
+     "line": 713
+    },
+    "CAT.mixed": {
+     "hex": "CC9A52",
+     "line": 711
+    },
+    "CAT.religious": {
+     "hex": "8A4650",
+     "line": 714
+    },
+    "CAT.residential": {
+     "hex": "D6C08F",
+     "line": 710
+    },
+    "CAT.transport": {
+     "hex": "B9B2A1",
+     "line": 716
+    },
+    "CAT.vacant": {
+     "hex": "D9D2BE",
+     "line": 719
+    },
+    "CAT.water": {
+     "hex": "7FA4B3",
+     "line": 720
+    },
+    "FAINT": {
+     "hex": "DCD5C2",
+     "line": 703
+    },
+    "GREEN_SUB.grass": {
+     "hex": "ABB287",
+     "line": 723
+    },
+    "GREEN_SUB.park": {
+     "hex": "8F9A68",
+     "line": 723
+    },
+    "GREEN_SUB.wood": {
+     "hex": "74804F",
+     "line": 723
+    },
+    "INK": {
+     "hex": "4A3F35",
+     "line": 701
+    },
+    "INK2": {
+     "hex": "7A6E60",
+     "line": 702
+    },
+    "INTENSITY.0": {
+     "hex": "E8DDBF",
+     "line": 726
+    },
+    "INTENSITY.1": {
+     "hex": "D6C08F",
+     "line": 726
+    },
+    "INTENSITY.2": {
+     "hex": "BC6F45",
+     "line": 726
+    },
+    "INTENSITY.3": {
+     "hex": "7A3E3A",
+     "line": 726
+    },
+    "KHAKI": {
+     "hex": "BCB794",
+     "line": 698
+    },
+    "PAPER": {
+     "hex": "F1EDDF",
+     "line": 699
+    },
+    "ROADC": {
+     "hex": "FAF8F1",
+     "line": 700
+    },
+    "ROAD_FILL": {
+     "hex": "CFCCC5",
+     "line": 3064
+    },
+    "STUDY_INK": {
+     "hex": "141414",
+     "line": 764
+    },
+    "TREE_COLS.olive": {
+     "hex": "8E9A6C",
+     "line": 724
+    },
+    "TREE_COLS.orchard": {
+     "hex": "98A271",
+     "line": 724
+    },
+    "TREE_COLS.pine": {
+     "hex": "5F6B43",
+     "line": 724
+    },
+    "TREE_COLS.tree": {
+     "hex": "7E8A57",
+     "line": 724
+    },
+    "TREE_SHADOW": {
+     "hex": "57603D",
+     "line": 725
+    }
+   },
+   "study_casing": {
+    "width_ratio": 1.9,
+    "line": 6454
+   }
+  },
+  "images": {
+   "card": "library/examples/palettes/README.md",
+   "A": {
+    "name": "palette image A (riverfront steps render)",
+    "hex": [
+     "3C4733",
+     "89986A",
+     "8B2D2D",
+     "A4A1A3",
+     "CFDBE4"
+    ],
+    "glosses": [
+     "dark green",
+     "sage",
+     "brick red",
+     "warm grey",
+     "pale sky blue"
+    ]
+   },
+   "B": {
+    "name": "palette image B (arched hall illustration, @archt.huma)",
+    "hex": [
+     "70754C",
+     "4C2528",
+     "5C7A86",
+     "A2B6B5",
+     "8E8F8A"
+    ],
+    "glosses": [
+     "olive",
+     "oxblood",
+     "slate blue",
+     "pale grey-teal",
+     "neutral grey"
+    ]
+   }
+  },
+  "ramp": "library/references/urban_diagram_references/README.md section 8 (REF2_RAMPS and context)"
+ },
+ "method": {
+  "space": "OKLab (Ottosson 2020); straight-line mix, t = 0 board, t = 1 image colour; out-of-gamut colours lose chroma at constant lightness and hue",
+  "pairing": "same family, same lightness rank inside the family; board neutrals with the grey of the same lightness; ink, road and street kept",
+  "ramp_rule": {
+   "lit_L": 0.889,
+   "lit_C": 1.247,
+   "shade_L": 0.628,
+   "shade_C": 0.765,
+   "outline_L": 0.719,
+   "outline_C": 1.3,
+   "note": "mean OKLCH ratios to the roof of the four uses in diagram reference 2; outline chroma x1.3 is a design choice (the reference's keys: x1.6-4.8)"
+  },
+  "context_ratios": {
+   "lit": 0.884,
+   "shade": 0.808,
+   "outline": 0.668
+  },
+  "checks": "CIEDE2000; Machado, Oliveira and Fernandes (2009) dichromacy matrices at severity 1 in linear sRGB; WCAG 2 contrast ratio; working target 10 between topic colours (ours)",
+  "implementation": {
+   "ciede2000_sharma_2005": [
+    {
+     "pair": 1,
+     "published": 2.0425,
+     "computed": 2.0425
+    },
+    {
+     "pair": 7,
+     "published": 2.3669,
+     "computed": 2.3669
+    },
+    {
+     "pair": 17,
+     "published": 27.1492,
+     "computed": 27.1492
+    },
+    {
+     "pair": 34,
+     "published": 0.9082,
+     "computed": 0.9082
+    }
+   ],
+   "ciede2000_pass": true,
+   "oklab_vs_colour_science_max_diff": 0.00011,
+   "module_reproduces_values": true
+  }
+ },
+ "pairs": [
+  {
+   "role": "ground",
+   "board": "BG",
+   "board_hex": "E6E0C8",
+   "partner": "grey of the same lightness",
+   "partner_hex": "DFDFDF",
+   "dE00_board_partner": 10.0,
+   "use": "sheet behind the drawing: the board's 60 % colour"
+  },
+  {
+   "role": "paper",
+   "board": "PAPER",
+   "board_hex": "F1EDDF",
+   "partner": "grey of the same lightness",
+   "partner_hex": "EDEDED",
+   "dE00_board_partner": 6.4,
+   "use": "unbuilt ground inside the drawing (board 'void')"
+  },
+  {
+   "role": "faint",
+   "board": "FAINT",
+   "board_hex": "DCD5C2",
+   "partner": "grey of the same lightness",
+   "partner_hex": "D5D5D5",
+   "dE00_board_partner": 8.4,
+   "use": "faint lines and hatches; shade faces of the quiet context"
+  },
+  {
+   "role": "structure",
+   "board": "KHAKI",
+   "board_hex": "BCB794",
+   "partner": "image A #4 warm grey",
+   "partner_hex": "A4A1A3",
+   "dE00_board_partner": 16.7,
+   "use": "the board's 30 % colour: context faces, secondary streets"
+  },
+  {
+   "role": "ink2",
+   "board": "INK2",
+   "board_hex": "7A6E60",
+   "partner": "image B #5 neutral grey",
+   "partner_hex": "8E8F8A",
+   "dE00_board_partner": 13.8,
+   "use": "secondary text; main roads in D3"
+  },
+  {
+   "role": "green_deep",
+   "board": "TREE_SHADOW",
+   "board_hex": "57603D",
+   "partner": "image A #1 dark green",
+   "partner_hex": "3C4733",
+   "dE00_board_partner": 9.8,
+   "use": "trees and dense planting"
+  },
+  {
+   "role": "green_mid",
+   "board": "GREEN_SUB.wood",
+   "board_hex": "74804F",
+   "partner": "image B #1 olive",
+   "partner_hex": "70754C",
+   "dE00_board_partner": 4.6,
+   "use": "woodland"
+  },
+  {
+   "role": "green_light",
+   "board": "CAT.green",
+   "board_hex": "8F9A68",
+   "partner": "image A #2 sage",
+   "partner_hex": "89986A",
+   "dE00_board_partner": 1.9,
+   "use": "parks and green open ground"
+  },
+  {
+   "role": "water_deep",
+   "board": "BLUE_D",
+   "board_hex": "5E8494",
+   "partner": "image B #3 slate blue",
+   "partner_hex": "5C7A86",
+   "dE00_board_partner": 4.1,
+   "use": "channel walls and water lines"
+  },
+  {
+   "role": "water",
+   "board": "CAT.water",
+   "board_hex": "7FA4B3",
+   "partner": "image B #4 pale grey-teal",
+   "partner_hex": "A2B6B5",
+   "dE00_board_partner": 9.4,
+   "use": "water surface"
+  },
+  {
+   "role": "water_light",
+   "board": "BLUE_L",
+   "board_hex": "B4CBD2",
+   "partner": "image A #5 pale sky blue",
+   "partner_hex": "CFDBE4",
+   "dE00_board_partner": 6.3,
+   "use": "still water and wet ground"
+  },
+  {
+   "role": "accent",
+   "board": "CAT.religious",
+   "board_hex": "8A4650",
+   "partner": "image A #3 brick red",
+   "partner_hex": "8B2D2D",
+   "dE00_board_partner": 9.6,
+   "use": "the one warm accent: sacred and heritage; walking routes in D3"
+  },
+  {
+   "role": "accent_deep",
+   "board": "INTENSITY.3",
+   "board_hex": "7A3E3A",
+   "partner": "image B #2 oxblood",
+   "partner_hex": "4C2528",
+   "dE00_board_partner": 11.6,
+   "use": "darkest accent step: top of the height ramp"
+  }
+ ],
+ "variants": {
+  "0.00": {
+   "ground": "E6E0C8",
+   "paper": "F1EDDF",
+   "faint": "DCD5C2",
+   "structure": "BCB794",
+   "ink2": "7A6E60",
+   "green_deep": "57603D",
+   "green_mid": "74804F",
+   "green_light": "8F9A68",
+   "water_deep": "5E8494",
+   "water": "7FA4B3",
+   "water_light": "B4CBD2",
+   "accent": "8A4650",
+   "accent_deep": "7A3E3A",
+   "ink": "4A3F35",
+   "road": "FAF8F1",
+   "street": "CFCCC5"
+  },
+  "0.25": {
+   "ground": "E4E0CE",
+   "paper": "F0EDE3",
+   "faint": "DAD5C7",
+   "structure": "B6B298",
+   "ink2": "7F766A",
+   "green_deep": "505A3B",
+   "green_mid": "737D4E",
+   "green_light": "8E9A69",
+   "water_deep": "5E8190",
+   "water": "88A9B4",
+   "water_light": "BBCFD6",
+   "accent": "8A4048",
+   "accent_deep": "6E3835",
+   "ink": "4A3F35",
+   "road": "FAF8F1",
+   "street": "CFCCC5"
+  },
+  "0.50": {
+   "ground": "E2E0D4",
+   "paper": "EFEDE6",
+   "faint": "D8D5CC",
+   "structure": "B0AC9C",
+   "ink2": "847E75",
+   "green_deep": "495338",
+   "green_mid": "727A4E",
+   "green_light": "8C9969",
+   "water_deep": "5D7F8D",
+   "water": "91ADB4",
+   "water_light": "C1D3DB",
+   "accent": "8B3A3F",
+   "accent_deep": "633131",
+   "ink": "4A3F35",
+   "road": "FAF8F1",
+   "street": "CFCCC5"
+  },
+  "0.75": {
+   "ground": "E1DFD9",
+   "paper": "EEEDEA",
+   "faint": "D7D5D0",
+   "structure": "AAA7A0",
+   "ink2": "89877F",
+   "green_deep": "434D36",
+   "green_mid": "71784D",
+   "green_light": "8B996A",
+   "water_deep": "5D7C89",
+   "water": "99B2B5",
+   "water_light": "C8D7DF",
+   "accent": "8B3436",
+   "accent_deep": "572B2C",
+   "ink": "4A3F35",
+   "road": "FAF8F1",
+   "street": "CFCCC5"
+  },
+  "1.00": {
+   "ground": "DFDFDF",
+   "paper": "EDEDED",
+   "faint": "D5D5D5",
+   "structure": "A4A1A3",
+   "ink2": "8E8F8A",
+   "green_deep": "3C4733",
+   "green_mid": "70754C",
+   "green_light": "89986A",
+   "water_deep": "5C7A86",
+   "water": "A2B6B5",
+   "water_light": "CFDBE4",
+   "accent": "8B2D2D",
+   "accent_deep": "4C2528",
+   "ink": "4A3F35",
+   "road": "FAF8F1",
+   "street": "CFCCC5"
+  }
+ },
+ "variant_context": {
+  "0.00": {
+   "sheet": "E6E0C8",
+   "ground": "F1EDDF",
+   "street": "CFCCC5",
+   "lane": "FAF8F1",
+   "water": "7FA4B3",
+   "water_edge": "5E8494",
+   "tree": "BFC3A3",
+   "building_roof": "FAF8F1",
+   "building_lit": "D9D4B0",
+   "building_shade": "C1BC99",
+   "building_outline": "969270",
+   "ghost_roof": "FAF8F1",
+   "ghost_lit": "F1EDDF",
+   "ghost_shade": "DCD5C2",
+   "ghost_outline": "969270"
+  },
+  "0.25": {
+   "sheet": "E4E0CE",
+   "ground": "F0EDE3",
+   "street": "CFCCC5",
+   "lane": "FAF8F1",
+   "water": "88A9B4",
+   "water_edge": "5E8190",
+   "tree": "BEC3A5",
+   "building_roof": "FAF8F1",
+   "building_lit": "D8D4B9",
+   "building_shade": "C0BCA2",
+   "building_outline": "959178",
+   "ghost_roof": "FAF8F1",
+   "ghost_lit": "F0EDE3",
+   "ghost_shade": "DAD5C7",
+   "ghost_outline": "959178"
+  },
+  "0.50": {
+   "sheet": "E2E0D4",
+   "ground": "EFEDE6",
+   "street": "CFCCC5",
+   "lane": "FAF8F1",
+   "water": "91ADB4",
+   "water_edge": "5D7F8D",
+   "tree": "BCC2A6",
+   "building_roof": "FAF8F1",
+   "building_lit": "D7D3C2",
+   "building_shade": "BFBBAB",
+   "building_outline": "949081",
+   "ghost_roof": "FAF8F1",
+   "ghost_lit": "EFEDE6",
+   "ghost_shade": "D8D5CC",
+   "ghost_outline": "949081"
+  },
+  "0.75": {
+   "sheet": "E1DFD9",
+   "ground": "EEEDEA",
+   "street": "CFCCC5",
+   "lane": "FAF8F1",
+   "water": "99B2B5",
+   "water_edge": "5D7C89",
+   "tree": "BBC2A9",
+   "building_roof": "FAF8F1",
+   "building_lit": "D5D2CB",
+   "building_shade": "BEBAB3",
+   "building_outline": "939089",
+   "ghost_roof": "FAF8F1",
+   "ghost_lit": "EEEDEA",
+   "ghost_shade": "D7D5D0",
+   "ghost_outline": "939089"
+  },
+  "1.00": {
+   "sheet": "DFDFDF",
+   "ground": "EDEDED",
+   "street": "CFCCC5",
+   "lane": "FAF8F1",
+   "water": "A2B6B5",
+   "water_edge": "5C7A86",
+   "tree": "BAC2AA",
+   "building_roof": "FAF8F1",
+   "building_lit": "D5D1D4",
+   "building_shade": "BDBABC",
+   "building_outline": "928F91",
+   "ghost_roof": "FAF8F1",
+   "ghost_lit": "EDEDED",
+   "ghost_shade": "D5D5D5",
+   "ghost_outline": "928F91"
+  }
+ },
+ "core": {
+  "ground": "E2E0D4",
+  "paper": "EFEDE6",
+  "faint": "D8D5CC",
+  "structure": "B0AC9C",
+  "ink2": "847E75",
+  "green_deep": "495338",
+  "green_mid": "727A4E",
+  "green_light": "8C9969",
+  "water_deep": "5D7F8D",
+  "water": "91ADB4",
+  "water_light": "C1D3DB",
+  "accent": "8B3A3F",
+  "accent_deep": "633131",
+  "ink": "4A3F35",
+  "road": "FAF8F1",
+  "street": "CFCCC5"
+ },
+ "core_roles": {
+  "ground": "sheet behind the drawing: the board's 60 % colour",
+  "paper": "unbuilt ground inside the drawing (board 'void')",
+  "faint": "faint lines and hatches; shade faces of the quiet context",
+  "structure": "the board's 30 % colour: context faces, secondary streets",
+  "ink2": "secondary text; main roads in D3",
+  "green_deep": "trees and dense planting",
+  "green_mid": "woodland",
+  "green_light": "parks and green open ground",
+  "water_deep": "channel walls and water lines",
+  "water": "water surface",
+  "water_light": "still water and wet ground",
+  "accent": "the one warm accent: sacred and heritage; walking routes in D3",
+  "accent_deep": "darkest accent step: top of the height ramp",
+  "ink": "text and lines",
+  "road": "lightest void: context roofs, lanes in D3 and D4",
+  "street": "street surface on the board plans (v16.7 solid street colour)"
+ },
+ "land_use": [
+  {
+   "key": "residential",
+   "label": "Residential fabric",
+   "hex": "D6C08F",
+   "board_hex": "D6C08F",
+   "changed_to": null
+  },
+  {
+   "key": "mixed",
+   "label": "Mixed use · shop below, home above",
+   "hex": "CC9A52",
+   "board_hex": "CC9A52",
+   "changed_to": null
+  },
+  {
+   "key": "commercial",
+   "label": "Commerce · the market floor",
+   "hex": "BC6F45",
+   "board_hex": "BC6F45",
+   "changed_to": null
+  },
+  {
+   "key": "institutional",
+   "label": "Civic & institutional",
+   "hex": "8C7088",
+   "board_hex": "8C7088",
+   "changed_to": null
+  },
+  {
+   "key": "religious",
+   "label": "Sacred & heritage",
+   "hex": "8B3A3F",
+   "board_hex": "8A4650",
+   "changed_to": "accent"
+  },
+  {
+   "key": "industrial",
+   "label": "Workshops & industry",
+   "hex": "6F6A62",
+   "board_hex": "6F6A62",
+   "changed_to": null
+  },
+  {
+   "key": "transport",
+   "label": "Movement & infrastructure",
+   "hex": "B9B2A1",
+   "board_hex": "B9B2A1",
+   "changed_to": null
+  },
+  {
+   "key": "green",
+   "label": "Green & open ground",
+   "hex": "8C9969",
+   "board_hex": "8F9A68",
+   "changed_to": "green_light"
+  },
+  {
+   "key": "agri",
+   "label": "Agricultural ground · fields and orchards",
+   "hex": "BDB57A",
+   "board_hex": "BDB57A",
+   "changed_to": null
+  },
+  {
+   "key": "vacant",
+   "label": "Vacant · in transition",
+   "hex": "D9D2BE",
+   "board_hex": "D9D2BE",
+   "changed_to": null
+  },
+  {
+   "key": "water",
+   "label": "Water · the Selinus",
+   "hex": "91ADB4",
+   "board_hex": "7FA4B3",
+   "changed_to": "water"
+  },
+  {
+   "key": "void",
+   "label": "Unbuilt ground",
+   "hex": "EFEDE6",
+   "board_hex": "F1EDDF",
+   "changed_to": "paper"
+  }
+ ],
+ "context_3d": {
+  "sheet": "E2E0D4",
+  "ground": "EFEDE6",
+  "street": "CFCCC5",
+  "lane": "FAF8F1",
+  "water": "91ADB4",
+  "water_edge": "5D7F8D",
+  "tree": "BCC2A6",
+  "building_roof": "FAF8F1",
+  "building_lit": "D7D3C2",
+  "building_shade": "BFBBAB",
+  "building_outline": "949081",
+  "ghost_roof": "FAF8F1",
+  "ghost_lit": "EFEDE6",
+  "ghost_shade": "D8D5CC",
+  "ghost_outline": "949081"
+ },
+ "schemes": [
+  {
+   "id": "D1",
+   "title": "What stands: building use and height",
+   "context": "building",
+   "harmony": "Analogous: the board's land-use family on one warm arc, plum to ochre",
+   "contrast": "Contrast of hue on one warm arc; light-dark from the 3D faces",
+   "why": "The boards already teach this legend, so D1 reads at a glance beside them.",
+   "note": "Uses are read from the roofs; walls are tone steps of the roof's own hue. For dichromats a mixed roof and a residential lit wall are only 3.3 apart, so name uses on roofs, not walls.",
+   "topics": [
+    {
+     "key": "residential",
+     "label": "Residential fabric",
+     "hex": "D6C08F",
+     "from": "board",
+     "kind": "building"
+    },
+    {
+     "key": "mixed",
+     "label": "Mixed use · shop below, home above",
+     "hex": "CC9A52",
+     "from": "board",
+     "kind": "building"
+    },
+    {
+     "key": "commercial",
+     "label": "Commerce · the market floor",
+     "hex": "BC6F45",
+     "from": "board",
+     "kind": "building"
+    },
+    {
+     "key": "institutional",
+     "label": "Civic & institutional",
+     "hex": "8C7088",
+     "from": "board",
+     "kind": "building"
+    },
+    {
+     "key": "religious",
+     "label": "Sacred & heritage",
+     "hex": "8B3A3F",
+     "from": "middle ground (board religious)",
+     "kind": "building"
+    },
+    {
+     "key": "industrial",
+     "label": "Workshops & industry",
+     "hex": "6F6A62",
+     "from": "board",
+     "kind": "building"
+    }
+   ],
+   "ramp": {
+    "label": "Height on a plan, low to high: the board's INTENSITY path, evenly re-spaced (class breaks still to be set from the survey's floor counts)",
+    "hex": [
+     "E8DDBF",
+     "D1AE7E",
+     "C0794E",
+     "93523D",
+     "633131"
+    ]
+   },
+   "experiment": null,
+   "checks": {
+    "labels": {
+     "residential": [
+      "ink",
+      5.744
+     ],
+     "mixed": [
+      "ink",
+      4.0473
+     ],
+     "commercial": [
+      "white",
+      3.8196
+     ],
+     "institutional": [
+      "white",
+      4.3857
+     ],
+     "religious": [
+      "white",
+      7.5681
+     ],
+     "industrial": [
+      "white",
+      5.3655
+     ]
+    },
+    "topics": {
+     "normal": [
+      12.4823,
+      "residential",
+      "mixed"
+     ],
+     "protan": [
+      11.5726,
+      "religious",
+      "industrial"
+     ],
+     "deutan": [
+      10.1372,
+      "residential",
+      "mixed"
+     ],
+     "tritan": [
+      10.7853,
+      "institutional",
+      "industrial"
+     ]
+    },
+    "vs_ground": {
+     "normal": [
+      14.1562,
+      "residential",
+      "street"
+     ],
+     "protan": [
+      14.3367,
+      "residential",
+      "sheet"
+     ],
+     "deutan": [
+      14.0342,
+      "residential",
+      "sheet"
+     ],
+     "tritan": [
+      12.5247,
+      "residential",
+      "street"
+     ]
+    },
+    "vs_faces": {
+     "normal": [
+      10.9822,
+      "residential",
+      "context shade"
+     ],
+     "protan": [
+      10.4493,
+      "residential",
+      "context shade"
+     ],
+     "deutan": [
+      11.014,
+      "residential",
+      "context shade"
+     ],
+     "tritan": [
+      10.2704,
+      "residential",
+      "context shade"
+     ]
+    },
+    "faces_within": {
+     "residential": 8.4514,
+     "mixed": 9.6936,
+     "commercial": 9.7911,
+     "institutional": 7.7655,
+     "religious": 6.0793,
+     "industrial": 6.2726
+    },
+    "roofs_vs_faces": {
+     "normal": [
+      6.8179,
+      "mixed roof",
+      "residential lit"
+     ],
+     "protan": [
+      3.3582,
+      "mixed roof",
+      "residential lit"
+     ],
+     "deutan": [
+      3.2571,
+      "mixed roof",
+      "residential lit"
+     ],
+     "tritan": [
+      3.9093,
+      "commercial roof",
+      "mixed lit"
+     ]
+    },
+    "ramp_monotonic": true,
+    "ramp_steps": [
+     13.8504,
+     17.1651,
+     16.6803,
+     15.0164
+    ],
+    "ramp_steps_cvd": [
+     11.9972,
+     12.0029,
+     15.1529,
+     12.7799
+    ],
+    "board_ramp_steps": [
+     8.9464,
+     26.1548,
+     28.4673
+    ],
+    "vs_context_colour_only": {
+     "normal": [
+      10.9822,
+      "residential",
+      "context shade"
+     ],
+     "protan": [
+      10.4493,
+      "residential",
+      "context shade"
+     ],
+     "deutan": [
+      11.014,
+      "residential",
+      "context shade"
+     ],
+     "tritan": [
+      10.2704,
+      "residential",
+      "context shade"
+     ]
+    },
+    "edge_carried": {},
+    "templates": [
+     "V",
+     "L mirrored",
+     "Y",
+     "T",
+     "X"
+    ],
+    "template_hues": [
+     41.4085,
+     35.4098,
+     21.1765,
+     308.5714,
+     356.2963
+    ],
+    "template_greys": 1,
+    "template_label": "V + N",
+    "topics_encoded": {
+     "normal": 12.4823,
+     "protan": 11.8313,
+     "deutan": 10.349,
+     "tritan": 10.2115
+    },
+    "red_green_same_lightness": []
+   }
+  },
+  {
+   "id": "D2",
+   "title": "Heritage and landmarks",
+   "context": "building",
+   "harmony": "Monochromatic: oxblood in four lightness steps",
+   "contrast": "Light-dark contrast only; one hue makes heritage read as one theme",
+   "why": "All else stays neutral, so the layers of the old town read as one family.",
+   "note": "The zone tint is 1.3 from street grey for red-green dichromats, so the zone always carries its dashed oxblood edge. Monument roofs and sacred walls are 4.0 apart: name the monuments.",
+   "topics": [
+    {
+     "key": "monument",
+     "label": "Ancient monuments, ruins, bridges",
+     "hex": "4C2528",
+     "from": "image B #2 as printed",
+     "kind": "building"
+    },
+    {
+     "key": "sacred",
+     "label": "Mosques, churches, tombs",
+     "hex": "8B3A3F",
+     "from": "middle ground accent",
+     "kind": "building"
+    },
+    {
+     "key": "historic",
+     "label": "Registered historic buildings",
+     "hex": "AF7474",
+     "from": "OKLCH 0.62 / 0.075 at the accent hue",
+     "kind": "building"
+    },
+    {
+     "key": "zone",
+     "label": "Heritage zone: tint + dashed edge",
+     "hex": "E4CAC9",
+     "from": "OKLCH 0.86 / 0.030 at the accent hue",
+     "kind": "ground"
+    }
+   ],
+   "ramp": null,
+   "experiment": null,
+   "checks": {
+    "labels": {
+     "monument": [
+      "white",
+      13.104
+     ],
+     "sacred": [
+      "white",
+      7.5681
+     ],
+     "historic": [
+      "white",
+      3.7681
+     ],
+     "zone": [
+      "ink",
+      6.6179
+     ]
+    },
+    "topics": {
+     "normal": [
+      14.3358,
+      "monument",
+      "sacred"
+     ],
+     "protan": [
+      10.4115,
+      "monument",
+      "sacred"
+     ],
+     "deutan": [
+      14.3936,
+      "monument",
+      "sacred"
+     ],
+     "tritan": [
+      14.6021,
+      "monument",
+      "sacred"
+     ]
+    },
+    "vs_ground": {
+     "normal": [
+      11.2006,
+      "zone",
+      "street"
+     ],
+     "protan": [
+      1.466,
+      "zone",
+      "street"
+     ],
+     "deutan": [
+      1.2668,
+      "zone",
+      "street"
+     ],
+     "tritan": [
+      10.6003,
+      "zone",
+      "street"
+     ]
+    },
+    "vs_faces": {
+     "normal": [
+      28.8747,
+      "historic",
+      "context shade"
+     ],
+     "protan": [
+      19.5267,
+      "historic",
+      "context shade"
+     ],
+     "deutan": [
+      15.7948,
+      "historic",
+      "context shade"
+     ],
+     "tritan": [
+      24.8076,
+      "historic",
+      "context shade"
+     ]
+    },
+    "faces_within": {
+     "monument": 4.0771,
+     "sacred": 6.0793,
+     "historic": 8.8816
+    },
+    "roofs_vs_faces": {
+     "normal": [
+      5.5418,
+      "monument roof",
+      "sacred shade"
+     ],
+     "protan": [
+      3.9897,
+      "monument roof",
+      "sacred shade"
+     ],
+     "deutan": [
+      4.2952,
+      "monument roof",
+      "sacred shade"
+     ],
+     "tritan": [
+      5.6235,
+      "monument roof",
+      "sacred shade"
+     ]
+    },
+    "vs_context_colour_only": {
+     "normal": [
+      28.8747,
+      "historic",
+      "context shade"
+     ],
+     "protan": [
+      18.1163,
+      "historic",
+      "water"
+     ],
+     "deutan": [
+      15.7948,
+      "historic",
+      "context shade"
+     ],
+     "tritan": [
+      24.8076,
+      "historic",
+      "context shade"
+     ]
+    },
+    "edge_carried": {
+     "zone": {
+      "normal": [
+       11.2006,
+       "zone",
+       "street"
+      ],
+      "protan": [
+       1.466,
+       "zone",
+       "street"
+      ],
+      "deutan": [
+       1.2668,
+       "zone",
+       "street"
+      ],
+      "tritan": [
+       10.6003,
+       "zone",
+       "street"
+      ]
+     }
+    },
+    "templates": [
+     "i",
+     "I",
+     "V",
+     "L",
+     "L mirrored",
+     "Y",
+     "T",
+     "X"
+    ],
+    "template_hues": [
+     355.3846,
+     356.2963,
+     0.0
+    ],
+    "template_greys": 1,
+    "template_label": "i + N",
+    "topics_encoded": {
+     "normal": 14.3358,
+     "protan": 8.5931,
+     "deutan": 11.7053,
+     "tritan": 15.912
+    },
+    "red_green_same_lightness": []
+   }
+  },
+  {
+   "id": "D3",
+   "title": "Movement",
+   "context": "ghost",
+   "harmony": "Greys with one hue: an achromatic hierarchy and one accent",
+   "contrast": "Contrast of saturation: grey streets, one warm accent for walking",
+   "why": "Width and grey value rank the network; the accent carries the walking routes along the water.",
+   "note": "Lanes are the lightest void by design; edge lines carry them, as on the boards.",
+   "topics": [
+    {
+     "key": "main",
+     "label": "Main roads",
+     "hex": "847E75",
+     "from": "middle ground ink2",
+     "kind": "ground"
+    },
+    {
+     "key": "secondary",
+     "label": "Secondary streets",
+     "hex": "B0AC9C",
+     "from": "middle ground structure",
+     "kind": "ground"
+    },
+    {
+     "key": "lane",
+     "label": "Lanes and local streets",
+     "hex": "FAF8F1",
+     "from": "board lightest void",
+     "kind": "ground"
+    },
+    {
+     "key": "pedestrian",
+     "label": "Walking routes (dashed)",
+     "hex": "8B3A3F",
+     "from": "middle ground accent",
+     "kind": "line"
+    },
+    {
+     "key": "crossing",
+     "label": "Bridges and crossings (nodes)",
+     "hex": "4C2528",
+     "from": "image B #2 as printed",
+     "kind": "node"
+    }
+   ],
+   "ramp": null,
+   "experiment": null,
+   "checks": {
+    "labels": {
+     "main": [
+      "white",
+      4.0212
+     ],
+     "secondary": [
+      "ink",
+      4.4932
+     ],
+     "lane": [
+      "ink",
+      9.6232
+     ],
+     "pedestrian": [
+      "white",
+      7.5681
+     ],
+     "crossing": [
+      "white",
+      13.104
+     ]
+    },
+    "topics": {
+     "normal": [
+      14.3358,
+      "pedestrian",
+      "crossing"
+     ],
+     "protan": [
+      10.4115,
+      "pedestrian",
+      "crossing"
+     ],
+     "deutan": [
+      14.3936,
+      "pedestrian",
+      "crossing"
+     ],
+     "tritan": [
+      14.6021,
+      "pedestrian",
+      "crossing"
+     ]
+    },
+    "vs_ground": {
+     "normal": [
+      2.2786,
+      "lane",
+      "ground"
+     ],
+     "protan": [
+      2.2786,
+      "lane",
+      "ground"
+     ],
+     "deutan": [
+      2.2786,
+      "lane",
+      "ground"
+     ],
+     "tritan": [
+      2.2779,
+      "lane",
+      "ground"
+     ]
+    },
+    "vs_faces": {
+     "normal": [
+      49.8202,
+      "pedestrian",
+      "context shade"
+     ],
+     "protan": [
+      48.364,
+      "pedestrian",
+      "context shade"
+     ],
+     "deutan": [
+      41.3694,
+      "pedestrian",
+      "context shade"
+     ],
+     "tritan": [
+      48.6537,
+      "pedestrian",
+      "context shade"
+     ]
+    },
+    "vs_context_colour_only": {
+     "normal": [
+      13.1819,
+      "secondary",
+      "sheet"
+     ],
+     "protan": [
+      12.4614,
+      "secondary",
+      "water"
+     ],
+     "deutan": [
+      13.1666,
+      "secondary",
+      "sheet"
+     ],
+     "tritan": [
+      13.2779,
+      "secondary",
+      "sheet"
+     ]
+    },
+    "edge_carried": {
+     "lane": {
+      "normal": [
+       2.2786,
+       "lane",
+       "ground"
+      ],
+      "protan": [
+       2.2786,
+       "lane",
+       "ground"
+      ],
+      "deutan": [
+       2.2786,
+       "lane",
+       "ground"
+      ],
+      "tritan": [
+       2.2779,
+       "lane",
+       "ground"
+      ]
+     }
+    },
+    "templates": [
+     "i",
+     "I",
+     "V",
+     "L",
+     "L mirrored",
+     "Y",
+     "T",
+     "X"
+    ],
+    "template_hues": [
+     356.2963,
+     355.3846
+    ],
+    "template_greys": 3,
+    "template_label": "i + N",
+    "topics_encoded": {
+     "normal": 14.3358,
+     "protan": 8.5931,
+     "deutan": 11.7053,
+     "tritan": 14.7758
+    },
+    "red_green_same_lightness": []
+   }
+  },
+  {
+   "id": "D4",
+   "title": "Water and green",
+   "context": "ghost",
+   "harmony": "Analogous cool: yellow-green to blue, the cold half of the set",
+   "contrast": "Cold-warm contrast: the one diagram where the cool family leads, on the warm context",
+   "why": "The Selinus and its planting are the subject of the brief, so here they take the colour.",
+   "note": "Parks and fields are 9.2 apart for protanopes, under the target of 10, so fields keep their furrow stripes and parks their trees.",
+   "topics": [
+    {
+     "key": "channel",
+     "label": "Channel walls and water lines",
+     "hex": "5D7F8D",
+     "from": "middle ground water_deep",
+     "kind": "line"
+    },
+    {
+     "key": "water",
+     "label": "Flowing water",
+     "hex": "91ADB4",
+     "from": "middle ground water",
+     "kind": "ground"
+    },
+    {
+     "key": "still",
+     "label": "Still water and wet ground",
+     "hex": "C1D3DB",
+     "from": "middle ground water_light",
+     "kind": "ground"
+    },
+    {
+     "key": "park",
+     "label": "Parks and green open ground",
+     "hex": "8C9969",
+     "from": "middle ground green_light",
+     "kind": "ground"
+    },
+    {
+     "key": "trees",
+     "label": "Trees and dense planting",
+     "hex": "495338",
+     "from": "middle ground green_deep",
+     "kind": "building"
+    },
+    {
+     "key": "agri",
+     "label": "Fields and orchards",
+     "hex": "BDB57A",
+     "from": "board",
+     "kind": "ground"
+    }
+   ],
+   "ramp": null,
+   "experiment": null,
+   "checks": {
+    "labels": {
+     "channel": [
+      "white",
+      4.2982
+     ],
+     "water": [
+      "ink",
+      4.3049
+     ],
+     "still": [
+      "ink",
+      6.6265
+     ],
+     "park": [
+      "ink",
+      3.3481
+     ],
+     "trees": [
+      "white",
+      8.1468
+     ],
+     "agri": [
+      "ink",
+      4.896
+     ]
+    },
+    "topics": {
+     "normal": [
+      11.1524,
+      "water",
+      "still"
+     ],
+     "protan": [
+      9.1711,
+      "park",
+      "agri"
+     ],
+     "deutan": [
+      10.5124,
+      "park",
+      "agri"
+     ],
+     "tritan": [
+      11.1878,
+      "water",
+      "still"
+     ]
+    },
+    "vs_ground": {
+     "normal": [
+      11.78,
+      "still",
+      "ground"
+     ],
+     "protan": [
+      10.0857,
+      "still",
+      "ground"
+     ],
+     "deutan": [
+      11.6164,
+      "still",
+      "ground"
+     ],
+     "tritan": [
+      13.4784,
+      "agri",
+      "sheet"
+     ]
+    },
+    "vs_faces": {
+     "normal": [
+      31.0783,
+      "channel",
+      "context shade"
+     ],
+     "protan": [
+      28.4838,
+      "channel",
+      "context shade"
+     ],
+     "deutan": [
+      31.794,
+      "channel",
+      "context shade"
+     ],
+     "tritan": [
+      34.3153,
+      "channel",
+      "context shade"
+     ]
+    },
+    "vs_context_colour_only": {
+     "normal": [
+      11.78,
+      "still",
+      "ground"
+     ],
+     "protan": [
+      10.0857,
+      "still",
+      "ground"
+     ],
+     "deutan": [
+      11.6164,
+      "still",
+      "ground"
+     ],
+     "tritan": [
+      13.4784,
+      "agri",
+      "sheet"
+     ]
+    },
+    "edge_carried": {},
+    "templates": [
+     "T",
+     "X"
+    ],
+    "template_hues": [
+     197.5,
+     192.0,
+     76.25,
+     82.2222,
+     52.8358
+    ],
+    "template_greys": 1,
+    "template_label": "T + N",
+    "topics_encoded": {
+     "normal": 11.1524,
+     "protan": 9.2726,
+     "deutan": 10.6103,
+     "tritan": 11.0809
+    },
+    "red_green_same_lightness": []
+   }
+  },
+  {
+   "id": "D5",
+   "title": "Services and daily life",
+   "context": "building",
+   "harmony": "Analogous warm arc, violet to yellow, separated by lightness",
+   "contrast": "Contrast of hue and light-dark together; blue stays for water, as on the boards",
+   "why": "Five unrelated services need five distinct colours; each also carries a roundel icon.",
+   "note": "The two plums differ mainly in lightness; for dichromats a health roof is 2.1 from civic walls, so every service carries its roundel letter.",
+   "topics": [
+    {
+     "key": "worship",
+     "label": "Worship",
+     "hex": "8B3A3F",
+     "from": "middle ground accent",
+     "kind": "building"
+    },
+    {
+     "key": "market",
+     "label": "Market and food",
+     "hex": "BC6F45",
+     "from": "board commercial",
+     "kind": "building"
+    },
+    {
+     "key": "education",
+     "label": "Education",
+     "hex": "F4C178",
+     "from": "OKLCH 0.84 / 0.108 / 75 (lighter board mixed)",
+     "kind": "building"
+    },
+    {
+     "key": "civic",
+     "label": "Civic and administration",
+     "hex": "8C7088",
+     "from": "board institutional",
+     "kind": "building"
+    },
+    {
+     "key": "health",
+     "label": "Health",
+     "hex": "4C3349",
+     "from": "OKLCH 0.36 / 0.050 / 331 (darker board civic)",
+     "kind": "building"
+    }
+   ],
+   "ramp": null,
+   "experiment": {
+    "name": "Red-yellow-blue triad: health in the water slate, civic in the dark plum",
+    "swaps": {
+     "health": "5D7F8D",
+     "civic": "4C3349"
+    },
+    "verdict": "separates as well, but breaks the boards' rule that blue means water"
+   },
+   "checks": {
+    "labels": {
+     "worship": [
+      "white",
+      7.5681
+     ],
+     "market": [
+      "white",
+      3.8196
+     ],
+     "education": [
+      "ink",
+      6.2066
+     ],
+     "civic": [
+      "white",
+      4.3857
+     ],
+     "health": [
+      "white",
+      11.1878
+     ]
+    },
+    "topics": {
+     "normal": [
+      18.9328,
+      "worship",
+      "health"
+     ],
+     "protan": [
+      17.0758,
+      "worship",
+      "health"
+     ],
+     "deutan": [
+      20.1548,
+      "market",
+      "education"
+     ],
+     "tritan": [
+      16.1906,
+      "market",
+      "civic"
+     ]
+    },
+    "vs_ground": {
+     "normal": [
+      19.8318,
+      "education",
+      "sheet"
+     ],
+     "protan": [
+      18.5225,
+      "civic",
+      "water"
+     ],
+     "deutan": [
+      14.9306,
+      "civic",
+      "water"
+     ],
+     "tritan": [
+      18.954,
+      "education",
+      "street"
+     ]
+    },
+    "vs_faces": {
+     "normal": [
+      17.7017,
+      "education",
+      "context lit"
+     ],
+     "protan": [
+      15.8134,
+      "education",
+      "context shade"
+     ],
+     "deutan": [
+      16.4279,
+      "education",
+      "context lit"
+     ],
+     "tritan": [
+      17.2673,
+      "education",
+      "context shade"
+     ]
+    },
+    "faces_within": {
+     "worship": 6.0793,
+     "market": 9.7911,
+     "education": 9.2463,
+     "civic": 7.7655,
+     "health": 4.2176
+    },
+    "roofs_vs_faces": {
+     "normal": [
+      3.1528,
+      "health roof",
+      "civic shade"
+     ],
+     "protan": [
+      2.1385,
+      "health roof",
+      "civic shade"
+     ],
+     "deutan": [
+      2.2236,
+      "health roof",
+      "civic shade"
+     ],
+     "tritan": [
+      2.3238,
+      "health roof",
+      "civic shade"
+     ]
+    },
+    "vs_context_colour_only": {
+     "normal": [
+      17.7017,
+      "education",
+      "context lit"
+     ],
+     "protan": [
+      15.8134,
+      "education",
+      "context shade"
+     ],
+     "deutan": [
+      14.9306,
+      "civic",
+      "water"
+     ],
+     "tritan": [
+      17.2673,
+      "education",
+      "context shade"
+     ]
+    },
+    "edge_carried": {},
+    "templates": [
+     "V",
+     "L mirrored",
+     "Y",
+     "T",
+     "X"
+    ],
+    "template_hues": [
+     356.2963,
+     21.1765,
+     35.3226,
+     308.5714,
+     307.2
+    ],
+    "template_greys": 0,
+    "template_label": "V",
+    "topics_encoded": {
+     "normal": 18.9328,
+     "protan": 13.8139,
+     "deutan": 19.2331,
+     "tritan": 17.7459
+    },
+    "red_green_same_lightness": [],
+    "experiment_topics": {
+     "normal": [
+      18.9328,
+      "8B3A3F",
+      "4C3349"
+     ],
+     "protan": [
+      17.0758,
+      "8B3A3F",
+      "4C3349"
+     ],
+     "deutan": [
+      20.1548,
+      "BC6F45",
+      "F4C178"
+     ],
+     "tritan": [
+      17.6497,
+      "8B3A3F",
+      "BC6F45"
+     ]
+    },
+    "experiment_topics_encoded": {
+     "normal": 18.9328,
+     "protan": 13.8139,
+     "deutan": 19.2331,
+     "tritan": 17.8929
+    },
+    "experiment_templates": [
+     "X"
+    ]
+   }
+  },
+  {
+   "id": "D6",
+   "title": "Study areas",
+   "context": "building",
+   "harmony": "Near-triad: one colour per owner (hues 290, 50, 186) on a white casing",
+   "contrast": "Hue, then light-dark: each line on its white casing over any scheme, never filled",
+   "why": "Aras asked for the working areas colour-coded so they read at first glance, thicker and without curve-point markers (17 Oct, 19:19), in colours from the palette and its research (19:23). Outlines only, never filled or hatched (project rule).",
+   "note": "No corner markers; each owner's name sits on white in the line colour.",
+   "topics": [
+    {
+     "key": "aras",
+     "label": "ARAS · aras_alan",
+     "hex": "5C48A2",
+     "from": "scripts/study_area_style.md",
+     "kind": "line"
+    },
+    {
+     "key": "begum",
+     "label": "BEGÜM · begum_alan, both areas",
+     "hex": "7F3902",
+     "from": "scripts/study_area_style.md",
+     "kind": "line"
+    },
+    {
+     "key": "nil",
+     "label": "NİL · nil_alan",
+     "hex": "107C73",
+     "from": "scripts/study_area_style.md",
+     "kind": "line"
+    },
+    {
+     "key": "casing",
+     "label": "White casing under the line, 1.7 x its width",
+     "hex": "FFFFFF",
+     "from": "boards v23, diagrams v1.2",
+     "kind": "line"
+    }
+   ],
+   "ramp": null,
+   "experiment": null,
+   "checks": {
+    "labels": {
+     "aras": [
+      "white",
+      7.2321
+     ],
+     "begum": [
+      "white",
+      8.4387
+     ],
+     "nil": [
+      "white",
+      5.057
+     ],
+     "casing": [
+      "ink",
+      10.226
+     ]
+    },
+    "topics": {
+     "normal": [
+      36.1382,
+      "aras",
+      "nil"
+     ],
+     "protan": [
+      25.7905,
+      "aras",
+      "nil"
+     ],
+     "deutan": [
+      19.611,
+      "aras",
+      "nil"
+     ],
+     "tritan": [
+      22.1714,
+      "aras",
+      "nil"
+     ]
+    },
+    "templates": [
+     "Y",
+     "X"
+    ],
+    "template_hues": [
+     253.3333,
+     26.4,
+     175.0
+    ],
+    "template_greys": 1,
+    "template_label": "Y + N",
+    "topics_encoded": {
+     "normal": 36.1382,
+     "protan": 21.8414,
+     "deutan": 12.0042,
+     "tritan": 27.9003
+    },
+    "red_green_same_lightness": [],
+    "on_backgrounds": [
+     [
+      "D4 trees",
+      "495338",
+      1.0358,
+      8.1468
+     ],
+     [
+      "D1 religious",
+      "8B3A3F",
+      1.0465,
+      7.5681
+     ],
+     [
+      "D1 industrial",
+      "6F6A62",
+      1.061,
+      5.3655
+     ],
+     [
+      "D1 institutional",
+      "8C7088",
+      1.1531,
+      4.3857
+     ],
+     [
+      "context water_edge",
+      "5D7F8D",
+      1.1765,
+      4.2982
+     ],
+     [
+      "D3 main",
+      "847E75",
+      1.2576,
+      4.0212
+     ],
+     [
+      "D1 commercial",
+      "BC6F45",
+      1.324,
+      3.8196
+     ],
+     [
+      "D5 health",
+      "4C3349",
+      1.3258,
+      11.1878
+     ],
+     [
+      "D2 historic",
+      "AF7474",
+      1.3421,
+      3.7681
+     ],
+     [
+      "D2 monument",
+      "4C2528",
+      1.5528,
+      13.104
+     ],
+     [
+      "context building_outline",
+      "949081",
+      1.581,
+      3.1985
+     ],
+     [
+      "D4 park",
+      "8C9969",
+      1.6557,
+      3.0543
+     ],
+     [
+      "D1 mixed",
+      "CC9A52",
+      2.0015,
+      2.5266
+     ],
+     [
+      "context water",
+      "91ADB4",
+      2.1289,
+      2.3754
+     ],
+     [
+      "D3 secondary",
+      "B0AC9C",
+      2.222,
+      2.2759
+     ],
+     [
+      "D4 agri",
+      "BDB57A",
+      2.4212,
+      2.0887
+     ],
+     [
+      "context building_shade",
+      "BFBBAB",
+      2.6276,
+      1.9246
+     ],
+     [
+      "context tree",
+      "BCC2A6",
+      2.7466,
+      1.8412
+     ],
+     [
+      "D1 residential",
+      "D6C08F",
+      2.8405,
+      1.7803
+     ],
+     [
+      "D5 education",
+      "F4C178",
+      3.0693,
+      1.6476
+     ],
+     [
+      "context street",
+      "CFCCC5",
+      3.1538,
+      1.6035
+     ],
+     [
+      "D2 zone",
+      "E4CAC9",
+      3.2727,
+      1.5452
+     ],
+     [
+      "D4 still",
+      "C1D3DB",
+      3.277,
+      1.5432
+     ],
+     [
+      "context building_lit",
+      "D7D3C2",
+      3.368,
+      1.5015
+     ],
+     [
+      "context ghost_shade",
+      "D8D5CC",
+      3.4458,
+      1.4676
+     ],
+     [
+      "context sheet",
+      "E2E0D4",
+      3.816,
+      1.3252
+     ],
+     [
+      "context ground",
+      "EFEDE6",
+      4.3169,
+      1.1715
+     ],
+     [
+      "context lane",
+      "FAF8F1",
+      4.7589,
+      1.0626
+     ]
+    ],
+    "line_under_3": [
+     "context water",
+     "context water_edge",
+     "context tree",
+     "context building_shade",
+     "context building_outline",
+     "D1 residential",
+     "D1 mixed",
+     "D1 commercial",
+     "D1 institutional",
+     "D1 religious",
+     "D1 industrial",
+     "D2 monument",
+     "D2 historic",
+     "D3 main",
+     "D3 secondary",
+     "D4 park",
+     "D4 trees",
+     "D4 agri",
+     "D5 health"
+    ],
+    "pair_worst": [
+     "D3 secondary",
+     "B0AC9C",
+     2.222,
+     2.2759
+    ]
+   }
+  }
+ ],
+ "board_ramp": [
+  "E8DDBF",
+  "D6C08F",
+  "BC6F45",
+  "633131"
+ ],
+ "tones": {
+  "107C73": {
+   "roof": "107C73",
+   "lit": "016A62",
+   "shade": "003F3A",
+   "outline": "024E48"
+  },
+  "3C4733": {
+   "roof": "3C4733",
+   "lit": "2F3D24",
+   "shade": "1B2214",
+   "outline": "1F2C13"
+  },
+  "495338": {
+   "roof": "495338",
+   "lit": "3B4725",
+   "shade": "222916",
+   "outline": "293411"
+  },
+  "4A3F35": {
+   "roof": "4A3F35",
+   "lit": "413427",
+   "shade": "241D16",
+   "outline": "312417"
+  },
+  "4C2528": {
+   "roof": "4C2528",
+   "lit": "47171D",
+   "shade": "270C0F",
+   "outline": "390710"
+  },
+  "4C3349": {
+   "roof": "4C3349",
+   "lit": "442641",
+   "shade": "261524",
+   "outline": "351632"
+  },
+  "5C48A2": {
+   "roof": "5C48A2",
+   "lit": "502FA2",
+   "shade": "2E1E5D",
+   "outline": "3E0A8B"
+  },
+  "5C7A86": {
+   "roof": "5C7A86",
+   "lit": "436978",
+   "shade": "2A3F47",
+   "outline": "274E5D"
+  },
+  "5D7F8D": {
+   "roof": "5D7F8D",
+   "lit": "426D7F",
+   "shade": "2A414B",
+   "outline": "245263"
+  },
+  "633131": {
+   "roof": "633131",
+   "lit": "5D2022",
+   "shade": "351213",
+   "outline": "4B0B11"
+  },
+  "6F6A62": {
+   "roof": "6F6A62",
+   "lit": "5F5950",
+   "shade": "383530",
+   "outline": "474137"
+  },
+  "70754C": {
+   "roof": "70754C",
+   "lit": "5F6430",
+   "shade": "383C1F",
+   "outline": "464A11"
+  },
+  "727A4E": {
+   "roof": "727A4E",
+   "lit": "606931",
+   "shade": "393F20",
+   "outline": "464E10"
+  },
+  "7F3902": {
+   "roof": "7F3902",
+   "lit": "6C2F02",
+   "shade": "411A01",
+   "outline": "502100"
+  },
+  "847E75": {
+   "roof": "847E75",
+   "lit": "726B60",
+   "shade": "44403A",
+   "outline": "554E43"
+  },
+  "89986A": {
+   "roof": "89986A",
+   "lit": "72834A",
+   "shade": "465030",
+   "outline": "526327"
+  },
+  "8B2D2D": {
+   "roof": "8B2D2D",
+   "lit": "850115",
+   "shade": "4D090D",
+   "outline": "62020D"
+  },
+  "8B3A3F": {
+   "roof": "8B3A3F",
+   "lit": "851D2B",
+   "shade": "4D141A",
+   "outline": "680319"
+  },
+  "8C7088": {
+   "roof": "8C7088",
+   "lit": "7D5B78",
+   "shade": "4A3747",
+   "outline": "613F5C"
+  },
+  "8C9969": {
+   "roof": "8C9969",
+   "lit": "758448",
+   "shade": "47502F",
+   "outline": "556324"
+  },
+  "8E8F8A": {
+   "roof": "8E8F8A",
+   "lit": "797A74",
+   "shade": "494A46",
+   "outline": "595A54"
+  },
+  "91ADB4": {
+   "roof": "91ADB4",
+   "lit": "73959E",
+   "shade": "485B60",
+   "outline": "4D7179"
+  },
+  "93523D": {
+   "roof": "93523D",
+   "lit": "8A3B20",
+   "shade": "512416",
+   "outline": "702000"
+  },
+  "A2B6B5": {
+   "roof": "A2B6B5",
+   "lit": "849D9C",
+   "shade": "52605F",
+   "outline": "5E7675"
+  },
+  "A4A1A3": {
+   "roof": "A4A1A3",
+   "lit": "8C898B",
+   "shade": "565455",
+   "outline": "696568"
+  },
+  "AF7474": {
+   "roof": "AF7474",
+   "lit": "A15A5C",
+   "shade": "603838",
+   "outline": "813B3E"
+  },
+  "B0AC9C": {
+   "roof": "B0AC9C",
+   "lit": "98937F",
+   "shade": "5D5A4F",
+   "outline": "726D5A"
+  },
+  "B9B2A1": {
+   "roof": "B9B2A1",
+   "lit": "A09883",
+   "shade": "625D52",
+   "outline": "79715C"
+  },
+  "BC6F45": {
+   "roof": "BC6F45",
+   "lit": "B15212",
+   "shade": "693415",
+   "outline": "863A00"
+  },
+  "BDB57A": {
+   "roof": "BDB57A",
+   "lit": "A59B4F",
+   "shade": "655F36",
+   "outline": "7E731F"
+  },
+  "C0794E": {
+   "roof": "C0794E",
+   "lit": "B35D20",
+   "shade": "6B3A1B",
+   "outline": "8B4000"
+  },
+  "C1D3DB": {
+   "roof": "C1D3DB",
+   "lit": "9FB5BF",
+   "shade": "647076",
+   "outline": "738992"
+  },
+  "CC9A52": {
+   "roof": "CC9A52",
+   "lit": "BB7E04",
+   "shade": "704E18",
+   "outline": "8C5D05"
+  },
+  "CFCCC5": {
+   "roof": "CFCCC5",
+   "lit": "B2AEA6",
+   "shade": "6E6C67",
+   "outline": "86827A"
+  },
+  "CFDBE4": {
+   "roof": "CFDBE4",
+   "lit": "ADBCC7",
+   "shade": "6C747B",
+   "outline": "7F8D98"
+  },
+  "D1AE7E": {
+   "roof": "D1AE7E",
+   "lit": "BC9154",
+   "shade": "725A39",
+   "outline": "946A27"
+  },
+  "D6C08F": {
+   "roof": "D6C08F",
+   "lit": "BEA365",
+   "shade": "746543",
+   "outline": "937837"
+  },
+  "D8D5CC": {
+   "roof": "D8D5CC",
+   "lit": "BAB6AB",
+   "shade": "73716B",
+   "outline": "8C887D"
+  },
+  "D9D2BE": {
+   "roof": "D9D2BE",
+   "lit": "BCB39B",
+   "shade": "746F62",
+   "outline": "8F866E"
+  },
+  "E2E0D4": {
+   "roof": "E2E0D4",
+   "lit": "C2C0B1",
+   "shade": "78776F",
+   "outline": "929081"
+  },
+  "E4CAC9": {
+   "roof": "E4CAC9",
+   "lit": "C9AAA9",
+   "shade": "7B6A69",
+   "outline": "9C7D7C"
+  },
+  "E8DDBF": {
+   "roof": "E8DDBF",
+   "lit": "CABD98",
+   "shade": "7D7561",
+   "outline": "9B8D68"
+  },
+  "EFEDE6": {
+   "roof": "EFEDE6",
+   "lit": "CDCBC2",
+   "shade": "807E7A",
+   "outline": "9B9890"
+  },
+  "F4C178": {
+   "roof": "F4C178",
+   "lit": "DEA03C",
+   "shade": "876430",
+   "outline": "AD7502"
+  },
+  "FAF8F1": {
+   "roof": "FAF8F1",
+   "lit": "D7D4CC",
+   "shade": "868480",
+   "outline": "A2A097"
+  },
+  "FFFFFF": {
+   "roof": "FFFFFF",
+   "lit": "DADADA",
+   "shade": "888888",
+   "outline": "A4A4A4"
+  }
+ },
+ "cvd": {
+  "003F3A": {
+   "protan": "3B3B3A",
+   "deutan": "33353B",
+   "tritan": "00413D"
+  },
+  "016A62": {
+   "protan": "646362",
+   "deutan": "575A63",
+   "tritan": "006D67"
+  },
+  "024E48": {
+   "protan": "494948",
+   "deutan": "404249",
+   "tritan": "00504C"
+  },
+  "107C73": {
+   "protan": "757473",
+   "deutan": "676A74",
+   "tritan": "007F79"
+  },
+  "1B2214": {
+   "protan": "232013",
+   "deutan": "222015",
+   "tritan": "1B211E"
+  },
+  "1F2C13": {
+   "protan": "2E2911",
+   "deutan": "2C2814",
+   "tritan": "202A26"
+  },
+  "222916": {
+   "protan": "2B2715",
+   "deutan": "2A2617",
+   "tritan": "232724"
+  },
+  "241D16": {
+   "protan": "1F1D16",
+   "deutan": "211F16",
+   "tritan": "261B1B"
+  },
+  "245263": {
+   "protan": "495064",
+   "deutan": "404A63",
+   "tritan": "005757"
+  },
+  "261524": {
+   "protan": "141925",
+   "deutan": "191C23",
+   "tritan": "27161A"
+  },
+  "270C0F": {
+   "protan": "12110F",
+   "deutan": "19170E",
+   "tritan": "2B080D"
+  },
+  "274E5D": {
+   "protan": "464C5E",
+   "deutan": "3E465D",
+   "tritan": "005353"
+  },
+  "293411": {
+   "protan": "37300D",
+   "deutan": "363013",
+   "tritan": "2B312C"
+  },
+  "2A3F47": {
+   "protan": "3A3E47",
+   "deutan": "363A47",
+   "tritan": "1F4241"
+  },
+  "2A414B": {
+   "protan": "3C404C",
+   "deutan": "373C4B",
+   "tritan": "1D4444"
+  },
+  "2E1E5D": {
+   "protan": "002B5F",
+   "deutan": "00285C",
+   "tritan": "1F2D3A"
+  },
+  "2F3D24": {
+   "protan": "3F3A22",
+   "deutan": "3D3825",
+   "tritan": "2F3B37"
+  },
+  "312417": {
+   "protan": "282516",
+   "deutan": "2B2817",
+   "tritan": "352121"
+  },
+  "351213": {
+   "protan": "1A1913",
+   "deutan": "232012",
+   "tritan": "3B0C13"
+  },
+  "351632": {
+   "protan": "151F33",
+   "deutan": "1E2331",
+   "tritan": "371821"
+  },
+  "383530": {
+   "protan": "363530",
+   "deutan": "373630",
+   "tritan": "3A3434"
+  },
+  "383C1F": {
+   "protan": "40391D",
+   "deutan": "3F3A20",
+   "tritan": "3B3935"
+  },
+  "390710": {
+   "protan": "151410",
+   "deutan": "221E0F",
+   "tritan": "3F000B"
+  },
+  "393F20": {
+   "protan": "433C1E",
+   "deutan": "423C22",
+   "tritan": "3C3C38"
+  },
+  "3B4725": {
+   "protan": "4A4322",
+   "deutan": "494327",
+   "tritan": "3D443F"
+  },
+  "3C4733": {
+   "protan": "494432",
+   "deutan": "474334",
+   "tritan": "3D4542"
+  },
+  "3E0A8B": {
+   "protan": "00338E",
+   "deutan": "002E89",
+   "tritan": "203650"
+  },
+  "411A01": {
+   "protan": "252000",
+   "deutan": "2F2900",
+   "tritan": "481115"
+  },
+  "413427": {
+   "protan": "383526",
+   "deutan": "3B3727",
+   "tritan": "453131"
+  },
+  "426D7F": {
+   "protan": "636B80",
+   "deutan": "5A647F",
+   "tritan": "257273"
+  },
+  "434D36": {
+   "protan": "4F4A35",
+   "deutan": "4E4937",
+   "tritan": "444B47"
+  },
+  "436978": {
+   "protan": "616779",
+   "deutan": "596178",
+   "tritan": "2D6E6E"
+  },
+  "442641": {
+   "protan": "252E42",
+   "deutan": "2D3240",
+   "tritan": "462830"
+  },
+  "44403A": {
+   "protan": "42403A",
+   "deutan": "43413A",
+   "tritan": "463F3E"
+  },
+  "464A11": {
+   "protan": "504608",
+   "deutan": "504715",
+   "tritan": "4B453F"
+  },
+  "464E10": {
+   "protan": "544905",
+   "deutan": "534A15",
+   "tritan": "4B4942"
+  },
+  "465030": {
+   "protan": "544C2E",
+   "deutan": "524C32",
+   "tritan": "484D48"
+  },
+  "47171D": {
+   "protan": "22211D",
+   "deutan": "2E2B1C",
+   "tritan": "4E0F19"
+  },
+  "474137": {
+   "protan": "444136",
+   "deutan": "454237",
+   "tritan": "4A3F3E"
+  },
+  "47502F": {
+   "protan": "544C2D",
+   "deutan": "534C31",
+   "tritan": "4A4D48"
+  },
+  "485B60": {
+   "protan": "575A60",
+   "deutan": "535660",
+   "tritan": "415D5C"
+  },
+  "494A46": {
+   "protan": "4B4A46",
+   "deutan": "4B4A46",
+   "tritan": "494A49"
+  },
+  "495338": {
+   "protan": "565036",
+   "deutan": "554F39",
+   "tritan": "4B504C"
+  },
+  "4A3747": {
+   "protan": "373B48",
+   "deutan": "3B3E46",
+   "tritan": "4C383C"
+  },
+  "4A3F35": {
+   "protan": "433F34",
+   "deutan": "454235",
+   "tritan": "4E3D3C"
+  },
+  "4B0B11": {
+   "protan": "1E1B11",
+   "deutan": "2E290F",
+   "tritan": "53000E"
+  },
+  "4C2528": {
+   "protan": "2D2C28",
+   "deutan": "373327",
+   "tritan": "532026"
+  },
+  "4C3349": {
+   "protan": "32394A",
+   "deutan": "383C48",
+   "tritan": "4E353B"
+  },
+  "4D090D": {
+   "protan": "1F1B0C",
+   "deutan": "2F2A0A",
+   "tritan": "56000B"
+  },
+  "4D141A": {
+   "protan": "23211A",
+   "deutan": "312D19",
+   "tritan": "550717"
+  },
+  "4D7179": {
+   "protan": "6B6E7A",
+   "deutan": "636979",
+   "tritan": "3D7473"
+  },
+  "502100": {
+   "protan": "2F2800",
+   "deutan": "3A3300",
+   "tritan": "59161B"
+  },
+  "502FA2": {
+   "protan": "0049A5",
+   "deutan": "0045A0",
+   "tritan": "344D65"
+  },
+  "505A3B": {
+   "protan": "5E5639",
+   "deutan": "5C563C",
+   "tritan": "525752"
+  },
+  "512416": {
+   "protan": "302B15",
+   "deutan": "3B3515",
+   "tritan": "591B21"
+  },
+  "52605F": {
+   "protan": "5E5E5F",
+   "deutan": "5B5C5F",
+   "tritan": "4E6160"
+  },
+  "526327": {
+   "protan": "695D21",
+   "deutan": "665D2B",
+   "tritan": "565E56"
+  },
+  "554E43": {
+   "protan": "514E42",
+   "deutan": "535043",
+   "tritan": "584C4B"
+  },
+  "556324": {
+   "protan": "695D1D",
+   "deutan": "675D28",
+   "tritan": "5A5E56"
+  },
+  "565455": {
+   "protan": "545455",
+   "deutan": "555555",
+   "tritan": "565454"
+  },
+  "572B2C": {
+   "protan": "34322C",
+   "deutan": "3F3B2B",
+   "tritan": "5F252C"
+  },
+  "57603D": {
+   "protan": "645C3B",
+   "deutan": "635C3F",
+   "tritan": "5A5D57"
+  },
+  "595A54": {
+   "protan": "5B5954",
+   "deutan": "5B5954",
+   "tritan": "5A5958"
+  },
+  "5C48A2": {
+   "protan": "1A59A5",
+   "deutan": "1E55A0",
+   "tritan": "485B6E"
+  },
+  "5C7A86": {
+   "protan": "737887",
+   "deutan": "6D7386",
+   "tritan": "4E7E7E"
+  },
+  "5D2022": {
+   "protan": "2F2C22",
+   "deutan": "3F3921",
+   "tritan": "661421"
+  },
+  "5D5A4F": {
+   "protan": "5D594E",
+   "deutan": "5D5A4F",
+   "tritan": "5F5857"
+  },
+  "5D7C89": {
+   "protan": "757A8A",
+   "deutan": "6E7589",
+   "tritan": "4F8080"
+  },
+  "5D7F8D": {
+   "protan": "777D8E",
+   "deutan": "70778D",
+   "tritan": "4D8383"
+  },
+  "5E7675": {
+   "protan": "737375",
+   "deutan": "6E7075",
+   "tritan": "577776"
+  },
+  "5E8190": {
+   "protan": "797F91",
+   "deutan": "717990",
+   "tritan": "4D8686"
+  },
+  "5E8494": {
+   "protan": "7B8295",
+   "deutan": "737C94",
+   "tritan": "4B8989"
+  },
+  "5F5950": {
+   "protan": "5C594F",
+   "deutan": "5D5A50",
+   "tritan": "625756"
+  },
+  "5F6430": {
+   "protan": "6A602B",
+   "deutan": "6A6133",
+   "tritan": "645F58"
+  },
+  "603838": {
+   "protan": "403E38",
+   "deutan": "4A4637",
+   "tritan": "673338"
+  },
+  "606931": {
+   "protan": "6F642C",
+   "deutan": "6F6534",
+   "tritan": "65645C"
+  },
+  "613F5C": {
+   "protan": "3E475D",
+   "deutan": "474C5B",
+   "tritan": "644149"
+  },
+  "62020D": {
+   "protan": "25210C",
+   "deutan": "3C3408",
+   "tritan": "6D0007"
+  },
+  "625D52": {
+   "protan": "605D51",
+   "deutan": "615E52",
+   "tritan": "655B5A"
+  },
+  "633131": {
+   "protan": "3C3931",
+   "deutan": "484430",
+   "tritan": "6C2A31"
+  },
+  "647076": {
+   "protan": "6D6F76",
+   "deutan": "6A6D76",
+   "tritan": "5F7272"
+  },
+  "655F36": {
+   "protan": "665D33",
+   "deutan": "685F38",
+   "tritan": "6B5A55"
+  },
+  "680319": {
+   "protan": "272419",
+   "deutan": "3F3816",
+   "tritan": "73000E"
+  },
+  "693415": {
+   "protan": "433B11",
+   "deutan": "504714",
+   "tritan": "74292D"
+  },
+  "696568": {
+   "protan": "656668",
+   "deutan": "666668",
+   "tritan": "696566"
+  },
+  "6B3A1B": {
+   "protan": "484018",
+   "deutan": "544B1B",
+   "tritan": "753033"
+  },
+  "6C2F02": {
+   "protan": "413800",
+   "deutan": "504600",
+   "tritan": "772027"
+  },
+  "6C747B": {
+   "protan": "71747B",
+   "deutan": "6F727B",
+   "tritan": "687676"
+  },
+  "6E3835": {
+   "protan": "444134",
+   "deutan": "514C34",
+   "tritan": "783038"
+  },
+  "6E6C67": {
+   "protan": "6D6C67",
+   "deutan": "6E6C67",
+   "tritan": "6F6B6B"
+  },
+  "6F6A62": {
+   "protan": "6C6A62",
+   "deutan": "6E6B62",
+   "tritan": "716868"
+  },
+  "702000": {
+   "protan": "383000",
+   "deutan": "4C4200",
+   "tritan": "7C021B"
+  },
+  "704E18": {
+   "protan": "5A5010",
+   "deutan": "62581A",
+   "tritan": "7A4543"
+  },
+  "70754C": {
+   "protan": "7B7149",
+   "deutan": "7A724E",
+   "tritan": "75706B"
+  },
+  "71784D": {
+   "protan": "7E744A",
+   "deutan": "7D744F",
+   "tritan": "76736D"
+  },
+  "725A39": {
+   "protan": "635B36",
+   "deutan": "69603A",
+   "tritan": "7A5452"
+  },
+  "726B60": {
+   "protan": "6E6B5F",
+   "deutan": "706D60",
+   "tritan": "756968"
+  },
+  "726D5A": {
+   "protan": "716C59",
+   "deutan": "736E5B",
+   "tritan": "766A68"
+  },
+  "727A4E": {
+   "protan": "80764B",
+   "deutan": "7F7650",
+   "tritan": "76756F"
+  },
+  "72834A": {
+   "protan": "897D46",
+   "deutan": "877C4D",
+   "tritan": "767E75"
+  },
+  "73716B": {
+   "protan": "72716B",
+   "deutan": "73716B",
+   "tritan": "75706F"
+  },
+  "737D4E": {
+   "protan": "83784B",
+   "deutan": "827950",
+   "tritan": "777871"
+  },
+  "738992": {
+   "protan": "848893",
+   "deutan": "7F8492",
+   "tritan": "6A8C8C"
+  },
+  "73959E": {
+   "protan": "8E939F",
+   "deutan": "878D9E",
+   "tritan": "659998"
+  },
+  "746543": {
+   "protan": "6D6441",
+   "deutan": "706844",
+   "tritan": "7B605C"
+  },
+  "746F62": {
+   "protan": "726E61",
+   "deutan": "747062",
+   "tritan": "776D6B"
+  },
+  "74804F": {
+   "protan": "867B4B",
+   "deutan": "847B51",
+   "tritan": "787B74"
+  },
+  "758448": {
+   "protan": "8B7E43",
+   "deutan": "897E4B",
+   "tritan": "7A7E76"
+  },
+  "78776F": {
+   "protan": "79766F",
+   "deutan": "79776F",
+   "tritan": "7A7675"
+  },
+  "79715C": {
+   "protan": "76705B",
+   "deutan": "78725D",
+   "tritan": "7E6E6B"
+  },
+  "797A74": {
+   "protan": "7B7974",
+   "deutan": "7B7974",
+   "tritan": "7A7978"
+  },
+  "7A3E3A": {
+   "protan": "4C4839",
+   "deutan": "5A5439",
+   "tritan": "85353D"
+  },
+  "7A6E60": {
+   "protan": "726E5F",
+   "deutan": "757160",
+   "tritan": "7F6B6A"
+  },
+  "7B6A69": {
+   "protan": "6D6C69",
+   "deutan": "716F69",
+   "tritan": "7F686A"
+  },
+  "7D5B78": {
+   "protan": "5A6379",
+   "deutan": "626777",
+   "tritan": "805D65"
+  },
+  "7D7561": {
+   "protan": "7A7460",
+   "deutan": "7C7662",
+   "tritan": "82726F"
+  },
+  "7E731F": {
+   "protan": "7E6F10",
+   "deutan": "817425",
+   "tritan": "886A63"
+  },
+  "7F3902": {
+   "protan": "4E4300",
+   "deutan": "5E5300",
+   "tritan": "8C2830"
+  },
+  "7F766A": {
+   "protan": "7A7669",
+   "deutan": "7C786A",
+   "tritan": "837473"
+  },
+  "7F8D98": {
+   "protan": "898D99",
+   "deutan": "858A98",
+   "tritan": "799090"
+  },
+  "7FA4B3": {
+   "protan": "9CA2B4",
+   "deutan": "949CB3",
+   "tritan": "6EA9A9"
+  },
+  "807E7A": {
+   "protan": "7F7E7A",
+   "deutan": "807E7A",
+   "tritan": "817D7D"
+  },
+  "813B3E": {
+   "protan": "4B483E",
+   "deutan": "5C563D",
+   "tritan": "8C313C"
+  },
+  "847E75": {
+   "protan": "817E74",
+   "deutan": "827F75",
+   "tritan": "877C7B"
+  },
+  "849D9C": {
+   "protan": "9A9A9C",
+   "deutan": "95969C",
+   "tritan": "7D9F9D"
+  },
+  "850115": {
+   "protan": "342E14",
+   "deutan": "52490E",
+   "tritan": "93000C"
+  },
+  "851D2B": {
+   "protan": "3B382B",
+   "deutan": "554D28",
+   "tritan": "920023"
+  },
+  "863A00": {
+   "protan": "504600",
+   "deutan": "635700",
+   "tritan": "942731"
+  },
+  "86827A": {
+   "protan": "84827A",
+   "deutan": "85837A",
+   "tritan": "888180"
+  },
+  "868480": {
+   "protan": "858480",
+   "deutan": "868480",
+   "tritan": "878383"
+  },
+  "876430": {
+   "protan": "71652B",
+   "deutan": "796E31",
+   "tritan": "925B58"
+  },
+  "888888": {
+   "protan": "888888",
+   "deutan": "888888",
+   "tritan": "888888"
+  },
+  "88A9B4": {
+   "protan": "A2A7B5",
+   "deutan": "9BA1B4",
+   "tritan": "7BADAC"
+  },
+  "89877F": {
+   "protan": "89867F",
+   "deutan": "89877F",
+   "tritan": "8B8685"
+  },
+  "89986A": {
+   "protan": "9D9367",
+   "deutan": "9B926C",
+   "tritan": "8C938C"
+  },
+  "8A3B20": {
+   "protan": "51481D",
+   "deutan": "645A1E",
+   "tritan": "982A35"
+  },
+  "8A4048": {
+   "protan": "504E48",
+   "deutan": "625D46",
+   "tritan": "963643"
+  },
+  "8A4650": {
+   "protan": "535250",
+   "deutan": "64604F",
+   "tritan": "953E4A"
+  },
+  "8B2D2D": {
+   "protan": "46412C",
+   "deutan": "5E552A",
+   "tritan": "99162E"
+  },
+  "8B3436": {
+   "protan": "4A4535",
+   "deutan": "605834",
+   "tritan": "982335"
+  },
+  "8B3A3F": {
+   "protan": "4D4A3F",
+   "deutan": "615A3D",
+   "tritan": "982D3C"
+  },
+  "8B4000": {
+   "protan": "564B00",
+   "deutan": "685C00",
+   "tritan": "992E36"
+  },
+  "8B996A": {
+   "protan": "9F9467",
+   "deutan": "9D936C",
+   "tritan": "8F948D"
+  },
+  "8C5D05": {
+   "protan": "6E6000",
+   "deutan": "796B0A",
+   "tritan": "99514F"
+  },
+  "8C7088": {
+   "protan": "6F7689",
+   "deutan": "767A87",
+   "tritan": "8F7178"
+  },
+  "8C887D": {
+   "protan": "8B877C",
+   "deutan": "8C897D",
+   "tritan": "8F8685"
+  },
+  "8C898B": {
+   "protan": "898A8B",
+   "deutan": "8A8A8B",
+   "tritan": "8C898A"
+  },
+  "8C9969": {
+   "protan": "9F9466",
+   "deutan": "9D946B",
+   "tritan": "90948D"
+  },
+  "8E8F8A": {
+   "protan": "908E8A",
+   "deutan": "908E8A",
+   "tritan": "8F8E8D"
+  },
+  "8E9A69": {
+   "protan": "A09566",
+   "deutan": "9F956B",
+   "tritan": "92958D"
+  },
+  "8F866E": {
+   "protan": "8C856D",
+   "deutan": "8E886F",
+   "tritan": "95827F"
+  },
+  "8F9A68": {
+   "protan": "A09565",
+   "deutan": "9F956A",
+   "tritan": "94958D"
+  },
+  "91ADB4": {
+   "protan": "A8ABB4",
+   "deutan": "A2A6B4",
+   "tritan": "87B0AF"
+  },
+  "928F91": {
+   "protan": "8F9091",
+   "deutan": "909091",
+   "tritan": "928F90"
+  },
+  "929081": {
+   "protan": "938F80",
+   "deutan": "949081",
+   "tritan": "958E8C"
+  },
+  "93523D": {
+   "protan": "635B3B",
+   "deutan": "72693C",
+   "tritan": "A0474D"
+  },
+  "937837": {
+   "protan": "857730",
+   "deutan": "8B7E3A",
+   "tritan": "9F6F6A"
+  },
+  "939089": {
+   "protan": "929089",
+   "deutan": "939189",
+   "tritan": "958F8E"
+  },
+  "946A27": {
+   "protan": "796C1E",
+   "deutan": "837629",
+   "tritan": "A15F5C"
+  },
+  "949081": {
+   "protan": "938F80",
+   "deutan": "959081",
+   "tritan": "978E8C"
+  },
+  "959178": {
+   "protan": "968F76",
+   "deutan": "979179",
+   "tritan": "9A8D8A"
+  },
+  "969270": {
+   "protan": "98906E",
+   "deutan": "9A9271",
+   "tritan": "9C8D89"
+  },
+  "98937F": {
+   "protan": "97927E",
+   "deutan": "999480",
+   "tritan": "9C908D"
+  },
+  "99B2B5": {
+   "protan": "AEB0B5",
+   "deutan": "A9ACB5",
+   "tritan": "91B4B3"
+  },
+  "9B8D68": {
+   "protan": "958C66",
+   "deutan": "999069",
+   "tritan": "A38783"
+  },
+  "9B9890": {
+   "protan": "9A9890",
+   "deutan": "9B9890",
+   "tritan": "9D9796"
+  },
+  "9C7D7C": {
+   "protan": "83817C",
+   "deutan": "8A877C",
+   "tritan": "A37A7D"
+  },
+  "9FB5BF": {
+   "protan": "B0B4C0",
+   "deutan": "ABB0BF",
+   "tritan": "96B8B8"
+  },
+  "A09883": {
+   "protan": "9D9782",
+   "deutan": "9F9984",
+   "tritan": "A59492"
+  },
+  "A15A5C": {
+   "protan": "69665C",
+   "deutan": "7A745B",
+   "tritan": "AD515B"
+  },
+  "A2A097": {
+   "protan": "A29F97",
+   "deutan": "A3A097",
+   "tritan": "A49F9D"
+  },
+  "A2B6B5": {
+   "protan": "B3B4B5",
+   "deutan": "AFB1B5",
+   "tritan": "9DB7B6"
+  },
+  "A4A1A3": {
+   "protan": "A1A2A3",
+   "deutan": "A2A2A3",
+   "tritan": "A4A1A2"
+  },
+  "A4A4A4": {
+   "protan": "A4A4A4",
+   "deutan": "A4A4A4",
+   "tritan": "A4A4A4"
+  },
+  "A59B4F": {
+   "protan": "A79748",
+   "deutan": "AA9B52",
+   "tritan": "B0928A"
+  },
+  "AAA7A0": {
+   "protan": "A9A7A0",
+   "deutan": "AAA8A0",
+   "tritan": "ACA6A5"
+  },
+  "AD7502": {
+   "protan": "897800",
+   "deutan": "96860B",
+   "tritan": "BD6663"
+  },
+  "ADBCC7": {
+   "protan": "B7BCC8",
+   "deutan": "B4B9C7",
+   "tritan": "A7BFBF"
+  },
+  "AF7474": {
+   "protan": "7F7D74",
+   "deutan": "8D8873",
+   "tritan": "BA6E74"
+  },
+  "B0AC9C": {
+   "protan": "B0AB9B",
+   "deutan": "B1AC9C",
+   "tritan": "B4A9A7"
+  },
+  "B15212": {
+   "protan": "6E6002",
+   "deutan": "85760E",
+   "tritan": "C33C47"
+  },
+  "B2AEA6": {
+   "protan": "B0AEA6",
+   "deutan": "B1AFA6",
+   "tritan": "B4ADAC"
+  },
+  "B35D20": {
+   "protan": "766816",
+   "deutan": "8B7C1F",
+   "tritan": "C44A51"
+  },
+  "B4CBD2": {
+   "protan": "C6C9D2",
+   "deutan": "C1C5D2",
+   "tritan": "ACCECD"
+  },
+  "B6B298": {
+   "protan": "B7B096",
+   "deutan": "B9B299",
+   "tritan": "BBAEAB"
+  },
+  "B9B2A1": {
+   "protan": "B6B1A0",
+   "deutan": "B8B3A1",
+   "tritan": "BDAFAD"
+  },
+  "BAB6AB": {
+   "protan": "B9B5AA",
+   "deutan": "BAB7AB",
+   "tritan": "BDB4B3"
+  },
+  "BAC2AA": {
+   "protan": "C5BFA9",
+   "deutan": "C4BFAB",
+   "tritan": "BCBFBB"
+  },
+  "BB7E04": {
+   "protan": "948100",
+   "deutan": "A2900E",
+   "tritan": "CD6E6B"
+  },
+  "BBC2A9": {
+   "protan": "C6BFA8",
+   "deutan": "C5BFAA",
+   "tritan": "BDBFBB"
+  },
+  "BBCFD6": {
+   "protan": "CBCED6",
+   "deutan": "C6CAD6",
+   "tritan": "B4D2D1"
+  },
+  "BC6F45": {
+   "protan": "847841",
+   "deutan": "978944",
+   "tritan": "CD6065"
+  },
+  "BC9154": {
+   "protan": "A1924F",
+   "deutan": "AB9D56",
+   "tritan": "CA8682"
+  },
+  "BCB39B": {
+   "protan": "B9B29A",
+   "deutan": "BBB59C",
+   "tritan": "C2AFAC"
+  },
+  "BCB794": {
+   "protan": "BEB592",
+   "deutan": "C0B795",
+   "tritan": "C2B2AD"
+  },
+  "BCC2A6": {
+   "protan": "C6BFA4",
+   "deutan": "C6BFA7",
+   "tritan": "BFBFBA"
+  },
+  "BDB57A": {
+   "protan": "BFB176",
+   "deutan": "C2B57C",
+   "tritan": "C7ADA6"
+  },
+  "BDBABC": {
+   "protan": "BABBBC",
+   "deutan": "BBBBBC",
+   "tritan": "BDBABB"
+  },
+  "BEA365": {
+   "protan": "B1A260",
+   "deutan": "B7A967",
+   "tritan": "CB9994"
+  },
+  "BEBAB3": {
+   "protan": "BCBAB3",
+   "deutan": "BDBBB3",
+   "tritan": "C0B9B8"
+  },
+  "BEC3A5": {
+   "protan": "C8C0A3",
+   "deutan": "C7C0A6",
+   "tritan": "C2BFBB"
+  },
+  "BFBBAB": {
+   "protan": "BFBAAA",
+   "deutan": "C0BBAB",
+   "tritan": "C3B8B6"
+  },
+  "BFC3A3": {
+   "protan": "C8C0A1",
+   "deutan": "C8C1A4",
+   "tritan": "C3BFBA"
+  },
+  "C0794E": {
+   "protan": "8D814A",
+   "deutan": "9E904E",
+   "tritan": "D06B6F"
+  },
+  "C0BCA2": {
+   "protan": "C1BAA0",
+   "deutan": "C3BCA3",
+   "tritan": "C5B8B5"
+  },
+  "C1BC99": {
+   "protan": "C3B997",
+   "deutan": "C5BC9A",
+   "tritan": "C7B7B2"
+  },
+  "C1D3DB": {
+   "protan": "CFD2DB",
+   "deutan": "CBCFDB",
+   "tritan": "BAD6D5"
+  },
+  "C2C0B1": {
+   "protan": "C3BFB0",
+   "deutan": "C4C0B1",
+   "tritan": "C5BEBC"
+  },
+  "C8D7DF": {
+   "protan": "D3D6DF",
+   "deutan": "D0D3DF",
+   "tritan": "C2D9D9"
+  },
+  "C9AAA9": {
+   "protan": "AFAEA9",
+   "deutan": "B6B3A9",
+   "tritan": "D0A7AA"
+  },
+  "CABD98": {
+   "protan": "C5BB96",
+   "deutan": "C9BF99",
+   "tritan": "D2B7B3"
+  },
+  "CC9A52": {
+   "protan": "AC9C4B",
+   "deutan": "B8A854",
+   "tritan": "DC8D89"
+  },
+  "CDCBC2": {
+   "protan": "CDCAC2",
+   "deutan": "CECBC2",
+   "tritan": "CFCAC8"
+  },
+  "CFCCC5": {
+   "protan": "CECCC5",
+   "deutan": "CFCDC5",
+   "tritan": "D1CBCA"
+  },
+  "CFDBE4": {
+   "protan": "D7DBE4",
+   "deutan": "D5D8E4",
+   "tritan": "CADDDE"
+  },
+  "D1AE7E": {
+   "protan": "BBAF7B",
+   "deutan": "C4B77F",
+   "tritan": "DEA5A2"
+  },
+  "D5D1D4": {
+   "protan": "D1D2D4",
+   "deutan": "D2D2D4",
+   "tritan": "D5D1D2"
+  },
+  "D5D2CB": {
+   "protan": "D4D2CB",
+   "deutan": "D5D3CB",
+   "tritan": "D7D1D0"
+  },
+  "D5D5D5": {
+   "protan": "D5D5D5",
+   "deutan": "D5D5D5",
+   "tritan": "D5D5D5"
+  },
+  "D6C08F": {
+   "protan": "CCBF8C",
+   "deutan": "D1C590",
+   "tritan": "E1B8B3"
+  },
+  "D7D3C2": {
+   "protan": "D7D2C1",
+   "deutan": "D8D3C3",
+   "tritan": "DBD0CE"
+  },
+  "D7D4CC": {
+   "protan": "D6D4CC",
+   "deutan": "D7D4CC",
+   "tritan": "D9D3D2"
+  },
+  "D7D5D0": {
+   "protan": "D6D5D0",
+   "deutan": "D7D5D0",
+   "tritan": "D8D4D4"
+  },
+  "D8D4B9": {
+   "protan": "DAD2B7",
+   "deutan": "DBD4BA",
+   "tritan": "DDD0CC"
+  },
+  "D8D5CC": {
+   "protan": "D7D4CC",
+   "deutan": "D8D5CC",
+   "tritan": "DAD3D2"
+  },
+  "D9D2BE": {
+   "protan": "D7D1BD",
+   "deutan": "D9D3BF",
+   "tritan": "DECFCC"
+  },
+  "D9D4B0": {
+   "protan": "DBD1AE",
+   "deutan": "DDD4B1",
+   "tritan": "E0CFCA"
+  },
+  "DAD5C7": {
+   "protan": "D8D4C6",
+   "deutan": "DAD6C7",
+   "tritan": "DED3D1"
+  },
+  "DADADA": {
+   "protan": "DADADA",
+   "deutan": "DADADA",
+   "tritan": "DADADA"
+  },
+  "DCD5C2": {
+   "protan": "DAD4C1",
+   "deutan": "DCD6C3",
+   "tritan": "E1D2D0"
+  },
+  "DEA03C": {
+   "protan": "B7A32E",
+   "deutan": "C5B23F",
+   "tritan": "F18F8C"
+  },
+  "DFDFDF": {
+   "protan": "DFDFDF",
+   "deutan": "DFDFDF",
+   "tritan": "DFDFDF"
+  },
+  "E1DFD9": {
+   "protan": "E1DFD9",
+   "deutan": "E1DFD9",
+   "tritan": "E3DEDD"
+  },
+  "E2E0D4": {
+   "protan": "E3DFD3",
+   "deutan": "E3E0D4",
+   "tritan": "E5DEDC"
+  },
+  "E4CAC9": {
+   "protan": "CECDC9",
+   "deutan": "D4D2C9",
+   "tritan": "EAC8CA"
+  },
+  "E4E0CE": {
+   "protan": "E4DFCD",
+   "deutan": "E5E0CF",
+   "tritan": "E8DDDB"
+  },
+  "E6E0C8": {
+   "protan": "E5DEC7",
+   "deutan": "E7E1C9",
+   "tritan": "EBDCD9"
+  },
+  "E8DDBF": {
+   "protan": "E4DCBD",
+   "deutan": "E7DFC0",
+   "tritan": "EFD8D5"
+  },
+  "EDEDED": {
+   "protan": "EDEDED",
+   "deutan": "EDEDED",
+   "tritan": "EDEDED"
+  },
+  "EEEDEA": {
+   "protan": "EEEDEA",
+   "deutan": "EEEDEA",
+   "tritan": "EFECEC"
+  },
+  "EFEDE6": {
+   "protan": "EFEDE6",
+   "deutan": "EFEDE6",
+   "tritan": "F1ECEB"
+  },
+  "F0EDE3": {
+   "protan": "EFECE2",
+   "deutan": "F0EDE3",
+   "tritan": "F2EBEA"
+  },
+  "F1EDDF": {
+   "protan": "F0ECDE",
+   "deutan": "F1EDDF",
+   "tritan": "F4EBE9"
+  },
+  "F4C178": {
+   "protan": "D4C272",
+   "deutan": "E0CF7A",
+   "tritan": "FFB3AF"
+  },
+  "FAF8F1": {
+   "protan": "FAF8F1",
+   "deutan": "FAF8F1",
+   "tritan": "FCF7F6"
+  },
+  "FFFFFF": {
+   "protan": "FFFFFF",
+   "deutan": "FFFFFF",
+   "tritan": "FFFFFF"
+  },
+  "141414": {
+   "protan": "141414",
+   "deutan": "141414",
+   "tritan": "141414"
+  },
+  "193125": {
+   "protan": "302E24",
+   "deutan": "2D2B26",
+   "tritan": "13312E"
+  },
+  "1B535E": {
+   "protan": "4B505F",
+   "deutan": "41495E",
+   "tritan": "005756"
+  },
+  "2C2219": {
+   "protan": "252318",
+   "deutan": "282519",
+   "tritan": "2F2020"
+  },
+  "2D564E": {
+   "protan": "53524E",
+   "deutan": "4C4D4F",
+   "tritan": "1D5754"
+  },
+  "303920": {
+   "protan": "3C361E",
+   "deutan": "3A3621",
+   "tritan": "323733"
+  },
+  "32525F": {
+   "protan": "4B5160",
+   "deutan": "444B5F",
+   "tritan": "1E5656"
+  },
+  "3B4D3F": {
+   "protan": "4D4A3E",
+   "deutan": "4A4840",
+   "tritan": "394C49"
+  },
+  "3C5159": {
+   "protan": "4C5059",
+   "deutan": "484C59",
+   "tritan": "335453"
+  },
+  "3E3A31": {
+   "protan": "3C3A30",
+   "deutan": "3D3B31",
+   "tritan": "403837"
+  },
+  "3E4C6E": {
+   "protan": "404F6F",
+   "deutan": "3B4B6D",
+   "tritan": "2E5358"
+  },
+  "452842": {
+   "protan": "272F43",
+   "deutan": "2E3341",
+   "tritan": "472A32"
+  },
+  "49522B": {
+   "protan": "564E28",
+   "deutan": "554E2D",
+   "tritan": "4C4E49"
+  },
+  "4B92A3": {
+   "protan": "868EA4",
+   "deutan": "7984A3",
+   "tritan": "039897"
+  },
+  "4D6759": {
+   "protan": "666358",
+   "deutan": "62605A",
+   "tritan": "486763"
+  },
+  "534E25": {
+   "protan": "544C21",
+   "deutan": "564E27",
+   "tritan": "594945"
+  },
+  "594B2E": {
+   "protan": "524B2C",
+   "deutan": "554E2F",
+   "tritan": "5F4644"
+  },
+  "604826": {
+   "protan": "514923",
+   "deutan": "574F27",
+   "tritan": "684240"
+  },
+  "68432F": {
+   "protan": "4D472D",
+   "deutan": "564F2F",
+   "tritan": "713C3E"
+  },
+  "748878": {
+   "protan": "888477",
+   "deutan": "858279",
+   "tritan": "728783"
+  },
+  "767167": {
+   "protan": "747166",
+   "deutan": "757267",
+   "tritan": "796F6E"
+  },
+  "7F5B7B": {
+   "protan": "5A647C",
+   "deutan": "62687A",
+   "tritan": "825D66"
+  },
+  "83988C": {
+   "protan": "97958B",
+   "deutan": "93928D",
+   "tritan": "7F9894"
+  },
+  "889EA8": {
+   "protan": "999DA9",
+   "deutan": "9499A8",
+   "tritan": "7FA1A1"
+  },
+  "895152": {
+   "protan": "5C5A52",
+   "deutan": "6A6551",
+   "tritan": "934B52"
+  },
+  "8DB8AF": {
+   "protan": "B4B3AF",
+   "deutan": "ACADB0",
+   "tritan": "81BAB5"
+  },
+  "90C5D2": {
+   "protan": "BBC1D3",
+   "deutan": "B0B9D2",
+   "tritan": "79CAC9"
+  },
+  "92A3C9": {
+   "protan": "97A6CB",
+   "deutan": "92A1C8",
+   "tritan": "83AAB0"
+  },
+  "948B49": {
+   "protan": "968743",
+   "deutan": "988B4C",
+   "tritan": "9E837C"
+  },
+  "A3AD8B": {
+   "protan": "B2A989",
+   "deutan": "B0A98C",
+   "tritan": "A6A9A4"
+  },
+  "A7B67F": {
+   "protan": "BDB07B",
+   "deutan": "BBB081",
+   "tritan": "ACB0A8"
+  },
+  "A8A49C": {
+   "protan": "A6A49C",
+   "deutan": "A7A59C",
+   "tritan": "AAA3A2"
+  },
+  "AA8148": {
+   "protan": "908243",
+   "deutan": "9A8C49",
+   "tritan": "B77674"
+  },
+  "ABBBAE": {
+   "protan": "BBB8AD",
+   "deutan": "B8B6AF",
+   "tritan": "A9BAB7"
+  },
+  "AE90AA": {
+   "protan": "8F97AB",
+   "deutan": "969AA9",
+   "tritan": "B19299"
+  },
+  "B58063": {
+   "protan": "8E8561",
+   "deutan": "9B9063",
+   "tritan": "C27778"
+  },
+  "BFB08F": {
+   "protan": "B8AF8D",
+   "deutan": "BCB390",
+   "tritan": "C7AAA7"
+  },
+  "C28686": {
+   "protan": "918F86",
+   "deutan": "9F9A85",
+   "tritan": "CE8086"
+  },
+  "C6C08D": {
+   "protan": "C9BC8A",
+   "deutan": "CBC08F",
+   "tritan": "CFB9B3"
+  },
+  "CBD9F8": {
+   "protan": "D0DBFA",
+   "deutan": "CCD7F7",
+   "tritan": "C0DFE3"
+  },
+  "CBEDE5": {
+   "protan": "EAE9E5",
+   "deutan": "E3E4E6",
+   "tritan": "C3EEEA"
+  },
+  "DFEBC0": {
+   "protan": "F1E6BD",
+   "deutan": "EFE6C2",
+   "tritan": "E3E6DF"
+  },
+  "E0B67D": {
+   "protan": "C6B779",
+   "deutan": "D0C17E",
+   "tritan": "EFABA8"
+  },
+  "E4B8A1": {
+   "protan": "C4BC9F",
+   "deutan": "CEC5A1",
+   "tritan": "F0B1B2"
+  },
+  "F3E7CD": {
+   "protan": "EEE6CB",
+   "deutan": "F1E9CE",
+   "tritan": "FAE2E0"
+  }
+ },
+ "projection": {
+  "theta": 36.2,
+  "phi": 32.9,
+  "lit_face": "-x (appears left)",
+  "shade_face": "-y (appears right)",
+  "source": "library/references/urban_diagram_references/README.md section 8"
+ },
+ "masterplan": {
+  "asked_by": "thread \"Masterplan reference study\", 17 Oct 2026 12:10 (existing_green: 14:16)",
+  "order": [
+   "storage",
+   "discharge",
+   "wetland",
+   "planting",
+   "amphibious",
+   "agriculture",
+   "heritage",
+   "centre",
+   "housing",
+   "civic",
+   "park",
+   "sport",
+   "service"
+  ],
+  "roles": [
+   "paper",
+   "building",
+   "heritage_building",
+   "proposed_mass",
+   "road",
+   "verge",
+   "path",
+   "river",
+   "water_new",
+   "level_band",
+   "tree_mass",
+   "tree",
+   "existing_green",
+   "ink",
+   "accent",
+   "study_area"
+  ],
+  "colours": {
+   "storage": {
+    "label": "Water storage and detention",
+    "light": "CBD9F8",
+    "mid": "92A3C9",
+    "dark": "3E4C6E",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "OKLCH hue 265, bluer than the river (214.5), to part it from wet ground",
+    "cue": "basin edge in its dark tone",
+    "spec": "OKLCH 0.885 / 0.045 / 265.0"
+   },
+   "discharge": {
+    "label": "Discharge and overflow channel",
+    "light": "90C5D2",
+    "mid": "4B92A3",
+    "dark": "1B535E",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the water's hue",
+    "cue": "flow arrows in its dark tone",
+    "spec": "OKLCH 0.790 / 0.058 / 214.5"
+   },
+   "wetland": {
+    "label": "Treatment wetland (reed bed)",
+    "light": "CBEDE5",
+    "mid": "8DB8AF",
+    "dark": "2D564E",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "OKLCH hue 180, between water and green",
+    "cue": "reed tufts in its mid tone",
+    "spec": "OKLCH 0.920 / 0.037 / 180.0"
+   },
+   "planting": {
+    "label": "Cleansing and de-odouring planting strip",
+    "light": "ABBBAE",
+    "mid": "748878",
+    "dark": "3B4D3F",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "OKLCH hue 150, cooler than the parks",
+    "cue": "stipple in its mid tone",
+    "spec": "OKLCH 0.775 / 0.025 / 150.0"
+   },
+   "amphibious": {
+    "label": "Amphibious zone (floods with the water level)",
+    "light": "C1D3DB",
+    "mid": "889EA8",
+    "dark": "3C5159",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "diagram D4: still water and wet ground",
+    "cue": "summer and winter water lines (level_band)",
+    "spec": "palette colour"
+   },
+   "agriculture": {
+    "label": "Irrigated agriculture and orchards",
+    "light": "C6C08D",
+    "mid": "948B49",
+    "dark": "534E25",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the board's agri hue",
+    "cue": "furrow stripes in its mid tone, as in D4",
+    "spec": "OKLCH 0.800 / 0.068 / 101.4"
+   },
+   "heritage": {
+    "label": "Heritage and archaeology",
+    "light": "E4CAC9",
+    "mid": "AF7474",
+    "dark": "4C2528",
+    "use": "light: the zone tint; mid: historic tone (D2); dark: dashed edge and zone tag (D2 monument)",
+    "source": "diagram D2: heritage zone tint, historic, monument",
+    "cue": "dashed edge in its dark tone, as in D2",
+    "spec": "palette colour"
+   },
+   "centre": {
+    "label": "Mixed use and centre",
+    "light": "E0B67D",
+    "mid": "AA8148",
+    "dark": "604826",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the board's mixed-use hue",
+    "cue": "zone tag",
+    "spec": "OKLCH 0.800 / 0.088 / 74.6"
+   },
+   "housing": {
+    "label": "Housing",
+    "light": "F3E7CD",
+    "mid": "BFB08F",
+    "dark": "594B2E",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the board's residential hue",
+    "cue": "zone tag",
+    "spec": "OKLCH 0.930 / 0.037 / 86.6"
+   },
+   "civic": {
+    "label": "Public and civic",
+    "light": "AE90AA",
+    "mid": "7F5B7B",
+    "dark": "452842",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the board's institutional hue",
+    "cue": "zone tag",
+    "spec": "OKLCH 0.690 / 0.050 / 331.0"
+   },
+   "park": {
+    "label": "Park and open space",
+    "light": "DFEBC0",
+    "mid": "A7B67F",
+    "dark": "49522B",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the green's hue",
+    "cue": "trees on it",
+    "spec": "OKLCH 0.920 / 0.059 / 120.6"
+   },
+   "sport": {
+    "label": "Sport and recreation",
+    "light": "E4B8A1",
+    "mid": "B58063",
+    "dark": "68432F",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the board's commerce hue, free here: the masterplan has no commerce code",
+    "cue": "zone tag",
+    "spec": "OKLCH 0.815 / 0.060 / 48.3"
+   },
+   "service": {
+    "label": "Parking and service",
+    "light": "A8A49C",
+    "mid": "767167",
+    "dark": "3E3A31",
+    "use": "light: the zone's flat fill; mid: hatch and symbols on it; dark: its edge and zone tag",
+    "source": "the board's transport hue",
+    "cue": "zone tag",
+    "spec": "OKLCH 0.720 / 0.013 / 88.3"
+   },
+   "paper": {
+    "label": "Sheet and ground",
+    "light": "EFEDE6",
+    "mid": "E2E0D4",
+    "dark": "B0AC9C",
+    "use": "light: the sheet inside the frame; mid: ground outside the frame; dark: contours, grid and frame"
+   },
+   "building": {
+    "label": "Existing buildings",
+    "light": "D8D5CC",
+    "mid": "B0AC9C",
+    "dark": "847E75",
+    "use": "light: roof; mid: shadow; dark: fine outline"
+   },
+   "heritage_building": {
+    "label": "Heritage buildings",
+    "light": "AF7474",
+    "mid": "895152",
+    "dark": "4C2528",
+    "use": "light: registered historic buildings (D2); mid: shadow; dark: outline, and monuments drawn solid (D2)"
+   },
+   "proposed_mass": {
+    "label": "Proposed buildings",
+    "light": "FAF8F1",
+    "mid": "B0AC9C",
+    "dark": "4A3F35",
+    "use": "light: roof; mid: cast shadow; dark: bold outline"
+   },
+   "road": {
+    "label": "Roads and streets",
+    "light": "CFCCC5",
+    "mid": "847E75",
+    "dark": "4A3F35",
+    "use": "dark: main roads as marker bands (reference A); mid: secondary roads; light: lanes and minor streets"
+   },
+   "verge": {
+    "label": "Verges",
+    "light": "A3AD8B",
+    "mid": "8C9969",
+    "dark": "727A4E",
+    "use": "light: verge strips, reference A's verge lightness and chroma in the palette's green hue; mid: marker strokes; dark: edge"
+   },
+   "path": {
+    "label": "Paths",
+    "light": "FAF8F1",
+    "mid": "B0AC9C",
+    "dark": "847E75",
+    "use": "light: path surface; mid: edge lines; dark: dashes and labels"
+   },
+   "river": {
+    "label": "River water (existing)",
+    "light": "91ADB4",
+    "mid": "5D7F8D",
+    "dark": "32525F",
+    "use": "light: the water; mid: flow marks; dark: banks and the river's name"
+   },
+   "water_new": {
+    "label": "New water bodies (proposed)",
+    "light": "91ADB4",
+    "mid": "5D7F8D",
+    "dark": "32525F",
+    "use": "the river's tones with a dashed edge (existing solid, proposed dashed)"
+   },
+   "level_band": {
+    "label": "Water-level band",
+    "light": "C1D3DB",
+    "mid": "91ADB4",
+    "dark": "5D7F8D",
+    "use": "light: ground between the dry summer bed and the winter level (as amphibious); mid: summer water line; dark: winter water line"
+   },
+   "tree_mass": {
+    "label": "Tree masses",
+    "light": "727A4E",
+    "mid": "495338",
+    "dark": "303920",
+    "use": "mid: the mass (diagram D4 trees); light: marker texture on it; dark: edge and shadow"
+   },
+   "tree": {
+    "label": "Single trees",
+    "light": "8C9969",
+    "mid": "727A4E",
+    "dark": "495338",
+    "use": "light: canopy; mid: canopy edge; dark: trunk dot and shadow"
+   },
+   "existing_green": {
+    "label": "Existing green (parks as they are)",
+    "light": "83988C",
+    "mid": "4D6759",
+    "dark": "193125",
+    "use": "light: existing parks and green as they are, flat, with no tree symbols and no zone tag; mid: hairline edge; dark: names (ink is too faint on it)"
+   },
+   "ink": {
+    "label": "Ink",
+    "light": "847E75",
+    "mid": "4A3F35",
+    "dark": "2C2219",
+    "use": "mid: lettering and outlines; light: secondary lettering and fine lines; dark: titles and the heaviest lines"
+   },
+   "accent": {
+    "label": "Links (accent)",
+    "light": "C28686",
+    "mid": "8B3A3F",
+    "dark": "633131",
+    "use": "lines only, never a fill: mid the links and the spine; light proposed or secondary links; dark arrowheads and link labels"
+   },
+   "study_area": {
+    "label": "Study areas",
+    "light": "FFFFFF",
+    "mid": "141414",
+    "dark": "141414",
+    "use": "light: white casing, 1.7 x the line width; the line and the name take the owner's colour (STUDY_AREA: aras 5C48A2, begum 7F3902, nil 107C73; scripts/study_area_style.md); mid and dark: ink only for a curve on no owner layer; no corner squares; never filled or hatched"
+   }
+  },
+  "method": {
+   "tones": "light, mid and dark are three tones of one colour; 'use' says which tone does what",
+   "codes": "light = the zone's flat fill; mid = fill lightness - 0.17, chroma x 1.3 (cap 0.09); dark = lightness 0.42, lowered in 0.005 steps until 4.5:1 on its fill and on paper, chroma x 1.3 (cap 0.06); hue kept; heritage takes diagram D2's tones",
+   "fills": "hues from the palette; lightness and chroma of the new fills picked with a coordinate-descent search on a 0.005 x 0.004 OKLCH grid (scratch script, not kept) that raised the smallest differences, then fixed in make_palette.py",
+   "targets": "CIEDE2000 10 between any two fills for normal vision (as the diagrams); 7 between neighbours in the legend for the worst dichromat, matrices on linear and on encoded sRGB (ours)"
+  },
+  "reference_a": {
+   "card": "library/references/masterplan_references/README.md",
+   "colours": {
+    "village_center": "F7A7AA",
+    "single_family": "F8DAB8",
+    "hotel": "EBB4D1",
+    "lawn": "CEDE9C",
+    "verge": "90B19B",
+    "tree_mass": "506563",
+    "sea": "81D0E1"
+   },
+   "use_fill_lightness": [
+    0.807,
+    0.905
+   ]
+  },
+  "checks": {
+   "normal_min": [
+    10.1704,
+    "discharge",
+    "amphibious"
+   ],
+   "normal_under_target": [],
+   "adjacent_dichromat_min": [
+    7.2895,
+    "agriculture",
+    "heritage",
+    "tritan"
+   ],
+   "adjacent_under_target": [],
+   "dichromat_lowest": [
+    [
+     "centre",
+     "sport",
+     2.2878,
+     "tritan"
+    ],
+    [
+     "storage",
+     "amphibious",
+     2.7578,
+     "tritan"
+    ],
+    [
+     "housing",
+     "park",
+     2.8342,
+     "deutan"
+    ],
+    [
+     "agriculture",
+     "centre",
+     2.9062,
+     "protan"
+    ],
+    [
+     "agriculture",
+     "sport",
+     3.702,
+     "deutan"
+    ],
+    [
+     "planting",
+     "service",
+     4.9752,
+     "deutan"
+    ],
+    [
+     "discharge",
+     "amphibious",
+     5.6346,
+     "protan"
+    ],
+    [
+     "storage",
+     "wetland",
+     5.7125,
+     "tritan"
+    ]
+   ],
+   "vs_context_min": {
+    "paper": [
+     7.6322,
+     "housing"
+    ],
+    "river": [
+     7.8752,
+     "discharge"
+    ],
+    "verge": [
+     8.6308,
+     "planting"
+    ],
+    "existing buildings": [
+     7.8342,
+     "housing"
+    ]
+   },
+   "vs_context_dichromat_min": {
+    "paper": [
+     1.6423,
+     "wetland"
+    ],
+    "river": [
+     3.4697,
+     "civic"
+    ],
+    "verge": [
+     5.3554,
+     "sport"
+    ],
+    "existing buildings": [
+     0.912,
+     "heritage"
+    ]
+   },
+   "text": {
+    "storage": {
+     "dark_on_fill": 6.0152,
+     "dark_on_paper": 7.2761,
+     "mid_on_fill": 1.7846
+    },
+    "discharge": {
+     "dark_on_fill": 4.5401,
+     "dark_on_paper": 7.3303,
+     "mid_on_fill": 1.8693
+    },
+    "wetland": {
+     "dark_on_fill": 6.5751,
+     "dark_on_paper": 7.0225,
+     "mid_on_fill": 1.747
+    },
+    "planting": {
+     "dark_on_fill": 4.5061,
+     "dark_on_paper": 7.7293,
+     "mid_on_fill": 1.888
+    },
+    "amphibious": {
+     "dark_on_fill": 5.4143,
+     "dark_on_paper": 7.1325,
+     "mid_on_fill": 1.8137
+    },
+    "agriculture": {
+     "dark_on_fill": 4.5589,
+     "dark_on_paper": 7.216,
+     "mid_on_fill": 1.8725
+    },
+    "heritage": {
+     "dark_on_fill": 8.4804,
+     "dark_on_paper": 11.1861,
+     "mid_on_fill": 2.4386
+    },
+    "centre": {
+     "dark_on_fill": 4.5495,
+     "dark_on_paper": 7.3101,
+     "mid_on_fill": 1.8773
+    },
+    "housing": {
+     "dark_on_fill": 6.9305,
+     "dark_on_paper": 7.2558,
+     "mid_on_fill": 1.7433
+    },
+    "civic": {
+     "dark_on_fill": 4.5067,
+     "dark_on_paper": 10.9627,
+     "mid_on_fill": 1.9999
+    },
+    "park": {
+     "dark_on_fill": 6.6461,
+     "dark_on_paper": 7.0993,
+     "mid_on_fill": 1.7407
+    },
+    "sport": {
+     "dark_on_fill": 4.7973,
+     "dark_on_paper": 7.3695,
+     "mid_on_fill": 1.8724
+    },
+    "service": {
+     "dark_on_fill": 4.5595,
+     "dark_on_paper": 9.667,
+     "mid_on_fill": 1.9535
+    }
+   },
+   "red_green_same_lightness": [],
+   "fill_lightness": [
+    0.689,
+    0.9307
+   ],
+   "ref_a_use_fills_lightness": [
+    0.8068,
+    0.9048
+   ],
+   "existing_green": {
+    "vs": {
+     "proposed park": [
+      24.0432,
+      23.3994,
+      "tritan"
+     ],
+     "verge": [
+      10.8915,
+      10.1556,
+      "protan"
+     ],
+     "paper": [
+      25.5766,
+      22.8551,
+      "protan"
+     ],
+     "existing buildings": [
+      21.0224,
+      17.4391,
+      "protan"
+     ],
+     "lanes": [
+      19.467,
+      15.5528,
+      "protan"
+     ],
+     "secondary roads": [
+      14.3879,
+      7.2184,
+      "deutan"
+     ],
+     "river": [
+      11.1912,
+      7.8034,
+      "tritan"
+     ],
+     "single trees": [
+      11.9857,
+      8.1425,
+      "tritan"
+     ],
+     "tree masses": [
+      27.6904,
+      27.4912,
+      "deutan"
+     ]
+    },
+    "fills_min": [
+     10.8639,
+     "planting"
+    ],
+    "fills_dichromat_min": [
+     4.8491,
+     "protan",
+     "service"
+    ],
+    "dark_on_fill": 4.5344,
+    "dark_on_paper": 11.8925,
+    "ink_on_fill": 3.3284,
+    "spec": "OKLCH 0.660 / 0.030 / 160.0"
+   },
+   "pairs": [
+    {
+     "a": "storage",
+     "b": "discharge",
+     "normal": 16.7105,
+     "dichromat": 7.5895,
+     "kind": "protan",
+     "adjacent": true
+    },
+    {
+     "a": "storage",
+     "b": "wetland",
+     "normal": 18.9589,
+     "dichromat": 5.7125,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "planting",
+     "normal": 21.1869,
+     "dichromat": 9.6541,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "amphibious",
+     "normal": 10.3289,
+     "dichromat": 2.7578,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "agriculture",
+     "normal": 33.6887,
+     "dichromat": 23.0098,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "heritage",
+     "normal": 18.2025,
+     "dichromat": 15.1233,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "centre",
+     "normal": 33.1665,
+     "dichromat": 34.7079,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "housing",
+     "normal": 24.1634,
+     "dichromat": 22.9422,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "civic",
+     "normal": 23.8332,
+     "dichromat": 17.2686,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "park",
+     "normal": 29.9225,
+     "dichromat": 10.6351,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "sport",
+     "normal": 26.272,
+     "dichromat": 26.5194,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "storage",
+     "b": "service",
+     "normal": 21.6715,
+     "dichromat": 20.3548,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "wetland",
+     "normal": 13.3592,
+     "dichromat": 11.1994,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "discharge",
+     "b": "planting",
+     "normal": 13.6995,
+     "dichromat": 12.9309,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "amphibious",
+     "normal": 10.1704,
+     "dichromat": 5.6346,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "agriculture",
+     "normal": 27.1346,
+     "dichromat": 26.712,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "heritage",
+     "normal": 33.6815,
+     "dichromat": 10.9248,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "centre",
+     "normal": 32.5832,
+     "dichromat": 29.0189,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "housing",
+     "normal": 25.418,
+     "dichromat": 21.8513,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "civic",
+     "normal": 34.6548,
+     "dichromat": 9.5357,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "park",
+     "normal": 25.0127,
+     "dichromat": 20.6277,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "sport",
+     "normal": 31.5622,
+     "dichromat": 20.8697,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "discharge",
+     "b": "service",
+     "normal": 19.5427,
+     "dichromat": 15.1765,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "planting",
+     "normal": 12.6542,
+     "dichromat": 12.1269,
+     "kind": "deutan",
+     "adjacent": true
+    },
+    {
+     "a": "wetland",
+     "b": "amphibious",
+     "normal": 10.9802,
+     "dichromat": 6.3775,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "agriculture",
+     "normal": 20.5757,
+     "dichromat": 18.5579,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "heritage",
+     "normal": 27.5731,
+     "dichromat": 6.2134,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "centre",
+     "normal": 28.373,
+     "dichromat": 21.2615,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "housing",
+     "normal": 17.088,
+     "dichromat": 8.9549,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "civic",
+     "normal": 35.4117,
+     "dichromat": 19.8569,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "park",
+     "normal": 13.192,
+     "dichromat": 12.7471,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "sport",
+     "normal": 30.7881,
+     "dichromat": 14.4597,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "wetland",
+     "b": "service",
+     "normal": 21.6959,
+     "dichromat": 16.9805,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "amphibious",
+     "normal": 11.9725,
+     "dichromat": 7.3431,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "planting",
+     "b": "agriculture",
+     "normal": 13.9929,
+     "dichromat": 12.1861,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "heritage",
+     "normal": 23.3123,
+     "dichromat": 6.3091,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "centre",
+     "normal": 22.5114,
+     "dichromat": 14.2805,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "housing",
+     "normal": 16.8389,
+     "dichromat": 12.3289,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "civic",
+     "normal": 26.7436,
+     "dichromat": 13.8061,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "park",
+     "normal": 14.7031,
+     "dichromat": 12.7281,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "sport",
+     "normal": 25.2087,
+     "dichromat": 6.0538,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "planting",
+     "b": "service",
+     "normal": 10.8856,
+     "dichromat": 4.9752,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "agriculture",
+     "normal": 23.0206,
+     "dichromat": 22.2755,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "amphibious",
+     "b": "heritage",
+     "normal": 20.3394,
+     "dichromat": 6.7558,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "centre",
+     "normal": 27.3079,
+     "dichromat": 25.1454,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "housing",
+     "normal": 17.8849,
+     "dichromat": 16.184,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "civic",
+     "normal": 26.964,
+     "dichromat": 14.3916,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "park",
+     "normal": 20.2837,
+     "dichromat": 10.3657,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "sport",
+     "normal": 24.3385,
+     "dichromat": 17.187,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "amphibious",
+     "b": "service",
+     "normal": 15.9315,
+     "dichromat": 15.0901,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "agriculture",
+     "b": "heritage",
+     "normal": 23.8129,
+     "dichromat": 7.2895,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "agriculture",
+     "b": "centre",
+     "normal": 11.5259,
+     "dichromat": 2.9062,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "agriculture",
+     "b": "housing",
+     "normal": 12.7707,
+     "dichromat": 10.105,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "agriculture",
+     "b": "civic",
+     "normal": 36.6345,
+     "dichromat": 12.567,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "agriculture",
+     "b": "park",
+     "normal": 11.3759,
+     "dichromat": 9.743,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "agriculture",
+     "b": "sport",
+     "normal": 18.7862,
+     "dichromat": 3.702,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "agriculture",
+     "b": "service",
+     "normal": 15.4537,
+     "dichromat": 9.2129,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "heritage",
+     "b": "centre",
+     "normal": 19.8585,
+     "dichromat": 9.8951,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "heritage",
+     "b": "housing",
+     "normal": 15.7953,
+     "dichromat": 6.6455,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "heritage",
+     "b": "civic",
+     "normal": 18.4198,
+     "dichromat": 14.984,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "heritage",
+     "b": "park",
+     "normal": 26.9254,
+     "dichromat": 10.2835,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "heritage",
+     "b": "sport",
+     "normal": 10.2677,
+     "dichromat": 8.2307,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "heritage",
+     "b": "service",
+     "normal": 16.0043,
+     "dichromat": 11.2064,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "centre",
+     "b": "housing",
+     "normal": 15.247,
+     "dichromat": 13.9233,
+     "kind": "deutan",
+     "adjacent": true
+    },
+    {
+     "a": "centre",
+     "b": "civic",
+     "normal": 33.1106,
+     "dichromat": 13.732,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "centre",
+     "b": "park",
+     "normal": 20.1586,
+     "dichromat": 11.5695,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "centre",
+     "b": "sport",
+     "normal": 10.9399,
+     "dichromat": 2.2878,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "centre",
+     "b": "service",
+     "normal": 18.061,
+     "dichromat": 16.2293,
+     "kind": "protan",
+     "adjacent": false
+    },
+    {
+     "a": "housing",
+     "b": "civic",
+     "normal": 32.938,
+     "dichromat": 20.6939,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "housing",
+     "b": "park",
+     "normal": 11.0024,
+     "dichromat": 2.8342,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "housing",
+     "b": "sport",
+     "normal": 16.1029,
+     "dichromat": 8.9481,
+     "kind": "deutan",
+     "adjacent": false
+    },
+    {
+     "a": "housing",
+     "b": "service",
+     "normal": 18.2448,
+     "dichromat": 17.9681,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "civic",
+     "b": "park",
+     "normal": 41.8207,
+     "dichromat": 26.7089,
+     "kind": "tritan",
+     "adjacent": true
+    },
+    {
+     "a": "civic",
+     "b": "sport",
+     "normal": 22.7951,
+     "dichromat": 13.6917,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "civic",
+     "b": "service",
+     "normal": 19.9346,
+     "dichromat": 10.9088,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "park",
+     "b": "sport",
+     "normal": 25.6298,
+     "dichromat": 7.7179,
+     "kind": "deutan",
+     "adjacent": true
+    },
+    {
+     "a": "park",
+     "b": "service",
+     "normal": 21.5288,
+     "dichromat": 17.6595,
+     "kind": "tritan",
+     "adjacent": false
+    },
+    {
+     "a": "sport",
+     "b": "service",
+     "normal": 16.4974,
+     "dichromat": 9.7257,
+     "kind": "protan",
+     "adjacent": true
+    }
+   ],
+   "vs_context": {
+    "storage": {
+     "paper": [
+      17.0689,
+      14.2589
+     ],
+     "river": [
+      17.7288,
+      13.1733
+     ],
+     "verge": [
+      30.3797,
+      16.1892
+     ],
+     "existing buildings": [
+      17.6798,
+      14.8402
+     ]
+    },
+    "discharge": {
+     "paper": [
+      20.7049,
+      15.6794
+     ],
+     "river": [
+      7.8752,
+      6.6718
+     ],
+     "verge": [
+      22.0492,
+      19.3656
+     ],
+     "existing buildings": [
+      18.9941,
+      13.2994
+     ]
+    },
+    "wetland": {
+     "paper": [
+      13.1488,
+      1.6423
+     ],
+     "river": [
+      17.0675,
+      15.3072
+     ],
+     "verge": [
+      19.3383,
+      19.2547
+     ],
+     "existing buildings": [
+      13.8961,
+      5.0832
+     ]
+    },
+    "planting": {
+     "paper": [
+      15.5216,
+      12.7331
+     ],
+     "river": [
+      10.5033,
+      7.5679
+     ],
+     "verge": [
+      8.6308,
+      7.0477
+     ],
+     "existing buildings": [
+      11.5788,
+      7.2291
+     ]
+    },
+    "amphibious": {
+     "paper": [
+      11.78,
+      10.0857
+     ],
+     "river": [
+      11.1524,
+      10.1457
+     ],
+     "verge": [
+      20.5904,
+      13.9926
+     ],
+     "existing buildings": [
+      10.7846,
+      8.5704
+     ]
+    },
+    "agriculture": {
+     "paper": [
+      17.8501,
+      13.1559
+     ],
+     "river": [
+      23.7677,
+      22.9581
+     ],
+     "verge": [
+      9.2358,
+      7.003
+     ],
+     "existing buildings": [
+      14.4182,
+      8.3575
+     ]
+    },
+    "heritage": {
+     "paper": [
+      13.3854,
+      6.1589
+     ],
+     "river": [
+      27.4105,
+      11.2238
+     ],
+     "verge": [
+      26.9317,
+      13.2603
+     ],
+     "existing buildings": [
+      11.9825,
+      0.912
+     ]
+    },
+    "centre": {
+     "paper": [
+      21.0209,
+      19.9189
+     ],
+     "river": [
+      28.9432,
+      25.0776
+     ],
+     "verge": [
+      18.5635,
+      8.1456
+     ],
+     "existing buildings": [
+      17.9733,
+      16.8673
+     ]
+    },
+    "housing": {
+     "paper": [
+      7.6322,
+      7.4199
+     ],
+     "river": [
+      24.459,
+      21.7074
+     ],
+     "verge": [
+      18.6051,
+      15.3655
+     ],
+     "existing buildings": [
+      7.8342,
+      7.7691
+     ]
+    },
+    "civic": {
+     "paper": [
+      29.132,
+      23.757
+     ],
+     "river": [
+      26.7991,
+      3.4697
+     ],
+     "verge": [
+      35.3873,
+      18.1807
+     ],
+     "existing buildings": [
+      26.1759,
+      19.0485
+     ]
+    },
+    "park": {
+     "paper": [
+      13.7596,
+      5.942
+     ],
+     "river": [
+      24.6735,
+      19.738
+     ],
+     "verge": [
+      15.3572,
+      15.2693
+     ],
+     "existing buildings": [
+      13.6377,
+      7.5862
+     ]
+    },
+    "sport": {
+     "paper": [
+      18.6096,
+      13.8755
+     ],
+     "river": [
+      28.0743,
+      17.5334
+     ],
+     "verge": [
+      24.5032,
+      5.3554
+     ],
+     "existing buildings": [
+      15.9757,
+      9.6666
+     ]
+    },
+    "service": {
+     "paper": [
+      18.0822,
+      17.9383
+     ],
+     "river": [
+      13.3326,
+      9.2445
+     ],
+     "verge": [
+      12.2113,
+      6.3064
+     ],
+     "existing buildings": [
+      12.8212,
+      12.624
+     ]
+    }
+   }
+  }
+ },
+ "study_areas": {
+  "asked_by": "Aras, 17 Oct 2026 19:19 (colour-code the working areas, no curve-point markers, thicker lines) and 19:23 (colours from the palettes and the colour research)",
+  "record": "scripts/study_area_style.md",
+  "order": [
+   "aras_alan",
+   "begum_alan",
+   "nil_alan"
+  ],
+  "owners": {
+   "aras_alan": {
+    "owner": "Aras",
+    "label": "ARAS",
+    "line": "5C48A2",
+    "spec": [
+     0.47,
+     0.14,
+     290.0
+    ],
+    "hue_from": "violet between the masterplan storage blue and the D5 plums; a true blue would read as water"
+   },
+   "begum_alan": {
+    "owner": "Begüm",
+    "label": "BEGÜM",
+    "line": "7F3902",
+    "spec": [
+     0.43,
+     0.115,
+     50.0
+    ],
+    "hue_from": "the market terracotta of D1 (commerce); the oxblood accent marks walking routes and links"
+   },
+   "nil_alan": {
+    "owner": "Nil",
+    "label": "NİL",
+    "line": "107C73",
+    "spec": [
+     0.53,
+     0.09,
+     185.0
+    ],
+    "hue_from": "the masterplan wetland hue"
+   }
+  },
+  "touching": [
+   [
+    "aras_alan",
+    "begum_alan"
+   ],
+   [
+    "begum_alan",
+    "nil_alan"
+   ]
+  ],
+  "style": {
+   "casing": "FFFFFF",
+   "casing_factor": 1.7,
+   "lw_mm": 0.85,
+   "lw_main_mm": 1.1,
+   "lw_section_mm": 1.5
+  },
+  "method": "CIEDE2000 between the owner lines (all pairs; touching pairs kept farthest apart) for normal vision and the worst dichromat (matrices on linear and on encoded sRGB); against the palette's line colours and the board's ramp samples (5th percentile); WCAG contrast of the label on white",
+  "line_colours_checked": [
+   [
+    "accent (links, D3 walking routes)",
+    "8B3A3F"
+   ],
+   [
+    "accent deep",
+    "633131"
+   ],
+   [
+    "accent light (masterplan links)",
+    "C28686"
+   ],
+   [
+    "board religious",
+    "8A4650"
+   ],
+   [
+    "board intensity top",
+    "7A3E3A"
+   ],
+   [
+    "D2 monuments, D3 crossings",
+    "4C2528"
+   ],
+   [
+    "D2 historic",
+    "AF7474"
+   ],
+   [
+    "heritage shadow",
+    "895152"
+   ],
+   [
+    "water lines",
+    "5D7F8D"
+   ],
+   [
+    "river banks",
+    "32525F"
+   ],
+   [
+    "board BLUE_D",
+    "5E8494"
+   ],
+   [
+    "ink",
+    "4A3F35"
+   ],
+   [
+    "ink2",
+    "847E75"
+   ],
+   [
+    "board INK2",
+    "7A6E60"
+   ],
+   [
+    "ink dark",
+    "2C2219"
+   ],
+   [
+    "fallback study ink",
+    "141414"
+   ],
+   [
+    "tree mass edge",
+    "303920"
+   ],
+   [
+    "existing green edge",
+    "4D6759"
+   ],
+   [
+    "trees",
+    "495338"
+   ],
+   [
+    "D3 secondary streets",
+    "B0AC9C"
+   ],
+   [
+    "masterplan storage edge",
+    "3E4C6E"
+   ],
+   [
+    "masterplan discharge edge",
+    "1B535E"
+   ],
+   [
+    "masterplan wetland edge",
+    "2D564E"
+   ],
+   [
+    "masterplan planting edge",
+    "3B4D3F"
+   ],
+   [
+    "masterplan amphibious edge",
+    "3C5159"
+   ],
+   [
+    "masterplan agriculture edge",
+    "534E25"
+   ],
+   [
+    "masterplan centre edge",
+    "604826"
+   ],
+   [
+    "masterplan housing edge",
+    "594B2E"
+   ],
+   [
+    "masterplan civic edge",
+    "452842"
+   ],
+   [
+    "masterplan park edge",
+    "49522B"
+   ],
+   [
+    "masterplan sport edge",
+    "68432F"
+   ],
+   [
+    "masterplan service edge",
+    "3E3A31"
+   ]
+  ],
+  "checks": {
+   "pairs": [
+    {
+     "a": "aras_alan",
+     "b": "begum_alan",
+     "normal": 43.6025,
+     "dichromat": 28.6602,
+     "kind": "tritan",
+     "touching": true
+    },
+    {
+     "a": "aras_alan",
+     "b": "nil_alan",
+     "normal": 36.1382,
+     "dichromat": 12.0042,
+     "kind": "deutan",
+     "touching": false
+    },
+    {
+     "a": "begum_alan",
+     "b": "nil_alan",
+     "normal": 44.5391,
+     "dichromat": 26.5766,
+     "kind": "protan",
+     "touching": true
+    }
+   ],
+   "owners": {
+    "aras_alan": {
+     "line": "5C48A2",
+     "oklch": [
+      0.4694,
+      0.1397,
+      290.1972
+     ],
+     "label_on_white": 7.2321,
+     "nearest_line": [
+      11.5415,
+      "masterplan storage edge",
+      "3E4C6E"
+     ],
+     "nearest_line_dichromat": [
+      9.0316,
+      "deutan",
+      "masterplan storage edge",
+      "3E4C6E"
+     ],
+     "ramps_p5": [
+      8.8408,
+      3.7894
+     ],
+     "ramps_min": [
+      5.9917,
+      0.0
+     ]
+    },
+    "begum_alan": {
+     "line": "7F3902",
+     "oklch": [
+      0.4309,
+      0.1129,
+      49.8756
+     ],
+     "label_on_white": 8.4387,
+     "nearest_line": [
+      10.5929,
+      "masterplan sport edge",
+      "68432F"
+     ],
+     "nearest_line_dichromat": [
+      3.5548,
+      "tritan",
+      "accent (links, D3 walking routes)",
+      "8B3A3F"
+     ],
+     "ramps_p5": [
+      19.2117,
+      4.8503
+     ],
+     "ramps_min": [
+      16.9316,
+      2.7571
+     ]
+    },
+    "nil_alan": {
+     "line": "107C73",
+     "oklch": [
+      0.5292,
+      0.0895,
+      185.7723
+     ],
+     "label_on_white": 5.057,
+     "nearest_line": [
+      12.4915,
+      "existing green edge",
+      "4D6759"
+     ],
+     "nearest_line_dichromat": [
+      5.4669,
+      "protan",
+      "D2 historic",
+      "AF7474"
+     ],
+     "ramps_p5": [
+      25.1389,
+      7.0401
+     ],
+     "ramps_min": [
+      15.4366,
+      0.3617
+     ]
+    }
+   },
+   "touching_min": [
+    43.6025,
+    26.5766
+   ],
+   "apart_min": [
+    36.1382,
+    12.0042
+   ],
+   "label_min": 5.057,
+   "nearest_line_min": 10.5929,
+   "hues": [
+    290.2,
+    49.9,
+    185.8
+   ],
+   "hue_gaps": [
+    135.9,
+    104.4,
+    119.7
+   ],
+   "hue_sources": {
+    "masterplan storage": 266.7,
+    "D5 health": 330.8,
+    "D1 commerce": 48.3,
+    "masterplan wetland": 179.8,
+    "accent": 18.8,
+    "water": 225.3,
+    "trees": 124.8
+   },
+   "compared": {
+    "diagrams v1.2 / board v23": {
+     "pairs": [
+      {
+       "a": "aras_alan",
+       "b": "begum_alan",
+       "normal": 35.4483,
+       "dichromat": 1.4524,
+       "kind": "deutan",
+       "touching": true
+      },
+      {
+       "a": "aras_alan",
+       "b": "nil_alan",
+       "normal": 34.9201,
+       "dichromat": 19.5407,
+       "kind": "deutan",
+       "touching": false
+      },
+      {
+       "a": "begum_alan",
+       "b": "nil_alan",
+       "normal": 18.9328,
+       "dichromat": 13.8139,
+       "kind": "protan",
+       "touching": true
+      }
+     ],
+     "owners": {
+      "aras_alan": {
+       "line": "495338",
+       "oklch": [
+        0.4255,
+        0.0444,
+        124.7553
+       ],
+       "label_on_white": 8.1468,
+       "nearest_line": [
+        0.0,
+        "trees",
+        "495338"
+       ],
+       "nearest_line_dichromat": [
+        0.0,
+        "deutan",
+        "board intensity top",
+        "7A3E3A"
+       ],
+       "ramps_p5": [
+        32.3395,
+        3.1173
+       ],
+       "ramps_min": [
+        12.6084,
+        0.3987
+       ]
+      },
+      "begum_alan": {
+       "line": "8B3A3F",
+       "oklch": [
+        0.4596,
+        0.1106,
+        18.7776
+       ],
+       "label_on_white": 7.5681,
+       "nearest_line": [
+        0.0,
+        "accent (links, D3 walking routes)",
+        "8B3A3F"
+       ],
+       "nearest_line_dichromat": [
+        0.0,
+        "deutan",
+        "accent (links, D3 walking routes)",
+        "8B3A3F"
+       ],
+       "ramps_p5": [
+        8.8515,
+        4.3313
+       ],
+       "ramps_min": [
+        5.0584,
+        0.9371
+       ]
+      },
+      "nil_alan": {
+       "line": "4C3349",
+       "oklch": [
+        0.3588,
+        0.05,
+        330.7804
+       ],
+       "label_on_white": 11.1878,
+       "nearest_line": [
+        3.5674,
+        "masterplan civic edge",
+        "452842"
+       ],
+       "nearest_line_dichromat": [
+        3.1331,
+        "deutan",
+        "masterplan civic edge",
+        "452842"
+       ],
+       "ramps_p5": [
+        14.7766,
+        6.4345
+       ],
+       "ramps_min": [
+        7.904,
+        0.486
+       ]
+      }
+     },
+     "touching_min": [
+      18.9328,
+      1.4524
+     ],
+     "apart_min": [
+      34.9201,
+      19.5407
+     ],
+     "label_min": 7.5681,
+     "nearest_line_min": 0.0
+    },
+    "board v23 first draft": {
+     "pairs": [
+      {
+       "a": "aras_alan",
+       "b": "begum_alan",
+       "normal": 30.8037,
+       "dichromat": 12.6336,
+       "kind": "protan",
+       "touching": true
+      },
+      {
+       "a": "aras_alan",
+       "b": "nil_alan",
+       "normal": 57.3641,
+       "dichromat": 20.8085,
+       "kind": "tritan",
+       "touching": false
+      },
+      {
+       "a": "begum_alan",
+       "b": "nil_alan",
+       "normal": 87.2627,
+       "dichromat": 31.2852,
+       "kind": "deutan",
+       "touching": true
+      }
+     ],
+     "owners": {
+      "aras_alan": {
+       "line": "0057FF",
+       "oklch": [
+        0.5366,
+        0.2575,
+        262.4663
+       ],
+       "label_on_white": 5.5158,
+       "nearest_line": [
+        16.7633,
+        "water lines",
+        "5D7F8D"
+       ],
+       "nearest_line_dichromat": [
+        10.4121,
+        "tritan",
+        "water lines",
+        "5D7F8D"
+       ],
+       "ramps_p5": [
+        14.0685,
+        9.0924
+       ],
+       "ramps_min": [
+        6.1238,
+        4.928
+       ]
+      },
+      "begum_alan": {
+       "line": "D81B9C",
+       "oklch": [
+        0.5944,
+        0.2396,
+        345.9214
+       ],
+       "label_on_white": 4.6087,
+       "nearest_line": [
+        20.9811,
+        "board religious",
+        "8A4650"
+       ],
+       "nearest_line_dichromat": [
+        1.5345,
+        "deutan",
+        "board BLUE_D",
+        "5E8494"
+       ],
+       "ramps_p5": [
+        17.2537,
+        3.0173
+       ],
+       "ramps_min": [
+        4.5407,
+        0.6864
+       ]
+      },
+      "nil_alan": {
+       "line": "00A651",
+       "oklch": [
+        0.6346,
+        0.17,
+        151.1813
+       ],
+       "label_on_white": 3.1947,
+       "nearest_line": [
+        26.0345,
+        "D3 secondary streets",
+        "B0AC9C"
+       ],
+       "nearest_line_dichromat": [
+        4.5455,
+        "deutan",
+        "board INK2",
+        "7A6E60"
+       ],
+       "ramps_p5": [
+        19.941,
+        5.0465
+       ],
+       "ramps_min": [
+        5.9774,
+        1.6089
+       ]
+      }
+     },
+     "touching_min": [
+      30.8037,
+      12.6336
+     ],
+     "apart_min": [
+      57.3641,
+      20.8085
+     ],
+     "label_min": 3.1947,
+     "nearest_line_min": 16.7633
+    }
+   },
+   "ramps_from": "scripts/selinus_board_v25.py",
+   "ramp_samples": 279
+  }
+ },
+ "variant_checks": {
+  "0.00": {
+   "residential_vs_sheet": 11.1,
+   "d1_vs_sheet_ground_min": 11.1,
+   "water_vs_ground": 26.4,
+   "ground_chroma": 0.033
+  },
+  "0.25": {
+   "residential_vs_sheet": 12.6,
+   "d1_vs_sheet_ground_min": 12.6,
+   "water_vs_ground": 23.5,
+   "ground_chroma": 0.024
+  },
+  "0.50": {
+   "residential_vs_sheet": 14.4,
+   "d1_vs_sheet_ground_min": 14.4,
+   "water_vs_ground": 20.9,
+   "ground_chroma": 0.016
+  },
+  "0.75": {
+   "residential_vs_sheet": 16.1,
+   "d1_vs_sheet_ground_min": 16.1,
+   "water_vs_ground": 18.6,
+   "ground_chroma": 0.008
+  },
+  "1.00": {
+   "residential_vs_sheet": 18.4,
+   "d1_vs_sheet_ground_min": 18.4,
+   "water_vs_ground": 16.6,
+   "ground_chroma": 0.0
+  }
+ },
+ "figure_colours": [
+  "000000",
+  "107C73",
+  "1B535E",
+  "261524",
+  "270C0F",
+  "293411",
+  "2C2219",
+  "2D564E",
+  "32525F",
+  "351632",
+  "383530",
+  "390710",
+  "3B4D3F",
+  "3C5159",
+  "3E3A31",
+  "3E4C6E",
+  "442641",
+  "452842",
+  "47171D",
+  "474137",
+  "49522B",
+  "495338",
+  "4A3747",
+  "4A3F35",
+  "4B1D25",
+  "4C2528",
+  "4C3349",
+  "4D090D",
+  "4D141A",
+  "534E25",
+  "594B2E",
+  "5C48A2",
+  "5C7A86",
+  "5D7F8D",
+  "5E8494",
+  "5F5950",
+  "603838",
+  "604826",
+  "613F5C",
+  "62020D",
+  "680319",
+  "68432F",
+  "693415",
+  "6A1229",
+  "6F6A62",
+  "704E18",
+  "727A4E",
+  "746543",
+  "748878",
+  "7D5B78",
+  "7F3902",
+  "7FA4B3",
+  "80796B",
+  "813B3E",
+  "822E3E",
+  "847E75",
+  "850115",
+  "851D2B",
+  "863A00",
+  "876430",
+  "8A4650",
+  "8B2D2D",
+  "8B3A3F",
+  "8C5D05",
+  "8C7088",
+  "8C9969",
+  "8DB8AF",
+  "908980",
+  "90C5D2",
+  "91ADB4",
+  "928F91",
+  "937837",
+  "948B49",
+  "949081",
+  "969270",
+  "A15A5C",
+  "A2B6B5",
+  "A3AD8B",
+  "A6A097",
+  "A8A49C",
+  "ABBBAE",
+  "AD7502",
+  "AE90AA",
+  "AF7474",
+  "B0AC9C",
+  "B15212",
+  "BAC2AA",
+  "BB7E04",
+  "BC6F45",
+  "BCC2A6",
+  "BDB57A",
+  "BEA365",
+  "BFBBAB",
+  "BFC3A3",
+  "C1D3DB",
+  "C6C08D",
+  "CBD9F8",
+  "CBEDE5",
+  "CC9A52",
+  "CFCCC5",
+  "D3CEAB",
+  "D5D5D5",
+  "D6C08F",
+  "D7D3C2",
+  "D8D5CC",
+  "D8DCD2",
+  "DADCCC",
+  "DCD5C2",
+  "DDDCC7",
+  "DEA03C",
+  "DFEBC0",
+  "E0B67D",
+  "E4B8A1",
+  "E4CAC9",
+  "EDEDED",
+  "EFEDE6",
+  "F1EDDF",
+  "F3E7CD",
+  "F4C178",
+  "FAF8F1",
+  "FFFFFF"
+ ],
+ "figure_colours_note": "colours drawn in fig/*.svg: the palette, its tones, and mixes for park ground, field stripes and bridge edges"
+}
