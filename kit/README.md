@@ -11,3 +11,4 @@ For every script update, in the same change:
 4. Update `kit/scripts/board_order.txt` if a script is added, removed or its chain place changes.
 5. Merge to `main`. The builder itself is never edited for this.
 6. Update `kit/scripts/script_reads.txt` (what each script reads: `<file prefix>: <path under Downloads/Bergama>`, folders end in `/`, `<file prefix>: rhino` for Rhino-layer readers). The builder's `run_after` uses it to run only the scripts whose inputs changed; a script with no lines there always runs.
+7. Speed caches: `kit/scripts/cloud_cache.txt` lists the cache folders the builder backs up to the GitHub Release `bergama-cache` (download missing files before the run, upload new/changed after, remove ones gone locally). Cache files must be named so a file is only used when its inputs match (fingerprint in the name or a key check).
