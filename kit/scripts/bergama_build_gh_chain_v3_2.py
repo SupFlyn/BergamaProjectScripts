@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.1 (8 Nov 2026; v3.1: a run kit unzipped into its own folder is found and copied in). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.2 (8 Nov 2026; v3.2: the run kit zip itself is read when not unzipped; v3.1: a run kit unzipped into its own folder is found and copied in). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -37,7 +37,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v3.1"
+VERSION = "v3.2"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -1158,7 +1158,37 @@ def adopt_unzipped_kit(log):
                 t = os.path.getmtime(os.path.join(root, ORDER_FILE))
                 if best is None or t > best[0]:
                     best = (t, os.path.dirname(root))
+    zbest = None                                 # or the kit zip itself, not unzipped (newest Bergama_runkit*.zip)
+    for top in (dl, BASE, os.path.join(os.path.expanduser("~"), "Desktop")):
+        try:
+            names = os.listdir(top)
+        except OSError:
+            continue
+        for f in names:
+            if f.lower().startswith("bergama_runkit") and f.lower().endswith(".zip"):
+                zp = os.path.join(top, f)
+                if zbest is None or os.path.getmtime(zp) > zbest[0]:
+                    zbest = (os.path.getmtime(zp), zp)
+    if zbest is not None and (best is None or zbest[0] > best[0]):
+        import zipfile
+        n = 0
+        with zipfile.ZipFile(zbest[1]) as z:
+            if "scripts/" + ORDER_FILE not in z.namelist():
+                log.append("FLAG %s has no scripts/%s" % (zbest[1], ORDER_FILE))
+                return
+            for nm in z.namelist():
+                if nm.endswith("/") or not (nm.startswith("scripts/") or nm.startswith("Data/")):
+                    continue
+                dst = os.path.join(BASE, *nm.split("/"))
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                with z.open(nm) as fi, open(dst, "wb") as fo:
+                    shutil.copyfileobj(fi, fo)
+                n += 1
+        log.append("run kit zip %s: %d files unpacked into %s" % (zbest[1], n, BASE))
+        return
     if best is None:
+        log.append("FLAG no run kit found (looked for a scripts folder with %s in Downloads and for "
+                   "Bergama_runkit*.zip in Downloads, Downloads/Bergama and Desktop)" % ORDER_FILE)
         return
     n = 0
     for sub in ("scripts", "Data"):
