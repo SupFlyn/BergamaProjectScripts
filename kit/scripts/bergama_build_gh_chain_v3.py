@@ -314,17 +314,6 @@ def py3_proxy():
     raise Exception("Python 3 Script component not found (is this Rhino 8?)")
 
 
-def get_source(comp):
-    for a in ("Text", "Source", "Code", "Script"):
-        try:
-            v = getattr(comp, a, None)
-            if isinstance(v, str):
-                return v
-        except Exception:
-            pass
-    return None
-
-
 def set_source(comp, code):
     for m in ("SetSource", "TrySetSource"):
         f = getattr(comp, m, None)
@@ -528,6 +517,11 @@ def fit_inputs(doc, comp, info, old_defaults, counts):
     return applied
 
 
+def code_of(info):
+    with open(info["path"], encoding="utf-8-sig") as f:
+        return f.read()
+
+
 def new_component(doc, proxy, nick, info, x, y):
     c = proxy.CreateInstance()
     c.NickName = nick
@@ -540,7 +534,7 @@ def new_component(doc, proxy, nick, info, x, y):
         add_param(c, GH_ParameterSide.Output, o)
     c.VariableParameterMaintenance()
     c.Params.OnParametersChanged()
-    set_source(c, info["code"])
+    set_source(c, code_of(info))
     place(doc, c, x, y)
     pn = GH_Panel()
     pn.NickName = nick + " log"
@@ -580,6 +574,7 @@ def build(doc, me, scripts, state, log):
     bx, by = float(me.Attributes.Pivot.X), float(me.Attributes.Pivot.Y)
     defaults = state.get("defaults", {})
     new_defaults, placed, changed = {}, [], []
+    code_sha = state.get("code_sha", {})
     solo_y = by + TOP_DY
     for o in have.values():                                     # new solo components go below the lowest one
         if str(o.NickName).endswith(" solo"):
@@ -602,10 +597,10 @@ def build(doc, me, scripts, state, log):
                 have[nick] = c
                 changed.append(nick)
             else:
-                if get_source(c) == s["code"]:
-                    counts["code unchanged"] += 1
+                if code_sha.get(nick) == s["sha"]:
+                    counts["code unchanged"] += 1      # same checksum as the code put in last time
                 else:
-                    set_source(c, s["code"])
+                    set_source(c, code_of(s))
                     c.ExpireSolution(False)
                     counts["code replaced"] += 1
                     changed.append(nick)
@@ -639,6 +634,7 @@ def build(doc, me, scripts, state, log):
             c.NickName = "REMOVED " + nick
             counts["renamed REMOVED"] += 1
     state["defaults"], state["placed"] = new_defaults, placed
+    state["code_sha"] = {n: next(s["sha"] for s in scripts if n in (s["label"], s["label"] + " solo")) for n in placed}
     for k, v in counts.items():
         log.append("%-40s %d" % (k, v))
     log.append("components moved: 0 (existing components are never moved)")
@@ -732,14 +728,25 @@ def main(me, run_after=False, force=False):
     order = read_order(cloud)
     if not order:
         raise RuntimeError("no %s in %s and nothing downloaded: nothing to build" % (ORDER_FILE, SCRIPTS_DIR))
-    scripts = []
-    labels = set()
+    try:
+        state = json.load(open(STATE, encoding="utf-8"))
+    except Exception:
+        state = {}
+    parsed = state.get("parsed", {})                   # checksum -> inputs read before: unchanged scripts not re-read
+    scripts, labels, new_parsed = [], set(), {}
     for prefix, role, lab in order:
         f = newest(prefix)
         if not f:
             log.append("FLAG %s: no %s_v*.py in %s, skipped" % (prefix, prefix, SCRIPTS_DIR))
             continue
-        info = parse_script(os.path.join(SCRIPTS_DIR, f))
+        path = os.path.join(SCRIPTS_DIR, f)
+        sha = blob_sha(path)
+        info = parsed.get(sha)
+        if info is None:
+            info = parse_script(path)
+            info.pop("code", None)
+        new_parsed[sha] = info
+        info = dict(info, sha=sha, path=path, inputs=[tuple(i) for i in info["inputs"]])
         lab = lab or info["label"] or prefix
         if lab in labels:                                       # two scripts with one name: the file prefix tells them apart
             lab = prefix
@@ -747,10 +754,7 @@ def main(me, run_after=False, force=False):
         info.update(role=role, file=f, label=lab)
         scripts.append(info)
         log.append("  %-6s %-18s %-46s %d inputs" % (role, info["label"], f, len(info["inputs"])))
-    try:
-        state = json.load(open(STATE, encoding="utf-8"))
-    except Exception:
-        state = {}
+    state["parsed"] = new_parsed
     doc = me.OnPingDocument()
 
     def edit(d):
