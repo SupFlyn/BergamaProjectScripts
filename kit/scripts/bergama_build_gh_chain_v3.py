@@ -23,11 +23,12 @@ Adding, removing or reordering scripts only changes the files in kit/: this buil
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
   input  run        Button: nothing happens until it is pressed
   input  force      Boolean Toggle, off by default: run_after AND force both on = every script run from the beginning
-                    (whole chain + every left-column-only script; sticky 'bergama_force_run' = time, for the scripts'
-                    own caches). Both toggles are added by the builder itself on the first press (Aras 15:25 UTC)
-  input  run_after  Boolean Toggle, off by default: True = right after the update, run what changed:
-                    the chain from the first updated chain script to its end (the later ones read its results, each
-                    script once) and every updated left-column-only script (Aras 15:16 UTC)
+                    (whole chain + every left-column-only script). Both toggles are added by the builder itself on
+                    the first press (Aras 15:25 UTC)
+  input  run_after  Boolean Toggle, off by default: True = right after the update the builder runs, one at a time in
+                    chain order, the left-column copies (their widgets) of only the scripts whose code, widgets or read files (kit/scripts/script_reads.txt)
+                    changed since their last good run; its log lists every script as ran / skipped with the reason
+                    and the check time (Aras 15:16-15:44 UTC); record in cached/bergama_build_gh_chain/runs.json
   output log   the last run's report
   output done  "done HH:MM:SS.ss · N s" after a good run
 board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain order) or "solo: <file prefix> = <name>"
@@ -638,11 +639,11 @@ def build(doc, me, scripts, state, log):
     for k, v in counts.items():
         log.append("%-40s %d" % (k, v))
     log.append("components moved: 0 (existing components are never moved)")
-    k = next((i for i, s in enumerate(chain) if s["label"] in changed), None)
-    solos = [have[s["label"] + " solo"] for s in scripts if s["role"] == "solo"]
-    return {"chain": chain_comps[k:] if k is not None else [], "start": k,
-            "solo": [c for c in solos if str(c.NickName) in changed],
-            "all": {"chain": chain_comps, "start": 0 if chain_comps else None, "solo": solos}}
+    # what the scheduler runs: the LEFT-COLUMN copies (no done wires: one press = one script, nothing else starts),
+    # chain scripts first in chain order, then the left-only ones
+    queue = [{"label": sc_["label"], "comp": have[sc_["label"] + " solo"], "sha": sc_["sha"], "prefix": sc_["prefix"]}
+             for sc_ in chain + [x for x in scripts if x["role"] == "solo"]]
+    return queue
 
 
 def own_toggles(doc, me, log):
@@ -658,61 +659,263 @@ def own_toggles(doc, me, log):
             p.AddSource(make_widget(doc, name, "toggle", False, me.Attributes.Pivot.X - WIDGET_DX, input_y(me, p)))
 
 
-# ---------------------------------------------------------------- run_after: run what was updated
-def press(b, down):
-    """a Button pressed (True) or let go (False) by the script"""
-    b.ButtonDown = down
-    b.ExpireSolution(False)
+# ---------------------------------------------------------------- run_after: run only what needs it
+# Aras 15:29-15:44 UTC: the builder decides, and presses the LEFT-COLUMN copies (their widgets count; the chain row
+# stays for the manual Chain Button). A script runs when its code, its widgets or anything it reads changed
+# since its last good run (or with run_after + force). One script per Grasshopper solution, in chain order; a script
+# that wrote the same files as before wakes nothing after it. What each script reads: kit/scripts/script_reads.txt
+# ("<file prefix>: <path under Downloads/Bergama>", folders end in "/", "<file prefix>: rhino" = reads Rhino layers).
+RUNS = os.path.join(CACHE_DIR, "runs.json")
+READS_FILE = "script_reads.txt"
+HASH_GBPS = 0.5                                   # check-time estimate: GB hashed per second per core
 
 
-def run_updated(doc, todo, log):
-    """chain from the first updated chain script to its end (the later ones read its results) + every updated
-    left-column-only script; each script once"""
-    if not todo["chain"] and not todo["solo"]:
-        log.append("run_after: nothing was updated, nothing run")
-        return
-    btns, undo = [], None
-    if todo["chain"]:
-        first = todo["chain"][0]
-        p = find_param(first.Params.Input, "run")
-        if todo["start"] == 0:
-            btns.append(button_on(doc, first, "Chain Button"))
-        else:                         # a Button on its run for this one press; the done wire is put back after
-            saved = list(p.Sources)
-            p.RemoveAllSources()
-            tb = GH_ButtonObject()
-            tb.NickName = "update run"
-            place(doc, tb, first.Attributes.Pivot.X - WIDGET_DX, input_y(first, p) - 30.0)
-            p.AddSource(tb)
-            first.ExpireSolution(False)
-            btns.append(tb)
-            undo = (p, saved, tb)
-    for c in todo["solo"]:
-        btns.append(button_on(doc, c, str(c.NickName)[:-5] + " Button"))
-    if not hasattr(btns[0], "ButtonDown"):
-        log.append("FLAG run_after: this Grasshopper cannot press a Button from a script: press these yourself: " +
-                   ", ".join(str(b.NickName) for b in btns))
-        return
+def read_lists():
+    out = {}
+    p = os.path.join(SCRIPTS_DIR, READS_FILE)
+    if os.path.isfile(p):
+        for ln in open(p, encoding="utf-8"):
+            ln = ln.split("#", 1)[0].strip()
+            k, _, v = ln.partition(":")
+            k, v = k.strip(), v.strip().replace("\\", "/")
+            if k and v:
+                out.setdefault(k, []).append(v)
+    return out
 
-    def down(d):
-        for b in btns:
-            press(b, True)
-        d.ScheduleSolution(5, GH.Kernel.GH_Document.GH_ScheduleDelegate(up))
 
-    def up(d):
-        for b in btns:
-            press(b, False)
-        if undo:
-            p, saved, tb = undo
-            p.RemoveAllSources()
-            for src in saved:
-                p.AddSource(src)
-            d.RemoveObject(tb, False)
-    doc.ScheduleSolution(5, GH.Kernel.GH_Document.GH_ScheduleDelegate(down))
-    log.append("run_after: runs %s%s" % (
-        ("chain from %s to the end (%d scripts)" % (todo["chain"][0].NickName, len(todo["chain"])))
-        if todo["chain"] else "", (("; " if todo["chain"] else "") + "left column: " +
-                                   ", ".join(str(c.NickName) for c in todo["solo"])) if todo["solo"] else ""))
+def _hash_file(path):
+    h = hashlib.blake2b(digest_size=16)
+    with open(path, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+class Prints(object):
+    """file fingerprints: size + mtime first, the content hash only when those changed; several cores"""
+
+    def __init__(self, cache):
+        self.cache = cache                       # {abs path: [size, mtime_ns, hash]} kept in runs.json
+
+    def _stat(self, path):
+        try:
+            st = os.stat(path)
+            return st.st_size, st.st_mtime_ns
+        except OSError:
+            return None
+
+    def files_of(self, rel):
+        """the absolute files behind one read entry (a folder = every file under it)"""
+        ap = os.path.join(BASE, *rel.strip("/").split("/"))
+        if rel.endswith("/"):
+            out = []
+            for root, dirs, files in os.walk(ap):
+                dirs.sort()
+                out += [os.path.join(root, f) for f in sorted(files)]
+            return out
+        return [ap]
+
+    def to_hash(self, paths):
+        """paths whose size or mtime differ from the cache, with their total bytes"""
+        need, nbytes = [], 0
+        for p in paths:
+            st = self._stat(p)
+            c = self.cache.get(p)
+            if st and not (c and c[0] == st[0] and c[1] == st[1]):
+                need.append(p)
+                nbytes += st[0]
+        return need, nbytes
+
+    def hash_all(self, paths):
+        need, _ = self.to_hash(paths)
+        if need:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max(1, (os.cpu_count() or 2) - 1)) as ex:
+                for p, h in zip(need, ex.map(_hash_file, need)):
+                    st = self._stat(p)
+                    if st:
+                        self.cache[p] = [st[0], st[1], h]
+
+    def of(self, rels):
+        """{read entry: fingerprint} ("missing" when nothing is there)"""
+        files = {r: self.files_of(r) for r in rels}
+        self.hash_all([f for fl in files.values() for f in fl])
+        out = {}
+        for r, fl in files.items():
+            hs = [(os.path.relpath(f, BASE), self.cache[f][2]) for f in fl if f in self.cache and self._stat(f)]
+            out[r] = hashlib.blake2b(json.dumps(hs).encode("utf-8"), digest_size=16).hexdigest() if hs else "missing"
+        return out
+
+
+def rhino_print():
+    """one checksum of the open Rhino model (every object's geometry + layer); None without Rhino"""
+    try:
+        import Rhino
+        doc = Rhino.RhinoDoc.ActiveDoc
+        crc = 0
+        for o in doc.Objects:
+            crc = o.Geometry.DataCRC(crc)
+            crc = (crc * 31 + o.Attributes.LayerIndex) & 0xFFFFFFFF
+        return "%08x" % crc
+    except Exception:
+        return None
+
+
+def widgets_of(comp):
+    out = {}
+    for p in comp.Params.Input:
+        if p.SourceCount and widget_kind(p.Sources[0]):
+            out[pname(p)] = widget_value(p.Sources[0])
+    return out
+
+
+def done_of(comp):
+    """the text on the component's done output, None when it can't be read"""
+    try:
+        p = find_param(comp.Params.Output, "done")
+        for g in p.VolatileData.AllData(True):
+            return str(g.Value if hasattr(g, "Value") else g)
+    except Exception:
+        pass
+    return None
+
+
+def schedule(doc, fn, ms=5):
+    doc.ScheduleSolution(ms, GH.Kernel.GH_Document.GH_ScheduleDelegate(fn))
+
+
+_ABORT = [None]                                   # set by run_needed: ends the pass with an ERROR line
+
+
+def guarded(fn):
+    """a scheduled step: an error ends the pass with an ERROR line instead of a silent stop"""
+    def g(d):
+        try:
+            fn(d)
+        except Exception as e:
+            import traceback
+            if _ABORT[0]:
+                _ABORT[0]("ERROR " + str(e) + "\n" + traceback.format_exc())
+    return g
+
+
+def run_needed(doc, me, queue, force, log, finish):
+    """the scheduler: decide, run one script, record, go on; the log gets ran / skipped + reason + times"""
+    try:
+        runs = json.load(open(RUNS, encoding="utf-8"))
+    except Exception:
+        runs = {}
+    rec, prints = runs.setdefault("scripts", {}), Prints(runs.setdefault("files", {}))
+    reads = read_lists()
+    if not reads:
+        log.append("FLAG no %s yet: every script counts as changed" % READS_FILE)
+    rh = {"now": None}
+    if any("rhino" in v for v in reads.values()):
+        t = time.time()
+        rh["now"] = rhino_print()
+        log.append("Rhino model checksum: %.1f s" % (time.time() - t))
+    can_press = hasattr(GH_ButtonObject(), "ButtonDown")
+
+    def abort(msg):
+        log.append(msg)
+        finish()
+    _ABORT[0] = abort
+    tally = {"ran": 0, "skipped": 0, "failed": 0}
+    log.append("run_after%s: one script at a time" % (" + force (everything)" if force else ""))
+
+    def decide(it):
+        """(run?, reason, check seconds)"""
+        t = time.time()
+        r = rec.get(it["label"])
+        lst = [x for x in reads.get(it["prefix"], []) if x != "rhino"]
+        if force:
+            return True, "force", 0.0
+        if not r:
+            return True, "never run by the builder", 0.0
+        if r.get("sha") != it["sha"]:
+            return True, "code updated", 0.0
+        if r.get("widgets") != widgets_of(it["comp"]):
+            return True, "widget changed", 0.0
+        if it["prefix"] not in reads:
+            return True, "no read list for this script", 0.0
+        files = [f for x in lst for f in prints.files_of(x)]
+        _, nbytes = prints.to_hash(files)
+        est = nbytes / (HASH_GBPS * 1e9 * max(1, (os.cpu_count() or 2) - 1))
+        if est > 1.0 and r.get("secs", 1e9) < est:
+            return True, "a run (%.0f s) is quicker than checking (%.0f s)" % (r["secs"], est), 0.0
+        now = prints.of(lst)
+        old = r.get("reads", {})
+        diff = [x for x in lst if now.get(x) != old.get(x)]
+        if "rhino" in reads.get(it["prefix"], []) and rh["now"] and r.get("rhino") != rh["now"]:
+            diff.append("Rhino model")
+        dt = time.time() - t
+        if diff:
+            return True, "changed: " + ", ".join(diff[:4]) + (" +%d more" % (len(diff) - 4) if len(diff) > 4 else ""), dt
+        return False, "nothing it reads changed", dt
+
+    def record(it, secs):
+        lst = [x for x in reads.get(it["prefix"], []) if x != "rhino"]
+        rec[it["label"]] = {"sha": it["sha"], "widgets": widgets_of(it["comp"]), "reads": prints.of(lst),
+                            "secs": round(secs, 1), "time": time.strftime("%Y-%m-%d %H:%M:%S")}
+
+    def step(i):
+        def go(d):
+            k = i
+            while k < len(queue):
+                it = queue[k]
+                need, why, dt = decide(it)
+                if need:
+                    break
+                tally["skipped"] += 1
+                log.append("  skipped %-18s %s (check %.2f s)" % (it["label"], why, dt))
+                k += 1
+            if k >= len(queue):
+                return end(d)
+            it = queue[k]
+            if not can_press:
+                log.append("  FLAG %-18s needs a run (%s): press its Button yourself (this Grasshopper cannot)"
+                           % (it["label"], why))
+                return schedule(d, guarded(step(k + 1)))
+            c = it["comp"]
+            tb = button_on(d, c, it["label"] + " Button")
+            ctx = {"t": 0.0}
+
+            def down(d2):
+                ctx["t"] = time.time()
+                press(tb, True)
+                schedule(d2, guarded(up))
+
+            def up(d2):
+                secs = time.time() - ctx["t"]
+                press(tb, False)
+                dn = done_of(c)
+                if dn is not None and not dn.startswith("done"):
+                    tally["failed"] += 1
+                    log.append("  FAILED  %-18s %s (check %.2f s, %.0f s): not recorded, runs again next time"
+                               % (it["label"], why, dt, secs))
+                else:
+                    tally["ran"] += 1
+                    record(it, secs)
+                    log.append("  ran     %-18s %s (check %.2f s, run %.0f s)" % (it["label"], why, dt, secs))
+                schedule(d2, guarded(step(k + 1)))
+            schedule(d, guarded(down))
+        return go
+
+    def end(d):
+        if rh["now"]:
+            rh["now"] = rhino_print()            # after this pass's own bakes: only YOUR later edits count
+            for it in queue:
+                if "rhino" in reads.get(it["prefix"], []) and it["label"] in rec:
+                    rec[it["label"]]["rhino"] = rh["now"]
+        try:
+            with open(RUNS, "w", encoding="utf-8") as f:
+                json.dump(runs, f, indent=1)
+        except Exception as e:
+            log.append("FLAG run record not saved: %s" % e)
+        log.append("run_after: %d ran, %d skipped, %d failed" % (tally["ran"], tally["skipped"], tally["failed"]))
+        finish()
+
+    schedule(doc, guarded(step(0)))
 
 
 # ---------------------------------------------------------------- main
@@ -751,7 +954,7 @@ def main(me, run_after=False, force=False):
         if lab in labels:                                       # two scripts with one name: the file prefix tells them apart
             lab = prefix
         labels.add(lab)
-        info.update(role=role, file=f, label=lab)
+        info.update(role=role, file=f, label=lab, prefix=prefix)
         scripts.append(info)
         log.append("  %-6s %-18s %-46s %d inputs" % (role, info["label"], f, len(info["inputs"])))
     state["parsed"] = new_parsed
@@ -759,17 +962,17 @@ def main(me, run_after=False, force=False):
 
     def edit(d):
         try:
-            todo = build(d, me, scripts, state, log)
+            queue = build(d, me, scripts, state, log)
             own_toggles(d, me, log)
-            if run_after and force:               # Aras 15:25 UTC: both on = every script run from the beginning
-                import scriptcontext as sc
-                sc.sticky["bergama_force_run"] = time.time()   # for the scripts' own caches: do the full work
-                log.append("run_after + force: every script from the beginning")
-                run_updated(d, todo["all"], log)
-            elif run_after:
-                run_updated(d, todo, log)
             with open(STATE, "w", encoding="utf-8") as f:
                 json.dump(state, f, indent=1, default=str)
+            if run_after:
+                if force:                             # Aras 15:25 UTC: both on = every script from the beginning
+                    import scriptcontext as sc
+                    sc.sticky["bergama_force_run"] = time.time()
+                run_needed(d, me, queue, force, log, lambda: (log.append("done in %.1f s" % (time.time() - t0)),
+                                                              _finish(me, log)))
+                return
             log.append("done in %.1f s" % (time.time() - t0))
         except Exception as e:
             import traceback

@@ -21,6 +21,7 @@ scripts/bergama_zone_base_v11_2.py
 scripts/board_order.txt
 scripts/selinus_board_v63_1.py
 scripts/needed_files.txt
+scripts/script_reads.txt
 
 # Data
 Data/W01_cover_collage.jpg
