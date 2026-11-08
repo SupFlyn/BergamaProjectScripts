@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.2 (8 Nov 2026; v3.2: the run kit zip itself is read when not unzipped; v3.1: a run kit unzipped into its own folder is found and copied in). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.3 (8 Nov 2026; v3.3: everything from the cloud only, no run-kit fallback, Aras 19:20 UTC). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -37,7 +37,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v3.2"
+VERSION = "v3.3"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -1142,67 +1142,6 @@ def cache_up(log):
         log.append("FLAG cache backup failed (%s): the scripts are not affected" % e)
 
 
-def adopt_unzipped_kit(log):
-    """a run kit unzipped into its own folder (Windows 'Extract All' adds one): its scripts and Data folders copied into
-    Downloads/Bergama/ (Aras 8 Nov 19:15 UTC: 'no board_order.txt')"""
-    import shutil
-    dl = os.path.dirname(BASE)
-    best = None
-    for top in (BASE, dl):
-        for root, dirs, files in os.walk(top):
-            depth = root[len(top):].count(os.sep)
-            if depth >= 3 or os.path.join(BASE, "cached") in root or os.path.join(BASE, "output") in root:
-                dirs[:] = []
-                continue
-            if os.path.basename(root) == "scripts" and ORDER_FILE in files and root != SCRIPTS_DIR:
-                t = os.path.getmtime(os.path.join(root, ORDER_FILE))
-                if best is None or t > best[0]:
-                    best = (t, os.path.dirname(root))
-    zbest = None                                 # or the kit zip itself, not unzipped (newest Bergama_runkit*.zip)
-    for top in (dl, BASE, os.path.join(os.path.expanduser("~"), "Desktop")):
-        try:
-            names = os.listdir(top)
-        except OSError:
-            continue
-        for f in names:
-            if f.lower().startswith("bergama_runkit") and f.lower().endswith(".zip"):
-                zp = os.path.join(top, f)
-                if zbest is None or os.path.getmtime(zp) > zbest[0]:
-                    zbest = (os.path.getmtime(zp), zp)
-    if zbest is not None and (best is None or zbest[0] > best[0]):
-        import zipfile
-        n = 0
-        with zipfile.ZipFile(zbest[1]) as z:
-            if "scripts/" + ORDER_FILE not in z.namelist():
-                log.append("FLAG %s has no scripts/%s" % (zbest[1], ORDER_FILE))
-                return
-            for nm in z.namelist():
-                if nm.endswith("/") or not (nm.startswith("scripts/") or nm.startswith("Data/")):
-                    continue
-                dst = os.path.join(BASE, *nm.split("/"))
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
-                with z.open(nm) as fi, open(dst, "wb") as fo:
-                    shutil.copyfileobj(fi, fo)
-                n += 1
-        log.append("run kit zip %s: %d files unpacked into %s" % (zbest[1], n, BASE))
-        return
-    if best is None:
-        log.append("FLAG no run kit found (looked for a scripts folder with %s in Downloads and for "
-                   "Bergama_runkit*.zip in Downloads, Downloads/Bergama and Desktop)" % ORDER_FILE)
-        return
-    n = 0
-    for sub in ("scripts", "Data"):
-        src = os.path.join(best[1], sub)
-        for root, dirs, files in os.walk(src):
-            for f in files:
-                a_ = os.path.join(root, f)
-                b_ = os.path.join(BASE, sub, os.path.relpath(a_, src))
-                os.makedirs(os.path.dirname(b_), exist_ok=True)
-                shutil.copy2(a_, b_)
-                n += 1
-    log.append("run kit found in %s: %d files copied into %s" % (best[1], n, BASE))
-
-
 # ---------------------------------------------------------------- main
 _T0 = [0.0]
 
@@ -1222,8 +1161,6 @@ def main(me, run_after=False, force=False):
         cache_down(log)
     except Exception as e:
         log.append("FLAG cache download failed (%s): the scripts make their caches themselves" % e)
-    if not os.path.isfile(os.path.join(SCRIPTS_DIR, ORDER_FILE)):
-        adopt_unzipped_kit(log)
     order = read_order(cloud)
     if not order:
         raise RuntimeError("no %s in %s and nothing downloaded: nothing to build" % (ORDER_FILE, SCRIPTS_DIR))
