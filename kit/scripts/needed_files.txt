@@ -6,7 +6,7 @@ scripts/bergama_agriculture_alternatives_v13.py
 scripts/bergama_b19_plan_v12.py
 scripts/bergama_booklet_jpg_v2_3.py
 scripts/bergama_booklet_v36.py
-scripts/bergama_build_gh_chain_v3.py
+scripts/bergama_build_gh_chain_v3_1.py
 scripts/bergama_city_link_v12.py
 scripts/bergama_masterplan_v44.py
 scripts/bergama_plan_to_rhino_v2.py
