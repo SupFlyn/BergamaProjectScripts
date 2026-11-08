@@ -22,7 +22,10 @@ Adding, removing or reordering scripts only changes the files in kit/: this buil
 
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
   input  run        Button: nothing happens until it is pressed
-  input  run_after  Boolean Toggle (add it yourself), off by default: True = right after the update, run what changed:
+  input  force      Boolean Toggle, off by default: run_after AND force both on = every script run from the beginning
+                    (whole chain + every left-column-only script; sticky 'bergama_force_run' = time, for the scripts'
+                    own caches). Both toggles are added by the builder itself on the first press (Aras 15:25 UTC)
+  input  run_after  Boolean Toggle, off by default: True = right after the update, run what changed:
                     the chain from the first updated chain script to its end (the later ones read its results, each
                     script once) and every updated left-column-only script (Aras 15:16 UTC)
   output log   the last run's report
@@ -640,8 +643,23 @@ def build(doc, me, scripts, state, log):
         log.append("%-40s %d" % (k, v))
     log.append("components moved: 0 (existing components are never moved)")
     k = next((i for i, s in enumerate(chain) if s["label"] in changed), None)
+    solos = [have[s["label"] + " solo"] for s in scripts if s["role"] == "solo"]
     return {"chain": chain_comps[k:] if k is not None else [], "start": k,
-            "solo": [have[s["label"] + " solo"] for s in scripts if s["role"] == "solo" and s["label"] + " solo" in changed]}
+            "solo": [c for c in solos if str(c.NickName) in changed],
+            "all": {"chain": chain_comps, "start": 0 if chain_comps else None, "solo": solos}}
+
+
+def own_toggles(doc, me, log):
+    """the builder's own run_after and force inputs, each with a False toggle, added once"""
+    for name in ("run_after", "force"):
+        p = find_param(me.Params.Input, name)
+        if p is None:
+            p = add_param(me, GH_ParameterSide.Input, name)
+            me.VariableParameterMaintenance()
+            me.Params.OnParametersChanged()
+            log.append("added the builder's own input " + name + " (toggle False)")
+        if p.SourceCount == 0:
+            p.AddSource(make_widget(doc, name, "toggle", False, me.Attributes.Pivot.X - WIDGET_DX, input_y(me, p)))
 
 
 # ---------------------------------------------------------------- run_after: run what was updated
@@ -705,7 +723,7 @@ def run_updated(doc, todo, log):
 _T0 = [0.0]
 
 
-def main(me, run_after=False):
+def main(me, run_after=False, force=False):
     t0 = _T0[0] = time.time()
     log = ["%s %s" % (GH_LABEL, VERSION)]
     for d in (SCRIPTS_DIR, DATA_DIR, CACHE_DIR, LOG_DIR):
@@ -738,7 +756,13 @@ def main(me, run_after=False):
     def edit(d):
         try:
             todo = build(d, me, scripts, state, log)
-            if run_after:
+            own_toggles(d, me, log)
+            if run_after and force:               # Aras 15:25 UTC: both on = every script run from the beginning
+                import scriptcontext as sc
+                sc.sticky["bergama_force_run"] = time.time()   # for the scripts' own caches: do the full work
+                log.append("run_after + force: every script from the beginning")
+                run_updated(d, todo["all"], log)
+            elif run_after:
                 run_updated(d, todo, log)
             with open(STATE, "w", encoding="utf-8") as f:
                 json.dump(state, f, indent=1, default=str)
@@ -776,9 +800,9 @@ _prev = _sc.sticky.get("bergama_board_builder_prev", False)
 _sc.sticky["bergama_board_builder_prev"] = _pressed
 if _pressed and not _prev:
     try:
-        _ra = globals().get("run_after")
-        _ra = any(bool(x) for x in _ra) if isinstance(_ra, (list, tuple)) else bool(_ra)
-        _sc.sticky["bergama_board_builder"] = ("\n".join(main(_me, _ra)), "running")
+        _fl = [globals().get(n) for n in ("run_after", "force")]
+        _fl = [any(bool(x) for x in v) if isinstance(v, (list, tuple)) else bool(v) for v in _fl]
+        _sc.sticky["bergama_board_builder"] = ("\n".join(main(_me, _fl[0], _fl[1])), "running")
     except Exception as _e:
         import traceback as _tb
         _sc.sticky["bergama_board_builder"] = ("ERROR " + str(_e) + "\n" + _tb.format_exc(), "ERROR")
