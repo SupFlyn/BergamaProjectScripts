@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_agriculture_alternatives_v13.py = v13 (5 Nov 2026, round 7 S2: p17 bands photos 28 x 13 so every reason fits, shared reasons once, Kermes label moved, hue_log; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_agriculture_alternatives_v14.py = v14 (8 Nov 2026, round 8: p17 notes column 66 mm; what changed: the NEW IN / VERSION notes below)
 # bergama_agriculture_alternatives_v8.py (v8, 31 Oct: round 3, p18 + p19 merged on ONE booklet page) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to an input named run; outputs log and
 # done), Rhino 8 ScriptEditor (Python 3), or plain Python 3. v10 lays out no page and writes no PDF (round 5,
@@ -22,7 +22,9 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, math, re
 
-VERSION = "v13"  # v13 (round 7 S2, 5 Nov): p17 bands photos 28 x 13 so every reason fits the r06_S01 frame at SON size, a reason shared by several crops printed once, Kermes label a line above "walk in the bed", legends log through hue_log (NEW IN v13); v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v14"  # v14 (round 8, 8 Nov): p17 REMOVE / ODOUR / steps notes column wrapped at 64 mm and exported 66 mm wide (BRIEF p17 row 8, 66 x 75) (NEW IN v14); v13 (round 7 S2, 5 Nov): p17 bands photos 28 x 13 so every reason fits the r06_S01 frame at SON size, a reason shared by several crops printed once, Kermes label a line above "walk in the bed", legends log through hue_log (NEW IN v13); v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v14 (8 Nov 2026, round 8: p17 notes column 66 mm): the REMOVE / ODOUR / steps lines wrap at AG3_NOTES_W 64 mm
+#   (was LAD_X0 - 18 = 88) and the ag3_notes block is exported 66 mm wide (was 87) to fit BRIEF p17 frame row 8.
 # NEW IN v13 (round 7, S2, 5 Nov 2026; BRIEF §6 rows 17-18, L6, G7-1, G7-4; round 7 PLAN §3, §6 S2):
 #   * p17 SKETCH (G7-1; unchanged drawing): the bands' photos 28 x 13 mm (AG3_PH_H, cover-cropped, never stretched;
 #     were 28 x 21) so each species' name AND reason sit under its photo inside the r06_S01 bands frame at SON size
@@ -4768,6 +4770,9 @@ PH_GAP = 2.0                         # mm between two photos side by side (28 Oc
 # species' reason too (nothing dropped), which at 21 mm photos ran ~7 mm a row past the frame and, scaled down in R6,
 # made the 19 caption overlaps. 8 mm less photo a row = room for the reasons inside the frame at SON size.
 AG3_PH_H = 13.0
+# v14 (round 8, BRIEF p17 row 8, 14,204 66 x 75): the notes column left of the bands: lines wrap at AG3_NOTES_W,
+# the block is exported AG3_NOTES_BW wide (was LAD_X0 - 18 = 88 mm wrap, 87 mm block)
+AG3_NOTES_W, AG3_NOTES_BW = 64.0, 66.0
 
 
 def name_lines(key, mark, size, w, bold=True):
@@ -5151,7 +5156,7 @@ def ag3_bands(pg, top, pn=None):
     gm = photo_mark("giant_reed")
     for t, sz, b in ((u"REMOVE: " + plant_name("giant_reed") + ((" " + gm) if gm else ""), 8, True),
                      ("raises flood risk, blocks bridges", 7, False)):
-        for q in wrap(t, sz, LAD_X0 - 18.0, b):
+        for q in wrap(t, sz, AG3_NOTES_W, b):     # v14: 64 mm (was LAD_X0 - 18 = 88)
             pg.text(q, 14.0, y, sz, C["ink"], b)
             y -= sz * 0.3528 * 1.35
     pg.tag("plants", "remove_giant_reed")
@@ -5162,13 +5167,13 @@ def ag3_bands(pg, top, pn=None):
     sm = cite(SPECIES)
     for t, b in (("ODOUR: no measured plant effect" + ((" " + sm) if sm else ""), True), ("keep sewage out", False),
                  ("clean once, at the upstream end", False), ("plants: clean nutrients, give scent", False)):
-        for q in wrap(t, 7.5, LAD_X0 - 18.0, b):
+        for q in wrap(t, 7.5, AG3_NOTES_W, b):    # v14: 64 mm
             pg.text(q, 14.0, y, 7.5, C["ink"], b); y -= 3.2
     y -= 3.0
     pg.tag("labels", "reading_notes")
     for t in ("steps = planting bands " + cite(BANDS), "depths above the bed " + cite(DEPTH), "a diagram, not to scale",
               "downstream flat end: Q100 1.4 m, Q500 1.5 m"):
-        for q in wrap(t.strip(), 7, LAD_X0 - 18.0):
+        for q in wrap(t.strip(), 7, AG3_NOTES_W):  # v14: 64 mm
             pg.text(q, 14.0, y, 7, C["ink2"]); y -= 2.9
     return lowest, y
 
@@ -5249,7 +5254,8 @@ def ag_p17_items(ix):
     low, low_n = ag3_bands(pg, bot, pn)
     bx = LAD_X0 - 2.0                            # v11: bands + photos from the cut's left edge; the notes left of it
     ag_export_block(ix, pg, AG3_ID["bands"], 5, bx, bot, 13.0 + 394.0 - bx, bot - (low - 1.0), 0.0, page=AG3_PAGE)
-    ag_export_block(ix, pn, AG3_ID["notes"], 6, 13.0, bot, bx - 4.0 - 13.0, bot - (low_n - 1.0), 0.0, page=AG3_PAGE)
+    ag_export_block(ix, pn, AG3_ID["notes"], 6, 13.0, bot, AG3_NOTES_BW, bot - (low_n - 1.0), 0.0,  # v14: 66 mm
+                    page=AG3_PAGE)                # (was bx - 4 - 13 = 87; BRIEF p17 row 8)
     LOG_NOTES.append("trees p17 species=%d generic=%d" % tuple(AG3_TREES))
     for key, why in AG3_NOPHOTO:
         ix.warn(AG3_PAGE, "photo", u"no photo for %s (%s): its box is left out, the name is under the band" % (
