@@ -82,7 +82,21 @@ def http(url, accept, token):
         return r.read()
 
 
+SHA_FILE = os.path.join(CACHE_DIR, "file_sha.json")
+_SHA = {}                                         # {path: [size, mtime_ns, git sha]}: files re-read only when changed
+
+
 def blob_sha(path):
+    st = os.stat(path)
+    c = _SHA.get(path)
+    if c and c[0] == st.st_size and c[1] == st.st_mtime_ns:
+        return c[2]
+    h = _blob_sha(path)
+    _SHA[path] = [st.st_size, st.st_mtime_ns, h]
+    return h
+
+
+def _blob_sha(path):
     with open(path, "rb") as f:
         b = f.read()
     return hashlib.sha1(b"blob %d\0" % len(b) + b).hexdigest()
@@ -144,14 +158,20 @@ def download(log):
             missing.append(n)
         for r in hits:
             todo[r] = cloud[r]
+    get = []
     for r in sorted(todo):
         it, dst = todo[r], local_path(todo[r]["path"])
         if os.path.isfile(dst) and blob_sha(dst) == it["sha"]:
             same += 1
-            continue
-        fetch(it, dst, token)
-        got += 1
-        log.append("  downloaded " + r)
+        else:
+            get.append((r, it, dst))
+    if get:                                       # several at once (waiting on the network, not the PC)
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(8) as ex:
+            list(ex.map(lambda x: fetch(x[1], x[2], token), get))
+        for r, it, dst in get:
+            got += 1
+            log.append("  downloaded " + r)
     for n in missing:
         log.append("FLAG on the checklist but not in the cloud: " + n)
     for n in need:
@@ -696,6 +716,7 @@ class Prints(object):
 
     def __init__(self, cache):
         self.cache = cache                       # {abs path: [size, mtime_ns, hash]} kept in runs.json
+        self.walked = {}                         # folder listings of this check (cleared after each run)
 
     def _stat(self, path):
         try:
@@ -707,11 +728,14 @@ class Prints(object):
     def files_of(self, rel):
         """the absolute files behind one read entry (a folder = every file under it)"""
         ap = os.path.join(BASE, *rel.strip("/").split("/"))
+        if rel in self.walked:
+            return self.walked[rel]
         if rel.endswith("/"):
             out = []
             for root, dirs, files in os.walk(ap):
                 dirs.sort()
                 out += [os.path.join(root, f) for f in sorted(files)]
+            self.walked[rel] = out
             return out
         return [ap]
 
@@ -748,15 +772,36 @@ class Prints(object):
 
 
 def rhino_print():
-    """one checksum of the open Rhino model (every object's geometry + layer); None without Rhino"""
+    """one checksum of the open Rhino model (every object's geometry + layer); None without Rhino. Recomputed only
+    when Rhino reported an object or layer change since the last one (events counted in sticky, this session)."""
     try:
         import Rhino
+        import scriptcontext as sc
+        w = sc.sticky.get("bergama_rhino_watch")
+        if w is None:
+            w = {"n": 0, "at": None, "crc": None}
+
+            def bump(sender, e):
+                w["n"] += 1
+            RD = Rhino.RhinoDoc                   # subscribed once per Rhino session
+            RD.AddRhinoObject += bump
+            RD.DeleteRhinoObject += bump
+            RD.ReplaceRhinoObject += bump
+            RD.UndeleteRhinoObject += bump
+            RD.ModifyObjectAttributes += bump
+            RD.LayerTableEvent += bump
+            w["bump"] = bump
+            sc.sticky["bergama_rhino_watch"] = w
         doc = Rhino.RhinoDoc.ActiveDoc
+        key = [doc.RuntimeSerialNumber, w["n"]]
+        if w["at"] == key and w["crc"]:
+            return w["crc"]
         crc = 0
         for o in doc.Objects:
             crc = o.Geometry.DataCRC(crc)
             crc = (crc * 31 + o.Attributes.LayerIndex) & 0xFFFFFFFF
-        return "%08x" % crc
+        w["at"], w["crc"] = key, "%08x" % crc
+        return w["crc"]
     except Exception:
         return None
 
@@ -834,7 +879,8 @@ def run_needed(doc, me, queue, force, log, finish):
             return True, "never run by the builder", 0.0
         if r.get("sha") != it["sha"]:
             return True, "code updated", 0.0
-        if r.get("widgets") != widgets_of(it["comp"]):
+        it["w"] = widgets_of(it["comp"])
+        if r.get("widgets") != it["w"]:
             return True, "widget changed", 0.0
         if it["prefix"] not in reads:
             return True, "no read list for this script", 0.0
@@ -855,7 +901,8 @@ def run_needed(doc, me, queue, force, log, finish):
 
     def record(it, secs):
         lst = [x for x in reads.get(it["prefix"], []) if x != "rhino"]
-        rec[it["label"]] = {"sha": it["sha"], "widgets": widgets_of(it["comp"]), "reads": prints.of(lst),
+        prints.walked.clear()                    # the run may have written into read folders
+        rec[it["label"]] = {"sha": it["sha"], "widgets": it.get("w") or widgets_of(it["comp"]), "reads": prints.of(lst),
                             "secs": round(secs, 1), "time": time.strftime("%Y-%m-%d %H:%M:%S")}
 
     def step(i):
@@ -927,6 +974,11 @@ def main(me, run_after=False, force=False):
     log = ["%s %s" % (GH_LABEL, VERSION)]
     for d in (SCRIPTS_DIR, DATA_DIR, CACHE_DIR, LOG_DIR):
         os.makedirs(d, exist_ok=True)
+    try:
+        _SHA.clear()
+        _SHA.update(json.load(open(SHA_FILE, encoding="utf-8")))
+    except Exception:
+        pass
     cloud = download(log)
     order = read_order(cloud)
     if not order:
@@ -958,6 +1010,11 @@ def main(me, run_after=False, force=False):
         scripts.append(info)
         log.append("  %-6s %-18s %-46s %d inputs" % (role, info["label"], f, len(info["inputs"])))
     state["parsed"] = new_parsed
+    try:
+        with open(SHA_FILE, "w", encoding="utf-8") as f:
+            json.dump(_SHA, f)
+    except Exception:
+        pass
     doc = me.OnPingDocument()
 
     def edit(d):
