@@ -1,6 +1,6 @@
 # kit/ = the cloud folder of the board builder
 
-The Grasshopper board builder (`scripts/bergama_build_gh_chain_v3_3.py`) reads this folder on branch `main` at every press.
+The Grasshopper board builder (`scripts/bergama_build_gh_chain_v3_4.py`) reads this folder on branch `main` at every press.
 It downloads `scripts/needed_files.txt` first, then exactly the files on that checklist, to `Downloads/Bergama/<same path>`.
 
 ## RULE (Aras, 8 Nov 2026 15:13-15:14 UTC): every script update updates this folder
