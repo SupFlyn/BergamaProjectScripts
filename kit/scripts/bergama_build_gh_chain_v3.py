@@ -21,7 +21,10 @@ Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
 Adding, removing or reordering scripts only changes the files in kit/: this builder never needs a new version for it.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
-  input  run   Button: nothing happens until it is pressed
+  input  run        Button: nothing happens until it is pressed
+  input  run_after  Boolean Toggle (add it yourself), off by default: True = right after the update, run what changed:
+                    the chain from the first updated chain script to its end (the later ones read its results, each
+                    script once) and every updated left-column-only script (Aras 15:16 UTC)
   output log   the last run's report
   output done  "done HH:MM:SS.ss · N s" after a good run
 board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain order) or "solo: <file prefix> = <name>"
@@ -91,8 +94,11 @@ def local_path(rel):
     return None
 
 
+_COMMIT = [BRANCH]
+
+
 def fetch(it, dst, token):
-    url = "https://raw.githubusercontent.com/%s/%s/%s" % (REPO, BRANCH, "/".join(
+    url = "https://raw.githubusercontent.com/%s/%s/%s" % (REPO, _COMMIT[0], "/".join(
         urllib.parse.quote(p) for p in it["path"].split("/")))
     data = http(url, "*/*", token)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -105,8 +111,10 @@ def fetch(it, dst, token):
 def download(log):
     """the cloud checklist kit/scripts/needed_files.txt first, then exactly the files on it"""
     token = gh_token()
-    try:
-        tree = json.loads(http("https://api.github.com/repos/%s/git/trees/%s?recursive=1" % (REPO, BRANCH),
+    try:                                  # pinned to the branch's newest commit (a branch link can serve old copies)
+        _COMMIT[0] = json.loads(http("https://api.github.com/repos/%s/commits/%s" % (REPO, BRANCH),
+                                     "application/vnd.github+json", token).decode("utf-8"))["sha"]
+        tree = json.loads(http("https://api.github.com/repos/%s/git/trees/%s?recursive=1" % (REPO, _COMMIT[0]),
                                "application/vnd.github+json", token).decode("utf-8"))
     except Exception as e:
         log.append("FLAG no download (offline or GitHub refused: %s): the local files are used as they are" % e)
@@ -568,7 +576,7 @@ def build(doc, me, scripts, state, log):
     have = comps_by_nick(doc)
     bx, by = float(me.Attributes.Pivot.X), float(me.Attributes.Pivot.Y)
     defaults = state.get("defaults", {})
-    new_defaults, placed = {}, []
+    new_defaults, placed, changed = {}, [], []
     solo_y = by + TOP_DY
     for o in have.values():                                     # new solo components go below the lowest one
         if str(o.NickName).endswith(" solo"):
@@ -589,6 +597,7 @@ def build(doc, me, scripts, state, log):
                     c = new_component(doc, proxy, nick, s, cx, cy)
                 counts["components added"] += 1
                 have[nick] = c
+                changed.append(nick)
             else:
                 if get_source(c) == s["code"]:
                     counts["code unchanged"] += 1
@@ -596,6 +605,7 @@ def build(doc, me, scripts, state, log):
                     set_source(c, s["code"])
                     c.ExpireSolution(False)
                     counts["code replaced"] += 1
+                    changed.append(nick)
             new_defaults[nick] = fit_inputs(doc, c, s, defaults.get(nick, {}), counts)
             if nick.endswith(" solo"):
                 button_on(doc, c, s["label"] + " Button")
@@ -629,13 +639,73 @@ def build(doc, me, scripts, state, log):
     for k, v in counts.items():
         log.append("%-40s %d" % (k, v))
     log.append("components moved: 0 (existing components are never moved)")
+    k = next((i for i, s in enumerate(chain) if s["label"] in changed), None)
+    return {"chain": chain_comps[k:] if k is not None else [], "start": k,
+            "solo": [have[s["label"] + " solo"] for s in scripts if s["role"] == "solo" and s["label"] + " solo" in changed]}
+
+
+# ---------------------------------------------------------------- run_after: run what was updated
+def press(b, down):
+    """a Button pressed (True) or let go (False) by the script"""
+    b.ButtonDown = down
+    b.ExpireSolution(False)
+
+
+def run_updated(doc, todo, log):
+    """chain from the first updated chain script to its end (the later ones read its results) + every updated
+    left-column-only script; each script once"""
+    if not todo["chain"] and not todo["solo"]:
+        log.append("run_after: nothing was updated, nothing run")
+        return
+    btns, undo = [], None
+    if todo["chain"]:
+        first = todo["chain"][0]
+        p = find_param(first.Params.Input, "run")
+        if todo["start"] == 0:
+            btns.append(button_on(doc, first, "Chain Button"))
+        else:                         # a Button on its run for this one press; the done wire is put back after
+            saved = list(p.Sources)
+            p.RemoveAllSources()
+            tb = GH_ButtonObject()
+            tb.NickName = "update run"
+            place(doc, tb, first.Attributes.Pivot.X - WIDGET_DX, input_y(first, p) - 30.0)
+            p.AddSource(tb)
+            first.ExpireSolution(False)
+            btns.append(tb)
+            undo = (p, saved, tb)
+    for c in todo["solo"]:
+        btns.append(button_on(doc, c, str(c.NickName)[:-5] + " Button"))
+    if not hasattr(btns[0], "ButtonDown"):
+        log.append("FLAG run_after: this Grasshopper cannot press a Button from a script: press these yourself: " +
+                   ", ".join(str(b.NickName) for b in btns))
+        return
+
+    def down(d):
+        for b in btns:
+            press(b, True)
+        d.ScheduleSolution(5, GH.Kernel.GH_Document.GH_ScheduleDelegate(up))
+
+    def up(d):
+        for b in btns:
+            press(b, False)
+        if undo:
+            p, saved, tb = undo
+            p.RemoveAllSources()
+            for src in saved:
+                p.AddSource(src)
+            d.RemoveObject(tb, False)
+    doc.ScheduleSolution(5, GH.Kernel.GH_Document.GH_ScheduleDelegate(down))
+    log.append("run_after: runs %s%s" % (
+        ("chain from %s to the end (%d scripts)" % (todo["chain"][0].NickName, len(todo["chain"])))
+        if todo["chain"] else "", (("; " if todo["chain"] else "") + "left column: " +
+                                   ", ".join(str(c.NickName) for c in todo["solo"])) if todo["solo"] else ""))
 
 
 # ---------------------------------------------------------------- main
 _T0 = [0.0]
 
 
-def main(me):
+def main(me, run_after=False):
     t0 = _T0[0] = time.time()
     log = ["%s %s" % (GH_LABEL, VERSION)]
     for d in (SCRIPTS_DIR, DATA_DIR, CACHE_DIR, LOG_DIR):
@@ -667,7 +737,9 @@ def main(me):
 
     def edit(d):
         try:
-            build(d, me, scripts, state, log)
+            todo = build(d, me, scripts, state, log)
+            if run_after:
+                run_updated(d, todo, log)
             with open(STATE, "w", encoding="utf-8") as f:
                 json.dump(state, f, indent=1, default=str)
             log.append("done in %.1f s" % (time.time() - t0))
@@ -704,7 +776,9 @@ _prev = _sc.sticky.get("bergama_board_builder_prev", False)
 _sc.sticky["bergama_board_builder_prev"] = _pressed
 if _pressed and not _prev:
     try:
-        _sc.sticky["bergama_board_builder"] = ("\n".join(main(_me)), "running")
+        _ra = globals().get("run_after")
+        _ra = any(bool(x) for x in _ra) if isinstance(_ra, (list, tuple)) else bool(_ra)
+        _sc.sticky["bergama_board_builder"] = ("\n".join(main(_me, _ra)), "running")
     except Exception as _e:
         import traceback as _tb
         _sc.sticky["bergama_board_builder"] = ("ERROR " + str(_e) + "\n" + _tb.format_exc(), "ERROR")
