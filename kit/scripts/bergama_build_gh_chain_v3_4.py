@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.3 (8 Nov 2026; v3.3: everything from the cloud only, no run-kit fallback, Aras 19:20 UTC). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.4 (8 Nov 2026; v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -22,8 +22,9 @@ Adding, removing or reordering scripts only changes the files in kit/: this buil
 
 Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
   input  run        Button: nothing happens until it is pressed
-  input  force      Boolean Toggle, off by default: run_after AND force both on = every script run from the beginning
-                    (whole chain + every left-column-only script). Both toggles are added by the builder itself on
+  input  force      Boolean Toggle, off by default: run_after AND force both on = every script run from the beginning:
+                    the Chain Button is pressed (the whole chain runs through its done -> run wires), then every
+                    left-column-only script. Both toggles are added by the builder itself on
                     the first press (Aras 15:25 UTC)
   input  run_after  Boolean Toggle, off by default: True = right after the update the builder runs, one at a time in
                     chain order, the left-column copies (their widgets) of only the scripts whose code, widgets or read files (kit/scripts/script_reads.txt)
@@ -37,7 +38,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v3.3"
+VERSION = "v3.4"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -666,7 +667,8 @@ def build(doc, me, scripts, state, log):
     log.append("components moved: 0 (existing components are never moved)")
     # what the scheduler runs: the LEFT-COLUMN copies (no done wires: one press = one script, nothing else starts),
     # chain scripts first in chain order, then the left-only ones
-    queue = [{"label": sc_["label"], "comp": have[sc_["label"] + " solo"], "sha": sc_["sha"], "prefix": sc_["prefix"]}
+    queue = [{"label": sc_["label"], "comp": have[sc_["label"] + " solo"], "sha": sc_["sha"], "prefix": sc_["prefix"],
+              "chain": have[sc_["label"]] if sc_ in chain else None}
              for sc_ in chain + [x for x in scripts if x["role"] == "solo"]]
     return queue
 
@@ -834,6 +836,51 @@ def schedule(doc, fn, ms=5):
     doc.ScheduleSolution(ms, GH.Kernel.GH_Document.GH_ScheduleDelegate(fn))
 
 
+def press(b, down):
+    """a Button down (True) or up (False), then a Grasshopper solution right away; called from Rhino idle only,
+    so no solution is running and the pressed scripts have finished when this returns"""
+    b.ButtonDown = bool(down)
+    b.ExpireSolution(True)
+
+
+def on_idle(doc, fn):
+    """fn(doc) once, the next time Rhino is idle and Grasshopper is not solving (v3.3 scheduled the next step from
+    inside a scheduled step: real Grasshopper drops that, so the run pass never started, Aras 19:27 UTC)"""
+    import Rhino
+    st = {"done": False}
+
+    def h(sender, e):
+        if st["done"]:
+            return
+        try:
+            if doc.SolutionState == GH.Kernel.GH_ProcessStep.Process:
+                return                                       # a solution is running: next idle
+        except Exception:
+            pass
+        st["done"] = True
+        try:
+            Rhino.RhinoApp.Idle -= h
+        except Exception:
+            pass
+        fn(doc)
+    Rhino.RhinoApp.Idle += h
+
+
+def flush_log(log, note=""):
+    try:
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f:
+            f.write("\n".join(log) + ("\n" + note if note else ""))
+    except Exception:
+        pass
+
+
+def proc_secs(c, fallback):
+    try:
+        return float(c.ProcessorTime.TotalSeconds)
+    except Exception:
+        return fallback
+
+
 _ABORT = [None]                                   # set by run_needed: ends the pass with an ERROR line
 
 
@@ -927,31 +974,51 @@ def run_needed(doc, me, queue, force, log, finish):
             if not can_press:
                 log.append("  FLAG %-18s needs a run (%s): press its Button yourself (this Grasshopper cannot)"
                            % (it["label"], why))
-                return schedule(d, guarded(step(k + 1)))
+                return on_idle(d, guarded(step(k + 1)))
             c = it["comp"]
             tb = button_on(d, c, it["label"] + " Button")
-            ctx = {"t": 0.0}
-
-            def down(d2):
-                ctx["t"] = time.time()
-                press(tb, True)
-                schedule(d2, guarded(up))
-
-            def up(d2):
-                secs = time.time() - ctx["t"]
-                press(tb, False)
-                dn = done_of(c)
-                if dn is not None and not dn.startswith("done"):
-                    tally["failed"] += 1
-                    log.append("  FAILED  %-18s %s (check %.2f s, %.0f s): not recorded, runs again next time"
-                               % (it["label"], why, dt, secs))
-                else:
-                    tally["ran"] += 1
-                    record(it, secs)
-                    log.append("  ran     %-18s %s (check %.2f s, run %.0f s)" % (it["label"], why, dt, secs))
-                schedule(d2, guarded(step(k + 1)))
-            schedule(d, guarded(down))
+            flush_log(log, "running %s ..." % it["label"])
+            t = time.time()
+            press(tb, True)                          # the script runs inside this call
+            secs = time.time() - t
+            dn = done_of(c)
+            press(tb, False)
+            if dn is not None and not dn.startswith("done"):
+                tally["failed"] += 1
+                log.append("  FAILED  %-18s %s (check %.2f s, %.0f s): not recorded, runs again next time"
+                           % (it["label"], why, dt, secs))
+            else:
+                tally["ran"] += 1
+                record(it, secs)
+                log.append("  ran     %-18s %s (check %.2f s, run %.0f s)" % (it["label"], why, dt, secs))
+            flush_log(log)
+            on_idle(d, guarded(step(k + 1)))
         return go
+
+    def chain_all(d):
+        """run_after + force: press the Chain Button once; the whole chain runs through its done -> run wires"""
+        items = [it for it in queue if it.get("chain")]
+        if not items or not can_press:
+            return step(0)(d)
+        tb = button_on(d, items[0]["chain"], "Chain Button")
+        flush_log(log, "running the whole chain (Chain Button) ...")
+        t = time.time()
+        press(tb, True)
+        total = time.time() - t
+        press(tb, False)
+        for it in items:
+            dn = done_of(it["chain"])
+            secs = proc_secs(it["chain"], total / len(items))
+            if dn is not None and not dn.startswith("done"):
+                tally["failed"] += 1
+                log.append("  FAILED  %-18s force, chain (%.0f s): not recorded, runs again next time" % (it["label"], secs))
+            else:
+                tally["ran"] += 1
+                record(it, secs)
+                log.append("  ran     %-18s force, chain (run %.0f s)" % (it["label"], secs))
+        log.append("  whole chain: %.0f s" % total)
+        flush_log(log)
+        on_idle(d, guarded(step(len(items))))
 
     def end(d):
         if rh["now"]:
@@ -967,7 +1034,7 @@ def run_needed(doc, me, queue, force, log, finish):
         log.append("run_after: %d ran, %d skipped, %d failed" % (tally["ran"], tally["skipped"], tally["failed"]))
         finish()
 
-    schedule(doc, guarded(step(0)))
+    guarded(chain_all if force else step(0))(doc)
 
 
 # ---------------------------------------------------------------- speed caches in the cloud
@@ -1208,9 +1275,18 @@ def main(me, run_after=False, force=False):
                 if force:                             # Aras 15:25 UTC: both on = every script from the beginning
                     import scriptcontext as sc
                     sc.sticky["bergama_force_run"] = time.time()
-                run_needed(d, me, queue, force, log, lambda: (cache_up(log),
-                                                              log.append("done in %.1f s" % (time.time() - t0)),
-                                                              _finish(me, log)))
+                fin = lambda: (cache_up(log), log.append("done in %.1f s" % (time.time() - t0)), _finish(me, log, True))
+
+                def start(d2):
+                    try:
+                        run_needed(d2, me, queue, force, log, fin)
+                    except Exception as e:
+                        import traceback
+                        log.append("ERROR " + str(e))
+                        log.append(traceback.format_exc())
+                        _finish(me, log, True)
+                flush_log(log, "run_after: starts when Rhino is idle ...")
+                on_idle(d, start)
                 return
             cache_up(log)
             log.append("done in %.1f s" % (time.time() - t0))
@@ -1224,7 +1300,7 @@ def main(me, run_after=False, force=False):
     return log
 
 
-def _finish(me, log):
+def _finish(me, log, from_idle=False):
     txt = "\n".join(log)
     try:
         with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f:
@@ -1237,7 +1313,7 @@ def _finish(me, log):
     sc.sticky[stk] = (txt, ("done %s.00 · %d s" % (time.strftime("%H:%M:%S"), round(time.time() - _T0[0])))
                            if ok else "ERROR")
     me.Message = "%s %s · %s" % (GH_LABEL, VERSION, time.strftime("%H:%M")) if ok else "ERROR"
-    me.ExpireSolution(False)
+    me.ExpireSolution(from_idle)                    # from Rhino idle no solution is running: start one
 
 
 _me = ghenv.Component                                              # noqa: F821 (Grasshopper)
