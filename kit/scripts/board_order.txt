@@ -1,0 +1,20 @@
+# Bergama board: read by the board builder (bergama_build_gh_chain v3) on every press.
+# chain: <file prefix> = <name>   in chain order (each 'done' runs the next one)
+# solo:  <file prefix> = <name>   left column only
+# Every chain script also gets its own copy in the left column.
+chain: bergama_trace_assets = TraceAssets
+chain: bergama_plant_sheet = PlantSheet
+chain: bergama_zone_base = ZoneBase
+chain: selinus_board = MainBoard
+chain: bergama_masterplan = MasterPlan
+chain: bergama_water_balance = WaterBalance
+chain: bergama_agriculture_alternatives = AgriCulture
+chain: bergama_water_board = WaterBoard
+chain: bergama_proposal_sections = ProposalSections
+chain: bergama_city_link = CityLink
+chain: bergama_booklet = Booklet
+chain: bergama_booklet_jpg = BookletJpg
+solo: bergama_b19_plan = B19Plan
+solo: bergama_shared_sync = SharedSync
+solo: bergama_plan_to_rhino = PlanToRhino
+solo: bergama_planting_analysis = PlantingAnalysis

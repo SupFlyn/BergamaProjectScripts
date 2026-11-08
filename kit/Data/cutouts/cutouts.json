@@ -1,0 +1,408 @@
+{
+ "cutouts": {
+  "person_stand": [
+   {
+    "file": "stand_1.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "facing": -1,
+    "asset_id": "PB_308",
+    "depth": {
+     "1": "stand_1_d1.png",
+     "2": "stand_1_d2.png"
+    }
+   },
+   {
+    "file": "stand_2.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "facing": -1,
+    "asset_id": "PB_322",
+    "depth": {
+     "1": "stand_2_d1.png",
+     "2": "stand_2_d2.png"
+    }
+   },
+   {
+    "file": "stand_3.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "facing": -1,
+    "asset_id": "PB_326",
+    "depth": {
+     "1": "stand_3_d1.png",
+     "2": "stand_3_d2.png"
+    }
+   },
+   {
+    "file": "stand_4.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "asset_id": "PB_324",
+    "depth": {
+     "1": "stand_4_d1.png",
+     "2": "stand_4_d2.png"
+    }
+   }
+  ],
+  "person_walk": [
+   {
+    "file": "walk_1.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "asset_id": "PB_321",
+    "depth": {
+     "1": "walk_1_d1.png",
+     "2": "walk_1_d2.png"
+    }
+   },
+   {
+    "file": "walk_2.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "source": "Pimp My Drawing, woman with basket walking down some stairs towards you (DWG people), https://pimpmydrawing.com/",
+    "asset_id": "DW_015",
+    "depth": {
+     "1": "walk_2_d1.png",
+     "2": "walk_2_d2.png"
+    }
+   }
+  ],
+  "person_sit_step": [
+   {
+    "file": "sit_step_1.png",
+    "h_m": 1.3,
+    "kind": "person",
+    "asset_id": "PB_298",
+    "depth": {
+     "1": "sit_step_1_d1.png",
+     "2": "sit_step_1_d2.png"
+    }
+   },
+   {
+    "file": "sit_step_2.png",
+    "h_m": 1.3,
+    "kind": "person",
+    "asset_id": "PB_327",
+    "depth": {
+     "1": "sit_step_2_d1.png",
+     "2": "sit_step_2_d2.png"
+    }
+   },
+   {
+    "file": "sit_step_3.png",
+    "h_m": 1.3,
+    "kind": "person",
+    "asset_id": "PB_292",
+    "depth": {
+     "1": "sit_step_3_d1.png",
+     "2": "sit_step_3_d2.png"
+    }
+   }
+  ],
+  "person_sit_chair": {
+   "file": "sit_chair_1.png",
+   "h_m": 1.3,
+   "kind": "person",
+   "asset_id": "PB_294",
+   "depth": {
+    "1": "sit_chair_1_d1.png",
+    "2": "sit_chair_1_d2.png"
+   }
+  },
+  "person_bike": {
+   "file": "bike_1.png",
+   "h_m": 1.8,
+   "kind": "person",
+   "facing": -1,
+   "asset_id": "PB_334",
+   "depth": {
+    "1": "bike_1_d1.png",
+    "2": "bike_1_d2.png"
+   }
+  },
+  "person_child_play": {
+   "file": "child_play_1.png",
+   "h_m": 1.15,
+   "kind": "person",
+   "source": "Pimp My Drawing, kids running holding hands and playing sanaa people 19 (DWG people), https://pimpmydrawing.com/",
+   "asset_id": "DW_004",
+   "depth": {
+    "1": "child_play_1_d1.png",
+    "2": "child_play_1_d2.png"
+   }
+  },
+  "person_stall": {
+   "file": "stall_buyer_1.png",
+   "h_m": 1.75,
+   "kind": "person",
+   "asset_id": "PB_306",
+   "depth": {
+    "1": "stall_buyer_1_d1.png",
+    "2": "stall_buyer_1_d2.png"
+   }
+  },
+  "person_vendor": {
+   "file": "vendor_1.png",
+   "h_m": 1.75,
+   "kind": "person",
+   "asset_id": "PB_282",
+   "depth": {
+    "1": "vendor_1_d1.png",
+    "2": "vendor_1_d2.png"
+   }
+  },
+  "stall": {
+   "file": "stall_1.png",
+   "h_m": 2.6,
+   "kind": "stall",
+   "asset_id": "PB_299",
+   "depth": {
+    "1": "stall_1_d1.png",
+    "2": "stall_1_d2.png"
+   }
+  },
+  "plane": [
+   {
+    "file": "plane_1.png",
+    "h_m": 15.0,
+    "kind": "tree",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "asset_id": "CS_009",
+    "depth": {
+     "1": "plane_1_d1.png",
+     "2": "plane_1_d2.png"
+    }
+   },
+   {
+    "file": "plane_2.png",
+    "h_m": 15.0,
+    "kind": "tree",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "asset_id": "CS_008",
+    "depth": {
+     "1": "plane_2_d1.png",
+     "2": "plane_2_d2.png"
+    }
+   },
+   {
+    "file": "plane_3.png",
+    "h_m": 15.0,
+    "kind": "tree",
+    "asset_id": "CS_007",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "plane_3_d1.png",
+     "2": "plane_3_d2.png"
+    }
+   },
+   {
+    "file": "plane_4.png",
+    "h_m": 15.0,
+    "kind": "tree",
+    "asset_id": "CS_011",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "plane_4_d1.png",
+     "2": "plane_4_d2.png"
+    }
+   },
+   {
+    "file": "plane_5.png",
+    "h_m": 15.0,
+    "kind": "tree",
+    "asset_id": "CS_012",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "plane_5_d1.png",
+     "2": "plane_5_d2.png"
+    }
+   },
+   {
+    "file": "plane_6.png",
+    "h_m": 15.0,
+    "kind": "tree",
+    "asset_id": "CS_014",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "plane_6_d1.png",
+     "2": "plane_6_d2.png"
+    }
+   }
+  ],
+  "ash": [
+   {
+    "file": "ash_1.png",
+    "h_m": 20.0,
+    "kind": "tree",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "asset_id": "CS_001",
+    "depth": {
+     "1": "ash_1_d1.png",
+     "2": "ash_1_d2.png"
+    }
+   },
+   {
+    "file": "ash_2.png",
+    "h_m": 20.0,
+    "kind": "tree",
+    "asset_id": "CS_004",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "ash_2_d1.png",
+     "2": "ash_2_d2.png"
+    }
+   },
+   {
+    "file": "ash_3.png",
+    "h_m": 20.0,
+    "kind": "tree",
+    "asset_id": "CS_006",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "ash_3_d1.png",
+     "2": "ash_3_d2.png"
+    }
+   },
+   {
+    "file": "ash_4.png",
+    "h_m": 20.0,
+    "kind": "tree",
+    "asset_id": "CS_021",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "ash_4_d1.png",
+     "2": "ash_4_d2.png"
+    }
+   }
+  ],
+  "olive": [
+   {
+    "file": "olive_1.png",
+    "h_m": 11.5,
+    "kind": "tree",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "asset_id": "CS_027",
+    "depth": {
+     "1": "olive_1_d1.png",
+     "2": "olive_1_d2.png"
+    }
+   },
+   {
+    "file": "olive_2.png",
+    "h_m": 11.5,
+    "kind": "tree",
+    "asset_id": "CS_025",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "olive_2_d1.png",
+     "2": "olive_2_d2.png"
+    }
+   }
+  ],
+  "stone_pine": [
+   {
+    "file": "stone_pine_1.png",
+    "h_m": 27.5,
+    "kind": "tree",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "asset_id": "CS_015",
+    "depth": {
+     "1": "stone_pine_1_d1.png",
+     "2": "stone_pine_1_d2.png"
+    }
+   },
+   {
+    "file": "stone_pine_2.png",
+    "h_m": 27.5,
+    "kind": "tree",
+    "asset_id": "CS_016",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "stone_pine_2_d1.png",
+     "2": "stone_pine_2_d2.png"
+    }
+   },
+   {
+    "file": "stone_pine_3.png",
+    "h_m": 27.5,
+    "kind": "tree",
+    "asset_id": "CS_017",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "stone_pine_3_d1.png",
+     "2": "stone_pine_3_d2.png"
+    }
+   }
+  ],
+  "tamarisk": [
+   {
+    "file": "tamarisk_1.png",
+    "h_m": 9.5,
+    "kind": "tree",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "asset_id": "CS_023",
+    "depth": {
+     "1": "tamarisk_1_d1.png",
+     "2": "tamarisk_1_d2.png"
+    }
+   },
+   {
+    "file": "tamarisk_2.png",
+    "h_m": 9.5,
+    "kind": "tree",
+    "asset_id": "CS_022",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "tamarisk_2_d1.png",
+     "2": "tamarisk_2_d2.png"
+    }
+   },
+   {
+    "file": "tamarisk_3.png",
+    "h_m": 9.5,
+    "kind": "tree",
+    "asset_id": "CS_024",
+    "source": "Pinterest board of nilduygu (tree / grass cutouts)",
+    "depth": {
+     "1": "tamarisk_3_d1.png",
+     "2": "tamarisk_3_d2.png"
+    }
+   }
+  ],
+  "soft_rush": {
+   "file": "rush_1.png",
+   "h_m": 1.0,
+   "kind": "plant",
+   "source": "Pinterest board of eishahakc (tree / grass cutouts)",
+   "asset_id": "CS_084",
+   "depth": {
+    "1": "rush_1_d1.png",
+    "2": "rush_1_d2.png"
+   }
+  },
+  "rush": {
+   "file": "rush_1.png",
+   "h_m": 0.8,
+   "kind": "plant",
+   "source": "Pinterest board of eishahakc (tree / grass cutouts)",
+   "asset_id": "CS_084",
+   "depth": {
+    "1": "rush_1_d1.png",
+    "2": "rush_1_d2.png"
+   }
+  },
+  "person_adult_child": [
+   {
+    "file": "adult_child_1.png",
+    "h_m": 1.75,
+    "kind": "person",
+    "asset_id": "PB_303",
+    "depth": {
+     "1": "adult_child_1_d1.png",
+     "2": "adult_child_1_d2.png"
+    }
+   }
+  ]
+ }
+}
