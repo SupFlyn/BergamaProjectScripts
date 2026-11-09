@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_water_board_v17.py = v17 (4 Nov 2026, layout rework L4: the board only produces; every text, value and key map is exported, none left out; the booklet places and fixes every hit) · before: v16 (4 Nov 2026, round 6 S5: pages p11, p13, p14, p16, p18 of the 22-page booklet; see VERSION) · before: v15.2 (2 Nov run-warning fixes, dist only until v16) · bergama_water_board_v15_1.py = v15.1 (closing fix 2 Nov: one WARNING line + orange per hit); v15 (2 Nov 2026, round 5 S8: booklet items instead of the A0 sheet; see NEW IN v15) · before: v14.2 (1 Nov 2026: p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_water_board_v19.py = v19 (9 Nov 2026, round 8 S3: p13 kinds, level ladder D4, Aras's agaclar.svg plants; p11 zoom names off the step markers; images grouped; p14 zoom 1:200, p16 plans 1:3,000; Aras's masterplan look on the p16 plans; see NEW IN v19) · before: v18 (5 Nov 2026, round 7 S4) · v17 (4 Nov 2026, layout rework L4: the board only produces; every text, value and key map is exported, none left out; the booklet places and fixes every hit) · before: v16 (4 Nov 2026, round 6 S5: pages p11, p13, p14, p16, p18 of the 22-page booklet; see VERSION) · before: v15.2 (2 Nov run-warning fixes, dist only until v16) · bergama_water_board_v15_1.py = v15.1 (closing fix 2 Nov: one WARNING line + orange per hit); v15 (2 Nov 2026, round 5 S8: booklet items instead of the A0 sheet; see NEW IN v15) · before: v14.2 (1 Nov 2026: p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14: text hits and stopped pages are orange warnings listed at the top of the log, the run goes on; v13.11: p18 key map starts right of the level marks when they meet; v13.10: p18 a legend part that fits neither side column goes in the spare height between the rows; v13.9: p18 a number tries every place on its drawing, else an orange warning; v13.8: p12 legend corner chosen and reserved before the channel letters, which stand off it; v13.7: p12 legend tests the block face by its outline, not its full-width box; v13.6: p12 legend tries every clear place on the map, with the page check's pad; v13.5: p12 legend slides off the channel letters; v13.4: p12 relief note placed last in a free spot; v13.3: p12 a map name with no room for its letter is a FLAG + orange warning, not a stop; v13.2: p12 zoom box off the relief note and the cut letters; v13.1: p12 side-list letters may stand up to 7 mm from their point; round 4 S6a; what changed: the NEW IN / VERSION notes below)
 """BERGAMA WATER BOARD v4 (2026-10-28; first written as v1.8, 2026-10-25; v1.8 VISUAL FIRST, Aras 17:00/17:05: sentences become pictogram chips, big-figure
 callouts on the charts, a visual species card grid and season matrix; sources as [n] in the footer key; layout and look of v1.3/v1.6 kept): the water of Group 6's project on one A0 board: how much, when, how high,
 how it is cleaned, held and released.
@@ -43,6 +43,25 @@ DATA RULES
   Settled 24 Oct (CONFLICTS.md, this account wins): one-way loop, nothing pumped back; a continuous regulated strip
   (no weir pools); the strip's own storage 26,675 / at least 83,060 m³ (its losses only: its outflow goes on to the
   farms, water balance v2); Q500 from DSİ.
+
+NEW IN v19 (round 8 S3 + Part A, 9 Nov 2026; a feature change; PLAN.md round 8, H3 Q1-Q4, Q2 a, Q6 b, Q7 a):
+  * p13 group kinds (G9): _p13_from_engine maps every engine layer to an allowed kind (handrail / concrete / deck =
+    buildings, asphalt = paths, levels = levels, anything else = ground): the 8 "group kind unknown" WARNINGs go.
+  * p13 levels (D4): _p13_ladder writes ONE column 1 mm out from the cut's right end (P13_LEVEL_GAP), each value at
+    its level's height, a crowded value moved up / down only; no leader lines.
+  * p13 plants (Q6 b): the season cuts' trees, shrubs and lavender are Aras's section drawings from
+    Data/assets/agaclar.svg, read live on every press (r19_plants / agac_read; pieces picked by PlantingAnalysis v1's
+    section boxes, his paths and colours copied as they are). Reeds, iris and grass: no drawing in his file, the
+    engine's own. Missing file / box = WARNING + the engine's plants (v18 look).
+  * p11 zoom: "Winter storage" and the zone names set at the nearest spot clear of the step markers (were on the
+    marker's own point: 4 booklet text pairs).
+  * Images (plant cut-outs) drawn through shp_put get a group (p12_map 74, p12_zoom 7, p18 cards / plans: "no group").
+  * Q2 a: the p14 zoom at 1:200 (P15_ZOOM_DEN), the p16 plans A, B at 1:3,000 (P17_PLAN_DEN).
+  * Part A (Aras: his masterplan SVG used everywhere; H4 §5): the p16 proposal plans draw ZoneBase v12's
+    Option_A::INT_WATER_design (his Selinos), INT_ZONE_WETLAND (+ his reed tufts read live from
+    Data/assets/masterlastversion.svg) and INT_ROUTE_circulation / _footbridge (arrows) as MasterPlan v45 draws them
+    (wb45_*; legend rows only for what is drawn). Existing-condition drawings keep their look. No layer = WARNING +
+    v18 look.
 
 NEW IN v15 (round 5 S8, 2 Nov 2026; a feature change):
   * G-R5-12 + addendum 1 Nov 22:37: the board writes NO sheet PDF any more. The pages still draw onto the board's Page
@@ -232,7 +251,7 @@ import types as _types
 import Rhino
 import scriptcontext as sc
 
-VERSION = "bergama_water_board v18 (2026-11-05)"  # v18 (round 7 S4, feature): p13 four seasons = the 28 Oct detail-engine S4 south-west bank at 1:500 with today's levels (r06_S03, ACCURATE); key maps on keymap v4 at SON frames (p13 94.5x28.4, p14 99.9x30.0, p16 two maps 63.0x12.9 + 63.0x14.8), p11 key map and dead p18 key map removed; fixed SON scales (p14 zoom 1:100, p16 plans 1:2,500, bands 1:10,000, no coarser allowance in wb_items); p18 hue_log; v17.3 fix (booklet JPG check): a text block of several lines goes to the booklet line by line at its own sizes (p18 figures printed as one 12 pt line across the page); v17.2 fix: A-A' sketch words raised to 4.5 pt when its engine has no TXT_K (p11/p12 3.6 pt warnings); v17.1 fix: common key map names never left out (the booklet places them); v17 (layout rework L4, Aras 4 Nov 19:17-19:18, feature): no producer-side drop or layout warning: p11 map letters with no free spot stand on their point, the Üç Kemer base-data names past the nearest few are exported (lower priority), the steps keep their keyword lines; p13 activity words always exported over their zone, season columns, FEEL column and crowns exported whole (boxes grow); p14 crowns whole; p16 hub names beside their icon and the key map always exported; level spread, overlap, edge and overrun checks are log lines, not warnings (the booklet checks, LAYOUT_PLAN §3); v16 (round 6 S5, feature): booklet pages renumbered p11/p13/p14/p16/p18 (PLAN §2.1); p11 A-A' as a SKETCH (r06_S02 panel 1), steps on CCH_STEPS, plan cut marks (annot.py), key map module; p13 four seasons restored from 28 Oct (r06_S03, ACCURATE, animal column); p14 S4 north-east ACCURATE look; p16 plans with outside cut marks, source marks off the labels; p18 water blocks as SON page19 (ee52805); every legend on the hue table; every element its own group (G6-9); the two "in section" pages no longer exported; v15.2 fix (2 Nov run warnings): key maps fill their frames, p17 plans try 1:7,500-1:25,000, wading on the shallow stretch; v15.1 fix (round 5 closing): every WARNING line is also orange and each hit is written once (6 hits wrote two WARNING lines, 7 had no orange message); v15 2 Nov (round 5 S8, feature): the board exports booklet items (cached/booklet/bergama_water_board/items.json), no sheet PDF; pages p12, p15, p16, p18, p19-20, p21 per the round 5 plan; v14.2 v14.2 1 Nov 22:10 (Aras 19:49, p18b 39 hits): p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_water_board v19 (2026-11-09)"  # v19 (round 8 S3 + Part A, feature): see NEW IN v19; v18 (round 7 S4, feature): p13 four seasons = the 28 Oct detail-engine S4 south-west bank at 1:500 with today's levels (r06_S03, ACCURATE); key maps on keymap v4 at SON frames (p13 94.5x28.4, p14 99.9x30.0, p16 two maps 63.0x12.9 + 63.0x14.8), p11 key map and dead p18 key map removed; fixed SON scales (p14 zoom 1:100, p16 plans 1:2,500, bands 1:10,000, no coarser allowance in wb_items); p18 hue_log; v17.3 fix (booklet JPG check): a text block of several lines goes to the booklet line by line at its own sizes (p18 figures printed as one 12 pt line across the page); v17.2 fix: A-A' sketch words raised to 4.5 pt when its engine has no TXT_K (p11/p12 3.6 pt warnings); v17.1 fix: common key map names never left out (the booklet places them); v17 (layout rework L4, Aras 4 Nov 19:17-19:18, feature): no producer-side drop or layout warning: p11 map letters with no free spot stand on their point, the Üç Kemer base-data names past the nearest few are exported (lower priority), the steps keep their keyword lines; p13 activity words always exported over their zone, season columns, FEEL column and crowns exported whole (boxes grow); p14 crowns whole; p16 hub names beside their icon and the key map always exported; level spread, overlap, edge and overrun checks are log lines, not warnings (the booklet checks, LAYOUT_PLAN §3); v16 (round 6 S5, feature): booklet pages renumbered p11/p13/p14/p16/p18 (PLAN §2.1); p11 A-A' as a SKETCH (r06_S02 panel 1), steps on CCH_STEPS, plan cut marks (annot.py), key map module; p13 four seasons restored from 28 Oct (r06_S03, ACCURATE, animal column); p14 S4 north-east ACCURATE look; p16 plans with outside cut marks, source marks off the labels; p18 water blocks as SON page19 (ee52805); every legend on the hue table; every element its own group (G6-9); the two "in section" pages no longer exported; v15.2 fix (2 Nov run warnings): key maps fill their frames, p17 plans try 1:7,500-1:25,000, wading on the shallow stretch; v15.1 fix (round 5 closing): every WARNING line is also orange and each hit is written once (6 hits wrote two WARNING lines, 7 had no orange message); v15 2 Nov (round 5 S8, feature): the board exports booklet items (cached/booklet/bergama_water_board/items.json), no sheet PDF; pages p12, p15, p16, p18, p19-20, p21 per the round 5 plan; v14.2 v14.2 1 Nov 22:10 (Aras 19:49, p18b 39 hits): p18b: S4 trimmed to -30-40 m, the key map ends above the scale bar, the legend under the W1 list; v14.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v14 1 Nov 20:45 (Aras 17:11 + 18:51 "change your approach"): every text hit and every page that stops is an orange warning and a WARNING log line, listed at the top of the log; the run finishes; v13.11 fix 1 Nov 20:35 (Aras 18:51, 45 hits on p18b: the W1 level marks against the key map): a key map whose height meets the level marks starts 2 mm right of them; v13.10 fix 1 Nov 20:25 (Aras 18:40, p18a materials found no room: free -0.6 and 9.9 mm): the spare height between the two rows (under the first side column) is a third place for the planting bands or materials; v13.9 fix 1 Nov 20:15 (Aras 18:30, p18a number 6 Wading found no place): p18 numbers try every offset on the drawing nearest first; with none, an orange warning and the run goes on; v13.8 fix 1 Nov 20:05 (Aras 18:19, 31 hits: the 101 x 115 mm legend found no clear place and took a new corner): the legend corner is chosen as in v13.6 and its box reserved before the channel letters are placed, so the letters stand off it; v13.7 fix 1 Nov 19:50 (Aras 18:15, D and E under the legend a third time): the terrain block face counted as its full-width box, so no legend place was ever clear; now tested by its outline in 5 mm columns, the legend move or its FLAG written to the log; v13.6 fix 1 Nov 19:35 (Aras 18:10, D and E still under the legend): p12 legend clearance uses a 0.8 mm pad and the drawn marker boxes, and tries every 2.5 mm place on the map (else an orange warning); v13.5 fix 1 Nov 19:25 (Aras 18:06, D and E under the legend): p12 legend slides along the map edge (5 mm steps, up to 80 mm) to a place clear of the markers and texts; v13.4 fix 1 Nov 19:15 (Aras 18:01, 7 hits on the relief note): p12 the note "heights x n · diagram, no scale" printed last in the free spot nearest its corner (else FLAG + orange warning); v13.3 fix 1 Nov 19:05 (Aras 17:57): p12 side-list letter tries up to 10 mm, then the name is left out with a FLAG + orange warning (no stop); v13.2 fix 1 Nov 18:55 (Aras 17:40, 3 hits): p12 zoom box placed off the relief note and the cut letters, a cut letter that would cross the zoom neatline left out, A / A' may sit on the winter store; v13.1 fix 1 Nov 18:45 (Aras 17:33): p12 a side-list letter may stand up to 7 mm from its point (Dry-top terraces found no spot within 3.5 mm); v13 (round 4 S6a, feature): p12, p14, p15 on the shared round 4 modules (see NEW IN v13); v12.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v12.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 SHORT = "v17.2"
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
@@ -12809,7 +12828,14 @@ def shp_put(pg, shapes):
             pg.text(s_[1], s_[2], s_[3], s_[4], s_[5], bold=s_[6] if len(s_) > 6 else False,
                     align=s_[7] if len(s_) > 7 else "L")
         elif t == "image":
-            pg.items.append(tuple(s_) + (None,) * (9 - len(s_)))
+            it = tuple(s_) + (None,) * (9 - len(s_))
+            pg.items.append(it)
+            # v19 (round 8, LOG/H3 Q4: p12_map 74 + p12_zoom 7 + p18 cards / plans "items with no group"): the image
+            # takes the open group (Page._gt), else its own plants element (the images here are plant cut-outs)
+            if getattr(pg, "cur_grp", None):
+                pg._gt(it)
+            elif hasattr(pg, "cur_grp"):
+                _GRP[id(it)] = (it, u"plants/image %d" % len(pg.items))
 
 
 def _wat_pal():
@@ -20493,10 +20519,26 @@ def _p12_map_labels(pg, ga, M, zones, f, D, log):
     I = M.get("inset")
     Tz, bz = (I["Tg"], I["box"]) if I else (Tg, ga)
     inb = lambda p, b: b[0] < p[0] < b[2] and b[1] < p[1] < b[3]
+    taken = list(M.get("marks") or [])                 # v19 (round 8, H3 Q4): the step markers' boxes
+
+    def _off(s, p, bold=False):
+        """v19 (round 8, H3 Q4; booklet p11 '4 text pairs'): the name's anchor moved off the step markers (v18 put it
+        on the marker's own point): the nearest box (text width x FS_MIN) clear of M["marks"] and of the names
+        already set, inside the zoom / map (_p12_free_spot); none free = the point as before + a log line"""
+        w = text_w(s, FS_MIN, bold) * 1.05
+        b = _p12_free_spot(p[0] + w / 2.0, p[1] + FS_MIN * 0.35, w, FS_MIN, taken, bz,
+                           (0.0, 1.0, 2.0, 3.5, 5.0, 7.0, 9.0, 12.0))
+        if b is None:
+            if log is not None:
+                log.append(u"p11 zoom name '{}': no spot clear of the step markers, kept on its point".format(s))
+            return p
+        taken.append(b)
+        return (b[0], b[1] + FS_MIN * 0.15)
     if I or M["e"] > 0.0:                               # the store's place: the upstream entry's terraces and basins
         p = Tz(M["hold"])
         if inb(p, bz):
-            pts.append(_p12_label(pg, u"Winter storage", p, P12_ZONE["WS"][2], bold=True))
+            pts.append(_p12_label(pg, u"Winter storage", _off(u"Winter storage", p, True), P12_ZONE["WS"][2],
+                                  bold=True))
         else:
             _p12_warn(log, "label", u"'Winter storage' left out: the store's point lies outside the {}".format(
                 u"zoom" if I else u"map"))
@@ -20506,7 +20548,7 @@ def _p12_map_labels(pg, ga, M, zones, f, D, log):
             if zz:
                 c = I["Tg"](_p12_cen(zz[0]["ring"]))
                 if inb(c, bz):
-                    pts.append(_p12_label(pg, head, c, P12_ZONE[code][2]))
+                    pts.append(_p12_label(pg, head, _off(head, c), P12_ZONE[code][2]))   # v19: off the markers
                 else:
                     _p12_warn(log, "label", u"'{}' left out: its zone's centre lies outside the zoom".format(head))
     pl = [(_p12_place_nm(nm), Tg(p)) for nm, p in P12_PLACES]
@@ -22766,7 +22808,7 @@ def _p14_inset2(pg, page, parent, X, Y, parent_den, sea, zone, words, at, water=
     if not fr:
         return None
     den, kc = fr["den"], fr["k"]
-    if parent_den == P15_DEN and den != P15_ZOOM_DEN:     # v18 (L1): the zoom keeps SON page16's printed 1:100; no
+    if parent_den == P15_DEN and den != P15_ZOOM_DEN:     # v18 (L1): the zoom keeps its fixed scale (v19: 1:200); no
         if log is not None:                               # scale picked (sf_inset_frame's pick is overridden)
             log.append(u"inset {} {}: 1:{:,.0f} picked by sf_inset_frame -> 1:{:,.0f} (SON)".format(
                 page, words, den, P15_ZOOM_DEN))
@@ -22896,7 +22938,8 @@ def _p15_band_col(c_):
     """v16 (G6-6): a planting band's fill (P15_BAND_HUE) and the ink of its letter on it (white on GRN r1 / r2)"""
     code, rank = P15_BAND_HUE[c_]
     return hue(code, rank), (COL["white"] if code == "GRN" and rank <= 2 else COL["ink_dark"])
-P15_ZOOM_DEN = 100.0                 # round 4 (G-R4-5.7, D11): p.15's inset at 1:100 (round 5: sf_inset_frame picks it)
+P15_ZOOM_DEN = 200.0                 # v19 (round 8 Q2 a): the p14 zoom at 1:200 (its 7.3 x 5.5 m window = 36.5 x 27.5 mm
+#                                      fits the 52 x 30 frame; 1:100 was 73 x 55 mm). Was: round 4 (G-R4-5.7, D11) 1:100
 P15_INSET_M = (5.0, 2.2)             # its spot over the bike lane, m across x m high (drawing rule): 50 x 22 mm
 P15_BAND_H = 33.0                    # mm over the cut for its inset and key map (the inset 22 mm + caption + bar)
 P15_LEVEL_W = 33.0                   # mm right of the cut for its level marks (inside the block's drawing column)
@@ -23365,6 +23408,7 @@ P13_FEEL_W = 42.0                    # FEEL · HEAR · TOUCH, mm (f93d84b SENSE_
 P13_ANIM_W = 38.0                    # the animals on record, mm (frames: x 87-96.7 of A3 = 41 mm)
 P13_HEAD_H = 19.0                    # the top row: sub-hub key and month bar, mm
 P13_KEY = (94.5, 28.4)               # v18 (G7-3, PLAN §3 row 13): the SON page15 key-map frame, mm (exactly)
+P13_LEVEL_GAP = 1.0                  # v19 (round 8 D4): level values 1 mm out from the cut's right end, one column, no leaders
 P13_POCHE = 0.6                      # soil drawn under the strip, m (f93d84b S4_POCHE, drawing value)
 P13_DROP = ("title", "callouts", "dimensions", "band", "survey", "text")   # engine layers left out (f93d84b)
 P13_BAND_HUE = {"winter": ("WAT", 3), "spring": ("WAT", 2), "summer": ("WAT", 1), "autumn": ("WAT", 2)}   # G6-6:
@@ -23565,10 +23609,12 @@ def _p13_animals(pg, x, ytop, w, h, sea, page):
 
 def _p13_from_engine(items, sea):
     """the detail engine's Page items in this board's form (f93d84b from_engine), each tagged as one element of its
-    engine layer (G6-9: trees, plants, people, water, section)"""
+    engine layer (G6-9: trees, plants, people, water, section). v19 (round 8 G9, H3 Q1): every kind is one of
+    IX_GRP_KINDS (v18 wrote "structures" / "section" -> 8 "group kind unknown" WARNINGs); poche, shading, drawing and
+    any other engine layer = ground"""
     kind = {"trees": "trees", "tree_shadows": "trees", "planting": "plants", "entourage": "people",
-            "people": "people", "handrail": "structures", "concrete": "structures", "levels": "water",
-            "water": "water"}
+            "people": "people", "handrail": "buildings", "concrete": "buildings", "deck": "buildings",
+            "asphalt": "paths", "levels": "levels", "water": "water"}
     out = []
     for it in items:
         k = it[0]
@@ -23584,7 +23630,481 @@ def _p13_from_engine(items, sea):
         else:
             continue                                  # engine texts: none kept (P13_DROP takes its text layers)
         out.append(o)
-        _GRP[id(o)] = (o, u"%s/S4 %s · %s" % (kind.get(layer, "section"), sea, layer))
+        _GRP[id(o)] = (o, u"%s/S4 %s · %s" % (kind.get(layer, "ground"), sea, layer))
+    return out
+
+
+# ---------------------------------------------------------------- v19: p13 plants from Aras's agaclar.svg (round 8 Q6 b)
+# Aras 8 Nov 21:24 (Q6 b): the four seasons' plants are HIS drawings in Data/assets/agaclar.svg, read live on every
+# press (never embedded, never redrawn: each piece's own path, fill, stroke and width are copied as they are).
+# His file has no ids and no named groups (one Layer_1: 88 loose paths, 5 polygons, 26 unnamed groups), so a species'
+# section drawing is picked by POSITION: the section boxes of PlantingAnalysis v1 ARAS_BOX (measured on his file
+# 8 Nov; plan row under the section row), with PlantingAnalysis' own pick rule (a piece wholly in the box is taken; a
+# group across the box edge is opened; a loose piece goes by its centre). A missing file or species box = one WARNING
+# and the engine's own plants (the v18 look). SVG reading below: copied from PlantingAnalysis v1 (= PlanToRhino v2),
+# names prefixed _ag_.
+AGACLAR = os.path.join(DATA_DIR, "assets", "agaclar.svg")
+AGAC_SECT_BOX = {                    # PlantingAnalysis v1 ARAS_BOX, section boxes (x, y, w, h in his file's units)
+    "plane": (3658, 1026, 418, 325), "ash": (1368, 727, 476, 697), "willow": (4111, 520, 485, 836),
+    "olive": (4670, 713, 419, 653), "stone_pine": (2880, 908, 400, 458), "tamarisk": (2134, 729, 413, 674),
+    "chaste": (1023, 1000, 314, 398), "rosemary": (3355, 1024, 206, 353), "lavender": (1843, 1002, 249, 399),
+    "soft_rush": (265, 935, 167, 386), "rush": (0, 1010, 270, 374), "loosestrife": (784, 1013, 236, 371)}
+P13_AGAC = {"veg_tree": "plane",     # the engine's S4 trees are all kind "plane" (DETAIL_SRC SECTIONS[0] trees)
+            "shrub": "chaste",       # engine shrub = "tamarisk / vitex habit", bank shrubs 0.9-1.9 m: chaste (Vitex)
+            "lavender": "lavender",  # engine lavender bed = Lavandula: his lavender
+            "reeds": None, "iris": None, "tufts": None}   # no reed, iris or grass drawing in his file: engine look
+P13_AGAC_LAV_H = 0.5                 # m, one lavender plant (the engine's mound + spikes, 0.18-0.48 m)
+P13_AGAC_STEP = 4                    # pieces per cubic when his curves are flattened
+_AGAC = {}                           # this press's read of agaclar.svg (reset by _p13_panel, read once for 4 seasons)
+
+
+_AG_NUM = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+_AG_SVGNS = "{http://www.w3.org/2000/svg}"
+
+def _ag_mat_mul(a, b):
+    """affine a*b (a after b); (a, b, c, d, e, f) = x' = a x + c y + e, y' = b x + d y + f"""
+    return (a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1],
+            a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3],
+            a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5])
+
+
+_AG_ID = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
+
+def _ag_mat_pt(m, p):
+    return (m[0] * p[0] + m[2] * p[1] + m[4], m[1] * p[0] + m[3] * p[1] + m[5])
+
+
+def _ag_parse_transform(s):
+    m = _AG_ID
+    for name, args in re.findall(r"(\w+)\s*\(([^)]*)\)", s or ""):
+        v = [float(x) for x in _AG_NUM.findall(args)]
+        if name == "matrix" and len(v) == 6:
+            t = tuple(v)
+        elif name == "translate":
+            t = (1.0, 0.0, 0.0, 1.0, v[0], v[1] if len(v) > 1 else 0.0)
+        elif name == "scale":
+            t = (v[0], 0.0, 0.0, v[1] if len(v) > 1 else v[0], 0.0, 0.0)
+        elif name == "rotate":
+            a = math.radians(v[0])
+            r = (math.cos(a), math.sin(a), -math.sin(a), math.cos(a), 0.0, 0.0)
+            if len(v) == 3:
+                t = _ag_mat_mul((1.0, 0.0, 0.0, 1.0, v[1], v[2]), _ag_mat_mul(r, (1.0, 0.0, 0.0, 1.0, -v[1], -v[2])))
+            else:
+                t = r
+        elif name == "skewX":
+            t = (1.0, 0.0, math.tan(math.radians(v[0])), 1.0, 0.0, 0.0)
+        elif name == "skewY":
+            t = (1.0, math.tan(math.radians(v[0])), 0.0, 1.0, 0.0, 0.0)
+        else:
+            continue
+        m = _ag_mat_mul(m, t)
+    return m
+
+
+def _ag_parse_css(text):
+    """Illustrator's <style>: '.st0, .st1 { fill: #6a6760; }' -> {class: {prop: value}} (rules merged in order)"""
+    out = {}
+    text = re.sub(r"/\*.*?\*/", "", text or "", flags=re.S)
+    for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", text):
+        decl = {}
+        for part in body.split(";"):
+            if ":" in part:
+                k, v = part.split(":", 1)
+                decl[k.strip().lower()] = v.strip()
+        for s_ in sel.split(","):
+            s_ = s_.strip()
+            if s_.startswith("."):
+                out.setdefault(s_[1:], {}).update(decl)
+    return out
+
+
+def _ag_parse_color(v):
+    """'#rgb' / '#rrggbb' / 'rgb(r,g,b)' / a few names -> (r, g, b) 0-255, or None (none, url(...), unknown)"""
+    if not v:
+        return None
+    v = v.strip().lower()
+    if v in ("none", "transparent") or v.startswith("url("):
+        return None
+    if v.startswith("#"):
+        h = v[1:]
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        try:
+            return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        except Exception:
+            return None
+    if v.startswith("rgb"):
+        n = [float(x) for x in _AG_NUM.findall(v)[:3]]
+        if "%" in v:
+            n = [x * 2.55 for x in n]
+        return tuple(int(round(max(0, min(255, x)))) for x in n) if len(n) == 3 else None
+    return {"black": (0, 0, 0), "white": (255, 255, 255), "red": (255, 0, 0), "green": (0, 128, 0),
+            "blue": (0, 0, 255), "gray": (128, 128, 128), "grey": (128, 128, 128)}.get(v)
+
+
+def _ag_path_segments(d):
+    """SVG path data -> [(closed, [start, ('L', p) | ('C', c1, c2, p), ...])] in the path's own units.
+    Arcs become cubic pieces, quadratics are raised to cubics."""
+    toks = re.findall(r"[MmZzLlHhVvCcSsQqTtAa]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", d or "")
+    subs, cur, pos, start = [], None, (0.0, 0.0), (0.0, 0.0)
+    i, cmd, last_c, last_q = 0, None, None, None
+
+    def num():
+        nonlocal i
+        v = float(toks[i])
+        i += 1
+        return v
+    while i < len(toks):
+        t = toks[i]
+        if t.isalpha():
+            cmd = t
+            i += 1
+            if cmd in "Zz":
+                if cur is not None:
+                    subs.append((True, cur))
+                    cur = None
+                pos = start
+                last_c = last_q = None
+                continue
+        elif cmd is None:
+            i += 1
+            continue
+        rel = cmd.islower()
+        c = cmd.upper()
+        ox, oy = pos if rel else (0.0, 0.0)
+        if c == "M":
+            p = (num() + ox, num() + oy)
+            if cur is not None:
+                subs.append((False, cur))
+            cur, pos, start = [p], p, p
+            cmd = "l" if rel else "L"                    # later pairs are line-tos
+            last_c = last_q = None
+            continue
+        if cur is None:
+            cur = [pos]
+        if c == "L":
+            p = (num() + ox, num() + oy)
+            cur.append(("L", p))
+            last_c = last_q = None
+        elif c == "H":
+            p = (num() + ox, pos[1])
+            cur.append(("L", p))
+            last_c = last_q = None
+        elif c == "V":
+            p = (pos[0], num() + oy)
+            cur.append(("L", p))
+            last_c = last_q = None
+        elif c == "C":
+            c1 = (num() + ox, num() + oy)
+            c2 = (num() + ox, num() + oy)
+            p = (num() + ox, num() + oy)
+            cur.append(("C", c1, c2, p))
+            last_c, last_q = c2, None
+        elif c == "S":
+            c1 = (2 * pos[0] - last_c[0], 2 * pos[1] - last_c[1]) if last_c else pos
+            c2 = (num() + ox, num() + oy)
+            p = (num() + ox, num() + oy)
+            cur.append(("C", c1, c2, p))
+            last_c, last_q = c2, None
+        elif c in "QT":
+            if c == "Q":
+                q = (num() + ox, num() + oy)
+            else:
+                q = (2 * pos[0] - last_q[0], 2 * pos[1] - last_q[1]) if last_q else pos
+            p = (num() + ox, num() + oy)
+            c1 = (pos[0] + 2.0 / 3.0 * (q[0] - pos[0]), pos[1] + 2.0 / 3.0 * (q[1] - pos[1]))
+            c2 = (p[0] + 2.0 / 3.0 * (q[0] - p[0]), p[1] + 2.0 / 3.0 * (q[1] - p[1]))
+            cur.append(("C", c1, c2, p))
+            last_q, last_c = q, None
+        elif c == "A":
+            rx, ry, phi = abs(num()), abs(num()), num()
+            fa, fs = num(), num()
+            p = (num() + ox, num() + oy)
+            cur.extend(_ag_arc_to_cubics(pos, rx, ry, phi, fa != 0, fs != 0, p))
+            last_c = last_q = None
+        else:
+            i += 1
+            continue
+        pos = p
+    if cur is not None and len(cur) > 1:
+        subs.append((False, cur))
+    return [(cl, s) for cl, s in subs if len(s) > 1]
+
+
+def _ag_arc_to_cubics(p0, rx, ry, phi, large, sweep, p1):
+    """SVG elliptical arc -> cubic pieces (W3C implementation notes F.6)"""
+    if rx == 0 or ry == 0 or p0 == p1:
+        return [("L", p1)]
+    ph = math.radians(phi)
+    cp, sp = math.cos(ph), math.sin(ph)
+    dx, dy = (p0[0] - p1[0]) / 2.0, (p0[1] - p1[1]) / 2.0
+    x1, y1 = cp * dx + sp * dy, -sp * dx + cp * dy
+    lam = (x1 * x1) / (rx * rx) + (y1 * y1) / (ry * ry)
+    if lam > 1:
+        rx, ry = rx * math.sqrt(lam), ry * math.sqrt(lam)
+    num_ = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1
+    den = rx * rx * y1 * y1 + ry * ry * x1 * x1
+    co = math.sqrt(max(0.0, num_ / den)) if den else 0.0
+    if large == sweep:
+        co = -co
+    cx1, cy1 = co * rx * y1 / ry, -co * ry * x1 / rx
+    cx, cy = cp * cx1 - sp * cy1 + (p0[0] + p1[0]) / 2.0, sp * cx1 + cp * cy1 + (p0[1] + p1[1]) / 2.0
+
+    def ang(ux, uy, vx, vy):
+        a = math.atan2(ux * vy - uy * vx, ux * vx + uy * vy)
+        return a
+    t1 = ang(1, 0, (x1 - cx1) / rx, (y1 - cy1) / ry)
+    dt = ang((x1 - cx1) / rx, (y1 - cy1) / ry, (-x1 - cx1) / rx, (-y1 - cy1) / ry)
+    if not sweep and dt > 0:
+        dt -= 2 * math.pi
+    elif sweep and dt < 0:
+        dt += 2 * math.pi
+    n = max(1, int(math.ceil(abs(dt) / (math.pi / 2))))
+    out, h = [], dt / n
+    k = 4.0 / 3.0 * math.tan(h / 4.0)
+    E = lambda t: (cx + rx * math.cos(t) * cp - ry * math.sin(t) * sp, cy + rx * math.cos(t) * sp + ry * math.sin(t) * cp)
+    D = lambda t: (-rx * math.sin(t) * cp - ry * math.cos(t) * sp, -rx * math.sin(t) * sp + ry * math.cos(t) * cp)
+    for j in range(n):
+        a, b = t1 + j * h, t1 + (j + 1) * h
+        pa, pb, da, db = E(a), E(b), D(a), D(b)
+        out.append(("C", (pa[0] + k * da[0], pa[1] + k * da[1]), (pb[0] - k * db[0], pb[1] - k * db[1]),
+                    p1 if j == n - 1 else pb))
+    return out
+
+
+def _ag_shape_subpaths(tag, el):
+    """rect / circle / ellipse / line / polygon / polyline -> the same form as _ag_path_segments"""
+    f = lambda k, dflt=0.0: float(_AG_NUM.findall(el.get(k, "") or "")[0]) if _AG_NUM.findall(el.get(k, "") or "") else dflt
+    if tag == "rect":
+        x, y, w, h = f("x"), f("y"), f("width"), f("height")
+        if w <= 0 or h <= 0:
+            return []
+        return [(True, [(x, y), ("L", (x + w, y)), ("L", (x + w, y + h)), ("L", (x, y + h))])]
+    if tag in ("circle", "ellipse"):
+        cx, cy = f("cx"), f("cy")
+        rx = f("r") if tag == "circle" else f("rx")
+        ry = f("r") if tag == "circle" else f("ry")
+        if rx <= 0 or ry <= 0:
+            return []
+        k = 0.5522847498
+        P = [(cx + rx, cy), ("C", (cx + rx, cy + k * ry), (cx + k * rx, cy + ry), (cx, cy + ry)),
+             ("C", (cx - k * rx, cy + ry), (cx - rx, cy + k * ry), (cx - rx, cy)),
+             ("C", (cx - rx, cy - k * ry), (cx - k * rx, cy - ry), (cx, cy - ry)),
+             ("C", (cx + k * rx, cy - ry), (cx + rx, cy - k * ry), (cx + rx, cy))]
+        return [(True, P)]
+    if tag == "line":
+        return [(False, [(f("x1"), f("y1")), ("L", (f("x2"), f("y2")))])]
+    if tag in ("polygon", "polyline"):
+        v = [float(x) for x in _AG_NUM.findall(el.get("points", ""))]
+        pts = list(zip(v[0::2], v[1::2]))
+        if len(pts) < 2:
+            return []
+        return [(tag == "polygon", [pts[0]] + [("L", p) for p in pts[1:]])]
+    return []
+
+
+def _ag_tx_subpaths(subs, m):
+    out = []
+    for cl, s in subs:
+        q = [_ag_mat_pt(m, s[0])]
+        for seg in s[1:]:
+            if seg[0] == "L":
+                q.append(("L", _ag_mat_pt(m, seg[1])))
+            else:
+                q.append(("C", _ag_mat_pt(m, seg[1]), _ag_mat_pt(m, seg[2]), _ag_mat_pt(m, seg[3])))
+        out.append((cl, q))
+    return out
+
+
+def _ag_mat_scale(m):
+    return math.sqrt(abs(m[0] * m[3] - m[1] * m[2])) or 1.0
+
+
+def _ag_first_num(v, dflt):
+    n = _AG_NUM.findall(v or "")
+    return float(n[0]) if n else dflt
+
+
+
+def _ag_local(tag):
+    return tag.split("}", 1)[1] if isinstance(tag, str) and "}" in tag else (tag if isinstance(tag, str) else "")
+
+
+def _agac_ring(cl, s, n=P13_AGAC_STEP):
+    """one subpath (_ag_path_segments form) -> its points; cubics in n pieces"""
+    pts, p = [s[0]], s[0]
+    for seg in s[1:]:
+        if seg[0] == "L":
+            p = seg[1]
+            pts.append(p)
+        else:
+            c1, c2, q = seg[1], seg[2], seg[3]
+            for i in range(1, n + 1):
+                t = i / float(n)
+                u = 1.0 - t
+                pts.append((u * u * u * p[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * q[0],
+                            u * u * u * p[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * q[1]))
+            p = q
+    return pts
+
+
+def _agac_hex(c):
+    return None if c is None else u"%02X%02X%02X" % tuple(int(v) for v in c)
+
+
+def agac_read(log=None):
+    """Aras's section drawings from agaclar.svg, once a press: {key: (pieces, w/h)}; each piece (closed rings,
+    open lines, fill hex, stroke hex, width, opacity) in units of the drawing's height, its base centre at 0, y up.
+    A missing file or species = WARNING line + orange warning; {} or that species left out (the engine's look)"""
+    if "res" in _AGAC:
+        return _AGAC["res"]
+    res = {}
+    _AGAC["res"] = res
+
+    def _w(msg):
+        if log is not None:
+            log.append(u"WARNING p13 plants: " + msg)
+        wb_warn(u"p13 plants: " + msg)
+    if not os.path.isfile(AGACLAR):
+        _w(u"no {}: the engine's own plants are drawn (v18 look)".format(AGACLAR))
+        return res
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.parse(AGACLAR).getroot()
+    except Exception as ex:
+        _w(u"agaclar.svg not read ({}): the engine's own plants are drawn".format(ex))
+        return res
+    css = {}
+    for st in root.iter(_AG_SVGNS + "style"):
+        css.update(_ag_parse_css(st.text or ""))
+    kids = [c for c in root if _ag_local(c.tag) not in ("defs", "metadata", "style", "title")]
+    style0 = {"fill": "#000000", "stroke": "none", "stroke-width": "1"}
+
+    def walk(els, m, st, out):
+        for ch in els:
+            tg = _ag_local(ch.tag)
+            s2 = dict(st)
+            for k in ("fill", "stroke", "stroke-width", "fill-rule", "opacity", "fill-opacity", "display"):
+                if ch.get(k) is not None:
+                    s2[k] = ch.get(k)
+            for c in (ch.get("class") or "").split():
+                s2.update(css.get(c, {}))
+            for part in (ch.get("style") or "").split(";"):
+                if ":" in part:
+                    k, v = part.split(":", 1)
+                    s2[k.strip().lower()] = v.strip()
+            if s2.get("display", "").strip() == "none":
+                continue
+            mm = _ag_mat_mul(m, _ag_parse_transform(ch.get("transform")))
+            if tg == "g":
+                walk(list(ch), mm, s2, out)
+            elif tg in ("path", "rect", "circle", "ellipse", "polygon", "polyline", "line"):
+                subs = _ag_path_segments(ch.get("d")) if tg == "path" else _ag_shape_subpaths(tg, ch)
+                if subs:
+                    fill = _ag_parse_color(s2.get("fill"))
+                    stroke = _ag_parse_color(s2.get("stroke"))
+                    if tg in ("line", "polyline"):
+                        fill = None
+                    if fill is not None or stroke is not None:
+                        a = _ag_first_num(s2.get("opacity"), 1.0) * _ag_first_num(s2.get("fill-opacity"), 1.0)
+                        out.append(dict(subs=_ag_tx_subpaths(subs, mm), fill=fill, stroke=stroke, alpha=a,
+                                        lw=_ag_first_num(s2.get("stroke-width"), 1.0) * _ag_mat_scale(mm)))
+
+    def bbox(out):
+        pts = [p for sh in out for cl, s in sh["subs"] for p in [s[0]] + [seg[-1] for seg in s[1:]]]
+        return (min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts),
+                max(p[1] for p in pts)) if pts else None
+
+    def pick(el, m, st, box, shapes):
+        """PlantingAnalysis v1 aras_icons' rule: wholly in the box = taken; a group across the box edge = its
+        children looked at; a loose piece = by its centre"""
+        x, y, w, h = box
+        out = []
+        walk([el], m, st, out)
+        bb = bbox(out)
+        if bb is None:
+            return
+        if bb[0] >= x - 3 and bb[1] >= y - 3 and bb[2] <= x + w + 3 and bb[3] <= y + h + 3:
+            take = True
+        elif _ag_local(el.tag) == "g" and bb[0] < x + w and bb[2] > x and bb[1] < y + h and bb[3] > y:
+            m2 = _ag_mat_mul(m, _ag_parse_transform(el.get("transform")))
+            for ch in el:
+                pick(ch, m2, st, box, shapes)
+            return
+        else:
+            cx, cy = (bb[0] + bb[2]) / 2.0, (bb[1] + bb[3]) / 2.0
+            take = _ag_local(el.tag) != "g" and x - 2 <= cx <= x + w + 2 and y - 2 <= cy <= y + h + 2
+        if take:
+            shapes.extend(out)
+    want = sorted(set(k_ for k_ in P13_AGAC.values() if k_))
+    for key in want:
+        box = AGAC_SECT_BOX.get(key)
+        shapes = []
+        if box:
+            for c in kids:
+                pick(c, _AG_ID, style0, box, shapes)
+        if not shapes:
+            _w(u"no {} section drawing found in its box of agaclar.svg: the engine's own {} drawn".format(
+                key, key))
+            continue
+        x, y, w, h = box
+        T = lambda p: ((p[0] - (x + w / 2.0)) / h, ((y + h) - p[1]) / h)   # height 1, base centre 0, y up
+        pieces = []
+        for sh in shapes:
+            closed = [[T(q) for q in _agac_ring(cl, s)] for cl, s in sh["subs"] if cl or sh["fill"] is not None]
+            opens = [[T(q) for q in _agac_ring(cl, s)] for cl, s in sh["subs"] if not cl and sh["fill"] is None]
+            pieces.append(([r_ for r_ in closed if len(r_) >= 3], [r_ for r_ in opens if len(r_) >= 2],
+                           _agac_hex(sh["fill"]), _agac_hex(sh["stroke"]), sh["lw"] / h,
+                           sh["alpha"] if sh["alpha"] < 0.999 else None))
+        res[key] = (pieces, w / float(h))
+    if log is not None:
+        log.append(u"p13 plants: Aras's agaclar.svg read live ({}): {}".format(
+            time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(AGACLAR))),
+            u", ".join(u"{} {} pieces".format(k_, len(res[k_][0])) for k_ in sorted(res)) or u"none"))
+    return res
+
+
+def _agac_stamp(pg, key, X, Y, H, flip=False, layer="planting"):
+    """his section drawing of key standing at (X, Y) page mm, H mm tall (uniform scale, y up), mirrored when flip"""
+    pieces = _AGAC["res"][key][0]
+    f = -1.0 if flip else 1.0
+    P = lambda q: (X + f * q[0] * H, Y + q[1] * H)
+    for closed, opens, fill, stroke, lw, alpha in pieces:
+        w_ = max(0.03, lw * H)
+        if closed:
+            pg.poly([[P(q) for q in r_] for r_ in closed], fill=fill, stroke=stroke, lw=w_, layer=layer, alpha=alpha)
+        for r_ in opens:
+            if stroke:
+                pg.line([P(q) for q in r_], stroke, w_, layer=layer)
+
+
+def r19_plants(E, log=None):
+    """v19 (round 8 Q6 b): the detail engine's plant functions that P13_AGAC maps to one of Aras's drawings, drawn as
+    his agaclar.svg section instead ({name: new function}); the others (and every one when his file is missing) stay
+    the engine's. Used by _p13_engine_cut for its draw only (set back after), like r28_people for the people."""
+    A = agac_read(log)
+    K = lambda: E["K"]
+    out = {}
+    if P13_AGAC.get("veg_tree") in A:
+        def veg_tree(pg, X, Y, h, w, seed, flip=False, leaf_mm=None, layer="trees"):
+            _agac_stamp(pg, P13_AGAC["veg_tree"], X, Y, h, flip, layer)
+        out["veg_tree"] = veg_tree
+    if P13_AGAC.get("shrub") in A:
+        def shrub(pg, S, s, h, w):
+            X, Y = S.P(s, S.surf(s))
+            _agac_stamp(pg, P13_AGAC["shrub"], X, Y, h * K(), bool(int(round(s * 10)) % 2), "planting")
+        out["shrub"] = shrub
+    if P13_AGAC.get("lavender") in A:
+        def lavender(pg, S, s0, s1):
+            key = P13_AGAC["lavender"]
+            step = max(0.15, A[key][1] * P13_AGAC_LAV_H * 0.8)
+            n = max(1, int(abs(s1 - s0) / step))
+            for i in range(n):
+                s = s0 + (s1 - s0) * (i + 0.5) / n
+                X, Y = S.P(s, S.surf(s))
+                _agac_stamp(pg, key, X, Y, P13_AGAC_LAV_H * K(), bool(i % 2), "planting")
+        out["lavender"] = lavender
     return out
 
 
@@ -23604,7 +24124,8 @@ def _p13_engine_cut(sea, log=None):
     sea0 = [x_ for x_ in E["SEASONS"] if x_["key"] == sea][0]
     sd = dict(sea0)
     sd["water"] = [(G["levels"][sea], True, u"%s mean %%+.2f" % S4_MONTHS[sea], None)]   # engine does lab % z
-    keys = ("SCALE", "K", "level_line", "Q100", "Q500", "THALWEG", "DRY", "STRIP")
+    plants = r19_plants(E, log)                         # v19 (Q6 b): Aras's agaclar.svg plants for this draw only
+    keys = ("SCALE", "K", "level_line", "Q100", "Q500", "THALWEG", "DRY", "STRIP") + tuple(sorted(plants))
     keep = dict((k_, E[k_]) for k_ in keys)
     keep_sea = dict(E["SEA"])
     skip = () if sea == "winter" else (G["q100"], G["q500"])
@@ -23617,6 +24138,7 @@ def _p13_engine_cut(sea, log=None):
     try:
         E["SCALE"], E["K"] = P14_DEN, 1000.0 / P14_DEN
         E["level_line"] = ll
+        E.update(plants)
         E["Q100"], E["Q500"] = G["q100"], G["q500"]
         E["THALWEG"] = (keep["THALWEG"][0], G["bed"])
         E["DRY"] = P14_PROM
@@ -23703,13 +24225,14 @@ def _p13_sky_labels(pg, labs, items, x_lo, x_hi, y_cap, fs, boxes=None):
 
 
 def _p13_ladder(pg, entries, x_line, x_text, fs, boxes=None, lo=None):
-    """the levels at the cut's right end (f93d84b level_ladder): [(board y, text, colour, bold)], texts spread
-    apart, leaders from the level's end at x_line"""
+    """the levels at the cut's right end (f93d84b level_ladder): [(board y, text, colour, bold)].
+    v19 (round 8 D4, H3 Q3): ONE column at x_text (the caller passes the cut's end + 1 mm), each value at its own
+    level's height; a crowded value moves up / down only (spread); no leader, no joining line (x_line kept for the
+    signature, unused)"""
     entries = sorted(entries, key=lambda e: e[0])
     ly = spread([e[0] - fs * 0.35 for e in entries], fs * 1.25 * BK_GROW, lo=lo)
     for (y, t, colour, bold), yl in zip(entries, ly):
         with pg.g("levels", t):
-            pg.line([(x_line, y), (x_text - 2.0, yl + fs * 0.35), (x_text - 0.6, yl + fs * 0.35)], colour, 0.12)
             pg.text(t, x_text, yl, fs, colour, bold=bold)
         if boxes is not None:
             boxes.append((x_text, yl - fs * 0.3, x_text + text_w(t, fs, bold) * BK_GROW, yl + fs * BK_GROW))
@@ -23737,7 +24260,7 @@ def _p13_season_cut(sea, log=None):
     if sea == "winter":
         lv += [(S.Y(G["q100"]), u"{:.2f} m Q100".format(G["q100"] - bed), fl, True),
                (S.Y(G["q500"]), u"{:.2f} m Q500".format(G["q500"] - bed), fl, True)]
-    _p13_ladder(pg, lv, xr + 0.5, xr + 6.0, fs, boxes, lo=bb[1] + 1.0)
+    _p13_ladder(pg, lv, xr + 0.5, xr + P13_LEVEL_GAP, fs, boxes, lo=bb[1] + 1.0)   # v19 (D4): 1 mm out, was +6
     fmt = dict(prom=u"{:.2f}".format(P14_PROM - G["q500"]), strip=u"{:.2f}".format(STRIP_DEPTH))
     labs = [(S.X(s_), S.Y(S.surf(s_) + 0.05), t.format(**fmt), COL["ink_dark"]) for s_, t in P13_WORDS[sea]]
     if sea == "winter":
@@ -23762,6 +24285,7 @@ def _p13_panel(pg, box, log, style):
     crop = "wb_s4_seasons"
     G = _p14_geo(log)
     k = 1000.0 / P14_DEN
+    _AGAC.clear()                                # v19 (Q6 b): agaclar.svg read again on this press (live)
     cuts = dict((sea, _p13_season_cut(sea, log)) for sea in SEAS)   # v18: the 28 Oct engine cut, today's levels
     bbs_ = [items_bbox(cuts[sea][0].items) for sea in SEAS]
     cx0, foot = min(b_[0] for b_ in bbs_), min(b_[1] for b_ in bbs_)
@@ -23903,7 +24427,8 @@ P17_TITLE = u"PLANTING AND WATER · where each plant goes around the water space
 P17_W = 377.0                        # the most a page takes, mm (the booklet's A3 panel at 1:1)
 P17_CAT = ("reed", "mint", "soft_rush", "loosestrife", "willow", "tamarisk", "chaste", "ash", "plane", "olive",
            "rosemary", "lavender")   # the catalogue, wet to dry: every species the two pages draw
-P17_PLAN_DEN = 2500.0                # v18 (L1): plans A, B at SON page18's printed 1:2,500 (was the P17_DENS pick)
+P17_PLAN_DEN = 3000.0                # v19 (round 8 Q2 a): plans A, B at 1:3,000 (1:2,500 was too big for their frames:
+#                                      A 107 x 99 mm in 84 x 83, B 222.5 x 123.6 in 222 x 104). v18 (L1): 1:2,500
 P17_BAR = {1000.0: (0, 10, 20, 50), 2000.0: (0, 20, 50, 100), 2500.0: (0, 20, 50, 100), 5000.0: (0, 50, 100, 200),
            7500.0: (0, 50, 100, 200), 10000.0: (0, 50, 100, 200), 15000.0: (0, 100, 200, 500), 20000.0: (0, 200, 500),
            25000.0: (0, 200, 500)}   # labels at least 2 mm apart
@@ -24743,6 +25268,362 @@ def _p17_rows(fit, log, seen, start):
     return rows
 
 
+# ---------------------------------------------------------------- v19: Aras's masterplan look on the p16 plans (Part A)
+# Round 8 (Aras: "his masterplan SVG elements used everywhere"; H4 §5: the water board takes his Selinos = design
+# water, the wetland + reed look and the route). The PROPOSAL plans only (p16 plans A, B, true scale): ZoneBase v12's
+# layers (Option_A::INT_WATER_design, INT_ZONE_WETLAND, INT_ROUTE_circulation, INT_ROUTE_footbridge; contract
+# round 8 handover P1_zonebase_done.md) read from the open file once a press, drawn as MasterPlan v45 draws them
+# (mp45_draw_water / mp45_reeds / mp45_draw_route, copied: his palette, opacities, widths in metres, reed tufts read
+# live from his sheet Data/assets/masterlastversion.svg). Existing-condition drawings (p11 map / zoom, p13, p14, p18
+# bands, key maps) keep their look. A missing layer = one WARNING line and that part keeps the v18 look; no layer at
+# all = one WARNING and the plans as v18. The 25 m green corridor is NOT drawn here (MasterPlan computes it on its
+# survey open-ground grid, which the water board does not have: question in the round 8 P4 handover).
+WB45_LAYERS = {"INT_WATER_design": "water", "INT_ZONE_WETLAND": "wetland", "INT_ROUTE_circulation": "route",
+               "INT_ROUTE_footbridge": "footbridge"}
+WB45_PAL = dict(water="51626C", wet="A9C4C2", wet_open="5D8980", route="BE3D72", arrow="C2306E")   # MasterPlan v45 MP45_PAL
+WB45_A = dict(wet_open=0.76, reed=0.75)                              # MP45_A
+WB45_U_PER_M = 2.64121               # his sheet: SVG units per m (MP45_U_PER_M)
+WB45_LW_MIN = 0.05                   # mm (MP45_LW_MIN)
+WB45_ROUTE_U = 1.8                   # route width, his units (MP45_LW_U["route"])
+WB45_REED_PER_HA = 1085.0            # MP45_REED_PER_HA
+WB45_REED_D_M = (2.6, 3.2, 3.8)      # MP45_REED_D_M
+WB45_REED_COLS = ("8DA77A", "7F9B6C", "9DB488")   # MP45_REED_COLS
+WB45_REED_SHAPES = 24                # MP45_REED_SHAPES
+WB45_ARROW_M = (4.1, 3.0)            # MP45_ARROW_M
+WB45_ARROW_STEP_M = 44.0             # MP45_ARROW_STEP_M
+WB45_SEED = 4510                     # MP45_SEED (reeds: + 1, as MasterPlan)
+WB45_SVG = os.path.join(DATA_DIR, "assets", "masterlastversion.svg")
+_WB45_TOK = re.compile(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?")
+_WB45_NS = (u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">', u'</svg>')
+
+
+def wb45_lw(units, k):
+    """his line width (units on his sheet) as page mm at k mm per m (mp45_lw)"""
+    return max(WB45_LW_MIN, units / WB45_U_PER_M * k)
+
+
+def _wb45_curve_pts(g):
+    """a Rhino curve's points (survey m, x y) (MasterPlan curve_pts)"""
+    try:
+        if isinstance(g, Rhino.Geometry.LineCurve):
+            return [(g.PointAtStart.X, g.PointAtStart.Y), (g.PointAtEnd.X, g.PointAtEnd.Y)]
+        res = g.TryGetPolyline()
+        pl = res[1] if isinstance(res, tuple) and res[0] else None
+        if pl is not None:
+            return [(p.X, p.Y) for p in pl]
+        n = int(max(12, min(400, g.GetLength() / 1.0)))
+        ts = g.DivideByCount(n, True)
+        P = [(g.PointAt(t).X, g.PointAt(t).Y) for t in ts]
+        if g.IsClosed:
+            P.append(P[0])
+        return P
+    except Exception:
+        return []
+
+
+def wb45_geo(log):
+    """ZoneBase v12's layers in the open file, once a press (_P17_MEMO): {"water" / "wetland": [(outer, [holes],
+    meta)], "route" / "footbridge": [(line, direction)]}; {} when none (WARNING). Hole rings (hole=1) are cut out of
+    the ring they lie in (MasterPlan _mp45_holes), never drawn as a zone"""
+    if "wb45" in _P17_MEMO:
+        return _P17_MEMO["wb45"]
+    S = dict((k_, []) for k_ in WB45_LAYERS.values())
+    try:
+        doc = Rhino.RhinoDoc.ActiveDoc
+        for lay in (doc.Layers if doc is not None else []):
+            if lay.IsDeleted or not lay.FullPath.startswith(u"Option_A::INT_"):
+                continue
+            kind = WB45_LAYERS.get(lay.FullPath[len(u"Option_A::"):].split(u"::")[0])
+            if kind is None:
+                continue
+            for o in doc.Objects.FindByLayer(lay) or []:
+                g = o.Geometry
+                if not isinstance(g, Rhino.Geometry.Curve):
+                    continue
+                P = _wb45_curve_pts(g)
+                if len(P) < 2:
+                    continue
+                a = o.Attributes
+                m = dict((k_, a.GetUserString(k_)) for k_ in ("id", "part", "hole", "hole_in", "direction", "source")
+                         if a.GetUserString(k_))
+                S[kind].append(dict(P=P, m=m, closed=bool(g.IsClosed)))
+    except Exception as ex:
+        log.append(u"WARNING p16 plans: ZoneBase v12 layers not read ({}: {}): the plans keep the v18 look".format(
+            type(ex).__name__, ex))
+        wb_warn(u"p16 plans: ZoneBase v12 layers not read: v18 look")
+        _P17_MEMO["wb45"] = {}
+        return {}
+    if not any(S.values()):
+        log.append(u"WARNING p16 plans: no ZoneBase v12 layer (Option_A::{}) in the open file: the plans keep the v18 "
+                   u"look (run ZoneBase v12)".format(u", ".join(sorted(WB45_LAYERS))))
+        wb_warn(u"p16 plans: no ZoneBase v12 layers: v18 look")
+        _P17_MEMO["wb45"] = {}
+        return {}
+    miss = [lay for lay, kind in sorted(WB45_LAYERS.items()) if not S[kind]]
+    if miss:
+        log.append(u"WARNING p16 plans: Option_A::{} not in the open file: that part keeps the v18 look".format(
+            u", ".join(miss)))
+        wb_warn(u"p16 plans: {} missing: v18 look for it".format(u", ".join(miss)))
+    out = {}
+    for kind in ("water", "wetland"):
+        its = [it for it in S[kind] if it["closed"] and len(it["P"]) >= 3]
+        outs = [(it["P"], [], it["m"]) for it in its if (it["m"].get("hole") or u"") != u"1"]
+        for it in its:
+            if (it["m"].get("hole") or u"") != u"1":
+                continue
+            hid = it["m"].get("hole_in")
+            host = next((o_ for o_ in outs if hid and o_[2].get("id") == hid), None) or \
+                next((o_ for o_ in outs if _p17_pip(_p17_cen(it["P"]), o_[0])), None)
+            if host is not None:
+                host[1].append(it["P"])
+        out[kind] = outs
+    for kind in ("route", "footbridge"):
+        out[kind] = [(it["P"], (it["m"].get("direction") or u"none").lower()) for it in S[kind]]
+    log.append(u"p16 plans: Aras's masterplan look (ZoneBase v12 layers): design water {}, wetland {}, route {}, "
+               u"footbridges {}".format(len(out["water"]), len(out["wetland"]), len(out["route"]),
+                                        len(out["footbridge"])))
+    _P17_MEMO["wb45"] = out
+    return out
+
+
+def _wb45_path_rings(d, n=4):
+    """an SVG path d -> [ring] in its own units (MasterPlan v45 mp45_path_rings, copied): M L H V C S Q T Z, absolute
+    and relative (A: a line to its end), curves flattened in n steps; Z or a new M ends a ring"""
+    tk = _WB45_TOK.findall(d or u"")
+    out, cur = [], []
+    x = y = sx = sy = 0.0
+    pc, prev, cmd, i = None, u"", None, 0
+    while i < len(tk):
+        if tk[i].isalpha():
+            cmd = tk[i]
+            i += 1
+            if cmd in u"Zz":
+                if len(cur) >= 3:
+                    out.append(cur)
+                cur, x, y, prev = [], sx, sy, u"Z"
+                continue
+        elif cmd is None:
+            i += 1
+            continue
+        rel, C_ = cmd.islower(), cmd.upper()
+        ox, oy = (x, y) if rel else (0.0, 0.0)
+        try:
+            v = [float(tk[i + j]) for j in range({"M": 2, "L": 2, "H": 1, "V": 1, "C": 6, "S": 4, "Q": 4, "T": 2,
+                                                  "A": 7}.get(C_, 1))]
+        except (IndexError, ValueError):
+            break
+        i += len(v)
+        if C_ == "M":
+            if len(cur) >= 3:
+                out.append(cur)
+            x, y = ox + v[0], oy + v[1]
+            sx, sy, cur = x, y, [(x, y)]
+            cmd = u"l" if rel else u"L"
+        elif C_ in "LA":
+            x, y = ox + v[-2], oy + v[-1]
+            cur.append((x, y))
+        elif C_ == "H":
+            x = ox + v[0]
+            cur.append((x, y))
+        elif C_ == "V":
+            y = oy + v[0]
+            cur.append((x, y))
+        elif C_ in "CSQT":
+            if C_ == "C":
+                c1, c2, e = (ox + v[0], oy + v[1]), (ox + v[2], oy + v[3]), (ox + v[4], oy + v[5])
+            elif C_ == "S":
+                c1 = (2 * x - pc[0], 2 * y - pc[1]) if prev in u"CS" and pc else (x, y)
+                c2, e = (ox + v[0], oy + v[1]), (ox + v[2], oy + v[3])
+            elif C_ == "Q":
+                c1, c2, e = (ox + v[0], oy + v[1]), None, (ox + v[2], oy + v[3])
+            else:
+                c1 = (2 * x - pc[0], 2 * y - pc[1]) if prev in u"QT" and pc else (x, y)
+                c2, e = None, (ox + v[0], oy + v[1])
+            for j in range(1, n + 1):
+                s, r = j / float(n), 1.0 - j / float(n)
+                if c2 is None:
+                    cur.append((r * r * x + 2 * r * s * c1[0] + s * s * e[0], r * r * y + 2 * r * s * c1[1] + s * s * e[1]))
+                else:
+                    cur.append((r ** 3 * x + 3 * r * r * s * c1[0] + 3 * r * s * s * c2[0] + s ** 3 * e[0],
+                                r ** 3 * y + 3 * r * r * s * c1[1] + 3 * r * s * s * c2[1] + s ** 3 * e[1]))
+            pc = c2 if c2 is not None else c1
+            x, y = e
+        prev = C_
+    if len(cur) >= 3:
+        out.append(cur)
+    return out
+
+
+def _wb45_hex(v):
+    h = (v or u"").strip().lstrip(u"#")
+    if len(h) == 3:
+        h = u"".join(c * 2 for c in h)
+    return h.upper() if len(h) == 6 else None
+
+
+def _wb45_svg_block(text, gid):
+    """the text of the first <g ...id="gid"...> ... </g> (balanced g tags), or None (MasterPlan _mp45_svg_block)"""
+    i = text.find(u'id="%s"' % gid)
+    if i < 0:
+        return None
+    i = text.rfind(u"<g", 0, i)
+    depth = 0
+    for m in re.finditer(r"<(/?)g[\s>]", text[i:]):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return text[i:text.find(u">", i + m.end() - 1) + 1]
+    return None
+
+
+def wb45_reed_shapes(log):
+    """his reed tufts (group wetland_shallow_water_reeds, paths in his three greens), the first WB45_REED_SHAPES in
+    drawing order, each centred and scaled to size 1 (y up), read live from his sheet once a press (MasterPlan
+    mp45_reed_shapes); [] = discs (WARNING)"""
+    if "wb45_reeds" in _P17_MEMO:
+        return _P17_MEMO["wb45_reeds"]
+    shapes, why = [], u"no tuft in his three greens"
+    try:
+        import xml.etree.ElementTree as _ET
+        with open(WB45_SVG, encoding="utf-8") as f_:
+            blk = _wb45_svg_block(f_.read(), u"wetland_shallow_water_reeds")
+        if blk:
+            for el in _ET.fromstring(_WB45_NS[0] + blk + _WB45_NS[1]).iter():
+                if el.tag.split(u"}")[-1] != u"path" or _wb45_hex(el.get(u"fill")) not in WB45_REED_COLS:
+                    continue
+                rings = [R_ for R_ in _wb45_path_rings(el.get(u"d")) if len(R_) >= 3]
+                if not rings:
+                    continue
+                xs, ys = [p[0] for p in rings[0]], [p[1] for p in rings[0]]
+                sz = max(max(xs) - min(xs), max(ys) - min(ys))
+                if sz > 0.0:
+                    cx, cy = (min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0
+                    shapes.append([((p[0] - cx) / sz, -(p[1] - cy) / sz) for p in rings[0]])
+                if len(shapes) >= WB45_REED_SHAPES:
+                    break
+        else:
+            why = u"no group wetland_shallow_water_reeds"
+    except Exception as ex:
+        why = u"%s: %s" % (type(ex).__name__, ex)
+    if not shapes:
+        log.append(u"WARNING p16 plans: reed tufts of {} not read ({}): drawn as discs".format(WB45_SVG, why))
+        wb_warn(u"p16 plans: reed tufts not read: discs")
+    _P17_MEMO["wb45_reeds"] = shapes
+    return shapes
+
+
+def wb45_reeds(geo):
+    """the reed tufts (MasterPlan mp45_reeds): a jittered field in the shallow wetland (part shallow_reeds; holes
+    left), WB45_REED_PER_HA, d WB45_REED_D_M, his three greens in equal thirds; seeded. [(x, y, d m, colour)]"""
+    if "wb45_field" in _P17_MEMO:
+        return _P17_MEMO["wb45_field"]
+    import random as _rnd
+    rnd = _rnd.Random(WB45_SEED + 1)
+    s = math.sqrt(1e4 / WB45_REED_PER_HA)
+    out = []
+    for R_, Hs, m in geo.get("wetland", []):
+        if (m.get("part") or u"shallow_reeds") != u"shallow_reeds":
+            continue
+        xs, ys = [p[0] for p in R_], [p[1] for p in R_]
+        y = min(ys) + s * 0.5
+        while y < max(ys):
+            x = min(xs) + s * 0.5
+            while x < max(xs):
+                q = (x + (rnd.random() - 0.5) * 0.9 * s, y + (rnd.random() - 0.5) * 0.9 * s)
+                if _p17_pip(q, R_) and not any(_p17_pip(q, H_) for H_ in Hs):
+                    out.append([q[0], q[1], rnd.triangular(WB45_REED_D_M[0], WB45_REED_D_M[2], WB45_REED_D_M[1])])
+                x += s
+            y += s
+    rnd.shuffle(out)
+    out = [(e[0], e[1], e[2], WB45_REED_COLS[i % 3]) for i, e in enumerate(out)]
+    _P17_MEMO["wb45_field"] = out
+    return out
+
+
+def wb45_draw_water(pg, T, k, sb, log, used):
+    """his design water (the Selinos drawn from it), the wetland (shallow + open water) and its reeds, into pg
+    (MasterPlan mp45_draw_water); sb = the window's survey box (pieces outside are skipped)"""
+    geo = wb45_geo(log)
+    if not geo:
+        return
+    hit = lambda R_: _p17_hit(R_, sb)
+    for i, (R_, Hs, _m) in enumerate(geo["water"]):
+        if hit(R_):
+            with pg.g("water", u"Selinos design water %d" % (i + 1)):
+                pg.poly([[T(p) for p in R_]] + [[T(p) for p in H_] for H_ in Hs], fill=WB45_PAL["water"])
+            used.add("wb45_water")
+    for i, (R_, Hs, m) in enumerate(geo["wetland"]):
+        if hit(R_):
+            op = (m.get("part") or u"") == u"open_water"
+            rings = [[T(p) for p in R_]] + [[T(p) for p in H_] for H_ in Hs]
+            with pg.g("water", u"wetland %d" % (i + 1)):
+                if op:
+                    pg.poly(rings, fill=WB45_PAL["wet_open"], alpha=WB45_A["wet_open"])
+                else:
+                    pg.poly(rings, fill=WB45_PAL["wet"])
+            used.add("wb45_wet")
+    shp = wb45_reed_shapes(log)
+    n_ = 0
+    with pg.g("plants", u"reeds"):
+        for j, (x, y, dm, col) in enumerate(wb45_reeds(geo)):
+            if not (sb[0] - dm <= x <= sb[2] + dm and sb[1] - dm <= y <= sb[3] + dm):
+                continue
+            px, py = T((x, y))
+            if shp:
+                s_ = dm * k
+                pg.poly([[(px + q[0] * s_, py + q[1] * s_) for q in shp[(j * 7) % len(shp)]]], fill=col,
+                        alpha=WB45_A["reed"])
+            else:
+                pg.poly([sec_ellipse(px, py, dm * k / 2.0, dm * k / 2.0, 12)], fill=col, alpha=WB45_A["reed"])
+            n_ += 1
+    if n_:
+        used.add("wb45_reeds")
+
+
+def _wb45_arrow(pg, a, u, k, col):
+    """one route arrow, apex at page point a pointing along unit u (MasterPlan mp45_arrow)"""
+    L, B_ = WB45_ARROW_M[0] * k, WB45_ARROW_M[1] * k / 2.0
+    bx, by = a[0] - u[0] * L, a[1] - u[1] * L
+    pg.poly([[a, (bx - u[1] * B_, by + u[0] * B_), (bx + u[1] * B_, by - u[0] * B_)]], fill=col)
+
+
+def wb45_draw_route(pg, T, k, sb, R, log, used):
+    """the circulation route (MasterPlan mp45_draw_route): his line, an arrow every WB45_ARROW_STEP_M in the curve's
+    direction (one-way), both ways in turn (two-way), none (none); the footbridges in the same line, no arrows"""
+    geo = wb45_geo(log)
+    if not geo:
+        return
+    lw = wb45_lw(WB45_ROUTE_U, k)
+    for kind in ("route", "footbridge"):
+        for i, (P, dr) in enumerate(geo[kind]):
+            if not _p17_hit(P, sb):
+                continue
+            with pg.g("paths", u"%s %d" % (u"route" if kind == "route" else u"route footbridge", i + 1)):
+                pg.line([T(p) for p in P], WB45_PAL["route"], lw)
+                if kind == "route" and dr in (u"one-way", u"two-way"):
+                    acc = [0.0]
+                    for a_, b_ in zip(P[:-1], P[1:]):
+                        acc.append(acc[-1] + math.hypot(b_[0] - a_[0], b_[1] - a_[1]))
+                    t, j, s_i = WB45_ARROW_STEP_M / 2.0, 0, 0
+                    while t < acc[-1]:
+                        while s_i < len(P) - 2 and acc[s_i + 1] < t:
+                            s_i += 1
+                        seg = (acc[s_i + 1] - acc[s_i]) or 1.0
+                        f_ = (t - acc[s_i]) / seg
+                        pa, pb = P[s_i], P[s_i + 1]
+                        q = (pa[0] + (pb[0] - pa[0]) * f_, pa[1] + (pb[1] - pa[1]) * f_)
+                        ua = T(q)
+                        ub = T((q[0] + (pb[0] - pa[0]) / seg, q[1] + (pb[1] - pa[1]) / seg))
+                        L_ = math.hypot(ub[0] - ua[0], ub[1] - ua[1]) or 1.0
+                        u_ = ((ub[0] - ua[0]) / L_, (ub[1] - ua[1]) / L_)
+                        if dr == u"two-way" and j % 2:
+                            u_ = (-u_[0], -u_[1])
+                        if R[0] <= ua[0] <= R[2] and R[1] <= ua[1] <= R[3]:
+                            _wb45_arrow(pg, ua, u_, k, WB45_PAL["arrow"])
+                        t += WB45_ARROW_STEP_M
+                        j += 1
+            used.add("wb45_route")
+
+
 def _p17_window(pg, x0, ytop, key, fit, log, seen):
     """round 4 (P17.1, P17.3, P17.4, P17.6, G-R4-4/7/9): one plan window, its top-left at (x0, ytop), at fit (w, h,
     u, v, centre, den; grown by the layout to fill its column). map_draw order: the muted base (ml_base: light houses
@@ -24833,6 +25714,13 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
     for i_, r in enumerate(widen):                       # v16 (G6-9): one group per element
         with sp.g("water", u"widened stream %d" % (i_ + 1)):
             sp.poly([[T(p) for p in r]], fill=P17_ZONE["WIDEN"][0], stroke=P17_ZONE["WIDEN"][1], lw=0.1)
+    # v19 (round 8, Part A): Aras's design water, wetland + reeds (s45, over the widened stream, under the planting)
+    # and his route (r45, over the planting), as MasterPlan v45 draws them; none read = v18 look
+    used45 = _P17_MEMO.setdefault("wb45_used", set())
+    s45, r45 = Page(0, 0), Page(0, 0)
+    wb45_draw_water(s45, T, k, sb, log, used45)
+    wb45_draw_route(r45, T, k, sb, R, log, used45)
+    n_wid = len(sp.items)
     for i_, z in enumerate(zs):                          # the water spaces, flat (planting comes after the shade)
         if z["code"] in P17_ZONE and z["code"] != "WT":
             f_, s_ = P17_ZONE[z["code"]]
@@ -25037,7 +25925,7 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
             out.items.extend(sz.items)
             zdone[0] = True
         if not done[0] and late:
-            out.items.extend(sp.items)
+            out.items.extend(sp.items[:n_wid] + s45.items + sp.items[n_wid:] + r45.items)   # v19: + his look
             done[0] = True
     f_, l_, t_ = _p17_map_fns(out)
     tint = [z["ring"] for z in zs] + widen + [_p14_band(a, 2.0 * P17_ARM_W) for a in arms]
@@ -25050,7 +25938,7 @@ def _p17_window(pg, x0, ytop, key, fit, log, seen):
     if not zdone[0]:
         out.items.extend(sz.items)
     if not done[0]:
-        out.items.extend(sp.items)
+        out.items.extend(sp.items[:n_wid] + s45.items + sp.items[n_wid:] + r45.items)   # v19: + his look
     # v16 (round 6, S5; G6-4): no cut line across the plan any more (km_cut_items gone): the cuts are an_cut end marks
     # outside the frame, drawn on the board after the window is cut to R (below)
     taken = [_p17_tbox(it) for it in out.items if it[0] == "text"]
@@ -25347,6 +26235,13 @@ def _p17_legend_rows(log, hubs=True):
              dict(cat="ANN", rank=3, kind="cut", text=u"section cut: its letter at each end")]
     if hubs:
         ents.append(dict(cat="PUB", rank=1, kind="hub", text=u"hub"))
+    u45 = _P17_MEMO.get("wb45_used") or set()            # v19 (Part A): his look's rows, only what the plans drew
+    for k45, cat, rk, txt in (("wb45_water", "WAT", 1, place_name("stream") + u", design water (Aras's masterplan)"),
+                              ("wb45_wet", "WAT", 3, u"wetland: shallow reeds, darker = open water"),
+                              ("wb45_reeds", "WW", 4, u"reeds (Aras's tufts)"),
+                              ("wb45_route", "MOV", 1, u"route, arrows = the way to walk")):
+        if k45 in u45:
+            ents.append(dict(cat=cat, rank=rk, kind=k45, text=txt))
     if _p17_shade(log):
         ents.append(dict(cat="CTX", rank=3, kind="shade", text=u"July shade on the water: " +
                          u", ".join(l_ for _, _, l_, _h in P17_SHADE)))
@@ -25409,6 +26304,18 @@ def _p17_sw_body(pg, kind, x, y0, w, h, yy, sm, pa):
             for p_, q_ in sec_hatch([(xa_, sm[1]), (xa_ + 2.0, sm[1]), (xa_ + 2.0, sm[3]), (xa_, sm[3])],
                                     hs_ * 0.5, 45.0):
                 pg.line([p_, q_], col, 0.12)
+    elif kind == "wb45_water":                           # v19 (Part A): his swatches (MasterPlan v45 palette)
+        pg.poly([rect(*sm)], fill=WB45_PAL["water"])
+    elif kind == "wb45_wet":
+        pg.poly([rect(x, y0, x + w / 2.0, y0 + h)], fill=WB45_PAL["wet"])
+        pg.poly([rect(x + w / 2.0, y0, x + w, y0 + h)], fill=WB45_PAL["wet_open"], alpha=WB45_A["wet_open"])
+    elif kind == "wb45_reeds":
+        for j_, col in enumerate(WB45_REED_COLS):
+            r_ = h * 0.28
+            pg.poly([sec_ellipse(x + 1.2 + j_ * 1.8, yy + 0.6, r_, r_, 12)], fill=col, alpha=WB45_A["reed"])
+    elif kind == "wb45_route":
+        pg.line([(x, yy + 0.6), (x + w, yy + 0.6)], WB45_PAL["route"], 0.35)
+        _wb45_arrow(pg, (x + w * 0.7, yy + 0.6), (1.0, 0.0), 0.5, WB45_PAL["arrow"])
     elif kind == "space":
         f_, s_ = P17_ZONE["WIDEN"]
         pg.poly([rect(*sm)], fill=f_, stroke=s_, lw=0.12)

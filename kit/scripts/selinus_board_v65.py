@@ -1,10 +1,19 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v61.py = v61 (round 6 S3, 4 Nov 2026: final 22-page ids; p04/p05 notes per cut + one true scale; p07 narrower column; p08 street cuts R1-R4 ACCURATE as four items + module key map + street_cuts.json; p19 heritage brown ramp; G6-4 plan marks, G6-5 key maps, G6-6 hue table, G6-9 groups, G6-10 tree species); v60.3 (fix 2 Nov: key map run warnings); v60.2 (fix 2 Nov: p04/p05 one booklet drawing per cut + key map items + legend item; p09 project trees set back (layer 1); no widths: zone ticks/cm, street call cm, bed width, p07 band); v60.1 (closing fix 2 Nov: p02 mark pages 23-page, p04/p05 key map log); v60 (round 5 S7, 2 Nov 2026: the booklet gets items, not sheet crops; no text-check stops, no sheet PDFs; what changed: NEW IN v60 below)
+# CURRENT VERSION: selinus_board_v65.py = v65 (round 8 S1, 9 Nov 2026: see NEW IN v65); earlier: v61 (round 6 S3, 4 Nov 2026: final 22-page ids; p04/p05 notes per cut + one true scale; p07 narrower column; p08 street cuts R1-R4 ACCURATE as four items + module key map + street_cuts.json; p19 heritage brown ramp; G6-4 plan marks, G6-5 key maps, G6-6 hue table, G6-9 groups, G6-10 tree species); v60.3 (fix 2 Nov: key map run warnings); v60.2 (fix 2 Nov: p04/p05 one booklet drawing per cut + key map items + legend item; p09 project trees set back (layer 1); no widths: zone ticks/cm, street call cm, bed width, p07 band); v60.1 (closing fix 2 Nov: p02 mark pages 23-page, p04/p05 key map log); v60 (round 5 S7, 2 Nov 2026: the booklet gets items, not sheet crops; no text-check stops, no sheet PDFs; what changed: NEW IN v60 below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
 
+NEW IN v65 (round 8 S1, 9 Nov 2026; nothing run, D9): p02 plan 01 draws no cut marks of other pages' cuts
+(P02_CUT_MARKS False, D3); p03 the stream's in-plane name leaves at its page size (~6.5 pt, was 58 pt: metres read as
+mm); p04/p05 legend row names the end tags and the booklet's level column, p05 printed 1:2,000 (Q1 a, was 1:1,500);
+a tag disc with no room goes to a second row under the tags (R7 p04 S3 "5"); p06 hatches leave as lines (they were
+flattened to solid fills) and SON's photo viewpoints are back (camera dot, view cone, numbered disc) in the hue
+table's ANN ink (Q5 a); p07 note columns 100 mm wide (were 70: 76-102 mm tall for 62-66 mm frames); p08 street cuts
+exported at their true size (were 1.41 x too large), one 0-2.5-5 m bar per panel (was one per pair), the title notes
+at their drawn size; empty text from an empty input panel = not given (G8: frame / section_lines / attractors);
+site28_title keeps English words in English letters ("Road Bridge", not "Road Brıdge").
 NEW IN v60 (round 5 S7, Aras 1 Nov G-R5-12 + addendum 22:37): every booklet drawing leaves as items in
 Downloads/Bergama/cached/booklet/selinus_board/items.json (16d_items.py: shapes in true metres or booklet mm, every
 word an anchored label, legends and captions as items); the booklet places, sizes and checks every text. Gone: the
@@ -665,9 +674,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v64 (2026-11-08)"  # v64 (8 Nov, Aras): no backward reads: the spine and stops from the built-in table (= city link and masterplan common/city_spine.py), roads from common/data/ROADS.py, no masterplan_results.json / city_link_results.json read; the section notes' masterplan link is written by the masterplan (section_link_points.json); the unplaced "Section along the spine" drawing is left out; v63.1 fix (5 Nov run): v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
+SCRIPT_VERSION = "selinus_board v65 (2026-11-09)"  # v65 (round 8 S1, 9 Nov): see NEW IN v65; v64 (8 Nov, Aras): no backward reads: the spine and stops from the built-in table (= city link and masterplan common/city_spine.py), roads from common/data/ROADS.py, no masterplan_results.json / city_link_results.json read; the section notes' masterplan link is written by the masterplan (section_link_points.json); the unplaced "Section along the spine" drawing is left out; v63.1 fix (5 Nov run): v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v62.3"                                     # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v65"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -785,6 +794,7 @@ def gh_value(x):
 
 
 _STALE_IN = set()
+_BLANK_IN = set()     # v65 (round 8, G8): inputs that were wired but held only empty text (an empty panel)
 
 
 def doc_layer_curves(word, closed=None):
@@ -822,17 +832,34 @@ def input_wired(name):
 
 
 def picks_missing(name, value):
-    """v20: a wired input that came out empty or held objects this file does not have."""
+    """v20: a wired input that came out empty or held objects this file does not have. v65 (round 8, G8): an input
+    that held only empty text (an empty panel) is "not given", never missing picks."""
+    if name in _BLANK_IN and name not in _STALE_IN:
+        return False
     return name in _STALE_IN or (not value and input_wired(name))
+
+
+def _inp_blank(x):
+    """v65 (round 8, G8): an empty text (the builder's empty optional-input panel sends one) = nothing given"""
+    t_ = x if isinstance(x, str) else getattr(x, "Value", None)
+    return isinstance(t_, str) and not t_.strip()
 
 
 def inp(name, default):
     """An input by name, whatever its type hint and access: a single-value input that arrives as a list (List Access,
     or several items) gives its first item. v16.7: whatever the type hint (gh_value), from the component's own inputs
-    only (_GH_IN), lists and data trees flattened."""
+    only (_GH_IN), lists and data trees flattened. v65 (round 8, G8): empty texts are dropped first (an empty panel
+    on frame / section_lines / attractors is "not given": no stale-pick warning, no str item, no bad point)."""
     v = _GH_IN.get(name)
     if v is not None:
         flat = _gh_flat(v)
+        if isinstance(flat, list):
+            flat = [x for x in flat if not _inp_blank(x)]
+        elif _inp_blank(flat):
+            flat = None
+        if flat is None or (isinstance(flat, list) and not flat):
+            _BLANK_IN.add(name)                          # v65: wired, but only empty text (picks_missing: not stale)
+            return default
         raw_ = flat if isinstance(flat, list) else [flat]
         v = [gh_value(x) for x in flat] if isinstance(flat, list) else gh_value(flat)
         got_ = v if isinstance(v, list) else [v]
@@ -22117,9 +22144,10 @@ def bk_lw(mm, k):
 # _sb_north (pages/p02_p03.py, common/keymap.py north_items).
 
 
-def draw_scalebar_bk(B, x, y, ss, Lm, k, L, order=60):
+def draw_scalebar_bk(B, x, y, ss, Lm, k, L, order=60, exact=False):
     """v45: a scale bar for the booklet page: four parts, Lm metres at ss board units per metre, its top at y and its
-    numbers 7 pt UNDER it (clear of the drawing above). Returns the y below the numbers."""
+    numbers 7 pt UNDER it (clear of the drawing above). Returns the y below the numbers. v65 (round 8): exact=True
+    prints a half value as it is (5 m bar: 0, 2.5, 5 m; the old format printed "2")."""
     bh, seg = 1.2 * k, Lm / 4.0 * ss
     for i in range(4):
         B.fill([rect(x + i * seg, y - bh, x + (i + 1) * seg, y)], INK if i % 2 == 0 else WHITE, L, order)
@@ -22127,7 +22155,10 @@ def draw_scalebar_bk(B, x, y, ss, Lm, k, L, order=60):
     h = bk_hk(7.0, k)
     yt = y - bh - 1.0 * k - h
     for v in (0.0, Lm / 2.0):
-        B.text(u"{:,.0f}".format(v), x + v * ss, yt, h, INK, L, order=order + 1, font=FONT_TITLE, align="C")
+        t = u"{:,.0f}".format(v)
+        if exact and abs(v - round(v)) > 1e-6:
+            t = u"{:,.1f}".format(v)
+        B.text(t, x + v * ss, yt, h, INK, L, order=order + 1, font=FONT_TITLE, align="C")
     t = u"{:,.0f}".format(Lm)
     B.text(t + u" m", x + Lm * ss - 0.5 * tw(t, h, "sans"), yt, h, INK, L, order=order + 1, font=FONT_TITLE)
     return yt - 0.8 * k
@@ -22518,8 +22549,10 @@ R28MV_CLS = (2.0, 10.0, 25.0, 50.0, 100.0)    # P07.3: index classes 0-2, 2-10, 
 R28MV_CLS_W = (0.2, 0.32, 0.48, 0.68, 0.95)   # mm on the booklet page: the line weight of each class
 R28MV_LABEL_PT = 7.0     # P07.4: street names on the walking / driving maps (were 8 pt)
 R28MV_NOTE_OF = {"walk_b": 2, "car_b": 3}      # P07.2: the maps' notes, crops drw_mv_note_2 / _3 (_1: the top map)
-R28MV_NOTE_W = 70.0      # mm: a note's text width at most; v61 (U19, P-8): the right column x 79.7-96.6 % = 71 mm
-#                          (was 100; crop bk_w = this + 1), map + gutter + note stay within the booklet width BK_AW
+R28MV_NOTE_W = 100.0     # mm: a note's text width at most; v65 (round 8, H1 Q5: the p07 note frames are 104 mm wide,
+#                          62-66 mm tall; at 70 mm the columns ran 76-102 mm tall): 100 again (crop bk_w = this + 1);
+#                          v61 (U19, P-8) had 70 (the right column x 79.7-96.6 % = 71 mm); map + gutter + note stay
+#                          within the booklet width BK_AW (r28mv_column: wmax)
 R28MV_COL_ENL = 10000.0 / 9000.0   # v61 (P-8): the booklet sets the p07 maps x1.11 (1:9,000): a column may be as tall
 R28MV_GUT = 4.0          # mm between two panels of a booklet row (bergama_booklet GUT)
 R28MV_LEAD = 1.75        # baseline to baseline / capital height, notes and lists
@@ -26023,6 +26056,8 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
         elif kd == "text":
             s_, x_, y_, sz = it[1], it[2], it[3], it[4]
             if s_ and s_.strip() and bb[0] <= x_ <= bb[2] and bb[1] <= y_ <= bb[3]:
+                if len(it) > 9 and it[9]:                # v65 (round 8, H1 Q3): an in-plane word's size is in metres:
+                    sz = sz * math.hypot(it[9][0][0], it[9][0][1])   # page em = size x the matrix scale (~2.3 mm)
                 texts.append((s_.strip(), M((x_, y_)), sz / IX_PT, bool(it[6]), it[5], it[7] or "L",
                               it[9] is not None, G(lay_ if lay_ not in (None, "drawing") else "text")))
         if len(shapes) > n0_:
@@ -36805,9 +36840,10 @@ def draw_what_is_there(S, B, x, y, w, U):
     # before the markers, which then keep clear of their names (taken)
     fq = V.P(F.P)
     fin = P02_CUT_IN * kb
-    _p02_drawing_marks(B, V, kb, L, (max(min(q_[0] for q_ in fq), V.X0 + fin), max(min(q_[1] for q_ in fq), mb + fin),
-                                     min(max(q_[0] for q_ in fq), V.X0 + mw - fin),
-                                     min(max(q_[1] for q_ in fq), ymap - fin)))
+    if P02_CUT_MARKS:                                     # v65 (round 8 D3): plan 01 exports no cut marks
+        _p02_drawing_marks(B, V, kb, L, (max(min(q_[0] for q_ in fq), V.X0 + fin), max(min(q_[1] for q_ in fq), mb + fin),
+                                         min(max(q_[0] for q_ in fq), V.X0 + mw - fin),
+                                         min(max(q_[1] for q_ in fq), ymap - fin)))
     taken = _p02_text_boxes(B, i_map0, kb)                # the map's texts so far (stream name, cut names), mm
     ticks, ovl = [], []
     cpts = [(k_, cx_, cy_) for k_, cx_, cy_, t_ in sorted(cs) if F.inside(cx_, cy_)]
@@ -37021,6 +37057,7 @@ P02_HUE = {"fab_monument": ("HER", 2), "fab_sacred": ("HER", 3), "fab_traditiona
            "et_road": ("CTX", 2), "et_park": ("CTX", 3), "et_walk": ("MOV", 4), "et_green": ("GRN", 4),
            "et_open": ("CTX", 4),
            "conflict": ("ANN", 0)}
+P02_CUT_MARKS = False     # v65 (round 8 D3, H1 Q2): plan 01 draws no cut marks of other pages' cuts (True = v64)
 P02_CUT_IN = 7.0          # v61 (G6-4): booklet mm, the least room between plan 01's cut-mark frame and its crop's edge
 #                           (an_cut: 4 mm stub + 2 mm triangle + the name outside the frame)
 P02_SP = {}               # v61 (G6-10): (x, y) of a p.02 crown -> its species glyph key or None (once per run)
@@ -38995,7 +39032,7 @@ P45_DRAW_MM = 300.0               # mm: v61 (frames §3, P-7): a cut's drawing i
 #                                   = 300.7 mm); the note column right of it is exported apart
 P45_PAGES = (("S1", "S2", "S3", "S4"), ("S5", "S6", "S7", "S8"))   # p04, p05 (package A)
 P45_ALONG = ("S6",)               # cuts that run along the stream: cropped to the part around their crossings (v59: S5 is across, N4 b)
-P45_DEN = {"p04": 2500, "p05": 1500}   # v63 (round 7, L1, N1 Aras 5 Nov 09:36): SON's printed scale under each cut,
+P45_DEN = {"p04": 2500, "p05": 2000}   # v65 (round 8 Q1 a: p05 1:2,000, was 1,500); v63 (round 7, L1, N1 Aras 5 Nov 09:36): SON's printed scale under each cut,
 #                                   fixed; the P45_DENS pick (1:1,000-1:5,000, "largest that fills") is deleted
 P45_SON_W = {"p04": 234.0, "p05": 225.0}   # mm: v63 (L2, H4 §5 measured): the widest SON cut frame of the page
 #                                   (p04 S3 [29,201.5 234x42], p05 S5/S7 225 wide): a cut longer is cropped around its
@@ -40009,20 +40046,34 @@ def p45_band(B, L, P, calls, ytop, kb, lh, xlo, xhi, zcalls=()):
             nums.append((fx, txt))                       # only pr <= 1; named streets were dropped)
     r = 1.15 * lh                                        # v59: the shared marker's radius (two digits), board units
     key = []
+    y_d2 = base_y - 1.9 * lh * (2.0 if row2 else 1.0)    # v65: the discs' own second row (under the zones' row)
+    placed2, low_d = [], None
     for fx, txt in sorted(nums, key=lambda q: q[0]):
-        cx = None
+        cx, yd, row_ = None, base_y, placed
         for d in [0.0] + [sg * j * 0.5 * kb for j in range(1, 41) for sg in (1.0, -1.0)]:   # v59: within 20 mm
             q = min(max(fx + d, xlo + r), xhi - r)
             if not any(q - r < r_ + gap and l_ - gap < q + r for l_, r_ in placed):   # v61 (frames §4: the
                 #                               stray disc after "loose earth bank · top +49.74"): a tag's gap clear
                 cx = q
                 break
-        if cx is None:                                   # v62 (L2): never left out: set on its spot, the booklet's
-            cx = min(max(fx, xlo + r), xhi - r)          # collision pass moves the texts round it
-            LOG.append(u"sections: marker '{}' set on its spot (no free place within 20 mm; booklet check)".format(txt))
+        if cx is None:                                   # v65 (round 8, H1 Q6, R7 p04 S3 "5" on "DSİ stone wall
+            yd, row_ = y_d2, placed2                     # · top +71.84"): a second row under the tags, near its spot
+            for d in [0.0] + [sg * j * 0.5 * kb for j in range(1, 41) for sg in (1.0, -1.0)]:
+                q = min(max(fx + d, xlo + r), xhi - r)
+                if not any(q - r < r_ + gap and l_ - gap < q + r for l_, r_ in placed2):
+                    cx = q
+                    break
+            if cx is None:                               # v62 (L2): never left out: on its spot in that row
+                cx = min(max(fx, xlo + r), xhi - r)
+                LOG.append(u"sections: marker '{}' set on its spot in the second row (no free place within 20 mm; "
+                           u"booklet check)".format(txt))
+            else:
+                LOG.append(u"sections: marker '{}' set in the second row under the tags (no free place within 20 mm "
+                           u"in the first)".format(txt))
+            low_d = yd
         P45_NUM[0] += 1
-        placed.append((cx - r, cx + r))
-        _p45_disc(B, L, P45_NUM[0], cx, base_y, lh)
+        row_.append((cx - r, cx + r))
+        _p45_disc(B, L, P45_NUM[0], cx, yd, lh)
         key.append((P45_NUM[0], txt))
     for cx, t_ in texts:
         _p45_tb(*(site28_text(B, t_, cx, base_y, lh, INK, L, align="C") + (base_y, lh)))
@@ -40030,6 +40081,8 @@ def p45_band(B, L, P, calls, ytop, kb, lh, xlo, xhi, zcalls=()):
         base_y -= 1.9 * lh
         for l_, r_, cx, t_ in row2:
             _p45_tb(*(site28_text(B, t_, cx, base_y, lh, INK2, L, align="C") + (base_y, lh)))
+    if low_d is not None:                                # v65: the discs' second row is the lowest baseline
+        base_y = min(base_y, low_d)
     return base_y, key
 
 
@@ -40362,16 +40415,23 @@ def p45_legend(pid, cats):
             (dict(kind="line", colour=crop_hex(KM_CUT["colour"]), group=u"annotations"),
              u"cut line · the triangle looks the way the section is drawn"),
             (dict(kind="line", colour="2C2219", group=u"annotations"),
-             u"level, m above sea · bed, mean flow, 100- and 500-year flood, tallest roof")]
+             u"level, m above sea · ground at each cut end; beside the cut: bed, mean flow, 100- and 500-year "
+             u"flood, tallest roof")]                    # v65 (round 8, H1 Q4): end tags + the booklet's one column
     P45_LEG[pid] = out
     LOG.append(hue_log(pid))                                                                  # noqa: F821
+
+
+SB_EN_WORDS = {u"bridge", u"road", u"side", u"inlet", u"crossing", u"small", u"and", u"garden", u"demeter's",
+               u"square", u"market", u"terrace", u"walk", u"the", u"of", u"hub", u"wetland", u"basins", u"reed"}
+#              v65 (round 8, H1 Q7): = MasterPlan's MP_EN_WORDS (msl_title): English words keep English letters
 
 
 def site28_title(s):
     """an upper-case name in title case with its Turkish letters (MÜSELLA BAYIRI YOLU -> Müsella Bayırı Yolu); words
     with digits and words not in capitals stay as written. v58 (round 3, G16 / D9): a name led by a bridge code
     ("K4 · ULUCAMİ ÖNÜ", "K6") is printed as the bridge's one name (bridge_name: "Ulucami Önü Köprüsü"), never
-    the code"""
+    the code. v65 (round 8, Aras 8 Nov): English words (SB_EN_WORDS) in English letters ("ROAD BRIDGE" -> "Road
+    Bridge", never "Road Brıdge"), Turkish words in Turkish letters, as the masterplan's msl_title"""
     head_ = (s or u"").split(u"·")[0].strip().upper()
     if len(head_) == 2 and head_[0] == u"K" and head_[1].isdigit():
         try:
@@ -40382,6 +40442,9 @@ def site28_title(s):
     for w_ in (s or u"").split(u" "):
         if not w_ or any(c_.isdigit() for c_ in w_) or not w_.isupper():
             out.append(w_)
+            continue
+        if w_.lower() in SB_EN_WORDS:                    # v65: an English word in English letters
+            out.append(w_[:1] + w_[1:].lower())
             continue
         lo = w_.replace(u"I", u"ı").replace(u"İ", u"i").lower()
         out.append({u"i": u"İ", u"ı": u"I"}.get(lo[0], lo[0].upper()) + lo[1:])
@@ -40740,56 +40803,59 @@ def r28e_strip(S, B, x, yt, k, L, photos=(), sites=(), pal=None, den=None):
             B.line(q + [q[0]], WHITE, L, 63, bk_lw(0.25, k))
             B.text(st["id"], px, py, bk_hk(8.0, k), WHITE, L, order=64, font=FONT_TITLE, bold=True, align="MC")
         taken.append((px - sq - 0.3 * k, py - sq - 0.3 * k, px + sq + 0.3 * k, py + sq + 0.3 * k))
-    # v61 (round 6, G6-4, PLAN P-5, frames p06 §4-5): each photo viewpoint is a G6-4 view mark (annot.py an_view: a
-    # small open triangle at the camera pointing the photo's bearing, its number at 5 pt, ANN ink; no red cone, no
-    # disc: red is for key-map cuts only). The number sits behind the triangle (an_view's spot) or, when that spot is
-    # taken (a bridge's number, a site, another mark), at the first free spot round the camera, never on the view.
-    xv = SbX(B, L, 60, k, kind="annotations")
-    xcb = xv.cb()
+    # v65 (round 8 F11, Q5 a): SON's viewpoints are back (b2 40747b2 p06_22_build.py 173-216): the camera dot, the
+    # view cone (EB_CONE_M long, the photo's own angle of view from its focal length, photo_fov) and the photo's number
+    # on a disc touching the camera point, never on its own cone, in today's colour (the hue table's ANN ink, as the
+    # v61 view marks; no red). The disc's number is a board text, so the booklet still gets it as a label.
+    vc = pal["ann"]
+    rd = (P06_VIEW_R + 0.15) * k                          # a viewpoint's marker (mk_marker, rim included); 7 pt
     for j, (p, it) in enumerate(photos):
         if not F.inside(it["x"], it["y"]):
             continue
         px, py = V.p(it["x"], it["y"])
-        brg = PHOTO_VIEW.get(it.get("file", "").split(".")[0], (None, None))[0]
-        dir_ = 90.0                                       # no bearing: the mark points up the page
-        if brg is not None:                               # bearing from true north, clockwise; survey y = north
-            tip = V.p(it["x"] + math.sin(math.radians(brg)) * EB_CONE_M,
-                      it["y"] + math.cos(math.radians(brg)) * EB_CONE_M)
-            dir_ = math.degrees(math.atan2(tip[1] - py, tip[0] - px))
-        its = list(an_view(None, (px / k, py / k), dir_, str(j + 1), None, None, page="p06"))
-        tri = 0.5 * AN_VIEW["tri_mm"] * k + 0.2 * k
-        tbox = (px - tri, py - tri, px + tri, py + tri)
-        ti = [i_ for i_, t_ in enumerate(its) if t_[0] == "text"]
-        nbox = None
-        if ti:
-            t_ = its[ti[0]]
-            hc = t_[3] * _PDF_CAP["sans"] * k             # the number's capital height (board units)
-            hw, hh = 0.5 * tw(t_[1], hc, "sans", False) + 0.3 * k, 0.5 * hc + 0.3 * k
-            far = 0.5 * AN_VIEW["tri_mm"] + AN_VIEW["gap_mm"]
-            cands = [(t_[2][0] * k, t_[2][1] * k)]
-            for a in range(12):                           # round the camera, the view's own side left out
-                ang = math.radians(dir_ + 180.0 + (a + 1) // 2 * (1 if a % 2 else -1) * 30.0)
-                if abs((math.degrees(ang) - dir_ + 180.0) % 360.0 - 180.0) < 50.0:
-                    continue
-                d_ = far * k + max(hw, hh)
-                cands.append((px + d_ * math.cos(ang), py + d_ * math.sin(ang)))
-            obst = taken + resv + [tbox]
-            for cx_, cy_ in cands:
-                b = (cx_ - hw, cy_ - hh, cx_ + hw, cy_ + hh)
-                if r[0] <= b[0] and b[2] <= r[2] and r[1] <= b[1] and b[3] <= r[3] and not _hit(b, obst):
-                    nbox = b
+        brg, f35 = PHOTO_VIEW.get(it.get("file", "").split(".")[0], (None, None))
+        dx, dy, fov = 0.0, 0.0, 0.0
+        with B.kind("annotations", u"photo viewpoint %d" % (j + 1)):
+            if brg is not None:                           # bearing from true north, clockwise; survey y = north
+                fov = photo_fov(f35)
+                tip = V.p(it["x"] + math.sin(math.radians(brg)) * EB_CONE_M,
+                          it["y"] + math.cos(math.radians(brg)) * EB_CONE_M)
+                ln = math.hypot(tip[0] - px, tip[1] - py) or 1.0
+                dx, dy = (tip[0] - px) / ln, (tip[1] - py) / ln
+                ac, R_ = math.atan2(dy, dx), EB_CONE_M * ss
+                arc = [(px + R_ * math.cos(ac + fov * (t_ / 12.0 - 0.5)),
+                        py + R_ * math.sin(ac + fov * (t_ / 12.0 - 0.5))) for t_ in range(13)]
+                CB.line([arc[-1], (px, py), arc[0]] + arc[1:], vc, L, 50, bk_lw(P06_VIEW_LW, k))
+                cq = arc + [(px, py)]
+                cbox = (min(q[0] for q in cq), min(q[1] for q in cq), max(q[0] for q in cq), max(q[1] for q in cq))
+                taken.append(cbox)
+            B.fill([circle_pts(px, py, 0.45 * k, 10)], vc, L, 51)        # the camera
+            spot = None
+            back = math.atan2(-dy, -dx) if brg is not None else 0.0
+            for far in (1.0, 1.4):                        # touching its camera point, no line
+                for a in range(12):
+                    ang = back + (a + 1) // 2 * (1 if a % 2 else -1) * math.pi / 6.0
+                    dd = far * (rd + 0.5 * k)
+                    if brg is not None and dd <= EB_CONE_M * ss + rd:
+                        off = abs((ang - math.atan2(dy, dx) + math.pi) % (2.0 * math.pi) - math.pi)
+                        if off < 0.5 * fov + math.radians(12.0):
+                            continue                      # never on its own cone
+                    cx_, cy_ = px + dd * math.cos(ang), py + dd * math.sin(ang)
+                    b = (cx_ - rd, cy_ - rd, cx_ + rd, cy_ + rd)
+                    own = [t_ for t_ in taken + resv if not (t_[0] <= px <= t_[2] and t_[1] <= py <= t_[3])]
+                    if r[0] <= b[0] and b[2] <= r[2] and r[1] <= b[1] and b[3] <= r[3] and not _hit(b, own):
+                        spot = (cx_, cy_, b)
+                        break
+                if spot:
                     break
-            if nbox is None:
-                cx_, cy_ = cands[0]
-                nbox = (cx_ - hw, cy_ - hh, cx_ + hw, cy_ + hh)
-                LOG.append(u"photo viewpoint {}: number exported behind its mark (no free spot round the camera; "
-                           u"the booklet places it)".format(j + 1))     # v62 (L2): no producer-side warning
-            its[ti[0]] = (t_[0], t_[1], (0.5 * (nbox[0] + nbox[2]) / k, 0.5 * (nbox[1] + nbox[3]) / k)) + tuple(t_[3:])
-        basemap_draw(its, lambda q: q, xcb[0], xcb[1], xcb[2])
-        taken.append(tbox)
-        syms.append(tbox)
-        if nbox:
-            taken.append(nbox)
+            if spot is None:                              # on its camera point itself
+                spot = (px, py, (px - rd, py - rd, px + rd, py + rd))
+                LOG.append(u"photo viewpoint {}: no free place beside its camera point; its number sits on "
+                           u"it".format(j + 1))
+            cx_, cy_, b = spot
+            _sb_marker(B, cx_, cy_, str(j + 1), vc, k, L, order=60, r_min=P06_VIEW_R)
+        taken.append(b)
+        syms.append(b)
     items += r28e_names(S, V, k)
     for P_ in getattr(S, "selinus", None) or []:          # labels never sit on the stream's centre line ...
         lines_.append(V.P(dp_simplify(P_, 15.0)))
@@ -40831,7 +40897,7 @@ def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20, pal=None):
         lab, col, ang = p06_hatch_spec(ref, pal)
         if kind == "hatch":
             B.fill([sw_], mix(col, WHITE, pal["tint"]), L, order)
-        B.hatch([sw_], col, L, order + 1, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
+        p06_hatch_lines(B, [sw_], col, L, order + 1, k, ang)       # v65 (round 8 F11): lines, kept by the export
         B.line(sw_ + [sw_[0]], col, L, order + 2, bk_lw(P06_EDGE_MM, k))
     elif kind == "line":
         B.line([(x, ym), (x + w, ym)], ref[0], L, order, bk_lw(ref[1], k))
@@ -40859,6 +40925,9 @@ def r28e_swatch(B, kind, ref, x, y, k, L, w=6.0, h=2.4, order=20, pal=None):
         c_, hh = (x + 0.5 * w, ym), 0.5 * AN_VIEW["tri_mm"] * k
         tip, bl, br = (c_[0] + hh, c_[1]), (c_[0] - hh, c_[1] + hh), (c_[0] - hh, c_[1] - hh)
         B.line([tip, bl, br, tip], pal["ann"], L, order, bk_lw(AN_VIEW["lw"], k))
+    elif kind == "cone":                                  # v65 (round 8 F11): SON's camera dot + view cone (ANN ink)
+        B.line([(x + w, y), (x + 0.8 * k, ym), (x + w, y - h)], pal["ann"], L, order, bk_lw(P06_VIEW_LW, k))
+        B.fill([circle_pts(x + 0.8 * k, ym, 0.45 * k, 10)], pal["ann"], L, order + 1)
     elif kind == "frame":
         B.line(sw_ + [sw_[0]], pal["ctx1"], L, order, bk_lw(0.25, k))
     elif kind == "site":                                  # a site's outline and its filled lettered square
@@ -40910,7 +40979,7 @@ def r28e_key_rows(photos=True, numbered=(), pal=None):
            dict(cat="MOV", rank=1, row=("edge", None, u"Bank edge, every 4 m (THE EDGE)")),
            dict(cat="ANN", rank=1, row=("study", None, R28_STUDY_NAME))]
     if photos:
-        ent.append(dict(cat="ANN", rank=2, row=("view", None, u"Photo viewpoint: its number, looking that way")))
+        ent.append(dict(cat="ANN", rank=2, row=("cone", None, u"Photo viewpoint and view cone")))   # v65 (F11, SON)
     rows = [e_["row"] for e_ in legend_group(ent)]
     rows += [(kr[0], kr[1], u"{}  {}".format(n, t)) for n, t, kr in numbered]     # v58: the numbers on the map
     return rows
@@ -41065,6 +41134,8 @@ P06_EDGE_MM = 0.15              # mm: each open piece's edge in its hatch colour
 P06_SITE_MM = 0.35              # mm: a site's outline
 P06_SCALES = (200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000)   # v58: the only booklet scales (Aras 26 Oct)
 P06_BAR_MIN_MM = 22.0           # mm: v58 (round 3, P06.1) the longest of THE EDGE's bars at least (the 62% one)
+P06_VIEW_LW = 0.3               # v65 (round 8 F11, from b2 v59 P06.1): mm, a photo's view cone outline (ANN ink)
+P06_VIEW_R = 1.6                # v65 (round 8 F11, from b2 v59 G-R4-7): mm, the least radius of a viewpoint's number disc
 P06_SRC = (u"Land cover: ESA WorldCover 10 m 2021 v200 (CC BY 4.0, contains modified Copernicus Sentinel data "
            u"2021). Lots, parking, grass and streets: © OpenStreetMap contributors (ODbL).")
 
@@ -41376,10 +41447,27 @@ def p06_hatched(CB, V, groups, key, k, L, order, pal=None):
         if len(chunk) >= 400 or i == len(groups) - 1:
             Ps = V.Ps(chunk)
             CB.fill(Ps, mix(col, WHITE, pal["tint"]), L, order)
-            CB.hatch(Ps, col, L, order + 1, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
+            p06_hatch_lines(CB, Ps, col, L, order + 1, k, ang)      # v65 (round 8 F11): lines, kept by the export
             for P in Ps:
                 CB.line(P + [P[0]], col, L, order + 1, bk_lw(P06_EDGE_MM, k))
             chunk = []
+
+
+def photo_fov(f35):
+    """v65 (round 8 F11, from b2 v45): a photo's horizontal angle of view (radians) at 35 mm-equivalent focal length
+    f35: the 4:3 frame's width is 34.6 mm of the 43.27 mm reference diagonal."""
+    return 2.0 * math.atan(34.6 / (2.0 * (f35 or 24.0)))
+
+
+def p06_hatch_lines(B, polys, col, L, order, k, ang):
+    """v65 (round 8 F11, H1 Q1): a where-we-can-build hatch drawn as plain line shapes (hatch_segments, P06_HATCH_MM)
+    instead of a Board hatch, which the booklet export turns into one solid light fill (G-R5-4.1): the lines reach
+    the page as lines. B may be a ClipB (the lines are cut to its rectangle). Returns the number of lines."""
+    w_ = bk_lw(P06_HATCH_MM[1], k)
+    segs = hatch_segments([list(P) for P in polys if P and len(P) >= 3], P06_HATCH_MM[0] * k, math.radians(ang))
+    for sg in segs:
+        B.line(list(sg), col, L, order, w_)
+    return len(segs)
 
 
 def p06_build_panel(S, B, x, y, w, k, L, pal=None):
@@ -41405,7 +41493,7 @@ def p06_build_panel(S, B, x, y, w, k, L, pal=None):
             lab, col, ang = p06_hatch_spec(hk, pal)
             with B.kind("legend", u"build bar " + part):  # v62 (L2, G6-9): the bar's parts, one element each
                 B.fill([q], mix(col, WHITE, pal["tint"]), L, 20)
-                B.hatch([q], col, L, 21, P06_HATCH_MM[0] * k, math.radians(ang), bk_lw(P06_HATCH_MM[1], k))
+                p06_hatch_lines(B, [q], col, L, 21, k, ang)           # v65 (round 8 F11): lines, kept by the export
             cx_ += sw
     x_open = cx_
     # v61 (G6-6): the frame's other parts in the map's tones from the hue table (other unbuilt CTX r5, streets
@@ -42477,6 +42565,7 @@ T3_SEC_ORDER = ("kept", "calmed", "pedestrian", "shared")   # the masterplan's r
 T3_SEC_DEN = 500        # v63 (round 7, L1): SON page8's printed street-cut scale 1:500, fixed (the T3_SEC_DENS pick
 #                          200-600 "largest whose row fits" is deleted)
 T3_SEC_ROW_W = 292.5     # mm: v63 (L2, H4 §5 page 8): SON's street-cut row x 13 -> 305.5 (R1+R2, R3, R4); wider = WARNING
+T3_SEC_BAR_M = 5.0       # v65 (round 8, H1 Q8): m, each street-cut panel's own scale bar (SON page8: 0-2-5 m)
 T3_SEC_GAP = 8.0         # mm between today and with the project; v61: = T3_SEC_PAIR_GAP (P-9: even gaps)
 T3_SEC_PAIR_GAP = 8.0    # mm between two road types (the booklet sets the crops this far apart for even gaps)
 T3_TREE_SEEN_M = 40.0    # m: v61 (G6-10): existing crowns drawn from the cut to this far along the street (drawing rule)
@@ -43416,11 +43505,13 @@ def _t3_street_sections(S, B, x, y, w, U, M):
                 (u" · speech bubbles: {}".format(FIG_BUBBLE_TAG.lower()) if n_bub else u""), 0.0, ytop - 8.5, 7.0,
                 T3_COL["ink2"], False)
     crop_panel("street_title", x, (ytop - 10.0) * kb, x + T3_SEC_ROW_W * kb, y, u"", ix_page="p08")
+    CROP_PANELS[-1]["bk_w"] = T3_SEC_ROW_W               # v65 (round 8, H1 Q8 extra): the notes leave at their drawn
+    #                                                       11 / 7 pt (no bk_w: 14.74 / 9.38 pt)
     yrow = ytop - 13.0                                    # the R label row, level for all four
     gy = yrow - 8.0 - bh - 1.5 - top                      # ONE ground line (street surface) for every drawing
     yb = gy + top + 1.5                                   # the foot of the label bands
     ybar = gy + low0                                      # ONE line for the scale bars
-    Lm = 5.0 if den <= 250 else 10.0
+    Lm = T3_SEC_BAR_M                                     # v65 (round 8, H1 Q8, SON page8): one 0-2.5-5 m bar per panel
     cx, g6, bot, ab_all, n_drop, used = 0.0, [], None, True, 0, []
     for gi, c_, secs in made:
         rid = _t3_sec_id(gi)
@@ -43444,6 +43535,11 @@ def _t3_street_sections(S, B, x, y, w, U, M):
                 LOG.append(u"Street sections {} ({}): only {} interaction(s) fit the surveyed width: {}.".format(
                     c_["name"], sub, len(set(sec["acts"])), u", ".join(sec["acts"]) or u"none"))
             xl_, W_ = cx, sec["w"]
+            # v65 (round 8, H1 Q8): one scale bar per panel (SON page8: 7 bars), all on one line, 1 mm in from the
+            # panel's left edge (was one per pair)
+            with B.kind("annotations", u"%s %s scale bar" % (rid, sub)):
+                sb_ = draw_scalebar_bk(B, x + (cx + 1.0) * kb, ybar * kb, k * kb, Lm, kb, L, exact=True)
+            bot = sb_ if bot is None else min(bot, sb_)
             cx += sec["w"] + (T3_SEC_GAP if j < n - 1 else 0.0)
         # the levels at the pair's right edge (ACCURATE): values with the triangle, spread, never stacked
         lv = [(n_, v_, h_ * k) for n_, v_, h_ in c_["levels"]]
@@ -43466,12 +43562,11 @@ def _t3_street_sections(S, B, x, y, w, U, M):
         with B.kind("annotations", u"%s change" % rid):
             PU.line([(x0p, yrow - 0.3), (right, yrow - 0.3)], _t3_change_hex(c_["change"]), 0.45, order=46)
         used.append(c_["change"])
-        # one scale bar per pair, all on one line, 1 mm in from the pair's left edge
-        with B.kind("annotations", u"%s scale bar" % rid):
-            sb = draw_scalebar_bk(B, x + (x0p + 1.0) * kb, ybar * kb, k * kb, Lm, kb, L)
-        bot = sb if bot is None else min(bot, sb)
+        sb = bot                                          # v65: the panels' bars (above), all on one line
+        # v65 (round 8, H1 Q8): the crop's scale = what the cut is drawn at (k * kb board units per metre, booklet mm
+        # at 1:den), not den as a SHEET scale: the exported metres were 1.41 x too large (R1 48.7 m for 34.5 m)
         crop_panel("street_" + rid, x + (x0p - 0.5) * kb, sb - 0.5 * kb, x + (right + 0.5) * kb, (yrow + 0.5) * kb,
-                   u"", den, ix_page="p08")
+                   u"", crop_scale(k * kb), ix_page="p08")
         CROP_PANELS[-1]["bk_w"] = right - x0p + 1.0
         CROP_PANELS[-1]["dkind"] = "section"             # v62 (L2): street cuts are section boxes
         LOG.append(u"section p08 {} ACCURATE · {} ({}) · crop street_{} {:.0f} x {:.0f} mm at 1:{:,}; levels {}; "

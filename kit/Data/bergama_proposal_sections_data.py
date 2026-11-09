@@ -1832,7 +1832,9 @@ def _concept_k5_sketch():
     # v20: the body in two short lines so it ends before the basin at x 56 (the 28 Oct head ran into it); card i01 is
     # internal: no mark
     label2(o, "DEMETER'S GARDEN", "dry bank top\nall year · DG 1-2", 24, 36.5, 5.6, mask=SOIL)   # v22 (L6): clear of "STREET"
-    text(o, "Olive (Zeytin), French lavender (Karabaş otu):\nno waterlogged soil " + CITE("plants"), 4, 24.5, 5.2,
+    # v23 (round 8, L6): three short lines (was "Olive (Zeytin), French lavender (Karabaş otu):" on one line, which ran
+    # past x 62 into "strip water to the garden"); wording kept
+    text(o, "Olive (Zeytin),\nFrench lavender (Karabaş otu):\nno waterlogged soil " + CITE("plants"), 4, 24.5, 5.2,
          FARM_C, mask=SOIL)
     hand_arrow(o, (128, 17), (66, 38.6), SITE_WATER_D, bend=0.15)
     text(o, "strip water to the garden\nintake + lift", 62, 22, 5.2, SITE_WATER_D, mask=SOIL)
