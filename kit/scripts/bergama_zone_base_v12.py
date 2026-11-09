@@ -18,6 +18,7 @@ NEW IN v12 (round 8, P1, 9 Nov 2026; Aras 9 Nov 05:47, decisions S1-S7 as propos
         INT_PATH_bike               bike lane fills                                                   closed curves
         INT_ROUTE_circulation       circulation route lines, each run the way its arrows point       open curves
         INT_ROUTE_footbridge        the route's footbridge lines                                      open curves
+        INT_PATH_ramp               the ramps (group ramps, stroke #aaa), as drawn                    open curves
         INT_PLANT_shrubgroup        rosemary symbols = shrub groups at the size drawn (S3)            circles
       A ring that is a hole in its fill carries hole=1 (and hole_in = the id of the ring round it).
   (2) NOT baked from the SVG: the trees (S5: MasterPlan regenerates them by its rules; their measured counts, crown
@@ -116,7 +117,7 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v12 (2026-11-09)"  # v12 round 8 P1: Aras's masterplan SVG (Data/assets/masterlastversion.svg) read live, its zones baked as new Option_A::INT_ layers (source=svg), trees measured into cached/bergama_zone_base/svg_reference.json; older: v11.2 fix (round 5 S5, CHK-12): the function bake() is now zb_bake(): a Button input named `bake` (offered below) read the function, so a press did nothing, as run() did in v11.1; v11.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "bergama_zone_base v12 (2026-11-09)"  # v12 round 8 P1: Aras's masterplan SVG (Data/assets/masterlastversion.svg) read live, its zones baked as new Option_A::INT_ layers (source=svg), trees measured into cached/bergama_zone_base/svg_reference.json; round 8 P2b (same v12, not shipped yet): the SVG's ramps group baked as INT_PATH_ramp lines; older: v11.2 fix (round 5 S5, CHK-12): the function bake() is now zb_bake(): a Button input named `bake` (offered below) read the function, so a press did nothing, as run() did in v11.1; v11.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
 #   Downloads/Bergama/logs/                    every log file and log folder
@@ -264,7 +265,8 @@ LAYER_COLOURS = {                                  # the masterplan palette's to
     # v12: the layers baked from Aras's SVG, in the colours of his legend
     "INT_WATER_design": "51626C", "INT_ZONE_WETLAND": "A9C4C2", "INT_ZONE_PLAZA": "E3E5E5",
     "INT_ZONE_HERITAGE_SETTING": "F6E3DF", "INT_PATH_park": "8C8A6D", "INT_PATH_walk": "E8CFCF", "INT_PATH_bike": "A8705C",
-    "INT_ROUTE_circulation": "BE3D72", "INT_ROUTE_footbridge": "BE3D72", "INT_PLANT_shrubgroup": "87967B"}
+    "INT_ROUTE_circulation": "BE3D72", "INT_ROUTE_footbridge": "BE3D72", "INT_PLANT_shrubgroup": "87967B",
+    "INT_PATH_ramp": "AAAAAA"}
 SVG_FILE = "masterlastversion.svg"                 # v12: Aras's masterplan, Downloads/Bergama/Data/assets/ (read live)
 SVG_REF_JSON = "svg_reference.json"                # v12: in Downloads/Bergama/cached/bergama_zone_base/
 PARENT = {"A": "Option_A", "B": "Option_B"}
@@ -1354,7 +1356,7 @@ def g_nn(pts, cell=40.0):
 SVG_WANT = ("Selinos", "wetland_shallow_water_reeds", "green_corridor_open_ground_within_25_m_of_the_water",
             "open_meadow", "old_settlement_round_Kizil_Avlu_eski_yerlesim_light_red_grad", "walks_paths_bike_lane",
             "seconder", "Layer_16", "route_line", "route_footbridges", "route_arrows",
-            "heritage_trail_along_the_walks", "heritage_trail", "trees_group", "LEGEND")
+            "heritage_trail_along_the_walks", "heritage_trail", "trees_group", "LEGEND", "ramps")
 SVG_WALK_FILL = {                          # walks_paths_bike_lane: fill -> (layer, kind, part); strokes are look only
     "#e8cfcf": ("INT_PATH_walk", "walk", "walk"),             # = legend_walk
     "#a8705c": ("INT_PATH_bike", "bike_lane", "bike_lane"),   # = legend_bike
@@ -1610,6 +1612,16 @@ def svg_zone_items(plan, M, s, shift, notes):
             P, fw, bw = P[::-1], bw, fw                      # the curve now runs the way most arrows point
         add(lay, P, False, {"kind": kind, "label": lab, "arrows_with": str(fw), "arrows_against": str(bw),
             "direction": "one-way" if fw and not bw else ("two-way" if fw and bw else "none")}, grp, pc)
+    # 7b ramps (round 8 P2b, Aras's 9 Nov SVG): the lines of group ramps (stroke #aaa, no fill) as drawn, open curves
+    pcs, _ = plan.under("ramps")
+    if not pcs:
+        notes.append(u"WARNING SVG: no ramps group found: INT_PATH_ramp not baked")
+    for pc in pcs:
+        for cl, P in svg_rings_m(pc, M):
+            if cl:
+                P = P + [P[0]]
+            if g_len(P) >= 1.0:
+                add("INT_PATH_ramp", P, False, {"kind": "ramp", "label": u"RAMP"}, "ramps", pc)
     if n_far:
         notes.append(u"SVG route: %d of %d arrows lie more than %.0f m from every route line (no direction from them)" % (
             n_far, len(arrows), SVG_ARROW_NEAR_M))

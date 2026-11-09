@@ -21,6 +21,9 @@ NEW IN v45 (round 8 P2, 9 Nov 2026; Aras 9 Nov 05:47 approved the SVG-to-code pl
     "Places, by kind"), moves by name only, "<ha> / <reason>", a flow note per row, SON's caption and match line;
     PL23_SON leaves out the collect-clean-hold list and the R1-R4 / producers' market labels. p21: the key map without
     street and place names (km_keymap names=, P24_KM_NAMES). p15: mp_sn_kicker id kept (booklet v37 ignores it as lead).
+    P2b (same v45, Aras "his exact look"): trees and rosemary in HIS symbols (sym_* read live from his sheet once a
+    press, scaled to each crown; a symbol not read: WARNING + disc), reeds stamped from his own tuft shapes (24 read
+    live), the bike lane's white centre dash (1.5 m), no v44 walk lines where his walks are drawn.
 NEW IN v38 (round 4 S8, 1 Nov; a feature change): one run trigger (common/trigger.py, the masterplan's own copy gone);
     ROADS + TOWN_LINE shared (common/data/ROADS.py); Turkish proper names from the names table (Kızıl Avlu, never
     "Red Hall"); real font widths (font_metrics); every text registered in its page's TextPage and checked (a
@@ -20832,7 +20835,8 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                         pg.circle(A_[0] + (B_[0] - A_[0]) * f, A_[1] + (B_[1] - A_[1]) * f,
                                   0.9 if big else lw["stones"], fill=H("stones"))
                 used.add("stones")
-        for i, (P, bed, bank) in enumerate(cl["walk"]):  # the riverside walk, its bike lane one thin line beside it
+        for i, (P, bed, bank) in enumerate([] if m45 and mp45_geo(C)["walk"] else cl["walk"]):   # P2b: his walks
+            # replace the v44 riverside / bed walk lines and their bike line (no doubles); else as v44
             Q = [T(p) for p in P]
             if len(Q) < 2 or not on(Q):
                 continue
@@ -21751,11 +21755,17 @@ def mp45_draw_water(pg, T, k, C, on, used):
         with mpx_grp(pg, "water", u"wetland %d" % (i + 1)):
             if _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["wet_open" if op else "wet"], MP45_A["wet_open"] if op else None):
                 used.add("mp45_wet")
+    shp = mp45_reed_shapes()                             # P2b: his tuft shapes, else discs
     with mpx_grp(pg, "plants", u"reeds"):
-        for x, y, dm, col in mp45_reeds(C):
+        for j, (x, y, dm, col) in enumerate(mp45_reeds(C)):
             px, py = T((x, y))
             if -2.0 <= px <= pg.W + 2.0 and -2.0 <= py <= pg.H + 2.0:
-                pg.circle(px, py, dm * k / 2.0, fill=col, alpha=MP45_A["reed"])
+                if shp:
+                    s_ = dm * k
+                    pg.poly([[(px + q[0] * s_, py + q[1] * s_) for q in shp[(j * 7) % len(shp)]]], fill=col,
+                            alpha=MP45_A["reed"])
+                else:
+                    pg.circle(px, py, dm * k / 2.0, fill=col, alpha=MP45_A["reed"])
     return drawn
 
 
@@ -21773,6 +21783,10 @@ def mp45_draw_walks(pg, T, k, C, on, used):
         with mpx_grp(pg, "paths", u"bike lane %d" % (i + 1)):
             if _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["bike"]):
                 used.add("mp45_bike")
+                Q = [T(p) for p in mp45_centre_line(R_)]   # P2b: his white centre dash (1.5 m on / off)
+                if len(Q) >= 2:
+                    pg.line(Q, "FFFFFF", mp45_lw(MP45_LW_U["bike_dash"], k),
+                            [MP45_BIKE_DASH_M * k, MP45_BIKE_DASH_M * k], cap=0)
     for i, P in enumerate(geo["ramp"]):
         Q = [T(p) for p in P]
         if on(Q):
@@ -21828,17 +21842,25 @@ def mp45_draw_veg(pg, T, k, C, box, used):
     for i, (c_, dm) in enumerate(mp45_geo(C)["shrub"]):
         x, y = T(c_)
         if inb(x, y, dm * k / 2.0):
+            sym = mp45_symbol(u"sym_rosemary")            # P2b: his symbol, else the disc
             with mpx_grp(pg, "plants", u"rosemary group %d" % (i + 1)):
-                pg.circle(x, y, dm * k / 2.0, fill=MP45_PAL["rosemary"], stroke=MP45_PAL["tree_edge"], lw=lw,
-                          alpha=MP45_A["tree"])
+                if sym:
+                    mp45_stamp(pg, sym, x, y, dm * k, MP45_A["tree"])
+                else:
+                    pg.circle(x, y, dm * k / 2.0, fill=MP45_PAL["rosemary"], stroke=MP45_PAL["tree_edge"], lw=lw,
+                              alpha=MP45_A["tree"])
             used.add("mp45_shrub")
     for i, (p, key, cr) in enumerate(mp45_trees(C)):
         x, y = T(p)
         r = cr * k / 2.0
         if not inb(x, y, r):
             continue
+        sym = mp45_symbol(u"sym_" + key)                  # P2b: his symbol at the crown, else the disc
         with mpx_grp(pg, "trees", u"%s %d" % (PLA_SPECIES[key]["name"], i + 1)):
-            pg.circle(x, y, r, fill=MP45_TREE_COL[key], stroke=MP45_PAL["tree_edge"], lw=lw, alpha=MP45_A["tree"])
+            if sym:
+                mp45_stamp(pg, sym, x, y, 2.0 * r, MP45_A["tree"])
+            else:
+                pg.circle(x, y, r, fill=MP45_TREE_COL[key], stroke=MP45_PAL["tree_edge"], lw=lw, alpha=MP45_A["tree"])
         used.add("tree_" + key)
         PL23_TREE_N[key] = PL23_TREE_N.get(key, 0) + 1
 
@@ -21851,10 +21873,215 @@ def mp45_kizil(C):
 
 
 # ---- the context labels round the site (his label_around; names from Data/assets/context_labels_v2.svg)
+# ---- P2b (Aras: "his exact look"): his tree / rosemary symbols and reed tufts read live from his sheet each press
+MP45_REED_SHAPES = 24                # his first tufts (drawing order) taken as the stamp variants
+MP45_BIKE_DASH_M = 1.5               # the bike lane's white centre dash, on / off (his 3.96 units)
+MP45_LW_U["bike_dash"] = 0.34        # its width, units
+_MP45_TXT = []                       # his sheet's text, read once a press
+_MP45_SYM = {}                       # symbol id -> (viewBox w, h, [(rings, fill)]) or None (WARNING, disc)
+_MP45_REEDS = []                     # [unit tuft rings (y up, size 1)]
+_MP45_TOK = re.compile(r"[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?")
+_MP45_NS = (u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">', u'</svg>')
+
+
+def mp45_svg_text():
+    """the text of his sheet (MP45_SVG), read once a press"""
+    if not _MP45_TXT:
+        with open(MP45_SVG, encoding="utf-8") as f_:
+            _MP45_TXT.append(f_.read())
+    return _MP45_TXT[0]
+
+
+def mp45_path_rings(d, n=4):
+    """an SVG path d -> [ring] in its own units: M L H V C S Q T Z, absolute and relative (A: a line to its end),
+    curves flattened in n steps; Z or a new M ends a ring"""
+    tk = _MP45_TOK.findall(d or u"")
+    out, cur = [], []
+    x = y = sx = sy = 0.0
+    pc, prev, cmd, i = None, u"", None, 0
+    while i < len(tk):
+        if tk[i].isalpha():
+            cmd = tk[i]
+            i += 1
+            if cmd in u"Zz":
+                if len(cur) >= 3:
+                    out.append(cur)
+                cur, x, y, prev = [], sx, sy, u"Z"
+                continue
+        elif cmd is None:
+            i += 1
+            continue
+        rel, C_ = cmd.islower(), cmd.upper()
+        ox, oy = (x, y) if rel else (0.0, 0.0)
+        try:
+            v = [float(tk[i + j]) for j in range({"M": 2, "L": 2, "H": 1, "V": 1, "C": 6, "S": 4, "Q": 4, "T": 2,
+                                                  "A": 7}.get(C_, 1))]
+        except (IndexError, ValueError):
+            break
+        i += len(v)
+        if C_ == "M":
+            if len(cur) >= 3:
+                out.append(cur)
+            x, y = ox + v[0], oy + v[1]
+            sx, sy, cur = x, y, [(x, y)]
+            cmd = u"l" if rel else u"L"                  # pairs after a moveto are linetos
+        elif C_ in "LA":
+            x, y = ox + v[-2], oy + v[-1]
+            cur.append((x, y))
+        elif C_ == "H":
+            x = ox + v[0]
+            cur.append((x, y))
+        elif C_ == "V":
+            y = oy + v[0]
+            cur.append((x, y))
+        elif C_ in "CSQT":
+            if C_ == "C":
+                c1, c2, e = (ox + v[0], oy + v[1]), (ox + v[2], oy + v[3]), (ox + v[4], oy + v[5])
+            elif C_ == "S":
+                c1 = (2 * x - pc[0], 2 * y - pc[1]) if prev in u"CS" and pc else (x, y)
+                c2, e = (ox + v[0], oy + v[1]), (ox + v[2], oy + v[3])
+            elif C_ == "Q":
+                c1, c2, e = (ox + v[0], oy + v[1]), None, (ox + v[2], oy + v[3])
+            else:
+                c1 = (2 * x - pc[0], 2 * y - pc[1]) if prev in u"QT" and pc else (x, y)
+                c2, e = None, (ox + v[0], oy + v[1])
+            for j in range(1, n + 1):
+                s, r = j / float(n), 1.0 - j / float(n)
+                if c2 is None:
+                    cur.append((r * r * x + 2 * r * s * c1[0] + s * s * e[0], r * r * y + 2 * r * s * c1[1] + s * s * e[1]))
+                else:
+                    cur.append((r ** 3 * x + 3 * r * r * s * c1[0] + 3 * r * s * s * c2[0] + s ** 3 * e[0],
+                                r ** 3 * y + 3 * r * r * s * c1[1] + 3 * r * s * s * c2[1] + s ** 3 * e[1]))
+            pc = c2 if c2 is not None else c1
+            x, y = e
+        prev = C_
+    if len(cur) >= 3:
+        out.append(cur)
+    return out
+
+
+def _mp45_hex(v):
+    h = (v or u"").strip().lstrip(u"#")
+    if len(h) == 3:
+        h = u"".join(c * 2 for c in h)
+    return h.upper() if len(h) == 6 else None
+
+
+def _mp45_shapes(root):
+    """[(rings, fill)] of the paths / polygons / circles under an element (their own units)"""
+    parts = []
+    for el in root.iter():
+        tag = el.tag.split(u"}")[-1]
+        if tag == u"path":
+            rings = mp45_path_rings(el.get(u"d"))
+        elif tag in (u"polygon", u"polyline"):
+            v = [float(x) for x in _MP45_TOK.findall(el.get(u"points") or u"")]
+            rings = [list(zip(v[0::2], v[1::2]))]
+        elif tag == u"circle":
+            cx, cy, r = (float(el.get(a) or 0.0) for a in (u"cx", u"cy", u"r"))
+            rings = [[(cx + r * math.cos(a * math.pi / 6.0), cy + r * math.sin(a * math.pi / 6.0)) for a in range(12)]]
+        else:
+            continue
+        fill = _mp45_hex(el.get(u"fill"))
+        rings = [R_ for R_ in rings if len(R_) >= 3]
+        if fill and rings:
+            parts.append((rings, fill))
+    return parts
+
+
+def mp45_symbol(sid):
+    """his symbol sid (sym_plane ... sym_rosemary) read live from his sheet, once a press: (viewBox w, h, [(rings,
+    fill)]), or None with a WARNING (the disc is drawn then). Nothing of it is kept in this script."""
+    if sid in _MP45_SYM:
+        return _MP45_SYM[sid]
+    res, why = None, u"not in the file"
+    try:
+        import xml.etree.ElementTree as _ET
+        m = re.search(r'<symbol[^>]*\bid="%s"[^>]*>(.*?)</symbol>' % re.escape(sid), mp45_svg_text(), re.S)
+        if m:
+            vb = re.search(r'viewBox="([^"]*)"', m.group(0)[:m.group(0).find(u">")])
+            vb = [float(x) for x in _MP45_TOK.findall(vb.group(1))] if vb else []
+            parts = _mp45_shapes(_ET.fromstring(_MP45_NS[0] + m.group(1) + _MP45_NS[1]))
+            if len(vb) == 4 and vb[2] > 0 and vb[3] > 0 and parts:
+                res = (vb[2], vb[3], parts)
+            else:
+                why = u"no viewBox or no filled shape"
+    except Exception as ex:
+        why = u"%s: %s" % (type(ex).__name__, ex)
+    if res is None:
+        MP45_LOG.append(u"WARNING p20 symbol {} of {} not read ({}): drawn as a disc".format(sid, MP45_SVG, why))
+    else:
+        MP45_LOG.append(u"p20 symbol {} read live: {} shapes".format(sid, len(res[2])))
+    _MP45_SYM[sid] = res
+    return res
+
+
+def mp45_stamp(pg, sym, x, y, d_mm, alpha=None):
+    """his symbol centred at page (x, y), scaled so its viewBox spans d_mm (his use: width = the crown), y up"""
+    vw, vh, parts = sym
+    s = d_mm / ((vw + vh) / 2.0)
+    for rings, fill in parts:
+        pg.poly([[(x + (p[0] - vw / 2.0) * s, y - (p[1] - vh / 2.0) * s) for p in R_] for R_ in rings], fill=fill,
+                alpha=alpha)
+
+
+def mp45_reed_shapes():
+    """his reed tufts (the paths of group wetland_shallow_water_reeds in his three greens), the first MP45_REED_SHAPES
+    in drawing order, each centred and scaled to size 1 (y up), read live once a press; [] = discs (WARNING)"""
+    if _MP45_REEDS:
+        return _MP45_REEDS[0]
+    shapes, why = [], u"no tuft in his three greens"
+    try:
+        import xml.etree.ElementTree as _ET
+        blk = _mp45_svg_block(MP45_SVG, u"wetland_shallow_water_reeds")
+        if blk:
+            for rings, fill in _mp45_shapes(_ET.fromstring(_MP45_NS[0] + blk + _MP45_NS[1])):
+                if fill not in MP45_REED_COLS:
+                    continue
+                b = bbox(rings[0])
+                sz = max(b[2] - b[0], b[3] - b[1])
+                if sz > 0.0:
+                    cx, cy = (b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0
+                    shapes.append([((p[0] - cx) / sz, -(p[1] - cy) / sz) for p in rings[0]])
+                if len(shapes) >= MP45_REED_SHAPES:
+                    break
+        else:
+            why = u"no group wetland_shallow_water_reeds"
+    except Exception as ex:
+        why = u"%s: %s" % (type(ex).__name__, ex)
+    if not shapes:
+        MP45_LOG.append(u"WARNING p20 reed tufts of {} not read ({}): drawn as discs".format(MP45_SVG, why))
+    _MP45_REEDS.append(shapes)
+    return shapes
+
+
+def mp45_centre_line(R_, n=40):
+    """the centre line of a strip ring (the bike lane): the ring split at its two farthest-apart points (the strip's
+    ends), both sides resampled to n points, their midpoints; [] for a ring under 4 points"""
+    P = list(R_)
+    if len(P) < 4:
+        return []
+    S = list(range(0, len(P), max(1, len(P) // 60)))
+    _d, a, b = max((math.hypot(P[a_][0] - P[b_][0], P[a_][1] - P[b_][1]), a_, b_)
+                   for i_, a_ in enumerate(S) for b_ in S[i_ + 1:])
+    A, B = P[a:b + 1], (P[b:] + P[:a + 1])[::-1]
+    if len(A) < 2 or len(B) < 2:
+        return []
+
+    def rs(L):
+        s = arclen(L)
+        return [at_len(L, s, s[-1] * j / float(n - 1))[0] for j in range(n)]
+    return [((p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0) for p, q in zip(rs(A), rs(B))]
+
+
 def _mp45_svg_block(path, gid):
-    """the text of the first <g ...id="gid"...> ... </g> of an SVG file (balanced g tags), or None"""
-    with open(path, encoding="utf-8") as f_:
-        t = f_.read()
+    """the text of the first <g ...id="gid"...> ... </g> of an SVG file (balanced g tags), or None (his sheet: the
+    text read once a press, mp45_svg_text)"""
+    if path == MP45_SVG:
+        t = mp45_svg_text()
+    else:
+        with open(path, encoding="utf-8") as f_:
+            t = f_.read()
     i = t.find(u'id="%s"' % gid)
     if i < 0:
         return None
@@ -22010,8 +22237,12 @@ def _mp45_sw_route():
     return f
 
 
-def _mp45_sw_disc(fill, d_mm=2.4):
+def _mp45_sw_disc(fill, d_mm=2.4, sid=None):
     def f(pg, x, y, w, h):
+        sym = mp45_symbol(sid) if sid else None          # P2b: his symbol in the legend too, else the disc
+        if sym:
+            mp45_stamp(pg, sym, x + w / 2.0, y + h / 2.0, d_mm, MP45_A["tree"])
+            return
         pg.circle(x + w / 2.0, y + h / 2.0, d_mm / 2.0, fill=fill, stroke=MP45_PAL["tree_edge"], lw=0.1,
                   alpha=MP45_A["tree"])
     return f
@@ -22043,8 +22274,8 @@ MP45_LEGEND = [
     ("mp45_her", "E", u"Heritage building", _mp45_sw_box(MP45_PAL["her"], MP45_PAL["swatch_edge"])),
     ("mp45_old", "E", u"Old settlement round Kızıl Avlu", _mp45_sw_box(MP45_PAL["old"], MP45_PAL["swatch_edge"])),
     ("mp45_kizil", "E", u"Kızıl Avlu", _mp45_sw_box(MP45_PAL["kizil"], MP45_PAL["kizil_edge"]))] + \
-    [("tree_" + k_, "T", _PL23_SP(k_), _mp45_sw_disc(MP45_TREE_COL[k_])) for k_ in MP45_TREE_KEYS] + \
-    [("mp45_shrub", "T", u"Rosemary, shrub group", _mp45_sw_disc(MP45_PAL["rosemary"]))]
+    [("tree_" + k_, "T", _PL23_SP(k_), _mp45_sw_disc(MP45_TREE_COL[k_], sid=u"sym_" + k_)) for k_ in MP45_TREE_KEYS] + \
+    [("mp45_shrub", "T", u"Rosemary, shrub group", _mp45_sw_disc(MP45_PAL["rosemary"], sid=u"sym_rosemary"))]
 
 
 # ---------------------------------------------------------------- round 5 (S6, G-R5-12): the page as items
@@ -22082,6 +22313,9 @@ def p23_items(ix, C, warn):
     lines = []
     del MP45_LOG[:]                                      # v45: this press's lines (Rhino keeps module globals)
     del _MP45_REF[:]
+    del _MP45_TXT[:]                                     # P2b: his sheet, symbols and tufts read again each press
+    _MP45_SYM.clear()
+    del _MP45_REEDS[:]
     m45 = mp45_on(C)
     if not m45:
         w_ = (u"WARNING p20 no ZoneBase v12 layers from Aras's SVG (Option_A::INT_WATER_design, INT_ZONE_WETLAND, "
