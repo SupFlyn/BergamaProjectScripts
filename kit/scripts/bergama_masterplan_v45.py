@@ -1,10 +1,26 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_masterplan_v43.py = v43 (5 Nov 2026, round 7 S6, two pages only: p15 senses streets / buildings in the hue table's CTX ramp + scale lines; p21 sections fixed at SON's 1:1,000 (SF_SCALES pick gone), key map in SON's 26.9 x 35.9 mm frame inside the margin, plan names small (annot an_name), field names clear the route numbers; dead mpx_keymap removed; p20 masterplan untouched); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 (round 6 S8, 4 Nov 2026: p15/p20/p21 page ids, p20 masterplan with the proposals and the category legend, p21 water edge north-up as in the submission with ACCURATE sections, plan cut marks, the one key map, element groups); v40.4 (2 Nov run-warning fixes); v40.3 (fix 2 Nov 06:30: the K5 detail window is exported again, P24_LEG_KIND was missing); v40.2 (fix 2 Nov: no widths in the p23/p24 lists and notes: "N m open", forest band); v40.1 (closing fix 2 Nov: p24 key map lines logged); older header: v39.2 (1 Nov 2026: the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1: fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_masterplan_v45.py = v45 (9 Nov 2026, round 8 P2: p20 drawn in Aras's masterplan look by rules from ZoneBase v12's layers, in SON page 21's format; p21 key map without names); v44 (8 Nov 2026, the p04/p05 section notes' masterplan link); v43 (5 Nov 2026, round 7 S6, two pages only: p15 senses streets / buildings in the hue table's CTX ramp + scale lines; p21 sections fixed at SON's 1:1,000 (SF_SCALES pick gone), key map in SON's 26.9 x 35.9 mm frame inside the margin, plan names small (annot an_name), field names clear the route numbers; dead mpx_keymap removed; p20 masterplan untouched); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 (round 6 S8, 4 Nov 2026: p15/p20/p21 page ids, p20 masterplan with the proposals and the category legend, p21 water edge north-up as in the submission with ACCURATE sections, plan cut marks, the one key map, element groups); v40.4 (2 Nov run-warning fixes); v40.3 (fix 2 Nov 06:30: the K5 detail window is exported again, P24_LEG_KIND was missing); v40.2 (fix 2 Nov: no widths in the p23/p24 lists and notes: "N m open", forest band); v40.1 (closing fix 2 Nov: p24 key map lines logged); older header: v39.2 (1 Nov 2026: the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1: fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
 """BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
 batch): the riverside walks, the riverside spine on the real edge, the main spine, the eight stops and the trees.
 
+NEW IN v45 (round 8 P2, 9 Nov 2026; Aras 9 Nov 05:47 approved the SVG-to-code plan; PLAN.md S2, Q3 a): p20 masterplan
+    (1) Aras's look by rules: the plan is drawn from ZoneBase v12's Option_A::INT_ layers baked from his
+    Data/assets/masterlastversion.svg (read as kind "SVG": design water = the Selinos, wetland + seeded reed tufts in his
+    three greens, event plaza, old settlement rings by ring level, park paths / walks / bike lane / ramps with their
+    holes cut out, the circulation route with an arrow every 44 m in its direction + its footbridges, rosemary shrub
+    groups at their diameter); the 25 m green corridor recomputed from the design water on open ground (S2); the trees
+    regenerated by rule in his 6 species (plane, ash, willow, olive, stone pine, tamarisk) at his crown sizes, spacing
+    and zone shares (cached/bergama_zone_base/svg_reference.json), seeded (S5), drawn as crowns in his legend colours;
+    his palette, heritage in his reds (Kızıl Avlu inside ring 1), line widths and symbol sizes in metres rescaled per
+    page scale; move markers and labels in his 8 label categories + context; his 18 context labels (names from
+    Data/assets/context_labels_v2.svg, positions from his label_around dots, letter pairs + similarity fit). The v44
+    zones and layers stay (S6); no render, topo raster or asset (S7). No SVG layer in the file: WARNING, v44 drawing.
+    (2) SON page 21's format (Q3 a: today's 19 moves / a-i, U40 clip kept): legend EXISTING · SURVEY / PROPOSED (+ his
+    "Places, by kind"), moves by name only, "<ha> / <reason>", a flow note per row, SON's caption and match line;
+    PL23_SON leaves out the collect-clean-hold list and the R1-R4 / producers' market labels. p21: the key map without
+    street and place names (km_keymap names=, P24_KM_NAMES). p15: mp_sn_kicker id kept (booklet v37 ignores it as lead).
 NEW IN v38 (round 4 S8, 1 Nov; a feature change): one run trigger (common/trigger.py, the masterplan's own copy gone);
     ROADS + TOWN_LINE shared (common/data/ROADS.py); Turkish proper names from the names table (Kızıl Avlu, never
     "Red Hall"); real font widths (font_metrics); every text registered in its page's TextPage and checked (a
@@ -280,8 +296,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v44 (2026-11-08)"  # v44 (8 Nov, Aras: no backward reads, Q1 default; English words of a hub name in English letters, "Road Bridge"): the "Masterplan link" line of each p04/p05 section note (was written by the site board from last run's masterplan_results.json; site board v64 no longer reads it) is exported here as a note item sb_sec_note_<cut>_mp from this run's movement and the site board's cached/selinus_board/section_link_points.json; v43 v43 round 7 S6 (BRIEF rows 15, 21; N2: only pages/p16_senses.py + pages/p24_detail.py): p15 legends all from the hue table, scale lines; p21 D1/D2 ACCURATE at a fixed 1:1,000, key map 26.9 x 35.9 mm (SON page22) with north left inside the margin, plan names 5 pt inside their area (G7-2), field names clear route numbers (L6); dead mpx_keymap gone; p20 untouched (D6); v42.1 fix: common key map names never left out (set on their point, the booklet places them); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 round 6 S8 (G6-1..G6-10, BRIEF rows 15, 20, 21); v40.4 run-warning fixes (2 Nov); v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v43"
+VERSION = "bergama_masterplan v45 (2026-11-09)"  # v45 (9 Nov, round 8 P2): p20 in Aras's masterplan look, drawn by rules from ZoneBase v12's SVG layers, in SON page 21's format; p21 key map without names; v44 (8 Nov, Aras: no backward reads, Q1 default; English words of a hub name in English letters, "Road Bridge"): the "Masterplan link" line of each p04/p05 section note (was written by the site board from last run's masterplan_results.json; site board v64 no longer reads it) is exported here as a note item sb_sec_note_<cut>_mp from this run's movement and the site board's cached/selinus_board/section_link_points.json; v43 v43 round 7 S6 (BRIEF rows 15, 21; N2: only pages/p16_senses.py + pages/p24_detail.py): p15 legends all from the hue table, scale lines; p21 D1/D2 ACCURATE at a fixed 1:1,000, key map 26.9 x 35.9 mm (SON page22) with north left inside the margin, plan names 5 pt inside their area (G7-2), field names clear route numbers (L6); dead mpx_keymap gone; p20 untouched (D6); v42.1 fix: common key map names never left out (set on their point, the booklet places them); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 round 6 S8 (G6-1..G6-10, BRIEF rows 15, 20, 21); v40.4 run-warning fixes (2 Nov); v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v45"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 OPACITY = 0.5                         # opacity of the lower-opacity pieces (Aras 05:51: a setting; 0.5 his example)
 RING_M = 30.0                         # nearest ring (programme CONTEXT §3.2: inferred, not a sourced number)
@@ -1648,6 +1664,8 @@ def read_spots(doc, rects):
 
 
 def item_kind(lay):
+    if lay in MP45_LAYERS:                       # v45 (round 8 P2): ZoneBase v12's layers from Aras's SVG, kept apart
+        return "SVG"                             # from the v44 zones / strips / paths (S6: those are drawn as before)
     if lay.startswith("INT_ZONE_"):
         return "ZONE"
     if lay.startswith("INT_WATER"):
@@ -1675,13 +1693,15 @@ def read_items(doc, opt):
             continue
         a = o.Attributes
         meta = {}
-        for k in ("label", "id", "study_area", "zone", "link"):
+        for k in ("label", "id", "study_area", "zone", "link", "kind", "part", "ring", "hole", "hole_in", "direction",
+                  "species", "diameter_m", "source"):         # v45: + the keys of ZoneBase v12's SVG layers (P1)
             v = a.GetUserString(k)
             if v:
                 meta[k] = v
         if "label" not in meta and a.Name:
             meta["label"] = a.Name
-        items.append({"layer": parent + lay, "P": [list(p) for p in P], "meta": meta})
+        items.append({"layer": parent + lay, "P": [list(p) for p in P], "meta": meta,
+                      "closed": bool(o.Geometry.IsClosed)})
     return items
 
 
@@ -7706,7 +7726,7 @@ def _km_frame_deg(P):
 
 
 def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, log=None, cut_ids=None, looks=None,
-              north_side="right", extra_names=None, D=None, **legacy):
+              north_side="right", extra_names=None, D=None, names=None, **legacy):
     """round 7 (S1, G7-3; PLAN §4.3): THE key map of every page = SON page8's "Where each street is cut" (_t3_sec_key,
     1d6f866 src/selinus_board/pages/p07_09_movement.py:1556-1727, on keymap v2 89097ee), callable with a page's cuts
     and its SON key-map frame. As SON page8: the map on the site frame's own axes (basemap_frame = site_alan, the
@@ -7723,7 +7743,9 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
     w_mm x h_mm: the SON key-map frame of the page (PLAN §3, H4 §3) = the map's frame EXACTLY (one missing: from the
     content's aspect; both missing: 80 mm wide, WARNING); heading: the text above the frame (None = none); zooms {id:
     polygon survey m}: window frames in red; looks {id: +1/-1} for registry cuts; extra_names [(name, xy)].
-    legacy options of round 6 (box, scale_den, rotate, names, fit, margin, pad_mm, legend_box, north ...) are ignored
+    names (masterplan v45): KM_NAMES overrides for km_street_names, e.g. dict(streets=(), places=False) = no street or
+    place names; None = KM_NAMES. Legacy options of round 6 (box, scale_den, rotate, fit, margin, pad_mm, legend_box,
+    north ...) are ignored
     with a log line. Returns dict(base, study, cuts, names, items, box, scale_den, T, Tinv (survey m <-> key-map mm,
     origin lower-left, y up), drawn, missing, label_boxes, labels, w_mm, h_mm, study_rings, study_ring,
     study_closed, rotation_deg, rotation, north_deg, fill, frame, frame_items, north (key-map mm items, outside the
@@ -7882,8 +7904,8 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
         heading_items = [("text", u"%s" % heading, (0.0, yh), hs, KM_HEAD["colour"], True, "ML")]
         hw = fmw(u"%s" % heading, pt_of(hs), bold=True) if callable(fmw) else 0.6 * hs * len(heading)
         heading_box = (0.0, yh - 0.5 * hs, hw, yh + 0.5 * hs)
-    nr = km_street_names(D, T, boxes, vb=vb, frame_mm=(w_mm, h_mm), segs=segs, Tinv=Tinv, names=None,
-                         extra_names=extra_names, page=pg, log=log)
+    nr = km_street_names(D, T, boxes, vb=vb, frame_mm=(w_mm, h_mm), segs=segs, Tinv=Tinv, names=names,
+                         extra_names=extra_names, page=pg, log=log)   # masterplan v45: names= passed (None = as before)
     labels += nr["labels"]
     label_boxes += nr["label_boxes"]
     fill = min(1.0, (cw * s) * (ch * s) / max(1e-9, (w_mm - 2.0 * pad) * (h_mm - 2.0 * pad)))
@@ -8510,7 +8532,7 @@ class Ix(object):
     # -- texts and the rest
     def text(self, page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None,
              short_forms=(), side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None,
-             min_pt=None):
+             min_pt=None, box=None):
         if role not in IX_TEXT_ROLES:
             self.warn(page, "export", u"text role %r unknown (taken as note): %r" % (role, (u"%s" % string)[:80]))
             role = "note"
@@ -8535,6 +8557,8 @@ class Ix(object):
                         short_forms=[u"%s" % t for t in short_forms or ()], side_list_ok=bool(side_list_ok),
                         justify=(role in ("intro", "caption", "note", "list_item", "source")) if justify is None
                         else bool(justify), positions=list(positions) if positions else None)
+        if box:                                            # v45 (masterplan): a label box, e.g. dict(fill, alpha, stroke)
+            it["box"] = dict(box)
         return it["id"]
 
     def _tid(self, page, t, role, group):
@@ -15391,12 +15415,17 @@ def br_log_lines():
 class Design(object):
     def __init__(self, items, areas, warn, opt):
         self.zones, self.strips, self.links, self.removes, self.paths = [], [], [], [], []
+        self.svg = {}                            # v45: Aras's SVG layers by kind (MP45_LAYERS): [dict(P, closed, m)]
         for it in items:
             lay = it["layer"].split("::")[-1]
             kind = item_kind(lay)
             m = it.get("meta") or {}
             P = [(float(p[0]), float(p[1])) for p in it["P"]]
             if kind is None or len(P) < 2:
+                continue
+            if kind == "SVG":
+                cl = bool(it.get("closed")) or (len(P) > 3 and P[0] == P[-1])
+                self.svg.setdefault(MP45_LAYERS[lay], []).append(dict(P=ring(P) if cl else P, closed=cl, m=m))
                 continue
             lab = (m.get("label") or "").upper()
             if kind in ("ZONE", "WATER", "REMOVE"):
@@ -20224,6 +20253,14 @@ PL23_EDGE_MM = 0.5           # mm the side column's text keeps from the crop's r
 #                              advance width; design value)
 PL23_WALK_COL, PL23_BIKE_COL = "4C2528", "5C7A86"         # palette references (library/examples/palettes)
 PL23_BIKE = True             # the riverside walk carries a bike lane on its land side (Aras 29 Oct 21:04, decision card)
+# v45 (round 8 Q3 a, Aras 8 Nov 21:24): p20 in SON page 21's format with today's moves (U40 study clip kept): the
+# legend in two groups, the moves by name only, "<ha> / <reason>", a flow note per row, SON's caption and match line;
+# PL23_SON = True leaves out what SON did not have (the collect-clean-hold list, the R1-R4 and producers' market
+# labels; their drawing on the map stays). False = v44's extra blocks again.
+PL23_SON = True
+PL23_ROW_NOTE = (u"the water flows left to right, the upstream entry at the left end",
+                 u"downstream half · the water flows left to right")   # SON page 21's notes under the rows
+PL23_SON_NAME = {"bed": u"Selinos, darker = deeper"}   # SON page 21's legend name where v44 renamed the row
 
 
 # T7 (revision 30 Oct, PG4 p21): the plan language. G8 / M5: the stream textured with a defined bank (water_plan),
@@ -20237,7 +20274,9 @@ PL23_BIKE = True             # the riverside walk carries a bike lane on its lan
 # niches overlap; t is held inside the four trees' niche centres (0.24-0.52: past 0.52 = the driest of them).
 # Crowns 0.88-1.08 x the sourced crown (_pla_size_var). Off the hubs (FOREST[2] / TREES[2]), only on open cells (no
 # building, road or bed). Seeded: the same set every press. The same set draws p.21 and p.22 (plans and sections).
-PL23_TREE_KEYS = ("willow", "tamarisk", "ash", "plane")   # the corridor's trees (P24_SPECIES wetland + forest)
+PL23_NICHE_KEYS = ("willow", "tamarisk", "ash", "plane")   # the corridor's trees (P24_SPECIES wetland + forest)
+PL23_TREE_KEYS = ("plane", "ash", "willow", "olive", "stone_pine", "tamarisk")   # v45: Aras's 6 species (his legend
+#                              order; legend rows); the v44 niche rule (_pl23_pick) still picks from PL23_NICHE_KEYS
 PL23_BELT_GAP = 0.85         # forest belt: at least this x the two crowns' mean apart (crowns overlap a little)
 PL23_COPSE_M = 42.0          # trees band: copse centres at least this far apart, m (design value)
 PL23_COPSE_N = (2, 4)        # trees per copse
@@ -20247,9 +20286,9 @@ PL23_DG_ICON_MM = 4.0        # v37 (round 3, G9): Demeter's Garden's one olive s
 
 def _pl23_pick(t, rnd):
     """a corridor tree species for band position t, weighted by its niche (PLA_NICHE), t held inside the centres"""
-    cs = [PLA_NICHE[k_][0] for k_ in PL23_TREE_KEYS]
+    cs = [PLA_NICHE[k_][0] for k_ in PL23_NICHE_KEYS]
     t = min(max(t, min(cs)), max(cs))
-    ws = [(k_, PLA_NICHE[k_][2] * math.exp(-((t - PLA_NICHE[k_][0]) / PLA_NICHE[k_][1]) ** 2)) for k_ in PL23_TREE_KEYS]
+    ws = [(k_, PLA_NICHE[k_][2] * math.exp(-((t - PLA_NICHE[k_][0]) / PLA_NICHE[k_][1]) ** 2)) for k_ in PL23_NICHE_KEYS]
     r = rnd.random() * sum(w for _k, w in ws)
     for k_, w in ws:
         r -= w
@@ -20630,6 +20669,8 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
     st = C.study or None
     zc = lambda code: [Q for z in C.D.zones if z["code"] == code and len(z["P"]) >= 3
                        for Q in (sc_rings_clip(z["P"], st, u"p20") if st else [list(z["P"])])]
+    m45 = mp45_on(C)                                     # v45: Aras's look (ZoneBase v12 layers), else v44's drawing
+    kz = mp45_kizil(C) if m45 else None
 
     def s_tint():
         with mpx_grp(pg, "ground", u"planting gradient"):  # the soft tints first (SON): planting from the water,
@@ -20644,12 +20685,21 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                 if Ps:
                     pg.poly(Ps, fill=H("ring"), alpha=HUB_A)
                     used.add("ring")
+        if m45:                                           # v45: green corridor 25 m, old settlement rings (his order)
+            mp45_draw_ground(pg, T, k, C, on, used)
         n_b = 0                                           # the survey base over the tints: every building readable,
         for role in ("building", "housing", "shed", "heritage"):   # one group each, its courtyards cut out
             her = role == "heritage"
             for Rs in pl23_bld_groups(TL(C.bld.get(role, []))):
                 n_b += 1
                 with mpx_grp(pg, "heritage" if her else "buildings", u"%s %d" % (role, n_b)):
+                    if her and m45:                       # v45: his heritage (Kızıl Avlu: inside his ring 1)
+                        q_ = inner_pt(Rs[0])
+                        kq = kz is not None and pip(q_[0], q_[1], [T(p) for p in kz])
+                        pg.poly(Rs, fill=MP45_PAL["kizil" if kq else "her"],
+                                stroke=MP45_PAL["kizil_edge" if kq else "her_edge"], lw=mp45_lw(MP45_LW_U["her_edge"], k))
+                        used.add("mp45_kizil" if kq else "mp45_her")
+                        continue
                     pg.poly(Rs, fill=H("her" if her else "bld"), stroke=H("her_edge" if her else "bld_edge"),
                             lw=0.1)
                 used.add("her" if her else "bld")
@@ -20709,11 +20759,14 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
             with mpx_grp(pg, "fields", u"rain terrace %d" % (i + 1)):
                 ticks_line(pg, Q, H("terrace"), lw["terrace"], 2.4 if big else 1.6, 0.9 if big else 0.6, side)
             used.add("terrace")
+        if m45:                                           # v45: his park paths and event plaza over the ground
+            mp45_draw_paths(pg, T, k, C, on, used)
 
     def s_water():
-        with mpx_grp(pg, "water", u"Selinos"):
-            if pl23_water_draw(pg, C, T, k, on, 1.0 if big else 0.8):
-                used.add("bed")
+        if not (m45 and mp45_draw_water(pg, T, k, C, on, used)):   # v45: his design water, wetland, reeds
+            with mpx_grp(pg, "water", u"Selinos"):
+                if pl23_water_draw(pg, C, T, k, on, 1.0 if big else 0.8):
+                    used.add("bed")
         for i, w in enumerate(C.widen):
             Q = [T(p) for p in w["ring"]]
             if len(Q) >= 3 and on(Q):
@@ -20801,9 +20854,15 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                 with mpx_grp(pg, "annotations", u"sightline"):
                     pg.line(Q, H("sight"), lw["sight"], [1.4, 0.8], cap=0)
                 used.add("sight")
+        if m45:                                           # v45: his walks, bike lane, ramps; the route on top
+            mp45_draw_walks(pg, T, k, C, on, used)
+            mp45_draw_route(pg, T, k, C, on, used)
 
     def s_veg():
-        used.update(pl23_trees_draw(pg, C, T, k, (-2.0, -2.0, dw + 2.0, dh + 2.0)))
+        if m45:                                          # v45 (S3, S5): his shrub groups, the trees by his rules
+            mp45_draw_veg(pg, T, k, C, (-2.0, -2.0, dw + 2.0, dh + 2.0), used)
+        else:
+            used.update(pl23_trees_draw(pg, C, T, k, (-2.0, -2.0, dw + 2.0, dh + 2.0)))
         for p, i in pl23_hub_trees(C):                   # v37 (G8, D7): kept on land, opaque
             x, y = T(p)
             if inside(x, y, 2.0):
@@ -20818,7 +20877,7 @@ def draw_corridor(pg, T, k, C, inP, dw, dh, base, tint):
                 with mpx_grp(pg, "trees", u"%s %d" % (PLA_SPECIES[key]["name"], 300 + i)):
                     pl23_put(pg, pla_plan(key, x, y, k, crown_m=PLA_SPECIES[key]["crown_m"], seed=300 + i,
                                           distinct=k >= 0.5))
-                used.add(("tree_" if key in PL23_TREE_KEYS else "dg_tree_") + key)
+                used.add(("tree_" if key in PL23_NICHE_KEYS else "dg_tree_") + key)
 
     s_ic = 3.0 if big else (1.8 if fine else 2.2)
 
@@ -21102,6 +21161,23 @@ def pl23_note_colour(nt):
     return mk_colour("move", k[0])
 
 
+def mp45_note_cat(nt):
+    """v45: the label category (MP45_LABEL_CAT) of what a numbered move names: hubs square, roads and crossings
+    route, water works and the hidden stream water, views and heritage moves heritage, edges kept design"""
+    k = nt["key"][0]
+    if k == "hub":
+        return "sq"
+    if k in ("road", "foot"):
+        return "rt"
+    if k == "kept":
+        return "des"
+    if k in ("widen", "arm", "wt", "terr", "cov"):
+        return "wat"
+    if k in ("view", "h4", "h6"):
+        return "her"
+    return "des"
+
+
 def pl23_mk_r(s):
     """the outer radius (rim included) mp_marker gives the glyph s, mm"""
     return mk_marker(0.0, 0.0, s, "FFFFFF", PL23_MK_PT)[2] + 0.125
@@ -21138,7 +21214,7 @@ def pl23_markers(sh, C, rws, warn):
         nm, line = pl28_note_entry(C, nt)
         ent = [nt, pl28_note_group(nt), nm, line, False]
         ents.append(ent)
-        col, s = pl23_note_colour(nt), u"%d" % nt["n"]
+        col, s = (MP45_CAT[mp45_note_cat(nt)] if mp45_on(C) else pl23_note_colour(nt)), u"%d" % nt["n"]   # v45
         r = pl23_mk_r(s)
         seen = []
         for p in nt["at"]:
@@ -21196,7 +21272,8 @@ def pl23_markers(sh, C, rws, warn):
         if spot is None:                                  # v42 (L3): on its place, never left off the map
             spot = (x, y)
             MPX_LOG.append(u"info p20 collect-clean-hold %d: number on its place (no free spot round it)" % n_)
-        mp_marker(sh, spot[0], spot[1], s_, pl23_h("cch"), PL23_MK_PT, style="ring", name=u"cch %d" % n_)
+        mp_marker(sh, spot[0], spot[1], s_, MP45_CAT["wat"] if mp45_on(C) else pl23_h("cch"), PL23_MK_PT,
+                  style="ring", name=u"cch %d" % n_)       # v45: his water category when his look is on
         C.pl23_cch_on.append((n_, nm, i, spot))
     return ents, vl
 
@@ -21237,6 +21314,13 @@ def _pl23_sw_ln(key, lw, dash=None):
 def _pl23_sw_terr():
     def f(pg, x, y, w, h):
         ticks_line(pg, [(x, y + h * 0.6), (x + w, y + h * 0.6)], pl23_h("terrace"), PL23_LW["terrace"], 1.6, 0.6, -1.0)
+    return f
+
+
+def _pl23_sw_ring_hex(col, glyph):
+    """v45: a ring marker swatch in a given colour (his label category)"""
+    def f(pg, x, y, w, h):
+        mp_marker(pg, x + w / 2.0, y + h / 2.0, glyph, col, PL23_MK_PT * 0.8, style="ring")
     return f
 
 
@@ -21307,6 +21391,662 @@ PL23_LEGEND = [
     [("tree_" + k_, "GRN", 1, _PL23_SP(k_), _pl23_sw_plant(k_)) for k_ in PL23_TREE_KEYS]
 
 
+# ================================================================ v45 (round 8 P2): Aras's masterplan look by rules
+# Aras 9 Nov 05:47 (approved): his masterplan SVG (Data/assets/masterlastversion.svg) is the target LOOK of p20; the
+# plan is CODE-DRAWN from the zone layers ZoneBase v12 bakes from it (Option_A::INT_..., user text source=svg; the
+# contract: round 8 handover P1_zonebase_done.md), never traced, so an edited zone redraws the same-looking plan.
+# Palette, line widths and symbol sizes are his (H4 §4-§5); widths and sizes are kept in metres (his sheet ~1:1,073,
+# 2.64121 units per m), so each page scale rescales them (MP45_LW_MIN floor). The 25 m green corridor (S2), the reeds
+# and the trees (S5) are generated by rules, seeded (the same plan every press). The old zones and the v44 layers stay
+# (S6); no render, topo raster or asset is drawn (S7). No new layer in the file -> WARNING and the v44 drawing.
+MP45_LAYERS = {"INT_WATER_design": "water", "INT_ZONE_WETLAND": "wetland", "INT_ZONE_PLAZA": "plaza",
+               "INT_ZONE_HERITAGE_SETTING": "her", "INT_PATH_park": "park", "INT_PATH_walk": "walk",
+               "INT_PATH_bike": "bike", "INT_PATH_ramp": "ramp", "INT_ROUTE_circulation": "route",
+               "INT_ROUTE_footbridge": "footbridge", "INT_PLANT_shrubgroup": "shrub"}
+MP45_OPTIONAL = ("INT_PATH_ramp",)   # ZoneBase follow-up (ramps): no WARNING while it is not baked
+MP45_U_PER_M = 2.64121               # his sheet: SVG units per m (H4 §2, P1 placing)
+MP45_FRAME_U = (277.504, 5742.594, 7514.18, 1397.44)   # his plan frame (x, y, w, h) units, when svg_reference has none
+MP45_LW_MIN = 0.05                   # mm: thinnest line drawn after the rescale (design value)
+MP45_PAL = dict(water="51626C", wet="A9C4C2", wet_open="5D8980", green25="B9C6AC", plaza="E3E5E5",
+                plaza_edge="ADA8A8", park="8C8A6D", walk="E8CFCF", walk_edge="A88E6E", paving="EFDDDA",
+                bridge_deck="9C9F99", grey_steps="C9CAC7", bike="A8705C", her="E4877A", her_edge="34383A",
+                kizil="B8483A", kizil_edge="5E1A12", old="F6E3DF", route="BE3D72", arrow="C2306E", ramp="AAAAAA",
+                rosemary="87967B", tree_edge="6B6B6B", swatch_edge="8E918A", ctx="5A6670", ink="1E1E1E",
+                label_box="F7F7F2")   # his legend swatches (LEGEND group) and plan fills
+MP45_A = dict(green25=0.31, park=0.422, walk=0.73, her_ring=0.45, wet_open=0.76, reed=0.75, tree=0.81,
+              ctx_box=0.7)           # his opacities
+MP45_HER_RING = {4: "FCF6F5", 3: "FAEFED", 2: "F8E9E6", 1: "F6E3DF"}   # old settlement rings, outer light -> inner
+MP45_LW_U = dict(route=1.8, walk_edge=0.92, her_edge=0.34, ramp=0.75, tree=0.4, plaza_edge=0.5)   # his widths, units
+MP45_TREE_KEYS = ("plane", "ash", "willow", "olive", "stone_pine", "tamarisk")   # his legend order (HDR_T)
+MP45_TREE_COL = dict(plane="DDA372", ash="798B9C", willow="A1B483", olive="9D7588", stone_pine="85928C",
+                     tamarisk="C285AC")   # his legend tree colours (legend_t_*)
+# his trees when svg_reference.json is missing (P1 static run, 9 Nov): count, crown d median, p10, p90 (m)
+MP45_TREE_REF = dict(plane=(37, 14.9, 11.5, 20.6), ash=(41, 16.0, 10.5, 20.0), willow=(95, 11.0, 9.6, 15.4),
+                     olive=(141, 10.8, 8.4, 14.4), stone_pine=(39, 15.5, 11.0, 20.6), tamarisk=(224, 8.3, 7.1, 12.9))
+MP45_TREE_ZONES = dict(none=443, green25_svg=104, park_path=22, wetland=4, plaza=3, walk=1)   # P1 static run
+MP45_TREE_SPACING_M = 7.65           # nearest tree at least this far (his p10, any species; svg_reference)
+MP45_SHRUB_D_M = 15.4                # a shrub group with no diameter_m: his median (P1)
+MP45_REED_PER_HA = 1085.0            # reed tufts per ha of shallow wetland (H4 §4)
+MP45_REED_D_M = (2.6, 3.2, 3.8)      # tuft d p10, median, p90 (H4 §4)
+MP45_REED_COLS = ("8DA77A", "7F9B6C", "9DB488")   # his three greens, in equal thirds
+MP45_GREEN25_M = 25.0                # S2: buffer(design water, 25 m) ∩ open ground
+MP45_ARROW_M = (4.1, 3.0)            # route arrow length, base (m; H4 §4)
+MP45_ARROW_STEP_M = 44.0             # an arrow every this many m of a one-way / two-way route (his NN p50)
+MP45_CTX_TOL_M = 5.0                 # a context label matches a sheet dot this near after the fit (m)
+MP45_SEED = 4510
+# his label categories (legend_c_*; the words of his legend are outlined, so the names are ours): box, outline
+MP45_LABEL_CAT = [("her", "8E2B36", u"Heritage"), ("wat", "2E7BB0", u"Water"), ("gar", "3F8A3A", u"Garden"),
+                  ("sq", "E07B1F", u"Square"), ("cul", "7E4AA8", u"Culture"), ("play", "B8920A", u"Play"),
+                  ("rt", "C2306E", u"Route"), ("des", "3A3A3A", u"Design"), ("ctx", "5A6670", u"Context")]
+MP45_CAT = dict((k_, c_) for k_, c_, _n in MP45_LABEL_CAT)
+MP45_REF_JSON = os.path.join(bg_cache("bergama_zone_base"), "svg_reference.json")
+MP45_SVG = os.path.join(DATA_DIR, "assets", "masterlastversion.svg")
+MP45_CTX_SVG = os.path.join(DATA_DIR, "assets", "context_labels_v2.svg")
+MP45_LOG = []                        # log lines of this press (p23_items moves them into the log)
+_MP45_REF = []
+
+
+def mp45_ref():
+    """svg_reference.json of ZoneBase v12 (his measured trees, reeds, frame), read once a press; {} when missing"""
+    if _MP45_REF:
+        return _MP45_REF[0]
+    d = {}
+    try:
+        with open(MP45_REF_JSON, encoding="utf-8") as f_:
+            d = json.load(f_)
+        MP45_LOG.append(u"svg_reference {} read ({})".format(MP45_REF_JSON, d.get("made_at", u"-")))
+    except Exception as ex:
+        MP45_LOG.append(u"WARNING p20 svg_reference.json not read ({}: {}): his trees from the built-in P1 "
+                        u"values".format(type(ex).__name__, ex))
+    _MP45_REF.append(d)
+    return d
+
+
+def mp45_lw(units, k):
+    """his line width (SVG units on his sheet) as page mm at k mm per m, never under MP45_LW_MIN"""
+    return max(MP45_LW_MIN, units / MP45_U_PER_M * k)
+
+
+def mp45_on(C):
+    """True when the open file holds ZoneBase v12's layers (the look of his sheet); else p20 is v44's"""
+    return bool(getattr(C.D, "svg", None))
+
+
+def _mp45_holes(its, log):
+    """closed items -> [(outer ring, [hole rings], meta)]: a hole=1 ring is cut out of the ring it lies in (hole_in
+    id, else the first outer holding its inner point); never drawn as a zone"""
+    outs = [(it["P"], [], it["m"]) for it in its if (it["m"].get("hole") or "") != "1" and len(it["P"]) >= 3]
+    for it in its:
+        if (it["m"].get("hole") or "") != "1" or len(it["P"]) < 3:
+            continue
+        hid, q = it["m"].get("hole_in"), inner_pt(it["P"])
+        host = next((o for o in outs if hid and o[2].get("id") == hid), None) or \
+            next((o for o in outs if pip(q[0], q[1], o[0])), None)
+        if host is None:
+            log.append(u"info p20 hole {} lies in no ring of its layer: left out".format(it["m"].get("id", u"-")))
+            continue
+        host[1].append(it["P"])
+    return outs
+
+
+def mp45_geo(C):
+    """his zones by kind (survey m), once per corridor (C.mp45_geo_): water / wetland / plaza / park / walk / bike =
+    [(outer, holes, meta)], her = [(ring level, ring)] outer first, ramp = [line], route / footbridge = [(line,
+    direction)], shrub = [(centre, d m)]. A missing layer: one WARNING line (the v44 layer is drawn instead)."""
+    got = getattr(C, "mp45_geo_", None)
+    if got is not None:
+        return got
+    S = getattr(C.D, "svg", None) or {}
+    out = {}
+    for kind in ("water", "wetland", "plaza", "park", "walk", "bike"):
+        out[kind] = _mp45_holes([it for it in S.get(kind, []) if it["closed"]], MP45_LOG)
+    out["her"] = sorted([(int(float(it["m"].get("ring") or 0)), it["P"]) for it in S.get("her", [])
+                         if it["closed"] and len(it["P"]) >= 3], key=lambda e: -e[0])
+    out["ramp"] = [it["P"] for it in S.get("ramp", []) if len(it["P"]) >= 2]
+    for kind in ("route", "footbridge"):
+        out[kind] = [(it["P"], (it["m"].get("direction") or u"none").lower()) for it in S.get(kind, [])
+                     if len(it["P"]) >= 2]
+    out["shrub"] = []
+    for it in S.get("shrub", []):
+        b = bbox(it["P"])
+        try:
+            d = float(it["m"].get("diameter_m") or 0.0)
+        except ValueError:
+            d = 0.0
+        out["shrub"].append((((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0), d or max(b[2] - b[0], b[3] - b[1])
+                             or MP45_SHRUB_D_M))
+    if S:
+        miss = [lay for lay, kind in sorted(MP45_LAYERS.items()) if not S.get(kind) and lay not in MP45_OPTIONAL]
+        if miss:
+            MP45_LOG.append(u"WARNING p20 Option_A::{} not in the open file: drawn as v44".format(
+                u", ".join(miss)))
+    C.mp45_geo_ = out
+    return out
+
+
+def mp45_cells(C, outer, holes=()):
+    """grid cells (C.G) whose centre lies in outer and in none of its holes"""
+    uv = lambda P: [C.V.uv(p) for p in P]
+    s = set(C.G.poly_cells(uv(outer)))
+    for H_ in holes:
+        s -= set(C.G.poly_cells(uv(H_)))
+    return s
+
+
+def mp45_field(C):
+    """(distance m per cell from his design water, water cells), once per corridor: a plain distance (8-neighbour
+    chamfer, not through open ground), computed to the tree band TREES[1] + one cell"""
+    got = getattr(C, "mp45_field_", None)
+    if got is not None:
+        return got
+    G, N = C.G, C.N
+    wat = set()
+    for R_, Hs, _m in mp45_geo(C)["water"]:
+        wat |= mp45_cells(C, R_, Hs)
+    d = [1e9] * N
+    hp = [(0.0, n) for n in wat]
+    for _x, n in hp:
+        d[n] = 0.0
+    heapq.heapify(hp)
+    c, nx, ny = G.c, G.nx, G.ny
+    lim = TREES[1] + c
+    nb = [(1, 0, c), (-1, 0, c), (0, 1, c), (0, -1, c), (1, 1, c * 1.4142), (-1, 1, c * 1.4142),
+          (1, -1, c * 1.4142), (-1, -1, c * 1.4142)]
+    while hp:
+        dd, n = heapq.heappop(hp)
+        if dd > d[n] or dd > lim:
+            continue
+        i, j = n % nx, n // nx
+        for di, dj, w in nb:
+            ii, jj = i + di, j + dj
+            if 0 <= ii < nx and 0 <= jj < ny:
+                m_ = jj * nx + ii
+                if dd + w < d[m_]:
+                    d[m_] = dd + w
+                    heapq.heappush(hp, (dd + w, m_))
+    C.mp45_field_ = (d, wat)
+    return C.mp45_field_
+
+
+def mp45_green25(C):
+    """S2: the green corridor = open ground (survey grid F 0) within MP45_GREEN25_M of his design water, inside the
+    study area (U40 clip kept); (loops survey m, cells), once per corridor"""
+    got = getattr(C, "mp45_g25_", None)
+    if got is not None:
+        return got
+    d, wat = mp45_field(C)
+    cells = set(n for n in range(C.N) if C.F[n] == 0 and n not in wat and d[n] <= MP45_GREEN25_M and C.inS[n])
+    C.mp45_g25_ = (C.loops(cells, True) if cells else [], cells)
+    MP45_LOG.append(u"p20 green corridor {:.0f} m from the design water: {:.2f} ha (his sheet: {} ha)".format(
+        MP45_GREEN25_M, len(cells) * C.G.c * C.G.c / 1e4,
+        u"%.2f" % (mp45_ref().get("green25_svg", {}).get("area_m2", 0.0) / 1e4) if mp45_ref() else u"-"))
+    return C.mp45_g25_
+
+
+def mp45_reeds(C):
+    """the reed tufts: a jittered field in the shallow wetland (part shallow_reeds; holes left), MP45_REED_PER_HA,
+    d MP45_REED_D_M, his three greens in equal thirds; seeded. [(x, y, d m, colour)] survey m"""
+    got = getattr(C, "mp45_reeds_", None)
+    if got is not None:
+        return got
+    rnd = random.Random(MP45_SEED + 1)
+    s = math.sqrt(1e4 / MP45_REED_PER_HA)
+    out = []
+    for R_, Hs, m in mp45_geo(C)["wetland"]:
+        if (m.get("part") or u"shallow_reeds") != u"shallow_reeds":
+            continue
+        b = bbox(R_)
+        y = b[1] + s * 0.5
+        while y < b[3]:
+            x = b[0] + s * 0.5
+            while x < b[2]:
+                q = (x + (rnd.random() - 0.5) * 0.9 * s, y + (rnd.random() - 0.5) * 0.9 * s)
+                if pip(q[0], q[1], R_) and not any(pip(q[0], q[1], H_) for H_ in Hs):
+                    out.append([q[0], q[1], rnd.triangular(MP45_REED_D_M[0], MP45_REED_D_M[2], MP45_REED_D_M[1])])
+                x += s
+            y += s
+    rnd.shuffle(out)
+    out = [(e[0], e[1], e[2], MP45_REED_COLS[i % 3]) for i, e in enumerate(out)]
+    MP45_LOG.append(u"p20 reeds {} tufts in the shallow wetland ({:.0f} per ha, his sheet {})".format(
+        len(out), MP45_REED_PER_HA, mp45_ref().get("reeds", {}).get("count", u"-") if mp45_ref() else u"-"))
+    C.mp45_reeds_ = out
+    return out
+
+
+def mp45_tree_ref():
+    """{species: (count, crown median, p10, p90, {zone: n})} from svg_reference.json, else the built-in P1 values"""
+    sp = (mp45_ref().get("trees") or {}).get("species") or {}
+    tot = float(sum(MP45_TREE_ZONES.values()))
+    out = {}
+    for key in MP45_TREE_KEYS:
+        e = sp.get(key)
+        if e and e.get("count"):
+            cd = e.get("crown_d_m") or {}
+            out[key] = (int(e["count"]), float(cd.get("median") or MP45_TREE_REF[key][1]),
+                        float(cd.get("p10") or MP45_TREE_REF[key][2]), float(cd.get("p90") or MP45_TREE_REF[key][3]),
+                        dict(e.get("zones") or {}))
+        else:
+            n, md, lo, hi = MP45_TREE_REF[key]
+            zs = dict((z, int(round(n * v / tot))) for z, v in MP45_TREE_ZONES.items())
+            out[key] = (n, md, lo, hi, zs)
+    return out
+
+
+def mp45_trees(C):
+    """S5: the trees by rules on his zones, once per corridor: per species his count in each zone (svg_reference
+    zone shares), dart thrown on the zone's cells (open or paved ground, never a building or his water; inside the
+    study area, U40), at least MP45_TREE_SPACING_M apart, crown d triangular (p10, median, p90); "none" = open ground
+    within the tree band (TREES[1] m of the design water) outside every zone. Seeded. [(xy, species, crown m)]"""
+    got = getattr(C, "mp45_trees_", None)
+    if got is not None:
+        return got
+    rnd = random.Random(MP45_SEED)
+    geo = mp45_geo(C)
+    d, wat = mp45_field(C)
+    F, inS = C.F, C.inS
+    zc = {}
+    for z, kinds in (("wetland", ("wetland",)), ("plaza", ("plaza",)), ("walk", ("walk",)), ("bike_lane", ("bike",)),
+                     ("park_path", ("park",))):
+        s = set()
+        for kind in kinds:
+            for R_, Hs, _m in geo[kind]:
+                s |= mp45_cells(C, R_, Hs)
+        zc[z] = s
+    zc["heritage_setting"] = set()
+    for _lv, R_ in geo["her"]:
+        zc["heritage_setting"] |= mp45_cells(C, R_)
+    zc["green25_svg"] = set(mp45_green25(C)[1])
+    taken = set()
+    for z in ("wetland", "plaza", "walk", "bike_lane", "park_path", "heritage_setting", "green25_svg"):
+        zc[z] -= taken | wat
+        taken |= zc[z]
+    zc["none"] = set(n for n in range(C.N) if F[n] == 0 and n not in taken and n not in wat and d[n] <= TREES[1])
+    ok = lambda n: inS[n] and (F[n] in (0, 2) or (F[n] == 3 and n not in wat))
+    pools = dict((z, sorted(n for n in s if ok(n))) for z, s in zc.items())
+    for z in pools:
+        rnd.shuffle(pools[z])
+    ref = mp45_tree_ref()
+    B, out, hsh = 12.0, [], {}
+
+    def free(q):
+        i0, j0 = int(math.floor(q[0] / B)), int(math.floor(q[1] / B))
+        return all(math.hypot(q[0] - e[0][0], q[1] - e[0][1]) >= MP45_TREE_SPACING_M
+                   for i in (i0 - 1, i0, i0 + 1) for j in (j0 - 1, j0, j0 + 1) for e in hsh.get((i, j), ()))
+    short = {}
+    for z in sorted(pools):
+        toks = [key for key in MP45_TREE_KEYS for _ in range(int(ref[key][4].get(z, 0)))]
+        rnd.shuffle(toks)
+        pool = pools[z]
+        for key in toks:
+            put = None
+            while pool and put is None:
+                u, v = C.G.xy(pool.pop())
+                q = C.V.xy(u + (rnd.random() - 0.5) * C.G.c, v + (rnd.random() - 0.5) * C.G.c)
+                if free(q):
+                    put = q
+            if put is None:
+                short[z] = short.get(z, 0) + 1
+                continue
+            _n, md, lo, hi, _zs = ref[key]
+            e = (put, key, rnd.triangular(lo, hi, md) if hi > lo else md)
+            out.append(e)
+            hsh.setdefault((int(math.floor(put[0] / B)), int(math.floor(put[1] / B))), []).append(e)
+    out.sort(key=lambda e: PLA_SPECIES[e[1]]["h_m"])     # the lower crowns first, the taller over them
+    n_his = sum(r_[0] for r_ in ref.values())
+    MP45_LOG.append(u"p20 trees by rule {} (his sheet {}): {}{}".format(
+        len(out), n_his, u", ".join(u"%s %d" % (key, sum(1 for e in out if e[1] == key)) for key in MP45_TREE_KEYS),
+        (u"; zones with no room: " + u", ".join(u"%s %d" % zs for zs in sorted(short.items()))) if short else u""))
+    C.mp45_trees_ = out
+    return out
+
+
+def _mp45_poly(pg, T, on, R_, Hs, fill, alpha=None, stroke=None, lw=0.1):
+    Q = [T(p) for p in R_]
+    if len(Q) < 3 or not on(Q):
+        return False
+    pg.poly([Q] + [[T(p) for p in H_] for H_ in Hs], fill=fill, stroke=stroke, lw=lw, alpha=alpha)
+    return True
+
+
+def mp45_draw_ground(pg, T, k, C, on, used):
+    """under the buildings: the green corridor (S2), the old settlement rings round Kızıl Avlu (outer first)"""
+    loops, _c = mp45_green25(C)
+    Ps = [Q for Q in ([T(p) for p in L_] for L_ in loops) if len(Q) >= 3 and on(Q)]
+    if Ps:
+        with mpx_grp(pg, "ground", u"green corridor 25 m"):
+            pg.poly(Ps, fill=MP45_PAL["green25"], alpha=MP45_A["green25"])
+        used.add("mp45_green25")
+    for lv, R_ in mp45_geo(C)["her"]:
+        with mpx_grp(pg, "heritage", u"old settlement ring %d" % lv):
+            if _mp45_poly(pg, T, on, R_, (), MP45_HER_RING.get(lv, MP45_PAL["old"]), MP45_A["her_ring"]):
+                used.add("mp45_old")
+
+
+def mp45_draw_paths(pg, T, k, C, on, used):
+    """over the buildings (his order): park paths (holes cut out), the event plaza"""
+    geo = mp45_geo(C)
+    for i, (R_, Hs, _m) in enumerate(geo["park"]):
+        with mpx_grp(pg, "paths", u"park path %d" % (i + 1)):
+            if _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["park"], MP45_A["park"]):
+                used.add("mp45_park")
+    for i, (R_, Hs, _m) in enumerate(geo["plaza"]):
+        with mpx_grp(pg, "hubs", u"event plaza %d" % (i + 1)):
+            if _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["plaza"], None, MP45_PAL["plaza_edge"],
+                          mp45_lw(MP45_LW_U["plaza_edge"], k)):
+                used.add("mp45_plaza")
+
+
+def mp45_draw_water(pg, T, k, C, on, used):
+    """his design water (the Selinos drawn from it), the wetland (shallow + open water) and its reeds. Returns True
+    when design water was drawn (the v44 stream is then not drawn)"""
+    geo = mp45_geo(C)
+    drawn = False
+    for i, (R_, Hs, _m) in enumerate(geo["water"]):
+        with mpx_grp(pg, "water", u"Selinos %d" % (i + 1)):
+            drawn = _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["water"]) or drawn
+    if drawn:
+        used.add("mp45_water")
+    for i, (R_, Hs, m) in enumerate(geo["wetland"]):
+        op = (m.get("part") or u"") == u"open_water"
+        with mpx_grp(pg, "water", u"wetland %d" % (i + 1)):
+            if _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["wet_open" if op else "wet"], MP45_A["wet_open"] if op else None):
+                used.add("mp45_wet")
+    with mpx_grp(pg, "plants", u"reeds"):
+        for x, y, dm, col in mp45_reeds(C):
+            px, py = T((x, y))
+            if -2.0 <= px <= pg.W + 2.0 and -2.0 <= py <= pg.H + 2.0:
+                pg.circle(px, py, dm * k / 2.0, fill=col, alpha=MP45_A["reed"])
+    return drawn
+
+
+def mp45_draw_walks(pg, T, k, C, on, used):
+    """his walks (walk, paving, bridge decks, grey steps; walk edge line), the bike lane, the ramps"""
+    geo = mp45_geo(C)
+    for i, (R_, Hs, m) in enumerate(geo["walk"]):
+        part = m.get("part") or u"walk"
+        col = MP45_PAL.get(part, MP45_PAL["walk"]) if part != u"walk" else MP45_PAL["walk"]
+        with mpx_grp(pg, "paths", u"%s %d" % (part.replace(u"_", u" "), i + 1)):
+            if _mp45_poly(pg, T, on, R_, Hs, col, MP45_A["walk"] if part == u"walk" else None,
+                          MP45_PAL["walk_edge"] if part == u"walk" else None, mp45_lw(MP45_LW_U["walk_edge"], k)):
+                used.add("mp45_walk")
+    for i, (R_, Hs, _m) in enumerate(geo["bike"]):
+        with mpx_grp(pg, "paths", u"bike lane %d" % (i + 1)):
+            if _mp45_poly(pg, T, on, R_, Hs, MP45_PAL["bike"]):
+                used.add("mp45_bike")
+    for i, P in enumerate(geo["ramp"]):
+        Q = [T(p) for p in P]
+        if on(Q):
+            with mpx_grp(pg, "paths", u"ramp %d" % (i + 1)):
+                pg.line(Q, MP45_PAL["ramp"], mp45_lw(MP45_LW_U["ramp"], k))
+            used.add("mp45_ramp")
+
+
+def mp45_arrow(pg, a, u, k, col):
+    """one route arrow (filled triangle MP45_ARROW_M) with its apex at page point a pointing along unit u"""
+    L, B_ = MP45_ARROW_M[0] * k, MP45_ARROW_M[1] * k / 2.0
+    bx, by = a[0] - u[0] * L, a[1] - u[1] * L
+    pg.poly([[a, (bx - u[1] * B_, by + u[0] * B_), (bx + u[1] * B_, by - u[0] * B_)]], fill=col)
+
+
+def mp45_draw_route(pg, T, k, C, on, used):
+    """the circulation route: his line, an arrow every MP45_ARROW_STEP_M in the curve's direction (one-way), both ways
+    in turn (two-way), none (none); the route's footbridges in the same line, no arrows"""
+    geo = mp45_geo(C)
+    lw = mp45_lw(MP45_LW_U["route"], k)
+    n_ar = 0
+    for kind in ("route", "footbridge"):
+        for i, (P, dr) in enumerate(geo[kind]):
+            Q = [T(p) for p in P]
+            if not on(Q):
+                continue
+            with mpx_grp(pg, "paths", u"%s %d" % (u"route" if kind == "route" else u"route footbridge", i + 1)):
+                pg.line(Q, MP45_PAL["route"], lw)
+                if kind == "route" and dr in (u"one-way", u"two-way"):
+                    s = arclen(P)
+                    t, j = MP45_ARROW_STEP_M / 2.0, 0
+                    while t < s[-1]:
+                        (x, y), (ux, uy) = at_len(P, s, t)
+                        a = T((x, y))
+                        b = T((x + ux, y + uy))
+                        L_ = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+                        u_ = ((b[0] - a[0]) / L_, (b[1] - a[1]) / L_)
+                        if dr == u"two-way" and j % 2:
+                            u_ = (-u_[0], -u_[1])
+                        if 0.0 <= a[0] <= pg.W and 0.0 <= a[1] <= pg.H:
+                            mp45_arrow(pg, a, u_, k, MP45_PAL["arrow"])
+                            n_ar += 1
+                        t += MP45_ARROW_STEP_M
+                        j += 1
+            used.add("mp45_route")
+    C.mp45_arrows = getattr(C, "mp45_arrows", 0) + n_ar
+
+
+def mp45_draw_veg(pg, T, k, C, box, used):
+    """the shrub groups at their diameter (rosemary, S3) and the trees by rule (S5) in his legend colours"""
+    lw = mp45_lw(MP45_LW_U["tree"], k)
+    inb = lambda x, y, r: not (x + r < box[0] or x - r > box[2] or y + r < box[1] or y - r > box[3])
+    for i, (c_, dm) in enumerate(mp45_geo(C)["shrub"]):
+        x, y = T(c_)
+        if inb(x, y, dm * k / 2.0):
+            with mpx_grp(pg, "plants", u"rosemary group %d" % (i + 1)):
+                pg.circle(x, y, dm * k / 2.0, fill=MP45_PAL["rosemary"], stroke=MP45_PAL["tree_edge"], lw=lw,
+                          alpha=MP45_A["tree"])
+            used.add("mp45_shrub")
+    for i, (p, key, cr) in enumerate(mp45_trees(C)):
+        x, y = T(p)
+        r = cr * k / 2.0
+        if not inb(x, y, r):
+            continue
+        with mpx_grp(pg, "trees", u"%s %d" % (PLA_SPECIES[key]["name"], i + 1)):
+            pg.circle(x, y, r, fill=MP45_TREE_COL[key], stroke=MP45_PAL["tree_edge"], lw=lw, alpha=MP45_A["tree"])
+        used.add("tree_" + key)
+        PL23_TREE_N[key] = PL23_TREE_N.get(key, 0) + 1
+
+
+def mp45_kizil(C):
+    """his innermost old-settlement ring (ring 1, round Kızıl Avlu): a survey heritage face whose inner point lies in
+    it takes his Kızıl Avlu colours (None when there is no ring)"""
+    rs = [R_ for lv, R_ in mp45_geo(C)["her"] if lv == 1]
+    return rs[0] if rs else None
+
+
+# ---- the context labels round the site (his label_around; names from Data/assets/context_labels_v2.svg)
+def _mp45_svg_block(path, gid):
+    """the text of the first <g ...id="gid"...> ... </g> of an SVG file (balanced g tags), or None"""
+    with open(path, encoding="utf-8") as f_:
+        t = f_.read()
+    i = t.find(u'id="%s"' % gid)
+    if i < 0:
+        return None
+    i = t.rfind(u"<g", 0, i)
+    depth, j = 0, i
+    tag = re.compile(r"<(/?)g[\s>]")
+    for m in tag.finditer(t, i):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            j = t.find(u">", m.end() - 1) + 1
+            return t[i:j]
+    return None
+
+
+def _mp45_ctx_groups(root):
+    """{letter: (dot (x, y), [texts])} of the ctx_<letter>_<name> groups under root (dot = the r 4 circle)"""
+    ns = u"{http://www.w3.org/2000/svg}"
+    out = {}
+    for g in root.iter(ns + u"g"):
+        gid = g.get(u"data-name") or g.get(u"id") or u""
+        m = re.match(r"ctx[ _]([a-z])[ _]", gid)
+        if not m or m.group(1) in out:
+            continue
+        dots = [c for c in g.iter(ns + u"circle") if float(c.get(u"r") or 0) < 6.0]
+        ts = [(t_.text or u"").strip() for t_ in g.iter(ns + u"tspan") if (t_.text or u"").strip()]
+        if dots:
+            out[m.group(1)] = ((float(dots[0].get(u"cx")), float(dots[0].get(u"cy"))), ts)
+    return out
+
+
+def _mp45_fit(pairs):
+    """least-squares similarity (scale, turn, shift) a -> b of [(a, b)]; returns (f, scale, turn deg)"""
+    n = float(len(pairs))
+    ax, ay = sum(a[0] for a, _b in pairs) / n, sum(a[1] for a, _b in pairs) / n
+    bx, by = sum(b[0] for _a, b in pairs) / n, sum(b[1] for _a, b in pairs) / n
+    va = sum((a[0] - ax) ** 2 + (a[1] - ay) ** 2 for a, _b in pairs) or 1.0
+    c = sum((a[0] - ax) * (b[0] - bx) + (a[1] - ay) * (b[1] - by) for a, b in pairs) / va
+    s = sum((a[0] - ax) * (b[1] - by) - (a[1] - ay) * (b[0] - bx) for a, b in pairs) / va
+    f = lambda p: (bx + c * (p[0] - ax) - s * (p[1] - ay), by + s * (p[0] - ax) + c * (p[1] - ay))
+    return f, math.hypot(c, s), math.degrees(math.atan2(s, c))
+
+
+def mp45_sheet_xy(site, rect):
+    """his sheet units -> survey m: the plan frame rect (x, y, w, h) = site_alan turned flat (longest side
+    horizontal, its eastern end right; as ZoneBase v12 svg_world_matrix). Returns f(p)"""
+    best = None
+    for a, b in zip(site, site[1:] + site[:1]):
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        if best is None or L > best[0]:
+            best = (L, b[0] - a[0], b[1] - a[1])
+    vx, vy = best[1], best[2]
+    if vx < 0:
+        vx, vy = -vx, -vy
+    rot = -math.atan2(vy, vx)
+    ca, sa = math.cos(rot), math.sin(rot)
+    ox, oy = site[0]
+    tu = [(ox + ca * (p[0] - ox) - sa * (p[1] - oy), oy + sa * (p[0] - ox) + ca * (p[1] - oy)) for p in site]
+    x0, y0 = min(p[0] for p in tu), min(p[1] for p in tu)
+    x1, y1 = max(p[0] for p in tu), max(p[1] for p in tu)
+    rx, ry, rw, rh = rect
+    s = (rw / (x1 - x0) + rh / (y1 - y0)) / 2.0
+
+    def f(p):
+        tx, ty = x0 + (p[0] - rx) / s, y0 + (ry + rh - p[1]) / s          # flat (turned) survey m
+        return (ox + ca * (tx - ox) + sa * (ty - oy), oy - sa * (tx - ox) + ca * (ty - oy))   # turned back
+    return f
+
+
+def mp45_ctx_labels(C):
+    """his context labels round the site, once a press: names + type lines from context_labels_v2.svg (real text, a-r),
+    positions from the r 4 dots of his label_around group in masterlastversion.svg (sheet units -> survey m by the
+    plan frame). Match: a similarity fit of the context file's dots onto the sheet's (pairs by the letter in the
+    group id; refit 6 x on the pairs within max(1 m, 1.5 x median) of the fit); each label then takes the sheet dot
+    nearest its fitted point when within MP45_CTX_TOL_M, else its own letter's dot with a WARNING (moved by hand on
+    the sheet), else it is left out (WARNING). [dict(letter, name, kind, xy survey m)]"""
+    got = getattr(C, "mp45_ctx_", None)
+    if got is not None:
+        return got
+    C.mp45_ctx_ = out = []
+    import xml.etree.ElementTree as _ET
+    try:
+        A = _mp45_ctx_groups(_ET.parse(MP45_CTX_SVG).getroot())
+        blk = _mp45_svg_block(MP45_SVG, u"label_around")
+        B = _mp45_ctx_groups(_ET.fromstring(u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/'
+                                            u'1999/xlink">' + blk + u'</svg>')) if blk else {}   # the sheet's namespaces
+    except Exception as ex:
+        MP45_LOG.append(u"WARNING p20 context labels not read ({}: {})".format(type(ex).__name__, ex))
+        return out
+    if not A or not B:
+        MP45_LOG.append(u"WARNING p20 context labels: {} names in {}, {} dots in label_around of {}: none drawn".format(
+            len(A), MP45_CTX_SVG, len(B), MP45_SVG))
+        return out
+    pairs = [(A[k_][0], B[k_][0]) for k_ in sorted(A) if k_ in B]
+    use = list(pairs)
+    f = None
+    for _ in range(6):
+        if len(use) < 2:
+            break
+        f, sc_, ang = _mp45_fit(use)
+        res = sorted(math.hypot(f(a)[0] - b[0], f(a)[1] - b[1]) / MP45_U_PER_M for a, b in pairs)
+        lim = max(1.0, 1.5 * res[len(res) // 2])
+        use = [(a, b) for a, b in pairs if math.hypot(f(a)[0] - b[0], f(a)[1] - b[1]) / MP45_U_PER_M <= lim]
+    if f is None:
+        MP45_LOG.append(u"WARNING p20 context labels: fewer than 2 letter pairs: none drawn")
+        return out
+    ref = mp45_ref().get("placing") or {}
+    rect = tuple(ref.get("frame_units") or MP45_FRAME_U)
+    to_m = mp45_sheet_xy(list(C.V.frame_P), rect)
+    dots = [(k_, B[k_][0]) for k_ in B]
+    moved, lost, rs = [], [], []
+    for k_ in sorted(A):
+        q = f(A[k_][0])
+        kn, p = min(((kb, pb) for kb, pb in dots), key=lambda e: math.hypot(e[1][0] - q[0], e[1][1] - q[1]))
+        dm = math.hypot(p[0] - q[0], p[1] - q[1]) / MP45_U_PER_M
+        rs.append(dm)
+        if dm > MP45_CTX_TOL_M or kn != k_:
+            if k_ in B:
+                p = B[k_][0]
+                moved.append(u"%s %.0f m" % (k_, math.hypot(p[0] - q[0], p[1] - q[1]) / MP45_U_PER_M))
+            else:
+                lost.append(k_)
+                continue
+        ts = A[k_][1]
+        out.append(dict(letter=k_, name=ts[0] if ts else k_, kind=ts[1] if len(ts) > 1 else u"", xy=to_m(p)))
+    MP45_LOG.append(u"p20 context labels {} of {} (names {}, dots label_around); fit scale {:.4f} turn {:.2f} deg on "
+                    u"{} of {} letter pairs, residual median {:.1f} m".format(
+                        len(out), len(A), os.path.basename(MP45_CTX_SVG), sc_, ang, len(use), len(pairs),
+                        sorted(rs)[len(rs) // 2] if rs else 0.0))
+    if moved:
+        MP45_LOG.append(u"WARNING p20 context labels not within {:.0f} m of the fit (moved by hand on his sheet; "
+                        u"placed on their own letter's dot): {}".format(MP45_CTX_TOL_M, u", ".join(moved)))
+    if lost:
+        MP45_LOG.append(u"WARNING p20 context labels with no dot on his sheet (left out): " + u", ".join(lost))
+    return out
+
+
+# ---- legend samples of his look
+def _mp45_sw_box(fill, edge=None, alpha=None, dots=None):
+    def f(pg, x, y, w, h):
+        R = rect(x + 0.3, y, x + w - 0.3, y + h)
+        pg.poly([R], fill=fill, alpha=alpha)
+        for i, c_ in enumerate(dots or ()):
+            pg.circle(x + w * (i + 0.5) / len(dots), y + h / 2.0, h * 0.18, fill=c_, alpha=MP45_A["reed"])
+        if edge:
+            pg.line(R + R[:1], edge, 0.1)
+    return f
+
+
+def _mp45_sw_route():
+    def f(pg, x, y, w, h):
+        pg.line([(x, y + h / 2.0), (x + w, y + h / 2.0)], MP45_PAL["route"], 0.35)
+        mp45_arrow(pg, (x + w * 0.7, y + h / 2.0), (1.0, 0.0), h * 0.8 / MP45_ARROW_M[0], MP45_PAL["arrow"])
+    return f
+
+
+def _mp45_sw_disc(fill, d_mm=2.4):
+    def f(pg, x, y, w, h):
+        pg.circle(x + w / 2.0, y + h / 2.0, d_mm / 2.0, fill=fill, stroke=MP45_PAL["tree_edge"], lw=0.1,
+                  alpha=MP45_A["tree"])
+    return f
+
+
+def _mp45_sw_label(col, ctx=False):
+    def f(pg, x, y, w, h):
+        R = rect(x + 0.3, y + h * 0.1, x + w - 0.3, y + h * 0.9)
+        pg.poly([R], fill="FFFFFF" if ctx else MP45_PAL["label_box"], alpha=MP45_A["ctx_box"] if ctx else None)
+        pg.line(R + R[:1], col, 0.3)
+        pg.circle(x + h * 0.55, y + h / 2.0, h * 0.22, fill="FFFFFF" if ctx else col, stroke=col if ctx else None,
+                  lw=0.15)
+    return f
+
+
+# his LEGEND group, in his order (rows: key, group, name, sample); trees and labels follow in their own blocks
+MP45_LEGEND = [
+    ("mp45_route", "P", u"Circulation route, arrows = direction", _mp45_sw_route()),
+    ("mp45_walk", "P", u"Walk", _mp45_sw_box(MP45_PAL["walk"], "A09892")),
+    ("mp45_bike", "P", u"Bike lane", _sw_line(MP45_PAL["bike"], 1.2)),
+    ("mp45_park", "P", u"Park paths", _sw_line(MP45_PAL["park"], 0.9)),
+    ("mp45_ramp", "P", u"Ramp", _sw_line(MP45_PAL["ramp"], 0.25)),
+    ("mp45_plaza", "P", u"Event plaza (paved)", _mp45_sw_box(MP45_PAL["plaza"], MP45_PAL["plaza_edge"])),
+    ("mp45_water", "P", u"Selinos, the design water", _mp45_sw_box(MP45_PAL["water"], MP45_PAL["swatch_edge"])),
+    ("mp45_wet", "P", u"Wetland: shallow water and reeds", _mp45_sw_box(MP45_PAL["wet"], MP45_PAL["swatch_edge"],
+                                                                         dots=MP45_REED_COLS)),
+    ("mp45_green25", "P", u"Green corridor: open ground within 25 m of the water",
+     _mp45_sw_box(MP45_PAL["green25"], MP45_PAL["swatch_edge"], MP45_A["green25"])),
+    ("mp45_her", "E", u"Heritage building", _mp45_sw_box(MP45_PAL["her"], MP45_PAL["swatch_edge"])),
+    ("mp45_old", "E", u"Old settlement round Kızıl Avlu", _mp45_sw_box(MP45_PAL["old"], MP45_PAL["swatch_edge"])),
+    ("mp45_kizil", "E", u"Kızıl Avlu", _mp45_sw_box(MP45_PAL["kizil"], MP45_PAL["kizil_edge"]))] + \
+    [("tree_" + k_, "T", _PL23_SP(k_), _mp45_sw_disc(MP45_TREE_COL[k_])) for k_ in MP45_TREE_KEYS] + \
+    [("mp45_shrub", "T", u"Rosemary, shrub group", _mp45_sw_disc(MP45_PAL["rosemary"]))]
+
+
 # ---------------------------------------------------------------- round 5 (S6, G-R5-12): the page as items
 def _pl23_north_deg(C):
     """north's turn from the drawing's +y, degrees counter-clockwise (the frame's u, v axes; as pl23_marks drew it)"""
@@ -21340,6 +22080,16 @@ def p23_items(ix, C, warn):
     plan_sources dict under items.json "extra"). Returns log lines."""
     page = MPX_PAGE["p23"]
     lines = []
+    del MP45_LOG[:]                                      # v45: this press's lines (Rhino keeps module globals)
+    del _MP45_REF[:]
+    m45 = mp45_on(C)
+    if not m45:
+        w_ = (u"WARNING p20 no ZoneBase v12 layers from Aras's SVG (Option_A::INT_WATER_design, INT_ZONE_WETLAND, "
+              u"...) in the open file: p20 drawn as v44")
+        lines.append(w_)
+        warn.append(w_)
+    ctx = mp45_ctx_labels(C) if m45 else []              # v45: his context labels round the site (survey m)
+    cats_used = set()                                    # v45: his label categories the page uses (legend)
     scale, rows = pl23_rows(C, warn)
     k = 1000.0 / scale
     V = C.V
@@ -21371,9 +22121,16 @@ def p23_items(ix, C, warn):
             xm = x0 + ((row["eb"] if i == 0 else row["ea"]) - row["a"]) * k
             with mpx_grp(sh, "annotations", u"match line"):
                 sh.line([(xm, y0), (xm, y0 + dh)], hue("CTX", 2), 0.3, [1.6, 0.8], cap=0)          # noqa: F821
-            t_ = u"match line · continues below" if i == 0 else u"match line · from above"
+            t_ = u"match line · continues in the row below" if i == 0 else u"match line · from the row above"   # SON
             tw = text_w(t_, KEY_MIN)
             sh.text(t_, xm - 1.2 - tw if i == 0 else xm + 1.2, y0 + dh - 3.0, KEY_MIN, COL["ink2"], role="label")
+        for e_ in ctx:                                    # v45: each context label's dot (his r 4 dot, in metres)
+            if mine(e_["xy"]) or (len(rows) == 1 and row["a"] <= C.V.uv(e_["xy"])[0] - V.u0 <= row["b"]):
+                cx_, cy_ = Ts(e_["xy"])
+                if y0 <= cy_ <= y0 + dh:
+                    with mpx_grp(sh, "labels", u"context dot " + e_["letter"]):
+                        sh.circle(cx_, cy_, max(0.25, 4.0 / MP45_U_PER_M * k), fill=MP45_CAT["ctx"], stroke="FFFFFF",
+                                  lw=mp45_lw(1.0, k))
         specs = [dict(s_, xy=(s_["xy"][0] + x0, s_["xy"][1] + y0)) for s_ in specs]
         rws.append((Ts, mine, (x0 + PL23_ROW_PAD, y0 + PL23_ROW_PAD, x0 + dw - PL23_ROW_PAD, y0 + dh - PL23_ROW_PAD),
                     specs))
@@ -21396,6 +22153,8 @@ def p23_items(ix, C, warn):
                          scale_pref=sorted(set([int(scale), int(PL23_SCALE), int(PL23_FALLBACK)])), group=u"mp_plan",
                          priority=1)
         dids.append(Dd["id"])
+        ix.text(page, PL23_ROW_NOTE[0 if i == 0 else 1], "note", drawing=Dd["id"], id=u"mp_plan_r%d_note" % (i + 1),
+                group=u"mp_plan", priority=3)            # v45 (round 8, SON page 21): the row's flow note
         to_d = lambda q, b=b, row=row: (row["a"] + (q[0] - b[0]) * kk, (q[1] - b[1]) * kk)
         for bb in icon_boxes[i]:
             p0, p1 = to_d(bb[:2]), to_d(bb[2:])
@@ -21404,12 +22163,32 @@ def p23_items(ix, C, warn):
             at = to_d(s_["xy"])
             if s_["study"]:
                 ix.text(page, s_["text"], "label", drawing=Dd["id"], at=at, size_pt=PL23_NAME_PT[0], bold=True,
-                        colour=COL["ink_dark"], positions=["E", "W", "NE", "NW", "N", "S", "SE", "SW"],
-                        priority=3, group=u"mp_plan")
+                        colour=MP45_CAT["sq"] if m45 else COL["ink_dark"],      # v45: his square category
+                        positions=["E", "W", "NE", "NW", "N", "S", "SE", "SW"], priority=3, group=u"mp_plan")
+                if m45:
+                    cats_used.add("sq")
             else:                                         # a hub outside the study area: a base place name only
                 ix.text(page, s_["text"], "label", drawing=Dd["id"], at=at, size_pt=PL23_BASE_NAME_PT, bold=False,
                         colour=BM_MUTED["name"], priority=7, group=u"mp_plan")
             n_names += 1
+    n_ctx = 0
+    for e_ in ctx:                                       # v45: his context labels (names from context_labels_v2.svg)
+        uu = C.V.uv(e_["xy"])[0] - V.u0
+        i = next((j for j, r_ in enumerate(rows) if r_["ea"] <= uu <= r_["eb"]), None)
+        if i is None:
+            MP45_LOG.append(u"info p20 context label {} {} lies outside both rows: not placed".format(
+                e_["letter"], e_["name"]))
+            continue
+        b = boxes[i]
+        x, y = rws[i][0](e_["xy"])
+        y = min(max(y, b[1]), b[3])                      # a dot below his frame: the label at the row's edge
+        ix.text(page, e_["name"] + (u" · " + e_["kind"] if e_["kind"] else u""), "label", drawing=dids[i],
+                at=(rows[i]["a"] + (x - b[0]) * kk, (y - b[1]) * kk), size_pt=PL23_BASE_NAME_PT, bold=True,
+                colour=MP45_CAT["ctx"], positions=["E", "W", "NE", "NW", "SE", "SW", "N", "S"], priority=6,
+                group=u"mp_plan", id=u"mp_plan_ctx_" + e_["letter"],
+                box=dict(fill="FFFFFF", alpha=MP45_A["ctx_box"], stroke=MP45_CAT["ctx"]))
+        cats_used.add("ctx")
+        n_ctx += 1
     d1 = dids[0]
 
     def anchor_of(glyph):
@@ -21420,11 +22199,10 @@ def p23_items(ix, C, warn):
         return None
     # ---- title, caption (P23.1: bigger drawings, less text)
     ix.text(page, u"Masterplan: an ecological corridor", "title", id=u"mp_plan_title", group=u"mp_plan", priority=1)
-    cap = u"The corridor across the whole {}{}; the stream flows left to right.".format(
-        R28_FRAME_NAME.lower(), u": upstream half on top, downstream half below" if len(rows) > 1 else u"")
+    cap = u"Masterplan: the ecological corridor of the whole {}".format(R28_FRAME_NAME.lower())   # v45: SON page 21
     ix.text(page, cap, "caption", drawing=d1, id=u"mp_plan_caption", group=u"mp_plan", priority=1)   # v42 box
     # ---- round 6 (S8): the street cuts R1-R4 of page 8 and the producers' market at K5, labels at their place
-    cuts, cerr = pl23_street_cuts()
+    cuts, cerr = pl23_street_cuts() if not PL23_SON else ({}, None)   # v45: SON format, no R1-R4 labels
     if cerr:
         warn.append(u"masterplan p20: street cuts R1-R4 not marked: " + cerr)
     n_cut = 0
@@ -21437,12 +22215,12 @@ def p23_items(ix, C, warn):
                 x, y = rws[i][0](mid)
                 ix.text(page, rid + (u" · " + c_["change"] if c_.get("change") else u""), "label", drawing=dids[i],
                         at=(row["a"] + (x - b[0]) * kk, (y - b[1]) * kk), size_pt=PL23_MK_PT, bold=True,
-                        colour=pl23_h("street_cut"), priority=4, group=u"mp_plan")
+                        colour=MP45_CAT["rt"] if m45 else pl23_h("street_cut"), priority=4, group=u"mp_plan")
                 used.add("street_cut")
                 n_cut += 1
                 break
     k5 = next((h for h in C.hubs if h["id"] == u"K5"), None)
-    if k5 is not None:
+    if k5 is not None and not PL23_SON:                  # v45: SON format, no producers' market label
         for i, row in enumerate(rows):
             if rws[i][1](k5["xy"]):
                 b = boxes[i]
@@ -21456,25 +22234,42 @@ def p23_items(ix, C, warn):
         used.add("cch")
     if vl:
         used.add("left")
-    # ---- the legend by category (G6-6): one ix.legend per category, its rows darkest first
-    cats = list(HUE_CATS) + ["ANN"]                                                       # noqa: F821
-    ent = 0
-    for cat in cats:
-        rows_ = sorted([(rk, nm, f) for key, c_, rk, nm, f in PL23_LEGEND if c_ == cat and key in used],
-                       key=lambda r_: r_[0])
-        if not rows_:
+    # ---- v45 (round 8 Q3 a, SON page 21): the legend in SON's two groups, EXISTING · SURVEY and PROPOSED; with
+    # Aras's look his LEGEND group gives the first rows and their order (PROPOSED: route ... green corridor, then the
+    # v44 rows the plan draws, then his trees; EXISTING: his heritage rows after the survey rows) and his label
+    # categories a third block "Places, by kind" (only what the page uses)
+    for nt, _g, _nm, _l, _ok in ents:
+        if m45:
+            cats_used.add(mp45_note_cat(nt))
+    if m45 and getattr(C, "pl23_cch_on", None):
+        cats_used.add("wat")
+    rows_e, rows_p = [], []
+    for key, c_, _rk, nm, f in PL23_LEGEND:
+        if key not in used or (m45 and key.startswith("tree_")):
             continue
-        ix.legend(page, d1, [(mpx_sw(f), nm) for _rk, nm, f in rows_],
-                  title=HUE_NAMES.get(cat, u"Marks") if cat != "ANN" else u"Marks",          # noqa: F821
-                  id=u"mp_plan_legend_" + cat.lower(), group=u"mp_plan")
+        if m45 and key == "cch":
+            f = _pl23_sw_ring_hex(MP45_CAT["wat"], u"4")
+        (rows_e if key in EXISTING else rows_p).append((mpx_sw(f), PL23_SON_NAME.get(key, nm)))
+    if m45:
+        his = lambda g_: [(mpx_sw(f), nm) for key, gr_, nm, f in MP45_LEGEND if gr_ == g_ and key in used]
+        rows_e += his("E")
+        rows_p = his("P") + rows_p + his("T")
+    ent = 0
+    for title_, rows_, id_ in ((u"EXISTING · SURVEY", rows_e, u"mp_plan_legend_existing"),
+                               (u"PROPOSED", rows_p, u"mp_plan_legend_proposed")):
+        if rows_:
+            ix.legend(page, d1, rows_, title=title_, id=id_, group=u"mp_plan")
+            ent += len(rows_)
+    if m45 and cats_used:
+        rows_ = [(mpx_sw(_mp45_sw_label(col, k_ == "ctx")), nm) for k_, col, nm in MP45_LABEL_CAT if k_ in cats_used]
+        ix.legend(page, d1, rows_, title=u"Places, by kind", id=u"mp_plan_legend_labels", group=u"mp_plan")
         ent += len(rows_)
     lines.append(hue_log(page) if "hue_log" in globals() else u"legend %s hues=table" % page)   # noqa: F821
     # ---- the moves by number (name · its reason line, P22.8), collect-clean-hold 1-11, the areas left as they are
     if ents:
         ns = [nt["n"] for nt, _g, _nm, _l, _ok in ents]
         numbered = ns == list(range(1, len(ns) + 1))
-        texts = [(u"" if numbered else u"%d " % nt["n"]) + nm + (u" · " + line if line else u"")
-                 for nt, _g, nm, line, _ok in ents]
+        texts = [(u"" if numbered else u"%d " % nt["n"]) + nm for nt, _g, nm, _line, _ok in ents]   # v45: SON, the name
         ix.text(page, u"The moves, by number", "heading", drawing=d1, id=u"mp_plan_moves_head", group=u"mp_plan",
                 priority=3)
         ix.list(page, d1, texts, numbered=numbered, anchors=[anchor_of(u"%d" % nt["n"]) for nt, _g, _n, _l, _o in ents],
@@ -21483,7 +22278,7 @@ def p23_items(ix, C, warn):
     if cc["err"]:
         warn.append(u"masterplan p20: collect-clean-hold numbers not drawn ({})".format(cc["err"]))
     on_ = getattr(C, "pl23_cch_on", None) or []
-    if on_:
+    if on_ and not PL23_SON:                             # v45: SON format, no collect-clean-hold list
         seen_ = []
         for n_, nm, i, spot in sorted(on_):
             if n_ not in seen_:
@@ -21496,8 +22291,8 @@ def p23_items(ix, C, warn):
         lines.append(u"FLAG p20 collect-clean-hold numbers with no place on the plan (left out): {}".format(
             u", ".join(u"%d %s" % (n_, nm) for n_, nm in cc["missing"])))
     if vl:
-        texts = [u"{} · {} · {}".format(v["letter"], u_area(v["regions"][0]["ha"] * 1e4, "ha"), v["reason"])
-                 for v in vl]
+        texts = [u"{} {} / {}".format(v["letter"], u_area(v["regions"][0]["ha"] * 1e4, "ha"), v["reason"])
+                 for v in vl]                            # v45: SON page 21, "<ha> / <reason>"
         ix.text(page, u"Left as it is · no intervention, because", "heading", drawing=d1,
                 id=u"mp_plan_left_head", group=u"mp_plan", priority=3)
         ix.list(page, d1, texts, numbered=False, anchors=[anchor_of(v["letter"]) for v in vl], id=u"mp_plan_left",
@@ -21551,6 +22346,13 @@ def p23_items(ix, C, warn):
                  u"trees on this plan)".format(page, sum(PL23_TREE_N.values())))
     PL23_TREE_N.clear()
     lines.append(u"proposals boardwalk missing (no plan geometry: section W4 only; left out, PLAN §5)")
+    lines.append(u"p20 look {}: legend existing {} / proposed {} rows, label categories {}, context labels {}, route "
+                 u"arrows {}".format(u"Aras's SVG by rules (ZoneBase v12 layers)" if m45 else u"v44 (no SVG layers)",
+                                     len(rows_e), len(rows_p), u",".join(sorted(cats_used)) or u"-", n_ctx,
+                                     getattr(C, "mp45_arrows", 0)))
+    lines.extend(MP45_LOG)                               # v45: its WARNING lines also as warnings (balloon)
+    warn.extend(w_ for w_ in MP45_LOG if wn_is(w_))
+    del MP45_LOG[:]
     return lines
 # p.24 the detail window panel (booklet p22; T7 30 Oct: reasons, key map, trees, M5 water, sections in two styles): v28 (revision 29 Oct, WO-T4b-3) plan language + sections D1, D2 (split from parts/02_Design.py, parts/02b_detail.py, parts/02e_r28_detail.py, parts/03_make_board.py on 29 Oct 2026; moved unchanged)
 
@@ -23399,6 +24201,8 @@ def p24_kit(pg, C, T, inP, k, taken, people=False):
 # ---- T7 (30 Oct, booklet p22): a reason for every element (G10) and the page's key map (M4) ---------------------
 P24_KM_W, P24_KM_HMAX = 26.9, 35.9   # mm: v43 (round 7 S6, G7-3; PLAN §3 / H4 §3): SON page22's measured key-map
                                      # frame [378.1,30.9 26.9x35.9] exactly (v38-v42: 62 x 40); keymap.py km_keymap draws it
+P24_KM_NAMES = dict(streets=(), places=False)   # v45 (round 8, H2 Q6.4): the p21 key map without street and place
+#                                              names, as SON page 22 (the cut names D1 / D2 stay); None = v44's names
 P24_KM_HEAD = u"Key map · D1, D2"    # v43: the heading above it (SON's line is cut at the page edge: only its sure words)
 P24_NAME_CLEAR = 0.6                 # v43 (L6, H4 §4 p21 "4 / D1" x "Spillway"): a field name keeps this clear of the
                                      # route numbers and place names already on the plan, mm (moved inside its field)
@@ -23789,7 +24593,7 @@ def p24_items(ix, C, wins, areas, missing, warn):
         # v43 (round 7 S6, G7-3): SON page22's frame 26.9 x 35.9 mm; north at the LEFT so the key map and its arrow
         # stay inside the 406 mm margin (SON's frame ends at x 405, a right-hand north column would cross it)
         km = km_keymap(page, cuts=cuts, zooms=zooms, w_mm=P24_KM_W, h_mm=P24_KM_HMAX, heading=P24_KM_HEAD,
-                       north_side="left", log=out)
+                       north_side="left", log=out, names=P24_KM_NAMES)   # v45: SON page 22, no street / place names
         its = km_export_items(km, page, u"mp_dt_keymap") or []
         did_ = None
         for it in its:                                    # v43 (mpx_keymap removed): ids made unique, anchors on the drawing

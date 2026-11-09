@@ -8,7 +8,7 @@ scripts/bergama_booklet_jpg_v2_3.py
 scripts/bergama_booklet_v37.py
 scripts/bergama_build_gh_chain_v3_5.py
 scripts/bergama_city_link_v12.py
-scripts/bergama_masterplan_v44.py
+scripts/bergama_masterplan_v45.py
 scripts/bergama_plan_to_rhino_v2.py
 scripts/bergama_plant_sheet_v1_2.py
 scripts/bergama_planting_analysis_v1.py
@@ -47,6 +47,7 @@ Data/palette.json
 Data/selinus_board_data.py
 Data/assets/agaclar.svg
 Data/assets/masterlastversion.svg
+Data/assets/context_labels_v2.svg
 Data/assets/planting_areas_seed.svg
 Data/cutouts/
 Data/heritage_photos/
