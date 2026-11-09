@@ -6,6 +6,9 @@ def vis_ring(B, cx, cy, r, pct, col, back, L, order=30):
         B.fill([annulus(cx, cy, 0.62 * r, r, a0, a0 - 2.0 * math.pi * min(1.0, pct / 100.0))], col, L, order + 1)
 
 
+TECH_KEYS = {}          # v44: each technical sheet's numbered sources {"T1": [...]}, for the booklet's sources page
+
+
 def tech_frame(S, B, X, Y, U, num, title, subtitle, sources):
     L = "LU_TECH::Frame"
     B.fill([rect(X, Y - PH * U, X + PW * U, Y)], T_BG, L, 0)
@@ -18,18 +21,19 @@ def tech_frame(S, B, X, Y, U, num, title, subtitle, sources):
     B.line([(X + m, yb), (X + PW * U - m, yb)], T_RULE, L, 2, 0.18)
     B.line([(X + PW * U - m - 26 * U, yb), (X + PW * U - m - 26 * U, Y - PH * U + m)], T_RULE, L, 2, 0.18)
     if isinstance(sources, (list, tuple)):              # v38: the method and sources as the sheet's numbered [n] key
+        TECH_KEYS[num] = list(sources)                  # v44: also into the booklet blocks (sheet_sources)
         sources = src_key_text(sources)
     B.para_fit(sources, X + PM * U, yb - 0.75 * U, PW * U - 2 * m - 29 * U, 0.26 * U, Y - PH * U + m + 0.35 * U, T_GREY, L)
     bx = X + PW * U - m - 25 * U
     B.fit(CREDIT, bx, yb - 0.9 * U, 0.34 * U, 18 * U, T_INK, L)
     B.fit("Yaşar University · site analysis", bx, yb - 1.6 * U, 0.3 * U, 18 * U, T_GREY, L)
-    B.fit("Analyses: survey + open data", bx, yb - 2.2 * U, 0.3 * U, 18 * U, T_GREY, L)
     B.text(num, X + PW * U - m - 0.8 * U, yb - 2.3 * U, 1.6 * U, T_INK, L, font=FONT_TITLE, bold=True, align="R")
     return Y - 6.4 * U, yb + 0.8 * U
 
 
-def tech_map(S, B, frame, path, x, ytop, wmax, hmax, U, L, scale=True, north=True):
-    """Place a rendered top view with its north arrow and scale bar; returns (view, width, height)."""
+def tech_map(S, B, frame, path, x, ytop, wmax, hmax, U, L, scale=True, north=True, crop_bar=True):
+    """Place a rendered top view with its north arrow and scale bar; returns (view, width, height). v40: registers
+    the map as a booklet crop (with its scale bar unless crop_bar is False: other panels share its strip)."""
     asp = frame.w / frame.h
     wv = min(wmax, hmax * asp)
     hv = wv / asp
@@ -39,7 +43,18 @@ def tech_map(S, B, frame, path, x, ytop, wmax, hmax, U, L, scale=True, north=Tru
         draw_north_small(B, V, mw, mh, U, L, size=0.6)
     if scale:
         draw_scalebar(B, x, ytop - hv - 1.25 * U, V.s, nice_floor(frame.w / 6.0), U, L, h=0.3)
+    key = os.path.splitext(os.path.basename(path))[0]    # v40: one booklet crop per map, e.g. T2_surface_heat_summer
+    num, per = key.split("_")[0], key.split("_")[-1]
+    crop_panel(per, x, ytop - hv - (1.35 * U if scale and crop_bar else 0.0), x + wv, ytop,
+               u"{} · {} · {}".format(num, CROP_T.get(num, ""), CROP_PER.get(per, per)), crop_scale(V.s))
     return V, wv, hv
+
+
+CROP_T = {"T1": u"road noise", "T2": u"ground surface temperature", "T3": u"hours in shade", "T4": u"solar radiation",
+          "T5": u"wind at 1.5 m", "T6": u"air temperature", "T7": u"felt temperature (UTCI)",
+          "T8": u"comfortable hours, UTCI 9-26 °C"}       # v40: booklet captions of the technical maps
+CROP_PER = {"lden": u"Lden, day-evening-night", "day": u"day 06-18", "evening": u"evening 18-22", "night": u"night 22-06",
+            "year": u"the whole year", "spring": u"spring", "summer": u"summer", "autumn": u"autumn", "winter": u"winter"}
 
 
 def tech_bands(B, x, y, w, cols, labels, U, L, title=None, sub=None, h=0.32):

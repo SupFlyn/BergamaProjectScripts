@@ -1,37 +1,161 @@
 # -*- coding: utf-8 -*-
-"""BERGAMA PROPOSAL SECTIONS v3 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
+# CURRENT VERSION: bergama_proposal_sections_v22.py = v22 (5 Nov 2026, round 7 S5: W1-W4 key map = SON page8 module at SON13's 109.2 x 22.0 frame, panels printed at a fixed 194.8 x 92.0 mm (r06_S02 grid, never fitted), R6 page12 overlap labels moved, see NEW IN v22); v21 (4 Nov 2026, layout rework L5: every sketch label goes to the booklet as an item, nothing left out, see NEW IN v21); v20 (4 Nov 2026, round 6 S6: page p12 = the 28 Oct 4-in-1 SKETCH page restored as booklet items, see NEW IN v20); v19.1 fix 2 Nov: key map run warnings; v19 (2 Nov 2026, round 5 S9: booklet items, see NEW IN v19; v18.1 1 Nov 2026: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17: what changed: the NEW IN / VERSION notes below)
+"""BERGAMA PROPOSAL SECTIONS v4 (2026-10-25): Group 6's four proposals in section, upstream to downstream, in the
 water board's hand-drawn section style (Aras 25 Oct 11:38-11:45: "we want section from each proposal just like our
 water board sections"; "the style of waterboard sections were really really good you can do it somewhere else").
 For the studio session of 26.10.2026: "Sections: Illustrating the spatial relationships and key design decisions."
 
-NEW IN v3 (Aras 25 Oct 17:00, SCRIPT_STANDARD §5b visual first; audit batch_2026-10-25_visual_first/VISUAL_AUDIT.md §1):
-  sentence callouts in the sketches -> short keyword callouts with hand pictograms (winter cloud, summer sun,
-  fail-safe mark); garden crops as two season rows; sheet subtitle -> keyword row with the 1-11 flow; panel
-  subtitles -> keyword chips with pictograms; source notes -> [n] marks with one numbered key in the footer;
-  the four "Schematic section..." notes -> one header tag. Fix (audit accuracy problem 3): the upstream Q500
-  label said "lowest terrace floods"; the surveyed ARAS cut keeps Q500 inside the banks (rain_river_levels
-  README v1.1 line 21: 3.30 m (+73.66), "inside; the cut is about 5 m deep"), so it now reads
-  "Q500 +73.66 m · 3.30 m" and the terrace floods only if set below it. Layout, colours and frames unchanged.
-NEW IN v2 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): option A only, so one sheet per press. Nothing else changed.
+NEW IN v22 (round 7 S5, 5 Nov 2026; BRIEF §6 row 12, G7-3, L1, L6; a feature change):
+  * Key map W1-W4 = km_keymap (common/keymap.py v4, the SON page8 code) at PS_KM_MM 109.2 x 22.0 (SON page13's key-map
+    size, PLAN §3 row 12: top right [296.8, 27.0]); north outside on the left; no heading; box / PS_KM_SPACE gone.
+  * Each panel drawing = PS_PANEL_MM 194.8 x 92.0 mm, PS_FIT (1.0, 1.0): the booklet prints it at that size (r06_S02
+    2 x 2 grid under the key map, no empty band); the sketches keep one common factor inside that box. SKETCH (G7-1).
+  * L6 (R6 page12 pairs): "ROAD / bridge deck: traffic" in three short lines over the deck; WALKING HUB SQUARE label
+    raised (y 84 -> 88) clear of number 9; DEMETER'S GARDEN label x 20 -> 24 clear of "STREET" (data/SKETCH_SRC.py);
+    the key-map name pair goes with the old key map.
+HOW WE KNOW IT WORKS (v22): "ProposalSections v22" under the component; log "keymap p12 1:<den> ... frame=109.2x22.0"
+  and "keymap p12 module cuts=W1,W2,W3,W4 study_closed=1", no "keymap p12: option box ignored"; "section p12 P1 W1
+  SKETCH" ... "P4".
 
-WHAT IT DRAWS: one A0 landscape sheet per form option (A = organic only where the project meets the water, B = no
-organic forms), all vector, whole-string text, four panels:
-  1 UPSTREAM ENTRY · collect, clean and hold   reed-basin cascade (water board v1.3's sketch, unchanged)
-  2 K4 BRIDGE · amphibious heritage threshold  tiers W / F / D (water board v1.3's sketch, unchanged)
-  3 K5 BRIDGE · Demeter's Garden (idea: Begum) NEW: garden on the dry top of the south-west bank (card i01, DG 1-2)
-  4 DOWNSTREAM REACH · give back               NEW: floodable planting WP 1-2 and the floodable boardwalk (ZONES.md)
-  Sketch code, PDF writer and palette are copied from bergama_water_board_v1_3.py (its SKETCH_SRC); element numbers
-  1-11 are the water board's. Levels printed on panels 3-4: surveyed cuts, research/rain_river_levels/README.md v1.1
-  table (K5 Q500 +58.75 m, 2.79 m above the bed, inside the banks; NIL +48.00 m, 2.33 m, inside; flat end 1.54 m,
-  banks about 114 m apart). Not drawn (not in any source): Demeter's Garden intake, lift and basin volume.
-  OVERLAP (SCRIPT_STANDARD §5): panels 1-2 are also on the water board (W3a); to be merged after 26 Oct.
+NEW IN v21 (layout rework L5, 4 Nov 2026; Aras 19:17-19:18 "make all the scripts just produce the drawings and
+  booklet script ... places them"; LAYOUT_PLAN_booklet_places_all.md §3.1; a feature change):
+  * declutter() is gone: the script no longer moves a label or leaves one out ("label ... left out (no free place
+    near it)" warnings end). Every line of every sketch label is a label item of its panel (role "label", anchor = its
+    drawn point in the panel's mm, drawn alignment first), ids ps_panel_<n>_lbl_<g>_<line>; the booklet places them and
+    fixes collisions (move, short form, number + side row, smaller). Element numbers (circles 1-11): circle drawn,
+    digit = role "badge" (ps_panel_<n>_num_<digit>, the booklet keeps it on its circle).
+  * Log per panel: "p12 ps_panel_<n>: labels L (N lines) exported at their drawn points; the booklet places them".
+  * One box per drawing (L1, Aras 19:26): panel number = badge "n" (ps_panel_<n>_num, no `at`), title without the
+    number = heading, purpose line = caption priority 1, all with drawing=ps_panel_<n>.
+  * SKETCH_SRC.py (shared with agriculture) unchanged.
+NEW IN v20 (round 6, S6, 4 Nov 2026; BRIEF row 12, Q9, G6-1..G6-10, P-1, P-7, P-12; a feature change):
+  * Booklet page p12 "The proposals in section" = refs/targets/r06_S02: four SKETCH panels (1 upstream entry, 2 K4
+    bridge · walking hub, 3 K5 bridge · Demeter's Garden + walking hub, 4 downstream reach) restored from the 28 Oct
+    code (commit f93d84b, v8.1: draw_concept, declutter, sections + data/SKETCH_SRC.py), exported as items ps_panel_1-4
+    (scale-free drawings, one common factor, same extent), titles + purpose lines, one legend strip (hue table, G6-6),
+    a small W1-W4 key map (keymap.py v3, P-1), caption "1-11 as in Collect, clean, hold" (CCH_STEPS numbers).
+  * 28 Oct values replaced: Q500 words read live from the level table (W1, W3, W4); the rain shares (59.1 %, 7.4 %)
+    left out (no shared data file holds the MGM monthly rain); "[n]" -> {src:key} for public sources only.
+  * The target's overlaps moved apart (SUB-HUB caption under the cut, steps label short lines, Q500 words over the
+    line, panel 3 number 9, panel 4 labels); no hatches (flat water, flat soil, flat tier bands); trees named by species
+    in their groups (G6-9, G6-10); every element its own group inside its kind (S2 grp tags).
+  * Gone: the true-scale W1-W4 sections, insets, lists and material legend of v17-v19 (parts/70_sections.py).
+NEW IN v19 (round 5, S9, 2 Nov 2026; G-R5-12, D9, N3 a, P13.1-P13.4, G-R5-4.6, G-R5-5, D8, A17, C1; a feature change):
+  * Produce, the booklet composes: no A0 sheet, no PDF, no page layout. W1-W4 go to ONE booklet page "p13" (p13 + p14
+    merged) at 1:500, each cut one true-scale drawing in metres (x across the stream from the cut axis, NE left;
+    y level m a.s.l.) with its numbers as badges, its numbered list "Name · reason", its heading, scenario and water-
+    level note, its level column (the booklet draws the U04 markers), its zoom inset drawn AGAIN at the inset scale
+    (framed on the action by sf_inset_frame) as its own drawing; one key map (key-map module v2: fitted, turned, own
+    north), one material legend (solid colours), title, intro, sources. File: Downloads/Bergama/cached/booklet/
+    bergama_proposal_sections/items.json. No folder is made under output/.
+  * Spans to the cut ends (no 50 m / 38 m breaks at 1:500), never beyond the level table's ends.
+  * Widths gone (P13.4): no "8 × 40 cm" steps, no bed width in cm. Bridges the cut sees (common/bridges.py, D8).
+  * Log head "<n> warnings" = the WARNING lines; plant log lines printed once (A17).
+NEW IN v17 (round 4, S7, 1 Nov 2026; booklet p13 -> p13a + p13b: P13.1-P13.5, D2, D11, G-R4-1..11; a feature change):
+  * Two booklet pages at 1:250 (was one at 1:500): crop ps_p1 = p13a (W1, W2), ps_p2 = p13b (W3, W4), one full row
+    per cut; the sheet is drawn at the booklet scale (BK_S 1), so every scale word is the printed one; zoom insets at
+    1:100 (D11, 2.5 x) with their own scale bars. W3's bazaar side broken at 50 m, W4's at 38 m (break lines).
+  * One block per cut (common/block.py): title strip (cut and name, scenario, look direction by place name), the
+    drawing, a side column (W1-W3: key map on one row of each page, the "today" line from the level table, the
+    numbered list) or a strip under it (W4); level marks outside the drawing's right edge with the 1:250 scale bar.
+  * Every zone and element is one marker (common/marker.py) in the colour of what it names, numbered in reading
+    order; the list beside repeats them "Name · reason"; the zone strip, bank rows and callout key are gone.
+  * One TextPage per page (common/text_place.py): every text registered with the real Arial widths, a collision
+    RAISES ("overlap p13a ... collisions 0" in the log). Key map: only the page's two cuts, red R01 symbol, north arrow
+    without a plate. Low planting layer on every soft bank; ash left the back mix (lower sky); one people set
+    (pen_black). Start-up: common/trigger.py (only a Button press or a new done text starts it).
+NEW IN (revision 30 Oct, T6, booklet p12; the version number is set at the end of the revision):
+  * D6: the block sits on the A0 sheet at exactly 1:200 (BK_S = 0.4), so the booklet prints it at 1:500 and its scale
+    bars read 1:500 (they read 1:1,481: the sheet's words said 1:500 at a non-standard sheet factor).
+  * M7 figures at 1.75 m doing what each zone is for, M6 species at sourced heights in mixed wet-to-dry planting, the
+    G6 ratios checked (sf_assert_g6, log), the M5 water at average yearly flow with Q100 / Q500, stepping stones.
+  * W1: a stone stair down the NE wall into the bed, life in the wet bed, an edge walk and a bike lane. W2: walk, bike
+    lane, tree band, people on the steps and at the water. W3: a mixed wet edge up to the commons, herbs at the
+    garden wall. W4: crest walk, bike lane and tree corridor, a ramp on a berm to a viewing terrace above Q500, steps
+    to the boardwalk. Faded trees behind every cut (R16). Key map on the M4 base with the study area.
+  * D1: two sheets from one geometry: Bergama_proposal_sections_A.pdf (style b, vector) and ..._A_style_a.pdf (style
+    a, cutouts from Downloads/Bergama/Data/cutouts/); crops suffixed _a / _b (unsuffixed = b). Legend inside ps_all.
+    v13 (Aras 31 Oct, booklet p12): style a only, ONE sheet Bergama_proposal_sections_A.pdf, plain crop ids.
+NEW IN v14 (round 2 critique, Aras 31 Oct, booklet p12; R2-A modules): nobody in the water except on stepping stones,
+  back trees on the cut ground and never over the water, mixed planting groups on depth layers, designed sky, all
+  labels as "Element: reason" callouts with one purpose callout per planting group, the Q500 wash gone (lines stay).
+NEW IN v15 (Aras 31 Oct 12:01): W1 redrawn to p.17 F1's layout (path and bike lane under the trees SW, view terrace
+  on the NE wall top, reed basins beyond), a way down by sitting steps in three flights with planted landings to a
+  railed floor at the water's edge (no straight stair), no blocks in the bed; background houses behind W1-W4; people as
+  scenes facing the water.
+NEW IN v16 (round 3, Aras 31 Oct, booklet p12: P12.1-P12.5, G2, G3, G15, G16, G17, DATA-1): the key map shows the
+  whole study area (fitted, 0.25 pt neatline, labels without leaders: numbers + key) with the material legend beside
+  it; cut ends W1 / W1' on the map and under each section (banks by place: Kale side · north bank / bazaar side ·
+  south bank); real bridge names, no K-codes; each section measured before it is placed (hard fit inside its cell,
+  FLAG when shrunk); no cell frames, white block ground; per cut a scenario in its title, zones named under the
+  drawing with a reason (R07), people in front incl. fishing, lying, running, dog walking, trees pushed back and paler,
+  street elements (lamps, bollards, bike racks), a quiet sky per cut with a few birds, a 1:200 zoom inset; the
+  walled beds (W1, W2) from the surveyed sections (water board data/CUTS.py) with the summer strip on the survey low
+  point; log lines FLAG overlap p12, sky variants, plants, fauna, water.
+NEW IN v11: assets_2 high-res silhouettes (Aras 30 Oct 06:11, a feature change): the detailed sections draw the
+  PhyloPic trees (plane, ash, olive, stone pine) and crops (maize, tomato) of common/hires.py in each section's own
+  colours, roots cut at the ground, uniform scale (needs Data/assets_hires.json; without it the old primitives). Page
+  13 (W1-W4).
+NEW IN v10 (revision 29 Oct, WO-T3b-3, booklet page 13; package C "Page 13", brief 02 §3-§6; a feature change):
+  * The four sections are redrawn true to their cuts W1-W4 at 1:500 on the booklet page (parts/70_sections.py): bed,
+    bed width, DSİ walls (5.00 m), embankments at their surveyed angle, the loose earth bank, the SW shelf, Q100 and
+    Q500 all from the level module (common/levels.py), banks, hatches and steps from section_parts, every species at
+    its true size from plants (D6: chaste tree + plane in the café beds, no fig or citrus; D2: common reed only in
+    lined basins above Q500), figures placed by what they do (_p13_fig, the one swap point). Scale bar beside each.
+  * The key map is a strip across the top of the page, outside every section's panel, showing only W1-W4 on the
+    topographic basemap, each cut named with its section's badge and name. The sketch engine is no longer included.
+NEW IN v9 (MIRAQUA 28 Oct, booklet revision v4: F4, F7, F14, G5, G8, F5; bank depth research 28 Oct §4.6; a feature
+  change, so the next whole number):
+  * A key map of the four measured cuts under the upstream sketch (study area, Selinos, K4 and Üç Kemer bridges, north
+    arrow, no scale), with the measured note that the K4 and K5 cuts lie about 114 m and 119 m downstream of the
+    bridges their sketches draw.
+  * Upstream: the right bank is the channel wall about 5 m above the bed (site photos 1 Oct 2026), so Q500 stays inside
+    the banks as its label says. K4: Q500 drawn under the street and wall top. No level value changed.
+  * Sub-hub floor and boardwalk drawn soft; legend entries for the yellow bands, the dashed route, the soft paving and
+    the study area; bold keywords in the notes; [n] marks for public online sources only.
+
+NEW IN v8.1 (bugfix, Aras 27 Oct, Prompt 8 final check): K5's winter crop row (herbs, greens, Cabbage (Lahana), Citrus
+  (Narenciye), Quince (Ayva)) sits 2.2 lines under the summer row (was 1.5): at 1.5 its pictogram touched the summer
+  row, and with no free place inside the drawing's reach declutter left the whole row out. The booklet caption of
+  ps_all keys the numbered roundels (1-11 as in Collect, clean, hold; the sheet header that says so is outside the
+  crop). The source key names public sources where the entry rested on a public one (levels, rain, olive and
+  lavender: no internal file names). Nothing else changed.
+NEW IN v8 (Aras 27 Oct 17:34, booklet Prompt 5 rule 8: "plants: English name (Turkish name), no Latin"): the plants and
+  crops the sections name read "English (Turkish)": Oriental plane (Doğu çınarı), Olive (Zeytin), Stone pine (Fıstık
+  çamı), French lavender (Karabaş otu), and Demeter's Garden's crops (Bean (Fasulye), Tomato (Domates) ...). The text
+  under the component shows a newly pasted version at once, idle (Aras 27 Oct 15:35). Nothing else changed.
+NEW IN v7 (Aras 27 Oct 11:07, revision_2026-10-27/PHASE2_SPEC.md): booklet p.18-19 become ONE page: the four
+  sections sit in one 2 x 2 block shaped like the booklet's panel area (new crop ps_all), all at ONE common factor;
+  words drawn large enough that the smallest prints >= 7 pt on that page (TXT_K, measured); titles short, keyword
+  chips and long context paragraphs gone (one short note under each title); no source footer or credit line (the [n]
+  key is written to the log). Labels never overlap: declutter() measures every label (text_w) and moves it to the
+  nearest free place, or leaves it out and logs it. History (D8, D10, H4; Aras 12:05): K4 and K5 are walking hubs, a
+  dry step-free hub square at street level above Q500 with plane trees (irrigated from storage) + a floodable sub-hub
+  in the bed at the strip level, a walk down the steps between; K4 names Tabaklar Hamamı (~56 m downstream, card h02
+  E08) on the terrace that faces it. Single crops ps_upstream, ps_k4, ps_k5, ps_downstream kept (tight).
+OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_proposal_sections/).
+
+WHAT IT DRAWS (v10): one A0 landscape sheet, all vector, whole-string text; the block on it is booklet page 13:
+  KEY MAP strip   the four cuts W1-W4 only, on the topographic basemap
+  1 W1 UPSTREAM ENTRY       DSİ walls; three lined reed basins behind the SW wall clean street runoff, summer release
+  2 W2 K4 WALKING HUB       SW wall replaced by a sub-hub floor and seating steps; hub square with planes on top
+  3 W3 K5 DEMETER'S GARDEN  steps seated into the NE loose earth bank; stream commons on the SW shelf; garden raised
+                            above Q500 (olive, lavender, tomato, café beds with chaste tree and plane)
+  4 W4 DOWNSTREAM REACH     planting bands by flood level on the 8.9° NE embankment, floodable boardwalk, field SW
+  Every section looks downstream (NE left), 1:250 on the booklet page (v17). Not drawn (not in any source): the garden's
+  intake and lift, basin volumes.
 
 COMPONENT: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file. Input run (Button), outputs log and done.
-Writes Downloads/Bergama/output/bergama_proposal_sections/Bergama_proposal_sections_{A,B}.pdf; log in
-Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads nothing from other scripts; palette from
+v20 NEEDS the new Data file: copy bergama_proposal_sections_data.py (holds SKETCH_SRC) to Downloads/Bergama/Data/.
+Writes Downloads/Bergama/cached/booklet/bergama_proposal_sections/items.json (v19; no PDF); log in
+Downloads/Bergama/logs/bergama_proposal_sections_log.txt. Reads Downloads/Bergama/cached/basemap/basemap.json (the site
+board writes it; without it the key map draws the stream line only) and its Data file (level table); palette from
 Downloads/Bergama/Data/bergama_palette.py if there (else the built-in colours).
-HOW WE KNOW IT WORKS: the text under the component reads "ProposalSections v1 · HH:MM · N s" and the log lists the
-two PDFs; each opens as one A0 page with four sections.
+HOW WE KNOW IT WORKS (v21): the text under the component reads "ProposalSections v21 · HH:MM · N s"; the log has
+"p12 ps_panel_1: labels ... none left out" for each panel and no "left out (no free place" warning; it also has
+"section p12 P1 W1 SKETCH" ... "P4", "keymap p12 module cuts=W1,W2,W3,W4 study_closed=1", "legend p12 hues=table",
+"trees p12 species=...", "p12 numbers 1-11 as CCH_STEPS: ..." and "items bergama_proposal_sections: drawing 5, ...";
+the booklet v31 shows p12.
 """
 import os
 import json
@@ -43,15 +167,17 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v3"
+VERSION = "v22"  # v22 5 Nov (round 7 S5): key map = SON page8 module at 109.2 x 22.0, panels fixed 194.8 x 92.0 (no fit), L6 label moves; v21.1 fix: common key map names never left out (the booklet places them); v21 4 Nov (layout L5): sketch labels exported as label items, none moved or left out (booklet places them); v20 4 Nov (round 6 S6): p12 = the 28 Oct 4-in-1 SKETCH page (f93d84b) as booklet items, hue table, key map v3, groups; v19.1 2 Nov: key map run warnings; v19 2 Nov (round 5 S9): W1-W4 on one page at 1:500 as booklet items (no sheet PDF), insets drawn again at their own scale, key map v2, bridges, no widths, warnings head; v18.1 v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "ProposalSections"
 OUT_FOLDER = "bergama_proposal_sections"
 LOG_NAME = "bergama_proposal_sections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
+STYLES = (("a", "A"),)                                # v13 (Aras 31 Oct): style a only, one sheet ..._A.pdf
 
-BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-OUT_DIR = os.path.join(BERGAMA, "output", OUT_FOLDER)
-LOG_DIR = os.path.join(BERGAMA, "logs")
+#@include ../common/bergama_paths.py
+BERGAMA = BERGAMA_ROOT
+OUT_DIR = bg_output(OUT_FOLDER)                    # v19: nothing is written there any more (no sheet PDF; C2)
+LOG_DIR = bg_logs()
 
 
 BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
@@ -59,10 +185,6 @@ BOARD_W, BOARD_H = 1189.0, 841.0     # A0 landscape, mm
 M = 14.0                             # board margin, mm
 
 OPTIONS = ("A",)                     # v2: option A only (organic only where the project meets the water), Aras 16:43
-
-CREDIT = u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"
-
-COURSE = u"ARCH 4410 Architectural Design Studio V · Yaşar University · Fall 2026"
 
 COL = {
     "sheet": "F4F3EE", "paper": "EFEDE6", "faint": "D8D5CC", "structure": "B0AC9C", "ink2": "847E75",
@@ -78,28 +200,25 @@ MP = {"storage": ("CBD9F8", "92A3C9", "3E4C6E"), "discharge": ("90C5D2", "4B92A3
       "agriculture": ("C6C08D", "948B49", "534E25"), "park": ("DFEBC0", "A7B67F", "49522B")}
 
 # ---------------------------------------------------------------- sources (short names printed on the board)
-RR = u"rain_river_levels/README"
-
-CR = u"CONCEPT_RECORD v2.4"
-
 # v3: sources as [n] on the drawings, the numbered key in the footer (water board v1.6 cite() / SRC_KEY). Fixed
 # order, so the numbers stay the same on every press.
-SRC_KEY = [
-    ("levels", RR + u" v1.1 table: levels calculated on the surveyed river-height cuts (Manning, main survey TIN)"),
-    ("rain", u"water_data/README: MGM 17742 normals 1991-2020, seasonal shares of the year's rain (arithmetic)"),
-    ("concept", CR + u" (Q1: east channel wall kept, default)"),
-    ("tiers", u"Aras's concept text: tiers, level 1 / 2 / 3"),
-    ("garden", u"card i01: Demeter's Garden, Begüm's idea, page and crop list (zones DG 1-2)"),
-    ("zones", u"zone base ZONES.md: WP 1-2 and the floodable boardwalk"),
-    ("plants", u"DATA_REGISTER PL-11, PL-12: olive and lavender, waterlogging"),
-    ("gauges", u"DSİ gauge yearbooks 2016-2021"),
-    ("survey", u"main survey: road edges YOL_SOSE"),
+# v9 (MIRAQUA 28 Oct, F5: public online sources only): the [n] of the concept record, Aras's tier text, card i01, the
+# zone base, the course survey's road edges and the hub decisions are gone (with their entries); plane and hamam keep
+# only their public sources; levels read as the water balance's (method + the DSİ design flow). In reading order.
+# v10: no [n] marks on the drawings any more (cite() removed); the key goes to the booklet's sources page and the log.
+# Rain, hamam and gauges went with the sketches; the bed width's public source comes from the level module.
+SRC_KEY = [   # v20: public sources only; the sketches cite them as {src:key} (PS_CITE, parts/90_booklet.py)
+    ("levels", u"Q100, Q500: DSİ design flows, Q500 263.3 m³/s (Danıştay 6. D. 2021/9521 E.)"),
+    ("plane", u"Ottoman squares with plane trees: ICOMOS 2014, Evaluation No 1457, Pergamon and its Multi-Layered "
+              u"Cultural Landscape, p. 281"),
+    ("plants", u"RHS, Lavender growing guide (no soil that becomes waterlogged over winter); FAO Ecocrop, olive (will not "
+               u"tolerate waterlogged soils)"),          # v8.1: the public pages of BK_SOURCES, not the internal register
 ]
 
 
-def cite(key):
-    """v3: the number of a source in the footer key, as "[n]"."""
-    return u"[{}]".format([k for k, _ in SRC_KEY].index(key) + 1)
+def ps_sources():
+    """v20: SRC_KEY (the sketch page prints no bed width, so the DSİ bed-width rows of v19 are gone)"""
+    return list(SRC_KEY)
 
 # ---------------------------------------------------------------- text metrics, page and PDF writer (water loop v2)
 _MCH = u' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
@@ -125,10 +244,10 @@ PT = 25.4 / 72.0
 CAP = 0.716
 
 def text_w(s, size, bold=False):
-    w = _W[1 if bold else 0]
-    return sum(w.get(c, _WX.get(c, 600 if c.isupper() else 556)) for c in s) / 1000.0 * size
+    """v17 (G-R4-1): the real Arial width (font_metrics.fm_width) of s at size mm"""
+    return fm_width(s, size / PT, bold)
 
-#@include ../common/wrap.py
+# v17: notes are wrapped by the page's TextPage (text_place.py tp.para), bold keywords between *stars*
 
 # ---------------------------------------------------------------- page and PDF writer (v1; see-through fills as bergama_diagrams v1.8)
 class Page(object):
@@ -166,278 +285,85 @@ _DIFF = "/Differences [129 /Gbreve 141 /gbreve 143 /Idotaccent 144 /dotlessi 157
 
 #@include ../common/_text_ops.py
 
+#@include ../common/pdf_fonts.py
+
+
 #@include ../common/write_pdf.py
 
 #@include ../common/_tree_rand.py
 
 # ---------------------------------------------------------------- composing the board from drawn parts
-# Every drawing is drawn on its own Page at its natural size (page mm), then placed on the board at one uniform
-# scale that fits its box (place). Text, lines and dashes scale with it, as a reduced print does.
+# v10: the page block is drawn in booklet print mm and placed on the board at 1 / BK_S (xform). Text, lines and
+# dashes scale with it, as a reduced print does.
 #@include ../common/items_bbox.py
 
 #@include ../common/xform.py
-
-#@include ../common/place.py
 
 # ---------------------------------------------------------------- drawing helpers (page mm, y up)
 #@include ../common/rect.py
 
 #@include ../common/node.py
 
-#@include ../common/para.py
+# ---------------------------------------------------------------- shared modules (revision 29 Oct, T2a / T2b)
+# v10: the level table (data first), the section parts before the plants, the figures (M7, through ps_fig
+# and ps_people), the basemap for the key map. Names checked: no module name is defined by this script.
+#@include ../common/data/LEVELS.py
 
-def flow_arrow(pg, x0, x1, y, col, lw=0.3, head=1.2):
-    """v3: a straight arrow from x0 to x1 at height y (the keyword row's links)."""
-    pg.line([(x0, y), (x1 - head * 0.8, y)], col, lw)
-    pg.poly([[(x1, y), (x1 - head, y + head * 0.45), (x1 - head, y - head * 0.45)]], fill=col)
+#@include ../common/levels.py
 
+# v16 (G16, D9): one spelling per bridge and place (bridge_name, place_name, cut_end_labels); DATA-1: the surveyed
+# sections of the four cuts (ground every 1 m), the water board's data part, read as data (no code copied)
+#@include ../common/data/NAMES.py
+#@include ../common/names.py
 
-def pict(pg, kind, x, y, sz):
-    """v3: a small pictogram in the square (x, y - sz)-(x + sz, y), on a 10 x 10 grid (after water board v1.6
-    icon()). Graphic only."""
-    u = sz / 10.0
-    lw = 0.07 * sz
-    ink, ink2 = COL["ink_dark"], COL["ink2"]
-    w1, w2, w3 = MP["discharge"][0], MP["discharge"][1], MP["discharge"][2]
+# v20: basemap.py brings keymap.py v3 with hues.py, annot.py, cch_points.py (round 6, S1): never included again here
+#@include ../common/basemap.py
+#@include ../common/grid.py
+#@include ../common/buildings.py
 
-    def P(pts):
-        return [(x + a * u, y - sz + b * u) for a, b in pts]
-
-    def R(a0, b0, a1, b1):
-        return P([(a0, b0), (a1, b0), (a1, b1), (a0, b1)])
-
-    def drop(a, b, r, col):
-        pg.poly([P([(a - r * 0.85, b + r * 0.45), (a, b + r * 2.2), (a + r * 0.85, b + r * 0.45)])], fill=col)
-        pg.circle(x + a * u, y - sz + b * u, r * u, fill=col)
-    if kind == "reed":
-        pg.poly([R(0, 0, 10, 2.2)], fill=w2)
-        for k_ in range(4):
-            a = 1.8 + k_ * 2.1
-            t = 6.6 + (k_ % 2) * 2.2
-            pg.line(P([(a, 0.8), (a + 0.3, t)]), MP["wetland"][2], lw)
-            pg.poly([R(a - 0.25, t - 1.8, a + 0.85, t + 0.2)], fill=MP["agriculture"][1])
-    elif kind == "cascade":
-        for a, b in ((0.4, 6.4), (3.6, 3.6), (6.8, 0.8)):
-            pg.poly([R(a, b, a + 2.8, b + 1.4)], fill=MP["storage"][1])
-        pg.line(P([(0.2, 9.4), (0.2, 6.2), (3.4, 6.2), (3.4, 3.4), (6.6, 3.4), (6.6, 0.6), (9.8, 0.6)]), ink, lw)
-    elif kind == "strip":
-        pg.poly([R(0, 3.6, 10, 6.4)], fill=w2)
-        flow_arrow(pg, x + 0.8 * u, x + 9.4 * u, y - sz + 5.0 * u, COL["white"], lw, 1.8 * u)
-    elif kind in ("steps", "climb"):
-        pg.poly([R(0.4, 0.6, 9.6, 3.0)], fill=w1)
-        pg.line(P([(0.2, 0.6), (3.4, 0.6), (3.4, 3.8), (6.6, 3.8), (6.6, 7.0), (9.8, 7.0)]), ink, lw)
-        if kind == "climb":                           # the river climbing the steps
-            pg.line(P([(1.6, 3.4), (5.0, 7.4)]), w3, lw * 1.2)
-            pg.poly([P([(5.6, 8.2), (3.9, 7.3), (5.3, 6.1)])], fill=w3)
-    elif kind == "level":                             # a block (the street level) above a dashed flood line
-        pg.poly([R(1.0, 6.0, 9.0, 9.4)], fill=COL["structure"])
-        for a in (0.4, 3.0, 5.6, 8.2):
-            pg.line(P([(a, 3.6), (a + 1.6, 3.6)]), w3, lw)
-        pg.poly([P([(4.2, 4.9), (5.8, 4.9), (5.0, 3.6)])], stroke=w3, lw=lw * 0.7)
-        pg.poly([R(0.4, 0.4, 9.6, 2.4)], fill=w1)
-    elif kind == "bridge":
-        arc = [(5 + 4.2 * math.cos(math.pi * i / 16.0), 1.0 + 4.2 * math.sin(math.pi * i / 16.0)) for i in range(17)]
-        pg.line(P(arc), ink2, lw)
-        pg.line(P([(0.2, 6.8), (9.8, 6.8)]), ink2, lw * 1.4)
-        pg.poly([R(0.6, 0.4, 9.4, 1.6)], fill=w1)
-    elif kind == "olive":
-        pg.poly([R(4.5, 0.4, 5.5, 4.4)], fill=ink2)
-        pg.circle(x + 5.0 * u, y - sz + 6.2 * u, 3.4 * u, fill=MP["agriculture"][0])
-        for a, b in ((3.8, 6.8), (6.0, 5.4), (5.4, 7.8)):
-            pg.circle(x + a * u, y - sz + b * u, 0.5 * u, fill=ink)
-    elif kind == "sun":
-        for k_ in range(8):
-            a = math.radians(k_ * 45.0)
-            pg.line(P([(5 + 3.0 * math.cos(a), 5 + 3.0 * math.sin(a)), (5 + 4.6 * math.cos(a), 5 + 4.6 * math.sin(a))]),
-                    ink2, lw)
-        pg.circle(x + 5.0 * u, y - sz + 5.0 * u, 2.5 * u, fill="E8C64A")
-    elif kind in ("drop", "notreat"):
-        drop(5.0, 2.8, 2.2, w2)
-        if kind == "notreat":
-            pg.line(P([(1.2, 8.8), (8.8, 1.2)]), COL["accent"], lw * 1.4)
-            pg.line(P([(1.2, 1.2), (8.8, 8.8)]), COL["accent"], lw * 1.4)
-    elif kind == "deck":
-        pg.poly([R(0.4, 0.4, 9.6, 2.6)], fill=w1)
-        pg.poly([R(0.4, 5.4, 9.6, 6.8)], fill=COL["soil_dk"])
-        for a in (2.0, 5.0, 8.0):
-            pg.line(P([(a, 5.4), (a, 1.0)]), ink2, lw)
-
-
-def chips(pg, x, ytop, items, size=2.0):
-    """v3: keyword chips in one row, each a pictogram and a keyword (the panel subtitles). Returns the right end."""
-    ch = size * 1.8
-    sz = ch - 0.8
-    for kind, lab in items:
-        w = 0.5 + sz + 0.8 + text_w(lab, size, True) + 1.2
-        pg.poly([rect(x, ytop - ch, x + w, ytop)], fill=COL["lane"], stroke=COL["faint"], lw=0.2)
-        pict(pg, kind, x + 0.5, ytop - 0.4, sz)
-        pg.text(lab, x + 0.5 + sz + 0.8, ytop - ch / 2 - size * CAP / 2, size, COL["ink"], bold=True)
-        x += w + 2.0
-    return x
-
-
-def frame(pg, box, title, sub=None):
-    """A drawing's panel on the board: white ground, a coloured rule on top, the title and one line under it.
-    v3: sub may be a list of (pictogram, keyword) chips instead of a sentence. Returns the box left for the drawing."""
-    x0, y0, x1, y1 = box
-    pg.poly([rect(x0, y0, x1, y1)], fill=COL["white"], stroke=COL["faint"], lw=0.25)
-    pg.poly([rect(x0, y1 - 1.2, x1, y1)], fill=MP["discharge"][1])
-    pg.text(title, x0 + 4.0, y1 - 7.6, 4.0, COL["ink_dark"], bold=True)
-    y = y1 - 9.0
-    if isinstance(sub, list):
-        chips(pg, x0 + 4.0, y - 0.4, sub)
-        y -= 2.6                                      # the same drawing box as a one-line subtitle (layout kept)
-    elif sub:
-        for ln in wrap(sub, 2.0, x1 - x0 - 8.0)[:2]:
-            y -= 2.6
-            pg.text(ln, x0 + 4.0, y, 2.0, COL["ink2"])
-    return (x0 + 4.0, y0 + 3.0, x1 - 4.0, y - 2.5)
-
-# ---------------------------------------------------------------- W3a  concept sections (pr1 v3.1 idea sketches)
-# SKETCH_SRC (end of this file) is pr1's sketch code; it runs in its own namespace and draws page items in pr1's
-# order. The element numbers come from node() of this board.
-_SK = []
-
-#@include ../common/sketch_engine.py
-
-def draw_concept(which, opt):
-    """which: "up", "k4", "k5" or "down" (SKETCH_FN); opt: form A (organic at the water) or B (no curves)."""
-    E = sketch_engine()
-    E["FORM"] = opt
-    del E["ZP"][:]
-    E["ORDER"][0] = 0
-
-    def NODE(o, x, y, n):
-        tmp = Page(0, 0)
-        node(tmp, o[0] + x, o[1] + y, n, opt, 2.6)
-        for it in tmp.items:
-            E["_put"](it, E["Z_TEXT"])
-    E["NODE"] = NODE
-    E["CITE"] = cite                                  # v3: source numbers [n] inside the sketches
-    E[SKETCH_FN[which]]()
-    pg = Page(0, 0)
-    pg.items = [it for _, _, it in sorted(E["ZP"], key=lambda e: (e[0], e[1]))]
-    return pg
 
 # ---------------------------------------------------------------- the board (A0 landscape, one page)
 #@include ../common/load_palette.py
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "Data")   # 25 Oct: every data file here
 
-# ================================================================ embedded engines
-# SKETCH_SRC: pr1_drawings v3.1's concept sketches (SKETCH style) with a page-item layer instead of Rhino baking;
-# owner names, working-area bars and figures printed elsewhere taken out (24 Oct). Run by sketch_engine().
+# v20 (round 6, Q9): the sketch engine and data/SKETCH_SRC.py are back (restored from f93d84b); the agriculture
+# script's p17 plant ladder includes the same SKETCH_SRC read-only.
+_SK = []
+#@include ../common/sketch_engine.py
 #@include data/SKETCH_SRC.py
 
+# v17 (round 4 S1 modules): the real font widths, ONE text placer (a collision RAISES), ONE marker, ONE block template
+#@include ../common/font_metrics.py
+#@include ../common/warn.py
+#@include ../common/text_place.py
+#@include ../common/item_export.py
 
-# ================================================================ the sheet (v1)
-PROPOSALS = [("up", u"1 · UPSTREAM ENTRY · COLLECT, CLEAN AND HOLD",        # v3: subtitles as keyword chips
-              [("reed", u"CLEAN · river + held runoff"), ("cascade", u"STORE · winter water"),
-               ("strip", u"SUMMER STRIP")]),
-             ("k4", u"2 · K4 BRIDGE · AMPHIBIOUS HERITAGE THRESHOLD",
-              [("steps", u"TIERS W / F / D"), ("climb", u"river may climb the steps"),
-               ("level", u"street level above Q500"), ("bridge", u"Roman bridge stays as it is")]),
-             ("k5", u"3 · K5 BRIDGE · DEMETER'S GARDEN (idea: Begüm)",
-              [("olive", u"PRODUCTIVE HERITAGE GARDEN"), ("sun", u"dry top · south-west bank"),
-               ("drop", u"watered by the clean river")]),
-             ("down", u"4 · DOWNSTREAM REACH · GIVE BACK",
-              [("reed", u"FLOODABLE PLANTING · clean-river fed"), ("deck", u"floodable boardwalk"),
-               ("notreat", u"no treatment here")])]
-SKETCH_FN = {"up": "concept_aras_sketch", "k4": "concept_begum_sketch", "k5": "concept_k5_sketch",
-             "down": "concept_nil_sketch"}
+#@include parts/80_key_map.py
+
+#@include parts/90_booklet.py
 
 
-def build_sheet(opt, log):
-    """The four proposals in section on one A0 landscape sheet, upstream to downstream (2 x 2)."""
-    pg = Page(BOARD_W, BOARD_H)
-    pg.poly([rect(0, 0, BOARD_W, BOARD_H)], fill=COL["sheet"])
-    X0, X1, G = M, BOARD_W - M, 4.0
-    top = BOARD_H - M
-    pg.text(u"The Proposals in Section", X0, top - 12.0, 12.0, COL["ink_dark"], bold=True)
-    # v3: the subtitle sentence as a keyword row: problem -> one move | 1 -> 11 upstream to downstream | the tag
-    fs, yc, dk = 2.9, top - 16.96, MP["discharge"][2]
-    yb = yc - fs * CAP / 2
-    x = X0
-    for i_, wd in enumerate((u"PROBLEM", u"ONE MOVE")):
-        pg.text(wd, x, yb, fs, dk, bold=True)
-        x += text_w(wd, fs, True) + 1.5
-        if i_ == 0:
-            flow_arrow(pg, x, x + 6.0, yc, dk, 0.35, 1.4)
-            x += 7.5
-    x += 8.0
-    pg.text(u"upstream", x, yb, fs, dk, bold=True)
-    x += text_w(u"upstream", fs, True) + 2.5
-    flow_arrow(pg, x - 1.0, x + 11 * 4.6 + 4.0, yc, dk, 0.35, 1.4)   # under the roundels: one way, with the river
-    for n_ in range(1, 12):
-        node(pg, x + 1.6, yc, n_, opt, 1.6)
-        x += 4.6
-    x += 5.5
-    for wd in (u"downstream · one way, with the river", u"1-11 as on the water board"):
-        pg.text(wd, x, yb, fs, dk, bold=True)
-        x += text_w(wd, fs, True) + 8.0
-    tag = u"schematic · relative levels · not to scale"
-    pg.poly([rect(x, yc - 2.2, x + text_w(tag, 2.4) + 3.0, yc + 2.2)], fill=COL["lane"], stroke=COL["structure"],
-            lw=0.25)
-    pg.text(tag, x + 1.5, yc - 2.4 * CAP / 2, 2.4, COL["ink"])
-    pg.text(u"PanelReview1A · organic forms only where it meets the water" if opt == "A" else
-            u"PanelReview1B · no organic forms anywhere", X0, top - 22.5, 2.4, COL["ink"])
-    y1 = top - 26.0
-    pg.line([(X0, y1), (X1, y1)], COL["structure"], 0.3)
-    y0 = M + 16.0
-    cw, ch = (X1 - X0 - G) / 2.0, (y1 - G - y0 - G) / 2.0
-    for i, (key, ttl, sub) in enumerate(PROPOSALS):
-        cx = X0 + (i % 2) * (cw + G)
-        cy = y1 - G - (i // 2 + 1) * ch - (i // 2) * G
-        b = frame(pg, (cx, cy, cx + cw, cy + ch), ttl, sub)
-        place(pg, draw_concept(key, opt), b, 3.0, "C", log, "section " + key)
-    t = (u"Sources by number: " + u"  ".join(u"[{}] {}".format(i + 1, v) for i, (_, v) in enumerate(SRC_KEY)) +
-         u"  ·  sketch style: water board v1.3")       # v3: the numbered source key (the [n] on the sketches)
-    y = para(pg, X0, M + 13.0, X1 - X0, t, 1.9, COL["ink2"])
-    pg.text(u"{} · {} · bergama_proposal_sections {}".format(CREDIT, COURSE, VERSION), X0, y - 2.6, 1.9, COL["ink2"])
-    return pg
-
-
+# ================================================================ v19: no sheet; the booklet items (parts/90_booklet.py)
 def main():
     t0 = time.time()
-    os.makedirs(OUT_DIR, exist_ok=True)
+    wn_reset()                                        # v19 (C1): one warning sink, counted in the log head
     log = []
     pal = load_palette([DATA_DIR], log)
-    lines = []
-    for opt in OPTIONS:
-        t1 = time.time()
-        pg = build_sheet(opt, log)
-        path = os.path.join(OUT_DIR, OUT_NAME.format(opt))
-        try:
-            write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
-        except (IOError, OSError):
-            path = path.replace(".pdf", datetime.datetime.now().strftime("_%H%M%S.pdf"))
-            write_pdf(pg, path, u"Bergama proposal sections {} {}".format(VERSION, opt))
-        lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path), time.strftime("%H:%M:%S"), time.time() - t1))
-    head = [u"Output: {}".format(OUT_DIR)] + lines + [x for x in log if x]
+    ix = Ix("bergama_proposal_sections", "bergama_proposal_sections", VERSION)
+    ps_items(ix, log)
+    path = ix.save()
+    log.append(ix.summary())
+    log.append(u"trigger: " + (TRIG_WHY[0] or u"-"))     # what started this run
     if pal is None:
-        head.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
-    return u"\n".join(head + [u"{} {}, {:.1f} s".format(GH_LABEL, VERSION, time.time() - t0)])
+        log.append(u"palette: built-in colours (no bergama_palette.py in Downloads/Bergama/Data)")
+    head = [u"%s %s · %s · %.1f s" % (GH_LABEL, VERSION, time.strftime("%H:%M"), time.time() - t0),
+            u"Items: %s (no sheet PDF: the booklet composes p12)" % path]
+    return u"\n".join(wn_compose(tp_log_lines() + [x for x in log if x], head=head))
 
 
-def chain_fire(v, key):
-    """25 Oct 10:20 (one-click chain): a NEW "done ..." text from the previous script fires this script once."""
-    if isinstance(v, (list, tuple)):                 # several wires (e.g. a Button and a done): take the done text
-        v = next((x for x in v if str(x).startswith("done ")), None)
-    s = str(v) if v is not None else ""
-    if not s.startswith("done "):
-        return False
-    try:
-        import scriptcontext as _scx
-        try:
-            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
-        except Exception:
-            pass
-        if _scx.sticky.get(key) == s:
-            return False
-        _scx.sticky[key] = s
-        return True
-    except Exception:
-        return False
+#@include ../common/trigger.py
+TRIG_WHY = [None]                                     # v17: what started this run (trig_should_run), for the log
 
 
 def done_text(ran, ok, secs):
@@ -463,11 +389,14 @@ if "ghenv" in globals():
         _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
     except Exception:
         pass
-    _pressed = any(v is True for k, v in list(globals().items())
-                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "rhino_bake", "done")) or \
-        any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    _pressed, _why, _btn = trig_should_run("bergama_proposal_sections_chain")   # v17 (round 4 S1): one trigger file
+    TRIG_WHY[0] = _why
+    if _sc.sticky.get(_k + "_ver") != VERSION:     # v8: a newly pasted version shows itself at once, idle
+        for _s in ("_status", "_done"):
+            _sc.sticky.pop(_k + _s, None)
     if _pressed:
         _t0 = time.time()
+        _sc.sticky[_k + "_ver"] = VERSION
         try:
             _res = main()
         except Exception as _ex:
@@ -478,7 +407,7 @@ if "ghenv" in globals():
                                       time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
         _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
     done = _sc.sticky.get(_k + "_done", "idle")
-    log = _sc.sticky.get(_k + "_log", "Press the Button to write the proposal sections to " + OUT_DIR)
+    log = _sc.sticky.get(_k + "_log", "Press the Button to export the proposal sections to " + bg_booklet(OUT_FOLDER))
     print(log)               # 25 Oct 12:10: the canvas's log output is Grasshopper's "out" (printed text): print the log
     try:
         ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821

@@ -2,24 +2,24 @@
 
 | function / data | file | line |
 |---|---|---|
+| bergama_paths | ../common/bergama_paths.py | - |
 | BASE_DATA | data/BASE_DATA.py | - |
-| _gh_inputs | ../common/_gh_inputs.py | - |
-| chain_fire | ../common/chain_fire.py | - |
+| trigger | ../common/trigger.py | - |
+| NAMES | ../common/data/NAMES.py | - |
+| names | ../common/names.py | - |
 | done_text | ../common/done_text.py | - |
-| gin | code.py | 138 |
-| to_bool | code.py | 148 |
-| find_button | code.py | 156 |
+| gin | code.py | 130 |
 | _key | ../common/_key.py | - |
-| mem_get | code.py | 175 |
+| mem_get | code.py | 145 |
 | mem_set | ../common/mem_set.py | - |
 | gh_status | ../common/gh_status.py | - |
 | gh_message | ../common/gh_message.py | - |
-| base_items | code.py | 204 |
-| shape_hash | code.py | 211 |
-| survey_on_study_areas | code.py | 239 |
-| study_check | code.py | 256 |
-| ensure_layer | code.py | 286 |
-| calisma_areas | code.py | 301 |
-| near_work | code.py | 334 |
-| bake | code.py | 347 |
-| run | code.py | 428 |
+| base_items | code.py | 174 |
+| shape_hash | code.py | 181 |
+| survey_on_study_areas | code.py | 209 |
+| study_check | code.py | 226 |
+| ensure_layer | code.py | 256 |
+| calisma_areas | code.py | 271 |
+| near_work | code.py | 304 |
+| zb_bake | code.py | 317 |
+| main | code.py | 401 |

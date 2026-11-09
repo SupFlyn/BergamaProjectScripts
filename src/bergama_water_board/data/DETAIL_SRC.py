@@ -86,7 +86,7 @@ SEASONS = [
          climate=["Rain 28.5 mm (4.6 %), 5.9 rain days, mean 26.5 C (measured, WMO 1991-2020).",
                   "Rain minus open-water evaporation -552.2 mm: the deepest deficit (calculated, case.md s.1)."],
          river=["Natural river Jul-Sep: monthly means 0.04-0.11 m on this cut, a trickle (calculated, indicative: bed",
-                "interpolated); bed dry (< 2 cm) about 11 days a year. Drawn: the continuous regulated water strip 4.0 x 0.30 m, topped up from",
+                "interpolated); bed dry (< 2 cm) about 11 days a year. Drawn: the continuous regulated water strip 400 cm × 0.30 m, topped up from",
                 "storage and flowing one way downstream (design, case.md s.4; Aras 17 Oct 22:01, 19 Oct 07:43)."],
          life=["All bands open; the strip used: wading at 0.30 m, cooling, evening lights; dry meadow",
                "as a lie-down lawn (concept s.10.1, design). People sit at the strip edge with their feet in the water."],
@@ -117,7 +117,7 @@ SEASONS = [
                        (597.8, 2, True), (602.0, 0, True)]},
          bikes={"1": [(543.0, False)], "2": [(650.6, True)]}),
 ]
-DAYS_WET = "Days a year at or above each height on this cut (mean WY2016-2021, calculated; below 0.3 m indicative): " \
+DAYS_WET = "Days a year at or above each height on this cut (mean WY2016-2021, calculated): " \
            "0.10 m 278 d, 0.30 m 69 d, 0.50 m 9 d, 1.00 m under 1 d; bed dry (< 2 cm) about 11 d."
 
 # ---------------------------------------------------------------- the design (all design values)
@@ -134,7 +134,7 @@ SECTIONS = [
                    (561.0, 565.0, 44.90, "deck", "Wooden deck"),
                    (565.0, 571.0, 44.20, "veg", "Native vegetation")],
          regrade=(571.0, 578.0),            # gravel slope from the last terrace down to the existing bed
-         band_more=[(571.0, 590.0, "gravel", "River gravel"), (590.0, 594.0, "water", "Summer water strip")],
+         band_more=[(571.0, 590.0, "gravel", "Stream gravel"), (590.0, 594.0, "water", "Summer water strip")],
          rails=[(554.0, -1), (565.0, -1)],   # (s, side of the post: -1 = just left of s) single posts at edges
          trees=[(541.0, 3.9, 7.5, "plane")],
          shrubs=[(558.2, 1.3, 1.1), (559.9, 1.5, 1.2), (566.3, 1.7, 1.4), (568.2, 1.9, 1.5), (570.0, 1.5, 1.2)],
@@ -142,18 +142,20 @@ SECTIONS = [
          lavender=[(548.2, 550.8)],
          reeds=[(573.5, 576.5, 1.9), (580.0, 588.5, 2.2), (595.0, 598.0, 2.0)],
          iris=[(576.5, 580.0), (588.5, 589.6)],
-         callouts=[(540.0, None, "Greenery and planters (plane tree)"),
+         callouts=[(540.0, None, "Oriental plane (Doğu çınarı)"),
                    (543.0, None, "Bike way"),
                    (546.0, None, "Concrete walkway"),
-                   (549.5, None, "Lavender bed above the bank top"),
+                   (549.5, None, "French lavender (Karabaş otu)"),
                    (552.4, None, "Raised walk +47.60 above Q500"),
                    (553.85, DRY + 1.10, "Handrail corten steel"),
                    (555.5, None, "Multilevel walkway platforms"),
                    (559.0, None, "Flood- and drought-tolerant planting"),
                    (563.2, None, "Floodable boardwalk, open deck"),
-                   (568.0, None, "Tamarix and Vitex terrace"),
-                   (582.0, None, "Reeds and iris at the bed edge"),
-                   (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
+                   (567.0, None, "Tamarisk (Ilgın)"),
+                   (569.5, None, "Chaste tree (Hayıt)"),
+                   (578.2, None, "Yellow flag iris (Sarı süsen)"),
+                   (584.0, None, "Common reed (Kamış)"),
+                   (592.0, None, "Summer water strip 400 cm × 0.30 m")]),   # v4 (MIRAQUA 28 Oct, G13 / P15.1)
     dict(key="2", title="SECTION 2-2'", side="NORTH-EAST BANK", s_from=652.0, s_to=588.0, look="looking south-east (downstream)",
          surfaces=[(652.0, 649.0, DRY, "asphalt", "Coloured asphalt"),
                    (649.0, 645.0, DRY, "concrete", "Concrete walkway"),
@@ -162,7 +164,7 @@ SECTIONS = [
                    ("steps", 638.0, 633.5, DRY, 45.35, 5, "concrete", "Concrete steps"),
                    (633.5, 622.5, 45.35, "concrete", "Concrete walkway")],
          regrade=(622.5, 619.95),
-         band_more=[(619.95, 594.0, "gravel", "River gravel"), (594.0, 590.0, "water", "Summer water strip")],
+         band_more=[(619.95, 594.0, "gravel", "Stream gravel"), (594.0, 590.0, "water", "Summer water strip")],
          rails=[],
          balcony=dict(s0=638.0, s1=617.0, top=DRY, thick=0.35, columns=(631.0, 624.0)),
          pergola=dict(posts=(649.6, 645.4), plates=[(650.6, 644.6, 3.20), (648.4, 643.2, 3.55)]),
@@ -175,15 +177,16 @@ SECTIONS = [
          callouts=[(650.5, None, "Bike way"),
                    (648.0, DRY + 3.55, "Shading structures"),
                    (646.4, None, "Walkway"),
-                   (643.5, None, "Greenery and planters"),
+                   (643.5, None, "Oriental plane (Doğu çınarı)"),
                    (640.0, None, "Promenade +47.60 above Q500"),
-                   (636.0, None, "Amphitheatre toward the river"),
+                   (636.0, None, "Amphitheatre toward the stream"),
                    (628.0, None, "Floodable lower walk"),
                    (625.0, DRY + 1.10, "Handrail corten steel"),
-                   (619.0, DRY, "Balcony towards the river (beyond the cut)"),
+                   (619.0, DRY, "Balcony towards the stream (beyond the cut)"),
                    (624.0, 46.40, "Column support"),
-                   (610.0, None, "Reeds and iris at the bed edge"),
-                   (592.0, None, "Summer water strip 4.0 x 0.30 m")]),
+                   (615.0, None, "Common reed (Kamış)"),
+                   (610.5, None, "Yellow flag iris (Sarı süsen)"),
+                   (592.0, None, "Summer water strip 400 cm × 0.30 m")]),   # v4 (MIRAQUA 28 Oct, G13 / P15.1)
 ]
 
 # ---------------------------------------------------------------- colours (reference language)
@@ -1313,7 +1316,7 @@ TREE_STYLES = {
     "context": dict(dark="ADB694", mid="BCC2A6", light="D7DAC7", trunk="A39E90", shadow="B0AC9C", shadow_a=0.16,
                     lobes=1.0),
 }
-TREE_ALPHA = (0.62, 0.68)                # opacity of the leaf clusters behind and in front of the branches
+TREE_ALPHA = (1.0, 1.0)                  # closing 31 Oct (D7): leaf clusters opaque, never see-through
 TREE_MIN_MM = 0.25                       # smallest crown radius drawn on the page, mm
 
 
@@ -2100,7 +2103,7 @@ def veg_shrub(pg, X, Y, h, w, seed, kind=0, layer="planting"):
         lk = 2 if kind == 2 else (1 if r.random() < 0.2 else 0)
         sz = size * (0.7 + 0.6 * r.random())
         pg.poly([_leaf(px, py, sz, r.random() * 6.283, lk, r)], fill=_tone(max(0, min(1, lit - 0.3 * depth)), r, SEA["shrub_tones"]),
-                stroke=LEAF_EDGE if r.random() < 0.25 else None, lw=0.03, layer=layer, alpha=0.9)
+                stroke=LEAF_EDGE if r.random() < 0.25 else None, lw=0.03, layer=layer, alpha=1.0)
 
 
 def veg_blade(pg, X, Y, length, ang, width, curl, col, layer="planting"):
@@ -2308,7 +2311,7 @@ def callouts(pg, S, placed, ybase, size):
 
 
 def dims(pg, S, y):
-    """Bottom chain: the design widths in mm (red), ticks at every boundary."""
+    """Bottom chain: the design widths in cm (red; water board v1.14, was mm), ticks at every boundary."""
     bounds = []
     for sa, sb, z, mat, lab in S.flats:
         bounds += [sa, sb]
@@ -2320,9 +2323,10 @@ def dims(pg, S, y):
     for X in xs:
         pg.line([(X - 0.8, y - 0.8), (X + 0.8, y + 0.8)], DIM, 0.2, layer="dimensions")
         pg.line([(X, y - 1.2), (X, y + 1.2)], DIM, 0.1, layer="dimensions")
-    for i in range(len(bounds) - 1):
-        mm = abs(bounds[i + 1] - bounds[i]) * 1000.0
-        pg.text("%d" % round(mm), (xs[i] + xs[i + 1]) / 2, y + 1.0, 1.9, DIM, align="C", layer="dimensions")
+    for i in range(len(bounds) - 1):          # water board v1.14 (Aras 27 Oct): the widths in cm, 7.5 pt
+        cm = abs(bounds[i + 1] - bounds[i]) * 100.0
+        pg.text("%d" % round(cm), (xs[i] + xs[i + 1]) / 2, y + 1.0, 2.65, DIM, align="C", layer="dimensions")
+    pg.text("cm", xs[-1] + 2.0, y - 0.9, 2.65, DIM, layer="dimensions")
 
 
 def vdims(pg, S, levels, x):
@@ -2380,7 +2384,7 @@ def swatch(pg, x0, x1, y, h, mat, seed):
 def band(pg, S, y, h=9.0):
     items = [(sa, sb, mat, lab) for sa, sb, z, mat, lab in S.flats] + list(S.d["band_more"])
     ra, rb = S.d["regrade"]
-    items.append((ra, rb, "gravel", "River gravel"))
+    items.append((ra, rb, "gravel", "Stream gravel"))
     items.sort(key=lambda t: S.X(t[0]) + S.X(t[1]))
     merged = []
     for a, b, mat, lab in items:                               # neighbours with the same label become one swatch
@@ -2388,17 +2392,22 @@ def band(pg, S, y, h=9.0):
             merged[-1] = (merged[-1][0], b, mat, lab)
         else:
             merged.append((a, b, mat, lab))
-    for a, b, mat, lab in merged:
+    drop = 0.0                                # water board v1.14: 7.5 pt names, every other one a row lower
+    for j, (a, b, mat, lab) in enumerate(merged):
         x0, x1 = sorted((S.X(a), S.X(b)))
         swatch(pg, x0, x1, y, h, mat, S.d["key"])
-        for i, l in enumerate(wrap(lab, max(8, int((x1 - x0) / 1.4)))):
-            pg.text(l, (x0 + x1) / 2, y - 3.6 - i * 2.6, 2.0, INK2, align="C", layer="band")
+        lines = wrap(lab, max(6, int((x1 - x0 + 4.0) / 1.5)))
+        y0 = y - 3.6 - (drop if j % 2 else 0.0)
+        for i, l in enumerate(lines):
+            pg.text(l, (x0 + x1) / 2, y0 - i * 3.4, 2.65, INK2, align="C", layer="band")
+        if j % 2 == 0:
+            drop = len(lines) * 3.4 + 0.8
 
 
 # ================================================================ one section
 def draw_section(pg, S, x_left, y_top, notes, sea):
     d = S.d
-    size = 2.3
+    size = 2.65                               # water board v1.14: callouts at 7.5 pt (was 2.3 mm)
     # vertical extents
     tops = [S.surf(t[0]) + t[2] for t in d["trees"]] + [DRY + 1.1]
     if d.get("pergola"):

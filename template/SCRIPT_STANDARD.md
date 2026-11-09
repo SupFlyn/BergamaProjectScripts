@@ -1,4 +1,4 @@
-# Bergama script standard (25 Oct 2026)
+# Bergama script standard (25 Oct 2026; folders updated 27 Oct)
 
 Every new or edited Grasshopper script follows this. Start a new script from `bergama_script_template.py`, which is in this folder. Each rule names the message from Aras it comes from.
 
@@ -6,9 +6,12 @@ Every new or edited Grasshopper script follows this. Start a new script from `be
 | folder | holds | rule |
 |---|---|---|
 | `Data/` | input data files: osm, places, environment, land cover, palette | read from here by default, with no path inputs. An input may still override (25 Oct 09:49) |
-| `output/<script folder>/` | PDFs and results JSON | one folder per script. Other scripts read results from here (24 Oct 08:28) |
-| `cached/<script folder>/` | caches | 24 Oct 08:28 |
-| `logs/` | ONE log per script, `<script base name>_log.txt`, with no version in the name, overwritten by each press | 25 Oct 09:34-09:35, 09:55. Nothing but log files goes in logs/ (10:45) |
+| `output/<script folder>/` | FINAL PDFs ONLY (sub-folders allowed, e.g. the board's selinus_board_pdf) | one folder per script (24 Oct 08:28); nothing else, no logs, no JSON, no images (27 Oct 11:07) |
+| `cached/<script folder>/` | caches, results JSON other scripts read, rendered images, any other working file | 24 Oct 08:28; results moved here from output/ 27 Oct 11:07 |
+| `cached/booklet/<script folder>/` | the script's booklet assets (blocks.json, booklet results, images); the booklet's own leftovers in `cached/booklet/` | 27 Oct 11:07 |
+| `logs/` | ONE log per script, `<script base name>_log.txt`, with no version in the name, overwritten by each press; extra log files or log folders in `logs/<script folder>/` | 25 Oct 09:34-09:35, 09:55; 27 Oct 11:07 |
+
+**Paths come from one place (27 Oct):** `src/common/bergama_paths.py` (`bg_output`, `bg_cache`, `bg_booklet`, `bg_logs`, `bg_first`, `bg_tidy_output`), included near the top of every script (the template carries a copy). Never build a Bergama path by hand. Readers look in the new place first and fall back to where older versions wrote (`bg_first`). Every `main()` ends with `bg_tidy_output(OUT_FOLDER)`: anything not a PDF left in output/ is moved (never deleted) to logs/ (log files) or cached/ (the rest), so a later mistake cannot leave clutter in output/.
 Folders are created by the script. Nothing is written anywhere else: no temp state files and no copies of the log (25 Oct 09:55). Worker scratch folders for parallel compute are the only exception. Cleanup is ours, because Aras cannot delete folders (24 Oct 08:52).
 
 ## 2. Component
@@ -24,6 +27,7 @@ Folders are created by the script. Nothing is written anywhere else: no temp sta
 ## 3. Text under the component and log
 - Under the component: `Name version · HH:MM · N s` after a run, `Name version · idle` before one, `· ERROR` on an error (25 Oct 09:44). Names are CamelCase with no order numbers (09:45). Current names: ZoneBase, MasterPlan, WaterBalance, MainBoard, CityLink, AgriCulture, WaterBoard.
 - The log shows the main destination, one line per file with its time, and the version plus total time. Nothing more.
+- **Live version (Aras 27 Oct 15:35):** the text under the component and the log output show the PASTED script's version at once. The script stores the version of its last run with the status; when that differs from `VERSION`, it drops the old time, log and warnings and shows `Name version · idle`. Applied to a script at its next edit (Aras 16:06), not as a sweep.
 - Errors go into the `log` panel and the log file; an old log never stays on screen after a failed run (25 Oct 09:52).
 - The panel keeps the last log for this Rhino session only (scriptcontext.sticky). If sticky loses it, the script reads its logs/ file back. Nothing is kept across Rhino restarts (25 Oct 09:55).
 - A missing or bad file must fall back to built-in data. It must never leave the drawing empty.
@@ -48,11 +52,20 @@ Folders are created by the script. Nothing is written anywhere else: no temp sta
 - Legends are drawn samples with plain names, only what the sheet draws (masterplan v17). Never hex codes.
 - Keep the layout and look of an accepted sheet: replace text, do not restyle the frame (water board v1.4/v1.5 were rejected for that, 25 Oct 13:12).
 - Check before delivery: no visible string on a sheet longer than about 60 characters, except titles of names and the source key.
+- No caveat notes on drawings (Aras 25 Oct 21:50-21:51): keep the label, drop the caveat: "clean strip water · intake and lift" stays, ": not designed" goes. Same for "(not verified)", "route not designed", "schematic, not to scale" and the like, on every sheet and booklet page. Open points go to the log, never on the sheet.
+- No white-boxed (haloed) labels on maps (Aras 25 Oct 21:41): labels sit on the drawing in plain text, placed where they do not collide.
+- No contour / topography lines on any axonometric (Aras 25 Oct 21:42).
+- NEVER STRETCH (Aras 25 Oct 22:02, "not stretch anything ever like EVER"): one uniform scale for x and y in every drawing, section and booklet crop; no vertical exaggeration, no one-axis fitting.
 
 ## 6. Changing a script
+- **NO OFFLINE RUNS OR CHECKS (Aras 27 Oct 17:52, project-wide):** never run, simulate, compile-test or compare a script offline (no `tools/check.py`, `chain.sh`, `compare.sh`, py_compile, pyflakes, worker simulations). Aras runs every script himself and sends errors. `tools/build.py` is still used to make the file. This overrides the check steps below.
 - **Edit in the repo, not in the big file** (Aras 25 Oct 17:27: "as the scripts became too big you kinda warp them each time you edit them"). Source: github.com/SupFlyn/BergamaProjectScripts (saved to the project; backup bundle `scripts_repo/`). Each script is `src/<name>/` (code, `data/` = built-in data, `parts/`, `MAP.md` = function -> file and line) plus `src/common/` (helpers with the same text in 2+ scripts). Steps (repo README): `tools/setup.sh` once per container, then edit the part, `tools/build.py` (-> `dist/`, one self-contained .py as before), `tools/check.py old new` (lost / added / changed / twice-defined functions, new undefined names), `tools/chain.sh` old and new + `tools/compare.sh` (all 8 scripts offline on the real survey, fake Rhino, frozen clock: same files = same product), then commit and copy `dist/` to `scripts/`. A script changed outside the repo goes back in with `tools/split.py` (round trip must give the same bytes). Never test with Rhino MCP / Remote Control (Aras 17:32, too token heavy). A new script from the template is added with `tools/split.py`.
+- Built-in data (Aras 25 Oct 21:29, shorter scripts): `tools/build.py` writes each script's data blocks to `dist/Data/<script>_data.py`; the script reads them from `Downloads/Bergama/Data/` (md5-checked, a clear error if missing or from another build). Deliver the script and its Data file together (`scripts/` + `scripts/Data/` + kit zip `Data/`). Heavy results that depend only on the inputs are worked out once and kept (Store cache keyed on inputs + code), never recomputed in the same run (21:29: "check once and cache it").
+- **Version numbers (Aras 27 Oct 15:37-15:40):** a bugfix = the next minor step (v10 -> v10.1; scripts on two decimals step the last digit, v1.14 -> v1.15); a feature added, changed or removed = the next whole number (v10.x -> v11, v1.14 -> v2; v2.99 -> v3). File names use `_` for the dot (`_v10_1`).
+- **Laptop speed (Aras 27 Oct 16:24):** at each script's next change, also make it faster on a laptop CPU (i5-12450HX: chain ~1600 s vs ~400 s on the desktop) without changing the output: cache repeated work, no per-object document calls inside loops, parse data once. Not a sweep.
 - A new version gets a new file name `_vN`. Move the old one to `scripts/_superseded/` and delete superseded functions (lesson of 18 Oct 17:33). Small fixes made the same day, before Aras has run the script, may be done in place with the version kept; say so in the reply.
-- In the same turn, update: `run_kit_2026-10-25/RUN_GUIDE.md`, then the kit zip, then the `library/START.md` row, then the `library/_index/MASTER_INDEX.md` row, then memory.
+- **SCRIPT_MAP (Aras 28 Oct 12:59):** every script change updates `library/SCRIPT_MAP.md` in the same turn: new/renamed/removed drawing, crop id, page, output file or reader = edit its rows; new version = the file names. `tools/build.py` refreshes the line numbers (or `python3 tools/script_map.py`); a "NOT FOUND" row = fix the map. For a revision of one drawing read SCRIPT_MAP first, then only the functions it names.
+- In the same turn, update: `library/SCRIPT_MAP.md`, `run_kit_2026-10-25/RUN_GUIDE.md`, then the kit zip, then the `library/START.md` row, then the `library/_index/MASTER_INDEX.md` row, then memory.
 - Check that it compiles. Aras runs it in Rhino; never list a run as waiting on him.
 - The reply ends with: "If it fails, set Effort to High before you paste the error."
 
@@ -75,6 +88,7 @@ Folders are created by the script. Nothing is written anywhere else: no temp sta
 | 16:41-16:43 | masterplan: one sheet (alt 1 with the v18 changes, PROMENADE band), option A only; project rule: all scripts drop option B | masterplan v18 > v19 |
 | 16:43 | option A only, project-wide (Aras): option B removed | zone base v8 > v9, water balance v2.2 > v2.3, water board v1.6 > v1.7, proposal sections v1 > v2, masterplan v19 |
 | 17:00 | VISUAL FIRST (§5b) for every output | all output scripts, one at a time from 25 Oct 17:20 (audit: batch_2026-10-25_visual_first/VISUAL_AUDIT.md) |
+| 27 Oct 11:07 | output/ = final PDFs only; logs/ = all logs; cached/ = results + working files; cached/booklet/ = booklet assets; one shared path module + bg_tidy_output at the end of every run; no source footers on sheets (each script writes its [n] key to blocks.json "sheet_sources") | zone base v10, masterplan v24, water balance v2.7, board v44, city link v1.11, agriculture v1.6, water board v1.14, proposal sections v7, booklet v10, template |
 
 ## 8. A3 BOOKLET (Aras 25 Oct 18:37, every output, drawing, diagram, label and script)
 - Format: every page landscape A3, 420 x 297 mm. Everything reads as ONE booklet: one grid, one type system, a logical page order.
@@ -83,4 +97,17 @@ Folders are created by the script. Nothing is written anywhere else: no temp sta
 - Type, read at 40-60 cm; size follows design importance: page title 36-48 pt; section heading 20-28; subheading 14-16; key statement 12-14; body 9-11 (min 9); captions, labels, sources 7-8 (min 7). Drawing labels meet the same minimums at A3 print size. At most 2 typefaces, few weights; body lines 50-75 characters.
 - Grid: one modular grid on every page (12 columns, 12-15 mm margins, 4-5 mm gutters, baseline grid); every element aligned to it; one set of spacing values; neither cramped nor large empty gaps.
 - Reading order: one clear order and ONE focal point per page. Top-left = most crucial, bottom-right = least; a contrast-coloured image may be the focal hook anywhere, usually mid-page. Title block, page number, project name and legend sit in the same place on every page.
+- SAME DRAWING AS THE SHEET (Aras 25 Oct 21:47): every booklet drawing is a crop of the script's own sheet PDF (the panel's rectangle written to booklet/blocks.json), shown with the sheet's own words (booklet v3, Aras 26 Oct 06:02: never re-set them). No separate booklet redraws. To change a booklet drawing, change the sheet.
+- ONE DRAWING, ONE PAGE (Aras 26 Oct 06:35, lasting): never divide one drawing over two booklet pages, and show each drawing only once.
+- ROUND SCALES ONLY (Aras 26 Oct 06:35, lasting): every drawing's scale is a round number (1:500, 1:1,000, 1:2,000, 1:2,500, 1:5,000, 1:10,000 ...), never 1:7,329: take the largest round scale that fits; x and y always scaled alike.
+- STANDARD SCALES (Aras 27 Oct, booklet Prompt 8): only 1:200, 1:250, 1:500, 1:1,000, 1:2,000, 1:2,500, 1:5,000, 1:10,000, 1:20,000; the caption, the drawing and the page title give the same scale; scale bars and north arrows never on the drawing or its caption.
+- SCALE BAR BESIDE EVERY ORTHOGONAL DRAWING (Aras 28 Oct 11:38-11:39, project-wide): every plan, section or elevation has its own scale bar right next to it, one per drawing. Diagrams (not orthogonal drawings) and key maps need none.
+- UNITS (Aras 28 Oct 13:21 + MIRAQUA brief v4 G13, project-wide): dimensions in cm, areas in m², heights and levels in m with 2 decimals (+47.60, 6.00 m). ONE UNIT PER DRAWING: within one drawing every quantity of a kind uses one unit; keep the same units across the whole page wherever the page allows (if a page gives areas in ha, use ha everywhere on it). Where a cm or m² figure gets unreadable, step up one unit (m or km; ha), consistently for each drawing type, never mixed in one drawing. Every scale bar and dimension states its unit; converting a unit does not change the value.
 - References: library/examples/booklet_boards/ (13 boards, cards there). Theory notes and the booklet's own grid and type values: booklet/ in the project folder (design-language.md).
+
+## 9. ROUND 5: PRODUCE, THEN COMPOSE; WARN, NEVER STOP (Aras 1 Nov 17:11, 18:51, 22:00, 22:37; S1)
+- **Checks warn, never stop:** every layout or content check hit is ONE line `WARNING <page> <kind>: ...` plus an orange Grasshopper warning, through `src/common/warn.py` (`wn_warn`; include it before `text_place.py`, which then shares its list). The log starts with `<n> warnings` followed by every WARNING line, made by `wn_compose(log_lines)`, so the count always equals the WARNING lines. Hard stops only for missing data, fonts or levels.
+- **Content scripts export, the booklet composes:** a content script draws no page and no page text. It hands every drawing (true-scale geometry, draw order) and every text (role, string, anchor point) to `Ix` (`src/common/item_export.py`) and saves `Downloads/Bergama/cached/booklet/<folder>/items.json`. No per-script sheet PDFs or previews; single drawings may still be saved under `output/<folder>/`. The booklet (`src/bergama_booklet/parts/00_core.py` … `70_check.py`) picks scales, sets justified text at >= 4 pt, places labels, legends, level markers and scale bars, and runs the layout check.
+- **Text floor 4 pt** after scaling (`GRID_MIN_PT`, D1); starting sizes per role in `grid.py` `GRID_ROLE_PT`.
+- **Chain:** a chain run starts only with a Button press in the open file (`trigger.py`); opening, pasting or rewiring never starts one. Create an `output/` folder only just before writing into it (`bg_out_dir`); read other scripts' results with `bg_result` and check `bg_this_run`.
+- **No function or global named like a component input** (`run`, `bake`, `build`, …).

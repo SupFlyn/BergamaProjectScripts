@@ -1,5 +1,6 @@
-def make_board(opt, alt, pages):
-    """The four working areas side by side (two rows when wider than BOARD_MAX_W) under the sheet's title."""
+def make_board(opt, alt, pages, title=None):
+    """The working areas side by side (two rows when wider than BOARD_MAX_W) under the sheet's title. v21: the
+    result's .panels = [(key, crop rect in page mm from the top-left, y down)] for the booklet's crops."""
     M, HEAD, G = 14.0, 24.0, 10.0
     rows = [pages]
     if sum(p.W for p in pages) + G * (len(pages) - 1) + 2 * M > BOARD_MAX_W:
@@ -8,37 +9,44 @@ def make_board(opt, alt, pages):
     H = sum(max(p.H for p in r_) for r_ in rows) + G * (len(rows) - 1) + 2 * M + HEAD
     bd = Page(W, H)
     bd.poly([rect(0, 0, W, H)], fill=COL["paper"])
-    sheet_head(bd, M, H - M, alt, opt)
+    sheet_head(bd, M, H - M, alt, opt, title)
     y = H - M - HEAD
+    at = []
     for r_ in rows:
         x = M
         hr = max(p.H for p in r_)
         for p in r_:
             blit(bd, p, x, y - p.H)
+            at.append((p, x, y - p.H))
             x += p.W + G
         y -= hr + G
-    return add_legend(bd, alt, _ALPHA[0], M)            # v17
+    sh = add_legend(bd, alt, _ALPHA[0], M)               # v17
+    dy = sh.H - bd.H                                     # the legend band added under the board
+    sh.panels, sh.panels_more = [], []                   # T7: panels_more = [(crop id, rect, page)] of p.crops_more
+    for p, x, y0 in at:
+        c = getattr(p, "crop", None)
+        if c:
+            x0, x1, yb, yt = x + c[0], x + c[2], y0 + dy + c[1], y0 + dy + c[3]
+            sh.panels.append((getattr(p, "key", None), (x0, sh.H - yt, x1, sh.H - yb), p))
+        for id_, c_ in getattr(p, "crops_more", ()):   # T7 (p23/p24 D1): the style copies, as extra booklet crops
+            sh.panels_more.append((id_, (x + c_[0], sh.H - (y0 + dy + c_[3]), x + c_[2], sh.H - (y0 + dy + c_[1])), p))
+    return sh
 
 
 # ================================================================ v17: the legend band (only what the sheet draws)
 LEG = {}                       # what the sheet being drawn uses: key -> sample data (reset for every sheet)
 LEG_ZONE = [("WS", u"WATER STORAGE · RETENTION TERRACES"), ("WT", u"CLEANING · REED BASINS"),
             ("WD", u"CLEAN WATER BACK · SPILLWAY"), ("WA", u"AMPHIBIOUS · BED"),
-            ("WAF", u"AMPHIBIOUS · FLOOD TERRACE"), ("WP", u"RIVERSIDE PLANTING"),
+            ("WAF", u"AMPHIBIOUS · FLOOD TERRACE"), ("WP", u"STREAMSIDE PLANTING"),
             ("GR", u"GREEN · SHADED WALK, DRY TOP"), ("DG", u"DEMETER'S GARDEN"), ("WI", u"AGRICULTURE"),
             ("CH", u"HERITAGE"), ("MC", u"CENTRE"), ("HO", u"HOUSING"), ("CV", u"CIVIC"), ("SR", u"SPORT"),
             ("PA", u"SERVICE")]
-LEG_CTX = [("river", u"RIVER"), ("street", u"STREET"), ("park", u"PARK"), ("heritage", u"HERITAGE BUILDING"),
+LEG_CTX = [("river", u"STREAM"), ("street", u"STREET"), ("park", u"PARK"), ("heritage", u"HERITAGE BUILDING"),
            ("housing", u"HOUSING"), ("building", u"OTHER BUILDING"), ("cleared", u"CLEARED GROUND")]
 LEG_SW, LEG_SH, LEG_ROW, LEG_TS, LEG_HS, LEG_GAP = 22.0, 8.0, 11.0, 3.4, 4.0, 14.0   # sizes, mm
 
 
-def leg(key, val=True):
-    LEG.setdefault(key, val)
-
-
-def leg_zone(z):
-    leg(("zone", "WAF" if z["code"] == "WA" and z["tier"] == "F" else z["code"]), z["tier"])
+_PLEG = [None]                 # v21: the legend keys of the panel being drawn (its booklet crop's legend)
 
 
 def legend_groups(alt, alpha):
@@ -101,7 +109,7 @@ def legend_groups(alt, alpha):
             pg.poly([rect(x, y, x + w, y + h)], fill=lt, alpha=0.85)
             pg.poly([rect(x, y, x + w, y + h)], stroke=dk, lw=0.35)
         zones.append((RIVER_BAND_NAME, rb_sw))
-    for nm_ in (u"MAIN SPINE", u"RIVERSIDE SPINE"):
+    for nm_ in (u"MAIN SPINE", u"STREAMSIDE SPINE"):
         if ("spinezone", nm_) in LEG:
             zones.append((nm_, fill_sw(mix(W_, MP["centre"][0], alpha))))
     if "strip" in LEG:
@@ -116,7 +124,8 @@ def legend_groups(alt, alpha):
     surv = [(("s", "contour"), u"CONTOURS", line_sw((COL["contour10"], 0.3, None, None))),
             (("s", "park"), u"EXISTING PARK", fill_sw(COL["park"])),
             (("s", "pond"), u"POND", fill_sw(COL["river"])),
-            (("s", "street"), u"STREET EDGE", line_sw((COL["road_edge"], 0.3, None, None))),
+            (("road", "main"), u"MAIN ROAD", line_sw((ROAD_TONE[2], ROAD_LW[1], None, None))),     # v21
+            (("road", "street"), u"STREET EDGE", line_sw((ROAD_TONE[1], ROAD_LW[0], None, None))),
             (("s", "building"), u"BUILDING", fill_sw(COL["bld"], COL["bld_edge"])),
             (("s", "heritage"), u"HERITAGE BUILDING", fill_sw(COL["her"], COL["her_edge"])),
             (("s", "tree"), u"TREE", None),
@@ -128,7 +137,7 @@ def legend_groups(alt, alpha):
             if f is None:
                 def f(pg, x, y, w, h):
                     for i in range(3):
-                        pg.circle(x + w * (i + 0.5) / 3, y + h / 2, h * 0.3, fill=COL["tree"], alpha=0.85)
+                        pg.circle(x + w * (i + 0.5) / 3, y + h / 2, h * 0.3, fill=COL["tree"])   # v37 (D7): opaque
             ctx.append((name, f))
 
     lines = []
@@ -144,9 +153,9 @@ def legend_groups(alt, alpha):
         lines.append((u"MAIN SPINE", line_sw((COL["spine"], band * 1.25, None, 0.55),
                                              (COL["spine_dark"], 0.35, None, None))))
     if ("spine", "edge") in LEG or ("spine", "over") in LEG:
-        lines.append((u"RIVERSIDE SPINE", line_sw((COL["spine"], band, None, 0.75))))
+        lines.append((u"STREAMSIDE SPINE", line_sw((COL["spine"], band, None, 0.75))))
     if ("spine", "deck") in LEG:
-        lines.append((u"RIVERSIDE SPINE · DECK, NO ROOM ON THE BANK", line_sw((COL["spine"], band, [1.4, 0.9], 0.75))))
+        lines.append((u"STREAMSIDE SPINE · DECK", line_sw((COL["spine"], band, [1.4, 0.9], 0.75))))
     if "path" in LEG:
         lines.append((u"PATH", line_sw((W_, 1.9, None, None), (COL["path"], 1.0, [1.0, 0.35], None))))
 
@@ -167,7 +176,7 @@ def legend_groups(alt, alpha):
             pg.text(u"1", x + w / 2, y + h / 2 - 1.0, 2.8, W_, bold=True, align="C")
         links.append((u"STOP", f))
     return [(u"ZONES", zones), (u"AROUND THE ZONES", ctx),
-            (u"WALKS AND SPINES", lines), (u"LINKS", links)]
+            (u"WALKS AND SPINES", lines), (u"LINKS", links)] + legend_v24_groups() + detail_legend()
 
 
 def add_legend(sh, alt, alpha, M):
@@ -208,23 +217,21 @@ def add_legend(sh, alt, alpha, M):
     return pg
 
 
-def sheet_head(pg, x, y_top, alt, opt):
-    pg.text(u"BERGAMA · GROUP 6 · " + ALT_TEXT[alt], x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
-    pg.text(OPTION_TEXT[opt], x, y_top - 13.0, 3.4, COL["ink"], bold=True)
-    pg.text(CREDIT, x, y_top - 18.0, 2.6, COL["ink"])
-    scale_bar(pg, x + 170.0, y_top - 13.0, _SCALE[0])
+def sheet_head(pg, x, y_top, alt, opt, title=None):
+    pg.text(u"BERGAMA · GROUP 6 · " + (title or ALT_TEXT[alt]), x, y_top - 7.0, 7.0, COL["ink_dark"], bold=True)
+    pg.text(OPTION_TEXT[opt], x, y_top - 13.0, 3.4, COL["ink"], bold=True)   # v24: no names, each panel its scale
 
 
-def scale_bar(pg, x, y, scale):
-    """v16: 0-50-100-200 m bar (ink and white blocks) and the scale as text, at the print scale 1:scale."""
+def scale_bar(pg, x, y, scale, marks=(0.0, 50.0, 100.0, 200.0)):
+    """v16: 0-50-100-200 m bar (ink and white blocks) and the scale as text, at the print scale 1:scale (v21: marks
+    may be given: the detail windows use 0-10-20-50 m)."""
     k = 1000.0 / scale                                    # page mm per metre
-    marks = (0.0, 50.0, 100.0, 200.0)
     for i, (a, b) in enumerate(zip(marks[:-1], marks[1:])):
         pg.poly([rect(x + a * k, y, x + b * k, y + 1.2)], fill=COL["ink_dark"] if i % 2 == 0 else COL["white"],
                 stroke=COL["ink_dark"], lw=0.15)
-    for m_ in marks:
-        pg.text(u"{:.0f}{}".format(m_, u" m" if m_ == marks[-1] else u""), x + m_ * k, y + 2.2, 2.0, COL["ink"],
-                align="C")
+    for m_ in marks:                                      # v26.1 (Prompt 8): 7 pt (KEY_MIN), the booklet's floor and
+        pg.text(u"{:.0f}{}".format(m_, u" m" if m_ == marks[-1] else u""), x + m_ * k, y + 2.2, KEY_MIN, COL["ink"],
+                align="C")                                # the site board's scale bars on p.24 (was 2 mm = 5.7 pt)
     pg.text(u"1:{:,.0f}".format(scale), x + marks[-1] * k + 6.0, y - 0.1, 3.4, COL["ink_dark"], bold=True)
 
 
@@ -447,14 +454,13 @@ def river_walks(survey, removes=()):
     for x in out:
         k = x["bank"] + " " + x["cls"]
         stats[k] = stats.get(k, 0.0) + x["m"]
-    return {"runs": out, "covered": covered, "stats": stats, "ref": P}
+    return {"runs": out, "covered": covered, "stats": stats, "ref": P, "rows": rows}   # v21; v24: rows for the corridor
+
 
 # v11 constants (Thread 5)
 SPINE_W_M = 6.0                # drawn width of the spines, m (graphic)
 WALK_FACET_M = 4.0             # option B: walks as straight facets, Douglas-Peucker tolerance, m (graphic)
-TREE_MIN_MM = 0.9              # smallest drawn tree, mm (graphic)
 _BERGAMA = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
-CITY_LINK_FILES = [os.path.join(_BERGAMA, "output", "Bergama_city_link_analysis", "city_link_results.json")]
 
 
 def dp_open(P, tol):
@@ -508,23 +514,10 @@ def ref_between(P, s0, s1):
 
 
 def city_link():
-    """(spec, source) of the riverside spine: city_link_results.json of bergama_city_link (Thread 4), read live;
-    else the copy embedded here (CITY_LINK_COPY). main_spine (the
-    Bankalar - Kınık Caddesi line) from the file if it has one, else MAIN_SPINE below."""
-    spec, src = None, None
-    for p in CITY_LINK_FILES:
-        try:
-            with open(p, "r", encoding="utf-8") as fh:
-                spec = json.load(fh)
-            src = u"city link file of " + time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(p)))
-            break
-        except Exception:
-            continue
-    if spec is None:
-        spec, src = json.loads(CITY_LINK_COPY), u"copy embedded in this script (city link file not found)"
-    if not spec.get("main_spine"):
-        spec["main_spine"] = MAIN_SPINE
-    return spec, src
+    """(spec, source) of the riverside spine. v37.2 (1 Nov, Aras 07:48): built here from common/city_spine.py
+    (spine_spec: the spine, the bank vote of this run's site board or the built-in vote, the stops, the main spine),
+    the same code city link uses, so city_link_results.json is no longer read and city link runs once, after this."""
+    return spine_spec()
 
 
 def spine_on_edge(spec, W):
@@ -635,79 +628,9 @@ def city_layer(opt, D, areas, survey, warn):
             "spine_m": dict((k_, sum(arclen(s["P"])[-1] for s in sp if s["kind"] == k_)) for k_ in ("edge", "deck", "over"))}
 
 
-def draw_city(pg, T, CL, k, taken=None, stops=False, W_=None, H_=None, spines=True):
-    """The main spine and the riverside spine (broad bands), the walks by class, and (alternative 3) the stops.
-    T: world -> page; k: page mm per m."""
-    tp = lambda P: [T(p) for p in P]
-    band = max(1.6, SPINE_W_M * k)
-    for M_ in ((CL["mains"] if "mains" in CL else [CL["main"]]) if spines else []):   # v18: spines=False, zones
-        leg("main")
-        pg.line(tp(M_), COL["spine"], band * 1.25, alpha=0.55)
-        pg.line(tp(M_), COL["spine_dark"], 0.35)
-    for s in (CL["spine"] if spines else []):
-        leg(("spine", s["kind"]))
-        if s["kind"] == "deck":
-            pg.line(tp(s["F"]), COL["spine"], band, [1.4, 0.9], cap=0, alpha=0.75)
-        else:
-            pg.line(tp(s["F"]), COL["spine"], band, alpha=0.75)
-    for x in CL["W"]["runs"]:
-        leg(("walk", x["cls"]))
-        P = tp(x["F"])
-        pg.line(P, COL["white"], 1.5)
-        if x["cls"] == "bank":
-            pg.line(P, COL["walk"], 0.7)
-        elif x["cls"] == "street":
-            pg.line(P, COL["walk"], 0.7, [2.2, 0.8], cap=0)
-        else:
-            pg.line(P, COL["river_dark"], 0.7, [0.5, 0.6], cap=0)
-    if taken is None:
-        return
-    for s in CL["spine"]:
-        if s["kind"] == "deck":
-            taken += boxes_along(tp(s["F"]), 1.5)
-    if W_ is not None and spines:
-        mp_ = tp(CL["main"])
-        word_along(pg, mp_, u"MAIN SPINE", 2.6, COL["spine_dark"], taken, W_, H_)
-        edge = [tp(s["F"]) for s in CL["spine"] if s["kind"] != "deck"]
-        if edge:
-            word_along(pg, max(edge, key=lambda P: arclen(P)[-1]), u"RIVERSIDE SPINE", 2.6, COL["spine_dark"],
-                       taken, W_, H_)
-    if not stops:
-        return
-    r = 2.3
-    for n, nm, xy, how in CL["stops"]:
-        x, y = T(xy)
-        if W_ is not None and not (0 <= x <= W_ and 0 <= y <= H_):
-            continue
-        leg("stop")
-        pg.circle(x, y, r + 0.35, fill=COL["white"])
-        pg.circle(x, y, r, fill=COL["accent"])
-        pg.text(str(n), x, y - 1.0, 2.8, COL["white"], bold=True, align="C")
-        taken.append((x - r, y - r, x + r, y + r))
-        w = text_w(nm.upper(), 2.1, True)
-        for bx, by in ((x + r + 0.8, y - 0.8), (x - r - 0.8 - w, y - 0.8), (x - w / 2, y + r + 0.8),
-                       (x - w / 2, y - r - 3.0)):
-            b = (bx - 0.4, by - 0.4, bx + w + 0.4, by + 2.5)
-            if W_ is not None and (b[0] < 0 or b[2] > W_ or b[1] < 0 or b[3] > H_):
-                continue
-            if any(hit(b, t) for t in taken):
-                continue
-            pg.text(nm.upper(), bx, by, 2.1, COL["ink_dark"], bold=True, halo=COL["white"])
-            taken.append(b)
-            break
-
-
-def clip_city(CL, test):
-    """A copy of CL cut to test(x, y) (alternatives 1 and 2: a working area and its ring)."""
-    cut = lambda P: cut_runs(P, test, 1.0)
-    return {"main": None, "mains": cut(CL["main"]),
-            "spine": [dict(s, F=F) for s in CL["spine"] for F in cut(s["F"])],
-            "W": {"runs": [dict(x, F=F) for x in CL["W"]["runs"] for F in cut(x["F"])]}, "stops": []}
-
-
 def city_results(CLs):
     """masterplan_results.json: what other scripts read (water balance: riverside_walk_m2)."""
-    out = {"script": "bergama_masterplan_v19.py", "version": VERSION,
+    out = {"script": "bergama_masterplan_v38.py", "version": VERSION,
            "run_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "note": "survey coordinates (m); walk width %.1f m (design value); lengths calculated from the survey" % WALK_W,
            "options": {}}
@@ -727,18 +650,7 @@ def city_results(CLs):
     return out
 
 
-# ================================================================ link helpers (the puzzle's tongues)
-def inset(p, q, z):
-    """Point p on zone z's edge, moved SNAP_IN_M into z, away from q (which lies outside z)."""
-    for tx, ty in ((p[0] - q[0], p[1] - q[1]), (z["q"][0] - p[0], z["q"][1] - p[1])):
-        L = math.hypot(tx, ty)
-        if L > 1e-9:
-            c = (p[0] + tx / L * SNAP_IN_M, p[1] + ty / L * SNAP_IN_M)
-            if pip(c[0], c[1], z["P"]):
-                return c
-    return p
-
-
+# ================================================================ link helpers
 # ================================================================ Rhino bake (only with rhino_bake = True)
 def _flat(c, alpha):
     """A fill's colour as it shows on white paper (the bake has no opacity)."""
@@ -794,7 +706,7 @@ def bake_page(rs, pg, layer, x0, y0, s):
             elif c:
                 rs.DeleteObject(c)
         elif kd == "text":
-            _, t, x, y, size, colour, bold, align, halo = it
+            _, t, x, y, size, colour, bold, align, halo = it[:9]
             keep(rs.AddText(t, P3((x, y)), size * s, "Arial", 1 if bold else 0, {"L": 1, "C": 2, "R": 4}[align]),
                  colour)
     if ids:
@@ -873,9 +785,10 @@ def option_input():
 
 def build_all(doc, warn):
     """Read, draw and write. Returns (folder, files, log lines, pages)."""
-    folder = out_folder(doc)
-    if not os.path.isdir(folder):
-        os.makedirs(folder)
+    folder = bg_booklet(OUT_FOLDER)                       # round 5 (C2, addendum): no output/ folder; items in cached/booklet/
+    wn_reset()
+    ix = mpx_start()
+    del MPX_PAGES[:]
     scale = inp_num("scale", BOARD_SCALE, warn)
     _SCALE[0] = scale                                    # v16: for the scale bar on every sheet
     ring_m = inp_num("zoom_m", None, warn)                      # v15: margin of the zoomed pages (alternatives 1-2)
@@ -895,20 +808,17 @@ def build_all(doc, warn):
     if not site_found:
         warn.append(u"no site_alan outline in the open file: the built-in copy (Bergama_Altlik.3dm, 25 Oct) was used")
     V = View(areas, 0.0, 1000.0 / scale, frame=site)            # v15: alternative 3 = exactly site_alan
+    V.frame_P, V.study = list(site), [areas[k_] for k_ in sorted(areas)]   # v27 (MIRAQUA 28 Oct, G10, G8): 02d
     bb = [bbox(A) for A in areas.values()] + [V.bb]
     R = (min(b[0] for b in bb) - ring_m - 5, min(b[1] for b in bb) - ring_m - 5,
          max(b[2] for b in bb) + ring_m + 5, max(b[3] for b in bb) + ring_m + 5)
     survey = read_survey(doc, R) if doc is not None else {}
     if not survey.get("building") and not survey.get("housing"):
         warn.append(u"no survey buildings (BINA_*) in the open file: the zones are drawn on plain paper")
-    bases = {}
-    for key, place, idea in AREAS:
-        b = bbox(areas[key])
-        bases[key] = prep_base(survey, Near(areas[key], ring_m),
-                               (b[0] - ring_m, b[1] - ring_m, b[2] + ring_m, b[3] + ring_m))
-    # ---- per option: the zones (file, else zone base file, else the embedded copy), then the three alternatives
-    files, lines, pages = [], [], []
-    CLs = {}
+    # ---- per option: the zones (file, else zone base file, else the embedded copy), the corridor, the sheets
+    files, lines, pages = [], [], MPX_PAGES               # pages = the recorder Pages (for the Rhino bake only)
+    wins, plc, missing = [], {}, {}
+    CLs, Cs = {}, {}
     zb = None
     for opt in option_input():
         its = read_items(doc, opt) if doc is not None else []
@@ -940,53 +850,148 @@ def build_all(doc, warn):
             CL = None
             warn.append(u"option {}: walks and spine NOT drawn ({}: {})".format(opt, type(ex).__name__, ex))
             warn.append(traceback.format_exc()[-480:])
-        pzs = {}
-        for key, place, idea in AREAS:
-            try:
-                pzs[key] = puzzle(bases[key], D, key)
-            except Exception as ex:
-                pzs[key] = []
-                warn.append(u"option {}: the puzzle of {} failed ({}: {})".format(opt, place, type(ex).__name__, ex))
-        for alt in (1,):                                 # v19: the one sheet
-            name = OUT_NAME.format(opt, alt)
+        C = None
+        try:                                             # v24: the ecological corridor of the whole site frame
             t0 = time.time()
-            LEG.clear()                                  # v17: the legend lists only this sheet's entries
+            spots_all = read_spots(doc, [V.bb]) if doc is not None else []
+            C = Cs[opt] = Corridor(V, survey, CL, D, spots_all, warn)
+            st_ = C.stats
+            lines.append(u"option {}: max potential area: open {:.1f} ha, bed {:.1f} ha, buildings {:.1f} ha, roads "
+                         u"{:.1f} ha; widened {} reaches, side arms {}, kept {}; terraces {} (contours {:.0f} m/ha "
+                         u"upstream, {:.0f} below K5); crossings {}; viewing terrace {}; notes {}; {:.1f} s".format(
+                             opt, st_[0] / 1e4, st_[3] / 1e4, st_[1] / 1e4, st_[2] / 1e4, len(C.widen), len(C.arms),
+                             len(C.kept), len(C.terr), C.steep.get("up", 0.0), C.steep.get("down", 0.0),
+                             len(C.cross), u"at {:.0f}, {:.0f}".format(*C.terrace["xy"]) if C.terrace else u"none",
+                             len(C.notes), time.time() - t0))
+            lines.append(u"option {}: voids in the study area designed: {} of {:.2f} ha or more ({})".format(
+                opt, len(C.nogo), NI_MIN_HA_STUDY, u"; ".join(u"{:.1f} ha {} ({})".format(
+                    r_["ha"], r_.get("place", u"-"), r_["why"]) for r_ in C.nogo)))
+            if getattr(C, "dropped", None):              # v38 (U40): notes whose places all lie outside the study area
+                lines.append(u"option {}: moves outside the study area, not drawn: {}".format(
+                    opt, u"; ".join(C.dropped)))
+        except Exception as ex:
+            import traceback
+            warn.append(u"option {}: corridor NOT computed ({}: {})".format(opt, type(ex).__name__, ex))
+            warn.append(traceback.format_exc()[-480:])
+        if C is not None and opt == "A":                 # v26: the open ground for the satellite check (Google Earth)
             try:
-                pg = make_board(opt, alt, [draw_area(spec, opt, alt, D, bases[spec[0]], pzs[spec[0]], scale,
-                                                     alpha, areas[spec[0]], CL) for spec in AREAS])
-                path = save(pg, folder, name, u"Bergama masterplan v19 option {} (opacity {:.2f}, "
-                                              u"1:{:,.0f})".format(opt, alpha, scale))
-                files.append(path)
-                pages.append((opt, alt, pg))
-                lines.append(u"{}  {}  {:.1f} s".format(os.path.basename(path),
-                                                       datetime.datetime.now().strftime("%H:%M:%S"), time.time() - t0))
+                os.makedirs(LOG_DIR, exist_ok=True)
+                os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)
+                n_, f_ = open_ground_kml(C, os.path.join(LOG_DIR, OG_KML),
+                                         os.path.join(bg_cache(OUT_FOLDER), u"open_ground_check.json"))
+                lines.append(u"logs/{}  {} open areas of {:.2f} ha or more, {} with no plant cover (satellite 2021) "
+                             u"first  {}".format(OG_KML, n_, OG_MIN_HA, f_, datetime.datetime.now().strftime("%H:%M:%S")))
+            except Exception as ex:
+                lines.append(u"logs/{}  NOT WRITTEN ({}: {})".format(OG_KML, type(ex).__name__, ex))
+        # round 5 S6 (G-R5-12, addendum 1 Nov 22:37 point 2): NO sheet PDF and no crops any more; each booklet page's
+        # drawings and texts are exported as items (parts/04_items.py) into cached/booklet/bergama_masterplan/items.json
+        if opt == "A" and C is not None:                 # p21 (25-page p23): the masterplan
+            t0 = time.time()
+            try:
+                lines.extend(p23_items(ix, C, warn))
+                for r_ in C.nogo:                        # v38: the page sets r_["placed"] when the void's place is drawn
+                    if not r_.get("placed"):
+                        lt_ = r_.get("letter_on_map")       # v42: S8 reading (SON list), not a hit
+                        if lt_:
+                            lines.append(u"info p20 area left as it is {:.1f} ha {}: letter {} on the map + list row "
+                                         u"(no round 4-5 void planting, SON)".format(r_["ha"], r_.get("place"), lt_))
+                        else:
+                            warn.append(u"p20 area left as it is {:.1f} ha {}: no letter on the map (outside every "
+                                        u"plan row)".format(r_["ha"], r_.get("place")))
+                lines.append(u"p23 masterplan items  {:.1f} s".format(time.time() - t0))
             except Exception as ex:
                 import traceback
-                lines.append(u"{}  NOT WRITTEN ({}: {})".format(name, type(ex).__name__, ex))
+                lines.append(u"p23 masterplan  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
                 warn.append(traceback.format_exc()[-480:])
+        if opt == "A" and CL is not None and C is not None:   # p22 (25-page p24): the water edge at 1:1,000
+            t0 = time.time()
+            _SCALE[0] = DT_SCALE
+            try:
+                plc = places(city_link()[0], CL, survey)
+                wins = detail_windows(D, plc, DT_PLAN)
+                lines.extend(p24_items(ix, C, wins, areas, missing, warn))
+                for w_id, ms_ in sorted(missing.items()):
+                    for m_ in ms_:
+                        warn.append(u"detail {}: label not placed: {}".format(w_id, m_))
+                lines.append(u"p24 water edge items  {:.1f} s".format(time.time() - t0))
+            except Exception as ex:
+                import traceback
+                lines.append(u"p24 water edge  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
+                warn.append(traceback.format_exc()[-480:])
+            _SCALE[0] = scale
+    if Cs.get("A") is not None:                          # p16 (25-page p17): the senses; a failure only warns
+        t0 = time.time()
+        try:
+            lines.extend(p17_items(ix, Cs["A"], areas, warn))
+            lines.append(u"p17 senses items  {:.1f} s".format(time.time() - t0))
+        except Exception as ex:
+            import traceback
+            lines.append(u"p17 senses  NOT EXPORTED ({}: {})".format(type(ex).__name__, ex))
+            warn.append(traceback.format_exc()[-480:])
     if CLs:                                              # v11: what the other scripts read
         try:
-            with open(os.path.join(folder, RESULTS_NAME), "w", encoding="utf-8") as f:
-                json.dump(city_results(CLs), f, ensure_ascii=False, indent=1)
+            res_ = city_results(CLs)
+            if "A" in Cs:                                # v24: the proposal's movement (spec §4), for the site board
+                C_ = Cs["A"]
+                res_["movement"] = C_.movement()
+                r2 = lambda p: [round(p[0], 1), round(p[1], 1)]
+                res_["notes"] = [{"n": nt["n"], "text": nt["text"], "why": nt["why"], "at": [r2(p) for p in nt["at"]]}
+                                 for nt in sorted(C_.notes, key=lambda nt: nt["n"])]   # v26: every reason, in full
+                res_["no_intervention"] = [{"kind": r_["kind"], "why": r_["why"], "ha": round(r_["ha"], 2),
+                                            "at": r2(r_["at"][0]), "design": r_.get("design"),
+                                            "place": r_.get("place"), "reason": r_.get("reason")} for r_ in C_.nogo]
+                # v38 (round 4, CHK-7 site 14, P10.6): the corridor geometry (clipped to the study area at its
+                # source) for the water board's p17 and the hub squares for city link's p10 (survey m)
+                res_["corridor"] = {
+                    "arms": [{"P": [r2(p) for p in a_["P"]]} for a_ in C_.arms],
+                    "widen": [{"ring": [r2(p) for p in w_["ring"]]} for w_ in C_.widen],
+                    "terraces": [[r2(p) for p in P] for P in C_.terr],
+                    "canopy_walk": [[r2(p) for p in P] for P in C_.canopy],
+                    "study_clipped": bool(C_.study)}
+                res_["hub_squares"] = [{"id": h["id"], "name": HUB_NAME[h["id"]], "bridge": h["bridge"],
+                                        "in_study": bool(h.get("in_study")),
+                                        "rings": [[r2(p) for p in L_] for L_ in (h.get("square") or [])],
+                                        "trees": [r2(p) for p in (h.get("trees") or [])],
+                                        "sub_hub": ({"c": r2(h["sub_xy"]["c"]), "a": r2(h["sub_xy"]["a"]),
+                                                     "b": r2(h["sub_xy"]["b"]), "w_m": round(h["sub_xy"]["w"], 1)}
+                                                    if h.get("sub_xy") else None)} for h in C_.hubs]
+                res_["open_ground_check"] = {"imagery": OPEN_CHECK.get("imagery"), "date": OPEN_CHECK.get("date"),
+                                             "built_since": len(C_.built_since),
+                                             "kml": getattr(C_, "og_check", None)}
+            os.makedirs(bg_cache(OUT_FOLDER), exist_ok=True)       # 27 Oct: results in cached/, output/ = PDFs only
+            with open(os.path.join(bg_cache(OUT_FOLDER), RESULTS_NAME), "w", encoding="utf-8") as f:
+                json.dump(res_, f, ensure_ascii=False, indent=1)
             lines.append(u"{}  {}".format(RESULTS_NAME, datetime.datetime.now().strftime("%H:%M:%S")))
         except Exception as ex:
             lines.append(u"{}  NOT WRITTEN ({}: {})".format(RESULTS_NAME, type(ex).__name__, ex))
+    try:                                                 # round 5: the one export file the booklet reads
+        ix.save()
+    except Exception as ex:
+        lines.append(u"items.json  NOT WRITTEN ({}: {})".format(type(ex).__name__, ex))
+    lines.extend(mpx_lines())
+    cl_ = cut_log_line()                                 # T7: the style a cutouts and the images
+    if cl_:
+        lines.append(cl_)
+    lines.extend(ml_lines_log())                         # v38 (G-R4-4): "layers base→project ok, n_outside_clipped n"
+    lines.extend(sc_lines_log())                         # v38 (CHK-7): study clip per page
+    lines.append(fig_set_line())                         # S4: "figures source=asset_library n, drawn_A1_style n"
+    lines.extend(fig_flag_lines())
+    lines.extend(pla_log_lines())                        # S4: plants source=..., willow v3 image=..., FLAG colours
+    lines.extend(pln_log_lines())                        # S4 placer: planting <page> core/edge/outside, outside_project
+    lines.extend(wat_flag_lines())                       # planting clipped to land, draw order (G8)
+    lines.extend(sec_look_lines())                       # sky variants, plants no alpha, fauna FLAG (G15)
+    files.append(ix.path or u"")
     return folder, files, lines, pages, scale
 
 
-def run():
-    btn, on = button_state()
-    try:
-        was = bool(sc.sticky.get(_key("prev"), False))
-    except Exception:
-        was = False
-    pressed = (on and not was) or chain_fire(_GH_IN.get(btn), "chain_seen", btn)
+def main():    # v38.1: was run(), which replaced the Button input `run` (Button did nothing)
+    pressed, why, btn = trig_should_run("chain_seen", SETTINGS)   # v38 (round 4): common/trigger.py, one rule
     globals()["_ran_now"] = pressed
-    mem_set("prev", on, persist=False)
     if not pressed:
-        last = mem_get("last", "")
-        gh_status(mem_get("status", "") or SHORT + " · idle")
-        for w in mem_get("warn", []) or []:
+        same = mem_get("ver", "") == VERSION        # v24.1 (Aras 27 Oct 15:35): a newly pasted version shows itself
+        last = mem_get("last", "") if same else ""   # at once, idle, without the old run's time, log or warnings
+        gh_status((mem_get("status", "") if same else "") or SHORT + " · idle")
+        for w in (mem_get("warn", []) if same else []) or []:
             gh_message("warning", w)
         return (last if last else u"Idle. Press the Button to write the masterplan. ({})".format(VERSION)), \
             mem_get("files", [])
@@ -1005,8 +1010,12 @@ def run():
         err = u"ERROR: {}: {}".format(type(ex_).__name__, ex_)
         warn.append(traceback.format_exc()[-480:])
     secs = time.time() - t0
-    head = [u"{} · total {:.0f} s".format(VERSION, secs), err or u"Output: {}".format(folder)]
-    text = u"\n".join(head + lines)
+    head = [u"{} · total {:.0f} s".format(VERSION, secs), u"trigger: " + (why or u"-"),
+            err or u"Items: {}".format(folder)]
+    for w_ in warn:                                      # round 5 (C11): every warning is a WARNING line of the log
+        if not wn_is(w_):
+            lines.append(u"WARNING masterplan: " + u" ".join((u"%s" % w_).split()))
+    text = u"\n".join(wn_compose(tp_log_lines() + lines, head=head))   # head, "<n> warnings", WARNING lines, rest
     status = u"{} · {}".format(SHORT, "ERROR" if err else time.strftime("%H:%M") + " · {:.0f} s".format(secs))
     try:
         os.makedirs(LOG_DIR, exist_ok=True)
@@ -1014,6 +1023,7 @@ def run():
             f.write(text)
     except Exception:
         pass
+    mem_set("ver", VERSION)
     mem_set("last", text)
     mem_set("status", status)
     mem_set("files", files)
@@ -1041,25 +1051,25 @@ def run():
 # stations, 2 m apart) and thinned to 10 m. Covered = OSM tunnel / culvert ways. Calculated 24 Oct 2026, Thread 5.
 #@include ../data/STREAM_REF.py
 
-# MAIN_SPINE (v11): Bankalar Caddesi + Kınık Caddesi (OSM "secondary" ways, same extract and formula, +-10-30 m),
-# from Bankalar's south end to Kınık Caddesi east of the frame's K5-K6 reach; used when city_link_results.json has no
-# main_spine.
-MAIN_SPINE = [[29756.1, 31655.4], [29777.7, 31668.2], [29793.7, 31679.4], [29806.4, 31691.6], [29813.1, 31702.3], [29819.3, 31712.8], [29828.2, 31728.8], [29852.9, 31760.3], [29869.5, 31780.3], [29880.9, 31808.0], [29885.0, 31824.8], [29896.2, 31862.5], [29901.7, 31880.7], [29908.9, 31905.2], [29916.1, 31928.8], [29919.2, 31939.1], [29929.8, 31960.8], [29944.8, 31984.6], [29951.9, 31990.3], [29956.3, 31993.2], [29992.8, 32017.4], [29995.4, 32019.8], [29998.6, 32022.6], [30005.0, 32029.4], [30032.5, 32038.3], [30084.6, 32056.0], [30089.7, 32057.7], [30092.6, 32056.5], [30096.2, 32055.0], [30138.7, 32039.0], [30153.1, 32036.3], [30235.7, 32021.9], [30245.0, 32020.1], [30269.2, 32015.6], [30274.2, 32014.5], [30278.7, 32012.8], [30281.9, 32010.3], [30285.0, 32007.1], [30308.8, 31981.0], [30310.4, 31979.3], [30317.5, 31972.1], [30331.6, 31957.6], [30373.7, 31924.2], [30399.9, 31903.0], [30432.4, 31879.5], [30499.5, 31831.0], [30545.8, 31800.5], [30562.8, 31796.3], [30574.8, 31795.5], [30598.1, 31797.7], [30626.3, 31799.4], [30663.0, 31801.6], [30682.2, 31803.0], [30709.6, 31804.9], [30718.5, 31805.5], [30741.5, 31803.1], [30767.5, 31791.6], [30786.2, 31779.9], [30813.0, 31760.8], [30824.8, 31752.4], [30889.1, 31700.8], [30978.8, 31622.0], [30993.4, 31611.0], [31007.0, 31604.5], [31023.2, 31601.7]]
 
-# CITY_LINK_COPY (v11): the riverside spine, its banks (spine_banks) and stops of bergama_city_link v1.1 (24 Oct 09:15); used when Downloads/Bergama/output/Bergama_city_link_analysis/city_link_results.json is missing.
-CITY_LINK_COPY = '{"spine_banks": {"A": "SW", "B": "over", "C": "SW"}, "spine": [{"id": "A", "name": "Ulu Cami to K3 bank walk", "frm": [29846.0, 32278.0], "to": [30037.0, 32122.0], "side_ref": [29844.2, 32313.3], "offset_m": 15.0, "side": "auto", "catch_m": 250.0}, {"id": "B", "name": "Junction over the covered reach", "frm": [30037.0, 32122.0], "to": [30238.7, 31931.2], "side_ref": null, "offset_m": 0.0}, {"id": "C", "name": "Red Hall to Üç Kemer bank walk", "frm": [30238.7, 31931.2], "to": [30294.0, 31792.0], "side_ref": [30245.0, 31962.0], "offset_m": 15.0, "side": "auto", "catch_m": 250.0}], "functions": [{"n": 1, "name": "Bank bazaar", "xy": [29890.4, 32243.6], "stage": null}, {"n": 2, "name": "Parchment and leather workshops", "xy": [30062.0, 32106.0], "stage": null}, {"n": 3, "name": "Junction square", "xy": [30058.0, 32047.0], "stage": null}, {"n": 4, "name": "Red Hall water terrace", "xy": [30238.7, 31931.2], "stage": null}, {"n": 5, "name": "Producers\' market", "xy": [30294.0, 31792.0], "stage": null}, {"n": 6, "name": "Study terraces", "xy": [29941.0, 32200.0], "stage": null}, {"n": 7, "name": "Clean-water classroom", "xy": null, "stage": "entry"}, {"n": 8, "name": "Summer bed events", "xy": null, "stage": null}]}'
 
 # WALK_COPY (v11): river_walks() run on the course survey "Bergama Müdahele Alanları" (17 Oct) with each option's
 # cleared buildings from ZONE_COPY, 24 Oct 2026; used only when the open file has no stream or bank layers.
 #@include ../data/WALK_COPY.py
 
+# LC_EMBED (v26): ESA WorldCover 2021 (CC BY 4.0) in survey coordinates, the site board's built-in copy
+# (data/landcover/bergama_landcover_worldcover2021.json, zlib + base64): the no-intervention reasons and the
+# open-ground figures read it.
+#@include ../../selinus_board/data/LC_EMBED.py
+
 
 if Rhino is not None:
     try:
-        _txt, _files = run()
+        _txt, _files = main()
     except Exception as _ex:
         _txt, _files = u"ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION), []
         gh_status(SHORT + " · ERROR")
+        mem_set("ver", VERSION)
         mem_set("last", _txt)   # 25 Oct: the error stays on the log after the Button is released
         mem_set("status", SHORT + " · ERROR")
     log = _txt

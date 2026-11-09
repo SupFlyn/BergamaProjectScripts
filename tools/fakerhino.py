@@ -359,6 +359,9 @@ def _geo(r):
 
 
 class Layers(list):
+    CurrentLayerIndex = 0
+    def SetCurrentLayerIndex(self, i, quiet=True):
+        self.CurrentLayerIndex = i; return True
     def FindByFullPath(self, path, default=-1):
         for l in self:
             if l.FullPath == path and not l.IsDeleted: return l.Index
@@ -465,7 +468,12 @@ def install(survey=None, home=None):
     Guid.Empty = Guid("00000000-0000-0000-0000-000000000000")
     S.Guid = Guid; S.Drawing = SD
     SD.Color = types.SimpleNamespace(FromArgb=lambda *a: tuple(a), Black=(0, 0, 0), White=(255, 255, 255))
-    sc = types.ModuleType("scriptcontext"); sc.sticky = {}; sc.doc = doc
+    class _Sticky(dict):                       # round 5+ trigger: the first solve only notes the Button; offline every run is a press
+        def get(self, k, d=None):
+            if isinstance(k, str) and k.startswith("trig_prev:") and k not in self:
+                return False
+            return dict.get(self, k, d)
+    sc = types.ModuleType("scriptcontext"); sc.sticky = _Sticky(); sc.doc = doc
     mods = {"Rhino": R, "Rhino.Geometry": G, "Rhino.DocObjects": DO, "System": S, "System.Drawing": SD, "scriptcontext": sc}
     for n in ["Rhino.Display", "Rhino.FileIO", "System.Collections", "System.Collections.Generic", "Grasshopper", "Grasshopper.Kernel",
               "Grasshopper.Kernel.Parameters", "Grasshopper.Kernel.Special", "rhinoscriptsyntax", "clr", "ghpythonlib", "ghpythonlib.components"]:

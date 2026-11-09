@@ -7,118 +7,26 @@ NDVI_STEPS = [(0.15, C("E9E2CF")), (0.25, C("D9D7A8")), (0.35, C("B9C27F")), (0.
 SAT_ROWS = [("clc", "land cover"), ("jan", "green, Jan"), ("jul", "green, Jul")]
 
 
-def ndvi_col(v):
-    return next(c for t, c in NDVI_STEPS if v < t)
+# v40 (Aras 25 Oct: "texts and graphics are on top each other ... make the diagram clearer"): the tree-cover chart
+# reads at a glance: each bank's four distance bands named beside their rows (0-15 m next to the stream), the stream
+# between the banks with its covered reaches drawn on it and the bridges as ticks across it only, a distance axis
+# every 500 m, a key of drawn samples. Values as in the pack (no smoothing). Words at RIP_TH page units: the booklet
+# crops this panel at 392 mm wide, where they print at 7.5 pt or more.
+RIP_TH = 0.6
+RIP_RAMP = [(0.0, C("F6F5EF")), (1.0, C("E3E6CF")), (5.0, C("C9D1A4")), (10.0, C("A9B57F")), (20.0, C("8C9969")),
+            (40.0, C("6B774A"))]
+RIP_COVERED = mix(BLUE_D, INK, 0.35)                   # the stream where it runs under the town
+PANEL_RECTS = {}        # v40: a panel's drawing with its in-drawing words (no title, key or notes): (x0, y0, x1, y1)
 
 
-def section_sat(sd_):
-    """The pack's satellite rows for this section (or this part of it): {row: [colour per metre]} or None."""
-    x0, y0, x1, y1 = sd_["line"][:4]
-    L = sd_["L"]
-    best = None
-    for ps in seam_pack().get("sections", []):
-        (ax, ay), (bx, by) = ps["a"], ps["b"]
-        dx, dy = bx - ax, by - ay
-        n = math.hypot(dx, dy) or 1.0
-        off = max(abs(((px - ax) * dy - (py - ay) * dx) / n) for px, py in ((x0, y0), (x1, y1)))
-        if off < 2.0 and (best is None or off < best[0]):
-            best = (off, ps, dx / n, dy / n)
-    if best is None:
-        return None
-    _, ps, ux, uy = best
-    ax, ay = ps["a"]
-    clc, nd = ps.get("clc") or [], ps.get("ndvi") or {}
-    ex, ey = (x1 - x0) / (L or 1.0), (y1 - y0) / (L or 1.0)
-    rows = dict((k, []) for k, _ in SAT_ROWS)
-    for s in range(int(L) + 1):
-        px, py = x0 + ex * s, y0 + ey * s
-        i = int(round((px - ax) * ux + (py - ay) * uy))
-        ok = 0 <= i < len(clc)
-        rows["clc"].append(CLC_COL.get(int(clc[i])) if ok and clc[i] else None)
-        for k in ("jan", "jul"):
-            v = nd.get(k) or []
-            rows[k].append(ndvi_col(v[i] / 1000.0) if 0 <= i < len(v) and v[i] is not None else None)
-    return rows
-
-
-def draw_sat_strips(B, rows, P, Lm, ytop, x, U, L):
-    """The satellite rows under the use ribbon, named at the left; returns the y below them."""
-    h, g = 0.24 * U, 0.06 * U
-    y = ytop - g
-    for k, lab in SAT_ROWS:
-        vals = rows[k]
-        a = 0
-        while a < len(vals):
-            b = a
-            while b + 1 < len(vals) and vals[b + 1] == vals[a]:
-                b += 1
-            if vals[a] is not None:
-                B.fill([rect(P(a, 0)[0], y - h, P(min(Lm, b + 1), 0)[0], y)], vals[a], L, 20)
-            a = b + 1
-        B.text(lab, P(0, 0)[0] - 0.25 * U, y - h * 0.85, 0.18 * U, INK2, L, align="R")
-        y -= h + g
-    return y
-
-
-def draw_riparian(S, B, x, y, w, U):
-    """S1 companion (plant analysis panel 3): canopy cover in four bands either side of the Selinos every 25 m of
-    chainage, the NDVI along the stream, covered reaches, bridges and section crossings."""
-    L = "LU_BOARD::Riparian"
-    cor = seam_pack().get("corridor", {})
-    if not cor:
-        return y
-    B.text("THE STREAM'S TREE COVER · BANK BY BANK, EVERY 25 M", x, y, 1.05 * U, INK, L, font=FONT_TITLE, bold=True)
-    n = cor["n_bins"]
-    bm = cor["bin_m"]
-    names = ["left 60-100", "left 30-60", "left 15-30", "left 0-15", "right 0-15", "right 15-30", "right 30-60",
-             "right 60-100"]
-    rh = 0.75 * U
-    lab_w = 7.5 * U
-    cw = (w - lab_w) / float(n)
-    y0 = y - 1.8 * U
-    ramp = [(0.0, C("F6F5EF")), (1.0, C("E3E6CF")), (5.0, C("C9D1A4")), (10.0, C("A9B57F")), (20.0, C("8C9969")),
-            (40.0, C("6B774A")), (60.0, C("495338"))]
-
-    def colr(v):
-        c_ = ramp[0][1]
-        for t, cc in ramp:
-            if v >= t:
-                c_ = cc
-        return c_
-    for j, nm in enumerate(names):
-        yy = y0 - j * rh - (0.5 * U if j >= 4 else 0.0)
-        B.text(nm + " m", x + lab_w - 0.4 * U, yy - 0.75 * rh, 0.32 * U, INK2, L, align="R")
-        vals = cor["cover"].get(nm, {}).get("pct") or cor["cover"].get(nm, {}).get("cover") or []
-        cells = cor["cover"].get(nm, {}).get("cells", [])
-        for i in range(n):
-            v = vals[i] if i < len(vals) else None
-            if v is None or (i < len(cells) and cells[i] < 20):
-                continue
-            B.fill([rect(x + lab_w + i * cw, yy - rh, x + lab_w + (i + 1) * cw, yy)], colr(v), L, 3)
-        if j == 3:
-            yw = yy - rh - 0.25 * U
-            B.fill([rect(x + lab_w, yw - 0.12 * U, x + w, yw + 0.12 * U)], CAT["water"][1], L, 3)
-            B.text("the Selinos (flowing right)", x + lab_w - 0.4 * U, yw - 0.15 * U, 0.3 * U, BLUE_D, L, align="R")
-    yb = y0 - 8 * rh - 0.5 * U
-    for a, b in cor.get("covered_reaches", []):
-        B.fill([rect(x + lab_w + a / bm * cw, yb - 0.5 * U, x + lab_w + b / bm * cw, yb - 0.2 * U)], BLUE_D, L, 4)
-    ch = cor.get("bridges_ch", [])
-    for i in range(0, len(ch) - 1, 2):
-        xm = x + lab_w + 0.5 * (ch[i] + ch[i + 1]) / bm * cw
-        B.line([(xm, y0 + 0.2 * U), (xm, yb)], INK, L, 6, 0.1)
-    for nm, c_ in cor.get("sections_ch", []):
-        xm = x + lab_w + c_ / bm * cw
-        B.text(nm, xm, yb - 1.0 * U, 0.34 * U, INK, L, align="C", font=FONT_TITLE, bold=True)
-    for m in range(0, int(n * bm) + 1, 500):
-        B.text("{:,} m".format(m), x + lab_w + m / bm * cw, y0 + 0.25 * U, 0.3 * U, INK2, L, align="C")
-    leg = [("box", colr(v), "{:g}%+".format(v)) for v, _c in ramp[1:]] + [
-        ("box", BLUE_D, "covered (culvert)"), ("line", INK, "bridge")]
-    ly = draw_legend_items(B, leg, x, yb - 2.0 * U, w, U, L, h=0.36)
-    return B.para("% of 1 m cells under crowns · bands from the OSM centreline · 25 m bins " + bcite(   # v38: keywords
-        "Stream tree cover: share of the 1 m cells under crown discs (canopy map, modelled), in bands measured from the "
-        "OSM centreline (so 0-15 m holds the channel); bins of 25 m of chainage from the upstream frame edge; a bin "
-        "under 20 cells is left blank. Bridges as vertical lines, section lines by name."),
-                  x, ly - 0.2 * U, w, 0.32 * U, INK2, L)
+def rip_legend():
+    """The tree-cover chart's key as drawn samples: [(kind, colour, name)]."""
+    out = []
+    for k, (t, c_) in enumerate(RIP_RAMP):
+        out.append(("box", c_, "tree cover {:g}-{:g} %".format(t, RIP_RAMP[k + 1][0]) if k + 1 < len(RIP_RAMP)
+                    else "tree cover {:g} % +".format(t)))
+    return out + [("box", CAT["water"][1], "the Selinos stream"), ("box", RIP_COVERED, "covered reach"),
+                  ("line", INK, "bridge")]
 
 
 # v33: the green table of bergama_fabric_green v10
@@ -797,13 +705,6 @@ def seq_t(v, vmax):
     return 0.0 if vmax <= 0 else math.sqrt(max(0.0, v) / vmax)
 
 
-def div_t(d, dmax):
-    if dmax <= 0:
-        return 0.5
-    s = math.sqrt(min(1.0, abs(d) / dmax))
-    return 0.5 + 0.5 * s if d > 0 else 0.5 - 0.5 * s
-
-
 # ============================================================ the whole analysis (also used outside Rhino)
 def analyse(ns, S, osm, places_path, props, closed, attractors, opt, log):
     """Both scenarios, both modes. Returns R with the pieces, their values and the street table."""
@@ -969,29 +870,6 @@ def street_table(ns, S, R, log):
     return rows
 
 
-# ============================================================ drawing (survey coordinates; baked via selinus_board helpers)
-def _runs(chains, pieces, xy, value_of, inside_frame, F):
-    """Polylines of equal value along every chain: [(points, value)], clipped to the frame."""
-    out = []
-    for ch in chains:
-        run, cur = [], None
-        for (pi, fw), n0, n1 in zip(ch["seq"], ch["nodes"][:-1], ch["nodes"][1:]):
-            v = value_of(pi) if pi in inside_frame else None
-            if v != cur or not run:
-                if run and cur is not None:
-                    out.append((run, cur))
-                run, cur = [xy[n0]], v
-            run.append(xy[n1])
-        if run and cur is not None:
-            out.append((run, cur))
-    clipped = []
-    for P, v in out:
-        for q in F.clip_line(P):
-            if len(q) >= 2:
-                clipped.append((q, v))
-    return clipped
-
-
 PANELS = (
     ("walk_b", "seq", "WALKING TODAY", "walk"), ("walk_a", "seq", "WALKING WITH THE STREAM-EDGE SPINE", "walk"),
     ("walk_d", "div", "WALKING: CHANGE WITH THE SPINE", "walk"),
@@ -1008,9 +886,20 @@ MV_OPT = dict(r_walk=800.0, t_car=600.0, buffer=1000.0, snap=150.0, snap_end=25.
 PROPOSAL_INPUTS = ("spine", "spine_car", "bridges", "car_closed", "attractors")
 # v34: the riverside spine of bergama_city_link (Thread 4), used when no proposal curves are wired. The file wins; the
 # built-in copy (city link v1.1, 24 Oct; pieces A and C side "auto" = the bank the data picks) is the fallback. Survey coordinates; offsets are schematic for the network.
-CITY_LINK_FILE = os.path.join(BERGAMA_DIR, "output", "Bergama_city_link_analysis", "city_link_results.json")
+CITY_LINK_FILE = bg_first([os.path.join(bg_cache("Bergama_city_link_analysis"), "city_link_results.json"),   # v44
+                           os.path.join(BERGAMA_DIR, "output", "Bergama_city_link_analysis", "city_link_results.json")])
 CITY_LINK_DEFAULT = json.loads('{"spine":[{"id":"A","name":"Ulu Cami to K3 bank walk","frm":[29846.0,32278.0],"to":[30037.0,32122.0],"side_ref":[29844.2,32313.3],"offset_m":15.0,"side":"auto","catch_m":250.0},{"id":"B","name":"Junction over the covered reach","frm":[30037.0,32122.0],"to":[30238.7,31931.2],"side_ref":null,"offset_m":0.0},{"id":"C","name":"Red Hall to Üç Kemer bank walk","frm":[30238.7,31931.2],"to":[30294.0,31792.0],"side_ref":[30245.0,31962.0],"offset_m":15.0,"side":"auto","catch_m":250.0}],"functions":[{"n":1,"name":"Bank bazaar","xy":[29890.4,32243.6],"stage":null},{"n":2,"name":"Parchment and leather workshops","xy":[30062.0,32106.0],"stage":null},{"n":3,"name":"Junction square","xy":[30058.0,32047.0],"stage":null},{"n":4,"name":"Red Hall water terrace","xy":[30238.7,31931.2],"stage":null},{"n":5,"name":"Producers\' market","xy":[30294.0,31792.0],"stage":null},{"n":6,"name":"Study terraces","xy":[29941.0,32200.0],"stage":null},{"n":7,"name":"Clean-water classroom","xy":null,"stage":"entry"},{"n":8,"name":"Summer bed events","xy":null,"stage":null}]}')
-CITY_LINK_MV = os.path.join(SELINUS_OUT_DIR, "city_link_movement.json")
+# v59 (round 4, G-R4-11): the built-in copy's printed names from the names table, as common/city_spine.py prints them
+# (Kızıl Avlu, never "Red Hall"; Ulucami; bridges by name); ids, coordinates and keys unchanged
+for _f in CITY_LINK_DEFAULT.get("spine", []):
+    if _f.get("id") == "A":
+        _f["name"] = landmark_name("ulucami") + u" to " + bridge_name("K3") + u" bank walk"
+    elif _f.get("id") == "C":
+        _f["name"] = landmark_name("kizil_avlu") + u" to " + bridge_name("K5") + u" bank walk"
+for _f in CITY_LINK_DEFAULT.get("functions", []):
+    if u"Red Hall" in (_f.get("name") or u""):
+        _f["name"] = _f["name"].replace(u"Red Hall", landmark_name("kizil_avlu"))
+CITY_LINK_MV = os.path.join(SELINUS_RES_DIR, "city_link_movement.json")      # v44: cached/
 # OSM highway -> line class on the S2 plan (the road classes of bergama_diagrams D3); print mm
 MV_CLASS = {"primary": "main", "trunk": "main", "secondary": "main", "tertiary": "secondary",
             "unclassified": "secondary"}

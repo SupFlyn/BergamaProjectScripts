@@ -30,9 +30,9 @@ def _main():
     inp, out = sys.stdin.buffer, sys.stdout.buffer
     sys.stdout = sys.stderr                                # a print() in the code must not reach Rhino's pipe
     hdr = pickle.load(inp)
-    for p in reversed(hdr["path"]):
+    for p in hdr["path"]:                                  # v44.1: Rhino's folders after this Python's own
         if p and p not in sys.path:
-            sys.path.insert(0, p)
+            sys.path.append(p)
     try:
         with open(hdr["src"], "r", encoding="utf-8") as fh:
             src = fh.read()
@@ -231,6 +231,10 @@ def _pool_start():
     if src is None:
         _POOL["why"] = "this component's code could not be read from Python here"
         return
+    # v49.2 (Aras 28 Oct log: "SyntaxError ... line 630", the "+ \" line 315): the component's text has Windows line
+    # ends; written in text mode each "\r\n" became "\r\r\n", read back as two lines, so every line doubled and a
+    # line ending in "\" met an empty line. One "\n" per line now.
+    src = src.replace("\r\n", "\n").replace("\r", "\n")
     py = noise_worker_python()
     if py is None:
         _POOL["why"] = _NOISE_PY.get("why", "") or "no python executable found beside Rhino"
@@ -276,7 +280,8 @@ def _pool_start():
             raise RuntimeError("a worker did not start within {:.0f} s".format(POOL_START_S))
         for st, info in hello:
             if st != "ok":
-                raise RuntimeError("a worker could not run the code: " + str(info).strip().splitlines()[-1][:200])
+                tb_ = [l_.strip() for l_ in str(info).strip().splitlines() if l_.strip()]
+                raise RuntimeError("a worker could not run the code: " + " | ".join(tb_[-4:])[:400])   # v44.1: file + line
             if info["probe"] != want["probe"] or info["np"] != want["np"]:
                 raise RuntimeError("a worker's Python or numpy does not compute exactly like Rhino's")
             bad = [k for k, v in info["code"].items() if mine.get(k) != v]
@@ -735,7 +740,8 @@ def canopy_note(S, short=False):
 def height_note(S):
     """Where the building heights come from, with the counts of this bake (one sentence for every sheet)."""
     mains = [u for u in S.bld if not u["annex"]]
-    n = dict((k, len([u for u in mains if u["floors_src"] == k])) for k in ("survey", "neighbours", "published", "osm"))
+    n = dict((k, len([u for u in mains if u["floors_src"] == k])) for k in ("survey", "neighbours", "published", "osm",
+                                                                            "unlabelled"))   # v50 (P06.3)
     t = getattr(S, "floor_test", (0, 0.0, 0.0))
     s = ("Building heights: floors x typical storey height; {} buildings carry a surveyed floor count".format(n["survey"]))
     if n["neighbours"]:
@@ -745,8 +751,11 @@ def height_note(S):
                   n["neighbours"], NB_K, t[0], t[1], t[2]))
     if n["osm"]:
         s += ", {} from OpenStreetMap levels".format(n["osm"])
+    if n["unlabelled"]:                                  # v50 (MIRAQUA 28 Oct, P06.3)
+        s += ", {} house outlines the survey closed without a floor label count as one storey".format(n["unlabelled"])
     if n["published"]:
-        s += "; the Red Basilica hall and rotundas at their published heights (19 m, 18 m)"
+        s += u"; the {} hall and rotundas at their published heights (19 m, 18 m)".format(
+            landmark_name("kizil_avlu"))                  # v59 closing (G-R4-11): the names table, not "Red Basilica"
     return s + "."
 
 
@@ -1064,7 +1073,7 @@ def sheet_sound(S, B, X, Y, U, rects, d):
     x0, W = X + PM * U, (PW - 2 * PM) * U
     p = os.path.join(d, "T1_sound_lden.png")
     noise_render(S, "lden", p, 1.0)
-    V, wv, hv = tech_map(S, B, S.F, p, x0, top, W, 19.5 * U, U, L)
+    V, wv, hv = tech_map(S, B, S.F, p, x0, top, W, 19.5 * U, U, L, crop_bar=False)   # v40: bands and tiles beside the bar
     road_overlay(S, B, V, L, 7)                           # v16.6: the streets (the sources) over the sound colours
     edges = [35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
     labels = ["< 35"] + ["%d-%d" % (edges[k], edges[k + 1]) for k in range(len(edges) - 1)] + ["> 80"]

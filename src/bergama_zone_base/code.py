@@ -1,29 +1,21 @@
-"""BERGAMA ZONE BASE v9 (2026-10-25): bakes Group 6's zone layout into the open Rhino file as an editable base.
+# CURRENT VERSION: bergama_zone_base_v11_2.py = v11.2 (2 Nov 2026; fix: bake() renamed zb_bake() so a Button named bake works; what changed: the NEW IN / VERSION notes below)
+"""BERGAMA ZONE BASE v11 (2026-11-01): bakes Group 6's zone layout into the open Rhino file as an editable base.
+
+NEW IN v11 (round 4, S1, 1 Nov 2026): (1) ONE start-up rule shared by all nine scripts (common/trigger.py, round 3
+open row 13): a press of the Button wired into `run` (rising edge), or a NEW done text from the script before it;
+pasting or rewiring never starts it; the log says what started it ("trigger: button run" / "trigger: chain run").
+(2) Names from the project's names table (G-R4-11): the two text dots that read "K4" and "K5" now read the bridges'
+names (Ulucami Önü Köprüsü, Üç Kemer Köprüsü); K-codes are never printed. Zones unchanged.
+
+NEW IN v10 (Aras 27 Oct 11:07, output cleanup): writes nothing under output/ (its log is Downloads/Bergama/logs/
+bergama_zone_base_log.txt); anything older versions left in output/bergama_zone_base/ is moved out (logs to logs/,
+the rest to cached/). Zones unchanged.
 
 NEW IN v9 (Aras 25 Oct 16:43: "the selection of A should be remember in the whole project so all scripts should drop B alternatives"): bakes option A only (Option_A::INT_*); option B is no longer baked and the option input is
 ignored. Option_B layers already in a file are left as they are (delete them by hand if you want). Nothing else
 changed.
 
-NEW IN v8 (Aras 25 Oct 09:34-09:35): the same names in every script: the Button goes into an input named run, the log comes out of an output named log, and the log file is Downloads/Bergama/logs/bergama_zone_base_log.txt (next to cached/ and output/), overwritten by each press.
-
-NEW IN v7 (Aras 25 Oct 08:03-08:18): DEMETER'S GARDEN, Begum's idea alone (card i01), as zones DG 1 and DG 2 on
-layer INT_ZONE_DG (tier D), where her drawing puts them: the south-west bank either side of K5 Uckemer bridge,
-inside calisma_alan[1]. Outline = the open ground between the bed (WA 4 / WA 5) and the street edge less 1.5 m,
-1.5 m clear of surveyed buildings and walls, 20 m clear of the K5 deck (DG 1 about 565 m2 upstream, DG 2 about
-852 m2 downstream; placeholders, calculated from the survey DXF). Labels "DEMETER'S GARDEN" on each, and one very
-small "idea: Begum" credit. Allowed as a public, educational garden with a cafe (Aras 08:07), so the 18 Oct "no
-farmland inside the site" rule still holds for everything else. Everything else is as in v6.
-
-NEW IN v6 (Aras 25 Oct 07:50-07:52: one file for everything, the larger survey "Bergama Müdahele Alanları (1)"): a
-file with no study-area layers (aras_alan, begum_alan, nil_alan) is accepted when its survey (stream, buildings)
-lies on the study areas recorded in STUDY_BBOX, i.e. it is the survey in survey coordinates; the base is baked
-exactly as in v5. A file that HAS study-area layers must still have them where the course survey has them.
-The working area is the whole calisma_alan, one shared area (Aras 25 Oct 08:05: no split by person). Every
-proposal is baked whole when it lies in, crosses or comes within SNAP_M (15 m) of it (Aras 08:10-08:11: small
-differences do not matter, lines that nearly match count as overlapping and the larger area is the true one); one
-lying farther off is not baked and the log lists it. Labels are notes, baked as before.
-calisma_alan is read from the open file (Bergama_Altlik.3dm; an open outline with ends under 5 m apart counts as
-closed); with none there, the copy CALISMA_COPY below. The zones themselves are the same as in v5.
+OLDER VERSIONS: their notes are in HISTORY.md (repo SupFlyn/BergamaProjectScripts, src/bergama_zone_base/).
 
 WHAT IT IS
   A Grasshopper Python 3 component. Wire a plain Button into an input named `run` (v8; bake / build / go / press also work);
@@ -76,7 +68,7 @@ INPUTS (any case; only the button is needed)
 
 OUTPUT
   log: the log. It stays readable after the button is released, and is also written to
-  Downloads/Bergama/output/bergama_zone_base/bergama_zone_base_log.txt.
+  Downloads/Bergama/logs/bergama_zone_base_log.txt (v11.2: this text said output/, the file has been in logs/ since v10).
 """
 
 import os
@@ -87,7 +79,6 @@ import base64
 import hashlib
 import tempfile
 import datetime
-import types as _types
 
 import Rhino
 import Rhino.Geometry as rg
@@ -95,16 +86,16 @@ import System
 import System.Drawing
 import scriptcontext as sc
 
-VERSION = "bergama_zone_base v9 (2026-10-25)"
-LOG_DIR = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "logs")   # Aras 25 Oct 09:34-09:35: every script's log here
+VERSION = "bergama_zone_base v11.2 (2026-11-02)"  # v11.2 fix (round 5 S5, CHK-12): the function bake() is now zb_bake(): a Button input named `bake` (offered below) read the function, so a press did nothing, as run() did in v11.1; v11.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v11 round 4 S1: common/trigger.py (one start-up rule), bridge names on the K4/K5 dots; older: v10.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v10.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+#@include ../common/bergama_paths.py
+LOG_DIR = bg_logs()                        # Aras 25 Oct 09:34-09:35: every script's log here
 
 BASE_MD5 = "cdfe4fe55413b71ba9d80dd092ff1112"  # the decompressed base data (701,976 bytes of JSON, survey coordinates)
 # The base: mp2/draft2/draft_markup.json (Option_A / Option_B, 14 zones each) + 11 typed arrows per option, JSON,
 # zlib + base64. Generated by prep_auto_v5.py; v7 appends 10 Demeter's Garden items (2 zones + 3 labels per option).
 # Do not edit by hand.
 #@include data/BASE_DATA.py
-SHORT = "v9"
-BUTTON_WORDS = ("run", "bake", "build", "go", "press", "button")
+SHORT = "v11.2"
 TAG = "bergama_zone_base"                          # user text key on every baked object (value = VERSION)
 STUDY_BBOX = {                                     # the course survey's study areas (survey = file coordinates, m)
     "aras_alan": [(29610.0960, 32247.0612, 29880.6932, 32794.2334)],
@@ -121,14 +112,15 @@ PARENT = {"A": "Option_A", "B": "Option_B"}
 
 
 # ---------------------------------------------------------------- Grasshopper inputs, memory, status
-#@include ../common/_gh_inputs.py
+# v11 (round 4): what starts this component = common/trigger.py (its notes say it for all nine scripts)
+#@include ../common/trigger.py
 
 
-_GH_IN = _gh_inputs()
+_GH_IN = trig_inputs()
 _T_START = time.time()
 
-
-#@include ../common/chain_fire.py
+#@include ../common/data/NAMES.py
+#@include ../common/names.py
 
 
 #@include ../common/done_text.py
@@ -143,28 +135,6 @@ def gin(name, default=None):
                 v_ = next((x for x in v_ if x is not None), None)
             return default if v_ is None or (isinstance(v_, str) and not v_.strip()) else v_
     return default
-
-
-def to_bool(v):
-    if isinstance(v, bool):
-        return v
-    if isinstance(v, (int, float)):
-        return v != 0
-    return str(v).strip().lower() in ("true", "yes", "1", "on")
-
-
-def find_button():
-    for k_ in _GH_IN:
-        if "".join(c for c in k_.lower() if c.isalpha()) in BUTTON_WORDS:
-            return k_
-    try:
-        for p_ in ghenv.Component.Params.Input:                      # noqa: F821
-            for src_ in p_.Sources:
-                if "button" in type(src_.Attributes.GetTopLevel.DocObject).__name__.lower():
-                    return str(p_.NickName or p_.Name)
-    except Exception:
-        pass
-    return None
 
 
 # 25 Oct (Aras 09:55): remembered for this Rhino session only (sticky); no temp state file. The one copy on disk is
@@ -344,7 +314,7 @@ def near_work(g, areas, tol):
     return False
 
 
-def bake(doc, which, log):
+def zb_bake(doc, which, log):   # v11.2 (CHK-12): was bake(), a Button word
     """Bake the base for options `which` (('A', 'B') by default). Returns the number of objects baked."""
     items = base_items()
     tol = doc.ModelAbsoluteTolerance or 0.001
@@ -383,7 +353,10 @@ def bake(doc, which, log):
             gids = []
             if it["kind"] == "LABEL":
                 if it.get("pt") and bid not in kept_ids:
-                    g = rg.TextDot(it.get("text") or it.get("name") or "", rg.Point3d(it["pt"][0], it["pt"][1], 0.0))
+                    txt = it.get("text") or it.get("name") or ""
+                    if txt.strip().upper() in NAMES["bridges"]:  # v11 (G-R4-11): a bridge by its name, never "K4"
+                        txt = bridge_name(txt)
+                    g = rg.TextDot(txt, rg.Point3d(it["pt"][0], it["pt"][1], 0.0))
                     if it.get("font"):                       # v7: the very small "idea: Begum" credit
                         g.FontHeight = int(it["font"])
                     att.SetUserString("base_hash", shape_hash(g))
@@ -425,17 +398,15 @@ def bake(doc, which, log):
     return n_all
 
 
-def run():
-    btn = find_button()
-    if btn is None:
+def main():    # v11.1: was run(), which replaced the Button input `run` (Button did nothing)
+    pressed, why, btn = trig_should_run("chain_seen")          # v11: common/trigger.py
+    if btn is None and not pressed:
         text = "No button found: wire a Button into an input named run. ({})".format(VERSION)
         gh_status(SHORT + " · no button")
         gh_message("warning", text)
         return text
-    on = to_bool(gin(btn, False))
-    pressed = (on and not mem_get("prev", False)) or chain_fire(gin(btn), "chain_seen")
+    btn = btn or "run"
     globals()["_ran_now"] = pressed
-    mem_set("prev", on)
     if not pressed:
         last = mem_get("last", "")
         gh_status(mem_get("status", "") or SHORT + " · idle")
@@ -443,11 +414,12 @@ def run():
             "Idle. Press {} to bake the zone base into Option_A. ({})".format(btn, VERSION)
     t0 = time.time()
     gh_status(SHORT + " · baking")
-    log, err = [], None
+    log, err = ["trigger: " + why], None
     doc = Rhino.RhinoDoc.ActiveDoc
     which = ("A",)                                     # v9: option A only, project-wide (Aras 25 Oct 16:43)
     # v5 24 Oct: all files under Downloads/Bergama/ (Aras rule); was beside the .3dm
-    folder = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "output", "bergama_zone_base")
+    folder = LOG_DIR                                   # v10: the log is its only file (was named output/bergama_zone_base)
+    log.extend(bg_tidy_output("bergama_zone_base"))     # v10: output/ = PDFs only (27 Oct)
     n = 0
     try:
         if doc is None:
@@ -459,7 +431,7 @@ def run():
             raise RuntimeError("this is not the Bergama survey in survey coordinates ({}). The base is in those "
                                "coordinates, so nothing was baked. Open Bergama_Altlik.3dm and press again".format(why))
         log.extend(STUDY_NOTE)
-        n = bake(doc, which, log)
+        n = zb_bake(doc, which, log)
     except Exception as ex_:
         err = "ERROR: {}: {}".format(type(ex_).__name__, ex_)
     secs = time.time() - t0
@@ -490,7 +462,7 @@ def run():
 
 
 try:
-    _txt = run()
+    _txt = main()
 except Exception as _ex:
     _txt = "ERROR: {}: {} ({})".format(type(_ex).__name__, _ex, VERSION)
     gh_status(SHORT + " · ERROR")

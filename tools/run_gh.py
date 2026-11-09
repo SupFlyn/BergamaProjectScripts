@@ -25,5 +25,32 @@ import fakerhino
 fakerhino.install(os.environ.get("BERGAMA_SURVEY") or None, home)
 gh = mock.MagicMock(name="ghenv"); gh.Component.InstanceGuid = "00000000-test"; gh.Component.Params.Input = [types.SimpleNamespace(VariableName=n, NickName=n, Name=n) for n in ("run", "rhino_bake")]; gh.Component.Params.Output = []
 sys.argv = [script]
+if os.environ.get("DUPCALLS"):                # DUPCALLS=<file>: calls of the script's own functions with the same arguments
+    import pickle, hashlib, collections, json as _js
+    _seen = collections.Counter(); _cost = collections.Counter(); _tot = collections.Counter(); _skip = set()
+    _ab = os.path.abspath(script)
+    def _prof(frame, event, arg):
+        if event != "call" or frame.f_code.co_filename != _ab: return
+        c = frame.f_code; k0 = (c.co_name, c.co_firstlineno); _tot[k0] += 1
+        if k0 in _skip or _tot[k0] > 400: return
+        try:
+            args = tuple(frame.f_locals.get(v) for v in c.co_varnames[:c.co_argcount + c.co_kwonlyargcount])
+            b = pickle.dumps(args, 4)
+        except Exception:
+            _skip.add(k0); return
+        _seen[k0 + (hashlib.md5(b).hexdigest(),)] += 1; _cost[k0] = max(_cost[k0], len(b))
+    sys.setprofile(_prof)
+if os.environ.get("PROFILE"):                 # PROFILE=<file>: cProfile stats of the run (tools/hot.py reads them)
+    import cProfile
+    _p = cProfile.Profile(); _p.enable()
 g = runpy.run_path(script, init_globals={"ghenv": gh, "run": True, "rhino_bake": False}, run_name="__main__")
+if os.environ.get("PROFILE"):
+    _p.disable(); _p.dump_stats(os.environ["PROFILE"])
+if os.environ.get("DUPCALLS"):
+    sys.setprofile(None)
+    rep = collections.Counter()
+    for k, n in _seen.items():
+        if n > 1: rep[k[:2]] += n - 1
+    with open(os.environ["DUPCALLS"], "w") as f:
+        _js.dump([dict(fn=k[0], line=k[1], repeats=n, calls=_tot[k], arg_bytes=_cost[k]) for k, n in rep.most_common()], f, indent=0)
 print("\n#LOG#", str(g.get("log"))[:400].replace("\n", " | "))
