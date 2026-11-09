@@ -28,6 +28,14 @@ NEW IN v37 (round 8 S6, 8 Nov 2026; revision_2026-11-08_round8/PLAN.md §cause, 
   * Log: "scale <page> <drawing> printed 1:n true 1:m", WARNING "<page> <block> fit | offsheet | textfit | unlisted";
     output/bergama_booklet/page_boxes.csv; Data/booklet_layout.csv carries a plan column (an older table is kept as
     booklet_layout_<old>_<time>.csv and the v37 plan written fresh).
+  * PAGE TABLE (round 8 table pass, 9 Nov; PLAN.md §table + Aras's answers): every page re-framed for what the
+    producers export now (MainBoard v65, MasterPlan v45, WaterBoard v19, AgriCulture v14): union frames for one-item
+    boards (p02 plan 01, p06, p19), p07 map + scale rows merged, p04 1:2,500 / p05 1:2,000 with the ratio in the note
+    frames (bar=), p08 street cuts one row (bars only), p13 one 1:500 drawing per season (rigid=: labels as set, no
+    band), p14 zoom 1:200, p16 plans 1:3,000, p20 SON format (row notes, 3 legend groups), p21 sections staggered,
+    p18 skips ag2_farms*. A frame without note= keeps room for its drawings' attached notes (no "unlisted").
+  * Label boxes: a text exported with a "box" (MasterPlan v45 context labels mp_plan_ctx_*) gets a white 70 % box
+    with a #5A6670 outline under its placed text (bk_text_boxes).
 NEW IN v35 (5 Nov 2026; Aras 12:32 "pages should be able to move drawings when needed", decision 09:45 "Both"):
   * LAYOUT TABLE ~/Downloads/Bergama/Data/booklet_layout.csv: written from the built-in plan on the first run, then
     read on every run. One row per frame: page_order;page;block;x_mm;y_mm;w_mm;h_mm;scale;size;on. Change a page's
@@ -2904,6 +2912,7 @@ def bk_emit(P):
             return xr[k]                                      # time, so it is kept after the first look-up
         P.page.insert_font = _ins
         P._fonts = True
+    bk_text_boxes(P)                                          # v37: label boxes (item key "box") under their texts
 
     def draw(it):
         s, pt, bold = it["text"], it["pt"], it["bold"]
@@ -2927,6 +2936,41 @@ def bk_emit(P):
             P.page.insert_text(_fz.Point((x + dx) * BK_K, y * BK_K), s, fontname="BKB" if bold else "BKR",
                                fontsize=pt, color=col)
     return P.tp.emit(draw)
+
+
+BK_TEXT_BOX = {}            # v37: text id -> its exported "box" (MasterPlan v45 context labels mp_plan_ctx_*), bk_items
+BK_TEXT_BOX_PAD = 0.6       # mm round the text
+BK_TEXT_BOX_LW = 0.3        # pt outline
+
+
+def bk_text_boxes(P):
+    """v37 (round 8, MasterPlan v45 P2 Q8): a text exported with a "box" (dict fill, alpha, stroke) gets a rectangle
+    under its PLACED text (after the label pass): fill at alpha (default white at 70 %), a BK_TEXT_BOX_LW outline
+    (default #5A6670), BK_TEXT_BOX_PAD mm round it; the lines of one label (same id and group) share one box. -> n"""
+    import fitz as _fz
+    got = {}
+    for it in P.tp.items:
+        b_ = BK_TEXT_BOX.get(it.get("name"))
+        if not isinstance(b_, dict) or not it.get("emit", True) or it.get("role") == "number":
+            continue
+        k_ = (it.get("name"), it.get("group"))
+        r = it["box"]
+        o = got.get(k_)
+        got[k_] = (b_, tuple(r) if o is None else (min(o[1][0], r[0]), min(o[1][1], r[1]), max(o[1][2], r[2]),
+                                                   max(o[1][3], r[3])))
+    pd = BK_TEXT_BOX_PAD
+    for b_, r in got.values():
+        try:
+            a_ = float(b_.get("alpha", 0.7))
+        except (TypeError, ValueError):
+            a_ = 0.7
+        sh = P.page.new_shape()
+        sh.draw_rect(_fz.Rect((r[0] - pd) * BK_K, (r[1] - pd) * BK_K, (r[2] + pd) * BK_K, (r[3] + pd) * BK_K))
+        sh.finish(color=hex_rgb(u"%s" % (b_.get("stroke") or "5A6670")),
+                  fill=hex_rgb(u"%s" % (b_.get("fill") or "FFFFFF")), fill_opacity=max(0.0, min(1.0, a_)),
+                  width=BK_TEXT_BOX_LW)
+        sh.commit()
+    return len(got)
 # ---- 50_place (composer core, round 5 S1; G-R5-12 "prevent, not just detect", G-R5-2, G-R5-10, PLAN §3) -------------
 # Everything that belongs to a drawing is placed by the booklet, after the drawing, in priority order: in-drawing
 # labels, level column, legend, lists, notes. A label tries (1) its exported positions round its anchor, (2) nearby
@@ -4126,20 +4170,33 @@ def hr_sources():
         out.append(u"%s silhouette, %s, PhyloPic (%s), %s" % (a.get("what", key), a.get("author", ""),
                                                               a.get("url", ""), a.get("licence", "")))
     return out
-# ---- 80_plan (round 7 S7, v33; BRIEF §3 L1-L3, PLAN §3): the 22-page booklet plan as FIXED FRAMES + SON SCALES ---------
+# ---- 80_plan (round 7 S7, v33; v37 round 8 table pass): the 22-page booklet plan as ABSOLUTE FRAMES, FITTED ---------
+# round 8 page table = PLAN.md §table (revision_2026-11-08_round8: BRIEF §3 frame rows + PLAN §table corrections +
+# Aras's answers Q1-Q8; SON source edition per page in the comment above each page). Ids = what the producers export
+# today (MainBoard v65, MasterPlan v45, WaterBoard v19, AgriCulture v14, ProposalSections v23, CityLink v12,
+# WaterBalance v13); handover P6_booklet_table_done.md lists every frame, the skipped ids and the expected WARNINGs.
 # ONE numbering: p01 ... p22 (BRIEF §6), exported directly by every content script. Each content page: part / stage
 # (kicker "<letter> <CHAPTER> · <PART>", contents, footer "<letter> <CHAPTER>  <n>"), title, intro (lead; used only when
-# no script exports a role "intro" text), frames, side (the frame key where unlisted items go).
-# A frame F(ids, x, y, w, h, den=None, f=1.0, **opt): ids = one fnmatch pattern or a tuple of them; x, y, w, h in MM on
-# the A3 sheet (420 x 297, origin top left) = the MEASURED SON frame of the block (plan_findings/H4_page_table.md §5,
-# §3 key maps; ±0.5 mm on the SON JPG); den = SON's printed scale (true-scale "m" drawings; an int, or a dict id -> den
-# in a split frame); f = the size factor of an "mm" drawing (diagram, chart, axo, key map): 1.0 = its exported size
-# (BRIEF L1 "keeps SON's size"; producers export at that size). The code never picks, rounds, snaps or fits a scale or
-# a frame (L3): a drawing that does not fit = WARNING "<page> <drawing> frame", scale kept. Options: key (name;
-# default the first pattern), note (frame key where this frame's drawings' attached notes go), split ("row" | "col":
-# several drawings in one frame, set one after the other at their own size, gap mm), al ("TL" default ...), over (may
-# sit on another frame: a legend / inset / key map inside a map), opt (an empty frame is no WARNING), noscale (no
-# "1:n" printed: SON prints none, or the drawing carries its own bar).
+# no script exports a role "intro" text, or when the exported one repeats the kicker), frames, side (the frame key
+# where unlisted items go, each with WARNING "<page> <id> unlisted").
+# A frame F(ids, x, y, w, h, den=None, f=1.0, **opt): ids = one fnmatch pattern or a tuple of them (the first frame
+# naming an item places it, in that frame only); x, y, w, h in MM on the A3 sheet (420 x 297, origin top left, y
+# down), every box inside x 14-406, y 26-279 (L3); the box is ABSOLUTE: it never moves or grows, no block depends on
+# another (L1). Everything in it is FITTED (bk_fit, L2): the frame's drawings (one, or a split "row" | "col" group as
+# one) get ONE uniform factor, the largest that fits after their head, subtitle, label band, level column, scale band
+# and the frame's texts (its own matched texts and, when the frame has no note=, its drawings' attached notes that no
+# frame names). den = the PRINTED scale (n of 1:n, true-scale "m" drawings; an int, or a dict id -> den in a split
+# frame): the true scale stays within +-6 % of it (else WARNING "<page> <drawing> fit true 1:n needed 1:m", overflow,
+# nothing moves), the bar is drawn at the true scale, the ratio printed is den. No den: free fit (bar only). "mm"
+# drawings (diagrams, charts, boards, key maps, sketches) fit freely, never above x1.15 of f (their base size, 1.0 =
+# the exported size; no frame sets it).
+# Options: key (name; default the first pattern), note (frame key where this frame's drawings' attached notes and
+# numbered-label rows go), split + gap (several drawings side by side / stacked, fitted as one group), al ("TL"
+# default; "TR", "MC" ...), bar (frame key: the drawing's bar / ratio / north at the bottom-left of THAT frame, e.g. a
+# section's note frame, or an empty opt= frame kept for it), noscale (no ratio printed: SON prints none, the drawing's
+# own bar is its scale), rigid (a section keeps its labels where its script set them, no label band above it: p13),
+# allow (an item id whose keep this frame's texts may sit on: the p11 legend inside its map, L9), opt (an empty frame
+# is no WARNING "missing"), over (documentation only: the frame sits on another one on purpose).
 # skip: item id patterns a page does not place (SON has no block for them; logged "skip <page> <id> ...", D4 / F12).
 
 
@@ -4168,267 +4225,297 @@ COVER_TEXT = (u"MIRAQUA turns the walled Selinos stream through Bergama into a l
 
 BK_PAGES = [
     dict(pid="p01", kind="cover"),
-    # 2 · SON page2 (H4 §5): plan 01 at 1:25,000, its key under it, three strips and the readings on the right
+    # 2 · SON page2 (source b2 40747b2): plan 01 1:25,000 = ONE board item with its bar, bridges list and 3-column
+    # legend inside (BRIEF rows 1-4 one union frame, caption under it); edge strips + caption; readings + donut (7-8)
     dict(pid="p02", part="A", stage="an", title=u"What is there, grain of the town",
          intro=u"The whole survey area *as it is today*: buildings by *urban fabric*, ground and green, the *Selinos "
                u"stream* with its edges and *six bridges*, and the places where *stream and town clash*.",
-         frames=[F("sb_plan01", 14.0, 30.0, 184.0, 161.0, den=25000, note="plan01_notes"),
-                 F(("sb_plan01_*", "sb_p02_legend*", "sb_p02_note*"), 14.0, 193.0, 184.0, 68.5, key="plan01_notes"),
-                 F("sb_edge_types", 212.0, 30.0, 194.5, 130.0),
-                 F("sb_site_readings", 212.0, 163.0, 194.0, 98.0)],
-         side="plan01_notes"),
-    # 3 · SON page3: the axonometric at its exported size, numbered list top right, legend + notes in the bottom zone
+         frames=[F(("sb_plan01", "sb_plan01_caption"), 14.0, 30.0, 183.0, 233.0, den=25000, key="plan01"),
+                 F(("sb_edge_types", "sb_edge_types_caption"), 212.0, 30.0, 194.0, 152.0, key="edge_types"),
+                 F(("sb_site_readings", "sb_site_readings_caption"), 212.0, 185.0, 194.0, 78.0, key="readings")],
+         side="readings"),
+    # 3 · SON page3 (source b2 40747b2): axonometric free fit (+ its caption), list corner (inside the axo, no item),
+    # legend strip; rows 4-5 (sources, axes + north) have no export: WARNING missing kept on purpose (PLAN §table)
     dict(pid="p03", part="A", stage="an", title=u"Heights and enclosure",
          intro=u"Plan 01 as a parallel axonometric: *heights* are what the plan cannot show; the *sky view* from the "
                u"stream bed marks its *most enclosed* stretch.",
-         frames=[F("sb_axo_what_is_there", 22.5, 57.0, 374.5, 179.0, key="axo"),
-                 F(("sb_axo_what_is_there_list*", "sb_p03_list*"), 349.5, 36.0, 56.5, 59.0, key="list", opt=True,
+         frames=[F(("sb_axo_what_is_there", "sb_axo_what_is_there_caption"), 22.0, 48.0, 376.0, 184.0, key="axo"),
+                 F(("sb_axo_what_is_there_list*", "sb_p03_list*"), 348.0, 32.0, 58.0, 60.0, key="list", opt=True,
                    over=True),
-                 F(("sb_axo_what_is_there_legend", "sb_p03_legend*"), 14.0, 258.0, 219.5, 18.5, key="legend"),
-                 F(("sb_axo_what_is_there_caption", "sb_axo_*", "sb_p03_*"), 14.0, 277.5, 234.0, 7.5, key="notes")],
-         side="notes"),
-    # 4 · SON page4: key map S1-S4 (G7-3, 290.5 x 54.0), cuts at 1:2,500 (N1), notes column x 328.5
+                 F(("sb_axo_what_is_there_legend", "sb_p03_legend*"), 14.0, 234.0, 170.0, 24.0, key="legend"),
+                 F(("sb_p03_sources*", "sb_axo_what_is_there_sources*"), 14.0, 259.0, 300.0, 20.0, key="sources"),
+                 F(("sb_p03_axes*", "sb_axo_what_is_there_axes*"), 318.0, 248.0, 80.0, 30.0, key="axes")],
+         side="legend"),
+    # 4 · SON page4 (pieced by Aras): key map S1-S4, cuts S1-S4 printed 1:2,500 (Q1 a; frames re-measured from the
+    # cuts' extents at 1:2,500 so S4 ends above 279), each cut's own bar is in the drawing, its ratio at the foot of
+    # its note frame (bar=); one level column at each cut's right end (D4)
     dict(pid="p04", part="A", stage="an", title=u"Sections across the stream",
          intro=u"Cuts *across the Selinos stream*, each drawn *as it is*: the ground, the *bed and banks*, the "
                u"buildings, trees and fields it crosses.",
-         frames=[F(("sb_sec_keymap_p04", "*keymap*"), 29.0, 34.5, 290.5, 54.0, key="km"),
-                 F(("sb_sec_legend_p04", "sb_sec_intro*"), 323.0, 34.5, 76.5, 26.5, key="legend"),
-                 F("sb_sec_s1", 29.0, 88.5, 234.0, 46.5, den=2500, note="n1"),
-                 F("sb_sec_note_s1*", 328.5, 92.5, 70.0, 54.0, key="n1"),
-                 F("sb_sec_s2", 28.5, 152.0, 234.0, 28.0, den=2500, note="n2"),
-                 F("sb_sec_note_s2*", 328.5, 149.0, 70.0, 30.0, key="n2"),
-                 F("sb_sec_s3", 29.0, 197.0, 234.0, 47.0, den=2500, note="n3"),
-                 F("sb_sec_note_s3*", 328.5, 180.5, 70.0, 56.0, key="n3"),
-                 F("sb_sec_s4", 29.0, 262.0, 234.0, 26.5, den=2500, note="n4"),
-                 F("sb_sec_note_s4*", 328.5, 238.5, 70.0, 46.0, key="n4")],
+         frames=[F(("sb_sec_keymap_p04", "*keymap*"), 16.0, 30.0, 304.0, 58.0, key="km"),
+                 F(("sb_sec_legend_p04", "sb_sec_intro*"), 323.0, 30.0, 83.0, 56.0, key="legend"),
+                 F("sb_sec_s1", 29.0, 89.0, 296.0, 58.0, den=2500, key="s1", note="n1", bar="n1"),
+                 F("sb_sec_note_s1*", 329.0, 89.0, 77.0, 58.0, key="n1"),
+                 F("sb_sec_s2", 29.0, 149.0, 296.0, 33.0, den=2500, key="s2", note="n2", bar="n2"),
+                 F("sb_sec_note_s2*", 329.0, 149.0, 77.0, 33.0, key="n2"),
+                 F("sb_sec_s3", 29.0, 184.0, 296.0, 54.0, den=2500, key="s3", note="n3", bar="n3"),
+                 F("sb_sec_note_s3*", 329.0, 184.0, 77.0, 54.0, key="n3"),
+                 F("sb_sec_s4", 29.0, 240.0, 296.0, 35.0, den=2500, key="s4", note="n4", bar="n4"),
+                 F("sb_sec_note_s4*", 329.0, 240.0, 77.0, 39.0, key="n4")],
          side="legend"),
-    # 5 · SON page5: key map S5-S8 (306.5 x 57.5), cuts at 1:1,500 (N1); SON runs x 7-412 (F9): edges = WARNING
+    # 5 · SON page5 (pieced by Aras): key map S5-S8, cuts S5-S8 printed 1:2,000 (Q1 a; MainBoard v65 P45_DEN 2000),
+    # ratio at the foot of each note frame (bar=), one level column at each cut's right end
     dict(pid="p05", part="A", stage="an", title=u"Sections across the stream",
          intro=u"Cuts *across the Selinos stream*, each drawn *as it is*: the ground, the *bed and banks*, the "
                u"buildings, trees and fields it crosses.",
-         frames=[F(("sb_sec_keymap_p05", "*keymap*"), 21.0, 27.0, 306.5, 57.5, key="km"),
-                 F(("sb_sec_legend_p05", "sb_sec_intro*"), 330.5, 27.0, 81.0, 28.0, key="legend"),
-                 F("sb_sec_s5", 17.0, 88.5, 225.0, 50.0, den=1500, note="n5"),
-                 F("sb_sec_note_s5*", 343.5, 94.5, 68.0, 36.0, key="n5"),
-                 F("sb_sec_s6", 17.0, 141.5, 225.0, 56.0, den=1500, note="n6"),
-                 F("sb_sec_note_s6*", 343.5, 131.5, 68.0, 45.0, key="n6"),
-                 F("sb_sec_s7", 17.0, 199.5, 225.0, 62.0, den=1500, note="n7"),
-                 F("sb_sec_note_s7*", 343.5, 178.0, 68.0, 50.0, key="n7"),
-                 F("sb_sec_s8", 17.0, 264.0, 225.0, 28.5, den=1500, note="n8"),
-                 F("sb_sec_note_s8*", 343.5, 230.0, 68.0, 55.0, key="n8")],
+         frames=[F(("sb_sec_keymap_p05", "*keymap*"), 17.0, 27.0, 312.0, 57.0, key="km"),
+                 F(("sb_sec_legend_p05", "sb_sec_intro*"), 332.0, 27.0, 74.0, 58.0, key="legend"),
+                 F("sb_sec_s5", 17.0, 88.0, 322.0, 31.0, den=2000, key="s5", note="n5", bar="n5"),
+                 F("sb_sec_note_s5*", 343.0, 88.0, 63.0, 45.0, key="n5"),
+                 F("sb_sec_s6", 17.0, 135.0, 322.0, 35.0, den=2000, key="s6", note="n6", bar="n6"),
+                 F("sb_sec_note_s6*", 343.0, 135.0, 63.0, 52.0, key="n6"),
+                 F("sb_sec_s7", 17.0, 189.0, 322.0, 37.0, den=2000, key="s7", note="n7", bar="n7"),
+                 F("sb_sec_note_s7*", 343.0, 189.0, 63.0, 54.0, key="n7"),
+                 F("sb_sec_s8", 17.0, 244.0, 322.0, 35.0, den=2000, key="s8", note="n8", bar="n8"),
+                 F("sb_sec_note_s8*", 343.0, 245.0, 63.0, 34.0, key="n8")],
          side="legend"),
-    # 6 · SON page6: one board drawing (map 1:10,000, cards, photos, right column)
+    # 6 · SON page6 (source b2 40747b2): ONE board drawing (map 1:10,000 with bar + north, cards A-F, THE EDGE, photos
+    # 1-8: BRIEF rows 1-6 one union frame), caption under it
     dict(pid="p06", part="A", stage="got", title=u"The stream edge and where we can build",
          intro=u"Both banks *every 4 m*, and the ground *open to change*: where the project *can build*.",
-         frames=[F("sb_edge_build", 13.5, 30.0, 392.5, 244.0, den=10000, key="edge"),
-                 F(("sb_edge_build_*", "sb_p06_*"), 13.5, 275.0, 250.0, 9.0, key="notes", opt=True)],
-         side="notes"),
-    # 7 · SON page7: three maps at 1:10,000, each note column level with its map
+         frames=[F("sb_edge_build", 14.0, 30.0, 392.0, 242.0, den=10000, key="edge"),
+                 F(("sb_edge_build_caption", "sb_edge_build_*", "sb_p06_*"), 14.0, 273.0, 300.0, 6.0, key="caption")],
+         side="caption"),
+    # 7 · SON page7 (source b2 40747b2): three maps 1:10,000 (map + its "scale + caption" row merged, 285 x 71; own bar
+    # in the drawing, ratio under it, caption beside the ratio), each note column (101 mm, MainBoard v65) beside it
     dict(pid="p07", part="B", stage="an", title=u"How people use it",
          intro=u"*Shops* line Kınık Caddesi and Üç Kemer Caddesi, the *primary commercial spines*; *walking* and "
                u"*driving* today, street by street.",
-         frames=[F("sb_movement", 14.5, 30.0, 286.0, 71.0, den=10000, note="n1"),
-                 F("sb_mv_note_1*", 304.0, 30.0, 101.0, 75.0, key="n1"),
-                 F("sb_walking_today", 14.5, 107.5, 286.0, 70.5, den=10000, note="n2"),
-                 F("sb_mv_note_2*", 304.0, 107.5, 101.0, 75.0, key="n2"),
-                 F("sb_driving_today", 14.5, 185.0, 286.0, 70.5, den=10000, note="n3"),
-                 F("sb_mv_note_3*", 302.5, 185.0, 103.5, 75.0, key="n3")],
+         frames=[F("sb_movement", 15.0, 30.0, 285.0, 71.0, den=10000, key="m1", note="n1"),
+                 F("sb_movement_caption", 42.0, 98.0, 258.0, 4.0, key="c1", over=True),
+                 F("sb_mv_note_1*", 302.0, 30.0, 104.0, 71.0, key="n1"),
+                 F("sb_walking_today", 15.0, 107.0, 285.0, 71.0, den=10000, key="m2", note="n2"),
+                 F("sb_walking_today_caption", 42.0, 175.0, 258.0, 4.0, key="c2", over=True),
+                 F("sb_mv_note_2*", 302.0, 107.0, 104.0, 71.0, key="n2"),
+                 F("sb_driving_today", 15.0, 184.0, 285.0, 71.0, den=10000, key="m3", note="n3"),
+                 F("sb_driving_today_caption", 42.0, 252.0, 258.0, 4.0, key="c3", over=True),
+                 F("sb_mv_note_3*", 302.0, 184.0, 104.0, 71.0, key="n3")],
          side="n3"),
-    # 8 · SON page8: corridor 1:10,000, its legend, who chart, street cuts R1-R4 at 1:500, key map bottom right (TARGET)
+    # 8 · SON page8 (pieced by Aras): corridor 1:10,000 (+ heading), its legend + shops, who chart, street cuts R1-R4
+    # one row group (no printed ratio, Q2 a: each panel carries its own bar, MainBoard v65), key map, legend
     dict(pid="p08", part="B", stage="got", title=u"The stream joins the town where the shops already are",
          intro=u"One *corridor*: the shop streets, the *hidden stream* and the project from end to end; *who* comes "
                u"when; each *street cut* today and with the project.",
-         frames=[F("cl_p08_corridor", 9.0, 30.5, 288.5, 68.0, den=10000, note="corr_legend"),
-                 F("cl_p08_corridor_legend", 302.0, 40.0, 83.0, 51.0, key="corr_legend"),
-                 F("cl_p08_shops", 302.0, 91.5, 83.0, 8.0, key="shops"),
-                 F("cl_p08_who", 14.5, 106.0, 374.0, 92.0, note="who_notes"),
-                 F(("cl_p08_who_legend", "cl_p08_who_note"), 14.5, 199.0, 300.0, 15.0, key="who_notes"),
-                 F("sb_street_title_n1", 13.0, 229.5, 135.5, 5.0, key="street_title"),
-                 F(("sb_street_R1", "sb_street_R2"), 13.0, 234.5, 135.5, 53.5, den=500, split="row", gap=4.0,
-                   key="r12"),
-                 F("sb_street_R3", 161.0, 243.5, 78.0, 43.5, den=500),
-                 F("sb_street_R4", 245.0, 243.0, 60.5, 45.0, den=500),
-                 F(("sb_street_keymap", "*keymap*"), 318.3, 217.3, 65.6, 12.4, key="km"),
-                 F("sb_street_legend*", 318.0, 231.0, 70.0, 56.0, key="street_legend")],
+         frames=[F(("cl_p08_corridor", "cl_p08_corridor_head"), 14.0, 29.0, 286.0, 66.0, den=10000, key="corridor",
+                   note="corr_legend"),
+                 F(("cl_p08_corridor_legend", "cl_p08_shops"), 302.0, 30.0, 104.0, 66.0, key="corr_legend"),
+                 F(("cl_p08_who", "cl_p08_who_head"), 14.0, 98.0, 392.0, 108.0, key="who", note="who_notes"),
+                 F(("cl_p08_who_legend", "cl_p08_who_note"), 14.0, 207.0, 300.0, 15.0, key="who_notes"),
+                 F(("sb_street_title_n1", "sb_street_title_n2", "sb_street_title*"), 14.0, 223.0, 300.0, 8.0,
+                   key="street_title"),
+                 F(("sb_street_R1", "sb_street_R2", "sb_street_R3", "sb_street_R4"), 14.0, 232.0, 300.0, 47.0,
+                   split="row", gap=3.0, key="cuts"),
+                 F(("sb_street_keymap", "*keymap*"), 318.0, 207.0, 88.0, 23.0, key="km"),
+                 F("sb_street_legend*", 318.0, 232.0, 88.0, 47.0, key="street_legend")],
          side="who_notes"),
-    # 9 · SON page9: spine 1:10,000, legend, five hub cards, flood rule (SKETCH), which bank, market; no windows (F13)
+    # 9 · SON page9 (source b0 c493fac): spine 1:10,000 (+ heading, bar + north row 4 under it), legend, five hub
+    # cards, card key line (no export), flood rule (SKETCH), which bank, market; no windows row (F13)
     dict(pid="p09", part="B", stage="do", title=u"The streamside spine, hub by hub",
          intro=u"*Five bridge places* on existing bus stops, *walking hubs* with a *sub-hub in the bed*, one *transit "
                u"hub*: the spine along the Selinos, hub by hub.",
          skip=("cl_p10_win_*", "cl_p10_windows_head", "cl_p09_windows_head"),
-         frames=[F("cl_p09_spine", 13.5, 31.0, 291.5, 71.0, den=10000, key="spine"),
-                 F(("cl_p09_legend", "cl_p10_legend"), 310.0, 41.5, 96.0, 51.0, key="legend"),
-                 F(("cl_p09_card_K4", "cl_p09_card_1", "cl_p10_hub_1"), 14.0, 104.0, 75.1, 82.0),
-                 F(("cl_p09_card_K3", "cl_p09_card_2", "cl_p10_hub_2"), 92.9, 104.0, 76.4, 82.0),
-                 F(("cl_p09_card_T", "cl_p09_card_3", "cl_p10_hub_3"), 171.8, 104.0, 76.5, 82.0),
-                 F(("cl_p09_card_K5", "cl_p09_card_4", "cl_p10_hub_4"), 250.4, 104.0, 76.5, 82.0),
-                 F(("cl_p09_card_K6", "cl_p09_card_5", "cl_p10_hub_5"), 329.3, 104.0, 76.8, 82.0),
-                 F("cl_p10_flood", 13.5, 208.5, 154.5, 62.5, noscale=True),
-                 F("cl_p10_bank", 214.5, 209.0, 111.5, 50.5),
-                 F("cl_p10_market", 343.5, 210.5, 62.5, 30.0)],
+         frames=[F(("cl_p09_spine", "cl_p09_spine_head"), 14.0, 30.0, 291.0, 70.0, den=10000, key="spine"),
+                 F(("cl_p09_legend", "cl_p10_legend"), 310.0, 30.0, 96.0, 70.0, key="legend"),
+                 F(("cl_p09_card_K4", "cl_p09_card_1", "cl_p10_hub_1"), 14.0, 104.0, 76.0, 82.0, key="card1"),
+                 F(("cl_p09_card_K3", "cl_p09_card_2", "cl_p10_hub_2"), 93.0, 104.0, 76.0, 82.0, key="card2"),
+                 F(("cl_p09_card_T", "cl_p09_card_3", "cl_p10_hub_3"), 172.0, 104.0, 76.0, 82.0, key="card3"),
+                 F(("cl_p09_card_K5", "cl_p09_card_4", "cl_p10_hub_4"), 251.0, 104.0, 76.0, 82.0, key="card4"),
+                 F(("cl_p09_card_K6", "cl_p09_card_5", "cl_p10_hub_5"), 330.0, 104.0, 76.0, 82.0, key="card5"),
+                 F(("cl_p09_card_key*", "cl_p09_key*"), 14.0, 189.0, 392.0, 4.0, key="card_key", opt=True),
+                 F(("cl_p10_flood", "cl_p10_flood_head"), 14.0, 206.0, 175.0, 66.0, key="flood", noscale=True),
+                 F(("cl_p10_bank", "cl_p10_bank_head"), 197.0, 206.0, 122.0, 52.0, key="bank"),
+                 F(("cl_p10_market", "cl_p10_market_head"), 343.0, 206.0, 63.0, 46.0, key="market")],
          side="legend"),
-    # 10 · SON page11: four chart panels; answer box [14,246.8 392x24.7] under its heading (F10)
+    # 10 · SON page11 (source b2 40747b2): four chart panels, charts 2 and 3 side by side, the answer band
     dict(pid="p10", part="C", stage="an+got", title=u"The water balance",
          intro=u"How much *winter water* can we hold for the farms' *dry summer*, and at *what cost*?",
-         frames=[F("wb_year", 13.5, 31.0, 393.0, 114.0),
-                 F("wb_curve", 13.5, 147.0, 227.5, 78.0),
-                 F("wb_store", 244.5, 147.0, 162.0, 78.0),
-                 F("wb_answer", 13.5, 235.0, 393.0, 37.0)],
-         side="wb_answer"),
-    # 11 · SON page12: map (no printed scale, F3) with its zoom and legend inside, right column, A-A' 1:500 (SKETCH);
-    # no key map (F11)
+         frames=[F("wb_year", 14.0, 29.0, 392.0, 108.0, key="year"),
+                 F("wb_curve", 14.0, 145.0, 228.0, 80.0, key="curve"),
+                 F("wb_store", 246.0, 145.0, 160.0, 80.0, key="store"),
+                 F("wb_answer", 14.0, 234.0, 392.0, 38.0, key="answer")],
+         side="answer"),
+    # 11 · SON page12 (source b2 40747b2): map (diagram, no printed scale) with zoom and legend inside (allow= the map:
+    # legend texts may sit on it, L9), right column, UP CLOSE A-A' SKETCH (no printed scale, H3 Q4) + list + legend
     dict(pid="p11", part="C", stage="do", title=u"Collect, clean, hold",
          intro=u"*Collect* winter stream water and runoff at the upstream entry, *clean* it once in *lined reed "
                u"basins*, *hold* it in the ground for the dry summer; the clean stream leaves for the *farms outside*.",
-         frames=[F("p12_map", 12.5, 30.0, 272.5, 186.0, key="map", noscale=True, note="map_legend"),
-                 F(("wb_p12_map_legend", "p12_map_legend", "wb_p12_map_letters", "wb_p12_relief_note"), 197.0, 32.0,
-                   87.0, 113.0, key="map_legend", over=True),
-                 F("p12_zoom", 102.0, 35.0, 94.0, 70.0, over=True, noscale=True),
-                 F("p12_steps", 291.5, 30.0, 114.5, 47.0),
-                 F("p12_coliforms", 291.5, 79.5, 114.5, 49.0),
-                 F("p12_plants", 291.5, 130.5, 114.5, 37.0),
-                 F("p12_why", 291.5, 169.5, 114.5, 29.0),
-                 F(("wb_p12_conclusion", "p12_conclusion"), 291.5, 200.0, 114.5, 17.0, key="conclusion"),
-                 F(("p12_section_head*", "p12_section_list*", "wb_p12_section_key", "p12_section_key*"), 12.5, 221.0,
-                   73.0, 50.0, key="aa_list"),
-                 F(("p12_section_sketch", "p12_section"), 89.5, 221.0, 264.0, 50.0, den=500, key="aa",
-                   note="aa_notes"),
-                 F(("wb_p12_section_levels", "wb_p12_section_caption", "wb_p12_strip_note", "wb_p12_section_legend",
-                    "p12_section_legend*"), 356.0, 221.5, 50.0, 55.0, key="aa_notes")],
+         frames=[F("p12_map", 14.0, 30.0, 271.0, 185.0, key="map", noscale=True, note="map_legend"),
+                 F("p12_zoom", 102.0, 34.0, 94.0, 71.0, key="zoom", over=True, noscale=True),
+                 F(("wb_p12_map_legend", "p12_map_legend", "wb_p12_map_letters", "wb_p12_relief_note"), 200.0, 31.0,
+                   82.0, 114.0, key="map_legend", over=True, allow="p12_map"),
+                 F("p12_steps", 290.0, 30.0, 116.0, 61.0, key="steps"),
+                 F("p12_coliforms", 290.0, 92.0, 116.0, 47.0, key="coliforms"),
+                 F("p12_plants", 290.0, 140.0, 116.0, 37.0, key="plants"),
+                 F("p12_why", 290.0, 178.0, 116.0, 28.0, key="why"),
+                 F(("wb_p12_conclusion", "p12_conclusion"), 290.0, 207.0, 116.0, 11.0, key="conclusion"),
+                 F(("wb_p12_section_key", "p12_section_key*", "p12_section_list*", "p12_section_head*"), 14.0, 219.0,
+                   74.0, 51.0, key="aa_list"),
+                 F(("p12_section_sketch", "p12_section"), 90.0, 219.0, 263.0, 58.0, key="aa", note="aa_notes"),
+                 F(("wb_p12_section_levels", "wb_p12_strip_note", "wb_p12_section_legend", "p12_section_legend*"),
+                   356.0, 219.0, 50.0, 60.0, key="aa_notes"),
+                 F("wb_p12_section_caption", 14.0, 271.0, 74.0, 8.0, key="caption")],
          side="aa_notes"),
-    # 12 · r06_S02: 4-in-1 SKETCH panels (194.8 x 92.0 drawings, title + purpose above), key map top right (F14:
-    # the grid starts under it at y 51), caption + legend strip at the bottom
+    # 12 · R6 page12 drawing, layout writer-set: note, key map W1-W4, 2 x 2 SKETCH panels, shared legend strip
     dict(pid="p12", part="C", stage="do", title=u"The proposals in section",
          intro=u"Four cuts, *upstream to downstream*: each proposal *in section*, the winter water and the summer "
                u"strip, the reach of the *design flood (Q500)*.",
-         frames=[F(("ps_panel_1", "ps_W1"), 13.7, 51.0, 194.8, 104.3),
-                 F(("ps_panel_2", "ps_W2"), 211.2, 51.0, 194.8, 104.3),
-                 F(("ps_panel_3", "ps_W3"), 13.7, 157.6, 194.8, 104.3),
-                 F(("ps_panel_4", "ps_W4"), 211.2, 157.6, 194.8, 104.3),
-                 F(("ps_keymap_p12", "ps_keymap_*"), 296.8, 27.0, 109.2, 22.0, key="km"),
-                 F(("ps_caption*", "ps_intro_note*"), 13.7, 263.5, 200.0, 5.5, key="caption", opt=True),
-                 F(("ps_legend_strip", "ps_legend"), 13.7, 269.5, 322.0, 6.0, key="legend")],
+         frames=[F(("ps_caption*", "ps_intro_note*"), 14.0, 28.0, 180.0, 10.0, key="caption"),
+                 F(("ps_keymap_p12", "ps_keymap_*"), 300.0, 27.0, 106.0, 23.0, key="km"),
+                 F(("ps_panel_1", "ps_W1"), 14.0, 52.0, 190.0, 100.0, key="panel1"),
+                 F(("ps_panel_2", "ps_W2"), 216.0, 52.0, 190.0, 100.0, key="panel2"),
+                 F(("ps_panel_3", "ps_W3"), 14.0, 156.0, 190.0, 100.0, key="panel3"),
+                 F(("ps_panel_4", "ps_W4"), 216.0, 156.0, 190.0, 100.0, key="panel4"),
+                 F(("ps_legend_strip", "ps_legend"), 14.0, 262.0, 392.0, 17.0, key="legend")],
          side="legend"),
-    # 13 · r06_S03 + SON page15 animal column and key map: four season rows at 1:500 on one x, FEEL column, animals
+    # 13 · r06_S03 target (layout writer-set): each season = ONE drawing (left column + cut + levels, 198 x 54 mm at
+    # 1:500, H3 Q9) in one 250 x 55 band, labels where WaterBoard set them (rigid=, no label band); bar + ratio in a
+    # small frame right of each cut (bar=); FEEL and animals one column each; key map top right
     dict(pid="p13", part="C", stage="do", title=u"Four seasons on one cut",
          intro=u"*One cut, one viewpoint, four seasons*: the *water level* decides what the place becomes, which "
                u"plants are in *leaf or flower*, and which animals are about.",
-         frames=[F("p15_hubkey", 15.0, 30.0, 38.0, 15.0),
-                 F("p15_monthbar", 55.5, 30.0, 148.0, 16.0),
-                 F("p15_season_winter", 15.0, 48.5, 187.0, 49.0, den=500),
-                 F("p15_season_spring", 15.0, 99.0, 187.0, 49.0, den=500),
-                 F("p15_season_summer", 15.0, 149.5, 187.0, 49.0, den=500),
-                 F("p15_season_autumn", 15.0, 200.0, 187.0, 49.0, den=500),
-                 F("p15_feel*", 204.0, 33.5, 44.0, 218.0, key="feel"),
-                 F(("p15_keymap", "*keymap*"), 290.4, 31.2, 94.5, 28.4, key="km"),
-                 F("p15_animals*", 351.0, 62.5, 55.0, 190.0, key="animals"),
-                 F(("p15_caption*", "p15_scale*"), 14.5, 250.5, 180.0, 6.0, key="caption", opt=True)],
+         frames=[F("p15_hubkey", 14.0, 28.0, 46.0, 12.0, key="hubkey"),
+                 F("p15_monthbar", 64.0, 28.0, 200.0, 14.0, key="monthbar"),
+                 F(("p15_keymap", "*keymap*"), 336.0, 27.0, 70.0, 26.0, key="km"),
+                 F("p15_season_winter", 14.0, 47.0, 250.0, 55.0, den=500, key="winter", rigid=True, bar="bar_w"),
+                 F("p15_bar_winter*", 222.0, 96.0, 42.0, 6.0, key="bar_w", opt=True, over=True),
+                 F("p15_season_spring", 14.0, 104.0, 250.0, 55.0, den=500, key="spring", rigid=True, bar="bar_sp"),
+                 F("p15_bar_spring*", 222.0, 153.0, 42.0, 6.0, key="bar_sp", opt=True, over=True),
+                 F("p15_season_summer", 14.0, 161.0, 250.0, 55.0, den=500, key="summer", rigid=True, bar="bar_su"),
+                 F("p15_bar_summer*", 222.0, 210.0, 42.0, 6.0, key="bar_su", opt=True, over=True),
+                 F("p15_season_autumn", 14.0, 218.0, 250.0, 55.0, den=500, key="autumn", rigid=True, bar="bar_au",
+                   note="caption"),
+                 F("p15_bar_autumn*", 222.0, 267.0, 42.0, 6.0, key="bar_au", opt=True, over=True),
+                 F("p15_feel*", 270.0, 42.0, 62.0, 231.0, key="feel"),
+                 F("p15_animals*", 336.0, 56.0, 70.0, 223.0, key="animals"),
+                 F(("p15_caption*", "p15_scale*"), 14.0, 274.0, 250.0, 5.0, key="caption", opt=True)],
          side="animals"),
-    # 14 · SON page16: key map top LEFT (F5), cut 1:250 + zoom 1:100, three text blocks right, year chart
+    # 14 · SON page16 (source b2 40747b2): key map top left, zoom 1:200 (Q2 a) above the promenade, cut 1:250 + level
+    # column, part by part / planting / bands column, year chart with its plants key under it (no caption export)
     dict(pid="p14", part="C", stage="do", title=u"The S4 cut, north-east bank",
          intro=u"The north-east bank of S4: *seat steps* and a *raised promenade* over Q500 stay; the *planting follows "
                u"the days under water*, the use follows the months.",
-         frames=[F(("p16_keymap", "*keymap*"), 32.7, 37.3, 99.9, 30.0, key="km"),
-                 F("p16_section_inset", 180.5, 33.0, 54.0, 36.0, den=100),
-                 F("p16_section", 25.0, 69.0, 264.0, 87.0, den=250, note="parts"),
-                 F("p16_parts", 290.0, 38.0, 96.0, 41.0, key="parts"),
-                 F("p16_groups", 290.5, 81.0, 101.0, 20.5, key="groups"),
-                 F("p16_bands", 290.5, 103.5, 101.0, 28.5, key="bands"),
-                 F("p16_year", 25.5, 159.0, 369.5, 106.0)],
+         frames=[F(("p16_keymap", "*keymap*"), 24.0, 28.0, 100.0, 32.0, key="km"),
+                 F("p16_section_inset", 150.0, 26.0, 100.0, 42.0, den=200, key="zoom"),
+                 F("p16_section", 25.0, 69.0, 262.0, 97.0, den=250, key="cut", note="parts"),
+                 F(("p16_parts", "p16_groups", "p16_bands"), 290.0, 30.0, 116.0, 136.0, key="parts"),
+                 F("p16_year", 24.0, 168.0, 382.0, 100.0, key="year", note="year_notes"),
+                 F(("p16_year_plants", "p16_caption*"), 24.0, 269.0, 382.0, 10.0, key="year_notes")],
          side="parts"),
-    # 15 · SON page17: six maps at 1:20,000 (2 x 3), each key in its column
+    # 15 · SON page17 (source b2 40747b2): six maps at 1:20,000 (2 x 3, heading over each), each key in its column
     dict(pid="p15", part="C", stage="do", title=u"The senses and the water",
          intro=u"The *fade-out zones* and the *senses*, zone by zone, *upstream to downstream*.",
-         frames=[F("mp_sn_zones", 13.5, 30.0, 148.0, 78.0, den=20000, note="k_zones"),
-                 F("mp_sn_zones_key", 161.5, 30.0, 45.0, 78.0, key="k_zones"),
-                 F("mp_sn_feeling", 211.5, 30.0, 148.0, 78.0, den=20000, note="k_feeling"),
-                 F("mp_sn_feeling_wheel", 360.0, 30.0, 46.0, 22.0),
-                 F("mp_sn_feeling_key", 360.0, 53.0, 46.0, 55.0, key="k_feeling"),
-                 F("mp_sn_sound", 13.5, 112.5, 148.0, 79.0, den=20000, note="k_sound"),
-                 F("mp_sn_sound_key", 161.5, 112.5, 45.0, 79.0, key="k_sound"),
-                 F("mp_sn_smell", 211.5, 112.5, 148.0, 79.0, den=20000, note="k_smell"),
-                 F("mp_sn_smell_key", 360.0, 112.5, 46.0, 79.0, key="k_smell"),
-                 F("mp_sn_encounters", 13.5, 195.0, 148.0, 78.0, den=20000, note="k_enc"),
-                 F("mp_sn_encounters_key", 162.0, 195.0, 45.0, 78.0, key="k_enc"),
-                 F("mp_sn_history", 211.5, 195.0, 148.0, 78.0, den=20000, note="k_hist"),
-                 F("mp_sn_history_key", 360.0, 195.0, 46.0, 40.0, key="k_hist"),
-                 F("mp_sn_photo_*", 360.0, 236.0, 46.0, 37.0, key="photos", opt=True)],
+         frames=[F("mp_sn_zones", 14.0, 30.0, 146.0, 81.0, den=20000, key="zones", note="k_zones"),
+                 F("mp_sn_zones_key", 162.0, 30.0, 46.0, 81.0, key="k_zones"),
+                 F("mp_sn_feeling", 211.0, 30.0, 146.0, 81.0, den=20000, key="feeling", note="k_feeling"),
+                 F("mp_sn_feeling_wheel", 359.0, 30.0, 47.0, 32.0, key="wheel"),
+                 F("mp_sn_feeling_key", 359.0, 63.0, 47.0, 48.0, key="k_feeling"),
+                 F("mp_sn_sound", 14.0, 114.0, 146.0, 81.0, den=20000, key="sound", note="k_sound"),
+                 F("mp_sn_sound_key", 162.0, 114.0, 46.0, 81.0, key="k_sound"),
+                 F("mp_sn_smell", 211.0, 114.0, 146.0, 81.0, den=20000, key="smell", note="k_smell"),
+                 F("mp_sn_smell_key", 359.0, 114.0, 47.0, 81.0, key="k_smell"),
+                 F("mp_sn_encounters", 14.0, 198.0, 146.0, 81.0, den=20000, key="enc", note="k_enc"),
+                 F("mp_sn_encounters_key", 162.0, 198.0, 46.0, 81.0, key="k_enc"),
+                 F("mp_sn_history", 211.0, 198.0, 146.0, 81.0, den=20000, key="hist", note="k_hist"),
+                 F("mp_sn_history_key", 359.0, 198.0, 47.0, 40.0, key="k_hist"),
+                 F("mp_sn_photo_*", 359.0, 240.0, 47.0, 39.0, key="photos", opt=True)],
          side="k_hist"),
-    # 16 · SON page18: two stacked key maps (F6), plans legend, plans A/B 1:2,500, bands 1:10,000, heights, cards
+    # 16 · SON page18 (source b2 40747b2): two key maps, plans legend, plans A/B printed 1:3,000 (Q2 a, WaterBoard v19
+    # P17_PLAN_DEN), lists, bands mini plan 1:10,000, shares, heights, 13 plant cards, catalogue sources
     dict(pid="p16", part="C", stage="do", title=u"Which plant goes where",
          intro=u"*Wet to dry, low to high*: rushes and loosestrife *at the water*, willow and tamarisk on the *banks "
                u"that flood*, shade trees and olives on the *dry tops*; reed and water mint only in *lined basins*.",
-         frames=[F("p18_keymap", 20.7, 34.1, 63.0, 12.9, key="km"),
-                 F("p18_keymap_s4", 20.7, 49.1, 63.0, 14.8, key="km_s4"),
-                 F(("p18_plans_legend", "p16_plans_legend"), 20.5, 87.0, 63.5, 61.0, key="legend"),
-                 F("p18_plan_A", 88.0, 31.5, 84.0, 101.0, den=2500, note="list_A"),
-                 F("p18_plan_A_list", 88.0, 133.0, 84.0, 18.5, key="list_A"),
-                 F("p18_plan_B", 176.0, 31.5, 222.0, 108.0, den=2500, note="list_B"),
-                 F("p18_plan_B_list", 176.0, 140.0, 222.0, 12.0, key="list_B"),
-                 F("p18_bands", 22.0, 157.0, 104.0, 34.5, den=10000),
-                 F(("p18_band_shares", "p18_foliage_shares"), 129.5, 157.0, 48.0, 40.0, split="col", gap=1.5,
-                   key="shares"),
-                 F("p18_heights", 180.0, 157.0, 218.0, 40.0),
-                 F("p18_card_*", 21.0, 200.5, 377.0, 71.0, key="cards", split="row", gap=2.0),
-                 F("p18_catalogue_sources", 21.0, 272.0, 300.0, 8.0, key="cat_src", opt=True)],
+         frames=[F("p18_keymap", 20.0, 30.0, 64.0, 14.0, key="km"),
+                 F("p18_keymap_s4", 20.0, 46.0, 64.0, 16.0, key="km_s4"),
+                 F(("p18_plans_legend", "p16_plans_legend"), 20.0, 64.0, 64.0, 90.0, key="legend"),
+                 F("p18_plan_A", 86.0, 30.0, 98.0, 94.0, den=3000, key="plan_A", note="list_A"),
+                 F("p18_plan_A_list", 86.0, 126.0, 98.0, 28.0, key="list_A"),
+                 F("p18_plan_B", 188.0, 30.0, 218.0, 115.0, den=3000, key="plan_B", note="list_B"),
+                 F("p18_plan_B_list", 188.0, 146.0, 218.0, 8.0, key="list_B"),
+                 F(("p18_bands", "p18_bands_head"), 20.0, 158.0, 60.0, 38.0, den=10000, key="bands"),
+                 F(("p18_band_shares", "p18_band_shares_key"), 82.0, 158.0, 48.0, 40.0, key="shares"),
+                 F(("p18_foliage_shares", "p18_foliage_shares_key"), 132.0, 158.0, 48.0, 40.0, key="foliage"),
+                 F("p18_heights", 182.0, 158.0, 224.0, 40.0, key="heights"),
+                 F("p18_card_*", 20.0, 200.0, 386.0, 70.0, split="row", gap=2.0, key="cards"),
+                 F(("p18_catalogue_sources", "p18_caption*"), 20.0, 271.0, 386.0, 8.0, key="cat_src")],
          side="legend"),
-    # 17 · r06_S01 (SKETCH plant ladder): chain strip, three ladder rows, bands + photos, notes column
+    # 17 · R6 page17 (SKETCH plant ladder): chain strip, three ladder rows (text + cut = one drawing each), REMOVE /
+    # ODOUR notes column (66 mm, AgriCulture v14), steps + chain legend, planting strip
     dict(pid="p17", part="C", stage="do", title=u"One plant ladder, streambed to field",
          intro=u"One cut from the *stream to the farms*, through the year: what the *water* does and what *people* do "
                u"on each step.",
-         frames=[F("ag3_chain", 15.0, 30.0, 391.0, 26.0),
-                 F("ag3_ladder_high", 13.5, 59.0, 394.5, 47.5),
-                 F("ag3_ladder_low", 13.0, 107.0, 395.0, 49.5),
-                 F("ag3_ladder_harvest", 13.5, 157.0, 394.5, 48.5),
-                 F(("ag3_note*", "ag3_remove*", "ag3_odour*"), 13.5, 207.5, 88.0, 77.0, key="notes"),
-                 F("ag3_bands", 106.5, 205.6, 298.9, 80.2)],
-         side="notes"),
-    # 18 · SON page19: chain + farms outside, figures + stream first, crop bars + why crop choice, reading + history +
-    # crop photos; the farms map is not on SON19 (F12): skipped
+         frames=[F("ag3_chain", 14.0, 26.0, 392.0, 25.0, key="chain"),
+                 F("ag3_ladder_high", 14.0, 53.0, 392.0, 48.0, key="high"),
+                 F("ag3_ladder_low", 14.0, 103.0, 392.0, 48.0, key="low"),
+                 F("ag3_ladder_harvest", 14.0, 153.0, 392.0, 48.0, key="harvest"),
+                 F(("ag3_notes", "ag3_remove*", "ag3_odour*"), 14.0, 203.0, 68.0, 76.0, key="notes"),
+                 F(("ag3_note_steps", "ag3_note_legend", "ag3_note_*"), 86.0, 203.0, 76.0, 76.0, key="steps"),
+                 F("ag3_bands", 166.0, 203.0, 240.0, 76.0, key="bands")],
+         side="steps"),
+    # 18 · SON page19 (pieced by Aras): flow + farms outside, figures + the stream comes first (rows 4-5 = ag1_stream),
+    # hectares + why crop choice, reading + history + crop photos; the farms map and its texts are not on SON19: skip
     dict(pid="p18", part="C", stage="do", title=u"Where the clean water goes, and what it grows",
          intro=u"Clean water to *farmland outside the site*, easing an *overused aquifer*, *never drinking water*; "
                u"*same storage, different crops*: the *hectares* each crop irrigates.",
-         skip=("ag2_farms",),
-         frames=[F("wb_farms", 25.0, 30.5, 225.0, 61.5),
-                 F("wb_farms_out", 266.0, 30.5, 129.0, 56.0),
-                 F("wb_decision", 15.0, 100.5, 124.5, 42.5),
-                 F("ag1_stream", 146.5, 99.5, 250.5, 44.0),
-                 F("ag1_bars", 14.0, 150.5, 227.0, 70.0),
-                 F("ag1_context", 245.5, 150.5, 150.5, 70.0),
-                 F("ag1_reading*", 15.0, 228.0, 112.0, 34.0, key="reading"),
-                 F("ag1_history", 146.5, 227.5, 125.0, 22.0),
-                 F("ag1_crops_*", 277.5, 227.5, 128.0, 35.0, key="crops")],
-         side="ag1_context"),
-    # 19 · SON page20: the heritage board (map 1:10,000, own bar), legends in one row under it, caption
+         skip=("ag2_farms*",),
+         frames=[F(("wb_farms", "wb_p21_cap_wb_farms"), 14.0, 28.0, 238.0, 64.0, key="farms"),
+                 F("wb_farms_out", 256.0, 28.0, 150.0, 64.0, key="farms_out"),
+                 F(("wb_decision", "wb_p21_cap_wb_decision"), 14.0, 96.0, 128.0, 40.0, key="decision"),
+                 F(("ag1_stream", "ag1_stream_head"), 146.0, 96.0, 260.0, 46.0, key="stream"),
+                 F(("ag1_bars", "ag1_bars_caption"), 14.0, 145.0, 228.0, 74.0, key="bars"),
+                 F(("ag1_context", "ag1_context_head"), 246.0, 145.0, 160.0, 70.0, key="context"),
+                 F("ag1_reading*", 14.0, 222.0, 128.0, 40.0, key="reading"),
+                 F(("ag1_history", "ag1_history_head", "ag1_history_note"), 146.0, 222.0, 130.0, 40.0, key="history"),
+                 F("ag1_crops_*", 280.0, 222.0, 126.0, 45.0, key="crops")],
+         side="context"),
+    # 19 · SON page20 (b4 edition 44100d8): ONE board drawing (diagrams, places, map 1:10,000 with its own bar +
+    # north, photos: BRIEF rows 1-5 one union frame; SON prints no ratio: noscale), legend row, caption
     dict(pid="p19", part="D", stage="do", title=u"The heritage loop",
          intro=u"The Selinos is the *seam*: *bridges, crafts and events* tie the *Kale side* to the *bazaar side*.",
-         frames=[F("sb_heritage_loop", 14.0, 32.5, 373.5, 214.0, den=10000, key="loop", noscale=True),
-                 F(("sb_heritage_loop_legend", "sb_heritage_legend"), 13.5, 254.5, 240.0, 16.5, key="legend"),
-                 F(("sb_heritage_loop_caption", "sb_heritage_*"), 13.5, 271.5, 101.5, 5.0, key="caption")],
+         frames=[F("sb_heritage_loop", 14.0, 30.0, 392.0, 214.0, den=10000, key="loop", noscale=True),
+                 F(("sb_heritage_loop_legend", "sb_heritage_legend"), 14.0, 247.0, 300.0, 24.0, key="legend"),
+                 F(("sb_heritage_loop_caption", "sb_heritage_*"), 14.0, 272.0, 300.0, 7.0, key="caption")],
          side="legend"),
-    # 20 · SON page21 UNCHANGED (D6): masterplan rows 1:5,000 at their SON frames; only the footer number is new
+    # 20 · SON page21 (source b1 ee52805 plan_page; MasterPlan v45 SON format): both halves 1:5,000 with bar + north
+    # under each, the row notes (rows 2/4), legend EXISTING / PROPOSED / places by kind, moves 1-19, left as it is a-i
     dict(pid="p20", part="E", stage="do", title=u"Masterplan: an ecological corridor",
          intro=u"The whole project on one plan: *walking hubs*, *reed basins* and terraces that *hold the rain*, "
                u"*calmed streets*, along the Selinos as an *ecological corridor*.",
-         frames=[F("mp_plan_r1", 13.5, 29.5, 290.5, 116.5, den=5000),
-                 F("mp_plan_r2", 13.5, 147.5, 290.5, 116.5, den=5000),
-                 F("mp_plan_legend*", 308.0, 30.0, 98.0, 153.0, key="legend"),
-                 F(("mp_plan_moves_head", "mp_plan_moves", "mp_plan_cch*", "mp_plan_left*", "mp_plan_places_head",
-                    "mp_plan_places"), 308.5, 185.0, 97.5, 80.0, key="places"),
-                 F("mp_plan_caption", 13.5, 269.0, 392.5, 7.0, key="caption")],
-         side="places"),
-    # 21 · SON page22: plans D1, D2 + sections at 1:1,000; key map inside the D2 plan (F7, north left, S6)
+         frames=[F("mp_plan_r1", 14.0, 30.0, 290.0, 112.0, den=5000, key="r1"),
+                 F("mp_plan_r1_note", 14.0, 142.5, 290.0, 5.0, key="r1_note"),
+                 F("mp_plan_r2", 14.0, 148.0, 290.0, 112.0, den=5000, key="r2"),
+                 F("mp_plan_r2_note", 14.0, 260.5, 290.0, 5.0, key="r2_note"),
+                 F("mp_plan_caption", 14.0, 267.0, 290.0, 6.0, key="caption"),
+                 F(("mp_plan_legend_existing", "mp_plan_legend_proposed", "mp_plan_legend_labels", "mp_plan_legend*"),
+                   308.0, 30.0, 98.0, 120.0, key="legend"),
+                 F(("mp_plan_moves_head", "mp_plan_moves", "mp_plan_cch_head", "mp_plan_cch", "mp_plan_places_head",
+                    "mp_plan_places"), 308.0, 152.0, 98.0, 70.0, key="moves"),
+                 F(("mp_plan_left_head", "mp_plan_left"), 308.0, 224.0, 98.0, 55.0, key="left")],
+         side="left"),
+    # 21 · SON page22 (source b0 c493fac): plans D1, D2 1:1,000 (plan + its bar row merged); key map inside the D2
+    # plan's top right; sections 1:1,000 with their level column, each beside its legend (D1 section under D1, D2
+    # section under D2): the sections + level columns need ~214 mm, so the two rows are staggered
     dict(pid="p21", part="E", stage="do", title=u"The water edge, plan and section",
          intro=u"Two windows, each *plan with its section*: the *upstream entry* (collect, clean, hold) and *Üç Kemer "
                u"Köprüsü* with Demeter's Garden.",
-         frames=[F("mp_dt_*upstream", 13.5, 29.5, 194.5, 132.0, den=1000, key="d1"),
-                 F("mp_dt_*k5", 212.0, 29.5, 194.0, 132.0, den=1000, key="d2"),
-                 F(("mp_dt_keymap", "*keymap*"), 378.1, 30.9, 26.9, 35.9, key="km", over=True),
-                 F("mp_dt_*upstream_sec", 13.5, 165.5, 194.5, 45.5, den=1000, key="s1", note="leg1"),
-                 F("mp_dt_*k5_sec", 211.5, 165.5, 194.5, 65.0, den=1000, key="s2", note="leg2"),
-                 F(("mp_dt_*upstream_leg*", "mp_dt_*upstream_route", "mp_dt_*upstream_why"), 13.5, 212.0, 194.0, 72.0,
-                   key="leg1"),
-                 F(("mp_dt_*k5_leg*", "mp_dt_*k5_route", "mp_dt_*k5_why"), 211.5, 232.0, 194.5, 52.0, key="leg2")],
+         frames=[F("mp_dt_*upstream", 14.0, 30.0, 194.0, 133.0, den=1000, key="d1", note="leg1"),
+                 F("mp_dt_*k5", 212.0, 30.0, 194.0, 133.0, den=1000, key="d2", note="leg2"),
+                 F(("mp_dt_keymap", "*keymap*"), 378.0, 31.0, 26.0, 36.0, key="km", over=True),
+                 F("mp_dt_*upstream_sec", 14.0, 165.0, 222.0, 50.0, den=1000, key="s1", note="leg1"),
+                 F(("mp_dt_*upstream_sec_key", "mp_dt_*upstream_leg*", "mp_dt_*upstream_route", "mp_dt_*upstream_why"),
+                   240.0, 165.0, 166.0, 50.0, key="leg1"),
+                 F(("mp_dt_*k5_sec_key", "mp_dt_*k5_leg*", "mp_dt_*k5_route", "mp_dt_*k5_why"), 14.0, 217.0, 166.0,
+                   62.0, key="leg2"),
+                 F("mp_dt_*k5_sec", 184.0, 217.0, 222.0, 62.0, den=1000, key="s2", note="leg2")],
          side="leg2"),
     dict(pid="p22", kind="sources", part="E", stage="do", title=u"Sources"),
 ]
@@ -4668,6 +4755,8 @@ def bk_items(pid):
             ref.add(it["caption"])
     for it in its:
         k = it.get("kind")
+        if k == "text" and isinstance(it.get("box"), dict):   # v37: a label box, drawn by bk_text_boxes
+            BK_TEXT_BOX[it.get("id")] = it["box"]
         if k == "drawing":
             a_ = it.get("anchor")
             if it.get("role") == "keymap":
@@ -4788,15 +4877,18 @@ def _bk_res(S, did, s=None, F=None):
     rh = _bk_band_h(D, F, _bk_pden(F, did, D))
     if s is not None:
         dw = sc_size(D, s)[0]
-        rh += _bk_head_h(att, dw + rw) + (pl_band_need(D, _bk_k(D, s)) if _bk_is_band(D) else 0.0)
+        rh += _bk_head_h(att, dw + rw) + (pl_band_need(D, _bk_k(D, s)) if _bk_is_band(D, F) else 0.0)
     else:
         rh += (BK_HEAD_H if att.get("head") or att.get("badge") else 0.0)
     return rw, rh
 
 
-def _bk_is_band(D):
-    """v32: a true-scale section sets its labels in a band above it (Aras's W1 box)"""
-    return D.get("dkind") == "section" and D.get("units", "m") == "m" and not bk_design_den(D)
+def _bk_is_band(D, F=None):
+    """v32: a true-scale section sets its labels in a band above it (Aras's W1 box); v37: not in a frame with
+    rigid=True (its labels stay where its script set them, at their point size: p13 seasons, r06_S03 "activity labels
+    on the cut")"""
+    return D.get("dkind") == "section" and D.get("units", "m") == "m" and not bk_design_den(D) and \
+        not (F and F.get("rigid"))
 
 
 def _bk_head_h(att, w):
@@ -4893,7 +4985,7 @@ def bk_place(P, S, did, s, x, y, side, F=None, pden=None, tden=None):
     if att.get("sub"):
         hh, _s2 = st_para(P, att["sub"].get("string", u""), x, yy, W, None, "caption", page=P.pid)
         yy += hh + 1.0
-    if _bk_is_band(D):                                 # the label band sits between the head and the drawing
+    if _bk_is_band(D, F):                              # the label band sits between the head and the drawing
         yy += pl_band_need(D, _bk_k(D, s))
     T = BkT(D, s, x, yy)
     placed = rd_drawing(P, D, T)
@@ -4907,13 +4999,13 @@ def bk_place(P, S, did, s, x, y, side, F=None, pden=None, tden=None):
             wn_warn(P.pid, "scale", u"%s set at x%.2f, below its x%.2f minimum (row too full)" % (did, s, lo))
     for lc in att["levels"]:
         pl_levels(P, lc, placed, "R")
-    dden = bk_design_den(D)
-    if T.den and dden:                              # v30.3: a board drawing (site board: "sheet scale 1:N") keeps its
+    dden = bk_design_den(D) or ((tden or T.den) if F and F.get("rigid") else None)   # v37: rigid= frame, labels as
+    if T.den and dden:                              # set at the drawing's own (printed) scale                              # v30.3: a board drawing (site board: "sheet scale 1:N") keeps its
         pl_rigid(P, placed, float(dden) / float(tden or T.den))   # own text layout, sized from its sheet scale to the
         #                                             printed one (v37: not to the fitted true scale, L5)
     elif T.den:
         bk_badges(P, placed)
-        if _bk_is_band(D):
+        if _bk_is_band(D, F):
             pl_band(P, placed)
         else:
             pl_labels(P, placed, side, roles=("label",))
@@ -5207,6 +5299,11 @@ def bk_fit(P, S, F, ds, pid):
             s0, _src = _bk_den(S, F, did, D, pid)
             base.append((did, D, float(s0), _bk_pden(F, did, D), False))
     tx = [it for _i, kk, it in F["items"] if kk in ("text", "legend", "list")]
+    if not F.get("note"):                          # v37 table pass: attached notes no frame names stack under their
+        fr_ = S.get("framed") or set()             # drawing in this frame (_bk_compose): their room is kept too
+        for did, kk, _it in ds:
+            if kk != "keymap":
+                tx += [it for it in S["att"].get(did, {}).get("side", []) if id(it) not in fr_]
     tw_ = x1 - x0
     th = sum(_bk_est_h(P, it, tw_) + BK_NOTE_GAP for it in tx)
     W, H = x1 - x0, y1 - y0 - th
@@ -5487,6 +5584,7 @@ def _bk_compose(doc, spec, n):
     if n_det:
         BK_PAGENO_LOG.append(u"attach %s: %d item(s) a frame names taken off their drawing's head / side" % (pid, n_det))
     framed = _bk_match(S, frames, spec.get("skip") or ())
+    S["framed"] = framed                                  # v37: bk_fit keeps room for attached notes no frame names
     grown = 0                                             # v37: frames never move or grow (L1); no flow
     same = {}
     tg = {}
