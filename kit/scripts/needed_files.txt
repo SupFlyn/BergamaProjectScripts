@@ -9,11 +9,11 @@ scripts/bergama_booklet_v37.py
 scripts/bergama_build_gh_chain_v3_5.py
 scripts/bergama_city_link_v12.py
 scripts/bergama_masterplan_v45.py
-scripts/bergama_plan_to_rhino_v2.py
+scripts/bergama_plan_to_rhino_v2_1.py
 scripts/bergama_plant_sheet_v1_2.py
 scripts/bergama_planting_analysis_v1.py
 scripts/bergama_proposal_sections_v23.py
-scripts/bergama_shared_sync_v2.py
+scripts/bergama_shared_sync_v2_1.py
 scripts/bergama_trace_assets_v1_1.py
 scripts/bergama_water_balance_v13.py
 scripts/bergama_water_board_v19.py

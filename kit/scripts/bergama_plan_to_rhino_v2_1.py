@@ -1,5 +1,27 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PLAN TO RHINO v2 (8 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: PLAN TO RHINO v2.1 (9 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+
+NEW IN v2.1 (round 8, P5, 9 Nov 2026; bug fix for Aras's masterlastversion.svg, plan_findings H4 §5):
+  (1) layers: the script now looks through his wrapper groups (Layer_2, Layer_7, Layer_8, Layer_19 ... and groups with
+      no id) to the first group whose id names a thing, and an inner group that names a different thing gets its own
+      layer (water_drainage_wall -> proposal_water, inside it wetland_shallow_water_reeds -> proposal_wetland). v2 took
+      Layer_2/Layer_7/Layer_19 as the layer, so the whole plan, the green and the legend landed on unsorted_*.
+      New keys (LAYER_MAP, also in Data/bergama_plan_to_rhino_data.py): wetland, seconder (park paths), Layer_16
+      (plaza), old_settlement (heritage setting), heritage_trail, CIRCULATION/route_*, green_corridor, ramps, assets,
+      buildings/evler, su_duvar, labels (callouts -> texts_proposal_places), label_around (context labels ->
+      texts_existing_context), legend (-> sheet).
+  (2) anything that is not cut at the plan frame and lies wholly outside it, on a plan layer (his AI render above the
+      plan, the topography picture below it), is left out, with one log line. The legend, north arrow and scale (sheet
+      and texts_* layers) are kept as before.
+  (3) S1 (Aras OK'd 9 Nov): the ground_topt group is drawn 21.69 / 0.89 units left of / above the other plan layers;
+      it is moved by +21.69 / +0.89 units so it sits on the water and paths again (only when its frame copy is off by
+      that much; the log says which).
+  (4) the SVG: the newest .svg in Data/assets/plan/ (SharedSync puts the shared plan there) if there is one, else
+      Data/assets/masterlastversion.svg; the log says which.
+  (5) the user text bergama_unit (SharedSync's write-back unit) still follows v2's top-group rule (= SharedSync v2
+      units_of: Layer_2, ground_topt, Layer_7, Layer_19 here), so SharedSync still matches; only the layers changed.
+      The layer table is read once per press (v2 read the Data file once per piece).
+  Everything else is as v2. SharedSync v2 loads this file by name (its PTR_FILE now names v2_1).
 
 v2 (Aras 8 Nov 10:24-10:47 UTC, shared masterplan): works after SharedSync v1 (bergama_shared_sync_v1.py), which puts
 the combined master plan in Data/assets/plan/ (masterplan_latest.svg) and has already copied every Rhino edit into it.
@@ -27,42 +49,65 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
   input  ShowSurvey   Boolean Toggle: False = every layer outside masterplan hidden; True = those layers shown again
   output log          the last run's report
   output done         "done HH:MM:SS.ss · N s" after a good run
-The SVG: the newest .svg in Downloads/Bergama/Data/assets/plan/ (drop each new edit there; the newest file wins).
+The SVG: the newest .svg in Downloads/Bergama/Data/assets/plan/ (drop each new edit there; the newest file wins);
+if that folder has none, Downloads/Bergama/Data/assets/masterlastversion.svg (v2.1).
 The file is NOT saved by the script: save it yourself (Ctrl+S) when the bake looks right.
 """
 import os, time, math, re, base64
 
 # ---- SETTINGS ----
-VERSION = "v2"
+VERSION = "v2.1"
 GH_LABEL = "PlanToRhino"
 OUT_FOLDER = "bergama_plan_to_rhino"
 LOG_NAME = "bergama_plan_to_rhino_log.txt"
 ROOT_LAYER = "masterplan"
 SITE_LAYER = "site_alan"
 PLAN_SUBDIR = os.path.join("assets", "plan")      # under Downloads/Bergama/Data/
+PLAN_FALLBACK = os.path.join("assets", "masterlastversion.svg")   # v2.1: used when assets/plan/ has no .svg
+GROUND_SHIFT = ("ground_topt", 21.69, 0.89)     # v2.1 S1: this group moved by (+dx, +dy) SVG units ...
+GROUND_SHIFT_TOL = 2.0                           # ... only when its frame copy is off by that much (+- units)
 CAP = 0.716                                       # Arial capital height / font size (Rhino sizes text by capitals)
 VIS_KEY = "bergama_plan_to_rhino"                 # document string: the layers this script hid
 
-# SVG top group (its id, without Illustrator's _2 / 1 copies) -> layer under masterplan. First match wins (prefix).
+# SVG group (its id, without Illustrator's _2 / 1 copies) -> layer under masterplan. First match wins (prefix).
+# v2.1: wrapper groups (Layer_N, no id) are looked through; an inner group naming another layer gets that layer.
 # "texts" = the texts layer: each text then goes to texts_<layer of what it names>.
 LAYER_MAP = [
     ("green_around_the_zone", "existing_green"),
+    ("green_corridor", "proposal_green_corridor"),    # v2.1: 25 m green corridor (inside ground_topt)
+    ("old_settlement", "proposal_heritage_setting"),  # v2.1: the rings round Kizil Avlu (inside heritage)
+    ("heritage_trail", "proposal_heritage_trail"),    # v2.1 (before "heritage")
     ("heritage", "existing_heritage"),
     ("ground", "existing_topography"),
     ("topo", "existing_topography"),
+    ("wetland", "proposal_wetland"),                  # v2.1 (inside water_drainage_wall)
+    ("selinos", "proposal_water"),                    # v2.1
     ("water", "proposal_water"),
+    ("su_duvar", "existing_walls"),                   # v2.1
     ("duvar", "existing_walls"),
     ("survey_walls", "existing_walls"),
     ("roads", "existing_roads"),
     ("houses", "existing_housing"),
+    ("buildings", "existing_housing"),                # v2.1
+    ("evler", "existing_housing"),                    # v2.1
     ("places", "proposal_places"),
     ("walks", "proposal_paths"),
     ("paths", "proposal_paths"),
+    ("seconder", "proposal_park_paths"),              # v2.1: legend "Park paths"
+    ("Layer_16", "proposal_plaza"),                   # v2.1: Layer_N keys match that exact id only (event plaza)
+    ("circulation", "proposal_route"),                # v2.1: CIRCULATION, route_line / footbridges / arrows
+    ("route", "proposal_route"),
+    ("ramps", "proposal_ramps"),                      # v2.1
+    ("assets", "proposal_assets"),                    # v2.1: his placed asset drawings
     ("people", "proposal_people"),
     ("trees", "proposal_green"),
     ("planting", "proposal_green"),
+    ("plan_rosemary", "proposal_green"),              # v2.1
     ("terraces", "proposal_terraces"),
     ("annotations", "proposal_annotations"),
+    ("label_around", "texts_existing_context"),       # v2.1: context labels round the site (outlined text)
+    ("labels", "texts_proposal_places"),              # v2.1: the 27 place callouts (outlined text)
+    ("legend", "sheet"),                              # v2.1
     ("sheet", "sheet"),
     ("texts", "texts"),
 ]
@@ -535,8 +580,75 @@ class Plan(object):
         style0 = {"fill": "#000000", "stroke": "none", "stroke-width": "1", "font-size": "16",
                   "font-family": "Arial", "font-weight": "normal", "fill-rule": "nonzero"}
         self.frame = max(self.clip_rects, key=lambda r: r[2] * r[3]) if self.clip_rects else None
+        self.shift, self.shift_note, self.n_shifted, self.n_outside = None, None, 0, {}
+        self.ground_shift()
         self.walk(self.root, ID, style0, None, None, 0)
         self.n_cut = clip_to_frame(self.items, self.frame) if self.frame else 0
+        if self.frame:
+            self.drop_outside()
+
+    def drop_outside(self):
+        """v2.1: a piece not cut at the plan frame that lies wholly outside it, on a plan layer (not sheet / texts_*),
+        is left out (his AI render above the plan, the topography picture below it): counted per group for the log"""
+        x0, y0, x1, y1 = self.frame[0], self.frame[1], self.frame[0] + self.frame[2], self.frame[1] + self.frame[3]
+        keep = []
+        for it in self.items:
+            lay = layer_for(it["top"]) or ""
+            if it.get("fc") or lay == "sheet" or lay.startswith("texts"):
+                keep.append(it)
+                continue
+            if it["kind"] == "text":
+                bb = (it["p"][0], it["p"][1], it["p"][0], it["p"][1])
+            elif it["kind"] == "block":                 # the symbol's drawn extent, not only its insert point
+                sb = [item_bbox(q) for q in (self.symbols.get(it["sym"]) or []) if q["kind"] == "shape"]
+                sb = [b for b in sb if b]
+                if sb:
+                    P = [mat_pt(it["m"], (x, y)) for x in (min(b[0] for b in sb), max(b[2] for b in sb))
+                         for y in (min(b[1] for b in sb), max(b[3] for b in sb))]
+                    bb = (min(p[0] for p in P), min(p[1] for p in P), max(p[0] for p in P), max(p[1] for p in P))
+                else:
+                    bb = item_bbox(it)
+            else:
+                bb = item_bbox(it)
+            if bb is None or not (bb[2] < x0 or bb[0] > x1 or bb[3] < y0 or bb[1] > y1):
+                keep.append(it)
+                continue
+            k = u"%s %s" % (it["top"] or "(no group)", it["kind"])
+            self.n_outside[k] = self.n_outside.get(k, 0) + 1
+        self.items[:] = keep
+
+    def ground_shift(self):
+        """v2.1 S1: the frame copies of the GROUND_SHIFT group sit (-dx, -dy) from the plan frame -> that group is
+        moved by (+dx, +dy), and the plan frame is taken from the other groups' frame copies"""
+        name, dx, dy = GROUND_SHIFT
+        gs = [el for el in self.root.iter(SVGNS + "g")
+              if re.sub(r"(_?\d+)$", "", el.get("id") or "").lower() == name.lower()]
+        if not gs or not self.frame:
+            return
+        own = set()
+        for g in gs:
+            for el in g.iter():
+                v = el_clip(el, {"clip-path": el.get("clip-path") or ""})
+                if v:
+                    own.add(v)
+        F0 = self.frame
+        big = [r for r in self.clip_rects if abs(r[2] - F0[2]) < 1.0 and abs(r[3] - F0[3]) < 1.0]
+        mine = [self.clip_ids[c] for c in own if c in self.clip_ids and abs(self.clip_ids[c][2] - F0[2]) < 1.0
+                and abs(self.clip_ids[c][3] - F0[3]) < 1.0]
+        others = [r for r in big if not any(abs(r[0] - q[0]) < 1e-6 and abs(r[1] - q[1]) < 1e-6 for q in mine)]
+        if not mine or not others:
+            self.shift_note = u"%s: no frame copy of its own found: not moved" % name
+            return
+        F = others[0]
+        ox, oy = mine[0][0] - F[0], mine[0][1] - F[1]
+        if abs(ox + dx) <= GROUND_SHIFT_TOL and abs(oy + dy) <= GROUND_SHIFT_TOL:
+            self.shift = (dx, dy)
+            self.frame = F
+            self.shift_note = u"S1: %s moved by +%.2f / +%.2f units (its frame copy sat %.2f / %.2f units off the " \
+                              u"water/paths frame)" % (name, dx, dy, ox, oy)
+        else:
+            self.shift_note = u"S1: %s not moved: its frame copy is %.2f / %.2f units off the plan frame, not the " \
+                              u"expected %.2f / %.2f" % (name, ox, oy, -dx, -dy)
 
     def style_of(self, el, parent):
         st = dict((k, v) for k, v in parent.items() if k in INHERIT)
@@ -557,7 +669,7 @@ class Plan(object):
     def skip(self, why):
         self.n_skipped[why] = self.n_skipped.get(why, 0) + 1
 
-    def walk(self, el, m, pst, top, grp, depth, in_symbol=False, hid=False, fc=False):
+    def walk(self, el, m, pst, top, grp, depth, in_symbol=False, hid=False, fc=False, unit=None):
         for ch in el:
             tag = ch.tag.replace(SVGNS, "") if isinstance(ch.tag, str) else ""
             if tag in ("defs", "clipPath", "mask", "metadata", "style", "title", "desc", "linearGradient",
@@ -572,6 +684,11 @@ class Plan(object):
             if h_ and not hid:
                 self.n_hidden += 1                       # hidden in Illustrator: baked, its layer switched off
             mm = mat_mul(m, parse_transform(ch.get("transform")))
+            if tag == "g" and not in_symbol and self.shift is not None and \
+                    re.sub(r"(_?\d+)$", "", (ch.get("id") or "")).lower() == GROUND_SHIFT[0].lower():
+                mm = mat_mul(m, mat_mul((1.0, 0.0, 0.0, 1.0, self.shift[0], self.shift[1]),
+                                        parse_transform(ch.get("transform"))))   # v2.1 S1
+                self.n_shifted += 1
             fc_ = fc
             cpv = el_clip(ch, st)
             if cpv:
@@ -592,23 +709,30 @@ class Plan(object):
                 self.n_alpha += 1
             if tag == "g":
                 t_, g_ = top, grp
-                if depth == 0 or (top is None and depth <= 1):
-                    pass
                 nm = ch.get("id") or ch.get("data-name")
-                if top is None and nm and not re.match(r"^Layer_\d+$", nm) and not in_symbol:
-                    t_ = nm                                  # the first named group under the page = the layer
-                elif top is None and nm and re.match(r"^Layer_\d+$", nm) and len(
-                        [c for c in ch if c.tag == SVGNS + "g"]) < 2:
-                    t_ = nm                                  # a drawing layer of his own (Layer_2 ...)
-                if t_ is not None and top is not None and grp is None:
+                # v2.1: wrapper groups (Layer_N, no id) are looked through; the first group whose id names a thing
+                # (LAYER_MAP) is the layer, and an inner group that names a different layer starts its own layer
+                # (not inside sheet / texts_*). A named group that is not in the table, with no layer above it, is
+                # the layer as in v2 (-> unsorted_<id>).
+                lay_ = layer_for(nm) if nm and not in_symbol else None
+                cur_ = layer_for(top) if top is not None else None
+                if lay_ is not None and lay_ != cur_ and not (cur_ == "sheet" or (cur_ or "").startswith("texts")):
+                    t_, g_ = nm, None
+                elif top is None and nm and not in_symbol and lay_ is None and not GENERIC_ID.match(nm):
+                    t_ = nm                                  # a named group not in the table: unsorted_<id>
+                elif top is not None and grp is None:
                     self.grp_n += 1
                     g_ = u"%s %d" % (top, self.grp_n)      # each group inside a layer = one Rhino group
-                self.walk(ch, mm, st, t_, g_, depth + 1, in_symbol, h_, fc_)
+                u_ = unit                                    # the SharedSync unit (user text bergama_unit): v2's rule
+                if unit is None and nm and not in_symbol and (not re.match(r"^Layer_\d+$", nm) or len(
+                        [c for c in ch if c.tag == SVGNS + "g"]) < 2):
+                    u_ = nm                                  # = SharedSync v2 units_of: kept so write-back still matches
+                self.walk(ch, mm, st, t_, g_, depth + 1, in_symbol, h_, fc_, u_)
                 continue
             if tag == "a" or tag == "switch":
-                self.walk(ch, mm, st, top, grp, depth + 1, in_symbol, h_, fc_)
+                self.walk(ch, mm, st, top, grp, depth + 1, in_symbol, h_, fc_, unit)
                 continue
-            base = dict(top=top, grp=grp, hid=h_, fc=fc_)
+            base = dict(top=top, grp=grp, hid=h_, fc=fc_, unit=unit)
             if tag == "path" or tag in ("rect", "circle", "ellipse", "line", "polygon", "polyline"):
                 subs = path_segments(ch.get("d")) if tag == "path" else shape_subpaths(tag, ch)
                 if not subs:
@@ -645,7 +769,7 @@ class Plan(object):
                     self.image(tgt, mat_mul(mu, parse_transform(tgt.get("transform"))), base)
                 else:
                     wrap = [tgt]
-                    self.walk(wrap and _Wrap(wrap), mu, st, top, grp, depth + 1, in_symbol, h_, fc_)
+                    self.walk(wrap and _Wrap(wrap), mu, st, top, grp, depth + 1, in_symbol, h_, fc_, unit)
             else:
                 self.skip("element <%s>" % tag)
 
@@ -754,21 +878,38 @@ def world_matrix(site, rect, notes):
     return mat_mul(Ri, A), 1.0 / s
 
 
+_TABLE = []                                         # v2.1: the layer table read once per run (v2 read it per piece)
+
+
+def layer_table():
+    if not _TABLE:
+        table = LAYER_MAP
+        try:
+            p = data_file("bergama_plan_to_rhino_data.py")
+            if p:
+                g = {}
+                exec(open(p, encoding="utf-8").read(), g)
+                table = g.get("LAYER_MAP") or table
+        except Exception:
+            pass
+        _TABLE[:] = list(table)
+    return _TABLE
+
+
+GENERIC_ID = re.compile(r"^(layer_\d+|g\d*|group(_\d+)?)(_\d+)?$", re.I)   # v2.1: wrapper groups, looked through
+
+
 def layer_for(top):
-    key = re.sub(r"(_?\d+)$", "", (top or "").strip()).lower()
+    raw = (top or "").strip().lower()
+    key = re.sub(r"(_?\d+)$", "", raw)
     if key.startswith("planting_area_"):            # v2: one layer per species area (planting analysis)
         return u"proposal_planting_" + re.sub(r"[^a-z0-9_]+", "_", key[len("planting_area_"):])
-    table = LAYER_MAP
-    try:
-        p = data_file("bergama_plan_to_rhino_data.py")
-        if p:
-            g = {}
-            exec(open(p, encoding="utf-8").read(), g)
-            table = g.get("LAYER_MAP") or table
-    except Exception:
-        pass
-    for k, lay in table:
-        if key.startswith(k.lower()):
+    for k, lay in layer_table():
+        kl = k.lower()
+        if GENERIC_ID.match(kl):                    # v2.1: a Layer_N key = that exact id (or its _2 copy) only
+            if raw == kl or re.match(re.escape(kl) + r"_\d+$", raw):
+                return lay
+        elif key.startswith(kl):
             return lay
     return None
 
@@ -816,7 +957,8 @@ def assign_layers(plan, frame, notes):
                      u", ".join(u"%s (%d)" % kv for kv in sorted(unknown.items())))
     # texts -> the thing they name
     owners = [(item_bbox(it), it["layer"], it) for it in plan.items
-              if it["kind"] != "text" and it["layer"] not in ("sheet", "texts") and not it["layer"].startswith("unsorted")]
+              if it["kind"] != "text" and it["layer"] not in ("sheet", "texts") and not it["layer"].startswith("unsorted")
+              and not it["layer"].startswith("texts_")]                 # v2.1: callout / context label layers
     owners = [o for o in owners if o[0] is not None]
     boxes = [(bb, it) for bb, lay, it in owners if lay == CALLOUT_LAYER and it["kind"] == "shape" and it["fill"]
              and (bb[2] - bb[0]) * (bb[3] - bb[1]) < (frame[2] * frame[3]) * 0.002]
@@ -844,6 +986,8 @@ def assign_layers(plan, frame, notes):
                         best = (d, lay)
                 tl = u"texts_" + (best[1] if best else "sheet")
                 near.append(u"'%s' -> %s" % (it["s"][:40], tl))
+        elif own.startswith("texts_"):
+            tl = own                                      # v2.1: already a texts layer (labels, label_around)
         else:
             tl = u"texts_" + own
         it["layer"] = tl
@@ -1065,7 +1209,7 @@ def bake(doc, plan, M, s_m, notes):
         if u"%s::%s" % (ROOT_LAYER, it["layer"]) in keep:
             continue
         lix = layer(it["layer"])
-        cur[0] = it.get("top")
+        cur[0] = it.get("unit")                       # v2.1: the SharedSync unit (v2 took the layer group)
         grp = it.get("grp")
         try:
             if it["kind"] == "shape":
@@ -1406,12 +1550,18 @@ def read_site(doc):
 
 
 def newest_svg():
+    """v2.1: (path, why): the newest .svg in Data/assets/plan/, else Data/assets/masterlastversion.svg"""
     d = os.path.join(DATA_DIR, PLAN_SUBDIR)
     try:
         fs = [os.path.join(d, f) for f in os.listdir(d) if f.lower().endswith(".svg")]
     except Exception:
         fs = []
-    return max(fs, key=os.path.getmtime) if fs else None
+    if fs:
+        return max(fs, key=os.path.getmtime), u"the newest .svg in " + d
+    p = os.path.join(DATA_DIR, PLAN_FALLBACK)
+    if os.path.isfile(p):
+        return p, u"no .svg in %s, so Aras's masterplan file" % d
+    return None, None
 
 
 # =====================================================================================================  main
@@ -1423,12 +1573,19 @@ def main(line_drawing, show_survey):
     if doc is None:
         raise RuntimeError("no Rhino file is open")
     if line_drawing:
-        svg = newest_svg()
+        _TABLE[:] = []                                # v2.1: the layer table read fresh on each press
+        svg, why = newest_svg()
         if svg is None:
-            raise RuntimeError("no plan SVG: put your edited plan .svg in " + os.path.join(DATA_DIR, PLAN_SUBDIR))
-        notes.append(u"plan SVG: %s (%s, %.1f MB)" % (svg, time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(svg))),
-                                                     os.path.getsize(svg) / 1048576.0))
+            raise RuntimeError("no plan SVG: put your edited plan .svg in %s (or Aras's file at %s)" %
+                               (os.path.join(DATA_DIR, PLAN_SUBDIR), os.path.join(DATA_DIR, PLAN_FALLBACK)))
+        notes.append(u"plan SVG: %s (%s, %.1f MB; %s)" % (svg, time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(svg))),
+                                                         os.path.getsize(svg) / 1048576.0, why))
         plan = Plan(svg)
+        if plan.shift_note:
+            notes.append(plan.shift_note)
+        if plan.n_outside:
+            notes.append(u"left out, wholly outside the plan frame (not cut by it): " +
+                         u", ".join(u"%s %d" % kv for kv in sorted(plan.n_outside.items())))
         PLAN_FILE[0] = svg
         notes.append(u"read: %d pieces, %d symbols, %.1f s" % (len(plan.items), len(plan.symbols), time.time() - t0))
         if plan.n_skipped:
@@ -1526,7 +1683,7 @@ if "ghenv" in globals():
             _sc.sticky.pop(_k + _s, None)
     done = _sc.sticky.get(_k + "_done", "idle")
     log = _sc.sticky.get(_k + "_log", "Press the Button. LineDrawing True bakes the plan SVG from " +
-                         os.path.join(DATA_DIR, PLAN_SUBDIR))
+                         os.path.join(DATA_DIR, PLAN_SUBDIR) + " (none there: " + os.path.join(DATA_DIR, PLAN_FALLBACK) + ")")
     print(log)
     try:
         ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821

@@ -25,12 +25,12 @@ files are gzipped and their pictures are kept once in the folder 'images' (a 28 
 nothing new here or in the cloud stops after one look at the register; the analysis is rebuilt only when its inputs
 changed, after the app has opened.
 Settings (setup.bat writes them): Downloads/Bergama/Data/shared_settings.txt: token=..., me=aras|begum|nil
-Needs next to it in Downloads/Bergama: bergama_plan_to_rhino_v2.py, bergama_planting_analysis_v1.py.
+Needs next to it in Downloads/Bergama: bergama_plan_to_rhino_v2_1.py, bergama_planting_analysis_v1.py.
 """
 import os, time, json, re, hashlib, copy, math, calendar
 
 # ---- SETTINGS ----
-VERSION = "v2"
+VERSION = "v2.1"   # 9 Nov 2026: loads PlanToRhino v2.1 (PTR_FILE)
 GH_LABEL = "SharedSync"
 OUT_FOLDER = "bergama_shared_sync"
 LOG_NAME = "bergama_shared_sync_log.txt"
@@ -72,10 +72,10 @@ LOCAL_STATE = os.path.join(SH_DIR, "local_state.json")
 HASH_CACHE = os.path.join(SH_DIR, "hash_cache.json")
 PLACING_FILE = os.path.join(SH_DIR, "placing.json")
 HERE = os.path.dirname(os.path.abspath(globals().get("__file__") or os.path.join(BERGAMA_ROOT, "x.py")))
-PTR_FILE = "bergama_plan_to_rhino_v2.py"
+PTR_FILE = "bergama_plan_to_rhino_v2_1.py"   # P5 9 Nov 2026: v2.1 (layer fix), was v2
 PA_FILE = "bergama_planting_analysis_v1.py"
 
-# PlanToRhino v2 keys (must match bergama_plan_to_rhino_v2.py)
+# PlanToRhino v2 keys (must match bergama_plan_to_rhino_v2_1.py)
 PTR_KEY = "bergama_plan_to_rhino"
 STAMP = "bergama_plan_to_rhino"
 UNIT_KEY = "bergama_unit"
