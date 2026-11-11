@@ -6399,6 +6399,8 @@ class Board(object):
         self._kind = None                                # the open element kind (B.kind), None = untagged
         self._eid = None
         self._eidn = {}
+        self.badges = {}                                 # round 9 (S1, c1): glyph text index -> S1 badge item (board units)
+        self.badge_discs = {}                            # round 9: disc / rim item index -> its glyph's text index
 
     def kind(self, kind, eid=None):
         """v61 (round 6, G6-9, Aras 4 Nov 17:50-17:51): `with B.kind("trees", "0412"):` tags every item drawn inside
@@ -26140,7 +26142,8 @@ class Ix(object):
 #   sb_items_export(S, B) -> [log lines]   writes Downloads/Bergama/cached/booklet/selinus_board/items.json
 # Page ids: v61 (round 6, G6-2, PLAN §2.1): the final 22-page ids, used natively (p08 street cuts R1-R4 + key map,
 # p19 heritage loop); the booklet no longer maps ids.
-SB_IX_PAGES = {"plan01": "p02", "site_readings": "p02", "edge_types": "p02", "axo_what_is_there": "p03",
+SB_IX_PAGES = {"plan01": "p02", "site_readings": "p02", "plan01_bridges": "p02", "plan01_legend": "p02",
+               "site_indicators": "p02", "site_landuse": "p02", "edge_types": "p02", "axo_what_is_there": "p03",
                "edge_build": "p06", "movement": "p07",
                "walking_today": "p07", "driving_today": "p07", "mv_note_1": "p07", "mv_note_2": "p07",
                "mv_note_3": "p07", "street_R1": "p08", "street_R2": "p08", "street_R3": "p08", "street_R4": "p08",
@@ -26302,6 +26305,113 @@ def _six_text_grp(ix, page, tid, grp):
             break
 
 
+SB_CTX = {}          # round 9 (d4, S3): crop slug -> the M map's context (sb_ctx)
+SB_CTX_KIND = dict(e="ground", i="ground", d="buildings", a="roads", f="water", g="roads", b="labels", c="labels",
+                   h="labels", j="annotations")
+
+
+def sb_ctx(slug, V, frame_key, den, page, map_id=None, focus=None, override=None, words=None):
+    """round 9 (PLAN §cause d4, §spec S2/S3): crop `slug` is an M map: its export adds the map context (ml_base mode
+    "context", layers a-j) over r9_window(focus, frame) under the board's own drawing, and the drawing's `focus` and
+    `frame`; the booklet fits the focus and clips a frame-sized window, so the map runs to the frame edge. V = the
+    map's View (survey m -> board units), frame_key = its R9_FRAMES key, den = the 1:n it is drawn at on the board,
+    focus = the map's rectangle on the board (board units; None = the crop box), override = ml_base layer switches,
+    words = legend words over BM_CTX_WORDS"""
+    SB_CTX[slug] = dict(V=V, key=frame_key, den=float(den), page=page, map=map_id or slug, focus=focus, ov=override,
+                        words=words)
+
+
+def _six_ctx(ix, D, p, page, M, Mi, note):
+    """round 9 (d4): the context of an M map crop (sb_ctx) -> D: layer "context" under the drawing (z 0), its names
+    outside the focus as labels (inside, the board's own names stand), D["focus"], the extent grown to the window;
+    logs basemap_context_log (`context`, `fabric`, `names`), the window and where the data ends (`context <page> e
+    data ends <bbox>`, FLAG per source that stops inside the window). Returns the legend rows of the classes it shows
+    (basemap_legend_rows)."""
+    c = SB_CTX.get(p["slug"])
+    if not c:
+        return []
+    V = c["V"]
+    F = V.F
+    fb = c["focus"] or p["bb"]
+    f0, f1 = M((fb[0], fb[1])), M((fb[2], fb[3]))
+    foc = (min(f0[0], f1[0]), min(f0[1], f1[1]), max(f0[0], f1[0]), max(f0[1], f1[1]))
+    win = r9_window(foc, c["key"])
+
+    def S2D(q):                                          # survey m -> drawing m
+        return M(V.p(q[0], q[1]))
+
+    def D2S(q):                                          # drawing m -> survey m
+        X, Y = Mi(q)
+        return F.world((X - V.X0) / V.s + F.u0, (Y - V.Yt) / V.s + F.v1)
+    ring = [D2S((win[0], win[1])), D2S((win[2], win[1])), D2S((win[2], win[3])), D2S((win[0], win[3]))]
+    box = (min(q[0] for q in ring), min(q[1] for q in ring), max(q[0] for q in ring), max(q[1] for q in ring))
+    try:
+        its = ml_base(box, c["den"], ring=ring, override=c["ov"])
+    except Exception as ex_:
+        note.append(u"FLAG context %s %s: the map context failed (%s: %s); the map shows its own base only" % (
+            page, c["map"], type(ex_).__name__, ex_))
+        return []
+    D["focus"] = [_ix_r(v) for v in foc]
+    D["frame"] = u"%s" % c["key"]
+    wh = r9_wh(c["key"])
+    if wh:
+        D["frame_mm"] = [_ix_r(wh[0]), _ix_r(wh[1])]
+    e0 = D["extent"]
+    D["extent"] = [_ix_r(min(e0[0], win[0])), _ix_r(min(e0[1], win[1])), _ix_r(max(e0[2], win[2])),
+                   _ix_r(max(e0[3], win[3]))]
+    shapes, cur, n_t = [], None, 0
+    did = D["id"]
+    for it in its:
+        cx_ = getattr(it, "ctx", None) or "e"
+        g_ = u"%s/context %s %s" % (SB_CTX_KIND.get(cx_, "ground"), cx_, getattr(it, "cls", None) or u"")
+        if it[0] == "text":
+            q = S2D(it[2])
+            if foc[0] <= q[0] <= foc[2] and foc[1] <= q[1] <= foc[3]:
+                continue                                  # inside the map: the board's own names
+            tid = ix.text(page, it[1], "label", drawing=did, at=q, size_pt=float(it[3]) / IX_PT, bold=bool(it[5]),
+                          colour=it[4], positions=["=MC", "E", "W", "N", "S"], group=did, priority=7)
+            _six_text_grp(ix, page, tid, u"labels/context %s" % cx_)
+            a_ = (float(it[7]) if len(it) > 7 and it[7] else 0.0) + math.degrees(V.angle(1.0, 0.0))
+            while a_ > 90.0:                              # survey angle -> the map's axes, read left to right
+                a_ -= 180.0
+            while a_ <= -90.0:
+                a_ += 180.0
+            if tid and abs(float(it[7]) if len(it) > 7 and it[7] else 0.0) >= 0.5:
+                for t_ in reversed(ix.d["pages"].get(page) or []):
+                    if t_.get("id") == tid:
+                        t_["deg"] = round(a_, 1)
+                        break
+            n_t += 1
+            continue
+        if g_ != cur:
+            shapes.append(("grp", g_))
+            cur = g_
+        pre = len(shapes)
+        basemap_draw([it], S2D,
+                     lambda R, hx, al, nz: shapes.append(("poly", [list(r_) for r_ in R if len(r_) >= 3], hx, None,
+                                                          0.0, None, None, None if al in (None, 1.0) else al)),
+                     lambda P, hx, w, da, al: shapes.append(("line", list(P), hx, w or 0.1, list(da) if da else None)))
+        if len(shapes) == pre:
+            continue
+    ix.layer(D, "context", shapes, z=0)
+    basemap_context_log(page, c["map"], its, log=note)
+    note.append(u"context %s %s window %.0f x %.0f m (focus %.0f x %.0f m, frame %s), %d shapes, %d names outside the "
+                u"focus" % (page, c["map"], win[2] - win[0], win[3] - win[1], foc[2] - foc[0], foc[3] - foc[1],
+                            c["key"], len(shapes), n_t))
+    try:                                                  # where each data source stops (basemap.json "data")
+        dd = (basemap_load() or {}).get("data") or {}
+    except Exception:
+        dd = {}
+    for src, bbx in sorted(dd.items()):
+        if not bbx:
+            continue
+        cut = bbx[0] > box[0] or bbx[1] > box[1] or bbx[2] < box[2] or bbx[3] < box[3]
+        note.append(u"%scontext %s e data ends %s %.0f %.0f %.0f %.0f (window %.0f %.0f %.0f %.0f, survey m)%s" % (
+            u"FLAG " if cut else u"", page, src, bbx[0], bbx[1], bbx[2], bbx[3], box[0], box[1], box[2], box[3],
+            u": the data stops inside the window there (unmapped ground)" if cut else u""))
+    return basemap_legend_rows(its, words=c.get("words"))
+
+
 def _six_board_crop(ix, B, p, page, note):
     """one CROP_PANELS crop of board B -> one drawing (or notes) + texts + legend + caption in ix"""
     import re as _re
@@ -26326,6 +26436,15 @@ def _six_board_crop(ix, B, p, page, note):
 
     def M(q):
         return ((q[0] - bb[0]) * ku, (q[1] - bb[1]) * ku + yoff)
+
+    def Mi(q):                                           # round 9: drawing units -> board units
+        return (bb[0] + q[0] / ku, bb[1] + (q[1] - yoff) / ku)
+    bdg = getattr(B, "badges", None) or {}               # round 9 (S1, c1): marker glyphs -> badge items
+    bdisc = getattr(B, "badge_discs", None) or {}
+
+    def glyph_in(gi):                                    # the marker's glyph is exported with this crop
+        g_it = B.items[gi]
+        return bb[0] <= g_it[2][0] <= bb[2] and bb[1] <= g_it[2][1] <= bb[3]
     pad = 0.01 * max(bb[2] - bb[0], bb[3] - bb[1])
     cb = (bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad)
     order = []
@@ -26386,10 +26505,19 @@ def _six_board_crop(ix, B, p, page, note):
             a0, a1 = M((x0_, y0_)), M((x1_, y1_))
             shapes.append(("image", a0[0], a0[1], a1[0] - a0[0], a1[1] - a0[1], it[1],
                            it[6] if len(it) > 6 else None, bool(it[7]) if len(it) > 7 else False))
+        if _n in bdisc and glyph_in(bdisc[_n]):          # round 9 (S1): a badge's disc / rim (BK v38 skips it)
+            for j_ in range(n0_, len(shapes)):
+                d_ = _MkDisc(shapes[j_])
+                d_.mk_badge = True
+                shapes[j_] = d_
         grps.extend([g_] * (len(shapes) - n0_))
-    texts = []
+    texts, badges = [], []
     for n_, it in enumerate(B.items):                    # texts: anchor inside the crop
         if it[0] != "text" or other_col(n_):
+            continue
+        if n_ in bdg:                                    # round 9 (S1, c1): a marker -> ONE badge item
+            if glyph_in(n_):
+                badges.append((dict(bdg[n_], at=list(M(bdg[n_]["at"]))), tags.get(n_) or u"labels/b%d" % n_))
             continue
         txt = (u"%s" % it[1]).strip()
         if not txt or any(q_.search(txt) for q_ in pats):
@@ -26424,15 +26552,20 @@ def _six_board_crop(ix, B, p, page, note):
         note.append(u"items %s %s: notes %d (text only)" % (page, p["slug"], len(seen)))
         return
     ext = (0.0, yoff, (bb[2] - bb[0]) * ku, (bb[3] - bb[1]) * ku + yoff)
+    fk_ = p.get("frame") or (r9_frame_of(did, page) or {}).get("key")   # round 9 (S6): its R9_FRAMES key
     D = ix.drawing(did, page, ext, scale_pref=SB_IX_SCALES.get(p["slug"]), units=units,
-                   dkind=p.get("dkind") or ("plan" if units == "m" else "diagram"), scale_bar=False, priority=1, group=did,
-                   title=p.get("caption") or None)
+                   dkind=p.get("dkind") or ("plan" if units == "m" else "diagram"), scale_bar=(units == "m"),
+                   priority=1, group=did, title=p.get("caption") or None, frame=fk_, series=p.get("series"))
     if SB_IX_SCALES.get(p["slug"]):                     # v63 (round 7, L1): the plan's one SON printed scale
-        note.append(u"scale %s %s 1:%d" % (page, p["slug"], SB_IX_SCALES[p["slug"]][0]))
-    if units == "m":
-        D["scale_note"] = (u"own scale bar drawn as geometry (true at any print scale); sheet scale 1:%d, round 4 "
-                           u"booklet print about 1:%d" % (int(den), int(round(den / sc))))
+        note.append(u"scale %s %s drawn 1:%d on the board (round 9: the booklet sets the printed scale, ADDENDUM "
+                    u"§0)" % (page, p["slug"], SB_IX_SCALES[p["slug"]][0]))
+    if units == "m":                                     # round 9 (d2, d3): no "sheet scale" (the booklet sized the
+        D["scale_note"] = (u"drawn at 1:%d on the board; texts and badges carry their own print size (pt); the "
+                           u"booklet draws the scale bar at the true scale" % int(den))   # texts by it: factor 1.0)
+    ctx_rows = _six_ctx(ix, D, p, page, M, Mi, note)     # round 9 (d4): an M map's context + focus
     _six_layer_grp(ix, D, "drawing", shapes, grps)
+    for b_, g_ in badges:                                # round 9 (S1): the markers, drawn by the booklet (bk_centre)
+        _six_text_grp(ix, page, ix.badge(page, b_, drawing=did, group=did), g_)
     _six_grp_count(page, did, grps + [t_[8] for t_ in texts], note)
     for t_ in texts:
         if SB_ROLE.get(t_[0]):                           # v62 (L2): a box part (heading): the booklet sets it, no `at`
@@ -26455,11 +26588,13 @@ def _six_board_crop(ix, B, p, page, note):
         sf_level_items(ix, page, D, p["levels"], side="R")
         note.append(u"items %s %s: %d level values exported (%s)" % (page, p["slug"], len(p["levels"]), u", ".join(
             u"%s %+.2f" % (k_, v_) for k_, v_ in p["levels"])))
-    if p.get("legend"):
+    if p.get("legend") or ctx_rows:
         ents = [(dict(kind={"dashdot": "dash"}.get(e_["kind"], e_["kind"]), colour=e_["colour"]), e_["label"])
-                for e_ in p["legend"] if e_.get("label")]
+                for e_ in (p.get("legend") or ()) if e_.get("label")]
+        have_ = set(t_ for _s, t_ in ents)
+        ents += [(s_, t_) for s_, t_ in ctx_rows if t_ not in have_]   # round 9 (G9-4 3): the context classes shown
         if ents:
-            ix.legend(page, did, ents, group=did, id=did + "_legend")
+            ix.legend(page, did, ents, group=did, id=p.get("legend_id") or did + "_legend")
     if p.get("caption"):
         cap_ = tail.sub(u"", p["caption"]).strip()
         ix.text(page, cap_, "caption", group=did, priority=6, id=did + "_caption",
@@ -26475,9 +26610,9 @@ def _six_board_crop(ix, B, p, page, note):
             page, p["slug"], n_nz))
     if n_hatch:
         note.append(u"items %s %s: %d hatch(es) as solid light fills (G-R5-4.1)" % (page, p["slug"], n_hatch))
-    note.append(u"items %s %s: %s, %d shapes, %d labels%s" % (
-        page, p["slug"], u"1:%d sheet, metres" % den if units == "m" else u"mm x %.2f" % sc, len(shapes),
-        len(texts), u", legend %d" % len(p.get("legend") or ()) if p.get("legend") else u""))
+    note.append(u"items %s %s: %s, %d shapes, %d labels, %d badges%s" % (
+        page, p["slug"], u"drawn 1:%d, metres" % den if units == "m" else u"mm x %.2f" % sc, len(shapes),
+        len(texts), len(badges), u", legend %d" % len(p.get("legend") or ()) if p.get("legend") else u""))
 
 
 def _six_axo(ix, pg, rm, ph, cap, leg, note):
@@ -26489,12 +26624,18 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
         return (q[0] - bb[0], q[1] - bb[1])
     shapes, texts, n_h = [], [], 0
     grps, n_el = [], {}                                  # v61 (G6-9): axonometric layers -> kinds
+    # round 9 (S1, c1): the markers _p03_marker drew on this page: their glyph -> ONE badge item, their disc polys
+    # tagged badge_disc (a glyph is its badge's text within 0.5 x its radius of the badge centre)
+    bdg_ = [(b_, i0_) for pid_, b_, i0_ in P03_BADGES if pid_ == id(pg)]
+    bpoly = set(i0_ for _b, i0_ in bdg_)
+    bused = set()
+    badges = []
 
     def G(lay):
         k_ = SB_AXO_KIND.get(lay or "", "other")
         n_el[k_] = n_el.get(k_, 0) + 1
         return u"%s/%04d" % (k_, n_el[k_])
-    for it in pg.items:
+    for n_it, it in enumerate(pg.items):
         kd = it[0]
         n0_ = len(shapes)
         lay_ = {"poly": 6, "line": 5, "circle": 7, "text": 8}.get(kd)
@@ -26507,6 +26648,9 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
             if len(it) > 8 and it[8]:                    # stripes: solid (G-R5-4.1)
                 n_h += 1
             shapes.append(("poly", rings, fill, stroke, lw_ or 0.0, dash, None, it[9] if len(it) > 9 else None))
+            if n_it in bpoly:                            # round 9 (S1): a marker's disc (the booklet skips it)
+                shapes[-1] = _MkDisc(shapes[-1])
+                shapes[-1].mk_badge = True
         elif kd == "line":
             for run in _six_clip_line(list(it[1]), bb):
                 shapes.append(("line", [M(q) for q in run], it[2], it[3], it[4], it[6] if len(it) > 6 else 1))
@@ -26521,6 +26665,18 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
                 shapes.append(("image", c_[0], c_[1], w_, h_) + tuple(it[5:9]))
         elif kd == "text":
             s_, x_, y_, sz = it[1], it[2], it[3], it[4]
+            hit_ = None
+            for j_, (b_, _i0) in enumerate(bdg_):
+                if j_ not in bused and s_ and s_.strip() == b_["text"] and \
+                        math.hypot(x_ - b_["at"][0], y_ - b_["at"][1]) <= max(1.0, 1.5 * b_["r_mm"]):
+                    hit_ = j_
+                    break
+            if hit_ is not None:                         # round 9 (S1): this glyph is a badge
+                bused.add(hit_)
+                b_ = bdg_[hit_][0]
+                if bb[0] <= b_["at"][0] <= bb[2] and bb[1] <= b_["at"][1] <= bb[3]:
+                    badges.append(dict(b_, at=list(M(b_["at"]))))
+                continue
             if s_ and s_.strip() and bb[0] <= x_ <= bb[2] and bb[1] <= y_ <= bb[3]:
                 if len(it) > 9 and it[9]:                # v65 (round 8, H1 Q3): an in-plane word's size is in metres:
                     sz = sz * math.hypot(it[9][0][0], it[9][0][1])   # page em = size x the matrix scale (~2.3 mm)
@@ -26533,6 +26689,9 @@ def _six_axo(ix, pg, rm, ph, cap, leg, note):
                    priority=1, group=did, title=cap)
     _six_layer_grp(ix, D, "drawing", shapes, grps)
     _six_grp_count(page, did, grps + [t_[7] for t_ in texts], note)
+    for b_ in badges:                                    # round 9 (S1): the numbered markers as badge items
+        _six_text_grp(ix, page, ix.badge(page, b_, drawing=did, group=did), u"labels/badge %s" % b_["text"])
+    note.append(u"centre p03 badges n=%d (of %d markers on the sheet)" % (len(badges), len(bdg_)))
     n_plane = 0
     for t_ in texts:
         tid = ix.text(page, t_[0], "label", drawing=did, at=t_[1], size_pt=t_[2], bold=t_[3], colour=t_[4],
@@ -38114,13 +38273,7 @@ def _p02_fade_col(S):
     U61 "gereksiz bir ev kalabalığı koyu renkliliği"): inside the study area the fabric colour mixed P02_IN_LIGHT
     toward the paper (_p02_fab_light); outside it every building takes the muted base house tone P02_BASE_BLD (base
     map back, light); everywhere the fabric tone when the study area is not in the data"""
-    inside = _p02_inside(S)
-
-    def col(u):
-        if _p02_u_inside(inside, u):
-            return _p02_fab_light(fabric_col(u))
-        return _p02_hue("bld_out", P02_BASE_BLD)
-    return col
+    return fabric_col                                    # round 9 (b1): FABRIC_PLAN everywhere, no fade (Q1)
 
 
 def fabric_col(u):
@@ -38128,10 +38281,7 @@ def fabric_col(u):
     hue table's tone of its fabric type (P02_HUE "fab_<type>"); a heritage building whose name the table ranks r1 (the
     World Heritage listing, common/hues.py her_rank) takes HER r1."""
     fab = u.get("fabric", "regular")
-    col = _p02_hue("fab_" + fab, FABRIC_PLAN[fab])
-    if fab in ("monument", "sacred") and _p02_her1(u):
-        col = C(hue("HER", 1))                                                               # noqa: F821
-        _P02.setdefault("her1", set()).add(u.get("proper") or u.get("name"))
+    col = C(fab_hex(fab)) if "fab_hex" in globals() else FABRIC_PLAN[fab]   # round 9 (b1, S5): the FAB table
     return mix(col, PAPER, 0.45) if u["annex"] else col
 
 
@@ -38182,8 +38332,10 @@ def draw_what_is_there(S, B, x, y, w, U):
     if "SB_TREE_N" in globals():
         SB_TREE_N.pop("p02", None)                        # ... and the page's species counts (sb_tree_log)
     # quiet context: survey line work around the frame, pale
-    with B.kind("ground"):
-        B.fill([V.P(F2.P)], mix(PAPER, (255, 255, 255), 0.55), L, 1)
+    with B.kind("ground"):                                # round 9 (b3, S3): land cover to the map's edge (the
+        B.fill([V.P(F2.P)], PAPER, L, 1)                  # uncut WorldCover rings), no pale band round the frame
+    draw_landcover(S, ClipB(B, (V.X0, ymap - mh, V.X0 + mw, ymap)), V, L + "::landcover", 1,
+                   src=getattr(S, "lc_all", None) or getattr(S, "lc", {}))
     ctx = getattr(S, "ctx_lines", None) or {}
     for key, col, wd in (("water", mix(BLUE_D, PAPER, 0.5), 0.06), ("road", mix(INK2, PAPER, 0.62), 0.04),
                          ("bld", mix(INK2, PAPER, 0.45), 0.04)):
@@ -38193,7 +38345,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     # the site: land use, land cover, ground, streets, trees, buildings (homes by fabric), walls, bridges
     # v40: buildings by urban fabric type; revision 30 Oct (G7, M11): outline per block + roof, no piece lines
     # round 2 (PG1 p2 #8, U20): the town fabric outside the study area a little fainter, "but not too much"
-    draw_landuse_map(S, B, V, bcol=_p02_fade_col(S), den=den_bk, kb=kb, inside=_p02_inside(S))   # v59 (P02.2)
+    draw_landuse_map(S, B, V, bcol=fabric_col, den=den_bk, kb=kb, inside=None)   # round 9 (b1): no fade
     # canopy-map crowns (modelled), under the surveyed tree symbols. v61 (G6-10, G6-9): each crown its own element
     # named by its species (sb_tree_species via _p02_sp; None = generic "tree"), its colour by leaf type (GRN ranks)
     crowns = [c for c in site_crowns(S, F) if F.inside(c[0], c[1])]
@@ -38257,7 +38409,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     # conflicts in the annotation ink of the hue table (ANN 2C2219, was the accent 8B3A3F)
     mb = ymap - mh
     knum = _p02_knum()
-    mk_register("bridge", dict((k_, crop_hex(INK)) for k_ in knum))
+    mk_register("bridge", dict((k_, hue("HER", 2)) for k_ in knum))   # round 9 (S5, f2): bridges HER r2
     mk_register("conflict", dict((c_[0], crop_hex(_p02_hue("conflict", MARK_C))) for c_ in cs))
     pad = P02_MK_PAD
     bnd = (V.X0 / kb + 0.8, mb / kb + 0.8, (V.X0 + mw) / kb - 0.8, ymap / kb - 0.8)      # booklet mm, inside the crop
@@ -38305,7 +38457,7 @@ def draw_what_is_there(S, B, x, y, w, U):
             LOG.append(u"FLAG p02 plan 01: bridge {} number finds no free spot beside its symbol".format(knum[k_]))
         with B.kind("labels", u"bridge %d" % knum[k_]):
             bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, str(knum[k_]), mk_colour("bridge", k_), kb, L, order=64,
-                                 style="ring", r_min=rb)
+                                 r_min=rb)                # round 9 (S5): a filled HER r2 bubble (was a ring)
         taken.append(tuple(v_ / kb for v_ in bb_))
         ovl.append(bb_)
     rc = P02_C_R
@@ -38320,7 +38472,7 @@ def draw_what_is_there(S, B, x, y, w, U):
                        u"texts round it)".format(k))     # v62 (L2): a layout note, not a warning
         col_ = mk_colour("conflict", k)
         with B.kind("annotations", u"conflict %s" % k):   # v61 (G6-4): no dot, no leader line
-            bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, k, col_, kb, L, order=64, r_min=rc)
+            bb_, r_ = _sb_marker(B, q[0] * kb, q[1] * kb, k, col_, kb, L, order=64, r_min=rc, rim_mm=0.3)   # Q8
         taken.append(tuple(v_ / kb for v_ in bb_))
         ovl.append(bb_)
     # v59 closing (G-R4-1): the map: its own names and markers (from i_map0) may sit on it, no other text
@@ -38341,7 +38493,7 @@ def draw_what_is_there(S, B, x, y, w, U):
         v_ = 100.0 * S.fabric_area.get(fab, 0.0) / ftot
         if round(v_) >= 1 or (fab in ("monument", "sacred") and S.fabric_area.get(fab, 0.0) > 0):
             (her_ if fab in ("monument", "sacred") else fab_).append(
-                ("box", _p02_fab_light(_p02_hue("fab_" + fab, FABRIC_PLAN[fab])), u"{} · {}".format(
+                ("box", C(fab_hex(fab)), u"{} · {}".format(                       # round 9 (b1): as drawn
                     FABRIC_SHORT[fab], "{:.0f}%".format(v_) if round(v_) >= 1 else "< 1%"), "fab_" + fab))
     if _P02.get("her1") and "hue" in globals():          # v61 (H3): a building the table ranks r1 (WH listing)
         her_.append(("box", C(hue("HER", 1)), u"World Heritage listing: " + u", ".join(          # noqa: F821
@@ -38382,8 +38534,6 @@ def draw_what_is_there(S, B, x, y, w, U):
                           for k_ in EDGE_ORDER if S.edge_len.get(k_, 0) > 0])
     leg += [("hdr", None, "STUDY AREA AND FRAME")]        # v58 (round 3, G1): was "MARKS" (its marks: the lists)
     leg.append(R28_STUDY_LEG)                             # v50 (G8): the study area, one name on every map
-    if _p02_inside(S) is not None:                        # v59 (round 4, P02.2, G-R4-4): the base houses' tone
-        leg.append(("box", _p02_hue("bld_out", P02_BASE_BLD), u"Buildings outside the study area"))
     if RF is not None:
         leg.append(("thin", INK, R28_FRAME_NAME + " (site_alan) " + r_map))   # v50 (G8): was "Analysis range"
     # v45: the booklet page's legend leaves out what the site readings key: the ground and green colours (the land-use
@@ -38408,18 +38558,27 @@ def draw_what_is_there(S, B, x, y, w, U):
     gstep = (GRID_COL + GRID_GUT) * kb
     sbl = nice_floor(F2.w / 8.0)
     # v59.1: the bar 1 mm in from the crop's left edge (as on p06 and p20): its centred "0" hung half outside the crop
-    with B.kind("annotations", "scale bar"):
-        mb_crop = min(draw_scalebar_bk(B, V.X0 + 1.0 * kb, mb - 3.0 * kb, s, sbl, kb, L), mb - 9.5 * kb)
-    _p02_north(B, F2, V.X0 + 1.0 * kb + sbl * s + 5.5 * kb, mb - 5.0 * kb, kb, L)   # v61 (G6-4): an_north
+    # round 9 (d3): no own scale bar and north arrow: the booklet draws both (bar at the true scale, north from the
+    # drawing's north_deg) in frame p02.2 beside the bridge list; their room under the map is kept
+    mb_crop = mb - 9.5 * kb
     with B.kind("legend", "bridges"):
         mb_crop = min(mb_crop, _p02_bridge_list(B, F, knum, V.X0 + gstep, mb - 1.5 * kb, V.X0 + mw, kb, L, ovl))
+    mb_br = mb_crop
     i0_key = sb_mark(B)                                   # v59 closing (G-R4-1): the key's own texts from here
     with B.kind("legend"):
         low = _p02_key_under(B, leg_bk, _P02["cs"], V.X0, mb_crop - 2.0 * kb, mw, gstep, kb, L, ovl)
     sb_keep(B, (V.X0, low, V.X0 + mw, mb_crop - 2.0 * kb), u"p02 plan 01 key", "legend", i0_key)
     top_c = ymap + 0.3 * U
-    crop_panel("plan01", V.X0, low - 0.5 * kb, V.X0 + mw, top_c, u"Plan 01 · what is there today",
-               crop_scale(s), [])                         # v40; v58: the map, its lists and its key in one crop
+    # round 9 (d6, PAGE_TABLE p02.1-p02.3): one item per frame: the map (p02.1, M: its context over the frame's window
+    # and its focus, sb_ctx), the bridge list (p02.2) and the key in its three columns (p02.3)
+    crop_panel("plan01_bridges", V.X0, mb_br - 0.5 * kb, V.X0 + mw, mb - 0.5 * kb, u"", ix_page="p02")
+    CROP_PANELS[-1]["bk_w"] = mw / kb                     # drawn at its booklet width (text sizes as designed)
+    crop_panel("plan01_legend", V.X0, low - 0.5 * kb, V.X0 + mw, mb_br - 1.0 * kb, u"", ix_page="p02")
+    CROP_PANELS[-1]["bk_w"] = mw / kb
+    crop_panel("plan01", V.X0, mb, V.X0 + mw, top_c, u"Plan 01 · what is there today",
+               crop_scale(s), [])                         # v40; round 9: the map alone (d6)
+    CROP_PANELS[-1]["legend_id"] = u"sb_plan01_legend_context"   # the context classes it shows beyond the survey
+    sb_ctx("plan01", V, "p02.1", den_bk, "p02", "plan01", focus=(V.X0, mb, V.X0 + mw, ymap))
     # v42: survey x, y of the plan's frame corners and where they sit on the sheet, so a later script (the farms map,
     # bergama_agriculture_alternatives) can place its own layer on this very plan in the booklet crop
     CROP_PANELS[-1]["geo"] = [(px_, py_) + tuple(V.p(px_, py_)) for px_, py_ in F2.P[:4]]
@@ -38467,11 +38626,10 @@ P02_LEAF_SP = {0: "plane", 1: "olive", 2: "stone_pine"}   # v61 (G6-10): the GEN
 # 3's alternative: CTX holds five steps and p.02 keys nine existing ground classes; flip "g_*" / "lc_grass" /
 # "lc_shrub" / "lc_trees" to ("CTX", 4) for the greys); crowns GRN r1-r3 by leaf type; stream WAT.
 # Rows of one legend group (and ring slices) that share a colour are keyed as ONE row (_p02_merge_rows).
-P02_HUE = {"fab_monument": ("HER", 2), "fab_sacred": ("HER", 3), "fab_traditional": ("CTX", 2),
-           "fab_block": ("CTX", 3), "fab_regular": ("CTX", 4), "fab_selfbuilt": ("CTX", 5), "fab_large": ("CTX", 5),
-           "fab_construction": ("CTX", 5), "bld_out": ("CTX", 5), "bld_out_edge": ("CTX", 4), "dense": ("CTX", 1),
-           "g_wood": ("GRN", 4), "g_park": ("GRN", 4), "g_grass": ("GRN", 4), "lc_grass": ("GRN", 4),
-           "lc_shrub": ("GRN", 4), "lc_trees": ("GRN", 4), "lc_farmland": ("AGR", 3), "lc_orchard": ("AGR", 2),
+# round 9 (b1, b8, f2; PLAN §cause): the fabric rows (fab_*, bld_out*) are gone (buildings in the FAB table, fabric_col,
+# no fade) and so are the green rows (g_*, lc_*: SON's own LC_CLASSES / GREEN_SUB colours, woods 74804F, grass ABB287);
+# the clashes are CLA 8B3A3F (Q8)
+P02_HUE = {"dense": ("CTX", 1),
            "agri": ("AGR", 3), "vacant": ("CTX", 3), "transport": ("CTX", 3), "streets": ("CTX", 4),
            "rest": ("CTX", 5), "water": ("WAT", 3), "water_line": ("WAT", 2), "water_cov": ("WAT", 4),
            "residential": ("MOV", 3), "mixed": ("MOV", 2), "commercial": ("MOV", 1), "institutional": ("PUB", 2),
@@ -38482,7 +38640,7 @@ P02_HUE = {"fab_monument": ("HER", 2), "fab_sacred": ("HER", 3), "fab_traditiona
            "wall_1": ("CTX", 2), "wall_2": ("CTX", 3), "et_ground": ("CTX", 5), "et_roof": ("CTX", 3),
            "et_road": ("CTX", 2), "et_park": ("CTX", 3), "et_walk": ("MOV", 4), "et_green": ("GRN", 4),
            "et_open": ("CTX", 4),
-           "conflict": ("ANN", 0)}
+           "conflict": ("CLA", 1)}
 P02_CUT_MARKS = False     # v65 (round 8 D3, H1 Q2): plan 01 draws no cut marks of other pages' cuts (True = v64)
 P02_CUT_IN = 7.0          # v61 (G6-4): booklet mm, the least room between plan 01's cut-mark frame and its crop's edge
 #                           (an_cut: 4 mm stub + 2 mm triangle + the name outside the frame)
@@ -38594,14 +38752,41 @@ P02_SPOT_DIRS = (0, 4, 8, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15)   # v59: 
 #                                                                          clockwise): the four sides first
 
 
-def _sb_marker(B, x, y, s, colour, k, L, order=64, style="solid", size_pt=7.0, r_min=None):
+def _sb_nitems(B):
+    """round 9: the number of items drawn on board B so far (-1 for a dry run with no board)"""
+    try:
+        its = B.items
+        return len(its) if isinstance(its, list) else -1
+    except Exception:
+        return -1
+
+
+def _sb_badge_note(B, n0, b, kb, ox=0.0, oy=0.0, T=None):
+    """round 9 (S1, c1): the marker just drawn on board B (its items n0 ..): the last text item (its glyph) carries
+    the S1 badge item b with `at` in board units (T(at), else ox + kb * at); the other items (disc, rim) are badge
+    discs (the booklet draws disc and glyph together). Nothing is noted when the glyph was cut off or on a dry run."""
+    n1 = _sb_nitems(B)
+    if not b or n0 < 0 or n1 <= n0:
+        return
+    its = B.items
+    gi = [i for i in range(n0, n1) if its[i][0] == "text"]
+    if not gi:
+        return
+    a = b["at"]
+    b = dict(b, at=list(T(a)) if T else [ox + kb * float(a[0]), oy + kb * float(a[1])])
+    B.badges[gi[-1]] = b
+    B.badge_discs.update((i, gi[-1]) for i in range(n0, n1) if i != gi[-1])
+
+
+def _sb_marker(B, x, y, s, colour, k, L, order=64, style="solid", size_pt=7.0, r_min=None, rim_mm=0.25):
     """v59 (round 4, G-R4-7): ONE marker on a board drawing through common/marker.py mk_marker (the glyph centred on
     its ink box, the circle sized to it, white or ink glyph by contrast): (x, y) its centre in board units, k = board
     units per booklet mm, colour hex (or rgb) = the colour of what it names, size_pt / r_min (booklet mm) as
     mk_marker. Draws the disc (order) and the glyph (order + 1, its own text group). Returns (box, r) in board
     units (box = the outer box, rim included)."""
     hx = crop_hex(colour)
-    shapes, box, r = mk_marker(x / k, y / k, s, hx, size_pt=size_pt, r_min=r_min, style=style)
+    shapes, box, r = mk_marker(x / k, y / k, s, hx, size_pt=size_pt, r_min=r_min, style=style, rim_mm=rim_mm)
+    n0 = _sb_nitems(B)
     for sh in shapes:
         if sh[0] == "poly":
             ring = [(p_[0] * k, p_[1] * k) for p_ in sh[1]]
@@ -38612,6 +38797,7 @@ def _sb_marker(B, x, y, s, colour, k, L, order=64, style="solid", size_pt=7.0, r
         elif sh[0] == "text":
             B.text(sh[1], sh[2] * k, sh[3] * k, sh[4] * _PDF_CAP["sans"] * k, C(sh[5]), L, order=order + 1,
                    font=FONT_TITLE, bold=True, align="L")
+    _sb_badge_note(B, n0, shapes[1].badge, k)            # round 9 (S1): exported as ONE badge item
     return tuple(v_ * k for v_ in box), r * k
 
 
@@ -38927,7 +39113,7 @@ def _p02_bridge_list(B, F, knum, x0, ytop, x1, kb, L, ovl=None):
         yb = ytop - 1.3 * h75 - 2.8 * kb - 0.5 * h7 - (j // ncol) * 4.8 * kb
         # v59 (round 4, P02.1, G-R4-7): the number in the map's ring marker (the bridges' ink), then the real name
         mb_, r_ = _sb_marker(B, cx0 + P02_B_R * kb + 0.15 * kb, yb + 0.5 * h7, str(n_), mk_colour("bridge", k_), kb, L,
-                             order=64, style="ring", r_min=P02_B_R)
+                             order=64, r_min=P02_B_R)     # round 9 (S5): the map's HER r2 bubble
         tx_ = mb_[2] + 1.0 * kb
         txt = bridge_name(k_)
         site28_fit(B, txt, tx_, yb, h7, cx0 + cw - tx_, INK, L)
@@ -38994,7 +39180,7 @@ def _p02_key_under(B, leg, cl, x0, ytop, W, gstep, kb, L, ovl=None):
                 ovl.append(_p02_tb(lb, cx, yk, h75, cw))
             elif kd == "cdisc":                           # the map's disc, at the map's size
                 dx, dy = cx + rc + 0.4 * kb, yt - rc - 0.4 * kb
-                _sb_marker(B, dx, dy, c_, mk_colour("conflict", c_), kb, L, order=64, r_min=P02_C_R)   # v59 (G-R4-7)
+                _sb_marker(B, dx, dy, c_, mk_colour("conflict", c_), kb, L, order=64, r_min=P02_C_R, rim_mm=0.3)
                 tx = cx + 2.0 * rc + 2.0 * kb
                 site28_fit(B, lb, tx, dy - 0.5 * h75, h75, cx + cw - tx, INK, L)
                 ovl.append(_p02_tb(lb, tx, dy - 0.5 * h75, h75, cx + cw - tx))
@@ -39128,8 +39314,13 @@ def _p02_readings(S, B, x, y, w, U):
     B.text(u"% of the bank length · both banks · every 4 m " + bcite(EDGE_SRC), x, y - h8 - P02_RD_GAP * k - h7, h7, INK2,
            L, font=FONT_TITLE)
     yy = y - h8 - P02_RD_GAP * k - h7 - 4.0 * k
+    rows_ = reading_rows(S) if tot > 0 else []
+    # round 9 (d5, PAGE_TABLE p02.7): the rows spaced to the frame's height (96 mm), never closer than 2 mm
+    fh_ = (r9_wh("p02.7") or (96.0, 96.0))[1] * k
+    rowh_ = h9 + h7 + 4.2 * k
+    rg_ = max(2.0 * k, (fh_ - (y - yy) - len(rows_) * rowh_) / max(1, len(rows_) - 1)) if rows_ else 2.0 * k
     if tot > 0:
-        for name, phrase, parts in reading_rows(S):
+        for name, phrase, parts in rows_:
             pct = 100.0 * sum(v_ for v_, c_ in parts) / tot
             B.text(name, x, yy - h75, h75, INK, L, font=FONT_TITLE, bold=True)
             site28_text(B, u"**{:.0f}%**".format(pct), x + hw, yy - h9, h9, INK, L, align="R")   # v50: real width
@@ -39145,8 +39336,9 @@ def _p02_readings(S, B, x, y, w, U):
             yp = yb - 2.2 * k - 1.0 * k - h7
             B.text(phrase, x, yp, h7, INK2, L, font=FONT_TITLE)
             ovl += [_p02_tb(name, x, yy - h75, h75), _p02_tb(phrase, x, yp, h7)]
-            yy = yp - 2.0 * k
-    low = yy
+            yy = yp - rg_
+    low = yy + rg_ - 2.0 * k
+    low_ind = low
     # right: the land-use ring
     rx = x + w - hw
     sl, ftot = landuse_slices(S)
@@ -39158,8 +39350,15 @@ def _p02_readings(S, B, x, y, w, U):
         rx, y - h8 - P02_RD_GAP * k - h7, h7, INK2, L, font=FONT_TITLE)
     ovl += [_p02_tb(u"LAND USE AND GROUND COVER", rx, y - h8, h8), _p02_tb(u"site frame · % of its 000.0 ha [0][0]", rx,
                                                                             y - h8 - P02_RD_GAP * k - h7, h7)]
-    r1, r0 = 17.0 * k, 10.5 * k
-    cx, cy = rx + r1, y - h8 - P02_RD_GAP * k - h7 - 4.0 * k - r1
+    # round 9 (d5, PAGE_TABLE p02.8, BRIEF §5 p2): the ring centred in its frame (98 x 96 mm), as large as the frame
+    # holds with its key in two columns below it (was beside it)
+    fw8, fh8 = r9_wh("p02.8") or (98.0, 96.0)
+    nrow_ = (len(sl) + 1) // 2
+    hd_ = h8 + P02_RD_GAP * k + h7 + 4.0 * k
+    r1 = max(17.0 * k, min(0.5 * min(hw, fw8 * k) - 0.5 * k,
+                           0.5 * (fh8 * k - hd_ - 3.0 * k - nrow_ * 3.6 * k - 1.5 * k)))
+    r0 = r1 * 10.5 / 17.0
+    cx, cy = rx + 0.5 * hw, y - hd_ - r1
     a0 = math.pi / 2.0
     i0_ring = sb_mark(B)                                  # v59 closing (G-R4-1): the ring's own texts (its centre)
     for lab, col, a in sl:
@@ -39176,28 +39375,30 @@ def _p02_readings(S, B, x, y, w, U):
     # beside the ring: its key (the plan's ground and green colours, so the plan needs no other key), next to its
     # drawing (G1); each entry as the booklet's legend_item draws one: a 4.0 x 2.8 mm swatch from 0.2 mm under the
     # baseline, the name 5.5 mm in at 7 pt, 3.6 mm a row
-    kx = cx + r1 + P02_GAP * k
-    kw = rx + hw - kx
-    ky = cy + r1 - h7
+    kw = 0.5 * (hw - P02_GAP * k)                         # round 9: two columns under the ring
+    ky = cy - r1 - 3.0 * k - h7
     i0_rk = sb_mark(B)                                    # v59 closing (G-R4-1): the ring key's own texts
     for j, (lab, col, a) in enumerate(sl):
-        yk = ky - j * 3.6 * k
+        kx = rx + (j // max(1, nrow_)) * (kw + P02_GAP * k)
+        yk = ky - (j % max(1, nrow_)) * 3.6 * k
         with B.kind("legend", u"ring key " + lab):
             B.fill([rect(kx, yk - 0.2 * k, kx + 4.0 * k, yk + 2.6 * k)], col, L, 20)
         pct = 100.0 * a / ftot
         site28_fit(B, u"{} {}".format(lab, u"{:.0f}%".format(pct) if pct >= 1.0 else u"< 1%"), kx + 5.5 * k, yk, h7,
                    kw - 5.5 * k, INK, L)
         ovl.append(_p02_tb(lab + u" 00%", kx + 5.5 * k, yk, h7, kw - 5.5 * k))
-    low = min(low, ky - max(0, len(sl) - 1) * 3.6 * k - 1.5 * k)
+    low = min(low, ky - max(0, nrow_ - 1) * 3.6 * k - 1.5 * k)
     if sl:
-        sb_keep(B, (kx, ky - (len(sl) - 1) * 3.6 * k - 0.2 * k, rx + hw, ky + 2.6 * k), u"p02 ring key", "legend",
+        sb_keep(B, (rx, ky - (nrow_ - 1) * 3.6 * k - 0.2 * k, rx + hw, ky + 2.6 * k), u"p02 ring key", "legend",
                 i0_rk)
     if sl:
         _p02_legend_log()                                 # v61 (G6-6): the ring key reads the hue table
-    crop_panel("site_readings", x, low, x + w, top + 0.5 * k, u"Site readings · bank and ground")
-    CROP_PANELS[-1]["bk_w"] = _p02_side_w()               # v45: its width on the booklet page (side panel of p.2) ...
+    # round 9 (d6): one item per frame: the indicator bars (p02.7) and the land-use ring with its key (p02.8)
+    crop_panel("site_indicators", x, min(low, low_ind), x + hw, top + 0.5 * k, u"", ix_page="p02")
+    CROP_PANELS[-1]["bk_w"] = hw / k
+    crop_panel("site_landuse", rx, min(low, low_ind), x + w, top + 0.5 * k, u"", ix_page="p02")   # (no caption frame)
+    CROP_PANELS[-1]["bk_w"] = (x + w - rx) / k
     _p02_ovl_add("site_readings", (x, low, x + w, top + 0.5 * k), k, ovl)
-    CROP_PANELS[-1]["grid"] = [0.0, (w - hw) / k]         # ... and its two halves' left edges (the legend under it)
     return low - 1.0 * U                                  # v51: the edge strip now sits above (draw_site_readings)
 
 
@@ -40108,11 +40309,15 @@ P03_MK_RINGS = (1.0, 2.0, 3.0, 4.0, 5.0)    # v59: mm, how far a marker may leav
 P03_T_MIN = 2.15          # v59 (round 4, G-R4-1): mm, the smallest em on the p.03 sheet (6.1 pt; DIAG_SRC TP_MIN_EM)
 
 
+P03_BADGES = []      # round 9 (S1, c1): (page id, badge item (page mm), its first item index) of each p.03 marker
+
+
 def _p03_marker(pg, x, y, s, colour, name):
     """v59 (round 4, PALL.2, G-R4-7): ONE marker on the p.03 sheet (the engine's Page, page mm y up): common/marker.py
     mk_marker; its disc drawn and registered as a keep of the sheet's TextPage under name, its glyph registered
     allowed on that disc only. Returns the marker's box."""
     shapes, box, r = mk_marker(x, y, s, colour, size_pt=P03_MK_PT, r_min=P03_MK_R)
+    P03_BADGES.append((id(pg), shapes[1].badge, len(getattr(pg, "items", None) or [])))   # round 9 (S1)
     for sh in shapes:
         if sh[0] == "poly":
             pg.poly([sh[1]], fill=sh[2], stroke=sh[3], lw=sh[4] or 0.1, layer="callouts")
@@ -40175,6 +40380,7 @@ def _p03_marks(pg, V, calls, DG, BP):
     for i in ro:
         c, ax, ay = keep[i]
         deep = BP.tones_of(c["color"])["outline"] if c.get("color") and c["color"] != "141414" else CORE["ink"]
+        deep = hue_of(_p03_title(c.get("title", u"")), deep)   # round 9 (f2, S5): the table's colour of what it names
         n_ = n + 1
         sh0, b0, r0 = mk_marker(ax, ay, str(n_), deep, size_pt=P03_MK_PT, r_min=P03_MK_R)
         spot = None
@@ -40367,6 +40573,8 @@ def _p03_axo_loop(S, DG, ctx, stamp, out):
         ext = ctx.extents[0]
         try:
             spec = DG["SPECS"][did](ctx, ext)
+            spec["words"] = []                            # round 9 (f3, U09): no ground words ("Selinos stream") on
+            #                                               the axonometric; the md5-checked Data file is not edited
             for c_ in spec.get("calls", []):
                 c_["title"] = _p03_title(c_.get("title", u""))     # v58 (G16): no [n], bridges by bridge_name
             if _P03.get("hook"):                          # v58 (round 3, P03.1, G3): the engine's callouts make
@@ -40404,13 +40612,13 @@ def _p03_axo_loop(S, DG, ctx, stamp, out):
     return out
 
 
-def draw_landcover(S, B, V, L, order=2):
+def draw_landcover(S, B, V, L, order=2, src=None):
     """v31: the land-cover classes, each one fill (even-odd over all its rings), order 2 after the paper. v61 (G6-6):
     in the hue table's colours (_p02_hue "lc_<class>"; only p.02 draws it)."""
     leg = []
     for k, lab, col in LC_CLASSES:
         col = _p02_hue("lc_" + k, col)
-        rings = getattr(S, "lc", {}).get(k)
+        rings = (src if src is not None else getattr(S, "lc", {})).get(k)   # round 9 (b3): src = the uncut rings
         if rings:
             for i in range(0, len(rings), 400):
                 B.fill(V.Ps(rings[i:i + 400]), col, L, order)
@@ -40595,9 +40803,13 @@ def p45_tree_n(page, key, out=False):
 def _p45_put(B, L, shapes, T, kb, order):
     """the modules' house shapes ("poly", ring, fill, stroke, lw) / ("line", pts, colour, lw[, dash mm]) (booklet mm,
     y up) through T (mm -> board units), line weights in booklet mm; text and image shapes are not used here"""
+    pend = None                                          # round 9 (S1): the open marker's first item (its disc)
     for sh in shapes or []:
         if not sh:
             continue
+        n0_ = _sb_nitems(B)
+        if getattr(sh, "mk_badge", False):
+            pend = n0_
         if sh[0] == "image":                              # v56: style a cutouts (people, plants)
             x0_, y0_ = T((sh[1], sh[2]))
             x1_, y1_ = T((sh[1] + sh[3], sh[2] + sh[4]))
@@ -40624,6 +40836,9 @@ def _p45_put(B, L, shapes, T, kb, order):
             if u"%s" % sh[1]:
                 B.text(u"%s" % sh[1], q[0], q[1], sz * _PDF_CAP["sans"] * kb, _p45_c(col or "4A3F35"), L,
                        order=order + 1, font=FONT_TITLE, bold=bool(bold), align=al or "L")
+                if getattr(sh, "badge", None):           # round 9 (S1): a marker's glyph -> ONE badge item
+                    _sb_badge_note(B, pend if pend is not None else n0_, sh.badge, kb, T=T)
+                    pend = None
 
 
 def _p45_items(B, L, items, P, kb, order):
@@ -43392,7 +43607,14 @@ class _T3Put(object):
 
     def put(self, shapes, order=40):
         col_ = lambda c_: C(c_) if isinstance(c_, str) else c_
+        pend = None                                      # round 9 (S1): the open marker's first item (its disc)
         for s_ in shapes or []:
+            n0_ = _sb_nitems(self.B)
+            if getattr(s_, "mk_badge", False):
+                pend = n0_
+            elif getattr(s_, "badge", None):             # its glyph: disc + glyph -> ONE badge item
+                self._badge = (pend if pend is not None else n0_, s_.badge)
+                pend = None
             if s_[0] == "poly":
                 ring, fill, stroke, lw = s_[1], s_[2], s_[3], s_[4]
                 if len(ring) < 3:
@@ -43412,6 +43634,9 @@ class _T3Put(object):
                 self.B.text(s_[1], self.ox + s_[2] * self.kb, self.oy + s_[3] * self.kb, s_[4] * R28MV_CAP * self.kb,
                             col_(s_[5]), self.L, order=order, font=FONT_TITLE, bold=bool(s_[6]) if len(s_) > 6 else False,
                             align=s_[7] if len(s_) > 7 else "L")
+                if getattr(s_, "badge", None) and getattr(self, "_badge", None):
+                    _sb_badge_note(self.B, self._badge[0], self._badge[1], self.kb, self.ox, self.oy)
+                    self._badge = None
             elif s_[0] == "image":
                 x_, y_, w_, h_ = s_[1], s_[2], s_[3], s_[4]
                 self.B.image(s_[5], self.ox + x_ * self.kb, self.oy + y_ * self.kb, self.ox + (x_ + w_) * self.kb,
@@ -45859,6 +46084,7 @@ def her21_mk(B, cx, cy, s, k, L, order=60, key=None):
     (cx, cy) board units, k = board units per booklet mm. The disc at order, the glyph at order + 1 (its own text
     group). Returns the marker's outer radius (board units)."""
     sh, box, r = mk_marker(cx / k, cy / k, s, mk_colour("p19", key), size_pt=HER21_PT["num"])
+    n0 = _sb_nitems(B)
     for s_ in sh:
         if s_[0] == "poly":
             ring = [(p[0] * k, p[1] * k) for p in s_[1]]
@@ -45869,6 +46095,7 @@ def her21_mk(B, cx, cy, s, k, L, order=60, key=None):
         elif s_[0] == "text":                             # size_mm = the font size: the Board takes the capital height
             B.text(s_[1], s_[2] * k, s_[3] * k, s_[4] * _PDF_CAP["sans"] * k, C(s_[5]), L, order=order + 1,
                    font=FONT_TITLE, bold=True, align="L")
+    _sb_badge_note(B, n0, sh[1].badge, k)                # round 9 (S1): exported as ONE badge item
     return 0.5 * (box[2] - box[0]) * k
 
 
