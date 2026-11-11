@@ -30,7 +30,7 @@ Needs next to it in Downloads/Bergama: bergama_plan_to_rhino_v2_1.py, bergama_pl
 import os, time, json, re, hashlib, copy, math, calendar
 
 # ---- SETTINGS ----
-VERSION = "v2.1"   # 9 Nov 2026: loads PlanToRhino v2.1 (PTR_FILE)
+VERSION = "v2.2"   # 11 Nov 2026: rgba() colours (Illustrator Export As SVG) -> colour + opacity; v2.1 loaded PlanToRhino v2.1
 GH_LABEL = "SharedSync"
 OUT_FOLDER = "bergama_shared_sync"
 LOG_NAME = "bergama_shared_sync_log.txt"
@@ -310,9 +310,81 @@ def register_ns(text):
     ET.register_namespace("xlink", XL_NS)
 
 
+_RGBA = r'rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)'
+_OPAC = {"fill": "fill-opacity", "stroke": "stroke-opacity", "stop-color": "stop-opacity", "flood-color": "flood-opacity"}
+
+
+def fix_rgba(text):
+    """Aras 11 Nov 2026: Illustrator's Export As SVG writes fill="rgba(r, g, b, a)" but its own SVG import reads that as
+    black. Every rgba() becomes #RRGGBB + its own opacity (fill-opacity, stroke-opacity ...); an opacity already on the
+    shape is multiplied in, so the look stays the same. Returns (text, count)"""
+    if "rgba(" not in text:
+        return text, 0
+    n = [0]
+
+    def hexa(m):
+        return "#%02X%02X%02X" % tuple(min(255, int(m.group(i))) for i in (1, 2, 3)), float(m.group(4))
+
+    def tag(t):
+        t = t.group(0)
+        if "rgba(" not in t:
+            return t
+        for att, op in _OPAC.items():                       # presentation attributes: fill="rgba(...)"
+            m = re.search(r'(\s)%s="%s"' % (att, _RGBA), t)
+            if not m:
+                continue
+            col, a = hexa(re.search(_RGBA, m.group(0)))
+            om = re.search(r'\s%s="([\d.eE+-]+)"' % op, t)
+            if om:
+                a *= float(om.group(1))
+                t = t.replace(om.group(0), "", 1)
+            t = t.replace(m.group(0), '%s%s="%s" %s="%g"' % (m.group(1), att, col, op, a), 1)
+            n[0] += 1
+        sm = re.search(r'\sstyle="([^"]*)"', t)               # CSS in a style attribute: fill:rgba(...)
+        if sm and "rgba(" in sm.group(1):
+            st = sm.group(1)
+            for att, op in _OPAC.items():
+                m = re.search(r'(^|;)\s*%s\s*:\s*%s' % (att, _RGBA), st)
+                if not m:
+                    continue
+                col, a = hexa(re.search(_RGBA, m.group(0)))
+                om = re.search(r'(^|;)\s*%s\s*:\s*([\d.eE+-]+)\s*(?=;|$)' % op, st)
+                if om:
+                    a *= float(om.group(2))
+                    st = st.replace(om.group(0), om.group(1), 1)
+                st = st.replace(m.group(0), "%s%s:%s;%s:%g" % (m.group(1), att, col, op, a), 1)
+                n[0] += 1
+            t = t.replace(sm.group(0), ' style="%s"' % st, 1)
+        return t
+    text = re.sub(r"<[^<>]+>", tag, text)
+    return text, n[0]
+
+
+def fix_rgba_file(path, notes):
+    """rewrites the file only if it holds rgba() colours; keeps its save time, so its layer dates do not change"""
+    if not os.path.isfile(path):
+        return
+    raw = open(path, "rb").read()
+    if b"rgba(" not in raw:
+        return
+    text, n = fix_rgba(raw.decode("utf-8", "replace"))
+    if n:
+        st = os.stat(path)
+        with open(path, "wb") as fh:
+            fh.write(text.encode("utf-8"))
+        os.utime(path, (st.st_atime, st.st_mtime))
+        notes.append(u"%s: %d rgba() colour(s) set to colour + opacity (Illustrator reads those; the look is the same)"
+                     % (os.path.basename(path), n))
+    left = text.count("rgba(")
+    if left:
+        notes.append(u"FLAG %s: %d rgba() colour(s) in a form this script does not know were left as they are"
+                     % (os.path.basename(path), left))
+
+
 def parse_svg(data):
     import xml.etree.ElementTree as ET
     text = data.decode("utf-8", "replace") if isinstance(data, bytes) else data
+    text = fix_rgba(text)[0]                                  # v2.2: rgba() -> colour + opacity in every file read
     register_ns(text)
     return ET.fromstring(text.encode("utf-8"))
 
@@ -1429,6 +1501,7 @@ def main(gh=None, me=None, notes=None, analysis=True):
         notes.append(u"FLAG this PC had a masterplan file but no record of its last sync: it was set aside as %s and "
                      u"your file now starts from the latest combined file. Copy any layer you still need from it, "
                      u"save, and run again" % old)
+    fix_rgba_file(MY_FILE, notes)                             # v2.2: your Illustrator export, before anything reads it
     my = open(MY_FILE, "rb").read()
     base = open(BASE_FILE, "rb").read() if os.path.isfile(BASE_FILE) else None
     # ---- quick exit: nothing edited here and nothing new in the cloud since this PC's last sync
