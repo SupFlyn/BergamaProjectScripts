@@ -1,6 +1,6 @@
 # kit/ = the cloud folder of the board builder
 
-The Grasshopper board builder (`scripts/bergama_build_gh_chain_v5.py`) reads this folder on branch `main` at every press.
+The Grasshopper board builder (`scripts/bergama_build_gh_chain_v5_1.py`) reads this folder on branch `main` at every press.
 It downloads `scripts/needed_files.txt` first, then exactly the files on that checklist, to `Downloads/Bergama/<same path>`.
 The builder component holds `scripts/bergama_builder_loader.py` (pasted once, Aras 11 Nov 2026 18:41 UTC): on every press it takes the newest `scripts/bergama_build_gh_chain_v*.py` from `main` and runs it, so a new builder version needs no paste.
 
