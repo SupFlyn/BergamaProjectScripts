@@ -6,6 +6,7 @@ bergama_agriculture_alternatives: Data/bergama_agriculture_alternatives_data.py
 bergama_agriculture_alternatives: cached/Bergama_water_balance_analysis/water_balance_results.json
 bergama_agriculture_alternatives: cached/booklet/selinus_board/items.json
 bergama_agriculture_alternatives: cached/plant_photos/
+bergama_b19_plan: Data/assets/masterlastversion.svg  # r9 hand
 bergama_b19_plan: Data/bergama_b19_plan_data.py
 bergama_b19_plan: Data/bergama_osm.osm
 bergama_b19_plan: Data/palette.json
