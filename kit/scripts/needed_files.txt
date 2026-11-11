@@ -9,7 +9,7 @@ scripts/bergama_booklet_v37.py
 scripts/bergama_build_gh_chain_v5.py
 scripts/bergama_builder_loader.py
 scripts/bergama_city_link_v13.py
-scripts/bergama_masterplan_v46.py
+scripts/bergama_masterplan_v47.py
 scripts/bergama_plan_to_rhino_v2_1.py
 scripts/bergama_plant_sheet_v1_2.py
 scripts/bergama_planting_analysis_v1.py
