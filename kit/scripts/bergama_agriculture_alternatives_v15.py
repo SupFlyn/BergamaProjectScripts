@@ -2242,6 +2242,13 @@ def tp_shapes(shapes, tp, name=None, allow=(), y_down=None):
 #               "ring": a paper disc, a coloured rim, the glyph in colour
 #   mk_register(kind, table)          the element table a page draws with ({key: hex}), so marker = element colour
 #   mk_colour(kind, key) -> hex       the registered colour; an unknown kind / key RAISES (no fallback colour)
+#   round 9 (S1, G9-1; PLAN.md §spec S1): the glyph shape of mk_marker is an _MkText carrying .badge, the S1 badge
+#       item {"role": "badge", "at": [x, y], "r_mm", "fill", "ring", "ring_mm", "text", "pt", "bold", "colour"}
+#       (at = the disc centre in the shapes' units); the disc shape is an _MkDisc (.mk_badge = True). Ix.layer
+#       (ix_r9) exports such a pair as ONE badge item, so the booklet draws disc + glyph and centres the glyph with
+#       bk_centre. Every other reader sees the same plain tuples as before.
+#   mk_badge(cx, cy, s, colour, ...) -> the badge dict alone (same arguments as mk_marker, no shapes)
+#   mk_badge_at(b, k=1.0, origin=(0, 0)) -> a copy of badge b with "at" mapped x' = origin + k * x (drawing units)
 #   mk_put(tp, shapes, name=None) -> the non-text shapes
 #                                     registers the disc as a keep (kind "marker") and the glyph in the TextPage (it
 #                                     may sit on its own disc only; give each marker its own name); the caller draws the returned disc shapes, the
@@ -2251,6 +2258,16 @@ MK_PAPER = "FFFFFF"
 MK_INK = "2C2219"                      # dark glyph on light discs (the north-arrow ink of PLAN §4.5)
 MK_COLOURS = {}
 MK_N = [0]                             # markers registered this run (unique keep names)
+
+
+class _MkText(tuple):
+    """round 9 (S1): a marker's glyph shape; .badge = the S1 badge item of its marker"""
+    pass
+
+
+class _MkDisc(tuple):
+    """round 9 (S1): a marker's disc shape (.mk_badge = True: Ix exports it inside the badge item)"""
+    pass
 
 
 def _mk_lum(hx):
@@ -2310,8 +2327,26 @@ def mk_marker(cx, cy, s, colour, size_pt=7.0, r_min=None, style="solid", rim="FF
     x = cx - (ix0 + ix1) / 2.0
     base = cy + (iy0 + iy1) / 2.0 if y_down else cy - (iy0 + iy1) / 2.0
     size_mm = size_pt * 25.4 / 72.0
-    shapes = [disc, ("text", s, x, base, size_mm, tc, True, "L")]
+    d_ = _MkDisc(disc)
+    d_.mk_badge = True
+    t_ = _MkText(("text", s, x, base, size_mm, tc, True, "L"))
+    t_.badge = dict(role="badge", at=[cx, cy], r_mm=round(r, 3), fill=disc[2], ring=disc[3] or None,
+                    ring_mm=round(float(disc[4] or 0.0), 3), text=s, pt=float(size_pt), bold=True, colour=tc)
+    shapes = [d_, t_]
     return shapes, (cx - out_r, cy - out_r, cx + out_r, cy + out_r), r
+
+
+def mk_badge(cx, cy, s, colour, size_pt=7.0, r_min=None, style="solid", rim="FFFFFF", rim_mm=0.25, text_col=None):
+    """round 9 (S1): the S1 badge item of a marker centred on (cx, cy), the same disc and colours as mk_marker"""
+    return dict(mk_marker(cx, cy, s, colour, size_pt, r_min, style, rim, rim_mm, text_col)[0][1].badge)
+
+
+def mk_badge_at(b, k=1.0, origin=(0.0, 0.0)):
+    """round 9 (S1): badge b with its centre mapped into drawing units, x' = origin + k * x (as Ix.layer maps shapes;
+    r_mm, ring_mm and pt stay print sizes)"""
+    o = dict(b)
+    o["at"] = [origin[0] + k * float(b["at"][0]), origin[1] + k * float(b["at"][1])]
+    return o
 
 
 def mk_put(tp, shapes, name=None):
@@ -2325,7 +2360,8 @@ def mk_put(tp, shapes, name=None):
             tp.keep(s_[1], "marker", nm)
     for s_ in shapes:
         if s_ and s_[0] == "text":
-            tp.put(s_[1], s_[2], s_[3], s_[4] * tp.unit_mm / TP_PT, True, "L", 0.0, nm, "marker", s_[5], allow=(nm,))
+            tp.put(s_[1], s_[2], s_[3], s_[4] * tp.unit_mm / TP_PT, True, s_[7] if len(s_) > 7 else "L", 0.0, nm,
+                   "marker", s_[5], allow=(nm,))        # round 9: the shape's own align
     return disc
 def bergama_data(name, _c={}):
     """Built-in data kept in Downloads/Bergama/Data/bergama_agriculture_alternatives_data.py (Aras 25 Oct 21:29, scripts shortened): runs its
@@ -2341,7 +2377,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '0ec3cbab34964fea25289ca36d8bd453', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff', 'SKETCH_SRC': '4a41bcbd25cfba04b8f4c1a84aa3a735', 'STEPS': '5991ab037f9c792682f6ccb2e2e343a2'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '06f1746b6cc05729b557d9f37713906f', 'FACTS': 'e402c1370c04b7b8df8f86c4eccbf011', 'GEO': '8db5c86b0c11c98efb00cbe4dffb2aff', 'SKETCH_SRC': '4a41bcbd25cfba04b8f4c1a84aa3a735', 'STEPS': '5991ab037f9c792682f6ccb2e2e343a2'}.get(name):
         raise RuntimeError("Data file bergama_agriculture_alternatives_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_agriculture_alternatives_data.py:" + name, "exec"), globals())
@@ -2621,6 +2657,398 @@ def fact_owner(key):
 def fact_prints_on(key, page):
     """True when page (a booklet page number) is the one that prints this fact (G4: once in the booklet)"""
     return str(_fact_rows()[key].get("printed_on")) == str(page)
+# ---- frames_r9.py (round 9, Part A, 11 Nov 2026; G9-2, ADDENDUM A1 §0, §A, §E, §F4; PLAN §spec S2) --------------------
+# THE one frame table of round 9 (plan_findings/PAGE_TABLE.md = BRIEF §4 merged with ADDENDUM §A/§E/§F4; p13 option B,
+# p20 one B19 map with a legend only (PLAN Q6), p21 one shared legend (A9)). The SAME text is pasted into every producer
+# (MainBoard, MasterPlan, CityLink, WaterBoard, ProposalSections, AgriCulture, WaterBalance, B19Plan) and the booklet:
+# producers read their own rows (frame w x h, so F/C/key maps are drawn at frame size and M maps export context over
+# r9_window); the booklet builds every F() mm from it. No file is read (script_reads.txt unchanged).
+# mm, A3 landscape 420 x 297, origin top-left, y down; content x 14-406, y 26-279; 2 mm gutter between blocks.
+#   R9_FRAMES["pNN.<block>"] = dict(x, y, w, h, kind, ids, series, r8, est, ...)
+#       kind    S scaled drawing · M map (context grows to fill) · F fitted, no ratio · C chart (plot fills) · T text
+#       ids     item id patterns (fnmatch, first frame whose pattern matches an item places it; order = stack order).
+#               v37 ids where the item exists today (H1 §1.3); new=True marks ids PROPOSED here for an item a wave-2
+#               part must split off (the part names its item exactly so, or lists the id it used in its handover)
+#       series  name shared by the members of one series (ADDENDUM §0.6: one T, one label)
+#       r8      R8's TRUE scale denominator of that drawing (context/WRITER_SYNC_2026-11-11/run_r8/page_boxes.csv),
+#               None where R8 had no comparable drawing; used by ADDENDUM §0.4 only
+#       est     the writer's expected printed label (PAGE_TABLE "label (writer est.)"), for the closing check only;
+#               NEVER a fixed scale (the run computes it with r9_label)
+#       bar     the frame key that gets this drawing's scale bar / ratio / north (booklet `bar=`)
+#       others  over, allow, split, gap, cols, pt, merge, grid, card, check (an UNVERIFIED id or reading)
+#   r9_frame(key) -> dict (a copy, "key" added) or None (FLAG line in R9_LOG)
+#   r9_wh(key) -> (w, h) mm or None
+#   r9_frame_of(item_id, page=None) -> the first frame dict whose ids match (page order, then table order), or None
+#   r9_label(Tfit, r8=None) -> dict(L, T, list, size, small)        ADDENDUM §0.2-0.4: the printed label and true scale
+#   r9_series_label(tfits, r8s=()) -> the same dict for a series (§0.6: Tfit = the largest member Tfit)
+#   r9_tfit(focus_box, key_or_wh) -> Tfit (1:n) at which the focus box fits the frame, uniform, no stretch
+#   r9_window(focus_box, key_or_wh, grow=R9_WINDOW_GROW) -> (x0, y0, x1, y1) the context extent an M map exports
+#   r9_scale_line(page, block, Tfit, lab) -> the §0.9 log line (and the WARNING line when lab["small"])
+# Log lines: r9_frame misses go to R9_LOG as FLAG lines (a page script appends R9_LOG to its log).
+import fnmatch as _r9_fn
+
+R9_TABLE_VERSION = "r9"
+R9_GUTTER_MM = 2.0
+R9_CONTENT = (14.0, 26.0, 406.0, 279.0)          # x0, y0, x1, y1 mm: the cover check's content area (BRIEF G9-2)
+# ADDENDUM §0.2 (Aras 11 Nov 20:39 and 20:42): round labels first, the second list only under §0.4
+R9_LBL_ROUND = (100, 200, 500, 1000, 1250, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12500, 15000,
+                20000, 30000, 40000, 50000)
+R9_LBL_SECOND = (250, 2500, 25000)
+R9_LBL_TOL = 1.08          # §0.3: the label may round Tfit down by up to 8 %
+R9_LBL_MIN = 0.85          # §0.4: under 85 % of the fit size the second list is tried (writer's reading)
+R9_WINDOW_GROW = 1.3       # PLAN §cause d4: an M map's context window = its focus grown to the frame aspect x 1.3
+R9_LOG = []
+
+
+def _r9(x, y, w, h, kind, ids, series=None, r8=None, est=None, **kw):
+    d = dict(x=float(x), y=float(y), w=float(w), h=float(h), kind=kind, ids=tuple(ids), series=series, r8=r8,
+             est=est)
+    d.update(kw)
+    return d
+
+
+R9_FRAMES = {
+    # ---- p02 (rows 2-4 and 7-8 need MainBoard to export the parts as their own items: H1 §1.3)
+    "p02.1": _r9(14, 28, 194, 169, "M", ("sb_plan01",), r8=25048, est=25000, bar="p02.2"),
+    "p02.5": _r9(210, 28, 196, 148, "F", ("sb_edge_types",)),
+    "p02.6": _r9(210, 178, 60, 3, "T", ("sb_edge_types_caption",)),
+    "p02.7": _r9(210, 183, 96, 96, "F", ("sb_site_indicators", "sb_site_readings"), new=True,
+                 check=u"sb_site_readings is the v37 union item (rows 7+8); MainBoard splits it"),
+    "p02.8": _r9(308, 183, 98, 96, "F", ("sb_site_landuse",), new=True),
+    "p02.2": _r9(14, 199, 155, 10, "T", ("sb_plan01_bridges*",), new=True),
+    "p02.3": _r9(14, 211, 194, 56, "T", ("sb_plan01_legend*",), new=True, cols=3),
+    "p02.4": _r9(14, 269, 60, 3, "T", ("sb_plan01_caption",)),
+    # ---- p03
+    "p03.1": _r9(354, 30, 52, 56, "T", ("sb_axo_what_is_there_list*", "sb_p03_list*"),
+                 check=u"the list 1-12 may be inside the axo drawing today (H1 §1.3 UNVERIFIED)"),
+    "p03.2": _r9(14, 40, 392, 200, "F", ("sb_axo_what_is_there", "sb_axo_what_is_there_caption")),
+    "p03.3": _r9(14, 246, 120, 24, "T", ("sb_axo_what_is_there_legend", "sb_p03_legend*")),
+    "p03.4": _r9(136, 246, 198, 24, "T", ("sb_p03_sources*", "sb_axo_what_is_there_sources*")),
+    "p03.5": _r9(336, 246, 70, 24, "T", ("sb_p03_axes*", "sb_axo_what_is_there_axes*")),
+    # ---- p04 (series p04: S1-S4 one T, one label; A1 1, T1, T10)
+    "p04.1": _r9(14, 28, 316, 59, "F", ("sb_sec_keymap_p04",)),
+    "p04.2": _r9(332, 28, 74, 22, "T", ("sb_sec_keymap_p04_legend", "sb_sec_legend_p04", "sb_sec_intro*"),
+                 check=u"where sb_sec_intro* belongs is UNVERIFIED (H1 §1.3)"),
+    "p04.3": _r9(14, 89, 316, 58.5, "S", ("sb_sec_s1",), series="p04", r8=2479, est=2500, bar="p04.7"),
+    "p04.7": _r9(332, 89, 74, 20, "T", ("sb_sec_note_s1*",)),
+    "p04.4": _r9(14, 149.5, 316, 32.2, "S", ("sb_sec_s2",), series="p04", r8=2440, est=2500, bar="p04.8"),
+    "p04.8": _r9(332, 149.5, 74, 20, "T", ("sb_sec_note_s2*",)),
+    "p04.5": _r9(14, 183.7, 316, 54, "S", ("sb_sec_s3",), series="p04", r8=2561, est=2500, bar="p04.9"),
+    "p04.9": _r9(332, 183.7, 74, 20, "T", ("sb_sec_note_s3*",)),
+    "p04.6": _r9(14, 239.7, 316, 35.1, "S", ("sb_sec_s4",), series="p04", r8=2415, est=2500, bar="p04.10"),
+    "p04.10": _r9(332, 239.7, 74, 20, "T", ("sb_sec_note_s4*",)),
+    # ---- p05 (series p05: S5-S8; A1 2, T2)
+    "p05.1": _r9(14, 28, 316, 59, "F", ("sb_sec_keymap_p05",)),
+    "p05.2": _r9(332, 28, 74, 37, "T", ("sb_sec_keymap_p05_legend", "sb_sec_legend_p05", "sb_sec_intro*")),
+    "p05.3": _r9(14, 89, 316, 39.7, "S", ("sb_sec_s5",), series="p05", r8=2128, est=1500, bar="p05.7"),
+    "p05.7": _r9(332, 89, 74, 20, "T", ("sb_sec_note_s5*",)),
+    "p05.4": _r9(14, 130.7, 316, 47.5, "S", ("sb_sec_s6",), series="p05", r8=2128, est=1500, bar="p05.8"),
+    "p05.8": _r9(332, 130.7, 74, 20, "T", ("sb_sec_note_s6*",)),
+    "p05.5": _r9(14, 180.2, 316, 49, "S", ("sb_sec_s7",), series="p05", r8=2128, est=1500, bar="p05.9"),
+    "p05.9": _r9(332, 180.2, 74, 20, "T", ("sb_sec_note_s7*",)),
+    "p05.6": _r9(14, 231.2, 316, 45, "S", ("sb_sec_s8",), series="p05", r8=2128, est=1500, bar="p05.10"),
+    "p05.10": _r9(332, 231.2, 74, 20, "T", ("sb_sec_note_s8*",)),
+    # ---- p06 (all parts need MainBoard to split its one board drawing: H1 §1.3)
+    "p06.1": _r9(14, 28, 288, 56, "M", ("sb_edge_build",), r8=10000, est=10000, bar="p06.2"),
+    "p06.4": _r9(304, 28, 102, 92, "T", ("sb_edge_build_edge*", "sb_edge_build_legend*"), new=True),
+    "p06.2": _r9(14, 86, 53, 5, "T", ()),
+    "p06.3": _r9(14, 93, 288, 21, "F", ("sb_edge_build_cards*",), new=True),
+    "p06.5": _r9(14, 121, 62, 3, "T", ("sb_edge_build_photos_head",), new=True),
+    "p06.6": _r9(14, 126, 392, 150, "F", ("sb_edge_build_photo_*",), new=True, grid=(4, 2)),
+    "p06.7": _r9(14, 277, 300, 2, "T", ("sb_edge_build_caption",)),
+    # ---- p07 (T11)
+    "p07.1": _r9(14, 28, 292, 70, "M", ("sb_movement",), r8=10138, est=10000, bar="p07.2"),
+    "p07.3": _r9(308, 28, 98, 63, "T", ("sb_mv_note_1*",)),
+    "p07.2": _r9(14, 100, 90, 10, "T", ("sb_movement_caption",)),
+    "p07.4": _r9(14, 112, 292, 70, "M", ("sb_walking_today",), r8=10138, est=10000, bar="p07.5"),
+    "p07.6": _r9(308, 112, 98, 63, "T", ("sb_mv_note_2*",)),
+    "p07.5": _r9(14, 184, 90, 10, "T", ("sb_walking_today_caption",)),
+    "p07.7": _r9(14, 196, 292, 70, "M", ("sb_driving_today",), r8=10138, est=10000, bar="p07.8"),
+    "p07.9": _r9(308, 196, 98, 63, "T", ("sb_mv_note_3*",)),
+    "p07.8": _r9(14, 268, 90, 11, "T", ("sb_driving_today_caption",)),
+    # ---- p08 (T3, T4; D6)
+    "p08.1": _r9(14, 28, 300, 5, "T", ("cl_p08_corridor_head",)),
+    "p08.2": _r9(14, 35, 292, 58, "M", ("cl_p08_corridor",), r8=9947, est=10000),
+    "p08.3": _r9(308, 35, 98, 24, "T", ("cl_p08_corridor_legend", "cl_p08_shops")),
+    "p08.4": _r9(14, 95, 392, 113, "C", ("cl_p08_who", "cl_p08_who_head")),
+    "p08.5": _r9(14, 210, 186, 6, "T", ("cl_p08_who_legend", "cl_p08_who_note")),
+    "p08.6": _r9(14, 218, 186, 6, "T", ("sb_street_title_n1", "sb_street_title_n2", "sb_street_title*")),
+    "p08.7": _r9(14, 226, 322, 53, "F", ("sb_street_R1", "sb_street_R2", "sb_street_R3", "sb_street_R4"), r8=643,
+                 split="row", gap=2.0),
+    "p08.8": _r9(338, 226, 68, 9, "F", ("sb_street_keymap",),
+                 check=u"D6: if unreadable at 68 x 9 mm: WARNING, the legend keeps the column"),
+    "p08.9": _r9(338, 237, 68, 42, "T", ("sb_street_keymap_legend", "sb_street_legend*")),
+    # ---- p09 (T5; d10: the bar frame is 3 mm, the booklet's bar band 5.5 mm)
+    "p09.1": _r9(14, 28, 300, 5, "T", ("cl_p09_spine_head",)),
+    "p09.2": _r9(14, 35, 292, 56, "M", ("cl_p09_spine",), r8=9983, est=10000, bar="p09.4"),
+    "p09.3": _r9(308, 35, 98, 50, "T", ("cl_p09_legend", "cl_p10_legend")),
+    "p09.4": _r9(14, 92, 120, 3, "T", ()),
+    "p09.5a": _r9(14, 97, 76, 102, "F", ("cl_p09_card_K4", "cl_p09_card_1", "cl_p10_hub_1"), card=True),
+    "p09.5b": _r9(93, 97, 76, 102, "F", ("cl_p09_card_K3", "cl_p09_card_2", "cl_p10_hub_2"), card=True),
+    "p09.5c": _r9(172, 97, 76, 102, "F", ("cl_p09_card_T", "cl_p09_card_3", "cl_p10_hub_3"), card=True),
+    "p09.5d": _r9(251, 97, 76, 102, "F", ("cl_p09_card_K5", "cl_p09_card_4", "cl_p10_hub_4"), card=True),
+    "p09.5e": _r9(330, 97, 76, 102, "F", ("cl_p09_card_K6", "cl_p09_card_5", "cl_p10_hub_5"), card=True),
+    "p09.6": _r9(14, 201, 392, 4, "T", ("cl_p09_card_key*", "cl_p09_key*"), opt=True),
+    "p09.7": _r9(14, 213, 190, 66, "F", ("cl_p10_flood", "cl_p10_flood_head")),
+    "p09.8": _r9(206, 213, 110, 66, "C", ("cl_p10_bank", "cl_p10_bank_head")),
+    "p09.9": _r9(318, 213, 88, 46, "T", ("cl_p10_market", "cl_p10_market_head")),
+    # ---- p10
+    "p10.1": _r9(14, 28, 392, 105, "C", ("wb_year",)),
+    "p10.2": _r9(14, 135, 230, 115, "C", ("wb_curve",)),
+    "p10.3": _r9(246, 135, 160, 115, "C", ("wb_store",)),
+    "p10.4": _r9(14, 252, 392, 27, "C", ("wb_answer",)),
+    # ---- p11 (frames 2 and 3 inside frame 1; T6)
+    "p11.1": _r9(14, 28, 276, 180, "F", ("p12_map",)),
+    "p11.4": _r9(292, 28, 114, 42, "T", ("p12_steps",)),
+    "p11.2": _r9(102, 30, 62, 74, "F", ("p12_zoom",), over=True),
+    "p11.3": _r9(200, 30, 82, 114, "T", ("wb_p12_map_legend", "p12_map_legend", "wb_p12_map_letters",
+                                         "wb_p12_relief_note"), over=True, allow="p12_map"),
+    "p11.5": _r9(292, 72, 114, 55, "C", ("p12_coliforms",)),
+    "p11.6": _r9(292, 129, 114, 40, "C", ("p12_plants",)),
+    "p11.7": _r9(292, 171, 114, 18, "T", ("p12_why",)),
+    "p11.8": _r9(292, 191, 114, 4, "T", ("wb_p12_conclusion", "p12_conclusion")),
+    "p11.12": _r9(14, 210, 150, 4, "T", ("wb_p12_section_caption",),
+                  check=u"which id is the caption is UNVERIFIED (H1 §1.3)"),
+    "p11.9": _r9(14, 216, 40, 13, "T", ("wb_p12_section_key", "p12_section_key*", "p12_section_list*",
+                                        "p12_section_head*")),
+    "p11.10": _r9(56, 216, 298, 63, "F", ("p12_section_sketch", "p12_section")),
+    "p11.11": _r9(356, 216, 50, 31, "T", ("wb_p12_section_levels", "wb_p12_strip_note", "wb_p12_section_legend",
+                                          "p12_section_legend*")),
+    # ---- p12
+    "p12.1": _r9(14, 28, 180, 3, "T", ("ps_caption*", "ps_intro_note*")),
+    "p12.2": _r9(300, 28, 106, 22, "F", ("ps_keymap_p12",)),
+    "p12.3": _r9(14, 52, 195, 103, "F", ("ps_panel_1", "ps_W1")),
+    "p12.4": _r9(211, 52, 195, 103, "F", ("ps_panel_2", "ps_W2")),
+    "p12.5": _r9(14, 157, 195, 103, "F", ("ps_panel_3", "ps_W3")),
+    "p12.6": _r9(211, 157, 195, 103, "F", ("ps_panel_4", "ps_W4")),
+    "p12.7": _r9(14, 262, 392, 17, "T", ("ps_keymap_p12_legend", "ps_legend_strip", "ps_legend")),
+    # ---- p13 option B (D12; series p13: the four cuts one T, one label; A1 3, T12; the column and the animals line
+    # are new items WaterBoard splits off the season drawing, H2 §6)
+    "p13.4": _r9(14, 28, 42, 12, "F", ("p15_keymap",)),
+    "p13.2": _r9(60, 28, 274, 12, "F", ("p15_monthbar",)),
+    "p13.1": _r9(336, 28, 70, 12, "T", ("p15_hubkey",)),
+    "p13.5": _r9(14, 42, 42, 57, "T", ("p15_col_winter",), new=True),
+    "p13.6": _r9(58, 42, 348, 54, "S", ("p15_season_winter",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17W": _r9(58, 96, 348, 3, "T", ("p15_animals_winter",), new=True),
+    "p13.8": _r9(14, 101, 42, 57, "T", ("p15_col_spring",), new=True),
+    "p13.9": _r9(58, 101, 348, 54, "S", ("p15_season_spring",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17S": _r9(58, 155, 348, 3, "T", ("p15_animals_spring",), new=True),
+    "p13.11": _r9(14, 160, 42, 57, "T", ("p15_col_summer",), new=True),
+    "p13.12": _r9(58, 160, 348, 54, "S", ("p15_season_summer",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17U": _r9(58, 214, 348, 3, "T", ("p15_animals_summer",), new=True),
+    "p13.14": _r9(14, 219, 42, 57, "T", ("p15_col_autumn",), new=True),
+    "p13.15": _r9(58, 219, 348, 54, "S", ("p15_season_autumn",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17A": _r9(58, 273, 348, 3, "T", ("p15_animals_autumn",), new=True),
+    # ---- p14 (T8, A4, A5)
+    "p14.1": _r9(14, 28, 165, 5, "T", ("p16_section_head", "p16_head*"),
+                 check=u"which id the heading is: UNVERIFIED (H1 §1.3)"),
+    "p14.5": _r9(329, 28, 77, 135, "T", ("p16_parts", "p16_groups", "p16_bands")),
+    "p14.2": _r9(14, 35, 100, 24, "F", ("p16_keymap",)),
+    "p14.3": _r9(120, 35, 60, 24, "S", ("p16_section_inset",), r8=189, est=500,
+                 check=u"WARNING p14 zoom scale small expected (A1 5)"),
+    "p14.4": _r9(14, 61, 313, 104, "S", ("p16_section",), r8=238, est=200),
+    "p14.6": _r9(14, 167, 392, 101, "C", ("p16_year",)),
+    "p14.7": _r9(14, 270, 392, 9, "T", ("p16_year_plants", "p16_caption*")),
+    # ---- p15 (six maps, each picked on its own)
+    "p15.1": _r9(14, 28, 149, 82, "M", ("mp_sn_zones",), r8=20000, est=20000),
+    "p15.2": _r9(165, 28, 44, 82, "T", ("mp_sn_zones_key",)),
+    "p15.3": _r9(211, 28, 149, 82, "M", ("mp_sn_feeling",), r8=20000, est=20000),
+    "p15.4": _r9(362, 28, 44, 82, "T", ("mp_sn_feeling_key", "mp_sn_feeling_wheel")),
+    "p15.5": _r9(14, 112, 149, 82, "M", ("mp_sn_sound",), r8=20000, est=20000),
+    "p15.6": _r9(165, 112, 44, 82, "T", ("mp_sn_sound_key",)),
+    "p15.7": _r9(211, 112, 149, 82, "M", ("mp_sn_smell",), r8=20000, est=20000),
+    "p15.8": _r9(362, 112, 44, 82, "T", ("mp_sn_smell_key",)),
+    "p15.9": _r9(14, 196, 149, 82, "M", ("mp_sn_encounters",), r8=20000, est=20000),
+    "p15.10": _r9(165, 196, 44, 82, "T", ("mp_sn_encounters_key",)),
+    "p15.11": _r9(211, 196, 149, 82, "M", ("mp_sn_history", "mp_sn_photo_*"), r8=20000, est=20000,
+                  check=u"the History photos row sits on the map's top (PAGE_TABLE)"),
+    "p15.12": _r9(362, 196, 44, 82, "T", ("mp_sn_history_key",)),
+    # ---- p16 (series p16: plans A + B; A1 6, A1 7, T7)
+    "p16.1": _r9(14, 28, 64, 26, "F", ("p18_keymap", "p18_keymap_s4"), split="col", gap=2.0),
+    "p16.3": _r9(80, 28, 98, 111, "S", ("p18_plan_A",), series="p16", r8=3052, est=3000),
+    "p16.5": _r9(180, 28, 226, 111, "S", ("p18_plan_B",), series="p16", r8=3053, est=3000),
+    "p16.2": _r9(14, 56, 64, 76, "T", ("p18_plans_legend", "p16_plans_legend", "p18_keymap_legend",
+                                       "p18_keymap_s4_legend")),
+    "p16.4": _r9(80, 141, 98, 10, "T", ("p18_plan_A_list",)),
+    "p16.6": _r9(180, 141, 226, 9, "T", ("p18_plan_B_list",)),
+    "p16.7": _r9(14, 153, 56, 35, "F", ("p18_bands", "p18_bands_head"), r8=9434),
+    "p16.8": _r9(72, 153, 46, 22, "T", ("p18_band_shares", "p18_band_shares_key")),
+    "p16.9": _r9(120, 153, 46, 22, "T", ("p18_foliage_shares", "p18_foliage_shares_key")),
+    "p16.10": _r9(168, 153, 238, 51, "C", ("p18_heights",)),
+    "p16.11": _r9(14, 206, 392, 67, "F", ("p18_card_*",), split="row", gap=2.0),
+    "p16.12": _r9(14, 275, 392, 4, "T", ("p18_catalogue_sources", "p18_caption*")),
+    # ---- p17 (AgriCulture splits each ladder's text from its cut: new text ids)
+    "p17.1": _r9(14, 28, 392, 22, "F", ("ag3_chain",)),
+    "p17.2": _r9(14, 52, 64, 45, "T", ("ag3_ladder_high_text",), new=True),
+    "p17.3": _r9(80, 52, 326, 45, "F", ("ag3_ladder_high",)),
+    "p17.4": _r9(14, 99, 64, 47, "T", ("ag3_ladder_low_text",), new=True),
+    "p17.5": _r9(80, 99, 326, 47, "F", ("ag3_ladder_low",)),
+    "p17.6": _r9(14, 148, 64, 46, "T", ("ag3_ladder_harvest_text",), new=True),
+    "p17.7": _r9(80, 148, 326, 46, "F", ("ag3_ladder_harvest",)),
+    "p17.8": _r9(14, 196, 60, 83, "T", ("ag3_notes", "ag3_remove*", "ag3_odour*", "ag3_note_steps", "ag3_note_legend",
+                                       "ag3_note_*")),
+    "p17.9": _r9(76, 196, 330, 83, "F", ("ag3_bands",)),
+    # ---- p18 (rows 4-5 = ag1_stream split by AgriCulture)
+    "p18.1": _r9(14, 28, 240, 60, "F", ("wb_farms", "wb_p21_cap_wb_farms"), check=u"flow 1-7 = wb_farms: UNVERIFIED"),
+    "p18.2": _r9(256, 28, 150, 60, "F", ("wb_farms_out",)),
+    "p18.3": _r9(14, 90, 130, 34, "F", ("wb_decision", "wb_p21_cap_wb_decision"),
+                 check=u"four figures = wb_decision: UNVERIFIED"),
+    "p18.4": _r9(146, 90, 70, 26, "T", ("ag1_stream_text", "ag1_stream_head"), new=True),
+    "p18.5": _r9(218, 90, 188, 40, "C", ("ag1_stream",)),
+    "p18.6": _r9(14, 132, 240, 103, "C", ("ag1_bars", "ag1_bars_caption")),
+    "p18.7": _r9(256, 132, 150, 103, "F", ("ag1_context", "ag1_context_head")),
+    "p18.8": _r9(14, 237, 128, 42, "F", ("ag1_reading*",)),
+    "p18.9": _r9(144, 237, 130, 42, "F", ("ag1_history", "ag1_history_head", "ag1_history_note")),
+    "p18.10": _r9(276, 237, 130, 42, "F", ("ag1_crops_*",)),
+    # ---- p19 (all parts need MainBoard to split its one board drawing)
+    "p19.1": _r9(14, 28, 96, 113, "F", ("sb_heritage_loop_diagrams",), new=True),
+    "p19.3": _r9(112, 28, 224, 205, "M", ("sb_heritage_loop",), r8=10000, est=9000, bar="p19.4"),
+    "p19.5": _r9(338, 28, 68, 205, "F", ("sb_heritage_loop_photo_*",), new=True),
+    "p19.2": _r9(14, 143, 96, 92, "F", ("sb_heritage_loop_places",), new=True),
+    "p19.4": _r9(112, 235, 120, 6, "T", ("sb_heritage_loop_ab*",), new=True),
+    "p19.6": _r9(14, 243, 270, 16, "T", ("sb_heritage_loop_legend", "sb_heritage_legend")),
+    "p19.7": _r9(14, 275, 100, 4, "T", ("sb_heritage_loop_caption",)),
+    # ---- p20 (F4 + PLAN Q6: B19 exports a legend only -> legend 392 wide, rows 4-5 not used; R8 drew two halves at
+    # 1:4,991, not comparable with one map (F3), so r8=None)
+    "p20.1": _r9(14, 28, 392, 190, "M", ("b19_p20_map",), est=7000, new=True, bar="p20.2"),
+    "p20.2": _r9(14, 220, 392, 5, "T", ("b19_p20_caption",), new=True),
+    "p20.3": _r9(14, 227, 392, 52, "T", ("b19_p20_legend*",), new=True, cols=3),
+    # ---- p21 (A9: one shared legend 4 pt; series p21s: sections D1 + D2)
+    "p21.1": _r9(14, 28, 195, 124, "M", ("mp_dt_*upstream",), r8=1062, est=1000, bar="p21.4"),
+    "p21.2": _r9(211, 28, 195, 124, "M", ("mp_dt_*k5",), r8=1062, est=1000, bar="p21.5"),
+    "p21.4": _r9(14, 154, 80, 6, "T", ()),
+    "p21.5": _r9(211, 154, 80, 6, "T", ()),
+    "p21.6": _r9(14, 162, 195, 48, "S", ("mp_dt_*upstream_sec",), series="p21s", r8=1012, est=1250),
+    "p21.8": _r9(211, 162, 195, 48, "S", ("mp_dt_*k5_sec",), series="p21s", r8=1012, est=1250),
+    "p21.7": _r9(14, 212, 362, 67, "T", ("mp_dt_*upstream_sec_key", "mp_dt_*upstream_leg*", "mp_dt_*upstream_route",
+                                        "mp_dt_*upstream_why", "mp_dt_*k5_sec_key", "mp_dt_*k5_leg*",
+                                        "mp_dt_*k5_route", "mp_dt_*k5_why", "mp_dt_keymap_legend"),
+                 merge=True, cols=4, pt=4.0),
+    "p21.3": _r9(380, 243, 26, 36, "F", ("mp_dt_keymap",),
+                 check=u"PAGE_TABLE calls it T*: a key map placed F-style (uniform fit)"),
+}
+# pages whose v37 items are no longer placed (logged "skip" by the booklet): ADDENDUM F2.4
+R9_PAGE_SKIP = {"p20": ("mp_plan_*",)}
+
+
+def _r9_order(key):
+    """page, then the table's own order (dict order is insertion order on Python 3.7+)"""
+    return (key.split(".")[0], list(R9_FRAMES).index(key))
+
+
+def r9_frame(key):
+    """the frame of R9_FRAMES[key] as a copy with "key" added; None (and a FLAG line in R9_LOG) when the table has
+    no such key"""
+    f = R9_FRAMES.get(key)
+    if f is None:
+        R9_LOG.append(u"FLAG r9_frame %s: no such frame in R9_FRAMES (table %s)" % (key, R9_TABLE_VERSION))
+        return None
+    return dict(f, key=key)
+
+
+def r9_wh(key):
+    """(w, h) mm of a frame key, or a (w, h) pair passed through; None for an unknown key"""
+    if isinstance(key, (tuple, list)) and len(key) == 2:
+        return float(key[0]), float(key[1])
+    f = r9_frame(key)
+    return (f["w"], f["h"]) if f else None
+
+
+def r9_frame_of(item_id, page=None):
+    """the first frame (page order, then table order) whose ids match item_id (fnmatch, case-sensitive); page
+    ("p13") limits the search to that page; None when no pattern matches"""
+    s = u"%s" % item_id
+    for key in sorted(R9_FRAMES, key=_r9_order):
+        if page and not key.startswith(u"%s." % page):
+            continue
+        for pat in R9_FRAMES[key]["ids"]:
+            if _r9_fn.fnmatchcase(s, pat):
+                return dict(R9_FRAMES[key], key=key)
+    return None
+
+
+def _r9_pick(Tfit, labels):
+    """ADDENDUM §0.3: the smallest label L with Tfit <= L x 1.08 (the largest label when none qualifies)"""
+    cand = sorted(set(int(v) for v in labels))
+    for L in cand:
+        if Tfit <= L * R9_LBL_TOL:
+            return L
+    return cand[-1]
+
+
+def r9_label(Tfit, r8=None):
+    """ADDENDUM §0.2-0.4 for one S drawing or M map: dict(L = printed label 1:L, T = true scale 1:T = max(Tfit, L),
+    list "round" | "second", size = Tfit / T, small = True when even the second list misses 85 % or R8's size).
+    The second list is tried when the round pick draws under 85 % of the fit size or smaller than R8 drew it.
+    Writer's reading of "smaller than R8 drew it" (needed so §0.4's own p4 example holds): T larger than
+    max(r8, Tfit), i.e. smaller than R8 unless the frame itself does not allow R8's size. Examples (§0.4): Tfit 1,252
+    -> L 1,250, T 1,252; Tfit 2,560 with r8 2,479 -> 3,000 is smaller than R8 -> second list -> L 2,500, T 2,560."""
+    Tfit = float(Tfit)
+
+    def bad(T_):
+        return Tfit / T_ < R9_LBL_MIN or (r8 is not None and T_ > max(float(r8), Tfit) * 1.0005)
+    L = _r9_pick(Tfit, R9_LBL_ROUND)
+    T = max(Tfit, float(L))
+    lst, small = "round", False
+    if bad(T):
+        L2 = _r9_pick(Tfit, R9_LBL_ROUND + R9_LBL_SECOND)
+        T2 = max(Tfit, float(L2))
+        small = bad(T2)                                  # the combined pick is also the biggest drawing possible
+        L, T = L2, T2
+        lst = "second" if L2 in R9_LBL_SECOND else "round"
+    return dict(L=int(L), T=T, list=lst, size=Tfit / T, small=small)
+
+
+def r9_series_label(tfits, r8s=()):
+    """ADDENDUM §0.6: one T and one label for a series: Tfit = the largest member Tfit (the one that fits every
+    member), r8 = the largest member R8 true scale (writer's reading); None without members"""
+    tf = [float(v) for v in tfits if v]
+    if not tf:
+        return None
+    r8 = [float(v) for v in r8s if v]
+    return r9_label(max(tf), max(r8) if r8 else None)
+
+
+def r9_tfit(focus_box, key_or_wh):
+    """Tfit (the 1:n denominator) at which focus_box = (x0, y0, x1, y1) in drawing METRES fits the frame (key or
+    (w, h) mm) uniformly; None for an unknown frame"""
+    wh = r9_wh(key_or_wh)
+    if not wh:
+        return None
+    fw = max(1e-6, float(focus_box[2]) - float(focus_box[0]))
+    fh = max(1e-6, float(focus_box[3]) - float(focus_box[1]))
+    return max(fw * 1000.0 / wh[0], fh * 1000.0 / wh[1])
+
+
+def r9_window(focus_box, key_or_wh, grow=None):
+    """PLAN §cause d4: the context extent an M map exports: the focus box (drawing metres, the map's own axes) grown
+    to the frame's aspect at Tfit and then x grow (default R9_WINDOW_GROW 1.3, room for T up to 1.3 x Tfit), centred
+    on the focus. Returns (x0, y0, x1, y1) metres, or the focus box itself (FLAG in R9_LOG) for an unknown frame.
+    The producer exports its context over this window (clamped to its data, logging where the data ends) plus the
+    focus box as the drawing's "focus"; the booklet fits the focus and clips a frame-sized window"""
+    wh = r9_wh(key_or_wh)
+    if not wh:
+        R9_LOG.append(u"FLAG r9_window %s: unknown frame, the focus box is used as the window" % (key_or_wh,))
+        return tuple(float(v) for v in focus_box)
+    g = float(R9_WINDOW_GROW if grow is None else grow)
+    tf = r9_tfit(focus_box, wh)
+    W, H = wh[0] * tf / 1000.0 * g, wh[1] * tf / 1000.0 * g
+    cx = 0.5 * (float(focus_box[0]) + float(focus_box[2]))
+    cy = 0.5 * (float(focus_box[1]) + float(focus_box[3]))
+    return (cx - 0.5 * W, cy - 0.5 * H, cx + 0.5 * W, cy + 0.5 * H)
+
+
+def r9_scale_line(page, block, Tfit, lab):
+    """ADDENDUM §0.9: `scale <page> <block> fit 1:<Tfit> true 1:<T> label 1:<L> list <round|second> size <%>`; a
+    second line `WARNING <page> <block> scale small` when lab["small"]. Returns the lines (a list)."""
+    out = [u"scale %s %s fit 1:%d true 1:%d label 1:%d list %s size %d %%" % (
+        page, block, int(round(float(Tfit))), int(round(lab["T"])), lab["L"], lab["list"],
+        int(round(100.0 * lab["size"])))]
+    if lab.get("small"):
+        out.append(u"WARNING %s %s scale small" % (page, block))
+    return out
+
+
 # ---- item_export.py (round 5, S1, 1 Nov 2026; G-R5-12, PLAN §4 schema v1): content scripts EXPORT, the booklet composes
 # Aras 1 Nov 22:00: "produce every text every drawing and everything and in the last run make it place it and align it
 # and booklet it". A content script lays out no page and burns no page text into a drawing: it hands every drawing
@@ -2640,7 +3068,10 @@ def fact_prints_on(key, page):
 #
 #   ix = Ix(folder, script, version)                      folder = the script's cached/booklet/ folder name
 #   D = ix.drawing(id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
-#                  priority=1, group=None, fit=None, title=None)
+#                  priority=1, group=None, fit=None, title=None, focus=None, frame=None, series=None)
+#         round 9 (S6): focus (x0, y0, x1, y1) drawing units = the area an M map must show (the booklet fits it; the
+#         extent is the context window around it, frames_r9 r9_window); frame = its R9_FRAMES key ("p07.1"; frame_mm
+#         [w, h] is added when frames_r9 is included); series = the name its series shares (one scale, ADDENDUM §0.6)
 #         extent (x0, y0, x1, y1) in drawing units, y UP, the area that must show; scale_pref = allowed 1:den (default
 #         SF_SCALES); units "m" = true scale; "mm" = a scale-free diagram/chart in design mm, fit = (min_f, max_f)
 #   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0), grp=None)   grp: G6-9 group (see "G6-9 groups" below)
@@ -2657,7 +3088,18 @@ def fact_prints_on(key, page):
 #         a label of a drawing: drawing=id, at=(x, y) in drawing units (the booklet sets it beside that point)
 #   ix.legend(page, drawing, entries, title=None, id=None, group=None)
 #         entries: [(swatch, text)], swatch = dict(kind="fill"|"line"|"dash"|"dot"|"image", colour, stroke,
-#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id
+#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id. Round 9 (S6): a swatch
+#         may carry cat, rank (hue table r9) and badge (the bubble text); they are copied onto the entry too
+#   round 9 (S1, G9-1; PLAN.md §spec S1, S6): bubbles and tags are booklet-drawn, their text centred by bk_centre:
+#   ix.badge(page, b, drawing=None, at=None, priority=5, group=None, id=None) -> id
+#         b = the S1 badge dict (marker_r9 mk_badge / an _MkText .badge: at, r_mm, fill, ring, ring_mm, text, pt,
+#         bold, colour); at overrides b["at"] (drawing units). A text item role "badge" with those keys. A marker's
+#         shapes passed to ix.layer become one badge item by themselves (the disc poly is kept, tagged badge_disc,
+#         so a booklet that does not draw badges yet still shows it)
+#   ix.tag(page, string, drawing=None, at=None, box_mm=None, fill=None, ring=None, ring_mm=0.0, size_pt=None,
+#          bold=True, colour=None, priority=5, group=None, id=None) -> id     a plate / card head: role "tag"
+#   ix_scale_token(item_id) -> u"{scale:<id>}"    a text, legend or list entry the booklet fills with that drawing's
+#         printed scale label (ADDENDUM §0.7); sf_strip_widths leaves it as it is
 #   ix.list(page, drawing, texts, numbered=True, anchors=None, id=None, group=None)   ordered text rows
 #   ix.levels(page, drawing, levels, side="R", id=None, group=None)
 #         levels = [(name, z_m)] (z on the drawing's y axis, m a.s.l. for sections); the booklet draws the level
@@ -2688,7 +3130,9 @@ IX_GRP_KINDS = ("trees", "buildings", "people", "plants", "water", "ground", "ro
 IX_LAYER_KIND = dict(ground="ground", bed="water", water="water", vegetation="plants", figures="people",
                      labels="labels", base_ground="ground", base_contours="ground", base_water="water",
                      base_names="labels", proj_water="water", proj_vegetation="plants", study="annotations",
-                     proj_marks="annotations", proj_labels="labels", farms="fields", numbers="labels", chart="other")
+                     proj_marks="annotations", proj_labels="labels", farms="fields", numbers="labels", chart="other",
+                     base_fills="buildings", base_outlines="roads", structures="roads", paper="ground", frame="frame",
+                     north="annotations")   # round 9 (A1 C7): the map / key-map layers that went to "other"
 IX_CUR_GRP = []             # the open ix_group contexts (innermost last)
 
 
@@ -2728,7 +3172,13 @@ IX_SCHEMA = "bergama-items/1"
 IX_PT = 25.4 / 72.0
 IX_KINDS = ("drawing", "text", "legend", "list", "level_column", "inset", "keymap", "photo", "chart", "source")
 IX_TEXT_ROLES = ("title", "intro", "heading", "caption", "legend", "list_item", "note", "label", "level_value",
-                 "badge", "source")
+                 "badge", "source", "tag")                 # round 9 (S1): "tag" = plates, tags, card heads
+IX_BADGE_KEYS = ("r_mm", "fill", "ring", "ring_mm", "text", "pt", "bold", "colour")   # round 9 (S1)
+
+
+def ix_scale_token(item_id):
+    """round 9 (S6, ADDENDUM §0.7): the token the booklet replaces with drawing item_id's printed scale label"""
+    return u"{scale:%s}" % item_id
 
 
 def _ix_r(v, nd=3):
@@ -2785,7 +3235,7 @@ class Ix(object):
 
     # -- drawings
     def drawing(self, id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
-                priority=1, group=None, fit=None, title=None):
+                priority=1, group=None, fit=None, title=None, focus=None, frame=None, series=None):
         x0, y0, x1, y1 = [float(v) for v in extent]
         if x1 <= x0 or y1 <= y0:
             self.warn(page, "export", u"drawing %s has an empty extent %r" % (id, extent))
@@ -2797,6 +3247,15 @@ class Ix(object):
                        fit=list(fit) if fit else ([0.5, 2.0] if units == "mm" else None),
                        north_deg=north_deg, scale_bar=bool(scale_bar and units == "m"), layers=[], keep_areas=[],
                        anchors={}, title=title)
+        if focus is not None:                              # round 9 (S6): the area an M map must show
+            D["focus"] = [_ix_r(v) for v in focus]
+        if frame is not None:                              # round 9 (S6): its R9_FRAMES key (+ the frame's mm)
+            D["frame"] = u"%s" % frame
+            wh = r9_wh(frame) if "r9_wh" in globals() else None
+            if wh:
+                D["frame_mm"] = [_ix_r(wh[0]), _ix_r(wh[1])]
+        if series is not None:                             # round 9 (S6): one scale per series (ADDENDUM §0.6)
+            D["series"] = u"%s" % series
         self._z[D["id"]] = 0
         return D
 
@@ -2875,6 +3334,8 @@ class Ix(object):
             sh = self._shape(s, float(k), origin)
             if sh is None:
                 continue
+            if getattr(s, "mk_badge", False):             # round 9 (S1): a marker's disc, also inside its badge
+                sh["badge_disc"] = True
             if sh.pop("_stripes", False):
                 hatch += 1
             g = mark or ctx or grp or (u"%s/%s %d" % (lk, name, len(out) + 1) if lk else None)
@@ -2891,6 +3352,11 @@ class Ix(object):
         return len(out), texts
 
     def _text_shape(self, D, s, k, o):
+        b = getattr(s, "badge", None)
+        if b:                                              # round 9 (S1): a marker's glyph -> ONE badge item
+            self.badge(D["page"], b, drawing=D["id"], at=(o[0] + k * float(b["at"][0]), o[1] + k * float(b["at"][1])),
+                       group=D.get("group"))
+            return
         if isinstance(s[2], (tuple, list)):
             x, y = s[2][0], s[2][1]
             tail = list(s[3:])
@@ -2916,7 +3382,7 @@ class Ix(object):
     # -- texts and the rest
     def text(self, page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None,
              short_forms=(), side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None,
-             min_pt=None):
+             min_pt=None, box=None):
         if role not in IX_TEXT_ROLES:
             self.warn(page, "export", u"text role %r unknown (taken as note): %r" % (role, (u"%s" % string)[:80]))
             role = "note"
@@ -2941,7 +3407,37 @@ class Ix(object):
                         short_forms=[u"%s" % t for t in short_forms or ()], side_list_ok=bool(side_list_ok),
                         justify=(role in ("intro", "caption", "note", "list_item", "source")) if justify is None
                         else bool(justify), positions=list(positions) if positions else None)
+        if box:                                            # v45 (masterplan): a label box, e.g. dict(fill, alpha, stroke)
+            it["box"] = dict(box)
         return it["id"]
+
+    def badge(self, page, b, drawing=None, at=None, priority=5, group=None, id=None):
+        """round 9 (S1): one bubble: a text item role "badge" carrying the S1 badge keys; the booklet draws the disc
+        (fill, ring, ring_mm, r_mm) and centres the glyph on `at` with bk_centre"""
+        p = at if at is not None else b.get("at")
+        tid = self.text(page, b["text"], "badge", drawing=drawing, at=p, size_pt=b.get("pt"), bold=b.get("bold", True),
+                        colour=b.get("colour"), positions=["=MC"], priority=priority, group=group, id=id)
+        if tid is None:
+            return None
+        it = [x for x in self.d["pages"][page or "any"] if x["id"] == tid][-1]
+        for k_ in IX_BADGE_KEYS:
+            if k_ in b:
+                it[k_] = _ix_r(b[k_]) if isinstance(b[k_], float) else b[k_]
+        it["at"] = None if p is None else [_ix_r(p[0]), _ix_r(p[1])]
+        return tid
+
+    def tag(self, page, string, drawing=None, at=None, box_mm=None, fill=None, ring=None, ring_mm=0.0, size_pt=None,
+            bold=True, colour=None, priority=5, group=None, id=None):
+        """round 9 (S1): a plate / tag / card head: a text item role "tag" with box_mm [w, h] (None = the booklet
+        sizes it to the text), fill, ring, ring_mm; the booklet draws the box and centres the text with bk_centre"""
+        tid = self.text(page, string, "tag", drawing=drawing, at=at, size_pt=size_pt, bold=bold, colour=colour,
+                        positions=["=MC"], priority=priority, group=group, id=id)
+        if tid is None:
+            return None
+        it = [x for x in self.d["pages"][page or "any"] if x["id"] == tid][-1]
+        it.update(box_mm=None if box_mm is None else [_ix_r(box_mm[0]), _ix_r(box_mm[1])], fill=fill, ring=ring,
+                  ring_mm=_ix_r(ring_mm or 0.0))
+        return tid
 
     def _tid(self, page, t, role, group):
         if isinstance(t, dict) and "id" in t:
@@ -2955,7 +3451,11 @@ class Ix(object):
         for sw, t in entries:
             tid = self._tid(page, t, "legend", group)
             if tid is not None:                            # a text that was only a width is gone (G-R5-4.6)
-                ents.append(dict(swatch=dict(sw), text=tid))
+                e_ = dict(swatch=dict(sw), text=tid)
+                for k_ in ("cat", "rank", "badge"):        # round 9 (S6): hue table category, rank, bubble text
+                    if k_ in sw:
+                        e_[k_] = sw[k_]
+                ents.append(e_)
         return self._item(page, "legend", id, "legend", 3, group, drawing=drawing, entries=ents,
                           title=None if title is None else self._tid(page, title, "heading", group))["id"]
 
@@ -3075,38 +3575,56 @@ C = dict(ground="E2E0D4", paper="EFEDE6", faint="D8D5CC", structure="B0AC9C", in
          field="BDB57A", orchard="70754C", tree="89986A", grass="C9CDB0", shrub="A2B6B5", olive="5C7A86")
 
 def rgb(h): return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
-# ---- Category -> hue table (round 6 S1, 4 Nov 2026; G6-6, Q5, Q7; PLAN.md §2.6) ------------------------------------
-# ONE table every legend reads (Aras 4 Nov 09:44-10:08: "categorize the legends like heritage is categorized under
-# heritage with similar shades of the same colour. The darker the shade is the more important it is"): each category
-# one hue, items inside it = its ranks, r1 darkest = most important; never a separate hue per item. Subtle set on
-# every plan, section, chart and legend; strong set (HUE_KEY) on key maps only. Values: PLAN.md §2.6 ->
-# revision_2026-11-04_round6/plan_findings/hues_and_proposals.md H2 (method and contrast checks there).
-# Included by common/keymap.py (so every script that includes basemap.py has it); a script without basemap.py (the
-# booklet) includes it itself, once.
+# ---- Category -> hue table r9 (round 9 S5, 11 Nov 2026; BRIEF G9-6, PLAN.md §spec S5; replaces the round 6 table) ----
+# ONE table every key, legend and map reads (Aras 4 Nov 09:44-10:08: "categorize the legends like heritage is categorized
+# under heritage with similar shades of the same colour. The darker the shade is the more important it is"): each
+# category one hue family, items inside it = its ranks, r1 darkest = most important; never a separate hue per item.
+# Round 9 adds the G9-6 families CLA (clashes), LC (green / land cover), STR (streets), RDG (readings) and FAB (building
+# fabric), redefines HER_RANK (r1 monuments, r2 historic bridges, r3 other historic buildings) and adds HUE_NAME, one
+# name -> (code, rank) map so keys and maps look the same thing up the same way. Existing ramps are unchanged.
+# Paste: replaces the block from "# ---- Category -> hue table" to the end of hue_log in all 8 producer copies; the
+# booklet gets one copy (modules/INTERFACES.md). Values: PLAN.md §spec S5 (sources per row below).
 #   HUE[code][rank] hex      HUE_KEY[name] hex      hue(code, rank, strong=False)      HER_RANK[name] -> 1/2/3
+#   her_rank(name, default=3)                       hue_name(name, default=None, cat=None) -> (code, rank) or default
+#   hue_of(name, default=None, cat=None) -> hex     fab_hex(cls) / lc_hex(cls) / str_hex(cls) -> hex
 #   legend_group(entries)    entries sorted by category (table order) then rank
-#   hue_log(page, log=None)  the line `legend <page> hues=table`
-HUE_CATS = ("CTX", "HER", "WAT", "WW", "GRN", "AGR", "MOV", "PUB")          # legend order: context first
-HUE_NAMES = {"CTX": u"Existing context", "HER": u"Heritage", "WAT": u"The Selinos stream",
-             "WW": u"Water works: collect, clean, hold", "GRN": u"Planting", "AGR": u"Farms",
-             "MOV": u"Streets, shops and movement", "PUB": u"Public life and hubs"}
+#   hue_log(page, log=None)  the line `legend <page> hues=table r9`
+HUE_TABLE = "r9"
+HUE_CATS = ("CTX", "FAB", "HER", "CLA", "WAT", "WW", "LC", "GRN", "AGR", "STR", "MOV", "PUB", "RDG")  # legend order
+HUE_NAMES = {"CTX": u"Existing context", "FAB": u"Building fabric", "HER": u"Heritage", "CLA": u"Clashes",
+             "WAT": u"The Selinos stream", "WW": u"Water works: collect, clean, hold",
+             "LC": u"Existing green and land cover", "GRN": u"Planting", "AGR": u"Farms", "STR": u"Streets",
+             "MOV": u"Streets, shops and movement", "PUB": u"Public life and hubs", "RDG": u"Readings"}
 HUE = {
-    # existing context: ground, buildings, streets, bridges, existing green (with tree symbols), workshops, vacant
+    # existing context: ground, buildings, streets, bridges, existing green (with tree symbols), workshops, vacant;
+    # r2 = named buildings that are not heritage (G9-6: e.g. Les Pergamon Boutique Hotel)
     "CTX": {1: "4A3F35", 2: "847E75", 3: "B0AC9C", 4: "D8D5CC", 5: "EFEDE6"},
-    # heritage (Q5): r1 inside the UNESCO World Heritage listing, r2 registered monument, r3 other historic or no
-    # sourced status, r4 heritage area tint
+    # building fabric on maps (G9-4 / A1 C1): FABRIC_PLAN SB:17437-17444 in its class order, + CTX r4 for unsurveyed
+    "FAB": {1: "AF7474", 2: "8B3A3F", 3: "4A3F35", 4: "7A6E60", 5: "BCB794", 6: "DCD5C2", 7: "FAF8F1", 8: "E6E0C8",
+            9: "D8D5CC"},
+    # heritage (G9-6): r1 monuments, r2 historic bridges, r3 other historic buildings, r4 heritage area tint
     "HER": {1: "512E1A", 2: "84573E", 3: "B08870", 4: "E7CABB"},
+    # clashes C1-C6 (G9-6, Q8): one dark-red shade (MARK_C SB:17460)
+    "CLA": {1: "8B3A3F"},
+    # water (G9-6): r1 stream, r2 basins, r3 channels, r4 tint
     "WAT": {1: "32525F", 2: "5D7F8D", 3: "91ADB4", 4: "C1D3DB"},
-    # water works: reed basins, spillway, winter store, dry-top terraces, side arm, widened wetland
+    # water works: reed basins, spillway, winter store, dry-top terraces, side arm, widened wetland (own family, kept)
     "WW": {1: "2D564E", 2: "54857D", 3: "87BBAA", 4: "CBEDE5"},
+    # existing green / land cover (G9-6 woods -> orchards -> grass; SB:1050 GREEN_SUB, SB:45289-45295 LC_CLASSES):
+    # r1 woods, r2 orchards (shrub ACB38C shares r2: LC_HEX), r3 grass, r4 fields
+    "LC": {1: "74804F", 2: "8F966A", 3: "ABB287", 4: "BDB57A"},
     # proposed planting: bands wet -> dry, forest corridor, designed green (plant swatches: tree r1, shrub r2,
-    # ground / emergent r3, P-3)
+    # ground / emergent r3, P-3) (own family, kept)
     "GRN": {1: "3C4733", 2: "70754C", 3: "89986A", 4: "C2CCB3"},
     "AGR": {1: "534E25", 2: "948B49", 3: "C6C08D", 4: "E6E3C5"},
+    # streets (G9-6 oranges, main -> secondary -> local): the SON SEQ stops SB:18275; casing STR_CASING
+    "STR": {1: "EA8C3E", 2: "F6CF85", 3: "EEE9DA"},
     # streets and movement: pedestrian r1, calmed r2, shared r3; commerce r1, mixed r2, residential r3
     "MOV": {1: "734C17", 2: "A67628", 3: "CCA363", 4: "EAD1A4"},
-    # public life: walking hubs, transit hub, sub-hubs, hub squares, market, civic, people groups by headcount
+    # project moves and hubs (G9-6): r1 transit hub T, r2 walking hubs K3-K5, r3 numbered places, r4 tint
     "PUB": {1: "452842", 2: "7F5B7B", 3: "AE90AA", 4: "DECFDC"},
+    # readings: sky view and similar (G9-6 blue-grey, one shade; PLAN S5 value, distinct from WAT)
+    "RDG": {1: "7C8A99"},
 }
 # annotations (not a category): study area line, plan cut marks (G6-4), text ink
 HUE_ANN = {"study": "6A4C93", "cut": "8E8F8A", "ink": "2C2219"}
@@ -3116,11 +3634,41 @@ HUE_KEY = {"fabric_mix": 0.40, "her1": "663214", "her2": "965630", "her3": "C18A
            "stream": "7FA4B3", "stream_edge": "5E8494", "road": "FAF8F1", "road_edge": "DCD5C2",
            "street_names": "A4A1A3", "cut": "C0392B", "study": "6A4C93"}
 HUE_NAME_PT = 4.0                    # key-map street names: exactly the 4 pt floor (PLAN §2.7)
-# heritage ranks of the heritage-loop places (Q5; H3): Kızıl Avlu r1 is a reading (ICOMOS names its tunnels; the
-# boundary is not stated): set it to 2 if Aras reads it as registered only. Teleferik is context (CTX), not heritage.
-HER_RANK = {u"Akropol": 1, u"Kızıl Avlu": 1, u"Tabak Köprüsü": 3, u"Ulucami Önü Köprüsü": 3, u"Ulucami": 3,
-            u"Ulu Cami": 3, u"Tabaklar Hamamı": 3, u"Arasta": 3, u"Üç Kemer Köprüsü": 3, u"Bergama Müzesi": 3,
-            u"Asklepion": 3}
+# building fabric classes (A1 C1; SB fabric_types) in FAB rank order; legend words = SB FABRIC_SHORT (SB:5371)
+FAB_CLASSES = ("monument", "sacred", "traditional", "block", "regular", "selfbuilt", "large", "construction",
+               "unsurveyed")
+FAB_RANK = dict((c, i + 1) for i, c in enumerate(FAB_CLASSES))
+FAB_WORDS = {"monument": u"Monuments, historic", "sacred": u"Mosques & sacred", "traditional": u"Old town fabric",
+             "block": u"Apartment blocks", "regular": u"Planned low-rise", "selfbuilt": u"Small irregular",
+             "large": u"Civic & industrial", "construction": u"Under construction",
+             "unsurveyed": u"Type not surveyed"}
+# land-cover classes of basemap.json "lc" (WorldCover keys) and map zones -> hex and LC rank. Shrub and park are the
+# map colours already printed (SB:45291 shrub = mix(CAT green, PAPER, 0.3); SB:1050 park); their ranks are readings.
+LC_HEX = {"trees": "74804F", "wood": "74804F", "orchard": "8F966A", "shrub": "ACB38C", "park": "8F9A68",
+          "grass": "ABB287", "farmland": "BDB57A", "agri": "BDB57A"}
+LC_RANK = {"trees": 1, "wood": 1, "orchard": 2, "shrub": 2, "park": 3, "grass": 3, "farmland": 4, "agri": 4}
+# street classes of basemap.json streets ("main", "secondary", "lane"; "path" = pedestrian) -> STR rank
+STR_RANK = {"main": 1, "secondary": 2, "lane": 3, "local": 3, "path": 3}
+STR_CASING = "B0AC9C"                # CTX r3: the casing line of a street area / centreline (PLAN S5)
+STR_CASING_MM = 0.1
+# heritage ranks (G9-6, PLAN S5): r1 monuments (Kızıl Avlu, Bergama Ulu Cami; Akropol and Asklepion as ancient
+# monuments = writer reading), r2 historic bridges, r3 other historic buildings. A name not listed and marked historic
+# in the data (NAMES "cat" her) takes r3 (her_rank default). Teleferik is context (CTX), not heritage.
+HER_RANK = {u"Kızıl Avlu": 1, u"Ulucami": 1, u"Ulu Cami": 1, u"Bergama Ulu Cami": 1, u"Akropol": 1, u"Asklepion": 1,
+            u"Ulucami Önü Köprüsü": 2, u"Üç Kemer Köprüsü": 2, u"Tabak Köprüsü": 2,
+            u"Bergama Yabets Havrası": 3, u"Tabaklar Hamamı": 3, u"Arasta": 3, u"Bergama Müzesi": 3,
+            u"Emir Sultan Cami": 3, u"Eski Çırçır Fabrikası": 3}
+# named things -> (code, rank): hub codes and clash codes (K3-K5 as walking hubs, K6 the gateway, T the transit hub,
+# CL HUB_CODE / HUB_COL CL:11029), the descriptive crossings (context), readings, named non-heritage buildings.
+# Heritage names are read from HER_RANK; any other row of the names table falls back by its "cat" (hue_name).
+HUE_NAME = {u"T": ("PUB", 1), u"K3": ("PUB", 2), u"K4": ("PUB", 2), u"K5": ("PUB", 2), u"K6": ("CTX", 2),
+            u"C1": ("CLA", 1), u"C2": ("CLA", 1), u"C3": ("CLA", 1), u"C4": ("CLA", 1), u"C5": ("CLA", 1),
+            u"C6": ("CLA", 1),
+            u"side inlet crossing": ("CTX", 2), u"small crossing": ("CTX", 2),
+            u"Adnan Menderes Bulvarı road bridge": ("CTX", 2),
+            u"sky view": ("RDG", 1), u"Les Pergamon Boutique Hotel": ("CTX", 2), u"Teleferik": ("CTX", 1)}
+# NAMES r9 "cat" -> (code, rank) for a names-table row in neither HUE_NAME nor HER_RANK (hub request 11 Nov 18:47)
+HUE_CAT_FALLBACK = {"her": ("HER", 3), "sacred": ("FAB", 2), "culture": ("CTX", 2), "civic": ("CTX", 2)}
 HUE_LOG = []
 
 
@@ -3144,8 +3692,78 @@ def hue(code, rank, strong=False):
 
 
 def her_rank(name, default=3):
-    """the heritage rank of a place name (HER_RANK; no sourced status = 3)"""
+    """the heritage rank of a place name (HER_RANK; any other historic place = 3)"""
     return HER_RANK.get(name, default)
+
+
+def _hue_key(s):
+    """a name as a lookup key: single spaces, lower case, Turkish İ / I handled (as names.py name_key)"""
+    s = u" ".join((s or u"").split()).replace(u"İ", u"i").replace(u"I", u"ı")
+    return s.lower().replace(u"i̇", u"i")
+
+
+_HUE_NAME_K = dict((_hue_key(k), v) for k, v in HUE_NAME.items())
+_HER_RANK_K = dict((_hue_key(k), v) for k, v in HER_RANK.items())
+
+
+def _hue_name_cat(name):
+    """the "cat" of the names-table row a name stands for (NAMES r9 landmarks, read through landmark_match when the
+    script has names.py), or None (no table, no row, or a row without "cat")"""
+    N = globals().get("NAMES")
+    if not isinstance(N, dict):
+        return None
+    rows = N.get("landmarks") or {}
+    lm = globals().get("landmark_match")
+    key = None
+    if callable(lm):
+        try:
+            key = lm(name)
+        except Exception:
+            key = None
+    if key is None:
+        k = _hue_key(name)
+        for kk, row in rows.items():
+            if k == _hue_key(row.get("name")) or k in [_hue_key(a) for a in row.get("alias") or ()]:
+                key = kk
+                break
+    row = rows.get(key) if key is not None else None
+    return row.get("cat") if isinstance(row, dict) else None
+
+
+def hue_name(name, default=None, cat=None):
+    """(code, rank) of a named thing: HUE_NAME first (hub and clash codes, crossings, readings, named non-heritage
+    buildings), then HER_RANK (("HER", rank)), then the names-table "cat" (given, or looked up): her -> HER r3,
+    sacred -> FAB sacred, culture / civic -> CTX r2. Else default (None: the caller keeps its own category)"""
+    k = _hue_key(name)
+    if k in _HUE_NAME_K:
+        return _HUE_NAME_K[k]
+    if k in _HER_RANK_K:
+        return ("HER", _HER_RANK_K[k])
+    c = cat if cat is not None else _hue_name_cat(name)
+    if c in HUE_CAT_FALLBACK:
+        return HUE_CAT_FALLBACK[c]
+    return default
+
+
+def hue_of(name, default=None, cat=None):
+    """the hex of a named thing (hue_name -> hue), or default when the name has no category"""
+    cr = hue_name(name, None, cat)
+    return hue(cr[0], cr[1]) if cr else default
+
+
+def fab_hex(cls):
+    """the map colour of a building fabric class (FAB ramp; an unknown class = unsurveyed)"""
+    return HUE["FAB"][FAB_RANK.get(cls, FAB_RANK["unsurveyed"])]
+
+
+def lc_hex(cls, default=None):
+    """the map colour of a land-cover class (LC_HEX), or default"""
+    return LC_HEX.get(cls, default)
+
+
+def str_hex(cls):
+    """the colour of a street class (STR ramp; an unknown class = local)"""
+    return HUE["STR"][STR_RANK.get(cls, 3)]
 
 
 def legend_group(entries):
@@ -3164,8 +3782,8 @@ def legend_group(entries):
 
 
 def hue_log(page, log=None):
-    """the done-when line of a legend drawn from this table: `legend <page> hues=table`"""
-    ln = u"legend %s hues=table" % page
+    """the done-when line of a legend or key drawn from this table: `legend <page> hues=table r9`"""
+    ln = u"legend %s hues=table %s" % (page, HUE_TABLE)
     (log if log is not None else HUE_LOG).append(ln)
     return ln
 
