@@ -50,5 +50,6 @@ Data/assets/agaclar.svg
 Data/assets/masterlastversion.svg
 Data/assets/context_labels_v2.svg
 Data/assets/planting_areas_seed.svg
+Data/assets/plan/B19_setB_layers3.2.svg
 Data/cutouts/
 Data/heritage_photos/
