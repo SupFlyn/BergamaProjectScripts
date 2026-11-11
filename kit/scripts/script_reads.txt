@@ -21,6 +21,7 @@ bergama_booklet: Data/heritage_photos/photos/
 bergama_booklet: cached/booklet/
 bergama_booklet: cached/plants_toned/
 bergama_booklet: cached/selinus_board/_site_photos/
+bergama_booklet: cached/booklet/bergama_b19_plan/  # r9 hand
 bergama_booklet_jpg: output/bergama_booklet/
 bergama_city_link: Data/bergama_city_link_data.py
 bergama_city_link: cached/Bergama_water_balance_analysis/water_balance_results.json
@@ -49,6 +50,7 @@ bergama_masterplan: cached/selinus_board/city_link_movement.json
 bergama_masterplan: cached/selinus_board/section_link_points.json
 bergama_masterplan: cached/selinus_board/street_cuts.json
 bergama_masterplan: rhino
+bergama_masterplan: Data/assets/masterlastversion.svg  # r9 hand
 bergama_plant_sheet: Data/assets_hires.json
 bergama_plant_sheet: Data/figures_A1.json
 bergama_plant_sheet: Data/cutouts/
@@ -71,8 +73,10 @@ bergama_water_board: cached/selinus_board/shade_july.json
 bergama_water_board: Data/cutouts/
 bergama_water_board: cached/plant_photos/
 bergama_water_board: rhino
+bergama_water_board: Data/assets/masterlastversion.svg  # r9 hand
 bergama_zone_base: Data/bergama_zone_base_data.py
 bergama_zone_base: rhino
+bergama_zone_base: Data/assets/masterlastversion.svg  # r9 hand
 selinus_board: Data/bergama_environment.json
 selinus_board: Data/bergama_landcover_worldcover2021.json
 selinus_board: Data/bergama_osm.osm
@@ -83,3 +87,4 @@ selinus_board: Data/selinus_board_data.py
 selinus_board: Data/cutouts/
 selinus_board: Data/heritage_photos/
 selinus_board: rhino
+selinus_board: Data/bergama_dem_glo30.json  # r9 hand
