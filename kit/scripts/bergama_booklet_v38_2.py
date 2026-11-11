@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # r: pymupdf==1.26.5
-# CURRENT VERSION: bergama_booklet_v38_1.py = v38.1 (12 Nov 2026: p13 season cuts from SectionFromLine); v38 (11 Nov 2026, round 9 Part BK: frames from the round 9 table R9_FRAMES, free scale with the round label rule (bar at the true scale, label printed), map windows round the focus, badges / tags / card boxes centred on their ink, B19 on p20, underfill / cover checks; see NEW IN v38); v37 (8 Nov 2026, round 8: absolute frames + uniform fit +-6 %, no flow; see NEW IN v37); v35 (5 Nov 2026: editable layout table Data/booklet_layout.csv + flow: blocks at their table place and scale, grown to fit, shifted off each other, scale never changed; see NEW IN v35); v33 (round 7 S7, 5 Nov 2026: every block at its SON frame (mm) and SON printed scale, nothing fitted, misfit = WARNING; kicker "· PART" and footer label; see NEW IN v33); v32 (L1, 4 Nov 2026: the booklet PLACES everything: one box per drawing, labels moved / led out never shrunk, pages justified; see NEW IN v32); v31 (round 6 S9, 4 Nov 2026: 22 pages p01-p22 in the PLAN §2.1 order, each page
+# CURRENT VERSION: bergama_booklet_v38_2.py = v38.2 (12 Nov 2026: "pdf" layers for B19 v14 p20, hatch swatches); v38.1 (12 Nov 2026: p13 season cuts from SectionFromLine); v38 (11 Nov 2026, round 9 Part BK: frames from the round 9 table R9_FRAMES, free scale with the round label rule (bar at the true scale, label printed), map windows round the focus, badges / tags / card boxes centred on their ink, B19 on p20, underfill / cover checks; see NEW IN v38); v37 (8 Nov 2026, round 8: absolute frames + uniform fit +-6 %, no flow; see NEW IN v37); v35 (5 Nov 2026: editable layout table Data/booklet_layout.csv + flow: blocks at their table place and scale, grown to fit, shifted off each other, scale never changed; see NEW IN v35); v33 (round 7 S7, 5 Nov 2026: every block at its SON frame (mm) and SON printed scale, nothing fitted, misfit = WARNING; kicker "· PART" and footer label; see NEW IN v33); v32 (L1, 4 Nov 2026: the booklet PLACES everything: one box per drawing, labels moved / led out never shrunk, pages justified; see NEW IN v32); v31 (round 6 S9, 4 Nov 2026: 22 pages p01-p22 in the PLAN §2.1 order, each page
 # laid out in its FRAMES (G6-1: the SUBMISSION_SON arrangement, drawings enlarged uniformly into their frames), title
 # band + bare page number, Sources last with every source numbered in page order (G6-3), G6-9 group tags handed to the
 # PDF writer, every overlap / edge / empty band / < 4 pt = WARNING (G6-7, G6-8)); v30.3 (fix 2 Nov 06:40: maps larger: round scales 1:1,500, 1:7,500, 1:15,000, 1:25,000 added, a script's scale range open to them; diagrams free-size up to 6 x; p07, p10, p16, p22 re-planned so rows fit; p11, p21 wider); v30.2 (fix 2 Nov: p04/p05 one row per cut, one scale, from site board v60.2); v30.1 (closing fix 2 Nov: Sources lists the masterplan places properly); v30 (round 5 S10, 2 Nov 2026: the booklet COMPOSES every page from the
@@ -121,7 +121,7 @@ NEW IN v30 (round 5, session S10, 2 Nov 2026; revision_2026-11-01_round5/PLAN.md
 import os, re, time, json, fnmatch
 
 # ---- SETTINGS ----
-VERSION = "v38.1"  # v38.1 12 Nov 2026 (Aras 11 Nov 22:23-22:24 UTC): p13 season frames take SectionFromLine's sfl_season_* cuts (27 Oct look, both banks of S4), WaterBoard's p15_season_* only as a fallback id; v38 11 Nov 2026 (round 9 Part BK): R9_FRAMES table, ADDENDUM §0 label rule + series, M map windows, bk_centre badges / tags, p09 card boxes, B19 p20, underfill / cover; v37 8 Nov 2026 (round 8 S6, engine pass): absolute frames (v35 flow + v34 pack deleted), uniform fit within +-6 % of the printed scale (bar at the true scale, printed ratio = table), attach-by-frame, notes textfit, SON title band + footer, one-column level tags, sheet bounds (offsheet), page_boxes.csv, version-stamped layout table; page table (BK_PAGES) not yet re-done; was "v36"  # v36 8 Nov 2026 (Aras: no backward reads between scripts): a text another script exports into a drawing's group (the masterplan's section-note link sb_sec_note_<cut>_mp, group sb_sec_<cut>) comes after that drawing's own texts (bk_items); v35 5 Nov 2026 (Aras 12:32 "pages should be able to move drawings when needed"): LAYOUT TABLE Data/booklet_layout.csv (written on the first run; edit page order, frames, scales, on/off in Excel) + FLOW: every block at its table place and table scale, grown to its measured size, shifted below / beside the block it lands on, scale never changed (no page factor); a locked PDF (open in a viewer) is saved under a timed name with a WARNING; was "v34"  # v34 5 Nov 2026 (Aras 11:42 "change your approach"): MEASURE, THEN PACK: SON frames give only the order and arrangement, every block is measured at its scale with its labels and the page is laid out from those real sizes (no two blocks can overlap); a page that does not fit gets ONE factor for every drawing on it (true 1:n printed), texts keep their size, key maps size 1; log "pack <pid> k=..."; was "v33"  # v33 round 7 S7 5 Nov 2026: fixed SON frames + SON scales, nothing fitted, misfit = WARNING (see NEW IN v33); v32.6 v32.6 fix 5 Nov (offline run on Aras's items, page images checked): a level value never sits on the line of the value beside it; text-only note columns (p04, p05, p07) keep their script's lines (they were pushed onto each other) and the runs of one line follow each other; p04/p05 note frames as wide as the notes; p18 farms map in its own frame (the reading diagram had 4 mm, x0.03); a legend in a band frame uses the frame's width (p19 ran 28 mm past the foot); script texts with no leader kept inside the page margins; v32.5 fix 4-5 Nov (offline runs on the scripts' outputs, page images checked): a script's texts move only inside their own drawing (no leader lines across other drawings), frames inside the 14 mm margins, wide note frames in columns, legends take more columns before a smaller size, a detail that fits none of its scales takes the next coarser one, the Sources columns inside the margins, p21 rows re-set, texts a script set on top of each other are named per drawing and script; v32.4 fix 4 Nov (p02 ran 10+ min in the 21:49 run): faster leader and collision tests (grid), the log shows the page and text count every 5 s, and a page past 150 s sets its remaining texts at their own spot without the search, so the booklet always finishes (hits named as WARNINGs); the PDF is saved without the duplicate merge (16+ min, now seconds); the Sources page composes again (its row height had slipped into a comment); v32.3 fix 4 Nov (Aras 21:38, no log again): the log file shows the page being composed while the booklet runs, and every page's time at the end; v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
+VERSION = "v38.2"  # v38.2 12 Nov 2026 (B19 v14, Aras 11 Nov 22:23 UTC "draw the svg 1:1"): a drawing layer may hold "pdf" shapes (a vector PDF page set over its box, clipped to the drawing): rd_drawing draws the layers in z-order runs, write_pdf runs between the PDF layers; legend swatch kind "hatch"; v38.1 12 Nov 2026 (Aras 11 Nov 22:23-22:24 UTC): p13 season frames take SectionFromLine's sfl_season_* cuts (27 Oct look, both banks of S4), WaterBoard's p15_season_* only as a fallback id; v38 11 Nov 2026 (round 9 Part BK): R9_FRAMES table, ADDENDUM §0 label rule + series, M map windows, bk_centre badges / tags, p09 card boxes, B19 p20, underfill / cover; v37 8 Nov 2026 (round 8 S6, engine pass): absolute frames (v35 flow + v34 pack deleted), uniform fit within +-6 % of the printed scale (bar at the true scale, printed ratio = table), attach-by-frame, notes textfit, SON title band + footer, one-column level tags, sheet bounds (offsheet), page_boxes.csv, version-stamped layout table; page table (BK_PAGES) not yet re-done; was "v36"  # v36 8 Nov 2026 (Aras: no backward reads between scripts): a text another script exports into a drawing's group (the masterplan's section-note link sb_sec_note_<cut>_mp, group sb_sec_<cut>) comes after that drawing's own texts (bk_items); v35 5 Nov 2026 (Aras 12:32 "pages should be able to move drawings when needed"): LAYOUT TABLE Data/booklet_layout.csv (written on the first run; edit page order, frames, scales, on/off in Excel) + FLOW: every block at its table place and table scale, grown to its measured size, shifted below / beside the block it lands on, scale never changed (no page factor); a locked PDF (open in a viewer) is saved under a timed name with a WARNING; was "v34"  # v34 5 Nov 2026 (Aras 11:42 "change your approach"): MEASURE, THEN PACK: SON frames give only the order and arrangement, every block is measured at its scale with its labels and the page is laid out from those real sizes (no two blocks can overlap); a page that does not fit gets ONE factor for every drawing on it (true 1:n printed), texts keep their size, key maps size 1; log "pack <pid> k=..."; was "v33"  # v33 round 7 S7 5 Nov 2026: fixed SON frames + SON scales, nothing fitted, misfit = WARNING (see NEW IN v33); v32.6 v32.6 fix 5 Nov (offline run on Aras's items, page images checked): a level value never sits on the line of the value beside it; text-only note columns (p04, p05, p07) keep their script's lines (they were pushed onto each other) and the runs of one line follow each other; p04/p05 note frames as wide as the notes; p18 farms map in its own frame (the reading diagram had 4 mm, x0.03); a legend in a band frame uses the frame's width (p19 ran 28 mm past the foot); script texts with no leader kept inside the page margins; v32.5 fix 4-5 Nov (offline runs on the scripts' outputs, page images checked): a script's texts move only inside their own drawing (no leader lines across other drawings), frames inside the 14 mm margins, wide note frames in columns, legends take more columns before a smaller size, a detail that fits none of its scales takes the next coarser one, the Sources columns inside the margins, p21 rows re-set, texts a script set on top of each other are named per drawing and script; v32.4 fix 4 Nov (p02 ran 10+ min in the 21:49 run): faster leader and collision tests (grid), the log shows the page and text count every 5 s, and a page past 150 s sets its remaining texts at their own spot without the search, so the booklet always finishes (hits named as WARNINGs); the PDF is saved without the duplicate merge (16+ min, now seconds); the Sources page composes again (its row height had slipped into a comment); v32.3 fix 4 Nov (Aras 21:38, no log again): the log file shows the page being composed while the booklet runs, and every page's time at the end; v32.2 speed 4 Nov (Aras 21:14): grid index for the page collision tests (same results, far fewer comparisons); v32.1 fix 4 Nov (kit v4.1 run): section label bands no longer loop for ever when two labels sit close (the booklet never finished); v32 4 Nov 2026 (L1): boxes, justified pages, collisions moved never shrunk; v31 4 Nov 2026 (round 6 S9): page frames (G6-1), 22 pages (G6-2), Sources last (G6-3), groups (G6-9); was v30.3 fix (2 Nov run: drawings small, things on top of each other): texts of diagrams, charts, key maps and site board drawings stay where their script set them, scaled with the drawing (site board: from its "sheet scale 1:N"), never moved or numbered into side lists; one factor per diagram row; right-column drawings share the room left; insets 1:100 or 1:200 as the row allows; p02 share 0.50, p07 notes as a 4th row, p13 share 0.78 + smaller key map; 1:50,000 for the p19 farms map; booklet scale list 1:200 ... 1:25,000 with 1:1,500, 1:7,500, 1:15,000 (Aras 06:20) and 1:25,000; scale_pref read as a range; diagrams up to 6 x (right column 2 x); page plan p07 3 rows, p10 windows 2 x 3, p11 share 0.80, p16 3 x 2 share 0.62, p21 share 0.75, p22 plans side by side at 1:1,000 or 1:1,500; v30.2 fix (round 5 open rows): p04/p05 rows = one drawing per cut (sb_sec_s1 ... s8), one scale per page (common); v30.1 fix (round 5 closing): the Sources page lists the masterplan's numbered places as "n name: sources" (v30 printed the raw dict); v30 2 Nov 2026 (round 5 S10): composer pages from items.json, 23 pages, one page numbering
 GH_LABEL = "Booklet"
 OUT_FOLDER = "bergama_booklet"
 LOG_NAME = "bergama_booklet_log.txt"
@@ -2682,37 +2682,97 @@ def rd_items(D, T, page=None, grp=None):
     return out
 
 
-def rd_drawing(P, D, T, frame=None):
+def _rd_pdf_shape(P, T, s, did):
+    """v38.2 (B19 v14, p20): a "pdf" shape = page 1 of a vector PDF (s["file"]) set over s["box"] (drawing units, the
+    PDF page covers it exactly), clipped to the drawing's rect T.rect; returns True when drawn"""
     import fitz as _fz
-    pg = _RdPg()
-    pg.W, pg.H = T.w, T.h
+    f = _rd_img_path(s.get("file"))
+    b = s.get("box") or [0, 0, 0, 0]
+    if not f or not os.path.isfile(f):
+        wn_warn(P.pid, "pdf", u"%s: pdf layer %s not found" % (did, f))
+        return False
+    try:
+        src = _fz.open(f)
+    except Exception as ex:
+        wn_warn(P.pid, "pdf", u"%s: pdf layer %s not readable (%s)" % (did, f, type(ex).__name__))
+        return False
+    RD_DOCS.append(src)
+    x0, y0 = T.pt(b[0], b[3])                       # page mm, y down: the box's top-left
+    x1, y1 = T.pt(b[2], b[1])
+    r = T.rect
+    cx0, cy0, cx1, cy1 = max(x0, r[0]), max(y0, r[1]), min(x1, r[2]), min(y1, r[3])
+    if cx1 - cx0 < 0.01 or cy1 - cy0 < 0.01 or x1 - x0 < 0.01 or y1 - y0 < 0.01:
+        return False
+    sr = src[0].rect
+    fx = sr.width / (x1 - x0)
+    fy = sr.height / (y1 - y0)
+    clip = _fz.Rect(sr.x0 + (cx0 - x0) * fx, sr.y0 + (cy0 - y0) * fy, sr.x0 + (cx1 - x0) * fx, sr.y0 + (cy1 - y0) * fy)
+    P.page.show_pdf_page(_fz.Rect(cx0 * BK_K, cy0 * BK_K, cx1 * BK_K, cy1 * BK_K), src, 0, clip=clip,
+                         keep_proportion=False)
+    return True
+
+
+def rd_drawing(P, D, T, frame=None):
+    """v38.2: the drawing's layers in z order, in runs: each run of ordinary layers = one write_pdf drawing (as
+    before), each layer holding "pdf" shapes = those PDFs set in its place (B19 v14 p20: his SVG below and above the
+    survey streets)"""
+    import fitz as _fz
     did = u"%s" % D.get("id")
-    pg.grp = []
-    pg.items = rd_items(D, T, P.pid, pg.grp)
-    pg.grp_root = did
-    pg.page = P.pid                                 # write_pdf's per-page group counts (wp_groups_log, S2)
-    st_ = BK_GRP.setdefault(P.pid, dict(kinds=set(), elements=set(), untagged=0))
-    for g_ in pg.grp:
-        if g_:
-            st_["kinds"].add(u"%s" % g_.split(u"/")[0])
-            st_["elements"].add(u"%s|%s" % (did, g_))
-        else:
-            st_["untagged"] += 1
     d_ = bg_booklet("_render")
     os.makedirs(d_, exist_ok=True)
-    fn = os.path.join(d_, u"%s_%s.pdf" % (P.pid, "".join(c if c.isalnum() or c in "-_" else "_" for c in did)))
     placed = dict(D=D, T=T, rect=T.rect, den=T.den, id=did)
-    if pg.items and pg.W > 0.01 and pg.H > 0.01:
-        write_pdf(pg, fn, did)
-        src = _fz.open(fn)
-        RD_DOCS.append(src)
-        r = T.rect
-        P.page.show_pdf_page(_fz.Rect(r[0] * BK_K, r[1] * BK_K, r[2] * BK_K, r[3] * BK_K), src, 0)
-        if "WP_IMG_LOG" in globals():
-            for ln in WP_IMG_LOG:
-                wn_warn(P.pid, "image", u"%s: %s" % (did, ln))
-            del WP_IMG_LOG[:]
-    else:
+    runs, cur = [], None
+    for L in sorted(D.get("layers") or [], key=lambda L: L.get("z", 0)):
+        is_pdf = any((s_.get("t") or s_.get("type")) == "pdf" for s_ in L.get("shapes") or [])
+        if is_pdf:
+            runs.append(("pdf", [L]))
+            cur = None
+        else:
+            if cur is None:
+                cur = ("vec", [])
+                runs.append(cur)
+            cur[1].append(L)
+    st_ = BK_GRP.setdefault(P.pid, dict(kinds=set(), elements=set(), untagged=0))
+    drawn = 0
+    for j_, (kind_, Ls) in enumerate(runs):
+        if kind_ == "pdf":
+            for L in Ls:
+                for s_ in L.get("shapes") or []:
+                    if (s_.get("t") or s_.get("type")) == "pdf" and _rd_pdf_shape(P, T, s_, did):
+                        drawn += 1
+                        g_ = s_.get("grp")
+                        if g_:
+                            st_["kinds"].add(u"%s" % g_.split(u"/")[0])
+                            st_["elements"].add(u"%s|%s" % (did, g_))
+            continue
+        pg = _RdPg()
+        pg.W, pg.H = T.w, T.h
+        pg.grp = []
+        D2 = dict(D)
+        D2["layers"] = Ls
+        pg.items = rd_items(D2, T, P.pid, pg.grp)
+        pg.grp_root = did
+        pg.page = P.pid                             # write_pdf's per-page group counts (wp_groups_log, S2)
+        for g_ in pg.grp:
+            if g_:
+                st_["kinds"].add(u"%s" % g_.split(u"/")[0])
+                st_["elements"].add(u"%s|%s" % (did, g_))
+            else:
+                st_["untagged"] += 1
+        fn = os.path.join(d_, u"%s_%s%s.pdf" % (P.pid, "".join(c if c.isalnum() or c in "-_" else "_" for c in did),
+                                                u"" if len(runs) == 1 else u"_%d" % j_))
+        if pg.items and pg.W > 0.01 and pg.H > 0.01:
+            write_pdf(pg, fn, did)
+            src = _fz.open(fn)
+            RD_DOCS.append(src)
+            r = T.rect
+            P.page.show_pdf_page(_fz.Rect(r[0] * BK_K, r[1] * BK_K, r[2] * BK_K, r[3] * BK_K), src, 0)
+            drawn += 1
+            if "WP_IMG_LOG" in globals():
+                for ln in WP_IMG_LOG:
+                    wn_warn(P.pid, "image", u"%s: %s" % (did, ln))
+                del WP_IMG_LOG[:]
+    if not drawn:
         wn_warn(P.pid, "drawing", u"%s has nothing to draw (no shapes or zero size)" % did)
     if frame:
         bk_rect(P, T.rect, None, frame[0], frame[1])
@@ -3574,6 +3634,15 @@ def _pl_swatch(P, sw, x, y):
         return
     if k == "fill":
         bk_rect(P, (x, y, x + W, y + H), col, sw.get("stroke"), sw.get("width_pt") or 0.3)
+    elif k == "hatch":                                   # v38.2: fill + 45 deg lines in the stroke colour (B19 v14)
+        bk_rect(P, (x, y, x + W, y + H), col, None, 0.0)
+        st_, t_ = H * 0.45, -H
+        while t_ < W:
+            lo_, hi_ = max(0.0, -t_), min(H, W - t_)
+            if hi_ - lo_ > 0.05:
+                bk_line(P, [(x + t_ + lo_, y + H - lo_), (x + t_ + hi_, y + H - hi_)], sw.get("stroke") or col,
+                        sw.get("width_pt") or 0.2, None)
+            t_ += st_
     elif k in ("line", "dash"):
         bk_line(P, [(x, y + H / 2.0), (x + W, y + H / 2.0)], col, sw.get("width_pt") or 1.0,
                 sw.get("dash_pt") or ((2.0, 1.2) if k == "dash" else None), alpha=sw.get("opacity"))

@@ -6,7 +6,7 @@ bergama_agriculture_alternatives: Data/bergama_agriculture_alternatives_data.py
 bergama_agriculture_alternatives: cached/Bergama_water_balance_analysis/water_balance_results.json
 bergama_agriculture_alternatives: cached/booklet/selinus_board/items.json
 bergama_agriculture_alternatives: cached/plant_photos/
-bergama_b19_plan: Data/assets/masterlastversion.svg  # r9 hand
+bergama_b19_plan: Data/assets/masterlastversion.svg  # r9 hand; v14 drawn 1:1 on p20
 bergama_b19_plan: Data/bergama_b19_plan_data.py
 bergama_b19_plan: Data/bergama_osm.osm
 bergama_b19_plan: Data/palette.json
@@ -52,6 +52,7 @@ bergama_masterplan: cached/selinus_board/section_link_points.json
 bergama_masterplan: cached/selinus_board/street_cuts.json
 bergama_masterplan: rhino
 bergama_masterplan: Data/assets/masterlastversion.svg  # r9 hand
+bergama_masterplan: cached/bergama_zone_base/svg_reference.json  # v47.2 units per m
 bergama_plant_sheet: Data/assets_hires.json
 bergama_plant_sheet: Data/figures_A1.json
 bergama_plant_sheet: Data/cutouts/
@@ -75,6 +76,7 @@ bergama_water_board: Data/cutouts/
 bergama_water_board: cached/plant_photos/
 bergama_water_board: rhino
 bergama_water_board: Data/assets/masterlastversion.svg  # r9 hand
+bergama_water_board: cached/bergama_zone_base/svg_reference.json  # v20.2 units per m
 bergama_zone_base: Data/bergama_zone_base_data.py
 bergama_zone_base: rhino
 bergama_zone_base: Data/assets/masterlastversion.svg  # r9 hand
