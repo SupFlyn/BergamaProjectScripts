@@ -89,3 +89,7 @@ selinus_board: Data/cutouts/
 selinus_board: Data/heritage_photos/
 selinus_board: rhino
 selinus_board: Data/bergama_dem_glo30.json  # r9 hand
+bergama_section_from_line: Data/bergama_water_board_data.py  # r9 hand
+bergama_section_from_line: Data/selinos_centreline.json  # r9 hand
+bergama_section_from_line: rhino  # r9 hand
+bergama_booklet: cached/booklet/bergama_section_from_line/  # r9 hand

@@ -10,6 +10,7 @@ chain: bergama_masterplan = MasterPlan
 chain: bergama_water_balance = WaterBalance
 chain: bergama_agriculture_alternatives = AgriCulture
 chain: bergama_water_board = WaterBoard
+chain: bergama_section_from_line = SectionFromLine
 chain: bergama_proposal_sections = ProposalSections
 chain: bergama_city_link = CityLink
 chain: bergama_b19_plan = B19Plan
