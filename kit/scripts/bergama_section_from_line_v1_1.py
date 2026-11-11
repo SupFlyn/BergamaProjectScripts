@@ -42,7 +42,8 @@ Writes ~/Downloads/Bergama/output/bergama_section_from_line/Section_<n>_seasons.
 import os, time, json, math, re
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v1.1"   # v1.1 fix (12 Nov press, booklet p13): the level texts stand right of the cut, spread apart, never on
+#                   the stairs, pergola or trees; the booklet gets the short form ("Q500 +46.19")
 GH_LABEL = "SectionFromLine"
 OUT_FOLDER = "bergama_section_from_line"
 LOG_NAME = "bergama_section_from_line_log.txt"
@@ -837,11 +838,41 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         E["handrail"](pg, S, s + side * 0.15, S.surf(s + side * 0.3))
     if with_text and placed:
         E["callouts"](pg, S, placed, S.Y(z_top) + 6.0, size)
+    spread_levels(E, pg, S, short=not with_text)
     y_band = S.Y(S.zb) - 6.0
     if with_text:
         band(E, pg, S, y_band - 9.0)
         y_band -= 9.0 + 12.0
     return pg, S, y_band
+
+
+def spread_levels(E, pg, S, short=False, gap=2.6):
+    """v1.1: the level texts (engine level_line puts them on the cut's right end, over the design) move just right of
+    the cut, top to bottom in level order, at least gap mm apart, each with a thin tick from the cut end"""
+    lv = [it for it in pg.items if it[0] == "text" and it[8] == "levels"]
+    if not lv:
+        return
+    x_end = S.X(S.hi)
+
+    def _sign(it):                                       # the engine's level sign (triangle + bar) at the cut end
+        if it[0] == "poly" and it[6] == "levels" and len(it[1]) == 1 and len(it[1][0]) == 3:
+            return all(x_end - 4.6 <= p[0] <= x_end - 1.4 for p in it[1][0])
+        if it[0] == "line" and it[5] == "levels" and len(it[1]) == 2 and abs(it[1][1][0] - it[1][0][0]) <= 1.7:
+            return all(x_end - 4.6 <= p[0] <= x_end - 1.4 for p in it[1]) and abs(it[1][1][1] - it[1][0][1]) < 1e-6
+        return False
+    pg.items = [it for it in pg.items if not (it[0] == "text" and it[8] == "levels") and not _sign(it)]
+    xr = x_end + 3.0
+    y_prev = None
+    for it in sorted(lv, key=lambda t: -t[3]):
+        txt = it[1].split(u" (")[0] if short else it[1]
+        y0 = it[3] - 0.6
+        y = y0 if y_prev is None else min(y0, y_prev - gap)
+        y_prev = y
+        pg.line([(x_end + 0.3, y0), (xr - 0.5, y)], it[5], 0.08, layer="levels")
+        X = xr + 1.3                                     # the level sign beside its value
+        pg.poly([[(X - 1.3, y + 1.9), (X + 1.3, y + 1.9), (X, y)]], fill=None, stroke=it[5], lw=0.2, layer="levels")
+        pg.line([(X - 0.8, y - 0.6), (X + 0.8, y - 0.6)], it[5], 0.2, layer="levels")
+        pg.text(txt, xr + 3.4, y - 0.4, it[4], it[5], bold=it[6], align="L", layer="levels")
 
 
 def band(E, pg, S, y, h=9.0):
@@ -1156,7 +1187,7 @@ def export_items(E, C, log):
             its.append(dict(id=u"%s_t%d" % (did, j + 1), page="p13", kind="text", role="label", priority=5,
                             group=did, string=s, anchor=dict(drawing=did, pt=P((x, y))), size_pt=6.0, min_pt=4.0,
                             bold=bool(bold), colour=color, short_forms=[], side_list_ok=False, justify=False,
-                            positions=["=" + (align or "L"), "W", "NW", "SW", "N", "S"]))
+                            positions=["=L", "E"]))
         n += 1
         log.append(u"booklet item %s: 1:%d, %d shapes, %d level texts, extent %.1f x %.1f m" % (
             did, den, sum(len(v) for v in layers.values()), len(texts), ext[2] - ext[0], ext[3] - ext[1]))

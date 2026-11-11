@@ -18,7 +18,7 @@ scripts/bergama_shared_sync_v2_2.py
 scripts/bergama_trace_assets_v1_1.py
 scripts/bergama_water_balance_v14.py
 scripts/bergama_water_board_v20_2.py
-scripts/bergama_section_from_line_v1.py
+scripts/bergama_section_from_line_v1_1.py
 scripts/bergama_zone_base_v12.py
 scripts/board_order.txt
 scripts/selinus_board_v67.py
