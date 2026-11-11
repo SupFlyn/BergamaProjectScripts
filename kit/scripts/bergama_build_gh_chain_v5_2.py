@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v5.1 (11 Nov 2026; v5.1 round 9 closing: after a run_after + force press, a chain script whose own log was not written during the press (the chain stopped before it) is logged "not run" and not recorded, so the next run_after runs it (v5 counted it as ran and a later run_after skipped it); v5 round 9 G9-7: the round 8 S5 v3.5 functions restored (chain_secs = each chained script's time from its own log, fail_reason = the first ERROR line of its log on every FAILED line, a recorded 0 s counts as unknown, processor times under 0.5 s use the fallback), and the log's second line says whether Bergama_Altlik.3dm is the open Rhino model; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v5.2 (12 Nov 2026; v5.2: a download that times out or breaks is tried 4 times (waits 2, 4, 8 s, 300 s read limit, 4 at a time); a file that still fails is a FLAG line and the old local copy is used, the press goes on; v5.1 round 9 closing: after a run_after + force press, a chain script whose own log was not written during the press (the chain stopped before it) is logged "not run" and not recorded, so the next run_after runs it (v5 counted it as ran and a later run_after skipped it); v5 round 9 G9-7: the round 8 S5 v3.5 functions restored (chain_secs = each chained script's time from its own log, fail_reason = the first ERROR line of its log on every FAILED line, a recorded 0 s counts as unknown, processor times under 0.5 s use the fallback), and the log's second line says whether Bergama_Altlik.3dm is the open Rhino model; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -43,7 +43,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v5.1"
+VERSION = "v5.2"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -85,7 +85,7 @@ def http(url, accept, token):
     hdr = {"Accept": accept, "User-Agent": "bergama-board-builder"}
     if token:
         hdr["Authorization"] = "Bearer " + token
-    with urllib.request.urlopen(urllib.request.Request(url, headers=hdr), timeout=120) as r:
+    with urllib.request.urlopen(urllib.request.Request(url, headers=hdr), timeout=300) as r:
         return r.read()
 
 
@@ -125,12 +125,20 @@ _COMMIT = [BRANCH]
 def fetch(it, dst, token):
     url = "https://raw.githubusercontent.com/%s/%s/%s" % (REPO, _COMMIT[0], "/".join(
         urllib.parse.quote(p) for p in it["path"].split("/")))
-    data = http(url, "*/*", token)
+    for n in range(4):                    # v5.2: a slow or broken download is tried again
+        try:
+            data = http(url, "*/*", token)
+            break
+        except Exception as e:
+            if n == 3:
+                return "%s (%s)" % (it["path"], e)
+            time.sleep(2 ** (n + 1))
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     tmp = dst + ".part"
     with open(tmp, "wb") as f:
         f.write(data)
     os.replace(tmp, dst)
+    return None
 
 
 def download(log):
@@ -152,12 +160,18 @@ def download(log):
         return None
     lp = local_path(lst["path"])
     if not (os.path.isfile(lp) and blob_sha(lp) == lst["sha"]):
-        fetch(lst, lp, token)
+        bad = fetch(lst, lp, token)
+        if bad:
+            log.append("FLAG download failed 4 times, the local copy is used: " + bad)
+            if not os.path.isfile(lp):
+                return None
     cc = cloud.get("scripts/" + CACHE_LIST)              # the speed-cache folder list: always taken, not a checklist line
     if cc is not None:
         cp = local_path(cc["path"])
         if not (os.path.isfile(cp) and blob_sha(cp) == cc["sha"]):
-            fetch(cc, cp, token)
+            bad = fetch(cc, cp, token)
+            if bad:
+                log.append("FLAG download failed 4 times, the local copy is used: " + bad)
     need = []
     for ln in open(lp, encoding="utf-8"):
         ln = ln.split("#", 1)[0].strip().replace("\\", "/")
@@ -179,11 +193,14 @@ def download(log):
             get.append((r, it, dst))
     if get:                                       # several at once (waiting on the network, not the PC)
         from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor(8) as ex:
-            list(ex.map(lambda x: fetch(x[1], x[2], token), get))
-        for r, it, dst in get:
-            got += 1
-            log.append("  downloaded " + r)
+        with ThreadPoolExecutor(4) as ex:
+            res = list(ex.map(lambda x: fetch(x[1], x[2], token), get))
+        for (r, it, dst), bad in zip(get, res):
+            if bad:
+                log.append("FLAG download failed 4 times, the local copy is used: " + bad)
+            else:
+                got += 1
+                log.append("  downloaded " + r)
     for n in missing:
         log.append("FLAG on the checklist but not in the cloud: " + n)
     for n in need:
