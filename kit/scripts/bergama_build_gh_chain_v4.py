@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v3.4 (8 Nov 2026; v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v4 (11 Nov 2026; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -17,6 +17,11 @@ Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
     a component that is already there (found by its name) keeps its place: only its code is replaced
     widgets: a value you set is never reset; a widget still at the old default moves to a new default; an input
     that changed kind (number -> True/False ...) gets a new widget; a new input gets a widget at its default
+    v4: a script with GH_INPUTS = {"name": "<type>[ list][ <min>..<max>][ = <default>]"} (types text, file, number,
+    int, bool, line, curve, point) gets exactly those inputs, each with its type hint, access and a box of its type
+    (text panel, File Path, Line, Curve, Point, Number / Integer box, slider over <min>..<max>, toggle); its other
+    inputs are taken off together with the builder's boxes on them; a typed box holding your data is never swapped.
+    Boxes sit in a stair beside their component (4 steps of 60 to the left, then back); boxes you moved stay put.
     a script taken out of board_order.txt: its component is unwired and renamed "REMOVED <name>", never deleted
 Adding, removing or reordering scripts only changes the files in kit/: this builder never needs a new version for it.
 
@@ -38,7 +43,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v3.4"
+VERSION = "v4"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -59,7 +64,8 @@ SOLO_DX, CHAIN_DX = 420.0, 1500.0      # left column x / chain start x, right of
 TOP_DY = 160.0                         # first row below the builder
 GAP_Y = 80.0                           # between solo components
 STEP_X, STEP_Y = 800.0, 80.0           # chain stair step
-WIDGET_DX = 300.0                      # widgets sit this far left of their component
+WIDGET_DX = 300.0                      # widgets sit this far left of their component (where boxes are first made)
+STAIR_N, STAIR_DX, STAIR_GAP = 4, 60.0, 30.0   # v4 input boxes: 4 steps of 60 to the left, 30 clear of the component
 LOG_DX, LOG_W, LOG_H = 40.0, 240.0, 110.0
 
 
@@ -266,6 +272,32 @@ def kind_of(v):
     return "panel"
 
 
+# v4 (Aras 11 Nov 2026 17:30-17:37 UTC: inputs had the wrong types): a script may list its inputs in
+# GH_INPUTS = {"name": "<type>[ list][ <min>..<max>][ = <default>]"}, types: text, file, number, int, bool, line, curve,
+# point. Then the component has exactly these inputs (others are taken off with their boxes), each with its type hint
+# and access, and each wired to the box of its type: text panel, File Path, Line, Curve, Point, Number / Integer
+# (no default) or a slider over <min>..<max> (with a default), a toggle for bool.
+HINT_OF = {"text": "str", "file": "str", "number": "float", "int": "int", "bool": "bool", "line": "Line",
+           "curve": "Curve", "point": "Point3d"}
+BOX_OF = {"text": "panel", "file": "file", "line": "line", "curve": "curve", "point": "point"}
+TYPED_BOXES = ("number", "integer", "file", "line", "curve", "point")
+
+
+def parse_spec(txt):
+    """'number list 0..1 = 0.5' -> {type, list, range, default}; None when it can't be read"""
+    m = re.match(r"\s*(\w+)(\s+list)?(?:\s+(-?[\d.]+)\s*\.\.\s*(-?[\d.]+))?(?:\s*=\s*(.*?))?\s*$", str(txt))
+    if not m or m.group(1).lower() not in HINT_OF:
+        return None
+    d = NO_VALUE
+    if m.group(5) is not None:
+        try:
+            d = ast.literal_eval(m.group(5))
+        except Exception:
+            d = m.group(5)
+    rng = (float(m.group(3)), float(m.group(4))) if m.group(3) is not None else None
+    return {"type": m.group(1).lower(), "list": bool(m.group(2)), "range": rng, "default": d}
+
+
 def parse_script(path):
     """{'label', 'version', 'inputs': [(name, kind, default)], 'outputs': [...]}"""
     src = open(path, encoding="utf-8-sig").read()
@@ -315,15 +347,37 @@ def parse_script(path):
         for name in consts.get(lst) or []:
             if isinstance(name, str):
                 add(name, None, NO_VALUE)
-    inputs = []
-    for name, kind, v in ins:
-        v = None if v is NO_VALUE else v
-        inputs.append((name, kind or kind_of(v), v))
+    inputs, spec = [], {}
+    decl = consts.get("GH_INPUTS")
+    if isinstance(decl, dict) and decl:                         # v4: the script lists its inputs with their types
+        found = dict((i[0].lower(), i) for i in ins)
+        for name, txt in decl.items():
+            sp = parse_spec(txt)
+            if sp is None or str(name).lower() == "run":
+                continue
+            old = found.get(str(name).lower())
+            v = sp["default"] if sp["default"] is not NO_VALUE else (old[2] if old else NO_VALUE)
+            v = None if v is NO_VALUE else v
+            if sp["type"] == "bool":
+                kind, v = "toggle", bool(v)
+            elif sp["type"] in ("number", "int"):
+                kind = "slider" if isinstance(v, (int, float)) and not isinstance(v, bool) else \
+                    ("number" if sp["type"] == "number" else "integer")
+            else:
+                kind = BOX_OF[sp["type"]]
+            inputs.append((str(name), kind, v))
+            spec[str(name)] = {"hint": HINT_OF[sp["type"]], "list": sp["list"], "range": sp["range"],
+                               "int": sp["type"] == "int"}
+    else:
+        for name, kind, v in ins:
+            v = None if v is NO_VALUE else v
+            inputs.append((name, kind or kind_of(v), v))
     for o in ("log", "done"):
         if o not in outs:
             outs.append(o)
     label = consts.get("GH_LABEL") if isinstance(consts.get("GH_LABEL"), str) else None
-    return {"label": label, "version": consts.get("VERSION", ""), "inputs": inputs, "outputs": outs, "code": src}
+    return {"label": label, "version": consts.get("VERSION", ""), "inputs": inputs, "outputs": outs, "code": src,
+            "spec": spec, "declared": bool(spec)}
 
 
 # ---------------------------------------------------------------- 3 the canvas
@@ -397,6 +451,32 @@ def add_param(comp, side, name, kind=None):
     return p
 
 
+def set_hint(p, hint):
+    """v4: the input's type hint (Rhino 8 script parameters; older Grasshopper hint classes as a fallback).
+    True when it took; False = the input keeps "No Type Hint" (every Bergama script reads its inputs either way)."""
+    th = getattr(p, "TypeHints", None)
+    if th is not None:
+        f = getattr(th, "Select", None)
+        if f is not None:
+            for h in (hint, hint.lower()):
+                try:
+                    if f(h) is not False:
+                        return True
+                except Exception:
+                    pass
+    try:
+        import Grasshopper.Kernel.Parameters.Hints as H
+        cls = {"str": "GH_StringHint_CS", "float": "GH_DoubleHint_CS", "int": "GH_IntegerHint_CS",
+               "bool": "GH_BooleanHint_CS", "Line": "GH_LineHint", "Curve": "GH_CurveHint",
+               "Point3d": "GH_Point3dHint"}[hint]
+        if hasattr(p, "TypeHint"):
+            p.TypeHint = getattr(H, cls)()
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def relayout(obj):
     obj.Attributes.ExpireLayout()
     obj.Attributes.PerformLayout()
@@ -410,7 +490,21 @@ def place(doc, obj, x, y):
     return obj
 
 
-def slider_spec(v):
+def decimals(v):
+    s = repr(float(v))
+    return 0 if float(v).is_integer() else min(3, len(s.split(".")[1]) if "." in s and "e" not in s else 2)
+
+
+def slider_spec(v, rng=None, whole=False):
+    """(min, max, decimals) of the slider for default v; rng = the script's own (min, max) (v4)"""
+    if rng:
+        lo, hi = rng
+        if whole:
+            return int(lo), int(hi), 0
+        dec = max(decimals(lo), decimals(hi), decimals(v))
+        if dec == 0 and hi - lo <= 10:
+            dec = 2 if hi - lo <= 1 else 1                       # a short range in tenths / hundredths
+        return lo, hi, dec
     if isinstance(v, float) and v.is_integer() and abs(v) < 1e9:
         v = int(v)                                            # 1000.0 -> whole-number slider at 1000
     if isinstance(v, int):
@@ -422,23 +516,61 @@ def slider_spec(v):
     return lo, hi, dec
 
 
-def make_widget(doc, name, kind, v, x, y):
+def box_class(kind):
+    from Grasshopper.Kernel import Parameters as GP
+    return {"number": GP.Param_Number, "integer": GP.Param_Integer, "file": GP.Param_FilePath,
+            "line": GP.Param_Line, "curve": GP.Param_Curve, "point": GP.Param_Point}[kind]
+
+
+def carry(kind, old):
+    """v4: what a swapped box keeps from the panel or slider before it (a number or path you typed), else None"""
+    if old is None or (isinstance(old, str) and not old.strip()):
+        return None
+    try:
+        if kind in ("slider", "number"):
+            return float(str(old).strip().replace(",", "."))
+        if kind == "integer":
+            return int(round(float(str(old).strip().replace(",", "."))))
+        if kind in ("file", "panel"):
+            return str(old).strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return None
+
+
+def make_widget(doc, name, kind, v, x, y, sp=None, keep=None):
+    sp = sp or {}
     if kind == "toggle":
         w = GH_BooleanToggle()
         w.NickName = name
         w.Value = bool(v)
     elif kind == "slider":
-        lo, hi, dec = slider_spec(v)
+        lo, hi, dec = slider_spec(v, sp.get("range"), sp.get("int"))
+        val = float(v)
+        if keep is not None:
+            val = keep
+            lo, hi = min(lo, keep), max(hi, keep)
         w = GH_NumberSlider()
         w.NickName = name
         w.Slider.Type = GH.GUI.Base.GH_SliderAccuracy.Float if dec else GH.GUI.Base.GH_SliderAccuracy.Integer
         w.Slider.DecimalPlaces = dec
         w.Slider.Minimum = System.Decimal(lo)
         w.Slider.Maximum = System.Decimal(hi)
-        w.Slider.Value = System.Decimal(float(v))
+        w.Slider.Value = System.Decimal(float(val))
+    elif kind in TYPED_BOXES:                                     # v4: an empty box of the input's own type
+        w = box_class(kind)()
+        w.NickName = name
+        if keep is not None:
+            from Grasshopper.Kernel import Types as GT
+            goo = {"number": lambda k: GT.GH_Number(float(k)), "integer": lambda k: GT.GH_Integer(int(k)),
+                   "file": lambda k: GT.GH_String(str(k))}.get(kind)
+            if goo is not None:
+                w.PersistentData.Append(goo(keep))
     else:
         w = GH_Panel()
         txt = "" if v is None or isinstance(v, (list, tuple, dict, set)) else str(v)
+        if keep is not None:
+            txt = keep
         w.NickName = name if txt else name + " (optional)"
         w.UserText = txt
         try:
@@ -451,14 +583,28 @@ def make_widget(doc, name, kind, v, x, y):
     return w
 
 
-def widget_kind(w):
+def widget_kind(w, name=None):
+    """the builder's box kinds; a typed box (Number, Line ...) counts only when it carries the input's name"""
     if isinstance(w, GH_BooleanToggle):
         return "toggle"
     if isinstance(w, GH_NumberSlider):
         return "slider"
     if isinstance(w, GH_Panel):
         return "panel"
+    for k in TYPED_BOXES:
+        try:
+            if type(w) == box_class(k) and (name is None or str(w.NickName).lower() == name.lower()):
+                return k
+        except Exception:
+            pass
     return None
+
+
+def box_data(w):
+    try:
+        return [str(g) for g in w.PersistentData.AllData(True)]
+    except Exception:
+        return []
 
 
 def widget_value(w):
@@ -469,6 +615,8 @@ def widget_value(w):
         return float(System.Decimal.ToDouble(w.Slider.Value))
     if k == "panel":
         return str(w.UserText or "")
+    if k in TYPED_BOXES:
+        return "|".join(box_data(w))
     return None
 
 
@@ -494,9 +642,27 @@ def set_widget_value(w, kind, v):
         if System.Decimal(hi) > w.Slider.Maximum:
             w.Slider.Maximum = System.Decimal(hi)
         w.Slider.Value = System.Decimal(float(v))
-    else:
+    elif kind == "panel":
         w.UserText = "" if v is None or isinstance(v, (list, tuple, dict)) else str(v)
     w.ExpireSolution(False)
+
+
+def slider_range(w, v, sp):
+    """v4: a kept slider takes the script's own range and decimals; its value stays (inside the range)"""
+    lo, hi, dec = slider_spec(v, sp.get("range"), sp.get("int"))
+    val = float(System.Decimal.ToDouble(w.Slider.Value))
+    lo, hi = min(lo, val), max(hi, val)
+    acc = GH.GUI.Base.GH_SliderAccuracy.Float if dec else GH.GUI.Base.GH_SliderAccuracy.Integer
+    if (w.Slider.Type, int(w.Slider.DecimalPlaces), float(System.Decimal.ToDouble(w.Slider.Minimum)),
+            float(System.Decimal.ToDouble(w.Slider.Maximum))) == (acc, dec, float(lo), float(hi)):
+        return False
+    w.Slider.Type = acc
+    w.Slider.DecimalPlaces = dec
+    w.Slider.Minimum = System.Decimal(lo)
+    w.Slider.Maximum = System.Decimal(hi)
+    w.Slider.Value = System.Decimal(val)
+    w.ExpireSolution(False)
+    return True
 
 
 def input_y(comp, p):
@@ -504,37 +670,79 @@ def input_y(comp, p):
     return float(p.Attributes.Pivot.Y) - 10.0
 
 
-def fit_inputs(doc, comp, info, old_defaults, counts):
-    """inputs + widgets of one component; returns {input: default} as now applied"""
+def drop_input(doc, comp, p):
+    """v4: an input the script no longer has: off the component, with the builder's box if nothing else uses it"""
+    for w in list(p.Sources):
+        p.RemoveSource(w)
+        if widget_kind(w, pname(p)) and w.Recipients.Count == 0:
+            doc.RemoveObject(w, False)
+    comp.Params.UnregisterInputParameter(p, True)
+
+
+def fit_inputs(doc, comp, info, old_defaults, counts, fresh, hints, hint_fail):
+    """inputs + widgets of one component; returns {input: default} as now applied. fresh = boxes made this press
+    (the stair places them); hints = {input: hint} already set on this component (updated here)"""
     applied = {}
     x = float(comp.Attributes.Pivot.X) - WIDGET_DX
+    spec = info.get("spec") or {}
+    if info.get("declared"):
+        want = set(n.lower() for n, _, _ in info["inputs"]) | {"run"}
+        for p in list(comp.Params.Input):
+            if pname(p).lower() not in want:
+                drop_input(doc, comp, p)
+                counts["inputs removed (the script no longer has them)"] += 1
+        comp.Params.OnParametersChanged()
     for name, kind, v in info["inputs"]:
         applied[name] = v
+        sp = spec.get(name) or {}
         p = find_param(comp.Params.Input, name)
-        if p is None:
+        new_p = p is None
+        if new_p:
             p = add_param(comp, GH_ParameterSide.Input,
-                          name, "list" if isinstance(v, (list, tuple)) else None)
+                          name, "list" if isinstance(v, (list, tuple)) or sp.get("list") else None)
             comp.Params.OnParametersChanged()
             counts["inputs added"] += 1
+        if sp:
+            acc = GH_ParamAccess.list if sp["list"] else GH_ParamAccess.item
+            if p.Access != acc:
+                p.Access = acc
+                counts["inputs set to list / item access"] += 1
+            if new_p or hints.get(name) != sp["hint"]:
+                if set_hint(p, sp["hint"]):
+                    hints[name] = sp["hint"]
+                    counts["type hints set"] += 1
+                else:
+                    hints.pop(name, None)
+                    hint_fail.append("%s.%s (%s)" % (comp.NickName, name, sp["hint"]))
         w = p.Sources[0] if p.SourceCount else None
-        wk = widget_kind(w) if w is not None else None
+        wk = widget_kind(w, name) if w is not None else None
         if w is None:
-            p.AddSource(make_widget(doc, name, kind, v, x, input_y(comp, p)))
+            nw = make_widget(doc, name, kind, v, x, input_y(comp, p), sp)
+            p.AddSource(nw)
+            fresh.add(nw.InstanceGuid)
             counts["widgets added"] += 1
         elif wk is None:
             continue                                              # wired to something else: yours, left alone
         elif wk != kind:
+            if wk in TYPED_BOXES and box_data(w):
+                counts["boxes kept (they hold your data)"] += 1
+                continue
             pv = w.Attributes.Pivot
+            keep = carry(kind, widget_value(w)) if wk in ("panel", "slider") else None
             p.RemoveSource(w)
             if w.Recipients.Count == 0:
                 doc.RemoveObject(w, False)
-            p.AddSource(make_widget(doc, name, kind, v, pv.X, pv.Y))
+            nw = make_widget(doc, name, kind, v, pv.X, pv.Y, sp, keep)
+            p.AddSource(nw)
+            fresh.add(nw.InstanceGuid)
             counts["widgets swapped (input changed kind)"] += 1
         elif name in old_defaults and not same_default(old_defaults[name], v, kind) \
                 and same_default(widget_value(w), old_defaults[name], kind):
             set_widget_value(w, kind, v)                          # never touched by you: follows the new default
             counts["widgets moved to a new default"] += 1
         else:
+            if kind == "slider" and sp.get("range") and slider_range(w, v, sp):
+                counts["slider ranges set from the script"] += 1
             counts["widgets kept as you set them"] += 1
     for o in info["outputs"]:
         if find_param(comp.Params.Output, o) is None:
@@ -542,6 +750,51 @@ def fit_inputs(doc, comp, info, old_defaults, counts):
     comp.VariableParameterMaintenance()
     comp.Params.OnParametersChanged()
     return applied
+
+
+def stair(comp, fresh, old_xy, counts):
+    """v4 (Aras 11 Nov 17:33 UTC "stair like layout to save space"): every box of the builder beside the component,
+    level with its own input, STAIR_N steps of STAIR_DX to the left and back, each box one row high; a box that
+    would touch one already placed steps further left. Moved: boxes made this press, boxes still where the builder
+    put them last time, and the builder's older boxes still at their first place. Boxes you moved stay.
+    Returns {input: [left, top]} of the boxes it placed."""
+    relayout(comp)
+    right = float(comp.Attributes.Bounds.Left) - STAIR_GAP
+    placed, out, row = [], {}, 0
+    for p in comp.Params.Input:
+        name = pname(p)
+        if name.lower() == "run":
+            continue
+        row += 1
+        if p.SourceCount != 1:
+            continue
+        w = p.Sources[0]
+        if not widget_kind(w, name) or w.Recipients.Count != 1:
+            continue
+        relayout(w)
+        b = w.Attributes.Bounds
+        rec = old_xy.get(name)
+        if not (w.InstanceGuid in fresh or (rec and abs(b.Left - rec[0]) < 2 and abs(b.Top - rec[1]) < 2) or
+                (rec is None and abs(w.Attributes.Pivot.X - (comp.Attributes.Pivot.X - WIDGET_DX)) < 2)):
+            counts["boxes you moved, left where they are"] += 1
+            continue
+        pb = p.Attributes.Bounds
+        top = float(pb.Top + pb.Height / 2.0 - b.Height / 2.0)
+        col = (row - 1) % STAIR_N
+        for k in range(24):
+            left = right - (col + k) * STAIR_DX - b.Width
+            r = System.Drawing.RectangleF(float(left), top, b.Width, b.Height)
+            if not any(r.IntersectsWith(q) for q in placed):
+                break
+        w.Attributes.Pivot = PT(float(w.Attributes.Pivot.X + left - b.Left), float(w.Attributes.Pivot.Y + top - b.Top))
+        if isinstance(w, GH_Panel):
+            w.Attributes.Bounds = System.Drawing.RectangleF(float(left), top, b.Width, b.Height)
+        relayout(w)
+        nb = w.Attributes.Bounds
+        placed.append(System.Drawing.RectangleF(nb.Left, nb.Top, nb.Width, nb.Height))
+        out[name] = [float(nb.Left), float(nb.Top)]
+        counts["boxes placed in the stair"] += 1
+    return out
 
 
 def code_of(info):
@@ -596,7 +849,11 @@ def build(doc, me, scripts, state, log):
     proxy = py3_proxy()
     counts = {k: 0 for k in ("components added", "code replaced", "code unchanged", "inputs added",
                              "widgets added", "widgets kept as you set them", "widgets moved to a new default",
-                             "widgets swapped (input changed kind)", "renamed REMOVED")}
+                             "widgets swapped (input changed kind)", "inputs removed (the script no longer has them)",
+                             "inputs set to list / item access", "type hints set", "slider ranges set from the script",
+                             "boxes kept (they hold your data)", "boxes placed in the stair",
+                             "boxes you moved, left where they are", "renamed REMOVED")}
+    hints_all, xy_all, hint_fail, new_xy = state.get("hints", {}), state.get("box_xy", {}), [], {}
     have = comps_by_nick(doc)
     bx, by = float(me.Attributes.Pivot.X), float(me.Attributes.Pivot.Y)
     defaults = state.get("defaults", {})
@@ -615,11 +872,15 @@ def build(doc, me, scripts, state, log):
             if c is None:
                 if nick.endswith(" solo"):
                     c = new_component(doc, proxy, nick, s, bx + SOLO_DX, solo_y)
+                    hints_all.pop(nick, None)                       # a new component: nothing set on it yet
+                    xy_all.pop(nick, None)
                 else:
                     if last_chain is not None:
                         cx = float(last_chain.Attributes.Pivot.X) + STEP_X
                         cy = float(last_chain.Attributes.Pivot.Y) + STEP_Y
                     c = new_component(doc, proxy, nick, s, cx, cy)
+                    hints_all.pop(nick, None)
+                    xy_all.pop(nick, None)
                 counts["components added"] += 1
                 have[nick] = c
                 changed.append(nick)
@@ -631,7 +892,9 @@ def build(doc, me, scripts, state, log):
                     c.ExpireSolution(False)
                     counts["code replaced"] += 1
                     changed.append(nick)
-            new_defaults[nick] = fit_inputs(doc, c, s, defaults.get(nick, {}), counts)
+            fresh, hints = set(), hints_all.setdefault(nick, {})
+            new_defaults[nick] = fit_inputs(doc, c, s, defaults.get(nick, {}), counts, fresh, hints, hint_fail)
+            new_xy[nick] = stair(c, fresh, xy_all.get(nick, {}), counts)
             if nick.endswith(" solo"):
                 button_on(doc, c, s["label"] + " Button")
                 solo_y = max(solo_y, float(c.Attributes.Bounds.Bottom) + GAP_Y)
@@ -661,6 +924,11 @@ def build(doc, me, scripts, state, log):
             c.NickName = "REMOVED " + nick
             counts["renamed REMOVED"] += 1
     state["defaults"], state["placed"] = new_defaults, placed
+    state["hints"] = dict((n, h) for n, h in hints_all.items() if n in placed)
+    state["box_xy"] = new_xy
+    if hint_fail:
+        log.append("FLAG type hint not set on %d inputs (they work without one): %s" % (len(hint_fail),
+                                                                                     ", ".join(hint_fail[:12])))
     state["code_sha"] = {n: next(s["sha"] for s in scripts if n in (s["label"], s["label"] + " solo")) for n in placed}
     for k, v in counts.items():
         log.append("%-40s %d" % (k, v))
