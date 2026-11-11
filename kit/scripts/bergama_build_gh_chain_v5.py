@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v4 (11 Nov 2026; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v5 (11 Nov 2026; v5 round 9 G9-7: the round 8 S5 v3.5 functions restored (chain_secs = each chained script's time from its own log, fail_reason = the first ERROR line of its log on every FAILED line, a recorded 0 s counts as unknown, processor times under 0.5 s use the fallback), and the log's second line says whether Bergama_Altlik.3dm is the open Rhino model; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -43,7 +43,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v4"
+VERSION = "v5"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -1143,10 +1143,57 @@ def flush_log(log, note=""):
 
 
 def proc_secs(c, fallback):
+    """the component's processor time; under 0.5 s (a chained solve reads about 0) the fallback (v5, S5)"""
     try:
-        return float(c.ProcessorTime.TotalSeconds)
+        s = float(c.ProcessorTime.TotalSeconds)
     except Exception:
         return fallback
+    return s if s >= 0.5 else fallback
+
+
+def script_log(it):
+    """the script's own log: Downloads/Bergama/logs/<board_order prefix>_log.txt (v5, S5)"""
+    return os.path.join(LOG_DIR, it["prefix"] + "_log.txt")
+
+
+def log_mtime(it):
+    """when the script's own log was last written (time.time() seconds), None when there is no log"""
+    try:
+        return os.path.getmtime(script_log(it))
+    except OSError:
+        return None
+
+
+def chain_secs(items, t_start, total):
+    """{label: seconds} after one Chain Button press (v5, S5 G6): a script's log time minus the end of the one
+    before it (the first one: minus the press start), only for logs written after the press started; else its
+    processor time, else the whole chain's time shared out"""
+    out, prev = {}, t_start
+    for it in items:
+        m = log_mtime(it)
+        if m is not None and m >= t_start:
+            out[it["label"]] = max(0.0, m - prev)
+            prev = m
+        else:
+            out[it["label"]] = proc_secs(it["chain"], total / max(1, len(items)))
+    return out
+
+
+def fail_reason(it, t_start, done_text):
+    """why a script failed, for its FAILED line (v5, S5 G7): the first line of its own log that starts with ERROR
+    (marked "(log from HH:MM)" when that log is older than this run), else the text it put on done; 150 chars"""
+    m = log_mtime(it)
+    if m is not None:
+        try:
+            with open(script_log(it), encoding="utf-8", errors="replace") as f:
+                for ln in f:
+                    ln = ln.strip()
+                    if ln.startswith("ERROR"):
+                        old = " (log from %s)" % time.strftime("%H:%M", time.localtime(m)) if m < t_start else ""
+                        return ln[:150] + old
+        except Exception:
+            pass
+    return (done_text or "no done text").replace("\r", " ").replace("\n", " ").strip()[:150]
 
 
 _ABORT = [None]                                   # set by run_needed: ends the pass with an ERROR line
@@ -1207,7 +1254,7 @@ def run_needed(doc, me, queue, force, log, finish):
         files = [f for x in lst for f in prints.files_of(x)]
         _, nbytes = prints.to_hash(files)
         est = nbytes / (HASH_GBPS * 1e9 * max(1, (os.cpu_count() or 2) - 1))
-        if est > 1.0 and r.get("secs", 1e9) < est:
+        if est > 1.0 and (r.get("secs") or 1e9) < est:     # v5: a recorded 0 s (old chain records) = unknown
             return True, "a run (%.0f s) is quicker than checking (%.0f s)" % (r["secs"], est), 0.0
         now = prints.of(lst)
         old = r.get("reads", {})
@@ -1253,8 +1300,8 @@ def run_needed(doc, me, queue, force, log, finish):
             press(tb, False)
             if dn is not None and not dn.startswith("done"):
                 tally["failed"] += 1
-                log.append("  FAILED  %-18s %s (check %.2f s, %.0f s): not recorded, runs again next time"
-                           % (it["label"], why, dt, secs))
+                log.append("  FAILED  %-18s %s (check %.2f s, %.0f s): not recorded, runs again next time: %s"
+                           % (it["label"], why, dt, secs, fail_reason(it, t, dn)))
             else:
                 tally["ran"] += 1
                 record(it, secs)
@@ -1274,12 +1321,14 @@ def run_needed(doc, me, queue, force, log, finish):
         press(tb, True)
         total = time.time() - t
         press(tb, False)
+        cs = chain_secs(items, t, total)              # v5: each script's time from its own log
         for it in items:
             dn = done_of(it["chain"])
-            secs = proc_secs(it["chain"], total / len(items))
+            secs = cs[it["label"]]
             if dn is not None and not dn.startswith("done"):
                 tally["failed"] += 1
-                log.append("  FAILED  %-18s force, chain (%.0f s): not recorded, runs again next time" % (it["label"], secs))
+                log.append("  FAILED  %-18s force, chain (%.0f s): not recorded, runs again next time: %s"
+                           % (it["label"], secs, fail_reason(it, t, dn)))
             else:
                 tally["ran"] += 1
                 record(it, secs)
@@ -1479,11 +1528,30 @@ def cache_up(log):
 
 # ---------------------------------------------------------------- main
 _T0 = [0.0]
+MODEL_NAME = "Bergama_Altlik.3dm"     # Aras opens it in Rhino by hand before the press (RUN_GUIDE); never opened here
+
+
+def model_line():
+    """v5 (round 9 D2): is Bergama_Altlik.3dm the open Rhino model? Without it ZoneBase and MainBoard use their
+    built-in copies of calisma_alan and site_alan"""
+    names = []
+    try:
+        import Rhino
+        doc = Rhino.RhinoDoc.ActiveDoc
+        if doc is not None:
+            names = [str(doc.Name or ""), os.path.basename(str(doc.Path or ""))]
+    except Exception:
+        pass
+    want = os.path.splitext(MODEL_NAME)[0].lower()
+    if any(os.path.splitext(n)[0].lower() == want for n in names if n):
+        return "model %s open" % MODEL_NAME
+    return "model fallback copy (%s not open)" % MODEL_NAME
 
 
 def main(me, run_after=False, force=False):
     t0 = _T0[0] = time.time()
     log = ["%s %s" % (GH_LABEL, VERSION)]
+    log.append(model_line())
     for d in (SCRIPTS_DIR, DATA_DIR, CACHE_DIR, LOG_DIR):
         os.makedirs(d, exist_ok=True)
     try:
