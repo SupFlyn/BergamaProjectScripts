@@ -1,9 +1,17 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v65.py = v65 (round 8 S1, 9 Nov 2026: see NEW IN v65); earlier: v61 (round 6 S3, 4 Nov 2026: final 22-page ids; p04/p05 notes per cut + one true scale; p07 narrower column; p08 street cuts R1-R4 ACCURATE as four items + module key map + street_cuts.json; p19 heritage brown ramp; G6-4 plan marks, G6-5 key maps, G6-6 hue table, G6-9 groups, G6-10 tree species); v60.3 (fix 2 Nov: key map run warnings); v60.2 (fix 2 Nov: p04/p05 one booklet drawing per cut + key map items + legend item; p09 project trees set back (layer 1); no widths: zone ticks/cm, street call cm, bed width, p07 band); v60.1 (closing fix 2 Nov: p02 mark pages 23-page, p04/p05 key map log); v60 (round 5 S7, 2 Nov 2026: the booklet gets items, not sheet crops; no text-check stops, no sheet PDFs; what changed: NEW IN v60 below)
+# CURRENT VERSION: selinus_board_v66.py = v66 (11 Nov 2026: see NEW IN v66); earlier: v65 (round 8 S1, 9 Nov 2026: see NEW IN v65); v61 (round 6 S3, 4 Nov 2026: final 22-page ids; p04/p05 notes per cut + one true scale; p07 narrower column; p08 street cuts R1-R4 ACCURATE as four items + module key map + street_cuts.json; p19 heritage brown ramp; G6-4 plan marks, G6-5 key maps, G6-6 hue table, G6-9 groups, G6-10 tree species); v60.3 (fix 2 Nov: key map run warnings); v60.2 (fix 2 Nov: p04/p05 one booklet drawing per cut + key map items + legend item; p09 project trees set back (layer 1); no widths: zone ticks/cm, street call cm, bed width, p07 band); v60.1 (closing fix 2 Nov: p02 mark pages 23-page, p04/p05 key map log); v60 (round 5 S7, 2 Nov 2026: the booklet gets items, not sheet crops; no text-check stops, no sheet PDFs; what changed: NEW IN v60 below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v66 (11 Nov 2026, Aras 17:30-17:40 UTC "inputs in these are wrong type ... remove everything that trusts survey
+analysis"): GH_INPUTS lists every input with its type, so the board builder v4 gives each its own box and type hint
+(section lines = Line, frame / focus / spine ... = Curve, attractors = Point, sheet_mm a slider 50-5000).
+Inputs removed: osm_path, places_path, env_path, landcover_path (always Data/), channel_depth, water_depth,
+water_levels, wall_height (always the survey analysis: bed levels, approximate water depth, DSİ wall 5 m),
+noise_points, noise_db (the modelled sound only), environment, layout, hour (did nothing). An empty typed box is
+"not given" (no picks-missing warning). Nothing else changed.
 
 NEW IN v65 (round 8 S1, 9 Nov 2026; nothing run, D9): p02 plan 01 draws no cut marks of other pages' cuts
 (P02_CUT_MARKS False, D3); p03 the stream's in-plane name leaves at its page size (~6.5 pt, was 58 pt: metres read as
@@ -292,18 +300,16 @@ PERIOD AVERAGES (v16): every technical map and section is an average over a peri
              (daylight by default); UTCI also as the share of those hours in each heat-stress class
   surface heat   the mean of every clear Landsat scene of each season; sound   Lden (a yearly level)
 
-INPUTS (rename on the component). Type hints are not needed (v16.1): every input works with "No Type Hint" and on
-Item or List Access, and paths may be typed with or without quotes. On the first run the component sets itself up:
-the section and noise inputs are switched to List Access and the missing inputs below and the "info" output are
-added (press the button again after that).
-  osm_path       str                 bergama_osm.osm (empty = Downloads/Bergama/Data/)
-  places_path    str                 bergama_places.geojson (empty = Downloads/Bergama/Data/)
-  section_lines  Curve, LIST ACCESS  any number of lines across the stream (Top view); one land-use section each.
-                                     Empty = section placeholders on the pages
+INPUTS (v66: GH_INPUTS below lists them with their types; the board builder v4 makes them with their type hints and
+boxes). Every input still works with "No Type Hint" and on Item or List Access. The files always come from
+Downloads/Bergama/Data/ (bergama_osm.osm, bergama_places.geojson, bergama_environment.json, the land cover file) and
+the depths, water levels and walls from the survey analysis: there are no inputs for them (v66).
   run            bool                Button (v37; bake / build also work). The script does NOTHING until the button is pressed; each press
                                      reads the file, analyses and bakes once (styled vectors: hatches, curves, text;
                                      the technical sheets add their rendered maps as picture frames)
-TECHNICAL SECTION INPUTS (Curve, LIST ACCESS, Top view; any number of lines each; drawn when run is technical/both):
+  section_lines  Line, LIST ACCESS   any number of lines across the stream (Top view); one land-use section each.
+                                     Empty = section placeholders on the pages
+TECHNICAL SECTION INPUTS (Line, LIST ACCESS, Top view; any number of lines each; drawn when run is technical/both):
   sound_sections  Lden and the day, evening and night levels in the plane of each line
   heat_sections   Landsat surface temperature along the ground, roofs and water under each line, four seasons
   shade_sections  hours out of the sun at every point of the plane: the four key days and the mean day of the year
@@ -315,21 +321,13 @@ TECHNICAL SECTION INPUTS (Curve, LIST ACCESS, Top view; any number of lines each
 OPTIONAL INPUTS:
   frame          Curve   closed rectangle (any rotation) = study area. Empty = the analysis range, SITE_FRAME_LK (v36)
                          (tightest rotated rectangle around its buildings and stream banks)
-  layout         str     v33: no longer used; the button always builds the separate drawings (Aras Q13)
   title, subtitle, credit  str
-  channel_depth  float   stream bed depth below the banks, if you measured it on site: overrides the depth
-                         interpolated from the surveyed bed levels                (empty = from the survey)
   mode           str     (v37: was run) what the button builds: "drawings" (land-use pages, sections and drawings),
-                         "technical" (only the analyses and their sections; needs env_path) or "both" (default when
-                         env_path is given, v26; without it the land-use part only).
+                         "technical" (only the analyses and their sections) or "both" (default when the environment
+                         file is in Data/; without it the land-use part only).
                          0 / 1 / 2 also work, so a Value List or slider can drive it
-  environment    bool    (older switch) True = "both" when run is empty
-  env_path       str     bergama_environment.json (version 2): weather year, terrain horizons, Landsat seasons,
-                         tree crowns with their leaf types. Version 1 still works for sound, heat, shade and
-                         radiation (wind, air and felt temperature need the hourly weather of version 2)
   focus          Curve   area for the radiation sheet (default v16.5: the whole frame; v16.4 took the densest
                          420 x 210 m stretch of the stream)
-  noise_points   Point   (list) where you measured sound on site; noise_db: the LAeq values, same order
   noise_palette  str     sound band colours: empty = one graded run, pale green (quiet) to deep maroon (loud), each
                          band darker than the one before (default, v16.4); "brussels" (the colour order of the Brussels
                          noise map, green, yellow, red, then blue and violet, over 11 DIN-style 5 dB classes 35-80 dB(A):
@@ -337,8 +335,9 @@ OPTIONAL INPUTS:
                          draft) or "din" (DIN 18005-2 classic)
   hours          str     the hours the wind, air and felt temperature means take: "daylight" (default, sun above
                          the horizon), "all" (day and night) or a local range such as "10-17" (added on first run)
-  sheet_mm       float   printed page width in mm                              (406.4 = 16:9 at 16 in)
+  sheet_mm       float   printed page width in mm, slider 50-5000                (406.4 = 16:9 at 16 in)
   texture        bool    trees, shadows, seams, hatching                       (True)
+  pdf, rhino_bake  bool  vector PDFs (True) / keep the baked drawings in Rhino (False)
   spine, spine_car, bridges, car_closed   Curves (list)   v33: a proposal for the movement potential (drawing 07):
                          a walking spine (joins the streets it crosses), a street that also carries cars, footbridges
                          (joined at their ends), streets made car-free. attractors  Points (list): new destinations.
@@ -674,9 +673,9 @@ except Exception:
 
 # ============================================================ INPUTS
 LOG = []
-SCRIPT_VERSION = "selinus_board v65 (2026-11-09)"  # v65 (round 8 S1, 9 Nov): see NEW IN v65; v64 (8 Nov, Aras): no backward reads: the spine and stops from the built-in table (= city link and masterplan common/city_spine.py), roads from common/data/ROADS.py, no masterplan_results.json / city_link_results.json read; the section notes' masterplan link is written by the masterplan (section_link_points.json); the unplaced "Section along the spine" drawing is left out; v63.1 fix (5 Nov run): v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
+SCRIPT_VERSION = "selinus_board v66 (2026-11-11)"  # v66 (11 Nov, Aras): typed inputs (GH_INPUTS), inputs taken from Data/ or the survey analysis removed; v65 (round 8 S1, 9 Nov): see NEW IN v65; v64 (8 Nov, Aras): no backward reads: the spine and stops from the built-in table (= city link and masterplan common/city_spine.py), roads from common/data/ROADS.py, no masterplan_results.json / city_link_results.json read; the section notes' masterplan link is written by the masterplan (section_link_points.json); the unplaced "Section along the spine" drawing is left out; v63.1 fix (5 Nov run): v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v65"                                       # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v66"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -825,7 +824,10 @@ def input_wired(name):
     try:
         for p_ in ghenv.Component.Params.Input:                      # noqa: F821 (ghenv exists in Grasshopper)
             if name in (str(getattr(p_, "NickName", "")), str(getattr(p_, "Name", ""))):
-                return p_.SourceCount > 0 or bool(getattr(p_, "PersistentDataCount", 0))
+                if bool(getattr(p_, "PersistentDataCount", 0)):
+                    return True
+                # v66: an empty typed box (Line, Curve, Point ... from the board builder v4) = nothing given
+                return any(int(getattr(s_, "VolatileDataCount", 1)) > 0 for s_ in p_.Sources)
     except Exception:
         pass
     return False
@@ -933,8 +935,8 @@ def data_file(name):
     return p if os.path.isfile(p) else None
 
 
-OSM_PATH = clean_path(inp("osm_path", None), "osm_path") or data_file("bergama_osm.osm")
-PLACES_PATH = clean_path(inp("places_path", None), "places_path") or data_file("bergama_places.geojson")
+OSM_PATH = data_file("bergama_osm.osm")   # v66 (Aras 11 Nov 2026 17:30-17:40 UTC): no input; always Data/
+PLACES_PATH = data_file("bergama_places.geojson")   # v66 (Aras 11 Nov 2026 17:30-17:40 UTC): no input; always Data/
 SEC_IN = inp("section_lines", [])
 try:
     SEC_IN = [c for c in SEC_IN if c is not None]
@@ -951,6 +953,14 @@ for _k in TSEC_KEYS:
         TSEC_IN[_k] = [_v]
 TSEC = dict((k, []) for k in TSEC_KEYS)      # the same lines in survey coordinates (set by pipeline)
 KNOWN_INPUTS = set(['spine', 'spine_car', 'bridges', 'car_closed', 'attractors', 'rhino_bake', 'mode', 'channel_depth', 'credit', 'env_path', 'environment', 'focus', 'frame', 'hour', 'hours', 'layout', 'noise_db', 'noise_palette', 'noise_points', 'osm_path', 'pdf', 'places_path', 'section_lines', 'sheet_mm', 'subtitle', 'texture', 'title', 'wall_height', 'water_depth', 'water_levels'])          # v30: this script's named inputs (anything else may be the Button); v50 (MIRAQUA 28 Oct, bank depth 1b): + wall_height
+# v66 (Aras 11 Nov 2026 17:30-17:40 UTC): every input with its type, read by the board builder v4 (box + type hint)
+GH_INPUTS = {"section_lines": "line list", "frame": "curve", "title": "text", "subtitle": "text", "credit": "text",
+             "sheet_mm": "number 50..5000 = 406.4", "texture": "bool = True", "pdf": "bool = True",
+             "rhino_bake": "bool = False", "noise_palette": "text", "focus": "curve", "hours": "text = 'daylight'",
+             "mode": "text", "attractors": "point list", "spine": "curve list", "spine_car": "curve list",
+             "bridges": "curve list", "car_closed": "curve list", "sound_sections": "line list",
+             "heat_sections": "line list", "shade_sections": "line list", "solar_sections": "line list",
+             "wind_sections": "line list", "air_sections": "line list", "felt_sections": "line list"}
 DO_BAKE = to_bool(trig_get(trig_button(KNOWN_INPUTS)))   # v59 (round 4): the Button found by common/trigger.py
 FRAME_IN = inp("frame", None)
 FRAME_FROM_LAYER = [False]                            # v36: the frame came from layer site_alan (set per press)
@@ -958,11 +968,8 @@ TITLE = str(inp("title", "THE SELINUS SEAM"))
 SUBTITLE = str(inp("subtitle", "Land use and the grain of Bergama along the Selinus: what stands, what opens, "
                                "and where the water meets the town"))
 CREDIT = str(inp("credit", u"Group 6 · Aras Özkaymakcı · Begüm Arslan · Nil Çetin"))   # 25 Oct: spelt as on the other sheets
-CH_DEPTH = to_float(inp("channel_depth", None), None, "channel_depth")   # None = from the surveyed bed levels
-if CH_DEPTH is not None and not (0.0 < CH_DEPTH < 30.0):
-    LOG.append("WARNING: channel_depth {} m is outside 0-30 m and was ignored.".format(CH_DEPTH))
-    CH_DEPTH = None
-WATER_LEVELS_IN = inp("water_levels", None)
+CH_DEPTH = None          # v66 (Aras 11 Nov 2026 17:37-17:40 UTC): no input: always from the surveyed bed levels
+WATER_LEVELS_IN = None   # v66: no input: the water surface comes from the survey analysis
 SHEET_MM = to_float(inp("sheet_mm", 406.4), 406.4, "sheet_mm")
 if not (50.0 <= SHEET_MM <= 5000.0):
     LOG.append("WARNING: sheet_mm {} is outside 50-5000 mm; 406.4 used.".format(SHEET_MM))
@@ -986,7 +993,7 @@ WATER_DEPTH_APPROX = 0.15                            # m above the bed: APPROXIM
 WATER_DEPTH = WATER_DEPTH_APPROX                     # replaced by the water_depth input below
 WATER_SRC = "approx"                                 # "approx", "input" or (per point) "measured"
 # v50 bugfix: the water_depth input is read after the approximate default (it was read before and then overwritten)
-_wd = to_float(inp("water_depth", None), None, "water_depth")
+_wd = None                                           # v66 (Aras 11 Nov 2026): no water_depth input (analysis only)
 if _wd is not None:
     if 0.0 <= _wd < 10.0:
         WATER_DEPTH, WATER_SRC = _wd, "input"
@@ -997,7 +1004,7 @@ WATER_PTS_USER = []                                  # water_levels input: (x, y
 # of the town reach (the frame's upstream end to Üç Kemer), m above the bed: measured from site photos 1 Oct 2026,
 # 4-6 m. The sections use them wherever the survey's bank crest is lower (the survey shows the banks before the walls).
 WALL_H_DEFAULT = 5.0
-WALL_H = to_float(inp("wall_height", WALL_H_DEFAULT), WALL_H_DEFAULT, "wall_height")
+WALL_H = WALL_H_DEFAULT                              # v66 (Aras 11 Nov 2026 17:40 UTC): no wall_height input
 if not (0.5 <= WALL_H <= 15.0):
     LOG.append("WARNING: wall_height {} m is outside 0.5-15 m; {:.1f} m used.".format(WALL_H, WALL_H_DEFAULT))
     WALL_H = WALL_H_DEFAULT
@@ -7188,7 +7195,7 @@ MAIN_ROADS = ("motorway", "trunk", "primary", "secondary", "tertiary")
 #                  Lden from day / evening / night traffic; optional calibration with your own measurements
 #   surface heat   Landsat 8/9 Collection 2 Level-2 surface temperature (USGS), the mean of the clear scenes of
 #                  each season
-ENV_PATH = clean_path(inp("env_path", None), "env_path") or data_file("bergama_environment.json") or ""
+ENV_PATH = data_file("bergama_environment.json") or ""   # v66 (Aras 11 Nov 2026 17:30-17:40 UTC): no input; always Data/
 # v33 24 Oct: all files under Downloads/Bergama/ (Aras rule): cache in cached/selinus_cache, the rest in output/selinus_board
 # ---- Bergama folders (Aras 24 Oct 08:28 + 27 Oct 11:07; SCRIPT_STANDARD §9). Every script uses ONLY these. ----
 #   Downloads/Bergama/output/<name>/          final PDFs only
@@ -7298,10 +7305,10 @@ BERGAMA_DIR = BERGAMA_ROOT
 SELINUS_CACHE_DIR = os.path.join(BERGAMA_DIR, "cached", "selinus_cache")
 SELINUS_OUT_DIR = bg_output("selinus_board")          # v44 (27 Oct): final PDFs only (in selinus_board_pdf)
 SELINUS_RES_DIR = bg_cache("selinus_board")           # v44: results other scripts read, maps, photos (working files)
-ENVIRONMENT = bool(inp("environment", False))
+ENVIRONMENT = False      # v66: the old environment switch is gone (the environment file is always read from Data/)
 NOISE_PALETTE = str(inp("noise_palette", "") or "").strip().lower()     # "" = the graded bands (v16.4)
-NOISE_PTS_IN = inp("noise_points", [])
-NOISE_DB_IN = inp("noise_db", [])
+NOISE_PTS_IN = []        # v66 (Aras 11 Nov 2026 17:40 UTC): no noise_points / noise_db inputs: the modelled sound only
+NOISE_DB_IN = []
 FOCUS_IN = inp("focus", None)
 
 SEASONS = [dict(key="spring", name="SPRING", day=(3, 20), months=(3, 4, 5), event="spring equinox, 20 March"),
@@ -8270,9 +8277,6 @@ _h_in = inp("hours", "daylight")
 if isinstance(_h_in, (list, tuple)):
     _h_in = _h_in[0] if _h_in else "daylight"
 HOURS_IN = str(_h_in if _h_in is not None else "daylight").strip().lower()
-if inp("hour", None) is not None:
-    LOG.append("The input hour is no longer used: every wind, air and felt temperature map is a mean over the season's "
-               "hours (input hours: daylight, all, or a local range such as 10-17).")
 
 
 def hours_window():
@@ -45304,9 +45308,7 @@ bergama_data("SEAM_PACK")
 def landcover_path():
     """v31: the land-cover file: the landcover_path input, else by name next to the env / osm / places files, the
     Grasshopper and Rhino files, or in Downloads, Desktop, Documents."""
-    p = clean_path(inp("landcover_path", None), "landcover_path")
-    if p and os.path.isfile(p):
-        return p
+    # v66 (Aras 11 Nov 2026): no landcover_path input; the file is found by name (Data/ first)
     dirs = [DATA_DIR] + [os.path.dirname(q) for q in (ENV_PATH, OSM_PATH, PLACES_PATH) if q]
     try:
         dirs.append(os.path.dirname(ghenv.Component.OnPingDocument().FilePath))      # noqa: F821
@@ -46065,7 +46067,6 @@ def read_lines(name, vals):
     return out
 
 
-LAYOUT = str(inp("layout", "drawings")).strip().lower()     # v33: kept as the main block's first line (POOL_KEY)
 LAYOUT = "drawings"                                     # v33: the separate drawings only (Aras Q13); pages retired
 info = ""
 drawings, names, footprints, floors, uses, cuts = [], [], [], [], [], []
