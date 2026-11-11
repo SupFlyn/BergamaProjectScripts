@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_masterplan_v46.py = v46 (11 Nov 2026, Aras: typed inputs for the board builder v4 (GH_INPUTS): opacity and zoom_m sliders, zone_base a File Path box; ring_m and option no longer inputs; nothing else changed); v45 (9 Nov 2026, round 8 P2: p20 drawn in Aras's masterplan look by rules from ZoneBase v12's layers, in SON page 21's format; p21 key map without names); v44 (8 Nov 2026, the p04/p05 section notes' masterplan link); v43 (5 Nov 2026, round 7 S6, two pages only: p15 senses streets / buildings in the hue table's CTX ramp + scale lines; p21 sections fixed at SON's 1:1,000 (SF_SCALES pick gone), key map in SON's 26.9 x 35.9 mm frame inside the margin, plan names small (annot an_name), field names clear the route numbers; dead mpx_keymap removed; p20 masterplan untouched); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 (round 6 S8, 4 Nov 2026: p15/p20/p21 page ids, p20 masterplan with the proposals and the category legend, p21 water edge north-up as in the submission with ACCURATE sections, plan cut marks, the one key map, element groups); v40.4 (2 Nov run-warning fixes); v40.3 (fix 2 Nov 06:30: the K5 detail window is exported again, P24_LEG_KIND was missing); v40.2 (fix 2 Nov: no widths in the p23/p24 lists and notes: "N m open", forest band); v40.1 (closing fix 2 Nov: p24 key map lines logged); older header: v39.2 (1 Nov 2026: the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1: fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_masterplan_v47.py = v47 (11 Nov 2026, round 9 Part MP: the round 9 shared modules (frames, hue table r9, map context, one key map + legend, badge markers, item export), names table r9; p15 six maps over their R9 frames with the context base; p21 plans as M maps over R9 windows, sections D1/D2 one series, ONE legend, key map 26 x 36 with its legend; p20 no longer exported (B19Plan draws p20)); v46 (11 Nov 2026, Aras: typed inputs for the board builder v4 (GH_INPUTS): opacity and zoom_m sliders, zone_base a File Path box; ring_m and option no longer inputs; nothing else changed); v45 (9 Nov 2026, round 8 P2: p20 drawn in Aras's masterplan look by rules from ZoneBase v12's layers, in SON page 21's format; p21 key map without names); v44 (8 Nov 2026, the p04/p05 section notes' masterplan link); v43 (5 Nov 2026, round 7 S6, two pages only: p15 senses streets / buildings in the hue table's CTX ramp + scale lines; p21 sections fixed at SON's 1:1,000 (SF_SCALES pick gone), key map in SON's 26.9 x 35.9 mm frame inside the margin, plan names small (annot an_name), field names clear the route numbers; dead mpx_keymap removed; p20 masterplan untouched); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 (round 6 S8, 4 Nov 2026: p15/p20/p21 page ids, p20 masterplan with the proposals and the category legend, p21 water edge north-up as in the submission with ACCURATE sections, plan cut marks, the one key map, element groups); v40.4 (2 Nov run-warning fixes); v40.3 (fix 2 Nov 06:30: the K5 detail window is exported again, P24_LEG_KIND was missing); v40.2 (fix 2 Nov: no widths in the p23/p24 lists and notes: "N m open", forest band); v40.1 (closing fix 2 Nov: p24 key map lines logged); older header: v39.2 (1 Nov 2026: the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1: every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1: fix: the run Button works again; what changed: the NEW IN / VERSION notes below)
 """BERGAMA MASTERPLAN v37 (2026-10-31): Group 6's proposal (the zones, their programme and the water links) drawn
 as the three alternatives Aras asked for (Q14, 24 Oct), so he can compare them. Merges bergama_masterplan v9 and
 bergama_programme_diagrams puzzle v2.3 (MERGE_PLAN.md section 3, M1); both are retired. v11 (Thread 5 of the 22 Oct
@@ -299,8 +299,8 @@ except ImportError:                                                  # outside R
     Rhino = rg = None
     sc = _types.SimpleNamespace(sticky={})
 
-VERSION = "bergama_masterplan v46 (2026-11-11)"  # v46 (11 Nov, Aras): typed inputs (GH_INPUTS), ring_m and option no longer inputs; v45 (9 Nov, round 8 P2): p20 in Aras's masterplan look, drawn by rules from ZoneBase v12's SVG layers, in SON page 21's format; p21 key map without names; v44 (8 Nov, Aras: no backward reads, Q1 default; English words of a hub name in English letters, "Road Bridge"): the "Masterplan link" line of each p04/p05 section note (was written by the site board from last run's masterplan_results.json; site board v64 no longer reads it) is exported here as a note item sb_sec_note_<cut>_mp from this run's movement and the site board's cached/selinus_board/section_link_points.json; v43 v43 round 7 S6 (BRIEF rows 15, 21; N2: only pages/p16_senses.py + pages/p24_detail.py): p15 legends all from the hue table, scale lines; p21 D1/D2 ACCURATE at a fixed 1:1,000, key map 26.9 x 35.9 mm (SON page22) with north left inside the margin, plan names 5 pt inside their area (G7-2), field names clear route numbers (L6); dead mpx_keymap gone; p20 untouched (D6); v42.1 fix: common key map names never left out (set on their point, the booklet places them); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 round 6 S8 (G6-1..G6-10, BRIEF rows 15, 20, 21); v40.4 run-warning fixes (2 Nov); v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-SHORT = "v46"
+VERSION = "bergama_masterplan v47 (2026-11-11)"  # v47 (11 Nov, round 9 Part MP): round 9 modules + names table r9; p15/p21 maps over their R9 frames (free scale, round label, context base); p21 sections one series, one legend, key map 26 x 36 + legend; p20 export off (B19Plan); v46 (11 Nov, Aras): typed inputs (GH_INPUTS), ring_m and option no longer inputs; v45 (9 Nov, round 8 P2): p20 in Aras's masterplan look, drawn by rules from ZoneBase v12's SVG layers, in SON page 21's format; p21 key map without names; v44 (8 Nov, Aras: no backward reads, Q1 default; English words of a hub name in English letters, "Road Bridge"): the "Masterplan link" line of each p04/p05 section note (was written by the site board from last run's masterplan_results.json; site board v64 no longer reads it) is exported here as a note item sb_sec_note_<cut>_mp from this run's movement and the site board's cached/selinus_board/section_link_points.json; v43 v43 round 7 S6 (BRIEF rows 15, 21; N2: only pages/p16_senses.py + pages/p24_detail.py): p15 legends all from the hue table, scale lines; p21 D1/D2 ACCURATE at a fixed 1:1,000, key map 26.9 x 35.9 mm (SON page22) with north left inside the margin, plan names 5 pt inside their area (G7-2), field names clear route numbers (L6); dead mpx_keymap gone; p20 untouched (D6); v42.1 fix: common key map names never left out (set on their point, the booklet places them); v42 (4 Nov 2026, layout plan L3, Aras 19:17-19:18 "scripts just produce, the booklet places"): no text is left out by the masterplan any more: p21 zone names, callouts with no circle spot, plan names / field titles / words at the frame, p15 strip words, p20 markers all exported as anchored items for the booklet to place; p21 key map look fixed (TypeError); every map layer an element group (no untagged shapes); designed voids not drawn = info line; v41 round 6 S8 (G6-1..G6-10, BRIEF rows 15, 20, 21); v40.4 run-warning fixes (2 Nov); v40.3 fix (2 Nov run: NameError P24_LEG_KIND stopped p24 window K5 and the legends); v40.2 fix (round 5 open rows, addendum 5): no width in any list or note ("less than N m open", "N-M m open beside the bank", the forest band "N-M m from the water"); v40.1 fix (round 5 closing): the p24 key map writes its keymap/fill lines into the log; v40 2 Nov (round 5 S6, G-R5-12): no sheet PDF, no crops; p17, p23, p24 exported as items (drawings + texts) to cached/booklet/bergama_masterplan/items.json for the booklet; N5 bands gone, planting by the plan, organic shapes, Demeter's Garden designed, p24 fields under the water; v39.2 1 Nov 22:10 (Aras 19:49, detail NOT WRITTEN: TypeError): the detail sheet (dt_upstream, dt_k5) is written again: a loop variable no longer overwrites the window axis; v39.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v39 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v38.1 fix 1 Nov 16:40: the function run() replaced the Button input `run`, so a press did nothing; renamed main(); v38 round 4 S8: p16, p21, p22 on the shared text placer, map layers, study clip; older: v37.4 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v37.3 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+SHORT = "v47"
 SETTINGS = ("rhino_bake", "opacity", "scale", "zoom_m", "ring_m", "option", "zone_base")   # never taken for the Button
 # v46 (Aras 11 Nov 2026 17:30-17:40 UTC "inputs in these are wrong type"): every input with its type, read by
 # the board builder v4 (box + type hint); ring_m (= zoom_m) and option (option A only since v19) are no inputs
@@ -18639,11 +18639,31 @@ def mp_marker(pg, cx, cy, s, colour, size_pt=7.0, style="solid", name=None, r_mi
     for s_ in shapes:
         if s_[0] == "poly":
             pg.poly([s_[1]], fill=s_[2], stroke=s_[3], lw=s_[4] or 0.1)
+            mp_badge_tag(pg, s_)                         # v47 (round 9 S1): the disc rides in its badge item
             pg.keep(s_[1], "marker", nm)
     for s_ in shapes:
         if s_[0] == "text":
-            pg.text(s_[1], s_[2], s_[3], s_[4], s_[5], bold=True, align="L", name=nm, allow=(nm,), role="marker")
+            pg.text(s_[1], s_[2], s_[3], s_[4], s_[5], bold=True, align=s_[7] if len(s_) > 7 and s_[7] else "L",
+                    name=nm, allow=(nm,), role="marker")      # v47 (H4 §3 row 94): mk_marker's own alignment
+            mp_badge_tag(pg, s_)                         # v47: the glyph carries the S1 badge (centre, r, fill, ring)
     return box, r
+
+
+def mp_badge_tag(pg, s_):
+    """v47 (round 9 S1, G9-1): the item just recorded on Page pg from marker shape s_ keeps the marker's badge: a
+    disc (_MkDisc) stays tagged mk_badge, a glyph (_MkText) keeps .badge, so mpx_drawing exports ONE badge item (the
+    booklet draws disc + glyph and centres the glyph on its ink box) and the disc poly as badge_disc"""
+    if not pg.items:
+        return
+    it = pg.items[-1]
+    if getattr(s_, "mk_badge", False) and it[0] == "poly":
+        o = _MkDisc(it)
+        o.mk_badge = True
+        pg.items[-1] = o
+    elif getattr(s_, "badge", None) and it[0] == "text":
+        o = _MkText(it)
+        o.badge = dict(s_.badge)
+        pg.items[-1] = o
 # ---- MIRAQUA round 28 Oct 2026 (masterplan v27): p.24 the two 1:1,000 plans in the fade-out programme language (worker MP-detail). Shared pieces: common/r28_style.py,
 # common/units.py, common/label_place.py, common/figures.py (revision_2026-10-28/PLAN.md).
 # v27 (MIRAQUA 28 Oct, P24.1-P24.5, F11): the two 1:1,000 windows (crops dt_upstream, dt_k5; DT_WINDOWS, their frames,
@@ -19223,6 +19243,7 @@ MPX_ANCHORED = {"label": "label", "level_value": "level_value", "badge": "badge"
 
 def mpx_start():
     del MPX_LOG[:]
+    del R9_LOG[:]                                        # v47 (round 9): the frame table's FLAG lines of this run
     MPX[0] = Ix(OUT_FOLDER, "bergama_masterplan", VERSION)
     return MPX[0]
 
@@ -19377,6 +19398,10 @@ def _mpx_clip_one(it, clip):
                         out.append(Q)
             else:
                 out += sc_rings_clip(R, rings)
+        if out and getattr(it, "mk_badge", False):         # v47 (round 9 S1): the disc of a badge stays tagged
+            o = _MkDisc((kd, out) + tuple(it[2:]))
+            o.mk_badge = True
+            return [o]
         return [(kd, out) + tuple(it[2:])] if out else []
     if kd == "line":
         runs = _mpx_lb_rect(it[1], box) if box is not None else sc_lines(it[1], rings)
@@ -19453,16 +19478,24 @@ def mpx_flat(items, box=None):
 
 
 def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", north_deg=None, scale_pref=None,
-                layer="drawing", priority=1, group=None, title=None, labels=True, items=None):
+                layer="drawing", priority=1, group=None, title=None, labels=True, items=None, focus=None, frame=None,
+                series=None, scale_r9=None):
     """ONE item-export drawing from the part `box` of Page pg (or of the given recorded `items`). Labels (role
     "label") become anchored labels; other recorded roles become unanchored texts of that role (group = the
-    drawing's group, default its id). den None: a scale-free diagram in mm (extent = box size)."""
+    drawing's group, default its id). den None: a scale-free diagram in mm (extent = box size).
+    v47 (round 9 S6, ADDENDUM §0): focus (drawing units: the area an M map must show), frame (its R9_FRAMES key) and
+    series go on the drawing (Ix.drawing); scale_r9 = (Tfit, r9_label dict) adds den (true 1:T as drawn), label_den
+    (printed 1:L), fit_den (1:Tfit) and scale_list ("round" | "second") for the booklet's scale label and bar."""
     x0, y0, x1, y1 = [float(v) for v in box]
     if den:
         k = float(den) / 1000.0
         ext = (origin_m[0], origin_m[1], origin_m[0] + (x1 - x0) * k, origin_m[1] + (y1 - y0) * k)
         D = ix.drawing(did, page, ext, scale_pref=scale_pref, units="m", dkind=dkind, north_deg=north_deg,
-                       scale_bar=True, priority=priority, group=group or did, title=title)
+                       scale_bar=True, priority=priority, group=group or did, title=title, focus=focus, frame=frame,
+                       series=series)
+        if scale_r9:
+            D.update(den=round(float(scale_r9[1]["T"]), 1), label_den=int(scale_r9[1]["L"]),
+                     fit_den=round(float(scale_r9[0]), 1), scale_list=scale_r9[1]["list"])
         org = (origin_m[0] - x0 * k, origin_m[1] - y0 * k)
     else:
         k = 1.0
@@ -19496,6 +19529,11 @@ def mpx_drawing(ix, did, page, pg, box, den, origin_m=(0.0, 0.0), dkind="plan", 
         size_mm = float(s[4]) if s[4] else 2.0
         col = s[5] if isinstance(s[5], str) else None
         al = s[7] if len(s) > 7 and s[7] else "L"
+        if role in MPX_ANCHORED and getattr(s, "badge", None) and callable(getattr(ix, "badge", None)):
+            if labels:                                    # v47 (round 9 S1): ONE badge item (disc + centred glyph)
+                ix.badge(page, mk_badge_at(s.badge, k, org), drawing=D["id"], group=D["group"], priority=2)
+                n_lab += 1
+            continue
         if role in MPX_ANCHORED:
             if not labels:
                 continue
@@ -19648,7 +19686,7 @@ def mpx_sw(sample):
 
 def mpx_lines():
     ix = MPX[0]
-    return list(MPX_LOG) + ([ix.summary()] if ix is not None else [])
+    return list(MPX_LOG) + list(R9_LOG) + ([ix.summary()] if ix is not None else [])
 # p.16 the senses and the water: p17_items (round 5; was senses_sheet) and its sn_* helpers (split from parts/02e_r28_detail.py, parts/02f_r28_senses.py on 29 Oct 2026; moved unchanged)
 # T4a (29 Oct 2026, WO-T4a-1, package E): the shared basemap (02 §1) under every strip, chosen per panel (D5) by
 # P16_BASEMAP; the stream comes only from the basemap (never the corridor's own pieces); every strip is widened so its
@@ -19733,6 +19771,10 @@ P16_BASE_FADE = 0.35                         # round 5 (P17.2, U52 "çok koyu ..
 #                                              colours mixed this far toward paper on this page (design value)
 P16_LAB_GAP = 0.8                            # v41 (G6-8, SON page17 crowding): a word keeps this clear of taken boxes, mm
 # v41 (round 6, G6-6, PLAN §2.6): zone field -> (category, rank): darker = more important inside each category
+P16_FRAME_KEYS = {"zones": "p15.1", "feeling": "p15.3", "sound": "p15.5", "smell": "p15.7",
+                  "encounters": "p15.9", "history": "p15.11"}   # v47 (round 9): each map's R9_FRAMES key (149 x 82)
+P16_SIDE_W = 60.0                            # v47: the recorder's key column right of a window, mm (recorder only:
+#                                              the booklet places the legends, PAGE_TABLE p15 44 x 82)
 P16_ZONE_HUE = {"reed": ("WW", 1), "wetland": ("WW", 2), "terraces": ("WW", 3), "hub": ("PUB", 1),
                 "subhub": ("PUB", 2), "cafe": ("PUB", 3), "demeter": ("AGR", 2), "forest": ("GRN", 2)}
 P16_CAT_ORDER = ("CTX", "HER", "WAT", "WW", "GRN", "AGR", "MOV", "PUB")   # PLAN §2.6 table order (legend sort)
@@ -19996,16 +20038,34 @@ def sn_data(C, areas, warn):
 
 # ---------------------------------------------------------------- the strip frame every panel shares
 def _p16_frame(G, V):
-    """T4a: the widened strip frame in the View (u0, v0, u1, v1), the same for all six strips: the analysis frame
-    grown to the strip width the cell allows (SN_SIDE - 4 mm) and to P16_STRIP_H tall at 1:20,000, so the stream
-    reads with its surroundings; G["bm_box"] = its survey bounding box (the basemap's cull box)"""
-    sw0, sh0 = (V.u1 - V.u0) * SN_K, (V.v1 - V.v0) * SN_K
-    pu = max(0.0, (SN_SIDE - 4.0 - sw0) / 2.0) / SN_K
-    pv = max(0.0, (P16_STRIP_H - sh0) / 2.0) / SN_K
-    fr = (V.u0 - pu, V.v0 - pv, V.u1 + pu, V.v1 + pv)
-    G["fr"] = fr
-    G["bm_box"] = tuple(bbox([V.xy(u, v) for u, v in ((fr[0], fr[1]), (fr[2], fr[1]), (fr[2], fr[3]),
-                                                       (fr[0], fr[3]))]))
+    """v47 (round 9, ADDENDUM §0 + PLAN cause d4; replaces T4a's fixed 1:20,000 strip): the six maps' ONE frame in
+    the View (u, v m). focus = the analysis frame V plus the study rings; Tfit = the scale at which the focus fits the
+    p15 map frame (R9_FRAMES p15.1, 149 x 82 mm; all six maps share that size); r9_label gives the printed label L and
+    the true scale T = max(Tfit, L), set as SN_SCALE / SN_K for every strip. G["fr"] = the context window the strips
+    draw and export (r9_window: the focus grown to the frame's aspect x 1.3, more when T needs it), G["vis"] = the
+    frame at T centred on the focus (the part the booklet shows: labels stay inside it), G["bm_box"] / G["bm_ring"]
+    = the window in survey m (the basemap's cull box and its unmapped-ground ring)"""
+    global SN_SCALE, SN_K
+    us, vs = [V.u0, V.u1], [V.v0, V.v1]
+    for R in G.get("study") or ():
+        for p in R:
+            u, v = V.uv(p)
+            us.append(u)
+            vs.append(v)
+    focus = (min(us), min(vs), max(us), max(vs))
+    key = P16_FRAME_KEYS["zones"]
+    tf = r9_tfit(focus, key)
+    lab = r9_label(tf, (R9_FRAMES.get(key) or {}).get("r8"))
+    SN_SCALE = float(lab["T"])
+    SN_K = 1000.0 / SN_SCALE
+    fr = r9_window(focus, key, grow=max(R9_WINDOW_GROW, 1.05 * SN_SCALE / tf))
+    fw, fh = r9_wh(key)
+    cu, cv = 0.5 * (focus[0] + focus[2]), 0.5 * (focus[1] + focus[3])
+    hw, hh = 0.5 * fw / SN_K, 0.5 * fh / SN_K
+    G["vis"] = (cu - hw, cv - hh, cu + hw, cv + hh)
+    G["focus"], G["tfit"], G["lab"], G["fr"] = focus, tf, lab, fr
+    G["bm_ring"] = [V.xy(u, v) for u, v in ((fr[0], fr[1]), (fr[2], fr[1]), (fr[2], fr[3]), (fr[0], fr[3]))]
+    G["bm_box"] = tuple(bbox(G["bm_ring"]))
 
 
 def _p16_basemap(G, warn):
@@ -20030,12 +20090,14 @@ def _p16_base(G, warn):
     the items, G["base_kinds"] = what they hold (for the base key)."""
     its = []
     if G.get("bm"):
-        try:
-            its = ml_base(G["bm_box"], SN_SCALE, D=G["bm"])
+        try:                                             # v47 (round 9 G9-4): the context base (layers a-j) over
+            its = ml_base(G["bm_box"], SN_SCALE, D=G["bm"], ring=G.get("bm_ring"))   # the window, quiet on p15
         except Exception as ex:
-            warn.append(u"senses sheet: muted base not drawn ({}: {})".format(type(ex).__name__, ex))
+            warn.append(u"senses sheet: context base not drawn ({}: {})".format(type(ex).__name__, ex))
             its = []
     G["base"] = its
+    G["base_draw"] = [it for it in its if it[0] != "text"]   # v47: the names (b, c, f, g, h) are placed per strip
+    G["base_names"] = [it for it in its if it[0] == "text"]  # after its own words (_p16_base_names)
     G["base_kinds"] = _p16_base_kinds(its)
 
 
@@ -20112,14 +20174,18 @@ def sn_cell(pg, G, cx, top, title):
     x0, y1 = cx, sn_y(top + P16_STRIP_TOP)
     box = (x0, y1 - sh, x0 + sw, y1)
     T = sn_T(V, box[0], box[1], fr[0], fr[1])
-    sx = cx + SN_SIDE
+    vf = G.get("vis") or fr                              # v47 (round 9): the frame the booklet shows, page mm
+    vis = (box[0] + (vf[0] - fr[0]) * SN_K, box[1] + (vf[1] - fr[1]) * SN_K, box[0] + (vf[2] - fr[0]) * SN_K,
+           box[1] + (vf[3] - fr[1]) * SN_K)
+    sx = cx + sw + 4.0                                   # v47: the recorder's title right of the window
     pg.text(title, sx, sn_y(top + 5.0), sn_mm(SN_TS["panel"]), SN_INK, bold=True, name=u"p15 title " + title,
             role="heading")
     refp = [T(p) for p in G["ref"]]
-    cell = {"x": cx, "top": top, "box": box, "T": T, "side": sx, "title": title,
-            "bounds": (box[0] + 0.6, box[1] + 0.6, box[2] - 0.6, box[3] - 0.6),
+    cell = {"x": cx, "top": top, "box": box, "T": T, "side": sx, "title": title, "vis": vis,
+            "bounds": (vis[0] + 0.6, vis[1] + 0.6, vis[2] - 0.6, vis[3] - 0.6),
             "taken": [], "segs": list(zip(refp, refp[1:])), "late": []}
     xs = {}
+    box = vis                                            # v47: the ruler on the shown frame's top edge
     for nm, xy in BRIDGES_K:                             # the ruler: a tick per bridge, its name above the frame
         x = T(xy)[0]
         if box[0] <= x <= box[2]:
@@ -21169,11 +21235,13 @@ def _p16_map_draw(pg, T, base, steps, tint, study, legend_cols, water_ok):
         if lay.startswith("base_"):
             if hx in her_c:
                 return "heritage"
-            if hx in (BM_MUTED["bld"], BM_MUTED["bld_edge"]):
+            if hx in (BM_MUTED["bld"], BM_MUTED["bld_edge"]) or lay == "base_fills":   # v47: context buildings
                 return "buildings"
-            if hx in (BM_MUTED["road"], BM_MUTED["road_edge"]):
+            if hx in (BM_MUTED["road"], BM_MUTED["road_edge"]) or lay == "base_outlines":   # v47: context streets
                 return "roads"
             return "ground"
+        if lay == "structures":                          # v47 (round 9): context bridges, decks, covered course
+            return "roads"
         return "other"
 
     def fill(rings, hx, a, nz):
@@ -21242,6 +21310,7 @@ def _p16_legend(key, G, cell):
                         place_name("stream")))
         if "covered" in bs:
             out.append((_sw_line(bs["covered"][0], bs["covered"][1], bs["covered"][2]), u"Hidden (covered) stream"))
+        out += _p16_ctx_rows(G)                          # v47 (round 9 G9-4 item 3): every context class drawn
         if "street" in bs:
             out.append((_sw_fill(mix(P16_CTX.get(bs["street"], bs["street"]), "FFFFFF", P16_BASE_FADE)), u"Streets"))
         if "bld" in bs:
@@ -21276,6 +21345,46 @@ def _p16_legend(key, G, cell):
         if G.get("photos_out"):
             out.append((_p16_sw(lambda pg_, x, y: sn_num(pg_, x, y, 1, SN_HER)), u"Photo and its place"))
     return out
+
+
+def _p16_ctx_rows(G):
+    """v47 (round 9, G9-4 item 3 "no unexplained white"): the context base's legend rows (basemap_legend_rows: unmapped
+    ground, land cover, building fabric, streets, bridges, contours) in the colours the strips show them: the base_*
+    layers mixed P16_BASE_FADE toward paper as _p16_map_draw fades them; the stream has its own row (M5 sample)"""
+    out = []
+    for sw_, t_ in basemap_legend_rows(G.get("base_draw") or []):
+        if sw_.get("cat") == "WAT":
+            continue
+        sw_ = dict(sw_)
+        if not (sw_.get("cat") == "CTX" and sw_.get("rank") == 1):   # bridges: layer structures, not faded
+            sw_["colour"] = mix(sw_["colour"], "FFFFFF", P16_BASE_FADE)
+        out.append((sw_, t_))
+    return out
+
+
+def _p16_base_names(pg, G, cell):
+    """v47 (round 9 G9-4 b, c, f, g, h; PLAN Q9): the context names (main streets, mahalle, SELİNOS ÇAYI, bridges,
+    places by their names-table names) on one strip, after its own words: each through _p16_place (on or right
+    beside its point, inside the shown frame, clear of every word and the stream line). Returns (places drawn, places
+    with no room, other names with no room, the names outside the shown frame)"""
+    T, vis = cell["T"], cell.get("vis") or cell["box"]
+    segs = TpSegIndex(segs=cell.get("segs", ()))
+    n_h, nr_h, nr_o, outside = 0, [], [], []
+    for it in G.get("base_names") or ():
+        p = T(it[2])
+        if not (vis[0] <= p[0] <= vis[2] and vis[1] <= p[1] <= vis[3]):
+            outside.append(it)
+            continue
+        c = getattr(it, "ctx", None)
+        if c == "g":                                     # the bridges are named at their ruler ticks (one name each)
+            continue
+        got = _p16_place(pg, cell, segs, it[1], p, max(4.0, float(it[3]) / BM_PT_MM), it[4], bold=bool(it[5]),
+                         name=u"p15 {} name {}".format(cell.get("title", u""), it[1]))
+        if got:
+            n_h += 1 if c == "h" else 0
+        else:
+            (nr_h if c == "h" else nr_o).append(it[1])
+    return n_h, nr_h, nr_o, outside
 
 
 def _p16_wheel(ix, page):
@@ -21320,24 +21429,33 @@ def p17_items(ix, C, areas, warn):
     diagrams), the History photos photo items; the words on the strips are anchored labels; the bridge names along
     the top edge are labels at their ticks. No scale bars, no north arrows, no page text in the drawings. Round 5:
     see-through sight wedges (P17.1); the base muted further (P17.2); land fields and feeling blots UNDER the water,
-    only the wetland and the sub-hubs above it (G-R5-8); no layered heritage fields. Returns log lines."""
+    only the wetland and the sub-hubs above it (G-R5-8); no layered heritage fields. v47 (round 9 G9-4, ADDENDUM §0):
+    each strip = an M map (frame p15.1 ... p15.11, 149 x 82) at the free true scale 1:T of _p16_frame, exported over
+    its context window with the focus; the quiet context base (layers a-j) under the theme; the context names placed
+    after the strip's own words inside the shown frame; context / fabric / names / scale lines per map. Returns log
+    lines."""
+    global SN_PW, SN_PH
     t0 = time.time()
     page = MPX_PAGE["p17"]
     _P16_MEMO.clear()                                    # photos are read once a run
     G = sn_data(C, areas, warn)
     G["warn"] = warn
+    fr = G["fr"]                                         # v47 (round 9): the recorder holds six context windows
+    ww, wh = (fr[2] - fr[0]) * SN_K, (fr[3] - fr[1]) * SN_K   # (page mm at 1:SN_SCALE), each with its key column
+    colx = (SN_ML, SN_ML + ww + P16_SIDE_W + 8.0)
+    pitch = P16_STRIP_TOP + wh + 6.0
+    rowt = tuple(P16_ROWS[0] + i * pitch for i in range(3))
+    SN_PW, SN_PH = colx[1] + ww + P16_SIDE_W + SN_ML, rowt[2] + pitch + P16_TP_MARGINS[3]
     pg = Page(SN_PW, SN_PH)
     pg.text_page(u"p15", margins=P16_TP_MARGINS)         # the round 4 placer still finds each word a free spot
     ix.text(page, SN_TITLE, "title", group="mp_senses", id="mp_sn_title", priority=1)
     ix.text(page, SN_KICKER.replace(u"   ", u" "), "intro", group="mp_senses", id="mp_sn_kicker", priority=2)
     funcs = {"zones": sn_zones, "feeling": sn_feeling, "sound": sn_sound, "smell": sn_smell,
              "encounters": sn_encounters, "history": sn_history}
-    pos = [(SN_COLX[0], P16_ROWS[0]), (SN_COLX[1], P16_ROWS[0]), (SN_COLX[0], P16_ROWS[1]),
-           (SN_COLX[1], P16_ROWS[1]), (SN_COLX[0], P16_ROWS[2]), (SN_COLX[1], P16_ROWS[2])]
+    pos = [(colx[i % 2], rowt[i // 2]) for i in range(6)]   # v47: two columns, three rows of windows
     zone_cols = [_p16_zone_col(k_) for k_ in R28_ZONE]  # v41 (G6-6): the table's hues
     wet_cols = [_p16_zone_col(k_) for k_ in P16_WET_FIELDS if k_ in R28_ZONE]
     nd = _p16_north_deg(G["V"])
-    fr = G["fr"]
     n_ok, out = 0, []
     for (cx, top), (title, key) in zip(pos, P16_CELLS):
         layer = funcs[key]
@@ -21361,7 +21479,7 @@ def p17_items(ix, C, areas, warn):
             cell["under_at"] = len(pg.items)
         pg.clip([rect(*box)])
         try:
-            _p16_map_draw(pg, cell["T"], G["base"], {"proj_tint": under, "proj_lines": panel, "proj_marks": marks},
+            _p16_map_draw(pg, cell["T"], G["base_draw"], {"proj_tint": under, "proj_lines": panel, "proj_marks": marks},
                           G["tint"] if title in P16_TINT_PANELS else (), G["study"] or None,
                           [ML_TINT] + zone_cols, wet_cols)
             n_ok += 1
@@ -21377,16 +21495,25 @@ def p17_items(ix, C, areas, warn):
             pg.unclip()
         sn_outline(pg, G, cell)
         sn_place(pg, cell, labs, warn)
+        n_h, nr_h, nr_o, outside = _p16_base_names(pg, G, cell)   # v47 (G9-4): context names after the words
         did = u"mp_sn_" + key
-        out.append(u"scale p15 {} 1:{:.0f}".format(did, SN_SCALE))   # v43 (round 7 S6): SON's printed 1:20,000, fixed
+        out_ids = set(id(o) for o in outside)
+        basemap_context_log(u"p15", did, G["base_draw"] + [o for o in G["base_names"] if id(o) not in out_ids],
+                            study=bool(G.get("study")), log=out, names_drawn=n_h, no_room=nr_h, D=G.get("bm"))
+        if nr_o:
+            out.append(u"FLAG names p15 {} no room (street / mahalle / stream, {}): {}".format(
+                did, len(nr_o), u", ".join(nr_o)))
+        out.extend(r9_scale_line(u"p15", did, G["tfit"], G["lab"]))   # v47 (ADDENDUM §0.9; v43-v46: fixed 1:20,000)
         D = mpx_drawing(ix, did, page, pg, box, SN_SCALE, origin_m=(fr[0], fr[1]), dkind="plan", north_deg=nd,
-                        group="mp_senses", priority=1, items=pg.items[n0:])
+                        scale_pref=[int(round(SN_SCALE))], group="mp_senses", priority=1, items=pg.items[n0:],
+                        focus=G["focus"], frame=P16_FRAME_KEYS[key], scale_r9=(G["tfit"], G["lab"]))
         ix.text(page, title, "heading", drawing=did, group="mp_senses", id=did + u"_head", priority=3)   # v42 box
-        for nm, xy in BRIDGES_K:                         # the bridge names at their ticks on the top edge (labels)
-            x = cell["T"](xy)[0]
-            if box[0] <= x <= box[2] and nm not in ("K1", "K2"):
+        vis = cell["vis"]
+        for nm, xy in BRIDGES_K:                         # the bridge names at their ticks on the top edge (labels;
+            x = cell["T"](xy)[0]                         # v47: the shown frame's top edge, G["vis"])
+            if vis[0] <= x <= vis[2] and nm not in ("K1", "K2"):
                 u_ = fr[0] + (x - box[0]) / SN_K
-                ix.text(page, bridge_name(nm, short=True), "label", drawing=D["id"], at=(u_, fr[3]),
+                ix.text(page, bridge_name(nm, short=True), "label", drawing=D["id"], at=(u_, G["vis"][3]),
                         size_pt=SN_TS["small"] - 1.0, colour=SN_INK2, positions=["S", "SE", "SW"],
                         group="mp_senses", priority=7)
         ents = [(mpx_sw(f_), t_) for f_, t_ in _p16_legend(key, G, cell)]
@@ -22622,7 +22749,8 @@ MP45_LAYERS = {"INT_WATER_design": "water", "INT_ZONE_WETLAND": "wetland", "INT_
                "INT_ROUTE_footbridge": "footbridge", "INT_PLANT_shrubgroup": "shrub"}
 MP45_OPTIONAL = ("INT_PATH_ramp",)   # ZoneBase follow-up (ramps): no WARNING while it is not baked
 MP45_U_PER_M = 2.64121               # his sheet: SVG units per m (H4 §2, P1 placing)
-MP45_FRAME_U = (277.504, 5742.594, 7514.18, 1397.44)   # his plan frame (x, y, w, h) units, when svg_reference has none
+MP45_FRAME_U = (277.504, 4861.869, 7514.18, 1397.44)   # his plan frame (x, y, w, h) units, when svg_reference has none
+#   v47 (round 9 PLAN Q4): his B19_setB_layers3.2.svg (11 Nov 19:03 UTC) has the same frame 880.725 units higher
 MP45_LW_MIN = 0.05                   # mm: thinnest line drawn after the rescale (design value)
 MP45_PAL = dict(water="51626C", wet="A9C4C2", wet_open="5D8980", green25="B9C6AC", plaza="E3E5E5",
                 plaza_edge="ADA8A8", park="8C8A6D", walk="E8CFCF", walk_edge="A88E6E", paving="EFDDDA",
@@ -24518,7 +24646,7 @@ def p24_section(C, w, warn, style="b", den=None, ex=None):
         keys.add("back")
         if nh:
             keys.add("bhouse")
-    if style == "b" and den is None:                      # v40.4 (2 Nov run): an info line of the log, not a WARNING:
+    if style == "b" and not (ex or {}).get("dry"):        # v40.4 (2 Nov run): an info line of the log, not a WARNING:
         WAT_LOG.append(u"section {}: {} background houses drawn ({} left out: narrow or over the channel)".format(
             name, nh, nx + max(0, len(houses) - nh - nx)))  # leaving those out is by design
     near0, back = [], []
@@ -24812,9 +24940,16 @@ def p24_section(C, w, warn, style="b", den=None, ex=None):
                   align=al)
     S.co_free = []
     co = _p24_marks(S, zat, taken, missing)
-    n0 = len(S.pg.items)
-    shp_put(S.pg, co.marks(size=P24_CO))
-    S.pg.items[n0:] = [it_[:9] + ("marker",) if it_[0] == "text" else it_ for it_ in S.pg.items[n0:]]
+    for s_ in co.marks(size=P24_CO):                     # v47 (round 9 S1): each callout ONE badge item (disc +
+        n0 = len(S.pg.items)                              # centred number); the texts keep role "marker"
+        shp_put(S.pg, [s_])
+        if len(S.pg.items) == n0 + 1:
+            it_ = S.pg.items[-1]
+            if it_[0] == "text":
+                S.pg.items[-1] = it_[:9] + ("marker",)
+            mp_badge_tag(S.pg, s_)
+        else:
+            S.pg.items[n0:] = [i_[:9] + ("marker",) if i_[0] == "text" else i_ for i_ in S.pg.items[n0:]]
     zones, seen_ = [], set()
     for key, t0, t1 in runs:                              # the zone names (one row above the section, p24_window)
         if key in P24_BAND and (t1 - t0 >= P24_MIN_RUN or key == "bed"):
@@ -24910,6 +25045,16 @@ P24_SEC_M = 6.0              # round 6 (S8): mm margin each side of a section's 
 P24_PLAN_M = 6.0             # round 6 (S8, G6-4): mm margin round a plan's export box (the cut marks outside the frame)
 P24_TITLE_IN = 2.0           # round 6 (S8, U15): a field title keeps this far (mm) inside the plan's frame
 P24_ROW_MM = 4.0             # round 6 (S8, BRIEF §6 row 21): the section's one row of zone names above it, mm
+# v47 (round 9 A8, A9, G9-5; ADDENDUM §0): each window's R9_FRAMES keys (plan M map, section S drawing), the sections'
+# series, the key map's frame and what an S frame keeps free beside the section's own extent
+P24_FRAME_KEYS = {"dt_upstream": ("p21.1", "p21.6"), "dt_k5": ("p21.2", "p21.8")}
+P24_SERIES = u"p21s"         # R9_FRAMES p21.6 / p21.8: D1 and D2 share one scale (ADDENDUM §0.6)
+P24_KM_FRAME = "p21.3"       # the key map 26 x 36 at 380,243 (G9-5)
+P24_SEC_LVL_W = 18.3         # mm, the booklet's level column right of a section: R8's measured block 222 mm wide at
+#                              1:1,012 with its level tags (ADDENDUM A8) less the section 194 m at 1:1,012 (191.7 mm)
+#                              and the two P24_SEC_M end margins (12 mm)
+P24_SEC_HEAD = 4.0           # design value: the section heading's row inside its S frame, mm (one 7.5 pt line + gap)
+P24_DRY_LOGS = ("FIG_LOG", "PLA_LOG", "PLN_LOG", "WAT_LOG", "SF_LOG", "BR_LOG")   # run logs the measuring pass rolls back
 
 
 def _p24_cut_dir(cid):
@@ -25754,7 +25899,8 @@ def p24_window(ix, page, C, w, missing, warn):
     out = []
     F = p24_frame(w)
     R, o_, u_, v_ = F["R"], F["o"], F["u"], F["v"]
-    k = 1000.0 / DT_SCALE
+    den = float(w.get("T") or DT_SCALE)                  # v47 (round 9 A9): the plan's true 1:T (p24_win_r9)
+    k = 1000.0 / den
     dw, dh = F["W"] * k, F["H"] * k
     frame = (0.0, 0.0, dw, dh)
     _P24_ROT[0] = math.atan2(u_[1], u_[0])
@@ -25775,23 +25921,50 @@ def p24_window(ix, page, C, w, missing, warn):
     for k_ in _P24_STREET:
         del _P24_STREET[k_][:]
     cname = P24_CUTS.get(w["id"], (None, w["id"]))[1] or w["id"]
-    _P24_WINS[w["id"]] = (cname, F["ring"])
+    vz = w.get("vis") or R                               # v47: the key map shows the frame the page shows
+    _P24_WINS[w["id"]] = (cname, [(vz[0], vz[1]), (vz[2], vz[1]), (vz[2], vz[3]), (vz[0], vz[3])])
     pg = Page(dw, dh)
     pg.text_page(u"p21 " + cname + u" plan", pad=P24_TP_PAD)
     taken, segs, ts = [], [], R28DT_TS
     ink, ink1, ink2 = COL["ink_dark"], COL["ink"], COL["ink2"]
     study = getattr(C, "study", None) or sc_rings()
     fields = []
-    pg.clip([rect(0.0, 0.0, dw, dh)])                     # round 6: everything of the plan inside its frame
-    base = ml_base(R, DT_SCALE, contours=True, override={"stream": False})   # the masterplan draws its own stream
-    if base:
-        for k_ in ("bld", "street", "contour"):
-            leg(("r28dt", k_))
-    mp_map_draw(pg, page, T, base, steps={
-        "proj_tint": lambda: fields.extend(p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh, part="fields")),
-        "proj_water": lambda: _r28_base(pg, C, T, R, segs, k),
-        "proj_lines": lambda: fields.extend(p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh, part="rest"))},
+    # v47 (round 9 G9-4, PLAN cause b2 / d4): the context base (mode context, layers a-j) over the whole context
+    # window w["ctx"] (survey m; without one: the frame plus the cut-mark margin), the project inside its frame
+    m_ = P24_PLAN_M / k
+    cw = tuple(w.get("ctx") or (R[0] - m_, R[1] - m_, R[2] + m_, R[3] + m_))
+    cb = ((cw[0] - o_[0]) * k, (cw[1] - o_[1]) * k, (cw[2] - o_[0]) * k, (cw[3] - o_[1]) * k)   # page mm
+    cring = [(cw[0], cw[1]), (cw[2], cw[1]), (cw[2], cw[3]), (cw[0], cw[3])]
+    pg.clip([rect(*cb)])
+    base = ml_base(cw, den, contours=True, override={"stream": False}, ring=cring)   # the masterplan draws its own stream
+    base_draw = [it for it in base if it[0] != "text"]
+    base_names = [it for it in base if it[0] == "text"]   # exported as labels with the plan's names (below)
+    bmD = basemap_load(log=[])
+    if bmD:                                              # the stream's and the bridges' names (the base's own come
+        sl_ = _bm_stream_label(bmD.get("layers") or {}, R)   # with its stream, which this plan draws itself)
+        if sl_:
+            base_names.append(_bm_tag(("text", BM_STREAM_NAME, sl_[0], BM_CTX_PT["stream"] * BM_PT_MM, hue("WAT", 1),
+                                       False, "MC", sl_[1]), "structures", "f", "name"))
+        for n_, p_, _c in basemap_bridge_names(R, bmD):
+            base_names.append(_bm_tag(("text", n_, p_, BM_CTX_PT["bridge"] * BM_PT_MM, hue_of(n_, hue("CTX", 1)), False,
+                                       "MC", 0.0), "structures", "g", "name"))
+
+    def in_frame(fn):
+        def run():
+            pg.clip([rect(0.0, 0.0, dw, dh)])             # round 6: everything of the plan inside its frame
+            try:
+                fn()
+            finally:
+                pg.unclip()
+        return run
+    mp_map_draw(pg, page, T, base_draw, steps={
+        "proj_tint": in_frame(lambda: fields.extend(p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh,
+                                                             part="fields"))),
+        "proj_water": in_frame(lambda: _r28_base(pg, C, T, R, segs, k)),
+        "proj_lines": in_frame(lambda: fields.extend(p24_plan(pg, C, w, T, inP, on, k, taken, segs, dw, dh,
+                                                             part="rest")))},
         tint=(), study=study)                             # round 6: no "what we change" tint (U28; SON has none)
+    pg.clip([rect(0.0, 0.0, dw, dh)])                     # v47: the water route inside the frame too
     # ---- the water route (P24.2): the zone base's water links in the route's order; numbers on the map, the words
     # in a numbered list (G-R5-12)
     rc = _p24_h("route")
@@ -25822,6 +25995,7 @@ def p24_window(ix, page, C, w, missing, warn):
         route_rows.append((u"".join(t_ for t_, _bd in _r28_route_runs(order, L, a, b)), P[0]))
         leg(("r28dt", "route"))
     pg.unclip()
+    pg.unclip()
     for A in study or ():
         if on([T(p) for p in A]):
             leg(("r28dt", "study"))
@@ -25848,7 +26022,12 @@ def p24_window(ix, page, C, w, missing, warn):
         ((xy[0] - wd / 2.0) if al == "C" else xy[0], xy[1] - 0.2 * ht, (xy[0] + wd / 2.0) if al == "C" else xy[0] + wd,
          xy[1] + 0.8 * ht), frame, P24_TITLE_IN)
     names = [(HUB_NAME[h["id"]], h["xy"]) for h in C.hubs] + \
-        [(bridge_name(nm), xy) for nm, xy in BRIDGES_K if nm in (u"K1", u"K2")] + PLACES
+        [(bridge_name(nm), xy) for nm, xy in BRIDGES_K if nm in (u"K1", u"K2")]
+    for nm, xy in PLACES:                                 # v47 (round 9 Q9): every place by its names-table name
+        t_ = place_label(nm, xy)
+        if t_ is None and inP(xy):
+            out.append(u"FLAG names p21 mp_dt_%s: %s has no names-table row (printed as written)" % (w["id"], nm))
+        names.append((mp_upper(t_) if t_ else nm, xy))
     nsz = AN_NAME["text_mm"]                              # v43 (round 7 S6, G7-2): names small, inside their area
     for nm, xy in names:
         if inP(xy):
@@ -25856,6 +26035,18 @@ def p24_window(ix, page, C, w, missing, warn):
             an_name(mpx_X(pg, ("labels", nm)), (x, y), nm, page=page)   # v42 (L3): always exported; the booklet places it
             wn_ = text_w(nm, nsz, False)
             taken_nm.append((x - wn_ / 2.0, y - 0.5 * nsz, x + wn_ / 2.0, y + 0.5 * nsz))
+    # v47 (G9-4 b, c, f, g, h): the context names inside the frame that the plan does not name already, as labels in
+    # their own size and colour (the booklet places them); then the context map's done-when lines
+    nk_ = set(name_key(nm) for nm, _xy in names)
+    ctx_in = [it for it in base_names if (u"%s" % it[1]).strip() and inP(it[2])]
+    for it in ctx_in:
+        if name_key(it[1]) in nk_:
+            continue
+        nk_.add(name_key(it[1]))
+        x, y = T(it[2])
+        with mpx_grp(pg, "labels", it[1]):
+            pg.text(it[1], x, y, it[3], it[4], bold=bool(it[5]), align="C")
+    basemap_context_log(u"p21", u"mp_dt_" + w["id"], base_draw + ctx_in, study=bool(study), log=out, D=bmD)
     best = {}
     for key, Q in fields:
         vis = clip_ring(Q, frame)
@@ -25908,14 +26099,22 @@ def p24_window(ix, page, C, w, missing, warn):
             x, y = T(xy)
             with mpx_grp(pg, "labels", s_):                  # v42 (L3): always exported; the booklet places it
                 pg.text(s_, x, y, ts["small"], ink2, align="C")
-    # ---- the plan as a drawing: survey m from the window's lower-left corner; the export box carries the
-    # P24_PLAN_M margin with the cut marks (G6-4: outside the frame)
+    # ---- the plan as a drawing: drawing units = m from the frame's lower-left corner. v47 (round 9 A9, ADDENDUM §0):
+    # drawn at its true 1:T and exported over the context window (cb) with its focus; the cut marks stand in the
+    # P24_PLAN_M margin between the frame line and the frame the page shows (G6-4: outside the plan's frame)
     did = u"mp_dt_" + w["id"]
-    M, mk = P24_PLAN_M, DT_SCALE / 1000.0
-    out.append(u"scale p21 {} 1:{:.0f}".format(did, DT_SCALE))   # v43 (round 7 S6): SON's printed scale, fixed
-    D = mpx_drawing(ix, did, page, pg, (-M, -M, dw + M, dh + M), DT_SCALE, origin_m=(-M * mk, -M * mk),
-                    dkind="plan", north_deg=round(math.degrees(F["north"]), 2), scale_pref=[int(DT_SCALE)],
-                    priority=1, group=did, title=w["title"])
+    mk = den / 1000.0
+    if w.get("lab"):
+        out.extend(r9_scale_line(u"p21", did, w["tfit"], w["lab"]))   # v43-v46: SON's printed 1:1,000, fixed
+    else:
+        out.append(u"scale p21 {} 1:{:.0f}".format(did, den))
+    fc = w.get("focus")
+    D = mpx_drawing(ix, did, page, pg, cb, den, origin_m=(cb[0] * mk, cb[1] * mk),
+                    dkind="plan", north_deg=round(math.degrees(F["north"]), 2), scale_pref=[int(round(den))],
+                    priority=1, group=did, title=w["title"],
+                    focus=(fc[0] - o_[0], fc[1] - o_[1], fc[2] - o_[0], fc[3] - o_[1]) if fc else None,
+                    frame=w.get("frame"), scale_r9=(w["tfit"], w["lab"]) if w.get("lab") else None)
+    w["did"] = D["id"]
     MPX_PAGES.append(("A", u"p21 " + w["id"], pg))
     ix.text(page, w["title"], "heading", drawing=did, priority=3, group=did)   # v42: one box per drawing (L1 19:30)
     if A_ is not None:
@@ -25930,106 +26129,241 @@ def p24_window(ix, page, C, w, missing, warn):
         ix.list(page, did, [t_ for t_, _p in why_rows], numbered=False, anchors=[(p_[0] / k, p_[1] / k)
                                                                                  for _t, p_ in why_rows],
                 id=did + u"_why", group=did)
-    # ---- the section (ACCURATE, BRIEF §3), its levels, ONE row of zone names, callouts
-    sec = p24_section(C, w, warn, "b", ex={})
-    if sec is not None:
-        for k_ in sec["keys"]:
-            leg(("p24s", k_))
-        missing += sec["missing"]
-        sid = did + u"_sec"
-        ks = sec["k"]
-        sw_mm = sec["w"]                                  # printed width at 1:DT_SCALE (mm)
-        # v43 (round 7 S6, BRIEF §3 / PLAN §3 row 21): ACCURATE section at SON's printed 1:1,000, fixed; the round 6
-        # SF_SCALES pick (the round scale that filled the plan's width) is gone: no code picks a scale
-        den = DT_SCALE
-        pct = 100.0 * sw_mm / dw
-        if sw_mm > dw + 2.0:
-            ix.warn(page, "frame", u"section %s at 1:%s is %.1f mm wider than its plan (%.1f mm): scale kept" % (
-                sec["name"], u"{:,.0f}".format(den), sw_mm - dw, dw))
-        out.append(u"section p21 {} ACCURATE".format(sec["name"]))
-        out.append(u"scale p21 {} 1:{:.0f} (width {:.0f} % of plan)".format(sid, den, pct))
-        top = sec["top"]
-        z_row = sec["z0"] + (top + P24_ROW_MM * 0.3) / ks   # the zone-name row, m (drawing units)
-        Ds = mpx_drawing(ix, sid, page, sec["pg"], (-P24_SEC_M, 0.0, sec["w"] + P24_SEC_M, top + P24_ROW_MM), den,
-                         origin_m=(sec["ta"] - P24_SEC_M / ks, sec["z0"]), dkind="section", scale_pref=[int(den)],
-                         priority=1, group=did, title=u"Section {0}-{0}′".format(sec["name"]))
-        MPX_PAGES.append(("A", u"p21 " + w["id"] + u" section", sec["pg"]))
-        ix.text(page, u"Section {0}-{0}′ · on cut {1} · looking upstream".format(sec["name"], level_name(sec["cid"])),
-                "heading", drawing=sid, priority=3, group=did)
-        sf_level_items(ix, page, Ds, sec["levels"])     # the ▽ column at the right edge, spread by the booklet
-        zpt = 6.0                                         # the zone names, pt (G6-7 >= 4 pt)
-        # v42 (L3, booklet-places-all): every zone name is exported, anchored at the zone's middle on the
-        # section's top line; the booklet's placer moves / shortens / numbers it on a collision (nothing dropped here)
-        n_zn = 0
-        for beyond in (False, True):                      # the cut's own zones first (higher priority), then beyond
-            for nm, t, zz, by in sorted(sec["zones"], key=lambda z_: z_[1]):
-                if by != beyond:
-                    continue
-                sf_ = [nm.replace(u" (beyond)", u"")] if u" (beyond)" in nm else []
-                ix.text(page, nm, "label", drawing=sid, at=(t, z_row), size_pt=zpt,
-                        positions=["=C", "N", "NE", "NW", "S"], short_forms=sf_,
-                        colour=COL["ink2"] if beyond else COL["ink_dark"], bold=not beyond, group=did,
-                        priority=5 if beyond else 4)
-                n_zn += 1
-        out.append(u"section p21 {} zone names exported {} (placed by the booklet)".format(sec["name"], n_zn))
-        rows, seen_ = [], set()
-        for n_, t, zz, t_ in sorted(sec["callouts"]):
-            if n_ not in seen_:
-                seen_.add(n_)
-                rows.append((t_, (t, zz)))
-        if rows:
-            ix.list(page, sid, [t_ for t_, _a in rows], numbered=True, anchors=[a_ for _t, a_ in rows],
-                    id=sid + u"_key", group=did)
-        for t, zz, t_ in sec.get("callouts_free") or ():   # v42 (L3): callouts with no free circle spot, as labels
-            ix.text(page, t_, "label", drawing=sid, at=(t, zz), size_pt=zpt, short_forms=[t_.split(u":")[0]],
-                    positions=["N", "NE", "NW", "E", "W", "S", "SE", "SW"], group=did, priority=5)
-        if sec.get("callouts_free"):
-            out.append(u"section p21 {} callouts as booklet labels {}: {}".format(
-                sec["name"], len(sec["callouts_free"]), u", ".join(t_.split(u":")[0] for _t, _z, t_ in
-                                                                   sec["callouts_free"])))
-        for key, n_ in (sec.get("trees") or {}).items():
-            _P24_TREE_N[u"section " + key] = _P24_TREE_N.get(u"section " + key, 0) + n_
-    # ---- the legend by category (G6-6: the hue table; only what this window's plan and section draw)
-    grp, cur = [], None
-    for r_ in p24_legend(dict(_PLEG[0])):
-        if r_[0] == "head":
-            cur = [r_[1], []]
-            grp.append(cur)
-        elif cur is not None:
-            cur[1].append((r_[1], r_[2]))
-    for i, (head, ents) in enumerate(grp):
-        if ents:
-            ix.legend(page, did, ents, title=head, id=u"%s_leg%d" % (did, i + 1), group=did)
-    out.append(u"legend p21 hues=table ({}: {} groups)".format(w["id"], sum(1 for g_ in grp if g_[1])))
+    # ---- v47 (round 9 A8, A9): the section is drawn by p24_items once both plans are done (one series scale,
+    # p24_sec_export) and the legend is ONE for D1 + D2 (p24_items); this window hands over its legend keys, plant
+    # species, context base and the street elements / decks its section shows
+    w["leg_keys"] = dict(_PLEG[0])
+    w["sp"] = set(_P24_SP)
+    w["base_draw"] = base_draw
+    w["street"] = dict((k_, list(v_)) for k_, v_ in _P24_STREET.items())
+    w["deck"] = list(_P24_DECK)
     _PLEG[0] = None
-    out.append(u"p21 {}: plan {} north-up, section {}, fields {}, route steps {}, cut marks {}".format(
-        w["id"], did, (did + u"_sec") if sec is not None else u"none", len(fields), len(route_rows), n_cut))
+    out.append(u"p21 {}: plan {} north-up 1:{:.0f}, fields {}, route steps {}, cut marks {}".format(
+        w["id"], did, den, len(fields), len(route_rows), n_cut))
     if missing:
         out.append(u"p21 {}: not placed: {}".format(w["id"], u", ".join(missing)))
     return out, n_cut
 
 
+def p24_win_r9(w):
+    """v47 (round 9 A9, ADDENDUM §0; PLAN cause d4, H2 p21): window w (detail_windows: its R8 content window w["R"],
+    DT_PLAN x DT_SCALE, unchanged) as an M map. Tfit = that window into its frame less the cut-mark margin P24_PLAN_M
+    all round (195 - 12 by 124 - 12 mm); r9_label gives L and T; focus = the window grown by the margin at Tfit (so
+    the booklet's own fit of the focus gives the same Tfit); vis = the frame at T centred on the focus (what the
+    page shows); R = vis less the margin (the plan's frame line, the cut marks outside it and inside vis); ctx =
+    the context window (r9_window, x 1.3 or more when T needs it). Returns a copy of w (R8 = the old R)."""
+    key, skey = P24_FRAME_KEYS.get(w["id"], (None, None))
+    wh = r9_wh(key) if key else None
+    if not wh:
+        R9_LOG.append(u"FLAG p21 %s: no R9 frame, drawn at 1:%d as in round 8" % (w["id"], int(DT_SCALE)))
+        return dict(w, R8=w["R"])
+    R, M = w["R"], P24_PLAN_M
+    tf = max((R[2] - R[0]) * 1000.0 / (wh[0] - 2.0 * M), (R[3] - R[1]) * 1000.0 / (wh[1] - 2.0 * M))
+    lab = r9_label(tf, (R9_FRAMES.get(key) or {}).get("r8"))
+    T = float(lab["T"])
+    g = M * tf / 1000.0
+    focus = (R[0] - g, R[1] - g, R[2] + g, R[3] + g)
+    cx, cy = 0.5 * (focus[0] + focus[2]), 0.5 * (focus[1] + focus[3])
+    hw, hh = 0.5 * wh[0] * T / 1000.0, 0.5 * wh[1] * T / 1000.0
+    vis = (cx - hw, cy - hh, cx + hw, cy + hh)
+    m = M * T / 1000.0
+    ctx = r9_window(focus, key, grow=max(R9_WINDOW_GROW, 1.05 * T / tf))
+    return dict(w, R8=R, R=(vis[0] + m, vis[1] + m, vis[2] - m, vis[3] - m), focus=focus, vis=vis, ctx=ctx, T=T,
+                tfit=tf, lab=lab, frame=key, sec_frame=skey)
+
+
+def p24_sec_dry(C, w):
+    """v47 (round 9 A8): window w's section drawn once at 1:DT_SCALE only to measure it for the series scale (span
+    tb - ta and height top / k, m); every run log it writes is rolled back and its warnings dropped (the drawing
+    pass writes them). None without a section (w["dry_err"] = the error when it failed)."""
+    n_ = dict((nm, len(globals()[nm])) for nm in P24_DRY_LOGS if isinstance(globals().get(nm), list))
+    pc = dict((k_, dict(v_)) for k_, v_ in _PLN_COUNTS.items())
+    try:
+        return p24_section(C, w, [], "b", ex={"dry": True})
+    except Exception as ex_:
+        w["dry_err"] = u"%s: %s" % (type(ex_).__name__, ex_)
+        return None
+    finally:
+        for nm, n0 in n_.items():
+            del globals()[nm][n0:]
+        _PLN_COUNTS.clear()
+        _PLN_COUNTS.update(pc)
+
+
+def p24_sec_tfit(w, sec):
+    """v47 (ADDENDUM §0.1 for an S drawing): Tfit of section sec in its frame (R9_FRAMES w["sec_frame"], 195 x 48):
+    its span (m) into the width less the two end margins P24_SEC_M and the level column P24_SEC_LVL_W, its height
+    (m) into the height less the zone-name row P24_ROW_MM and the heading P24_SEC_HEAD; None without a frame"""
+    wh = r9_wh(w.get("sec_frame")) if w.get("sec_frame") else None
+    if not wh or sec is None:
+        return None
+    span = float(sec["tb"] - sec["ta"])
+    hm = float(sec["top"]) / float(sec["k"])
+    return max(span * 1000.0 / (wh[0] - 2.0 * P24_SEC_M - P24_SEC_LVL_W),
+               hm * 1000.0 / (wh[1] - P24_ROW_MM - P24_SEC_HEAD))
+
+
+def _p24_state(w):
+    """v47: window w's street elements and decks (as its plan left them, p24_window) back for its section"""
+    for k_ in _P24_STREET:
+        _P24_STREET[k_][:] = list((w.get("street") or {}).get(k_) or [])
+    _P24_DECK[:] = list(w.get("deck") or [])
+
+
+def p24_sec_export(ix, page, w, sec, tf_own, slab, missing, out):
+    """v47 (round 9 A8, ADDENDUM §0.6; the round 6-8 section export of p24_window, moved here): window w's section,
+    drawn at the series' true 1:T, as items: the drawing (frame p21.6 / p21.8, series p21s, den / label_den / fit_den
+    with its own Tfit), its heading, the level column, the zone names, the callout key (list <sid>_key, in the shared
+    legend frame p21.7) and the callouts with no free circle spot as labels. Its legend keys go to w["leg_keys"]."""
+    for k_ in sec["keys"]:
+        leg(("p24s", k_))
+        w.setdefault("leg_keys", {})[("p24s", k_)] = True
+    missing += sec["missing"]
+    did = w.get("did") or (u"mp_dt_" + w["id"])
+    sid = u"mp_dt_" + w["id"] + u"_sec"
+    ks = sec["k"]
+    den = 1000.0 / ks
+    out.append(u"section p21 {} ACCURATE".format(sec["name"]))
+    lab = None
+    if slab and tf_own:
+        lab = dict(slab, size=float(tf_own) / float(slab["T"]))
+        out.extend(r9_scale_line(u"p21", sid, tf_own, lab))
+    else:
+        out.append(u"scale p21 {} 1:{:.0f}".format(sid, den))
+    top = sec["top"]
+    z_row = sec["z0"] + (top + P24_ROW_MM * 0.3) / ks   # the zone-name row, m (drawing units)
+    Ds = mpx_drawing(ix, sid, page, sec["pg"], (-P24_SEC_M, 0.0, sec["w"] + P24_SEC_M, top + P24_ROW_MM), den,
+                     origin_m=(sec["ta"] - P24_SEC_M / ks, sec["z0"]), dkind="section", scale_pref=[int(round(den))],
+                     priority=1, group=did, title=u"Section {0}-{0}′".format(sec["name"]), frame=w.get("sec_frame"),
+                     series=P24_SERIES if lab else None, scale_r9=(tf_own, lab) if lab else None)
+    MPX_PAGES.append(("A", u"p21 " + w["id"] + u" section", sec["pg"]))
+    ix.text(page, u"Section {0}-{0}′ · on cut {1} · looking upstream".format(sec["name"], level_name(sec["cid"])),
+            "heading", drawing=sid, priority=3, group=did)
+    sf_level_items(ix, page, Ds, sec["levels"])     # the level column at the right edge, spread by the booklet
+    zpt = 6.0                                         # the zone names, pt (G6-7 >= 4 pt)
+    # v42 (L3, booklet-places-all): every zone name is exported, anchored at the zone's middle on the
+    # section's top line; the booklet's placer moves / shortens / numbers it on a collision (nothing dropped here)
+    n_zn = 0
+    for beyond in (False, True):                      # the cut's own zones first (higher priority), then beyond
+        for nm, t, zz, by in sorted(sec["zones"], key=lambda z_: z_[1]):
+            if by != beyond:
+                continue
+            sf_ = [nm.replace(u" (beyond)", u"")] if u" (beyond)" in nm else []
+            ix.text(page, nm, "label", drawing=sid, at=(t, z_row), size_pt=zpt,
+                    positions=["=C", "N", "NE", "NW", "S"], short_forms=sf_,
+                    colour=COL["ink2"] if beyond else COL["ink_dark"], bold=not beyond, group=did,
+                    priority=5 if beyond else 4)
+            n_zn += 1
+    out.append(u"section p21 {} zone names exported {} (placed by the booklet)".format(sec["name"], n_zn))
+    rows, seen_ = [], set()
+    for n_, t, zz, t_ in sorted(sec["callouts"]):
+        if n_ not in seen_:
+            seen_.add(n_)
+            rows.append((t_, (t, zz)))
+    if rows:
+        ix.list(page, sid, [t_ for t_, _a in rows], numbered=True, anchors=[a_ for _t, a_ in rows],
+                id=sid + u"_key", group=did)
+    for t, zz, t_ in sec.get("callouts_free") or ():   # v42 (L3): callouts with no free circle spot, as labels
+        ix.text(page, t_, "label", drawing=sid, at=(t, zz), size_pt=zpt, short_forms=[t_.split(u":")[0]],
+                positions=["N", "NE", "NW", "E", "W", "S", "SE", "SW"], group=did, priority=5)
+    if sec.get("callouts_free"):
+        out.append(u"section p21 {} callouts as booklet labels {}: {}".format(
+            sec["name"], len(sec["callouts_free"]), u", ".join(t_.split(u":")[0] for _t, _z, t_ in
+                                                               sec["callouts_free"])))
+    for key, n_ in (sec.get("trees") or {}).items():
+        _P24_TREE_N[u"section " + key] = _P24_TREE_N.get(u"section " + key, 0) + n_
+
+
 def p24_items(ix, C, wins, areas, missing, warn):
-    """round 5 (S6, G-R5-12) / round 6 (S8): page p21 (MPX_PAGE["p24"]) = both 1:1,000 windows (plan + section +
-    lists + legend each) and ONE key map of both cuts and windows, drawn by the shared module (G6-5: keymap.py
-    km_keymap, the only key-map drawer; the booklet places it whole inside the page). missing = {window id: [words
-    not placed]}. Returns log lines."""
+    """round 5 (S6, G-R5-12) / round 6 (S8): page p21 (MPX_PAGE["p24"]) = both windows (plan + section + lists) and
+    ONE key map of both cuts and windows, drawn by the shared module (G6-5: keymap.py km_keymap, the only key-map
+    drawer; the booklet places it whole inside the page). missing = {window id: [words not placed]}. v47 (round 9 A8,
+    A9, G9-4, G9-5; ADDENDUM §0): each plan an M map (p24_win_r9: its true 1:T, context window, focus); the two
+    sections ONE series p21s (a measuring pass, p24_sec_dry, gives each Tfit, r9_series_label one T, both drawn again
+    at T: p24_sec_export); ONE legend for D1 + D2 (p24_legend over both windows' keys, each row once, plus the context
+    classes; ids <D1 plan>_leg<n> in frame p21.7); the key map in frame p21.3 with its legend mp_dt_keymap_legend; the
+    page title carries the plans' printed scale as a {scale:<plan id>} token. Returns log lines."""
     page = MPX_PAGE["p24"]
     out = []
     _P24_WINS.clear()
     _P24_TREES.clear()
     _P24_TREE_N.clear()
     n_cuts, cuts, zooms = 0, [], {}
+    wins = [p24_win_r9(w) for w in wins]
+    if wins and wins[0].get("T"):
+        _SCALE[0] = wins[0]["T"]                         # H2 p21: the bar scale follows the plans' true scale
+    secs = []
     for w in wins:
         o_, nc = p24_window(ix, page, C, w, missing.setdefault(w["id"], []), warn)
         out += o_
         n_cuts += nc
+        secs.append(p24_sec_dry(C, w))                   # measured while this window's street state is current
+        if w.get("dry_err"):
+            warn.append(u"section p21 {}: not measured ({}), not drawn".format(w["id"], w["dry_err"]))
         sp_ = p24_cut_span(w)
         if sp_ is not None:
             cid, name, c0, cd, f, ta, tb = sp_
             cuts.append(((c0[0] + cd[0] * ta, c0[1] + cd[1] * ta), (c0[0] + cd[0] * tb, c0[1] + cd[1] * tb),
                          (name, name + u"′"), 1 if (f[0] * -cd[1] + f[1] * cd[0]) > 0 else -1))
             # v42 (L3): the look as keymap.py km_cut_items wants it (+1/-1, the sign br_section gets), not "cut"
+    # ---- v47 (A8, ADDENDUM §0.6): ONE scale for the two sections, each drawn again at it
+    tfs = [p24_sec_tfit(w, s_) for w, s_ in zip(wins, secs)]
+    r8s = [(R9_FRAMES.get(w.get("sec_frame")) or {}).get("r8") for w in wins]
+    slab = r9_series_label([t_ for t_ in tfs if t_], [v_ for v_ in r8s if v_])
+    if slab:
+        out.append(u"series p21 {} fit 1:{:.0f} true 1:{:.0f} label 1:{:,} ({})".format(
+            P24_SERIES, max(t_ for t_ in tfs if t_), slab["T"], slab["L"],
+            u", ".join(s_["name"] for s_ in secs if s_ is not None)))
+    for w, s_, tf_ in zip(wins, secs, tfs):
+        if s_ is None:
+            continue
+        _p24_state(w)
+        _PLEG[0] = w.setdefault("leg_keys", {})
+        try:
+            sec = p24_section(C, w, warn, "b", den=slab["T"] if (slab and tf_) else None, ex={})
+            if sec is not None:
+                p24_sec_export(ix, page, w, sec, tf_, slab, missing.setdefault(w["id"], []), out)
+        except Exception as ex_:
+            import traceback
+            warn.append(u"section p21 {}: not exported ({}: {})".format(w["id"], type(ex_).__name__, ex_))
+            warn.append(traceback.format_exc()[-480:])
+        _PLEG[0] = None
+    # ---- v47 (A9): ONE legend for D1 + D2: the windows' keys together (each row once), the context classes added
+    keys, sp = {}, set()
+    for w in wins:
+        keys.update(w.get("leg_keys") or {})
+        sp |= set(w.get("sp") or ())
+    _P24_SP.clear()
+    _P24_SP.update(sp)
+    grp, cur = [], None
+    for r_ in p24_legend(keys):
+        if r_[0] == "head":
+            cur = [r_[1], []]
+            grp.append(cur)
+        elif cur is not None:
+            cur[1].append((r_[1], r_[2]))
+    crow, seen_ = [], set()
+    for w in wins:
+        for sw_, t_ in basemap_legend_rows(w.get("base_draw") or []):
+            if sw_.get("cat") == "WAT" or t_ in seen_:  # the stream is the masterplan's own row
+                continue
+            seen_.add(t_)
+            crow.append((sw_, t_))
+    if crow:
+        h_ctx = dict(P24_CAT_HEAD).get("CTX", u"Existing")
+        g_ctx = next((g_ for g_ in grp if g_[0] == h_ctx), None)
+        if g_ctx is None:
+            grp.append([h_ctx, crow])
+        else:
+            g_ctx[1].extend(crow)
+    lid = next((w["did"] for w in wins if w.get("did")), u"mp_dt_dt_upstream")
+    n_leg = 0
+    for head, ents in grp:
+        if ents:
+            n_leg += 1
+            ix.legend(page, lid, ents, title=head, id=u"%s_leg%d" % (lid, n_leg), group=lid)
+    out.append(u"legend p21 hues=table (D1 + D2 in one: {} groups, {} rows, {} context rows)".format(
+        n_leg, sum(len(e_) for _h, e_ in grp), len(crow)))
     for nm, ring in _P24_WINS.values():
         zooms[nm] = ring
     try:
@@ -26037,10 +26371,9 @@ def p24_items(ix, C, wins, areas, missing, warn):
     except Exception as ex_:
         ix.warn(page, "annot", u"annot log not written (%s: %s)" % (type(ex_).__name__, ex_))
     try:                                                  # G6-5: the one key-map module (never stops the run)
-        # v43 (round 7 S6, G7-3): SON page22's frame 26.9 x 35.9 mm; north at the LEFT so the key map and its arrow
-        # stay inside the 406 mm margin (SON's frame ends at x 405, a right-hand north column would cross it)
-        km = km_keymap(page, cuts=cuts, zooms=zooms, w_mm=P24_KM_W, h_mm=P24_KM_HMAX, heading=P24_KM_HEAD,
-                       north_side="left", log=out, names=P24_KM_NAMES)   # v45: SON page 22, no street / place names
+        # v47 (round 9 G9-5): drawn at its R9 frame p21.3 (26 x 36; north_side is gone from the module)
+        km = km_keymap(page, cuts=cuts, zooms=zooms, heading=P24_KM_HEAD, log=out, names=P24_KM_NAMES,
+                       frame_key=P24_KM_FRAME)            # v45: SON page 22, no street / place names
         its = km_export_items(km, page, u"mp_dt_keymap") or []
         did_ = None
         for it in its:                                    # v43 (mpx_keymap removed): ids made unique, anchors on the drawing
@@ -26057,20 +26390,18 @@ def p24_items(ix, C, wins, areas, missing, warn):
         if its:
             out.append(u"p21 key map: cuts {}, windows {} ({} items)".format(
                 u", ".join(c_[2][0] for c_ in cuts), len(zooms), len(its)))
+            km_legend_export(ix, km, page, did_ or u"mp_dt_keymap")   # v47: its legend, in the shared frame p21.7
         else:
             ix.warn(page, "keymap", u"key map module gave no items (no base map data? run the site board first)")
-        kl = km_log(page)
-        if kl:
-            out += [kl] if isinstance(kl, (str, type(u""))) else list(kl)
+        km_log(page, km, log=out)                         # v47: + `keymap p21 roads n= cuts D1,D2`
     except Exception as ex_:
         ix.warn(page, "keymap", u"key map not exported (%s: %s)" % (type(ex_).__name__, ex_))
-    ix.text(page, u"The water edge at 1:1,000", "title", priority=1, group=u"mp_dt")
+    ix.text(page, u"The water edge at " + ix_scale_token(lid), "title", priority=1, group=u"mp_dt")   # v47 (e2)
     sp_n = dict((k_, n_) for k_, n_ in _P24_TREE_N.items())
     out.append(u"trees p21 species={} generic=0 ({})".format(
         len(set(k_.replace(u"section ", u"") for k_ in sp_n)), u", ".join(u"%s %d" % kv for kv in sorted(sp_n.items()))))
     out += pln_log_lines(page) if "pln_log_lines" in globals() else []
     return out
-
 
 def _p24_sp_label(key):
     sp = PLA_SPECIES.get(key) or {}
@@ -27058,6 +27389,12 @@ def msl_items(ix, M):
     return [u"section links  %d of %d cuts (sb_sec_note_<cut>_mp)" % (n_, len(cuts))]
 
 
+# v47 (round 9, ADDENDUM F2.4, H5 §5): p20 is B19Plan's page now; the masterplan's p20 items (mp_plan_*, legends,
+# lists, context labels, plan_sources) are no longer exported. p15 and p21 are separate blocks and do not read p23's
+# state. Side effect: the booklet's Sources page no longer gets the masterplan's numbered places (extra.plan_sources).
+MP_P20_EXPORT = False
+
+
 def build_all(doc, warn):
     """Read, draw and write. Returns (folder, files, log lines, pages)."""
     folder = bg_booklet(OUT_FOLDER)                       # round 5 (C2, addendum): no output/ folder; items in cached/booklet/
@@ -27160,7 +27497,9 @@ def build_all(doc, warn):
                 lines.append(u"logs/{}  NOT WRITTEN ({}: {})".format(OG_KML, type(ex).__name__, ex))
         # round 5 S6 (G-R5-12, addendum 1 Nov 22:37 point 2): NO sheet PDF and no crops any more; each booklet page's
         # drawings and texts are exported as items (parts/04_items.py) into cached/booklet/bergama_masterplan/items.json
-        if opt == "A" and C is not None:                 # p21 (25-page p23): the masterplan
+        if opt == "A" and C is not None and not MP_P20_EXPORT:   # v47 (round 9 F2.4): B19Plan draws p20
+            lines.append(u"p20 export off (B19Plan draws p20)")
+        if MP_P20_EXPORT and opt == "A" and C is not None:   # p21 (25-page p23): the masterplan
             t0 = time.time()
             try:
                 lines.extend(p23_items(ix, C, warn))
