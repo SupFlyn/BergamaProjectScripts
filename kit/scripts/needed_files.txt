@@ -3,7 +3,7 @@
 
 # scripts + chain order
 scripts/bergama_agriculture_alternatives_v14.py
-scripts/bergama_b19_plan_v12_1.py
+scripts/bergama_b19_plan_v13.py
 scripts/bergama_booklet_jpg_v2_3.py
 scripts/bergama_booklet_v37.py
 scripts/bergama_build_gh_chain_v5.py

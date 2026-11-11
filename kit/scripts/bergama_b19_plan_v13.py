@@ -1675,7 +1675,7 @@ def read_items(doc, opt):
             continue
         a = o.Attributes
         meta = {}
-        for k in ("label", "id", "study_area", "zone", "link"):
+        for k in ("label", "id", "study_area", "zone", "link", "source"):   # v13 (B19): source=svg = ZoneBase v12
             v = a.GetUserString(k)
             if v:
                 meta[k] = v
@@ -1824,7 +1824,7 @@ def bergama_data(name, _c={}):
                 k_, _, b_ = part_.partition("\n")
                 _c[k_] = b_
     b_ = _c.get(name)
-    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '0ec3cbab34964fea25289ca36d8bd453', 'ROADS': '99bc04d8d0ea09b7336194f59372f73b', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'BRIDGES': '75e4c182b7d1f921c16948c690b7dae4', 'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'VEG_EMBED': '38fe91c0783d2cffe8078bc5e95fec44', 'TREE_EMBED': 'f4772d05de655e4d4346611c47bc1ba4', 'BUSH_EMBED': 'b8fdaadf7b1999fb1407edb99998bd1d'}.get(name):
+    if b_ is None or _hl.md5(b_.encode("utf-8")).hexdigest() != {'NAMES': '06f1746b6cc05729b557d9f37713906f', 'ROADS': '99bc04d8d0ea09b7336194f59372f73b', 'LEVELS': '3cc5394beb1de45118b6226d608a766b', 'BRIDGES': '75e4c182b7d1f921c16948c690b7dae4', 'ZONE_COPY': '7c7d4a4a21af391460ac0701ae5e3902', 'STREAM_REF': '6462357102432c243b7a34f595c055c7', 'WALK_COPY': '1cd13819bdb905317ae04d7b1461f8dc', 'LC_EMBED': '240a8d1b17473e2447889cf7c9a0864b', 'VEG_EMBED': '38fe91c0783d2cffe8078bc5e95fec44', 'TREE_EMBED': 'f4772d05de655e4d4346611c47bc1ba4', 'BUSH_EMBED': 'b8fdaadf7b1999fb1407edb99998bd1d'}.get(name):
         raise RuntimeError("Data file bergama_b19_plan_data.py is not the one made with this script version (part " + name +
                            "): copy it again from the same run kit as the script")
     exec(compile(b_, "bergama_b19_plan_data.py:" + name, "exec"), globals())
@@ -3630,6 +3630,13 @@ GRID_PT_ = 25.4 / 72.0                                    # mm per pt (the legen
 #               "ring": a paper disc, a coloured rim, the glyph in colour
 #   mk_register(kind, table)          the element table a page draws with ({key: hex}), so marker = element colour
 #   mk_colour(kind, key) -> hex       the registered colour; an unknown kind / key RAISES (no fallback colour)
+#   round 9 (S1, G9-1; PLAN.md §spec S1): the glyph shape of mk_marker is an _MkText carrying .badge, the S1 badge
+#       item {"role": "badge", "at": [x, y], "r_mm", "fill", "ring", "ring_mm", "text", "pt", "bold", "colour"}
+#       (at = the disc centre in the shapes' units); the disc shape is an _MkDisc (.mk_badge = True). Ix.layer
+#       (ix_r9) exports such a pair as ONE badge item, so the booklet draws disc + glyph and centres the glyph with
+#       bk_centre. Every other reader sees the same plain tuples as before.
+#   mk_badge(cx, cy, s, colour, ...) -> the badge dict alone (same arguments as mk_marker, no shapes)
+#   mk_badge_at(b, k=1.0, origin=(0, 0)) -> a copy of badge b with "at" mapped x' = origin + k * x (drawing units)
 #   mk_put(tp, shapes, name=None) -> the non-text shapes
 #                                     registers the disc as a keep (kind "marker") and the glyph in the TextPage (it
 #                                     may sit on its own disc only; give each marker its own name); the caller draws the returned disc shapes, the
@@ -3639,6 +3646,16 @@ MK_PAPER = "FFFFFF"
 MK_INK = "2C2219"                      # dark glyph on light discs (the north-arrow ink of PLAN §4.5)
 MK_COLOURS = {}
 MK_N = [0]                             # markers registered this run (unique keep names)
+
+
+class _MkText(tuple):
+    """round 9 (S1): a marker's glyph shape; .badge = the S1 badge item of its marker"""
+    pass
+
+
+class _MkDisc(tuple):
+    """round 9 (S1): a marker's disc shape (.mk_badge = True: Ix exports it inside the badge item)"""
+    pass
 
 
 def _mk_lum(hx):
@@ -3698,8 +3715,26 @@ def mk_marker(cx, cy, s, colour, size_pt=7.0, r_min=None, style="solid", rim="FF
     x = cx - (ix0 + ix1) / 2.0
     base = cy + (iy0 + iy1) / 2.0 if y_down else cy - (iy0 + iy1) / 2.0
     size_mm = size_pt * 25.4 / 72.0
-    shapes = [disc, ("text", s, x, base, size_mm, tc, True, "L")]
+    d_ = _MkDisc(disc)
+    d_.mk_badge = True
+    t_ = _MkText(("text", s, x, base, size_mm, tc, True, "L"))
+    t_.badge = dict(role="badge", at=[cx, cy], r_mm=round(r, 3), fill=disc[2], ring=disc[3] or None,
+                    ring_mm=round(float(disc[4] or 0.0), 3), text=s, pt=float(size_pt), bold=True, colour=tc)
+    shapes = [d_, t_]
     return shapes, (cx - out_r, cy - out_r, cx + out_r, cy + out_r), r
+
+
+def mk_badge(cx, cy, s, colour, size_pt=7.0, r_min=None, style="solid", rim="FFFFFF", rim_mm=0.25, text_col=None):
+    """round 9 (S1): the S1 badge item of a marker centred on (cx, cy), the same disc and colours as mk_marker"""
+    return dict(mk_marker(cx, cy, s, colour, size_pt, r_min, style, rim, rim_mm, text_col)[0][1].badge)
+
+
+def mk_badge_at(b, k=1.0, origin=(0.0, 0.0)):
+    """round 9 (S1): badge b with its centre mapped into drawing units, x' = origin + k * x (as Ix.layer maps shapes;
+    r_mm, ring_mm and pt stay print sizes)"""
+    o = dict(b)
+    o["at"] = [origin[0] + k * float(b["at"][0]), origin[1] + k * float(b["at"][1])]
+    return o
 
 
 def mk_put(tp, shapes, name=None):
@@ -3713,7 +3748,8 @@ def mk_put(tp, shapes, name=None):
             tp.keep(s_[1], "marker", nm)
     for s_ in shapes:
         if s_ and s_[0] == "text":
-            tp.put(s_[1], s_[2], s_[3], s_[4] * tp.unit_mm / TP_PT, True, "L", 0.0, nm, "marker", s_[5], allow=(nm,))
+            tp.put(s_[1], s_[2], s_[3], s_[4] * tp.unit_mm / TP_PT, True, s_[7] if len(s_) > 7 else "L", 0.0, nm,
+                   "marker", s_[5], allow=(nm,))        # round 9: the shape's own align
     return disc
 # ---- block.py (round 4, S1, 1 Nov 2026; G-R4-3, PLAN §4.2): ONE section block template (U25 / U27) ---------------------
 # A section block = title strip on top + the drawing + its text, laid out on the booklet grid (grid.py: baseline
@@ -5241,7 +5277,8 @@ BM_MUTED = dict(bld="EDEBE6", bld_edge="C9C5BC", her="F1E6E5", her_edge="CDAAAA"
 # LC_CLASSES), lightened toward the paper by "light" (greens) and "fabric_light" (houses, = p02 P02_IN_LIGHT 0.40)
 # so the red cut symbols lead; design values.
 BM_FABRIC = {"monument": "AF7474", "sacred": "8B3A3F", "traditional": "4A3F35", "block": "7A6E60",
-             "regular": "BCB794", "selfbuilt": "DCD5C2", "large": "FAF8F1", "construction": "E6E0C8"}
+             "regular": "BCB794", "selfbuilt": "DCD5C2", "large": "FAF8F1", "construction": "E6E0C8",
+             "unsurveyed": "D8D5CC"}   # round 9 (S3): houses beyond the survey (OpenStreetMap), = HUE CTX r4
 BM_KEY = dict(paper="F1EDDF", grass="ABB287", shrub=("8F9A68", "F1EDDF", 0.3), trees="74804F", farmland="BDB57A",
               orchard=("98A271", "4A3F35", 0.12), park="8F9A68", wood="74804F", agri="BDB57A", water="7FA4B3",
               water_edge="5E8494", road="FAF8F1", road_line="DCD5C2", bridge="4A3F35", light=0.35, fabric_light=0.40,
@@ -5265,9 +5302,10 @@ def bm_key_col(name, light=None):
 
 
 def bm_fabric_col(b, light=None):
-    """round 5 (S2): a basemap building's key-map colour by its urban fabric (format 2 "fabric"; "regular" when the
-    file has none), annexes paler (the p02 rule), mixed BM_KEY['fabric_light'] toward the paper"""
-    c = BM_FABRIC.get(b.get("fabric") or "regular", BM_FABRIC["regular"])
+    """round 5 (S2): a basemap building's key-map colour by its urban fabric (format 2 "fabric"; round 9:
+    "unsurveyed" when the file has none, i.e. OpenStreetMap houses beyond the frame), annexes paler (the p02 rule),
+    mixed BM_KEY['fabric_light'] toward the paper"""
+    c = BM_FABRIC.get(b.get("fabric") or "unsurveyed", BM_FABRIC["unsurveyed"])
     if b.get("annex"):
         c = _bm_mix(c, BM_KEY["paper"], BM_KEY["annex"])
     return _bm_mix(c, BM_KEY["paper"], BM_KEY["fabric_light"] if light is None else light)
@@ -5279,16 +5317,18 @@ class _BmIt(tuple):
     pass
 
 
-def _bm_tag(t, layer):
+def _bm_tag(t, layer, ctx=None, cls=None):
     o = _BmIt(t)
     o.layer = layer
+    o.ctx = ctx              # round 9 (S3): the G9-4 context letter a-j (modes "context" / "keymap"), else None
+    o.cls = cls              # round 9 (S3): the item's class (fabric, land cover, street class, "name", ...)
     return o
 
 
 # contours coloured to the relief (G-R4-4, U48): green tones, lighter = lower (palette 3C4733 and its 89986A tints)
 BM_HEIGHT_RAMP = ("C9D6B0", "A7B68C", "89986A", "3C4733")
 BM_LW = dict(contour=(0.07, 0.13), contour_topo=(0.08, 0.14), water_edge=0.18, covered=0.30, bridge=0.30,
-             road_edge=0.12, osm_edge=0.08, her_edge=0.12, main=0.45, lane=0.22, path=0.10, river_osm=0.6,
+             road_edge=0.12, osm_edge=0.08, her_edge=0.12, main=0.45, secondary=0.32, lane=0.22, path=0.10, river_osm=0.6,
              stream_osm=0.35, cut=0.35)
 BM_COVERED_DASH = (1.6, 0.9)     # mm: the covered course
 
@@ -5317,6 +5357,10 @@ BASEMAP_MODES = {
     # street areas, bridges; the study line and names are the key map's own
     "keymap": dict(stream=True, streets="key", buildings="fabric", green=True, trees=True, fields=True,
                    contours=False, study_area=False, names=False),
+    # round 9 (S3, G9-4, A1 C2): the map context, layers a-j to the window's edge (SON page2/7/9 the floor); mode
+    # "keymap" now draws the same layers quieter (every street class, G9-5); the study line is map_draw's own layer
+    "context": dict(stream=True, streets=True, buildings="fabric", green=True, trees=True, fields=True,
+                    contours=True, study_area=False, names=True),
 }
 # M3 layer list -> switches: basemap_layers accepts these names too (buildings, streets, water, topography,
 # study_area, names; green, trees, fields as before)
@@ -5327,6 +5371,38 @@ BM_STUDY_LINE = dict(colour="6A4C93", width_mm=0.35, dash_mm=(3.0, 0.8, 0.6, 0.8
 BM_NAME_MM = 2.47                  # place names: the M1 label size (7 pt)
 _BM_MEMO = {}
 _BM_WARN = []
+
+# ---- round 9 (S3, 11 Nov 2026; BRIEF G9-4, A1 C2, PLAN.md §spec S3): mode "context" = the map context layers a-j ----
+# drawn to the window's edge in the G9-4 order land cover (e) -> terrain (i) -> buildings (d) -> streets (a) ->
+# stream (f) -> bridges (g) -> names (b, c, f, g, h); the project follows (map_draw), the study line (j) is
+# map_draw's own layer. Mode "keymap" draws the same layers quieter (G9-5, PLAN S4). Colours from the hue table r9
+# (FAB, LC, STR, WAT, CTX families). Every item carries .layer, .ctx (the letter) and .cls (its class).
+BM_CTX_LETTERS = (("a", u"streets"), ("b", u"main street names"), ("c", u"mahalle names"),
+                  ("d", u"buildings by fabric"), ("e", u"land cover"), ("f", u"stream and its name"),
+                  ("g", u"bridges and their names"), ("h", u"heritage and landmark names"), ("i", u"terrain"),
+                  ("j", u"study area"))
+BM_CTX_SRC = dict(a=u"basemap.json layers street_areas / streets_in / streets_out",
+                  b=u"basemap.json layers street_names", c=u"basemap.json layers mahalle",
+                  d=u"basemap.json layers buildings", e=u"basemap.json layers lc / zones",
+                  f=u"basemap.json layers water / water_out / waterways_out",
+                  g=u"basemap.json layers bridges / bridges_out / bridge_names",
+                  h=u"names table landmarks (NAMES r9) + basemap.json layers names",
+                  i=u"basemap.json layers contours / contours_out", j=u"basemap.json layers study")
+BM_UNMAPPED = "F1EDDF"             # "unmapped ground" (G9-4 item 3): the p02 paper tone BM_KEY paper; design value
+BM_STR_W = dict(main=0.85, secondary=0.55, lane=0.30, path=0.10)        # mm: MV_W (SB:18495); path = BM_LW path
+BM_STR_W_KEY = dict(main=0.40, secondary=0.28, lane=0.14, path=0.0)     # mm, key maps (quiet); design values
+BM_STR_LANE_DEN = 2500.0           # at 1:2,500 and larger the surveyed street areas show the lanes (no centreline)
+BM_BLD_EDGE_MM = 0.10              # G9-4 (d): stroke <= 0.1 mm; half of it at 1:10,000 and smaller (design value)
+BM_BLD_EDGE_DARK = 0.25            # "one step darker": the fill mixed 25 % toward the ink (design value)
+BM_CTX_QUIET = 0.35                # key maps: land cover, streets mixed toward the paper (= BM_KEY light)
+BM_PT_MM = 25.4 / 72.0
+BM_CTX_PT = dict(street=5.0, mahalle=5.0, bridge=5.0, place=5.0, place_r1=6.0, stream=6.0)   # pt (4-6, floor 4)
+BM_STREAM_NAME = u"SELİNOS ÇAYI"   # G9-4 (f), not on p3 (U09: stream_name=False)
+BM_CTX_NAME_CATS = ("her", "sacred", "culture")    # names-table "cat" always named; "civic" only where asked
+BM_CTX_WORDS = dict(unmapped=u"Unmapped ground", trees=u"Woods", orchard=u"Orchards", shrub=u"Shrubland",
+                    park=u"Parks and green", grass=u"Grassland", farmland=u"Fields", area=u"Street space",
+                    main=u"Main street", secondary=u"Secondary street", lane=u"Local street", path=u"Footpath",
+                    stream=u"Selinos stream", bridge=u"Bridge", contour=u"Contours")
 
 
 # ------------------------------------------------------------------------------------------- reading
@@ -5417,22 +5493,25 @@ def _bm_ramp(t):
                    for j in (0, 2, 4))
 
 
-def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildings=False, scale_den=None):
+def basemap_items(mode="detailed", override=None, box=None, D=None, split_buildings=False, scale_den=None, opts=None):
     """the basemap of a drawing as items (bottom first; see the head of this file), in survey m. mode: "detailed",
     "simple", "minimal", "topographic" (02 §1), "base", "key" (M3, 30 Oct); override: layer changes for this drawing,
     a dict or a list of the layers to show (basemap_layers); box = (x0, y0, x1, y1) survey m: only what touches it
     (the caller clips to its frame); split_buildings=True gives every building its own fill item (for a page that
     fills even-odd only; default: nonzero fills in chunks); scale_den: the drawing's scale (1:scale_den) for the
-    M11 roof marks of buildings "plan" / "plan_faint" (default 1:5,000). [] without data."""
+    M11 roof marks of buildings "plan" / "plan_faint" (default 1:5,000). Round 9 (S3): mode "context" = the map
+    context layers a-j and "keymap" the same quieter (_bm_context_items; opts: civic, stream_name, ring,
+    street_classes). [] without data."""
     D = D if D is not None else basemap_load()
     if not D:
         return []
     # the same request in one run is made once and copied (Aras 29 Oct 19:18: build once, cache, copy the layers)
     ov = sorted(override) if isinstance(override, (list, tuple, set, frozenset)) else sorted((override or {}).items())
-    mk = ("items", id(D), mode, repr(ov), tuple(box) if box else None, bool(split_buildings), scale_den)
+    mk = ("items", id(D), mode, repr(ov), tuple(box) if box else None, bool(split_buildings), scale_den,
+          repr(sorted((opts or {}).items())))
     if mk in _BM_MEMO:
         return list(_BM_MEMO[mk])
-    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings, scale_den)
+    _BM_MEMO[mk] = _bm_items(D, mode, override, box, split_buildings, scale_den, opts)
     return list(_BM_MEMO[mk])
 
 
@@ -5503,9 +5582,371 @@ def basemap_street_names(box=None, D=None, classes=("main",), min_len_m=0.0):
     return out
 
 
-def _bm_items(D, mode, override, box, split_buildings, scale_den=None):
+def _bm_nk(s):
+    """round 9: a name as a match key (single spaces, lower case)"""
+    return u" ".join((s or u"").split()).lower()
+
+
+def _bm_in(p, box):
+    return box is None or (box[0] <= p[0] <= box[2] and box[1] <= p[1] <= box[3])
+
+
+def basemap_places(box=None, D=None, civic=False):
+    """round 9 (S3 layer h, PLAN §Q9; Aras 11 Nov 18:36 "search all the places in maps, like dont use heritage
+    building use the special name"): the named places a map labels, [(name, (x, y), cat, key)] in survey m, inside
+    box when given, most important first. Every names-table landmark with "at" whose "cat" is her / sacred / culture
+    (or has no "cat": the round 3-8 rows); "civic" rows only when civic is True or names their kind (a tuple of OSM
+    values found in the row's "src", e.g. ("school",)); then the basemap's own names (REACH and named buildings, in
+    the table's spelling) not yet listed. One row per name. A place is never labelled with a class word."""
+    D = D if D is not None else basemap_load()
+    N = globals().get("NAMES")
+    rows = (N.get("landmarks") or {}) if isinstance(N, dict) else {}
+    hr = globals().get("her_rank")
+    got = []
+    for key, row in rows.items():
+        at, cat = row.get("at"), row.get("cat")
+        if at is None or not row.get("name"):
+            continue
+        if cat == "civic":
+            if not civic:
+                continue
+            if civic is not True and not any((u"=%s" % v) in (row.get("src") or u"") for v in civic):
+                continue
+        elif cat is not None and cat not in BM_CTX_NAME_CATS:
+            continue
+        p = (float(at[0]), float(at[1]))
+        if not _bm_in(p, box):
+            continue
+        r_ = hr(row["name"], 3 if cat in (None, "her") else 4) if callable(hr) else 3
+        got.append((r_, row.get("km") or 99, row["name"], p, cat, key))
+    got.sort(key=lambda g: (g[0], g[1], g[2]))
+    out, seen = [], set()
+    for _r, _k, n, p, cat, key in got:
+        if _bm_nk(n) not in seen:
+            seen.add(_bm_nk(n))
+            out.append((n, p, cat, key))
+    for n, p in basemap_names(box, D):
+        if _bm_nk(n) not in seen:
+            seen.add(_bm_nk(n))
+            out.append((n, p, None, None))
+    return out
+
+
+def basemap_mahalle(box=None, D=None):
+    """round 9 (S3 layer c): the mahalle (neighbourhood) names [(name, (x, y), rings)] in survey m whose label point
+    lies inside box; [] when the basemap file has no "mahalle" layer (the site board writes it from round 9 on)"""
+    D = D if D is not None else basemap_load()
+    out = []
+    for r_ in ((D or {}).get("layers") or {}).get("mahalle") or []:
+        n, p = r_[0], (float(r_[1][0]), float(r_[1][1]))
+        if _bm_in(p, box):
+            out.append((n, p, [[tuple(q) for q in R] for R in (r_[2] if len(r_) > 2 and r_[2] else [])]))
+    return out
+
+
+def basemap_bridge_names(box=None, D=None):
+    """round 9 (S3 layer g): the bridge names [(name, (x, y), code)] in survey m (the names table's spelling, the
+    bridge's middle); [] when the basemap file has no "bridge_names" layer (the site board writes it from round 9)"""
+    D = D if D is not None else basemap_load()
+    out = []
+    for r_ in ((D or {}).get("layers") or {}).get("bridge_names") or []:
+        n, p = r_[0], (float(r_[1][0]), float(r_[1][1]))
+        if _bm_in(p, box):
+            out.append((n, p, r_[2] if len(r_) > 2 else None))
+    return out
+
+
+def _bm_stream_label(L, box):
+    """round 9 (S3 layer f): where the stream's name goes: the middle of the longest bank or course run inside box
+    (survey m) and its direction in degrees (-90..90), or None"""
+    import math as _m
+    best = None
+    runs = list(L.get("water_edge") or []) + [P for _k, P in L.get("waterways_out") or []]
+    for P in runs:
+        cur = []
+        for q in list(P) + [None]:
+            if q is not None and _bm_in(q, box):
+                cur.append(q)
+                continue
+            if len(cur) >= 2:
+                ln = sum(_m.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(cur, cur[1:]))
+                if best is None or ln > best[0]:
+                    best = (ln, list(cur))
+            cur = []
+    if not best:
+        return None
+    half, acc = best[0] / 2.0, 0.0
+    for a, b in zip(best[1], best[1][1:]):
+        d = _m.hypot(b[0] - a[0], b[1] - a[1])
+        if acc + d >= half and d > 0:
+            t = (half - acc) / d
+            ang = _m.degrees(_m.atan2(b[1] - a[1], b[0] - a[0]))
+            ang = ang - 180.0 if ang > 90.0 else (ang + 180.0 if ang < -90.0 else ang)
+            return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t), ang
+        acc += d
+    return None
+
+
+def _bm_ctx_ring(D, box, opts):
+    """round 9: the window the unmapped ground fills: opts["ring"], else box, else the basemap extent"""
+    if opts.get("ring"):
+        return [tuple(p) for p in opts["ring"]]
+    if box:
+        return [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])]
+    return [tuple(p) for p in D.get("extent") or []] or None
+
+
+def _bm_context_items(D, lay, box, split_buildings, scale_den=None, quiet=False, opts=None):
+    """round 9 (S3, G9-4): basemap mode "context" = the map context layers a-j, bottom first in the G9-4 draw
+    order: unmapped ground and land cover (e, "base_ground") -> terrain (i, "base_contours") -> buildings by fabric
+    at their true footprint, 0.1 mm outline one step darker, never merged (d, "base_fills") -> streets in hierarchy
+    on top (a, "base_outlines") -> the stream (f, "water") -> decks, covered course, bridges (g, "structures") ->
+    names (b main streets, c mahalle, f "SELİNOS ÇAYI", g bridges, h places; "structures", so the stream never
+    covers them). quiet=True is mode "keymap" (G9-5, PLAN S4): the same layers quieter (colours toward the paper,
+    thinner streets, fills without outlines, no terrain, no names: the key map writes its own). opts: civic (False /
+    True / OSM values, e.g. ("school",)), stream_name (default True), ring (the window, survey m), street_classes
+    (the classes whose names are written, default ("main",)). Text items carry an 8th field: the angle (deg)."""
+    opts = opts or {}
+    L = D["layers"]
+    out = []
+    den = float(scale_den or 5000.0)
+    paper = BM_KEY["paper"]
+    ink = hue("ANN", "ink")
+
+    def tag(t, layer, ctx, cls):
+        out.append(_bm_tag(t, layer, ctx, cls))
+
+    def fills(groups, col, ctx, cls, layer="base_ground", nonzero=True, chunk=300, edge=None, edge_mm=None):
+        cur, cur_e = [], []
+
+        def flush():
+            if cur:
+                tag(("fill", list(cur), col, 1.0, nonzero), layer, ctx, cls)
+                for R in cur_e:
+                    tag(("line", list(R) + [R[0]], edge, edge_mm, None, 1.0), layer, ctx, cls)
+            del cur[:]
+            del cur_e[:]
+        for g in groups:
+            g = [R for R in g if len(R) >= 3]
+            if not g or not _bm_hit(g[0], box):
+                continue
+            cur.extend(g)
+            if edge:
+                cur_e.extend(g)
+            if split_buildings or len(cur) >= chunk:
+                flush()
+        flush()
+
+    def lc_col(cls):
+        c = LC_HEX[cls]
+        return _bm_mix(c, paper, BM_CTX_QUIET) if quiet else c
+
+    def st_col(cls):
+        c = str_hex(cls)
+        return _bm_mix(c, paper, BM_CTX_QUIET) if quiet else c
+
+    # (e) land cover: the unmapped ground under the whole window, then the satellite classes, then the mapped zones
+    lc, zones = L.get("lc") or {}, L.get("zones") or []
+    if lay["green"] or lay["trees"] or lay["fields"]:
+        R0 = _bm_ctx_ring(D, box, opts)
+        if R0:
+            tag(("fill", [R0], BM_UNMAPPED, 1.0, True), "base_ground", "e", "unmapped")
+    for on, cls in ((lay["green"], "grass"), (lay["green"], "shrub"), (lay["trees"], "trees"),
+                    (lay["fields"], "farmland"), (lay["fields"], "orchard")):
+        if on:
+            fills(lc.get(cls) or [], lc_col(cls), "e", cls)
+    if lay["fields"]:
+        fills([z["rings"] for z in zones if z["kind"] == "agri"], lc_col("farmland"), "e", "farmland")
+    if lay["green"]:
+        fills([z["rings"] for z in zones if z["kind"] == "green" and z.get("sub") == "grass"], lc_col("grass"), "e",
+              "grass")
+        fills([z["rings"] for z in zones if z["kind"] == "green" and z.get("sub") not in ("grass", "wood")],
+              lc_col("park"), "e", "park")
+    if lay["trees"]:
+        fills([z["rings"] for z in zones if z["kind"] == "green" and z.get("sub") == "wood"], lc_col("trees"), "e",
+              "trees")
+    # (i) terrain: the survey contours inside the frame, GLO-30 contours beyond it (same style)
+    if lay["contours"] and not quiet:
+        for key_ in ("contours", "contours_out"):
+            for major, z, P in L.get(key_) or []:
+                if len(P) >= 2 and _bm_hit(P, box):
+                    tag(("line", P, BM_COL["contour"], BM_LW["contour"][1 if major else 0], None, 1.0),
+                        "base_contours", "i", "contour")
+    # (d) buildings: true footprint (holes kept, even-odd), the fabric colour, outline one step darker
+    if lay["buildings"]:
+        e_mm = BM_BLD_EDGE_MM if den <= 5000.0 else 0.5 * BM_BLD_EDGE_MM
+        groups = {}
+        for b in L.get("buildings") or []:
+            cls = b.get("fabric") or "unsurveyed"
+            cls = cls if cls in FAB_RANK else "unsurveyed"
+            col = fab_hex(cls)
+            if b.get("annex"):
+                col = _bm_mix(col, paper, BM_KEY["annex"])
+            if quiet:
+                col = _bm_mix(col, paper, HUE_KEY["fabric_mix"])
+            groups.setdefault((FAB_RANK[cls], cls, col), []).append(b["rings"])
+        for k in sorted(groups):
+            fills(groups[k], k[2], "d", k[1], layer="base_fills", nonzero=False,
+                  edge=None if quiet else _bm_mix(k[2], ink, BM_BLD_EDGE_DARK), edge_mm=e_mm)
+    # (a) streets on top of the buildings: street space (cased), then every class as a cased centreline, main on top
+    if lay["streets"]:
+        sw = BM_STR_W_KEY if quiet else BM_STR_W
+        case = None if quiet else STR_CASING
+        only = tuple(lay["streets"]) if isinstance(lay["streets"], (tuple, list)) else None   # e.g. ("main",)
+        if only is None:
+            fills(L.get("street_areas") or [], bm_key_col("road") if quiet else str_hex("lane"), "a", "area",
+                  layer="base_outlines", nonzero=False, edge=case, edge_mm=STR_CASING_MM)
+        rank = {"path": 0, "lane": 1, "secondary": 2, "main": 3}
+        runs = [(cl, P, True) for cl, P in L.get("streets_in") or []] + \
+               [(cl, P, False) for cl, P in L.get("streets_out") or []]
+        runs = [r_ for r_ in runs if len(r_[1]) >= 2 and _bm_hit(r_[1], box) and sw.get(r_[0], sw["lane"]) > 0 and
+                (only is None or r_[0] in only) and
+                not (r_[2] and not quiet and r_[0] in ("lane", "path") and den <= BM_STR_LANE_DEN)]
+        runs.sort(key=lambda r_: rank.get(r_[0], 1))
+        if case:
+            for cl, P, _i in runs:
+                if cl != "path":
+                    tag(("line", P, case, sw.get(cl, sw["lane"]) + 2.0 * STR_CASING_MM, None, 1.0), "base_outlines",
+                        "a", cl)
+        for cl, P, _i in runs:
+            tag(("line", P, (case or st_col("lane")) if cl == "path" else st_col(cl), sw.get(cl, sw["lane"]), None,
+                 1.0), "base_outlines", "a", cl)
+    # (f) the stream: M5 water_plan where the script has it (not on key maps), else the p02 blue fill and bank line
+    if lay["stream"]:
+        wc, we = bm_key_col("water"), bm_key_col("water_edge")
+        if callable(globals().get("water_plan")) and not quiet:
+            ws = [g for g in L.get("water") or [] if g and len(g[0]) >= 3 and _bm_hit(g[0], box)]
+            if ws:
+                tag(("water", ws, [P for P in L.get("water_edge") or [] if len(P) >= 2 and _bm_hit(P, box)], 1.0),
+                    "water", "f", "stream")
+        else:
+            fills(L.get("water") or [], wc, "f", "stream", layer="water", nonzero=False)
+            for P in L.get("water_edge") or []:
+                if len(P) >= 2 and _bm_hit(P, box):
+                    tag(("line", P, we, BM_LW["water_edge"], None, 1.0), "water", "f", "stream")
+        fills(L.get("water_out") or [], wc, "f", "stream", layer="water", nonzero=False)
+        for kind, P in L.get("waterways_out") or []:
+            if len(P) >= 2 and _bm_hit(P, box):
+                tag(("line", P, wc, BM_LW["river_osm" if kind == "river" else "stream_osm"], None, 1.0), "water",
+                    "f", "stream")
+        # (g) decks, the covered course and the bridges over the stream
+        fills([[R] for R in L.get("decks") or []], bm_key_col("road") if quiet else str_hex("lane"), "g", "deck",
+              layer="structures")
+        for P in L.get("covered") or []:
+            if len(P) >= 2 and _bm_hit(P, box):
+                tag(("line", P, we, BM_LW["covered"], list(BM_COVERED_DASH), 1.0), "structures", "f", "covered")
+        for P in list(L.get("bridges") or []) + list(L.get("bridges_out") or []):
+            if len(P) >= 2 and _bm_hit(P, box):
+                tag(("line", P, bm_key_col("bridge"), BM_LW["bridge"], None, 1.0), "structures", "g", "bridge")
+    # names (b, c, f, g, h): above the stream and the bridges; the page's free-spot placer sets them (4 pt floor)
+    if lay.get("names") and not quiet:
+        pt = BM_CTX_PT
+        for n, p, a, cl, _ln in basemap_street_names(box, D, classes=tuple(opts.get("street_classes") or ("main",))):
+            tag(("text", n, p, pt["street"] * BM_PT_MM, hue("CTX", 2), False, "MC", a), "structures", "b", "name")
+        for n, p, _rs in basemap_mahalle(box, D):
+            up = n.replace(u"i", u"İ").replace(u"ı", u"I").upper()        # Turkish capitals (İ, I)
+            tag(("text", up, p, pt["mahalle"] * BM_PT_MM, HUE_KEY["street_names"], False, "MC", 0.0), "structures",
+                "c", "name")
+        if lay["stream"] and opts.get("stream_name", True):
+            sl = _bm_stream_label(L, box)
+            if sl:
+                tag(("text", BM_STREAM_NAME, sl[0], pt["stream"] * BM_PT_MM, hue("WAT", 1), False, "MC", sl[1]),
+                    "structures", "f", "name")
+        for n, p, _c in basemap_bridge_names(box, D):
+            tag(("text", n, p, pt["bridge"] * BM_PT_MM, hue_of(n, hue("CTX", 1)), False, "MC", 0.0), "structures",
+                "g", "name")
+        for n, p, cat, _k in basemap_places(box, D, civic=opts.get("civic", False)):
+            r1 = hue_name(n, None, cat) == ("HER", 1)
+            tag(("text", n, p, (pt["place_r1"] if r1 else pt["place"]) * BM_PT_MM, hue_of(n, hue("CTX", 1), cat),
+                 False, "MC", 0.0), "structures", "h", cat or "place")
+    return out
+
+
+def basemap_context_log(page, map_id, items, study=None, log=None, names_drawn=None, no_room=None, D=None):
+    """round 9 (G9-4 item 5, S7): the done-when lines of a context map, from its items (after ml_crop):
+    `context <page> <map> layers <letters> (<n>/10)`, one FLAG per letter without data (with the file key it reads),
+    `fabric <page> classes <n> (<classes>)`, and the names line `names <page> <map> n=<drawn> of <in window>` (in
+    window = the place names (h) inside the map's window; drawn = names_drawn, default in window minus no_room) with
+    `FLAG names <page> <map> no room (<n>): ...` when the placer found no room. study: the page draws the study line
+    (None = the basemap has a study area). Lines go to log (default ML_LOG when included) and are returned."""
+    have, sub = set(), set()
+    fab, n_h = [], 0
+    for it in items or ():
+        c = getattr(it, "ctx", None)
+        if not c:
+            continue
+        have.add(c)
+        if it[0] == "text":
+            sub.add(c + "_name")
+            if c == "h":
+                n_h += 1
+        elif c == "d" and getattr(it, "cls", None) not in fab:
+            fab.append(it.cls)
+    if study is None:
+        study = bool(basemap_study(D))
+    if study:
+        have.add("j")
+    lets = [c for c, _w in BM_CTX_LETTERS if c in have]
+    lines = [u"context %s %s layers %s (%d/10)" % (page, map_id, u"".join(lets) or u"-", len(lets))]
+    for c, what in BM_CTX_LETTERS:
+        if c not in have:
+            lines.append(u"FLAG context %s %s layer %s (%s): no data in this window (%s)" % (page, map_id, c, what,
+                                                                                           BM_CTX_SRC[c]))
+    if "g" in have and "g_name" not in sub:
+        lines.append(u"FLAG context %s %s layer g: bridges drawn without names (basemap.json layers bridge_names)" % (
+            page, map_id))
+    fab.sort(key=lambda k: FAB_RANK.get(k, 99))
+    lines.append(u"fabric %s classes %d (%s)" % (page, len(fab), u", ".join(fab) or u"-"))
+    nr = list(no_room or ())
+    drawn = names_drawn if names_drawn is not None else max(0, n_h - len(nr))
+    lines.append(u"names %s %s n=%d of %d" % (page, map_id, drawn, n_h))
+    if nr:
+        lines.append(u"FLAG names %s %s no room (%d): %s" % (page, map_id, len(nr), u", ".join(u"%s" % s for s in nr)))
+    dst = log if log is not None else globals().get("ML_LOG", _BM_WARN)
+    dst.extend(lines)
+    return lines
+
+
+def basemap_legend_rows(items, words=None):
+    """round 9 (G9-4 item 3 "no unexplained white"): the legend rows of the context classes a map shows, in the
+    order unmapped ground -> land cover -> building fabric -> streets -> stream -> bridges -> contours, as
+    [(swatch, text)] for Ix.legend; swatch = dict(kind "fill" | "line", colour, stroke, width_pt, cat, rank), the
+    colour as drawn (key maps: the quiet tone). words: {cls: text} over BM_CTX_WORDS / FAB_WORDS"""
+    seen = {}
+    for it in items or ():
+        c, k = getattr(it, "ctx", None), getattr(it, "cls", None)
+        if not c or not k or it[0] == "text" or (c, k) in seen:
+            continue
+        if it[0] == "line" and c == "a" and k != "path" and it[2] == STR_CASING:
+            continue                                      # a street's casing line: the swatch is its class colour
+        if it[0] == "fill":
+            seen[(c, k)] = dict(kind="fill", colour=it[2], stroke=None, width_pt=0.0)
+        elif it[0] == "line":
+            seen[(c, k)] = dict(kind="line", colour=it[2], stroke=None, width_pt=round(float(it[3]) / BM_PT_MM, 3))
+        elif it[0] == "water":
+            seen[(c, k)] = dict(kind="fill", colour=bm_key_col("water"), stroke=None, width_pt=0.0)
+    W = dict(BM_CTX_WORDS)
+    W.update(FAB_WORDS)
+    W.update(words or {})
+    order = [("e", "unmapped", "CTX", 5)] + [("e", k, "LC", LC_RANK[k]) for k in
+                                             ("trees", "orchard", "shrub", "park", "grass", "farmland")] + \
+            [("d", k, "FAB", FAB_RANK[k]) for k in FAB_CLASSES] + \
+            [("a", k, "STR", STR_RANK.get(k, 3)) for k in ("main", "secondary", "lane", "area", "path")] + \
+            [("f", "stream", "WAT", 1), ("g", "bridge", "CTX", 1), ("i", "contour", "CTX", 3)]
+    out = []
+    for c, k, cat, rk in order:
+        sw = seen.get((c, k))
+        if sw:
+            sw = dict(sw, cat=cat, rank=rk)
+            out.append((sw, W.get(k, k)))
+    return out
+
+
+def _bm_items(D, mode, override, box, split_buildings, scale_den=None, opts=None):
     """basemap_items without the memo"""
     lay = basemap_layers(mode, override)
+    if mode in ("context", "keymap"):                     # round 9 (S3, G9-4 / G9-5): layers a-j; key maps quieter
+        return _bm_context_items(D, lay, box, split_buildings, scale_den, quiet=mode == "keymap", opts=opts)
     L = D["layers"]
     out = []
     outl = []          # round 4 (S2, CHK-3 §1.6): outlines (street, building, bridge edges) come after EVERY fill
@@ -6538,22 +6979,37 @@ ML_NO_CLIP = ("proj_labels",)       # labels are placed by the text placer and m
 ML_LOG = []                         # this run's map_draw lines (a page script appends them to its log)
 
 
-def ml_base(box, scale_den, D=None, contours=False, names=False, override=None, crop=True):
-    """the muted base of a map (G-R4-4): basemap mode "muted" = the stream (M5 water), light streets with closed
-    edges, light houses with ONE closed outline per block, every outline after every fill; contours=True adds the
-    contours coloured to the relief (green ramp, lighter = lower, U48); names=True the place names (6 pt, pale).
-    The study line is NOT in it (map_draw draws it in its own layer). box = (x0, y0, x1, y1) survey m; scale_den =
-    the map's 1:scale_den. Returns basemap items (bottom first), [] without basemap data. Round 5 (G-R5-10):
-    crop=True cuts every item to box, so nothing of the base runs past the drawing's window."""
-    ov = dict(contours="height" if contours else False, names=bool(names))
+def ml_base(box, scale_den, D=None, contours=None, names=None, override=None, crop=True, mode="context", ring=None,
+            civic=False, stream_name=True):
+    """the base of a map. Round 9 (S3, G9-4; A1 C2): mode "context" (the default) = the map context layers a-j
+    (basemap mode "context": land cover over the whole window, terrain, buildings by fabric, streets in hierarchy on
+    top, the stream and "SELİNOS ÇAYI", bridges and their names, main street / mahalle / place names), every item
+    tagged .layer / .ctx / .cls; log it with basemap_context_log and list it with basemap_legend_rows. mode "muted"
+    = the round 4 muted base (G-R4-4): contours=True adds the contours coloured to the relief, names=True the pale
+    6 pt names. contours / names None = the mode's own setting (context: both on; muted: both off). The study line
+    is NOT in it (map_draw draws it in its own layer). box = (x0, y0, x1, y1) survey m; scale_den = the map's
+    1:scale_den; ring = the map's window as a convex ring in survey m (e.g. frames_r9 r9_window on the frame axes):
+    the unmapped ground fills it and crop cuts to it (default: the box). civic = False / True / OSM values (e.g.
+    ("school",)): the civic rows of the names table this map names (only where it names buildings of that kind);
+    stream_name=False on p3. Returns basemap items (bottom first), [] without basemap data. Round 5 (G-R5-10):
+    crop=True cuts every item to the window, so nothing of the base runs past the drawing's window."""
+    ov = {}
+    if contours is not None:
+        ov["contours"] = ("height" if mode == "muted" else True) if contours else False
+    if names is not None:
+        ov["names"] = bool(names)
     ov.update(override or {})
-    its = basemap_items("muted", ov, box=box, D=D, scale_den=scale_den)
-    its = [_bm_tag(("text", it[1], it[2], ML_NAME_MM, BM_MUTED["name"], False, it[6]), "base_names")
-           if it[0] == "text" else it for it in its]
-    if crop and box:
-        its = ml_crop(its, [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])])
+    opts = dict(civic=civic if isinstance(civic, bool) else tuple(civic), stream_name=bool(stream_name))
+    if ring:
+        opts["ring"] = tuple((round(float(p[0]), 3), round(float(p[1]), 3)) for p in ring)
+    its = basemap_items(mode, ov, box=box, D=D, scale_den=scale_den, opts=opts)
+    if mode == "muted":
+        its = [_bm_tag(("text", it[1], it[2], ML_NAME_MM, BM_MUTED["name"], False, it[6]), "base_names")
+               if it[0] == "text" else it for it in its]
+    if crop and (ring or box):
+        its = ml_crop(its, [tuple(p) for p in ring] if ring else
+                      [(box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])])
     return its
-
 
 def _ml_clip_poly(R, ring):
     """ring R cut to the convex ring (Sutherland-Hodgman, any turn); [] when nothing is left"""
@@ -6598,8 +7054,8 @@ def _ml_inside_convex(P, ring):
 
 
 def _ml_retag(src, t):
-    lay = getattr(src, "layer", None)
-    return _bm_tag(t, lay) if lay else t
+    lay = getattr(src, "layer", None)          # round 9: the context letter and class travel with the layer
+    return _bm_tag(t, lay, getattr(src, "ctx", None), getattr(src, "cls", None)) if lay else t
 
 
 def ml_crop(items, ring):
@@ -6866,38 +7322,56 @@ def ml_lines_log():
 #                                                    km_export_items
 #   north_items(x, y, ang_rad=0.0, size_mm=6.0, colour="2C2219")   THE north arrow (page mm, y up)
 # Also includes the round 6 shared tables and marks (one include for every script that has basemap.py):
-# ---- Category -> hue table (round 6 S1, 4 Nov 2026; G6-6, Q5, Q7; PLAN.md §2.6) ------------------------------------
-# ONE table every legend reads (Aras 4 Nov 09:44-10:08: "categorize the legends like heritage is categorized under
-# heritage with similar shades of the same colour. The darker the shade is the more important it is"): each category
-# one hue, items inside it = its ranks, r1 darkest = most important; never a separate hue per item. Subtle set on
-# every plan, section, chart and legend; strong set (HUE_KEY) on key maps only. Values: PLAN.md §2.6 ->
-# revision_2026-11-04_round6/plan_findings/hues_and_proposals.md H2 (method and contrast checks there).
-# Included by common/keymap.py (so every script that includes basemap.py has it); a script without basemap.py (the
-# booklet) includes it itself, once.
+# ---- Category -> hue table r9 (round 9 S5, 11 Nov 2026; BRIEF G9-6, PLAN.md §spec S5; replaces the round 6 table) ----
+# ONE table every key, legend and map reads (Aras 4 Nov 09:44-10:08: "categorize the legends like heritage is categorized
+# under heritage with similar shades of the same colour. The darker the shade is the more important it is"): each
+# category one hue family, items inside it = its ranks, r1 darkest = most important; never a separate hue per item.
+# Round 9 adds the G9-6 families CLA (clashes), LC (green / land cover), STR (streets), RDG (readings) and FAB (building
+# fabric), redefines HER_RANK (r1 monuments, r2 historic bridges, r3 other historic buildings) and adds HUE_NAME, one
+# name -> (code, rank) map so keys and maps look the same thing up the same way. Existing ramps are unchanged.
+# Paste: replaces the block from "# ---- Category -> hue table" to the end of hue_log in all 8 producer copies; the
+# booklet gets one copy (modules/INTERFACES.md). Values: PLAN.md §spec S5 (sources per row below).
 #   HUE[code][rank] hex      HUE_KEY[name] hex      hue(code, rank, strong=False)      HER_RANK[name] -> 1/2/3
+#   her_rank(name, default=3)                       hue_name(name, default=None, cat=None) -> (code, rank) or default
+#   hue_of(name, default=None, cat=None) -> hex     fab_hex(cls) / lc_hex(cls) / str_hex(cls) -> hex
 #   legend_group(entries)    entries sorted by category (table order) then rank
-#   hue_log(page, log=None)  the line `legend <page> hues=table`
-HUE_CATS = ("CTX", "HER", "WAT", "WW", "GRN", "AGR", "MOV", "PUB")          # legend order: context first
-HUE_NAMES = {"CTX": u"Existing context", "HER": u"Heritage", "WAT": u"The Selinos stream",
-             "WW": u"Water works: collect, clean, hold", "GRN": u"Planting", "AGR": u"Farms",
-             "MOV": u"Streets, shops and movement", "PUB": u"Public life and hubs"}
+#   hue_log(page, log=None)  the line `legend <page> hues=table r9`
+HUE_TABLE = "r9"
+HUE_CATS = ("CTX", "FAB", "HER", "CLA", "WAT", "WW", "LC", "GRN", "AGR", "STR", "MOV", "PUB", "RDG")  # legend order
+HUE_NAMES = {"CTX": u"Existing context", "FAB": u"Building fabric", "HER": u"Heritage", "CLA": u"Clashes",
+             "WAT": u"The Selinos stream", "WW": u"Water works: collect, clean, hold",
+             "LC": u"Existing green and land cover", "GRN": u"Planting", "AGR": u"Farms", "STR": u"Streets",
+             "MOV": u"Streets, shops and movement", "PUB": u"Public life and hubs", "RDG": u"Readings"}
 HUE = {
-    # existing context: ground, buildings, streets, bridges, existing green (with tree symbols), workshops, vacant
+    # existing context: ground, buildings, streets, bridges, existing green (with tree symbols), workshops, vacant;
+    # r2 = named buildings that are not heritage (G9-6: e.g. Les Pergamon Boutique Hotel)
     "CTX": {1: "4A3F35", 2: "847E75", 3: "B0AC9C", 4: "D8D5CC", 5: "EFEDE6"},
-    # heritage (Q5): r1 inside the UNESCO World Heritage listing, r2 registered monument, r3 other historic or no
-    # sourced status, r4 heritage area tint
+    # building fabric on maps (G9-4 / A1 C1): FABRIC_PLAN SB:17437-17444 in its class order, + CTX r4 for unsurveyed
+    "FAB": {1: "AF7474", 2: "8B3A3F", 3: "4A3F35", 4: "7A6E60", 5: "BCB794", 6: "DCD5C2", 7: "FAF8F1", 8: "E6E0C8",
+            9: "D8D5CC"},
+    # heritage (G9-6): r1 monuments, r2 historic bridges, r3 other historic buildings, r4 heritage area tint
     "HER": {1: "512E1A", 2: "84573E", 3: "B08870", 4: "E7CABB"},
+    # clashes C1-C6 (G9-6, Q8): one dark-red shade (MARK_C SB:17460)
+    "CLA": {1: "8B3A3F"},
+    # water (G9-6): r1 stream, r2 basins, r3 channels, r4 tint
     "WAT": {1: "32525F", 2: "5D7F8D", 3: "91ADB4", 4: "C1D3DB"},
-    # water works: reed basins, spillway, winter store, dry-top terraces, side arm, widened wetland
+    # water works: reed basins, spillway, winter store, dry-top terraces, side arm, widened wetland (own family, kept)
     "WW": {1: "2D564E", 2: "54857D", 3: "87BBAA", 4: "CBEDE5"},
+    # existing green / land cover (G9-6 woods -> orchards -> grass; SB:1050 GREEN_SUB, SB:45289-45295 LC_CLASSES):
+    # r1 woods, r2 orchards (shrub ACB38C shares r2: LC_HEX), r3 grass, r4 fields
+    "LC": {1: "74804F", 2: "8F966A", 3: "ABB287", 4: "BDB57A"},
     # proposed planting: bands wet -> dry, forest corridor, designed green (plant swatches: tree r1, shrub r2,
-    # ground / emergent r3, P-3)
+    # ground / emergent r3, P-3) (own family, kept)
     "GRN": {1: "3C4733", 2: "70754C", 3: "89986A", 4: "C2CCB3"},
     "AGR": {1: "534E25", 2: "948B49", 3: "C6C08D", 4: "E6E3C5"},
+    # streets (G9-6 oranges, main -> secondary -> local): the SON SEQ stops SB:18275; casing STR_CASING
+    "STR": {1: "EA8C3E", 2: "F6CF85", 3: "EEE9DA"},
     # streets and movement: pedestrian r1, calmed r2, shared r3; commerce r1, mixed r2, residential r3
     "MOV": {1: "734C17", 2: "A67628", 3: "CCA363", 4: "EAD1A4"},
-    # public life: walking hubs, transit hub, sub-hubs, hub squares, market, civic, people groups by headcount
+    # project moves and hubs (G9-6): r1 transit hub T, r2 walking hubs K3-K5, r3 numbered places, r4 tint
     "PUB": {1: "452842", 2: "7F5B7B", 3: "AE90AA", 4: "DECFDC"},
+    # readings: sky view and similar (G9-6 blue-grey, one shade; PLAN S5 value, distinct from WAT)
+    "RDG": {1: "7C8A99"},
 }
 # annotations (not a category): study area line, plan cut marks (G6-4), text ink
 HUE_ANN = {"study": "6A4C93", "cut": "8E8F8A", "ink": "2C2219"}
@@ -6907,11 +7381,41 @@ HUE_KEY = {"fabric_mix": 0.40, "her1": "663214", "her2": "965630", "her3": "C18A
            "stream": "7FA4B3", "stream_edge": "5E8494", "road": "FAF8F1", "road_edge": "DCD5C2",
            "street_names": "A4A1A3", "cut": "C0392B", "study": "6A4C93"}
 HUE_NAME_PT = 4.0                    # key-map street names: exactly the 4 pt floor (PLAN §2.7)
-# heritage ranks of the heritage-loop places (Q5; H3): Kızıl Avlu r1 is a reading (ICOMOS names its tunnels; the
-# boundary is not stated): set it to 2 if Aras reads it as registered only. Teleferik is context (CTX), not heritage.
-HER_RANK = {u"Akropol": 1, u"Kızıl Avlu": 1, u"Tabak Köprüsü": 3, u"Ulucami Önü Köprüsü": 3, u"Ulucami": 3,
-            u"Ulu Cami": 3, u"Tabaklar Hamamı": 3, u"Arasta": 3, u"Üç Kemer Köprüsü": 3, u"Bergama Müzesi": 3,
-            u"Asklepion": 3}
+# building fabric classes (A1 C1; SB fabric_types) in FAB rank order; legend words = SB FABRIC_SHORT (SB:5371)
+FAB_CLASSES = ("monument", "sacred", "traditional", "block", "regular", "selfbuilt", "large", "construction",
+               "unsurveyed")
+FAB_RANK = dict((c, i + 1) for i, c in enumerate(FAB_CLASSES))
+FAB_WORDS = {"monument": u"Monuments, historic", "sacred": u"Mosques & sacred", "traditional": u"Old town fabric",
+             "block": u"Apartment blocks", "regular": u"Planned low-rise", "selfbuilt": u"Small irregular",
+             "large": u"Civic & industrial", "construction": u"Under construction",
+             "unsurveyed": u"Type not surveyed"}
+# land-cover classes of basemap.json "lc" (WorldCover keys) and map zones -> hex and LC rank. Shrub and park are the
+# map colours already printed (SB:45291 shrub = mix(CAT green, PAPER, 0.3); SB:1050 park); their ranks are readings.
+LC_HEX = {"trees": "74804F", "wood": "74804F", "orchard": "8F966A", "shrub": "ACB38C", "park": "8F9A68",
+          "grass": "ABB287", "farmland": "BDB57A", "agri": "BDB57A"}
+LC_RANK = {"trees": 1, "wood": 1, "orchard": 2, "shrub": 2, "park": 3, "grass": 3, "farmland": 4, "agri": 4}
+# street classes of basemap.json streets ("main", "secondary", "lane"; "path" = pedestrian) -> STR rank
+STR_RANK = {"main": 1, "secondary": 2, "lane": 3, "local": 3, "path": 3}
+STR_CASING = "B0AC9C"                # CTX r3: the casing line of a street area / centreline (PLAN S5)
+STR_CASING_MM = 0.1
+# heritage ranks (G9-6, PLAN S5): r1 monuments (Kızıl Avlu, Bergama Ulu Cami; Akropol and Asklepion as ancient
+# monuments = writer reading), r2 historic bridges, r3 other historic buildings. A name not listed and marked historic
+# in the data (NAMES "cat" her) takes r3 (her_rank default). Teleferik is context (CTX), not heritage.
+HER_RANK = {u"Kızıl Avlu": 1, u"Ulucami": 1, u"Ulu Cami": 1, u"Bergama Ulu Cami": 1, u"Akropol": 1, u"Asklepion": 1,
+            u"Ulucami Önü Köprüsü": 2, u"Üç Kemer Köprüsü": 2, u"Tabak Köprüsü": 2,
+            u"Bergama Yabets Havrası": 3, u"Tabaklar Hamamı": 3, u"Arasta": 3, u"Bergama Müzesi": 3,
+            u"Emir Sultan Cami": 3, u"Eski Çırçır Fabrikası": 3}
+# named things -> (code, rank): hub codes and clash codes (K3-K5 as walking hubs, K6 the gateway, T the transit hub,
+# CL HUB_CODE / HUB_COL CL:11029), the descriptive crossings (context), readings, named non-heritage buildings.
+# Heritage names are read from HER_RANK; any other row of the names table falls back by its "cat" (hue_name).
+HUE_NAME = {u"T": ("PUB", 1), u"K3": ("PUB", 2), u"K4": ("PUB", 2), u"K5": ("PUB", 2), u"K6": ("CTX", 2),
+            u"C1": ("CLA", 1), u"C2": ("CLA", 1), u"C3": ("CLA", 1), u"C4": ("CLA", 1), u"C5": ("CLA", 1),
+            u"C6": ("CLA", 1),
+            u"side inlet crossing": ("CTX", 2), u"small crossing": ("CTX", 2),
+            u"Adnan Menderes Bulvarı road bridge": ("CTX", 2),
+            u"sky view": ("RDG", 1), u"Les Pergamon Boutique Hotel": ("CTX", 2), u"Teleferik": ("CTX", 1)}
+# NAMES r9 "cat" -> (code, rank) for a names-table row in neither HUE_NAME nor HER_RANK (hub request 11 Nov 18:47)
+HUE_CAT_FALLBACK = {"her": ("HER", 3), "sacred": ("FAB", 2), "culture": ("CTX", 2), "civic": ("CTX", 2)}
 HUE_LOG = []
 
 
@@ -6935,8 +7439,78 @@ def hue(code, rank, strong=False):
 
 
 def her_rank(name, default=3):
-    """the heritage rank of a place name (HER_RANK; no sourced status = 3)"""
+    """the heritage rank of a place name (HER_RANK; any other historic place = 3)"""
     return HER_RANK.get(name, default)
+
+
+def _hue_key(s):
+    """a name as a lookup key: single spaces, lower case, Turkish İ / I handled (as names.py name_key)"""
+    s = u" ".join((s or u"").split()).replace(u"İ", u"i").replace(u"I", u"ı")
+    return s.lower().replace(u"i̇", u"i")
+
+
+_HUE_NAME_K = dict((_hue_key(k), v) for k, v in HUE_NAME.items())
+_HER_RANK_K = dict((_hue_key(k), v) for k, v in HER_RANK.items())
+
+
+def _hue_name_cat(name):
+    """the "cat" of the names-table row a name stands for (NAMES r9 landmarks, read through landmark_match when the
+    script has names.py), or None (no table, no row, or a row without "cat")"""
+    N = globals().get("NAMES")
+    if not isinstance(N, dict):
+        return None
+    rows = N.get("landmarks") or {}
+    lm = globals().get("landmark_match")
+    key = None
+    if callable(lm):
+        try:
+            key = lm(name)
+        except Exception:
+            key = None
+    if key is None:
+        k = _hue_key(name)
+        for kk, row in rows.items():
+            if k == _hue_key(row.get("name")) or k in [_hue_key(a) for a in row.get("alias") or ()]:
+                key = kk
+                break
+    row = rows.get(key) if key is not None else None
+    return row.get("cat") if isinstance(row, dict) else None
+
+
+def hue_name(name, default=None, cat=None):
+    """(code, rank) of a named thing: HUE_NAME first (hub and clash codes, crossings, readings, named non-heritage
+    buildings), then HER_RANK (("HER", rank)), then the names-table "cat" (given, or looked up): her -> HER r3,
+    sacred -> FAB sacred, culture / civic -> CTX r2. Else default (None: the caller keeps its own category)"""
+    k = _hue_key(name)
+    if k in _HUE_NAME_K:
+        return _HUE_NAME_K[k]
+    if k in _HER_RANK_K:
+        return ("HER", _HER_RANK_K[k])
+    c = cat if cat is not None else _hue_name_cat(name)
+    if c in HUE_CAT_FALLBACK:
+        return HUE_CAT_FALLBACK[c]
+    return default
+
+
+def hue_of(name, default=None, cat=None):
+    """the hex of a named thing (hue_name -> hue), or default when the name has no category"""
+    cr = hue_name(name, None, cat)
+    return hue(cr[0], cr[1]) if cr else default
+
+
+def fab_hex(cls):
+    """the map colour of a building fabric class (FAB ramp; an unknown class = unsurveyed)"""
+    return HUE["FAB"][FAB_RANK.get(cls, FAB_RANK["unsurveyed"])]
+
+
+def lc_hex(cls, default=None):
+    """the map colour of a land-cover class (LC_HEX), or default"""
+    return LC_HEX.get(cls, default)
+
+
+def str_hex(cls):
+    """the colour of a street class (STR ramp; an unknown class = local)"""
+    return HUE["STR"][STR_RANK.get(cls, 3)]
 
 
 def legend_group(entries):
@@ -6955,8 +7529,8 @@ def legend_group(entries):
 
 
 def hue_log(page, log=None):
-    """the done-when line of a legend drawn from this table: `legend <page> hues=table`"""
-    ln = u"legend %s hues=table" % page
+    """the done-when line of a legend or key drawn from this table: `legend <page> hues=table r9`"""
+    ln = u"legend %s hues=table %s" % (page, HUE_TABLE)
     (log if log is not None else HUE_LOG).append(ln)
     return ln
 # ---- Plan annotations (round 6 S1, 4 Nov 2026; G6-4; PLAN.md §2.4, §2.8) -------------------------------------------
@@ -7247,10 +7821,11 @@ import math as _km_m
 # R01 in red (G-R4-9): line 0.5 mm dash-dot; end bar 2.4 mm along the line at each end, the open triangle standing on
 # it (base = the bar, height tri_h, apex the way the section looks), the end name beyond the bar. Sizes: drawing rules
 # of PLAN §4.5 (the triangle's base is the bar so it never overhangs it).
-KM_CUT = dict(colour="C0392B", lw=0.5, dash=(3.0, 0.8, 0.6, 0.8), end_bar=2.4, bar_lw=0.6, tri_h=2.1, tri_lw=0.35,
+# Round 9 (S4, G9-5 b; PLAN.md §spec S4): the line SOLID (dash None), 0.5 mm C0392B, open triangle each end.
+KM_CUT = dict(colour="C0392B", lw=0.5, dash=None, end_bar=2.4, bar_lw=0.6, tri_h=2.1, tri_lw=0.35,
               text_mm=2.47, gap_mm=0.8)
-KM_NAMES = dict(streets=("main",), n_streets=4, places=True, n_places=6, size_mm=2.12, colour="6B645B",
-                bold=False, pad_mm=0.6)     # round 7 (G7-3): SON page8's names (keymap v2 KM_NAMES: 6 pt, 6B645B)
+KM_NAMES = dict(streets=("main",), n_streets=4, places=True, n_places=6, size_mm=4.0 * 0.352778, colour="A4A1A3",
+                bold=False, pad_mm=0.6)     # round 9 (S4, G9-5 a): small and light, 4 pt A4A1A3 (HUE_KEY street_names)
 KM_NAMES_MIN = 4.0 * 0.352778    # round 7: a name with no room at 6 pt tries 4 pt (the floor), never smaller
 KM_MIN_L = 1.0           # mm: round 6 (from the site board's T3_KEY_MIN_L): a cut's line between its end bars at least
 #                          this long on the key map (a street is 10-20 m wide, under 2 mm at a key map's scale)
@@ -7259,12 +7834,18 @@ KM_SHRINK = (1.0, 0.75, 0.55)      # round 6: symbol sizes tried when two marks 
 KM_ZOOM = dict(colour="C0392B", lw=0.35)       # zoom / window frames on a key map: the cut red, solid
 KM_FRAME = dict(colour="7A6E60", lw=0.15)      # round 7 (G7-3): SON page8's frame line (site board INK2 0.15 mm)
 KM_PAPER = "FFFFFF"      # round 7: SON page8 fills the map's rectangle white under the base
-KM_NA = 9.0              # mm: round 7: SON page8's north column beside the map (T3_KEY_NA), outside the frame
+KM_NA = 9.0              # mm: the north box (round 9, A1 C8: INSIDE the frame's top-right corner, min(KM_NA, 0.9 h))
 KM_NORTH_MM = 4.0        # mm: SON page8's north arrow height (na_h)
 KM_HEAD = dict(size_mm=7.5 * 0.352778, colour="4A3F35", gap_mm=1.5)   # SON page8 heading: 7.5 pt bold INK, 1.5 mm gap
 KM_PAD = 1.0             # mm: inner pad between the frame and the content (round 6 fitted map's pad)
 KM_MARGIN = 0.02         # share of the content added on each side (round 6 fitted map's margin)
 KM_LOG = []
+KM_LEG = dict(w_mm=4.0, h_mm=2.4, pt=5.0)   # round 9 (S4, G9-5 d): the one key-map legend: swatch 4 x 2.4 mm, text 5 pt
+
+
+class _KmMain(tuple):
+    """round 9 (S4): a cut's main line among its symbol items (reads as the plain tuple everywhere)"""
+    pass
 
 
 def km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=None):
@@ -7307,7 +7888,7 @@ def km_cut_items(cuts, scale_den, frame=None, style=None, text_mm=None):
             a = (a[0] + ux * pull, a[1] + uy * pull)
             b = (b[0] - ux * pull, b[1] - uy * pull)
         fx, fy = -uy * look, ux * look                   # the way the section looks
-        out.append(("line", [a, b], col, st["lw"], list(st["dash"]), 1.0))
+        out.append(_KmMain(("line", [a, b], col, st["lw"], list(st["dash"]) if st.get("dash") else None, 1.0)))
         bar, th = st["end_bar"] * m, st["tri_h"] * m
         for p, nm, sgn in ((a, names[0], -1.0), (b, names[1], 1.0)):
             q = (p[0] - ux * sgn * bar, p[1] - uy * sgn * bar)          # the bar runs from the end inward
@@ -7419,7 +8000,7 @@ def km_street_names(D, T, obstacles, vb=None, frame_mm=None, segs=(), Tinv=None,
 
 def km_draw(km, X, fill_fn, line_fn, text_fn, water_opts=None, page=None, log=None, frame=True):
     """draws a km_keymap (PLAN §3 order: paper, base, WATER, structures, the study line, the red cuts, names, then the
-    frame line, the north arrow and the heading, both outside the frame): X(q) key-map mm -> page point (e.g. lambda q: (x0 + q[0], y0 + q[1]), or a
+    frame line, the north arrow (round 9: inside the frame's top-right corner) and the heading above the frame): X(q) key-map mm -> page point (e.g. lambda q: (x0 + q[0], y0 + q[1]), or a
     y-down flip). frame=False leaves out the paper, the frame line and the arrow (a caller that draws its own).
     text_fn=None draws no text (the booklet places the labels from km_items). Returns map_draw's dict."""
     T = km["T"]
@@ -7457,7 +8038,7 @@ def km_items(km, page=None, item_id=None, priority=5):
             layer("base")
         layers[-1]["shapes"].append(dict(type="poly", rings=[[[round(p[0], 3), round(p[1], 3)] for p in R]
                                                              for R in rings], fill=col, opacity=alpha,
-                                         nonzero=bool(nonzero)))
+                                         nonzero=bool(nonzero), grp=u"keymap/%s" % cur["name"]))   # round 9: G6-9
 
     def line_fn(pts, col, w_mm, dash_mm, alpha):
         if cur["name"] is None:
@@ -7465,7 +8046,7 @@ def km_items(km, page=None, item_id=None, priority=5):
         layers[-1]["shapes"].append(dict(type="line", pts=[[round(p[0], 3), round(p[1], 3)] for p in pts],
                                          stroke=col, width_pt=round(w_mm / 0.352778, 3),
                                          dash_pt=[round(d_ / 0.352778, 3) for d_ in dash_mm] if dash_mm else None,
-                                         opacity=alpha))
+                                         opacity=alpha, grp=u"keymap/%s" % cur["name"]))           # round 9: G6-9
     T = km["T"]
     layer("paper")
     basemap_draw(km["frame_items"][:1], lambda q: q, fill_fn, line_fn, None)
@@ -7475,11 +8056,14 @@ def km_items(km, page=None, item_id=None, priority=5):
     layer("frame")
     basemap_draw(km["frame_items"][1:], lambda q: q, fill_fn, line_fn, None)
     nb = km.get("north_box") or (km["w_mm"], 0.0, km["w_mm"] + KM_NA, KM_NA)
-    layer("north")                                       # round 7: the north arrow outside the frame, its own item
+    layer("north")                                       # round 9 (A1 C8): the north arrow inside the frame's top-right
+                                                         # corner, still its own item (outside=True = BK routing)
     basemap_draw([it for it in km["north"] if it[0] != "text"], lambda q: (q[0] - nb[0], q[1] - nb[1]), fill_fn,
                  line_fn, None)
     nlay = layers.pop()
     nlay["z"] = 0
+    for sh_ in nlay["shapes"]:
+        sh_["grp"] = u"keymap/north"
     layers = [L_ for L_ in layers if L_["shapes"]]
     for i, L_ in enumerate(layers):
         L_["z"] = i
@@ -7502,7 +8086,8 @@ def km_items(km, page=None, item_id=None, priority=5):
                         string=t[1], label_kind="heading",
                         anchor=dict(drawing=did, point=[round(t[2][0], 2), round(t[2][1], 2)]),
                         hint_box=[round(v, 2) for v in hb] if hb else None, size_pt=round(t[3] / 0.352778, 2),
-                        min_pt=4.0, bold=True, colour=t[4], short_forms=[], side_list_ok=False, justify=False))
+                        min_pt=4.0, bold=True, colour=t[4], short_forms=[], side_list_ok=False, justify=False,
+                        grp=u"keymap/labels"))
     texts = [dict(string=t[1], kind="north", anchor=t[2], box=None, size_mm=t[3], colour=t[4], bold=t[5])
              for t in km["north"] if t[0] == "text"]
     for i, lb in enumerate(km["labels"] + texts):
@@ -7511,11 +8096,13 @@ def km_items(km, page=None, item_id=None, priority=5):
                         anchor=dict(drawing=did, point=[round(lb["anchor"][0], 2), round(lb["anchor"][1], 2)]),
                         hint_box=[round(v, 2) for v in lb["box"]] if lb["box"] else None,
                         size_pt=round(lb["size_mm"] / 0.352778, 2), min_pt=4.0, bold=bool(lb["bold"]),
-                        colour=lb["colour"], short_forms=[], side_list_ok=False, justify=False))
+                        colour=lb["colour"], short_forms=[], side_list_ok=False, justify=False,
+                        grp=u"keymap/labels"))
     out.append(dict(id=u"%s.km" % did, page=pg, kind="keymap", role="keymap", priority=priority, group=did,
                     drawing=did, cuts=[dict(id=c, look=km["looks"].get(c, 1)) for c in km["cut_ids"]],
                     zooms=list(km["zoom_ids"]), names=[lb["string"] for lb in km["labels"] if lb["kind"] != "cut"],
-                    fill=round(km["fill"], 3), rotation_deg=km["rotation_deg"], missing=list(km["missing"])))
+                    fill=round(km["fill"], 3), rotation_deg=km["rotation_deg"], missing=list(km["missing"]),
+                    classes=list(km.get("classes") or ()), roads=int(km.get("roads") or 0)))
     return out
 
 
@@ -7592,14 +8179,19 @@ def _km_seg_dist(p, q, r, t):
     return min(pd(p, r, t), pd(q, r, t), pd(r, p, q), pd(t, p, q))
 
 
-def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=None, log=None, per_cut=False):
+def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=None, log=None, per_cut=False,
+                 obstacles=(), segs=()):
     """round 6 (S1, G6-5; from the site board's _t3_sec_key, the p08 target): the key map's cuts, bold red across
     (km_cut_items, R01), cuts = [(end1, end2, (name1, name2), look)] survey m, den = the key map's 1:den. Each cut
     lengthened about its middle to KM_MIN_L between its end bars where it is shorter on the map; neighbouring marks
     kept gap_mm (KM_GAP) apart: a mark that would touch an earlier one is drawn smaller (KM_SHRINK), else drawn
     with a WARNING line; end names that would touch another cut, a name or leave the map (T survey m -> key-map mm,
     box_mm = (w, h)) become ONE name beside the cut's middle (3.5-12 mm out, either side; none free = WARNING, set at
-    the first spot). Returns the items (survey m), or per cut a list of items (per_cut=True)."""
+    the first spot). Returns the items (survey m), or per cut a list of items (per_cut=True). Round 9 (S4, G9-5 b,
+    H3 §2): the size test checks the end symbols only; a cut parallel to an earlier one and closer than gap_mm is
+    drawn aside by the missing distance (a log line); a cut whose line crosses an earlier cut's line is broken gap_mm
+    each side of the crossing (a WARNING line); names keep clear of obstacles (key-map mm boxes, e.g. the north box)
+    and segs (key-map mm segments, e.g. the study line) as well."""
     log = log if log is not None else KM_LOG
     gap = KM_GAP if gap_mm is None else float(gap_mm)
     m = den / 1000.0
@@ -7624,8 +8216,19 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
         if not box_mm:
             return True
         return b[0] >= 0.6 and b[1] >= 0.6 and b[2] <= box_mm[0] - 0.6 and b[3] <= box_mm[1] - 0.6
+
+    def cross_t(p, q, r, t):
+        """round 9: the share along p-q where it crosses r-t, or None"""
+        d1, d2 = (q[0] - p[0], q[1] - p[1]), (t[0] - r[0], t[1] - r[1])
+        dn = d1[0] * d2[1] - d1[1] * d2[0]
+        if abs(dn) < 1e-12:
+            return None
+        u_ = ((r[0] - p[0]) * d2[1] - (r[1] - p[1]) * d2[0]) / dn
+        v_ = ((r[0] - p[0]) * d1[1] - (r[1] - p[1]) * d1[0]) / dn
+        return u_ if 0.0 <= u_ <= 1.0 and 0.0 <= v_ <= 1.0 else None
     min_l = (2.0 * KM_CUT["end_bar"] + KM_MIN_L) * m
-    done, done_segs, tboxes = [], [], []
+    done, done_segs, tboxes = [], [], list(obstacles or ())
+    done_main, extra = [], list(segs or ())
     for c in cuts:
         a, b, nm = tuple(c[0]), tuple(c[1]), tuple(c[2])
         look = c[3] if len(c) > 3 and isinstance(c[3], (int, float)) else 1
@@ -7634,12 +8237,34 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
         if L0 < min_l:
             cx_, cy_ = 0.5 * (a[0] + b[0]), 0.5 * (a[1] + b[1])
             a, b = (cx_ - 0.5 * min_l * ux, cy_ - 0.5 * min_l * uy), (cx_ + 0.5 * min_l * ux, cy_ + 0.5 * min_l * uy)
+        pa, pb = Tm(a), Tm(b)                            # round 9: parallel and too close to an earlier cut: aside
+        for ea, eb, enm in done_main:
+            if cross_t(pa, pb, ea, eb) is not None:
+                continue
+            d_ = _km_seg_dist(pa, pb, ea, eb)
+            v1, v2 = (pb[0] - pa[0], pb[1] - pa[1]), (eb[0] - ea[0], eb[1] - ea[1])
+            cs_ = abs(v1[0] * v2[0] + v1[1] * v2[1]) / max(1e-9, _km_m.hypot(*v1) * _km_m.hypot(*v2))
+            if d_ >= gap or cs_ < 0.98:
+                continue
+            sh_ = (gap - d_ + 0.1) * m
+            best = None
+            for sgn in (1.0, -1.0):
+                a2 = (a[0] - sgn * uy * sh_, a[1] + sgn * ux * sh_)
+                b2 = (b[0] - sgn * uy * sh_, b[1] + sgn * ux * sh_)
+                d2 = _km_seg_dist(Tm(a2), Tm(b2), ea, eb)
+                if best is None or d2 > best[0]:
+                    best = (d2, a2, b2)
+            a, b = best[1], best[2]
+            pa, pb = Tm(a), Tm(b)
+            log.append(u"keymap %s cut %s drawn %.1f mm aside (parallel to cut %s, gap %.1f mm)"
+                       % (pg, nm[0], gap - d_ + 0.1, enm, gap))
         its, sg, crowd = None, None, False
         for k in KM_SHRINK:
             st = dict(end_bar=KM_CUT["end_bar"] * k, tri_h=KM_CUT["tri_h"] * k)
             its = km_cut_items([(a, b, nm, look)], den, frame=frame, style=st)
             sg = segs_of(its)
-            if not any(_km_seg_dist(p, q, r, t) < gap for p, q in sg for r, t in done_segs):
+            sy = segs_of([it for it in its if not isinstance(it, _KmMain)])   # round 9: the end symbols only
+            if not any(_km_seg_dist(p, q, r, t) < gap for p, q in sy for r, t in done_segs):
                 if k != 1.0:
                     log.append(u"keymap %s cut %s drawn at %.0f %% size (gap to its neighbour)" % (pg, nm[0], k * 100))
                 break
@@ -7647,7 +8272,31 @@ def km_cut_marks(cuts, den, frame=None, gap_mm=None, T=None, box_mm=None, page=N
             crowd = True                             # their smallest size and their NAMES are pushed apart (no WARNING)
             log.append(u"keymap %s cut %s closer than %.1f mm to a neighbour: drawn at %.0f %% size, its name pushed "
                        u"clear of the neighbour" % (pg, nm[0], gap, KM_SHRINK[-1] * 100))
-        others = list(done_segs)
+        mains = [it for it in its if isinstance(it, _KmMain)]   # round 9: crossings break this cut's line
+        if mains:
+            P0, P1 = mains[0][1][0], mains[0][1][-1]
+            q0, q1 = Tm(P0), Tm(P1)
+            Lmm = _km_m.hypot(q1[0] - q0[0], q1[1] - q0[1]) or 1e-6
+            ts = []
+            for ea, eb, enm in done_main:
+                t_ = cross_t(q0, q1, ea, eb)
+                if t_ is not None:
+                    ts.append(t_)
+                    log.append(u"WARNING keymap %s cuts %s and %s cross: the line of %s is broken %.1f mm each side "
+                               u"of the crossing" % (pg, enm, nm[0], nm[0], gap))
+            if ts:
+                dt, keep, s0 = gap / Lmm, [], 0.0
+                for t_ in sorted(ts):
+                    if t_ - dt > s0:
+                        keep.append((s0, t_ - dt))
+                    s0 = max(s0, t_ + dt)
+                if s0 < 1.0:
+                    keep.append((s0, 1.0))
+                lp = lambda f: (P0[0] + (P1[0] - P0[0]) * f, P0[1] + (P1[1] - P0[1]) * f)
+                its = [_KmMain(("line", [lp(f0), lp(f1)]) + tuple(mains[0][2:])) for f0, f1 in keep] + \
+                      [it for it in its if not isinstance(it, _KmMain)]
+            done_main.append((q0, q1, nm[0]))
+        others = list(done_segs) + extra
         tx = [tbox(it) for it in its if it[0] == "text"]
         if tx and (crowd or not all(inside(bb) and not _km_box_hit(bb, tboxes, 0.6) and not _km_seg_hit(bb, others, 0.6)
                           for bb in tx)):
@@ -7706,7 +8355,7 @@ def _km_frame_deg(P):
 
 
 def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, log=None, cut_ids=None, looks=None,
-              north_side="right", extra_names=None, D=None, **legacy):
+              north_side="right", extra_names=None, D=None, names=None, frame_key=None, **legacy):
     """round 7 (S1, G7-3; PLAN §4.3): THE key map of every page = SON page8's "Where each street is cut" (_t3_sec_key,
     1d6f866 src/selinus_board/pages/p07_09_movement.py:1556-1727, on keymap v2 89097ee), callable with a page's cuts
     and its SON key-map frame. As SON page8: the map on the site frame's own axes (basemap_frame = site_alan, the
@@ -7723,17 +8372,27 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
     w_mm x h_mm: the SON key-map frame of the page (PLAN §3, H4 §3) = the map's frame EXACTLY (one missing: from the
     content's aspect; both missing: 80 mm wide, WARNING); heading: the text above the frame (None = none); zooms {id:
     polygon survey m}: window frames in red; looks {id: +1/-1} for registry cuts; extra_names [(name, xy)].
-    legacy options of round 6 (box, scale_den, rotate, names, fit, margin, pad_mm, legend_box, north ...) are ignored
+    names (masterplan v45): KM_NAMES overrides for km_street_names, e.g. dict(streets=(), places=False) = no street or
+    place names; None = KM_NAMES. Legacy options of round 6 (box, scale_den, rotate, fit, margin, pad_mm, legend_box,
+    north ...) are ignored
     with a log line. Returns dict(base, study, cuts, names, items, box, scale_den, T, Tinv (survey m <-> key-map mm,
     origin lower-left, y up), drawn, missing, label_boxes, labels, w_mm, h_mm, study_rings, study_ring,
     study_closed, rotation_deg, rotation, north_deg, fill, frame, frame_items, north (key-map mm items, outside the
     frame), north_box, heading_items, heading_box, looks, zoom_ids, cut_ids, cuts_all, page). Logs
-    `keymap <page> 1:<den> axes=<deg> frame=<w>x<h> fill=<f> cuts=<ids>` and km_log's `keymap <page> module ...`."""
+    `keymap <page> 1:<den> axes=<deg> frame=<w>x<h> fill=<f> cuts=<ids>` and km_log's `keymap <page> module ...`.
+    Round 9 (S4, G9-5; A1 C7, C8): base = mode "keymap" = the context layers drawn quieter (every street class, land
+    cover, buildings by fabric, the stream); names 4 pt A4A1A3; cuts solid, crossings broken, parallel cuts aside;
+    the north arrow INSIDE the frame's top-right corner (north_side is ignored), its box kept clear by cut labels and
+    names; every exported shape tagged keymap/<layer> (G6-9). frame_key = an R9_FRAMES key ("p04.2"): w_mm x h_mm
+    from frames_r9 when not given. Adds km["classes"] (the base classes shown, for km_legend) and km["roads"] (the
+    street lines drawn; km_log logs `keymap <page> roads n=<n> cuts <labels>`)."""
     log = log if log is not None else KM_LOG
     pg = u"%s" % (page or u"")
     for k in sorted(legacy):
         log.append(u"keymap %s: option %s ignored (round 7: SON page8 look, frame = w x h)" % (pg, k))
     D = D if D is not None else basemap_load()
+    if frame_key and not (w_mm and h_mm) and callable(globals().get("r9_wh")):
+        w_mm, h_mm = r9_wh(frame_key)                    # round 9: the key map drawn at its R9 frame size (fit = 1)
     ids, xcuts = list(cut_ids or ()), []
     for c in cuts or ():
         (ids if isinstance(c, str) else xcuts).append(c)
@@ -7826,9 +8485,24 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
         log.append(u"FLAG keymap %s: basemap format %s has no urban fabric per house: one house tone until the site "
                    u"board writes format %d" % (pg, D.get("format"), BASEMAP_FORMAT))
     st_items = ml_study_items(study)
+    # round 9 (A1 C8, H3 C8): the north arrow inside the frame's top-right corner, plain ink, set before the cuts so
+    # their labels and the names keep clear of its box
+    a_n = _km_m.radians(phi)
+    n_box = min(KM_NA, 0.9 * h_mm)
+    ncx, ncy = w_mm - 0.5 * n_box, h_mm - 0.5 * n_box
+    n_size = min(KM_NORTH_MM, 0.5 * n_box)
+    half = 0.5 * (n_size + 0.75 * max(2.12, 0.42 * n_size))
+    north_its = north_items(ncx + half * _km_m.sin(a_n), ncy - half * _km_m.cos(a_n), ang_rad=a_n, size_mm=n_size,
+                            colour=hue("ANN", "ink"))
+    north_box = (w_mm - n_box, h_mm - n_box, w_mm, h_mm)
+    st_segs = []
+    for it in st_items:
+        if it[0] == "line":
+            P = [T(p) for p in it[1]]
+            st_segs += list(zip(P, P[1:]))
     cut_items = []
     marks = km_cut_marks([c for _, c in cut_l], den, frame=frame, T=T, box_mm=(w_mm, h_mm), page=pg, log=log,
-                         per_cut=True)
+                         per_cut=True, obstacles=[north_box], segs=st_segs)
     nm_fn = globals().get("level_name")
     for (cid, c), its in zip(cut_l, marks):
         try:
@@ -7867,14 +8541,7 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
             label_boxes.append((it[1], b))
             labels.append(dict(string=it[1], kind="cut", anchor=(x, y), box=b, size_mm=it[3], colour=it[4],
                                bold=it[5]))
-    # SON page8: the north arrow beside the map in its own column, turned to north on these axes, no plate
-    a = _km_m.radians(phi)
-    ncx = -0.5 * KM_NA if north_side == "left" else w_mm + 0.5 * KM_NA
-    ncy = h_mm - 0.5 * KM_NA if h_mm >= KM_NA else 0.5 * h_mm
-    half = 0.5 * (KM_NORTH_MM + 0.75 * max(2.12, 0.42 * KM_NORTH_MM))
-    north_its = north_items(ncx + half * _km_m.sin(a), ncy - half * _km_m.cos(a), ang_rad=a, size_mm=KM_NORTH_MM,
-                            colour=KM_HEAD["colour"])
-    north_box = (ncx - 0.5 * KM_NA, ncy - 0.5 * KM_NA, ncx + 0.5 * KM_NA, ncy + 0.5 * KM_NA)
+    boxes.append(north_box)                              # round 9: names keep clear of the north box
     heading_items, heading_box = [], None
     if heading:
         hs = KM_HEAD["size_mm"]
@@ -7882,8 +8549,8 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
         heading_items = [("text", u"%s" % heading, (0.0, yh), hs, KM_HEAD["colour"], True, "ML")]
         hw = fmw(u"%s" % heading, pt_of(hs), bold=True) if callable(fmw) else 0.6 * hs * len(heading)
         heading_box = (0.0, yh - 0.5 * hs, hw, yh + 0.5 * hs)
-    nr = km_street_names(D, T, boxes, vb=vb, frame_mm=(w_mm, h_mm), segs=segs, Tinv=Tinv, names=None,
-                         extra_names=extra_names, page=pg, log=log)
+    nr = km_street_names(D, T, boxes, vb=vb, frame_mm=(w_mm, h_mm), segs=segs, Tinv=Tinv, names=names,
+                         extra_names=extra_names, page=pg, log=log)   # masterplan v45: names= passed (None = as before)
     labels += nr["labels"]
     label_boxes += nr["label_boxes"]
     fill = min(1.0, (cw * s) * (ch * s) / max(1e-9, (w_mm - 2.0 * pad) * (h_mm - 2.0 * pad)))
@@ -7905,6 +8572,9 @@ def km_keymap(page, cuts=None, w_mm=None, h_mm=None, heading=None, zooms=None, l
               heading_box=heading_box, looks=dict(looks or {}), zoom_ids=[cid for cid, _ in wins],
               cut_ids=[cid for cid, _ in cut_l], page=page)
     km["cuts_all"] = list(km["cut_ids"])
+    km["classes"] = sorted(set(getattr(it, "cls", None) for it in base
+                               if getattr(it, "ctx", None) in ("a", "d", "e", "f", "g") and getattr(it, "cls", None)))
+    km["roads"] = sum(1 for it in base if getattr(it, "ctx", None) == "a" and it[0] == "line")
     km_log(page, km, log)
     return km
 
@@ -7928,11 +8598,88 @@ def km_log(page, km=None, log=None):
     ln = u"keymap %s module cuts=%s study_closed=%d parts=%d" % (page, ids, closed, n)
     lg = log if log is not None else KM_LOG
     lg.append(ln)
+    nr_ = int((km or {}).get("roads") or 0)              # round 9 (S4, G9-5 done-when): the roads line
+    lg.append(u"keymap %s roads n=%d cuts %s" % (page, nr_, ids))
+    if km is not None and nr_ == 0:
+        lg.append(u"WARNING %s keymap roads n=0: no street drawn (basemap.json layers streets_in / streets_out)" % page)
     if not closed:
         lg.append(u"WARNING %s keymap: no study outline (no basemap study layer and no recorded copy)" % page)
     if lg is not KM_LOG:
         KM_LOG.append(ln)
     return ln
+
+
+# ---- round 9 (S4, 11 Nov 2026; BRIEF G9-5 d, PLAN.md §spec S4): THE key-map legend, one function for every page ----
+def km_legend(kind_set, cuts=True, level=True, level_text=None, words=None):
+    """the one key-map legend: the same rows in the same order on every page: study area (the closed violet
+    dash-dot) · cut line + open triangle = the view direction (when the key map has cuts) · level, m above sea
+    (level=False: none; level_text: the page's own words for it) · then only the base classes this key map shows,
+    in the quiet tones it draws them: building fabric classes, woods, fields, grass and open ground, street, the
+    stream. kind_set = a km_keymap dict (its "classes" and "cut_ids") or a set of base classes; cuts = the cut labels,
+    or True / False. Returns [(swatch, text)] for Ix.legend; every swatch carries w_mm 4 and h_mm 2.4 (KM_LEG), a
+    "group" (its legend heading) and, for base classes, its hue table cat / rank. Texts are set at KM_LEG pt 5."""
+    if isinstance(kind_set, dict):
+        ks = set(kind_set.get("classes") or ())
+        if cuts is True:
+            cuts = list(kind_set.get("cut_ids") or ())
+    else:
+        ks = set(kind_set or ())
+    N = globals().get("NAMES")
+    stream_w = ((N.get("places") or {}).get("stream") if isinstance(N, dict) else None) or u"Selinos stream"
+    W = dict(study=globals().get("R28_STUDY_NAME") or u"Study area",
+             cut=u"cut line · the triangle looks the way the section is drawn",
+             level=level_text or u"level, m above sea", trees=u"Woods", fields=u"Fields",
+             open=u"Grass and open ground", street=u"Street", stream=stream_w)
+    W.update(FAB_WORDS)
+    W.update(words or {})
+    paper = BM_KEY["paper"]
+    sz = dict(w_mm=KM_LEG["w_mm"], h_mm=KM_LEG["h_mm"])
+    pt_ = lambda mm: round(mm / 0.352778, 3)
+    q = lambda h: _bm_mix(h, paper, BM_CTX_QUIET)
+    st = globals().get("R28_STUDY_LINE") or BM_STUDY_LINE
+    rows = [(dict(sz, kind="dash", colour=st["colour"], width_pt=pt_(st["width_mm"]),
+                  dash_pt=[pt_(v) for v in st["dash_mm"]], group=u"annotations"), W["study"])]
+    if cuts:
+        rows.append((dict(sz, kind="line", colour=KM_CUT["colour"], width_pt=pt_(KM_CUT["lw"]), mark="triangle",
+                          group=u"annotations"), W["cut"]))
+    if level:
+        rows.append((dict(sz, kind="line", colour=hue("ANN", "ink"), group=u"annotations"), W["level"]))
+    for c in FAB_CLASSES:
+        if c in ks:
+            rows.append((dict(sz, kind="fill", colour=_bm_mix(fab_hex(c), paper, HUE_KEY["fabric_mix"]), cat="FAB",
+                              rank=FAB_RANK[c], group=HUE_NAMES["FAB"]), W[c]))
+    if "trees" in ks:
+        rows.append((dict(sz, kind="fill", colour=q(LC_HEX["trees"]), cat="LC", rank=1, group=HUE_NAMES["LC"]),
+                     W["trees"]))
+    if ks & set(("farmland", "orchard")):
+        rows.append((dict(sz, kind="fill", colour=q(LC_HEX["farmland"]), cat="LC", rank=4, group=HUE_NAMES["LC"]),
+                     W["fields"]))
+    if ks & set(("grass", "shrub", "park")):
+        rows.append((dict(sz, kind="fill", colour=q(LC_HEX["grass"]), cat="LC", rank=3, group=HUE_NAMES["LC"]),
+                     W["open"]))
+    if ks & set(("main", "secondary", "lane", "area", "path")):
+        rows.append((dict(sz, kind="line", colour=q(str_hex("main")), width_pt=pt_(BM_STR_W_KEY["main"]), cat="STR",
+                          rank=1, group=HUE_NAMES["STR"]), W["street"]))
+    if "stream" in ks:
+        rows.append((dict(sz, kind="fill", colour=bm_key_col("water"), cat="WAT", rank=1, group=HUE_NAMES["WAT"]),
+                     W["stream"]))
+    return rows
+
+
+def km_legend_export(ix, km, page=None, item_id=None, level=True, level_text=None, words=None, group=None):
+    """round 9 (S4): the key map's legend as one Ix legend item "<keymap id>_legend" (the R9_FRAMES legend id, e.g.
+    sb_sec_keymap_p04_legend), its texts role "legend" at KM_LEG pt; item_id = the key map's id (as km_export_items
+    got it). Logs `legend <page> hues=table r9`. Returns the legend id."""
+    pg = page if page is not None else km.get("page")
+    did = item_id or (u"keymap_%s" % (pg or u"key"))
+    ents = []
+    for sw, t in km_legend(km, True, level, level_text, words):
+        tid = ix.text(pg, t, "legend", size_pt=KM_LEG["pt"], group=group or did)
+        if tid is not None:
+            ents.append((sw, tid))
+    lid = ix.legend(pg, did, ents, id=u"%s_legend" % did, group=group or did)
+    hue_log(pg)
+    return lid
 
 # ---- M1 (revision 30 Oct 2026, H-A): ONE booklet grid and ONE set of type styles for every page ----------------------
 # Page mm, A3 landscape 420 x 297, origin top-left, y DOWN (the booklet's own system). A script that draws y-up calls
@@ -8215,6 +8962,396 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
         for s, b, xo in ln:
             out.append((s, x + xo, yy, b))
     return out
+# ---- frames_r9.py (round 9, Part A, 11 Nov 2026; G9-2, ADDENDUM A1 §0, §A, §E, §F4; PLAN §spec S2) --------------------
+# THE one frame table of round 9 (plan_findings/PAGE_TABLE.md = BRIEF §4 merged with ADDENDUM §A/§E/§F4; p13 option B,
+# p20 one B19 map with a legend only (PLAN Q6), p21 one shared legend (A9)). The SAME text is pasted into every producer
+# (MainBoard, MasterPlan, CityLink, WaterBoard, ProposalSections, AgriCulture, WaterBalance, B19Plan) and the booklet:
+# producers read their own rows (frame w x h, so F/C/key maps are drawn at frame size and M maps export context over
+# r9_window); the booklet builds every F() mm from it. No file is read (script_reads.txt unchanged).
+# mm, A3 landscape 420 x 297, origin top-left, y down; content x 14-406, y 26-279; 2 mm gutter between blocks.
+#   R9_FRAMES["pNN.<block>"] = dict(x, y, w, h, kind, ids, series, r8, est, ...)
+#       kind    S scaled drawing · M map (context grows to fill) · F fitted, no ratio · C chart (plot fills) · T text
+#       ids     item id patterns (fnmatch, first frame whose pattern matches an item places it; order = stack order).
+#               v37 ids where the item exists today (H1 §1.3); new=True marks ids PROPOSED here for an item a wave-2
+#               part must split off (the part names its item exactly so, or lists the id it used in its handover)
+#       series  name shared by the members of one series (ADDENDUM §0.6: one T, one label)
+#       r8      R8's TRUE scale denominator of that drawing (context/WRITER_SYNC_2026-11-11/run_r8/page_boxes.csv),
+#               None where R8 had no comparable drawing; used by ADDENDUM §0.4 only
+#       est     the writer's expected printed label (PAGE_TABLE "label (writer est.)"), for the closing check only;
+#               NEVER a fixed scale (the run computes it with r9_label)
+#       bar     the frame key that gets this drawing's scale bar / ratio / north (booklet `bar=`)
+#       others  over, allow, split, gap, cols, pt, merge, grid, card, check (an UNVERIFIED id or reading)
+#   r9_frame(key) -> dict (a copy, "key" added) or None (FLAG line in R9_LOG)
+#   r9_wh(key) -> (w, h) mm or None
+#   r9_frame_of(item_id, page=None) -> the first frame dict whose ids match (page order, then table order), or None
+#   r9_label(Tfit, r8=None) -> dict(L, T, list, size, small)        ADDENDUM §0.2-0.4: the printed label and true scale
+#   r9_series_label(tfits, r8s=()) -> the same dict for a series (§0.6: Tfit = the largest member Tfit)
+#   r9_tfit(focus_box, key_or_wh) -> Tfit (1:n) at which the focus box fits the frame, uniform, no stretch
+#   r9_window(focus_box, key_or_wh, grow=R9_WINDOW_GROW) -> (x0, y0, x1, y1) the context extent an M map exports
+#   r9_scale_line(page, block, Tfit, lab) -> the §0.9 log line (and the WARNING line when lab["small"])
+# Log lines: r9_frame misses go to R9_LOG as FLAG lines (a page script appends R9_LOG to its log).
+import fnmatch as _r9_fn
+
+R9_TABLE_VERSION = "r9"
+R9_GUTTER_MM = 2.0
+R9_CONTENT = (14.0, 26.0, 406.0, 279.0)          # x0, y0, x1, y1 mm: the cover check's content area (BRIEF G9-2)
+# ADDENDUM §0.2 (Aras 11 Nov 20:39 and 20:42): round labels first, the second list only under §0.4
+R9_LBL_ROUND = (100, 200, 500, 1000, 1250, 1500, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12500, 15000,
+                20000, 30000, 40000, 50000)
+R9_LBL_SECOND = (250, 2500, 25000)
+R9_LBL_TOL = 1.08          # §0.3: the label may round Tfit down by up to 8 %
+R9_LBL_MIN = 0.85          # §0.4: under 85 % of the fit size the second list is tried (writer's reading)
+R9_WINDOW_GROW = 1.3       # PLAN §cause d4: an M map's context window = its focus grown to the frame aspect x 1.3
+R9_LOG = []
+
+
+def _r9(x, y, w, h, kind, ids, series=None, r8=None, est=None, **kw):
+    d = dict(x=float(x), y=float(y), w=float(w), h=float(h), kind=kind, ids=tuple(ids), series=series, r8=r8,
+             est=est)
+    d.update(kw)
+    return d
+
+
+R9_FRAMES = {
+    # ---- p02 (rows 2-4 and 7-8 need MainBoard to export the parts as their own items: H1 §1.3)
+    "p02.1": _r9(14, 28, 194, 169, "M", ("sb_plan01",), r8=25048, est=25000, bar="p02.2"),
+    "p02.5": _r9(210, 28, 196, 148, "F", ("sb_edge_types",)),
+    "p02.6": _r9(210, 178, 60, 3, "T", ("sb_edge_types_caption",)),
+    "p02.7": _r9(210, 183, 96, 96, "F", ("sb_site_indicators", "sb_site_readings"), new=True,
+                 check=u"sb_site_readings is the v37 union item (rows 7+8); MainBoard splits it"),
+    "p02.8": _r9(308, 183, 98, 96, "F", ("sb_site_landuse",), new=True),
+    "p02.2": _r9(14, 199, 155, 10, "T", ("sb_plan01_bridges*",), new=True),
+    "p02.3": _r9(14, 211, 194, 56, "T", ("sb_plan01_legend*",), new=True, cols=3),
+    "p02.4": _r9(14, 269, 60, 3, "T", ("sb_plan01_caption",)),
+    # ---- p03
+    "p03.1": _r9(354, 30, 52, 56, "T", ("sb_axo_what_is_there_list*", "sb_p03_list*"),
+                 check=u"the list 1-12 may be inside the axo drawing today (H1 §1.3 UNVERIFIED)"),
+    "p03.2": _r9(14, 40, 392, 200, "F", ("sb_axo_what_is_there", "sb_axo_what_is_there_caption")),
+    "p03.3": _r9(14, 246, 120, 24, "T", ("sb_axo_what_is_there_legend", "sb_p03_legend*")),
+    "p03.4": _r9(136, 246, 198, 24, "T", ("sb_p03_sources*", "sb_axo_what_is_there_sources*")),
+    "p03.5": _r9(336, 246, 70, 24, "T", ("sb_p03_axes*", "sb_axo_what_is_there_axes*")),
+    # ---- p04 (series p04: S1-S4 one T, one label; A1 1, T1, T10)
+    "p04.1": _r9(14, 28, 316, 59, "F", ("sb_sec_keymap_p04",)),
+    "p04.2": _r9(332, 28, 74, 22, "T", ("sb_sec_keymap_p04_legend", "sb_sec_legend_p04", "sb_sec_intro*"),
+                 check=u"where sb_sec_intro* belongs is UNVERIFIED (H1 §1.3)"),
+    "p04.3": _r9(14, 89, 316, 58.5, "S", ("sb_sec_s1",), series="p04", r8=2479, est=2500, bar="p04.7"),
+    "p04.7": _r9(332, 89, 74, 20, "T", ("sb_sec_note_s1*",)),
+    "p04.4": _r9(14, 149.5, 316, 32.2, "S", ("sb_sec_s2",), series="p04", r8=2440, est=2500, bar="p04.8"),
+    "p04.8": _r9(332, 149.5, 74, 20, "T", ("sb_sec_note_s2*",)),
+    "p04.5": _r9(14, 183.7, 316, 54, "S", ("sb_sec_s3",), series="p04", r8=2561, est=2500, bar="p04.9"),
+    "p04.9": _r9(332, 183.7, 74, 20, "T", ("sb_sec_note_s3*",)),
+    "p04.6": _r9(14, 239.7, 316, 35.1, "S", ("sb_sec_s4",), series="p04", r8=2415, est=2500, bar="p04.10"),
+    "p04.10": _r9(332, 239.7, 74, 20, "T", ("sb_sec_note_s4*",)),
+    # ---- p05 (series p05: S5-S8; A1 2, T2)
+    "p05.1": _r9(14, 28, 316, 59, "F", ("sb_sec_keymap_p05",)),
+    "p05.2": _r9(332, 28, 74, 37, "T", ("sb_sec_keymap_p05_legend", "sb_sec_legend_p05", "sb_sec_intro*")),
+    "p05.3": _r9(14, 89, 316, 39.7, "S", ("sb_sec_s5",), series="p05", r8=2128, est=1500, bar="p05.7"),
+    "p05.7": _r9(332, 89, 74, 20, "T", ("sb_sec_note_s5*",)),
+    "p05.4": _r9(14, 130.7, 316, 47.5, "S", ("sb_sec_s6",), series="p05", r8=2128, est=1500, bar="p05.8"),
+    "p05.8": _r9(332, 130.7, 74, 20, "T", ("sb_sec_note_s6*",)),
+    "p05.5": _r9(14, 180.2, 316, 49, "S", ("sb_sec_s7",), series="p05", r8=2128, est=1500, bar="p05.9"),
+    "p05.9": _r9(332, 180.2, 74, 20, "T", ("sb_sec_note_s7*",)),
+    "p05.6": _r9(14, 231.2, 316, 45, "S", ("sb_sec_s8",), series="p05", r8=2128, est=1500, bar="p05.10"),
+    "p05.10": _r9(332, 231.2, 74, 20, "T", ("sb_sec_note_s8*",)),
+    # ---- p06 (all parts need MainBoard to split its one board drawing: H1 §1.3)
+    "p06.1": _r9(14, 28, 288, 56, "M", ("sb_edge_build",), r8=10000, est=10000, bar="p06.2"),
+    "p06.4": _r9(304, 28, 102, 92, "T", ("sb_edge_build_edge*", "sb_edge_build_legend*"), new=True),
+    "p06.2": _r9(14, 86, 53, 5, "T", ()),
+    "p06.3": _r9(14, 93, 288, 21, "F", ("sb_edge_build_cards*",), new=True),
+    "p06.5": _r9(14, 121, 62, 3, "T", ("sb_edge_build_photos_head",), new=True),
+    "p06.6": _r9(14, 126, 392, 150, "F", ("sb_edge_build_photo_*",), new=True, grid=(4, 2)),
+    "p06.7": _r9(14, 277, 300, 2, "T", ("sb_edge_build_caption",)),
+    # ---- p07 (T11)
+    "p07.1": _r9(14, 28, 292, 70, "M", ("sb_movement",), r8=10138, est=10000, bar="p07.2"),
+    "p07.3": _r9(308, 28, 98, 63, "T", ("sb_mv_note_1*",)),
+    "p07.2": _r9(14, 100, 90, 10, "T", ("sb_movement_caption",)),
+    "p07.4": _r9(14, 112, 292, 70, "M", ("sb_walking_today",), r8=10138, est=10000, bar="p07.5"),
+    "p07.6": _r9(308, 112, 98, 63, "T", ("sb_mv_note_2*",)),
+    "p07.5": _r9(14, 184, 90, 10, "T", ("sb_walking_today_caption",)),
+    "p07.7": _r9(14, 196, 292, 70, "M", ("sb_driving_today",), r8=10138, est=10000, bar="p07.8"),
+    "p07.9": _r9(308, 196, 98, 63, "T", ("sb_mv_note_3*",)),
+    "p07.8": _r9(14, 268, 90, 11, "T", ("sb_driving_today_caption",)),
+    # ---- p08 (T3, T4; D6)
+    "p08.1": _r9(14, 28, 300, 5, "T", ("cl_p08_corridor_head",)),
+    "p08.2": _r9(14, 35, 292, 58, "M", ("cl_p08_corridor",), r8=9947, est=10000),
+    "p08.3": _r9(308, 35, 98, 24, "T", ("cl_p08_corridor_legend", "cl_p08_shops")),
+    "p08.4": _r9(14, 95, 392, 113, "C", ("cl_p08_who", "cl_p08_who_head")),
+    "p08.5": _r9(14, 210, 186, 6, "T", ("cl_p08_who_legend", "cl_p08_who_note")),
+    "p08.6": _r9(14, 218, 186, 6, "T", ("sb_street_title_n1", "sb_street_title_n2", "sb_street_title*")),
+    "p08.7": _r9(14, 226, 322, 53, "F", ("sb_street_R1", "sb_street_R2", "sb_street_R3", "sb_street_R4"), r8=643,
+                 split="row", gap=2.0),
+    "p08.8": _r9(338, 226, 68, 9, "F", ("sb_street_keymap",),
+                 check=u"D6: if unreadable at 68 x 9 mm: WARNING, the legend keeps the column"),
+    "p08.9": _r9(338, 237, 68, 42, "T", ("sb_street_keymap_legend", "sb_street_legend*")),
+    # ---- p09 (T5; d10: the bar frame is 3 mm, the booklet's bar band 5.5 mm)
+    "p09.1": _r9(14, 28, 300, 5, "T", ("cl_p09_spine_head",)),
+    "p09.2": _r9(14, 35, 292, 56, "M", ("cl_p09_spine",), r8=9983, est=10000, bar="p09.4"),
+    "p09.3": _r9(308, 35, 98, 50, "T", ("cl_p09_legend", "cl_p10_legend")),
+    "p09.4": _r9(14, 92, 120, 3, "T", ()),
+    "p09.5a": _r9(14, 97, 76, 102, "F", ("cl_p09_card_K4", "cl_p09_card_1", "cl_p10_hub_1"), card=True),
+    "p09.5b": _r9(93, 97, 76, 102, "F", ("cl_p09_card_K3", "cl_p09_card_2", "cl_p10_hub_2"), card=True),
+    "p09.5c": _r9(172, 97, 76, 102, "F", ("cl_p09_card_T", "cl_p09_card_3", "cl_p10_hub_3"), card=True),
+    "p09.5d": _r9(251, 97, 76, 102, "F", ("cl_p09_card_K5", "cl_p09_card_4", "cl_p10_hub_4"), card=True),
+    "p09.5e": _r9(330, 97, 76, 102, "F", ("cl_p09_card_K6", "cl_p09_card_5", "cl_p10_hub_5"), card=True),
+    "p09.6": _r9(14, 201, 392, 4, "T", ("cl_p09_card_key*", "cl_p09_key*"), opt=True),
+    "p09.7": _r9(14, 213, 190, 66, "F", ("cl_p10_flood", "cl_p10_flood_head")),
+    "p09.8": _r9(206, 213, 110, 66, "C", ("cl_p10_bank", "cl_p10_bank_head")),
+    "p09.9": _r9(318, 213, 88, 46, "T", ("cl_p10_market", "cl_p10_market_head")),
+    # ---- p10
+    "p10.1": _r9(14, 28, 392, 105, "C", ("wb_year",)),
+    "p10.2": _r9(14, 135, 230, 115, "C", ("wb_curve",)),
+    "p10.3": _r9(246, 135, 160, 115, "C", ("wb_store",)),
+    "p10.4": _r9(14, 252, 392, 27, "C", ("wb_answer",)),
+    # ---- p11 (frames 2 and 3 inside frame 1; T6)
+    "p11.1": _r9(14, 28, 276, 180, "F", ("p12_map",)),
+    "p11.4": _r9(292, 28, 114, 42, "T", ("p12_steps",)),
+    "p11.2": _r9(102, 30, 62, 74, "F", ("p12_zoom",), over=True),
+    "p11.3": _r9(200, 30, 82, 114, "T", ("wb_p12_map_legend", "p12_map_legend", "wb_p12_map_letters",
+                                         "wb_p12_relief_note"), over=True, allow="p12_map"),
+    "p11.5": _r9(292, 72, 114, 55, "C", ("p12_coliforms",)),
+    "p11.6": _r9(292, 129, 114, 40, "C", ("p12_plants",)),
+    "p11.7": _r9(292, 171, 114, 18, "T", ("p12_why",)),
+    "p11.8": _r9(292, 191, 114, 4, "T", ("wb_p12_conclusion", "p12_conclusion")),
+    "p11.12": _r9(14, 210, 150, 4, "T", ("wb_p12_section_caption",),
+                  check=u"which id is the caption is UNVERIFIED (H1 §1.3)"),
+    "p11.9": _r9(14, 216, 40, 13, "T", ("wb_p12_section_key", "p12_section_key*", "p12_section_list*",
+                                        "p12_section_head*")),
+    "p11.10": _r9(56, 216, 298, 63, "F", ("p12_section_sketch", "p12_section")),
+    "p11.11": _r9(356, 216, 50, 31, "T", ("wb_p12_section_levels", "wb_p12_strip_note", "wb_p12_section_legend",
+                                          "p12_section_legend*")),
+    # ---- p12
+    "p12.1": _r9(14, 28, 180, 3, "T", ("ps_caption*", "ps_intro_note*")),
+    "p12.2": _r9(300, 28, 106, 22, "F", ("ps_keymap_p12",)),
+    "p12.3": _r9(14, 52, 195, 103, "F", ("ps_panel_1", "ps_W1")),
+    "p12.4": _r9(211, 52, 195, 103, "F", ("ps_panel_2", "ps_W2")),
+    "p12.5": _r9(14, 157, 195, 103, "F", ("ps_panel_3", "ps_W3")),
+    "p12.6": _r9(211, 157, 195, 103, "F", ("ps_panel_4", "ps_W4")),
+    "p12.7": _r9(14, 262, 392, 17, "T", ("ps_keymap_p12_legend", "ps_legend_strip", "ps_legend")),
+    # ---- p13 option B (D12; series p13: the four cuts one T, one label; A1 3, T12; the column and the animals line
+    # are new items WaterBoard splits off the season drawing, H2 §6)
+    "p13.4": _r9(14, 28, 42, 12, "F", ("p15_keymap",)),
+    "p13.2": _r9(60, 28, 274, 12, "F", ("p15_monthbar",)),
+    "p13.1": _r9(336, 28, 70, 12, "T", ("p15_hubkey",)),
+    "p13.5": _r9(14, 42, 42, 57, "T", ("p15_col_winter",), new=True),
+    "p13.6": _r9(58, 42, 348, 54, "S", ("p15_season_winter",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17W": _r9(58, 96, 348, 3, "T", ("p15_animals_winter",), new=True),
+    "p13.8": _r9(14, 101, 42, 57, "T", ("p15_col_spring",), new=True),
+    "p13.9": _r9(58, 101, 348, 54, "S", ("p15_season_spring",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17S": _r9(58, 155, 348, 3, "T", ("p15_animals_spring",), new=True),
+    "p13.11": _r9(14, 160, 42, 57, "T", ("p15_col_summer",), new=True),
+    "p13.12": _r9(58, 160, 348, 54, "S", ("p15_season_summer",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17U": _r9(58, 214, 348, 3, "T", ("p15_animals_summer",), new=True),
+    "p13.14": _r9(14, 219, 42, 57, "T", ("p15_col_autumn",), new=True),
+    "p13.15": _r9(58, 219, 348, 54, "S", ("p15_season_autumn",), series="p13", r8=487, est=250, rigid=True),
+    "p13.17A": _r9(58, 273, 348, 3, "T", ("p15_animals_autumn",), new=True),
+    # ---- p14 (T8, A4, A5)
+    "p14.1": _r9(14, 28, 165, 5, "T", ("p16_section_head", "p16_head*"),
+                 check=u"which id the heading is: UNVERIFIED (H1 §1.3)"),
+    "p14.5": _r9(329, 28, 77, 135, "T", ("p16_parts", "p16_groups", "p16_bands")),
+    "p14.2": _r9(14, 35, 100, 24, "F", ("p16_keymap",)),
+    "p14.3": _r9(120, 35, 60, 24, "S", ("p16_section_inset",), r8=189, est=500,
+                 check=u"WARNING p14 zoom scale small expected (A1 5)"),
+    "p14.4": _r9(14, 61, 313, 104, "S", ("p16_section",), r8=238, est=200),
+    "p14.6": _r9(14, 167, 392, 101, "C", ("p16_year",)),
+    "p14.7": _r9(14, 270, 392, 9, "T", ("p16_year_plants", "p16_caption*")),
+    # ---- p15 (six maps, each picked on its own)
+    "p15.1": _r9(14, 28, 149, 82, "M", ("mp_sn_zones",), r8=20000, est=20000),
+    "p15.2": _r9(165, 28, 44, 82, "T", ("mp_sn_zones_key",)),
+    "p15.3": _r9(211, 28, 149, 82, "M", ("mp_sn_feeling",), r8=20000, est=20000),
+    "p15.4": _r9(362, 28, 44, 82, "T", ("mp_sn_feeling_key", "mp_sn_feeling_wheel")),
+    "p15.5": _r9(14, 112, 149, 82, "M", ("mp_sn_sound",), r8=20000, est=20000),
+    "p15.6": _r9(165, 112, 44, 82, "T", ("mp_sn_sound_key",)),
+    "p15.7": _r9(211, 112, 149, 82, "M", ("mp_sn_smell",), r8=20000, est=20000),
+    "p15.8": _r9(362, 112, 44, 82, "T", ("mp_sn_smell_key",)),
+    "p15.9": _r9(14, 196, 149, 82, "M", ("mp_sn_encounters",), r8=20000, est=20000),
+    "p15.10": _r9(165, 196, 44, 82, "T", ("mp_sn_encounters_key",)),
+    "p15.11": _r9(211, 196, 149, 82, "M", ("mp_sn_history", "mp_sn_photo_*"), r8=20000, est=20000,
+                  check=u"the History photos row sits on the map's top (PAGE_TABLE)"),
+    "p15.12": _r9(362, 196, 44, 82, "T", ("mp_sn_history_key",)),
+    # ---- p16 (series p16: plans A + B; A1 6, A1 7, T7)
+    "p16.1": _r9(14, 28, 64, 26, "F", ("p18_keymap", "p18_keymap_s4"), split="col", gap=2.0),
+    "p16.3": _r9(80, 28, 98, 111, "S", ("p18_plan_A",), series="p16", r8=3052, est=3000),
+    "p16.5": _r9(180, 28, 226, 111, "S", ("p18_plan_B",), series="p16", r8=3053, est=3000),
+    "p16.2": _r9(14, 56, 64, 76, "T", ("p18_plans_legend", "p16_plans_legend", "p18_keymap_legend",
+                                       "p18_keymap_s4_legend")),
+    "p16.4": _r9(80, 141, 98, 10, "T", ("p18_plan_A_list",)),
+    "p16.6": _r9(180, 141, 226, 9, "T", ("p18_plan_B_list",)),
+    "p16.7": _r9(14, 153, 56, 35, "F", ("p18_bands", "p18_bands_head"), r8=9434),
+    "p16.8": _r9(72, 153, 46, 22, "T", ("p18_band_shares", "p18_band_shares_key")),
+    "p16.9": _r9(120, 153, 46, 22, "T", ("p18_foliage_shares", "p18_foliage_shares_key")),
+    "p16.10": _r9(168, 153, 238, 51, "C", ("p18_heights",)),
+    "p16.11": _r9(14, 206, 392, 67, "F", ("p18_card_*",), split="row", gap=2.0),
+    "p16.12": _r9(14, 275, 392, 4, "T", ("p18_catalogue_sources", "p18_caption*")),
+    # ---- p17 (AgriCulture splits each ladder's text from its cut: new text ids)
+    "p17.1": _r9(14, 28, 392, 22, "F", ("ag3_chain",)),
+    "p17.2": _r9(14, 52, 64, 45, "T", ("ag3_ladder_high_text",), new=True),
+    "p17.3": _r9(80, 52, 326, 45, "F", ("ag3_ladder_high",)),
+    "p17.4": _r9(14, 99, 64, 47, "T", ("ag3_ladder_low_text",), new=True),
+    "p17.5": _r9(80, 99, 326, 47, "F", ("ag3_ladder_low",)),
+    "p17.6": _r9(14, 148, 64, 46, "T", ("ag3_ladder_harvest_text",), new=True),
+    "p17.7": _r9(80, 148, 326, 46, "F", ("ag3_ladder_harvest",)),
+    "p17.8": _r9(14, 196, 60, 83, "T", ("ag3_notes", "ag3_remove*", "ag3_odour*", "ag3_note_steps", "ag3_note_legend",
+                                       "ag3_note_*")),
+    "p17.9": _r9(76, 196, 330, 83, "F", ("ag3_bands",)),
+    # ---- p18 (rows 4-5 = ag1_stream split by AgriCulture)
+    "p18.1": _r9(14, 28, 240, 60, "F", ("wb_farms", "wb_p21_cap_wb_farms"), check=u"flow 1-7 = wb_farms: UNVERIFIED"),
+    "p18.2": _r9(256, 28, 150, 60, "F", ("wb_farms_out",)),
+    "p18.3": _r9(14, 90, 130, 34, "F", ("wb_decision", "wb_p21_cap_wb_decision"),
+                 check=u"four figures = wb_decision: UNVERIFIED"),
+    "p18.4": _r9(146, 90, 70, 26, "T", ("ag1_stream_text", "ag1_stream_head"), new=True),
+    "p18.5": _r9(218, 90, 188, 40, "C", ("ag1_stream",)),
+    "p18.6": _r9(14, 132, 240, 103, "C", ("ag1_bars", "ag1_bars_caption")),
+    "p18.7": _r9(256, 132, 150, 103, "F", ("ag1_context", "ag1_context_head")),
+    "p18.8": _r9(14, 237, 128, 42, "F", ("ag1_reading*",)),
+    "p18.9": _r9(144, 237, 130, 42, "F", ("ag1_history", "ag1_history_head", "ag1_history_note")),
+    "p18.10": _r9(276, 237, 130, 42, "F", ("ag1_crops_*",)),
+    # ---- p19 (all parts need MainBoard to split its one board drawing)
+    "p19.1": _r9(14, 28, 96, 113, "F", ("sb_heritage_loop_diagrams",), new=True),
+    "p19.3": _r9(112, 28, 224, 205, "M", ("sb_heritage_loop",), r8=10000, est=9000, bar="p19.4"),
+    "p19.5": _r9(338, 28, 68, 205, "F", ("sb_heritage_loop_photo_*",), new=True),
+    "p19.2": _r9(14, 143, 96, 92, "F", ("sb_heritage_loop_places",), new=True),
+    "p19.4": _r9(112, 235, 120, 6, "T", ("sb_heritage_loop_ab*",), new=True),
+    "p19.6": _r9(14, 243, 270, 16, "T", ("sb_heritage_loop_legend", "sb_heritage_legend")),
+    "p19.7": _r9(14, 275, 100, 4, "T", ("sb_heritage_loop_caption",)),
+    # ---- p20 (F4 + PLAN Q6: B19 exports a legend only -> legend 392 wide, rows 4-5 not used; R8 drew two halves at
+    # 1:4,991, not comparable with one map (F3), so r8=None)
+    "p20.1": _r9(14, 28, 392, 190, "M", ("b19_p20_map",), est=7000, new=True, bar="p20.2"),
+    "p20.2": _r9(14, 220, 392, 5, "T", ("b19_p20_caption",), new=True),
+    "p20.3": _r9(14, 227, 392, 52, "T", ("b19_p20_legend*",), new=True, cols=3),
+    # ---- p21 (A9: one shared legend 4 pt; series p21s: sections D1 + D2)
+    "p21.1": _r9(14, 28, 195, 124, "M", ("mp_dt_*upstream",), r8=1062, est=1000, bar="p21.4"),
+    "p21.2": _r9(211, 28, 195, 124, "M", ("mp_dt_*k5",), r8=1062, est=1000, bar="p21.5"),
+    "p21.4": _r9(14, 154, 80, 6, "T", ()),
+    "p21.5": _r9(211, 154, 80, 6, "T", ()),
+    "p21.6": _r9(14, 162, 195, 48, "S", ("mp_dt_*upstream_sec",), series="p21s", r8=1012, est=1250),
+    "p21.8": _r9(211, 162, 195, 48, "S", ("mp_dt_*k5_sec",), series="p21s", r8=1012, est=1250),
+    "p21.7": _r9(14, 212, 362, 67, "T", ("mp_dt_*upstream_sec_key", "mp_dt_*upstream_leg*", "mp_dt_*upstream_route",
+                                        "mp_dt_*upstream_why", "mp_dt_*k5_sec_key", "mp_dt_*k5_leg*",
+                                        "mp_dt_*k5_route", "mp_dt_*k5_why", "mp_dt_keymap_legend"),
+                 merge=True, cols=4, pt=4.0),
+    "p21.3": _r9(380, 243, 26, 36, "F", ("mp_dt_keymap",),
+                 check=u"PAGE_TABLE calls it T*: a key map placed F-style (uniform fit)"),
+}
+# pages whose v37 items are no longer placed (logged "skip" by the booklet): ADDENDUM F2.4
+R9_PAGE_SKIP = {"p20": ("mp_plan_*",)}
+
+
+def _r9_order(key):
+    """page, then the table's own order (dict order is insertion order on Python 3.7+)"""
+    return (key.split(".")[0], list(R9_FRAMES).index(key))
+
+
+def r9_frame(key):
+    """the frame of R9_FRAMES[key] as a copy with "key" added; None (and a FLAG line in R9_LOG) when the table has
+    no such key"""
+    f = R9_FRAMES.get(key)
+    if f is None:
+        R9_LOG.append(u"FLAG r9_frame %s: no such frame in R9_FRAMES (table %s)" % (key, R9_TABLE_VERSION))
+        return None
+    return dict(f, key=key)
+
+
+def r9_wh(key):
+    """(w, h) mm of a frame key, or a (w, h) pair passed through; None for an unknown key"""
+    if isinstance(key, (tuple, list)) and len(key) == 2:
+        return float(key[0]), float(key[1])
+    f = r9_frame(key)
+    return (f["w"], f["h"]) if f else None
+
+
+def r9_frame_of(item_id, page=None):
+    """the first frame (page order, then table order) whose ids match item_id (fnmatch, case-sensitive); page
+    ("p13") limits the search to that page; None when no pattern matches"""
+    s = u"%s" % item_id
+    for key in sorted(R9_FRAMES, key=_r9_order):
+        if page and not key.startswith(u"%s." % page):
+            continue
+        for pat in R9_FRAMES[key]["ids"]:
+            if _r9_fn.fnmatchcase(s, pat):
+                return dict(R9_FRAMES[key], key=key)
+    return None
+
+
+def _r9_pick(Tfit, labels):
+    """ADDENDUM §0.3: the smallest label L with Tfit <= L x 1.08 (the largest label when none qualifies)"""
+    cand = sorted(set(int(v) for v in labels))
+    for L in cand:
+        if Tfit <= L * R9_LBL_TOL:
+            return L
+    return cand[-1]
+
+
+def r9_label(Tfit, r8=None):
+    """ADDENDUM §0.2-0.4 for one S drawing or M map: dict(L = printed label 1:L, T = true scale 1:T = max(Tfit, L),
+    list "round" | "second", size = Tfit / T, small = True when even the second list misses 85 % or R8's size).
+    The second list is tried when the round pick draws under 85 % of the fit size or smaller than R8 drew it.
+    Writer's reading of "smaller than R8 drew it" (needed so §0.4's own p4 example holds): T larger than
+    max(r8, Tfit), i.e. smaller than R8 unless the frame itself does not allow R8's size. Examples (§0.4): Tfit 1,252
+    -> L 1,250, T 1,252; Tfit 2,560 with r8 2,479 -> 3,000 is smaller than R8 -> second list -> L 2,500, T 2,560."""
+    Tfit = float(Tfit)
+
+    def bad(T_):
+        return Tfit / T_ < R9_LBL_MIN or (r8 is not None and T_ > max(float(r8), Tfit) * 1.0005)
+    L = _r9_pick(Tfit, R9_LBL_ROUND)
+    T = max(Tfit, float(L))
+    lst, small = "round", False
+    if bad(T):
+        L2 = _r9_pick(Tfit, R9_LBL_ROUND + R9_LBL_SECOND)
+        T2 = max(Tfit, float(L2))
+        small = bad(T2)                                  # the combined pick is also the biggest drawing possible
+        L, T = L2, T2
+        lst = "second" if L2 in R9_LBL_SECOND else "round"
+    return dict(L=int(L), T=T, list=lst, size=Tfit / T, small=small)
+
+
+def r9_series_label(tfits, r8s=()):
+    """ADDENDUM §0.6: one T and one label for a series: Tfit = the largest member Tfit (the one that fits every
+    member), r8 = the largest member R8 true scale (writer's reading); None without members"""
+    tf = [float(v) for v in tfits if v]
+    if not tf:
+        return None
+    r8 = [float(v) for v in r8s if v]
+    return r9_label(max(tf), max(r8) if r8 else None)
+
+
+def r9_tfit(focus_box, key_or_wh):
+    """Tfit (the 1:n denominator) at which focus_box = (x0, y0, x1, y1) in drawing METRES fits the frame (key or
+    (w, h) mm) uniformly; None for an unknown frame"""
+    wh = r9_wh(key_or_wh)
+    if not wh:
+        return None
+    fw = max(1e-6, float(focus_box[2]) - float(focus_box[0]))
+    fh = max(1e-6, float(focus_box[3]) - float(focus_box[1]))
+    return max(fw * 1000.0 / wh[0], fh * 1000.0 / wh[1])
+
+
+def r9_window(focus_box, key_or_wh, grow=None):
+    """PLAN §cause d4: the context extent an M map exports: the focus box (drawing metres, the map's own axes) grown
+    to the frame's aspect at Tfit and then x grow (default R9_WINDOW_GROW 1.3, room for T up to 1.3 x Tfit), centred
+    on the focus. Returns (x0, y0, x1, y1) metres, or the focus box itself (FLAG in R9_LOG) for an unknown frame.
+    The producer exports its context over this window (clamped to its data, logging where the data ends) plus the
+    focus box as the drawing's "focus"; the booklet fits the focus and clips a frame-sized window"""
+    wh = r9_wh(key_or_wh)
+    if not wh:
+        R9_LOG.append(u"FLAG r9_window %s: unknown frame, the focus box is used as the window" % (key_or_wh,))
+        return tuple(float(v) for v in focus_box)
+    g = float(R9_WINDOW_GROW if grow is None else grow)
+    tf = r9_tfit(focus_box, wh)
+    W, H = wh[0] * tf / 1000.0 * g, wh[1] * tf / 1000.0 * g
+    cx = 0.5 * (float(focus_box[0]) + float(focus_box[2]))
+    cy = 0.5 * (float(focus_box[1]) + float(focus_box[3]))
+    return (cx - 0.5 * W, cy - 0.5 * H, cx + 0.5 * W, cy + 0.5 * H)
+
+
+def r9_scale_line(page, block, Tfit, lab):
+    """ADDENDUM §0.9: `scale <page> <block> fit 1:<Tfit> true 1:<T> label 1:<L> list <round|second> size <%>`; a
+    second line `WARNING <page> <block> scale small` when lab["small"]. Returns the lines (a list)."""
+    out = [u"scale %s %s fit 1:%d true 1:%d label 1:%d list %s size %d %%" % (
+        page, block, int(round(float(Tfit))), int(round(lab["T"])), lab["L"], lab["list"],
+        int(round(100.0 * lab["size"])))]
+    if lab.get("small"):
+        out.append(u"WARNING %s %s scale small" % (page, block))
+    return out
 # ---- item_export.py (round 5, S1, 1 Nov 2026; G-R5-12, PLAN §4 schema v1): content scripts EXPORT, the booklet composes
 # Aras 1 Nov 22:00: "produce every text every drawing and everything and in the last run make it place it and align it
 # and booklet it". A content script lays out no page and burns no page text into a drawing: it hands every drawing
@@ -8234,7 +9371,10 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 #
 #   ix = Ix(folder, script, version)                      folder = the script's cached/booklet/ folder name
 #   D = ix.drawing(id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
-#                  priority=1, group=None, fit=None, title=None)
+#                  priority=1, group=None, fit=None, title=None, focus=None, frame=None, series=None)
+#         round 9 (S6): focus (x0, y0, x1, y1) drawing units = the area an M map must show (the booklet fits it; the
+#         extent is the context window around it, frames_r9 r9_window); frame = its R9_FRAMES key ("p07.1"; frame_mm
+#         [w, h] is added when frames_r9 is included); series = the name its series shares (one scale, ADDENDUM §0.6)
 #         extent (x0, y0, x1, y1) in drawing units, y UP, the area that must show; scale_pref = allowed 1:den (default
 #         SF_SCALES); units "m" = true scale; "mm" = a scale-free diagram/chart in design mm, fit = (min_f, max_f)
 #   ix.layer(D, name, shapes, z=None, k=1.0, origin=(0, 0), grp=None)   grp: G6-9 group (see "G6-9 groups" below)
@@ -8251,7 +9391,18 @@ def grid_text_runs(lines, x, y, lead, y_down=True):
 #         a label of a drawing: drawing=id, at=(x, y) in drawing units (the booklet sets it beside that point)
 #   ix.legend(page, drawing, entries, title=None, id=None, group=None)
 #         entries: [(swatch, text)], swatch = dict(kind="fill"|"line"|"dash"|"dot"|"image", colour, stroke,
-#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id
+#         width_pt, dash_pt, file); text = a string (made a legend text item) or a text id. Round 9 (S6): a swatch
+#         may carry cat, rank (hue table r9) and badge (the bubble text); they are copied onto the entry too
+#   round 9 (S1, G9-1; PLAN.md §spec S1, S6): bubbles and tags are booklet-drawn, their text centred by bk_centre:
+#   ix.badge(page, b, drawing=None, at=None, priority=5, group=None, id=None) -> id
+#         b = the S1 badge dict (marker_r9 mk_badge / an _MkText .badge: at, r_mm, fill, ring, ring_mm, text, pt,
+#         bold, colour); at overrides b["at"] (drawing units). A text item role "badge" with those keys. A marker's
+#         shapes passed to ix.layer become one badge item by themselves (the disc poly is kept, tagged badge_disc,
+#         so a booklet that does not draw badges yet still shows it)
+#   ix.tag(page, string, drawing=None, at=None, box_mm=None, fill=None, ring=None, ring_mm=0.0, size_pt=None,
+#          bold=True, colour=None, priority=5, group=None, id=None) -> id     a plate / card head: role "tag"
+#   ix_scale_token(item_id) -> u"{scale:<id>}"    a text, legend or list entry the booklet fills with that drawing's
+#         printed scale label (ADDENDUM §0.7); sf_strip_widths leaves it as it is
 #   ix.list(page, drawing, texts, numbered=True, anchors=None, id=None, group=None)   ordered text rows
 #   ix.levels(page, drawing, levels, side="R", id=None, group=None)
 #         levels = [(name, z_m)] (z on the drawing's y axis, m a.s.l. for sections); the booklet draws the level
@@ -8282,7 +9433,9 @@ IX_GRP_KINDS = ("trees", "buildings", "people", "plants", "water", "ground", "ro
 IX_LAYER_KIND = dict(ground="ground", bed="water", water="water", vegetation="plants", figures="people",
                      labels="labels", base_ground="ground", base_contours="ground", base_water="water",
                      base_names="labels", proj_water="water", proj_vegetation="plants", study="annotations",
-                     proj_marks="annotations", proj_labels="labels", farms="fields", numbers="labels", chart="other")
+                     proj_marks="annotations", proj_labels="labels", farms="fields", numbers="labels", chart="other",
+                     base_fills="buildings", base_outlines="roads", structures="roads", paper="ground", frame="frame",
+                     north="annotations")   # round 9 (A1 C7): the map / key-map layers that went to "other"
 IX_CUR_GRP = []             # the open ix_group contexts (innermost last)
 
 
@@ -8322,7 +9475,13 @@ IX_SCHEMA = "bergama-items/1"
 IX_PT = 25.4 / 72.0
 IX_KINDS = ("drawing", "text", "legend", "list", "level_column", "inset", "keymap", "photo", "chart", "source")
 IX_TEXT_ROLES = ("title", "intro", "heading", "caption", "legend", "list_item", "note", "label", "level_value",
-                 "badge", "source")
+                 "badge", "source", "tag")                 # round 9 (S1): "tag" = plates, tags, card heads
+IX_BADGE_KEYS = ("r_mm", "fill", "ring", "ring_mm", "text", "pt", "bold", "colour")   # round 9 (S1)
+
+
+def ix_scale_token(item_id):
+    """round 9 (S6, ADDENDUM §0.7): the token the booklet replaces with drawing item_id's printed scale label"""
+    return u"{scale:%s}" % item_id
 
 
 def _ix_r(v, nd=3):
@@ -8379,7 +9538,7 @@ class Ix(object):
 
     # -- drawings
     def drawing(self, id, page, extent, scale_pref=None, units="m", dkind="plan", north_deg=None, scale_bar=True,
-                priority=1, group=None, fit=None, title=None):
+                priority=1, group=None, fit=None, title=None, focus=None, frame=None, series=None):
         x0, y0, x1, y1 = [float(v) for v in extent]
         if x1 <= x0 or y1 <= y0:
             self.warn(page, "export", u"drawing %s has an empty extent %r" % (id, extent))
@@ -8391,6 +9550,15 @@ class Ix(object):
                        fit=list(fit) if fit else ([0.5, 2.0] if units == "mm" else None),
                        north_deg=north_deg, scale_bar=bool(scale_bar and units == "m"), layers=[], keep_areas=[],
                        anchors={}, title=title)
+        if focus is not None:                              # round 9 (S6): the area an M map must show
+            D["focus"] = [_ix_r(v) for v in focus]
+        if frame is not None:                              # round 9 (S6): its R9_FRAMES key (+ the frame's mm)
+            D["frame"] = u"%s" % frame
+            wh = r9_wh(frame) if "r9_wh" in globals() else None
+            if wh:
+                D["frame_mm"] = [_ix_r(wh[0]), _ix_r(wh[1])]
+        if series is not None:                             # round 9 (S6): one scale per series (ADDENDUM §0.6)
+            D["series"] = u"%s" % series
         self._z[D["id"]] = 0
         return D
 
@@ -8469,6 +9637,8 @@ class Ix(object):
             sh = self._shape(s, float(k), origin)
             if sh is None:
                 continue
+            if getattr(s, "mk_badge", False):             # round 9 (S1): a marker's disc, also inside its badge
+                sh["badge_disc"] = True
             if sh.pop("_stripes", False):
                 hatch += 1
             g = mark or ctx or grp or (u"%s/%s %d" % (lk, name, len(out) + 1) if lk else None)
@@ -8485,6 +9655,11 @@ class Ix(object):
         return len(out), texts
 
     def _text_shape(self, D, s, k, o):
+        b = getattr(s, "badge", None)
+        if b:                                              # round 9 (S1): a marker's glyph -> ONE badge item
+            self.badge(D["page"], b, drawing=D["id"], at=(o[0] + k * float(b["at"][0]), o[1] + k * float(b["at"][1])),
+                       group=D.get("group"))
+            return
         if isinstance(s[2], (tuple, list)):
             x, y = s[2][0], s[2][1]
             tail = list(s[3:])
@@ -8510,7 +9685,7 @@ class Ix(object):
     # -- texts and the rest
     def text(self, page, string, role="label", drawing=None, at=None, size_pt=None, bold=None, colour=None,
              short_forms=(), side_list_ok=True, justify=None, positions=None, priority=5, group=None, id=None,
-             min_pt=None):
+             min_pt=None, box=None):
         if role not in IX_TEXT_ROLES:
             self.warn(page, "export", u"text role %r unknown (taken as note): %r" % (role, (u"%s" % string)[:80]))
             role = "note"
@@ -8535,7 +9710,37 @@ class Ix(object):
                         short_forms=[u"%s" % t for t in short_forms or ()], side_list_ok=bool(side_list_ok),
                         justify=(role in ("intro", "caption", "note", "list_item", "source")) if justify is None
                         else bool(justify), positions=list(positions) if positions else None)
+        if box:                                            # v45 (masterplan): a label box, e.g. dict(fill, alpha, stroke)
+            it["box"] = dict(box)
         return it["id"]
+
+    def badge(self, page, b, drawing=None, at=None, priority=5, group=None, id=None):
+        """round 9 (S1): one bubble: a text item role "badge" carrying the S1 badge keys; the booklet draws the disc
+        (fill, ring, ring_mm, r_mm) and centres the glyph on `at` with bk_centre"""
+        p = at if at is not None else b.get("at")
+        tid = self.text(page, b["text"], "badge", drawing=drawing, at=p, size_pt=b.get("pt"), bold=b.get("bold", True),
+                        colour=b.get("colour"), positions=["=MC"], priority=priority, group=group, id=id)
+        if tid is None:
+            return None
+        it = [x for x in self.d["pages"][page or "any"] if x["id"] == tid][-1]
+        for k_ in IX_BADGE_KEYS:
+            if k_ in b:
+                it[k_] = _ix_r(b[k_]) if isinstance(b[k_], float) else b[k_]
+        it["at"] = None if p is None else [_ix_r(p[0]), _ix_r(p[1])]
+        return tid
+
+    def tag(self, page, string, drawing=None, at=None, box_mm=None, fill=None, ring=None, ring_mm=0.0, size_pt=None,
+            bold=True, colour=None, priority=5, group=None, id=None):
+        """round 9 (S1): a plate / tag / card head: a text item role "tag" with box_mm [w, h] (None = the booklet
+        sizes it to the text), fill, ring, ring_mm; the booklet draws the box and centres the text with bk_centre"""
+        tid = self.text(page, string, "tag", drawing=drawing, at=at, size_pt=size_pt, bold=bold, colour=colour,
+                        positions=["=MC"], priority=priority, group=group, id=id)
+        if tid is None:
+            return None
+        it = [x for x in self.d["pages"][page or "any"] if x["id"] == tid][-1]
+        it.update(box_mm=None if box_mm is None else [_ix_r(box_mm[0]), _ix_r(box_mm[1])], fill=fill, ring=ring,
+                  ring_mm=_ix_r(ring_mm or 0.0))
+        return tid
 
     def _tid(self, page, t, role, group):
         if isinstance(t, dict) and "id" in t:
@@ -8549,7 +9754,11 @@ class Ix(object):
         for sw, t in entries:
             tid = self._tid(page, t, "legend", group)
             if tid is not None:                            # a text that was only a width is gone (G-R5-4.6)
-                ents.append(dict(swatch=dict(sw), text=tid))
+                e_ = dict(swatch=dict(sw), text=tid)
+                for k_ in ("cat", "rank", "badge"):        # round 9 (S6): hue table category, rank, bubble text
+                    if k_ in sw:
+                        e_[k_] = sw[k_]
+                ents.append(e_)
         return self._item(page, "legend", id, "legend", 3, group, drawing=drawing, entries=ents,
                           title=None if title is None else self._tid(page, title, "heading", group))["id"]
 
@@ -31279,9 +32488,10 @@ Rhino = _B19_RHINO                                   # b19_pre.py: given back af
 # everything outside the project zone veiled whitish, the zone in a thin dark red line.
 # v8.2: Rhino draws the sheet on layer B19_PLAN and writes output/bergama_b19_plan/<name>_rhino.pdf; rhino_bake
 # False (default) = the drawing deleted from the .3dm after the export, True = kept there; the script's own PDF
-# only if Rhino's fails. It writes nothing another script reads (no masterplan_results.json, no booklet items).
-VERSION = "bergama_b19_plan v12.1 (2026-11-11)"  # v12.1 (11 Nov, Aras): typed inputs for the board builder v4 (GH_INPUTS: rhino_bake, scale, zone_base File Path); opacity, zoom_m, ring_m, option were never read by the B19 sheet and are no longer inputs; v12 (Aras 7 Nov 12:06-13:31 TR, render 3 picked, previews/v12_options/V12_PLAN.md): ground tones by height above the stream (survey contours + spot heights); Kizil Avlu hall (OSM) drawn dark red and explained; walks, paths and roads run on along the street they meet outside, lighter in three steps over 120 m; shared streets become green corridors with tree rows (stubs and ones beside the walk out); one green link per place, nearest first, never crossing; bridge ends: zebra crossings, a bridge that joins no car road is a pedestrian bridge, roads cut back off heritage (Harap Camii); footbridges within 40 m of a road bridge out; land fingers in the stream under 40 m filled; side arms must meet the stream at both ends; new places only at the walk (45 m); one callout per place family; heritage paths to Ulucami and Kizil Avlu; Ulucami seat steps; no ghost outlines; "Road Brıdge" spelling fixed; v11 (Aras 7 Nov 10:37-10:52 TR, previews/v10/V11_PLAN.md): no empty outlines (an edge only with its fill; self-crossing shapes split into regions and filled; failures counted by kind in the log); no dead-end paths (joined to the nearest path within 40/60 m or removed), walks and paths at the zone edge run on to the nearest context street; walk gaps closed along the water edge; the road stays a road straight across a road bridge; zebra crossings where a walk crosses a car road; walks pass under road bridges (bridge drawn over them); footbridges only where they land on both walks; stray bridge/road/hidden-stream pieces in the water left out; similar places clustered (active, lawn, garden); every place drawn at its true size with its ground, a piece of his urbanasset.svg (12 more pieces cut) and people doing what it is for (1.7 m), cyclists and runners on the bike lanes and walks; places moved off path bands; contours only outside the zone, no hedge stubs; route textures (walk joints, green paths, red-brown bike lane, gravel bed walk) in the legend; v10.3 (Aras 7 Nov 10:03 TR: red lines and dots outside the zone): Rhino cannot hide the current layer, so his current survey layer printed into the PDF; the B19 root is made current while Rhino writes the PDF, his layer restored after, and any layer that stays visible is named in the log; v10.2 (Aras 7 Nov 09:21-09:27 TR, his Rhino PDF): Rhino draws the same flat pieces as the test (no blocks: trees and assets drawn as filled shapes, not dots/outlines); Rhino text at the sheet height (cap height), Arial, bottom-anchored, no mask; no number without its callout box; the walk cut where it runs on a car road and joins never cross one; one light red gradient over the old settlement round Kizil Avlu (radius assumed); v10.1 (Aras 7 Nov 07:51-07:56 TR): his urbanasset.svg cut into 25 pieces and placed on the places (picnic lawns, half-round steps, courts, deck, round plaza, play lawn, stone terrace, mown paths, people), turned to the walk and scaled evenly; places a road or path runs through left out + named; streets and links kept off the wetland; wetland as green reed clumps; walk pieces of one bank joined (west start); light red gradient round historic house clusters outside the zone; v10 (Aras 15:47 TR, previews/V10_CHANGES.md): text 14-36 pt; wetland drawn as light water + reed tufts and named; no land fingers/islands in the stream (bank spikes evened, self-crossing edges cut); road bridge = carriageway + pavements (no white deck); footbridges land straight on both walks (any angle, no extra end paths); wider edge fade; places drawn in the urbanasset.svg look (picnic tables + blankets, half-round seating steps, lined courts, café deck, round classroom, play forms, people); water terraces (seating steps into the water); shade rows on each place's south-west side, no contour grove within 12 m of a place; a "why here" line in each place name; steep banks over 20 % and stepped / raised dry tops explained in callouts; street ends at the water joined to a walk; callout lines never cross another line or box (Aras 16:13 TR); v9.1 (Aras 15:47 TR, Illustrator: white blocks over the drawing, callout boxes empty): Rhino stacked every text under the fills (now each text stacked in sheet order) and draws see-through pieces last, on top (now nothing see-through: the edge fade lightens the pieces under it, other see-through colours pre-mixed on what lies under them, as in 8-0); no white page background in Rhino; v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
-SHORT = "v12.1"                                      # v12.1: the text under the component showed v7
+# only if Rhino's fails. v13: it writes the p20 booklet items (cached/booklet/bergama_b19_plan/items.json), nothing
+# else another script reads (no masterplan_results.json).
+VERSION = "bergama_b19_plan v13 (2026-11-11)"  # v13 (round 9 Part B19, 11 Nov): p20 is this map: the sheet's map exported as booklet items (cached/booklet/bergama_b19_plan/items.json: map, caption, legend; callout boxes as tags; every text at booklet size, 4 pt floor), the town around the site frame as context under the veil, his SVG roads (new road, walking path south of the Selinos, Kızıl Avlu inner circulation) in his colours and dashes, names from the round 9 names table (kept heritage names table first), round 9 modules pasted, done fires after every run (ERROR included); v12.1 (11 Nov, Aras): typed inputs for the board builder v4 (GH_INPUTS: rhino_bake, scale, zone_base File Path); opacity, zoom_m, ring_m, option were never read by the B19 sheet and are no longer inputs; v12 (Aras 7 Nov 12:06-13:31 TR, render 3 picked, previews/v12_options/V12_PLAN.md): ground tones by height above the stream (survey contours + spot heights); Kizil Avlu hall (OSM) drawn dark red and explained; walks, paths and roads run on along the street they meet outside, lighter in three steps over 120 m; shared streets become green corridors with tree rows (stubs and ones beside the walk out); one green link per place, nearest first, never crossing; bridge ends: zebra crossings, a bridge that joins no car road is a pedestrian bridge, roads cut back off heritage (Harap Camii); footbridges within 40 m of a road bridge out; land fingers in the stream under 40 m filled; side arms must meet the stream at both ends; new places only at the walk (45 m); one callout per place family; heritage paths to Ulucami and Kizil Avlu; Ulucami seat steps; no ghost outlines; "Road Brıdge" spelling fixed; v11 (Aras 7 Nov 10:37-10:52 TR, previews/v10/V11_PLAN.md): no empty outlines (an edge only with its fill; self-crossing shapes split into regions and filled; failures counted by kind in the log); no dead-end paths (joined to the nearest path within 40/60 m or removed), walks and paths at the zone edge run on to the nearest context street; walk gaps closed along the water edge; the road stays a road straight across a road bridge; zebra crossings where a walk crosses a car road; walks pass under road bridges (bridge drawn over them); footbridges only where they land on both walks; stray bridge/road/hidden-stream pieces in the water left out; similar places clustered (active, lawn, garden); every place drawn at its true size with its ground, a piece of his urbanasset.svg (12 more pieces cut) and people doing what it is for (1.7 m), cyclists and runners on the bike lanes and walks; places moved off path bands; contours only outside the zone, no hedge stubs; route textures (walk joints, green paths, red-brown bike lane, gravel bed walk) in the legend; v10.3 (Aras 7 Nov 10:03 TR: red lines and dots outside the zone): Rhino cannot hide the current layer, so his current survey layer printed into the PDF; the B19 root is made current while Rhino writes the PDF, his layer restored after, and any layer that stays visible is named in the log; v10.2 (Aras 7 Nov 09:21-09:27 TR, his Rhino PDF): Rhino draws the same flat pieces as the test (no blocks: trees and assets drawn as filled shapes, not dots/outlines); Rhino text at the sheet height (cap height), Arial, bottom-anchored, no mask; no number without its callout box; the walk cut where it runs on a car road and joins never cross one; one light red gradient over the old settlement round Kizil Avlu (radius assumed); v10.1 (Aras 7 Nov 07:51-07:56 TR): his urbanasset.svg cut into 25 pieces and placed on the places (picnic lawns, half-round steps, courts, deck, round plaza, play lawn, stone terrace, mown paths, people), turned to the walk and scaled evenly; places a road or path runs through left out + named; streets and links kept off the wetland; wetland as green reed clumps; walk pieces of one bank joined (west start); light red gradient round historic house clusters outside the zone; v10 (Aras 15:47 TR, previews/V10_CHANGES.md): text 14-36 pt; wetland drawn as light water + reed tufts and named; no land fingers/islands in the stream (bank spikes evened, self-crossing edges cut); road bridge = carriageway + pavements (no white deck); footbridges land straight on both walks (any angle, no extra end paths); wider edge fade; places drawn in the urbanasset.svg look (picnic tables + blankets, half-round seating steps, lined courts, café deck, round classroom, play forms, people); water terraces (seating steps into the water); shade rows on each place's south-west side, no contour grove within 12 m of a place; a "why here" line in each place name; steep banks over 20 % and stepped / raised dry tops explained in callouts; street ends at the water joined to a walk; callout lines never cross another line or box (Aras 16:13 TR); v9.1 (Aras 15:47 TR, Illustrator: white blocks over the drawing, callout boxes empty): Rhino stacked every text under the fills (now each text stacked in sheet order) and draws see-through pieces last, on top (now nothing see-through: the edge fade lightens the pieces under it, other see-through colours pre-mixed on what lies under them, as in 8-0); no white page background in Rhino; v9 (Aras 14:16-14:21 TR: Rhino PDF is the result; overlapped paths, small text, weak visuals, empty undesigned ground): Rhino draws every fill (Solid hatch pattern added when the file lacks it), see-through colours kept (ARGB, not flattened), white fills drawn, trees drawn as tone bands when a block fails; paths beside an earlier path merged into it (6 m), entrance paths max 70 m; text 10-28 pt; every free open area of 2,000 m2+ gets a programme of its reach; stronger route, shadows; v8.6 (Aras run 14:05 TR: trees still all lost): the first reason a tree fails is written in the log; the one-call delete gets a .NET id list; v8.5 (Aras run 13:55 TR: all 1416 trees lost, delete 65 s): tree blocks named per run + purged after use (a deleted block's name was still taken), the drawing deleted in one call; v8.4 (Aras run 13:39 TR: water, ground, veil missing in Rhino's PDF): fills Rhino refused (overlapping/nested rings, repeated points) retried as outer ring + holes, then ring by ring, losses FLAGged in the log; v8.3 (Aras run 13:03 TR): the Rhino drawing failed (rhinoscriptsyntax pointed at the Grasshopper document): scriptcontext.doc set to the Rhino file while Rhino draws, then restored; v8.2 (Aras 12:04-12:08 TR: Rhino's engine draws the PDF; speed): Rhino always draws the sheet and writes the PDF, the script's own PDF only if Rhino's fails; rhino_bake False = the drawing deleted from the .3dm after the export, True = kept; clip tests on a band grid + cached clip curves + bbox reject; the drawing deleted by its own id list in one pass; the old second bake (MP11) gone; an unchanged sheet reuses Rhino's last PDF; v8.1 (Aras 12:01-12:04 TR, run over 30 min): rhino_bake False (default) skips the Rhino copy entirely, only the script's PDF is written; each step's time in the log; v8 (Aras 6 Nov 09:13-10:43 TR): 1:1,000 on one sheet = site_alan turned flat; v6 context back (streets on survey edges, else OSM width); green around the zone and existing tree cover from the Maxar 1 Mar 2023 image; Aras's painted tree + shrub set traced (131 symbols, each stored once in the PDF and as one Rhino block); his bush hatch as 5 seamless tiles filling organic bush areas and hedges; ground greens by slope (survey contours); places as numbered boxed callouts with icons, one colour per category, tied by one route with direction arrows; parent + sub groups in the PDF (Illustrator) and Rhino (layers + groups); PDF lean pass (14.4 -> 5.5 MB); data in Data/bergama_b19_plan_data.py; survey linework cleaned (duplicates, overlaps merged, corners joined at the intersection, gaps closed, undershoots extended, overshoots trimmed, strays dropped, crooked vertices straightened), one pen set for every stroke, the Rhino drawing deleted from the .3dm after Rhino writes its PDF; v7 (Aras 00:46-05:38, V7_PLAN R1-R12): every place for a reason: reaches with a theme, programme lined up along the walk, green corridor, trees by rule (rows, contour groves, square edges), open edge with screens only where needed, pure-Python fade, one road bridge deck, no ellipses or entrance circles, readable names + numbered key, new features (steps to the water, amphitheatre, boardwalk loop, skate, orchard, dog run); v6 (Aras 00:03-00:25, V6_PLAN F1-F12): every non-heritage building in the zone taken out and its ground designed; only Kozak road + Adnan Menderes kept as car roads (carriageway, pavements, direction arrows), shared streets inside; stream from the bank stations smoothed, off car roads; one continuous walk + loop-free bike lane per bank; footbridges to dry land; drawn programme pads (café, classroom, seats, decks, courts, fitness, play, lawns, allotments, meadow, bird hides), heritage trail; rain terraces, 2 m ground steps; planting by function; hedge + entrances at the edge; v5.1 (Aras 23:41-23:42): heritage never taken out; the freed Ulucami ground designed as the hub square with plane shade; v5 (Aras 23:26): planting from the asset library species (emergent edge, terraces, dry tops), names off roads and water with leaders, walks merged in two passes + loose ends joined, river rounded with a drainage wall, Ulucami buildings in the zone taken out, edge-crossing buildings outside, 10-step greenery gradient, shaded contours; v4 (Aras 22:55): the project's own walks, bike lane, roads by change, bridges with joined ends, terraces, basins, arms, garden, programme marks; OSM tracks and invented promenades/connectors gone; bike strips only beside the walk; every building whole in or out; trees off buildings and each other; v3 (Aras 22:19 "get better"): rebuilt from survey + OSM + stations: streets at survey widths with bike strips, promenades on both banks with varying width, curved connectors, footbridges with landings, ground by distance from water (wood, lawn, meadow), one continuous stream, trees by function off paving and water, names inside the zone; v2 rejected 22:18, v1 rejected 21:26
+SHORT = "v13"                                        # v12.1: the text under the component showed v7
 GH_LABEL = "B19Plan"
 SETTINGS = ("rhino_bake", "scale")
 # v12.1 (Aras 11 Nov 2026 17:30-17:40 UTC "inputs in these are wrong type"): every input with its type, read by
@@ -31339,11 +32549,6 @@ def pl23_h(key):
     """B19: the masterplan legend key's colour from B19_COL (else the masterplan's own hue)"""
     c_ = B19_HUE.get(key)
     return B19_COL[c_] if c_ else _b19_h0(key)
-
-
-def ml_study_items(rings=None, D=None):
-    """B19: the shared violet study line is not drawn; b19_page draws the zone in B19's thin dark red line"""
-    return []
 
 
 def icon(pg, kind, x, y, s):
@@ -33040,6 +34245,8 @@ def b19_page(C, site, study, scale, warn):
     """v6 sheet (Aras 6 Nov 00:18-00:25, previews/V6_PLAN.md F1-F12): the project's own elements, each drawn as
     what it is, in B19 language. Returns (Page, log notes)."""
     t0 = time.time()
+    globals()["_B12_CALLS"] = []                          # v13: this run's callouts only (p20 tags)
+    del B13_TAGGED[:]                                     # v13: this run's untitled kept heritage buildings
     if B12_STYLE == "park":                               # PROTO render 1: linear-park look (layered greens, teal
         B3_COL.update(water="3E9AA0", water_lt="7FC4C1", ripple="5AAEB0", paving="FBFAF6", paving_edge="B9BDB3",
                       joint="E6E6DF", bld_ctx="CDCFCC", bld_ctx_edge="BFC1BD", ctx_road="FFFFFF", meadow="DCE6C4",
@@ -34910,6 +36117,8 @@ def b19_page(C, site, study, scale, warn):
               u"names left out (no room): " + (u"; ".join(left) or u"none"), u"{:.1f} s".format(time.time() - t0)]
     b8_pens(pg)                                           # v8: one pen set, consistent weights
     globals()["_B7_SHEET"] = dict(pg=pg, X0=x0 - B19_M / k, Y0=y0 - oy / k, k=k, W=W, H=H)
+    globals()["_B13_LEFT"] = list(left)                   # v13: names with no room -> FLAG names p20 ... no room
+    globals()["_B13_THEMES"] = sorted(set(th for a_c, b_c, th in reaches))   # v13: reach themes -> p20 legend list
     return pg, notes + flags
 
 
@@ -35899,13 +37108,28 @@ def b6_pbox(Q):
 
 
 def b6_heritage_name(p):
-    """the place name of a kept heritage building (PLACES, within 60 m), else its tag"""
+    """the place name of a kept heritage building: v13 (round 9 names rule) the names table first (the nearest
+    landmark row with an "at" within 60 m, civic rows left out), then PLACES within 60 m, else its tag (the point is
+    kept in B13_TAGGED and named in the log as FLAG names p20)"""
     best = None
+    for key_, row_ in NAMES.get("landmarks", {}).items():
+        q = row_.get("at")
+        if not q or row_.get("cat") == "civic":
+            continue
+        d = math.hypot(q[0] - p[0], q[1] - p[1])
+        if d < 60.0 and (best is None or d < best[0]):
+            best = (d, key_)
+    if best:
+        return landmark_name(best[1])
     for nm, q in PLACES:
         d = math.hypot(q[0] - p[0], q[1] - p[1])
         if d < 60.0 and (best is None or d < best[0]):
             best = (d, nm)
-    return b3_title(best[1]) if best else u"heritage, kept"
+    if best:
+        return b3_title(best[1])
+    if (p[0], p[1]) not in B13_TAGGED:
+        B13_TAGGED.append((p[0], p[1]))
+    return u"heritage, kept"
 
 
 def b6_dg(sub, C, T, add_hard):
@@ -37705,6 +38929,603 @@ def b82_live(step=None):
         pass
 
 
+# ---- v13 (round 9 Part B19, 11 Nov 2026; ADDENDUM §F, PLAN §Q4 §Q6 §Q9, causes a1 a6 d4 e2 g1): p20 = this map ---
+# B19Plan is a chain step between CityLink and the Booklet (board_order.txt). After the sheet is drawn (b19_page,
+# unchanged) its map part goes to the booklet as items (produce-then-compose, G-R5-12) in
+# Downloads/Bergama/cached/booklet/bergama_b19_plan/items.json; the booklet places them, never B19's PDF:
+#   b19_p20_map      the map (R9_FRAMES p20.1, M): the sheet's drawing in metres on the sheet's own (turned) axes,
+#                    focus = the site_alan frame (the sheet), extent = frames_r9 r9_window round it; context round the
+#                    sheet (shared basemap, mode "context") under B19's own white veil; his SVG roads (`yollar`) on
+#                    top; callouts as tags (+ a dot and a leader); every text an item at booklet pt (4 pt floor)
+#   b19_p20_caption  title + {scale:b19_p20_map} (p20.2)
+#   b19_p20_legend, b19_p20_legend_reaches   one legend by G9-6 categories + the reach themes (p20.3, Q6)
+# Any error here is an ERROR line in the log; the run goes on and done still fires (a6).
+B13_PAGE = "p20"
+B13_FRAME = "p20.1"                  # R9_FRAMES: the map frame 392 x 190 mm
+B13_MAP, B13_CAP, B13_LEG = "b19_p20_map", "b19_p20_caption", "b19_p20_legend"   # R9_FRAMES p20.1 / p20.2 / p20.3 ids
+B13_PT_K = 5.0 / 12.0                # design value: B19's 1:1,000 text pt x this = booklet pt (12 pt names -> 5 pt)
+B13_PT_MAX = 8.0                     # design value: largest booklet pt (36 pt reach names -> 8 pt)
+B13_PT_MIN = 4.0                     # ADDENDUM F5: the 4 pt floor
+B13_TAG_PT = (5.0, 4.0)              # design value: callout tag title / its second line, pt
+B13_DOT_MM = 0.9                     # design value: callout dot radius on paper, mm
+B13_LEAD_MM = 0.25                   # design value: callout leader and dot ring, mm
+B13_CTX_VEIL = B2_CONTEXT_VEIL       # B19's white veil over everything outside the zone, laid over the context too
+B13_SVG = "masterlastversion.svg"    # Data/assets/: Aras's p20 SVG (B19_setB_layers3.2.svg, 11 Nov 2026 19:03 UTC)
+B13_SVG_FRAME = (277.504, 4861.869, 7514.18, 1397.44)   # PLAN Q4: that file's plan frame (Selinos clip rect); used
+#                                                          only when the file's own clip rect is not found (FLAG)
+B13_SVG_UPM = 2.64121                # SVG units per m (ZoneBase's check value; the run measures it from the frame)
+B13_SVG_ROADS = ((("yeni_yol",), u"New road", "roads", "STR", 2),     # groups no zone carries (PLAN Q4): ids tried
+                 (("onemli_yol", "RED_DOTTED_south_of_the_Selinos"), u"Walking path south of the Selinos", "paths",
+                  "PUB", 3),
+                 (("kizil_avlu",), u"Kızıl Avlu inner circulation", "paths", "HER", 3))
+B13_CALL_CAT = dict(heritage=("HER", 3), water=("WAT", 1), garden=("GRN", 2), meet=("PUB", 2), learn=("PUB", 3),
+                    sport=("PUB", 3), route=("PUB", 1))   # writer reading: B8_CAT -> G9-6 category (legend order only)
+B13_LEG_CAT = ((u"Selinos", "WAT", 1), (u"Wetland", "WW", 4), (u"Reed basins", "WW", 2), (u"Stepped dry tops", "WW", 3),
+               (u"Green corridor", "GRN", 4), (u"Trees", "GRN", 1), (u"Hedge", "GRN", 2), (u"Pollinator", "GRN", 3),
+               (u"Allotments", "AGR", 2), (u"Heritage", "HER", 3), (u"Old settlement", "HER", 4),
+               (u"Car road", "STR", 1), (u"Ground", "RDG", 1))   # writer reading: B6_LEGEND / height rows; else PUB 3
+B13_TAGGED = []                      # kept heritage buildings no table row or PLACES entry names (b6_heritage_name)
+_B13_G = re.compile(r"<g\b|</g>")
+_B13_TAG = re.compile(r"<(/?)([A-Za-z]+)\b([^>]*?)(/?)>")
+_B13_ATT = re.compile(r'([\w:-]+)\s*=\s*"([^"]*)"')
+_B13_NUM = re.compile(r"[MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+
+
+def b13_names(s):
+    """exported B19 strings: the names table's spelling of Kızıl Avlu (Q9; B19's drawing texts write "Kizil")"""
+    try:
+        return (u"%s" % s).replace(u"Kizil Avlu", landmark_name("kizil_avlu"))
+    except Exception:
+        return s
+
+
+def _b13_col(v):
+    """an SVG colour -> (hex or None, alpha): #rgb, #rrggbb, rgb(), rgba() (Illustrator, read as SharedSync v2.2
+    does: colour + its alpha as opacity); none / url() -> (None, 1)"""
+    v = (v or u"").strip().lower()
+    if not v or v in ("none", "transparent") or v.startswith("url("):
+        return None, 1.0
+    if v.startswith("#"):
+        h = v[1:]
+        if len(h) == 3:
+            h = u"".join(c * 2 for c in h)
+        return (h[:6].upper(), 1.0) if len(h) >= 6 else (None, 1.0)
+    m = re.match(r"rgba?\(([^)]*)\)", v)
+    if m:
+        p = [x.strip() for x in m.group(1).replace("/", ",").split(",") if x.strip()]
+        try:
+            ch = [int(round(float(x[:-1]) * 2.55)) if x.endswith("%") else int(round(float(x))) for x in p[:3]]
+            a = (float(p[3][:-1]) / 100.0 if p[3].endswith("%") else float(p[3])) if len(p) > 3 else 1.0
+            return u"%02X%02X%02X" % tuple(max(0, min(255, c)) for c in ch), max(0.0, min(1.0, a))
+        except Exception:
+            return None, 1.0
+    return {"white": "FFFFFF", "black": "000000"}.get(v), 1.0
+
+
+def _b13_path(d, n=8):
+    """SVG path data -> ([(closed, [(x, y)])], arcs): M L H V C S Q T Z, absolute and relative; curves in n steps;
+    an arc (A) becomes a straight line to its end point (counted)"""
+    tk = _B13_NUM.findall(d or u"")
+    out, P = [], []
+    x = y = x0 = y0 = 0.0
+    qx = qy = None
+    cmd, last, i, arcs = None, None, 0, 0
+    K = dict(M=2, L=2, H=1, V=1, C=6, S=4, Q=4, T=2, A=7)
+    while i < len(tk):
+        t = tk[i]
+        if t.isalpha():
+            cmd = t
+            i += 1
+            if cmd in "Zz":
+                if len(P) >= 2:
+                    out.append((True, P))
+                P = [(x0, y0)]
+                x, y, last = x0, y0, "Z"
+            continue
+        if cmd is None or cmd in "Zz":
+            i += 1
+            continue
+        c, rel = cmd.upper(), cmd.islower()
+        k = K[c]
+        if i + k > len(tk) or any(tk[j].isalpha() for j in range(i, i + k)):
+            i += 1
+            continue
+        v = [float(tk[j]) for j in range(i, i + k)]
+        i += k
+        ox, oy = (x, y) if rel else (0.0, 0.0)
+        if c == "M":
+            if len(P) >= 2:
+                out.append((False, P))
+            x, y = ox + v[0], oy + v[1]
+            x0, y0 = x, y
+            P = [(x, y)]
+            cmd = "l" if rel else "L"                     # pairs after M are line-tos
+        elif c == "L":
+            x, y = ox + v[0], oy + v[1]
+            P.append((x, y))
+        elif c == "H":
+            x = ox + v[0]
+            P.append((x, y))
+        elif c == "V":
+            y = oy + v[0]
+            P.append((x, y))
+        elif c in "CS":
+            if c == "C":
+                x1, y1 = ox + v[0], oy + v[1]
+                x2, y2, ex, ey = ox + v[2], oy + v[3], ox + v[4], oy + v[5]
+            else:
+                x1, y1 = (2 * x - qx, 2 * y - qy) if last in ("C", "S") and qx is not None else (x, y)
+                x2, y2, ex, ey = ox + v[0], oy + v[1], ox + v[2], oy + v[3]
+            for j in range(1, n + 1):
+                s_ = j / float(n)
+                a_, b_, c_, d_ = (1 - s_) ** 3, 3 * (1 - s_) ** 2 * s_, 3 * (1 - s_) * s_ ** 2, s_ ** 3
+                P.append((a_ * x + b_ * x1 + c_ * x2 + d_ * ex, a_ * y + b_ * y1 + c_ * y2 + d_ * ey))
+            qx, qy, x, y = x2, y2, ex, ey
+        elif c in "QT":
+            if c == "Q":
+                x1, y1, ex, ey = ox + v[0], oy + v[1], ox + v[2], oy + v[3]
+            else:
+                x1, y1 = (2 * x - qx, 2 * y - qy) if last in ("Q", "T") and qx is not None else (x, y)
+                ex, ey = ox + v[0], oy + v[1]
+            for j in range(1, n + 1):
+                s_ = j / float(n)
+                P.append(((1 - s_) ** 2 * x + 2 * (1 - s_) * s_ * x1 + s_ ** 2 * ex,
+                          (1 - s_) ** 2 * y + 2 * (1 - s_) * s_ * y1 + s_ ** 2 * ey))
+            qx, qy, x, y = x1, y1, ex, ey
+        elif c == "A":
+            x, y = ox + v[5], oy + v[6]
+            P.append((x, y))
+            arcs += 1
+        last = c
+    if len(P) >= 2:
+        out.append((False, P))
+    return out, arcs
+
+
+def _b13_block(s, gid):
+    """the text of <g id="gid" ...> up to its own </g> in SVG text s, else None"""
+    i = s.find(u'<g id="%s"' % gid)
+    if i < 0:
+        return None
+    depth = 0
+    for m in _B13_G.finditer(s, i):
+        depth += -1 if m.group(0) == "</g>" else 1
+        if depth == 0:
+            return s[i:m.end()]
+    return s[i:]
+
+
+def _b13_f(v, d=0.0):
+    """the leading number of an SVG attribute value ("1.6", "1.6px", ".46"), else d"""
+    m = re.match(r"\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)", u"%s" % (v if v is not None else u""))
+    return float(m.group(1)) if m else d
+
+
+def _b13_atts(a):
+    d = dict((k.lower(), v) for k, v in _B13_ATT.findall(a or u""))
+    for kv in (d.pop("style", u"") or u"").split(";"):
+        k, _, v = kv.partition(":")
+        if k.strip() and v.strip():
+            d[k.strip().lower()] = v.strip()
+    return d
+
+
+def b13_svg_shapes(blk):
+    """every line / polyline / polygon / path / rect / circle / ellipse of one SVG group, in SVG units:
+    [dict(parts [(closed, P)], fill, fill_a, stroke, stroke_a, sw, dash)] with the groups' fill / stroke / opacity
+    inherited (opacity multiplied), rgba() read as colour + opacity; plus counts of what was skipped"""
+    out, skip = [], dict(transform=0, arcs=0, gradient=0)
+    stack = [dict(fill="#000000", stroke="none", op=1.0)]
+    keys = ("fill", "stroke", "stroke-width", "stroke-dasharray", "fill-opacity", "stroke-opacity")
+    for m in _B13_TAG.finditer(blk):
+        close, tag, att, selfc = m.group(1), m.group(2).lower(), m.group(3), m.group(4)
+        if tag == "g":
+            if close:
+                if len(stack) > 1:
+                    stack.pop()
+                continue
+            a = _b13_atts(att)
+            st = dict(stack[-1])
+            st.update((k, a[k]) for k in keys if k in a)
+            st["op"] = stack[-1]["op"] * _b13_f(a.get("opacity"), 1.0)
+            st["tf"] = stack[-1].get("tf") or ("transform" in a)
+            if not selfc:
+                stack.append(st)
+            continue
+        if close or tag not in ("line", "polyline", "polygon", "path", "rect", "circle", "ellipse"):
+            continue
+        a = _b13_atts(att)
+        st = dict(stack[-1])
+        st.update((k, a[k]) for k in keys if k in a)
+        if st.get("tf") or "transform" in a:
+            skip["transform"] += 1                         # never drawn misplaced: counted, FLAGged
+            continue
+        f = lambda k, d=0.0: _b13_f(a.get(k), d)
+        if tag == "line":
+            parts = [(False, [(f("x1"), f("y1")), (f("x2"), f("y2"))])]
+        elif tag in ("polyline", "polygon"):
+            v = [float(t) for t in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", a.get("points", u""))]
+            parts = [(tag == "polygon", list(zip(v[0::2], v[1::2])))]
+        elif tag == "path":
+            parts, na = _b13_path(a.get("d"))
+            skip["arcs"] += na
+        elif tag == "rect":
+            x_, y_, w_, h_ = f("x"), f("y"), f("width"), f("height")
+            parts = [(True, [(x_, y_), (x_ + w_, y_), (x_ + w_, y_ + h_), (x_, y_ + h_)])]
+        else:
+            rx_ = f("r") if tag == "circle" else f("rx")
+            ry_ = f("r") if tag == "circle" else f("ry")
+            parts = [(True, [(f("cx") + rx_ * math.cos(j * math.pi / 12.0), f("cy") + ry_ * math.sin(j * math.pi / 12.0))
+                             for j in range(24)])]
+        op = st["op"] * _b13_f(a.get("opacity"), 1.0)
+        fc, fa = _b13_col(st.get("fill"))
+        sc, sa = _b13_col(st.get("stroke"))
+        if (u"%s" % st.get("fill", u"")).strip().lower().startswith("url("):
+            skip["gradient"] += 1
+        dash = [float(t) for t in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)", st.get("stroke-dasharray") or u"")]
+        out.append(dict(parts=[(cl, P) for cl, P in parts if len(P) >= 2], fill=fc,
+                        fill_a=fa * _b13_f(st.get("fill-opacity"), 1.0) * op, stroke=sc,
+                        stroke_a=sa * _b13_f(st.get("stroke-opacity"), 1.0) * op,
+                        sw=_b13_f(st.get("stroke-width"), 1.0), dash=[v for v in dash if v >= 0] or None))
+    return out, skip
+
+
+def b13_svg_frame(s):
+    """(x, y, w, h) of the plan frame = the clip rect of the Selinos group (ZoneBase's frame), else None"""
+    blk = _b13_block(s, "Selinos")
+    if not blk:
+        return None
+    for cid in re.findall(r'clip-path="url\(#([^)]+)\)"', blk):
+        i = s.find(u'<clipPath id="%s"' % cid)
+        j = s.find(u"</clipPath>", i) if i >= 0 else -1
+        m = re.search(r"<rect\b([^>]*)>", s[i:j]) if i >= 0 and j > i else None
+        if m:
+            a = _b13_atts(m.group(1))
+            fr = tuple(_b13_f(a.get(k), 0.0) for k in ("x", "y", "width", "height"))
+            if fr[2] > 0 and fr[3] > 0:
+                return fr
+    return None
+
+
+def b13_svg_roads(D, Wm, Hm, T, lines):
+    """PLAN Q4: Aras's `yollar` groups no zone carries, as p20 layers on top of the map, in his colours and dashes:
+    SVG units -> the map's metres by the plan frame = site_alan turned flat (as ZoneBase places the SVG); widths and
+    dashes = his units / units per m, printed at the map's true scale T. Fills keep colour + opacity; strokes keep
+    their colour, their opacity as the line's `opacity` field (booklet v38). Returns legend rows."""
+    path = os.path.join(DATA_DIR, "assets", B13_SVG)
+    if not os.path.isfile(path):
+        lines.append(u"FLAG b19 p20 svg roads: %s not found (Downloads/Bergama/Data/assets/): no roads from it" % B13_SVG)
+        return []
+    with open(path, encoding="utf-8", errors="replace") as f_:
+        s = f_.read()
+    fr = b13_svg_frame(s)
+    if fr is None:
+        fr = B13_SVG_FRAME
+        lines.append(u"FLAG b19 p20 svg roads: no clip rect on the Selinos group; the 11 Nov frame %r was used" % (fr,))
+    rx, ry, rw, rh = fr
+    sx, sy = rw / Wm, rh / Hm
+    upm = (sx + sy) / 2.0
+    if abs(sx - sy) / upm > 0.01 or abs(upm - B13_SVG_UPM) / B13_SVG_UPM > 0.01:
+        lines.append(u"WARNING p20 b19 svg roads: frame %.2f x %.2f units for site_alan %.1f x %.1f m (%.5f / %.5f "
+                     u"units per m; 2.64121 expected)" % (rw, rh, Wm, Hm, sx, sy))
+    M = lambda p: [round((p[0] - rx) / upm, 3), round((ry + rh - p[1]) / upm, 3)]
+    mm = lambda u_: u_ / upm * 1000.0 / T              # his units -> m -> print mm at 1:T
+    z = max([L_.get("z", 0) for L_ in D["layers"]] or [0])
+    rows, counts, skipped = [], [], dict(transform=0, arcs=0, gradient=0)
+    for ids, label, kind, cat, rank in B13_SVG_ROADS:
+        gid = next((g for g in ids if u'<g id="%s"' % g in s), None)
+        if gid is None:
+            counts.append(u"%s 0 (group not in the file)" % ids[0])
+            lines.append(u"FLAG b19 p20 svg roads: group %s not in %s" % (u" / ".join(ids), B13_SVG))
+            continue
+        shp, sk = b13_svg_shapes(_b13_block(s, gid))
+        for k_ in skipped:
+            skipped[k_] += sk[k_]
+        out, sw0 = [], None
+        grp = u"%s/%s" % (kind, label)
+        for e in shp:
+            closed = [[M(p) for p in P] for cl, P in e["parts"] if len(P) >= 3]   # SVG fills open parts too
+            if e["fill"] and closed:
+                out.append(dict(t="poly", rings=closed, fill=e["fill"], stroke=None, width_pt=0.0, dash_pt=None,
+                                opacity=round(e["fill_a"], 3) if e["fill_a"] < 0.995 else None, grp=grp))
+            if e["stroke"]:
+                w = mm(e["sw"])
+                sw0 = sw0 or (e["stroke"], w, e["dash"], e["stroke_a"])
+                for cl, P in e["parts"]:
+                    Q = [M(p) for p in (P + P[:1] if cl else P)]
+                    d_ = dict(t="line", pts=Q, stroke=e["stroke"], width_pt=round(w / IX_PT, 3),
+                              dash_pt=[round(mm(v) / IX_PT, 3) for v in e["dash"]] if e["dash"] else None, cap=1,
+                              grp=grp)
+                    if e["stroke_a"] < 0.995:
+                        d_["opacity"] = round(e["stroke_a"], 3)
+                    out.append(d_)
+        z += 1
+        D["layers"].append(dict(z=z, name=u"svg_%s" % gid, shapes=out))
+        counts.append(u"%s %d" % (gid, len(out)))
+        if sw0:
+            sw_ = dict(kind="dash" if sw0[2] else "line", colour=sw0[0], stroke=sw0[0],
+                       width_pt=round(max(sw0[1], 0.3) / IX_PT, 3), cat=cat, rank=rank)
+            if sw0[2]:
+                sw_["dash_pt"] = [round(max(mm(v), 0.3) / IX_PT, 3) for v in sw0[2]]
+            if sw0[3] < 0.995:
+                sw_["opacity"] = round(sw0[3], 3)
+            rows.append((sw_, label))
+        elif out:
+            rows.append((dict(kind="fill", colour=out[0].get("fill"), stroke=None, width_pt=0.0, cat=cat, rank=rank),
+                         label))
+    lines.append(u"b19 p20 svg roads n=%s (frame %.3f,%.3f %.2f x %.2f units, %.5f units per m, widths at 1:%s)" % (
+        u", ".join(counts), rx, ry, rw, rh, upm, u"{:,.0f}".format(T)))
+    if any(skipped.values()):
+        lines.append(u"FLAG b19 p20 svg roads: left out %d shape(s) with a transform, %d gradient fill(s); %d arc(s) "
+                     u"drawn straight" % (skipped["transform"], skipped["gradient"], skipped["arcs"]))
+    return rows
+
+
+def _b13_flat(items):
+    """the sheet's items with B19's own kinds made plain: "sym" (Aras's traced trees and asset pieces) -> their tone
+    rings as polys, "pat" (bush hatch) -> its tile's mean colour (as the Rhino drawing does, B19 b7_bake_world);
+    every callout group ("annotations" / "<n> <title>") and the Kizil Avlu note box (frame + its two texts) left
+    out: they come back as tags. Returns (items, counts)."""
+    lib, tiles = b8_sym_lib(), b8_tiles()
+    out, cnt, skip = [], dict(sym=0, sym_lost=0, pat=0, callout_items=0, note_items=0), 0
+    gst = []
+    for it in items:
+        kd = it[0]
+        if kd == "grp":
+            if it[1] is None:
+                g_ = gst.pop() if gst else None
+                if g_ and g_[2]:
+                    skip -= 1
+                    continue
+            else:
+                call = it[1] == "annotations" and re.match(r"^\d+ ", u"%s" % (it[2] or u"")) is not None
+                gst.append((it[1], it[2], call))
+                if call:
+                    skip += 1
+                    continue
+            if skip:
+                continue
+            out.append(it)
+            continue
+        if skip:
+            cnt["callout_items"] += 1
+            continue
+        note = any(g_[0] == "heritage" and (u"%s" % (g_[1] or u"")).startswith(u"Kizil Avlu: outline popped")
+                   for g_ in gst)
+        if note and (kd == "text" or (kd == "poly" and it[2] == "FFFFFF" and it[3] == "8E2A1E")):
+            cnt["note_items"] += 1
+            continue
+        if kd == "sym":
+            sid, x, y, r = it[1], it[2], it[3], it[4]
+            an = it[6] if len(it) > 6 and it[6] else 0.0
+            c_, s_ = math.cos(an), math.sin(an)
+            bands = lib.get(sid) or []
+            for b_ in bands:
+                R_ = [[(x + r * (q[0] * c_ - q[1] * s_), y + r * (q[0] * s_ + q[1] * c_)) for q in R] for R in
+                      b_.get("rings") or [] if len(R) >= 3]
+                if R_:
+                    al = b_.get("alpha")
+                    out.append(("poly", R_, (u"%s" % (b_.get("fill") or u"94988A")).lstrip("#"), None, 0.0, None, None,
+                                float(al) if al is not None and float(al) < 0.995 else None))
+            cnt["sym" if bands else "sym_lost"] += 1
+            continue
+        if kd == "pat":
+            t_ = tiles.get(it[1]) or {}
+            out.append(("poly", it[2], (t_.get("mean") or B3_COL["tree2"]).lstrip("#"), None, 0.0, None, None,
+                        it[3] if len(it) > 3 else None))
+            cnt["pat"] += 1
+            continue
+        out.append(it)
+    return out, cnt
+
+
+def b13_context(ix, D, site, x0, y0, Wm, Hm, win, T, lines):
+    """d4 / G9-4: the shared basemap (mode "context", layers a-j) over the map's window round the sheet, in the
+    map's metres (the sheet's turned axes), cut to the four bands outside the sheet (inside it B19 draws its own
+    ground, buildings and names), under B19's own white veil (B13_CTX_VEIL). Layers below the sheet (z < 0).
+    Returns (context items, names exported)."""
+    bm = basemap_load(log=lines)
+    if not bm:
+        lines.append(u"FLAG context p20 %s: no basemap data (cached/basemap/basemap.json, written by MainBoard): the "
+                     u"map shows the sheet only" % B13_MAP)
+        return [], 0
+    rot = b8_site_turn(site)
+    ca, sa = math.cos(rot), math.sin(rot)
+    ox, oy = site[0][0], site[0][1]
+    Wd = lambda q: (ox + ca * (x0 + q[0] - ox) + sa * (y0 + q[1] - oy), oy - sa * (x0 + q[0] - ox) + ca * (y0 + q[1] - oy))
+    q_ = 1000.0 / T                                     # drawn in page mm at 1:T (M5 water_plan's k), exported at k = T / 1000
+    Dm = lambda p: ((ox + ca * (p[0] - ox) - sa * (p[1] - oy) - x0) * q_, (oy + sa * (p[0] - ox) + ca * (p[1] - oy) - y0) * q_)
+    box4 = lambda b: [(b[0], b[1]), (b[2], b[1]), (b[2], b[3]), (b[0], b[3])]
+    ring = [Wd(q) for q in box4(win)]
+    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
+    base = ml_base((min(xs), min(ys), max(xs), max(ys)), T, D=bm, ring=ring, crop=False)
+    bands = [(win[0], win[1], win[2], min(0.0, win[3])), (win[0], max(Hm, win[1]), win[2], win[3]),
+             (win[0], 0.0, min(0.0, win[2]), Hm), (max(Wm, win[0]), 0.0, win[2], Hm)]
+    bands = [b for b in bands if b[2] - b[0] > 0.01 and b[3] - b[1] > 0.01]
+    its = []
+    for b in bands:
+        its += ml_crop(base, [Wd(q) for q in box4(b)])
+    per = {}
+    for it in its:
+        per.setdefault(ml_layer_of(it), []).append(it)
+    z, n_names = -60, 0
+    for lay in ML_BASE_LAYERS:
+        if not per.get(lay):
+            continue
+        sh = []
+
+        def fill_fn(rings, hx, al=None, nonzero=False, sh=sh):
+            sh.append(("poly", [R_ for R_ in rings if len(R_) >= 3], hx, None, 0.0, None, None,
+                       al if al is not None and al < 0.995 else None))
+
+        def line_fn(pts, hx, w, dash=None, al=None, sh=sh):
+            sh.append(("line", pts, mix(hx, "FFFFFF", 1.0 - al) if al is not None and al < 0.995 else hx, w,
+                       list(dash) if dash else None, 0 if dash else 1))
+
+        def text_fn(t_, xy, size, hx, bold=False, align="MC", sh=sh):
+            sh.append(("text", t_, (xy[0], xy[1]), size, hx, bold, align or "MC"))
+        basemap_draw(per[lay], Dm, fill_fn, line_fn, text_fn)
+        n_names += sum(1 for it in per[lay] if it[0] == "text" and getattr(it, "ctx", None) == "h")
+        z += 1
+        ix.layer(D, lay, sh, z=z, k=T / 1000.0)
+    veil = [[list(p) for p in box4(b)] for b in bands]
+    if veil:
+        D["layers"].append(dict(z=-1, name="context_veil", shapes=[dict(
+            t="poly", rings=veil, fill="FFFFFF", stroke=None, width_pt=0.0, dash_pt=None, opacity=B13_CTX_VEIL,
+            grp=u"ground/context veil")]))
+    return its, n_names
+
+
+def b13_p20_items(pg, C, site, scale, warn, zb_used):
+    """a1 / F2: the p20 items (see the block notes); returns log lines. Never raises (a6): an error is an ERROR line"""
+    lines = []
+    try:
+        ix = MPX[0] or mpx_start()
+        ix.d["script"] = "bergama_b19_plan"
+        del MPX_LOG[:]
+        del R9_LOG[:]
+        sh = globals().get("_B7_SHEET") or {}
+        k = float(sh.get("k") or 1000.0 / scale)
+        ofx, ofy = globals().get("_B12_OFF") or (B19_M, B19_M)
+        rot = b8_site_turn(site)
+        ca, sa = math.cos(rot), math.sin(rot)
+        ox, oy = site[0][0], site[0][1]
+        tp = [(ox + ca * (p[0] - ox) - sa * (p[1] - oy), oy + sa * (p[0] - ox) + ca * (p[1] - oy)) for p in site]
+        x0, y0 = min(p[0] for p in tp), min(p[1] for p in tp)
+        Wm, Hm = max(p[0] for p in tp) - x0, max(p[1] for p in tp) - y0
+        focus = (0.0, 0.0, Wm, Hm)                         # the site_alan frame = the sheet, drawing metres
+        Tfit = r9_tfit(focus, B13_FRAME)
+        lab = r9_label(Tfit, None)
+        T = float(lab["T"])
+        win = r9_window(focus, B13_FRAME)
+        items, cnt = _b13_flat(pg.items)
+        page_its = ix.d["pages"].setdefault(B13_PAGE, [])
+        n0 = len(page_its)
+        D = mpx_drawing(ix, B13_MAP, B13_PAGE, pg, (ofx, ofy, ofx + Wm * k, ofy + Hm * k), 1000.0 / k,
+                        north_deg=round(math.degrees(rot), 1), group=B13_MAP, items=items)
+        n_txt = 0
+        for it in page_its[n0:]:                           # F5: every B19 text at booklet pt, 4 pt floor
+            if it.get("kind") == "text":
+                it["size_pt"] = round(min(B13_PT_MAX, max(B13_PT_MIN, float(it.get("size_pt") or 12.0) * B13_PT_K)), 2)
+                it["min_pt"] = B13_PT_MIN
+                it["string"] = b13_names(it.get("string"))
+                n_txt += 1
+        D["extent"] = [round(v, 3) for v in win]
+        D["focus"] = [round(v, 3) for v in focus]
+        D["frame"] = B13_FRAME
+        wh = r9_wh(B13_FRAME)
+        if wh:
+            D["frame_mm"] = [wh[0], wh[1]]
+        lines += list(MPX_LOG)
+        lines.append(u"b19 p20 sheet: %d texts at booklet pt (x %.3f, %g-%g pt); trees %d (+%d without a symbol), "
+                     u"bush areas %d, callout pieces left out %d (as tags), Kizil Avlu note pieces %d" % (
+                         n_txt, B13_PT_K, B13_PT_MIN, B13_PT_MAX, cnt["sym"], cnt["sym_lost"], cnt["pat"],
+                         cnt["callout_items"], cnt["note_items"]))
+        if cnt["sym_lost"]:
+            lines.append(u"FLAG b19 p20: %d tree / asset symbol(s) not in the traced library, left out" % cnt["sym_lost"])
+        lines += r9_scale_line(B13_PAGE, u"map", Tfit, lab)
+        # d4: context round the sheet
+        ctx, n_names = b13_context(ix, D, site, x0, y0, Wm, Hm, win, T, lines)
+        if ctx:
+            basemap_context_log(B13_PAGE, B13_MAP, ctx, study=True, log=lines, names_drawn=n_names)
+        # his SVG roads on top of the sheet (PLAN Q4)
+        rows_svg = b13_svg_roads(D, Wm, Hm, T, lines)
+        # callouts -> tags (+ dot, leader on top), the Kizil Avlu note -> tag
+        kk = 1.0 / k
+        calls = list(globals().get("_B12_CALLS") or [])
+        dots, n_tag = [], 0
+        for i_, (title, subt, x, y, cat, b) in enumerate(calls, 1):
+            col = B8_CAT.get(cat, (None, B3_COL["ink"]))[1]
+            p_ = [round(x * kk, 3), round(y * kk, 3)]
+            c_ = [round((b[0] + b[2]) / 2.0 * kk, 3), round((b[1] + b[3]) / 2.0 * kk, 3)]
+            g_ = u"annotations/%d %s" % (i_, title)
+            dots.append(dict(t="line", pts=[p_, c_], stroke=col, width_pt=round(B13_LEAD_MM / IX_PT, 3), dash_pt=None,
+                             cap=1, grp=g_))
+            dots.append(dict(t="circle", c=p_, r=0.0, r_mm=B13_DOT_MM, fill=col, stroke="FFFFFF",
+                             width_pt=round(B13_LEAD_MM / IX_PT, 3), grp=g_))
+            tid = ix.tag(B13_PAGE, b13_names(title), drawing=D["id"], at=c_, box_mm=None, fill="FFFFFF", ring=col,
+                         ring_mm=B13_LEAD_MM, size_pt=B13_TAG_PT[0], bold=True, colour=col, priority=3, group=B13_MAP,
+                         id=u"b19_p20_call_%d" % i_)
+            if subt:
+                ix.text(B13_PAGE, b13_names(subt), "label", drawing=D["id"], at=c_, size_pt=B13_TAG_PT[1], bold=False,
+                        colour=B3_COL["ink"], positions=["S", "SE", "SW", "E", "W", "N"], priority=4, group=B13_MAP,
+                        id=u"b19_p20_call_%d_sub" % i_)
+            n_tag += 1 if tid else 0
+        note = None                                        # the Kizil Avlu note box (b19_page heritage group)
+        for it in pg.items:
+            if it[0] == "poly" and it[2] == "FFFFFF" and it[3] == "8E2A1E" and it[1]:
+                note = _mpx_box_of(it[1])
+        if note:
+            nt = [it[1] for it in pg.items if it[0] == "text" and it[5] in ("8E2A1E",) and u"KIZIL AVLU" in u"%s" % it[1]]
+            n2 = [it[1] for it in pg.items if it[0] == "text" and u"the red tint" in u"%s" % it[1]]
+            c_ = [round(((note[0] + note[2]) / 2.0 - ofx) * kk, 3), round(((note[1] + note[3]) / 2.0 - ofy) * kk, 3)]
+            if nt:
+                ix.tag(B13_PAGE, b13_names(nt[0]), drawing=D["id"], at=c_, fill="FFFFFF", ring="8E2A1E",
+                       ring_mm=B13_LEAD_MM, size_pt=B13_TAG_PT[0], bold=True, colour="8E2A1E", priority=3,
+                       group=B13_MAP, id=u"b19_p20_kizil_note")
+                n_tag += 1
+            if n2:
+                ix.text(B13_PAGE, b13_names(n2[0]), "label", drawing=D["id"], at=c_, size_pt=B13_TAG_PT[1], bold=False,
+                        colour=B3_COL["ink"], positions=["S", "SE", "SW", "E", "W", "N"], priority=4, group=B13_MAP,
+                        id=u"b19_p20_kizil_note_sub")
+        if dots:
+            D["layers"].append(dict(z=max(L_.get("z", 0) for L_ in D["layers"]) + 1, name="b19_callouts", shapes=dots))
+        lines.append(u"b19 p20 callouts: %d tags (%d callouts + the Kizil Avlu note)" % (n_tag, len(calls)))
+        left = list(globals().get("_B13_LEFT") or [])
+        if left:
+            lines.append(u"FLAG names p20 %s no room (%d): %s" % (B13_MAP, len(left), u", ".join(left)))
+        if B13_TAGGED:
+            lines.append(u"FLAG names p20 %s: %d kept heritage building(s) not named by the names table or PLACES "
+                         u"(tag used): %s" % (B13_MAP, len(B13_TAGGED), u"; ".join(
+                             u"(%.0f, %.0f)" % tuple(p) for p in B13_TAGGED[:12])))
+        # legend (Q6: legend only, 392 x 52, G9-6 categories) + reach themes
+        ent = []
+        for cat in ("route", "heritage", "water", "garden", "meet", "learn", "sport"):
+            nm, col_ = B8_CAT[cat][0], B8_CAT[cat][1]
+            c2, r2 = B13_CALL_CAT[cat]
+            ent.append((dict(kind="fill", colour=col_, stroke=B3_COL["kerb"], width_pt=0.4, cat=c2, rank=r2), nm))
+        for nm, col_ in list(B6_LEGEND) + b8_slope_key():
+            c2, r2 = next(((c_, r_) for w_, c_, r_ in B13_LEG_CAT if (u"%s" % nm).startswith(w_)), ("PUB", 3))
+            ent.append((dict(kind="fill", colour=col_, stroke=B3_COL["kerb"], width_pt=0.4, cat=c2, rank=r2),
+                        b13_names(nm)))
+        ent += rows_svg
+        for sw_, t_ in basemap_legend_rows(ctx):           # context classes as seen: under the veil
+            sw_ = dict(sw_)
+            if sw_.get("colour"):
+                sw_["colour"] = mix(sw_["colour"], "FFFFFF", B13_CTX_VEIL)
+            ent.append((sw_, t_))
+        order = dict((c_, i_) for i_, c_ in enumerate(HUE_CATS))
+        ent = [e_ for _, e_ in sorted(enumerate(ent), key=lambda ie: (order.get(ie[1][0].get("cat"), len(order)),
+                                                                     ie[1][0].get("rank") or 9, ie[0]))]
+        ix.legend(B13_PAGE, D["id"], ent, id=B13_LEG, group=B13_MAP)
+        hue_log(B13_PAGE, lines)
+        th = sorted(set(t_ for t_ in (globals().get("_B13_THEMES") or ())))
+        if th:
+            ix.list(B13_PAGE, D["id"], [u"%s: %s" % (B7_THEMES[t_][0], B7_WHY[t_]) for t_ in th], numbered=False,
+                    id=B13_LEG + u"_reaches", group=B13_MAP)
+        ix.text(B13_PAGE, u"MIRAQUA · MASTERPLAN · %s · drawing language after Greenikka (Arkkitehdit MY, 2020)" %
+                ix_scale_token(B13_MAP), "caption", priority=3, group=B13_MAP, id=B13_CAP)
+        ix.source("b19_greenikka", u"Drawing language after B19 \"Greenikka\" (Arkkitehdit MY, Viinikanlahti "
+                  u"competition 2020, 3rd prize), general plan page 5", None)
+        ix.source("b19_maxar", u"Tree cover traced from Esri World Imagery, Maxar Vivid of 1 Mar 2023 (0.31 m)", None)
+        ix.source("b19_svg", u"Group 6 masterplan drawing (Aras, Illustrator, B19_setB_layers3.2.svg, 11 Nov 2026)",
+                  None)
+        ix.source("b19_osm", u"OpenStreetMap (bergama_osm.osm, extract of 28 Jul 2026)", None)
+        lines += list(R9_LOG)
+        ix.save()
+        n = len(ix.d["pages"].get(B13_PAGE, []))
+        lines.append(ix.summary())
+        lines.append(u"b19 p20 items n=%d zone_base %s" % (n, u"used" if zb_used else u"not used"))
+    except Exception as ex_:
+        import traceback
+        lines.append(u"ERROR p20 b19 items not written ({}: {}); the run goes on and done still fires. {}".format(
+            type(ex_).__name__, ex_, u" ".join(traceback.format_exc()[-400:].split())))
+    if not zb_used:
+        lines.append(u"WARNING p20 b19 zone_base not used (no Option_A::INT_ zones with source=svg in the open file: "
+                     u"run ZoneBase on the new masterlastversion.svg); v12's own drawing as it is")
+    return lines
+
+
 def bake_pages(doc, pages, scale):
     """v8.2: the masterplan's MP11 bake (main() calls it when rhino_bake is True) is not used here: build_all already
     drew the sheet in Rhino on B7_BAKE_ROOT; this stops a second, never-deleted copy"""
@@ -37738,6 +39559,7 @@ def build_all(doc, warn):
          max(b[2] for b in bb) + RING_M + 5, max(b[3] for b in bb) + RING_M + 5)
     survey = read_survey(doc, R) if doc is not None else {}
     its = read_items(doc, "A") if doc is not None else []
+    n_svg = sum(1 for i_ in its if i_["meta"].get("source") == "svg")   # v13: ZoneBase v12 zones from his SVG
     if not its:
         zb = zone_base_file(doc, warn)
         its = [i for i in zb[1] if i["layer"].startswith("Option_A::")]
@@ -37772,6 +39594,7 @@ def build_all(doc, warn):
     pg, notes = b19_page(C, site, C.study or V.study, scale, warn)
     lines += notes
     lines.append(u"drawing built: {:.0f} s".format(time.time() - t_pg))
+    lines += b13_p20_items(pg, C, site, scale, warn, n_svg)   # v13: p20 items for the booklet (never stops the run)
     b82_live(u"Rhino drawing")
     files = []
     sh = globals().get("_B7_SHEET")
@@ -37870,3 +39693,6 @@ if Rhino is not None:
     log = _txt
     print(_txt)
     pdf = _files
+    if globals().get("_ran_now"):                         # v13 (a6): done was never set here, so the chain stopped at
+        mem_set("done", done_text(True, True, time.time() - _T_START))   # B19; it fires after a run, ERROR or not
+    done = mem_get("done", "idle")
