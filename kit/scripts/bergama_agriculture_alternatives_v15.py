@@ -1,4 +1,4 @@
-# CURRENT VERSION: bergama_agriculture_alternatives_v14.py = v14 (8 Nov 2026, round 8: p17 notes column 66 mm; what changed: the NEW IN / VERSION notes below)
+# CURRENT VERSION: bergama_agriculture_alternatives_v15.py = v15 (11 Nov 2026, round 9 Part SM: p17 rows split into text + cut at their R9 frames, p18 blocks at their frame sizes; what changed: the NEW IN / VERSION notes below)
 # bergama_agriculture_alternatives_v8.py (v8, 31 Oct: round 3, p18 + p19 merged on ONE booklet page) · Thread 3 of the 22 Oct batch: three alternatives for the agriculture analysis
 # Runs as delivered in: Grasshopper Python 3 component (press a Button wired to an input named run; outputs log and
 # done), Rhino 8 ScriptEditor (Python 3), or plain Python 3. v10 lays out no page and writes no PDF (round 5,
@@ -22,7 +22,30 @@
 # Notes for Aras: batch_2026-10-22/thread3_agriculture/NOTES.md.
 import os, time, json, math, re
 
-VERSION = "v14"  # v14 (round 8, 8 Nov): p17 REMOVE / ODOUR / steps notes column wrapped at 64 mm and exported 66 mm wide (BRIEF p17 row 8, 66 x 75) (NEW IN v14); v13 (round 7 S2, 5 Nov): p17 bands photos 28 x 13 so every reason fits the r06_S01 frame at SON size, a reason shared by several crops printed once, Kermes label a line above "walk in the bed", legends log through hue_log (NEW IN v13); v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v15"  # v15 (round 9 Part SM, 11 Nov): p17 each season row = a text item + a cut item at their R9 frames (cuts 326 x 45-47, ground widened, never stretched), chain / bands / notes at p17.1 / p17.9 / p17.8; p18 ag1_stream split into ag1_stream_text + the chart, bars / context / reading / history drawn at their R9 frames (plot areas fill, text keeps its size), step markers as S1 badges in table colours, round 9 shared blocks, "frame size" log lines (NEW IN v15); v14 (round 8, 8 Nov): p17 REMOVE / ODOUR / steps notes column wrapped at 64 mm and exported 66 mm wide (BRIEF p17 row 8, 66 x 75) (NEW IN v14); v13 (round 7 S2, 5 Nov): p17 bands photos 28 x 13 so every reason fits the r06_S01 frame at SON size, a reason shared by several crops printed once, Kermes label a line above "walk in the bed", legends log through hue_log (NEW IN v13); v12 (L6 layout plan, 4 Nov): every text exported, nothing left out or layout-checked here: p18 grid values, the reading's crop words and all its lines; the p18 layout WARNING/FLAG lines gone (the booklet places and checks); one box per drawing: headings, subtitles (caption, priority 1) and notes carry drawing=D, step-marker digits are badges (NEW IN v12); v11 (round 6 S7, 4 Nov): p17 plant ladder restored from 28 Oct as items, p18 blocks as SON (v8.3), hue table, G6-9 groups (NEW IN v11); v10 (round 5 S9, 2 Nov): items for the booklet (p21 groups + the farms map on plan 01), no sheet PDF, warnings never stop (NEW IN v10); v9.2 fix 1 Nov 18:35 (Aras 17:30): p19 timeline starts 3.2 mm in so "1500" stays inside the crop; v9.1 fix 1 Nov 18:15 (Aras 17:07): p19 bars, a grid line whose value would run past the crop edge is left out; v9 (round 4, S6b: booklet p19 rebuilt as story groups, real Arial text check, one trigger file); v8.3 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v8.2 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v8.1 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+# NEW IN v15 (round 9 Part SM, 11 Nov 2026; BRIEF §5 p17 "Cuts grow to the full width right of the text (SKETCH);
+#   planting strip (photos + symbols) grows to 330 x 83", p18 "Charts fill (C); why crop choice is the lever spreads its
+#   items over its 150 x 103 frame"; PLAN §cause c1, d5, d6, f2; not run: Aras 11 Nov 17:44 "no test runs or error checks
+#   until notice"):
+#   * Every block is drawn at its R9 frame (R9_FRAMES; drawing = frame width x (frame height - the booklet's box head:
+#     4.5 mm for a heading, + 2.3 mm a subtitle line + 1 mm), so the booklet fits it at about 1 and words keep their pt.
+#     One log line `frame size <item> <w>x<h>` per block; a block whose words need more than its frame: a FLAG line.
+#   * p17: each season row is two items: ag3_ladder_<season>_text (NEW id; frames p17.2 / .4 / .6, 64 mm: the season's
+#     name, months, side lines, its sun / rain / olive mark) and the cut ag3_ladder_<season> (p17.3 / .5 / .7, 326 x 45 /
+#     47 / 46). The cut keeps one mm-per-unit across and up (LAD_F 1.43, v14 1.5: the content's 28 units in 40 mm of the
+#     45 mm frame); the ground runs on to the frame's width (LAD_W 227.5 units, v14 200), so each step is wider and
+#     every plant, person and level keeps its sketch size. Chain at p17.1 392 mm wide; bands at p17.9 330 x 83, five
+#     equal columns; notes column at p17.8 60 x 83 (wrap 58 mm).
+#   * p18: ag1_stream is two items: ag1_stream_text (NEW id, p18.4 70 x 26: the headline and its line; the heading
+#     ag1_stream_head is its box head) and the chart ag1_stream (p18.5 188 x 40: steps, the two bars, the squeeze, the key
+#     under it in one or two rows). ag1_bars at p18.6 240 x 103: the rows share the plot height (no 9.3 mm cap), the bars
+#     thicken with the row up to 1.4 x. ag1_context at p18.7: the four tiles on an even 2 x 2 grid over the frame.
+#     ag1_reading at p18.8: the squares fill the block's height (50 mm kept for its words). ag1_history at p18.9: the
+#     timeline as wide as the frame, centred in its height.
+#   * c1 / f2: a step marker is ONE S1 badge item (disc + digit, marker_r9; was the digit as a left-baseline text); its
+#     colour from the hue table by step (AG_STEP_HUE: 1 stream WAT, 2 on-site planting GRN, 3 farms AGR; was C["accent"]).
+#   * Round 9 shared blocks pasted byte for byte (modules/INTERFACES.md): hue table r9, marker r9, Ix r9, frames r9; the
+#     names table r9 in Data (md5 pinned); the farms map draws no place names (log line names p18).
 # NEW IN v14 (8 Nov 2026, round 8: p17 notes column 66 mm): the REMOVE / ODOUR / steps lines wrap at AG3_NOTES_W 64 mm
 #   (was LAD_X0 - 18 = 88) and the ag3_notes block is exported 66 mm wide (was 87) to fit BRIEF p17 frame row 8.
 # NEW IN v13 (round 7, S2, 5 Nov 2026; BRIEF §6 rows 17-18, L6, G7-1, G7-4; round 7 PLAN §3, §6 S2):
@@ -4148,6 +4171,7 @@ class AgRec:
     def __init__(self):
         self.shapes, self.heads, self.notes, self.keeps = [], [], [], []
         self.gs, self.tg_ = [], AG_TAG0
+        self.badges = []                  # v15 (round 9 S1): the markers' S1 badge dicts (ag_export_block: ix.badge)
 
     def tag(self, kind, eid):
         """v11 (G6-9): the shapes drawn from now on belong to element eid of kind (IX_GRP_KINDS)"""
@@ -4156,6 +4180,20 @@ class AgRec:
     def _add(self, sh):
         self.shapes.append(sh)
         self.gs.append(self.tg_)
+
+    def marker(self, shapes):
+        """v15 (round 9 S1, PLAN §cause c1): one marker_r9 mk_marker marker: its disc recorded as an _MkDisc (Ix.layer
+        flags it badge_disc), its glyph kept as the S1 badge dict for ag_export_block (ix.badge: the booklet draws disc
+        + digit and centres the digit); never a left-baseline text (v12 role "badge" text)"""
+        for sh in shapes:
+            b = getattr(sh, "badge", None)
+            if b:
+                self.badges.append(dict(b))
+            elif sh[0] == "poly":
+                d_ = _MkDisc(("poly", [[(float(x), float(y)) for x, y in sh[1]]], sh[2], sh[3],
+                              float(sh[4] or 0.0) if sh[3] else 0.0, None, None, None))
+                d_.mk_badge = True
+                self._add(d_)
 
     def image(self, x, y, w, h, path, clip=None):
         """v11: a raster image (JPEG) in the box (x, y)..(x + w, y + h), page mm y up, shown inside clip (x0, y0, x1, y1)"""
@@ -4343,7 +4381,7 @@ def _ag_icon(pg, kind, x, y, sz):
     if crossed:
         _ag_put(pg, ico_cross(x + sz / 2.0, y - sz / 2.0, sz))
 
-def tiles(pg, x, y, w, items, cols=1, s=1.0, boxes=None):
+def tiles(pg, x, y, w, items, cols=1, s=1.0, boxes=None, h=None):
     """v1.2 (water board v1.6): facts as tiles: pictogram, keyword heading, the key figure large, short keyword lines and
     the source number. items = [(pictogram, heading, figure or None, [keyword lines], source or None)]. Returns the bottom y.
     v8 (G17): no frame and no fill: the tiles stand apart by whitespace on the grid; boxes gets each pictogram's square."""
@@ -4360,9 +4398,17 @@ def tiles(pg, x, y, w, items, cols=1, s=1.0, boxes=None):
         hh = pad * 2 + (len(L3[0]) * fh * 1.25 + len(L3[1]) * fb * 1.15 + len(L3[2]) * ft * 1.3 + (fh * 0.3 if L3[1] else 0)) * k
         lay.append((kind, big, L3, max(hh, ic + 2 * pad)))
     yy = y
+    nr = (len(lay) + cols - 1) // cols
+    rhs = [max(t[3] for t in lay[r0:r0 + cols]) for r0 in range(0, len(lay), cols)]
+    cell = (h + g) / nr if (h and nr) else None     # v15 (round 9, BRIEF p18): rows on an even grid over the height h,
+    if cell is not None and rhs and max(rhs) + g > cell:   # each centred in its cell; a row taller than its cell:
+        cell = None                                 # the rows stacked, the spare height shared between them
+    spare = 0.0 if (cell is not None or not h or nr < 2) else max(0.0, (h - sum(rhs) - g * (nr - 1)) / (nr - 1))
     for r0 in range(0, len(lay), cols):
         row = lay[r0:r0 + cols]
         rh = max(t[3] for t in row)
+        if cell is not None:
+            yy = y - (r0 // cols) * cell - (cell - g - rh) / 2.0
         for c_, (kind, big, L3, _) in enumerate(row):
             tx = x + c_ * (tw + g)
             _ag_icon(pg, kind, tx + pad, yy - pad, ic)
@@ -4380,8 +4426,8 @@ def tiles(pg, x, y, w, items, cols=1, s=1.0, boxes=None):
             for ln in L3[2]:
                 ly -= ft * 1.3 * k; pg.text(ln, lx, ly + ft * 0.3 * k, ft, C["ink"])
             pg.tgroup(False)
-        yy -= rh + g
-    return yy + g
+        yy -= rh + g + spare
+    return yy + g + spare
 
 FLAGGED = ("NOT KNOWN", "not designed")         # big figures that say "no data": in the accent colour
 
@@ -4448,7 +4494,7 @@ def history_line(pg, x, top, w, h):
     ag_heading(pg, "WHY THE STORED WATER GOES TO FARMS", x, top)
     pg.tag("annotations", "timeline_axis")
     pg.notes.append("Bergama's %s and %s" % (name_lc("cotton"), name_lc("olive")))   # v2
-    ya = top - AG_HIST_YA
+    ya = top - AG_HIST_YA - max(0.0, h - 32.0) * 0.5   # v15 (round 9): centred in the taller R9 block (v14 h 32)
     # v9.2: the axis starts 3.2 mm in (was 2.0): the centred "1500" under its tick reached 0.75 mm past the crop's left
     # edge (Aras 1 Nov 17:30); the right end stays 2.0 mm in
     X = lambda yr: x + 3.2 + (w - 5.2) * (yr - 1500) / 530.0
@@ -4521,20 +4567,42 @@ AG_BAR_RP, AG_BAR_H, AG_BAR_O = 9.3, 3.8, 4.4   # v8: bars' largest row pitch, b
 # v10 (round 5, G-R5-12): v9's TextPage per crop (a collision RAISED) is gone: each block is recorded (AgRec) and
 # exported as one chart drawing whose words the booklet places (ag_export_block); the sizes below stay the blocks' own.
 AG_HEAD = 6.0                        # v9: the group heading band, mm
-AG_STREAM_W, AG_STREAM_H = grid_w(8), 40.0
+# v15 (round 9 Part SM, PLAN §cause d5 / d6): every p18 block at its R9 frame (R9_FRAMES p18.4-p18.9). The booklet
+# sets a box head over a drawing (booklet v37 _bk_head_h: BK_HEAD_H 4.5 mm for the heading row, then each subtitle line
+# at the caption role, 5 pt x 1.3 lead, + 1 mm): drawing = frame width x (frame height - head), so the fit is about 1.
+AG_FR = dict(stream_text="p18.4", stream="p18.5", bars="p18.6", context="p18.7", reading="p18.8", history="p18.9")
+AG_FR_MM = dict(stream_text=(70.0, 26.0), stream=(188.0, 40.0), bars=(240.0, 103.0), context=(150.0, 103.0),
+                reading=(128.0, 42.0), history=(130.0, 42.0))   # = R9_FRAMES (used only when a key is missing)
+AG_BOXHEAD = 4.5                     # booklet BK_HEAD_H: a box's heading row, mm
+AG_SUBLINE = 5.0 * IX_PT * 1.3 + 1.0  # one subtitle line (caption role 5 pt x 1.3) + 1 mm, mm
+
+
+def ag_fr(key):
+    """v15: (w, h) mm of a p18 block's R9 frame (AG_FR_MM when R9_FRAMES has no such key; r9_wh logs the FLAG)"""
+    wh = r9_wh(AG_FR[key]) if "r9_wh" in globals() else None
+    return wh or AG_FR_MM[key]
+
+
+AG_STREAM_W, AG_STREAM_H = ag_fr("stream")[0] - 1.0, ag_fr("stream")[1] - 0.5   # v15: the chart alone (was 260 x 40
+AG_STT_W, AG_STT_H = ag_fr("stream_text")[0] - 1.0, ag_fr("stream_text")[1] - AG_BOXHEAD - 0.5   # with the text)
 # v11 (round 6 S7, G6-1: SON page19 = the v8.3 page): the v8.3 sizes again (bars 7 columns x 66, context 5 x 66, the
 # reading, the timeline and the crops 4 x 31 each; target frames revision_2026-11-04_round6/plan_findings/
 # frames_p14-22.md page 18: bars 231 x 65, context 155 x 59, reading / timeline / crops 126 x 36-39 mm)
-AG_BARS_W, AG_BARS_H = grid_w(7), 66.0
-AG_CTX_W, AG_CTX_H = grid_w(5), 66.0
-AG_HIST_W, AG_HIST_H = grid_w(4), 32.0
-AG_READ_W, AG_READ_H = grid_w(4), 31.0
+# v15: the R9 frames (cut = AG_HEAD - 0.5 of empty heading band off the top of context, reading and history)
+AG_BARS_W, AG_BARS_H = ag_fr("bars")[0] - 1.0, ag_fr("bars")[1] - AG_BOXHEAD - 0.5
+AG_CTX_W, AG_CTX_H = ag_fr("context")[0] - 1.0, ag_fr("context")[1] - AG_BOXHEAD - 0.5 + (AG_HEAD - 0.5)
+AG_HIST_W, AG_HIST_H = ag_fr("history")[0] - 1.0, ag_fr("history")[1] - AG_BOXHEAD - AG_SUBLINE - 0.5 + (AG_HEAD - 0.5)
+AG_READ_W, AG_READ_H = ag_fr("reading")[0] - 1.0, ag_fr("reading")[1] - AG_BOXHEAD - 0.5 + (AG_HEAD - 0.5)
 AG_HIST_YA = 21.0                    # v11: the timeline's line under the block's top, mm (v9 23)
 AG_ST_LW = 76.0                      # ag1_stream: the left column (headline, key), mm
 AG_ST_RW = 60.0                      # ag1_stream: room after the bars for the through-the-store lines, mm (v8 57)
 AG_DBOX = {}                         # v8 (G3): crop id -> drawing boxes (page mm y up), page 1
 PRIORITY =[(1, "stream: summer strip"), (2, "on-site planting, on the strip's water"), (3, "farms outside the site")]
 AG_STEP_MM = 4.0                     # the flow-step marker's least size (marker.py), mm
+AG_STEP_HUE = {1: ("WAT", 1), 2: ("GRN", 1), 3: ("AGR", 1)}   # v15 (round 9 f2, G9-6): a step's marker colour from
+#                                      the hue table by what it is (1 the stream, 2 the on-site planting, 3 the farms; was
+#                                      C["accent"] 8B3A3F for all)
+AG_BADGES = [0]                      # v15: S1 badge items exported this press (log line centre p18)
 
 
 def ag_heading(pg, text, x, top):
@@ -4571,7 +4639,7 @@ def _ag_grp(kind, eid):
     return contextlib.nullcontext()
 
 
-def ag_export_block(ix, pg, did, prio, x0, top, W, H, cut=0.0, page=None):
+def ag_export_block(ix, pg, did, prio, x0, top, W, H, cut=0.0, page=None, frame=None, head_id=None):
     """v10 (round 5 S9, G-R5-12, P21.1): one v9 booklet block (x0..x0 + W, top - H..top, page mm y up, as drawn by its
     v9 function into the recorder pg) -> one chart drawing `did` (units mm, no scale bar, priority = reading order,
     group = did) with every shape; every text as a label anchored where v9 set it; the heading and note as text items
@@ -4579,13 +4647,25 @@ def ag_export_block(ix, pg, did, prio, x0, top, W, H, cut=0.0, page=None):
     inside them). cut: mm of the empty heading band left off the top (the heading is its own item now).
     v11 (round 6, G6-9): the shapes go out as one layer per run of the same element, named "kind/element", inside
     ix_group(kind, element) (a shape with no tag = AG_TAG0: kind annotations, element = the block id); page = the
-    booklet page (default AG_PAGE)."""
+    booklet page (default AG_PAGE).
+    v15 (round 9 Part SM): frame = the block's R9_FRAMES key (on the drawing, + one "frame size" log line, a FLAG line
+    when the drawing is larger than its frame); head_id = the heading's id (default did + "_head"); the recorder's
+    markers go out as S1 badge items (ix.badge, PLAN §cause c1)."""
     pid = page or AG_PAGE
     D = ix.drawing(did, pid, (x0 - 0.5, top - H - 0.5, x0 + W + 0.5, top - cut), units="mm", dkind="chart",
-                   scale_bar=False, priority=prio, group=did)
+                   scale_bar=False, priority=prio, group=did, frame=frame)
+    wh = r9_wh(frame) if (frame and "r9_wh" in globals()) else None
+    if wh:                                        # v15 (round 9): one "frame size" line per F / C / T block
+        dh = H + 0.5 - cut
+        LOG_NOTES.append(u"frame size %s %dx%d (%s: drawing %.1f x %.1f mm + box head %.1f mm)" % (
+            did, round(wh[0]), round(wh[1]), frame, W + 1.0, dh, wh[1] - dh))
+        if W + 1.0 > wh[0] + 0.05 or dh > wh[1] + 0.05:
+            LOG_NOTES.append(u"FLAG frame size %s: the drawing (%.1f x %.1f mm) is larger than its frame %s (%dx%d): "
+                             u"its words need the room; the booklet shrinks it" % (
+                                 did, W + 1.0, dh, frame, round(wh[0]), round(wh[1])))
     for i, t in enumerate(pg.heads):              # v12 (L6, one box per drawing): heading + subtitle carry drawing=D
         ix.text(pid, t, "heading", drawing=D["id"], group=did, priority=prio,
-                id=did + "_head" + ("_%d" % (i + 1) if i else ""))
+                id=(head_id or did + "_head") + ("_%d" % (i + 1) if i else ""))
     for i, t in enumerate(pg.notes):              # the one line under the heading = the box's subtitle (caption, 1)
         ix.text(pid, t, "caption", drawing=D["id"], group=did, priority=1,
                 id=did + "_note" + ("_%d" % (i + 1) if i else ""))
@@ -4595,6 +4675,9 @@ def ag_export_block(ix, pg, did, prio, x0, top, W, H, cut=0.0, page=None):
             ix.text(pid, s[1], "badge" if bg else "label", drawing=D["id"], at=(s[2], s[3]), size_pt=s[4] / IX_PT,
                     bold=s[6], colour=s[5], positions=["=" + s[7]] + ([] if bg else list(s[8] or AG_COMPASS)),
                     group=did, priority=5)
+    for b in getattr(pg, "badges", ()):           # v15 (round 9 S1, c1): a step marker = ONE badge item (disc + digit)
+        ix.badge(pid, b, drawing=D["id"], at=b["at"], group=did, priority=5)
+        AG_BADGES[0] += 1
     runs = []                                      # [(kind, element, [shapes])], draw order kept
     for sh, tg in zip(pg.shapes, pg.gs):
         if sh[0] == "text":
@@ -4620,8 +4703,10 @@ def chip(pg, x, y, n, label, size=7.5):
     """v3: a numbered step, the label after it (baseline y). Returns x after it. v9 (round 4, G-R4-7): the marker is
     the shared marker.py mk_marker (glyph centred on its ink box, 7 pt, at least AG_STEP_MM across, accent)."""
     s = AG_STEP_MM
-    sh, _box, r = mk_marker(x + s / 2.0, y + 1.1, str(n), C["accent"], size_pt=7.0, r_min=s / 2.0)
-    _ag_put(pg, sh, "badge")                    # v12 (L6): the digit is a badge item (never moved off its disc)
+    hc = AG_STEP_HUE.get(n, ("CTX", 1))          # v15 (round 9 f2): the step's colour from the table (was C["accent"])
+    sh, _box, r = mk_marker(x + s / 2.0, y + 1.1, str(n), _hu(*hc), size_pt=7.0, r_min=s / 2.0)
+    pg.marker(sh)                               # v15 (round 9 S1, c1): disc + digit = one S1 badge item (v12: the
+                                                # digit a left-baseline "badge" text)
     lx = x + s / 2.0 + r + 1.2
     pg.text(label, lx, y, size, C["ink"])
     return lx + text_w(label, size)
@@ -4659,7 +4744,7 @@ def pc(v):
     return "0 %" if abs(v) < 0.005 else "%+.0f %%" % (100.0 * v)
 
 
-def ag_stream_block(pg, L, src, x0, top, hl):
+def ag_stream_block(pg, L, src, x0, top, hl, pt, xt, tt):
     """v3 (Aras 27 Oct 17:35, Prompt 6 task 1: "the board sends LESS water to farms in a 1-in-5 dry year than storage
     holds ... show the defence ON the board"): the priority as numbered steps; the design store through a normal and the
     1-in-5 dry water year, two stacked bars on one scale: strip (it also waters the bed planting: the model has no draw
@@ -4671,20 +4756,23 @@ def ag_stream_block(pg, L, src, x0, top, hl):
     ag1_headline) and the bars' key; the right column the steps, the two bars and the squeeze.
     v9 (round 4, P19.1): booklet p19 group 2's first block: the group heading "HOW MUCH WATER REACHES THE FARMS"
     (was the title "THE STREAM COMES FIRST") on the steps' line; the outside values never run under the row labels or
-    into the through-the-store lines. v10: drawn into an AgRec (ag_p18_items), the heading is a text item, no check."""
+    into the through-the-store lines. v10: drawn into an AgRec (ag_p18_items), the heading is a text item, no check.
+    v15 (round 9 d6, p18 rows 4-5): two items: pt gets the heading and the headline (ag1_stream_text, AG_STT_W x
+    AG_STT_H from (xt, tt)), pg the chart (ag1_stream, AG_STREAM_W x AG_STREAM_H from (x0, top)): the steps, the two
+    bars, the squeeze and the bars' key under it (one row, or two when one would pass the chart's right edge)."""
     W, H = AG_STREAM_W, AG_STREAM_H
-    xl, xr = x0, x0 + AG_ST_LW + 5.0
-    ag_heading(pg, "THE STREAM COMES FIRST", xl, top)          # v11: the v8.3 title again (SON page19)
-    pg.tag("labels", "headline")
-    pg.text(hl[0], xl, top - 11.5, 16, C["green_deep"], True)
-    yk = top - 16.0
-    pg.tgroup()                                    # the headline's line(s): one word block
-    for ln in wrap(hl[1], 7.5, AG_ST_LW):
-        pg.text(ln, xl, yk, 7.5, C["ink"])
+    xl, xr = xt, x0                                # v15: the text from xt, the chart from x0 (was x0 + AG_ST_LW + 5)
+    ag_heading(pt, "THE STREAM COMES FIRST", xl, tt)          # v11: the v8.3 title again (SON page19)
+    pt.tag("labels", "headline")
+    pt.text(hl[0], xl, tt - 4.5, 16, C["green_deep"], True)    # v15: the heading is the box head (was top - 11.5)
+    yk = tt - 8.6                                              # (v14 top - 16.0)
+    pt.tgroup()                                    # the headline's line(s): one word block
+    for ln in wrap(hl[1], 7.5, AG_STT_W - 1.0):    # v15: the 70 mm text frame (was AG_ST_LW 76)
+        pt.text(ln, xl, yk, 7.5, C["ink"])
         yk -= 3.3
-    pg.tgroup(False)
+    pt.tgroup(False)
     pg.tag("annotations", "priority_steps")
-    chips(pg, xr, top - 4.0, PRIORITY)
+    chips(pg, xr, top - 3.6, PRIORITY)             # v15: rows packed into the 40 mm chart (was top - 4.0)
     ys = L.get("year_split")
     if not (ys and "normal" in ys and "dry5" in ys):
         LOG_NOTES.append("FLAG p1: the water balance results have no year_split (water balance v4 has not run): the "
@@ -4702,10 +4790,10 @@ def ag_stream_block(pg, L, src, x0, top, hl):
     tot = dict((k, ys[k]["carried_in_m3"] + ys[k]["filled_m3"]) for k, _, _, _ in YRS)
     xb = xr + 28.0                                 # v8: the bars' origin (their labels right-aligned before it)
     BW = x0 + W - 1.0 - AG_ST_RW - 4.0 - xb        # AG_ST_RW mm for the through-the-store lines after the bars
-    BH, BP = 5.0, 9.5                              # v8: bar height, pitch (v3 6, 11)
+    BH, BP = 5.0, 9.0                              # v8: bar height, pitch (v3 6, 11); v15 pitch 9.0 (was 9.5)
     kx = BW / max(max(tot.values()), V, 1.0)
     v_t = lambda v: fmt(rnd(v, 1000 if v >= 10000 else 100))
-    b1 = top - 10.0                                # the normal bar's top; the dry bar BP under it
+    b1 = top - 8.0                                 # the normal bar's top; the dry bar BP under it (v15; was 10.0)
     for j, (k, lab, fcol, fink) in enumerate(YRS):
         d = ys[k]
         pg.tag("water", k + "_year_bar")                # v11 (G6-9): one element per year's bar and its words
@@ -4741,32 +4829,37 @@ def ag_stream_block(pg, L, src, x0, top, hl):
     if V > 0:                                      # the store size, dashed across both bars
         xv = xb + kx * V
         pg.line([(xv, b1 - BP - BH - 0.8), (xv, b1 + 0.8)], C["ink"], 0.35, (1.0, 0.7))
-    lg = yk - 1.1                                  # v8: the key in the left column, one row each
-    pg.tag("legend", "stream_key")
+    lg = top - 35.0                                # v15: the key under the squeeze, across the chart (v8-v14: the left
+    pg.tag("legend", "stream_key")                 # column, one row each); a new row when the next entry would pass
+    xx, nrow = xr, 1                               # the chart's right edge
     for kind, cols, lab in (("fill", (C["water_deep"],), "strip, also waters the bed planting"),
                             ("fill", (C["green_light"], C["green_deep"]), "farms: normal · dry year"),
                             ("fill", (C["faint"],), "left: carried on, or back to the stream after a year"),
                             ("dash", (C["ink"],), ("store size " + mk).strip())):
-        xx = xl
+        if xx > xr and xx + 4.0 * len(cols) + 0.8 + text_w(lab, 7) > x0 + W - 0.5:
+            xx, lg, nrow = xr, lg - 3.6, nrow + 1
         for c_ in cols:
             if kind == "fill":
                 pg.rect(xx, lg - 0.3, 3.5, 2.6, fill=c_); xx += 4.0
             else:
                 pg.line([(xx + 1.7, lg - 0.6), (xx + 1.7, lg + 2.6)], c_, 0.35, (1.0, 0.7)); xx += 4.0
         pg.text(lab, xx + 0.8, lg, 7, C["ink"])           # v3.1: 7 pt (was 6.5)
-        lg -= 3.6                                         # v9: 3.6 mm rows (was 3.4: the boxes kept 0.6 mm apart)
+        xx += 0.8 + text_w(lab, 7) + 4.0                  # v15: 4 mm to the next entry (v9 rows 3.6 mm apart)
+    if lg - 0.9 < top - H - 0.5:
+        LOG_NOTES.append("FLAG p18 ag1_stream: the bars' key needs %d rows and ends %.1f mm under the chart's frame "
+                         "(p18.5)" % (nrow, (top - H - 0.5) - (lg - 0.9)))
     a, b, c = squeeze(ys)
     pg.tag("labels", "squeeze")
     pg.tgroup()                                    # v9: the squeeze and what it means: one word block
     pg.text("1-in-5 dry year vs normal year: left for farms after the strip %s · need per hectare %s · hectares %s %s" % (
-        pc(a), pc(b), pc(c), mk), xr, top - 32.0, 7.5, C["accent"], True)
+        pc(a), pc(b), pc(c), mk), xr, top - 28.0, 7.5, C["accent"], True)      # v15: was top - 32.0
     if b > 0.0 and a <= 0.0:                       # what the run shows, said as it is (the log flags the other cases)
         t2 = "so the hectares fall faster than the volume: why deficit-irrigated %s is the lever" % name_lc("olive")
     elif b > 0.0 and c < 0.0:
         t2 = "the need per hectare outgrows the water left: why deficit-irrigated %s is the lever" % name_lc("olive")
     else:
         t2 = "the hectares hold in this dry year: the store covers it"
-    pg.text(t2, xr, top - 35.6, 7.5, C["ink"])
+    pg.text(t2, xr, top - 31.4, 7.5, C["ink"])                    # v15: was top - 35.6
     pg.tgroup(False)
     if a > 0.0 or b <= 0.0:
         LOG_NOTES.append("MODEL p1: the dry year (%s) leaves the farms %s water after the strip and needs %s per hectare: "
@@ -4816,29 +4909,35 @@ def ag_p18_items(ix, L, src):
     AG_DBOX.clear()
     CUR_PAGE[0] = AG_PAGE
     cut = AG_HEAD - 0.5                            # v10: the heading band is empty now (heading = its own item)
-    pg = AgRec()
-    ag_stream_block(pg, L, src, 14.0, 262.0, (hl[0], hl[1].strip()))
-    ag_export_block(ix, pg, "ag1_stream", 2, 14.0, 262.0, AG_STREAM_W, AG_STREAM_H, 0.0)   # its steps sit in the band
+    pg, pt = AgRec(), AgRec()                     # v15 (round 9 d6, p18 rows 4-5): the text and the chart apart
+    ag_stream_block(pg, L, src, 90.0, 262.0, (hl[0], hl[1].strip()), pt, 14.0, 262.0)
+    ag_export_block(ix, pt, "ag1_stream_text", 2, 14.0, 262.0, AG_STT_W, AG_STT_H, 0.0, frame=AG_FR["stream_text"],
+                    head_id="ag1_stream_head")    # the heading keeps its id, now on the text item (p18.4)
+    ag_export_block(ix, pg, "ag1_stream", 2, 90.0, 262.0, AG_STREAM_W, AG_STREAM_H, 0.0, frame=AG_FR["stream"])
     pg = AgRec()
     ag_bars_block(pg, 14.0, 212.0, rows, vals, fed, MIX)
-    ag_export_block(ix, pg, "ag1_bars", 3, 14.0, 212.0, AG_BARS_W, AG_BARS_H, 0.0)
+    ag_export_block(ix, pg, "ag1_bars", 3, 14.0, 212.0, AG_BARS_W, AG_BARS_H, 0.0, frame=AG_FR["bars"])
     ix.text(AG_PAGE, "Hectares one storage irrigates, by crop", "heading", drawing="ag1_bars", group="ag1_bars",
             priority=3, id="ag1_bars_caption")   # v12 (L6): the box's title (heading, drawing=D); id unchanged                 # v8.3 AG_CAPTIONS (the block has no heading)
     best = [q for q in vals if q[1] == "olive" and q[6] and q[2] == "dry"][0]     # v2: olive with deficit (not by its label)
     worst = max((q for q in vals if q[1] not in ("olive", "mix") and q[2] == "dry"), key=lambda q: q[3])     # the thirstiest field crop
     pg = AgRec()
     ag_context_block(pg, 14.0 + AG_BARS_W + 4.0, 212.0)
-    ag_export_block(ix, pg, "ag1_context", 4, 14.0 + AG_BARS_W + 4.0, 212.0, AG_CTX_W, AG_CTX_H, cut)
+    ag_export_block(ix, pg, "ag1_context", 4, 14.0 + AG_BARS_W + 4.0, 212.0, AG_CTX_W, AG_CTX_H, cut,
+                    frame=AG_FR["context"])
     pg = AgRec()
     ag_reading_block(pg, 14.0, 136.0, best, worst)
-    ag_export_block(ix, pg, "ag1_reading", 5, 14.0, 136.0, AG_READ_W, AG_READ_H, cut)
+    ag_export_block(ix, pg, "ag1_reading", 5, 14.0, 136.0, AG_READ_W, AG_READ_H, cut, frame=AG_FR["reading"])
     ix.text(AG_PAGE, "Same storage: how much more land", "heading", drawing="ag1_reading", group="ag1_reading",
             priority=5, id="ag1_reading_caption")   # v12 (L6): the box's title; id unchanged              # v8.3 AG_CAPTIONS
     pg = AgRec()
     history_line(pg, 146.0, 136.0, AG_HIST_W, AG_HIST_H)      # v1.6: why the stored water goes to farms
-    ag_export_block(ix, pg, "ag1_history", 6, 146.0, 136.0, AG_HIST_W, AG_HIST_H, cut)
+    ag_export_block(ix, pg, "ag1_history", 6, 146.0, 136.0, AG_HIST_W, AG_HIST_H, cut, frame=AG_FR["history"])
     ix.text(AG_PAGE, "THE CROPS", "heading", group="ag1_crops", priority=7, id="ag1_crops_head")   # v8.3 crop_row title
     ag_crops_items(ix, 7, "ag1_crops")                        # v2 (Prompt 5): the crops as photos
+    wh_ = (r9_wh("p18.10") if "r9_wh" in globals() else None) or (130.0, 42.0)
+    LOG_NOTES.append("frame size ag1_crops %dx%d (p18.10: photo items, the booklet sizes the cells; unchanged)" % (
+        round(wh_[0]), round(wh_[1])))
     hue_log(AG_PAGE, LOG_NOTES)                              # v13 (G7-4): the table's own log call (was the line by hand)
 
 
@@ -4859,7 +4958,10 @@ def ag_bars_block(pg, x0, top, rows, vals, fed, MIX):
     # lines 3.2 / 3.0 mm apart (were 2.7 / 2.5: SON pairs "Olive (Zeytin), full irrigation" x its source marks)
     pg.tag("annotations", "bars_grid")
     y0 = top - 6.0                                   # the first row's top; the top line (farms we feed) above it
-    RP = min(AG_BAR_RP, (y0 - (top - H + 4.5) - BO - BH) / max(n - 1, 1))
+    RP = (y0 - (top - H + 4.5) - BO - BH) / max(n - 1, 1)   # v15 (round 9 d5, C): the rows share the plot height
+    k_ = min(1.4, max(1.0, RP / AG_BAR_RP))          # (v14 capped at AG_BAR_RP 9.3); the bars thicken with the row,
+    BH, BO = AG_BAR_H * k_, AG_BAR_O * k_            # up to 1.4 x
+    RP = (y0 - (top - H + 4.5) - BO - BH) / max(n - 1, 1)
     yb_ = y0 - (n - 1) * RP - BO - BH                # the last row's dry bar bottom (= the grid's foot)
     texts = []                                       # per row: (name, need line, area line or None)
     for i, (lab, crop, d) in enumerate(rows):
@@ -4939,7 +5041,8 @@ def ag_context_block(pg, x0, top):
     ag_heading(pg, "WHY CROP CHOICE IS THE LEVER", x0, top)
     pg.tag("annotations", "context_tiles")
     AG_DBOX["ag1_context"] = []
-    tiles(pg, x0, top - AG_HEAD - 1.5, W, CONTEXT, cols=2, s=0.9, boxes=AG_DBOX["ag1_context"])   # v12 (L6): no layout check
+    tiles(pg, x0, top - AG_HEAD - 1.5, W, CONTEXT, cols=2, s=0.9, boxes=AG_DBOX["ag1_context"],   # v12 (L6): no layout check
+          h=H - AG_HEAD - 2.5)                # v15 (round 9, BRIEF p18): the 2 x 2 tiles on a grid over the frame
 
 
 def ag_reading_block(pg, x0, top, best, worst):
@@ -4954,7 +5057,9 @@ def ag_reading_block(pg, x0, top, best, worst):
     rt = "%.1f-%.1f x" % (lo, hi)
     st = top - AG_HEAD                               # under the heading band
     gy = top - H + 2.0                               # the squares stand on one line
-    a = min(11.0, (st - 0.5 - gy) / math.sqrt(max(hi, 1.0)))   # 1 unit of land (a drawing size, not printed)
+    a = min((st - 0.5 - gy) / math.sqrt(max(hi, 1.0)),         # 1 unit of land (a drawing size, not printed);
+            (W - 59.0) / (1.0 + math.sqrt(max(hi, 0.0))))      # v15: as tall as the block allows, 50 mm kept for the
+    #                                                            words beside the squares (v14 at most 11 mm)
     xs = x0
     s_lo, s_hi = a * math.sqrt(max(lo, 0.0)), a * math.sqrt(max(hi, 0.0))
     xo = xs + a + 3.0
@@ -5365,10 +5470,34 @@ STEPS[3].update(sub="hub squares at the bridges · Demeter's Garden at K5", job=
                 plant=[("plane", "hub squares: Ottoman squares with plane trees")] + STEPS[3]["plant"] +
                       [("olive", "Demeter's Garden (K5): dry top only, no waterlogged soil")])
 
-LAD_W = 200.0                        # sketch units across: 5 steps of 40
+# v15 (round 9 Part SM, PLAN §cause d6; BRIEF §5 p17 "Cuts grow to the full width right of the text"): each season row
+# is two items at its R9 frames, the text (p17.2 / .4 / .6, 64 mm) and the cut (p17.3 / .5 / .7, 326 x 45 / 47 / 46).
+# The cut keeps one mm-per-unit across and up (never stretched): the cut's content (sketch y LAD_GB 13 up to the bank
+# top's plane tree at 41 = AG3_CUT_UP 28 units) in the lowest frame's height less 5 mm (2.5 under, 2.5 over), and the
+# ground runs on to the frame's width: LAD_W = the cut's width / LAD_F (the five steps stay equal, each LAD_S; every
+# plant, person and level keeps its sketch size, the steps are wider).
+AG3_ROWS = (("p17.2", "p17.3"), ("p17.4", "p17.5"), ("p17.6", "p17.7"))   # (text frame, cut frame) a season row
+AG3_ROWS_MM = ((64.0, 45.0, 326.0, 45.0), (64.0, 47.0, 326.0, 47.0), (64.0, 46.0, 326.0, 46.0))   # = R9_FRAMES
+AG3_ROW_GAP = 2.0                    # mm between two rows (the R9 frames' gutter)
+AG3_CUT_UP = 28.0                    # sketch units the cut's content stands (13 to 41)
+
+
+def ag3_row_mm(r):
+    """v15: (text w, text h, cut w, cut h) mm of season row r from R9_FRAMES (AG3_ROWS_MM when a key is missing)"""
+    t = r9_wh(AG3_ROWS[r][0]) if "r9_wh" in globals() else None
+    c = r9_wh(AG3_ROWS[r][1]) if "r9_wh" in globals() else None
+    d = AG3_ROWS_MM[r]
+    t, c = t or d[:2], c or d[2:]
+    return t[0], t[1], c[0], c[1]
+
+
+AG3_CUT_W = ag3_row_mm(0)[2] - 1.0   # the cut drawing's W (its window = the frame's width)
+AG3_CUT_MM = min(ag3_row_mm(r)[3] for r in range(3)) - 5.0   # mm the content may stand (40 in the 45 mm frame)
+LAD_X0 = 80.5                        # the cut's left edge, mm (v14 106: the season column is its own item now)
+LAD_X1 = LAD_X0 + AG3_CUT_W
+LAD_F = min(AG3_CUT_W / 200.0, AG3_CUT_MM / AG3_CUT_UP)   # mm a sketch unit, the same across and up (v14 1.5)
+LAD_W = AG3_CUT_W / LAD_F            # sketch units across (v14 200: 5 steps of 40; 227.5 at 326 x 45)
 LAD_S = LAD_W / 5.0
-LAD_X0, LAD_X1 = 106.0, 406.0        # the cut, mm (left of it: the season column)
-LAD_F = (LAD_X1 - LAD_X0) / LAD_W    # mm a sketch unit, the same across and up
 LAD_GB = 13.0                        # v11: the bottom of the cut ground, sketch units (28 Oct 12; 1 unit under the
 #                                      channel's foot at 14, so the row is 3 mm lower and the band frames fit)
 LAD_GY = (16.0, 21.0, 26.0, 30.0, 33.0)   # ground of each step (bed, lower bank, terrace, bank top, farms)
@@ -5390,7 +5519,13 @@ PH_GAP = 2.0                         # mm between two photos side by side (28 Oc
 AG3_PH_H = 13.0
 # v14 (round 8, BRIEF p17 row 8, 14,204 66 x 75): the notes column left of the bands: lines wrap at AG3_NOTES_W,
 # the block is exported AG3_NOTES_BW wide (was LAD_X0 - 18 = 88 mm wrap, 87 mm block)
-AG3_NOTES_W, AG3_NOTES_BW = 64.0, 66.0
+# v15 (round 9, R9_FRAMES p17.8 T 60 x 83, p17.9 F 330 x 83; v14 64 / 66): the notes column wraps at 58 mm in a 60 mm item; the
+# bands (photos + symbols) span 330 mm in five equal columns, one under each step of the cuts above
+_AG3_N = (r9_wh("p17.8") if "r9_wh" in globals() else None) or (60.0, 83.0)
+_AG3_B = (r9_wh("p17.9") if "r9_wh" in globals() else None) or (330.0, 83.0)
+AG3_NOTES_BW, AG3_NOTES_H = _AG3_N[0] - 1.0, _AG3_N[1] - 0.5
+AG3_NOTES_W = AG3_NOTES_BW - 1.0
+AG3_BAND_X0, AG3_BAND_W, AG3_BAND_H = 76.5, _AG3_B[0] - 1.0, _AG3_B[1] - 0.5
 
 
 def name_lines(key, mark, size, w, bold=True):
@@ -5693,11 +5828,11 @@ def ag3_bands(pg, top, pn=None):
     booklet frame "ag3_note*"), the bands + photos stay in pg. Returns (lowest y of pg, lowest y of pn)."""
     pn = pn or pg
     yt = top - 3.0
-    w = LAD_S * LAD_F
+    w = AG3_BAND_W / 5.0                             # v15: five equal columns over the 330 mm frame (was LAD_S * LAD_F)
     per = 2 if 2 * PHOTO_W + PH_GAP <= w - 2.0 else 1
     lowest = yt
     for i, st in enumerate(STEPS):
-        xa = LAD_X0 + i * w + 1.0
+        xa = AG3_BAND_X0 + i * w + 1.0               # v15 (was LAD_X0 + i * w + 1)
         el = "band_" + st["name"].lower().replace(" ", "_")
         pg.tag("labels", el)
         y = yt
@@ -5813,27 +5948,40 @@ def ag_p17_items(ix):
     hue_log(AG3_PAGE, LOG_NOTES)                     # v13 (G7-4): the table's own log call (was the line by hand)
     pg = AgRec()
     y_chain = chain_strip(pg, 264.0)
-    ag_export_block(ix, pg, AG3_ID["chain"], 1, 13.0, 270.0, 394.0, 270.0 - (y_chain - 1.0), 0.0, page=AG3_PAGE)
-    top = y_chain - 2.0
+    fc = (r9_wh("p17.1") if "r9_wh" in globals() else None) or (392.0, 22.0)
+    hc = max(fc[1] - 0.5, 270.0 - (y_chain - 1.0))   # v15: at its frame p17.1 (taller only when its words need it)
+    ag_export_block(ix, pg, AG3_ID["chain"], 1, 14.5, 270.0, fc[0] - 1.0, hc, 0.0, page=AG3_PAGE, frame="p17.1")
+    T_ = 270.0 - hc - 0.5 - AG3_ROW_GAP
     for r, sea in enumerate(seasons()):
-        T_, B = top - r * ROW_H, top - (r + 1) * ROW_H
+        tw_, th_, cw_, ch_ = ag3_row_mm(r)           # v15: the row at its R9 frames (v14 ROW_H 47 each, one item)
+        H_ = ch_ - 0.5
+        B = T_ - H_
         y0 = B + 2.0 - LAD_GB * LAD_F                # page y of the sketch's 0
         mark = ((19.0 - LAD_X0) / LAD_F, (T_ - 6.0 - y0) / LAD_F)
-        pg = AgRec()
+        pg, pt = AgRec(), AgRec()                    # v15: the cut and the season's text, one item a frame
         for it, (kind, eid) in ladder_row(sea, mark):
-            pg.tag(kind, eid)
-            sk_draw(pg, xform([it], LAD_F, LAD_X0, y0))
-        pg.tag("labels", "season_column")
+            q_ = pt if eid == "season_mark" else pg  # the sun / rain mark stays in the text column (page x 19)
+            q_.tag(kind, eid)
+            sk_draw(q_, xform([it], LAD_F, LAD_X0, y0))
+        pt.tag("labels", "season_column")
         if sea["mark"] == "olive":
-            _ag_icon(pg, "olive", 14.0, T_ - 1.5, 9.0)
-        pg.text(sea["name"], 26.0, T_ - 8.0, 12, C["ink"], True)
-        pg.text(sea["months"], 26.0, T_ - 13.0, 9, _hu("WAT", 1), True)
-        y = T_ - 18.5
+            _ag_icon(pt, "olive", 14.0, T_ - 1.5, 9.0)
+        xw = 13.0 + tw_ - 1.0 - 26.0                 # v15: the text column's wrap from x 26 (50 mm; was LAD_X0 - 30)
+        yn = T_ - 8.0
+        for q in wrap(sea["name"], 12, xw, True):    # v15: the name wraps in the 64 mm column
+            pt.text(q, 26.0, yn, 12, C["ink"], True)
+            yn -= 12 * IX_PT * 1.2
+        y = yn + 12 * IX_PT * 1.2 - 5.0
+        pt.text(sea["months"], 26.0, y, 9, _hu("WAT", 1), True)
+        y -= 5.5
         for t, ref in sea["side"]:
             mk = cite(ref) if ref else ""
-            for q in wrap(t + ((" " + mk) if mk else ""), 7.5, LAD_X0 - 30.0):
-                pg.text(q, 26.0, y, 7.5, C["ink"])
+            for q in wrap(t + ((" " + mk) if mk else ""), 7.5, xw):
+                pt.text(q, 26.0, y, 7.5, C["ink"])
                 y -= 3.2
+        if y + 3.2 - 1.0 < T_ - th_:
+            LOG_NOTES.append("FLAG p17 %s_text: the season's lines end %.1f mm under its frame %s" % (
+                AG3_ID[sea["key"]], (T_ - th_) - (y + 3.2 - 1.0), AG3_ROWS[r][0]))
         Y = lambda v: y0 + v * LAD_F
         X = lambda v: LAD_X0 + v * LAD_F
         fl = _hu("WAT", 1)
@@ -5865,15 +6013,18 @@ def ag_p17_items(ix):
                         positions=("N", "NE", "NW", "E", "W") if al == "C" else
                         (("NE", "E", "N") if al == "L" else ("NW", "W", "N")))
         did = AG3_ID[sea["key"]]
-        ag_export_block(ix, pg, did, 2 + r, 13.0, T_, 394.0, ROW_H, 0.0, page=AG3_PAGE)
+        ag_export_block(ix, pt, did + "_text", 2 + r, 13.5, T_, tw_ - 1.0, th_ - 0.5, 0.0, page=AG3_PAGE,
+                        frame=AG3_ROWS[r][0])        # v15: NEW item ag3_ladder_<season>_text (p17.2 / .4 / .6)
+        ag_export_block(ix, pg, did, 2 + r, LAD_X0, T_, cw_ - 1.0, H_, 0.0, page=AG3_PAGE, frame=AG3_ROWS[r][1])
         LOG_NOTES.append("section p17 %s SKETCH" % did.replace("ag3_", ""))
-    bot = top - 3 * ROW_H
+        T_ = B - 0.5 - AG3_ROW_GAP
+    bot = T_                                     # v15: one gutter under the last row (was top - 3 * ROW_H)
     pg, pn = AgRec(), AgRec()
     low, low_n = ag3_bands(pg, bot, pn)
-    bx = LAD_X0 - 2.0                            # v11: bands + photos from the cut's left edge; the notes left of it
-    ag_export_block(ix, pg, AG3_ID["bands"], 5, bx, bot, 13.0 + 394.0 - bx, bot - (low - 1.0), 0.0, page=AG3_PAGE)
-    ag_export_block(ix, pn, AG3_ID["notes"], 6, 13.0, bot, AG3_NOTES_BW, bot - (low_n - 1.0), 0.0,  # v14: 66 mm
-                    page=AG3_PAGE)                # (was bx - 4 - 13 = 87; BRIEF p17 row 8)
+    hb = max(AG3_BAND_H, bot - (low - 1.0))      # v15: bands 330 x 83 (p17.9), notes 60 x 83 (p17.8), each taller
+    hn = max(AG3_NOTES_H, bot - (low_n - 1.0))   # only when its words need it (then a FLAG frame size line)
+    ag_export_block(ix, pg, AG3_ID["bands"], 5, AG3_BAND_X0, bot, AG3_BAND_W, hb, 0.0, page=AG3_PAGE, frame="p17.9")
+    ag_export_block(ix, pn, AG3_ID["notes"], 6, 13.5, bot, AG3_NOTES_BW, hn, 0.0, page=AG3_PAGE, frame="p17.8")
     LOG_NOTES.append("trees p17 species=%d generic=%d" % tuple(AG3_TREES))
     for key, why in AG3_NOPHOTO:
         ix.warn(AG3_PAGE, "photo", u"no photo for %s (%s): its box is left out, the name is under the band" % (
@@ -5940,6 +6091,7 @@ def ag_items():
     PHOTO_GOT.clear(); PHOTO_STATE.clear(); del PHOTO_LOG[:]   # v2: the plant photos, read once a press
     PHOTO_N[0] = PHOTO_N[1] = 0
     del SRC_KEY[:], LOG_NOTES[:]                   # v1.6: one source numbering for the whole script
+    AG_BADGES[0] = 0
     SRC_PAGE.clear()
     ix = Ix(AG_FOLDER, "bergama_agriculture_alternatives", VERSION)
     for pid, fn in ((AG3_PAGE, lambda: ag_p17_items(ix)), (AG_PAGE, lambda: ag_p18_items(ix, L, src))):
@@ -5950,6 +6102,10 @@ def ag_items():
     farm_lines = ag_farms_items(ix, L, src)
     for i, k in enumerate(SRC_KEY):                # v1.6's numbered key, now the booklet's Sources rows
         ix.source(AG_SRC % (i + 1), k, None, page=SRC_PAGE.get(k, AG_PAGE))   # v11: on its first page
+    LOG_NOTES.append("centre p18 badges n=%d (step markers as S1 badge items: disc + digit, colours from the table)"
+                     % AG_BADGES[0])               # v15 (round 9 S1, c1)
+    LOG_NOTES.append("names p18 ag2_farms n=0 (the farms map draws no place names; it has no R9 frame)")   # v15 (g1)
+    LOG_NOTES.extend(R9_LOG)                       # v15: frames_r9 FLAG lines (a missing frame key)
     ix.save()
     return ix, L, src, farm_lines
 
