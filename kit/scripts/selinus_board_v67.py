@@ -27038,6 +27038,16 @@ BASEMAP_FORMAT = 2               # round 5 (S2): 2 = buildings carry "fabric" an
 BASEMAP_FORMATS_READ = (1, 2)    # a format 1 file (written before round 5) still reads: key maps then draw one house
 #                                  tone and log a FLAG until the site board has written format 2
 BASEMAP_MARGIN = 250.0           # m: the extent reaches this far beyond the farthest REACH place
+# round 9 (MainBoard v67, PLAN §spec S3, A1 C3 (4), H3 §3): the margin PER AXIS of the analysis frame (u along the
+# stream, v across), so every map window lies inside: p08 key map u +-2.28 km, p21 key map v +-2.2 km, p06/p07 maps
+# about 3.7 km along u, p19 north-up about 3.7 x 3.7 km (writer estimates, H3 §3 / PAGE_TABLE). Extent = frame +
+# REACH + these: u -2,422..2,422 m, v -2,436..2,273 m about the frame centre (my arithmetic on SITE_FRAME_LK and
+# BASEMAP_REACH). WorldCover and GLO-30 (Part D) cover it whole; OpenStreetMap stops at lat 39.145 (its top-left
+# corner beyond is logged where the data ends). Only the site board writes the basemap, so only it reads these.
+BASEMAP_MARGIN_UV = (1000.0, 1500.0)
+BM_DEM_FILE = u"bergama_dem_glo30.json"   # round 9 (Q2): Copernicus GLO-30 in Data/ (Part D widened it, same schema)
+BM_DEM_STEP = 5.0                # m: contours beyond the frame every 5 m, a 10 m line major (the survey contours' rule)
+BM_DEM_MIN_LOOP_M = 120.0        # m: a closed GLO-30 loop shorter than this is a house or a crown (DSM), not terrain (design value)
 # the places the extent must hold (survey m; the heritage loop's positions, selinus_board parts/15j_r28_heritage.py)
 BASEMAP_REACH = ((u"Asklepion", (29077.3, 31867.3)),          # OSM ticket building
                  (u"Akropol", (30209.0, 33177.0)),            # Trajaneum, OSM way 1410335587
@@ -28089,6 +28099,88 @@ def _bm_clip_rect(P, closed, r):
     return runs
 
 
+def _bm_dem_contours(ex, fr, loc, outside_line, log):
+    """v67 (round 9, PLAN §Q Q2, §spec S3 layer i; SITE BOARD ONLY): contours of Copernicus GLO-30
+    (Data/bergama_dem_glo30.json: "rows" x "cols" points [x, y, z] in survey m, row-major, the lattice Part D wrote)
+    every BM_DEM_STEP m, by marching squares on its cells (a saddle decided by the cell's mean), kept only BEYOND the
+    analysis frame and inside the extent (outside_line; ex / fr frame-local), simplified to 1 m. major = a 10 m line
+    (the survey contours' rule, r28e_contours). Returns ([[major, z, P], ...], the DEM's bbox survey m or None); a
+    file that cannot be read gives ([], None) and a FLAG line."""
+    p = _bm_os.path.join(globals().get("DATA_DIR") or _bm_os.path.join(_bm_os.path.expanduser("~"), "Downloads",
+                                                                      "Bergama", "Data"), BM_DEM_FILE)
+    try:
+        with open(p, "r", encoding="utf-8") as fh:
+            d = _bm_json.load(fh)
+        R, C, pts = int(d["rows"]), int(d["cols"]), d["pts"]
+        if R < 2 or C < 2 or len(pts) < R * C:
+            raise ValueError(u"grid %d x %d with %d points" % (R, C, len(pts)))
+    except Exception as ex_:
+        log.append(u"FLAG basemap contours_out: {} not read ({}): no terrain beyond the analysis frame".format(p, ex_))
+        return [], None
+    bb = (min(q[0] for q in pts), min(q[1] for q in pts), max(q[0] for q in pts), max(q[1] for q in pts))
+    LP = [loc(q) for q in pts]
+    st = float(BM_DEM_STEP)
+    # the four edges of a cell by corner position (0 = r c, 1 = r c+1, 2 = r+1 c+1, 3 = r+1 c), lower index first
+    E_C = ((0, 1), (1, 2), (3, 2), (0, 3))
+    C_E = ((0, 3), (0, 1), (1, 2), (2, 3))              # the two edges beside each corner
+    segs = {}
+    for r in range(R - 1):
+        for c in range(C - 1):
+            ix = (r * C + c, r * C + c + 1, (r + 1) * C + c + 1, (r + 1) * C + c)
+            us = [LP[i][0] for i in ix]
+            vs = [LP[i][1] for i in ix]
+            if max(us) < ex[0] or min(us) > ex[2] or max(vs) < ex[1] or min(vs) > ex[3]:
+                continue                                  # wholly outside the extent
+            if min(us) >= fr[0] and max(us) <= fr[2] and min(vs) >= fr[1] and max(vs) <= fr[3]:
+                continue                                  # wholly inside the frame (the survey contours are there)
+            Z = [float(pts[i][2]) for i in ix]
+            lo, hi = min(Z), max(Z)
+            k0, k1 = int(_bm_math.floor(lo / st)) + 1, int(_bm_math.floor(hi / st))
+            for k in range(k0, k1 + 1):
+                lev = k * st
+                if not (lo < lev <= hi):
+                    continue
+                s = [z >= lev for z in Z]
+                cross = [e for e, (a, b) in enumerate(E_C) if s[a] != s[b]]
+                if len(cross) == 2:
+                    pairs = [tuple(cross)]
+                elif len(cross) == 4:                     # saddle: the corners unlike the cell's mean are cut off
+                    mid = sum(Z) / 4.0 >= lev
+                    pairs = [C_E[j] for j in range(4) if s[j] != mid]
+                else:
+                    continue
+                for e0, e1 in pairs:
+                    seg = []
+                    for e in (e0, e1):
+                        a, b = ix[E_C[e][0]], ix[E_C[e][1]]
+                        za, zb = float(pts[a][2]), float(pts[b][2])
+                        t = (lev - za) / (zb - za)
+                        seg.append((pts[a][0] + (pts[b][0] - pts[a][0]) * t, pts[a][1] + (pts[b][1] - pts[a][1]) * t))
+                    segs.setdefault(k, []).append(seg)
+    chain = globals().get("chain_segments")
+    simp = globals().get("dp_simplify")
+    out, n_small = [], 0
+    for k in sorted(segs):
+        lev = k * st
+        major = abs(lev / 10.0 - round(lev / 10.0)) < 1e-6
+        lines = chain(segs[k], 0.01) if callable(chain) else segs[k]
+        for P in lines:
+            if len(P) < 2:
+                continue
+            ln = sum(_bm_math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(P, P[1:]))
+            if _bm_math.hypot(P[0][0] - P[-1][0], P[0][1] - P[-1][1]) < 0.5 and ln < BM_DEM_MIN_LOOP_M:
+                n_small += 1                              # a small closed loop: a house or a tree crown in the DSM
+                continue
+            P = simp(P, 1.0) if callable(simp) and len(P) > 2 else P
+            for run in outside_line(P):
+                if len(run) >= 2:
+                    out.append([bool(major), round(lev, 1), run])
+    log.append(u"basemap contours_out: GLO-30 {} x {} points, {:,} runs beyond the frame every {:.0f} m; {:,} closed "
+               u"loops under {:.0f} m left out (the surface model's houses and tree crowns)".format(
+                   R, C, len(out), st, n_small, BM_DEM_MIN_LOOP_M))
+    return out, bb
+
+
 def basemap_export(S, log=None):
     """SITE BOARD ONLY, once a run after the site model and its land cover are made (S = the site model; S.osm the
     parsed OpenStreetMap file): writes BASEMAP_FILE. Inside the analysis frame the site board's own layers (the
@@ -28114,7 +28206,8 @@ def basemap_export(S, log=None):
         fr = (F.u0, F.v0, F.u1, F.v1)
         us = [loc(p)[0] for _, p in BASEMAP_REACH] + [F.u0, F.u1]
         vs = [loc(p)[1] for _, p in BASEMAP_REACH] + [F.v0, F.v1]
-        ex = (min(us) - BASEMAP_MARGIN, min(vs) - BASEMAP_MARGIN, max(us) + BASEMAP_MARGIN, max(vs) + BASEMAP_MARGIN)
+        mu_, mv_ = BASEMAP_MARGIN_UV                      # v67 (round 9, S3): the margin per axis
+        ex = (min(us) - mu_, min(vs) - mv_, max(us) + mu_, max(vs) + mv_)
         # the ring between frame and extent as four rectangles that do not overlap (frame-local)
         ring = [(ex[0], ex[1], ex[2], fr[1]), (ex[0], fr[3], ex[2], ex[3]),
                 (ex[0], fr[1], fr[0], fr[3]), (fr[2], fr[1], ex[2], fr[3])]
@@ -28141,7 +28234,10 @@ def basemap_export(S, log=None):
             return ex[0] <= u <= ex[2] and ex[1] <= v <= ex[3] and not (fr[0] <= u <= fr[2] and fr[1] <= v <= fr[3])
         L = dict(lc={}, zones=[], contours=[], street_areas=[], street_edges=[], streets_in=[], streets_out=[],
                  water=[], water_edge=[], decks=[], covered=[], water_out=[], waterways_out=[], buildings=[],
-                 bridges=[], blocks=[], study=[], names=[], street_names=[])
+                 bridges=[], blocks=[], study=[], names=[], street_names=[],
+                 contours_out=[], bridges_out=[], bridge_names=[], mahalle=[])   # v67 (round 9, S3): new keys
+        n_uns = 0                                         # v67: houses written as fabric "unsurveyed"
+        data_bb = {}                                      # v67: where each source's data ends (survey bbox)
         sn_best = {}                                      # round 4 (S2, G-R4-9 U55): street name -> longest run
         unnamed = []                                      # round 5 (S2, A11): survey names with no names-table row
 
@@ -28156,15 +28252,43 @@ def basemap_export(S, log=None):
         peds = set(globals().get("PED") or ("footway", "path", "pedestrian", "steps", "cycleway", "bridleway",
                                              "track", "corridor"))
         skip = set(globals().get("SKIP_HW") or ("proposed", "construction", "platform", "bus_stop", "elevator"))
-        ccls = lambda hw: "path" if hw in peds else ("main" if hw in mains else "lane")
-        # ---- inside the frame: the site board's layers
+        # v67 (round 9, H3 §7 item 1): main / secondary / lane / path as the p07 street classes MV_CLASS (tertiary and
+        # unclassified = "secondary"); motorway and the other MAIN_ROADS not in MV_CLASS stay "main"
+        mvc = globals().get("MV_CLASS") or {}
+        ccls = lambda hw: "path" if hw in peds else (mvc.get(hw) or ("main" if hw in mains else "lane"))
+        # ---- land cover: v67 (round 9, PLAN §cause b3, A1 C3 (1)): ONE source and one style over the WHOLE extent
+        # (no seam at the frame): every WorldCover ring of the file (S.lc_all, kept uncut by load_landcover) cut to
+        # the extent, smoothed and grouped as r28e_lc does inside the frame; the frame-cut copy only when the uncut
+        # one is missing (an old site model)
+        lca = getattr(S, "lc_all", None) or {}
         lcf = globals().get("r28e_lc")
+        sm_, gr_ = globals().get("r28e_smooth"), globals().get("r28e_groups")
+        n_lc = 0
         for key in ("trees", "farmland", "orchard", "grass", "shrub"):       # round 5 (S2): grass, shrub for key maps
-            try:
-                groups = lcf(S, key) if callable(lcf) else [[P] for P in (getattr(S, "lc", None) or {}).get(key) or []]
-            except Exception:
-                groups = [[P] for P in (getattr(S, "lc", None) or {}).get(key) or []]
+            if lca.get(key) and callable(sm_) and callable(gr_):
+                cut_ = []
+                for P in lca[key]:
+                    Q = [loc(p) for p in P]
+                    bq = _bm_bb(Q)
+                    if bq[2] < ex[0] or bq[0] > ex[2] or bq[3] < ex[1] or bq[1] > ex[3]:
+                        continue
+                    if bq[0] >= ex[0] and bq[2] <= ex[2] and bq[1] >= ex[1] and bq[3] <= ex[3]:
+                        c = list(P)
+                    else:
+                        c = _bm_clip_rect(Q, True, ex)
+                        c = [wld(q) for q in c] if c and len(c) >= 3 else None
+                    if c:
+                        cut_.append(sm_(c))
+                groups = gr_([P for P in cut_ if len(P) >= 3])
+            else:
+                try:
+                    groups = lcf(S, key) if callable(lcf) else [[P] for P in (getattr(S, "lc", None) or {}).get(key) or []]
+                except Exception:
+                    groups = [[P] for P in (getattr(S, "lc", None) or {}).get(key) or []]
             L["lc"][key] = [[_bm_r(P) for P in g if len(P) >= 3] for g in groups]
+            n_lc += sum(len(g) for g in L["lc"][key])
+        lc_whole = bool(lca) and callable(sm_) and callable(gr_)
+        # ---- inside the frame: the site board's layers
         for z in getattr(S, "zones", None) or []:
             if z["kind"] in ("green", "agri"):
                 L["zones"].append(dict(kind=z["kind"], sub=z.get("sub"), rings=[_bm_r(P) for P in z["Ps"] + z["Hs"]]))
@@ -28205,7 +28329,12 @@ def basemap_export(S, log=None):
                 L["buildings"].append(dict(rings=parts + [_bm_r(H) for H in (u.get("holes") or [])], np=len(parts),
                                            her=her, osm=u.get("src") in ("osm", "osm+label"),
                                            h=round(float(u.get("h") or 0.0), 2), floors=int(u.get("floors") or 0),
-                                           fabric=u.get("fabric") or "regular", annex=bool(u.get("annex"))))
+                                           # v67 (round 9, PLAN §cause b4, A1 C4): a house with no fabric class
+                                           # is "unsurveyed" (one neutral tone, legend "type not surveyed"),
+                                           # never Planned low-rise
+                                           fabric=u.get("fabric") or "unsurveyed", annex=bool(u.get("annex"))))
+                if not u.get("fabric"):
+                    n_uns += 1
                 if her and (u.get("name") or "").strip() and in_frame_name(u):
                     # round 5 (S2, A11): only names the names table records, in its one spelling (place_label);
                     # a survey name with no table row is left out and listed (never print an unchecked name)
@@ -28257,9 +28386,10 @@ def basemap_export(S, log=None):
                             except ValueError:
                                 lv = 0
                             L["buildings"].append(dict(rings=[_bm_r(P[:-1])], np=1, her=her, osm=True, h=0.0,
-                                                       floors=lv))
+                                                       floors=lv, fabric="unsurveyed"))   # v67 (round 9, b4)
                             L["blocks"].append(dict(rings=[_bm_r(P[:-1])], her=her))
                             n_out += 1
+                            n_uns += 1
                     continue
                 hw = tags.get("highway")
                 if hw and hw not in skip and tags.get("area") != "yes":
@@ -28267,6 +28397,9 @@ def basemap_export(S, log=None):
                     L["streets_out"].extend([ccls(hw), run] for run in runs_)
                     for run in runs_:
                         street_name(tags, run, ccls(hw))
+                    # v67 (round 9, S3 layer g, A1 C3 (3)): bridges beyond the frame where OpenStreetMap tags them
+                    if (tags.get("bridge") or "no") not in ("no", "0", "false"):
+                        L["bridges_out"].extend(runs_)
                     continue
                 ww = tags.get("waterway")
                 if ww in ("river", "stream", "canal"):
@@ -28299,8 +28432,72 @@ def basemap_export(S, log=None):
                         rs = outside_poly(c[:-1] if c[0] == c[-1] else c)
                         if rs:
                             L["zones"].append(dict(kind=k[0], sub=k[1], rings=rs))
+            # v67 (round 9, PLAN §cause b5, A1 C5, H3 §4): the mahalle layer from the same OpenStreetMap file (no new
+            # read): every boundary=administrative admin_level=8 relation ("… Mahallesi", 24 in the file), its outer
+            # ways chained into rings (10 of the 24 lack ways beyond the file's bounds: their rings stay open and
+            # are left out), the label point = the place=suburb / village node of the same name (18 suburbs), else
+            # the middle of its closed rings. Name as mapped on that node ("Atmaca"); without a node the relation
+            # name less " Mahallesi" (writer reading: the short form the suburb nodes carry)
+            nk_ = lambda s: u" ".join((s or u"").split()).lower()
+            pt_of = {}
+            for ll_, tg_ in osm.get("pois") or []:
+                if tg_.get("place") in ("suburb", "village", "neighbourhood", "quarter") and tg_.get("name"):
+                    xy_ = to_dwg(*ll_) if callable(globals().get("to_dwg")) else None
+                    if xy_:
+                        for a_ in [tg_["name"], tg_["name"] + u" Mahallesi"] + (tg_.get("alt_name") or u"").split(u";"):
+                            if a_.strip():
+                                pt_of.setdefault(nk_(a_), (tg_["name"], xy_))
+            n_mah_open = 0
+            for mem, tags in osm.get("rels") or []:
+                if tags.get("boundary") != "administrative" or tags.get("admin_level") != "8" or not tags.get("name"):
+                    continue
+                outer = []
+                for ref, role in mem:
+                    if role in ("outer", "") and ref in osm["ways"]:
+                        P = [p for p in (Pj(r) for r in osm["ways"][ref][0]) if p]
+                        if len(P) >= 2:
+                            outer.append([(p[0], p[1]) for p in P])
+                rings_ = []
+                for c in (chain(outer, 0.05) if callable(chain) else []):
+                    if len(c) >= 4 and _bm_math.hypot(c[0][0] - c[-1][0], c[0][1] - c[-1][1]) < 0.5:
+                        rings_.append(_bm_r(c[:-1]))
+                if not rings_:
+                    n_mah_open += 1
+                nm_, xy_ = pt_of.get(nk_(tags["name"]), (None, None))
+                if xy_ is None and rings_:
+                    big = max(rings_, key=lambda R_: abs(sum(a_[0] * b_[1] - b_[0] * a_[1]
+                                                             for a_, b_ in zip(R_, R_[1:] + R_[:1]))))
+                    xy_ = (sum(q[0] for q in big) / len(big), sum(q[1] for q in big) / len(big))
+                if xy_ is None or not (ex[0] <= loc(xy_)[0] <= ex[2] and ex[1] <= loc(xy_)[1] <= ex[3]):
+                    continue
+                nm_ = nm_ or tags["name"].replace(u" Mahallesi", u"").strip()
+                L["mahalle"].append([nm_, [round(xy_[0], 1), round(xy_[1], 1)], rings_])
+            if n_mah_open:
+                log.append(u"basemap mahalle: {} admin_level 8 boundaries have ways outside the OpenStreetMap file "
+                           u"(no ring; label point only where a place node names them)".format(n_mah_open))
+            if not L["mahalle"]:
+                log.append(u"FLAG basemap mahalle: no admin_level 8 boundary or place=suburb in {} inside the extent "
+                           u"[ask Aras: mahalle names source]".format(globals().get("OSM_PATH") or u"the OSM file"))
+            # where the OpenStreetMap data ends (its nodes' bbox, survey m): the maps log it as "data ends"
+            try:
+                lon_ = [v_[0] for v_ in osm["nodes"].values()]
+                lat_ = [v_[1] for v_ in osm["nodes"].values()]
+                q_ = [to_dwg(a_, b_) for a_ in (min(lon_), max(lon_)) for b_ in (min(lat_), max(lat_))]
+                data_bb["osm"] = [round(min(q[0] for q in q_), 1), round(min(q[1] for q in q_), 1),
+                                  round(max(q[0] for q in q_), 1), round(max(q[1] for q in q_), 1)]
+            except Exception:
+                pass
         else:
             log.append(u"WARNING: shared basemap: no OpenStreetMap in the site model, so it ends at the analysis frame.")
+        # v67 (round 9, S3 layer g): the six bridges' names (names table spelling) at their middles (BRIDGES_K)
+        for k_, n_, x_, y_ in globals().get("BRIDGES_K") or []:
+            L["bridge_names"].append([n_, [round(x_, 1), round(y_, 1)], k_])
+        # v67 (round 9, PLAN §Q Q2, S3 layer i): terrain beyond the frame from Copernicus GLO-30 (Data/)
+        L["contours_out"], dem_bb = _bm_dem_contours(ex, fr, loc, outside_line, log)
+        if dem_bb:
+            data_bb["dem"] = [round(v_, 1) for v_ in dem_bb]
+        if getattr(S, "lc_bbox", None):
+            data_bb["lc"] = [round(v_, 1) for v_ in S.lc_bbox]
         stl = globals().get("street_label")               # round 5 (S2): the table's spelling where it has the street
         for nm_, (Ln, cl, P) in sn_best.items():           # the label point: the run's middle, along its direction
             half, acc = Ln / 2.0, 0.0
@@ -28320,9 +28517,12 @@ def basemap_export(S, log=None):
                    frame=_bm_r(globals().get("SITE_FRAME_LK") or [wld(q) for q in ((fr[0], fr[1]), (fr[2], fr[1]),
                                                                                     (fr[2], fr[3]), (fr[0], fr[3]))]),
                    extent=corners(ex), reach=[[n, list(p)] for n, p in BASEMAP_REACH], layers=L,
+                   data=data_bb,                          # v67 (round 9): {source: [x0, y0, x1, y1]} where data ends
                    note=u"survey m (0.1 m); inside the analysis frame the site board's layers (survey, OpenStreetMap, "
-                        u"ESA WorldCover 2021), beyond it OpenStreetMap (Data/bergama_osm.osm, ODbL); contours from "
-                        u"the survey, frame only, height = the terrain at their points to the nearest 5 m")
+                        u"ESA WorldCover 2021), beyond it OpenStreetMap (Data/bergama_osm.osm, ODbL); land cover "
+                        u"(ESA WorldCover 2021) over the whole extent; contours from the survey inside the frame "
+                        u"(height = the terrain at their points), beyond it from Copernicus GLO-30 (a surface model: "
+                        u"buildings and trees included), every 5 m; mahalle = OpenStreetMap admin_level 8")
         _bm_os.makedirs(_bm_os.path.dirname(BASEMAP_FILE), exist_ok=True)
         with open(BASEMAP_FILE, "w", encoding="utf-8") as fh:
             _bm_json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
@@ -28335,6 +28535,19 @@ def basemap_export(S, log=None):
         log.append(u"Shared basemap written ({}): {:,} buildings in the frame, {:,} beyond it, {:,} contours, extent "
                    u"{:,.0f} x {:,.0f} m.".format(BASEMAP_FILE, n_in, n_out, len(L["contours"]), ex[2] - ex[0],
                                                  ex[3] - ex[1]))
+        # v67 (round 9, S7): the done-when line of the writer (kickoff SB)
+        log.append(u"basemap: land cover {} n={:,}, contours_out n={:,}, bridges_out n={:,}, mahalle n={:,}, "
+                   u"unsurveyed n={:,}, extent u {:,.0f}..{:,.0f} v {:,.0f}..{:,.0f} m (margin u {:,.0f} v {:,.0f})".format(
+                       u"whole extent" if lc_whole else u"frame only (no uncut copy)", n_lc, len(L["contours_out"]),
+                       len(L["bridges_out"]), len(L["mahalle"]), n_uns, ex[0], ex[2], ex[1], ex[3],
+                       BASEMAP_MARGIN_UV[0], BASEMAP_MARGIN_UV[1]))
+        exb = _bm_bb(out["extent"])
+        for src_, bb_ in sorted(data_bb.items()):
+            if bb_[0] > exb[0] + 1 or bb_[1] > exb[1] + 1 or bb_[2] < exb[2] - 1 or bb_[3] < exb[3] - 1:
+                log.append(u"FLAG basemap {} data ends inside the extent: data x {:,.0f}-{:,.0f} y {:,.0f}-{:,.0f}, "
+                           u"extent x {:,.0f}-{:,.0f} y {:,.0f}-{:,.0f} (corners beyond have no {})".format(
+                               src_, bb_[0], bb_[2], bb_[1], bb_[3], exb[0], exb[2], exb[1], exb[3],
+                               dict(osm=u"streets or houses", lc=u"land cover", dem=u"contours").get(src_, src_)))
         return BASEMAP_FILE
     except Exception as ex_:
         import traceback as _tb
@@ -46556,13 +46769,26 @@ def load_landcover(S):
         import base64 as _b64
         d = json.loads(_zlib.decompress(_b64.b64decode("".join(LC_EMBED))).decode("utf-8"))
         p = "the copy built into this script"
+    # v67 (round 9, PLAN §cause b3, H3 C3 (1)): S.lc_all keeps every ring of the file uncut (the same read), so the
+    # shared basemap and the p02 map draw land cover over their whole window; S.lc stays cut to the frame (the
+    # land-use areas and p06 read it). S.lc_bbox = the file's ring bbox (survey m): where the land-cover data ends.
+    S.lc_all, xs_, ys_ = {}, [], []
     for k, _lab, _c in LC_CLASSES:
         rings = [[(q[0], q[1]) for q in r] for r in d.get("rings", {}).get(k, []) if len(r) >= 3]
+        S.lc_all[k] = rings
+        for r in rings:
+            xs_ += [q[0] for q in r]
+            ys_ += [q[1] for q in r]
         rings = [c_ for c_ in (S.F.clip_poly(r) for r in rings) if c_ and len(c_) >= 3]   # v32.1: cut to the frame
         S.lc[k] = rings
         S.lc_area[k] = sum(signed_area(r) for r in rings)
+    S.lc_bbox = (min(xs_), min(ys_), max(xs_), max(ys_)) if xs_ else None
     LOG.append("Land cover (ESA WorldCover 2021) from {}: ".format(p) + "; ".join(
         "{} {:.1f} ha".format(k, S.lc_area.get(k, 0.0) / 1e4) for k, _l, _c in LC_CLASSES) + " inside the site.")
+    if S.lc_bbox:
+        LOG.append("Land cover data ends at survey x {:,.0f}-{:,.0f}, y {:,.0f}-{:,.0f} ({:,} rings kept uncut for the "
+                   "map context).".format(S.lc_bbox[0], S.lc_bbox[2], S.lc_bbox[1], S.lc_bbox[3],
+                                          sum(len(v) for v in S.lc_all.values())))
 
 
 REST_CELL = 2.0                                       # v35: m, raster that splits the frame's unmapped ground
