@@ -20,7 +20,7 @@ powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle H
 exit
 
 :run
-rem ---- hidden from here: find the system Python (setup.bat), run Downloads\Bergama\bergama_shared_sync_v2.py ----
+rem ---- hidden from here: find the system Python (setup.bat), run Downloads\Bergama\scripts\%SYNCPY% (11 Nov 2026: v2.2, from the board builder) ----
 set "PYW="
 set "PYA="
 for /f "delims=" %%p in ('where pyw 2^>nul') do if not defined PYW set "PYW=%%p"
@@ -30,10 +30,12 @@ if not defined PYW (
   start "Bergama" powershell -NoProfile -Command "$e=[char]27; Write-Host ($e+'[1;31mBERGAMA: Python not found. Run setup.bat once, then try again.'+$e+'[0m'); Read-Host 'Press Enter to close'"
   exit /b 1
 )
-set "SYNC=%USERPROFILE%\Downloads\Bergama\bergama_shared_sync_v2.py"
-if not exist "%SYNC%" set "SYNC=%~dp0bergama_shared_sync_v2.py"
+set "SYNCPY=bergama_shared_sync_v2_2.py"
+set "SYNC=%USERPROFILE%\Downloads\Bergama\scripts\%SYNCPY%"
+if not exist "%SYNC%" set "SYNC=%USERPROFILE%\Downloads\Bergama\%SYNCPY%"
+if not exist "%SYNC%" set "SYNC=%~dp0%SYNCPY%"
 if not exist "%SYNC%" (
-  start "Bergama" powershell -NoProfile -Command "$e=[char]27; Write-Host ($e+'[1;31mBERGAMA: bergama_shared_sync_v2.py not found in Downloads\Bergama'+$e+'[0m'); Read-Host 'Press Enter to close'"
+  start "Bergama" powershell -NoProfile -Command "$e=[char]27; Write-Host ($e+'[1;31mBERGAMA: %SYNCPY% not found in Downloads\Bergama\scripts (run the board builder once)'+$e+'[0m'); Read-Host 'Press Enter to close'"
   exit /b 1
 )
 "%PYW%" %PYA% "%SYNC%" %2
