@@ -7,6 +7,7 @@ scripts/bergama_b19_plan_v12_1.py
 scripts/bergama_booklet_jpg_v2_3.py
 scripts/bergama_booklet_v37.py
 scripts/bergama_build_gh_chain_v5.py
+scripts/bergama_builder_loader.py
 scripts/bergama_city_link_v12.py
 scripts/bergama_masterplan_v46.py
 scripts/bergama_plan_to_rhino_v2_1.py
