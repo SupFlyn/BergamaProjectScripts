@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BOARD BUILDER = build_gh_chain v5 (11 Nov 2026; v5 round 9 G9-7: the round 8 S5 v3.5 functions restored (chain_secs = each chained script's time from its own log, fail_reason = the first ERROR line of its log on every FAILED line, a recorded 0 s counts as unknown, processor times under 0.5 s use the fallback), and the log's second line says whether Bergama_Altlik.3dm is the open Rhino model; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BOARD BUILDER = build_gh_chain v5.1 (11 Nov 2026; v5.1 round 9 closing: after a run_after + force press, a chain script whose own log was not written during the press (the chain stopped before it) is logged "not run" and not recorded, so the next run_after runs it (v5 counted it as ran and a later run_after skipped it); v5 round 9 G9-7: the round 8 S5 v3.5 functions restored (chain_secs = each chained script's time from its own log, fail_reason = the first ERROR line of its log on every FAILED line, a recorded 0 s counts as unknown, processor times under 0.5 s use the fallback), and the log's second line says whether Bergama_Altlik.3dm is the open Rhino model; v4: typed inputs from each script's GH_INPUTS (File Path, Line, Curve, Point, Number boxes, sliders over the script's own range, type hints, list access), inputs a script no longer has are taken off with their boxes, input boxes in a stair layout, Aras 17:30-17:37 UTC; v3.4 8 Nov: v3.4: the run_after pass is driven from Rhino idle, one script per step, and run_after + force presses the Chain Button so the whole chain runs, Aras 19:32 UTC; v3.3: everything from the cloud only). Rules: scripts/_template/SCRIPT_STANDARD.md.
 
 Aras 8 Nov 2026 14:54-15:04 UTC. One press of the Button:
   1 DOWNLOAD from GitHub (SupFlyn/BergamaProjectScripts, branch main, folder kit/), one way only: first the checklist
@@ -43,7 +43,7 @@ board_order.txt: one line per script, "chain: <file prefix> = <name>" (in chain 
 import os, re, ast, json, time, hashlib, urllib.request, urllib.parse, urllib.error
 
 # ---- SETTINGS ----
-VERSION = "v5"
+VERSION = "v5.1"
 GH_LABEL = "BoardBuilder"
 REPO = "SupFlyn/BergamaProjectScripts"
 BRANCH = "main"
@@ -1232,7 +1232,7 @@ def run_needed(doc, me, queue, force, log, finish):
         log.append(msg)
         finish()
     _ABORT[0] = abort
-    tally = {"ran": 0, "skipped": 0, "failed": 0}
+    tally = {"ran": 0, "skipped": 0, "failed": 0, "not run": 0}
     log.append("run_after%s: one script at a time" % (" + force (everything)" if force else ""))
 
     def decide(it):
@@ -1329,6 +1329,10 @@ def run_needed(doc, me, queue, force, log, finish):
                 tally["failed"] += 1
                 log.append("  FAILED  %-18s force, chain (%.0f s): not recorded, runs again next time: %s"
                            % (it["label"], secs, fail_reason(it, t, dn)))
+            elif (log_mtime(it) or 0) < t:          # v5.1: its own log was not written during this press
+                tally["not run"] += 1
+                log.append("  not run %-18s force, chain: chain stopped before it (no log written during this "
+                           "press): not recorded, runs again next time" % it["label"])
             else:
                 tally["ran"] += 1
                 record(it, secs)
@@ -1348,7 +1352,8 @@ def run_needed(doc, me, queue, force, log, finish):
                 json.dump(runs, f, indent=1)
         except Exception as e:
             log.append("FLAG run record not saved: %s" % e)
-        log.append("run_after: %d ran, %d skipped, %d failed" % (tally["ran"], tally["skipped"], tally["failed"]))
+        log.append("run_after: %d ran, %d skipped, %d failed, %d not run" % (tally["ran"], tally["skipped"],
+                                                                         tally["failed"], tally["not run"]))
         finish()
 
     guarded(chain_all if force else step(0))(doc)
