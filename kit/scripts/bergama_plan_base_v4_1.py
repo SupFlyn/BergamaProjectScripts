@@ -20,6 +20,10 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v4.1 (Rhino run of v4): both v4 additions are taken out again. The grey and white parts of his heritage groups are
+the "popped" relief of his own drawing, not plan detail: drawn as parts they gave stepped double outlines. The
+building shadow read as a doubled line (and his rule of 11:13 UTC: no shadows for now). Heritage and houses are
+drawn as in v3.2.
 v4, Aras 12 Nov 19:57-20:00 UTC: "the heritage buildings should have more context in terms of the plans"; "we want
 exact language copy of it" (A05). So: (1) his heritage groups (heritage1, Kizil_Avlu_outline...) are drawn with all
 their parts, not only the red block: white parts = heritage_court, grey parts = heritage_detail, each with the dark
@@ -76,7 +80,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v4"
+VERSION = "v4.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -97,13 +101,12 @@ PLAN_RULES = {
     "walks_paths_bike_lane": {"#e8cfcf": "promenade", "#a8705c": "paving_dark", "#efddda": "paving", "#f8f5f3": "paving",
                               "#eee5e1": "paving", "#f3edea": "paving", "#e9ded8": "paving"},
     "evler": {"#f7f8f6": "building", "#e4877a": "heritage"},
-    "heritage1": {"#e4877a": "heritage", "#b8483a": "heritage", "#fff": "heritage_court", "*": "heritage_detail"},
-    "Kizil_Avlu_outline_popped_the_reason_for_the_red_area": {"#b8483a": "heritage", "#fff": "heritage_court",
-                                                              "*": "heritage_detail"},
+    "heritage1": {"#e4877a": "heritage"},
+    "Kizil_Avlu_outline_popped_the_reason_for_the_red_area": {"#b8483a": "heritage"},
 }
 STROKED = ("yeni_yol",)            # groups whose stroked lines are drawn too, at their own width (his new roads)
 ORDER = ["soft_ground", "planted", "water", "wet_edge", "reed", "plan_road", "paving", "promenade", "paving_dark",
-         "building", "heritage_detail", "heritage", "heritage_court"]
+         "building", "heritage"]
 TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_<species>">
 TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid", "olive": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
@@ -343,13 +346,6 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
                               "plan_" + name, 1, "eo", tag))
                 cnt[name] = len(rings)
             continue
-        if name == "building" and cat.get("building_shadow"):   # A05's relief under his houses too
-            o = B["SHADOW_MM"]
-            for rings in P["shapes"].get(name, []):
-                if inwin(rings):
-                    items.append(("poly", [[(p[0] - o, p[1] - o) for p in (pg(q) for q in R)] for R in rings],
-                                  cat["building_shadow"]["fill"], None, 0.0, None, "plan_building_shadow", 1,
-                                  "eo" if len(rings) > 1 else None, tag))
         for rings in P["shapes"].get(name, []):
             if not inwin(rings):
                 continue
@@ -479,8 +475,7 @@ def main():
     if P.get("odd"):
         log.append(u"FLAG his plan: %d shape(s) with a transform or unreadable numbers were left out" % P["odd"])
     order = (["water", "wet_edge", "reed", "soft_ground", "meadow", "planted", "underlay_2", "tree_light", "tree_mid",
-              "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "heritage_detail",
-              "heritage_court", "street",
+              "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street",
               "calisma"])
     order_asis = (["meadow", "underlay_2", "tree_cover", "site_tree_light", "site_tree_mid", "site_tree_dark"] +
                   [c for _, c, _ in B["CONTEXT"]][::-1] + ["calisma"])

@@ -45,6 +45,8 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v7.1 (Rhino run of v7): the building shadow is taken out again, everywhere. It read as a doubled line, and Aras
+said on 12 Nov 11:13 UTC "dont add shadows to the basemap for now". No shadows until he asks.
 v7, Aras 12 Nov 19:57 UTC: "we want exact language copy of it" (A05). A05's buildings carry a thin relief: every
 closed building outline now has a grey shadow of SHADOW_MM mm under it (style entry building_shadow, its own PDF
 layer existing_buildings_shadow), on every map.
@@ -106,7 +108,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v7"
+VERSION = "v7.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -170,7 +172,6 @@ CENTRE_FILE = os.path.join("Data", "selinos_centreline.json")
 RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame: the river never stops)
 RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
 FRAG_M = 12.0                      # m: a road edge, bridge or stream line piece shorter than this is dropped (v6.1)
-SHADOW_MM = 0.3                    # mm on paper: the building shadow, down and to the left (A05 relief; ours)
 CRUMB_M = 2.0                      # m: a building line loose at both ends and shorter than this is dropped
 TICK_M, NEAR_M = 4.0, 2.0          # m: loose building stubs shorter than this are dropped; "beside a joined surface"
 HAZE_C, HAZE_BLUR_M, HAZE_MAX = 2.0, 6.0, 0.9    # m cell and blur of the soft green; its strongest opacity
@@ -1320,15 +1321,6 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
                             items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
             cnt[cname] = len(rings)
             continue
-        if key == "buildings" and S["cat"].get("building_shadow"):   # v7: A05's relief, under every closed outline
-            sc, o = S["cat"]["building_shadow"], SHADOW_MM * lw_k
-            for cl, Q, a, b in L.get(key, []):
-                if b < u0 or a > u1 or not (cl and len(Q) >= 3):
-                    continue
-                R = clip_ring(Q, box)
-                if len(R) >= 3:
-                    items.append(("poly", [[(p[0] - o, p[1] - o) for p in (pg(q) for q in R)]], sc["fill"], None, 0.0,
-                                  None, layer + "_shadow", 1, None, None))
         for cl, Q, a, b in L.get(key, []):
             if b < u0 or a > u1:
                 continue
