@@ -25,10 +25,24 @@ and outside it should be black and white".
 Aras 11:11 UTC: his example for the look = the Viinikanlahti general plan (Arkkitehtuurikilpailuja 5/2020, p. 8): the
 context is white buildings with thin grey outlines and a soft grey shadow, white streets with thin grey edges, small
 grey street and place names, key buildings red, the project boundary a thin red line, colour only inside it. So here:
-thin grey outlines, a shadow copy of every building SHADOW_M to the lower right (a drawing device, not a sun study),
-the survey's street names (YAZI_CADDE_YOL) and building names (YAZI_YAPI) in small grey text at their survey place and
+thin grey outlines, the survey's street names (YAZI_CADDE_YOL) and building names (YAZI_YAPI) in small grey text at their survey place and
 turn, heritage buildings solid palette red 8B2D2D, calisma_alan a thin red line.
-Line weights and the grey tones are drawing values (ours).
+Aras 11:13 UTC: "use sattalite imagery and dwg combined together however everything should be outlined and hatched
+accordingly (solid white or whatever it is)"; "dont add shadows to the basemap for now".
+  Under the survey lines: the land cover traced from the 2023 satellite image (Data/veg2023.json: Esri World Imagery,
+  Maxar capture 1 Mar 2023, classified by colour rules, its limits in that file): tree cover outlined with a light
+  fill, low green outlined with a line hatch, open ground outlined and solid white. The image stops at VEG_BOX; the
+  log says what share of the frame it covers. No shadows (SHADOWS = False; the code stays for later).
+Aras 11:15 UTC: "if a road starts somewhere i dont want it to disappear along the road ... it should be consistent".
+  The survey draws a road edge (YOL_SOSE / YOL_BORDUR / YOL_TOPRAK) only along part of the streets; in the old town
+  the street is the gap between the houses. So every street is drawn as ONE continuous white band with a thin grey
+  edge along its whole OpenStreetMap centreline (Data/bergama_osm.osm): every STREET_STEP m its edge on each side is
+  the nearest survey road edge (within EDGE_MAX m) or building / wall front (within FRONT_MAX m); where the survey
+  shows neither, the width runs on from the measured stretches of the same street (straight line between them), and
+  a street with no measured point at all takes the median of its class in the frame. The log gives the metres of
+  each kind. Footpaths (PATH_CLASSES) are one thin line along their whole length. The survey's own road edges and
+  kerbs are still drawn on top, unchanged. Cached in streets.json.
+Line weights, the grey tones, the hatch and EDGE_MAX / FRONT_MAX / STREET_STEP are drawing values (ours).
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -36,13 +50,17 @@ Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it 
   input  keymap_scale   sheet scale 1:n of Keymap.pdf (default 10000)
   output log / done     as every Bergama script
 Reads  the open Rhino model's survey layers (once; the same model = the cache is used, nothing read again)
+       ~/Downloads/Bergama/Data/veg2023.json      (satellite land cover; without it the map is drawn without, FLAG)
+       ~/Downloads/Bergama/Data/bergama_osm.osm   (street centrelines; without it only the survey edges, FLAG)
        ~/Downloads/Bergama/Data/assets/masterlastversion.svg (his plan, for Basemap_colour.svg)
 Writes ~/Downloads/Bergama/output/bergama_basemap/Basemap.pdf, Keymap.pdf   (PDF layers existing_<thing>)
        ~/Downloads/Bergama/output/bergama_basemap/Basemap_colour.svg
        ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json   every layer in survey m, the frame, the turn
+       ~/Downloads/Bergama/cached/bergama_basemap/streets.json          the street bands and footpaths in survey m
        ~/Downloads/Bergama/logs/bergama_basemap_log.txt
 """
 import os, time, json, math, re
+import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
 VERSION = "v1"
@@ -61,6 +79,7 @@ BLD_LAYERS = ["BINA_MESKEN", "BINA", "BINA_RESMI", "BINA_OKUL", "BINA_DINI_TESIS
 HER_LAYERS = ("BINA_TARIHI", "BINA_HARABE")
 NAME_LAYER = "YAZI_YAPI"
 STREET_NAME_LAYER = "YAZI_CADDE_YOL"
+SHADOWS = False              # Aras 12 Nov 11:13 UTC: no shadows on the basemap for now
 SHADOW_M = (2.5, -2.5)       # m on the turned frame: the shadow copy lies to the lower right
 SHADOW = "D9D8D4"
 NAME_GREY, NAME_MM = "8A8885", 1.5   # label colour; text height in mm at the sheet scale
@@ -79,14 +98,37 @@ SURVEY = [
     ("walls", ["SINIR_DUVAR", "SINIR_HARAP_DUVAR"]),
     ("heritage_walls", ["SINIR_TARIHI_SUR"]),
 ]
+VEG_FILE = os.path.join("Data", "veg2023.json")
+VEG_KEYS = (("bare", "sat_bare"), ("grass", "sat_grass"), ("trees", "sat_trees"))
+# the satellite image's own extent in survey m (library/satellite_2026-11-06/sat_2023-03-01_0p5m_survey.json:
+# x0 29520.496, y1 32880.562, 4025 x 4934 px of 0.5 m)
+VEG_BOX = (29520.496, 30413.562, 31532.996, 32880.562)
+HATCH = {"sat_grass": (3.0, 45.0, "CDCDC8", 0.05)}   # spacing m on the ground, angle deg, colour, line mm
+CREDIT = (u"Buildings, road edges, water: survey. Land cover: Esri World Imagery (Maxar), 1 Mar 2023, by colour rules. "
+          u"Street bands: survey edges and fronts along OpenStreetMap centrelines.")
+OSM_FILE = os.path.join("Data", "bergama_osm.osm")
+# OSM longitude / latitude -> survey m: TM 27 (GRS80) then the fit to the survey (the site board's GEO values)
+_A, _FL = 6378137.0, 1 / 298.257222101
+_E2 = _FL * (2 - _FL)
+_EP2 = _E2 / (1 - _E2)
+GEO = dict(s=1.0001121171177874, th=-0.0015904735313230483, tx=-492593.7399912414, ty=-4299748.4497664515)
+STREET_STEP, EDGE_MAX, FRONT_MAX, STREET_MIN = 4.0, 12.0, 8.0, 1.0     # m
+PATH_CLASSES = ("footway", "path", "steps", "cycleway", "bridleway", "track")
+SKIP_CLASSES = ("proposed", "construction", "platform", "elevator", "corridor", "bus_stop", "rest_area", "services")
+STREET_FORMAT = 1
 INK, GREY, PALE = "3A3A38", "9A9894", "C4C2BE"
 HER, WATER, PARK = "8B2D2D", "7C8387", "B0AFAA"      # grey outside calisma_alan; heritage and boundary red
 HER_FILL = "8B2D2D"
 # Basemap.pdf: cache layer -> (PDF layer, stroke, line width mm, fill, alpha)
 STYLE = [
+    ("sat_bare", "satellite_open_ground", PALE, 0.05, "FFFFFF"),
+    ("sat_grass", "satellite_low_green", PALE, 0.05, None),
+    ("sat_trees", "satellite_trees", PARK, 0.06, "ECECE8"),
     ("parks", "existing_parks", PARK, 0.10, None),
     ("ponds", "existing_water", WATER, 0.18, None),
     ("stream_banks", "existing_water", WATER, 0.22, None),
+    ("paths", "existing_paths", GREY, 0.07, None),
+    ("streets", "existing_streets", GREY, 0.10, "FFFFFF"),
     ("road_edges", "existing_roads", GREY, 0.10, None),
     ("kerbs", "existing_roads", PALE, 0.06, None),
     ("bridges", "existing_bridges", GREY, 0.18, None),
@@ -97,6 +139,8 @@ STYLE = [
     ("heritage", "existing_heritage", HER, 0.09, HER_FILL),
 ]
 KEY_STYLE = [
+    ("sat_trees", "satellite_trees", None, 0.0, "ECECE8"),
+    ("streets", "existing_streets", PALE, 0.05, "FFFFFF"),
     ("road_edges", "existing_roads", PALE, 0.05, None),
     ("stream_banks", "existing_water", WATER, 0.25, None),
     ("ponds", "existing_water", WATER, 0.15, None),
@@ -105,11 +149,12 @@ KEY_STYLE = [
     ("heritage", "existing_heritage", None, 0.0, HER_FILL),
 ]
 # Basemap_colour.svg: stroke widths in metres on the ground (the SVG has no sheet scale)
-SVG_W = {"parks": 0.2, "ponds": 0.3, "stream_banks": 0.4, "road_edges": 0.2, "kerbs": 0.12, "bridges": 0.35, "walls": 0.12,
+SVG_W = {"sat_bare": 0.1, "sat_grass": 0.1, "sat_trees": 0.12, "streets": 0.2, "paths": 0.15, "parks": 0.2, "ponds": 0.3, "stream_banks": 0.4, "road_edges": 0.2, "kerbs": 0.12, "bridges": 0.35, "walls": 0.12,
          "heritage_walls": 0.4, "sheds": 0.12, "buildings": 0.18, "heritage": 0.18}
-LEGEND = [("buildings", u"Building"), ("heritage", u"Heritage building"), ("road_edges", u"Road edge"),
-          ("kerbs", u"Kerb"), ("bridges", u"Bridge"), ("stream_banks", u"Stream bank"), ("parks", u"Park"),
-          ("walls", u"Wall")]
+LEGEND = [("buildings", u"Building"), ("heritage", u"Heritage building"), ("streets", u"Street"),
+          ("paths", u"Footpath"), ("road_edges", u"Road edge (survey)"), ("kerbs", u"Kerb"), ("bridges", u"Bridge"), ("stream_banks", u"Stream bank"), ("parks", u"Park"),
+          ("walls", u"Wall"), ("sat_trees", u"Tree cover 2023"), ("sat_grass", u"Low green 2023"),
+          ("sat_bare", u"Open ground 2023")]
 
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
@@ -118,6 +163,7 @@ CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
 CACHE_FORMAT = 3
+STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 
 
 # ================================================================ the open Rhino model
@@ -355,6 +401,271 @@ class Frame(object):
         return (-self.sa, self.ca)
 
 
+# ================================================================ satellite land cover
+def hatch_lines(rings, spacing, angle_deg):
+    """even-odd line hatch of rings: [(a, b)] segments in the rings' own units"""
+    ca, sa = math.cos(math.radians(angle_deg)), math.sin(math.radians(angle_deg))
+    rows = {}
+    for R in rings:
+        T = [(p[0] * ca + p[1] * sa, -p[0] * sa + p[1] * ca) for p in R]
+        for i in range(len(T)):
+            a, b = T[i - 1], T[i]
+            if a[1] == b[1]:
+                continue
+            if a[1] > b[1]:
+                a, b = b, a
+            j = int(math.ceil(a[1] / spacing - 0.5))
+            while (j + 0.5) * spacing < b[1]:
+                y = (j + 0.5) * spacing
+                if y >= a[1]:
+                    rows.setdefault(j, []).append(a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]))
+                j += 1
+    out = []
+    for j, xs in rows.items():
+        xs.sort()
+        y = (j + 0.5) * spacing
+        for x0, x1 in zip(xs[0::2], xs[1::2]):
+            if x1 - x0 > 1e-6:
+                out.append(((x0 * ca - y * sa, x0 * sa + y * ca), (x1 * ca - y * sa, x1 * sa + y * ca)))
+    return out
+
+
+def load_veg(D, log):
+    """the satellite land cover as layers sat_* = [[True, ring]] (outer rings and holes, even-odd), survey m"""
+    src = os.path.join(BERGAMA_ROOT, VEG_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG satellite land cover: %s not found: the maps are drawn without it" % src)
+        return {}
+    with open(src, encoding="utf-8") as f:
+        V = json.load(f)
+    out = {}
+    for k_, key in VEG_KEYS:
+        out[key] = [[True, R] for R in (V.get("rings") or {}).get(k_, []) if len(R) >= 3]
+    fr = [tuple(p) for p in D["frame"]]
+    cov = clip_ring(fr, VEG_BOX)
+    share = abs(g_area(cov)) / abs(g_area(fr)) if len(cov) >= 3 else 0.0
+    log.append(u"satellite land cover %s (%s): %s rings; the image covers %.1f %% of the frame, the rest of the frame "
+               u"has no land cover drawn" % (os.path.basename(src), V.get("date", u"no date"), u", ".join(
+                   u"%s %d" % (key, len(out[key])) for _, key in VEG_KEYS), 100.0 * share))
+    return out
+
+
+# ================================================================ the continuous street net
+def to_survey(lon, lat):
+    phi = math.radians(lat)
+    lam = math.radians(lon - 27.0)
+    sn, c, t = math.sin(phi), math.cos(phi), math.tan(phi)
+    N = _A / math.sqrt(1 - _E2 * sn * sn)
+    T, Cc, Aa = t * t, _EP2 * c * c, c * lam
+    e4, e6 = _E2 * _E2, _E2 ** 3
+    M = _A * ((1 - _E2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * phi
+              - (3 * _E2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * math.sin(2 * phi)
+              + (15 * e4 / 256 + 45 * e6 / 1024) * math.sin(4 * phi) - (35 * e6 / 3072) * math.sin(6 * phi))
+    E = N * (Aa + (1 - T + Cc) * Aa ** 3 / 6 + (5 - 18 * T + T * T + 72 * Cc - 58 * _EP2) * Aa ** 5 / 120) + 500000.0
+    Nn = M + N * t * (Aa * Aa / 2 + (5 - T + 9 * Cc + 4 * Cc * Cc) * Aa ** 4 / 24
+                      + (61 - 58 * T + T * T + 600 * Cc - 330 * _EP2) * Aa ** 6 / 720)
+    c_, s_ = math.cos(GEO["th"]), math.sin(GEO["th"])
+    return (GEO["s"] * (c_ * E - s_ * Nn) + GEO["tx"], GEO["s"] * (s_ * E + c_ * Nn) + GEO["ty"])
+
+
+class SegGrid(object):
+    """line segments in 15 m cells; hit() = the nearest one a ray meets"""
+    C = 15.0
+
+    def __init__(self):
+        self.g = {}
+
+    def add(self, a, b):
+        C = self.C
+        for i in range(int(min(a[0], b[0]) // C), int(max(a[0], b[0]) // C) + 1):
+            for j in range(int(min(a[1], b[1]) // C), int(max(a[1], b[1]) // C) + 1):
+                self.g.setdefault((i, j), []).append((a[0], a[1], b[0] - a[0], b[1] - a[1]))
+
+    def hit(self, px, py, dx, dy, rm):
+        C = self.C
+        ex, ey = px + dx * rm, py + dy * rm
+        best = None
+        for i in range(int(min(px, ex) // C), int(max(px, ex) // C) + 1):
+            for j in range(int(min(py, ey) // C), int(max(py, ey) // C) + 1):
+                for ax, ay, sx, sy in self.g.get((i, j), ()):
+                    den = dx * sy - dy * sx
+                    if abs(den) < 1e-12:
+                        continue
+                    t = ((ax - px) * sy - (ay - py) * sx) / den
+                    if t <= 0.3 or t > rm or (best is not None and t >= best):
+                        continue
+                    u = ((ax - px) * dy - (ay - py) * dx) / den
+                    if -1e-9 <= u <= 1.0 + 1e-9:
+                        best = t
+        return best
+
+
+def _median(v):
+    v = sorted(v)
+    return v[len(v) // 2] if v else None
+
+
+def build_streets(D, F, log):
+    """{"streets": [[True, band ring]], "paths": [[False, line]]} in survey m; see the head of the file"""
+    src = os.path.join(BERGAMA_ROOT, OSM_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG streets: %s not found: only the survey's own road edges are drawn" % src)
+        return {}
+    key = u"%s|%d|%d|%d|%s" % (D.get("key"), os.path.getsize(src), int(os.path.getmtime(src)), STREET_FORMAT,
+                               (STREET_STEP, EDGE_MAX, FRONT_MAX, STREET_MIN))
+    if os.path.isfile(STREET_FILE):
+        try:
+            with open(STREET_FILE, encoding="utf-8") as f:
+                S = json.load(f)
+            if S.get("key") == key:
+                log.append(u"streets: %s used (same model and OSM file): %s" % (STREET_FILE, S.get("note", u"")))
+                return S["layers"]
+        except Exception:
+            pass
+    t0 = time.time()
+    pad = 45.0
+
+    def near(p, m=pad):
+        u, v = F.local(p)
+        return -m <= u <= F.w + m and -m <= v <= F.h + m
+    g_edge, g_front = SegGrid(), SegGrid()
+    for g, keys in ((g_edge, ("road_edges", "kerbs")), (g_front, ("buildings", "heritage", "walls", "heritage_walls"))):
+        for k_ in keys:
+            for cl, P in D["layers"].get(k_, []):
+                Q = list(P) + ([P[0]] if cl else [])
+                for a, b in zip(Q[:-1], Q[1:]):
+                    if near(a) or near(b):
+                        g.add(a, b)
+    root = ET.parse(src).getroot()
+    nodes = {}
+    for n in root.iter("node"):
+        try:
+            nodes[n.get("id")] = (float(n.get("lon")), float(n.get("lat")))
+        except (TypeError, ValueError):
+            pass
+    proj = {}
+    ways, paths = [], []
+    for w in root.iter("way"):
+        tags = dict((t.get("k"), t.get("v")) for t in w.findall("tag"))
+        h = tags.get("highway")
+        if not h or h in SKIP_CLASSES or tags.get("area") == "yes":
+            continue
+        if tags.get("footway") in ("sidewalk", "crossing") or tags.get("path") == "sidewalk":
+            continue                                      # part of a street, already inside its band
+        P = []
+        for nd in w.findall("nd"):
+            r = nd.get("ref")
+            if r in nodes:
+                if r not in proj:
+                    proj[r] = to_survey(*nodes[r])
+                if not P or math.hypot(proj[r][0] - P[-1][0], proj[r][1] - P[-1][1]) > 0.05:
+                    P.append(proj[r])
+        if len(P) < 2 or not any(near(p, 30.0) for p in P):
+            continue
+        if h in PATH_CLASSES:
+            paths.append([False, [[round(p[0], 2), round(p[1], 2)] for p in P]])
+            continue
+        S = []                                            # a point every STREET_STEP m: (x, y, nx, ny)
+        for a, b in zip(P[:-1], P[1:]):
+            L = math.hypot(b[0] - a[0], b[1] - a[1])
+            n = max(1, int(round(L / STREET_STEP)))
+            for i in range(n):
+                S.append((a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, -(b[1] - a[1]) / L, (b[0] - a[0]) / L))
+        a, b = P[-2], P[-1]
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        S.append((b[0], b[1], -(b[1] - a[1]) / L, (b[0] - a[0]) / L))
+        side = []
+        for sg in (1.0, -1.0):
+            v, src_ = [], []
+            for x, y, nx, ny in S:
+                e = g_edge.hit(x, y, sg * nx, sg * ny, EDGE_MAX)
+                f = g_front.hit(x, y, sg * nx, sg * ny, FRONT_MAX)
+                if e is not None and (f is None or e <= f):
+                    v.append(e)
+                    src_.append("e")
+                elif f is not None:
+                    v.append(f)
+                    src_.append("f")
+                else:
+                    v.append(None)
+                    src_.append("n")
+            side.append((v, src_))
+        ways.append(dict(h=h, S=S, side=side))
+    cls = {}
+    for W in ways:
+        for v, _ in W["side"]:
+            cls.setdefault(W["h"], []).extend(x for x in v if x is not None)
+    cmed = dict((h, _median(v)) for h, v in cls.items() if v)
+    allmed = _median([x for v in cls.values() for x in v])
+    m = {"e": 0.0, "f": 0.0, "n": 0.0, "class": 0.0}
+    bands, dropped = [], 0
+    for W in ways:
+        S, off = W["S"], []
+        for v, src_ in W["side"]:
+            known = [x for x in v if x is not None]
+            med = _median(known)
+            if med is not None:                           # a far hit across a junction or a yard is not the street edge
+                lim = max(1.8 * med, med + 3.0)
+                for i, x in enumerate(v):
+                    if x is not None and x > lim:
+                        v[i], src_[i] = None, "n"
+            idx = [i for i, x in enumerate(v) if x is not None]
+            whole = None
+            if not idx:
+                whole = cmed.get(W["h"]) or allmed
+                if whole is None:
+                    off = None
+                    break
+            o = []
+            for i in range(len(v)):
+                if whole is not None:
+                    o.append(whole)
+                    m["class"] += STREET_STEP / 2.0
+                    continue
+                m[src_[i]] += STREET_STEP / 2.0
+                if v[i] is not None:
+                    o.append(v[i])
+                    continue
+                lo = max([j for j in idx if j < i] or [None], key=lambda j: -1 if j is None else j)
+                hi = min([j for j in idx if j > i] or [None], key=lambda j: 10 ** 9 if j is None else j)
+                if lo is None:
+                    o.append(v[hi])
+                elif hi is None:
+                    o.append(v[lo])
+                else:
+                    o.append(v[lo] + (v[hi] - v[lo]) * (i - lo) / float(hi - lo))
+            o = [max(STREET_MIN, sorted(o[max(0, i - 1):i + 2])[len(o[max(0, i - 1):i + 2]) // 2]) for i in range(len(o))]
+            off.append(o)
+        if off is None:
+            dropped += 1
+            continue
+        # half a metre past each end, so that the bands of one street overlap where OSM splits it
+        x, y, nx, ny = S[0]
+        S = [(x - ny * 0.5, y + nx * 0.5, nx, ny)] + S
+        x, y, nx, ny = S[-1]
+        S = S + [(x + ny * 0.5, y - nx * 0.5, nx, ny)]
+        off = [[o[0]] + o + [o[-1]] for o in off]
+        left = [(q[0] + q[2] * d, q[1] + q[3] * d) for q, d in zip(S, off[0])]
+        right = [(q[0] - q[2] * d, q[1] - q[3] * d) for q, d in zip(S, off[1])]
+        bands.append([True, [[round(p[0], 2), round(p[1], 2)] for p in left + right[::-1]]])
+    tot = sum(m.values()) or 1.0
+    note = (u"%d street bands, %d footpath lines; band edges: %.0f m on a survey road edge (%.0f %%), %.0f m on a "
+            u"building or wall front (%.0f %%), %.0f m carried on between measured stretches (%.0f %%), %.0f m at the "
+            u"class median (%.0f %%; medians of the half width, m: %s)" % (
+                len(bands), len(paths), m["e"], 100 * m["e"] / tot, m["f"], 100 * m["f"] / tot, m["n"],
+                100 * m["n"] / tot, m["class"], 100 * m["class"] / tot,
+                u", ".join(u"%s %.1f" % kv for kv in sorted(cmed.items()))))
+    if dropped:
+        log.append(u"FLAG streets: %d street(s) without any measured width in the frame: not drawn" % dropped)
+    layers = {"streets": bands, "paths": paths}
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(STREET_FILE, "w", encoding="utf-8") as f:
+        json.dump({"key": key, "note": note, "made_by": u"%s %s" % (GH_LABEL, VERSION),
+                   "made_at": time.strftime("%Y-%m-%d %H:%M:%S"), "layers": layers}, f)
+    log.append(u"%s  %s (%.1f s): %s" % (STREET_FILE, time.strftime("%H:%M:%S"), time.time() - t0, note))
+    return layers
+
+
 # ================================================================ drawing (items: the Sections page format)
 def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
     """items of the map at 1:den, the frame's lower-left corner at page (x0, y0) mm"""
@@ -372,6 +683,23 @@ def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
                     items.append(("poly", [[pg(q) for q in R]], SHADOW, None, 0.0, None, "existing_shadows", 1, None, None))
     for key, layer, stroke, lw, fill in styles:
         n = 0
+        if key.startswith("sat_") or key == "streets":
+            rings = []
+            for cl, P in D["layers"].get(key, []):
+                R = clip_ring([F.local(p) for p in P], box)
+                if len(R) >= 3:
+                    rings.append([pg(q) for q in R])
+            if rings and key == "streets":               # every edge first, then every surface: junctions stay open
+                items += [("poly", [R], None, stroke, lw, None, layer, 1, None, None) for R in rings]
+                items += [("poly", [R], fill, None, 0.0, None, layer, 1, None, None) for R in rings]
+            elif rings:                                  # one shape, even-odd: the holes stay open
+                items.append(("poly", rings, fill, stroke, lw, None, layer, 1, "eo", None))
+                hp = HATCH.get(key)
+                if hp:
+                    for a, b in hatch_lines(rings, hp[0] * k, hp[1]):
+                        items.append(("line", [a, b], hp[2], hp[3], None, layer, 1))
+            cnt[key] = len(rings)
+            continue
         for cl, P in D["layers"].get(key, []):
             Q = [F.local(p) for p in P]
             if min(q[0] for q in Q) > F.w or max(q[0] for q in Q) < 0 or min(q[1] for q in Q) > F.h or max(q[1] for q in Q) < 0:
@@ -414,7 +742,7 @@ def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
     return items, cnt
 
 
-def furniture(F, den, x0, y0, title, legend):
+def furniture(F, den, x0, y0, title, legend, credit=None):
     """title, scale bar, north arrow and legend under the frame"""
     k = 1000.0 / den
     it = []
@@ -438,13 +766,19 @@ def furniture(F, den, x0, y0, title, legend):
     it.append(("text", u"N", tip[0] + nx * 2.2 - 0.8, tip[1] + ny * 2.2 - 0.8, 2.6, INK, True, "L", "title", None, None))
     x = cx + 20.0
     for key, layer, stroke, lw, fill, lab in legend:
-        if fill or key in ("buildings", "heritage", "parks"):
-            it.append(("poly", [[(x, y - 4.6), (x + 6.0, y - 4.6), (x + 6.0, y - 1.4), (x, y - 1.4)]], fill, stroke, lw,
-                       None, "legend", 1, None, None))
+        if fill or key in ("buildings", "heritage", "parks", "sat_grass"):
+            box_ = [(x, y - 4.6), (x + 6.0, y - 4.6), (x + 6.0, y - 1.4), (x, y - 1.4)]
+            it.append(("poly", [box_], fill, stroke, lw, None, "legend", 1, None, None))
+            hp = HATCH.get(key)
+            if hp:
+                for a, b in hatch_lines([box_], hp[0] * k, hp[1]):
+                    it.append(("line", [a, b], hp[2], hp[3], None, "legend", 1))
         else:
             it.append(("line", [(x, y - 3.0), (x + 6.0, y - 3.0)], stroke, lw, None, "legend", 1))
         it.append(("text", lab, x + 7.5, y - 3.8, 2.4, INK, False, "L", "legend", None, None))
         x += 7.5 + 0.5 * 2.4 * len(lab) + 7.0
+    if credit:
+        it.append(("text", credit, x0, y0 - 14.5, 1.8, GREY, False, "L", "title", None, None))
     return it
 
 
@@ -525,7 +859,8 @@ def write_pdf(path, w, h, items, title):
                     A.append("%s rg" % _col(fill))
                 if stroke:
                     A.append("%s RG %s w" % (_col(stroke), _f(lw or 0.1)))
-                A.append("B" if (fill and stroke) else "f" if fill else "S")
+                eo = "*" if it[8] == "eo" else ""
+                A.append("B" + eo if (fill and stroke) else "f" + eo if fill else "S")
                 A.append("Q")
                 body += ("\n".join(A) + "\n").encode()
             elif t == "line":
@@ -642,14 +977,34 @@ def write_colour_svg(D, F, log):
            u"<g id=\"existing_basemap_bw\">",
            u"<rect id=\"white_ground\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"#ffffff\"/>" % (rx, ry, rw, rh)]
     n = 0
+    hp = HATCH["sat_grass"]
+    out.append(u"<defs><pattern id=\"bg_hatch\" patternUnits=\"userSpaceOnUse\" width=\"%.3f\" height=\"%.3f\" "
+               u"patternTransform=\"rotate(%.1f)\"><line x1=\"0\" y1=\"0\" x2=\"%.3f\" y2=\"0\" stroke=\"#%s\" "
+               u"stroke-width=\"%.3f\"/></pattern></defs>" % (hp[0] * s, hp[0] * s, -hp[1], hp[0] * s, hp[2], 0.2 * s))
     out.append(u"<g id=\"existing_shadows\" fill=\"#%s\" stroke=\"none\">" % SHADOW)
-    for key in ("buildings", "heritage"):
+    for key in (("buildings", "heritage") if SHADOWS else ()):
         for cl, P in D["layers"].get(key, []):
             R = clip_ring([(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in (F.local(p) for p in P)], box)
             if len(R) >= 3:
                 out.append(u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R))
     out.append(u"</g>")
     for key, layer, stroke, lw, fill in STYLE:
+        if key.startswith("sat_") or key == "streets":
+            rings = [R for R in (clip_ring([F.local(p) for p in P], box) for cl, P in D["layers"].get(key, []))
+                     if len(R) >= 3]
+            n += len(rings)
+            if key == "streets":
+                for nm, a in ((u"edges", u"fill=\"none\" stroke=\"#%s\" stroke-width=\"%.3f\"" % (
+                        stroke, SVG_W[key] * s)), (u"surface", u"fill=\"#%s\" stroke=\"none\"" % fill)):
+                    out.append(u"<g id=\"%s_%s\" %s>" % (layer, nm, a))
+                    out += [u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R) for R in rings]
+                    out.append(u"</g>")
+            else:
+                out.append(u"<path id=\"%s\" fill-rule=\"evenodd\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" "
+                           u"d=\"%s\"/>" % (layer, u"url(#bg_hatch)" if key in HATCH else u"#" + fill, stroke,
+                                            SVG_W[key] * s, u" ".join(u"M" + u" L".join(UL(q) for q in R) + u" Z"
+                                                                      for R in rings)))
+            continue
         out.append(u"<g id=\"%s_%s\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" stroke-linejoin=\"round\">" % (
             layer, key, (u"#" + fill) if fill else u"none", stroke, SVG_W.get(key, 0.2) * s))
         for cl, P in D["layers"].get(key, []):
@@ -737,15 +1092,17 @@ def main():
     D = load_or_read(log)
     F = Frame([tuple(p) for p in D["frame"]])
     D["turn_deg"] = round(math.degrees(F.rot), 4)
+    D["layers"].update(load_veg(D, log))
+    D["layers"].update(build_streets(D, F, log))
     log.append(u"frame: site_alan %.2f x %.2f m, turned %.2f deg; north on the page points (%.3f, %.3f)" % (
         F.w, F.h, math.degrees(F.rot), F.north()[0], F.north()[1]))
     for name, d, styles, sec, title in ((u"Basemap", den, STYLE, False, u"BASEMAP · existing"),
                                         (u"Keymap", kden, KEY_STYLE, True, u"KEY MAP")):
         m = 15.0
-        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec, shadows=not sec, names=not sec)
+        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec, shadows=SHADOWS and not sec, names=not sec)
         by = dict((s[0], s) for s in styles)
         leg = [by[k_] + (lab,) for k_, lab in LEGEND if k_ in by and cnt.get(k_)]
-        items += furniture(F, d, m, m + 16.0, title, leg)
+        items += furniture(F, d, m, m + 16.0, title, leg, None if sec else CREDIT)
         w = F.w * 1000.0 / d + 2 * m
         h = F.h * 1000.0 / d + 2 * m + 16.0
         p = write_pdf(os.path.join(OUT_DIR, name + u".pdf"), w, h, items, u"%s, site_alan, 1:%d" % (name, d))
