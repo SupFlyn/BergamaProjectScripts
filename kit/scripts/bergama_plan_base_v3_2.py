@@ -20,6 +20,8 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v3.2 (Rhino run of v3.1): the joined road and path outlines had a fine saw-tooth on diagonals (the 0.5 m cells);
+they are straightened to within JOIN_TOL_M m and their corners cut twice.
 v3.1 (first Rhino run of v3, 0 FLAG; seen in its picture): the thin curved bands of his group "seconder" are his
 secondary paths. v1-v3 took them for planted ground (a guess, flagged), so they stayed pale strokes without outline:
 his "roads looks like they are flying". They are paths now: joined, outlined and hatched with the other paths.
@@ -69,7 +71,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v3.1"
+VERSION = "v3.2"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -101,6 +103,7 @@ TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
 UNDERLAY_M = 5.0                   # m beyond the crown that the soft green reaches before it fades (ours)
 JOINED = ("plan_road", "paving", "promenade", "paving_dark")   # each joined into one outlined surface
+JOIN_TOL_M = 0.6                   # m: the joined outline is straightened to within this (v3.2: no saw-tooth on diagonals)
 JOIN_CLOSE_M, JOIN_MIN_M2 = 0.5, 4.0   # m seams closed between the pieces of one surface; smallest island kept (ours)
 GONE_SHARE = 0.5                   # a survey building with this share of its corners inside the red line is taken
 #                                    by the plan (not drawn in file 1); one with fewer is drawn whole, on top (ours)
@@ -418,7 +421,7 @@ def main():
             for pts, wm in P["lines"]:
                 src += [[R] for R in B["stroke_rings"](pts, wm / 2.0)]
         if src:
-            P["net"][name] = B["join_rings"](src, F, JOIN_CLOSE_M, JOIN_MIN_M2, B["MASK_TOL"], 1)[0]
+            P["net"][name] = B["join_rings"](src, F, JOIN_CLOSE_M, JOIN_MIN_M2, JOIN_TOL_M, 2)[0]
     log.append(u"his roads and paths joined: %s" % (u", ".join(
         u"%s %d shapes -> %d outline(s)" % (n_, len(P["shapes"].get(n_, [])) + (len(P["lines"]) if n_ == "plan_road" else 0),
                                             len(P["net"][n_])) for n_ in JOINED if n_ in P["net"]) or u"none found"))

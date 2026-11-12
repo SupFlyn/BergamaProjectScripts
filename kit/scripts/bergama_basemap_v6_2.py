@@ -45,6 +45,8 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v6.2 (Rhino run of v6.1: the street edge still had a fine saw-tooth, the 0.5 m cells of the joined surface showing
+on diagonals): the street outline is straightened to within 0.7 m instead of 0.5 m and its corners cut twice.
 v6.1 (first Rhino run of v6, 0 FLAG; look check): the street surface's stepped edge is smoothed once (corner
 cutting); a road edge, bridge or stream line piece shorter than FRAG_M m is dropped on the layers the clean-up cut
 (the cut left short leftovers inside parcels and the green; his "get rid of these kind of stray lines").
@@ -101,7 +103,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v6.1"
+VERSION = "v6.2"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -979,7 +981,7 @@ def join_streets(L, F, log):
             mask_add(rows, Q, c, nx)
             n += 1
     rows = mask_close(rows, int(round(STREET_CLOSE_M / c)), nx)
-    rings = mask_rings(rows, nx, c, F, MASK_TOL * 1.5, STREET_MIN_M2, smooth=1)   # v6.1: corners of the steps cut
+    rings = mask_rings(rows, nx, c, F, MASK_TOL * 2, STREET_MIN_M2, smooth=2)   # v6.2: the cell steps straightened
     L["street_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
     log.append(u"streets joined: %d bands -> one surface of %d outline(s), %d points (junctions meet, no edge crosses a "
                u"street)" % (n, len(rings), sum(len(R) for R in rings)))
