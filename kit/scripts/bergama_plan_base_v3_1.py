@@ -20,6 +20,9 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v3.1 (first Rhino run of v3, 0 FLAG; seen in its picture): the thin curved bands of his group "seconder" are his
+secondary paths. v1-v3 took them for planted ground (a guess, flagged), so they stayed pale strokes without outline:
+his "roads looks like they are flying". They are paths now: joined, outlined and hatched with the other paths.
 v3, Aras 12 Nov 19:51-20:05 UTC: "take the tree information from the site data"; "all trees are group together and a
 subgroup would include a tree"; "all roads should have outlines and hatches (inside the working area)", "roads looks
 like they are flying"; "remove those leftovers from the houses that have been demolished inside the working are"; "we
@@ -66,7 +69,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v3"
+VERSION = "v3.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -78,7 +81,7 @@ LIB_END = "# ================================================================ ma
 # his group id -> {fill of the shape (lower case hex) or "*" = any fill: style category}; drawn in ORDER below
 PLAN_RULES = {
     "green_corridor_open_ground_within_25_m_of_the_water": {"*": "soft_ground"},
-    "seconder": {"*": "planted"},
+    "seconder": {"*": "paving"},      # v3.1: his secondary paths (thin curved bands), not planted ground
     "Selinos": {"*": "water"},
     "water_drainage_wall": {"*": "wet_edge"},
     "wetland_shallow_water_reeds": {"#a9c4c2": "wet_edge", "#5d8980": "wet_edge", "*": "reed"},
