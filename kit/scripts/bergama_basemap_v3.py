@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v2.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v3 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
 as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
 frame for that basemap and keymap for that matter".
@@ -62,6 +62,15 @@ v2.1, Aras 12 Nov 17:46 UTC: five liked palettes (library/examples/palettes_2026
 "Dusty Rose / Mauve / Sage Green / Taupe / Ivory / Terracotta / Deep Wine": "feel free to combine them according to the
 colour science". PALETTE below = ten colours, one per meaning, each sampled from one of his images (the median of a
 patch of the swatch) or, where marked, lightened from a sampled colour. Every other tone is a tint of these.
+v3, Aras 12 Nov 18:40 UTC: "water, hardground should get textures. Like hardground should get a textures (the promanade
+that we propose)". In Basemap_colour.svg two textures are laid on his plan as real vector lines (no pattern fills),
+each directly above the shape it belongs to, cut to that shape, in a tone of that shape's own fill:
+  water      every filled path of his group "Selinos": short wave ticks in rows WATER_ROW m apart, a tick WATER_TICK m
+             long every WATER_PITCH m, each second row shifted by half; the rows run along the frame's long side (the
+             general flow), they do not turn with each bend
+  promenade  the paths of his group "walks_paths_bike_lane" whose fill is in PROMENADE_FILLS (the pale rose band, read
+             as his riverside walk: not confirmed by him): joint lines JOINT_M m apart across the frame's long side
+His shapes and colours are not changed. The spacings are graphic values (ours), not a paving design.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -82,7 +91,7 @@ import os, time, json, math, re
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v2.1"
+VERSION = "v3"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -139,6 +148,9 @@ FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "wal
 BASE_OFF = ("CIRCULATION", "heritage_trail")     # groups of his plan switched off in the base map (routes come later)
 TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_...">
 UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first
+WATER_GROUP, WATER_ROW, WATER_TICK, WATER_PITCH = "Selinos", 5.0, 6.0, 16.0     # m
+PROMENADE_GROUP, PROMENADE_FILLS, JOINT_M = "walks_paths_bike_lane", ("#e8cfcf",), 2.0
+TEXTURE_W = 0.18                   # m on the ground: line width of both textures
 # ================= COLOURS: one line per meaning; a new palette is swapped in here =================
 def _tint(col, t):
     """col mixed t (0..1) towards white"""
@@ -1079,6 +1091,184 @@ def plan_frame(txt, F):
     return max(cnt, key=cnt.get), u"the commonest frame-shaped clip rectangle (no Selinos group clip found)"
 
 
+# ================================================================ textures on his plan
+_TOK = re.compile(r"([MmLlHhVvCcSsQqTtAaZz])|([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)")
+_N = {"m": 2, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7, "z": 0}
+
+
+def path_rings(d, step=1.5):
+    """an SVG path as [(closed?, [(x, y)])], curves cut into pieces of about step units (arcs as chords)"""
+    out, cur, cmd = [], [], None
+    x = y = sx = sy = 0.0
+    px = py = None                                        # the last control point (for S and T)
+
+    def bez(P):
+        n = max(2, int(sum(math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]) for i in range(len(P) - 1)) / step))
+        for k in range(1, n + 1):
+            t = k / float(n)
+            Q = list(P)
+            while len(Q) > 1:
+                Q = [(Q[i][0] + (Q[i + 1][0] - Q[i][0]) * t, Q[i][1] + (Q[i + 1][1] - Q[i][1]) * t) for i in range(len(Q) - 1)]
+            cur.append(Q[0])
+
+    def flush(closed):
+        if len(cur) >= 2:
+            out.append((closed, list(cur)))
+        del cur[:]
+    toks = _TOK.findall(d)
+    i = 0
+    while i < len(toks):
+        if toks[i][0]:
+            cmd = toks[i][0]
+            i += 1
+            if cmd in "Zz":
+                flush(True)
+                x, y = sx, sy
+                px = py = None
+                continue
+        if cmd is None:
+            break
+        n = _N[cmd.lower()]
+        a = []
+        while len(a) < n and i < len(toks) and not toks[i][0]:
+            a.append(float(toks[i][1]))
+            i += 1
+        if len(a) < n:
+            if i < len(toks) and toks[i][0]:
+                continue
+            break
+        rel = cmd.islower()
+        c = cmd.lower()
+        ox, oy = (x, y) if rel else (0.0, 0.0)
+        if c == "m":
+            flush(False)
+            x, y = ox + a[0], oy + a[1]
+            sx, sy = x, y
+            cur.append((x, y))
+            cmd = "l" if rel else "L"
+            px = py = None
+        elif c == "l":
+            x, y = ox + a[0], oy + a[1]
+            cur.append((x, y))
+            px = py = None
+        elif c == "h":
+            x = (x if rel else 0.0) + a[0]
+            cur.append((x, y))
+            px = py = None
+        elif c == "v":
+            y = (y if rel else 0.0) + a[0]
+            cur.append((x, y))
+            px = py = None
+        elif c in "cs":
+            if c == "c":
+                p1 = (ox + a[0], oy + a[1])
+                p2, p3 = (ox + a[2], oy + a[3]), (ox + a[4], oy + a[5])
+            else:
+                p1 = (2 * x - px, 2 * y - py) if px is not None else (x, y)
+                p2, p3 = (ox + a[0], oy + a[1]), (ox + a[2], oy + a[3])
+            if not cur:
+                cur.append((x, y))
+            bez([(x, y), p1, p2, p3])
+            px, py = p2
+            x, y = p3
+        elif c in "qt":
+            if c == "q":
+                p1, p2 = (ox + a[0], oy + a[1]), (ox + a[2], oy + a[3])
+            else:
+                p1 = (2 * x - px, 2 * y - py) if px is not None else (x, y)
+                p2 = (ox + a[0], oy + a[1])
+            if not cur:
+                cur.append((x, y))
+            bez([(x, y), p1, p2])
+            px, py = p1
+            x, y = p2
+        elif c == "a":
+            x, y = ox + a[5], oy + a[6]
+            cur.append((x, y))
+            px = py = None
+    flush(False)
+    return out
+
+
+def _group_span(body, gid):
+    """(start, end) of <g id="gid"> ... its closing tag, or None"""
+    m = re.search(r'<g\b[^>]*\bid="%s"[^>]*>' % re.escape(gid), body)
+    if not m:
+        return None
+    d = 0
+    for k in re.finditer(r'<g\b[^>]*?(/?)>|</g>', body[m.start():]):
+        t = k.group(0)
+        if t.startswith("</g"):
+            d -= 1
+        elif not t.endswith("/>"):
+            d += 1
+        if d == 0:
+            return m.start(), m.start() + k.end()
+    return None
+
+
+def _hex6(c):
+    c = (c or "").strip().lstrip("#")
+    if len(c) == 3:
+        c = u"".join(ch * 2 for ch in c)
+    return c.upper() if re.match(r"^[0-9a-fA-F]{6}$", c) else None
+
+
+def add_textures(body, s, log):
+    """the water ticks and the promenade joints, each put directly after the path it lies on"""
+    jobs = ((WATER_GROUP, None, "water"), (PROMENADE_GROUP, PROMENADE_FILLS, "promenade"))
+    for gid, fills, kind in jobs:
+        span = _group_span(body, gid)
+        if span is None:
+            log.append(u"FLAG texture %s: no group %s in his plan: no texture" % (kind, gid))
+            continue
+        g = body[span[0]:span[1]]
+        out, last, n_shapes, n_lines = [], 0, 0, 0
+        for m in re.finditer(r"<path\b[^>]*?/>", g):
+            a = dict(re.findall(r'([\w:-]+)="([^"]*)"', m.group(0)))
+            col = _hex6(a.get("fill"))
+            if col is None or (fills is not None and (a.get("fill") or "").lower() not in fills):
+                continue
+            rings = [P for cl, P in path_rings(a.get("d", ""), 1.5) if len(P) >= 3]
+            if not rings:
+                continue
+            d = []
+            if kind == "water":
+                row, tick, pitch = WATER_ROW * s, WATER_TICK * s, WATER_PITCH * s
+                for (x0, y), (x1, _) in hatch_lines(rings, row, 0.0):
+                    j = int(round(y / row - 0.5))
+                    k_ = int(math.floor((x0 - (j % 2) * pitch / 2.0) / pitch))
+                    while True:
+                        xa = k_ * pitch + (j % 2) * pitch / 2.0
+                        k_ += 1
+                        if xa > x1 - tick:
+                            break
+                        if xa >= x0:                      # a small wave: up, then down
+                            d.append(u"M%.1f,%.1fq%.1f,%.1f %.1f,0t%.1f,0" % (xa, y, tick / 4.0, -tick / 6.0,
+                                                                          tick / 2.0, tick / 2.0))
+                tone = _tint(col, 0.35)
+            else:
+                for p_, q_ in hatch_lines(rings, JOINT_M * s, 90.0):
+                    d.append(u"M%.1f,%.1fL%.1f,%.1f" % (p_[0], p_[1], q_[0], q_[1]))
+                tone = u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) * 0.85)) for i in (0, 2, 4))
+            if not d:
+                continue
+            n_shapes += 1
+            n_lines += len(d)
+            out.append(g[last:m.end()])
+            out.append(u'<path id="texture_%s_%d" fill="none" stroke="#%s" stroke-width="%.3f" stroke-linecap="round" '
+                       u'd="%s"/>' % (kind, n_shapes, tone, TEXTURE_W * s, u"".join(d)))
+            last = m.end()
+        out.append(g[last:])
+        body = body[:span[0]] + u"".join(out) + body[span[1]:]
+        if n_shapes:
+            log.append(u"texture %s: %d line(s) on %d shape(s) of his group %s" % (kind, n_lines, n_shapes, gid))
+        else:
+            log.append(u"FLAG texture %s: no filled path %sin his group %s: no texture" % (
+                kind, (u"with fill %s " % u" / ".join(fills)) if fills else u"", gid))
+    return body
+
+
 def plan_base(body, s, log):
     """his plan for the base map: the route groups switched off, the planted-ground underlay put under his trees"""
     off = []
@@ -1128,7 +1318,7 @@ def plan_base(body, s, log):
             u"no tree symbols (%s...) found in his plan" % TREE_SYMBOL if not trees else u"no group trees_group in his plan"))
     log.append(u"his plan as base map: groups switched off: %s; planted-ground underlay under %d tree symbols of his plan"
                % (u", ".join(off) or u"none found", len(trees) if i >= 0 else 0))
-    return body
+    return add_textures(body, s, log)
 
 
 def write_colour_svg(D, F, log, fade=None):
