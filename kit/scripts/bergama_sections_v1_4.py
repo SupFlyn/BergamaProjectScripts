@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1.3 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: SECTIONS v1.4 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
 like texture band beneath it ... include those as a thin line"; "these gonna be our new sections they gonna be generic
@@ -44,7 +44,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Section_<name>.pdf   one page
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.3"
+VERSION = "v1.4"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -851,11 +851,15 @@ class Sec(object):
                 n_r += 1
                 x = y
         q100 = C.levels.get("q100", (None,))[0]
+        wet = []
         for s in C.trees:
             if q100 is None or self.surf(s) >= q100:
                 d["trees"].append((s, 3.9, 7.5, "plane"))
             else:
-                C.notes.append(u"line %d: survey tree at s %.1f m not drawn, it stands below Q100" % (C.n, s))
+                wet.append(s)
+        if wet:                                           # v1.4: one log line per section, not one per tree
+            C.notes.append(u"line %d: %d survey tree(s) not drawn, they stand below Q100 (at s %s m)" % (
+                C.n, len(wet), u", ".join(u"%.1f" % s for s in wet)))
         if d["reeds"]:
             r0 = max(d["reeds"], key=lambda r: abs(r[1] - r[0]))
             d["callouts"].append(((r0[0] + r0[1]) / 2, None, u"Common reed (Kamış)"))
