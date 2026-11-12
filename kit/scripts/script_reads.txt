@@ -100,3 +100,5 @@ bergama_sections: Data/section_lines.json  # hand, 12 Nov (not traced yet)
 bergama_sections: Data/selinos_centreline.json  # hand, 12 Nov (not traced yet)
 bergama_sections: cached/basemap/basemap.json  # hand, 12 Nov (not traced yet)
 bergama_sections: rhino  # hand, 12 Nov (not traced yet)
+bergama_basemap: Data/assets/masterlastversion.svg  # hand, 12 Nov (not traced yet)
+bergama_basemap: rhino  # hand, 12 Nov

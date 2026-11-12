@@ -10,8 +10,9 @@ stippled earth, heavy cut line, reeds, iris, meadow, trees, people, light-blue w
 the Oct-Dec high end, a thin material band under the cut, a scale bar. New script; the cut, TIN and water-level method
 are SectionFromLine v1.1's (kept as they were checked on S4), the drawing pieces are the 27 Oct detail engine, now in its
 own file Data/bergama_sections_engine.py.
-  lines    nothing wired: the 12 lines N1-A ... N6-B of Data/section_lines.json (survey coordinates, from his section
-           lines layer v3 of 11 Nov); wired lines (picked in Rhino) replace them and are named L1, L2 ...
+  lines    in this order: lines wired to section_line (named L1, L2 ...); else the curves on the open model's layer
+           "section_lines" (each named by its object name, else S1, S2 ...); else the 12 lines N1-A ... N6-B of
+           Data/section_lines.json (survey coordinates, from his section lines layer v3 of 11 Nov)
   window   half_width m either side of where the line crosses the stream centreline (default 100 m), never past the
            line's own ends
   ground   a TIN of the open file's survey heights within 60 m of the line, cut every 0.25 m
@@ -47,6 +48,7 @@ GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
 GH_INPUTS = {"section_line": "line list", "scale": "int 50..2000 = 500", "half_width": "int 20..400 = 100"}
+SECTION_LAYER = "section_lines"   # the model layer his own section lines sit on (object name = section name)
 SEASON = "autumn"          # the one drawing per line: Q500, Q100 and the Oct-Dec high end, as in his image
 BACK_M = 30.0              # buildings up to this far behind the cut are drawn as background
 ROAD_EDGE_M = 12.0         # a street centreline crossing counts as a road between survey edges this close to it
@@ -1309,6 +1311,31 @@ def _lines_in():
     return out
 
 
+def model_lines(log):
+    """the curves on layer section_lines of the open model (Aras 12 Nov 10:53 UTC: "i will give the section lines in
+    .3dm"): [(name, A, B)], the name = the object's name, else S1, S2 ... in the layer's order"""
+    try:
+        import Rhino
+        doc = Rhino.RhinoDoc.ActiveDoc
+        out = []
+        for o in _layer_objs(doc, SECTION_LAYER):
+            g = o.Geometry
+            if not isinstance(g, Rhino.Geometry.Curve):
+                continue
+            a, b = g.PointAtStart, g.PointAtEnd
+            if math.hypot(b.X - a.X, b.Y - a.Y) <= 1.0:
+                continue
+            nm = (o.Attributes.Name or u"").strip() or u"S%d" % (len(out) + 1)
+            out.append((nm, (a.X, a.Y), (b.X, b.Y)))
+        if out:
+            log.append(u"section_line: nothing wired: %d line(s) read from the model layer %s (%s)" % (
+                len(out), SECTION_LAYER, u", ".join(n for n, _, _ in out)))
+        return out
+    except Exception as ex:
+        log.append(u"FLAG model layer %s not read (%s)" % (SECTION_LAYER, type(ex).__name__))
+        return []
+
+
 def named_lines(log):
     """the node sections of Data/section_lines.json: [(name, A, B)]"""
     p = os.path.join(DATA_DIR, "section_lines.json")
@@ -1335,7 +1362,7 @@ def main():
     CL, cum = load_centreline(log)
     wired = _lines_in()
     s4a, s4b = E["S4_A"], E["S4_B"]
-    lines = [(u"L%d" % (i + 1), a, b) for i, (a, b) in enumerate(wired)] or named_lines(log)
+    lines = [(u"L%d" % (i + 1), a, b) for i, (a, b) in enumerate(wired)] or model_lines(log) or named_lines(log)
     if not lines:
         lines = [(u"S4", s4a, s4b)]
         log.append(u"no lines: S4 (the 27 Oct cut) drawn")
