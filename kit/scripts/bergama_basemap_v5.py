@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v4.2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v5 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 The existing situation inside site_alan, from ONE read of the open survey model (Bergama_Altlik.3dm), turned so the
 frame's long side lies flat (eastern end right, as his plan), kept by layer in a cache the other new scripts read.
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
@@ -45,6 +45,24 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v5, Aras 12 Nov 19:42-19:45 UTC: "dont divide drawings into two like ever ... produce a long single drawing always";
+"I dont want wave texture on water i want textured hatches"; "base map looks ass however keymap looks pretty decent";
+"implement the river drawing technique from older scripts"; "a lot of stray lines, lines that are overlapping ... and
+lines that are like %75 each other and shifted ever so slightly"; "roads do miss eachother"; "show us how those 3 roads
+do intersect"; "Try to make example a05 example as accurate as possible". So (this replaces the A0 bands, the key plan,
+the wave strokes and the grey land cover stencil described above):
+  ONE DRAWING  every sheet is the whole frame in one piece. <name>_A0.pdf = the frame once on A0 landscape at the
+               smallest round scale that fits its width (calculated: 1:2,500).
+  ROADS        all street bands are painted into one mask and its outline is traced back to vector: ONE street surface
+               with ONE edge, so every junction is joined and no edge crosses a street (join_streets).
+  RIVER        the site board's technique: the channel between the survey's stream lines along the Selinos centreline,
+               one filled surface in the water tone with the grain, no outline, no wave strokes (build_river).
+  CLEAN LINES  doubled building lines once; loose stubs dropped; survey road edges, kerbs and stream lines that run
+               beside a joined surface dropped (clean_lines; every count in the log). Walls, sheds, kerbs and park
+               lines are not drawn on the maps any more (the key map never had them); they stay in the cache.
+  GREEN        A05's soft green: the 2023 tree cover as a pale green tone that fades out at its edge (a blurred raster
+               tone, HAZE_BLUR_M m), housing still cut out. Low green is not drawn.
+MASK_C, MASK_TOL, TICK_M, NEAR_M, the RIVER_* and HAZE_* values are drawing values (ours).
 Kept from v1-v3.3: heritage rule (BINA_TARIHI / BINA_HARABE or a heritage word in a YAZI_YAPI name inside), building
 lines joined into closed outlines (FACE_MIN..FACE_MAX m2), floor counts (YAZI_KAT_ADEDI) in the cache, the continuous
 street bands along the OpenStreetMap centrelines (survey edge / building front / carried width; streets.json), the two
@@ -69,7 +87,7 @@ import os, time, json, math, re, zlib, random
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v4.2"
+VERSION = "v5"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -119,14 +137,20 @@ SKIP_CLASSES = ("proposed", "construction", "platform", "elevator", "corridor", 
 STREET_FORMAT = 2
 FACE_MIN, FACE_MAX = 4.0, 20000.0      # m2: a closed cell of building lines is a building between these
 FADE_M, FADE_MIX = 100.0, 0.25     # m from calisma_alan where the context lines turn lighter; how far towards white
-FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
+FADE_KEYS = ("parks", "paths", "streets", "street_net", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
 STYLE_FILE = os.path.join("Data", "bergama_style.json")
 A0_W, A0_H, A0_MARGIN, A0_STEP = 1189.0, 841.0, 15.0, 500     # mm, mm, mm, scale step
-A0_COLUMN, BAND_GAP, BAND_OVERLAP_M = 200.0, 20.0, 15.0       # mm title and legend column, mm between the bands, m shared
 COVER_M, COVER_MIN_M2 = 0.5, 80.0  # m cell of the land cover stencil (the image's own 0.5 m); smallest patch drawn (ours)
 LEGEND_LINE_MIN = 0.3               # mm: no legend line swatch thinner than this (legend only)
 LEGEND_LINE_K = 3.0                # line swatches in the legend: this many times the drawn weight (legend only)
 SECTION_FILE = os.path.join("Data", "section_lines.json")
+MASK_C, MASK_TOL = 0.5, 0.35       # m: cell of the joining masks; how far a traced outline may leave the cell staircase
+STREET_CLOSE_M, STREET_MIN_M2 = 1.0, 20.0     # m seams closed in the street surface; smallest island / hole kept
+CENTRE_FILE = os.path.join("Data", "selinos_centreline.json")
+RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame: the river never stops)
+RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
+TICK_M, NEAR_M = 6.0, 2.0          # m: loose building stubs shorter than this are dropped; "beside a joined surface"
+HAZE_C, HAZE_BLUR_M, HAZE_MAX = 2.0, 6.0, 0.9    # m cell and blur of the soft green; its strongest opacity
 MASK_M, FACE_HALO_M = 8.0, 1.0     # m kept free of land cover around open building lines / closed outlines (ours)
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
@@ -676,7 +700,7 @@ class Cover(object):
         built = [a | b for a, b in zip(A, B)]
         self.rows, share = {}, {}
         taken = built
-        for key in ("sat_trees", "sat_grass"):
+        for key in ("sat_trees",):
             rings = [Q for cl, Q, _, _ in L.get(key, [])]
             big = set(i for i, Q in enumerate(rings) if abs(g_area(Q)) >= COVER_MIN_M2)
             R = self.fill([Q for i, Q in enumerate(rings) if i in big or abs(g_area(Q)) < 0])
@@ -684,10 +708,11 @@ class Cover(object):
             self.rows[key] = R
             taken = [r | t for r, t in zip(R, taken)]
             share[key] = sum(bin(r).count("1") for r in R) * c * c
-        log.append(u"land cover stencil: %d x %d cells of %.2f m; tree cover %.0f m2, low green %.0f m2 after cutting the "
-                   u"housing away (closed outlines + %.0f m, other building lines + %.0f m); patches under %.0f m2 dropped "
-                   u"(%.1f s)" % (self.nx, self.ny, c, share.get("sat_trees", 0), share.get("sat_grass", 0), FACE_HALO_M,
-                                  MASK_M, COVER_MIN_M2, time.time() - t0))
+        self.soft = haze_data(self.rows["sat_trees"], F)
+        log.append(u"tree cover 2023 as a soft tone: %d x %d cells of %.2f m, %.0f m2 after cutting the housing away "
+                   u"(closed outlines + %.0f m, other building lines + %.0f m), patches under %.0f m2 dropped; blurred "
+                   u"%.0f m on %.0f m cells (%.1f s)" % (self.nx, self.ny, c, share.get("sat_trees", 0), FACE_HALO_M, MASK_M,
+                                                       COVER_MIN_M2, HAZE_BLUR_M, HAZE_C, time.time() - t0))
 
     def fill(self, rings):
         """even-odd fill of all rings together"""
@@ -745,34 +770,434 @@ class Cover(object):
                 fill, None, layer, None)
 
 
+# ================================================================ masks: joined surfaces from many pieces
+# A mask = rows of bits, MASK_C m cells over the frame (bit i = column i from the west, row 0 = the south edge).
+# Pieces (street bands, river slices) are painted into one mask and its outline is traced back to vector rings, so
+# pieces that meet become ONE surface with one edge: junctions join, nothing overlaps, no line is drawn twice.
+def mask_size(F, c):
+    return int(math.ceil(F.w / c)), int(math.ceil(F.h / c))
+
+
+def mask_add(rows, ring, c, nx):
+    """paint one ring (frame m) into rows (even-odd inside this ring, OR onto what is there)"""
+    ny = len(rows)
+    lo = max(0, int(math.floor(min(q[1] for q in ring) / c - 0.5)))
+    hi = min(ny - 1, int(math.ceil(max(q[1] for q in ring) / c)))
+    if hi < lo:
+        return
+    xs = [[] for _ in range(hi - lo + 1)]
+    for i in range(len(ring)):
+        a, b = ring[i - 1], ring[i]
+        if a[1] == b[1]:
+            continue
+        if a[1] > b[1]:
+            a, b = b, a
+        j = max(lo, int(math.ceil(a[1] / c - 0.5)))
+        k_ = (b[0] - a[0]) / (b[1] - a[1])
+        while j <= hi and (j + 0.5) * c < b[1]:
+            xs[j - lo].append(a[0] + ((j + 0.5) * c - a[1]) * k_)
+            j += 1
+    for j, X in enumerate(xs):
+        X.sort()
+        r = 0
+        for x0, x1 in zip(X[0::2], X[1::2]):
+            a, b = max(0, int(round(x0 / c))), min(nx, int(round(x1 / c)))
+            if b > a:
+                r |= ((1 << (b - a)) - 1) << a
+        rows[j + lo] |= r
+
+
+def mask_grow(rows, r, nx):
+    full = (1 << nx) - 1
+    for _ in range(r):
+        rows = [(m | (m << 1) | (m >> 1)) & full for m in rows]
+    n = len(rows)
+    for _ in range(r):
+        rows = [rows[j] | rows[max(0, j - 1)] | rows[min(n - 1, j + 1)] for j in range(n)]
+    return rows
+
+
+def mask_close(rows, r, nx):
+    """seams and pinholes narrower than 2 r cells are closed (grow, then shrink)"""
+    full = (1 << nx) - 1
+    g = mask_grow(rows, r, nx)
+    inv = mask_grow([~m & full for m in g], r, nx)
+    return [(~m & full) | o for m, o in zip(inv, rows)]
+
+
+def mask_at(rows, c, nx, q):
+    i, j = int(q[0] // c), int(q[1] // c)
+    return 0 <= j < len(rows) and 0 <= i < nx and (rows[j] >> i) & 1 == 1
+
+
+_RUN = re.compile("1+")
+
+
+def _runs(m):
+    return [(k.start(), k.end()) for k in _RUN.finditer(bin(m)[:1:-1])] if m else []
+
+
+def mask_loops(rows, nx):
+    """the outline of a mask as closed loops of lattice points (i, j); the inside lies on the left of each loop"""
+    ny = len(rows)
+    out = {}
+
+    def edge(a, b):
+        out.setdefault(a, []).append(b)
+    for j in range(ny):
+        m = rows[j]
+        if not m:
+            continue
+        below = rows[j - 1] if j else 0
+        above = rows[j + 1] if j + 1 < ny else 0
+        for a, b in _runs(m):
+            edge((a, j + 1), (a, j))
+            edge((b, j), (b, j + 1))
+        for a, b in _runs(m & ~below):
+            edge((a, j), (b, j))
+        for a, b in _runs(m & ~above):
+            edge((b, j + 1), (a, j + 1))
+    loops = []
+    while out:
+        s, ends = next(iter(out.items()))
+        p = s
+        lp = []
+        while True:
+            lp.append(p)
+            ends = out[p]
+            q = ends.pop()
+            if not ends:
+                del out[p]
+            p = q
+            if p == s:
+                break
+        loops.append(lp)
+    return loops
+
+
+def _dp(P, tol):
+    """Douglas-Peucker on an open line"""
+    keep = [False] * len(P)
+    keep[0] = keep[-1] = True
+    st = [(0, len(P) - 1)]
+    while st:
+        a, b = st.pop()
+        if b - a < 2:
+            continue
+        ax, ay = P[a]
+        dx, dy = P[b][0] - ax, P[b][1] - ay
+        L_ = math.hypot(dx, dy) or 1e-12
+        best, bi = -1.0, a
+        for i in range(a + 1, b):
+            d = abs((P[i][0] - ax) * dy - (P[i][1] - ay) * dx) / L_ if L_ > 1e-9 else math.hypot(P[i][0] - ax, P[i][1] - ay)
+            if d > best:
+                best, bi = d, i
+        if best > tol:
+            keep[bi] = True
+            st.append((a, bi))
+            st.append((bi, b))
+    return [p for p, k_ in zip(P, keep) if k_]
+
+
+def mask_rings(rows, nx, c, F, tol, min_area, smooth=0):
+    """a mask as vector rings in frame m (outer rings and holes together: draw even-odd). Points on the frame edge stay
+    on it; the staircase of the cells is straightened to within tol m; rings under min_area m2 are dropped."""
+    out = []
+    for lp in mask_loops(rows, nx):
+        P = [(min(F.w, i * c), min(F.h, j * c)) for i, j in lp]
+        if abs(g_area(P)) < min_area:
+            continue
+        far = max(range(len(P)), key=lambda i: (P[i][0] - P[0][0]) ** 2 + (P[i][1] - P[0][1]) ** 2)
+        R = _dp(P[:far + 1], tol)[:-1] + _dp(P[far:] + P[:1], tol)[:-1]
+        for _ in range(smooth):                           # corner cutting, never on the frame edge
+            Q = []
+            for i in range(len(R)):
+                a, b = R[i], R[(i + 1) % len(R)]
+                on = lambda q: q[0] <= 0 or q[1] <= 0 or q[0] >= F.w or q[1] >= F.h      # noqa: E731
+                if on(a) or on(b):
+                    Q += [a] if on(a) else []
+                    if not on(a):
+                        Q.append(a)
+                    continue
+                Q += [(a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25),
+                      (a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75)]
+            R = Q
+        if len(R) >= 3:
+            out.append(R)
+    return out
+
+
+def join_streets(L, F, log):
+    """every street band as ONE surface: L["street_net"] = rings (even-odd), and its mask for the line clean-up"""
+    c = MASK_C
+    nx, ny = mask_size(F, c)
+    rows = [0] * ny
+    n = 0
+    for cl, Q, _, _ in L.get("streets", []):
+        if len(Q) >= 3:
+            mask_add(rows, Q, c, nx)
+            n += 1
+    rows = mask_close(rows, int(round(STREET_CLOSE_M / c)), nx)
+    rings = mask_rings(rows, nx, c, F, MASK_TOL * 1.5, STREET_MIN_M2)
+    L["street_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
+    log.append(u"streets joined: %d bands -> one surface of %d outline(s), %d points (junctions meet, no edge crosses a "
+               u"street)" % (n, len(rings), sum(len(R) for R in rings)))
+    return rows
+
+
+def build_river(L, F, log):
+    """The river as a filled surface, the site board's technique (selinus_board river: 'the channel, sorted by the
+    survey itself'): along the Selinos centreline, every RIVER_STEP m, the edge on each side is the survey's stream
+    line (HIDRO_DERE_*) met by the cross line within RIVER_REACH m; a side with no stream line there takes the width
+    between its measured neighbours; a stretch with no stream line on either side for more than RIVER_GAP m is not
+    drawn (covered or not surveyed). The slices are joined into one surface and outlined once.
+    Returns the mask rows (or None); L["river"] = rings."""
+    src = os.path.join(BERGAMA_ROOT, CENTRE_FILE)
+    banks = L.get("stream_banks", [])
+    if not os.path.isfile(src) or not banks:
+        log.append(u"FLAG river: %s: the stream is drawn as its survey lines only" % (
+            (u"%s not found" % src) if not os.path.isfile(src) else u"no stream lines in the survey"))
+        return None
+    with open(src, encoding="utf-8") as f:
+        C = [F.local(p) for p in json.load(f)["points"]]
+    g = SegGrid()
+    for cl, Q, _, _ in banks:
+        for a, b in zip(Q[:-1], Q[1:]):
+            g.add(a, b)
+    st = []                                               # stations (point, normal) inside the frame + reach
+    for a, b in zip(C[:-1], C[1:]):
+        d = math.hypot(b[0] - a[0], b[1] - a[1])
+        if d < 1e-6:
+            continue
+        nx_, ny_ = -(b[1] - a[1]) / d, (b[0] - a[0]) / d
+        for i in range(int(d // RIVER_STEP) + 1):
+            p = (a[0] + (b[0] - a[0]) * i * RIVER_STEP / d, a[1] + (b[1] - a[1]) * i * RIVER_STEP / d)
+            if -RIVER_REACH <= p[0] <= F.w + RIVER_REACH and -RIVER_REACH <= p[1] <= F.h + RIVER_REACH:
+                st.append((p, (nx_, ny_)))
+    if len(st) < 3:
+        log.append(u"FLAG river: the centreline %s does not cross the frame: survey lines only" % src)
+        return None
+    W = [[g.hit(p[0], p[1], n[0] * s, n[1] * s, RIVER_REACH) for p, n in st] for s in (1.0, -1.0)]
+    n_meas = [sum(1 for v in w if v is not None) for w in W]
+    open_ = [W[0][i] is not None or W[1][i] is not None for i in range(len(st))]
+    gap = int(RIVER_GAP / RIVER_STEP)
+    i = 0
+    while i < len(st):                                    # short gaps stay open water, long ones are left out
+        if not open_[i]:
+            j = i
+            while j < len(st) and not open_[j]:
+                j += 1
+            if j - i <= gap:
+                for k_ in range(i, j):
+                    open_[k_] = True
+            i = j
+        else:
+            i += 1
+    for w in W:                                           # a missing side: the width between its measured neighbours
+        known = [i for i, v in enumerate(w) if v is not None]
+        if not known:
+            log.append(u"FLAG river: no stream line met on one side of the centreline: survey lines only")
+            return None
+        for i in range(len(w)):
+            if w[i] is None:
+                lo = max([k_ for k_ in known if k_ < i] or [None], key=lambda v: -1 if v is None else v)
+                hi = min([k_ for k_ in known if k_ > i] or [None], key=lambda v: 10 ** 9 if v is None else v)
+                if lo is None:
+                    w[i] = w[hi]
+                elif hi is None:
+                    w[i] = w[lo]
+                else:
+                    w[i] = w[lo] + (w[hi] - w[lo]) * (i - lo) / float(hi - lo)
+    for w in W:                                           # one stray hit (a side stream's line) is evened out: median of 5
+        w[:] = [sorted(w[max(0, i - 2):i + 3])[len(w[max(0, i - 2):i + 3]) // 2] for i in range(len(w))]
+    c = MASK_C
+    nx, ny = mask_size(F, c)
+    rows = [0] * ny
+    m_open = 0.0
+    for i in range(len(st) - 1):
+        if not (open_[i] and open_[i + 1]):
+            continue
+        (p, n), (q, n2) = st[i], st[i + 1]
+        if math.hypot(q[0] - p[0], q[1] - p[1]) > 2 * RIVER_STEP:
+            continue
+        quad = [(p[0] + n[0] * W[0][i], p[1] + n[1] * W[0][i]), (q[0] + n2[0] * W[0][i + 1], q[1] + n2[1] * W[0][i + 1]),
+                (q[0] - n2[0] * W[1][i + 1], q[1] - n2[1] * W[1][i + 1]), (p[0] - n[0] * W[1][i], p[1] - n[1] * W[1][i])]
+        mask_add(rows, quad, c, nx)
+        m_open += RIVER_STEP
+    rows = mask_close(rows, int(round(RIVER_CLOSE_M / c)), nx)
+    rings = mask_rings(rows, nx, c, F, MASK_TOL * 2, RIVER_MIN_M2, smooth=2)
+    L["river"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
+    log.append(u"river: %d cross lines every %.0f m along %s; stream line met on %d (one side) / %d (other side) of them, "
+               u"the rest carried between measured neighbours; %.0f m drawn as open water, %d outline(s), %.0f m2" % (
+                   len(st), RIVER_STEP, os.path.basename(src), n_meas[0], n_meas[1], m_open, len(rings),
+                   sum(bin(r).count("1") for r in rows) * c * c))
+    return rows
+
+
+def clean_lines(L, F, street_rows, river_rows, log):
+    """the line clean-up: no line twice, no line beside its own copy, no stubs.
+    1 building lines drawn twice (same two ends to 1 cm) are kept once; a building line that hangs loose at one end
+      and is shorter than TICK_M m (the old town's party-wall ticks) is dropped, again until none is left
+    2 survey road edges and kerbs inside the joined street surface or within NEAR_M m of it are dropped: there the
+      street's own edge is the line (the survey edge and the band edge ran side by side, slightly apart)
+    3 survey stream lines inside the river surface or within NEAR_M m of it are dropped: the river's edge is the line"""
+    c = MASK_C
+    nx, _ = mask_size(F, c)
+
+    def key(p):
+        return (int(round(p[0] * 100.0)), int(round(p[1] * 100.0)))
+    deg, seen, kept, dup = {}, set(), [], 0
+    for name in ("buildings", "heritage"):
+        for it in L.get(name, []):
+            cl, Q = it[0], it[1]
+            if cl and len(Q) >= 3:
+                for q in Q:
+                    deg[key(q)] = deg.get(key(q), 0) + 2
+    open_ = []
+    for it in L.get("buildings", []):
+        cl, Q = it[0], it[1]
+        if cl and len(Q) >= 3:
+            kept.append(it)
+            continue
+        e = tuple(sorted((key(Q[0]), key(Q[-1])))) if len(Q) == 2 else None
+        if e is not None and e in seen:
+            dup += 1
+            continue
+        if e is not None:
+            seen.add(e)
+        open_.append(it)
+        for q in (Q[0], Q[-1]):
+            deg[key(q)] = deg.get(key(q), 0) + 1
+    ticks = 0
+    while True:
+        rest, cut = [], 0
+        for it in open_:
+            Q = it[1]
+            a, b = key(Q[0]), key(Q[-1])
+            if len(Q) == 2 and (deg.get(a, 0) <= 1 or deg.get(b, 0) <= 1) and \
+                    math.hypot(Q[1][0] - Q[0][0], Q[1][1] - Q[0][1]) < TICK_M:
+                deg[a] -= 1
+                deg[b] -= 1
+                cut += 1
+            else:
+                rest.append(it)
+        open_ = rest
+        ticks += cut
+        if not cut:
+            break
+    L["buildings"] = kept + open_
+    drops = {}
+    for names, rows in ((("road_edges", "kerbs"), street_rows), (("stream_banks",), river_rows)):
+        if rows is None:
+            continue
+        zone = mask_grow(rows, int(round(NEAR_M / c)), nx)
+        for name in names:
+            out = []
+            for cl, Q, a, b in L.get(name, []):
+                run = []
+                for i in range(len(Q) - 1):
+                    mid = ((Q[i][0] + Q[i + 1][0]) / 2.0, (Q[i][1] + Q[i + 1][1]) / 2.0)
+                    if mask_at(zone, c, nx, mid):
+                        drops[name] = drops.get(name, 0) + 1
+                        if len(run) >= 2:
+                            out.append((False, run, min(q[0] for q in run), max(q[0] for q in run)))
+                        run = []
+                    else:
+                        run = run or [Q[i]]
+                        run.append(Q[i + 1])
+                if len(run) >= 2:
+                    out.append((False, run, min(q[0] for q in run), max(q[0] for q in run)))
+            L[name] = out
+    log.append(u"line clean-up: %d building lines drawn twice kept once; %d loose stubs under %.0f m dropped; pieces "
+               u"dropped beside or inside a joined surface (within %.1f m): %s" % (
+                   dup, ticks, TICK_M, NEAR_M, u", ".join(u"%s %d" % kv for kv in sorted(drops.items())) or u"none"))
+
+
+def haze_data(rows_or_discs, F):
+    """a soft tone that fades out at its edge (A05's green under the trees), as (zlib 8-bit rows, px w, px h) or None.
+    rows_or_discs = mask rows (MASK_C cells) or [(u, v, radius m)]; coverage on HAZE_C m cells, blurred HAZE_BLUR_M m"""
+    c2 = HAZE_C
+    nx2, ny2 = int(math.ceil(F.w / c2)), int(math.ceil(F.h / c2))
+    G = [[0.0] * nx2 for _ in range(ny2)]
+    if rows_or_discs and isinstance(rows_or_discs[0], int):
+        f = int(round(c2 / MASK_C))
+        for j2 in range(ny2):
+            acc = [0] * nx2
+            for r in rows_or_discs[j2 * f:(j2 + 1) * f]:
+                if r:
+                    s = bin(r)[:1:-1]
+                    for a, b in ((k.start(), k.end()) for k in _RUN.finditer(s)):
+                        for i2 in range(a // f, min(nx2 - 1, (b - 1) // f) + 1):
+                            acc[i2] += min(b, (i2 + 1) * f) - max(a, i2 * f)
+            G[j2] = [v / float(f * f) for v in acc]
+    else:
+        for u, v, r in rows_or_discs:
+            rr = r / c2
+            for j2 in range(max(0, int((v - r) / c2)), min(ny2 - 1, int((v + r) / c2)) + 1):
+                dy = (j2 + 0.5) - v / c2
+                if abs(dy) > rr:
+                    continue
+                h = math.sqrt(rr * rr - dy * dy)
+                row = G[j2]
+                for i2 in range(max(0, int(u / c2 - h)), min(nx2 - 1, int(u / c2 + h)) + 1):
+                    row[i2] = 1.0
+    if not any(any(r) for r in G):
+        return None
+    rb = max(1, int(round(HAZE_BLUR_M / c2)))
+    for _ in range(2):                                    # two box blurs each way = a soft edge
+        H = []
+        for row in G:
+            ps = [0.0]
+            for v in row:
+                ps.append(ps[-1] + v)
+            H.append([(ps[min(nx2, i + rb + 1)] - ps[max(0, i - rb)]) / (2 * rb + 1) for i in range(nx2)])
+        cols = [[0.0] * (ny2 + 1) for _ in range(nx2)]
+        G = [[0.0] * nx2 for _ in range(ny2)]
+        for i in range(nx2):
+            ps = cols[i]
+            for j in range(ny2):
+                ps[j + 1] = ps[j] + H[j][i]
+        for j in range(ny2):
+            lo, hi = max(0, j - rb), min(ny2, j + rb + 1)
+            G[j] = [(cols[i][hi] - cols[i][lo]) / (2 * rb + 1) for i in range(nx2)]
+    out = bytearray()
+    for row in reversed(G):
+        out += bytes(min(255, int(v * HAZE_MAX * 255.0)) for v in row)
+    return (zlib.compress(bytes(out), 9), nx2, ny2)
+
+
+def soft_item(data, colour, layer, clip, den, x0, y0):
+    """a haze_data() tone placed with the frame's lower-left at page (x0, y0) mm"""
+    k = 1000.0 / den
+    return ("soft", data[0], data[1], data[2], x0, y0, data[1] * HAZE_C * k, data[2] * HAZE_C * k, colour, None, layer, clip)
+
+
+
+
+
 # ================================================================ drawing (items in page mm, y up)
 # cache layer -> style category, PDF layer; drawn in this order
 CONTEXT = [
-    ("parks", "park", "existing_parks"), ("ponds", "pond", "existing_water"),
-    ("stream_banks", "stream_bank", "existing_water"), ("paths", "path", "existing_paths"),
-    ("streets", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
-    ("kerbs", "kerb", "existing_roads"), ("bridges", "bridge", "existing_bridges"), ("walls", "wall", "existing_walls"),
-    ("heritage_walls", "heritage_wall", "existing_heritage"), ("sheds", "shed", "existing_buildings"),
+    ("river", "water", "existing_water"), ("stream_banks", "stream_bank", "existing_water"),
+    ("ponds", "pond", "existing_water"), ("paths", "path", "existing_paths"),
+    ("street_net", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
+    ("bridges", "bridge", "existing_bridges"), ("heritage_walls", "heritage_wall", "existing_heritage"),
     ("buildings", "building", "existing_buildings"), ("heritage", "heritage", "existing_heritage")]
-COVER_CATS = (("sat_grass", "low_green", "satellite_low_green"), ("sat_trees", "tree_cover", "satellite_trees"))
-KEY_SKIP = ("parks", "paths", "kerbs", "walls", "sheds")       # too fine for the key map; everything else the same
+KEY_SKIP = ("paths",)              # too fine for the key map; everything else the same
 
 
 def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, skip=()):
-    """the existing situation for the window u0..u1 (frame m) at 1:den, the window's lower-left at page (x0, y0) mm;
-    returns (items, {style category: count})"""
+    """the existing situation at 1:den, the frame's lower-left at page (x0, y0) mm (always the whole frame: u0 = 0,
+    u1 = F.w); returns (items, {style category: count})"""
     k = 1000.0 / den
     box = (u0, 0.0, u1, F.h)
     items, cnt = [], {}
 
     def pg(p):
         return (x0 + (p[0] - u0) * k, y0 + p[1] * k)
-    if cover is not None:
-        for key, cname, layer in COVER_CATS:
-            it = cover.item(key, u0, u1, x0, y0, k, fill_of(S["cat"][cname]), layer)
-            if it:
-                items.append(it)
-                cnt[cname] = 1
+    if cover is not None and cover.soft:
+        items.append(soft_item(cover.soft, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
+        cnt["tree_cover"] = 1
     for key, cname, layer in CONTEXT:
         if key in skip:
             continue
@@ -781,18 +1206,28 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
         fd = fade if (fade is not None and fade.rows is not None and key in FADE_KEYS and stroke) else None
         far_ = lighter(stroke) if fd else stroke
         n = 0
-        if key == "streets":                             # every edge first, then every surface: junctions stay open
-            rings = []
-            for cl, Q, a, b in L.get(key, []):
-                if b < u0 or a > u1:
-                    continue
-                R = clip_ring(Q, box)
-                if len(R) >= 3:
-                    rings.append(R)
-            for R in rings:
-                for f_, run in (fd.split(R + R[:1]) if fd else [(False, R + R[:1])]):
-                    items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
-            items += [("poly", [[pg(q) for q in R]], fill, None, 0.0, None, layer, 1, None, None) for R in rings]
+        if key in ("street_net", "river"):               # one joined surface: all rings in one even-odd shape
+            rings = [R for R in (clip_ring(Q, box) for cl, Q, a, b in L.get(key, [])) if len(R) >= 3]
+            if not rings:
+                continue
+            items.append(("poly", [[pg(q) for q in R] for R in rings], fill, None, 0.0, None, layer, 1, "eo", None))
+            if key == "street_net":                      # its one edge, lighter far from the working area
+                for R in rings:
+                    run_ = []
+                    for a, b in zip(R, R[1:] + R[:1]):   # never along the frame: the frame line is drawn there
+                        on = (a[0] <= 0 and b[0] <= 0) or (a[1] <= 0 and b[1] <= 0) or \
+                            (a[0] >= F.w and b[0] >= F.w) or (a[1] >= F.h and b[1] >= F.h)
+                        if on:
+                            if len(run_) >= 2:
+                                for f_, run in (fd.split(run_) if fd else [(False, run_)]):
+                                    items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
+                            run_ = []
+                        else:
+                            run_ = run_ or [a]
+                            run_.append(b)
+                    if len(run_) >= 2:
+                        for f_, run in (fd.split(run_) if fd else [(False, run_)]):
+                            items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
             cnt[cname] = len(rings)
             continue
         for cl, Q, a, b in L.get(key, []):
@@ -810,7 +1245,7 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
                         items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
                     n += 1
         if n:
-            cnt[cname] = n
+            cnt[cname] = cnt.get(cname, 0) + n
     return items, cnt
 
 
@@ -938,13 +1373,11 @@ def furniture(S, x, y, width, tk, title, sub, legend, credit=None):
     return it, y - yy + 2.0
 
 
-def key_plan(D, L, F, S, den, x, y):
-    """a small plan of the whole frame: streets, stream, bridges, heritage, the red line, the section lines"""
-    items, _ = draw_context(L, F, S, den, x, y, 0.0, F.w, lw_k=0.6, cover=None, fade=None,
-                            skip=KEY_SKIP + ("road_edges", "buildings", "ponds", "heritage_walls"))
-    items += draw_top(D, F, S, den, x, y, 0.0, F.w, names=False, sections=True, lw_k=0.5)
-    return [it[:6] + ("key_plan",) + it[7:] if it[0] == "poly" else it[:5] + ("key_plan",) + it[6:] if it[0] == "line"
-            else it[:8] + ("key_plan",) + it[9:] for it in items]
+def prepare(D, L, F, log):
+    """what every drawing of the set shares: the streets as one surface, the river as one surface, the clean lines"""
+    street_rows = join_streets(L, F, log)
+    river_rows = build_river(L, F, log)
+    clean_lines(L, F, street_rows, river_rows, log)
 
 
 def load_sections(D, log):
@@ -962,62 +1395,36 @@ def load_sections(D, log):
 
 
 def a0_scale(F):
-    """the smallest round scale 1:N at which two bands of the frame and the right column fit on A0 landscape"""
-    need = max((F.w / 2.0 + BAND_OVERLAP_M) * 1000.0 / (A0_W - 2 * A0_MARGIN - A0_COLUMN),
-               2.0 * F.h * 1000.0 / (A0_H - 2 * A0_MARGIN - BAND_GAP))
+    """the smallest round scale 1:N at which the whole frame fits on A0 landscape in one piece"""
+    need = max(F.w * 1000.0 / (A0_W - 2 * A0_MARGIN), F.h * 1000.0 / (A0_H - 2 * A0_MARGIN - 80.0))
     return int(math.ceil(need / A0_STEP) * A0_STEP)
 
 
 def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn, key_fn=None):
-    """lay a drawing out: one band on a page as large as the frame, or two bands on A0.
-    band_fn(den, x, y, u0, u1, tag) -> (items, clips, counts). legend_of(counts) -> [style category].
-    key_fn(den, x, y) -> items of a small key plan of the whole frame (A0 only, drawn at the foot of the column).
+    """lay a drawing out, always the whole frame in ONE piece (Aras 12 Nov 19:42 UTC: never divided): on a page as
+    large as the frame, or centred on A0 landscape. band_fn(den, x, y, 0, F.w, tag) -> (items, clips, counts).
+    legend_of(counts) -> [style category]. key_fn is not used any more (kept so older callers still run).
     Returns (page w mm, page h mm, items, clips, counts)"""
     k = 1000.0 / den
     m = A0_MARGIN
+    fw = F.w * k
     if a0:
         w, h, tk = A0_W, A0_H, 1.0
-        half = F.w / 2.0
-        bands = [(0.0, half + BAND_OVERLAP_M), (half - BAND_OVERLAP_M, F.w)]
-        bh = F.h * k
-        top = h - bh - (h - 2 * bh - BAND_GAP) / 2.0       # the two bands in the middle of the page height
-        pos = [(m, top), (m, top - BAND_GAP - bh)]
-        fx, fy, fw = m + (half + BAND_OVERLAP_M) * k + 12.0, top + bh, A0_COLUMN - 12.0
+        x, y = (w - fw) / 2.0, (h - F.h * k) / 2.0 + 30.0
+        fx, fy = x, y - 8.0
     else:
-        tk = max(0.3, min(1.0, (F.w * k + 2 * m) / A0_W))
-        bands = [(0.0, F.w)]
-        fw = F.w * k
-    items, clips, cnt = [], {}, {}
-    if not a0:                                            # the strip under the frame takes the height it needs
+        tk = max(0.3, min(1.0, (fw + 2 * m) / A0_W))
         probe, fh = furniture(S, 0.0, 0.0, fw, tk, title, sub, list(S["cat"])[:14], credit)
         fh = max(fh + 6.0 * tk, 24.0 if tk < 0.5 else 0.0)
-        w, h = F.w * k + 2 * m, F.h * k + 2 * m + fh
-        pos = [(m, m + fh)]
+        w, h = fw + 2 * m, F.h * k + 2 * m + fh
+        x, y = m, m + fh
         fx, fy = m, m + fh - 3.0 * tk
-    for i, ((u0, u1), (x, y)) in enumerate(zip(bands, pos)):
-        it, cl, c = band_fn(den, x, y, u0, u1, "b%d" % i)
-        items += it
-        clips.update(cl)
-        for k_, v in c.items():
-            cnt[k_] = cnt.get(k_, 0) + v
+    items, clips, cnt = band_fn(den, x, y, 0.0, F.w, "b0")
     if not a0 and tk < 0.5:                               # a small sheet: north and scale under the frame, off the map
-        items += corner_block(F, S, den, m + F.w * k + 4.0, pos[0][1] - 23.0)
+        items += corner_block(F, S, den, x + fw + 4.0, y - 23.0)
     else:
-        items += corner_block(F, S, den, pos[-1][0] + (bands[-1][1] - bands[-1][0]) * k, pos[-1][1])
-    fi, _ = furniture(S, fx, fy, fw, tk, title, sub,
-                      legend_of(cnt), credit)
-    if a0 and key_fn is not None:                         # the small key plan at the foot of the column
-        kd = F.w * 1000.0 / fw
-        ky = pos[-1][1]
-        items += key_fn(kd, fx, ky)
-        for i, (u0, u1) in enumerate(bands):
-            xa, xb = fx + u0 * 1000.0 / kd, fx + u1 * 1000.0 / kd
-            ya = ky + (1.2 if i else 0.0)
-            items.append(("poly", [[(xa, ya), (xb, ya), (xb, ky + F.h * 1000.0 / kd - (0.0 if i else 1.2)),
-                                    (xa, ky + F.h * 1000.0 / kd - (0.0 if i else 1.2))]], None, S["ink"], 0.25, None,
-                          "key_plan", 1, None, None))
-            items.append(("text", u"west band" if i == 0 else u"east band", (xa + xb) / 2.0,
-                          ky + F.h * 1000.0 / kd + 2.0, S["text"]["credit"], S["ink"], False, "C", "key_plan", None, None))
+        items += corner_block(F, S, den, x + fw, y)
+    fi, _ = furniture(S, fx, fy, fw, tk, title, sub, legend_of(cnt), credit)
     return w, h, items + fi, clips, cnt
 
 
@@ -1294,11 +1701,11 @@ def write_pdf(path, w, h, items, title, clips=None):
 
     def lay(it):
         t = it[0]
-        return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t == "mask" else it[8]
+        return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t in ("mask", "soft") else it[8]
 
     def clip_of(it):
         t = it[0]
-        return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t == "mask" else None
+        return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t in ("mask", "soft") else None
     layers = []
     for it in items:
         if lay(it) not in layers:
@@ -1405,6 +1812,17 @@ def write_pdf(path, w, h, items, title, clips=None):
                          + z + b"\nendstream")
                 imgs[im] = 1
                 body += ("q %s %s 0 0 %s %s %s cm /I%d Do Q\n" % (paint(fill), _f(mw), _f(mh), _f(x), _f(y), im)).encode()
+            elif t == "soft":                            # a flat colour through an 8-bit soft mask (fades out)
+                z, pw, ph, x, y, mw, mh, colour = it[1:9]
+                sm = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray "
+                          "/BitsPerComponent 8 /Interpolate true /Filter /FlateDecode /Length %d >>\nstream\n" % (
+                              pw, ph, len(z))).encode() + z + b"\nendstream")
+                zz = zlib.compress(b"\x00" * (((pw + 7) // 8) * ph), 9)
+                im = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace [/Indexed /DeviceRGB 0 <%s>] "
+                          "/BitsPerComponent 1 /Interpolate true /SMask %d 0 R /Filter /FlateDecode /Length %d >>\nstream\n"
+                          % (pw, ph, colour, sm, len(zz))).encode() + zz + b"\nendstream")
+                imgs[im] = 1
+                body += ("q %s 0 0 %s %s %s cm /I%d Do Q\n" % (_f(mw), _f(mh), _f(x), _f(y), im)).encode()
             elif t == "text":
                 s, x, y, size, color, bold, align = it[1:8]
                 wmm = text_w(s, size, bold)
@@ -1659,6 +2077,7 @@ def main():
     D["layers"].update(load_veg(D, log))
     D["layers"].update(build_streets(D, F, log))
     L = localise(D, F)
+    prepare(D, L, F, log)
     fade = Fade(D, F)
     if fade.rows is not None:
         log.append(u"fade: context lines full within %.0f m of calisma_alan (%.0f %% of the frame), lighter beyond" % (
@@ -1668,10 +2087,9 @@ def main():
     load_sections(D, log)
     cover = Cover(L, F, log) if (L.get("sat_trees") or L.get("sat_grass")) else None
     n_a0 = a0_scale(F)
-    log.append(u"A0: two bands at 1:%s (the smallest step of %d at which half the frame + %.0f m fits beside a %.0f mm "
-               u"column on %.0f x %.0f mm with %.0f mm margins)" % (format(n_a0, ",d"), A0_STEP, BAND_OVERLAP_M, A0_COLUMN,
-                                                                   A0_W, A0_H, A0_MARGIN))
-    order = [c for _, c, _ in COVER_CATS[::-1]] + [c for _, c, _ in CONTEXT][::-1] + ["calisma", "section_line"]
+    log.append(u"A0: the whole frame in one piece at 1:%s (the smallest step of %d at which %.0f m fits %.0f mm wide)"
+               % (format(n_a0, ",d"), A0_STEP, F.w, A0_W - 2 * A0_MARGIN))
+    order = ["tree_cover"] + [c for _, c, _ in CONTEXT][::-1] + ["calisma", "section_line"]
     for name, d0, key, title in ((u"Basemap", den, False, u"Base map"), (u"Keymap", kden, True, u"Key map")):
         for a0 in (False, True):
             d = n_a0 if a0 else d0
@@ -1687,8 +2105,7 @@ def main():
                 return items, {}, cnt
             w, h, items, clips, cnt = sheet(F, S, d, a0, title, u"Existing situation, 1:%s" % format(d, ",d"),
                                             lambda c: [k_ for k_ in order[::-1] if c.get(k_)][::-1],
-                                            None if key else CREDIT, band,
-                                            None if key else (lambda kd, x, y: key_plan(D, L, F, S, kd, x, y)))
+                                            None if key else CREDIT, band)
             p = write_pdf(os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
                           u"%s, site_alan, 1:%d" % (name, d), clips)
             log.append(out_line(p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
