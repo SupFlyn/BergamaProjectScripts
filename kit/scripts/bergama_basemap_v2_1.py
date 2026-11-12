@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v2.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
 as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
 frame for that basemap and keymap for that matter".
@@ -26,7 +26,7 @@ Aras 11:11 UTC: his example for the look = the Viinikanlahti general plan (Arkki
 context is white buildings with thin grey outlines and a soft grey shadow, white streets with thin grey edges, small
 grey street and place names, key buildings red, the project boundary a thin red line, colour only inside it. So here:
 thin grey outlines, the survey's street names (YAZI_CADDE_YOL) and building names (YAZI_YAPI) in small grey text at their survey place and
-turn, heritage buildings solid palette red 8B2D2D, calisma_alan a thin red line.
+turn, heritage buildings solid palette red, calisma_alan a thin red line.
 Aras 11:13 UTC: "use sattalite imagery and dwg combined together however everything should be outlined and hatched
 accordingly (solid white or whatever it is)"; "dont add shadows to the basemap for now".
   Under the survey lines: the land cover traced from the 2023 satellite image (Data/veg2023.json: Esri World Imagery,
@@ -58,6 +58,10 @@ red line stays, "outside of that line will be white and inside is colourful"; th
            underlay: three flat pale green rings around every tree symbol of his plan (UNDERLAY_M m beyond the crown),
            no outline, drawn only where his plan has a tree, inside calisma_alan only.
 FADE_M, FADE_MIX, UNDERLAY_M and the underlay tints are drawing values (ours), not his.
+v2.1, Aras 12 Nov 17:46 UTC: five liked palettes (library/examples/palettes_2026-11-12/), the favourite the chart
+"Dusty Rose / Mauve / Sage Green / Taupe / Ivory / Terracotta / Deep Wine": "feel free to combine them according to the
+colour science". PALETTE below = ten colours, one per meaning, each sampled from one of his images (the median of a
+patch of the swatch) or, where marked, lightened from a sampled colour. Every other tone is a tint of these.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -78,7 +82,7 @@ import os, time, json, math, re
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v2"
+VERSION = "v2.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -96,8 +100,7 @@ NAME_LAYER = "YAZI_YAPI"
 STREET_NAME_LAYER = "YAZI_CADDE_YOL"
 SHADOWS = False              # Aras 12 Nov 11:13 UTC: no shadows on the basemap for now
 SHADOW_M = (2.5, -2.5)       # m on the turned frame: the shadow copy lies to the lower right
-SHADOW = "D9D8D4"
-NAME_GREY, NAME_MM = "8A8885", 1.5   # label colour; text height in mm at the sheet scale
+NAME_MM = 1.5                # text height of the names in mm at the sheet scale
 HERITAGE_WORDS = ("tarihi", "harabe", "harap", "kalıntı", "kalinti", "hamam", " han ", "bedesten", "arasta", "türbe",
                   "turbe", "medrese", "kızıl avlu", "kizil avlu", "tapınağı", "tapinagi", "kilise", "sinagog", "çeşme",
                   "cesme", "sebil", "kervansaray", "müze", "muze", "cami", "mescit", "mescid", "cemevi", "tekke", "zaviye")
@@ -118,7 +121,7 @@ VEG_KEYS = (("bare", "sat_bare"), ("grass", "sat_grass"), ("trees", "sat_trees")
 # the satellite image's own extent in survey m (library/satellite_2026-11-06/sat_2023-03-01_0p5m_survey.json:
 # x0 29520.496, y1 32880.562, 4025 x 4934 px of 0.5 m)
 VEG_BOX = (29520.496, 30413.562, 31532.996, 32880.562)
-HATCH = {"sat_grass": (3.0, 45.0, "CDCDC8", 0.05)}   # spacing m on the ground, angle deg, colour, line mm
+HATCH_GEOM = {"sat_grass": (3.0, 45.0, 0.05)}        # spacing m on the ground, angle deg, line mm
 CREDIT = (u"Buildings, road edges, water: survey. Land cover: Esri World Imagery (Maxar), 1 Mar 2023, by colour rules. "
           u"Street bands: survey edges and fronts along OpenStreetMap centrelines.")
 OSM_FILE = os.path.join("Data", "bergama_osm.osm")
@@ -136,16 +139,38 @@ FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "wal
 BASE_OFF = ("CIRCULATION", "heritage_trail")     # groups of his plan switched off in the base map (routes come later)
 TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_...">
 UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first
-# ================= COLOURS: one line per meaning; his palette is swapped in here =================
-INK, GREY, PALE = "3A3A38", "9A9894", "C4C2BE"       # frame and titles; context lines; faintest context lines
-UNDERLAY = ("EEF1E8", "E3E8D9", "D6DEC9")            # planted ground under his trees, widest ring first (89986A tints)
-HER, WATER, PARK = "8B2D2D", "7C8387", "B0AFAA"      # grey outside calisma_alan; heritage and boundary red
-HER_FILL = "8B2D2D"
+# ================= COLOURS: one line per meaning; a new palette is swapped in here =================
+def _tint(col, t):
+    """col mixed t (0..1) towards white"""
+    return u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) + (255 - int(col[i:i + 2], 16)) * t)) for i in (0, 2, 4))
+
+
+PALETTE = {
+    "water": "5F7380",        # stream fill: his image 5 frame 294455, 25 % lighter (calculated)
+    "water_edge": "A9B4BB",   # wet edge, first step: the same 294455, 60 % lighter (calculated)
+    "water_pale": "E0ECE6",   # wet edge, palest step: image 4, swatch 2
+    "tree_dark": "446455",    # image 4, swatch 8
+    "tree_mid": "8B8E79",     # image 1 (favourite), Sage Green
+    "tree_light": "A8B59E",   # image 3, the light green; also soft ground
+    "hard_ground": "EBD6C4",  # image 1, the palest Taupe
+    "heritage": "A35F60",     # image 1, Mauve; also the calisma_alan line
+    "accent": "C46441",       # image 1, Terracotta: main route, new buildings (not used on the base map yet)
+    "context": "A08B8A",      # image 5, swatch 4: context lines and names
+}
+INK = "3A3A38"                                       # frame, title, scale bar (not from his palettes)
+GREY, PALE = PALETTE["context"], _tint(PALETTE["context"], 0.4)      # context lines; the faintest context lines
+NAME_GREY = PALETTE["context"]
+UNDERLAY = tuple(_tint(PALETTE["tree_light"], t) for t in (0.8, 0.65, 0.5))   # under his trees, widest ring first
+HER = HER_FILL = PALETTE["heritage"]
+WATER, PARK = PALETTE["context"], _tint(PALETTE["context"], 0.25)    # survey water and park lines stay grey (context)
+SAT_TREE = _tint(PALETTE["context"], 0.82)           # satellite tree cover outside his plan: a pale grey fill
+SHADOW = _tint(PALETTE["context"], 0.6)
+HATCH = dict((k_, (v[0], v[1], _tint(PALETTE["context"], 0.5), v[2])) for k_, v in HATCH_GEOM.items())
 # Basemap.pdf: cache layer -> (PDF layer, stroke, line width mm, fill, alpha)
 STYLE = [
     ("sat_bare", "satellite_open_ground", PALE, 0.05, "FFFFFF"),
     ("sat_grass", "satellite_low_green", PALE, 0.05, None),
-    ("sat_trees", "satellite_trees", PARK, 0.06, "ECECE8"),
+    ("sat_trees", "satellite_trees", PARK, 0.06, SAT_TREE),
     ("parks", "existing_parks", PARK, 0.10, None),
     ("ponds", "existing_water", WATER, 0.18, None),
     ("stream_banks", "existing_water", WATER, 0.22, None),
@@ -161,13 +186,13 @@ STYLE = [
     ("heritage", "existing_heritage", HER, 0.09, HER_FILL),
 ]
 KEY_STYLE = [
-    ("sat_trees", "satellite_trees", None, 0.0, "ECECE8"),
+    ("sat_trees", "satellite_trees", None, 0.0, SAT_TREE),
     ("streets", "existing_streets", PALE, 0.05, "FFFFFF"),
     ("road_edges", "existing_roads", PALE, 0.05, None),
     ("stream_banks", "existing_water", WATER, 0.25, None),
     ("ponds", "existing_water", WATER, 0.15, None),
     ("bridges", "existing_bridges", GREY, 0.15, None),
-    ("buildings", "existing_buildings", None, 0.0, "D9D6CF"),
+    ("buildings", "existing_buildings", None, 0.0, _tint(PALETTE["context"], 0.6)),
     ("heritage", "existing_heritage", None, 0.0, HER_FILL),
 ]
 # Basemap_colour.svg: stroke widths in metres on the ground (the SVG has no sheet scale)
