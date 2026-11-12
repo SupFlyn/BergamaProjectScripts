@@ -1,7 +1,7 @@
 {
-  "version": "style 1.1 (12 Nov 2026)",
+  "version": "style 1.2 (12 Nov 2026)",
   "what": "The one graphic code of every Bergama drawing script (Basemap, Key map, Masterplan base; Sections follows). Each category is defined once here: fill, line, line weight in mm on paper, hatch. Change a colour or a weight here and every drawing follows.",
-  "how": "A colour is a palette name, a palette name with +t (t towards white, 0..1) or -t (towards black), or a hex. w = line weight in mm on paper. Every fill except white is painted with the grain; \"grain\": false on a category keeps it flat, a number gives that category its own strength.",
+  "how": "A colour is a palette name, a palette name with +t (t towards white, 0..1) or -t (towards black), or a hex. w = line weight in mm on paper. Every fill except white is painted with the grain; \"grain\": false on a category keeps it flat, a number gives that category its own strength. ticks = [row spacing mm, tick length mm, pitch mm, line mm, colour]: short wave strokes over the grain, each second row shifted by half (vector, in the same shared tile).",
   "source": "Palette: Aras's five liked palettes of 12 Nov 2026 (library/examples/palettes_2026-11-12/INDEX.md), each value the median of a patch of his image; water and water_edge are his image 5 frame 294455 lightened 25 % and 60 % (calculated). context and context_dark replace the first context grey A08B8A, which read pink on the sheets (look review 12 Nov). Line weights: look review 12 Nov (proposals, not confirmed by Aras one by one).",
   "palette": {
     "water": "5F7380",
@@ -39,14 +39,14 @@
     "low_green":     {"label": "Low green 2023",      "fill": "context+0.88",   "line": null,            "w": 0.0},
     "calisma":       {"label": "Project boundary",    "fill": null,             "line": "heritage",      "w": 0.5},
     "frame":         {"label": "Frame",               "fill": null,             "line": "ink",           "w": 0.35},
-    "section_line":  {"label": "Section line",        "fill": null,             "line": "accent",        "w": 0.35},
+    "section_line":  {"label": "Section line",        "fill": null,             "line": "accent-0.4",    "w": 0.35},
 
     "meadow":        {"label": "Open ground",         "fill": "tree_light+0.82", "line": null,           "w": 0.0},
     "soft_ground":   {"label": "Green corridor",      "fill": "tree_light+0.6", "line": null,            "w": 0.0},
     "planted":       {"label": "Planted ground",      "fill": "tree_mid+0.6",   "line": null,            "w": 0.0},
     "wet_edge":      {"label": "Wet edge",            "fill": "water_edge+0.3",     "line": null,            "w": 0.0},
     "reed":          {"label": "Reeds",               "fill": "tree_mid+0.25",  "line": null,            "w": 0.0},
-    "water":         {"label": "Water",               "fill": "water",          "line": null,            "w": 0.0,  "grain": 0.09},
+    "water":         {"label": "Water",               "fill": "water",          "line": null,            "w": 0.0,  "grain": 0.09, "ticks": [2.5, 3.0, 8.0, 0.09, "water+0.22"]},
     "plan_road":     {"label": "Road in the plan",    "fill": "white",          "line": null,            "w": 0.0},
     "paving":        {"label": "Paths and squares",   "fill": "hard_ground+0.5", "line": null,           "w": 0.0},
     "paving_dark":   {"label": "Dark paving",           "fill": "hard_ground-0.12", "line": null,          "w": 0.0},

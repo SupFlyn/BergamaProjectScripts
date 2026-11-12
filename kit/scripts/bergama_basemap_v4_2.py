@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v4.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v4.2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 The existing situation inside site_alan, from ONE read of the open survey model (Bergama_Altlik.3dm), turned so the
 frame's long side lies flat (eastern end right, as his plan), kept by layer in a cache the other new scripts read.
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
@@ -41,6 +41,10 @@ lightened less (FADE_MIX 0.25: the building outlines were too faint); a style en
 two A0 bands sit in the middle of the page height and the column under the legend holds a small key plan (streets,
 stream, heritage, red line, the two bands, the section lines); when the model has no layer section_lines the key map
 reads Data/section_lines.json; a PDF that is open in a viewer is still written under a timed name, and the log says so.
+v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry may carry "ticks" (the water's
+short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
+legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
+touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
 Kept from v1-v3.3: heritage rule (BINA_TARIHI / BINA_HARABE or a heritage word in a YAZI_YAPI name inside), building
 lines joined into closed outlines (FACE_MIN..FACE_MAX m2), floor counts (YAZI_KAT_ADEDI) in the cache, the continuous
 street bands along the OpenStreetMap centrelines (survey edge / building front / carried width; streets.json), the two
@@ -65,7 +69,7 @@ import os, time, json, math, re, zlib, random
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v4.1"
+VERSION = "v4.2"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -120,6 +124,7 @@ STYLE_FILE = os.path.join("Data", "bergama_style.json")
 A0_W, A0_H, A0_MARGIN, A0_STEP = 1189.0, 841.0, 15.0, 500     # mm, mm, mm, scale step
 A0_COLUMN, BAND_GAP, BAND_OVERLAP_M = 200.0, 20.0, 15.0       # mm title and legend column, mm between the bands, m shared
 COVER_M, COVER_MIN_M2 = 0.5, 80.0  # m cell of the land cover stencil (the image's own 0.5 m); smallest patch drawn (ours)
+LEGEND_LINE_MIN = 0.3               # mm: no legend line swatch thinner than this (legend only)
 LEGEND_LINE_K = 3.0                # line swatches in the legend: this many times the drawn weight (legend only)
 SECTION_FILE = os.path.join("Data", "section_lines.json")
 MASK_M, FACE_HALO_M = 8.0, 1.0     # m kept free of land cover around open building lines / closed outlines (ours)
@@ -575,6 +580,7 @@ def load_style():
     for k_, c in J["categories"].items():
         fill = col(c.get("fill"))
         cat[k_] = {"label": c.get("label", k_), "fill": fill, "line": col(c.get("line")), "w": float(c.get("w") or 0.0),
+                   "ticks": ([float(v) for v in c["ticks"][:4]] + [col(c["ticks"][4])]) if c.get("ticks") else None,
                    "grain": (float(c["grain"]) if isinstance(c.get("grain"), (int, float)) and not isinstance(
                        c.get("grain"), bool) else True) if (fill and fill != "FFFFFF" and c.get("grain", True)) else False}
     return {"cat": cat, "text": J["text_mm"], "grain": J.get("grain") or {}, "ink": col("ink"), "col": col,
@@ -585,7 +591,9 @@ def fill_of(c):
     """a category's fill for the PDF writer: "~RRGGBB" = painted with the grain of that colour"""
     if not c["grain"]:
         return c["fill"]
-    return u"~" + c["fill"] + (u"" if c["grain"] is True else u"@%g" % c["grain"])
+    t = c.get("ticks")
+    return u"~" + c["fill"] + (u"" if c["grain"] is True else u"@%g" % c["grain"]) + (
+        (u"|%g,%g,%g,%g,%s" % tuple(t)) if t else u"")
 
 
 # ================================================================ the grain (one seamless tile, shared by every fill)
@@ -836,14 +844,23 @@ def draw_top(D, F, S, den, x0, y0, u0, u1, names=False, sections=False, lw_k=1.0
                           a, "i" if kind == "street" else None))
     if sections:
         c = S["cat"]["section_line"]
-        for s in D.get("sections", []):
+        ts = 2.2 if lw_k >= 0.6 else 1.6
+        placed = []                                       # (x, level): one name per line, above its upper end
+        for s in sorted(D.get("sections", []), key=lambda s_: s_["name"]):
             a, b = F.local(s["line"][0]), F.local(s["line"][1])
-            for run in clip_line([a, b], box):
+            for run in clip_line([a, b], box)[:1]:
                 items.append(("line", [pg(q) for q in run], c["line"], c["w"] * lw_k, None, "section_lines", 1))
-                for q, al in ((run[0], "R"), (run[-1], "L")):
-                    X, Y = pg(q)
-                    items.append(("text", s["name"], X + (-1.0 if al == "R" else 1.0), Y + 0.8, 2.2, c["line"], True, al,
-                                  "section_lines", None, None))
+                X, Y = pg(max(run[0], run[-1], key=lambda q: q[1]))
+                wd = text_w(s["name"], ts, True) + 1.0
+                lvl = 0
+                while any(l_ == lvl and abs(X - x_) < wd for x_, l_ in placed):
+                    lvl += 1
+                placed.append((X, lvl))
+                if lvl:                                   # a thin leader up to a stacked name
+                    items.append(("line", [(X, Y), (X, Y + 0.6 + lvl * ts * 1.3)], c["line"], 0.05, None,
+                                  "section_lines", 1))
+                items.append(("text", s["name"], X, Y + 0.8 + lvl * ts * 1.3, ts, c["line"], True, "C", "section_lines",
+                              None, None))
     return items
 
 
@@ -902,7 +919,7 @@ def furniture(S, x, y, width, tk, title, sub, legend, credit=None):
             it.append(("poly", [box_], fill_of(c), c["line"] or S["cat"]["kerb"]["line"], c["w"] or 0.05, None, "legend", 1,
                        None, None))
         else:
-            it.append(("line", [(xx, yy + sh / 2.0), (xx + sw, yy + sh / 2.0)], c["line"], min(c["w"] * LEGEND_LINE_K, sh * 0.2), None,
+            it.append(("line", [(xx, yy + sh / 2.0), (xx + sw, yy + sh / 2.0)], c["line"], min(max(c["w"] * LEGEND_LINE_K, LEGEND_LINE_MIN), sh * 0.2), None,
                        "legend", 1))
         it.append(("text", c["label"], xx + sw + 2.5 * tk, yy + sh / 2.0 - ts * 0.36, ts, INK, False, "L", "legend", None,
                    None))
@@ -973,7 +990,7 @@ def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn, key_fn=None):
     items, clips, cnt = [], {}, {}
     if not a0:                                            # the strip under the frame takes the height it needs
         probe, fh = furniture(S, 0.0, 0.0, fw, tk, title, sub, list(S["cat"])[:14], credit)
-        fh += 6.0 * tk
+        fh = max(fh + 6.0 * tk, 24.0 if tk < 0.5 else 0.0)
         w, h = F.w * k + 2 * m, F.h * k + 2 * m + fh
         pos = [(m, m + fh)]
         fx, fy = m, m + fh - 3.0 * tk
@@ -983,7 +1000,10 @@ def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn, key_fn=None):
         clips.update(cl)
         for k_, v in c.items():
             cnt[k_] = cnt.get(k_, 0) + v
-    items += corner_block(F, S, den, pos[-1][0] + (bands[-1][1] - bands[-1][0]) * k, pos[-1][1])
+    if not a0 and tk < 0.5:                               # a small sheet: north and scale under the frame, off the map
+        items += corner_block(F, S, den, m + F.w * k + 4.0, pos[0][1] - 23.0)
+    else:
+        items += corner_block(F, S, den, pos[-1][0] + (bands[-1][1] - bands[-1][0]) * k, pos[-1][1])
     fi, _ = furniture(S, fx, fy, fw, tk, title, sub,
                       legend_of(cnt), credit)
     if a0 and key_fn is not None:                         # the small key plan at the foot of the column
@@ -1297,20 +1317,37 @@ def write_pdf(path, w, h, items, title, clips=None):
     def paint(fill):
         """the operators that set the fill: a flat colour, or the grain pattern of that colour"""
         if not fill.startswith("~") or _GRAIN.get("amp", 0) <= 0 or "z" not in _GRAIN:
-            return "%s rg" % _col(fill.lstrip("~").split("@")[0])
+            return "%s rg" % _col(fill.lstrip("~")[:6])
         col = fill[1:]
         if col not in pats:
             lv, amp, T = _GRAIN["levels"], _GRAIN["amp"], _GRAIN["tile"]
+            ticks = col.split("|")[1].split(",") if "|" in col else None
             if "@" in col:
-                amp = float(col.split("@")[1])
+                amp = float(col.split("|")[0].split("@")[1])
             table = "".join(_mix(col[:6], (2.0 * i / (lv - 1) - 1.0) * amp) for i in range(lv))
             z = _GRAIN["z"]
             im = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace [/Indexed /DeviceRGB %d <%s>] "
                       "/BitsPerComponent 8 /Interpolate true /Filter /FlateDecode /Length %d >>\nstream\n" % (
                           _GRAIN["px"], _GRAIN["px"], lv - 1, table, len(z))).encode() + z + b"\nendstream")
-            body_ = ("q %s 0 0 %s 0 0 cm /G Do Q" % (_f(T), _f(T))).encode()
+            body_ = "q %s 0 0 %s 0 0 cm /G Do Q" % (_f(T), _f(T))
+            if ticks:                                    # wave strokes over the grain; whole rows and pitches per tile
+                row, tl, pitch, lw_ = [float(v) for v in ticks[:4]]
+                nr, nc = max(2, 2 * int(round(T / row / 2.0))), max(1, int(round(T / pitch)))
+                row, pitch = T / nr, T / nc
+                A = ["q 1 J %s RG %s w" % (_col(ticks[4]), _f(lw_))]
+                for j in range(nr):
+                    y = (j + 0.5) * row
+                    for i in range(nc):
+                        x = (i + 0.25 + 0.5 * (j % 2)) * pitch - tl / 2.0
+                        A.append("%s %s m %s %s %s %s %s %s c %s %s %s %s %s %s c" % (
+                            _f(x), _f(y), _f(x + tl / 6.0), _f(y + tl / 7.0), _f(x + tl / 3.0), _f(y + tl / 7.0),
+                            _f(x + tl / 2.0), _f(y), _f(x + tl * 2 / 3.0), _f(y - tl / 7.0), _f(x + tl * 5 / 6.0),
+                            _f(y - tl / 7.0), _f(x + tl), _f(y)))
+                A.append("S Q")
+                body_ += "\n" + "\n".join(A)
+            body_ = zlib.compress(body_.encode(), 6)
             pats[col] = add(("<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 2 /BBox [0 0 %s %s] /XStep %s "
-                             "/YStep %s /Matrix [%s 0 0 %s 0 0] /Resources << /XObject << /G %d 0 R >> >> /Length %d >>\n"
+                             "/YStep %s /Matrix [%s 0 0 %s 0 0] /Resources << /XObject << /G %d 0 R >> >> /Filter /FlateDecode /Length %d >>\n"
                              "stream\n" % (_f(T), _f(T), _f(T), _f(T), _f(k), _f(k), im, len(body_))).encode()
                             + body_ + b"\nendstream")
         return "/Pattern cs /P%d scn" % pats[col]
