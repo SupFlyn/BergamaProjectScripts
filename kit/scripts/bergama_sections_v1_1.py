@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: SECTIONS v1.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
 like texture band beneath it ... include those as a thin line"; "these gonna be our new sections they gonna be generic
@@ -35,7 +35,8 @@ Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it 
   input  half_width    m drawn either side of the stream (default 100)
   output log / done    as every Bergama script
 Reads  ~/Downloads/Bergama/Data/bergama_sections_engine.py, Data/section_lines.json, Data/selinos_centreline.json,
-       ~/Downloads/Bergama/cached/basemap/basemap.json, the open Rhino model's survey layers (read once per press)
+       ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json + streets.json (press Basemap first; else the old
+       cached/basemap/basemap.json), the open Rhino model's survey layers (read once per press)
 Writes ~/Downloads/Bergama/output/bergama_sections/Section_<name>.pdf   one page per line (1:scale, PDF layers)
        ~/Downloads/Bergama/cached/bergama_sections/sections.json         every cut's numbers
        ~/Downloads/Bergama/logs/bergama_sections_log.txt
@@ -43,13 +44,14 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Section_<name>.pdf   one page
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v1.1"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
 GH_INPUTS = {"section_line": "line list", "scale": "int 50..2000 = 500", "half_width": "int 20..400 = 100"}
 SECTION_LAYER = "section_lines"   # the model layer his own section lines sit on (object name = section name)
 SEASON = "autumn"          # the one drawing per line: Q500, Q100 and the Oct-Dec high end, as in his image
+STOREY_M = 3.0             # m per floor: the project's storey height (the old site board's FLOOR_H), an assumption
 BACK_M = 30.0              # buildings up to this far behind the cut are drawn as background
 ROAD_EDGE_M = 12.0         # a street centreline crossing counts as a road between survey edges this close to it
 ROAD_T = 0.25              # m, drawn thickness of the road surface
@@ -128,13 +130,47 @@ def load_engine(log):
 
 
 def load_basemap(log):
-    """the site step's layers (survey m): buildings with heights, street areas, street centrelines; {} if missing"""
+    """the context (survey m): buildings with heights, street areas, street centrelines; {} if missing.
+    v1.1: read from the Basemap script's caches (cached/bergama_basemap/basemap_layers.json: closed building
+    outlines + the survey's floor counts; streets.json: the street bands); a building's height = its floor count x
+    STOREY_M (the project's storey height, an assumption, not a survey height). Only when that cache is missing, the
+    old site board's cached/basemap/basemap.json is read as before."""
+    p = os.path.join(bg_cache("bergama_basemap"), "basemap_layers.json")
+    if os.path.isfile(p):
+        try:
+            with open(p, encoding="utf-8") as f:
+                J = json.load(f)
+            B, n_out = [], 0
+            for key in ("buildings", "heritage"):
+                rings = [P for cl, P in J.get("layers", {}).get(key, []) if cl and len(P) >= 3]
+                fls = (J.get("floors") or {}).get(key) or []
+                for i, r in enumerate(rings):
+                    n_out += 1
+                    fl = int(fls[i]) if i < len(fls) else 0
+                    xs, ys = [q[0] for q in r], [q[1] for q in r]
+                    B.append((min(xs), min(ys), max(xs), max(ys), r, fl * STOREY_M, fl))
+            A = []
+            ps = os.path.join(bg_cache("bergama_basemap"), "streets.json")
+            if os.path.isfile(ps):
+                with open(ps, encoding="utf-8") as f:
+                    for cl, r in json.load(f).get("layers", {}).get("streets", []):
+                        if len(r) >= 3:
+                            xs, ys = [q[0] for q in r], [q[1] for q in r]
+                            A.append((min(xs), min(ys), max(xs), max(ys), r))
+            else:
+                log.append(u"FLAG context: %s not found: no road surfaces drawn; press Basemap once" % ps)
+            log.append(u"context: %s (%s): %d building outlines, %d with a floor count (height = floors x %.1f m); %d "
+                       u"street bands" % (p, J.get("made_by", u"?"), n_out, sum(1 for b_ in B if b_[6] > 0), STOREY_M,
+                                          len(A)))
+            return {"buildings": B, "areas": A, "streets": []}
+        except Exception as ex:
+            log.append(u"FLAG context: %s not read (%s); trying the old site board's cache" % (p, type(ex).__name__))
     p = os.path.join(bg_cache("basemap"), "basemap.json")
     try:
         with open(p, encoding="utf-8") as f:
             L = json.load(f).get("layers", {})
     except Exception as ex:
-        log.append(u"FLAG context: %s not read (%s): no buildings or roads drawn; run the site step (MainBoard) once"
+        log.append(u"FLAG context: %s not read (%s): no buildings or roads drawn; press Basemap once"
                    % (p, type(ex).__name__))
         return {}
     B = []

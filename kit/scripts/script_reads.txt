@@ -98,7 +98,9 @@ bergama_booklet: cached/booklet/bergama_section_from_line/  # r9 hand
 bergama_sections: Data/bergama_sections_engine.py  # hand, 12 Nov (not traced yet)
 bergama_sections: Data/section_lines.json  # hand, 12 Nov (not traced yet)
 bergama_sections: Data/selinos_centreline.json  # hand, 12 Nov (not traced yet)
-bergama_sections: cached/basemap/basemap.json  # hand, 12 Nov (not traced yet)
+bergama_sections: cached/bergama_basemap/basemap_layers.json  # hand, 12 Nov
+bergama_sections: cached/bergama_basemap/streets.json  # hand, 12 Nov
+bergama_sections: cached/basemap/basemap.json  # hand, 12 Nov (only when the Basemap cache is missing)
 bergama_sections: rhino  # hand, 12 Nov (not traced yet)
 bergama_basemap: Data/assets/masterlastversion.svg  # hand, 12 Nov (not traced yet)
 bergama_basemap: rhino  # hand, 12 Nov

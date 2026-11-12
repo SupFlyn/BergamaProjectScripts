@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v3.2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v3.3 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
 as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
 frame for that basemap and keymap for that matter".
@@ -82,6 +82,9 @@ shared end points (to 1 cm) and every closed cell they form between FACE_MIN and
 outline (white, or heritage); lines that close no cell are drawn as lines. A cell is heritage when at least half of
 its sides lie on BINA_TARIHI / BINA_HARABE or a heritage name text stands inside it. A yard fully enclosed by building
 lines also counts as a cell (the survey does not tell them apart); it only gets the white fill.
+v3.3: the survey's floor counts (number texts on YAZI_KAT_ADEDI) are read and kept in the cache next to the outlines
+("floors": one number per closed outline of "buildings" and of "heritage", 0 = no floor text inside; the largest
+when several stand inside), so that Sections draws its background buildings from this cache alone.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -103,7 +106,7 @@ import os, time, json, math, re
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v3.2"
+VERSION = "v3.3"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -118,6 +121,7 @@ BLD_LAYERS = ["BINA_MESKEN", "BINA", "BINA_RESMI", "BINA_OKUL", "BINA_DINI_TESIS
               "BINA_HARABE", "BINA_FABRIKA", "BINA_SERA", "BINA_SPOR_TESISLERI", "BINA_AKARYAKIT", "BINA_INS_HALINDE"]
 HER_LAYERS = ("BINA_TARIHI", "BINA_HARABE")
 NAME_LAYER = "YAZI_YAPI"
+FLOOR_LAYER = "YAZI_KAT_ADEDI"
 STREET_NAME_LAYER = "YAZI_CADDE_YOL"
 SHADOWS = False              # Aras 12 Nov 11:13 UTC: no shadows on the basemap for now
 SHADOW_M = (2.5, -2.5)       # m on the turned frame: the shadow copy lies to the lower right
@@ -407,6 +411,32 @@ def read_model(doc, log):
         else:
             bld.append([True, P])
     n_faces = len(bld)
+    fl = {}
+    n_txt = 0
+    for o in _layer_objs(doc, FLOOR_LAYER):
+        g = o.Geometry
+        try:
+            if isinstance(g, rg.TextEntity):
+                t, x, y = g.PlainText.strip(), g.Plane.Origin.X, g.Plane.Origin.Y
+            elif isinstance(g, rg.TextDot):
+                t, x, y = g.Text.strip(), g.Point.X, g.Point.Y
+            else:
+                continue
+            v = int(float(t.replace(",", ".")))
+        except Exception:
+            continue
+        if not 1 <= v <= 40:
+            continue
+        n_txt += 1
+        for i in grid.get((int(x // 25.0), int(y // 25.0)), ()):
+            if g_pip(x, y, faces[i][0]):
+                fl[i] = max(fl.get(i, 0), v)
+                break
+    is_her = set(id(h["ring"]) for h in her)
+    floors = {"buildings": [fl.get(i, 0) for i, (P, _) in enumerate(faces) if id(P) not in is_her],
+              "heritage": [fl.get(i, 0) for i, (P, _) in enumerate(faces) if id(P) in is_her]}
+    log.append(u"floors: %d floor texts on %s; %d of the %d closed outlines have one inside" % (
+        n_txt, FLOOR_LAYER, len(fl), len(faces)))
     her_lines = [[False, [a_, b_]] for nm, a_, b_ in loose if nm in HER_LAYERS]
     bld += [[False, [a_, b_]] for nm, a_, b_ in loose if nm not in HER_LAYERS]
     log.append(u"buildings: %d survey lines on %d BINA layers joined into %d closed outlines (%d heritage); %d lines "
@@ -433,7 +463,7 @@ def read_model(doc, log):
     for h in her:
         c = (sum(p[0] for p in h["ring"]) / len(h["ring"]), sum(p[1] for p in h["ring"]) / len(h["ring"]))
         log.append(u"  heritage: %s (%s) at %.0f, %.0f" % (h["name"] or u"no name text inside", h["layer"], c[0], c[1]))
-    return {"frame": frame, "layers": out, "sections": sec, "calisma": work, "labels": labels,
+    return {"frame": frame, "layers": out, "sections": sec, "calisma": work, "labels": labels, "floors": floors,
             "heritage_names": [[h["name"], h["layer"]] for h in her]}
 
 
