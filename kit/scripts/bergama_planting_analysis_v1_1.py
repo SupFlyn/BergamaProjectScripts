@@ -20,7 +20,7 @@ Component: Rhino 8 > Grasshopper > Python 3 Script, paste the whole file.
 import os, time, json, re, math
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v1.1"  # v1.1 (12 Nov 2026, test runs): no plan baked yet = a FLAG line and nothing drawn, not an ERROR
 GH_LABEL = "PlantingAnalysis"
 OUT_FOLDER = "bergama_planting_analysis"
 LOG_NAME = "bergama_planting_analysis_log.txt"
@@ -1322,7 +1322,13 @@ def main(doc=None, data=None):
     t0 = time.time()
     notes = [u"%s %s · %s" % (GH_LABEL, VERSION, time.strftime("%Y-%m-%d %H:%M"))]
     if data is None:
-        data = read_layers(doc, notes)
+        try:
+            data = read_layers(doc, notes)
+        except RuntimeError as ex_:                  # v1.1: nothing baked yet is not a fault of this press
+            if "not been baked" not in u"%s" % ex_:
+                raise
+            notes.append(u"FLAG nothing to analyse: %s (PlanToRhino LineDrawing = True bakes it)" % ex_)
+            return u"\n".join(notes)
     res = analyse(data, notes)
     icons = aras_icons(AGACLAR, notes)
     B = build_board(data, res, icons, notes)
