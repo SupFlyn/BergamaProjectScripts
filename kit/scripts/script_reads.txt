@@ -102,7 +102,12 @@ bergama_sections: cached/bergama_basemap/basemap_layers.json  # hand, 12 Nov
 bergama_sections: cached/bergama_basemap/streets.json  # hand, 12 Nov
 bergama_sections: cached/basemap/basemap.json  # hand, 12 Nov (only when the Basemap cache is missing)
 bergama_sections: rhino  # hand, 12 Nov (not traced yet)
-bergama_basemap: Data/assets/masterlastversion.svg  # hand, 12 Nov (not traced yet)
+bergama_basemap: Data/bergama_style.json  # hand, 12 Nov
+bergama_plan_base: scripts/bergama_basemap_v4.py  # hand, 12 Nov (the newest Basemap script = the drawing code)
+bergama_plan_base: Data/bergama_style.json  # hand, 12 Nov
+bergama_plan_base: Data/assets/masterlastversion.svg  # hand, 12 Nov
+bergama_plan_base: cached/bergama_basemap/basemap_layers.json  # hand, 12 Nov
+bergama_plan_base: cached/bergama_basemap/streets.json  # hand, 12 Nov
 bergama_basemap: rhino  # hand, 12 Nov
 bergama_basemap: Data/veg2023.json  # hand, 12 Nov
 bergama_basemap: Data/bergama_osm.osm  # hand, 12 Nov

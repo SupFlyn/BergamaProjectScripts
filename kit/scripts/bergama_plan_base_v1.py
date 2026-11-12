@@ -1,0 +1,419 @@
+# -*- coding: utf-8 -*-
+"""Bergama Group 6: MASTERPLAN BASE v1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+Aras 12 Nov 2026: "Masterplan is our first goal"; "we want the base map first", routes and connections "leave that to
+last"; "outside of that line will be white and inside is colourful"; "please prepare a new masterplan script from
+scratch according to the examples"; "keep it consistent everywhere"; "combine vectoral and raster drawing however
+maximize the quality first"; "textured fills like ... the colour palatte that i gave to you".
+The look follows his most liked example (A05_board02_x12_13-1-scaled, brief
+library/examples/liked_2026-11-12/MERGED_SPEC_v0.1.md): white context with thin grey outlines, colour only inside the
+thin red line, the stream the darkest fill without outline, trees as circles in three tones on a pale green underlay.
+
+What is drawn (nothing is invented: every shape is either the survey or a shape of his plan drawing):
+  OUTSIDE the red line (calisma_alan): the existing situation exactly as the Basemap draws it (same code, same style
+          entries: white buildings with one thin outline, continuous white streets), without the satellite land cover.
+  INSIDE  his plan drawing Data/assets/masterlastversion.svg, redrawn shape by shape in the colours of the style
+          table. A shape's meaning comes from the group it sits in (and its fill), table PLAN_RULES below. A tree is
+          drawn only where his plan has a tree symbol, as a circle of the symbol's own size; its tone by species
+          (TREE_TONE). Under every tree three pale rings (UNDERLAY_M m beyond the crown) = the planted-ground underlay.
+          Houses of his plan = the same white building as outside; his heritage shapes = the heritage entry.
+  NOT YET his routes, arrows, numbered labels, legend, texts, images and the groups not in PLAN_RULES (the log lists
+          how many shapes of which group were left out). They come with the routes, later.
+The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
+scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+UNDERLAY_M, the circle for a tree symbol and the drawing order are drawing values (ours).
+
+Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
+  input  run     Button (or the previous script's done text)
+  input  scale   sheet scale 1:n of Masterplan.pdf (default 2000)
+  output log / done   as every Bergama script
+Reads  ~/Downloads/Bergama/scripts/bergama_basemap_v*.py              (the newest: the drawing code)
+       ~/Downloads/Bergama/Data/bergama_style.json                     (the style table)
+       ~/Downloads/Bergama/Data/assets/masterlastversion.svg           (his plan)
+       ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json  (the survey, written by Basemap)
+       ~/Downloads/Bergama/cached/bergama_basemap/streets.json         (the street bands, written by Basemap)
+Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A0.pdf
+       ~/Downloads/Bergama/cached/bergama_plan_base/plan_shapes.json   (his plan's shapes by meaning, frame m)
+       ~/Downloads/Bergama/logs/bergama_plan_base_log.txt
+"""
+import os, time, json, math, re, glob
+
+# ---- SETTINGS ----
+VERSION = "v1"
+GH_LABEL = "PlanBase"
+OUT_FOLDER = "bergama_plan_base"
+LOG_NAME = "bergama_plan_base_log.txt"
+GH_INPUTS = {"scale": "int 500..10000 = 2000"}
+
+PLAN_SVG = os.path.join("Data", "assets", "masterlastversion.svg")
+LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
+LIB_END = "# ================================================================ main"
+# his group id -> {fill of the shape (lower case hex) or "*" = any fill: style category}; drawn in ORDER below
+PLAN_RULES = {
+    "green_corridor_open_ground_within_25_m_of_the_water": {"*": "soft_ground"},
+    "seconder": {"*": "planted"},
+    "Selinos": {"*": "water"},
+    "water_drainage_wall": {"*": "wet_edge"},
+    "wetland_shallow_water_reeds": {"#a9c4c2": "wet_edge", "#5d8980": "wet_edge", "*": "reed"},
+    "roads_streets": {"#fff": "plan_road", "#f8f8f6": "plan_road", "#e9ded8": "plan_road"},
+    "yeni_yol": {"*": "plan_road"},
+    "walks_paths_bike_lane": {"#e8cfcf": "promenade", "#a8705c": "paving_dark", "#efddda": "paving", "#f8f5f3": "paving",
+                              "#eee5e1": "paving", "#f3edea": "paving", "#e9ded8": "paving"},
+    "evler": {"#f7f8f6": "building", "#e4877a": "heritage"},
+    "heritage1": {"#e4877a": "heritage"},
+    "Kizil_Avlu_outline_popped_the_reason_for_the_red_area": {"#b8483a": "heritage"},
+}
+STROKED = ("yeni_yol",)            # groups whose stroked lines are drawn too, at their own width (his new roads)
+ORDER = ["soft_ground", "planted", "water", "wet_edge", "reed", "plan_road", "paving", "promenade", "paving_dark",
+         "building", "heritage"]
+TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_<species>">
+TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid", "olive": "tree_mid",
+             "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
+UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first (ours)
+PATH_STEP = 1.5                    # SVG units: curves of his plan are cut into pieces of about this length
+CREDIT = (u"Inside the red line: the plan drawing masterlastversion.svg, redrawn by layer. Outside: the survey "
+          u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines. Routes and labels follow.")
+
+# ---- folders (same in every script) ----
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
+CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
+LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
+SHAPE_FILE = os.path.join(CACHE_DIR, "plan_shapes.json")
+SHAPE_FORMAT = 1
+
+
+def load_lib(log):
+    """the drawing code of the newest Basemap script (everything above its main) as a dict of names"""
+    found = glob.glob(os.path.join(BERGAMA_ROOT, LIB_GLOB))
+    if not found:
+        raise RuntimeError(u"no %s: run Bergama.bat once (the kit copies the Basemap script), then press again"
+                           % os.path.join(BERGAMA_ROOT, LIB_GLOB))
+    src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
+    with open(src_, encoding="utf-8") as f:
+        code = f.read()
+    if LIB_END not in code:
+        raise RuntimeError(u"%s has no line %r: it is older than Basemap v4" % (src_, LIB_END))
+    ns = {"__name__": "bergama_basemap_lib"}
+    exec(compile(code[:code.index(LIB_END)], src_, "exec"), ns)
+    if "sheet" not in ns or "load_style" not in ns:
+        raise RuntimeError(u"%s is older than Basemap v4: update the kit (Bergama.bat), then press again" % src_)
+    ns["BERGAMA_ROOT"] = BERGAMA_ROOT
+    log.append(u"drawing code: %s (%s %s)" % (src_, ns.get("GH_LABEL"), ns.get("VERSION")))
+    return ns
+
+
+# ================================================================ his plan, shape by shape
+def read_plan(B, F, log):
+    """his plan's shapes by style category, in frame m:
+    {"shapes": {category: [[ring, ...]]}, "lines": [[points, width m]], "trees": [[u, v, r m, species]], "left": {...}}"""
+    src = os.path.join(BERGAMA_ROOT, PLAN_SVG)
+    if not os.path.isfile(src):
+        raise RuntimeError(u"%s not found: his plan drawing is needed for the masterplan" % src)
+    st = os.stat(src)
+    key = u"%d|%s|%s|%d|%d" % (SHAPE_FORMAT, VERSION, B.get("VERSION"), st.st_size, st.st_mtime_ns)
+    if os.path.isfile(SHAPE_FILE):
+        try:
+            with open(SHAPE_FILE, encoding="utf-8") as f:
+                P = json.load(f)
+            if P.get("key") == key:
+                log.append(u"same plan drawing as the cache: %s used, the SVG not read again" % SHAPE_FILE)
+                return P
+        except Exception:
+            pass
+    t0 = time.time()
+    with open(src, encoding="utf-8") as f:
+        txt = f.read()
+    fr, how = B["plan_frame"](txt, F)
+    if fr is None:
+        raise RuntimeError(u"%s: %s: the plan cannot be placed" % (src, how))
+    rx, ry, rw, rh = fr
+    s = rw / F.w
+
+    def U(p):
+        return [round((p[0] - rx) / s, 2), round((ry + rh - p[1]) / s, 2)]
+    shapes, lines, trees, left, odd = {}, [], [], {}, 0
+    stack, hidden, skip = [], 0, 0                       # stack of (group id, hidden?); skip = inside defs / symbol
+    for m in re.finditer(r"<(/?)(g|defs|symbol|clipPath|mask|pattern|path|polygon|polyline|line|rect|use)\b([^>]*?)(/?)>", txt):
+        end, tag, attrs, selfc = m.group(1), m.group(2), m.group(3), m.group(4)
+        if tag in ("defs", "symbol", "clipPath", "mask", "pattern"):
+            if not selfc:
+                skip += -1 if end else 1
+            continue
+        if skip:
+            continue
+        if tag == "g":
+            if end:
+                if stack and stack.pop()[1]:
+                    hidden -= 1
+            elif not selfc:
+                h = 'display="none"' in attrs
+                gid = re.search(r'\bid="([^"]*)"', attrs)
+                stack.append((gid.group(1) if gid else None, h))
+                hidden += 1 if h else 0
+            continue
+        if end or hidden or 'display="none"' in attrs:
+            continue
+        a = dict(re.findall(r'([\w:-]+)="([^"]*)"', attrs))
+        if tag == "use":
+            href = a.get("xlink:href") or a.get("href") or ""
+            if not href.startswith("#" + TREE_SYMBOL):
+                continue
+            tr = a.get("transform", "")
+            mt = re.search(r"translate\(\s*([-\d.eE]+)[\s,]*([-\d.eE]+)?\s*\)", tr)
+            ms = re.search(r"scale\(\s*([-\d.eE]+)", tr)
+            mr = re.search(r"rotate\(\s*([-\d.eE]+)", tr)
+            try:
+                w, h = float(a["width"]), float(a["height"])
+                sc = float(ms.group(1)) if ms else 1.0
+                tx, ty = (float(mt.group(1)), float(mt.group(2) or 0.0)) if mt else (0.0, 0.0)
+            except Exception:
+                odd += 1
+                continue
+            ang = math.radians(float(mr.group(1))) if mr else 0.0
+            hx, hy = w * sc / 2.0, h * sc / 2.0
+            c = U((tx + hx * math.cos(ang) - hy * math.sin(ang), ty + hx * math.sin(ang) + hy * math.cos(ang)))
+            trees.append(c + [round(max(w, h) * abs(sc) / 2.0 / s, 2), href[1 + len(TREE_SYMBOL):]])
+            continue
+        gid = next((g for g, _ in reversed(stack) if g in PLAN_RULES), None)
+        if gid is None:
+            g0 = next((g for g, _ in reversed(stack) if g and not g.startswith("Layer_")), None) or u"(no named group)"
+            left[g0] = left.get(g0, 0) + 1
+            continue
+        if "transform" in a:
+            odd += 1
+            continue
+        fill = (a.get("fill") or "").lower()
+        rule = PLAN_RULES[gid]
+        if tag == "path":
+            subs = B["path_rings"](a.get("d", ""), PATH_STEP)
+        elif tag in ("polygon", "polyline"):
+            v = [float(x) for x in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", a.get("points", ""))]
+            subs = [(tag == "polygon", list(zip(v[0::2], v[1::2])))]
+        elif tag == "line":
+            try:
+                subs = [(False, [(float(a["x1"]), float(a["y1"])), (float(a["x2"]), float(a["y2"]))])]
+            except Exception:
+                subs = []
+        else:
+            try:
+                x, y, w, h = float(a.get("x", 0)), float(a.get("y", 0)), float(a["width"]), float(a["height"])
+                subs = [(True, [(x, y), (x + w, y), (x + w, y + h), (x, y + h)])]
+            except Exception:
+                subs = []
+        filled = fill not in ("", "none") or (tag in ("path", "polygon", "rect") and "fill" not in a and "stroke" not in a
+                                                and gid == "water_drainage_wall")
+        cat = (rule.get(fill) or rule.get("*")) if filled else None
+        if cat and tag != "line" and tag != "polyline":
+            rings = [[U(p) for p in P] for cl, P in subs if len(P) >= 3]
+            if rings:
+                shapes.setdefault(cat, []).append(rings)
+            continue
+        sw = re.match(r"[\d.]+", a.get("stroke-width", "") or "")
+        if gid in STROKED and a.get("stroke", "none") != "none" and sw:
+            for cl, P in subs:
+                if len(P) >= 2:
+                    lines.append([[U(p) for p in P] + ([U(P[0])] if cl else []), round(float(sw.group(0)) / s, 2)])
+            continue
+        left[gid] = left.get(gid, 0) + 1
+    P = {"key": key, "made_by": u"%s %s" % (GH_LABEL, VERSION), "made_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+         "what": u"his plan %s by style category, in frame m (u along the frame's long side from its west end, v up); "
+                 u"frame = %s at (%.2f, %.2f) %.2f x %.2f units, %.4f units per m" % (os.path.basename(src), how, rx, ry,
+                                                                                     rw, rh, s),
+         "shapes": shapes, "lines": lines, "trees": trees, "left": left, "odd": odd}
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(SHAPE_FILE, "w", encoding="utf-8") as f:
+        json.dump(P, f, ensure_ascii=False)
+    log.append(u"%s  %s (his plan %s, %.1f MB, read in %.1f s; %s)" % (
+        SHAPE_FILE, time.strftime("%H:%M:%S"), os.path.basename(src), st.st_size / 1048576.0, time.time() - t0, P["what"]))
+    return P
+
+
+def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
+    """his plan for the window u0..u1 as items cut to calisma_alan and the window; returns (items, clips, counts)"""
+    k = 1000.0 / den
+    items, cnt = [], {}
+
+    def pg(p):
+        return (x0 + (p[0] - u0) * k, y0 + p[1] * k)
+    cat = S["cat"]
+    fill_of = B["fill_of"]
+    win = [pg(q) for q in ((u0, 0), (u1, 0), (u1, F.h), (u0, F.h))]
+    clips = {tag: [[[pg(q) for q in R] for R in cal], [win]]}
+    wtag = tag + "w"
+    clips[wtag] = [[win]]
+    c = cat["meadow"]                                    # the ground of the whole working area
+    items.append(("poly", [[pg(q) for q in R] for R in cal], fill_of(c), None, 0.0, None, "plan_open_ground", 1, "eo", wtag))
+    cnt["meadow"] = len(cal)
+
+    def inwin(rings):
+        return any(min(q[0] for q in R) <= u1 and max(q[0] for q in R) >= u0 for R in rings)
+    for name in ORDER:
+        c = cat[name]
+        if name == "plan_road":                          # his stroked new roads lie under the road surfaces
+            for pts, wm in P["lines"]:
+                if inwin([pts]):
+                    items.append(("line", [pg(q) for q in pts], c["fill"] or "FFFFFF", wm * k, tag, "plan_" + name, 1))
+                    cnt[name] = cnt.get(name, 0) + 1
+        if name == "water":                              # the underlay lies on the ground, under water, paths and trees
+            for d, cn in zip(UNDERLAY_M, ("underlay_1", "underlay_2", "underlay_3")):
+                cu = cat[cn]
+                for u, v, r, sp in P["trees"]:
+                    if u0 - r - d <= u <= u1 + r + d:
+                        items.append(("poly", [circle(pg((u, v)), (r + d) * k, 32)], fill_of(cu), None, 0.0, None,
+                                      "plan_planted_underlay", 1, None, tag))
+                        cnt[cn] = cnt.get(cn, 0) + 1
+        for rings in P["shapes"].get(name, []):
+            if not inwin(rings):
+                continue
+            items.append(("poly", [[pg(q) for q in R] for R in rings], fill_of(c), c["line"], c["w"], None, "plan_" + name,
+                          1, "eo" if len(rings) > 1 else None, tag))
+            cnt[name] = cnt.get(name, 0) + 1
+    unknown = {}
+    for tone in ("tree_light", "tree_mid", "tree_dark"):  # light crowns first, dark on top
+        c = cat[tone]
+        for u, v, r, sp in P["trees"]:
+            t = TREE_TONE.get(sp)
+            if t is None:
+                unknown[sp] = 1
+                t = "tree_mid"
+            if t == tone and u0 - r <= u <= u1 + r:
+                items.append(("poly", [circle(pg((u, v)), r * k, 32)], fill_of(c), c["line"], c["w"], None, "plan_trees", 1,
+                              None, tag))
+                cnt[tone] = cnt.get(tone, 0) + 1
+    return items, clips, cnt, unknown
+
+
+def circle(c, r, n):
+    return [(c[0] + r * math.cos(2 * math.pi * i / n), c[1] + r * math.sin(2 * math.pi * i / n)) for i in range(n)]
+
+
+# ================================================================ main
+def main():
+    t0 = time.time()
+    log = []
+    den = int(globals().get("scale") or 2000)
+    B = load_lib(log)
+    S = B["load_style"]()
+    B["set_grain"](S, log)
+    log.append(u"style: %s (%s)" % (S["version"], os.path.join(BERGAMA_ROOT, B["STYLE_FILE"])))
+    if not os.path.isfile(B["CACHE_FILE"]):
+        raise RuntimeError(u"%s not found: press Basemap once first (it reads the survey and writes this cache)"
+                           % B["CACHE_FILE"])
+    with open(B["CACHE_FILE"], encoding="utf-8") as f:
+        D = json.load(f)
+    if not D.get("calisma"):
+        raise RuntimeError(u"the Basemap cache has no calisma_alan outline: the plan cannot be cut to the working area")
+    F = B["Frame"]([tuple(p) for p in D["frame"]])
+    D["layers"].update(B["build_streets"](D, F, log))
+    L = B["localise"](D, F)
+    fade = B["Fade"](D, F)
+    P = read_plan(B, F, log)
+    cal = [[F.local(p) for p in R] for R in D["calisma"]]
+    log.append(u"his plan: %s; %d stroked road lines; %d tree symbols (%s)" % (
+        u", ".join(u"%s %d" % (k_, len(v)) for k_, v in sorted(P["shapes"].items())), len(P["lines"]), len(P["trees"]),
+        u", ".join(u"%s %d" % (sp, sum(1 for t in P["trees"] if t[3] == sp)) for sp in sorted(set(t[3] for t in P["trees"])))))
+    if P["left"]:
+        log.append(u"not drawn yet (routes, labels, legend, groups without a rule): %s" % u", ".join(
+            u"%s %d" % kv for kv in sorted(P["left"].items(), key=lambda kv: -kv[1])[:40]))
+    if P.get("odd"):
+        log.append(u"FLAG his plan: %d shape(s) with a transform or unreadable numbers were left out" % P["odd"])
+    order = (["water", "wet_edge", "reed", "soft_ground", "meadow", "planted", "underlay_2", "tree_light", "tree_mid",
+              "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street",
+              "calisma"])
+    unknown = {}
+    n_a0 = B["a0_scale"](F)
+    for a0 in (False, True):
+        d = n_a0 if a0 else den
+
+        def band(den_, x, y, u0, u1, tag):
+            items, cnt = B["draw_context"](L, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
+            it, clips, c2, unk = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
+            unknown.update(unk)
+            items += it
+            items += B["draw_top"](D, F, S, den_, x, y, u0, u1, names=False, sections=False)
+            for k_, v in c2.items():
+                cnt[k_] = cnt.get(k_, 0) + v
+            cnt["calisma"] = len(cal)
+            return items, clips, cnt
+        w, h, items, clips, cnt = B["sheet"](F, S, d, a0, u"Masterplan", u"Base map of the proposal, 1:%s" % format(d, ",d"),
+                                             lambda c: [k_ for k_ in order if c.get(k_)], CREDIT, band)
+        p = B["write_pdf"](os.path.join(OUT_DIR, u"Masterplan_A0.pdf" if a0 else u"Masterplan.pdf"), w, h, items,
+                           u"Masterplan base, site_alan, 1:%d" % d, clips)
+        log.append(B["out_line"](p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
+            u"%s %d" % kv for kv in sorted(cnt.items()))))
+    if unknown:
+        log.append(u"FLAG tree symbols of a species without a tone in TREE_TONE, drawn in the middle tone: %s"
+                   % u", ".join(sorted(unknown)))
+    flags = [l for l in log if l.startswith(u"FLAG")]
+    return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
+
+
+# ---- Grasshopper wiring (same in every script) ----
+def chain_fire(v, key):
+    if isinstance(v, (list, tuple)):
+        v = next((x for x in v if x is not None), None)
+    s = str(v) if v is not None else ""
+    if not s.startswith("done "):
+        return False
+    try:
+        import scriptcontext as _scx
+        try:
+            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+        except Exception:
+            pass
+        if _scx.sticky.get(key) == s:
+            return False
+        _scx.sticky[key] = s
+        return True
+    except Exception:
+        return False
+
+
+def done_text(ran, ok, secs):
+    return ("done " if ok else "ERROR ") + time.strftime("%H:%M:%S") + ".%02d" % int((time.time() % 1) * 100) + \
+        " · %.0f s" % secs if ran else None
+
+
+def write_log(text):
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        pass
+    return text
+
+
+if "ghenv" in globals():
+    import scriptcontext as _sc
+    _k = "bergama_" + OUT_FOLDER
+    try:
+        _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
+    except Exception:
+        pass
+    _pressed = any(v is True for k, v in list(globals().items())
+                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
+        any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    if _pressed:
+        _t0 = time.time()
+        try:
+            _res = main()
+        except Exception as _ex:
+            import traceback as _tb
+            _res = "ERROR: %s: %s\n%s" % (type(_ex).__name__, _ex, _tb.format_exc()[-900:])
+        _sc.sticky[_k + "_log"] = write_log(_res)
+        _sc.sticky[_k + "_status"] = ("ERROR" if _res.startswith("ERROR") else
+                                      time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
+        _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
+        _sc.sticky[_k + "_ver"] = VERSION
+    if _sc.sticky.get(_k + "_ver") != VERSION:
+        for _s in ("_log", "_status", "_done"):
+            _sc.sticky.pop(_k + _s, None)
+    done = _sc.sticky.get(_k + "_done", "idle")
+    log = _sc.sticky.get(_k + "_log", "Press the Button to export to " + OUT_DIR)
+    print(log)
+    try:
+        ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821
+    except Exception:
+        pass
+

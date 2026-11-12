@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1.2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: SECTIONS v1.3 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
 like texture band beneath it ... include those as a thin line"; "these gonna be our new sections they gonna be generic
@@ -44,14 +44,20 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Section_<name>.pdf   one page
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.2"
+VERSION = "v1.3"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
 GH_INPUTS = {"section_line": "line list", "scale": "int 50..2000 = 500", "half_width": "int 20..400 = 100"}
 SECTION_LAYER = "section_lines"   # the model layer his own section lines sit on (object name = section name)
 SEASON = "autumn"          # the one drawing per line: Q500, Q100 and the Oct-Dec high end, as in his image
-STOREY_M = 3.0             # m per floor: the project's storey height (the old site board's FLOOR_H), an assumption
+# v1.3, Aras 12 Nov 19:10 UTC: "for storey height you got the data look for it". The project's own values (site board
+# scripts/selinus_board_v67.py: FLOOR_H = 3.0 and STOREY = {"religious": 5.0, "institutional": 3.5, "industrial": 4.5},
+# printed on its sheets as "Storey heights 3.0 m; civic 3.5, sacred 5.0, industry 4.5"): typical values, not measured.
+# The Basemap cache tells heritage / sacred outlines from the rest, so those take 5.0 m and every other building
+# 3.0 m; civic (3.5) and industry (4.5) are not told apart in the cache yet and are drawn at 3.0 m.
+STOREY_M = 3.0             # m per floor, every building that is not heritage / sacred
+STOREY_HERITAGE_M = 5.0    # m per floor, the Basemap's heritage outlines (sacred and heritage)
 BACK_M = 30.0              # buildings up to this far behind the cut are drawn as background
 ROAD_EDGE_M = 12.0         # a street centreline crossing counts as a road between survey edges this close to it
 ROAD_T = 0.25              # m, drawn thickness of the road surface
@@ -155,7 +161,7 @@ def load_basemap(log):
                     n_out += 1
                     fl = int(fls[i]) if i < len(fls) else 0
                     xs, ys = [q[0] for q in r], [q[1] for q in r]
-                    B.append((min(xs), min(ys), max(xs), max(ys), r, fl * STOREY_M, fl))
+                    B.append((min(xs), min(ys), max(xs), max(ys), r, fl * (STOREY_HERITAGE_M if key == "heritage" else STOREY_M), fl))
             A = []
             ps = os.path.join(bg_cache("bergama_basemap"), "streets.json")
             if os.path.isfile(ps):
@@ -166,9 +172,10 @@ def load_basemap(log):
                             A.append((min(xs), min(ys), max(xs), max(ys), r))
             else:
                 log.append(u"FLAG context: %s not found: no road surfaces drawn; press Basemap once" % ps)
-            log.append(u"context: %s (%s): %d building outlines, %d with a floor count (height = floors x %.1f m); %d "
-                       u"street bands" % (p, J.get("made_by", u"?"), n_out, sum(1 for b_ in B if b_[6] > 0), STOREY_M,
-                                          len(A)))
+            log.append(u"context: %s (%s): %d building outlines, %d with a floor count (height = floors x %.1f m, heritage and "
+                       u"sacred x %.1f m: the site board's typical storey heights); %d street bands" % (
+                           p, J.get("made_by", u"?"), n_out, sum(1 for b_ in B if b_[6] > 0), STOREY_M, STOREY_HERITAGE_M,
+                           len(A)))
             return {"buildings": B, "areas": A, "streets": []}
         except Exception as ex:
             log.append(u"FLAG context: %s not read (%s); trying the old site board's cache" % (p, type(ex).__name__))
