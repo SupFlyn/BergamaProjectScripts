@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: SECTIONS v1.2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
 like texture band beneath it ... include those as a thin line"; "these gonna be our new sections they gonna be generic
@@ -44,7 +44,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Section_<name>.pdf   one page
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.1"
+VERSION = "v1.2"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -59,12 +59,19 @@ BLD_FILL, BLD_EDGE, BLD_CUT_FILL = "F1EFEA", "9A948C", "E2DFD8"   # context grey
 ROAD_FILL = "6E6B66"       # existing road surface (drawing value, ours; the engine's red asphalt is the design's)
 BAND_H = 2.0               # mm, the thin material band
 
-SURVEY_LAYERS = ["NOKTA_TAKEOMETRI", "EGRI_1M", "EGRI_2M", "EGRI_5M", "EGRI_10M", "EGRI_ARA", "SEV_UST", "SEV_ALT",
+SURVEY_LAYERS = ["NOKTA_TAKEOMETRI", "NOKTA_POLIGON", "NOKTA_NIRENGI", "EGRI_1M", "EGRI_2M", "EGRI_5M", "EGRI_10M", "EGRI_ARA", "SEV_UST", "SEV_ALT",
                  "HIDRO_DERE_SULU"]
 MARK_LAYERS = {"SEV_UST": "bank top", "SEV_ALT": "bank toe", "HIDRO_DERE_SULU": "stream line", "YOL_SOSE": "road edge",
                "YOL_BORDUR": "kerb"}
 TREE_LAYERS = ["SEMBOL_TEK_AGAC", "SEMBOL_YPDKN_AGAC", "SEMBOL_YAP_DOKMEYEN"]
 CORRIDOR_M = 60.0          # survey heights this close to the line build the TIN
+# v1.2 (first Rhino run, 12 Nov: N2-A, N3-A, N3-B not drawn, "only 18 survey heights within 60 m"): in the old town
+# the survey has almost no height points (counted in Bergama_Altlik.3dm within 60 m of N2-A: 0 tacheometric points,
+# 22 traverse points on NOKTA_POLIGON, which v1.1 did not read). Now the traverse and triangulation points are read
+# too, and where fewer than HEIGHTS_WANT heights lie in the corridor it is widened step by step (CORRIDOR_STEPS);
+# the cut is drawn from HEIGHTS_MIN heights on, with a FLAG line that says how thin its ground is.
+CORRIDOR_STEPS = (60.0, 100.0, 150.0)
+HEIGHTS_WANT, HEIGHTS_MIN = 50, 8
 DS = 0.25                  # drawn profile step, m
 HYD_HALF, HYD_DS = 200.0, 0.5   # hydraulic cut: 200 m either side of the stream crossing, 0.5 m steps (research)
 CHANNEL_M = 40.0           # the bed low point is the lowest ground within this distance of the crossing
@@ -574,26 +581,33 @@ def build_cut(C, CL, cum, E, log, BM=None):
     h0, h1 = (x_c - HYD_HALF, x_c + HYD_HALF) if x_c is not None else (w0, w1)
     a0, a1 = min(w0, h0), max(w1, h1)
     pa, pb = C.xy(a0), C.xy(a1)
-    pad = max(CORRIDOR_M, SLOPE_HALF + 20.0 if x_c is not None else 0.0)
+    pad = max(CORRIDOR_STEPS[-1], SLOPE_HALF + 20.0 if x_c is not None else 0.0)
     box = (min(pa[0], pb[0]) - pad, min(pa[1], pb[1]) - pad, max(pa[0], pb[0]) + pad, max(pa[1], pb[1]) + pad)
     survey = C.survey if getattr(C, "survey", None) is not None else read_survey(box, log)
     C.survey = survey
     # ---- TIN of the heights in the corridor
     ox, oy = C.A
-    pts = {}
-    count = {}
-    for name in SURVEY_LAYERS:
-        for pl in survey.get(name, []):
-            for p in pl:
-                if p[2] <= 1.0:
-                    continue
-                s, off = C.su(p[0], p[1])
-                if a0 - 5.0 <= s <= a1 + 5.0 and abs(off) <= CORRIDOR_M:
-                    pts[(round(p[0] - ox, 2), round(p[1] - oy, 2))] = p[2]
-                    count[name] = count.get(name, 0) + 1
-    if len(pts) < 50:
+    for cor in CORRIDOR_STEPS:
+        pts = {}
+        count = {}
+        for name in SURVEY_LAYERS:
+            for pl in survey.get(name, []):
+                for p in pl:
+                    if p[2] <= 1.0:
+                        continue
+                    s, off = C.su(p[0], p[1])
+                    if a0 - 5.0 <= s <= a1 + 5.0 and abs(off) <= cor:
+                        pts[(round(p[0] - ox, 2), round(p[1] - oy, 2))] = p[2]
+                        count[name] = count.get(name, 0) + 1
+        if len(pts) >= HEIGHTS_WANT:
+            break
+    if len(pts) < HEIGHTS_MIN:
         raise RuntimeError(u"line %d: only %d survey heights within %.0f m: is Bergama_Altlik.3dm open and the line "
-                           u"on the site?" % (C.n, len(pts), CORRIDOR_M))
+                           u"on the site?" % (C.n, len(pts), cor))
+    if len(pts) < HEIGHTS_WANT or cor > CORRIDOR_STEPS[0]:
+        log.append(u"FLAG line %d: thin ground: %d survey heights within %.0f m of the line (%s); the ground line "
+                   u"between them is a straight fill, not surveyed" % (C.n, len(pts), cor, u", ".join(
+                       u"%s %d" % kv for kv in sorted(count.items()))))
     keys = list(pts)
     tin = Tin([(k[0], k[1], pts[k]) for k in keys])
     lg.append(u"TIN line %d: %d heights (%s), %d triangles" % (C.n, len(pts), u", ".join(
@@ -1412,7 +1426,7 @@ def main():
         cuts.append(C)
     BM = load_basemap(log)
     # the survey is read ONCE for all lines (build once, Aras 29 Oct): the box holds every line's corridor
-    pad = max(CORRIDOR_M, SLOPE_HALF + 20.0) + HYD_HALF
+    pad = max(CORRIDOR_STEPS[-1], SLOPE_HALF + 20.0) + HYD_HALF
     xs = [p[0] for C in cuts for p in (C.A, C.B)]
     ys = [p[1] for C in cuts for p in (C.A, C.B)]
     survey = read_survey((min(xs) - pad, min(ys) - pad, max(xs) + pad, max(ys) + pad), log)
