@@ -1,90 +1,45 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v3.3 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
-Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
-as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
-frame for that basemap and keymap for that matter".
+"""Bergama Group 6: BASEMAP v4 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+The existing situation inside site_alan, from ONE read of the open survey model (Bergama_Altlik.3dm), turned so the
+frame's long side lies flat (eastern end right, as his plan), kept by layer in a cache the other new scripts read.
+This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
+the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
-ONE read of the open survey model (Bergama_Altlik.3dm), cut at site_alan, turned so the frame's long side lies flat
-(its eastern end to the right, as his plan), kept by layer in a cache that the other new scripts copy from:
-  Basemap.pdf   outline drawing at 1:scale: every building, road edge, kerb, bridge, stream bank, pond, park, wall and
-                shed as its own outline; heritage buildings marked (filled in the palette red, heavier outline);
-                frame = site_alan, north arrow, scale bar, legend of what is drawn
-  Keymap.pdf    the key map style at 1:keymap_scale: buildings as light solid blocks, heritage solid red, road edges
-                faint, stream banks blue, the frame; section lines of the model layer "section_lines" with their names
-  heritage      a building is heritage when it is on BINA_TARIHI / BINA_HARABE, or a survey name text (YAZI_YAPI) with a
-                heritage or sacred word (HERITAGE_WORDS, the site board's list) stands inside it; walls on
-                SINIR_TARIHI_SUR are drawn in the heritage colour. Nothing else decides it; the log lists them by name.
-Aras 10:54 UTC: "we need to see our calisma_alan, and inside calisma_alan it'll be colourful just as the published svg
-and outside it should be black and white".
-  Basemap.pdf / Keymap.pdf are grey on white outside calisma_alan (see 11:11 below for the look).
-  Basemap_colour.svg = his plan SVG (Data/assets/masterlastversion.svg, unchanged, nothing redrawn) shown only inside
-                calisma_alan (a clip path) and outside the plan frame (his legend and texts), over the black and white
-                survey outlines, which therefore show everywhere else in the frame. Placed by the plan frame = site_alan
-                (the frame-size clip rectangle of his Selinos group). Groups: existing_basemap_bw/<layer>,
-                plan_inside_calisma_alan, calisma_alan_outline. Open it in Illustrator.
-Aras 11:11 UTC: his example for the look = the Viinikanlahti general plan (Arkkitehtuurikilpailuja 5/2020, p. 8): the
-context is white buildings with thin grey outlines and a soft grey shadow, white streets with thin grey edges, small
-grey street and place names, key buildings red, the project boundary a thin red line, colour only inside it. So here:
-thin grey outlines, the survey's street names (YAZI_CADDE_YOL) and building names (YAZI_YAPI) in small grey text at their survey place and
-turn, heritage buildings solid palette red, calisma_alan a thin red line.
-Aras 11:13 UTC: "use sattalite imagery and dwg combined together however everything should be outlined and hatched
-accordingly (solid white or whatever it is)"; "dont add shadows to the basemap for now".
-  Under the survey lines: the land cover traced from the 2023 satellite image (Data/veg2023.json: Esri World Imagery,
-  Maxar capture 1 Mar 2023, classified by colour rules, its limits in that file): tree cover outlined with a light
-  fill, low green outlined with a line hatch, open ground outlined and solid white. The image stops at VEG_BOX; the
-  log says what share of the frame it covers. No shadows (SHADOWS = False; the code stays for later).
-Aras 11:15 UTC: "if a road starts somewhere i dont want it to disappear along the road ... it should be consistent".
-  The survey draws a road edge (YOL_SOSE / YOL_BORDUR / YOL_TOPRAK) only along part of the streets; in the old town
-  the street is the gap between the houses. So every street is drawn as ONE continuous white band with a thin grey
-  edge along its whole OpenStreetMap centreline (Data/bergama_osm.osm): every STREET_STEP m its edge on each side is
-  the nearest survey road edge (within EDGE_MAX m) or building / wall front (within FRONT_MAX m); where the survey
-  shows neither, the width runs on from the measured stretches of the same street (straight line between them), and
-  a street with no measured point at all takes the median of its class in the frame. The log gives the metres of
-  each kind. Footpaths (PATH_CLASSES) are one thin line along their whole length. The survey's own road edges and
-  kerbs are still drawn on top, unchanged. Cached in streets.json.
-Line weights, the grey tones, the hatch and EDGE_MAX / FRONT_MAX / STREET_STEP are drawing values (ours).
-v2, Aras 12 Nov 17:07-17:26 UTC (thread "Inspect reference drawings and merge best parts", brief
-library/examples/liked_2026-11-12/MERGED_SPEC_v0.1.md, a draft): "Masterplan is our first goal"; "we want the base map
-first"; routes and connections "leave that to last ... those are the lines that we can put on the base map"; the thin
-red line stays, "outside of that line will be white and inside is colourful"; the pale green under the tree groups:
-"yes we do want that"; "lighter more soft colours generally", his palette follows. So:
-  COLOURS  every colour sits in the block "COLOURS" below, one line per meaning: his palette is swapped in there.
-  FADE     the context lines have two tones: full within FADE_M m of calisma_alan, lighter (FADE_MIX towards white)
-           beyond, so the sheet corners are nearly white. Heritage, the stream and the red line keep their tone.
-  CORNER   north circle, the scale as text and a segmented scale bar sit inside the frame's lower right corner.
-  NAMES    street names in italic along the street (their survey turn), place names upright.
-  Basemap_colour.svg: the route groups of his plan (BASE_OFF) are switched off (display none; they stay in the file
-           and are switched on again in the Illustrator layer panel), and under his trees lies the planted-ground
-           underlay: three flat pale green rings around every tree symbol of his plan (UNDERLAY_M m beyond the crown),
-           no outline, drawn only where his plan has a tree, inside calisma_alan only.
-FADE_M, FADE_MIX, UNDERLAY_M and the underlay tints are drawing values (ours), not his.
-v2.1, Aras 12 Nov 17:46 UTC: five liked palettes (library/examples/palettes_2026-11-12/), the favourite the chart
-"Dusty Rose / Mauve / Sage Green / Taupe / Ivory / Terracotta / Deep Wine": "feel free to combine them according to the
-colour science". PALETTE below = ten colours, one per meaning, each sampled from one of his images (the median of a
-patch of the swatch) or, where marked, lightened from a sampled colour. Every other tone is a tint of these.
-v3, Aras 12 Nov 18:40 UTC: "water, hardground should get textures. Like hardground should get a textures (the promanade
-that we propose)". In Basemap_colour.svg two textures are laid on his plan as real vector lines (no pattern fills),
-each directly above the shape it belongs to, cut to that shape, in a tone of that shape's own fill:
-  water      every filled path of his group "Selinos": short wave ticks in rows WATER_ROW m apart, a tick WATER_TICK m
-             long every WATER_PITCH m, each second row shifted by half; the rows run along the frame's long side (the
-             general flow), they do not turn with each bend
-  promenade  the paths of his group "walks_paths_bike_lane" whose fill is in PROMENADE_FILLS (the pale rose band, read
-             as his riverside walk: not confirmed by him): joint lines JOINT_M m apart across the frame's long side
-His shapes and colours are not changed. The spacings are graphic values (ours), not a paving design.
-v3.1, Aras 12 Nov 18:52 UTC: "also create the pdf's scaled into A0". Next to each PDF a second one on an A0 landscape
-page (1189 x 841 mm): Basemap_A0.pdf, Keymap_A0.pdf. Its scale 1:N is the smallest N in steps of A0_STEP at which the
-frame fits inside the A0_MARGIN mm margin (calculated in the run, written in the log, on the sheet and in its scale
-bar); the map is drawn again at that scale (same line weights and text sizes in mm), centred on the page.
-v3.2 (fix, first Rhino run 12 Nov 18:55 UTC: "buildings 2, heritage 0"): the survey draws its buildings as single
-straight lines (79,213 separate lines on BINA_MESKEN alone, counted in Bergama_Altlik.3dm), not as closed outlines,
-and v1-v3.1 kept only curves of three points or more. Now every building line is kept: the lines are joined at their
-shared end points (to 1 cm) and every closed cell they form between FACE_MIN and FACE_MAX m2 becomes one building
-outline (white, or heritage); lines that close no cell are drawn as lines. A cell is heritage when at least half of
-its sides lie on BINA_TARIHI / BINA_HARABE or a heritage name text stands inside it. A yard fully enclosed by building
-lines also counts as a cell (the survey does not tell them apart); it only gets the white fill.
-v3.3: the survey's floor counts (number texts on YAZI_KAT_ADEDI) are read and kept in the cache next to the outlines
-("floors": one number per closed outline of "buildings" and of "heritage", 0 = no floor text inside; the largest
-when several stand inside), so that Sections draws its background buildings from this cache alone.
+Aras 12 Nov 2026 (his words, in order):
+  10:53 "every road should be outlined as well as the buildings ... Heritage buildings should be marked. Our site_alan
+        should be our frame for that basemap and keymap"
+  11:13 "use sattalite imagery and dwg combined together"; "dont add shadows to the basemap for now"
+  11:15 "if a road starts somewhere i dont want it to disappear along the road ... it should be consistent"
+  17:07-17:26 "we want the base map first"; routes "leave that to last"; the thin red line stays, "outside of that line
+        will be white and inside is colourful"; "lighter more soft colours generally"
+  18:52 "also create the pdf's scaled into A0"
+  19:0x "at one place the housing is hatched with gray another one is solid white fill like keep it consistent
+        everywhere"; "combine vectoral and raster drawing however maximize the quality first than optimize for resource
+        consumption while viewing in the file (also the size a little)"
+  19:10 "textured fills like the examples like the colour palatte that i gave to you"; 19:12 "we want grainy however
+        ... this image is too grainy"; of his favourite palette chart: "this is fine maybe a little bit more"
+v4 = what follows from the 19:0x messages and the look review of the first Rhino runs:
+  ONE STYLE  every colour, line weight and text size is read from Data/bergama_style.json (one entry per meaning:
+             building, street, heritage, water ...). Basemap, Keymap and Masterplan use the same entry for the same
+             thing. Buildings are the same everywhere: white with one thin outline, closed or not.
+  HOUSING    the satellite land cover is never drawn on housing: it is cut away inside every closed building outline
+             (+ FACE_HALO_M m) and within MASK_M m of every other building line (the old town's open block lines).
+             Only tree cover and low green are drawn, as two pale tones without outlines, patches under COVER_MIN_M2
+             m2 dropped. Open ground is white (the page).
+  VECTOR + RASTER  lines, outlines and text are vector. Two things are raster: (1) the land cover is ONE 1-bit stencil
+             of COVER_M m cells per tone (instead of 12,000 outlines and hatch lines), (2) the grain: every coloured
+             fill is painted with a paper grain, ONE shared seamless tile per colour (GRAIN in the style file: +-amp
+             of the tone, his "fine, maybe a little more" level; 0 = flat). White stays white.
+  A0         <name>_A0.pdf = the frame cut in two bands (west above, east below, BAND_OVERLAP_M m shared) on an A0
+             landscape page at the smallest round scale that fits (calculated in the run: 1:1,500), title and legend
+             in the right column.
+  LOG        every output is logged with its size in MB and the number of drawn objects.
+  Basemap_colour.svg is no longer written: the Masterplan script draws his plan on this base map.
+Kept from v1-v3.3: heritage rule (BINA_TARIHI / BINA_HARABE or a heritage word in a YAZI_YAPI name inside), building
+lines joined into closed outlines (FACE_MIN..FACE_MAX m2), floor counts (YAZI_KAT_ADEDI) in the cache, the continuous
+street bands along the OpenStreetMap centrelines (survey edge / building front / carried width; streets.json), the two
+tones of the context lines (full within FADE_M m of calisma_alan, lighter beyond), names from the survey, the corner
+block. Distances and tones marked "ours" are drawing values, not his.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -92,21 +47,19 @@ Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it 
   input  keymap_scale   sheet scale 1:n of Keymap.pdf (default 10000)
   output log / done     as every Bergama script
 Reads  the open Rhino model's survey layers (once; the same model = the cache is used, nothing read again)
+       ~/Downloads/Bergama/Data/bergama_style.json (the style table; without it the script stops with a clear line)
        ~/Downloads/Bergama/Data/veg2023.json      (satellite land cover; without it the map is drawn without, FLAG)
        ~/Downloads/Bergama/Data/bergama_osm.osm   (street centrelines; without it only the survey edges, FLAG)
-       ~/Downloads/Bergama/Data/assets/masterlastversion.svg (his plan, for Basemap_colour.svg)
-Writes ~/Downloads/Bergama/output/bergama_basemap/Basemap.pdf, Keymap.pdf   (PDF layers existing_<thing>)
-       ~/Downloads/Bergama/output/bergama_basemap/Basemap_A0.pdf, Keymap_A0.pdf   (A0 landscape, scale in the log)
-       ~/Downloads/Bergama/output/bergama_basemap/Basemap_colour.svg
+Writes ~/Downloads/Bergama/output/bergama_basemap/Basemap.pdf, Keymap.pdf, Basemap_A0.pdf, Keymap_A0.pdf
        ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json   every layer in survey m, the frame, the turn
        ~/Downloads/Bergama/cached/bergama_basemap/streets.json          the street bands and footpaths in survey m
        ~/Downloads/Bergama/logs/bergama_basemap_log.txt
 """
-import os, time, json, math, re
+import os, time, json, math, re, zlib, random
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v3.3"
+VERSION = "v4"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -116,16 +69,12 @@ FRAME_LAYER = "site_alan"
 FRAME_COPY = [(29388.015, 32540.503), (31220.325, 30364.153), (31625.069, 30704.915), (29792.759, 32881.264)]
 SECTION_LAYER = "section_lines"
 WORK_LAYER = "calisma_alan"
-PLAN_SVG = os.path.join("Data", "assets", "masterlastversion.svg")
 BLD_LAYERS = ["BINA_MESKEN", "BINA", "BINA_RESMI", "BINA_OKUL", "BINA_DINI_TESIS", "BINA_DINITESIS", "BINA_TARIHI",
               "BINA_HARABE", "BINA_FABRIKA", "BINA_SERA", "BINA_SPOR_TESISLERI", "BINA_AKARYAKIT", "BINA_INS_HALINDE"]
 HER_LAYERS = ("BINA_TARIHI", "BINA_HARABE")
 NAME_LAYER = "YAZI_YAPI"
 FLOOR_LAYER = "YAZI_KAT_ADEDI"
 STREET_NAME_LAYER = "YAZI_CADDE_YOL"
-SHADOWS = False              # Aras 12 Nov 11:13 UTC: no shadows on the basemap for now
-SHADOW_M = (2.5, -2.5)       # m on the turned frame: the shadow copy lies to the lower right
-NAME_MM = 1.5                # text height of the names in mm at the sheet scale
 HERITAGE_WORDS = ("tarihi", "harabe", "harap", "kalıntı", "kalinti", "hamam", " han ", "bedesten", "arasta", "türbe",
                   "turbe", "medrese", "kızıl avlu", "kizil avlu", "tapınağı", "tapinagi", "kilise", "sinagog", "çeşme",
                   "cesme", "sebil", "kervansaray", "müze", "muze", "cami", "mescit", "mescid", "cemevi", "tekke", "zaviye")
@@ -146,7 +95,6 @@ VEG_KEYS = (("bare", "sat_bare"), ("grass", "sat_grass"), ("trees", "sat_trees")
 # the satellite image's own extent in survey m (library/satellite_2026-11-06/sat_2023-03-01_0p5m_survey.json:
 # x0 29520.496, y1 32880.562, 4025 x 4934 px of 0.5 m)
 VEG_BOX = (29520.496, 30413.562, 31532.996, 32880.562)
-HATCH_GEOM = {"sat_grass": (3.0, 45.0, 0.05)}        # spacing m on the ground, angle deg, line mm
 CREDIT = (u"Buildings, road edges, water: survey. Land cover: Esri World Imagery (Maxar), 1 Mar 2023, by colour rules. "
           u"Street bands: survey edges and fronts along OpenStreetMap centrelines.")
 OSM_FILE = os.path.join("Data", "bergama_osm.osm")
@@ -162,84 +110,17 @@ STREET_FORMAT = 2
 FACE_MIN, FACE_MAX = 4.0, 20000.0      # m2: a closed cell of building lines is a building between these
 FADE_M, FADE_MIX = 100.0, 0.5      # m from calisma_alan where the context lines turn lighter; how far towards white
 FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
-BASE_OFF = ("CIRCULATION", "heritage_trail")     # groups of his plan switched off in the base map (routes come later)
-TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_...">
-UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first
-WATER_GROUP, WATER_ROW, WATER_TICK, WATER_PITCH = "Selinos", 5.0, 6.0, 16.0     # m
-PROMENADE_GROUP, PROMENADE_FILLS, JOINT_M = "walks_paths_bike_lane", ("#e8cfcf",), 2.0
+STYLE_FILE = os.path.join("Data", "bergama_style.json")
 A0_W, A0_H, A0_MARGIN, A0_STEP = 1189.0, 841.0, 15.0, 500     # mm, mm, mm, scale step
-TEXTURE_W = 0.18                   # m on the ground: line width of both textures
-# ================= COLOURS: one line per meaning; a new palette is swapped in here =================
-def _tint(col, t):
-    """col mixed t (0..1) towards white"""
-    return u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) + (255 - int(col[i:i + 2], 16)) * t)) for i in (0, 2, 4))
-
-
-PALETTE = {
-    "water": "5F7380",        # stream fill: his image 5 frame 294455, 25 % lighter (calculated)
-    "water_edge": "A9B4BB",   # wet edge, first step: the same 294455, 60 % lighter (calculated)
-    "water_pale": "E0ECE6",   # wet edge, palest step: image 4, swatch 2
-    "tree_dark": "446455",    # image 4, swatch 8
-    "tree_mid": "8B8E79",     # image 1 (favourite), Sage Green
-    "tree_light": "A8B59E",   # image 3, the light green; also soft ground
-    "hard_ground": "EBD6C4",  # image 1, the palest Taupe
-    "heritage": "A35F60",     # image 1, Mauve; also the calisma_alan line
-    "accent": "C46441",       # image 1, Terracotta: main route, new buildings (not used on the base map yet)
-    "context": "A08B8A",      # image 5, swatch 4: context lines and names
-}
-INK = "3A3A38"                                       # frame, title, scale bar (not from his palettes)
-GREY, PALE = PALETTE["context"], _tint(PALETTE["context"], 0.4)      # context lines; the faintest context lines
-NAME_GREY = PALETTE["context"]
-UNDERLAY = tuple(_tint(PALETTE["tree_light"], t) for t in (0.8, 0.65, 0.5))   # under his trees, widest ring first
-HER = HER_FILL = PALETTE["heritage"]
-WATER, PARK = PALETTE["context"], _tint(PALETTE["context"], 0.25)    # survey water and park lines stay grey (context)
-SAT_TREE = _tint(PALETTE["context"], 0.82)           # satellite tree cover outside his plan: a pale grey fill
-SHADOW = _tint(PALETTE["context"], 0.6)
-HATCH = dict((k_, (v[0], v[1], _tint(PALETTE["context"], 0.5), v[2])) for k_, v in HATCH_GEOM.items())
-# Basemap.pdf: cache layer -> (PDF layer, stroke, line width mm, fill, alpha)
-STYLE = [
-    ("sat_bare", "satellite_open_ground", PALE, 0.05, "FFFFFF"),
-    ("sat_grass", "satellite_low_green", PALE, 0.05, None),
-    ("sat_trees", "satellite_trees", PARK, 0.06, SAT_TREE),
-    ("parks", "existing_parks", PARK, 0.10, None),
-    ("ponds", "existing_water", WATER, 0.18, None),
-    ("stream_banks", "existing_water", WATER, 0.22, None),
-    ("paths", "existing_paths", GREY, 0.07, None),
-    ("streets", "existing_streets", GREY, 0.10, "FFFFFF"),
-    ("road_edges", "existing_roads", GREY, 0.10, None),
-    ("kerbs", "existing_roads", PALE, 0.06, None),
-    ("bridges", "existing_bridges", GREY, 0.18, None),
-    ("walls", "existing_walls", PALE, 0.06, None),
-    ("heritage_walls", "existing_heritage", HER, 0.20, None),
-    ("sheds", "existing_buildings", PALE, 0.06, None),
-    ("buildings", "existing_buildings", GREY, 0.09, "FFFFFF"),
-    ("heritage", "existing_heritage", HER, 0.09, HER_FILL),
-]
-KEY_STYLE = [
-    ("sat_trees", "satellite_trees", None, 0.0, SAT_TREE),
-    ("streets", "existing_streets", PALE, 0.05, "FFFFFF"),
-    ("road_edges", "existing_roads", PALE, 0.05, None),
-    ("stream_banks", "existing_water", WATER, 0.25, None),
-    ("ponds", "existing_water", WATER, 0.15, None),
-    ("bridges", "existing_bridges", GREY, 0.15, None),
-    ("buildings", "existing_buildings", None, 0.0, _tint(PALETTE["context"], 0.6)),
-    ("heritage", "existing_heritage", None, 0.0, HER_FILL),
-]
-# Basemap_colour.svg: stroke widths in metres on the ground (the SVG has no sheet scale)
-SVG_W = {"sat_bare": 0.1, "sat_grass": 0.1, "sat_trees": 0.12, "streets": 0.2, "paths": 0.15, "parks": 0.2, "ponds": 0.3, "stream_banks": 0.4, "road_edges": 0.2, "kerbs": 0.12, "bridges": 0.35, "walls": 0.12,
-         "heritage_walls": 0.4, "sheds": 0.12, "buildings": 0.18, "heritage": 0.18}
-LEGEND = [("buildings", u"Building"), ("heritage", u"Heritage building"), ("streets", u"Street"),
-          ("paths", u"Footpath"), ("road_edges", u"Road edge (survey)"), ("kerbs", u"Kerb"), ("bridges", u"Bridge"), ("stream_banks", u"Stream bank"), ("parks", u"Park"),
-          ("walls", u"Wall"), ("sat_trees", u"Tree cover 2023"), ("sat_grass", u"Low green 2023"),
-          ("sat_bare", u"Open ground 2023")]
-
+A0_COLUMN, BAND_GAP, BAND_OVERLAP_M = 200.0, 20.0, 15.0       # mm title and legend column, mm between the bands, m shared
+COVER_M, COVER_MIN_M2 = 0.5, 80.0  # m cell of the land cover stencil (the image's own 0.5 m); smallest patch drawn (ours)
+MASK_M, FACE_HALO_M = 8.0, 1.0     # m kept free of land cover around open building lines / closed outlines (ours)
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
-# ================= end of COLOURS =================
 CACHE_FORMAT = 3
 STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 
@@ -573,11 +454,6 @@ class Frame(object):
 
 
 # ================================================================ near and far from calisma_alan
-def lighter(col, t=None):
-    t = FADE_MIX if t is None else t
-    return u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) + (255 - int(col[i:i + 2], 16)) * t)) for i in (0, 2, 4))
-
-
 class Fade(object):
     """a 10 m raster of the frame (local m): 1 = inside calisma_alan or within FADE_M m of it"""
     C = 10.0
@@ -637,35 +513,6 @@ class Fade(object):
         return out
 
 
-# ================================================================ satellite land cover
-def hatch_lines(rings, spacing, angle_deg):
-    """even-odd line hatch of rings: [(a, b)] segments in the rings' own units"""
-    ca, sa = math.cos(math.radians(angle_deg)), math.sin(math.radians(angle_deg))
-    rows = {}
-    for R in rings:
-        T = [(p[0] * ca + p[1] * sa, -p[0] * sa + p[1] * ca) for p in R]
-        for i in range(len(T)):
-            a, b = T[i - 1], T[i]
-            if a[1] == b[1]:
-                continue
-            if a[1] > b[1]:
-                a, b = b, a
-            j = int(math.ceil(a[1] / spacing - 0.5))
-            while (j + 0.5) * spacing < b[1]:
-                y = (j + 0.5) * spacing
-                if y >= a[1]:
-                    rows.setdefault(j, []).append(a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]))
-                j += 1
-    out = []
-    for j, xs in rows.items():
-        xs.sort()
-        y = (j + 0.5) * spacing
-        for x0, x1 in zip(xs[0::2], xs[1::2]):
-            if x1 - x0 > 1e-6:
-                out.append(((x0 * ca - y * sa, x0 * sa + y * ca), (x1 * ca - y * sa, x1 * sa + y * ca)))
-    return out
-
-
 def load_veg(D, log):
     """the satellite land cover as layers sat_* = [[True, ring]] (outer rings and holes, even-odd), survey m"""
     src = os.path.join(BERGAMA_ROOT, VEG_FILE)
@@ -684,6 +531,426 @@ def load_veg(D, log):
                u"has no land cover drawn" % (os.path.basename(src), V.get("date", u"no date"), u", ".join(
                    u"%s %d" % (key, len(out[key])) for _, key in VEG_KEYS), 100.0 * share))
     return out
+
+
+# ================================================================ the one style table (Data/bergama_style.json)
+def _mix(col, t):
+    """col mixed t towards white (t > 0) or towards black (t < 0)"""
+    to = 255 if t > 0 else 0
+    return u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) + (to - int(col[i:i + 2], 16)) * abs(t))) for i in (0, 2, 4))
+
+
+def lighter(col, t=None):
+    return _mix(col, FADE_MIX if t is None else t)
+
+
+def load_style():
+    """the style table: {"cat": {name: {label, fill, line, w, grain}}, "text": mm sizes, "grain": the tile values}"""
+    src = os.path.join(BERGAMA_ROOT, STYLE_FILE)
+    if not os.path.isfile(src):
+        raise RuntimeError(u"%s not found: run Bergama.bat once (the kit copies it), then press again" % src)
+    with open(src, encoding="utf-8") as f:
+        J = json.load(f)
+    pal = J["palette"]
+
+    def col(ref):
+        if not ref:
+            return None
+        m = re.match(r"^([A-Za-z_]\w*?)([+-]\d*\.?\d+)?$", ref)
+        if m and m.group(1) in pal:
+            return _mix(pal[m.group(1)], float(m.group(2) or 0.0))
+        h = ref.strip().lstrip("#").upper()
+        if not re.match(r"^[0-9A-F]{6}$", h):
+            raise ValueError(u"%s: unknown colour %r" % (src, ref))
+        return h
+    cat = {}
+    for k_, c in J["categories"].items():
+        fill = col(c.get("fill"))
+        cat[k_] = {"label": c.get("label", k_), "fill": fill, "line": col(c.get("line")), "w": float(c.get("w") or 0.0),
+                   "grain": bool(fill and fill != "FFFFFF" and c.get("grain", True))}
+    return {"cat": cat, "text": J["text_mm"], "grain": J.get("grain") or {}, "ink": col("ink"), "col": col,
+            "version": J.get("version", u"no version")}
+
+
+def fill_of(c):
+    """a category's fill for the PDF writer: "~RRGGBB" = painted with the grain of that colour"""
+    return (u"~" + c["fill"]) if c["grain"] else c["fill"]
+
+
+# ================================================================ the grain (one seamless tile, shared by every fill)
+_GRAIN = {"amp": 0.0}
+
+
+def set_grain(S, log=None):
+    """the grain tile: px x px cells of LEVELS tones; soft clouds (four sizes) plus a share of fine grain; it repeats
+    without a seam. Kept as compressed bytes; write_pdf gives every colour its own tone table over the same cells."""
+    g = S.get("grain") or {}
+    amp, px = float(g.get("amp", 0.0)), int(g.get("px", 512))
+    _GRAIN.clear()
+    _GRAIN.update({"amp": amp, "px": px, "tile": float(g.get("tile_mm", 160.0)), "levels": int(g.get("levels", 32))})
+    if amp <= 0:
+        return
+    rnd = random.Random(int(g.get("seed", 7)))
+    acc = [[0.0] * px for _ in range(px)]
+    tot = 0.0
+    for cells, wgt in ((8, 1.0), (16, 0.7), (32, 0.5), (64, 0.35)):
+        lat = [[rnd.random() for _ in range(cells)] for _ in range(cells)]
+        st = px // cells
+        tt = [(i % st) / float(st) for i in range(px)]
+        tt = [t * t * (3.0 - 2.0 * t) for t in tt]
+        i0 = [i // st for i in range(px)]
+        i1 = [(i // st + 1) % cells for i in range(px)]
+        rows = [[r[a] + (r[b] - r[a]) * t for a, b, t in zip(i0, i1, tt)] for r in lat]     # along x, per lattice row
+        for j in range(px):
+            A, B, t = rows[i0[j]], rows[i1[j]], tt[j]
+            acc[j] = [v + wgt * (a + (b - a) * t) for v, a, b in zip(acc[j], A, B)]
+        tot += wgt
+    fine = float(g.get("fine", 0.3))
+    lv = _GRAIN["levels"]
+    flat = [v for r in acc for v in r]
+    lo, hi = min(flat), max(flat)
+    out = bytearray()
+    for r in acc:
+        out += bytes(min(lv - 1, max(0, int(((v - lo) / (hi - lo) * (1.0 - fine) + rnd.random() * fine) * lv))) for v in r)
+    _GRAIN["z"] = zlib.compress(bytes(out), 9)
+    if log is not None:
+        log.append(u"grain: +-%.0f %% of each tone, one %d x %d tile repeated every %.0f mm of paper (%.0f kB per colour)"
+                   % (100.0 * amp, px, px, _GRAIN["tile"], len(_GRAIN["z"]) / 1024.0))
+
+
+# ================================================================ satellite land cover as a stencil, housing cut out
+def localise(D, F):
+    """every cache layer once in frame m: {key: [(closed, points, umin, umax)]}"""
+    L = {}
+    for key, items in D["layers"].items():
+        out = []
+        for cl, P in items:
+            Q = [F.local(p) for p in P]
+            if not Q or max(q[1] for q in Q) < 0 or min(q[1] for q in Q) > F.h:
+                continue
+            out.append((cl, Q, min(q[0] for q in Q), max(q[0] for q in Q)))
+        L[key] = out
+    return L
+
+
+class Cover(object):
+    """rows of bits, COVER_M m cells over the frame (bit i = column i from the west, row 0 = the south edge)"""
+
+    def __init__(self, L, F, log):
+        c = self.c = COVER_M
+        self.nx, self.ny = int(math.ceil(F.w / c)), int(math.ceil(F.h / c))
+        t0 = time.time()
+        full = (1 << self.nx) - 1
+        faces = self.fill([Q for key in ("buildings", "heritage") for cl, Q, _, _ in L.get(key, []) if cl and len(Q) >= 3])
+        loose = [0] * self.ny
+        for key in ("buildings", "heritage", "sheds"):
+            for cl, Q, _, _ in L.get(key, []):
+                if cl and len(Q) >= 3:
+                    continue
+                for a, b in zip(Q[:-1], Q[1:]):
+                    n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / (c * 0.9)))
+                    for t in range(n + 1):
+                        i, j = int((a[0] + (b[0] - a[0]) * t / n) // c), int((a[1] + (b[1] - a[1]) * t / n) // c)
+                        if 0 <= i < self.nx and 0 <= j < self.ny:
+                            loose[j] |= 1 << i
+        A, B = self.grow(faces, int(round(FACE_HALO_M / c)), full), self.grow(loose, int(round(MASK_M / c)), full)
+        built = [a | b for a, b in zip(A, B)]
+        self.rows, share = {}, {}
+        taken = built
+        for key in ("sat_trees", "sat_grass"):
+            rings = [Q for cl, Q, _, _ in L.get(key, [])]
+            big = set(i for i, Q in enumerate(rings) if abs(g_area(Q)) >= COVER_MIN_M2)
+            R = self.fill([Q for i, Q in enumerate(rings) if i in big or abs(g_area(Q)) < 0])
+            R = [r & ~t & full for r, t in zip(R, taken)]
+            self.rows[key] = R
+            taken = [r | t for r, t in zip(R, taken)]
+            share[key] = sum(bin(r).count("1") for r in R) * c * c
+        log.append(u"land cover stencil: %d x %d cells of %.2f m; tree cover %.0f m2, low green %.0f m2 after cutting the "
+                   u"housing away (closed outlines + %.0f m, other building lines + %.0f m); patches under %.0f m2 dropped "
+                   u"(%.1f s)" % (self.nx, self.ny, c, share.get("sat_trees", 0), share.get("sat_grass", 0), FACE_HALO_M,
+                                  MASK_M, COVER_MIN_M2, time.time() - t0))
+
+    def fill(self, rings):
+        """even-odd fill of all rings together"""
+        c, nx, ny = self.c, self.nx, self.ny
+        xs = [[] for _ in range(ny)]
+        for Q in rings:
+            for i in range(len(Q)):
+                a, b = Q[i - 1], Q[i]
+                if a[1] == b[1]:
+                    continue
+                if a[1] > b[1]:
+                    a, b = b, a
+                j = max(0, int(math.ceil(a[1] / c - 0.5)))
+                k_ = (b[0] - a[0]) / (b[1] - a[1])
+                while j < ny and (j + 0.5) * c < b[1]:
+                    xs[j].append(a[0] + ((j + 0.5) * c - a[1]) * k_)
+                    j += 1
+        rows = []
+        for X in xs:
+            X.sort()
+            r = 0
+            for x0, x1 in zip(X[0::2], X[1::2]):
+                a, b = max(0, int(round(x0 / c))), min(nx, int(round(x1 / c)))
+                if b > a:
+                    r |= ((1 << (b - a)) - 1) << a
+            rows.append(r)
+        return rows
+
+    @staticmethod
+    def grow(rows, r, full):
+        for _ in range(r):
+            rows = [(m | (m << 1) | (m >> 1)) & full for m in rows]
+        n = len(rows)
+        for _ in range(r):
+            rows = [rows[j] | rows[max(0, j - 1)] | rows[min(n - 1, j + 1)] for j in range(n)]
+        return rows
+
+    def item(self, key, u0, u1, x0, y0, k, fill, layer):
+        """the stencil of one tone for the window u0..u1 as a "mask" item (None when empty)"""
+        c = self.c
+        c0, c1 = max(0, int(round(u0 / c))), min(self.nx, int(round(u1 / c)))
+        n = c1 - c0
+        if n <= 0:
+            return None
+        nb, m, fmt = (n + 7) // 8, (1 << n) - 1, "0%db" % n
+        pad = "0" * (nb * 8 - n)
+        out, any_ = bytearray(), 0
+        for r in reversed(self.rows[key]):                 # the image's first row is the top
+            w = (r >> c0) & m
+            any_ |= w
+            out += int(format(w, fmt)[::-1] + pad, 2).to_bytes(nb, "big")
+        if not any_:
+            return None
+        return ("mask", zlib.compress(bytes(out), 9), n, self.ny, x0 + (c0 * c - u0) * k, y0, n * c * k, self.ny * c * k,
+                fill, None, layer, None)
+
+
+# ================================================================ drawing (items in page mm, y up)
+# cache layer -> style category, PDF layer; drawn in this order
+CONTEXT = [
+    ("parks", "park", "existing_parks"), ("ponds", "pond", "existing_water"),
+    ("stream_banks", "stream_bank", "existing_water"), ("paths", "path", "existing_paths"),
+    ("streets", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
+    ("kerbs", "kerb", "existing_roads"), ("bridges", "bridge", "existing_bridges"), ("walls", "wall", "existing_walls"),
+    ("heritage_walls", "heritage_wall", "existing_heritage"), ("sheds", "shed", "existing_buildings"),
+    ("buildings", "building", "existing_buildings"), ("heritage", "heritage", "existing_heritage")]
+COVER_CATS = (("sat_grass", "low_green", "satellite_low_green"), ("sat_trees", "tree_cover", "satellite_trees"))
+KEY_SKIP = ("parks", "paths", "kerbs", "walls", "sheds")       # too fine for the key map; everything else the same
+
+
+def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, skip=()):
+    """the existing situation for the window u0..u1 (frame m) at 1:den, the window's lower-left at page (x0, y0) mm;
+    returns (items, {style category: count})"""
+    k = 1000.0 / den
+    box = (u0, 0.0, u1, F.h)
+    items, cnt = [], {}
+
+    def pg(p):
+        return (x0 + (p[0] - u0) * k, y0 + p[1] * k)
+    if cover is not None:
+        for key, cname, layer in COVER_CATS:
+            it = cover.item(key, u0, u1, x0, y0, k, fill_of(S["cat"][cname]), layer)
+            if it:
+                items.append(it)
+                cnt[cname] = 1
+    for key, cname, layer in CONTEXT:
+        if key in skip:
+            continue
+        c = S["cat"][cname]
+        stroke, lw, fill = c["line"], c["w"] * lw_k, fill_of(c)
+        fd = fade if (fade is not None and fade.rows is not None and key in FADE_KEYS and stroke) else None
+        far_ = lighter(stroke) if fd else stroke
+        n = 0
+        if key == "streets":                             # every edge first, then every surface: junctions stay open
+            rings = []
+            for cl, Q, a, b in L.get(key, []):
+                if b < u0 or a > u1:
+                    continue
+                R = clip_ring(Q, box)
+                if len(R) >= 3:
+                    rings.append(R)
+            for R in rings:
+                for f_, run in (fd.split(R + R[:1]) if fd else [(False, R + R[:1])]):
+                    items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
+            items += [("poly", [[pg(q) for q in R]], fill, None, 0.0, None, layer, 1, None, None) for R in rings]
+            cnt[cname] = len(rings)
+            continue
+        for cl, Q, a, b in L.get(key, []):
+            if b < u0 or a > u1:
+                continue
+            if cl and len(Q) >= 3:
+                R = clip_ring(Q, box)
+                if len(R) >= 3:
+                    items.append(("poly", [[pg(q) for q in R]], fill, far_ if (fd and fd.far_ring(R)) else stroke, lw,
+                                  None, layer, 1, None, None))
+                    n += 1
+            elif stroke:
+                for run_ in clip_line(Q, box):
+                    for f_, run in (fd.split(run_) if fd else [(False, run_)]):
+                        items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
+                    n += 1
+        if n:
+            cnt[cname] = n
+    return items, cnt
+
+
+def draw_top(D, F, S, den, x0, y0, u0, u1, names=False, sections=False):
+    """what lies over everything: the frame of the window, calisma_alan, the names, the section lines"""
+    k = 1000.0 / den
+    box = (u0, 0.0, u1, F.h)
+    items = []
+
+    def pg(p):
+        return (x0 + (p[0] - u0) * k, y0 + p[1] * k)
+    c = S["cat"]["calisma"]
+    for P in D.get("calisma", []):
+        R = [F.local(p) for p in P]
+        for run in clip_line(R + R[:1], box):
+            items.append(("line", [pg(q) for q in run], c["line"], c["w"], None, "calisma_alan", 1))
+    c = S["cat"]["frame"]
+    items.append(("poly", [[pg(q) for q in ((u0, 0), (u1, 0), (u1, F.h), (u0, F.h))]], None, c["line"], c["w"], None,
+                  "frame", 0, None, None))
+    if names:
+        nm, ncol = S["text"]["names"], S["cat"]["road_edge"]["line"]
+        for t, x, y, ang, kind in D.get("labels", []):
+            u, v = F.local((x, y))
+            if not (u0 + 2.0 < u < u1 - 2.0 and 2.0 < v < F.h - 2.0):
+                continue
+            a = (ang + math.degrees(F.rot)) % 360.0
+            if 90.0 < a <= 270.0:                         # never upside down
+                a -= 180.0
+            X, Y = pg((u, v))
+            items.append(("text", t, X, Y, nm, ncol, False, "L", "names_streets" if kind == "street" else "names_places",
+                          a, "i" if kind == "street" else None))
+    if sections:
+        c = S["cat"]["section_line"]
+        for s in D.get("sections", []):
+            a, b = F.local(s["line"][0]), F.local(s["line"][1])
+            for run in clip_line([a, b], box):
+                items.append(("line", [pg(q) for q in run], c["line"], c["w"], None, "section_lines", 1))
+                for q, al in ((run[0], "R"), (run[-1], "L")):
+                    X, Y = pg(q)
+                    items.append(("text", s["name"], X + (-1.0 if al == "R" else 1.0), Y + 0.8, 2.2, c["line"], True, al,
+                                  "section_lines", None, None))
+    return items
+
+
+def corner_block(F, S, den, xr, y0):
+    """north circle, scale text and a segmented scale bar inside the lower right corner (xr = the frame's right edge)"""
+    INK = S["ink"]
+    k = 1000.0 / den
+    bar = 100.0 if den <= 2500 else 500.0
+    L = bar * k
+    w, h = L + 26.0, 16.0
+    X, Y = xr - w - 4.0, y0 + 4.0
+    it = [("poly", [[(X, Y), (X + w, Y), (X + w, Y + h), (X, Y + h)]], "FFFFFF", None, 0.0, None, "corner_block", 1,
+           None, None)]
+    cx, cy, r = X + 8.0, Y + 8.0, 5.5
+    it.append(("poly", [[(cx + r * math.cos(a * math.pi / 24.0), cy + r * math.sin(a * math.pi / 24.0))
+                         for a in range(48)]], None, INK, 0.2, None, "corner_block", 1, None, None))
+    nx, ny = F.north()
+    tip = (cx + nx * r, cy + ny * r)
+    it.append(("poly", [[tip, (cx - nx * r * 0.55 - ny * r * 0.45, cy - ny * r * 0.55 + nx * r * 0.45), (cx, cy),
+                         (cx - nx * r * 0.55 + ny * r * 0.45, cy - ny * r * 0.55 - nx * r * 0.45)]], INK, None, 0.1, None,
+               "corner_block", 1, None, None))
+    it.append(("text", u"N", tip[0] + nx * 2.0 - 0.8, tip[1] + ny * 2.0 - 0.8, 2.4, INK, True, "L", "corner_block", None,
+               None))
+    xb, yb = X + 20.0, Y + 4.0
+    for i in range(4):                                    # four cells, dark and white in turn
+        c = [(xb + L * i / 4.0, yb), (xb + L * (i + 1) / 4.0, yb), (xb + L * (i + 1) / 4.0, yb + 1.4),
+             (xb + L * i / 4.0, yb + 1.4)]
+        it.append(("poly", [c], INK if i % 2 == 0 else "FFFFFF", INK, 0.15, None, "corner_block", 1, None, None))
+    it.append(("text", u"0", xb, yb - 3.0, 2.0, INK, False, "C", "corner_block", None, None))
+    it.append(("text", u"%d m" % bar, xb + L, yb - 3.0, 2.0, INK, False, "C", "corner_block", None, None))
+    it.append(("text", u"1/%d" % den, xb, yb + 4.0, 3.2, INK, True, "L", "corner_block", None, None))
+    return it
+
+
+def furniture(S, x, y, width, tk, title, sub, legend, credit=None):
+    """title, subtitle, legend and credit from (x, y) downwards inside width mm; text sizes x tk.
+    legend = [style category]; a filled category shows a swatch, a line category a line. Returns (items, height mm)"""
+    T, INK = S["text"], S["ink"]
+    it = []
+    yy = y - T["title"] * tk
+    it.append(("text", title.upper(), x, yy, T["title"] * tk, INK, True, "L", "title", None, None))
+    yy -= T["subtitle"] * tk * 1.5
+    it.append(("text", sub, x, yy, T["subtitle"] * tk, INK, False, "L", "title", None, None))
+    yy -= T["subtitle"] * tk * 1.2
+    sw, sh, ts = 10.0 * tk, 6.0 * tk, T["legend"] * tk
+    xx = x
+    yy -= sh * 1.5
+    for cname in legend:
+        c = S["cat"][cname]
+        need = sw + 2.5 * tk + text_w(c["label"], ts) + 8.0 * tk
+        if xx > x and xx + need > x + width:
+            xx = x
+            yy -= sh * 1.6
+        if c["fill"]:
+            box_ = [(xx, yy), (xx + sw, yy), (xx + sw, yy + sh), (xx, yy + sh)]
+            it.append(("poly", [box_], fill_of(c), c["line"] or S["cat"]["kerb"]["line"], c["w"] or 0.05, None, "legend", 1,
+                       None, None))
+        else:
+            it.append(("line", [(xx, yy + sh / 2.0), (xx + sw, yy + sh / 2.0)], c["line"], c["w"], None, "legend", 1))
+        it.append(("text", c["label"], xx + sw + 2.5 * tk, yy + sh / 2.0 - ts * 0.36, ts, INK, False, "L", "legend", None,
+                   None))
+        xx += need
+    if credit:
+        cs = T["credit"] * tk
+        words, line = credit.split(u" "), u""
+        yy -= cs * 1.2
+        for wd in words + [None]:
+            if wd is None or text_w(line + u" " + wd, cs) > width:
+                yy -= cs * 1.4
+                it.append(("text", line, x, yy, cs, S["cat"]["road_edge"]["line"], False, "L", "title", None, None))
+                line = wd or u""
+            else:
+                line = (line + u" " + wd).strip()
+    return it, y - yy + 2.0
+
+
+def a0_scale(F):
+    """the smallest round scale 1:N at which two bands of the frame and the right column fit on A0 landscape"""
+    need = max((F.w / 2.0 + BAND_OVERLAP_M) * 1000.0 / (A0_W - 2 * A0_MARGIN - A0_COLUMN),
+               2.0 * F.h * 1000.0 / (A0_H - 2 * A0_MARGIN - BAND_GAP))
+    return int(math.ceil(need / A0_STEP) * A0_STEP)
+
+
+def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn):
+    """lay a drawing out: one band on a page as large as the frame, or two bands on A0.
+    band_fn(den, x, y, u0, u1, tag) -> (items, clips, counts). legend_of(counts) -> [style category].
+    Returns (page w mm, page h mm, items, clips, counts)"""
+    k = 1000.0 / den
+    m = A0_MARGIN
+    if a0:
+        w, h, tk = A0_W, A0_H, 1.0
+        half = F.w / 2.0
+        bands = [(0.0, half + BAND_OVERLAP_M), (half - BAND_OVERLAP_M, F.w)]
+        bh = F.h * k
+        top = h - m - bh
+        pos = [(m, top), (m, top - BAND_GAP - bh)]
+        fx, fy, fw = m + (half + BAND_OVERLAP_M) * k + 12.0, h - m, A0_COLUMN - 12.0
+    else:
+        tk = max(0.3, min(1.0, (F.w * k + 2 * m) / A0_W))
+        bands = [(0.0, F.w)]
+        fw = F.w * k
+    items, clips, cnt = [], {}, {}
+    if not a0:                                            # the strip under the frame takes the height it needs
+        probe, fh = furniture(S, 0.0, 0.0, fw, tk, title, sub, list(S["cat"])[:14], credit)
+        fh += 6.0 * tk
+        w, h = F.w * k + 2 * m, F.h * k + 2 * m + fh
+        pos = [(m, m + fh)]
+        fx, fy = m, m + fh - 3.0 * tk
+    for i, ((u0, u1), (x, y)) in enumerate(zip(bands, pos)):
+        it, cl, c = band_fn(den, x, y, u0, u1, "b%d" % i)
+        items += it
+        clips.update(cl)
+        for k_, v in c.items():
+            cnt[k_] = cnt.get(k_, 0) + v
+    items += corner_block(F, S, den, pos[-1][0] + (bands[-1][1] - bands[-1][0]) * k, pos[-1][1])
+    fi, _ = furniture(S, fx, fy, fw, tk, title, sub + (u"  ·  two bands, west above, east below" if a0 else u""),
+                      legend_of(cnt), credit)
+    return w, h, items + fi, clips, cnt
 
 
 # ================================================================ the continuous street net
@@ -902,144 +1169,6 @@ def build_streets(D, F, log):
     return layers
 
 
-# ================================================================ drawing (items: the Sections page format)
-def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False, fade=None):
-    """items of the map at 1:den, the frame's lower-left corner at page (x0, y0) mm"""
-    k = 1000.0 / den
-    box = (0.0, 0.0, F.w, F.h)
-    items, cnt = [], {}
-
-    def pg(p):
-        return (x0 + p[0] * k, y0 + p[1] * k)
-    if shadows:                                          # a shadow copy under every building (drawing device)
-        for key in ("buildings", "heritage"):
-            for cl, P in D["layers"].get(key, []):
-                R = clip_ring([(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in (F.local(p) for p in P)], box)
-                if len(R) >= 3:
-                    items.append(("poly", [[pg(q) for q in R]], SHADOW, None, 0.0, None, "existing_shadows", 1, None, None))
-    for key, layer, stroke, lw, fill in styles:
-        n = 0
-        fd = fade if (fade is not None and key in FADE_KEYS and stroke) else None
-        far_ = lighter(stroke) if fd else stroke
-        if key.startswith("sat_") or key == "streets":
-            rings, local = [], []
-            for cl, P in D["layers"].get(key, []):
-                R = clip_ring([F.local(p) for p in P], box)
-                if len(R) >= 3:
-                    local.append(R)
-                    rings.append([pg(q) for q in R])
-            if rings and key == "streets":               # every edge first, then every surface: junctions stay open
-                for R in local:
-                    for f_, run in (fd.split(R + R[:1]) if fd else [(False, R + R[:1])]):
-                        items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
-                items += [("poly", [R], fill, None, 0.0, None, layer, 1, None, None) for R in rings]
-            elif rings:                                  # one shape, even-odd: the holes stay open
-                items.append(("poly", rings, fill, stroke, lw, None, layer, 1, "eo", None))
-                hp = HATCH.get(key)
-                if hp:
-                    for a, b in hatch_lines(rings, hp[0] * k, hp[1]):
-                        items.append(("line", [a, b], hp[2], hp[3], None, layer, 1))
-            cnt[key] = len(rings)
-            continue
-        for cl, P in D["layers"].get(key, []):
-            Q = [F.local(p) for p in P]
-            if min(q[0] for q in Q) > F.w or max(q[0] for q in Q) < 0 or min(q[1] for q in Q) > F.h or max(q[1] for q in Q) < 0:
-                continue
-            if cl and len(Q) >= 3:
-                R = clip_ring(Q, box)
-                if len(R) >= 3:
-                    items.append(("poly", [[pg(q) for q in R]], fill, far_ if (fd and fd.far_ring(R)) else stroke, lw,
-                                  None, layer, 1, None, None))
-                    n += 1
-            else:
-                for run_ in clip_line(Q, box):
-                    for f_, run in (fd.split(run_) if fd else [(False, run_)]):
-                        items.append(("line", [pg(q) for q in run], (far_ if f_ else stroke) or PALE, lw or 0.05, None,
-                                      layer, 1))
-                    n += 1
-        cnt[key] = n
-    fr = [pg(q) for q in ((0, 0), (F.w, 0), (F.w, F.h), (0, F.h))]
-    items.append(("poly", [fr], None, INK, 0.3, None, "frame", 0, None, None))
-    for P in D.get("calisma", []):                         # the working area, a heavy line
-        R = [pg(F.local(p)) for p in P]
-        items.append(("line", R + R[:1], HER, 0.3, None, "calisma_alan", 1))
-    if names:
-        for t, x, y, ang, kind in D.get("labels", []):
-            u, v = F.local((x, y))
-            if not (2.0 < u < F.w - 2.0 and 2.0 < v < F.h - 2.0):
-                continue
-            a = (ang + math.degrees(F.rot)) % 360.0
-            if 90.0 < a <= 270.0:                         # never upside down
-                a -= 180.0
-            X, Y = pg((u, v))
-            items.append(("text", t, X, Y, NAME_MM, NAME_GREY, False, "L",
-                          "names_streets" if kind == "street" else "names_places", a,
-                          "i" if kind == "street" else None))
-    if sections:
-        for s in D.get("sections", []):
-            a, b = F.local(s["line"][0]), F.local(s["line"][1])
-            for run in clip_line([a, b], box):
-                items.append(("line", [pg(q) for q in run], INK, 0.35, None, "section_lines", 1))
-                for q, al in ((run[0], "R"), (run[-1], "L")):
-                    X, Y = pg(q)
-                    items.append(("text", s["name"], X + (-1.0 if al == "R" else 1.0), Y + 0.8, 2.2, INK, True, al,
-                                  "section_lines", None, None))
-    return items, cnt
-
-
-def corner_block(F, den, x0, y0):
-    """north circle, scale text and a segmented scale bar inside the frame's lower right corner, on white"""
-    k = 1000.0 / den
-    bar = 100.0 if den <= 2500 else 500.0
-    L = bar * k
-    w, h = L + 26.0, 16.0
-    X, Y = x0 + F.w * k - w - 4.0, y0 + 4.0
-    it = [("poly", [[(X, Y), (X + w, Y), (X + w, Y + h), (X, Y + h)]], "FFFFFF", None, 0.0, None, "corner_block", 1,
-           None, None)]
-    cx, cy, r = X + 8.0, Y + 8.0, 5.5
-    it.append(("poly", [[(cx + r * math.cos(a * math.pi / 24.0), cy + r * math.sin(a * math.pi / 24.0))
-                         for a in range(48)]], None, INK, 0.2, None, "corner_block", 1, None, None))
-    nx, ny = F.north()
-    tip = (cx + nx * r, cy + ny * r)
-    it.append(("poly", [[tip, (cx - nx * r * 0.55 - ny * r * 0.45, cy - ny * r * 0.55 + nx * r * 0.45), (cx, cy),
-                         (cx - nx * r * 0.55 + ny * r * 0.45, cy - ny * r * 0.55 - nx * r * 0.45)]], INK, None, 0.1, None,
-               "corner_block", 1, None, None))
-    it.append(("text", u"N", tip[0] + nx * 2.0 - 0.8, tip[1] + ny * 2.0 - 0.8, 2.4, INK, True, "L", "corner_block", None,
-               None))
-    xb, yb = X + 20.0, Y + 4.0
-    for i in range(4):                                    # four cells, black and white in turn
-        c = [(xb + L * i / 4.0, yb), (xb + L * (i + 1) / 4.0, yb), (xb + L * (i + 1) / 4.0, yb + 1.4),
-             (xb + L * i / 4.0, yb + 1.4)]
-        it.append(("poly", [c], INK if i % 2 == 0 else "FFFFFF", INK, 0.15, None, "corner_block", 1, None, None))
-    it.append(("text", u"0", xb, yb - 3.0, 2.0, INK, False, "C", "corner_block", None, None))
-    it.append(("text", u"%d m" % bar, xb + L, yb - 3.0, 2.0, INK, False, "C", "corner_block", None, None))
-    it.append(("text", u"1/%d" % den, xb, yb + 4.0, 3.2, INK, True, "L", "corner_block", None, None))
-    return it
-
-
-def furniture(F, den, x0, y0, title, legend, credit=None):
-    """title and legend under the frame (north and scale bar: corner_block)"""
-    k = 1000.0 / den
-    it = []
-    y = y0 - 8.0
-    it.append(("text", title, x0, y, 4.0, INK, True, "L", "title", None, None))
-    it.append(("text", u"1:%s" % format(den, ",d"), x0, y - 5.0, 3.0, INK, False, "L", "title", None, None))
-    x = x0 + 40.0
-    for key, layer, stroke, lw, fill, lab in legend:
-        if fill or key in ("buildings", "heritage", "parks", "sat_grass"):
-            box_ = [(x, y - 4.6), (x + 6.0, y - 4.6), (x + 6.0, y - 1.4), (x, y - 1.4)]
-            it.append(("poly", [box_], fill, stroke, lw, None, "legend", 1, None, None))
-            hp = HATCH.get(key)
-            if hp:
-                for a, b in hatch_lines([box_], hp[0] * k, hp[1]):
-                    it.append(("line", [a, b], hp[2], hp[3], None, "legend", 1))
-        else:
-            it.append(("line", [(x, y - 3.0), (x + 6.0, y - 3.0)], stroke, lw, None, "legend", 1))
-        it.append(("text", lab, x + 7.5, y - 3.8, 2.4, INK, False, "L", "legend", None, None))
-        x += 7.5 + 0.5 * 2.4 * len(lab) + 7.0
-    if credit:
-        it.append(("text", credit, x0, y0 - 14.5, 1.8, GREY, False, "L", "title", None, None))
-    return it
 
 
 # ================================================================ PDF (vector, layers as PDF layers)
@@ -1077,9 +1206,16 @@ def _f(v):
     return ("%.3f" % v).rstrip("0").rstrip(".")
 
 
-def write_pdf(path, w, h, items, title):
-    """one page w x h mm; items in page mm, y up; each item's layer becomes a PDF layer"""
+
+def write_pdf(path, w, h, items, title, clips=None):
+    """one page w x h mm; items in page mm, y up; each item's layer becomes a PDF layer.
+    poly  ("poly", rings, fill, stroke, lw, None, layer, 1, "eo"|None, clip)   fill "~RRGGBB" = with the grain
+    line  ("line", pts, stroke, lw, clip, layer, 1)
+    text  ("text", s, x, y, size, colour, bold, align, layer, angle, "i"|None)
+    mask  ("mask", zlib 1-bit rows, px w, px h, x, y, w mm, h mm, fill, None, layer, clip)   a stencil painted in fill
+    clips = {clip id: [rings, rings, ...]}: an item with a clip id is cut to every ring set of that id in turn"""
     objs = []
+    clips = clips or {}
 
     def add(b):
         objs.append(b)
@@ -1087,7 +1223,11 @@ def write_pdf(path, w, h, items, title):
 
     def lay(it):
         t = it[0]
-        return it[6] if t == "poly" else it[5] if t == "line" else it[8]
+        return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t == "mask" else it[8]
+
+    def clip_of(it):
+        t = it[0]
+        return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t == "mask" else None
     layers = []
     for it in items:
         if lay(it) not in layers:
@@ -1101,24 +1241,61 @@ def write_pdf(path, w, h, items, title):
     f_b = add(("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding << /Type /Encoding /BaseEncoding "
                "/WinAnsiEncoding %s >> >>" % _DIFF).encode())
     k = 72.0 / 25.4
+    pats, imgs = {}, {}
+
+    def paint(fill):
+        """the operators that set the fill: a flat colour, or the grain pattern of that colour"""
+        if not fill.startswith("~") or _GRAIN.get("amp", 0) <= 0 or "z" not in _GRAIN:
+            return "%s rg" % _col(fill.lstrip("~"))
+        col = fill[1:]
+        if col not in pats:
+            lv, amp, T = _GRAIN["levels"], _GRAIN["amp"], _GRAIN["tile"]
+            table = "".join(_mix(col, (2.0 * i / (lv - 1) - 1.0) * amp) for i in range(lv))
+            z = _GRAIN["z"]
+            im = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace [/Indexed /DeviceRGB %d <%s>] "
+                      "/BitsPerComponent 8 /Interpolate true /Filter /FlateDecode /Length %d >>\nstream\n" % (
+                          _GRAIN["px"], _GRAIN["px"], lv - 1, table, len(z))).encode() + z + b"\nendstream")
+            body_ = ("q %s 0 0 %s 0 0 cm /G Do Q" % (_f(T), _f(T))).encode()
+            pats[col] = add(("<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 2 /BBox [0 0 %s %s] /XStep %s "
+                             "/YStep %s /Matrix [%s 0 0 %s 0 0] /Resources << /XObject << /G %d 0 R >> >> /Length %d >>\n"
+                             "stream\n" % (_f(T), _f(T), _f(T), _f(T), _f(k), _f(k), im, len(body_))).encode()
+                            + body_ + b"\nendstream")
+        return "/Pattern cs /P%d scn" % pats[col]
+
+    def ring_path(rings):
+        A = []
+        for r in rings:
+            A.append("%s %s m" % (_f(r[0][0]), _f(r[0][1])))
+            A += ["%s %s l" % (_f(p[0]), _f(p[1])) for p in r[1:]]
+            A.append("h")
+        return A
     body = bytearray(("%s 0 0 %s 0 0 cm\n1 J 1 j\n" % (_f(k), _f(k))).encode())
     for ly in layers:                                    # one marked block per layer, in first-use order
         body += ("/OC /oc%d BDC\n" % ocg[ly]).encode()
+        cur = None
         for it in items:
             if lay(it) != ly:
                 continue
             t = it[0]
+            cid = clip_of(it)
+            if cid not in clips:
+                cid = None
+            if cid != cur:                               # the clip stays open for a run of items with the same id
+                if cur is not None:
+                    body += b"Q\n"
+                if cid is not None:
+                    A = ["q"]
+                    for rs in clips[cid]:
+                        A += ring_path(rs) + ["W* n"]
+                    body += ("\n".join(A) + "\n").encode()
+                cur = cid
             if t == "poly":
                 rings, fill, stroke, lw = it[1:5]
                 if not fill and not stroke:
                     continue
-                A = ["q"]
-                for r in rings:
-                    A.append("%s %s m" % (_f(r[0][0]), _f(r[0][1])))
-                    A += ["%s %s l" % (_f(p[0]), _f(p[1])) for p in r[1:]]
-                    A.append("h")
+                A = ["q"] + ring_path(rings)
                 if fill:
-                    A.append("%s rg" % _col(fill))
+                    A.append(paint(fill))
                 if stroke:
                     A.append("%s RG %s w" % (_col(stroke), _f(lw or 0.1)))
                 eo = "*" if it[8] == "eo" else ""
@@ -1131,6 +1308,13 @@ def write_pdf(path, w, h, items, title):
                 A += ["%s %s l" % (_f(p[0]), _f(p[1])) for p in pts[1:]]
                 A.append("S Q")
                 body += ("\n".join(A) + "\n").encode()
+            elif t == "mask":
+                z, pw, ph, x, y, mw, mh, fill = it[1:9]
+                im = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ImageMask true /BitsPerComponent 1 "
+                          "/Decode [1 0] /Filter /FlateDecode /Length %d >>\nstream\n" % (pw, ph, len(z))).encode()
+                         + z + b"\nendstream")
+                imgs[im] = 1
+                body += ("q %s %s 0 0 %s %s %s cm /I%d Do Q\n" % (paint(fill), _f(mw), _f(mh), _f(x), _f(y), im)).encode()
             elif t == "text":
                 s, x, y, size, color, bold, align = it[1:8]
                 wmm = text_w(s, size, bold)
@@ -1143,10 +1327,15 @@ def write_pdf(path, w, h, items, title):
                     "F2" if bold else "F3" if it[10] == "i" else "F1", _f(size / PT), _col(color), _f(PT * ca), _f(PT * sa), _f(-PT * sa),
                     _f(PT * ca), _f(xx), _f(y))).encode()
                 body += _pdf_txt(s) + b") Tj ET\n"
+        if cur is not None:
+            body += b"Q\n"
         body += b"EMC\n"
-    cid = add(b"<< /Length %d >>\nstream\n" % len(body) + bytes(body) + b"\nendstream")
+    zb = zlib.compress(bytes(body), 6)
+    cid = add(b"<< /Filter /FlateDecode /Length %d >>\nstream\n" % len(zb) + zb + b"\nendstream")
     props = " ".join("/oc%d %d 0 R" % (i, i) for i in ocg.values())
-    res = add(("<< /Font << /F1 %d 0 R /F2 %d 0 R /F3 %d 0 R >> /Properties << %s >> >>" % (f_r, f_b, f_i, props)).encode())
+    res = add(("<< /Font << /F1 %d 0 R /F2 %d 0 R /F3 %d 0 R >> /Properties << %s >> /Pattern << %s >> /XObject << %s >> "
+               ">>" % (f_r, f_b, f_i, props, " ".join("/P%d %d 0 R" % (i, i) for i in pats.values()),
+                       " ".join("/I%d %d 0 R" % (i, i) for i in imgs))).encode())
     pages_id = len(objs) + 2
     page = add(("<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %s %s] /Contents %d 0 R /Resources %d 0 R >>" % (
         pages_id, _f(w / PT), _f(h / PT), cid, res)).encode())
@@ -1154,7 +1343,7 @@ def write_pdf(path, w, h, items, title):
     oc = " ".join("%d 0 R" % i for i in ocg.values())
     cat = add(("<< /Type /Catalog /Pages %d 0 R /OCProperties << /OCGs [%s] /D << /Order [%s] /ON [%s] >> >> >>" % (
         pages_id, oc, oc, oc)).encode())
-    info = add(b"<< /Title (" + _pdf_txt(title) + b") /Producer (Bergama Basemap) >>")
+    info = add(b"<< /Title (" + _pdf_txt(title) + b") /Producer (Bergama drawing set) >>")
     out = bytearray(b"%PDF-1.5\n%\xe2\xe3\xcf\xd3\n")
     offs = []
     for i, b in enumerate(objs):
@@ -1176,7 +1365,13 @@ def write_pdf(path, w, h, items, title):
     return path
 
 
-# ================================================================ Basemap_colour.svg (his plan inside calisma_alan)
+def out_line(p, w, h, den, items, extra=u""):
+    """the log line of one output: its size and how many objects it draws"""
+    return u"%s  %s (%.0f x %.0f mm, 1:%s; %.1f MB, %s drawn objects%s)" % (
+        p, time.strftime("%H:%M:%S"), w, h, format(den, ",d"), os.path.getsize(p) / 1048576.0, format(len(items), ",d"),
+        extra)
+
+
 def plan_frame(txt, F):
     """the plan frame in his SVG (x, y, w, h units): the frame-shaped clip rectangle his Selinos group uses, else the
     commonest clip rectangle of the frame's proportions"""
@@ -1202,7 +1397,6 @@ def plan_frame(txt, F):
     return max(cnt, key=cnt.get), u"the commonest frame-shaped clip rectangle (no Selinos group clip found)"
 
 
-# ================================================================ textures on his plan
 _TOK = re.compile(r"([MmLlHhVvCcSsQqTtAaZz])|([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)")
 _N = {"m": 2, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7, "z": 0}
 
@@ -1325,234 +1519,6 @@ def _hex6(c):
     return c.upper() if re.match(r"^[0-9a-fA-F]{6}$", c) else None
 
 
-def add_textures(body, s, log):
-    """the water ticks and the promenade joints, each put directly after the path it lies on"""
-    jobs = ((WATER_GROUP, None, "water"), (PROMENADE_GROUP, PROMENADE_FILLS, "promenade"))
-    for gid, fills, kind in jobs:
-        span = _group_span(body, gid)
-        if span is None:
-            log.append(u"FLAG texture %s: no group %s in his plan: no texture" % (kind, gid))
-            continue
-        g = body[span[0]:span[1]]
-        out, last, n_shapes, n_lines = [], 0, 0, 0
-        for m in re.finditer(r"<path\b[^>]*?/>", g):
-            a = dict(re.findall(r'([\w:-]+)="([^"]*)"', m.group(0)))
-            col = _hex6(a.get("fill"))
-            if col is None or (fills is not None and (a.get("fill") or "").lower() not in fills):
-                continue
-            rings = [P for cl, P in path_rings(a.get("d", ""), 1.5) if len(P) >= 3]
-            if not rings:
-                continue
-            d = []
-            if kind == "water":
-                row, tick, pitch = WATER_ROW * s, WATER_TICK * s, WATER_PITCH * s
-                for (x0, y), (x1, _) in hatch_lines(rings, row, 0.0):
-                    j = int(round(y / row - 0.5))
-                    k_ = int(math.floor((x0 - (j % 2) * pitch / 2.0) / pitch))
-                    while True:
-                        xa = k_ * pitch + (j % 2) * pitch / 2.0
-                        k_ += 1
-                        if xa > x1 - tick:
-                            break
-                        if xa >= x0:                      # a small wave: up, then down
-                            d.append(u"M%.1f,%.1fq%.1f,%.1f %.1f,0t%.1f,0" % (xa, y, tick / 4.0, -tick / 6.0,
-                                                                          tick / 2.0, tick / 2.0))
-                tone = _tint(col, 0.35)
-            else:
-                for p_, q_ in hatch_lines(rings, JOINT_M * s, 90.0):
-                    d.append(u"M%.1f,%.1fL%.1f,%.1f" % (p_[0], p_[1], q_[0], q_[1]))
-                tone = u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) * 0.85)) for i in (0, 2, 4))
-            if not d:
-                continue
-            n_shapes += 1
-            n_lines += len(d)
-            out.append(g[last:m.end()])
-            out.append(u'<path id="texture_%s_%d" fill="none" stroke="#%s" stroke-width="%.3f" stroke-linecap="round" '
-                       u'd="%s"/>' % (kind, n_shapes, tone, TEXTURE_W * s, u"".join(d)))
-            last = m.end()
-        out.append(g[last:])
-        body = body[:span[0]] + u"".join(out) + body[span[1]:]
-        if n_shapes:
-            log.append(u"texture %s: %d line(s) on %d shape(s) of his group %s" % (kind, n_lines, n_shapes, gid))
-        else:
-            log.append(u"FLAG texture %s: no filled path %sin his group %s: no texture" % (
-                kind, (u"with fill %s " % u" / ".join(fills)) if fills else u"", gid))
-    return body
-
-
-def plan_base(body, s, log):
-    """his plan for the base map: the route groups switched off, the planted-ground underlay put under his trees"""
-    off = []
-    for g in BASE_OFF:
-        m = re.search(r'<g\b[^>]*\bid="%s"[^>]*>' % re.escape(g), body)
-        if m and "display=" not in m.group(0):
-            body = body[:m.start()] + m.group(0)[:-1] + u' display="none">' + body[m.end():]
-            off.append(g)
-    trees, hidden, stack = [], 0, []
-    for m in re.finditer(r'<g\b[^>]*?(/?)>|</g>|<use\b[^>]*>', body):
-        t = m.group(0)
-        if t.startswith("</g"):
-            if stack and stack.pop():
-                hidden -= 1
-        elif t.startswith("<g"):
-            if not t.endswith("/>"):
-                h = 'display="none"' in t
-                stack.append(h)
-                hidden += 1 if h else 0
-        elif not hidden and ('href="#' + TREE_SYMBOL) in t and 'display="none"' not in t:
-            a = dict(re.findall(r'([\w:-]+)="([^"]*)"', t))
-            tr = a.get("transform", "")
-            mt = re.search(r"translate\(\s*([-\d.eE]+)[\s,]*([-\d.eE]+)?\s*\)", tr)
-            ms = re.search(r"scale\(\s*([-\d.eE]+)", tr)
-            mr = re.search(r"rotate\(\s*([-\d.eE]+)", tr)
-            try:
-                w, h = float(a["width"]), float(a["height"])
-                sc = float(ms.group(1)) if ms else 1.0
-                tx, ty = (float(mt.group(1)), float(mt.group(2) or 0.0)) if mt else (0.0, 0.0)
-            except Exception:
-                continue
-            ang = math.radians(float(mr.group(1))) if mr else 0.0
-            hx, hy = w * sc / 2.0, h * sc / 2.0
-            trees.append((tx + hx * math.cos(ang) - hy * math.sin(ang), ty + hx * math.sin(ang) + hy * math.cos(ang),
-                          max(w, h) * abs(sc) / 2.0))
-    i = body.find(u'<g id="trees_group"')
-    if trees and i >= 0:
-        g = [u'<g id="planted_ground_underlay">']
-        for d, col in zip(UNDERLAY_M, UNDERLAY):
-            g.append(u'<g id="underlay_%s_m" fill="#%s" stroke="none">' % (("%g" % d).replace(".", "_"), col))
-            g += [u'<circle cx="%.2f" cy="%.2f" r="%.2f"/>' % (x, y, r + d * s) for x, y, r in trees]
-            g.append(u"</g>")
-        g.append(u"</g>\n")
-        body = body[:i] + u"\n".join(g) + body[i:]
-    else:
-        log.append(u"FLAG underlay: %s: no planted-ground underlay drawn" % (
-            u"no tree symbols (%s...) found in his plan" % TREE_SYMBOL if not trees else u"no group trees_group in his plan"))
-    log.append(u"his plan as base map: groups switched off: %s; planted-ground underlay under %d tree symbols of his plan"
-               % (u", ".join(off) or u"none found", len(trees) if i >= 0 else 0))
-    return add_textures(body, s, log)
-
-
-def write_colour_svg(D, F, log, fade=None):
-    src = os.path.join(BERGAMA_ROOT, PLAN_SVG)
-    if not D.get("calisma"):
-        return
-    if not os.path.isfile(src):
-        log.append(u"FLAG Basemap_colour.svg not written: %s not found" % src)
-        return
-    with open(src, encoding="utf-8") as f:
-        txt = f.read()
-    fr, how = plan_frame(txt, F)
-    if fr is None:
-        log.append(u"FLAG Basemap_colour.svg not written: %s in %s" % (how, src))
-        return
-    rx, ry, rw, rh = fr
-    s = rw / F.w
-    m0 = re.search(r"<svg\b[^>]*>", txt)
-    m1 = txt.rfind("</svg>")
-    vb = re.search(r'viewBox="([^"]+)"', m0.group(0)) if m0 else None
-    if not m0 or m1 < 0 or not vb:
-        log.append(u"FLAG Basemap_colour.svg not written: %s has no svg root with a viewBox" % src)
-        return
-    vx, vy, vw, vh = [float(v) for v in vb.group(1).replace(",", " ").split()]
-
-    def U(p):
-        u, v = F.local(p)
-        return "%.2f,%.2f" % (rx + u * s, ry + rh - v * s)
-
-    def UL(q):
-        return "%.2f,%.2f" % (rx + q[0] * s, ry + rh - q[1] * s)
-    box = (0.0, 0.0, F.w, F.h)
-    out = [m0.group(0), u"<defs><clipPath id=\"bg_calisma_clip\"><path clip-rule=\"evenodd\" d=\"M%s,%s h%s v%s h%s Z "
-           u"M%s,%s h%s v%s h%s Z %s\"/></clipPath></defs>" % (
-               vx, vy, vw, vh, -vw, rx, ry, rw, rh, -rw,
-               u" ".join(u"M" + u" L".join(U(p) for p in P) + u" Z" for P in D["calisma"])),
-           u"<g id=\"existing_basemap_bw\">",
-           u"<rect id=\"white_ground\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"#ffffff\"/>" % (rx, ry, rw, rh)]
-    n = 0
-    hp = HATCH["sat_grass"]
-    out.append(u"<defs><pattern id=\"bg_hatch\" patternUnits=\"userSpaceOnUse\" width=\"%.3f\" height=\"%.3f\" "
-               u"patternTransform=\"rotate(%.1f)\"><line x1=\"0\" y1=\"0\" x2=\"%.3f\" y2=\"0\" stroke=\"#%s\" "
-               u"stroke-width=\"%.3f\"/></pattern></defs>" % (hp[0] * s, hp[0] * s, -hp[1], hp[0] * s, hp[2], 0.2 * s))
-    out.append(u"<g id=\"existing_shadows\" fill=\"#%s\" stroke=\"none\">" % SHADOW)
-    for key in (("buildings", "heritage") if SHADOWS else ()):
-        for cl, P in D["layers"].get(key, []):
-            R = clip_ring([(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in (F.local(p) for p in P)], box)
-            if len(R) >= 3:
-                out.append(u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R))
-    out.append(u"</g>")
-    for key, layer, stroke, lw, fill in STYLE:
-        if key.startswith("sat_") or key == "streets":
-            rings = [R for R in (clip_ring([F.local(p) for p in P], box) for cl, P in D["layers"].get(key, []))
-                     if len(R) >= 3]
-            n += len(rings)
-            if key == "streets":
-                out.append(u"<g id=\"%s_edges\" fill=\"none\" stroke=\"#%s\" stroke-width=\"%.3f\">" % (
-                    layer, stroke, SVG_W[key] * s))
-                for R in rings:
-                    for f_, run in (fade.split(R + R[:1]) if fade else [(False, R + R[:1])]):
-                        out.append(u"<polyline%s points=\"%s\"/>" % (
-                            (u" stroke=\"#%s\"" % lighter(stroke)) if f_ else u"", u" ".join(UL(q) for q in run)))
-                out.append(u"</g>")
-                out.append(u"<g id=\"%s_surface\" fill=\"#%s\" stroke=\"none\">" % (layer, fill))
-                out += [u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R) for R in rings]
-                out.append(u"</g>")
-            else:
-                out.append(u"<path id=\"%s\" fill-rule=\"evenodd\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" "
-                           u"d=\"%s\"/>" % (layer, u"url(#bg_hatch)" if key in HATCH else u"#" + fill, stroke,
-                                            SVG_W[key] * s, u" ".join(u"M" + u" L".join(UL(q) for q in R) + u" Z"
-                                                                      for R in rings)))
-            continue
-        out.append(u"<g id=\"%s_%s\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" stroke-linejoin=\"round\">" % (
-            layer, key, (u"#" + fill) if fill else u"none", stroke, SVG_W.get(key, 0.2) * s))
-        fd = fade if (fade is not None and key in FADE_KEYS) else None
-        far_ = u" stroke=\"#%s\"" % lighter(stroke)
-        for cl, P in D["layers"].get(key, []):
-            Q = [F.local(p) for p in P]
-            if cl and len(Q) >= 3:
-                R = clip_ring(Q, box)
-                if len(R) >= 3:
-                    out.append(u"<polygon%s points=\"%s\"/>" % (far_ if (fd and fd.far_ring(R)) else u"",
-                                                                u" ".join(UL(q) for q in R)))
-                    n += 1
-            else:
-                for run_ in clip_line(Q, box):
-                    for f_, run in (fd.split(run_) if fd else [(False, run_)]):
-                        out.append(u"<polyline fill=\"none\"%s points=\"%s\"/>" % (far_ if f_ else u"",
-                                                                                   u" ".join(UL(q) for q in run)))
-                    n += 1
-        out.append(u"</g>")
-    out.append(u"<g id=\"names\" fill=\"#%s\" font-family=\"Arial, Helvetica, sans-serif\" font-size=\"%.2f\">" % (
-        NAME_GREY, 3.0 * s))
-    for t, x, y, ang, kind in D.get("labels", []):
-        u, v = F.local((x, y))
-        if not (2.0 < u < F.w - 2.0 and 2.0 < v < F.h - 2.0):
-            continue
-        a = (ang + math.degrees(F.rot)) % 360.0
-        if 90.0 < a <= 270.0:
-            a -= 180.0
-        X, Y = rx + u * s, ry + rh - v * s
-        out.append(u"<text x=\"%.2f\" y=\"%.2f\"%s transform=\"rotate(%.1f %.2f %.2f)\">%s</text>" % (
-            X, Y, u" font-style=\"italic\"" if kind == "street" else u"", -a, X, Y, t.replace(u"&", u"&amp;").replace(u"<", u"&lt;")))
-    out.append(u"</g>")
-    out.append(u"</g>")
-    out.append(u"<g id=\"plan_inside_calisma_alan\" clip-path=\"url(#bg_calisma_clip)\">")
-    head = u"\n".join(out)
-    tail = [u"</g>", u"<g id=\"calisma_alan_outline\" fill=\"none\" stroke=\"#%s\" stroke-width=\"%.3f\">" % (HER, 0.6 * s)]
-    tail += [u"<polygon points=\"%s\"/>" % u" ".join(U(p) for p in P) for P in D["calisma"]]
-    tail += [u"</g>", u"<rect id=\"site_alan_frame\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"none\" "
-             u"stroke=\"#3a3a38\" stroke-width=\"%.3f\"/>" % (rx, ry, rw, rh, 0.4 * s), u"</svg>"]
-    dst = os.path.join(OUT_DIR, "Basemap_colour.svg")
-    os.makedirs(OUT_DIR, exist_ok=True)
-    with open(dst, "w", encoding="utf-8", newline="\n") as f:
-        f.write(txt[:m0.start()])
-        f.write(head)
-        f.write(plan_base(txt[m0.end():m1], s, log))
-        f.write(u"\n".join(tail))
-    log.append(u"%s  %s (his plan %s, %.1f MB, inside calisma_alan; frame = %s at (%.2f, %.2f) %.2f x %.2f units, %.4f "
-               u"units per m; %d black and white outlines under it)" % (
-                   dst, time.strftime("%H:%M:%S"), os.path.basename(src), os.path.getsize(src) / 1048576.0, how, rx, ry, rw,
-                   rh, s, n))
-
 
 # ================================================================ main
 def load_or_read(log):
@@ -1591,45 +1557,46 @@ def main():
     log = []
     den = int(globals().get("scale") or 2000)
     kden = int(globals().get("keymap_scale") or 10000)
+    S = load_style()
+    set_grain(S, log)
+    log.append(u"style: %s, %d categories (%s)" % (S["version"], len(S["cat"]), os.path.join(BERGAMA_ROOT, STYLE_FILE)))
     D = load_or_read(log)
     F = Frame([tuple(p) for p in D["frame"]])
     D["turn_deg"] = round(math.degrees(F.rot), 4)
     D["layers"].update(load_veg(D, log))
     D["layers"].update(build_streets(D, F, log))
+    L = localise(D, F)
     fade = Fade(D, F)
     if fade.rows is not None:
         log.append(u"fade: context lines full within %.0f m of calisma_alan (%.0f %% of the frame), lighter beyond" % (
             FADE_M, 100.0 * fade.share))
     log.append(u"frame: site_alan %.2f x %.2f m, turned %.2f deg; north on the page points (%.3f, %.3f)" % (
         F.w, F.h, math.degrees(F.rot), F.north()[0], F.north()[1]))
-    need = max(F.w * 1000.0 / (A0_W - 2 * A0_MARGIN), F.h * 1000.0 / (A0_H - 2 * A0_MARGIN - 16.0))
-    n_a0 = int(math.ceil(need / A0_STEP) * A0_STEP)       # the smallest round scale at which the frame fits on A0
-    for name, d, styles, sec, title in ((u"Basemap", den, STYLE, False, u"BASEMAP · existing"),
-                                        (u"Keymap", kden, KEY_STYLE, True, u"KEY MAP")):
+    cover = Cover(L, F, log) if (L.get("sat_trees") or L.get("sat_grass")) else None
+    n_a0 = a0_scale(F)
+    log.append(u"A0: two bands at 1:%s (the smallest step of %d at which half the frame + %.0f m fits beside a %.0f mm "
+               u"column on %.0f x %.0f mm with %.0f mm margins)" % (format(n_a0, ",d"), A0_STEP, BAND_OVERLAP_M, A0_COLUMN,
+                                                                   A0_W, A0_H, A0_MARGIN))
+    order = [c for _, c, _ in COVER_CATS[::-1]] + [c for _, c, _ in CONTEXT][::-1] + ["calisma", "section_line"]
+    for name, d0, key, title in ((u"Basemap", den, False, u"Base map"), (u"Keymap", kden, True, u"Key map")):
         for a0 in (False, True):
-            if a0:
-                d = n_a0
-                w, h = A0_W, A0_H
-                x0, y0 = (w - F.w * 1000.0 / d) / 2.0, (h - F.h * 1000.0 / d) / 2.0 + 8.0
-            else:
-                m = 15.0
-                w = F.w * 1000.0 / d + 2 * m
-                h = F.h * 1000.0 / d + 2 * m + 16.0
-                x0, y0 = m, m + 16.0
-            items, cnt = draw(D, F, d, styles, x0, y0, sections=sec, shadows=SHADOWS and not sec, names=not sec,
-                              fade=fade)
-            by = dict((s[0], s) for s in styles)
-            leg = [by[k_] + (lab,) for k_, lab in LEGEND if k_ in by and cnt.get(k_)]
-            items += corner_block(F, d, x0, y0)
-            items += furniture(F, d, x0, y0, title, leg, None if sec else CREDIT)
+            d = n_a0 if a0 else d0
+
+            def band(den_, x, y, u0, u1, tag, key=key):
+                items, cnt = draw_context(L, F, S, den_, x, y, u0, u1, lw_k=0.6 if (key and den_ > 4000) else 1.0,
+                                          cover=None if key else cover, fade=fade, skip=KEY_SKIP if key else ())
+                items += draw_top(D, F, S, den_, x, y, u0, u1, names=not key, sections=key)
+                cnt["calisma"] = len(D.get("calisma", []))
+                if key and D.get("sections"):
+                    cnt["section_line"] = len(D["sections"])
+                return items, {}, cnt
+            w, h, items, clips, cnt = sheet(F, S, d, a0, title, u"Existing situation, 1:%s" % format(d, ",d"),
+                                            lambda c: [k_ for k_ in order[::-1] if c.get(k_)][::-1],
+                                            None if key else CREDIT, band)
             p = write_pdf(os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
-                          u"%s, site_alan, 1:%d" % (name, d))
-            if a0:
-                log.append(u"%s  A0 %.0fx%.0f mm, 1:%d" % (p, w, h, d))
-            else:
-                log.append(u"%s  %s (%.0f x %.0f mm, 1:%d; %s)" % (p, time.strftime("%H:%M:%S"), w, h, d, u", ".join(
-                    u"%s %d" % kv for kv in sorted(cnt.items()))))
-    write_colour_svg(D, F, log, fade)
+                          u"%s, site_alan, 1:%d" % (name, d), clips)
+            log.append(out_line(p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
+                u"%s %d" % kv for kv in sorted(cnt.items()))))
     if not D.get("sections"):
         log.append(u"no curves on layer %s in the model: the key map has no section lines yet" % SECTION_LAYER)
     flags = [l for l in log if l.startswith(u"FLAG")]
@@ -1704,3 +1671,4 @@ if "ghenv" in globals():
         ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821
     except Exception:
         pass
+
