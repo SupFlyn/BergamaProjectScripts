@@ -16,12 +16,18 @@ ONE read of the open survey model (Bergama_Altlik.3dm), cut at site_alan, turned
                 SINIR_TARIHI_SUR are drawn in the heritage colour. Nothing else decides it; the log lists them by name.
 Aras 10:54 UTC: "we need to see our calisma_alan, and inside calisma_alan it'll be colourful just as the published svg
 and outside it should be black and white".
-  Basemap.pdf / Keymap.pdf are black and white (heritage = dark grey fill, black outline); calisma_alan is outlined.
+  Basemap.pdf / Keymap.pdf are grey on white outside calisma_alan (see 11:11 below for the look).
   Basemap_colour.svg = his plan SVG (Data/assets/masterlastversion.svg, unchanged, nothing redrawn) shown only inside
                 calisma_alan (a clip path) and outside the plan frame (his legend and texts), over the black and white
                 survey outlines, which therefore show everywhere else in the frame. Placed by the plan frame = site_alan
                 (the frame-size clip rectangle of his Selinos group). Groups: existing_basemap_bw/<layer>,
                 plan_inside_calisma_alan, calisma_alan_outline. Open it in Illustrator.
+Aras 11:11 UTC: his example for the look = the Viinikanlahti general plan (Arkkitehtuurikilpailuja 5/2020, p. 8): the
+context is white buildings with thin grey outlines and a soft grey shadow, white streets with thin grey edges, small
+grey street and place names, key buildings red, the project boundary a thin red line, colour only inside it. So here:
+thin grey outlines, a shadow copy of every building SHADOW_M to the lower right (a drawing device, not a sun study),
+the survey's street names (YAZI_CADDE_YOL) and building names (YAZI_YAPI) in small grey text at their survey place and
+turn, heritage buildings solid palette red 8B2D2D, calisma_alan a thin red line.
 Line weights and the grey tones are drawing values (ours).
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
@@ -54,6 +60,10 @@ BLD_LAYERS = ["BINA_MESKEN", "BINA", "BINA_RESMI", "BINA_OKUL", "BINA_DINI_TESIS
               "BINA_HARABE", "BINA_FABRIKA", "BINA_SERA", "BINA_SPOR_TESISLERI", "BINA_AKARYAKIT", "BINA_INS_HALINDE"]
 HER_LAYERS = ("BINA_TARIHI", "BINA_HARABE")
 NAME_LAYER = "YAZI_YAPI"
+STREET_NAME_LAYER = "YAZI_CADDE_YOL"
+SHADOW_M = (2.5, -2.5)       # m on the turned frame: the shadow copy lies to the lower right
+SHADOW = "D9D8D4"
+NAME_GREY, NAME_MM = "8A8885", 1.5   # label colour; text height in mm at the sheet scale
 HERITAGE_WORDS = ("tarihi", "harabe", "harap", "kalıntı", "kalinti", "hamam", " han ", "bedesten", "arasta", "türbe",
                   "turbe", "medrese", "kızıl avlu", "kizil avlu", "tapınağı", "tapinagi", "kilise", "sinagog", "çeşme",
                   "cesme", "sebil", "kervansaray", "müze", "muze", "cami", "mescit", "mescid", "cemevi", "tekke", "zaviye")
@@ -69,22 +79,22 @@ SURVEY = [
     ("walls", ["SINIR_DUVAR", "SINIR_HARAP_DUVAR"]),
     ("heritage_walls", ["SINIR_TARIHI_SUR"]),
 ]
-INK, GREY, PALE = "1A1A1A", "6F6C67", "B5B2AC"
-HER, WATER, PARK = "1A1A1A", "4A4A4A", "8A8A8A"      # black and white outside calisma_alan
-HER_FILL = "8F8F8F"
+INK, GREY, PALE = "3A3A38", "9A9894", "C4C2BE"
+HER, WATER, PARK = "8B2D2D", "7C8387", "B0AFAA"      # grey outside calisma_alan; heritage and boundary red
+HER_FILL = "8B2D2D"
 # Basemap.pdf: cache layer -> (PDF layer, stroke, line width mm, fill, alpha)
 STYLE = [
     ("parks", "existing_parks", PARK, 0.10, None),
     ("ponds", "existing_water", WATER, 0.18, None),
     ("stream_banks", "existing_water", WATER, 0.22, None),
-    ("road_edges", "existing_roads", GREY, 0.15, None),
-    ("kerbs", "existing_roads", GREY, 0.08, None),
-    ("bridges", "existing_bridges", INK, 0.22, None),
-    ("walls", "existing_walls", GREY, 0.08, None),
-    ("heritage_walls", "existing_heritage", HER, 0.25, None),
-    ("sheds", "existing_buildings", GREY, 0.08, None),
-    ("buildings", "existing_buildings", INK, 0.13, "FFFFFF"),
-    ("heritage", "existing_heritage", HER, 0.30, HER_FILL),
+    ("road_edges", "existing_roads", GREY, 0.10, None),
+    ("kerbs", "existing_roads", PALE, 0.06, None),
+    ("bridges", "existing_bridges", GREY, 0.18, None),
+    ("walls", "existing_walls", PALE, 0.06, None),
+    ("heritage_walls", "existing_heritage", HER, 0.20, None),
+    ("sheds", "existing_buildings", PALE, 0.06, None),
+    ("buildings", "existing_buildings", GREY, 0.09, "FFFFFF"),
+    ("heritage", "existing_heritage", HER, 0.09, HER_FILL),
 ]
 KEY_STYLE = [
     ("road_edges", "existing_roads", PALE, 0.05, None),
@@ -92,11 +102,11 @@ KEY_STYLE = [
     ("ponds", "existing_water", WATER, 0.15, None),
     ("bridges", "existing_bridges", GREY, 0.15, None),
     ("buildings", "existing_buildings", None, 0.0, "D9D6CF"),
-    ("heritage", "existing_heritage", None, 0.0, "3A3A3A"),
+    ("heritage", "existing_heritage", None, 0.0, HER_FILL),
 ]
 # Basemap_colour.svg: stroke widths in metres on the ground (the SVG has no sheet scale)
-SVG_W = {"parks": 0.2, "ponds": 0.3, "stream_banks": 0.4, "road_edges": 0.3, "kerbs": 0.15, "bridges": 0.4, "walls": 0.15,
-         "heritage_walls": 0.5, "sheds": 0.15, "buildings": 0.25, "heritage": 0.5}
+SVG_W = {"parks": 0.2, "ponds": 0.3, "stream_banks": 0.4, "road_edges": 0.2, "kerbs": 0.12, "bridges": 0.35, "walls": 0.12,
+         "heritage_walls": 0.4, "sheds": 0.12, "buildings": 0.18, "heritage": 0.18}
 LEGEND = [("buildings", u"Building"), ("heritage", u"Heritage building"), ("road_edges", u"Road edge"),
           ("kerbs", u"Kerb"), ("bridges", u"Bridge"), ("stream_banks", u"Stream bank"), ("parks", u"Park"),
           ("walls", u"Wall")]
@@ -107,7 +117,7 @@ OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
-CACHE_FORMAT = 2
+CACHE_FORMAT = 3
 
 
 # ================================================================ the open Rhino model
@@ -193,6 +203,19 @@ def read_model(doc, log):
                 names.append((g.Text.strip(), g.Point.X, g.Point.Y))
         except Exception:
             pass
+    labels = []                                           # [text, x, y, turn deg, kind]
+    for lay_, kind in ((STREET_NAME_LAYER, "street"), (NAME_LAYER, "place")):
+        for o in _layer_objs(doc, lay_):
+            g = o.Geometry
+            try:
+                if isinstance(g, rg.TextEntity) and g.PlainText.strip():
+                    ax = g.Plane.XAxis
+                    labels.append([u" ".join(g.PlainText.split()), round(g.Plane.Origin.X, 2), round(g.Plane.Origin.Y, 2),
+                                   round(math.degrees(math.atan2(ax.Y, ax.X)), 1), kind])
+                elif isinstance(g, rg.TextDot) and g.Text.strip():
+                    labels.append([u" ".join(g.Text.split()), round(g.Point.X, 2), round(g.Point.Y, 2), 0.0, kind])
+            except Exception:
+                pass
     bld, her = [], []
     for nm, o, cl, P in curves(BLD_LAYERS):
         if len(P) < 3:
@@ -218,11 +241,12 @@ def read_model(doc, log):
             pass
         sec.append({"name": nm or u"L%d" % (i + 1), "line": [P[0], P[-1]]})
     log.append(u"model read: " + u", ".join(u"%s %d" % kv for kv in sorted(cnt.items())) +
-               u"; name texts %d; section lines %d" % (len(names), len(sec)))
+               u"; name texts %d (streets %d); section lines %d" % (
+                   len(labels), sum(1 for l in labels if l[4] == "street"), len(sec)))
     for h in her:
         c = (sum(p[0] for p in h["ring"]) / len(h["ring"]), sum(p[1] for p in h["ring"]) / len(h["ring"]))
         log.append(u"  heritage: %s (%s) at %.0f, %.0f" % (h["name"] or u"no name text inside", h["layer"], c[0], c[1]))
-    return {"frame": frame, "layers": out, "sections": sec, "calisma": work,
+    return {"frame": frame, "layers": out, "sections": sec, "calisma": work, "labels": labels,
             "heritage_names": [[h["name"], h["layer"]] for h in her]}
 
 
@@ -332,7 +356,7 @@ class Frame(object):
 
 
 # ================================================================ drawing (items: the Sections page format)
-def draw(D, F, den, styles, x0, y0, sections=False):
+def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
     """items of the map at 1:den, the frame's lower-left corner at page (x0, y0) mm"""
     k = 1000.0 / den
     box = (0.0, 0.0, F.w, F.h)
@@ -340,6 +364,12 @@ def draw(D, F, den, styles, x0, y0, sections=False):
 
     def pg(p):
         return (x0 + p[0] * k, y0 + p[1] * k)
+    if shadows:                                          # a shadow copy under every building (drawing device)
+        for key in ("buildings", "heritage"):
+            for cl, P in D["layers"].get(key, []):
+                R = clip_ring([(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in (F.local(p) for p in P)], box)
+                if len(R) >= 3:
+                    items.append(("poly", [[pg(q) for q in R]], SHADOW, None, 0.0, None, "existing_shadows", 1, None, None))
     for key, layer, stroke, lw, fill in styles:
         n = 0
         for cl, P in D["layers"].get(key, []):
@@ -360,7 +390,18 @@ def draw(D, F, den, styles, x0, y0, sections=False):
     items.append(("poly", [fr], None, INK, 0.3, None, "frame", 0, None, None))
     for P in D.get("calisma", []):                         # the working area, a heavy line
         R = [pg(F.local(p)) for p in P]
-        items.append(("line", R + R[:1], INK, 0.45, None, "calisma_alan", 1))
+        items.append(("line", R + R[:1], HER, 0.3, None, "calisma_alan", 1))
+    if names:
+        for t, x, y, ang, kind in D.get("labels", []):
+            u, v = F.local((x, y))
+            if not (2.0 < u < F.w - 2.0 and 2.0 < v < F.h - 2.0):
+                continue
+            a = (ang + math.degrees(F.rot)) % 360.0
+            if 90.0 < a <= 270.0:                         # never upside down
+                a -= 180.0
+            X, Y = pg((u, v))
+            items.append(("text", t, X, Y, NAME_MM, NAME_GREY, False, "L",
+                          "names_streets" if kind == "street" else "names_places", a, None))
     if sections:
         for s in D.get("sections", []):
             a, b = F.local(s["line"][0]), F.local(s["line"][1])
@@ -497,8 +538,13 @@ def write_pdf(path, w, h, items, title):
                 s, x, y, size, color, bold, align = it[1:8]
                 wmm = text_w(s, size, bold)
                 xx = x - {"L": 0.0, "C": wmm / 2.0, "R": wmm}.get(align, 0.0)
-                body += ("BT /%s %s Tf %s rg %s 0 0 %s %s %s Tm (" % ("F2" if bold else "F1", _f(size / PT), _col(color),
-                                                                     _f(PT), _f(PT), _f(xx), _f(y))).encode()
+                ang = math.radians(it[9]) if isinstance(it[9], (int, float)) else 0.0
+                ca, sa = math.cos(ang), math.sin(ang)
+                if ang:
+                    xx = x
+                body += ("BT /%s %s Tf %s rg %s %s %s %s %s %s Tm (" % (
+                    "F2" if bold else "F1", _f(size / PT), _col(color), _f(PT * ca), _f(PT * sa), _f(-PT * sa),
+                    _f(PT * ca), _f(xx), _f(y))).encode()
                 body += _pdf_txt(s) + b") Tj ET\n"
         body += b"EMC\n"
     cid = add(b"<< /Length %d >>\nstream\n" % len(body) + bytes(body) + b"\nendstream")
@@ -596,6 +642,13 @@ def write_colour_svg(D, F, log):
            u"<g id=\"existing_basemap_bw\">",
            u"<rect id=\"white_ground\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"#ffffff\"/>" % (rx, ry, rw, rh)]
     n = 0
+    out.append(u"<g id=\"existing_shadows\" fill=\"#%s\" stroke=\"none\">" % SHADOW)
+    for key in ("buildings", "heritage"):
+        for cl, P in D["layers"].get(key, []):
+            R = clip_ring([(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in (F.local(p) for p in P)], box)
+            if len(R) >= 3:
+                out.append(u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R))
+    out.append(u"</g>")
     for key, layer, stroke, lw, fill in STYLE:
         out.append(u"<g id=\"%s_%s\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" stroke-linejoin=\"round\">" % (
             layer, key, (u"#" + fill) if fill else u"none", stroke, SVG_W.get(key, 0.2) * s))
@@ -611,14 +664,26 @@ def write_colour_svg(D, F, log):
                     out.append(u"<polyline fill=\"none\" points=\"%s\"/>" % u" ".join(UL(q) for q in run))
                     n += 1
         out.append(u"</g>")
+    out.append(u"<g id=\"names\" fill=\"#%s\" font-family=\"Arial, Helvetica, sans-serif\" font-size=\"%.2f\">" % (
+        NAME_GREY, 3.0 * s))
+    for t, x, y, ang, kind in D.get("labels", []):
+        u, v = F.local((x, y))
+        if not (2.0 < u < F.w - 2.0 and 2.0 < v < F.h - 2.0):
+            continue
+        a = (ang + math.degrees(F.rot)) % 360.0
+        if 90.0 < a <= 270.0:
+            a -= 180.0
+        X, Y = rx + u * s, ry + rh - v * s
+        out.append(u"<text x=\"%.2f\" y=\"%.2f\" transform=\"rotate(%.1f %.2f %.2f)\">%s</text>" % (
+            X, Y, -a, X, Y, t.replace(u"&", u"&amp;").replace(u"<", u"&lt;")))
+    out.append(u"</g>")
     out.append(u"</g>")
     out.append(u"<g id=\"plan_inside_calisma_alan\" clip-path=\"url(#bg_calisma_clip)\">")
     head = u"\n".join(out)
-    tail = [u"</g>", u"<g id=\"calisma_alan_outline\" fill=\"none\" stroke=\"#1a1a1a\" stroke-width=\"%.3f\" "
-            u"stroke-dasharray=\"%.2f %.2f\">" % (1.0 * s, 6.0 * s, 3.0 * s)]
+    tail = [u"</g>", u"<g id=\"calisma_alan_outline\" fill=\"none\" stroke=\"#%s\" stroke-width=\"%.3f\">" % (HER, 0.6 * s)]
     tail += [u"<polygon points=\"%s\"/>" % u" ".join(U(p) for p in P) for P in D["calisma"]]
     tail += [u"</g>", u"<rect id=\"site_alan_frame\" x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" fill=\"none\" "
-             u"stroke=\"#1a1a1a\" stroke-width=\"%.3f\"/>" % (rx, ry, rw, rh, 0.6 * s), u"</svg>"]
+             u"stroke=\"#3a3a38\" stroke-width=\"%.3f\"/>" % (rx, ry, rw, rh, 0.4 * s), u"</svg>"]
     dst = os.path.join(OUT_DIR, "Basemap_colour.svg")
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(dst, "w", encoding="utf-8", newline="\n") as f:
@@ -677,7 +742,7 @@ def main():
     for name, d, styles, sec, title in ((u"Basemap", den, STYLE, False, u"BASEMAP · existing"),
                                         (u"Keymap", kden, KEY_STYLE, True, u"KEY MAP")):
         m = 15.0
-        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec)
+        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec, shadows=not sec, names=not sec)
         by = dict((s[0], s) for s in styles)
         leg = [by[k_] + (lab,) for k_, lab in LEGEND if k_ in by and cnt.get(k_)]
         items += furniture(F, d, m, m + 16.0, title, leg)
