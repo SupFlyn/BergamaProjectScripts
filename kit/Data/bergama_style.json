@@ -1,5 +1,5 @@
 {
-  "version": "style 2 (12 Nov 2026)",
+  "version": "style 3 (12 Nov 2026)",
   "what": "The one graphic code of every Bergama drawing script (Basemap, Key map, Masterplan base; Sections follows). Each category is defined once here: fill, line, line weight in mm on paper, hatch. Change a colour or a weight here and every drawing follows.",
   "how": "A colour is a palette name, a palette name with +t (t towards white, 0..1) or -t (towards black), or a hex. w = line weight in mm on paper. Every fill except white is painted with the grain; \"grain\": false on a category keeps it flat, a number gives that category its own strength. ticks = [row spacing mm, tick length mm, pitch mm, line mm, colour]: short wave strokes over the grain, each second row shifted by half (vector, in the same shared tile).",
   "source": "Palette: Aras's five liked palettes of 12 Nov 2026 (library/examples/palettes_2026-11-12/INDEX.md), each value the median of a patch of his image; water and water_edge are his image 5 frame 294455 lightened 25 % and 60 % (calculated). context and context_dark replace the first context grey A08B8A, which read pink on the sheets (look review 12 Nov). Line weights: look review 12 Nov (proposals, not confirmed by Aras one by one).",
@@ -47,15 +47,18 @@
     "wet_edge":      {"label": "Wet edge",            "fill": "water_edge+0.3",     "line": null,            "w": 0.0},
     "reed":          {"label": "Reeds",               "fill": "tree_mid+0.25",  "line": null,            "w": 0.0},
     "water":         {"label": "Water",               "fill": "water",          "line": null,            "w": 0.0,  "grain": 0.09},
-    "plan_road":     {"label": "Road in the plan",    "fill": "white",          "line": null,            "w": 0.0},
-    "paving":        {"label": "Paths and squares",   "fill": "hard_ground+0.5", "line": null,           "w": 0.0},
-    "paving_dark":   {"label": "Dark paving",           "fill": "hard_ground-0.12", "line": null,          "w": 0.0},
-    "promenade":     {"label": "Promenade",           "fill": "hard_ground",    "line": null,            "w": 0.0},
+    "plan_road":     {"label": "Road",                "fill": "hard_ground+0.35", "line": "context",      "w": 0.09},
+    "paving":        {"label": "Paths and squares",   "fill": "hard_ground+0.5", "line": "context+0.2",  "w": 0.07},
+    "paving_dark":   {"label": "Dark paving",           "fill": "hard_ground-0.12", "line": "context+0.2", "w": 0.07},
+    "promenade":     {"label": "Promenade",           "fill": "hard_ground",    "line": "context+0.2",   "w": 0.07},
     "underlay_1":    {"label": "Planted ground under trees", "fill": "tree_light+0.8",  "line": null,    "w": 0.0},
     "underlay_2":    {"label": "Planted ground under trees", "fill": "tree_light+0.65", "line": null,    "w": 0.0},
     "underlay_3":    {"label": "Planted ground under trees", "fill": "tree_light+0.5",  "line": null,    "w": 0.0},
     "tree_light":    {"label": "Trees: willow, tamarisk",    "fill": "tree_light",      "line": "tree_light-0.15", "w": 0.08},
     "tree_mid":      {"label": "Trees: ash, olive",          "fill": "tree_mid",        "line": "tree_mid-0.15",   "w": 0.08},
-    "tree_dark":     {"label": "Trees: plane, stone pine",   "fill": "tree_dark",       "line": "tree_dark-0.15",  "w": 0.08}
+    "tree_dark":     {"label": "Trees: plane, stone pine",   "fill": "tree_dark",       "line": "tree_dark-0.15",  "w": 0.08},
+    "site_tree_light": {"label": "Deciduous tree (survey)", "fill": "tree_light",      "line": "tree_light-0.15", "w": 0.08},
+    "site_tree_mid":   {"label": "Single tree (survey)",    "fill": "tree_mid",        "line": "tree_mid-0.15",   "w": 0.08},
+    "site_tree_dark":  {"label": "Evergreen tree (survey)", "fill": "tree_dark",       "line": "tree_dark-0.15",  "w": 0.08}
   }
 }
