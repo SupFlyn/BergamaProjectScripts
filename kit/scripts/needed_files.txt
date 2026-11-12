@@ -41,6 +41,7 @@ Data/bergama_environment.json
 Data/bergama_landcover_worldcover2021.json
 Data/bergama_masterplan_data.py
 Data/bergama_osm.osm
+Data/veg2023.json
 Data/bergama_palette.py
 Data/bergama_places.geojson
 Data/bergama_plan_to_rhino_data.py
