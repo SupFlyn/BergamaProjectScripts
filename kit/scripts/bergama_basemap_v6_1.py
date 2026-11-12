@@ -45,6 +45,9 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v6.1 (first Rhino run of v6, 0 FLAG; look check): the street surface's stepped edge is smoothed once (corner
+cutting); a road edge, bridge or stream line piece shorter than FRAG_M m is dropped on the layers the clean-up cut
+(the cut left short leftovers inside parcels and the green; his "get rid of these kind of stray lines").
 v6, Aras 12 Nov 19:51-20:05 UTC: "take the tree information from the site data"; "all trees are group together and a
 subgroup would include a tree"; "you seem to be missing houses in a lot of the places"; "get rid of these kind of
 stray lines". So: (1) the survey's tree symbols (TREE_LAYERS) are read into the cache as "trees" [x, y, radius or 0,
@@ -98,7 +101,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v6"
+VERSION = "v6.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -161,6 +164,7 @@ STREET_CLOSE_M, STREET_MIN_M2 = 1.0, 20.0     # m seams closed in the street sur
 CENTRE_FILE = os.path.join("Data", "selinos_centreline.json")
 RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame: the river never stops)
 RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
+FRAG_M = 12.0                      # m: a road edge, bridge or stream line piece shorter than this is dropped (v6.1)
 CRUMB_M = 2.0                      # m: a building line loose at both ends and shorter than this is dropped
 TICK_M, NEAR_M = 4.0, 2.0          # m: loose building stubs shorter than this are dropped; "beside a joined surface"
 HAZE_C, HAZE_BLUR_M, HAZE_MAX = 2.0, 6.0, 0.9    # m cell and blur of the soft green; its strongest opacity
@@ -975,7 +979,7 @@ def join_streets(L, F, log):
             mask_add(rows, Q, c, nx)
             n += 1
     rows = mask_close(rows, int(round(STREET_CLOSE_M / c)), nx)
-    rings = mask_rings(rows, nx, c, F, MASK_TOL * 1.5, STREET_MIN_M2)
+    rings = mask_rings(rows, nx, c, F, MASK_TOL * 1.5, STREET_MIN_M2, smooth=1)   # v6.1: corners of the steps cut
     L["street_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
     log.append(u"streets joined: %d bands -> one surface of %d outline(s), %d points (junctions meet, no edge crosses a "
                u"street)" % (n, len(rings), sum(len(R) for R in rings)))
@@ -1159,7 +1163,7 @@ def clean_lines(L, F, street_rows, river_rows, log):
         ticks += cut
         break                                             # once only: repeating it ate whole open house outlines
     L["buildings"] = kept + open_
-    drops = {}
+    drops, frag = {}, {}
     for names, rows in ((("road_edges", "kerbs", "bridges"), street_rows), (("stream_banks",), river_rows)):
         if rows is None:
             continue
@@ -1180,10 +1184,17 @@ def clean_lines(L, F, street_rows, river_rows, log):
                         run.append(Q[i + 1])
                 if len(run) >= 2:
                     out.append((False, run, min(q[0] for q in run), max(q[0] for q in run)))
+            if drops.get(name):                           # v6.1: what the cut left as crumbs goes too
+                keep = [it for it in out if sum(math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+                                                for a_, b_ in zip(it[1][:-1], it[1][1:])) >= FRAG_M]
+                frag[name] = len(out) - len(keep)
+                out = keep
             L[name] = out
     log.append(u"line clean-up: %d building lines drawn twice kept once; %d loose stubs under %.0f m dropped; pieces "
                u"dropped beside or inside a joined surface (within %.1f m): %s" % (
-                   dup, ticks, TICK_M, NEAR_M, u", ".join(u"%s %d" % kv for kv in sorted(drops.items())) or u"none"))
+                   dup, ticks, TICK_M, NEAR_M, u", ".join(u"%s %d" % kv for kv in sorted(drops.items())) or u"none") +
+               u"; leftover pieces under %.0f m dropped: %s" % (
+                   FRAG_M, u", ".join(u"%s %d" % kv for kv in sorted(frag.items())) or u"none"))
 
 
 def haze_data(rows_or_discs, F):

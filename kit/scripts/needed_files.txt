@@ -20,7 +20,7 @@ scripts/bergama_water_balance_v14.py
 scripts/bergama_water_board_v20_3.py
 scripts/bergama_section_from_line_v1_1.py
 scripts/bergama_sections_v1_4.py
-scripts/bergama_basemap_v6.py
+scripts/bergama_basemap_v6_1.py
 scripts/bergama_plan_base_v3.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py
