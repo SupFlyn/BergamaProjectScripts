@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
 as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
 frame for that basemap and keymap for that matter".
@@ -43,6 +43,21 @@ Aras 11:15 UTC: "if a road starts somewhere i dont want it to disappear along th
   each kind. Footpaths (PATH_CLASSES) are one thin line along their whole length. The survey's own road edges and
   kerbs are still drawn on top, unchanged. Cached in streets.json.
 Line weights, the grey tones, the hatch and EDGE_MAX / FRONT_MAX / STREET_STEP are drawing values (ours).
+v2, Aras 12 Nov 17:07-17:26 UTC (thread "Inspect reference drawings and merge best parts", brief
+library/examples/liked_2026-11-12/MERGED_SPEC_v0.1.md, a draft): "Masterplan is our first goal"; "we want the base map
+first"; routes and connections "leave that to last ... those are the lines that we can put on the base map"; the thin
+red line stays, "outside of that line will be white and inside is colourful"; the pale green under the tree groups:
+"yes we do want that"; "lighter more soft colours generally", his palette follows. So:
+  COLOURS  every colour sits in the block "COLOURS" below, one line per meaning: his palette is swapped in there.
+  FADE     the context lines have two tones: full within FADE_M m of calisma_alan, lighter (FADE_MIX towards white)
+           beyond, so the sheet corners are nearly white. Heritage, the stream and the red line keep their tone.
+  CORNER   north circle, the scale as text and a segmented scale bar sit inside the frame's lower right corner.
+  NAMES    street names in italic along the street (their survey turn), place names upright.
+  Basemap_colour.svg: the route groups of his plan (BASE_OFF) are switched off (display none; they stay in the file
+           and are switched on again in the Illustrator layer panel), and under his trees lies the planted-ground
+           underlay: three flat pale green rings around every tree symbol of his plan (UNDERLAY_M m beyond the crown),
+           no outline, drawn only where his plan has a tree, inside calisma_alan only.
+FADE_M, FADE_MIX, UNDERLAY_M and the underlay tints are drawing values (ours), not his.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -63,7 +78,7 @@ import os, time, json, math, re
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v2"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -116,7 +131,14 @@ STREET_STEP, EDGE_MAX, FRONT_MAX, STREET_MIN = 4.0, 12.0, 8.0, 1.0     # m
 PATH_CLASSES = ("footway", "path", "steps", "cycleway", "bridleway", "track")
 SKIP_CLASSES = ("proposed", "construction", "platform", "elevator", "corridor", "bus_stop", "rest_area", "services")
 STREET_FORMAT = 1
-INK, GREY, PALE = "3A3A38", "9A9894", "C4C2BE"
+FADE_M, FADE_MIX = 100.0, 0.5      # m from calisma_alan where the context lines turn lighter; how far towards white
+FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
+BASE_OFF = ("CIRCULATION", "heritage_trail")     # groups of his plan switched off in the base map (routes come later)
+TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_...">
+UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first
+# ================= COLOURS: one line per meaning; his palette is swapped in here =================
+INK, GREY, PALE = "3A3A38", "9A9894", "C4C2BE"       # frame and titles; context lines; faintest context lines
+UNDERLAY = ("EEF1E8", "E3E8D9", "D6DEC9")            # planted ground under his trees, widest ring first (89986A tints)
 HER, WATER, PARK = "8B2D2D", "7C8387", "B0AFAA"      # grey outside calisma_alan; heritage and boundary red
 HER_FILL = "8B2D2D"
 # Basemap.pdf: cache layer -> (PDF layer, stroke, line width mm, fill, alpha)
@@ -162,6 +184,7 @@ OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
+# ================= end of COLOURS =================
 CACHE_FORMAT = 3
 STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 
@@ -399,6 +422,71 @@ class Frame(object):
     def north(self):
         """the page direction of survey north (0, 1)"""
         return (-self.sa, self.ca)
+
+
+# ================================================================ near and far from calisma_alan
+def lighter(col, t=None):
+    t = FADE_MIX if t is None else t
+    return u"".join(u"%02X" % int(round(int(col[i:i + 2], 16) + (255 - int(col[i:i + 2], 16)) * t)) for i in (0, 2, 4))
+
+
+class Fade(object):
+    """a 10 m raster of the frame (local m): 1 = inside calisma_alan or within FADE_M m of it"""
+    C = 10.0
+
+    def __init__(self, D, F):
+        self.rows = None
+        if not D.get("calisma"):
+            return
+        c = self.C
+        nx, ny = int(F.w // c) + 1, int(F.h // c) + 1
+        rows = [bytearray(nx) for _ in range(ny)]
+        r = int(math.ceil(FADE_M / c))
+        disc = [(i, j) for i in range(-r, r + 1) for j in range(-r, r + 1) if (i * i + j * j) * c * c <= FADE_M * FADE_M]
+        seen = set()
+        for P in D["calisma"]:
+            Q = [F.local(p) for p in P]
+            for a, b in zip(Q, Q[1:] + Q[:1]):
+                n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / (c / 2.0)))
+                for t in range(n + 1):
+                    ci = int((a[0] + (b[0] - a[0]) * t / n) // c)
+                    cj = int((a[1] + (b[1] - a[1]) * t / n) // c)
+                    if (ci, cj) in seen:
+                        continue
+                    seen.add((ci, cj))
+                    for i, j in disc:
+                        if 0 <= ci + i < nx and 0 <= cj + j < ny:
+                            rows[cj + j][ci + i] = 1
+            for j in range(ny):                           # the inside, row by row
+                y = (j + 0.5) * c
+                xs = sorted(a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) for a, b in zip(Q, Q[1:] + Q[:1])
+                            if (a[1] > y) != (b[1] > y))
+                for x0, x1 in zip(xs[0::2], xs[1::2]):
+                    for i in range(max(0, int(x0 // c)), min(nx - 1, int(x1 // c)) + 1):
+                        rows[j][i] = 1
+        self.rows, self.nx, self.ny = rows, nx, ny
+        self.share = sum(sum(r_) for r_ in rows) / float(nx * ny)
+
+    def far(self, q):
+        if self.rows is None:
+            return False
+        i = min(self.nx - 1, max(0, int(q[0] // self.C)))
+        j = min(self.ny - 1, max(0, int(q[1] // self.C)))
+        return not self.rows[j][i]
+
+    def far_ring(self, R):
+        return self.far((sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R)))
+
+    def split(self, Q):
+        """a polyline as [(far?, run)]: the tone changes where the line leaves the near zone"""
+        out = []
+        for a, b in zip(Q[:-1], Q[1:]):
+            f = self.far(((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0))
+            if out and out[-1][0] == f:
+                out[-1][1].append(b)
+            else:
+                out.append((f, [a, b]))
+        return out
 
 
 # ================================================================ satellite land cover
@@ -667,7 +755,7 @@ def build_streets(D, F, log):
 
 
 # ================================================================ drawing (items: the Sections page format)
-def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
+def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False, fade=None):
     """items of the map at 1:den, the frame's lower-left corner at page (x0, y0) mm"""
     k = 1000.0 / den
     box = (0.0, 0.0, F.w, F.h)
@@ -683,14 +771,19 @@ def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
                     items.append(("poly", [[pg(q) for q in R]], SHADOW, None, 0.0, None, "existing_shadows", 1, None, None))
     for key, layer, stroke, lw, fill in styles:
         n = 0
+        fd = fade if (fade is not None and key in FADE_KEYS and stroke) else None
+        far_ = lighter(stroke) if fd else stroke
         if key.startswith("sat_") or key == "streets":
-            rings = []
+            rings, local = [], []
             for cl, P in D["layers"].get(key, []):
                 R = clip_ring([F.local(p) for p in P], box)
                 if len(R) >= 3:
+                    local.append(R)
                     rings.append([pg(q) for q in R])
             if rings and key == "streets":               # every edge first, then every surface: junctions stay open
-                items += [("poly", [R], None, stroke, lw, None, layer, 1, None, None) for R in rings]
+                for R in local:
+                    for f_, run in (fd.split(R + R[:1]) if fd else [(False, R + R[:1])]):
+                        items.append(("line", [pg(q) for q in run], far_ if f_ else stroke, lw, None, layer, 1))
                 items += [("poly", [R], fill, None, 0.0, None, layer, 1, None, None) for R in rings]
             elif rings:                                  # one shape, even-odd: the holes stay open
                 items.append(("poly", rings, fill, stroke, lw, None, layer, 1, "eo", None))
@@ -707,11 +800,14 @@ def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
             if cl and len(Q) >= 3:
                 R = clip_ring(Q, box)
                 if len(R) >= 3:
-                    items.append(("poly", [[pg(q) for q in R]], fill, stroke, lw, None, layer, 1, None, None))
+                    items.append(("poly", [[pg(q) for q in R]], fill, far_ if (fd and fd.far_ring(R)) else stroke, lw,
+                                  None, layer, 1, None, None))
                     n += 1
             else:
-                for run in clip_line(Q, box):
-                    items.append(("line", [pg(q) for q in run], stroke or PALE, lw or 0.05, None, layer, 1))
+                for run_ in clip_line(Q, box):
+                    for f_, run in (fd.split(run_) if fd else [(False, run_)]):
+                        items.append(("line", [pg(q) for q in run], (far_ if f_ else stroke) or PALE, lw or 0.05, None,
+                                      layer, 1))
                     n += 1
         cnt[key] = n
     fr = [pg(q) for q in ((0, 0), (F.w, 0), (F.w, F.h), (0, F.h))]
@@ -729,7 +825,8 @@ def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
                 a -= 180.0
             X, Y = pg((u, v))
             items.append(("text", t, X, Y, NAME_MM, NAME_GREY, False, "L",
-                          "names_streets" if kind == "street" else "names_places", a, None))
+                          "names_streets" if kind == "street" else "names_places", a,
+                          "i" if kind == "street" else None))
     if sections:
         for s in D.get("sections", []):
             a, b = F.local(s["line"][0]), F.local(s["line"][1])
@@ -742,29 +839,44 @@ def draw(D, F, den, styles, x0, y0, sections=False, shadows=False, names=False):
     return items, cnt
 
 
+def corner_block(F, den, x0, y0):
+    """north circle, scale text and a segmented scale bar inside the frame's lower right corner, on white"""
+    k = 1000.0 / den
+    bar = 100.0 if den <= 2500 else 500.0
+    L = bar * k
+    w, h = L + 26.0, 16.0
+    X, Y = x0 + F.w * k - w - 4.0, y0 + 4.0
+    it = [("poly", [[(X, Y), (X + w, Y), (X + w, Y + h), (X, Y + h)]], "FFFFFF", None, 0.0, None, "corner_block", 1,
+           None, None)]
+    cx, cy, r = X + 8.0, Y + 8.0, 5.5
+    it.append(("poly", [[(cx + r * math.cos(a * math.pi / 24.0), cy + r * math.sin(a * math.pi / 24.0))
+                         for a in range(48)]], None, INK, 0.2, None, "corner_block", 1, None, None))
+    nx, ny = F.north()
+    tip = (cx + nx * r, cy + ny * r)
+    it.append(("poly", [[tip, (cx - nx * r * 0.55 - ny * r * 0.45, cy - ny * r * 0.55 + nx * r * 0.45), (cx, cy),
+                         (cx - nx * r * 0.55 + ny * r * 0.45, cy - ny * r * 0.55 - nx * r * 0.45)]], INK, None, 0.1, None,
+               "corner_block", 1, None, None))
+    it.append(("text", u"N", tip[0] + nx * 2.0 - 0.8, tip[1] + ny * 2.0 - 0.8, 2.4, INK, True, "L", "corner_block", None,
+               None))
+    xb, yb = X + 20.0, Y + 4.0
+    for i in range(4):                                    # four cells, black and white in turn
+        c = [(xb + L * i / 4.0, yb), (xb + L * (i + 1) / 4.0, yb), (xb + L * (i + 1) / 4.0, yb + 1.4),
+             (xb + L * i / 4.0, yb + 1.4)]
+        it.append(("poly", [c], INK if i % 2 == 0 else "FFFFFF", INK, 0.15, None, "corner_block", 1, None, None))
+    it.append(("text", u"0", xb, yb - 3.0, 2.0, INK, False, "C", "corner_block", None, None))
+    it.append(("text", u"%d m" % bar, xb + L, yb - 3.0, 2.0, INK, False, "C", "corner_block", None, None))
+    it.append(("text", u"1/%d" % den, xb, yb + 4.0, 3.2, INK, True, "L", "corner_block", None, None))
+    return it
+
+
 def furniture(F, den, x0, y0, title, legend, credit=None):
-    """title, scale bar, north arrow and legend under the frame"""
+    """title and legend under the frame (north and scale bar: corner_block)"""
     k = 1000.0 / den
     it = []
     y = y0 - 8.0
     it.append(("text", title, x0, y, 4.0, INK, True, "L", "title", None, None))
     it.append(("text", u"1:%s" % format(den, ",d"), x0, y - 5.0, 3.0, INK, False, "L", "title", None, None))
-    bar = 100.0 if den <= 2500 else 500.0
-    xb, yb = x0 + 40.0, y - 4.2
-    it.append(("line", [(xb, yb), (xb + bar * k, yb)], INK, 0.3, None, "title", 0))
-    for i in (0.0, 0.5, 1.0):
-        it.append(("line", [(xb + bar * k * i, yb), (xb + bar * k * i, yb + 1.4)], INK, 0.2, None, "title", 0))
-    it.append(("text", u"0", xb, yb - 3.2, 2.2, INK, False, "C", "title", None, None))
-    it.append(("text", u"%d m" % bar, xb + bar * k, yb - 3.2, 2.2, INK, False, "C", "title", None, None))
-    nx, ny = F.north()
-    cx, cy = xb + bar * k + 22.0, y - 3.0
-    tip, tail = (cx + nx * 7.0, cy + ny * 7.0), (cx - nx * 5.0, cy - ny * 5.0)
-    it.append(("line", [tail, tip], INK, 0.3, None, "title", 0))
-    it.append(("poly", [[tip, (tip[0] - nx * 3.0 - ny * 1.4, tip[1] - ny * 3.0 + nx * 1.4),
-                         (tip[0] - nx * 3.0 + ny * 1.4, tip[1] - ny * 3.0 - nx * 1.4)]], INK, None, 0.1, None, "title",
-               1, None, None))
-    it.append(("text", u"N", tip[0] + nx * 2.2 - 0.8, tip[1] + ny * 2.2 - 0.8, 2.6, INK, True, "L", "title", None, None))
-    x = cx + 20.0
+    x = x0 + 40.0
     for key, layer, stroke, lw, fill, lab in legend:
         if fill or key in ("buildings", "heritage", "parks", "sat_grass"):
             box_ = [(x, y - 4.6), (x + 6.0, y - 4.6), (x + 6.0, y - 1.4), (x, y - 1.4)]
@@ -836,6 +948,8 @@ def write_pdf(path, w, h, items, title):
                for ly in layers)
     f_r = add(("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding "
                "/WinAnsiEncoding %s >> >>" % _DIFF).encode())
+    f_i = add(("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding << /Type /Encoding "
+               "/BaseEncoding /WinAnsiEncoding %s >> >>" % _DIFF).encode())
     f_b = add(("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding << /Type /Encoding /BaseEncoding "
                "/WinAnsiEncoding %s >> >>" % _DIFF).encode())
     k = 72.0 / 25.4
@@ -878,13 +992,13 @@ def write_pdf(path, w, h, items, title):
                 if ang:
                     xx = x
                 body += ("BT /%s %s Tf %s rg %s %s %s %s %s %s Tm (" % (
-                    "F2" if bold else "F1", _f(size / PT), _col(color), _f(PT * ca), _f(PT * sa), _f(-PT * sa),
+                    "F2" if bold else "F3" if it[10] == "i" else "F1", _f(size / PT), _col(color), _f(PT * ca), _f(PT * sa), _f(-PT * sa),
                     _f(PT * ca), _f(xx), _f(y))).encode()
                 body += _pdf_txt(s) + b") Tj ET\n"
         body += b"EMC\n"
     cid = add(b"<< /Length %d >>\nstream\n" % len(body) + bytes(body) + b"\nendstream")
     props = " ".join("/oc%d %d 0 R" % (i, i) for i in ocg.values())
-    res = add(("<< /Font << /F1 %d 0 R /F2 %d 0 R >> /Properties << %s >> >>" % (f_r, f_b, props)).encode())
+    res = add(("<< /Font << /F1 %d 0 R /F2 %d 0 R /F3 %d 0 R >> /Properties << %s >> >>" % (f_r, f_b, f_i, props)).encode())
     pages_id = len(objs) + 2
     page = add(("<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %s %s] /Contents %d 0 R /Resources %d 0 R >>" % (
         pages_id, _f(w / PT), _f(h / PT), cid, res)).encode())
@@ -940,7 +1054,59 @@ def plan_frame(txt, F):
     return max(cnt, key=cnt.get), u"the commonest frame-shaped clip rectangle (no Selinos group clip found)"
 
 
-def write_colour_svg(D, F, log):
+def plan_base(body, s, log):
+    """his plan for the base map: the route groups switched off, the planted-ground underlay put under his trees"""
+    off = []
+    for g in BASE_OFF:
+        m = re.search(r'<g\b[^>]*\bid="%s"[^>]*>' % re.escape(g), body)
+        if m and "display=" not in m.group(0):
+            body = body[:m.start()] + m.group(0)[:-1] + u' display="none">' + body[m.end():]
+            off.append(g)
+    trees, hidden, stack = [], 0, []
+    for m in re.finditer(r'<g\b[^>]*?(/?)>|</g>|<use\b[^>]*>', body):
+        t = m.group(0)
+        if t.startswith("</g"):
+            if stack and stack.pop():
+                hidden -= 1
+        elif t.startswith("<g"):
+            if not t.endswith("/>"):
+                h = 'display="none"' in t
+                stack.append(h)
+                hidden += 1 if h else 0
+        elif not hidden and ('href="#' + TREE_SYMBOL) in t and 'display="none"' not in t:
+            a = dict(re.findall(r'([\w:-]+)="([^"]*)"', t))
+            tr = a.get("transform", "")
+            mt = re.search(r"translate\(\s*([-\d.eE]+)[\s,]*([-\d.eE]+)?\s*\)", tr)
+            ms = re.search(r"scale\(\s*([-\d.eE]+)", tr)
+            mr = re.search(r"rotate\(\s*([-\d.eE]+)", tr)
+            try:
+                w, h = float(a["width"]), float(a["height"])
+                sc = float(ms.group(1)) if ms else 1.0
+                tx, ty = (float(mt.group(1)), float(mt.group(2) or 0.0)) if mt else (0.0, 0.0)
+            except Exception:
+                continue
+            ang = math.radians(float(mr.group(1))) if mr else 0.0
+            hx, hy = w * sc / 2.0, h * sc / 2.0
+            trees.append((tx + hx * math.cos(ang) - hy * math.sin(ang), ty + hx * math.sin(ang) + hy * math.cos(ang),
+                          max(w, h) * abs(sc) / 2.0))
+    i = body.find(u'<g id="trees_group"')
+    if trees and i >= 0:
+        g = [u'<g id="planted_ground_underlay">']
+        for d, col in zip(UNDERLAY_M, UNDERLAY):
+            g.append(u'<g id="underlay_%s_m" fill="#%s" stroke="none">' % (("%g" % d).replace(".", "_"), col))
+            g += [u'<circle cx="%.2f" cy="%.2f" r="%.2f"/>' % (x, y, r + d * s) for x, y, r in trees]
+            g.append(u"</g>")
+        g.append(u"</g>\n")
+        body = body[:i] + u"\n".join(g) + body[i:]
+    else:
+        log.append(u"FLAG underlay: %s: no planted-ground underlay drawn" % (
+            u"no tree symbols (%s...) found in his plan" % TREE_SYMBOL if not trees else u"no group trees_group in his plan"))
+    log.append(u"his plan as base map: groups switched off: %s; planted-ground underlay under %d tree symbols of his plan"
+               % (u", ".join(off) or u"none found", len(trees) if i >= 0 else 0))
+    return body
+
+
+def write_colour_svg(D, F, log, fade=None):
     src = os.path.join(BERGAMA_ROOT, PLAN_SVG)
     if not D.get("calisma"):
         return
@@ -994,11 +1160,16 @@ def write_colour_svg(D, F, log):
                      if len(R) >= 3]
             n += len(rings)
             if key == "streets":
-                for nm, a in ((u"edges", u"fill=\"none\" stroke=\"#%s\" stroke-width=\"%.3f\"" % (
-                        stroke, SVG_W[key] * s)), (u"surface", u"fill=\"#%s\" stroke=\"none\"" % fill)):
-                    out.append(u"<g id=\"%s_%s\" %s>" % (layer, nm, a))
-                    out += [u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R) for R in rings]
-                    out.append(u"</g>")
+                out.append(u"<g id=\"%s_edges\" fill=\"none\" stroke=\"#%s\" stroke-width=\"%.3f\">" % (
+                    layer, stroke, SVG_W[key] * s))
+                for R in rings:
+                    for f_, run in (fade.split(R + R[:1]) if fade else [(False, R + R[:1])]):
+                        out.append(u"<polyline%s points=\"%s\"/>" % (
+                            (u" stroke=\"#%s\"" % lighter(stroke)) if f_ else u"", u" ".join(UL(q) for q in run)))
+                out.append(u"</g>")
+                out.append(u"<g id=\"%s_surface\" fill=\"#%s\" stroke=\"none\">" % (layer, fill))
+                out += [u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R) for R in rings]
+                out.append(u"</g>")
             else:
                 out.append(u"<path id=\"%s\" fill-rule=\"evenodd\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" "
                            u"d=\"%s\"/>" % (layer, u"url(#bg_hatch)" if key in HATCH else u"#" + fill, stroke,
@@ -1007,16 +1178,21 @@ def write_colour_svg(D, F, log):
             continue
         out.append(u"<g id=\"%s_%s\" fill=\"%s\" stroke=\"#%s\" stroke-width=\"%.3f\" stroke-linejoin=\"round\">" % (
             layer, key, (u"#" + fill) if fill else u"none", stroke, SVG_W.get(key, 0.2) * s))
+        fd = fade if (fade is not None and key in FADE_KEYS) else None
+        far_ = u" stroke=\"#%s\"" % lighter(stroke)
         for cl, P in D["layers"].get(key, []):
             Q = [F.local(p) for p in P]
             if cl and len(Q) >= 3:
                 R = clip_ring(Q, box)
                 if len(R) >= 3:
-                    out.append(u"<polygon points=\"%s\"/>" % u" ".join(UL(q) for q in R))
+                    out.append(u"<polygon%s points=\"%s\"/>" % (far_ if (fd and fd.far_ring(R)) else u"",
+                                                                u" ".join(UL(q) for q in R)))
                     n += 1
             else:
-                for run in clip_line(Q, box):
-                    out.append(u"<polyline fill=\"none\" points=\"%s\"/>" % u" ".join(UL(q) for q in run))
+                for run_ in clip_line(Q, box):
+                    for f_, run in (fd.split(run_) if fd else [(False, run_)]):
+                        out.append(u"<polyline fill=\"none\"%s points=\"%s\"/>" % (far_ if f_ else u"",
+                                                                                   u" ".join(UL(q) for q in run)))
                     n += 1
         out.append(u"</g>")
     out.append(u"<g id=\"names\" fill=\"#%s\" font-family=\"Arial, Helvetica, sans-serif\" font-size=\"%.2f\">" % (
@@ -1029,8 +1205,8 @@ def write_colour_svg(D, F, log):
         if 90.0 < a <= 270.0:
             a -= 180.0
         X, Y = rx + u * s, ry + rh - v * s
-        out.append(u"<text x=\"%.2f\" y=\"%.2f\" transform=\"rotate(%.1f %.2f %.2f)\">%s</text>" % (
-            X, Y, -a, X, Y, t.replace(u"&", u"&amp;").replace(u"<", u"&lt;")))
+        out.append(u"<text x=\"%.2f\" y=\"%.2f\"%s transform=\"rotate(%.1f %.2f %.2f)\">%s</text>" % (
+            X, Y, u" font-style=\"italic\"" if kind == "street" else u"", -a, X, Y, t.replace(u"&", u"&amp;").replace(u"<", u"&lt;")))
     out.append(u"</g>")
     out.append(u"</g>")
     out.append(u"<g id=\"plan_inside_calisma_alan\" clip-path=\"url(#bg_calisma_clip)\">")
@@ -1044,7 +1220,7 @@ def write_colour_svg(D, F, log):
     with open(dst, "w", encoding="utf-8", newline="\n") as f:
         f.write(txt[:m0.start()])
         f.write(head)
-        f.write(txt[m0.end():m1])
+        f.write(plan_base(txt[m0.end():m1], s, log))
         f.write(u"\n".join(tail))
     log.append(u"%s  %s (his plan %s, %.1f MB, inside calisma_alan; frame = %s at (%.2f, %.2f) %.2f x %.2f units, %.4f "
                u"units per m; %d black and white outlines under it)" % (
@@ -1094,21 +1270,26 @@ def main():
     D["turn_deg"] = round(math.degrees(F.rot), 4)
     D["layers"].update(load_veg(D, log))
     D["layers"].update(build_streets(D, F, log))
+    fade = Fade(D, F)
+    if fade.rows is not None:
+        log.append(u"fade: context lines full within %.0f m of calisma_alan (%.0f %% of the frame), lighter beyond" % (
+            FADE_M, 100.0 * fade.share))
     log.append(u"frame: site_alan %.2f x %.2f m, turned %.2f deg; north on the page points (%.3f, %.3f)" % (
         F.w, F.h, math.degrees(F.rot), F.north()[0], F.north()[1]))
     for name, d, styles, sec, title in ((u"Basemap", den, STYLE, False, u"BASEMAP · existing"),
                                         (u"Keymap", kden, KEY_STYLE, True, u"KEY MAP")):
         m = 15.0
-        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec, shadows=SHADOWS and not sec, names=not sec)
+        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec, shadows=SHADOWS and not sec, names=not sec, fade=fade)
         by = dict((s[0], s) for s in styles)
         leg = [by[k_] + (lab,) for k_, lab in LEGEND if k_ in by and cnt.get(k_)]
+        items += corner_block(F, d, m, m + 16.0)
         items += furniture(F, d, m, m + 16.0, title, leg, None if sec else CREDIT)
         w = F.w * 1000.0 / d + 2 * m
         h = F.h * 1000.0 / d + 2 * m + 16.0
         p = write_pdf(os.path.join(OUT_DIR, name + u".pdf"), w, h, items, u"%s, site_alan, 1:%d" % (name, d))
         log.append(u"%s  %s (%.0f x %.0f mm, 1:%d; %s)" % (p, time.strftime("%H:%M:%S"), w, h, d, u", ".join(
             u"%s %d" % kv for kv in sorted(cnt.items()))))
-    write_colour_svg(D, F, log)
+    write_colour_svg(D, F, log, fade)
     if not D.get("sections"):
         log.append(u"no curves on layer %s in the model: the key map has no section lines yet" % SECTION_LAYER)
     flags = [l for l in log if l.startswith(u"FLAG")]
