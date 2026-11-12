@@ -45,6 +45,17 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v6, Aras 12 Nov 19:51-20:05 UTC: "take the tree information from the site data"; "all trees are group together and a
+subgroup would include a tree"; "you seem to be missing houses in a lot of the places"; "get rid of these kind of
+stray lines". So: (1) the survey's tree symbols (TREE_LAYERS) are read into the cache as "trees" [x, y, radius or 0,
+layer]; (2) the missing houses: v5 dropped loose building stubs again and again until none was left, which ate whole
+open house outlines made of short lines. Now a short line is dropped only when it is a real tick: one end free and the
+other on a corner where three or more lines meet (under TICK_M m), or free at both ends and under CRUMB_M m (once,
+never repeated); (3) bridge
+side lines that run beside the joined street surface are dropped like the road edges (the thick doubles along the
+street edge); (4) write_svg: the same items as an SVG with a named group per layer and a subgroup per "layer/name"
+(each tree), for editing; a layer name "a/b" is PDF layer "a". New helpers stroke_rings and join_rings (shapes and
+wide lines joined into one outlined surface) for the plan's roads and paths.
 v5, Aras 12 Nov 19:42-19:45 UTC: "dont divide drawings into two like ever ... produce a long single drawing always";
 "I dont want wave texture on water i want textured hatches"; "base map looks ass however keymap looks pretty decent";
 "implement the river drawing technique from older scripts"; "a lot of stray lines, lines that are overlapping ... and
@@ -83,11 +94,11 @@ Writes ~/Downloads/Bergama/output/bergama_basemap/Basemap.pdf, Keymap.pdf, Basem
        ~/Downloads/Bergama/cached/bergama_basemap/streets.json          the street bands and footpaths in survey m
        ~/Downloads/Bergama/logs/bergama_basemap_log.txt
 """
-import os, time, json, math, re, zlib, random
+import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v5"
+VERSION = "v6"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -106,6 +117,7 @@ STREET_NAME_LAYER = "YAZI_CADDE_YOL"
 HERITAGE_WORDS = ("tarihi", "harabe", "harap", "kalıntı", "kalinti", "hamam", " han ", "bedesten", "arasta", "türbe",
                   "turbe", "medrese", "kızıl avlu", "kizil avlu", "tapınağı", "tapinagi", "kilise", "sinagog", "çeşme",
                   "cesme", "sebil", "kervansaray", "müze", "muze", "cami", "mescit", "mescid", "cemevi", "tekke", "zaviye")
+TREE_LAYERS = ("SEMBOL_TEK_AGAC", "SEMBOL_YPDKN_AGAC", "SEMBOL_YAP_DOKMEYEN")   # the survey's tree symbols
 # cache layer -> (survey layers, closed shapes?)
 SURVEY = [
     ("sheds", ["BINA_SUNDURMA"]),
@@ -149,7 +161,8 @@ STREET_CLOSE_M, STREET_MIN_M2 = 1.0, 20.0     # m seams closed in the street sur
 CENTRE_FILE = os.path.join("Data", "selinos_centreline.json")
 RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame: the river never stops)
 RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
-TICK_M, NEAR_M = 6.0, 2.0          # m: loose building stubs shorter than this are dropped; "beside a joined surface"
+CRUMB_M = 2.0                      # m: a building line loose at both ends and shorter than this is dropped
+TICK_M, NEAR_M = 4.0, 2.0          # m: loose building stubs shorter than this are dropped; "beside a joined surface"
 HAZE_C, HAZE_BLUR_M, HAZE_MAX = 2.0, 6.0, 0.9    # m cell and blur of the soft green; its strongest opacity
 MASK_M, FACE_HALO_M = 8.0, 1.0     # m kept free of land cover around open building lines / closed outlines (ours)
 # ---- folders (same in every script) ----
@@ -375,6 +388,30 @@ def read_model(doc, log):
         except Exception:
             pass
         sec.append({"name": nm or u"L%d" % (i + 1), "line": [P[0], P[-1]]})
+    tr = {}                                               # the survey's tree symbols, one per place (0.5 m)
+    for lay_ in TREE_LAYERS:
+        for o in _layer_objs(doc, lay_):
+            g = o.Geometry
+            try:
+                if isinstance(g, rg.Point):
+                    x, y, r = g.Location.X, g.Location.Y, 0.0
+                elif isinstance(g, rg.InstanceReferenceGeometry):   # a symbol block: its insertion point
+                    q = g.Xform * rg.Point3d(0.0, 0.0, 0.0)
+                    x, y, r = q.X, q.Y, 0.0
+                elif isinstance(g, rg.Curve):             # a drawn symbol: the middle and half the size of its box
+                    b = g.GetBoundingBox(True)
+                    x, y = (b.Min.X + b.Max.X) / 2.0, (b.Min.Y + b.Max.Y) / 2.0
+                    r = max(b.Max.X - b.Min.X, b.Max.Y - b.Min.Y) / 2.0
+                else:
+                    continue
+            except Exception:
+                continue
+            k_ = (int(round(x * 2.0)), int(round(y * 2.0)))
+            if k_ not in tr or tr[k_][2] < r:
+                tr[k_] = [round(x, 2), round(y, 2), round(r, 2), lay_]
+    trees = list(tr.values())
+    log.append(u"survey trees: %d symbols (%s)" % (len(trees), u", ".join(
+        u"%s %d" % (lay_, sum(1 for t in trees if t[3] == lay_)) for lay_ in TREE_LAYERS)))
     log.append(u"model read: " + u", ".join(u"%s %d" % kv for kv in sorted(cnt.items())) +
                u"; name texts %d (streets %d); section lines %d" % (
                    len(labels), sum(1 for l in labels if l[4] == "street"), len(sec)))
@@ -382,7 +419,7 @@ def read_model(doc, log):
         c = (sum(p[0] for p in h["ring"]) / len(h["ring"]), sum(p[1] for p in h["ring"]) / len(h["ring"]))
         log.append(u"  heritage: %s (%s) at %.0f, %.0f" % (h["name"] or u"no name text inside", h["layer"], c[0], c[1]))
     return {"frame": frame, "layers": out, "sections": sec, "calisma": work, "labels": labels, "floors": floors,
-            "heritage_names": [[h["name"], h["layer"]] for h in her]}
+            "trees": trees, "heritage_names": [[h["name"], h["layer"]] for h in her]}
 
 
 # ================================================================ plane geometry
@@ -945,6 +982,42 @@ def join_streets(L, F, log):
     return rows
 
 
+def stroke_rings(P, hw):
+    """a line of half width hw m as rings to paint: one quad per piece and an eight-sided disc on every point"""
+    out = []
+    for a, b in zip(P[:-1], P[1:]):
+        d = math.hypot(b[0] - a[0], b[1] - a[1])
+        if d < 1e-9:
+            continue
+        ox, oy = -(b[1] - a[1]) / d * hw, (b[0] - a[0]) / d * hw
+        out.append([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy), (b[0] - ox, b[1] - oy), (a[0] - ox, a[1] - oy)])
+    for q in P:
+        out.append([(q[0] + hw * math.cos(i * math.pi / 4.0), q[1] + hw * math.sin(i * math.pi / 4.0)) for i in range(8)])
+    return out
+
+
+def join_rings(shapes, F, close_m, min_m2, tol, smooth=0):
+    """shapes [[ring, ...]] (frame m; a shape of several rings is filled even-odd) joined into ONE surface, as
+    join_streets does for the street bands: returns (rings to draw even-odd, mask rows)"""
+    c = MASK_C
+    nx, ny = mask_size(F, c)
+    rows = [0] * ny
+    for rings in shapes:
+        rings = [R for R in rings if len(R) >= 3]
+        if len(rings) == 1:
+            mask_add(rows, rings[0], c, nx)
+        elif rings:                                       # holes stay holes
+            tmp = [0] * ny
+            for R in rings:
+                one = [0] * ny
+                mask_add(one, R, c, nx)
+                tmp = [a ^ b for a, b in zip(tmp, one)]
+            rows = [a | b for a, b in zip(rows, tmp)]
+    if close_m:
+        rows = mask_close(rows, max(1, int(round(close_m / c))), nx)
+    return mask_rings(rows, nx, c, F, tol, min_m2, smooth), rows
+
+
 def build_river(L, F, log):
     """The river as a filled surface, the site board's technique (selinus_board river: 'the channel, sorted by the
     survey itself'): along the Selinos centreline, every RIVER_STEP m, the edge on each side is the survey's stream
@@ -1037,7 +1110,8 @@ def build_river(L, F, log):
 def clean_lines(L, F, street_rows, river_rows, log):
     """the line clean-up: no line twice, no line beside its own copy, no stubs.
     1 building lines drawn twice (same two ends to 1 cm) are kept once; a building line that hangs loose at one end
-      and is shorter than TICK_M m (the old town's party-wall ticks) is dropped, again until none is left
+      and on a corner of three or more lines at the other and is shorter than TICK_M m (the old town's party-wall
+      ticks), or loose at both ends and shorter than CRUMB_M m, is dropped, once (v5 repeated it and ate whole open house outlines)
     2 survey road edges and kerbs inside the joined street surface or within NEAR_M m of it are dropped: there the
       street's own edge is the line (the survey edge and the band edge ran side by side, slightly apart)
     3 survey stream lines inside the river surface or within NEAR_M m of it are dropped: the river's edge is the line"""
@@ -1074,20 +1148,19 @@ def clean_lines(L, F, street_rows, river_rows, log):
         for it in open_:
             Q = it[1]
             a, b = key(Q[0]), key(Q[-1])
-            if len(Q) == 2 and (deg.get(a, 0) <= 1 or deg.get(b, 0) <= 1) and \
-                    math.hypot(Q[1][0] - Q[0][0], Q[1][1] - Q[0][1]) < TICK_M:
-                deg[a] -= 1
-                deg[b] -= 1
+            da, db = deg.get(a, 0), deg.get(b, 0)         # a tick: free at both ends, or free at one end and on a
+            d_ = math.hypot(Q[-1][0] - Q[0][0], Q[-1][1] - Q[0][1])   # corner of 3+ lines; a crumb: free at both, tiny
+            tick = ((da <= 1 and db >= 3) or (db <= 1 and da >= 3)) and d_ < TICK_M
+            if len(Q) == 2 and (tick or (da <= 1 and db <= 1 and d_ < CRUMB_M)):
                 cut += 1
             else:
                 rest.append(it)
         open_ = rest
         ticks += cut
-        if not cut:
-            break
+        break                                             # once only: repeating it ate whole open house outlines
     L["buildings"] = kept + open_
     drops = {}
-    for names, rows in ((("road_edges", "kerbs"), street_rows), (("stream_banks",), river_rows)):
+    for names, rows in ((("road_edges", "kerbs", "bridges"), street_rows), (("stream_banks",), river_rows)):
         if rows is None:
             continue
         zone = mask_grow(rows, int(round(NEAR_M / c)), nx)
@@ -1685,6 +1758,16 @@ def _f(v):
 _LOCKED = []
 
 
+def _item_layer(it):
+    t = it[0]
+    return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t in ("mask", "soft") else it[8]
+
+
+def _item_clip(it):
+    t = it[0]
+    return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t in ("mask", "soft") else None
+
+
 def write_pdf(path, w, h, items, title, clips=None):
     """one page w x h mm; items in page mm, y up; each item's layer becomes a PDF layer.
     poly  ("poly", rings, fill, stroke, lw, None, layer, 1, "eo"|None, clip)   fill "~RRGGBB" = with the grain
@@ -1700,8 +1783,7 @@ def write_pdf(path, w, h, items, title, clips=None):
         return len(objs)
 
     def lay(it):
-        t = it[0]
-        return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t in ("mask", "soft") else it[8]
+        return _item_layer(it).split("/")[0]             # "trees/tree_0001" is PDF layer "trees"
 
     def clip_of(it):
         t = it[0]
@@ -1881,6 +1963,119 @@ def out_line(p, w, h, den, items, extra=u""):
     return u"%s  %s (%.0f x %.0f mm, 1:%s; %.1f MB, %s drawn objects%s)" % (
         p, time.strftime("%H:%M:%S"), w, h, format(den, ",d"), os.path.getsize(p) / 1048576.0, format(len(items), ",d"),
         extra)
+
+
+def _png_rgba(z, pw, ph, colour):
+    """an 8-bit coverage image (zlib rows, top row first) as a PNG of one colour with that coverage as its alpha"""
+    raw = zlib.decompress(z)
+    line = bytearray(4 * pw)
+    for i in range(3):
+        line[i::4] = bytes([int(colour[2 * i:2 * i + 2], 16)]) * pw
+    out = bytearray()
+    for j in range(ph):
+        line[3::4] = raw[j * pw:(j + 1) * pw]
+        out += b"\x00" + line
+
+    def chunk(t, d):
+        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", pw, ph, 8, 6, 0, 0, 0)) +
+            chunk(b"IDAT", zlib.compress(bytes(out), 6)) + chunk(b"IEND", b""))
+
+
+def _xml(t):
+    return (u"%s" % t).replace(u"&", u"&amp;").replace(u"<", u"&lt;").replace(u">", u"&gt;").replace(u'"', u"&quot;")
+
+
+def write_svg(path, w, h, items, title, clips=None):
+    """the same items as write_pdf, as an SVG for editing: one named group per layer, in the PDF's order; a layer name
+    "a/b" becomes group b inside group a (every tree its own group inside the trees group). Fills are flat colours
+    here (the grain lives in the PDF, the print file); a soft tone is an embedded PNG with its own transparency."""
+    clips = clips or {}
+
+    def d_of(rings):
+        return u" ".join(u"M" + u" L".join(u"%.2f %.2f" % (q[0], h - q[1]) for q in R) + u" Z" for R in rings if R)
+    A = [u'<?xml version="1.0" encoding="UTF-8"?>',
+         u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%.2fmm" '
+         u'height="%.2fmm" viewBox="0 0 %.2f %.2f">' % (w, h, w, h), u"<title>%s</title>" % _xml(title), u"<defs>"]
+    cnum = {}
+    for cid in clips:
+        cnum[cid] = len(cnum)
+        for i, rs in enumerate(clips[cid]):
+            A.append(u'<clipPath id="clip%d_%d"><path clip-rule="evenodd" d="%s"/></clipPath>' % (cnum[cid], i, d_of(rs)))
+    A.append(u"</defs>")
+    layers = []
+    for it in items:
+        ly = _item_layer(it).split("/")[0]
+        if ly not in layers:
+            layers.append(ly)
+    for ly in layers:
+        A.append(u'<g id="%s">' % _xml(ly))
+        cur, sub, depth = None, None, 0
+        for it in items:
+            full = _item_layer(it)
+            if full.split("/")[0] != ly:
+                continue
+            t = it[0]
+            cid = _item_clip(it)
+            if cid not in clips:
+                cid = None
+            sb = full.split("/", 1)[1] if "/" in full else None
+            if cid != cur or sb != sub:
+                if sub is not None:
+                    A.append(u"</g>")
+                    sub = None
+                if cid != cur:
+                    A.append(u"</g>" * depth)
+                    depth = 0
+                    if cid is not None:
+                        depth = len(clips[cid])
+                        A.append(u"".join(u'<g clip-path="url(#clip%d_%d)">' % (cnum[cid], i) for i in range(depth)))
+                    cur = cid
+                if sb is not None:
+                    A.append(u'<g id="%s">' % _xml(sb))
+                    sub = sb
+            if t == "poly":
+                rings, fill, stroke, lw = it[1:5]
+                if not fill and not stroke:
+                    continue
+                A.append(u'<path d="%s" fill="%s"%s%s/>' % (
+                    d_of(rings), (u"#" + fill.lstrip("~")[:6]) if fill else u"none",
+                    u' fill-rule="evenodd"' if it[8] == "eo" else u"",
+                    (u' stroke="#%s" stroke-width="%.3f" stroke-linejoin="round"' % (stroke, lw or 0.1)) if stroke else u""))
+            elif t == "line":
+                pts, stroke, lw = it[1:4]
+                A.append(u'<polyline points="%s" fill="none" stroke="#%s" stroke-width="%.3f" stroke-linecap="round" '
+                         u'stroke-linejoin="round"/>' % (u" ".join(u"%.2f,%.2f" % (q[0], h - q[1]) for q in pts), stroke,
+                                                         lw or 0.1))
+            elif t == "soft":
+                z, pw, ph, x, y, mw, mh, colour = it[1:9]
+                A.append(u'<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" preserveAspectRatio="none" '
+                         u'xlink:href="data:image/png;base64,%s"/>' % (
+                             x, h - y - mh, mw, mh, base64.b64encode(_png_rgba(z, pw, ph, colour)).decode("ascii")))
+            elif t == "text":
+                s_, x, y, size, color, bold, align = it[1:8]
+                ang = it[9] if isinstance(it[9], (int, float)) else 0.0
+                A.append(u'<text x="%.2f" y="%.2f" font-family="Helvetica, Arial, sans-serif" font-size="%.3f" fill="#%s"'
+                         u'%s%s text-anchor="%s"%s>%s</text>' % (
+                             x, h - y, size, color, u' font-weight="bold"' if bold else u"",
+                             u' font-style="italic"' if it[10] == "i" else u"",
+                             u"start" if ang else {"C": u"middle", "R": u"end"}.get(align, u"start"),
+                             (u' transform="rotate(%.3f %.2f %.2f)"' % (-ang, x, h - y)) if ang else u"", _xml(s_)))
+        if sub is not None:
+            A.append(u"</g>")
+        A.append(u"</g>" * depth)
+        A.append(u"</g>")
+    A.append(u"</svg>")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    data = u"\n".join(a for a in A if a).encode("utf-8")
+    try:
+        with open(path, "wb") as f:
+            f.write(data)
+    except PermissionError:                              # open in another program: a timed name
+        path = path[:-4] + time.strftime("_%H%M%S") + ".svg"
+        with open(path, "wb") as f:
+            f.write(data)
+    return path
 
 
 def plan_frame(txt, F):

@@ -20,6 +20,20 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v3, Aras 12 Nov 19:51-20:05 UTC: "take the tree information from the site data"; "all trees are group together and a
+subgroup would include a tree"; "all roads should have outlines and hatches (inside the working area)", "roads looks
+like they are flying"; "remove those leftovers from the houses that have been demolished inside the working are"; "we
+gonna focus on making as is file look like our current masterplan file". So:
+  ROADS    his road shapes and stroked new roads are joined into ONE surface with one outline and the road hatch
+           (JOINED; the paths, the promenade and the dark paving the same, each its own surface).
+  HOUSES   file 1: a survey building with GONE_SHARE of its corners inside the red line is not drawn (the plan takes
+           it); one that only reaches over the line is drawn whole, on top of the plan, not cut at the line.
+  AS IS    file 2 has the masterplan's look from site data only: inside the red line the ground tone, the existing
+           streets with the road hatch and outline, the survey's own tree symbols (cache "trees", Basemap v6) as the
+           same tree discs on the same soft green (crown SURVEY_TREE_R m: the survey gives none), nothing of the plan.
+  TREES    A05's tree: a plain disc with a darker rim and a lighter crown; every tree is its own subgroup.
+  SVG      Masterplan.svg and Masterplan_as_is.svg: the same drawing with a named group per layer and a subgroup per
+           tree, for editing (flat fills; the PDFs keep the grain and stay the print files).
 v2, Aras 12 Nov 19:42-19:45 UTC: "dont divide drawings into two like ever"; "for masterplan remove the wave texture
 from water however other than that water hatch texture is good"; "trees looks nowhere near the example"; "Try to make
 example a05 example as accurate as possible and adapt onto site 1:1". So: one drawing per sheet (A0: the frame once);
@@ -45,13 +59,14 @@ Reads  ~/Downloads/Bergama/scripts/bergama_basemap_v*.py              (the newes
        ~/Downloads/Bergama/cached/bergama_basemap/streets.json         (the street bands, written by Basemap)
 Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A0.pdf          (file 1: our way)
        ~/Downloads/Bergama/output/bergama_plan_base/Masterplan_as_is.pdf, Masterplan_as_is_A0.pdf  (file 2: as is)
+       ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.svg, Masterplan_as_is.svg           (grouped, to edit)
        ~/Downloads/Bergama/cached/bergama_plan_base/plan_shapes.json   (his plan's shapes by meaning, frame m)
        ~/Downloads/Bergama/logs/bergama_plan_base_log.txt
 """
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2"
+VERSION = "v3"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -82,10 +97,21 @@ TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_<sp
 TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid", "olive": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
 UNDERLAY_M = 5.0                   # m beyond the crown that the soft green reaches before it fades (ours)
-LEAF_SPOTS = 6                     # lighter leaf spots in a ring inside every crown (A05 tree, redrawn)
+JOINED = ("plan_road", "paving", "promenade", "paving_dark")   # each joined into one outlined surface
+JOIN_CLOSE_M, JOIN_MIN_M2 = 0.5, 4.0   # m seams closed between the pieces of one surface; smallest island kept (ours)
+GONE_SHARE = 0.5                   # a survey building with this share of its corners inside the red line is taken
+#                                    by the plan (not drawn in file 1); one with fewer is drawn whole, on top (ours)
+# the survey's tree symbol layers -> style entry (our reading of the layer names: YPDKN = yaprak doken, deciduous;
+# YAP_DOKMEYEN = evergreen; TEK_AGAC = single tree)
+SURVEY_TONE = {"SEMBOL_YPDKN_AGAC": "site_tree_light", "SEMBOL_TEK_AGAC": "site_tree_mid",
+               "SEMBOL_YAP_DOKMEYEN": "site_tree_dark"}
+SURVEY_TREE_R = 3.0                # m: crown drawn for a survey tree symbol (the survey gives no crown size; ours)
 PATH_STEP = 1.5                    # SVG units: curves of his plan are cut into pieces of about this length
 CREDIT = (u"Inside the red line: the plan drawing masterlastversion.svg, redrawn by layer. Outside: the survey "
           u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines. Routes and labels follow.")
+
+CREDIT_ASIS = (u"The site as it is: the survey (buildings, road edges, water, tree symbols) with street bands along "
+               u"OpenStreetMap centrelines. Inside the red line the same look as the masterplan, nothing of the plan.")
 
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
@@ -242,6 +268,39 @@ def read_plan(B, F, log):
     return P
 
 
+def area_clips(cal, pg, F, u0, u1, tag):
+    """the two cuts every area item uses: tag = calisma_alan and the window, tag + "w" = the window alone"""
+    win = [pg(q) for q in ((u0, 0), (u1, 0), (u1, F.h), (u0, F.h))]
+    return {tag: [[[pg(q) for q in R] for R in cal], [win]], tag + "w": [[win]]}
+
+
+def tree_marks(B, cat, trees, tones, order, pg, k, u0, u1, layer, tag):
+    """trees [(u, v, r m, kind)] as A05's tree: a plain disc in its tone with a darker rim and a lighter crown inside,
+    light tones under dark ones. Every tree is its own subgroup layer/tree_0001 (disc + crown).
+    Returns (items, {tone: count}, {kind without a tone: 1})"""
+    items, cnt, unknown = [], {}, {}
+    n_ = 0
+    for tone in order:
+        c = cat[tone]
+        crown = B["_mix"](c["fill"], 0.12)
+        for u, v, r, sp in trees:
+            t = tones.get(sp)
+            if t is None:
+                unknown[sp] = 1
+                t = order[len(order) // 2]
+            if t != tone or not (u0 - r <= u <= u1 + r):
+                continue
+            n_ += 1
+            ly = u"%s/tree_%04d" % (layer, n_)
+            X, Y = pg((u, v))
+            R_ = r * k
+            items.append(("poly", [circle((X, Y), R_, 32)], B["fill_of"](c), c["line"], c["w"], None, ly, 1, None, tag))
+            items.append(("poly", [circle((X - R_ * 0.18, Y + R_ * 0.18), R_ * 0.55, 20)], crown, None, 0.0, None, ly, 1,
+                          None, tag))
+            cnt[tone] = cnt.get(tone, 0) + 1
+    return items, cnt, unknown
+
+
 def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
     """his plan for the window u0..u1 as items cut to calisma_alan and the window; returns (items, clips, counts)"""
     k = 1000.0 / den
@@ -251,57 +310,72 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
         return (x0 + (p[0] - u0) * k, y0 + p[1] * k)
     cat = S["cat"]
     fill_of = B["fill_of"]
-    win = [pg(q) for q in ((u0, 0), (u1, 0), (u1, F.h), (u0, F.h))]
-    clips = {tag: [[[pg(q) for q in R] for R in cal], [win]]}
-    wtag = tag + "w"
-    clips[wtag] = [[win]]
+    clips = area_clips(cal, pg, F, u0, u1, tag)
     c = cat["meadow"]                                    # the ground of the whole working area
-    items.append(("poly", [[pg(q) for q in R] for R in cal], fill_of(c), None, 0.0, None, "plan_open_ground", 1, "eo", wtag))
+    items.append(("poly", [[pg(q) for q in R] for R in cal], fill_of(c), None, 0.0, None, "plan_open_ground", 1, "eo",
+                  tag + "w"))
     cnt["meadow"] = len(cal)
 
     def inwin(rings):
         return any(min(q[0] for q in R) <= u1 and max(q[0] for q in R) >= u0 for R in rings)
     for name in ORDER:
         c = cat[name]
-        if name == "plan_road":                          # his stroked new roads lie under the road surfaces
-            for pts, wm in P["lines"]:
-                if inwin([pts]):
-                    items.append(("line", [pg(q) for q in pts], c["fill"] or "FFFFFF", wm * k, tag, "plan_" + name, 1))
-                    cnt[name] = cnt.get(name, 0) + 1
         if name == "water":                              # the underlay lies on the ground, under water, paths and trees
             if P.get("soft"):
                 items.append(B["soft_item"](P["soft"], cat["underlay_2"]["fill"], "plan_planted_underlay", tag, den, x0, y0))
                 cnt["underlay_2"] = 1
+        if name in JOINED:                               # roads and paths: ONE surface each, one outline, its hatch
+            rings = [R for R in P["net"].get(name, []) if inwin([R])]
+            if rings:
+                items.append(("poly", [[pg(q) for q in R] for R in rings], fill_of(c), c["line"], c["w"], None,
+                              "plan_" + name, 1, "eo", tag))
+                cnt[name] = len(rings)
+            continue
         for rings in P["shapes"].get(name, []):
             if not inwin(rings):
                 continue
             items.append(("poly", [[pg(q) for q in R] for R in rings], fill_of(c), c["line"], c["w"], None, "plan_" + name,
                           1, "eo" if len(rings) > 1 else None, tag))
             cnt[name] = cnt.get(name, 0) + 1
-    unknown = {}
-    for tone in ("tree_light", "tree_mid", "tree_dark"):  # light crowns first, dark on top
-        c = cat[tone]
-        spot, core = B["_mix"](c["fill"], 0.16), B["_mix"](c["fill"], -0.14)
-        for n_, (u, v, r, sp) in enumerate(P["trees"]):
-            t = TREE_TONE.get(sp)
-            if t is None:
-                unknown[sp] = 1
-                t = "tree_mid"
-            if t == tone and u0 - r <= u <= u1 + r:
-                X, Y = pg((u, v))
-                R_ = r * k
-                items.append(("poly", [circle((X, Y), R_, 32)], fill_of(c), c["line"], c["w"], None, "plan_trees", 1,
-                              None, tag))
-                a0_ = (n_ * 2.399963) % (2 * math.pi)     # the golden angle: every tree turned differently
-                for i in range(LEAF_SPOTS):
-                    a = a0_ + 2 * math.pi * i / LEAF_SPOTS
-                    rr = R_ * (0.24 if i % 2 else 0.19)
-                    items.append(("poly", [circle((X + R_ * 0.56 * math.cos(a), Y + R_ * 0.56 * math.sin(a)), rr, 12)], spot,
-                                  None, 0.0, None, "plan_trees", 1, None, tag))
-                items.append(("poly", [circle((X + R_ * 0.08 * math.cos(a0_), Y + R_ * 0.08 * math.sin(a0_)), R_ * 0.2, 12)],
-                              core, None, 0.0, None, "plan_trees", 1, None, tag))
-                cnt[tone] = cnt.get(tone, 0) + 1
+    it, c2, unknown = tree_marks(B, cat, P["trees"], TREE_TONE, ("tree_light", "tree_mid", "tree_dark"), pg, k, u0, u1,
+                                 "plan_trees", tag)
+    items += it
+    cnt.update(c2)
     return items, clips, cnt, unknown
+
+
+def site_items(B, T, soft, cover, L, S, F, cal, den, x0, y0, u0, u1, tag, items):
+    """the as-is file in the masterplan's look, put into the context items in place: inside the red line the ground
+    tone, the soft green under the survey's trees, the existing streets with the road hatch and outline, the survey's
+    trees. Returns (clips, counts, {tree layer without a tone: 1})"""
+    k = 1000.0 / den
+    cat = S["cat"]
+    cnt = {}
+
+    def pg(p):
+        return (x0 + (p[0] - u0) * k, y0 + p[1] * k)
+    clips = area_clips(cal, pg, F, u0, u1, tag)
+    head = [("poly", [[pg(q) for q in R] for R in cal], B["fill_of"](cat["meadow"]), None, 0.0, None, "site_ground", 1,
+             "eo", tag + "w")]
+    cnt["meadow"] = len(cal)
+    if soft:
+        head.append(B["soft_item"](soft, cat["underlay_2"]["fill"], "site_tree_underlay", tag, den, x0, y0))
+        cnt["underlay_2"] = 1
+    elif cover is not None and cover.soft:               # no tree symbols in the survey cache: the 2023 tree cover
+        head.append(B["soft_item"](cover.soft, cat["tree_cover"]["fill"], "satellite_trees", tag, den, x0, y0))
+        cnt["tree_cover"] = 1
+    rings = [Q for cl, Q, a, b in L.get("street_net", []) if len(Q) >= 3]
+    if rings:                                            # right above the white street surface, under every line
+        at = max([i for i, it in enumerate(items) if B["_item_layer"](it) == "existing_streets"] or [-1]) + 1
+        c = cat["plan_road"]
+        items.insert(at, ("poly", [[pg(q) for q in R] for R in rings], B["fill_of"](c), c["line"], c["w"], None,
+                          "site_streets_in_area", 1, "eo", tag))
+    items[0:0] = head
+    it, c2, unknown = tree_marks(B, cat, T, SURVEY_TONE, ("site_tree_light", "site_tree_mid", "site_tree_dark"), pg, k,
+                                 u0, u1, "site_trees", tag)
+    items += it
+    cnt.update(c2)
+    return clips, cnt, unknown
 
 
 def circle(c, r, n):
@@ -334,6 +408,49 @@ def main():
     P = read_plan(B, F, log)
     cal = [[F.local(p) for p in R] for R in D["calisma"]]
     P["soft"] = B["haze_data"]([(u, v, r + UNDERLAY_M) for u, v, r, sp in P["trees"]], F) if P["trees"] else None
+    P["net"] = {}                                         # roads and paths: one joined surface per category
+    for name in JOINED:
+        src = [rings for rings in P["shapes"].get(name, [])]
+        if name == "plan_road":
+            for pts, wm in P["lines"]:
+                src += [[R] for R in B["stroke_rings"](pts, wm / 2.0)]
+        if src:
+            P["net"][name] = B["join_rings"](src, F, JOIN_CLOSE_M, JOIN_MIN_M2, B["MASK_TOL"], 1)[0]
+    log.append(u"his roads and paths joined: %s" % (u", ".join(
+        u"%s %d shapes -> %d outline(s)" % (n_, len(P["shapes"].get(n_, [])) + (len(P["lines"]) if n_ == "plan_road" else 0),
+                                            len(P["net"][n_])) for n_ in JOINED if n_ in P["net"]) or u"none found"))
+
+    def inside(q):
+        return any(B["g_pip"](q[0], q[1], R) for R in cal)
+    L1, Ltop, gone = dict(L), {}, 0                       # file 1: the survey without the houses the plan takes
+    for key in ("buildings", "heritage"):
+        base, top = [], []
+        for it in L.get(key, []):
+            sh = sum(1 for q in it[1] if inside(q)) / float(max(1, len(it[1])))
+            if sh <= 0:
+                base.append(it)
+            elif sh < GONE_SHARE:
+                top.append(it)
+            else:
+                gone += 1
+        L1[key], Ltop[key] = base, top
+    log.append(u"file 1, survey buildings at the red line: %d inside (%.0f %% of their corners or more) not drawn, the "
+               u"plan takes them; %d reaching over the line drawn whole on top" % (
+                   gone, 100 * GONE_SHARE, sum(len(v) for v in Ltop.values())))
+    T = []                                                # the survey's trees inside the red line, frame m
+    for x, y, r, lay_ in D.get("trees") or []:
+        q = F.local((x, y))
+        if 0 <= q[0] <= F.w and 0 <= q[1] <= F.h and inside(q):
+            T.append((q[0], q[1], r if 1.0 <= r <= 10.0 else SURVEY_TREE_R, lay_))
+    if "trees" not in D:
+        log.append(u"FLAG as-is trees: the Basemap cache has no survey trees (written by Basemap v6 or newer): press "
+                   u"Basemap once, then PlanBase; until then file 2 shows the 2023 tree cover instead")
+    else:
+        log.append(u"file 2, survey trees: %d symbols in the model, %d inside the red line (%s); crown %.1f m where the "
+                   u"symbol has no size between 1 and 10 m" % (len(D["trees"]), len(T), u", ".join(
+                       u"%s %d" % (k_, sum(1 for t in T if t[3] == k_)) for k_ in sorted(set(t[3] for t in T))) or u"none",
+                       SURVEY_TREE_R))
+    site_soft = B["haze_data"]([(u, v, r + UNDERLAY_M) for u, v, r, sp in T], F) if T else None
     log.append(u"his plan: %s; %d stroked road lines; %d tree symbols (%s)" % (
         u", ".join(u"%s %d" % (k_, len(v)) for k_, v in sorted(P["shapes"].items())), len(P["lines"]), len(P["trees"]),
         u", ".join(u"%s %d" % (sp, sum(1 for t in P["trees"] if t[3] == sp)) for sp in sorted(set(t[3] for t in P["trees"])))))
@@ -345,7 +462,8 @@ def main():
     order = (["water", "wet_edge", "reed", "soft_ground", "meadow", "planted", "underlay_2", "tree_light", "tree_mid",
               "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street",
               "calisma"])
-    order_asis = ["tree_cover"] + [c for _, c, _ in B["CONTEXT"]][::-1] + ["calisma"]   # the Basemap's legend order
+    order_asis = (["meadow", "underlay_2", "tree_cover", "site_tree_light", "site_tree_mid", "site_tree_dark"] +
+                  [c for _, c, _ in B["CONTEXT"]][::-1] + ["calisma"])
     unknown = {}
     n_a0 = B["a0_scale"](F)
     # file 1 "our way" = the survey with his plan inside the red line; file 2 "as is" = the survey alone, same code
@@ -354,14 +472,22 @@ def main():
         d = n_a0 if a0 else den
 
         def band(den_, x, y, u0, u1, tag, ours=ours):
-            items, cnt = B["draw_context"](L, F, S, den_, x, y, u0, u1, cover=None if ours else cover, fade=fade)
-            clips = {}
+            items, cnt = B["draw_context"](L1 if ours else L, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
             if ours:
                 it, clips, c2, unk = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
-                unknown.update(unk)
                 items += it
-                for k_, v in c2.items():
-                    cnt[k_] = cnt.get(k_, 0) + v
+                it, c3 = B["draw_context"](Ltop, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
+                for i_, a in enumerate(it):               # their own layers, above the plan
+                    j_ = 6 if a[0] == "poly" else 5
+                    it[i_] = a[:j_] + (a[j_] + "_at_red_line",) + a[j_ + 1:]
+                items += it
+                for k_, v in c3.items():
+                    c2[k_] = c2.get(k_, 0) + v
+            else:
+                clips, c2, unk = site_items(B, T, site_soft, cover, L, S, F, cal, den_, x, y, u0, u1, tag, items)
+            unknown.update(unk)
+            for k_, v in c2.items():
+                cnt[k_] = cnt.get(k_, 0) + v
             items += B["draw_top"](D, F, S, den_, x, y, u0, u1, names=False, sections=False)
             cnt["calisma"] = len(cal)
             return items, clips, cnt
@@ -369,13 +495,21 @@ def main():
             F, S, d, a0, u"Masterplan" if ours else u"Site as it is",
             (u"Base map of the proposal, 1:%s" if ours else u"Existing situation, 1:%s") % format(d, ",d"),
             (lambda c: [k_ for k_ in order if c.get(k_)]) if ours else
-            (lambda c: [k_ for k_ in order_asis[::-1] if c.get(k_)][::-1]), CREDIT, band)
+            (lambda c: [k_ for k_ in order_asis if c.get(k_)]), CREDIT if ours else CREDIT_ASIS, band)
         p = B["write_pdf"](os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
                            u"%s, site_alan, 1:%d" % (name, d), clips)
         log.append(B["out_line"](p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
             u"%s %d" % kv for kv in sorted(cnt.items()))))
+        if not a0:                                        # the same drawing grouped, for editing
+            try:
+                q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), w, h, items, u"%s, site_alan, 1:%d" % (name, d),
+                                   clips)
+                log.append(u"%s  %s (%.1f MB; a group per layer, every tree its own subgroup; flat fills)" % (
+                    q, time.strftime("%H:%M:%S"), os.path.getsize(q) / 1048576.0))
+            except Exception as e:
+                log.append(u"FLAG %s.svg not written (%s: %s); the PDFs are complete" % (name, type(e).__name__, e))
     if unknown:
-        log.append(u"FLAG tree symbols of a species without a tone in TREE_TONE, drawn in the middle tone: %s"
+        log.append(u"FLAG tree symbols of a species or layer without a tone (TREE_TONE, SURVEY_TONE), drawn in the middle tone: %s"
                    % u", ".join(sorted(unknown)))
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
