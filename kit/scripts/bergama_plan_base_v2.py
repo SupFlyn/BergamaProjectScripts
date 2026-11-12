@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: MASTERPLAN BASE v1.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: MASTERPLAN BASE v2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026: "Masterplan is our first goal"; "we want the base map first", routes and connections "leave that to
 last"; "outside of that line will be white and inside is colourful"; "please prepare a new masterplan script from
 scratch according to the examples"; "keep it consistent everywhere"; "combine vectoral and raster drawing however
@@ -20,7 +20,18 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
-v1.1: the A0 sheet carries the Basemap's small key plan in its column (Basemap v4.1 or newer).
+v2, Aras 12 Nov 19:42-19:45 UTC: "dont divide drawings into two like ever"; "for masterplan remove the wave texture
+from water however other than that water hatch texture is good"; "trees looks nowhere near the example"; "Try to make
+example a05 example as accurate as possible and adapt onto site 1:1". So: one drawing per sheet (A0: the frame once);
+no wave strokes; the context is the Basemap v5 context (streets as one joined surface, the river as one surface, clean
+lines); the three hard underlay rings are now A05's soft green: one tone under all trees that fades out UNDERLAY_M m
+beyond the crowns; a tree is A05's tree redrawn as vector: a disc in its tone with a slightly darker rim, a ring of
+lighter leaf spots and a darker centre, turned differently for every tree, light crowns under dark ones.
+Aras 12 Nov 19:48 UTC: "make the masterplan produce two way like the one with our changes and one with site as is
+with same visuality as always and prepare them in a way that we can edit each layer that we want"; "file 1: our way /
+file 2: as is". So two files from the same code and style: Masterplan = the survey with his plan inside the red line;
+Masterplan_as_is = the survey alone (with the 2023 tree cover as the soft tone, as the Basemap). In both, every
+category is its own PDF layer (plan_water, plan_trees, buildings, ...) that can be switched and edited separately.
 UNDERLAY_M, the circle for a tree symbol and the drawing order are drawing values (ours).
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
@@ -32,14 +43,15 @@ Reads  ~/Downloads/Bergama/scripts/bergama_basemap_v*.py              (the newes
        ~/Downloads/Bergama/Data/assets/masterlastversion.svg           (his plan)
        ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json  (the survey, written by Basemap)
        ~/Downloads/Bergama/cached/bergama_basemap/streets.json         (the street bands, written by Basemap)
-Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A0.pdf
+Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A0.pdf          (file 1: our way)
+       ~/Downloads/Bergama/output/bergama_plan_base/Masterplan_as_is.pdf, Masterplan_as_is_A0.pdf  (file 2: as is)
        ~/Downloads/Bergama/cached/bergama_plan_base/plan_shapes.json   (his plan's shapes by meaning, frame m)
        ~/Downloads/Bergama/logs/bergama_plan_base_log.txt
 """
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.1"
+VERSION = "v2"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -69,7 +81,8 @@ ORDER = ["soft_ground", "planted", "water", "wet_edge", "reed", "plan_road", "pa
 TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_<species>">
 TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid", "olive": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
-UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first (ours)
+UNDERLAY_M = 5.0                   # m beyond the crown that the soft green reaches before it fades (ours)
+LEAF_SPOTS = 6                     # lighter leaf spots in a ring inside every crown (A05 tree, redrawn)
 PATH_STEP = 1.5                    # SVG units: curves of his plan are cut into pieces of about this length
 CREDIT = (u"Inside the red line: the plan drawing masterlastversion.svg, redrawn by layer. Outside: the survey "
           u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines. Routes and labels follow.")
@@ -256,13 +269,9 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
                     items.append(("line", [pg(q) for q in pts], c["fill"] or "FFFFFF", wm * k, tag, "plan_" + name, 1))
                     cnt[name] = cnt.get(name, 0) + 1
         if name == "water":                              # the underlay lies on the ground, under water, paths and trees
-            for d, cn in zip(UNDERLAY_M, ("underlay_1", "underlay_2", "underlay_3")):
-                cu = cat[cn]
-                for u, v, r, sp in P["trees"]:
-                    if u0 - r - d <= u <= u1 + r + d:
-                        items.append(("poly", [circle(pg((u, v)), (r + d) * k, 32)], fill_of(cu), None, 0.0, None,
-                                      "plan_planted_underlay", 1, None, tag))
-                        cnt[cn] = cnt.get(cn, 0) + 1
+            if P.get("soft"):
+                items.append(B["soft_item"](P["soft"], cat["underlay_2"]["fill"], "plan_planted_underlay", tag, den, x0, y0))
+                cnt["underlay_2"] = 1
         for rings in P["shapes"].get(name, []):
             if not inwin(rings):
                 continue
@@ -272,14 +281,25 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
     unknown = {}
     for tone in ("tree_light", "tree_mid", "tree_dark"):  # light crowns first, dark on top
         c = cat[tone]
-        for u, v, r, sp in P["trees"]:
+        spot, core = B["_mix"](c["fill"], 0.16), B["_mix"](c["fill"], -0.14)
+        for n_, (u, v, r, sp) in enumerate(P["trees"]):
             t = TREE_TONE.get(sp)
             if t is None:
                 unknown[sp] = 1
                 t = "tree_mid"
             if t == tone and u0 - r <= u <= u1 + r:
-                items.append(("poly", [circle(pg((u, v)), r * k, 32)], fill_of(c), c["line"], c["w"], None, "plan_trees", 1,
+                X, Y = pg((u, v))
+                R_ = r * k
+                items.append(("poly", [circle((X, Y), R_, 32)], fill_of(c), c["line"], c["w"], None, "plan_trees", 1,
                               None, tag))
+                a0_ = (n_ * 2.399963) % (2 * math.pi)     # the golden angle: every tree turned differently
+                for i in range(LEAF_SPOTS):
+                    a = a0_ + 2 * math.pi * i / LEAF_SPOTS
+                    rr = R_ * (0.24 if i % 2 else 0.19)
+                    items.append(("poly", [circle((X + R_ * 0.56 * math.cos(a), Y + R_ * 0.56 * math.sin(a)), rr, 12)], spot,
+                                  None, 0.0, None, "plan_trees", 1, None, tag))
+                items.append(("poly", [circle((X + R_ * 0.08 * math.cos(a0_), Y + R_ * 0.08 * math.sin(a0_)), R_ * 0.2, 12)],
+                              core, None, 0.0, None, "plan_trees", 1, None, tag))
                 cnt[tone] = cnt.get(tone, 0) + 1
     return items, clips, cnt, unknown
 
@@ -305,11 +325,15 @@ def main():
     if not D.get("calisma"):
         raise RuntimeError(u"the Basemap cache has no calisma_alan outline: the plan cannot be cut to the working area")
     F = B["Frame"]([tuple(p) for p in D["frame"]])
+    D["layers"].update(B["load_veg"](D, log))             # the tree cover of today, for the as-is file only
     D["layers"].update(B["build_streets"](D, F, log))
     L = B["localise"](D, F)
+    B["prepare"](D, L, F, log)
     fade = B["Fade"](D, F)
+    cover = B["Cover"](L, F, log) if L.get("sat_trees") else None
     P = read_plan(B, F, log)
     cal = [[F.local(p) for p in R] for R in D["calisma"]]
+    P["soft"] = B["haze_data"]([(u, v, r + UNDERLAY_M) for u, v, r, sp in P["trees"]], F) if P["trees"] else None
     log.append(u"his plan: %s; %d stroked road lines; %d tree symbols (%s)" % (
         u", ".join(u"%s %d" % (k_, len(v)) for k_, v in sorted(P["shapes"].items())), len(P["lines"]), len(P["trees"]),
         u", ".join(u"%s %d" % (sp, sum(1 for t in P["trees"] if t[3] == sp)) for sp in sorted(set(t[3] for t in P["trees"])))))
@@ -321,32 +345,33 @@ def main():
     order = (["water", "wet_edge", "reed", "soft_ground", "meadow", "planted", "underlay_2", "tree_light", "tree_mid",
               "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street",
               "calisma"])
+    order_asis = ["tree_cover"] + [c for _, c, _ in B["CONTEXT"]][::-1] + ["calisma"]   # the Basemap's legend order
     unknown = {}
     n_a0 = B["a0_scale"](F)
-    key_fn = None
-    if "key_plan" in B:
-        B["load_sections"](D, log)
-
-        def key_fn(kd, x, y):
-            return B["key_plan"](D, L, F, S, kd, x, y)
-    for a0 in (False, True):
+    # file 1 "our way" = the survey with his plan inside the red line; file 2 "as is" = the survey alone, same code
+    for name, ours, a0 in ((u"Masterplan", True, False), (u"Masterplan", True, True),
+                           (u"Masterplan_as_is", False, False), (u"Masterplan_as_is", False, True)):
         d = n_a0 if a0 else den
 
-        def band(den_, x, y, u0, u1, tag):
-            items, cnt = B["draw_context"](L, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
-            it, clips, c2, unk = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
-            unknown.update(unk)
-            items += it
+        def band(den_, x, y, u0, u1, tag, ours=ours):
+            items, cnt = B["draw_context"](L, F, S, den_, x, y, u0, u1, cover=None if ours else cover, fade=fade)
+            clips = {}
+            if ours:
+                it, clips, c2, unk = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
+                unknown.update(unk)
+                items += it
+                for k_, v in c2.items():
+                    cnt[k_] = cnt.get(k_, 0) + v
             items += B["draw_top"](D, F, S, den_, x, y, u0, u1, names=False, sections=False)
-            for k_, v in c2.items():
-                cnt[k_] = cnt.get(k_, 0) + v
             cnt["calisma"] = len(cal)
             return items, clips, cnt
-        w, h, items, clips, cnt = B["sheet"](F, S, d, a0, u"Masterplan", u"Base map of the proposal, 1:%s" % format(d, ",d"),
-                                             lambda c: [k_ for k_ in order if c.get(k_)], CREDIT, band,
-                                             key_fn)
-        p = B["write_pdf"](os.path.join(OUT_DIR, u"Masterplan_A0.pdf" if a0 else u"Masterplan.pdf"), w, h, items,
-                           u"Masterplan base, site_alan, 1:%d" % d, clips)
+        w, h, items, clips, cnt = B["sheet"](
+            F, S, d, a0, u"Masterplan" if ours else u"Site as it is",
+            (u"Base map of the proposal, 1:%s" if ours else u"Existing situation, 1:%s") % format(d, ",d"),
+            (lambda c: [k_ for k_ in order if c.get(k_)]) if ours else
+            (lambda c: [k_ for k_ in order_asis[::-1] if c.get(k_)][::-1]), CREDIT, band)
+        p = B["write_pdf"](os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
+                           u"%s, site_alan, 1:%d" % (name, d), clips)
         log.append(B["out_line"](p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
             u"%s %d" % kv for kv in sorted(cnt.items()))))
     if unknown:
