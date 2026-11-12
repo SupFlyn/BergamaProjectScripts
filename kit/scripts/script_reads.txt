@@ -95,3 +95,8 @@ bergama_section_from_line: Data/bergama_water_board_data.py  # r9 hand
 bergama_section_from_line: Data/selinos_centreline.json  # r9 hand
 bergama_section_from_line: rhino  # r9 hand
 bergama_booklet: cached/booklet/bergama_section_from_line/  # r9 hand
+bergama_sections: Data/bergama_sections_engine.py  # hand, 12 Nov (not traced yet)
+bergama_sections: Data/section_lines.json  # hand, 12 Nov (not traced yet)
+bergama_sections: Data/selinos_centreline.json  # hand, 12 Nov (not traced yet)
+bergama_sections: cached/basemap/basemap.json  # hand, 12 Nov (not traced yet)
+bergama_sections: rhino  # hand, 12 Nov (not traced yet)

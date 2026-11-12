@@ -19,6 +19,7 @@ scripts/bergama_trace_assets_v1_1.py
 scripts/bergama_water_balance_v14.py
 scripts/bergama_water_board_v20_3.py
 scripts/bergama_section_from_line_v1_1.py
+scripts/bergama_sections_v1.py
 scripts/bergama_zone_base_v12.py
 scripts/board_order.txt
 scripts/selinus_board_v67.py
@@ -26,6 +27,8 @@ scripts/needed_files.txt
 scripts/script_reads.txt
 
 # Data
+Data/bergama_sections_engine.py
+Data/section_lines.json
 Data/W01_cover_collage.jpg
 Data/assets_hires.json
 Data/bergama_agriculture_alternatives_data.py
