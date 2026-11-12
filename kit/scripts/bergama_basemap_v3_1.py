@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v3 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v3.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
 as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
 frame for that basemap and keymap for that matter".
@@ -71,6 +71,10 @@ each directly above the shape it belongs to, cut to that shape, in a tone of tha
   promenade  the paths of his group "walks_paths_bike_lane" whose fill is in PROMENADE_FILLS (the pale rose band, read
              as his riverside walk: not confirmed by him): joint lines JOINT_M m apart across the frame's long side
 His shapes and colours are not changed. The spacings are graphic values (ours), not a paving design.
+v3.1, Aras 12 Nov 18:52 UTC: "also create the pdf's scaled into A0". Next to each PDF a second one on an A0 landscape
+page (1189 x 841 mm): Basemap_A0.pdf, Keymap_A0.pdf. Its scale 1:N is the smallest N in steps of A0_STEP at which the
+frame fits inside the A0_MARGIN mm margin (calculated in the run, written in the log, on the sheet and in its scale
+bar); the map is drawn again at that scale (same line weights and text sizes in mm), centred on the page.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -82,6 +86,7 @@ Reads  the open Rhino model's survey layers (once; the same model = the cache is
        ~/Downloads/Bergama/Data/bergama_osm.osm   (street centrelines; without it only the survey edges, FLAG)
        ~/Downloads/Bergama/Data/assets/masterlastversion.svg (his plan, for Basemap_colour.svg)
 Writes ~/Downloads/Bergama/output/bergama_basemap/Basemap.pdf, Keymap.pdf   (PDF layers existing_<thing>)
+       ~/Downloads/Bergama/output/bergama_basemap/Basemap_A0.pdf, Keymap_A0.pdf   (A0 landscape, scale in the log)
        ~/Downloads/Bergama/output/bergama_basemap/Basemap_colour.svg
        ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json   every layer in survey m, the frame, the turn
        ~/Downloads/Bergama/cached/bergama_basemap/streets.json          the street bands and footpaths in survey m
@@ -91,7 +96,7 @@ import os, time, json, math, re
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v3"
+VERSION = "v3.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -150,6 +155,7 @@ TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_...
 UNDERLAY_M = (6.0, 4.0, 2.0)       # m beyond the crown: the three rings, widest first
 WATER_GROUP, WATER_ROW, WATER_TICK, WATER_PITCH = "Selinos", 5.0, 6.0, 16.0     # m
 PROMENADE_GROUP, PROMENADE_FILLS, JOINT_M = "walks_paths_bike_lane", ("#e8cfcf",), 2.0
+A0_W, A0_H, A0_MARGIN, A0_STEP = 1189.0, 841.0, 15.0, 500     # mm, mm, mm, scale step
 TEXTURE_W = 0.18                   # m on the ground: line width of both textures
 # ================= COLOURS: one line per meaning; a new palette is swapped in here =================
 def _tint(col, t):
@@ -1491,19 +1497,33 @@ def main():
             FADE_M, 100.0 * fade.share))
     log.append(u"frame: site_alan %.2f x %.2f m, turned %.2f deg; north on the page points (%.3f, %.3f)" % (
         F.w, F.h, math.degrees(F.rot), F.north()[0], F.north()[1]))
+    need = max(F.w * 1000.0 / (A0_W - 2 * A0_MARGIN), F.h * 1000.0 / (A0_H - 2 * A0_MARGIN - 16.0))
+    n_a0 = int(math.ceil(need / A0_STEP) * A0_STEP)       # the smallest round scale at which the frame fits on A0
     for name, d, styles, sec, title in ((u"Basemap", den, STYLE, False, u"BASEMAP · existing"),
                                         (u"Keymap", kden, KEY_STYLE, True, u"KEY MAP")):
-        m = 15.0
-        items, cnt = draw(D, F, d, styles, m, m + 16.0, sections=sec, shadows=SHADOWS and not sec, names=not sec, fade=fade)
-        by = dict((s[0], s) for s in styles)
-        leg = [by[k_] + (lab,) for k_, lab in LEGEND if k_ in by and cnt.get(k_)]
-        items += corner_block(F, d, m, m + 16.0)
-        items += furniture(F, d, m, m + 16.0, title, leg, None if sec else CREDIT)
-        w = F.w * 1000.0 / d + 2 * m
-        h = F.h * 1000.0 / d + 2 * m + 16.0
-        p = write_pdf(os.path.join(OUT_DIR, name + u".pdf"), w, h, items, u"%s, site_alan, 1:%d" % (name, d))
-        log.append(u"%s  %s (%.0f x %.0f mm, 1:%d; %s)" % (p, time.strftime("%H:%M:%S"), w, h, d, u", ".join(
-            u"%s %d" % kv for kv in sorted(cnt.items()))))
+        for a0 in (False, True):
+            if a0:
+                d = n_a0
+                w, h = A0_W, A0_H
+                x0, y0 = (w - F.w * 1000.0 / d) / 2.0, (h - F.h * 1000.0 / d) / 2.0 + 8.0
+            else:
+                m = 15.0
+                w = F.w * 1000.0 / d + 2 * m
+                h = F.h * 1000.0 / d + 2 * m + 16.0
+                x0, y0 = m, m + 16.0
+            items, cnt = draw(D, F, d, styles, x0, y0, sections=sec, shadows=SHADOWS and not sec, names=not sec,
+                              fade=fade)
+            by = dict((s[0], s) for s in styles)
+            leg = [by[k_] + (lab,) for k_, lab in LEGEND if k_ in by and cnt.get(k_)]
+            items += corner_block(F, d, x0, y0)
+            items += furniture(F, d, x0, y0, title, leg, None if sec else CREDIT)
+            p = write_pdf(os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
+                          u"%s, site_alan, 1:%d" % (name, d))
+            if a0:
+                log.append(u"%s  A0 %.0fx%.0f mm, 1:%d" % (p, w, h, d))
+            else:
+                log.append(u"%s  %s (%.0f x %.0f mm, 1:%d; %s)" % (p, time.strftime("%H:%M:%S"), w, h, d, u", ".join(
+                    u"%s %d" % kv for kv in sorted(cnt.items()))))
     write_colour_svg(D, F, log, fade)
     if not D.get("sections"):
         log.append(u"no curves on layer %s in the model: the key map has no section lines yet" % SECTION_LAYER)
