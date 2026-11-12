@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: MASTERPLAN BASE v1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: MASTERPLAN BASE v1.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026: "Masterplan is our first goal"; "we want the base map first", routes and connections "leave that to
 last"; "outside of that line will be white and inside is colourful"; "please prepare a new masterplan script from
 scratch according to the examples"; "keep it consistent everywhere"; "combine vectoral and raster drawing however
@@ -20,6 +20,7 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v1.1: the A0 sheet carries the Basemap's small key plan in its column (Basemap v4.1 or newer).
 UNDERLAY_M, the circle for a tree symbol and the drawing order are drawing values (ours).
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
@@ -38,7 +39,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v1.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -322,6 +323,12 @@ def main():
               "calisma"])
     unknown = {}
     n_a0 = B["a0_scale"](F)
+    key_fn = None
+    if "key_plan" in B:
+        B["load_sections"](D, log)
+
+        def key_fn(kd, x, y):
+            return B["key_plan"](D, L, F, S, kd, x, y)
     for a0 in (False, True):
         d = n_a0 if a0 else den
 
@@ -336,7 +343,8 @@ def main():
             cnt["calisma"] = len(cal)
             return items, clips, cnt
         w, h, items, clips, cnt = B["sheet"](F, S, d, a0, u"Masterplan", u"Base map of the proposal, 1:%s" % format(d, ",d"),
-                                             lambda c: [k_ for k_ in order if c.get(k_)], CREDIT, band)
+                                             lambda c: [k_ for k_ in order if c.get(k_)], CREDIT, band,
+                                             key_fn)
         p = B["write_pdf"](os.path.join(OUT_DIR, u"Masterplan_A0.pdf" if a0 else u"Masterplan.pdf"), w, h, items,
                            u"Masterplan base, site_alan, 1:%d" % d, clips)
         log.append(B["out_line"](p, w, h, d, items, u"" if a0 else u"; " + u", ".join(

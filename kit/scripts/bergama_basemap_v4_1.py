@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v4 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v4.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 The existing situation inside site_alan, from ONE read of the open survey model (Bergama_Altlik.3dm), turned so the
 frame's long side lies flat (eastern end right, as his plan), kept by layer in a cache the other new scripts read.
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
@@ -35,6 +35,12 @@ v4 = what follows from the 19:0x messages and the look review of the first Rhino
              in the right column.
   LOG        every output is logged with its size in MB and the number of drawn objects.
   Basemap_colour.svg is no longer written: the Masterplan script draws his plan on this base map.
+v4.1 (first Rhino run of v4, look review 12 Nov 19:23 UTC; all drawing values, ours): the far context lines are
+lightened less (FADE_MIX 0.25: the building outlines were too faint); a style entry may carry its own grain strength
+("grain": 0.09 on water); line swatches in the legend are drawn LEGEND_LINE_K times heavier, in the legend only; the
+two A0 bands sit in the middle of the page height and the column under the legend holds a small key plan (streets,
+stream, heritage, red line, the two bands, the section lines); when the model has no layer section_lines the key map
+reads Data/section_lines.json; a PDF that is open in a viewer is still written under a timed name, and the log says so.
 Kept from v1-v3.3: heritage rule (BINA_TARIHI / BINA_HARABE or a heritage word in a YAZI_YAPI name inside), building
 lines joined into closed outlines (FACE_MIN..FACE_MAX m2), floor counts (YAZI_KAT_ADEDI) in the cache, the continuous
 street bands along the OpenStreetMap centrelines (survey edge / building front / carried width; streets.json), the two
@@ -59,7 +65,7 @@ import os, time, json, math, re, zlib, random
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v4"
+VERSION = "v4.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -108,12 +114,14 @@ PATH_CLASSES = ("footway", "path", "steps", "cycleway", "bridleway", "track")
 SKIP_CLASSES = ("proposed", "construction", "platform", "elevator", "corridor", "bus_stop", "rest_area", "services")
 STREET_FORMAT = 2
 FACE_MIN, FACE_MAX = 4.0, 20000.0      # m2: a closed cell of building lines is a building between these
-FADE_M, FADE_MIX = 100.0, 0.5      # m from calisma_alan where the context lines turn lighter; how far towards white
+FADE_M, FADE_MIX = 100.0, 0.25     # m from calisma_alan where the context lines turn lighter; how far towards white
 FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
 STYLE_FILE = os.path.join("Data", "bergama_style.json")
 A0_W, A0_H, A0_MARGIN, A0_STEP = 1189.0, 841.0, 15.0, 500     # mm, mm, mm, scale step
 A0_COLUMN, BAND_GAP, BAND_OVERLAP_M = 200.0, 20.0, 15.0       # mm title and legend column, mm between the bands, m shared
 COVER_M, COVER_MIN_M2 = 0.5, 80.0  # m cell of the land cover stencil (the image's own 0.5 m); smallest patch drawn (ours)
+LEGEND_LINE_K = 3.0                # line swatches in the legend: this many times the drawn weight (legend only)
+SECTION_FILE = os.path.join("Data", "section_lines.json")
 MASK_M, FACE_HALO_M = 8.0, 1.0     # m kept free of land cover around open building lines / closed outlines (ours)
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
@@ -567,14 +575,17 @@ def load_style():
     for k_, c in J["categories"].items():
         fill = col(c.get("fill"))
         cat[k_] = {"label": c.get("label", k_), "fill": fill, "line": col(c.get("line")), "w": float(c.get("w") or 0.0),
-                   "grain": bool(fill and fill != "FFFFFF" and c.get("grain", True))}
+                   "grain": (float(c["grain"]) if isinstance(c.get("grain"), (int, float)) and not isinstance(
+                       c.get("grain"), bool) else True) if (fill and fill != "FFFFFF" and c.get("grain", True)) else False}
     return {"cat": cat, "text": J["text_mm"], "grain": J.get("grain") or {}, "ink": col("ink"), "col": col,
             "version": J.get("version", u"no version")}
 
 
 def fill_of(c):
     """a category's fill for the PDF writer: "~RRGGBB" = painted with the grain of that colour"""
-    return (u"~" + c["fill"]) if c["grain"] else c["fill"]
+    if not c["grain"]:
+        return c["fill"]
+    return u"~" + c["fill"] + (u"" if c["grain"] is True else u"@%g" % c["grain"])
 
 
 # ================================================================ the grain (one seamless tile, shared by every fill)
@@ -795,7 +806,7 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
     return items, cnt
 
 
-def draw_top(D, F, S, den, x0, y0, u0, u1, names=False, sections=False):
+def draw_top(D, F, S, den, x0, y0, u0, u1, names=False, sections=False, lw_k=1.0):
     """what lies over everything: the frame of the window, calisma_alan, the names, the section lines"""
     k = 1000.0 / den
     box = (u0, 0.0, u1, F.h)
@@ -807,9 +818,9 @@ def draw_top(D, F, S, den, x0, y0, u0, u1, names=False, sections=False):
     for P in D.get("calisma", []):
         R = [F.local(p) for p in P]
         for run in clip_line(R + R[:1], box):
-            items.append(("line", [pg(q) for q in run], c["line"], c["w"], None, "calisma_alan", 1))
+            items.append(("line", [pg(q) for q in run], c["line"], c["w"] * lw_k, None, "calisma_alan", 1))
     c = S["cat"]["frame"]
-    items.append(("poly", [[pg(q) for q in ((u0, 0), (u1, 0), (u1, F.h), (u0, F.h))]], None, c["line"], c["w"], None,
+    items.append(("poly", [[pg(q) for q in ((u0, 0), (u1, 0), (u1, F.h), (u0, F.h))]], None, c["line"], c["w"] * lw_k, None,
                   "frame", 0, None, None))
     if names:
         nm, ncol = S["text"]["names"], S["cat"]["road_edge"]["line"]
@@ -828,7 +839,7 @@ def draw_top(D, F, S, den, x0, y0, u0, u1, names=False, sections=False):
         for s in D.get("sections", []):
             a, b = F.local(s["line"][0]), F.local(s["line"][1])
             for run in clip_line([a, b], box):
-                items.append(("line", [pg(q) for q in run], c["line"], c["w"], None, "section_lines", 1))
+                items.append(("line", [pg(q) for q in run], c["line"], c["w"] * lw_k, None, "section_lines", 1))
                 for q, al in ((run[0], "R"), (run[-1], "L")):
                     X, Y = pg(q)
                     items.append(("text", s["name"], X + (-1.0 if al == "R" else 1.0), Y + 0.8, 2.2, c["line"], True, al,
@@ -891,7 +902,8 @@ def furniture(S, x, y, width, tk, title, sub, legend, credit=None):
             it.append(("poly", [box_], fill_of(c), c["line"] or S["cat"]["kerb"]["line"], c["w"] or 0.05, None, "legend", 1,
                        None, None))
         else:
-            it.append(("line", [(xx, yy + sh / 2.0), (xx + sw, yy + sh / 2.0)], c["line"], c["w"], None, "legend", 1))
+            it.append(("line", [(xx, yy + sh / 2.0), (xx + sw, yy + sh / 2.0)], c["line"], min(c["w"] * LEGEND_LINE_K, sh * 0.2), None,
+                       "legend", 1))
         it.append(("text", c["label"], xx + sw + 2.5 * tk, yy + sh / 2.0 - ts * 0.36, ts, INK, False, "L", "legend", None,
                    None))
         xx += need
@@ -909,6 +921,29 @@ def furniture(S, x, y, width, tk, title, sub, legend, credit=None):
     return it, y - yy + 2.0
 
 
+def key_plan(D, L, F, S, den, x, y):
+    """a small plan of the whole frame: streets, stream, bridges, heritage, the red line, the section lines"""
+    items, _ = draw_context(L, F, S, den, x, y, 0.0, F.w, lw_k=0.6, cover=None, fade=None,
+                            skip=KEY_SKIP + ("road_edges", "buildings", "ponds", "heritage_walls"))
+    items += draw_top(D, F, S, den, x, y, 0.0, F.w, names=False, sections=True, lw_k=0.5)
+    return [it[:6] + ("key_plan",) + it[7:] if it[0] == "poly" else it[:5] + ("key_plan",) + it[6:] if it[0] == "line"
+            else it[:8] + ("key_plan",) + it[9:] for it in items]
+
+
+def load_sections(D, log):
+    """section lines for the key map: the model's layer, else Data/section_lines.json"""
+    if D.get("sections"):
+        return
+    src = os.path.join(BERGAMA_ROOT, SECTION_FILE)
+    try:
+        with open(src, encoding="utf-8") as f:
+            J = json.load(f)
+        D["sections"] = [{"name": k_, "line": v} for k_, v in sorted(J["lines"].items())]
+        log.append(u"section lines: none on layer %s in the model, %d read from %s" % (SECTION_LAYER, len(D["sections"]), src))
+    except Exception:
+        log.append(u"no curves on layer %s in the model and no %s: the key map has no section lines" % (SECTION_LAYER, src))
+
+
 def a0_scale(F):
     """the smallest round scale 1:N at which two bands of the frame and the right column fit on A0 landscape"""
     need = max((F.w / 2.0 + BAND_OVERLAP_M) * 1000.0 / (A0_W - 2 * A0_MARGIN - A0_COLUMN),
@@ -916,9 +951,10 @@ def a0_scale(F):
     return int(math.ceil(need / A0_STEP) * A0_STEP)
 
 
-def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn):
+def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn, key_fn=None):
     """lay a drawing out: one band on a page as large as the frame, or two bands on A0.
     band_fn(den, x, y, u0, u1, tag) -> (items, clips, counts). legend_of(counts) -> [style category].
+    key_fn(den, x, y) -> items of a small key plan of the whole frame (A0 only, drawn at the foot of the column).
     Returns (page w mm, page h mm, items, clips, counts)"""
     k = 1000.0 / den
     m = A0_MARGIN
@@ -927,9 +963,9 @@ def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn):
         half = F.w / 2.0
         bands = [(0.0, half + BAND_OVERLAP_M), (half - BAND_OVERLAP_M, F.w)]
         bh = F.h * k
-        top = h - m - bh
+        top = h - bh - (h - 2 * bh - BAND_GAP) / 2.0       # the two bands in the middle of the page height
         pos = [(m, top), (m, top - BAND_GAP - bh)]
-        fx, fy, fw = m + (half + BAND_OVERLAP_M) * k + 12.0, h - m, A0_COLUMN - 12.0
+        fx, fy, fw = m + (half + BAND_OVERLAP_M) * k + 12.0, top + bh, A0_COLUMN - 12.0
     else:
         tk = max(0.3, min(1.0, (F.w * k + 2 * m) / A0_W))
         bands = [(0.0, F.w)]
@@ -948,8 +984,20 @@ def sheet(F, S, den, a0, title, sub, legend_of, credit, band_fn):
         for k_, v in c.items():
             cnt[k_] = cnt.get(k_, 0) + v
     items += corner_block(F, S, den, pos[-1][0] + (bands[-1][1] - bands[-1][0]) * k, pos[-1][1])
-    fi, _ = furniture(S, fx, fy, fw, tk, title, sub + (u"  ·  two bands, west above, east below" if a0 else u""),
+    fi, _ = furniture(S, fx, fy, fw, tk, title, sub,
                       legend_of(cnt), credit)
+    if a0 and key_fn is not None:                         # the small key plan at the foot of the column
+        kd = F.w * 1000.0 / fw
+        ky = pos[-1][1]
+        items += key_fn(kd, fx, ky)
+        for i, (u0, u1) in enumerate(bands):
+            xa, xb = fx + u0 * 1000.0 / kd, fx + u1 * 1000.0 / kd
+            ya = ky + (1.2 if i else 0.0)
+            items.append(("poly", [[(xa, ya), (xb, ya), (xb, ky + F.h * 1000.0 / kd - (0.0 if i else 1.2)),
+                                    (xa, ky + F.h * 1000.0 / kd - (0.0 if i else 1.2))]], None, S["ink"], 0.25, None,
+                          "key_plan", 1, None, None))
+            items.append(("text", u"west band" if i == 0 else u"east band", (xa + xb) / 2.0,
+                          ky + F.h * 1000.0 / kd + 2.0, S["text"]["credit"], S["ink"], False, "C", "key_plan", None, None))
     return w, h, items + fi, clips, cnt
 
 
@@ -1207,6 +1255,9 @@ def _f(v):
 
 
 
+_LOCKED = []
+
+
 def write_pdf(path, w, h, items, title, clips=None):
     """one page w x h mm; items in page mm, y up; each item's layer becomes a PDF layer.
     poly  ("poly", rings, fill, stroke, lw, None, layer, 1, "eo"|None, clip)   fill "~RRGGBB" = with the grain
@@ -1246,11 +1297,13 @@ def write_pdf(path, w, h, items, title, clips=None):
     def paint(fill):
         """the operators that set the fill: a flat colour, or the grain pattern of that colour"""
         if not fill.startswith("~") or _GRAIN.get("amp", 0) <= 0 or "z" not in _GRAIN:
-            return "%s rg" % _col(fill.lstrip("~"))
+            return "%s rg" % _col(fill.lstrip("~").split("@")[0])
         col = fill[1:]
         if col not in pats:
             lv, amp, T = _GRAIN["levels"], _GRAIN["amp"], _GRAIN["tile"]
-            table = "".join(_mix(col, (2.0 * i / (lv - 1) - 1.0) * amp) for i in range(lv))
+            if "@" in col:
+                amp = float(col.split("@")[1])
+            table = "".join(_mix(col[:6], (2.0 * i / (lv - 1) - 1.0) * amp) for i in range(lv))
             z = _GRAIN["z"]
             im = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace [/Indexed /DeviceRGB %d <%s>] "
                       "/BitsPerComponent 8 /Interpolate true /Filter /FlateDecode /Length %d >>\nstream\n" % (
@@ -1359,6 +1412,7 @@ def write_pdf(path, w, h, items, title, clips=None):
         with open(path, "wb") as f:
             f.write(bytes(out))
     except PermissionError:                              # open in a viewer: a timed name
+        _LOCKED.append(os.path.basename(path))
         path = path[:-4] + time.strftime("_%H%M%S") + ".pdf"
         with open(path, "wb") as f:
             f.write(bytes(out))
@@ -1367,6 +1421,8 @@ def write_pdf(path, w, h, items, title, clips=None):
 
 def out_line(p, w, h, den, items, extra=u""):
     """the log line of one output: its size and how many objects it draws"""
+    if _LOCKED:
+        extra += u"; %s was open in a viewer, so this timed copy was written: close the viewer to get the plain name" % _LOCKED.pop()
     return u"%s  %s (%.0f x %.0f mm, 1:%s; %.1f MB, %s drawn objects%s)" % (
         p, time.strftime("%H:%M:%S"), w, h, format(den, ",d"), os.path.getsize(p) / 1048576.0, format(len(items), ",d"),
         extra)
@@ -1572,6 +1628,7 @@ def main():
             FADE_M, 100.0 * fade.share))
     log.append(u"frame: site_alan %.2f x %.2f m, turned %.2f deg; north on the page points (%.3f, %.3f)" % (
         F.w, F.h, math.degrees(F.rot), F.north()[0], F.north()[1]))
+    load_sections(D, log)
     cover = Cover(L, F, log) if (L.get("sat_trees") or L.get("sat_grass")) else None
     n_a0 = a0_scale(F)
     log.append(u"A0: two bands at 1:%s (the smallest step of %d at which half the frame + %.0f m fits beside a %.0f mm "
@@ -1585,20 +1642,20 @@ def main():
             def band(den_, x, y, u0, u1, tag, key=key):
                 items, cnt = draw_context(L, F, S, den_, x, y, u0, u1, lw_k=0.6 if (key and den_ > 4000) else 1.0,
                                           cover=None if key else cover, fade=fade, skip=KEY_SKIP if key else ())
-                items += draw_top(D, F, S, den_, x, y, u0, u1, names=not key, sections=key)
+                items += draw_top(D, F, S, den_, x, y, u0, u1, names=not key, sections=key,
+                                  lw_k=0.6 if (key and den_ > 4000) else 1.0)
                 cnt["calisma"] = len(D.get("calisma", []))
                 if key and D.get("sections"):
                     cnt["section_line"] = len(D["sections"])
                 return items, {}, cnt
             w, h, items, clips, cnt = sheet(F, S, d, a0, title, u"Existing situation, 1:%s" % format(d, ",d"),
                                             lambda c: [k_ for k_ in order[::-1] if c.get(k_)][::-1],
-                                            None if key else CREDIT, band)
+                                            None if key else CREDIT, band,
+                                            None if key else (lambda kd, x, y: key_plan(D, L, F, S, kd, x, y)))
             p = write_pdf(os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
                           u"%s, site_alan, 1:%d" % (name, d), clips)
             log.append(out_line(p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
                 u"%s %d" % kv for kv in sorted(cnt.items()))))
-    if not D.get("sections"):
-        log.append(u"no curves on layer %s in the model: the key map has no section lines yet" % SECTION_LAYER)
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
 
