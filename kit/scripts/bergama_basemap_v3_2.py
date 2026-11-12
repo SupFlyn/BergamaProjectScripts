@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: BASEMAP v3.1 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: BASEMAP v3.2 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:53 UTC: "we need a fresh basemap and keymap style. For basemap every road should be outlined as well
 as the buildings and all should be outlined aswell. Heritage buildings should be marked. Our site_alan should be our
 frame for that basemap and keymap for that matter".
@@ -75,6 +75,13 @@ v3.1, Aras 12 Nov 18:52 UTC: "also create the pdf's scaled into A0". Next to eac
 page (1189 x 841 mm): Basemap_A0.pdf, Keymap_A0.pdf. Its scale 1:N is the smallest N in steps of A0_STEP at which the
 frame fits inside the A0_MARGIN mm margin (calculated in the run, written in the log, on the sheet and in its scale
 bar); the map is drawn again at that scale (same line weights and text sizes in mm), centred on the page.
+v3.2 (fix, first Rhino run 12 Nov 18:55 UTC: "buildings 2, heritage 0"): the survey draws its buildings as single
+straight lines (79,213 separate lines on BINA_MESKEN alone, counted in Bergama_Altlik.3dm), not as closed outlines,
+and v1-v3.1 kept only curves of three points or more. Now every building line is kept: the lines are joined at their
+shared end points (to 1 cm) and every closed cell they form between FACE_MIN and FACE_MAX m2 becomes one building
+outline (white, or heritage); lines that close no cell are drawn as lines. A cell is heritage when at least half of
+its sides lie on BINA_TARIHI / BINA_HARABE or a heritage name text stands inside it. A yard fully enclosed by building
+lines also counts as a cell (the survey does not tell them apart); it only gets the white fill.
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run            Button (or the previous script's done text)
@@ -96,7 +103,7 @@ import os, time, json, math, re
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v3.1"
+VERSION = "v3.2"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -147,7 +154,8 @@ GEO = dict(s=1.0001121171177874, th=-0.0015904735313230483, tx=-492593.739991241
 STREET_STEP, EDGE_MAX, FRONT_MAX, STREET_MIN = 4.0, 12.0, 8.0, 1.0     # m
 PATH_CLASSES = ("footway", "path", "steps", "cycleway", "bridleway", "track")
 SKIP_CLASSES = ("proposed", "construction", "platform", "elevator", "corridor", "bus_stop", "rest_area", "services")
-STREET_FORMAT = 1
+STREET_FORMAT = 2
+FACE_MIN, FACE_MAX = 4.0, 20000.0      # m2: a closed cell of building lines is a building between these
 FADE_M, FADE_MIX = 100.0, 0.5      # m from calisma_alan where the context lines turn lighter; how far towards white
 FADE_KEYS = ("parks", "paths", "streets", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
 BASE_OFF = ("CIRCULATION", "heritage_trail")     # groups of his plan switched off in the base map (routes come later)
@@ -278,6 +286,52 @@ def model_key(doc):
         return None
 
 
+def building_faces(segs):
+    """segs [(layer, a, b)] -> ([(ring, share of sides on heritage layers)], [segs that bound no kept cell]).
+    The lines are joined at shared end points (1 cm) and every bounded cell of the net is walked once."""
+    def key(p):
+        return (int(round(p[0] * 100.0)), int(round(p[1] * 100.0)))
+    edge = {}                                             # (ka, kb) sorted -> layer
+    pt = {}
+    for nm, a, b in segs:
+        ka, kb = key(a), key(b)
+        if ka == kb:
+            continue
+        pt[ka], pt[kb] = a, b
+        e = (ka, kb) if ka < kb else (kb, ka)
+        if e not in edge or nm in HER_LAYERS:
+            edge[e] = nm
+    nb = {}
+    for ka, kb in edge:
+        nb.setdefault(ka, []).append(kb)
+        nb.setdefault(kb, []).append(ka)
+    order = {}
+    for k_, L in nb.items():                              # the neighbours of each point, counter-clockwise
+        L.sort(key=lambda q: math.atan2(q[1] - k_[1], q[0] - k_[0]))
+        order[k_] = dict((q, i) for i, q in enumerate(L))
+    seen, faces, used = set(), [], set()
+    for ka, kb in list(edge):
+        for u, v in ((ka, kb), (kb, ka)):
+            if (u, v) in seen:
+                continue
+            ring, a2 = [], 0
+            while (u, v) not in seen:
+                seen.add((u, v))
+                ring.append(u)
+                a2 += u[0] * v[1] - v[0] * u[1]
+                L = nb[v]
+                w = L[(order[v][u] - 1) % len(L)]         # the next line clockwise around v: keeps the cell on the left
+                u, v = v, w
+            area = a2 / 2.0 / 10000.0                     # the keys are in cm
+            if FACE_MIN <= area <= FACE_MAX and len(ring) >= 3:
+                es = [(ring[i], ring[(i + 1) % len(ring)]) for i in range(len(ring))]
+                es = [(p_, q_) if p_ < q_ else (q_, p_) for p_, q_ in es]
+                used.update(es)
+                faces.append(([pt[k_] for k_ in ring], sum(1 for e in es if edge[e] in HER_LAYERS) / float(len(es))))
+    loose = [(nm, pt[e[0]], pt[e[1]]) for e, nm in edge.items() if e not in used]
+    return faces, loose
+
+
 def read_model(doc, log):
     """every layer as [[closed, [(x, y)]]] in survey m, uncut; names = [(text, x, y)]"""
     import Rhino
@@ -328,19 +382,40 @@ def read_model(doc, log):
                     labels.append([u" ".join(g.Text.split()), round(g.Point.X, 2), round(g.Point.Y, 2), 0.0, kind])
             except Exception:
                 pass
-    bld, her = [], []
+    segs = []
     for nm, o, cl, P in curves(BLD_LAYERS):
-        if len(P) < 3:
-            continue
-        inside = [t for t, x, y in names if g_pip(x, y, P)]
-        word = next((t for t in inside if any(w in u" %s " % t.lower() for w in HERITAGE_WORDS)), None)
-        if nm in HER_LAYERS or word:
-            her.append({"ring": P, "layer": nm, "name": word or (inside[0] if inside else u"")})
+        Q = list(P) + ([P[0]] if cl else [])
+        segs += [(nm, a_, b_) for a_, b_ in zip(Q[:-1], Q[1:])]
+    faces, loose = building_faces(segs)
+    bld, her = [], []
+    grid = {}
+    for i, (P, hshare) in enumerate(faces):
+        for cx in range(int(min(q[0] for q in P) // 25.0), int(max(q[0] for q in P) // 25.0) + 1):
+            for cy in range(int(min(q[1] for q in P) // 25.0), int(max(q[1] for q in P) // 25.0) + 1):
+                grid.setdefault((cx, cy), []).append(i)
+    inside = {}
+    for t, x, y in names:
+        for i in grid.get((int(x // 25.0), int(y // 25.0)), ()):
+            if g_pip(x, y, faces[i][0]):
+                inside.setdefault(i, []).append(t)
+    for i, (P, hshare) in enumerate(faces):
+        ins = inside.get(i, [])
+        word = next((t for t in ins if any(w in u" %s " % t.lower() for w in HERITAGE_WORDS)), None)
+        if hshare >= 0.5 or word:
+            her.append({"ring": P, "layer": u"BINA_TARIHI / BINA_HARABE" if hshare >= 0.5 else u"name text",
+                        "name": word or (ins[0] if ins else u"")})
         else:
             bld.append([True, P])
+    n_faces = len(bld)
+    her_lines = [[False, [a_, b_]] for nm, a_, b_ in loose if nm in HER_LAYERS]
+    bld += [[False, [a_, b_]] for nm, a_, b_ in loose if nm not in HER_LAYERS]
+    log.append(u"buildings: %d survey lines on %d BINA layers joined into %d closed outlines (%d heritage); %d lines "
+               u"close no outline and are drawn as lines" % (len(segs), len(BLD_LAYERS), len(faces), len(her), len(loose)))
+    if segs and not faces:
+        log.append(u"FLAG buildings: the building lines close no outline: check the BINA layers of the open model")
     out["buildings"] = bld
-    out["heritage"] = [[True, h["ring"]] for h in her]
-    cnt["buildings"], cnt["heritage"] = len(bld), len(her)
+    out["heritage"] = [[True, h["ring"]] for h in her] + her_lines
+    cnt["buildings"], cnt["heritage"] = n_faces, len(her)
     for key, layers in SURVEY:
         out[key] = [[cl, P] for _, _, cl, P in curves(layers)]
         cnt[key] = len(out[key])
