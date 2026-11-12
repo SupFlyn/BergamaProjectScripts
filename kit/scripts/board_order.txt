@@ -19,3 +19,4 @@ chain: bergama_booklet_jpg = BookletJpg
 solo: bergama_shared_sync = SharedSync
 solo: bergama_plan_to_rhino = PlanToRhino
 solo: bergama_planting_analysis = PlantingAnalysis
+solo: bergama_sections = Sections
