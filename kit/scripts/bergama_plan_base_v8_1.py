@@ -91,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v8"
+VERSION = "v8.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -129,7 +129,8 @@ SHADOW_M = (-1.2, -1.2)            # A05: every building throws a short, crisp, 
                                    # page (right, up). Estimated from the A05 image (about a tenth of a small house);
                                    # None draws none. Vector, one shape per building (v7; v6 was a blurred tone)
 SOFT_CELL_M = 1.0                  # m cell of the soft green outside (v6.1: 2 m cells showed as steps)
-CONTEXT_GREEN = True               # A05: the soft green of the 2023 tree cover outside the red line too (False = none)
+CONTEXT_GREEN = False              # the soft green of the 2023 tree cover outside the red line: off (Aras 13 Nov 05:39 UTC:
+                                   # "that hue greeneery looks like a drawing error"); True draws it again
 UNDERLAY_M = 5.0                   # m beyond the crown that the soft green reaches before it fades (ours)
 JOINED = ("plan_road", "paving", "promenade", "paving_dark")   # each joined into one outlined surface
 JOIN_TOL_M = 0.6                   # m: the joined outline is straightened to within this (v3.2: no saw-tooth on diagonals)
