@@ -91,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v6"
+VERSION = "v6.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -127,6 +127,7 @@ TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
 SHADOW_M, SHADOW_BLUR_M = (2.0, -2.0), 2.0   # A05: soft building shadow, moved this far (m right, m up on the page)
                                    # and blurred this much; SHADOW_M = None draws none (ours)
+SOFT_CELL_M = 1.0                  # m cell of the shadow and of the green outside (v6.1: 2 m cells showed as steps)
 CONTEXT_GREEN = True               # A05: the soft green of the 2023 tree cover outside the red line too (False = none)
 UNDERLAY_M = 5.0                   # m beyond the crown that the soft green reaches before it fades (ours)
 JOINED = ("plan_road", "paving", "promenade", "paving_dark")   # each joined into one outlined surface
@@ -452,7 +453,7 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
             if gid_ == "route_arrows" and cat.get("route"):   # one colour for the route and its arrows
                 col = cat["route"]["line"]
             items.append(("poly", [[pg(q) for q in R] for R in rings], col, None, 0.0, None, "plan_" + gid_, 1,
-                          "eo" if len(rings) > 1 else None, tag))
+                          "eo" if len(rings) > 1 else None, None if gid_ == "labels" else tag))   # v6.1: a label is never cut
             cnt[gid_] = cnt.get(gid_, 0) + 1
     return items, clips, cnt, unknown
 
@@ -502,19 +503,18 @@ def shadow_data(B, F, layers):
     cv.nx, cv.ny = int(math.ceil(F.w / cv.c)), int(math.ceil(F.h / cv.c))
     rings = [[(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in it[1]] for Lx in layers
              for key in ("buildings", "heritage") for it in Lx.get(key, []) if it[0] and len(it[1]) >= 3]
-    return B["haze_data"](cv.fill(rings), F, SHADOW_BLUR_M) if rings else None
+    return B["haze_data"](cv.fill(rings), F, SHADOW_BLUR_M, SOFT_CELL_M) if rings else None
 
 
-def look_items(B, S, items, shadow, cover, den, x0, y0):
+def look_items(B, S, items, shadow, green, den, x0, y0):
     """A05's soft tones put into the finished item list in place: the tree cover under everything, the building
     shadow right under the first building. Returns the counts"""
     cnt = {}
     if shadow and "building_shadow" in S["cat"]:
         at = min([i for i, it in enumerate(items) if B["_item_layer"](it).startswith("existing_buildings")] or [len(items)])
         items.insert(at, B["soft_item"](shadow, S["cat"]["building_shadow"]["fill"], "building_shadow", None, den, x0, y0))
-    if CONTEXT_GREEN and cover is not None and cover.soft and not any(
-            B["_item_layer"](it) == "satellite_trees" for it in items):
-        items.insert(0, B["soft_item"](cover.soft, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
+    if green and not any(B["_item_layer"](it) == "satellite_trees" for it in items):
+        items.insert(0, B["soft_item"](green, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
         cnt["tree_cover"] = 1
     return cnt
 
@@ -614,9 +614,11 @@ def main():
     unknown = {}
     t1 = time.time()
     shadow0, shadow1 = shadow_data(B, F, [L]), shadow_data(B, F, [L1, Ltop])
+    green = B["haze_data"](cover.rows["sat_trees"], F, None, SOFT_CELL_M) if (
+        CONTEXT_GREEN and cover is not None and cover.soft) else None
     log.append(u"A05 look: soft building shadow %s; soft green of the 2023 tree cover outside the red line %s (%.1f s)" % (
         (u"moved %.1f, %.1f m, blurred %.1f m" % (SHADOW_M[0], SHADOW_M[1], SHADOW_BLUR_M)) if shadow0 else u"none",
-        u"drawn" if (CONTEXT_GREEN and cover is not None and cover.soft) else u"none", time.time() - t1))
+        (u"drawn on %.1f m cells" % SOFT_CELL_M) if green else u"none", time.time() - t1))
     n_a0 = B["a0_scale"](F)
     # file 1 "our way" = the survey with his plan inside the red line; file 2 "as is" = the survey alone, same code
     for name, ours, a0 in ((u"Masterplan", True, False), (u"Masterplan", True, True),
@@ -627,7 +629,8 @@ def main():
             items, cnt = B["draw_context"](L1 if ours else L, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
             if ours:
                 it, clips, c2, unk = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
-                items += it
+                lab = [a for a in it if B["_item_layer"](a) == "plan_labels"]   # v6.1: his labels last, over everything
+                items += [a for a in it if B["_item_layer"](a) != "plan_labels"]
                 it, c3 = B["draw_context"](Ltop, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
                 for i_, a in enumerate(it):               # their own layers, above the plan
                     j_ = 6 if a[0] == "poly" else 5
@@ -638,11 +641,13 @@ def main():
             else:
                 clips, c2, unk = site_items(B, T, site_soft, cover, L, S, F, cal, den_, x, y, u0, u1, tag, items)
             unknown.update(unk)
-            for k_, v in look_items(B, S, items, shadow1 if ours else shadow0, cover, den_, x, y).items():
+            for k_, v in look_items(B, S, items, shadow1 if ours else shadow0, green, den_, x, y).items():
                 c2[k_] = max(c2.get(k_, 0), v)
             for k_, v in c2.items():
                 cnt[k_] = cnt.get(k_, 0) + v
             items += B["draw_top"](D, F, S, den_, x, y, u0, u1, names=False, sections=False)
+            if ours:
+                items += lab
             cnt["calisma"] = len(cal)
             return items, clips, cnt
         w, h, items, clips, cnt = B["sheet"](
