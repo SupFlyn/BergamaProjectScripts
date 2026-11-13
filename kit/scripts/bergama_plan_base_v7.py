@@ -91,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v6.1"
+VERSION = "v7"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -125,9 +125,10 @@ SYMBOL_STEP = 0.02                 # symbol units (a tree symbol is about 2 wide
 TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_<species>">
 TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid", "olive": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
-SHADOW_M, SHADOW_BLUR_M = (2.0, -2.0), 2.0   # A05: soft building shadow, moved this far (m right, m up on the page)
-                                   # and blurred this much; SHADOW_M = None draws none (ours)
-SOFT_CELL_M = 1.0                  # m cell of the shadow and of the green outside (v6.1: 2 m cells showed as steps)
+SHADOW_M = (-1.2, -1.2)            # A05: every building throws a short, crisp, dark shadow to the lower left: m on the
+                                   # page (right, up). Estimated from the A05 image (about a tenth of a small house);
+                                   # None draws none. Vector, one shape per building (v7; v6 was a blurred tone)
+SOFT_CELL_M = 1.0                  # m cell of the soft green outside (v6.1: 2 m cells showed as steps)
 CONTEXT_GREEN = True               # A05: the soft green of the 2023 tree cover outside the red line too (False = none)
 UNDERLAY_M = 5.0                   # m beyond the crown that the soft green reaches before it fades (ours)
 JOINED = ("plan_road", "paving", "promenade", "paving_dark")   # each joined into one outlined surface
@@ -142,10 +143,12 @@ SURVEY_TONE = {"SEMBOL_YPDKN_AGAC": "site_tree_light", "SEMBOL_TEK_AGAC": "site_
 SURVEY_TREE_R = 3.0                # m: crown drawn for a survey tree symbol (the survey gives no crown size; ours)
 PATH_STEP = 1.5                    # SVG units: curves of his plan are cut into pieces of about this length
 CREDIT = (u"Inside the red line: the plan drawing masterlastversion.svg, redrawn by layer. Outside: the survey "
-          u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines. Routes and labels follow.")
+          u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines; houses the survey draws only as open "
+          u"street fronts: footprints (c) OpenStreetMap contributors.")
 
 CREDIT_ASIS = (u"The site as it is: the survey (buildings, road edges, water, tree symbols) with street bands along "
-               u"OpenStreetMap centrelines. Inside the red line the same look as the masterplan, nothing of the plan.")
+               u"OpenStreetMap centrelines; houses the survey draws only as open street fronts: footprints (c) "
+               u"OpenStreetMap contributors. Inside the red line the same look as the masterplan, nothing of the plan.")
 
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
@@ -492,29 +495,48 @@ def site_items(B, T, soft, cover, L, S, F, cal, den, x0, y0, u0, u1, tag, items)
     return clips, cnt, unknown
 
 
-def shadow_data(B, F, layers):
-    """A05's soft shadow (Aras 13 Nov 04:21 UTC, card: "Both, Masterplan files only"): every closed building outline
-    of the given layer sets, moved SHADOW_M and blurred SHADOW_BLUR_M"""
-    if not SHADOW_M:
-        return None
-    C = B["Cover"]
-    cv = C.__new__(C)                                    # only its fill() is used: no land cover is read
-    cv.c = B["MASK_C"]
-    cv.nx, cv.ny = int(math.ceil(F.w / cv.c)), int(math.ceil(F.h / cv.c))
-    rings = [[(q[0] + SHADOW_M[0], q[1] + SHADOW_M[1]) for q in it[1]] for Lx in layers
-             for key in ("buildings", "heritage") for it in Lx.get(key, []) if it[0] and len(it[1]) >= 3]
-    return B["haze_data"](cv.fill(rings), F, SHADOW_BLUR_M, SOFT_CELL_M) if rings else None
-
-
-def look_items(B, S, items, shadow, green, den, x0, y0):
-    """A05's soft tones put into the finished item list in place: the tree cover under everything, the building
-    shadow right under the first building. Returns the counts"""
+def look_items(B, S, items, green, den, x0, y0, F):
+    """A05's context language put into the finished item list in place (Masterplan files only): the soft green of
+    the tree cover under everything; every building white with a pale outline (style building_plan) and a short dark
+    vector shadow to the lower left (style building_shadow), all shadows under all buildings. Returns the counts"""
     cnt = {}
-    if shadow and "building_shadow" in S["cat"]:
-        at = min([i for i, it in enumerate(items) if B["_item_layer"](it).startswith("existing_buildings")] or [len(items)])
-        items.insert(at, B["soft_item"](shadow, S["cat"]["building_shadow"]["fill"], "building_shadow", None, den, x0, y0))
-    if green and not any(B["_item_layer"](it) == "satellite_trees" for it in items):
-        items.insert(0, B["soft_item"](green, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
+    cat = S["cat"]
+    k = 1000.0 / den
+    lay = B["_item_layer"]
+    pale = cat.get("building_plan")
+    sh = cat.get("building_shadow") if SHADOW_M else None
+    dx, dy = ((SHADOW_M[0] * k, SHADOW_M[1] * k) if SHADOW_M else (0.0, 0.0))
+    xa, ya, xb, yb = x0, y0, x0 + F.w * k, y0 + F.h * k
+
+    def cl(p):                                           # a shadow never leaves the frame
+        return (min(xb, max(xa, p[0])), min(yb, max(ya, p[1])))
+    shadows, first = [], None
+    for i, it in enumerate(items):
+        if not lay(it).startswith("existing_buildings"):
+            continue
+        if first is None:
+            first = i
+        if it[0] == "poly":
+            if sh:
+                quads = []
+                for R in it[1]:
+                    a2 = sum(R[j - 1][0] * R[j][1] - R[j][0] * R[j - 1][1] for j in range(len(R)))
+                    for j in range(len(R)):
+                        a, b = (R[j - 1], R[j]) if a2 >= 0 else (R[j], R[j - 1])   # walked counter-clockwise
+                        if (b[1] - a[1]) * dx - (b[0] - a[0]) * dy > 1e-9:         # this side faces the shadow
+                            quads.append([a, b, cl((b[0] + dx, b[1] + dy)), cl((a[0] + dx, a[1] + dy))])
+                if quads:
+                    shadows.append(("poly", quads, sh["fill"], None, 0.0) + it[5:6] + ("building_shadow",) + it[7:8] +
+                                   (None,) + it[9:])
+            if pale:
+                items[i] = it[:2] + (pale["fill"] or it[2], pale["line"], pale["w"]) + it[5:]
+        elif it[0] == "line" and pale:
+            items[i] = it[:2] + (pale["line"], pale["w"]) + it[4:]
+    if shadows:
+        items[first:first] = shadows
+        cnt["building_shadow"] = len(shadows)
+    if green and not any(lay(it) == "satellite_trees" for it in items):
+        items.insert(0, B["soft_item"](green, cat["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
         cnt["tree_cover"] = 1
     return cnt
 
@@ -542,6 +564,7 @@ def main():
     F = B["Frame"]([tuple(p) for p in D["frame"]])
     D["layers"].update(B["load_veg"](D, log))             # the tree cover of today, for the as-is file only
     D["layers"].update(B["build_streets"](D, F, log))
+    D["layers"].update(B["osm_houses"](D, F, log))        # v7: the houses the survey draws only as open fronts
     L = B["localise"](D, F)
     B["prepare"](D, L, F, log)
     fade = B["Fade"](D, F)
@@ -564,7 +587,7 @@ def main():
     def inside(q):
         return any(B["g_pip"](q[0], q[1], R) for R in cal)
     L1, Ltop, gone = dict(L), {}, 0                       # file 1: the survey without the houses the plan takes
-    for key in ("buildings", "heritage"):
+    for key in ("osm_houses", "buildings", "heritage"):
         base, top = [], []
         for it in L.get(key, []):
             sh = sum(1 for q in it[1] if inside(q)) / float(max(1, len(it[1])))
@@ -610,15 +633,15 @@ def main():
               "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street", "tree_cover", "route",
               "calisma"])
     order_asis = (["meadow", "underlay_2", "tree_cover", "site_tree_light", "site_tree_mid", "site_tree_dark"] +
-                  [c for _, c, _ in B["CONTEXT"]][::-1] + ["calisma"])
+                  list(dict.fromkeys(c for _, c, _ in B["CONTEXT"][::-1])) + ["calisma"])
     unknown = {}
     t1 = time.time()
-    shadow0, shadow1 = shadow_data(B, F, [L]), shadow_data(B, F, [L1, Ltop])
     green = B["haze_data"](cover.rows["sat_trees"], F, None, SOFT_CELL_M) if (
         CONTEXT_GREEN and cover is not None and cover.soft) else None
-    log.append(u"A05 look: soft building shadow %s; soft green of the 2023 tree cover outside the red line %s (%.1f s)" % (
-        (u"moved %.1f, %.1f m, blurred %.1f m" % (SHADOW_M[0], SHADOW_M[1], SHADOW_BLUR_M)) if shadow0 else u"none",
-        (u"drawn on %.1f m cells" % SOFT_CELL_M) if green else u"none", time.time() - t1))
+    log.append(u"A05 look: buildings white with a pale outline and a vector shadow %s; soft green of the 2023 tree "
+               u"cover outside the red line %s (%.1f s)" % (
+                   (u"moved %.1f, %.1f m" % SHADOW_M) if (SHADOW_M and "building_shadow" in S["cat"]) else u"none",
+                   (u"drawn on %.1f m cells" % SOFT_CELL_M) if green else u"none", time.time() - t1))
     n_a0 = B["a0_scale"](F)
     # file 1 "our way" = the survey with his plan inside the red line; file 2 "as is" = the survey alone, same code
     for name, ours, a0 in ((u"Masterplan", True, False), (u"Masterplan", True, True),
@@ -641,7 +664,7 @@ def main():
             else:
                 clips, c2, unk = site_items(B, T, site_soft, cover, L, S, F, cal, den_, x, y, u0, u1, tag, items)
             unknown.update(unk)
-            for k_, v in look_items(B, S, items, shadow1 if ours else shadow0, green, den_, x, y).items():
+            for k_, v in look_items(B, S, items, green, den_, x, y, F).items():
                 c2[k_] = max(c2.get(k_, 0), v)
             for k_, v in c2.items():
                 cnt[k_] = cnt.get(k_, 0) + v
