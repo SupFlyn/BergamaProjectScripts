@@ -122,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v10"
+VERSION = "v11"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -162,7 +162,8 @@ VEG_KEYS = (("bare", "sat_bare"), ("grass", "sat_grass"), ("trees", "sat_trees")
 VEG_BOX = (29520.496, 30413.562, 31532.996, 32880.562)
 CREDIT = (u"Buildings, road edges, water: survey. Land cover: Esri World Imagery (Maxar), 1 Mar 2023, by colour rules. "
           u"Street bands: survey edges and fronts along OpenStreetMap centrelines. Houses the survey draws only as "
-          u"open street fronts: footprints (c) OpenStreetMap contributors.")
+          u"open street fronts: footprints (c) OpenStreetMap contributors, else their backs read from Esri "
+          u"World Imagery (Maxar, 1 Mar 2023), about +-5 m.")
 OSM_FILE = os.path.join("Data", "bergama_osm.osm")
 # OSM longitude / latitude -> survey m: TM 27 (GRS80) then the fit to the survey (the site board's GEO values)
 _A, _FL = 6378137.0, 1 / 298.257222101
@@ -201,6 +202,7 @@ CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
 CACHE_FORMAT = 3
 STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 HOUSE_FILE = os.path.join(CACHE_DIR, "osm_houses.json")
+SAT_HOUSE_FILE = os.path.join("Data", "houses_sat2023.json")   # v11: house bodies read from the 2023 satellite image
 HOUSE_FORMAT, HOUSE_SURVEYED, HOUSE_C = 1, 0.30, 0.5   # v10: an OSM footprint is used when under this share of it lies
                                                        # in closed survey outlines (0.5 m cells) and a survey building line runs in it
 
@@ -785,7 +787,7 @@ class Cover(object):
         self.nx, self.ny = int(math.ceil(F.w / c)), int(math.ceil(F.h / c))
         t0 = time.time()
         full = (1 << self.nx) - 1
-        faces = self.fill([Q for key in ("osm_houses", "buildings", "heritage") for cl, Q, _, _ in L.get(key, []) if cl and len(Q) >= 3])
+        faces = self.fill([Q for key in ("sat_houses", "osm_houses", "buildings", "heritage") for cl, Q, _, _ in L.get(key, []) if cl and len(Q) >= 3])
         loose = [0] * self.ny
         for key in ("buildings", "heritage", "sheds"):
             for cl, Q, _, _ in L.get(key, []):
@@ -1327,7 +1329,8 @@ CONTEXT = [
     ("ponds", "pond", "existing_water"), ("paths", "path", "existing_paths"),
     ("street_net", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
     ("bridges", "bridge", "existing_bridges"), ("heritage_walls", "heritage_wall", "existing_heritage"),
-    ("osm_houses", "building", "existing_buildings"), ("buildings", "building", "existing_buildings"),
+    ("sat_houses", "building", "existing_buildings"), ("osm_houses", "building", "existing_buildings"),
+    ("buildings", "building", "existing_buildings"),
     ("heritage", "heritage", "existing_heritage")]
 KEY_SKIP = ("paths",)              # too fine for the key map; everything else the same
 
@@ -1627,6 +1630,28 @@ class SegGrid(object):
 def _median(v):
     v = sorted(v)
     return v[len(v) // 2] if v else None
+
+
+def sat_houses(D, F, log):
+    """v11 (Aras 13 Nov 05:14 UTC: "Look at settalite imagery for those"): the house bodies behind the survey's open
+    street fronts that no OpenStreetMap footprint covers, read from the 1 Mar 2023 satellite image. The file is made
+    offline (its own "source", "method" and "limits" say how); here it is only read. {"sat_houses": [[True, ring]]}"""
+    src = os.path.join(BERGAMA_ROOT, SAT_HOUSE_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG houses: %s not found: run Bergama.bat once (the kit copies it); the remaining open fronts "
+                   u"stay open lines" % src)
+        return {}
+    try:
+        with open(src, encoding="utf-8") as f:
+            J = json.load(f)
+        rings = [[True, [[float(p[0]), float(p[1])] for p in R]] for R in J.get("rings", []) if len(R) >= 3]
+    except Exception as e:
+        log.append(u"FLAG houses: %s not read (%s: %s)" % (src, type(e).__name__, e))
+        return {}
+    n = sum(1 for cl, R in rings if any(0.0 <= q[0] <= F.w and 0.0 <= q[1] <= F.h for q in (F.local(p) for p in R)))
+    log.append(u"houses from the satellite image: %d bodies in %s, %d in the frame (backs read from the image, about "
+               u"+-5 m; fronts are the survey's)" % (len(rings), os.path.basename(src), n))
+    return {"sat_houses": rings}
 
 
 def osm_houses(D, F, log):
@@ -2486,6 +2511,7 @@ def main():
     D["layers"].update(load_veg(D, log))
     D["layers"].update(build_streets(D, F, log))
     D["layers"].update(osm_houses(D, F, log))
+    D["layers"].update(sat_houses(D, F, log))
     L = localise(D, F)
     prepare(D, L, F, log)
     fade = Fade(D, F)
