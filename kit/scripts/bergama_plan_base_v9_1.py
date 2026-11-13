@@ -23,6 +23,11 @@ scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once befo
 v5.1 (Rhino run of v5: trees right; number badges of his labels missing, arrows in another colour than the route):
 circles and ellipses of his label group are read (the coloured number badges and dots); his route arrows take the
 route colour of the style table.
+v9.1, Aras 13 Nov 06:19 UTC: "in my svg they should be drawn more or less like if a road doesnt leads to a place they
+should connect to other roads for sure like a network". (1) The road and walk shapes of his SVG that PLAN_RULES left
+out are drawn: his thin link paths (#e8e0c8), bridge decks (#8e918a, #9c9f99), shaded decks and ramps (gradient fills),
+#f2e3e3, #b5a8a2. (2) roads_design.json "joins": an end with no existing street to follow is carried on in its own
+drawn direction until it meets the next road or path (rules in the file's "method").
 v9, Aras 13 Nov 06:02-06:05 UTC: "roads still dont align dont intersect and they look incomplete ... roads should
 always lead to a detination or to the whole end also the route path like the dotted one is not aligning with the roads";
 "merging it into the nearest line is not a solution design those roads"; "those roads being like that should have a
@@ -103,7 +108,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v9"
+VERSION = "v9.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -119,10 +124,15 @@ PLAN_RULES = {
     "Selinos": {"*": "water"},
     "water_drainage_wall": {"*": "wet_edge"},
     "wetland_shallow_water_reeds": {"#a9c4c2": "wet_edge", "#5d8980": "wet_edge", "*": "reed"},
-    "roads_streets": {"#fff": "plan_road", "#f8f8f6": "plan_road", "#e9ded8": "plan_road"},
+    "roads_streets": {"#fff": "plan_road", "#f8f8f6": "plan_road", "#e9ded8": "plan_road",
+                      # v9.1: his grey and shaded road pieces (bridge decks, the highway ramp) were left out
+                      "#8e918a": "plan_road", "#9c9f99": "plan_road", "#b5a8a2": "plan_road", "url": "plan_road"},
     "yeni_yol": {"*": "plan_road"},
     "walks_paths_bike_lane": {"#e8cfcf": "promenade", "#a8705c": "paving_dark", "#efddda": "paving", "#f8f5f3": "paving",
-                              "#eee5e1": "paving", "#f3edea": "paving", "#e9ded8": "paving"},
+                              "#eee5e1": "paving", "#f3edea": "paving", "#e9ded8": "paving",
+                              # v9.1: left out before: his thin link paths, bridge decks, the decks into the lake
+                              "#e8e0c8": "paving", "#f2e3e3": "promenade", "#8e918a": "paving_dark",
+                              "#9c9f99": "paving_dark", "url": "paving_dark"},   # "url" = any gradient fill
     "evler": {"#f7f8f6": "building", "#e4877a": "heritage"},
     "heritage1": {"#e4877a": "heritage"},
     "Kizil_Avlu_outline_popped_the_reason_for_the_red_area": {"#b8483a": "heritage"},
@@ -344,7 +354,7 @@ def read_plan(B, F, log):
             continue
         filled = fill not in ("", "none") or (tag in ("path", "polygon", "rect") and "fill" not in a and "stroke" not in a
                                                 and gid == "water_drainage_wall")
-        cat = (rule.get(fill) or rule.get("*")) if filled else None
+        cat = (rule.get(fill) or (rule.get("url") if fill.startswith("url(") else None) or rule.get("*")) if filled else None
         if cat and tag != "line" and tag != "polyline":
             rings = [[U(p) for p in P] for cl, P in subs if len(P) >= 3]
             if rings:
@@ -600,16 +610,21 @@ def main():
                 dj = json.load(f)
             for k_, cat_ in (("links", "plan_road"), ("footbridges", "paving")):
                 design[cat_] = [[[list(F.local(q)) for q in R] for R in shp] for shp in dj.get(k_) or []]
+            n_join = 0
+            for cat_, shps in (dj.get("joins") or {}).items():   # v9.1: loose ends carried on in their own direction
+                design.setdefault(cat_, []).extend([[list(F.local(q)) for q in R] for R in shp] for shp in shps)
+                n_join += len(shps)
             same = dj.get("plan_svg_bytes") == os.path.getsize(os.path.join(BERGAMA_ROOT, PLAN_SVG))
             if same and dj.get("routes"):
                 P["routes"] = [[list(F.local(q)) for q in r] for r in dj["routes"]]
             else:
                 log.append(u"FLAG roads: %s was made for another version of his plan SVG: the links are drawn, the "
                            u"dotted route is left as he drew it; ask for a new roads_design.json" % dsrc)
-            log.append(u"roads: %d link(s) along existing streets and %d footbridge deck(s) added to his roads and paths; "
-                       u"dotted route %s; %d path end(s) of his plan have no existing street to follow and stay as "
-                       u"drawn, at (m along the frame, m up): %s" % (
-                           len(design["plan_road"]), len(design["paving"]),
+            log.append(u"roads: %d link(s) along existing streets, %d join(s) of loose ends in their own direction and %d "
+                       u"footbridge deck(s) added to his roads and paths; "
+                       u"dotted route %s; %d end(s) of his plan stay as drawn (water or a building ahead, or a pier), "
+                       u"at (m along the frame, m up): %s" % (
+                           len(dj.get("links") or []), n_join, len(dj.get("footbridges") or []),
                            u"on the path centre lines" if same else u"as he drew it", len(dj.get("open_ends") or []),
                            u", ".join(u"%.0f/%.0f" % (e[0], e[1]) for e in dj.get("open_ends") or []) or u"none"))
         except Exception as e:
