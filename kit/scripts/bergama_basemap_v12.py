@@ -5,6 +5,16 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v12, Aras 13 Nov 06:29-06:33 UTC: "can you take those roads from dwg and fix according to that"; "context looks weird fix
+it to be more pin point accurate with the data"; "draw them in a most data accurate way as you can". Until now the drawn
+street edge was the edge of a band built along OpenStreetMap centrelines (only 23 % of that edge lay on a survey road
+edge; the rest was carried on or a class median), and the survey's own road edges beside it were dropped. It crossed
+yards and houses. Now (SURVEY_ROADS = True): every road line is the survey's own line, exactly as drawn in the DWG
+layers YOL_SOSE, YOL_TOPRAK (road edges), YOL_BORDUR (kerbs, drawn now) and YOL_KOPRU (bridges); none of them is
+dropped or moved; the OpenStreetMap street band is not drawn (no fill, no edge). The band is still built: PlanBase
+uses it to find which street runs where. SURVEY_ROADS = False gives the v11.1 drawing back. This sets aside the
+12 Nov 11:15 wish below where the survey itself stops a road edge (old-town streets have house fronts, no road edge).
+
 Aras 12 Nov 2026 (his words, in order):
   10:53 "every road should be outlined as well as the buildings ... Heritage buildings should be marked. Our site_alan
         should be our frame for that basemap and keymap"
@@ -122,9 +132,10 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v11.1"
+VERSION = "v12"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
+SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
 LOG_NAME = "bergama_basemap_log.txt"
 GH_INPUTS = {"scale": "int 500..10000 = 2000", "keymap_scale": "int 2000..50000 = 10000"}
 
@@ -1227,7 +1238,7 @@ def clean_lines(L, F, street_rows, river_rows, log):
     L["buildings"] = kept + open_
     drops, frag = {}, {}
     for names, rows in ((("road_edges", "kerbs", "bridges"), street_rows), (("stream_banks",), river_rows)):
-        if rows is None:
+        if rows is None or (SURVEY_ROADS and rows is street_rows):   # v12: the survey's road lines stay whole
             continue
         zone = mask_grow(rows, int(round(NEAR_M / c)), nx)
         for name in names:
@@ -1328,6 +1339,7 @@ CONTEXT = [
     ("river", "water", "existing_water"), ("stream_banks", "stream_bank", "existing_water"),
     ("ponds", "pond", "existing_water"), ("paths", "path", "existing_paths"),
     ("street_net", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
+    ("kerbs", "road_edge", "existing_roads"),            # v12: the survey's kerb lines, in the one road line
     ("bridges", "bridge", "existing_bridges"), ("heritage_walls", "heritage_wall", "existing_heritage"),
     ("sat_houses", "building", "existing_buildings"), ("osm_houses", "building", "existing_buildings"),
     ("buildings", "building", "existing_buildings"),
@@ -1348,7 +1360,7 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
         items.append(soft_item(cover.soft, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
         cnt["tree_cover"] = 1
     for key, cname, layer in CONTEXT:
-        if key in skip:
+        if key in skip or (SURVEY_ROADS and key == "street_net") or (key == "kerbs" and not SURVEY_ROADS):
             continue
         c = S["cat"][cname]
         stroke, lw, fill = c["line"], c["w"] * lw_k, fill_of(c)
