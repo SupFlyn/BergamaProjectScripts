@@ -45,6 +45,12 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v9, Aras 13 Nov 04:00-04:01 UTC: "recreate that masterplan drawing 1:1 according to our site"; "use it's assets our
+from our asset library"; "tree's etc. look weird". The writers learn two things the masterplan needs: a "form" item
+(an asset such as one of his tree symbols, stored once in the PDF / SVG and placed by a matrix for every tree) and
+dashed or dotted lines (A05's dotted routes). Also (Rhino run of v8): the layers BINA_MERDIVEN (stairs), BINA_KAPI
+(doors) and BINA_TARAMA (hatch lines) are not building outlines and are left out again (they showed as X boxes and
+comb marks on the buildings); BINA_SUNDURMA stays in.
 v8, Aras 13 Nov 03:59 UTC: "some of the buildings are lost with their outlines and all we need all of themm". Since
 v5 the layer BINA_SUNDURMA (annexes and lean-to buildings; 27,073 lines, 97 km in the cached survey) was read as
 "sheds" and no longer drawn, so whole rows of small buildings were missing. Now every layer of the model whose name
@@ -113,7 +119,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v8"
+VERSION = "v9"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -126,6 +132,7 @@ WORK_LAYER = "calisma_alan"
 BLD_LAYERS = ["BINA_MESKEN", "BINA", "BINA_RESMI", "BINA_OKUL", "BINA_DINI_TESIS", "BINA_DINITESIS", "BINA_TARIHI",
               "BINA_HARABE", "BINA_FABRIKA", "BINA_SERA", "BINA_SPOR_TESISLERI", "BINA_AKARYAKIT", "BINA_INS_HALINDE"]
 HER_LAYERS = ("BINA_TARIHI", "BINA_HARABE")
+NOT_BUILDINGS = ("BINA_MERDIVEN", "BINA_KAPI", "BINA_TARAMA")   # stairs, doors, hatch lines: not outlines (v9)
 NAME_LAYER = "YAZI_YAPI"
 FLOOR_LAYER = "YAZI_KAT_ADEDI"
 STREET_NAME_LAYER = "YAZI_CADDE_YOL"
@@ -337,7 +344,7 @@ def read_model(doc, log):
     try:
         for lay in doc.Layers:
             if not lay.IsDeleted and lay.Name and lay.Name.upper().startswith("BINA") and lay.Name not in BLD_LAYERS \
-                    and lay.Name not in more:
+                    and lay.Name not in more and lay.Name.upper() not in NOT_BUILDINGS:
                 more.append(lay.Name)
     except Exception:
         pass
@@ -1794,23 +1801,30 @@ _LOCKED = []
 
 def _item_layer(it):
     t = it[0]
-    return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t in ("mask", "soft") else it[8]
+    return it[6] if t == "poly" else it[5] if t == "line" else it[10] if t in ("mask", "soft") else \
+        it[3] if t == "form" else it[8]
 
 
 def _item_clip(it):
     t = it[0]
-    return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t in ("mask", "soft") else None
+    return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t in ("mask", "soft") else \
+        it[4] if t == "form" else None
 
 
-def write_pdf(path, w, h, items, title, clips=None):
+def write_pdf(path, w, h, items, title, clips=None, forms=None):
     """one page w x h mm; items in page mm, y up; each item's layer becomes a PDF layer.
     poly  ("poly", rings, fill, stroke, lw, None, layer, 1, "eo"|None, clip)   fill "~RRGGBB" = with the grain
     line  ("line", pts, stroke, lw, clip, layer, 1)
     text  ("text", s, x, y, size, colour, bold, align, layer, angle, "i"|None)
     mask  ("mask", zlib 1-bit rows, px w, px h, x, y, w mm, h mm, fill, None, layer, clip)   a stencil painted in fill
+    form  ("form", name, (a, b, c, d, e, f), layer, clip)   the asset forms[name] placed by a matrix (page mm); an
+          asset = {"w", "h", "shapes": [[fill, rings]]} in its own units, y down: stored once, placed many times
+    a line whose last field is (on mm, off mm) is dashed; (0, gap) with the round ends = dots
     clips = {clip id: [rings, rings, ...]}: an item with a clip id is cut to every ring set of that id in turn"""
     objs = []
     clips = clips or {}
+    forms = forms or {}
+    fobj = {}
 
     def add(b):
         objs.append(b)
@@ -1819,9 +1833,7 @@ def write_pdf(path, w, h, items, title, clips=None):
     def lay(it):
         return _item_layer(it).split("/")[0]             # "trees/tree_0001" is PDF layer "trees"
 
-    def clip_of(it):
-        t = it[0]
-        return it[9] if t == "poly" else it[4] if t == "line" else it[11] if t in ("mask", "soft") else None
+    clip_of = _item_clip
     layers = []
     for it in items:
         if lay(it) not in layers:
@@ -1917,10 +1929,29 @@ def write_pdf(path, w, h, items, title, clips=None):
                 body += ("\n".join(A) + "\n").encode()
             elif t == "line":
                 pts, stroke, lw = it[1:4]
-                A = ["q %s RG %s w" % (_col(stroke), _f(lw or 0.1)), "%s %s m" % (_f(pts[0][0]), _f(pts[0][1]))]
+                dash = (" [%s %s] 0 d" % (_f(it[6][0]), _f(it[6][1]))) if isinstance(it[6], (tuple, list)) else ""
+                A = ["q %s RG %s w%s" % (_col(stroke), _f(lw or 0.1), dash), "%s %s m" % (_f(pts[0][0]), _f(pts[0][1]))]
                 A += ["%s %s l" % (_f(p[0]), _f(p[1])) for p in pts[1:]]
                 A.append("S Q")
                 body += ("\n".join(A) + "\n").encode()
+            elif t == "form":
+                name, M = it[1], it[2]
+                if name not in forms:
+                    continue
+                if name not in fobj:                     # the asset once, as a PDF form
+                    C = []
+                    for fill, rings in forms[name]["shapes"]:
+                        for r in rings:
+                            C.append("%.4f %.4f m" % (r[0][0], r[0][1]))
+                            C += ["%.4f %.4f l" % (q[0], q[1]) for q in r[1:]]
+                            C.append("h")
+                        C.append("%s rg f" % _col(fill))
+                    zf = zlib.compress("\n".join(C).encode(), 6)
+                    fobj[name] = add(("<< /Type /XObject /Subtype /Form /BBox [-1 -1 %s %s] /Filter /FlateDecode "
+                                      "/Length %d >>\nstream\n" % (_f(forms[name]["w"] + 1.0), _f(forms[name]["h"] + 1.0),
+                                                                  len(zf))).encode() + zf + b"\nendstream")
+                    imgs[fobj[name]] = 1
+                body += ("q %s cm /I%d Do Q\n" % (" ".join("%.5f" % v for v in M), fobj[name])).encode()
             elif t == "mask":
                 z, pw, ph, x, y, mw, mh, fill = it[1:9]
                 im = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ImageMask true /BitsPerComponent 1 "
@@ -2020,7 +2051,7 @@ def _xml(t):
     return (u"%s" % t).replace(u"&", u"&amp;").replace(u"<", u"&lt;").replace(u">", u"&gt;").replace(u'"', u"&quot;")
 
 
-def write_svg(path, w, h, items, title, clips=None):
+def write_svg(path, w, h, items, title, clips=None, forms=None):
     """the same items as write_pdf, as an SVG for editing: one named group per layer, in the PDF's order; a layer name
     "a/b" becomes group b inside group a (every tree its own group inside the trees group). Fills are flat colours
     here (the grain lives in the PDF, the print file); a soft tone is an embedded PNG with its own transparency."""
@@ -2036,6 +2067,16 @@ def write_svg(path, w, h, items, title, clips=None):
         cnum[cid] = len(cnum)
         for i, rs in enumerate(clips[cid]):
             A.append(u'<clipPath id="clip%d_%d"><path clip-rule="evenodd" d="%s"/></clipPath>' % (cnum[cid], i, d_of(rs)))
+    forms = forms or {}
+    used = set(it[1] for it in items if it[0] == "form")
+    for name in sorted(forms):                           # each asset once, in its own units; placed with <use>
+        if name not in used:
+            continue
+        A.append(u'<g id="asset_%s">' % _xml(name))
+        for fill, rings in forms[name]["shapes"]:
+            A.append(u'<path d="%s" fill="#%s"/>' % (u" ".join(
+                u"M" + u" L".join(u"%.4f %.4f" % (q[0], q[1]) for q in R) + u" Z" for R in rings if R), fill))
+        A.append(u"</g>")
     A.append(u"</defs>")
     layers = []
     for it in items:
@@ -2078,9 +2119,15 @@ def write_svg(path, w, h, items, title, clips=None):
                     (u' stroke="#%s" stroke-width="%.3f" stroke-linejoin="round"' % (stroke, lw or 0.1)) if stroke else u""))
             elif t == "line":
                 pts, stroke, lw = it[1:4]
+                dash = (u' stroke-dasharray="%.3f %.3f"' % (it[6][0], it[6][1])) if isinstance(it[6], (tuple, list)) else u""
                 A.append(u'<polyline points="%s" fill="none" stroke="#%s" stroke-width="%.3f" stroke-linecap="round" '
-                         u'stroke-linejoin="round"/>' % (u" ".join(u"%.2f,%.2f" % (q[0], h - q[1]) for q in pts), stroke,
-                                                         lw or 0.1))
+                         u'stroke-linejoin="round"%s/>' % (u" ".join(u"%.2f,%.2f" % (q[0], h - q[1]) for q in pts), stroke,
+                                                            lw or 0.1, dash))
+            elif t == "form":
+                if it[1] in forms:
+                    a_, b_, c_, d_, e_, f_ = it[2]
+                    A.append(u'<use xlink:href="#asset_%s" transform="matrix(%.5f %.5f %.5f %.5f %.3f %.3f)"/>' % (
+                        _xml(it[1]), a_, -b_, c_, -d_, e_, h - f_))
             elif t == "soft":
                 z, pw, ph, x, y, mw, mh, colour = it[1:9]
                 A.append(u'<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" preserveAspectRatio="none" '
