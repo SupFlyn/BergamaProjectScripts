@@ -23,6 +23,18 @@ scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once befo
 v5.1 (Rhino run of v5: trees right; number badges of his labels missing, arrows in another colour than the route):
 circles and ellipses of his label group are read (the coloured number badges and dots); his route arrows take the
 route colour of the style table.
+v9, Aras 13 Nov 06:02-06:05 UTC: "roads still dont align dont intersect and they look incomplete ... roads should
+always lead to a detination or to the whole end also the route path like the dotted one is not aligning with the roads";
+"merging it into the nearest line is not a solution design those roads"; "those roads being like that should have a
+meaning". Cause: the town's existing streets inside the red line were not drawn in file 1, so his roads, paths and
+bridges stopped short of the town streets and the town streets stopped at the red line. Now Data/roads_design.json
+(made offline from the street bands and his plan; its "method" says how) adds, in file 1 only:
+  LINKS        the existing street, on its real line and width, wherever it carries a town street from the red line to
+               the plan's first road or path, or a plan road, path or bridge end on to the next one or to the town.
+               Drawn as "Road" and joined with his roads into one surface. No link where no existing street runs.
+  FOOTBRIDGES  a 3.0 m deck (ASSUMPTION: the width) where his dotted route crosses the water with no bridge drawn.
+  ROUTES       his dotted route on the centre line of the path it runs on.
+The log lists the path ends that have no existing street to follow: they stay as he drew them.
 v5, Aras 13 Nov 04:00-04:01 UTC: "masterplan sucks in terms of architectural language"; "recreate that masterplan
 drawing 1:1 according to our site"; "use it's assets our from our asset library"; "tree's etc. look weird". So:
   TREES   my discs are gone from file 1. Every tree is HIS drawing of that species: the symbols sym_<species> of his
@@ -91,7 +103,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v8.1"
+VERSION = "v9"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -158,6 +170,7 @@ OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 SHAPE_FILE = os.path.join(CACHE_DIR, "plan_shapes.json")
+DESIGN_FILE = os.path.join("Data", "roads_design.json")   # v9: the road links, footbridge decks and centred routes
 SHAPE_FORMAT = 2
 
 
@@ -579,9 +592,35 @@ def main():
     P = read_plan(B, F, log)
     cal = [[F.local(p) for p in R] for R in D["calisma"]]
     P["soft"] = B["haze_data"]([(u, v, r + UNDERLAY_M) for u, v, r, sp in P["trees"]], F) if P["trees"] else None
+    design = {}                                           # v9: the road links (see the head of the file)
+    dsrc = os.path.join(BERGAMA_ROOT, DESIGN_FILE)
+    if os.path.isfile(dsrc):
+        try:
+            with open(dsrc, encoding="utf-8") as f:
+                dj = json.load(f)
+            for k_, cat_ in (("links", "plan_road"), ("footbridges", "paving")):
+                design[cat_] = [[[list(F.local(q)) for q in R] for R in shp] for shp in dj.get(k_) or []]
+            same = dj.get("plan_svg_bytes") == os.path.getsize(os.path.join(BERGAMA_ROOT, PLAN_SVG))
+            if same and dj.get("routes"):
+                P["routes"] = [[list(F.local(q)) for q in r] for r in dj["routes"]]
+            else:
+                log.append(u"FLAG roads: %s was made for another version of his plan SVG: the links are drawn, the "
+                           u"dotted route is left as he drew it; ask for a new roads_design.json" % dsrc)
+            log.append(u"roads: %d link(s) along existing streets and %d footbridge deck(s) added to his roads and paths; "
+                       u"dotted route %s; %d path end(s) of his plan have no existing street to follow and stay as "
+                       u"drawn, at (m along the frame, m up): %s" % (
+                           len(design["plan_road"]), len(design["paving"]),
+                           u"on the path centre lines" if same else u"as he drew it", len(dj.get("open_ends") or []),
+                           u", ".join(u"%.0f/%.0f" % (e[0], e[1]) for e in dj.get("open_ends") or []) or u"none"))
+        except Exception as e:
+            design = {}
+            log.append(u"FLAG roads: %s not read (%s: %s): his roads and paths are drawn without the links"
+                       % (dsrc, type(e).__name__, e))
+    else:
+        log.append(u"FLAG roads: %s not found: his roads and paths are drawn without the links" % dsrc)
     P["net"] = {}                                         # roads and paths: one joined surface per category
     for name in JOINED:
-        src = [rings for rings in P["shapes"].get(name, [])]
+        src = [rings for rings in P["shapes"].get(name, [])] + design.get(name, [])
         if name == "plan_road":
             for pts, wm in P["lines"]:
                 src += [[R] for R in B["stroke_rings"](pts, wm / 2.0)]

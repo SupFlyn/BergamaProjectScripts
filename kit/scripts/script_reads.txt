@@ -113,6 +113,7 @@ bergama_plan_base: cached/bergama_basemap/basemap_layers.json  # hand, 12 Nov
 bergama_plan_base: cached/bergama_basemap/streets.json  # hand, 12 Nov
 bergama_plan_base: Data/veg2023.json  # hand, 12 Nov (tree cover of today, for Masterplan_as_is)
 bergama_plan_base: Data/houses_sat2023.json  # hand, 13 Nov
+bergama_plan_base: Data/roads_design.json  # hand, 13 Nov (road links along existing streets, footbridge decks, centred routes)
 bergama_plan_base: Data/bergama_osm.osm  # hand, 13 Nov (house footprints where the survey has only open fronts)
 bergama_plan_base: cached/bergama_basemap/osm_houses.json  # hand, 13 Nov
 bergama_basemap: rhino  # hand, 12 Nov
