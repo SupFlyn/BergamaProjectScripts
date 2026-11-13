@@ -5,6 +5,16 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v12.1, Aras 13 Nov 07:48 UTC (the stretch between the two parts of the red line): "the middle part looks weird you need
+to fill there there is not stream for sure and houses do float on there". The river was carried through every stretch
+without a survey stream line (RIVER_GAP = the whole frame), so it ran as open water under the old town's houses. Now a
+stretch with no stream line on either side is left out when survey building lines cross the Selinos centreline in it
+(RIVER_COVER_N or more, over RIVER_COVER_M m or more): the stream is covered there, the ground and the houses are
+drawn as surveyed. Checked offline on the cache of 13 Nov: only one stretch qualifies, 243 m at about u 737-971 m of
+the frame (7 centreline steps crossed by a building line; the 1 Mar 2023 satellite image shows houses and streets on
+it); the other stretches without stream lines (225 m, 60 m, 645 m, 171 m) have no building line across and stay open
+water. RIVER_COVER_N and RIVER_COVER_M are drawing rules (ours). The log line "river:" names each covered stretch.
+
 v12, Aras 13 Nov 06:29-06:33 UTC: "can you take those roads from dwg and fix according to that"; "context looks weird fix
 it to be more pin point accurate with the data"; "draw them in a most data accurate way as you can". Until now the drawn
 street edge was the edge of a band built along OpenStreetMap centrelines (only 23 % of that edge lay on a survey road
@@ -132,7 +142,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v12"
+VERSION = "v12.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
@@ -197,7 +207,8 @@ SECTION_FILE = os.path.join("Data", "section_lines.json")
 MASK_C, MASK_TOL = 0.5, 0.35       # m: cell of the joining masks; how far a traced outline may leave the cell staircase
 STREET_CLOSE_M, STREET_MIN_M2 = 1.0, 20.0     # m seams closed in the street surface; smallest island / hole kept
 CENTRE_FILE = os.path.join("Data", "selinos_centreline.json")
-RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame: the river never stops)
+RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame)
+RIVER_COVER_M, RIVER_COVER_N = 30.0, 3   # v12.1: a stretch without stream lines this long, with this many centreline steps crossed by a survey building line, is covered: not drawn
 RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
 FRAG_M = 12.0                      # m: a road edge, bridge or stream line piece shorter than this is dropped (v6.1)
 CRUMB_M = 2.0                      # m: a building line loose at both ends and shorter than this is dropped
@@ -1100,7 +1111,9 @@ def build_river(L, F, log):
     survey itself'): along the Selinos centreline, every RIVER_STEP m, the edge on each side is the survey's stream
     line (HIDRO_DERE_*) met by the cross line within RIVER_REACH m; a side with no stream line there takes the width
     between its measured neighbours; a stretch with no stream line on either side for more than RIVER_GAP m is not
-    drawn (covered or not surveyed). The slices are joined into one surface and outlined once.
+    drawn, and neither is one of RIVER_COVER_M m or more in which survey building lines cross the centreline
+    (RIVER_COVER_N steps or more: the stream is covered there, v12.1). The slices are joined into one surface and
+    outlined once.
     Returns the mask rows (or None); L["river"] = rings."""
     src = os.path.join(BERGAMA_ROOT, CENTRE_FILE)
     banks = L.get("stream_banks", [])
@@ -1131,13 +1144,28 @@ def build_river(L, F, log):
     n_meas = [sum(1 for v in w if v is not None) for w in W]
     open_ = [W[0][i] is not None or W[1][i] is not None for i in range(len(st))]
     gap = int(RIVER_GAP / RIVER_STEP)
+    gb = SegGrid()                                        # v12.1: the survey's building lines, to find a covered stretch
+    for key_ in ("buildings", "heritage", "sheds"):
+        for it in L.get(key_, []):
+            Q = list(it[1]) + ([it[1][0]] if it[0] and it[1] else [])
+            for a, b in zip(Q[:-1], Q[1:]):
+                gb.add(a, b)
+    covered = []
     i = 0
     while i < len(st):                                    # short gaps stay open water, long ones are left out
         if not open_[i]:
             j = i
             while j < len(st) and not open_[j]:
                 j += 1
-            if j - i <= gap:
+            n_x = 0                                       # centreline steps of this stretch a building line crosses
+            for k_ in range(max(i - 1, 0), min(j, len(st) - 1)):
+                p, q = st[k_][0], st[k_ + 1][0]
+                d = math.hypot(q[0] - p[0], q[1] - p[1])
+                if 1e-6 < d <= 2 * RIVER_STEP and gb.hit(p[0], p[1], (q[0] - p[0]) / d, (q[1] - p[1]) / d, d) is not None:
+                    n_x += 1
+            if (j - i) * RIVER_STEP >= RIVER_COVER_M and n_x >= RIVER_COVER_N:
+                covered.append((st[i][0][0], st[j - 1][0][0], (j - i) * RIVER_STEP, n_x))
+            elif j - i <= gap:
                 for k_ in range(i, j):
                     open_[k_] = True
             i = j
@@ -1181,6 +1209,9 @@ def build_river(L, F, log):
                u"the rest carried between measured neighbours; %.0f m drawn as open water, %d outline(s), %.0f m2" % (
                    len(st), RIVER_STEP, os.path.basename(src), n_meas[0], n_meas[1], m_open, len(rings),
                    sum(bin(r).count("1") for r in rows) * c * c))
+    for u0_, u1_, m_, n_x in covered:
+        log.append(u"river: covered, not drawn: u %.0f-%.0f m of the frame (%.0f m without a survey stream line, %d "
+                   u"centreline step(s) crossed by a survey building line)" % (u0_, u1_, m_, n_x))
     return rows
 
 
