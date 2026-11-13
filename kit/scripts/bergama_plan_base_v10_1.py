@@ -23,6 +23,10 @@ scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once befo
 v5.1 (Rhino run of v5: trees right; number badges of his labels missing, arrows in another colour than the route):
 circles and ellipses of his label group are read (the coloured number badges and dots); his route arrows take the
 route colour of the style table.
+v10.1, Aras 13 Nov 09:03 UTC ("as_is drawing doesnt works because the roads etc. all fucked up please fix the outlines
+there"): with Basemap v12.2 the ground between the survey's own road lines is a surface (layer road_net, read from
+Data/roads_survey.json by the Basemap code). In Masterplan_as_is it is painted in the road tone (style plan_road)
+inside the red line, under the survey's road lines, which are its outline; "Road" is in the as-is legend.
 v10, Aras 13 Nov 06:28-06:33 UTC (three circled spots: Ulucami landing, the south walk ending in the open, Tabak
 Bridge's south end; "take those roads from dwg"; "most data accurate way"): with Basemap v12 the context roads are
 the survey's own lines. Here: (1) a road line of his (yeni_yol) is drawn only where its centre line is inside the red
@@ -114,7 +118,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v10"
+VERSION = "v10.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -518,6 +522,12 @@ def site_items(B, T, soft, cover, L, S, F, cal, den, x0, y0, u0, u1, tag, items)
         c = cat["plan_road"]
         items.insert(at, ("poly", [[pg(q) for q in R] for R in rings], B["fill_of"](c), c["line"], c["w"], None,
                           "site_streets_in_area", 1, "eo", tag))
+    rings = [Q for cl, Q, a, b in L.get("road_net", []) if len(Q) >= 3]
+    if rings and B.get("SURVEY_ROADS"):                  # v10.1: the surface between the survey's road lines, in the road tone
+        at = max([i for i, it in enumerate(items) if B["_item_layer"](it) == "existing_streets"] or [-1]) + 1
+        items.insert(at, ("poly", [[pg(q) for q in R] for R in rings], B["fill_of"](cat["plan_road"]), None, 0.0, None,
+                          "site_streets_in_area", 1, "eo", tag))
+        cnt["plan_road"] = 1
     items[0:0] = head
     it, c2, unknown = tree_marks(B, cat, T, SURVEY_TONE, ("site_tree_light", "site_tree_mid", "site_tree_dark"), pg, k,
                                  u0, u1, "site_trees", tag)
@@ -723,7 +733,7 @@ def main():
     order = (["water", "wet_edge", "reed", "soft_ground", "meadow", "planted", "underlay_2", "tree_light", "tree_mid",
               "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street", "tree_cover", "route",
               "calisma"])
-    order_asis = (["meadow", "underlay_2", "tree_cover", "site_tree_light", "site_tree_mid", "site_tree_dark"] +
+    order_asis = (["meadow", "plan_road", "underlay_2", "tree_cover", "site_tree_light", "site_tree_mid", "site_tree_dark"] +
                   list(dict.fromkeys(c for _, c, _ in B["CONTEXT"][::-1])) + ["calisma"])
     unknown = {}
     t1 = time.time()

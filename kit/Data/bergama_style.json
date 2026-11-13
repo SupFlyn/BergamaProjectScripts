@@ -1,5 +1,5 @@
 {
-  "version": "style 9 (13 Nov 2026)",
+  "version": "style 10 (13 Nov 2026)",
   "what": "The one graphic code of every Bergama drawing script (Basemap, Key map, Masterplan base; Sections follows). Each category is defined once here: fill, line, line weight in mm on paper, hatch. Change a colour or a weight here and every drawing follows.",
   "how": "A colour is a palette name, a palette name with +t (t towards white, 0..1) or -t (towards black), or a hex. w = line weight in mm on paper. Every fill except white is painted with the grain; \"grain\": false on a category keeps it flat, a number gives that category its own strength. ticks = [row spacing mm, tick length mm, pitch mm, line mm, colour]: short wave strokes over the grain, each second row shifted by half (vector, in the same shared tile).",
   "source": "Palette: Aras's five liked palettes of 12 Nov 2026 (library/examples/palettes_2026-11-12/INDEX.md), each value the median of a patch of his image; water and water_edge are his image 5 frame 294455 lightened 25 % and 60 % (calculated). context and context_dark replace the first context grey A08B8A, which read pink on the sheets (look review 12 Nov). Line weights: look review 12 Nov (proposals, not confirmed by Aras one by one).",
@@ -27,7 +27,7 @@
     "heritage_wall": {"label": "Historic wall",       "fill": null,             "line": "heritage",      "w": 0.20},
     "building_shadow": {"label": "Building shadow",   "fill": "707070",         "line": null,            "w": 0.0, "grain": false},
     "building_plan": {"label": "Building",            "fill": "white",          "line": "D0D0D0",        "w": 0.08},
-    "street_plan":   {"label": "Street edge",         "fill": null,             "line": "C4C4C4",        "w": 0.09},
+    "street_plan":   {"label": "Street edge",         "fill": null,             "line": "9A9A92",        "w": 0.13},
     "shed":          {"label": "Shed",                "fill": null,             "line": "context+0.45",  "w": 0.05},
     "wall":          {"label": "Wall",                "fill": null,             "line": "context+0.45",  "w": 0.05},
     "street":        {"label": "Street",              "fill": "white",          "line": "context",       "w": 0.09},
