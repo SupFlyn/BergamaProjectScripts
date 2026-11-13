@@ -5,6 +5,16 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v12.3, Aras 13 Nov 09:14 UTC: "fills are overruning etc. check the drawing and fix till it is fully fixed". Run 10 on his
+PC (crop at the east bridge): where the survey has no stream line the river side is carried from its measured
+neighbours (645 m long there), and that carried side lay over surveyed roads (water behind the east road). Now a
+carried side stops at the first survey road line (YOL_SOSE, YOL_TOPRAK, YOL_BORDUR) that runs along the river (within
+RIVER_ROAD_DEG degrees of its direction) on that side, if that line is RIVER_ROAD_MIN m or more from the centreline;
+a road that crosses the river (a bridge, a ford) does not stop it. Measured sides (a survey stream line) are not
+touched. RIVER_ROAD_DEG and RIVER_ROAD_MIN are drawing rules (ours). The log line "river: carried side" counts them.
+The road surface file (Data/roads_survey.json) is rebuilt as whole faces of the survey's road lines (see the file's
+"method"); nothing in this script changed for it.
+
 v12.2, Aras 13 Nov 09:03 UTC: "as_is drawing doesnt works because the roads etc. all fucked up please fix the outlines
 there". Since v12 a road was only its two survey lines, pale hairlines with nothing between them, and a bridge was two
 lines over the water. Now the ground between the survey's own road lines is a surface (ROAD_FILE =
@@ -156,7 +166,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v12.2"
+VERSION = "v12.3"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
@@ -224,6 +234,7 @@ CENTRE_FILE = os.path.join("Data", "selinos_centreline.json")
 RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines; how far a bank is looked for; longest stretch carried without a stream line (the whole frame)
 RIVER_COVER_M, RIVER_COVER_N = 30.0, 3   # v12.1: a stretch without stream lines this long, with this many centreline steps crossed by a survey building line, is covered: not drawn
 RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
+RIVER_ROAD_DEG, RIVER_ROAD_MIN = 30.0, 2.0   # v12.3: a carried river side stops at a survey road line within this angle of the river's direction, if it is this far (m) from the centreline or more
 FRAG_M = 12.0                      # m: a road edge, bridge or stream line piece shorter than this is dropped (v6.1)
 CRUMB_M = 2.0                      # m: a building line loose at both ends and shorter than this is dropped
 TICK_M, NEAR_M = 4.0, 2.0          # m: loose building stubs shorter than this are dropped; "beside a joined surface"
@@ -1169,6 +1180,7 @@ def build_river(L, F, log):
         return None
     W = [[g.hit(p[0], p[1], n[0] * s, n[1] * s, RIVER_REACH) for p, n in st] for s in (1.0, -1.0)]
     n_meas = [sum(1 for v in w if v is not None) for w in W]
+    meas = [[v is not None for v in w] for w in W]       # v12.3: which sides are a survey stream line
     open_ = [W[0][i] is not None or W[1][i] is not None for i in range(len(st))]
     gap = int(RIVER_GAP / RIVER_STEP)
     gb = SegGrid()                                        # v12.1: the survey's building lines, to find a covered stretch
@@ -1213,6 +1225,22 @@ def build_river(L, F, log):
                     w[i] = w[lo]
                 else:
                     w[i] = w[lo] + (w[hi] - w[lo]) * (i - lo) / float(hi - lo)
+    gr = SegGrid()                                        # v12.3: a carried side stops at a survey road line along the river
+    for key_ in ("road_edges", "kerbs"):
+        for it in L.get(key_, []):
+            Q = list(it[1]) + ([it[1][0]] if it[0] and it[1] else [])
+            for a, b in zip(Q[:-1], Q[1:]):
+                gr.add(a, b)
+    flat = math.sin(math.radians(RIVER_ROAD_DEG))
+    n_road, m_road = 0, 0.0
+    for k_, s in enumerate((1.0, -1.0)):
+        for i, (p, n) in enumerate(st):
+            if not meas[k_][i] and open_[i] and W[k_][i] > RIVER_ROAD_MIN:
+                h = gr.hit(p[0], p[1], n[0] * s, n[1] * s, W[k_][i], flat)
+                if h is not None and h >= RIVER_ROAD_MIN:
+                    m_road = max(m_road, W[k_][i] - h)
+                    W[k_][i] = h
+                    n_road += 1
     for w in W:                                           # one stray hit (a side stream's line) is evened out: median of 5
         w[:] = [sorted(w[max(0, i - 2):i + 3])[len(w[max(0, i - 2):i + 3]) // 2] for i in range(len(w))]
     c = MASK_C
@@ -1242,6 +1270,9 @@ def build_river(L, F, log):
                u"the rest carried between measured neighbours; %.0f m drawn as open water, %d outline(s), %.0f m2" % (
                    len(st), RIVER_STEP, os.path.basename(src), n_meas[0], n_meas[1], m_open, len(rings),
                    sum(bin(r).count("1") for r in rows) * c * c))
+    log.append(u"river: carried side stopped at a survey road line running along the river (within %.0f degrees, %.0f m "
+               u"or more from the centreline) on %d cross line side(s), by up to %.1f m; roads that cross the river do "
+               u"not stop it" % (RIVER_ROAD_DEG, RIVER_ROAD_MIN, n_road, m_road))
     for cv in covered:
         log.append(u"river: covered, not drawn: u %.0f-%.0f m of the frame (%.0f m without a survey stream line, %d "
                    u"centreline step(s) crossed by a survey building line); the water ends square on %d cross line(s)"
@@ -1822,7 +1853,9 @@ class SegGrid(object):
             for j in range(int(min(a[1], b[1]) // C), int(max(a[1], b[1]) // C) + 1):
                 self.g.setdefault((i, j), []).append((a[0], a[1], b[0] - a[0], b[1] - a[1]))
 
-    def hit(self, px, py, dx, dy, rm):
+    def hit(self, px, py, dx, dy, rm, flat=None):
+        """flat (v12.3): only segments that cross the ray at a steep angle count: |cos| of the angle between the
+        segment and the ray is flat or less"""
         C = self.C
         ex, ey = px + dx * rm, py + dy * rm
         best = None
@@ -1831,6 +1864,8 @@ class SegGrid(object):
                 for ax, ay, sx, sy in self.g.get((i, j), ()):
                     den = dx * sy - dy * sx
                     if abs(den) < 1e-12:
+                        continue
+                    if flat is not None and abs(sx * dx + sy * dy) > flat * math.hypot(sx, sy):
                         continue
                     t = ((ax - px) * sy - (ay - py) * sx) / den
                     if t <= 0.3 or t > rm or (best is not None and t >= best):
