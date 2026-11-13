@@ -23,6 +23,12 @@ scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once befo
 v5.1 (Rhino run of v5: trees right; number badges of his labels missing, arrows in another colour than the route):
 circles and ellipses of his label group are read (the coloured number badges and dots); his route arrows take the
 route colour of the style table.
+v10, Aras 13 Nov 06:28-06:33 UTC (three circled spots: Ulucami landing, the south walk ending in the open, Tabak
+Bridge's south end; "take those roads from dwg"; "most data accurate way"): with Basemap v12 the context roads are
+the survey's own lines. Here: (1) a road line of his (yeni_yol) is drawn only where its centre line is inside the red
+line: no more slivers of roads that run outside it (Tabak Bridge's south end); (2) roads_design.json rebuilt: a link
+is the road between the survey's own road lines where the survey has them, else the street band, smoothed; ends up
+to 25 m from an existing street are led onto it (the south walk to the bank road and on to Tabak Bridge).
 v9.1, Aras 13 Nov 06:19 UTC: "in my svg they should be drawn more or less like if a road doesnt leads to a place they
 should connect to other roads for sure like a network". (1) The road and walk shapes of his SVG that PLAN_RULES left
 out are drawn: his thin link paths (#e8e0c8), bridge decks (#8e918a, #9c9f99), shaded decks and ramps (gradient fills),
@@ -108,7 +114,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v9.1"
+VERSION = "v10"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -507,7 +513,7 @@ def site_items(B, T, soft, cover, L, S, F, cal, den, x0, y0, u0, u1, tag, items)
         head.append(B["soft_item"](cover.soft, cat["tree_cover"]["fill"], "satellite_trees", tag, den, x0, y0))
         cnt["tree_cover"] = 1
     rings = [Q for cl, Q, a, b in L.get("street_net", []) if len(Q) >= 3]
-    if rings:                                            # right above the white street surface, under every line
+    if rings and not B.get("SURVEY_ROADS"):              # v10: not with the survey's own road lines (Basemap v12)
         at = max([i for i, it in enumerate(items) if B["_item_layer"](it) == "existing_streets"] or [-1]) + 1
         c = cat["plan_road"]
         items.insert(at, ("poly", [[pg(q) for q in R] for R in rings], B["fill_of"](c), c["line"], c["w"], None,
@@ -568,6 +574,29 @@ def look_items(B, S, items, green, den, x0, y0, F):
         items.insert(0, B["soft_item"](green, cat["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
         cnt["tree_cover"] = 1
     return cnt
+
+
+def inside_runs(B, pts, cal, step=1.0):
+    """the parts of a line whose points lie inside the red line (cal rings, frame m), each with one point more at
+    both ends so the band still reaches the line; the line is cut into pieces of step m first"""
+    Q = [tuple(pts[0])]
+    for a, b in zip(pts[:-1], pts[1:]):
+        n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / step))
+        Q += [(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n) for i in range(1, n + 1)]
+    ins = [any(B["g_pip"](q[0], q[1], R) for R in cal) for q in Q]
+    runs, i, n = [], 0, len(Q)
+    while i < n:
+        if not ins[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < n and ins[j + 1]:
+            j += 1
+        run = Q[max(0, i - 1):min(n, j + 2)]
+        if len(run) >= 2:
+            runs.append(run)
+        i = j + 1
+    return runs
 
 
 def circle(c, r, n):
@@ -638,7 +667,8 @@ def main():
         src = [rings for rings in P["shapes"].get(name, [])] + design.get(name, [])
         if name == "plan_road":
             for pts, wm in P["lines"]:
-                src += [[R] for R in B["stroke_rings"](pts, wm / 2.0)]
+                for run in inside_runs(B, pts, cal):      # v10: only where the centre line is inside the red line
+                    src += [[R] for R in B["stroke_rings"](run, wm / 2.0)]
         if src:
             P["net"][name] = B["join_rings"](src, F, JOIN_CLOSE_M, JOIN_MIN_M2, JOIN_TOL_M, 2)[0]
     log.append(u"his roads and paths joined: %s" % (u", ".join(
