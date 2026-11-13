@@ -91,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v7"
+VERSION = "v7.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -511,7 +511,11 @@ def look_items(B, S, items, green, den, x0, y0, F):
     def cl(p):                                           # a shadow never leaves the frame
         return (min(xb, max(xa, p[0])), min(yb, max(ya, p[1])))
     shadows, first = [], None
+    edge = cat.get("street_plan")                         # v7.1: A05's street and road edges are very pale too
     for i, it in enumerate(items):
+        if edge and it[0] == "line" and lay(it) in ("existing_streets", "existing_roads"):
+            items[i] = it[:2] + (edge["line"],) + it[3:]
+            continue
         if not lay(it).startswith("existing_buildings"):
             continue
         if first is None:
