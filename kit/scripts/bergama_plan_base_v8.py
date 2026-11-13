@@ -91,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v7.1"
+VERSION = "v8"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -144,11 +144,12 @@ SURVEY_TREE_R = 3.0                # m: crown drawn for a survey tree symbol (th
 PATH_STEP = 1.5                    # SVG units: curves of his plan are cut into pieces of about this length
 CREDIT = (u"Inside the red line: the plan drawing masterlastversion.svg, redrawn by layer. Outside: the survey "
           u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines; houses the survey draws only as open "
-          u"street fronts: footprints (c) OpenStreetMap contributors.")
+          u"street fronts: footprints (c) OpenStreetMap contributors, else backs read from Esri World Imagery "
+          u"(Maxar, 1 Mar 2023), about +-5 m.")
 
 CREDIT_ASIS = (u"The site as it is: the survey (buildings, road edges, water, tree symbols) with street bands along "
                u"OpenStreetMap centrelines; houses the survey draws only as open street fronts: footprints (c) "
-               u"OpenStreetMap contributors. Inside the red line the same look as the masterplan, nothing of the plan.")
+               u"OpenStreetMap contributors, else backs read from Esri World Imagery (Maxar, 1 Mar 2023), about +-5 m. Inside the red line the same look as the masterplan, nothing of the plan.")
 
 # ---- folders (same in every script) ----
 BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
@@ -569,6 +570,7 @@ def main():
     D["layers"].update(B["load_veg"](D, log))             # the tree cover of today, for the as-is file only
     D["layers"].update(B["build_streets"](D, F, log))
     D["layers"].update(B["osm_houses"](D, F, log))        # v7: the houses the survey draws only as open fronts
+    D["layers"].update(B["sat_houses"](D, F, log))        # v8: the rest of them, backs read from the satellite image
     L = B["localise"](D, F)
     B["prepare"](D, L, F, log)
     fade = B["Fade"](D, F)
@@ -591,7 +593,7 @@ def main():
     def inside(q):
         return any(B["g_pip"](q[0], q[1], R) for R in cal)
     L1, Ltop, gone = dict(L), {}, 0                       # file 1: the survey without the houses the plan takes
-    for key in ("osm_houses", "buildings", "heritage"):
+    for key in ("sat_houses", "osm_houses", "buildings", "heritage"):
         base, top = [], []
         for it in L.get(key, []):
             sh = sum(1 for q in it[1] if inside(q)) / float(max(1, len(it[1])))
