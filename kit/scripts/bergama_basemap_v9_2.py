@@ -122,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v9.1"
+VERSION = "v9.2"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -2387,6 +2387,17 @@ def main():
     log.append(u"frame: site_alan %.2f x %.2f m, turned %.2f deg; north on the page points (%.3f, %.3f)" % (
         F.w, F.h, math.degrees(F.rot), F.north()[0], F.north()[1]))
     load_sections(D, log)
+    _box, _n, _all = (0.0, 0.0, F.w, F.h), 0, 0           # v9.2: say which heritage outlines are not on the map, and why
+    for cl, P in D["layers"].get("heritage", []):
+        if not (cl and len(P) >= 3):
+            continue
+        _all += 1
+        if len(clip_ring([F.local(p) for p in P], _box)) >= 3:
+            continue
+        _n += 1
+        log.append(u"  heritage not drawn: outline at %.0f, %.0f lies outside site_alan (the map frame)" % (
+            sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)))
+    log.append(u"heritage: %d closed outlines read, %d outside the frame, %d drawn" % (_all, _n, _all - _n))
     cover = Cover(L, F, log) if (L.get("sat_trees") or L.get("sat_grass")) else None
     n_a0 = a0_scale(F)
     log.append(u"A0: the whole frame in one piece at 1:%s (the smallest step of %d at which %.0f m fits %.0f mm wide)"
