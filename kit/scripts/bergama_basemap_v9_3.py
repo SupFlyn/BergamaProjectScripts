@@ -122,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v9.2"
+VERSION = "v9.3"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -1253,7 +1253,7 @@ def clean_lines(L, F, street_rows, river_rows, log):
                    FRAG_M, u", ".join(u"%s %d" % kv for kv in sorted(frag.items())) or u"none"))
 
 
-def haze_data(rows_or_discs, F):
+def haze_data(rows_or_discs, F, blur=None):
     """a soft tone that fades out at its edge (A05's green under the trees), as (zlib 8-bit rows, px w, px h) or None.
     rows_or_discs = mask rows (MASK_C cells) or [(u, v, radius m)]; coverage on HAZE_C m cells, blurred HAZE_BLUR_M m"""
     c2 = HAZE_C
@@ -1283,7 +1283,7 @@ def haze_data(rows_or_discs, F):
                     row[i2] = 1.0
     if not any(any(r) for r in G):
         return None
-    rb = max(1, int(round(HAZE_BLUR_M / c2)))
+    rb = max(1, int(round((blur or HAZE_BLUR_M) / c2)))   # v9.3: blur m may be given (building shadow)
     for _ in range(2):                                    # two box blurs each way = a soft edge
         H = []
         for row in G:
