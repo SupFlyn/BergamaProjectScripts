@@ -20,6 +20,14 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v5, Aras 13 Nov 04:00-04:01 UTC: "masterplan sucks in terms of architectural language"; "recreate that masterplan
+drawing 1:1 according to our site"; "use it's assets our from our asset library"; "tree's etc. look weird". So:
+  TREES   my discs are gone from file 1. Every tree is HIS drawing of that species: the symbols sym_<species> of his
+          plan SVG are read once (their own shapes and colours) and placed exactly as his <use> places them (place,
+          size, turn). One PDF form / SVG asset per species; every tree its own subgroup. (File 2 keeps discs for the
+          survey's trees: the survey names no species.)
+  ROUTES  his route lines (PLAN_ROUTES) as A05's dotted lines, style entry "route".
+  LABELS  his route arrows and his labels (PLAN_RAW) are drawn as he drew them, each shape in its own colour.
 v4.1 (Rhino run of v4): both v4 additions are taken out again. The grey and white parts of his heritage groups are
 the "popped" relief of his own drawing, not plan detail: drawn as parts they gave stepped double outlines. The
 building shadow read as a doubled line (and his rule of 11:13 UTC: no shadows for now). Heritage and houses are
@@ -80,7 +88,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v4.1"
+VERSION = "v5"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -107,6 +115,10 @@ PLAN_RULES = {
 STROKED = ("yeni_yol",)            # groups whose stroked lines are drawn too, at their own width (his new roads)
 ORDER = ["soft_ground", "planted", "water", "wet_edge", "reed", "plan_road", "paving", "promenade", "paving_dark",
          "building", "heritage"]
+PLAN_RAW = ("route_arrows", "labels")   # his groups drawn as they are: every filled shape in its own colour
+PLAN_ROUTES = ("route_line", "route_footbridges")   # his route lines: drawn dotted (A05), style entry "route"
+RAW_STEP = 0.3                     # SVG units: curve pieces for his label letters and arrows (finer than PATH_STEP)
+SYMBOL_STEP = 0.02                 # symbol units (a tree symbol is about 2 wide): curve pieces of his tree drawings
 TREE_SYMBOL = "sym_"               # his tree symbols: <use xlink:href="#sym_<species>">
 TREE_TONE = {"plane": "tree_dark", "stone_pine": "tree_dark", "ash": "tree_mid", "olive": "tree_mid",
              "willow": "tree_light", "tamarisk": "tree_light", "rosemary": "tree_light"}
@@ -134,7 +146,7 @@ OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 SHAPE_FILE = os.path.join(CACHE_DIR, "plan_shapes.json")
-SHAPE_FORMAT = 1
+SHAPE_FORMAT = 2
 
 
 def load_lib(log):
@@ -187,6 +199,28 @@ def read_plan(B, F, log):
     def U(p):
         return [round((p[0] - rx) / s, 2), round((ry + rh - p[1]) / s, 2)]
     shapes, lines, trees, left, odd = {}, [], [], {}, 0
+    uses, raw, routes, symbols = [], [], [], {}
+    for sm in re.finditer(r"<symbol\b([^>]*)>(.*?)</symbol>", txt, re.S):   # his tree drawings, each once
+        sa = dict(re.findall(r'([\w:-]+)="([^"]*)"', sm.group(1)))
+        sid = sa.get("id", "")
+        if not sid.startswith(TREE_SYMBOL):
+            continue
+        try:
+            vb = [float(x) for x in (sa.get("viewBox") or "0 0 2 2").replace(",", " ").split()]
+        except Exception:
+            vb = [0.0, 0.0, 2.0, 2.0]
+        shp = []
+        for pm in re.finditer(r"<path\b([^>]*?)/?>", sm.group(2)):
+            pa = dict(re.findall(r'([\w:-]+)="([^"]*)"', pm.group(1)))
+            col = B["_hex6"](pa.get("fill"))
+            if not col or "transform" in pa:
+                continue
+            rings_ = [[[round(q[0], 4), round(q[1], 4)] for q in Pp] for cl_, Pp in B["path_rings"](pa.get("d", ""), SYMBOL_STEP)
+                      if len(Pp) >= 3]
+            if rings_:
+                shp.append([col, rings_])
+        if shp and len(vb) == 4:
+            symbols[sid[len(TREE_SYMBOL):]] = {"w": vb[2], "h": vb[3], "shapes": shp}
     stack, hidden, skip = [], 0, 0                       # stack of (group id, hidden?); skip = inside defs / symbol
     for m in re.finditer(r"<(/?)(g|defs|symbol|clipPath|mask|pattern|path|polygon|polyline|line|rect|use)\b([^>]*?)(/?)>", txt):
         end, tag, attrs, selfc = m.group(1), m.group(2), m.group(3), m.group(4)
@@ -228,8 +262,9 @@ def read_plan(B, F, log):
             hx, hy = w * sc / 2.0, h * sc / 2.0
             c = U((tx + hx * math.cos(ang) - hy * math.sin(ang), ty + hx * math.sin(ang) + hy * math.cos(ang)))
             trees.append(c + [round(max(w, h) * abs(sc) / 2.0 / s, 2), href[1 + len(TREE_SYMBOL):]])
+            uses.append(U((tx, ty)) + [round(sc / s, 5), round(ang, 5), href[1 + len(TREE_SYMBOL):]])
             continue
-        gid = next((g for g, _ in reversed(stack) if g in PLAN_RULES), None)
+        gid = next((g for g, _ in reversed(stack) if g in PLAN_RULES or g in PLAN_RAW or g in PLAN_ROUTES), None)
         if gid is None:
             g0 = next((g for g, _ in reversed(stack) if g and not g.startswith("Layer_")), None) or u"(no named group)"
             left[g0] = left.get(g0, 0) + 1
@@ -238,9 +273,9 @@ def read_plan(B, F, log):
             odd += 1
             continue
         fill = (a.get("fill") or "").lower()
-        rule = PLAN_RULES[gid]
+        rule = PLAN_RULES.get(gid, {})
         if tag == "path":
-            subs = B["path_rings"](a.get("d", ""), PATH_STEP)
+            subs = B["path_rings"](a.get("d", ""), RAW_STEP if gid in PLAN_RAW else PATH_STEP)
         elif tag in ("polygon", "polyline"):
             v = [float(x) for x in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", a.get("points", ""))]
             subs = [(tag == "polygon", list(zip(v[0::2], v[1::2])))]
@@ -255,6 +290,22 @@ def read_plan(B, F, log):
                 subs = [(True, [(x, y), (x + w, y), (x + w, y + h), (x, y + h)])]
             except Exception:
                 subs = []
+        if gid in PLAN_RAW:                               # his own drawing, colour and all
+            col = B["_hex6"](a.get("fill"))
+            rings = [[U(p) for p in P] for cl, P in subs if len(P) >= 3]
+            if col and rings and tag not in ("line", "polyline"):
+                raw.append([gid, col, rings])
+            else:
+                left[gid] = left.get(gid, 0) + 1
+            continue
+        if gid in PLAN_ROUTES:
+            if a.get("stroke", "none") != "none":
+                for cl, P in subs:
+                    if len(P) >= 2:
+                        routes.append([U(p) for p in P] + ([U(P[0])] if cl else []))
+            else:
+                left[gid] = left.get(gid, 0) + 1
+            continue
         filled = fill not in ("", "none") or (tag in ("path", "polygon", "rect") and "fill" not in a and "stroke" not in a
                                                 and gid == "water_drainage_wall")
         cat = (rule.get(fill) or rule.get("*")) if filled else None
@@ -274,7 +325,8 @@ def read_plan(B, F, log):
          "what": u"his plan %s by style category, in frame m (u along the frame's long side from its west end, v up); "
                  u"frame = %s at (%.2f, %.2f) %.2f x %.2f units, %.4f units per m" % (os.path.basename(src), how, rx, ry,
                                                                                      rw, rh, s),
-         "shapes": shapes, "lines": lines, "trees": trees, "left": left, "odd": odd}
+         "shapes": shapes, "lines": lines, "trees": trees, "left": left, "odd": odd,
+         "symbols": symbols, "uses": uses, "raw": raw, "routes": routes}
     os.makedirs(CACHE_DIR, exist_ok=True)
     with open(SHAPE_FILE, "w", encoding="utf-8") as f:
         json.dump(P, f, ensure_ascii=False)
@@ -352,10 +404,37 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
             items.append(("poly", [[pg(q) for q in R] for R in rings], fill_of(c), c["line"], c["w"], None, "plan_" + name,
                           1, "eo" if len(rings) > 1 else None, tag))
             cnt[name] = cnt.get(name, 0) + 1
-    it, c2, unknown = tree_marks(B, cat, P["trees"], TREE_TONE, ("tree_light", "tree_mid", "tree_dark"), pg, k, u0, u1,
-                                 "plan_trees", tag)
-    items += it
-    cnt.update(c2)
+    syms = P.get("symbols") or {}
+    unknown = {}
+    if syms and P.get("uses"):                           # his own tree drawings, placed as he placed them
+        n_ = 0
+        for uo, vo, mu, ang, sp in P["uses"]:
+            if sp not in syms:
+                unknown[sp] = 1
+                continue
+            if not (u0 - 30.0 <= uo <= u1 + 30.0):
+                continue
+            n_ += 1
+            X, Y = pg((uo, vo))
+            mm_, ca, sa = mu * k, math.cos(ang), math.sin(ang)
+            items.append(("form", sp, (mm_ * ca, -mm_ * sa, -mm_ * sa, -mm_ * ca, X, Y), u"plan_trees/tree_%04d" % n_, tag))
+        cnt["tree_symbol"] = n_
+    else:
+        it, c2, unknown = tree_marks(B, cat, P["trees"], TREE_TONE, ("tree_light", "tree_mid", "tree_dark"), pg, k, u0,
+                                     u1, "plan_trees", tag)
+        items += it
+        cnt.update(c2)
+    if cat.get("route"):                                 # his routes, dotted (A05)
+        c = cat["route"]
+        for pts in P.get("routes") or []:
+            if inwin([pts]):
+                items.append(("line", [pg(q) for q in pts], c["line"], c["w"], tag, "plan_routes", (0.0, c["w"] * 2.4)))
+                cnt["route"] = cnt.get("route", 0) + 1
+    for gid_, col, rings in P.get("raw") or []:          # his arrows and labels, as he drew them
+        if inwin(rings):
+            items.append(("poly", [[pg(q) for q in R] for R in rings], col, None, 0.0, None, "plan_" + gid_, 1,
+                          "eo" if len(rings) > 1 else None, tag))
+            cnt[gid_] = cnt.get(gid_, 0) + 1
     return items, clips, cnt, unknown
 
 
@@ -469,13 +548,19 @@ def main():
     log.append(u"his plan: %s; %d stroked road lines; %d tree symbols (%s)" % (
         u", ".join(u"%s %d" % (k_, len(v)) for k_, v in sorted(P["shapes"].items())), len(P["lines"]), len(P["trees"]),
         u", ".join(u"%s %d" % (sp, sum(1 for t in P["trees"] if t[3] == sp)) for sp in sorted(set(t[3] for t in P["trees"])))))
+    log.append(u"his assets: tree drawings %s; %d trees placed; %d route lines (dotted); arrows and labels as drawn: %s" % (
+        u", ".join(u"%s %d shapes" % (k_, len(v["shapes"])) for k_, v in sorted((P.get("symbols") or {}).items())) or u"NONE",
+        len(P.get("uses") or []), len(P.get("routes") or []),
+        u", ".join(u"%s %d" % (g_, sum(1 for r_ in (P.get("raw") or []) if r_[0] == g_)) for g_ in PLAN_RAW)))
+    if not P.get("symbols"):
+        log.append(u"FLAG trees: no tree symbols (sym_...) read from his plan SVG: file 1 falls back to plain discs")
     if P["left"]:
         log.append(u"not drawn yet (routes, labels, legend, groups without a rule): %s" % u", ".join(
             u"%s %d" % kv for kv in sorted(P["left"].items(), key=lambda kv: -kv[1])[:40]))
     if P.get("odd"):
         log.append(u"FLAG his plan: %d shape(s) with a transform or unreadable numbers were left out" % P["odd"])
     order = (["water", "wet_edge", "reed", "soft_ground", "meadow", "planted", "underlay_2", "tree_light", "tree_mid",
-              "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street",
+              "tree_dark", "promenade", "paving", "paving_dark", "plan_road", "building", "heritage", "street", "route",
               "calisma"])
     order_asis = (["meadow", "underlay_2", "tree_cover", "site_tree_light", "site_tree_mid", "site_tree_dark"] +
                   [c for _, c, _ in B["CONTEXT"]][::-1] + ["calisma"])
@@ -512,13 +597,13 @@ def main():
             (lambda c: [k_ for k_ in order if c.get(k_)]) if ours else
             (lambda c: [k_ for k_ in order_asis if c.get(k_)]), CREDIT if ours else CREDIT_ASIS, band)
         p = B["write_pdf"](os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
-                           u"%s, site_alan, 1:%d" % (name, d), clips)
+                           u"%s, site_alan, 1:%d" % (name, d), clips, P.get("symbols") if ours else None)
         log.append(B["out_line"](p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
             u"%s %d" % kv for kv in sorted(cnt.items()))))
         if not a0:                                        # the same drawing grouped, for editing
             try:
                 q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), w, h, items, u"%s, site_alan, 1:%d" % (name, d),
-                                   clips)
+                                   clips, P.get("symbols") if ours else None)
                 log.append(u"%s  %s (%.1f MB; a group per layer, every tree its own subgroup; flat fills)" % (
                     q, time.strftime("%H:%M:%S"), os.path.getsize(q) / 1048576.0))
             except Exception as e:
