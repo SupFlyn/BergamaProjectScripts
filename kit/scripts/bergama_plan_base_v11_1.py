@@ -8,6 +8,11 @@ The look follows his most liked example (A05_board02_x12_13-1-scaled, brief
 library/examples/liked_2026-11-12/MERGED_SPEC_v0.1.md): white context with thin grey outlines, colour only inside the
 thin red line, the stream the darkest fill without outline, trees as circles in three tones on a pale green underlay.
 
+v11.1, 13 Nov (run 15 on his desktop): the survey buildings that reach over the red line were drawn whole on top of the
+stripped plan, so white house shapes lay on the ground of the working area up to the river bank (old-town bend, north
+red line at the west end). With PLAN_KEEP set they are now drawn under the plan's ground: the part inside the red line
+is covered, the building ends at the red line. PLAN_KEEP = None keeps them whole on top as before.
+
 v11, Aras 13 Nov 12:28-12:30 UTC: "from masterplan remove everything except the trees" "in our working area" "keep the
 ground tho" "like dont remove remove everything". Our reading (asked back with a decision card): in the Masterplan
 files (file 1), inside the red line, the ground and what grows or flows on it stay: the ground tone, his open-ground and
@@ -127,7 +132,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v11"
+VERSION = "v11.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -719,8 +724,10 @@ def main():
                 gone += 1
         L1[key], Ltop[key] = base, top
     log.append(u"file 1, survey buildings at the red line: %d inside (%.0f %% of their corners or more) not drawn, the "
-               u"plan takes them; %d reaching over the line drawn whole on top" % (
-                   gone, 100 * GONE_SHARE, sum(len(v) for v in Ltop.values())))
+               u"plan takes them; %d reaching over the line drawn %s" % (
+                   gone, 100 * GONE_SHARE, sum(len(v) for v in Ltop.values()),
+                   u"whole on top" if PLAN_KEEP is None else u"up to the red line (the ground of the working area lies "
+                   u"over the part inside)"))
     if PLAN_KEEP is not None:
         log.append(u"file 1 (Masterplan): inside the red line only these layers of his plan are drawn: %s; his roads, "
                    u"paving, promenade, buildings, the road links, decks, route, arrows and labels are not drawn"
@@ -781,13 +788,16 @@ def main():
                     it = [a for a in it if B["_item_layer"](a).split(u"/")[0] in PLAN_KEEP]
                     keys = [k_ for ly in PLAN_KEEP for k_ in KEEP_COUNTS.get(ly, ())]
                     c2 = dict((k_, v) for k_, v in c2.items() if k_ in keys)
+                top, c3 = B["draw_context"](Ltop, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
+                for i_, a in enumerate(top):              # the buildings reaching over the red line, their own layers
+                    j_ = 6 if a[0] == "poly" else 5
+                    top[i_] = a[:j_] + (a[j_] + "_at_red_line",) + a[j_ + 1:]
+                if PLAN_KEEP is not None:                 # v11.1: under the plan's ground = they end at the red line
+                    items += top
                 lab = [a for a in it if B["_item_layer"](a) == "plan_labels"]   # v6.1: his labels last, over everything
                 items += [a for a in it if B["_item_layer"](a) != "plan_labels"]
-                it, c3 = B["draw_context"](Ltop, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
-                for i_, a in enumerate(it):               # their own layers, above the plan
-                    j_ = 6 if a[0] == "poly" else 5
-                    it[i_] = a[:j_] + (a[j_] + "_at_red_line",) + a[j_ + 1:]
-                items += it
+                if PLAN_KEEP is None:                     # the whole plan: whole, above the plan
+                    items += top
                 for k_, v in c3.items():
                     c2[k_] = c2.get(k_, 0) + v
             else:

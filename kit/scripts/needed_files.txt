@@ -21,7 +21,7 @@ scripts/bergama_water_board_v20_3.py
 scripts/bergama_section_from_line_v1_1.py
 scripts/bergama_sections_v1_4.py
 scripts/bergama_basemap_v12_5.py
-scripts/bergama_plan_base_v11.py
+scripts/bergama_plan_base_v11_1.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py
 scripts/board_order.txt
