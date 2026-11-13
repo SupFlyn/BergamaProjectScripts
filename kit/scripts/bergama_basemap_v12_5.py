@@ -5,6 +5,22 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v12.5, same ask. Run 13 on his laptop: in the old-town bend (u 375-475 m of the frame) the water was a strip 3 to 6 m
+wide whose south edge ran into the houses of the south bank; u 625-725 only 9-17 m. The survey draws one stream line
+there (none further east), the centreline hugs it, and a side with no stream line took a width carried from far
+neighbours. The channel there runs between the survey's own walls (SINIR_DUVAR) and house lines. Now:
+(1) a side with no stream line takes, as its bank, the first survey wall line that runs along the river (within
+RIVER_ROAD_DEG degrees) or the first survey house line, within RIVER_WALL_M m of the centreline; only where there is
+neither is the width still carried between neighbours (and stopped at a road along the river, v12.3);
+(2) where one side meets a stream line within RIVER_WALL_NEAR m, the other side meets a road along the river before any
+wall or house (the centreline lies on the bank road's side of the channel), and a wall along the river lies
+RIVER_OUT_MIN m or more beyond that stream line (within RIVER_WALL_M m), the water is the band between the stream line
+and that wall. Offline count on the cache of 13 Nov: (2) on 16 cross lines, u 368-411; (1) on the north side at
+u 333-366, 414-971 and 1797-1811, on the south side mainly u 420-1056, 1662-1740 and 2503-2526; widths u 350-500
+14.5 to 28.1 m (median 21.8), u 500-740 11.3 to 39.3 m (median 20.7; the widest is the mouth of the side stream
+at u 580-610, between its walls). The covered stretch (u 737-971) is found as before, from the stream lines only.
+RIVER_WALL_M and RIVER_WALL_NEAR are drawing rules (ours). The log line "river: walls and houses" counts both.
+
 v12.4, same ask (Aras 13 Nov 09:14 UTC, "fix till it is fully fixed"). Run 12 on his PC: the water pinched to a strip
 about 2 m wide at u 1099-1183 m of the frame (a hook at u 1095), and at shorter spots. There the Selinos centreline
 (Data/selinos_centreline.json) lies just outside the channel the survey draws: the cross line met the near stream line
@@ -176,7 +192,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v12.4"
+VERSION = "v12.5"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
@@ -245,6 +261,7 @@ RIVER_STEP, RIVER_REACH, RIVER_GAP = 3.0, 45.0, 4000.0   # m between cross lines
 RIVER_COVER_M, RIVER_COVER_N = 30.0, 3   # v12.1: a stretch without stream lines this long, with this many centreline steps crossed by a survey building line, is covered: not drawn
 RIVER_CLOSE_M, RIVER_MIN_M2 = 1.0, 25.0
 RIVER_OUT_M, RIVER_OUT_MIN = 5.0, 3.0   # v12.4: the centreline lies outside the surveyed channel when the near stream line is this close (m) on one side, a second one lies this far (m) or more beyond it and the other side has none
+RIVER_WALL_M, RIVER_WALL_NEAR = 30.0, 6.5   # v12.5: a side with no stream line takes a survey wall along the river or a house line within this many m as its bank; a stream line this near with a bank road on the other side and a wall beyond it = the channel lies beyond that stream line
 RIVER_ROAD_DEG, RIVER_ROAD_MIN = 30.0, 2.0   # v12.3: a carried river side stops at a survey road line within this angle of the river's direction, if it is this far (m) from the centreline or more
 FRAG_M = 12.0                      # m: a road edge, bridge or stream line piece shorter than this is dropped (v6.1)
 CRUMB_M = 2.0                      # m: a building line loose at both ends and shorter than this is dropped
@@ -1190,27 +1207,46 @@ def build_river(L, F, log):
         log.append(u"FLAG river: the centreline %s does not cross the frame: survey lines only" % src)
         return None
     W = [[g.hit(p[0], p[1], n[0] * s, n[1] * s, RIVER_REACH) for p, n in st] for s in (1.0, -1.0)]
-    n_out = 0                                             # v12.4: the centreline just outside the surveyed channel
-    for i, (p, n) in enumerate(st):
-        for k_, s in ((0, 1.0), (1, -1.0)):
-            t1 = W[k_][i]
-            if t1 is not None and W[1 - k_][i] is None and t1 <= RIVER_OUT_M:
-                t2 = g.hit(p[0] + n[0] * s * t1, p[1] + n[1] * s * t1, n[0] * s, n[1] * s, RIVER_REACH - t1)
-                if t2 is not None and t2 >= RIVER_OUT_MIN:
-                    W[k_][i] = t1 + t2                    # the far stream line
-                    W[1 - k_][i] = -t1                    # the near one: the edge lies on the same side of the centreline
-                    n_out += 1
-                break
-    n_meas = [sum(1 for v in w if v is not None) for w in W]
-    meas = [[v is not None for v in w] for w in W]       # v12.3: which sides are a survey stream line
-    open_ = [W[0][i] is not None or W[1][i] is not None for i in range(len(st))]
-    gap = int(RIVER_GAP / RIVER_STEP)
-    gb = SegGrid()                                        # v12.1: the survey's building lines, to find a covered stretch
+    gb = SegGrid()                                        # the survey's building lines (v12.1: covered stretch; v12.5: a bank)
     for key_ in ("buildings", "heritage", "sheds"):
         for it in L.get(key_, []):
             Q = list(it[1]) + ([it[1][0]] if it[0] and it[1] else [])
             for a, b in zip(Q[:-1], Q[1:]):
                 gb.add(a, b)
+    gw, gr = SegGrid(), SegGrid()                         # v12.5: the survey's walls; v12.3: its road lines
+    for g_, keys_ in ((gw, ("walls", "heritage_walls")), (gr, ("road_edges", "kerbs"))):
+        for key_ in keys_:
+            for it in L.get(key_, []):
+                Q = list(it[1]) + ([it[1][0]] if it[0] and it[1] else [])
+                for a, b in zip(Q[:-1], Q[1:]):
+                    g_.add(a, b)
+    flat = math.sin(math.radians(RIVER_ROAD_DEG))
+    n_out, n_outw = 0, 0                                  # v12.4 / v12.5: the centreline just outside the surveyed channel
+    for i, (p, n) in enumerate(st):
+        for k_, s in ((0, 1.0), (1, -1.0)):
+            t1 = W[k_][i]
+            if t1 is not None and W[1 - k_][i] is None and t1 <= RIVER_WALL_NEAR:
+                qx, qy, dx, dy = p[0] + n[0] * s * t1, p[1] + n[1] * s * t1, n[0] * s, n[1] * s
+                t2 = g.hit(qx, qy, dx, dy, RIVER_REACH - t1) if t1 <= RIVER_OUT_M else None
+                if t2 is not None and t2 >= RIVER_OUT_MIN:
+                    W[k_][i] = t1 + t2                    # the far stream line
+                    W[1 - k_][i] = -t1                    # the near one: the edge lies on the same side of the centreline
+                    n_out += 1
+                else:                                     # v12.5: a wall along the river beyond it, a bank road on the other side
+                    t2 = gw.hit(qx, qy, dx, dy, RIVER_REACH - t1, flat)
+                    hr = gr.hit(p[0], p[1], -dx, -dy, RIVER_REACH, flat)
+                    hx = [v for v in (gw.hit(p[0], p[1], -dx, -dy, RIVER_REACH, flat),
+                                      gb.hit(p[0], p[1], -dx, -dy, RIVER_REACH)) if v is not None]
+                    if (t2 is not None and t2 >= RIVER_OUT_MIN and t1 + t2 <= RIVER_WALL_M and hr is not None
+                            and (not hx or hr < min(hx))):
+                        W[k_][i] = t1 + t2
+                        W[1 - k_][i] = -t1
+                        n_outw += 1
+                break
+    n_meas = [sum(1 for v in w if v is not None) for w in W]
+    meas = [[v is not None for v in w] for w in W]       # v12.3: which sides are a survey stream line
+    open_ = [W[0][i] is not None or W[1][i] is not None for i in range(len(st))]
+    gap = int(RIVER_GAP / RIVER_STEP)
     covered = []
     i = 0
     while i < len(st):                                    # short gaps stay open water, long ones are left out
@@ -1232,6 +1268,18 @@ def build_river(L, F, log):
             i = j
         else:
             i += 1
+    n_wall, n_house = 0, 0                                # v12.5: a side with no stream line: a wall along the river or a house is the bank
+    for k_, s in enumerate((1.0, -1.0)):
+        for i, (p, n) in enumerate(st):
+            if W[k_][i] is None:
+                hw = gw.hit(p[0], p[1], n[0] * s, n[1] * s, RIVER_WALL_M, flat)
+                hb = gb.hit(p[0], p[1], n[0] * s, n[1] * s, RIVER_WALL_M)
+                if hw is not None and (hb is None or hw <= hb):
+                    W[k_][i] = hw
+                    n_wall += 1
+                elif hb is not None:
+                    W[k_][i] = hb
+                    n_house += 1
     for w in W:                                           # a missing side: the width between its measured neighbours
         known = [i for i, v in enumerate(w) if v is not None]
         if not known:
@@ -1247,13 +1295,6 @@ def build_river(L, F, log):
                     w[i] = w[lo]
                 else:
                     w[i] = w[lo] + (w[hi] - w[lo]) * (i - lo) / float(hi - lo)
-    gr = SegGrid()                                        # v12.3: a carried side stops at a survey road line along the river
-    for key_ in ("road_edges", "kerbs"):
-        for it in L.get(key_, []):
-            Q = list(it[1]) + ([it[1][0]] if it[0] and it[1] else [])
-            for a, b in zip(Q[:-1], Q[1:]):
-                gr.add(a, b)
-    flat = math.sin(math.radians(RIVER_ROAD_DEG))
     n_road, m_road = 0, 0.0
     for k_, s in enumerate((1.0, -1.0)):
         for i, (p, n) in enumerate(st):
@@ -1295,6 +1336,10 @@ def build_river(L, F, log):
     log.append(u"river: carried side stopped at a survey road line running along the river (within %.0f degrees, %.0f m "
                u"or more from the centreline) on %d cross line side(s), by up to %.1f m; roads that cross the river do "
                u"not stop it" % (RIVER_ROAD_DEG, RIVER_ROAD_MIN, n_road, m_road))
+    log.append(u"river: walls and houses: a side with no stream line takes a survey wall along the river (%d cross line "
+               u"side(s)) or a survey house line (%d) within %.0f m as its bank; stream line within %.1f m with a bank "
+               u"road on the other side and a wall beyond it on %d cross line(s): the water is the band between that "
+               u"stream line and the wall" % (n_wall, n_house, RIVER_WALL_M, RIVER_WALL_NEAR, n_outw))
     log.append(u"river: centreline outside the surveyed channel on %d cross line(s) (near stream line within %.0f m on one "
                u"side, a second one %.0f m or more beyond it, none on the other side): the water is the band between "
                u"those two survey lines" % (n_out, RIVER_OUT_M, RIVER_OUT_MIN))
