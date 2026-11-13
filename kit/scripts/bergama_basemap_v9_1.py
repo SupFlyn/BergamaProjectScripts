@@ -45,6 +45,9 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v9.1 (Rhino run of v9): the lean-to buildings (BINA_SUNDURMA) carried their map symbol, an X from corner to corner,
+which showed as X boxes. Two BINA_SUNDURMA lines that cross inside each other are the two strokes of such an X and
+are left out; the outline stays (count in the log).
 v9, Aras 13 Nov 04:00-04:01 UTC: "recreate that masterplan drawing 1:1 according to our site"; "use it's assets our
 from our asset library"; "tree's etc. look weird". The writers learn two things the masterplan needs: a "form" item
 (an asset such as one of his tree symbols, stored once in the PDF / SVG and placed by a matrix for every tree) and
@@ -119,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v9"
+VERSION = "v9.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -353,6 +356,29 @@ def read_model(doc, log):
     for nm, o, cl, P in curves(bld_layers):
         Q = list(P) + ([P[0]] if cl else [])
         segs += [(nm, a_, b_) for a_, b_ in zip(Q[:-1], Q[1:])]
+    grid_x = {}                                           # v9.1: the X drawn inside a lean-to is a symbol, not an outline
+    for i_, s_ in enumerate(segs):
+        if s_[0].upper() != "BINA_SUNDURMA":
+            continue
+        a_, b_ = s_[1], s_[2]
+        for gx in range(int(min(a_[0], b_[0]) // 10), int(max(a_[0], b_[0]) // 10) + 1):
+            for gy in range(int(min(a_[1], b_[1]) // 10), int(max(a_[1], b_[1]) // 10) + 1):
+                grid_x.setdefault((gx, gy), []).append(i_)
+
+    def side(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    x_drop = set()
+    for cell in grid_x.values():
+        for ii in range(len(cell)):
+            p, q = segs[cell[ii]][1], segs[cell[ii]][2]
+            for jj in range(ii + 1, len(cell)):
+                r, t_ = segs[cell[jj]][1], segs[cell[jj]][2]
+                if side(p, q, r) * side(p, q, t_) < -1e-6 and side(r, t_, p) * side(r, t_, q) < -1e-6:
+                    x_drop.add(cell[ii])                 # two lines that cross inside each other: the two strokes of an X
+                    x_drop.add(cell[jj])
+    if x_drop:
+        segs = [s_ for i_, s_ in enumerate(segs) if i_ not in x_drop]
+    log.append(u"BINA_SUNDURMA: %d lines that cross another inside (the X of the lean-to symbol) left out" % len(x_drop))
     faces, loose = building_faces(segs)
     bld, her = [], []
     grid = {}

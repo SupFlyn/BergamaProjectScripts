@@ -20,6 +20,9 @@ What is drawn (nothing is invented: every shape is either the survey or a shape 
           how many shapes of which group were left out). They come with the routes, later.
 The drawing code (style, grain, PDF writer, sheet layout, survey context) is loaded from the newest
 scripts/bergama_basemap_v*.py: one code for every drawing. Run Basemap once before this script (it writes the cache).
+v5.1 (Rhino run of v5: trees right; number badges of his labels missing, arrows in another colour than the route):
+circles and ellipses of his label group are read (the coloured number badges and dots); his route arrows take the
+route colour of the style table.
 v5, Aras 13 Nov 04:00-04:01 UTC: "masterplan sucks in terms of architectural language"; "recreate that masterplan
 drawing 1:1 according to our site"; "use it's assets our from our asset library"; "tree's etc. look weird". So:
   TREES   my discs are gone from file 1. Every tree is HIS drawing of that species: the symbols sym_<species> of his
@@ -88,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v5"
+VERSION = "v5.1"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
@@ -222,7 +225,7 @@ def read_plan(B, F, log):
         if shp and len(vb) == 4:
             symbols[sid[len(TREE_SYMBOL):]] = {"w": vb[2], "h": vb[3], "shapes": shp}
     stack, hidden, skip = [], 0, 0                       # stack of (group id, hidden?); skip = inside defs / symbol
-    for m in re.finditer(r"<(/?)(g|defs|symbol|clipPath|mask|pattern|path|polygon|polyline|line|rect|use)\b([^>]*?)(/?)>", txt):
+    for m in re.finditer(r"<(/?)(g|defs|symbol|clipPath|mask|pattern|path|polygon|polyline|line|rect|use|circle|ellipse)\b([^>]*?)(/?)>", txt):
         end, tag, attrs, selfc = m.group(1), m.group(2), m.group(3), m.group(4)
         if tag in ("defs", "symbol", "clipPath", "mask", "pattern"):
             if not selfc:
@@ -269,6 +272,8 @@ def read_plan(B, F, log):
             g0 = next((g for g, _ in reversed(stack) if g and not g.startswith("Layer_")), None) or u"(no named group)"
             left[g0] = left.get(g0, 0) + 1
             continue
+        if tag in ("circle", "ellipse") and gid not in PLAN_RAW:   # dots are read only where his drawing is copied
+            continue
         if "transform" in a:
             odd += 1
             continue
@@ -279,6 +284,15 @@ def read_plan(B, F, log):
         elif tag in ("polygon", "polyline"):
             v = [float(x) for x in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", a.get("points", ""))]
             subs = [(tag == "polygon", list(zip(v[0::2], v[1::2])))]
+        elif tag in ("circle", "ellipse"):                # v5.1: the number badges and dots of his labels
+            try:
+                cx_, cy_ = float(a.get("cx", 0)), float(a.get("cy", 0))
+                rx_ = float(a["r"]) if tag == "circle" else float(a["rx"])
+                ry_ = float(a["r"]) if tag == "circle" else float(a["ry"])
+                subs = [(True, [(cx_ + rx_ * math.cos(i_ * math.pi / 16.0), cy_ + ry_ * math.sin(i_ * math.pi / 16.0))
+                                for i_ in range(32)])]
+            except Exception:
+                subs = []
         elif tag == "line":
             try:
                 subs = [(False, [(float(a["x1"]), float(a["y1"])), (float(a["x2"]), float(a["y2"]))])]
@@ -432,6 +446,8 @@ def plan_items(B, P, S, F, cal, den, x0, y0, u0, u1, tag):
                 cnt["route"] = cnt.get("route", 0) + 1
     for gid_, col, rings in P.get("raw") or []:          # his arrows and labels, as he drew them
         if inwin(rings):
+            if gid_ == "route_arrows" and cat.get("route"):   # one colour for the route and its arrows
+                col = cat["route"]["line"]
             items.append(("poly", [[pg(q) for q in R] for R in rings], col, None, 0.0, None, "plan_" + gid_, 1,
                           "eo" if len(rings) > 1 else None, tag))
             cnt[gid_] = cnt.get(gid_, 0) + 1
