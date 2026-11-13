@@ -122,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v9.4"
+VERSION = "v10"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -161,7 +161,8 @@ VEG_KEYS = (("bare", "sat_bare"), ("grass", "sat_grass"), ("trees", "sat_trees")
 # x0 29520.496, y1 32880.562, 4025 x 4934 px of 0.5 m)
 VEG_BOX = (29520.496, 30413.562, 31532.996, 32880.562)
 CREDIT = (u"Buildings, road edges, water: survey. Land cover: Esri World Imagery (Maxar), 1 Mar 2023, by colour rules. "
-          u"Street bands: survey edges and fronts along OpenStreetMap centrelines.")
+          u"Street bands: survey edges and fronts along OpenStreetMap centrelines. Houses the survey draws only as "
+          u"open street fronts: footprints (c) OpenStreetMap contributors.")
 OSM_FILE = os.path.join("Data", "bergama_osm.osm")
 # OSM longitude / latitude -> survey m: TM 27 (GRS80) then the fit to the survey (the site board's GEO values)
 _A, _FL = 6378137.0, 1 / 298.257222101
@@ -199,6 +200,9 @@ LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
 CACHE_FORMAT = 3
 STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
+HOUSE_FILE = os.path.join(CACHE_DIR, "osm_houses.json")
+HOUSE_FORMAT, HOUSE_SURVEYED, HOUSE_C = 1, 0.30, 0.5   # v10: an OSM footprint is used when under this share of it lies
+                                                       # in closed survey outlines (0.5 m cells) and a survey building line runs in it
 
 
 # ================================================================ the open Rhino model
@@ -781,7 +785,7 @@ class Cover(object):
         self.nx, self.ny = int(math.ceil(F.w / c)), int(math.ceil(F.h / c))
         t0 = time.time()
         full = (1 << self.nx) - 1
-        faces = self.fill([Q for key in ("buildings", "heritage") for cl, Q, _, _ in L.get(key, []) if cl and len(Q) >= 3])
+        faces = self.fill([Q for key in ("osm_houses", "buildings", "heritage") for cl, Q, _, _ in L.get(key, []) if cl and len(Q) >= 3])
         loose = [0] * self.ny
         for key in ("buildings", "heritage", "sheds"):
             for cl, Q, _, _ in L.get(key, []):
@@ -1323,7 +1327,8 @@ CONTEXT = [
     ("ponds", "pond", "existing_water"), ("paths", "path", "existing_paths"),
     ("street_net", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
     ("bridges", "bridge", "existing_bridges"), ("heritage_walls", "heritage_wall", "existing_heritage"),
-    ("buildings", "building", "existing_buildings"), ("heritage", "heritage", "existing_heritage")]
+    ("osm_houses", "building", "existing_buildings"), ("buildings", "building", "existing_buildings"),
+    ("heritage", "heritage", "existing_heritage")]
 KEY_SKIP = ("paths",)              # too fine for the key map; everything else the same
 
 
@@ -1622,6 +1627,107 @@ class SegGrid(object):
 def _median(v):
     v = sorted(v)
     return v[len(v) // 2] if v else None
+
+
+def osm_houses(D, F, log):
+    """v10 (Aras 13 Nov 04:41 UTC: "these kinds of open curves ... close them and make them look as the real houses").
+    The survey draws a row of attached houses only as its street front with short party-wall ticks: no rear, so no
+    closed outline. Their footprints are taken from the OpenStreetMap file of the kit, only where the survey itself
+    shows a building: a footprint is used when a survey building line that closes no outline runs inside it and less
+    than HOUSE_SURVEYED of it is already a closed survey outline. Returns {"osm_houses": [[True, ring]]} in survey m."""
+    src = os.path.join(BERGAMA_ROOT, OSM_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG houses: %s not found: open survey fronts stay open lines" % src)
+        return {}
+    key = u"%s|%d|%d|%d|%s" % (D.get("key"), os.path.getsize(src), int(os.path.getmtime(src)), HOUSE_FORMAT, HOUSE_SURVEYED)
+    if os.path.isfile(HOUSE_FILE):
+        try:
+            with open(HOUSE_FILE, encoding="utf-8") as f:
+                S = json.load(f)
+            if S.get("key") == key:
+                log.append(u"houses: %s used (same model and OSM file): %s" % (HOUSE_FILE, S.get("note", u"")))
+                return S["layers"]
+        except Exception:
+            pass
+    t0 = time.time()
+    c = HOUSE_C
+    nx, ny = int(math.ceil(F.w / c)), int(math.ceil(F.h / c))
+
+    def rows_of(Q):                                       # one ring in frame m -> {row: bits}
+        out = {}
+        n = len(Q)
+        j0 = max(0, int(math.ceil(min(q[1] for q in Q) / c - 0.5)))
+        j1 = min(ny - 1, int(max(q[1] for q in Q) / c))
+        for j in range(j0, j1 + 1):
+            y, X = (j + 0.5) * c, []
+            for i in range(n):
+                a, b = Q[i - 1], Q[i]
+                if (a[1] <= y) != (b[1] <= y):
+                    X.append(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]))
+            X.sort()
+            r = 0
+            for x0, x1 in zip(X[0::2], X[1::2]):
+                a_, b_ = max(0, int(round(x0 / c))), min(nx, int(round(x1 / c)))
+                if b_ > a_:
+                    r |= ((1 << (b_ - a_)) - 1) << a_
+            if r:
+                out[j] = r
+        return out
+    surv, loose = [0] * ny, [0] * ny
+    for k_ in ("buildings", "heritage"):
+        for cl, P in D["layers"].get(k_, []):
+            Q = [F.local(p) for p in P]
+            if cl and len(Q) >= 3:
+                for j, r in rows_of(Q).items():
+                    surv[j] |= r
+                continue
+            for a, b in zip(Q[:-1], Q[1:]):
+                n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / (c * 0.9)))
+                for t in range(n + 1):
+                    i, j = int((a[0] + (b[0] - a[0]) * t / n) // c), int((a[1] + (b[1] - a[1]) * t / n) // c)
+                    if 0 <= i < nx and 0 <= j < ny:
+                        loose[j] |= 1 << i
+    root = ET.parse(src).getroot()
+    nodes = {}
+    for n in root.iter("node"):
+        try:
+            nodes[n.get("id")] = (float(n.get("lon")), float(n.get("lat")))
+        except (TypeError, ValueError):
+            pass
+    out, n_all, n_surv, n_none = [], 0, 0, 0
+    for w in root.iter("way"):
+        if not any(t.get("k") == "building" for t in w.findall("tag")):
+            continue
+        P = [to_survey(*nodes[nd.get("ref")]) for nd in w.findall("nd") if nd.get("ref") in nodes]
+        if len(P) >= 2 and math.hypot(P[0][0] - P[-1][0], P[0][1] - P[-1][1]) < 0.01:
+            P = P[:-1]
+        if len(P) < 3:
+            continue
+        Q = [F.local(p) for p in P]
+        if max(q[0] for q in Q) < 0 or min(q[0] for q in Q) > F.w or max(q[1] for q in Q) < 0 or min(q[1] for q in Q) > F.h:
+            continue
+        R = rows_of(Q)
+        area = sum(bin(r).count("1") for r in R.values())
+        if not area:
+            continue
+        n_all += 1
+        if sum(bin(r & surv[j]).count("1") for j, r in R.items()) >= HOUSE_SURVEYED * area:
+            n_surv += 1
+        elif not any(r & loose[j] for j, r in R.items()):
+            n_none += 1
+        else:
+            out.append([True, [[round(p[0], 3), round(p[1], 3)] for p in P]])
+    note = (u"%d OpenStreetMap footprints in the frame: %d already closed survey outlines (%.0f %% or more), %d without "
+            u"a survey building line inside (not drawn: the survey shows no building there), %d used for the open "
+            u"survey fronts" % (n_all, n_surv, 100 * HOUSE_SURVEYED, n_none, len(out)))
+    layers = {"osm_houses": out}
+    try:
+        with open(HOUSE_FILE, "w", encoding="utf-8") as f:
+            json.dump({"key": key, "note": note, "made_by": u"%s %s" % (GH_LABEL, VERSION), "layers": layers}, f)
+    except Exception as e:
+        log.append(u"FLAG houses: %s not written (%s)" % (HOUSE_FILE, e))
+    log.append(u"houses: %s (%.1f s)" % (note, time.time() - t0))
+    return layers
 
 
 def build_streets(D, F, log):
@@ -2379,6 +2485,7 @@ def main():
     D["turn_deg"] = round(math.degrees(F.rot), 4)
     D["layers"].update(load_veg(D, log))
     D["layers"].update(build_streets(D, F, log))
+    D["layers"].update(osm_houses(D, F, log))
     L = localise(D, F)
     prepare(D, L, F, log)
     fade = Fade(D, F)
@@ -2403,7 +2510,7 @@ def main():
     n_a0 = a0_scale(F)
     log.append(u"A0: the whole frame in one piece at 1:%s (the smallest step of %d at which %.0f m fits %.0f mm wide)"
                % (format(n_a0, ",d"), A0_STEP, F.w, A0_W - 2 * A0_MARGIN))
-    order = ["tree_cover"] + [c for _, c, _ in CONTEXT][::-1] + ["calisma", "section_line"]
+    order = ["tree_cover"] + list(dict.fromkeys(c for _, c, _ in CONTEXT[::-1])) + ["calisma", "section_line"]
     for name, d0, key, title in ((u"Basemap", den, False, u"Base map"), (u"Keymap", kden, True, u"Key map")):
         for a0 in (False, True):
             d = n_a0 if a0 else d0
