@@ -106,7 +106,7 @@ bergama_basemap: Data/bergama_style.json  # hand, 12 Nov
 bergama_basemap: Data/selinos_centreline.json  # hand, 12 Nov (the river surface)
 bergama_plan_base: Data/selinos_centreline.json  # hand, 12 Nov (the river surface, through the Basemap code)
 bergama_basemap: Data/section_lines.json  # hand, 12 Nov (only when the model has no section_lines layer)
-bergama_plan_base: scripts/bergama_basemap_v13.py  # hand, 12 Nov (the newest Basemap script = the drawing code)
+bergama_plan_base: scripts/bergama_basemap_v14.py  # hand, 12 Nov (the newest Basemap script = the drawing code)
 bergama_plan_base: Data/bergama_style.json  # hand, 12 Nov
 bergama_plan_base: Data/assets/masterlastversion.svg  # hand, 12 Nov
 bergama_plan_base: cached/bergama_basemap/basemap_layers.json  # hand, 12 Nov
@@ -123,4 +123,6 @@ bergama_basemap: Data/roads_survey.json  # hand, 13 Nov (road surface between th
 bergama_plan_base: Data/roads_survey.json  # hand, 13 Nov (through the Basemap code)
 bergama_basemap: Data/streets_town.json  # hand, 13 Nov (streets the survey has no road line for; houses cut back from the roads)
 bergama_plan_base: Data/streets_town.json  # hand, 13 Nov (through the Basemap code)
+bergama_basemap: Data/buildings_image_check.json  # hand, 13 Nov (buildings added / not drawn after the check against the 2023 image)
+bergama_plan_base: Data/buildings_image_check.json  # hand, 13 Nov (through the Basemap code)
 bergama_basemap: Data/bergama_osm.osm  # hand, 12 Nov

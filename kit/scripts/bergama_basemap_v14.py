@@ -5,6 +5,16 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v14, Aras 13 Nov 13:06-13:20 UTC: "I want you to check every single mm from the satallite photos", card answer "Add
+from OpenStreetMap and satellite" (the buildings the image shows and the survey does not have), "also remove the ones
+that doesnt exists theere". CHECK_FILE = Data/buildings_image_check.json (made offline, by eye against the 1 Mar 2023
+image; its "source", "method", "figures" and "limits" say how; here it is only read) is applied first in prepare():
+"add_osm" = OpenStreetMap footprints the survey has no building line for (joined to the OpenStreetMap houses, so the
+street file cuts them back like the others), "add_image" = roofs read from the image as rectangles, about +-5 m (joined
+to the satellite bodies), "remove" = outlines around drawn buildings that stand on open ground in the image: every
+building line, closed or open, OpenStreetMap footprint or satellite body lying wholly inside one is not drawn.
+Heritage buildings are never removed. Nothing else changes.
+
 v13, Aras 13 Nov 12:45-12:57 UTC: "roads disappear on top left", "left bottom aswell", "context is really inconsistent
 please fix that", "make roads visible near houses like give them 1-2 meter offset from houses so we can clearly see the
 roads", "look at the satallite photos that you have in your librarry and crosscheck". Since v12 a context road was only
@@ -205,7 +215,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v13"
+VERSION = "v14"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
@@ -292,6 +302,7 @@ STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 HOUSE_FILE = os.path.join(CACHE_DIR, "osm_houses.json")
 TOWN_FILE = os.path.join("Data", "streets_town.json")   # v13: the streets the survey has no road line for (old town)
 TOWN_MATCH_M = 0.05                # m: a house of the file is the drawn house whose corner mean lies this close
+CHECK_FILE = os.path.join("Data", "buildings_image_check.json")   # v14: buildings added / not drawn after the check against the 2023 image
 ROAD_FILE = os.path.join("Data", "roads_survey.json")   # v12.2: the road surface between the survey's own road lines
 SAT_HOUSE_FILE = os.path.join("Data", "houses_sat2023.json")   # v11: house bodies read from the 2023 satellite image
 HOUSE_FORMAT, HOUSE_SURVEYED, HOUSE_C = 1, 0.30, 0.5   # v10: an OSM footprint is used when under this share of it lies
@@ -1390,6 +1401,66 @@ def road_surface(L, F, log):
                    fig.get("inside_red_line_m2", u"?")))
 
 
+def image_check(L, F, log):
+    """v14: the by-eye check of every drawn building against the 1 Mar 2023 satellite image, read from CHECK_FILE
+    (made offline; survey m), never judged here. In place: "add_osm" rings join L["osm_houses"], "add_image" rings
+    join L["sat_houses"], and every item of L["buildings"], L["osm_houses"], L["sat_houses"] whose points all lie
+    inside one "remove" ring is dropped. Heritage is not touched."""
+    src = os.path.join(BERGAMA_ROOT, CHECK_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG buildings: %s not found: run Bergama.bat once (the kit copies it); the buildings stay as "
+                   u"the survey has them (none added, none left out)" % src)
+        return
+    try:
+        with open(src, encoding="utf-8") as f:
+            J = json.load(f)
+        loc = lambda p: F.local((float(p[0]), float(p[1])))
+        add = dict((k, [[loc(p) for p in R] for R in J.get(k, []) if len(R) >= 3]) for k in ("add_osm", "add_image"))
+        rem = [[loc(p) for p in R] for R in J.get("remove", []) if len(R) >= 3]
+    except Exception as e:
+        log.append(u"FLAG buildings: %s not read (%s: %s)" % (src, type(e).__name__, e))
+        return
+
+    def seen(Q):
+        return max(q[0] for q in Q) > 0.0 and min(q[0] for q in Q) < F.w and \
+            max(q[1] for q in Q) > 0.0 and min(q[1] for q in Q) < F.h
+
+    def inside(q, R):
+        x, y, n, c = q[0], q[1], len(R), False
+        for i in range(n):
+            a, b = R[i - 1], R[i]
+            if (a[1] <= y) != (b[1] <= y) and x < a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]):
+                c = not c
+        return c
+    box = [(min(q[0] for q in R), min(q[1] for q in R), max(q[0] for q in R), max(q[1] for q in R)) for R in rem]
+    gone = {}
+    for key in ("buildings", "osm_houses", "sat_houses"):
+        out = []
+        for it in L.get(key, []):
+            Q = it[1]
+            x0, y0 = min(q[0] for q in Q), min(q[1] for q in Q)
+            x1, y1 = max(q[0] for q in Q), max(q[1] for q in Q)
+            if any(b[0] <= x0 and b[1] <= y0 and x1 <= b[2] and y1 <= b[3] and all(inside(q, R) for q in Q)
+                   for R, b in zip(rem, box)):
+                k_ = key if key != "buildings" else ("closed" if it[0] and len(Q) >= 3 else "open")
+                gone[k_] = gone.get(k_, 0) + 1
+            else:
+                out.append(it)
+        L[key] = out
+    n_add = {}
+    for k, key in (("add_osm", "osm_houses"), ("add_image", "sat_houses")):
+        new = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in add[k] if seen(R)]
+        L[key] = list(L.get(key, [])) + new
+        n_add[k] = len(new)
+    log.append(u"buildings checked against the 2023 image (%s, made %s): added %d OpenStreetMap footprint(s) the survey "
+               u"has no building line for and %d roof(s) read from the image (rectangles, about +-5 m); not drawn, "
+               u"open ground in the image: %d closed survey outline(s), %d open survey building line(s), %d "
+               u"OpenStreetMap footprint(s), %d satellite bodies (%d outline(s) in the file)" % (
+                   os.path.basename(src), J.get("made", u"?"), n_add["add_osm"], n_add["add_image"],
+                   gone.get("closed", 0), gone.get("open", 0), gone.get("osm_houses", 0), gone.get("sat_houses", 0),
+                   len(rem)))
+
+
 def town_streets(L, F, log):
     """v13: the streets the survey has no road line for, read from TOWN_FILE (made offline; survey m), never built
     here: L["town_net"] = surface rings (painted together even-odd), L["town_edges"] = edge lines, both in frame m.
@@ -1804,6 +1875,7 @@ def furniture(S, x, y, width, tk, title, sub, legend, credit=None):
 
 def prepare(D, L, F, log):
     """what every drawing of the set shares: the streets as one surface, the river as one surface, the clean lines"""
+    image_check(L, F, log)                           # v14: first, so every later step sees the checked buildings
     street_rows = join_streets(L, F, log)
     river_rows = build_river(L, F, log)
     road_surface(L, F, log)
