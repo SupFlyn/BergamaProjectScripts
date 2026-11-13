@@ -8,6 +8,15 @@ The look follows his most liked example (A05_board02_x12_13-1-scaled, brief
 library/examples/liked_2026-11-12/MERGED_SPEC_v0.1.md): white context with thin grey outlines, colour only inside the
 thin red line, the stream the darkest fill without outline, trees as circles in three tones on a pale green underlay.
 
+v11, Aras 13 Nov 12:28 UTC: "from masterplan remove everything except the trees" "in our working area". Our reading:
+in the Masterplan files (file 1) nothing of his plan drawing is drawn inside the red line any more except his trees
+(his own tree drawings, placed as he placed them). Under them the working area is the site as it is, exactly as in
+Masterplan_as_is (ground tone, the survey's road surface, buildings, water), but without the survey's tree symbols
+and without the soft green under trees. Not drawn from his plan: ground and planting fills, water, reed, roads,
+paving, promenade, his buildings, the road links and decks of roads_design.json, the dotted route, arrows, labels.
+PLAN_KEEP names the plan layers that are drawn; set it to None to get the whole plan back (v10.1). The as-is files
+are unchanged. The paragraphs below describe the whole plan (PLAN_KEEP = None).
+
 What is drawn (nothing is invented: every shape is either the survey or a shape of his plan drawing):
   OUTSIDE the red line (calisma_alan): the existing situation exactly as the Basemap draws it (same code, same style
           entries: white buildings with one thin outline, continuous white streets), without the satellite land cover.
@@ -118,13 +127,14 @@ Writes ~/Downloads/Bergama/output/bergama_plan_base/Masterplan.pdf, Masterplan_A
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v10.1"
+VERSION = "v11"
 GH_LABEL = "PlanBase"
 OUT_FOLDER = "bergama_plan_base"
 LOG_NAME = "bergama_plan_base_log.txt"
 GH_INPUTS = {"scale": "int 500..10000 = 2000"}
 
 PLAN_SVG = os.path.join("Data", "assets", "masterlastversion.svg")
+PLAN_KEEP = ("plan_trees",)       # v11 (Aras 13 Nov 12:28 UTC): the only layers of his plan drawn inside the red line; None = the whole plan
 LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
 LIB_END = "# ================================================================ main"
 # his group id -> {fill of the shape (lower case hex) or "*" = any fill: style category}; drawn in ORDER below
@@ -179,6 +189,11 @@ CREDIT = (u"Inside the red line: the plan drawing masterlastversion.svg, redrawn
           u"(buildings, road edges, water) with street bands along OpenStreetMap centrelines; houses the survey draws only as open "
           u"street fronts: footprints (c) OpenStreetMap contributors, else backs read from Esri World Imagery "
           u"(Maxar, 1 Mar 2023), about +-5 m.")
+
+CREDIT_KEEP = (u"The site as it is: the survey (buildings, road edges, water) with street bands along OpenStreetMap "
+               u"centrelines; houses the survey draws only as open street fronts: footprints (c) OpenStreetMap "
+               u"contributors, else backs read from Esri World Imagery (Maxar, 1 Mar 2023), about +-5 m. Inside the red "
+               u"line, of the plan drawing masterlastversion.svg only the trees.")
 
 CREDIT_ASIS = (u"The site as it is: the survey (buildings, road edges, water, tree symbols) with street bands along "
                u"OpenStreetMap centrelines; houses the survey draws only as open street fronts: footprints (c) "
@@ -688,7 +703,7 @@ def main():
     def inside(q):
         return any(B["g_pip"](q[0], q[1], R) for R in cal)
     L1, Ltop, gone = dict(L), {}, 0                       # file 1: the survey without the houses the plan takes
-    for key in ("sat_houses", "osm_houses", "buildings", "heritage"):
+    for key in ("sat_houses", "osm_houses", "buildings", "heritage") if PLAN_KEEP is None else ():
         base, top = [], []
         for it in L.get(key, []):
             sh = sum(1 for q in it[1] if inside(q)) / float(max(1, len(it[1])))
@@ -699,9 +714,15 @@ def main():
             else:
                 gone += 1
         L1[key], Ltop[key] = base, top
-    log.append(u"file 1, survey buildings at the red line: %d inside (%.0f %% of their corners or more) not drawn, the "
-               u"plan takes them; %d reaching over the line drawn whole on top" % (
-                   gone, 100 * GONE_SHARE, sum(len(v) for v in Ltop.values())))
+    if PLAN_KEEP is None:
+        log.append(u"file 1, survey buildings at the red line: %d inside (%.0f %% of their corners or more) not drawn, the "
+                   u"plan takes them; %d reaching over the line drawn whole on top" % (
+                       gone, 100 * GONE_SHARE, sum(len(v) for v in Ltop.values())))
+    else:
+        log.append(u"file 1 (Masterplan): inside the red line only these layers of his plan are drawn: %s; under them the "
+                   u"site as it is (as in Masterplan_as_is, without the survey's tree symbols and the soft green); his "
+                   u"other shapes, the road links, decks, route, arrows and labels are not drawn"
+                   % u", ".join(PLAN_KEEP))
     T = []                                                # the survey's trees inside the red line, frame m
     for x, y, r, lay_ in D.get("trees") or []:
         q = F.local((x, y))
@@ -751,7 +772,18 @@ def main():
 
         def band(den_, x, y, u0, u1, tag, ours=ours):
             items, cnt = B["draw_context"](L1 if ours else L, F, S, den_, x, y, u0, u1, cover=None, fade=fade)
-            if ours:
+            lab = []
+            if ours and PLAN_KEEP is not None:            # v11: the site as it is, and of his plan only the kept layers
+                clips, c2, unk = site_items(B, [], None, None, L, S, F, cal, den_, x, y, u0, u1, tag, items)
+                it, _clips, c_p, unk_p = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
+                kept = [a for a in it if B["_item_layer"](a).split(u"/")[0] in PLAN_KEEP]
+                items += kept
+                unk = dict(unk, **unk_p)
+                if "plan_trees" in PLAN_KEEP:
+                    for k_ in ("tree_symbol", "tree_light", "tree_mid", "tree_dark"):
+                        if c_p.get(k_):
+                            c2[k_] = c_p[k_]
+            elif ours:
                 it, clips, c2, unk = plan_items(B, P, S, F, cal, den_, x, y, u0, u1, tag)
                 lab = [a for a in it if B["_item_layer"](a) == "plan_labels"]   # v6.1: his labels last, over everything
                 items += [a for a in it if B["_item_layer"](a) != "plan_labels"]
@@ -770,15 +802,15 @@ def main():
             for k_, v in c2.items():
                 cnt[k_] = cnt.get(k_, 0) + v
             items += B["draw_top"](D, F, S, den_, x, y, u0, u1, names=False, sections=False)
-            if ours:
-                items += lab
+            items += lab
             cnt["calisma"] = len(cal)
             return items, clips, cnt
         w, h, items, clips, cnt = B["sheet"](
             F, S, d, a0, u"Masterplan" if ours else u"Site as it is",
             (u"Base map of the proposal, 1:%s" if ours else u"Existing situation, 1:%s") % format(d, ",d"),
-            (lambda c: [k_ for k_ in order if c.get(k_)]) if ours else
-            (lambda c: [k_ for k_ in order_asis if c.get(k_)]), CREDIT if ours else CREDIT_ASIS, band)
+            (lambda c: [k_ for k_ in order if c.get(k_)]) if (ours and PLAN_KEEP is None) else
+            (lambda c: [k_ for k_ in order_asis if c.get(k_)]),
+            (CREDIT if PLAN_KEEP is None else CREDIT_KEEP) if ours else CREDIT_ASIS, band)
         p = B["write_pdf"](os.path.join(OUT_DIR, name + (u"_A0.pdf" if a0 else u".pdf")), w, h, items,
                            u"%s, site_alan, 1:%d" % (name, d), clips, P.get("symbols") if ours else None)
         log.append(B["out_line"](p, w, h, d, items, u"" if a0 else u"; " + u", ".join(
