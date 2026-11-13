@@ -5,6 +5,20 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v12.2, Aras 13 Nov 09:03 UTC: "as_is drawing doesnt works because the roads etc. all fucked up please fix the outlines
+there". Since v12 a road was only its two survey lines, pale hairlines with nothing between them, and a bridge was two
+lines over the water. Now the ground between the survey's own road lines is a surface (ROAD_FILE =
+Data/roads_survey.json, made offline from the survey cache and checked against the 1 Mar 2023 satellite image; its
+"method" and "limits" say how; here it is only read): layer "road_net", painted in the street fill over the water and
+the land cover and under the survey's road lines, which stay its outline. Its own edge is never drawn as a line (at a
+street mouth or a break in a survey line it is an estimate). The Masterplan script paints it in the road tone inside
+the red line of the as-is file. Style 10: the pale road edge of the Masterplan files (street_plan) is darker and
+heavier, so a road reads as a road.
+Also (Rhino run of v12.1 on his PC, 09:02 UTC: the covered stretch is not drawn, but the water's two ends there were
+rounded caps, the eastern one a blob): where the water goes under cover it now ends square, on the cross line of
+the last station with a survey stream line (mask_rings keep=: the outline's points on that line are not corner-cut).
+The two survey bridge lines (YOL_KOPRU) just east of the western end stay: the stream goes under that bridge.
+
 v12.1, Aras 13 Nov 07:48 UTC (the stretch between the two parts of the red line): "the middle part looks weird you need
 to fill there there is not stream for sure and houses do float on there". The river was carried through every stretch
 without a survey stream line (RIVER_GAP = the whole frame), so it ran as open water under the old town's houses. Now a
@@ -142,7 +156,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v12.1"
+VERSION = "v12.2"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
@@ -224,6 +238,7 @@ CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
 CACHE_FORMAT = 3
 STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 HOUSE_FILE = os.path.join(CACHE_DIR, "osm_houses.json")
+ROAD_FILE = os.path.join("Data", "roads_survey.json")   # v12.2: the road surface between the survey's own road lines
 SAT_HOUSE_FILE = os.path.join("Data", "houses_sat2023.json")   # v11: house bodies read from the 2023 satellite image
 HOUSE_FORMAT, HOUSE_SURVEYED, HOUSE_C = 1, 0.30, 0.5   # v10: an OSM footprint is used when under this share of it lies
                                                        # in closed survey outlines (0.5 m cells) and a survey building line runs in it
@@ -1024,10 +1039,22 @@ def _dp(P, tol):
     return [p for p, k_ in zip(P, keep) if k_]
 
 
-def mask_rings(rows, nx, c, F, tol, min_area, smooth=0):
+def mask_rings(rows, nx, c, F, tol, min_area, smooth=0, keep=()):
     """a mask as vector rings in frame m (outer rings and holes together: draw even-odd). Points on the frame edge stay
-    on it; the staircase of the cells is straightened to within tol m; rings under min_area m2 are dropped."""
+    on it; the staircase of the cells is straightened to within tol m; rings under min_area m2 are dropped.
+    keep = lines (a, b): outline points within c + 2 * tol m of one are not corner-cut either (a square end, v12.2)."""
     out = []
+    kr = c + 2.0 * tol
+
+    def kept(q):
+        for (x1, y1), (x2, y2) in keep:
+            dx, dy = x2 - x1, y2 - y1
+            t = ((q[0] - x1) * dx + (q[1] - y1) * dy) / ((dx * dx + dy * dy) or 1.0)
+            t = 0.0 if t < 0.0 else 1.0 if t > 1.0 else t
+            if math.hypot(q[0] - x1 - t * dx, q[1] - y1 - t * dy) <= kr:
+                return True
+        return False
+
     for lp in mask_loops(rows, nx):
         P = [(min(F.w, i * c), min(F.h, j * c)) for i, j in lp]
         if abs(g_area(P)) < min_area:
@@ -1038,7 +1065,7 @@ def mask_rings(rows, nx, c, F, tol, min_area, smooth=0):
             Q = []
             for i in range(len(R)):
                 a, b = R[i], R[(i + 1) % len(R)]
-                on = lambda q: q[0] <= 0 or q[1] <= 0 or q[0] >= F.w or q[1] >= F.h      # noqa: E731
+                on = lambda q: q[0] <= 0 or q[1] <= 0 or q[0] >= F.w or q[1] >= F.h or kept(q)      # noqa: E731
                 if on(a) or on(b):
                     Q += [a] if on(a) else []
                     if not on(a):
@@ -1164,7 +1191,7 @@ def build_river(L, F, log):
                 if 1e-6 < d <= 2 * RIVER_STEP and gb.hit(p[0], p[1], (q[0] - p[0]) / d, (q[1] - p[1]) / d, d) is not None:
                     n_x += 1
             if (j - i) * RIVER_STEP >= RIVER_COVER_M and n_x >= RIVER_COVER_N:
-                covered.append((st[i][0][0], st[j - 1][0][0], (j - i) * RIVER_STEP, n_x))
+                covered.append((st[i][0][0], st[j - 1][0][0], (j - i) * RIVER_STEP, n_x, i, j))
             elif j - i <= gap:
                 for k_ in range(i, j):
                     open_[k_] = True
@@ -1203,16 +1230,48 @@ def build_river(L, F, log):
         mask_add(rows, quad, c, nx)
         m_open += RIVER_STEP
     rows = mask_close(rows, int(round(RIVER_CLOSE_M / c)), nx)
-    rings = mask_rings(rows, nx, c, F, MASK_TOL * 2, RIVER_MIN_M2, smooth=2)
+    ends = []                                             # v12.2: the cross lines where the water goes under cover
+    for cv in covered:
+        for k_ in (cv[4] - 1, cv[5]):
+            if 0 <= k_ < len(st) and open_[k_]:
+                p, n = st[k_]
+                ends.append(((p[0] + n[0] * W[0][k_], p[1] + n[1] * W[0][k_]), (p[0] - n[0] * W[1][k_], p[1] - n[1] * W[1][k_])))
+    rings = mask_rings(rows, nx, c, F, MASK_TOL * 2, RIVER_MIN_M2, smooth=2, keep=ends)
     L["river"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
     log.append(u"river: %d cross lines every %.0f m along %s; stream line met on %d (one side) / %d (other side) of them, "
                u"the rest carried between measured neighbours; %.0f m drawn as open water, %d outline(s), %.0f m2" % (
                    len(st), RIVER_STEP, os.path.basename(src), n_meas[0], n_meas[1], m_open, len(rings),
                    sum(bin(r).count("1") for r in rows) * c * c))
-    for u0_, u1_, m_, n_x in covered:
+    for cv in covered:
         log.append(u"river: covered, not drawn: u %.0f-%.0f m of the frame (%.0f m without a survey stream line, %d "
-                   u"centreline step(s) crossed by a survey building line)" % (u0_, u1_, m_, n_x))
+                   u"centreline step(s) crossed by a survey building line); the water ends square on %d cross line(s)"
+                   % (cv[0], cv[1], cv[2], cv[3], len(ends)))
     return rows
+
+
+def road_surface(L, F, log):
+    """v12.2: the ground between the survey's own road lines as one surface, L["road_net"] = rings in frame m (painted
+    together even-odd). Read from ROAD_FILE (made offline from the survey cache; survey m), never built here."""
+    src = os.path.join(BERGAMA_ROOT, ROAD_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG roads: %s not found: run Bergama.bat once (the kit copies it); roads stay lines without a "
+                   u"surface" % src)
+        return
+    try:
+        with open(src, encoding="utf-8") as f:
+            J = json.load(f)
+        rings = [[F.local((float(p[0]), float(p[1]))) for p in R] for R in J.get("rings", []) if len(R) >= 3]
+    except Exception as e:
+        log.append(u"FLAG roads: %s not read (%s: %s)" % (src, type(e).__name__, e))
+        return
+    rings = [R for R in rings if max(q[0] for q in R) > 0.0 and min(q[0] for q in R) < F.w
+             and max(q[1] for q in R) > 0.0 and min(q[1] for q in R) < F.h]
+    L["road_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
+    fig = J.get("figures") or {}
+    log.append(u"road surface: %d outline(s) from %s (made %s): %s m2 between the survey's road lines, %s m2 of it "
+               u"inside the red line; a fill under the survey's lines, no edge of its own" % (
+                   len(rings), os.path.basename(src), J.get("made", u"?"), fig.get("surface_m2", u"?"),
+                   fig.get("inside_red_line_m2", u"?")))
 
 
 def clean_lines(L, F, street_rows, river_rows, log):
@@ -1369,7 +1428,8 @@ def soft_item(data, colour, layer, clip, den, x0, y0):
 CONTEXT = [
     ("river", "water", "existing_water"), ("stream_banks", "stream_bank", "existing_water"),
     ("ponds", "pond", "existing_water"), ("paths", "path", "existing_paths"),
-    ("street_net", "street", "existing_streets"), ("road_edges", "road_edge", "existing_roads"),
+    ("street_net", "street", "existing_streets"), ("road_net", "street", "existing_streets"),   # v12.2: road_net
+    ("road_edges", "road_edge", "existing_roads"),
     ("kerbs", "road_edge", "existing_roads"),            # v12: the survey's kerb lines, in the one road line
     ("bridges", "bridge", "existing_bridges"), ("heritage_walls", "heritage_wall", "existing_heritage"),
     ("sat_houses", "building", "existing_buildings"), ("osm_houses", "building", "existing_buildings"),
@@ -1391,14 +1451,14 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
         items.append(soft_item(cover.soft, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
         cnt["tree_cover"] = 1
     for key, cname, layer in CONTEXT:
-        if key in skip or (SURVEY_ROADS and key == "street_net") or (key == "kerbs" and not SURVEY_ROADS):
+        if key in skip or (SURVEY_ROADS and key == "street_net") or (key in ("kerbs", "road_net") and not SURVEY_ROADS):
             continue
         c = S["cat"][cname]
         stroke, lw, fill = c["line"], c["w"] * lw_k, fill_of(c)
         fd = fade if (fade is not None and fade.rows is not None and key in FADE_KEYS and stroke) else None
         far_ = lighter(stroke) if fd else stroke
         n = 0
-        if key in ("street_net", "river"):               # one joined surface: all rings in one even-odd shape
+        if key in ("street_net", "road_net", "river"):   # one joined surface: all rings in one even-odd shape
             rings = [R for R in (clip_ring(Q, box) for cl, Q, a, b in L.get(key, [])) if len(R) >= 3]
             if not rings:
                 continue
@@ -1569,6 +1629,7 @@ def prepare(D, L, F, log):
     """what every drawing of the set shares: the streets as one surface, the river as one surface, the clean lines"""
     street_rows = join_streets(L, F, log)
     river_rows = build_river(L, F, log)
+    road_surface(L, F, log)
     clean_lines(L, F, street_rows, river_rows, log)
     trim_house_lines(L, F, log)
 
