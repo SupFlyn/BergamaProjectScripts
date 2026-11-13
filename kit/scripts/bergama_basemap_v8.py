@@ -45,6 +45,11 @@ v4.2 (second look review, 12 Nov 19:28 UTC; drawing values, ours): a style entry
 short wave strokes, vector, inside the same shared tile as its grain; Aras 18:40 "water ... should get textures");
 legend lines are at least LEGEND_LINE_MIN mm; a section line is named once, above its upper end, names that would
 touch are stacked; on a sheet smaller than A0 / 2 the north and scale block sits under the frame, not on the map.
+v8, Aras 13 Nov 03:59 UTC: "some of the buildings are lost with their outlines and all we need all of themm". Since
+v5 the layer BINA_SUNDURMA (annexes and lean-to buildings; 27,073 lines, 97 km in the cached survey) was read as
+"sheds" and no longer drawn, so whole rows of small buildings were missing. Now every layer of the model whose name
+starts with BINA is a building layer: its lines are joined into closed outlines with the others and drawn in the
+one building style (the log names the layers added and their line counts).
 v7.1 (Rhino run of v7): the building shadow is taken out again, everywhere. It read as a doubled line, and Aras
 said on 12 Nov 11:13 UTC "dont add shadows to the basemap for now". No shadows until he asks.
 v7, Aras 12 Nov 19:57 UTC: "we want exact language copy of it" (A05). A05's buildings carry a thin relief: every
@@ -108,7 +113,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v7.1"
+VERSION = "v8"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -328,8 +333,17 @@ def read_model(doc, log):
                     labels.append([u" ".join(g.Text.split()), round(g.Point.X, 2), round(g.Point.Y, 2), 0.0, kind])
             except Exception:
                 pass
+    more = []                                             # v8: every other BINA... layer of the model is a building too
+    try:
+        for lay in doc.Layers:
+            if not lay.IsDeleted and lay.Name and lay.Name.upper().startswith("BINA") and lay.Name not in BLD_LAYERS \
+                    and lay.Name not in more:
+                more.append(lay.Name)
+    except Exception:
+        pass
+    bld_layers = list(BLD_LAYERS) + more
     segs = []
-    for nm, o, cl, P in curves(BLD_LAYERS):
+    for nm, o, cl, P in curves(bld_layers):
         Q = list(P) + ([P[0]] if cl else [])
         segs += [(nm, a_, b_) for a_, b_ in zip(Q[:-1], Q[1:])]
     faces, loose = building_faces(segs)
@@ -382,7 +396,9 @@ def read_model(doc, log):
     her_lines = [[False, [a_, b_]] for nm, a_, b_ in loose if nm in HER_LAYERS]
     bld += [[False, [a_, b_]] for nm, a_, b_ in loose if nm not in HER_LAYERS]
     log.append(u"buildings: %d survey lines on %d BINA layers joined into %d closed outlines (%d heritage); %d lines "
-               u"close no outline and are drawn as lines" % (len(segs), len(BLD_LAYERS), len(faces), len(her), len(loose)))
+               u"close no outline and are drawn as lines; BINA layers beyond the list, read as buildings too: %s" % (
+                   len(segs), len(bld_layers), len(faces), len(her), len(loose), u", ".join(
+                       u"%s %d lines" % (m_, sum(1 for s_ in segs if s_[0] == m_)) for m_ in more) or u"none"))
     if segs and not faces:
         log.append(u"FLAG buildings: the building lines close no outline: check the BINA layers of the open model")
     out["buildings"] = bld
