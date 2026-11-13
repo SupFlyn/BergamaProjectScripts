@@ -122,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v9.3"
+VERSION = "v9.4"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -1253,10 +1253,10 @@ def clean_lines(L, F, street_rows, river_rows, log):
                    FRAG_M, u", ".join(u"%s %d" % kv for kv in sorted(frag.items())) or u"none"))
 
 
-def haze_data(rows_or_discs, F, blur=None):
+def haze_data(rows_or_discs, F, blur=None, cell=None):
     """a soft tone that fades out at its edge (A05's green under the trees), as (zlib 8-bit rows, px w, px h) or None.
     rows_or_discs = mask rows (MASK_C cells) or [(u, v, radius m)]; coverage on HAZE_C m cells, blurred HAZE_BLUR_M m"""
-    c2 = HAZE_C
+    c2 = cell or HAZE_C                                   # v9.4: the cell m may be given (finer = smoother)
     nx2, ny2 = int(math.ceil(F.w / c2)), int(math.ceil(F.h / c2))
     G = [[0.0] * nx2 for _ in range(ny2)]
     if rows_or_discs and isinstance(rows_or_discs[0], int):
@@ -1303,13 +1303,14 @@ def haze_data(rows_or_discs, F, blur=None):
     out = bytearray()
     for row in reversed(G):
         out += bytes(min(255, int(v * HAZE_MAX * 255.0)) for v in row)
-    return (zlib.compress(bytes(out), 9), nx2, ny2)
+    return (zlib.compress(bytes(out), 9), nx2, ny2, c2)
 
 
 def soft_item(data, colour, layer, clip, den, x0, y0):
     """a haze_data() tone placed with the frame's lower-left at page (x0, y0) mm"""
     k = 1000.0 / den
-    return ("soft", data[0], data[1], data[2], x0, y0, data[1] * HAZE_C * k, data[2] * HAZE_C * k, colour, None, layer, clip)
+    c2 = data[3] if len(data) > 3 else HAZE_C
+    return ("soft", data[0], data[1], data[2], x0, y0, data[1] * c2 * k, data[2] * c2 * k, colour, None, layer, clip)
 
 
 
