@@ -122,7 +122,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v11"
+VERSION = "v11.1"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 LOG_NAME = "bergama_basemap_log.txt"
@@ -1527,6 +1527,116 @@ def prepare(D, L, F, log):
     street_rows = join_streets(L, F, log)
     river_rows = build_river(L, F, log)
     clean_lines(L, F, street_rows, river_rows, log)
+    trim_house_lines(L, F, log)
+
+
+TRIM_C, TRIM_TICK_M, TRIM_FREE_M = 0.5, 3.0, 6.0      # m: cell; a party-wall tick is shorter; a free front chain is longer
+TRIM_NEAR_M, TRIM_CORE_M, TRIM_RUN_M = 4.0, 3.0, 1.0  # m: "at a house edge"; "deep inside a house"; shortest piece kept
+
+
+def trim_house_lines(L, F, log):
+    """v11.1 (Aras 13 Nov 05:38 UTC: "these lines exceeds the limits of housings ... look at the stray and meaningless
+    lines"). The survey building lines that close no outline, now that the houses have bodies (closed survey outlines,
+    OSM footprints, satellite bodies), in place in L["buildings"]:
+      party-wall ticks (under TRIM_TICK_M, one end free)                       -> not drawn
+      a line that runs deep inside a house (half of it TRIM_CORE_M inside)     -> kept, cut where it leaves the house
+      a line at a house edge (0.7 of it within TRIM_NEAR_M of a house)         -> not drawn: the house outline is there
+      any other line: kept when its chain of joined lines is TRIM_FREE_M long (an open front without a body), else not drawn"""
+    c = TRIM_C
+    nx, ny = int(math.ceil(F.w / c)), int(math.ceil(F.h / c))
+    full = (1 << nx) - 1
+    body = [0] * ny
+    closed = []
+    for key in ("sat_houses", "osm_houses", "buildings", "heritage"):
+        for it in L.get(key, []):
+            Q = it[1]
+            if not (it[0] and len(Q) >= 3):
+                continue
+            if key in ("buildings", "heritage"):
+                closed.append(Q)
+            n = len(Q)
+            j0 = max(0, int(math.ceil(min(q[1] for q in Q) / c - 0.5)))
+            j1 = min(ny - 1, int(max(q[1] for q in Q) / c))
+            for j in range(j0, j1 + 1):
+                y, X = (j + 0.5) * c, []
+                for i in range(n):
+                    a, b = Q[i - 1], Q[i]
+                    if (a[1] <= y) != (b[1] <= y):
+                        X.append(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]))
+                X.sort()
+                for x0, x1 in zip(X[0::2], X[1::2]):
+                    a_, b_ = max(0, int(round(x0 / c))), min(nx, int(round(x1 / c)))
+                    if b_ > a_:
+                        body[j] |= ((1 << (b_ - a_)) - 1) << a_
+    if not any(body):
+        return
+    edge = Cover.grow(body, 1, full)
+    near = Cover.grow(body, int(round(TRIM_NEAR_M / c)), full)
+    core = [~r & full for r in Cover.grow([~r & full for r in body], int(round(TRIM_CORE_M / c)), full)]
+
+    def key_(p):
+        return (int(round(p[0] * 100.0)), int(round(p[1] * 100.0)))
+
+    def bit(rows, p):
+        i, j = int(p[0] // c), int(p[1] // c)
+        return 0 <= i < nx and 0 <= j < ny and (rows[j] >> i) & 1
+    items = L.get("buildings", [])
+    loose = [it for it in items if not (it[0] and len(it[1]) >= 3)]
+    deg, par = {}, {}
+    for Q in closed:
+        for q in Q:
+            deg[key_(q)] = deg.get(key_(q), 0) + 2
+
+    def find(x):
+        while par.setdefault(x, x) != x:
+            par[x] = par[par[x]]
+            x = par[x]
+        return x
+    for it in loose:
+        Q = it[1]
+        for q in (Q[0], Q[-1]):
+            deg[key_(q)] = deg.get(key_(q), 0) + 1
+        par[find(key_(Q[0]))] = find(key_(Q[-1]))
+    clen = {}
+    for it in loose:
+        Q = it[1]
+        r = find(key_(Q[0]))
+        clen[r] = clen.get(r, 0.0) + sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(Q[:-1], Q[1:]))
+    out, n_tick, n_in, n_edge, n_free, n_stray = [], 0, 0, 0, 0, 0
+    for it in loose:
+        Q = it[1]
+        a, b = Q[0], Q[-1]
+        ln = sum(math.hypot(q[0] - p[0], q[1] - p[1]) for p, q in zip(Q[:-1], Q[1:]))
+        if ln < TRIM_TICK_M and ((deg.get(key_(a), 0) == 1) != (deg.get(key_(b), 0) == 1)):
+            n_tick += 1
+            continue
+        S = []
+        for p, q in zip(Q[:-1], Q[1:]):
+            n = max(2, int(math.hypot(q[0] - p[0], q[1] - p[1]) / 0.25))
+            S += [(p[0] + (q[0] - p[0]) * t / n, p[1] + (q[1] - p[1]) * t / n) for t in range(n + 1)]
+        cs = sum(1 for p in S if bit(core, p)) / float(len(S))
+        if cs >= 0.5:
+            n_in += 1
+            run = []
+            for p in S + [None]:
+                if p is not None and bit(edge, p):
+                    run.append(p)
+                    continue
+                if len(run) >= 2 and math.hypot(run[-1][0] - run[0][0], run[-1][1] - run[0][1]) >= TRIM_RUN_M:
+                    R = [run[0], run[-1]] if len(Q) == 2 else run
+                    out.append((False, R, min(q[0] for q in R), max(q[0] for q in R)))
+                run = []
+        elif sum(1 for p in S if bit(near, p)) >= 0.7 * len(S):
+            n_edge += 1
+        elif clen.get(find(key_(a)), 0.0) >= TRIM_FREE_M:
+            n_free += 1
+            out.append(it)
+        else:
+            n_stray += 1
+    L["buildings"] = [it for it in items if it[0] and len(it[1]) >= 3] + out
+    log.append(u"house lines: of %d survey building lines that close no outline: %d party-wall ticks, %d at a house edge "
+               u"and %d stray chains under %.0f m not drawn; %d inside a house kept and cut to the house; %d on open "
+               u"fronts without a body kept" % (len(loose), n_tick, n_edge, n_stray, TRIM_FREE_M, n_in, n_free))
 
 
 def load_sections(D, log):
