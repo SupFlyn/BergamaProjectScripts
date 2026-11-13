@@ -5,6 +5,19 @@ frame's long side lies flat (eastern end right, as his plan), kept by layer in a
 This file is also the drawing library of the new set: the Masterplan script (bergama_plan_base) loads everything above
 the line "main" from it, so the survey context, the style and the PDF writer are the same in every drawing.
 
+v13, Aras 13 Nov 12:45-12:57 UTC: "roads disappear on top left", "left bottom aswell", "context is really inconsistent
+please fix that", "make roads visible near houses like give them 1-2 meter offset from houses so we can clearly see the
+roads", "look at the satallite photos that you have in your librarry and crosscheck". Since v12 a context road was only
+what the survey draws as a road line, and in the old town the survey draws no road lines at all, only house and wall
+fronts: the streets there were blank. Now TOWN_FILE = Data/streets_town.json (made offline; its "source", "method",
+"figures" and "limits" say how; here it is only read) gives the streets the survey has no road line for: layer
+"town_net" (street fill, with the surveyed road surface) and "town_edges" (their edge lines, style town_street_edge =
+the survey road line, so the context reads as one). They keep up to 1.5 m off the surveyed house fronts (his 1-2 m), a
+narrow lane keeps half of its free width. These edges are NOT surveyed lines: his 12:47 message asks for them, which
+replaces "never draw an estimated edge" for the streets the survey leaves out. Houses that are themselves
+approximations (OpenStreetMap footprints, satellite bodies) are cut back to 1 m from every road; surveyed outlines are
+never changed. Outside the red line only. Style 11 adds town_street_edge.
+
 v12.5, same ask. Run 13 on his laptop: in the old-town bend (u 375-475 m of the frame) the water was a strip 3 to 6 m
 wide whose south edge ran into the houses of the south bank; u 625-725 only 9-17 m. The survey draws one stream line
 there (none further east), the centreline hugs it, and a side with no stream line took a width carried from far
@@ -192,7 +205,7 @@ import os, time, json, math, re, zlib, random, struct, base64
 import xml.etree.ElementTree as ET
 
 # ---- SETTINGS ----
-VERSION = "v12.5"
+VERSION = "v13"
 GH_LABEL = "Basemap"
 OUT_FOLDER = "bergama_basemap"
 SURVEY_ROADS = True                # v12: road lines = the survey's own (DWG) lines, the OSM street band not drawn; see the head
@@ -247,7 +260,7 @@ SKIP_CLASSES = ("proposed", "construction", "platform", "elevator", "corridor", 
 STREET_FORMAT = 2
 FACE_MIN, FACE_MAX = 4.0, 20000.0      # m2: a closed cell of building lines is a building between these
 FADE_M, FADE_MIX = 100.0, 0.25     # m from calisma_alan where the context lines turn lighter; how far towards white
-FADE_KEYS = ("parks", "paths", "streets", "street_net", "road_edges", "kerbs", "bridges", "walls", "sheds", "buildings")
+FADE_KEYS = ("parks", "paths", "streets", "street_net", "road_edges", "kerbs", "town_edges", "bridges", "walls", "sheds", "buildings")
 STYLE_FILE = os.path.join("Data", "bergama_style.json")
 A0_W, A0_H, A0_MARGIN, A0_STEP = 1189.0, 841.0, 15.0, 500     # mm, mm, mm, scale step
 COVER_M, COVER_MIN_M2 = 0.5, 80.0  # m cell of the land cover stencil (the image's own 0.5 m); smallest patch drawn (ours)
@@ -277,6 +290,8 @@ CACHE_FILE = os.path.join(CACHE_DIR, "basemap_layers.json")
 CACHE_FORMAT = 3
 STREET_FILE = os.path.join(CACHE_DIR, "streets.json")
 HOUSE_FILE = os.path.join(CACHE_DIR, "osm_houses.json")
+TOWN_FILE = os.path.join("Data", "streets_town.json")   # v13: the streets the survey has no road line for (old town)
+TOWN_MATCH_M = 0.05                # m: a house of the file is the drawn house whose corner mean lies this close
 ROAD_FILE = os.path.join("Data", "roads_survey.json")   # v12.2: the road surface between the survey's own road lines
 SAT_HOUSE_FILE = os.path.join("Data", "houses_sat2023.json")   # v11: house bodies read from the 2023 satellite image
 HOUSE_FORMAT, HOUSE_SURVEYED, HOUSE_C = 1, 0.30, 0.5   # v10: an OSM footprint is used when under this share of it lies
@@ -1375,6 +1390,65 @@ def road_surface(L, F, log):
                    fig.get("inside_red_line_m2", u"?")))
 
 
+def town_streets(L, F, log):
+    """v13: the streets the survey has no road line for, read from TOWN_FILE (made offline; survey m), never built
+    here: L["town_net"] = surface rings (painted together even-odd), L["town_edges"] = edge lines, both in frame m.
+    The approximated houses the file names (OpenStreetMap footprints, satellite bodies, found by the mean of their
+    corners) are replaced in place by their cut rings; surveyed outlines are not touched."""
+    src = os.path.join(BERGAMA_ROOT, TOWN_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG streets: %s not found: run Bergama.bat once (the kit copies it); the streets the survey "
+                   u"draws no road line for stay blank" % src)
+        return
+    try:
+        with open(src, encoding="utf-8") as f:
+            J = json.load(f)
+        loc = lambda p: F.local((float(p[0]), float(p[1])))
+        rings = [[loc(p) for p in R] for R in J.get("rings", []) if len(R) >= 3]
+        edges = [[loc(p) for p in E] for E in J.get("edges", []) if len(E) >= 2]
+        trims = [(loc(t), [[loc(p) for p in R] for R in t[2] if len(R) >= 3]) for t in J.get("house_trim", [])]
+    except Exception as e:
+        log.append(u"FLAG streets: %s not read (%s: %s)" % (src, type(e).__name__, e))
+        return
+
+    def seen(Q):
+        return max(q[0] for q in Q) > 0.0 and min(q[0] for q in Q) < F.w and \
+            max(q[1] for q in Q) > 0.0 and min(q[1] for q in Q) < F.h
+    L["town_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings if seen(R)]
+    L["town_edges"] = [(False, E, min(q[0] for q in E), max(q[0] for q in E)) for E in edges if seen(E)]
+    grid = {}
+    for m, rr in trims:
+        grid.setdefault((int(m[0] // 2.0), int(m[1] // 2.0)), []).append((m, rr))
+    n_cut, n_gone = {}, 0
+    for key in ("osm_houses", "sat_houses"):
+        out = []
+        for it in L.get(key, []):
+            Q = it[1]
+            mx, my = sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q)
+            hit = None
+            for i in (-1, 0, 1):
+                for j in (-1, 0, 1):
+                    for m, rr in grid.get((int(mx // 2.0) + i, int(my // 2.0) + j), ()):
+                        if abs(m[0] - mx) < TOWN_MATCH_M and abs(m[1] - my) < TOWN_MATCH_M:
+                            hit = rr
+            if hit is None:
+                out.append(it)
+                continue
+            n_cut[key] = n_cut.get(key, 0) + 1
+            n_gone += 0 if hit else 1
+            out += [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in hit]
+        L[key] = out
+    fig = J.get("figures") or {}
+    log.append(u"town streets: %d outline(s), %d edge line(s) from %s (made %s): %s m2 of street where the survey has "
+               u"no road line, %s m of edge line; houses cut back from the roads: %d OpenStreetMap footprint(s), %d "
+               u"satellite bodies (%d of them not drawn); the file names %d" % (
+                   len(L["town_net"]), len(L["town_edges"]), os.path.basename(src), J.get("made", u"?"),
+                   fig.get("surface_m2", u"?"), fig.get("edge_lines_m", u"?"), n_cut.get("osm_houses", 0),
+                   n_cut.get("sat_houses", 0), n_gone, len(trims)))
+    if not L["town_net"]:
+        log.append(u"FLAG streets: %s holds no street inside the frame" % src)
+
+
 def clean_lines(L, F, street_rows, river_rows, log):
     """the line clean-up: no line twice, no line beside its own copy, no stubs.
     1 building lines drawn twice (same two ends to 1 cm) are kept once; a building line that hangs loose at one end
@@ -1530,8 +1604,10 @@ CONTEXT = [
     ("river", "water", "existing_water"), ("stream_banks", "stream_bank", "existing_water"),
     ("ponds", "pond", "existing_water"), ("paths", "path", "existing_paths"),
     ("street_net", "street", "existing_streets"), ("road_net", "street", "existing_streets"),   # v12.2: road_net
+    ("town_net", "street", "existing_streets"),          # v13: the streets the survey has no road line for
     ("road_edges", "road_edge", "existing_roads"),
     ("kerbs", "road_edge", "existing_roads"),            # v12: the survey's kerb lines, in the one road line
+    ("town_edges", "town_street_edge", "existing_roads"),   # v13: their edge lines (not surveyed), in the same line
     ("bridges", "bridge", "existing_bridges"), ("heritage_walls", "heritage_wall", "existing_heritage"),
     ("sat_houses", "building", "existing_buildings"), ("osm_houses", "building", "existing_buildings"),
     ("buildings", "building", "existing_buildings"),
@@ -1552,14 +1628,14 @@ def draw_context(L, F, S, den, x0, y0, u0, u1, lw_k=1.0, cover=None, fade=None, 
         items.append(soft_item(cover.soft, S["cat"]["tree_cover"]["fill"], "satellite_trees", None, den, x0, y0))
         cnt["tree_cover"] = 1
     for key, cname, layer in CONTEXT:
-        if key in skip or (SURVEY_ROADS and key == "street_net") or (key in ("kerbs", "road_net") and not SURVEY_ROADS):
+        if key in skip or (SURVEY_ROADS and key == "street_net") or (key in ("kerbs", "road_net", "town_net", "town_edges") and not SURVEY_ROADS):
             continue
         c = S["cat"][cname]
         stroke, lw, fill = c["line"], c["w"] * lw_k, fill_of(c)
         fd = fade if (fade is not None and fade.rows is not None and key in FADE_KEYS and stroke) else None
         far_ = lighter(stroke) if fd else stroke
         n = 0
-        if key in ("street_net", "road_net", "river"):   # one joined surface: all rings in one even-odd shape
+        if key in ("street_net", "road_net", "town_net", "river"):   # one joined surface: all rings in one even-odd shape
             rings = [R for R in (clip_ring(Q, box) for cl, Q, a, b in L.get(key, [])) if len(R) >= 3]
             if not rings:
                 continue
@@ -1731,6 +1807,7 @@ def prepare(D, L, F, log):
     street_rows = join_streets(L, F, log)
     river_rows = build_river(L, F, log)
     road_surface(L, F, log)
+    town_streets(L, F, log)
     clean_lines(L, F, street_rows, river_rows, log)
     trim_house_lines(L, F, log)
 
