@@ -22,6 +22,10 @@ scripts/bergama_section_from_line_v1_1.py
 scripts/bergama_sections_v1_6.py
 scripts/bergama_basemap_v14.py
 scripts/bergama_plan_base_v11_1.py
+scripts/bergama_page_transit_v1.py
+scripts/bergama_page_heritage_v1.py
+Data/bergama_pages_common.py
+Data/bergama_access_heritage.json
 scripts/bergama_p02_what_is_there_v1.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py

@@ -22,4 +22,6 @@ solo: bergama_planting_analysis = PlantingAnalysis
 solo: bergama_basemap = Basemap
 solo: bergama_plan_base = PlanBase
 solo: bergama_sections = Sections
+solo: bergama_page_transit = PageTransit
+solo: bergama_page_heritage = PageHeritage
 solo: bergama_p02_what_is_there = Page02
