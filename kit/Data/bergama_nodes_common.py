@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6.5"   # v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6.6"   # v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -26,6 +26,7 @@ DEN_STEPS = (1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
 SEC_DENS = (1000, 1500, 2000, 2500, 3000)  # v6.2: Sections v1.6.6 cache scales; the first that fits its room
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
+OCC_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names", "hubs", "viewpoints", "proposed_path")
 LBL_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names")   # v6.5: plan labels kept apart
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
 CUT_C = "2C2219"
@@ -216,6 +217,25 @@ def scale_north(F, den, xr, y0):
     it.append(T_(u"%d m" % bar, xb + Lm, yb - 2.8, 2.0, INK, False, "C", "scale_north"))
     it.append(T_(u"1:%d" % den, xb, yb + 3.6, 2.8, INK, True, "L", "scale_north"))
     return it
+
+
+def occ_points(B, items, skip):
+    """v6.6: page points taken by plan marks and labels (text along its width, lines every 1 mm, ring vertices)"""
+    occ = []
+    for it in items:
+        if id(it) in skip:
+            continue
+        if it[0] == "text" and it[8] in OCC_LAYERS:
+            w_ = B["text_w"](it[1], it[4], it[6])
+            xa = it[2] - (w_ / 2.0 if it[7] == "C" else (w_ if it[7] == "R" else 0.0))
+            occ += [(xa + w_ * i / 8.0, it[3] + it[4] * 0.35) for i in range(9)]
+        elif it[0] == "line" and it[5] in OCC_LAYERS:
+            for a, b in zip(it[1][:-1], it[1][1:]):
+                n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1])))
+                occ += [(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n) for i in range(n + 1)]
+        elif it[0] == "poly" and it[6] in OCC_LAYERS:
+            occ += [p_ for r in it[1] for p_ in r]
+    return occ
 
 
 def clip_plan(B, items, bx, log):
@@ -540,16 +560,7 @@ def node_page(cfg, log):
         qa, qb = pgS(vp[0]), pgS(vp[1])
         # v6.5 (run 5: V1 sat on the Kızıl Avlu label in N4 and on the square's dotted link in N2): V1 moves to the
         # nearby spot farthest from the plan's labels and markers (inside the square when there is one)
-        occ = []
-        for it in items:
-            if id(it) in sec_ids:
-                continue
-            if it[0] == "text" and it[8] in LBL_LAYERS:
-                w_ = B["text_w"](it[1], it[4], it[6])
-                xa = it[2] - (w_ / 2.0 if it[7] == "C" else (w_ if it[7] == "R" else 0.0))
-                occ += [(xa + w_ * i / 8.0, it[3] + it[4] * 0.35) for i in range(9)]
-            elif it[0] == "line" and it[5] in ("city_square", "bus_stops"):
-                occ += it[1]
+        occ = [o for o in occ_points(B, items, sec_ids) if G["pc_dist"](o, qa) > 0.1]
         rr = [0.0, 4.0, 8.0] if not sq else [0.0, 0.3 * r_m * k, 0.6 * r_m * k]
         cand = [(qa[0] + r * math.cos(a_ * math.pi / 8.0), qa[1] + r * math.sin(a_ * math.pi / 8.0), r)
                 for r in rr for a_ in range(16 if r else 1)]
@@ -581,7 +592,21 @@ def node_page(cfg, log):
                         lambda t, z, b_: B["text_w"](t, z, b_))
     items.append(L_([(X0, Y0), (X0 + F.w * k, Y0), (X0 + F.w * k, Y0 + F.h * k), (X0, Y0 + F.h * k), (X0, Y0)], INK,
                     0.25, "map_frame"))
-    items += scale_north(F, den, X0 + F.w * k, Y0)
+    # v6.6 (run 6, N3: hub tile T on the scale bar): scale and north go to the plan corner with the fewest marks
+    sn = scale_north(F, den, X0 + F.w * k, Y0)
+    occ = occ_points(B, items, sec_ids)
+    xs = [p_[0] for it in sn if it[0] == "poly" for r in it[1] for p_ in r] + [it[2] for it in sn if it[0] == "text"]
+    ys = [p_[1] for it in sn if it[0] == "poly" for r in it[1] for p_ in r] + [it[3] for it in sn if it[0] == "text"]
+    sx0, sx1, sy0, sy1 = min(xs) - 1.0, max(xs) + 5.0, min(ys) - 1.0, max(ys) + 3.0
+    best = None
+    for dx in (0.0, X0 + 3.0 - sx0):
+        for dy in (0.0, Y0 + F.h * k - 3.0 - sy1):
+            n = sum(1 for o in occ if sx0 + dx <= o[0] <= sx1 + dx and sy0 + dy <= o[1] <= sy1 + dy)
+            if best is None or n < best[0]:
+                best = (n, dx, dy)
+    items += scale_items(sn, 1.0, 0.0, 0.0, best[1], best[2])
+    if best[0]:
+        log.append(u"FLAG scale + north: every plan corner has marks under it (%d points in the best)" % best[0])
 
     # ---- key under the plan
     ky = Y0 - 5.0
