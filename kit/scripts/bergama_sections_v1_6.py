@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.12"   # v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.13"   # v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1068,6 +1068,26 @@ def season_water(C, sea):
     return out
 
 
+def _clip_x(ring, x0, x1):
+    """a closed ring cut to x0 <= x <= x1 (Sutherland-Hodgman, two vertical edges)"""
+    for edge, inside in ((x0, lambda q: q[0] >= x0), (x1, lambda q: q[0] <= x1)):
+        if not ring:
+            return []
+        out = []
+        for i, q in enumerate(ring):
+            p_ = ring[i - 1]
+            if inside(q):
+                if not inside(p_):
+                    t = (edge - p_[0]) / (q[0] - p_[0])
+                    out.append((edge, p_[1] + (q[1] - p_[1]) * t))
+                out.append(q)
+            elif inside(p_):
+                t = (edge - p_[0]) / (q[0] - p_[0])
+                out.append((edge, p_[1] + (q[1] - p_[1]) * t))
+        ring = out
+    return ring
+
+
 def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     """one season of one cut on a new engine Page at 1:den; returns (page, S, bottom y)"""
     E["K"] = 1000.0 / den
@@ -1245,9 +1265,25 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     spread_levels(E, pg, S, short=True)
     # v1.11 (run of v1.10: a stub still ran past the right frame edge on N5-B): drawing lines cut at the frame
     x0_, x1_ = S.X(S.lo), S.X(S.hi)
-    keep = ("title", "callouts", "levels", "text")
+    keep = ("title", "callouts", "levels", "text", "landuse", "land use")
     out_ = []
     for it in pg.items:
+        # v1.13 (Aras 21:26 "drawings flows out fix that"): fills cut at the frame too, clouds / cutouts / circles
+        # that cross it left out
+        if it[0] == "poly" and it[6] not in keep and not all(x0_ <= q[0] <= x1_ for r in it[1] for q in r):
+            rings = [_clip_x(r, x0_, x1_) for r in it[1]]
+            rings = [r for r in rings if len(r) >= 3]
+            if rings:
+                out_.append((it[0], rings) + tuple(it[2:]))
+            continue
+        if it[0] == "circle" and it[7] not in keep:
+            if x0_ <= it[1] - it[3] and it[1] + it[3] <= x1_:
+                out_.append(it)
+            continue
+        if it[0] == "image" and it[9] not in keep:
+            if x0_ <= it[1] and it[1] + it[3] <= x1_:
+                out_.append(it)
+            continue
         if it[0] != "line" or it[5] in keep or all(x0_ <= q[0] <= x1_ for q in it[1]):
             out_.append(it)
             continue
