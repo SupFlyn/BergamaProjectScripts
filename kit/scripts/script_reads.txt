@@ -208,3 +208,8 @@ bergama_page05_access: Data/bergama_access_heritage.json  # hand, 14 Nov
 bergama_page05_access: Data/selinos_centreline.json  # hand, 14 Nov
 bergama_page05_access: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
 bergama_page05_access: cached/bergama_basemap/basemap_layers.json  # hand, 14 Nov
+bergama_masterplanbase: Data/assets/plan/B19_setB_layers259.svg  # hand, 14 Nov (Aras's masterplan; not in git: 135 MB)
+bergama_masterplanbase: cached/bergama_basemap/basemap_layers.json  # hand, 14 Nov
+bergama_masterplanbase: scripts/bergama_mapbase_v1_3.py  # hand, 14 Nov
+bergama_masterplanbase: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
+bergama_masterplanbase: Data/bergama_pages_common.py  # hand, 14 Nov
