@@ -39,6 +39,8 @@ WIN_PAD_M = 60.0                     # m of town round the node frames and hubs 
 SHOP_R = 100.0                       # m: shop buildings counted round a hub point (centroid distance, calculated)
 SHOP_C = "D99A45"                    # ochre: buildings with shops (p8's shop streets were ochre)
 CARD_GAP, CARD_PAD = 4.0, 2.4        # mm
+MB_LAYERS = {"ground", "lc", "areas", "parks", "contours", "streets", "water", "walls", "buildings", "bridges", "trees"}
+# MapBase layers: all but "veg" (the 2023 satellite cover stops inside this frame at x 29521 / y 32880: a seam; as Transit v2.5)
 NODE_C = "4C2528"                    # node frames (palette 4C2528)
 PLACE_C = "C07A2E"                   # the project's places (proposal orange, as the spine)
 GLY = dict(structure="CFC8BA", water="A2B6B5", water_light="CFDBE4", water_deep="5C7A86", green="3C4733",
@@ -249,7 +251,7 @@ def main():
 
     # ---- the map: MapBase, shop buildings in ochre
     fk = list(ns["MB_STYLE"]["fab_com"].keys())
-    MB = G["pc_mapbase"](M, K, log, style={"fab_com": dict((k_, SHOP_C) for k_ in fk)})
+    MB = G["pc_mapbase"](M, K, log, MB_LAYERS, {"lc_light": 0.8, "fab_com": dict((k_, SHOP_C) for k_ in fk)})
     items = MB[0]
     mb_rows = G["pc_mb_legend"](MB[1], K)
     items += G["pc_study"](M, K, log)
