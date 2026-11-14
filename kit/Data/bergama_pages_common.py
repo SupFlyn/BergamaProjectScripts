@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.6"   # v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.7"   # v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -402,6 +402,21 @@ class Labels(object):
 
     def block_pt(self, q, r):
         self.boxes.append((q[0] - r, q[1] - r, q[0] + r, q[1] + r))
+
+    def block_line(self, P, r):
+        """v3.7 (run 6 review: names sat on the spine, the river and the study line): keep names r mm off a polyline
+        (page mm), as small boxes every r mm along it"""
+        st = max(r, 0.5)
+        for a, c in zip(P, P[1:]):
+            n = max(1, int(math.hypot(c[0] - a[0], c[1] - a[1]) / st))
+            for i in range(n + 1):
+                self.block_pt((a[0] + (c[0] - a[0]) * i / n, a[1] + (c[1] - a[1]) * i / n), r)
+
+    def block_items(self, items, layers, pad=0.4):
+        """v3.7: block_line for every line item of these layers, half its width + pad"""
+        for it in items:
+            if it[0] == "line" and it[5] in layers:
+                self.block_line(it[1], (it[3] or 0.1) / 2.0 + pad)
 
     def free(self, b):
         if not (self.M.box[0] <= b[0] and b[2] <= self.M.box[2] and self.M.box[1] <= b[1] and b[3] <= self.M.box[3]):
