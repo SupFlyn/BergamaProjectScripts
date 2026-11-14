@@ -175,3 +175,10 @@ bergama_page01_free: Data/selinus_board_data.py  # hand, 14 Nov
 bergama_page01_free: scripts/bergama_basemap_v14.py  # hand, 14 Nov
 bergama_page01_free: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
 bergama_page01_free: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
+bergama_page01_move: Data/bergama_pages_common.py  # hand, 14 Nov
+bergama_page01_move: Data/bergama_access_heritage.json  # hand, 14 Nov
+bergama_page01_move: Data/bergama_osm.osm  # hand, 14 Nov
+bergama_page01_move: Data/bergama_places.geojson  # hand, 14 Nov
+bergama_page01_move: scripts/bergama_basemap_v14.py  # hand, 14 Nov
+bergama_page01_move: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
+bergama_page01_move: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
