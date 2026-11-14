@@ -45,7 +45,9 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.13"   # v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.14"   # v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
+CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1115,7 +1117,7 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     pri = tuple(MP_LABEL.values()) + (u"Summer water", u"Common reed", u"Yellow flag", u"Building")   # v1.11: the
     #                                                   masterplan's proposals named first
     items = []
-    for s_, z_, t_ in sorted(d["callouts"] if with_text else [],
+    for s_, z_, t_ in sorted(d["callouts"] if (with_text and CALLOUTS) else [],
                              key=lambda c: next((i for i, w in enumerate(pri) if c[2].startswith(w)), len(pri))):
         if not any(abs(s_ - o[0]) * K < 8.0 for o in items):
             items.append((s_, z_, t_))
@@ -1172,17 +1174,12 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
             base = min(S.ex(a), S.ex(b))
             n_ = max(2, int((b - a) / DS))
             ring = [S.P(a + (b - a) * i / n_, S.surf(a + (b - a) * i / n_)) for i in range(n_ + 1)]
-            # v1.7 (Aras 15:35 "dont include the houses that has been cutted just remove them from the sections or
-            # draw them as silouhette"): a plain silhouette with its roof, no cut outline, no floors or windows
-            top = base + h
-            if fl and fl >= FLAT_ROOF_FLOORS:
-                ring += [S.P(b, top + 0.6), S.P(a, top + 0.6)]
-            else:
-                rise = roof_rise(b - a, fl)
-                run = rise / math.tan(math.radians(ROOF_PITCH_DEG))
-                ring += [S.P(b, top), S.P(max(b - run, (a + b) / 2.0), top + rise),
-                         S.P(min(a + run, (a + b) / 2.0), top + rise), S.P(a, top)]
-            pg.poly([ring], fill=SILHOUETTE, stroke=None, layer="context buildings")
+            # v1.14 (Aras 21:32 "When i meant silouhettes i meant the ones like in the backgroudn"): a cut house is drawn
+            # like the houses behind (wall, roof, window rows, cornice) as a quiet light elevation, its foot hidden
+            # under the cut ground
+            house(pg, S, a, b, base, h, fl, CUT_HOUSE_DIST_M)
+            pg.poly([ring + [S.P(b, base - 1.0), S.P(a, base - 1.0)]], fill=GROUND_FILL, stroke=None,
+                    layer="context buildings")
     for s, r_, h, kind in d["trees"]:
         g = S.surf(s)
         if q500 is not None and g < q500 - 1e-6 and C.is_s4:
