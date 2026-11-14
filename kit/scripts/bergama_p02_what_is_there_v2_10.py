@@ -78,6 +78,7 @@ land-use ring, which no other slide repeats.
 v2.9 (14 Nov 2026, Aras 15:20-15:23 UTC): the purple is gone; FAB, FAB_COM and GROUND_C are read from MapBase v1.3,
 the one palette of the set, built from the masterplan SVG's own colours; each fabric key row also gives the share with
 shops ("also give us percentages for the ground floor differentiated use ones").
+v2.10 (14 Nov 2026): no presentation/1.pdf copy any more; Slide01 composes slide 1 (one A3 per slide) and writes it.
 v2.8 (14 Nov 2026, check loop of run 3): the inset's north arrow covered clash marker C6; the inset's north arrow and
 scale are now placed first and the bridge and clash markers keep off them (no collisions).
 
@@ -95,7 +96,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.9"
+VERSION = "v2.10"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -731,10 +732,10 @@ def main():
         _pp = os.path.join(BERGAMA_ROOT, "Data", "bergama_pages_common.py")
         with open(_pp, encoding="utf-8") as _f:
             exec(compile(_f.read(), _pp, "exec"), _pc)
-        _pc["pc_present"](p, SLIDE, log)
+        # v2.10: no presentation copy here; Slide01 (bergama_slide01_v*.py) writes presentation/1.pdf (one A3 per slide)
         _pc["pc_review"](p, os.path.join(OUT_DIR, "review"), log)     # review PNGs (Aras 14 Nov 11:25 UTC)
     except Exception as _ex:
-        log.append(u"FLAG presentation copy not written (%s: %s)" % (type(_ex).__name__, _ex))
+        log.append(u"FLAG review PNGs not written (%s: %s)" % (type(_ex).__name__, _ex))
     try:
         q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
         log.append(u"%s  %s (a group per layer)" % (q, time.strftime("%H:%M:%S")))

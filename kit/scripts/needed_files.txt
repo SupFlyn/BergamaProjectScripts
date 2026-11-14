@@ -41,7 +41,7 @@ scripts/bergama_node_n5_v2.py
 scripts/bergama_node_n6_v2.py
 Data/bergama_nodes_common.py
 scripts/bergama_page_seasons_v1_4.py
-scripts/bergama_p02_what_is_there_v2_9.py
+scripts/bergama_p02_what_is_there_v2_10.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py
 scripts/board_order.txt
