@@ -27,7 +27,7 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v4.2"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v4.4"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -196,6 +196,43 @@ def scale_north(F, den, xr, y0):
     it.append(T_(u"%d m" % bar, xb + Lm, yb - 2.8, 2.0, INK, False, "C", "scale_north"))
     it.append(T_(u"1:%d" % den, xb, yb + 3.6, 2.8, INK, True, "L", "scale_north"))
     return it
+
+
+def clip_plan(B, items, bx, log):
+    """plan items cut to the frame bx (page mm): lines and rings cut, texts moved inside or (no room) left out"""
+    out, moved, lost = [], 0, []
+    for it in items:
+        t = it[0]
+        if t == "line":
+            for run in B["clip_line"](it[1], bx):
+                if len(run) >= 2:
+                    out.append((t, [tuple(q) for q in run]) + tuple(it[2:]))
+        elif t == "poly":
+            rr = [R for R in (B["clip_ring"](R_, bx) for R_ in it[1]) if len(R) >= 3]
+            if rr:
+                out.append((t, [[tuple(q) for q in R] for R in rr]) + tuple(it[2:]))
+        elif t == "text":
+            w = B["text_w"](it[1], it[4], it[6])
+            x = it[2] - {"L": 0.0, "C": w / 2.0, "R": w}.get(it[7], 0.0)
+            y = it[3]
+            if not (bx[0] - 2.0 <= it[2] <= bx[2] + 2.0 and bx[1] <= y <= bx[3]):
+                lost.append(it[1])
+                continue
+            dx = max(0.0, bx[0] + 0.5 - x) - max(0.0, x + w - (bx[2] - 0.5))
+            dy = max(0.0, bx[1] + 0.5 - y) - max(0.0, y + it[4] - (bx[3] - 0.5))
+            if dx or dy:
+                if w > bx[2] - bx[0] - 1.0:
+                    lost.append(it[1])
+                    continue
+                moved += 1
+                it = (t, it[1], it[2] + dx, it[3] + dy) + tuple(it[4:])
+            out.append(it)
+        else:
+            out.append(it)
+    log.append(u"plan cut to its frame: %d name(s) moved inside" % moved)
+    if lost:
+        log.append(u"FLAG plan names outside the frame, left out: %s" % u", ".join(lost[:12]))
+    return out
 
 
 # ================================================================ the plan
@@ -369,6 +406,7 @@ def node_page(cfg, log):
         node, F.w - 2 * NODE_MARGIN_M, F.h - 2 * NODE_MARGIN_M, NODE_MARGIN_M, den, F.w * k, F.h * k))
     BD, L, units, lc, O = plan_units(P, B, F, log)
     items = plan_items(P, B, F, L, units, lc, den, X0, Y0, log)
+    sec_ids = set()
     pgS = lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k)
     inside = lambda q, m=0.0: X0 + m <= q[0] <= X0 + F.w * k - m and Y0 + m <= q[1] <= Y0 + F.h * k - m
     bxF = (0.0, 0.0, F.w, F.h)
@@ -410,6 +448,11 @@ def node_page(cfg, log):
                     break
             its = scale_items(pg.items, f, bb[0], bb[3], x0 - bb[0], (y1 - 5.0) - bb[3])
             items += its
+            sec_ids.update(id(it) for it in its)
+            sb = X["items_bbox"](its)
+            if sb[0] < x0 - 0.5 or sb[2] > x1 + 0.5 or sb[1] < y0 - 0.5 or sb[3] > y1 + 0.5:
+                log.append(u"FLAG section %s runs outside its room by up to %.1f mm" % (C.name, max(
+                    x0 - sb[0], sb[2] - x1, y0 - sb[1], sb[3] - y1)))
             log.append(u"section %s: %.0f x %.0f mm at 1:%d" % (C.name, w * f, h * f, den_s))
             if f < 0.999:
                 log.append(u"FLAG section %s too large even at 1:%d: shrunk x%.2f, its printed scale is wrong" % (
@@ -419,9 +462,11 @@ def node_page(cfg, log):
             items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
                 nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 2.5, 2.0, GREY, False, "R",
                 "sections"))
+            sec_ids.add(id(items[-1]))
         except Exception as ex:
             import traceback as _tb
             items.append(T_(u"FLAG: section %s not drawn: %s" % (C.name, ex), x0, y1 - 12.0, 2.6, RED))
+            sec_ids.add(id(items[-1]))
             log.append(u"FLAG section %s not drawn: %s: %s | %s" % (C.name, type(ex).__name__, ex, u" / ".join(
                 _tb.format_exc()[-400:].splitlines())))
         log += C.notes
@@ -462,7 +507,7 @@ def node_page(cfg, log):
             for wid in r["ways"]:
                 P_ = D["ways"].get(wid)
                 if P_:
-                    sline(P_, col, lw, "bus_lines", dash)
+                    sline(P_, P["mixh"](col, P["PAPER"], 0.55), lw * 0.45, "bus_lines", dash)   # v4.4: quiet
     stops = [(nm, xy, ln) for nm, xy, ln in G["pc_stop_groups"](D)]
     stops_in = []
     for nm, xy, ln in stops:
@@ -473,8 +518,19 @@ def node_page(cfg, log):
             items.append(T_(u"%s · %s" % (nm, u" ".join(sorted(ln, key=lambda r: (len(r), r)))), q[0] + 1.8, q[1] - 2.8,
                             2.2, INK, False, "L", "bus_stops"))
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
+    # v4.4 (Aras 12:15 UTC "public transport lines should be less appearant compared to our proposed path"): the
+    # proposed paths lead: the streamside spine K4 -> K5 and the stream walk (loop 3 -> 4) along the Selinos, strong
+    Cx = G["pc_context"](None, D, log)
+    sp = G["pc_selinos"](Cx, D["hubs"]["K4"], D["hubs"]["K5"])
+    if sp:
+        sline(sp, "FFFFFF", 2.2, "proposed_path")
+        sline(sp, SQUARE_C, 1.4, "proposed_path")
     for a, b in zip(H, H[1:]):
-        sline([a["xy"], b["xy"]], RED, 0.35, "heritage_loop", (0.01, 0.9))   # v4.1: dotted, legs are straight
+        sw = G["pc_selinos"](Cx, a["xy"], b["xy"]) if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu") else None
+        if sw:
+            sline(sw, RED, 0.9, "heritage_loop")
+        else:
+            sline([a["xy"], b["xy"]], RED, 0.35, "heritage_loop", (0.01, 0.9))   # v4.1: dotted, legs are straight
     her_in = []
     for h in H:
         q = pgS(h["xy"])
@@ -537,6 +593,9 @@ def node_page(cfg, log):
         items.append(T_(u"V1", qa[0], qa[1] - 0.8, 2.2, "FFFFFF", True, "C", "viewpoints"))
         log.append(u"V1 viewpoint (assumed): %s, looking to the bed of %s" % (
             u"the city square" if sq else u"the bank end of %s" % Cn.name, Cn.name))
+    # v4.3 (Aras 12:14 UTC "drawings do flows outside of it"): every plan item cut to the plan frame
+    items = clip_plan(B, [it for it in items if id(it) not in sec_ids], (X0, Y0, X0 + F.w * k, Y0 + F.h * k), log) + \
+        [it for it in items if id(it) in sec_ids]
     items.append(L_([(X0, Y0), (X0 + F.w * k, Y0), (X0 + F.w * k, Y0 + F.h * k), (X0, Y0 + F.h * k), (X0, Y0)], INK,
                     0.25, "map_frame"))
     items += scale_north(F, den, X0 + F.w * k, Y0)
@@ -549,7 +608,7 @@ def node_page(cfg, log):
     rows1 = [("hdr", None, u"EXISTING: BUILDINGS · URBAN FABRIC")] + [("box", P["FAB"][f_], P["FAB_WORDS"][f_])
                                                             for f_ in P["FAB_ORDER"] if f_ in shown]
     rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
-             ("line", K["lines"]["town"][0], u"bus lines (OSM; weight = buses a weekday, ESHOT)"),
+             ("line", P["mixh"](K["lines"]["town"][0], P["PAPER"], 0.55), u"bus lines, quiet (OSM, ESHOT)"),
              ("disc", INK, u"bus stop with its lines (OSM)"),
              ("disc", RED, u"heritage loop stop, loop order (PageHeritage)"),
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
@@ -557,6 +616,8 @@ def node_page(cfg, log):
              ("box", P["WATER_C"], u"the Selinos"),
              ("hdr", None, u"PROPOSAL MARKS"),
              ("line", SQUARE_C, u"city square idea: loop meets transit (place not designed)"),
+             ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
+             ("line", RED, u"stream walk of the heritage loop, Tabak Köprüsü - Ulucami Önü"),
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
     yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.4, ts=2.3)
