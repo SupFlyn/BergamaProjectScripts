@@ -27,7 +27,7 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v4.1"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v4.2"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -177,9 +177,9 @@ def scale_north(F, den, xr, y0):
     k = 1000.0 / den
     bar = max(b for b in (25.0, 50.0, 100.0, 200.0) if b * k <= 40.0 or b == 25.0)
     Lm = bar * k
-    w, h = Lm + 26.0, 14.0
+    w = Lm + 26.0
     X, Y = xr - w - 3.0, y0 + 3.0
-    it = [R_([box(X, Y, X + w, Y + h)], "FFFFFF", None, 0.0, "scale_north")]
+    it = []                                               # transparent: no box behind (Aras 14 Nov 12:10 UTC)
     cx, cy, r = X + 7.0, Y + 7.0, 5.0
     it.append(R_([ring(cx, cy, r, 48)], None, INK, 0.2, "scale_north"))
     nx, ny = F.north()
