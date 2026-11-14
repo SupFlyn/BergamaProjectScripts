@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.14"
+VERSION = "v1.6.15"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -951,7 +951,7 @@ class Sec(object):
             g0 = max(d["grass"], key=lambda r: abs(r[1] - r[0]))
             d["callouts"].append(((g0[0] + g0[1]) / 2, None, u"Meadow, native grasses"))
         for s, _r, _h, _k in d["trees"][:3]:
-            d["callouts"].append((s, None, u"Tree (survey point)"))
+            d["callouts"].append((s, None, u"Tree"))
         if self.has_strip:
             d["callouts"].append((C.s_th, None, u"Summer water strip 4.0 × 0.30 m"))
         for a, b in self.roads:
@@ -1263,6 +1263,8 @@ WALL_H_M, WALL_T_M, WALL_FILL = 5.0, 0.6, "BDB6A6"
 WALL_MAX_W = 30.0                  # m: v1.6.1: a wider low flat is not the walled channel
 WALL_SEARCH_M = 20.0               # m from the bed low point: v1.6.2 the wall stands where the ground reaches its top
 DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 summary p.75, measure 155)
+# v1.6.15, Aras 14 Nov 15:23 UTC: "dont give sources in the brackets dont give sources in the drawings at all" /
+# "no sources for nothing": no source or method words in any drawn text (they stay in the log)
 LEVEL_LABELS = False               # v1.6.8, Aras 14 Nov 13:01 UTC: "remove these markings we gonna have a new diagram
 #                                    for that": no level sign / value stack; the water lines and fills stay
 TERRACE_M = 2.5                    # m: the highest ground-tone terrace under a house behind (v1.6.13 / .14)
