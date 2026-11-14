@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v9.4"   # v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v9.5"   # v9.5: cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -632,8 +632,10 @@ def node_page(cfg, log):
                 j_["items"] = json.load(f)
     cuts = [Cut(nm, SL["lines"][nm], CJ["cuts"].get(nm), CL) for nm in (node + u"-A", node + u"-B")]
     done = []
+    cur_top = SEC_ROOMS[0][3]                       # v9.5 (run 8: empty bands under each cut): cuts packed from the top
     for C, room in zip(cuts, SEC_ROOMS):
         x0, y0, x1, y1 = room
+        y0, y1 = cur_top - (y1 - y0), cur_top
         if C.J is None:
             items.append(T_(u"FLAG: section %s is not in the Sections cache" % C.name, x0, y1 - 12.0, 2.6, RED))
             sec_ids.add(id(items[-1]))
@@ -718,6 +720,7 @@ def node_page(cfg, log):
                           INK if k_ % 2 == 0 else "FFFFFF", INK, 0.15, "sections"))
         its.append(T_(u"0", ox, yb_ - 2.6, 1.9, INK, False, "C", "sections"))
         its.append(T_(u"%d m" % bar, ox + bar * mpm, yb_ - 2.6, 1.9, INK, False, "C", "sections"))
+        cur_top = yb_ - 9.0
         items += its[-6:]
         sec_ids.update(id(it) for it in its)
         w, h = xb - xa, h
@@ -818,11 +821,18 @@ def node_page(cfg, log):
         # v6.5 (run 5: V1 sat on the Kızıl Avlu label in N4 and on the square's dotted link in N2): V1 moves to the
         # nearby spot farthest from the plan's labels and markers (inside the square when there is one)
         occ = [o for o in occ_points(B, items, sec_ids) if G["pc_dist"](o, qa) > 0.1]
-        rr = [0.0, 4.0, 8.0] if not sq else [0.0, 0.3 * r_m * k, 0.6 * r_m * k]
+        # v9.5 (run 8: V1 on the Kizil Avlu stop in N4 and on the N3-A name): wider search, and the view arrows
+        # must be clear too
+        rr = [0.0, 4.0, 8.0, 12.0] if not sq else [0.0, 0.3 * r_m * k, 0.6 * r_m * k, 8.0, 12.0]
         cand = [(qa[0] + r * math.cos(a_ * math.pi / 8.0), qa[1] + r * math.sin(a_ * math.pi / 8.0), r)
                 for r in rr for a_ in range(16 if r else 1)]
         cand = [c for c in cand if inside(c, 5.0)] or [(qa[0], qa[1], 0.0)]
-        best = max(cand, key=lambda c: min([6.0] + [G["pc_dist"](c[:2], o) for o in occ]) - 0.05 * c[2])
+
+        def clear(c):
+            an = math.atan2(qb[1] - c[1], qb[0] - c[0])
+            pts = [c[:2]] + [(c[0] + d_ * math.cos(an), c[1] + d_ * math.sin(an)) for d_ in (4.5, 8.0)]
+            return min([7.0] + [G["pc_dist"](p_, o) for p_ in pts for o in occ]) - 0.05 * c[2]
+        best = max(cand, key=clear)
         qa = best[:2]
         ang = math.atan2(qb[1] - qa[1], qb[0] - qa[0])
         for da in (-0.35, 0.35):
@@ -919,9 +929,12 @@ def node_page(cfg, log):
     # spirit: the city as dots, the stream low, our move the only solid shape); water bars gone (slide 3 keeps seasons)
     st = STORY.get(node)
     if st:
-        items.append(T_(u"WHY HERE · %s" % st[0].upper(), 214.0, 95.0, 2.8, INK, True, "L", "diagrams"))
-        concept(node, items, 214.0, 62.0, 192.0, 30.0, G)
-        yy = 54.0
+        # v9.5: the why-here block follows the packed cuts up; the perspective room grows by what is freed
+        yw = max(95.0, min(cur_top - 1.0, 150.0))
+        items.append(T_(u"WHY HERE · %s" % st[0].upper(), 214.0, yw, 2.8, INK, True, "L", "diagrams"))
+        concept(node, items, 214.0, yw - 33.0, 192.0, 30.0, G)
+        yy = yw - 41.0
+        y_story = yy
         for para_ in st[1]:
             for ln in wrap(B, para_, 2.2, 90.0):
                 items.append(T_(ln, 214.0, yy, 2.2, INK, False, "L", "diagrams"))
@@ -947,9 +960,9 @@ def node_page(cfg, log):
             yy_ -= 2.6
     # v9.2 (review: "a 66 x 38 mm empty area under the story"): the program brief fills the story column under the
     # text, the perspective and the building proposal share the right half
-    holder(310.0, 31.0, 406.0, 54.0, u"V1 · PERSPECTIVE · %s" % node,
+    holder(310.0, 31.0, 406.0, (y_story if st else 54.0), u"V1 · PERSPECTIVE · %s" % node,
            u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
-    yp = min(34.0, (yy if st else 54.0) - 1.0)
+    yp = (yy if st else 54.0) - 1.0
     if yp - 12.0 >= 12.0:
         holder(214.0, 12.0, 304.0, yp, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
                "placeholder_program")
