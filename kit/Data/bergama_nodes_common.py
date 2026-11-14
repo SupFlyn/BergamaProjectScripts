@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v8.1"   # v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v8.2"   # v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -590,13 +590,16 @@ def node_page(cfg, log):
         # v8.1 (run 1: the plan came out as one beige sheet): pieces over MP_MAX_M2 are his picture / texture frames
         # (1.4 and 2.1 km2), not plan elements (the same cut as Sections v1.11); they are left out
         ar_ = lambda P_: abs(sum(P_[i][0] * P_[i - 1][1] - P_[i - 1][0] * P_[i][1] for i in range(len(P_)))) / 2.0
-        n_big = sum(1 for v_ in MPC["layers"].values() for e_ in v_ if len(e_[4]) > 2 and ar_(e_[4]) > MP_MAX_M2)
-        MPC = dict(MPC, layers=dict((kk, [e_ for e_ in v_ if len(e_[4]) < 3 or ar_(e_[4]) <= MP_MAX_M2])
-                                    for kk, v_ in MPC["layers"].items()))
-        log.append(u"masterplan: %d sheet / texture frames over %.0f m2 left out" % (n_big, MP_MAX_M2))
+        # v8.2 (run 2: whole blocks went solid green): a 4-corner clipped picture area is the picture's own rectangle,
+        # not the shape he drew (his greens are irregular clipped patches), so it is left out too
+        cut_ = lambda e_: len(e_[4]) > 2 and (ar_(e_[4]) > MP_MAX_M2 or (e_[0] == "a" and len(e_[4]) == 4))
+        n_big = sum(1 for v_ in MPC["layers"].values() for e_ in v_ if cut_(e_))
+        MPC = dict(MPC, layers=dict((kk, [e_ for e_ in v_ if not cut_(e_)]) for kk, v_ in MPC["layers"].items()))
+        log.append(u"masterplan: %d sheet frames (> %.0f m2) and picture rectangles left out" % (n_big, MP_MAX_M2))
         mp_cnt = MPn["mp_draw"](MPC, items, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                 (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None,
-                                layers=set(kk.split("/")[0] for kk in MPC["layers"]))
+                                layers=set(kk.split("/")[0] for kk in MPC["layers"]),
+                                style={"fill": {"su_outline": P["WATER_C"]}})   # v8.2: his river (a picture) as water
         seen = set()
         for kk in mp_cnt:
             nm = next(((ex, w_) for part in reversed(kk.split("/")) for ww, (ex, w_) in MP_WORDS.items() if part == ww),
@@ -607,6 +610,7 @@ def node_page(cfg, log):
             kind, fill, stroke, w, P_ = MPC["layers"][kk][0]
             col = (next((v for ww, v in MPn["AREA_FILL"].items() if ww in kk.split("/")), MPn["AREA_DEFAULT"])
                    if kind == "a" else (fill or stroke or MPn["AREA_DEFAULT"]))
+            col = P["WATER_C"] if nm[1] == u"the Selinos" else col      # v8.2: drawn as water above
             (ex_rows if nm[0] else mp_rows).append(("box" if kind in ("a", "r", "s") else "line", col, nm[1]))
         log.append(u"plan = his masterplan: %s" % (u", ".join(u"%s %d" % kv for kv in sorted(mp_cnt.items())) or
                                                   u"nothing in this frame"))
