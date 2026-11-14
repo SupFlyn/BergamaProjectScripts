@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.6.1"
+VERSION = "v1.6.2"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -759,8 +759,49 @@ class Sec(object):
             self.d["balcony"] = E["SECTIONS"][1].get("balcony")
             self.d["pergola"] = E["SECTIONS"][1].get("pergola")
         self.V = self._surface(left, right)
+        self.walled = None
+        if not C.is_s4 and WALL_BED[0] <= C.z_th <= WALL_BED[1]:
+            self._wall_channel()
         if not C.is_s4:
             self._rule_planting(sea)
+
+    def _wall_channel(self):
+        """v1.6.2: the walled town reach as a walled channel (run 2 drew 0.6 m posts standing on the pre-wall survey
+        slope): on each side the wall stands where the survey ground first reaches the wall top (bed + WALL_H_M, REPORT
+        s.2) within WALL_SEARCH_M of the bed low point, else DSI_BED_W / 2 from it; between the walls a flat bed at the
+        bed level (the summer strip kept); the wall face is vertical from the bed to max(ground there, wall top)"""
+        C = self.C
+        zt, top = C.z_th, C.z_th + WALL_H_M
+        ends = []
+        for sg in (-1.0, 1.0):
+            e = None
+            d = 0.5
+            while d <= WALL_SEARCH_M:
+                x = C.s_th + sg * d
+                if not (self.lo < x < self.hi):
+                    break
+                if self.ex(x) >= top - 0.5:
+                    e = x
+                    break
+                d += 0.5
+            ends.append(e if e is not None else C.s_th + sg * DSI_BED_W / 2.0)
+        sL, sR = ends
+        if sR - sL < 6.0:
+            return
+        sa, sb, dep = self.strip
+        V = [p for p in self.V if p[0] < sL - 1e-6]
+        V += [(sL, self.ex(sL)), (sL, zt)]
+        for p in self.V:
+            if sL < p[0] < sR and sa - 1e-6 <= p[0] <= sb + 1e-6:
+                V.append(p)                                  # the summer strip in the bed
+        V += [(sR, zt), (sR, self.ex(sR))]
+        V += [p for p in self.V if p[0] > sR + 1e-6]
+        self.V = V
+        self._xs = None
+        self.walled = (sL, sR, max(self.ex(sL), top), max(self.ex(sR), top))
+        C.notes.append(u"line %d: walled channel s %.1f-%.1f m (%.1f m wide), bed %+.2f, wall tops %+.2f / %+.2f "
+                       u"(REPORT s.2: 5.0 m above the bed; the survey bank here is pre-wall)" % (
+                           C.n, sL, sR, sR - sL, zt, self.walled[2], self.walled[3]))
 
     def X(self, s):
         return self.X0 + (s - self.lo) * self.K
@@ -846,6 +887,8 @@ class Sec(object):
             ch0, ch1 = C.s_th - DSI_BED_W / 2.0, C.s_th + DSI_BED_W / 2.0
             C.notes.append(u"line %d: the low flat at the bed is wider than %.0f m: channel = the DSI %.0f m bed" % (
                 C.n, WALL_MAX_W, DSI_BED_W))
+        if self.walled:
+            ch0, ch1 = self.walled[0], self.walled[1]
         self.channel = (ch0, ch1)
         runs, cur, kind = [], None, None
         s = self.lo
@@ -1126,6 +1169,7 @@ WIN_W, WIN_H, WIN_SILL, WIN_STEP = 1.2, 1.4, 0.9, 3.0     # m, window rows per f
 WALL_BED = (55.5, 73.5)            # the walled town reach by bed level (REPORT s.2: upstream entry +73.1 ... Uc Kemer +55.6)
 WALL_H_M, WALL_T_M, WALL_FILL = 5.0, 0.6, "BDB6A6"
 WALL_MAX_W = 30.0                  # m: v1.6.1: a wider low flat is not the walled channel
+WALL_SEARCH_M = 20.0               # m from the bed low point: v1.6.2 the wall stands where the ground reaches its top
 DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 summary p.75, measure 155)
 LU_H = 4.0                         # mm, the land-use band
 LU = {"open": ("D9D6BE", u"open ground"), "street": ("706B62", u"street"), "stream": ("7FA4B3", u"stream"),
@@ -1235,19 +1279,15 @@ def ground_fill(pg, S):
 def town_walls(pg, S, C):
     """the walled town reach (REPORT s.2, Aras 28 Oct 14:12: walls pinned 5.0 m above the bed): a stone wall at both
     channel edges where the cut's bed lies in WALL_BED; the survey bank there is pre-wall"""
-    if not (WALL_BED[0] <= C.z_th <= WALL_BED[1]) or C.is_s4:
+    if not getattr(S, "walled", None):
         return
-    ch = getattr(S, "channel", None)
-    if not ch:
-        return
-    top = C.z_th + WALL_H_M
-    for s, side in ((ch[0], -1), (ch[1], 1)):
+    sL, sR, tL, tR = S.walled
+    C.walls = []
+    for s, side, top in ((sL, -1, tL), (sR, 1, tR)):
         sa, sb = sorted((s, s + side * WALL_T_M))
         pg.poly([[S.P(sa, C.z_th - 0.6), S.P(sb, C.z_th - 0.6), S.P(sb, top), S.P(sa, top)]], fill=WALL_FILL,
                 stroke=INK_CUT, lw=0.3, layer="walls")
-        C.walls = getattr(C, "walls", []) + [(sa, sb)]
-    C.notes.append(u"line %d: bed %+.2f in the walled town reach: walls at s %.1f and %.1f m, top %+.2f (5.0 m above "
-                   u"the bed, REPORT s.2)" % (C.n, C.z_th, ch[0], ch[1], top))
+        C.walls.append((sa, sb))
 
 
 def cutout(pg, key, X, Y, h_mm=None, n=0, flip=False, layer="people"):
@@ -1842,6 +1882,7 @@ def main():
         p = write_pdf(os.path.join(OUT_DIR, u"Sections.pdf"), pages,
                       u"Sections %s, both banks, 1:%d" % (u", ".join(r_["name"] for r_ in res), den))
         log.append(u"%s  %s" % (p, time.strftime("%H:%M:%S")))
+        write_review(p, log)
     else:
         log.append(u"FLAG no section drawn: no PDF written")
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -1853,6 +1894,74 @@ def main():
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s %s, %d of %d section(s) drawn, %d FLAG line(s), %.1f s" % (
         u"\n".join(log), GH_LABEL, VERSION, len(res), len(cuts), len(flags), time.time() - t0)
+
+
+# v1.6.2, Aras 14 Nov 10:44 UTC: "all scripts should produce PNG's aswell which should be optimized for your viewing":
+# the review tiles next to the PDF (one band per cut, trimmed to ink, 200 ppi, tiles <= 1560 px wide)
+REVIEW_TILER = r'''
+import sys, os, glob
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz
+import numpy as np
+pdf, out = sys.argv[1], sys.argv[2]
+PPI, MAXW, PAD, LO = 200, 1560, 8, 20
+os.makedirs(out, exist_ok=True)
+for f in glob.glob(os.path.join(out, "*.png")):
+    os.remove(f)
+pg = fitz.open(pdf)[0]
+pm = pg.get_pixmap(dpi=LO, colorspace=fitz.csGRAY)
+ink = np.frombuffer(pm.samples, np.uint8).reshape(pm.h, pm.w) < 245
+rows = ink.any(1)
+bands, y = [], 0
+while y < len(rows):
+    if rows[y]:
+        y0, gap = y, 0
+        while y < len(rows) and gap < int(12 / 25.4 * LO):
+            gap = 0 if rows[y] else gap + 1
+            y += 1
+        bands.append((y0, y - gap))
+    else:
+        y += 1
+bands = [b for b in bands if (b[1] - b[0]) / LO * 25.4 >= 20]
+k, n = 72.0 / LO, 0
+for i, (y0, y1) in enumerate(bands):
+    cols = ink[y0:y1].any(0).nonzero()[0]
+    r = fitz.Rect(cols.min() * k, y0 * k, (cols.max() + 1) * k, y1 * k) + (-PAD, -PAD, PAD, PAD)
+    nt = max(1, int(np.ceil(r.width / 72 * PPI / MAXW)))
+    for t in range(nt):
+        tr = fitz.Rect(r.x0 + r.width * t / nt, r.y0, r.x0 + r.width * (t + 1) / nt, r.y1)
+        pg.get_pixmap(dpi=PPI, clip=tr).save(os.path.join(out, "%02d_%d.png" % (i + 1, t + 1)))
+        n += 1
+print("review: %d band(s), %d tile(s) in %s" % (len(bands), n, out))
+'''
+
+
+def write_review(pdf, log):
+    """the review PNG tiles in output/bergama_sections/review/ (PyMuPDF in Rhino's Python, else the Windows py -3)"""
+    out = os.path.join(OUT_DIR, "review")
+    tp = os.path.join(CACHE_DIR, "review_tiler.py")
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(tp, "w", encoding="utf-8") as f:
+            f.write(REVIEW_TILER)
+        import subprocess
+        import sys as _sys
+        cmds = [["py", "-3"], ["python"]]
+        if os.path.basename(_sys.executable or "").lower().startswith("python"):
+            cmds.insert(0, [_sys.executable])            # never Rhino.exe itself
+        for cmd in cmds:
+            try:
+                r_ = subprocess.run(cmd + [tp, pdf, out], capture_output=True, text=True, timeout=600)
+            except Exception:
+                continue
+            if r_.returncode == 0:
+                log.append(r_.stdout.strip().splitlines()[-1] if r_.stdout.strip() else u"review: written to %s" % out)
+                return
+        log.append(u"FLAG review PNGs not written: no Python with PyMuPDF + numpy found (pip install pymupdf numpy)")
+    except Exception as ex:
+        log.append(u"FLAG review PNGs not written (%s: %s)" % (type(ex).__name__, ex))
 
 
 def _shift(it, dx, dy):
