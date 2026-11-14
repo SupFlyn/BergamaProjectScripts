@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.10"   # v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.11"   # v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1092,7 +1092,8 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     S.X0 = x_left
     # v1.6.13: callouts whose anchors lie closer than 8 mm keep the first in importance order (strip, reed, iris,
     # buildings, the rest); a merged two-name label ran over its row (N3-B)
-    pri = (u"Summer water", u"Common reed", u"Yellow flag", u"Building")
+    pri = tuple(MP_LABEL.values()) + (u"Summer water", u"Common reed", u"Yellow flag", u"Building")   # v1.11: the
+    #                                                   masterplan's proposals named first
     items = []
     for s_, z_, t_ in sorted(d["callouts"] if with_text else [],
                              key=lambda c: next((i for i, w in enumerate(pri) if c[2].startswith(w)), len(pri))):
@@ -1242,6 +1243,38 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     if with_text and placed:
         E["callouts"](pg, S, placed, S.Y(z_top) + 6.0, size)
     spread_levels(E, pg, S, short=True)
+    # v1.11 (run of v1.10: a stub still ran past the right frame edge on N5-B): drawing lines cut at the frame
+    x0_, x1_ = S.X(S.lo), S.X(S.hi)
+    keep = ("title", "callouts", "levels", "text")
+    out_ = []
+    for it in pg.items:
+        if it[0] != "line" or it[5] in keep or all(x0_ <= q[0] <= x1_ for q in it[1]):
+            out_.append(it)
+            continue
+        run_ = []
+        for qa, qb in zip(it[1][:-1], it[1][1:]):
+            ta, tb = 0.0, 1.0
+            dx = qb[0] - qa[0]
+            if abs(dx) > 1e-9:
+                t0, t1 = sorted(((x0_ - qa[0]) / dx, (x1_ - qa[0]) / dx))
+                ta, tb = max(0.0, t0), min(1.0, t1)
+            elif not (x0_ <= qa[0] <= x1_):
+                ta, tb = 1.0, 0.0
+            if ta > tb:
+                if len(run_) >= 2:
+                    out_.append((it[0], run_) + tuple(it[2:]))
+                run_ = []
+                continue
+            pa = (qa[0] + dx * ta, qa[1] + (qb[1] - qa[1]) * ta)
+            pb = (qa[0] + dx * tb, qa[1] + (qb[1] - qa[1]) * tb)
+            if not run_ or run_[-1] != pa:
+                if len(run_) >= 2:
+                    out_.append((it[0], run_) + tuple(it[2:]))
+                run_ = [pa]
+            run_.append(pb)
+        if len(run_) >= 2:
+            out_.append((it[0], run_) + tuple(it[2:]))
+    pg.items[:] = out_
     y_band = S.Y(S.zb) - 3.0
     if with_text:
         landuse_band(pg, S, y_band - LU_H, LU_H)          # v1.6: the land-use band of the 27 Oct site board p04-05
@@ -2092,6 +2125,7 @@ MP_KIND = {"teras": "terrace", "iskele_kenari": "deck", "kanopi": "canopy", "ter
            "desings": "pavilion", "kopruler": "bridge", "istinaat": "wall", "yuruyus": "walk", "normal": "walk",
            "yol_kenar": "walk", "path": "bridge", "duzenlenmis": "plaza", "yeni": "cycle", "bisiklet": "cycle",
            "kesin_yesil": "green", "belki_yesil": "green", "su_bitkii": "reeds", "tas": "stones"}
+MP_MAX_M2 = 100000.0              # m2: a bigger "piece" is a sheet / texture frame, not a plan element
 MP_BEHIND_M = 60.0                 # m: canopies and pavilions this far behind the cut are drawn in elevation
 MP_LABEL = {"terrace": u"Stepped terraces", "deck": u"Water deck", "canopy": u"Canopy", "pavilion": u"Pavilion",
             "bridge": u"Footbridge", "wall": u"Retaining wall", "walk": u"Promenade", "plaza": u"Square",
@@ -2121,12 +2155,22 @@ def mp_load(log):
         return {}
     # MasterplanBase v1: {"layers": {"a/b/c": [[kind, fill, stroke, width_m, [[x, y], ...]], ...]}}; the innermost id
     # names the thing; kind r = ring, l = open line, a = clip outline of a picture group (its area), s = a loose stamp
+    # v1.11 (run of v1.10: "green" covered every cut with a tree row): a picture group's clip outline counts only
+    # where the layer has no drawn ring (kesin_yesil's 316 texture clips include the whole 2.1 km2 sheet), any piece
+    # over MP_MAX_M2 is a frame, open lines only for walls; kopruler/* = bridges
     out = {}
     for key, pieces in J.get("layers", {}).items():
-        lid = key.split("/")[-1]
-        if lid in MP_KIND:
-            out.setdefault(lid, []).extend((p[0] != "l", [tuple(q) for q in p[4]]) for p in pieces
-                                           if p[0] in ("r", "l", "a") and len(p[4]) >= 2)
+        lid = u"kopruler" if key.startswith(u"kopruler") else key.split("/")[-1]
+        if lid not in MP_KIND:
+            continue
+        has_r = any(p[0] == "r" for p in pieces)
+        for p in pieces:
+            r = [tuple(q) for q in p[4]]
+            if len(r) < 2 or p[0] == "s" or (p[0] == "a" and has_r) or (p[0] == "l" and MP_KIND[lid] != "wall"):
+                continue
+            if p[0] != "l" and abs(sum(r[i][0] * r[i - 1][1] - r[i - 1][0] * r[i][1] for i in range(len(r)))) / 2.0 > MP_MAX_M2:
+                continue
+            out.setdefault(lid, []).append((p[0] != "l", r))
     log.append(u"masterplan: %s, %s" % (MP_CACHE, u", ".join(u"%s %d" % (k, len(v)) for k, v in sorted(out.items()))))
     return out
 
@@ -2361,10 +2405,11 @@ def mp_planting(S):
             continue
         if kind == "green":
             d["grass"].append((a, b))
-            x = a + 4.0
-            while x < b - 3.0:
-                d["trees"].append((x, 3.0, 9.0, 0))
-                x += 9.0
+            rg = random.Random(u"t%.1f" % a)
+            x = a + 3.0 + 5.0 * rg.random()
+            while x < b - 3.0:                                  # trees 12-20 m apart, 7-11 m tall (design)
+                d["trees"].append((x, 3.0, 7.0 + 4.0 * rg.random(), 0))
+                x += 12.0 + 8.0 * rg.random()
         elif kind == "reeds":
             d["reeds"].append((a, b, 2.0))
     for kind in set(k for k, a, b, dist, cut in getattr(S.C, "mp", []) if cut and k in MP_LABEL):
