@@ -484,7 +484,8 @@ def pc_selinos(C, a, b):
 
 # ================================================================ sheet furniture (right-hand column)
 def pc_sheet(M, K, lib, title, sub, legend, notes, credit):
-    """legend = [(draw(x, y) -> items, label)], swatch 10 x 5 mm; notes = [text]; returns items"""
+    """legend = [(draw(x, y) -> items, label)], swatch 10 x 5 mm; (None, text) = a bold header row; notes = [text];
+    returns items"""
     it = []
     tm = K["text_mm"]
     INK = K["ink"]
@@ -501,6 +502,11 @@ def pc_sheet(M, K, lib, title, sub, legend, notes, credit):
         y -= tm["sub"] * 1.4
     y -= 5.0
     for draw, label in legend:
+        if draw is None:                                 # a header row (EXISTING ... / PROPOSAL MARKS), as the node pages
+            y -= 1.5
+            it.append(T_(label, x, y, tm["legend"], INK, "legend", True))
+            y -= 6.0
+            continue
         it += draw(x + 5.0, y + 1.0)
         lines = wrap(label, tm["legend"], W - 14.0, tw)
         yy = y
