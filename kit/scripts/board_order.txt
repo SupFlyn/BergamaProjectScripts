@@ -20,6 +20,7 @@ solo: bergama_shared_sync = SharedSync
 solo: bergama_plan_to_rhino = PlanToRhino
 solo: bergama_planting_analysis = PlantingAnalysis
 solo: bergama_basemap = Basemap
+solo: bergama_mapbase = MapBase
 solo: bergama_plan_base = PlanBase
 solo: bergama_sections = Sections
 solo: bergama_page_transit = PageTransit
