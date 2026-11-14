@@ -25,7 +25,7 @@ scripts/bergama_mapbase_v1_2.py
 scripts/bergama_plan_base_v11_1.py
 scripts/bergama_page_transit_v2_5.py
 scripts/bergama_page_heritage_v1_3.py
-scripts/bergama_page_spine_v1_1.py
+scripts/bergama_page_spine_v1_2.py
 scripts/bergama_page01_axo_v1_1.py
 scripts/bergama_page01_free_v1_2.py
 scripts/bergama_page01_move_v1.py
