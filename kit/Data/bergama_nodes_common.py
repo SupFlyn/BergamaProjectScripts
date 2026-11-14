@@ -3,38 +3,27 @@
 scripts/bergama_node_n1_v*.py ... bergama_node_n6_v*.py (Panel Review II slides 7-12, one script per node, Aras 14 Nov
 11:14 UTC "dont build all those nodes into single script"). Loaded (not pasted) by each node script.
 
-One A3 landscape page per node (420 x 297 mm, PDF with layers + review PNGs):
-  PLAN      the node frame (Data/section_lines.json "nodes", his node frames of 11 Nov) + NODE_MARGIN_M round it, on the
-            frame's own axes (long side flat), drawn with Page02's code: buildings by urban fabric (survey + OSM/satellite
-            houses + 2023 image check), streets, the Selinos, walls; the node's two section lines N#-A, N#-B (the part
-            drawn on the section thicker); over it the bus lines, stops, hubs and the heritage loop of
-            Data/bergama_access_heritage.json (as PageTransit / PageHeritage), and the CITY SQUARE idea (Aras 14 Nov
-            11:14-11:15 UTC: "a city square where heritage and transit hub's cross ... people, tourists can gather and
-            move on and will be close to transit"): drawn only where a heritage loop stop and a bus stop both lie in
-            the node frame, as a dashed ring round the two (place = an idea, not designed), with their straight-line
-            distance (calculated)
-  SECTIONS  N#-A and N#-B by the newest scripts/bergama_sections_v*.py (its own cut, ground, water and context code,
-            autumn look), at the first of 1:1000 / 1250 / 1500 / 2000 that fits its room
-  DIAGRAMS  land use of the node frame (Page02's 1 m cell count), water depth over the bed by season at both cuts
-            (the Sections script's Manning levels: its SEASON_WATER flows and DSI Q100 / Q500), what each cut meets
-  PLACEHOLDERS perspective from V1 (marked on the plan, place assumed), program brief, building proposal (plan,
-            section, elevation where the node has one): labelled boxes (NO DRAWING rule: Aras makes them)
-  v4 brief plan rules (Aras 14 Nov 11:30 UTC): scale + north + legend on the plan, EXISTING kept apart from the
-            PROPOSAL marks (orange), labels N#, N#-A / N#-B, V1 the same on plan, sections and placeholders
-Reads: newest scripts/bergama_basemap_v*.py, scripts/bergama_p02_what_is_there_v*.py, scripts/bergama_sections_v*.py,
-Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_heritage.json, the caches of Basemap
-(press Basemap first) and the open Rhino model's survey layers (the Sections code reads them).
+One A3 landscape page per node (420 x 297 mm, PDF with layers + review PNGs via pages_common pc_review). CHAINED, no
+job done twice (Aras 14 Nov 12:38 UTC): Basemap -> MapBase -> Sections -> the node scripts.
+  PLAN      the node frame (Data/section_lines.json "nodes") + NODE_MARGIN_M round it on its own axes; context = MapBase
+            (mb_draw, its cache); over it the section lines, bus lines (quiet), stops, hubs, heritage loop, the
+            streamside spine and stream walk (proposed paths), the city square idea (a loop stop and a bus stop in the
+            same node) and V1; everything cut to the plan frame (FLAG on ink outside)
+  SECTIONS  N#-A, N#-B from cached/bergama_sections/cuts.json (Sections v1.6.4+), the first cached scale that fits
+  DIAGRAMS  land use of the node frame (Page02's land_use on MapBase data), water over the bed by season (cached levels)
+  PLACEHOLDERS V1 perspective, program brief, building proposal (NO DRAWING rule: Aras makes them)
+Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, bergama_sections_v*, bergama_mapbase_v*
+(code only), Data/bergama_pages_common.py, section_lines.json, bergama_access_heritage.json and the caches above.
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v5"   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6"   # v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
 DEN_STEPS = (1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
 SEC_DENS = (1000, 1250, 1500, 2000)        # v4.1: the first scale at which the cut fits its room (the engine prints it)
-SEC_HALF_M = 95.0                          # m either side of the stream crossing (190 m fits 192 mm at 1:1000)
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
@@ -68,7 +57,6 @@ def load_all(node, out_folder, log):
     log.append(u"page code: %s (%s %s)" % (pp, P.get("GH_LABEL"), P.get("VERSION")))
     xp = _newest("bergama_sections_v*.py")
     X, xcode = _exec(xp, "bergama_sections_lib")
-    X["MAX_LEN_M"] = 2.0 * SEC_HALF_M
     X["OUT_DIR"] = os.path.join(ROOT, "output", out_folder)
     X["CACHE_DIR"] = cdir
     log.append(u"section code: %s (%s %s)" % (xp, X.get("GH_LABEL"), X.get("VERSION")))
@@ -104,6 +92,37 @@ def _writer(X, code, log):
                             'else "S")', 1)
     exec(compile(src, "write_pdf_node", "exec"), X)
     return X["write_pdf_node"]
+
+
+class Cut(object):
+    """v6: one cached cut (cached/bergama_sections/cuts.json) with its line ends: what the page needs of it"""
+
+    def __init__(self, name, ab, J, CL):
+        self.name, self.J = name, J
+        self.A, self.B = tuple(ab[0]), tuple(ab[1])
+        self.L = math.hypot(self.B[0] - self.A[0], self.B[1] - self.A[1])
+        J = J or {}
+        self.z_th, self.window = J.get("z_th", 0.0), tuple(J.get("window") or (0.0, self.L))
+        self.levels = {}
+        for k_, v in (J.get("levels") or {}).items():
+            if u"|" in k_:
+                sea, q = k_.split(u"|")
+                k_ = (sea, float(q))
+            self.levels[k_] = tuple(v)
+        self.bld, self.roads, self.trees = J.get("bld", []), J.get("roads", []), J.get("trees", [])
+        sc = None
+        for a, b in zip(CL[:-1], CL[1:]):                 # where the line crosses the Selinos centreline
+            d = (self.B[0] - self.A[0]) * (b[1] - a[1]) - (self.B[1] - self.A[1]) * (b[0] - a[0])
+            if abs(d) < 1e-12:
+                continue
+            t = ((a[0] - self.A[0]) * (b[1] - a[1]) - (a[1] - self.A[1]) * (b[0] - a[0])) / d
+            u = ((a[0] - self.A[0]) * (self.B[1] - self.A[1]) - (a[1] - self.A[1]) * (self.B[0] - self.A[0])) / d
+            if 0.0 <= t <= 1.0 and 0.0 <= u <= 1.0 and (sc is None or t < sc):
+                sc = t
+        self.s_th = (sc if sc is not None else 0.5) * self.L
+
+    def xy(self, s):
+        return (self.A[0] + (self.B[0] - self.A[0]) * s / self.L, self.A[1] + (self.B[1] - self.A[1]) * s / self.L)
 
 
 # ================================================================ small helpers (page mm)
@@ -348,58 +367,49 @@ def node_page(cfg, log):
     # node frame
     sline(nd["corners"] + [nd["corners"][0]], INK, 0.35, "node_frame", (3.0, 1.0, 0.6, 1.0))
 
-    # ---- sections first (their windows go on the plan)
-    E = X["load_engine"](log)
-    E["_DRY0"] = E["DRY"]
+    # ---- sections first (their windows go on the plan). v6 (Aras 12:38 UTC "don't ever do the same job twice ...
+    # cache it and make it usable by the next script"): read from the Sections cache, never rebuilt here
+    E = X["load_engine"](log)                             # only its text widths (the writer centres text with them)
     X["_ENGINE_W"][:] = [E["text_w"]]
     CL, cum = X["load_centreline"](log)
-    BM = X["load_basemap"](log)
-    names = [node + u"-A", node + u"-B"]
-    cuts = []
-    for i, nm in enumerate(names):
-        a, b = SL["lines"][nm]
-        cuts.append(X["Cut"](i + 1, tuple(a), tuple(b), nm, nm))
-    pad = max(X["CORRIDOR_STEPS"][-1], X["SLOPE_HALF"] + 20.0) + X["HYD_HALF"]
-    xs = [p[0] for C in cuts for p in (C.A, C.B)]
-    ys = [p[1] for C in cuts for p in (C.A, C.B)]
-    survey = X["read_survey"]((min(xs) - pad, min(ys) - pad, max(xs) + pad, max(ys) + pad), log)
+    pc = os.path.join(ROOT, "cached", "bergama_sections", "cuts.json")
+    if not os.path.isfile(pc):
+        raise RuntimeError(u"%s not found: press Sections (v1.6.4 or newer) first, then this node" % pc)
+    with open(pc, encoding="utf-8") as f:
+        CJ = json.load(f)
+    log.append(u"sections: %s (Sections %s, run %s)" % (pc, CJ.get("version"), CJ.get("run")))
+    cuts = [Cut(nm, SL["lines"][nm], CJ["cuts"].get(nm), CL) for nm in (node + u"-A", node + u"-B")]
     done = []
     for C, room in zip(cuts, SEC_ROOMS):
         x0, y0, x1, y1 = room
-        try:
-            C.survey = survey
-            X["build_cut"](C, CL, cum, E, log, BM)
-            for den_s in SEC_DENS:                    # v4.1 (run 1: shrunk cuts printed the engine's 1:1000)
-                pg, S_, yb = X["draw_cut"](E, C, X["SEASON"], den_s, 0.0, 0.0)
-                bb = X["items_bbox"](pg.items)
-                w, h = bb[2] - bb[0], bb[3] - bb[1]
-                f = min(1.0, (x1 - x0) / w, (y1 - y0 - 5.0) / h)
-                if f >= 0.999:
-                    break
-            its = scale_items(pg.items, f, bb[0], bb[3], x0 - bb[0], (y1 - 5.0) - bb[3])
-            items += its
-            sec_ids.update(id(it) for it in its)
-            sb = X["items_bbox"](its)
-            if sb[0] < x0 - 0.5 or sb[2] > x1 + 0.5 or sb[1] < y0 - 0.5 or sb[3] > y1 + 0.5:
-                log.append(u"FLAG section %s runs outside its room by up to %.1f mm" % (C.name, max(
-                    x0 - sb[0], sb[2] - x1, y0 - sb[1], sb[3] - y1)))
-            log.append(u"section %s: %.0f x %.0f mm at 1:%d" % (C.name, w * f, h * f, den_s))
-            if f < 0.999:
-                log.append(u"FLAG section %s too large even at 1:%d: shrunk x%.2f, its printed scale is wrong" % (
-                    C.name, den_s, f))
-            done.append(C)
-            nb = sum(1 for t in C.bld if t[4])
-            items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
-                nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 2.5, 2.0, GREY, False, "R",
-                "sections"))
+        if C.J is None:
+            items.append(T_(u"FLAG: section %s is not in the Sections cache" % C.name, x0, y1 - 12.0, 2.6, RED))
             sec_ids.add(id(items[-1]))
-        except Exception as ex:
-            import traceback as _tb
-            items.append(T_(u"FLAG: section %s not drawn: %s" % (C.name, ex), x0, y1 - 12.0, 2.6, RED))
-            sec_ids.add(id(items[-1]))
-            log.append(u"FLAG section %s not drawn: %s: %s | %s" % (C.name, type(ex).__name__, ex, u" / ".join(
-                _tb.format_exc()[-400:].splitlines())))
-        log += C.notes
+            log.append(u"FLAG section %s not in %s: press Sections again" % (C.name, pc))
+            continue
+        for den_s in SEC_DENS:                        # the first cached scale that fits the room
+            e_ = C.J["items"].get(str(den_s))
+            if not e_:
+                continue
+            bb = e_["bbox"]
+            w, h = bb[2] - bb[0], bb[3] - bb[1]
+            f = min(1.0, (x1 - x0) / w, (y1 - y0 - 5.0) / h)
+            if f >= 0.999:
+                break
+        its = scale_items(e_["items"], f, bb[0], bb[3], x0 - bb[0], (y1 - 5.0) - bb[3])
+        items += its
+        sec_ids.update(id(it) for it in its)
+        log.append(u"section %s: %.0f x %.0f mm at 1:%d (cached)" % (C.name, w * f, h * f, den_s))
+        if f < 0.999:
+            log.append(u"FLAG section %s too large even at 1:%d: shrunk x%.2f, its printed scale is wrong" % (
+                C.name, den_s, f))
+        done.append(C)
+        nb = sum(1 for t in C.bld if t.get("cut"))
+        items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
+            nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 2.5, 2.0, GREY, False, "R",
+            "sections"))
+        sec_ids.add(id(items[-1]))
+        log += [u"%s: %s" % (C.name, n_) for n_ in C.J.get("notes", []) if n_.startswith(u"FLAG")]
 
     # ---- section lines on the plan: the whole line thin, the drawn window bold, names at both ends
     ends = []
