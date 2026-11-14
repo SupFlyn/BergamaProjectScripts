@@ -78,6 +78,9 @@ land-use ring, which no other slide repeats.
 v2.9 (14 Nov 2026, Aras 15:20-15:23 UTC): the purple is gone; FAB, FAB_COM and GROUND_C are read from MapBase v1.3,
 the one palette of the set, built from the masterplan SVG's own colours; each fabric key row also gives the share with
 shops ("also give us percentages for the ground floor differentiated use ones").
+v2.11 (14 Nov 2026, Aras 15:38 UTC chose "Map, fabric key and land-use ring" for slide 1): with page_mm (Slide01 passes
+its panel size) the page is compact: the map fitted to the panel, the fabric key and the land-use ring beside it, texts
+at their own size; no bridge or clash lists, no inset, no other key columns. Without page_mm the A3 page is as before.
 v2.10 (14 Nov 2026): no presentation/1.pdf copy any more; Slide01 composes slide 1 (one A3 per slide) and writes it.
 v2.8 (14 Nov 2026, check loop of run 3): the inset's north arrow covered clash marker C6; the inset's north arrow and
 scale are now placed first and the bridge and clash markers keep off them (no collisions).
@@ -96,7 +99,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.10"
+VERSION = "v2.11"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -523,7 +526,17 @@ def main():
     with open(B["CACHE_FILE"], encoding="utf-8") as f:
         D = json.load(f)
     FS, F = whole_frame(B, D)
-    den = next((d for d in DEN_STEPS if F.w * 1000.0 / d <= MAP_MAX_W and F.h * 1000.0 / d <= MAP_MAX_H), DEN_STEPS[-1])
+    pm = globals().get("page_mm")                         # v2.11: Slide01 passes its panel (mm): the compact page
+    compact = bool(pm)
+    if compact:                                           # map, fabric key and land-use ring only (Aras 15:38 UTC)
+        PW, PH = float(pm[0]), float(pm[1])
+        CWID = 120.0                                      # mm: the right column (fabric key, then the ring)
+        MX, MTOP = 10.0, PH - 24.0
+        MMW, MMH = PW - 30.0 - CWID, MTOP - 14.0
+        CX = PW - 10.0 - CWID
+    else:
+        PW, PH, MX, MTOP, MMW, MMH, CX, CWID = PAGE_W, PAGE_H, MAP_X, MAP_TOP, MAP_MAX_W, MAP_MAX_H, COL_X, COL_W
+    den = next((d for d in DEN_STEPS if F.w * 1000.0 / d <= MMW and F.h * 1000.0 / d <= MMH), DEN_STEPS[-1])
     k = 1000.0 / den
     log.append(u"map: the whole survey file %.0f x %.0f m (+%.0f m) on site_alan's axes, 1:%s, %.1f x %.1f mm" % (
         F.w, F.h, MARGIN_M, format(den, ",d"), F.w * k, F.h * k))
@@ -622,35 +635,40 @@ def main():
             if len(ab) >= 2:
                 place_text(B, items, taken, lim, [pg(F.local(ab[0])), pg(F.local(ab[1]))], sid, 1.8, CUT_C,
                            "section_cuts", log)
-    draw_map(MAP_X, MAP_TOP - F.h * k, k, box, False, "overview")     # the overview: lines only
-    X0, Y0 = MAP_X, MAP_TOP - F.h * k
+    draw_map(MX, MTOP - F.h * k, k, box, False, "overview")     # the overview: lines only
+    X0, Y0 = MX, MTOP - F.h * k
+    if compact:
+        CX = X0 + F.w * k + 10.0                          # the right column starts beside the fitted map
+        CWID = PW - 10.0 - CX
     ki = 1000.0 / INSET_DEN
     INS_Y0 = 42.0
-    items.append(("text", u"The site frame (site_alan) · bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
-                  COL_X, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
-    cb = _no_box(B["corner_block"](F, S, INSET_DEN, COL_X + (sbox[2] - sbox[0]) * ki, INS_Y0))
-    taken.extend(_bbox(B, [t]) for t in cb)               # v2.8: markers keep off the inset's north arrow and scale
-    draw_map(COL_X, INS_Y0, ki, sbox, True, "inset")
-    items += cb
-    log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
-        sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
-        (sbox[3] - sbox[1]) * ki, len(taken)))
+    if not compact:                                       # v2.11: no inset on the slide panel
+        items.append(("text", u"The site frame (site_alan) · bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
+                      CX, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
+        cb = _no_box(B["corner_block"](F, S, INSET_DEN, CX + (sbox[2] - sbox[0]) * ki, INS_Y0))
+        taken.extend(_bbox(B, [t]) for t in cb)               # v2.8: markers keep off the inset's north arrow and scale
+        draw_map(CX, INS_Y0, ki, sbox, True, "inset")
+        items += cb
+        log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
+            sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
+            (sbox[3] - sbox[1]) * ki, len(taken)))
     r_mk = 2.0                                            # mm: marker radius (the lists)
 
     def disc(x, y, txt, col, layer):
         marker(items, x, y, txt, col, layer)
     items += _no_box(B["corner_block"](F, S, den, X0 + F.w * k, Y0))   # v2.3: no background box
     # ---- title band
-    items.append(("text", KICKER, 14.0, 287.0, 2.6, INK, True, "L", "title", None, None))
-    items.append(("text", TITLE, 14.0, 276.5, 7.5, INK, True, "L", "title", None, None))
-    yy = 284.0
-    for ln in wrap(B, INTRO, 2.8, 196.0):
-        items.append(("text", ln, COL_X, yy, 2.8, INK, False, "L", "title", None, None))
-        yy -= 3.8
-    items.append(("text", u"A  SITE AND STREAM EDGE   2", 406.0, 8.0, 2.6, INK, True, "R", "title", None, None))
+    items.append(("text", KICKER, MX, PH - 10.0, 2.6, INK, True, "L", "title", None, None))
+    items.append(("text", TITLE, MX, PH - 20.5, 7.5, INK, True, "L", "title", None, None))
+    if not compact:
+        yy = 284.0
+        for ln in wrap(B, INTRO, 2.8, 196.0):
+            items.append(("text", ln, CX, yy, 2.8, INK, False, "L", "title", None, None))
+            yy -= 3.8
+        items.append(("text", u"A  SITE AND STREAM EDGE   2", 406.0, 8.0, 2.6, INK, True, "R", "title", None, None))
     # ---- key under the map
     ky = Y0 - 6.0
-    items.append(("text", u"Plan 01 · what is there today · 1:%s" % format(den, ",d"), MAP_X, ky, 2.6, INK, True, "L",
+    items.append(("text", u"Plan 01 · what is there today · 1:%s" % format(den, ",d"), MX, ky, 2.6, INK, True, "L",
                   "key", None, None))
     ky -= 6.0
     rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (% of the site frame's built footprint)"),
@@ -677,22 +695,25 @@ def main():
              ("disc", BRIDGE_C, u"Bridge, upstream to downstream"), ("disc", CLASH_C, u"Where stream and town clash")]
     rows4 = [("hdr", None, u"AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
     cw = MAP_MAX_W / 4.0                                  # v2.6: four key columns
-    for ci, rows in enumerate((rows1, rows2, rows4, rows3)):
+    cols = [(CX, MTOP, CWID, rows1)] if compact else [(MX + ci * cw, ky, cw - 3.0, r_) for ci, r_ in
+                                                       enumerate((rows1, rows2, rows4, rows3))]
+    for ci, (kx, ky_, kw, rows) in enumerate(cols):
         rows = [(k_, c_, MBL["mb_clean"](t_)) for k_, c_, t_ in rows]   # v2.9: no sources (wrapped clean)
-        y_end = draw_rows(B, items, rows, MAP_X + ci * cw, ky, cw - 3.0, step=3.6, ts=2.4)
-        if y_end < 33.0:                                  # v2.6: the credit starts at 30 mm
+        y_end = draw_rows(B, items, rows, kx, ky_, kw, step=3.6, ts=2.4)
+        if not compact and y_end < 33.0:                  # v2.6: the credit starts at 30 mm
             log.append(u"FLAG key column %d runs into the credit (ends at %.1f mm, the credit at 30 mm)" % (ci + 1, y_end))
     log.append(CREDIT)                                    # v2.9: sources in the log only, never on the page
     # ---- right column: the land-use ring, the bridges, the clashes
-    cy0 = 255.0
-    items.append(("text", u"LAND USE AND GROUND COVER", COL_X, cy0, 3.2, INK, True, "L", "ring", None, None))
+    cy0 = y_end - 8.0 if compact else 255.0
+    items.append(("text", u"LAND USE AND GROUND COVER", CX, cy0, 3.2, INK, True, "L", "ring", None, None))
     items.append(("text", u"site frame (site_alan) · %% of its %.1f ha, counted on %.0f m cells" % (
-        lu_tot / 1e4, AREA_CELL), COL_X, cy0 - 4.5, 2.4, "6E675E", False, "L", "ring", None, None))
+        lu_tot / 1e4, AREA_CELL), CX, cy0 - 4.5, 2.4, "6E675E", False, "L", "ring", None, None))
     keep = [r_ for r_ in lu if r_[2] >= 0.005 * lu_tot]
     small = sum(r_[2] for r_ in lu if r_[2] < 0.005 * lu_tot)
     if small > 0:
         keep.append((u"Others, each under 0.5%", "C9C5BC", small))
-    ccx, ccy, R1, R0 = COL_X + 32.0, cy0 - 40.0, 30.0, 18.0
+    R1 = 24.0 if compact else 30.0
+    ccx, ccy, R0 = CX + R1 + 2.0, cy0 - 10.0 - R1, R1 * 0.6
     a0 = math.pi / 2.0
     for lab, col, a_ in keep:
         da = 2.0 * math.pi * a_ / lu_tot
@@ -705,28 +726,31 @@ def main():
     items.append(("text", u"ha", ccx, ccy - 5.5, 2.8, "6E675E", False, "C", "ring", None, None))
     rk = [("box", col, u"%s %s" % (lab, (u"%.0f%%" % (100.0 * a_ / lu_tot)) if 100.0 * a_ / lu_tot >= 0.5 else u"< 1%"))
           for lab, col, a_ in keep]
-    draw_rows(B, items, rk, COL_X + 70.0, cy0 - 10.0, COL_W - 70.0, step=4.2, ts=2.6)
-    by = cy0 - 10.0 - 4.2 * len(rk) - 8.0
-    by = min(by, ccy - R1 - 10.0)
-    items.append(("text", u"BRIDGES · upstream to downstream", COL_X, by, 3.2, INK, True, "L", "lists", None, None))
-    by -= 6.0
-    for i_, (n_, nm, x, y) in enumerate(BRIDGES):
-        cx_, cy_ = COL_X + (i_ % 2) * (COL_W / 2.0), by - (i_ // 2) * 5.5
-        disc(cx_ + r_mk, cy_ + 0.9, str(n_), BRIDGE_C, "lists")
-        items.append(("text", nm, cx_ + 2 * r_mk + 2.0, cy_, 2.8, INK, False, "L", "lists", None, None))
-    by -= 5.5 * ((len(BRIDGES) + 1) // 2) + 6.0
-    items.append(("text", u"WHERE STREAM AND TOWN CLASH", COL_X, by, 3.2, INK, True, "L", "lists", None, None))
-    by -= 6.0
-    for i_, (c_id, x, y, t) in enumerate(CLASHES):
-        cx_, cy_ = COL_X + (i_ % 2) * (COL_W / 2.0), by - (i_ // 2) * 5.5
-        disc(cx_ + r_mk, cy_ + 0.9, c_id, CLASH_C, "lists")
-        items.append(("text", t, cx_ + 2 * r_mk + 2.0, cy_, 2.8, INK, False, "L", "lists", None, None))
+    rk_end = draw_rows(B, items, rk, CX + 2 * R1 + 10.0, cy0 - 10.0, CWID - 2 * R1 - 10.0, step=4.2, ts=2.6)
+    if compact and min(rk_end, ccy - R1) < 8.0:
+        log.append(u"FLAG compact page: the ring and its key run below the page (%.1f mm)" % min(rk_end, ccy - R1))
+    if not compact:
+        by = cy0 - 10.0 - 4.2 * len(rk) - 8.0
+        by = min(by, ccy - R1 - 10.0)
+        items.append(("text", u"BRIDGES · upstream to downstream", CX, by, 3.2, INK, True, "L", "lists", None, None))
+        by -= 6.0
+        for i_, (n_, nm, x, y) in enumerate(BRIDGES):
+            cx_, cy_ = CX + (i_ % 2) * (CWID / 2.0), by - (i_ // 2) * 5.5
+            disc(cx_ + r_mk, cy_ + 0.9, str(n_), BRIDGE_C, "lists")
+            items.append(("text", nm, cx_ + 2 * r_mk + 2.0, cy_, 2.8, INK, False, "L", "lists", None, None))
+        by -= 5.5 * ((len(BRIDGES) + 1) // 2) + 6.0
+        items.append(("text", u"WHERE STREAM AND TOWN CLASH", CX, by, 3.2, INK, True, "L", "lists", None, None))
+        by -= 6.0
+        for i_, (c_id, x, y, t) in enumerate(CLASHES):
+            cx_, cy_ = CX + (i_ % 2) * (CWID / 2.0), by - (i_ // 2) * 5.5
+            disc(cx_ + r_mk, cy_ + 0.9, c_id, CLASH_C, "lists")
+            items.append(("text", t, cx_ + 2 * r_mk + 2.0, cy_, 2.8, INK, False, "L", "lists", None, None))
     frame_check(B, items, frames, log)
     os.makedirs(OUT_DIR, exist_ok=True)
     name = u"Page02_What_is_there"
     items = [t[:1] + (MBL["mb_clean"](t[1]),) + t[2:] if t[0] == "text" else t for t in items]   # v2.9: no sources
-    p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
-    log.append(B["out_line"](p, PAGE_W, PAGE_H, den, items, u""))
+    p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PW, PH, items, u"Page 02, " + TITLE, clips)
+    log.append(B["out_line"](p, PW, PH, den, items, u""))
     try:                                                  # output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
         _pc = {"__name__": "bergama_pages_common"}
         _pp = os.path.join(BERGAMA_ROOT, "Data", "bergama_pages_common.py")
@@ -737,7 +761,7 @@ def main():
     except Exception as _ex:
         log.append(u"FLAG review PNGs not written (%s: %s)" % (type(_ex).__name__, _ex))
     try:
-        q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
+        q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), PW, PH, items, u"Page 02, " + TITLE, clips)
         log.append(u"%s  %s (a group per layer)" % (q, time.strftime("%H:%M:%S")))
     except Exception as e:
         log.append(u"FLAG %s.svg not written (%s: %s); the PDF is complete" % (name, type(e).__name__, e))
