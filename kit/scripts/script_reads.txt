@@ -225,3 +225,4 @@ bergama_page01_axo: cached/booklet/selinus_board/items.json  # hand, 14 Nov (v2.
 bergama_page05_access: scripts/bergama_page_transit_v2_13.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_14.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_15.py  # hand, 14 Nov
+bergama_page05_access: scripts/bergama_page_transit_v2_16.py  # hand, 14 Nov
