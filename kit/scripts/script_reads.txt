@@ -222,3 +222,4 @@ bergama_masterplanbase: scripts/bergama_mapbase_v1_3.py  # hand, 14 Nov
 bergama_masterplanbase: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
 bergama_masterplanbase: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_page01_axo: cached/booklet/selinus_board/items.json  # hand, 14 Nov (v2.0: the booklet p03 axonometric)
+bergama_page05_access: scripts/bergama_page_transit_v2_13.py  # hand, 14 Nov
