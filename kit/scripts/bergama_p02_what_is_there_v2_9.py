@@ -75,6 +75,9 @@ get a column of their own (four key columns), and a FLAG is written if any key c
 v2.7 (14 Nov 2026, Aras 13:02 UTC "make sure nothing repeats in the slides"): the node frames N1-N6 and the section
 cuts are no longer drawn here (slides 2 and 6 carry them); this page keeps the fabric key, the shop shades and the
 land-use ring, which no other slide repeats.
+v2.9 (14 Nov 2026, Aras 15:20-15:23 UTC): the purple is gone; FAB, FAB_COM and GROUND_C are read from MapBase v1.3,
+the one palette of the set, built from the masterplan SVG's own colours; each fabric key row also gives the share with
+shops ("also give us percentages for the ground floor differentiated use ones").
 v2.8 (14 Nov 2026, check loop of run 3): the inset's north arrow covered clash marker C6; the inset's north arrow and
 scale are now placed first and the bridge and clash markers keep off them (no collisions).
 
@@ -546,6 +549,10 @@ def main():
     lu, lu_tot = land_use(su, L, lc, sbox, log)
     bt = sum(u["A"] for u in su) or 1.0
     shares = dict((f_, 100.0 * sum(u["A"] for u in su if u["fab"] == f_) / bt) for f_ in FAB_ORDER)
+    com_sh = dict((f_, 100.0 * sum(u["A"] for u in su if u["fab"] == f_ and u["com"]) / bt) for f_ in FAB_ORDER)
+    log.append(u"shop shares (v2.9; footprint area of each type with MapBase's shop flag / all built footprint in the site "
+               u"frame, so each is part of its type's share): %s" % u", ".join(
+                   u"%s %.1f%% of %.1f%%" % (FAB_WORDS[f_], com_sh[f_], shares[f_]) for f_ in FAB_ORDER if shares[f_] > 0))
 
     # ================================================================ the page
     items = []
@@ -647,11 +654,13 @@ def main():
     ky -= 6.0
     rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (% of the site frame's built footprint)"),
              ("hdr", None, u"left swatch: no shop recorded; right: a shop, office or workshop on the plot (OSM, floor "
-                           u"not recorded)")]
+                           u"not recorded)"),
+             ("hdr", None, u"(shops x%) = the part of that share with a shop")]
     for f_ in FAB_ORDER:
         if shares.get(f_, 0.0) > 0 or any(u["fab"] == f_ for u in units):
-            rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s" % (FAB_WORDS[f_], (u"%.0f%%" % shares[f_]) if shares[f_] >= 0.5
-                                                         else u"< 1%")))
+            pc = lambda v: (u"%.0f%%" % v) if v >= 0.5 else (u"< 1%" if v > 0 else u"0%")
+            rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s (shops %s)" % (FAB_WORDS[f_], pc(shares[f_]),
+                                                                                  pc(com_sh[f_]))))
     mrg = []                                              # v2.6: one row per colour
     for kd, col, txt in MBL["mb_legend"](C, drawn):
         hit = next((i_ for i_, r_ in enumerate(mrg) if r_[0] == kd and r_[1] == col), None)
