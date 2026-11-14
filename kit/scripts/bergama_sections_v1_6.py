@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.6.2"
+VERSION = "v1.6.3"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1898,70 +1898,19 @@ def main():
 
 # v1.6.2, Aras 14 Nov 10:44 UTC: "all scripts should produce PNG's aswell which should be optimized for your viewing":
 # the review tiles next to the PDF (one band per cut, trimmed to ink, 200 ppi, tiles <= 1560 px wide)
-REVIEW_TILER = r'''
-import sys, os, glob
-try:
-    import pymupdf as fitz
-except ImportError:
-    import fitz
-import numpy as np
-pdf, out = sys.argv[1], sys.argv[2]
-PPI, MAXW, PAD, LO = 200, 1560, 8, 20
-os.makedirs(out, exist_ok=True)
-for f in glob.glob(os.path.join(out, "*.png")):
-    os.remove(f)
-pg = fitz.open(pdf)[0]
-pm = pg.get_pixmap(dpi=LO, colorspace=fitz.csGRAY)
-ink = np.frombuffer(pm.samples, np.uint8).reshape(pm.h, pm.w) < 245
-rows = ink.any(1)
-bands, y = [], 0
-while y < len(rows):
-    if rows[y]:
-        y0, gap = y, 0
-        while y < len(rows) and gap < int(12 / 25.4 * LO):
-            gap = 0 if rows[y] else gap + 1
-            y += 1
-        bands.append((y0, y - gap))
-    else:
-        y += 1
-bands = [b for b in bands if (b[1] - b[0]) / LO * 25.4 >= 20]
-k, n = 72.0 / LO, 0
-for i, (y0, y1) in enumerate(bands):
-    cols = ink[y0:y1].any(0).nonzero()[0]
-    r = fitz.Rect(cols.min() * k, y0 * k, (cols.max() + 1) * k, y1 * k) + (-PAD, -PAD, PAD, PAD)
-    nt = max(1, int(np.ceil(r.width / 72 * PPI / MAXW)))
-    for t in range(nt):
-        tr = fitz.Rect(r.x0 + r.width * t / nt, r.y0, r.x0 + r.width * (t + 1) / nt, r.y1)
-        pg.get_pixmap(dpi=PPI, clip=tr).save(os.path.join(out, "%02d_%d.png" % (i + 1, t + 1)))
-        n += 1
-print("review: %d band(s), %d tile(s) in %s" % (len(bands), n, out))
-'''
-
-
 def write_review(pdf, log):
-    """the review PNG tiles in output/bergama_sections/review/ (PyMuPDF in Rhino's Python, else the Windows py -3)"""
+    """the review PNGs by the shared writer pc_review of Data/bergama_pages_common.py (v3: the WHOLE page, never
+    cropped, Aras 14 Nov 11:26 UTC) into output/bergama_sections/review/"""
     out = os.path.join(OUT_DIR, "review")
-    tp = os.path.join(CACHE_DIR, "review_tiler.py")
+    cp = os.path.join(DATA_DIR, "bergama_pages_common.py")
     try:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        with open(tp, "w", encoding="utf-8") as f:
-            f.write(REVIEW_TILER)
-        import subprocess
-        import sys as _sys
-        cmds = [["py", "-3"], ["python"]]
-        if os.path.basename(_sys.executable or "").lower().startswith("python"):
-            cmds.insert(0, [_sys.executable])            # never Rhino.exe itself
-        for cmd in cmds:
-            try:
-                r_ = subprocess.run(cmd + [tp, pdf, out], capture_output=True, text=True, timeout=600)
-            except Exception:
-                continue
-            if r_.returncode == 0:
-                log.append(r_.stdout.strip().splitlines()[-1] if r_.stdout.strip() else u"review: written to %s" % out)
-                return
-        log.append(u"FLAG review PNGs not written: no Python with PyMuPDF + numpy found (pip install pymupdf numpy)")
+        ns = {"__name__": "bergama_pages_common", "__file__": cp}
+        with open(cp, encoding="utf-8") as f:
+            exec(compile(f.read(), cp, "exec"), ns)
+        ns["pc_review"](pdf, out, log)
     except Exception as ex:
-        log.append(u"FLAG review PNGs not written (%s: %s)" % (type(ex).__name__, ex))
+        log.append(u"FLAG review PNGs not written: %s could not run (%s: %s); refresh the kit" % (
+            cp, type(ex).__name__, ex))
 
 
 def _shift(it, dx, dy):
