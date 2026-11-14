@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.16.1"   # v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.17"   # v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
@@ -1332,20 +1332,29 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
             run_.append(pb)
         if len(run_) >= 2:
             out_.append((it[0], run_) + tuple(it[2:]))
+    # v1.17 (two independent reviews of v1.16: "there is no cut line"): the cut line was drawn before the ground
+    # skin (grass strip, existing ground, roads, paving) and lay under it; it now goes on top of them
+    skin = ("poche", "soft ground", "existing ground", "context roads", "proposal ground", "walls", "ground behind")
+    cut_ = [it for it in out_ if it[0] == "line" and it[5] == "cut line"]
+    rest = [it for it in out_ if not (it[0] == "line" and it[5] == "cut line")]
+    lyr = lambda it: it[{"poly": 6, "line": 5, "circle": 7, "text": 8, "image": 9}.get(it[0], 0)]
+    last = max([i for i, it in enumerate(rest) if lyr(it) in skin] or [len(rest) - 1])
+    out_ = rest[:last + 1] + cut_ + rest[last + 1:]
     pg.items[:] = out_
     y_band = S.Y(S.zb) - 3.0
     if with_text:
         landuse_band(pg, S, y_band - LU_H, LU_H)          # v1.6: the land-use band of the 27 Oct site board p04-05
-        y_band -= LU_H + 3.0                             # v1.16: tighter (was 8 mm)
+        y_band -= LU_H + 1.0
+        # v1.17 (taller drawings: the bar under the band took ~6 mm of every 40 mm cell): the scale bar moves up into
+        # the title line, right-aligned to the drawing
         bar = 10.0 if den <= 500 else 50.0              # scale bar beside the drawing (SCRIPT_STANDARD s.8)
-        xb, yb = S.X(S.lo), y_band - 1.5
+        xb, yb = S.X(S.hi) - bar * K - 14.0, y_top - 3.0
         pg.line([(xb, yb), (xb + bar * K, yb)], E["INK"], 0.3, layer="title")
         for i in (0.0, 0.5, 1.0):
             pg.line([(xb + bar * K * i, yb), (xb + bar * K * i, yb + 1.2)], E["INK"], 0.2, layer="title")
-        pg.text(u"0", xb, yb - 3.0, 2.0, E["INK"], align="C", layer="title")
-        pg.text(u"%d m" % bar, xb + bar * K, yb - 3.0, 2.0, E["INK"], align="C", layer="title")
-        pg.text(u"1:%d" % den, xb + bar * K + 8.0, yb - 0.6, 2.0, E["INK2"], align="L", layer="title")
-        y_band = yb - 6.0
+        pg.text(u"0", xb, yb - 2.6, 2.0, E["INK"], align="C", layer="title")
+        pg.text(u"%d m" % bar, xb + bar * K, yb - 2.6, 2.0, E["INK"], align="C", layer="title")
+        pg.text(u"1:%d" % den, xb + bar * K + 5.0, yb - 0.6, 2.0, E["INK2"], align="L", layer="title")
     return pg, S, y_band
 
 
@@ -1382,8 +1391,8 @@ DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 sum
 LEVEL_LABELS = False               # v1.6.8, Aras 14 Nov 13:01 UTC: "remove these markings we gonna have a new diagram
 #                                    for that": no level sign / value stack; the water lines and fills stay
 TERRACE_M = 2.5                    # m: the highest ground-tone terrace under a house behind (v1.6.13 / .14)
-LU_H = 4.0                         # mm, the land-use band
-LU = {"open": ("D9D6BE", u"open ground"), "street": ("706B62", u"street"), "stream": ("7FA4B3", u"stream"),
+LU_H = 2.8                         # mm, the land-use band (v1.17: was 4.0; it outweighed the drawings)
+LU = {"open": ("D9D6BE", u"open ground"), "street": ("8F8A80", u"street"), "stream": ("7FA4B3", u"stream"),
       "building": ("B9B2A2", u"building"), "wall": ("8E8578", u"wall")}
 PEOPLE_KEYS = ("person_walk", "person_stand", "person_stand", "person_walk", "person_sit_step")
 _CUT = {}
@@ -1414,8 +1423,13 @@ def sky(pg, S, C, z_top):
     span = x1 - x0
     for k in range(max(2, int(span / 70.0))):
         cx = x0 + span * (k + 0.2 + 0.6 * rg.random()) / max(2, int(span / 70.0))
-        cy = S.Y(z_top) - (4.0 + 6.0 * rg.random())
+        cy = S.Y(z_top) - (6.5 + 4.0 * rg.random())   # v1.17: the cloud tops stay under the frame top
         w = 10.0 + 10.0 * rg.random()
+        g_hi = max(S.surf(min(S.hi, max(S.lo, S.lo + (cx - w / 2 - x0 + w * t) / S.K)))
+                   for t in (0.0, 0.25, 0.5, 0.75, 1.0))
+        if cy - 1.0 < S.Y(g_hi) + 3.0:               # v1.17: no cloud resting on the ground (N4-A, N6-A)
+            rg.random(); rg.random(); rg.random(); rg.random(); rg.random(); rg.random()
+            continue
         for j in range(6):
             t = j / 5.0
             r_ = (1.6 + 1.8 * math.sin(math.pi * t)) * (0.8 + 0.4 * rg.random())
@@ -1549,8 +1563,8 @@ def ground_fill(pg, S):
         pts.pop(0)
     while len(pts) > 2 and pts[-1][0] - pts[-2][0] < 1.5:
         pts.pop()
-    pts[0], pts[-1] = (pts[0][0] + 1.5, pts[0][1]), (pts[-1][0] - 1.5, pts[-1][1])
-    pg.line(pts, S.E["INK"], min(0.6, max(0.4, 0.1 + 0.25 * S.K)), layer="cut line")   # v1.15: the cut line about 3x every other line (DIAGRAM_STYLE v2, long river sections)
+    # v1.17 (two reviews of v1.16: round black caps at the frame ends): butt ends, no inset
+    pg.line(pts, S.E["INK"], min(0.6, max(0.4, 0.1 + 0.25 * S.K)), layer="cut line", cap=0)   # v1.15: the cut line about 3x every other line (DIAGRAM_STYLE v2, long river sections)
 
 
 def town_walls(pg, S, C):
@@ -1630,9 +1644,9 @@ def landuse_band(pg, S, y, h):
             continue
         col, word = LU[k]
         pg.poly([[(x0, y), (x1, y), (x1, y + h), (x0, y + h)]], fill=col, stroke=None, layer="band")
-        tw = text_w_any(word, 2.2, False)
+        tw = text_w_any(word, 1.7, False)
         if tw + 1.0 <= x1 - x0:
-            pg.text(word, (x0 + x1) / 2.0, y + h / 2.0 - 0.75, 2.2, "FFFFFF" if k in ("street", "wall") else "3A352E",
+            pg.text(word, (x0 + x1) / 2.0, y + h / 2.0 - 0.6, 1.7, "FFFFFF" if k in ("street", "wall") else "3A352E",
                     align="C", layer="band")
 
 
