@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.7"   # v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.8"   # v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -441,9 +441,19 @@ class Labels(object):
             if self.free(b):
                 pick = (x, y, al, b)
                 break
-        if pick is None:
+        if pick is None:                                 # v3.8: the place with the least overlap (was: right-hand)
+            def lap(b_):
+                return sum(max(0.0, min(b_[2], o[2]) - max(b_[0], o[0])) * max(0.0, min(b_[3], o[3]) - max(b_[1], o[1]))
+                           for o in self.boxes)
+            best = None
+            for x, y, al in cands:
+                x0 = x if al == "L" else x - w if al == "R" else x - w / 2.0
+                b = (x0 - 0.3, y - 0.25 * size - 0.3, x0 + w + 0.3, y + h + 0.3)
+                inside = self.M.box[0] <= b[0] and b[2] <= self.M.box[2] and self.M.box[1] <= b[1] and b[3] <= self.M.box[3]
+                if inside and (best is None or lap(b) < best[0]):
+                    best = (lap(b), (x, y, al, b))
             x, y, al = cands[0]
-            pick = (x, y, al, (x - 0.3, y - 0.3, x + w + 0.3, y + h + 0.3))
+            pick = best[1] if best else (x, y, al, (x - 0.3, y - 0.3, x + w + 0.3, y + h + 0.3))
             self.forced.append(s)
         x, y, al, b = pick
         self.boxes.append(b)
