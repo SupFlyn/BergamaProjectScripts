@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v7.2"   # v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v7.3"   # v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -220,21 +220,21 @@ def scale_north(F, den, xr, y0):
     return it
 
 
-def occ_points(B, items, skip):
+def occ_points(B, items, skip, layers=None):
     """v6.6: page points taken by plan marks and labels (text along its width, lines every 1 mm, ring vertices)"""
-    occ = []
+    occ, OL = [], layers or OCC_LAYERS
     for it in items:
         if id(it) in skip:
             continue
-        if it[0] == "text" and it[8] in OCC_LAYERS:
+        if it[0] == "text" and it[8] in OL:
             w_ = B["text_w"](it[1], it[4], it[6])
             xa = it[2] - (w_ / 2.0 if it[7] == "C" else (w_ if it[7] == "R" else 0.0))
             occ += [(xa + w_ * i / 8.0, it[3] + it[4] * 0.35) for i in range(9)]
-        elif it[0] == "line" and it[5] in OCC_LAYERS:
+        elif it[0] == "line" and it[5] in OL:
             for a, b in zip(it[1][:-1], it[1][1:]):
                 n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1])))
                 occ += [(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n) for i in range(n + 1)]
-        elif it[0] == "poly" and it[6] in OCC_LAYERS:
+        elif it[0] == "poly" and it[6] in OL:
             occ += [p_ for r in it[1] for p_ in r]
     return occ
 
@@ -615,7 +615,7 @@ def node_page(cfg, log):
                     0.25, "map_frame"))
     # v6.6 (run 6, N3: hub tile T on the scale bar): scale and north go to the plan corner with the fewest marks
     sn = scale_north(F, den, X0 + F.w * k, Y0)
-    occ = occ_points(B, items, sec_ids)
+    occ = occ_points(B, items, sec_ids, OCC_LAYERS[1:])   # v7.3 (run 9: every corner FLAG): the node frame line may run under it
     xs = [p_[0] for it in sn if it[0] == "poly" for r in it[1] for p_ in r] + [it[2] for it in sn if it[0] == "text"]
     ys = [p_[1] for it in sn if it[0] == "poly" for r in it[1] for p_ in r] + [it[3] for it in sn if it[0] == "text"]
     sx0, sx1, sy0, sy1 = min(xs) - 1.0, max(xs) + 5.0, min(ys) - 1.0, max(ys) + 3.0
