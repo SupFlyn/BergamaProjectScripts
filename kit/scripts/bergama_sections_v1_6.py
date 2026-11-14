@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.6.3"
+VERSION = "v1.6.4"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1809,6 +1809,26 @@ def named_lines(log):
         return []
 
 
+NODE_SCALES = (1000, 1250, 1500, 2000)
+
+
+def cut_cache(E, C):
+    """v1.6.4 (Aras 12:38 UTC "don't ever do the same job twice ... cache it"): the cut drawn once more at each
+    node-page scale, unshifted, so the node pages read cached/bergama_sections/cuts.json instead of redoing it"""
+    items, k0 = {}, E.get("K")
+    for d in NODE_SCALES:
+        pg = draw_cut(E, C, SEASON, d, 0.0, 0.0)[0]
+        items[str(d)] = dict(bbox=list(items_bbox(pg.items)), items=pg.items)
+    E["K"] = k0
+    return dict(items=items, z_th=round(C.z_th, 3), window=list(C.window),
+                levels=dict((k if isinstance(k, str) else u"%s|%s" % k, [round(v[0], 3), v[1]])
+                            for k, v in C.levels.items()),
+                bld=[dict(s=[round(t[0], 2), round(t[1], 2)], h=t[3], cut=t[4], behind_m=round(t[5], 1))
+                     for t in C.bld],
+                roads=[[round(a, 2), round(b, 2)] for a, b in C.roads], trees=[round(t, 2) for t in C.trees],
+                notes=list(C.notes))
+
+
 def main():
     global MAX_LEN_M
     t0 = time.time()
@@ -1841,6 +1861,7 @@ def main():
     survey = read_survey((min(xs) - pad, min(ys) - pad, max(xs) + pad, max(ys) + pad), log)
     res = []
     pages = []
+    node_cache = {}
     os.makedirs(OUT_DIR, exist_ok=True)
     for C in cuts:
         try:
@@ -1859,6 +1880,7 @@ def main():
             log += C.notes
             continue
         log += C.notes
+        node_cache[C.name] = cut_cache(E, C)
         res.append(dict(name=C.name, A=list(C.A), B=list(C.B), window=list(C.window), look=C.look,
                         bed_low=[round(C.s_th, 2), round(C.z_th, 2)], slope=C.slope,
                         levels=dict((k if isinstance(k, str) else u"%s %.3g m3/s" % k, round(v[0], 2))
@@ -1891,6 +1913,13 @@ def main():
         json.dump(dict(version=VERSION, run=time.strftime("%Y-%m-%d %H:%M:%S"), scale=den, cuts=res), f,
                   ensure_ascii=False, indent=1)
     log.append(u"%s  %s" % (pj, time.strftime("%H:%M:%S")))
+    pc = os.path.join(CACHE_DIR, "cuts.json")
+    with open(pc, "w", encoding="utf-8") as f:
+        json.dump(dict(version=VERSION, run=time.strftime("%Y-%m-%d %H:%M:%S"), season=SEASON,
+                       origin=u"draw_cut(E, C, SEASON, den, 0, 0): x right, y up, mm; bbox = [x0, y0, x1, y1]",
+                       cuts=node_cache), f, ensure_ascii=False)
+    log.append(u"%s (%d cut(s) x scales %s, for the node pages)  %s" % (
+        pc, len(node_cache), u"/".join(str(d) for d in NODE_SCALES), time.strftime("%H:%M:%S")))
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s %s, %d of %d section(s) drawn, %d FLAG line(s), %.1f s" % (
         u"\n".join(log), GH_LABEL, VERSION, len(res), len(cuts), len(flags), time.time() - t0)
