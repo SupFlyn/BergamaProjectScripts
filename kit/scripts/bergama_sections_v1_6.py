@@ -42,10 +42,10 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
        ~/Downloads/Bergama/cached/bergama_sections/sections.json         every cut's numbers
        ~/Downloads/Bergama/logs/bergama_sections_log.txt
 """
-import os, time, json, math, bisect, glob
+import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.6.15"
+VERSION = "v1.7"   # v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -59,7 +59,7 @@ SEASON = "autumn"          # the one drawing per line: Q500, Q100 and the Oct-De
 # 3.0 m; civic (3.5) and industry (4.5) are not told apart in the cache yet and are drawn at 3.0 m.
 STOREY_M = 3.0             # m per floor, every building that is not heritage / sacred
 STOREY_HERITAGE_M = 5.0    # m per floor, the Basemap's heritage outlines (sacred and heritage)
-BACK_M = 120.0             # v1.6: buildings up to this far behind the cut are drawn as background (was 30 m)
+BACK_M = 200.0             # v1.7 (Aras 15:28 "there is no houses at the background"): 200 m; v1.6: 120 m; buildings up to this far behind the cut are drawn as background (was 30 m)
 ROAD_EDGE_M = 12.0         # a street centreline crossing counts as a road between survey edges this close to it
 ROAD_T = 0.25              # m, drawn thickness of the road surface
 BLD_FILL, BLD_EDGE, BLD_CUT_FILL = "F1EFEA", "9A948C", "E2DFD8"   # context greys (drawing values, ours)
@@ -1145,12 +1145,17 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
             base = min(S.ex(a), S.ex(b))
             n_ = max(2, int((b - a) / DS))
             ring = [S.P(a + (b - a) * i / n_, S.surf(a + (b - a) * i / n_)) for i in range(n_ + 1)]
-            ring += [S.P(b, base + h), S.P(a, base + h)]
-            pg.poly([ring], fill=BLD_CUT_FILL, stroke=INK_CUT, lw=0.35, layer="context buildings")
-            if fl and fl > 1 and (b - a) * K > 3.0:
-                for i in range(1, fl):
-                    zf = base + h * i / fl
-                    pg.line([S.P(a, zf), S.P(b, zf)], BLD_EDGE, 0.08, layer="context buildings")
+            # v1.7 (Aras 15:35 "dont include the houses that has been cutted just remove them from the sections or
+            # draw them as silouhette"): a plain silhouette with its roof, no cut outline, no floors or windows
+            top = base + h
+            if fl and fl >= FLAT_ROOF_FLOORS:
+                ring += [S.P(b, top + 0.6), S.P(a, top + 0.6)]
+            else:
+                rise = roof_rise(b - a, fl)
+                run = rise / math.tan(math.radians(ROOF_PITCH_DEG))
+                ring += [S.P(b, top), S.P(max(b - run, (a + b) / 2.0), top + rise),
+                         S.P(min(a + run, (a + b) / 2.0), top + rise), S.P(a, top)]
+            pg.poly([ring], fill=SILHOUETTE, stroke=None, layer="context buildings")
     for s, r_, h, kind in d["trees"]:
         g = S.surf(s)
         if q500 is not None and g < q500 - 1e-6 and C.is_s4:
@@ -1177,7 +1182,10 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         if not fill_:
             joined_level(E, pg, S, z, lab, dash, colour=E["WATER_LINE"])
     ground_fill(pg, S)                                  # v1.6: solid fill (booklet p22), no stipple, no hatch
+    n0 = len(pg.items)
     E["soft_ground"](pg, S)
+    # v1.7 (Aras 15:28): no root hairs (fixed 1-3 mm lines, too long at node scales)
+    pg.items[n0:] = [it for it in pg.items[n0:] if not (it[0] == "line" and it[-2] == "soft ground")]
     town_walls(pg, S, C)
     for b in S.banks:
         E["walls_and_slabs"](pg, _Bank(S, b))
@@ -1187,18 +1195,20 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         top = [(a + (b - a) * i / n) for i in range(n + 1)]
         ring = [S.P(x, S.surf(x)) for x in top] + [S.P(x, S.surf(x) - ROAD_T) for x in reversed(top)]
         pg.poly([ring], fill=ROAD_FILL, stroke=None, layer="context roads")
-    for a, b in d["grass"]:
-        a, b = max(a, S.lo + 1.2 / K), min(b, S.hi - 1.2 / K)         # v1.6.7: blades stay inside the frame
-        if b > a:
-            E["tufts"](pg, S, a, b)
-    for a, b in d["lavender"]:
-        E["lavender"](pg, S, a, b)
-    for s, h, w in d["shrubs"]:
-        E["shrub"](pg, S, s, h, w)
-    for a, b, h in d["reeds"]:
-        E["reeds"](pg, S, a, b, h)
-    for a, b in d["iris"]:
-        E["iris"](pg, S, a, b)
+    def _plants(pg_):
+        for a, b in d["grass"]:
+            a, b = max(a, S.lo + 0.1), min(b, S.hi - 0.1)               # v1.6.7: blades stay inside the frame
+            if b > a:
+                E["tufts"](pg_, S, a, b)
+        for a, b in d["lavender"]:
+            E["lavender"](pg_, S, a, b)
+        for s, h, w in d["shrubs"]:
+            E["shrub"](pg_, S, s, h, w)
+        for a, b, h in d["reeds"]:
+            E["reeds"](pg_, S, a, b, h)
+        for a, b in d["iris"]:
+            E["iris"](pg_, S, a, b)
+    at_plant_scale(E, pg, S, _plants)
     filled = [w for w in sw if w[1]]
     for z, fill_, lab, dash in filled:
         joined_level(E, pg, S, z, lab, None, colour=E["FLOOD"], fill=True)
@@ -1251,6 +1261,7 @@ BACK_FILL = "E4E0CF"               # p22 "Ground behind the cut" (soil mixed tow
 SKY_LOW, SKY_TOP = "F1F6F7", "E1EBEF"
 SKY_ABOVE_M = 6.0                  # m of sky above the highest roof / tree
 CLOUD = "FFFFFF"
+SILHOUETTE = "CFCABF"              # v1.7: cut buildings as a plain silhouette (drawing value, ours)
 INK_CUT = "4A3F35"                 # p22 cut line colour (the cut buildings' outline)
 H_WALL, H_ROOF, H_EDGE, H_GLASS, H_SHADE = "EEEBE1", "C2BBB0", "B1ABA0", "9AA3A6", "D8D5CC"
 H_FADE = 0.7                       # the farthest houses (BACK_M) mixed this far toward the sky
@@ -1331,6 +1342,7 @@ def house(pg, S, a, b, base, h, fl, dist):
     pg.poly([[S.P(a, base - 1.0), S.P(b, base - 1.0), S.P(b, top), S.P(a, top)]], fill=wall, stroke=edge, lw=lw,
             layer="houses behind")
     w = b - a
+    rise = ra = rb = 0.0
     if fl and fl >= FLAT_ROOF_FLOORS:
         pg.poly([[S.P(a - 0.1, top), S.P(b + 0.1, top), S.P(b + 0.1, top + 0.6), S.P(a - 0.1, top + 0.6)]],
                 fill=shade, stroke=edge, lw=lw, layer="houses behind")
@@ -1345,24 +1357,71 @@ def house(pg, S, a, b, base, h, fl, dist):
                 layer="houses behind")                                       # the eave's shadow on the wall
     if w * K < 2.0:
         return
+    # v1.7 (Aras 15:35 "more detailed background buildings"): a plinth, roof tiles and a chimney, each house its own
+    # window size and bay rhythm, sills, glazing bars, shutters on low houses, balconies on blocks, a door with a hood
+    # (drawing rules, ours: the survey gives floors and outline only); fine parts only where they print 0.3 mm or more
+    rg = random.Random(u"%.1f" % a)
+    dark = _mix(edge, wall, 0.35)
+    ww = WIN_W * (0.8 + 0.35 * rg.random())
+    step = WIN_STEP * (0.85 + 0.3 * rg.random())
+    fine = ww * K >= 0.8
+    pg.poly([[S.P(a, base - 1.0), S.P(b, base - 1.0), S.P(b, base + 0.5), S.P(a, base + 0.5)]], fill=shade,
+            stroke=None, layer="houses behind")                                   # plinth
+    if not (fl and fl >= FLAT_ROOF_FLOORS):
+        if rise * K >= 2.0 and dist < 80:                                         # tile courses
+            for k_ in range(1, int(rise / 0.5)):
+                z_ = top + k_ * 0.5
+                dx = (z_ - top) / math.tan(math.radians(ROOF_PITCH_DEG))
+                if ra + dx < rb - dx:
+                    pg.line([S.P(ra + dx, z_), S.P(rb - dx, z_)], edge, 0.04, layer="houses behind")
+        if w >= 7.0 and rg.random() < 0.6:                                        # chimney
+            cx_ = a + w * (0.25 + 0.5 * rg.random())
+            pg.poly([[S.P(cx_ - 0.3, top + rise * 0.4), S.P(cx_ + 0.3, top + rise * 0.4), S.P(cx_ + 0.3, top + rise + 0.8),
+                      S.P(cx_ - 0.3, top + rise + 0.8)]], fill=roof, stroke=edge, lw=lw * 0.7, layer="houses behind")
     nfl = max(1, int(fl or round(h / STOREY_M)))
     fh = h / nfl
-    nwin = max(1, int((w - 1.0) // WIN_STEP))
-    x0 = a + (w - (nwin - 1) * WIN_STEP) / 2.0
+    nwin = max(1, int((w - 1.0) // step))
+    x0 = a + (w - (nwin - 1) * step) / 2.0
+    shutters = nfl <= 2 and fine and rg.random() < 0.6
+    balcony = nfl >= 3 and fine
     for i in range(nfl):
         zf = base + i * fh
         if i > 0:
             pg.line([S.P(a, zf), S.P(b, zf)], shade, 0.05, layer="houses behind")
         for j in range(nwin):
-            cx = x0 + j * WIN_STEP
-            if i == 0 and j == nwin // 2 and w >= 5.0:                         # the door
+            cx = x0 + j * step
+            if i == 0 and j == nwin // 2 and w >= 5.0:                         # the door with its hood
                 pg.poly([[S.P(cx - 0.5, zf), S.P(cx + 0.5, zf), S.P(cx + 0.5, zf + 2.2), S.P(cx - 0.5, zf + 2.2)]],
-                        fill=glass, stroke=None, layer="houses behind")
+                        fill=dark, stroke=None, layer="houses behind")
+                if fine:
+                    pg.poly([[S.P(cx - 0.8, zf + 2.3), S.P(cx + 0.8, zf + 2.3), S.P(cx + 0.8, zf + 2.45),
+                              S.P(cx - 0.8, zf + 2.45)]], fill=edge, stroke=None, layer="houses behind")
                 continue
-            zs = zf + min(WIN_SILL, fh * 0.3)
-            wh = min(WIN_H, fh * 0.5)
-            pg.poly([[S.P(cx - WIN_W / 2, zs), S.P(cx + WIN_W / 2, zs), S.P(cx + WIN_W / 2, zs + wh),
-                      S.P(cx - WIN_W / 2, zs + wh)]], fill=glass, stroke=None, layer="houses behind")
+            tall = balcony and i > 0 and j % 2 == 0
+            zs = zf + (0.05 if tall else min(WIN_SILL, fh * 0.3))
+            wh = min(2.2, fh * 0.75) if tall else min(WIN_H, fh * 0.5)
+            pg.poly([[S.P(cx - ww / 2, zs), S.P(cx + ww / 2, zs), S.P(cx + ww / 2, zs + wh),
+                      S.P(cx - ww / 2, zs + wh)]], fill=glass, stroke=None, layer="houses behind")
+            if not fine:
+                continue
+            pg.line([S.P(cx, zs), S.P(cx, zs + wh)], wall, 0.05, layer="houses behind")          # glazing bar
+            if tall:                                                                               # balcony
+                pg.poly([[S.P(cx - ww / 2 - 0.4, zf - 0.15), S.P(cx + ww / 2 + 0.4, zf - 0.15),
+                          S.P(cx + ww / 2 + 0.4, zf), S.P(cx - ww / 2 - 0.4, zf)]], fill=edge, stroke=None,
+                        layer="houses behind")
+                pg.line([S.P(cx - ww / 2 - 0.4, zf + 1.0), S.P(cx + ww / 2 + 0.4, zf + 1.0)], dark, 0.06,
+                        layer="houses behind")
+                for k_ in range(5):
+                    xk = cx - ww / 2 - 0.4 + (ww + 0.8) * k_ / 4.0
+                    pg.line([S.P(xk, zf), S.P(xk, zf + 1.0)], dark, 0.04, layer="houses behind")
+                continue
+            pg.poly([[S.P(cx - ww / 2 - 0.1, zs - 0.12), S.P(cx + ww / 2 + 0.1, zs - 0.12), S.P(cx + ww / 2 + 0.1, zs),
+                      S.P(cx - ww / 2 - 0.1, zs)]], fill=edge, stroke=None, layer="houses behind")  # sill
+            if shutters:
+                for sd in (-1, 1):
+                    xo = cx + sd * (ww / 2 + 0.05)
+                    pg.poly([[S.P(xo, zs), S.P(xo + sd * ww * 0.45, zs), S.P(xo + sd * ww * 0.45, zs + wh),
+                              S.P(xo, zs + wh)]], fill=shade, stroke=edge, lw=0.03, layer="houses behind")
 
 
 def ground_fill(pg, S):
@@ -1969,6 +2028,100 @@ def cut_cache(E, C):
                 notes=list(C.notes))
 
 
+A3 = (420.0, 297.0)                # mm, landscape: Aras 14 Nov 15:25-15:27 UTC "fit every drawing into A3's like the
+#                                    scale is not important" / "everything that we have in slide 2 gonna be single
+#                                    landscape A3 this applies to everything"
+A3_MARGIN, A3_GAP, A3_TITLE = 10.0, 5.0, 10.0
+A3_DENS = (500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
+A3_GRIDS = ((4, 3), (3, 4), (2, 6))   # columns x rows; cuts in reading order, the A/B pair of a node side by side
+
+
+def _scale_it(it, f, o=(0.0, 0.0), lw=False):
+    """item scaled by f about the point o; lw=True scales the line widths too"""
+    t, ox, oy = it[0], o[0], o[1]
+    if t == "poly":
+        it = (t, [[(ox + (p[0] - ox) * f, oy + (p[1] - oy) * f) for p in r] for r in it[1]]) + tuple(it[2:])
+        return it[:4] + (max(0.02, it[4] * f),) + it[5:] if lw and it[3] else it
+    if t == "line":
+        it = (t, [(ox + (p[0] - ox) * f, oy + (p[1] - oy) * f) for p in it[1]]) + tuple(it[2:])
+        return it[:3] + (max(0.02, it[3] * f),) + it[4:] if lw else it
+    if t == "circle" and lw:
+        return (t, ox + (it[1] - ox) * f, oy + (it[2] - oy) * f, it[3] * f) + tuple(it[4:])
+    if t == "circle":
+        return (t, it[1] * f, it[2] * f, it[3] * f) + tuple(it[4:])
+    if t == "text":
+        return (t, it[1], it[2] * f, it[3] * f, it[4] * f) + tuple(it[5:])
+    if t == "image":
+        return (t, it[1] * f, it[2] * f, it[3] * f, it[4] * f) + tuple(it[5:])
+    return it
+
+
+PLANT_DEN = 75.0                   # v1.7: the engine's planting pieces are sized for 1:75 (engine SCALE)
+
+
+def at_plant_scale(E, pg, S, draw):
+    """v1.7 (Aras 15:28 "the grass is too long please be careful about the proportions", 15:34 node sections): the
+    planting drawn at the engine's own 1:75 and scaled down as a whole to the page scale, so culms, blades, plumes and
+    their spacing keep true proportions (they were fixed page mm: a reed mass filled the stream at 1:1000-3000)"""
+    K, k75 = S.K, 1000.0 / PLANT_DEN
+    if K >= k75 * 0.999:
+        draw(pg)
+        return
+    tmp = E["Page"](u"plants", u"")
+    E["K"] = S.K = _ENGINE_K[0] = k75
+    try:
+        draw(tmp)
+    finally:
+        E["K"] = S.K = _ENGINE_K[0] = K
+    o = (S.X0, S.Y0)
+    pg.items += [_scale_it(it, K / k75, o, lw=True) for it in tmp.items]
+
+
+def a3_sheet(E, cuts, log):
+    """v1.7: all cuts on ONE A3 landscape sheet: the grid and the one scale (the largest that lets every cut fit its
+    cell) chosen together; a cut still too big at the smallest scale is scaled down to its cell and its scale texts
+    say the scale it prints at"""
+    W, H = A3
+    size = {}
+
+    def fits(C, d, cw, ch):
+        if (C.name, d) not in size:
+            b = items_bbox(draw_cut(E, C, SEASON, d, 0.0, 0.0)[0].items)
+            size[(C.name, d)] = (b[2] - b[0], b[3] - b[1])
+        w, h = size[(C.name, d)]
+        return w <= cw and h <= ch
+    best = None
+    for nc, nr in A3_GRIDS:
+        if nc * nr < len(cuts):
+            continue
+        cw = (W - 2 * A3_MARGIN - (nc - 1) * A3_GAP) / nc
+        ch = (H - 2 * A3_MARGIN - A3_TITLE - (nr - 1) * A3_GAP) / nr
+        d = next((d for d in A3_DENS if all(fits(C, d, cw, ch) for C in cuts)), A3_DENS[-1])
+        if best is None or d < best[0]:
+            best = (d, nc, nr, cw, ch)
+    den, nc, nr, cw, ch = best
+    items = [("text", u"SECTIONS N1-A ... N6-B · both banks", A3_MARGIN, H - A3_MARGIN - 5.0, 5.0, E["INK"], True,
+              "L", "title", None, None)]
+    for i, C in enumerate(cuts):
+        pg = draw_cut(E, C, SEASON, den, 0.0, 0.0)[0]
+        b = items_bbox(pg.items)
+        w, h = b[2] - b[0], b[3] - b[1]
+        f = min(1.0, cw / w, ch / h)
+        # no 1:x printed (Aras 15:25 "the scale is not important"); the scale bar in metres stays true when scaled
+        its = [_shift(it, -b[0], -b[1]) for it in pg.items
+               if not (it[0] == "text" and re.match(u"^(SCALE )?1:[0-9]", it[1]))]
+        if f < 1.0:
+            its = [_scale_it(it, f) for it in its]
+            log.append(u"%s: scaled x%.2f to fit its A3 cell (about 1:%d)" % (C.name, f, int(round(den / f / 50.0) * 50)))
+        col, row = i % nc, i // nc
+        x0 = A3_MARGIN + col * (cw + A3_GAP)
+        y0 = H - A3_MARGIN - A3_TITLE - (row + 1) * ch - row * A3_GAP
+        items += [_shift(it, x0, y0 + (ch - h * f)) for it in its]
+    log.append(u"one A3 landscape sheet, %d x %d grid, cells %.0f x %.0f mm, 1:%d, %d cut(s)" % (
+        nc, nr, cw, ch, den, len(cuts)))
+    return den, [(W, H, items)]
+
+
 def main():
     global MAX_LEN_M
     t0 = time.time()
@@ -2007,12 +2160,7 @@ def main():
         try:
             C.survey = survey
             build_cut(C, CL, cum, E, log, BM)
-            pg, S, ybot = draw_cut(E, C, SEASON, den, 15.0, 0.0)
-            b = items_bbox(pg.items)
-            w, h = b[2] - b[0] + 30.0, b[3] - b[1] + 30.0
-            moved = [_shift(it, 15.0 - b[0], 15.0 - b[1]) for it in pg.items]
-            pages.append((w, h, moved))
-            log.append(u"page %d: %s (%.0f x %.0f mm, 1:%d)" % (len(pages), C.name, w, h, den))
+            pages.append(C)
         except Exception as ex:
             import traceback as _tb
             log.append(u"FLAG section %s not drawn: %s: %s | %s" % (C.name, type(ex).__name__, ex,
@@ -2030,19 +2178,9 @@ def main():
                         buildings=[dict(s=[round(t[0], 2), round(t[1], 2)], h=t[3], cut=t[4], behind_m=round(t[5], 1))
                                    for t in C.bld]))
     if pages:
-        # one page: first cut on top (PDF y is up), GAP_MM between cuts, left edges aligned
-        GAP_MM = 20.0
-        pw = max(w for w, _, _ in pages)
-        ph = sum(h for _, h, _ in pages) + GAP_MM * (len(pages) - 1)
-        allit, y = [], ph
-        for w, h, its in pages:
-            y -= h
-            allit += [_shift(it, 0.0, y) for it in its]
-            y -= GAP_MM
-        log.append(u"one page %.0f x %.0f mm, %d cut(s)" % (pw, ph, len(pages)))
-        pages = [(pw, ph, allit)]
+        den, pages = a3_sheet(E, pages, log)
         p = write_pdf(os.path.join(OUT_DIR, u"Sections.pdf"), pages,
-                      u"Sections %s, both banks, 1:%d" % (u", ".join(r_["name"] for r_ in res), den))
+                      u"Sections %s, both banks" % u", ".join(r_["name"] for r_ in res))
         log.append(u"%s  %s" % (p, time.strftime("%H:%M:%S")))
         write_review(p, log)
     else:
