@@ -30,6 +30,11 @@ What is drawn (nothing is invented; every shape is the survey, a data file of th
           cover, counted on 1 m cells), bridges and clashes.
   Not on this page any more: the stream-edge strips and their bank bars (Aras 14 Nov "get rid of these drawings").
 
+v2.1 (14 Nov 2026, the brief's plan rules relayed 11:32 UTC: "every plan gets a scale, a north arrow and a legend ...
+the same N, section and viewpoint labels everywhere"): the six nodes N1-N6 (their frames, labelled) and the twelve
+section cuts N1-A ... N6-B (labelled at their north-west end) from Data/section_lines.json, with their legend rows.
+Scale bar and north arrow: corner_block of the Basemap code, as before. This page shows the existing situation only.
+
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
   output log / done   as every Bergama script
@@ -44,7 +49,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2"
+VERSION = "v2.1"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -53,6 +58,7 @@ GH_INPUTS = {}
 LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
 LIB_END = "# ================================================================ main"
 LC_FILE = os.path.join("Data", "bergama_landcover_worldcover2021.json")
+SECTION_FILE = os.path.join("Data", "section_lines.json")   # v2.1: the Panel Review II nodes N1-N6 and cuts N1-A ... N6-B
 
 PAGE_W, PAGE_H = 420.0, 297.0      # mm, A3 landscape (the booklet page)
 MAP_X, MAP_TOP = 14.0, 269.0       # mm: the map's left edge and top (the booklet's frame p02.1: x 14, y 28 from the top)
@@ -97,6 +103,7 @@ WATER_C, WATER_LINE = "91ADB4", "5D7F8D"
 HER_WALL = "B08870"
 BRIDGE_C, CLASH_C = "84573E", "8B3A3F"
 STUDY_C = "6A4C93"
+NODE_C, CUT_C = "4A3F35", "C0392B"   # v2.1: node frames (ink) and section cuts (the key-map cut red)
 
 HERITAGE_WORDS = (u"tarihi", u"harabe", u"harap", u"kalıntı", u"kalinti", u"hamam", u" han ", u"bedesten", u"arasta",
                   u"türbe", u"turbe", u"medrese", u"kızıl avlu", u"kizil avlu", u"tapınağı", u"tapinagi", u"kilise",
@@ -653,6 +660,36 @@ def main():
     for R in D.get("calisma") or []:                      # the study area
         Q = [F.local(p) for p in R]
         line(Q + [Q[0]], STUDY_C, 0.35, "study_area")
+    secs = {}                                             # v2.1: nodes N1-N6 and cuts N1-A ... N6-B
+    s_src = os.path.join(BERGAMA_ROOT, SECTION_FILE)
+    if os.path.isfile(s_src):
+        try:
+            with open(s_src, encoding="utf-8") as f:
+                secs = json.load(f)
+        except Exception as e:
+            log.append(u"FLAG nodes and cuts: %s not read (%s: %s)" % (s_src, type(e).__name__, e))
+    else:
+        log.append(u"FLAG nodes and cuts: %s not found: the map shows no N or section labels" % s_src)
+    for nid, nd in sorted((secs.get("nodes") or {}).items()):
+        Q = [F.local(p) for p in nd.get("corners") or []]
+        if len(Q) < 3:
+            continue
+        line(Q + [Q[0]], NODE_C, 0.18, "nodes")
+        top = max(Q, key=lambda q: q[1])
+        p = pg(top)
+        items.append(("text", nid, p[0], p[1] + 1.0, 2.6, NODE_C, True, "C", "nodes", None, None))
+    for cid, ab in sorted((secs.get("lines") or {}).items()):
+        if len(ab) < 2:
+            continue
+        a_, b_ = F.local(ab[0]), F.local(ab[1])
+        line([a_, b_], CUT_C, 0.25, "section_cuts")
+        pa, pb = pg(a_), pg(b_)
+        d_ = math.hypot(pa[0] - pb[0], pa[1] - pb[1]) or 1.0
+        ex, ey = (pa[0] - pb[0]) / d_, (pa[1] - pb[1]) / d_   # beyond the north-west end
+        items.append(("text", cid, pa[0] + ex * 1.2, pa[1] + ey * 1.2 - 0.6, 1.8, CUT_C, True,
+                      "L" if ex >= 0 else "R", "section_cuts", None, None))
+    log.append(u"nodes %d, section cuts %d (%s)" % (len(secs.get("nodes") or {}), len(secs.get("lines") or {}),
+                                                    SECTION_FILE))
     sq = sb + [sb[0]]
     line(sq, INK, 0.12, "site_alan")
     items.append(("line", [pg((0, 0)), pg((F.w, 0)), pg((F.w, F.h)), pg((0, F.h)), pg((0, 0))], INK, 0.25, None,
@@ -695,6 +732,7 @@ def main():
     rows3 = [("hdr", None, u"LINES AND MARKS"),
              ("line", WALL_C, u"Walls (survey)"), ("line", HER_WALL, u"City walls"),
              ("line", STUDY_C, u"Study area (calisma_alan)"), ("line", INK, u"Analysis frame (site_alan)"),
+             ("line", NODE_C, u"Nodes N1-N6"), ("line", CUT_C, u"Section cuts N1-A ... N6-B"),
              ("disc", BRIDGE_C, u"Bridge, upstream to downstream"), ("disc", CLASH_C, u"Where stream and town clash")]
     cw = MAP_MAX_W / 3.0
     for ci, rows in enumerate((rows1, rows2, rows3)):
