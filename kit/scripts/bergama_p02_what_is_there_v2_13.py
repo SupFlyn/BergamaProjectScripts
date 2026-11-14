@@ -99,7 +99,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.12"  # v2.12 (Aras 21:31 UTC "all the diagrams are awful"): the land-use ring is redrawn to library/diagram_style/DIAGRAM_STYLE.md with pages_common pc_dg_kit: one long strip, one claim title, greys + water only, at most 4 bracket labels
+VERSION = "v2.13"  # v2.13 (overnight check, PDF at 300 dpi): the corner scale reads "1:25,000" like its caption (was "1/25000"); v2.12  # v2.12 (Aras 21:31 UTC "all the diagrams are awful"): the land-use ring is redrawn to library/diagram_style/DIAGRAM_STYLE.md with pages_common pc_dg_kit: one long strip, one claim title, greys + water only, at most 4 bracket labels
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -768,6 +768,8 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     name = u"Page02_What_is_there"
     items = [t[:1] + (MBL["mb_clean"](t[1]),) + t[2:] if t[0] == "text" else t for t in items]   # v2.9: no sources
+    items = [t[:1] + (re.sub(r"^1/(\d+)$", lambda m_: u"1:{:,}".format(int(m_.group(1))), t[1]),) + t[2:]
+             if t[0] == "text" else t for t in items]     # v2.13: one scale notation (1:25,000) on the whole page
     p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PW, PH, items, u"Page 02, " + TITLE, clips)
     log.append(B["out_line"](p, PW, PH, den, items, u""))
     try:                                                  # output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
