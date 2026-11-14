@@ -662,7 +662,7 @@ def main():
             rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s (shops %s)" % (FAB_WORDS[f_], pc(shares[f_]),
                                                                                   pc(com_sh[f_]))))
     mrg = []                                              # v2.6: one row per colour
-    for kd, col, txt in MBL["mb_legend"](C, drawn):
+    for kd, col, txt in MBL["mb_legend"](C, drawn, raw=True):
         hit = next((i_ for i_, r_ in enumerate(mrg) if r_[0] == kd and r_[1] == col), None)
         if hit is None:
             mrg.append((kd, col, txt))
@@ -674,16 +674,14 @@ def main():
              ("line", WALL_C, u"Walls (survey)"), ("line", HER_WALL, u"City walls"),
              ("line", STUDY_C, u"Study area (calisma_alan)"), ("line", INK, u"Analysis frame (site_alan)"),
              ("disc", BRIDGE_C, u"Bridge, upstream to downstream"), ("disc", CLASH_C, u"Where stream and town clash")]
-    rows4 = [("hdr", None, u"OPENSTREETMAP AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
+    rows4 = [("hdr", None, u"AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
     cw = MAP_MAX_W / 4.0                                  # v2.6: four key columns
     for ci, rows in enumerate((rows1, rows2, rows4, rows3)):
+        rows = [(k_, c_, MBL["mb_clean"](t_)) for k_, c_, t_ in rows]   # v2.9: no sources (wrapped clean)
         y_end = draw_rows(B, items, rows, MAP_X + ci * cw, ky, cw - 3.0, step=3.6, ts=2.4)
         if y_end < 33.0:                                  # v2.6: the credit starts at 30 mm
             log.append(u"FLAG key column %d runs into the credit (ends at %.1f mm, the credit at 30 mm)" % (ci + 1, y_end))
-    ycr = 30.0
-    for ln in wrap(B, CREDIT, 1.9, MAP_MAX_W):
-        items.append(("text", ln, MAP_X, ycr, 1.9, "6E675E", False, "L", "credit", None, None))
-        ycr -= 2.6
+    log.append(CREDIT)                                    # v2.9: sources in the log only, never on the page
     # ---- right column: the land-use ring, the bridges, the clashes
     cy0 = 255.0
     items.append(("text", u"LAND USE AND GROUND COVER", COL_X, cy0, 3.2, INK, True, "L", "ring", None, None))
@@ -725,6 +723,7 @@ def main():
     frame_check(B, items, frames, log)
     os.makedirs(OUT_DIR, exist_ok=True)
     name = u"Page02_What_is_there"
+    items = [t[:1] + (MBL["mb_clean"](t[1]),) + t[2:] if t[0] == "text" else t for t in items]   # v2.9: no sources
     p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
     log.append(B["out_line"](p, PAGE_W, PAGE_H, den, items, u""))
     try:                                                  # output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)

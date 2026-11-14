@@ -964,8 +964,23 @@ def mb_draw(C, items, T, k, lim, cid, style=None, layers=None):
     return cnt
 
 
-def mb_legend(C, cnt, style=None):
-    """legend rows (kind, hex, text) of the ground, green, areas and contours that mb_draw drew (cnt = its return)"""
+MB_SRC_RX = re.compile(r"\s*\([^()]*(WorldCover|OSM|OpenStreetMap|image|survey|satellite|GLO-30|Copernicus|ESA|"
+                       r"_alan|\.json|\.3dm)[^()]*\)", re.I)
+
+
+def mb_clean(txt):
+    """v1.3 (Aras 14 Nov 15:23 UTC "dont give sources in the brackets dont give sources in the drawings at all"): a
+    legend or label text without its source brackets; parts joined by " · " that end up the same are kept once"""
+    out = []
+    for part in MB_SRC_RX.sub(u"", txt).split(u" · "):
+        if part.strip() and part.strip() not in out:
+            out.append(part.strip())
+    return u" · ".join(out)
+
+
+def mb_legend(C, cnt, style=None, raw=False):
+    """legend rows (kind, hex, text) of the ground, green, areas and contours that mb_draw drew (cnt = its return);
+    v1.3: texts without sources (mb_clean) unless raw"""
     st = dict(MB_STYLE)
     st.update(style or {})
     light = lambda c: mixh(c, PAPER, st["lc_light"])
@@ -985,7 +1000,7 @@ def mb_legend(C, cnt, style=None):
         rows.append(("box", st["landuse"]["industrial"], u"Industrial / commercial zones (OSM)"))
     if cnt.get("contours"):
         rows.append(("line", st["contour_index"], MB_WORDS["contour"]))
-    return rows
+    return rows if raw else [(k_, c_, mb_clean(t_)) for k_, c_, t_ in rows]
 
 
 # ================================================================ main
