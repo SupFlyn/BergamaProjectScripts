@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v9.5"   # v9.5: cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v9.5"   # v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -178,6 +178,9 @@ def concept(node, items, x0, y0, W, H, G=None):
     Shapes are diagrams, not to scale; the names come from the node's story."""
     K = G["pc_dg_kit"](items, x0, y0, W, H, "concept", dash_at=4)   # nodes write with the Sections writer
     lab, br = K["label"], K["bracket"]
+
+    def lvl(y, xa, xb):                                   # v9.5: a named level continued over the flooded width
+        K["line"]([(xa, y), (xb, y)], K["C"]["water_ln"], K["W"]["hair"] * 2, (1.4, 0.9))
     if node == "N1":                                      # one stream, two neighbourhoods: a garden deck joins them
         g = [(0, 10), (68, 7), (82, 2.5), (110, 2.5), (124, 7), (192, 10)]
         K["ground"](g)
@@ -200,6 +203,7 @@ def concept(node, items, x0, y0, W, H, G=None):
         g = [(0, 9), (62, 9), (102, 2.5), (192, 2.5)]
         K["ground"](g)
         K["water"](100, 192, 0.8, 3.4, [(5.6, u"WINTER")])
+        lvl(5.6, 62 + (9 - 5.6) / 6.5 * 40, 100)          # v9.5: the level runs on to where it meets the bank
         K["city"](g, 2, 14, step=3.4, h=1.6, focus=80)
         K["silhouette"]("mosque", 27, 9, 0.85)
         K["silhouette"]("minaret", 38, 9, 0.9)
@@ -236,6 +240,8 @@ def concept(node, items, x0, y0, W, H, G=None):
         K["ground"](g)
         K["water"](128, 174, 0.8, 3.4, [(6.2, u"Q500")])
         K["water"](174, 192, 0.8, 3.4)
+        lvl(6.2, 124 + (9 - 6.2) / 6.5 * 6, 128)          # v9.5: Q500 across the whole flooded width
+        lvl(6.2, 174, 192)
         for xa in (70, 96):                               # the twin tunnels under the hall, the stream inside
             arch = [(xa, 0.6)] + [(xa + 11 - 11 * math.cos(math.radians(a)), 0.6 + 5.2 * math.sin(math.radians(a)))
                                   for a in range(0, 181, 12)] + [(xa + 22, 0.6)]
@@ -258,7 +264,7 @@ def concept(node, items, x0, y0, W, H, G=None):
         g = [(0, 9), (124, 9), (146, 2.5), (192, 2.5)]
         K["ground"](g)
         K["water"](142, 192, 0.8, 3.4)
-        K["city"](g, 8, 116, step=7.2, h=2.4, focus=124)
+        K["city"](g, 8, 116, step=7.2, h=1.8, focus=124)   # v9.5: the town band stays low (STYLE v2)
         K["line"]([(119, 9), (119, 12.0)], K["C"]["ink"], K["W"]["thin"] * 2)
         K["move"]([(124, 9), (134, 9), (134, 12.6), (124, 12.6)])
         K["steps"](134, 148, 9, 2.5, 4, base=2.5)
@@ -266,7 +272,7 @@ def concept(node, items, x0, y0, W, H, G=None):
         K["arrow"]((110.0, 10.4), (123.0, 11.6), "people")
         K["road"](0, 9.2, 11.0)
         K["arrow"]((4.0, 15.0), (18.0, 10.4), "bus")
-        lab(u"front yard to the water", 150, 15.5, True, "L")
+        lab(u"front yard to the water", 136, 15.5, True, "C")   # v9.5: over its move
         br(0, 6, -0.6, u"BUSES")
         br(10, 116, -0.6, u"HOUSES TURN THEIR BACKS TO THE STREAM")
         br(124, 150, -0.6, u"THE BANK")
