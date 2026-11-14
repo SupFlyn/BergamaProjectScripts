@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v7.5"   # v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v8"   # v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -25,10 +25,15 @@ PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's ro
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
 OCC_LAYERS = ("node_frame", "bus_stops", "heritage_loop", "city_square", "section_names", "hubs", "viewpoints", "proposed_path")
-MP_LAYERS = (("teras_-_canopy/teras", u"terraces stepping into the river"),      # v7.2: what the node plans take
-             ("teras_-_canopy/kanopi", u"canopy, raised gathering place"),       # from his masterplan
-             ("yuruyus", u"walks and pier edges"), ("kopruler", u"bridges and crossings"),
-             ("desings", u"designed places"), ("istinaat", u"retaining walls"), ("bisiklet", u"cycle path"))
+# v8: his masterplan layer ids -> (existing?, the key's words); ids not here are drawn but not keyed
+MP_WORDS = {"existing_buildings": (True, u"buildings"), "builts2": (True, u"buildings"),
+            "existing_roads": (True, u"roads"), "heritage": (True, u"heritage"), "kizil_avlu": (True, u"heritage"),
+            "su": (True, u"the Selinos"), "ana_su": (True, u"the Selinos"),
+            "teras": (False, u"terraces stepping into the river"), "kanopi": (False, u"canopy, raised gathering place"),
+            "iskele_kenari": (False, u"pier edges"), "normal": (False, u"walks"), "kopruler": (False, u"bridges"),
+            "path": (False, u"paths"), "desings": (False, u"designed places"), "istinaat": (False, u"retaining walls"),
+            "yeni": (False, u"cycle path"), "kesin_yesil": (False, u"new green"), "belki_yesil": (False, u"green, possible"),
+            "su_bitkii": (False, u"water planting"), "yol_kenar": (False, u"street edges")}
 LBL_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names")   # v6.5: plan labels kept apart
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
 CUT_C = "2C2219"
@@ -128,6 +133,186 @@ class Cut(object):
 
     def xy(self, s):
         return (self.A[0] + (self.B[0] - self.A[0]) * s / self.L, self.A[1] + (self.B[1] - self.A[1]) * s / self.L)
+
+
+# ================================================================ v8: why each node (Aras 16:30-16:32 UTC)
+# the text of /mnt/project-files/node_slides/node_stories_v1.md (sources and tags stay there and in the log)
+STORY = {
+    "N1": (u"One stream, two neighbourhoods", (
+        u"The largest free ground on the site: pieces A, B and C, 11,616 m2.",
+        u"No hub and no heritage stop: only the village buses 831-833 stop here.",
+        u"Our move: a neighbourhood house in the west park that reaches both banks.")),
+    "N2": (u"1,800 years of one crossing", (
+        u"A Roman bridge of the 2nd-3rd century AD, repaired by the Ottomans, named after Ulu Cami (1398-99) for "
+        u"standing in front of it. Tabaklar Hamami and the tanners by the stream.",
+        u"Hub K4, heritage stop 4 and the village buses meet here; the Q100 and Q500 floods rise above the bank.",
+        u"Our move: terraces stepping into the river upstream of the bridge; the bank road split into a ramp and "
+        u"seating.")),
+    "N3": (u"The bazaar walks over its river", (
+        u"Tabak Köprüsü is Roman; the arasta and hamam date from 1513; the tanners named the stream Tabakhane Deresi.",
+        u"Here the stream goes under the town for 234 m, mostly in the Roman tunnels of the Red Hall: it stays covered.",
+        u"Hub K3, half of transit hub T, heritage stops 3 and 5. Our move: a market hall, a bus arrival corner and the "
+        u"hidden stream marked on the surface.")),
+    "N4": (u"The temple that stands on the river", (
+        u"Under Hadrian (AD 117-138) the Red Hall was built over the Selinos on twin tunnels that still carry it.",
+        u"Heritage stop 2, half of transit hub T and K5 at the edge.",
+        u"Our move: people gather where the stream leaves the tunnels, a route on top runs to Üç Kemer, and a raised "
+        u"platform stands above the flood.")),
+    "N5": (u"The bank as the front yard", (
+        u"Free pieces D and E, 5,768 m2; houses turn their backs to the stream.",
+        u"The town buses 651-653 and 656 and the village buses 831-833 stop here.",
+        u"Our move: a small day-care and sports pavilion on the dry top, terraces down to the water.")),
+    "N6": (u"The door to the town", (
+        u"The only node where regional buses stop: 643, 644, 836 and 936. K6 is the gateway hub.",
+        u"Our move: a workers hall and a research centre lifted on the dry top, facing the arrival.")),
+}
+DG_INK, DG_GREY, DG_WATER = "1E1E1E", "C9C6BF", "A2B6B5"
+
+
+def concept(node, items, x0, y0, W, H):
+    """v8: the node's one abstract concept diagram, a long thin section sketch in a W x H mm box at (x0, y0): ink
+    lines, one grey, the water, and our move (SQUARE_C) the only solid accent. Shapes are diagrams, not to scale."""
+    import random
+    rnd = random.Random(sum(ord(c) for c in node))
+    P_ = lambda pts: [(x0 + a * W / 192.0, y0 + b * H / 30.0) for a, b in pts]
+
+    def ln(pts, col=DG_INK, lw=0.35, dash=None):
+        items.append(L_(P_(pts), col, lw, "concept", dash))
+
+    def pg(pts, fill, stroke=None, lw=0.0):
+        items.append(R_([P_(pts)], fill, stroke, lw, "concept"))
+
+    def dots(xa, xb, yfun, n, r=0.45, col=DG_INK):
+        for _ in range(n):
+            x = rnd.uniform(xa, xb)
+            y = yfun(x) + rnd.uniform(0.6, 3.2)
+            q = P_([(x, y)])[0]
+            items.append(R_([ring(q[0], q[1], r * rnd.uniform(0.7, 1.2), 10)], col, None, 0.0, "concept"))
+
+    def txt(t, x, y, size=1.8, col=GREY, bold=False, al="L"):
+        q = P_([(x, y)])[0]
+        items.append(T_(t, q[0], q[1], size, col, bold, al, "concept"))
+
+    def arrow(a, b, col=DG_INK, lw=0.35):
+        ln([a, b], col, lw)
+        L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+        ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        pg([b, (b[0] - ux * 2.2 - uy * 0.9, b[1] - uy * 2.2 + ux * 0.9),
+            (b[0] - ux * 2.2 + uy * 0.9, b[1] - uy * 2.2 - ux * 0.9)], col)
+
+    def water(xa, xb, yb, yt):
+        pg([(xa, yb), (xb, yb), (xb, yt), (xa, yt)], DG_WATER)
+
+    def steps(xa, xb, ya, yb, n, col=SQUARE_C):
+        pts = [(xa, ya)]
+        for i in range(n):
+            x1 = xa + (xb - xa) * (i + 1) / float(n)
+            y1 = ya + (yb - ya) * (i + 1) / float(n)
+            pts += [(pts[-1][0], y1), (x1, y1)]
+        ln(pts, col, 0.6)
+
+    if node == "N1":
+        g = lambda x: 22.0 - 14.0 * x / 80.0 if x < 80 else (8.0 if x < 112 else 8.0 + 14.0 * (x - 112) / 80.0)
+        ln([(0, 22), (80, 8), (86, 3), (106, 3), (112, 8), (192, 22)], DG_INK, 0.45)
+        water(86, 106, 3, 5.5)
+        dots(2, 70, g, 38)
+        dots(122, 190, g, 38)
+        pg([(78, 8.5), (114, 8.5), (114, 9.6), (78, 9.6)], SQUARE_C)
+        steps(70, 86, 10, 4, 4)
+        steps(122, 106, 10, 4, 4)
+        txt(u"UPPER", 18, 26, 2.0, DG_INK, True)
+        txt(u"LOWER", 160, 26, 2.0, DG_INK, True)
+        arrow((-2, 27), (24, 27))
+        txt(u"village buses", 0, 28.6)
+        txt(u"one garden across the stream", 96, 11.5, 1.9, SQUARE_C, True, "C")
+    elif node == "N2":
+        ln([(0, 12), (70, 12), (110, 3), (192, 3)], DG_INK, 0.45)
+        water(70, 192, 3, 6.5)
+        ln([(70, 8.5), (192, 8.5)], "3F86B8", 0.3, (1.5, 1.0))
+        txt(u"winter", 188, 9.3, 1.6, "3F86B8", False, "R")
+        steps(62, 110, 12, 3.5, 6)
+        dots(64, 96, lambda x: 12.0 - 8.5 * (x - 62) / 48.0, 14, 0.4, SQUARE_C)
+        pts = [(132, 3)]
+        for a in range(0, 181, 15):
+            pts.append((147 - 15 * math.cos(math.radians(a)), 3 + 11 * math.sin(math.radians(a))))
+        ln(pts + [(162, 3)], DG_INK, 0.45)
+        ln([(128, 14), (166, 14)], DG_INK, 0.6)
+        pg([(14, 12), (30, 12), (30, 18), (14, 18)], DG_GREY, DG_INK, 0.3)
+        ln([(32, 12), (32, 26)], DG_INK, 0.35)
+        txt(u"Ulu Cami 1398-99", 14, 20, 1.8, DG_INK)
+        pts = [(42, 12)] + [(49 - 7 * math.cos(math.radians(a)), 15 + 4 * math.sin(math.radians(a)))
+                            for a in range(0, 181, 20)] + [(56, 12)]
+        ln(pts, DG_INK, 0.35)
+        txt(u"hamam", 49, 20.5, 1.8, DG_INK, False, "C")
+        txt(u"Roman bridge, 2nd-3rd c.", 147, 16, 1.8, DG_INK, False, "C")
+        txt(u"terraces into the river", 86, 14.5, 1.9, SQUARE_C, True, "C")
+        arrow((40, 13.5), (64, 13.5), SQUARE_C, 0.45)
+        txt(u"ramp + seating", 40, 15.2, 1.7, SQUARE_C)
+    elif node == "N3":
+        pg([(0, 10), (192, 10), (192, 12), (0, 12)], DG_GREY, DG_INK, 0.3)
+        water(0, 18, 3, 6)
+        water(174, 192, 3, 6)
+        ln([(18, 5), (174, 5)], DG_INK, 0.35, (1.2, 0.9))
+        dots(4, 188, lambda x: 12.0, 90, 0.42)
+        for x in (48, 78, 108, 138):
+            pg([(x - 0.7, 5.5), (x + 0.7, 5.5), (x + 0.7, 12.5), (x - 0.7, 12.5)], SQUARE_C)
+        arrow((96, 28), (96, 17))
+        txt(u"buses arrive", 98, 25)
+        txt(u"Tabak Köprüsü", 2, 1.2, 1.8, DG_INK)
+        txt(u"the stream under the town, 234 m", 96, 1.2, 1.8, DG_INK, False, "C")
+        txt(u"slots show the water below", 93, 14.0, 1.9, SQUARE_C, True, "C")
+    elif node == "N4":
+        ln([(0, 10), (60, 10)], DG_INK, 0.45)
+        pg([(60, 10), (124, 10), (124, 24), (60, 24)], DG_GREY, DG_INK, 0.35)
+        txt(u"Red Hall, Hadrian", 92, 26, 1.8, DG_INK, False, "C")
+        for xa in (66, 94):
+            pts = [(xa, 2)] + [(xa + 12 - 12 * math.cos(math.radians(a)), 2 + 6 * math.sin(math.radians(a)))
+                               for a in range(0, 181, 15)] + [(xa + 24, 2)]
+            ln(pts, DG_INK, 0.35)
+        ln([(66, 4), (124, 4)], DG_INK, 0.3, (1.2, 0.9))
+        ln([(124, 10), (130, 3), (192, 3)], DG_INK, 0.45)
+        water(128, 192, 3, 6)
+        ln([(128, 8.2), (192, 8.2)], "3F86B8", 0.3, (1.5, 1.0))
+        txt(u"Q500", 190, 8.9, 1.6, "3F86B8", False, "R")
+        steps(124, 140, 10, 4, 4)
+        ln([(140, 12), (192, 12)], SQUARE_C, 0.6)
+        txt(u"route on top to Üç Kemer", 190, 12.8, 1.8, SQUARE_C, False, "R")
+        pg([(148, 18), (176, 18), (176, 19.4), (148, 19.4)], SQUARE_C)
+        for x in (151, 162, 173):
+            ln([(x, 12), (x, 18)], SQUARE_C, 0.35)
+        dots(150, 174, lambda x: 19.4, 10, 0.4, SQUARE_C)
+        txt(u"raised gathering", 162, 23.5, 1.9, SQUARE_C, True, "C")
+        txt(u"gathering at the tunnel mouth", 132, 1.0, 1.8, SQUARE_C)
+    elif node == "N5":
+        ln([(0, 12), (128, 12), (150, 3), (192, 3)], DG_INK, 0.45)
+        water(146, 192, 3, 6)
+        for i in range(9):
+            xa = 6 + i * 13.0
+            pg([(xa, 12), (xa + 8, 12), (xa + 8, 17), (xa + 4, 19.5), (xa, 17)], DG_GREY, DG_INK, 0.3)
+        ln([(124, 12), (124, 16)], DG_INK, 0.5)
+        txt(u"backs to the stream", 122, 20, 1.8, DG_INK, False, "R")
+        pg([(128, 12), (140, 12), (140, 17), (128, 17)], SQUARE_C)
+        steps(140, 154, 12, 3.5, 4)
+        txt(u"front yard to the water", 150, 14.5, 1.9, SQUARE_C, True, "L")
+        arrow((60, 28), (60, 21))
+        txt(u"town and village buses", 62, 26)
+    elif node == "N6":
+        ln([(0, 10), (110, 10), (122, 3), (150, 3), (158, 10), (192, 10)], DG_INK, 0.45)
+        water(120, 152, 3, 6)
+        for i in range(5):
+            xa = 6 + i * 20.0
+            pg([(xa, 10), (xa + 16, 10), (xa + 16, 15), (xa, 15)], DG_GREY, DG_INK, 0.3)
+        ln([(156, 20), (196, 20)], DG_INK, 0.7)
+        for x in (164, 180):
+            ln([(x, 10), (x, 20)], DG_INK, 0.45)
+        for yy_ in (22.5, 25.5):
+            arrow((200, yy_), (168, yy_))
+        txt(u"regional buses 643 644 836 936", 190, 27.5, 1.8, DG_INK, False, "R")
+        pg([(104, 17), (146, 17), (146, 19.4), (104, 19.4)], SQUARE_C)
+        for x in (108, 142):
+            ln([(x, 10 if x < 110 else 6), (x, 17)], SQUARE_C, 0.35)
+        txt(u"lifted, facing the arrival", 125, 21.5, 1.9, SQUARE_C, True, "C")
+        txt(u"sheds", 40, 16.5, 1.8, DG_INK, False, "C")
 
 
 # ================================================================ small helpers (page mm)
@@ -396,26 +581,33 @@ def node_page(cfg, log):
     items = [R_([box(X0, Y0, X0 + F.w * k, Y0 + F.h * k)], P["PAPER"], None, 0.0, "map_paper")]
     its_, mb_cnt, units, L, lc = mb_plan(MB, MC, F, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                          (X0, Y0, X0 + F.w * k, Y0 + F.h * k), B, P, log)
-    items += its_
-    # v7.2 (Aras 15:38 UTC "please take these from the masterplan that i have given you anything that concerns
-    # masterplans that should use it"): the proposal on the plan = his masterplan SVG as MasterplanBase cached it
-    mp_rows = []
+    # v8 (Aras 16:30 UTC "use masterplan drawing directly with more details"): the plan IS his masterplan drawing
+    # (MasterplanBase cache, every layer); MapBase stays behind the land-use count, and draws only if that cache is missing
+    mp_rows, ex_rows = [], []
     try:
         MPn, MPC = G["pc_mp_data"](log)
         mp_cnt = MPn["mp_draw"](MPC, items, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
-                                (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None, layers=set(k_ for k_, w_ in MP_LAYERS))
-        for k_, w_ in MP_LAYERS:
-            keys = [kk for kk in mp_cnt if kk == k_ or kk.startswith(k_ + "/")]
-            if not keys:
+                                (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None,
+                                layers=set(kk.split("/")[0] for kk in MPC["layers"]))
+        seen = set()
+        for kk in mp_cnt:
+            nm = next(((ex, w_) for part in reversed(kk.split("/")) for ww, (ex, w_) in MP_WORDS.items() if part == ww),
+                      None)
+            if nm is None or nm[1] in seen:
                 continue
-            kind, fill, stroke, w, P_ = MPC["layers"][keys[0]][0]
-            col = (next((v for ww, v in MPn["AREA_FILL"].items() if ww in keys[0].split("/")), MPn["AREA_DEFAULT"])
+            seen.add(nm[1])
+            kind, fill, stroke, w, P_ = MPC["layers"][kk][0]
+            col = (next((v for ww, v in MPn["AREA_FILL"].items() if ww in kk.split("/")), MPn["AREA_DEFAULT"])
                    if kind == "a" else (fill or stroke or MPn["AREA_DEFAULT"]))
-            mp_rows.append(("box" if kind in ("a", "r") else "line", col, w_))
-        log.append(u"masterplan on the plan: %s" % (u", ".join(u"%s %d" % kv for kv in sorted(mp_cnt.items())) or
-                                                    u"nothing in this frame"))
+            (ex_rows if nm[0] else mp_rows).append(("box" if kind in ("a", "r", "s") else "line", col, nm[1]))
+        log.append(u"plan = his masterplan: %s" % (u", ".join(u"%s %d" % kv for kv in sorted(mp_cnt.items())) or
+                                                  u"nothing in this frame"))
+        if not mp_cnt:
+            items += its_
     except Exception as ex_:
-        log.append(u"FLAG masterplan not drawn (%s: %s): press MasterplanBase once" % (type(ex_).__name__, ex_))
+        items += its_
+        log.append(u"FLAG masterplan not drawn (%s: %s): press MasterplanBase once; MapBase drawn instead" % (
+            type(ex_).__name__, ex_))
     sec_ids = set()
     pgS = lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k)
     inside = lambda q, m=0.0: X0 + m <= q[0] <= X0 + F.w * k - m and Y0 + m <= q[1] <= Y0 + F.h * k - m
@@ -489,11 +681,6 @@ def node_page(cfg, log):
         log.append(u"section %s: %.0f x %.0f mm, about 1:%.0f (cached 1:%d x%.2f)" % (C.name, w * f, h * f, den_s / f,
                                                                                      den_s, f))
         done.append(C)
-        nb = sum(1 for t in C.bld if t.get("cut"))
-        items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
-            nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x0, y1 - 8.0, 2.0, GREY, False, "L",
-            "sections"))
-        sec_ids.add(id(items[-1]))
         log += [u"%s: %s" % (C.name, n_) for n_ in C.J.get("notes", []) if n_.startswith(u"FLAG")]
 
     # ---- section lines on the plan. v7.1 (Aras 15:37 UTC "draw two distinct arrows you have been doing that before"):
@@ -639,23 +826,19 @@ def node_page(cfg, log):
     ky = Y0 - 5.0
     items.append(T_(u"Plan · %s %s · EXISTING today and the PROPOSAL" % (node, nd["name"]), PLAN_BOX[0], ky, 2.8, INK, True))
     ky -= 5.0
-    shown = set(u["fab"] for u in units)
-    if P.get("FAB_COM"):                                  # v4.5: Page02 v2.3+ two swatches: plain, ground-floor shops
-        rows1 = [("hdr", None, u"EXISTING: BUILDINGS · URBAN FABRIC (right swatch: ground floor shops, OSM)")] + \
-            [("box2", (P["FAB"][f_], P["FAB_COM"][f_]), P["FAB_WORDS"][f_]) for f_ in P["FAB_ORDER"] if f_ in shown]
+    if ex_rows or mp_rows:                                # v8: the key of his drawing as drawn here
+        rows1 = [("hdr", None, u"EXISTING")] + ex_rows + [("box", P["WATER_C"], u"the Selinos")] * (not any(
+            r_[2] == u"the Selinos" for r_ in ex_rows))
     else:
-        rows1 = [("hdr", None, u"EXISTING: BUILDINGS · URBAN FABRIC")] + [("box", P["FAB"][f_], P["FAB_WORDS"][f_])
-                                                                for f_ in P["FAB_ORDER"] if f_ in shown]
+        rows1 = [("hdr", None, u"EXISTING: GROUND AND GREEN")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
     rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
-             ("line", P["mixh"](K["lines"]["town"][0], P["PAPER"], 0.55), u"bus lines, quiet (OSM, ESHOT)"),
+             ("line", P["mixh"](K["lines"]["town"][0], P["PAPER"], 0.55), u"bus lines, quiet"),
              ("disc", RED, u"heritage loop stop in the frame, loop order; the loop on slide 5"),
-             ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
+             ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6)"),
              ("line", "C0392B", u"section N#-A / N#-B: its two ends, the arrows look the way the section looks"),
-             ("box", P["WATER_C"], u"the Selinos"),
              ("hdr", None, u"PROPOSAL"),
              ] + (mp_rows or [("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)")]) + [
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
-    rows1 += [("hdr", None, u"EXISTING: GROUND AND GREEN (MapBase)")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
     rows1, rows2 = [[(r_[0], r_[1], no_src(r_[2])) for r_ in rr_] for rr_ in (rows1, rows2)]   # v6.7: before wrapping
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
     yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.0, ts=2.1)
@@ -693,44 +876,22 @@ def node_page(cfg, log):
         P["draw_rows"](B, items, rows[ci * third:(ci + 1) * third][:per], lx0 + ci * bw / nc, bar_y - 5.0,
                        bw / nc - 3.0, step=3.0, ts=2.1)
 
-    # ---- water depth over the bed by season, both cuts (the Sections code's levels)
-    dx0, dy1 = 214.0, 94.0
-    items.append(T_(u"WATER OVER THE BED, BY SEASON", dx0, dy1 - 3.0, 2.8, INK, True, "L", "diagrams"))
-    items.append(T_(u"m above the lowest bed point of the cut across the stream; Manning n 0.050 (calculated)", dx0, dy1 - 6.8, 2.0,
-                    GREY, False, "L", "diagrams"))
-    SW = X["SEASON_WATER"]
-    rows_w = []
-    for sea in X["SEASONS_ORDER"]:
-        for Q, fill, lab in SW[sea]:
-            rows_w.append((u"%s · %s m3/s" % (sea, (u"%.3g" % Q)), (sea, Q)))
-    rows_w += [(u"Q100 · %.1f m3/s (DSI)" % X["Q100"], "q100"), (u"Q500 · %.1f m3/s (DSI)" % X["Q500"], "q500")]
-    dep = {}
-    wdone = [C for C in done if C.levels]                 # v7.5: a cut along the bank has no water levels
-    for C in wdone:
-        for lab, key in rows_w:
-            lv = C.levels.get(key)
-            if lv:
-                dep[(C.name, key)] = lv[0] - C.z_th
-    dmax = max(list(dep.values()) + [1.0])
-    yy = dy1 - 12.0
-    cA, cB = "5C7A86", "A2B6B5"
-    for lab, key in rows_w:
-        items.append(T_(lab, dx0, yy - 0.6, 2.0, INK, False, "L", "diagrams"))
-        for j, (C, col) in enumerate(zip(wdone, (cA, cB))):
-            v = dep.get((C.name, key))
-            yb = yy - 2.6 - j * 2.6
-            if v is None:
-                items.append(T_(u"no level", dx0 + 34.0, yb, 1.8, GREY, False, "L", "diagrams"))
-                continue
-            w_ = 44.0 * max(v, 0.0) / dmax
-            items.append(R_([box(dx0 + 34.0, yb, dx0 + 34.0 + w_, yb + 2.0)], col, None, 0.0, "diagrams"))
-            items.append(T_(u"%.2f" % v, dx0 + 35.0 + w_, yb + 0.3, 1.8, INK, False, "L", "diagrams"))
-        yy -= 3.0 + 2.6 * max(1, len(wdone))
-    for j, (C, col) in enumerate(zip(wdone, (cA, cB))):
-        items.append(R_([box(dx0 + j * 30.0, 15.0, dx0 + j * 30.0 + 4.0, 17.0)], col, None, 0.0, "diagrams"))
-        items.append(T_(C.name, dx0 + j * 30.0 + 5.5, 15.3, 2.2, INK, False, "L", "diagrams"))
-    items.append(T_(u"summer: no flow figure; the held strip 4.0 x 0.30 m is the design's", dx0, 11.5, 1.8, GREY,
-                    False, "L", "diagrams"))
+    # ---- v8 (Aras 16:30-16:32 UTC): why this node, its story and ONE abstract concept diagram (Niarchos sketch
+    # spirit: the city as dots, the stream low, our move the only solid shape); water bars gone (slide 3 keeps seasons)
+    st = STORY.get(node)
+    if st:
+        items.append(T_(u"WHY HERE · %s" % st[0].upper(), 214.0, 95.0, 2.8, INK, True, "L", "diagrams"))
+        concept(node, items, 214.0, 62.0, 192.0, 30.0)
+        yy = 56.5
+        for para_ in st[1]:
+            for ln in wrap(B, para_, 2.2, 90.0):
+                items.append(T_(ln, 214.0, yy, 2.2, INK, False, "L", "diagrams"))
+                yy -= 3.0
+            yy -= 1.2
+        if yy < 12.0:
+            log.append(u"FLAG story of %s runs below y 12 mm (%.0f)" % (node, yy))
+    else:
+        log.append(u"FLAG no story for %s yet" % node)
 
     # ---- placeholders (NO DRAWING rule; brief: perspective, program brief, building proposal per node)
     def holder(x0, y0, x1, y1, title, sub, layer):
@@ -745,11 +906,11 @@ def node_page(cfg, log):
         for ln in wrap(B, sub, 2.0, min(58.0, x1 - x0 - 4.0)):
             items.append(T_(ln, (x0 + x1) / 2.0, yy_, 2.0, GREY, False, "C", layer))
             yy_ -= 2.6
-    holder(310.0, 60.0, 406.0, 94.0, u"V1 · PERSPECTIVE · %s" % node,
+    holder(310.0, 37.0, 406.0, 58.0, u"V1 · PERSPECTIVE · %s" % node,
            u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
-    holder(310.0, 22.0, 356.0, 56.0, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
+    holder(310.0, 12.0, 356.0, 34.0, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
            "placeholder_program")
-    holder(360.0, 22.0, 406.0, 56.0, u"BUILDING PROPOSAL", u"placeholder: plan, section, elevation (if the node has one)",
+    holder(360.0, 12.0, 406.0, 34.0, u"BUILDING PROPOSAL", u"placeholder: plan, section, elevation (if the node has one)",
            "placeholder_building")
     # ---- title band and credit
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
