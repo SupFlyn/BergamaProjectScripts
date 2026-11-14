@@ -598,7 +598,7 @@ doc = fitz.open(pdf)
 for pn, pg in enumerate(doc):
     r = pg.rect                                       # the whole page, never cropped (Aras 11:26 UTC)
     pre = "" if len(doc) == 1 else "p%d_" % (pn + 1)
-    pg.get_pixmap(dpi=min(PPI, 1000.0 * 72 / r.width), clip=r).save(os.path.join(out, pre + "00_overview.png"))
+    pg.get_pixmap(dpi=int(min(PPI, 1000.0 * 72 / r.width)), clip=r).save(os.path.join(out, pre + "00_overview.png"))
     W, H = r.width / 72 * PPI, r.height / 72 * PPI
     nc, nr = int(math.ceil(W / TW)), int(math.ceil(H / TH))
     for j in range(nr):
