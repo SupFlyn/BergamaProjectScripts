@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1.5 (14 Nov 2026; v1.5: all sections on ONE page of one PDF, Aras 14 Nov 09:42 UTC "produce all those sections in a single pdf", 09:42:59 "merge
+"""Bergama Group 6: SECTIONS v1.6 (14 Nov 2026; v1.6: the look of Aras 14 Nov 09:46-10:03 UTC, see LOOK_V16 below; v1.5: all sections on ONE page of one PDF, Aras 14 Nov 09:42 UTC "produce all those sections in a single pdf", 09:42:59 "merge
 all cuts into a single page": stacked top to bottom in line order, same scale, left edges aligned). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.5"
+VERSION = "v1.6"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -59,7 +59,7 @@ SEASON = "autumn"          # the one drawing per line: Q500, Q100 and the Oct-De
 # 3.0 m; civic (3.5) and industry (4.5) are not told apart in the cache yet and are drawn at 3.0 m.
 STOREY_M = 3.0             # m per floor, every building that is not heritage / sacred
 STOREY_HERITAGE_M = 5.0    # m per floor, the Basemap's heritage outlines (sacred and heritage)
-BACK_M = 30.0              # buildings up to this far behind the cut are drawn as background
+BACK_M = 120.0             # v1.6: buildings up to this far behind the cut are drawn as background (was 30 m)
 ROAD_EDGE_M = 12.0         # a street centreline crossing counts as a road between survey edges this close to it
 ROAD_T = 0.25              # m, drawn thickness of the road surface
 BLD_FILL, BLD_EDGE, BLD_CUT_FILL = "F1EFEA", "9A948C", "E2DFD8"   # context greys (drawing values, ours)
@@ -242,6 +242,17 @@ def context_for(C, BM, tin, ox, oy, lg):
         zb = None if is_cut else tin.z(cx - ox, cy - oy)
         C.bld.append((a, b, zb, h, is_cut, max(0.0, omin), fl))
     C.bld.sort(key=lambda t: -t[5])
+    # v1.6: the ground behind the cut (booklet p22 "Ground behind the cut"): per station the highest survey ground
+    # 10 ... BACK_M m behind the line (TIN; stations the TIN does not reach are left out)
+    nx, ny = -C.u[1], C.u[0]
+    C.back = []
+    s = w0
+    while s <= w1 + 1e-9:
+        px, py = C.xy(s)
+        zs = [tin.z(px + nx * d - ox, py + ny * d - oy) for d in range(10, int(BACK_M) + 1, 10)]
+        zs = [z for z in zs if z is not None]
+        C.back.append((s, max(zs) if zs else None))
+        s += 2.0
     iv = []
     for x0, y0, x1, y1, r in BM["areas"]:
         if x1 < box[0] or x0 > box[2] or y1 < box[1] or y0 > box[3]:
@@ -821,13 +832,21 @@ class Sec(object):
         C, d = self.C, self.d
         wet = C.z_th + WET_BAND_M
         sa, sb, _ = self.strip
+        # v1.6 (fix 1): wet planting only in the channel = the one run of ground within WET_BAND_M of the bed that holds
+        # the bed low point (v1.4 put reeds on every low flat, N3-A / N3-B across 200 m, over roads and in front of houses)
+        ch0 = ch1 = C.s_th
+        while ch0 - 0.5 >= self.lo and self.surf(ch0 - 0.5) <= wet and C.s_th - ch0 < CHANNEL_M:
+            ch0 -= 0.5
+        while ch1 + 0.5 <= self.hi and self.surf(ch1 + 0.5) <= wet and ch1 - C.s_th < CHANNEL_M:
+            ch1 += 0.5
+        self.channel = (ch0, ch1)
         runs, cur, kind = [], None, None
         s = self.lo
         while s <= self.hi + 1e-9:
             if sa - 0.4 <= s <= sb + 0.4 or self.built(s):
                 k = None
             else:
-                k = "wet" if self.surf(s) <= wet else "dry"
+                k = "wet" if (self.surf(s) <= wet and ch0 <= s <= ch1) else "dry"
             if k != kind:
                 if cur is not None and kind is not None:
                     runs.append((cur, s, kind))
@@ -873,7 +892,7 @@ class Sec(object):
         for s, _r, _h, _k in d["trees"][:3]:
             d["callouts"].append((s, None, u"Tree (survey point)"))
         if self.has_strip:
-            d["callouts"].append((C.s_th, None, u"Summer water strip 400 cm × 0.30 m"))
+            d["callouts"].append((C.s_th, None, u"Summer water strip 4.0 × 0.30 m"))
         for a, b in C.roads:
             d["callouts"].append(((a + b) / 2, None, u"Road"))
         for x in C.streets:
@@ -939,6 +958,7 @@ def season_water(C, sea):
 def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     """one season of one cut on a new engine Page at 1:den; returns (page, S, bottom y)"""
     E["K"] = 1000.0 / den
+    _ENGINE_K[0] = E["K"]
     E["SEA"] = dict(E["SEASON_LOOK"][sea])
     S = Sec(E, C, sea)
     E["STRIP"] = S.strip if S.has_strip else (-1e9, -1e9, 0.0)
@@ -953,7 +973,9 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     tops += [(t[2] if t[2] is not None else S.ex((t[0] + t[1]) / 2)) + t[3] + 0.5 for t in C.bld]
     if d.get("pergola"):
         tops.append(E["DRY"] + max(p[2] for p in d["pergola"]["plates"]) + 0.1)
-    z_top = max(tops)
+    tops += [(t[2] if t[2] is not None else S.ex((t[0] + t[1]) / 2)) + t[3] + roof_rise(t[1] - t[0], t[6]) + 0.5
+             for t in C.bld if not t[4]]
+    z_top = max(tops) + SKY_ABOVE_M
     S.X0 = x_left
     items = list(d["callouts"]) if with_text else []
     placed = E["place_labels"](S, [(S.X(s), 0.0, txt) for s, z, txt in items], size) if items else []
@@ -970,22 +992,29 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         pg.text(u"SECTION %s" % C.name, x_left, y_top - 6.0, 5.0, E["INK"], bold=True, layer="title")
         pg.text(u"SCALE 1:%d" % den, x_left, y_top - 11.5, 3.6, E["INK"], layer="title")
         pg.text(u"both banks · looking %s" % C.look, x_left + 34.0, y_top - 11.5, 2.0, E["INK2"], layer="title")
-    # back to front: the context buildings first (the earth poche covers them below the ground line)
+    # v1.6 back to front: sky and clouds, the ground behind the cut, the houses behind (far to near), then the cut
+    sky(pg, S, C, z_top)
+    back_ground(pg, S, C)
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
-        base = zb_ if zb_ is not None else min(S.ex(a), S.ex(b))
-        ring = [S.P(a, S.zb), S.P(b, S.zb), S.P(b, base + h), S.P(a, base + h)]
-        pg.poly([ring], fill=BLD_CUT_FILL if is_cut else BLD_FILL, stroke=BLD_EDGE, lw=0.25 if is_cut else 0.1,
-                layer="context buildings")
-        if fl and fl > 1 and (b - a) * K > 3.0:
-            for i in range(1, fl):
-                zf = base + h * i / fl
-                pg.line([S.P(a, zf), S.P(b, zf)], BLD_EDGE, 0.05, layer="context buildings")
+        if not is_cut:
+            base = zb_ if zb_ is not None else min(S.ex(a), S.ex(b))
+            house(pg, S, a, b, base, h, fl, dist)
+    for a, b, zb_, h, is_cut, dist, fl in C.bld:
+        if is_cut:
+            base = min(S.ex(a), S.ex(b))
+            ring = [S.P(a, S.zb), S.P(b, S.zb), S.P(b, base + h), S.P(a, base + h)]
+            pg.poly([ring], fill=BLD_CUT_FILL, stroke=INK_CUT, lw=0.35, layer="context buildings")
+            if fl and fl > 1 and (b - a) * K > 3.0:
+                for i in range(1, fl):
+                    zf = base + h * i / fl
+                    pg.line([S.P(a, zf), S.P(b, zf)], BLD_EDGE, 0.08, layer="context buildings")
     for s, r_, h, kind in d["trees"]:
         g = S.surf(s)
         if q500 is not None and g < q500 - 1e-6 and C.is_s4:
             continue
         X, Y = S.P(s, g)
-        E["veg_tree"](pg, X, Y, h * K, 2 * r_ * K, (d["key"], round(s, 2)))
+        if not cutout(pg, "plane", X, Y, h * K, int(s * 7) % 6, (int(s) % 2) == 1, "trees"):
+            E["veg_tree"](pg, X, Y, h * K, 2 * r_ * K, (d["key"], round(s, 2)))
     people, bikes = people_for(S, sea, E)
     bal = d.get("balcony")
     on_bal = []
@@ -1004,8 +1033,9 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     for z, fill_, lab, dash in sw:
         if not fill_:
             E["level_line"](pg, S, z, lab, dash, colour=E["WATER_LINE"])
-    E["poche"](pg, S)
+    ground_fill(pg, S)                                  # v1.6: solid fill (booklet p22), no stipple, no hatch
     E["soft_ground"](pg, S)
+    town_walls(pg, S, C)
     for b in S.banks:
         E["walls_and_slabs"](pg, _Bank(S, b))
     E["existing_ground"](pg, S)
@@ -1039,7 +1069,9 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         g = S.surf(s)
         if g < wl + 0.02 and kind != 8:
             continue                                        # never a person in the water (Aras 31 Oct 11:28)
-        E["figure"](pg, S, s, kind, flip)
+        if not cutout(pg, PEOPLE_KEYS[kind % len(PEOPLE_KEYS)], *S.P(s, g), h_mm=None, n=kind, flip=flip,
+                      layer="people"):
+            E["figure"](pg, S, s, kind, flip)
     for s, flip in bikes:
         E["bike"](pg, S, s, flip)
     for s, side in d["rails"]:
@@ -1049,8 +1081,8 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     spread_levels(E, pg, S, short=True)
     y_band = S.Y(S.zb) - 3.0
     if with_text:
-        band(E, pg, S, y_band - BAND_H, h=BAND_H)
-        y_band -= BAND_H + 12.0
+        landuse_band(pg, S, y_band - LU_H, LU_H)          # v1.6: the land-use band of the 27 Oct site board p04-05
+        y_band -= LU_H + 8.0
         bar = 10.0 if den <= 500 else 50.0              # scale bar beside the drawing (SCRIPT_STANDARD s.8)
         xb, yb = S.X(S.lo), y_band - 4.0
         pg.line([(xb, yb), (xb + bar * K, yb)], E["INK"], 0.3, layer="title")
@@ -1061,6 +1093,221 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         pg.text(u"1:%d" % den, xb + bar * K + 8.0, yb - 0.6, 2.0, E["INK2"], align="L", layer="title")
         y_band = yb - 6.0
     return pg, S, y_band
+
+
+# ================================================================ v1.6 look (Aras 14 Nov 2026)
+# LOOK_V16. Aras 14 Nov 09:46 UTC: keep the v1.4 ground skin ("the part that is attached": road band, grass strip with
+# tufts). 09:56: ground and background from page 22 of the round 5 booklet (Bergama_booklet_A3 (1).pdf: section D1-D1'
+# drawn by MasterPlan v40 p24 detail, common/section_frame.py sf_sky / sf_back_house), "remove the hatches ... keep the
+# solid fill"; background houses more detailed, at their real positions. 09:56 + 10:01: the river bed as in the newest
+# research (research/bank_depth_2026-10-28/REPORT.md s.2; walled town reach 5.0 m above the bed, Aras 28 Oct 14:12).
+# 09:57: people and trees from the asset library (Data/cutouts, style a). 10:01: the land-use band of the site board
+# p04-05 (Bergama_booklet_A3 (2).pdf; site board p45_strip, words P45_STRIP_WORD). Colours: read off his two images of
+# p22 and p04 (drawing values).
+GROUND_FILL = "D2CEB4"             # p22 cut ground, solid
+BACK_FILL = "E4E0CF"               # p22 "Ground behind the cut" (soil mixed toward the paper)
+SKY_LOW, SKY_TOP = "F1F6F7", "E1EBEF"
+SKY_ABOVE_M = 6.0                  # m of sky above the highest roof / tree
+CLOUD = "FFFFFF"
+INK_CUT = "4A3F35"                 # p22 cut line colour (the cut buildings' outline)
+H_WALL, H_ROOF, H_EDGE, H_GLASS, H_SHADE = "EEEBE1", "C2BBB0", "B1ABA0", "9AA3A6", "D8D5CC"
+H_FADE = 0.7                       # the farthest houses (BACK_M) mixed this far toward the sky
+ROOF_PITCH_DEG = 30.0              # hipped tiled roof (drawing rule: the survey holds no roof forms)
+EAVE_M = 0.4
+FLAT_ROOF_FLOORS = 4               # 4 floors and more: a flat concrete roof with a 0.6 m parapet (drawing rule)
+WIN_W, WIN_H, WIN_SILL, WIN_STEP = 1.2, 1.4, 0.9, 3.0     # m, window rows per floor (drawing rule)
+WALL_BED = (55.5, 73.5)            # the walled town reach by bed level (REPORT s.2: upstream entry +73.1 ... Uc Kemer +55.6)
+WALL_H_M, WALL_T_M, WALL_FILL = 5.0, 0.6, "BDB6A6"
+LU_H = 4.0                         # mm, the land-use band
+LU = {"open": ("D9D6BE", u"open ground"), "street": ("706B62", u"street"), "stream": ("7FA4B3", u"stream"),
+      "building": ("B9B2A2", u"building"), "wall": ("8E8578", u"wall")}
+PEOPLE_KEYS = ("person_walk", "person_stand", "person_stand", "person_walk", "person_sit_step")
+_CUT = {}
+
+
+def _mix(a, b, t):
+    a_, b_ = [int(a[i:i + 2], 16) for i in (0, 2, 4)], [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(x + (y - x) * t)) for x, y in zip(a_, b_))
+
+
+def roof_rise(w, fl):
+    if fl and fl >= FLAT_ROOF_FLOORS:
+        return 0.6
+    return min(3.5, (w / 2.0 + EAVE_M) * math.tan(math.radians(ROOF_PITCH_DEG)))
+
+
+def sky(pg, S, C, z_top):
+    """p22 sky: a soft vertical gradient from the lowest ground to the top, and a few white clouds (seeded per cut)"""
+    import random as _r
+    x0, x1 = S.X(S.lo), S.X(S.hi)
+    zl = min(z for _, z in S.V)
+    n = 10
+    for i in range(n):
+        za, zb_ = zl + (z_top - zl) * i / n, zl + (z_top - zl) * (i + 1) / n
+        pg.poly([[(x0, S.Y(za)), (x1, S.Y(za)), (x1, S.Y(zb_)), (x0, S.Y(zb_))]], fill=_mix(SKY_LOW, SKY_TOP, i / (n - 1.0)),
+                stroke=None, layer="sky")
+    rg = _r.Random(u"%s" % C.name)
+    span = x1 - x0
+    for k in range(max(2, int(span / 70.0))):
+        cx = x0 + span * (k + 0.2 + 0.6 * rg.random()) / max(2, int(span / 70.0))
+        cy = S.Y(z_top) - (4.0 + 6.0 * rg.random())
+        w = 10.0 + 10.0 * rg.random()
+        for j in range(6):
+            t = j / 5.0
+            r_ = (1.6 + 1.8 * math.sin(math.pi * t)) * (0.8 + 0.4 * rg.random())
+            pg.circle(cx - w / 2 + w * t, cy + r_ * 0.45, r_, fill=CLOUD, layer="sky")
+        pg.poly([[(cx - w / 2 - 1.0, cy), (cx + w / 2 + 1.0, cy), (cx + w / 2 + 1.0, cy + 1.2),
+                  (cx - w / 2 - 1.0, cy + 1.2)]], fill=CLOUD, stroke=None, layer="sky")
+
+
+def back_ground(pg, S, C):
+    """p22 ground behind the cut: the highest survey ground up to BACK_M behind the line, a pale solid fill"""
+    pts = [(s, z) for s, z in getattr(C, "back", []) if z is not None and S.lo <= s <= S.hi]
+    if len(pts) < 2:
+        return
+    ring = [S.P(s, max(z, S.surf(s))) for s, z in pts] + [S.P(pts[-1][0], S.zb), S.P(pts[0][0], S.zb)]
+    pg.poly([ring], fill=BACK_FILL, stroke=None, layer="ground behind")
+
+
+def house(pg, S, a, b, base, h, fl, dist):
+    """one house behind the cut at its real place (s a-b), base and height: wall, roof with eaves (hipped; flat with a
+    parapet from FLAT_ROOF_FLOORS floors), a window row per floor, a door, toned toward the sky with distance"""
+    t = H_FADE * min(1.0, dist / BACK_M)
+    wall, roof, edge = _mix(H_WALL, SKY_LOW, t), _mix(H_ROOF, SKY_LOW, t), _mix(H_EDGE, SKY_LOW, t)
+    glass, shade = _mix(H_GLASS, SKY_LOW, t), _mix(H_SHADE, SKY_LOW, t)
+    K = S.K
+    lw = 0.12 if dist < 40 else 0.08
+    top = base + h
+    pg.poly([[S.P(a, base - 1.0), S.P(b, base - 1.0), S.P(b, top), S.P(a, top)]], fill=wall, stroke=edge, lw=lw,
+            layer="houses behind")
+    w = b - a
+    if fl and fl >= FLAT_ROOF_FLOORS:
+        pg.poly([[S.P(a - 0.1, top), S.P(b + 0.1, top), S.P(b + 0.1, top + 0.6), S.P(a - 0.1, top + 0.6)]],
+                fill=shade, stroke=edge, lw=lw, layer="houses behind")
+    else:
+        rise = roof_rise(w, fl)
+        run = rise / math.tan(math.radians(ROOF_PITCH_DEG))
+        ra, rb = a - EAVE_M, b + EAVE_M
+        ridge = [(min(ra + run, (ra + rb) / 2.0), top + rise), (max(rb - run, (ra + rb) / 2.0), top + rise)]
+        pg.poly([[S.P(ra, top), S.P(rb, top), S.P(*ridge[1]), S.P(*ridge[0])]], fill=roof, stroke=edge, lw=lw,
+                layer="houses behind")
+        pg.poly([[S.P(a, top), S.P(b, top), S.P(b, top - 0.25), S.P(a, top - 0.25)]], fill=shade, stroke=None,
+                layer="houses behind")                                       # the eave's shadow on the wall
+    if w * K < 2.0:
+        return
+    nfl = max(1, int(fl or round(h / STOREY_M)))
+    fh = h / nfl
+    nwin = max(1, int((w - 1.0) // WIN_STEP))
+    x0 = a + (w - (nwin - 1) * WIN_STEP) / 2.0
+    for i in range(nfl):
+        zf = base + i * fh
+        if i > 0:
+            pg.line([S.P(a, zf), S.P(b, zf)], shade, 0.05, layer="houses behind")
+        for j in range(nwin):
+            cx = x0 + j * WIN_STEP
+            if i == 0 and j == nwin // 2 and w >= 5.0:                         # the door
+                pg.poly([[S.P(cx - 0.5, zf), S.P(cx + 0.5, zf), S.P(cx + 0.5, zf + 2.2), S.P(cx - 0.5, zf + 2.2)]],
+                        fill=glass, stroke=None, layer="houses behind")
+                continue
+            zs = zf + min(WIN_SILL, fh * 0.3)
+            wh = min(WIN_H, fh * 0.5)
+            pg.poly([[S.P(cx - WIN_W / 2, zs), S.P(cx + WIN_W / 2, zs), S.P(cx + WIN_W / 2, zs + wh),
+                      S.P(cx - WIN_W / 2, zs + wh)]], fill=glass, stroke=None, layer="houses behind")
+
+
+def ground_fill(pg, S):
+    """the cut ground: p22's solid fill (no hatch, no stipple) under the v1.4 cut line"""
+    V = S.V
+    ring = [S.P(*p) for p in V] + [S.P(V[-1][0], S.zb), S.P(V[0][0], S.zb)]
+    pg.poly([ring], fill=GROUND_FILL, stroke=None, layer="poche")
+    pg.line([S.P(*p) for p in V], S.E["INK"], 0.5, layer="cut line")
+
+
+def town_walls(pg, S, C):
+    """the walled town reach (REPORT s.2, Aras 28 Oct 14:12: walls pinned 5.0 m above the bed): a stone wall at both
+    channel edges where the cut's bed lies in WALL_BED; the survey bank there is pre-wall"""
+    if not (WALL_BED[0] <= C.z_th <= WALL_BED[1]) or C.is_s4:
+        return
+    ch = getattr(S, "channel", None)
+    if not ch:
+        return
+    top = C.z_th + WALL_H_M
+    for s, side in ((ch[0], -1), (ch[1], 1)):
+        sa, sb = sorted((s, s + side * WALL_T_M))
+        pg.poly([[S.P(sa, C.z_th - 0.6), S.P(sb, C.z_th - 0.6), S.P(sb, top), S.P(sa, top)]], fill=WALL_FILL,
+                stroke=INK_CUT, lw=0.3, layer="walls")
+        C.walls = getattr(C, "walls", []) + [(sa, sb)]
+    C.notes.append(u"line %d: bed %+.2f in the walled town reach: walls at s %.1f and %.1f m, top %+.2f (5.0 m above "
+                   u"the bed, REPORT s.2)" % (C.n, C.z_th, ch[0], ch[1], top))
+
+
+def cutout(pg, key, X, Y, h_mm=None, n=0, flip=False, layer="people"):
+    """one asset-library cutout (Data/cutouts/cutouts.json) standing at page (X, Y); h_mm None = its true h_m at the
+    page scale; False when the library or the file is missing (the caller then draws the engine's vector)"""
+    lib = _CUT.get("lib")
+    if lib is None:
+        lib = {}
+        try:
+            with open(os.path.join(DATA_DIR, "cutouts", "cutouts.json"), encoding="utf-8") as f:
+                js = json.load(f).get("cutouts", {})
+            for k, v in js.items():
+                vs = v if isinstance(v, list) else [v]
+                lib[k] = [e for e in vs if os.path.isfile(os.path.join(DATA_DIR, "cutouts", e.get("file", "")))]
+        except Exception:
+            lib = {}
+        _CUT["lib"] = lib
+    es = lib.get(key) or []
+    if not es:
+        return False
+    e = es[n % len(es)]
+    p = os.path.join(DATA_DIR, "cutouts", e["file"])
+    sz = _CUT.get(p)
+    if sz is None:
+        with open(p, "rb") as f:
+            hd = f.read(24)
+        sz = _CUT[p] = (int.from_bytes(hd[16:20], "big"), int.from_bytes(hd[20:24], "big"))
+    h = h_mm if h_mm is not None else e["h_m"] * _ENGINE_K[0]
+    w = h * sz[0] / float(sz[1])
+    fl = bool(flip) != (e.get("facing", 1) == -1 and False)
+    pg.items.append(("image", X - w / 2.0, Y, w, h, p, None, fl, None, layer))
+    return True
+
+
+def landuse_band(pg, S, y, h):
+    """the site board's land-use band (p04-05): one tile per run of what the cut crosses, its word inside"""
+    C = S.C
+    ch = getattr(S, "channel", (C.s_th, C.s_th))
+    runs, cur = [], None
+    s = S.lo
+    while s < S.hi - 1e-9:
+        e = min(S.hi, s + 0.5)
+        m = (s + e) / 2.0
+        if any(a <= m <= b for a, b in getattr(C, "walls", [])):
+            k = "wall"
+        elif any(a <= m <= b for a, b in C.roads):
+            k = "street"
+        elif any(t[4] and t[0] <= m <= t[1] for t in C.bld):
+            k = "building"
+        elif ch[0] <= m <= ch[1]:
+            k = "stream"
+        else:
+            k = "open"
+        if cur and cur[2] == k:
+            cur[1] = e
+        else:
+            cur = [s, e, k]
+            runs.append(cur)
+        s = e
+    for a, b, k in runs:
+        x0, x1 = S.X(a) + 0.2, S.X(b) - 0.2
+        if x1 - x0 < 0.2:
+            continue
+        col, word = LU[k]
+        pg.poly([[(x0, y), (x1, y), (x1, y + h), (x0, y + h)]], fill=col, stroke=None, layer="band")
+        tw = text_w_any(word, 2.2, False)
+        if tw + 1.0 <= x1 - x0:
+            pg.text(word, (x0 + x1) / 2.0, y + h / 2.0 - 0.75, 2.2, "FFFFFF" if k in ("street", "wall") else "3A352E",
+                    align="C", layer="band")
 
 
 def spread_levels(E, pg, S, short=False, gap=2.6):
@@ -1078,6 +1325,11 @@ def spread_levels(E, pg, S, short=False, gap=2.6):
             return all(x_end - 4.6 <= p[0] <= x_end - 1.4 for p in it[1]) and abs(it[1][1][1] - it[1][0][1]) < 1e-6
         return False
     pg.items = [it for it in pg.items if not (it[0] == "text" and it[8] == "levels") and not _sign(it)]
+    # v1.6 (fix 2): the texts sit just right of where the water lines end (the channel), not at the cut's far end
+    ends = [max(p[0] for p in it[1]) for it in pg.items if it[0] == "line" and it[5] == "levels" and len(it[1]) == 2
+            and abs(it[1][0][1] - it[1][1][1]) < 1e-6]
+    if ends:
+        x_end = min(x_end, max(ends))
     xr = x_end + 3.0
     y_prev = None
     for it in sorted(lv, key=lambda t: -t[3]):
@@ -1185,6 +1437,88 @@ def _f(v):
     return ("%.3f" % v).rstrip("0").rstrip(".")
 
 
+def _item_layer(it):
+    t = it[0]
+    return it[6] if t == "poly" else it[5] if t == "line" else it[7] if t == "circle" else it[9] if t == "image" else it[8]
+
+
+def _png(path):
+    """(w, h, rgb bytes, alpha bytes or None) of an 8-bit RGBA / RGB PNG (common/write_pdf.py _wp_png, cut down)"""
+    import zlib
+    import struct
+    with open(path, "rb") as f:
+        d = f.read()
+    pos, idat, hdr = 8, [], None
+    while pos + 8 <= len(d):
+        n = struct.unpack(">I", d[pos:pos + 4])[0]
+        t, c = d[pos + 4:pos + 8], d[pos + 8:pos + 8 + n]
+        pos += 12 + n
+        if t == b"IHDR":
+            hdr = struct.unpack(">IIBBBBB", c[:13])
+        elif t == b"IDAT":
+            idat.append(c)
+        elif t == b"IEND":
+            break
+    w, h, bd, ct = hdr[:4]
+    if bd != 8 or ct not in (2, 6) or hdr[6]:
+        return None
+    bpp = 4 if ct == 6 else 3
+    raw = zlib.decompress(b"".join(idat))
+    stride = w * bpp
+    out = bytearray(h * stride)
+    prev = bytearray(stride)
+    i = 0
+    for yy in range(h):
+        ft = raw[i]
+        ln = bytearray(raw[i + 1:i + 1 + stride])
+        i += 1 + stride
+        if ft == 1:
+            for x in range(bpp, stride):
+                ln[x] = (ln[x] + ln[x - bpp]) & 255
+        elif ft == 2:
+            for x in range(stride):
+                ln[x] = (ln[x] + prev[x]) & 255
+        elif ft == 3:
+            for x in range(stride):
+                ln[x] = (ln[x] + (((ln[x - bpp] if x >= bpp else 0) + prev[x]) >> 1)) & 255
+        elif ft == 4:
+            for x in range(stride):
+                a = ln[x - bpp] if x >= bpp else 0
+                b = prev[x]
+                c = prev[x - bpp] if x >= bpp else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                ln[x] = (ln[x] + (a if pa <= pb and pa <= pc else (b if pb <= pc else c))) & 255
+        out[yy * stride:(yy + 1) * stride] = ln
+        prev = ln
+    if ct == 2:
+        return w, h, bytes(out), None
+    rgb = bytearray(w * h * 3)
+    rgb[0::3], rgb[1::3], rgb[2::3] = out[0::4], out[1::4], out[2::4]
+    return w, h, bytes(rgb), bytes(out[3::4])
+
+
+def _image_obj(path, add):
+    """the PDF XObject id of a PNG (alpha as SMask), or None"""
+    import zlib
+    try:
+        r_ = _png(path)
+    except Exception:
+        r_ = None
+    if not r_:
+        return None
+    w, h, rgb, al = r_
+    sm = ""
+    if al is not None:
+        a = zlib.compress(al, 6)
+        sid = add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 "
+                   "/Filter /FlateDecode /Length %d >>\nstream\n" % (w, h, len(a))).encode("latin-1") + a + b"\nendstream")
+        sm = " /SMask %d 0 R" % sid
+    c = zlib.compress(rgb, 6)
+    return add(("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8%s "
+                "/Filter /FlateDecode /Length %d >>\nstream\n" % (w, h, sm, len(c))).encode("latin-1") + c + b"\nendstream")
+
+
 def write_pdf(path, pages, title):
     """pages: [(w_mm, h_mm, items)] engine Page items, page mm, y up"""
     objs = []
@@ -1195,7 +1529,7 @@ def write_pdf(path, pages, title):
     layers = []
     for _, _, items in pages:
         for it in items:
-            ly = it[6] if it[0] == "poly" else it[5] if it[0] == "line" else it[7] if it[0] == "circle" else it[8]
+            ly = _item_layer(it)
             if ly not in layers:
                 layers.append(ly)
     ocg = dict((ly, add(("<< /Type /OCG /Name (%s) >>" % _pdf_txt(u"%s" % ly).decode("latin-1")).encode("latin-1")))
@@ -1205,6 +1539,7 @@ def write_pdf(path, pages, title):
     f_b = add(("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding << /Type /Encoding /BaseEncoding "
                "/WinAnsiEncoding %s >> >>" % _DIFF).encode())
     alphas = {}
+    images = {}
     pages_id = len(objs) + 1 + 2 * len(pages) + 50          # placeholder, set below
     kids = []
     content_ids = []
@@ -1214,7 +1549,7 @@ def write_pdf(path, pages, title):
         cur = None
         for it in items:
             t = it[0]
-            ly = it[6] if t == "poly" else it[5] if t == "line" else it[7] if t == "circle" else it[8]
+            ly = _item_layer(it)
             if ly != cur:
                 if cur is not None:
                     A.append("EMC")
@@ -1263,6 +1598,14 @@ def write_pdf(path, pages, title):
                     A.append("%s RG %s w" % (_col(stroke), _f(lw or 0.1)))
                 A.append("B" if (fill and stroke) else "f" if fill else "S")
                 A.append("Q")
+            elif t == "image":
+                x, y, wi, hi, path, _a, flip = it[1:8]
+                oid = images.get(path)
+                if oid is None:
+                    oid = images[path] = _image_obj(path, add) or 0
+                if oid:
+                    A.append("q %s 0 0 %s %s %s cm /Im%d Do Q" % (_f(-wi if flip else wi), _f(hi),
+                                                               _f(x + wi if flip else x), _f(y), oid))
             elif t == "text":
                 s, x, y, size, color, bold, align = it[1:8]
                 wmm = text_w_any(s, size, bold)
@@ -1285,8 +1628,9 @@ def write_pdf(path, pages, title):
         content_ids.append((cid, w, h))
     gs = " ".join("/GA%d << /Type /ExtGState /ca %s /CA %s >>" % (int(a * 100), _f(a), _f(a)) for a in sorted(alphas))
     props = " ".join("/oc%d %d 0 R" % (i, i) for i in ocg.values())
-    res = add(("<< /Font << /F1 %d 0 R /F2 %d 0 R >> /ExtGState << %s >> /Properties << %s >> >>" % (
-        f_r, f_b, gs, props)).encode("latin-1"))
+    xo = " ".join("/Im%d %d 0 R" % (i, i) for i in images.values() if i)
+    res = add(("<< /Font << /F1 %d 0 R /F2 %d 0 R >> /ExtGState << %s >> /Properties << %s >> /XObject << %s >> >>" % (
+        f_r, f_b, gs, props, xo)).encode("latin-1"))
     pages_id = len(objs) + len(content_ids) + 1
     for cid, w, h in content_ids:
         kids.append(add(("<< /Type /Page /Parent %d 0 R /MediaBox [0 0 %s %s] /Contents %d 0 R /Resources %d 0 R >>" % (
@@ -1319,6 +1663,7 @@ def write_pdf(path, pages, title):
 
 
 _ENGINE_W = []
+_ENGINE_K = [2.0]
 
 
 def text_w_any(s, size, bold):
@@ -1346,6 +1691,9 @@ def items_bbox(items):
             x0 = it[2] - {"L": 0.0, "C": w / 2.0, "R": w}.get(it[7], 0.0)
             xs += [x0, x0 + w]
             ys += [it[3] - 0.3 * it[4], it[3] + it[4]]
+        elif t == "image":
+            xs += [it[1], it[1] + it[3]]
+            ys += [it[2], it[2] + it[4]]
     return min(xs), min(ys), max(xs), max(ys)
 
 
@@ -1508,6 +1856,8 @@ def _shift(it, dx, dy):
         return (t, it[1] + dx, it[2] + dy) + tuple(it[3:])
     if t == "text":
         return (t, it[1], it[2] + dx, it[3] + dy) + tuple(it[4:])
+    if t == "image":
+        return (t, it[1] + dx, it[2] + dy) + tuple(it[3:])
     return it
 
 
