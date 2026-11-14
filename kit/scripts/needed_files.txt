@@ -24,7 +24,7 @@ scripts/bergama_acbuild_v1.py
 scripts/bergama_sections_ac_v1.py
 scripts/bergama_basemap_v14.py
 scripts/bergama_mapbase_v1_3.py
-scripts/bergama_masterplanbase_v1_1.py
+scripts/bergama_masterplanbase_v1_2.py
 scripts/bergama_plan_base_v11_1.py
 scripts/bergama_page05_access_v1_4.py
 scripts/bergama_page_transit_v2_11.py
