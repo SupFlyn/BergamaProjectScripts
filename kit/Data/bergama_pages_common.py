@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.13"  # v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.14"  # v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -607,25 +607,32 @@ def pc_loop(M, D, K, lab, log):
 
 
 def pc_cut_mark(a, b, look, name, col="C0392B", layer="section_lines", ts=2.5):
-    """v3.11 (Aras 14 Nov 15:37 UTC "draw two distinct arrows you have been doing that before"): the R01 cut symbol of
-    the older scripts (proposal sections v24 km_cut_items) in page mm: a solid 0.5 mm line a-b, at each end a 2.4 mm
-    bar along the line and an open triangle standing on it, apex the way the section looks (look: a page vector), the
-    name beyond each end (bold). Items in the Basemap format."""
+    """v3.14 (Aras 14 Nov 16:05 UTC "dont have the solid line in between"; 15:37 "draw two distinct arrows"): a cut
+    shown by its two ends only, page mm: at each end a 5 mm stroke along the cut, a filled arrow on it pointing the way
+    the section looks (look: a page vector) and the name beyond the end (bold). No line between the ends. Items in the
+    Basemap format."""
     L = math.hypot(b[0] - a[0], b[1] - a[1])
     if L < 1e-6:
         return []
     ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
     sg = 1.0 if (-uy * look[0] + ux * look[1]) >= 0.0 else -1.0
     fx, fy = -uy * sg, ux * sg                          # the side the section looks to
-    out = [("line", [tuple(a), tuple(b)], col, 0.5, None, layer, 1)]
+    st = min(5.0, L / 3.0)
+    out = []
     for p, s in ((a, -1.0), (b, 1.0)):
-        q = (p[0] - ux * s * 2.4, p[1] - uy * s * 2.4)
-        out.append(("line", [tuple(p), q], col, 0.6, None, layer, 1))
+        q = (p[0] - ux * s * st, p[1] - uy * s * st)       # the end stroke runs inward along the cut
+        out.append(("line", [tuple(p), q], col, 0.7, None, layer, 1))
         m = ((p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0)
-        out.append(("line", [tuple(p), q, (m[0] + fx * 2.1, m[1] + fy * 2.1), tuple(p)], col, 0.35, None, layer, 1))
+        tip = (m[0] + fx * 3.0, m[1] + fy * 3.0)
+        stem = (m[0] + fx * 0.6, m[1] + fy * 0.6)
+        out.append(("line", [m, stem], col, 0.35, None, layer, 1))
+        bl = (stem[0] + ux * 1.1, stem[1] + uy * 1.1)
+        br = (stem[0] - ux * 1.1, stem[1] - uy * 1.1)
+        out.append(("poly", [[bl, tip, br]], col, None, 0.0, None, layer, 1, None, None))
         if name:
-            t = (p[0] + ux * s * (0.8 + ts * 0.3 * len(name)), p[1] + uy * s * (0.8 + ts * 0.3 * len(name)) - ts * 0.35)
-            out.append(("text", name, t[0], t[1], ts, col, True, "C", layer, None, None))
+            d = 0.8 + ts * 0.3 * len(name)
+            out.append(("text", name, p[0] + ux * s * d, p[1] + uy * s * d - ts * 0.35, ts, col, True, "C", layer,
+                        None, None))
     return out
 
 
