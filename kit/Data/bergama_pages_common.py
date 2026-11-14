@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob, hashlib
 
-PC_VERSION = "v3"
+PC_VERSION = "v3.1"
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_OSM = os.path.join("Data", "bergama_osm.osm")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -636,10 +636,12 @@ def pc_review(pdf, out, log):
         cmds = [["py", "-3"], ["python"]]
         if os.path.basename(_sys.executable or "").lower().startswith("python"):
             cmds.insert(0, [_sys.executable])
+        # a clean outside Python: Rhino's PYTHONHOME/PYTHONPATH made it fail with "SRE module mismatch" (14 Nov run)
+        env = dict((k, v) for k, v in os.environ.items() if not k.upper().startswith("PYTHON"))
         err = u""
         for cmd in cmds:
             try:
-                r_ = subprocess.run(cmd + [tp, pdf, out], capture_output=True, text=True, timeout=600)
+                r_ = subprocess.run(cmd + ["-I", tp, pdf, out], capture_output=True, text=True, timeout=600, env=env)
             except Exception as ex:
                 err = u"%s" % ex
                 continue
