@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6.3"   # v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6.4"   # v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -402,6 +402,11 @@ def node_page(cfg, log):
             LYR = {"text": 8, "poly": 6, "line": 5, "circle": 7, "image": 9}     # v6.3 (Aras 13:01 UTC): no level
             body = [it for it in e_["items"] if not (it[0] == "text" and it[8] == "title" and it[3] > -15.0)  # stack,
                     and it[LYR.get(it[0], 0)] != "levels"]                                 # a new diagram shows it
+            # v6.4 no-repeat (Aras 13:02 UTC, REUSE_MAP R10): plants drawn, no species callouts (slide 4 keeps them)
+            px = set(round(it[2], 2) for it in body if it[0] == "text" and it[8] == "callouts" and
+                     any(w in it[1] for w in (u"Meadow", u"grasses", u"reed", u"Kamış", u"iris", u"süsen")))
+            body = [it for it in body if not (it[LYR.get(it[0], 0)] == "callouts" and round(
+                it[1][0][0] if it[0] == "line" else (it[1] if it[0] == "circle" else it[2]), 2) in px)]
             bb = list(e_["bbox"])
             bb[3] = max([p_[1] for it in body if it[0] == "poly" for r in it[1] for p_ in r] +
                         [p_[1] for it in body if it[0] == "line" for p_ in it[1]] +
@@ -470,40 +475,31 @@ def node_page(cfg, log):
                 if P_:
                     sline(P_, P["mixh"](col, P["PAPER"], 0.55), lw * 0.45, "bus_lines", dash)   # v4.4: quiet
     stops = [(nm, xy, ln) for nm, xy, ln in G["pc_stop_groups"](D)]
-    stops_in = []
-    for nm, xy, ln in stops:
+    H = sorted(D["heritage"], key=lambda h: int(h["n"]))
+    framed = lambda xy: P["pip"](xy[0], xy[1], nd["corners"])
+    hs = [h for h in H if framed(h["xy"])]
+    ss = [s for s in stops if framed(s[1])]
+    sq = min((G["pc_dist"](h["xy"], s[1]), h, s) for h in hs for s in ss) if hs and ss else None
+    # v6.4 no-repeat (Aras 13:02 UTC "make sure nothing repeats in the slides", REUSE_MAP R4, R5): slide 5 keeps the
+    # stops and the heritage loop; a node plan keeps only the bus stop of its city square and the loop stops inside
+    for nm, xy, ln in ([sq[2]] if sq else []):
         q = pgS(xy)
         if inside(q):
-            stops_in.append((nm, xy, ln))
             items.append(R_([ring(q[0], q[1], 1.2, 20)], "FFFFFF", INK, 0.35, "bus_stops"))
             items.append(T_(u"%s · %s" % (nm, u" ".join(sorted(ln, key=lambda r: (len(r), r)))), q[0] + 1.8, q[1] - 2.8,
                             2.2, INK, False, "L", "bus_stops"))
-    H = sorted(D["heritage"], key=lambda h: int(h["n"]))
     # v4.4 (Aras 12:15 UTC "public transport lines should be less appearant compared to our proposed path"): the
     # proposed paths lead: the streamside spine K4 -> K5 and the stream walk (loop 3 -> 4) along the Selinos, strong
     sp = G["pc_selinos"](D["hubs"]["K4"], D["hubs"]["K5"])
     if sp:
         sline(sp, "FFFFFF", 2.2, "proposed_path")
         sline(sp, SQUARE_C, 1.4, "proposed_path")
-    for a, b in zip(H, H[1:]):
-        sw = G["pc_selinos"](a["xy"], b["xy"]) if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu") else None
-        if sw:
-            sline(sw, RED, 0.9, "heritage_loop")
-        else:
-            sline([a["xy"], b["xy"]], RED, 0.35, "heritage_loop", (0.01, 0.9))   # v4.1: dotted, legs are straight
-    her_in = []
     for h in H:
         q = pgS(h["xy"])
         if inside(q):
-            her_in.append(h)
             items.append(R_([ring(q[0], q[1], K["heritage_r"], 32)], RED, "FFFFFF", 0.35, "heritage_loop"))
             items.append(T_(h["n"], q[0], q[1] - 1.0, 2.8, "FFFFFF", True, "C", "heritage_loop"))
             items.append(T_(h["name"], q[0] + K["heritage_r"] + 1.0, q[1] + 1.2, 2.4, RED, True, "L", "heritage_loop"))
-    for d_ in D.get("heritage_dots", []):
-        q = pgS(d_["xy"])
-        if inside(q):
-            items.append(R_([ring(q[0], q[1], 0.9, 16)], RED, None, 0.0, "heritage_loop"))
-            items.append(T_(d_["name"], q[0] + 1.4, q[1] + 0.8, 2.0, RED, False, "L", "heritage_loop"))
     for code, xy in D["hubs"].items():
         q = pgS(xy)
         if inside(q):
@@ -513,12 +509,8 @@ def node_page(cfg, log):
             items.append(T_(hc, q[0], q[1] - 0.9, 2.4, "FFFFFF", True, "C", "hubs"))
 
     # ---- the city square (Aras's idea): a heritage loop stop and a bus stop both in the node frame
-    sq = None
-    framed = lambda xy: P["pip"](xy[0], xy[1], nd["corners"])
-    hs = [h for h in H if framed(h["xy"])]
-    ss = [s for s in stops if framed(s[1])]
-    if hs and ss:
-        d_, h, s = min((G["pc_dist"](h["xy"], s[1]), h, s) for h in hs for s in ss)
+    if sq:
+        d_, h, s = sq
         mid = ((h["xy"][0] + s[1][0]) / 2.0, (h["xy"][1] + s[1][1]) / 2.0)
         r_m = d_ / 2.0 + 20.0
         q = pgS(mid)
@@ -575,15 +567,14 @@ def node_page(cfg, log):
                                                                 for f_ in P["FAB_ORDER"] if f_ in shown]
     rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
              ("line", P["mixh"](K["lines"]["town"][0], P["PAPER"], 0.55), u"bus lines, quiet (OSM, ESHOT)"),
-             ("disc", INK, u"bus stop with its lines (OSM)"),
-             ("disc", RED, u"heritage loop stop, loop order (PageHeritage)"),
+             ("disc", INK, u"bus stop of the city square, its lines (OSM); all stops on slide 5"),
+             ("disc", RED, u"heritage loop stop in the frame, loop order; the loop on slide 5"),
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
              ("line", CUT_C, u"section line N#-A / N#-B; bold = the part drawn"),
              ("box", P["WATER_C"], u"the Selinos"),
              ("hdr", None, u"PROPOSAL MARKS"),
              ("line", SQUARE_C, u"city square idea: loop meets transit (place not designed)"),
              ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
-             ("line", RED, u"stream walk of the heritage loop, Tabak Köprüsü - Ulucami Önü"),
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     rows1 += [("hdr", None, u"EXISTING: GROUND AND GREEN (MapBase)")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
@@ -595,11 +586,14 @@ def node_page(cfg, log):
     fbox = (min(q[0] for q in fq), min(q[1] for q in fq), max(q[0] for q in fq), max(q[1] for q in fq))
     su = [u for u in units if fbox[0] <= u["cx"] <= fbox[2] and fbox[1] <= u["cy"] <= fbox[3]]
     lu, tot = P["land_use"](su, L, lc, fbox, log)
-    ly = min(yk1, yk2) - 3.0
-    items.append(T_(u"LAND USE OF THE NODE FRAME · %.1f ha, 1 m cells (calculated)" % (tot / 1e4), PLAN_BOX[0], ly,
+    # v6.4 (run 4, N2: the key ran long, land use had no room): under the shorter key column when they differ much
+    lx0, bw, ly, ncmax = PLAN_BOX[0], PLAN_BOX[2] - PLAN_BOX[0], min(yk1, yk2) - 3.0, 5
+    if yk1 < yk2 - 12.0:
+        lx0, bw, ly, ncmax = PLAN_BOX[0] + cw, cw - 3.0, yk2 - 3.0, 3
+    items.append(T_(u"LAND USE OF THE NODE FRAME · %.1f ha, 1 m cells (calculated)" % (tot / 1e4), lx0, ly,
                     2.8, INK, True, "L", "diagrams"))
-    bar_y, bar_h, bw = ly - 7.0, 4.0, PLAN_BOX[2] - PLAN_BOX[0]
-    xx = PLAN_BOX[0]
+    bar_y, bar_h = ly - 7.0, 4.0
+    xx = lx0
     keep = [r_ for r_ in lu if r_[2] > 0]
     for lab, col, a_ in keep:
         w_ = bw * a_ / tot
@@ -610,12 +604,12 @@ def node_page(cfg, log):
     # v6.2 (run 3, N2: rows ran into the credit line): as many columns as it takes to stay above y 10 mm
     per = max(1, int((bar_y - 5.0 - 10.0) / 3.0) + 1)
     nc = max(3, -(-len(rows) // per))
-    if nc > 5:
+    if nc > ncmax:
         log.append(u"FLAG land use: %d rows need %d columns; rows below y 10 mm cut" % (len(rows), nc))
-        nc = 5
+        nc = ncmax
     third = -(-len(rows) // nc)
     for ci in range(nc):
-        P["draw_rows"](B, items, rows[ci * third:(ci + 1) * third][:per], PLAN_BOX[0] + ci * bw / nc, bar_y - 5.0,
+        P["draw_rows"](B, items, rows[ci * third:(ci + 1) * third][:per], lx0 + ci * bw / nc, bar_y - 5.0,
                        bw / nc - 3.0, step=3.0, ts=2.1)
 
     # ---- water depth over the bed by season, both cuts (the Sections code's levels)
