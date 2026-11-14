@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.14"   # v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.15"   # v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
 GH_LABEL = "Sections"
@@ -1525,7 +1525,7 @@ def ground_fill(pg, S):
     while len(pts) > 2 and pts[-1][0] - pts[-2][0] < 1.5:
         pts.pop()
     pts[0], pts[-1] = (pts[0][0] + 1.5, pts[0][1]), (pts[-1][0] - 1.5, pts[-1][1])
-    pg.line(pts, S.E["INK"], min(0.5, max(0.18, 0.1 + 0.25 * S.K)), layer="cut line")
+    pg.line(pts, S.E["INK"], min(0.6, max(0.4, 0.1 + 0.25 * S.K)), layer="cut line")   # v1.15: the cut line about 3x every other line (DIAGRAM_STYLE v2, long river sections)
 
 
 def town_walls(pg, S, C):
@@ -2485,33 +2485,50 @@ def a3_sheet(E, cuts, log):
             size[(C.name, d)] = (b[2] - b[0], b[3] - b[1])
         w, h = size[(C.name, d)]
         return w <= cw and h <= ch
+    # v1.15 (Aras 21:33 "do a proper check of the drawings and sections ... needs a lot of to improve"; the v1.14 sheet
+    # left about 60 % of the A3 empty with every cut at one small common scale): each cut gets its own scale, the
+    # largest that fits its cell, then is fitted to the cell exactly; the grid is the one that prints the cuts largest
+    def pick(C, cw, ch):
+        d = A3_DENS[-1]                                 # from the smallest scale up (the cheap draws first);
+        for d_ in reversed(A3_DENS[:-1]):               # stop at the first that no longer fits (run time, v1.14 284 s)
+            if not fits(C, d_, cw, ch):
+                break
+            d = d_
+        w, h = size[(C.name, d)]
+        return d, min(cw / w, ch / h)
     best = None
     for nc, nr in A3_GRIDS:
         if nc * nr < len(cuts):
             continue
         cw = (W - 2 * A3_MARGIN - (nc - 1) * A3_GAP) / nc
         ch = (H - 2 * A3_MARGIN - A3_TITLE - (nr - 1) * A3_GAP) / nr
-        d = next((d for d in A3_DENS if all(fits(C, d, cw, ch) for C in cuts)), A3_DENS[-1])
-        if best is None or d < best[0]:
-            best = (d, nc, nr, cw, ch)
-    den, nc, nr, cw, ch = best
+        picks = [pick(C, cw, ch) for C in cuts]
+        score = sum(f_ / d_ for d_, f_ in picks)
+        if best is None or score > best[0]:
+            best = (score, nc, nr, cw, ch, picks)
+    _, nc, nr, cw, ch, picks = best
     items = [("text", u"SECTIONS N1-A ... N6-B · both banks", A3_MARGIN, H - A3_MARGIN - 5.0, 5.0, E["INK"], True,
               "L", "title", None, None)]
+    dens = []
     for i, C in enumerate(cuts):
+        den = picks[i][0]
         pg = draw_cut(E, C, SEASON, den, 0.0, 0.0)[0]
         b = items_bbox(pg.items)
         w, h = b[2] - b[0], b[3] - b[1]
-        f = min(1.0, cw / w, ch / h)
+        f = min(cw / w, ch / h)
         # no 1:x printed (Aras 15:25 "the scale is not important"); the scale bar in metres stays true when scaled
         its = [_shift(it, -b[0], -b[1]) for it in pg.items
                if not (it[0] == "text" and re.match(u"^(SCALE )?1:[0-9]", it[1]))]
-        if f < 1.0:
-            its = [_scale_it(it, f) for it in its]
-            log.append(u"%s: scaled x%.2f to fit its A3 cell (about 1:%d)" % (C.name, f, int(round(den / f / 50.0) * 50)))
+        # v1.15: titles keep one size on every cut (N1-A printed its title smaller than the rest)
+        its = [(_scale_it(it, f) if not (it[0] == "text" and it[8] == "title") else
+                (it[0], it[1], it[2] * f, it[3] * f) + tuple(it[4:])) for it in its]
+        dens.append(int(round(den / f / 50.0) * 50))
+        log.append(u"%s: drawn at 1:%d, fitted x%.2f to its A3 cell (prints at about 1:%d)" % (C.name, den, f, dens[-1]))
         col, row = i % nc, i // nc
         x0 = A3_MARGIN + col * (cw + A3_GAP)
         y0 = H - A3_MARGIN - A3_TITLE - (row + 1) * ch - row * A3_GAP
         items += [_shift(it, x0, y0 + (ch - h * f)) for it in its]
+    den = max(dens)
     log.append(u"one A3 landscape sheet, %d x %d grid, cells %.0f x %.0f mm, 1:%d, %d cut(s)" % (
         nc, nr, cw, ch, den, len(cuts)))
     return den, [(W, H, items)]
