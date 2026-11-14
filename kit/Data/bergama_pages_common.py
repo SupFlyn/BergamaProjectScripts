@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob, hashlib
 
-PC_VERSION = "v1"
+PC_VERSION = "v2"
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_OSM = os.path.join("Data", "bergama_osm.osm")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -572,6 +572,23 @@ def pc_write(lib, M, items, out_dir, name, title, log):
     except Exception as ex:
         log.append(u"FLAG: review PNGs stopped (%s: %s)" % (type(ex).__name__, ex))
     return paths
+
+
+def pc_present(pdf, slide, log):
+    """v2, Aras 14 Nov 11:22 UTC: "in the output folder there should be a folder called presentation and in that folder
+    each script output should be called by page name like page 1 is 1.pdf": a copy of the page's PDF as
+    Downloads/Bergama/output/presentation/<slide>.pdf"""
+    import shutil
+    d = os.path.join(pc_root(), "output", "presentation")
+    q = os.path.join(d, u"%d.pdf" % int(slide))
+    try:
+        os.makedirs(d, exist_ok=True)
+        shutil.copyfile(pdf, q)
+        log.append(u"presentation: %s" % q)
+    except Exception as ex:
+        log.append(u"FLAG presentation copy %s not written (%s: %s): close it in the PDF viewer and press again" % (
+            q, type(ex).__name__, ex))
+    return q
 
 
 def pc_png(items, M, folder, name, log):

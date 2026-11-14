@@ -24,7 +24,7 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v1"
+NC_VERSION = "v2"   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -615,6 +615,7 @@ def node_page(cfg, log):
     pdf = X["write_pdf_node"](os.path.join(out_dir, cfg["NAME"] + u".pdf"), [(PAGE_W, PAGE_H, items)],
                               u"Slide %d, %s %s" % (cfg["SLIDE"], node, nd["name"]))
     log.append(u"%s  %s" % (pdf, time.strftime("%H:%M:%S")))
+    G["pc_present"](pdf, cfg["SLIDE"], log)
     review(X, pdf, out_dir, os.path.join(ROOT, "cached", out_folder), log)
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s, %d of 2 section(s), %d FLAG line(s), %.1f s" % (u"\n".join(log), node, len(done), len(flags),
