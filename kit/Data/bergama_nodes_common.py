@@ -611,6 +611,10 @@ def node_page(cfg, log):
                     u"OpenStreetMap 28 Jul 2026 (ODbL); ESHOT; ESA WorldCover 2021; flows DSI and gauges as the Sections "
                     u"script. Distances straight line, calculated.", 14.0, 6.0, 1.8, GREY, False, "L", "credit"))
 
+    bb = X["items_bbox"](items)                           # anything past the sheet edge: FLAG (Aras 11:26 UTC)
+    if bb[0] < -0.5 or bb[1] < -0.5 or bb[2] > PAGE_W + 0.5 or bb[3] > PAGE_H + 0.5:
+        log.append(u"FLAG drawing runs past the page: ink from x %.0f to %.0f, y %.0f to %.0f mm (page %.0f x %.0f)" % (
+            bb[0], bb[2], bb[1], bb[3], PAGE_W, PAGE_H))
     os.makedirs(out_dir, exist_ok=True)
     pdf = X["write_pdf_node"](os.path.join(out_dir, cfg["NAME"] + u".pdf"), [(PAGE_W, PAGE_H, items)],
                               u"Slide %d, %s %s" % (cfg["SLIDE"], node, nd["name"]))

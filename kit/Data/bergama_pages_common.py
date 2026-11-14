@@ -578,9 +578,10 @@ def pc_write(lib, M, items, out_dir, name, title, log):
 
 # ================================================================ review PNGs, the standard of every page script
 # v3, Aras 14 Nov 11:25 UTC: "every script should have it as a standard procedure to produce review png's in the most
-# efficient way that claude reads ... optimize for yourself reading". From the PDF (what is printed): the page trimmed
-# to its ink, 200 ppi, cut into an even grid of tiles of at most 1100 x 500 px (read without any downscale), plus
-# 00_overview.png (the whole trimmed page, at most 1000 px wide) and index.txt (tile -> page mm, from the top left).
+# efficient way that claude reads ... optimize for yourself reading"; 11:26 UTC: "dont crop to the drawing have the all
+# page ... if something goes out of the drawing you would want to see it". From the PDF (what is printed): the WHOLE
+# page, 200 ppi, cut into an even grid of tiles of at most 1100 x 500 px (read without any downscale), plus
+# 00_overview.png (the whole page, at most 1000 px wide) and index.txt (tile -> page mm, from the top left).
 PC_REVIEW = r'''
 import sys, os, glob, math
 try:
@@ -588,20 +589,14 @@ try:
 except ImportError:
     import fitz
 pdf, out = sys.argv[1], sys.argv[2]
-PPI, TW, TH, LO = 200, 1100, 500, 30
+PPI, TW, TH = 200, 1100, 500
 os.makedirs(out, exist_ok=True)
 for f in glob.glob(os.path.join(out, "*.png")) + glob.glob(os.path.join(out, "index.txt")):
     os.remove(f)
 idx = []
 doc = fitz.open(pdf)
 for pn, pg in enumerate(doc):
-    pm = pg.get_pixmap(dpi=LO, colorspace=fitz.csGRAY)
-    s, w = pm.samples, pm.w
-    rows = [y for y in range(pm.h) if min(s[y * w:(y + 1) * w]) < 245]
-    cols = [x for x in range(w) if min(s[x::w]) < 245]
-    k = 72.0 / LO
-    r = pg.rect if not rows else fitz.Rect(cols[0] * k, rows[0] * k, (cols[-1] + 1) * k, (rows[-1] + 1) * k)
-    r = (r + (-6, -6, 6, 6)) & pg.rect
+    r = pg.rect                                       # the whole page, never cropped (Aras 11:26 UTC)
     pre = "" if len(doc) == 1 else "p%d_" % (pn + 1)
     pg.get_pixmap(dpi=min(PPI, 1000.0 * 72 / r.width), clip=r).save(os.path.join(out, pre + "00_overview.png"))
     W, H = r.width / 72 * PPI, r.height / 72 * PPI
