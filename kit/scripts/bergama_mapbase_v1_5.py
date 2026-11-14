@@ -61,7 +61,7 @@ Writes ~/Downloads/Bergama/cached/bergama_mapbase/mapbase.json (+ its OSM house 
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.4"  # v1.4 (14 Nov, standing rule "WATER: textured hatches, no wave strokes"): the water surface gets a fine diagonal hatch over its grain fill in every map (mb_draw); cache unchanged
+VERSION = "v1.5"  # v1.5 (overnight review; Aras dislikes purple): industrial / commercial zones a neutral warm grey (was lilac D8D3DF); v1.4  # v1.4 (14 Nov, standing rule "WATER: textured hatches, no wave strokes"): the water surface gets a fine diagonal hatch over its grain fill in every map (mb_draw); cache unchanged
 GH_LABEL = "MapBase"
 OUT_FOLDER = "bergama_mapbase"
 LOG_NAME = "bergama_mapbase_log.txt"
@@ -802,7 +802,7 @@ MB_STYLE = {
     "areas": {"landuse": None, "farm": "C9C08A", "wood": "7F8C5A", "green": "B2BC8E", "cemetery": "A9B194",
               "archaeo": "E0C7A3", "grounds": "E8DEC8", "worship": "E6D2CB", "parking": "E3E0D8", "sport": "BCC896",
               "park": "9DB37A", "water": WATER_C},
-    "landuse": {"industrial": "D8D3DF", "commercial": "EADFCF", "retail": "EADFCF", "military": "D6D3CB"},
+    "landuse": {"industrial": "D9D5CC", "commercial": "EADFCF", "retail": "EADFCF", "military": "D6D3CB"},
     "street": STREET_C, "street_edge": STREET_EDGE, "path": STREET_EDGE, "water": WATER_C, "water_line": WATER_LINE,
     "wall": WALL_C, "her_wall": HER_WALL, "osm_wall": WALL_C, "bridge": INK, "tree": "5F6E3F",
     "contour": "9C927E", "contour_index": "7E7462",
