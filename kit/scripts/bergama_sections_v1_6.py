@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.12"
+VERSION = "v1.6.13"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -939,11 +939,14 @@ class Sec(object):
             C.notes.append(u"line %d: %d survey tree(s) not drawn, they stand below Q100 (at s %s m)" % (
                 C.n, len(wet), u", ".join(u"%.1f" % s for s in wet)))
         if d["reeds"]:                                    # v1.6.7: away from the strip's label (same x lost one)
-            r0 = max(d["reeds"], key=lambda r: (abs((r[0] + r[1]) / 2 - C.s_th) > 2.0, abs(r[1] - r[0])))
-            d["callouts"].append(((r0[0] + r0[1]) / 2, None, u"Common reed (Kamış)"))
+            # v1.6.13: anchored at the reed end farthest from the strip (its label sat on the strip's: N3-B, N5-A)
+            r_s = max((x for r in d["reeds"] for x in (r[0] + 0.3, r[1] - 0.3)), key=lambda x: abs(x - C.s_th))
+            d["callouts"].append((r_s, None, u"Common reed (Kamış)"))
         if d["iris"]:
-            i0 = max(d["iris"], key=lambda r: abs(r[1] - r[0]))
-            d["callouts"].append(((i0[0] + i0[1]) / 2, None, u"Yellow flag iris (Sarı süsen)"))
+            far = [C.s_th] + [c[0] for c in d["callouts"]]
+            i_s = max((x for r in d["iris"] for x in (r[0] + 0.2, r[1] - 0.2)),
+                      key=lambda x: min(abs(x - f) for f in far))
+            d["callouts"].append((i_s, None, u"Yellow flag iris (Sarı süsen)"))
         if d["grass"]:
             g0 = max(d["grass"], key=lambda r: abs(r[1] - r[0]))
             d["callouts"].append(((g0[0] + g0[1]) / 2, None, u"Meadow, native grasses"))
@@ -1082,12 +1085,15 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
              for t in C.bld if not t[4]]
     z_top = max(tops) + SKY_ABOVE_M
     S.X0 = x_left
+    # v1.6.13: callouts whose anchors lie closer than 8 mm keep the first in importance order (strip, reed, iris,
+    # buildings, the rest); a merged two-name label ran over its row (N3-B)
+    pri = (u"Summer water", u"Common reed", u"Yellow flag", u"Building")
     items = []
-    for s_, z_, t_ in sorted(d["callouts"] if with_text else [], key=lambda c: c[0]):
-        if items and (s_ - items[-1][0]) * K < 8.0 and z_ is None and items[-1][1] is None:
-            items[-1] = (items[-1][0], None, items[-1][2] + u"; " + t_)   # v1.6.10: N3-B / N5-A lost "Common reed"
-        else:
+    for s_, z_, t_ in sorted(d["callouts"] if with_text else [],
+                             key=lambda c: next((i for i, w in enumerate(pri) if c[2].startswith(w)), len(pri))):
+        if not any(abs(s_ - o[0]) * K < 8.0 for o in items):
             items.append((s_, z_, t_))
+    items.sort(key=lambda c: c[0])
     # v1.6.12: placed with 20 % wider text (the engine's text_w runs short: N3-B labels ran into each other)
     placed = E["place_labels"](S, [(S.X(s) + 0.002 * i, 0.0, txt) for i, (s, z, txt) in enumerate(items)],
                                size * 1.2) if items else []
@@ -1122,8 +1128,12 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         if is_cut or b - a < 0.5 or (a < ch[1] + 1.0 and b > ch[0] - 1.0) or _cover(a, b, cuts_) > 0.5:
             continue
         n_ = max(2, int((b - a) / 0.5))
-        # v1.6.12: the lowest cut ground of the span (v1.6.10's highest left houses on stilts over N1 slopes)
-        base = max(zb_ if zb_ is not None else -99.0, min(S.surf(a + (b - a) * i / n_) for i in range(n_ + 1)))
+        # v1.6.13: on the highest cut ground of its span (lowest buried N1 houses, highest alone stood on stilts),
+        # the gap below filled with the ground-behind tone as a terrace, so the house neither floats nor sinks
+        gs = [(a + (b - a) * i / n_) for i in range(n_ + 1)]
+        base = max(zb_ if zb_ is not None else -99.0, max(S.surf(x) for x in gs))
+        pg.poly([[S.P(x, S.surf(x)) for x in gs] + [S.P(b, base), S.P(a, base)]], fill=BACK_FILL, stroke=None,
+                layer="ground behind")
         house(pg, S, a, b, base, h, fl, dist)
     done_ = []
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
@@ -1356,7 +1366,13 @@ def ground_fill(pg, S):
     ring = [S.P(*p) for p in V] + [S.P(V[-1][0], S.zb), S.P(V[0][0], S.zb)]
     pg.poly([ring], fill=GROUND_FILL, stroke=None, layer="poche")
     pts = [S.P(*p) for p in V]
-    pts[0], pts[-1] = (pts[0][0] + 0.3, pts[0][1]), (pts[-1][0] - 0.3, pts[-1][1])   # v1.6.10: no end ticks past
+    # v1.6.13: the round caps of the cut line showed as dark stubs at the frame ends (the band covers the rest):
+    # the line starts and ends 1.5 mm in, under the band
+    while len(pts) > 2 and pts[1][0] - pts[0][0] < 1.5:
+        pts.pop(0)
+    while len(pts) > 2 and pts[-1][0] - pts[-2][0] < 1.5:
+        pts.pop()
+    pts[0], pts[-1] = (pts[0][0] + 1.5, pts[0][1]), (pts[-1][0] - 1.5, pts[-1][1])
     pg.line(pts, S.E["INK"], 0.5, layer="cut line")
 
 
