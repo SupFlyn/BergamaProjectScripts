@@ -131,11 +131,15 @@ bergama_page_transit: Data/bergama_access_heritage.json  # hand, 14 Nov
 bergama_page_transit: Data/bergama_osm.osm  # hand, 14 Nov
 bergama_page_transit: scripts/bergama_basemap_v14.py  # hand, 14 Nov
 bergama_page_transit: cached/bergama_basemap/basemap_layers.json  # hand, 14 Nov
+bergama_page_transit: scripts/bergama_mapbase_v1.py  # hand, 14 Nov
+bergama_page_transit: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
 bergama_page_heritage: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_page_heritage: Data/bergama_access_heritage.json  # hand, 14 Nov
 bergama_page_heritage: Data/bergama_osm.osm  # hand, 14 Nov
 bergama_page_heritage: scripts/bergama_basemap_v14.py  # hand, 14 Nov
 bergama_page_heritage: cached/bergama_basemap/basemap_layers.json  # hand, 14 Nov
+bergama_page_heritage: scripts/bergama_mapbase_v1.py  # hand, 14 Nov
+bergama_page_heritage: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
 bergama_node_n1: Data/bergama_nodes_common.py  # hand, 14 Nov
 bergama_node_n1: Data/section_lines.json  # hand, 14 Nov
 bergama_node_n1: Data/bergama_access_heritage.json  # hand, 14 Nov

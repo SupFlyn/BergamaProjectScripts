@@ -32,6 +32,9 @@ PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
 PC_LIB_END = "# ================================================================ main"
 PC_STUDY_CACHE = os.path.join("cached", "bergama_basemap", "basemap_layers.json")
 PC_CACHE_DIR = os.path.join("cached", "bergama_pages")
+PC_MB_GLOB = os.path.join("scripts", "bergama_mapbase_v*.py")
+PC_MB_END = "\n# ================================================================ main\n"
+PC_CLIP = "map"               # v3.3: the clip id of the map frame (MapBase items are cut to it in the PDF / SVG)
 PC_MARGIN_MM = 12.0          # sheet margin round the map
 PC_SIDE_MM = 95.0            # the column right of the map: title, legend, notes
 PC_PNG_PPI = 200
@@ -276,6 +279,74 @@ def pc_context(M, D, log):
     log.append(u"context: %s written (%d buildings, %d roads, %d streams from OpenStreetMap)" % (
         cfile, len(C["buildings"]), len(C["roads"]), len(C["water"])))
     return C
+
+
+# ================================================================ v3.3: the one base map (MapBase), quiet look
+# Aras 14 Nov 12:16 UTC: "also please update all maps to include every detail, and top of the map, data is missing
+# please fill in that"; coordinator 12:18: every map draws from the one MapBase script, each page keeps its own styling.
+def pc_mapbase(M, K, log):
+    """(items, legend rows [(kind, hex, text)], counts) of the newest MapBase cache in this page's quiet look, cut to
+    the map frame (clip PC_CLIP); None (FLAG) when MapBase has not been pressed: the page then draws pc_context"""
+    found = glob.glob(os.path.join(pc_root(), PC_MB_GLOB))
+    if not found:
+        log.append(u"FLAG: no %s: run Bergama.bat once; the old OSM context is drawn" % os.path.join(pc_root(), PC_MB_GLOB))
+        return None
+    src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
+    with open(src_, encoding="utf-8") as f:
+        code = f.read()
+    if PC_MB_END not in code:
+        log.append(u"FLAG: %s has no main line: the old OSM context is drawn" % src_)
+        return None
+    ns = {"__name__": "bergama_mapbase_lib"}
+    exec(compile(code[:code.index(PC_MB_END)], src_, "exec"), ns)
+    ns["BERGAMA_ROOT"] = pc_root()
+    log.append(u"base map: %s (%s %s)" % (src_, ns.get("GH_LABEL"), ns.get("VERSION")))
+    C = ns["mb_load"](log)
+    if C is None:
+        return None
+    mix, paper = ns["mixh"], ns["PAPER"]
+    soft = lambda c, t: mix(c, paper, t) if c else c
+    S = ns["MB_STYLE"]
+    bl = K["building"][1]
+    st = {"grain": False, "ground": "F4F2EC", "lc_light": 0.7,
+          "veg": dict((k_, v) for k_, v in S["veg"].items()),
+          "areas": dict((k_, soft(v, 0.55)) for k_, v in S["areas"].items()),
+          "landuse": dict((k_, soft(v, 0.5)) for k_, v in S["landuse"].items()),
+          "fab": dict((k_, "E2DED6") for k_ in S["fab"]), "fab_com": dict((k_, "E2DED6") for k_ in S["fab_com"]),
+          "edge_dark": 0.6, "ink": bl, "street": "FFFFFF", "street_edge": "CFCBC0", "path": "C4BFB2",
+          "water": soft(S["water"], 0.45), "water_line": K["water"][0], "wall": "ABA69A", "osm_wall": "ABA69A",
+          "her_wall": "A07A62", "tree": "9EA97F", "contour": "D2CABA", "contour_index": "B5AA95",
+          "lw": {"hair": 0.06, "osm_wall": 0.08, "contour": 0.07, "contour_index": 0.14}}
+    st["veg"] = dict((k_, soft(v, 0.3)) for k_, v in st["veg"].items())
+    st["fab"]["monument"] = st["fab_com"]["monument"] = "D8C8BC"
+    st["fab"]["sacred"] = st["fab_com"]["sacred"] = "D8C8BC"
+    items = []
+    cnt = ns["mb_draw"](C, items, M.T, M.k, M.box, PC_CLIP, st)
+    rows = ns["mb_legend"](C, cnt, st)
+    if cnt.get("buildings"):
+        rows.append(("box", "E2DED6", u"Buildings (survey, else OSM); monuments and mosques a shade warmer"))
+    if cnt.get("walls") or cnt.get("walls_osm"):
+        rows.append(("line", st["wall"], u"Walls and retaining walls (survey; OSM where the survey has none)"))
+    if cnt.get("heritage_walls"):
+        rows.append(("line", st["her_wall"], u"Ancient and city walls (survey and OSM)"))
+    if cnt.get("trees_osm"):
+        rows.append(("dot", st["tree"], u"Single trees (OSM)"))
+    log.append(u"base map drawn: " + u", ".join(u"%s %d" % kv for kv in sorted(cnt.items())))
+    return items, rows, cnt
+
+
+def pc_mb_legend(rows, K):
+    """MapBase legend rows -> pc_sheet rows [(draw(x, y), label)]"""
+    out = []
+    for kind, col, txt in rows:
+        if kind == "line":
+            out.append((lambda x, y, c=col: [L_([(x - 4.5, y), (x + 4.5, y)], c, 0.3, "legend")], txt))
+        elif kind == "dot":
+            out.append((lambda x, y, c=col: [P_([circle(x, y, 0.7, 12)], c, None, 0.0, "legend")], txt))
+        else:
+            out.append((lambda x, y, c=col: [P_([[(x - 4.5, y - 2.0), (x + 4.5, y - 2.0), (x + 4.5, y + 2.0),
+                                                  (x - 4.5, y + 2.0)]], c, K["grey_line"], 0.1, "legend")], txt))
+    return out
 
 
 def sys_lib_to_survey():
@@ -593,7 +664,9 @@ def pc_write(lib, M, items, out_dir, name, title, log):
     for ext, fn in ((".pdf", lib["write_pdf"]), (".svg", lib["write_svg"])):
         p = os.path.join(out_dir, name + ext)
         try:
-            p2 = fn(p, M.w, M.h, items, title)
+            clips = {PC_CLIP: [[[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]),
+                                (M.box[0], M.box[3])]]]}          # v3.3: the MapBase items are cut to the frame
+            p2 = fn(p, M.w, M.h, items, title, clips)
             paths.append(p2 or p)
         except Exception as ex:
             log.append(u"FLAG: %s not written (%s: %s)" % (p, type(ex).__name__, ex))
@@ -662,6 +735,8 @@ def pc_frame_check(items, box, log, text_w=None, skip=PC_SHEET_LAYERS):
         ly = it[6] if t == "poly" else it[5] if t == "line" else it[8] if t == "text" else None
         if ly is None or ly in skip:
             continue
+        if (t == "line" and it[4] == PC_CLIP) or (t == "poly" and len(it) > 9 and it[9] == PC_CLIP):
+            continue                                     # v3.3: cut to the frame by its clip in the PDF / SVG
         if t == "text":
             w = text_w(it[1], it[4], bool(it[6])) if text_w else 0.5 * it[4] * len(it[1])
             x = it[2] - {"L": 0.0, "C": w / 2.0, "R": w}.get(it[7], 0.0)
