@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.10"
+VERSION = "v1.6.11"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1906,7 +1906,7 @@ def named_lines(log):
         return []
 
 
-NODE_SCALES = (1000, 1500, 2000, 2500, 3000)
+NODE_SCALES = (500, 1000, 1500, 2000, 2500, 3000)   # 500: the four-seasons cut (14 Nov 13:24)
 
 
 def _r2(o):
