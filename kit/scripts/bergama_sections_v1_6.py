@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.13"
+VERSION = "v1.6.14"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1131,8 +1131,10 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         # v1.6.13: on the highest cut ground of its span (lowest buried N1 houses, highest alone stood on stilts),
         # the gap below filled with the ground-behind tone as a terrace, so the house neither floats nor sinks
         gs = [(a + (b - a) * i / n_) for i in range(n_ + 1)]
-        base = max(zb_ if zb_ is not None else -99.0, max(S.surf(x) for x in gs))
-        pg.poly([[S.P(x, S.surf(x)) for x in gs] + [S.P(b, base), S.P(a, base)]], fill=BACK_FILL, stroke=None,
+        g_ = [S.surf(x) for x in gs]
+        # v1.6.14: the terrace at most TERRACE_M high (N1-A grew a 7 m plinth on the steep slope)
+        base = max(zb_ if zb_ is not None else -99.0, min(max(g_), min(g_) + TERRACE_M))
+        pg.poly([[S.P(x, min(S.surf(x), base)) for x in gs] + [S.P(b, base), S.P(a, base)]], fill=BACK_FILL, stroke=None,
                 layer="ground behind")
         house(pg, S, a, b, base, h, fl, dist)
     done_ = []
@@ -1263,6 +1265,7 @@ WALL_SEARCH_M = 20.0               # m from the bed low point: v1.6.2 the wall s
 DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 summary p.75, measure 155)
 LEVEL_LABELS = False               # v1.6.8, Aras 14 Nov 13:01 UTC: "remove these markings we gonna have a new diagram
 #                                    for that": no level sign / value stack; the water lines and fills stay
+TERRACE_M = 2.5                    # m: the highest ground-tone terrace under a house behind (v1.6.13 / .14)
 LU_H = 4.0                         # mm, the land-use band
 LU = {"open": ("D9D6BE", u"open ground"), "street": ("706B62", u"street"), "stream": ("7FA4B3", u"stream"),
       "building": ("B9B2A2", u"building"), "wall": ("8E8578", u"wall")}
