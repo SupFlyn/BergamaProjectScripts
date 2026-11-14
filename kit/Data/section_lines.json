@@ -1,125 +1,125 @@
 {
- "what": "Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m); each line runs from the north-west bank end to the south-east bank end and is drawn looking downstream",
+ "what": "Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
  "source": "nodes_sections_v2.json (section lines layer v3, 11 Nov 2026, units of B19_setB_layers2.1), placed by its plan frame (277.504, 5742.594, 7514.18 x 1397.44 units = site_alan 2,844.97 x 529.09 m, 2.641215 units per m)",
  "lines": {
   "N1-A": [
    [
-    29956.88,
-    32719.57
+    29976.31,
+    32719.79
    ],
    [
-    29493.49,
-    32335.3
+    29474.37,
+    32334.71
    ]
   ],
   "N1-B": [
    [
-    30005.91,
-    32647.34
+    29886.68,
+    32386.37
    ],
    [
-    29501.07,
-    32330.56
+    29639.77,
+    32708.2
    ]
   ],
   "N2-A": [
    [
-    29895.46,
-    32388.12
+    29889.54,
+    32402.75
    ],
    [
-    29802.64,
-    32188.66
+    29807.47,
+    32159.63
    ]
   ],
   "N2-B": [
    [
-    30022.02,
-    32336.46
+    30100.93,
+    32220.59
    ],
    [
-    29895.21,
-    32156.68
+    29795.6,
+    32323.66
    ]
   ],
   "N3-A": [
    [
-    30183.43,
-    32096.12
+    30195.07,
+    32105.59
    ],
    [
-    29996.95,
-    31975.68
+    29978.4,
+    31962.48
    ]
   ],
   "N3-B": [
    [
-    30218.7,
-    32039.81
+    30187.92,
+    31921.83
    ],
    [
-    30035.69,
-    31917.72
+    30088.5,
+    32072.36
    ]
   ],
   "N4-A": [
    [
-    30300.31,
-    32026.68
+    30320.93,
+    32028.85
    ],
    [
-    30079.02,
-    31856.78
+    30064.07,
+    31849.71
    ]
   ],
   "N4-B": [
    [
-    30320.15,
-    32006.48
+    30249.84,
+    31831.16
    ],
    [
-    30110.12,
-    31818.31
+    30127.62,
+    32006.41
    ]
   ],
   "N5-A": [
    [
-    30470.62,
-    31696.83
+    30482.21,
+    31706.36
    ],
    [
-    30186.93,
-    31566.99
+    30127.7,
+    31532.9
    ]
   ],
   "N5-B": [
    [
-    30535.87,
-    31551.74
+    30270.66,
+    31803.8
    ],
    [
-    30251.84,
-    31408.75
+    30451.57,
+    31434.06
    ]
   ],
   "N6-A": [
    [
-    31067.85,
-    31113.16
+    31087.86,
+    31117.52
    ],
    [
-    30775.8,
-    30815.53
+    30757.41,
+    30788.03
    ]
   ],
   "N6-B": [
    [
-    31132.28,
-    31041.47
+    30861.57,
+    31133.14
    ],
    [
-    30800.15,
-    30760.56
+    31086.3,
+    30907.75
    ]
   ]
  },
@@ -250,5 +250,127 @@
     ]
    ]
   }
+ },
+ "lines_v1": {
+  "N1-A": [
+   [
+    29956.88,
+    32719.57
+   ],
+   [
+    29493.49,
+    32335.3
+   ]
+  ],
+  "N1-B": [
+   [
+    30005.91,
+    32647.34
+   ],
+   [
+    29501.07,
+    32330.56
+   ]
+  ],
+  "N2-A": [
+   [
+    29895.46,
+    32388.12
+   ],
+   [
+    29802.64,
+    32188.66
+   ]
+  ],
+  "N2-B": [
+   [
+    30022.02,
+    32336.46
+   ],
+   [
+    29895.21,
+    32156.68
+   ]
+  ],
+  "N3-A": [
+   [
+    30183.43,
+    32096.12
+   ],
+   [
+    29996.95,
+    31975.68
+   ]
+  ],
+  "N3-B": [
+   [
+    30218.7,
+    32039.81
+   ],
+   [
+    30035.69,
+    31917.72
+   ]
+  ],
+  "N4-A": [
+   [
+    30300.31,
+    32026.68
+   ],
+   [
+    30079.02,
+    31856.78
+   ]
+  ],
+  "N4-B": [
+   [
+    30320.15,
+    32006.48
+   ],
+   [
+    30110.12,
+    31818.31
+   ]
+  ],
+  "N5-A": [
+   [
+    30470.62,
+    31696.83
+   ],
+   [
+    30186.93,
+    31566.99
+   ]
+  ],
+  "N5-B": [
+   [
+    30535.87,
+    31551.74
+   ],
+   [
+    30251.84,
+    31408.75
+   ]
+  ],
+  "N6-A": [
+   [
+    31067.85,
+    31113.16
+   ],
+   [
+    30775.8,
+    30815.53
+   ]
+  ],
+  "N6-B": [
+   [
+    31132.28,
+    31041.47
+   ],
+   [
+    30800.15,
+    30760.56
+   ]
+  ]
  }
 }
