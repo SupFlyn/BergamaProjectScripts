@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob, hashlib
 
-PC_VERSION = "v3.3"   # v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.4"   # v3.4: pc_mb_lib (MapBase as a library, for any projection), pc_sheet north angle (axonometric), pc_photos (JPEGs into the PDF / SVG); v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_OSM = os.path.join("Data", "bergama_osm.osm")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -284,23 +284,31 @@ def pc_context(M, D, log):
 # ================================================================ v3.3: the one base map (MapBase), quiet look
 # Aras 14 Nov 12:16 UTC: "also please update all maps to include every detail, and top of the map, data is missing
 # please fill in that"; coordinator 12:18: every map draws from the one MapBase script, each page keeps its own styling.
-def pc_mapbase(M, K, log):
-    """(items, legend rows [(kind, hex, text)], counts) of the newest MapBase cache in this page's quiet look, cut to
-    the map frame (clip PC_CLIP); None (FLAG) when MapBase has not been pressed: the page then draws pc_context"""
+def pc_mb_lib(log):
+    """v3.4: the newest MapBase script as a library (mb_load, mb_draw, MB_STYLE, FAB ...), or None (FLAG)"""
     found = glob.glob(os.path.join(pc_root(), PC_MB_GLOB))
     if not found:
-        log.append(u"FLAG: no %s: run Bergama.bat once; the old OSM context is drawn" % os.path.join(pc_root(), PC_MB_GLOB))
+        log.append(u"FLAG: no %s: run Bergama.bat once" % os.path.join(pc_root(), PC_MB_GLOB))
         return None
     src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
     with open(src_, encoding="utf-8") as f:
         code = f.read()
     if PC_MB_END not in code:
-        log.append(u"FLAG: %s has no main line: the old OSM context is drawn" % src_)
+        log.append(u"FLAG: %s has no main line" % src_)
         return None
     ns = {"__name__": "bergama_mapbase_lib"}
     exec(compile(code[:code.index(PC_MB_END)], src_, "exec"), ns)
     ns["BERGAMA_ROOT"] = pc_root()
     log.append(u"base map: %s (%s %s)" % (src_, ns.get("GH_LABEL"), ns.get("VERSION")))
+    return ns
+
+
+def pc_mapbase(M, K, log):
+    """(items, legend rows [(kind, hex, text)], counts) of the newest MapBase cache in this page's quiet look, cut to
+    the map frame (clip PC_CLIP); None (FLAG) when MapBase has not been pressed: the page then draws pc_context"""
+    ns = pc_mb_lib(log)
+    if ns is None:
+        return None
     C = ns["mb_load"](log)
     if C is None:
         return None
@@ -580,7 +588,7 @@ def pc_selinos(C, a, b):
 
 
 # ================================================================ sheet furniture (right-hand column)
-def pc_sheet(M, K, lib, title, sub, legend, notes, credit):
+def pc_sheet(M, K, lib, title, sub, legend, notes, credit, north=0.0, bar_note=None):
     """legend = [(draw(x, y) -> items, label)], swatch 10 x 5 mm; (None, text) = a bold header row; notes = [text];
     returns items"""
     it = []
@@ -621,9 +629,11 @@ def pc_sheet(M, K, lib, title, sub, legend, notes, credit):
     yb = M.box[1] + 30.0
     cx, cy, r = x + 7.0, yb + 7.0, 5.5
     it.append(P_([circle(cx, cy, r, 48)], None, INK, 0.2, "north_scale"))
-    it.append(P_([[(cx, cy + r), (cx - 2.4, cy - 2.6), (cx, cy - 1.2), (cx + 2.4, cy - 2.6)]], INK, None, 0.0,
-                 "north_scale"))
-    it.append(T_(u"N", cx, cy + r + 1.2, 2.6, INK, "north_scale", True, "C"))
+    ca_, sa_ = math.cos(math.radians(north)), math.sin(math.radians(north))   # v3.4: north turned clockwise (deg)
+    rot = lambda dx, dy: (cx + dx * ca_ + dy * sa_, cy - dx * sa_ + dy * ca_)
+    it.append(P_([[rot(0, r), rot(-2.4, -2.6), rot(0, -1.2), rot(2.4, -2.6)]], INK, None, 0.0, "north_scale"))
+    q_ = rot(0, r + 2.4)
+    it.append(T_(u"N", q_[0], q_[1] - 1.0, 2.6, INK, "north_scale", True, "C"))
     bar = 100.0 if M.den <= 2500 else 250.0 if M.den <= 6000 else 500.0
     Lb = bar * M.k
     xb, yb2 = x + 18.0, yb + 4.0
@@ -633,6 +643,8 @@ def pc_sheet(M, K, lib, title, sub, legend, notes, credit):
     it.append(T_(u"0", xb, yb2 - 3.0, 2.0, INK, "north_scale", False, "C"))
     it.append(T_(u"%d m" % bar, xb + Lb, yb2 - 3.0, 2.0, INK, "north_scale", False, "C"))
     it.append(T_(u"1:%s" % format(int(M.den), ",d"), xb, yb2 + 4.0, 3.2, INK, "north_scale", True))
+    if bar_note:
+        it.append(T_(bar_note, xb, yb2 - 6.2, 2.0, INK, "north_scale"))
     yc = M.box[1] + 20.0
     for ln in wrap(credit, tm["small"], W, tw):
         it.append(T_(ln, x, yc, tm["small"], "6E6C66", "credit"))
@@ -657,15 +669,16 @@ def wrap(s, size, width, tw, bold=False):
 
 
 # ================================================================ outputs: PDF, SVG, review PNGs
-def pc_write(lib, M, items, out_dir, name, title, log):
+def pc_write(lib, M, items, out_dir, name, title, log, photos=None, clips=None):
+    """v3.4: photos = pc_photos list (placed before the review PNGs); clips = own clip rings (default: the map box)"""
     os.makedirs(out_dir, exist_ok=True)
     pc_frame_check(items, M.box, log, lib.get("text_w"))
     paths = []
     for ext, fn in ((".pdf", lib["write_pdf"]), (".svg", lib["write_svg"])):
         p = os.path.join(out_dir, name + ext)
         try:
-            clips = {PC_CLIP: [[[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]),
-                                (M.box[0], M.box[3])]]]}          # v3.3: the MapBase items are cut to the frame
+            clips = clips or {PC_CLIP: [[[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]),
+                                         (M.box[0], M.box[3])]]]}          # v3.3: the MapBase items are cut to the frame
             p2 = fn(p, M.w, M.h, items, title, clips)
             paths.append(p2 or p)
         except Exception as ex:
@@ -673,6 +686,8 @@ def pc_write(lib, M, items, out_dir, name, title, log):
     for p in paths:
         log.append(u"%s  %s (%.0f x %.0f mm, 1:%s, %d objects)" % (p, time.strftime("%H:%M:%S"), M.w, M.h,
                                                                    format(int(M.den), ",d"), len(items)))
+    if photos:
+        pc_photos(paths, photos, M.h, log)
     pdfs = [p_ for p_ in paths if p_.lower().endswith(".pdf")]
     if not (pdfs and pc_review(pdfs[0], os.path.join(out_dir, "review"), log)):
         try:
@@ -787,6 +802,68 @@ def pc_review(pdf, out, log):
     except Exception as ex:
         log.append(u"FLAG review PNGs not written (%s: %s)" % (type(ex).__name__, ex))
     return False
+
+
+PC_PHOTO = r'''
+import sys, json
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz
+pdf, spec = sys.argv[1], sys.argv[2]
+with open(spec) as f:
+    S = json.load(f)
+doc = fitz.open(pdf)
+pg = doc[0]
+H = pg.rect.height
+k = 72.0 / 25.4
+for jp, x, y, w, h in S:
+    pg.insert_image(fitz.Rect(x * k, H - (y + h) * k, (x + w) * k, H - y * k), filename=jp, keep_proportion=False)
+doc.saveIncr()
+print("photos: %d placed" % len(S))
+'''
+
+
+def pc_photos(paths, photos, H, log):
+    """v3.4: JPEG photos into the written PDF (an outside Python with PyMuPDF, as the review PNGs) and SVG (an <image>
+    each). photos = [(jpeg file, x, y, w, h)] in page mm (y up, (x, y) = lower left); H = page height mm"""
+    import base64, subprocess, sys as _sys
+    for p in paths:
+        try:
+            if p.lower().endswith(".svg"):
+                with open(p, encoding="utf-8") as f:
+                    s_ = f.read()
+                add = u"".join(u'<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" preserveAspectRatio="none" '
+                               u'xlink:href="data:image/jpeg;base64,%s"/>' % (x, H - y - h, w, h, base64.b64encode(
+                                   open(jp, "rb").read()).decode("ascii")) for jp, x, y, w, h in photos)
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(s_.replace(u"</svg>", u'<g id="photos">' + add + u"</g></svg>"))
+                continue
+            cdir = os.path.join(pc_root(), PC_CACHE_DIR)
+            os.makedirs(cdir, exist_ok=True)
+            tp, sp = os.path.join(cdir, "photos_v1.py"), os.path.join(cdir, "photos_spec.json")
+            with open(tp, "w", encoding="utf-8") as f:
+                f.write(PC_PHOTO)
+            with open(sp, "w") as f:
+                json.dump(photos, f)
+            cmds = [["py", "-3"], ["python"]]
+            if os.path.basename(_sys.executable or "").lower().startswith("python"):
+                cmds.insert(0, [_sys.executable])
+            env = dict((k, v) for k, v in os.environ.items() if not k.upper().startswith("PYTHON"))
+            ok = False
+            for cmd in cmds:
+                try:
+                    r_ = subprocess.run(cmd + ["-I", tp, p, sp], capture_output=True, text=True, timeout=300, env=env)
+                except Exception:
+                    continue
+                if r_.returncode == 0:
+                    log.append(r_.stdout.strip() + u" in " + p)
+                    ok = True
+                    break
+            if not ok:
+                log.append(u"FLAG photos not placed in %s: no Python with PyMuPDF ran (pip install pymupdf)" % p)
+        except Exception as ex:
+            log.append(u"FLAG photos not placed in %s (%s: %s)" % (p, type(ex).__name__, ex))
 
 
 def pc_present(pdf, slide, log):
