@@ -17,14 +17,17 @@ One A3 landscape page per node (420 x 297 mm, PDF with layers + review PNGs):
             autumn look), 1:SEC_DEN, shrunk only if the cut is taller than its room (the real scale is printed)
   DIAGRAMS  land use of the node frame (Page02's 1 m cell count), water depth over the bed by season at both cuts
             (the Sections script's Manning levels: its SEASON_WATER flows and DSI Q100 / Q500), what each cut meets
-  PERSPECTIVE  a labelled placeholder (NO DRAWING rule: Aras renders it)
+  PLACEHOLDERS perspective from V1 (marked on the plan, place assumed), program brief, building proposal (plan,
+            section, elevation where the node has one): labelled boxes (NO DRAWING rule: Aras makes them)
+  v4 brief plan rules (Aras 14 Nov 11:30 UTC): scale + north + legend on the plan, EXISTING kept apart from the
+            PROPOSAL marks (orange), labels N#, N#-A / N#-B, V1 the same on plan, sections and placeholders
 Reads: newest scripts/bergama_basemap_v*.py, scripts/bergama_p02_what_is_there_v*.py, scripts/bergama_sections_v*.py,
 Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_heritage.json, the caches of Basemap
 (press Basemap first) and the open Rhino model's survey layers (the Sections code reads them).
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v3"   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v4"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -408,6 +411,10 @@ def node_page(cfg, log):
             items[-len(its) - 1] = T_(u"Section %s · looking downstream · 1:%d" % (C.name, round(SEC_DEN / f)), x0,
                                       y1 - 3.5, 3.4, INK, True, "L", "sections")
             done.append(C)
+            nb = sum(1 for t in C.bld if t[4])
+            items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
+                nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 3.5, 2.0, GREY, False, "R",
+                "sections"))
             log.append(u"section %s: %.0f x %.0f mm at 1:%d%s" % (C.name, w * f, h * f, round(SEC_DEN / f),
                                                                  u"" if f >= 0.999 else u" (shrunk to fit its room)"))
         except Exception as ex:
@@ -428,6 +435,7 @@ def node_page(cfg, log):
             if inside(q, 2.0):
                 items.append(R_([ring(q[0], q[1], 2.6, 24)], "FFFFFF", CUT_C, 0.3, "section_names"))
                 items.append(T_(C.name[-1], q[0], q[1] - 1.0, 2.8, CUT_C, True, "C", "section_names"))
+                items.append(T_(C.name, q[0] + 3.2, q[1] + 1.6, 2.2, CUT_C, True, "L", "section_names"))
 
     # ---- transit and heritage over the plan (PageTransit / PageHeritage data and colours)
     K = D["key"]
@@ -494,25 +502,47 @@ def node_page(cfg, log):
     else:
         log.append(u"city square: not in %s (%s)" % (node, u"no heritage loop stop in the frame" if not hs else
                                                      u"no bus stop in the frame"))
+    # ---- V1, the viewpoint of the perspective (brief: viewpoints marked on each node plan; place assumed): from the
+    # city square, else from the bank end of the drawn part of section A, looking to the stream bed of the nearest cut
+    vp = None
+    if done:
+        if sq:
+            c0 = ((sq[0]["xy"][0] + sq[1][1][0]) / 2.0, (sq[0]["xy"][1] + sq[1][1][1]) / 2.0)
+            Cn = min(done, key=lambda C: G["pc_dist"](C.xy(C.s_th), c0))
+        else:
+            Cn = done[0]
+            c0 = Cn.xy(Cn.window[0])
+        vp = (c0, Cn.xy(Cn.s_th))
+        qa, qb = pgS(vp[0]), pgS(vp[1])
+        ang = math.atan2(qb[1] - qa[1], qb[0] - qa[0])
+        for da in (-0.35, 0.35):
+            items.append(L_([qa, (qa[0] + 9.0 * math.cos(ang + da), qa[1] + 9.0 * math.sin(ang + da))], SQUARE_C, 0.35,
+                            "viewpoints"))
+        items.append(R_([ring(qa[0], qa[1], 2.0, 24)], SQUARE_C, "FFFFFF", 0.3, "viewpoints"))
+        items.append(T_(u"V1", qa[0], qa[1] - 0.8, 2.2, "FFFFFF", True, "C", "viewpoints"))
+        log.append(u"V1 viewpoint (assumed): %s, looking to the bed of %s" % (
+            u"the city square" if sq else u"the bank end of %s" % Cn.name, Cn.name))
     items.append(L_([(X0, Y0), (X0 + F.w * k, Y0), (X0 + F.w * k, Y0 + F.h * k), (X0, Y0 + F.h * k), (X0, Y0)], INK,
                     0.25, "map_frame"))
     items += scale_north(F, den, X0 + F.w * k, Y0)
 
     # ---- key under the plan
     ky = Y0 - 5.0
-    items.append(T_(u"Plan · %s %s today · 1:%d" % (node, nd["name"], den), PLAN_BOX[0], ky, 2.8, INK, True))
+    items.append(T_(u"Plan · %s %s · EXISTING today, orange = PROPOSAL marks · 1:%d" % (node, nd["name"], den), PLAN_BOX[0], ky, 2.8, INK, True))
     ky -= 5.0
     shown = set(u["fab"] for u in units)
-    rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC")] + [("box", P["FAB"][f_], P["FAB_WORDS"][f_])
+    rows1 = [("hdr", None, u"EXISTING: BUILDINGS · URBAN FABRIC")] + [("box", P["FAB"][f_], P["FAB_WORDS"][f_])
                                                             for f_ in P["FAB_ORDER"] if f_ in shown]
-    rows2 = [("hdr", None, u"MOVEMENT AND HERITAGE"),
+    rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
              ("line", K["lines"]["town"][0], u"bus lines (OSM; weight = buses a weekday, ESHOT)"),
              ("disc", INK, u"bus stop with its lines (OSM)"),
              ("disc", RED, u"heritage loop stop, loop order (PageHeritage)"),
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
+             ("line", CUT_C, u"section line N#-A / N#-B; bold = the part drawn"),
+             ("box", P["WATER_C"], u"the Selinos"),
+             ("hdr", None, u"PROPOSAL MARKS"),
              ("line", SQUARE_C, u"city square idea: loop meets transit (place not designed)"),
-             ("line", CUT_C, u"section line; bold = the part drawn"),
-             ("box", P["WATER_C"], u"the Selinos")]
+             ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
     yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.4, ts=2.3)
     yk2 = P["draw_rows"](B, items, rows2, PLAN_BOX[0] + cw, ky, cw - 3.0, step=3.4, ts=2.3)
@@ -576,32 +606,32 @@ def node_page(cfg, log):
     items.append(T_(u"summer: no flow figure; the held strip 4.0 x 0.30 m is the design's", dx0, 11.5, 1.8, GREY,
                     False, "L", "diagrams"))
 
-    # ---- perspective placeholder, then what each cut meets and the city square under it
-    px0, py0, px1, py1 = 310.0, 40.0, 406.0, 94.0
-    items.append(R_([box(px0, py0, px1, py1)], "F1EFEA", GREY, 0.3, "perspective_placeholder"))
-    items.append(L_([(px0, py0), (px1, py1)], "C9C5BC", 0.2, "perspective_placeholder"))
-    items.append(L_([(px0, py1), (px1, py0)], "C9C5BC", 0.2, "perspective_placeholder"))
-    items.append(T_(u"PERSPECTIVE · %s" % node, (px0 + px1) / 2.0, (py0 + py1) / 2.0 + 2.0, 3.2, INK, True, "C",
-                    "perspective_placeholder"))
-    items.append(T_(u"placeholder: Aras's render (Archicad model, Unreal 5)", (px0 + px1) / 2.0, (py0 + py1) / 2.0 - 3.0,
-                    2.2, GREY, False, "C", "perspective_placeholder"))
-    ty = 36.0
-    items.append(T_(u"WHAT THE CUTS MEET", px0, ty, 2.6, INK, True, "L", "diagrams"))
-    ty -= 4.0
-    for C in done:
-        nb = sum(1 for t in C.bld if t[4])
-        nbk = sum(1 for t in C.bld if not t[4])
-        ty = para(B, items, u"%s: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
-            C.name, nb, nbk, len(C.roads), len(C.trees), C.z_th), px0, ty, 2.0, px1 - px0, INK, False, 2.8, "diagrams")
-    ty -= 1.5
+    # ---- placeholders (NO DRAWING rule; brief: perspective, program brief, building proposal per node)
+    def holder(x0, y0, x1, y1, title, sub, layer):
+        items.append(R_([box(x0, y0, x1, y1)], "F1EFEA", GREY, 0.3, layer))
+        items.append(L_([(x0, y0), (x1, y1)], "C9C5BC", 0.2, layer))
+        items.append(L_([(x0, y1), (x1, y0)], "C9C5BC", 0.2, layer))
+        items.append(R_([box((x0 + x1) / 2.0 - 30.0, (y0 + y1) / 2.0 - 5.0, (x0 + x1) / 2.0 + 30.0,
+                             (y0 + y1) / 2.0 + 6.5)], "F1EFEA", None, 0.0, layer))
+        items.append(T_(title, (x0 + x1) / 2.0, (y0 + y1) / 2.0 + 2.0, 2.8, INK, True, "C", layer))
+        yy_ = (y0 + y1) / 2.0 - 2.0
+        for ln in wrap(B, sub, 2.0, min(58.0, x1 - x0 - 4.0)):
+            items.append(T_(ln, (x0 + x1) / 2.0, yy_, 2.0, GREY, False, "C", layer))
+            yy_ -= 2.6
+    holder(310.0, 60.0, 406.0, 94.0, u"V1 · PERSPECTIVE · %s" % node,
+           u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
+    holder(310.0, 22.0, 356.0, 56.0, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
+           "placeholder_program")
+    holder(360.0, 22.0, 406.0, 56.0, u"BUILDING PROPOSAL", u"placeholder: plan, section, elevation (if the node has one)",
+           "placeholder_building")
     if sq:
         h, s, d_ = sq
         para(B, items, u"City square idea: loop stop %s %s and bus stop %s (%s) %.0f m apart, straight line." % (
-            h["n"], h["name"], s[0], u" ".join(sorted(s[2], key=lambda r: (len(r), r))), d_), px0, ty, 2.0, px1 - px0,
-            SQUARE_C, True, 2.8, "diagrams")
+            h["n"], h["name"], s[0], u" ".join(sorted(s[2], key=lambda r: (len(r), r))), d_), 310.0, 18.5, 2.0, 96.0,
+            SQUARE_C, True, 2.7, "diagrams")
     else:
-        para(B, items, u"No heritage loop stop and bus stop share this node: no city square here.", px0, ty, 2.0,
-             px1 - px0, GREY, False, 2.8, "diagrams")
+        para(B, items, u"No heritage loop stop and bus stop share this node: no city square here.", 310.0, 18.5, 2.0,
+             96.0, GREY, False, 2.7, "diagrams")
 
     # ---- title band and credit
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
